@@ -657,11 +657,18 @@ void JoinOrderEnumerator::appendMarkJoin(const expression_vector& joinNodeIDs,
     LogicalPlan& buildPlan) {
     // Apply flattening all but one on join nodes of both probe and build side.
     unordered_set<uint32_t> joinNodeGroupsPosInProbeSide, joinNodeGroupsPosInBuildSide;
+    auto needFlattenProbeJoinKey = false;
+    needFlattenProbeJoinKey |= joinNodeIDs.size() > 1;
+    needFlattenProbeJoinKey |= !isJoinKeyUniqueOnBuildSide(*joinNodeIDs[0], buildPlan);
     for (auto& joinNodeID : joinNodeIDs) {
-        joinNodeGroupsPosInProbeSide.insert(probePlan.getSchema()->getGroupPos(*joinNodeID));
+        auto probeKeyGroupPos = probePlan.getSchema()->getGroupPos(*joinNodeID);
+        if (needFlattenProbeJoinKey) {
+            QueryPlanner::appendFlattenIfNecessary(probeKeyGroupPos, probePlan);
+        }
+        joinNodeGroupsPosInProbeSide.insert(probeKeyGroupPos);
         joinNodeGroupsPosInBuildSide.insert(buildPlan.getSchema()->getGroupPos(*joinNodeID));
     }
-    auto markGroupPos = QueryPlanner::appendFlattensButOne(joinNodeGroupsPosInProbeSide, probePlan);
+    auto markGroupPos = *joinNodeGroupsPosInProbeSide.begin();
     QueryPlanner::appendFlattensButOne(joinNodeGroupsPosInBuildSide, buildPlan);
     probePlan.increaseCost(probePlan.getCardinality() + buildPlan.getCardinality());
     auto hashJoin = make_shared<LogicalHashJoin>(joinNodeIDs, mark, markGroupPos, isProbeAcc,
