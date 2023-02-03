@@ -28,12 +28,17 @@ NodeConnection::NodeConnection(const Napi::CallbackInfo& info) : Napi::ObjectWra
 
   if (info.Length()!=1 || !info[0].IsObject()) {
       Napi::TypeError::New(env, "Need database class passed in").ThrowAsJavaScriptException();
+      return;
   }
-
   NodeDatabase * nodeDatabase = NodeDatabase::Unwrap(info[0].As<Napi::Object>());
 
-  auto connection = new Connection(nodeDatabase->database_);
-  this->connection_ = connection;
+  try {
+      auto connection = new Connection(nodeDatabase->database_);
+      this->connection_ = connection;
+  }
+  catch(const std::exception &exc){
+      Napi::TypeError::New(env, exc.what()).ThrowAsJavaScriptException();
+  }
 }
 
 NodeConnection::~NodeConnection() {
@@ -53,13 +58,16 @@ Napi::Value NodeConnection::Execute(const Napi::CallbackInfo& info) {
         return Napi::Object::New(env);
     }
 
-  auto result = this->connection_->query(query);
-
+  std::unique_ptr<kuzu::main::QueryResult> queryResult = this->connection_->query(query);
+  if (!queryResult->isSuccess()) {
+      Napi::TypeError::New(env, queryResult->getErrorMessage()).ThrowAsJavaScriptException();
+      return Napi::Object::New(env);
+  }
   Napi::Object output = Napi::Object::New(env);
   if (query.starts_with("MATCH")) { // TODO: make this check more robust go through all return types for queries
     auto i = 0;
-    while (result->hasNext()) {
-        auto row = result->getNext();
+    while (queryResult->hasNext()) {
+        auto row = queryResult->getNext();
         Napi::Object obj = Napi::Object::New(env);
         std::string fName = row->getValue(0)->toString();
         obj.Set("fName", Napi::String::New(env, fName));
