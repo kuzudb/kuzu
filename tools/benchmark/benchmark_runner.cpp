@@ -28,7 +28,12 @@ void BenchmarkRunner::registerBenchmarks(const string& path) {
 
 void BenchmarkRunner::runAllBenchmarks() {
     for (auto& benchmark : benchmarks) {
-        runBenchmark(benchmark.get());
+        try {
+            runBenchmark(benchmark.get());
+        } catch (exception& e) {
+            spdlog::error(
+                "Error encountered while running benchmark {}: {}.", benchmark->name, e.what());
+        }
     }
 }
 
