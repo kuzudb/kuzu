@@ -28,12 +28,17 @@ NodeConnection::NodeConnection(const Napi::CallbackInfo& info) : Napi::ObjectWra
 
   if (info.Length()!=1 || !info[0].IsObject()) {
       Napi::TypeError::New(env, "Need database class passed in").ThrowAsJavaScriptException();
+      return;
   }
-
   NodeDatabase * nodeDatabase = NodeDatabase::Unwrap(info[0].As<Napi::Object>());
 
-  auto connection = new Connection(nodeDatabase->database_);
-  this->connection_ = connection;
+  try {
+      auto connection = new Connection(nodeDatabase->database_);
+      this->connection_ = connection;
+  }
+  catch(const std::exception &exc){
+      Napi::TypeError::New(env, exc.what()).ThrowAsJavaScriptException();
+  }
 }
 
 NodeConnection::~NodeConnection() {
@@ -44,23 +49,22 @@ Napi::Value NodeConnection::Execute(const Napi::CallbackInfo& info) {
   Napi::Env env = info.Env();
   Napi::HandleScope scope(env);
 
-  // add parsing for queries TODO: make this smart? like check whether a user created before matching???
-  std::string query = "";
-  if (info.Length()>0) {
-    query = info[0].ToString();
-    if (!query.starts_with("MATCH") && !query.starts_with("create") && !query.starts_with("COPY")) {
-        Napi::TypeError::New(env, "Wrong arguments").ThrowAsJavaScriptException();
-        return Napi::Object::New(env);
-    }
+  if (info.Length()!=1 || !info[0].IsString()) {
+      Napi::TypeError::New(env, "Execute needs query parameter").ThrowAsJavaScriptException();
+      return Napi::Object::New(env);
   }
+  std::string query = info[0].ToString();
 
-  auto result = this->connection_->query(query);
-
+  std::unique_ptr<kuzu::main::QueryResult> queryResult = this->connection_->query(query);
+  if (!queryResult->isSuccess()) {
+      Napi::TypeError::New(env, queryResult->getErrorMessage()).ThrowAsJavaScriptException();
+      return Napi::Object::New(env);
+  }
   Napi::Object output = Napi::Object::New(env);
   if (query.starts_with("MATCH")) { // TODO: make this check more robust go through all return types for queries
     auto i = 0;
-    while (result->hasNext()) {
-        auto row = result->getNext();
+    while (queryResult->hasNext()) {
+        auto row = queryResult->getNext();
         Napi::Object obj = Napi::Object::New(env);
         std::string fName = row->getValue(0)->toString();
         obj.Set("fName", Napi::String::New(env, fName));
