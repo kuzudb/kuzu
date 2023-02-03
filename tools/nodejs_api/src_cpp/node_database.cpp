@@ -27,12 +27,13 @@ NodeDatabase::NodeDatabase(const Napi::CallbackInfo& info) : Napi::ObjectWrap<No
 
     if (info.Length()!=2) {
         Napi::TypeError::New(env, "Need database config string and buffer manager size").ThrowAsJavaScriptException();
-    }
-    if (!info[0].IsString()) {
+        return;
+    } else if (!info[0].IsString()) {
         Napi::TypeError::New(env, "Database config parameter must be a string").ThrowAsJavaScriptException();
-    }
-    if (!info[1].IsNumber()) {
+        return;
+    } else if (!info[1].IsNumber()) {
         Napi::TypeError::New(env, "Database buffer manager size must be an int_64").ThrowAsJavaScriptException();
+        return;
     }
 
     std::string databaseConfigString = info[0].ToString();
@@ -41,9 +42,13 @@ NodeDatabase::NodeDatabase(const Napi::CallbackInfo& info) : Napi::ObjectWrap<No
     std::int64_t bufferSize = info[1].As<Napi::Number>().DoubleValue();
     SystemConfig systemConfig(bufferSize);
 
-    Database * database = new Database(databaseConfig, systemConfig);
-
-    this->database_ = database;
+    try {
+        Database * database = new Database(databaseConfig, systemConfig);
+        this->database_ = database;
+    }
+    catch(const std::exception &exc) {
+        Napi::TypeError::New(env, exc.what()).ThrowAsJavaScriptException();
+    }
 }
 
 NodeDatabase::~NodeDatabase() {
@@ -58,10 +63,15 @@ void NodeDatabase::ResizeBufferManager(const Napi::CallbackInfo& info) {
     std::int64_t bufferSize = 0;
     if (info.Length()!=1 || !info[0].IsNumber()) {
         Napi::TypeError::New(env, "Database buffer manager size must be an int_64").ThrowAsJavaScriptException();
+        return;
     }
     bufferSize = info[0].As<Napi::Number>().DoubleValue();
 
-    this->database_->resizeBufferManager(bufferSize);
-
+    try {
+        this->database_->resizeBufferManager(bufferSize);
+    }
+    catch(const std::exception &exc) {
+        Napi::TypeError::New(env, exc.what()).ThrowAsJavaScriptException();
+    }
     return;
 }
