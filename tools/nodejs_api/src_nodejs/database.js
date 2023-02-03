@@ -1,4 +1,4 @@
-const kuzu = require("../build/Release/kuzujs.node");
+const kuzu = require("../Release/kuzujs.node");
 class Database {
     database;
     constructor(databaseConfigString, bufferSize = 0) {

@@ -1,4 +1,4 @@
-const kuzu = require("../build/Release/kuzujs.node");
+const kuzu = require("../Release/kuzujs.node");
 class Connection {
     #connection;
     constructor(database) {
