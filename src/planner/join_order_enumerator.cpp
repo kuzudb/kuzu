@@ -79,7 +79,7 @@ vector<unique_ptr<LogicalPlan>> JoinOrderEnumerator::enumerate(
     while (context->currentLevel < context->maxLevel) {
         planLevel(context->currentLevel++);
     }
-    return move(context->getPlans(context->getFullyMatchedSubqueryGraph()));
+    return std::move(context->getPlans(context->getFullyMatchedSubqueryGraph()));
 }
 
 unique_ptr<JoinOrderEnumeratorContext> JoinOrderEnumerator::enterSubquery(LogicalPlan* outerPlan,
@@ -93,11 +93,20 @@ unique_ptr<JoinOrderEnumeratorContext> JoinOrderEnumerator::enterSubquery(Logica
 }
 
 void JoinOrderEnumerator::exitSubquery(unique_ptr<JoinOrderEnumeratorContext> prevContext) {
-    context = move(prevContext);
+    context = std::move(prevContext);
 }
 
 void JoinOrderEnumerator::planLevel(uint32_t level) {
     assert(level > 1);
+    if (level > MAX_LEVEL_TO_PLAN_EXACTLY) {
+        planLevelApproximately(level);
+    } else {
+        planLevelExactly(level);
+    }
+    context->subPlansTable->finalizeLevel(level);
+}
+
+void JoinOrderEnumerator::planLevelExactly(uint32_t level) {
     auto maxLeftLevel = floor(level / 2.0);
     for (auto leftLevel = 1u; leftLevel <= maxLeftLevel; ++leftLevel) {
         auto rightLevel = level - leftLevel;
@@ -106,7 +115,10 @@ void JoinOrderEnumerator::planLevel(uint32_t level) {
         }
         planInnerJoin(leftLevel, rightLevel);
     }
-    context->subPlansTable->finalizeLevel(level);
+}
+
+void JoinOrderEnumerator::planLevelApproximately(uint32_t level) {
+    planInnerJoin(1, level - 1);
 }
 
 void JoinOrderEnumerator::planOuterExpressionsScan(expression_vector& expressions) {

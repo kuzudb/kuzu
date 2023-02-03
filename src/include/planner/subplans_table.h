@@ -12,6 +12,10 @@ using namespace kuzu::binder;
 namespace kuzu {
 namespace planner {
 
+const uint64_t MAX_LEVEL_TO_PLAN_EXACTLY = 7;
+const uint64_t MAX_NUM_SUBGRAPHS_PER_LEVEL = 100;
+const uint64_t MAX_NUM_PLANS_PER_SUBGRAPH = 50;
+
 class SubPlansTable {
     typedef unordered_map<SubqueryGraph, vector<unique_ptr<LogicalPlan>>, SubqueryGraphHasher>
         SubqueryGraphPlansMap;

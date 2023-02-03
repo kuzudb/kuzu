@@ -98,6 +98,16 @@ TEST_F(ApiTest, DefaultParam) {
     ASSERT_FALSE(result->hasNext());
 }
 
+TEST_F(ApiTest, PrepareLargeJoin) {
+    auto preparedStatement = conn->prepare(
+        " MATCH "
+        "(:person)-[:knows]->(:person)-[:knows]->(:person)-[:knows]->(:person)-[:knows]->(:person)-"
+        "[:knows]->(:person)-[:knows]->(:person)-[:knows]->(:person)-[:knows]->(:person)-[:knows]->"
+        "(:person)-[:knows]->(:person)-[:knows]->(:person)-[:knows]->(:person)-[:knows]->(:person)-"
+        "[:knows]->(:person)-[:knows]->(:person)-[:knows]->(:person) RETURN COUNT(*)");
+    ASSERT_TRUE(preparedStatement->isSuccess());
+}
+
 TEST_F(ApiTest, ParamNotExist) {
     auto preparedStatement =
         conn->prepare("MATCH (a:person) WHERE a.fName STARTS WITH $n RETURN COUNT(*)");

@@ -43,6 +43,9 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
     case LogicalOperatorType::DISTINCT: {
         return "DISTINCT";
     }
+    case LogicalOperatorType::DROP_PROPERTY: {
+        return "DROP_PROPERTY";
+    }
     case LogicalOperatorType::DROP_TABLE: {
         return "DROP_TABLE";
     }
