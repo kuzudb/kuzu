@@ -47,7 +47,7 @@ NodeDatabase::NodeDatabase(const Napi::CallbackInfo& info) : Napi::ObjectWrap<No
         this->database_ = database;
     }
     catch(const std::exception &exc) {
-        Napi::TypeError::New(env, "Unsuccessful Database Creation: " + std::string(exc.what())).ThrowAsJavaScriptException();
+        Napi::TypeError::New(env, "Unsuccessful Database Initialization: " + std::string(exc.what())).ThrowAsJavaScriptException();
     }
 }
 
@@ -70,7 +70,7 @@ void NodeDatabase::ResizeBufferManager(const Napi::CallbackInfo& info) {
         this->database_->resizeBufferManager(bufferSize);
     }
     catch(const std::exception &exc) {
-        Napi::TypeError::New(env, "Unsuccessful Buffer Manager Resize: " + std::string(exc.what())).ThrowAsJavaScriptException();
+        Napi::TypeError::New(env, "Unsuccessful resizeBufferManager: " + std::string(exc.what())).ThrowAsJavaScriptException();
     }
     return;
 }

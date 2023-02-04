@@ -6,7 +6,7 @@ class Database {
     }
 
     resizeBufferManager(bufferSize) {
-        console.log("Trying to resize the buffer to ", bufferSize);
+        this.database.resizeBufferManager(bufferSize);
     }
 }
 
