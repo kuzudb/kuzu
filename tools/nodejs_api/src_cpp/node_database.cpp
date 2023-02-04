@@ -47,7 +47,7 @@ NodeDatabase::NodeDatabase(const Napi::CallbackInfo& info) : Napi::ObjectWrap<No
         this->database_ = database;
     }
     catch(const std::exception &exc) {
-        Napi::TypeError::New(env, exc.what()).ThrowAsJavaScriptException();
+        Napi::TypeError::New(env, "Unsuccessful Database Creation: " + std::string(exc.what())).ThrowAsJavaScriptException();
     }
 }
 
@@ -59,7 +59,6 @@ void NodeDatabase::ResizeBufferManager(const Napi::CallbackInfo& info) {
     Napi::Env env = info.Env();
     Napi::HandleScope scope(env);
 
-    // add parsing for queries TODO: make this smart?
     std::int64_t bufferSize = 0;
     if (info.Length()!=1 || !info[0].IsNumber()) {
         Napi::TypeError::New(env, "Database buffer manager size must be an int_64").ThrowAsJavaScriptException();
@@ -71,7 +70,7 @@ void NodeDatabase::ResizeBufferManager(const Napi::CallbackInfo& info) {
         this->database_->resizeBufferManager(bufferSize);
     }
     catch(const std::exception &exc) {
-        Napi::TypeError::New(env, exc.what()).ThrowAsJavaScriptException();
+        Napi::TypeError::New(env, "Unsuccessful Buffer Manager Resize: " + std::string(exc.what())).ThrowAsJavaScriptException();
     }
     return;
 }
