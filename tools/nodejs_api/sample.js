@@ -9,7 +9,7 @@ try {
 }
 
 // Basic Case
-const database = new Database("test", 1 << 30);
+const database = new Database("test", 1000000000);
 console.log("The database looks like: ", database);
 const connection = new Connection(database);
 console.log ("The connection looks like: ", connection);
@@ -19,8 +19,8 @@ connection.execute("COPY person FROM \"../../dataset/tinysnb/vPerson.csv\" (HEAD
 let queryResult = connection.execute("MATCH (a:person) RETURN a.fName, a.age, a.eyeSight, a.isStudent;");
 console.log(queryResult);
 
-// Extensive Case
-// database.resizeBufferManager(1 << 16);
+// // Extensive Case
+database.resizeBufferManager(2000000000);
 connection.setMaxNumThreadForExec(2);
 queryResult = connection.execute("MATCH (a:person) RETURN a.fName, a.age, a.eyeSight, a.isStudent;");
 console.log(queryResult);
