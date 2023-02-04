@@ -37,7 +37,7 @@ NodeConnection::NodeConnection(const Napi::CallbackInfo& info) : Napi::ObjectWra
       this->connection_ = connection;
   }
   catch(const std::exception &exc){
-      Napi::TypeError::New(env, exc.what()).ThrowAsJavaScriptException();
+      Napi::TypeError::New(env, "Unsuccessful Connection creation from Database: " + std::string(exc.what())).ThrowAsJavaScriptException();
   }
 }
 
@@ -60,22 +60,19 @@ Napi::Value NodeConnection::Execute(const Napi::CallbackInfo& info) {
 
   std::unique_ptr<kuzu::main::QueryResult> queryResult = this->connection_->query(query);
   if (!queryResult->isSuccess()) {
-      Napi::TypeError::New(env, queryResult->getErrorMessage()).ThrowAsJavaScriptException();
+      Napi::TypeError::New(env, "Query Execution was Unsuccessful: " + queryResult->getErrorMessage()).ThrowAsJavaScriptException();
       return Napi::Object::New(env);
   }
   Napi::Object output = Napi::Object::New(env);
-  if (query.starts_with("MATCH")) { // TODO: make this check more robust go through all return types for queries
-    auto i = 0;
-    while (queryResult->hasNext()) {
-        auto row = queryResult->getNext();
-        Napi::Object obj = Napi::Object::New(env);
-        std::string fName = row->getValue(0)->toString();
-        obj.Set("fName", Napi::String::New(env, fName));
-        obj.Set("gender", Napi::Number::New(env, std::stoull(row->getValue(1)->toString())));
-        obj.Set("eyeSight", Napi::Number::New(env, std::stod(row->getValue(2)->toString())));
-        obj.Set("isStudent", row->getValue(3)->toString());
-        output.Set(uint32_t(i), obj);
-        ++i;
-    }
-    return output;
+  int i = 0;
+  while (queryResult->hasNext()) {
+      auto row = queryResult->getNext();
+      Napi::Array obj = Napi::Array::New(env, row->len());
+      for (int j=0; j < row->len(); j++) {
+          obj.Set(j, row->getValue(j)->toString());
+      }
+      output.Set(uint32_t(i), obj);
+      ++i;
+  }
+  return output;
 }

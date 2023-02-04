@@ -10,9 +10,4 @@ class Connection {
     }
 }
 
-<<<<<<< HEAD
-
 module.exports = Connection
-=======
-module.exports = Connection
->>>>>>> added Database Class, all its methods, database java class, and added it to connection
