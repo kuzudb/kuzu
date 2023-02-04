@@ -11,7 +11,10 @@ add_subdirectory(storage)
 add_subdirectory(transaction)
 
 add_library(kuzu STATIC ${ALL_OBJECT_FILES})
-target_link_libraries(kuzu PUBLIC antlr4_cypher antlr4_runtime utf8proc
+target_link_libraries(kuzu PUBLIC antlr4_cypher antlr4_runtime utf8proc re2
+        parquet_lib arrow_lib arrow_deps Threads::Threads)
+add_library(kuzu_shared SHARED ${ALL_OBJECT_FILES})
+target_link_libraries(kuzu_shared PUBLIC antlr4_cypher antlr4_runtime utf8proc
         parquet_lib arrow_lib arrow_deps Threads::Threads)
 add_library(kuzu_shared SHARED ${ALL_OBJECT_FILES})
 target_link_libraries(kuzu_shared PUBLIC antlr4_cypher antlr4_runtime utf8proc

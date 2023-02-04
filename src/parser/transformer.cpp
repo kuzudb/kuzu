@@ -591,10 +591,13 @@ unique_ptr<ParsedExpression> Transformer::transformStringOperatorExpression(
     } else if (ctx.ENDS()) {
         return make_unique<ParsedFunctionExpression>(
             ENDS_WITH_FUNC_NAME, std::move(propertyExpression), std::move(right), rawExpression);
-    } else {
-        assert(ctx.CONTAINS());
+    } else if (ctx.CONTAINS()) {
         return make_unique<ParsedFunctionExpression>(
             CONTAINS_FUNC_NAME, std::move(propertyExpression), std::move(right), rawExpression);
+    } else {
+        assert(ctx.oC_RegularExpression());
+        return make_unique<ParsedFunctionExpression>(
+            RE_MATCH_FUNC_NAME, std::move(propertyExpression), std::move(right), rawExpression);
     }
 }
 

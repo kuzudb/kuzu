@@ -34,6 +34,14 @@ def init_tiny_snb(tmp_path):
     conn.execute('create node table tensor (ID INT64, boolTensor BOOLEAN[], doubleTensor DOUBLE[][], intTensor INT64[][][], oneDimInt INT64, PRIMARY KEY (ID));')
     conn.execute(
         'COPY tensor FROM "../../../dataset/tensor-list/vTensor.csv" (HEADER=true)')
+    conn.execute(
+        "CREATE NODE TABLE personLongString (name STRING, spouse STRING, PRIMARY KEY(name))")
+    conn.execute(
+        'COPY personLongString FROM "../../../dataset/long-string-pk-tests/vPerson.csv"')
+    conn.execute(
+        "CREATE REL TABLE knowsLongString (FROM personLongString TO personLongString, MANY_MANY)")
+    conn.execute(
+        'COPY knowsLongString FROM "../../../dataset/long-string-pk-tests/eKnows.csv"')
     return output_path
 
 

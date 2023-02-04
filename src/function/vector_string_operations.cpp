@@ -7,6 +7,7 @@
 #include "function/string/operations/left_operation.h"
 #include "function/string/operations/length_operation.h"
 #include "function/string/operations/lpad_operation.h"
+#include "function/string/operations/reg_expr_operation.h"
 #include "function/string/operations/repeat_operation.h"
 #include "function/string/operations/right_operation.h"
 #include "function/string/operations/rpad_operation.h"
@@ -50,6 +51,16 @@ vector<unique_ptr<VectorOperationDefinition>> EndsWithVectorOperation::getDefini
         vector<DataTypeID>{STRING, STRING}, BOOL,
         BinaryExecFunction<ku_string_t, ku_string_t, uint8_t, operation::EndsWith>,
         BinarySelectFunction<ku_string_t, ku_string_t, operation::EndsWith>,
+        false /* isVarLength */));
+    return definitions;
+}
+
+vector<unique_ptr<VectorOperationDefinition>> REMatchVectorOperation::getDefinitions() {
+    vector<unique_ptr<VectorOperationDefinition>> definitions;
+    definitions.emplace_back(make_unique<VectorOperationDefinition>(RE_MATCH_FUNC_NAME,
+        vector<DataTypeID>{STRING, STRING}, BOOL,
+        BinaryExecFunction<ku_string_t, ku_string_t, uint8_t, operation::REMatch>,
+        BinarySelectFunction<ku_string_t, ku_string_t, operation::REMatch>,
         false /* isVarLength */));
     return definitions;
 }
