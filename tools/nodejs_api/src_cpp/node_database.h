@@ -1,6 +1,3 @@
-#ifndef KUZU_NODE_DATABASE_H
-#define KUZU_NODE_DATABASE_H
-
 #include <napi.h>
 #include <iostream>
 #include "main/kuzu.h"
@@ -16,6 +13,3 @@ private:
     static Napi::FunctionReference constructor;
     kuzu::main::Database * database_;
 };
-
-
-#endif
