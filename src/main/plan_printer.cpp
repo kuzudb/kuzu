@@ -2,6 +2,12 @@
 
 #include <sstream>
 
+#include "planner/logical_plan/logical_plan.h"
+#include "processor/physical_plan.h"
+#include <json.hpp>
+
+using namespace kuzu::processor;
+
 namespace kuzu {
 namespace main {
 
@@ -288,16 +294,33 @@ uint32_t OpProfileTree::calculateRowHeight(uint32_t rowIdx) const {
     return height + 2;
 }
 
-nlohmann::json PlanPrinter::toJson(PhysicalOperator* physicalOperator, Profiler& profiler) {
-    auto json = nlohmann::json();
-    json["Name"] = getOperatorName(physicalOperator);
+unique_ptr<nlohmann::json> PlanPrinter::printPlanToJson() {
+    return toJson(physicalPlan->lastOperator.get(), *profiler);
+}
+
+ostringstream PlanPrinter::printPlanToOstream() {
+    return OpProfileTree(physicalPlan->lastOperator.get(), *profiler).printPlanToOstream();
+}
+
+string PlanPrinter::getOperatorName(PhysicalOperator* physicalOperator) {
+    return PhysicalOperatorUtils::operatorTypeToString(physicalOperator->getOperatorType());
+}
+
+string PlanPrinter::getOperatorParams(PhysicalOperator* physicalOperator) {
+    return physicalOperator->getParamsString();
+}
+
+unique_ptr<nlohmann::json> PlanPrinter::toJson(
+    PhysicalOperator* physicalOperator, Profiler& profiler) {
+    auto json = make_unique<nlohmann::json>();
+    json->operator[]("name") = getOperatorName(physicalOperator);
     if (profiler.enabled) {
         for (auto& [key, val] : physicalOperator->getProfilerKeyValAttributes(profiler)) {
-            json[key] = val;
+            json->operator[](key) = val;
         }
     }
     for (auto i = 0u; i < physicalOperator->getNumChildren(); ++i) {
-        json["Child"] = toJson(physicalOperator->getChild(i), profiler);
+        json->operator[]("Child") = *toJson(physicalOperator->getChild(i), profiler);
     }
     return json;
 }

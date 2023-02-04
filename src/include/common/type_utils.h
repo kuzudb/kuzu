@@ -1,7 +1,7 @@
 #pragma once
 
-#include "common/exception.h"
-#include "common/types/types_include.h"
+#include "exception.h"
+#include "types/types_include.h"
 
 namespace kuzu {
 namespace common {

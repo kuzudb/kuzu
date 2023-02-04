@@ -2,8 +2,14 @@
 
 #include "common/configs.h"
 #include "common/logging_level_utils.h"
+#include "processor/processor.h"
 #include "spdlog/spdlog.h"
+#include "storage/buffer_manager/buffer_manager.h"
+#include "storage/buffer_manager/memory_manager.h"
+#include "storage/storage_manager.h"
 #include "storage/wal_replayer.h"
+#include "transaction/transaction.h"
+#include "transaction/transaction_manager.h"
 
 namespace kuzu {
 namespace main {
@@ -88,6 +94,8 @@ void Database::resizeBufferManager(uint64_t newSize) {
     bufferManager->resize(
         systemConfig.defaultPageBufferPoolSize, systemConfig.largePageBufferPoolSize);
 }
+
+Database::~Database() {}
 
 void Database::commitAndCheckpointOrRollback(
     Transaction* writeTransaction, bool isCommit, bool skipCheckpointForTestingRecovery) {

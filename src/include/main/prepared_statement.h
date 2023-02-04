@@ -1,18 +1,13 @@
 #pragma once
-
+#include "../common/statement_type.h"
+#include "../common/types/value.h"
+#include "forward_declarations.h"
 #include "query_summary.h"
-
-namespace kuzu::testing {
-class TestHelper;
-}
-
-namespace kuzu::transaction {
-class TinySnbDDLTest;
-class TinySnbCopyCSVTransactionTest;
-} // namespace kuzu::transaction
 
 namespace kuzu {
 namespace main {
+
+using namespace kuzu::planner;
 
 class PreparedStatement {
     friend class Connection;
@@ -32,9 +27,7 @@ public:
 
     inline bool isReadOnly() const { return readOnly; }
 
-    inline expression_vector getExpressionsToCollect() {
-        return statementResult->getExpressionsToCollect();
-    }
+    expression_vector getExpressionsToCollect();
 
 private:
     StatementType statementType;
@@ -43,7 +36,7 @@ private:
     string errMsg;
     PreparedSummary preparedSummary;
     unordered_map<string, shared_ptr<Value>> parameterMap;
-    unique_ptr<BoundStatementResult> statementResult;
+    unique_ptr<binder::BoundStatementResult> statementResult;
     vector<unique_ptr<LogicalPlan>> logicalPlans;
 };
 

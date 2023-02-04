@@ -1,4 +1,4 @@
-#include "processor/result/flat_tuple.h"
+#include "main/flat_tuple.h"
 
 #include "utf8proc.h"
 #include "utf8proc_wrapper.h"

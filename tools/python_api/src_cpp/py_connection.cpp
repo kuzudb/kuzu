@@ -1,6 +1,15 @@
 #include "include/py_connection.h"
 
+#include "binder/binder.h"
+#include "binder/expression/property_expression.h"
+#include "catalog/catalog.h"
 #include "datetime.h" // from Python
+#include "planner/logical_plan/logical_plan.h"
+#include "processor/processor.h"
+#include "storage/storage_manager.h"
+#include "transaction/transaction.h"
+#include "transaction/transaction_manager.h"
+#include <json.hpp>
 
 void PyConnection::initialize(py::handle& m) {
     py::class_<PyConnection>(m, "Connection")

@@ -5,7 +5,7 @@
 
 #include "common/in_mem_overflow_buffer.h"
 #include "common/vector/value_vector.h"
-#include "processor/result/flat_tuple.h"
+#include "main/flat_tuple.h"
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/storage_structure/disk_overflow_file.h"
 #include "storage/storage_structure/storage_structure.h"

@@ -1,8 +1,7 @@
 #pragma once
 
-#include "common/types/types.h"
-#include "processor/result/factorized_table.h"
-#include "processor/result/flat_tuple.h"
+#include "../common/types/types.h"
+#include "forward_declarations.h"
 #include "query_summary.h"
 
 using namespace kuzu::processor;
@@ -28,10 +27,7 @@ class QueryResult {
 public:
     // Only used when we failed to prepare a query.
     QueryResult() = default;
-    explicit QueryResult(const PreparedSummary& preparedSummary) {
-        querySummary = make_unique<QuerySummary>();
-        querySummary->setPreparedSummary(preparedSummary);
-    }
+    QueryResult(const PreparedSummary& preparedSummary);
 
     inline bool isSuccess() const { return success; }
     inline string getErrorMessage() const { return errMsg; }
@@ -40,11 +36,9 @@ public:
     inline vector<std::string> getColumnNames() { return columnNames; }
     inline std::vector<common::DataType> getColumnDataTypes() { return columnDataTypes; }
 
-    inline uint64_t getNumTuples() {
-        return querySummary->getIsExplain() ? 0 : factorizedTable->getTotalNumFlatTuples();
-    }
-
     inline QuerySummary* getQuerySummary() const { return querySummary.get(); }
+
+    uint64_t getNumTuples();
 
     vector<unique_ptr<DataTypeInfo>> getColumnTypesInfo();
 
@@ -61,7 +55,9 @@ public:
 
     // TODO: interfaces below should be removed
     // used in shell to walk the result twice (first time getting maximum column width)
-    inline void resetIterator() { iterator->resetState(); }
+    void resetIterator();
+
+    ~QueryResult();
 
 private:
     void validateQuerySucceed();

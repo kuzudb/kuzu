@@ -1,11 +1,18 @@
 #include "main/connection.h"
 
+#include "binder/binder.h"
+#include "binder/expression/property_expression.h"
+#include "catalog/catalog.h"
 #include "main/database.h"
 #include "main/plan_printer.h"
 #include "optimizer/optimizer.h"
 #include "parser/parser.h"
+#include "planner/logical_plan/logical_plan.h"
 #include "planner/planner.h"
 #include "processor/mapper/plan_mapper.h"
+#include "processor/processor.h"
+#include "transaction/transaction_manager.h"
+#include <json.hpp>
 
 using namespace kuzu::parser;
 using namespace kuzu::binder;
@@ -29,11 +36,47 @@ Connection::~Connection() {
     }
 }
 
+void Connection::beginReadOnlyTransaction() {
+    lock_t lck{mtx};
+    setTransactionModeNoLock(MANUAL);
+    beginTransactionNoLock(READ_ONLY);
+}
+
+void Connection::beginWriteTransaction() {
+    lock_t lck{mtx};
+    setTransactionModeNoLock(MANUAL);
+    beginTransactionNoLock(WRITE);
+}
+
+void Connection::commit() {
+    lock_t lck{mtx};
+    commitOrRollbackNoLock(true /* isCommit */);
+}
+
+void Connection::rollback() {
+    lock_t lck{mtx};
+    commitOrRollbackNoLock(false /* is rollback */);
+}
+
+void Connection::setMaxNumThreadForExec(uint64_t numThreads) {
+    clientContext->numThreadsForExecution = numThreads;
+}
+
+uint64_t Connection::getMaxNumThreadForExec() {
+    lock_t lck{mtx};
+    return clientContext->numThreadsForExecution;
+}
+
 unique_ptr<QueryResult> Connection::query(const string& query) {
     lock_t lck{mtx};
     unique_ptr<PreparedStatement> preparedStatement;
     preparedStatement = prepareNoLock(query);
     return executeAndAutoCommitIfNecessaryNoLock(preparedStatement.get());
+}
+
+unique_ptr<PreparedStatement> Connection::prepare(const string& query) {
+    lock_t lck{mtx};
+    return prepareNoLock(query);
 }
 
 unique_ptr<QueryResult> Connection::queryResultWithError(std::string& errMsg) {
@@ -238,6 +281,56 @@ std::unique_ptr<QueryResult> Connection::executeAndAutoCommitIfNecessaryNoLock(
     queryResult->querySummary->planInJson = planPrinter->printPlanToJson();
     queryResult->querySummary->planInOstream = planPrinter->printPlanToOstream();
     return queryResult;
+}
+
+Connection::ConnectionTransactionMode Connection::getTransactionMode() {
+    lock_t lck{mtx};
+    return transactionMode;
+}
+
+void Connection::setTransactionModeNoLock(ConnectionTransactionMode newTransactionMode) {
+    if (activeTransaction && transactionMode == MANUAL && newTransactionMode == AUTO_COMMIT) {
+        throw ConnectionException(
+            "Cannot change transaction mode from MANUAL to AUTO_COMMIT when there is an "
+            "active transaction. Need to first commit or rollback the active transaction.");
+    }
+    transactionMode = newTransactionMode;
+}
+
+void Connection::commitButSkipCheckpointingForTestingRecovery() {
+    lock_t lck{mtx};
+    commitOrRollbackNoLock(true /* isCommit */, true /* skip checkpointing for testing */);
+}
+
+void Connection::rollbackButSkipCheckpointingForTestingRecovery() {
+    lock_t lck{mtx};
+    commitOrRollbackNoLock(false /* is rollback */, true /* skip checkpointing for testing */);
+}
+
+Transaction* Connection::getActiveTransaction() {
+    lock_t lck{mtx};
+    return activeTransaction.get();
+}
+
+uint64_t Connection::getActiveTransactionID() {
+    lock_t lck{mtx};
+    return activeTransaction ? activeTransaction->getID() : UINT64_MAX;
+}
+
+bool Connection::hasActiveTransaction() {
+    lock_t lck{mtx};
+    return activeTransaction != nullptr;
+}
+
+void Connection::commitNoLock() {
+    commitOrRollbackNoLock(true /* is commit */);
+}
+void Connection::rollbackIfNecessaryNoLock() {
+    // If there is no active transaction in the system (e.g., an exception occurs during
+    // planning), we shouldn't roll back the transaction.
+    if (activeTransaction != nullptr) {
+        commitOrRollbackNoLock(false /* is rollback */);
+    }
 }
 
 void Connection::beginTransactionNoLock(TransactionType type) {

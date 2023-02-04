@@ -2,7 +2,7 @@
 
 #include <mutex>
 
-#include "common/timer.h"
+#include "timer.h"
 
 using namespace std;
 

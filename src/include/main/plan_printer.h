@@ -4,16 +4,17 @@
 #include <sstream>
 #include <string>
 
-#include "common/profiler.h"
-#include "planner/logical_plan/logical_plan.h"
-#include "processor/physical_plan.h"
-#include <json.hpp>
+#include "../common/profiler.h"
+#include "../common/types/types.h"
+#include "forward_declarations.h"
 
-using namespace kuzu::planner;
-using namespace kuzu::processor;
+using namespace std;
+using namespace kuzu::common;
 
 namespace kuzu {
 namespace main {
+
+using namespace kuzu::processor;
 
 class OpProfileBox {
 public:
@@ -94,24 +95,16 @@ public:
     PlanPrinter(PhysicalPlan* physicalPlan, unique_ptr<Profiler> profiler)
         : physicalPlan{physicalPlan}, profiler{move(profiler)} {}
 
-    inline nlohmann::json printPlanToJson() {
-        return toJson(physicalPlan->lastOperator.get(), *profiler);
-    }
+    unique_ptr<nlohmann::json> printPlanToJson();
 
-    inline ostringstream printPlanToOstream() {
-        return OpProfileTree(physicalPlan->lastOperator.get(), *profiler).printPlanToOstream();
-    }
+    ostringstream printPlanToOstream();
 
-    static inline string getOperatorName(PhysicalOperator* physicalOperator) {
-        return PhysicalOperatorUtils::operatorTypeToString(physicalOperator->getOperatorType());
-    }
+    static string getOperatorName(PhysicalOperator* physicalOperator);
 
-    static inline string getOperatorParams(PhysicalOperator* physicalOperator) {
-        return physicalOperator->getParamsString();
-    }
+    static string getOperatorParams(PhysicalOperator* physicalOperator);
 
 private:
-    nlohmann::json toJson(PhysicalOperator* physicalOperator, Profiler& profiler);
+    unique_ptr<nlohmann::json> toJson(PhysicalOperator* physicalOperator, Profiler& profiler);
 
 private:
     PhysicalPlan* physicalPlan;

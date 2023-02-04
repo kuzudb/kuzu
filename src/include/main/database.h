@@ -1,20 +1,11 @@
 #pragma once
 
-// TODO: Consider using forward declaration
-#include "common/configs.h"
-#include "common/logging_level_utils.h"
-#include "processor/processor.h"
-#include "storage/buffer_manager/buffer_manager.h"
-#include "storage/buffer_manager/memory_manager.h"
-#include "storage/storage_manager.h"
-#include "transaction/transaction.h"
-#include "transaction/transaction_manager.h"
+#include <thread>
 
-namespace kuzu {
-namespace testing {
-class BaseGraphTest;
-} // namespace testing
-} // namespace kuzu
+#include "../common/configs.h"
+#include "forward_declarations.h"
+using namespace std;
+using namespace kuzu::common;
 
 namespace kuzu {
 namespace main {
@@ -50,7 +41,7 @@ public:
 
     void resizeBufferManager(uint64_t newSize);
 
-    ~Database() = default;
+    ~Database();
 
 private:
     // TODO(Semih): This is refactored here for now to be able to test transaction behavior

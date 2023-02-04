@@ -1,6 +1,13 @@
 #include "include/py_query_result_converter.h"
 
 #include "include/py_query_result.h"
+
+#include "processor/processor.h"
+#include "storage/buffer_manager/buffer_manager.h"
+#include "storage/storage_manager.h"
+#include "transaction/transaction.h"
+#include "transaction/transaction_manager.h"
+
 using namespace kuzu::common;
 
 NPArrayWrapper::NPArrayWrapper(const DataType& type, uint64_t numFlatTuple)

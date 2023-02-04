@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common/types/value.h"
+#include "../common/types/value.h"
 
 namespace kuzu {
 namespace processor {

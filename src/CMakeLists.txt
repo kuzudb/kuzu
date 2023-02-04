@@ -12,7 +12,12 @@ add_subdirectory(storage)
 add_subdirectory(transaction)
 
 add_library(kuzu STATIC ${ALL_OBJECT_FILES})
+add_library(kuzuShared SHARED ${ALL_OBJECT_FILES})
+set_target_properties(kuzuShared PROPERTIES OUTPUT_NAME kuzu)
+
 target_link_libraries(kuzu PUBLIC antlr4_cypher antlr4_runtime utf8proc re2
+        parquet_lib arrow_lib arrow_deps Threads::Threads)
+target_link_libraries(kuzuShared PUBLIC antlr4_cypher antlr4_runtime utf8proc re2
         parquet_lib arrow_lib arrow_deps Threads::Threads)
 target_include_directories(
         kuzu PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>

@@ -2,14 +2,25 @@
 
 #include <cstring>
 
+#include "binder/binder.h"
 #include "common/file_utils.h"
+#include "common/types/value.h"
 #include "main/kuzu.h"
 #include "parser/parser.h"
+#include "planner/logical_plan/logical_plan.h"
 #include "planner/logical_plan/logical_plan_util.h"
 #include "planner/planner.h"
+#include "processor/processor.h"
+#include "storage/buffer_manager/buffer_manager.h"
+#include "storage/buffer_manager/memory_manager.h"
+#include "storage/storage_manager.h"
+#include "transaction/transaction.h"
+#include "transaction/transaction_manager.h"
+#include <json.hpp>
 
 using namespace std;
 using namespace kuzu::main;
+using namespace kuzu::parser;
 
 namespace kuzu {
 namespace testing {

@@ -1,5 +1,10 @@
 #include "include/py_connection.h"
 #include "include/py_database.h"
+#include "processor/processor.h"
+#include "storage/storage_manager.h"
+#include "transaction/transaction.h"
+#include "transaction/transaction_manager.h"
+
 
 void bindEnumTypes(py::module& m) {
     py::enum_<spdlog::level::level_enum>(m, "loggingLevel")

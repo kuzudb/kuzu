@@ -1,5 +1,6 @@
 #pragma once
 
+#include "flat_tuple.h"
 #include "plan_printer.h"
 
 namespace kuzu {
@@ -25,16 +26,17 @@ public:
     inline bool getIsProfile() const { return preparedSummary.isProfile; }
 
     inline std::ostringstream& getPlanAsOstream() { return planInOstream; }
-    inline nlohmann::json& printPlanToJson() { return planInJson; }
 
     inline void setPreparedSummary(PreparedSummary preparedSummary_) {
         preparedSummary = preparedSummary_;
     }
 
+    nlohmann::json& printPlanToJson();
+
 private:
     double executionTime = 0;
     PreparedSummary preparedSummary;
-    nlohmann::json planInJson;
+    std::unique_ptr<nlohmann::json> planInJson;
     std::ostringstream planInOstream;
 };
 

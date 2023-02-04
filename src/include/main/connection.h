@@ -1,26 +1,15 @@
 #pragma once
 
-#include "binder/binder.h"
-#include "catalog/catalog.h"
+#include "../common/types/value.h"
 #include "client_context.h"
-#include "main/database.h"
-#include "planner/logical_plan/logical_plan.h"
+#include "database.h"
+#include "forward_declarations.h"
 #include "prepared_statement.h"
 #include "query_result.h"
-#include "storage/wal/wal.h"
-#include "transaction/transaction_manager.h"
 
 using namespace kuzu::planner;
 using namespace kuzu::transaction;
 using lock_t = unique_lock<mutex>;
-
-namespace kuzu {
-namespace testing {
-class ApiTest;
-class BaseGraphTest;
-class TestHelper;
-} // namespace testing
-} // namespace kuzu
 
 namespace kuzu {
 namespace main {
@@ -54,42 +43,21 @@ public:
 
     ~Connection();
 
-    inline void beginReadOnlyTransaction() {
-        lock_t lck{mtx};
-        setTransactionModeNoLock(MANUAL);
-        beginTransactionNoLock(READ_ONLY);
-    }
+    void beginReadOnlyTransaction();
 
-    inline void beginWriteTransaction() {
-        lock_t lck{mtx};
-        setTransactionModeNoLock(MANUAL);
-        beginTransactionNoLock(WRITE);
-    }
+    void beginWriteTransaction();
 
-    inline void commit() {
-        lock_t lck{mtx};
-        commitOrRollbackNoLock(true /* isCommit */);
-    }
+    void commit();
 
-    inline void rollback() {
-        lock_t lck{mtx};
-        commitOrRollbackNoLock(false /* is rollback */);
-    }
+    void rollback();
 
-    inline void setMaxNumThreadForExec(uint64_t numThreads) {
-        clientContext->numThreadsForExecution = numThreads;
-    }
-    inline uint64_t getMaxNumThreadForExec() {
-        lock_t lck{mtx};
-        return clientContext->numThreadsForExecution;
-    }
+    void setMaxNumThreadForExec(uint64_t numThreads);
+
+    uint64_t getMaxNumThreadForExec();
 
     std::unique_ptr<QueryResult> query(const std::string& query);
 
-    std::unique_ptr<PreparedStatement> prepare(const std::string& query) {
-        lock_t lck{mtx};
-        return prepareNoLock(query);
-    }
+    std::unique_ptr<PreparedStatement> prepare(const std::string& query);
 
     template<typename... Args>
     inline std::unique_ptr<QueryResult> execute(
@@ -108,54 +76,23 @@ public:
     string getRelPropertyNames(const string& relTableName);
 
 protected:
-    inline ConnectionTransactionMode getTransactionMode() {
-        lock_t lck{mtx};
-        return transactionMode;
-    }
-    inline void setTransactionModeNoLock(ConnectionTransactionMode newTransactionMode) {
-        if (activeTransaction && transactionMode == MANUAL && newTransactionMode == AUTO_COMMIT) {
-            throw ConnectionException(
-                "Cannot change transaction mode from MANUAL to AUTO_COMMIT when there is an "
-                "active transaction. Need to first commit or rollback the active transaction.");
-        }
-        transactionMode = newTransactionMode;
-    }
+    ConnectionTransactionMode getTransactionMode();
+    void setTransactionModeNoLock(ConnectionTransactionMode newTransactionMode);
     // Note: This is only added for testing recovery algorithms in unit tests. Do not use
     // this otherwise.
-    inline void commitButSkipCheckpointingForTestingRecovery() {
-        lock_t lck{mtx};
-        commitOrRollbackNoLock(true /* isCommit */, true /* skip checkpointing for testing */);
-    }
+    void commitButSkipCheckpointingForTestingRecovery();
     // Note: This is only added for testing recovery algorithms in unit tests. Do not use
     // this otherwise.
-    inline void rollbackButSkipCheckpointingForTestingRecovery() {
-        lock_t lck{mtx};
-        commitOrRollbackNoLock(false /* is rollback */, true /* skip checkpointing for testing */);
-    }
+    void rollbackButSkipCheckpointingForTestingRecovery();
     // Note: This is only added for testing recovery algorithms in unit tests. Do not use
     // this otherwise.
-    inline Transaction* getActiveTransaction() {
-        lock_t lck{mtx};
-        return activeTransaction.get();
-    }
+    Transaction* getActiveTransaction();
     // used in API test
 
-    inline uint64_t getActiveTransactionID() {
-        lock_t lck{mtx};
-        return activeTransaction ? activeTransaction->getID() : UINT64_MAX;
-    }
-    inline bool hasActiveTransaction() {
-        lock_t lck{mtx};
-        return activeTransaction != nullptr;
-    }
-    inline void commitNoLock() { commitOrRollbackNoLock(true /* is commit */); }
-    inline void rollbackIfNecessaryNoLock() {
-        // If there is no active transaction in the system (e.g., an exception occurs during
-        // planning), we shouldn't roll back the transaction.
-        if (activeTransaction != nullptr) {
-            commitOrRollbackNoLock(false /* is rollback */);
-        }
-    }
+    uint64_t getActiveTransactionID();
+    bool hasActiveTransaction();
+    void commitNoLock();
+    void rollbackIfNecessaryNoLock();
 
     void beginTransactionNoLock(TransactionType type);
 

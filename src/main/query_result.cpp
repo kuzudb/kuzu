@@ -2,13 +2,22 @@
 
 #include <fstream>
 
-#include "binder/expression/node_rel_expression.h"
+#include "binder/expression/expression.h"
 #include "binder/expression/property_expression.h"
+#include "main/flat_tuple.h"
+#include "processor/result/factorized_table.h"
+#include <json.hpp>
 
 using namespace kuzu::processor;
+using namespace kuzu::binder;
 
 namespace kuzu {
 namespace main {
+
+QueryResult::QueryResult(const PreparedSummary& preparedSummary) {
+    querySummary = make_unique<QuerySummary>();
+    querySummary->setPreparedSummary(preparedSummary);
+}
 
 std::unique_ptr<DataTypeInfo> DataTypeInfo::getInfoForDataType(
     const DataType& type, const string& name) {
@@ -30,6 +39,10 @@ std::unique_ptr<DataTypeInfo> DataTypeInfo::getInfoForDataType(
     }
     }
     return std::move(columnTypeInfo);
+}
+
+uint64_t QueryResult::getNumTuples() {
+    return querySummary->getIsExplain() ? 0 : factorizedTable->getTotalNumFlatTuples();
 }
 
 vector<unique_ptr<DataTypeInfo>> QueryResult::getColumnTypesInfo() {
@@ -204,6 +217,12 @@ void QueryResult::writeToCSV(
     }
     file.close();
 }
+
+void QueryResult::resetIterator() {
+    iterator->resetState();
+}
+
+QueryResult::~QueryResult() {}
 
 void QueryResult::validateQuerySucceed() {
     if (!success) {

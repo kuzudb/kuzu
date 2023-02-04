@@ -5,6 +5,13 @@
 #include "common/arrow/arrow_converter.h"
 #include "datetime.h" // python lib
 #include "include/py_query_result_converter.h"
+#include <json.hpp>
+
+#include "processor/processor.h"
+#include "storage/storage_manager.h"
+#include "transaction/transaction.h"
+#include "transaction/transaction_manager.h"
+
 
 using namespace kuzu::common;
 

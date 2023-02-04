@@ -1,8 +1,8 @@
 #pragma once
 
-#include "common/exception.h"
-#include "common/type_utils.h"
-#include "common/utils.h"
+#include "../exception.h"
+#include "../type_utils.h"
+#include "../utils.h"
 
 namespace kuzu {
 namespace common {

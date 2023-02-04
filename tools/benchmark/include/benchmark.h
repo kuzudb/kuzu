@@ -3,6 +3,14 @@
 #include "benchmark_config.h"
 #include "jo_connection.h"
 #include "main/kuzu.h"
+#include "processor/processor.h"
+#include "storage/buffer_manager/buffer_manager.h"
+#include "storage/buffer_manager/memory_manager.h"
+#include "storage/storage_manager.h"
+#include "transaction/transaction.h"
+#include "transaction/transaction_manager.h"
+
+#include <json.hpp>
 
 using namespace kuzu::main;
 

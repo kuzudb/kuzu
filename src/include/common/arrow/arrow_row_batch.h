@@ -6,7 +6,9 @@
 #include "common/arrow/arrow.h"
 #include "common/arrow/arrow_buffer.h"
 #include "common/types/types.h"
+#include "main/flat_tuple.h"
 #include "main/query_result.h"
+#include "processor/result/factorized_table.h"
 
 struct ArrowSchema;
 

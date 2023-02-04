@@ -3,7 +3,7 @@
 #include <memory>
 #include <unordered_map>
 
-#include "common/metric.h"
+#include "metric.h"
 
 namespace kuzu {
 namespace common {
