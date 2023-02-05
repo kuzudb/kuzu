@@ -237,6 +237,12 @@ def test_to_torch_geometric_nodes_only(establish_connection):
     for w in ws:
         assert str(w.message) in warnings_ground_truth
 
+    assert torch_geometric_data.ID.shape == torch.Size([8])
+    assert torch_geometric_data.ID.dtype == torch.int64
+    for i in range(8):
+        assert TINY_SNB_PERSONS_GROUND_TRUTH[pos_to_idx[i]
+                                             ]['ID'] == torch_geometric_data.ID[i].item()
+
     assert torch_geometric_data.gender.shape == torch.Size([8])
     assert torch_geometric_data.gender.dtype == torch.int64
     for i in range(8):
@@ -318,6 +324,12 @@ def test_to_torch_geometric_homogeneous_graph(establish_connection):
     assert len(ws) == 7
     for w in ws:
         assert str(w.message) in warnings_ground_truth
+
+    assert torch_geometric_data.ID.shape == torch.Size([7])
+    assert torch_geometric_data.ID.dtype == torch.int64
+    for i in range(7):
+        assert TINY_SNB_PERSONS_GROUND_TRUTH[pos_to_idx[i]
+                                             ]['ID'] == torch_geometric_data.ID[i].item()
 
     assert torch_geometric_data.gender.shape == torch.Size([7])
     assert torch_geometric_data.gender.dtype == torch.int64
@@ -414,6 +426,12 @@ def test_to_torch_geometric_heterogeneous_graph(establish_connection):
     for w in ws:
         assert str(w.message) in warnings_ground_truth
 
+    assert torch_geometric_data['person'].ID.shape == torch.Size([4])
+    assert torch_geometric_data['person'].ID.dtype == torch.int64
+    for i in range(4):
+        assert TINY_SNB_PERSONS_GROUND_TRUTH[pos_to_idx['person'][i]
+                                             ]['ID'] == torch_geometric_data['person'].ID[i].item()
+
     assert torch_geometric_data['person'].gender.shape == torch.Size([4])
     assert torch_geometric_data['person'].gender.dtype == torch.int64
     for i in range(4):
@@ -480,6 +498,12 @@ def test_to_torch_geometric_heterogeneous_graph(establish_connection):
         assert dst in pos_to_idx['person']
         assert src != dst
         assert pos_to_idx['person'][dst] in TINY_SNB_KNOWS_GROUND_TRUTH[pos_to_idx['person'][src]]
+
+    assert torch_geometric_data['organisation'].ID.shape == torch.Size([2])
+    assert torch_geometric_data['organisation'].ID.dtype == torch.int64
+    for i in range(2):
+        assert TINY_SNB_ORGANISATIONS_GROUND_TRUTH[pos_to_idx['organisation'][i]
+                                                   ]['ID'] == torch_geometric_data['organisation'].ID[i].item()
 
     assert torch_geometric_data['organisation'].orgCode.shape == torch.Size([
         2])
@@ -558,6 +582,11 @@ def test_to_torch_geometric_multi_dimensonal_lists(establish_connection):
     float_tensor = torch.tensor(float_list, dtype=torch.float32)
     int_tensor = torch.tensor(int_list, dtype=torch.int64)
 
+    assert torch_geometric_data.ID.shape == torch.Size([len(pos_to_idx)])
+    assert torch_geometric_data.ID.dtype == torch.int64
+    for i in range(len(pos_to_idx)):
+        assert torch_geometric_data.ID[i].item() == pos_to_idx[i]
+        
     assert torch_geometric_data.boolTensor.shape == bool_tensor.shape
     assert torch_geometric_data.boolTensor.dtype == bool_tensor.dtype
     assert torch.all(torch_geometric_data.boolTensor == bool_tensor)
@@ -583,8 +612,9 @@ def test_to_torch_geometric_no_properties_converted(establish_connection):
     res = conn.execute(query)
     with warnings.catch_warnings(record=True) as ws:
         torch_geometric_data, pos_to_idx, unconverted_properties = res.get_as_torch_geometric()
-    assert len(ws) == 2
+    assert len(ws) == 3
     warnings_ground_truth = set([
+        "Property personLongString.name of type STRING is not supported by torch_geometric. The property is marked as unconverted.",
         "Property personLongString.spouse of type STRING is not supported by torch_geometric. The property is marked as unconverted.",
         "No nodes found or all node properties are not converted."])
     for w in ws:
@@ -602,9 +632,15 @@ def test_to_torch_geometric_no_properties_converted(establish_connection):
         assert pos_to_idx['personLongString'][dst] in PERSONLONGSTRING_KNOWS_GROUND_TRUTH[pos_to_idx['personLongString'][src]]
 
     assert len(unconverted_properties) == 1
-    assert len(unconverted_properties['personLongString']) == 1
+    assert len(unconverted_properties['personLongString']) == 2
+
     assert 'spouse' in unconverted_properties['personLongString']
     assert len(unconverted_properties['personLongString']['spouse']) == 2
     for i in range(2):
         assert PERSONLONGSTRING_GROUND_TRUTH[pos_to_idx['personLongString'][i]
                                              ]['spouse'] == unconverted_properties['personLongString']['spouse'][i]
+
+    assert 'name' in unconverted_properties['personLongString']
+    for i in range(2):
+        assert PERSONLONGSTRING_GROUND_TRUTH[pos_to_idx['personLongString'][i]
+                                             ]['name'] == unconverted_properties['personLongString']['name'][i]
