@@ -93,10 +93,9 @@ class TorchGeometricResultConverter:
                 pos = self.__add_unconverted_property(node, label, prop_name)
                 continue
 
-            # Read primary key but do not add it to the node properties
+            # Read primary key
             if node_property_names[prop_name]["is_primary_key"]:
                 primary_key = node[prop_name]
-                continue
 
             # Mark properties that are not supported by torch_geometric as unconverted
             if node_property_names[prop_name]["type"] not in [Type.INT64.value, Type.DOUBLE.value, Type.BOOL.value]:
@@ -249,8 +248,13 @@ class TorchGeometricResultConverter:
         pos_to_primary_key_dict = self.pos_to_primary_key_dict[
             label] if not is_hetero else self.pos_to_primary_key_dict
 
-        unconverted_properties = self.unconverted_properties if is_hetero else self.unconverted_properties[next(
-            iter(self.unconverted_properties))]
+        if is_hetero:
+            unconverted_properties = self.unconverted_properties
+        elif len(self.unconverted_properties) == 0:
+            unconverted_properties = {}
+        else:
+            unconverted_properties = self.unconverted_properties[next(
+                iter(self.unconverted_properties))]
         return data, pos_to_primary_key_dict, unconverted_properties
 
     def get_as_torch_geometric(self):
