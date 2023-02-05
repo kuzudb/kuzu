@@ -1,0 +1,4 @@
+-NAME q35
+-COMPARE_RESULT 1
+-QUERY MATCH (:Person {ID: 10995116278009})-[:knows]->(friend:Person)<-[:comment_hasCreator|:post_hasCreator]-(message:Post:Comment) WHERE message.creationDate < timestamp('2010-02-14 20:30:21.451') RETURN friend.ID AS personId, friend.firstName AS personFirstName, friend.lastName AS personLastName, message.ID AS postOrCommentId, concat(message.content,message.imageFile) AS postOrCommentContent, message.creationDate AS postOrCommentCreationDate ORDER BY postOrCommentCreationDate DESC, postOrCommentId ASC LIMIT 20
+---- 0

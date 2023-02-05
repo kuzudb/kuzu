@@ -1,5 +1,0 @@
--NAME interactive_complex_query_8
--COMPARE_RESULT 1
--QUERY MATCH (start:Person {ID: 143})<-[:commentHasCreator|:postHasCreator]-(:Post:Comment)<-[:replyOfComment]-(comment:Comment)-[:commentHasCreator]->(person:Person) RETURN person.ID AS personId, person.firstName AS personFirstName, person.lastName AS personLastName, comment.creationDate AS commentCreationDate, comment.ID AS commentId, comment.content AS commentContent ORDER BY commentCreationDate DESC, commentId ASC LIMIT 20
----- 1
-1980-02-01|1980-02-01
