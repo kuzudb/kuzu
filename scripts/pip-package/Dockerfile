@@ -2,19 +2,11 @@ FROM quay.io/pypa/manylinux2014_x86_64
 
 ENV RUNNER_ALLOW_RUNASROOT=1
 
-# Configure bazel
-RUN curl https://copr.fedorainfracloud.org/coprs/vbatts/bazel/repo/epel-7/vbatts-bazel-epel-7.repo > /etc/yum.repos.d/vbatts-bazel-epel-7.repo
 
 # Install dependencies
 RUN yum --disablerepo=epel -y upgrade curl ca-certificates
 RUN yum update -y
-RUN yum install -y java-11-openjdk-devel
-RUN yum install -y bazel4
-RUN yum install -y nodejs
-RUN yum install -y jq
-RUN yum install -y git
-RUN yum install -y perl-Digest-SHA
-RUN yum -y install libicu libicu-devel
+RUN yum install -y cmake nodejs jq git perl-Digest-SHA libicu libicu-devel
 
 # Install GitHub action runner
 RUN mkdir /actions-runner
