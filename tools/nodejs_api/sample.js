@@ -19,7 +19,7 @@ connection.execute("COPY person FROM \"../../dataset/tinysnb/vPerson.csv\" (HEAD
 let queryResult = connection.execute("MATCH (a:person) RETURN a.fName, a.age, a.eyeSight, a.isStudent;");
 console.log(queryResult);
 
-// // Extensive Case
+// Extensive Case
 database.resizeBufferManager(2000000000);
 connection.setMaxNumThreadForExec(2);
 queryResult = connection.execute("MATCH (a:person) RETURN a.fName, a.age, a.eyeSight, a.isStudent;");

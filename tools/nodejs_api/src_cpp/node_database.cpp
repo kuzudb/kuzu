@@ -26,10 +26,10 @@ NodeDatabase::NodeDatabase(const Napi::CallbackInfo& info) : Napi::ObjectWrap<No
     Napi::HandleScope scope(env);
 
     if (info.Length()!=2) {
-        Napi::TypeError::New(env, "Need database config string and buffer manager size").ThrowAsJavaScriptException();
+        Napi::TypeError::New(env, "Need database path and buffer manager size").ThrowAsJavaScriptException();
         return;
     } else if (!info[0].IsString()) {
-        Napi::TypeError::New(env, "Database config parameter must be a string").ThrowAsJavaScriptException();
+        Napi::TypeError::New(env, "Database path must be a string").ThrowAsJavaScriptException();
         return;
     } else if (!info[1].IsNumber()) {
         Napi::TypeError::New(env, "Database buffer manager size must be an int_64").ThrowAsJavaScriptException();
@@ -43,17 +43,14 @@ NodeDatabase::NodeDatabase(const Napi::CallbackInfo& info) : Napi::ObjectWrap<No
     SystemConfig systemConfig(bufferSize);
 
     try {
-        Database * database = new Database(databaseConfig, systemConfig);
-        this->database_ = database;
+        this->database = make_unique<kuzu::main::Database>(databaseConfig, systemConfig);
     }
     catch(const std::exception &exc) {
         Napi::TypeError::New(env, "Unsuccessful Database Initialization: " + std::string(exc.what())).ThrowAsJavaScriptException();
     }
 }
 
-NodeDatabase::~NodeDatabase() {
-    delete this->database_;
-}
+NodeDatabase::~NodeDatabase() {}
 
 void NodeDatabase::ResizeBufferManager(const Napi::CallbackInfo& info) {
     Napi::Env env = info.Env();
@@ -67,7 +64,7 @@ void NodeDatabase::ResizeBufferManager(const Napi::CallbackInfo& info) {
     bufferSize = info[0].As<Napi::Number>().DoubleValue();
 
     try {
-        this->database_->resizeBufferManager(bufferSize);
+        this->database->resizeBufferManager(bufferSize);
     }
     catch(const std::exception &exc) {
         Napi::TypeError::New(env, "Unsuccessful resizeBufferManager: " + std::string(exc.what())).ThrowAsJavaScriptException();

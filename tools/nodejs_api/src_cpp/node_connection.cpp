@@ -29,27 +29,24 @@ NodeConnection::NodeConnection(const Napi::CallbackInfo& info) : Napi::ObjectWra
   Napi::HandleScope scope(env);
 
   if (info.Length()!=2 || !info[0].IsObject() || !info[1].IsNumber()) {
-      Napi::TypeError::New(env, "Need database class passed in").ThrowAsJavaScriptException();
+      Napi::TypeError::New(env, "Need a valid database class passed in").ThrowAsJavaScriptException();
       return;
   }
   NodeDatabase * nodeDatabase = NodeDatabase::Unwrap(info[0].As<Napi::Object>());
   uint64_t numThreads = info[1].As<Napi::Number>().DoubleValue();
 
   try {
-      auto connection = new Connection(nodeDatabase->database_);
+      this->connection = make_unique<kuzu::main::Connection>(nodeDatabase->database.get());
       if (numThreads > 0) {
-          connection->setMaxNumThreadForExec(numThreads);
+          this->connection->setMaxNumThreadForExec(numThreads);
       }
-      this->connection_ = connection;
   }
   catch(const std::exception &exc){
       Napi::TypeError::New(env, "Unsuccessful Connection Initialization: " + std::string(exc.what())).ThrowAsJavaScriptException();
   }
 }
 
-NodeConnection::~NodeConnection() {
-  delete this->connection_;
-}
+NodeConnection::~NodeConnection() {}
 
 Napi::Value NodeConnection::Execute(const Napi::CallbackInfo& info) {
   Napi::Env env = info.Env();
@@ -64,7 +61,7 @@ Napi::Value NodeConnection::Execute(const Napi::CallbackInfo& info) {
         return Napi::Object::New(env);
     }
 
-  std::unique_ptr<kuzu::main::QueryResult> queryResult = this->connection_->query(query);
+  std::unique_ptr<kuzu::main::QueryResult> queryResult = this->connection->query(query);
   if (!queryResult->isSuccess()) {
       Napi::TypeError::New(env, "Unsuccessful execute: " + queryResult->getErrorMessage()).ThrowAsJavaScriptException();
       return Napi::Object::New(env);
@@ -93,7 +90,7 @@ void NodeConnection::SetMaxNumThreadForExec(const Napi::CallbackInfo& info) {
   }
   uint64_t numThreads = info[0].ToNumber().DoubleValue();
   try {
-      this->connection_->setMaxNumThreadForExec(numThreads);
+      this->connection->setMaxNumThreadForExec(numThreads);
   }
   catch(const std::exception &exc) {
       Napi::TypeError::New(env, "Unsuccessful setMaxNumThreadForExec: " + std::string(exc.what())).ThrowAsJavaScriptException();
@@ -112,7 +109,7 @@ Napi::Value NodeConnection::GetNodePropertyNames(const Napi::CallbackInfo& info)
   std::string tableName = info[0].ToString();
   std::string propertyNames;
   try {
-      propertyNames = this->connection_->getNodePropertyNames(tableName);
+      propertyNames = this->connection->getNodePropertyNames(tableName);
   }
   catch(const std::exception &exc) {
       Napi::TypeError::New(env, "Unsuccessful getNodePropertyNames: " + std::string(exc.what())).ThrowAsJavaScriptException();
