@@ -36,7 +36,7 @@ private:
         VersionedFileHandle* fileHandle, const PageUpdateOrInsertRecord& pageInsertOrUpdateRecord);
     VersionedFileHandle* getVersionedFileHandleIfWALVersionAndBMShouldBeCleared(
         const StorageStructureID& storageStructureID);
-    unique_ptr<catalog::Catalog> getCatalogForRecovery(DBFileType dbFileType);
+    std::unique_ptr<catalog::Catalog> getCatalogForRecovery(common::DBFileType dbFileType);
 
 private:
     bool isRecovering;
@@ -46,9 +46,9 @@ private:
     StorageManager* storageManager;
     BufferManager* bufferManager;
     MemoryManager* memoryManager;
-    shared_ptr<FileHandle> walFileHandle;
-    unique_ptr<uint8_t[]> pageBuffer;
-    shared_ptr<spdlog::logger> logger;
+    std::shared_ptr<FileHandle> walFileHandle;
+    std::unique_ptr<uint8_t[]> pageBuffer;
+    std::shared_ptr<spdlog::logger> logger;
     WAL* wal;
     catalog::Catalog* catalog;
 };

@@ -4,10 +4,12 @@
 #include "spdlog/spdlog.h"
 #include "storage/storage_utils.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace storage {
 
-WAL::WAL(const string& directory, BufferManager& bufferManager)
+WAL::WAL(const std::string& directory, BufferManager& bufferManager)
     : logger{LoggerUtils::getOrCreateLogger("wal")}, directory{directory},
       bufferManager{bufferManager}, isLastLoggedRecordCommit_{false} {
     fileHandle = WAL::createWALFileHandle(directory);
@@ -167,7 +169,7 @@ void WAL::setIsLastRecordCommit() {
     }
 }
 
-WALIterator::WALIterator(const shared_ptr<FileHandle>& fileHandle, mutex& mtx)
+WALIterator::WALIterator(const std::shared_ptr<FileHandle>& fileHandle, std::mutex& mtx)
     : BaseWALAndWALIterator(fileHandle), mtx{mtx} {
     resetCurrentHeaderPagePrefix();
     if (fileHandle->getNumPages() > 0) {

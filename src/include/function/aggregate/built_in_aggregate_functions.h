@@ -10,20 +10,22 @@ class BuiltInAggregateFunctions {
 public:
     BuiltInAggregateFunctions() { registerAggregateFunctions(); }
 
-    inline bool containsFunction(const string& name) { return aggregateFunctions.contains(name); }
+    inline bool containsFunction(const std::string& name) {
+        return aggregateFunctions.contains(name);
+    }
 
     AggregateFunctionDefinition* matchFunction(
-        const string& name, const vector<DataType>& inputTypes, bool isDistinct);
+        const std::string& name, const std::vector<common::DataType>& inputTypes, bool isDistinct);
 
-    vector<string> getFunctionNames();
+    std::vector<std::string> getFunctionNames();
 
 private:
-    uint32_t getFunctionCost(
-        const vector<DataType>& inputTypes, bool isDistinct, AggregateFunctionDefinition* function);
+    uint32_t getFunctionCost(const std::vector<common::DataType>& inputTypes, bool isDistinct,
+        AggregateFunctionDefinition* function);
 
     void validateNonEmptyCandidateFunctions(
-        vector<AggregateFunctionDefinition*>& candidateFunctions, const string& name,
-        const vector<DataType>& inputTypes, bool isDistinct);
+        std::vector<AggregateFunctionDefinition*>& candidateFunctions, const std::string& name,
+        const std::vector<common::DataType>& inputTypes, bool isDistinct);
 
     void registerAggregateFunctions();
     void registerCountStar();
@@ -34,7 +36,8 @@ private:
     void registerMax();
 
 private:
-    unordered_map<string, vector<unique_ptr<AggregateFunctionDefinition>>> aggregateFunctions;
+    std::unordered_map<std::string, std::vector<std::unique_ptr<AggregateFunctionDefinition>>>
+        aggregateFunctions;
 };
 
 } // namespace function

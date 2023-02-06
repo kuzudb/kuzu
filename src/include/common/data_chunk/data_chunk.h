@@ -6,8 +6,6 @@
 #include "common/data_chunk/data_chunk_state.h"
 #include "common/vector/value_vector.h"
 
-using namespace std;
-
 namespace kuzu {
 namespace common {
 
@@ -22,22 +20,22 @@ class DataChunk {
 
 public:
     explicit DataChunk(uint32_t numValueVectors)
-        : DataChunk(numValueVectors, make_shared<DataChunkState>()){};
+        : DataChunk(numValueVectors, std::make_shared<DataChunkState>()){};
 
-    DataChunk(uint32_t numValueVectors, const shared_ptr<DataChunkState>& state)
+    DataChunk(uint32_t numValueVectors, const std::shared_ptr<DataChunkState>& state)
         : valueVectors(numValueVectors), state{state} {};
 
-    void insert(uint32_t pos, shared_ptr<ValueVector> valueVector);
+    void insert(uint32_t pos, std::shared_ptr<ValueVector> valueVector);
 
     inline uint32_t getNumValueVectors() const { return valueVectors.size(); }
 
-    inline shared_ptr<ValueVector> getValueVector(uint64_t valueVectorPos) {
+    inline std::shared_ptr<ValueVector> getValueVector(uint64_t valueVectorPos) {
         return valueVectors[valueVectorPos];
     }
 
 public:
-    vector<shared_ptr<ValueVector>> valueVectors;
-    shared_ptr<DataChunkState> state;
+    std::vector<std::shared_ptr<ValueVector>> valueVectors;
+    std::shared_ptr<DataChunkState> state;
 };
 
 } // namespace common

@@ -8,14 +8,15 @@ namespace processor {
 class MultiplicityReducer : public PhysicalOperator {
 
 public:
-    MultiplicityReducer(unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
+    MultiplicityReducer(
+        std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
         : PhysicalOperator{PhysicalOperatorType::MULTIPLICITY_REDUCER, std::move(child), id,
               paramsString},
           prevMultiplicity{1}, numRepeat{0} {}
 
     bool getNextTuplesInternal() override;
 
-    unique_ptr<PhysicalOperator> clone() override {
+    std::unique_ptr<PhysicalOperator> clone() override {
         return make_unique<MultiplicityReducer>(children[0]->clone(), id, paramsString);
     }
 

@@ -2,10 +2,12 @@
 #include "processor/mapper/plan_mapper.h"
 #include "processor/operator/filter.h"
 
+using namespace kuzu::planner;
+
 namespace kuzu {
 namespace processor {
 
-unique_ptr<PhysicalOperator> PlanMapper::mapLogicalFilterToPhysical(
+std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalFilterToPhysical(
     LogicalOperator* logicalOperator) {
     auto& logicalFilter = (const LogicalFilter&)*logicalOperator;
     auto inSchema = logicalFilter.getChild(0)->getSchema();

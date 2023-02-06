@@ -14,8 +14,8 @@ struct BaseCountFunction {
         uint64_t count = 0;
     };
 
-    static unique_ptr<AggregateState> initialize() {
-        auto state = make_unique<CountState>();
+    static std::unique_ptr<AggregateState> initialize() {
+        auto state = std::make_unique<CountState>();
         state->isNull = false;
         return state;
     }

@@ -5,26 +5,22 @@
 #include "storage/buffer_manager/memory_manager.h"
 #include "transaction/transaction.h"
 
-using namespace kuzu::common;
-using namespace kuzu::storage;
-using namespace kuzu::transaction;
-
 namespace kuzu {
 namespace processor {
 
 struct ExecutionContext {
 
-    ExecutionContext(uint64_t numThreads, Profiler* profiler, MemoryManager* memoryManager,
-        BufferManager* bufferManager)
+    ExecutionContext(uint64_t numThreads, common::Profiler* profiler,
+        storage::MemoryManager* memoryManager, storage::BufferManager* bufferManager)
         : numThreads{numThreads}, profiler{profiler}, memoryManager{memoryManager},
           bufferManager{bufferManager}, transaction{nullptr} {}
 
     uint64_t numThreads;
-    Profiler* profiler;
-    MemoryManager* memoryManager;
-    BufferManager* bufferManager;
+    common::Profiler* profiler;
+    storage::MemoryManager* memoryManager;
+    storage::BufferManager* bufferManager;
 
-    Transaction* transaction;
+    transaction::Transaction* transaction;
 };
 
 } // namespace processor

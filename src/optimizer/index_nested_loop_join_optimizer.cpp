@@ -4,13 +4,14 @@
 #include "planner/logical_plan/logical_operator/logical_filter.h"
 #include "planner/logical_plan/logical_operator/logical_scan_node.h"
 
+using namespace kuzu::binder;
 using namespace kuzu::planner;
 
 namespace kuzu {
 namespace optimizer {
 
-shared_ptr<planner::LogicalOperator> IndexNestedLoopJoinOptimizer::rewrite(
-    shared_ptr<planner::LogicalOperator> op) {
+std::shared_ptr<planner::LogicalOperator> IndexNestedLoopJoinOptimizer::rewrite(
+    std::shared_ptr<planner::LogicalOperator> op) {
     if (op->getOperatorType() == LogicalOperatorType::FILTER) {
         return rewriteFilter(op);
     }
@@ -21,7 +22,7 @@ shared_ptr<planner::LogicalOperator> IndexNestedLoopJoinOptimizer::rewrite(
     return op;
 }
 
-static bool isPrimaryKey(const Expression& expression) {
+static bool isPrimaryKey(const binder::Expression& expression) {
     if (expression.expressionType != common::PROPERTY) {
         return false;
     }
@@ -40,8 +41,8 @@ static bool isPrimaryKeyEqualityComparison(const Expression& expression) {
     return false;
 }
 
-shared_ptr<LogicalOperator> IndexNestedLoopJoinOptimizer::rewriteFilter(
-    shared_ptr<LogicalOperator> op) {
+std::shared_ptr<LogicalOperator> IndexNestedLoopJoinOptimizer::rewriteFilter(
+    std::shared_ptr<LogicalOperator> op) {
     // Match filter on primary key
     auto filter = (LogicalFilter*)op.get();
     auto predicate = filter->getPredicate();
@@ -62,13 +63,13 @@ shared_ptr<LogicalOperator> IndexNestedLoopJoinOptimizer::rewriteFilter(
     return rewriteCrossProduct(currentOp, predicate);
 }
 
-shared_ptr<LogicalOperator> IndexNestedLoopJoinOptimizer::rewriteCrossProduct(
-    shared_ptr<LogicalOperator> op, shared_ptr<Expression> predicate) {
+std::shared_ptr<LogicalOperator> IndexNestedLoopJoinOptimizer::rewriteCrossProduct(
+    std::shared_ptr<LogicalOperator> op, std::shared_ptr<Expression> predicate) {
     auto leftScan = (LogicalScanNode*)searchScanNodeOnPipeline(op->getChild(0).get());
     auto rightScan = (LogicalScanNode*)searchScanNodeOnPipeline(op->getChild(1).get());
     auto leftPrimaryKey = static_pointer_cast<PropertyExpression>(predicate->getChild(0));
     auto rightPrimaryKey = static_pointer_cast<PropertyExpression>(predicate->getChild(1));
-    shared_ptr<PropertyExpression> primaryKey = nullptr;
+    std::shared_ptr<PropertyExpression> primaryKey = nullptr;
     if (leftScan->getNode()->getUniqueName() == leftPrimaryKey->getVariableName() &&
         rightScan->getNode()->getUniqueName() == rightPrimaryKey->getVariableName()) {
         primaryKey = leftPrimaryKey;

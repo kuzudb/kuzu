@@ -8,7 +8,7 @@ using namespace kuzu::testing;
 class TinySnbListTest : public DBTest {
 
 public:
-    static bool CheckEquals(const vector<string>& expected, const Value& listVal) {
+    static bool CheckEquals(const std::vector<std::string>& expected, const Value& listVal) {
         if (listVal.dataType.typeID != LIST) {
             return false;
         }
@@ -22,7 +22,9 @@ public:
         }
         return true;
     }
-    string getInputDir() override { return TestHelper::appendKuzuRootPath("dataset/tinysnb/"); }
+    std::string getInputDir() override {
+        return TestHelper::appendKuzuRootPath("dataset/tinysnb/");
+    }
 };
 
 // Warning: This test assumes that each line in tinysnb's vPerson.csv gets

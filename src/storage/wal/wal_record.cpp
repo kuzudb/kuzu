@@ -1,9 +1,11 @@
 #include "storage/wal/wal_record.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace storage {
 
-string storageStructureTypeToString(StorageStructureType storageStructureType) {
+std::string storageStructureTypeToString(StorageStructureType storageStructureType) {
     switch (storageStructureType) {
     case StorageStructureType::COLUMN: {
         return "COLUMN";
@@ -78,7 +80,7 @@ StorageStructureID StorageStructureID::newAdjColumnID(
     return retVal;
 }
 
-string walRecordTypeToString(WALRecordType walRecordType) {
+std::string walRecordTypeToString(WALRecordType walRecordType) {
     switch (walRecordType) {
     case WALRecordType::PAGE_UPDATE_OR_INSERT_RECORD: {
         return "PAGE_UPDATE_OR_INSERT_RECORD";

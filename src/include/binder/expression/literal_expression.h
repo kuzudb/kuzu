@@ -8,21 +8,21 @@ namespace binder {
 
 class LiteralExpression : public Expression {
 public:
-    LiteralExpression(unique_ptr<Value> value, const string& uniqueName)
-        : Expression{LITERAL, value->getDataType(), uniqueName}, value{std::move(value)} {}
+    LiteralExpression(std::unique_ptr<common::Value> value, const std::string& uniqueName)
+        : Expression{common::LITERAL, value->getDataType(), uniqueName}, value{std::move(value)} {}
 
     inline bool isNull() const { return value->isNull(); }
 
-    inline void setDataType(const DataType& targetType) {
-        assert(dataType.typeID == ANY && isNull());
+    inline void setDataType(const common::DataType& targetType) {
+        assert(dataType.typeID == common::ANY && isNull());
         dataType = targetType;
         value->setDataType(targetType);
     }
 
-    inline Value* getValue() const { return value.get(); }
+    inline common::Value* getValue() const { return value.get(); }
 
 public:
-    unique_ptr<Value> value;
+    std::unique_ptr<common::Value> value;
 };
 
 } // namespace binder

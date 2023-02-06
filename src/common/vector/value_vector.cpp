@@ -5,15 +5,15 @@
 namespace kuzu {
 namespace common {
 
-ValueVector::ValueVector(DataType dataType, MemoryManager* memoryManager)
+ValueVector::ValueVector(DataType dataType, storage::MemoryManager* memoryManager)
     : dataType{std::move(dataType)} {
-    valueBuffer =
-        make_unique<uint8_t[]>(Types::getDataTypeSize(this->dataType) * DEFAULT_VECTOR_CAPACITY);
+    valueBuffer = std::make_unique<uint8_t[]>(
+        Types::getDataTypeSize(this->dataType) * DEFAULT_VECTOR_CAPACITY);
     if (needOverflowBuffer()) {
         assert(memoryManager != nullptr);
-        inMemOverflowBuffer = make_unique<InMemOverflowBuffer>(memoryManager);
+        inMemOverflowBuffer = std::make_unique<InMemOverflowBuffer>(memoryManager);
     }
-    nullMask = make_unique<NullMask>();
+    nullMask = std::make_unique<NullMask>();
     numBytesPerValue = Types::getDataTypeSize(this->dataType);
 }
 
@@ -52,7 +52,7 @@ void ValueVector::setValue(uint32_t pos, T val) {
 }
 
 template<>
-void ValueVector::setValue(uint32_t pos, string val) {
+void ValueVector::setValue(uint32_t pos, std::string val) {
     addString(pos, val.data(), val.length());
 }
 

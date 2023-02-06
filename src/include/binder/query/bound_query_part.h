@@ -17,32 +17,32 @@ public:
 
     ~BoundQueryPart() = default;
 
-    inline void addReadingClause(unique_ptr<BoundReadingClause> readingClause) {
-        readingClauses.push_back(move(readingClause));
+    inline void addReadingClause(std::unique_ptr<BoundReadingClause> readingClause) {
+        readingClauses.push_back(std::move(readingClause));
     }
     inline uint32_t getNumReadingClauses() const { return readingClauses.size(); }
     inline BoundReadingClause* getReadingClause(uint32_t idx) const {
         return readingClauses[idx].get();
     }
 
-    inline void addUpdatingClause(unique_ptr<BoundUpdatingClause> updatingClause) {
-        updatingClauses.push_back(move(updatingClause));
+    inline void addUpdatingClause(std::unique_ptr<BoundUpdatingClause> updatingClause) {
+        updatingClauses.push_back(std::move(updatingClause));
     }
     inline uint32_t getNumUpdatingClauses() const { return updatingClauses.size(); }
     inline BoundUpdatingClause* getUpdatingClause(uint32_t idx) const {
         return updatingClauses[idx].get();
     }
 
-    inline void setWithClause(unique_ptr<BoundWithClause> boundWithClause) {
-        withClause = move(boundWithClause);
+    inline void setWithClause(std::unique_ptr<BoundWithClause> boundWithClause) {
+        withClause = std::move(boundWithClause);
     }
     inline bool hasWithClause() const { return withClause != nullptr; }
     inline BoundWithClause* getWithClause() const { return withClause.get(); }
 
 private:
-    vector<unique_ptr<BoundReadingClause>> readingClauses;
-    vector<unique_ptr<BoundUpdatingClause>> updatingClauses;
-    unique_ptr<BoundWithClause> withClause;
+    std::vector<std::unique_ptr<BoundReadingClause>> readingClauses;
+    std::vector<std::unique_ptr<BoundUpdatingClause>> updatingClauses;
+    std::unique_ptr<BoundWithClause> withClause;
 };
 
 } // namespace binder

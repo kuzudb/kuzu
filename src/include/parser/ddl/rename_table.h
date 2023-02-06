@@ -5,17 +5,16 @@
 namespace kuzu {
 namespace parser {
 
-using namespace std;
-
 class RenameTable : public DDL {
 public:
-    explicit RenameTable(string tableName, string newName)
-        : DDL{StatementType::RENAME_TABLE, std::move(tableName)}, newName{std::move(newName)} {}
+    explicit RenameTable(std::string tableName, std::string newName)
+        : DDL{common::StatementType::RENAME_TABLE, std::move(tableName)}, newName{
+                                                                              std::move(newName)} {}
 
-    inline string getNewName() const { return newName; }
+    inline std::string getNewName() const { return newName; }
 
 private:
-    string newName;
+    std::string newName;
 };
 
 } // namespace parser

@@ -8,20 +8,22 @@ namespace processor {
 
 class HashAggregateScan : public BaseAggregateScan {
 public:
-    HashAggregateScan(shared_ptr<HashAggregateSharedState> sharedState,
-        vector<DataPos> groupByKeyVectorsPos, vector<DataType> groupByKeyVectorDataTypes,
-        vector<DataPos> aggregatesPos, vector<DataType> aggregateDataTypes,
-        unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
+    HashAggregateScan(std::shared_ptr<HashAggregateSharedState> sharedState,
+        std::vector<DataPos> groupByKeyVectorsPos,
+        std::vector<common::DataType> groupByKeyVectorDataTypes, std::vector<DataPos> aggregatesPos,
+        std::vector<common::DataType> aggregateDataTypes, std::unique_ptr<PhysicalOperator> child,
+        uint32_t id, const std::string& paramsString)
         : BaseAggregateScan{std::move(aggregatesPos), std::move(aggregateDataTypes),
               std::move(child), id, paramsString},
           groupByKeyVectorsPos{std::move(groupByKeyVectorsPos)},
           groupByKeyVectorDataTypes{std::move(groupByKeyVectorDataTypes)}, sharedState{std::move(
                                                                                sharedState)} {}
 
-    HashAggregateScan(shared_ptr<HashAggregateSharedState> sharedState,
-        vector<DataPos> groupByKeyVectorsPos, vector<DataType> groupByKeyVectorDataTypes,
-        vector<DataPos> aggregatesPos, vector<DataType> aggregateDataTypes, uint32_t id,
-        const string& paramsString)
+    HashAggregateScan(std::shared_ptr<HashAggregateSharedState> sharedState,
+        std::vector<DataPos> groupByKeyVectorsPos,
+        std::vector<common::DataType> groupByKeyVectorDataTypes, std::vector<DataPos> aggregatesPos,
+        std::vector<common::DataType> aggregateDataTypes, uint32_t id,
+        const std::string& paramsString)
         : BaseAggregateScan{std::move(aggregatesPos), std::move(aggregateDataTypes), id,
               paramsString},
           groupByKeyVectorsPos{std::move(groupByKeyVectorsPos)},
@@ -32,17 +34,17 @@ public:
 
     bool getNextTuplesInternal() override;
 
-    unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<HashAggregateScan>(sharedState, groupByKeyVectorsPos,
+    std::unique_ptr<PhysicalOperator> clone() override {
+        return std::make_unique<HashAggregateScan>(sharedState, groupByKeyVectorsPos,
             groupByKeyVectorDataTypes, aggregatesPos, aggregateDataTypes, id, paramsString);
     }
 
 private:
-    vector<DataPos> groupByKeyVectorsPos;
-    vector<DataType> groupByKeyVectorDataTypes;
-    vector<shared_ptr<ValueVector>> groupByKeyVectors;
-    shared_ptr<HashAggregateSharedState> sharedState;
-    vector<uint32_t> groupByKeyVectorsColIdxes;
+    std::vector<DataPos> groupByKeyVectorsPos;
+    std::vector<common::DataType> groupByKeyVectorDataTypes;
+    std::vector<std::shared_ptr<common::ValueVector>> groupByKeyVectors;
+    std::shared_ptr<HashAggregateSharedState> sharedState;
+    std::vector<uint32_t> groupByKeyVectorsColIdxes;
 };
 
 } // namespace processor

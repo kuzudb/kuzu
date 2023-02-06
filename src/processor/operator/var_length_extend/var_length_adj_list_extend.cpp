@@ -2,6 +2,9 @@
 
 #include "common/types/types.h"
 
+using namespace kuzu::common;
+using namespace kuzu::storage;
+
 namespace kuzu {
 namespace processor {
 
@@ -11,9 +14,9 @@ AdjListExtendDFSLevelInfo::AdjListExtendDFSLevelInfo(uint8_t level, ExecutionCon
     // Because we use AdjLists to read data into the children valueVector, and AdjLists requires a
     // DataChunkState to write how many nodes it has read, we create a new DataChunkState and assign
     // it to children.
-    children->state = make_shared<DataChunkState>();
-    listSyncState = make_unique<ListSyncState>();
-    listHandle = make_unique<ListHandle>(*listSyncState);
+    children->state = std::make_shared<DataChunkState>();
+    listSyncState = std::make_unique<ListSyncState>();
+    listHandle = std::make_unique<ListHandle>(*listSyncState);
 }
 
 void AdjListExtendDFSLevelInfo::reset(uint64_t parent_) {
@@ -29,7 +32,7 @@ void VarLengthAdjListExtend::initLocalStateInternal(
     ResultSet* resultSet, ExecutionContext* context) {
     VarLengthExtend::initLocalStateInternal(resultSet, context);
     for (uint8_t i = 0; i < upperBound; i++) {
-        dfsLevelInfos[i] = make_shared<AdjListExtendDFSLevelInfo>(i + 1, *context);
+        dfsLevelInfos[i] = std::make_shared<AdjListExtendDFSLevelInfo>(i + 1, *context);
     }
 }
 
@@ -91,7 +94,7 @@ bool VarLengthAdjListExtend::addDFSLevelToStackIfParentExtends(uint64_t parent, 
 }
 
 bool VarLengthAdjListExtend::getNextBatchOfNbrNodes(
-    shared_ptr<AdjListExtendDFSLevelInfo>& dfsLevel) const {
+    std::shared_ptr<AdjListExtendDFSLevelInfo>& dfsLevel) const {
     if (dfsLevel->listHandle->hasMoreAndSwitchSourceIfNecessary()) {
         ((AdjLists*)storage)->readValues(transaction, dfsLevel->children, *dfsLevel->listHandle);
         return true;

@@ -9,27 +9,29 @@ class BoundStatementResult {
 public:
     BoundStatementResult() = default;
     BoundStatementResult(
-        expression_vector columns, vector<expression_vector> expressionsToCollectPerColumn)
+        expression_vector columns, std::vector<expression_vector> expressionsToCollectPerColumn)
         : columns{std::move(columns)}, expressionsToCollectPerColumn{
                                            std::move(expressionsToCollectPerColumn)} {}
 
-    static unique_ptr<BoundStatementResult> createEmptyResult() {
-        return make_unique<BoundStatementResult>();
+    static std::unique_ptr<BoundStatementResult> createEmptyResult() {
+        return std::make_unique<BoundStatementResult>();
     }
 
-    static unique_ptr<BoundStatementResult> createSingleStringColumnResult() {
-        auto result = make_unique<BoundStatementResult>();
-        auto stringColumn = make_shared<Expression>(LITERAL, DataType{STRING}, "outputMsg");
+    static std::unique_ptr<BoundStatementResult> createSingleStringColumnResult() {
+        auto result = std::make_unique<BoundStatementResult>();
+        auto stringColumn = std::make_shared<Expression>(
+            common::LITERAL, common::DataType{common::STRING}, "outputMsg");
         result->addColumn(stringColumn, expression_vector{stringColumn});
         return result;
     }
 
-    inline void addColumn(shared_ptr<Expression> column, expression_vector expressionToCollect) {
+    inline void addColumn(
+        std::shared_ptr<Expression> column, expression_vector expressionToCollect) {
         columns.push_back(std::move(column));
         expressionsToCollectPerColumn.push_back(std::move(expressionToCollect));
     }
     inline expression_vector getColumns() const { return columns; }
-    inline vector<expression_vector> getExpressionsToCollectPerColumn() const {
+    inline std::vector<expression_vector> getExpressionsToCollectPerColumn() const {
         return expressionsToCollectPerColumn;
     }
 
@@ -43,20 +45,20 @@ public:
         return result;
     }
 
-    inline shared_ptr<Expression> getSingleExpressionToCollect() {
+    inline std::shared_ptr<Expression> getSingleExpressionToCollect() {
         auto expressionsToCollect = getExpressionsToCollect();
         assert(expressionsToCollect.size() == 1);
         return expressionsToCollect[0];
     }
 
-    inline unique_ptr<BoundStatementResult> copy() {
-        return make_unique<BoundStatementResult>(columns, expressionsToCollectPerColumn);
+    inline std::unique_ptr<BoundStatementResult> copy() {
+        return std::make_unique<BoundStatementResult>(columns, expressionsToCollectPerColumn);
     }
 
 private:
     expression_vector columns;
     // for node and rel column, we need collect multiple properties and aggregate in json format.
-    vector<expression_vector> expressionsToCollectPerColumn;
+    std::vector<expression_vector> expressionsToCollectPerColumn;
 };
 
 } // namespace binder

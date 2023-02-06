@@ -7,10 +7,11 @@ namespace processor {
 
 class IntersectHashTable : public JoinHashTable {
 public:
-    IntersectHashTable(MemoryManager& memoryManager, unique_ptr<FactorizedTableSchema> tableSchema)
-        : JoinHashTable{memoryManager, 1 /* numKeyColumns */, move(tableSchema)} {}
+    IntersectHashTable(
+        storage::MemoryManager& memoryManager, std::unique_ptr<FactorizedTableSchema> tableSchema)
+        : JoinHashTable{memoryManager, 1 /* numKeyColumns */, std::move(tableSchema)} {}
 
-    void append(const vector<shared_ptr<ValueVector>>& vectorsToAppend) override;
+    void append(const std::vector<std::shared_ptr<common::ValueVector>>& vectorsToAppend) override;
 };
 
 } // namespace processor

@@ -11,8 +11,8 @@ namespace processor {
 struct Mask {
 public:
     Mask(uint64_t size, uint8_t maskedFlag) : maskedFlag{maskedFlag} {
-        data = make_unique<uint8_t[]>(size);
-        fill(data.get(), data.get() + size, 0);
+        data = std::make_unique<uint8_t[]>(size);
+        std::fill(data.get(), data.get() + size, 0);
     }
 
     // Notice: This function is not protected with a lock for concurrent writes because of the
@@ -31,15 +31,15 @@ private:
     // The value of maskedFlag is equivalent to the num of maskers passed. It is used to check if a
     // value is selected by all maskers or not. Each masker will increment its selected value by 1.
     uint8_t maskedFlag;
-    unique_ptr<uint8_t[]> data;
+    std::unique_ptr<uint8_t[]> data;
 };
 
 struct ScanNodeIDSemiMask {
 public:
-    ScanNodeIDSemiMask(offset_t maxNodeOffset, uint8_t maskedFlag) {
-        nodeMask = make_unique<Mask>(maxNodeOffset + 1, maskedFlag);
-        morselMask =
-            make_unique<Mask>((maxNodeOffset >> DEFAULT_VECTOR_CAPACITY_LOG_2) + 1, maskedFlag);
+    ScanNodeIDSemiMask(common::offset_t maxNodeOffset, uint8_t maskedFlag) {
+        nodeMask = std::make_unique<Mask>(maxNodeOffset + 1, maskedFlag);
+        morselMask = std::make_unique<Mask>(
+            (maxNodeOffset >> common::DEFAULT_VECTOR_CAPACITY_LOG_2) + 1, maskedFlag);
     }
 
     inline bool isNodeMaskEnabled() { return nodeMask != nullptr; }
@@ -49,105 +49,107 @@ public:
     void setMask(uint64_t nodeOffset, uint8_t maskerIdx);
 
 private:
-    unique_ptr<Mask> nodeMask;
-    unique_ptr<Mask> morselMask;
+    std::unique_ptr<Mask> nodeMask;
+    std::unique_ptr<Mask> morselMask;
 };
 
 class ScanTableNodeIDSharedState {
 public:
-    ScanTableNodeIDSharedState(NodeTable* table)
+    explicit ScanTableNodeIDSharedState(storage::NodeTable* table)
         : table{table}, maxNodeOffset{UINT64_MAX}, maxMorselIdx{UINT64_MAX}, currentNodeOffset{0},
           numMaskers{0}, semiMask{nullptr} {}
 
-    inline NodeTable* getTable() { return table; }
+    inline storage::NodeTable* getTable() { return table; }
 
-    inline void initialize(Transaction* transaction) {
+    inline void initialize(transaction::Transaction* transaction) {
         assert(maxNodeOffset == UINT64_MAX && maxMorselIdx == UINT64_MAX);
         maxNodeOffset = table->getMaxNodeOffset(transaction);
-        maxMorselIdx = maxNodeOffset >> DEFAULT_VECTOR_CAPACITY_LOG_2;
+        maxMorselIdx = maxNodeOffset >> common::DEFAULT_VECTOR_CAPACITY_LOG_2;
     }
 
-    inline void initSemiMask(Transaction* transaction) {
+    inline void initSemiMask(transaction::Transaction* transaction) {
         if (semiMask == nullptr) {
-            semiMask =
-                make_unique<ScanNodeIDSemiMask>(table->getMaxNodeOffset(transaction), numMaskers);
+            semiMask = std::make_unique<ScanNodeIDSemiMask>(
+                table->getMaxNodeOffset(transaction), numMaskers);
         }
     }
     inline bool isSemiMaskEnabled() { return semiMask != nullptr && semiMask->isNodeMaskEnabled(); }
     inline ScanNodeIDSemiMask* getSemiMask() { return semiMask.get(); }
-    inline uint8_t getNumMaskers() { return numMaskers; }
+    inline uint8_t getNumMaskers() const { return numMaskers; }
     inline void incrementNumMaskers() { numMaskers++; }
 
-    pair<offset_t, offset_t> getNextRangeToRead();
+    std::pair<common::offset_t, common::offset_t> getNextRangeToRead();
 
 private:
-    NodeTable* table;
+    storage::NodeTable* table;
     uint64_t maxNodeOffset;
     uint64_t maxMorselIdx;
     uint64_t currentNodeOffset;
     uint8_t numMaskers;
-    unique_ptr<ScanNodeIDSemiMask> semiMask;
+    std::unique_ptr<ScanNodeIDSemiMask> semiMask;
 };
 
 class ScanNodeIDSharedState {
 public:
     ScanNodeIDSharedState() : currentStateIdx{0} {};
 
-    inline void addTableState(NodeTable* table) {
-        tableStates.push_back(make_unique<ScanTableNodeIDSharedState>(table));
+    inline void addTableState(storage::NodeTable* table) {
+        tableStates.push_back(std::make_unique<ScanTableNodeIDSharedState>(table));
     }
     inline uint32_t getNumTableStates() const { return tableStates.size(); }
     inline ScanTableNodeIDSharedState* getTableState(uint32_t idx) const {
         return tableStates[idx].get();
     }
 
-    inline void initialize(Transaction* transaction) {
+    inline void initialize(transaction::Transaction* transaction) {
         for (auto& tableState : tableStates) {
             tableState->initialize(transaction);
         }
     }
 
-    tuple<ScanTableNodeIDSharedState*, offset_t, offset_t> getNextRangeToRead();
+    std::tuple<ScanTableNodeIDSharedState*, common::offset_t, common::offset_t>
+    getNextRangeToRead();
 
 private:
-    mutex mtx;
+    std::mutex mtx;
 
-    vector<unique_ptr<ScanTableNodeIDSharedState>> tableStates;
+    std::vector<std::unique_ptr<ScanTableNodeIDSharedState>> tableStates;
     uint32_t currentStateIdx;
 };
 
 class ScanNodeID : public PhysicalOperator {
 public:
-    ScanNodeID(string nodeID, const DataPos& outDataPos,
-        shared_ptr<ScanNodeIDSharedState> sharedState, uint32_t id, const string& paramsString)
+    ScanNodeID(std::string nodeID, const DataPos& outDataPos,
+        std::shared_ptr<ScanNodeIDSharedState> sharedState, uint32_t id,
+        const std::string& paramsString)
         : PhysicalOperator{PhysicalOperatorType::SCAN_NODE_ID, id, paramsString},
           nodeID{std::move(nodeID)}, outDataPos{outDataPos}, sharedState{std::move(sharedState)} {}
 
     bool isSource() const override { return true; }
 
-    inline string getNodeID() const { return nodeID; }
+    inline std::string getNodeID() const { return nodeID; }
     inline ScanNodeIDSharedState* getSharedState() const { return sharedState.get(); }
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
     bool getNextTuplesInternal() override;
 
-    inline unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<ScanNodeID>(nodeID, outDataPos, sharedState, id, paramsString);
+    inline std::unique_ptr<PhysicalOperator> clone() override {
+        return std::make_unique<ScanNodeID>(nodeID, outDataPos, sharedState, id, paramsString);
     }
 
 private:
     void initGlobalStateInternal(ExecutionContext* context) override;
 
-    void setSelVector(
-        ScanTableNodeIDSharedState* tableState, offset_t startOffset, offset_t endOffset);
+    void setSelVector(ScanTableNodeIDSharedState* tableState, common::offset_t startOffset,
+        common::offset_t endOffset);
 
 private:
-    string nodeID;
+    std::string nodeID;
     DataPos outDataPos;
-    shared_ptr<ScanNodeIDSharedState> sharedState;
+    std::shared_ptr<ScanNodeIDSharedState> sharedState;
 
-    shared_ptr<ValueVector> outValueVector;
+    std::shared_ptr<common::ValueVector> outValueVector;
 };
 
 } // namespace processor

@@ -7,13 +7,10 @@
 #include "storage/storage_structure/in_mem_page.h"
 #include "storage/storage_utils.h"
 
-using namespace kuzu::common;
-using namespace kuzu::storage;
-
 namespace kuzu {
 namespace storage {
 
-static const string IN_MEM_TEMP_FILE_PATH = "";
+static const std::string IN_MEM_TEMP_FILE_PATH = "";
 
 // InMemFile holds a collection of in-memory page in the memory.
 class InMemFile {
@@ -32,16 +29,16 @@ public:
 
     uint32_t addANewPage(bool setToZero = false);
 
-    inline InMemPage* getPage(page_idx_t pageIdx) const { return pages[pageIdx].get(); }
+    inline InMemPage* getPage(common::page_idx_t pageIdx) const { return pages[pageIdx].get(); }
 
     uint64_t getNumPages() { return pages.size(); }
 
 protected:
-    string filePath;
+    std::string filePath;
     uint16_t numBytesForElement;
     uint64_t numElementsInAPage;
     bool hasNullMask;
-    vector<unique_ptr<InMemPage>> pages;
+    std::vector<std::unique_ptr<InMemPage>> pages;
 };
 
 //  InMemFile for storing overflow of PropertyColumn or PropertyLists.
@@ -62,41 +59,41 @@ public:
     // otherwise, construct the ku_string for the rawString and return it.
     // Multiple threads are coordinate by taking an exclusive lock each time it needs to copy
     // overflow values to the file and updating nextPageIdxToAppend/nextOffsetInPageToAppend.
-    ku_string_t appendString(const char* rawString);
+    common::ku_string_t appendString(const char* rawString);
     // These two functions copies a string/list value to the file according to the cursor. Multiple
     // threads coordinate by that each thread takes the full control of a single page at a time.
     // When the page is not exhausted, each thread can write without an exclusive lock.
-    ku_string_t copyString(const char* rawString, PageByteCursor& overflowCursor);
-    ku_list_t copyList(const Value& listValue, PageByteCursor& overflowCursor);
+    common::ku_string_t copyString(const char* rawString, PageByteCursor& overflowCursor);
+    common::ku_list_t copyList(const common::Value& listValue, PageByteCursor& overflowCursor);
 
     // Copy overflow data at srcOverflow into dstKUString.
     void copyStringOverflow(
-        PageByteCursor& overflowCursor, uint8_t* srcOverflow, ku_string_t* dstKUString);
+        PageByteCursor& overflowCursor, uint8_t* srcOverflow, common::ku_string_t* dstKUString);
     void copyListOverflowFromFile(InMemOverflowFile* srcInMemOverflowFile,
         const PageByteCursor& srcOverflowCursor, PageByteCursor& dstOverflowCursor,
-        ku_list_t* dstKUList, DataType* listChildDataType);
-    void copyListOverflowToFile(
-        PageByteCursor& pageByteCursor, ku_list_t* srcKUList, DataType* childDataType);
+        common::ku_list_t* dstKUList, common::DataType* listChildDataType);
+    void copyListOverflowToFile(PageByteCursor& pageByteCursor, common::ku_list_t* srcKUList,
+        common::DataType* childDataType);
 
-    string readString(ku_string_t* strInInMemOvfFile);
+    std::string readString(common::ku_string_t* strInInMemOvfFile);
 
 private:
-    page_idx_t addANewOverflowPage();
+    common::page_idx_t addANewOverflowPage();
 
-    void copyFixedSizedValuesInList(
-        const Value& listVal, PageByteCursor& overflowCursor, uint64_t numBytesOfListElement);
-    template<DataTypeID DT>
-    void copyVarSizedValuesInList(ku_list_t& resultKUList, const Value& listVal,
+    void copyFixedSizedValuesInList(const common::Value& listVal, PageByteCursor& overflowCursor,
+        uint64_t numBytesOfListElement);
+    template<common::DataTypeID DT>
+    void copyVarSizedValuesInList(common::ku_list_t& resultKUList, const common::Value& listVal,
         PageByteCursor& overflowCursor, uint64_t numBytesOfListElement);
 
-    void resetElementsOverflowPtrIfNecessary(PageByteCursor& pageByteCursor, DataType* elementType,
-        uint64_t numElementsToReset, uint8_t* elementsToReset);
+    void resetElementsOverflowPtrIfNecessary(PageByteCursor& pageByteCursor,
+        common::DataType* elementType, uint64_t numElementsToReset, uint8_t* elementsToReset);
 
 private:
     // These two fields (currentPageIdxToAppend, currentOffsetInPageToAppend) are used when
     // appendString to the file.
-    page_idx_t nextPageIdxToAppend;
-    page_offset_t nextOffsetInPageToAppend;
+    common::page_idx_t nextPageIdxToAppend;
+    common::page_offset_t nextOffsetInPageToAppend;
     std::shared_mutex lock;
 };
 

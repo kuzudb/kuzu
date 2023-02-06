@@ -5,13 +5,15 @@
 #include "binder/expression/parameter_expression.h"
 #include "common/type_utils.h"
 
+using namespace kuzu::common;
 using namespace kuzu::function;
 
 namespace kuzu {
 namespace binder {
 
-shared_ptr<Expression> ExpressionBinder::bindExpression(const ParsedExpression& parsedExpression) {
-    shared_ptr<Expression> expression;
+std::shared_ptr<Expression> ExpressionBinder::bindExpression(
+    const parser::ParsedExpression& parsedExpression) {
+    std::shared_ptr<Expression> expression;
     auto expressionType = parsedExpression.getExpressionType();
     if (isExpressionBoolConnection(expressionType)) {
         expression = bindBooleanExpression(parsedExpression);
@@ -47,8 +49,8 @@ shared_ptr<Expression> ExpressionBinder::bindExpression(const ParsedExpression& 
     return expression;
 }
 
-shared_ptr<Expression> ExpressionBinder::implicitCastIfNecessary(
-    const shared_ptr<Expression>& expression, DataType targetType) {
+std::shared_ptr<Expression> ExpressionBinder::implicitCastIfNecessary(
+    const std::shared_ptr<Expression>& expression, const DataType& targetType) {
     if (targetType.typeID == ANY || expression->dataType == targetType) {
         return expression;
     }
@@ -59,8 +61,8 @@ shared_ptr<Expression> ExpressionBinder::implicitCastIfNecessary(
     return implicitCast(expression, targetType);
 }
 
-shared_ptr<Expression> ExpressionBinder::implicitCastIfNecessary(
-    const shared_ptr<Expression>& expression, DataTypeID targetTypeID) {
+std::shared_ptr<Expression> ExpressionBinder::implicitCastIfNecessary(
+    const std::shared_ptr<Expression>& expression, DataTypeID targetTypeID) {
     if (targetTypeID == ANY || expression->dataType.typeID == targetTypeID) {
         return expression;
     }
@@ -77,7 +79,7 @@ shared_ptr<Expression> ExpressionBinder::implicitCastIfNecessary(
     return implicitCast(expression, DataType(targetTypeID));
 }
 
-void ExpressionBinder::resolveAnyDataType(Expression& expression, DataType targetType) {
+void ExpressionBinder::resolveAnyDataType(Expression& expression, const DataType& targetType) {
     if (expression.expressionType == PARAMETER) { // expression is parameter
         ((ParameterExpression&)expression).setDataType(targetType);
     } else { // expression is null literal
@@ -86,8 +88,8 @@ void ExpressionBinder::resolveAnyDataType(Expression& expression, DataType targe
     }
 }
 
-shared_ptr<Expression> ExpressionBinder::implicitCast(
-    const shared_ptr<Expression>& expression, DataType targetType) {
+std::shared_ptr<Expression> ExpressionBinder::implicitCast(
+    const std::shared_ptr<Expression>& expression, const DataType& targetType) {
     throw BinderException("Expression " + expression->getRawName() + " has data type " +
                           Types::dataTypeToString(expression->dataType) + " but expect " +
                           Types::dataTypeToString(targetType) +
@@ -95,10 +97,10 @@ shared_ptr<Expression> ExpressionBinder::implicitCast(
 }
 
 void ExpressionBinder::validateExpectedDataType(
-    const Expression& expression, const unordered_set<DataTypeID>& targets) {
+    const Expression& expression, const std::unordered_set<DataTypeID>& targets) {
     auto dataType = expression.dataType;
     if (!targets.contains(dataType.typeID)) {
-        vector<DataTypeID> targetsVec{targets.begin(), targets.end()};
+        std::vector<DataTypeID> targetsVec{targets.begin(), targets.end()};
         throw BinderException(expression.getRawName() + " has data type " +
                               Types::dataTypeToString(dataType.typeID) + ". " +
                               Types::dataTypesToString(targetsVec) + " was expected.");

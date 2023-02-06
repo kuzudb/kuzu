@@ -3,22 +3,25 @@
 #include "processor/mapper/plan_mapper.h"
 #include "processor/operator/table_scan/factorized_table_scan.h"
 
+using namespace kuzu::common;
+using namespace kuzu::planner;
+
 namespace kuzu {
 namespace processor {
 
-unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExpressionsScanToPhysical(
+std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExpressionsScanToPhysical(
     LogicalOperator* logicalOperator) {
     auto& logicalExpressionsScan = (LogicalExpressionsScan&)*logicalOperator;
     auto outSchema = logicalExpressionsScan.getSchema();
-    auto inSchema = make_unique<Schema>();
+    auto inSchema = std::make_unique<Schema>();
     auto expressions = logicalExpressionsScan.getExpressions();
-    auto sharedState = make_shared<FTableSharedState>();
+    auto sharedState = std::make_shared<FTableSharedState>();
     // populate static table
-    unique_ptr<FactorizedTableSchema> tableSchema = make_unique<FactorizedTableSchema>();
-    vector<shared_ptr<ValueVector>> vectors;
+    std::unique_ptr<FactorizedTableSchema> tableSchema = std::make_unique<FactorizedTableSchema>();
+    std::vector<std::shared_ptr<ValueVector>> vectors;
     for (auto& expression : expressions) {
         tableSchema->appendColumn(
-            make_unique<ColumnSchema>(false, 0 /* all expressions are in the same datachunk */,
+            std::make_unique<ColumnSchema>(false, 0 /* all expressions are in the same datachunk */,
                 Types::getDataTypeSize(expression->dataType)));
         auto expressionEvaluator = expressionMapper.mapExpression(expression, *inSchema);
         // expression can be evaluated statically and does not require an actual resultset to init
@@ -30,15 +33,16 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExpressionsScanToPhysical(
     auto table = sharedState->getTable();
     table->append(vectors);
     // map factorized table scan
-    vector<DataPos> outDataPoses;
-    vector<uint32_t> colIndicesToScan;
+    std::vector<DataPos> outDataPoses;
+    std::vector<uint32_t> colIndicesToScan;
     for (auto i = 0u; i < expressions.size(); ++i) {
         auto expression = expressions[i];
         outDataPoses.emplace_back(outSchema->getExpressionPos(*expression));
         colIndicesToScan.push_back(i);
     }
-    return make_unique<FactorizedTableScan>(std::move(outDataPoses), std::move(colIndicesToScan),
-        sharedState, getOperatorID(), logicalExpressionsScan.getExpressionsForPrinting());
+    return std::make_unique<FactorizedTableScan>(std::move(outDataPoses),
+        std::move(colIndicesToScan), sharedState, getOperatorID(),
+        logicalExpressionsScan.getExpressionsForPrinting());
 }
 
 } // namespace processor

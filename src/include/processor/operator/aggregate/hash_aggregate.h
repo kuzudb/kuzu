@@ -10,35 +10,35 @@ class HashAggregateSharedState : public BaseAggregateSharedState {
 
 public:
     explicit HashAggregateSharedState(
-        const vector<unique_ptr<AggregateFunction>>& aggregateFunctions)
+        const std::vector<std::unique_ptr<function::AggregateFunction>>& aggregateFunctions)
         : BaseAggregateSharedState{aggregateFunctions} {}
 
-    void appendAggregateHashTable(unique_ptr<AggregateHashTable> aggregateHashTable);
+    void appendAggregateHashTable(std::unique_ptr<AggregateHashTable> aggregateHashTable);
 
-    void combineAggregateHashTable(MemoryManager& memoryManager);
+    void combineAggregateHashTable(storage::MemoryManager& memoryManager);
 
     void finalizeAggregateHashTable();
 
-    pair<uint64_t, uint64_t> getNextRangeToRead() override;
+    std::pair<uint64_t, uint64_t> getNextRangeToRead() override;
 
     inline uint8_t* getRow(uint64_t idx) { return globalAggregateHashTable->getEntry(idx); }
 
     FactorizedTable* getFactorizedTable() { return globalAggregateHashTable->getFactorizedTable(); }
 
 private:
-    vector<unique_ptr<AggregateHashTable>> localAggregateHashTables;
-    unique_ptr<AggregateHashTable> globalAggregateHashTable;
+    std::vector<std::unique_ptr<AggregateHashTable>> localAggregateHashTables;
+    std::unique_ptr<AggregateHashTable> globalAggregateHashTable;
 };
 
 class HashAggregate : public BaseAggregate {
 public:
-    HashAggregate(unique_ptr<ResultSetDescriptor> resultSetDescriptor,
-        shared_ptr<HashAggregateSharedState> sharedState,
-        vector<DataPos> inputGroupByHashKeyVectorsPos,
-        vector<DataPos> inputGroupByNonHashKeyVectorsPos,
-        vector<bool> isInputGroupByHashKeyVectorFlat, vector<DataPos> aggregateVectorsPos,
-        vector<unique_ptr<AggregateFunction>> aggregateFunctions,
-        unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
+    HashAggregate(std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
+        std::shared_ptr<HashAggregateSharedState> sharedState,
+        std::vector<DataPos> inputGroupByHashKeyVectorsPos,
+        std::vector<DataPos> inputGroupByNonHashKeyVectorsPos,
+        std::vector<bool> isInputGroupByHashKeyVectorFlat, std::vector<DataPos> aggregateVectorsPos,
+        std::vector<std::unique_ptr<function::AggregateFunction>> aggregateFunctions,
+        std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
         : BaseAggregate{std::move(resultSetDescriptor), std::move(aggregateVectorsPos),
               std::move(aggregateFunctions), std::move(child), id, paramsString},
           groupByHashKeyVectorsPos{std::move(inputGroupByHashKeyVectorsPos)},
@@ -52,18 +52,18 @@ public:
 
     void finalize(ExecutionContext* context) override;
 
-    unique_ptr<PhysicalOperator> clone() override;
+    std::unique_ptr<PhysicalOperator> clone() override;
 
 private:
-    vector<DataPos> groupByHashKeyVectorsPos;
-    vector<DataPos> groupByNonHashKeyVectorsPos;
-    vector<bool> isGroupByHashKeyVectorFlat;
-    vector<ValueVector*> groupByFlatHashKeyVectors;
-    vector<ValueVector*> groupByUnflatHashKeyVectors;
-    vector<ValueVector*> groupByNonHashKeyVectors;
+    std::vector<DataPos> groupByHashKeyVectorsPos;
+    std::vector<DataPos> groupByNonHashKeyVectorsPos;
+    std::vector<bool> isGroupByHashKeyVectorFlat;
+    std::vector<common::ValueVector*> groupByFlatHashKeyVectors;
+    std::vector<common::ValueVector*> groupByUnflatHashKeyVectors;
+    std::vector<common::ValueVector*> groupByNonHashKeyVectors;
 
-    shared_ptr<HashAggregateSharedState> sharedState;
-    unique_ptr<AggregateHashTable> localAggregateHashTable;
+    std::shared_ptr<HashAggregateSharedState> sharedState;
+    std::unique_ptr<AggregateHashTable> localAggregateHashTable;
 };
 
 } // namespace processor

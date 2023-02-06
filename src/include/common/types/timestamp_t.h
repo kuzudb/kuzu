@@ -8,7 +8,7 @@ namespace common {
 
 // Type used to represent timestamps (value is in microseconds since 1970-01-01)
 struct timestamp_t {
-    int64_t value;
+    int64_t value = 0;
 
     timestamp_t() = default;
     explicit inline timestamp_t(int64_t value_p) : value(value_p) {}
@@ -56,8 +56,8 @@ class Timestamp {
 public:
     static timestamp_t FromCString(const char* str, uint64_t len);
 
-    // Convert a timestamp object to a string in the format "YYYY-MM-DD hh:mm:ss".
-    static string toString(timestamp_t timestamp);
+    // Convert a timestamp object to a std::string in the format "YYYY-MM-DD hh:mm:ss".
+    static std::string toString(timestamp_t timestamp);
 
     static date_t GetDate(timestamp_t timestamp);
 
@@ -87,8 +87,8 @@ public:
         const char* str, uint64_t& pos, uint64_t len, int& hour_offset, int& minute_offset);
 
 private:
-    static string getTimestampConversionExceptionMsg(const char* str, uint64_t len) {
-        return "Error occurred during parsing timestamp. Given: \"" + string(str, len) +
+    static std::string getTimestampConversionExceptionMsg(const char* str, uint64_t len) {
+        return "Error occurred during parsing timestamp. Given: \"" + std::string(str, len) +
                "\". Expected format: (YYYY-MM-DD hh:mm:ss[.zzzzzz][+-TT[:tt]])";
     }
 };

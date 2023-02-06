@@ -1,5 +1,7 @@
 #include "storage/index/hash_index_builder.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace storage {
 
@@ -14,24 +16,25 @@ slot_id_t BaseHashIndex::getPrimarySlotIdForKey(
 }
 
 template<typename T>
-HashIndexBuilder<T>::HashIndexBuilder(const string& fName, const DataType& keyDataType)
+HashIndexBuilder<T>::HashIndexBuilder(const std::string& fName, const DataType& keyDataType)
     : BaseHashIndex{keyDataType}, numEntries{0} {
-    fileHandle = make_unique<FileHandle>(fName, FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS);
-    indexHeader = make_unique<HashIndexHeader>(keyDataType.typeID);
+    fileHandle =
+        std::make_unique<FileHandle>(fName, FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS);
+    indexHeader = std::make_unique<HashIndexHeader>(keyDataType.typeID);
     fileHandle->addNewPage(); // INDEX_HEADER_ARRAY_HEADER_PAGE
     fileHandle->addNewPage(); // P_SLOTS_HEADER_PAGE
     fileHandle->addNewPage(); // O_SLOTS_HEADER_PAGE
-    headerArray = make_unique<InMemDiskArrayBuilder<HashIndexHeader>>(
+    headerArray = std::make_unique<InMemDiskArrayBuilder<HashIndexHeader>>(
         *fileHandle, INDEX_HEADER_ARRAY_HEADER_PAGE_IDX, 0 /* numElements */);
-    pSlots = make_unique<InMemDiskArrayBuilder<Slot<T>>>(
+    pSlots = std::make_unique<InMemDiskArrayBuilder<Slot<T>>>(
         *fileHandle, P_SLOTS_HEADER_PAGE_IDX, 0 /* numElements */);
     // Reserve a slot for oSlots, which is always skipped, as we treat slot idx 0 as NULL.
-    oSlots = make_unique<InMemDiskArrayBuilder<Slot<T>>>(
+    oSlots = std::make_unique<InMemDiskArrayBuilder<Slot<T>>>(
         *fileHandle, O_SLOTS_HEADER_PAGE_IDX, 1 /* numElements */);
     allocatePSlots(2);
     if (keyDataType.typeID == STRING) {
         inMemOverflowFile =
-            make_unique<InMemOverflowFile>(StorageUtils::getOverflowFileName(fName));
+            std::make_unique<InMemOverflowFile>(StorageUtils::getOverflowFileName(fName));
     }
     keyInsertFunc = InMemHashIndexUtils::initializeInsertFunc(indexHeader->keyDataTypeID);
     keyEqualsFunc = InMemHashIndexUtils::initializeEqualsFunc(indexHeader->keyDataTypeID);
@@ -98,20 +101,20 @@ bool HashIndexBuilder<T>::lookupInternalWithoutLock(const uint8_t* key, offset_t
 
 template<typename T>
 uint32_t HashIndexBuilder<T>::allocatePSlots(uint32_t numSlotsToAllocate) {
-    unique_lock xLock{pSlotSharedMutex};
+    std::unique_lock xLock{pSlotSharedMutex};
     auto oldNumSlots = pSlots->getNumElements();
     auto newNumSlots = oldNumSlots + numSlotsToAllocate;
     pSlots->resize(newNumSlots, true /* setToZero */);
     pSlotsMutexes.resize(newNumSlots);
     for (auto i = oldNumSlots; i < newNumSlots; i++) {
-        pSlotsMutexes[i] = make_unique<mutex>();
+        pSlotsMutexes[i] = std::make_unique<std::mutex>();
     }
     return oldNumSlots;
 }
 
 template<typename T>
 uint32_t HashIndexBuilder<T>::allocateAOSlot() {
-    unique_lock xLock{oSlotsSharedMutex};
+    std::unique_lock xLock{oSlotsSharedMutex};
     auto oldNumSlots = oSlots->getNumElements();
     auto newNumSlots = oldNumSlots + 1;
     oSlots->resize(newNumSlots, true /* setToZero */);
@@ -121,10 +124,10 @@ uint32_t HashIndexBuilder<T>::allocateAOSlot() {
 template<typename T>
 Slot<T>* HashIndexBuilder<T>::getSlot(const SlotInfo& slotInfo) {
     if (slotInfo.slotType == SlotType::PRIMARY) {
-        shared_lock sLck{pSlotSharedMutex};
+        std::shared_lock sLck{pSlotSharedMutex};
         return &pSlots->operator[](slotInfo.slotId);
     } else {
-        shared_lock sLck{oSlotsSharedMutex};
+        std::shared_lock sLck{oSlotsSharedMutex};
         return &oSlots->operator[](slotInfo.slotId);
     }
 }

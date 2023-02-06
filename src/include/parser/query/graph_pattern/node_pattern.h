@@ -5,8 +5,6 @@
 
 #include "parser/expression/parsed_expression.h"
 
-using namespace std;
-
 namespace kuzu {
 namespace parser {
 
@@ -15,26 +13,27 @@ namespace parser {
  */
 class NodePattern {
 public:
-    NodePattern(string name, vector<string> tableNames,
-        vector<pair<string, unique_ptr<ParsedExpression>>> propertyKeyValPairs)
+    NodePattern(std::string name, std::vector<std::string> tableNames,
+        std::vector<std::pair<std::string, std::unique_ptr<ParsedExpression>>> propertyKeyValPairs)
         : variableName{std::move(name)}, tableNames{std::move(tableNames)},
           propertyKeyValPairs{std::move(propertyKeyValPairs)} {}
 
     virtual ~NodePattern() = default;
 
-    inline string getVariableName() const { return variableName; }
+    inline std::string getVariableName() const { return variableName; }
 
-    inline vector<string> getTableNames() const { return tableNames; }
+    inline std::vector<std::string> getTableNames() const { return tableNames; }
 
     inline uint32_t getNumPropertyKeyValPairs() const { return propertyKeyValPairs.size(); }
-    inline pair<string, ParsedExpression*> getProperty(uint32_t idx) const {
-        return make_pair(propertyKeyValPairs[idx].first, propertyKeyValPairs[idx].second.get());
+    inline std::pair<std::string, ParsedExpression*> getProperty(uint32_t idx) const {
+        return std::make_pair(
+            propertyKeyValPairs[idx].first, propertyKeyValPairs[idx].second.get());
     }
 
 protected:
-    string variableName;
-    vector<string> tableNames;
-    vector<pair<string, unique_ptr<ParsedExpression>>> propertyKeyValPairs;
+    std::string variableName;
+    std::vector<std::string> tableNames;
+    std::vector<std::pair<std::string, std::unique_ptr<ParsedExpression>>> propertyKeyValPairs;
 };
 
 } // namespace parser

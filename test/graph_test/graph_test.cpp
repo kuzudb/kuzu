@@ -1,12 +1,17 @@
 #include "graph_test/graph_test.h"
 
 using ::testing::Test;
+using namespace kuzu::catalog;
+using namespace kuzu::common;
+using namespace kuzu::planner;
+using namespace kuzu::storage;
+using namespace kuzu::transaction;
 
 namespace kuzu {
 namespace testing {
 
 void BaseGraphTest::validateColumnFilesExistence(
-    string fileName, bool existence, bool hasOverflow) {
+    std::string fileName, bool existence, bool hasOverflow) {
     ASSERT_EQ(FileUtils::fileOrPathExists(fileName), existence);
     if (hasOverflow) {
         ASSERT_EQ(
@@ -15,7 +20,7 @@ void BaseGraphTest::validateColumnFilesExistence(
 }
 
 void BaseGraphTest::validateListFilesExistence(
-    string fileName, bool existence, bool hasOverflow, bool hasHeader) {
+    std::string fileName, bool existence, bool hasOverflow, bool hasHeader) {
     ASSERT_EQ(FileUtils::fileOrPathExists(fileName), existence);
     ASSERT_EQ(FileUtils::fileOrPathExists(StorageUtils::getListMetadataFName(fileName)), existence);
     if (hasOverflow) {
@@ -44,9 +49,9 @@ void BaseGraphTest::validateNodeColumnFilesExistence(
 void BaseGraphTest::validateRelColumnAndListFilesExistence(
     RelTableSchema* relTableSchema, DBFileType dbFileType, bool existence) {
     for (auto relDirection : REL_DIRECTIONS) {
-        unordered_set<table_id_t> boundTableIDs = relDirection == FWD ?
-                                                      relTableSchema->getUniqueSrcTableIDs() :
-                                                      relTableSchema->getUniqueDstTableIDs();
+        std::unordered_set<table_id_t> boundTableIDs = relDirection == FWD ?
+                                                           relTableSchema->getUniqueSrcTableIDs() :
+                                                           relTableSchema->getUniqueDstTableIDs();
         if (relTableSchema->relMultiplicity) {
             for (auto boundTableID : boundTableIDs) {
                 validateColumnFilesExistence(
@@ -69,10 +74,11 @@ void BaseGraphTest::validateRelColumnAndListFilesExistence(
     }
 }
 
-void BaseGraphTest::validateQueryBestPlanJoinOrder(string query, string expectedJoinOrder) {
+void BaseGraphTest::validateQueryBestPlanJoinOrder(
+    std::string query, std::string expectedJoinOrder) {
     auto catalog = getCatalog(*database);
-    auto statement = Parser::parseQuery(query);
-    auto parsedQuery = (RegularQuery*)statement.get();
+    auto statement = parser::Parser::parseQuery(query);
+    auto parsedQuery = (parser::RegularQuery*)statement.get();
     auto boundQuery = Binder(*catalog).bind(*parsedQuery);
     auto plan = Planner::getBestPlan(*catalog,
         getStorageManager(*database)->getNodesStore().getNodesStatisticsAndDeletedIDs(),
@@ -110,25 +116,25 @@ void BaseGraphTest::validateRelPropertyFiles(catalog::RelTableSchema* relTableSc
     }
 }
 
-void TestHelper::executeCypherScript(const string& cypherScript, Connection& conn) {
-    cout << "cypherScript: " << cypherScript << endl;
+void TestHelper::executeCypherScript(const std::string& cypherScript, Connection& conn) {
+    std::cout << "cypherScript: " << cypherScript << std::endl;
     assert(FileUtils::fileOrPathExists(cypherScript));
-    ifstream file(cypherScript);
+    std::ifstream file(cypherScript);
     if (!file.is_open()) {
         throw Exception(StringUtils::string_format(
             "Error opening file: %s, errno: %d.", cypherScript.c_str(), errno));
     }
-    string line;
+    std::string line;
     while (getline(file, line)) {
         // If this is a COPY_CSV statement, we need to append the KUZU_ROOT_DIRECTORY to the csv
         // file path.
         auto pos = line.find('"');
-        if (pos != string::npos) {
-            line.insert(pos + 1, KUZU_ROOT_DIRECTORY + string("/"));
+        if (pos != std::string::npos) {
+            line.insert(pos + 1, KUZU_ROOT_DIRECTORY + std::string("/"));
         }
-        cout << "Starting to execute query: " << line << endl;
+        std::cout << "Starting to execute query: " << line << std::endl;
         auto result = conn.query(line);
-        cout << "Executed query: " << line << endl;
+        std::cout << "Executed query: " << line << std::endl;
         if (!result->isSuccess()) {
             throw Exception(
                 StringUtils::string_format("Failed to execute statement: %s.\nError: %s",
@@ -142,7 +148,7 @@ void BaseGraphTest::initGraph() {
     TestHelper::executeCypherScript(getInputDir() + TestHelper::COPY_CSV_FILE_NAME, *conn);
 }
 
-void BaseGraphTest::initGraphFromPath(const string& path) const {
+void BaseGraphTest::initGraphFromPath(const std::string& path) const {
     TestHelper::executeCypherScript(path + TestHelper::SCHEMA_FILE_NAME, *conn);
     TestHelper::executeCypherScript(path + TestHelper::COPY_CSV_FILE_NAME, *conn);
 }

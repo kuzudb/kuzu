@@ -9,23 +9,23 @@ namespace benchmark {
 class BenchmarkRunner {
 
 public:
-    BenchmarkRunner(const string& datasetPath, unique_ptr<BenchmarkConfig> config);
+    BenchmarkRunner(const std::string& datasetPath, std::unique_ptr<BenchmarkConfig> config);
 
-    void registerBenchmarks(const string& path);
+    void registerBenchmarks(const std::string& path);
 
     void runAllBenchmarks();
     static double computeAverageOfLastRuns(
         const double* runTimes, const int& len, const int& lastRunsToAverage);
 
 private:
-    void registerBenchmark(const string& path);
+    void registerBenchmark(const std::string& path);
 
     void runBenchmark(Benchmark* benchmark) const;
 
 public:
-    unique_ptr<BenchmarkConfig> config;
-    unique_ptr<Database> database;
-    vector<unique_ptr<Benchmark>> benchmarks;
+    std::unique_ptr<BenchmarkConfig> config;
+    std::unique_ptr<main::Database> database;
+    std::vector<std::unique_ptr<Benchmark>> benchmarks;
 };
 
 } // namespace benchmark

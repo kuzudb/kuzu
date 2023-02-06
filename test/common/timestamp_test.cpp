@@ -13,7 +13,7 @@ TEST(TimestampTests, FromDatetime) {
         FAIL();
     } catch (ConversionException& e) {
         ASSERT_STREQ(e.what(), "Date out of range: 1968-12-42.");
-    } catch (exception& e) { FAIL(); }
+    } catch (std::exception& e) { FAIL(); }
 
     // 2021 is not a leap year, February only has 28 days.
     try {
@@ -21,7 +21,7 @@ TEST(TimestampTests, FromDatetime) {
         FAIL();
     } catch (ConversionException& e) {
         ASSERT_STREQ(e.what(), "Date out of range: 2021-2-29.");
-    } catch (exception& e) { FAIL(); }
+    } catch (std::exception& e) { FAIL(); }
 
     // hour is out of range
     try {
@@ -29,7 +29,7 @@ TEST(TimestampTests, FromDatetime) {
         FAIL();
     } catch (ConversionException& e) {
         ASSERT_STREQ(e.what(), "Time field value out of range: 25:32:51[.0].");
-    } catch (exception& e) { FAIL(); }
+    } catch (std::exception& e) { FAIL(); }
 
     // second is out of range
     try {
@@ -37,7 +37,7 @@ TEST(TimestampTests, FromDatetime) {
         FAIL();
     } catch (ConversionException& e) {
         ASSERT_STREQ(e.what(), "Time field value out of range: 5:52:70[.0].");
-    } catch (exception& e) { FAIL(); }
+    } catch (std::exception& e) { FAIL(); }
 
     // microsecond is out of rarnge
     try {
@@ -45,7 +45,7 @@ TEST(TimestampTests, FromDatetime) {
         FAIL();
     } catch (ConversionException& e) {
         ASSERT_STREQ(e.what(), "Time field value out of range: 5:52:42[.1000002].");
-    } catch (exception& e) { FAIL(); }
+    } catch (std::exception& e) { FAIL(); }
 
     EXPECT_EQ(
         Timestamp::FromDatetime(Date::FromDate(2020, 10, 22), Time::FromTime(21, 32, 51)).value,

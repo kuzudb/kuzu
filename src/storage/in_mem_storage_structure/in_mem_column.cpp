@@ -1,5 +1,7 @@
 #include "storage/in_mem_storage_structure/in_mem_column.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace storage {
 
@@ -14,11 +16,11 @@ InMemColumn::InMemColumn(
 }
 
 void InMemColumn::fillWithDefaultVal(
-    uint8_t* defaultVal, uint64_t numNodes, const DataType& dataType) {
+    uint8_t* defaultVal, uint64_t numNodes, const DataType& dataType_) {
     PageByteCursor pageByteCursor{};
-    auto fillInMemColumnFunc = getFillInMemColumnFunc(dataType);
+    auto fillInMemColumnFunc = getFillInMemColumnFunc(dataType_);
     for (auto i = 0; i < numNodes; i++) {
-        fillInMemColumnFunc(this, defaultVal, pageByteCursor, i, dataType);
+        fillInMemColumnFunc(this, defaultVal, pageByteCursor, i, dataType_);
     }
 }
 
@@ -74,7 +76,7 @@ fill_in_mem_column_function_t InMemColumn::getFillInMemColumnFunc(const DataType
 }
 
 InMemColumnWithOverflow::InMemColumnWithOverflow(
-    string fName, DataType dataType, uint64_t numElements)
+    std::string fName, DataType dataType, uint64_t numElements)
     : InMemColumn{
           std::move(fName), std::move(dataType), Types::getDataTypeSize(dataType), numElements} {
     assert(this->dataType.typeID == STRING || this->dataType.typeID == LIST);
@@ -95,8 +97,8 @@ void InMemAdjColumn::setElement(offset_t offset, const uint8_t* val) {
             nodeIDCompressionScheme);
 }
 
-unique_ptr<InMemColumn> InMemColumnFactory::getInMemPropertyColumn(
-    const string& fName, const DataType& dataType, uint64_t numElements) {
+std::unique_ptr<InMemColumn> InMemColumnFactory::getInMemPropertyColumn(
+    const std::string& fName, const DataType& dataType, uint64_t numElements) {
     switch (dataType.typeID) {
     case INT64:
     case DOUBLE:

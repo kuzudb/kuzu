@@ -28,10 +28,10 @@ public:
     explicit Value(interval_t val_);
     explicit Value(internalID_t val_);
     explicit Value(const char* val_);
-    explicit Value(const string& val_);
-    explicit Value(DataType dataType, vector<unique_ptr<Value>> vals);
-    explicit Value(unique_ptr<NodeVal> val_);
-    explicit Value(unique_ptr<RelVal> val_);
+    explicit Value(const std::string& val_);
+    explicit Value(DataType dataType, std::vector<std::unique_ptr<Value>> vals);
+    explicit Value(std::unique_ptr<NodeVal> val_);
+    explicit Value(std::unique_ptr<RelVal> val_);
     explicit Value(DataType dataType, const uint8_t* val_);
 
     Value(const Value& other);
@@ -59,16 +59,16 @@ public:
         throw InternalException("Unimplemented template for Value::getValueReference()");
     }
     // TODO(Guodong): think how can we template list get functions.
-    const vector<unique_ptr<Value>>& getListValReference() const { return listVal; }
+    const std::vector<std::unique_ptr<Value>>& getListValReference() const { return listVal; }
 
     template<class T>
     static Value createValue(T value) {
         throw InternalException("Unimplemented template for Value::createValue()");
     }
 
-    inline unique_ptr<Value> copy() const { return make_unique<Value>(*this); }
+    inline std::unique_ptr<Value> copy() const { return std::make_unique<Value>(*this); }
 
-    string toString() const;
+    std::string toString() const;
 
 private:
     Value() : dataType{ANY}, isNull_{true} {}
@@ -77,7 +77,7 @@ private:
     inline void validateType(DataTypeID typeID) const { validateType(DataType(typeID)); }
     void validateType(const DataType& type) const;
 
-    vector<unique_ptr<Value>> convertKUListToVector(common::ku_list_t& list) const;
+    std::vector<std::unique_ptr<Value>> convertKUListToVector(common::ku_list_t& list) const;
 
 public:
     common::DataType dataType;
@@ -94,22 +94,23 @@ public:
         common::internalID_t internalIDVal;
     } val;
     std::string strVal;
-    vector<unique_ptr<Value>> listVal;
-    unique_ptr<NodeVal> nodeVal;
-    unique_ptr<RelVal> relVal;
+    std::vector<std::unique_ptr<Value>> listVal;
+    std::unique_ptr<NodeVal> nodeVal;
+    std::unique_ptr<RelVal> relVal;
 };
 
 class NodeVal {
 public:
-    NodeVal(unique_ptr<Value> idVal, unique_ptr<Value> labelVal)
+    NodeVal(std::unique_ptr<Value> idVal, std::unique_ptr<Value> labelVal)
         : idVal{std::move(idVal)}, labelVal{std::move(labelVal)} {}
     NodeVal(const NodeVal& other);
 
-    inline void addProperty(const std::string& key, unique_ptr<Value> value) {
+    inline void addProperty(const std::string& key, std::unique_ptr<Value> value) {
         properties.emplace_back(key, std::move(value));
     }
 
-    inline const vector<pair<std::string, unique_ptr<Value>>>& getProperties() const {
+    inline const std::vector<std::pair<std::string, std::unique_ptr<Value>>>&
+    getProperties() const {
         return properties;
     }
 
@@ -117,31 +118,32 @@ public:
     inline Value* getLabelVal() { return labelVal.get(); }
 
     nodeID_t getNodeID() const;
-    string getLabelName() const;
+    std::string getLabelName() const;
 
-    inline unique_ptr<NodeVal> copy() const { return make_unique<NodeVal>(*this); }
+    inline std::unique_ptr<NodeVal> copy() const { return std::make_unique<NodeVal>(*this); }
 
-    string toString() const;
+    std::string toString() const;
 
 private:
-    unique_ptr<Value> idVal;
-    unique_ptr<Value> labelVal;
-    vector<pair<std::string, unique_ptr<Value>>> properties;
+    std::unique_ptr<Value> idVal;
+    std::unique_ptr<Value> labelVal;
+    std::vector<std::pair<std::string, std::unique_ptr<Value>>> properties;
 };
 
 class RelVal {
 public:
-    RelVal(
-        unique_ptr<Value> srcNodeIDVal, unique_ptr<Value> dstNodeIDVal, unique_ptr<Value> labelVal)
+    RelVal(std::unique_ptr<Value> srcNodeIDVal, std::unique_ptr<Value> dstNodeIDVal,
+        std::unique_ptr<Value> labelVal)
         : srcNodeIDVal{std::move(srcNodeIDVal)},
           dstNodeIDVal{std::move(dstNodeIDVal)}, labelVal{std::move(labelVal)} {}
     RelVal(const RelVal& other);
 
-    inline void addProperty(const std::string& key, unique_ptr<Value> value) {
+    inline void addProperty(const std::string& key, std::unique_ptr<Value> value) {
         properties.emplace_back(key, std::move(value));
     }
 
-    inline const vector<pair<std::string, unique_ptr<Value>>>& getProperties() const {
+    inline const std::vector<std::pair<std::string, std::unique_ptr<Value>>>&
+    getProperties() const {
         return properties;
     }
 
@@ -150,17 +152,17 @@ public:
 
     nodeID_t getSrcNodeID() const;
     nodeID_t getDstNodeID() const;
-    string getLabelName();
+    std::string getLabelName();
 
-    string toString() const;
+    std::string toString() const;
 
-    inline unique_ptr<RelVal> copy() const { return make_unique<RelVal>(*this); }
+    inline std::unique_ptr<RelVal> copy() const { return std::make_unique<RelVal>(*this); }
 
 private:
-    unique_ptr<Value> labelVal;
-    unique_ptr<Value> srcNodeIDVal;
-    unique_ptr<Value> dstNodeIDVal;
-    vector<pair<std::string, unique_ptr<Value>>> properties;
+    std::unique_ptr<Value> labelVal;
+    std::unique_ptr<Value> srcNodeIDVal;
+    std::unique_ptr<Value> dstNodeIDVal;
+    std::vector<std::pair<std::string, std::unique_ptr<Value>>> properties;
 };
 
 template<>
@@ -206,7 +208,7 @@ inline nodeID_t Value::getValue() const {
 }
 
 template<>
-inline string Value::getValue() const {
+inline std::string Value::getValue() const {
     validateType(STRING);
     return strVal;
 }
@@ -266,7 +268,7 @@ inline nodeID_t& Value::getValueReference() {
 }
 
 template<>
-inline string& Value::getValueReference() {
+inline std::string& Value::getValueReference() {
     assert(dataType.typeID == STRING);
     return strVal;
 }
@@ -319,18 +321,18 @@ inline Value Value::createValue(nodeID_t val) {
 }
 
 template<>
-inline Value Value::createValue(string val) {
+inline Value Value::createValue(std::string val) {
     return Value(val);
 }
 
 template<>
-inline Value Value::createValue(const string& val) {
+inline Value Value::createValue(const std::string& val) {
     return Value(val);
 }
 
 template<>
 inline Value Value::createValue(const char* value) {
-    return Value(string(value));
+    return Value(std::string(value));
 }
 
 } // namespace common

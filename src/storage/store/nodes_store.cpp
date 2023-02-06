@@ -3,10 +3,10 @@
 namespace kuzu {
 namespace storage {
 
-NodesStore::NodesStore(const Catalog& catalog, BufferManager& bufferManager, WAL* wal)
+NodesStore::NodesStore(const catalog::Catalog& catalog, BufferManager& bufferManager, WAL* wal)
     : nodesStatisticsAndDeletedIDs{wal->getDirectory()} {
     for (auto& tableIDSchema : catalog.getReadOnlyVersion()->getNodeTableSchemas()) {
-        nodeTables[tableIDSchema.first] = make_unique<NodeTable>(
+        nodeTables[tableIDSchema.first] = std::make_unique<NodeTable>(
             &nodesStatisticsAndDeletedIDs, bufferManager, wal, tableIDSchema.second.get());
     }
 }

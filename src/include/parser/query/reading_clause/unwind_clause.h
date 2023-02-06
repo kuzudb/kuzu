@@ -9,18 +9,19 @@ namespace parser {
 class UnwindClause : public ReadingClause {
 
 public:
-    explicit UnwindClause(unique_ptr<ParsedExpression> expression, string listAlias)
-        : ReadingClause{ClauseType::UNWIND}, expression{move(expression)}, alias{move(listAlias)} {}
+    explicit UnwindClause(std::unique_ptr<ParsedExpression> expression, std::string listAlias)
+        : ReadingClause{common::ClauseType::UNWIND},
+          expression{std::move(expression)}, alias{std::move(listAlias)} {}
 
-    ~UnwindClause() = default;
+    ~UnwindClause() override = default;
 
     inline ParsedExpression* getExpression() const { return expression.get(); }
 
-    inline const string getAlias() const { return alias; }
+    inline std::string getAlias() const { return alias; }
 
 private:
-    unique_ptr<ParsedExpression> expression;
-    string alias;
+    std::unique_ptr<ParsedExpression> expression;
+    std::string alias;
 };
 
 } // namespace parser

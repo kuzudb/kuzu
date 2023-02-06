@@ -1,22 +1,24 @@
 #include "processor/operator/filtering_operator.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace processor {
 
-void SelVectorOverWriter::restoreSelVector(shared_ptr<SelectionVector>& selVector) {
+void SelVectorOverWriter::restoreSelVector(std::shared_ptr<SelectionVector>& selVector) {
     if (prevSelVector != nullptr) {
         selVector = prevSelVector;
     }
 }
 
-void SelVectorOverWriter::saveSelVector(shared_ptr<SelectionVector>& selVector) {
+void SelVectorOverWriter::saveSelVector(std::shared_ptr<SelectionVector>& selVector) {
     if (prevSelVector == nullptr) {
         prevSelVector = selVector;
     }
     resetToCurrentSelVector(selVector);
 }
 
-void SelVectorOverWriter::resetToCurrentSelVector(shared_ptr<SelectionVector>& selVector) {
+void SelVectorOverWriter::resetToCurrentSelVector(std::shared_ptr<SelectionVector>& selVector) {
     currentSelVector->selectedSize = selVector->selectedSize;
     if (selVector->isUnfiltered()) {
         currentSelVector->resetSelectorToUnselected();

@@ -6,12 +6,17 @@
 #include "processor/operator/var_length_extend/var_length_adj_list_extend.h"
 #include "processor/operator/var_length_extend/var_length_column_extend.h"
 
+using namespace kuzu::binder;
+using namespace kuzu::common;
+using namespace kuzu::planner;
+using namespace kuzu::storage;
+
 namespace kuzu {
 namespace processor {
 
-static vector<property_id_t> populatePropertyIds(
+static std::vector<property_id_t> populatePropertyIds(
     table_id_t relID, const expression_vector& properties) {
-    vector<property_id_t> outputColumns;
+    std::vector<property_id_t> outputColumns;
     for (auto& expression : properties) {
         auto propertyExpression = (PropertyExpression*)expression.get();
         outputColumns.push_back(propertyExpression->getPropertyID(relID));
@@ -19,11 +24,11 @@ static vector<property_id_t> populatePropertyIds(
     return outputColumns;
 }
 
-static unique_ptr<RelTableCollection> populateRelTableCollection(table_id_t boundNodeTableID,
+static std::unique_ptr<RelTableCollection> populateRelTableCollection(table_id_t boundNodeTableID,
     const RelExpression& rel, RelDirection direction, const expression_vector& properties,
     const RelsStore& relsStore) {
-    vector<DirectedRelTableData*> tables;
-    vector<unique_ptr<RelTableScanState>> tableScanStates;
+    std::vector<DirectedRelTableData*> tables;
+    std::vector<std::unique_ptr<RelTableScanState>> tableScanStates;
     for (auto relTableID : rel.getTableIDs()) {
         auto relTable = relsStore.getRelTable(relTableID);
         if (!relTable->hasAdjColumn(direction, boundNodeTableID) &&
@@ -31,7 +36,7 @@ static unique_ptr<RelTableCollection> populateRelTableCollection(table_id_t boun
             continue;
         }
         tables.push_back(relsStore.getRelTable(relTableID)->getDirectedTableData(direction));
-        vector<property_id_t> propertyIds;
+        std::vector<property_id_t> propertyIds;
         for (auto& property : properties) {
             auto propertyExpression = reinterpret_cast<PropertyExpression*>(property.get());
             propertyIds.push_back(propertyExpression->hasPropertyID(relTableID) ?
@@ -44,10 +49,10 @@ static unique_ptr<RelTableCollection> populateRelTableCollection(table_id_t boun
                     RelTableDataType::COLUMNS :
                     RelTableDataType::LISTS));
     }
-    return make_unique<RelTableCollection>(std::move(tables), std::move(tableScanStates));
+    return std::make_unique<RelTableCollection>(std::move(tables), std::move(tableScanStates));
 }
 
-unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExtendToPhysical(
+std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExtendToPhysical(
     LogicalOperator* logicalOperator) {
     auto extend = (LogicalExtend*)logicalOperator;
     auto outSchema = extend->getSchema();
@@ -61,7 +66,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExtendToPhysical(
         DataPos(inSchema->getExpressionPos(*boundNode->getInternalIDProperty()));
     auto outNodeIDVectorPos =
         DataPos(outSchema->getExpressionPos(*nbrNode->getInternalIDProperty()));
-    vector<DataPos> outputVectorsPos;
+    std::vector<DataPos> outputVectorsPos;
     outputVectorsPos.push_back(outNodeIDVectorPos);
     for (auto& expression : extend->getProperties()) {
         outputVectorsPos.emplace_back(outSchema->getExpressionPos(*expression));
@@ -78,7 +83,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExtendToPhysical(
                     getOperatorID(), extend->getExpressionsForPrinting());
             } else {
                 auto propertyIds = populatePropertyIds(relTableID, extend->getProperties());
-                return make_unique<ScanRelTableColumns>(boundNodeTableID,
+                return std::make_unique<ScanRelTableColumns>(boundNodeTableID,
                     relsStore.getRelTable(relTableID)->getDirectedTableData(direction),
                     std::move(propertyIds), inNodeIDVectorPos, std::move(outputVectorsPos),
                     std::move(prevOperator), getOperatorID(), extend->getExpressionsForPrinting());
@@ -99,7 +104,8 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExtendToPhysical(
             }
         }
     } else { // map to generic extend
-        unordered_map<table_id_t, unique_ptr<RelTableCollection>> relTableCollectionPerNodeTable;
+        std::unordered_map<table_id_t, std::unique_ptr<RelTableCollection>>
+            relTableCollectionPerNodeTable;
         for (auto boundNodeTableID : boundNode->getTableIDs()) {
             auto relTableCollection = populateRelTableCollection(
                 boundNodeTableID, *rel, direction, extend->getProperties(), relsStore);
@@ -108,7 +114,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExtendToPhysical(
                     {boundNodeTableID, std::move(relTableCollection)});
             }
         }
-        return make_unique<GenericScanRelTables>(inNodeIDVectorPos, outputVectorsPos,
+        return std::make_unique<GenericScanRelTables>(inNodeIDVectorPos, outputVectorsPos,
             std::move(relTableCollectionPerNodeTable), std::move(prevOperator), getOperatorID(),
             extend->getExpressionsForPrinting());
     }

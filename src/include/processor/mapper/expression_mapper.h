@@ -6,9 +6,6 @@
 #include "processor/result/result_set.h"
 #include "processor/result/result_set_descriptor.h"
 
-using namespace kuzu::binder;
-using namespace kuzu::evaluator;
-
 namespace kuzu {
 namespace processor {
 
@@ -17,24 +14,24 @@ class PlanMapper;
 class ExpressionMapper {
 
 public:
-    unique_ptr<BaseExpressionEvaluator> mapExpression(
-        const shared_ptr<Expression>& expression, const Schema& schema);
+    std::unique_ptr<evaluator::BaseExpressionEvaluator> mapExpression(
+        const std::shared_ptr<binder::Expression>& expression, const planner::Schema& schema);
 
 private:
-    unique_ptr<BaseExpressionEvaluator> mapLiteralExpression(
-        const shared_ptr<Expression>& expression);
+    std::unique_ptr<evaluator::BaseExpressionEvaluator> mapLiteralExpression(
+        const std::shared_ptr<binder::Expression>& expression);
 
-    unique_ptr<BaseExpressionEvaluator> mapParameterExpression(
-        const shared_ptr<Expression>& expression);
+    std::unique_ptr<evaluator::BaseExpressionEvaluator> mapParameterExpression(
+        const std::shared_ptr<binder::Expression>& expression);
 
-    unique_ptr<BaseExpressionEvaluator> mapReferenceExpression(
-        const shared_ptr<Expression>& expression, const Schema& schema);
+    std::unique_ptr<evaluator::BaseExpressionEvaluator> mapReferenceExpression(
+        const std::shared_ptr<binder::Expression>& expression, const planner::Schema& schema);
 
-    unique_ptr<BaseExpressionEvaluator> mapCaseExpression(
-        const shared_ptr<Expression>& expression, const Schema& schema);
+    std::unique_ptr<evaluator::BaseExpressionEvaluator> mapCaseExpression(
+        const std::shared_ptr<binder::Expression>& expression, const planner::Schema& schema);
 
-    unique_ptr<BaseExpressionEvaluator> mapFunctionExpression(
-        const shared_ptr<Expression>& expression, const Schema& schema);
+    std::unique_ptr<evaluator::BaseExpressionEvaluator> mapFunctionExpression(
+        const std::shared_ptr<binder::Expression>& expression, const planner::Schema& schema);
 };
 
 } // namespace processor

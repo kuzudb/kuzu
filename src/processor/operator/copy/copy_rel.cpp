@@ -2,6 +2,8 @@
 
 #include "storage/copy_arrow/copy_rel_arrow.h"
 
+using namespace kuzu::storage;
+
 namespace kuzu {
 namespace processor {
 

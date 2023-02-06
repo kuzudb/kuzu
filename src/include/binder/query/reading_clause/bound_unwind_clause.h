@@ -9,18 +9,18 @@ namespace binder {
 class BoundUnwindClause : public BoundReadingClause {
 
 public:
-    explicit BoundUnwindClause(
-        shared_ptr<Expression> expression, shared_ptr<Expression> aliasExpression)
-        : BoundReadingClause{ClauseType::UNWIND}, expression{std::move(expression)},
+    BoundUnwindClause(
+        std::shared_ptr<Expression> expression, std::shared_ptr<Expression> aliasExpression)
+        : BoundReadingClause{common::ClauseType::UNWIND}, expression{std::move(expression)},
           aliasExpression{std::move(aliasExpression)} {}
 
-    ~BoundUnwindClause() = default;
+    ~BoundUnwindClause() override = default;
 
-    inline shared_ptr<Expression> getExpression() const { return expression; }
+    inline std::shared_ptr<Expression> getExpression() const { return expression; }
 
     inline bool hasExpression() const { return expression != nullptr; }
 
-    inline shared_ptr<Expression> getAliasExpression() const { return aliasExpression; }
+    inline std::shared_ptr<Expression> getAliasExpression() const { return aliasExpression; }
 
     inline expression_vector getSubPropertyExpressions() const override {
         expression_vector expressions;
@@ -32,13 +32,13 @@ public:
         return expressions;
     }
 
-    inline unique_ptr<BoundReadingClause> copy() override {
-        return make_unique<BoundUnwindClause>(*this);
+    inline std::unique_ptr<BoundReadingClause> copy() override {
+        return std::make_unique<BoundUnwindClause>(*this);
     }
 
 private:
-    shared_ptr<Expression> expression;
-    shared_ptr<Expression> aliasExpression;
+    std::shared_ptr<Expression> expression;
+    std::shared_ptr<Expression> aliasExpression;
 };
 } // namespace binder
 } // namespace kuzu

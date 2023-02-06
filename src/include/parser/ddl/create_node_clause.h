@@ -5,20 +5,19 @@
 namespace kuzu {
 namespace parser {
 
-using namespace std;
-
 class CreateNodeClause : public CreateTable {
 public:
-    explicit CreateNodeClause(
-        string tableName, vector<pair<string, string>> propertyNameDataTypes, string pkColName)
-        : CreateTable{StatementType::CREATE_NODE_CLAUSE, move(tableName),
-              move(propertyNameDataTypes)},
-          pKColName{move(pkColName)} {}
+    explicit CreateNodeClause(std::string tableName,
+        std::vector<std::pair<std::string, std::string>> propertyNameDataTypes,
+        std::string pkColName)
+        : CreateTable{common::StatementType::CREATE_NODE_CLAUSE, std::move(tableName),
+              std::move(propertyNameDataTypes)},
+          pKColName{std::move(pkColName)} {}
 
-    inline string getPKColName() const { return pKColName; }
+    inline std::string getPKColName() const { return pKColName; }
 
 private:
-    string pKColName;
+    std::string pKColName;
 };
 
 } // namespace parser

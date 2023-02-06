@@ -1,14 +1,17 @@
 #include "graph_test/graph_test.h"
 
+using namespace kuzu::common;
 using namespace kuzu::testing;
+using namespace kuzu::storage;
+using namespace kuzu::processor;
 
 class RelInsertionTest : public DBTest {
 
 public:
     void SetUp() override {
         bufferManager =
-            make_unique<BufferManager>(StorageConfig::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING);
-        memoryManager = make_unique<MemoryManager>(bufferManager.get());
+            std::make_unique<BufferManager>(StorageConfig::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING);
+        memoryManager = std::make_unique<MemoryManager>(bufferManager.get());
         DBTest::SetUp();
         // Set tableIDs
         auto catalogContents = getCatalog(*database)->getReadOnlyVersion();
@@ -20,16 +23,16 @@ public:
         TEACHES_TABLE_ID = catalogContents->getTableID("teaches");
 
         // Set vectors
-        relIDPropertyVector = make_shared<ValueVector>(INT64, memoryManager.get());
+        relIDPropertyVector = std::make_shared<ValueVector>(INT64, memoryManager.get());
         relIDValues = (int64_t*)relIDPropertyVector->getData();
-        lengthPropertyVector = make_shared<ValueVector>(INT64, memoryManager.get());
+        lengthPropertyVector = std::make_shared<ValueVector>(INT64, memoryManager.get());
         lengthValues = (int64_t*)lengthPropertyVector->getData();
-        placePropertyVector = make_shared<ValueVector>(STRING, memoryManager.get());
+        placePropertyVector = std::make_shared<ValueVector>(STRING, memoryManager.get());
         placeValues = (ku_string_t*)placePropertyVector->getData();
-        srcNodeVector = make_shared<ValueVector>(INTERNAL_ID, memoryManager.get());
-        dstNodeVector = make_shared<ValueVector>(INTERNAL_ID, memoryManager.get());
-        tagPropertyVector = make_shared<ValueVector>(
-            DataType{LIST, make_unique<DataType>(STRING)}, memoryManager.get());
+        srcNodeVector = std::make_shared<ValueVector>(INTERNAL_ID, memoryManager.get());
+        dstNodeVector = std::make_shared<ValueVector>(INTERNAL_ID, memoryManager.get());
+        tagPropertyVector = std::make_shared<ValueVector>(
+            DataType{LIST, std::make_unique<DataType>(STRING)}, memoryManager.get());
         tagValues = (ku_list_t*)tagPropertyVector->getData();
         dataChunk->insert(0, relIDPropertyVector);
         dataChunk->insert(1, lengthPropertyVector);
@@ -38,33 +41,33 @@ public:
         dataChunk->insert(4, srcNodeVector);
         dataChunk->insert(5, dstNodeVector);
         dataChunk->state->currIdx = 0;
-        vectorsToInsertToKnows = vector<shared_ptr<ValueVector>>{
+        vectorsToInsertToKnows = std::vector<std::shared_ptr<ValueVector>>{
             relIDPropertyVector, lengthPropertyVector, placePropertyVector, tagPropertyVector};
         vectorsToInsertToPlays =
-            vector<shared_ptr<ValueVector>>{relIDPropertyVector, placePropertyVector};
-        vectorsToInsertToHasOwner = vector<shared_ptr<ValueVector>>{
+            std::vector<std::shared_ptr<ValueVector>>{relIDPropertyVector, placePropertyVector};
+        vectorsToInsertToHasOwner = std::vector<std::shared_ptr<ValueVector>>{
             relIDPropertyVector, lengthPropertyVector, placePropertyVector};
         vectorsToInsertToTeaches =
-            vector<shared_ptr<ValueVector>>{relIDPropertyVector, lengthPropertyVector};
+            std::vector<std::shared_ptr<ValueVector>>{relIDPropertyVector, lengthPropertyVector};
     }
 
-    string getStringValToValidate(uint64_t val) {
-        string result = to_string(val);
+    std::string getStringValToValidate(uint64_t val) {
+        std::string result = std::to_string(val);
         if (val % 2 == 0) {
             for (auto i = 0; i < 2; i++) {
-                result.append(to_string(val));
+                result.append(std::to_string(val));
             }
         }
         return result;
     }
 
-    string getInputDir() override {
+    std::string getInputDir() override {
         return TestHelper::appendKuzuRootPath("dataset/rel-insertion-tests/");
     }
 
     inline void insertOneRelToRelTable(table_id_t relTableID,
-        shared_ptr<ValueVector>& srcNodeVector_, shared_ptr<ValueVector>& dstNodeVector_,
-        vector<shared_ptr<ValueVector>>& propertyVectors) {
+        std::shared_ptr<ValueVector>& srcNodeVector_, std::shared_ptr<ValueVector>& dstNodeVector_,
+        std::vector<std::shared_ptr<ValueVector>>& propertyVectors) {
         getStorageManager(*database)
             ->getRelsStore()
             .getRelTable(relTableID)
@@ -106,9 +109,9 @@ public:
         for (auto i = 0u; i < numValuesToInsert; i++) {
             relIDValues[0] = 1051 + i;
             lengthValues[0] = i;
-            placeStr.set((testLongString ? "" : "") + to_string(i));
+            placeStr.set((testLongString ? "" : "") + std::to_string(i));
             placeValues[0] = placeStr;
-            tagList.set((uint8_t*)&placeStr, DataType(LIST, make_unique<DataType>(STRING)));
+            tagList.set((uint8_t*)&placeStr, DataType(LIST, std::make_unique<DataType>(STRING)));
             tagValues[0] = tagList;
             if (insertNullValues) {
                 lengthPropertyVector->setNull(0, i % 2);
@@ -131,11 +134,11 @@ public:
             }
             ASSERT_EQ(tuple->getValue(1)->isNull(), containNullValues);
             if (!containNullValues) {
-                ASSERT_EQ(tuple->getValue(1)->getValue<string>(),
-                    (containLongString ? "long long string prefix " : "") + to_string(i));
+                ASSERT_EQ(tuple->getValue(1)->getValue<std::string>(),
+                    (containLongString ? "long long string prefix " : "") + std::to_string(i));
             }
-            ASSERT_EQ((tuple->getValue(2)->getListValReference())[0]->getValue<string>(),
-                (containLongString ? "long long string prefix " : "") + to_string(i));
+            ASSERT_EQ((tuple->getValue(2)->getListValReference())[0]->getValue<std::string>(),
+                (containLongString ? "long long string prefix " : "") + std::to_string(i));
         }
     }
 
@@ -184,8 +187,9 @@ public:
                 nodeID_t dstNodeID(dstNodeOffset, 1);
                 dstNodeVector->setValue(0, dstNodeID);
                 lengthValues[0] = dstNodeOffset * 3;
-                placeStr.set(to_string(dstNodeOffset - 5));
-                tagList.set((uint8_t*)&placeStr, DataType(LIST, make_unique<DataType>(STRING)));
+                placeStr.set(std::to_string(dstNodeOffset - 5));
+                tagList.set(
+                    (uint8_t*)&placeStr, DataType(LIST, std::make_unique<DataType>(STRING)));
                 insertOneKnowsRel();
             }
         } else {
@@ -194,8 +198,9 @@ public:
                 nodeID_t dstNodeID(dstNodeOffset, 1);
                 dstNodeVector->setValue(0, dstNodeID);
                 lengthValues[0] = dstNodeOffset * 2;
-                placeStr.set(to_string(dstNodeOffset - 25));
-                tagList.set((uint8_t*)&placeStr, DataType(LIST, make_unique<DataType>(STRING)));
+                placeStr.set(std::to_string(dstNodeOffset - 25));
+                tagList.set(
+                    (uint8_t*)&placeStr, DataType(LIST, std::make_unique<DataType>(STRING)));
                 insertOneKnowsRel();
             }
         }
@@ -207,8 +212,9 @@ public:
             // Check rels stored in the persistent store.
             ASSERT_EQ(tuple->getValue(0)->getValue<int64_t>(), i);
             auto strVal = getStringValToValidate(1000 - i);
-            ASSERT_EQ(tuple->getValue(1)->getValue<string>(), strVal);
-            ASSERT_EQ((tuple->getValue(2)->getListValReference())[0]->getValue<string>(), strVal);
+            ASSERT_EQ(tuple->getValue(1)->getValue<std::string>(), strVal);
+            ASSERT_EQ(
+                (tuple->getValue(2)->getListValReference())[0]->getValue<std::string>(), strVal);
             if (!isCommit) {
                 continue;
             }
@@ -223,19 +229,22 @@ public:
                     tuple = result->getNext();
                     auto dstNodeOffset = 700 + i + j;
                     ASSERT_EQ(tuple->getValue(0)->getValue<int64_t>(), dstNodeOffset * 3);
-                    ASSERT_EQ(tuple->getValue(1)->getValue<string>(), to_string(dstNodeOffset - 5));
-                    ASSERT_EQ((tuple->getValue(2)->getListValReference())[0]->getValue<string>(),
-                        to_string(dstNodeOffset - 5));
+                    ASSERT_EQ(tuple->getValue(1)->getValue<std::string>(),
+                        std::to_string(dstNodeOffset - 5));
+                    ASSERT_EQ(
+                        (tuple->getValue(2)->getListValReference())[0]->getValue<std::string>(),
+                        std::to_string(dstNodeOffset - 5));
                 }
             } else {
                 for (auto j = 0u; j < 1000; j++) {
                     tuple = result->getNext();
                     auto dstNodeOffset = 500 + i + j;
                     ASSERT_EQ(tuple->getValue(0)->getValue<int64_t>(), dstNodeOffset * 2);
+                    ASSERT_EQ(tuple->getValue(1)->getValue<std::string>(),
+                        std::to_string(dstNodeOffset - 25));
                     ASSERT_EQ(
-                        tuple->getValue(1)->getValue<string>(), to_string(dstNodeOffset - 25));
-                    ASSERT_EQ((tuple->getValue(2)->getListValReference())[0]->getValue<string>(),
-                        to_string(dstNodeOffset - 25));
+                        (tuple->getValue(2)->getListValReference())[0]->getValue<std::string>(),
+                        std::to_string(dstNodeOffset - 25));
                 }
             }
         }
@@ -272,11 +281,12 @@ public:
     void validateSmallListAfterBecomingLarge(QueryResult* queryResult, uint64_t numValuesToInsert) {
         for (auto i = 0u; i < 10; i++) {
             auto tuple = queryResult->getNext();
-            ASSERT_EQ(tuple->getValue(0)->getValue<string>(), to_string(i + 1) + to_string(i + 1));
+            ASSERT_EQ(tuple->getValue(0)->getValue<std::string>(),
+                std::to_string(i + 1) + std::to_string(i + 1));
         }
         for (auto i = 0u; i < numValuesToInsert; i++) {
             auto tuple = queryResult->getNext();
-            ASSERT_EQ(tuple->getValue(0)->getValue<string>(), to_string(i));
+            ASSERT_EQ(tuple->getValue(0)->getValue<std::string>(), std::to_string(i));
         }
     }
 
@@ -289,10 +299,10 @@ public:
         auto numValuesInList = 10;
         auto totalNumValuesAfterInsertion = numValuesToInsert + numValuesInList;
         auto placeStr = ku_string_t();
-        auto relDirections = vector<RelDirection>{RelDirection::FWD, RelDirection::BWD};
+        auto relDirections = std::vector<RelDirection>{RelDirection::FWD, RelDirection::BWD};
         for (auto i = 0u; i < numValuesToInsert; i++) {
             relIDValues[0] = 10 + i;
-            placeStr.set(to_string(i));
+            placeStr.set(std::to_string(i));
             placeValues[0] = placeStr;
             nodeID_t srcNodeID(1, 1), dstNodeID(i + 1, 1);
             srcNodeVector->setValue(0, srcNodeID);
@@ -342,13 +352,13 @@ public:
                 // is prefix(if we are testing long strings) + i / 10. Otherwise,
                 // the place property value is "2000-i"(srcNodeOffset is odd) or 3 *
                 // "2000-i"(srcNodeOffset is even).
-                auto strVal =
-                    i % 10 ?
-                        (i % 2 ? to_string(2000 - i) :
-                                 to_string(2000 - i) + to_string(2000 - i) + to_string(2000 - i)) :
-                        ((testLongString && i % 20 ? "long string prefix " : "") +
-                            to_string(i / 10));
-                ASSERT_EQ(tuple->getValue(1)->getValue<string>(), strVal);
+                auto strVal = i % 10 ?
+                                  (i % 2 ? std::to_string(2000 - i) :
+                                           std::to_string(2000 - i) + std::to_string(2000 - i) +
+                                               std::to_string(2000 - i)) :
+                                  ((testLongString && i % 20 ? "long string prefix " : "") +
+                                      std::to_string(i / 10));
+                ASSERT_EQ(tuple->getValue(1)->getValue<std::string>(), strVal);
             }
         }
     }
@@ -366,7 +376,8 @@ public:
         for (auto i = 0u; i < 2; i++) {
             relIDValues[0] = 10 + i;
             lengthValues[0] = i;
-            placeStr.set((testLongString && i % 2 ? "long string prefix " : "") + to_string(i));
+            placeStr.set(
+                (testLongString && i % 2 ? "long string prefix " : "") + std::to_string(i));
             placeValues[0] = placeStr;
             lengthPropertyVector->setNull(0, testNull && i % 2);
             placePropertyVector->setNull(0, testNull && i % 2);
@@ -391,7 +402,7 @@ public:
         // don't rollback the transaction, the teaches relTable should have 9 rels.
         auto numRelsAfterInsertion = afterRollback ? 6 : 9;
         ASSERT_EQ(queryResult->getNumTuples(), numRelsAfterInsertion);
-        shared_ptr<FlatTuple> tuple;
+        std::shared_ptr<FlatTuple> tuple;
         for (auto i = 1u; i <= 3; i++) {
             for (auto j = 0; j <= i; j++) {
                 // If we have rollbacked the transaction, there will be no edges for
@@ -437,7 +448,7 @@ public:
         for (auto i = 0u; i < 100; ++i) {
             // We already have 2501 nodes in person table, so the next node ID starts with 2501.
             auto id = 2501 + i;
-            auto result = conn->query("CREATE (a:person {ID: " + to_string(id) + "})");
+            auto result = conn->query("CREATE (a:person {ID: " + std::to_string(id) + "})");
             ASSERT_TRUE(result->isSuccess());
         }
         auto result = conn->query("MATCH (p:person) return p.ID");
@@ -486,9 +497,9 @@ public:
         for (auto i = 0u; i < 10; i++) {
             relIDValues[0] = 2000 + i;
             lengthValues[0] = i;
-            placeStr.set(to_string(i));
+            placeStr.set(std::to_string(i));
             placeValues[0] = placeStr;
-            tagList.set((uint8_t*)&placeStr, DataType(LIST, make_unique<DataType>(STRING)));
+            tagList.set((uint8_t*)&placeStr, DataType(LIST, std::make_unique<DataType>(STRING)));
             tagValues[0] = tagList;
             // Insert 10 rels from person->person to knows/plays/teaches relTables.
             srcNode.tableID = PERSON_TABLE_ID;
@@ -508,23 +519,23 @@ public:
     }
 
 public:
-    unique_ptr<BufferManager> bufferManager;
-    unique_ptr<MemoryManager> memoryManager;
-    shared_ptr<ValueVector> relIDPropertyVector;
+    std::unique_ptr<BufferManager> bufferManager;
+    std::unique_ptr<MemoryManager> memoryManager;
+    std::shared_ptr<ValueVector> relIDPropertyVector;
     int64_t* relIDValues;
-    shared_ptr<ValueVector> lengthPropertyVector;
+    std::shared_ptr<ValueVector> lengthPropertyVector;
     int64_t* lengthValues;
-    shared_ptr<ValueVector> placePropertyVector;
+    std::shared_ptr<ValueVector> placePropertyVector;
     ku_string_t* placeValues;
-    shared_ptr<ValueVector> tagPropertyVector;
+    std::shared_ptr<ValueVector> tagPropertyVector;
     ku_list_t* tagValues;
-    shared_ptr<ValueVector> srcNodeVector;
-    shared_ptr<ValueVector> dstNodeVector;
-    shared_ptr<DataChunk> dataChunk = make_shared<DataChunk>(6 /* numValueVectors */);
-    vector<shared_ptr<ValueVector>> vectorsToInsertToKnows;
-    vector<shared_ptr<ValueVector>> vectorsToInsertToPlays;
-    vector<shared_ptr<ValueVector>> vectorsToInsertToHasOwner;
-    vector<shared_ptr<ValueVector>> vectorsToInsertToTeaches;
+    std::shared_ptr<ValueVector> srcNodeVector;
+    std::shared_ptr<ValueVector> dstNodeVector;
+    std::shared_ptr<DataChunk> dataChunk = std::make_shared<DataChunk>(6 /* numValueVectors */);
+    std::vector<std::shared_ptr<ValueVector>> vectorsToInsertToKnows;
+    std::vector<std::shared_ptr<ValueVector>> vectorsToInsertToPlays;
+    std::vector<std::shared_ptr<ValueVector>> vectorsToInsertToHasOwner;
+    std::vector<std::shared_ptr<ValueVector>> vectorsToInsertToTeaches;
     table_id_t ANIMAL_TABLE_ID, PERSON_TABLE_ID, KNOWS_TABLE_ID, PLAYS_TABLE_ID, HAS_OWNER_TABLE_ID,
         TEACHES_TABLE_ID;
 };

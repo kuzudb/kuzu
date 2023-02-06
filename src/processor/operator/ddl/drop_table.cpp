@@ -1,5 +1,7 @@
 #include "processor/operator/ddl/drop_table.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace processor {
 

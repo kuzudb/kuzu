@@ -1,6 +1,8 @@
 #include "graph_test/graph_test.h"
 #include "storage/buffer_manager/buffer_manager.h"
 
+using namespace kuzu::common;
+using namespace kuzu::storage;
 using namespace kuzu::testing;
 
 class BufferManagerTests : public Test {
@@ -12,7 +14,7 @@ protected:
 };
 
 TEST_F(BufferManagerTests, RemoveFilePagesFromFramesTest) {
-    FileHandle fileHandle(string(TestHelper::getTmpTestDir()) + "bm_test.bin",
+    FileHandle fileHandle(std::string(TestHelper::getTmpTestDir()) + "bm_test.bin",
         FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS);
     uint64_t numPagesToAdd = 1000;
     for (int pageIdx = 0; pageIdx < numPagesToAdd; ++pageIdx) {

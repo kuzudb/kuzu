@@ -7,14 +7,14 @@ namespace planner {
 
 class LogicalMultiplicityReducer : public LogicalOperator {
 public:
-    explicit LogicalMultiplicityReducer(shared_ptr<LogicalOperator> child)
+    explicit LogicalMultiplicityReducer(std::shared_ptr<LogicalOperator> child)
         : LogicalOperator(LogicalOperatorType::MULTIPLICITY_REDUCER, std::move(child)) {}
 
     inline void computeSchema() override { copyChildSchema(0); }
 
-    inline string getExpressionsForPrinting() const override { return string(); }
+    inline std::string getExpressionsForPrinting() const override { return std::string(); }
 
-    inline unique_ptr<LogicalOperator> copy() override {
+    inline std::unique_ptr<LogicalOperator> copy() override {
         return make_unique<LogicalMultiplicityReducer>(children[0]->copy());
     }
 };

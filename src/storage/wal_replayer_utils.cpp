@@ -2,17 +2,21 @@
 
 #include "storage/index/hash_index_builder.h"
 
+using namespace kuzu::catalog;
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace storage {
 
 void WALReplayerUtils::removeDBFilesForRelProperty(
-    const string& directory, RelTableSchema* relTableSchema, property_id_t propertyID) {
+    const std::string& directory, RelTableSchema* relTableSchema, property_id_t propertyID) {
     for (auto relDirection : REL_DIRECTIONS) {
         auto boundTableIDs = relTableSchema->getUniqueBoundTableIDs(relDirection);
         auto isStoredAsColumnProperty =
             relTableSchema->isSingleMultiplicityInDirection(relDirection);
-        std::function<void(const string& directory, table_id_t relTableID, table_id_t boundTableID,
-            RelDirection relDirection, property_id_t propertyID, DBFileType dbFileType)>
+        std::function<void(const std::string& directory, table_id_t relTableID,
+            table_id_t boundTableID, RelDirection relDirection, property_id_t propertyID,
+            DBFileType dbFileType)>
             removeFilesForPropertyIfExists =
                 isStoredAsColumnProperty ? removeColumnFilesForPropertyIfExists :
                                            removeListFilesForPropertyIfExists;
@@ -24,7 +28,7 @@ void WALReplayerUtils::removeDBFilesForRelProperty(
 }
 
 void WALReplayerUtils::createEmptyDBFilesForNewRelTable(RelTableSchema* relTableSchema,
-    const string& directory, const map<table_id_t, uint64_t>& maxNodeOffsetsPerTable) {
+    const std::string& directory, const std::map<table_id_t, uint64_t>& maxNodeOffsetsPerTable) {
     for (auto relDirection : REL_DIRECTIONS) {
         auto boundTableIDs = relTableSchema->getUniqueBoundTableIDs(relDirection);
         if (relTableSchema->isSingleMultiplicityInDirection(relDirection)) {
@@ -38,7 +42,7 @@ void WALReplayerUtils::createEmptyDBFilesForNewRelTable(RelTableSchema* relTable
 }
 
 void WALReplayerUtils::createEmptyDBFilesForNewNodeTable(
-    NodeTableSchema* nodeTableSchema, const string& directory) {
+    NodeTableSchema* nodeTableSchema, const std::string& directory) {
     for (auto& property : nodeTableSchema->properties) {
         auto fName = StorageUtils::getNodePropertyColumnFName(
             directory, nodeTableSchema->tableID, property.propertyID, DBFileType::ORIGINAL);
@@ -80,8 +84,8 @@ void WALReplayerUtils::renameDBFilesForRelProperty(const std::string& directory,
 }
 
 void WALReplayerUtils::replaceListsHeadersFilesWithVersionFromWALIfExists(
-    unordered_set<RelTableSchema*> relTableSchemas, table_id_t boundTableID,
-    const string& directory) {
+    std::unordered_set<RelTableSchema*> relTableSchemas, table_id_t boundTableID,
+    const std::string& directory) {
     for (auto relTableSchema : relTableSchemas) {
         for (auto direction : REL_DIRECTIONS) {
             if (!relTableSchema->isSingleMultiplicityInDirection(direction)) {
@@ -102,7 +106,7 @@ void WALReplayerUtils::initLargeListPageListsAndSaveToFile(InMemLists* inMemList
 }
 
 void WALReplayerUtils::createEmptyDBFilesForRelProperties(RelTableSchema* relTableSchema,
-    table_id_t tableID, const string& directory, RelDirection relDirection, uint32_t numNodes,
+    table_id_t tableID, const std::string& directory, RelDirection relDirection, uint32_t numNodes,
     bool isForRelPropertyColumn) {
     for (auto& property : relTableSchema->properties) {
         if (isForRelPropertyColumn) {
@@ -120,14 +124,15 @@ void WALReplayerUtils::createEmptyDBFilesForRelProperties(RelTableSchema* relTab
     }
 }
 
-void WALReplayerUtils::createEmptyDBFilesForColumns(const unordered_set<table_id_t>& boundTableIDs,
-    const map<table_id_t, uint64_t>& maxNodeOffsetsPerTable, RelDirection relDirection,
-    const string& directory, RelTableSchema* relTableSchema) {
+void WALReplayerUtils::createEmptyDBFilesForColumns(
+    const std::unordered_set<table_id_t>& boundTableIDs,
+    const std::map<table_id_t, uint64_t>& maxNodeOffsetsPerTable, RelDirection relDirection,
+    const std::string& directory, RelTableSchema* relTableSchema) {
     for (auto boundTableID : boundTableIDs) {
         auto numNodes = maxNodeOffsetsPerTable.at(boundTableID) == INVALID_NODE_OFFSET ?
                             0 :
                             maxNodeOffsetsPerTable.at(boundTableID) + 1;
-        make_unique<InMemAdjColumn>(
+        std::make_unique<InMemAdjColumn>(
             StorageUtils::getAdjColumnFName(directory, relTableSchema->tableID, boundTableID,
                 relDirection, DBFileType::ORIGINAL),
             NodeIDCompressionScheme{relTableSchema->getUniqueNbrTableIDsForBoundTableIDDirection(
@@ -139,9 +144,10 @@ void WALReplayerUtils::createEmptyDBFilesForColumns(const unordered_set<table_id
     }
 }
 
-void WALReplayerUtils::createEmptyDBFilesForLists(const unordered_set<table_id_t>& boundTableIDs,
-    const map<table_id_t, uint64_t>& maxNodeOffsetsPerTable, RelDirection relDirection,
-    const string& directory, RelTableSchema* relTableSchema) {
+void WALReplayerUtils::createEmptyDBFilesForLists(
+    const std::unordered_set<table_id_t>& boundTableIDs,
+    const std::map<table_id_t, uint64_t>& maxNodeOffsetsPerTable, RelDirection relDirection,
+    const std::string& directory, RelTableSchema* relTableSchema) {
     for (auto boundTableID : boundTableIDs) {
         auto numNodes = maxNodeOffsetsPerTable.at(boundTableID) == INVALID_NODE_OFFSET ?
                             0 :
@@ -159,7 +165,7 @@ void WALReplayerUtils::createEmptyDBFilesForLists(const unordered_set<table_id_t
 }
 
 void WALReplayerUtils::replaceOriginalColumnFilesWithWALVersionIfExists(
-    const string& originalColFileName) {
+    const std::string& originalColFileName) {
     auto walColFileName = StorageUtils::appendWALFileSuffix(originalColFileName);
     FileUtils::renameFileIfExists(walColFileName, originalColFileName);
     // We also check if there is a WAL version of the overflow file for the column and if so
@@ -169,7 +175,7 @@ void WALReplayerUtils::replaceOriginalColumnFilesWithWALVersionIfExists(
 }
 
 void WALReplayerUtils::replaceOriginalListFilesWithWALVersionIfExists(
-    const string& originalListFileName) {
+    const std::string& originalListFileName) {
     auto walListFileName = StorageUtils::appendWALFileSuffix(originalListFileName);
     FileUtils::renameFileIfExists(walListFileName, originalListFileName);
     FileUtils::renameFileIfExists(StorageUtils::getListMetadataFName(walListFileName),
@@ -182,12 +188,12 @@ void WALReplayerUtils::replaceOriginalListFilesWithWALVersionIfExists(
         StorageUtils::getListHeadersFName(originalListFileName));
 }
 
-void WALReplayerUtils::removeColumnFilesIfExists(const string& fileName) {
+void WALReplayerUtils::removeColumnFilesIfExists(const std::string& fileName) {
     FileUtils::removeFileIfExists(fileName);
     FileUtils::removeFileIfExists(StorageUtils::getOverflowFileName(fileName));
 }
 
-void WALReplayerUtils::removeListFilesIfExists(const string& fileName) {
+void WALReplayerUtils::removeListFilesIfExists(const std::string& fileName) {
     FileUtils::removeFileIfExists(fileName);
     FileUtils::removeFileIfExists(StorageUtils::getListMetadataFName(fileName));
     FileUtils::removeFileIfExists(StorageUtils::getOverflowFileName(fileName));
@@ -195,8 +201,8 @@ void WALReplayerUtils::removeListFilesIfExists(const string& fileName) {
 }
 
 void WALReplayerUtils::fileOperationOnNodeFiles(NodeTableSchema* nodeTableSchema,
-    const string& directory, std::function<void(string fileName)> columnFileOperation,
-    std::function<void(string fileName)> listFileOperation) {
+    const std::string& directory, std::function<void(std::string fileName)> columnFileOperation,
+    std::function<void(std::string fileName)> listFileOperation) {
     for (auto& property : nodeTableSchema->properties) {
         columnFileOperation(StorageUtils::getNodePropertyColumnFName(
             directory, nodeTableSchema->tableID, property.propertyID, DBFileType::ORIGINAL));
@@ -206,8 +212,8 @@ void WALReplayerUtils::fileOperationOnNodeFiles(NodeTableSchema* nodeTableSchema
 }
 
 void WALReplayerUtils::fileOperationOnRelFiles(RelTableSchema* relTableSchema,
-    const string& directory, std::function<void(string fileName)> columnFileOperation,
-    std::function<void(string fileName)> listFileOperation) {
+    const std::string& directory, std::function<void(std::string fileName)> columnFileOperation,
+    std::function<void(std::string fileName)> listFileOperation) {
     for (auto relDirection : REL_DIRECTIONS) {
         auto boundTableIDs = relTableSchema->getUniqueBoundTableIDs(relDirection);
         auto isColumnProperty = relTableSchema->isSingleMultiplicityInDirection(relDirection);
@@ -230,9 +236,9 @@ void WALReplayerUtils::fileOperationOnRelFiles(RelTableSchema* relTableSchema,
 }
 
 void WALReplayerUtils::fileOperationOnRelPropertyFiles(RelTableSchema* tableSchema,
-    table_id_t nodeTableID, const string& directory, RelDirection relDirection,
-    bool isColumnProperty, std::function<void(string fileName)> columnFileOperation,
-    std::function<void(string fileName)> listFileOperation) {
+    table_id_t nodeTableID, const std::string& directory, RelDirection relDirection,
+    bool isColumnProperty, std::function<void(std::string fileName)> columnFileOperation,
+    std::function<void(std::string fileName)> listFileOperation) {
     for (auto& property : tableSchema->properties) {
         if (isColumnProperty) {
             columnFileOperation(

@@ -14,18 +14,18 @@ public:
     static uint32_t convertToUint32(const char* data);
     static bool convertToBoolean(const char* data);
 
-    static inline string toString(bool boolVal) { return boolVal ? "True" : "False"; }
-    static inline string toString(int64_t val) { return to_string(val); }
-    static inline string toString(double val) { return to_string(val); }
-    static inline string toString(const nodeID_t& val) {
-        return to_string(val.tableID) + ":" + to_string(val.offset);
+    static inline std::string toString(bool boolVal) { return boolVal ? "True" : "False"; }
+    static inline std::string toString(int64_t val) { return std::to_string(val); }
+    static inline std::string toString(double val) { return std::to_string(val); }
+    static inline std::string toString(const nodeID_t& val) {
+        return std::to_string(val.tableID) + ":" + std::to_string(val.offset);
     }
-    static inline string toString(const date_t& val) { return Date::toString(val); }
-    static inline string toString(const timestamp_t& val) { return Timestamp::toString(val); }
-    static inline string toString(const interval_t& val) { return Interval::toString(val); }
-    static inline string toString(const ku_string_t& val) { return val.getAsString(); }
-    static inline string toString(const string& val) { return val; }
-    static string toString(const ku_list_t& val, const DataType& dataType);
+    static inline std::string toString(const date_t& val) { return Date::toString(val); }
+    static inline std::string toString(const timestamp_t& val) { return Timestamp::toString(val); }
+    static inline std::string toString(const interval_t& val) { return Interval::toString(val); }
+    static inline std::string toString(const ku_string_t& val) { return val.getAsString(); }
+    static inline std::string toString(const std::string& val) { return val; }
+    static std::string toString(const ku_list_t& val, const DataType& dataType);
 
     static inline void encodeOverflowPtr(
         uint64_t& overflowPtr, page_idx_t pageIdx, uint16_t pageOffset) {
@@ -46,12 +46,13 @@ public:
     }
 
 private:
-    static string elementToString(const DataType& dataType, uint8_t* overflowPtr, uint64_t pos);
+    static std::string elementToString(
+        const DataType& dataType, uint8_t* overflowPtr, uint64_t pos);
 
     static void throwConversionExceptionOutOfRange(const char* data, DataTypeID dataTypeID);
     static void throwConversionExceptionIfNoOrNotEveryCharacterIsConsumed(
         const char* data, const char* eptr, DataTypeID dataTypeID);
-    static string prefixConversionExceptionMessage(const char* data, DataTypeID dataTypeID);
+    static std::string prefixConversionExceptionMessage(const char* data, DataTypeID dataTypeID);
 };
 
 template<>

@@ -2,23 +2,27 @@
 
 #include "function/hash/vector_hash_operations.h"
 
+using namespace kuzu::common;
+using namespace kuzu::function::operation;
+using namespace kuzu::storage;
+
 namespace kuzu {
 namespace processor {
 
 JoinHashTable::JoinHashTable(MemoryManager& memoryManager, uint64_t numKeyColumns,
-    unique_ptr<FactorizedTableSchema> tableSchema)
+    std::unique_ptr<FactorizedTableSchema> tableSchema)
     : BaseHashTable{memoryManager}, numKeyColumns{numKeyColumns} {
     auto numSlotsPerBlock = LARGE_PAGE_SIZE / sizeof(uint8_t*);
     assert(numSlotsPerBlock == nextPowerOfTwo(numSlotsPerBlock));
-    numSlotsPerBlockLog2 = log2(numSlotsPerBlock);
+    numSlotsPerBlockLog2 = std::log2(numSlotsPerBlock);
     slotIdxInBlockMask = BitmaskUtils::all1sMaskForLeastSignificantBits(numSlotsPerBlockLog2);
     // Prev pointer is always the last column in the table.
     colOffsetOfPrevPtrInTuple = tableSchema->getColOffset(tableSchema->getNumColumns() - 1);
-    factorizedTable = make_unique<FactorizedTable>(&memoryManager, std::move(tableSchema));
+    factorizedTable = std::make_unique<FactorizedTable>(&memoryManager, std::move(tableSchema));
 }
 
 bool JoinHashTable::discardNullFromKeys(
-    const vector<shared_ptr<ValueVector>>& vectors, uint32_t numKeyVectors) {
+    const std::vector<std::shared_ptr<ValueVector>>& vectors, uint32_t numKeyVectors) {
     bool hasNonNullKeys = true;
     for (auto i = 0u; i < numKeyVectors; i++) {
         if (!NodeIDVector::discardNull(*vectors[i])) {
@@ -31,7 +35,7 @@ bool JoinHashTable::discardNullFromKeys(
 
 // TODO(Guodong): refactor this function to partially re-use FactorizedTable::append, but calculate
 // numTuplesToAppend here.
-void JoinHashTable::append(const vector<shared_ptr<ValueVector>>& vectorsToAppend) {
+void JoinHashTable::append(const std::vector<std::shared_ptr<ValueVector>>& vectorsToAppend) {
     if (!discardNullFromKeys(vectorsToAppend, numKeyColumns)) {
         return;
     }
@@ -60,7 +64,7 @@ void JoinHashTable::allocateHashSlots(uint64_t numTuples) {
     auto numSlotsPerBlock = (uint64_t)1 << numSlotsPerBlockLog2;
     auto numBlocksNeeded = (maxNumHashSlots + numSlotsPerBlock - 1) / numSlotsPerBlock;
     while (hashSlotsBlocks.size() < numBlocksNeeded) {
-        hashSlotsBlocks.emplace_back(make_unique<DataBlock>(&memoryManager));
+        hashSlotsBlocks.emplace_back(std::make_unique<DataBlock>(&memoryManager));
     }
 }
 
@@ -77,7 +81,7 @@ void JoinHashTable::buildHashSlots() {
 }
 
 void JoinHashTable::probe(
-    const vector<shared_ptr<ValueVector>>& keyVectors, uint8_t** probedTuples) {
+    const std::vector<std::shared_ptr<ValueVector>>& keyVectors, uint8_t** probedTuples) {
     assert(keyVectors.size() == numKeyColumns);
     if (getNumTuples() == 0) {
         return;
@@ -85,9 +89,9 @@ void JoinHashTable::probe(
     if (!discardNullFromKeys(keyVectors, numKeyColumns)) {
         return;
     }
-    auto hashVector = make_unique<ValueVector>(INT64, &memoryManager);
-    unique_ptr<ValueVector> tmpHashVector =
-        keyVectors.size() == 1 ? nullptr : make_unique<ValueVector>(INT64, &memoryManager);
+    auto hashVector = std::make_unique<ValueVector>(INT64, &memoryManager);
+    std::unique_ptr<ValueVector> tmpHashVector =
+        keyVectors.size() == 1 ? nullptr : std::make_unique<ValueVector>(INT64, &memoryManager);
     function::VectorHashOperations::computeHash(keyVectors[0].get(), hashVector.get());
     for (auto i = 1u; i < numKeyColumns; i++) {
         function::VectorHashOperations::computeHash(keyVectors[i].get(), tmpHashVector.get());

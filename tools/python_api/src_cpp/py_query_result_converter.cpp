@@ -1,6 +1,7 @@
 #include "include/py_query_result_converter.h"
 
 #include "include/py_query_result.h"
+
 using namespace kuzu::common;
 
 NPArrayWrapper::NPArrayWrapper(const DataType& type, uint64_t numFlatTuple)
@@ -42,7 +43,7 @@ void NPArrayWrapper::appendElement(Value* value) {
             break;
         }
         case STRING: {
-            auto val = value->getValue<string>();
+            auto val = value->getValue<std::string>();
             auto result = PyUnicode_New(val.length(), 127);
             auto target_data = PyUnicode_DATA(result);
             memcpy(target_data, val.c_str(), val.length());
@@ -67,7 +68,7 @@ void NPArrayWrapper::appendElement(Value* value) {
 }
 
 py::dtype NPArrayWrapper::convertToArrayType(const DataType& type) {
-    string dtype;
+    std::string dtype;
     switch (type.typeID) {
     case INT64: {
         dtype = "int64";
@@ -106,7 +107,7 @@ py::dtype NPArrayWrapper::convertToArrayType(const DataType& type) {
 
 QueryResultConverter::QueryResultConverter(QueryResult* queryResult) : queryResult{queryResult} {
     for (auto& type : queryResult->getColumnDataTypes()) {
-        columns.emplace_back(make_unique<NPArrayWrapper>(type, queryResult->getNumTuples()));
+        columns.emplace_back(std::make_unique<NPArrayWrapper>(type, queryResult->getNumTuples()));
     }
 }
 

@@ -1,36 +1,40 @@
 #include "graph_test/graph_test.h"
 
+using namespace kuzu::common;
 using namespace kuzu::testing;
 
 class DeleteRelTest : public DBTest {
 public:
-    string getInputDir() override {
+    std::string getInputDir() override {
         return TestHelper::appendKuzuRootPath("dataset/rel-insertion-tests/");
     }
-    string getDeleteKnowsRelQuery(string srcTable, string dstTable, int64_t srcID, int64_t dstID) {
+    std::string getDeleteKnowsRelQuery(
+        std::string srcTable, std::string dstTable, int64_t srcID, int64_t dstID) {
         return StringUtils::string_format(
             "MATCH (p1:%s)-[e:knows]->(p2:%s) WHERE p1.ID = %d AND p2.ID = %d delete e;",
             srcTable.c_str(), dstTable.c_str(), srcID, dstID);
     }
-    string getInsertKnowsRelQuery(string srcTable, string dstTable, int64_t srcID, int64_t dstID) {
+    std::string getInsertKnowsRelQuery(
+        std::string srcTable, std::string dstTable, int64_t srcID, int64_t dstID) {
         return StringUtils::string_format("MATCH (p1:%s), (p2:%s) WHERE p1.ID = %d AND p2.ID "
                                           "= %d create (p1)-[:knows {length: %d}]->(p2);",
             srcTable.c_str(), dstTable.c_str(), srcID, dstID, srcID);
     }
 
-    string getDeleteTeachesRelQuery(int64_t srcID, int64_t dstID) {
+    std::string getDeleteTeachesRelQuery(int64_t srcID, int64_t dstID) {
         return StringUtils::string_format(
             "MATCH (p1:person)-[t:teaches]->(p2:person) WHERE p1.ID = %d AND p2.ID = %d delete t;",
             srcID, dstID);
     }
 
-    string getDeleteHasOwnerRelQuery(int64_t srcID, int64_t dstID) {
+    std::string getDeleteHasOwnerRelQuery(int64_t srcID, int64_t dstID) {
         return StringUtils::string_format(
             "MATCH (a:animal)-[h:hasOwner]->(p:person) WHERE a.ID = %d AND p.ID = %d delete h;",
             srcID, dstID);
     }
 
-    void sortAndCheckTestResults(vector<string>& actualResult, vector<string>& expectedResult) {
+    void sortAndCheckTestResults(
+        std::vector<std::string>& actualResult, std::vector<std::string>& expectedResult) {
         sort(expectedResult.begin(), expectedResult.end());
         ASSERT_EQ(actualResult, expectedResult);
     }
@@ -45,13 +49,13 @@ public:
         commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, transactionTestType);
         auto actualResult = TestHelper::convertResultToString(
             *conn->query("MATCH (:animal)-[e:knows]->(:person) RETURN e.length"));
-        vector<string> expectedResult;
+        std::vector<std::string> expectedResult;
         for (auto i = 0; i < NUM_RELS_FOR_ANIMAL_KNOWS_PERSON; i++) {
             // If we are not committing (e.g. rolling back), we expect to see all rels in the query
             // result. If we are committing, we should not see rels with length property
             // 10-20(inclusive) in the query result.
             if (!isCommit || (i < 10 || i > 20)) {
-                expectedResult.push_back(to_string(i));
+                expectedResult.push_back(std::to_string(i));
             }
         }
         sortAndCheckTestResults(actualResult, expectedResult);
@@ -61,10 +65,10 @@ public:
         conn->beginWriteTransaction();
         ASSERT_TRUE(conn->query("MATCH (:animal)-[e:knows]->(:person) DELETE e")->isSuccess());
         commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, transactionTestType);
-        vector<string> expectedResult;
+        std::vector<std::string> expectedResult;
         if (!isCommit) {
             for (auto i = 0u; i <= 50; i++) {
-                expectedResult.push_back(to_string(i));
+                expectedResult.push_back(std::to_string(i));
             }
         }
         auto actualResult = TestHelper::convertResultToString(
@@ -82,13 +86,13 @@ public:
         commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, transactionTestType);
         auto result = conn->query("MATCH (p1:person)-[e:knows]->(p2:person) return e.length");
         auto actualResult = TestHelper::convertResultToString(*result);
-        vector<string> expectedResult;
+        std::vector<std::string> expectedResult;
         for (auto i = 1; i <= NUM_RELS_FOR_PERSON_KNOWS_PERSON; i++) {
             // If we are not committing (e.g. rolling back), we are expected to see all rels in the
             // list. If we are committing, we are not expected to see the deleted rels whose dst
             // nodeID offset between 100-200 (inclusive).
             if (!isCommit || (i < 100 || i > 200)) {
-                expectedResult.push_back(to_string(3 * (i - 1)));
+                expectedResult.push_back(std::to_string(3 * (i - 1)));
             }
         }
         sortAndCheckTestResults(actualResult, expectedResult);
@@ -98,10 +102,10 @@ public:
         conn->beginWriteTransaction();
         ASSERT_TRUE(conn->query("MATCH (:person)-[e:knows]->(:person) DELETE e")->isSuccess());
         commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, transactionTestType);
-        vector<string> expectedResult;
+        std::vector<std::string> expectedResult;
         if (!isCommit) {
             for (auto i = 1u; i <= 2500; i++) {
-                expectedResult.push_back(to_string(3 * (i - 1)));
+                expectedResult.push_back(std::to_string(3 * (i - 1)));
             }
         }
         auto actualResult = TestHelper::convertResultToString(
@@ -134,12 +138,12 @@ public:
             *conn->query("MATCH (:animal)-[e:knows]->(:person) return e.length"));
         // After insertion and deletion, we are expected to see only one new rel: animal52->person0
         // (if we are committing).
-        vector<string> expectedResult;
+        std::vector<std::string> expectedResult;
         for (auto i = 0; i < NUM_RELS_FOR_ANIMAL_KNOWS_PERSON; i++) {
-            expectedResult.push_back(to_string(i));
+            expectedResult.push_back(std::to_string(i));
         }
         if (isCommit) {
-            expectedResult.push_back(to_string(52));
+            expectedResult.push_back(std::to_string(52));
         }
         sortAndCheckTestResults(actualResult, expectedResult);
     }
@@ -167,8 +171,9 @@ public:
         ASSERT_TRUE(
             conn->query(getDeleteKnowsRelQuery("person", "animal", 8, 0 /* dstID */))->isSuccess());
         commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, transactionTestType);
-        vector<string> expectedResult =
-            isCommit ? vector<string>{"0", "1", "3", "5", "7", "9"} : vector<string>{};
+        std::vector<std::string> expectedResult =
+            isCommit ? std::vector<std::string>{"0", "1", "3", "5", "7", "9"} :
+                       std::vector<std::string>{};
         auto actualResult = TestHelper::convertResultToString(*conn->query(query));
         sortAndCheckTestResults(actualResult, expectedResult);
     }
@@ -180,12 +185,13 @@ public:
                                 "a.ID <= 49 AND p.ID = 0 DELETE e;")
                         ->isSuccess());
         commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, transactionTestType);
-        vector<string> expectedResult;
+        std::vector<std::string> expectedResult;
         if (isCommit) {
-            expectedResult = vector<string>{"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "50"};
+            expectedResult =
+                std::vector<std::string>{"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "50"};
         } else {
             for (auto i = 0u; i <= 50; i++) {
-                expectedResult.push_back(to_string(i));
+                expectedResult.push_back(std::to_string(i));
             }
         }
         auto actualResult = TestHelper::convertResultToString(
@@ -206,7 +212,7 @@ public:
                             ->isSuccess());
         }
         commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, transactionTestType);
-        vector<string> expectedResult = {
+        std::vector<std::string> expectedResult = {
             "40", "41", "42", "43", "44", "45", "46", "47", "48", "49", "50"};
         auto actualResult = TestHelper::convertResultToString(*conn->query(
             "MATCH (a:animal)-[e:knows]->(p:person) WHERE a.ID >= 40 RETURN e.length"));
@@ -220,13 +226,13 @@ public:
         commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, transactionTestType);
         auto result = conn->query("MATCH (p1:person)-[e:knows]->(p2:person) return e.length");
         auto actualResult = TestHelper::convertResultToString(*result);
-        vector<string> expectedResult;
+        std::vector<std::string> expectedResult;
         for (auto i = 1; i <= NUM_RELS_FOR_PERSON_KNOWS_PERSON; i++) {
             // If we are not committing (e.g. rolling back), we are expected to see all rels in the
             // list. If we are committing, we are not expected to see the deleted rels whose dst
             // nodeID offset >= 10.
             if (!isCommit || i < 10) {
-                expectedResult.push_back(to_string(3 * (i - 1)));
+                expectedResult.push_back(std::to_string(3 * (i - 1)));
             }
         }
         sortAndCheckTestResults(actualResult, expectedResult);
@@ -239,9 +245,9 @@ public:
         commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, transactionTestType);
         auto result = conn->query("MATCH (:person)-[t:teaches]->(:person) return t.length");
         auto actualResult = TestHelper::convertResultToString(*result);
-        vector<string> expectedResult = isCommit ?
-                                            vector<string>{"21", "22", "32", "33"} :
-                                            vector<string>{"11", "21", "22", "31", "32", "33"};
+        std::vector<std::string> expectedResult =
+            isCommit ? std::vector<std::string>{"21", "22", "32", "33"} :
+                       std::vector<std::string>{"11", "21", "22", "31", "32", "33"};
         sortAndCheckTestResults(actualResult, expectedResult);
     }
 
@@ -256,9 +262,9 @@ public:
         commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, transactionTestType);
         auto result = conn->query("MATCH (:animal)-[h:hasOwner]->(:person) return h.length");
         auto actualResult = TestHelper::convertResultToString(*result);
-        vector<string> expectedResult =
-            isCommit ? vector<string>{"2", "4", "6", "8"} :
-                       vector<string>{"1", "2", "3", "4", "5", "6", "7", "8", "9", "11"};
+        std::vector<std::string> expectedResult =
+            isCommit ? std::vector<std::string>{"2", "4", "6", "8"} :
+                       std::vector<std::string>{"1", "2", "3", "4", "5", "6", "7", "8", "9", "11"};
         sortAndCheckTestResults(actualResult, expectedResult);
     }
 
@@ -415,7 +421,7 @@ TEST_F(DeleteRelTest, DeleteRelsTwoHop) {
     ASSERT_TRUE(conn->query("MATCH (a:animal)-[e:knows]->(p1:person)-[:knows]->(p2:person) WHERE "
                             "a.ID = 5 AND p2.ID = 2439 DELETE e;")
                     ->isSuccess());
-    vector<string> expectedResult = {"0", "1", "2", "3", "4", "6", "7", "8", "9"};
+    std::vector<std::string> expectedResult = {"0", "1", "2", "3", "4", "6", "7", "8", "9"};
     ASSERT_EQ(
         TestHelper::convertResultToString(
             *conn->query("MATCH (a:animal)-[e:knows]->(p:person) WHERE a.ID < 10 RETURN e.length"),
@@ -433,7 +439,7 @@ TEST_F(DeleteRelTest, MixedDeleteAndCreateRels) {
     ASSERT_TRUE(
         conn->query(getDeleteKnowsRelQuery("animal", "person", 7 /* srcID */, 0 /* dstID */))
             ->isSuccess());
-    vector<string> expectedResult = {"0", "1", "2", "3", "4", "5", "6", "9", "10"};
+    std::vector<std::string> expectedResult = {"0", "1", "2", "3", "4", "5", "6", "9", "10"};
     ASSERT_EQ(
         TestHelper::convertResultToString(*conn->query(knowsRelQuery), true /* checkOutputOrder */),
         expectedResult);

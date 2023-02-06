@@ -2,8 +2,6 @@
 
 #include <string>
 
-using namespace std;
-
 namespace kuzu {
 namespace common {
 
@@ -26,9 +24,9 @@ enum class DatePartSpecifier : uint8_t {
 };
 
 struct interval_t {
-    int32_t months;
-    int32_t days;
-    int64_t micros;
+    int32_t months = 0;
+    int32_t days = 0;
+    int64_t micros = 0;
 
     interval_t() = default;
     explicit inline interval_t(int32_t months_p, int32_t days_p, int64_t micros_p)
@@ -83,14 +81,15 @@ public:
 
     static constexpr const int64_t NANOS_PER_MICRO = 1000;
 
-    static void addition(interval_t& result, uint64_t number, string specifierStr);
-    static void parseIntervalField(string buf, uint64_t& pos, uint64_t len, interval_t& result);
+    static void addition(interval_t& result, uint64_t number, std::string specifierStr);
+    static void parseIntervalField(
+        std::string buf, uint64_t& pos, uint64_t len, interval_t& result);
     static interval_t FromCString(const char* str, uint64_t len);
-    static string toString(interval_t interval);
+    static std::string toString(interval_t interval);
     static bool GreaterThan(const interval_t& left, const interval_t& right);
     static void NormalizeIntervalEntries(
         interval_t input, int64_t& months, int64_t& days, int64_t& micros);
-    static void TryGetDatePartSpecifier(string specifier_p, DatePartSpecifier& result);
+    static void TryGetDatePartSpecifier(std::string specifier_p, DatePartSpecifier& result);
     static int32_t getIntervalPart(DatePartSpecifier specifier, interval_t& timestamp);
     static int64_t getMicro(const interval_t& val) {
         return val.micros + val.months * MICROS_PER_MONTH + val.days * MICROS_PER_DAY;

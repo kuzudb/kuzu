@@ -2,25 +2,25 @@
 
 #include "common/expression_type.h"
 
-using namespace kuzu::common;
-
 namespace kuzu {
 namespace function {
 
 struct FunctionDefinition {
 
-    FunctionDefinition(string name, vector<DataTypeID> parameterTypeIDs, DataTypeID returnTypeID)
-        : name{move(name)}, parameterTypeIDs{move(parameterTypeIDs)}, returnTypeID{returnTypeID} {}
+    FunctionDefinition(std::string name, std::vector<common::DataTypeID> parameterTypeIDs,
+        common::DataTypeID returnTypeID)
+        : name{std::move(name)}, parameterTypeIDs{std::move(parameterTypeIDs)}, returnTypeID{
+                                                                                    returnTypeID} {}
 
-    inline string signatureToString() const {
-        string result = Types::dataTypesToString(parameterTypeIDs);
-        result += " -> " + Types::dataTypeToString(returnTypeID);
+    inline std::string signatureToString() const {
+        std::string result = common::Types::dataTypesToString(parameterTypeIDs);
+        result += " -> " + common::Types::dataTypeToString(returnTypeID);
         return result;
     }
 
-    string name;
-    vector<DataTypeID> parameterTypeIDs;
-    DataTypeID returnTypeID;
+    std::string name;
+    std::vector<common::DataTypeID> parameterTypeIDs;
+    common::DataTypeID returnTypeID;
 };
 
 } // namespace function

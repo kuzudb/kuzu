@@ -1,5 +1,7 @@
 #include "processor/operator/update/create.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace processor {
 
@@ -33,7 +35,7 @@ bool CreateNode::getNextTuplesInternal() {
 
 void CreateRel::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     for (auto& createRelInfo : createRelInfos) {
-        auto createRelVectors = make_unique<CreateRelVectors>();
+        auto createRelVectors = std::make_unique<CreateRelVectors>();
         createRelVectors->srcNodeIDVector = resultSet->getValueVector(createRelInfo->srcNodePos);
         createRelVectors->dstNodeIDVector = resultSet->getValueVector(createRelInfo->dstNodePos);
         for (auto& evaluator : createRelInfo->evaluators) {

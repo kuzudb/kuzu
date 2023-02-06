@@ -7,7 +7,7 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace transaction {
 
-unique_ptr<Transaction> TransactionManager::beginWriteTransaction() {
+std::unique_ptr<Transaction> TransactionManager::beginWriteTransaction() {
     // We obtain the lock for starting new transactions. In case this cannot be obtained this
     // ensures calls to other public functions is not restricted.
     lock_t newTransactionLck{mtxForStartingNewTransactions};
@@ -17,17 +17,17 @@ unique_ptr<Transaction> TransactionManager::beginWriteTransaction() {
             "Cannot start a new write transaction in the system. Only one write transaction at a "
             "time is allowed in the system.");
     }
-    auto transaction = unique_ptr<Transaction>(new Transaction(WRITE, ++lastTransactionID));
+    auto transaction = std::make_unique<Transaction>(WRITE, ++lastTransactionID);
     activeWriteTransactionID = lastTransactionID;
     return transaction;
 }
 
-unique_ptr<Transaction> TransactionManager::beginReadOnlyTransaction() {
+std::unique_ptr<Transaction> TransactionManager::beginReadOnlyTransaction() {
     // We obtain the lock for starting new transactions. In case this cannot be obtained this
     // ensures calls to other public functions is not restricted.
     lock_t newTransactionLck{mtxForStartingNewTransactions};
     lock_t publicFunctionLck{mtxForSerializingPublicFunctionCalls};
-    auto transaction = unique_ptr<Transaction>(new Transaction(READ_ONLY, ++lastTransactionID));
+    auto transaction = std::make_unique<Transaction>(READ_ONLY, ++lastTransactionID);
     activeReadOnlyTransactionIDs.insert(transaction->getID());
     return transaction;
 }
@@ -55,12 +55,13 @@ void TransactionManager::commitOrRollbackNoLock(Transaction* transaction, bool i
     }
 }
 
-void TransactionManager::assertActiveWriteTransationIsCorrectNoLock(Transaction* transaction) {
+void TransactionManager::assertActiveWriteTransationIsCorrectNoLock(
+    Transaction* transaction) const {
     if (activeWriteTransactionID != transaction->getID()) {
         throw TransactionManagerException(
-            "The ID of the committing write transaction " + to_string(transaction->getID()) +
+            "The ID of the committing write transaction " + std::to_string(transaction->getID()) +
             " is not equal to the ID of the activeWriteTransaction: " +
-            to_string(activeWriteTransactionID));
+            std::to_string(activeWriteTransactionID));
     }
 }
 
@@ -94,7 +95,8 @@ void TransactionManager::stopNewTransactionsAndWaitUntilAllReadTransactionsLeave
                     "and checkpointing a write transaction. If you have an open read transaction "
                     "close and try again.");
             }
-            this_thread::sleep_for(chrono::microseconds(THREAD_SLEEP_TIME_WHEN_WAITING_IN_MICROS));
+            std::this_thread::sleep_for(
+                std::chrono::microseconds(THREAD_SLEEP_TIME_WHEN_WAITING_IN_MICROS));
         } else {
             break;
         }

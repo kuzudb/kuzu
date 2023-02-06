@@ -4,8 +4,6 @@
 
 #include "common/timer.h"
 
-using namespace std;
-
 namespace kuzu {
 namespace common {
 
@@ -31,7 +29,7 @@ public:
     void start();
     void stop();
 
-    double getElapsedTimeMS();
+    double getElapsedTimeMS() const;
 
 public:
     double accumulatedTime;

@@ -3,10 +3,13 @@
 #include "storage/copy_arrow/copy_task.h"
 #include "storage/storage_structure/in_mem_file.h"
 
+using namespace kuzu::catalog;
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace storage {
 
-CopyNodeArrow::CopyNodeArrow(CopyDescription& copyDescription, string outputDirectory,
+CopyNodeArrow::CopyNodeArrow(CopyDescription& copyDescription, std::string outputDirectory,
     TaskScheduler& taskScheduler, Catalog& catalog, table_id_t tableID,
     NodesStatisticsAndDeletedIDs* nodesStatisticsAndDeletedIDs)
     : CopyStructuresArrow{copyDescription, std::move(outputDirectory), taskScheduler, catalog},
@@ -100,10 +103,10 @@ arrow::Status CopyNodeArrow::populateColumns() {
 }
 
 template<typename T>
-arrow::Status CopyNodeArrow::populateColumnsFromCSV(unique_ptr<HashIndexBuilder<T>>& pkIndex) {
+arrow::Status CopyNodeArrow::populateColumnsFromCSV(std::unique_ptr<HashIndexBuilder<T>>& pkIndex) {
     offset_t offsetStart = 0;
 
-    shared_ptr<arrow::csv::StreamingReader> csv_streaming_reader;
+    std::shared_ptr<arrow::csv::StreamingReader> csv_streaming_reader;
     auto status = initCSVReader(csv_streaming_reader, copyDescription.filePath);
     throwCopyExceptionIfNotOK(status);
 
@@ -133,7 +136,8 @@ arrow::Status CopyNodeArrow::populateColumnsFromCSV(unique_ptr<HashIndexBuilder<
 }
 
 template<typename T>
-arrow::Status CopyNodeArrow::populateColumnsFromArrow(unique_ptr<HashIndexBuilder<T>>& pkIndex) {
+arrow::Status CopyNodeArrow::populateColumnsFromArrow(
+    std::unique_ptr<HashIndexBuilder<T>>& pkIndex) {
     offset_t offsetStart = 0;
 
     std::shared_ptr<arrow::ipc::RecordBatchFileReader> ipc_reader;
@@ -164,7 +168,8 @@ arrow::Status CopyNodeArrow::populateColumnsFromArrow(unique_ptr<HashIndexBuilde
 }
 
 template<typename T>
-arrow::Status CopyNodeArrow::populateColumnsFromParquet(unique_ptr<HashIndexBuilder<T>>& pkIndex) {
+arrow::Status CopyNodeArrow::populateColumnsFromParquet(
+    std::unique_ptr<HashIndexBuilder<T>>& pkIndex) {
     offset_t offsetStart = 0;
 
     std::unique_ptr<parquet::arrow::FileReader> reader;
@@ -199,10 +204,10 @@ void CopyNodeArrow::populatePKIndex(
     InMemColumn* column, HashIndexBuilder<T>* pkIndex, offset_t startOffset, uint64_t numValues) {
     for (auto i = 0u; i < numValues; i++) {
         auto offset = i + startOffset;
-        if constexpr (is_same<T, int64_t>::value) {
+        if constexpr (std::is_same<T, int64_t>::value) {
             auto key = (int64_t*)column->getElement(offset);
             if (!pkIndex->append(*key, offset)) {
-                throw CopyException(Exception::getExistedPKExceptionMsg(to_string(*key)));
+                throw CopyException(Exception::getExistedPKExceptionMsg(std::to_string(*key)));
             }
         } else {
             auto element = (ku_string_t*)column->getElement(offset);
@@ -217,9 +222,9 @@ void CopyNodeArrow::populatePKIndex(
 template<typename T1, typename T2>
 arrow::Status CopyNodeArrow::batchPopulateColumnsTask(uint64_t primaryKeyPropertyIdx,
     uint64_t blockId, uint64_t offsetStart, HashIndexBuilder<T1>* pkIndex, CopyNodeArrow* copier,
-    const vector<shared_ptr<T2>>& batchColumns, CopyDescription& copyDescription) {
+    const std::vector<std::shared_ptr<T2>>& batchColumns, CopyDescription& copyDescription) {
     copier->logger->trace("Start: path={0} blkIdx={1}", copier->copyDescription.filePath, blockId);
-    vector<PageByteCursor> overflowCursors(copier->nodeTableSchema->getNumProperties());
+    std::vector<PageByteCursor> overflowCursors(copier->nodeTableSchema->getNumProperties());
     for (auto blockOffset = 0u; blockOffset < copier->numLinesPerBlock[blockId]; ++blockOffset) {
         putPropsOfLineIntoColumns(copier->columns, overflowCursors, batchColumns,
             offsetStart + blockOffset, blockOffset, copyDescription);
@@ -231,9 +236,11 @@ arrow::Status CopyNodeArrow::batchPopulateColumnsTask(uint64_t primaryKeyPropert
 }
 
 template<typename T>
-void CopyNodeArrow::putPropsOfLineIntoColumns(vector<unique_ptr<InMemColumn>>& structuredColumns,
-    vector<PageByteCursor>& overflowCursors, const std::vector<shared_ptr<T>>& arrow_columns,
-    uint64_t nodeOffset, uint64_t blockOffset, CopyDescription& copyDescription) {
+void CopyNodeArrow::putPropsOfLineIntoColumns(
+    std::vector<std::unique_ptr<InMemColumn>>& structuredColumns,
+    std::vector<PageByteCursor>& overflowCursors,
+    const std::vector<std::shared_ptr<T>>& arrow_columns, uint64_t nodeOffset, uint64_t blockOffset,
+    CopyDescription& copyDescription) {
     for (auto columnIdx = 0u; columnIdx < structuredColumns.size(); columnIdx++) {
         auto column = structuredColumns[columnIdx].get();
         auto currentToken = arrow_columns[columnIdx]->GetScalar(blockOffset);

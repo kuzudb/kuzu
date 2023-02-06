@@ -5,27 +5,28 @@
 #include "common/types/types_include.h"
 
 namespace kuzu {
-namespace common {
+namespace storage {
 
 class NodeIDCompressionScheme {
 
 public:
-    NodeIDCompressionScheme() : commonTableID{INVALID_TABLE_ID} {}
-    explicit NodeIDCompressionScheme(const unordered_set<table_id_t>& nbrNodeTableIDs)
-        : commonTableID{nbrNodeTableIDs.size() == 1 ? *nbrNodeTableIDs.begin() : INVALID_TABLE_ID} {
-    }
+    NodeIDCompressionScheme() : commonTableID{common::INVALID_TABLE_ID} {}
+    explicit NodeIDCompressionScheme(const std::unordered_set<common::table_id_t>& nbrNodeTableIDs)
+        : commonTableID{
+              nbrNodeTableIDs.size() == 1 ? *nbrNodeTableIDs.begin() : common::INVALID_TABLE_ID} {}
 
     inline uint64_t getNumBytesForNodeIDAfterCompression() const {
-        return commonTableID == INVALID_TABLE_ID ? Types::getDataTypeSize(INTERNAL_ID) :
-                                                   sizeof(offset_t);
+        return commonTableID == common::INVALID_TABLE_ID ?
+                   common::Types::getDataTypeSize(common::INTERNAL_ID) :
+                   sizeof(common::offset_t);
     }
 
-    void readNodeID(uint8_t* data, nodeID_t* nodeID) const;
-    void writeNodeID(uint8_t* data, const nodeID_t& nodeID) const;
+    void readNodeID(uint8_t* data, common::nodeID_t* nodeID) const;
+    void writeNodeID(uint8_t* data, const common::nodeID_t& nodeID) const;
 
 private:
-    table_id_t commonTableID;
+    common::table_id_t commonTableID;
 };
 
-} // namespace common
+} // namespace storage
 } // namespace kuzu

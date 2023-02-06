@@ -16,12 +16,6 @@ unique_ptr<FileInfo> FileUtils::openFile(const string& path, int flags) {
     return make_unique<FileInfo>(path, fd);
 }
 
-void FileUtils::closeFile(int fd) {
-    if (fd != -1) {
-        close(fd);
-    }
-}
-
 void FileUtils::writeToFile(
     FileInfo* fileInfo, uint8_t* buffer, uint64_t numBytes, uint64_t offset) {
     auto fileSize = getFileSize(fileInfo->fd);

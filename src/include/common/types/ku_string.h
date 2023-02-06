@@ -2,8 +2,6 @@
 
 #include <string>
 
-using namespace std;
-
 namespace kuzu {
 namespace common {
 
@@ -30,12 +28,12 @@ struct ku_string_t {
 
     // These functions do *NOT* allocate/resize the overflow buffer, it only copies the content and
     // set the length.
-    void set(const string& value);
+    void set(const std::string& value);
     void set(const char* value, uint64_t length);
     void set(const ku_string_t& value);
 
-    string getAsShortString() const;
-    string getAsString() const;
+    std::string getAsShortString() const;
+    std::string getAsString() const;
 
     bool operator==(const ku_string_t& rhs) const;
 

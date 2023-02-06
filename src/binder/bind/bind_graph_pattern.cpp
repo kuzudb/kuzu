@@ -2,6 +2,10 @@
 
 #include "binder/binder.h"
 
+using namespace kuzu::common;
+using namespace kuzu::parser;
+using namespace kuzu::catalog;
+
 namespace kuzu {
 namespace binder {
 
@@ -10,23 +14,23 @@ namespace binder {
 // interpreted in two different ways.
 //    - In MATCH clause, these are additional predicates to WHERE clause
 //    - In UPDATE clause, there are properties to set.
-// We do not store key-value pairs in query graph primarily because we will merge key-value pairs
-// with other predicates specified in WHERE clause.
-pair<unique_ptr<QueryGraphCollection>, unique_ptr<PropertyKeyValCollection>>
-Binder::bindGraphPattern(const vector<unique_ptr<PatternElement>>& graphPattern) {
-    auto propertyCollection = make_unique<PropertyKeyValCollection>();
-    auto queryGraphCollection = make_unique<QueryGraphCollection>();
+// We do not store key-value pairs in query graph primarily because we will merge key-value
+// std::pairs with other predicates specified in WHERE clause.
+std::pair<std::unique_ptr<QueryGraphCollection>, std::unique_ptr<PropertyKeyValCollection>>
+Binder::bindGraphPattern(const std::vector<std::unique_ptr<PatternElement>>& graphPattern) {
+    auto propertyCollection = std::make_unique<PropertyKeyValCollection>();
+    auto queryGraphCollection = std::make_unique<QueryGraphCollection>();
     for (auto& patternElement : graphPattern) {
         queryGraphCollection->addAndMergeQueryGraphIfConnected(
             bindPatternElement(*patternElement, *propertyCollection));
     }
-    return make_pair(std::move(queryGraphCollection), std::move(propertyCollection));
+    return std::make_pair(std::move(queryGraphCollection), std::move(propertyCollection));
 }
 
 // Grammar ensures pattern element is always connected and thus can be bound as a query graph.
-unique_ptr<QueryGraph> Binder::bindPatternElement(
+std::unique_ptr<QueryGraph> Binder::bindPatternElement(
     const PatternElement& patternElement, PropertyKeyValCollection& collection) {
-    auto queryGraph = make_unique<QueryGraph>();
+    auto queryGraph = std::make_unique<QueryGraph>();
     auto leftNode = bindQueryNode(*patternElement.getFirstNodePattern(), *queryGraph, collection);
     for (auto i = 0u; i < patternElement.getNumPatternElementChains(); ++i) {
         auto patternElementChain = patternElement.getPatternElementChain(i);
@@ -42,7 +46,7 @@ unique_ptr<QueryGraph> Binder::bindPatternElement(
 // E.g. MATCH (:person)-[:studyAt]->(:person) ...
 static void validateNodeRelConnectivity(const Catalog& catalog_, const RelExpression& rel,
     const NodeExpression& srcNode, const NodeExpression& dstNode) {
-    set<pair<table_id_t, table_id_t>> srcDstTableIDs;
+    std::set<std::pair<table_id_t, table_id_t>> srcDstTableIDs;
     for (auto relTableID : rel.getTableIDs()) {
         for (auto [srcTableID, dstTableID] :
             catalog_.getReadOnlyVersion()->getRelTableSchema(relTableID)->srcDstTableIDs) {
@@ -51,7 +55,7 @@ static void validateNodeRelConnectivity(const Catalog& catalog_, const RelExpres
     }
     for (auto srcTableID : srcNode.getTableIDs()) {
         for (auto dstTableID : dstNode.getTableIDs()) {
-            if (srcDstTableIDs.contains(make_pair(srcTableID, dstTableID))) {
+            if (srcDstTableIDs.contains(std::make_pair(srcTableID, dstTableID))) {
                 return;
             }
         }
@@ -60,10 +64,10 @@ static void validateNodeRelConnectivity(const Catalog& catalog_, const RelExpres
                           " are not connected through rel " + rel.getRawName() + ".");
 }
 
-static vector<std::pair<std::string, vector<Property>>> getPropertyNameAndSchemasPairs(
-    vector<std::string> propertyNames,
-    unordered_map<std::string, vector<Property>> propertyNamesToSchemas) {
-    vector<std::pair<std::string, vector<Property>>> propertyNameAndSchemasPairs;
+static std::vector<std::pair<std::string, std::vector<Property>>> getPropertyNameAndSchemasPairs(
+    const std::vector<std::string>& propertyNames,
+    std::unordered_map<std::string, std::vector<Property>> propertyNamesToSchemas) {
+    std::vector<std::pair<std::string, std::vector<Property>>> propertyNameAndSchemasPairs;
     for (auto& propertyName : propertyNames) {
         auto propertySchemas = propertyNamesToSchemas.at(propertyName);
         propertyNameAndSchemasPairs.emplace_back(propertyName, std::move(propertySchemas));
@@ -71,15 +75,15 @@ static vector<std::pair<std::string, vector<Property>>> getPropertyNameAndSchema
     return propertyNameAndSchemasPairs;
 }
 
-static vector<std::pair<std::string, vector<Property>>> getRelPropertyNameAndPropertiesPairs(
-    const vector<RelTableSchema*>& relTableSchemas) {
-    vector<std::string> propertyNames; // preserve order as specified in catalog.
-    unordered_map<std::string, vector<Property>> propertyNamesToSchemas;
+static std::vector<std::pair<std::string, std::vector<Property>>>
+getRelPropertyNameAndPropertiesPairs(const std::vector<RelTableSchema*>& relTableSchemas) {
+    std::vector<std::string> propertyNames; // preserve order as specified in catalog.
+    std::unordered_map<std::string, std::vector<Property>> propertyNamesToSchemas;
     for (auto& relTableSchema : relTableSchemas) {
         for (auto& property : relTableSchema->properties) {
             if (!propertyNamesToSchemas.contains(property.name)) {
                 propertyNames.push_back(property.name);
-                propertyNamesToSchemas.insert({property.name, vector<Property>{}});
+                propertyNamesToSchemas.insert({property.name, std::vector<Property>{}});
             }
             propertyNamesToSchemas.at(property.name).push_back(property);
         }
@@ -87,15 +91,15 @@ static vector<std::pair<std::string, vector<Property>>> getRelPropertyNameAndPro
     return getPropertyNameAndSchemasPairs(propertyNames, propertyNamesToSchemas);
 }
 
-static vector<std::pair<std::string, vector<Property>>> getNodePropertyNameAndPropertiesPairs(
-    const vector<NodeTableSchema*>& nodeTableSchemas) {
-    vector<std::string> propertyNames; // preserve order as specified in catalog.
-    unordered_map<std::string, vector<Property>> propertyNamesToSchemas;
+static std::vector<std::pair<std::string, std::vector<Property>>>
+getNodePropertyNameAndPropertiesPairs(const std::vector<NodeTableSchema*>& nodeTableSchemas) {
+    std::vector<std::string> propertyNames; // preserve order as specified in catalog.
+    std::unordered_map<std::string, std::vector<Property>> propertyNamesToSchemas;
     for (auto& nodeTableSchema : nodeTableSchemas) {
         for (auto& property : nodeTableSchema->properties) {
             if (!propertyNamesToSchemas.contains(property.name)) {
                 propertyNames.push_back(property.name);
-                propertyNamesToSchemas.insert({property.name, vector<Property>{}});
+                propertyNamesToSchemas.insert({property.name, std::vector<Property>{}});
             }
             propertyNamesToSchemas.at(property.name).push_back(property);
         }
@@ -103,8 +107,9 @@ static vector<std::pair<std::string, vector<Property>>> getNodePropertyNameAndPr
     return getPropertyNameAndSchemasPairs(propertyNames, propertyNamesToSchemas);
 }
 
-void Binder::bindQueryRel(const RelPattern& relPattern, const shared_ptr<NodeExpression>& leftNode,
-    const shared_ptr<NodeExpression>& rightNode, QueryGraph& queryGraph,
+void Binder::bindQueryRel(const RelPattern& relPattern,
+    const std::shared_ptr<NodeExpression>& leftNode,
+    const std::shared_ptr<NodeExpression>& rightNode, QueryGraph& queryGraph,
     PropertyKeyValCollection& collection) {
     auto parsedName = relPattern.getVariableName();
     if (variablesInScope.contains(parsedName)) {
@@ -129,7 +134,7 @@ void Binder::bindQueryRel(const RelPattern& relPattern, const shared_ptr<NodeExp
     queryRel->setRawName(parsedName);
     validateNodeRelConnectivity(catalog, *queryRel, *srcNode, *dstNode);
     // resolve properties associate with rel table
-    vector<RelTableSchema*> relTableSchemas;
+    std::vector<RelTableSchema*> relTableSchemas;
     for (auto tableID : tableIDs) {
         relTableSchemas.push_back(catalog.getReadOnlyVersion()->getRelTableSchema(tableID));
     }
@@ -150,16 +155,16 @@ void Binder::bindQueryRel(const RelPattern& relPattern, const shared_ptr<NodeExp
         auto boundLhs = expressionBinder.bindRelPropertyExpression(*queryRel, propertyName);
         auto boundRhs = expressionBinder.bindExpression(*rhs);
         boundRhs = ExpressionBinder::implicitCastIfNecessary(boundRhs, boundLhs->dataType);
-        collection.addPropertyKeyValPair(*queryRel, make_pair(boundLhs, boundRhs));
+        collection.addPropertyKeyValPair(*queryRel, std::make_pair(boundLhs, boundRhs));
     }
     queryGraph.addQueryRel(queryRel);
 }
 
-pair<uint64_t, uint64_t> Binder::bindVariableLengthRelBound(
+std::pair<uint64_t, uint64_t> Binder::bindVariableLengthRelBound(
     const kuzu::parser::RelPattern& relPattern) {
-    auto lowerBound = min(TypeUtils::convertToUint32(relPattern.getLowerBound().c_str()),
+    auto lowerBound = std::min(TypeUtils::convertToUint32(relPattern.getLowerBound().c_str()),
         VAR_LENGTH_EXTEND_MAX_DEPTH);
-    auto upperBound = min(TypeUtils::convertToUint32(relPattern.getUpperBound().c_str()),
+    auto upperBound = std::min(TypeUtils::convertToUint32(relPattern.getUpperBound().c_str()),
         VAR_LENGTH_EXTEND_MAX_DEPTH);
     if (lowerBound == 0 || upperBound == 0) {
         throw BinderException("Lower and upper bound of a rel must be greater than 0.");
@@ -168,13 +173,13 @@ pair<uint64_t, uint64_t> Binder::bindVariableLengthRelBound(
         throw BinderException(
             "Lower bound of rel " + relPattern.getVariableName() + " is greater than upperBound.");
     }
-    return make_pair(lowerBound, upperBound);
+    return std::make_pair(lowerBound, upperBound);
 }
 
-shared_ptr<NodeExpression> Binder::bindQueryNode(
+std::shared_ptr<NodeExpression> Binder::bindQueryNode(
     const NodePattern& nodePattern, QueryGraph& queryGraph, PropertyKeyValCollection& collection) {
     auto parsedName = nodePattern.getVariableName();
-    shared_ptr<NodeExpression> queryNode;
+    std::shared_ptr<NodeExpression> queryNode;
     if (variablesInScope.contains(parsedName)) { // bind to node in scope
         auto prevVariable = variablesInScope.at(parsedName);
         ExpressionBinder::validateExpectedDataType(*prevVariable, NODE);
@@ -193,13 +198,13 @@ shared_ptr<NodeExpression> Binder::bindQueryNode(
         auto boundLhs = expressionBinder.bindNodePropertyExpression(*queryNode, propertyName);
         auto boundRhs = expressionBinder.bindExpression(*rhs);
         boundRhs = ExpressionBinder::implicitCastIfNecessary(boundRhs, boundLhs->dataType);
-        collection.addPropertyKeyValPair(*queryNode, make_pair(boundLhs, boundRhs));
+        collection.addPropertyKeyValPair(*queryNode, std::make_pair(boundLhs, boundRhs));
     }
     queryGraph.addQueryNode(queryNode);
     return queryNode;
 }
 
-shared_ptr<NodeExpression> Binder::createQueryNode(const NodePattern& nodePattern) {
+std::shared_ptr<NodeExpression> Binder::createQueryNode(const NodePattern& nodePattern) {
     auto parsedName = nodePattern.getVariableName();
     auto tableIDs = bindNodeTableIDs(nodePattern.getTableNames());
     auto queryNode = make_shared<NodeExpression>(getUniqueExpressionName(parsedName), tableIDs);
@@ -207,7 +212,7 @@ shared_ptr<NodeExpression> Binder::createQueryNode(const NodePattern& nodePatter
     queryNode->setRawName(parsedName);
     queryNode->setInternalIDProperty(expressionBinder.createInternalNodeIDExpression(*queryNode));
     // resolve properties associate with node table
-    vector<NodeTableSchema*> nodeTableSchemas;
+    std::vector<NodeTableSchema*> nodeTableSchemas;
     for (auto tableID : tableIDs) {
         nodeTableSchemas.push_back(catalog.getReadOnlyVersion()->getNodeTableSchema(tableID));
     }
@@ -226,9 +231,9 @@ shared_ptr<NodeExpression> Binder::createQueryNode(const NodePattern& nodePatter
     return queryNode;
 }
 
-vector<table_id_t> Binder::bindTableIDs(
-    const vector<string>& tableNames, DataTypeID nodeOrRelType) {
-    unordered_set<table_id_t> tableIDs;
+std::vector<table_id_t> Binder::bindTableIDs(
+    const std::vector<std::string>& tableNames, DataTypeID nodeOrRelType) {
+    std::unordered_set<table_id_t> tableIDs;
     switch (nodeOrRelType) {
     case NODE: {
         if (tableNames.empty()) {
@@ -256,7 +261,7 @@ vector<table_id_t> Binder::bindTableIDs(
         throw NotImplementedException(
             "bindTableIDs(" + Types::dataTypeToString(nodeOrRelType) + ").");
     }
-    auto result = vector<table_id_t>{tableIDs.begin(), tableIDs.end()};
+    auto result = std::vector<table_id_t>{tableIDs.begin(), tableIDs.end()};
     std::sort(result.begin(), result.end());
     return result;
 }

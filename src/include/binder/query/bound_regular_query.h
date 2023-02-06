@@ -9,11 +9,11 @@ namespace binder {
 class BoundRegularQuery : public BoundStatement {
 public:
     explicit BoundRegularQuery(
-        vector<bool> isUnionAll, unique_ptr<BoundStatementResult> statementResult)
-        : BoundStatement{StatementType::QUERY, std::move(statementResult)}, isUnionAll{std::move(
-                                                                                isUnionAll)} {}
+        std::vector<bool> isUnionAll, std::unique_ptr<BoundStatementResult> statementResult)
+        : BoundStatement{common::StatementType::QUERY, std::move(statementResult)},
+          isUnionAll{std::move(isUnionAll)} {}
 
-    ~BoundRegularQuery() = default;
+    ~BoundRegularQuery() override = default;
 
     inline bool isReadOnly() const override {
         for (auto& singleQuery : singleQueries) {
@@ -24,7 +24,7 @@ public:
         return true;
     }
 
-    inline void addSingleQuery(unique_ptr<NormalizedSingleQuery> singleQuery) {
+    inline void addSingleQuery(std::unique_ptr<NormalizedSingleQuery> singleQuery) {
         singleQueries.push_back(std::move(singleQuery));
     }
     inline uint64_t getNumSingleQueries() const { return singleQueries.size(); }
@@ -35,8 +35,8 @@ public:
     inline bool getIsUnionAll(uint32_t idx) const { return isUnionAll[idx]; }
 
 private:
-    vector<unique_ptr<NormalizedSingleQuery>> singleQueries;
-    vector<bool> isUnionAll;
+    std::vector<std::unique_ptr<NormalizedSingleQuery>> singleQueries;
+    std::vector<bool> isUnionAll;
 };
 
 } // namespace binder

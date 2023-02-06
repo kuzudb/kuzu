@@ -1,5 +1,7 @@
 #include "expression_evaluator/reference_evaluator.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace evaluator {
 

@@ -18,8 +18,8 @@ expression_vector BoundSetClause::getPropertiesToRead() const {
     return result;
 }
 
-unique_ptr<BoundUpdatingClause> BoundSetClause::copy() {
-    auto result = make_unique<BoundSetClause>();
+std::unique_ptr<BoundUpdatingClause> BoundSetClause::copy() {
+    auto result = std::make_unique<BoundSetClause>();
     for (auto& setNodeProperty : setNodeProperties) {
         result->addSetNodeProperty(setNodeProperty->copy());
     }

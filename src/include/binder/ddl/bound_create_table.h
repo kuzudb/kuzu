@@ -3,24 +3,23 @@
 #include "bound_ddl.h"
 #include "catalog/catalog_structs.h"
 
-using namespace kuzu::catalog;
-
 namespace kuzu {
 namespace binder {
 
 class BoundCreateTable : public BoundDDL {
+
 public:
-    explicit BoundCreateTable(StatementType statementType, string tableName,
-        vector<PropertyNameDataType> propertyNameDataTypes)
+    explicit BoundCreateTable(common::StatementType statementType, std::string tableName,
+        std::vector<catalog::PropertyNameDataType> propertyNameDataTypes)
         : BoundDDL{statementType, std::move(tableName)}, propertyNameDataTypes{
                                                              std::move(propertyNameDataTypes)} {}
 
-    inline vector<PropertyNameDataType> getPropertyNameDataTypes() const {
+    inline std::vector<catalog::PropertyNameDataType> getPropertyNameDataTypes() const {
         return propertyNameDataTypes;
     }
 
 private:
-    vector<PropertyNameDataType> propertyNameDataTypes;
+    std::vector<catalog::PropertyNameDataType> propertyNameDataTypes;
 };
 
 } // namespace binder

@@ -2,18 +2,16 @@
 
 #include "common/type_utils.h"
 
-using namespace kuzu::common;
-
 namespace kuzu {
 namespace function {
 namespace operation {
 
 struct Label {
-    static inline void operation(
-        internalID_t& left, ku_list_t& right, ku_string_t& result, ValueVector& resultVector) {
+    static inline void operation(common::internalID_t& left, common::ku_list_t& right,
+        common::ku_string_t& result, common::ValueVector& resultVector) {
         assert(left.tableID < right.size);
-        auto& value = ((ku_string_t*)right.overflowPtr)[left.tableID];
-        if (!ku_string_t::isShortString(value.len)) {
+        auto& value = ((common::ku_string_t*)right.overflowPtr)[left.tableID];
+        if (!common::ku_string_t::isShortString(value.len)) {
             result.overflowPtr =
                 (uint64_t)resultVector.getOverflowBuffer().allocateSpace(value.len);
         }

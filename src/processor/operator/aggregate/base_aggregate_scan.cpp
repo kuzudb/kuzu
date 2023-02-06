@@ -1,5 +1,8 @@
 #include "processor/operator/aggregate/base_aggregate_scan.h"
 
+using namespace kuzu::common;
+using namespace kuzu::function;
+
 namespace kuzu {
 namespace processor {
 

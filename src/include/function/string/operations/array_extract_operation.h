@@ -7,14 +7,13 @@
 #include "length_operation.h"
 #include "substr_operation.h"
 
-using namespace kuzu::common;
-
 namespace kuzu {
 namespace function {
 namespace operation {
 
 struct ArrayExtract {
-    static inline void operation(ku_string_t& str, int64_t& idx, ku_string_t& result) {
+    static inline void operation(
+        common::ku_string_t& str, int64_t& idx, common::ku_string_t& result) {
         if (idx == 0) {
             result.len = 0;
             return;
@@ -22,11 +21,11 @@ struct ArrayExtract {
         auto stringVal = str.getAsString();
         int64_t strLen;
         Length::operation(str, strLen);
-        auto idxPos = idx > 0 ? min(idx, strLen) : max(strLen + idx, (int64_t)0) + 1;
+        auto idxPos = idx > 0 ? std::min(idx, strLen) : std::max(strLen + idx, (int64_t)0) + 1;
         auto startPos = idxPos - 1;
         auto endPos = startPos + 1;
         bool isAscii = true;
-        for (auto i = 0u; i < min((size_t)idxPos + 1, stringVal.size()); i++) {
+        for (auto i = 0u; i < std::min((size_t)idxPos + 1, stringVal.size()); i++) {
             if (stringVal[i] & 0x80) {
                 isAscii = false;
                 break;
@@ -54,9 +53,9 @@ struct ArrayExtract {
         }
     }
 
-    static inline void copySubstr(
-        ku_string_t& src, int64_t start, int64_t len, ku_string_t& result, bool isAscii) {
-        result.len = min(len, src.len - start + 1);
+    static inline void copySubstr(common::ku_string_t& src, int64_t start, int64_t len,
+        common::ku_string_t& result, bool isAscii) {
+        result.len = std::min(len, src.len - start + 1);
         if (isAscii) {
             memcpy((uint8_t*)result.getData(), src.getData() + start - 1, result.len);
         } else {

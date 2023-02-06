@@ -5,13 +5,14 @@
 #include "processor/mapper/expression_mapper.h"
 #include "processor/operator/result_collector.h"
 
+using namespace kuzu::common;
 using namespace kuzu::planner;
 
 namespace kuzu {
 namespace processor {
 
-unique_ptr<PhysicalPlan> PlanMapper::mapLogicalPlanToPhysical(LogicalPlan* logicalPlan,
-    const expression_vector& expressionsToCollect, common::StatementType statementType) {
+std::unique_ptr<PhysicalPlan> PlanMapper::mapLogicalPlanToPhysical(LogicalPlan* logicalPlan,
+    const binder::expression_vector& expressionsToCollect, common::StatementType statementType) {
     auto lastOperator = mapLogicalOperatorToPhysical(logicalPlan->getLastOperator());
     if (!StatementTypeUtils::isCopyCSV(statementType)) {
         lastOperator = appendResultCollector(
@@ -20,9 +21,9 @@ unique_ptr<PhysicalPlan> PlanMapper::mapLogicalPlanToPhysical(LogicalPlan* logic
     return make_unique<PhysicalPlan>(std::move(lastOperator));
 }
 
-unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
-    const shared_ptr<LogicalOperator>& logicalOperator) {
-    unique_ptr<PhysicalOperator> physicalOperator;
+std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
+    const std::shared_ptr<LogicalOperator>& logicalOperator) {
+    std::unique_ptr<PhysicalOperator> physicalOperator;
     auto operatorType = logicalOperator->getOperatorType();
     switch (operatorType) {
     case LogicalOperatorType::SCAN_NODE: {
@@ -139,11 +140,11 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
     return physicalOperator;
 }
 
-unique_ptr<ResultCollector> PlanMapper::appendResultCollector(
-    const expression_vector& expressionsToCollect, const Schema& schema,
-    unique_ptr<PhysicalOperator> prevOperator) {
-    vector<pair<DataPos, DataType>> payloadsPosAndType;
-    vector<bool> isPayloadFlat;
+std::unique_ptr<ResultCollector> PlanMapper::appendResultCollector(
+    const binder::expression_vector& expressionsToCollect, const Schema& schema,
+    std::unique_ptr<PhysicalOperator> prevOperator) {
+    std::vector<std::pair<DataPos, DataType>> payloadsPosAndType;
+    std::vector<bool> isPayloadFlat;
     for (auto& expression : expressionsToCollect) {
         auto expressionName = expression->getUniqueName();
         auto dataPos = DataPos(schema.getExpressionPos(*expression));
@@ -151,10 +152,10 @@ unique_ptr<ResultCollector> PlanMapper::appendResultCollector(
         payloadsPosAndType.emplace_back(dataPos, expression->dataType);
         isPayloadFlat.push_back(isFlat);
     }
-    auto sharedState = make_shared<FTableSharedState>();
-    return make_unique<ResultCollector>(make_unique<ResultSetDescriptor>(schema),
+    auto sharedState = std::make_shared<FTableSharedState>();
+    return make_unique<ResultCollector>(std::make_unique<ResultSetDescriptor>(schema),
         payloadsPosAndType, isPayloadFlat, sharedState, std::move(prevOperator), getOperatorID(),
-        ExpressionUtil::toString(expressionsToCollect));
+        binder::ExpressionUtil::toString(expressionsToCollect));
 }
 
 } // namespace processor

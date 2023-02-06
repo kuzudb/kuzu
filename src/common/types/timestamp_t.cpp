@@ -35,7 +35,7 @@ timestamp_t timestamp_t::operator-(const interval_t& interval) const {
 
 interval_t timestamp_t::operator-(const timestamp_t& rhs) const {
     interval_t result{};
-    uint64_t diff = abs(value - rhs.value);
+    uint64_t diff = std::abs(value - rhs.value);
     result.months = 0;
     result.days = diff / Interval::MICROS_PER_DAY;
     result.micros = diff % Interval::MICROS_PER_DAY;
@@ -150,7 +150,7 @@ bool Timestamp::TryParseUTCOffset(
     return true;
 }
 
-string Timestamp::toString(timestamp_t timestamp) {
+std::string Timestamp::toString(timestamp_t timestamp) {
     date_t date;
     dtime_t time;
     Timestamp::Convert(timestamp, date, time);

@@ -27,10 +27,10 @@ void LogicalProjection::computeSchema() {
     }
 }
 
-unordered_set<uint32_t> LogicalProjection::getDiscardedGroupsPos() const {
+std::unordered_set<uint32_t> LogicalProjection::getDiscardedGroupsPos() const {
     auto groupsPosInScopeBeforeProjection = children[0]->getSchema()->getGroupsPosInScope();
     auto groupsPosInScopeAfterProjection = schema->getGroupsPosInScope();
-    unordered_set<uint32_t> discardGroupsPos;
+    std::unordered_set<uint32_t> discardGroupsPos;
     for (auto i = 0u; i < schema->getNumGroups(); ++i) {
         if (groupsPosInScopeBeforeProjection.contains(i) &&
             !groupsPosInScopeAfterProjection.contains(i)) {

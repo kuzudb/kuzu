@@ -1,5 +1,7 @@
 #include "processor/operator/ddl/create_node_table.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace processor {
 

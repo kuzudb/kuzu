@@ -20,7 +20,8 @@ namespace kuzu {
 namespace main {
 
 struct SystemConfig {
-    explicit SystemConfig(uint64_t bufferPoolSize = StorageConfig::DEFAULT_BUFFER_POOL_SIZE);
+    explicit SystemConfig(
+        uint64_t bufferPoolSize = common::StorageConfig::DEFAULT_BUFFER_POOL_SIZE);
 
     uint64_t defaultPageBufferPoolSize;
     uint64_t largePageBufferPoolSize;
@@ -84,8 +85,8 @@ private:
     std::unique_ptr<catalog::Catalog> catalog;
     std::unique_ptr<storage::StorageManager> storageManager;
     std::unique_ptr<transaction::TransactionManager> transactionManager;
-    unique_ptr<storage::WAL> wal;
-    shared_ptr<spdlog::logger> logger;
+    std::unique_ptr<storage::WAL> wal;
+    std::shared_ptr<spdlog::logger> logger;
 };
 
 } // namespace main

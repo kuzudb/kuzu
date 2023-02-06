@@ -74,7 +74,7 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value) {
         return py::cast(value.getValue<double>());
     }
     case STRING: {
-        return py::cast(value.getValue<string>());
+        return py::cast(value.getValue<std::string>());
     }
     case DATE: {
         auto dateVal = value.getValue<date_t>();
@@ -192,7 +192,7 @@ void PyQueryResult::resetIterator() {
 }
 
 py::dict PyQueryResult::getPyDictFromProperties(
-    const vector<pair<std::string, unique_ptr<Value>>>& properties) {
+    const std::vector<std::pair<std::string, std::unique_ptr<Value>>>& properties) {
     py::dict result;
     for (auto i = 0u; i < properties.size(); ++i) {
         auto& [name, value] = properties[i];

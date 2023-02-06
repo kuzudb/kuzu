@@ -1,5 +1,7 @@
 #include "processor/operator/aggregate/hash_aggregate_scan.h"
 
+using namespace kuzu::function;
+
 namespace kuzu {
 namespace processor {
 

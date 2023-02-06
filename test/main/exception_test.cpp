@@ -3,8 +3,8 @@
 using namespace kuzu::testing;
 
 TEST_F(ApiTest, Exception) {
-    unique_ptr<QueryResult> result;
-    unique_ptr<PreparedStatement> preparedStatement;
+    std::unique_ptr<QueryResult> result;
+    std::unique_ptr<PreparedStatement> preparedStatement;
 
     auto parser_error_query = "MATCH (a:person)";
     auto parser_error = "Parser exception: Query must conclude with RETURN clause (line: 1, "

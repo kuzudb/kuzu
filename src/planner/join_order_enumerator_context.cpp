@@ -3,12 +3,12 @@
 namespace kuzu {
 namespace planner {
 
-void JoinOrderEnumeratorContext::init(QueryGraph* queryGraph, expression_vector& predicates) {
+void JoinOrderEnumeratorContext::init(QueryGraph* queryGraph_, expression_vector& predicates) {
     whereExpressionsSplitOnAND = predicates;
-    this->queryGraph = queryGraph;
+    this->queryGraph = queryGraph_;
     // clear and resize subPlansTable
     subPlansTable->clear();
-    maxLevel = queryGraph->getNumQueryNodes() + queryGraph->getNumQueryRels() + 1;
+    maxLevel = queryGraph_->getNumQueryNodes() + queryGraph_->getNumQueryRels() + 1;
     subPlansTable->resize(maxLevel);
     // Restart from level 1 for new query part so that we get hashJoin based plans
     // that uses subplans coming from previous query part.See example in planRelIndexJoin().
@@ -27,7 +27,7 @@ SubqueryGraph JoinOrderEnumeratorContext::getFullyMatchedSubqueryGraph() const {
 }
 
 void JoinOrderEnumeratorContext::resetState() {
-    subPlansTable = make_unique<SubPlansTable>();
+    subPlansTable = std::make_unique<SubPlansTable>();
 }
 
 } // namespace planner

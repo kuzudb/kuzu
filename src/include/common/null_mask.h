@@ -114,8 +114,8 @@ public:
 
     // This function returns true if we have copied a nullBit with value 1 (indicate a null
     // value) to dstNullEntries.
-    static bool copyNullMask(uint64_t* srcNullEntries, uint64_t srcOffset, uint64_t* dstNullEntries,
-        uint64_t dstOffset, uint64_t numBitsToCopy);
+    static bool copyNullMask(const uint64_t* srcNullEntries, uint64_t srcOffset,
+        uint64_t* dstNullEntries, uint64_t dstOffset, uint64_t numBitsToCopy);
 
 private:
     static inline std::pair<uint64_t, uint64_t> getNullEntryAndBitPos(uint64_t pos) {

@@ -2,10 +2,12 @@
 #include "processor/mapper/plan_mapper.h"
 #include "processor/operator/cross_product.h"
 
+using namespace kuzu::planner;
+
 namespace kuzu {
 namespace processor {
 
-unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCrossProductToPhysical(
+std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCrossProductToPhysical(
     LogicalOperator* logicalOperator) {
     auto logicalCrossProduct = (LogicalCrossProduct*)logicalOperator;
     auto outSchema = logicalCrossProduct->getSchema();
@@ -16,8 +18,8 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCrossProductToPhysical(
         *buildSideSchema, std::move(buildSidePrevOperator));
     // map probe side
     auto probeSidePrevOperator = mapLogicalOperatorToPhysical(logicalCrossProduct->getChild(0));
-    vector<DataPos> outVecPos;
-    vector<uint32_t> colIndicesToScan;
+    std::vector<DataPos> outVecPos;
+    std::vector<uint32_t> colIndicesToScan;
     auto expressions = buildSideSchema->getExpressionsInScope();
     for (auto i = 0u; i < expressions.size(); ++i) {
         auto expression = expressions[i];

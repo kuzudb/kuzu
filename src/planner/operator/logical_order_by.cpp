@@ -7,7 +7,7 @@ namespace planner {
 
 void LogicalOrderBy::computeSchema() {
     auto childSchema = children[0]->getSchema();
-    schema = make_unique<Schema>();
+    schema = std::make_unique<Schema>();
     SinkOperatorUtil::recomputeSchema(*childSchema, expressionsToMaterialize, *schema);
 }
 

@@ -2,6 +2,8 @@
 
 #include "storage/storage_structure/lists/lists.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace storage {
 
@@ -27,7 +29,7 @@ PageElementCursor InMemListsUtils::calcPageElementCursor(uint32_t header, uint64
 }
 
 InMemLists::InMemLists(
-    string fName, DataType dataType, uint64_t numBytesForElement, uint64_t numNodes)
+    std::string fName, DataType dataType, uint64_t numBytesForElement, uint64_t numNodes)
     : fName{std::move(fName)}, dataType{std::move(dataType)}, numBytesForElement{
                                                                   numBytesForElement} {
     listsMetadataBuilder = make_unique<ListsMetadataBuilder>(this->fName);
@@ -87,7 +89,7 @@ void InMemLists::initListsMetadataAndAllocatePages(
     for (auto chunkIdx = 0u; chunkIdx < numChunks; chunkIdx++) {
         uint64_t numPages = 0u, offsetInPage = 0u;
         auto lastNodeOffsetInChunk =
-            min(nodeOffset + ListsMetadataConfig::LISTS_CHUNK_SIZE, numNodes);
+            std::min(nodeOffset + ListsMetadataConfig::LISTS_CHUNK_SIZE, numNodes);
         while (nodeOffset < lastNodeOffsetInChunk) {
             auto header = listHeaders->getHeader(nodeOffset);
             auto numElementsInList = ListHeaders::isALargeList(header) ?
@@ -185,7 +187,8 @@ void InMemAdjLists::saveToFile() {
     InMemLists::saveToFile();
 }
 
-InMemListsWithOverflow::InMemListsWithOverflow(string fName, DataType dataType, uint64_t numNodes)
+InMemListsWithOverflow::InMemListsWithOverflow(
+    std::string fName, DataType dataType, uint64_t numNodes)
     : InMemLists{
           std::move(fName), std::move(dataType), Types::getDataTypeSize(dataType), numNodes} {
     assert(this->dataType.typeID == STRING || this->dataType.typeID == LIST);
@@ -198,8 +201,8 @@ void InMemListsWithOverflow::saveToFile() {
     overflowInMemFile->flush();
 }
 
-unique_ptr<InMemLists> InMemListsFactory::getInMemPropertyLists(
-    const string& fName, const DataType& dataType, uint64_t numNodes) {
+std::unique_ptr<InMemLists> InMemListsFactory::getInMemPropertyLists(
+    const std::string& fName, const DataType& dataType, uint64_t numNodes) {
     switch (dataType.typeID) {
     case INT64:
     case DOUBLE:

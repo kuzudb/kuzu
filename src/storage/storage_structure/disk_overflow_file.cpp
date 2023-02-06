@@ -3,7 +3,10 @@
 #include "common/in_mem_overflow_buffer_utils.h"
 #include "common/type_utils.h"
 
-using lock_t = unique_lock<mutex>;
+using lock_t = std::unique_lock<std::mutex>;
+
+using namespace kuzu::transaction;
+using namespace kuzu::common;
 
 namespace kuzu {
 namespace storage {
@@ -112,7 +115,7 @@ void DiskOverflowFile::readListToVector(TransactionType trxType, ku_list_t& kuLi
     }
 }
 
-string DiskOverflowFile::readString(TransactionType trxType, const ku_string_t& str) {
+std::string DiskOverflowFile::readString(TransactionType trxType, const ku_string_t& str) {
     if (ku_string_t::isShortString(str.len)) {
         return str.getAsShortString();
     } else {
@@ -122,13 +125,13 @@ string DiskOverflowFile::readString(TransactionType trxType, const ku_string_t& 
             StorageStructureUtils::getFileHandleAndPhysicalPageIdxToPin(
                 fileHandle, cursor.pageIdx, *wal, trxType);
         auto frame = bufferManager.pin(*fileHandleToPin, pageIdxToPin);
-        auto retVal = string((char*)(frame + cursor.offsetInPage), str.len);
+        auto retVal = std::string((char*)(frame + cursor.offsetInPage), str.len);
         bufferManager.unpin(*fileHandleToPin, pageIdxToPin);
         return retVal;
     }
 }
 
-vector<unique_ptr<Value>> DiskOverflowFile::readList(
+std::vector<std::unique_ptr<Value>> DiskOverflowFile::readList(
     TransactionType trxType, const ku_list_t& listVal, const DataType& dataType) {
     PageByteCursor cursor;
     TypeUtils::decodeOverflowPtr(listVal.overflowPtr, cursor.pageIdx, cursor.offsetInPage);
@@ -138,7 +141,7 @@ vector<unique_ptr<Value>> DiskOverflowFile::readList(
     auto frame = bufferManager.pin(*fileHandleToPin, pageIdxToPin);
     auto numBytesOfSingleValue = Types::getDataTypeSize(*dataType.childType);
     auto numValuesInList = listVal.size;
-    vector<unique_ptr<Value>> retValues;
+    std::vector<std::unique_ptr<Value>> retValues;
     if (dataType.childType->typeID == STRING) {
         for (auto i = 0u; i < numValuesInList; i++) {
             auto kuListVal = *(ku_string_t*)(frame + cursor.offsetInPage);
@@ -155,7 +158,7 @@ vector<unique_ptr<Value>> DiskOverflowFile::readList(
     } else {
         for (auto i = 0u; i < numValuesInList; i++) {
             retValues.push_back(
-                make_unique<Value>(*dataType.childType, frame + cursor.offsetInPage));
+                std::make_unique<Value>(*dataType.childType, frame + cursor.offsetInPage));
             cursor.offsetInPage += numBytesOfSingleValue;
         }
     }

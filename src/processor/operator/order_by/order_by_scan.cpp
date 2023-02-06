@@ -1,5 +1,7 @@
 #include "processor/operator/order_by/order_by_scan.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace processor {
 
@@ -36,12 +38,12 @@ bool OrderByScan::getNextTuplesInternal() {
             mergedKeyBlockScanState->nextTupleIdxToReadInMergedKeyBlock++;
             metrics->numOutputTuple.increase(1);
         } else {
-            auto numTuplesToRead = min(DEFAULT_VECTOR_CAPACITY,
+            auto numTuplesToRead = std::min(DEFAULT_VECTOR_CAPACITY,
                 mergedKeyBlockScanState->mergedKeyBlock->getNumTuples() -
                     mergedKeyBlockScanState->nextTupleIdxToReadInMergedKeyBlock);
             auto numTuplesRead = 0;
             while (numTuplesRead < numTuplesToRead) {
-                auto numTuplesToReadInCurBlock = min(numTuplesToRead - numTuplesRead,
+                auto numTuplesToReadInCurBlock = std::min(numTuplesToRead - numTuplesRead,
                     mergedKeyBlockScanState->blockPtrInfo->getNumTuplesLeftInCurBlock());
 
                 for (auto i = 0u; i < numTuplesToReadInCurBlock; i++) {
@@ -80,16 +82,17 @@ void OrderByScan::initMergedKeyBlockScanState() {
     if (sharedState->sortedKeyBlocks->empty()) {
         return;
     }
-    mergedKeyBlockScanState = make_unique<MergedKeyBlockScanState>();
+    mergedKeyBlockScanState = std::make_unique<MergedKeyBlockScanState>();
     mergedKeyBlockScanState->nextTupleIdxToReadInMergedKeyBlock = 0;
     mergedKeyBlockScanState->mergedKeyBlock = sharedState->sortedKeyBlocks->front();
     mergedKeyBlockScanState->tupleIdxAndFactorizedTableIdxOffset =
         mergedKeyBlockScanState->mergedKeyBlock->getNumBytesPerTuple() - 8;
-    mergedKeyBlockScanState->colsToScan = vector<uint32_t>(vectorsToRead.size());
+    mergedKeyBlockScanState->colsToScan = std::vector<uint32_t>(vectorsToRead.size());
     iota(mergedKeyBlockScanState->colsToScan.begin(), mergedKeyBlockScanState->colsToScan.end(), 0);
     mergedKeyBlockScanState->scanSingleTuple = sharedState->factorizedTables[0]->hasUnflatCol();
     if (!mergedKeyBlockScanState->scanSingleTuple) {
-        mergedKeyBlockScanState->tuplesToRead = make_unique<uint8_t*[]>(DEFAULT_VECTOR_CAPACITY);
+        mergedKeyBlockScanState->tuplesToRead =
+            std::make_unique<uint8_t*[]>(DEFAULT_VECTOR_CAPACITY);
     }
     mergedKeyBlockScanState->blockPtrInfo = make_unique<BlockPtrInfo>(0 /* startTupleIdx */,
         mergedKeyBlockScanState->mergedKeyBlock->getNumTuples(),

@@ -1,9 +1,11 @@
 #include "processor/operator/copy/copy.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace processor {
 
-string Copy::execute(TaskScheduler* taskScheduler, ExecutionContext* executionContext) {
+std::string Copy::execute(TaskScheduler* taskScheduler, ExecutionContext* executionContext) {
     registerProfilingMetrics(executionContext->profiler);
     metrics->executionTime.start();
     errorIfTableIsNonEmpty();

@@ -3,8 +3,6 @@
 #include <cstdint>
 #include <string>
 
-using namespace std;
-
 namespace kuzu {
 namespace common {
 
@@ -13,158 +11,158 @@ namespace common {
  * functions. After binding, expression type should replace function name and used as identifier.
  */
 // aggregate
-const string COUNT_STAR_FUNC_NAME = "COUNT_STAR";
-const string COUNT_FUNC_NAME = "COUNT";
-const string SUM_FUNC_NAME = "SUM";
-const string AVG_FUNC_NAME = "AVG";
-const string MIN_FUNC_NAME = "MIN";
-const string MAX_FUNC_NAME = "MAX";
+const std::string COUNT_STAR_FUNC_NAME = "COUNT_STAR";
+const std::string COUNT_FUNC_NAME = "COUNT";
+const std::string SUM_FUNC_NAME = "SUM";
+const std::string AVG_FUNC_NAME = "AVG";
+const std::string MIN_FUNC_NAME = "MIN";
+const std::string MAX_FUNC_NAME = "MAX";
 
 // cast
-const string CAST_TO_DATE_FUNC_NAME = "DATE";
-const string CAST_TO_TIMESTAMP_FUNC_NAME = "TIMESTAMP";
-const string CAST_TO_INTERVAL_FUNC_NAME = "INTERVAL";
-const string CAST_TO_STRING_FUNC_NAME = "STRING";
-const string IMPLICIT_CAST_TO_BOOL_FUNC_NAME = "_BOOL";
-const string IMPLICIT_CAST_TO_INT_FUNC_NAME = "_INT";
-const string IMPLICIT_CAST_TO_STRING_FUNC_NAME = "_STRING";
-const string IMPLICIT_CAST_TO_DATE_FUNC_NAME = "_DATE";
-const string IMPLICIT_CAST_TO_TIMESTAMP_FUNC_NAME = "_TIMESTAMP";
+const std::string CAST_TO_DATE_FUNC_NAME = "DATE";
+const std::string CAST_TO_TIMESTAMP_FUNC_NAME = "TIMESTAMP";
+const std::string CAST_TO_INTERVAL_FUNC_NAME = "INTERVAL";
+const std::string CAST_TO_STRING_FUNC_NAME = "STRING";
+const std::string IMPLICIT_CAST_TO_BOOL_FUNC_NAME = "_BOOL";
+const std::string IMPLICIT_CAST_TO_INT_FUNC_NAME = "_INT";
+const std::string IMPLICIT_CAST_TO_STRING_FUNC_NAME = "_STRING";
+const std::string IMPLICIT_CAST_TO_DATE_FUNC_NAME = "_DATE";
+const std::string IMPLICIT_CAST_TO_TIMESTAMP_FUNC_NAME = "_TIMESTAMP";
 
 // list
-const string LIST_CREATION_FUNC_NAME = "LIST_CREATION";
-const string LIST_EXTRACT_FUNC_NAME = "LIST_EXTRACT";
-const string LIST_ELEMENT_FUNC_NAME = "LIST_ELEMENT";
-const string LIST_LEN_FUNC_NAME = "LEN";
-const string LIST_CONCAT_FUNC_NAME = "LIST_CONCAT";
-const string LIST_CAT_FUNC_NAME = "LIST_CAT";
-const string ARRAY_CONCAT_FUNC_NAME = "ARRAY_CONCAT";
-const string ARRAY_CAT_FUNC_NAME = "ARRAY_CAT";
-const string LIST_APPEND_FUNC_NAME = "LIST_APPEND";
-const string ARRAY_APPEND_FUNC_NAME = "ARRAY_APPEND";
-const string ARRAY_PUSH_BACK_FUNC_NAME = "ARRAY_PUSH_BACK";
-const string LIST_PREPEND_FUNC_NAME = "LIST_PREPEND";
-const string ARRAY_PREPEND_FUNC_NAME = "ARRAY_PREPEND";
-const string ARRAY_PUSH_FRONT_FUNC_NAME = "ARRAY_PUSH_FRONT";
-const string LIST_POSITION_FUNC_NAME = "LIST_POSITION";
-const string LIST_INDEXOF_FUNC_NAME = "LIST_INDEXOF";
-const string ARRAY_POSITION_FUNC_NAME = "ARRAY_POSITION";
-const string ARRAY_INDEXOF_FUNC_NAME = "ARRAY_INDEXOF";
-const string LIST_CONTAINS_FUNC_NAME = "LIST_CONTAINS";
-const string LIST_HAS_FUNC_NAME = "LIST_HAS";
-const string ARRAY_CONTAINS_FUNC_NAME = "ARRAY_CONTAINS";
-const string ARRAY_HAS_FUNC_NAME = "ARRAY_HAS";
-const string LIST_SLICE_FUNC_NAME = "LIST_SLICE";
-const string ARRAY_SLICE_FUNC_NAME = "ARRAY_SLICE";
+const std::string LIST_CREATION_FUNC_NAME = "LIST_CREATION";
+const std::string LIST_EXTRACT_FUNC_NAME = "LIST_EXTRACT";
+const std::string LIST_ELEMENT_FUNC_NAME = "LIST_ELEMENT";
+const std::string LIST_LEN_FUNC_NAME = "LEN";
+const std::string LIST_CONCAT_FUNC_NAME = "LIST_CONCAT";
+const std::string LIST_CAT_FUNC_NAME = "LIST_CAT";
+const std::string ARRAY_CONCAT_FUNC_NAME = "ARRAY_CONCAT";
+const std::string ARRAY_CAT_FUNC_NAME = "ARRAY_CAT";
+const std::string LIST_APPEND_FUNC_NAME = "LIST_APPEND";
+const std::string ARRAY_APPEND_FUNC_NAME = "ARRAY_APPEND";
+const std::string ARRAY_PUSH_BACK_FUNC_NAME = "ARRAY_PUSH_BACK";
+const std::string LIST_PREPEND_FUNC_NAME = "LIST_PREPEND";
+const std::string ARRAY_PREPEND_FUNC_NAME = "ARRAY_PREPEND";
+const std::string ARRAY_PUSH_FRONT_FUNC_NAME = "ARRAY_PUSH_FRONT";
+const std::string LIST_POSITION_FUNC_NAME = "LIST_POSITION";
+const std::string LIST_INDEXOF_FUNC_NAME = "LIST_INDEXOF";
+const std::string ARRAY_POSITION_FUNC_NAME = "ARRAY_POSITION";
+const std::string ARRAY_INDEXOF_FUNC_NAME = "ARRAY_INDEXOF";
+const std::string LIST_CONTAINS_FUNC_NAME = "LIST_CONTAINS";
+const std::string LIST_HAS_FUNC_NAME = "LIST_HAS";
+const std::string ARRAY_CONTAINS_FUNC_NAME = "ARRAY_CONTAINS";
+const std::string ARRAY_HAS_FUNC_NAME = "ARRAY_HAS";
+const std::string LIST_SLICE_FUNC_NAME = "LIST_SLICE";
+const std::string ARRAY_SLICE_FUNC_NAME = "ARRAY_SLICE";
 
 // comparison
-const string EQUALS_FUNC_NAME = "EQUALS";
-const string NOT_EQUALS_FUNC_NAME = "NOT_EQUALS";
-const string GREATER_THAN_FUNC_NAME = "GREATER_THAN";
-const string GREATER_THAN_EQUALS_FUNC_NAME = "GREATER_THAN_EQUALS";
-const string LESS_THAN_FUNC_NAME = "LESS_THAN";
-const string LESS_THAN_EQUALS_FUNC_NAME = "LESS_THAN_EQUALS";
+const std::string EQUALS_FUNC_NAME = "EQUALS";
+const std::string NOT_EQUALS_FUNC_NAME = "NOT_EQUALS";
+const std::string GREATER_THAN_FUNC_NAME = "GREATER_THAN";
+const std::string GREATER_THAN_EQUALS_FUNC_NAME = "GREATER_THAN_EQUALS";
+const std::string LESS_THAN_FUNC_NAME = "LESS_THAN";
+const std::string LESS_THAN_EQUALS_FUNC_NAME = "LESS_THAN_EQUALS";
 
 // arithmetics operators
-const string ADD_FUNC_NAME = "+";
-const string SUBTRACT_FUNC_NAME = "-";
-const string MULTIPLY_FUNC_NAME = "*";
-const string DIVIDE_FUNC_NAME = "/";
-const string MODULO_FUNC_NAME = "%";
-const string POWER_FUNC_NAME = "^";
+const std::string ADD_FUNC_NAME = "+";
+const std::string SUBTRACT_FUNC_NAME = "-";
+const std::string MULTIPLY_FUNC_NAME = "*";
+const std::string DIVIDE_FUNC_NAME = "/";
+const std::string MODULO_FUNC_NAME = "%";
+const std::string POWER_FUNC_NAME = "^";
 
 // arithmetics functions
-const string ABS_FUNC_NAME = "ABS";
-const string ACOS_FUNC_NAME = "ACOS";
-const string ASIN_FUNC_NAME = "ASIN";
-const string ATAN_FUNC_NAME = "ATAN";
-const string ATAN2_FUNC_NAME = "ATAN2";
-const string BITWISE_XOR_FUNC_NAME = "BITWISE_XOR";
-const string BITWISE_AND_FUNC_NAME = "BITWISE_AND";
-const string BITWISE_OR_FUNC_NAME = "BITWISE_OR";
-const string BITSHIFT_LEFT_FUNC_NAME = "BITSHIFT_LEFT";
-const string BITSHIFT_RIGHT_FUNC_NAME = "BITSHIFT_RIGHT";
-const string CBRT_FUNC_NAME = "CBRT";
-const string CEIL_FUNC_NAME = "CEIL";
-const string CEILING_FUNC_NAME = "CEILING";
-const string COS_FUNC_NAME = "COS";
-const string COT_FUNC_NAME = "COT";
-const string DEGREES_FUNC_NAME = "DEGREES";
-const string EVEN_FUNC_NAME = "EVEN";
-const string FACTORIAL_FUNC_NAME = "FACTORIAL";
-const string FLOOR_FUNC_NAME = "FLOOR";
-const string GAMMA_FUNC_NAME = "GAMMA";
-const string LGAMMA_FUNC_NAME = "LGAMMA";
-const string LN_FUNC_NAME = "LN";
-const string LOG_FUNC_NAME = "LOG";
-const string LOG2_FUNC_NAME = "LOG2";
-const string LOG10_FUNC_NAME = "LOG10";
-const string NEGATE_FUNC_NAME = "NEGATE";
-const string PI_FUNC_NAME = "PI";
-const string POW_FUNC_NAME = "POW";
-const string RADIANS_FUNC_NAME = "RADIANS";
-const string ROUND_FUNC_NAME = "ROUND";
-const string SIN_FUNC_NAME = "SIN";
-const string SIGN_FUNC_NAME = "SIGN";
-const string SQRT_FUNC_NAME = "SQRT";
-const string TAN_FUNC_NAME = "TAN";
+const std::string ABS_FUNC_NAME = "ABS";
+const std::string ACOS_FUNC_NAME = "ACOS";
+const std::string ASIN_FUNC_NAME = "ASIN";
+const std::string ATAN_FUNC_NAME = "ATAN";
+const std::string ATAN2_FUNC_NAME = "ATAN2";
+const std::string BITWISE_XOR_FUNC_NAME = "BITWISE_XOR";
+const std::string BITWISE_AND_FUNC_NAME = "BITWISE_AND";
+const std::string BITWISE_OR_FUNC_NAME = "BITWISE_OR";
+const std::string BITSHIFT_LEFT_FUNC_NAME = "BITSHIFT_LEFT";
+const std::string BITSHIFT_RIGHT_FUNC_NAME = "BITSHIFT_RIGHT";
+const std::string CBRT_FUNC_NAME = "CBRT";
+const std::string CEIL_FUNC_NAME = "CEIL";
+const std::string CEILING_FUNC_NAME = "CEILING";
+const std::string COS_FUNC_NAME = "COS";
+const std::string COT_FUNC_NAME = "COT";
+const std::string DEGREES_FUNC_NAME = "DEGREES";
+const std::string EVEN_FUNC_NAME = "EVEN";
+const std::string FACTORIAL_FUNC_NAME = "FACTORIAL";
+const std::string FLOOR_FUNC_NAME = "FLOOR";
+const std::string GAMMA_FUNC_NAME = "GAMMA";
+const std::string LGAMMA_FUNC_NAME = "LGAMMA";
+const std::string LN_FUNC_NAME = "LN";
+const std::string LOG_FUNC_NAME = "LOG";
+const std::string LOG2_FUNC_NAME = "LOG2";
+const std::string LOG10_FUNC_NAME = "LOG10";
+const std::string NEGATE_FUNC_NAME = "NEGATE";
+const std::string PI_FUNC_NAME = "PI";
+const std::string POW_FUNC_NAME = "POW";
+const std::string RADIANS_FUNC_NAME = "RADIANS";
+const std::string ROUND_FUNC_NAME = "ROUND";
+const std::string SIN_FUNC_NAME = "SIN";
+const std::string SIGN_FUNC_NAME = "SIGN";
+const std::string SQRT_FUNC_NAME = "SQRT";
+const std::string TAN_FUNC_NAME = "TAN";
 
 // string
-const string ARRAY_EXTRACT_FUNC_NAME = "ARRAY_EXTRACT";
-const string CONCAT_FUNC_NAME = "CONCAT";
-const string CONTAINS_FUNC_NAME = "CONTAINS";
-const string ENDS_WITH_FUNC_NAME = "ENDS_WITH";
-const string RE_MATCH_FUNC_NAME = "RE_MATCH";
-const string LCASE_FUNC_NAME = "LCASE";
-const string LEFT_FUNC_NAME = "LEFT";
-const string LENGTH_FUNC_NAME = "LENGTH";
-const string LOWER_FUNC_NAME = "LOWER";
-const string LPAD_FUNC_NAME = "LPAD";
-const string LTRIM_FUNC_NAME = "LTRIM";
-const string PREFIX_FUNC_NAME = "PREFIX";
-const string REPEAT_FUNC_NAME = "REPEAT";
-const string REVERSE_FUNC_NAME = "REVERSE";
-const string RIGHT_FUNC_NAME = "RIGHT";
-const string RPAD_FUNC_NAME = "RPAD";
-const string RTRIM_FUNC_NAME = "RTRIM";
-const string STARTS_WITH_FUNC_NAME = "STARTS_WITH";
-const string SUBSTR_FUNC_NAME = "SUBSTR";
-const string SUBSTRING_FUNC_NAME = "SUBSTRING";
-const string SUFFIX_FUNC_NAME = "SUFFIX";
-const string TRIM_FUNC_NAME = "TRIM";
-const string UCASE_FUNC_NAME = "UCASE";
-const string UPPER_FUNC_NAME = "UPPER";
+const std::string ARRAY_EXTRACT_FUNC_NAME = "ARRAY_EXTRACT";
+const std::string CONCAT_FUNC_NAME = "CONCAT";
+const std::string CONTAINS_FUNC_NAME = "CONTAINS";
+const std::string ENDS_WITH_FUNC_NAME = "ENDS_WITH";
+const std::string RE_MATCH_FUNC_NAME = "RE_MATCH";
+const std::string LCASE_FUNC_NAME = "LCASE";
+const std::string LEFT_FUNC_NAME = "LEFT";
+const std::string LENGTH_FUNC_NAME = "LENGTH";
+const std::string LOWER_FUNC_NAME = "LOWER";
+const std::string LPAD_FUNC_NAME = "LPAD";
+const std::string LTRIM_FUNC_NAME = "LTRIM";
+const std::string PREFIX_FUNC_NAME = "PREFIX";
+const std::string REPEAT_FUNC_NAME = "REPEAT";
+const std::string REVERSE_FUNC_NAME = "REVERSE";
+const std::string RIGHT_FUNC_NAME = "RIGHT";
+const std::string RPAD_FUNC_NAME = "RPAD";
+const std::string RTRIM_FUNC_NAME = "RTRIM";
+const std::string STARTS_WITH_FUNC_NAME = "STARTS_WITH";
+const std::string SUBSTR_FUNC_NAME = "SUBSTR";
+const std::string SUBSTRING_FUNC_NAME = "SUBSTRING";
+const std::string SUFFIX_FUNC_NAME = "SUFFIX";
+const std::string TRIM_FUNC_NAME = "TRIM";
+const std::string UCASE_FUNC_NAME = "UCASE";
+const std::string UPPER_FUNC_NAME = "UPPER";
 
 // Date functions.
-const string DATE_PART_FUNC_NAME = "DATE_PART";
-const string DATEPART_FUNC_NAME = "DATEPART";
-const string DATE_TRUNC_FUNC_NAME = "DATE_TRUNC";
-const string DATETRUNC_FUNC_NAME = "DATETRUNC";
-const string DAYNAME_FUNC_NAME = "DAYNAME";
-const string GREATEST_FUNC_NAME = "GREATEST";
-const string LAST_DAY_FUNC_NAME = "LAST_DAY";
-const string LEAST_FUNC_NAME = "LEAST";
-const string MAKE_DATE_FUNC_NAME = "MAKE_DATE";
-const string MONTHNAME_FUNC_NAME = "MONTHNAME";
+const std::string DATE_PART_FUNC_NAME = "DATE_PART";
+const std::string DATEPART_FUNC_NAME = "DATEPART";
+const std::string DATE_TRUNC_FUNC_NAME = "DATE_TRUNC";
+const std::string DATETRUNC_FUNC_NAME = "DATETRUNC";
+const std::string DAYNAME_FUNC_NAME = "DAYNAME";
+const std::string GREATEST_FUNC_NAME = "GREATEST";
+const std::string LAST_DAY_FUNC_NAME = "LAST_DAY";
+const std::string LEAST_FUNC_NAME = "LEAST";
+const std::string MAKE_DATE_FUNC_NAME = "MAKE_DATE";
+const std::string MONTHNAME_FUNC_NAME = "MONTHNAME";
 
 // Timestamp functions.
-const string CENTURY_FUNC_NAME = "CENTURY";
-const string EPOCH_MS_FUNC_NAME = "EPOCH_MS";
-const string TO_TIMESTAMP_FUNC_NAME = "TO_TIMESTAMP";
+const std::string CENTURY_FUNC_NAME = "CENTURY";
+const std::string EPOCH_MS_FUNC_NAME = "EPOCH_MS";
+const std::string TO_TIMESTAMP_FUNC_NAME = "TO_TIMESTAMP";
 
 // Interval functions.
-const string TO_YEARS_FUNC_NAME = "TO_YEARS";
-const string TO_MONTHS_FUNC_NAME = "TO_MONTHS";
-const string TO_DAYS_FUNC_NAME = "TO_DAYS";
-const string TO_HOURS_FUNC_NAME = "TO_HOURS";
-const string TO_MINUTES_FUNC_NAME = "TO_MINUTES";
-const string TO_SECONDS_FUNC_NAME = "TO_SECONDS";
-const string TO_MILLISECONDS_FUNC_NAME = "TO_MILLISECONDS";
-const string TO_MICROSECONDS_FUNC_NAME = "TO_MICROSECONDS";
+const std::string TO_YEARS_FUNC_NAME = "TO_YEARS";
+const std::string TO_MONTHS_FUNC_NAME = "TO_MONTHS";
+const std::string TO_DAYS_FUNC_NAME = "TO_DAYS";
+const std::string TO_HOURS_FUNC_NAME = "TO_HOURS";
+const std::string TO_MINUTES_FUNC_NAME = "TO_MINUTES";
+const std::string TO_SECONDS_FUNC_NAME = "TO_SECONDS";
+const std::string TO_MILLISECONDS_FUNC_NAME = "TO_MILLISECONDS";
+const std::string TO_MICROSECONDS_FUNC_NAME = "TO_MICROSECONDS";
 
 // Node/Rel functions.
-const string ID_FUNC_NAME = "ID";
-const string LABEL_FUNC_NAME = "LABEL";
+const std::string ID_FUNC_NAME = "ID";
+const std::string LABEL_FUNC_NAME = "LABEL";
 
 enum ExpressionType : uint8_t {
 
@@ -212,7 +210,7 @@ bool isExpressionLiteral(ExpressionType type);
 bool isExpressionAggregate(ExpressionType type);
 bool isExpressionSubquery(ExpressionType type);
 
-string expressionTypeToString(ExpressionType type);
+std::string expressionTypeToString(ExpressionType type);
 
 } // namespace common
 } // namespace kuzu

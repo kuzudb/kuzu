@@ -12,8 +12,8 @@ class JoinOrderEnumeratorContext {
 
 public:
     JoinOrderEnumeratorContext()
-        : currentLevel{0}, maxLevel{0}, subPlansTable{make_unique<SubPlansTable>()}, outerPlan{
-                                                                                         nullptr} {}
+        : currentLevel{0}, maxLevel{0}, subPlansTable{std::make_unique<SubPlansTable>()},
+          queryGraph{nullptr}, outerPlan{nullptr} {}
 
     void init(QueryGraph* queryGraph, expression_vector& predicates);
 
@@ -22,11 +22,12 @@ public:
     inline bool containPlans(const SubqueryGraph& subqueryGraph) const {
         return subPlansTable->containSubgraphPlans(subqueryGraph);
     }
-    inline vector<unique_ptr<LogicalPlan>>& getPlans(const SubqueryGraph& subqueryGraph) const {
+    inline std::vector<std::unique_ptr<LogicalPlan>>& getPlans(
+        const SubqueryGraph& subqueryGraph) const {
         return subPlansTable->getSubgraphPlans(subqueryGraph);
     }
-    inline void addPlan(const SubqueryGraph& subqueryGraph, unique_ptr<LogicalPlan> plan) {
-        subPlansTable->addPlan(subqueryGraph, move(plan));
+    inline void addPlan(const SubqueryGraph& subqueryGraph, std::unique_ptr<LogicalPlan> plan) {
+        subPlansTable->addPlan(subqueryGraph, std::move(plan));
     }
 
     inline SubqueryGraph getEmptySubqueryGraph() const { return SubqueryGraph(*queryGraph); }
@@ -51,7 +52,7 @@ private:
     uint32_t currentLevel;
     uint32_t maxLevel;
 
-    unique_ptr<SubPlansTable> subPlansTable;
+    std::unique_ptr<SubPlansTable> subPlansTable;
     QueryGraph* queryGraph;
 
     LogicalPlan* outerPlan;

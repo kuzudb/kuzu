@@ -7,9 +7,9 @@ namespace processor {
 
 class Limit : public PhysicalOperator {
 public:
-    Limit(uint64_t limitNumber, shared_ptr<atomic_uint64_t> counter, uint32_t dataChunkToSelectPos,
-        unordered_set<uint32_t> dataChunksPosInScope, unique_ptr<PhysicalOperator> child,
-        uint32_t id, const string& paramsString)
+    Limit(uint64_t limitNumber, std::shared_ptr<std::atomic_uint64_t> counter,
+        uint32_t dataChunkToSelectPos, std::unordered_set<uint32_t> dataChunksPosInScope,
+        std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
         : PhysicalOperator{PhysicalOperatorType::LIMIT, std::move(child), id, paramsString},
           limitNumber{limitNumber}, counter{std::move(counter)},
           dataChunkToSelectPos{dataChunkToSelectPos},
@@ -17,16 +17,16 @@ public:
 
     bool getNextTuplesInternal() override;
 
-    unique_ptr<PhysicalOperator> clone() override {
+    std::unique_ptr<PhysicalOperator> clone() override {
         return make_unique<Limit>(limitNumber, counter, dataChunkToSelectPos, dataChunksPosInScope,
             children[0]->clone(), id, paramsString);
     }
 
 private:
     uint64_t limitNumber;
-    shared_ptr<atomic_uint64_t> counter;
+    std::shared_ptr<std::atomic_uint64_t> counter;
     uint32_t dataChunkToSelectPos;
-    unordered_set<uint32_t> dataChunksPosInScope;
+    std::unordered_set<uint32_t> dataChunksPosInScope;
 };
 
 } // namespace processor

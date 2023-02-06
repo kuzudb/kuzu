@@ -46,7 +46,7 @@ interval_t interval_t::operator/(const uint64_t& rhs) const {
     return result;
 }
 
-void Interval::addition(interval_t& result, uint64_t number, string specifierStr) {
+void Interval::addition(interval_t& result, uint64_t number, std::string specifierStr) {
     StringUtils::toLower(specifierStr);
     if (specifierStr == "year" || specifierStr == "years" || specifierStr == "y") {
         result.months += number * MONTHS_PER_YEAR;
@@ -71,11 +71,12 @@ void Interval::addition(interval_t& result, uint64_t number, string specifierStr
     }
 }
 
-void Interval::parseIntervalField(string buf, uint64_t& pos, uint64_t len, interval_t& result) {
+void Interval::parseIntervalField(
+    std::string buf, uint64_t& pos, uint64_t len, interval_t& result) {
     uint64_t number;
     uint64_t offset = 0;
     // parse digits
-    number = stoi(buf.c_str() + pos, reinterpret_cast<size_t*>(&offset));
+    number = std::stoi(buf.c_str() + pos, reinterpret_cast<size_t*>(&offset));
     pos += offset;
     // skip spaces
     while (pos < len && isspace(buf[pos])) {
@@ -85,17 +86,17 @@ void Interval::parseIntervalField(string buf, uint64_t& pos, uint64_t len, inter
         throw ConversionException("Error occurred during parsing interval. Field name is missing.");
     }
     // Parse intervalPartSpecifier (eg. hours, dates, minutes)
-    uint64_t spacePos = string(buf).find(' ', pos);
-    if (spacePos == string::npos) {
+    uint64_t spacePos = std::string(buf).find(' ', pos);
+    if (spacePos == std::string::npos) {
         spacePos = len;
     }
-    string specifierStr = buf.substr(pos, spacePos - pos);
+    std::string specifierStr = buf.substr(pos, spacePos - pos);
     pos = spacePos;
     addition(result, number, specifierStr);
 }
 
 interval_t Interval::FromCString(const char* ku_str, uint64_t len) {
-    string str = string(ku_str, len);
+    std::string str = std::string(ku_str, len);
     interval_t result;
     uint64_t pos = 0;
     result.days = 0;
@@ -118,10 +119,10 @@ interval_t Interval::FromCString(const char* ku_str, uint64_t len) {
     return result;
 }
 
-string Interval::toString(interval_t interval) {
+std::string Interval::toString(interval_t interval) {
     char buffer[70];
     uint64_t length = IntervalToStringCast::Format(interval, buffer);
-    return string(buffer, length);
+    return std::string(buffer, length);
 }
 
 // helper function of interval comparison
@@ -158,7 +159,7 @@ bool Interval::GreaterThan(const interval_t& left, const interval_t& right) {
     return lMicros > rMicros;
 }
 
-void Interval::TryGetDatePartSpecifier(string specifier, DatePartSpecifier& result) {
+void Interval::TryGetDatePartSpecifier(std::string specifier, DatePartSpecifier& result) {
     StringUtils::toLower(specifier);
     if (specifier == "year" || specifier == "y" || specifier == "years") {
         result = DatePartSpecifier::YEAR;

@@ -6,19 +6,20 @@
 namespace kuzu {
 namespace common {
 
-shared_ptr<spdlog::logger> LoggerUtils::getOrCreateLogger(const std::string& loggerName) {
-    shared_ptr<spdlog::logger> logger = spdlog::get(loggerName);
+std::shared_ptr<spdlog::logger> LoggerUtils::getOrCreateLogger(const std::string& loggerName) {
+    std::shared_ptr<spdlog::logger> logger = spdlog::get(loggerName);
     if (!logger) {
         logger = spdlog::stdout_logger_mt(loggerName);
     }
     return logger;
 }
 
-vector<string> StringUtils::split(const string& input, const string& delimiter) {
-    auto result = vector<string>();
+std::vector<std::string> StringUtils::split(
+    const std::string& input, const std::string& delimiter) {
+    auto result = std::vector<std::string>();
     auto prevPos = 0u;
     auto currentPos = input.find(delimiter, prevPos);
-    while (currentPos != string::npos) {
+    while (currentPos != std::string::npos) {
         result.push_back(input.substr(prevPos, currentPos - prevPos));
         prevPos = currentPos + 1;
         currentPos = input.find(delimiter, prevPos);

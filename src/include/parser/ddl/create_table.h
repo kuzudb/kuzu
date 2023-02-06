@@ -7,20 +7,19 @@
 namespace kuzu {
 namespace parser {
 
-using namespace std;
-
 class CreateTable : public DDL {
 public:
-    explicit CreateTable(StatementType statementType, string tableName,
-        vector<pair<string, string>> propertyNameDataTypes)
-        : DDL{statementType, move(tableName)}, propertyNameDataTypes{move(propertyNameDataTypes)} {}
+    explicit CreateTable(common::StatementType statementType, std::string tableName,
+        std::vector<std::pair<std::string, std::string>> propertyNameDataTypes)
+        : DDL{statementType, std::move(tableName)}, propertyNameDataTypes{
+                                                        std::move(propertyNameDataTypes)} {}
 
-    inline vector<pair<string, string>> getPropertyNameDataTypes() const {
+    inline std::vector<std::pair<std::string, std::string>> getPropertyNameDataTypes() const {
         return propertyNameDataTypes;
     }
 
 protected:
-    vector<pair<string, string>> propertyNameDataTypes;
+    std::vector<std::pair<std::string, std::string>> propertyNameDataTypes;
 };
 
 } // namespace parser

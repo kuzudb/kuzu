@@ -4,12 +4,15 @@
 #include "storage/in_mem_storage_structure/in_mem_lists.h"
 #include "storage/storage_manager.h"
 
+using namespace kuzu::catalog;
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace storage {
 
-unique_ptr<FileInfo> StorageUtils::getFileInfoForReadWrite(
-    const string& directory, StorageStructureID storageStructureID) {
-    string fName;
+std::unique_ptr<FileInfo> StorageUtils::getFileInfoForReadWrite(
+    const std::string& directory, StorageStructureID storageStructureID) {
+    std::string fName;
     switch (storageStructureID.storageStructureType) {
     case StorageStructureType::COLUMN: {
         fName = getColumnFName(directory, storageStructureID);
@@ -32,9 +35,9 @@ unique_ptr<FileInfo> StorageUtils::getFileInfoForReadWrite(
     return FileUtils::openFile(fName, O_RDWR);
 }
 
-string StorageUtils::getColumnFName(
-    const string& directory, StorageStructureID storageStructureID) {
-    string fName;
+std::string StorageUtils::getColumnFName(
+    const std::string& directory, StorageStructureID storageStructureID) {
+    std::string fName;
     ColumnFileID columnFileID = storageStructureID.columnFileID;
     switch (columnFileID.columnType) {
     case ColumnType::NODE_PROPERTY_COLUMN: {
@@ -66,8 +69,9 @@ string StorageUtils::getColumnFName(
     return fName;
 }
 
-string StorageUtils::getListFName(const string& directory, StorageStructureID storageStructureID) {
-    string baseFName;
+std::string StorageUtils::getListFName(
+    const std::string& directory, StorageStructureID storageStructureID) {
+    std::string baseFName;
     ListFileID listFileID = storageStructureID.listFileID;
     switch (listFileID.listType) {
     case ListType::ADJ_LISTS: {
@@ -104,7 +108,7 @@ string StorageUtils::getListFName(const string& directory, StorageStructureID st
 }
 
 void StorageUtils::createFileForNodePropertyWithDefaultVal(table_id_t tableID,
-    const string& directory, const catalog::Property& property, uint8_t* defaultVal,
+    const std::string& directory, const catalog::Property& property, uint8_t* defaultVal,
     bool isDefaultValNull, uint64_t numNodes) {
     auto inMemColumn = InMemColumnFactory::getInMemPropertyColumn(
         StorageUtils::getNodePropertyColumnFName(
@@ -171,9 +175,10 @@ void StorageUtils::createFileForRelListsPropertyWithDefaultVal(table_id_t relTab
     inMemList->saveToFile();
 }
 
-string StorageUtils::appendSuffixOrInsertBeforeWALSuffix(string fileName, string suffix) {
+std::string StorageUtils::appendSuffixOrInsertBeforeWALSuffix(
+    std::string fileName, std::string suffix) {
     auto pos = fileName.find(StorageConfig::WAL_FILE_SUFFIX);
-    if (pos == string::npos) {
+    if (pos == std::string::npos) {
         return fileName + suffix;
     } else {
         return fileName.substr(0, pos) + suffix + StorageConfig::WAL_FILE_SUFFIX;
@@ -192,7 +197,7 @@ uint32_t PageUtils::getNumElementsInAPage(uint32_t elementSize, bool hasNull) {
 }
 
 void StorageUtils::initializeListsHeaders(const RelTableSchema* relTableSchema, table_id_t tableID,
-    uint64_t numNodesInTable, const string& directory, RelDirection relDirection) {
+    uint64_t numNodesInTable, const std::string& directory, RelDirection relDirection) {
     auto listHeadersBuilder = make_unique<ListHeadersBuilder>(
         StorageUtils::getAdjListsFName(
             directory, relTableSchema->tableID, tableID, relDirection, DBFileType::WAL_VERSION),

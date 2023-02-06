@@ -23,42 +23,42 @@ TEST(TypesTests, StringToINT64ConversionErrors) {
         TypeUtils::convertToInt64("2147483648000000000000");
         FAIL();
     } catch (ConversionException& e) {
-    } catch (exception& e) { FAIL(); }
+    } catch (std::exception& e) { FAIL(); }
 
     // Min underflow
     try {
         TypeUtils::convertToInt64("-2147483648000000000000");
         FAIL();
     } catch (ConversionException& e) {
-    } catch (exception& e) { FAIL(); }
+    } catch (std::exception& e) { FAIL(); }
 
     // Wrong input
     try {
         TypeUtils::convertToInt64("qq1244");
         FAIL();
     } catch (ConversionException& e) {
-    } catch (exception& e) { FAIL(); }
+    } catch (std::exception& e) { FAIL(); }
 
     // Empty input
     try {
         TypeUtils::convertToInt64("");
         FAIL();
     } catch (ConversionException& e) {
-    } catch (exception& e) { FAIL(); }
+    } catch (std::exception& e) { FAIL(); }
 
     // Not all characters consumed
     try {
         TypeUtils::convertToInt64("24x[xd432");
         FAIL();
     } catch (ConversionException& e) {
-    } catch (exception& e) { FAIL(); }
+    } catch (std::exception& e) { FAIL(); }
 
     // Not all characters consumed
     try {
         TypeUtils::convertToInt64("0L");
         FAIL();
     } catch (ConversionException& e) {
-    } catch (exception& e) { FAIL(); }
+    } catch (std::exception& e) { FAIL(); }
 }
 
 TEST(TypesTests, StringToDoubleConversion) {
@@ -76,28 +76,28 @@ TEST(TypesTests, StringToDoubleConversionErrors) {
         TypeUtils::convertToDouble("x2.4r432");
         FAIL();
     } catch (ConversionException& e) {
-    } catch (exception& e) { FAIL(); }
+    } catch (std::exception& e) { FAIL(); }
 
     // Empty input
     try {
         TypeUtils::convertToDouble("");
         FAIL();
     } catch (ConversionException& e) {
-    } catch (exception& e) { FAIL(); }
+    } catch (std::exception& e) { FAIL(); }
 
     // Not all characters consumed
     try {
         TypeUtils::convertToDouble("2.4r432");
         FAIL();
     } catch (ConversionException& e) {
-    } catch (exception& e) { FAIL(); }
+    } catch (std::exception& e) { FAIL(); }
 
     // Not all characters consumed
     try {
         TypeUtils::convertToDouble("0.0f");
         FAIL();
     } catch (ConversionException& e) {
-    } catch (exception& e) { FAIL(); }
+    } catch (std::exception& e) { FAIL(); }
 }
 
 TEST(TypesTests, StringToBoolConversion) {
@@ -117,18 +117,18 @@ TEST(TypesTests, StringToBoolConversionErrors) {
         TypeUtils::convertToBoolean("TREE");
         FAIL();
     } catch (ConversionException& e) {
-    } catch (exception& e) { FAIL(); }
+    } catch (std::exception& e) { FAIL(); }
 
     try {
         TypeUtils::convertToBoolean("falst ");
         FAIL();
     } catch (ConversionException& e) {
-    } catch (exception& e) { FAIL(); }
+    } catch (std::exception& e) { FAIL(); }
 
     // empty
     try {
         TypeUtils::convertToDouble("");
         FAIL();
     } catch (ConversionException& e) {
-    } catch (exception& e) { FAIL(); }
+    } catch (std::exception& e) { FAIL(); }
 }

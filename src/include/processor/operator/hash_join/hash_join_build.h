@@ -7,8 +7,6 @@
 #include "processor/result/factorized_table.h"
 #include "processor/result/result_set.h"
 
-using namespace kuzu::function::operation;
-
 namespace kuzu {
 namespace processor {
 
@@ -24,23 +22,23 @@ public:
 
     virtual ~HashJoinSharedState() = default;
 
-    virtual void initEmptyHashTable(MemoryManager& memoryManager, uint64_t numKeyColumns,
-        unique_ptr<FactorizedTableSchema> tableSchema);
+    virtual void initEmptyHashTable(storage::MemoryManager& memoryManager, uint64_t numKeyColumns,
+        std::unique_ptr<FactorizedTableSchema> tableSchema);
 
     void mergeLocalHashTable(JoinHashTable& localHashTable);
 
     inline JoinHashTable* getHashTable() { return hashTable.get(); }
 
 protected:
-    mutex mtx;
-    unique_ptr<JoinHashTable> hashTable;
+    std::mutex mtx;
+    std::unique_ptr<JoinHashTable> hashTable;
 };
 
 struct BuildDataInfo {
 public:
-    BuildDataInfo(vector<pair<DataPos, DataType>> keysPosAndType,
-        vector<pair<DataPos, DataType>> payloadsPosAndType, vector<bool> isPayloadsFlat,
-        vector<bool> isPayloadsInKeyChunk)
+    BuildDataInfo(std::vector<std::pair<DataPos, common::DataType>> keysPosAndType,
+        std::vector<std::pair<DataPos, common::DataType>> payloadsPosAndType,
+        std::vector<bool> isPayloadsFlat, std::vector<bool> isPayloadsInKeyChunk)
         : keysPosAndType{std::move(keysPosAndType)}, payloadsPosAndType{std::move(
                                                          payloadsPosAndType)},
           isPayloadsFlat{std::move(isPayloadsFlat)}, isPayloadsInKeyChunk{
@@ -53,23 +51,23 @@ public:
     inline uint32_t getNumKeys() const { return keysPosAndType.size(); }
 
 public:
-    vector<pair<DataPos, DataType>> keysPosAndType;
-    vector<pair<DataPos, DataType>> payloadsPosAndType;
-    vector<bool> isPayloadsFlat;
-    vector<bool> isPayloadsInKeyChunk;
+    std::vector<std::pair<DataPos, common::DataType>> keysPosAndType;
+    std::vector<std::pair<DataPos, common::DataType>> payloadsPosAndType;
+    std::vector<bool> isPayloadsFlat;
+    std::vector<bool> isPayloadsInKeyChunk;
 };
 
 class HashJoinBuild : public Sink {
 public:
-    HashJoinBuild(unique_ptr<ResultSetDescriptor> resultSetDescriptor,
-        shared_ptr<HashJoinSharedState> sharedState, const BuildDataInfo& buildDataInfo,
-        unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
+    HashJoinBuild(std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
+        std::shared_ptr<HashJoinSharedState> sharedState, const BuildDataInfo& buildDataInfo,
+        std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
         : HashJoinBuild{std::move(resultSetDescriptor), PhysicalOperatorType::HASH_JOIN_BUILD,
               std::move(sharedState), buildDataInfo, std::move(child), id, paramsString} {}
-    HashJoinBuild(unique_ptr<ResultSetDescriptor> resultSetDescriptor,
-        PhysicalOperatorType operatorType, shared_ptr<HashJoinSharedState> sharedState,
-        const BuildDataInfo& buildDataInfo, unique_ptr<PhysicalOperator> child, uint32_t id,
-        const string& paramsString)
+    HashJoinBuild(std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
+        PhysicalOperatorType operatorType, std::shared_ptr<HashJoinSharedState> sharedState,
+        const BuildDataInfo& buildDataInfo, std::unique_ptr<PhysicalOperator> child, uint32_t id,
+        const std::string& paramsString)
         : Sink{std::move(resultSetDescriptor), operatorType, std::move(child), id, paramsString},
           sharedState{std::move(sharedState)}, buildDataInfo{buildDataInfo} {}
     ~HashJoinBuild() override = default;
@@ -79,25 +77,25 @@ public:
     void executeInternal(ExecutionContext* context) override;
     void finalize(ExecutionContext* context) override;
 
-    inline unique_ptr<PhysicalOperator> clone() override {
+    inline std::unique_ptr<PhysicalOperator> clone() override {
         return make_unique<HashJoinBuild>(resultSetDescriptor->copy(), sharedState, buildDataInfo,
             children[0]->clone(), id, paramsString);
     }
 
 protected:
     // TODO(Guodong/Xiyang): construct schema in mapper.
-    unique_ptr<FactorizedTableSchema> populateTableSchema();
+    std::unique_ptr<FactorizedTableSchema> populateTableSchema();
     void initGlobalStateInternal(ExecutionContext* context) override;
 
     virtual void initLocalHashTable(
-        MemoryManager& memoryManager, unique_ptr<FactorizedTableSchema> tableSchema);
+        storage::MemoryManager& memoryManager, std::unique_ptr<FactorizedTableSchema> tableSchema);
     inline void appendVectors() { hashTable->append(vectorsToAppend); }
 
 protected:
-    shared_ptr<HashJoinSharedState> sharedState;
+    std::shared_ptr<HashJoinSharedState> sharedState;
     BuildDataInfo buildDataInfo;
-    vector<shared_ptr<ValueVector>> vectorsToAppend;
-    unique_ptr<JoinHashTable> hashTable;
+    std::vector<std::shared_ptr<common::ValueVector>> vectorsToAppend;
+    std::unique_ptr<JoinHashTable> hashTable;
 };
 
 } // namespace processor

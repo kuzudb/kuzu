@@ -4,17 +4,18 @@
 #include "storage/storage_structure/lists/lists_update_iterator.h"
 
 using namespace kuzu::catalog;
+using namespace kuzu::common;
 
 namespace kuzu {
 namespace storage {
 
 void ListsUpdateIteratorsForDirection::addListUpdateIteratorForAdjList(
-    unique_ptr<ListsUpdateIterator> listsUpdateIterator) {
+    std::unique_ptr<ListsUpdateIterator> listsUpdateIterator) {
     listUpdateIteratorForAdjList = std::move(listsUpdateIterator);
 }
 
 void ListsUpdateIteratorsForDirection::addListUpdateIteratorForPropertyList(
-    property_id_t propertyID, unique_ptr<ListsUpdateIterator> listsUpdateIterator) {
+    property_id_t propertyID, std::unique_ptr<ListsUpdateIterator> listsUpdateIterator) {
     listUpdateIteratorsForPropertyLists.emplace(propertyID, std::move(listsUpdateIterator));
 }
 
@@ -75,10 +76,10 @@ void DirectedRelTableData::initializeData(RelTableSchema* tableSchema, WAL* wal)
 void DirectedRelTableData::initializeColumnsForBoundNodeTable(RelTableSchema* tableSchema,
     table_id_t boundNodeTableID, NodeIDCompressionScheme& nodeIDCompressionScheme,
     BufferManager& bufferManager, WAL* wal) {
-    adjColumns[boundNodeTableID] =
-        make_unique<AdjColumn>(StorageUtils::getAdjColumnStructureIDAndFName(wal->getDirectory(),
-                                   tableSchema->tableID, boundNodeTableID, direction),
-            bufferManager, nodeIDCompressionScheme, wal);
+    adjColumns[boundNodeTableID] = std::make_unique<AdjColumn>(
+        StorageUtils::getAdjColumnStructureIDAndFName(
+            wal->getDirectory(), tableSchema->tableID, boundNodeTableID, direction),
+        bufferManager, nodeIDCompressionScheme, wal);
     for (auto& property : tableSchema->properties) {
         propertyColumns[boundNodeTableID][property.propertyID] = ColumnFactory::getColumn(
             StorageUtils::getRelPropertyColumnStructureIDAndFName(wal->getDirectory(),
@@ -91,8 +92,8 @@ void DirectedRelTableData::initializeListsForBoundNodeTabl(RelTableSchema* table
     table_id_t boundNodeTableID, NodeIDCompressionScheme& nodeIDCompressionScheme,
     BufferManager& bufferManager, WAL* wal) {
     adjLists[boundNodeTableID] =
-        make_unique<AdjLists>(StorageUtils::getAdjListsStructureIDAndFName(wal->getDirectory(),
-                                  tableSchema->tableID, boundNodeTableID, direction),
+        std::make_unique<AdjLists>(StorageUtils::getAdjListsStructureIDAndFName(wal->getDirectory(),
+                                       tableSchema->tableID, boundNodeTableID, direction),
             bufferManager, nodeIDCompressionScheme, wal, listsUpdatesStore);
     for (auto& property : tableSchema->properties) {
         propertyLists[boundNodeTableID][property.propertyID] = ListsFactory::getLists(
@@ -103,8 +104,9 @@ void DirectedRelTableData::initializeListsForBoundNodeTabl(RelTableSchema* table
     }
 }
 
-void DirectedRelTableData::scanColumns(Transaction* transaction, RelTableScanState& scanState,
-    const shared_ptr<ValueVector>& inNodeIDVector, vector<shared_ptr<ValueVector>>& outputVectors) {
+void DirectedRelTableData::scanColumns(transaction::Transaction* transaction,
+    RelTableScanState& scanState, const std::shared_ptr<ValueVector>& inNodeIDVector,
+    std::vector<std::shared_ptr<ValueVector>>& outputVectors) {
     auto adjColumn = adjColumns.at(scanState.boundNodeTableID).get();
     // Note: The scan operator should guarantee that the first property in the output is adj column.
     adjColumn->read(transaction, inNodeIDVector, outputVectors[0]);
@@ -124,8 +126,9 @@ void DirectedRelTableData::scanColumns(Transaction* transaction, RelTableScanSta
     }
 }
 
-void DirectedRelTableData::scanLists(Transaction* transaction, RelTableScanState& scanState,
-    const shared_ptr<ValueVector>& inNodeIDVector, vector<shared_ptr<ValueVector>>& outputVectors) {
+void DirectedRelTableData::scanLists(transaction::Transaction* transaction,
+    RelTableScanState& scanState, const std::shared_ptr<ValueVector>& inNodeIDVector,
+    std::vector<std::shared_ptr<ValueVector>>& outputVectors) {
     auto adjList = getAdjLists(scanState.boundNodeTableID);
     if (scanState.syncState->isBoundNodeOffsetInValid()) {
         auto currentIdx = inNodeIDVector->state->selVector->selectedPositions[0];
@@ -153,9 +156,9 @@ void DirectedRelTableData::scanLists(Transaction* transaction, RelTableScanState
     }
 }
 
-void DirectedRelTableData::insertRel(const shared_ptr<ValueVector>& boundVector,
-    const shared_ptr<ValueVector>& nbrVector,
-    const vector<shared_ptr<ValueVector>>& relPropertyVectors) {
+void DirectedRelTableData::insertRel(const std::shared_ptr<ValueVector>& boundVector,
+    const std::shared_ptr<ValueVector>& nbrVector,
+    const std::vector<std::shared_ptr<ValueVector>>& relPropertyVectors) {
     auto boundTableID =
         boundVector->getValue<nodeID_t>(boundVector->state->selVector->selectedPositions[0])
             .tableID;
@@ -166,7 +169,7 @@ void DirectedRelTableData::insertRel(const shared_ptr<ValueVector>& boundVector,
     auto nodeOffset =
         boundVector->readNodeOffset(boundVector->state->selVector->selectedPositions[0]);
     // TODO(Guodong): We should pass a write transaction pointer down.
-    if (!adjColumn->isNull(nodeOffset, Transaction::getDummyWriteTrx().get())) {
+    if (!adjColumn->isNull(nodeOffset, transaction::Transaction::getDummyWriteTrx().get())) {
         throw RuntimeException(
             StringUtils::string_format("Node(nodeOffset: %d, tableID: %d) in RelTable %d cannot "
                                        "have more than one neighbour in the %s direction.",
@@ -179,7 +182,7 @@ void DirectedRelTableData::insertRel(const shared_ptr<ValueVector>& boundVector,
     }
 }
 
-void DirectedRelTableData::deleteRel(const shared_ptr<ValueVector>& boundVector) {
+void DirectedRelTableData::deleteRel(const std::shared_ptr<ValueVector>& boundVector) {
     auto boundNode =
         boundVector->getValue<nodeID_t>(boundVector->state->selVector->selectedPositions[0]);
     if (!adjColumns.contains(boundNode.tableID)) {
@@ -194,8 +197,8 @@ void DirectedRelTableData::deleteRel(const shared_ptr<ValueVector>& boundVector)
     }
 }
 
-void DirectedRelTableData::updateRel(const shared_ptr<ValueVector>& boundVector,
-    property_id_t propertyID, const shared_ptr<ValueVector>& propertyVector) {
+void DirectedRelTableData::updateRel(const std::shared_ptr<ValueVector>& boundVector,
+    property_id_t propertyID, const std::shared_ptr<ValueVector>& propertyVector) {
     auto boundNode =
         boundVector->getValue<nodeID_t>(boundVector->state->selVector->selectedPositions[0]);
     if (!adjColumns.contains(boundNode.tableID)) {
@@ -215,10 +218,10 @@ void DirectedRelTableData::performOpOnListsWithUpdates(
     }
 }
 
-unique_ptr<ListsUpdateIteratorsForDirection>
+std::unique_ptr<ListsUpdateIteratorsForDirection>
 DirectedRelTableData::getListsUpdateIteratorsForDirection(table_id_t boundNodeTableID) {
-    unique_ptr<ListsUpdateIteratorsForDirection> listsUpdateIteratorsForDirection =
-        make_unique<ListsUpdateIteratorsForDirection>();
+    std::unique_ptr<ListsUpdateIteratorsForDirection> listsUpdateIteratorsForDirection =
+        std::make_unique<ListsUpdateIteratorsForDirection>();
     listsUpdateIteratorsForDirection->addListUpdateIteratorForAdjList(
         ListsUpdateIteratorFactory::getListsUpdateIterator(adjLists.at(boundNodeTableID).get()));
     for (auto& [propertyID, propertyList] : propertyLists.at(boundNodeTableID)) {
@@ -232,11 +235,11 @@ RelTable::RelTable(const Catalog& catalog, table_id_t tableID, BufferManager& bu
     MemoryManager& memoryManager, WAL* wal)
     : tableID{tableID}, wal{wal} {
     auto tableSchema = catalog.getReadOnlyVersion()->getRelTableSchema(tableID);
-    listsUpdatesStore = make_unique<ListsUpdatesStore>(memoryManager, *tableSchema);
-    fwdRelTableData =
-        make_unique<DirectedRelTableData>(tableID, FWD, listsUpdatesStore.get(), bufferManager);
-    bwdRelTableData =
-        make_unique<DirectedRelTableData>(tableID, BWD, listsUpdatesStore.get(), bufferManager);
+    listsUpdatesStore = std::make_unique<ListsUpdatesStore>(memoryManager, *tableSchema);
+    fwdRelTableData = std::make_unique<DirectedRelTableData>(
+        tableID, FWD, listsUpdatesStore.get(), bufferManager);
+    bwdRelTableData = std::make_unique<DirectedRelTableData>(
+        tableID, BWD, listsUpdatesStore.get(), bufferManager);
     initializeData(tableSchema);
 }
 
@@ -245,8 +248,8 @@ void RelTable::initializeData(RelTableSchema* tableSchema) {
     bwdRelTableData->initializeData(tableSchema, wal);
 }
 
-vector<AdjLists*> RelTable::getAdjListsForNodeTable(table_id_t boundNodeTableID) {
-    vector<AdjLists*> retVal;
+std::vector<AdjLists*> RelTable::getAdjListsForNodeTable(table_id_t boundNodeTableID) {
+    std::vector<AdjLists*> retVal;
     if (fwdRelTableData->hasAdjLists(boundNodeTableID)) {
         retVal.push_back(fwdRelTableData->getAdjLists(boundNodeTableID));
     }
@@ -256,8 +259,8 @@ vector<AdjLists*> RelTable::getAdjListsForNodeTable(table_id_t boundNodeTableID)
     return retVal;
 }
 
-vector<AdjColumn*> RelTable::getAdjColumnsForNodeTable(table_id_t boundNodeTableID) {
-    vector<AdjColumn*> retVal;
+std::vector<AdjColumn*> RelTable::getAdjColumnsForNodeTable(table_id_t boundNodeTableID) {
+    std::vector<AdjColumn*> retVal;
     if (fwdRelTableData->hasAdjColumn(boundNodeTableID)) {
         retVal.push_back(fwdRelTableData->getAdjColumn(boundNodeTableID));
     }
@@ -293,17 +296,18 @@ void RelTable::rollbackInMemoryIfNecessary() {
 
 // This function assumes that the order of vectors in relPropertyVectorsPerRelTable as:
 // [relProp1, relProp2, ..., relPropN] and all vectors are flat.
-void RelTable::insertRel(const shared_ptr<ValueVector>& srcNodeIDVector,
-    const shared_ptr<ValueVector>& dstNodeIDVector,
-    const vector<shared_ptr<ValueVector>>& relPropertyVectors) {
+void RelTable::insertRel(const std::shared_ptr<ValueVector>& srcNodeIDVector,
+    const std::shared_ptr<ValueVector>& dstNodeIDVector,
+    const std::vector<std::shared_ptr<ValueVector>>& relPropertyVectors) {
     assert(srcNodeIDVector->state->isFlat() && dstNodeIDVector->state->isFlat());
     fwdRelTableData->insertRel(srcNodeIDVector, dstNodeIDVector, relPropertyVectors);
     bwdRelTableData->insertRel(dstNodeIDVector, srcNodeIDVector, relPropertyVectors);
     listsUpdatesStore->insertRelIfNecessary(srcNodeIDVector, dstNodeIDVector, relPropertyVectors);
 }
 
-void RelTable::deleteRel(const shared_ptr<ValueVector>& srcNodeIDVector,
-    const shared_ptr<ValueVector>& dstNodeIDVector, const shared_ptr<ValueVector>& relIDVector) {
+void RelTable::deleteRel(const std::shared_ptr<ValueVector>& srcNodeIDVector,
+    const std::shared_ptr<ValueVector>& dstNodeIDVector,
+    const std::shared_ptr<ValueVector>& relIDVector) {
     assert(srcNodeIDVector->state->isFlat() && dstNodeIDVector->state->isFlat() &&
            relIDVector->state->isFlat());
     fwdRelTableData->deleteRel(srcNodeIDVector);
@@ -311,9 +315,10 @@ void RelTable::deleteRel(const shared_ptr<ValueVector>& srcNodeIDVector,
     listsUpdatesStore->deleteRelIfNecessary(srcNodeIDVector, dstNodeIDVector, relIDVector);
 }
 
-void RelTable::updateRel(const shared_ptr<ValueVector>& srcNodeIDVector,
-    const shared_ptr<ValueVector>& dstNodeIDVector, const shared_ptr<ValueVector>& relIDVector,
-    const shared_ptr<ValueVector>& propertyVector, uint32_t propertyID) {
+void RelTable::updateRel(const std::shared_ptr<ValueVector>& srcNodeIDVector,
+    const std::shared_ptr<ValueVector>& dstNodeIDVector,
+    const std::shared_ptr<ValueVector>& relIDVector,
+    const std::shared_ptr<ValueVector>& propertyVector, uint32_t propertyID) {
     assert(srcNodeIDVector->state->isFlat() && dstNodeIDVector->state->isFlat() &&
            relIDVector->state->isFlat() && propertyVector->state->isFlat());
     auto srcNode = srcNodeIDVector->getValue<nodeID_t>(
@@ -372,7 +377,7 @@ void RelTable::performOpOnListsWithUpdates(const std::function<void(Lists*)>& op
     }
 }
 
-unique_ptr<ListsUpdateIteratorsForDirection> RelTable::getListsUpdateIteratorsForDirection(
+std::unique_ptr<ListsUpdateIteratorsForDirection> RelTable::getListsUpdateIteratorsForDirection(
     RelDirection relDirection, table_id_t boundNodeTableID) const {
     return relDirection == FWD ?
                fwdRelTableData->getListsUpdateIteratorsForDirection(boundNodeTableID) :
@@ -419,7 +424,7 @@ void DirectedRelTableData::addProperty(Property& property, WAL* wal) {
 }
 
 void DirectedRelTableData::batchInitEmptyRelsForNewNodes(const RelTableSchema* relTableSchema,
-    table_id_t boundTableID, uint64_t numNodesInTable, const string& directory) {
+    table_id_t boundTableID, uint64_t numNodesInTable, const std::string& directory) {
     if (adjLists.contains(boundTableID)) {
         StorageUtils::initializeListsHeaders(
             relTableSchema, boundTableID, numNodesInTable, directory, direction);
@@ -451,7 +456,7 @@ void RelTable::prepareCommitForDirection(RelDirection relDirection) {
                         listsUpdateIteratorsForDirection.get(), boundNodeTableID, updateListOP);
                     // TODO(Guodong): Do we need to access the header in this way?
                 } else if (ListHeaders::isALargeList(adjLists->getHeaders()->headersDiskArray->get(
-                               nodeOffset, TransactionType::READ_ONLY)) &&
+                               nodeOffset, transaction::TransactionType::READ_ONLY)) &&
                            listsUpdatesForNodeOffset->deletedRelOffsets.empty() &&
                            !listsUpdatesForNodeOffset->hasUpdates()) {
                     // We do an optimization for relPropertyList and adjList : If the initial list

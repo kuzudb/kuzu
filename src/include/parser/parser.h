@@ -8,12 +8,10 @@
 namespace kuzu {
 namespace parser {
 
-using namespace std;
-
 class Parser {
 
 public:
-    static unique_ptr<Statement> parseQuery(const string& query);
+    static std::unique_ptr<Statement> parseQuery(const std::string& query);
 };
 
 } // namespace parser

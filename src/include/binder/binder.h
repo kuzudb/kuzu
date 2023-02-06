@@ -6,9 +6,6 @@
 #include "parser/query/regular_query.h"
 #include "query_normalizer.h"
 
-using namespace kuzu::parser;
-using namespace kuzu::catalog;
-
 namespace kuzu {
 namespace binder {
 
@@ -17,127 +14,143 @@ class BoundCreateRel;
 class BoundSetNodeProperty;
 class BoundSetRelProperty;
 class BoundDeleteNode;
-class SetItem;
 
 class Binder {
     friend class ExpressionBinder;
 
 public:
-    explicit Binder(const Catalog& catalog)
+    explicit Binder(const catalog::Catalog& catalog)
         : catalog{catalog}, lastExpressionId{0}, variablesInScope{}, expressionBinder{this} {}
 
-    unique_ptr<BoundStatement> bind(const Statement& statement);
+    std::unique_ptr<BoundStatement> bind(const parser::Statement& statement);
 
-    inline unordered_map<string, shared_ptr<Value>> getParameterMap() {
+    inline std::unordered_map<std::string, std::shared_ptr<common::Value>> getParameterMap() {
         return expressionBinder.parameterMap;
     }
 
 private:
-    shared_ptr<Expression> bindWhereExpression(const ParsedExpression& parsedExpression);
+    std::shared_ptr<Expression> bindWhereExpression(
+        const parser::ParsedExpression& parsedExpression);
 
-    table_id_t bindRelTableID(const string& tableName) const;
-    table_id_t bindNodeTableID(const string& tableName) const;
+    common::table_id_t bindRelTableID(const std::string& tableName) const;
+    common::table_id_t bindNodeTableID(const std::string& tableName) const;
 
-    shared_ptr<Expression> createVariable(const string& name, const DataType& dataType);
+    std::shared_ptr<Expression> createVariable(
+        const std::string& name, const common::DataType& dataType);
 
     /*** bind DDL ***/
-    unique_ptr<BoundStatement> bindCreateNodeClause(const Statement& statement);
-    unique_ptr<BoundStatement> bindCreateRelClause(const Statement& statement);
-    unique_ptr<BoundStatement> bindDropTable(const Statement& statement);
-    unique_ptr<BoundStatement> bindRenameTable(const Statement& statement);
-    unique_ptr<BoundStatement> bindAddProperty(const Statement& statement);
-    unique_ptr<BoundStatement> bindDropProperty(const Statement& statement);
-    unique_ptr<BoundStatement> bindRenameProperty(const Statement& statement);
+    std::unique_ptr<BoundStatement> bindCreateNodeClause(const parser::Statement& statement);
+    std::unique_ptr<BoundStatement> bindCreateRelClause(const parser::Statement& statement);
+    std::unique_ptr<BoundStatement> bindDropTable(const parser::Statement& statement);
+    std::unique_ptr<BoundStatement> bindRenameTable(const parser::Statement& statement);
+    std::unique_ptr<BoundStatement> bindAddProperty(const parser::Statement& statement);
+    std::unique_ptr<BoundStatement> bindDropProperty(const parser::Statement& statement);
+    std::unique_ptr<BoundStatement> bindRenameProperty(const parser::Statement& statement);
 
-    vector<PropertyNameDataType> bindPropertyNameDataTypes(
-        vector<pair<string, string>> propertyNameDataTypes);
-    uint32_t bindPrimaryKey(string pkColName, vector<pair<string, string>> propertyNameDataTypes);
-    property_id_t bindPropertyName(TableSchema* tableSchema, const string& propertyName);
+    std::vector<catalog::PropertyNameDataType> bindPropertyNameDataTypes(
+        std::vector<std::pair<std::string, std::string>> propertyNameDataTypes);
+    uint32_t bindPrimaryKey(std::string pkColName,
+        std::vector<std::pair<std::string, std::string>> propertyNameDataTypes);
+    common::property_id_t bindPropertyName(
+        catalog::NodeTableSchema::TableSchema* tableSchema, const std::string& propertyName);
 
     /*** bind copy csv ***/
-    unique_ptr<BoundStatement> bindCopy(const Statement& statement);
+    std::unique_ptr<BoundStatement> bindCopy(const parser::Statement& statement);
 
-    CSVReaderConfig bindParsingOptions(
-        const unordered_map<string, unique_ptr<ParsedExpression>>* parsingOptions);
-    void bindStringParsingOptions(
-        CSVReaderConfig& csvReaderConfig, const string& optionName, string& optionValue);
-    char bindParsingOptionValue(string value);
+    common::CSVReaderConfig bindParsingOptions(
+        const std::unordered_map<std::string, std::unique_ptr<parser::ParsedExpression>>*
+            parsingOptions);
+    void bindStringParsingOptions(common::CSVReaderConfig& csvReaderConfig,
+        const std::string& optionName, std::string& optionValue);
+    char bindParsingOptionValue(std::string value);
 
     /*** bind query ***/
-    unique_ptr<BoundRegularQuery> bindQuery(const RegularQuery& regularQuery);
-    unique_ptr<BoundSingleQuery> bindSingleQuery(const SingleQuery& singleQuery);
-    unique_ptr<BoundQueryPart> bindQueryPart(const QueryPart& queryPart);
+    std::unique_ptr<BoundRegularQuery> bindQuery(const parser::RegularQuery& regularQuery);
+    std::unique_ptr<BoundSingleQuery> bindSingleQuery(const parser::SingleQuery& singleQuery);
+    std::unique_ptr<BoundQueryPart> bindQueryPart(const parser::QueryPart& queryPart);
 
     /*** bind reading clause ***/
-    unique_ptr<BoundReadingClause> bindReadingClause(const ReadingClause& readingClause);
-    unique_ptr<BoundReadingClause> bindMatchClause(const ReadingClause& readingClause);
-    unique_ptr<BoundReadingClause> bindUnwindClause(const ReadingClause& readingClause);
+    std::unique_ptr<BoundReadingClause> bindReadingClause(
+        const parser::ReadingClause& readingClause);
+    std::unique_ptr<BoundReadingClause> bindMatchClause(const parser::ReadingClause& readingClause);
+    std::unique_ptr<BoundReadingClause> bindUnwindClause(
+        const parser::ReadingClause& readingClause);
 
     /*** bind updating clause ***/
-    unique_ptr<BoundUpdatingClause> bindUpdatingClause(const UpdatingClause& updatingClause);
-    unique_ptr<BoundUpdatingClause> bindCreateClause(const UpdatingClause& updatingClause);
-    unique_ptr<BoundUpdatingClause> bindSetClause(const UpdatingClause& updatingClause);
-    unique_ptr<BoundUpdatingClause> bindDeleteClause(const UpdatingClause& updatingClause);
+    std::unique_ptr<BoundUpdatingClause> bindUpdatingClause(
+        const parser::UpdatingClause& updatingClause);
+    std::unique_ptr<BoundUpdatingClause> bindCreateClause(
+        const parser::UpdatingClause& updatingClause);
+    std::unique_ptr<BoundUpdatingClause> bindSetClause(
+        const parser::UpdatingClause& updatingClause);
+    std::unique_ptr<BoundUpdatingClause> bindDeleteClause(
+        const parser::UpdatingClause& updatingClause);
 
-    unique_ptr<BoundCreateNode> bindCreateNode(
-        shared_ptr<NodeExpression> node, const PropertyKeyValCollection& collection);
-    unique_ptr<BoundCreateRel> bindCreateRel(
-        shared_ptr<RelExpression> rel, const PropertyKeyValCollection& collection);
-    unique_ptr<BoundSetNodeProperty> bindSetNodeProperty(
-        shared_ptr<NodeExpression> node, pair<ParsedExpression*, ParsedExpression*> setItem);
-    unique_ptr<BoundSetRelProperty> bindSetRelProperty(
-        shared_ptr<RelExpression> rel, pair<ParsedExpression*, ParsedExpression*> setItem);
-    expression_pair bindSetItem(pair<ParsedExpression*, ParsedExpression*> setItem);
-    unique_ptr<BoundDeleteNode> bindDeleteNode(shared_ptr<NodeExpression> node);
-    shared_ptr<RelExpression> bindDeleteRel(shared_ptr<RelExpression> rel);
+    std::unique_ptr<BoundCreateNode> bindCreateNode(
+        std::shared_ptr<NodeExpression> node, const PropertyKeyValCollection& collection);
+    std::unique_ptr<BoundCreateRel> bindCreateRel(
+        std::shared_ptr<RelExpression> rel, const PropertyKeyValCollection& collection);
+    std::unique_ptr<BoundSetNodeProperty> bindSetNodeProperty(std::shared_ptr<NodeExpression> node,
+        std::pair<parser::ParsedExpression*, parser::ParsedExpression*> setItem);
+    std::unique_ptr<BoundSetRelProperty> bindSetRelProperty(std::shared_ptr<RelExpression> rel,
+        std::pair<parser::ParsedExpression*, parser::ParsedExpression*> setItem);
+    expression_pair bindSetItem(
+        std::pair<parser::ParsedExpression*, parser::ParsedExpression*> setItem);
+    std::unique_ptr<BoundDeleteNode> bindDeleteNode(const std::shared_ptr<NodeExpression>& node);
+    std::shared_ptr<RelExpression> bindDeleteRel(std::shared_ptr<RelExpression> rel);
 
     /*** bind projection clause ***/
-    unique_ptr<BoundWithClause> bindWithClause(const WithClause& withClause);
-    unique_ptr<BoundReturnClause> bindReturnClause(const ReturnClause& returnClause);
+    std::unique_ptr<BoundWithClause> bindWithClause(const parser::WithClause& withClause);
+    std::unique_ptr<BoundReturnClause> bindReturnClause(const parser::ReturnClause& returnClause);
 
     expression_vector bindProjectionExpressions(
-        const vector<unique_ptr<ParsedExpression>>& projectionExpressions, bool containsStar);
+        const std::vector<std::unique_ptr<parser::ParsedExpression>>& projectionExpressions,
+        bool containsStar);
     // Rewrite variable "v" as all properties of "v"
     expression_vector rewriteNodeOrRelExpression(const Expression& expression);
     expression_vector rewriteNodeExpression(const Expression& expression);
     expression_vector rewriteRelExpression(const Expression& expression);
 
     void bindOrderBySkipLimitIfNecessary(
-        BoundProjectionBody& boundProjectionBody, const ProjectionBody& projectionBody);
+        BoundProjectionBody& boundProjectionBody, const parser::ProjectionBody& projectionBody);
     expression_vector bindOrderByExpressions(
-        const vector<unique_ptr<ParsedExpression>>& orderByExpressions);
-    uint64_t bindSkipLimitExpression(const ParsedExpression& expression);
+        const std::vector<std::unique_ptr<parser::ParsedExpression>>& orderByExpressions);
+    uint64_t bindSkipLimitExpression(const parser::ParsedExpression& expression);
 
     void addExpressionsToScope(const expression_vector& projectionExpressions);
     void resolveAnyDataTypeWithDefaultType(const expression_vector& expressions);
 
     /*** bind graph pattern ***/
-    pair<unique_ptr<QueryGraphCollection>, unique_ptr<PropertyKeyValCollection>> bindGraphPattern(
-        const vector<unique_ptr<PatternElement>>& graphPattern);
+    std::pair<std::unique_ptr<QueryGraphCollection>, std::unique_ptr<PropertyKeyValCollection>>
+    bindGraphPattern(const std::vector<std::unique_ptr<parser::PatternElement>>& graphPattern);
 
-    unique_ptr<QueryGraph> bindPatternElement(
-        const PatternElement& patternElement, PropertyKeyValCollection& collection);
+    std::unique_ptr<QueryGraph> bindPatternElement(
+        const parser::PatternElement& patternElement, PropertyKeyValCollection& collection);
 
-    void bindQueryRel(const RelPattern& relPattern, const shared_ptr<NodeExpression>& leftNode,
-        const shared_ptr<NodeExpression>& rightNode, QueryGraph& queryGraph,
+    void bindQueryRel(const parser::RelPattern& relPattern,
+        const std::shared_ptr<NodeExpression>& leftNode,
+        const std::shared_ptr<NodeExpression>& rightNode, QueryGraph& queryGraph,
         PropertyKeyValCollection& collection);
-    pair<uint64_t, uint64_t> bindVariableLengthRelBound(const RelPattern& relPattern);
-    shared_ptr<NodeExpression> bindQueryNode(const NodePattern& nodePattern, QueryGraph& queryGraph,
-        PropertyKeyValCollection& collection);
-    shared_ptr<NodeExpression> createQueryNode(const NodePattern& nodePattern);
-    inline vector<table_id_t> bindNodeTableIDs(const vector<string>& tableNames) {
-        return bindTableIDs(tableNames, NODE);
+    std::pair<uint64_t, uint64_t> bindVariableLengthRelBound(const parser::RelPattern& relPattern);
+    std::shared_ptr<NodeExpression> bindQueryNode(const parser::NodePattern& nodePattern,
+        QueryGraph& queryGraph, PropertyKeyValCollection& collection);
+    std::shared_ptr<NodeExpression> createQueryNode(const parser::NodePattern& nodePattern);
+    inline std::vector<common::table_id_t> bindNodeTableIDs(
+        const std::vector<std::string>& tableNames) {
+        return bindTableIDs(tableNames, common::NODE);
     }
-    inline vector<table_id_t> bindRelTableIDs(const vector<string>& tableNames) {
-        return bindTableIDs(tableNames, REL);
+    inline std::vector<common::table_id_t> bindRelTableIDs(
+        const std::vector<std::string>& tableNames) {
+        return bindTableIDs(tableNames, common::REL);
     }
-    vector<table_id_t> bindTableIDs(const vector<string>& tableNames, DataTypeID nodeOrRelType);
+    std::vector<common::table_id_t> bindTableIDs(
+        const std::vector<std::string>& tableNames, common::DataTypeID nodeOrRelType);
 
     /*** validations ***/
     // E.g. Optional MATCH (a) RETURN a.age
     // Although this is doable in Neo4j, I don't think the semantic make a lot of sense because
     // there is nothing to left join on.
-    static void validateFirstMatchIsNotOptional(const SingleQuery& singleQuery);
+    static void validateFirstMatchIsNotOptional(const parser::SingleQuery& singleQuery);
 
     // E.g. ... RETURN a, b AS a
     static void validateProjectionColumnNamesAreUnique(const expression_vector& expressions);
@@ -150,7 +163,7 @@ private:
         const BoundProjectionBody& boundProjectionBody);
 
     static void validateUnionColumnsOfTheSameType(
-        const vector<unique_ptr<BoundSingleQuery>>& boundSingleQueries);
+        const std::vector<std::unique_ptr<BoundSingleQuery>>& boundSingleQueries);
 
     static void validateIsAllUnionOrUnionAll(const BoundRegularQuery& regularQuery);
 
@@ -161,22 +174,24 @@ private:
     static void validateReturnNotFollowUpdate(const NormalizedSingleQuery& singleQuery);
     static void validateReadNotFollowUpdate(const NormalizedSingleQuery& singleQuery);
 
-    static void validateTableExist(const Catalog& _catalog, string& tableName);
+    static void validateTableExist(const catalog::Catalog& _catalog, std::string& tableName);
 
-    static bool validateStringParsingOptionName(string& parsingOptionName);
+    static bool validateStringParsingOptionName(std::string& parsingOptionName);
 
-    static void validateNodeTableHasNoEdge(const Catalog& _catalog, table_id_t tableID);
+    static void validateNodeTableHasNoEdge(
+        const catalog::Catalog& _catalog, common::table_id_t tableID);
 
     /*** helpers ***/
-    string getUniqueExpressionName(const string& name);
+    std::string getUniqueExpressionName(const std::string& name);
 
-    unordered_map<string, shared_ptr<Expression>> enterSubquery();
-    void exitSubquery(unordered_map<string, shared_ptr<Expression>> prevVariablesInScope);
+    std::unordered_map<std::string, std::shared_ptr<Expression>> enterSubquery();
+    void exitSubquery(
+        std::unordered_map<std::string, std::shared_ptr<Expression>> prevVariablesInScope);
 
 private:
-    const Catalog& catalog;
+    const catalog::Catalog& catalog;
     uint32_t lastExpressionId;
-    unordered_map<string, shared_ptr<Expression>> variablesInScope;
+    std::unordered_map<std::string, std::shared_ptr<Expression>> variablesInScope;
     ExpressionBinder expressionBinder;
 };
 

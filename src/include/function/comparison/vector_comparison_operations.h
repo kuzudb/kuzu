@@ -11,234 +11,240 @@ class VectorComparisonOperations : public VectorOperations {
 
 protected:
     template<typename FUNC>
-    static vector<unique_ptr<VectorOperationDefinition>> getDefinitions(const string& name) {
-        vector<unique_ptr<VectorOperationDefinition>> definitions;
-        for (auto& leftTypeID : DataType::getNumericalTypeIDs()) {
-            for (auto& rightTypeID : DataType::getNumericalTypeIDs()) {
+    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions(
+        const std::string& name) {
+        std::vector<std::unique_ptr<VectorOperationDefinition>> definitions;
+        for (auto& leftTypeID : common::DataType::getNumericalTypeIDs()) {
+            for (auto& rightTypeID : common::DataType::getNumericalTypeIDs()) {
                 definitions.push_back(getDefinition<FUNC>(name, leftTypeID, rightTypeID));
             }
         }
-        for (auto& typeID :
-            vector<DataTypeID>{BOOL, STRING, INTERNAL_ID, DATE, TIMESTAMP, INTERVAL}) {
+        for (auto& typeID : std::vector<common::DataTypeID>{common::BOOL, common::STRING,
+                 common::INTERNAL_ID, common::DATE, common::TIMESTAMP, common::INTERVAL}) {
             definitions.push_back(getDefinition<FUNC>(name, typeID, typeID));
         }
-        definitions.push_back(getDefinition<FUNC>(name, DATE, TIMESTAMP));
-        definitions.push_back(getDefinition<FUNC>(name, TIMESTAMP, DATE));
+        definitions.push_back(getDefinition<FUNC>(name, common::DATE, common::TIMESTAMP));
+        definitions.push_back(getDefinition<FUNC>(name, common::TIMESTAMP, common::DATE));
         return definitions;
     }
 
 private:
     template<typename FUNC>
-    static inline unique_ptr<VectorOperationDefinition> getDefinition(
-        const string& name, DataTypeID leftTypeID, DataTypeID rightTypeID) {
+    static inline std::unique_ptr<VectorOperationDefinition> getDefinition(
+        const std::string& name, common::DataTypeID leftTypeID, common::DataTypeID rightTypeID) {
         auto execFunc = getExecFunc<FUNC>(leftTypeID, rightTypeID);
         auto selectFunc = getSelectFunc<FUNC>(leftTypeID, rightTypeID);
-        return make_unique<VectorOperationDefinition>(
-            name, vector<DataTypeID>{leftTypeID, rightTypeID}, BOOL, execFunc, selectFunc);
+        return make_unique<VectorOperationDefinition>(name,
+            std::vector<common::DataTypeID>{leftTypeID, rightTypeID}, common::BOOL, execFunc,
+            selectFunc);
     }
 
     template<typename FUNC>
-    static scalar_exec_func getExecFunc(DataTypeID leftTypeID, DataTypeID rightTypeID) {
+    static scalar_exec_func getExecFunc(
+        common::DataTypeID leftTypeID, common::DataTypeID rightTypeID) {
         switch (leftTypeID) {
-        case INT64: {
+        case common::INT64: {
             switch (rightTypeID) {
-            case INT64: {
+            case common::INT64: {
                 return BinaryExecFunction<int64_t, int64_t, uint8_t, FUNC>;
             }
-            case DOUBLE: {
+            case common::DOUBLE: {
                 return BinaryExecFunction<int64_t, double_t, uint8_t, FUNC>;
             }
             default:
-                throw RuntimeException("Invalid input data types(" +
-                                       Types::dataTypeToString(leftTypeID) + "," +
-                                       Types::dataTypeToString(rightTypeID) + ") for getExecFunc.");
+                throw common::RuntimeException(
+                    "Invalid input data types(" + common::Types::dataTypeToString(leftTypeID) +
+                    "," + common::Types::dataTypeToString(rightTypeID) + ") for getExecFunc.");
             }
         }
-        case DOUBLE: {
+        case common::DOUBLE: {
             switch (rightTypeID) {
-            case INT64: {
+            case common::INT64: {
                 return BinaryExecFunction<double_t, int64_t, uint8_t, FUNC>;
             }
-            case DOUBLE: {
+            case common::DOUBLE: {
                 return BinaryExecFunction<double_t, double_t, uint8_t, FUNC>;
             }
             default:
-                throw RuntimeException("Invalid input data types(" +
-                                       Types::dataTypeToString(leftTypeID) + "," +
-                                       Types::dataTypeToString(rightTypeID) + ") for getExecFunc.");
+                throw common::RuntimeException(
+                    "Invalid input data types(" + common::Types::dataTypeToString(leftTypeID) +
+                    "," + common::Types::dataTypeToString(rightTypeID) + ") for getExecFunc.");
             }
         }
-        case BOOL: {
-            assert(rightTypeID == BOOL);
+        case common::BOOL: {
+            assert(rightTypeID == common::BOOL);
             return BinaryExecFunction<uint8_t, uint8_t, uint8_t, FUNC>;
         }
-        case STRING: {
-            assert(rightTypeID == STRING);
-            return BinaryExecFunction<ku_string_t, ku_string_t, uint8_t, FUNC>;
+        case common::STRING: {
+            assert(rightTypeID == common::STRING);
+            return BinaryExecFunction<common::ku_string_t, common::ku_string_t, uint8_t, FUNC>;
         }
-        case INTERNAL_ID: {
-            assert(rightTypeID == INTERNAL_ID);
-            return BinaryExecFunction<nodeID_t, nodeID_t, uint8_t, FUNC>;
+        case common::INTERNAL_ID: {
+            assert(rightTypeID == common::INTERNAL_ID);
+            return BinaryExecFunction<common::nodeID_t, common::nodeID_t, uint8_t, FUNC>;
         }
-        case DATE: {
+        case common::DATE: {
             switch (rightTypeID) {
-            case DATE: {
-                return BinaryExecFunction<date_t, date_t, uint8_t, FUNC>;
+            case common::DATE: {
+                return BinaryExecFunction<common::date_t, common::date_t, uint8_t, FUNC>;
             }
-            case TIMESTAMP: {
-                return BinaryExecFunction<date_t, timestamp_t, uint8_t, FUNC>;
+            case common::TIMESTAMP: {
+                return BinaryExecFunction<common::date_t, common::timestamp_t, uint8_t, FUNC>;
             }
             default:
-                throw RuntimeException("Invalid input data types(" +
-                                       Types::dataTypeToString(leftTypeID) + "," +
-                                       Types::dataTypeToString(rightTypeID) + ") for getExecFunc.");
+                throw common::RuntimeException(
+                    "Invalid input data types(" + common::Types::dataTypeToString(leftTypeID) +
+                    "," + common::Types::dataTypeToString(rightTypeID) + ") for getExecFunc.");
             }
         }
-        case TIMESTAMP: {
+        case common::TIMESTAMP: {
             switch (rightTypeID) {
-            case DATE: {
-                return BinaryExecFunction<timestamp_t, date_t, uint8_t, FUNC>;
+            case common::DATE: {
+                return BinaryExecFunction<common::timestamp_t, common::date_t, uint8_t, FUNC>;
             }
-            case TIMESTAMP: {
-                return BinaryExecFunction<timestamp_t, timestamp_t, uint8_t, FUNC>;
+            case common::TIMESTAMP: {
+                return BinaryExecFunction<common::timestamp_t, common::timestamp_t, uint8_t, FUNC>;
             }
             default:
-                throw RuntimeException("Invalid input data types(" +
-                                       Types::dataTypeToString(leftTypeID) + "," +
-                                       Types::dataTypeToString(rightTypeID) + ") for getExecFunc.");
+                throw common::RuntimeException(
+                    "Invalid input data types(" + common::Types::dataTypeToString(leftTypeID) +
+                    "," + common::Types::dataTypeToString(rightTypeID) + ") for getExecFunc.");
             }
         }
-        case INTERVAL: {
-            assert(rightTypeID == INTERVAL);
-            return BinaryExecFunction<interval_t, interval_t, uint8_t, FUNC>;
+        case common::INTERVAL: {
+            assert(rightTypeID == common::INTERVAL);
+            return BinaryExecFunction<common::interval_t, common::interval_t, uint8_t, FUNC>;
         }
         default:
-            throw RuntimeException("Invalid input data types(" +
-                                   Types::dataTypeToString(leftTypeID) + "," +
-                                   Types::dataTypeToString(rightTypeID) + ") for getExecFunc.");
+            throw common::RuntimeException(
+                "Invalid input data types(" + common::Types::dataTypeToString(leftTypeID) + "," +
+                common::Types::dataTypeToString(rightTypeID) + ") for getExecFunc.");
         }
     }
 
     template<typename FUNC>
-    static scalar_select_func getSelectFunc(DataTypeID leftTypeID, DataTypeID rightTypeID) {
+    static scalar_select_func getSelectFunc(
+        common::DataTypeID leftTypeID, common::DataTypeID rightTypeID) {
         switch (leftTypeID) {
-        case INT64: {
+        case common::INT64: {
             switch (rightTypeID) {
-            case INT64: {
+            case common::INT64: {
                 return BinarySelectFunction<int64_t, int64_t, FUNC>;
             }
-            case DOUBLE: {
+            case common::DOUBLE: {
                 return BinarySelectFunction<int64_t, double_t, FUNC>;
             }
             default:
-                throw RuntimeException(
-                    "Invalid input data types(" + Types::dataTypeToString(leftTypeID) + "," +
-                    Types::dataTypeToString(rightTypeID) + ") for getSelectFunc.");
+                throw common::RuntimeException(
+                    "Invalid input data types(" + common::Types::dataTypeToString(leftTypeID) +
+                    "," + common::Types::dataTypeToString(rightTypeID) + ") for getSelectFunc.");
             }
         }
-        case DOUBLE: {
+        case common::DOUBLE: {
             switch (rightTypeID) {
-            case INT64: {
+            case common::INT64: {
                 return BinarySelectFunction<double_t, int64_t, FUNC>;
             }
-            case DOUBLE: {
+            case common::DOUBLE: {
                 return BinarySelectFunction<double_t, double_t, FUNC>;
             }
             default:
-                throw RuntimeException(
-                    "Invalid input data types(" + Types::dataTypeToString(leftTypeID) + "," +
-                    Types::dataTypeToString(rightTypeID) + ") for getSelectFunc.");
+                throw common::RuntimeException(
+                    "Invalid input data types(" + common::Types::dataTypeToString(leftTypeID) +
+                    "," + common::Types::dataTypeToString(rightTypeID) + ") for getSelectFunc.");
             }
         }
-        case BOOL: {
-            assert(rightTypeID == BOOL);
+        case common::BOOL: {
+            assert(rightTypeID == common::BOOL);
             return BinarySelectFunction<uint8_t, uint8_t, FUNC>;
         }
-        case STRING: {
-            assert(rightTypeID == STRING);
-            return BinarySelectFunction<ku_string_t, ku_string_t, FUNC>;
+        case common::STRING: {
+            assert(rightTypeID == common::STRING);
+            return BinarySelectFunction<common::ku_string_t, common::ku_string_t, FUNC>;
         }
-        case INTERNAL_ID: {
-            assert(rightTypeID == INTERNAL_ID);
-            return BinarySelectFunction<nodeID_t, nodeID_t, FUNC>;
+        case common::INTERNAL_ID: {
+            assert(rightTypeID == common::INTERNAL_ID);
+            return BinarySelectFunction<common::nodeID_t, common::nodeID_t, FUNC>;
         }
-        case DATE: {
+        case common::DATE: {
             switch (rightTypeID) {
-            case DATE: {
-                return BinarySelectFunction<date_t, date_t, FUNC>;
+            case common::DATE: {
+                return BinarySelectFunction<common::date_t, common::date_t, FUNC>;
             }
-            case TIMESTAMP: {
-                return BinarySelectFunction<date_t, timestamp_t, FUNC>;
+            case common::TIMESTAMP: {
+                return BinarySelectFunction<common::date_t, common::timestamp_t, FUNC>;
             }
             default:
-                throw RuntimeException(
-                    "Invalid input data types(" + Types::dataTypeToString(leftTypeID) + "," +
-                    Types::dataTypeToString(rightTypeID) + ") for getSelectFunc.");
+                throw common::RuntimeException(
+                    "Invalid input data types(" + common::Types::dataTypeToString(leftTypeID) +
+                    "," + common::Types::dataTypeToString(rightTypeID) + ") for getSelectFunc.");
             }
         }
-        case TIMESTAMP: {
+        case common::TIMESTAMP: {
             switch (rightTypeID) {
-            case DATE: {
-                return BinarySelectFunction<timestamp_t, date_t, FUNC>;
+            case common::DATE: {
+                return BinarySelectFunction<common::timestamp_t, common::date_t, FUNC>;
             }
-            case TIMESTAMP: {
-                return BinarySelectFunction<timestamp_t, timestamp_t, FUNC>;
+            case common::TIMESTAMP: {
+                return BinarySelectFunction<common::timestamp_t, common::timestamp_t, FUNC>;
             }
             default:
-                throw RuntimeException(
-                    "Invalid input data types(" + Types::dataTypeToString(leftTypeID) + "," +
-                    Types::dataTypeToString(rightTypeID) + ") for getSelectFunc.");
+                throw common::RuntimeException(
+                    "Invalid input data types(" + common::Types::dataTypeToString(leftTypeID) +
+                    "," + common::Types::dataTypeToString(rightTypeID) + ") for getSelectFunc.");
             }
         }
-        case INTERVAL: {
-            assert(rightTypeID == INTERVAL);
-            return BinarySelectFunction<interval_t, interval_t, FUNC>;
+        case common::INTERVAL: {
+            assert(rightTypeID == common::INTERVAL);
+            return BinarySelectFunction<common::interval_t, common::interval_t, FUNC>;
         }
         default:
-            throw RuntimeException("Invalid input data types(" +
-                                   Types::dataTypeToString(leftTypeID) + "," +
-                                   Types::dataTypeToString(rightTypeID) + ") for getSelectFunc.");
+            throw common::RuntimeException(
+                "Invalid input data types(" + common::Types::dataTypeToString(leftTypeID) + "," +
+                common::Types::dataTypeToString(rightTypeID) + ") for getSelectFunc.");
         }
     }
 };
 
 struct EqualsVectorOperation : public VectorComparisonOperations {
-    static inline vector<unique_ptr<VectorOperationDefinition>> getDefinitions() {
-        return VectorComparisonOperations::getDefinitions<operation::Equals>(EQUALS_FUNC_NAME);
+    static inline std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions() {
+        return VectorComparisonOperations::getDefinitions<operation::Equals>(
+            common::EQUALS_FUNC_NAME);
     }
 };
 
 struct NotEqualsVectorOperation : public VectorComparisonOperations {
-    static inline vector<unique_ptr<VectorOperationDefinition>> getDefinitions() {
+    static inline std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions() {
         return VectorComparisonOperations::getDefinitions<operation::NotEquals>(
-            NOT_EQUALS_FUNC_NAME);
+            common::NOT_EQUALS_FUNC_NAME);
     }
 };
 
 struct GreaterThanVectorOperation : public VectorComparisonOperations {
-    static inline vector<unique_ptr<VectorOperationDefinition>> getDefinitions() {
+    static inline std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions() {
         return VectorComparisonOperations::getDefinitions<operation::GreaterThan>(
-            GREATER_THAN_FUNC_NAME);
+            common::GREATER_THAN_FUNC_NAME);
     }
 };
 
 struct GreaterThanEqualsVectorOperation : public VectorComparisonOperations {
-    static inline vector<unique_ptr<VectorOperationDefinition>> getDefinitions() {
+    static inline std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions() {
         return VectorComparisonOperations::getDefinitions<operation::GreaterThanEquals>(
-            GREATER_THAN_EQUALS_FUNC_NAME);
+            common::GREATER_THAN_EQUALS_FUNC_NAME);
     }
 };
 
 struct LessThanVectorOperation : public VectorComparisonOperations {
-    static inline vector<unique_ptr<VectorOperationDefinition>> getDefinitions() {
-        return VectorComparisonOperations::getDefinitions<operation::LessThan>(LESS_THAN_FUNC_NAME);
+    static inline std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions() {
+        return VectorComparisonOperations::getDefinitions<operation::LessThan>(
+            common::LESS_THAN_FUNC_NAME);
     }
 };
 
 struct LessThanEqualsVectorOperation : public VectorComparisonOperations {
-    static inline vector<unique_ptr<VectorOperationDefinition>> getDefinitions() {
+    static inline std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions() {
         return VectorComparisonOperations::getDefinitions<operation::LessThanEquals>(
-            LESS_THAN_EQUALS_FUNC_NAME);
+            common::LESS_THAN_EQUALS_FUNC_NAME);
     }
 };
 

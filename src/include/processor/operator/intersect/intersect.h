@@ -8,14 +8,15 @@ namespace processor {
 
 struct IntersectDataInfo {
     DataPos keyDataPos;
-    vector<DataPos> payloadsDataPos;
+    std::vector<DataPos> payloadsDataPos;
 };
 
 class Intersect : public PhysicalOperator {
 public:
-    Intersect(const DataPos& outputDataPos, vector<IntersectDataInfo> intersectDataInfos,
-        vector<shared_ptr<IntersectSharedState>> sharedHTs,
-        vector<unique_ptr<PhysicalOperator>> children, uint32_t id, const string& paramsString)
+    Intersect(const DataPos& outputDataPos, std::vector<IntersectDataInfo> intersectDataInfos,
+        std::vector<std::shared_ptr<IntersectSharedState>> sharedHTs,
+        std::vector<std::unique_ptr<PhysicalOperator>> children, uint32_t id,
+        const std::string& paramsString)
         : PhysicalOperator{PhysicalOperatorType::INTERSECT, std::move(children), id, paramsString},
           outputDataPos{outputDataPos},
           intersectDataInfos{std::move(intersectDataInfos)}, sharedHTs{std::move(sharedHTs)} {}
@@ -24,33 +25,34 @@ public:
 
     bool getNextTuplesInternal() override;
 
-    inline unique_ptr<PhysicalOperator> clone() override {
-        vector<unique_ptr<PhysicalOperator>> clonedChildren;
+    inline std::unique_ptr<PhysicalOperator> clone() override {
+        std::vector<std::unique_ptr<PhysicalOperator>> clonedChildren;
         clonedChildren.push_back(children[0]->clone());
-        return make_unique<Intersect>(outputDataPos, intersectDataInfos, sharedHTs,
+        return std::make_unique<Intersect>(outputDataPos, intersectDataInfos, sharedHTs,
             std::move(clonedChildren), id, paramsString);
     }
 
 private:
-    vector<nodeID_t> getProbeKeys();
-    vector<uint8_t*> probeHTs(const vector<nodeID_t>& keys);
+    std::vector<common::nodeID_t> getProbeKeys();
+    std::vector<uint8_t*> probeHTs(const std::vector<common::nodeID_t>& keys);
     // Left is always the one with less num of values.
-    static void twoWayIntersect(nodeID_t* leftNodeIDs, SelectionVector& lSelVector,
-        nodeID_t* rightNodeIDs, SelectionVector& rSelVector);
-    void intersectLists(const vector<overflow_value_t>& listsToIntersect);
-    void populatePayloads(const vector<uint8_t*>& tuples, const vector<uint32_t>& listIdxes);
+    static void twoWayIntersect(common::nodeID_t* leftNodeIDs, common::SelectionVector& lSelVector,
+        common::nodeID_t* rightNodeIDs, common::SelectionVector& rSelVector);
+    void intersectLists(const std::vector<common::overflow_value_t>& listsToIntersect);
+    void populatePayloads(
+        const std::vector<uint8_t*>& tuples, const std::vector<uint32_t>& listIdxes);
 
 private:
     DataPos outputDataPos;
-    vector<IntersectDataInfo> intersectDataInfos;
+    std::vector<IntersectDataInfo> intersectDataInfos;
     // payloadColumnIdxesToScanFrom and payloadVectorsToScanInto are organized by each build child.
-    vector<vector<uint32_t>> payloadColumnIdxesToScanFrom;
-    vector<vector<shared_ptr<ValueVector>>> payloadVectorsToScanInto;
-    shared_ptr<ValueVector> outKeyVector;
-    vector<shared_ptr<ValueVector>> probeKeyVectors;
-    vector<unique_ptr<SelectionVector>> intersectSelVectors;
-    vector<shared_ptr<IntersectSharedState>> sharedHTs;
-    vector<bool> isIntersectListAFlatValue;
+    std::vector<std::vector<uint32_t>> payloadColumnIdxesToScanFrom;
+    std::vector<std::vector<std::shared_ptr<common::ValueVector>>> payloadVectorsToScanInto;
+    std::shared_ptr<common::ValueVector> outKeyVector;
+    std::vector<std::shared_ptr<common::ValueVector>> probeKeyVectors;
+    std::vector<std::unique_ptr<common::SelectionVector>> intersectSelVectors;
+    std::vector<std::shared_ptr<IntersectSharedState>> sharedHTs;
+    std::vector<bool> isIntersectListAFlatValue;
 };
 
 } // namespace processor

@@ -3,21 +3,19 @@
 #include <stdexcept>
 #include <string>
 
-using namespace std;
-
 namespace kuzu {
 namespace common {
 
-class Exception : public exception {
+class Exception : public std::exception {
 public:
-    explicit Exception(string msg) : exception(), exception_message_(move(msg)){};
+    explicit Exception(std::string msg) : exception(), exception_message_(std::move(msg)){};
 
 public:
     const char* what() const noexcept override { return exception_message_.c_str(); }
 
     // TODO(Guodong): this is being used in both loader and node table. A better way to do this
     // could be throw this error msg during insert.
-    static string getExistedPKExceptionMsg(const string& pkString) {
+    static std::string getExistedPKExceptionMsg(const std::string& pkString) {
         auto result = "A node is created with an existed primary key " + pkString +
                       ", which violates the uniqueness constraint of the primary key property.";
         return result;
@@ -29,68 +27,68 @@ private:
 
 class ParserException : public Exception {
 public:
-    explicit ParserException(const string& msg) : Exception("Parser exception: " + msg){};
+    explicit ParserException(const std::string& msg) : Exception("Parser exception: " + msg){};
 };
 
 class BinderException : public Exception {
 public:
-    explicit BinderException(const string& msg) : Exception("Binder exception: " + msg){};
+    explicit BinderException(const std::string& msg) : Exception("Binder exception: " + msg){};
 };
 
 class ConversionException : public Exception {
 public:
-    explicit ConversionException(const string& msg) : Exception(msg){};
+    explicit ConversionException(const std::string& msg) : Exception(msg){};
 };
 
 class ReaderException : public Exception {
 public:
-    explicit ReaderException(const string& msg) : Exception("Reader exception: " + msg){};
+    explicit ReaderException(const std::string& msg) : Exception("Reader exception: " + msg){};
 };
 
 class CopyException : public Exception {
 public:
-    explicit CopyException(const string& msg) : Exception("Copy exception: " + msg){};
+    explicit CopyException(const std::string& msg) : Exception("Copy exception: " + msg){};
 };
 
 class CatalogException : public Exception {
 public:
-    explicit CatalogException(const string& msg) : Exception("Catalog exception: " + msg){};
+    explicit CatalogException(const std::string& msg) : Exception("Catalog exception: " + msg){};
 };
 
 class StorageException : public Exception {
 public:
-    explicit StorageException(const string& msg) : Exception("Storage exception: " + msg){};
+    explicit StorageException(const std::string& msg) : Exception("Storage exception: " + msg){};
 };
 
 class BufferManagerException : public Exception {
 public:
-    explicit BufferManagerException(const string& msg)
+    explicit BufferManagerException(const std::string& msg)
         : Exception("Buffer manager exception: " + msg){};
 };
 
 class InternalException : public Exception {
 public:
-    explicit InternalException(const string& msg) : Exception(msg){};
+    explicit InternalException(const std::string& msg) : Exception(msg){};
 };
 
 class NotImplementedException : public Exception {
 public:
-    explicit NotImplementedException(const string& msg) : Exception(msg){};
+    explicit NotImplementedException(const std::string& msg) : Exception(msg){};
 };
 
 class RuntimeException : public Exception {
 public:
-    explicit RuntimeException(const string& msg) : Exception("Runtime exception: " + msg){};
+    explicit RuntimeException(const std::string& msg) : Exception("Runtime exception: " + msg){};
 };
 
 class ConnectionException : public Exception {
 public:
-    explicit ConnectionException(const string& msg) : Exception(msg){};
+    explicit ConnectionException(const std::string& msg) : Exception(msg){};
 };
 
 class TransactionManagerException : public Exception {
 public:
-    explicit TransactionManagerException(const string& msg) : Exception(msg){};
+    explicit TransactionManagerException(const std::string& msg) : Exception(msg){};
 };
 
 } // namespace common

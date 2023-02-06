@@ -14,8 +14,8 @@ void LogicalAggregate::computeSchema() {
     }
 }
 
-string LogicalAggregate::getExpressionsForPrinting() const {
-    string result = "Group By [";
+std::string LogicalAggregate::getExpressionsForPrinting() const {
+    std::string result = "Group By [";
     for (auto& expression : expressionsToGroupBy) {
         result += expression->getUniqueName() + ", ";
     }

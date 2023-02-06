@@ -3,7 +3,7 @@
 namespace kuzu {
 namespace common {
 
-void DataChunk::insert(uint32_t pos, shared_ptr<ValueVector> valueVector) {
+void DataChunk::insert(uint32_t pos, std::shared_ptr<ValueVector> valueVector) {
     valueVector->setState(this->state);
     assert(valueVectors.size() > pos);
     valueVectors[pos] = std::move(valueVector);

@@ -7,17 +7,14 @@
 #include "ltrim_operation.h"
 #include "rtrim_operation.h"
 
-using namespace std;
-using namespace kuzu::common;
-
 namespace kuzu {
 namespace function {
 namespace operation {
 
 struct Trim : BaseStrOperation {
 public:
-    static inline void operation(
-        ku_string_t& input, ku_string_t& result, ValueVector& resultValueVector) {
+    static inline void operation(common::ku_string_t& input, common::ku_string_t& result,
+        common::ValueVector& resultValueVector) {
         BaseStrOperation::operation(input, result, resultValueVector, trim);
     }
 

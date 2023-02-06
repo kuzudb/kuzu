@@ -9,6 +9,7 @@
 
 using namespace kuzu::parser;
 using namespace kuzu::binder;
+using namespace kuzu::common;
 using namespace kuzu::planner;
 using namespace kuzu::processor;
 using namespace kuzu::transaction;
@@ -19,7 +20,7 @@ namespace main {
 Connection::Connection(Database* database) {
     assert(database != nullptr);
     this->database = database;
-    clientContext = make_unique<ClientContext>();
+    clientContext = std::make_unique<ClientContext>();
     transactionMode = AUTO_COMMIT;
 }
 
@@ -29,23 +30,23 @@ Connection::~Connection() {
     }
 }
 
-unique_ptr<QueryResult> Connection::query(const string& query) {
+std::unique_ptr<QueryResult> Connection::query(const std::string& query) {
     lock_t lck{mtx};
-    unique_ptr<PreparedStatement> preparedStatement;
+    std::unique_ptr<PreparedStatement> preparedStatement;
     preparedStatement = prepareNoLock(query);
     return executeAndAutoCommitIfNecessaryNoLock(preparedStatement.get());
 }
 
-unique_ptr<QueryResult> Connection::queryResultWithError(std::string& errMsg) {
-    auto queryResult = make_unique<QueryResult>();
+std::unique_ptr<QueryResult> Connection::queryResultWithError(std::string& errMsg) {
+    auto queryResult = std::make_unique<QueryResult>();
     queryResult->success = false;
     queryResult->errMsg = errMsg;
     return queryResult;
 }
 
 std::unique_ptr<PreparedStatement> Connection::prepareNoLock(
-    const string& query, bool enumerateAllPlans) {
-    auto preparedStatement = make_unique<PreparedStatement>();
+    const std::string& query, bool enumerateAllPlans) {
+    auto preparedStatement = std::make_unique<PreparedStatement>();
     if (query.empty()) {
         preparedStatement->success = false;
         preparedStatement->errMsg = "Connection Exception: Query is empty.";
@@ -53,8 +54,8 @@ std::unique_ptr<PreparedStatement> Connection::prepareNoLock(
     }
     auto compilingTimer = TimeMetric(true /* enable */);
     compilingTimer.start();
-    unique_ptr<ExecutionContext> executionContext;
-    unique_ptr<LogicalPlan> logicalPlan;
+    std::unique_ptr<ExecutionContext> executionContext;
+    std::unique_ptr<LogicalPlan> logicalPlan;
     try {
         // parsing
         auto statement = Parser::parseQuery(query);
@@ -71,7 +72,7 @@ std::unique_ptr<PreparedStatement> Connection::prepareNoLock(
         auto& nodeStatistics =
             database->storageManager->getNodesStore().getNodesStatisticsAndDeletedIDs();
         auto& relStatistics = database->storageManager->getRelsStore().getRelsStatistics();
-        vector<unique_ptr<LogicalPlan>> plans;
+        std::vector<std::unique_ptr<LogicalPlan>> plans;
         if (enumerateAllPlans) {
             plans = Planner::getAllPlans(
                 *database->catalog, nodeStatistics, relStatistics, *boundStatement);
@@ -83,7 +84,7 @@ std::unique_ptr<PreparedStatement> Connection::prepareNoLock(
             optimizer::Optimizer::optimize(plan.get());
         }
         preparedStatement->logicalPlans = std::move(plans);
-    } catch (exception& exception) {
+    } catch (std::exception& exception) {
         preparedStatement->success = false;
         preparedStatement->errMsg = exception.what();
     }
@@ -92,31 +93,31 @@ std::unique_ptr<PreparedStatement> Connection::prepareNoLock(
     return preparedStatement;
 }
 
-string Connection::getNodeTableNames() {
+std::string Connection::getNodeTableNames() {
     lock_t lck{mtx};
-    string result = "Node tables: \n";
+    std::string result = "Node tables: \n";
     for (auto& tableIDSchema : database->catalog->getReadOnlyVersion()->getNodeTableSchemas()) {
         result += "\t" + tableIDSchema.second->tableName + "\n";
     }
     return result;
 }
 
-string Connection::getRelTableNames() {
+std::string Connection::getRelTableNames() {
     lock_t lck{mtx};
-    string result = "Rel tables: \n";
+    std::string result = "Rel tables: \n";
     for (auto& tableIDSchema : database->catalog->getReadOnlyVersion()->getRelTableSchemas()) {
         result += "\t" + tableIDSchema.second->tableName + "\n";
     }
     return result;
 }
 
-string Connection::getNodePropertyNames(const string& tableName) {
+std::string Connection::getNodePropertyNames(const std::string& tableName) {
     lock_t lck{mtx};
     auto catalog = database->catalog.get();
     if (!catalog->getReadOnlyVersion()->containNodeTable(tableName)) {
         throw Exception("Cannot find node table " + tableName);
     }
-    string result = tableName + " properties: \n";
+    std::string result = tableName + " properties: \n";
     auto tableID = catalog->getReadOnlyVersion()->getTableID(tableName);
     auto primaryKeyPropertyID =
         catalog->getReadOnlyVersion()->getNodeTableSchema(tableID)->getPrimaryKey().propertyID;
@@ -127,14 +128,14 @@ string Connection::getNodePropertyNames(const string& tableName) {
     return result;
 }
 
-string Connection::getRelPropertyNames(const string& relTableName) {
+std::string Connection::getRelPropertyNames(const std::string& relTableName) {
     lock_t lck{mtx};
     auto catalog = database->catalog.get();
     if (!catalog->getReadOnlyVersion()->containRelTable(relTableName)) {
         throw Exception("Cannot find rel table " + relTableName);
     }
     auto relTableID = catalog->getReadOnlyVersion()->getTableID(relTableName);
-    string result = relTableName + " src nodes: \n";
+    std::string result = relTableName + " src nodes: \n";
     for (auto& nodeTableID :
         catalog->getReadOnlyVersion()->getNodeTableIDsForRelTableDirection(relTableID, FWD)) {
         result += "\t" + catalog->getReadOnlyVersion()->getTableName(nodeTableID) + "\n";
@@ -146,7 +147,7 @@ string Connection::getRelPropertyNames(const string& relTableName) {
     }
     result += relTableName + " properties: \n";
     for (auto& property : catalog->getReadOnlyVersion()->getRelProperties(relTableID)) {
-        if (TableSchema::isReservedPropertyName(property.name)) {
+        if (catalog::TableSchema::isReservedPropertyName(property.name)) {
             continue;
         }
         result += "\t" + property.name + " " + Types::dataTypeToString(property.dataType) + "\n";
@@ -154,8 +155,8 @@ string Connection::getRelPropertyNames(const string& relTableName) {
     return result;
 }
 
-std::unique_ptr<QueryResult> Connection::executeWithParams(
-    PreparedStatement* preparedStatement, unordered_map<string, shared_ptr<Value>>& inputParams) {
+std::unique_ptr<QueryResult> Connection::executeWithParams(PreparedStatement* preparedStatement,
+    std::unordered_map<std::string, std::shared_ptr<Value>>& inputParams) {
     lock_t lck{mtx};
     if (!preparedStatement->isSuccess()) {
         return queryResultWithError(preparedStatement->errMsg);
@@ -163,14 +164,14 @@ std::unique_ptr<QueryResult> Connection::executeWithParams(
     try {
         bindParametersNoLock(preparedStatement, inputParams);
     } catch (Exception& exception) {
-        string errMsg = exception.what();
+        std::string errMsg = exception.what();
         return queryResultWithError(errMsg);
     }
     return executeAndAutoCommitIfNecessaryNoLock(preparedStatement);
 }
 
-void Connection::bindParametersNoLock(
-    PreparedStatement* preparedStatement, unordered_map<string, shared_ptr<Value>>& inputParams) {
+void Connection::bindParametersNoLock(PreparedStatement* preparedStatement,
+    std::unordered_map<std::string, std::shared_ptr<Value>>& inputParams) {
     auto& parameterMap = preparedStatement->parameterMap;
     for (auto& [name, value] : inputParams) {
         if (!parameterMap.contains(name)) {
@@ -190,13 +191,13 @@ std::unique_ptr<QueryResult> Connection::executeAndAutoCommitIfNecessaryNoLock(
     PreparedStatement* preparedStatement, uint32_t planIdx) {
     auto mapper = PlanMapper(
         *database->storageManager, database->memoryManager.get(), database->catalog.get());
-    unique_ptr<PhysicalPlan> physicalPlan;
+    std::unique_ptr<PhysicalPlan> physicalPlan;
     if (preparedStatement->isSuccess()) {
         try {
             physicalPlan =
                 mapper.mapLogicalPlanToPhysical(preparedStatement->logicalPlans[planIdx].get(),
                     preparedStatement->getExpressionsToCollect(), preparedStatement->statementType);
-        } catch (exception& exception) {
+        } catch (std::exception& exception) {
             preparedStatement->success = false;
             preparedStatement->errMsg = exception.what();
         }
@@ -205,16 +206,17 @@ std::unique_ptr<QueryResult> Connection::executeAndAutoCommitIfNecessaryNoLock(
         rollbackIfNecessaryNoLock();
         return queryResultWithError(preparedStatement->errMsg);
     }
-    auto queryResult = make_unique<QueryResult>(preparedStatement->preparedSummary);
-    auto profiler = make_unique<Profiler>();
-    auto executionContext = make_unique<ExecutionContext>(clientContext->numThreadsForExecution,
-        profiler.get(), database->memoryManager.get(), database->bufferManager.get());
+    auto queryResult = std::make_unique<QueryResult>(preparedStatement->preparedSummary);
+    auto profiler = std::make_unique<Profiler>();
+    auto executionContext =
+        std::make_unique<ExecutionContext>(clientContext->numThreadsForExecution, profiler.get(),
+            database->memoryManager.get(), database->bufferManager.get());
     // Execute query if EXPLAIN is not enabled.
     if (!preparedStatement->preparedSummary.isExplain) {
         profiler->enabled = preparedStatement->preparedSummary.isProfile;
         auto executingTimer = TimeMetric(true /* enable */);
         executingTimer.start();
-        shared_ptr<FactorizedTable> resultFT;
+        std::shared_ptr<FactorizedTable> resultFT;
         try {
             beginTransactionIfAutoCommit(preparedStatement);
             executionContext->transaction = activeTransaction.get();
@@ -225,7 +227,7 @@ std::unique_ptr<QueryResult> Connection::executeAndAutoCommitIfNecessaryNoLock(
             }
         } catch (Exception& exception) {
             rollbackIfNecessaryNoLock();
-            string errMsg = exception.what();
+            std::string errMsg = exception.what();
             return queryResultWithError(errMsg);
         }
         executingTimer.stop();
@@ -234,7 +236,7 @@ std::unique_ptr<QueryResult> Connection::executeAndAutoCommitIfNecessaryNoLock(
             preparedStatement->statementResult->getColumns(),
             preparedStatement->statementResult->getExpressionsToCollectPerColumn());
     }
-    auto planPrinter = make_unique<PlanPrinter>(physicalPlan.get(), std::move(profiler));
+    auto planPrinter = std::make_unique<PlanPrinter>(physicalPlan.get(), std::move(profiler));
     queryResult->querySummary->planInJson = planPrinter->printPlanToJson();
     queryResult->querySummary->planInOstream = planPrinter->printPlanToOstream();
     return queryResult;

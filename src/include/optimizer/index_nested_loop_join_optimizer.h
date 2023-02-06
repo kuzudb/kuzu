@@ -16,14 +16,16 @@ namespace optimizer {
 // implemented.
 class IndexNestedLoopJoinOptimizer {
 public:
-    static shared_ptr<planner::LogicalOperator> rewrite(shared_ptr<planner::LogicalOperator> op);
+    static std::shared_ptr<planner::LogicalOperator> rewrite(
+        std::shared_ptr<planner::LogicalOperator> op);
 
 private:
-    static shared_ptr<planner::LogicalOperator> rewriteFilter(
-        shared_ptr<planner::LogicalOperator> op);
+    static std::shared_ptr<planner::LogicalOperator> rewriteFilter(
+        std::shared_ptr<planner::LogicalOperator> op);
 
-    static shared_ptr<planner::LogicalOperator> rewriteCrossProduct(
-        shared_ptr<planner::LogicalOperator> op, shared_ptr<Expression> predicate);
+    static std::shared_ptr<planner::LogicalOperator> rewriteCrossProduct(
+        std::shared_ptr<planner::LogicalOperator> op,
+        std::shared_ptr<binder::Expression> predicate);
 
     static planner::LogicalOperator* searchScanNodeOnPipeline(planner::LogicalOperator* op);
 };

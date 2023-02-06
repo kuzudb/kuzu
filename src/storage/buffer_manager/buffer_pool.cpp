@@ -20,8 +20,9 @@ Frame::Frame(page_offset_t pageSize, std::uint8_t* buffer)
 Frame::~Frame() noexcept(false) {
     auto count = pinCount.load();
     if (0 != count && -1u != count) {
-        throw BufferManagerException("Deleting buffer that is still pinned. pinCount: " +
-                                     to_string(count) + " pageIdx: " + to_string(pageIdx));
+        throw BufferManagerException(
+            "Deleting buffer that is still pinned. pinCount: " + std::to_string(count) +
+            " pageIdx: " + std::to_string(pageIdx));
     }
 }
 
@@ -46,7 +47,8 @@ void Frame::releaseBuffer() {
     int error = madvise(buffer, pageSize, MADV_DONTNEED);
     if (error) {
         throw BufferManagerException("Releasing frame buffer failed with error code " +
-                                     to_string(error) + ": " + string(std::strerror(errno)));
+                                     std::to_string(error) + ": " +
+                                     std::string(std::strerror(errno)));
     }
 }
 
@@ -58,7 +60,7 @@ BufferPool::BufferPool(uint64_t pageSize, uint64_t maxSize)
         NULL, (numFrames * pageSize), PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     for (auto i = 0u; i < numFrames; ++i) {
         auto buffer = mmapRegion + (i * pageSize);
-        bufferCache.emplace_back(make_unique<Frame>(pageSize, buffer));
+        bufferCache.emplace_back(std::make_unique<Frame>(pageSize, buffer));
     }
     logger->info("Initialize buffer pool with the max size {}B, #{}byte-pages {}.", maxSize,
         pageSize, numFrames);
@@ -74,7 +76,7 @@ void BufferPool::resize(uint64_t newSize) {
         (u_int8_t*)mmap(NULL, newSize, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     for (auto i = 0u; i < newNumFrames - numFrames; ++i) {
         auto buffer = mmapRegion + (i * pageSize);
-        bufferCache.emplace_back(make_unique<Frame>(pageSize, buffer));
+        bufferCache.emplace_back(std::make_unique<Frame>(pageSize, buffer));
     }
     numFrames = newNumFrames;
     logger->info(
@@ -166,8 +168,8 @@ void BufferPool::setPinnedPageDirty(FileHandle& fileHandle, page_idx_t pageIdx) 
         fileHandle.releasePageLock(pageIdx);
         throw BufferManagerException("If a page is not in memory or is not pinned, cannot set "
                                      "it to isDirty = true.filePath: " +
-                                     fileHandle.fileInfo->path + " pageIdx: " + to_string(pageIdx) +
-                                     ".");
+                                     fileHandle.fileInfo->path +
+                                     " pageIdx: " + std::to_string(pageIdx) + ".");
     }
     bufferCache[frameIdx]->setIsDirty(true /* isDirty */);
     fileHandle.releasePageLock(pageIdx);
@@ -242,7 +244,7 @@ bool BufferPool::tryEvict(
     return true;
 }
 
-void BufferPool::flushIfDirty(const unique_ptr<Frame>& frame) {
+void BufferPool::flushIfDirty(const std::unique_ptr<Frame>& frame) {
     auto fileHandleInFrame = reinterpret_cast<FileHandle*>(frame->fileHandlePtr.load());
     auto pageIdxInFrame = frame->pageIdx.load();
     if (frame->isDirty) {
@@ -252,7 +254,7 @@ void BufferPool::flushIfDirty(const unique_ptr<Frame>& frame) {
 }
 
 void BufferPool::clearFrameAndUnswizzleWithoutLock(
-    const unique_ptr<Frame>& frame, FileHandle& fileHandleInFrame, page_idx_t pageIdxInFrame) {
+    const std::unique_ptr<Frame>& frame, FileHandle& fileHandleInFrame, page_idx_t pageIdxInFrame) {
     frame->resetFrameWithoutLock();
     fileHandleInFrame.unswizzle(pageIdxInFrame);
 }
@@ -275,7 +277,8 @@ void BufferPool::moveClockHand(uint64_t newClockHand) {
         if (currClockHand > newClockHand) {
             return;
         }
-        if (clockHand.compare_exchange_strong(currClockHand, newClockHand, memory_order_seq_cst)) {
+        if (clockHand.compare_exchange_strong(
+                currClockHand, newClockHand, std::memory_order_seq_cst)) {
             return;
         }
     } while (true);

@@ -11,24 +11,25 @@ namespace processor {
 
 struct ProbeState {
     explicit ProbeState() : nextMatchedTupleIdx{0} {
-        matchedTuples = make_unique<uint8_t*[]>(DEFAULT_VECTOR_CAPACITY);
-        probedTuples = make_unique<uint8_t*[]>(DEFAULT_VECTOR_CAPACITY);
-        matchedSelVector = make_unique<SelectionVector>(DEFAULT_VECTOR_CAPACITY);
+        matchedTuples = std::make_unique<uint8_t*[]>(common::DEFAULT_VECTOR_CAPACITY);
+        probedTuples = std::make_unique<uint8_t*[]>(common::DEFAULT_VECTOR_CAPACITY);
+        matchedSelVector =
+            std::make_unique<common::SelectionVector>(common::DEFAULT_VECTOR_CAPACITY);
         matchedSelVector->resetSelectorToValuePosBuffer();
     }
 
     // Each key corresponds to a pointer with the same hash value from the ht directory.
-    unique_ptr<uint8_t*[]> probedTuples;
+    std::unique_ptr<uint8_t*[]> probedTuples;
     // Pointers to tuples in ht that actually matched.
-    unique_ptr<uint8_t*[]> matchedTuples;
+    std::unique_ptr<uint8_t*[]> matchedTuples;
     // Selective index mapping each probed tuple to its probe side key vector.
-    unique_ptr<SelectionVector> matchedSelVector;
-    sel_t nextMatchedTupleIdx;
+    std::unique_ptr<common::SelectionVector> matchedSelVector;
+    common::sel_t nextMatchedTupleIdx;
 };
 
 struct ProbeDataInfo {
 public:
-    ProbeDataInfo(vector<DataPos> keysDataPos, vector<DataPos> payloadsOutPos)
+    ProbeDataInfo(std::vector<DataPos> keysDataPos, std::vector<DataPos> payloadsOutPos)
         : keysDataPos{std::move(keysDataPos)}, payloadsOutPos{std::move(payloadsOutPos)},
           markDataPos{UINT32_MAX, UINT32_MAX} {}
 
@@ -40,26 +41,26 @@ public:
     inline uint32_t getNumPayloads() const { return payloadsOutPos.size(); }
 
 public:
-    vector<DataPos> keysDataPos;
-    vector<DataPos> payloadsOutPos;
+    std::vector<DataPos> keysDataPos;
+    std::vector<DataPos> payloadsOutPos;
     DataPos markDataPos;
 };
 
 // Probe side on left, i.e. children[0] and build side on right, i.e. children[1]
 class HashJoinProbe : public PhysicalOperator, SelVectorOverWriter {
 public:
-    HashJoinProbe(shared_ptr<HashJoinSharedState> sharedState, JoinType joinType,
-        const ProbeDataInfo& probeDataInfo, unique_ptr<PhysicalOperator> probeChild,
-        unique_ptr<PhysicalOperator> buildChild, uint32_t id, const string& paramsString)
+    HashJoinProbe(std::shared_ptr<HashJoinSharedState> sharedState, common::JoinType joinType,
+        const ProbeDataInfo& probeDataInfo, std::unique_ptr<PhysicalOperator> probeChild,
+        std::unique_ptr<PhysicalOperator> buildChild, uint32_t id, const std::string& paramsString)
         : PhysicalOperator{PhysicalOperatorType::HASH_JOIN_PROBE, std::move(probeChild),
               std::move(buildChild), id, paramsString},
           sharedState{std::move(sharedState)}, joinType{joinType}, probeDataInfo{probeDataInfo} {}
 
     // This constructor is used for cloning only.
     // HashJoinProbe do not need to clone hashJoinBuild which is on a different pipeline.
-    HashJoinProbe(shared_ptr<HashJoinSharedState> sharedState, JoinType joinType,
-        const ProbeDataInfo& probeDataInfo, unique_ptr<PhysicalOperator> probeChild, uint32_t id,
-        const string& paramsString)
+    HashJoinProbe(std::shared_ptr<HashJoinSharedState> sharedState, common::JoinType joinType,
+        const ProbeDataInfo& probeDataInfo, std::unique_ptr<PhysicalOperator> probeChild,
+        uint32_t id, const std::string& paramsString)
         : PhysicalOperator{PhysicalOperatorType::HASH_JOIN_PROBE, std::move(probeChild), id,
               paramsString},
           sharedState{std::move(sharedState)}, joinType{joinType}, probeDataInfo{probeDataInfo} {}
@@ -68,7 +69,7 @@ public:
 
     bool getNextTuplesInternal() override;
 
-    inline unique_ptr<PhysicalOperator> clone() override {
+    inline std::unique_ptr<PhysicalOperator> clone() override {
         return make_unique<HashJoinProbe>(
             sharedState, joinType, probeDataInfo, children[0]->clone(), id, paramsString);
     }
@@ -84,15 +85,15 @@ private:
     uint64_t getNextJoinResult();
 
 private:
-    shared_ptr<HashJoinSharedState> sharedState;
-    JoinType joinType;
+    std::shared_ptr<HashJoinSharedState> sharedState;
+    common::JoinType joinType;
 
     ProbeDataInfo probeDataInfo;
-    vector<shared_ptr<ValueVector>> vectorsToReadInto;
-    vector<uint32_t> columnIdxsToReadFrom;
-    vector<shared_ptr<ValueVector>> keyVectors;
-    shared_ptr<ValueVector> markVector;
-    unique_ptr<ProbeState> probeState;
+    std::vector<std::shared_ptr<common::ValueVector>> vectorsToReadInto;
+    std::vector<uint32_t> columnIdxsToReadFrom;
+    std::vector<std::shared_ptr<common::ValueVector>> keyVectors;
+    std::shared_ptr<common::ValueVector> markVector;
+    std::unique_ptr<ProbeState> probeState;
 };
 
 } // namespace processor

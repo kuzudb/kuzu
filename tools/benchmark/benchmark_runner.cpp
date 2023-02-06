@@ -4,23 +4,26 @@
 
 #include "spdlog/spdlog.h"
 
+using namespace kuzu::main;
+
 namespace kuzu {
 namespace benchmark {
 
-const string BENCHMARK_SUFFIX = ".benchmark";
+const std::string BENCHMARK_SUFFIX = ".benchmark";
 
-BenchmarkRunner::BenchmarkRunner(const string& datasetPath, unique_ptr<BenchmarkConfig> config)
+BenchmarkRunner::BenchmarkRunner(
+    const std::string& datasetPath, std::unique_ptr<BenchmarkConfig> config)
     : config{std::move(config)} {
-    database = make_unique<Database>(
+    database = std::make_unique<Database>(
         DatabaseConfig(datasetPath), SystemConfig(this->config->bufferPoolSize));
     spdlog::set_level(spdlog::level::debug);
 }
 
-void BenchmarkRunner::registerBenchmarks(const string& path) {
-    if (filesystem::is_regular_file(path)) {
+void BenchmarkRunner::registerBenchmarks(const std::string& path) {
+    if (std::filesystem::is_regular_file(path)) {
         registerBenchmark(path);
-    } else if (filesystem::is_directory(path)) {
-        for (auto& f : filesystem::directory_iterator(path)) {
+    } else if (std::filesystem::is_directory(path)) {
+        for (auto& f : std::filesystem::directory_iterator(path)) {
             registerBenchmark(f.path());
         }
     }
@@ -30,18 +33,18 @@ void BenchmarkRunner::runAllBenchmarks() {
     for (auto& benchmark : benchmarks) {
         try {
             runBenchmark(benchmark.get());
-        } catch (exception& e) {
+        } catch (std::exception& e) {
             spdlog::error(
                 "Error encountered while running benchmark {}: {}.", benchmark->name, e.what());
         }
     }
 }
 
-void BenchmarkRunner::registerBenchmark(const string& path) {
+void BenchmarkRunner::registerBenchmark(const std::string& path) {
     if (path.ends_with(BENCHMARK_SUFFIX)) {
-        auto benchmark = make_unique<Benchmark>(path, database.get(), *config);
+        auto benchmark = std::make_unique<Benchmark>(path, database.get(), *config);
         spdlog::info("Register benchmark {}", benchmark->name);
-        benchmarks.push_back(move(benchmark));
+        benchmarks.push_back(std::move(benchmark));
     }
 }
 
@@ -66,8 +69,9 @@ void BenchmarkRunner::runBenchmark(Benchmark* benchmark) const {
         benchmark->log(i + 1, *queryResult);
         runTimes[i] = queryResult->getQuerySummary()->getExecutionTime();
     }
-    spdlog::info("Time Taken (Average of Last " + to_string(config->numRuns) + " runs) (ms): " +
-                 to_string(computeAverageOfLastRuns(
+    spdlog::info("Time Taken (Average of Last " + std::to_string(config->numRuns) +
+                 " runs) (ms): " +
+                 std::to_string(computeAverageOfLastRuns(
                      runTimes, config->numRuns, config->numRuns /* numRunsToAverage */)));
 }
 

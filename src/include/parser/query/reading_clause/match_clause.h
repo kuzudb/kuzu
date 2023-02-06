@@ -10,17 +10,17 @@ namespace parser {
 class MatchClause : public ReadingClause {
 public:
     explicit MatchClause(
-        vector<unique_ptr<PatternElement>> patternElements, bool isOptional = false)
-        : ReadingClause{ClauseType::MATCH}, patternElements{move(patternElements)},
+        std::vector<std::unique_ptr<PatternElement>> patternElements, bool isOptional = false)
+        : ReadingClause{common::ClauseType::MATCH}, patternElements{std::move(patternElements)},
           isOptional{isOptional} {}
-    ~MatchClause() = default;
+    ~MatchClause() override = default;
 
-    inline const vector<unique_ptr<PatternElement>>& getPatternElements() const {
+    inline const std::vector<std::unique_ptr<PatternElement>>& getPatternElements() const {
         return patternElements;
     }
 
-    inline void setWhereClause(unique_ptr<ParsedExpression> expression) {
-        whereClause = move(expression);
+    inline void setWhereClause(std::unique_ptr<ParsedExpression> expression) {
+        whereClause = std::move(expression);
     }
 
     inline bool hasWhereClause() const { return whereClause != nullptr; }
@@ -29,8 +29,8 @@ public:
     inline bool getIsOptional() const { return isOptional; }
 
 private:
-    vector<unique_ptr<PatternElement>> patternElements;
-    unique_ptr<ParsedExpression> whereClause;
+    std::vector<std::unique_ptr<PatternElement>> patternElements;
+    std::unique_ptr<ParsedExpression> whereClause;
     bool isOptional;
 };
 

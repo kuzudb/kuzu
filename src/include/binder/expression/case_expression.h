@@ -6,19 +6,23 @@ namespace kuzu {
 namespace binder {
 
 struct CaseAlternative {
-    shared_ptr<Expression> whenExpression;
-    shared_ptr<Expression> thenExpression;
+    std::shared_ptr<Expression> whenExpression;
+    std::shared_ptr<Expression> thenExpression;
 
-    CaseAlternative(shared_ptr<Expression> whenExpression, shared_ptr<Expression> thenExpression)
+    CaseAlternative(
+        std::shared_ptr<Expression> whenExpression, std::shared_ptr<Expression> thenExpression)
         : whenExpression{std::move(whenExpression)}, thenExpression{std::move(thenExpression)} {}
 };
 
 class CaseExpression : public Expression {
 public:
-    CaseExpression(DataType dataType, shared_ptr<Expression> elseExpression, string name)
-        : Expression{CASE_ELSE, dataType, name}, elseExpression{std::move(elseExpression)} {}
+    CaseExpression(common::DataType dataType, std::shared_ptr<Expression> elseExpression,
+        const std::string& name)
+        : Expression{common::CASE_ELSE, std::move(dataType), name}, elseExpression{std::move(
+                                                                        elseExpression)} {}
 
-    inline void addCaseAlternative(shared_ptr<Expression> when, shared_ptr<Expression> then) {
+    inline void addCaseAlternative(
+        std::shared_ptr<Expression> when, std::shared_ptr<Expression> then) {
         caseAlternatives.push_back(make_unique<CaseAlternative>(std::move(when), std::move(then)));
     }
     inline size_t getNumCaseAlternatives() const { return caseAlternatives.size(); }
@@ -26,13 +30,13 @@ public:
         return caseAlternatives[idx].get();
     }
 
-    inline shared_ptr<Expression> getElseExpression() const { return elseExpression; }
+    inline std::shared_ptr<Expression> getElseExpression() const { return elseExpression; }
 
     expression_vector getChildren() const override;
 
 private:
-    vector<unique_ptr<CaseAlternative>> caseAlternatives;
-    shared_ptr<Expression> elseExpression;
+    std::vector<std::unique_ptr<CaseAlternative>> caseAlternatives;
+    std::shared_ptr<Expression> elseExpression;
 };
 
 } // namespace binder

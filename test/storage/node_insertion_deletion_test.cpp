@@ -1,6 +1,7 @@
 #include "graph_test/graph_test.h"
 #include "storage/wal_replayer.h"
 
+using namespace kuzu::common;
 using namespace kuzu::storage;
 using namespace kuzu::testing;
 
@@ -14,13 +15,13 @@ public:
         initDBAndConnection();
     }
 
-    string getInputDir() override {
+    std::string getInputDir() override {
         return TestHelper::appendKuzuRootPath("dataset/node-insertion-deletion-tests/int64-pk/");
     }
 
     void initDBAndConnection() {
         createDBAndConn();
-        readConn = make_unique<Connection>(database.get());
+        readConn = std::make_unique<Connection>(database.get());
         table_id_t personTableID =
             getCatalog(*database)->getReadOnlyVersion()->getTableID("person");
         personNodeTable = getStorageManager(*database)->getNodesStore().getNodeTable(personTableID);
@@ -42,12 +43,12 @@ public:
         // NodesStatisticsAndDeletedIDs adding a NULL value for the ID. This should change later.
         offset_t nodeOffset = personNodeTable->getNodeStatisticsAndDeletedIDs()->addNode(
             personNodeTable->getTableID());
-        auto dataChunk = make_shared<DataChunk>(2);
+        auto dataChunk = std::make_shared<DataChunk>(2);
         // Flatten the data chunk
         dataChunk->state->currIdx = 0;
-        auto nodeIDVector = make_shared<ValueVector>(INTERNAL_ID, getMemoryManager(*database));
+        auto nodeIDVector = std::make_shared<ValueVector>(INTERNAL_ID, getMemoryManager(*database));
         dataChunk->insert(0, nodeIDVector);
-        auto idVector = make_shared<ValueVector>(INT64, getMemoryManager(*database));
+        auto idVector = std::make_shared<ValueVector>(INT64, getMemoryManager(*database));
         dataChunk->insert(1, idVector);
         ((nodeID_t*)nodeIDVector->getData())[0].offset = nodeOffset;
         idVector->setNull(0, true /* is null */);
@@ -56,7 +57,7 @@ public:
     }
 
 public:
-    unique_ptr<Connection> readConn;
+    std::unique_ptr<Connection> readConn;
     NodeTable* personNodeTable;
     Column* idColumn;
 };
@@ -88,7 +89,7 @@ TEST_F(NodeInsertionDeletionTests, DeleteAddMixedTest) {
         ASSERT_EQ(nodeOffset, 10000 + i);
     }
 
-    string query = "MATCH (a:person) RETURN count(*)";
+    std::string query = "MATCH (a:person) RETURN count(*)";
     ASSERT_EQ(conn->query(query)->getNext()->getValue(0)->getValue<int64_t>(), 10010);
     ASSERT_EQ(readConn->query(query)->getNext()->getValue(0)->getValue<int64_t>(), 10000);
     conn->commit();

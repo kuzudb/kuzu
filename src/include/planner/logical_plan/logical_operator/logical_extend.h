@@ -5,13 +5,13 @@
 
 namespace kuzu {
 namespace planner {
-using namespace kuzu::binder;
 
 class LogicalExtend : public LogicalOperator {
 public:
-    LogicalExtend(shared_ptr<NodeExpression> boundNode, shared_ptr<NodeExpression> nbrNode,
-        shared_ptr<RelExpression> rel, RelDirection direction, expression_vector properties,
-        bool extendToNewGroup, shared_ptr<LogicalOperator> child)
+    LogicalExtend(std::shared_ptr<binder::NodeExpression> boundNode,
+        std::shared_ptr<binder::NodeExpression> nbrNode, std::shared_ptr<binder::RelExpression> rel,
+        common::RelDirection direction, binder::expression_vector properties, bool extendToNewGroup,
+        std::shared_ptr<LogicalOperator> child)
         : LogicalOperator{LogicalOperatorType::EXTEND, std::move(child)}, boundNode{std::move(
                                                                               boundNode)},
           nbrNode{std::move(nbrNode)}, rel{std::move(rel)}, direction{direction},
@@ -19,28 +19,28 @@ public:
 
     void computeSchema() override;
 
-    inline string getExpressionsForPrinting() const override {
-        return boundNode->getRawName() + (direction == RelDirection::FWD ? "->" : "<-") +
+    inline std::string getExpressionsForPrinting() const override {
+        return boundNode->getRawName() + (direction == common::RelDirection::FWD ? "->" : "<-") +
                nbrNode->getRawName();
     }
 
-    inline shared_ptr<NodeExpression> getBoundNode() const { return boundNode; }
-    inline shared_ptr<NodeExpression> getNbrNode() const { return nbrNode; }
-    inline shared_ptr<RelExpression> getRel() const { return rel; }
-    inline RelDirection getDirection() const { return direction; }
-    inline expression_vector getProperties() const { return properties; }
+    inline std::shared_ptr<binder::NodeExpression> getBoundNode() const { return boundNode; }
+    inline std::shared_ptr<binder::NodeExpression> getNbrNode() const { return nbrNode; }
+    inline std::shared_ptr<binder::RelExpression> getRel() const { return rel; }
+    inline common::RelDirection getDirection() const { return direction; }
+    inline binder::expression_vector getProperties() const { return properties; }
 
-    inline unique_ptr<LogicalOperator> copy() override {
+    inline std::unique_ptr<LogicalOperator> copy() override {
         return make_unique<LogicalExtend>(
             boundNode, nbrNode, rel, direction, properties, extendToNewGroup, children[0]->copy());
     }
 
 protected:
-    shared_ptr<NodeExpression> boundNode;
-    shared_ptr<NodeExpression> nbrNode;
-    shared_ptr<RelExpression> rel;
-    RelDirection direction;
-    expression_vector properties;
+    std::shared_ptr<binder::NodeExpression> boundNode;
+    std::shared_ptr<binder::NodeExpression> nbrNode;
+    std::shared_ptr<binder::RelExpression> rel;
+    common::RelDirection direction;
+    binder::expression_vector properties;
     // When extend might increase cardinality (i.e. n * m), we extend to a new factorization group.
     bool extendToNewGroup;
 };

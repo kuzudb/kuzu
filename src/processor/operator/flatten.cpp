@@ -1,5 +1,7 @@
 #include "processor/operator/flatten.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace processor {
 
@@ -24,7 +26,7 @@ bool Flatten::getNextTuplesInternal() {
     return true;
 }
 
-void Flatten::resetToCurrentSelVector(shared_ptr<SelectionVector>& selVector) {
+void Flatten::resetToCurrentSelVector(std::shared_ptr<SelectionVector>& selVector) {
     selVector = currentSelVector;
 }
 

@@ -6,20 +6,25 @@
 #include "processor/operator/aggregate/simple_aggregate.h"
 #include "processor/operator/aggregate/simple_aggregate_scan.h"
 
+using namespace kuzu::binder;
+using namespace kuzu::common;
+using namespace kuzu::function;
+using namespace kuzu::planner;
+
 namespace kuzu {
 namespace processor {
 
-unique_ptr<PhysicalOperator> PlanMapper::mapLogicalAggregateToPhysical(
+std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalAggregateToPhysical(
     LogicalOperator* logicalOperator) {
     auto& logicalAggregate = (const LogicalAggregate&)*logicalOperator;
     auto outSchema = logicalAggregate.getSchema();
     auto inSchema = logicalAggregate.getSchemaBeforeAggregate();
     auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0));
     auto paramsString = logicalAggregate.getExpressionsForPrinting();
-    vector<DataPos> inputAggVectorsPos;
-    vector<DataPos> outputAggVectorsPos;
-    vector<DataType> outputAggVectorsDataTypes;
-    vector<unique_ptr<AggregateFunction>> aggregateFunctions;
+    std::vector<DataPos> inputAggVectorsPos;
+    std::vector<DataPos> outputAggVectorsPos;
+    std::vector<DataType> outputAggVectorsDataTypes;
+    std::vector<std::unique_ptr<AggregateFunction>> aggregateFunctions;
     for (auto& expression : logicalAggregate.getExpressionsToAggregate()) {
         if (expression->getNumChildren() == 0) {
             inputAggVectorsPos.emplace_back(UINT32_MAX, UINT32_MAX);
@@ -39,28 +44,29 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalAggregateToPhysical(
             *outSchema, paramsString);
     } else {
         auto sharedState = make_shared<SimpleAggregateSharedState>(aggregateFunctions);
-        auto aggregate = make_unique<SimpleAggregate>(make_unique<ResultSetDescriptor>(*inSchema),
-            sharedState, inputAggVectorsPos, std::move(aggregateFunctions), std::move(prevOperator),
-            getOperatorID(), paramsString);
+        auto aggregate = make_unique<SimpleAggregate>(
+            std::make_unique<ResultSetDescriptor>(*inSchema), sharedState, inputAggVectorsPos,
+            std::move(aggregateFunctions), std::move(prevOperator), getOperatorID(), paramsString);
         auto aggregateScan = make_unique<SimpleAggregateScan>(sharedState, outputAggVectorsPos,
             outputAggVectorsDataTypes, std::move(aggregate), getOperatorID(), paramsString);
         return aggregateScan;
     }
 }
 
-unique_ptr<PhysicalOperator> PlanMapper::createHashAggregate(
-    vector<unique_ptr<AggregateFunction>> aggregateFunctions, vector<DataPos> inputAggVectorsPos,
-    vector<DataPos> outputAggVectorsPos, vector<DataType> outputAggVectorsDataType,
-    const expression_vector& groupByExpressions, unique_ptr<PhysicalOperator> prevOperator,
-    const Schema& inSchema, const Schema& outSchema, const string& paramsString) {
-    vector<DataPos> inputGroupByHashKeyVectorsPos;
-    vector<DataPos> inputGroupByNonHashKeyVectorsPos;
-    vector<bool> isInputGroupByHashKeyVectorFlat;
-    vector<DataPos> outputGroupByKeyVectorsPos;
-    vector<DataType> outputGroupByKeyVectorsDataTypeId;
+std::unique_ptr<PhysicalOperator> PlanMapper::createHashAggregate(
+    std::vector<std::unique_ptr<AggregateFunction>> aggregateFunctions,
+    std::vector<DataPos> inputAggVectorsPos, std::vector<DataPos> outputAggVectorsPos,
+    std::vector<DataType> outputAggVectorsDataType, const expression_vector& groupByExpressions,
+    std::unique_ptr<PhysicalOperator> prevOperator, const Schema& inSchema, const Schema& outSchema,
+    const std::string& paramsString) {
+    std::vector<DataPos> inputGroupByHashKeyVectorsPos;
+    std::vector<DataPos> inputGroupByNonHashKeyVectorsPos;
+    std::vector<bool> isInputGroupByHashKeyVectorFlat;
+    std::vector<DataPos> outputGroupByKeyVectorsPos;
+    std::vector<DataType> outputGroupByKeyVectorsDataTypeId;
     expression_vector groupByHashExpressions;
     expression_vector groupByNonHashExpressions;
-    unordered_set<string> HashPrimaryKeysNodeId;
+    std::unordered_set<std::string> HashPrimaryKeysNodeId;
     for (auto& expressionToGroupBy : groupByExpressions) {
         if (expressionToGroupBy->expressionType == PROPERTY) {
             auto& propertyExpression = (const PropertyExpression&)(*expressionToGroupBy);
@@ -83,20 +89,22 @@ unique_ptr<PhysicalOperator> PlanMapper::createHashAggregate(
         outputGroupByKeyVectorsPos, outputGroupByKeyVectorsDataTypeId, inSchema, outSchema,
         isInputGroupByHashKeyVectorFlat);
     auto sharedState = make_shared<HashAggregateSharedState>(aggregateFunctions);
-    auto aggregate = make_unique<HashAggregate>(make_unique<ResultSetDescriptor>(inSchema),
+    auto aggregate = make_unique<HashAggregate>(std::make_unique<ResultSetDescriptor>(inSchema),
         sharedState, inputGroupByHashKeyVectorsPos, inputGroupByNonHashKeyVectorsPos,
         isInputGroupByHashKeyVectorFlat, std::move(inputAggVectorsPos),
         std::move(aggregateFunctions), std::move(prevOperator), getOperatorID(), paramsString);
-    auto aggregateScan = make_unique<HashAggregateScan>(sharedState, outputGroupByKeyVectorsPos,
-        outputGroupByKeyVectorsDataTypeId, std::move(outputAggVectorsPos),
-        std::move(outputAggVectorsDataType), std::move(aggregate), getOperatorID(), paramsString);
+    auto aggregateScan = std::make_unique<HashAggregateScan>(sharedState,
+        outputGroupByKeyVectorsPos, outputGroupByKeyVectorsDataTypeId,
+        std::move(outputAggVectorsPos), std::move(outputAggVectorsDataType), std::move(aggregate),
+        getOperatorID(), paramsString);
     return aggregateScan;
 }
 
 void PlanMapper::appendGroupByExpressions(const expression_vector& groupByExpressions,
-    vector<DataPos>& inputGroupByHashKeyVectorsPos, vector<DataPos>& outputGroupByKeyVectorsPos,
-    vector<DataType>& outputGroupByKeyVectorsDataTypes, const Schema& inSchema,
-    const Schema& outSchema, vector<bool>& isInputGroupByHashKeyVectorFlat) {
+    std::vector<DataPos>& inputGroupByHashKeyVectorsPos,
+    std::vector<DataPos>& outputGroupByKeyVectorsPos,
+    std::vector<DataType>& outputGroupByKeyVectorsDataTypes, const Schema& inSchema,
+    const Schema& outSchema, std::vector<bool>& isInputGroupByHashKeyVectorFlat) {
     for (auto& expression : groupByExpressions) {
         if (inSchema.getGroup(expression->getUniqueName())->isFlat()) {
             inputGroupByHashKeyVectorsPos.emplace_back(inSchema.getExpressionPos(*expression));

@@ -9,6 +9,8 @@
 #include "function/string/vector_string_operations.h"
 #include "function/timestamp/vector_timestamp_operations.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace function {
 
@@ -25,7 +27,7 @@ void BuiltInVectorOperations::registerVectorOperations() {
 }
 
 bool BuiltInVectorOperations::canApplyStaticEvaluation(
-    const string& functionName, const expression_vector& children) {
+    const std::string& functionName, const binder::expression_vector& children) {
     if ((functionName == CAST_TO_DATE_FUNC_NAME || functionName == CAST_TO_TIMESTAMP_FUNC_NAME ||
             functionName == CAST_TO_INTERVAL_FUNC_NAME) &&
         children[0]->expressionType == LITERAL && children[0]->dataType.typeID == STRING) {
@@ -35,10 +37,10 @@ bool BuiltInVectorOperations::canApplyStaticEvaluation(
 }
 
 VectorOperationDefinition* BuiltInVectorOperations::matchFunction(
-    const string& name, const vector<DataType>& inputTypes) {
+    const std::string& name, const std::vector<DataType>& inputTypes) {
     auto& functionDefinitions = vectorOperations.at(name);
     bool isOverload = functionDefinitions.size() > 1;
-    vector<VectorOperationDefinition*> candidateFunctions;
+    std::vector<VectorOperationDefinition*> candidateFunctions;
     uint32_t minCost = UINT32_MAX;
     for (auto& functionDefinition : functionDefinitions) {
         auto cost = getFunctionCost(inputTypes, functionDefinition.get(), isOverload);
@@ -60,8 +62,8 @@ VectorOperationDefinition* BuiltInVectorOperations::matchFunction(
     return candidateFunctions[0];
 }
 
-vector<string> BuiltInVectorOperations::getFunctionNames() {
-    vector<string> result;
+std::vector<std::string> BuiltInVectorOperations::getFunctionNames() {
+    std::vector<std::string> result;
     for (auto& [functionName, definitions] : vectorOperations) {
         result.push_back(functionName);
     }
@@ -71,12 +73,12 @@ vector<string> BuiltInVectorOperations::getFunctionNames() {
 // When there is multiple candidates functions, e.g. double + int and double + double for input
 // "1.5 + parameter", we prefer the one without any implicit casting i.e. double + double.
 VectorOperationDefinition* BuiltInVectorOperations::getBestMatch(
-    vector<VectorOperationDefinition*>& functions) {
+    std::vector<VectorOperationDefinition*>& functions) {
     assert(functions.size() > 1);
     VectorOperationDefinition* result = nullptr;
     auto cost = UINT32_MAX;
     for (auto& function : functions) {
-        unordered_set<DataTypeID> distinctParameterTypes;
+        std::unordered_set<DataTypeID> distinctParameterTypes;
         for (auto& parameterTypeID : function->parameterTypeIDs) {
             if (!distinctParameterTypes.contains(parameterTypeID)) {
                 distinctParameterTypes.insert(parameterTypeID);
@@ -92,7 +94,7 @@ VectorOperationDefinition* BuiltInVectorOperations::getBestMatch(
 }
 
 uint32_t BuiltInVectorOperations::getFunctionCost(
-    const vector<DataType>& inputTypes, VectorOperationDefinition* function, bool isOverload) {
+    const std::vector<DataType>& inputTypes, VectorOperationDefinition* function, bool isOverload) {
     if (function->isVarLength) {
         assert(function->parameterTypeIDs.size() == 1);
         return matchVarLengthParameters(inputTypes, function->parameterTypeIDs[0], isOverload);
@@ -101,8 +103,8 @@ uint32_t BuiltInVectorOperations::getFunctionCost(
     }
 }
 
-uint32_t BuiltInVectorOperations::matchParameters(
-    const vector<DataType>& inputTypes, const vector<DataTypeID>& targetTypeIDs, bool isOverload) {
+uint32_t BuiltInVectorOperations::matchParameters(const std::vector<DataType>& inputTypes,
+    const std::vector<DataTypeID>& targetTypeIDs, bool isOverload) {
     if (inputTypes.size() != targetTypeIDs.size()) {
         return UINT32_MAX;
     }
@@ -118,7 +120,7 @@ uint32_t BuiltInVectorOperations::matchParameters(
 }
 
 uint32_t BuiltInVectorOperations::matchVarLengthParameters(
-    const vector<DataType>& inputTypes, DataTypeID targetTypeID, bool isOverload) {
+    const std::vector<DataType>& inputTypes, DataTypeID targetTypeID, bool isOverload) {
     auto cost = 0u;
     for (auto& inputType : inputTypes) {
         auto castCost = castRules(inputType.typeID, targetTypeID);
@@ -147,10 +149,10 @@ uint32_t BuiltInVectorOperations::castRules(DataTypeID inputTypeID, DataTypeID t
 }
 
 void BuiltInVectorOperations::validateNonEmptyCandidateFunctions(
-    vector<VectorOperationDefinition*>& candidateFunctions, const string& name,
-    const vector<DataType>& inputTypes) {
+    std::vector<VectorOperationDefinition*>& candidateFunctions, const std::string& name,
+    const std::vector<DataType>& inputTypes) {
     if (candidateFunctions.empty()) {
-        string supportedInputsString;
+        std::string supportedInputsString;
         for (auto& functionDefinition : vectorOperations.at(name)) {
             supportedInputsString += functionDefinition->signatureToString() + "\n";
         }
@@ -325,11 +327,11 @@ void BuiltInVectorOperations::registerListOperations() {
 }
 
 void BuiltInVectorOperations::registerInternalIDOperation() {
-    vector<unique_ptr<VectorOperationDefinition>> definitions;
+    std::vector<std::unique_ptr<VectorOperationDefinition>> definitions;
     definitions.push_back(make_unique<VectorOperationDefinition>(
-        ID_FUNC_NAME, vector<DataTypeID>{NODE}, INTERNAL_ID, nullptr));
+        ID_FUNC_NAME, std::vector<DataTypeID>{NODE}, INTERNAL_ID, nullptr));
     definitions.push_back(make_unique<VectorOperationDefinition>(
-        ID_FUNC_NAME, vector<DataTypeID>{REL}, INTERNAL_ID, nullptr));
+        ID_FUNC_NAME, std::vector<DataTypeID>{REL}, INTERNAL_ID, nullptr));
     vectorOperations.insert({ID_FUNC_NAME, std::move(definitions)});
 }
 

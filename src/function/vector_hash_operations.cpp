@@ -3,6 +3,8 @@
 #include "function/binary_operation_executor.h"
 #include "function/unary_operation_executor.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace function {
 

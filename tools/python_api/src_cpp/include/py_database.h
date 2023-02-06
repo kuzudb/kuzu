@@ -15,12 +15,12 @@ public:
 
     static void initialize(py::handle& m);
 
-    explicit PyDatabase(const string& databasePath, uint64_t bufferPoolSize);
+    explicit PyDatabase(const std::string& databasePath, uint64_t bufferPoolSize);
 
     void resizeBufferManager(uint64_t newSize);
 
     ~PyDatabase() = default;
 
 private:
-    unique_ptr<Database> database;
+    std::unique_ptr<Database> database;
 };

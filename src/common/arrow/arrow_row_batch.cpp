@@ -1,5 +1,8 @@
 #include "common/arrow/arrow_row_batch.h"
 
+namespace kuzu {
+namespace common {
+
 ArrowRowBatch::ArrowRowBatch(
     std::vector<std::unique_ptr<main::DataTypeInfo>> typesInfo, std::int64_t capacity)
     : typesInfo{std::move(typesInfo)}, numTuples{0} {
@@ -76,7 +79,7 @@ void ArrowRowBatch::templateInitializeVector<REL>(
 
 std::unique_ptr<ArrowVector> ArrowRowBatch::createVector(
     const main::DataTypeInfo& typeInfo, std::int64_t capacity) {
-    auto result = make_unique<ArrowVector>();
+    auto result = std::make_unique<ArrowVector>();
     switch (typeInfo.typeID) {
     case BOOL: {
         templateInitializeVector<BOOL>(result.get(), typeInfo, capacity);
@@ -355,8 +358,8 @@ static void releaseArrowVector(ArrowArray* array) {
     delete holder;
 }
 
-static unique_ptr<ArrowArray> createArrayFromVector(ArrowVector& vector) {
-    auto result = make_unique<ArrowArray>();
+static std::unique_ptr<ArrowArray> createArrayFromVector(ArrowVector& vector) {
+    auto result = std::make_unique<ArrowArray>();
     result->private_data = nullptr;
     result->release = releaseArrowVector;
     result->n_children = 0;
@@ -479,7 +482,7 @@ ArrowArray* ArrowRowBatch::convertVectorToArray(
 }
 
 ArrowArray ArrowRowBatch::toArray() {
-    auto rootHolder = make_unique<ArrowVector>();
+    auto rootHolder = std::make_unique<ArrowVector>();
     ArrowArray result;
     rootHolder->childPointers.resize(typesInfo.size());
     result.children = rootHolder->childPointers.data();
@@ -508,7 +511,7 @@ ArrowArray ArrowRowBatch::append(main::QueryResult& queryResult, std::int64_t ch
             break;
         }
         auto tuple = queryResult.getNext();
-        vector<std::uint32_t> colWidths(numColumns, 10);
+        std::vector<std::uint32_t> colWidths(numColumns, 10);
         for (auto i = 0u; i < numColumns; i++) {
             appendValue(vectors[i].get(), *typesInfo[i], tuple->getValue(i));
         }
@@ -517,3 +520,6 @@ ArrowArray ArrowRowBatch::append(main::QueryResult& queryResult, std::int64_t ch
     numTuples += numTuplesInBatch;
     return toArray();
 }
+
+} // namespace common
+} // namespace kuzu

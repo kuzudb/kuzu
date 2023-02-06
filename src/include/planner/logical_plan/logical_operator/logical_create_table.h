@@ -7,17 +7,18 @@ namespace planner {
 
 class LogicalCreateTable : public LogicalDDL {
 public:
-    LogicalCreateTable(LogicalOperatorType operatorType, string tableName,
-        vector<PropertyNameDataType> propertyNameDataTypes, shared_ptr<Expression> outputExpression)
+    LogicalCreateTable(LogicalOperatorType operatorType, std::string tableName,
+        std::vector<catalog::PropertyNameDataType> propertyNameDataTypes,
+        std::shared_ptr<binder::Expression> outputExpression)
         : LogicalDDL{operatorType, std::move(tableName), std::move(outputExpression)},
           propertyNameDataTypes{std::move(propertyNameDataTypes)} {}
 
-    inline vector<PropertyNameDataType> getPropertyNameDataTypes() const {
+    inline std::vector<catalog::PropertyNameDataType> getPropertyNameDataTypes() const {
         return propertyNameDataTypes;
     }
 
 protected:
-    vector<PropertyNameDataType> propertyNameDataTypes;
+    std::vector<catalog::PropertyNameDataType> propertyNameDataTypes;
 };
 
 } // namespace planner

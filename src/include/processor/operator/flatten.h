@@ -8,8 +8,8 @@ namespace processor {
 
 class Flatten : public PhysicalOperator, SelVectorOverWriter {
 public:
-    Flatten(uint32_t dataChunkToFlattenPos, unique_ptr<PhysicalOperator> child, uint32_t id,
-        const string& paramsString)
+    Flatten(uint32_t dataChunkToFlattenPos, std::unique_ptr<PhysicalOperator> child, uint32_t id,
+        const std::string& paramsString)
         : PhysicalOperator{PhysicalOperatorType::FLATTEN, std::move(child), id, paramsString},
           dataChunkToFlattenPos{dataChunkToFlattenPos} {}
 
@@ -17,7 +17,7 @@ public:
 
     bool getNextTuplesInternal() override;
 
-    inline unique_ptr<PhysicalOperator> clone() override {
+    inline std::unique_ptr<PhysicalOperator> clone() override {
         return make_unique<Flatten>(dataChunkToFlattenPos, children[0]->clone(), id, paramsString);
     }
 
@@ -26,11 +26,11 @@ private:
         return dataChunkToFlatten->state->currIdx == -1 ||
                dataChunkToFlatten->state->currIdx == (prevSelVector->selectedSize - 1);
     }
-    void resetToCurrentSelVector(shared_ptr<SelectionVector>& selVector) override;
+    void resetToCurrentSelVector(std::shared_ptr<common::SelectionVector>& selVector) override;
 
 private:
     uint32_t dataChunkToFlattenPos;
-    std::shared_ptr<DataChunk> dataChunkToFlatten;
+    std::shared_ptr<common::DataChunk> dataChunkToFlatten;
 };
 
 } // namespace processor

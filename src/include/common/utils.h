@@ -20,19 +20,19 @@ namespace common {
 class LoggerUtils {
 public:
     // Note: create logger is not thread safe.
-    static shared_ptr<spdlog::logger> getOrCreateLogger(const string& loggerName);
+    static std::shared_ptr<spdlog::logger> getOrCreateLogger(const std::string& loggerName);
 };
 
 class StringUtils {
 
 public:
-    static vector<string> split(const string& input, const string& delimiter);
+    static std::vector<std::string> split(const std::string& input, const std::string& delimiter);
 
-    static void toUpper(string& input) {
+    static void toUpper(std::string& input) {
         transform(input.begin(), input.end(), input.begin(), ::toupper);
     }
 
-    static void toLower(string& input) {
+    static void toLower(std::string& input) {
         transform(input.begin(), input.end(), input.begin(), ::tolower);
     }
 
@@ -42,18 +42,19 @@ public:
 
     static bool CharacterIsDigit(char c) { return c >= '0' && c <= '9'; }
     template<typename... Args>
-    static string string_format(const string& format, Args... args) {
+    static std::string string_format(const std::string& format, Args... args) {
         int size_s = snprintf(nullptr, 0, format.c_str(), args...) + 1; // Extra space for '\0'
         if (size_s <= 0) {
             throw Exception("Error during formatting.");
         }
         auto size = static_cast<size_t>(size_s);
-        auto buf = make_unique<char[]>(size);
+        auto buf = std::make_unique<char[]>(size);
         snprintf(buf.get(), size, format.c_str(), args...);
-        return string(buf.get(), buf.get() + size - 1); // We don't want the '\0' inside
+        return {buf.get(), buf.get() + size - 1}; // We don't want the '\0' inside
     }
 
-    static string getLongStringErrorMessage(const char* strToInsert, uint64_t maxAllowedStrSize) {
+    static std::string getLongStringErrorMessage(
+        const char* strToInsert, uint64_t maxAllowedStrSize) {
         return StringUtils::string_format(
             "Maximum length of strings is %d. Input string's length is %d.", maxAllowedStrSize,
             strlen(strToInsert), strToInsert);
@@ -61,12 +62,13 @@ public:
 };
 
 template<typename FROM, typename TO>
-unique_ptr<TO> ku_static_unique_pointer_cast(unique_ptr<FROM>&& old) {
-    return unique_ptr<TO>{static_cast<TO*>(old.release())};
+std::unique_ptr<TO> ku_static_unique_pointer_cast(std::unique_ptr<FROM>&& old) {
+    return std::unique_ptr<TO>{static_cast<TO*>(old.release())};
 }
 template<class FROM, class TO>
-shared_ptr<TO> ku_reinterpret_pointer_cast(const shared_ptr<FROM>& r) {
-    return shared_ptr<TO>(r, reinterpret_cast<typename shared_ptr<TO>::element_type*>(r.get()));
+std::shared_ptr<TO> ku_reinterpret_pointer_cast(const std::shared_ptr<FROM>& r) {
+    return std::shared_ptr<TO>(
+        r, reinterpret_cast<typename std::shared_ptr<TO>::element_type*>(r.get()));
 }
 
 class BitmaskUtils {

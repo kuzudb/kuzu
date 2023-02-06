@@ -7,8 +7,6 @@
 #include "common/null_mask.h"
 #include "storage/node_id_compression_scheme.h"
 
-using namespace kuzu::common;
-
 namespace kuzu {
 namespace storage {
 
@@ -20,8 +18,8 @@ public:
 
     inline bool isElemPosNull(uint16_t elemPosInPage) const { return nullMask[elemPosInPage]; }
 
-    uint8_t* writeNodeID(nodeID_t* nodeID, uint32_t byteOffsetInPage, uint32_t elemPosInPage,
-        const NodeIDCompressionScheme& nodeIDCompressionScheme);
+    uint8_t* writeNodeID(common::nodeID_t* nodeID, uint32_t byteOffsetInPage,
+        uint32_t elemPosInPage, const NodeIDCompressionScheme& nodeIDCompressionScheme);
     uint8_t* write(uint32_t byteOffsetInPage, uint32_t elemPosInPage, const uint8_t* elem,
         uint32_t numBytesForElem);
 
@@ -33,10 +31,10 @@ public:
 private:
     void setElementAtPosToNonNull(uint32_t pos);
 
-    unique_ptr<uint8_t[]> buffer;
+    std::unique_ptr<uint8_t[]> buffer;
     // The pointer to the beginning of null entries in the page.
     uint64_t* nullEntriesInPage;
-    unique_ptr<uint8_t[]> nullMask;
+    std::unique_ptr<uint8_t[]> nullMask;
     uint32_t maxNumElements;
 };
 

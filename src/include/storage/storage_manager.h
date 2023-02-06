@@ -23,19 +23,19 @@ public:
 
     inline RelsStore& getRelsStore() const { return *relsStore; }
     inline NodesStore& getNodesStore() const { return *nodesStore; }
-    inline Catalog* getCatalog() { return &catalog; }
+    inline catalog::Catalog* getCatalog() { return &catalog; }
     inline void prepareCommitOrRollbackIfNecessary(bool isCommit) {
         nodesStore->prepareCommitOrRollbackIfNecessary(isCommit);
         relsStore->prepareCommitOrRollbackIfNecessary(isCommit);
     }
-    inline string getDirectory() const { return wal->getDirectory(); }
+    inline std::string getDirectory() const { return wal->getDirectory(); }
     inline WAL* getWAL() const { return wal; }
 
 private:
-    shared_ptr<spdlog::logger> logger;
-    unique_ptr<RelsStore> relsStore;
-    unique_ptr<NodesStore> nodesStore;
-    Catalog& catalog;
+    std::shared_ptr<spdlog::logger> logger;
+    std::unique_ptr<RelsStore> relsStore;
+    std::unique_ptr<NodesStore> nodesStore;
+    catalog::Catalog& catalog;
     WAL* wal;
 };
 

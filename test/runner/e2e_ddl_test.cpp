@@ -1,6 +1,10 @@
 #include "graph_test/graph_test.h"
 #include "processor/mapper/plan_mapper.h"
 
+using namespace kuzu::catalog;
+using namespace kuzu::common;
+using namespace kuzu::processor;
+using namespace kuzu::storage;
 using namespace kuzu::testing;
 
 namespace kuzu {
@@ -16,11 +20,11 @@ public:
 
 class IntPrimaryKeyTest : public PrimaryKeyTest {
 public:
-    string getInputDir() override {
+    std::string getInputDir() override {
         return TestHelper::appendKuzuRootPath("dataset/primary-key-tests/int-pk-tests/");
     }
 
-    void testPrimaryKey(string pkColName) {
+    void testPrimaryKey(std::string pkColName) {
         conn->query("CREATE NODE TABLE Person(firstIntCol INT64, name STRING, secondIntCol INT64, "
                     "PRIMARY KEY (" +
                     pkColName + "))");
@@ -56,11 +60,11 @@ public:
 
 class StringPrimaryKeyTest : public PrimaryKeyTest {
 public:
-    string getInputDir() override {
+    std::string getInputDir() override {
         return TestHelper::appendKuzuRootPath("dataset/primary-key-tests/string-pk-tests/");
     }
 
-    void testPrimaryKey(string pkColName) {
+    void testPrimaryKey(std::string pkColName) {
         conn->query("CREATE NODE TABLE Person(firstStrCol STRING, age INT64, secondStrCol STRING, "
                     "PRIMARY KEY (" +
                     pkColName + "))");
@@ -101,11 +105,11 @@ public:
     void SetUp() override {
         DBTest::SetUp();
         catalog = getCatalog(*database);
-        profiler = make_unique<Profiler>();
+        profiler = std::make_unique<Profiler>();
         bufferManager =
-            make_unique<BufferManager>(StorageConfig::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING);
-        memoryManager = make_unique<MemoryManager>(bufferManager.get());
-        executionContext = make_unique<ExecutionContext>(
+            std::make_unique<BufferManager>(StorageConfig::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING);
+        memoryManager = std::make_unique<MemoryManager>(bufferManager.get());
+        executionContext = std::make_unique<ExecutionContext>(
             1 /* numThreads */, profiler.get(), memoryManager.get(), bufferManager.get());
         personTableID = catalog->getReadOnlyVersion()->getTableID("person");
         organisationTableID = catalog->getReadOnlyVersion()->getTableID("organisation");
@@ -117,7 +121,9 @@ public:
         catalog = getCatalog(*database);
     }
 
-    string getInputDir() override { return TestHelper::appendKuzuRootPath("dataset/tinysnb/"); }
+    std::string getInputDir() override {
+        return TestHelper::appendKuzuRootPath("dataset/tinysnb/");
+    }
 
     void validateDatabaseStateAfterCommitCreateNodeTable() {
         ASSERT_TRUE(catalog->getReadOnlyVersion()->containNodeTable("EXAM_PAPER"));
@@ -173,14 +179,14 @@ public:
         // Valid relations in belongs table: person->organisation, organisation->country.
         auto result = conn->query("MATCH (:person)-[:belongs]->(:organisation) RETURN count(*)");
         ASSERT_TRUE(result->isSuccess());
-        ASSERT_EQ(TestHelper::convertResultToString(*result), vector<string>{"2"});
+        ASSERT_EQ(TestHelper::convertResultToString(*result), std::vector<std::string>{"2"});
         result = conn->query("MATCH (a:person)-[e:belongs]->(b:country) RETURN count(*)");
         ASSERT_FALSE(result->isSuccess());
         ASSERT_EQ(result->getErrorMessage(),
             "Binder exception: Nodes a and b are not connected through rel e.");
         result = conn->query("MATCH (:organisation)-[:belongs]->(:country) RETURN count(*)");
         ASSERT_TRUE(result->isSuccess());
-        ASSERT_EQ(TestHelper::convertResultToString(*result), vector<string>{"1"});
+        ASSERT_EQ(TestHelper::convertResultToString(*result), std::vector<std::string>{"1"});
         result = conn->query("MATCH (a:organisation)-[e:belongs]->(b:person) RETURN count(*)");
         ASSERT_FALSE(result->isSuccess());
         ASSERT_EQ(result->getErrorMessage(),
@@ -226,7 +232,7 @@ public:
 
     void dropNodeTableCommitAndRecoveryTest(TransactionTestType transactionTestType) {
         conn->query("CREATE NODE TABLE university(address STRING, PRIMARY KEY(address));");
-        auto nodeTableSchema = make_unique<NodeTableSchema>(
+        auto nodeTableSchema = std::make_unique<NodeTableSchema>(
             *(NodeTableSchema*)catalog->getReadOnlyVersion()->getTableSchema(
                 catalog->getReadOnlyVersion()->getTableID("university")));
         executeQueryWithoutCommit("DROP TABLE university");
@@ -245,7 +251,7 @@ public:
     }
 
     void dropRelTableCommitAndRecoveryTest(TransactionTestType transactionTestType) {
-        auto relTableSchema = make_unique<RelTableSchema>(
+        auto relTableSchema = std::make_unique<RelTableSchema>(
             *(RelTableSchema*)catalog->getReadOnlyVersion()->getTableSchema(
                 catalog->getReadOnlyVersion()->getTableID("knows")));
         executeQueryWithoutCommit("DROP TABLE knows");
@@ -290,7 +296,7 @@ public:
                          ->containProperty("gender"));
         auto result = conn->query("MATCH (p:person) RETURN * ORDER BY p.ID LIMIT 1");
         ASSERT_EQ(TestHelper::convertResultToString(*result),
-            vector<string>{
+            std::vector<std::string>{
                 "(label:person, 0:0, {ID:0, fName:Alice, isStudent:True, isWorker:False, age:35, "
                 "eyeSight:5.000000, birthdate:1900-01-01, registerTime:2011-08-20 11:25:30, "
                 "lastJobDuration:3 years 2 days 13:02:00, workedHours:[10,5], "
@@ -338,10 +344,10 @@ public:
         auto result = conn->query(
             "MATCH (:person)-[s:studyAt]->(:organisation) RETURN * ORDER BY s.year DESC LIMIT 1");
         ASSERT_EQ(TestHelper::convertResultToString(*result),
-            vector<string>{"(0:0)-[label:studyAt, {_id:4:0, year:2021}]->(1:0)"});
+            std::vector<std::string>{"(0:0)-[label:studyAt, {_id:4:0, year:2021}]->(1:0)"});
     }
 
-    void ddlStatementsInsideActiveTransactionErrorTest(string query) {
+    void ddlStatementsInsideActiveTransactionErrorTest(std::string query) {
         conn->beginWriteTransaction();
         auto result = conn->query(query);
         ASSERT_FALSE(result->isSuccess());
@@ -351,7 +357,7 @@ public:
             "previous transaction and issue a ddl query without opening a transaction.");
     }
 
-    void executeQueryWithoutCommit(string query) {
+    void executeQueryWithoutCommit(std::string query) {
         auto preparedStatement = conn->prepare(query);
         conn->beginWriteTransaction();
         auto mapper = PlanMapper(
@@ -362,20 +368,20 @@ public:
         getQueryProcessor(*database)->execute(physicalPlan.get(), executionContext.get());
     }
 
-    void validateDatabaseFileBeforeCheckpointAddProperty(
-        const string& originalVersionFileName, const string& walVersionFileName, bool hasOverflow) {
+    void validateDatabaseFileBeforeCheckpointAddProperty(const std::string& originalVersionFileName,
+        const std::string& walVersionFileName, bool hasOverflow) {
         validateColumnFilesExistence(walVersionFileName, true /* existence */, hasOverflow);
         validateColumnFilesExistence(originalVersionFileName, false /* existence */, hasOverflow);
     }
 
-    void validateDatabaseFileAfterCheckpointAddProperty(
-        const string& originalVersionFileName, const string& walVersionFileName, bool hasOverflow) {
+    void validateDatabaseFileAfterCheckpointAddProperty(const std::string& originalVersionFileName,
+        const std::string& walVersionFileName, bool hasOverflow) {
         validateColumnFilesExistence(walVersionFileName, false /* existence */, hasOverflow);
         validateColumnFilesExistence(originalVersionFileName, true /* existence */, hasOverflow);
     }
 
     void addPropertyToPersonTableWithoutDefaultValue(
-        string propertyType, TransactionTestType transactionTestType) {
+        std::string propertyType, TransactionTestType transactionTestType) {
         executeQueryWithoutCommit(
             StringUtils::string_format("ALTER TABLE person ADD random %s", propertyType.c_str()));
         auto tableSchema = catalog->getWriteVersion()->getTableSchema(personTableID);
@@ -406,7 +412,7 @@ public:
     }
 
     void addPropertyToPersonTableWithDefaultValue(
-        string propertyType, string defaultVal, TransactionTestType transactionTestType) {
+        std::string propertyType, std::string defaultVal, TransactionTestType transactionTestType) {
         executeQueryWithoutCommit(
             "ALTER TABLE person ADD random " + propertyType + " DEFAULT " + defaultVal);
         auto tableSchema = catalog->getWriteVersion()->getTableSchema(personTableID);
@@ -419,10 +425,10 @@ public:
             databaseConfig->databasePath, personTableID, propertyID, DBFileType::WAL_VERSION);
         validateDatabaseFileBeforeCheckpointAddProperty(
             columnOriginalVersionFileName, columnWALVersionFileName, hasOverflow);
-        // The convertResultToString function will remove the single quote around the result string,
-        // so we should also remove the single quote in the expected result.
+        // The convertResultToString function will remove the single quote around the result
+        // std::string, so we should also remove the single quote in the expected result.
         defaultVal.erase(remove(defaultVal.begin(), defaultVal.end(), '\''), defaultVal.end());
-        vector<string> expectedResult(8 /* numOfNodesInPesron */, defaultVal);
+        std::vector<std::string> expectedResult(8 /* numOfNodesInPesron */, defaultVal);
         if (transactionTestType == TransactionTestType::RECOVERY) {
             commitButSkipCheckpointingForTestingRecovery(*conn);
             validateDatabaseFileBeforeCheckpointAddProperty(
@@ -439,7 +445,7 @@ public:
     }
 
     void addPropertyToStudyAtTableWithoutDefaultValue(
-        string propertyType, TransactionTestType transactionTestType) {
+        std::string propertyType, TransactionTestType transactionTestType) {
         executeQueryWithoutCommit(
             StringUtils::string_format("ALTER TABLE studyAt ADD random %s", propertyType.c_str()));
         auto tableSchema = catalog->getWriteVersion()->getTableSchema(studyAtTableID);
@@ -485,7 +491,7 @@ public:
     }
 
     void addPropertyToStudyAtTableWithDefaultValue(
-        string propertyType, string defaultVal, TransactionTestType transactionTestType) {
+        std::string propertyType, std::string defaultVal, TransactionTestType transactionTestType) {
         executeQueryWithoutCommit(
             "ALTER TABLE studyAt ADD random " + propertyType + " DEFAULT " + defaultVal);
         auto relTableSchema = catalog->getWriteVersion()->getTableSchema(studyAtTableID);
@@ -509,7 +515,7 @@ public:
         validateDatabaseFileBeforeCheckpointAddProperty(
             bwdListOriginalVersionFileName, bwdListWALVersionFileName, hasOverflow);
         defaultVal.erase(remove(defaultVal.begin(), defaultVal.end(), '\''), defaultVal.end());
-        vector<string> expectedResult(3 /* numOfRelsInStudyAt */, defaultVal);
+        std::vector<std::string> expectedResult(3 /* numOfRelsInStudyAt */, defaultVal);
         if (transactionTestType == TransactionTestType::RECOVERY) {
             commitButSkipCheckpointingForTestingRecovery(*conn);
             validateDatabaseFileBeforeCheckpointAddProperty(
@@ -548,7 +554,7 @@ public:
             catalog->getReadOnlyVersion()->getTableSchema(personTableID)->tableName, "student");
         auto result = conn->query("MATCH (s:student) return s.age order by s.age");
         ASSERT_EQ(TestHelper::convertResultToString(*result),
-            vector<string>({"20", "20", "25", "30", "35", "40", "45", "83"}));
+            std::vector<std::string>({"20", "20", "25", "30", "35", "40", "45", "83"}));
     }
 
     void renameProperty(TransactionTestType transactionTestType) {
@@ -572,21 +578,19 @@ public:
             catalog->getReadOnlyVersion()->getTableSchema(personTableID)->containProperty("name"));
         auto result = conn->query("MATCH (p:person) return p.name order by p.name");
         ASSERT_EQ(TestHelper::convertResultToString(*result),
-            vector<string>({"Alice", "Bob", "Carol", "Dan", "Elizabeth", "Farooq", "Greg",
+            std::vector<std::string>({"Alice", "Bob", "Carol", "Dan", "Elizabeth", "Farooq", "Greg",
                 "Hubert Blaine Wolfeschlegelsteinhausenbergerdorff"}));
     }
 
     Catalog* catalog;
-    unique_ptr<BufferManager> bufferManager;
-    unique_ptr<MemoryManager> memoryManager;
-    unique_ptr<ExecutionContext> executionContext;
-    unique_ptr<Profiler> profiler;
+    std::unique_ptr<BufferManager> bufferManager;
+    std::unique_ptr<MemoryManager> memoryManager;
+    std::unique_ptr<ExecutionContext> executionContext;
+    std::unique_ptr<Profiler> profiler;
     table_id_t personTableID;
     table_id_t organisationTableID;
     table_id_t studyAtTableID;
 };
-} // namespace transaction
-} // namespace kuzu
 
 TEST_F(StringPrimaryKeyTest, PrimaryKeyFirstColumn) {
     testPrimaryKey("firstStrCol");
@@ -681,20 +685,22 @@ TEST_F(TinySnbDDLTest, DropRelTableCommitRecovery) {
 TEST_F(TinySnbDDLTest, DDLOutputMsg) {
     auto result = conn->query("CREATE NODE TABLE university(ID INT64, PRIMARY KEY(ID));");
     ASSERT_EQ(TestHelper::convertResultToString(*result),
-        vector<string>{"NodeTable: university has been created."});
+        std::vector<std::string>{"NodeTable: university has been created."});
     result = conn->query("CREATE REL TABLE nearTo(FROM university TO university, MANY_MANY);");
     ASSERT_EQ(TestHelper::convertResultToString(*result),
-        vector<string>{"RelTable: nearTo has been created."});
+        std::vector<std::string>{"RelTable: nearTo has been created."});
     result = conn->query("DROP TABLE nearTo;");
     ASSERT_EQ(TestHelper::convertResultToString(*result),
-        vector<string>{"RelTable: nearTo has been dropped."});
+        std::vector<std::string>{"RelTable: nearTo has been dropped."});
     result = conn->query("DROP TABLE university;");
     ASSERT_EQ(TestHelper::convertResultToString(*result),
-        vector<string>{"NodeTable: university has been dropped."});
+        std::vector<std::string>{"NodeTable: university has been dropped."});
     result = conn->query("ALTER TABLE person DROP fName;");
-    ASSERT_EQ(TestHelper::convertResultToString(*result), vector<string>{"Drop succeed."});
+    ASSERT_EQ(
+        TestHelper::convertResultToString(*result), std::vector<std::string>{"Drop succeed."});
     result = conn->query("ALTER TABLE knows DROP date;");
-    ASSERT_EQ(TestHelper::convertResultToString(*result), vector<string>{"Drop succeed."});
+    ASSERT_EQ(
+        TestHelper::convertResultToString(*result), std::vector<std::string>{"Drop succeed."});
 }
 
 TEST_F(TinySnbDDLTest, CreateMixedRelationTableNormalExecution) {
@@ -916,7 +922,7 @@ TEST_F(TinySnbDDLTest, AddListOfListOfStringPropertyToStudyAtTableWithDefaultVal
 TEST_F(TinySnbDDLTest, AddPropertyWithComplexExpression) {
     ASSERT_TRUE(
         conn->query("ALTER TABLE person ADD random INT64 DEFAULT  2 * abs(-2)")->isSuccess());
-    vector<string> expectedResult(8, "4");
+    std::vector<std::string> expectedResult(8, "4");
     ASSERT_EQ(TestHelper::convertResultToString(*conn->query("MATCH (p:person) return p.random")),
         expectedResult);
 }
@@ -936,3 +942,6 @@ TEST_F(TinySnbDDLTest, RenamePropertyNormalExecution) {
 TEST_F(TinySnbDDLTest, RenamePropertyRecovery) {
     renameTable(TransactionTestType::RECOVERY);
 }
+
+} // namespace transaction
+} // namespace kuzu

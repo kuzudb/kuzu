@@ -206,13 +206,12 @@ bool Date::ParseDoubleDigit(const char* buf, uint64_t len, uint64_t& pos, int32_
     return false;
 }
 
-// Checks if the date string given in buf complies with the YYYY:MM:DD format. Ignores leading and
-// trailing spaces. Removes from the original DuckDB code three features:
-// 1) we don't parse "negative years", i.e., date formats that start with -.
-// 2) we don't parse dates that end with trailing "BC".
-// 3) we do not allow the "strict/non-strict" parsing, which lets the caller configure this function
-// to either strictly return false if the date string has trailing characters that won't be parsed
-// or just ignore those characters. We always run in strict mode.
+// Checks if the date std::string given in buf complies with the YYYY:MM:DD format. Ignores leading
+// and trailing spaces. Removes from the original DuckDB code three features: 1) we don't parse
+// "negative years", i.e., date formats that start with -. 2) we don't parse dates that end with
+// trailing "BC". 3) we do not allow the "strict/non-strict" parsing, which lets the caller
+// configure this function to either strictly return false if the date std::string has trailing
+// characters that won't be parsed or just ignore those characters. We always run in strict mode.
 bool Date::TryConvertDate(const char* buf, uint64_t len, uint64_t& pos, date_t& result) {
     pos = 0;
     if (len == 0) {
@@ -295,21 +294,21 @@ date_t Date::FromCString(const char* buf, uint64_t len) {
     uint64_t pos;
     if (!TryConvertDate(buf, len, pos, result)) {
         throw ConversionException("Error occurred during parsing date. Given: \"" +
-                                  string(buf, len) + "\". Expected format: (YYYY-MM-DD)");
+                                  std::string(buf, len) + "\". Expected format: (YYYY-MM-DD)");
     }
     return result;
 }
 
-string Date::toString(date_t date) {
+std::string Date::toString(date_t date) {
     int32_t date_units[3];
     uint64_t year_length;
     bool add_bc;
     Date::Convert(date, date_units[0], date_units[1], date_units[2]);
 
     auto length = DateToStringCast::Length(date_units, year_length, add_bc);
-    auto buffer = unique_ptr<char[]>(new char[length]);
+    auto buffer = std::unique_ptr<char[]>(new char[length]);
     DateToStringCast::Format(buffer.get(), date_units, year_length, add_bc);
-    return string(buffer.get(), length);
+    return std::string(buffer.get(), length);
 }
 
 bool Date::IsLeapYear(int32_t year) {
@@ -334,15 +333,15 @@ int32_t Date::MonthDays(int32_t year, int32_t month) {
     return Date::IsLeapYear(year) ? Date::LEAP_DAYS[month] : Date::NORMAL_DAYS[month];
 }
 
-string Date::getDayName(date_t& date) {
-    string dayNames[] = {
+std::string Date::getDayName(date_t& date) {
+    std::string dayNames[] = {
         "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
     return dayNames[(date.days < 0 ? 7 - ((-date.days + 3) % 7) : ((date.days + 3) % 7) + 1) % 7];
 }
 
-string Date::getMonthName(date_t& date) {
-    string monthNames[] = {"January", "February", "March", "April", "May", "June", "July", "August",
-        "September", "October", "November", "December"};
+std::string Date::getMonthName(date_t& date) {
+    std::string monthNames[] = {"January", "February", "March", "April", "May", "June", "July",
+        "August", "September", "October", "November", "December"};
     int32_t year, month, day;
     Date::Convert(date, year, month, day);
     return monthNames[month - 1];

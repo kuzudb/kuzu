@@ -5,21 +5,21 @@
 namespace kuzu {
 namespace common {
 
-TimeMetric* Profiler::registerTimeMetric(const string& key) {
-    auto timeMetric = make_unique<TimeMetric>(enabled);
+TimeMetric* Profiler::registerTimeMetric(const std::string& key) {
+    auto timeMetric = std::make_unique<TimeMetric>(enabled);
     auto metricPtr = timeMetric.get();
-    addMetric(key, move(timeMetric));
+    addMetric(key, std::move(timeMetric));
     return metricPtr;
 }
 
-NumericMetric* Profiler::registerNumericMetric(const string& key) {
-    auto numericMetric = make_unique<NumericMetric>(enabled);
+NumericMetric* Profiler::registerNumericMetric(const std::string& key) {
+    auto numericMetric = std::make_unique<NumericMetric>(enabled);
     auto metricPtr = numericMetric.get();
-    addMetric(key, move(numericMetric));
+    addMetric(key, std::move(numericMetric));
     return metricPtr;
 }
 
-double Profiler::sumAllTimeMetricsWithKey(const string& key) {
+double Profiler::sumAllTimeMetricsWithKey(const std::string& key) {
     auto sum = 0.0;
     if (!metrics.contains(key)) {
         return sum;
@@ -30,7 +30,7 @@ double Profiler::sumAllTimeMetricsWithKey(const string& key) {
     return sum;
 }
 
-uint64_t Profiler::sumAllNumericMetricsWithKey(const string& key) {
+uint64_t Profiler::sumAllNumericMetricsWithKey(const std::string& key) {
     auto sum = 0ul;
     if (!metrics.contains(key)) {
         return sum;
@@ -41,12 +41,12 @@ uint64_t Profiler::sumAllNumericMetricsWithKey(const string& key) {
     return sum;
 }
 
-void Profiler::addMetric(const string& key, unique_ptr<Metric> metric) {
-    lock_guard<mutex> lck(mtx);
+void Profiler::addMetric(const std::string& key, std::unique_ptr<Metric> metric) {
+    std::lock_guard<std::mutex> lck(mtx);
     if (!metrics.contains(key)) {
-        metrics.insert({key, vector<unique_ptr<Metric>>()});
+        metrics.insert({key, std::vector<std::unique_ptr<Metric>>()});
     }
-    metrics.at(key).push_back(move(metric));
+    metrics.at(key).push_back(std::move(metric));
 }
 
 } // namespace common

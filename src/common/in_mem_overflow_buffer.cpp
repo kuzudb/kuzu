@@ -17,7 +17,7 @@ void InMemOverflowBuffer::allocateNewBlock() {
     auto newBlock = make_unique<BufferBlock>(
         memoryManager->allocateBlock(false /* do not initialize to zero */));
     currentBlock = newBlock.get();
-    blocks.push_back(move(newBlock));
+    blocks.push_back(std::move(newBlock));
 }
 
 } // namespace common

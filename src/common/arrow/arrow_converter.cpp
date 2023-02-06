@@ -14,7 +14,7 @@ static void releaseArrowSchema(ArrowSchema* schema) {
     delete holder;
 }
 
-void ArrowConverter::initializeChild(ArrowSchema& child, const string& name) {
+void ArrowConverter::initializeChild(ArrowSchema& child, const std::string& name) {
     //! Child is cleaned up by parent
     child.private_data = nullptr;
     child.release = releaseArrowSchema;
@@ -46,7 +46,7 @@ void ArrowConverter::setArrowFormatForStruct(
         initializeChild(*child.children[i]);
         auto structFieldName = childrenTypesInfo[i]->name;
         auto structFieldNameLength = structFieldName.length();
-        unique_ptr<char[]> namePtr = make_unique<char[]>(structFieldNameLength + 1);
+        std::unique_ptr<char[]> namePtr = std::make_unique<char[]>(structFieldNameLength + 1);
         std::memcpy(namePtr.get(), structFieldName.c_str(), structFieldNameLength);
         namePtr[structFieldNameLength] = '\0';
         rootHolder.ownedTypeNames.push_back(std::move(namePtr));
@@ -102,10 +102,10 @@ void ArrowConverter::setArrowFormat(
     }
 }
 
-unique_ptr<ArrowSchema> ArrowConverter::toArrowSchema(
-    const vector<unique_ptr<main::DataTypeInfo>>& typesInfo) {
-    auto outSchema = make_unique<ArrowSchema>();
-    auto rootHolder = make_unique<ArrowSchemaHolder>();
+std::unique_ptr<ArrowSchema> ArrowConverter::toArrowSchema(
+    const std::vector<std::unique_ptr<main::DataTypeInfo>>& typesInfo) {
+    auto outSchema = std::make_unique<ArrowSchema>();
+    auto rootHolder = std::make_unique<ArrowSchemaHolder>();
 
     auto columnCount = (int64_t)typesInfo.size();
     rootHolder->children.resize(columnCount);
