@@ -1,6 +1,6 @@
-import platform
 import shutil
 import subprocess
+import multiprocessing
 import os
 import sys
 
@@ -8,53 +8,69 @@ from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext
 from setuptools.command.build_py import build_py as _build_py
 
+num_cores = multiprocessing.cpu_count()
 base_dir = os.path.dirname(__file__)
 
 with open(os.path.join(base_dir, 'kuzu-source', 'tools', 'python_api', 'requirements_dev.txt')) as f:
     requirements = f.read().splitlines()
 
 
-class BazelExtension(Extension):
+class CMakeExtension(Extension):
     def __init__(self, name: str, sourcedir: str = "") -> None:
         super().__init__(name, sources=[])
         self.sourcedir = os.path.abspath(sourcedir)
 
 
-class BazelBuild(build_ext):
-    def build_extension(self, ext: BazelExtension) -> None:
-        self.announce("Building native extension...", level=3)
-        args = ['--cxxopt=-std=c++2a', '--cxxopt=-O3',
-                '--cxxopt=-fPIC', '--cxxopt=-DNDEBUG']
-        # Pass the platform architecture for arm64 to bazel for
+class CMakeBuild(build_ext):
+    def build_extension(self, ext: CMakeExtension) -> None:
+        self.announce("Building native extension...")
+        # Pass the platform architecture for arm64 to cmake for
         # cross-compilation.
+        env_vars = os.environ.copy()
+        python_version = '.'.join(
+            (str(sys.version_info.major),  str(sys.version_info.minor)))
+        self.announce("Python version is %s" % python_version)
+        env_vars['PYBIND11_PYTHON_VERSION'] = python_version
+        env_vars['PYTHON_EXECUTABLE'] = sys.executable
+
         if sys.platform == 'darwin':
             archflags = os.getenv("ARCHFLAGS", "")
+
             if len(archflags) > 0:
                 self.announce("The ARCHFLAGS is set to '%s'." %
-                              archflags, level=3)
+                              archflags)
+                if archflags == "-arch arm64":
+                    env_vars['CMAKE_OSX_ARCHITECTURES'] = "arm64"
+                elif archflags == "-arch x86_64":
+                    env_vars['CMAKE_OSX_ARCHITECTURES'] = "x86_64"
+                else:
+                    self.announce(
+                        "The ARCHFLAGS is not valid and will be ignored.")
             else:
-                self.announce("The ARCHFLAGS is not set.", level=3)
-            if "arm64" in archflags and platform.machine() == "x86_64":
-                args.append("--macos_cpus=arm64")
-                args.append("--cpu=darwin_arm64")
+                self.announce("The ARCHFLAGS is not set.")
 
-            # It seems bazel does not automatically pick up
-            # MACOSX_DEPLOYMENT_TARGETfrom the environment, so we need to pass
-            # it explicitly.
-            if "MACOSX_DEPLOYMENT_TARGET" in os.environ:
-                args.append("--macos_minimum_os=" +
-                            os.environ["MACOSX_DEPLOYMENT_TARGET"])
-        full_cmd = ['bazel', 'build', *args, '//tools/python_api:all']
-        env_vars = os.environ.copy()
-        env_vars['PYTHON_BIN_PATH'] = sys.executable
+            deploy_target = os.getenv("MACOSX_DEPLOYMENT_TARGET", "")
+            if len(deploy_target) > 0:
+                self.announce("The deployment target is set to '%s'." %
+                              deploy_target)
+                env_vars['CMAKE_OSX_DEPLOYMENT_TARGET'] = deploy_target
+
+
         build_dir = os.path.join(ext.sourcedir, 'kuzu-source')
+       
+        # Clean the build directory.
+        subprocess.run(['make', 'clean'], check=True, cwd=build_dir)
 
+        # Build the native extension.
+        full_cmd = ['make', 'release', 'NUM_THREADS=%d' % num_cores]
         subprocess.run(full_cmd, cwd=build_dir, check=True, env=env_vars)
-        self.announce("Done building native extension.", level=3)
-        self.announce("Copying native extension...", level=3)
-        shutil.copyfile(os.path.join(build_dir, 'bazel-bin', 'tools', 'python_api',
-                                     '_kuzu.so'), os.path.join(ext.sourcedir, ext.name, '_kuzu.so'))
-        self.announce("Done copying native extension.", level=3)
+        self.announce("Done building native extension.")
+        self.announce("Copying native extension...")
+        dst = os.path.join(ext.sourcedir, ext.name)
+        shutil.rmtree(dst, ignore_errors=True)
+        shutil.copytree(os.path.join(build_dir, 'tools', 'python_api', 'build',
+                                     ext.name), dst)
+        self.announce("Done copying native extension.")
 
 
 class BuildExtFirst(_build_py):
@@ -66,8 +82,8 @@ class BuildExtFirst(_build_py):
 
 setup(name='kuzu',
       version=os.environ['PYTHON_PACKAGE_VERSION'] if 'PYTHON_PACKAGE_VERSION' in os.environ else '0.0.1',
-      install_requires=requirements,
-      ext_modules=[BazelExtension(
+      install_requires=[],
+      ext_modules=[CMakeExtension(
           name="kuzu", sourcedir=base_dir)],
       description='KuzuDB Python API',
       license='MIT',
@@ -78,6 +94,6 @@ setup(name='kuzu',
       include_package_data=True,
       cmdclass={
           'build_py': BuildExtFirst,
-          'build_ext': BazelBuild,
+          'build_ext': CMakeBuild,
       }
       )

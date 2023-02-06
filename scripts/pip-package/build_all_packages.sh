@@ -6,13 +6,12 @@ chmod +x ./package_tar.sh
 rm -rf wheelhouse kuzu.tar.gz && ./package_tar.sh
 mkdir wheelhouse
 
-# Build wheels, excluding pypy platforms
+# Build wheels, excluding pypy platforms and python 3.6
 for PYBIN in /opt/python/*/bin; do
-    if [[ $PYBIN == *"pypy"* ]]; then
+    if [[ $PYBIN == *"pypy"* ]] || [[ $PYBIN == *"cp36"* ]]; then
         continue
     fi
     echo "Building wheel for $PYBIN..."
-    "${PYBIN}/pip" install -r ../../tools/python_api/requirements_dev.txt
     "${PYBIN}/pip" wheel kuzu.tar.gz --no-deps -w wheelhouse/
 done
 

@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="/logo/kuzu-logo.png" height="100">
+  <img src="https://kuzudb.com/kuzu-logo.png" height="100">
 </div>
 
 # Kùzu

@@ -13,18 +13,18 @@ env:
 
 jobs:
   build-wheels:
-    runs-on: self-hosted-mac
+    runs-on: self-hosted-mac-arm
     steps:
-      - uses: actions/checkout@v2
-      - name: create-source-distribution
+      - uses: actions/checkout@v3
+      - name: Create source distribution
         working-directory: ./scripts/pip-package/
         run: |
           rm -rf wheelhouse kuzu.tar.gz
           mkdir wheelhouse
           bash package_tar.sh
 
-      - name: build-arm-wheels
-        uses: pypa/cibuildwheel@v2.11.1
+      - name: Build wheels for Apple Silicon
+        uses: pypa/cibuildwheel@v2.12.0
         env:
           CIBW_SKIP: pp*
           CIBW_ARCHS_MACOS: arm64
@@ -34,10 +34,10 @@ jobs:
           package-dir: ./scripts/pip-package/kuzu.tar.gz
           output-dir: ./scripts/pip-package/wheelhouse
 
-      - name: build-x86-wheel
-        uses: pypa/cibuildwheel@v2.11.1
+      - name: Build wheels for Intel
+        uses: pypa/cibuildwheel@v2.12.0
         env:
-          CIBW_SKIP: pp*
+          CIBW_SKIP: pp* cp36*
           CIBW_ARCHS_MACOS: x86_64
           CIBW_BUILD_VERBOSITY: 3
           MACOSX_DEPLOYMENT_TARGET: 10.15
