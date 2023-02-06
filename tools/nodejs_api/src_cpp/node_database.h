@@ -8,8 +8,9 @@ public:
     NodeDatabase(const Napi::CallbackInfo& info);
     ~NodeDatabase();
     friend class NodeConnection;
+
 private:
     void ResizeBufferManager(const Napi::CallbackInfo& info);
     static Napi::FunctionReference constructor;
-    kuzu::main::Database * database_;
+    unique_ptr<kuzu::main::Database> database;
 };
