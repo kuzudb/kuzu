@@ -1,8 +1,8 @@
 const kuzu = require("../Release/kuzujs.node");
 class Database {
     database;
-    constructor(databaseConfigString, bufferSize = 0) {
-        this.database = new kuzu.NodeDatabase(databaseConfigString, bufferSize);
+    constructor(databasePath, bufferSize = 0) {
+        this.database = new kuzu.NodeDatabase(databasePath, bufferSize);
     }
 
     resizeBufferManager(bufferSize) {
