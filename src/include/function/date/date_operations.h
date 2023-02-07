@@ -3,74 +3,72 @@
 #include "common/type_utils.h"
 #include "common/types/date_t.h"
 
-using namespace kuzu::common;
-
 namespace kuzu {
 namespace function {
 namespace operation {
 
 struct DayName {
     template<class T>
-    static inline void operation(T& input, ku_string_t& result) {
+    static inline void operation(T& input, common::ku_string_t& result) {
         assert(false);
     }
 };
 
 template<>
-inline void DayName::operation(date_t& input, ku_string_t& result) {
-    string dayName = Date::getDayName(input);
+inline void DayName::operation(common::date_t& input, common::ku_string_t& result) {
+    std::string dayName = common::Date::getDayName(input);
     result.set(dayName);
 }
 
 template<>
-inline void DayName::operation(timestamp_t& input, ku_string_t& result) {
-    dtime_t time{};
-    date_t date{};
-    Timestamp::Convert(input, date, time);
-    string dayName = Date::getDayName(date);
+inline void DayName::operation(common::timestamp_t& input, common::ku_string_t& result) {
+    common::dtime_t time{};
+    common::date_t date{};
+    common::Timestamp::Convert(input, date, time);
+    std::string dayName = common::Date::getDayName(date);
     result.set(dayName);
 }
 
 struct MonthName {
     template<class T>
-    static inline void operation(T& input, ku_string_t& result) {
+    static inline void operation(T& input, common::ku_string_t& result) {
         assert(false);
     }
 };
 
 template<>
-inline void MonthName::operation(date_t& input, ku_string_t& result) {
-    string monthName = Date::getMonthName(input);
+inline void MonthName::operation(common::date_t& input, common::ku_string_t& result) {
+    std::string monthName = common::Date::getMonthName(input);
     result.set(monthName);
 }
 
 template<>
-inline void MonthName::operation(timestamp_t& input, ku_string_t& result) {
-    dtime_t time{};
-    date_t date{};
-    Timestamp::Convert(input, date, time);
-    string monthName = Date::getMonthName(date);
+inline void MonthName::operation(common::timestamp_t& input, common::ku_string_t& result) {
+    common::dtime_t time{};
+    common::date_t date{};
+    common::Timestamp::Convert(input, date, time);
+    std::string monthName = common::Date::getMonthName(date);
     result.set(monthName);
 }
 
 struct LastDay {
     template<class T>
-    static inline void operation(T& input, date_t& result) {
+    static inline void operation(T& input, common::date_t& result) {
         assert(false);
     }
 };
 
 template<>
-inline void LastDay::operation(date_t& input, date_t& result) {
-    result = Date::getLastDay(input);
+inline void LastDay::operation(common::date_t& input, common::date_t& result) {
+    result = common::Date::getLastDay(input);
 }
 
 template<>
-inline void LastDay::operation(timestamp_t& input, date_t& result) {
-    date_t date{};
-    dtime_t time{};
-    Timestamp::Convert(input, date, time);
-    result = Date::getLastDay(date);
+inline void LastDay::operation(common::timestamp_t& input, common::date_t& result) {
+    common::date_t date{};
+    common::dtime_t time{};
+    common::Timestamp::Convert(input, date, time);
+    result = common::Date::getLastDay(date);
 }
 
 struct DatePart {
@@ -81,24 +79,27 @@ struct DatePart {
 };
 
 template<>
-inline void DatePart::operation(ku_string_t& partSpecifier, date_t& input, int64_t& result) {
-    DatePartSpecifier specifier;
-    Interval::TryGetDatePartSpecifier(partSpecifier.getAsString(), specifier);
-    result = Date::getDatePart(specifier, input);
+inline void DatePart::operation(
+    common::ku_string_t& partSpecifier, common::date_t& input, int64_t& result) {
+    common::DatePartSpecifier specifier;
+    common::Interval::TryGetDatePartSpecifier(partSpecifier.getAsString(), specifier);
+    result = common::Date::getDatePart(specifier, input);
 }
 
 template<>
-inline void DatePart::operation(ku_string_t& partSpecifier, timestamp_t& input, int64_t& result) {
-    DatePartSpecifier specifier;
-    Interval::TryGetDatePartSpecifier(partSpecifier.getAsString(), specifier);
-    result = Timestamp::getTimestampPart(specifier, input);
+inline void DatePart::operation(
+    common::ku_string_t& partSpecifier, common::timestamp_t& input, int64_t& result) {
+    common::DatePartSpecifier specifier;
+    common::Interval::TryGetDatePartSpecifier(partSpecifier.getAsString(), specifier);
+    result = common::Timestamp::getTimestampPart(specifier, input);
 }
 
 template<>
-inline void DatePart::operation(ku_string_t& partSpecifier, interval_t& input, int64_t& result) {
-    DatePartSpecifier specifier;
-    Interval::TryGetDatePartSpecifier(partSpecifier.getAsString(), specifier);
-    result = Interval::getIntervalPart(specifier, input);
+inline void DatePart::operation(
+    common::ku_string_t& partSpecifier, common::interval_t& input, int64_t& result) {
+    common::DatePartSpecifier specifier;
+    common::Interval::TryGetDatePartSpecifier(partSpecifier.getAsString(), specifier);
+    result = common::Interval::getIntervalPart(specifier, input);
 }
 
 struct DateTrunc {
@@ -109,18 +110,19 @@ struct DateTrunc {
 };
 
 template<>
-inline void DateTrunc::operation(ku_string_t& partSpecifier, date_t& input, date_t& result) {
-    DatePartSpecifier specifier;
-    Interval::TryGetDatePartSpecifier(partSpecifier.getAsString(), specifier);
-    result = Date::trunc(specifier, input);
+inline void DateTrunc::operation(
+    common::ku_string_t& partSpecifier, common::date_t& input, common::date_t& result) {
+    common::DatePartSpecifier specifier;
+    common::Interval::TryGetDatePartSpecifier(partSpecifier.getAsString(), specifier);
+    result = common::Date::trunc(specifier, input);
 }
 
 template<>
 inline void DateTrunc::operation(
-    ku_string_t& partSpecifier, timestamp_t& input, timestamp_t& result) {
-    DatePartSpecifier specifier;
-    Interval::TryGetDatePartSpecifier(partSpecifier.getAsString(), specifier);
-    result = Timestamp::trunc(specifier, input);
+    common::ku_string_t& partSpecifier, common::timestamp_t& input, common::timestamp_t& result) {
+    common::DatePartSpecifier specifier;
+    common::Interval::TryGetDatePartSpecifier(partSpecifier.getAsString(), specifier);
+    result = common::Timestamp::trunc(specifier, input);
 }
 
 struct Greatest {
@@ -138,8 +140,9 @@ struct Least {
 };
 
 struct MakeDate {
-    static inline void operation(int64_t& year, int64_t& month, int64_t& day, date_t& result) {
-        result = Date::FromDate(year, month, day);
+    static inline void operation(
+        int64_t& year, int64_t& month, int64_t& day, common::date_t& result) {
+        result = common::Date::FromDate(year, month, day);
     }
 };
 

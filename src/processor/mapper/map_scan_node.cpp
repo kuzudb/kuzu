@@ -3,17 +3,19 @@
 #include "processor/operator/index_scan.h"
 #include "processor/operator/scan_node_id.h"
 
+using namespace kuzu::planner;
+
 namespace kuzu {
 namespace processor {
 
-unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanNodeToPhysical(
+std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanNodeToPhysical(
     LogicalOperator* logicalOperator) {
     auto logicalScan = (LogicalScanNode*)logicalOperator;
     auto outSchema = logicalScan->getSchema();
     auto node = logicalScan->getNode();
     auto& nodesStore = storageManager.getNodesStore();
     auto dataPos = DataPos(outSchema->getExpressionPos(*node->getInternalIDProperty()));
-    auto sharedState = make_shared<ScanNodeIDSharedState>();
+    auto sharedState = std::make_shared<ScanNodeIDSharedState>();
     for (auto& tableID : node->getTableIDs()) {
         auto nodeTable = nodesStore.getNodeTable(tableID);
         sharedState->addTableState(nodeTable);
@@ -22,7 +24,7 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanNodeToPhysical(
         getOperatorID(), logicalScan->getExpressionsForPrinting());
 }
 
-unique_ptr<PhysicalOperator> PlanMapper::mapLogicalIndexScanNodeToPhysical(
+std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalIndexScanNodeToPhysical(
     LogicalOperator* logicalOperator) {
     auto logicalIndexScan = (LogicalIndexScanNode*)logicalOperator;
     auto inSchema = logicalIndexScan->getChild(0)->getSchema();

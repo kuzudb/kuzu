@@ -13,14 +13,15 @@ namespace parser {
 class PatternElement {
 
 public:
-    explicit PatternElement(unique_ptr<NodePattern> nodePattern) : nodePattern{move(nodePattern)} {}
+    explicit PatternElement(std::unique_ptr<NodePattern> nodePattern)
+        : nodePattern{std::move(nodePattern)} {}
 
     ~PatternElement() = default;
 
     inline NodePattern* getFirstNodePattern() const { return nodePattern.get(); }
 
-    inline void addPatternElementChain(unique_ptr<PatternElementChain> patternElementChain) {
-        patternElementChains.push_back(move(patternElementChain));
+    inline void addPatternElementChain(std::unique_ptr<PatternElementChain> patternElementChain) {
+        patternElementChains.push_back(std::move(patternElementChain));
     }
 
     inline uint32_t getNumPatternElementChains() const { return patternElementChains.size(); }
@@ -30,8 +31,8 @@ public:
     }
 
 private:
-    unique_ptr<NodePattern> nodePattern;
-    vector<unique_ptr<PatternElementChain>> patternElementChains;
+    std::unique_ptr<NodePattern> nodePattern;
+    std::vector<std::unique_ptr<PatternElementChain>> patternElementChains;
 };
 
 } // namespace parser

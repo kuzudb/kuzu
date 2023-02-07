@@ -7,9 +7,6 @@
 #include "planner/logical_plan/logical_operator/schema.h"
 #include "processor/data_pos.h"
 
-using namespace kuzu::planner;
-using namespace std;
-
 namespace kuzu {
 namespace processor {
 
@@ -27,21 +24,23 @@ public:
 
     inline uint32_t getNumValueVectors() const { return expressions.size(); }
 
-    inline void addExpression(shared_ptr<Expression> expression) {
+    inline void addExpression(std::shared_ptr<binder::Expression> expression) {
         expressionNameToValueVectorPosMap.insert({expression->getUniqueName(), expressions.size()});
         expressions.push_back(std::move(expression));
     }
-    inline shared_ptr<Expression> getExpression(uint32_t idx) const { return expressions[idx]; }
+    inline std::shared_ptr<binder::Expression> getExpression(uint32_t idx) const {
+        return expressions[idx];
+    }
 
 private:
     bool singleState = false;
-    unordered_map<string, uint32_t> expressionNameToValueVectorPosMap;
-    expression_vector expressions;
+    std::unordered_map<std::string, uint32_t> expressionNameToValueVectorPosMap;
+    binder::expression_vector expressions;
 };
 
 class ResultSetDescriptor {
 public:
-    explicit ResultSetDescriptor(const Schema& schema);
+    explicit ResultSetDescriptor(const planner::Schema& schema);
     ResultSetDescriptor(const ResultSetDescriptor& other);
     ~ResultSetDescriptor() = default;
 
@@ -51,13 +50,13 @@ public:
         return dataChunkDescriptors[pos].get();
     }
 
-    inline unique_ptr<ResultSetDescriptor> copy() const {
-        return make_unique<ResultSetDescriptor>(*this);
+    inline std::unique_ptr<ResultSetDescriptor> copy() const {
+        return std::make_unique<ResultSetDescriptor>(*this);
     }
 
 private:
-    unordered_map<string, uint32_t> expressionNameToDataChunkPosMap;
-    vector<unique_ptr<DataChunkDescriptor>> dataChunkDescriptors;
+    std::unordered_map<std::string, uint32_t> expressionNameToDataChunkPosMap;
+    std::vector<std::unique_ptr<DataChunkDescriptor>> dataChunkDescriptors;
 };
 
 } // namespace processor

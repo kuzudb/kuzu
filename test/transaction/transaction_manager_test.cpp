@@ -5,6 +5,7 @@
 using namespace kuzu::common;
 using namespace kuzu::testing;
 using namespace kuzu::transaction;
+using namespace kuzu::storage;
 using ::testing::Test;
 
 class TransactionManagerTest : public Test {
@@ -13,18 +14,18 @@ protected:
     void SetUp() override {
         FileUtils::createDir(TestHelper::getTmpTestDir());
         bufferManager =
-            make_unique<BufferManager>(StorageConfig::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING);
-        wal = make_unique<WAL>(TestHelper::getTmpTestDir(), *bufferManager);
-        transactionManager = make_unique<TransactionManager>(*wal);
+            std::make_unique<BufferManager>(StorageConfig::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING);
+        wal = std::make_unique<WAL>(TestHelper::getTmpTestDir(), *bufferManager);
+        transactionManager = std::make_unique<TransactionManager>(*wal);
     }
 
     void TearDown() override { FileUtils::removeDir(TestHelper::getTmpTestDir()); }
 
 public:
     void runTwoCommitRollback(TransactionType type, bool firstIsCommit, bool secondIsCommit) {
-        unique_ptr<Transaction> trx = WRITE == type ?
-                                          transactionManager->beginWriteTransaction() :
-                                          transactionManager->beginReadOnlyTransaction();
+        std::unique_ptr<Transaction> trx = WRITE == type ?
+                                               transactionManager->beginWriteTransaction() :
+                                               transactionManager->beginReadOnlyTransaction();
         if (firstIsCommit) {
             transactionManager->commit(trx.get());
         } else {
@@ -38,15 +39,15 @@ public:
     }
 
 public:
-    unique_ptr<TransactionManager> transactionManager;
+    std::unique_ptr<TransactionManager> transactionManager;
 
 private:
-    unique_ptr<BufferManager> bufferManager;
-    unique_ptr<WAL> wal;
+    std::unique_ptr<BufferManager> bufferManager;
+    std::unique_ptr<WAL> wal;
 };
 
 TEST_F(TransactionManagerTest, MultipleWriteTransactionsErrors) {
-    unique_ptr<Transaction> trx1 = transactionManager->beginWriteTransaction();
+    std::unique_ptr<Transaction> trx1 = transactionManager->beginWriteTransaction();
     try {
         transactionManager->beginWriteTransaction();
         FAIL();
@@ -83,16 +84,16 @@ TEST_F(TransactionManagerTest, BasicOneWriteMultipleReadOnlyTransactions) {
     // before and after commits or rollbacks under concurrent transactions. Specifically we test:
     // that transaction IDs increase incrementally, the states of activeReadOnlyTransactionIDs set,
     // and activeWriteTransactionID.
-    unique_ptr<Transaction> trx1 = transactionManager->beginReadOnlyTransaction();
-    unique_ptr<Transaction> trx2 = transactionManager->beginWriteTransaction();
-    unique_ptr<Transaction> trx3 = transactionManager->beginReadOnlyTransaction();
+    std::unique_ptr<Transaction> trx1 = transactionManager->beginReadOnlyTransaction();
+    std::unique_ptr<Transaction> trx2 = transactionManager->beginWriteTransaction();
+    std::unique_ptr<Transaction> trx3 = transactionManager->beginReadOnlyTransaction();
     ASSERT_EQ(READ_ONLY, trx1->getType());
     ASSERT_EQ(WRITE, trx2->getType());
     ASSERT_EQ(READ_ONLY, trx3->getType());
     ASSERT_EQ(trx1->getID() + 1, trx2->getID());
     ASSERT_EQ(trx2->getID() + 1, trx3->getID());
     ASSERT_EQ(trx2->getID(), transactionManager->getActiveWriteTransactionID());
-    unordered_set<uint64_t> expectedReadOnlyTransactionSet({trx1->getID(), trx3->getID()});
+    std::unordered_set<uint64_t> expectedReadOnlyTransactionSet({trx1->getID(), trx3->getID()});
     ASSERT_EQ(
         expectedReadOnlyTransactionSet, transactionManager->getActiveReadOnlyTransactionIDs());
 
@@ -107,8 +108,8 @@ TEST_F(TransactionManagerTest, BasicOneWriteMultipleReadOnlyTransactions) {
     ASSERT_EQ(
         expectedReadOnlyTransactionSet, transactionManager->getActiveReadOnlyTransactionIDs());
 
-    unique_ptr<Transaction> trx4 = transactionManager->beginWriteTransaction();
-    unique_ptr<Transaction> trx5 = transactionManager->beginReadOnlyTransaction();
+    std::unique_ptr<Transaction> trx4 = transactionManager->beginWriteTransaction();
+    std::unique_ptr<Transaction> trx5 = transactionManager->beginReadOnlyTransaction();
     ASSERT_EQ(trx3->getID() + 1, trx4->getID());
     ASSERT_EQ(trx4->getID() + 1, trx5->getID());
     ASSERT_EQ(trx4->getID(), transactionManager->getActiveWriteTransactionID());

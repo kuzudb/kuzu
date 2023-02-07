@@ -23,28 +23,28 @@ class PreparedStatement {
 
 public:
     inline bool allowActiveTransaction() const {
-        return !StatementTypeUtils::isDDLOrCopyCSV(statementType);
+        return !common::StatementTypeUtils::isDDLOrCopyCSV(statementType);
     }
 
     inline bool isSuccess() const { return success; }
 
-    inline string getErrorMessage() const { return errMsg; }
+    inline std::string getErrorMessage() const { return errMsg; }
 
     inline bool isReadOnly() const { return readOnly; }
 
-    inline expression_vector getExpressionsToCollect() {
+    inline binder::expression_vector getExpressionsToCollect() {
         return statementResult->getExpressionsToCollect();
     }
 
 private:
-    StatementType statementType;
+    common::StatementType statementType;
     bool success = true;
     bool readOnly = false;
-    string errMsg;
+    std::string errMsg;
     PreparedSummary preparedSummary;
-    unordered_map<string, shared_ptr<Value>> parameterMap;
-    unique_ptr<BoundStatementResult> statementResult;
-    vector<unique_ptr<LogicalPlan>> logicalPlans;
+    std::unordered_map<std::string, std::shared_ptr<common::Value>> parameterMap;
+    std::unique_ptr<binder::BoundStatementResult> statementResult;
+    std::vector<std::unique_ptr<planner::LogicalPlan>> logicalPlans;
 };
 
 } // namespace main

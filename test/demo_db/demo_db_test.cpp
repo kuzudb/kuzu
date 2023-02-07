@@ -5,7 +5,9 @@ using namespace kuzu::testing;
 
 class DemoDBTest : public DBTest {
 public:
-    string getInputDir() override { return TestHelper::appendKuzuRootPath("dataset/demo-db/"); }
+    std::string getInputDir() override {
+        return TestHelper::appendKuzuRootPath("dataset/demo-db/");
+    }
 };
 
 TEST_F(DemoDBTest, DemoDBTest) {
@@ -18,7 +20,7 @@ TEST_F(DemoDBTest, CreateRelTest) {
                 "'Alice' WITH a, b CREATE (a)-[e:Follows {since:1990}]->(b)");
     auto result = conn->query(
         "MATCH (a:User)-[:Follows]->(b:User) WHERE a.name = 'Adam' RETURN b.name ORDER BY b.name");
-    auto groundTruth = vector<string>{"Alice", "Karissa", "Zhang"};
+    auto groundTruth = std::vector<std::string>{"Alice", "Karissa", "Zhang"};
     ASSERT_EQ(TestHelper::convertResultToString(*result, true /* check order */), groundTruth);
 }
 
@@ -28,7 +30,7 @@ TEST_F(DemoDBTest, CreateAvgNullTest) {
     auto result =
         conn->query("MATCH (a:User) WITH a, avg(a.age) AS b, SUM(a.age) AS c, COUNT(a.age) AS d, "
                     "COUNT(*) AS e RETURN a, b, c,d, e ORDER BY c DESC");
-    auto groundTruth = vector<string>{"(label:User, 0:4, {name:Alice, age:})|||0|1",
+    auto groundTruth = std::vector<std::string>{"(label:User, 0:4, {name:Alice, age:})|||0|1",
         "(label:User, 0:2, {name:Zhang, age:50})|50.000000|50|1|1",
         "(label:User, 0:1, {name:Karissa, age:40})|40.000000|40|1|1",
         "(label:User, 0:0, {name:Adam, age:30})|30.000000|30|1|1",
@@ -39,11 +41,11 @@ TEST_F(DemoDBTest, CreateAvgNullTest) {
 TEST_F(DemoDBTest, DeleteNodeTest) {
     ASSERT_TRUE(conn->query("CREATE (u:User {name: 'Alice', age: 35});")->isSuccess());
     auto result = conn->query("MATCH (u:User) RETURN COUNT(*)");
-    auto groundTruth = vector<string>{"5"};
+    auto groundTruth = std::vector<std::string>{"5"};
     ASSERT_EQ(TestHelper::convertResultToString(*result, true /* check order */), groundTruth);
     ASSERT_TRUE(conn->query("MATCH (u:User) WHERE u.name = 'Alice' DELETE u;")->isSuccess());
     result = conn->query("MATCH (u:User) RETURN COUNT(*)");
-    groundTruth = vector<string>{"4"};
+    groundTruth = std::vector<std::string>{"4"};
     ASSERT_EQ(TestHelper::convertResultToString(*result, true /* check order */), groundTruth);
 }
 
@@ -59,10 +61,10 @@ TEST_F(DemoDBTest, DeleteWithExceptionTest) {
 TEST_F(DemoDBTest, SetNodeTest) {
     ASSERT_TRUE(conn->query("MATCH (u:User) WHERE u.name = 'Adam' SET u.age = 50")->isSuccess());
     auto result = conn->query("MATCH (u:User) WHERE u.name='Adam' RETURN u.age");
-    auto groundTruth = vector<string>{"50"};
+    auto groundTruth = std::vector<std::string>{"50"};
     ASSERT_EQ(TestHelper::convertResultToString(*result, true /* check order */), groundTruth);
     ASSERT_TRUE(conn->query("MATCH (u:User) WHERE u.name = 'Adam' SET u.age = NULL")->isSuccess());
     result = conn->query("MATCH (u:User) WHERE u.name='Adam' RETURN u.age");
-    groundTruth = vector<string>{""};
+    groundTruth = std::vector<std::string>{""};
     ASSERT_EQ(TestHelper::convertResultToString(*result, true /* check order */), groundTruth);
 }

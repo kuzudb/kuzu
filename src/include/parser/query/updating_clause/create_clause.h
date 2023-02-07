@@ -8,15 +8,16 @@ namespace parser {
 
 class CreateClause : public UpdatingClause {
 public:
-    CreateClause(vector<unique_ptr<PatternElement>> patternElements)
-        : UpdatingClause{ClauseType::CREATE}, patternElements{std::move(patternElements)} {};
+    explicit CreateClause(std::vector<std::unique_ptr<PatternElement>> patternElements)
+        : UpdatingClause{common::ClauseType::CREATE}, patternElements{
+                                                          std::move(patternElements)} {};
 
-    inline const vector<unique_ptr<PatternElement>>& getPatternElements() const {
+    inline const std::vector<std::unique_ptr<PatternElement>>& getPatternElements() const {
         return patternElements;
     }
 
 private:
-    vector<unique_ptr<PatternElement>> patternElements;
+    std::vector<std::unique_ptr<PatternElement>> patternElements;
 };
 
 } // namespace parser

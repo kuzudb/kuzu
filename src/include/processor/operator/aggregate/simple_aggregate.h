@@ -10,28 +10,30 @@ class SimpleAggregateSharedState : public BaseAggregateSharedState {
 
 public:
     explicit SimpleAggregateSharedState(
-        const vector<unique_ptr<AggregateFunction>>& aggregateFunctions);
+        const std::vector<std::unique_ptr<function::AggregateFunction>>& aggregateFunctions);
 
-    void combineAggregateStates(const vector<unique_ptr<AggregateState>>& localAggregateStates);
+    void combineAggregateStates(
+        const std::vector<std::unique_ptr<function::AggregateState>>& localAggregateStates);
 
     void finalizeAggregateStates();
 
-    pair<uint64_t, uint64_t> getNextRangeToRead() override;
+    std::pair<uint64_t, uint64_t> getNextRangeToRead() override;
 
-    inline AggregateState* getAggregateState(uint64_t idx) {
+    inline function::AggregateState* getAggregateState(uint64_t idx) {
         return globalAggregateStates[idx].get();
     }
 
 private:
-    vector<unique_ptr<AggregateState>> globalAggregateStates;
+    std::vector<std::unique_ptr<function::AggregateState>> globalAggregateStates;
 };
 
 class SimpleAggregate : public BaseAggregate {
 public:
-    SimpleAggregate(unique_ptr<ResultSetDescriptor> resultSetDescriptor,
-        shared_ptr<SimpleAggregateSharedState> sharedState, vector<DataPos> aggregateVectorsPos,
-        vector<unique_ptr<AggregateFunction>> aggregateFunctions,
-        unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
+    SimpleAggregate(std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
+        std::shared_ptr<SimpleAggregateSharedState> sharedState,
+        std::vector<DataPos> aggregateVectorsPos,
+        std::vector<std::unique_ptr<function::AggregateFunction>> aggregateFunctions,
+        std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
         : BaseAggregate{std::move(resultSetDescriptor), std::move(aggregateVectorsPos),
               std::move(aggregateFunctions), std::move(child), id, paramsString},
           sharedState{std::move(sharedState)} {}
@@ -44,12 +46,12 @@ public:
         sharedState->finalizeAggregateStates();
     }
 
-    unique_ptr<PhysicalOperator> clone() override;
+    std::unique_ptr<PhysicalOperator> clone() override;
 
 private:
-    shared_ptr<SimpleAggregateSharedState> sharedState;
-    vector<unique_ptr<AggregateState>> localAggregateStates;
-    vector<unique_ptr<AggregateHashTable>> distinctHashTables;
+    std::shared_ptr<SimpleAggregateSharedState> sharedState;
+    std::vector<std::unique_ptr<function::AggregateState>> localAggregateStates;
+    std::vector<std::unique_ptr<AggregateHashTable>> distinctHashTables;
 };
 
 } // namespace processor

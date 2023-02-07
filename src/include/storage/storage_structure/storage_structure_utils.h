@@ -16,15 +16,16 @@ namespace kuzu {
 namespace storage {
 
 struct WALPageIdxAndFrame {
-    WALPageIdxAndFrame(page_idx_t originalPageIdx, page_idx_t pageIdxInWAL, uint8_t* frame)
+    WALPageIdxAndFrame(
+        common::page_idx_t originalPageIdx, common::page_idx_t pageIdxInWAL, uint8_t* frame)
         : originalPageIdx{originalPageIdx}, pageIdxInWAL{pageIdxInWAL}, frame{frame} {}
 
     WALPageIdxAndFrame(WALPageIdxAndFrame& other)
         : originalPageIdx{other.originalPageIdx},
           pageIdxInWAL{other.pageIdxInWAL}, frame{other.frame} {}
 
-    page_idx_t originalPageIdx;
-    page_idx_t pageIdxInWAL;
+    common::page_idx_t originalPageIdx;
+    common::page_idx_t pageIdxInWAL;
     uint8_t* frame;
 };
 
@@ -37,7 +38,7 @@ struct WALPageIdxPosInPageAndFrame : WALPageIdxAndFrame {
 
 class StorageStructureUtils {
 public:
-    constexpr static page_idx_t NULL_PAGE_IDX = PAGE_IDX_MAX;
+    constexpr static common::page_idx_t NULL_PAGE_IDX = common::PAGE_IDX_MAX;
     constexpr static uint32_t NULL_CHUNK_OR_LARGE_LIST_HEAD_IDX = UINT32_MAX;
 
 public:
@@ -53,21 +54,22 @@ public:
         }
     }
 
-    static pair<FileHandle*, page_idx_t> getFileHandleAndPhysicalPageIdxToPin(
-        VersionedFileHandle& fileHandle, page_idx_t physicalPageIdx, WAL& wal,
+    static std::pair<FileHandle*, common::page_idx_t> getFileHandleAndPhysicalPageIdxToPin(
+        VersionedFileHandle& fileHandle, common::page_idx_t physicalPageIdx, WAL& wal,
         transaction::TransactionType trxType);
 
-    static WALPageIdxAndFrame createWALVersionIfNecessaryAndPinPage(page_idx_t originalPageIdx,
-        bool insertingNewPage, VersionedFileHandle& fileHandle, BufferManager& bufferManager,
-        WAL& wal);
+    static WALPageIdxAndFrame createWALVersionIfNecessaryAndPinPage(
+        common::page_idx_t originalPageIdx, bool insertingNewPage, VersionedFileHandle& fileHandle,
+        BufferManager& bufferManager, WAL& wal);
 
-    static void readWALVersionOfPage(VersionedFileHandle& fileHandle, page_idx_t originalPageIdx,
-        BufferManager& bufferManager, WAL& wal, const std::function<void(uint8_t*)>& readOp);
+    static void readWALVersionOfPage(VersionedFileHandle& fileHandle,
+        common::page_idx_t originalPageIdx, BufferManager& bufferManager, WAL& wal,
+        const std::function<void(uint8_t*)>& readOp);
 
     // Note: This function updates a page "transactionally", i.e., creates the WAL version of the
     // page if it doesn't exist. For the original page to be updated, the current WRITE trx needs to
     // commit and checkpoint.
-    static void updatePage(VersionedFileHandle& fileHandle, page_idx_t originalPageIdx,
+    static void updatePage(VersionedFileHandle& fileHandle, common::page_idx_t originalPageIdx,
         bool isInsertingNewPage, BufferManager& bufferManager, WAL& wal,
         const std::function<void(uint8_t*)>& updateOp);
 
@@ -77,9 +79,9 @@ public:
         VersionedFileHandle& fileHandle, BufferManager& bufferManager, WAL& wal);
 
 private:
-    static void unpinPageIdxInWALAndReleaseOriginalPageLock(page_idx_t pageIdxInWAL,
-        page_idx_t originalPageIdx, VersionedFileHandle& fileHandle, BufferManager& bufferManager,
-        WAL& wal);
+    static void unpinPageIdxInWALAndReleaseOriginalPageLock(common::page_idx_t pageIdxInWAL,
+        common::page_idx_t originalPageIdx, VersionedFileHandle& fileHandle,
+        BufferManager& bufferManager, WAL& wal);
 };
 } // namespace storage
 } // namespace kuzu

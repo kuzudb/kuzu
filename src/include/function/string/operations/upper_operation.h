@@ -5,17 +5,14 @@
 
 #include "common/types/ku_string.h"
 
-using namespace std;
-using namespace kuzu::common;
-
 namespace kuzu {
 namespace function {
 namespace operation {
 
 struct Upper {
 public:
-    static inline void operation(
-        ku_string_t& input, ku_string_t& result, ValueVector& resultValueVector) {
+    static inline void operation(common::ku_string_t& input, common::ku_string_t& result,
+        common::ValueVector& resultValueVector) {
         BaseLowerUpperOperation::operation(input, result, resultValueVector, true /* isUpper */);
     }
 };

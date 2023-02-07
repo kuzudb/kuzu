@@ -17,12 +17,12 @@ public:
     void run();
 
 private:
-    void setNumThreads(const string& numThreadsString);
+    void setNumThreads(const std::string& numThreadsString);
 
-    void setBufferManagerSize(const string& bufferManagerSizeString);
+    void setBufferManagerSize(const std::string& bufferManagerSizeString);
 
-    void printNodeSchema(const string& tableName);
-    void printRelSchema(const string& tableName);
+    void printNodeSchema(const std::string& tableName);
+    void printRelSchema(const std::string& tableName);
 
     static void printHelp();
 
@@ -30,11 +30,11 @@ private:
 
     void updateTableNames();
 
-    void setLoggingLevel(const string& loggingLevel);
+    void setLoggingLevel(const std::string& loggingLevel);
 
 private:
-    unique_ptr<Database> database;
-    unique_ptr<Connection> conn;
+    std::unique_ptr<Database> database;
+    std::unique_ptr<Connection> conn;
 };
 
 } // namespace main

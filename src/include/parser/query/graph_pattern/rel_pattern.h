@@ -12,24 +12,24 @@ enum ArrowDirection : uint8_t { LEFT = 0, RIGHT = 1 };
  */
 class RelPattern : public NodePattern {
 public:
-    RelPattern(string name, vector<string> tableNames, string lowerBound, string upperBound,
-        ArrowDirection arrowDirection,
-        vector<pair<string, unique_ptr<ParsedExpression>>> propertyKeyValPairs)
+    RelPattern(std::string name, std::vector<std::string> tableNames, std::string lowerBound,
+        std::string upperBound, ArrowDirection arrowDirection,
+        std::vector<std::pair<std::string, std::unique_ptr<ParsedExpression>>> propertyKeyValPairs)
         : NodePattern{std::move(name), std::move(tableNames), std::move(propertyKeyValPairs)},
           lowerBound{std::move(lowerBound)}, upperBound{std::move(upperBound)},
           arrowDirection{arrowDirection} {}
 
-    ~RelPattern() = default;
+    ~RelPattern() override = default;
 
-    inline string getLowerBound() const { return lowerBound; }
+    inline std::string getLowerBound() const { return lowerBound; }
 
-    inline string getUpperBound() const { return upperBound; }
+    inline std::string getUpperBound() const { return upperBound; }
 
     inline ArrowDirection getDirection() const { return arrowDirection; }
 
 private:
-    string lowerBound;
-    string upperBound;
+    std::string lowerBound;
+    std::string upperBound;
     ArrowDirection arrowDirection;
 };
 

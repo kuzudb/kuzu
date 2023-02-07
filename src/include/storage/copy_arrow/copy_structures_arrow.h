@@ -22,12 +22,10 @@
 namespace kuzu {
 namespace storage {
 
-using namespace kuzu::catalog;
-
 class CopyStructuresArrow {
 protected:
-    CopyStructuresArrow(CopyDescription& copyDescription, string outputDirectory,
-        TaskScheduler& taskScheduler, Catalog& catalog);
+    CopyStructuresArrow(common::CopyDescription& copyDescription, std::string outputDirectory,
+        common::TaskScheduler& taskScheduler, catalog::Catalog& catalog);
 
     virtual ~CopyStructuresArrow() = default;
 
@@ -38,9 +36,9 @@ protected:
     // Initializes (in listHeadersBuilder) the header of each list in a Lists structure, from the
     // listSizes. ListSizes is used to determine if the list is small or large, based on which,
     // information is encoded in the 4 byte header.
-    static void calculateListHeadersTask(offset_t numNodes, uint32_t elementSize,
+    static void calculateListHeadersTask(common::offset_t numNodes, uint32_t elementSize,
         atomic_uint64_vec_t* listSizes, ListHeadersBuilder* listHeadersBuilder,
-        const shared_ptr<spdlog::logger>& logger);
+        const std::shared_ptr<spdlog::logger>& logger);
 
     // Initializes Metadata information of a Lists structure, that is chunksPagesMap and
     // largeListsPagesMap, using listSizes and listHeadersBuilder.
@@ -49,7 +47,7 @@ protected:
     static void calculateListsMetadataAndAllocateInMemListPagesTask(uint64_t numNodes,
         uint32_t elementSize, atomic_uint64_vec_t* listSizes,
         ListHeadersBuilder* listHeadersBuilder, InMemLists* inMemList, bool hasNULLBytes,
-        const shared_ptr<spdlog::logger>& logger);
+        const std::shared_ptr<spdlog::logger>& logger);
 
     void countNumLines(const std::string& filePath);
 
@@ -59,8 +57,8 @@ protected:
 
     arrow::Status countNumLinesParquet(std::string const& filePath);
 
-    arrow::Status initCSVReader(
-        shared_ptr<arrow::csv::StreamingReader>& csv_streaming_reader, const std::string& filePath);
+    arrow::Status initCSVReader(std::shared_ptr<arrow::csv::StreamingReader>& csv_streaming_reader,
+        const std::string& filePath);
 
     arrow::Status initArrowReader(std::shared_ptr<arrow::ipc::RecordBatchFileReader>& ipc_reader,
         const std::string& filePath);
@@ -68,19 +66,19 @@ protected:
     arrow::Status initParquetReader(
         std::unique_ptr<parquet::arrow::FileReader>& reader, const std::string& filePath);
 
-    static unique_ptr<Value> getArrowList(string& l, int64_t from, int64_t to,
-        const DataType& dataType, CopyDescription& CopyDescription);
+    static std::unique_ptr<common::Value> getArrowList(std::string& l, int64_t from, int64_t to,
+        const common::DataType& dataType, common::CopyDescription& CopyDescription);
 
     static void throwCopyExceptionIfNotOK(const arrow::Status& status);
 
 protected:
-    shared_ptr<spdlog::logger> logger;
-    CopyDescription& copyDescription;
-    string outputDirectory;
+    std::shared_ptr<spdlog::logger> logger;
+    common::CopyDescription& copyDescription;
+    std::string outputDirectory;
     uint64_t numBlocks;
-    vector<uint64_t> numLinesPerBlock;
-    TaskScheduler& taskScheduler;
-    Catalog& catalog;
+    std::vector<uint64_t> numLinesPerBlock;
+    common::TaskScheduler& taskScheduler;
+    catalog::Catalog& catalog;
     uint64_t numRows;
 };
 

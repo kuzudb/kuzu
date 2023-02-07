@@ -10,7 +10,7 @@ class ArrowNodeCopyTest : public DBTest {
         createDBAndConn();
     }
 
-    string getInputDir() override {
+    std::string getInputDir() override {
         return TestHelper::appendKuzuRootPath("dataset/copy-test/node/csv/");
     }
 };

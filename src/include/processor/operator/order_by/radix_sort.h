@@ -8,8 +8,6 @@
 #include "processor/operator/order_by/order_by_key_encoder.h"
 #include "processor/result/factorized_table.h"
 
-using namespace kuzu::common;
-
 namespace kuzu {
 namespace processor {
 
@@ -17,7 +15,7 @@ struct TieRange {
 public:
     uint32_t startingTupleIdx;
     uint32_t endingTupleIdx;
-    inline uint32_t getNumTuples() { return endingTupleIdx - startingTupleIdx + 1; }
+    inline uint32_t getNumTuples() const { return endingTupleIdx - startingTupleIdx + 1; }
     explicit TieRange(uint32_t startingTupleIdx, uint32_t endingTupleIdx)
         : startingTupleIdx{startingTupleIdx}, endingTupleIdx{endingTupleIdx} {}
 };
@@ -29,11 +27,11 @@ public:
 // columns, the algorithm only calls radixSort on tie tuples.
 class RadixSort {
 public:
-    RadixSort(MemoryManager* memoryManager, FactorizedTable& factorizedTable,
-        OrderByKeyEncoder& orderByKeyEncoder, vector<StrKeyColInfo> strKeyColsInfo)
-        : tmpSortingResultBlock{make_unique<DataBlock>(memoryManager)},
-          tmpTuplePtrSortingBlock{make_unique<DataBlock>(memoryManager)},
-          factorizedTable{factorizedTable}, strKeyColsInfo{strKeyColsInfo},
+    RadixSort(storage::MemoryManager* memoryManager, FactorizedTable& factorizedTable,
+        OrderByKeyEncoder& orderByKeyEncoder, std::vector<StrKeyColInfo> strKeyColsInfo)
+        : tmpSortingResultBlock{std::make_unique<DataBlock>(memoryManager)},
+          tmpTuplePtrSortingBlock{std::make_unique<DataBlock>(memoryManager)},
+          factorizedTable{factorizedTable}, strKeyColsInfo{std::move(strKeyColsInfo)},
           numBytesPerTuple{orderByKeyEncoder.getNumBytesPerTuple()}, numBytesToRadixSort{
                                                                          numBytesPerTuple - 8} {}
 
@@ -43,7 +41,7 @@ private:
     void radixSort(uint8_t* keyBlockPtr, uint32_t numTuplesToSort, uint32_t numBytesSorted,
         uint32_t numBytesToSort);
 
-    vector<TieRange> findTies(uint8_t* keyBlockPtr, uint32_t numTuplesToFindTies,
+    std::vector<TieRange> findTies(uint8_t* keyBlockPtr, uint32_t numTuplesToFindTies,
         uint32_t numBytesToSort, uint32_t baseTupleIdx);
 
     void fillTmpTuplePtrSortingBlock(TieRange& keyBlockTie, uint8_t* keyBlockPtr);
@@ -52,14 +50,14 @@ private:
 
     // Some ties can't be solved in quicksort, just add them to ties.
     template<typename TYPE>
-    void findStringTies(TieRange& keyBlockTie, uint8_t* keyBlockPtr, queue<TieRange>& ties,
+    void findStringTies(TieRange& keyBlockTie, uint8_t* keyBlockPtr, std::queue<TieRange>& ties,
         StrKeyColInfo& keyColInfo);
 
-    void solveStringTies(TieRange& keyBlockTie, uint8_t* keyBlockPtr, queue<TieRange>& ties,
+    void solveStringTies(TieRange& keyBlockTie, uint8_t* keyBlockPtr, std::queue<TieRange>& ties,
         StrKeyColInfo& keyColInfo);
 
 private:
-    unique_ptr<DataBlock> tmpSortingResultBlock;
+    std::unique_ptr<DataBlock> tmpSortingResultBlock;
     // Since we do radix sort on each dataBlock at a time, the maxNumber of tuples in the dataBlock
     // is: LARGE_PAGE_SIZE / numBytesPerTuple.
     // The size of tmpTuplePtrSortingBlock should be larger than:
@@ -68,12 +66,12 @@ private:
     // tupleIdx/FactorizedTableIdx at the end of each row in dataBlock), sizeof(uint8_t*) *
     // MaxNumOfTuplePointers=(LARGE_PAGE_SIZE / numBytesPerTuple) <= LARGE_PAGE_SIZE. As a result,
     // we only need one dataBlock to store the tuplePointers while solving the string ties.
-    unique_ptr<DataBlock> tmpTuplePtrSortingBlock;
+    std::unique_ptr<DataBlock> tmpTuplePtrSortingBlock;
     // FactorizedTable stores all columns in the tuples that will be sorted, including the order by
     // key columns. RadixSort uses factorizedTable to access the full contents of the string columns
     // when resolving ties.
     FactorizedTable& factorizedTable;
-    vector<StrKeyColInfo> strKeyColsInfo;
+    std::vector<StrKeyColInfo> strKeyColsInfo;
     uint32_t numBytesPerTuple;
     uint32_t numBytesToRadixSort;
 };

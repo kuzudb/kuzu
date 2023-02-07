@@ -2,15 +2,13 @@
 
 #include "processor/operator/physical_operator.h"
 
-using namespace kuzu::storage;
-
 namespace kuzu {
 namespace processor {
 
 class ScanColumns : public PhysicalOperator {
 protected:
-    ScanColumns(const DataPos& inVectorPos, vector<DataPos> outPropertyVectorsPos,
-        unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
+    ScanColumns(const DataPos& inVectorPos, std::vector<DataPos> outPropertyVectorsPos,
+        std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
         : PhysicalOperator{PhysicalOperatorType::SCAN_NODE_PROPERTY, std::move(child), id,
               paramsString},
           inputNodeIDVectorPos{inVectorPos}, outPropertyVectorsPos{
@@ -20,9 +18,9 @@ protected:
 
 protected:
     DataPos inputNodeIDVectorPos;
-    shared_ptr<ValueVector> inputNodeIDVector;
-    vector<DataPos> outPropertyVectorsPos;
-    vector<shared_ptr<ValueVector>> outPropertyVectors;
+    std::shared_ptr<common::ValueVector> inputNodeIDVector;
+    std::vector<DataPos> outPropertyVectorsPos;
+    std::vector<std::shared_ptr<common::ValueVector>> outPropertyVectors;
 };
 
 } // namespace processor

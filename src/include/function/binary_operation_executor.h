@@ -25,7 +25,7 @@ struct BinaryStringAndListOperationWrapper {
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename OP>
     static inline void operation(LEFT_TYPE& left, RIGHT_TYPE& right, RESULT_TYPE& result,
         void* leftValueVector, void* rightValueVector, void* resultValueVector) {
-        OP::operation(left, right, result, *(ValueVector*)resultValueVector);
+        OP::operation(left, right, result, *(common::ValueVector*)resultValueVector);
     }
 };
 
@@ -33,16 +33,16 @@ struct BinaryListPosAndContainsOperationWrapper {
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename OP>
     static inline void operation(LEFT_TYPE& left, RIGHT_TYPE& right, RESULT_TYPE& result,
         void* leftValueVector, void* rightValueVector, void* resultValueVector) {
-        OP::operation(left, right, result, ((ValueVector*)leftValueVector)->dataType,
-            ((ValueVector*)rightValueVector)->dataType);
+        OP::operation(left, right, result, ((common::ValueVector*)leftValueVector)->dataType,
+            ((common::ValueVector*)rightValueVector)->dataType);
     }
 };
 
 struct BinaryOperationExecutor {
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC,
         typename OP_WRAPPER>
-    static inline void executeOnValue(ValueVector& left, ValueVector& right,
-        ValueVector& resultValueVector, uint64_t lPos, uint64_t rPos, uint64_t resPos) {
+    static inline void executeOnValue(common::ValueVector& left, common::ValueVector& right,
+        common::ValueVector& resultValueVector, uint64_t lPos, uint64_t rPos, uint64_t resPos) {
         OP_WRAPPER::template operation<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC>(
             ((LEFT_TYPE*)left.getData())[lPos], ((RIGHT_TYPE*)right.getData())[rPos],
             ((RESULT_TYPE*)resultValueVector.getData())[resPos], (void*)&left, (void*)&right,
@@ -51,7 +51,8 @@ struct BinaryOperationExecutor {
 
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC,
         typename OP_WRAPPER>
-    static void executeBothFlat(ValueVector& left, ValueVector& right, ValueVector& result) {
+    static void executeBothFlat(
+        common::ValueVector& left, common::ValueVector& right, common::ValueVector& result) {
         auto lPos = left.state->selVector->selectedPositions[0];
         auto rPos = right.state->selVector->selectedPositions[0];
         auto resPos = result.state->selVector->selectedPositions[0];
@@ -64,7 +65,8 @@ struct BinaryOperationExecutor {
 
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC,
         typename OP_WRAPPER>
-    static void executeFlatUnFlat(ValueVector& left, ValueVector& right, ValueVector& result) {
+    static void executeFlatUnFlat(
+        common::ValueVector& left, common::ValueVector& right, common::ValueVector& result) {
         auto lPos = left.state->selVector->selectedPositions[0];
         if (left.isNull(lPos)) {
             result.setAllNull();
@@ -105,7 +107,8 @@ struct BinaryOperationExecutor {
 
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC,
         typename OP_WRAPPER>
-    static void executeUnFlatFlat(ValueVector& left, ValueVector& right, ValueVector& result) {
+    static void executeUnFlatFlat(
+        common::ValueVector& left, common::ValueVector& right, common::ValueVector& result) {
         auto rPos = right.state->selVector->selectedPositions[0];
         if (right.isNull(rPos)) {
             result.setAllNull();
@@ -146,7 +149,8 @@ struct BinaryOperationExecutor {
 
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC,
         typename OP_WRAPPER>
-    static void executeBothUnFlat(ValueVector& left, ValueVector& right, ValueVector& result) {
+    static void executeBothUnFlat(
+        common::ValueVector& left, common::ValueVector& right, common::ValueVector& result) {
         assert(left.state == right.state);
         if (left.hasNoNullsGuarantee() && right.hasNoNullsGuarantee()) {
             if (result.state->selVector->isUnfiltered()) {
@@ -185,7 +189,8 @@ struct BinaryOperationExecutor {
 
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC,
         typename OP_WRAPPER>
-    static void executeSwitch(ValueVector& left, ValueVector& right, ValueVector& result) {
+    static void executeSwitch(
+        common::ValueVector& left, common::ValueVector& right, common::ValueVector& result) {
         result.resetOverflowBuffer();
         if (left.state->isFlat() && right.state->isFlat()) {
             executeBothFlat<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(
@@ -205,27 +210,30 @@ struct BinaryOperationExecutor {
     }
 
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC>
-    static void execute(ValueVector& left, ValueVector& right, ValueVector& result) {
+    static void execute(
+        common::ValueVector& left, common::ValueVector& right, common::ValueVector& result) {
         executeSwitch<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, BinaryOperationWrapper>(
             left, right, result);
     }
 
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC>
-    static void executeStringAndList(ValueVector& left, ValueVector& right, ValueVector& result) {
+    static void executeStringAndList(
+        common::ValueVector& left, common::ValueVector& right, common::ValueVector& result) {
         executeSwitch<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC,
             BinaryStringAndListOperationWrapper>(left, right, result);
     }
 
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC>
     static void executeListPosAndContains(
-        ValueVector& left, ValueVector& right, ValueVector& result) {
+        common::ValueVector& left, common::ValueVector& right, common::ValueVector& result) {
         executeSwitch<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC,
             BinaryListPosAndContainsOperationWrapper>(left, right, result);
     }
 
     template<class LEFT_TYPE, class RIGHT_TYPE, class FUNC>
-    static void selectOnValue(ValueVector& left, ValueVector& right, uint64_t lPos, uint64_t rPos,
-        uint64_t resPos, uint64_t& numSelectedValues, sel_t* selectedPositionsBuffer) {
+    static void selectOnValue(common::ValueVector& left, common::ValueVector& right, uint64_t lPos,
+        uint64_t rPos, uint64_t resPos, uint64_t& numSelectedValues,
+        common::sel_t* selectedPositionsBuffer) {
         uint8_t resultValue = 0;
         FUNC::operation(
             ((LEFT_TYPE*)left.getData())[lPos], ((RIGHT_TYPE*)right.getData())[rPos], resultValue);
@@ -234,7 +242,7 @@ struct BinaryOperationExecutor {
     }
 
     template<class LEFT_TYPE, class RIGHT_TYPE, class FUNC>
-    static uint64_t selectBothFlat(ValueVector& left, ValueVector& right) {
+    static uint64_t selectBothFlat(common::ValueVector& left, common::ValueVector& right) {
         auto lPos = left.state->selVector->selectedPositions[0];
         auto rPos = right.state->selVector->selectedPositions[0];
         uint8_t resultValue = 0;
@@ -247,7 +255,7 @@ struct BinaryOperationExecutor {
 
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename FUNC>
     static bool selectFlatUnFlat(
-        ValueVector& left, ValueVector& right, SelectionVector& selVector) {
+        common::ValueVector& left, common::ValueVector& right, common::SelectionVector& selVector) {
         auto lPos = left.state->selVector->selectedPositions[0];
         uint64_t numSelectedValues = 0;
         auto selectedPositionsBuffer = selVector.getSelectedPositionsBuffer();
@@ -290,7 +298,7 @@ struct BinaryOperationExecutor {
 
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename FUNC>
     static bool selectUnFlatFlat(
-        ValueVector& left, ValueVector& right, SelectionVector& selVector) {
+        common::ValueVector& left, common::ValueVector& right, common::SelectionVector& selVector) {
         auto rPos = right.state->selVector->selectedPositions[0];
         uint64_t numSelectedValues = 0;
         auto selectedPositionsBuffer = selVector.getSelectedPositionsBuffer();
@@ -334,7 +342,7 @@ struct BinaryOperationExecutor {
     // Right, left, and result vectors share the same selectedPositions.
     template<class LEFT_TYPE, class RIGHT_TYPE, class FUNC>
     static bool selectBothUnFlat(
-        ValueVector& left, ValueVector& right, SelectionVector& selVector) {
+        common::ValueVector& left, common::ValueVector& right, common::SelectionVector& selVector) {
         uint64_t numSelectedValues = 0;
         auto selectedPositionsBuffer = selVector.getSelectedPositionsBuffer();
         if (left.hasNoNullsGuarantee() && right.hasNoNullsGuarantee()) {
@@ -376,7 +384,8 @@ struct BinaryOperationExecutor {
 
     // COMPARISON (GT, GTE, LT, LTE, EQ, NEQ), BOOLEAN (AND, OR, XOR)
     template<class LEFT_TYPE, class RIGHT_TYPE, class FUNC>
-    static bool select(ValueVector& left, ValueVector& right, SelectionVector& selVector) {
+    static bool select(
+        common::ValueVector& left, common::ValueVector& right, common::SelectionVector& selVector) {
         if (left.state->isFlat() && right.state->isFlat()) {
             return selectBothFlat<LEFT_TYPE, RIGHT_TYPE, FUNC>(left, right);
         } else if (left.state->isFlat() && !right.state->isFlat()) {

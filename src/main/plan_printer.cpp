@@ -2,14 +2,18 @@
 
 #include <sstream>
 
+using namespace kuzu::common;
+using namespace kuzu::processor;
+
 namespace kuzu {
 namespace main {
 
-OpProfileBox::OpProfileBox(string opName, string paramsName, vector<string> attributes)
-    : opName{move(opName)}, attributes{move(attributes)} {
-    stringstream paramsStream{paramsName};
-    string paramStr = "";
-    string subStr;
+OpProfileBox::OpProfileBox(
+    std::string opName, std::string paramsName, std::vector<std::string> attributes)
+    : opName{std::move(opName)}, attributes{std::move(attributes)} {
+    std::stringstream paramsStream{paramsName};
+    std::string paramStr = "";
+    std::string subStr;
     bool subParam = false;
     // This loop splits the parameters by commas, while not
     // splitting up parameters that are operators.
@@ -37,20 +41,20 @@ OpProfileBox::OpProfileBox(string opName, string paramsName, vector<string> attr
 uint32_t OpProfileBox::getAttributeMaxLen() const {
     auto maxAttributeLen = opName.length();
     for (auto& param : paramsNames) {
-        maxAttributeLen = max(param.length(), maxAttributeLen);
+        maxAttributeLen = std::max(param.length(), maxAttributeLen);
     }
     for (auto& attribute : attributes) {
-        maxAttributeLen = max(attribute.length(), maxAttributeLen);
+        maxAttributeLen = std::max(attribute.length(), maxAttributeLen);
     }
     return maxAttributeLen;
 }
 
-string OpProfileBox::getParamsName(uint32_t idx) const {
+std::string OpProfileBox::getParamsName(uint32_t idx) const {
     assert(idx < paramsNames.size());
     return paramsNames[idx];
 }
 
-string OpProfileBox::getAttribute(uint32_t idx) const {
+std::string OpProfileBox::getAttribute(uint32_t idx) const {
     assert(idx < attributes.size());
     return attributes[idx];
 }
@@ -60,8 +64,9 @@ OpProfileTree::OpProfileTree(PhysicalOperator* op, Profiler& profiler) {
     calculateNumRowsAndColsForOp(op, numRows, numCols);
     opProfileBoxes.resize(numRows);
     for_each(opProfileBoxes.begin(), opProfileBoxes.end(),
-        [numCols](
-            vector<unique_ptr<OpProfileBox>>& profileBoxes) { profileBoxes.resize(numCols); });
+        [numCols](std::vector<std::unique_ptr<OpProfileBox>>& profileBoxes) {
+            profileBoxes.resize(numCols);
+        });
     auto maxFieldWidth = 0u;
     fillOpProfileBoxes(op, 0 /* rowIdx */, 0 /* colIdx */, maxFieldWidth, profiler);
     // The width of each profileBox = fieldWidth + leftIndentWidth + boxLeftFrameWidth +
@@ -69,14 +74,14 @@ OpProfileTree::OpProfileTree(PhysicalOperator* op, Profiler& profiler) {
     this->opProfileBoxWidth = maxFieldWidth + 2 * (INDENT_WIDTH + BOX_FRAME_WIDTH);
 }
 
-void printSpaceIfNecessary(uint32_t idx, ostringstream& oss) {
+void printSpaceIfNecessary(uint32_t idx, std::ostringstream& oss) {
     if (idx > 0) {
         oss << " ";
     }
 }
 
-ostringstream OpProfileTree::printPlanToOstream() const {
-    ostringstream oss;
+std::ostringstream OpProfileTree::printPlanToOstream() const {
+    std::ostringstream oss;
     prettyPrintPlanTitle(oss);
     for (auto i = 0u; i < opProfileBoxes.size(); i++) {
         printOpProfileBoxUpperFrame(i, oss);
@@ -98,7 +103,7 @@ void OpProfileTree::calculateNumRowsAndColsForOp(
         auto numRowsInChild = 0u, numColsInChild = 0u;
         calculateNumRowsAndColsForOp(op->getChild(i), numRowsInChild, numColsInChild);
         numCols += numColsInChild;
-        numRows = max(numRowsInChild, numRows);
+        numRows = std::max(numRowsInChild, numRows);
     }
     numRows++;
 }
@@ -107,8 +112,8 @@ uint32_t OpProfileTree::fillOpProfileBoxes(PhysicalOperator* op, uint32_t rowIdx
     uint32_t& maxFieldWidth, Profiler& profiler) {
     auto opProfileBox = make_unique<OpProfileBox>(PlanPrinter::getOperatorName(op),
         PlanPrinter::getOperatorParams(op), op->getProfilerAttributes(profiler));
-    maxFieldWidth = max(opProfileBox->getAttributeMaxLen(), maxFieldWidth);
-    insertOpProfileBox(rowIdx, colIdx, move(opProfileBox));
+    maxFieldWidth = std::max(opProfileBox->getAttributeMaxLen(), maxFieldWidth);
+    insertOpProfileBox(rowIdx, colIdx, std::move(opProfileBox));
     if (!op->getNumChildren()) {
         return 1;
     }
@@ -121,7 +126,7 @@ uint32_t OpProfileTree::fillOpProfileBoxes(PhysicalOperator* op, uint32_t rowIdx
     return colOffset;
 }
 
-void OpProfileTree::printOpProfileBoxUpperFrame(uint32_t rowIdx, ostringstream& oss) const {
+void OpProfileTree::printOpProfileBoxUpperFrame(uint32_t rowIdx, std::ostringstream& oss) const {
     for (auto i = 0u; i < opProfileBoxes[rowIdx].size(); i++) {
         printSpaceIfNecessary(i, oss);
         if (getOpProfileBox(rowIdx, i)) {
@@ -136,13 +141,13 @@ void OpProfileTree::printOpProfileBoxUpperFrame(uint32_t rowIdx, ostringstream& 
                 oss << "┌" << genHorizLine(opProfileBoxWidth - 2 * BOX_FRAME_WIDTH) << "┐";
             }
         } else {
-            oss << string(opProfileBoxWidth, ' ');
+            oss << std::string(opProfileBoxWidth, ' ');
         }
     }
-    oss << endl;
+    oss << std::endl;
 }
 
-void OpProfileTree::printOpProfileBoxes(uint32_t rowIdx, ostringstream& oss) const {
+void OpProfileTree::printOpProfileBoxes(uint32_t rowIdx, std::ostringstream& oss) const {
     auto height = calculateRowHeight(rowIdx);
     auto halfWayPoint = height / 2;
     uint32_t offset = 0;
@@ -152,16 +157,16 @@ void OpProfileTree::printOpProfileBoxes(uint32_t rowIdx, ostringstream& oss) con
             if (opProfileBox &&
                 i < 2 * (opProfileBox->getNumAttributes() + 1) + opProfileBox->getNumParams()) {
                 printSpaceIfNecessary(j, oss);
-                string textToPrint;
+                std::string textToPrint;
                 unsigned int numParams = opProfileBox->getNumParams();
                 if (i == 0) {
                     textToPrint = opProfileBox->getOpName();
                 } else if (i == 1) {
-                    textToPrint = string(opProfileBoxWidth - (1 + INDENT_WIDTH) * 2, '-');
+                    textToPrint = std::string(opProfileBoxWidth - (1 + INDENT_WIDTH) * 2, '-');
                 } else if (i <= numParams + 1) {
                     textToPrint = opProfileBox->getParamsName(i - 2);
                 } else if ((i - numParams - 1) % 2) {
-                    textToPrint = string(opProfileBoxWidth - (1 + INDENT_WIDTH) * 2, '-');
+                    textToPrint = std::string(opProfileBoxWidth - (1 + INDENT_WIDTH) * 2, '-');
                 } else {
                     textToPrint = opProfileBox->getAttribute((i - numParams - 1) / 2 - 1);
                 }
@@ -169,13 +174,13 @@ void OpProfileTree::printOpProfileBoxes(uint32_t rowIdx, ostringstream& oss) con
                     (opProfileBoxWidth - (1 + INDENT_WIDTH) * 2 - textToPrint.length()) / 2;
                 auto numRightSpace = opProfileBoxWidth - (1 + INDENT_WIDTH) * 2 -
                                      textToPrint.length() - numLeftSpaces;
-                oss << "│" << string(INDENT_WIDTH + numLeftSpaces, ' ') << textToPrint
-                    << string(INDENT_WIDTH + numRightSpace, ' ') << "│";
+                oss << "│" << std::string(INDENT_WIDTH + numLeftSpaces, ' ') << textToPrint
+                    << std::string(INDENT_WIDTH + numRightSpace, ' ') << "│";
             } else if (opProfileBox) {
                 // If we have printed out all the attributes in the current opProfileBox, print
                 // empty spaces as placeholders.
                 printSpaceIfNecessary(j, oss);
-                oss << "│" << string(opProfileBoxWidth - 2, ' ') << "│";
+                oss << "│" << std::string(opProfileBoxWidth - 2, ' ') << "│";
             } else {
                 if (hasOpProfileBox(rowIdx + 1, j) && i >= halfWayPoint) {
                     auto leftHorizLineSize = (opProfileBoxWidth - 1) / 2;
@@ -184,12 +189,13 @@ void OpProfileTree::printOpProfileBoxes(uint32_t rowIdx, ostringstream& oss) con
                         if (hasOpProfileBox(rowIdx + 1, j + 1) && !hasOpProfileBox(rowIdx, j + 1)) {
                             oss << "┬" << genHorizLine(opProfileBoxWidth - 1 - leftHorizLineSize);
                         } else {
-                            oss << "┐" << string(opProfileBoxWidth - 1 - leftHorizLineSize, ' ');
+                            oss << "┐"
+                                << std::string(opProfileBoxWidth - 1 - leftHorizLineSize, ' ');
                         }
                     } else if (i > halfWayPoint) {
                         printSpaceIfNecessary(j, oss);
-                        oss << string(leftHorizLineSize, ' ') << "│"
-                            << string(opProfileBoxWidth - 1 - leftHorizLineSize, ' ');
+                        oss << std::string(leftHorizLineSize, ' ') << "│"
+                            << std::string(opProfileBoxWidth - 1 - leftHorizLineSize, ' ');
                     }
                 } else if (hasOpProfileBox(rowIdx + 1, j + 1) && !hasOpProfileBox(rowIdx, j + 1) &&
                            i == halfWayPoint) {
@@ -197,15 +203,15 @@ void OpProfileTree::printOpProfileBoxes(uint32_t rowIdx, ostringstream& oss) con
                     offset = offset == 0 ? 1 : 0;
                 } else {
                     printSpaceIfNecessary(j, oss);
-                    oss << string(opProfileBoxWidth, ' ');
+                    oss << std::string(opProfileBoxWidth, ' ');
                 }
             }
         }
-        oss << endl;
+        oss << std::endl;
     }
 }
 
-void OpProfileTree::printOpProfileBoxLowerFrame(uint32_t rowIdx, ostringstream& oss) const {
+void OpProfileTree::printOpProfileBoxLowerFrame(uint32_t rowIdx, std::ostringstream& oss) const {
     for (auto i = 0u; i < opProfileBoxes[rowIdx].size(); i++) {
         if (getOpProfileBox(rowIdx, i)) {
             printSpaceIfNecessary(i, oss);
@@ -223,31 +229,31 @@ void OpProfileTree::printOpProfileBoxLowerFrame(uint32_t rowIdx, ostringstream& 
             // connect it.
             auto leftFrameLength = (opProfileBoxWidth - 1) / 2;
             printSpaceIfNecessary(i, oss);
-            oss << string(leftFrameLength, ' ') << "│"
-                << string(opProfileBoxWidth - leftFrameLength - 1, ' ');
+            oss << std::string(leftFrameLength, ' ') << "│"
+                << std::string(opProfileBoxWidth - leftFrameLength - 1, ' ');
         } else {
             printSpaceIfNecessary(i, oss);
-            oss << string(opProfileBoxWidth, ' ');
+            oss << std::string(opProfileBoxWidth, ' ');
         }
     }
-    oss << endl;
+    oss << std::endl;
 }
 
-void OpProfileTree::prettyPrintPlanTitle(ostringstream& oss) const {
-    const string physicalPlan = "Physical Plan";
-    oss << "┌" << genHorizLine(opProfileBoxWidth - 2) << "┐" << endl;
-    oss << "│┌" << genHorizLine(opProfileBoxWidth - 4) << "┐│" << endl;
+void OpProfileTree::prettyPrintPlanTitle(std::ostringstream& oss) const {
+    const std::string physicalPlan = "Physical Plan";
+    oss << "┌" << genHorizLine(opProfileBoxWidth - 2) << "┐" << std::endl;
+    oss << "│┌" << genHorizLine(opProfileBoxWidth - 4) << "┐│" << std::endl;
     auto numLeftSpaces = (opProfileBoxWidth - physicalPlan.length() - 2 * (2 + INDENT_WIDTH)) / 2;
     auto numRightSpaces =
         opProfileBoxWidth - physicalPlan.length() - 2 * (2 + INDENT_WIDTH) - numLeftSpaces;
-    oss << "││" << string(INDENT_WIDTH + numLeftSpaces, ' ') << physicalPlan
-        << string(INDENT_WIDTH + numRightSpaces, ' ') << "││" << endl;
-    oss << "│└" << genHorizLine(opProfileBoxWidth - 4) << "┘│" << endl;
-    oss << "└" << genHorizLine(opProfileBoxWidth - 2) << "┘" << endl;
+    oss << "││" << std::string(INDENT_WIDTH + numLeftSpaces, ' ') << physicalPlan
+        << std::string(INDENT_WIDTH + numRightSpaces, ' ') << "││" << std::endl;
+    oss << "│└" << genHorizLine(opProfileBoxWidth - 4) << "┘│" << std::endl;
+    oss << "└" << genHorizLine(opProfileBoxWidth - 2) << "┘" << std::endl;
 }
 
-string OpProfileTree::genHorizLine(uint32_t len) {
-    ostringstream tableFrame;
+std::string OpProfileTree::genHorizLine(uint32_t len) {
+    std::ostringstream tableFrame;
     for (auto i = 0u; i < len; i++) {
         tableFrame << "─";
     }
@@ -255,9 +261,9 @@ string OpProfileTree::genHorizLine(uint32_t len) {
 }
 
 void OpProfileTree::insertOpProfileBox(
-    uint32_t rowIdx, uint32_t colIdx, unique_ptr<OpProfileBox> opProfileBox) {
+    uint32_t rowIdx, uint32_t colIdx, std::unique_ptr<OpProfileBox> opProfileBox) {
     validateRowIdxAndColIdx(rowIdx, colIdx);
-    opProfileBoxes[rowIdx][colIdx] = move(opProfileBox);
+    opProfileBoxes[rowIdx][colIdx] = std::move(opProfileBox);
 }
 
 OpProfileBox* OpProfileTree::getOpProfileBox(uint32_t rowIdx, uint32_t colIdx) const {
@@ -281,23 +287,23 @@ uint32_t OpProfileTree::calculateRowHeight(uint32_t rowIdx) const {
     for (auto i = 0u; i < opProfileBoxes[rowIdx].size(); i++) {
         auto opProfileBox = getOpProfileBox(rowIdx, i);
         if (opProfileBox) {
-            height =
-                max(height, 2 * opProfileBox->getNumAttributes() + opProfileBox->getNumParams());
+            height = std::max(
+                height, 2 * opProfileBox->getNumAttributes() + opProfileBox->getNumParams());
         }
     }
     return height + 2;
 }
 
-nlohmann::json PlanPrinter::toJson(PhysicalOperator* physicalOperator, Profiler& profiler) {
+nlohmann::json PlanPrinter::toJson(PhysicalOperator* physicalOperator, Profiler& profiler_) {
     auto json = nlohmann::json();
     json["Name"] = getOperatorName(physicalOperator);
-    if (profiler.enabled) {
-        for (auto& [key, val] : physicalOperator->getProfilerKeyValAttributes(profiler)) {
+    if (profiler_.enabled) {
+        for (auto& [key, val] : physicalOperator->getProfilerKeyValAttributes(profiler_)) {
             json[key] = val;
         }
     }
     for (auto i = 0u; i < physicalOperator->getNumChildren(); ++i) {
-        json["Child"] = toJson(physicalOperator->getChild(i), profiler);
+        json["Child"] = toJson(physicalOperator->getChild(i), profiler_);
     }
     return json;
 }

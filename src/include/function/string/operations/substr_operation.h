@@ -6,23 +6,20 @@
 #include "common/types/ku_string.h"
 #include "utf8proc.h"
 
-using namespace std;
-using namespace kuzu::common;
-
 namespace kuzu {
 namespace function {
 namespace operation {
 
 struct SubStr {
 public:
-    static inline void operation(ku_string_t& src, int64_t start, int64_t len, ku_string_t& result,
-        ValueVector& resultValueVector) {
-        string srcStr = src.getAsString();
+    static inline void operation(common::ku_string_t& src, int64_t start, int64_t len,
+        common::ku_string_t& result, common::ValueVector& resultValueVector) {
+        std::string srcStr = src.getAsString();
         bool isAscii = true;
         auto startPos = start - 1;
-        auto endPos = min(srcStr.size(), (size_t)(startPos + len));
+        auto endPos = std::min(srcStr.size(), (size_t)(startPos + len));
         // 1 character more than length has to be scanned for diatrics case: y + ˘ = ў.
-        for (auto i = 0; i < min(srcStr.size(), endPos + 1); i++) {
+        for (auto i = 0; i < std::min(srcStr.size(), endPos + 1); i++) {
             // UTF-8 character encountered.
             if (srcStr[i] & 0x80) {
                 isAscii = false;
@@ -53,10 +50,10 @@ public:
         }
     }
 
-    static inline void copySubstr(ku_string_t& src, int64_t start, int64_t len, ku_string_t& result,
-        ValueVector& resultValueVector, bool isAscii) {
-        result.len = min(len, src.len - start + 1);
-        if (!ku_string_t::isShortString(result.len)) {
+    static inline void copySubstr(common::ku_string_t& src, int64_t start, int64_t len,
+        common::ku_string_t& result, common::ValueVector& resultValueVector, bool isAscii) {
+        result.len = std::min(len, src.len - start + 1);
+        if (!common::ku_string_t::isShortString(result.len)) {
             result.overflowPtr = reinterpret_cast<uint64_t>(
                 resultValueVector.getOverflowBuffer().allocateSpace(result.len));
         }
@@ -68,8 +65,8 @@ public:
             // For utf8 char copy, the function gets the exact starting byte position to copy from.
             memcpy((uint8_t*)result.getData(), src.getData() + start, result.len);
         }
-        if (!ku_string_t::isShortString(result.len)) {
-            memcpy(result.prefix, result.getData(), ku_string_t::PREFIX_LENGTH);
+        if (!common::ku_string_t::isShortString(result.len)) {
+            memcpy(result.prefix, result.getData(), common::ku_string_t::PREFIX_LENGTH);
         }
     }
 };

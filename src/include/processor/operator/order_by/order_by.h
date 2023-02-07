@@ -9,9 +9,6 @@
 #include "processor/result/factorized_table.h"
 #include "processor/result/result_set.h"
 
-using namespace std;
-using namespace kuzu::common;
-
 namespace kuzu {
 namespace processor {
 
@@ -22,17 +19,17 @@ namespace processor {
 class SharedFactorizedTablesAndSortedKeyBlocks {
 public:
     explicit SharedFactorizedTablesAndSortedKeyBlocks()
-        : nextFactorizedTableIdx{0}, sortedKeyBlocks{
-                                         make_shared<queue<shared_ptr<MergedKeyBlocks>>>()} {}
+        : nextFactorizedTableIdx{0},
+          sortedKeyBlocks{std::make_shared<std::queue<std::shared_ptr<MergedKeyBlocks>>>()} {}
 
     uint8_t getNextFactorizedTableIdx() {
-        unique_lock lck{mtx};
+        std::unique_lock lck{mtx};
         return nextFactorizedTableIdx++;
     }
 
     void appendFactorizedTable(
-        uint8_t factorizedTableIdx, shared_ptr<FactorizedTable> factorizedTable) {
-        unique_lock lck{mtx};
+        uint8_t factorizedTableIdx, std::shared_ptr<FactorizedTable> factorizedTable) {
+        std::unique_lock lck{mtx};
         // If the factorizedTables is full, resize the factorizedTables and
         // insert the factorizedTable to the set.
         if (factorizedTableIdx >= factorizedTables.size()) {
@@ -41,8 +38,8 @@ public:
         factorizedTables[factorizedTableIdx] = move(factorizedTable);
     }
 
-    void appendSortedKeyBlock(shared_ptr<MergedKeyBlocks> mergedDataBlocks) {
-        unique_lock lck{mtx};
+    void appendSortedKeyBlock(std::shared_ptr<MergedKeyBlocks> mergedDataBlocks) {
+        std::unique_lock lck{mtx};
         sortedKeyBlocks->emplace(mergedDataBlocks);
     }
 
@@ -57,28 +54,28 @@ public:
         }
     }
 
-    void setStrKeyColInfo(vector<StrKeyColInfo> _strKeyColsInfo) {
+    void setStrKeyColInfo(std::vector<StrKeyColInfo> _strKeyColsInfo) {
         assert(strKeyColsInfo.empty());
         strKeyColsInfo = std::move(_strKeyColsInfo);
     }
 
 private:
-    mutex mtx;
+    std::mutex mtx;
 
 public:
-    vector<shared_ptr<FactorizedTable>> factorizedTables;
+    std::vector<std::shared_ptr<FactorizedTable>> factorizedTables;
     uint8_t nextFactorizedTableIdx;
-    shared_ptr<queue<shared_ptr<MergedKeyBlocks>>> sortedKeyBlocks;
+    std::shared_ptr<std::queue<std::shared_ptr<MergedKeyBlocks>>> sortedKeyBlocks;
 
     uint32_t numBytesPerTuple = UINT32_MAX; // encoding size
-    vector<StrKeyColInfo> strKeyColsInfo;
+    std::vector<StrKeyColInfo> strKeyColsInfo;
 };
 
 struct OrderByDataInfo {
 public:
-    OrderByDataInfo(vector<pair<DataPos, DataType>> keysPosAndType,
-        vector<pair<DataPos, DataType>> payloadsPosAndType, vector<bool> isPayloadFlat,
-        vector<bool> isAscOrder, bool mayContainUnflatKey)
+    OrderByDataInfo(std::vector<std::pair<DataPos, common::DataType>> keysPosAndType,
+        std::vector<std::pair<DataPos, common::DataType>> payloadsPosAndType,
+        std::vector<bool> isPayloadFlat, std::vector<bool> isAscOrder, bool mayContainUnflatKey)
         : keysPosAndType{std::move(keysPosAndType)}, payloadsPosAndType{std::move(
                                                          payloadsPosAndType)},
           isPayloadFlat{std::move(isPayloadFlat)}, isAscOrder{std::move(isAscOrder)},
@@ -89,20 +86,20 @@ public:
               other.isAscOrder, other.mayContainUnflatKey} {}
 
 public:
-    vector<pair<DataPos, DataType>> keysPosAndType;
-    vector<pair<DataPos, DataType>> payloadsPosAndType;
-    vector<bool> isPayloadFlat;
-    vector<bool> isAscOrder;
+    std::vector<std::pair<DataPos, common::DataType>> keysPosAndType;
+    std::vector<std::pair<DataPos, common::DataType>> payloadsPosAndType;
+    std::vector<bool> isPayloadFlat;
+    std::vector<bool> isAscOrder;
     // TODO(Ziyi): We should figure out unflat keys in a more general way.
     bool mayContainUnflatKey;
 };
 
 class OrderBy : public Sink {
 public:
-    OrderBy(unique_ptr<ResultSetDescriptor> resultSetDescriptor,
+    OrderBy(std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
         const OrderByDataInfo& orderByDataInfo,
-        shared_ptr<SharedFactorizedTablesAndSortedKeyBlocks> sharedState,
-        unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
+        std::shared_ptr<SharedFactorizedTablesAndSortedKeyBlocks> sharedState,
+        std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
         : Sink{std::move(resultSetDescriptor), PhysicalOperatorType::ORDER_BY, std::move(child), id,
               paramsString},
           orderByDataInfo{orderByDataInfo}, sharedState{std::move(sharedState)} {}
@@ -119,25 +116,25 @@ public:
         sharedState->combineFTHasNoNullGuarantee();
     }
 
-    unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<OrderBy>(resultSetDescriptor->copy(), orderByDataInfo, sharedState,
+    std::unique_ptr<PhysicalOperator> clone() override {
+        return std::make_unique<OrderBy>(resultSetDescriptor->copy(), orderByDataInfo, sharedState,
             children[0]->clone(), id, paramsString);
     }
 
 private:
-    unique_ptr<FactorizedTableSchema> populateTableSchema();
+    std::unique_ptr<FactorizedTableSchema> populateTableSchema();
 
     void initGlobalStateInternal(ExecutionContext* context) override;
 
 private:
     uint8_t factorizedTableIdx;
     OrderByDataInfo orderByDataInfo;
-    unique_ptr<OrderByKeyEncoder> orderByKeyEncoder;
-    unique_ptr<RadixSort> radixSorter;
-    vector<shared_ptr<ValueVector>> keyVectors;
-    vector<shared_ptr<ValueVector>> vectorsToAppend;
-    shared_ptr<SharedFactorizedTablesAndSortedKeyBlocks> sharedState;
-    shared_ptr<FactorizedTable> localFactorizedTable;
+    std::unique_ptr<OrderByKeyEncoder> orderByKeyEncoder;
+    std::unique_ptr<RadixSort> radixSorter;
+    std::vector<std::shared_ptr<common::ValueVector>> keyVectors;
+    std::vector<std::shared_ptr<common::ValueVector>> vectorsToAppend;
+    std::shared_ptr<SharedFactorizedTablesAndSortedKeyBlocks> sharedState;
+    std::shared_ptr<FactorizedTable> localFactorizedTable;
 };
 
 } // namespace processor

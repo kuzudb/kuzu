@@ -8,15 +8,16 @@ namespace processor {
 
 class CopyNode : public Copy {
 public:
-    CopyNode(Catalog* catalog, CopyDescription copyDescription, table_id_t tableID, WAL* wal,
-        NodesStatisticsAndDeletedIDs* nodesStatistics, RelsStore& relsStore, uint32_t id,
-        const string& paramsString)
+    CopyNode(catalog::Catalog* catalog, common::CopyDescription copyDescription,
+        common::table_id_t tableID, storage::WAL* wal,
+        storage::NodesStatisticsAndDeletedIDs* nodesStatistics, storage::RelsStore& relsStore,
+        uint32_t id, const std::string& paramsString)
         : Copy{PhysicalOperatorType::COPY_NODE, catalog, std::move(copyDescription), tableID, wal,
               id, paramsString},
           nodesStatistics{nodesStatistics}, relsStore{relsStore} {}
 
-    unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<CopyNode>(
+    std::unique_ptr<PhysicalOperator> clone() override {
+        return std::make_unique<CopyNode>(
             catalog, copyDescription, tableID, wal, nodesStatistics, relsStore, id, paramsString);
     }
 
@@ -27,8 +28,8 @@ protected:
     uint64_t getNumTuplesInTable() override;
 
 private:
-    NodesStatisticsAndDeletedIDs* nodesStatistics;
-    RelsStore& relsStore;
+    storage::NodesStatisticsAndDeletedIDs* nodesStatistics;
+    storage::RelsStore& relsStore;
 };
 
 } // namespace processor

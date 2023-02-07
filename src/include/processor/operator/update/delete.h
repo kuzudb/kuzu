@@ -7,22 +7,23 @@ namespace kuzu {
 namespace processor {
 
 struct DeleteNodeInfo {
-    NodeTable* table;
+    storage::NodeTable* table;
     DataPos nodeIDPos;
     DataPos primaryKeyPos;
 
-    DeleteNodeInfo(NodeTable* table, const DataPos& nodeIDPos, const DataPos& primaryKeyPos)
+    DeleteNodeInfo(
+        storage::NodeTable* table, const DataPos& nodeIDPos, const DataPos& primaryKeyPos)
         : table{table}, nodeIDPos{nodeIDPos}, primaryKeyPos{primaryKeyPos} {}
 
-    inline unique_ptr<DeleteNodeInfo> clone() {
-        return make_unique<DeleteNodeInfo>(table, nodeIDPos, primaryKeyPos);
+    inline std::unique_ptr<DeleteNodeInfo> clone() {
+        return std::make_unique<DeleteNodeInfo>(table, nodeIDPos, primaryKeyPos);
     }
 };
 
 class DeleteNode : public PhysicalOperator {
 public:
-    DeleteNode(vector<unique_ptr<DeleteNodeInfo>> deleteNodeInfos,
-        unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
+    DeleteNode(std::vector<std::unique_ptr<DeleteNodeInfo>> deleteNodeInfos,
+        std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
         : PhysicalOperator{PhysicalOperatorType::DELETE_NODE, std::move(child), id, paramsString},
           deleteNodeInfos{std::move(deleteNodeInfos)} {}
 
@@ -30,45 +31,47 @@ public:
 
     bool getNextTuplesInternal() override;
 
-    inline unique_ptr<PhysicalOperator> clone() override {
-        vector<unique_ptr<DeleteNodeInfo>> clonedDeleteNodeInfos;
+    inline std::unique_ptr<PhysicalOperator> clone() override {
+        std::vector<std::unique_ptr<DeleteNodeInfo>> clonedDeleteNodeInfos;
         for (auto& deleteNodeInfo : deleteNodeInfos) {
             clonedDeleteNodeInfos.push_back(deleteNodeInfo->clone());
         }
-        return make_unique<DeleteNode>(
+        return std::make_unique<DeleteNode>(
             std::move(clonedDeleteNodeInfos), children[0]->clone(), id, paramsString);
     }
 
 private:
-    vector<unique_ptr<DeleteNodeInfo>> deleteNodeInfos;
+    std::vector<std::unique_ptr<DeleteNodeInfo>> deleteNodeInfos;
 
-    vector<ValueVector*> nodeIDVectors;
-    vector<ValueVector*> primaryKeyVectors;
+    std::vector<common::ValueVector*> nodeIDVectors;
+    std::vector<common::ValueVector*> primaryKeyVectors;
 };
 
 struct DeleteRelInfo {
-    RelTable* table;
+    storage::RelTable* table;
     DataPos srcNodePos;
-    table_id_t srcNodeTableID;
+    common::table_id_t srcNodeTableID;
     DataPos dstNodePos;
-    table_id_t dstNodeTableID;
+    common::table_id_t dstNodeTableID;
     DataPos relIDPos;
 
-    DeleteRelInfo(RelTable* table, const DataPos& srcNodePos, table_id_t srcNodeTableID,
-        const DataPos& dstNodePos, table_id_t dstNodeTableID, const DataPos& relIDPos)
+    DeleteRelInfo(storage::RelTable* table, const DataPos& srcNodePos,
+        common::table_id_t srcNodeTableID, const DataPos& dstNodePos,
+        common::table_id_t dstNodeTableID, const DataPos& relIDPos)
         : table{table}, srcNodePos{srcNodePos}, srcNodeTableID{srcNodeTableID},
           dstNodePos{dstNodePos}, dstNodeTableID{dstNodeTableID}, relIDPos{relIDPos} {}
 
-    inline unique_ptr<DeleteRelInfo> clone() {
-        return make_unique<DeleteRelInfo>(
+    inline std::unique_ptr<DeleteRelInfo> clone() {
+        return std::make_unique<DeleteRelInfo>(
             table, srcNodePos, srcNodeTableID, dstNodePos, dstNodeTableID, relIDPos);
     }
 };
 
 class DeleteRel : public PhysicalOperator {
 public:
-    DeleteRel(RelsStatistics& relsStatistics, vector<unique_ptr<DeleteRelInfo>> deleteRelInfos,
-        unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
+    DeleteRel(storage::RelsStatistics& relsStatistics,
+        std::vector<std::unique_ptr<DeleteRelInfo>> deleteRelInfos,
+        std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
         : PhysicalOperator{PhysicalOperatorType::DELETE_REL, std::move(child), id, paramsString},
           relsStatistics{relsStatistics}, deleteRelInfos{std::move(deleteRelInfos)} {}
 
@@ -76,8 +79,8 @@ public:
 
     bool getNextTuplesInternal() override;
 
-    unique_ptr<PhysicalOperator> clone() override {
-        vector<unique_ptr<DeleteRelInfo>> clonedDeleteRelInfos;
+    std::unique_ptr<PhysicalOperator> clone() override {
+        std::vector<std::unique_ptr<DeleteRelInfo>> clonedDeleteRelInfos;
         for (auto& deleteRelInfo : deleteRelInfos) {
             clonedDeleteRelInfos.push_back(deleteRelInfo->clone());
         }
@@ -86,11 +89,11 @@ public:
     }
 
 private:
-    RelsStatistics& relsStatistics;
-    vector<unique_ptr<DeleteRelInfo>> deleteRelInfos;
-    vector<shared_ptr<ValueVector>> srcNodeVectors;
-    vector<shared_ptr<ValueVector>> dstNodeVectors;
-    vector<shared_ptr<ValueVector>> relIDVectors;
+    storage::RelsStatistics& relsStatistics;
+    std::vector<std::unique_ptr<DeleteRelInfo>> deleteRelInfos;
+    std::vector<std::shared_ptr<common::ValueVector>> srcNodeVectors;
+    std::vector<std::shared_ptr<common::ValueVector>> dstNodeVectors;
+    std::vector<std::shared_ptr<common::ValueVector>> relIDVectors;
 };
 
 } // namespace processor

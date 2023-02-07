@@ -1,5 +1,7 @@
 #include "processor/operator/projection.h"
 
+using namespace kuzu::evaluator;
+
 namespace kuzu {
 namespace processor {
 
@@ -30,12 +32,12 @@ bool Projection::getNextTuplesInternal() {
     return true;
 }
 
-unique_ptr<PhysicalOperator> Projection::clone() {
-    vector<unique_ptr<BaseExpressionEvaluator>> rootExpressionsCloned;
+std::unique_ptr<PhysicalOperator> Projection::clone() {
+    std::vector<std::unique_ptr<BaseExpressionEvaluator>> rootExpressionsCloned;
     for (auto& expressionEvaluator : expressionEvaluators) {
         rootExpressionsCloned.push_back(expressionEvaluator->clone());
     }
-    return make_unique<Projection>(move(rootExpressionsCloned), expressionsOutputPos,
+    return make_unique<Projection>(std::move(rootExpressionsCloned), expressionsOutputPos,
         discardedDataChunksPos, children[0]->clone(), id, paramsString);
 }
 

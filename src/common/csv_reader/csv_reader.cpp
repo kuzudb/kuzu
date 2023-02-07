@@ -11,7 +11,7 @@ using namespace kuzu::utf8proc;
 namespace kuzu {
 namespace common {
 
-CSVReader::CSVReader(const string& fName, const CSVReaderConfig& config, uint64_t blockId)
+CSVReader::CSVReader(const std::string& fName, const CSVReaderConfig& config, uint64_t blockId)
     : CSVReader{fName, config} {
     readingBlockStartOffset = CopyConfig::CSV_READING_BLOCK_SIZE * blockId;
     readingBlockEndOffset = CopyConfig::CSV_READING_BLOCK_SIZE * (blockId + 1);
@@ -29,7 +29,7 @@ CSVReader::CSVReader(const string& fName, const CSVReaderConfig& config, uint64_
     }
 }
 
-CSVReader::CSVReader(const string& fname, const CSVReaderConfig& config)
+CSVReader::CSVReader(const std::string& fname, const CSVReaderConfig& config)
     : CSVReader{(char*)malloc(sizeof(char) * 1024), 0, -1l, config} {
     openFile(fname);
 }
@@ -163,7 +163,7 @@ bool CSVReader::hasNextToken() {
         nestedListLevel++;
         isList = true;
     }
-    string lineStr;
+    std::string lineStr;
     while (true) {
         if (isQuotedString) {
             // ignore delimiter and new line character here
@@ -195,7 +195,7 @@ bool CSVReader::hasNextToken() {
     line[linePtrEnd] = 0;
     if (isQuotedString) {
         strncpy(line + linePtrStart, lineStr.c_str(), lineStr.length() + 1);
-        // if this is a string literal, skip the next comma as well
+        // if this is a std::string literal, skip the next comma as well
         linePtrEnd++;
     }
     if (isList) {
@@ -235,7 +235,7 @@ char* CSVReader::getString() {
     auto strVal = line + linePtrStart;
     if (strlen(strVal) > DEFAULT_PAGE_SIZE) {
         logger->warn(StringUtils::getLongStringErrorMessage(strVal, DEFAULT_PAGE_SIZE));
-        // If the string is too long, truncate it.
+        // If the std::string is too long, truncate it.
         strVal[DEFAULT_PAGE_SIZE] = '\0';
     }
     auto unicodeType = Utf8Proc::analyze(strVal, strlen(strVal));
@@ -266,34 +266,34 @@ interval_t CSVReader::getInterval() {
     return retVal;
 }
 
-unique_ptr<Value> CSVReader::getList(const DataType& dataType) {
-    vector<unique_ptr<Value>> listVal;
+std::unique_ptr<Value> CSVReader::getList(const DataType& dataType) {
+    std::vector<std::unique_ptr<Value>> listVal;
     // Move the linePtrStart one character forward, because hasNextToken() will first increment it.
     CSVReader listCSVReader(line, linePtrEnd - 1, linePtrStart - 1, config);
     while (listCSVReader.hasNextToken()) {
         if (!listCSVReader.skipTokenIfNull()) {
-            unique_ptr<Value> val;
+            std::unique_ptr<Value> val;
             switch (dataType.typeID) {
             case INT64: {
-                val = make_unique<Value>(listCSVReader.getInt64());
+                val = std::make_unique<Value>(listCSVReader.getInt64());
             } break;
             case DOUBLE: {
-                val = make_unique<Value>(listCSVReader.getDouble());
+                val = std::make_unique<Value>(listCSVReader.getDouble());
             } break;
             case BOOL: {
-                val = make_unique<Value>((bool)listCSVReader.getBoolean());
+                val = std::make_unique<Value>((bool)listCSVReader.getBoolean());
             } break;
             case STRING: {
-                val = make_unique<Value>(string(listCSVReader.getString()));
+                val = std::make_unique<Value>(std::string(listCSVReader.getString()));
             } break;
             case DATE: {
-                val = make_unique<Value>(listCSVReader.getDate());
+                val = std::make_unique<Value>(listCSVReader.getDate());
             } break;
             case TIMESTAMP: {
-                val = make_unique<Value>(listCSVReader.getTimestamp());
+                val = std::make_unique<Value>(listCSVReader.getTimestamp());
             } break;
             case INTERVAL: {
-                val = make_unique<Value>(listCSVReader.getInterval());
+                val = std::make_unique<Value>(listCSVReader.getInterval());
             } break;
             case LIST: {
                 val = listCSVReader.getList(*dataType.childType);
@@ -312,7 +312,8 @@ unique_ptr<Value> CSVReader::getList(const DataType& dataType) {
             "Maximum num bytes of a LIST is %d. Input list's num bytes is %d.", DEFAULT_PAGE_SIZE,
             numBytesOfOverflow));
     }
-    return make_unique<Value>(DataType(LIST, make_unique<DataType>(dataType)), std::move(listVal));
+    return std::make_unique<Value>(
+        DataType(LIST, std::make_unique<DataType>(dataType)), std::move(listVal));
 }
 
 void CSVReader::setNextTokenIsProcessed() {
@@ -320,18 +321,18 @@ void CSVReader::setNextTokenIsProcessed() {
     nextTokenLen = UINT64_MAX;
 }
 
-void CSVReader::openFile(const string& fName) {
+void CSVReader::openFile(const std::string& fName) {
     fd = fopen(fName.c_str(), "r");
     if (nullptr == fd) {
         throw ReaderException("Cannot open file: " + fName);
     }
 }
 
-CopyDescription::CopyDescription(const string& filePath, CSVReaderConfig csvReaderConfig)
+CopyDescription::CopyDescription(const std::string& filePath, CSVReaderConfig csvReaderConfig)
     : filePath{filePath}, csvReaderConfig{nullptr}, fileType{FileType::CSV} {
     setFileType(filePath);
     if (fileType == FileType::CSV) {
-        this->csvReaderConfig = make_unique<CSVReaderConfig>(csvReaderConfig);
+        this->csvReaderConfig = std::make_unique<CSVReaderConfig>(csvReaderConfig);
     }
 }
 
@@ -339,11 +340,11 @@ CopyDescription::CopyDescription(const CopyDescription& copyDescription)
     : filePath{copyDescription.filePath}, csvReaderConfig{nullptr}, fileType{
                                                                         copyDescription.fileType} {
     if (fileType == FileType::CSV) {
-        this->csvReaderConfig = make_unique<CSVReaderConfig>(*copyDescription.csvReaderConfig);
+        this->csvReaderConfig = std::make_unique<CSVReaderConfig>(*copyDescription.csvReaderConfig);
     }
 }
 
-string CopyDescription::getFileTypeName(FileType fileType) {
+std::string CopyDescription::getFileTypeName(FileType fileType) {
     switch (fileType) {
     case FileType::CSV:
         return "csv";
@@ -356,11 +357,11 @@ string CopyDescription::getFileTypeName(FileType fileType) {
     }
 }
 
-string CopyDescription::getFileTypeSuffix(FileType fileType) {
+std::string CopyDescription::getFileTypeSuffix(FileType fileType) {
     return "." + getFileTypeName(fileType);
 }
 
-void CopyDescription::setFileType(string const& fileName) {
+void CopyDescription::setFileType(std::string const& fileName) {
     auto csvSuffix = getFileTypeSuffix(FileType::CSV);
     auto arrowSuffix = getFileTypeSuffix(FileType::ARROW);
     auto parquetSuffix = getFileTypeSuffix(FileType::PARQUET);

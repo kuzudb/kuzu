@@ -7,24 +7,25 @@ using namespace kuzu::testing;
 class CSVOutputTest : public ApiTest {};
 
 TEST_F(CSVOutputTest, BasicCSVTest) {
-    string newline = "\n";
-    string basicOutput = R"(Carol,1,5.000000,1940-06-22,1911-08-20 02:32:21,CsWork)" + newline +
-                         R"(Dan,2,4.800000,1950-07-23,2031-11-30 12:25:30,DEsWork)" + newline +
-                         R"(Elizabeth,1,4.700000,1980-10-26,1976-12-23 11:21:42,DEsWork)" + newline;
+    std::string newline = "\n";
+    std::string basicOutput =
+        R"(Carol,1,5.000000,1940-06-22,1911-08-20 02:32:21,CsWork)" + newline +
+        R"(Dan,2,4.800000,1950-07-23,2031-11-30 12:25:30,DEsWork)" + newline +
+        R"(Elizabeth,1,4.700000,1980-10-26,1976-12-23 11:21:42,DEsWork)" + newline;
     auto query = "MATCH (a:person)-[:workAt]->(o:organisation) RETURN a.fName, a.gender,"
                  "a.eyeSight, a.birthdate, a.registerTime, o.name";
     auto result = conn->query(query);
     result->writeToCSV(TestHelper::getTmpTestDir() + "/output_CSV_BASIC.csv");
-    ifstream f(TestHelper::getTmpTestDir() + "/output_CSV_BASIC.csv");
-    ostringstream ss;
+    std::ifstream f(TestHelper::getTmpTestDir() + "/output_CSV_BASIC.csv");
+    std::ostringstream ss;
     ss << f.rdbuf();
-    string fileString = ss.str();
+    std::string fileString = ss.str();
     ASSERT_STREQ(fileString.c_str(), basicOutput.c_str());
 }
 
 TEST_F(CSVOutputTest, ListCSVTest) {
-    string newline = "\n";
-    string listOutput =
+    std::string newline = "\n";
+    std::string listOutput =
         R"([""Aida""],"[10,5]","[""Alice"",""Alice""]")" + newline +
         R"([""Bobby""],"[12,8]","[""Bob"",""Bob""]")" + newline +
         R"("[""Carmen"",""Fred""]","[4,5]","[""Carol"",""Carol""]")" + newline +
@@ -37,28 +38,28 @@ TEST_F(CSVOutputTest, ListCSVTest) {
     auto query = "MATCH (a:person) RETURN a.usedNames, a.workedHours, [a.fName, a.fName]";
     auto result = conn->query(query);
     result->writeToCSV(TestHelper::getTmpTestDir() + "/output_CSV_LIST.csv");
-    ifstream f(TestHelper::getTmpTestDir() + "/output_CSV_LIST.csv");
-    ostringstream ss;
+    std::ifstream f(TestHelper::getTmpTestDir() + "/output_CSV_LIST.csv");
+    std::ostringstream ss;
     ss << f.rdbuf();
-    string fileString = ss.str();
+    std::string fileString = ss.str();
     ASSERT_STREQ(fileString.c_str(), listOutput.c_str());
 }
 
 TEST_F(CSVOutputTest, AlternateDelimCSVTest) {
-    string listOutput = R"(ABFsUni	"-2"-CsWork	"-100"-DEsWork	7-)";
+    std::string listOutput = R"(ABFsUni	"-2"-CsWork	"-100"-DEsWork	7-)";
     auto query = "MATCH (o:organisation) RETURN o.name, o.score";
     auto result = conn->query(query);
     result->writeToCSV(TestHelper::getTmpTestDir() + "/output_CSV_LIST.csv", '\t', '"', '-');
-    ifstream f(TestHelper::getTmpTestDir() + "/output_CSV_LIST.csv");
-    ostringstream ss;
+    std::ifstream f(TestHelper::getTmpTestDir() + "/output_CSV_LIST.csv");
+    std::ostringstream ss;
     ss << f.rdbuf();
-    string fileString = ss.str();
+    std::string fileString = ss.str();
     ASSERT_STREQ(fileString.c_str(), listOutput.c_str());
 }
 
 TEST_F(CSVOutputTest, AlternateEscapeCSVTest) {
-    string newline = "\n";
-    string listOutput =
+    std::string newline = "\n";
+    std::string listOutput =
         R"(`[10,5]`,Alice)" + newline + R"(`[12,8]`,Bob)" + newline + R"(`[4,5]`,Carol)" + newline +
         R"(`[1,9]`,Dan)" + newline + R"([2],Elizabeth)" + newline + R"(`[3,4,5,6,7]`,Farooq)" +
         newline + R"([1],Greg)" + newline +
@@ -66,9 +67,9 @@ TEST_F(CSVOutputTest, AlternateEscapeCSVTest) {
     auto query = "MATCH (p:person) RETURN p.workedHours, p.fName";
     auto result = conn->query(query);
     result->writeToCSV(TestHelper::getTmpTestDir() + "/output_CSV_LIST.csv", ',', '`');
-    ifstream f(TestHelper::getTmpTestDir() + "/output_CSV_LIST.csv");
-    ostringstream ss;
+    std::ifstream f(TestHelper::getTmpTestDir() + "/output_CSV_LIST.csv");
+    std::ostringstream ss;
     ss << f.rdbuf();
-    string fileString = ss.str();
+    std::string fileString = ss.str();
     ASSERT_STREQ(fileString.c_str(), listOutput.c_str());
 }

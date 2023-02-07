@@ -1,5 +1,8 @@
 #include "storage/index/hash_index_utils.h"
 
+using namespace kuzu::common;
+using namespace kuzu::transaction;
+
 namespace kuzu {
 namespace storage {
 
@@ -89,7 +92,7 @@ hash_function_t HashIndexUtils::initializeHashFunc(DataTypeID dataTypeID) {
 bool HashIndexUtils::isStringPrefixAndLenEquals(
     const uint8_t* keyToLookup, const ku_string_t* keyInEntry) {
     auto prefixLen =
-        min((uint64_t)keyInEntry->len, static_cast<uint64_t>(ku_string_t::PREFIX_LENGTH));
+        std::min((uint64_t)keyInEntry->len, static_cast<uint64_t>(ku_string_t::PREFIX_LENGTH));
     return strlen(reinterpret_cast<const char*>(keyToLookup)) == keyInEntry->len &&
            memcmp(keyToLookup, keyInEntry->prefix, prefixLen) == 0;
 }

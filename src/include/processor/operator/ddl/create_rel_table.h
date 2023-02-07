@@ -8,10 +8,12 @@ namespace processor {
 
 class CreateRelTable : public CreateTable {
 public:
-    CreateRelTable(Catalog* catalog, string tableName,
-        vector<PropertyNameDataType> propertyNameDataTypes, RelMultiplicity relMultiplicity,
-        vector<pair<table_id_t, table_id_t>> srcDstTableIDs, const DataPos& outputPos, uint32_t id,
-        const string& paramsString, RelsStatistics* relsStatistics)
+    CreateRelTable(catalog::Catalog* catalog, std::string tableName,
+        std::vector<catalog::PropertyNameDataType> propertyNameDataTypes,
+        catalog::RelMultiplicity relMultiplicity,
+        std::vector<std::pair<common::table_id_t, common::table_id_t>> srcDstTableIDs,
+        const DataPos& outputPos, uint32_t id, const std::string& paramsString,
+        storage::RelsStatistics* relsStatistics)
         : CreateTable{PhysicalOperatorType::CREATE_REL_TABLE, catalog, std::move(tableName),
               std::move(propertyNameDataTypes), outputPos, id, paramsString},
           relMultiplicity{relMultiplicity}, srcDstTableIDs{std::move(srcDstTableIDs)},
@@ -21,15 +23,15 @@ public:
 
     std::string getOutputMsg() override;
 
-    unique_ptr<PhysicalOperator> clone() override {
+    std::unique_ptr<PhysicalOperator> clone() override {
         return make_unique<CreateRelTable>(catalog, tableName, propertyNameDataTypes,
             relMultiplicity, srcDstTableIDs, outputPos, id, paramsString, relsStatistics);
     }
 
 private:
-    RelMultiplicity relMultiplicity;
-    vector<pair<table_id_t, table_id_t>> srcDstTableIDs;
-    RelsStatistics* relsStatistics;
+    catalog::RelMultiplicity relMultiplicity;
+    std::vector<std::pair<common::table_id_t, common::table_id_t>> srcDstTableIDs;
+    storage::RelsStatistics* relsStatistics;
 };
 
 } // namespace processor

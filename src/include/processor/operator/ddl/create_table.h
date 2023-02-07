@@ -7,16 +7,16 @@ namespace processor {
 
 class CreateTable : public DDL {
 public:
-    CreateTable(PhysicalOperatorType operatorType, Catalog* catalog, string tableName,
-        vector<PropertyNameDataType> propertyNameDataTypes, const DataPos& outputPos, uint32_t id,
-        const string& paramsString)
+    CreateTable(PhysicalOperatorType operatorType, catalog::Catalog* catalog, std::string tableName,
+        std::vector<catalog::PropertyNameDataType> propertyNameDataTypes, const DataPos& outputPos,
+        uint32_t id, const std::string& paramsString)
         : DDL{operatorType, catalog, outputPos, id, paramsString}, tableName{std::move(tableName)},
           propertyNameDataTypes{std::move(propertyNameDataTypes)} {}
-    virtual ~CreateTable() override = default;
+    ~CreateTable() override = default;
 
 protected:
-    string tableName;
-    vector<PropertyNameDataType> propertyNameDataTypes;
+    std::string tableName;
+    std::vector<catalog::PropertyNameDataType> propertyNameDataTypes;
 };
 
 } // namespace processor

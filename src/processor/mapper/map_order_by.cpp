@@ -4,23 +4,25 @@
 #include "processor/operator/order_by/order_by_merge.h"
 #include "processor/operator/order_by/order_by_scan.h"
 
+using namespace kuzu::planner;
+
 namespace kuzu {
 namespace processor {
 
-unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOrderByToPhysical(
+std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOrderByToPhysical(
     LogicalOperator* logicalOperator) {
     auto& logicalOrderBy = (LogicalOrderBy&)*logicalOperator;
     auto outSchema = logicalOrderBy.getSchema();
     auto inSchema = logicalOrderBy.getSchemaBeforeOrderBy();
     auto prevOperator = mapLogicalOperatorToPhysical(logicalOrderBy.getChild(0));
     auto paramsString = logicalOrderBy.getExpressionsForPrinting();
-    vector<pair<DataPos, DataType>> keysPosAndType;
+    std::vector<std::pair<DataPos, common::DataType>> keysPosAndType;
     for (auto& expression : logicalOrderBy.getExpressionsToOrderBy()) {
         keysPosAndType.emplace_back(inSchema->getExpressionPos(*expression), expression->dataType);
     }
-    vector<pair<DataPos, DataType>> payloadsPosAndType;
-    vector<bool> isPayloadFlat;
-    vector<DataPos> outVectorPos;
+    std::vector<std::pair<DataPos, common::DataType>> payloadsPosAndType;
+    std::vector<bool> isPayloadFlat;
+    std::vector<DataPos> outVectorPos;
     for (auto& expression : logicalOrderBy.getExpressionsToMaterialize()) {
         auto expressionName = expression->getUniqueName();
         payloadsPosAndType.emplace_back(
@@ -32,12 +34,12 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOrderByToPhysical(
     auto mayContainUnflatKey = logicalOrderBy.getSchemaBeforeOrderBy()->getNumGroups() == 1;
     auto orderByDataInfo = OrderByDataInfo(keysPosAndType, payloadsPosAndType, isPayloadFlat,
         logicalOrderBy.getIsAscOrders(), mayContainUnflatKey);
-    auto orderBySharedState = make_shared<SharedFactorizedTablesAndSortedKeyBlocks>();
+    auto orderBySharedState = std::make_shared<SharedFactorizedTablesAndSortedKeyBlocks>();
 
     auto orderBy =
-        make_unique<OrderBy>(make_unique<ResultSetDescriptor>(*inSchema), orderByDataInfo,
+        make_unique<OrderBy>(std::make_unique<ResultSetDescriptor>(*inSchema), orderByDataInfo,
             orderBySharedState, std::move(prevOperator), getOperatorID(), paramsString);
-    auto dispatcher = make_shared<KeyBlockMergeTaskDispatcher>();
+    auto dispatcher = std::make_shared<KeyBlockMergeTaskDispatcher>();
     auto orderByMerge = make_unique<OrderByMerge>(orderBySharedState, std::move(dispatcher),
         std::move(orderBy), getOperatorID(), paramsString);
     auto orderByScan = make_unique<OrderByScan>(

@@ -11,9 +11,6 @@
 #include "storage/wal/wal.h"
 #include "transaction/transaction.h"
 
-using namespace kuzu::common;
-using namespace kuzu::transaction;
-
 namespace kuzu {
 namespace storage {
 
@@ -27,7 +24,7 @@ public:
               constructOverflowStorageStructureIDAndFName(storageStructureIDAndFNameOfMainDBFile),
               bufferManager, wal),
           loggedNewOverflowFileNextBytePosRecord{false} {
-        nextBytePosToWriteTo = fileHandle.getNumPages() * DEFAULT_PAGE_SIZE;
+        nextBytePosToWriteTo = fileHandle.getNumPages() * common::DEFAULT_PAGE_SIZE;
     }
 
     static inline StorageStructureIDAndFName constructOverflowStorageStructureIDAndFName(
@@ -39,35 +36,37 @@ public:
         return copy;
     }
 
-    void readStringsToVector(TransactionType trxType, ValueVector& valueVector);
-    void readStringToVector(
-        TransactionType trxType, ku_string_t& kuStr, InMemOverflowBuffer& inMemOverflowBuffer);
+    void readStringsToVector(
+        transaction::TransactionType trxType, common::ValueVector& valueVector);
+    void readStringToVector(transaction::TransactionType trxType, common::ku_string_t& kuStr,
+        common::InMemOverflowBuffer& inMemOverflowBuffer);
 
     inline void scanSingleStringOverflow(
-        TransactionType trxType, ValueVector& vector, uint64_t vectorPos) {
-        assert(vector.dataType.typeID == STRING && !vector.isNull(vectorPos));
-        auto& kuString = ((ku_string_t*)vector.getData())[vectorPos];
+        transaction::TransactionType trxType, common::ValueVector& vector, uint64_t vectorPos) {
+        assert(vector.dataType.typeID == common::STRING && !vector.isNull(vectorPos));
+        auto& kuString = ((common::ku_string_t*)vector.getData())[vectorPos];
         readStringToVector(trxType, kuString, vector.getOverflowBuffer());
     }
-    void scanSequentialStringOverflow(TransactionType trxType, ValueVector& vector);
+    void scanSequentialStringOverflow(
+        transaction::TransactionType trxType, common::ValueVector& vector);
     inline void scanSingleListOverflow(
-        TransactionType trxType, ValueVector& vector, uint64_t vectorPos) {
-        assert(vector.dataType.typeID == LIST && !vector.isNull(vectorPos));
-        auto& kuList = ((ku_list_t*)vector.getData())[vectorPos];
+        transaction::TransactionType trxType, common::ValueVector& vector, uint64_t vectorPos) {
+        assert(vector.dataType.typeID == common::LIST && !vector.isNull(vectorPos));
+        auto& kuList = ((common::ku_list_t*)vector.getData())[vectorPos];
         readListToVector(trxType, kuList, vector.dataType, vector.getOverflowBuffer());
     }
 
-    void readListsToVector(TransactionType trxType, ValueVector& valueVector);
+    void readListsToVector(transaction::TransactionType trxType, common::ValueVector& valueVector);
 
-    string readString(TransactionType trxType, const ku_string_t& str);
-    vector<unique_ptr<Value>> readList(
-        TransactionType trxType, const ku_list_t& listVal, const DataType& dataType);
+    std::string readString(transaction::TransactionType trxType, const common::ku_string_t& str);
+    std::vector<std::unique_ptr<common::Value>> readList(transaction::TransactionType trxType,
+        const common::ku_list_t& listVal, const common::DataType& dataType);
 
-    ku_string_t writeString(const char* rawString);
+    common::ku_string_t writeString(const char* rawString);
     void writeStringOverflowAndUpdateOverflowPtr(
-        const ku_string_t& strToWriteFrom, ku_string_t& strToWriteTo);
-    void writeListOverflowAndUpdateOverflowPtr(const ku_list_t& listToWriteFrom,
-        ku_list_t& listToWriteTo, const DataType& elementDataType);
+        const common::ku_string_t& strToWriteFrom, common::ku_string_t& strToWriteTo);
+    void writeListOverflowAndUpdateOverflowPtr(const common::ku_list_t& listToWriteFrom,
+        common::ku_list_t& listToWriteTo, const common::DataType& elementDataType);
 
     inline void resetNextBytePosToWriteTo(uint64_t nextBytePosToWriteTo_) {
         nextBytePosToWriteTo = nextBytePosToWriteTo_;
@@ -79,12 +78,12 @@ public:
 
 private:
     void addNewPageIfNecessaryWithoutLock(uint32_t numBytesToAppend);
-    void readListToVector(TransactionType trxType, ku_list_t& kuList, const DataType& dataType,
-        InMemOverflowBuffer& inMemOverflowBuffer);
+    void readListToVector(transaction::TransactionType trxType, common::ku_list_t& kuList,
+        const common::DataType& dataType, common::InMemOverflowBuffer& inMemOverflowBuffer);
     void setStringOverflowWithoutLock(
-        const char* inMemSrcStr, uint64_t len, ku_string_t& diskDstString);
-    void setListRecursiveIfNestedWithoutLock(
-        const ku_list_t& inMemSrcList, ku_list_t& diskDstList, const DataType& dataType);
+        const char* inMemSrcStr, uint64_t len, common::ku_string_t& diskDstString);
+    void setListRecursiveIfNestedWithoutLock(const common::ku_list_t& inMemSrcList,
+        common::ku_list_t& diskDstList, const common::DataType& dataType);
     void logNewOverflowFileNextBytePosRecordIfNecessaryWithoutLock();
 
 private:
@@ -95,7 +94,7 @@ private:
     // This is because multiple threads will be trying to edit the nextBytePosToWriteTo.
     // For simplicity, currently only a single thread can update overflow pages at ant time. See the
     // note in writeStringOverflowAndUpdateOverflowPtr for more details.
-    mutex mtx;
+    std::mutex mtx;
     bool loggedNewOverflowFileNextBytePosRecord;
 };
 

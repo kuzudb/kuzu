@@ -11,15 +11,14 @@
 #include "common/file_utils.h"
 #include "common/types/types.h"
 
-using namespace kuzu::common;
-using lock_t = unique_lock<mutex>;
-
 namespace spdlog {
 class logger;
 }
 
 namespace kuzu {
 namespace storage {
+
+using lock_t = std::unique_lock<std::mutex>;
 
 class BufferPool;
 
@@ -46,19 +45,21 @@ public:
     constexpr static uint8_t O_PERSISTENT_FILE_CREATE_NOT_EXISTS{0b0000'0100};
     constexpr static uint8_t O_IN_MEM_TEMP_FILE{0b0000'0011};
 
-    FileHandle(const string& path, uint8_t flags);
+    FileHandle(const std::string& path, uint8_t flags);
 
     // This function is intended to be used after a fileInfo is created and we want the file
     // to have not pages and page locks. Should be called after ensuring that the buffer manager
     // does not hold any of the pages of the file.
     void resetToZeroPagesAndPageCapacity();
 
-    inline void readPage(uint8_t* frame, page_idx_t pageIdx) const {
-        FileUtils::readFromFile(fileInfo.get(), frame, getPageSize(), pageIdx * getPageSize());
+    inline void readPage(uint8_t* frame, common::page_idx_t pageIdx) const {
+        common::FileUtils::readFromFile(
+            fileInfo.get(), frame, getPageSize(), pageIdx * getPageSize());
     }
 
-    inline void writePage(uint8_t* buffer, page_idx_t pageIdx) const {
-        FileUtils::writeToFile(fileInfo.get(), buffer, getPageSize(), pageIdx * getPageSize());
+    inline void writePage(uint8_t* buffer, common::page_idx_t pageIdx) const {
+        common::FileUtils::writeToFile(
+            fileInfo.get(), buffer, getPageSize(), pageIdx * getPageSize());
     }
 
     // Warning: Adding a new page does not write a new page directly to a file. Instead, it only
@@ -78,63 +79,69 @@ public:
     // addNewPage should be written to ensure that once T_W calls addNewPage, it should be followed
     // by a BufferManager::pinNewPage call and the code should ensure that no other thread can try
     // to pin the newly added page in between these calls.
-    virtual page_idx_t addNewPage();
-    virtual void removePageIdxAndTruncateIfNecessary(page_idx_t pageIdxToRemove);
+    virtual common::page_idx_t addNewPage();
+    virtual void removePageIdxAndTruncateIfNecessary(common::page_idx_t pageIdxToRemove);
 
     inline bool isLargePaged() const { return flags & isLargePagedMask; }
 
     inline bool isNewTmpFile() const { return flags & isNewInMemoryTmpFileMask; }
     inline bool createFileIfNotExists() const { return flags & createIfNotExistsMask; }
-    inline page_idx_t getNumPages() const { return numPages; }
-    static inline bool isAFrame(page_idx_t mappedFrameIdx) { return UINT32_MAX != mappedFrameIdx; }
-    inline FileInfo* getFileInfo() const { return fileInfo.get(); }
+    inline common::page_idx_t getNumPages() const { return numPages; }
+    static inline bool isAFrame(common::page_idx_t mappedFrameIdx) {
+        return UINT32_MAX != mappedFrameIdx;
+    }
+    inline common::FileInfo* getFileInfo() const { return fileInfo.get(); }
 
-    inline page_idx_t getFrameIdx(page_idx_t pageIdx) { return pageIdxToFrameMap[pageIdx]->load(); }
+    inline common::page_idx_t getFrameIdx(common::page_idx_t pageIdx) {
+        return pageIdxToFrameMap[pageIdx]->load();
+    }
 
-    bool acquirePageLock(page_idx_t pageIdx, bool block);
+    bool acquirePageLock(common::page_idx_t pageIdx, bool block);
 
-    void releasePageLock(page_idx_t pageIdx) { pageLocks[pageIdx]->clear(); }
+    void releasePageLock(common::page_idx_t pageIdx) { pageLocks[pageIdx]->clear(); }
 
     inline uint64_t getPageSize() const {
-        return isLargePaged() ? LARGE_PAGE_SIZE : DEFAULT_PAGE_SIZE;
+        return isLargePaged() ? common::LARGE_PAGE_SIZE : common::DEFAULT_PAGE_SIZE;
     }
 
 protected:
-    page_idx_t addNewPageWithoutLock();
+    virtual common::page_idx_t addNewPageWithoutLock();
 
-    void removePageIdxAndTruncateIfNecessaryWithoutLock(page_idx_t pageIdxToRemove);
+    void removePageIdxAndTruncateIfNecessaryWithoutLock(common::page_idx_t pageIdxToRemove);
 
     void initPageIdxToFrameMapAndLocks();
 
-    void constructExistingFileHandle(const string& path);
+    void constructExistingFileHandle(const std::string& path);
 
-    void constructNewFileHandle(const string& path);
+    void constructNewFileHandle(const std::string& path);
 
-    bool acquire(page_idx_t pageIdx);
+    bool acquire(common::page_idx_t pageIdx);
 
-    inline void swizzle(page_idx_t pageIdx, page_idx_t swizzledVal) {
+    inline void swizzle(common::page_idx_t pageIdx, common::page_idx_t swizzledVal) {
         pageIdxToFrameMap[pageIdx]->store(swizzledVal);
     }
 
-    inline void unswizzle(page_idx_t pageIdx) { pageIdxToFrameMap[pageIdx]->store(UINT32_MAX); }
+    inline void unswizzle(common::page_idx_t pageIdx) {
+        pageIdxToFrameMap[pageIdx]->store(UINT32_MAX);
+    }
 
-    inline void addNewPageLockAndFramePtrWithoutLock(page_idx_t pageIdx) {
-        pageLocks[pageIdx] = make_unique<atomic_flag>();
-        pageIdxToFrameMap[pageIdx] = make_unique<atomic<page_idx_t>>(UINT32_MAX);
+    inline void addNewPageLockAndFramePtrWithoutLock(common::page_idx_t pageIdx) {
+        pageLocks[pageIdx] = std::make_unique<std::atomic_flag>();
+        pageIdxToFrameMap[pageIdx] = std::make_unique<std::atomic<common::page_idx_t>>(UINT32_MAX);
     }
 
 protected:
-    shared_ptr<spdlog::logger> logger;
+    std::shared_ptr<spdlog::logger> logger;
     uint8_t flags;
-    unique_ptr<FileInfo> fileInfo;
-    vector<unique_ptr<atomic_flag>> pageLocks;
-    vector<unique_ptr<atomic<page_idx_t>>> pageIdxToFrameMap;
+    std::unique_ptr<common::FileInfo> fileInfo;
+    std::vector<std::unique_ptr<std::atomic_flag>> pageLocks;
+    std::vector<std::unique_ptr<std::atomic<common::page_idx_t>>> pageIdxToFrameMap;
     uint32_t numPages;
     // This is the maximum number of pages the filehandle can currently support.
     uint32_t pageCapacity;
     // Intended to be used to coordinate calls to functions that change in the internal data
     // structures of the file handle.
-    shared_mutex fhSharedMutex;
+    std::shared_mutex fhSharedMutex;
 };
 
 } // namespace storage

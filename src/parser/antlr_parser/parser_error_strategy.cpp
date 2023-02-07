@@ -4,11 +4,11 @@ namespace kuzu {
 namespace parser {
 
 void ParserErrorStrategy::reportNoViableAlternative(
-    Parser* recognizer, const NoViableAltException& e) {
+    antlr4::Parser* recognizer, const antlr4::NoViableAltException& e) {
     auto tokens = recognizer->getTokenStream();
     auto errorMsg =
         tokens ?
-            Token::EOF == e.getStartToken()->getType() ?
+            antlr4::Token::EOF == e.getStartToken()->getType() ?
             "Unexpected end of input" :
             "Invalid input <" + tokens->getText(e.getStartToken(), e.getOffendingToken()) + ">" :
             "Unknown input";

@@ -38,7 +38,7 @@ bool isExpressionSubquery(ExpressionType type) {
     return EXISTENTIAL_SUBQUERY == type;
 }
 
-string expressionTypeToString(ExpressionType type) {
+std::string expressionTypeToString(ExpressionType type) {
     switch (type) {
     case OR:
         return "OR";

@@ -5,54 +5,55 @@ using namespace kuzu::common;
 using namespace kuzu::catalog;
 using namespace kuzu::storage;
 using namespace kuzu::testing;
+using namespace kuzu::transaction;
 
 namespace kuzu {
 namespace testing {
 
 class CopyNodePropertyTest : public DBTest {
 public:
-    string getInputDir() override {
+    std::string getInputDir() override {
         return TestHelper::appendKuzuRootPath("dataset/copy-node-property-test/");
     }
 };
 
 class CopySpecialCharTest : public DBTest {
 public:
-    string getInputDir() override {
+    std::string getInputDir() override {
         return TestHelper::appendKuzuRootPath("dataset/copy-special-char-test/");
     }
 };
 
 class CopyReadLists2BytesPerEdgeTest : public DBTest {
 public:
-    string getInputDir() override {
+    std::string getInputDir() override {
         return TestHelper::appendKuzuRootPath("dataset/read-list-tests/2-bytes-per-edge/");
     }
 };
 
 class CopyReadLists3BytesPerEdgeTest : public DBTest {
 public:
-    string getInputDir() override {
+    std::string getInputDir() override {
         return TestHelper::appendKuzuRootPath("dataset/read-list-tests/3-bytes-per-edge/");
     }
 };
 
 class CopyReadLists4BytesPerEdgeTest : public DBTest {
 public:
-    string getInputDir() override {
+    std::string getInputDir() override {
         return TestHelper::appendKuzuRootPath("dataset/read-list-tests/4-bytes-per-edge/");
     }
 };
 
 class CopyReadLists5BytesPerEdgeTest : public DBTest {
 public:
-    string getInputDir() override {
+    std::string getInputDir() override {
         return TestHelper::appendKuzuRootPath("dataset/read-list-tests/5-bytes-per-edge/");
     }
 };
 
 class CopyLongStringTest : public DBTest {
-    string getInputDir() override {
+    std::string getInputDir() override {
         return TestHelper::appendKuzuRootPath("dataset/copy-fault-tests/long-string/");
     }
 };
@@ -64,7 +65,9 @@ public:
         createDBAndConn();
     }
 
-    string getInputDir() override { return TestHelper::appendKuzuRootPath("dataset/tinysnb/"); }
+    std::string getInputDir() override {
+        return TestHelper::appendKuzuRootPath("dataset/tinysnb/");
+    }
 };
 
 struct KnowsTablePTablePKnowsLists {
@@ -112,7 +115,8 @@ TEST_F(CopyNodePropertyTest, NodeStructuredStringPropertyTest) {
     auto propertyIdx = catalog->getReadOnlyVersion()->getNodeProperty(tableID, "randomString");
     auto column = reinterpret_cast<StringPropertyColumn*>(
         graph->getNodesStore().getNodePropertyColumn(tableID, propertyIdx.propertyID));
-    string fName = TestHelper::appendKuzuRootPath("dataset/copy-node-property-test/vPerson.csv");
+    std::string fName =
+        TestHelper::appendKuzuRootPath("dataset/copy-node-property-test/vPerson.csv");
     CSVReaderConfig config;
     CSVReader csvReader(fName, config);
     int lineIdx = 0;
@@ -126,7 +130,7 @@ TEST_F(CopyNodePropertyTest, NodeStructuredStringPropertyTest) {
             ASSERT_TRUE(column->isNull(count /* nodeOffset */, dummyReadOnlyTrx.get()));
         } else {
             ASSERT_FALSE(column->isNull(count /* nodeOffset */, dummyReadOnlyTrx.get()));
-            EXPECT_EQ(string(csvReader.getString()), column->readValue(lineIdx).strVal);
+            EXPECT_EQ(std::string(csvReader.getString()), column->readValue(lineIdx).strVal);
         }
         lineIdx++;
         csvReader.skipLine();
@@ -269,9 +273,9 @@ TEST_F(CopyLongStringTest, LongStringError) {
         storageManager->getNodesStore().getNodePropertyColumn(tableID, propertyIdx.propertyID);
 
     EXPECT_EQ(4096, col->readValue(0).strVal.length());
-    string expectedResultName = "Alice";
+    std::string expectedResultName = "Alice";
     auto repeatedTimes = 4096 / expectedResultName.length() + 1;
-    ostringstream os;
+    std::ostringstream os;
     for (auto i = 0; i < repeatedTimes; i++) {
         os << expectedResultName;
     }

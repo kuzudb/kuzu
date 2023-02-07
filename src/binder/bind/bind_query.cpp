@@ -1,10 +1,12 @@
 #include "binder/binder.h"
 
+using namespace kuzu::parser;
+
 namespace kuzu {
 namespace binder {
 
-unique_ptr<BoundRegularQuery> Binder::bindQuery(const RegularQuery& regularQuery) {
-    vector<unique_ptr<BoundSingleQuery>> boundSingleQueries;
+std::unique_ptr<BoundRegularQuery> Binder::bindQuery(const RegularQuery& regularQuery) {
+    std::vector<std::unique_ptr<BoundSingleQuery>> boundSingleQueries;
     for (auto i = 0u; i < regularQuery.getNumSingleQueries(); i++) {
         // Don't clear scope within bindSingleQuery() yet because it is also used for subquery
         // binding.
@@ -17,8 +19,8 @@ unique_ptr<BoundRegularQuery> Binder::bindQuery(const RegularQuery& regularQuery
         boundSingleQueries[0]->hasReturnClause() ?
             boundSingleQueries[0]->getReturnClause()->getStatementResult()->copy() :
             BoundStatementResult::createEmptyResult();
-    auto boundRegularQuery =
-        make_unique<BoundRegularQuery>(regularQuery.getIsUnionAll(), std::move(statementResult));
+    auto boundRegularQuery = std::make_unique<BoundRegularQuery>(
+        regularQuery.getIsUnionAll(), std::move(statementResult));
     for (auto& boundSingleQuery : boundSingleQueries) {
         auto normalizedSingleQuery = QueryNormalizer::normalizeQuery(*boundSingleQuery);
         validateReadNotFollowUpdate(*normalizedSingleQuery);
@@ -29,9 +31,9 @@ unique_ptr<BoundRegularQuery> Binder::bindQuery(const RegularQuery& regularQuery
     return boundRegularQuery;
 }
 
-unique_ptr<BoundSingleQuery> Binder::bindSingleQuery(const SingleQuery& singleQuery) {
+std::unique_ptr<BoundSingleQuery> Binder::bindSingleQuery(const SingleQuery& singleQuery) {
     validateFirstMatchIsNotOptional(singleQuery);
-    auto boundSingleQuery = make_unique<BoundSingleQuery>();
+    auto boundSingleQuery = std::make_unique<BoundSingleQuery>();
     for (auto i = 0u; i < singleQuery.getNumQueryParts(); ++i) {
         boundSingleQuery->addQueryPart(bindQueryPart(*singleQuery.getQueryPart(i)));
     }
@@ -47,8 +49,8 @@ unique_ptr<BoundSingleQuery> Binder::bindSingleQuery(const SingleQuery& singleQu
     return boundSingleQuery;
 }
 
-unique_ptr<BoundQueryPart> Binder::bindQueryPart(const QueryPart& queryPart) {
-    auto boundQueryPart = make_unique<BoundQueryPart>();
+std::unique_ptr<BoundQueryPart> Binder::bindQueryPart(const QueryPart& queryPart) {
+    auto boundQueryPart = std::make_unique<BoundQueryPart>();
     for (auto i = 0u; i < queryPart.getNumReadingClauses(); i++) {
         boundQueryPart->addReadingClause(bindReadingClause(*queryPart.getReadingClause(i)));
     }

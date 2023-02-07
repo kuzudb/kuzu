@@ -4,8 +4,6 @@
 
 #include "processor/operator/order_by/order_by_key_encoder.h"
 
-using namespace kuzu::common;
-
 namespace kuzu {
 namespace processor {
 
@@ -19,7 +17,7 @@ struct StrKeyColInfo {
           isAscOrder{isAscOrder} {}
 
     inline uint32_t getEncodingSize() const {
-        return OrderByKeyEncoder::getEncodingSize(DataType(STRING));
+        return OrderByKeyEncoder::getEncodingSize(common::DataType(common::STRING));
     }
 
     uint32_t colOffsetInFT;
@@ -29,10 +27,11 @@ struct StrKeyColInfo {
 
 class MergedKeyBlocks {
 public:
-    MergedKeyBlocks(uint32_t numBytesPerTuple, uint64_t numTuples, MemoryManager* memoryManager);
+    MergedKeyBlocks(
+        uint32_t numBytesPerTuple, uint64_t numTuples, storage::MemoryManager* memoryManager);
 
     // This constructor is used to convert a dataBlock to a MergedKeyBlocks.
-    MergedKeyBlocks(uint32_t numBytesPerTuple, shared_ptr<DataBlock> keyBlock);
+    MergedKeyBlocks(uint32_t numBytesPerTuple, std::shared_ptr<DataBlock> keyBlock);
 
     inline uint8_t* getTuple(uint64_t tupleIdx) const {
         assert(tupleIdx < numTuples);
@@ -58,13 +57,13 @@ private:
     uint32_t numBytesPerTuple;
     uint32_t numTuplesPerBlock;
     uint64_t numTuples;
-    vector<shared_ptr<DataBlock>> keyBlocks;
+    std::vector<std::shared_ptr<DataBlock>> keyBlocks;
     uint32_t endTupleOffset;
 };
 
 struct BlockPtrInfo {
     inline BlockPtrInfo(
-        uint64_t startTupleIdx, uint64_t endTupleIdx, shared_ptr<MergedKeyBlocks>& keyBlocks)
+        uint64_t startTupleIdx, uint64_t endTupleIdx, std::shared_ptr<MergedKeyBlocks>& keyBlocks)
         : keyBlocks{keyBlocks}, curTuplePtr{keyBlocks->getTuple(startTupleIdx)},
           curBlockIdx{startTupleIdx / keyBlocks->getNumTuplesPerBlock()},
           endBlockIdx{endTupleIdx == 0 ? 0 : (endTupleIdx - 1) / keyBlocks->getNumTuplesPerBlock()},
@@ -83,7 +82,7 @@ struct BlockPtrInfo {
 
     void updateTuplePtrIfNecessary();
 
-    shared_ptr<MergedKeyBlocks>& keyBlocks;
+    std::shared_ptr<MergedKeyBlocks>& keyBlocks;
     uint8_t* curTuplePtr;
     uint64_t curBlockIdx;
     uint64_t endBlockIdx;
@@ -94,8 +93,8 @@ struct BlockPtrInfo {
 
 class KeyBlockMerger {
 public:
-    explicit KeyBlockMerger(vector<shared_ptr<FactorizedTable>>& factorizedTables,
-        vector<StrKeyColInfo>& strKeyColsInfo, uint32_t numBytesPerTuple)
+    explicit KeyBlockMerger(std::vector<std::shared_ptr<FactorizedTable>>& factorizedTables,
+        std::vector<StrKeyColInfo>& strKeyColsInfo, uint32_t numBytesPerTuple)
         : factorizedTables{factorizedTables}, strKeyColsInfo{strKeyColsInfo},
           numBytesPerTuple{numBytesPerTuple}, numBytesToCompare{numBytesPerTuple - 8},
           hasStringCol{!strKeyColsInfo.empty()} {}
@@ -116,10 +115,10 @@ private:
     // FactorizedTables[i] stores all order_by columns encoded and sorted by the ith thread.
     // MergeSort uses factorizedTable to access the full contents of the string key columns
     // when resolving ties.
-    vector<shared_ptr<FactorizedTable>>& factorizedTables;
+    std::vector<std::shared_ptr<FactorizedTable>>& factorizedTables;
     // We also store the colIdxInFactorizedTable, colOffsetInEncodedKeyBlock, isAscOrder, isStrCol
     // for each string column. So, we don't need to compute them again during merge sort.
-    vector<StrKeyColInfo>& strKeyColsInfo;
+    std::vector<StrKeyColInfo>& strKeyColsInfo;
     uint32_t numBytesPerTuple;
     uint32_t numBytesToCompare;
     bool hasStringCol;
@@ -127,14 +126,14 @@ private:
 
 class KeyBlockMergeTask {
 public:
-    KeyBlockMergeTask(shared_ptr<MergedKeyBlocks> leftKeyBlock,
-        shared_ptr<MergedKeyBlocks> rightKeyBlock, shared_ptr<MergedKeyBlocks> resultKeyBlock,
-        KeyBlockMerger& keyBlockMerger)
+    KeyBlockMergeTask(std::shared_ptr<MergedKeyBlocks> leftKeyBlock,
+        std::shared_ptr<MergedKeyBlocks> rightKeyBlock,
+        std::shared_ptr<MergedKeyBlocks> resultKeyBlock, KeyBlockMerger& keyBlockMerger)
         : leftKeyBlock{std::move(leftKeyBlock)}, rightKeyBlock{std::move(rightKeyBlock)},
           resultKeyBlock{std::move(resultKeyBlock)}, leftKeyBlockNextIdx{0},
           rightKeyBlockNextIdx{0}, activeMorsels{0}, keyBlockMerger{keyBlockMerger} {}
 
-    unique_ptr<KeyBlockMergeMorsel> getMorsel();
+    std::unique_ptr<KeyBlockMergeMorsel> getMorsel();
 
     inline bool hasMorselLeft() const {
         // Returns true if there are still morsels left in the current task.
@@ -148,9 +147,9 @@ private:
 public:
     static const uint32_t batch_size = 10000;
 
-    shared_ptr<MergedKeyBlocks> leftKeyBlock;
-    shared_ptr<MergedKeyBlocks> rightKeyBlock;
-    shared_ptr<MergedKeyBlocks> resultKeyBlock;
+    std::shared_ptr<MergedKeyBlocks> leftKeyBlock;
+    std::shared_ptr<MergedKeyBlocks> rightKeyBlock;
+    std::shared_ptr<MergedKeyBlocks> resultKeyBlock;
     uint64_t leftKeyBlockNextIdx;
     uint64_t rightKeyBlockNextIdx;
     // The counter is used to keep track of the number of morsels given to thread.
@@ -167,7 +166,7 @@ struct KeyBlockMergeMorsel {
         : leftKeyBlockStartIdx{leftKeyBlockStartIdx}, leftKeyBlockEndIdx{leftKeyBlockEndIdx},
           rightKeyBlockStartIdx{rightKeyBlockStartIdx}, rightKeyBlockEndIdx{rightKeyBlockEndIdx} {}
 
-    shared_ptr<KeyBlockMergeTask> keyBlockMergeTask;
+    std::shared_ptr<KeyBlockMergeTask> keyBlockMergeTask;
     uint64_t leftKeyBlockStartIdx;
     uint64_t leftKeyBlockEndIdx;
     uint64_t rightKeyBlockStartIdx;
@@ -180,30 +179,30 @@ struct KeyBlockMergeMorsel {
 class KeyBlockMergeTaskDispatcher {
 public:
     inline bool isDoneMerge() {
-        lock_guard<mutex> keyBlockMergeDispatcherLock{mtx};
+        std::lock_guard<std::mutex> keyBlockMergeDispatcherLock{mtx};
         // Returns true if there are no more merge task to do or the sortedKeyBlocks is empty
         // (meaning that the resultSet is empty).
         return sortedKeyBlocks->size() <= 1 && activeKeyBlockMergeTasks.empty();
     }
 
-    unique_ptr<KeyBlockMergeMorsel> getMorsel();
+    std::unique_ptr<KeyBlockMergeMorsel> getMorsel();
 
-    void doneMorsel(unique_ptr<KeyBlockMergeMorsel> morsel);
+    void doneMorsel(std::unique_ptr<KeyBlockMergeMorsel> morsel);
 
     // This function is used to initialize the columns of keyBlockMergeTaskDispatcher based on
     // sharedFactorizedTablesAndSortedKeyBlocks.
-    void init(MemoryManager* memoryManager,
-        shared_ptr<queue<shared_ptr<MergedKeyBlocks>>> sortedKeyBlocks,
-        vector<shared_ptr<FactorizedTable>>& factorizedTables,
-        vector<StrKeyColInfo>& strKeyColsInfo, uint64_t numBytesPerTuple);
+    void init(storage::MemoryManager* memoryManager,
+        std::shared_ptr<std::queue<std::shared_ptr<MergedKeyBlocks>>> sortedKeyBlocks,
+        std::vector<std::shared_ptr<FactorizedTable>>& factorizedTables,
+        std::vector<StrKeyColInfo>& strKeyColsInfo, uint64_t numBytesPerTuple);
 
 private:
-    mutex mtx;
+    std::mutex mtx;
 
-    MemoryManager* memoryManager;
-    shared_ptr<queue<shared_ptr<MergedKeyBlocks>>> sortedKeyBlocks;
-    vector<shared_ptr<KeyBlockMergeTask>> activeKeyBlockMergeTasks;
-    unique_ptr<KeyBlockMerger> keyBlockMerger;
+    storage::MemoryManager* memoryManager;
+    std::shared_ptr<std::queue<std::shared_ptr<MergedKeyBlocks>>> sortedKeyBlocks;
+    std::vector<std::shared_ptr<KeyBlockMergeTask>> activeKeyBlockMergeTasks;
+    std::unique_ptr<KeyBlockMerger> keyBlockMerger;
 };
 
 } // namespace processor

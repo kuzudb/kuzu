@@ -1,5 +1,7 @@
 #include "processor/operator/semi_masker.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace processor {
 

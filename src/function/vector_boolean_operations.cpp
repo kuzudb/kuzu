@@ -2,11 +2,13 @@
 
 #include "function/boolean/boolean_operations.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace function {
 
 scalar_exec_func VectorBooleanOperations::bindExecFunction(
-    ExpressionType expressionType, const expression_vector& children) {
+    ExpressionType expressionType, const binder::expression_vector& children) {
     if (isExpressionBinary(expressionType)) {
         return bindBinaryExecFunction(expressionType, children);
     } else {
@@ -16,7 +18,7 @@ scalar_exec_func VectorBooleanOperations::bindExecFunction(
 }
 
 scalar_select_func VectorBooleanOperations::bindSelectFunction(
-    ExpressionType expressionType, const expression_vector& children) {
+    ExpressionType expressionType, const binder::expression_vector& children) {
     if (isExpressionBinary(expressionType)) {
         return bindBinarySelectFunction(expressionType, children);
     } else {
@@ -26,7 +28,7 @@ scalar_select_func VectorBooleanOperations::bindSelectFunction(
 }
 
 scalar_exec_func VectorBooleanOperations::bindBinaryExecFunction(
-    ExpressionType expressionType, const expression_vector& children) {
+    ExpressionType expressionType, const binder::expression_vector& children) {
     assert(children.size() == 2);
     auto leftType = children[0]->dataType;
     auto rightType = children[1]->dataType;
@@ -48,7 +50,7 @@ scalar_exec_func VectorBooleanOperations::bindBinaryExecFunction(
 }
 
 scalar_select_func VectorBooleanOperations::bindBinarySelectFunction(
-    ExpressionType expressionType, const expression_vector& children) {
+    ExpressionType expressionType, const binder::expression_vector& children) {
     assert(children.size() == 2);
     auto leftType = children[0]->dataType;
     auto rightType = children[1]->dataType;
@@ -70,7 +72,7 @@ scalar_select_func VectorBooleanOperations::bindBinarySelectFunction(
 }
 
 scalar_exec_func VectorBooleanOperations::bindUnaryExecFunction(
-    ExpressionType expressionType, const expression_vector& children) {
+    ExpressionType expressionType, const binder::expression_vector& children) {
     assert(children.size() == 1 && children[0]->dataType.typeID == BOOL);
     switch (expressionType) {
     case NOT: {
@@ -83,7 +85,7 @@ scalar_exec_func VectorBooleanOperations::bindUnaryExecFunction(
 }
 
 scalar_select_func VectorBooleanOperations::bindUnarySelectFunction(
-    ExpressionType expressionType, const expression_vector& children) {
+    ExpressionType expressionType, const binder::expression_vector& children) {
     assert(children.size() == 1 && children[0]->dataType.typeID == BOOL);
     switch (expressionType) {
     case NOT: {

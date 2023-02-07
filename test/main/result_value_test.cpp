@@ -1,5 +1,6 @@
 #include "main_test_helper/main_test_helper.h"
 
+using namespace kuzu::common;
 using namespace kuzu::testing;
 
 class ResultValueTest : public ApiTest {};

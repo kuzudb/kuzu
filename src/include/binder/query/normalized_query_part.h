@@ -13,8 +13,8 @@ public:
     NormalizedQueryPart() = default;
     ~NormalizedQueryPart() = default;
 
-    inline void addReadingClause(unique_ptr<BoundReadingClause> boundReadingClause) {
-        readingClauses.push_back(move(boundReadingClause));
+    inline void addReadingClause(std::unique_ptr<BoundReadingClause> boundReadingClause) {
+        readingClauses.push_back(std::move(boundReadingClause));
     }
     inline bool hasReadingClause() const { return !readingClauses.empty(); }
     inline uint32_t getNumReadingClause() const { return readingClauses.size(); }
@@ -22,8 +22,8 @@ public:
         return readingClauses[idx].get();
     }
 
-    inline void addUpdatingClause(unique_ptr<BoundUpdatingClause> boundUpdatingClause) {
-        updatingClauses.push_back(move(boundUpdatingClause));
+    inline void addUpdatingClause(std::unique_ptr<BoundUpdatingClause> boundUpdatingClause) {
+        updatingClauses.push_back(std::move(boundUpdatingClause));
     }
     inline bool hasUpdatingClause() const { return !updatingClauses.empty(); }
     inline uint32_t getNumUpdatingClause() const { return updatingClauses.size(); }
@@ -31,27 +31,27 @@ public:
         return updatingClauses[idx].get();
     }
 
-    inline void setProjectionBody(unique_ptr<BoundProjectionBody> boundProjectionBody) {
-        projectionBody = move(boundProjectionBody);
+    inline void setProjectionBody(std::unique_ptr<BoundProjectionBody> boundProjectionBody) {
+        projectionBody = std::move(boundProjectionBody);
     }
     inline bool hasProjectionBody() const { return projectionBody != nullptr; }
     inline BoundProjectionBody* getProjectionBody() const { return projectionBody.get(); }
 
     inline bool hasProjectionBodyPredicate() const { return projectionBodyPredicate != nullptr; }
-    inline shared_ptr<Expression> getProjectionBodyPredicate() const {
+    inline std::shared_ptr<Expression> getProjectionBodyPredicate() const {
         return projectionBodyPredicate;
     }
-    inline void setProjectionBodyPredicate(const shared_ptr<Expression>& predicate) {
+    inline void setProjectionBodyPredicate(const std::shared_ptr<Expression>& predicate) {
         projectionBodyPredicate = predicate;
     }
 
     expression_vector getPropertiesToRead() const;
 
 private:
-    vector<unique_ptr<BoundReadingClause>> readingClauses;
-    vector<unique_ptr<BoundUpdatingClause>> updatingClauses;
-    unique_ptr<BoundProjectionBody> projectionBody;
-    shared_ptr<Expression> projectionBodyPredicate;
+    std::vector<std::unique_ptr<BoundReadingClause>> readingClauses;
+    std::vector<std::unique_ptr<BoundUpdatingClause>> updatingClauses;
+    std::unique_ptr<BoundProjectionBody> projectionBody;
+    std::shared_ptr<Expression> projectionBodyPredicate;
 };
 
 } // namespace binder

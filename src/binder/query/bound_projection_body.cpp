@@ -13,9 +13,9 @@ bool BoundProjectionBody::hasAggregationExpressions() const {
 }
 
 void BoundProjectionBody::setOrderByExpressions(
-    expression_vector expressions, vector<bool> sortOrders) {
-    orderByExpressions = move(expressions);
-    isAscOrders = move(sortOrders);
+    expression_vector expressions, std::vector<bool> sortOrders) {
+    orderByExpressions = std::move(expressions);
+    isAscOrders = std::move(sortOrders);
 }
 
 expression_vector BoundProjectionBody::getPropertiesToRead() const {

@@ -8,21 +8,21 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace processor {
 
-unique_ptr<PhysicalOperator> PlanMapper::mapLogicalIntersectToPhysical(
+std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalIntersectToPhysical(
     LogicalOperator* logicalOperator) {
     auto logicalIntersect = (LogicalIntersect*)logicalOperator;
     auto outSchema = logicalIntersect->getSchema();
-    vector<unique_ptr<PhysicalOperator>> children;
+    std::vector<std::unique_ptr<PhysicalOperator>> children;
     // 0th child is the probe child. others are build children.
     children.push_back(mapLogicalOperatorToPhysical(logicalIntersect->getChild(0)));
-    vector<shared_ptr<IntersectSharedState>> sharedStates;
-    vector<IntersectDataInfo> intersectDataInfos;
+    std::vector<std::shared_ptr<IntersectSharedState>> sharedStates;
+    std::vector<IntersectDataInfo> intersectDataInfos;
     // Map build side children.
     for (auto i = 1u; i < logicalIntersect->getNumChildren(); i++) {
         auto buildInfo = logicalIntersect->getBuildInfo(i - 1);
         auto buildSchema = logicalIntersect->getChild(i)->getSchema();
         auto buildSidePrevOperator = mapLogicalOperatorToPhysical(logicalIntersect->getChild(i));
-        vector<DataPos> payloadsDataPos;
+        std::vector<DataPos> payloadsDataPos;
         auto buildDataInfo = generateBuildDataInfo(
             *buildSchema, {buildInfo->keyNodeID}, buildInfo->expressionsToMaterialize);
         for (auto& [dataPos, _] : buildDataInfo.payloadsPosAndType) {
@@ -34,10 +34,10 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalIntersectToPhysical(
             }
             payloadsDataPos.emplace_back(outSchema->getExpressionPos(*expression));
         }
-        auto sharedState = make_shared<IntersectSharedState>();
+        auto sharedState = std::make_shared<IntersectSharedState>();
         sharedStates.push_back(sharedState);
         children.push_back(make_unique<IntersectBuild>(
-            make_unique<ResultSetDescriptor>(*buildSchema), sharedState, buildDataInfo,
+            std::make_unique<ResultSetDescriptor>(*buildSchema), sharedState, buildDataInfo,
             std::move(buildSidePrevOperator), getOperatorID(), buildInfo->keyNodeID->getRawName()));
         IntersectDataInfo info{
             DataPos(outSchema->getExpressionPos(*buildInfo->keyNodeID)), payloadsDataPos};

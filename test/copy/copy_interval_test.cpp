@@ -7,7 +7,9 @@ using namespace kuzu::storage;
 using namespace kuzu::testing;
 
 class TinySnbCopyIntervalTest : public DBTest {
-    string getInputDir() override { return TestHelper::appendKuzuRootPath("dataset/tinysnb/"); }
+    std::string getInputDir() override {
+        return TestHelper::appendKuzuRootPath("dataset/tinysnb/");
+    }
 };
 
 // Warning: This test assumes that each line in tinysnb's vPerson.csv gets

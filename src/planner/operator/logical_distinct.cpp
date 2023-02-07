@@ -3,8 +3,8 @@
 namespace kuzu {
 namespace planner {
 
-string LogicalDistinct::getExpressionsForPrinting() const {
-    string result;
+std::string LogicalDistinct::getExpressionsForPrinting() const {
+    std::string result;
     for (auto& expression : expressionsToDistinct) {
         result += expression->getUniqueName() + ", ";
     }

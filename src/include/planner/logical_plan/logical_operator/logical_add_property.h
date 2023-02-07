@@ -7,31 +7,32 @@ namespace planner {
 
 class LogicalAddProperty : public LogicalDDL {
 public:
-    explicit LogicalAddProperty(table_id_t tableID, string propertyName, DataType dataType,
-        shared_ptr<Expression> defaultValue, string tableName,
-        shared_ptr<Expression> outputExpression)
-        : LogicalDDL{LogicalOperatorType::ADD_PROPERTY, std::move(tableName), outputExpression},
+    explicit LogicalAddProperty(common::table_id_t tableID, std::string propertyName,
+        common::DataType dataType, std::shared_ptr<binder::Expression> defaultValue,
+        std::string tableName, std::shared_ptr<binder::Expression> outputExpression)
+        : LogicalDDL{LogicalOperatorType::ADD_PROPERTY, std::move(tableName),
+              std::move(outputExpression)},
           tableID{tableID}, propertyName{std::move(propertyName)}, dataType{std::move(dataType)},
-          defaultValue{defaultValue} {}
+          defaultValue{std::move(defaultValue)} {}
 
-    inline table_id_t getTableID() const { return tableID; }
+    inline common::table_id_t getTableID() const { return tableID; }
 
-    inline string getPropertyName() const { return propertyName; }
+    inline std::string getPropertyName() const { return propertyName; }
 
-    inline DataType getDataType() const { return dataType; }
+    inline common::DataType getDataType() const { return dataType; }
 
-    inline shared_ptr<Expression> getDefaultValue() const { return defaultValue; }
+    inline std::shared_ptr<binder::Expression> getDefaultValue() const { return defaultValue; }
 
-    inline unique_ptr<LogicalOperator> copy() override {
+    inline std::unique_ptr<LogicalOperator> copy() override {
         return make_unique<LogicalAddProperty>(
             tableID, propertyName, dataType, defaultValue, tableName, outputExpression);
     }
 
 private:
-    table_id_t tableID;
-    string propertyName;
-    DataType dataType;
-    shared_ptr<Expression> defaultValue;
+    common::table_id_t tableID;
+    std::string propertyName;
+    common::DataType dataType;
+    std::shared_ptr<binder::Expression> defaultValue;
 };
 
 } // namespace planner

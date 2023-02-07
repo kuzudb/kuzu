@@ -2,23 +2,25 @@
 
 #include "function/null/null_operations.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace function {
 
 scalar_exec_func VectorNullOperations::bindExecFunction(
-    ExpressionType expressionType, const expression_vector& children) {
+    ExpressionType expressionType, const binder::expression_vector& children) {
     assert(children.size() == 1);
     return bindUnaryExecFunction(expressionType, children);
 }
 
 scalar_select_func VectorNullOperations::bindSelectFunction(
-    ExpressionType expressionType, const expression_vector& children) {
+    ExpressionType expressionType, const binder::expression_vector& children) {
     assert(children.size() == 1);
     return bindUnarySelectFunction(expressionType, children);
 }
 
 scalar_exec_func VectorNullOperations::bindUnaryExecFunction(
-    ExpressionType expressionType, const expression_vector& children) {
+    ExpressionType expressionType, const binder::expression_vector& children) {
     assert(children.size() == 1);
     switch (expressionType) {
     case IS_NULL: {
@@ -34,7 +36,7 @@ scalar_exec_func VectorNullOperations::bindUnaryExecFunction(
 }
 
 scalar_select_func VectorNullOperations::bindUnarySelectFunction(
-    ExpressionType expressionType, const expression_vector& children) {
+    ExpressionType expressionType, const binder::expression_vector& children) {
     assert(children.size() == 1);
     switch (expressionType) {
     case IS_NULL: {

@@ -7,16 +7,13 @@
 #include "storage_structure_utils.h"
 #include "transaction/transaction.h"
 
-using namespace kuzu::common;
-using namespace kuzu::transaction;
-
 namespace kuzu {
 namespace storage {
 
 class FileHandle;
 
 static constexpr uint64_t NUM_PAGE_IDXS_PER_PIP =
-    (DEFAULT_PAGE_SIZE - sizeof(page_idx_t)) / sizeof(page_idx_t);
+    (common::DEFAULT_PAGE_SIZE - sizeof(common::page_idx_t)) / sizeof(common::page_idx_t);
 
 /**
  * Header page of a disk array.
@@ -45,16 +42,16 @@ struct DiskArrayHeader {
 struct PIP {
     PIP() : nextPipPageIdx{StorageStructureUtils::NULL_PAGE_IDX} {}
 
-    page_idx_t nextPipPageIdx;
-    page_idx_t pageIdxs[NUM_PAGE_IDXS_PER_PIP];
+    common::page_idx_t nextPipPageIdx;
+    common::page_idx_t pageIdxs[NUM_PAGE_IDXS_PER_PIP];
 };
 
 struct PIPWrapper {
-    PIPWrapper(FileHandle& fileHandle, page_idx_t pipPageIdx);
+    PIPWrapper(FileHandle& fileHandle, common::page_idx_t pipPageIdx);
 
-    explicit PIPWrapper(page_idx_t pipPageIdx) : pipPageIdx(pipPageIdx) {}
+    explicit PIPWrapper(common::page_idx_t pipPageIdx) : pipPageIdx(pipPageIdx) {}
 
-    page_idx_t pipPageIdx;
+    common::page_idx_t pipPageIdx;
     PIP pipContents;
 };
 
@@ -62,8 +59,8 @@ struct PIPUpdates {
     // updatedPipIdxs stores the idx's of existing PIPWrappers (not the physical pageIdx of those
     // PIPs), which are stored in the pipPageIdx field of PIPWrapper. These are used to replace the
     // PIPWrappers quickly during in-memory checkpointing.
-    unordered_set<uint64_t> updatedPipIdxs;
-    vector<page_idx_t> pipPageIdxsOfInsertedPIPs;
+    std::unordered_set<uint64_t> updatedPipIdxs;
+    std::vector<common::page_idx_t> pipPageIdxsOfInsertedPIPs;
 
     inline void clear() {
         updatedPipIdxs.clear();
@@ -99,16 +96,17 @@ template<typename U>
 class BaseDiskArray {
 public:
     // Used by copiers.
-    BaseDiskArray(FileHandle& fileHandle, page_idx_t headerPageIdx, uint64_t elementSize);
+    BaseDiskArray(FileHandle& fileHandle, common::page_idx_t headerPageIdx, uint64_t elementSize);
     // Used when loading from file
-    BaseDiskArray(
-        FileHandle& fileHandle, page_idx_t headerPageIdx, BufferManager* bufferManager, WAL* wal);
+    BaseDiskArray(FileHandle& fileHandle, common::page_idx_t headerPageIdx,
+        BufferManager* bufferManager, WAL* wal);
 
     virtual ~BaseDiskArray() = default;
 
-    uint64_t getNumElements(TransactionType trxType = TransactionType::READ_ONLY);
+    uint64_t getNumElements(
+        transaction::TransactionType trxType = transaction::TransactionType::READ_ONLY);
 
-    U get(uint64_t idx, TransactionType trxType);
+    U get(uint64_t idx, transaction::TransactionType trxType);
 
     // Note: This function is to be used only by the WRITE trx.
     void update(uint64_t idx, U val);
@@ -118,31 +116,31 @@ public:
     uint64_t pushBack(U val);
 
     virtual inline void checkpointInMemoryIfNecessary() {
-        unique_lock xlock{this->diskArraySharedMtx};
+        std::unique_lock xlock{this->diskArraySharedMtx};
         checkpointOrRollbackInMemoryIfNecessaryNoLock(true /* is checkpoint */);
     }
     virtual inline void rollbackInMemoryIfNecessary() {
-        unique_lock xlock{this->diskArraySharedMtx};
+        std::unique_lock xlock{this->diskArraySharedMtx};
         checkpointOrRollbackInMemoryIfNecessaryNoLock(false /* is rollback */);
     }
 
 protected:
-    uint64_t getNumElementsNoLock(TransactionType trxType);
+    uint64_t getNumElementsNoLock(transaction::TransactionType trxType);
 
-    uint64_t getNumAPsNoLock(TransactionType trxType);
+    uint64_t getNumAPsNoLock(transaction::TransactionType trxType);
 
     void setNextPIPPageIDxOfPIPNoLock(DiskArrayHeader* updatedDiskArrayHeader,
-        uint64_t pipIdxOfPreviousPIP, page_idx_t nextPIPPageIdx);
+        uint64_t pipIdxOfPreviousPIP, common::page_idx_t nextPIPPageIdx);
 
     // This function does division and mod and should not be used in performance critical code.
-    page_idx_t getAPPageIdxNoLock(
-        page_idx_t apIdx, TransactionType trxType = TransactionType::READ_ONLY);
+    common::page_idx_t getAPPageIdxNoLock(common::page_idx_t apIdx,
+        transaction::TransactionType trxType = transaction::TransactionType::READ_ONLY);
 
     // pipIdx is the idx of the PIP,  and not the physical pageIdx. This function assumes
     // that the caller has called hasPIPUpdatesNoLock and received true.
-    page_idx_t getUpdatedPageIdxOfPipNoLock(uint64_t pipIdx);
+    common::page_idx_t getUpdatedPageIdxOfPipNoLock(uint64_t pipIdx);
 
-    void clearWALPageVersionAndRemovePageFromFrameIfNecessary(page_idx_t pageIdx);
+    void clearWALPageVersionAndRemovePageFromFrameIfNecessary(common::page_idx_t pageIdx);
 
     virtual void checkpointOrRollbackInMemoryIfNecessaryNoLock(bool isCheckpoint);
 
@@ -150,44 +148,45 @@ protected:
         // We assume that `numElementsPerPageLog2`, `elementPageOffsetMask`,
         // `alignedElementSizeLog2` are never modified throughout transactional updates, thus, we
         // directly use them from header here.
-        page_idx_t apIdx = idx >> header.numElementsPerPageLog2;
+        common::page_idx_t apIdx = idx >> header.numElementsPerPageLog2;
         uint16_t byteOffsetInAP = (idx & header.elementPageOffsetMask)
                                   << header.alignedElementSizeLog2;
         return PageByteCursor{apIdx, byteOffsetInAP};
     }
 
 private:
-    void checkOutOfBoundAccess(TransactionType trxType, uint64_t idx);
+    void checkOutOfBoundAccess(transaction::TransactionType trxType, uint64_t idx);
     bool hasPIPUpdatesNoLock(uint64_t pipIdx);
 
     uint64_t readUInt64HeaderFieldNoLock(
-        TransactionType trxType, std::function<uint64_t(DiskArrayHeader*)> readOp);
+        transaction::TransactionType trxType, std::function<uint64_t(DiskArrayHeader*)> readOp);
 
     // Returns the apPageIdx of the AP with idx apIdx and a bool indicating whether the apPageIdx is
     // a newly inserted page.
-    pair<page_idx_t, bool> getAPPageIdxAndAddAPToPIPIfNecessaryForWriteTrxNoLock(
-        DiskArrayHeader* updatedDiskArrayHeader, page_idx_t apIdx);
+    std::pair<common::page_idx_t, bool> getAPPageIdxAndAddAPToPIPIfNecessaryForWriteTrxNoLock(
+        DiskArrayHeader* updatedDiskArrayHeader, common::page_idx_t apIdx);
 
 public:
     DiskArrayHeader header;
 
 protected:
     FileHandle& fileHandle;
-    page_idx_t headerPageIdx;
+    common::page_idx_t headerPageIdx;
     bool hasTransactionalUpdates;
     BufferManager* bufferManager;
     WAL* wal;
-    vector<PIPWrapper> pips;
+    std::vector<PIPWrapper> pips;
     PIPUpdates pipUpdates;
-    shared_mutex diskArraySharedMtx;
+    std::shared_mutex diskArraySharedMtx;
 };
 
 template<typename U>
 class BaseInMemDiskArray : public BaseDiskArray<U> {
 protected:
-    BaseInMemDiskArray(FileHandle& fileHandle, page_idx_t headerPageIdx, uint64_t elementSize);
     BaseInMemDiskArray(
-        FileHandle& fileHandle, page_idx_t headerPageIdx, BufferManager* bufferManager, WAL* wal);
+        FileHandle& fileHandle, common::page_idx_t headerPageIdx, uint64_t elementSize);
+    BaseInMemDiskArray(FileHandle& fileHandle, common::page_idx_t headerPageIdx,
+        BufferManager* bufferManager, WAL* wal);
 
 public:
     // [] operator can be used to update elements, e.g., diskArray[5] = 4, when building an
@@ -197,19 +196,19 @@ public:
 
 protected:
     inline uint64_t addInMemoryArrayPage(bool setToZero) {
-        inMemArrayPages.emplace_back(make_unique<uint8_t[]>(DEFAULT_PAGE_SIZE));
+        inMemArrayPages.emplace_back(std::make_unique<uint8_t[]>(common::DEFAULT_PAGE_SIZE));
         if (setToZero) {
-            memset(inMemArrayPages[inMemArrayPages.size() - 1].get(), 0, DEFAULT_PAGE_SIZE);
+            memset(inMemArrayPages[inMemArrayPages.size() - 1].get(), 0, common::DEFAULT_PAGE_SIZE);
         }
         return inMemArrayPages.size() - 1;
     }
 
-    void readArrayPageFromFile(uint64_t apIdx, page_idx_t apPageIdx);
+    void readArrayPageFromFile(uint64_t apIdx, common::page_idx_t apPageIdx);
 
-    void addInMemoryArrayPageAndReadFromFile(page_idx_t apPageIdx);
+    void addInMemoryArrayPageAndReadFromFile(common::page_idx_t apPageIdx);
 
 protected:
-    vector<unique_ptr<uint8_t[]>> inMemArrayPages;
+    std::vector<std::unique_ptr<uint8_t[]>> inMemArrayPages;
 };
 
 /**
@@ -220,15 +219,15 @@ protected:
 template<typename T>
 class InMemDiskArray : public BaseInMemDiskArray<T> {
 public:
-    InMemDiskArray(VersionedFileHandle& fileHandle, page_idx_t headerPageIdx,
+    InMemDiskArray(VersionedFileHandle& fileHandle, common::page_idx_t headerPageIdx,
         BufferManager* bufferManager, WAL* wal);
 
     inline void checkpointInMemoryIfNecessary() override {
-        unique_lock xlock{this->diskArraySharedMtx};
+        std::unique_lock xlock{this->diskArraySharedMtx};
         checkpointOrRollbackInMemoryIfNecessaryNoLock(true /* is checkpoint */);
     }
     inline void rollbackInMemoryIfNecessary() override {
-        unique_lock xlock{this->diskArraySharedMtx};
+        std::unique_lock xlock{this->diskArraySharedMtx};
         InMemDiskArray<T>::checkpointOrRollbackInMemoryIfNecessaryNoLock(false /* is rollback */);
     }
 
@@ -241,8 +240,8 @@ private:
 template<typename T>
 class InMemDiskArrayBuilder : public BaseInMemDiskArray<T> {
 public:
-    InMemDiskArrayBuilder(FileHandle& fileHandle, page_idx_t headerPageIdx, uint64_t numElements,
-        bool setToZero = false);
+    InMemDiskArrayBuilder(FileHandle& fileHandle, common::page_idx_t headerPageIdx,
+        uint64_t numElements, bool setToZero = false);
 
     // This function is designed to be used during building of a disk array, i.e., during loading.
     // In particular, it changes the needed capacity non-transactionally, i.e., without writing

@@ -23,9 +23,9 @@ void LogicalIntersect::computeSchema() {
     }
 }
 
-unique_ptr<LogicalOperator> LogicalIntersect::copy() {
-    vector<shared_ptr<LogicalOperator>> buildChildren;
-    vector<unique_ptr<LogicalIntersectBuildInfo>> buildInfos_;
+std::unique_ptr<LogicalOperator> LogicalIntersect::copy() {
+    std::vector<std::shared_ptr<LogicalOperator>> buildChildren;
+    std::vector<std::unique_ptr<LogicalIntersectBuildInfo>> buildInfos_;
     for (auto i = 1u; i < children.size(); ++i) {
         buildChildren.push_back(children[i]->copy());
         buildInfos_.push_back(buildInfos[i - 1]->copy());

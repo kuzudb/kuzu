@@ -3,8 +3,6 @@
 #include "aggregate_function.h"
 #include "function/comparison/comparison_operations.h"
 
-using namespace kuzu::function::operation;
-
 namespace kuzu {
 namespace function {
 
@@ -18,10 +16,10 @@ struct MinMaxFunction {
         T val;
     };
 
-    static unique_ptr<AggregateState> initialize() { return make_unique<MinMaxState>(); }
+    static std::unique_ptr<AggregateState> initialize() { return std::make_unique<MinMaxState>(); }
 
     template<class OP>
-    static void updateAll(uint8_t* state_, ValueVector* input, uint64_t multiplicity) {
+    static void updateAll(uint8_t* state_, common::ValueVector* input, uint64_t multiplicity) {
         assert(!input->state->isFlat());
         auto state = reinterpret_cast<MinMaxState*>(state_);
         if (input->hasNoNullsGuarantee()) {
@@ -41,12 +39,12 @@ struct MinMaxFunction {
 
     template<class OP>
     static inline void updatePos(
-        uint8_t* state_, ValueVector* input, uint64_t multiplicity, uint32_t pos) {
+        uint8_t* state_, common::ValueVector* input, uint64_t multiplicity, uint32_t pos) {
         updateSingleValue<OP>(reinterpret_cast<MinMaxState*>(state_), input, pos);
     }
 
     template<class OP>
-    static void updateSingleValue(MinMaxState* state, ValueVector* input, uint32_t pos) {
+    static void updateSingleValue(MinMaxState* state, common::ValueVector* input, uint32_t pos) {
         T val = input->getValue<T>(pos);
         if (state->isNull) {
             state->val = val;

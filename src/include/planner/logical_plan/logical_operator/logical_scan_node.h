@@ -5,48 +5,49 @@
 
 namespace kuzu {
 namespace planner {
-using namespace kuzu::binder;
 
 class LogicalScanNode : public LogicalOperator {
 public:
-    explicit LogicalScanNode(shared_ptr<NodeExpression> node)
+    explicit LogicalScanNode(std::shared_ptr<binder::NodeExpression> node)
         : LogicalOperator{LogicalOperatorType::SCAN_NODE}, node{std::move(node)} {}
 
     void computeSchema() override;
 
-    inline string getExpressionsForPrinting() const override { return node->getRawName(); }
+    inline std::string getExpressionsForPrinting() const override { return node->getRawName(); }
 
-    inline shared_ptr<NodeExpression> getNode() const { return node; }
+    inline std::shared_ptr<binder::NodeExpression> getNode() const { return node; }
 
-    inline unique_ptr<LogicalOperator> copy() override {
+    inline std::unique_ptr<LogicalOperator> copy() override {
         return make_unique<LogicalScanNode>(node);
     }
 
 private:
-    shared_ptr<NodeExpression> node;
+    std::shared_ptr<binder::NodeExpression> node;
 };
 
 class LogicalIndexScanNode : public LogicalOperator {
 public:
-    LogicalIndexScanNode(shared_ptr<NodeExpression> node, shared_ptr<Expression> indexExpression,
-        shared_ptr<LogicalOperator> child)
+    LogicalIndexScanNode(std::shared_ptr<binder::NodeExpression> node,
+        std::shared_ptr<binder::Expression> indexExpression, std::shared_ptr<LogicalOperator> child)
         : LogicalOperator{LogicalOperatorType::INDEX_SCAN_NODE, std::move(child)},
           node{std::move(node)}, indexExpression{std::move(indexExpression)} {}
 
     void computeSchema() override;
 
-    inline string getExpressionsForPrinting() const override { return node->getRawName(); }
+    inline std::string getExpressionsForPrinting() const override { return node->getRawName(); }
 
-    inline shared_ptr<NodeExpression> getNode() const { return node; }
-    inline shared_ptr<Expression> getIndexExpression() const { return indexExpression; }
+    inline std::shared_ptr<binder::NodeExpression> getNode() const { return node; }
+    inline std::shared_ptr<binder::Expression> getIndexExpression() const {
+        return indexExpression;
+    }
 
-    unique_ptr<LogicalOperator> copy() override {
+    std::unique_ptr<LogicalOperator> copy() override {
         return make_unique<LogicalIndexScanNode>(node, indexExpression, children[0]->copy());
     }
 
 private:
-    shared_ptr<NodeExpression> node;
-    shared_ptr<Expression> indexExpression;
+    std::shared_ptr<binder::NodeExpression> node;
+    std::shared_ptr<binder::Expression> indexExpression;
 };
 
 } // namespace planner

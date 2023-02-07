@@ -1,10 +1,12 @@
 #include "processor/operator/aggregate/base_aggregate.h"
 
+using namespace kuzu::function;
+
 namespace kuzu {
 namespace processor {
 
 BaseAggregateSharedState::BaseAggregateSharedState(
-    const vector<unique_ptr<AggregateFunction>>& aggregateFunctions)
+    const std::vector<std::unique_ptr<AggregateFunction>>& aggregateFunctions)
     : currentOffset{0} {
     for (auto& aggregateFunction : aggregateFunctions) {
         this->aggregateFunctions.push_back(aggregateFunction->clone());

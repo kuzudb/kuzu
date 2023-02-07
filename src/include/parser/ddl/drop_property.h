@@ -5,18 +5,16 @@
 namespace kuzu {
 namespace parser {
 
-using namespace std;
-
 class DropProperty : public DDL {
 public:
-    explicit DropProperty(string tableName, string propertyName)
-        : DDL{StatementType::DROP_PROPERTY, std::move(tableName)}, propertyName{
-                                                                       std::move(propertyName)} {}
+    explicit DropProperty(std::string tableName, std::string propertyName)
+        : DDL{common::StatementType::DROP_PROPERTY, std::move(tableName)}, propertyName{std::move(
+                                                                               propertyName)} {}
 
-    inline string getPropertyName() const { return propertyName; };
+    inline std::string getPropertyName() const { return propertyName; };
 
 private:
-    string propertyName;
+    std::string propertyName;
 };
 
 } // namespace parser

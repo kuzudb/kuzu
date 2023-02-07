@@ -3,6 +3,10 @@
 #include "graph_test/graph_test.h"
 #include "processor/mapper/plan_mapper.h"
 
+using namespace kuzu::catalog;
+using namespace kuzu::common;
+using namespace kuzu::processor;
+using namespace kuzu::storage;
 using namespace kuzu::testing;
 
 namespace kuzu {
@@ -15,8 +19,8 @@ public:
         EmptyDBTest::SetUp();
         createDBAndConn();
         catalog = getCatalog(*database);
-        profiler = make_unique<Profiler>();
-        executionContext = make_unique<ExecutionContext>(1 /* numThreads */, profiler.get(),
+        profiler = std::make_unique<Profiler>();
+        executionContext = std::make_unique<ExecutionContext>(1 /* numThreads */, profiler.get(),
             getMemoryManager(*database), getBufferManager(*database));
     }
 
@@ -26,8 +30,8 @@ public:
     }
 
     void validateTinysnbPersonAgeProperty() {
-        multiset<int, greater<>> expectedResult = {20, 20, 25, 30, 35, 40, 45, 83};
-        multiset<int, greater<>> actualResult;
+        std::multiset<int, std::greater<>> expectedResult = {20, 20, 25, 30, 35, 40, 45, 83};
+        std::multiset<int, std::greater<>> actualResult;
         auto queryResult = conn->query("match (p:person) return p.age");
         while (queryResult->hasNext()) {
             auto tuple = queryResult->getNext();
@@ -45,7 +49,7 @@ public:
             nodeTableSchema, DBFileType::WAL_VERSION, true /* existence */);
         validateNodeColumnFilesExistence(
             nodeTableSchema, DBFileType::ORIGINAL, true /* existence */);
-        ASSERT_EQ(make_unique<Connection>(database.get())
+        ASSERT_EQ(std::make_unique<Connection>(database.get())
                       ->query("MATCH (p:person) return *")
                       ->getNumTuples(),
             0);
@@ -98,7 +102,7 @@ public:
     }
 
     void validateTinysnbKnowsDateProperty() {
-        multiset<date_t, greater<>> expectedResult = {
+        std::multiset<date_t, std::greater<>> expectedResult = {
             Date::FromCString("1905-12-12", strlen("1905-12-12")),
             Date::FromCString("1905-12-12", strlen("1905-12-12")),
             Date::FromCString("1950-05-14", strlen("1950-05-14")),
@@ -113,7 +117,7 @@ public:
             Date::FromCString("2021-06-30", strlen("2021-06-30")),
             Date::FromCString("2021-06-30", strlen("2021-06-30")),
             Date::FromCString("2021-06-30", strlen("2021-06-30"))};
-        multiset<date_t, greater<>> actualResult;
+        std::multiset<date_t, std::greater<>> actualResult;
         auto queryResult = conn->query("match (:person)-[e:knows]->(:person) return e.date");
         while (queryResult->hasNext()) {
             auto tuple = queryResult->getNext();
@@ -184,25 +188,23 @@ public:
     }
 
     Catalog* catalog = nullptr;
-    string createPersonTableCMD =
+    std::string createPersonTableCMD =
         "CREATE NODE TABLE person (ID INT64, fName STRING, gender INT64, isStudent BOOLEAN, "
         "isWorker BOOLEAN, "
         "age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration "
         "INTERVAL, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], "
         "PRIMARY KEY (ID))";
-    string copyPersonTableCMD =
+    std::string copyPersonTableCMD =
         "COPY person FROM \"" +
         TestHelper::appendKuzuRootPath("dataset/tinysnb/vPerson.csv\" (HEADER=true)");
-    string createKnowsTableCMD =
+    std::string createKnowsTableCMD =
         "CREATE REL TABLE knows (FROM person TO person, date DATE, meetTime TIMESTAMP, "
         "validInterval INTERVAL, comments STRING[], MANY_MANY)";
-    string copyKnowsTableCMD =
+    std::string copyKnowsTableCMD =
         "COPY knows FROM \"" + TestHelper::appendKuzuRootPath("dataset/tinysnb/eKnows.csv\"");
-    unique_ptr<Profiler> profiler;
-    unique_ptr<ExecutionContext> executionContext;
+    std::unique_ptr<Profiler> profiler;
+    std::unique_ptr<ExecutionContext> executionContext;
 };
-} // namespace transaction
-} // namespace kuzu
 
 TEST_F(TinySnbCopyCSVTransactionTest, CopyNodeCommitNormalExecution) {
     copyNodeCSVCommitAndRecoveryTest(TransactionTestType::NORMAL_EXECUTION);
@@ -225,10 +227,10 @@ TEST_F(TinySnbCopyCSVTransactionTest, CopyNodeOutputMsg) {
     conn->query(createKnowsTableCMD);
     auto result = conn->query(copyPersonTableCMD);
     ASSERT_EQ(TestHelper::convertResultToString(*result),
-        vector<string>{"8 number of tuples has been copied to table: person."});
+        std::vector<std::string>{"8 number of tuples has been copied to table: person."});
     result = conn->query(copyKnowsTableCMD);
     ASSERT_EQ(TestHelper::convertResultToString(*result),
-        vector<string>{"14 number of tuples has been copied to table: knows."});
+        std::vector<std::string>{"14 number of tuples has been copied to table: knows."});
 }
 
 TEST_F(TinySnbCopyCSVTransactionTest, CopyCSVStatementWithActiveTransactionErrorTest) {
@@ -241,3 +243,6 @@ TEST_F(TinySnbCopyCSVTransactionTest, CopyCSVStatementWithActiveTransactionError
         "As such, they cannot be part of an active transaction, please commit or rollback your "
         "previous transaction and issue a ddl query without opening a transaction.");
 }
+
+} // namespace transaction
+} // namespace kuzu

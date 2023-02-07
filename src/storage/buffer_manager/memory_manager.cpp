@@ -2,11 +2,13 @@
 
 #include <cstring>
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace storage {
 
-unique_ptr<MemoryBlock> MemoryManager::allocateBlock(bool initializeToZero) {
-    lock_guard<mutex> lock(memMgrLock);
+std::unique_ptr<MemoryBlock> MemoryManager::allocateBlock(bool initializeToZero) {
+    std::lock_guard<std::mutex> lock(memMgrLock);
     page_idx_t pageIdx;
     uint8_t* data;
     if (freePages.empty()) {
@@ -17,7 +19,7 @@ unique_ptr<MemoryBlock> MemoryManager::allocateBlock(bool initializeToZero) {
     }
     data = bm->pinWithoutReadingFromFile(*fh, pageIdx);
 
-    auto blockHandle = make_unique<MemoryBlock>(pageIdx, data);
+    auto blockHandle = std::make_unique<MemoryBlock>(pageIdx, data);
     if (initializeToZero) {
         memset(blockHandle->data, 0, LARGE_PAGE_SIZE);
     }
@@ -26,7 +28,7 @@ unique_ptr<MemoryBlock> MemoryManager::allocateBlock(bool initializeToZero) {
 }
 
 void MemoryManager::freeBlock(page_idx_t pageIdx) {
-    lock_guard<mutex> lock(memMgrLock);
+    std::lock_guard<std::mutex> lock(memMgrLock);
     bm->unpin(*fh, pageIdx);
     freePages.push(pageIdx);
 }

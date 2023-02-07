@@ -8,17 +8,15 @@
 namespace kuzu {
 namespace common {
 
-using namespace kuzu::storage;
-
 struct BufferBlock {
 public:
-    explicit BufferBlock(unique_ptr<MemoryBlock> block)
-        : size{block->size}, currentOffset{0}, block{move(block)} {}
+    explicit BufferBlock(std::unique_ptr<storage::MemoryBlock> block)
+        : size{block->size}, currentOffset{0}, block{std::move(block)} {}
 
 public:
     uint64_t size;
     uint64_t currentOffset;
-    unique_ptr<MemoryBlock> block;
+    std::unique_ptr<storage::MemoryBlock> block;
 
     inline void resetCurrentOffset() { currentOffset = 0; }
 };
@@ -26,7 +24,7 @@ public:
 class InMemOverflowBuffer {
 
 public:
-    explicit InMemOverflowBuffer(MemoryManager* memoryManager)
+    explicit InMemOverflowBuffer(storage::MemoryManager* memoryManager)
         : memoryManager{memoryManager}, currentBlock{nullptr} {};
 
     // The blocks used are allocated through the MemoryManager but are backed by the
@@ -55,13 +53,13 @@ public:
     // they will error.
     inline void resetBuffer() {
         if (!blocks.empty()) {
-            auto firstBlock = move(blocks[0]);
+            auto firstBlock = std::move(blocks[0]);
             for (auto i = 1u; i < blocks.size(); ++i) {
                 memoryManager->freeBlock(blocks[i]->block->pageIdx);
             }
             blocks.clear();
             firstBlock->resetCurrentOffset();
-            blocks.push_back(move(firstBlock));
+            blocks.push_back(std::move(firstBlock));
         }
         if (!blocks.empty()) {
             currentBlock = blocks[0].get();
@@ -71,9 +69,9 @@ public:
 private:
     inline bool requireNewBlock(uint64_t sizeToAllocate) {
         if (sizeToAllocate > LARGE_PAGE_SIZE) {
-            throw RuntimeException("Require size " + to_string(sizeToAllocate) +
-                                   " greater than single block size " + to_string(LARGE_PAGE_SIZE) +
-                                   ".");
+            throw RuntimeException("Require size " + std::to_string(sizeToAllocate) +
+                                   " greater than single block size " +
+                                   std::to_string(LARGE_PAGE_SIZE) + ".");
         }
         return currentBlock == nullptr ||
                (currentBlock->currentOffset + sizeToAllocate) > currentBlock->size;
@@ -82,8 +80,8 @@ private:
     void allocateNewBlock();
 
 private:
-    vector<unique_ptr<BufferBlock>> blocks;
-    MemoryManager* memoryManager;
+    std::vector<std::unique_ptr<BufferBlock>> blocks;
+    storage::MemoryManager* memoryManager;
     BufferBlock* currentBlock;
 };
 

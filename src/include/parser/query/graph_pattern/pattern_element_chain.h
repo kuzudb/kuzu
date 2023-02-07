@@ -11,8 +11,9 @@ namespace parser {
 class PatternElementChain {
 
 public:
-    PatternElementChain(unique_ptr<RelPattern> relPattern, unique_ptr<NodePattern> nodePattern)
-        : relPattern{move(relPattern)}, nodePattern{move(nodePattern)} {}
+    PatternElementChain(
+        std::unique_ptr<RelPattern> relPattern, std::unique_ptr<NodePattern> nodePattern)
+        : relPattern{std::move(relPattern)}, nodePattern{std::move(nodePattern)} {}
 
     ~PatternElementChain() = default;
 
@@ -21,8 +22,8 @@ public:
     inline NodePattern* getNodePattern() const { return nodePattern.get(); }
 
 private:
-    unique_ptr<RelPattern> relPattern;
-    unique_ptr<NodePattern> nodePattern;
+    std::unique_ptr<RelPattern> relPattern;
+    std::unique_ptr<NodePattern> nodePattern;
 };
 
 } // namespace parser

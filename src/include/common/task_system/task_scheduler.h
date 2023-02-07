@@ -11,8 +11,8 @@ namespace kuzu {
 namespace common {
 
 struct ScheduledTask {
-    ScheduledTask(shared_ptr<Task> task, uint64_t ID) : task{task}, ID{ID} {};
-    shared_ptr<Task> task;
+    ScheduledTask(std::shared_ptr<Task> task, uint64_t ID) : task{std::move(task)}, ID{ID} {};
+    std::shared_ptr<Task> task;
     uint64_t ID;
 };
 
@@ -57,7 +57,7 @@ public:
     // whether or not the given task or one of its dependencies errors, when this function
     // returns, no task related to the given task will be in the task queue. Further no worker
     // thread will be working on the given task.
-    void scheduleTaskAndWaitOrError(const shared_ptr<Task>& task);
+    void scheduleTaskAndWaitOrError(const std::shared_ptr<Task>& task);
 
     // If a user, e.g., currently the copier, adds a set of tasks T1, ..., Tk, to the task scheduler
     // without waiting for them to finish, the user needs to call waitAllTasksToCompleteOrError() if
@@ -67,7 +67,7 @@ public:
     // removed from the task queue, so it will remain there permanently. We only remove erroring
     // tasks inside waitAllTasksToCompleteOrError and scheduleTaskAndWaitOrError. Also, see the note
     // below in waitAllTasksToCompleteOrError for details of the behavior when multiple tasks fail.
-    shared_ptr<ScheduledTask> scheduleTask(const shared_ptr<Task>& task);
+    std::shared_ptr<ScheduledTask> scheduleTask(const std::shared_ptr<Task>& task);
 
     // Also note that if a user has scheduled multiple concrete tasks and calls
     // waitAllTasksToCompleteOrError and multiple tasks error, then waitAllTasksToCompleteOrError
@@ -92,14 +92,14 @@ private:
 
     // Functions to launch worker threads and for the worker threads to use to grab task from queue.
     void runWorkerThread();
-    shared_ptr<ScheduledTask> getTaskAndRegister();
+    std::shared_ptr<ScheduledTask> getTaskAndRegister();
 
 private:
-    shared_ptr<spdlog::logger> logger;
-    mutex mtx;
-    deque<shared_ptr<ScheduledTask>> taskQueue;
-    atomic<bool> stopThreads{false};
-    vector<thread> threads;
+    std::shared_ptr<spdlog::logger> logger;
+    std::mutex mtx;
+    std::deque<std::shared_ptr<ScheduledTask>> taskQueue;
+    std::atomic<bool> stopThreads{false};
+    std::vector<std::thread> threads;
     uint64_t nextScheduledTaskID;
 };
 

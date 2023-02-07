@@ -1,5 +1,9 @@
 #include "processor/operator/scan/generic_scan_rel_tables.h"
 
+using namespace kuzu::common;
+using namespace kuzu::storage;
+using namespace kuzu::transaction;
+
 namespace kuzu {
 namespace processor {
 
@@ -8,8 +12,8 @@ void RelTableCollection::resetState() {
     nextRelTableIdxToScan = 0;
 }
 
-bool RelTableCollection::scan(const shared_ptr<ValueVector>& inVector,
-    vector<shared_ptr<ValueVector>>& outputVectors, Transaction* transaction) {
+bool RelTableCollection::scan(const std::shared_ptr<ValueVector>& inVector,
+    std::vector<std::shared_ptr<ValueVector>>& outputVectors, Transaction* transaction) {
     do {
         if (tableScanStates[currentRelTableIdxToScan]->hasMoreAndSwitchSourceIfNecessary()) {
             assert(tableScanStates[currentRelTableIdxToScan]->relTableDataType ==
@@ -37,8 +41,8 @@ bool RelTableCollection::scan(const shared_ptr<ValueVector>& inVector,
     return true;
 }
 
-unique_ptr<RelTableCollection> RelTableCollection::clone() const {
-    vector<unique_ptr<RelTableScanState>> clonedScanStates;
+std::unique_ptr<RelTableCollection> RelTableCollection::clone() const {
+    std::vector<std::unique_ptr<RelTableScanState>> clonedScanStates;
     for (auto& scanState : tableScanStates) {
         clonedScanStates.push_back(make_unique<RelTableScanState>(
             scanState->boundNodeTableID, scanState->propertyIds, scanState->relTableDataType));

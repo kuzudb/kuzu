@@ -4,12 +4,10 @@
 #include <mutex>
 #include <vector>
 
-using namespace std;
-
 namespace kuzu {
 namespace common {
 
-using lock_t = unique_lock<mutex>;
+using lock_t = std::unique_lock<std::mutex>;
 
 /**
  * Task represents a task that can be executed by multiple threads in the TaskScheduler. Task is a
@@ -26,7 +24,7 @@ using lock_t = unique_lock<mutex>;
 class Task {
 
 public:
-    Task(uint64_t maxNumThreads);
+    explicit Task(uint64_t maxNumThreads);
     virtual ~Task() = default;
     virtual void run() = 0;
     //     This function is called from inside deRegisterThreadAndFinalizeTaskIfNecessary() only
@@ -36,9 +34,9 @@ public:
     //     assumption.
     virtual void finalizeIfNecessary(){};
 
-    void addChildTask(unique_ptr<Task> child) {
+    void addChildTask(std::unique_ptr<Task> child) {
         child->parent = this;
-        children.push_back(move(child));
+        children.push_back(std::move(child));
     }
 
     inline bool isCompletedOrHasException() {
@@ -56,7 +54,7 @@ public:
         return isCompletedNoLock() && !hasExceptionNoLock();
     }
 
-    inline bool isCompletedNoLock() {
+    inline bool isCompletedNoLock() const {
         return (numThreadsRegistered > 0 && numThreadsFinished == numThreadsRegistered);
     }
 
@@ -92,10 +90,11 @@ private:
 
 public:
     Task* parent = nullptr;
-    vector<shared_ptr<Task>> children; // Dependency tasks that needs to be executed first.
+    std::vector<std::shared_ptr<Task>>
+        children; // Dependency tasks that needs to be executed first.
 
 protected:
-    mutex mtx;
+    std::mutex mtx;
     uint64_t maxNumThreads, numThreadsFinished{0}, numThreadsRegistered{0};
     std::exception_ptr exceptionsPtr = nullptr;
     uint64_t ID;

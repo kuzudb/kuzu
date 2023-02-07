@@ -25,8 +25,8 @@ bool CrossProduct::getNextTuplesInternal() {
         startIdx = 0; // reset right table scanning for a new left tuple
     }
     // scan from right table if there is tuple left
-    auto maxNumTuplesToScan = table->hasUnflatCol() ? 1 : DEFAULT_VECTOR_CAPACITY;
-    auto numTuplesToScan = min(maxNumTuplesToScan, table->getNumTuples() - startIdx);
+    auto maxNumTuplesToScan = table->hasUnflatCol() ? 1 : common::DEFAULT_VECTOR_CAPACITY;
+    auto numTuplesToScan = std::min(maxNumTuplesToScan, table->getNumTuples() - startIdx);
     table->scan(vectorsToScan, startIdx, numTuplesToScan, colIndicesToScan);
     startIdx += numTuplesToScan;
     metrics->numOutputTuple.increase(numTuplesToScan);

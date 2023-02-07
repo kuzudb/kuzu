@@ -28,7 +28,7 @@ public:
 
     template<typename A, typename B>
     static uint64_t serializeUnorderedMap(
-        const unordered_map<A, B>& values, FileInfo* fileInfo, uint64_t offset) {
+        const std::unordered_map<A, B>& values, FileInfo* fileInfo, uint64_t offset) {
         uint64_t mapSize = values.size();
         offset = serializeValue<uint64_t>(mapSize, fileInfo, offset);
         for (auto& value : values) {
@@ -39,7 +39,8 @@ public:
     }
 
     template<typename T>
-    static uint64_t serializeVector(const vector<T>& values, FileInfo* fileInfo, uint64_t offset) {
+    static uint64_t serializeVector(
+        const std::vector<T>& values, FileInfo* fileInfo, uint64_t offset) {
         uint64_t vectorSize = values.size();
         offset = serializeValue<uint64_t>(vectorSize, fileInfo, offset);
         for (auto& value : values) {
@@ -50,7 +51,7 @@ public:
 
     template<typename A, typename B>
     static uint64_t deserializeUnorderedMap(
-        unordered_map<A, B>& values, FileInfo* fileInfo, uint64_t offset) {
+        std::unordered_map<A, B>& values, FileInfo* fileInfo, uint64_t offset) {
         uint64_t mapSize;
         offset = deserializeValue<uint64_t>(mapSize, fileInfo, offset);
         for (auto i = 0u; i < mapSize; i++) {
@@ -64,7 +65,7 @@ public:
     }
 
     template<typename T>
-    static uint64_t deserializeVector(vector<T>& values, FileInfo* fileInfo, uint64_t offset) {
+    static uint64_t deserializeVector(std::vector<T>& values, FileInfo* fileInfo, uint64_t offset) {
         uint64_t vectorSize;
         offset = deserializeValue<uint64_t>(vectorSize, fileInfo, offset);
         values.resize(vectorSize);
@@ -76,7 +77,7 @@ public:
 
     template<typename T>
     static uint64_t serializeUnorderedSet(
-        const unordered_set<T>& values, FileInfo* fileInfo, uint64_t offset) {
+        const std::unordered_set<T>& values, FileInfo* fileInfo, uint64_t offset) {
         uint64_t setSize = values.size();
         offset = serializeValue<uint64_t>(setSize, fileInfo, offset);
         for (auto& value : values) {
@@ -87,7 +88,7 @@ public:
 
     template<typename T>
     static uint64_t deserializeUnorderedSet(
-        unordered_set<T>& values, FileInfo* fileInfo, uint64_t offset) {
+        std::unordered_set<T>& values, FileInfo* fileInfo, uint64_t offset) {
         uint64_t setSize;
         offset = deserializeValue<uint64_t>(setSize, fileInfo, offset);
         for (auto i = 0u; i < setSize; i++) {

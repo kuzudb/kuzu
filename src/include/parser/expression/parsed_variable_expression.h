@@ -7,13 +7,14 @@ namespace parser {
 
 class ParsedVariableExpression : public ParsedExpression {
 public:
-    ParsedVariableExpression(string variableName, string raw)
-        : ParsedExpression{VARIABLE, std::move(raw)}, variableName{std::move(variableName)} {}
+    ParsedVariableExpression(std::string variableName, std::string raw)
+        : ParsedExpression{common::VARIABLE, std::move(raw)}, variableName{
+                                                                  std::move(variableName)} {}
 
-    inline string getVariableName() const { return variableName; }
+    inline std::string getVariableName() const { return variableName; }
 
 private:
-    string variableName;
+    std::string variableName;
 };
 
 } // namespace parser

@@ -2,17 +2,21 @@
 
 #include "common/utils.h"
 
+using namespace kuzu::common;
+using namespace kuzu::storage;
+
 namespace kuzu {
 namespace processor {
 
 void HashJoinSharedState::initEmptyHashTable(MemoryManager& memoryManager, uint64_t numKeyColumns,
-    unique_ptr<FactorizedTableSchema> tableSchema) {
+    std::unique_ptr<FactorizedTableSchema> tableSchema) {
     assert(hashTable == nullptr);
-    hashTable = make_unique<JoinHashTable>(memoryManager, numKeyColumns, std::move(tableSchema));
+    hashTable =
+        std::make_unique<JoinHashTable>(memoryManager, numKeyColumns, std::move(tableSchema));
 }
 
 void HashJoinSharedState::mergeLocalHashTable(JoinHashTable& localHashTable) {
-    unique_lock lck(mtx);
+    std::unique_lock lck(mtx);
     hashTable->merge(localHashTable);
 }
 
@@ -29,26 +33,27 @@ void HashJoinBuild::initLocalStateInternal(ResultSet* resultSet, ExecutionContex
     initLocalHashTable(*context->memoryManager, std::move(tableSchema));
 }
 
-unique_ptr<FactorizedTableSchema> HashJoinBuild::populateTableSchema() {
-    unique_ptr<FactorizedTableSchema> tableSchema = make_unique<FactorizedTableSchema>();
+std::unique_ptr<FactorizedTableSchema> HashJoinBuild::populateTableSchema() {
+    std::unique_ptr<FactorizedTableSchema> tableSchema = std::make_unique<FactorizedTableSchema>();
     for (auto& [pos, dataType] : buildDataInfo.keysPosAndType) {
-        tableSchema->appendColumn(make_unique<ColumnSchema>(
+        tableSchema->appendColumn(std::make_unique<ColumnSchema>(
             false /* is flat */, pos.dataChunkPos, Types::getDataTypeSize(dataType)));
     }
     for (auto i = 0u; i < buildDataInfo.payloadsPosAndType.size(); ++i) {
         auto [pos, dataType] = buildDataInfo.payloadsPosAndType[i];
         if (buildDataInfo.isPayloadsInKeyChunk[i]) {
-            tableSchema->appendColumn(make_unique<ColumnSchema>(
+            tableSchema->appendColumn(std::make_unique<ColumnSchema>(
                 false /* is flat */, pos.dataChunkPos, Types::getDataTypeSize(dataType)));
         } else {
             auto isVectorFlat = buildDataInfo.isPayloadsFlat[i];
-            tableSchema->appendColumn(make_unique<ColumnSchema>(!isVectorFlat, pos.dataChunkPos,
-                isVectorFlat ? Types::getDataTypeSize(dataType) :
-                               (uint32_t)sizeof(overflow_value_t)));
+            tableSchema->appendColumn(
+                std::make_unique<ColumnSchema>(!isVectorFlat, pos.dataChunkPos,
+                    isVectorFlat ? Types::getDataTypeSize(dataType) :
+                                   (uint32_t)sizeof(overflow_value_t)));
         }
     }
     // The prev pointer column.
-    tableSchema->appendColumn(make_unique<ColumnSchema>(false /* is flat */,
+    tableSchema->appendColumn(std::make_unique<ColumnSchema>(false /* is flat */,
         UINT32_MAX /* For now, we just put UINT32_MAX for prev pointer */,
         Types::getDataTypeSize(INT64)));
     return tableSchema;
@@ -60,9 +65,9 @@ void HashJoinBuild::initGlobalStateInternal(ExecutionContext* context) {
 }
 
 void HashJoinBuild::initLocalHashTable(
-    MemoryManager& memoryManager, unique_ptr<FactorizedTableSchema> tableSchema) {
-    hashTable = make_unique<JoinHashTable>(memoryManager, buildDataInfo.getNumKeys(),
-        make_unique<FactorizedTableSchema>(*tableSchema));
+    MemoryManager& memoryManager, std::unique_ptr<FactorizedTableSchema> tableSchema) {
+    hashTable = std::make_unique<JoinHashTable>(memoryManager, buildDataInfo.getNumKeys(),
+        std::make_unique<FactorizedTableSchema>(*tableSchema));
 }
 
 void HashJoinBuild::finalize(ExecutionContext* context) {

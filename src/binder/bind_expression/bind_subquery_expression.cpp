@@ -3,10 +3,12 @@
 #include "binder/expression_binder.h"
 #include "parser/expression/parsed_subquery_expression.h"
 
+using namespace kuzu::parser;
+
 namespace kuzu {
 namespace binder {
 
-shared_ptr<Expression> ExpressionBinder::bindExistentialSubqueryExpression(
+std::shared_ptr<Expression> ExpressionBinder::bindExistentialSubqueryExpression(
     const ParsedExpression& parsedExpression) {
     auto& subqueryExpression = (ParsedSubqueryExpression&)parsedExpression;
     auto prevVariablesInScope = binder->enterSubquery();

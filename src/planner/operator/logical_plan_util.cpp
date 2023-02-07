@@ -5,10 +5,12 @@
 #include "planner/logical_plan/logical_operator/logical_intersect.h"
 #include "planner/logical_plan/logical_operator/logical_scan_node.h"
 
+using namespace kuzu::binder;
+
 namespace kuzu {
 namespace planner {
 
-shared_ptr<NodeExpression> LogicalPlanUtil::getSequentialNode(LogicalPlan& plan) {
+std::shared_ptr<NodeExpression> LogicalPlanUtil::getSequentialNode(LogicalPlan& plan) {
     auto pipelineSource = getCurrentPipelineSourceOperator(plan);
     if (pipelineSource->getOperatorType() != LogicalOperatorType::SCAN_NODE) {
         // Pipeline source is not ScanNodeID, meaning at least one sink has happened (e.g. HashJoin)
@@ -18,9 +20,9 @@ shared_ptr<NodeExpression> LogicalPlanUtil::getSequentialNode(LogicalPlan& plan)
     return ((LogicalScanNode*)pipelineSource)->getNode();
 }
 
-vector<LogicalOperator*> LogicalPlanUtil::collectOperators(
+std::vector<LogicalOperator*> LogicalPlanUtil::collectOperators(
     LogicalOperator* root, LogicalOperatorType operatorType) {
-    vector<LogicalOperator*> result;
+    std::vector<LogicalOperator*> result;
     collectOperatorsRecursive(root, operatorType, result);
     return result;
 }
@@ -35,7 +37,8 @@ LogicalOperator* LogicalPlanUtil::getCurrentPipelineSourceOperator(LogicalPlan& 
     return op;
 }
 
-void LogicalPlanUtil::encodeJoinRecursive(LogicalOperator* logicalOperator, string& encodeString) {
+void LogicalPlanUtil::encodeJoinRecursive(
+    LogicalOperator* logicalOperator, std::string& encodeString) {
     switch (logicalOperator->getOperatorType()) {
     case LogicalOperatorType::CROSS_PRODUCT: {
         encodeCrossProduct(logicalOperator, encodeString);
@@ -76,7 +79,7 @@ void LogicalPlanUtil::encodeJoinRecursive(LogicalOperator* logicalOperator, stri
 }
 
 void LogicalPlanUtil::collectOperatorsRecursive(
-    LogicalOperator* op, LogicalOperatorType operatorType, vector<LogicalOperator*>& result) {
+    LogicalOperator* op, LogicalOperatorType operatorType, std::vector<LogicalOperator*>& result) {
     if (op->getOperatorType() == operatorType) {
         result.push_back(op);
     }
@@ -85,27 +88,29 @@ void LogicalPlanUtil::collectOperatorsRecursive(
     }
 }
 
-void LogicalPlanUtil::encodeCrossProduct(LogicalOperator* logicalOperator, string& encodeString) {
+void LogicalPlanUtil::encodeCrossProduct(
+    LogicalOperator* logicalOperator, std::string& encodeString) {
     encodeString += "CP()";
 }
 
-void LogicalPlanUtil::encodeIntersect(LogicalOperator* logicalOperator, string& encodeString) {
+void LogicalPlanUtil::encodeIntersect(LogicalOperator* logicalOperator, std::string& encodeString) {
     auto logicalIntersect = (LogicalIntersect*)logicalOperator;
     encodeString += "I(" + logicalIntersect->getIntersectNodeID()->getRawName() + ")";
 }
 
-void LogicalPlanUtil::encodeHashJoin(LogicalOperator* logicalOperator, string& encodeString) {
+void LogicalPlanUtil::encodeHashJoin(LogicalOperator* logicalOperator, std::string& encodeString) {
     auto logicalHashJoin = (LogicalHashJoin*)logicalOperator;
     encodeString += "HJ(";
     encodeString += logicalHashJoin->getExpressionsForPrinting() + ")";
 }
 
-void LogicalPlanUtil::encodeExtend(LogicalOperator* logicalOperator, string& encodeString) {
+void LogicalPlanUtil::encodeExtend(LogicalOperator* logicalOperator, std::string& encodeString) {
     auto logicalExtend = (LogicalExtend*)logicalOperator;
     encodeString += "E(" + logicalExtend->getNbrNode()->getRawName() + ")";
 }
 
-void LogicalPlanUtil::encodeScanNodeID(LogicalOperator* logicalOperator, string& encodeString) {
+void LogicalPlanUtil::encodeScanNodeID(
+    LogicalOperator* logicalOperator, std::string& encodeString) {
     auto logicalScanNode = (LogicalScanNode*)logicalOperator;
     encodeString += "S(" + logicalScanNode->getNode()->getRawName() + ")";
 }

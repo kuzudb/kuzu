@@ -9,8 +9,8 @@ namespace processor {
 class SemiMasker : public PhysicalOperator {
 
 public:
-    SemiMasker(const DataPos& keyDataPos, unique_ptr<PhysicalOperator> child, uint32_t id,
-        const string& paramsString)
+    SemiMasker(const DataPos& keyDataPos, std::unique_ptr<PhysicalOperator> child, uint32_t id,
+        const std::string& paramsString)
         : PhysicalOperator{PhysicalOperatorType::SEMI_MASKER, std::move(child), id, paramsString},
           keyDataPos{keyDataPos}, maskerIdx{0}, scanTableNodeIDSharedState{nullptr} {}
 
@@ -31,7 +31,9 @@ public:
 
     bool getNextTuplesInternal() override;
 
-    inline unique_ptr<PhysicalOperator> clone() override { return make_unique<SemiMasker>(*this); }
+    inline std::unique_ptr<PhysicalOperator> clone() override {
+        return std::make_unique<SemiMasker>(*this);
+    }
 
 private:
     void initGlobalStateInternal(ExecutionContext* context) override;
@@ -43,7 +45,7 @@ private:
     // indicate if a value in the mask is masked or not, as each masker will increment the selected
     // value in the mask by 1. More details are described in ScanNodeIDSemiMask.
     uint8_t maskerIdx;
-    shared_ptr<ValueVector> keyValueVector;
+    std::shared_ptr<common::ValueVector> keyValueVector;
     ScanTableNodeIDSharedState* scanTableNodeIDSharedState;
 };
 } // namespace processor

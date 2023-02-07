@@ -12,8 +12,9 @@ namespace storage {
 
 BufferManager::BufferManager(uint64_t maxSizeForDefaultPagePool, uint64_t maxSizeForLargePagePool)
     : logger{LoggerUtils::getOrCreateLogger("buffer_manager")},
-      bufferPoolDefaultPages(make_unique<BufferPool>(DEFAULT_PAGE_SIZE, maxSizeForDefaultPagePool)),
-      bufferPoolLargePages(make_unique<BufferPool>(LARGE_PAGE_SIZE, maxSizeForLargePagePool)) {
+      bufferPoolDefaultPages(
+          std::make_unique<BufferPool>(DEFAULT_PAGE_SIZE, maxSizeForDefaultPagePool)),
+      bufferPoolLargePages(std::make_unique<BufferPool>(LARGE_PAGE_SIZE, maxSizeForLargePagePool)) {
     logger->info("Done Initializing Buffer Manager.");
 }
 

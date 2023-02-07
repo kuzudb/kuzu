@@ -7,26 +7,28 @@ namespace planner {
 
 class LogicalRenameProperty : public LogicalDDL {
 public:
-    explicit LogicalRenameProperty(table_id_t tableID, string tableName, property_id_t propertyID,
-        string newName, shared_ptr<Expression> outputExpression)
-        : LogicalDDL{LogicalOperatorType::RENAME_PROPERTY, std::move(tableName), outputExpression},
+    explicit LogicalRenameProperty(common::table_id_t tableID, std::string tableName,
+        common::property_id_t propertyID, std::string newName,
+        std::shared_ptr<binder::Expression> outputExpression)
+        : LogicalDDL{LogicalOperatorType::RENAME_PROPERTY, std::move(tableName),
+              std::move(outputExpression)},
           tableID{tableID}, propertyID{propertyID}, newName{std::move(newName)} {}
 
-    inline table_id_t getTableID() const { return tableID; }
+    inline common::table_id_t getTableID() const { return tableID; }
 
-    inline property_id_t getPropertyID() const { return propertyID; }
+    inline common::property_id_t getPropertyID() const { return propertyID; }
 
-    inline string getNewName() const { return newName; }
+    inline std::string getNewName() const { return newName; }
 
-    inline unique_ptr<LogicalOperator> copy() override {
+    inline std::unique_ptr<LogicalOperator> copy() override {
         return make_unique<LogicalRenameProperty>(
             tableID, tableName, propertyID, newName, outputExpression);
     }
 
 private:
-    table_id_t tableID;
-    property_id_t propertyID;
-    string newName;
+    common::table_id_t tableID;
+    common::property_id_t propertyID;
+    std::string newName;
 };
 
 } // namespace planner

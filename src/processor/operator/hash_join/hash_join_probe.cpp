@@ -3,13 +3,14 @@
 #include "function/hash/hash_operations.h"
 #include "function/hash/vector_hash_operations.h"
 
+using namespace kuzu::common;
 using namespace kuzu::function::operation;
 
 namespace kuzu {
 namespace processor {
 
 void HashJoinProbe::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
-    probeState = make_unique<ProbeState>();
+    probeState = std::make_unique<ProbeState>();
     for (auto& keyDataPos : probeDataInfo.keysDataPos) {
         auto keyVector = resultSet->getValueVector(keyDataPos);
         keyVectors.push_back(keyVector);
@@ -140,7 +141,7 @@ uint64_t HashJoinProbe::getNextMarkJoinResult() {
         markValues[markVector->state->selVector->selectedPositions[0]] =
             probeState->matchedSelVector->selectedSize != 0;
     } else {
-        fill(markValues, markValues + DEFAULT_VECTOR_CAPACITY, false);
+        std::fill(markValues, markValues + DEFAULT_VECTOR_CAPACITY, false);
         for (auto i = 0u; i < probeState->matchedSelVector->selectedSize; i++) {
             markValues[probeState->matchedSelVector->selectedPositions[i]] = true;
         }

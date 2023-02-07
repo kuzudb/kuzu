@@ -8,23 +8,26 @@ namespace planner {
 
 class LogicalDistinct : public LogicalOperator {
 public:
-    LogicalDistinct(expression_vector expressionsToDistinct, shared_ptr<LogicalOperator> child)
+    LogicalDistinct(
+        binder::expression_vector expressionsToDistinct, std::shared_ptr<LogicalOperator> child)
         : LogicalOperator{LogicalOperatorType::DISTINCT, std::move(child)},
           expressionsToDistinct{std::move(expressionsToDistinct)} {}
 
     void computeSchema() override;
 
-    string getExpressionsForPrinting() const override;
+    std::string getExpressionsForPrinting() const override;
 
-    inline expression_vector getExpressionsToDistinct() const { return expressionsToDistinct; }
+    inline binder::expression_vector getExpressionsToDistinct() const {
+        return expressionsToDistinct;
+    }
     inline Schema* getSchemaBeforeDistinct() const { return children[0]->getSchema(); }
 
-    unique_ptr<LogicalOperator> copy() override {
+    std::unique_ptr<LogicalOperator> copy() override {
         return make_unique<LogicalDistinct>(expressionsToDistinct, children[0]->copy());
     }
 
 private:
-    expression_vector expressionsToDistinct;
+    binder::expression_vector expressionsToDistinct;
 };
 
 } // namespace planner

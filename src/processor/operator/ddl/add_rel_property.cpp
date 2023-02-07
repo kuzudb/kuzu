@@ -1,5 +1,7 @@
 #include "processor/operator/ddl/add_rel_property.h"
 
+using namespace kuzu::storage;
+
 namespace kuzu {
 namespace processor {
 

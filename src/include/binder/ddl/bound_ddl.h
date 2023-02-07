@@ -7,14 +7,14 @@ namespace binder {
 
 class BoundDDL : public BoundStatement {
 public:
-    explicit BoundDDL(StatementType statementType, string tableName)
+    explicit BoundDDL(common::StatementType statementType, std::string tableName)
         : BoundStatement{statementType, BoundStatementResult::createSingleStringColumnResult()},
           tableName{std::move(tableName)} {}
 
-    inline string getTableName() const { return tableName; }
+    inline std::string getTableName() const { return tableName; }
 
 private:
-    string tableName;
+    std::string tableName;
 };
 
 } // namespace binder

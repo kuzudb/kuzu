@@ -10,8 +10,6 @@
 #include "storage/storage_structure/disk_overflow_file.h"
 #include "storage/storage_structure/storage_structure.h"
 
-using namespace kuzu::common;
-
 namespace kuzu {
 namespace processor {
 
@@ -33,7 +31,8 @@ struct BlockAppendingInfo {
 // released when this struct goes out of scope.
 class DataBlock {
 public:
-    explicit DataBlock(MemoryManager* memoryManager) : numTuples{0}, memoryManager{memoryManager} {
+    explicit DataBlock(storage::MemoryManager* memoryManager)
+        : numTuples{0}, memoryManager{memoryManager} {
         block = memoryManager->allocateBlock(true);
         freeSize = block->size;
     }
@@ -44,10 +43,10 @@ public:
 
     inline uint8_t* getData() const { return block->data; }
     inline void resetNumTuplesAndFreeSize() {
-        freeSize = LARGE_PAGE_SIZE;
+        freeSize = common::LARGE_PAGE_SIZE;
         numTuples = 0;
     }
-    inline void resetToZero() { memset(block->data, 0, LARGE_PAGE_SIZE); }
+    inline void resetToZero() { memset(block->data, 0, common::LARGE_PAGE_SIZE); }
 
     static void copyTuples(DataBlock* blockToCopyFrom, ft_tuple_idx_t tupleIdxToCopyFrom,
         DataBlock* blockToCopyInto, ft_tuple_idx_t tupleIdxToCopyTo, uint32_t numTuplesToCopy,
@@ -56,10 +55,10 @@ public:
 public:
     uint64_t freeSize;
     uint32_t numTuples;
-    MemoryManager* memoryManager;
+    storage::MemoryManager* memoryManager;
 
 private:
-    unique_ptr<MemoryBlock> block;
+    std::unique_ptr<storage::MemoryBlock> block;
 };
 
 class DataBlockCollection {
@@ -70,15 +69,17 @@ public:
     DataBlockCollection(uint32_t numBytesPerTuple, uint32_t numTuplesPerBlock)
         : numBytesPerTuple{numBytesPerTuple}, numTuplesPerBlock{numTuplesPerBlock} {}
 
-    inline void append(unique_ptr<DataBlock> otherBlock) {
+    inline void append(std::unique_ptr<DataBlock> otherBlock) {
         blocks.push_back(std::move(otherBlock));
     }
-    inline void append(vector<unique_ptr<DataBlock>> otherBlocks) {
-        move(begin(otherBlocks), end(otherBlocks), back_inserter(blocks));
+    inline void append(std::vector<std::unique_ptr<DataBlock>> otherBlocks) {
+        std::move(begin(otherBlocks), end(otherBlocks), back_inserter(blocks));
     }
-    inline void append(unique_ptr<DataBlockCollection> other) { append(std::move(other->blocks)); }
+    inline void append(std::unique_ptr<DataBlockCollection> other) {
+        append(std::move(other->blocks));
+    }
     inline bool isEmpty() { return blocks.empty(); }
-    inline vector<unique_ptr<DataBlock>>& getBlocks() { return blocks; }
+    inline std::vector<std::unique_ptr<DataBlock>>& getBlocks() { return blocks; }
     inline DataBlock* getBlock(ft_block_idx_t blockIdx) { return blocks[blockIdx].get(); }
     inline uint64_t getNumBlocks() const { return blocks.size(); }
 
@@ -87,7 +88,7 @@ public:
 private:
     uint32_t numBytesPerTuple;
     uint32_t numTuplesPerBlock;
-    vector<unique_ptr<DataBlock>> blocks;
+    std::vector<std::unique_ptr<DataBlock>> blocks;
 };
 
 class ColumnSchema {
@@ -128,10 +129,10 @@ public:
 
     FactorizedTableSchema(const FactorizedTableSchema& other);
 
-    explicit FactorizedTableSchema(vector<unique_ptr<ColumnSchema>> columns)
+    explicit FactorizedTableSchema(std::vector<std::unique_ptr<ColumnSchema>> columns)
         : columns{std::move(columns)} {}
 
-    void appendColumn(unique_ptr<ColumnSchema> column);
+    void appendColumn(std::unique_ptr<ColumnSchema> column);
 
     inline ColumnSchema* getColumn(ft_col_idx_t idx) const { return columns[idx].get(); }
 
@@ -158,11 +159,11 @@ public:
     inline bool operator!=(const FactorizedTableSchema& other) const { return !(*this == other); }
 
 private:
-    vector<unique_ptr<ColumnSchema>> columns;
+    std::vector<std::unique_ptr<ColumnSchema>> columns;
     uint32_t numBytesForDataPerTuple = 0;
     uint32_t numBytesForNullMapPerTuple = 0;
     uint32_t numBytesPerTuple = 0;
-    vector<ft_col_offset_t> colOffsets;
+    std::vector<ft_col_offset_t> colOffsets;
 };
 
 class FlatTupleIterator;
@@ -173,9 +174,10 @@ class FactorizedTable {
     friend class IntersectHashTable;
 
 public:
-    FactorizedTable(MemoryManager* memoryManager, unique_ptr<FactorizedTableSchema> tableSchema);
+    FactorizedTable(
+        storage::MemoryManager* memoryManager, std::unique_ptr<FactorizedTableSchema> tableSchema);
 
-    void append(const vector<shared_ptr<ValueVector>>& vectors);
+    void append(const std::vector<std::shared_ptr<common::ValueVector>>& vectors);
 
     //! This function appends an empty tuple to the factorizedTable and returns a pointer to that
     //! tuple.
@@ -183,33 +185,37 @@ public:
 
     // This function scans numTuplesToScan of rows to vectors starting at tupleIdx. Callers are
     // responsible for making sure all the parameters are valid.
-    inline void scan(vector<shared_ptr<ValueVector>>& vectors, ft_tuple_idx_t tupleIdx,
-        uint64_t numTuplesToScan) const {
-        vector<uint32_t> colIdxes(tableSchema->getNumColumns());
+    inline void scan(std::vector<std::shared_ptr<common::ValueVector>>& vectors,
+        ft_tuple_idx_t tupleIdx, uint64_t numTuplesToScan) const {
+        std::vector<uint32_t> colIdxes(tableSchema->getNumColumns());
         iota(colIdxes.begin(), colIdxes.end(), 0);
         scan(vectors, tupleIdx, numTuplesToScan, colIdxes);
     }
     inline bool isEmpty() const { return getNumTuples() == 0; }
-    void scan(vector<shared_ptr<ValueVector>>& vectors, ft_tuple_idx_t tupleIdx,
-        uint64_t numTuplesToScan, vector<uint32_t>& colIdxToScan) const;
+    void scan(std::vector<std::shared_ptr<common::ValueVector>>& vectors, ft_tuple_idx_t tupleIdx,
+        uint64_t numTuplesToScan, std::vector<uint32_t>& colIdxToScan) const;
     // TODO(Guodong): Unify these two interfaces along with `readUnflatCol`.
-    void lookup(vector<shared_ptr<ValueVector>>& vectors, vector<uint32_t>& colIdxesToScan,
-        uint8_t** tuplesToRead, uint64_t startPos, uint64_t numTuplesToRead) const;
-    void lookup(vector<shared_ptr<ValueVector>>& vectors, const SelectionVector* selVector,
-        vector<uint32_t>& colIdxesToScan, uint8_t* tupleToRead) const;
-    void lookup(vector<shared_ptr<ValueVector>>& vectors, vector<uint32_t>& colIdxesToScan,
-        vector<ft_tuple_idx_t>& tupleIdxesToRead, uint64_t startPos,
+    void lookup(std::vector<std::shared_ptr<common::ValueVector>>& vectors,
+        std::vector<uint32_t>& colIdxesToScan, uint8_t** tuplesToRead, uint64_t startPos,
         uint64_t numTuplesToRead) const;
+    void lookup(std::vector<std::shared_ptr<common::ValueVector>>& vectors,
+        const common::SelectionVector* selVector, std::vector<uint32_t>& colIdxesToScan,
+        uint8_t* tupleToRead) const;
+    void lookup(std::vector<std::shared_ptr<common::ValueVector>>& vectors,
+        std::vector<uint32_t>& colIdxesToScan, std::vector<ft_tuple_idx_t>& tupleIdxesToRead,
+        uint64_t startPos, uint64_t numTuplesToRead) const;
 
     // When we merge two factorizedTables, we need to update the hasNoNullGuarantee based on
     // other factorizedTable.
     void mergeMayContainNulls(FactorizedTable& other);
     void merge(FactorizedTable& other);
 
-    inline InMemOverflowBuffer* getInMemOverflowBuffer() const { return inMemOverflowBuffer.get(); }
+    inline common::InMemOverflowBuffer* getInMemOverflowBuffer() const {
+        return inMemOverflowBuffer.get();
+    }
 
     bool hasUnflatCol() const;
-    inline bool hasUnflatCol(vector<ft_col_idx_t>& colIdxes) const {
+    inline bool hasUnflatCol(std::vector<ft_col_idx_t>& colIdxes) const {
         return any_of(colIdxes.begin(), colIdxes.end(),
             [this](ft_col_idx_t colIdx) { return !tableSchema->getColumn(colIdx)->isFlat(); });
     }
@@ -218,7 +224,7 @@ public:
     uint64_t getTotalNumFlatTuples() const;
     uint64_t getNumFlatTuples(ft_tuple_idx_t tupleIdx) const;
 
-    inline vector<unique_ptr<DataBlock>>& getTupleDataBlocks() {
+    inline std::vector<std::unique_ptr<DataBlock>>& getTupleDataBlocks() {
         return flatTupleBlockCollection->getBlocks();
     }
     inline const FactorizedTableSchema* getTableSchema() const { return tableSchema.get(); }
@@ -232,7 +238,7 @@ public:
     uint8_t* getTuple(ft_tuple_idx_t tupleIdx) const;
 
     void updateFlatCell(
-        uint8_t* tuplePtr, ft_col_idx_t colIdx, ValueVector* valueVector, uint32_t pos);
+        uint8_t* tuplePtr, ft_col_idx_t colIdx, common::ValueVector* valueVector, uint32_t pos);
     inline void updateFlatCellNoNull(uint8_t* ftTuplePtr, ft_col_idx_t colIdx, void* dataBuf) {
         memcpy(ftTuplePtr + tableSchema->getColOffset(colIdx), dataBuf,
             tableSchema->getColumn(colIdx)->getNumBytes());
@@ -245,17 +251,17 @@ public:
     }
 
     void copySingleValueToVector(ft_tuple_idx_t tupleIdx, ft_col_idx_t colIdx,
-        shared_ptr<ValueVector> valueVector, uint32_t posInVector) const;
+        std::shared_ptr<common::ValueVector> valueVector, uint32_t posInVector) const;
     bool isOverflowColNull(
         const uint8_t* nullBuffer, ft_tuple_idx_t tupleIdx, ft_col_idx_t colIdx) const;
     bool isNonOverflowColNull(const uint8_t* nullBuffer, ft_col_idx_t colIdx) const;
     void setNonOverflowColNull(uint8_t* nullBuffer, ft_col_idx_t colIdx);
     // Note: this function also resets the overflow ptr of list and string to point to a buffer
     // inside overflowFileOfInMemList.
-    void copyToInMemList(ft_col_idx_t colIdx, vector<ft_tuple_idx_t>& tupleIdxesToRead,
-        uint8_t* data, NullMask* nullMask, uint64_t startElemPosInList,
-        DiskOverflowFile* overflowFileOfInMemList, const DataType& type,
-        NodeIDCompressionScheme* nodeIDCompressionScheme) const;
+    void copyToInMemList(ft_col_idx_t colIdx, std::vector<ft_tuple_idx_t>& tupleIdxesToRead,
+        uint8_t* data, common::NullMask* nullMask, uint64_t startElemPosInList,
+        storage::DiskOverflowFile* overflowFileOfInMemList, const common::DataType& type,
+        storage::NodeIDCompressionScheme* nodeIDCompressionScheme) const;
     void clear();
     int64_t findValueInFlatColumn(ft_col_idx_t colIdx, int64_t value) const;
 
@@ -264,68 +270,71 @@ private:
     void setNull(uint8_t* nullBuffer, ft_col_idx_t idx);
     void setOverflowColNull(uint8_t* nullBuffer, ft_col_idx_t colIdx, ft_tuple_idx_t tupleIdx);
 
-    uint64_t computeNumTuplesToAppend(const vector<shared_ptr<ValueVector>>& vectorsToAppend) const;
+    uint64_t computeNumTuplesToAppend(
+        const std::vector<std::shared_ptr<common::ValueVector>>& vectorsToAppend) const;
 
     inline uint8_t* getCell(
         ft_block_idx_t blockIdx, ft_block_offset_t blockOffset, ft_col_offset_t colOffset) const {
         return flatTupleBlockCollection->getBlock(blockIdx)->getData() +
                blockOffset * tableSchema->getNumBytesPerTuple() + colOffset;
     }
-    inline pair<ft_block_idx_t, ft_block_offset_t> getBlockIdxAndTupleIdxInBlock(
+    inline std::pair<ft_block_idx_t, ft_block_offset_t> getBlockIdxAndTupleIdxInBlock(
         uint64_t tupleIdx) const {
-        return make_pair(tupleIdx / numTuplesPerBlock, tupleIdx % numTuplesPerBlock);
+        return std::make_pair(tupleIdx / numTuplesPerBlock, tupleIdx % numTuplesPerBlock);
     }
 
-    vector<BlockAppendingInfo> allocateFlatTupleBlocks(uint64_t numTuplesToAppend);
+    std::vector<BlockAppendingInfo> allocateFlatTupleBlocks(uint64_t numTuplesToAppend);
     uint8_t* allocateUnflatTupleBlock(uint32_t numBytes);
-    void copyFlatVectorToFlatColumn(
-        const ValueVector& vector, const BlockAppendingInfo& blockAppendInfo, ft_col_idx_t colIdx);
-    void copyUnflatVectorToFlatColumn(const ValueVector& vector,
+    void copyFlatVectorToFlatColumn(const common::ValueVector& vector,
+        const BlockAppendingInfo& blockAppendInfo, ft_col_idx_t colIdx);
+    void copyUnflatVectorToFlatColumn(const common::ValueVector& vector,
         const BlockAppendingInfo& blockAppendInfo, uint64_t numAppendedTuples, ft_col_idx_t colIdx);
-    inline void copyVectorToFlatColumn(const ValueVector& vector,
+    inline void copyVectorToFlatColumn(const common::ValueVector& vector,
         const BlockAppendingInfo& blockAppendInfo, uint64_t numAppendedTuples,
         ft_col_idx_t colIdx) {
         vector.state->isFlat() ?
             copyFlatVectorToFlatColumn(vector, blockAppendInfo, colIdx) :
             copyUnflatVectorToFlatColumn(vector, blockAppendInfo, numAppendedTuples, colIdx);
     }
-    void copyVectorToUnflatColumn(
-        const ValueVector& vector, const BlockAppendingInfo& blockAppendInfo, ft_col_idx_t colIdx);
-    void copyVectorToColumn(const ValueVector& vector, const BlockAppendingInfo& blockAppendInfo,
-        uint64_t numAppendedTuples, ft_col_idx_t colIdx);
-    overflow_value_t appendVectorToUnflatTupleBlocks(
-        const ValueVector& vector, ft_col_idx_t colIdx);
+    void copyVectorToUnflatColumn(const common::ValueVector& vector,
+        const BlockAppendingInfo& blockAppendInfo, ft_col_idx_t colIdx);
+    void copyVectorToColumn(const common::ValueVector& vector,
+        const BlockAppendingInfo& blockAppendInfo, uint64_t numAppendedTuples, ft_col_idx_t colIdx);
+    common::overflow_value_t appendVectorToUnflatTupleBlocks(
+        const common::ValueVector& vector, ft_col_idx_t colIdx);
 
     // TODO(Guodong): Unify these two `readUnflatCol()` with a (possibly templated) copy executor.
-    void readUnflatCol(uint8_t** tuplesToRead, ft_col_idx_t colIdx, ValueVector& vector) const;
-    void readUnflatCol(const uint8_t* tupleToRead, const SelectionVector* selVector,
-        ft_col_idx_t colIdx, ValueVector& vector) const;
+    void readUnflatCol(
+        uint8_t** tuplesToRead, ft_col_idx_t colIdx, common::ValueVector& vector) const;
+    void readUnflatCol(const uint8_t* tupleToRead, const common::SelectionVector* selVector,
+        ft_col_idx_t colIdx, common::ValueVector& vector) const;
     void readFlatColToFlatVector(
-        uint8_t** tuplesToRead, ft_col_idx_t colIdx, ValueVector& vector) const;
-    void readFlatColToUnflatVector(uint8_t** tuplesToRead, ft_col_idx_t colIdx, ValueVector& vector,
-        uint64_t numTuplesToRead) const;
-    inline void readFlatCol(uint8_t** tuplesToRead, ft_col_idx_t colIdx, ValueVector& vector,
-        uint64_t numTuplesToRead) const {
+        uint8_t** tuplesToRead, ft_col_idx_t colIdx, common::ValueVector& vector) const;
+    void readFlatColToUnflatVector(uint8_t** tuplesToRead, ft_col_idx_t colIdx,
+        common::ValueVector& vector, uint64_t numTuplesToRead) const;
+    inline void readFlatCol(uint8_t** tuplesToRead, ft_col_idx_t colIdx,
+        common::ValueVector& vector, uint64_t numTuplesToRead) const {
         vector.state->isFlat() ?
             readFlatColToFlatVector(tuplesToRead, colIdx, vector) :
             readFlatColToUnflatVector(tuplesToRead, colIdx, vector, numTuplesToRead);
     }
-    static void copyOverflowIfNecessary(
-        uint8_t* dst, uint8_t* src, const DataType& type, DiskOverflowFile* diskOverflowFile);
+    static void copyOverflowIfNecessary(uint8_t* dst, uint8_t* src, const common::DataType& type,
+        storage::DiskOverflowFile* diskOverflowFile);
 
 private:
-    MemoryManager* memoryManager;
-    unique_ptr<FactorizedTableSchema> tableSchema;
+    storage::MemoryManager* memoryManager;
+    std::unique_ptr<FactorizedTableSchema> tableSchema;
     uint64_t numTuples;
     uint32_t numTuplesPerBlock;
-    unique_ptr<DataBlockCollection> flatTupleBlockCollection;
-    unique_ptr<DataBlockCollection> unflatTupleBlockCollection;
-    unique_ptr<InMemOverflowBuffer> inMemOverflowBuffer;
+    std::unique_ptr<DataBlockCollection> flatTupleBlockCollection;
+    std::unique_ptr<DataBlockCollection> unflatTupleBlockCollection;
+    std::unique_ptr<common::InMemOverflowBuffer> inMemOverflowBuffer;
 };
 
 class FlatTupleIterator {
 public:
-    explicit FlatTupleIterator(FactorizedTable& factorizedTable, vector<Value*> values);
+    explicit FlatTupleIterator(
+        FactorizedTable& factorizedTable, std::vector<common::Value*> values);
 
     inline bool hasNextFlatTuple() {
         return nextTupleIdx < factorizedTable.getNumTuples() || nextFlatTupleIdx < numFlatTuples;
@@ -374,9 +383,9 @@ private:
     ft_tuple_idx_t nextFlatTupleIdx;
     ft_tuple_idx_t nextTupleIdx;
     // This field stores the (nextIdxToReadInDataChunk, numElementsInDataChunk) of each dataChunk.
-    vector<pair<uint64_t, uint64_t>> flatTuplePositionsInDataChunk;
+    std::vector<std::pair<uint64_t, uint64_t>> flatTuplePositionsInDataChunk;
 
-    vector<Value*> values;
+    std::vector<common::Value*> values;
 };
 
 } // namespace processor

@@ -3,7 +3,8 @@
 namespace kuzu {
 namespace evaluator {
 
-void BaseExpressionEvaluator::init(const ResultSet& resultSet, MemoryManager* memoryManager) {
+void BaseExpressionEvaluator::init(
+    const processor::ResultSet& resultSet, storage::MemoryManager* memoryManager) {
     for (auto& child : children) {
         child->init(resultSet, memoryManager);
     }
@@ -11,7 +12,7 @@ void BaseExpressionEvaluator::init(const ResultSet& resultSet, MemoryManager* me
 }
 
 void BaseExpressionEvaluator::resolveResultStateFromChildren(
-    const vector<BaseExpressionEvaluator*>& inputEvaluators) {
+    const std::vector<BaseExpressionEvaluator*>& inputEvaluators) {
     for (auto& input : inputEvaluators) {
         if (!input->isResultFlat()) {
             isResultFlat_ = false;
@@ -21,7 +22,7 @@ void BaseExpressionEvaluator::resolveResultStateFromChildren(
     }
     // All children are flat.
     isResultFlat_ = true;
-    resultVector->state = DataChunkState::getSingleValueDataChunkState();
+    resultVector->state = common::DataChunkState::getSingleValueDataChunkState();
 }
 
 } // namespace evaluator

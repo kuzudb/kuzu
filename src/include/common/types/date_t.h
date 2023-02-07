@@ -72,7 +72,7 @@ public:
     // Convert a string in the format "YYYY-MM-DD" to a date object
     static date_t FromCString(const char* str, uint64_t len);
     // Convert a date object to a string in the format "YYYY-MM-DD"
-    static string toString(date_t date);
+    static std::string toString(date_t date);
     // Try to convert text in a buffer to a date; returns true if parsing was successful
     static bool TryConvertDate(const char* buf, uint64_t len, uint64_t& pos, date_t& result);
 
@@ -92,9 +92,9 @@ public:
 
     static int32_t MonthDays(int32_t year, int32_t month);
 
-    static string getDayName(date_t& date);
+    static std::string getDayName(date_t& date);
 
-    static string getMonthName(date_t& date);
+    static std::string getMonthName(date_t& date);
 
     static date_t getLastDay(date_t& date);
 

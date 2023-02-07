@@ -5,7 +5,7 @@
 namespace kuzu {
 namespace common {
 
-spdlog::level::level_enum LoggingLevelUtils::convertStrToLevelEnum(string loggingLevel) {
+spdlog::level::level_enum LoggingLevelUtils::convertStrToLevelEnum(std::string loggingLevel) {
     StringUtils::toLower(loggingLevel);
     if (loggingLevel == "info") {
         return spdlog::level::level_enum::info;
@@ -18,7 +18,7 @@ spdlog::level::level_enum LoggingLevelUtils::convertStrToLevelEnum(string loggin
         StringUtils::string_format("Unsupported logging level: %s.", loggingLevel.c_str()));
 }
 
-string LoggingLevelUtils::convertLevelEnumToStr(spdlog::level::level_enum levelEnum) {
+std::string LoggingLevelUtils::convertLevelEnumToStr(spdlog::level::level_enum levelEnum) {
     switch (levelEnum) {
     case spdlog::level::level_enum::trace: {
         return "trace";

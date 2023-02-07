@@ -6,6 +6,8 @@
 #include "planner/logical_plan/logical_operator/sink_util.h"
 #include "planner/query_planner.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace planner {
 
@@ -55,10 +57,10 @@ void UpdatePlanner::planCreate(BoundCreateClause& createClause, LogicalPlan& pla
 }
 
 void UpdatePlanner::appendCreateNode(
-    const vector<unique_ptr<BoundCreateNode>>& createNodes, LogicalPlan& plan) {
-    vector<shared_ptr<NodeExpression>> nodes;
+    const std::vector<std::unique_ptr<BoundCreateNode>>& createNodes, LogicalPlan& plan) {
+    std::vector<std::shared_ptr<NodeExpression>> nodes;
     expression_vector primaryKeys;
-    vector<unique_ptr<BoundSetNodeProperty>> setNodeProperties;
+    std::vector<std::unique_ptr<BoundSetNodeProperty>> setNodeProperties;
     for (auto& createNode : createNodes) {
         auto node = createNode->getNode();
         nodes.push_back(node);
@@ -75,9 +77,9 @@ void UpdatePlanner::appendCreateNode(
 }
 
 void UpdatePlanner::appendCreateRel(
-    const vector<unique_ptr<BoundCreateRel>>& createRels, LogicalPlan& plan) {
-    vector<shared_ptr<RelExpression>> rels;
-    vector<vector<expression_pair>> setItemsPerRel;
+    const std::vector<std::unique_ptr<BoundCreateRel>>& createRels, LogicalPlan& plan) {
+    std::vector<std::shared_ptr<RelExpression>> rels;
+    std::vector<std::vector<expression_pair>> setItemsPerRel;
     for (auto& createRel : createRels) {
         rels.push_back(createRel->getRel());
         setItemsPerRel.push_back(createRel->getSetItems());
@@ -98,9 +100,10 @@ void UpdatePlanner::planSet(BoundSetClause& setClause, LogicalPlan& plan) {
 }
 
 void UpdatePlanner::appendSetNodeProperty(
-    const vector<unique_ptr<BoundSetNodeProperty>>& setNodeProperties, LogicalPlan& plan) {
-    vector<shared_ptr<NodeExpression>> nodes;
-    vector<expression_pair> setItems;
+    const std::vector<std::unique_ptr<BoundSetNodeProperty>>& setNodeProperties,
+    LogicalPlan& plan) {
+    std::vector<std::shared_ptr<NodeExpression>> nodes;
+    std::vector<expression_pair> setItems;
     for (auto& setNodeProperty : setNodeProperties) {
         auto node = setNodeProperty->getNode();
         auto lhsGroupPos = plan.getSchema()->getGroupPos(node->getInternalIDPropertyName());
@@ -125,9 +128,9 @@ void UpdatePlanner::appendSetNodeProperty(
 }
 
 void UpdatePlanner::appendSetRelProperty(
-    const vector<unique_ptr<BoundSetRelProperty>>& setRelProperties, LogicalPlan& plan) {
-    vector<shared_ptr<RelExpression>> rels;
-    vector<expression_pair> setItems;
+    const std::vector<std::unique_ptr<BoundSetRelProperty>>& setRelProperties, LogicalPlan& plan) {
+    std::vector<std::shared_ptr<RelExpression>> rels;
+    std::vector<expression_pair> setItems;
     for (auto& setRelProperty : setRelProperties) {
         flattenRel(*setRelProperty->getRel(), plan);
         auto rhs = setRelProperty->getSetItem().second;
@@ -152,8 +155,8 @@ void UpdatePlanner::planDelete(BoundDeleteClause& deleteClause, LogicalPlan& pla
 }
 
 void UpdatePlanner::appendDeleteNode(
-    const vector<unique_ptr<BoundDeleteNode>>& deleteNodes, LogicalPlan& plan) {
-    vector<shared_ptr<NodeExpression>> nodes;
+    const std::vector<std::unique_ptr<BoundDeleteNode>>& deleteNodes, LogicalPlan& plan) {
+    std::vector<std::shared_ptr<NodeExpression>> nodes;
     expression_vector primaryKeys;
     for (auto& deleteNode : deleteNodes) {
         nodes.push_back(deleteNode->getNode());
@@ -166,7 +169,7 @@ void UpdatePlanner::appendDeleteNode(
 }
 
 void UpdatePlanner::appendDeleteRel(
-    const vector<shared_ptr<RelExpression>>& deleteRels, LogicalPlan& plan) {
+    const std::vector<std::shared_ptr<RelExpression>>& deleteRels, LogicalPlan& plan) {
     // Delete one rel at a time so we flatten for each rel.
     for (auto& rel : deleteRels) {
         flattenRel(*rel, plan);

@@ -5,6 +5,9 @@
 #include "storage/index/hash_index_header.h"
 #include "storage/index/hash_index_slot.h"
 
+using namespace kuzu::common;
+using namespace kuzu::transaction;
+
 namespace kuzu {
 namespace storage {
 
@@ -51,7 +54,7 @@ BaseDiskArray<U>::BaseDiskArray(
 
 template<typename U>
 uint64_t BaseDiskArray<U>::getNumElements(TransactionType trxType) {
-    shared_lock slock{diskArraySharedMtx};
+    std::shared_lock slock{diskArraySharedMtx};
     return getNumElementsNoLock(trxType);
 }
 
@@ -73,7 +76,7 @@ void BaseDiskArray<U>::checkOutOfBoundAccess(TransactionType trxType, uint64_t i
 
 template<typename U>
 U BaseDiskArray<U>::get(uint64_t idx, TransactionType trxType) {
-    shared_lock slock{diskArraySharedMtx};
+    std::shared_lock slock{diskArraySharedMtx};
     checkOutOfBoundAccess(trxType, idx);
     auto apCursor = getAPIdxAndOffsetInAP(idx);
     page_idx_t apPageIdx = getAPPageIdxNoLock(apCursor.pageIdx, trxType);
@@ -95,7 +98,7 @@ U BaseDiskArray<U>::get(uint64_t idx, TransactionType trxType) {
 
 template<typename U>
 void BaseDiskArray<U>::update(uint64_t idx, U val) {
-    unique_lock xlock{diskArraySharedMtx};
+    std::unique_lock xlock{diskArraySharedMtx};
     hasTransactionalUpdates = true;
     checkOutOfBoundAccess(TransactionType::WRITE, idx);
     auto apCursor = getAPIdxAndOffsetInAP(idx);
@@ -116,7 +119,7 @@ void BaseDiskArray<U>::update(uint64_t idx, U val) {
 
 template<typename U>
 uint64_t BaseDiskArray<U>::pushBack(U val) {
-    unique_lock xlock{diskArraySharedMtx};
+    std::unique_lock xlock{diskArraySharedMtx};
     hasTransactionalUpdates = true;
     uint64_t elementIdx;
     StorageStructureUtils::updatePage((VersionedFileHandle&)(fileHandle), headerPageIdx,
@@ -270,12 +273,12 @@ uint64_t BaseDiskArray<U>::readUInt64HeaderFieldNoLock(
 }
 
 template<typename U>
-pair<page_idx_t, bool> BaseDiskArray<U>::getAPPageIdxAndAddAPToPIPIfNecessaryForWriteTrxNoLock(
+std::pair<page_idx_t, bool> BaseDiskArray<U>::getAPPageIdxAndAddAPToPIPIfNecessaryForWriteTrxNoLock(
     DiskArrayHeader* updatedDiskArrayHeader, page_idx_t apIdx) {
     if (apIdx < updatedDiskArrayHeader->numAPs) {
         // If the apIdx of the array page is < updatedDiskArrayHeader->numAPs, we do not have to
         // add a new array page, so directly return the pageIdx of the apIdx.
-        return make_pair(getAPPageIdxNoLock(apIdx, TransactionType::WRITE),
+        return std::make_pair(getAPPageIdxNoLock(apIdx, TransactionType::WRITE),
             false /* is not inserting a new ap page */);
     } else {
         // apIdx even if it's being inserted should never be > updatedDiskArrayHeader->numAPs.
@@ -320,7 +323,7 @@ pair<page_idx_t, bool> BaseDiskArray<U>::getAPPageIdxAndAddAPToPIPIfNecessaryFor
                 }
                 ((PIP*)frame)->pageIdxs[offsetOfNewAPInPIP] = newAPPageIdx;
             });
-        return make_pair(newAPPageIdx, true /* inserting a new ap page */);
+        return std::make_pair(newAPPageIdx, true /* inserting a new ap page */);
     }
 }
 
@@ -407,7 +410,7 @@ void InMemDiskArray<T>::checkpointOrRollbackInMemoryIfNecessaryNoLock(bool isChe
         }
         this->clearWALPageVersionAndRemovePageFromFrameIfNecessary(apPageIdx);
         if (!isCheckpoint) {
-            minNewAPPageIdxToTruncateTo = min(minNewAPPageIdxToTruncateTo, apPageIdx);
+            minNewAPPageIdxToTruncateTo = std::min(minNewAPPageIdxToTruncateTo, apPageIdx);
         }
     }
 

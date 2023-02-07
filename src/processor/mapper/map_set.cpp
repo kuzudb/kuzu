@@ -9,13 +9,13 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace processor {
 
-unique_ptr<PhysicalOperator> PlanMapper::mapLogicalSetNodePropertyToPhysical(
+std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalSetNodePropertyToPhysical(
     LogicalOperator* logicalOperator) {
     auto& logicalSetNodeProperty = (LogicalSetNodeProperty&)*logicalOperator;
     auto inSchema = logicalSetNodeProperty.getChild(0)->getSchema();
     auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0));
     auto& nodeStore = storageManager.getNodesStore();
-    vector<unique_ptr<SetNodePropertyInfo>> infos;
+    std::vector<std::unique_ptr<SetNodePropertyInfo>> infos;
     for (auto i = 0u; i < logicalSetNodeProperty.getNumNodes(); ++i) {
         auto node = logicalSetNodeProperty.getNode(i);
         auto [lhs, rhs] = logicalSetNodeProperty.getSetItem(i);
@@ -27,17 +27,17 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalSetNodePropertyToPhysical(
         auto evaluator = expressionMapper.mapExpression(rhs, *inSchema);
         infos.push_back(make_unique<SetNodePropertyInfo>(column, nodeIDPos, std::move(evaluator)));
     }
-    return make_unique<SetNodeProperty>(std::move(infos), std::move(prevOperator), getOperatorID(),
-        logicalSetNodeProperty.getExpressionsForPrinting());
+    return std::make_unique<SetNodeProperty>(std::move(infos), std::move(prevOperator),
+        getOperatorID(), logicalSetNodeProperty.getExpressionsForPrinting());
 }
 
-unique_ptr<PhysicalOperator> PlanMapper::mapLogicalSetRelPropertyToPhysical(
+std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalSetRelPropertyToPhysical(
     LogicalOperator* logicalOperator) {
     auto& logicalSetRelProperty = (LogicalSetRelProperty&)*logicalOperator;
     auto inSchema = logicalSetRelProperty.getChild(0)->getSchema();
     auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0));
     auto& relStore = storageManager.getRelsStore();
-    vector<unique_ptr<SetRelPropertyInfo>> infos;
+    std::vector<std::unique_ptr<SetRelPropertyInfo>> infos;
     for (auto i = 0u; i < logicalSetRelProperty.getNumRels(); ++i) {
         auto rel = logicalSetRelProperty.getRel(i);
         auto [lhs, rhs] = logicalSetRelProperty.getSetItem(i);

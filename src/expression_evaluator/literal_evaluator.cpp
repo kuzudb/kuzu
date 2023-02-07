@@ -2,6 +2,9 @@
 
 #include "common/vector/value_vector_utils.h"
 
+using namespace kuzu::common;
+using namespace kuzu::storage;
+
 namespace kuzu {
 namespace evaluator {
 
@@ -13,8 +16,8 @@ bool LiteralExpressionEvaluator::select(SelectionVector& selVector) {
 }
 
 void LiteralExpressionEvaluator::resolveResultVector(
-    const ResultSet& resultSet, MemoryManager* memoryManager) {
-    resultVector = make_shared<ValueVector>(value->getDataType(), memoryManager);
+    const processor::ResultSet& resultSet, MemoryManager* memoryManager) {
+    resultVector = std::make_shared<ValueVector>(value->getDataType(), memoryManager);
     resultVector->addValue(0, *value);
     resultVector->state = DataChunkState::getSingleValueDataChunkState();
 }

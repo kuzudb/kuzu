@@ -2,10 +2,12 @@
 #include "processor/mapper/plan_mapper.h"
 #include "processor/operator/flatten.h"
 
+using namespace kuzu::planner;
+
 namespace kuzu {
 namespace processor {
 
-unique_ptr<PhysicalOperator> PlanMapper::mapLogicalFlattenToPhysical(
+std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalFlattenToPhysical(
     LogicalOperator* logicalOperator) {
     auto flatten = (LogicalFlatten*)logicalOperator;
     auto inSchema = flatten->getChild(0)->getSchema();

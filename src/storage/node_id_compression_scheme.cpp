@@ -1,24 +1,24 @@
 #include "storage/node_id_compression_scheme.h"
 
 namespace kuzu {
-namespace common {
+namespace storage {
 
-void NodeIDCompressionScheme::readNodeID(uint8_t* data, nodeID_t* nodeID) const {
-    if (commonTableID == INVALID_TABLE_ID) {
-        memcpy(&*nodeID, data, sizeof(nodeID_t));
+void NodeIDCompressionScheme::readNodeID(uint8_t* data, common::nodeID_t* nodeID) const {
+    if (commonTableID == common::INVALID_TABLE_ID) {
+        memcpy(&*nodeID, data, sizeof(common::nodeID_t));
     } else {
         nodeID->tableID = commonTableID;
-        memcpy(&nodeID->offset, data, sizeof(offset_t));
+        memcpy(&nodeID->offset, data, sizeof(common::offset_t));
     }
 }
 
-void NodeIDCompressionScheme::writeNodeID(uint8_t* data, const nodeID_t& nodeID) const {
-    if (commonTableID == INVALID_TABLE_ID) {
-        memcpy(data, &nodeID, sizeof(nodeID_t));
+void NodeIDCompressionScheme::writeNodeID(uint8_t* data, const common::nodeID_t& nodeID) const {
+    if (commonTableID == common::INVALID_TABLE_ID) {
+        memcpy(data, &nodeID, sizeof(common::nodeID_t));
     } else {
-        memcpy(data, &nodeID.offset, sizeof(offset_t));
+        memcpy(data, &nodeID.offset, sizeof(common::offset_t));
     }
 }
 
-} // namespace common
+} // namespace storage
 } // namespace kuzu

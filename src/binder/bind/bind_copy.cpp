@@ -3,15 +3,17 @@
 #include "binder/expression/literal_expression.h"
 #include "parser/copy_csv/copy_csv.h"
 
+using namespace kuzu::common;
+using namespace kuzu::parser;
+
 namespace kuzu {
 namespace binder {
 
-unique_ptr<BoundStatement> Binder::bindCopy(const Statement& statement) {
+std::unique_ptr<BoundStatement> Binder::bindCopy(const Statement& statement) {
     auto& copyCSV = (CopyCSV&)statement;
     auto catalogContent = catalog.getReadOnlyVersion();
     auto tableName = copyCSV.getTableName();
     validateTableExist(catalog, tableName);
-    auto isNodeTable = catalogContent->containNodeTable(tableName);
     auto tableID = catalogContent->getTableID(tableName);
     auto filePath = copyCSV.getCSVFileName();
     auto csvReaderConfig = bindParsingOptions(copyCSV.getParsingOptions());
@@ -19,7 +21,7 @@ unique_ptr<BoundStatement> Binder::bindCopy(const Statement& statement) {
 }
 
 CSVReaderConfig Binder::bindParsingOptions(
-    const unordered_map<string, unique_ptr<ParsedExpression>>* parsingOptions) {
+    const std::unordered_map<std::string, std::unique_ptr<ParsedExpression>>* parsingOptions) {
     CSVReaderConfig csvReaderConfig;
     for (auto& parsingOption : *parsingOptions) {
         auto copyOptionName = parsingOption.first;
@@ -41,7 +43,7 @@ CSVReaderConfig Binder::bindParsingOptions(
                     "The value type of parsing csv option " + copyOptionName + " must be string.");
             }
             auto copyOptionValue =
-                ((LiteralExpression&)(*boundCopyOptionExpression)).value->getValue<string>();
+                ((LiteralExpression&)(*boundCopyOptionExpression)).value->getValue<std::string>();
             bindStringParsingOptions(csvReaderConfig, copyOptionName, copyOptionValue);
         } else {
             throw BinderException("Unrecognized parsing csv option: " + copyOptionName + ".");
@@ -51,7 +53,7 @@ CSVReaderConfig Binder::bindParsingOptions(
 }
 
 void Binder::bindStringParsingOptions(
-    CSVReaderConfig& csvReaderConfig, const string& optionName, string& optionValue) {
+    CSVReaderConfig& csvReaderConfig, const std::string& optionName, std::string& optionValue) {
     auto parsingOptionValue = bindParsingOptionValue(optionValue);
     if (optionName == "ESCAPE") {
         csvReaderConfig.escapeChar = parsingOptionValue;
@@ -66,7 +68,7 @@ void Binder::bindStringParsingOptions(
     }
 }
 
-char Binder::bindParsingOptionValue(string value) {
+char Binder::bindParsingOptionValue(std::string value) {
     if (value.length() > 2 || (value.length() == 2 && value[0] != '\\')) {
         throw BinderException("Copy csv option value can only be a single character with an "
                               "optional escape character.");

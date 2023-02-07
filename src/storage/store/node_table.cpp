@@ -1,5 +1,8 @@
 #include "storage/store/node_table.h"
 
+using namespace kuzu::catalog;
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace storage {
 
@@ -16,13 +19,14 @@ void NodeTable::initializeData(NodeTableSchema* nodeTableSchema) {
             StorageUtils::getNodePropertyColumnStructureIDAndFName(wal->getDirectory(), property),
             property.dataType, bufferManager, wal);
     }
-    pkIndex = make_unique<PrimaryKeyIndex>(
+    pkIndex = std::make_unique<PrimaryKeyIndex>(
         StorageUtils::getNodeIndexIDAndFName(wal->getDirectory(), tableID),
         nodeTableSchema->getPrimaryKey().dataType, bufferManager, wal);
 }
 
-void NodeTable::scan(Transaction* transaction, const shared_ptr<ValueVector>& inputIDVector,
-    const vector<uint32_t>& columnIds, vector<shared_ptr<ValueVector>> outputVectors) {
+void NodeTable::scan(transaction::Transaction* transaction,
+    const std::shared_ptr<ValueVector>& inputIDVector, const std::vector<uint32_t>& columnIds,
+    std::vector<std::shared_ptr<ValueVector>> outputVectors) {
     assert(columnIds.size() == outputVectors.size());
     for (auto i = 0u; i < columnIds.size(); i++) {
         if (columnIds[i] == UINT32_MAX) {
@@ -41,9 +45,9 @@ offset_t NodeTable::addNodeAndResetProperties(ValueVector* primaryKeyVector) {
         throw RuntimeException("Null is not allowed as a primary key value.");
     }
     if (!pkIndex->insert(primaryKeyVector, pkValPos, nodeOffset)) {
-        string pkStr = primaryKeyVector->dataType.typeID == INT64 ?
-                           to_string(primaryKeyVector->getValue<int64_t>(pkValPos)) :
-                           primaryKeyVector->getValue<ku_string_t>(pkValPos).getAsString();
+        std::string pkStr = primaryKeyVector->dataType.typeID == INT64 ?
+                                std::to_string(primaryKeyVector->getValue<int64_t>(pkValPos)) :
+                                primaryKeyVector->getValue<ku_string_t>(pkValPos).getAsString();
         throw RuntimeException(Exception::getExistedPKExceptionMsg(pkStr));
     }
     for (auto& [_, column] : propertyColumns) {

@@ -21,8 +21,8 @@ struct SubqueryGraphHasher {
 struct SubqueryGraph {
 
     const QueryGraph& queryGraph;
-    bitset<MAX_NUM_VARIABLES> queryNodesSelector;
-    bitset<MAX_NUM_VARIABLES> queryRelsSelector;
+    std::bitset<MAX_NUM_VARIABLES> queryNodesSelector;
+    std::bitset<MAX_NUM_VARIABLES> queryRelsSelector;
 
     explicit SubqueryGraph(const QueryGraph& queryGraph) : queryGraph{queryGraph} {}
 
@@ -47,17 +47,17 @@ struct SubqueryGraph {
         return queryRelsSelector.count() == 1 && queryNodesSelector.count() == 0;
     }
 
-    bool containAllVariables(unordered_set<string>& variables) const;
+    bool containAllVariables(std::unordered_set<std::string>& variables) const;
 
-    unordered_set<uint32_t> getNodeNbrPositions() const;
-    unordered_set<uint32_t> getRelNbrPositions() const;
-    unordered_set<SubqueryGraph, SubqueryGraphHasher> getNbrSubgraphs(uint32_t size) const;
-    vector<uint32_t> getConnectedNodePos(const SubqueryGraph& nbr) const;
+    std::unordered_set<uint32_t> getNodeNbrPositions() const;
+    std::unordered_set<uint32_t> getRelNbrPositions() const;
+    std::unordered_set<SubqueryGraph, SubqueryGraphHasher> getNbrSubgraphs(uint32_t size) const;
+    std::vector<uint32_t> getConnectedNodePos(const SubqueryGraph& nbr) const;
 
     // E.g. query graph (a)-[e1]->(b) and subgraph (a)-[e1], although (b) is not in subgraph, we
     // return both (a) and (b) regardless of node selector. See needPruneJoin() in
     // join_order_enumerator.cpp for its use case.
-    unordered_set<uint32_t> getNodePositionsIgnoringNodeSelector() const;
+    std::unordered_set<uint32_t> getNodePositionsIgnoringNodeSelector() const;
 
     bool operator==(const SubqueryGraph& other) const {
         return queryRelsSelector == other.queryRelsSelector &&
@@ -65,8 +65,8 @@ struct SubqueryGraph {
     }
 
 private:
-    unordered_set<SubqueryGraph, SubqueryGraphHasher> getBaseNbrSubgraph() const;
-    unordered_set<SubqueryGraph, SubqueryGraphHasher> getNextNbrSubgraphs(
+    std::unordered_set<SubqueryGraph, SubqueryGraphHasher> getBaseNbrSubgraph() const;
+    std::unordered_set<SubqueryGraph, SubqueryGraphHasher> getNextNbrSubgraphs(
         const SubqueryGraph& prevNbr) const;
 };
 
@@ -83,46 +83,47 @@ public:
     ~QueryGraph() = default;
 
     inline uint32_t getNumQueryNodes() const { return queryNodes.size(); }
-    inline bool containsQueryNode(const string& queryNodeName) const {
+    inline bool containsQueryNode(const std::string& queryNodeName) const {
         return queryNodeNameToPosMap.contains(queryNodeName);
     }
-    inline vector<shared_ptr<NodeExpression>> getQueryNodes() const { return queryNodes; }
-    inline shared_ptr<NodeExpression> getQueryNode(const string& queryNodeName) const {
+    inline std::vector<std::shared_ptr<NodeExpression>> getQueryNodes() const { return queryNodes; }
+    inline std::shared_ptr<NodeExpression> getQueryNode(const std::string& queryNodeName) const {
         return queryNodes[getQueryNodePos(queryNodeName)];
     }
-    inline vector<shared_ptr<NodeExpression>> getQueryNodes(vector<uint32_t> nodePoses) const {
-        vector<shared_ptr<NodeExpression>> result;
+    inline std::vector<std::shared_ptr<NodeExpression>> getQueryNodes(
+        std::vector<uint32_t> nodePoses) const {
+        std::vector<std::shared_ptr<NodeExpression>> result;
         for (auto nodePos : nodePoses) {
             result.push_back(queryNodes[nodePos]);
         }
         return result;
     }
-    inline shared_ptr<NodeExpression> getQueryNode(uint32_t nodePos) const {
+    inline std::shared_ptr<NodeExpression> getQueryNode(uint32_t nodePos) const {
         return queryNodes[nodePos];
     }
     inline uint32_t getQueryNodePos(NodeExpression& node) const {
         return getQueryNodePos(node.getUniqueName());
     }
-    inline uint32_t getQueryNodePos(const string& queryNodeName) const {
+    inline uint32_t getQueryNodePos(const std::string& queryNodeName) const {
         return queryNodeNameToPosMap.at(queryNodeName);
     }
-    void addQueryNode(shared_ptr<NodeExpression> queryNode);
+    void addQueryNode(std::shared_ptr<NodeExpression> queryNode);
 
     inline uint32_t getNumQueryRels() const { return queryRels.size(); }
-    inline bool containsQueryRel(const string& queryRelName) const {
+    inline bool containsQueryRel(const std::string& queryRelName) const {
         return queryRelNameToPosMap.contains(queryRelName);
     }
-    inline vector<shared_ptr<RelExpression>> getQueryRels() const { return queryRels; }
-    inline shared_ptr<RelExpression> getQueryRel(const string& queryRelName) const {
+    inline std::vector<std::shared_ptr<RelExpression>> getQueryRels() const { return queryRels; }
+    inline std::shared_ptr<RelExpression> getQueryRel(const std::string& queryRelName) const {
         return queryRels.at(queryRelNameToPosMap.at(queryRelName));
     }
-    inline shared_ptr<RelExpression> getQueryRel(uint32_t relPos) const {
+    inline std::shared_ptr<RelExpression> getQueryRel(uint32_t relPos) const {
         return queryRels[relPos];
     }
-    inline uint32_t getQueryRelPos(const string& queryRelName) const {
+    inline uint32_t getQueryRelPos(const std::string& queryRelName) const {
         return queryRelNameToPosMap.at(queryRelName);
     }
-    void addQueryRel(shared_ptr<RelExpression> queryRel);
+    void addQueryRel(std::shared_ptr<RelExpression> queryRel);
 
     bool canProjectExpression(Expression* expression) const;
 
@@ -130,13 +131,13 @@ public:
 
     void merge(const QueryGraph& other);
 
-    inline unique_ptr<QueryGraph> copy() const { return make_unique<QueryGraph>(*this); }
+    inline std::unique_ptr<QueryGraph> copy() const { return std::make_unique<QueryGraph>(*this); }
 
 private:
-    unordered_map<string, uint32_t> queryNodeNameToPosMap;
-    unordered_map<string, uint32_t> queryRelNameToPosMap;
-    vector<shared_ptr<NodeExpression>> queryNodes;
-    vector<shared_ptr<RelExpression>> queryRels;
+    std::unordered_map<std::string, uint32_t> queryNodeNameToPosMap;
+    std::unordered_map<std::string, uint32_t> queryRelNameToPosMap;
+    std::vector<std::shared_ptr<NodeExpression>> queryNodes;
+    std::vector<std::shared_ptr<RelExpression>> queryRels;
 };
 
 // QueryGraphCollection represents a pattern (a set of connected components) specified in MATCH
@@ -145,17 +146,17 @@ class QueryGraphCollection {
 public:
     QueryGraphCollection() = default;
 
-    void addAndMergeQueryGraphIfConnected(unique_ptr<QueryGraph> queryGraphToAdd);
+    void addAndMergeQueryGraphIfConnected(std::unique_ptr<QueryGraph> queryGraphToAdd);
     inline uint32_t getNumQueryGraphs() const { return queryGraphs.size(); }
     inline QueryGraph* getQueryGraph(uint32_t idx) const { return queryGraphs[idx].get(); }
 
-    vector<shared_ptr<NodeExpression>> getQueryNodes() const;
-    vector<shared_ptr<RelExpression>> getQueryRels() const;
+    std::vector<std::shared_ptr<NodeExpression>> getQueryNodes() const;
+    std::vector<std::shared_ptr<RelExpression>> getQueryRels() const;
 
-    unique_ptr<QueryGraphCollection> copy() const;
+    std::unique_ptr<QueryGraphCollection> copy() const;
 
 private:
-    vector<unique_ptr<QueryGraph>> queryGraphs;
+    std::vector<std::unique_ptr<QueryGraph>> queryGraphs;
 };
 
 class PropertyKeyValCollection {
@@ -165,21 +166,22 @@ public:
         : varNameToPropertyKeyValPairs{other.varNameToPropertyKeyValPairs} {}
 
     void addPropertyKeyValPair(const Expression& variable, expression_pair propertyKeyValPair);
-    vector<expression_pair> getPropertyKeyValPairs(const Expression& variable) const;
-    vector<expression_pair> getAllPropertyKeyValPairs() const;
+    std::vector<expression_pair> getPropertyKeyValPairs(const Expression& variable) const;
+    std::vector<expression_pair> getAllPropertyKeyValPairs() const;
 
-    bool hasPropertyKeyValPair(const Expression& variable, const string& propertyName) const;
+    bool hasPropertyKeyValPair(const Expression& variable, const std::string& propertyName) const;
     expression_pair getPropertyKeyValPair(
-        const Expression& variable, const string& propertyName) const;
+        const Expression& variable, const std::string& propertyName) const;
 
-    inline unique_ptr<PropertyKeyValCollection> copy() const {
-        return make_unique<PropertyKeyValCollection>(*this);
+    inline std::unique_ptr<PropertyKeyValCollection> copy() const {
+        return std::make_unique<PropertyKeyValCollection>(*this);
     }
 
 private:
     // First indexed on variable name, then indexed on property name.
     // a -> { age -> pair<a.age,12>, name -> pair<name,'Alice'>}
-    unordered_map<string, unordered_map<string, expression_pair>> varNameToPropertyKeyValPairs;
+    std::unordered_map<std::string, std::unordered_map<std::string, expression_pair>>
+        varNameToPropertyKeyValPairs;
 };
 
 } // namespace binder

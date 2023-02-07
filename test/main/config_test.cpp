@@ -1,5 +1,6 @@
 #include "main_test_helper/main_test_helper.h"
 
+using namespace kuzu::common;
 using namespace kuzu::testing;
 
 TEST_F(ApiTest, DatabaseConfig) {
@@ -20,9 +21,9 @@ TEST_F(ApiTest, ClientConfig) {
 TEST_F(ApiTest, DatabasePathIncorrect) {
     spdlog::set_level(spdlog::level::debug);
     try {
-        make_unique<Database>(DatabaseConfig("/\\0:* /? \" < > |"));
+        std::make_unique<Database>(DatabaseConfig("/\\0:* /? \" < > |"));
         FAIL();
     } catch (Exception& e) {
-        ASSERT_TRUE(string(e.what()).find("Failed to create directory") != string::npos);
+        ASSERT_TRUE(std::string(e.what()).find("Failed to create directory") != std::string::npos);
     }
 }

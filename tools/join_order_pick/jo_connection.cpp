@@ -5,13 +5,18 @@
 #include "planner/logical_plan/logical_plan_util.h"
 #include "planner/planner.h"
 
+using namespace kuzu::common;
+using namespace kuzu::parser;
+using namespace kuzu::planner;
+
 namespace kuzu {
 namespace main {
 
-unique_ptr<QueryResult> JOConnection::query(const string& query, const string& encodedJoin) {
+std::unique_ptr<QueryResult> JOConnection::query(
+    const std::string& query, const std::string& encodedJoin) {
     assert(!query.empty());
     lock_t lck{mtx};
-    auto preparedStatement = make_unique<PreparedStatement>();
+    auto preparedStatement = std::make_unique<PreparedStatement>();
     try {
         auto statement = Parser::parseQuery(query);
         assert(statement->getStatementType() == StatementType::QUERY);
@@ -20,7 +25,7 @@ unique_ptr<QueryResult> JOConnection::query(const string& query, const string& e
         auto& nodesStatisticsAndDeletedIDs =
             database->storageManager->getNodesStore().getNodesStatisticsAndDeletedIDs();
         auto& relsStatistics = database->storageManager->getRelsStore().getRelsStatistics();
-        unique_ptr<LogicalPlan> logicalPlan;
+        std::unique_ptr<LogicalPlan> logicalPlan;
         if (encodedJoin.empty()) {
             logicalPlan = Planner::getBestPlan(
                 *database->catalog, nodesStatisticsAndDeletedIDs, relsStatistics, *boundQuery);
@@ -39,7 +44,7 @@ unique_ptr<QueryResult> JOConnection::query(const string& query, const string& e
         preparedStatement->logicalPlans.push_back(std::move(logicalPlan));
         return executeAndAutoCommitIfNecessaryNoLock(preparedStatement.get());
     } catch (Exception& exception) {
-        string errMsg = exception.what();
+        std::string errMsg = exception.what();
         return queryResultWithError(errMsg);
     }
 }

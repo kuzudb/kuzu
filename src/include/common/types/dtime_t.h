@@ -2,8 +2,6 @@
 
 #include <string>
 
-using namespace std;
-
 namespace kuzu {
 namespace common {
 
@@ -44,7 +42,7 @@ public:
     static bool TryConvertTime(const char* buf, uint64_t len, uint64_t& pos, dtime_t& result);
 
     // Convert a time object to a string in the format "hh:mm:ss"
-    static string toString(dtime_t time);
+    static std::string toString(dtime_t time);
 
     static dtime_t FromTime(int32_t hour, int32_t minute, int32_t second, int32_t microseconds = 0);
 

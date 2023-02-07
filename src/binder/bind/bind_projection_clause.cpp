@@ -1,32 +1,35 @@
 #include "binder/binder.h"
 #include "binder/expression/literal_expression.h"
 
+using namespace kuzu::common;
+using namespace kuzu::parser;
+
 namespace kuzu {
 namespace binder {
 
-unique_ptr<BoundWithClause> Binder::bindWithClause(const WithClause& withClause) {
+std::unique_ptr<BoundWithClause> Binder::bindWithClause(const WithClause& withClause) {
     auto projectionBody = withClause.getProjectionBody();
     auto boundProjectionExpressions = bindProjectionExpressions(
         projectionBody->getProjectionExpressions(), projectionBody->containsStar());
     validateProjectionColumnsInWithClauseAreAliased(boundProjectionExpressions);
-    auto boundProjectionBody = make_unique<BoundProjectionBody>(
+    auto boundProjectionBody = std::make_unique<BoundProjectionBody>(
         projectionBody->getIsDistinct(), std::move(boundProjectionExpressions));
     bindOrderBySkipLimitIfNecessary(*boundProjectionBody, *projectionBody);
     validateOrderByFollowedBySkipOrLimitInWithClause(*boundProjectionBody);
     variablesInScope.clear();
     addExpressionsToScope(boundProjectionBody->getProjectionExpressions());
-    auto boundWithClause = make_unique<BoundWithClause>(std::move(boundProjectionBody));
+    auto boundWithClause = std::make_unique<BoundWithClause>(std::move(boundProjectionBody));
     if (withClause.hasWhereExpression()) {
         boundWithClause->setWhereExpression(bindWhereExpression(*withClause.getWhereExpression()));
     }
     return boundWithClause;
 }
 
-unique_ptr<BoundReturnClause> Binder::bindReturnClause(const ReturnClause& returnClause) {
+std::unique_ptr<BoundReturnClause> Binder::bindReturnClause(const ReturnClause& returnClause) {
     auto projectionBody = returnClause.getProjectionBody();
     auto boundProjectionExpressions = bindProjectionExpressions(
         projectionBody->getProjectionExpressions(), projectionBody->containsStar());
-    auto statementResult = make_unique<BoundStatementResult>();
+    auto statementResult = std::make_unique<BoundStatementResult>();
     for (auto& expression : boundProjectionExpressions) {
         auto dataType = expression->getDataType();
         if (dataType.typeID == common::NODE || dataType.typeID == common::REL) {
@@ -35,15 +38,16 @@ unique_ptr<BoundReturnClause> Binder::bindReturnClause(const ReturnClause& retur
             statementResult->addColumn(expression, expression_vector{expression});
         }
     }
-    auto boundProjectionBody = make_unique<BoundProjectionBody>(
+    auto boundProjectionBody = std::make_unique<BoundProjectionBody>(
         projectionBody->getIsDistinct(), statementResult->getExpressionsToCollect());
     bindOrderBySkipLimitIfNecessary(*boundProjectionBody, *projectionBody);
-    return make_unique<BoundReturnClause>(
+    return std::make_unique<BoundReturnClause>(
         std::move(boundProjectionBody), std::move(statementResult));
 }
 
 expression_vector Binder::bindProjectionExpressions(
-    const vector<unique_ptr<ParsedExpression>>& projectionExpressions, bool containsStar) {
+    const std::vector<std::unique_ptr<ParsedExpression>>& projectionExpressions,
+    bool containsStar) {
     expression_vector boundProjectionExpressions;
     for (auto& expression : projectionExpressions) {
         boundProjectionExpressions.push_back(expressionBinder.bindExpression(*expression));
@@ -119,7 +123,7 @@ void Binder::bindOrderBySkipLimitIfNecessary(
 }
 
 expression_vector Binder::bindOrderByExpressions(
-    const vector<unique_ptr<ParsedExpression>>& orderByExpressions) {
+    const std::vector<std::unique_ptr<ParsedExpression>>& orderByExpressions) {
     expression_vector boundOrderByExpressions;
     for (auto& expression : orderByExpressions) {
         auto boundExpression = expressionBinder.bindExpression(*expression);

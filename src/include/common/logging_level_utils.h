@@ -2,16 +2,14 @@
 
 #include "spdlog/spdlog.h"
 
-using namespace std;
-
 namespace kuzu {
 namespace common {
 
 class LoggingLevelUtils {
 public:
-    static spdlog::level::level_enum convertStrToLevelEnum(string loggingLevel);
+    static spdlog::level::level_enum convertStrToLevelEnum(std::string loggingLevel);
 
-    static string convertLevelEnumToStr(spdlog::level::level_enum levelEnum);
+    static std::string convertLevelEnumToStr(spdlog::level::level_enum levelEnum);
 };
 
 } // namespace common

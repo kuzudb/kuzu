@@ -2,17 +2,19 @@
 #include "binder/expression_binder.h"
 #include "parser/expression/parsed_parameter_expression.h"
 
+using namespace kuzu::parser;
+
 namespace kuzu {
 namespace binder {
 
-shared_ptr<Expression> ExpressionBinder::bindParameterExpression(
+std::shared_ptr<Expression> ExpressionBinder::bindParameterExpression(
     const ParsedExpression& parsedExpression) {
     auto& parsedParameterExpression = (ParsedParameterExpression&)parsedExpression;
     auto parameterName = parsedParameterExpression.getParameterName();
     if (parameterMap.contains(parameterName)) {
         return make_shared<ParameterExpression>(parameterName, parameterMap.at(parameterName));
     } else {
-        auto value = make_shared<Value>(Value::createNullValue());
+        auto value = std::make_shared<common::Value>(common::Value::createNullValue());
         parameterMap.insert({parameterName, value});
         return make_shared<ParameterExpression>(parameterName, value);
     }

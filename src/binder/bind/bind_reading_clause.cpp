@@ -2,10 +2,13 @@
 #include "binder/query/reading_clause/bound_unwind_clause.h"
 #include "parser/query/reading_clause/unwind_clause.h"
 
+using namespace kuzu::common;
+using namespace kuzu::parser;
+
 namespace kuzu {
 namespace binder {
 
-unique_ptr<BoundReadingClause> Binder::bindReadingClause(const ReadingClause& readingClause) {
+std::unique_ptr<BoundReadingClause> Binder::bindReadingClause(const ReadingClause& readingClause) {
     switch (readingClause.getClauseType()) {
     case ClauseType::MATCH: {
         return bindMatchClause((MatchClause&)readingClause);
@@ -18,14 +21,14 @@ unique_ptr<BoundReadingClause> Binder::bindReadingClause(const ReadingClause& re
     }
 }
 
-unique_ptr<BoundReadingClause> Binder::bindMatchClause(const ReadingClause& readingClause) {
+std::unique_ptr<BoundReadingClause> Binder::bindMatchClause(const ReadingClause& readingClause) {
     auto& matchClause = (MatchClause&)readingClause;
     auto prevVariablesInScope = variablesInScope;
     auto [queryGraphCollection, propertyCollection] =
         bindGraphPattern(matchClause.getPatternElements());
     auto boundMatchClause =
         make_unique<BoundMatchClause>(std::move(queryGraphCollection), matchClause.getIsOptional());
-    shared_ptr<Expression> whereExpression;
+    std::shared_ptr<Expression> whereExpression;
     if (matchClause.hasWhereClause()) {
         whereExpression = bindWhereExpression(*matchClause.getWhereClause());
     }
@@ -44,13 +47,13 @@ unique_ptr<BoundReadingClause> Binder::bindMatchClause(const ReadingClause& read
     return boundMatchClause;
 }
 
-unique_ptr<BoundReadingClause> Binder::bindUnwindClause(const ReadingClause& readingClause) {
+std::unique_ptr<BoundReadingClause> Binder::bindUnwindClause(const ReadingClause& readingClause) {
     auto& unwindClause = (UnwindClause&)readingClause;
     auto boundExpression = expressionBinder.bindExpression(*unwindClause.getExpression());
     boundExpression = ExpressionBinder::implicitCastIfNecessary(boundExpression, LIST);
     auto aliasExpression =
         createVariable(unwindClause.getAlias(), *boundExpression->dataType.childType);
-    return make_unique<BoundUnwindClause>(move(boundExpression), move(aliasExpression));
+    return make_unique<BoundUnwindClause>(std::move(boundExpression), std::move(aliasExpression));
 }
 
 } // namespace binder

@@ -31,20 +31,20 @@ struct CSVReaderConfig {
 };
 
 struct CopyDescription {
-    CopyDescription(const string& filePath, CSVReaderConfig csvReaderConfig);
+    CopyDescription(const std::string& filePath, CSVReaderConfig csvReaderConfig);
 
     CopyDescription(const CopyDescription& copyDescription);
 
     enum class FileType { CSV, ARROW, PARQUET };
 
-    static string getFileTypeName(FileType fileType);
+    static std::string getFileTypeName(FileType fileType);
 
-    static string getFileTypeSuffix(FileType fileType);
+    static std::string getFileTypeSuffix(FileType fileType);
 
-    void setFileType(string const& fileName);
+    void setFileType(std::string const& fileName);
 
-    const string filePath;
-    unique_ptr<CSVReaderConfig> csvReaderConfig;
+    const std::string filePath;
+    std::unique_ptr<CSVReaderConfig> csvReaderConfig;
     FileType fileType;
 };
 
@@ -53,9 +53,9 @@ class CSVReader {
 
 public:
     // Initializes to read a block in file.
-    CSVReader(const string& fname, const CSVReaderConfig& csvReaderConfig, uint64_t blockId);
+    CSVReader(const std::string& fname, const CSVReaderConfig& csvReaderConfig, uint64_t blockId);
     // Initializes to read the complete file.
-    CSVReader(const string& fname, const CSVReaderConfig& csvReaderConfig);
+    CSVReader(const std::string& fname, const CSVReaderConfig& csvReaderConfig);
     // Initializes to read a part of a line.
     CSVReader(
         char* line, uint64_t lineLen, int64_t linePtrStart, const CSVReaderConfig& csvReaderConfig);
@@ -84,16 +84,16 @@ public:
     date_t getDate();
     timestamp_t getTimestamp();
     interval_t getInterval();
-    unique_ptr<Value> getList(const DataType& dataType);
+    std::unique_ptr<Value> getList(const DataType& dataType);
 
 private:
-    void openFile(const string& fName);
+    void openFile(const std::string& fName);
     void setNextTokenIsProcessed();
 
 private:
     FILE* fd;
     const CSVReaderConfig& config;
-    shared_ptr<spdlog::logger> logger;
+    std::shared_ptr<spdlog::logger> logger;
     bool nextLineIsNotProcessed, isEndOfBlock, nextTokenIsNotProcessed;
     char* line;
     size_t lineCapacity, lineLen;

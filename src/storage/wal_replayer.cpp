@@ -5,6 +5,9 @@
 #include "storage/storage_utils.h"
 #include "storage/wal_replayer_utils.h"
 
+using namespace kuzu::catalog;
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace storage {
 
@@ -63,7 +66,7 @@ void WALReplayer::replay() {
 void WALReplayer::init() {
     logger = LoggerUtils::getOrCreateLogger("storage");
     walFileHandle = WAL::createWALFileHandle(wal->getDirectory());
-    pageBuffer = make_unique<uint8_t[]>(DEFAULT_PAGE_SIZE);
+    pageBuffer = std::make_unique<uint8_t[]>(DEFAULT_PAGE_SIZE);
 }
 
 void WALReplayer::replayWALRecord(WALRecord& walRecord) {
@@ -72,7 +75,7 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
         // 1. As the first step we copy over the page on disk, regardless of if we are recovering
         // (and checkpointing) or checkpointing while during regular execution.
         auto storageStructureID = walRecord.pageInsertOrUpdateRecord.storageStructureID;
-        unique_ptr<FileInfo> fileInfoOfStorageStructure =
+        std::unique_ptr<FileInfo> fileInfoOfStorageStructure =
             StorageUtils::getFileInfoForReadWrite(wal->getDirectory(), storageStructureID);
         if (isCheckpoint) {
             walFileHandle->readPage(
@@ -153,7 +156,7 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
         if (isCheckpoint) {
             // See comments for NODE_TABLE_RECORD.
             auto nodesStatisticsAndDeletedIDsForCheckPointing =
-                make_unique<NodesStatisticsAndDeletedIDs>(wal->getDirectory());
+                std::make_unique<NodesStatisticsAndDeletedIDs>(wal->getDirectory());
             auto maxNodeOffsetPerTable =
                 nodesStatisticsAndDeletedIDsForCheckPointing->getMaxNodeOffsetPerTable();
             auto catalogForCheckpointing = getCatalogForRecovery(DBFileType::WAL_VERSION);
@@ -535,11 +538,11 @@ VersionedFileHandle* WALReplayer::getVersionedFileHandleIfWALVersionAndBMShouldB
     }
 }
 
-unique_ptr<Catalog> WALReplayer::getCatalogForRecovery(DBFileType dbFileType) {
+std::unique_ptr<Catalog> WALReplayer::getCatalogForRecovery(DBFileType dbFileType) {
     // When we are recovering our database, the catalog field of walReplayer has not been
     // initialized and recovered yet. We need to create a new catalog to get node/rel tableSchemas
     // for recovering.
-    auto catalogForRecovery = make_unique<Catalog>(wal);
+    auto catalogForRecovery = std::make_unique<Catalog>(wal);
     catalogForRecovery->getReadOnlyVersion()->readFromFile(wal->getDirectory(), dbFileType);
     return catalogForRecovery;
 }

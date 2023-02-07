@@ -1,5 +1,7 @@
 #include "function/string/operations/base_lower_upper_operation.h"
 
+using namespace kuzu::utf8proc;
+
 namespace kuzu {
 namespace function {
 namespace operation {

@@ -30,9 +30,9 @@ Value Value::createDefaultValue(const DataType& dataType) {
     case INTERNAL_ID:
         return Value(nodeID_t());
     case STRING:
-        return Value(string(""));
+        return Value(std::string(""));
     case LIST:
-        return Value(dataType, vector<unique_ptr<Value>>{});
+        return Value(dataType, std::vector<std::unique_ptr<Value>>{});
     default:
         throw RuntimeException("Data type " + Types::dataTypeToString(dataType) +
                                " is not supported for Value::createDefaultValue");
@@ -72,23 +72,23 @@ Value::Value(kuzu::common::internalID_t val_) : dataType{INTERNAL_ID}, isNull_{f
 }
 
 Value::Value(const char* val_) : dataType{STRING}, isNull_{false} {
-    strVal = string(val_);
+    strVal = std::string(val_);
 }
 
 Value::Value(const std::string& val_) : dataType{STRING}, isNull_{false} {
     strVal = val_;
 }
 
-Value::Value(DataType dataType, vector<unique_ptr<Value>> vals)
+Value::Value(DataType dataType, std::vector<std::unique_ptr<Value>> vals)
     : dataType{std::move(dataType)}, isNull_{false} {
     listVal = std::move(vals);
 }
 
-Value::Value(unique_ptr<NodeVal> val_) : dataType{NODE}, isNull_{false} {
+Value::Value(std::unique_ptr<NodeVal> val_) : dataType{NODE}, isNull_{false} {
     nodeVal = std::move(val_);
 }
 
-Value::Value(unique_ptr<RelVal> val_) : dataType{REL}, isNull_{false} {
+Value::Value(std::unique_ptr<RelVal> val_) : dataType{REL}, isNull_{false} {
     relVal = std::move(val_);
 }
 
@@ -185,7 +185,7 @@ void Value::copyValueFrom(const Value& other) {
     }
 }
 
-string Value::toString() const {
+std::string Value::toString() const {
     if (isNull_) {
         return "";
     }
@@ -207,7 +207,7 @@ string Value::toString() const {
     case STRING:
         return strVal;
     case LIST: {
-        string result = "[";
+        std::string result = "[";
         for (auto i = 0u; i < listVal.size(); ++i) {
             result += listVal[i]->toString();
             result += (i == listVal.size() - 1 ? "]" : ",");
@@ -232,11 +232,11 @@ void Value::validateType(const DataType& type) const {
     }
 }
 
-vector<unique_ptr<Value>> Value::convertKUListToVector(ku_list_t& list) const {
-    vector<unique_ptr<Value>> listResultValue;
+std::vector<std::unique_ptr<Value>> Value::convertKUListToVector(ku_list_t& list) const {
+    std::vector<std::unique_ptr<Value>> listResultValue;
     auto numBytesPerElement = Types::getDataTypeSize(*dataType.childType);
     for (auto i = 0; i < list.size; i++) {
-        auto childValue = make_unique<Value>(Value::createDefaultValue(*dataType.childType));
+        auto childValue = std::make_unique<Value>(Value::createDefaultValue(*dataType.childType));
         childValue->copyValueFrom(
             reinterpret_cast<uint8_t*>(list.overflowPtr + i * numBytesPerElement));
         listResultValue.emplace_back(std::move(childValue));
@@ -245,7 +245,7 @@ vector<unique_ptr<Value>> Value::convertKUListToVector(ku_list_t& list) const {
 }
 
 static std::string propertiesToString(
-    const vector<pair<std::string, unique_ptr<Value>>>& properties) {
+    const std::vector<std::pair<std::string, std::unique_ptr<Value>>>& properties) {
     std::string result = "{";
     for (auto i = 0u; i < properties.size(); ++i) {
         auto& [name, value] = properties[i];
@@ -268,11 +268,11 @@ nodeID_t NodeVal::getNodeID() const {
     return idVal->getValue<nodeID_t>();
 }
 
-string NodeVal::getLabelName() const {
-    return labelVal->getValue<string>();
+std::string NodeVal::getLabelName() const {
+    return labelVal->getValue<std::string>();
 }
 
-string NodeVal::toString() const {
+std::string NodeVal::toString() const {
     std::string result = "(";
     result += "label:" + labelVal->toString() + ", ";
     result += idVal->toString() + ", ";
@@ -298,11 +298,11 @@ nodeID_t RelVal::getDstNodeID() const {
     return dstNodeIDVal->getValue<nodeID_t>();
 }
 
-string RelVal::getLabelName() {
-    return labelVal->getValue<string>();
+std::string RelVal::getLabelName() {
+    return labelVal->getValue<std::string>();
 }
 
-string RelVal::toString() const {
+std::string RelVal::toString() const {
     std::string result;
     result += "(" + srcNodeIDVal->toString() + ")";
     result += "-[label:" + labelVal->toString() + ", " + propertiesToString(properties) + "]->";

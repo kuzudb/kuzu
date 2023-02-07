@@ -1,12 +1,14 @@
 #include "processor/result/result_set_descriptor.h"
 
+using namespace kuzu::planner;
+
 namespace kuzu {
 namespace processor {
 
 ResultSetDescriptor::ResultSetDescriptor(const Schema& schema) {
     for (auto i = 0u; i < schema.getNumGroups(); ++i) {
         auto group = schema.getGroup(i);
-        auto dataChunkDescriptor = make_unique<DataChunkDescriptor>();
+        auto dataChunkDescriptor = std::make_unique<DataChunkDescriptor>();
         if (group->isSingleState()) {
             dataChunkDescriptor->setSingleState();
         }
@@ -22,7 +24,7 @@ ResultSetDescriptor::ResultSetDescriptor(const Schema& schema) {
 ResultSetDescriptor::ResultSetDescriptor(const ResultSetDescriptor& other)
     : expressionNameToDataChunkPosMap{other.expressionNameToDataChunkPosMap} {
     for (auto& dataChunkDescriptor : other.dataChunkDescriptors) {
-        dataChunkDescriptors.push_back(make_unique<DataChunkDescriptor>(*dataChunkDescriptor));
+        dataChunkDescriptors.push_back(std::make_unique<DataChunkDescriptor>(*dataChunkDescriptor));
     }
 }
 

@@ -13,7 +13,7 @@ TEST(TimeTests, FromTime) {
         FAIL();
     } catch (ConversionException& e) {
         ASSERT_STREQ(e.what(), "Time field value out of range: 25:24:32[.231321].");
-    } catch (exception& e) { FAIL(); }
+    } catch (std::exception& e) { FAIL(); }
 
     // Minute out of range
     try {
@@ -21,7 +21,7 @@ TEST(TimeTests, FromTime) {
         FAIL();
     } catch (ConversionException& e) {
         ASSERT_STREQ(e.what(), "Time field value out of range: 21:60:22[.212322].");
-    } catch (exception& e) { FAIL(); }
+    } catch (std::exception& e) { FAIL(); }
 
     // Second out of range
     try {
@@ -29,7 +29,7 @@ TEST(TimeTests, FromTime) {
         FAIL();
     } catch (ConversionException& e) {
         ASSERT_STREQ(e.what(), "Time field value out of range: 14:22:61[.0].");
-    } catch (exception& e) { FAIL(); }
+    } catch (std::exception& e) { FAIL(); }
 
     // Microsecond out of range
     try {
@@ -37,7 +37,7 @@ TEST(TimeTests, FromTime) {
         FAIL();
     } catch (ConversionException& e) {
         ASSERT_STREQ(e.what(), "Time field value out of range: 14:22:42[.1000001].");
-    } catch (exception& e) { FAIL(); }
+    } catch (std::exception& e) { FAIL(); }
 
     EXPECT_EQ(80052000000, Time::FromTime(22, 14, 12).micros);
     EXPECT_EQ(58991000024, Time::FromTime(16, 23, 11, 24).micros);
@@ -51,7 +51,7 @@ TEST(TimeTests, FromCString) {
     } catch (ConversionException& e) {
         ASSERT_STREQ(e.what(), "Error occurred during parsing time. Given: \"25:12:00\". Expected "
                                "format: (hh:mm:ss[.zzzzzz]).");
-    } catch (exception& e) { FAIL(); }
+    } catch (std::exception& e) { FAIL(); }
     EXPECT_EQ(83531000000, Time::FromCString("23:12:11", strlen("23:12:11")).micros);
     EXPECT_EQ(46792122311, Time::FromCString("12:59:52.122311", strlen("12:59:52.122311")).micros);
     EXPECT_EQ(11561200, Time::FromCString("00:00:11.5612", strlen("00:00:11.5612")).micros);

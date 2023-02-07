@@ -6,9 +6,6 @@
 #include "storage/storage_structure/column.h"
 #include "storage/storage_structure/lists/lists.h"
 
-using namespace std;
-using namespace kuzu::common;
-
 namespace kuzu {
 namespace processor {
 
@@ -24,8 +21,8 @@ struct ColumnExtendDFSLevelInfo : DFSLevelInfo {
 class VarLengthColumnExtend : public VarLengthExtend {
 public:
     VarLengthColumnExtend(const DataPos& boundNodeDataPos, const DataPos& nbrNodeDataPos,
-        BaseColumnOrList* storage, uint8_t lowerBound, uint8_t upperBound,
-        unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
+        storage::BaseColumnOrList* storage, uint8_t lowerBound, uint8_t upperBound,
+        std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
         : VarLengthExtend(PhysicalOperatorType::VAR_LENGTH_COLUMN_EXTEND, boundNodeDataPos,
               nbrNodeDataPos, storage, lowerBound, upperBound, std::move(child), id, paramsString) {
     }
@@ -34,7 +31,7 @@ public:
 
     bool getNextTuplesInternal() override;
 
-    unique_ptr<PhysicalOperator> clone() override {
+    std::unique_ptr<PhysicalOperator> clone() override {
         return make_unique<VarLengthColumnExtend>(boundNodeDataPos, nbrNodeDataPos, storage,
             lowerBound, upperBound, children[0]->clone(), id, paramsString);
     }
@@ -44,7 +41,7 @@ private:
     // dfsStack if the parent has adjacent nodes. The function returns true if the
     // parent has adjacent nodes, otherwise returns false.
     bool addDFSLevelToStackIfParentExtends(
-        shared_ptr<ValueVector>& parentValueVector, uint8_t level);
+        std::shared_ptr<common::ValueVector>& parentValueVector, uint8_t level);
 };
 
 } // namespace processor

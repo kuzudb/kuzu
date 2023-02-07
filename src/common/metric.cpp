@@ -29,7 +29,7 @@ void TimeMetric::stop() {
     isStarted = false;
 }
 
-double TimeMetric::getElapsedTimeMS() {
+double TimeMetric::getElapsedTimeMS() const {
     return accumulatedTime / 1000;
 }
 

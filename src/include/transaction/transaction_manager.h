@@ -8,8 +8,7 @@
 #include "storage/wal/wal.h"
 #include "transaction.h"
 
-using namespace std;
-using lock_t = unique_lock<mutex>;
+using lock_t = std::unique_lock<std::mutex>;
 
 namespace kuzu {
 namespace transaction {
@@ -17,11 +16,11 @@ namespace transaction {
 class TransactionManager {
 
 public:
-    TransactionManager(storage::WAL& wal)
-        : logger{LoggerUtils::getOrCreateLogger("transaction_manager")}, wal{wal},
+    explicit TransactionManager(storage::WAL& wal)
+        : logger{common::LoggerUtils::getOrCreateLogger("transaction_manager")}, wal{wal},
           activeWriteTransactionID{INT64_MAX}, lastTransactionID{0}, lastCommitID{0} {};
-    unique_ptr<Transaction> beginWriteTransaction();
-    unique_ptr<Transaction> beginReadOnlyTransaction();
+    std::unique_ptr<Transaction> beginWriteTransaction();
+    std::unique_ptr<Transaction> beginReadOnlyTransaction();
     void commit(Transaction* transaction);
     void commitButKeepActiveWriteTransaction(Transaction* transaction);
     void manuallyClearActiveWriteTransaction(Transaction* transaction);
@@ -33,7 +32,7 @@ public:
     void allowReceivingNewTransactions();
 
     // Warning: Below public functions are for tests only
-    inline unordered_set<uint64_t>& getActiveReadOnlyTransactionIDs() {
+    inline std::unordered_set<uint64_t>& getActiveReadOnlyTransactionIDs() {
         lock_t lck{mtxForSerializingPublicFunctionCalls};
         return activeReadOnlyTransactionIDs;
     }
@@ -57,16 +56,16 @@ private:
         }
     }
     void commitOrRollbackNoLock(Transaction* transaction, bool isCommit);
-    void assertActiveWriteTransationIsCorrectNoLock(Transaction* transaction);
+    void assertActiveWriteTransationIsCorrectNoLock(Transaction* transaction) const;
 
 private:
-    shared_ptr<spdlog::logger> logger;
+    std::shared_ptr<spdlog::logger> logger;
 
     storage::WAL& wal;
 
     uint64_t activeWriteTransactionID;
 
-    unordered_set<uint64_t> activeReadOnlyTransactionIDs;
+    std::unordered_set<uint64_t> activeReadOnlyTransactionIDs;
 
     uint64_t lastTransactionID;
 
@@ -80,10 +79,10 @@ private:
     // This mutex is used to ensure thread safety and letting only one public function to be called
     // at any time except the stopNewTransactionsAndWaitUntilAllReadTransactionsLeave
     // function, which needs to let calls to comming and rollback.
-    mutex mtxForSerializingPublicFunctionCalls;
-    mutex mtxForStartingNewTransactions;
+    std::mutex mtxForSerializingPublicFunctionCalls;
+    std::mutex mtxForStartingNewTransactions;
     uint64_t checkPointWaitTimeoutForTransactionsToLeaveInMicros =
-        DEFAULT_CHECKPOINT_WAIT_TIMEOUT_FOR_TRANSACTIONS_TO_LEAVE_IN_MICROS;
+        common::DEFAULT_CHECKPOINT_WAIT_TIMEOUT_FOR_TRANSACTIONS_TO_LEAVE_IN_MICROS;
 };
 } // namespace transaction
 } // namespace kuzu

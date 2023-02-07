@@ -3,22 +3,23 @@
 #include "spdlog/spdlog.h"
 
 using namespace kuzu::benchmark;
+using namespace kuzu::common;
 
-static string getArgumentValue(const string& arg) {
+static std::string getArgumentValue(const std::string& arg) {
     auto splits = StringUtils::split(arg, "=");
     if (splits.size() != 2) {
-        throw invalid_argument("Expect value associate with " + splits[0]);
+        throw std::invalid_argument("Expect value associate with " + splits[0]);
     }
     return splits[1];
 }
 
 int main(int argc, char** argv) {
-    string datasetPath;
-    string benchmarkPath;
-    auto config = make_unique<BenchmarkConfig>();
+    std::string datasetPath;
+    std::string benchmarkPath;
+    auto config = std::make_unique<BenchmarkConfig>();
     // parse arguments
     for (auto i = 1; i < argc; ++i) {
-        string arg = argv[i];
+        std::string arg = argv[i];
         if (arg.starts_with("--dataset")) {
             datasetPath = getArgumentValue(arg);
         } else if (arg.starts_with("--benchmark")) {
@@ -51,7 +52,7 @@ int main(int argc, char** argv) {
     auto runner = BenchmarkRunner(datasetPath, std::move(config));
     try {
         runner.registerBenchmarks(benchmarkPath);
-    } catch (exception& e) {
+    } catch (std::exception& e) {
         spdlog::error(
             "Error encountered while registering benchmark in {}: {}.", benchmarkPath, e.what());
     }

@@ -23,8 +23,8 @@ bool SetNodeProperty::getNextTuplesInternal() {
     return true;
 }
 
-unique_ptr<PhysicalOperator> SetNodeProperty::clone() {
-    vector<unique_ptr<SetNodePropertyInfo>> clonedInfos;
+std::unique_ptr<PhysicalOperator> SetNodeProperty::clone() {
+    std::vector<std::unique_ptr<SetNodePropertyInfo>> clonedInfos;
     for (auto& info : infos) {
         clonedInfos.push_back(info->clone());
     }
@@ -57,8 +57,8 @@ bool SetRelProperty::getNextTuplesInternal() {
     return true;
 }
 
-unique_ptr<PhysicalOperator> SetRelProperty::clone() {
-    vector<unique_ptr<SetRelPropertyInfo>> clonedInfos;
+std::unique_ptr<PhysicalOperator> SetRelProperty::clone() {
+    std::vector<std::unique_ptr<SetRelPropertyInfo>> clonedInfos;
     for (auto& info : infos) {
         clonedInfos.push_back(info->clone());
     }

@@ -7,9 +7,6 @@
 #include "storage/buffer_manager/buffer_pool.h"
 #include "storage/buffer_manager/file_handle.h"
 
-using namespace kuzu::common;
-using namespace std;
-
 namespace spdlog {
 class logger;
 }
@@ -51,39 +48,39 @@ namespace storage {
  * pin/unpin calls of the users of BM.
  *
  * BufferManager supports a special pin function called pinWithoutReadingFromFile. A caller can
- * call the page_idx_t newPageIdx = fh::addNewPage() function on the FileHandle fh they have, and
- * then call bm::pinWithoutReadingFromFile(fh, newPageIdx), and the BM will not try to read this
- * page from the file (because the page has not yet been written).
+ * call the common::page_idx_t newPageIdx = fh::addNewPage() function on the FileHandle fh they
+ * have, and then call bm::pinWithoutReadingFromFile(fh, newPageIdx), and the BM will not try to
+ * read this page from the file (because the page has not yet been written).
  */
 class BufferManager {
 
 public:
     explicit BufferManager(
-        uint64_t maxSizeForDefaultPagePool = StorageConfig::DEFAULT_BUFFER_POOL_SIZE *
-                                             StorageConfig::DEFAULT_PAGES_BUFFER_RATIO,
-        uint64_t maxSizeForLargePagePool = StorageConfig::DEFAULT_BUFFER_POOL_SIZE *
-                                           StorageConfig::LARGE_PAGES_BUFFER_RATIO);
+        uint64_t maxSizeForDefaultPagePool = common::StorageConfig::DEFAULT_BUFFER_POOL_SIZE *
+                                             common::StorageConfig::DEFAULT_PAGES_BUFFER_RATIO,
+        uint64_t maxSizeForLargePagePool = common::StorageConfig::DEFAULT_BUFFER_POOL_SIZE *
+                                           common::StorageConfig::LARGE_PAGES_BUFFER_RATIO);
     ~BufferManager();
 
-    uint8_t* pin(FileHandle& fileHandle, page_idx_t pageIdx);
+    uint8_t* pin(FileHandle& fileHandle, common::page_idx_t pageIdx);
 
     // The caller should ensure that the given pageIdx is indeed a new page, so should not be read
     // from disk
-    uint8_t* pinWithoutReadingFromFile(FileHandle& fileHandle, page_idx_t pageIdx);
+    uint8_t* pinWithoutReadingFromFile(FileHandle& fileHandle, common::page_idx_t pageIdx);
 
     inline uint8_t* pinWithoutAcquiringPageLock(
-        FileHandle& fileHandle, page_idx_t pageIdx, bool doNotReadFromFile) {
+        FileHandle& fileHandle, common::page_idx_t pageIdx, bool doNotReadFromFile) {
         return fileHandle.isLargePaged() ? bufferPoolLargePages->pinWithoutAcquiringPageLock(
                                                fileHandle, pageIdx, doNotReadFromFile) :
                                            bufferPoolDefaultPages->pinWithoutAcquiringPageLock(
                                                fileHandle, pageIdx, doNotReadFromFile);
     }
 
-    void setPinnedPageDirty(FileHandle& fileHandle, page_idx_t pageIdx);
+    void setPinnedPageDirty(FileHandle& fileHandle, common::page_idx_t pageIdx);
 
     // The function assumes that the requested page is already pinned.
-    void unpin(FileHandle& fileHandle, page_idx_t pageIdx);
-    inline void unpinWithoutAcquiringPageLock(FileHandle& fileHandle, page_idx_t pageIdx) {
+    void unpin(FileHandle& fileHandle, common::page_idx_t pageIdx);
+    inline void unpinWithoutAcquiringPageLock(FileHandle& fileHandle, common::page_idx_t pageIdx) {
         return fileHandle.isLargePaged() ?
                    bufferPoolLargePages->unpinWithoutAcquiringPageLock(fileHandle, pageIdx) :
                    bufferPoolDefaultPages->unpinWithoutAcquiringPageLock(fileHandle, pageIdx);
@@ -95,14 +92,14 @@ public:
 
     void flushAllDirtyPagesInFrames(FileHandle& fileHandle);
     void updateFrameIfPageIsInFrameWithoutPageOrFrameLock(
-        FileHandle& fileHandle, uint8_t* newPage, page_idx_t pageIdx);
+        FileHandle& fileHandle, uint8_t* newPage, common::page_idx_t pageIdx);
 
-    void removePageFromFrameIfNecessary(FileHandle& fileHandle, page_idx_t pageIdx);
+    void removePageFromFrameIfNecessary(FileHandle& fileHandle, common::page_idx_t pageIdx);
 
 private:
-    shared_ptr<spdlog::logger> logger;
-    unique_ptr<BufferPool> bufferPoolDefaultPages;
-    unique_ptr<BufferPool> bufferPoolLargePages;
+    std::shared_ptr<spdlog::logger> logger;
+    std::unique_ptr<BufferPool> bufferPoolDefaultPages;
+    std::unique_ptr<BufferPool> bufferPoolLargePages;
 };
 
 } // namespace storage

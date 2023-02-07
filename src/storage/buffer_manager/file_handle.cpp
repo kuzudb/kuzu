@@ -9,7 +9,7 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-FileHandle::FileHandle(const string& path, uint8_t flags)
+FileHandle::FileHandle(const std::string& path, uint8_t flags)
     : logger{LoggerUtils::getOrCreateLogger("storage")}, flags(flags) {
     logger->trace("FileHandle: Path {}", path);
     if (!isNewTmpFile()) {
@@ -19,7 +19,7 @@ FileHandle::FileHandle(const string& path, uint8_t flags)
     }
 }
 
-void FileHandle::constructExistingFileHandle(const string& path) {
+void FileHandle::constructExistingFileHandle(const std::string& path) {
     int openFlags = O_RDWR | ((createFileIfNotExists()) ? O_CREAT : 0x00000000);
     fileInfo = FileUtils::openFile(path, openFlags);
     auto fileLength = FileUtils::getFileSize(fileInfo->fd);
@@ -29,7 +29,7 @@ void FileHandle::constructExistingFileHandle(const string& path) {
     initPageIdxToFrameMapAndLocks();
 }
 
-void FileHandle::constructNewFileHandle(const string& path) {
+void FileHandle::constructNewFileHandle(const std::string& path) {
     fileInfo = make_unique<FileInfo>(path, -1 /* no file descriptor for a new in memory file */);
     numPages = 0;
     pageCapacity = 0;
@@ -37,7 +37,7 @@ void FileHandle::constructNewFileHandle(const string& path) {
 }
 
 void FileHandle::resetToZeroPagesAndPageCapacity() {
-    unique_lock xlock(fhSharedMutex);
+    std::unique_lock xlock(fhSharedMutex);
     numPages = 0;
     pageCapacity = 0;
     FileUtils::truncateFileToEmpty(fileInfo.get());
@@ -65,19 +65,19 @@ bool FileHandle::acquire(page_idx_t pageIdx) {
         throw RuntimeException(
             StringUtils::string_format("pageIdx %d is >= pageLocks.size()", pageIdx));
     }
-    auto retVal = !pageLocks[pageIdx]->test_and_set(memory_order_acquire);
+    auto retVal = !pageLocks[pageIdx]->test_and_set(std::memory_order_acquire);
     return retVal;
 }
 
 page_idx_t FileHandle::addNewPage() {
-    unique_lock xlock(fhSharedMutex);
+    std::unique_lock xlock(fhSharedMutex);
     return addNewPageWithoutLock();
 }
 
 page_idx_t FileHandle::addNewPageWithoutLock() {
     if (numPages == pageCapacity) {
-        pageCapacity =
-            max(pageCapacity + 1, (uint32_t)(pageCapacity * StorageConfig::ARRAY_RESIZING_FACTOR));
+        pageCapacity = std::max(
+            pageCapacity + 1, (uint32_t)(pageCapacity * StorageConfig::ARRAY_RESIZING_FACTOR));
         pageIdxToFrameMap.resize(pageCapacity);
         pageLocks.resize(pageCapacity);
     }
@@ -86,7 +86,7 @@ page_idx_t FileHandle::addNewPageWithoutLock() {
 }
 
 void FileHandle::removePageIdxAndTruncateIfNecessary(page_idx_t pageIdxToRemove) {
-    unique_lock xlock(fhSharedMutex);
+    std::unique_lock xlock(fhSharedMutex);
     removePageIdxAndTruncateIfNecessaryWithoutLock(pageIdxToRemove);
 }
 

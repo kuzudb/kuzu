@@ -27,7 +27,7 @@ TEST(IntervalTests, FromCString) {
 }
 
 TEST(IntervalTests, toString) {
-    string result;
+    std::string result;
     result = Interval::toString(
         Interval::FromCString("4 years 6 months 28 days 700 microseconds 20 seconds",
             strlen("4 years 6 months 28 days 700 microseconds 20 seconds")));

@@ -7,13 +7,14 @@ namespace parser {
 
 class ParsedParameterExpression : public ParsedExpression {
 public:
-    explicit ParsedParameterExpression(string parameterName, string raw)
-        : ParsedExpression{PARAMETER, std::move(raw)}, parameterName{std::move(parameterName)} {}
+    explicit ParsedParameterExpression(std::string parameterName, std::string raw)
+        : ParsedExpression{common::PARAMETER, std::move(raw)}, parameterName{
+                                                                   std::move(parameterName)} {}
 
-    inline string getParameterName() const { return parameterName; }
+    inline std::string getParameterName() const { return parameterName; }
 
 private:
-    string parameterName;
+    std::string parameterName;
 };
 
 } // namespace parser

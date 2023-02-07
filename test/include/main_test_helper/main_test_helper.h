@@ -16,7 +16,9 @@ public:
         initGraph();
     }
 
-    string getInputDir() override { return TestHelper::appendKuzuRootPath("dataset/tinysnb/"); }
+    std::string getInputDir() override {
+        return TestHelper::appendKuzuRootPath("dataset/tinysnb/");
+    }
 
     static void assertMatchPersonCountStar(Connection* conn) {
         auto result = conn->query("MATCH (a:person) RETURN COUNT(*)");

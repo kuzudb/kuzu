@@ -9,14 +9,15 @@ namespace planner {
 
 class ASPOptimizer {
 public:
-    static bool canApplyASP(const expression_vector& joinNodeIDs, bool isLeftAcc,
+    static bool canApplyASP(const binder::expression_vector& joinNodeIDs, bool isLeftAcc,
         const LogicalPlan& leftPlan, const LogicalPlan& rightPlan);
 
-    static void applyASP(
-        const shared_ptr<Expression>& joinNodeID, LogicalPlan& leftPlan, LogicalPlan& rightPlan);
+    static void applyASP(const std::shared_ptr<binder::Expression>& joinNodeID,
+        LogicalPlan& leftPlan, LogicalPlan& rightPlan);
 
 private:
-    static void appendSemiMasker(const shared_ptr<Expression>& nodeID, LogicalPlan& plan);
+    static void appendSemiMasker(
+        const std::shared_ptr<binder::Expression>& nodeID, LogicalPlan& plan);
 };
 
 } // namespace planner

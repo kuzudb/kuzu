@@ -1,9 +1,11 @@
 #include "storage/store/rels_statistics.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace storage {
 
-RelStatistics::RelStatistics(vector<pair<table_id_t, table_id_t>> srcDstTableIDs)
+RelStatistics::RelStatistics(std::vector<std::pair<table_id_t, table_id_t>> srcDstTableIDs)
     : TableStatistics{0}, nextRelOffset{0} {
     numRelsPerDirectionBoundTable.resize(2);
     for (auto& [srcTableID, dstTableID] : srcDstTableIDs) {
@@ -13,14 +15,14 @@ RelStatistics::RelStatistics(vector<pair<table_id_t, table_id_t>> srcDstTableIDs
 }
 
 RelsStatistics::RelsStatistics(
-    unordered_map<table_id_t, unique_ptr<RelStatistics>> relStatisticPerTable_)
+    std::unordered_map<table_id_t, std::unique_ptr<RelStatistics>> relStatisticPerTable_)
     : TablesStatistics{} {
     initTableStatisticPerTableForWriteTrxIfNecessary();
     for (auto& relStatistic : relStatisticPerTable_) {
         tablesStatisticsContentForReadOnlyTrx->tableStatisticPerTable[relStatistic.first] =
-            make_unique<RelStatistics>(*(RelStatistics*)relStatistic.second.get());
+            std::make_unique<RelStatistics>(*(RelStatistics*)relStatistic.second.get());
         tablesStatisticsContentForWriteTrx->tableStatisticPerTable[relStatistic.first] =
-            make_unique<RelStatistics>(*(RelStatistics*)relStatistic.second.get());
+            std::make_unique<RelStatistics>(*(RelStatistics*)relStatistic.second.get());
     }
 }
 
@@ -39,7 +41,7 @@ void RelsStatistics::setNumRelsForTable(table_id_t relTableID, uint64_t numRels)
 }
 
 void RelsStatistics::assertNumRelsIsSound(
-    unordered_map<table_id_t, uint64_t>& relsPerBoundTable, uint64_t numRels) {
+    std::unordered_map<table_id_t, uint64_t>& relsPerBoundTable, uint64_t numRels) {
     uint64_t sum = 0;
     for (auto tableIDNumRels : relsPerBoundTable) {
         sum += tableIDNumRels.second;
@@ -72,8 +74,8 @@ void RelsStatistics::updateNumRelsByValue(
     assertNumRelsIsSound(relStatistics->numRelsPerDirectionBoundTable[BWD], numRelsAfterUpdate);
 }
 
-void RelsStatistics::setNumRelsPerDirectionBoundTableID(
-    table_id_t tableID, vector<map<table_id_t, atomic<uint64_t>>>& directionNumRelsPerTable) {
+void RelsStatistics::setNumRelsPerDirectionBoundTableID(table_id_t tableID,
+    std::vector<std::map<table_id_t, std::atomic<uint64_t>>>& directionNumRelsPerTable) {
     lock_t lck{mtx};
     initTableStatisticPerTableForWriteTrxIfNecessary();
     for (auto relDirection : REL_DIRECTIONS) {
@@ -86,7 +88,8 @@ void RelsStatistics::setNumRelsPerDirectionBoundTableID(
     }
 }
 
-offset_t RelsStatistics::getNextRelOffset(Transaction* transaction, table_id_t tableID) {
+offset_t RelsStatistics::getNextRelOffset(
+    transaction::Transaction* transaction, table_id_t tableID) {
     lock_t lck{mtx};
     auto& tableStatisticContent =
         (transaction->isReadOnly() || tablesStatisticsContentForWriteTrx == nullptr) ?
@@ -96,9 +99,9 @@ offset_t RelsStatistics::getNextRelOffset(Transaction* transaction, table_id_t t
         ->getNextRelOffset();
 }
 
-unique_ptr<TableStatistics> RelsStatistics::deserializeTableStatistics(
+std::unique_ptr<TableStatistics> RelsStatistics::deserializeTableStatistics(
     uint64_t numTuples, uint64_t& offset, FileInfo* fileInfo, uint64_t tableID) {
-    vector<unordered_map<table_id_t, uint64_t>> numRelsPerDirectionBoundTable{2};
+    std::vector<std::unordered_map<table_id_t, uint64_t>> numRelsPerDirectionBoundTable{2};
     offset_t nextRelOffset;
     offset = SerDeser::deserializeUnorderedMap(numRelsPerDirectionBoundTable[0], fileInfo, offset);
     offset = SerDeser::deserializeUnorderedMap(numRelsPerDirectionBoundTable[1], fileInfo, offset);

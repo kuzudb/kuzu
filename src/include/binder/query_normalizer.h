@@ -9,13 +9,14 @@ namespace binder {
 class QueryNormalizer {
 
 public:
-    static unique_ptr<NormalizedSingleQuery> normalizeQuery(const BoundSingleQuery& singleQuery);
-
-private:
-    static unique_ptr<BoundQueryPart> normalizeFinalMatchesAndReturnAsQueryPart(
+    static std::unique_ptr<NormalizedSingleQuery> normalizeQuery(
         const BoundSingleQuery& singleQuery);
 
-    static unique_ptr<NormalizedQueryPart> normalizeQueryPart(const BoundQueryPart& queryPart);
+private:
+    static std::unique_ptr<BoundQueryPart> normalizeFinalMatchesAndReturnAsQueryPart(
+        const BoundSingleQuery& singleQuery);
+
+    static std::unique_ptr<NormalizedQueryPart> normalizeQueryPart(const BoundQueryPart& queryPart);
 };
 
 } // namespace binder

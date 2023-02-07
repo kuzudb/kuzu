@@ -7,8 +7,6 @@
 
 #include "exception.h"
 
-using namespace std;
-
 namespace kuzu {
 namespace common {
 
@@ -17,25 +15,25 @@ class Timer {
 public:
     void start() {
         finished = false;
-        startTime = chrono::high_resolution_clock::now();
+        startTime = std::chrono::high_resolution_clock::now();
     }
 
     void stop() {
-        stopTime = chrono::high_resolution_clock::now();
+        stopTime = std::chrono::high_resolution_clock::now();
         finished = true;
     }
 
     double getDuration() {
         if (finished) {
             auto duration = stopTime - startTime;
-            return chrono::duration_cast<chrono::microseconds>(duration).count();
+            return (double)std::chrono::duration_cast<std::chrono::microseconds>(duration).count();
         }
         throw Exception("Timer is still running.");
     }
 
 private:
-    chrono::time_point<chrono::high_resolution_clock> startTime;
-    chrono::time_point<chrono::high_resolution_clock> stopTime;
+    std::chrono::time_point<std::chrono::high_resolution_clock> startTime;
+    std::chrono::time_point<std::chrono::high_resolution_clock> stopTime;
     bool finished = false;
 };
 

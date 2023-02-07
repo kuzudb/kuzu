@@ -14,12 +14,13 @@ void LogicalFTableScan::computeSchema() {
     }
 }
 
-unordered_map<uint32_t, expression_vector> LogicalFTableScan::populateGroupPosToExpressionsMap() {
-    unordered_map<uint32_t, expression_vector> groupPosToExpressionsMap;
+std::unordered_map<uint32_t, binder::expression_vector>
+LogicalFTableScan::populateGroupPosToExpressionsMap() {
+    std::unordered_map<uint32_t, binder::expression_vector> groupPosToExpressionsMap;
     for (auto& expression : expressionsToScan) {
         auto groupPos = schemaToScanFrom->getGroupPos(expression->getUniqueName());
         if (!groupPosToExpressionsMap.contains(groupPos)) {
-            groupPosToExpressionsMap.insert({groupPos, expression_vector{}});
+            groupPosToExpressionsMap.insert({groupPos, binder::expression_vector{}});
         }
         groupPosToExpressionsMap.at(groupPos).push_back(expression);
     }

@@ -1,6 +1,7 @@
 #include "common/exception.h"
 #include "graph_test/graph_test.h"
 
+using namespace kuzu::common;
 using namespace kuzu::testing;
 
 class CopyFaultTest : public EmptyDBTest {
@@ -10,7 +11,7 @@ public:
         createDBAndConn();
     }
 
-    void validateCopyException(string copyQuery, string expectedException) {
+    void validateCopyException(std::string copyQuery, std::string expectedException) {
         initGraph();
         auto result = conn->query(copyQuery);
         ASSERT_FALSE(result->isSuccess());
@@ -19,7 +20,7 @@ public:
 };
 
 class CopyDuplicateIDTest : public CopyFaultTest {
-    string getInputDir() override {
+    std::string getInputDir() override {
         return TestHelper::appendKuzuRootPath("dataset/copy-fault-tests/duplicate-ids/");
     }
 };
@@ -29,7 +30,7 @@ class CopyNodeUnmatchedColumnTypeTest : public CopyFaultTest {};
 class CopyWrongHeaderTest : public CopyFaultTest {};
 
 class CopyRelTableMultiplicityViolationTest : public CopyFaultTest {
-    string getInputDir() override {
+    std::string getInputDir() override {
         return TestHelper::appendKuzuRootPath(
             "dataset/copy-fault-tests/rel-table-multiplicity-violation/");
     }

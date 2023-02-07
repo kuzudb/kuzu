@@ -1,12 +1,16 @@
 #include "expression_evaluator/case_evaluator.h"
 
+using namespace kuzu::common;
+using namespace kuzu::processor;
+using namespace kuzu::storage;
+
 namespace kuzu {
 namespace evaluator {
 
 void CaseAlternativeEvaluator::init(const ResultSet& resultSet, MemoryManager* memoryManager) {
     whenEvaluator->init(resultSet, memoryManager);
     thenEvaluator->init(resultSet, memoryManager);
-    whenSelVector = make_unique<SelectionVector>(DEFAULT_VECTOR_CAPACITY);
+    whenSelVector = std::make_unique<SelectionVector>(DEFAULT_VECTOR_CAPACITY);
     whenSelVector->resetSelectorToValuePosBuffer();
 }
 
@@ -54,8 +58,8 @@ bool CaseExpressionEvaluator::select(SelectionVector& selVector) {
     return numSelectedValues > 0;
 }
 
-unique_ptr<BaseExpressionEvaluator> CaseExpressionEvaluator::clone() {
-    vector<unique_ptr<CaseAlternativeEvaluator>> clonedAlternativeEvaluators;
+std::unique_ptr<BaseExpressionEvaluator> CaseExpressionEvaluator::clone() {
+    std::vector<std::unique_ptr<CaseAlternativeEvaluator>> clonedAlternativeEvaluators;
     for (auto& alternative : alternativeEvaluators) {
         clonedAlternativeEvaluators.push_back(alternative->clone());
     }
@@ -65,8 +69,8 @@ unique_ptr<BaseExpressionEvaluator> CaseExpressionEvaluator::clone() {
 
 void CaseExpressionEvaluator::resolveResultVector(
     const ResultSet& resultSet, MemoryManager* memoryManager) {
-    resultVector = make_shared<ValueVector>(expression->dataType, memoryManager);
-    vector<BaseExpressionEvaluator*> inputEvaluators;
+    resultVector = std::make_shared<ValueVector>(expression->dataType, memoryManager);
+    std::vector<BaseExpressionEvaluator*> inputEvaluators;
     for (auto& alternative : alternativeEvaluators) {
         inputEvaluators.push_back(alternative->whenEvaluator.get());
         inputEvaluators.push_back(alternative->thenEvaluator.get());

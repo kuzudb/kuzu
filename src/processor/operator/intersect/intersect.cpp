@@ -2,6 +2,9 @@
 
 #include <algorithm>
 
+using namespace kuzu::common;
+using namespace kuzu::function::operation;
+
 namespace kuzu {
 namespace processor {
 
@@ -9,8 +12,8 @@ void Intersect::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* c
     outKeyVector = resultSet->getValueVector(outputDataPos);
     for (auto& dataInfo : intersectDataInfos) {
         probeKeyVectors.push_back(resultSet->getValueVector(dataInfo.keyDataPos));
-        vector<uint32_t> columnIdxesToScanFrom;
-        vector<shared_ptr<ValueVector>> vectorsToReadInto;
+        std::vector<uint32_t> columnIdxesToScanFrom;
+        std::vector<std::shared_ptr<ValueVector>> vectorsToReadInto;
         for (auto i = 0u; i < dataInfo.payloadsDataPos.size(); i++) {
             auto vector = resultSet->getValueVector(dataInfo.payloadsDataPos[i]);
             // Always skip the first two columns in the fTable: build key and intersect key.
@@ -21,14 +24,14 @@ void Intersect::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* c
         payloadVectorsToScanInto.push_back(std::move(vectorsToReadInto));
     }
     for (auto& sharedHT : sharedHTs) {
-        intersectSelVectors.push_back(make_unique<SelectionVector>(DEFAULT_VECTOR_CAPACITY));
+        intersectSelVectors.push_back(std::make_unique<SelectionVector>(DEFAULT_VECTOR_CAPACITY));
         isIntersectListAFlatValue.push_back(
             sharedHT->getHashTable()->getTableSchema()->getColumn(1)->isFlat());
     }
 }
 
-vector<uint8_t*> Intersect::probeHTs(const vector<nodeID_t>& keys) {
-    vector<uint8_t*> tuples(keys.size());
+std::vector<uint8_t*> Intersect::probeHTs(const std::vector<nodeID_t>& keys) {
+    std::vector<uint8_t*> tuples(keys.size());
     hash_t tmpHash;
     for (auto i = 0u; i < keys.size(); i++) {
         Hash::operation<nodeID_t>(keys[i], false, tmpHash);
@@ -68,8 +71,8 @@ void Intersect::twoWayIntersect(nodeID_t* leftNodeIDs, SelectionVector& lSelVect
     rSelVector.resetSelectorToValuePosBufferWithSize(outputValuePosition);
 }
 
-vector<nodeID_t> Intersect::getProbeKeys() {
-    vector<nodeID_t> keys(probeKeyVectors.size());
+std::vector<nodeID_t> Intersect::getProbeKeys() {
+    std::vector<nodeID_t> keys(probeKeyVectors.size());
     for (auto i = 0u; i < keys.size(); i++) {
         assert(probeKeyVectors[i]->state->isFlat());
         keys[i] = probeKeyVectors[i]->getValue<nodeID_t>(
@@ -78,9 +81,9 @@ vector<nodeID_t> Intersect::getProbeKeys() {
     return keys;
 }
 
-static vector<overflow_value_t> fetchListsToIntersectFromTuples(
-    const vector<uint8_t*>& tuples, const vector<bool>& isFlatValue) {
-    vector<overflow_value_t> listsToIntersect(tuples.size());
+static std::vector<overflow_value_t> fetchListsToIntersectFromTuples(
+    const std::vector<uint8_t*>& tuples, const std::vector<bool>& isFlatValue) {
+    std::vector<overflow_value_t> listsToIntersect(tuples.size());
     for (auto i = 0u; i < tuples.size(); i++) {
         if (!tuples[i]) {
             continue; // overflow_value will be initialized with size 0 for non-matching tuples.
@@ -92,9 +95,9 @@ static vector<overflow_value_t> fetchListsToIntersectFromTuples(
     return listsToIntersect;
 }
 
-static vector<uint32_t> swapSmallestListToFront(vector<overflow_value_t>& lists) {
+static std::vector<uint32_t> swapSmallestListToFront(std::vector<overflow_value_t>& lists) {
     assert(lists.size() >= 2);
-    vector<uint32_t> listIdxes(lists.size());
+    std::vector<uint32_t> listIdxes(lists.size());
     iota(listIdxes.begin(), listIdxes.end(), 0);
     uint32_t smallestListIdx = 0;
     for (auto i = 1u; i < lists.size(); i++) {
@@ -103,14 +106,14 @@ static vector<uint32_t> swapSmallestListToFront(vector<overflow_value_t>& lists)
         }
     }
     if (smallestListIdx != 0) {
-        swap(lists[smallestListIdx], lists[0]);
-        swap(listIdxes[smallestListIdx], listIdxes[0]);
+        std::swap(lists[smallestListIdx], lists[0]);
+        std::swap(listIdxes[smallestListIdx], listIdxes[0]);
     }
     return listIdxes;
 }
 
 static void sliceSelVectors(
-    const vector<SelectionVector*>& selVectorsToSlice, SelectionVector& slicer) {
+    const std::vector<SelectionVector*>& selVectorsToSlice, SelectionVector& slicer) {
     for (auto selVec : selVectorsToSlice) {
         for (auto i = 0u; i < slicer.selectedSize; i++) {
             auto pos = slicer.selectedPositions[i];
@@ -120,7 +123,7 @@ static void sliceSelVectors(
     }
 }
 
-void Intersect::intersectLists(const vector<overflow_value_t>& listsToIntersect) {
+void Intersect::intersectLists(const std::vector<overflow_value_t>& listsToIntersect) {
     if (listsToIntersect[0].numElements == 0) {
         outKeyVector->state->selVector->selectedSize = 0;
         return;
@@ -130,7 +133,7 @@ void Intersect::intersectLists(const vector<overflow_value_t>& listsToIntersect)
         listsToIntersect[0].numElements * sizeof(nodeID_t));
     SelectionVector lSelVector(listsToIntersect[0].numElements);
     lSelVector.selectedSize = listsToIntersect[0].numElements;
-    vector<SelectionVector*> selVectorsForIntersectedLists;
+    std::vector<SelectionVector*> selVectorsForIntersectedLists;
     intersectSelVectors[0]->resetSelectorToUnselectedWithSize(listsToIntersect[0].numElements);
     selVectorsForIntersectedLists.push_back(intersectSelVectors[0].get());
     for (auto i = 0u; i < listsToIntersect.size() - 1; i++) {
@@ -148,7 +151,7 @@ void Intersect::intersectLists(const vector<overflow_value_t>& listsToIntersect)
 }
 
 void Intersect::populatePayloads(
-    const vector<uint8_t*>& tuples, const vector<uint32_t>& listIdxes) {
+    const std::vector<uint8_t*>& tuples, const std::vector<uint32_t>& listIdxes) {
     for (auto i = 0u; i < listIdxes.size(); i++) {
         auto listIdx = listIdxes[i];
         sharedHTs[i]->getHashTable()->getFactorizedTable()->lookup(

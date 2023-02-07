@@ -10,11 +10,13 @@
 #include "planner/logical_plan/logical_operator/sink_util.h"
 #include "planner/query_planner.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace planner {
 
-void ProjectionPlanner::planProjectionBody(
-    const BoundProjectionBody& projectionBody, const vector<unique_ptr<LogicalPlan>>& plans) {
+void ProjectionPlanner::planProjectionBody(const BoundProjectionBody& projectionBody,
+    const std::vector<std::unique_ptr<LogicalPlan>>& plans) {
     for (auto& plan : plans) {
         planProjectionBody(projectionBody, *plan);
     }
@@ -88,7 +90,7 @@ void ProjectionPlanner::appendProjection(
     for (auto& expression : expressionsToProject) {
         queryPlanner->planSubqueryIfNecessary(expression, plan);
     }
-    vector<uint32_t> expressionsOutputPos;
+    std::vector<uint32_t> expressionsOutputPos;
     for (auto& expression : expressionsToProject) {
         if (plan.getSchema()->isExpressionInScope(*expression)) {
             expressionsOutputPos.push_back(
@@ -130,7 +132,7 @@ void ProjectionPlanner::appendAggregate(const expression_vector& expressionsToGr
         }
     } else {
         // Flatten all but one for ALL group by keys.
-        unordered_set<uint32_t> groupByPoses;
+        std::unordered_set<uint32_t> groupByPoses;
         for (auto& expressionToGroupBy : expressionsToGroupBy) {
             auto dependentGroupsPos = plan.getSchema()->getDependentGroupsPos(expressionToGroupBy);
             groupByPoses.insert(dependentGroupsPos.begin(), dependentGroupsPos.end());
@@ -151,7 +153,7 @@ void ProjectionPlanner::appendAggregate(const expression_vector& expressionsToGr
 }
 
 void ProjectionPlanner::appendOrderBy(
-    const expression_vector& expressions, const vector<bool>& isAscOrders, LogicalPlan& plan) {
+    const expression_vector& expressions, const std::vector<bool>& isAscOrders, LogicalPlan& plan) {
     for (auto& expression : expressions) {
         // We only allow orderby key(s) to be unflat, if they are all part of the same factorization
         // group and there is no other factorized group in the schema, so any payload is also unflat
@@ -165,7 +167,7 @@ void ProjectionPlanner::appendOrderBy(
         // give factorized table a set of unflat vectors (all in the same datachunk/factorization
         // group), sort the table, and scan into unflat vectors, so the schema remains the same. In
         // more complicated cases, e.g., when there are 2 factorization groups, FactorizedTable
-        // cannot read back a flat column into an unflat vector.
+        // cannot read back a flat column into an unflat std::vector.
         if (plan.getSchema()->getNumGroups() > 1) {
             auto dependentGroupsPos = plan.getSchema()->getDependentGroupsPos(expression);
             QueryPlanner::appendFlattens(dependentGroupsPos, plan);
@@ -239,7 +241,7 @@ expression_vector ProjectionPlanner::rewriteExpressionsToProject(
 }
 
 expression_vector ProjectionPlanner::getSubAggregateExpressionsNotInScope(
-    const shared_ptr<Expression>& expression, const Schema& schema) {
+    const std::shared_ptr<Expression>& expression, const Schema& schema) {
     expression_vector result;
     if (schema.isExpressionInScope(*expression)) {
         return result;

@@ -7,13 +7,13 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace processor {
 
-unique_ptr<PhysicalOperator> PlanMapper::mapLogicalUnionAllToPhysical(
+std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalUnionAllToPhysical(
     LogicalOperator* logicalOperator) {
     auto& logicalUnionAll = (LogicalUnion&)*logicalOperator;
     auto outSchema = logicalUnionAll.getSchema();
     // append result collectors to each child
-    vector<unique_ptr<PhysicalOperator>> prevOperators;
-    vector<shared_ptr<FTableSharedState>> resultCollectorSharedStates;
+    std::vector<std::unique_ptr<PhysicalOperator>> prevOperators;
+    std::vector<std::shared_ptr<FTableSharedState>> resultCollectorSharedStates;
     for (auto i = 0u; i < logicalOperator->getNumChildren(); ++i) {
         auto child = logicalOperator->getChild(i);
         auto childSchema = logicalUnionAll.getSchemaBeforeUnion(i);
@@ -24,8 +24,8 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalUnionAllToPhysical(
         prevOperators.push_back(std::move(resultCollector));
     }
     // append union all
-    vector<DataPos> outDataPoses;
-    vector<uint32_t> colIndicesToScan;
+    std::vector<DataPos> outDataPoses;
+    std::vector<uint32_t> colIndicesToScan;
     auto expressionsToUnion = logicalUnionAll.getExpressionsToUnion();
     for (auto i = 0u; i < expressionsToUnion.size(); ++i) {
         auto expression = expressionsToUnion[i];

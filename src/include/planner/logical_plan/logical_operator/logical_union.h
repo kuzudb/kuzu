@@ -7,22 +7,23 @@ namespace planner {
 
 class LogicalUnion : public LogicalOperator {
 public:
-    LogicalUnion(expression_vector expressions, vector<shared_ptr<LogicalOperator>> children)
+    LogicalUnion(binder::expression_vector expressions,
+        std::vector<std::shared_ptr<LogicalOperator>> children)
         : LogicalOperator{LogicalOperatorType::UNION_ALL, std::move(children)},
           expressionsToUnion{std::move(expressions)} {}
 
     void computeSchema() override;
 
-    inline string getExpressionsForPrinting() const override { return string(); }
+    inline std::string getExpressionsForPrinting() const override { return std::string(); }
 
-    inline expression_vector getExpressionsToUnion() { return expressionsToUnion; }
+    inline binder::expression_vector getExpressionsToUnion() { return expressionsToUnion; }
 
     inline Schema* getSchemaBeforeUnion(uint32_t idx) { return children[idx]->getSchema(); }
 
-    unique_ptr<LogicalOperator> copy() override;
+    std::unique_ptr<LogicalOperator> copy() override;
 
 private:
-    expression_vector expressionsToUnion;
+    binder::expression_vector expressionsToUnion;
 };
 
 } // namespace planner

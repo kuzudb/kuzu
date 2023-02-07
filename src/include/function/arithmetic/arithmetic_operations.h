@@ -5,8 +5,6 @@
 
 #include "common/type_utils.h"
 
-using namespace kuzu::common;
-
 namespace kuzu {
 namespace function {
 namespace operation {
@@ -44,7 +42,7 @@ inline void Divide::operation(int64_t& left, int64_t& right, int64_t& result) {
     if (right == 0) {
         // According to c++ standard, only INT64 / 0(INT64) is undefined. (eg. DOUBLE / 0(INT64) and
         // INT64 / 0.0(DOUBLE) are well-defined).
-        throw RuntimeException("Divide by zero.");
+        throw common::RuntimeException("Divide by zero.");
     }
     result = left / right;
 }
@@ -61,7 +59,7 @@ inline void Modulo::operation(int64_t& left, int64_t& right, int64_t& result) {
     if (right == 0) {
         // According to c++ standard, only INT64 % 0(INT64) is undefined. (eg. DOUBLE % 0(INT64) and
         // INT64 % 0.0(DOUBLE) are well-defined).
-        throw RuntimeException("Modulo by zero.");
+        throw common::RuntimeException("Modulo by zero.");
     }
     result = left % right;
 }

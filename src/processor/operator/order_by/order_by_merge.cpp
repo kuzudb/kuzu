@@ -2,6 +2,8 @@
 
 #include "common/configs.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace processor {
 
@@ -16,11 +18,12 @@ void OrderByMerge::executeInternal(ExecutionContext* context) {
     while (!sharedDispatcher->isDoneMerge()) {
         auto keyBlockMergeMorsel = sharedDispatcher->getMorsel();
         if (keyBlockMergeMorsel == nullptr) {
-            this_thread::sleep_for(chrono::microseconds(THREAD_SLEEP_TIME_WHEN_WAITING_IN_MICROS));
+            std::this_thread::sleep_for(
+                std::chrono::microseconds(THREAD_SLEEP_TIME_WHEN_WAITING_IN_MICROS));
             continue;
         }
         localMerger->mergeKeyBlocks(*keyBlockMergeMorsel);
-        sharedDispatcher->doneMorsel(move(keyBlockMergeMorsel));
+        sharedDispatcher->doneMorsel(std::move(keyBlockMergeMorsel));
     }
 }
 

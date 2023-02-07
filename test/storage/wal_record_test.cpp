@@ -11,12 +11,12 @@ class WALRecordTest : public Test {
 protected:
     // We assume 4096 bytes is enough as space two write logs in the tests in these files. When
     // other tests are written and this assumption fails, this needs to be increased.
-    void SetUp() override { bytes = make_unique<uint8_t[]>(4096); }
+    void SetUp() override { bytes = std::make_unique<uint8_t[]>(4096); }
 
     void TearDown() override {}
 
 public:
-    unique_ptr<uint8_t[]> bytes;
+    std::unique_ptr<uint8_t[]> bytes;
 
 public:
     void readBackWALRecordAndAssert(WALRecord& expectedWALRecord, uint64_t& offset) {

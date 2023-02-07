@@ -1,16 +1,18 @@
 #include "storage/storage_structure/storage_structure_utils.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace storage {
 
-pair<FileHandle*, page_idx_t> StorageStructureUtils::getFileHandleAndPhysicalPageIdxToPin(
+std::pair<FileHandle*, page_idx_t> StorageStructureUtils::getFileHandleAndPhysicalPageIdxToPin(
     VersionedFileHandle& fileHandle, page_idx_t physicalPageIdx, WAL& wal,
     transaction::TransactionType trxType) {
     if (trxType == transaction::TransactionType::READ_ONLY ||
         !fileHandle.hasWALPageVersionNoPageLock(physicalPageIdx)) {
-        return make_pair((FileHandle*)&fileHandle, physicalPageIdx);
+        return std::make_pair((FileHandle*)&fileHandle, physicalPageIdx);
     } else {
-        return make_pair(
+        return std::make_pair(
             wal.fileHandle.get(), fileHandle.getWALPageVersionNoPageLock(physicalPageIdx));
     }
 }

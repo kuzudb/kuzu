@@ -2,6 +2,9 @@
 
 #include "common/types/types.h"
 
+using namespace kuzu::common;
+using namespace kuzu::storage;
+
 namespace kuzu {
 namespace processor {
 
@@ -14,7 +17,7 @@ void VarLengthColumnExtend::initLocalStateInternal(
     ResultSet* resultSet, ExecutionContext* context) {
     VarLengthExtend::initLocalStateInternal(resultSet, context);
     for (uint8_t i = 0; i < upperBound; i++) {
-        auto dfsLevelInfo = make_shared<ColumnExtendDFSLevelInfo>(i + 1, *context);
+        auto dfsLevelInfo = std::make_shared<ColumnExtendDFSLevelInfo>(i + 1, *context);
         // Since we use boundNodeValueVector as the input valueVector and dfsLevelInfo->children as
         // the output valueVector to the Column::readValues(), and this function requires that the
         // input and output valueVector are in the same dataChunk. As a result, we need to put the
@@ -64,7 +67,7 @@ bool VarLengthColumnExtend::getNextTuplesInternal() {
 }
 
 bool VarLengthColumnExtend::addDFSLevelToStackIfParentExtends(
-    shared_ptr<ValueVector>& parentValueVector, uint8_t level) {
+    std::shared_ptr<ValueVector>& parentValueVector, uint8_t level) {
     auto dfsLevelInfo = static_pointer_cast<ColumnExtendDFSLevelInfo>(dfsLevelInfos[level - 1]);
     dfsLevelInfo->reset();
     ((Column*)storage)->read(transaction, parentValueVector, dfsLevelInfo->children);

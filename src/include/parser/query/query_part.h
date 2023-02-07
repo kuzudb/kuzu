@@ -12,28 +12,29 @@ namespace parser {
 class QueryPart {
 
 public:
-    explicit QueryPart(unique_ptr<WithClause> withClause) : withClause{move(withClause)} {}
+    explicit QueryPart(std::unique_ptr<WithClause> withClause)
+        : withClause{std::move(withClause)} {}
 
     inline uint32_t getNumUpdatingClauses() const { return updatingClauses.size(); }
     inline UpdatingClause* getUpdatingClause(uint32_t idx) const {
         return updatingClauses[idx].get();
     }
-    inline void addUpdatingClause(unique_ptr<UpdatingClause> updatingClause) {
-        updatingClauses.push_back(move(updatingClause));
+    inline void addUpdatingClause(std::unique_ptr<UpdatingClause> updatingClause) {
+        updatingClauses.push_back(std::move(updatingClause));
     }
 
     inline uint32_t getNumReadingClauses() const { return readingClauses.size(); }
     inline ReadingClause* getReadingClause(uint32_t idx) const { return readingClauses[idx].get(); }
-    inline void addReadingClause(unique_ptr<ReadingClause> readingClause) {
-        readingClauses.push_back(move(readingClause));
+    inline void addReadingClause(std::unique_ptr<ReadingClause> readingClause) {
+        readingClauses.push_back(std::move(readingClause));
     }
 
     inline WithClause* getWithClause() const { return withClause.get(); }
 
 private:
-    vector<unique_ptr<ReadingClause>> readingClauses;
-    vector<unique_ptr<UpdatingClause>> updatingClauses;
-    unique_ptr<WithClause> withClause;
+    std::vector<std::unique_ptr<ReadingClause>> readingClauses;
+    std::vector<std::unique_ptr<UpdatingClause>> updatingClauses;
+    std::unique_ptr<WithClause> withClause;
 };
 
 } // namespace parser

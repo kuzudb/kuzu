@@ -2,10 +2,14 @@
 #include "binder/expression_binder.h"
 #include "parser/expression/parsed_property_expression.h"
 
+using namespace kuzu::common;
+using namespace kuzu::parser;
+using namespace kuzu::catalog;
+
 namespace kuzu {
 namespace binder {
 
-shared_ptr<Expression> ExpressionBinder::bindPropertyExpression(
+std::shared_ptr<Expression> ExpressionBinder::bindPropertyExpression(
     const ParsedExpression& parsedExpression) {
     auto& propertyExpression = (ParsedPropertyExpression&)parsedExpression;
     auto propertyName = propertyExpression.getPropertyName();
@@ -16,7 +20,7 @@ shared_ptr<Expression> ExpressionBinder::bindPropertyExpression(
             propertyName + " is reserved for system usage. External access is not allowed.");
     }
     auto child = bindExpression(*parsedExpression.getChild(0));
-    validateExpectedDataType(*child, unordered_set<DataTypeID>{NODE, REL});
+    validateExpectedDataType(*child, std::unordered_set<DataTypeID>{NODE, REL});
     if (NODE == child->dataType.typeID) {
         return bindNodePropertyExpression(*child, propertyName);
     } else {
@@ -25,8 +29,8 @@ shared_ptr<Expression> ExpressionBinder::bindPropertyExpression(
     }
 }
 
-shared_ptr<Expression> ExpressionBinder::bindNodePropertyExpression(
-    const Expression& expression, const string& propertyName) {
+std::shared_ptr<Expression> ExpressionBinder::bindNodePropertyExpression(
+    const Expression& expression, const std::string& propertyName) {
     auto& nodeOrRel = (NodeOrRelExpression&)expression;
     if (!nodeOrRel.hasPropertyExpression(propertyName)) {
         throw BinderException(
@@ -35,8 +39,8 @@ shared_ptr<Expression> ExpressionBinder::bindNodePropertyExpression(
     return nodeOrRel.getPropertyExpression(propertyName);
 }
 
-static void validatePropertiesWithSameDataType(const vector<Property>& properties,
-    const DataType& dataType, const string& propertyName, const string& variableName) {
+static void validatePropertiesWithSameDataType(const std::vector<Property>& properties,
+    const DataType& dataType, const std::string& propertyName, const std::string& variableName) {
     for (auto& property : properties) {
         if (property.dataType != dataType) {
             throw BinderException(
@@ -45,17 +49,17 @@ static void validatePropertiesWithSameDataType(const vector<Property>& propertie
     }
 }
 
-static unordered_map<table_id_t, property_id_t> populatePropertyIDPerTable(
-    const vector<Property>& properties) {
-    unordered_map<table_id_t, property_id_t> propertyIDPerTable;
+static std::unordered_map<table_id_t, property_id_t> populatePropertyIDPerTable(
+    const std::vector<Property>& properties) {
+    std::unordered_map<table_id_t, property_id_t> propertyIDPerTable;
     for (auto& property : properties) {
         propertyIDPerTable.insert({property.tableID, property.propertyID});
     }
     return propertyIDPerTable;
 }
 
-shared_ptr<Expression> ExpressionBinder::bindRelPropertyExpression(
-    const Expression& expression, const string& propertyName) {
+std::shared_ptr<Expression> ExpressionBinder::bindRelPropertyExpression(
+    const Expression& expression, const std::string& propertyName) {
     auto& rel = (RelExpression&)expression;
     if (rel.isVariableLength()) {
         throw BinderException(
@@ -68,8 +72,8 @@ shared_ptr<Expression> ExpressionBinder::bindRelPropertyExpression(
     return rel.getPropertyExpression(propertyName);
 }
 
-unique_ptr<Expression> ExpressionBinder::createPropertyExpression(
-    const Expression& nodeOrRel, const vector<Property>& properties, bool isPrimaryKey) {
+std::unique_ptr<Expression> ExpressionBinder::createPropertyExpression(
+    const Expression& nodeOrRel, const std::vector<Property>& properties, bool isPrimaryKey) {
     assert(!properties.empty());
     auto anchorProperty = properties[0];
     validatePropertiesWithSameDataType(

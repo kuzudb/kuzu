@@ -7,19 +7,22 @@
 namespace kuzu {
 namespace storage {
 
-using table_adj_in_mem_columns_map_t = unordered_map<table_id_t, unique_ptr<InMemAdjColumn>>;
-using table_property_in_mem_lists_map_t = unordered_map<table_id_t, vector<unique_ptr<InMemLists>>>;
-using table_adj_in_mem_lists_map_t = unordered_map<table_id_t, unique_ptr<InMemAdjLists>>;
+using table_adj_in_mem_columns_map_t =
+    std::unordered_map<common::table_id_t, std::unique_ptr<InMemAdjColumn>>;
+using table_property_in_mem_lists_map_t =
+    std::unordered_map<common::table_id_t, std::vector<std::unique_ptr<InMemLists>>>;
+using table_adj_in_mem_lists_map_t =
+    std::unordered_map<common::table_id_t, std::unique_ptr<InMemAdjLists>>;
 using table_property_in_mem_columns_map_t =
-    unordered_map<table_id_t, vector<unique_ptr<InMemColumn>>>;
+    std::unordered_map<common::table_id_t, std::vector<std::unique_ptr<InMemColumn>>>;
 
 class CopyRelArrow : public CopyStructuresArrow {
 
 public:
-    CopyRelArrow(CopyDescription& copyDescription, string outputDirectory,
-        TaskScheduler& taskScheduler, Catalog& catalog,
-        map<table_id_t, offset_t> maxNodeOffsetsPerNodeTable, BufferManager* bufferManager,
-        table_id_t tableID, RelsStatistics* relsStatistics);
+    CopyRelArrow(common::CopyDescription& copyDescription, std::string outputDirectory,
+        common::TaskScheduler& taskScheduler, catalog::Catalog& catalog,
+        std::map<common::table_id_t, common::offset_t> maxNodeOffsetsPerNodeTable,
+        BufferManager* bufferManager, common::table_id_t tableID, RelsStatistics* relsStatistics);
 
     ~CopyRelArrow() override = default;
 
@@ -34,9 +37,9 @@ public:
 private:
     void initializeColumnsAndLists();
 
-    void initializeColumns(RelDirection relDirection);
+    void initializeColumns(common::RelDirection relDirection);
 
-    void initializeLists(RelDirection relDirection);
+    void initializeLists(common::RelDirection relDirection);
 
     void initAdjListsHeaders();
 
@@ -59,7 +62,7 @@ private:
     // from csv, we first save the overflow pointers of the ku_list_t or ku_string_t in temporary
     // "unordered" InMemOverflowFiles in an unordered format, instead of the InMemOverflowFiles of
     // the actual InMemColumn/ListsWithOverflowFile. In these temporary unordered
-    // InMemOverflowFiles, the string of nodeOffset100's overflow data may be stored before
+    // InMemOverflowFiles, the std::string of nodeOffset100's overflow data may be stored before
     // nodeOffset10's overflow data). This is because the each thread gets a chunk of the csv file
     // storing rels but rel files are not necessarily sorted by source or destination node IDs.
     // Therefore, after populating an InMemColumn/ListWithOverflowFile we have to do two things: (1)
@@ -71,66 +74,72 @@ private:
     void sortAndCopyOverflowValues();
 
     template<typename T>
-    static void inferTableIDsAndOffsets(const vector<shared_ptr<T>>& batchColumns,
-        vector<nodeID_t>& nodeIDs, vector<DataType>& nodeIDTypes,
-        const map<table_id_t, unique_ptr<PrimaryKeyIndex>>& pkIndexes, Transaction* transaction,
-        const Catalog& catalog, vector<bool> requireToReadTableLabels, int64_t blockOffset,
-        int64_t& colIndex);
+    static void inferTableIDsAndOffsets(const std::vector<std::shared_ptr<T>>& batchColumns,
+        std::vector<common::nodeID_t>& nodeIDs, std::vector<common::DataType>& nodeIDTypes,
+        const std::map<common::table_id_t, std::unique_ptr<PrimaryKeyIndex>>& pkIndexes,
+        transaction::Transaction* transaction, const catalog::Catalog& catalog,
+        std::vector<bool> requireToReadTableLabels, int64_t blockOffset, int64_t& colIndex);
 
     template<typename T>
     static void putPropsOfLineIntoColumns(CopyRelArrow* copier,
-        vector<PageByteCursor>& inMemOverflowFileCursors, const vector<shared_ptr<T>>& batchColumns,
-        const vector<nodeID_t>& nodeIDs, int64_t blockOffset, int64_t& colIndex,
-        CopyDescription& copyDescription);
+        std::vector<PageByteCursor>& inMemOverflowFileCursors,
+        const std::vector<std::shared_ptr<T>>& batchColumns,
+        const std::vector<common::nodeID_t>& nodeIDs, int64_t blockOffset, int64_t& colIndex,
+        common::CopyDescription& copyDescription);
 
     template<typename T>
     static void putPropsOfLineIntoLists(CopyRelArrow* copier,
-        vector<PageByteCursor>& inMemOverflowFileCursors, const vector<shared_ptr<T>>& batchColumns,
-        const vector<nodeID_t>& nodeIDs, const vector<uint64_t>& reversePos, int64_t blockOffset,
-        int64_t& colIndex, CopyDescription& copyDescription);
+        std::vector<PageByteCursor>& inMemOverflowFileCursors,
+        const std::vector<std::shared_ptr<T>>& batchColumns,
+        const std::vector<common::nodeID_t>& nodeIDs, const std::vector<uint64_t>& reversePos,
+        int64_t blockOffset, int64_t& colIndex, common::CopyDescription& copyDescription);
 
-    static void copyStringOverflowFromUnorderedToOrderedPages(ku_string_t* kuStr,
+    static void copyStringOverflowFromUnorderedToOrderedPages(common::ku_string_t* kuStr,
         PageByteCursor& unorderedOverflowCursor, PageByteCursor& orderedOverflowCursor,
         InMemOverflowFile* unorderedOverflowFile, InMemOverflowFile* orderedOverflowFile);
 
-    static void copyListOverflowFromUnorderedToOrderedPages(ku_list_t* kuList,
-        const DataType& dataType, PageByteCursor& unorderedOverflowCursor,
+    static void copyListOverflowFromUnorderedToOrderedPages(common::ku_list_t* kuList,
+        const common::DataType& dataType, PageByteCursor& unorderedOverflowCursor,
         PageByteCursor& orderedOverflowCursor, InMemOverflowFile* unorderedOverflowFile,
         InMemOverflowFile* orderedOverflowFile);
 
     // Concurrent tasks.
     template<typename T>
     static void populateAdjColumnsAndCountRelsInAdjListsTask(uint64_t blockId,
-        uint64_t blockStartRelID, CopyRelArrow* copier, const vector<shared_ptr<T>>& batchColumns,
-        CopyDescription& copyDescription);
+        uint64_t blockStartRelID, CopyRelArrow* copier,
+        const std::vector<std::shared_ptr<T>>& batchColumns,
+        common::CopyDescription& copyDescription);
 
     template<typename T>
     static void populateListsTask(uint64_t blockId, uint64_t blockStartRelID, CopyRelArrow* copier,
-        const vector<shared_ptr<T>>& batchColumns, CopyDescription& copyDescription);
+        const std::vector<std::shared_ptr<T>>& batchColumns,
+        common::CopyDescription& copyDescription);
 
-    static void sortOverflowValuesOfPropertyColumnTask(const DataType& dataType,
-        offset_t offsetStart, offset_t offsetEnd, InMemColumn* propertyColumn,
+    static void sortOverflowValuesOfPropertyColumnTask(const common::DataType& dataType,
+        common::offset_t offsetStart, common::offset_t offsetEnd, InMemColumn* propertyColumn,
         InMemOverflowFile* unorderedInMemOverflowFile, InMemOverflowFile* orderedInMemOverflowFile);
 
-    static void sortOverflowValuesOfPropertyListsTask(const DataType& dataType,
-        offset_t offsetStart, offset_t offsetEnd, InMemAdjLists* adjLists,
+    static void sortOverflowValuesOfPropertyListsTask(const common::DataType& dataType,
+        common::offset_t offsetStart, common::offset_t offsetEnd, InMemAdjLists* adjLists,
         InMemLists* propertyLists, InMemOverflowFile* unorderedInMemOverflowFile,
         InMemOverflowFile* orderedInMemOverflowFile);
 
 private:
-    const map<table_id_t, offset_t> maxNodeOffsetsPerTable;
-    RelTableSchema* relTableSchema;
+    const std::map<common::table_id_t, common::offset_t> maxNodeOffsetsPerTable;
+    catalog::RelTableSchema* relTableSchema;
     RelsStatistics* relsStatistics;
-    unique_ptr<Transaction> dummyReadOnlyTrx;
-    map<table_id_t, unique_ptr<PrimaryKeyIndex>> pkIndexes;
-    vector<map<table_id_t, unique_ptr<atomic_uint64_vec_t>>> directionTableListSizes{2};
-    vector<map<table_id_t, atomic<uint64_t>>> directionNumRelsPerTable{2};
-    vector<map<table_id_t, NodeIDCompressionScheme>> directionNodeIDCompressionScheme{2};
-    vector<table_adj_in_mem_columns_map_t> directionTableAdjColumns{2};
-    vector<table_property_in_mem_columns_map_t> directionTablePropertyColumns{2};
-    vector<table_adj_in_mem_lists_map_t> directionTableAdjLists{2};
-    vector<table_property_in_mem_lists_map_t> directionTablePropertyLists{2};
-    unordered_map<uint32_t, unique_ptr<InMemOverflowFile>> overflowFilePerPropertyID;
+    std::unique_ptr<transaction::Transaction> dummyReadOnlyTrx;
+    std::map<common::table_id_t, std::unique_ptr<PrimaryKeyIndex>> pkIndexes;
+    std::vector<std::map<common::table_id_t, std::unique_ptr<atomic_uint64_vec_t>>>
+        directionTableListSizes{2};
+    std::vector<std::map<common::table_id_t, std::atomic<uint64_t>>> directionNumRelsPerTable{2};
+    std::vector<std::map<common::table_id_t, NodeIDCompressionScheme>>
+        directionNodeIDCompressionScheme{2};
+    std::vector<table_adj_in_mem_columns_map_t> directionTableAdjColumns{2};
+    std::vector<table_property_in_mem_columns_map_t> directionTablePropertyColumns{2};
+    std::vector<table_adj_in_mem_lists_map_t> directionTableAdjLists{2};
+    std::vector<table_property_in_mem_lists_map_t> directionTablePropertyLists{2};
+    std::unordered_map<uint32_t, std::unique_ptr<InMemOverflowFile>> overflowFilePerPropertyID;
 };
 
 } // namespace storage

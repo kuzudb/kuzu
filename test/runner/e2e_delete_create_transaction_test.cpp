@@ -6,12 +6,12 @@ class BaseDeleteCreateTrxTest : public DBTest {
 public:
     void SetUp() override {
         DBTest::SetUp();
-        readConn = make_unique<Connection>(database.get());
+        readConn = std::make_unique<Connection>(database.get());
     }
 
     void initDBAndConnection() {
         createDBAndConn();
-        readConn = make_unique<Connection>(database.get());
+        readConn = std::make_unique<Connection>(database.get());
     }
 
     void commitOrRollbackConnectionAndInitDBIfNecessary(
@@ -25,7 +25,7 @@ public:
     }
 
     // Create nodes
-    void createNodes(const vector<string>& nodeIDs) {
+    void createNodes(const std::vector<std::string>& nodeIDs) {
         for (auto& nodeID : nodeIDs) {
             createNode(nodeID);
         }
@@ -34,63 +34,64 @@ public:
         for (auto i = 0u; i < numNodes; ++i) {
             auto key = 10000 + i;
             if (isStringPK) {
-                createNode("'" + to_string(key) + "'");
+                createNode("'" + std::to_string(key) + "'");
             } else {
-                createNode(to_string(key));
+                createNode(std::to_string(key));
             }
         }
     }
-    void createNode(const string& nodeID) {
+    void createNode(const std::string& nodeID) {
         auto query = "CREATE (a:person {ID: " + nodeID + "})";
         ASSERT_TRUE(conn->query(query)->isSuccess());
     }
     // Delete nodes
     void deleteNodesInRange(uint64_t startOffset, uint64_t endOffset, bool isStringPK) {
-        auto query = "MATCH (a:person) WHERE a.ID>=" +
-                     (isStringPK ? "'" + to_string(startOffset) + "'" : to_string(startOffset)) +
-                     " AND a.ID<" +
-                     (isStringPK ? "'" + to_string(startOffset) + "'" : to_string(startOffset)) +
-                     " DELETE a";
+        auto query =
+            "MATCH (a:person) WHERE a.ID>=" +
+            (isStringPK ? "'" + std::to_string(startOffset) + "'" : std::to_string(startOffset)) +
+            " AND a.ID<" +
+            (isStringPK ? "'" + std::to_string(startOffset) + "'" : std::to_string(startOffset)) +
+            " DELETE a";
         ASSERT_TRUE(conn->query(query)->isSuccess());
     }
-    void deleteNodes(const vector<string>& nodeIDs) {
+    void deleteNodes(const std::vector<std::string>& nodeIDs) {
         for (auto& nodeID : nodeIDs) {
             deleteNode(nodeID);
         }
     }
-    void deleteNode(const string& nodeID) {
+    void deleteNode(const std::string& nodeID) {
         auto query = "MATCH (a:person) WHERE a.ID=" + nodeID + " DELETE a";
         ASSERT_TRUE(conn->query(query)->isSuccess());
     }
-    static int64_t getCount(Connection* connection, const string& queryPrefix) {
+    static int64_t getCount(Connection* connection, const std::string& queryPrefix) {
         auto result = connection->query(queryPrefix + " RETURN COUNT(*)");
         return result->getNext()->getValue(0)->getValue<int64_t>();
     }
     int64_t getNumNodes(Connection* connection) { return getCount(connection, "MATCH (:person)"); }
     void validateNodesExistOrNot(
-        Connection* connection, const vector<string>& nodeIDs, bool exist) {
+        Connection* connection, const std::vector<std::string>& nodeIDs, bool exist) {
         for (auto& nodeID : nodeIDs) {
             validateNodeExistOrNot(connection, nodeID, exist);
         }
     }
     // Will trigger index scan.
-    void validateNodeExistOrNot(Connection* connection, const string& nodeID, bool exist) {
+    void validateNodeExistOrNot(Connection* connection, const std::string& nodeID, bool exist) {
         auto query = "MATCH (a:person) WHERE a.ID=" + nodeID;
         ASSERT_EQ(getCount(connection, query), exist ? 1 : 0);
     }
 
 public:
-    unique_ptr<Connection> readConn;
+    std::unique_ptr<Connection> readConn;
 };
 
 class CreateDeleteInt64NodeTrxTest : public BaseDeleteCreateTrxTest {
 public:
-    string getInputDir() override {
+    std::string getInputDir() override {
         return TestHelper::appendKuzuRootPath("dataset/node-insertion-deletion-tests/int64-pk/");
     }
 
     void testIndexScanAfterInsertion(bool isCommit, TransactionTestType trxTestType) {
-        auto nodeIDsToInsert = vector<string>{"10003", "10005"};
+        auto nodeIDsToInsert = std::vector<std::string>{"10003", "10005"};
         conn->beginWriteTransaction();
         createNodes(nodeIDsToInsert);
         validateNodesExistOrNot(conn.get(), nodeIDsToInsert, true /* exist */);
@@ -104,7 +105,7 @@ public:
     }
 
     void testIndexScanAfterDeletion(bool isCommit, TransactionTestType trxTestType) {
-        auto nodeIDsToDelete = vector<string>{"10", "1400", "6000"};
+        auto nodeIDsToDelete = std::vector<std::string>{"10", "1400", "6000"};
         conn->beginWriteTransaction();
         deleteNodes(nodeIDsToDelete);
         validateNodesExistOrNot(conn.get(), nodeIDsToDelete, false /* exist */);
@@ -145,8 +146,8 @@ public:
 
     void testMixedDeleteAndInsert(bool isCommit, TransactionTestType trxTestType) {
         conn->beginWriteTransaction();
-        deleteNodes(vector<string>{"8000", "9000"});
-        createNodes(vector<string>{"8000", "9000", "10001", "10002"});
+        deleteNodes(std::vector<std::string>{"8000", "9000"});
+        createNodes(std::vector<std::string>{"8000", "9000", "10001", "10002"});
         ASSERT_EQ(getNumNodes(readConn.get()), 10000);
         ASSERT_EQ(getNumNodes(conn.get()), 10002);
         commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, trxTestType);
@@ -182,12 +183,12 @@ public:
 
 class CreateDeleteStringNodeTrxTest : public BaseDeleteCreateTrxTest {
 public:
-    string getInputDir() override {
+    std::string getInputDir() override {
         return TestHelper::appendKuzuRootPath("dataset/node-insertion-deletion-tests/string-pk/");
     }
 
     void testIndexScanAfterInsertion(bool isCommit, TransactionTestType trxTestType) {
-        auto nodeIDsToInsert = vector<string>{"'abcdefg'", "'huy23b287sfw33232'"};
+        auto nodeIDsToInsert = std::vector<std::string>{"'abcdefg'", "'huy23b287sfw33232'"};
         conn->beginWriteTransaction();
         createNodes(nodeIDsToInsert);
         validateNodesExistOrNot(conn.get(), nodeIDsToInsert, true /* exist */);
@@ -202,7 +203,7 @@ public:
 
     void testIndexScanAfterDeletion(bool isCommit, TransactionTestType trxTestType) {
         auto nodeIDsToDelete =
-            vector<string>{"'999999999999'", "'1000000000000'", "'1000000000001'"};
+            std::vector<std::string>{"'999999999999'", "'1000000000000'", "'1000000000001'"};
         conn->beginWriteTransaction();
         deleteNodes(nodeIDsToDelete);
         validateNodesExistOrNot(conn.get(), nodeIDsToDelete, false /* not exist */);
@@ -243,8 +244,8 @@ public:
 
     void testMixedDeleteAndInsert(bool isCommit, TransactionTestType trxTestType) {
         conn->beginWriteTransaction();
-        deleteNodes(vector<string>{"'999999995061'", "'1000000004126'"});
-        createNodes(vector<string>{
+        deleteNodes(std::vector<std::string>{"'999999995061'", "'1000000004126'"});
+        createNodes(std::vector<std::string>{
             "'kmjiowe89njsn'", "'jdsknewkew'", "'jsnjwe893n2juihi3232'", "'jsnjwe893n2juihi3ew'"});
         ASSERT_EQ(getNumNodes(readConn.get()), 10000);
         ASSERT_EQ(getNumNodes(conn.get()), 10002);
@@ -442,45 +443,48 @@ TEST_F(CreateDeleteStringNodeTrxTest, MixedInsertDeleteRollbackRecovery) {
 // TODO(Guodong/Xiyang): refactor these tests to follow the above convention.
 class CreateRelTrxTest : public BaseDeleteCreateTrxTest {
 public:
-    string getInputDir() override {
+    std::string getInputDir() override {
         return TestHelper::appendKuzuRootPath("dataset/rel-insertion-tests/");
     }
 
-    void insertKnowsRels(const string& srcLabel, const string& dstLabel, uint64_t numRelsToInsert,
-        bool testNullAndLongString = false) {
+    void insertKnowsRels(const std::string& srcLabel, const std::string& dstLabel,
+        uint64_t numRelsToInsert, bool testNullAndLongString = false) {
         for (auto i = 0u; i < numRelsToInsert; ++i) {
-            auto length = to_string(i);
-            auto place = to_string(i);
-            auto tag = to_string(i);
+            auto length = std::to_string(i);
+            auto place = std::to_string(i);
+            auto tag = std::to_string(i);
             if (testNullAndLongString) {
                 length = "null";
                 place = getLongStr(place);
             }
             insertKnowsRel(
-                srcLabel, dstLabel, "1", to_string(i + 1), length, place, "['" + tag + "']");
+                srcLabel, dstLabel, "1", std::to_string(i + 1), length, place, "['" + tag + "']");
         }
     }
 
-    void insertKnowsRel(const string& srcLabel, const string& dstLabel, const string& srcID,
-        const string& dstID, const string& length, const string& place, const string& tag) {
+    void insertKnowsRel(const std::string& srcLabel, const std::string& dstLabel,
+        const std::string& srcID, const std::string& dstID, const std::string& length,
+        const std::string& place, const std::string& tag) {
         auto matchClause = "MATCH (a:" + srcLabel + "),(b:" + dstLabel + ") WHERE a.ID=" + srcID +
                            " AND b.ID=" + dstID + " ";
         auto createClause = "CREATE (a)-[e:knows {length:" + length + ",place:'" + place +
                             "',tag:" + tag + "}]->(b)";
-        string query = matchClause + createClause;
+        std::string query = matchClause + createClause;
         ASSERT_TRUE(conn->query(query)->isSuccess());
     }
 
-    vector<string> readAllKnowsProperty(Connection* connection, const string& srcLabel,
-        const string& dstLabel, bool validateBwdOrder = false) {
+    std::vector<std::string> readAllKnowsProperty(Connection* connection,
+        const std::string& srcLabel, const std::string& dstLabel, bool validateBwdOrder = false) {
         auto result = connection->query("MATCH (a:" + srcLabel + ")-[e:knows]->(b:" + dstLabel +
                                         ") RETURN e.length, e.place, e.tag");
         return TestHelper::convertResultToString(*result, true /* checkOrder, do not sort */);
     }
 
-    static string getLongStr(const string& val) { return "long long string prefix " + val; }
+    static std::string getLongStr(const std::string& val) {
+        return "long long string prefix " + val;
+    }
 
-    void validateExceptionMessage(string query, string expectedException) {
+    void validateExceptionMessage(std::string query, std::string expectedException) {
         conn->query(query);
         auto result = conn->query(query);
         ASSERT_FALSE(result->isSuccess());
@@ -497,25 +501,25 @@ public:
 };
 
 static void validateInsertedRel(
-    const string& result, uint64_t param, bool testNullAndLongString = false) {
-    auto length = to_string(param);
-    auto place = to_string(param);
+    const std::string& result, uint64_t param, bool testNullAndLongString = false) {
+    auto length = std::to_string(param);
+    auto place = std::to_string(param);
     if (testNullAndLongString) {
         length = "";
         place = CreateRelTrxTest::getLongStr(place);
     }
-    auto groundTruth = length + "|" + place + "|[" + to_string(param) + "]";
+    auto groundTruth = length + "|" + place + "|[" + std::to_string(param) + "]";
     ASSERT_STREQ(groundTruth.c_str(), result.c_str());
 }
 
-static void validateInsertRelsToEmptyListSucceed(
-    vector<string> resultStr, uint64_t numRelsInserted, bool testNullAndLongString = false) {
+static void validateInsertRelsToEmptyListSucceed(std::vector<std::string> resultStr,
+    uint64_t numRelsInserted, bool testNullAndLongString = false) {
     for (auto i = 0u; i < numRelsInserted; i++) {
         validateInsertedRel(resultStr[i], i, testNullAndLongString);
     }
 }
 
-static void validateInsertRelsToEmptyListFail(const vector<string>& resultStr) {
+static void validateInsertRelsToEmptyListFail(const std::vector<std::string>& resultStr) {
     ASSERT_EQ(resultStr.size(), 0);
 }
 
@@ -582,24 +586,24 @@ TEST_F(CreateRelTrxTest, InsertManyRelsToEmptyListWithNullAndLongStrRollbackReco
 
 static int64_t numAnimalPersonRelsInDB = 51;
 
-static string generateStrFromInt(uint64_t val) {
-    string result = to_string(val);
+static std::string generateStrFromInt(uint64_t val) {
+    std::string result = std::to_string(val);
     if (val % 2 == 0) {
         for (auto i = 0; i < 2; i++) {
-            result.append(to_string(val));
+            result.append(std::to_string(val));
         }
     }
     return result;
 }
 
-static void validateExistingAnimalPersonRel(const string& result, uint64_t param) {
+static void validateExistingAnimalPersonRel(const std::string& result, uint64_t param) {
     auto strVal = generateStrFromInt(1000 - param);
-    auto groundTruth = to_string(param) + "|" + strVal + "|[" + strVal + "]";
+    auto groundTruth = std::to_string(param) + "|" + strVal + "|[" + strVal + "]";
     ASSERT_STREQ(groundTruth.c_str(), result.c_str());
 }
 
 static void validateInsertRelsToSmallListSucceed(
-    vector<string> resultStr, uint64_t numRelsInserted) {
+    std::vector<std::string> resultStr, uint64_t numRelsInserted) {
     auto currIdx = 0u;
     auto insertedRelsOffset = 2;
     for (auto i = 0u; i < insertedRelsOffset; ++i, ++currIdx) {
@@ -613,7 +617,7 @@ static void validateInsertRelsToSmallListSucceed(
     }
 }
 
-static void validateInsertRelsToSmallListFail(vector<string> resultStr) {
+static void validateInsertRelsToSmallListFail(std::vector<std::string> resultStr) {
     ASSERT_EQ(resultStr.size(), numAnimalPersonRelsInDB);
     validateInsertRelsToSmallListSucceed(resultStr, 0);
 }
@@ -675,14 +679,14 @@ TEST_F(CreateRelTrxTest, InsertLargeNumRelsToSmallListCommitRecovery) {
 
 static int numPersonPersonRelsInDB = 2500;
 
-static void validateExistingPersonPersonRel(const string& result, uint64_t param) {
+static void validateExistingPersonPersonRel(const std::string& result, uint64_t param) {
     auto strVal = generateStrFromInt(3000 - param);
-    auto groundTruth = to_string(3 * param) + "|" + strVal + "|[" + strVal + "]";
+    auto groundTruth = std::to_string(3 * param) + "|" + strVal + "|[" + strVal + "]";
     ASSERT_STREQ(groundTruth.c_str(), result.c_str());
 }
 
-static void validateInsertRelsToLargeListSucceed(
-    vector<string> resultStr, uint64_t numRelsInserted, bool testNullAndLongString = false) {
+static void validateInsertRelsToLargeListSucceed(std::vector<std::string> resultStr,
+    uint64_t numRelsInserted, bool testNullAndLongString = false) {
     auto currIdx = 0u;
     for (auto i = 0u; i < numPersonPersonRelsInDB; ++i, ++currIdx) {
         validateExistingPersonPersonRel(resultStr[currIdx], i);
@@ -692,7 +696,7 @@ static void validateInsertRelsToLargeListSucceed(
     }
 }
 
-static void validateInsertRelsToLargeListFail(vector<string> resultStr) {
+static void validateInsertRelsToLargeListFail(std::vector<std::string> resultStr) {
     ASSERT_EQ(resultStr.size(), numPersonPersonRelsInDB);
     validateInsertRelsToLargeListSucceed(resultStr, 0);
 }
@@ -766,5 +770,5 @@ TEST_F(CreateRelTrxTest, CreateRelToEmptyRelTable) {
     conn->query("CREATE (s:student {id: 1})");
     ASSERT_EQ(TestHelper::convertResultToString(
                   *conn->query("match (s:student)-[:follows]->(:student) return count(s.id)"))[0],
-        to_string(0));
+        std::to_string(0));
 }
