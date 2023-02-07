@@ -1,36 +1,26 @@
 #pragma once
 
-// TODO: Consider using forward declaration
-#include "common/configs.h"
-#include "common/logging_level_utils.h"
-#include "processor/processor.h"
-#include "storage/buffer_manager/buffer_manager.h"
-#include "storage/buffer_manager/memory_manager.h"
-#include "storage/storage_manager.h"
-#include "transaction/transaction.h"
-#include "transaction/transaction_manager.h"
+#include <memory>
+#include <thread>
 
-namespace kuzu {
-namespace testing {
-class BaseGraphTest;
-} // namespace testing
-} // namespace kuzu
+#include "common/api.h"
+#include "common/configs.h"
+#include "kuzu_fwd.h"
 
 namespace kuzu {
 namespace main {
 
-struct SystemConfig {
-    explicit SystemConfig(
-        uint64_t bufferPoolSize = common::StorageConfig::DEFAULT_BUFFER_POOL_SIZE);
+KUZU_API struct SystemConfig {
+    explicit SystemConfig();
+    explicit SystemConfig(uint64_t bufferPoolSize);
 
     uint64_t defaultPageBufferPoolSize;
     uint64_t largePageBufferPoolSize;
-
-    uint64_t maxNumThreads = std::thread::hardware_concurrency();
+    uint64_t maxNumThreads;
 };
 
-struct DatabaseConfig {
-    explicit DatabaseConfig(std::string databasePath) : databasePath{std::move(databasePath)} {}
+KUZU_API struct DatabaseConfig {
+    explicit DatabaseConfig(std::string databasePath);
 
     std::string databasePath;
 };
@@ -42,20 +32,16 @@ class Database {
     friend class kuzu::testing::BaseGraphTest;
 
 public:
-    explicit Database(const DatabaseConfig& databaseConfig)
-        : Database{databaseConfig, SystemConfig()} {}
+    KUZU_API explicit Database(DatabaseConfig databaseConfig);
+    KUZU_API Database(DatabaseConfig databaseConfig, SystemConfig systemConfig);
+    KUZU_API ~Database();
 
-    explicit Database(const DatabaseConfig& databaseConfig, const SystemConfig& systemConfig);
-
+    // TODO(Guodong): Change the input to be string.
     void setLoggingLevel(spdlog::level::level_enum loggingLevel);
 
-    void resizeBufferManager(uint64_t newSize);
-
-    ~Database() = default;
+    KUZU_API void resizeBufferManager(uint64_t newSize);
 
 private:
-    // TODO(Semih): This is refactored here for now to be able to test transaction behavior
-    // in absence of the frontend support. Consider moving this code to connection.cpp.
     // Commits and checkpoints a write transaction or rolls that transaction back. This involves
     // either replaying the WAL and either redoing or undoing and in either case at the end WAL is
     // cleared.
@@ -66,13 +52,8 @@ private:
     void initDBDirAndCoreFilesIfNecessary() const;
     void initLoggers();
 
-    inline void checkpointAndClearWAL() {
-        checkpointOrRollbackAndClearWAL(false /* is not recovering */, true /* isCheckpoint */);
-    }
-    inline void rollbackAndClearWAL() {
-        checkpointOrRollbackAndClearWAL(
-            false /* is not recovering */, false /* rolling back updates */);
-    }
+    void checkpointAndClearWAL();
+    void rollbackAndClearWAL();
     void recoverIfNecessary();
     void checkpointOrRollbackAndClearWAL(bool isRecovering, bool isCheckpoint);
 

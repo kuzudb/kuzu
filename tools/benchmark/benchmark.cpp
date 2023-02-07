@@ -2,6 +2,7 @@
 
 #include <filesystem>
 
+#include "json.hpp"
 #include "spdlog/spdlog.h"
 #include "test_helper.h"
 

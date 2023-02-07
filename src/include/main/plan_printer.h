@@ -1,13 +1,13 @@
 #pragma once
 
+#include <cassert>
 #include <fstream>
 #include <sstream>
 #include <string>
 
 #include "common/profiler.h"
-#include "planner/logical_plan/logical_plan.h"
-#include "processor/physical_plan.h"
-#include <json.hpp>
+#include "json_fwd.hpp"
+#include "kuzu_fwd.h"
 
 namespace kuzu {
 namespace main {
@@ -88,25 +88,15 @@ private:
 class PlanPrinter {
 
 public:
-    PlanPrinter(processor::PhysicalPlan* physicalPlan, std::unique_ptr<common::Profiler> profiler)
-        : physicalPlan{physicalPlan}, profiler{std::move(profiler)} {}
+    PlanPrinter(processor::PhysicalPlan* physicalPlan, std::unique_ptr<common::Profiler> profiler);
 
-    inline nlohmann::json printPlanToJson() {
-        return toJson(physicalPlan->lastOperator.get(), *profiler);
-    }
+    nlohmann::json printPlanToJson();
 
-    inline std::ostringstream printPlanToOstream() {
-        return OpProfileTree(physicalPlan->lastOperator.get(), *profiler).printPlanToOstream();
-    }
+    std::ostringstream printPlanToOstream();
 
-    static inline std::string getOperatorName(processor::PhysicalOperator* physicalOperator) {
-        return processor::PhysicalOperatorUtils::operatorTypeToString(
-            physicalOperator->getOperatorType());
-    }
+    static inline std::string getOperatorName(processor::PhysicalOperator* physicalOperator);
 
-    static inline std::string getOperatorParams(processor::PhysicalOperator* physicalOperator) {
-        return physicalOperator->getParamsString();
-    }
+    static inline std::string getOperatorParams(processor::PhysicalOperator* physicalOperator);
 
 private:
     nlohmann::json toJson(

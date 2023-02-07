@@ -5,6 +5,9 @@
 #include "common/arrow/arrow_converter.h"
 #include "datetime.h" // python lib
 #include "include/py_query_result_converter.h"
+#include "json.hpp"
+#include "processor/result/factorized_table.h"
+#include "processor/result/flat_tuple.h"
 
 using namespace kuzu::common;
 

@@ -1,22 +1,9 @@
 #pragma once
 
-#include "binder/binder.h"
-#include "catalog/catalog.h"
 #include "client_context.h"
-#include "main/database.h"
-#include "planner/logical_plan/logical_plan.h"
+#include "database.h"
 #include "prepared_statement.h"
 #include "query_result.h"
-#include "storage/wal/wal.h"
-#include "transaction/transaction_manager.h"
-
-namespace kuzu {
-namespace testing {
-class ApiTest;
-class BaseGraphTest;
-class TestHelper;
-} // namespace testing
-} // namespace kuzu
 
 namespace kuzu {
 namespace main {
@@ -43,51 +30,22 @@ public:
      * Note: When a Connection object is deconstructed, if the connection has an active (manual)
      * transaction, then the active transaction is rolled back.
      */
-    enum ConnectionTransactionMode : uint8_t { AUTO_COMMIT, MANUAL };
+    enum class ConnectionTransactionMode : uint8_t { AUTO_COMMIT = 0, MANUAL = 1 };
 
 public:
-    explicit Connection(Database* database);
+    KUZU_API explicit Connection(Database* database);
+    KUZU_API ~Connection();
 
-    ~Connection();
+    KUZU_API void beginReadOnlyTransaction();
+    KUZU_API void beginWriteTransaction();
+    KUZU_API void commit();
+    KUZU_API void rollback();
+    KUZU_API void setMaxNumThreadForExec(uint64_t numThreads);
+    KUZU_API uint64_t getMaxNumThreadForExec();
+    KUZU_API std::unique_ptr<QueryResult> query(const std::string& query);
+    KUZU_API std::unique_ptr<PreparedStatement> prepare(const std::string& query);
 
-    inline void beginReadOnlyTransaction() {
-        std::unique_lock<std::mutex> lck{mtx};
-        setTransactionModeNoLock(MANUAL);
-        beginTransactionNoLock(transaction::READ_ONLY);
-    }
-
-    inline void beginWriteTransaction() {
-        std::unique_lock<std::mutex> lck{mtx};
-        setTransactionModeNoLock(MANUAL);
-        beginTransactionNoLock(transaction::WRITE);
-    }
-
-    inline void commit() {
-        std::unique_lock<std::mutex> lck{mtx};
-        commitOrRollbackNoLock(true /* isCommit */);
-    }
-
-    inline void rollback() {
-        std::unique_lock<std::mutex> lck{mtx};
-        commitOrRollbackNoLock(false /* is rollback */);
-    }
-
-    inline void setMaxNumThreadForExec(uint64_t numThreads) {
-        clientContext->numThreadsForExecution = numThreads;
-    }
-    inline uint64_t getMaxNumThreadForExec() {
-        std::unique_lock<std::mutex> lck{mtx};
-        return clientContext->numThreadsForExecution;
-    }
-
-    std::unique_ptr<QueryResult> query(const std::string& query);
-
-    std::unique_ptr<PreparedStatement> prepare(const std::string& query) {
-        std::unique_lock<std::mutex> lck{mtx};
-        return prepareNoLock(query);
-    }
-
-    template<typename... Args>
+    KUZU_API template<typename... Args>
     inline std::unique_ptr<QueryResult> execute(
         PreparedStatement* preparedStatement, std::pair<std::string, Args>... args) {
         std::unordered_map<std::string, std::shared_ptr<common::Value>> inputParameters;
@@ -95,63 +53,33 @@ public:
     }
     // Note: Any call that goes through executeWithParams acquires a lock in the end by calling
     // executeLock(...).
-    std::unique_ptr<QueryResult> executeWithParams(PreparedStatement* preparedStatement,
+    KUZU_API std::unique_ptr<QueryResult> executeWithParams(PreparedStatement* preparedStatement,
         std::unordered_map<std::string, std::shared_ptr<common::Value>>& inputParams);
 
-    std::string getNodeTableNames();
-    std::string getRelTableNames();
-    std::string getNodePropertyNames(const std::string& tableName);
-    std::string getRelPropertyNames(const std::string& relTableName);
+    KUZU_API std::string getNodeTableNames();
+    KUZU_API std::string getRelTableNames();
+    KUZU_API std::string getNodePropertyNames(const std::string& tableName);
+    KUZU_API std::string getRelPropertyNames(const std::string& relTableName);
 
 protected:
-    inline ConnectionTransactionMode getTransactionMode() {
-        std::unique_lock<std::mutex> lck{mtx};
-        return transactionMode;
-    }
-    inline void setTransactionModeNoLock(ConnectionTransactionMode newTransactionMode) {
-        if (activeTransaction && transactionMode == MANUAL && newTransactionMode == AUTO_COMMIT) {
-            throw common::ConnectionException(
-                "Cannot change transaction mode from MANUAL to AUTO_COMMIT when there is an "
-                "active transaction. Need to first commit or rollback the active transaction.");
-        }
-        transactionMode = newTransactionMode;
-    }
+    ConnectionTransactionMode getTransactionMode();
+    void setTransactionModeNoLock(ConnectionTransactionMode newTransactionMode);
+
     // Note: This is only added for testing recovery algorithms in unit tests. Do not use
     // this otherwise.
-    inline void commitButSkipCheckpointingForTestingRecovery() {
-        std::unique_lock<std::mutex> lck{mtx};
-        commitOrRollbackNoLock(true /* isCommit */, true /* skip checkpointing for testing */);
-    }
+    void commitButSkipCheckpointingForTestingRecovery();
     // Note: This is only added for testing recovery algorithms in unit tests. Do not use
     // this otherwise.
-    inline void rollbackButSkipCheckpointingForTestingRecovery() {
-        std::unique_lock<std::mutex> lck{mtx};
-        commitOrRollbackNoLock(false /* is rollback */, true /* skip checkpointing for testing */);
-    }
+    void rollbackButSkipCheckpointingForTestingRecovery();
     // Note: This is only added for testing recovery algorithms in unit tests. Do not use
     // this otherwise.
-    inline transaction::Transaction* getActiveTransaction() {
-        std::unique_lock<std::mutex> lck{mtx};
-        return activeTransaction.get();
-    }
+    transaction::Transaction* getActiveTransaction();
     // used in API test
 
-    inline uint64_t getActiveTransactionID() {
-        std::unique_lock<std::mutex> lck{mtx};
-        return activeTransaction ? activeTransaction->getID() : UINT64_MAX;
-    }
-    inline bool hasActiveTransaction() {
-        std::unique_lock<std::mutex> lck{mtx};
-        return activeTransaction != nullptr;
-    }
-    inline void commitNoLock() { commitOrRollbackNoLock(true /* is commit */); }
-    inline void rollbackIfNecessaryNoLock() {
-        // If there is no active transaction in the system (e.g., an exception occurs during
-        // planning), we shouldn't roll back the transaction.
-        if (activeTransaction != nullptr) {
-            commitOrRollbackNoLock(false /* is rollback */);
-        }
-    }
+    uint64_t getActiveTransactionID();
+    bool hasActiveTransaction();
+    void commitNoLock();
+    void rollbackIfNecessaryNoLock();
 
     void beginTransactionNoLock(transaction::TransactionType type);
 
@@ -167,7 +95,7 @@ protected:
         std::unordered_map<std::string, std::shared_ptr<common::Value>>& params,
         std::pair<std::string, T> arg, std::pair<std::string, Args>... args) {
         auto name = arg.first;
-        auto val = std::make_shared<common::Value>(common::Value::createValue<T>(arg.second));
+        auto val = std::make_shared<common::Value>((T)arg.second);
         params.insert({name, val});
         return executeWithParams(preparedStatement, params, args...);
     }

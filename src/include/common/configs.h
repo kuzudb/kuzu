@@ -44,7 +44,7 @@ const std::string INTERNAL_ID_SUFFIX = "_id";
 
 struct StorageConfig {
     // The default amount of memory pre-allocated to both the default and large pages buffer pool.
-    static constexpr uint64_t DEFAULT_BUFFER_POOL_SIZE = -1u;
+    static constexpr uint64_t DEFAULT_BUFFER_POOL_SIZE = 1ull << 30;             // (1GB)
     static constexpr uint64_t DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING = 1ull << 26; // (64MB)
     // The default ratio of system memory allocated to buffer pools (including default and large).
     static constexpr double DEFAULT_BUFFER_POOL_RATIO = 0.8;

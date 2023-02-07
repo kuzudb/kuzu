@@ -10,6 +10,47 @@ namespace common {
 
 static_assert(sizeof(dtime_t) == sizeof(int64_t), "dtime_t was padded");
 
+dtime_t::dtime_t() : micros(0) {}
+
+dtime_t::dtime_t(int64_t micros_p) : micros(micros_p) {}
+
+dtime_t& dtime_t::operator=(int64_t micros_p) {
+    micros = micros_p;
+    return *this;
+}
+
+dtime_t::operator int64_t() const {
+    return micros;
+}
+
+dtime_t::operator double() const {
+    return micros;
+}
+
+bool dtime_t::operator==(const dtime_t& rhs) const {
+    return micros == rhs.micros;
+}
+
+bool dtime_t::operator!=(const dtime_t& rhs) const {
+    return micros != rhs.micros;
+}
+
+bool dtime_t::operator<=(const dtime_t& rhs) const {
+    return micros <= rhs.micros;
+}
+
+bool dtime_t::operator<(const dtime_t& rhs) const {
+    return micros < rhs.micros;
+}
+
+bool dtime_t::operator>(const dtime_t& rhs) const {
+    return micros > rhs.micros;
+}
+
+bool dtime_t::operator>=(const dtime_t& rhs) const {
+    return micros >= rhs.micros;
+}
+
 // string format is hh:mm:ss[.mmmmmm] (ISO 8601) (m represent microseconds)
 // microseconds is optional, timezone is currently not supported
 bool Time::TryConvertTime(const char* buf, uint64_t len, uint64_t& pos, dtime_t& result) {

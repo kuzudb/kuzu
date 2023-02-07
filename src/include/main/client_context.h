@@ -2,6 +2,8 @@
 
 #include <cstdint>
 
+#include "common/api.h"
+
 namespace kuzu {
 namespace main {
 
@@ -11,9 +13,8 @@ class ClientContext {
     friend class Connection;
 
 public:
-    explicit ClientContext() : numThreadsForExecution{1} {}
-
-    ~ClientContext() = default;
+    KUZU_API explicit ClientContext();
+    KUZU_API ~ClientContext() = default;
 
 private:
     uint64_t numThreadsForExecution;

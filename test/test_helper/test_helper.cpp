@@ -2,6 +2,7 @@
 
 #include <fstream>
 
+#include "json.hpp"
 #include "spdlog/spdlog.h"
 
 using namespace kuzu::common;

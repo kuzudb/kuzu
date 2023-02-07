@@ -8,6 +8,8 @@
 #include <string>
 #include <vector>
 
+#include "common/api.h"
+
 namespace kuzu {
 namespace common {
 
@@ -29,7 +31,7 @@ struct overflow_value_t {
     uint8_t* value = nullptr;
 };
 
-enum DataTypeID : uint8_t {
+KUZU_API enum DataTypeID : uint8_t {
     // NOTE: Not all data types can be used in processor. For example, ANY should be resolved during
     // query compilation. Similarly logical data types should also only be used in compilation.
     // Some use cases are as follows.
@@ -62,38 +64,25 @@ enum DataTypeID : uint8_t {
 
 class DataType {
 public:
-    DataType() : typeID{ANY}, childType{nullptr} {}
-    explicit DataType(DataTypeID typeID) : typeID{typeID}, childType{nullptr} {
-        assert(typeID != LIST);
-    }
-    DataType(DataTypeID typeID, std::unique_ptr<DataType> childType)
-        : typeID{typeID}, childType{std::move(childType)} {
-        assert(typeID == LIST);
-    }
+    KUZU_API DataType();
+    KUZU_API explicit DataType(DataTypeID typeID);
+    KUZU_API DataType(DataTypeID typeID, std::unique_ptr<DataType> childType);
+    KUZU_API DataType(const DataType& other);
+    KUZU_API DataType(DataType&& other) noexcept;
 
-    DataType(const DataType& other);
-    DataType(DataType&& other) noexcept
-        : typeID{other.typeID}, childType{std::move(other.childType)} {}
+    static std::vector<DataTypeID> getNumericalTypeIDs();
+    static std::vector<DataTypeID> getAllValidTypeIDs();
 
-    static inline std::vector<DataTypeID> getNumericalTypeIDs() {
-        return std::vector<DataTypeID>{INT64, DOUBLE};
-    }
-    static inline std::vector<DataTypeID> getAllValidTypeIDs() {
-        return std::vector<DataTypeID>{
-            INTERNAL_ID, BOOL, INT64, DOUBLE, STRING, DATE, TIMESTAMP, INTERVAL, LIST};
-    }
+    KUZU_API DataType& operator=(const DataType& other);
 
-    DataType& operator=(const DataType& other);
+    KUZU_API bool operator==(const DataType& other) const;
 
-    bool operator==(const DataType& other) const;
+    KUZU_API bool operator!=(const DataType& other) const;
 
-    bool operator!=(const DataType& other) const { return !((*this) == other); }
+    KUZU_API DataType& operator=(DataType&& other) noexcept;
 
-    inline DataType& operator=(DataType&& other) noexcept {
-        typeID = other.typeID;
-        childType = std::move(other.childType);
-        return *this;
-    }
+    KUZU_API DataTypeID getTypeID() const;
+    KUZU_API DataType* getChildType() const;
 
 public:
     DataTypeID typeID;
@@ -105,11 +94,11 @@ private:
 
 class Types {
 public:
-    static std::string dataTypeToString(const DataType& dataType);
-    static std::string dataTypeToString(DataTypeID dataTypeID);
+    KUZU_API static std::string dataTypeToString(const DataType& dataType);
+    KUZU_API static std::string dataTypeToString(DataTypeID dataTypeID);
     static std::string dataTypesToString(const std::vector<DataType>& dataTypes);
     static std::string dataTypesToString(const std::vector<DataTypeID>& dataTypeIDs);
-    static DataType dataTypeFromString(const std::string& dataTypeString);
+    KUZU_API static DataType dataTypeFromString(const std::string& dataTypeString);
     static uint32_t getDataTypeSize(DataTypeID dataTypeID);
     static inline uint32_t getDataTypeSize(const DataType& dataType) {
         return getDataTypeSize(dataType.typeID);

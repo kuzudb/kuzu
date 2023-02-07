@@ -1,15 +1,8 @@
 #pragma once
 
+#include "common/api.h"
+#include "kuzu_fwd.h"
 #include "query_summary.h"
-
-namespace kuzu::testing {
-class TestHelper;
-}
-
-namespace kuzu::transaction {
-class TinySnbDDLTest;
-class TinySnbCopyCSVTransactionTest;
-} // namespace kuzu::transaction
 
 namespace kuzu {
 namespace main {
@@ -22,19 +15,11 @@ class PreparedStatement {
     friend class kuzu::transaction::TinySnbCopyCSVTransactionTest;
 
 public:
-    inline bool allowActiveTransaction() const {
-        return !common::StatementTypeUtils::isDDLOrCopyCSV(statementType);
-    }
-
-    inline bool isSuccess() const { return success; }
-
-    inline std::string getErrorMessage() const { return errMsg; }
-
-    inline bool isReadOnly() const { return readOnly; }
-
-    inline binder::expression_vector getExpressionsToCollect() {
-        return statementResult->getExpressionsToCollect();
-    }
+    KUZU_API bool allowActiveTransaction() const;
+    KUZU_API bool isSuccess() const;
+    KUZU_API std::string getErrorMessage() const;
+    KUZU_API bool isReadOnly() const;
+    std::vector<std::shared_ptr<binder::Expression>> getExpressionsToCollect();
 
 private:
     common::StatementType statementType;

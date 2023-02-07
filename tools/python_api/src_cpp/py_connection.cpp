@@ -1,6 +1,11 @@
 #include "include/py_connection.h"
 
+#include "binder/bound_statement_result.h"
 #include "datetime.h" // from Python
+#include "json.hpp"
+#include "main/connection.h"
+#include "planner/logical_plan/logical_plan.h"
+#include "processor/result/factorized_table.h"
 
 using namespace kuzu::common;
 

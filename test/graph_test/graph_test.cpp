@@ -1,5 +1,10 @@
 #include "graph_test/graph_test.h"
 
+#include "binder/binder.h"
+#include "json.hpp"
+#include "parser/parser.h"
+#include "storage/storage_manager.h"
+
 using ::testing::Test;
 using namespace kuzu::catalog;
 using namespace kuzu::common;

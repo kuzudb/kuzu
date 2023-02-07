@@ -1,5 +1,8 @@
 #include "common/arrow/arrow_row_batch.h"
 
+#include "common/types/value.h"
+#include "processor/result/flat_tuple.h"
+
 namespace kuzu {
 namespace common {
 

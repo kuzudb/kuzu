@@ -1,5 +1,6 @@
 #include "graph_test/graph_test.h"
 #include "processor/mapper/plan_mapper.h"
+#include "processor/processor.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
@@ -107,7 +108,10 @@ public:
         catalog = getCatalog(*database);
         profiler = std::make_unique<Profiler>();
         bufferManager =
-            std::make_unique<BufferManager>(StorageConfig::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING);
+            std::make_unique<BufferManager>(StorageConfig::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING *
+                                                StorageConfig::DEFAULT_PAGES_BUFFER_RATIO,
+                StorageConfig::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING *
+                    StorageConfig::LARGE_PAGES_BUFFER_RATIO);
         memoryManager = std::make_unique<MemoryManager>(bufferManager.get());
         executionContext = std::make_unique<ExecutionContext>(
             1 /* numThreads */, profiler.get(), memoryManager.get(), bufferManager.get());

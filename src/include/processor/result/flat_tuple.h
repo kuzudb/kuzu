@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/api.h"
 #include "common/types/value.h"
 
 namespace kuzu {
@@ -7,16 +8,14 @@ namespace processor {
 
 class FlatTuple {
 public:
-    inline void addValue(std::unique_ptr<common::Value> value) {
-        values.push_back(std::move(value));
-    }
+    void addValue(std::unique_ptr<common::Value> value);
 
-    inline uint32_t len() { return values.size(); }
+    KUZU_API uint32_t len();
 
-    common::Value* getValue(uint32_t idx);
+    KUZU_API common::Value* getValue(uint32_t idx);
 
-    std::string toString(const std::vector<uint32_t>& colsWidth, const std::string& delimiter = "|",
-        uint32_t maxWidth = -1);
+    KUZU_API std::string toString(const std::vector<uint32_t>& colsWidth,
+        const std::string& delimiter = "|", uint32_t maxWidth = -1);
 
 private:
     std::vector<std::unique_ptr<common::Value>> values;

@@ -8,10 +8,33 @@
 namespace kuzu {
 namespace common {
 
+DataType::DataType() : typeID{ANY}, childType{nullptr} {}
+
+DataType::DataType(DataTypeID typeID) : typeID{typeID}, childType{nullptr} {
+    assert(typeID != LIST);
+}
+
+DataType::DataType(DataTypeID typeID, std::unique_ptr<DataType> childType)
+    : typeID{typeID}, childType{std::move(childType)} {
+    assert(typeID == LIST);
+}
+
 DataType::DataType(const DataType& other) : typeID{other.typeID} {
     if (other.childType) {
         childType = other.childType->copy();
     }
+}
+
+DataType::DataType(DataType&& other) noexcept
+    : typeID{other.typeID}, childType{std::move(other.childType)} {}
+
+std::vector<DataTypeID> DataType::getNumericalTypeIDs() {
+    return std::vector<DataTypeID>{INT64, DOUBLE};
+}
+
+std::vector<DataTypeID> DataType::getAllValidTypeIDs() {
+    return std::vector<DataTypeID>{
+        INTERNAL_ID, BOOL, INT64, DOUBLE, STRING, DATE, TIMESTAMP, INTERVAL, LIST};
 }
 
 DataType& DataType::operator=(const DataType& other) {
@@ -32,12 +55,30 @@ bool DataType::operator==(const DataType& other) const {
     return true;
 }
 
+bool DataType::operator!=(const DataType& other) const {
+    return !((*this) == other);
+}
+
+DataType& DataType::operator=(DataType&& other) noexcept {
+    typeID = other.typeID;
+    childType = std::move(other.childType);
+    return *this;
+}
+
 std::unique_ptr<DataType> DataType::copy() {
     if (childType) {
         return make_unique<DataType>(typeID, childType->copy());
     } else {
         return std::make_unique<DataType>(typeID);
     }
+}
+
+DataTypeID DataType::getTypeID() const {
+    return typeID;
+}
+
+DataType* DataType::getChildType() const {
+    return childType.get();
 }
 
 DataType Types::dataTypeFromString(const std::string& dataTypeString) {
