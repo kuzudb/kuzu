@@ -143,8 +143,8 @@ protected:
 
 private:
     void validateRelPropertyFiles(catalog::RelTableSchema* relTableSchema,
-        common::table_id_t tableID, common::RelDirection relDirection, bool isColumnProperty,
-        common::DBFileType dbFileType, bool existence);
+        common::RelDirection relDirection, bool isColumnProperty, common::DBFileType dbFileType,
+        bool existence);
 
 public:
     std::unique_ptr<main::SystemConfig> systemConfig;

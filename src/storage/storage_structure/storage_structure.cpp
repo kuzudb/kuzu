@@ -66,7 +66,7 @@ void BaseColumnOrList::readBySequentialCopy(Transaction* transaction,
     }
 }
 
-void BaseColumnOrList::readRelIDsBySequentialCopy(Transaction* transaction,
+void BaseColumnOrList::readInternalIDsBySequentialCopy(Transaction* transaction,
     const std::shared_ptr<ValueVector>& vector, PageElementCursor& cursor,
     const std::function<page_idx_t(page_idx_t)>& logicalToPhysicalPageMapper,
     table_id_t commonTableID, bool hasNoNullGuarantee) {
@@ -76,14 +76,14 @@ void BaseColumnOrList::readRelIDsBySequentialCopy(Transaction* transaction,
         uint64_t numValuesInPage = numElementsPerPage - cursor.elemPosInPage;
         uint64_t numValuesToReadInPage = std::min(numValuesInPage, numValuesToRead - vectorPos);
         auto physicalPageIdx = logicalToPhysicalPageMapper(cursor.pageIdx);
-        readRelIDsFromAPageBySequentialCopy(transaction, vector, vectorPos, physicalPageIdx,
+        readInternalIDsFromAPageBySequentialCopy(transaction, vector, vectorPos, physicalPageIdx,
             cursor.elemPosInPage, numValuesToReadInPage, commonTableID, hasNoNullGuarantee);
         vectorPos += numValuesToReadInPage;
         cursor.nextPage();
     }
 }
 
-void BaseColumnOrList::readRelIDsFromAPageBySequentialCopy(Transaction* transaction,
+void BaseColumnOrList::readInternalIDsFromAPageBySequentialCopy(Transaction* transaction,
     const std::shared_ptr<ValueVector>& vector, uint64_t vectorStartPos, page_idx_t physicalPageIdx,
     uint16_t pagePosOfFirstElement, uint64_t numValuesToRead, table_id_t commonTableID,
     bool hasNoNullGuarantee) {
@@ -99,16 +99,16 @@ void BaseColumnOrList::readRelIDsFromAPageBySequentialCopy(Transaction* transact
     }
     auto currentFrameHead = frame + getElemByteOffset(pagePosOfFirstElement);
     for (auto i = 0u; i < numValuesToRead; i++) {
-        relID_t relID{0, commonTableID};
-        relID.offset = *(offset_t*)currentFrameHead;
+        internalID_t internalID{0, commonTableID};
+        internalID.offset = *(offset_t*)currentFrameHead;
         currentFrameHead += sizeof(offset_t);
-        vector->setValue(vectorStartPos + i, relID);
+        vector->setValue(vectorStartPos + i, internalID);
     }
     bufferManager.unpin(*fileHandleToPin, pageIdxToPin);
 }
 
-void BaseColumnOrList::readRelIDsBySequentialCopyWithSelState(Transaction* transaction,
-    const std::shared_ptr<ValueVector>& vector, PageElementCursor& cursor,
+void BaseColumnOrList::readInternalIDsBySequentialCopyWithSelState(Transaction* transaction,
+    const std::shared_ptr<common::ValueVector>& vector, PageElementCursor& cursor,
     const std::function<page_idx_t(page_idx_t)>& logicalToPhysicalPageMapper,
     table_id_t commonTableID) {
     auto selectedState = vector->state;
@@ -121,8 +121,8 @@ void BaseColumnOrList::readRelIDsBySequentialCopyWithSelState(Transaction* trans
         if (isInRange(selectedState->selVector->selectedPositions[selectedStatePos], vectorPos,
                 vectorPos + numValuesToReadInPage)) {
             auto physicalPageIdx = logicalToPhysicalPageMapper(cursor.pageIdx);
-            readRelIDsFromAPageBySequentialCopy(transaction, vector, vectorPos, physicalPageIdx,
-                cursor.elemPosInPage, numValuesToReadInPage, commonTableID,
+            readInternalIDsFromAPageBySequentialCopy(transaction, vector, vectorPos,
+                physicalPageIdx, cursor.elemPosInPage, numValuesToReadInPage, commonTableID,
                 false /* hasNoNullGuarantee */);
         }
         vectorPos += numValuesToReadInPage;
@@ -161,77 +161,6 @@ void BaseColumnOrList::readBySequentialCopyWithSelState(Transaction* transaction
         }
         cursor.nextPage();
     }
-}
-
-void BaseColumnOrList::readNodeIDsBySequentialCopy(Transaction* transaction,
-    const std::shared_ptr<ValueVector>& valueVector, PageElementCursor& cursor,
-    const std::function<page_idx_t(page_idx_t)>& logicalToPhysicalPageMapper,
-    NodeIDCompressionScheme nodeIDCompressionScheme, bool hasNoNullGuarantee) {
-    uint64_t numValuesToRead = valueVector->state->originalSize;
-    uint64_t vectorPos = 0;
-    while (vectorPos != numValuesToRead) {
-        uint64_t numValuesInPage = numElementsPerPage - cursor.elemPosInPage;
-        uint64_t numValuesToReadInPage = std::min(numValuesInPage, numValuesToRead - vectorPos);
-        auto physicalPageId = logicalToPhysicalPageMapper(cursor.pageIdx);
-        readNodeIDsFromAPageBySequentialCopy(transaction, valueVector, vectorPos, physicalPageId,
-            cursor.elemPosInPage, numValuesToReadInPage, nodeIDCompressionScheme,
-            hasNoNullGuarantee);
-        vectorPos += numValuesToReadInPage;
-        cursor.nextPage();
-    }
-}
-
-void BaseColumnOrList::readNodeIDsBySequentialCopyWithSelState(Transaction* transaction,
-    const std::shared_ptr<ValueVector>& vector, PageElementCursor& cursor,
-    const std::function<page_idx_t(page_idx_t)>& logicalToPhysicalPageMapper,
-    NodeIDCompressionScheme nodeIDCompressionScheme) {
-    auto selectedState = vector->state;
-    uint64_t numValuesToRead = vector->state->originalSize;
-    uint64_t selectedStatePos = 0;
-    uint64_t vectorPos = 0;
-    while (true) {
-        uint64_t numValuesInPage = numElementsPerPage - cursor.elemPosInPage;
-        uint64_t numValuesToReadInPage = std::min(numValuesInPage, numValuesToRead - vectorPos);
-        if (isInRange(selectedState->selVector->selectedPositions[selectedStatePos], vectorPos,
-                vectorPos + numValuesToReadInPage)) {
-            auto physicalPageIdx = logicalToPhysicalPageMapper(cursor.pageIdx);
-            readNodeIDsFromAPageBySequentialCopy(transaction, vector, vectorPos, physicalPageIdx,
-                cursor.elemPosInPage, numValuesToReadInPage, nodeIDCompressionScheme,
-                false /* hasNoNullGuarantee */);
-        }
-        vectorPos += numValuesToReadInPage;
-        while (selectedState->selVector->selectedPositions[selectedStatePos] < vectorPos) {
-            selectedStatePos++;
-            if (selectedStatePos == selectedState->selVector->selectedSize) {
-                return;
-            }
-        }
-        cursor.nextPage();
-    }
-}
-
-void BaseColumnOrList::readNodeIDsFromAPageBySequentialCopy(Transaction* transaction,
-    const std::shared_ptr<ValueVector>& vector, uint64_t vectorStartPos, page_idx_t physicalPageIdx,
-    uint16_t pagePosOfFirstElement, uint64_t numValuesToRead,
-    NodeIDCompressionScheme& nodeIDCompressionScheme, bool hasNoNullGuarantee) {
-    auto [fileHandleToPin, pageIdxToPin] =
-        StorageStructureUtils::getFileHandleAndPhysicalPageIdxToPin(
-            fileHandle, physicalPageIdx, *wal, transaction->getType());
-    auto frame = bufferManager.pin(*fileHandleToPin, pageIdxToPin);
-    if (hasNoNullGuarantee) {
-        vector->setRangeNonNull(vectorStartPos, numValuesToRead);
-    } else {
-        readNullBitsFromAPage(
-            vector, frame, pagePosOfFirstElement, vectorStartPos, numValuesToRead);
-    }
-    auto currentFrameHead = frame + getElemByteOffset(pagePosOfFirstElement);
-    for (auto i = 0u; i < numValuesToRead; i++) {
-        nodeID_t nodeID{0, 0};
-        nodeIDCompressionScheme.readNodeID(currentFrameHead, &nodeID);
-        currentFrameHead += nodeIDCompressionScheme.getNumBytesForNodeIDAfterCompression();
-        vector->setValue(vectorStartPos + i, nodeID);
-    }
-    bufferManager.unpin(*fileHandleToPin, pageIdxToPin);
 }
 
 void BaseColumnOrList::readSingleNullBit(const std::shared_ptr<ValueVector>& valueVector,

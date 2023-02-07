@@ -79,9 +79,8 @@ public:
         }
         initListsUpdatesPerTablePerDirection();
     }
-    inline std::map<common::table_id_t, ListsUpdatesPerChunk>&
-    getListsUpdatesPerBoundNodeTableOfDirection(common::RelDirection relDirection) {
-        return listsUpdatesPerTablePerDirection[relDirection];
+    inline ListsUpdatesPerChunk& getListsUpdatesPerChunk(common::RelDirection relDirection) {
+        return listsUpdatesPerDirection[relDirection];
     }
 
     bool isNewlyAddedNode(ListFileID& listFileID, common::offset_t nodeOffset) const;
@@ -96,7 +95,7 @@ public:
     void readInsertedRelsToList(ListFileID& listFileID,
         std::vector<processor::ft_tuple_idx_t> tupleIdxes, InMemList& inMemList,
         uint64_t numElementsInPersistentStore, DiskOverflowFile* diskOverflowFile,
-        common::DataType dataType, NodeIDCompressionScheme* nodeIDCompressionScheme);
+        common::DataType dataType);
 
     // If this is a one-to-one relTable, all properties are stored in columns.
     // In this case, the listsUpdatesStore should not store the insert rels in FT.
@@ -171,9 +170,8 @@ private:
     // propertyID.
     std::unordered_map<common::property_id_t, std::unique_ptr<processor::FactorizedTable>>
         listsUpdates;
-    std::vector<std::map<common::table_id_t, ListsUpdatesPerChunk>>
-        listsUpdatesPerTablePerDirection;
-    std::unordered_map<common::property_id_t, processor::ft_tuple_idx_t> propertyIDToColIdxMap;
+    std::vector<ListsUpdatesPerChunk> listsUpdatesPerDirection;
+    std::unordered_map<common::property_id_t, processor::ft_col_idx_t> propertyIDToColIdxMap;
     catalog::RelTableSchema relTableSchema;
     MemoryManager& memoryManager;
 };

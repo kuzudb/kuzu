@@ -5,5 +5,4 @@ COPY knows FROM "dataset/tinysnb/eKnows.csv";
 COPY studyAt FROM "dataset/tinysnb/eStudyAt.csv" (HEADER=true);
 COPY workAt FROM "dataset/tinysnb/eWorkAt.csv"
 COPY meets FROM "dataset/tinysnb/eMeets.csv"
-COPY mixed FROM "dataset/tinysnb/eMixed.csv"
 COPY marries FROM "dataset/tinysnb/eMarries.csv"

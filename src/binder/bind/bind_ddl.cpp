@@ -44,13 +44,9 @@ std::unique_ptr<BoundStatement> Binder::bindCreateRelClause(const Statement& sta
     auto propertyNameDataTypes =
         bindPropertyNameDataTypes(createRelClause.getPropertyNameDataTypes());
     auto relMultiplicity = getRelMultiplicityFromString(createRelClause.getRelMultiplicity());
-    auto relConnections = createRelClause.getRelConnections();
-    std::vector<std::pair<table_id_t, table_id_t>> srcDstTableIDs;
-    for (auto& [srcTableName, dstTableName] : relConnections) {
-        srcDstTableIDs.emplace_back(bindNodeTableID(srcTableName), bindNodeTableID(dstTableName));
-    }
-    return make_unique<BoundCreateRelClause>(
-        tableName, std::move(propertyNameDataTypes), relMultiplicity, srcDstTableIDs);
+    return make_unique<BoundCreateRelClause>(tableName, std::move(propertyNameDataTypes),
+        relMultiplicity, bindNodeTableID(createRelClause.getSrcTableName()),
+        bindNodeTableID(createRelClause.getDstTableName()));
 }
 
 std::unique_ptr<BoundStatement> Binder::bindDropTable(const Statement& statement) {

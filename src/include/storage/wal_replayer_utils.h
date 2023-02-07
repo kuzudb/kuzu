@@ -72,32 +72,30 @@ private:
         common::table_id_t relTableID, common::table_id_t boundTableID,
         common::RelDirection relDirection, common::property_id_t propertyID,
         common::DBFileType dbFileType) {
-        removeColumnFilesIfExists(StorageUtils::getRelPropertyColumnFName(directory, relTableID,
-            boundTableID, relDirection, propertyID, common::DBFileType::ORIGINAL));
+        removeColumnFilesIfExists(StorageUtils::getRelPropertyColumnFName(
+            directory, relTableID, relDirection, propertyID, common::DBFileType::ORIGINAL));
     }
 
     static inline void removeListFilesForPropertyIfExists(const std::string& directory,
         common::table_id_t relTableID, common::table_id_t boundTableID,
         common::RelDirection relDirection, common::property_id_t propertyID,
         common::DBFileType dbFileType) {
-        removeListFilesIfExists(StorageUtils::getRelPropertyListsFName(directory, relTableID,
-            boundTableID, relDirection, propertyID, common::DBFileType::ORIGINAL));
+        removeListFilesIfExists(StorageUtils::getRelPropertyListsFName(
+            directory, relTableID, relDirection, propertyID, common::DBFileType::ORIGINAL));
     }
 
     static void initLargeListPageListsAndSaveToFile(InMemLists* inMemLists);
 
     static void createEmptyDBFilesForRelProperties(catalog::RelTableSchema* relTableSchema,
-        common::table_id_t tableID, const std::string& directory, common::RelDirection relDireciton,
-        uint32_t numNodes, bool isForRelPropertyColumn);
+        const std::string& directory, common::RelDirection relDireciton, uint32_t numNodes,
+        bool isForRelPropertyColumn);
 
     static void createEmptyDBFilesForColumns(
-        const std::unordered_set<common::table_id_t>& nodeTableIDs,
         const std::map<common::table_id_t, uint64_t>& maxNodeOffsetsPerTable,
         common::RelDirection relDirection, const std::string& directory,
         catalog::RelTableSchema* relTableSchema);
 
     static void createEmptyDBFilesForLists(
-        const std::unordered_set<common::table_id_t>& boundTableIDs,
         const std::map<common::table_id_t, uint64_t>& maxNodeOffsetsPerTable,
         common::RelDirection relDirection, const std::string& directory,
         catalog::RelTableSchema* relTableSchema);

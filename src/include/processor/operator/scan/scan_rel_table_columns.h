@@ -8,23 +8,21 @@ namespace processor {
 
 class ScanRelTableColumns : public ScanRelTable, public SelVectorOverWriter {
 public:
-    ScanRelTableColumns(common::table_id_t boundNodeTableID,
-        storage::DirectedRelTableData* tableData, std::vector<uint32_t> propertyIds,
+    ScanRelTableColumns(storage::DirectedRelTableData* tableData, std::vector<uint32_t> propertyIds,
         const DataPos& inNodeIDVectorPos, std::vector<DataPos> outputVectorsPos,
         std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
         : ScanRelTable{inNodeIDVectorPos, std::move(outputVectorsPos),
               PhysicalOperatorType::SCAN_REL_TABLE_COLUMNS, std::move(child), id, paramsString},
           tableData{tableData} {
         scanState = std::make_unique<storage::RelTableScanState>(
-            boundNodeTableID, std::move(propertyIds), storage::RelTableDataType::COLUMNS);
+            std::move(propertyIds), storage::RelTableDataType::COLUMNS);
     }
 
     bool getNextTuplesInternal() override;
 
     inline std::unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<ScanRelTableColumns>(scanState->boundNodeTableID, tableData,
-            scanState->propertyIds, inNodeIDVectorPos, outputVectorsPos, children[0]->clone(), id,
-            paramsString);
+        return std::make_unique<ScanRelTableColumns>(tableData, scanState->propertyIds,
+            inNodeIDVectorPos, outputVectorsPos, children[0]->clone(), id, paramsString);
     }
 
 private:

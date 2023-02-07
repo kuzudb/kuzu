@@ -1,7 +1,7 @@
 # For a node with large number of adjacent nodes, the varLengthAdjListExtend uses largeListHandler to fetch adjacent
 # nodes. We want to test whether the largeListHandler works as expected with a large adjacent list.
 
-# In the 2-bytes-per-edge dataset, Node 0 extends to 0,..., 5000. Node (1...5000) extends to 5000. In level 1, there
+# In the large list dataset, Node 0 extends to 0,..., 5000. Node (1...5000) extends to 5000. In level 1, there
 # are 10001 nodes (Node 0 extends to 5001 nodes and Node (1...5000) extends to another 5000 nodes). In level 2 there
 # are 15001 nodes (Node 0 from level 1 extends to 0...5000, the other 10000 nodes in level 1 all extend to Node 5000).
 # In level 3 there are 20001 nodes, and in level 4 there are 25001 nodes.

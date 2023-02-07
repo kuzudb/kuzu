@@ -15,15 +15,15 @@ RelsStore::RelsStore(
 }
 
 std::pair<std::vector<AdjLists*>, std::vector<AdjColumn*>> RelsStore::getAdjListsAndColumns(
-    const table_id_t tableID) const {
+    const table_id_t boundTableID) const {
     std::vector<AdjLists*> adjListsRetVal;
-    for (auto& relTable : relTables) {
-        auto adjListsForRel = relTable.second->getAdjListsForNodeTable(tableID);
+    for (auto& [_, relTable] : relTables) {
+        auto adjListsForRel = relTable->getAllAdjLists(boundTableID);
         adjListsRetVal.insert(adjListsRetVal.end(), adjListsForRel.begin(), adjListsForRel.end());
     }
     std::vector<AdjColumn*> adjColumnsRetVal;
-    for (auto& relTable : relTables) {
-        auto adjColumnsForRel = relTable.second->getAdjColumnsForNodeTable(tableID);
+    for (auto& [_, relTable] : relTables) {
+        auto adjColumnsForRel = relTable->getAllAdjColumns(boundTableID);
         adjColumnsRetVal.insert(
             adjColumnsRetVal.end(), adjColumnsForRel.begin(), adjColumnsForRel.end());
     }

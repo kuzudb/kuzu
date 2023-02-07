@@ -14,7 +14,7 @@ uint64_t CopyNode::executeInternal(
     auto numNodesCopied = nodeCSVCopier->copy();
     for (auto& relTableSchema : catalog->getAllRelTableSchemasContainBoundTable(tableID)) {
         relsStore.getRelTable(relTableSchema->tableID)
-            ->batchInitEmptyRelsForNewNodes(relTableSchema, tableID, numNodesCopied);
+            ->batchInitEmptyRelsForNewNodes(relTableSchema, numNodesCopied);
     }
     wal->logCopyNodeRecord(tableID);
     return numNodesCopied;

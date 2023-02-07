@@ -236,11 +236,6 @@ private:
     std::vector<std::pair<std::string, std::string>> transformPropertyDefinitions(
         CypherParser::KU_PropertyDefinitionsContext& ctx);
 
-    std::vector<std::pair<std::string, std::string>> transformRelConnections(
-        CypherParser::KU_RelConnectionsContext& ctx);
-
-    std::vector<std::string> transformNodeLabels(CypherParser::KU_NodeLabelsContext& ctx);
-
     std::unique_ptr<Statement> transformCopyCSV(CypherParser::KU_CopyCSVContext& ctx);
 
     std::unordered_map<std::string, std::unique_ptr<ParsedExpression>> transformParsingOptions(

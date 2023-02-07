@@ -1,37 +1,19 @@
 -NAME MultiLabelTest
--QUERY MATCH (a:person)-[:studyAt|:workAt|:mixed]->(b:organisation) return b.orgCode order by b.ID desc
+-QUERY MATCH (a:person)-[:studyAt|:workAt]->(b:organisation) return b.orgCode order by b.ID desc
 -ENUMERATE
----- 9
+---- 6
 824
 824
-824
-824
-934
 934
 325
 325
 325
 
 #-NAME MultiLabelTest2
-#-QUERY MATCH (a:person)-[e:marries|:workAt|:mixed]->(b:person) return a.ID, b.ID order by ID(e) desc LIMIT 4
+#-QUERY MATCH (a:person)-[e:marries|:workAt]->(b:person) return a.ID, b.ID order by ID(e) desc LIMIT 4
 #-ENUMERATE
 #---- 4
 #7|8
 #3|5
 #0|2
 #10|2
-
--NAME MultiLabelTest3
--QUERY MATCH (a:person:organisation)-[:mixed]->(b:person:organisation) return b.name, b.fName ORDER BY b.ID
--ENUMERATE
----- 10
-|Bob
-|Bob
-|Carol
-|Carol
-|Carol
-CsWork|
-|Dan
-DEsWork|
-DEsWork|
-|Elizabeth

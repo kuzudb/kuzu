@@ -156,8 +156,8 @@ uint64_t SerDeser::serializeValue<RelTableSchema>(
     offset = SerDeser::serializeValue<table_id_t>(value.tableID, fileInfo, offset);
     offset = SerDeser::serializeValue<RelMultiplicity>(value.relMultiplicity, fileInfo, offset);
     offset = SerDeser::serializeVector<Property>(value.properties, fileInfo, offset);
-    return SerDeser::serializeVector<std::pair<table_id_t, table_id_t>>(
-        value.srcDstTableIDs, fileInfo, offset);
+    offset = SerDeser::serializeValue<table_id_t>(value.srcTableID, fileInfo, offset);
+    return SerDeser::serializeValue<table_id_t>(value.dstTableID, fileInfo, offset);
 }
 
 template<>
@@ -167,8 +167,8 @@ uint64_t SerDeser::deserializeValue<RelTableSchema>(
     offset = SerDeser::deserializeValue<table_id_t>(value.tableID, fileInfo, offset);
     offset = SerDeser::deserializeValue<RelMultiplicity>(value.relMultiplicity, fileInfo, offset);
     offset = SerDeser::deserializeVector<Property>(value.properties, fileInfo, offset);
-    return SerDeser::deserializeVector<std::pair<table_id_t, table_id_t>>(
-        value.srcDstTableIDs, fileInfo, offset);
+    offset = SerDeser::deserializeValue<table_id_t>(value.srcTableID, fileInfo, offset);
+    return SerDeser::deserializeValue<table_id_t>(value.dstTableID, fileInfo, offset);
 }
 
 } // namespace common
@@ -218,13 +218,11 @@ table_id_t CatalogContent::addNodeTableSchema(std::string tableName, property_id
 }
 
 table_id_t CatalogContent::addRelTableSchema(std::string tableName, RelMultiplicity relMultiplicity,
-    const std::vector<PropertyNameDataType>& propertyDefinitions,
-    std::vector<std::pair<table_id_t, table_id_t>> srcDstTableIDs) {
+    const std::vector<PropertyNameDataType>& propertyDefinitions, table_id_t srcTableID,
+    table_id_t dstTableID) {
     table_id_t tableID = assignNextTableID();
-    for (auto& [srcTableID, dstTableID] : srcDstTableIDs) {
-        nodeTableSchemas[srcTableID]->addFwdRelTableID(tableID);
-        nodeTableSchemas[dstTableID]->addBwdRelTableID(tableID);
-    }
+    nodeTableSchemas[srcTableID]->addFwdRelTableID(tableID);
+    nodeTableSchemas[dstTableID]->addBwdRelTableID(tableID);
     std::vector<Property> properties;
     auto propertyID = 0;
     auto propertyNameDataType = PropertyNameDataType(INTERNAL_ID_SUFFIX, INTERNAL_ID);
@@ -235,7 +233,7 @@ table_id_t CatalogContent::addRelTableSchema(std::string tableName, RelMultiplic
             Property::constructRelProperty(propertyDefinition, propertyID++, tableID));
     }
     auto relTableSchema = std::make_unique<RelTableSchema>(std::move(tableName), tableID,
-        relMultiplicity, std::move(properties), std::move(srcDstTableIDs));
+        relMultiplicity, std::move(properties), srcTableID, dstTableID);
     relTableNameToIDMap[relTableSchema->tableName] = tableID;
     relTableSchemas[tableID] = std::move(relTableSchema);
     return tableID;
@@ -373,11 +371,11 @@ table_id_t Catalog::addNodeTableSchema(std::string tableName, property_id_t prim
 }
 
 table_id_t Catalog::addRelTableSchema(std::string tableName, RelMultiplicity relMultiplicity,
-    const std::vector<PropertyNameDataType>& propertyDefinitions,
-    std::vector<std::pair<table_id_t, table_id_t>> srcDstTableIDs) {
+    const std::vector<PropertyNameDataType>& propertyDefinitions, table_id_t srcTableID,
+    table_id_t dstTableID) {
     initCatalogContentForWriteTrxIfNecessary();
     auto tableID = catalogContentForWriteTrx->addRelTableSchema(
-        std::move(tableName), relMultiplicity, propertyDefinitions, std::move(srcDstTableIDs));
+        std::move(tableName), relMultiplicity, propertyDefinitions, srcTableID, dstTableID);
     wal->logRelTableRecord(tableID);
     return tableID;
 }

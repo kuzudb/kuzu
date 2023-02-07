@@ -7,15 +7,6 @@
 namespace kuzu {
 namespace storage {
 
-using table_adj_in_mem_columns_map_t =
-    std::unordered_map<common::table_id_t, std::unique_ptr<InMemAdjColumn>>;
-using table_property_in_mem_lists_map_t =
-    std::unordered_map<common::table_id_t, std::vector<std::unique_ptr<InMemLists>>>;
-using table_adj_in_mem_lists_map_t =
-    std::unordered_map<common::table_id_t, std::unique_ptr<InMemAdjLists>>;
-using table_property_in_mem_columns_map_t =
-    std::unordered_map<common::table_id_t, std::vector<std::unique_ptr<InMemColumn>>>;
-
 class CopyRelArrow : public CopyStructuresArrow {
 
 public:
@@ -44,6 +35,8 @@ private:
     void initAdjListsHeaders();
 
     void initListsMetadata();
+
+    void initializePkIndexes(common::table_id_t nodeTableID, BufferManager& bufferManager);
 
     arrow::Status executePopulateTask(PopulateTaskType populateTaskType);
 
@@ -77,8 +70,8 @@ private:
     static void inferTableIDsAndOffsets(const std::vector<std::shared_ptr<T>>& batchColumns,
         std::vector<common::nodeID_t>& nodeIDs, std::vector<common::DataType>& nodeIDTypes,
         const std::map<common::table_id_t, std::unique_ptr<PrimaryKeyIndex>>& pkIndexes,
-        transaction::Transaction* transaction, const catalog::Catalog& catalog,
-        std::vector<bool> requireToReadTableLabels, int64_t blockOffset, int64_t& colIndex);
+        transaction::Transaction* transaction, const catalog::Catalog& catalog, int64_t blockOffset,
+        int64_t& colIndex);
 
     template<typename T>
     static void putPropsOfLineIntoColumns(CopyRelArrow* copier,
@@ -130,16 +123,16 @@ private:
     RelsStatistics* relsStatistics;
     std::unique_ptr<transaction::Transaction> dummyReadOnlyTrx;
     std::map<common::table_id_t, std::unique_ptr<PrimaryKeyIndex>> pkIndexes;
-    std::vector<std::map<common::table_id_t, std::unique_ptr<atomic_uint64_vec_t>>>
-        directionTableListSizes{2};
-    std::vector<std::map<common::table_id_t, std::atomic<uint64_t>>> directionNumRelsPerTable{2};
-    std::vector<std::map<common::table_id_t, NodeIDCompressionScheme>>
-        directionNodeIDCompressionScheme{2};
-    std::vector<table_adj_in_mem_columns_map_t> directionTableAdjColumns{2};
-    std::vector<table_property_in_mem_columns_map_t> directionTablePropertyColumns{2};
-    std::vector<table_adj_in_mem_lists_map_t> directionTableAdjLists{2};
-    std::vector<table_property_in_mem_lists_map_t> directionTablePropertyLists{2};
-    std::unordered_map<uint32_t, std::unique_ptr<InMemOverflowFile>> overflowFilePerPropertyID;
+    std::atomic<uint64_t> numRels = 0;
+    std::vector<std::unique_ptr<atomic_uint64_vec_t>> listSizesPerDirection{2};
+    std::vector<std::unique_ptr<InMemAdjColumn>> adjColumnsPerDirection{2};
+    std::vector<std::unordered_map<common::property_id_t, std::unique_ptr<InMemColumn>>>
+        propertyColumnsPerDirection{2};
+    std::vector<std::unique_ptr<InMemAdjLists>> adjListsPerDirection{2};
+    std::vector<std::unordered_map<common::property_id_t, std::unique_ptr<InMemLists>>>
+        propertyListsPerDirection{2};
+    std::unordered_map<common::property_id_t, std::unique_ptr<InMemOverflowFile>>
+        overflowFilePerPropertyID;
 };
 
 } // namespace storage

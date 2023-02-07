@@ -325,18 +325,6 @@ Dan|Carol
 -NAME QueryOneToOneRelTable
 -QUERY MATCH (:person)-[m:marries]->(:person) RETURN m
 ---- 3
-(0:0)-[label:marries, {_id:8:0, usedAddress:[toronto], note:}]->(0:1)
-(0:2)-[label:marries, {_id:8:1, usedAddress:, note:long long long string}]->(0:3)
-(0:4)-[label:marries, {_id:8:2, usedAddress:[vancouver], note:short str}]->(0:5)
-
--NAME OneHopMixedTest
--QUERY MATCH (a:person)-[e:mixed]->(b:person) RETURN a.ID, e, b.ID, b.fName
--ENUMERATE
----- 7
-0|(0:0)-[label:mixed, {_id:7:0, year:1930}]->(0:1)|2|Bob
-10|(0:7)-[label:mixed, {_id:7:6, year:2020}]->(0:1)|2|Bob
-2|(0:1)-[label:mixed, {_id:7:1, year:1945}]->(0:3)|5|Dan
-3|(0:2)-[label:mixed, {_id:7:2, year:2088}]->(0:4)|7|Elizabeth
-7|(0:4)-[label:mixed, {_id:7:3, year:2066}]->(0:2)|3|Carol
-8|(0:5)-[label:mixed, {_id:7:4, year:2120}]->(0:2)|3|Carol
-9|(0:6)-[label:mixed, {_id:7:5, year:2022}]->(0:2)|3|Carol
+(0:0)-[label:marries, {_id:7:0, usedAddress:[toronto], note:}]->(0:1)
+(0:2)-[label:marries, {_id:7:1, usedAddress:, note:long long long string}]->(0:3)
+(0:4)-[label:marries, {_id:7:2, usedAddress:[vancouver], note:short str}]->(0:5)

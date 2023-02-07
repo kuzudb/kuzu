@@ -5,5 +5,4 @@ create rel table knows (FROM person TO person, date DATE, meetTime TIMESTAMP, va
 create rel table studyAt (FROM person TO organisation, year INT64, places STRING[], MANY_ONE);
 create rel table workAt (FROM person TO organisation, year INT64, MANY_ONE);
 create rel table meets (FROM person TO person, MANY_ONE);
-create rel table mixed (FROM person TO person|organisation, year INT64, MANY_MANY);
 create rel table marries (FROM person TO person, usedAddress STRING[], note STRING, ONE_ONE);

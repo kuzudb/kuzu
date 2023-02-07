@@ -85,7 +85,7 @@ std::unique_ptr<LogicalPlan> Planner::planCreateRelTable(const BoundStatement& s
     auto plan = std::make_unique<LogicalPlan>();
     auto createRelTable = make_shared<LogicalCreateRelTable>(createRelClause.getTableName(),
         createRelClause.getPropertyNameDataTypes(), createRelClause.getRelMultiplicity(),
-        createRelClause.getSrcDstTableIDs(),
+        createRelClause.getSrcTableID(), createRelClause.getDstTableID(),
         statement.getStatementResult()->getSingleExpressionToCollect());
     createRelTable->computeSchema();
     plan->setLastOperator(std::move(createRelTable));

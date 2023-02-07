@@ -658,7 +658,7 @@ std::unique_ptr<ParsedExpression> Transformer::transformListSliceOperatorExpress
         }
     }
     return listSlice;
-};
+}
 
 std::unique_ptr<ParsedExpression> Transformer::transformListExtractOperatorExpression(
     CypherParser::KU_ListExtractOperatorExpressionContext& ctx,
@@ -669,7 +669,7 @@ std::unique_ptr<ParsedExpression> Transformer::transformListExtractOperatorExpre
     listExtract->addChild(std::move(propertyExpression));
     listExtract->addChild(transformExpression(*ctx.oC_Expression()));
     return listExtract;
-};
+}
 
 std::unique_ptr<ParsedExpression> Transformer::transformNullOperatorExpression(
     CypherParser::OC_NullOperatorExpressionContext& ctx,
@@ -925,15 +925,15 @@ std::unique_ptr<Statement> Transformer::transformCreateNodeClause(
 
 std::unique_ptr<Statement> Transformer::transformCreateRelClause(
     CypherParser::KU_CreateRelContext& ctx) {
-    auto schemaName = transformSchemaName(*ctx.oC_SchemaName());
+    auto schemaName = transformSchemaName(*ctx.oC_SchemaName(0));
     auto propertyDefinitions = ctx.kU_PropertyDefinitions() ?
                                    transformPropertyDefinitions(*ctx.kU_PropertyDefinitions()) :
                                    std::vector<std::pair<std::string, std::string>>();
     auto relMultiplicity =
         ctx.oC_SymbolicName() ? transformSymbolicName(*ctx.oC_SymbolicName()) : "MANY_MANY";
-    auto relConnections = transformRelConnections(*ctx.kU_RelConnections());
-    return std::make_unique<CreateRelClause>(std::move(schemaName), std::move(propertyDefinitions),
-        relMultiplicity, std::move(relConnections));
+    return make_unique<CreateRelClause>(std::move(schemaName), std::move(propertyDefinitions),
+        relMultiplicity, transformSchemaName(*ctx.oC_SchemaName(1)),
+        transformSchemaName(*ctx.oC_SchemaName(2)));
 }
 
 std::unique_ptr<Statement> Transformer::transformDropTable(CypherParser::KU_DropTableContext& ctx) {
@@ -1001,31 +1001,6 @@ std::string Transformer::transformListIdentifiers(CypherParser::KU_ListIdentifie
 
 std::string Transformer::transformPrimaryKey(CypherParser::KU_CreateNodeConstraintContext& ctx) {
     return transformPropertyKeyName(*ctx.oC_PropertyKeyName());
-}
-
-std::vector<std::pair<std::string, std::string>> Transformer::transformRelConnections(
-    CypherParser::KU_RelConnectionsContext& ctx) {
-    std::vector<std::pair<std::string, std::string>> relConnections;
-    if (!ctx.kU_RelConnection().empty()) {
-        for (auto& relConnection : ctx.kU_RelConnection()) {
-            auto newSrcTableNames = transformNodeLabels(*relConnection->kU_NodeLabels()[0]);
-            auto newDstTableNames = transformNodeLabels(*relConnection->kU_NodeLabels()[1]);
-            for (auto& newSrcTableName : newSrcTableNames) {
-                for (auto& newDstTableName : newDstTableNames) {
-                    relConnections.emplace_back(newSrcTableName, newDstTableName);
-                }
-            }
-        }
-    }
-    return relConnections;
-}
-
-std::vector<std::string> Transformer::transformNodeLabels(CypherParser::KU_NodeLabelsContext& ctx) {
-    std::vector<std::string> nodeLabels;
-    for (auto& nodeLabel : ctx.oC_SchemaName()) {
-        nodeLabels.push_back(transformSchemaName(*nodeLabel));
-    }
-    return nodeLabels;
 }
 
 std::unique_ptr<Statement> Transformer::transformCopyCSV(CypherParser::KU_CopyCSVContext& ctx) {

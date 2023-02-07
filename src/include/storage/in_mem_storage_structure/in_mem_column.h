@@ -2,7 +2,6 @@
 
 #include <functional>
 
-#include "storage/node_id_compression_scheme.h"
 #include "storage/storage_structure/in_mem_file.h"
 
 namespace kuzu {
@@ -103,16 +102,11 @@ public:
 class InMemAdjColumn : public InMemColumn {
 
 public:
-    InMemAdjColumn(std::string fName, const NodeIDCompressionScheme& nodeIDCompressionScheme,
-        uint64_t numElements)
+    InMemAdjColumn(std::string fName, uint64_t numElements)
         : InMemColumn{std::move(fName), common::DataType(common::INTERNAL_ID),
-              nodeIDCompressionScheme.getNumBytesForNodeIDAfterCompression(), numElements},
-          nodeIDCompressionScheme{nodeIDCompressionScheme} {}
+              sizeof(common::offset_t), numElements} {}
 
     void setElement(common::offset_t offset, const uint8_t* val) override;
-
-private:
-    NodeIDCompressionScheme nodeIDCompressionScheme;
 };
 
 class InMemStringColumn : public InMemColumnWithOverflow {

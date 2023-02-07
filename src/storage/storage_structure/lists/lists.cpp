@@ -102,8 +102,7 @@ std::unique_ptr<InMemList> Lists::createInMemListWithDataFromUpdateStoreOnly(
         getNumElementsInListsUpdatesStore(nodeOffset), elementSize, mayContainNulls());
     listsUpdatesStore->readInsertedRelsToList(
         storageStructureIDAndFName.storageStructureID.listFileID, insertedRelsTupleIdxInFT,
-        *inMemList, 0 /* numElementsInPersistentStore */, getDiskOverflowFileIfExists(), dataType,
-        getNodeIDCompressionIfExists());
+        *inMemList, 0 /* numElementsInPersistentStore */, getDiskOverflowFileIfExists(), dataType);
     return inMemList;
 }
 
@@ -120,7 +119,7 @@ std::unique_ptr<InMemList> Lists::writeToInMemList(offset_t nodeOffset,
     listsUpdatesStore->readInsertedRelsToList(
         storageStructureIDAndFName.storageStructureID.listFileID, insertedRelTupleIdxesInFT,
         *inMemList, numElementsInPersistentStore - deletedRelOffsetsForList.size(),
-        getDiskOverflowFileIfExists(), dataType, getNodeIDCompressionIfExists());
+        getDiskOverflowFileIfExists(), dataType);
     return inMemList;
 }
 
@@ -287,11 +286,11 @@ std::unique_ptr<std::vector<nodeID_t>> AdjLists::readAdjacencyListOfNode(
     auto sizeLeftToDecompress = listLenInBytes;
     bufferPtr = buffer.get();
     while (sizeLeftToDecompress) {
-        nodeID_t nodeID(0, 0);
-        nodeIDCompressionScheme.readNodeID(bufferPtr, &nodeID);
-        bufferPtr += nodeIDCompressionScheme.getNumBytesForNodeIDAfterCompression();
+        nodeID_t nodeID(0, nbrTableID);
+        nodeID.offset = *(offset_t*)bufferPtr;
+        bufferPtr += sizeof(offset_t);
         retVal->emplace_back(nodeID);
-        sizeLeftToDecompress -= nodeIDCompressionScheme.getNumBytesForNodeIDAfterCompression();
+        sizeLeftToDecompress -= sizeof(offset_t);
     }
     return retVal;
 }
@@ -315,8 +314,8 @@ void AdjLists::readFromLargeList(
     auto physicalPageId = listHandle.mapper(pageCursor.pageIdx);
     // See comments for AdjLists::readFromSmallList.
     auto dummyReadOnlyTrx = Transaction::getDummyReadOnlyTrx();
-    readNodeIDsBySequentialCopy(dummyReadOnlyTrx.get(), valueVector, pageCursor, listHandle.mapper,
-        nodeIDCompressionScheme, true /* hasNoNullGuarantee */);
+    readInternalIDsBySequentialCopy(dummyReadOnlyTrx.get(), valueVector, pageCursor,
+        listHandle.mapper, nbrTableID, true /* hasNoNullGuarantee */);
 }
 
 // Note: This function sets the original and selected size of the DataChunk into which it will
@@ -333,8 +332,8 @@ void AdjLists::readFromSmallList(
     auto dummyReadOnlyTrx = Transaction::getDummyReadOnlyTrx();
     auto pageCursor = PageUtils::getPageElementCursorForPos(
         ListHeaders::getSmallListCSROffset(listHandle.getListHeader()), numElementsPerPage);
-    readNodeIDsBySequentialCopy(dummyReadOnlyTrx.get(), valueVector, pageCursor, listHandle.mapper,
-        nodeIDCompressionScheme, true /* hasNoNullGuarantee */);
+    readInternalIDsBySequentialCopy(dummyReadOnlyTrx.get(), valueVector, pageCursor,
+        listHandle.mapper, nbrTableID, true /* hasNoNullGuarantee */);
     // We set the startIdx + numValuesToRead == numValuesInList in listSyncState to indicate to the
     // callers (e.g., the adj_list_extend or var_len_extend) that we have read the small list
     // already. This allows the callers to know when to switch to reading from the update store if
@@ -459,8 +458,8 @@ void RelIDList::readFromSmallList(
     const std::shared_ptr<ValueVector>& valueVector, ListHandle& listHandle) {
     auto pageCursor = PageUtils::getPageElementCursorForPos(
         ListHeaders::getSmallListCSROffset(listHandle.getListHeader()), numElementsPerPage);
-    readRelIDsBySequentialCopy(Transaction::getDummyReadOnlyTrx().get(), valueVector, pageCursor,
-        listHandle.mapper, getRelTableID(), true /* hasNoNullGuarantee */);
+    readInternalIDsBySequentialCopy(Transaction::getDummyReadOnlyTrx().get(), valueVector,
+        pageCursor, listHandle.mapper, getRelTableID(), true /* hasNoNullGuarantee */);
 }
 
 void RelIDList::readFromLargeList(
@@ -468,8 +467,8 @@ void RelIDList::readFromLargeList(
     // Assumes that the associated adjList has already updated the syncState.
     auto pageCursor =
         PageUtils::getPageElementCursorForPos(listHandle.getStartElemOffset(), numElementsPerPage);
-    readRelIDsBySequentialCopy(Transaction::getDummyReadOnlyTrx().get(), valueVector, pageCursor,
-        listHandle.mapper, getRelTableID(), true /* hasNoNullGuarantee */);
+    readInternalIDsBySequentialCopy(Transaction::getDummyReadOnlyTrx().get(), valueVector,
+        pageCursor, listHandle.mapper, getRelTableID(), true /* hasNoNullGuarantee */);
 }
 
 } // namespace storage

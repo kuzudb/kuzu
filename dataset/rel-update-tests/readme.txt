@@ -4,5 +4,5 @@ eHasOwner.csv
 # The value of place property is: "2000-animalID" for animal with odd ID, and 3 * "2000-animalID" for animal with even ID.
 
 eKnows.csv
-# Animal 0-50 all know person 0 with length property = animalID, place = string(1000-animalID), tags=[place]
-# Person 0 knows person 1-2500 with length property = 3 * (nbrPersonID - 1), place = string(3001-nbrPersonID), tags=[place]
+# Animal 0 knows person 1-2300 with length property = dstPersonID, place = string(3000-dstPersonID), tags=[string(3000-dstPersonID)]
+# Animal 1 knows person 0-50 with length property = dstPersonID, place = string(1000-dstPersonID), tags=[string(1000-dstPersonID)]

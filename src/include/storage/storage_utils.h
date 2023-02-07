@@ -99,33 +99,28 @@ public:
     // Returns the StorageStructureIDAndFName for the "base" lists structure/file. Callers need to
     // modify it to obtain versions for METADATA and HEADERS structures/files.
     static inline StorageStructureIDAndFName getAdjListsStructureIDAndFName(
-        const std::string& directory, common::table_id_t relTableID,
-        common::table_id_t srcNodeTableID, common::RelDirection dir) {
-        auto fName = getAdjListsFName(
-            directory, relTableID, srcNodeTableID, dir, common::DBFileType::ORIGINAL);
-        return {StorageStructureID::newAdjListsID(
-                    relTableID, srcNodeTableID, dir, ListFileType::BASE_LISTS),
-            fName};
+        const std::string& directory, common::table_id_t relTableID, common::RelDirection dir) {
+        auto fName = getAdjListsFName(directory, relTableID, dir, common::DBFileType::ORIGINAL);
+        return StorageStructureIDAndFName(
+            StorageStructureID::newAdjListsID(relTableID, dir, ListFileType::BASE_LISTS), fName);
     }
 
     // Returns the StorageStructureIDAndFName for the "base" lists structure/file. Callers need to
     // modify it to obtain versions for METADATA and HEADERS structures/files.
     static inline StorageStructureIDAndFName getRelPropertyListsStructureIDAndFName(
-        const std::string& directory, common::table_id_t relTableID,
-        common::table_id_t srcNodeTableID, common::RelDirection dir,
+        const std::string& directory, common::table_id_t relTableID, common::RelDirection dir,
         const catalog::Property& property) {
-        auto fName = getRelPropertyListsFName(directory, relTableID, srcNodeTableID, dir,
-            property.propertyID, common::DBFileType::ORIGINAL);
-        return {StorageStructureID::newRelPropertyListsID(
-                    relTableID, srcNodeTableID, dir, property.propertyID, ListFileType::BASE_LISTS),
-            fName};
+        auto fName = getRelPropertyListsFName(
+            directory, relTableID, dir, property.propertyID, common::DBFileType::ORIGINAL);
+        return StorageStructureIDAndFName(StorageStructureID::newRelPropertyListsID(relTableID, dir,
+                                              property.propertyID, ListFileType::BASE_LISTS),
+            fName);
     }
 
     static inline std::string getAdjColumnFName(const std::string& directory,
-        const common::table_id_t& relTableID, const common::table_id_t& nodeTableID,
-        const common::RelDirection& relDirection, common::DBFileType dbFileType) {
-        auto fName =
-            common::StringUtils::string_format("r-%d-%d-%d", relTableID, nodeTableID, relDirection);
+        const common::table_id_t& relTableID, const common::RelDirection& relDirection,
+        common::DBFileType dbFileType) {
+        auto fName = common::StringUtils::string_format("r-%d-%d", relTableID, relDirection);
         return appendWALFileSuffixIfNecessary(
             common::FileUtils::joinPath(
                 directory, fName + common::StorageConfig::COLUMN_FILE_SUFFIX),
@@ -134,28 +129,27 @@ public:
 
     static inline StorageStructureIDAndFName getAdjColumnStructureIDAndFName(
         const std::string& directory, const common::table_id_t& relTableID,
-        const common::table_id_t& nodeTableID, const common::RelDirection& relDirection) {
-        auto fName = getAdjColumnFName(
-            directory, relTableID, nodeTableID, relDirection, common::DBFileType::ORIGINAL);
-        return {StorageStructureID::newAdjColumnID(nodeTableID, relTableID, relDirection), fName};
+        const common::RelDirection& relDirection) {
+        auto fName =
+            getAdjColumnFName(directory, relTableID, relDirection, common::DBFileType::ORIGINAL);
+        return StorageStructureIDAndFName(
+            StorageStructureID::newAdjColumnID(relTableID, relDirection), fName);
     }
 
     static inline std::string getAdjListsFName(const std::string& directory,
-        const common::table_id_t& relTableID, const common::table_id_t& nodeTableID,
-        const common::RelDirection& relDirection, common::DBFileType dbFileType) {
-        auto fName =
-            common::StringUtils::string_format("r-%d-%d-%d", relTableID, nodeTableID, relDirection);
+        const common::table_id_t& relTableID, const common::RelDirection& relDirection,
+        common::DBFileType dbFileType) {
+        auto fName = common::StringUtils::string_format("r-%d-%d", relTableID, relDirection);
         return appendWALFileSuffixIfNecessary(common::FileUtils::joinPath(directory,
                                                   fName + common::StorageConfig::LISTS_FILE_SUFFIX),
             dbFileType);
     }
 
     static inline std::string getRelPropertyColumnFName(const std::string& directory,
-        const common::table_id_t& relTableID, const common::table_id_t& nodeTableID,
-        const common::RelDirection& relDirection, const uint32_t propertyID,
-        common::DBFileType dbFileType) {
-        auto fName = common::StringUtils::string_format(
-            "r-%d-%d-%d-%d", relTableID, nodeTableID, relDirection, propertyID);
+        const common::table_id_t& relTableID, const common::RelDirection& relDirection,
+        const uint32_t propertyID, common::DBFileType dbFileType) {
+        auto fName =
+            common::StringUtils::string_format("r-%d-%d-%d", relTableID, relDirection, propertyID);
         return appendWALFileSuffixIfNecessary(
             common::FileUtils::joinPath(
                 directory, fName + common::StorageConfig::COLUMN_FILE_SUFFIX),
@@ -164,21 +158,19 @@ public:
 
     static inline StorageStructureIDAndFName getRelPropertyColumnStructureIDAndFName(
         const std::string& directory, const common::table_id_t& relTableID,
-        const common::table_id_t& nodeTableID, const common::RelDirection& relDirection,
-        uint32_t propertyID) {
-        auto fName = getRelPropertyColumnFName(directory, relTableID, nodeTableID, relDirection,
-            propertyID, common::DBFileType::ORIGINAL);
-        return {StorageStructureID::newRelPropertyColumnID(
-                    nodeTableID, relTableID, relDirection, propertyID),
-            fName};
+        const common::RelDirection& relDirection, uint32_t propertyID) {
+        auto fName = getRelPropertyColumnFName(
+            directory, relTableID, relDirection, propertyID, common::DBFileType::ORIGINAL);
+        return StorageStructureIDAndFName(
+            StorageStructureID::newRelPropertyColumnID(relTableID, relDirection, propertyID),
+            fName);
     }
 
     static inline std::string getRelPropertyListsFName(const std::string& directory,
-        const common::table_id_t& relTableID, const common::table_id_t& nodeTableID,
-        const common::RelDirection& relDirection, const uint32_t propertyID,
-        common::DBFileType dbFileType) {
-        auto fName = common::StringUtils::string_format(
-            "r-%d-%d-%d-%d", relTableID, nodeTableID, relDirection, propertyID);
+        const common::table_id_t& relTableID, const common::RelDirection& relDirection,
+        const uint32_t propertyID, common::DBFileType dbFileType) {
+        auto fName =
+            common::StringUtils::string_format("r-%d-%d-%d", relTableID, relDirection, propertyID);
         return appendWALFileSuffixIfNecessary(common::FileUtils::joinPath(directory,
                                                   fName + common::StorageConfig::LISTS_FILE_SUFFIX),
             dbFileType);
@@ -303,8 +295,7 @@ public:
         StorageManager& storageManager);
 
     static void initializeListsHeaders(const catalog::RelTableSchema* relTableSchema,
-        common::table_id_t tableID, uint64_t numNodesInTable, const std::string& directory,
-        common::RelDirection relDirection);
+        uint64_t numNodesInTable, const std::string& directory, common::RelDirection relDirection);
 
 private:
     static std::string appendSuffixOrInsertBeforeWALSuffix(
