@@ -8,14 +8,9 @@ cp ../../LICENSE ./LICENSE.txt
 cp ./README.md ./README_PYTHON_BUILD.md
 cp ../../README.md ./README.md
 
+curr_dir=$(pwd)
 # Collect source files
-tar --exclude="$(pwd)" \
-    --exclude="./build" \
-    --exclude="./scripts" \
-    --exclude="./.?*" \
-    -cf\
-    kuzu-source.tar\
-    -C ../../. .
+(cd ../..; git archive --format=tar -o $curr_dir/kuzu-source.tar HEAD)
 rm -rf kuzu-source && mkdir kuzu-source
 tar -xf kuzu-source.tar -C ./kuzu-source
 rm -rf kuzu-source.tar
