@@ -124,7 +124,7 @@ void InMemLists::initLargeListPageLists(uint64_t numNodes, ListHeaders* listHead
 void InMemLists::allocatePagesForLargeList(
     uint64_t numElementsInList, uint64_t numElementsPerPage, uint32_t& largeListIdx) {
     auto numPagesForLargeList =
-        numElementsInList / numElementsPerPage + numElementsInList % numElementsPerPage ? 1 : 0;
+        numElementsInList / numElementsPerPage + (numElementsInList % numElementsPerPage ? 1 : 0);
     listsMetadataBuilder->populateLargeListPageList(
         largeListIdx, numPagesForLargeList, numElementsInList, inMemFile->getNumPages());
     inMemFile->addNewPages(numPagesForLargeList);

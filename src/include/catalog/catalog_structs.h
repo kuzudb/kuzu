@@ -109,8 +109,6 @@ public:
     table_id_t tableID;
     bool isNodeTable;
     std::vector<Property> properties;
-
-private:
     property_id_t nextPropertyID;
 };
 

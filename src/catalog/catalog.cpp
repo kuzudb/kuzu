@@ -126,12 +126,28 @@ uint64_t SerDeser::deserializeVector<std::vector<uint64_t>>(
 }
 
 template<>
-uint64_t SerDeser::serializeValue<NodeTableSchema>(
-    const NodeTableSchema& value, FileInfo* fileInfo, uint64_t offset) {
+uint64_t SerDeser::serializeValue<TableSchema>(
+    const TableSchema& value, FileInfo* fileInfo, uint64_t offset) {
     offset = SerDeser::serializeValue<std::string>(value.tableName, fileInfo, offset);
     offset = SerDeser::serializeValue<table_id_t>(value.tableID, fileInfo, offset);
-    offset = SerDeser::serializeValue<property_id_t>(value.primaryKeyPropertyID, fileInfo, offset);
     offset = SerDeser::serializeVector<Property>(value.properties, fileInfo, offset);
+    return SerDeser::serializeValue<property_id_t>(value.nextPropertyID, fileInfo, offset);
+}
+
+template<>
+uint64_t SerDeser::deserializeValue<TableSchema>(
+    TableSchema& value, FileInfo* fileInfo, uint64_t offset) {
+    offset = SerDeser::deserializeValue<std::string>(value.tableName, fileInfo, offset);
+    offset = SerDeser::deserializeValue<table_id_t>(value.tableID, fileInfo, offset);
+    offset = SerDeser::deserializeVector<Property>(value.properties, fileInfo, offset);
+    return SerDeser::deserializeValue<property_id_t>(value.nextPropertyID, fileInfo, offset);
+}
+
+template<>
+uint64_t SerDeser::serializeValue<NodeTableSchema>(
+    const NodeTableSchema& value, FileInfo* fileInfo, uint64_t offset) {
+    offset = SerDeser::serializeValue<TableSchema>((const TableSchema&)value, fileInfo, offset);
+    offset = SerDeser::serializeValue<property_id_t>(value.primaryKeyPropertyID, fileInfo, offset);
     offset = SerDeser::serializeUnorderedSet<table_id_t>(value.fwdRelTableIDSet, fileInfo, offset);
     return SerDeser::serializeUnorderedSet<table_id_t>(value.bwdRelTableIDSet, fileInfo, offset);
 }
@@ -139,11 +155,9 @@ uint64_t SerDeser::serializeValue<NodeTableSchema>(
 template<>
 uint64_t SerDeser::deserializeValue<NodeTableSchema>(
     NodeTableSchema& value, FileInfo* fileInfo, uint64_t offset) {
-    offset = SerDeser::deserializeValue<std::string>(value.tableName, fileInfo, offset);
-    offset = SerDeser::deserializeValue<table_id_t>(value.tableID, fileInfo, offset);
+    offset = SerDeser::deserializeValue<TableSchema>((TableSchema&)value, fileInfo, offset);
     offset =
         SerDeser::deserializeValue<property_id_t>(value.primaryKeyPropertyID, fileInfo, offset);
-    offset = SerDeser::deserializeVector<Property>(value.properties, fileInfo, offset);
     offset =
         SerDeser::deserializeUnorderedSet<table_id_t>(value.fwdRelTableIDSet, fileInfo, offset);
     return SerDeser::deserializeUnorderedSet<table_id_t>(value.bwdRelTableIDSet, fileInfo, offset);
@@ -152,10 +166,8 @@ uint64_t SerDeser::deserializeValue<NodeTableSchema>(
 template<>
 uint64_t SerDeser::serializeValue<RelTableSchema>(
     const RelTableSchema& value, FileInfo* fileInfo, uint64_t offset) {
-    offset = SerDeser::serializeValue<std::string>(value.tableName, fileInfo, offset);
-    offset = SerDeser::serializeValue<table_id_t>(value.tableID, fileInfo, offset);
+    offset = SerDeser::serializeValue<TableSchema>((const TableSchema&)value, fileInfo, offset);
     offset = SerDeser::serializeValue<RelMultiplicity>(value.relMultiplicity, fileInfo, offset);
-    offset = SerDeser::serializeVector<Property>(value.properties, fileInfo, offset);
     offset = SerDeser::serializeValue<table_id_t>(value.srcTableID, fileInfo, offset);
     return SerDeser::serializeValue<table_id_t>(value.dstTableID, fileInfo, offset);
 }
@@ -163,10 +175,8 @@ uint64_t SerDeser::serializeValue<RelTableSchema>(
 template<>
 uint64_t SerDeser::deserializeValue<RelTableSchema>(
     RelTableSchema& value, FileInfo* fileInfo, uint64_t offset) {
-    offset = SerDeser::deserializeValue<std::string>(value.tableName, fileInfo, offset);
-    offset = SerDeser::deserializeValue<table_id_t>(value.tableID, fileInfo, offset);
+    offset = SerDeser::deserializeValue<TableSchema>((TableSchema&)value, fileInfo, offset);
     offset = SerDeser::deserializeValue<RelMultiplicity>(value.relMultiplicity, fileInfo, offset);
-    offset = SerDeser::deserializeVector<Property>(value.properties, fileInfo, offset);
     offset = SerDeser::deserializeValue<table_id_t>(value.srcTableID, fileInfo, offset);
     return SerDeser::deserializeValue<table_id_t>(value.dstTableID, fileInfo, offset);
 }
