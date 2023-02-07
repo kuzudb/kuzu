@@ -7,7 +7,8 @@ class TorchGeometricResultConverter:
         self.query_result = query_result
         self.nodes_dict = {}
         self.edges_dict = {}
-        self.rels = set()
+        self.edges_properties = {}
+        self.rels = {}
         self.nodes_property_names_dict = {}
         self.table_to_label_dict = {}
         self.internal_id_to_pos_dict = {}
@@ -81,8 +82,8 @@ class TorchGeometricResultConverter:
                 elif column_type == Type.REL.value:
                     _src = row[i]["_src"]
                     _dst = row[i]["_dst"]
-                    self.rels.add((_src["table"], _src["offset"],
-                                   _dst["table"], _dst["offset"]))
+                    self.rels[(_src["table"], _src["offset"],
+                               _dst["table"], _dst["offset"])] = row[i]
 
     def __extract_properties_from_node(self, node, label, node_property_names):
         pos = None
@@ -192,6 +193,17 @@ class TorchGeometricResultConverter:
             if dst_label not in self.edges_dict[src_label]:
                 self.edges_dict[src_label][dst_label] = []
             self.edges_dict[src_label][dst_label].append((src_pos, dst_pos))
+            curr_edge_properties = self.rels[r]
+            if (src_label, dst_label) not in self.edges_properties:
+                self.edges_properties[src_label, dst_label] = {}
+            for prop_name in curr_edge_properties:
+                if prop_name in ['_src', '_dst', '_id']:
+                    continue
+                if prop_name not in self.edges_properties[src_label, dst_label]:
+                    self.edges_properties[src_label, dst_label][prop_name] = [
+                    ]
+                self.edges_properties[src_label, dst_label][prop_name].append(
+                    curr_edge_properties[prop_name])
 
     def __print_warnings(self):
         for message in self.warning_messages:
@@ -250,12 +262,19 @@ class TorchGeometricResultConverter:
 
         if is_hetero:
             unconverted_properties = self.unconverted_properties
-        elif len(self.unconverted_properties) == 0:
-            unconverted_properties = {}
+            edge_properties = self.edges_properties
         else:
-            unconverted_properties = self.unconverted_properties[next(
-                iter(self.unconverted_properties))]
-        return data, pos_to_primary_key_dict, unconverted_properties
+            if len(self.unconverted_properties) == 0:
+                unconverted_properties = {}
+            else:
+                unconverted_properties = self.unconverted_properties[next(
+                    iter(self.unconverted_properties))]
+            if len(self.edges_properties) == 0:
+                edge_properties = {}
+            else:
+                edge_properties = self.edges_properties[next(
+                    iter(self.edges_properties))]
+        return data, pos_to_primary_key_dict, unconverted_properties, edge_properties
 
     def get_as_torch_geometric(self):
         self.__populate_nodes_dict_and_deduplicte_edges()
