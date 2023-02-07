@@ -162,10 +162,79 @@ TINY_SNB_KNOWS_GROUND_TRUTH = {
     7: [8, 9],
 }
 
+TINY_SNB_KNOWS_PROPERTIES_GROUND_TRUTH = {
+    (0, 2): {'date': datetime.date(2021, 6, 30),
+             'meetTime': datetime.datetime(1986, 10, 21, 21, 8, 31, 521000),
+             'validInterval': datetime.timedelta(days=3750, seconds=46800, microseconds=24),
+             'comments': ['rnme', 'm8sihsdnf2990nfiwf']},
+    (0, 3): {'date': datetime.date(2021, 6, 30),
+             'meetTime': datetime.datetime(1946, 8, 25, 19, 7, 22),
+             'validInterval': datetime.timedelta(days=7232),
+             'comments': ['njnojppo9u0jkmf', 'fjiojioh9h9h89hph']},
+    (0, 5): {'date': datetime.date(2021, 6, 30),
+             'meetTime': datetime.datetime(2012, 12, 11, 20, 7, 22),
+             'validInterval': datetime.timedelta(days=10),
+             'comments': ['ioji232', 'jifhe8w99u43434']},
+    (2, 0): {'date': datetime.date(2021, 6, 30),
+             'meetTime': datetime.datetime(1946, 8, 25, 19, 7, 22),
+             'validInterval': datetime.timedelta(days=3750, seconds=46800, microseconds=24),
+             'comments': ['2huh9y89fsfw23', '23nsihufhw723']},
+    (2, 3): {'date': datetime.date(1950, 5, 14),
+             'meetTime': datetime.datetime(1946, 8, 25, 19, 7, 22),
+             'validInterval': datetime.timedelta(seconds=1380),
+             'comments': ['fwehu9h9832wewew', '23u9h989sdfsss']},
+    (2, 5): {'date': datetime.date(1950, 5, 14),
+             'meetTime': datetime.datetime(2012, 12, 11, 20, 7, 22),
+             'validInterval': datetime.timedelta(days=7232),
+             'comments': ['fwh9y81232uisuiehuf', 'ewnuihxy8dyf232']},
+    (3, 0): {'date': datetime.date(2021, 6, 30),
+             'meetTime': datetime.datetime(2002, 7, 31, 11, 42, 53, 123420),
+             'validInterval': datetime.timedelta(days=41, seconds=21600),
+             'comments': ['fnioh8323aeweae34d', 'osd89e2ejshuih12']},
+    (3, 2): {'date': datetime.date(1950, 5, 14),
+             'meetTime': datetime.datetime(2007, 2, 12, 12, 11, 42, 123000),
+             'validInterval': datetime.timedelta(seconds=1680, microseconds=30000),
+             'comments': ['fwh983-sdjisdfji', 'ioh89y32r2huir']},
+    (3, 5): {'date': datetime.date(2000, 1, 1),
+             'meetTime': datetime.datetime(1998, 10, 2, 13, 9, 22, 423000),
+             'validInterval': datetime.timedelta(microseconds=300000),
+             'comments': ['psh989823oaaioe', 'nuiuah1nosndfisf']},
+    (5, 0): {'date': datetime.date(2021, 6, 30),
+             'meetTime': datetime.datetime(1936, 11, 2, 11, 2, 1),
+             'validInterval': datetime.timedelta(microseconds=480),
+             'comments': ['fwewe']},
+    (5, 2): {'date': datetime.date(1950, 5, 14),
+             'meetTime': datetime.datetime(1982, 11, 11, 13, 12, 5, 123000),
+             'validInterval': datetime.timedelta(seconds=1380),
+             'comments': ['fewh9182912e3',
+                          'h9y8y89soidfsf',
+                          'nuhudf78w78efw',
+                          'hioshe0f9023sdsd']},
+    (5, 3): {'date': datetime.date(2000, 1, 1),
+             'meetTime': datetime.datetime(1999, 4, 21, 15, 12, 11, 420000),
+             'validInterval': datetime.timedelta(days=2, microseconds=52000),
+             'comments': ['23h9sdslnfowhu2932', 'shuhf98922323sf']},
+    (7, 8): {'date': datetime.date(1905, 12, 12),
+             'meetTime': datetime.datetime(2025, 1, 1, 11, 22, 33, 520000),
+             'validInterval': datetime.timedelta(seconds=2878),
+             'comments': ['ahu2333333333333', '12weeeeeeeeeeeeeeeeee']},
+    (7, 9): {'date': datetime.date(1905, 12, 12),
+             'meetTime': datetime.datetime(2020, 3, 1, 12, 11, 41, 655200),
+             'validInterval': datetime.timedelta(seconds=2878),
+             'comments': ['peweeeeeeeeeeeeeeeee', 'kowje9w0eweeeeeeeee']}
+}
+
+
 TINY_SNB_WORKS_AT_GROUND_TRUTH = {
     3: [4],
     5: [6],
     7: [6],
+}
+
+TINY_SNB_WORKS_AT_PROPERTIES_GROUND_TRUTH = {
+    (3, 4): {'year': 2015},
+    (5, 6): {'year': 2010},
+    (7, 6): {'year': 2015}
 }
 
 TENSOR_LIST_GROUND_TRUTH = {
@@ -223,7 +292,7 @@ def test_to_torch_geometric_nodes_only(establish_connection):
 
     res = conn.execute(query)
     with warnings.catch_warnings(record=True) as ws:
-        torch_geometric_data, pos_to_idx, unconverted_properties = res.get_as_torch_geometric()
+        torch_geometric_data, pos_to_idx, unconverted_properties, _ = res.get_as_torch_geometric()
     warnings_ground_truth = set([
         "Property person.courseScoresPerTerm cannot be converted to Tensor (likely due to nested list of variable length). The property is marked as unconverted.",
         "Property person.lastJobDuration of type INTERVAL is not supported by torch_geometric. The property is marked as unconverted.",
@@ -311,7 +380,7 @@ def test_to_torch_geometric_homogeneous_graph(establish_connection):
 
     res = conn.execute(query)
     with warnings.catch_warnings(record=True) as ws:
-        torch_geometric_data, pos_to_idx, unconverted_properties = res.get_as_torch_geometric()
+        torch_geometric_data, pos_to_idx, unconverted_properties, edge_properties = res.get_as_torch_geometric()
     warnings_ground_truth = set([
         "Property person.courseScoresPerTerm cannot be converted to Tensor (likely due to nested list of variable length). The property is marked as unconverted.",
         "Property person.lastJobDuration of type INTERVAL is not supported by torch_geometric. The property is marked as unconverted.",
@@ -401,6 +470,27 @@ def test_to_torch_geometric_homogeneous_graph(establish_connection):
         assert src != dst
         assert pos_to_idx[dst] in TINY_SNB_KNOWS_GROUND_TRUTH[pos_to_idx[src]]
 
+    assert len(edge_properties) == 4
+    assert 'date' in edge_properties
+    assert 'meetTime' in edge_properties
+    assert 'validInterval' in edge_properties
+    assert 'comments' in edge_properties
+
+    for i in range(14):
+        src, dst = torch_geometric_data.edge_index[0][i].item(
+        ), torch_geometric_data.edge_index[1][i].item()
+        orginal_src = pos_to_idx[src]
+        orginal_dst = pos_to_idx[dst]
+        assert (orginal_src, orginal_dst) in TINY_SNB_KNOWS_PROPERTIES_GROUND_TRUTH
+        assert TINY_SNB_KNOWS_PROPERTIES_GROUND_TRUTH[(
+            orginal_src, orginal_dst)]['date'] == edge_properties['date'][i]
+        assert TINY_SNB_KNOWS_PROPERTIES_GROUND_TRUTH[(
+            orginal_src, orginal_dst)]['meetTime'] == edge_properties['meetTime'][i]
+        assert TINY_SNB_KNOWS_PROPERTIES_GROUND_TRUTH[(
+            orginal_src, orginal_dst)]['validInterval'] == edge_properties['validInterval'][i]
+        assert TINY_SNB_KNOWS_PROPERTIES_GROUND_TRUTH[(
+            orginal_src, orginal_dst)]['comments'] == edge_properties['comments'][i]
+
 
 def test_to_torch_geometric_heterogeneous_graph(establish_connection):
     conn, _ = establish_connection
@@ -408,7 +498,7 @@ def test_to_torch_geometric_heterogeneous_graph(establish_connection):
 
     res = conn.execute(query)
     with warnings.catch_warnings(record=True) as ws:
-        torch_geometric_data, pos_to_idx, unconverted_properties = res.get_as_torch_geometric()
+        torch_geometric_data, pos_to_idx, unconverted_properties, edge_properties = res.get_as_torch_geometric()
 
     assert len(ws) == 9
     warnings_ground_truth = set([
@@ -499,6 +589,25 @@ def test_to_torch_geometric_heterogeneous_graph(establish_connection):
         assert src != dst
         assert pos_to_idx['person'][dst] in TINY_SNB_KNOWS_GROUND_TRUTH[pos_to_idx['person'][src]]
 
+    assert len(edge_properties['person', 'person']) == 4
+    assert 'date' in edge_properties['person', 'person']
+    assert 'meetTime' in edge_properties['person', 'person']
+    assert 'validInterval' in edge_properties['person', 'person']
+    assert 'comments' in edge_properties['person', 'person']
+    for i in range(3):
+        src, dst = torch_geometric_data['person', 'person'].edge_index[0][i].item(
+        ), torch_geometric_data['person', 'person'].edge_index[1][i].item()
+        original_src, original_dst = pos_to_idx['person'][src], pos_to_idx['person'][dst]
+        assert (original_src, original_dst) in TINY_SNB_KNOWS_PROPERTIES_GROUND_TRUTH
+        assert TINY_SNB_KNOWS_PROPERTIES_GROUND_TRUTH[(
+            original_src, original_dst)]['date'] == edge_properties['person', 'person']['date'][i]
+        assert TINY_SNB_KNOWS_PROPERTIES_GROUND_TRUTH[(
+            original_src, original_dst)]['meetTime'] == edge_properties['person', 'person']['meetTime'][i]
+        assert TINY_SNB_KNOWS_PROPERTIES_GROUND_TRUTH[(
+            original_src, original_dst)]['validInterval'] == edge_properties['person', 'person']['validInterval'][i]
+        assert TINY_SNB_KNOWS_PROPERTIES_GROUND_TRUTH[(
+            original_src, original_dst)]['comments'] == edge_properties['person', 'person']['comments'][i]
+
     assert torch_geometric_data['organisation'].ID.shape == torch.Size([2])
     assert torch_geometric_data['organisation'].ID.dtype == torch.int64
     for i in range(2):
@@ -556,6 +665,14 @@ def test_to_torch_geometric_heterogeneous_graph(establish_connection):
         assert dst in pos_to_idx['organisation']
         assert src != dst
         assert pos_to_idx['organisation'][dst] in TINY_SNB_WORKS_AT_GROUND_TRUTH[pos_to_idx['person'][src]]
+    assert len(edge_properties['person', 'organisation']) == 1
+    assert 'year' in edge_properties['person', 'organisation']
+    for i in range(2):
+        src, dst = torch_geometric_data['person', 'organisation'].edge_index[0][i].item(
+        ), torch_geometric_data['person', 'organisation'].edge_index[1][i].item()
+        original_src, original_dst = pos_to_idx['person'][src], pos_to_idx['organisation'][dst]
+        assert TINY_SNB_WORKS_AT_PROPERTIES_GROUND_TRUTH[(
+            original_src, original_dst)]['year'] == edge_properties['person', 'organisation']['year'][i]
 
 
 def test_to_torch_geometric_multi_dimensonal_lists(establish_connection):
@@ -564,7 +681,7 @@ def test_to_torch_geometric_multi_dimensonal_lists(establish_connection):
 
     res = conn.execute(query)
     with warnings.catch_warnings(record=True) as ws:
-        torch_geometric_data, pos_to_idx, unconverted_properties = res.get_as_torch_geometric()
+        torch_geometric_data, pos_to_idx, unconverted_properties, _ = res.get_as_torch_geometric()
     assert len(ws) == 1
     assert str(ws[0].message) == "Property tensor.oneDimInt has a null value. torch_geometric does not support null values. The property is marked as unconverted."
 
@@ -586,7 +703,7 @@ def test_to_torch_geometric_multi_dimensonal_lists(establish_connection):
     assert torch_geometric_data.ID.dtype == torch.int64
     for i in range(len(pos_to_idx)):
         assert torch_geometric_data.ID[i].item() == pos_to_idx[i]
-        
+
     assert torch_geometric_data.boolTensor.shape == bool_tensor.shape
     assert torch_geometric_data.boolTensor.dtype == bool_tensor.dtype
     assert torch.all(torch_geometric_data.boolTensor == bool_tensor)
@@ -611,7 +728,7 @@ def test_to_torch_geometric_no_properties_converted(establish_connection):
 
     res = conn.execute(query)
     with warnings.catch_warnings(record=True) as ws:
-        torch_geometric_data, pos_to_idx, unconverted_properties = res.get_as_torch_geometric()
+        torch_geometric_data, pos_to_idx, unconverted_properties, _ = res.get_as_torch_geometric()
     assert len(ws) == 3
     warnings_ground_truth = set([
         "Property personLongString.name of type STRING is not supported by torch_geometric. The property is marked as unconverted.",
