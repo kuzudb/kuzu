@@ -222,7 +222,7 @@ void ListsUpdatesStore::updateRelIfNecessary(const std::shared_ptr<ValueVector>&
                 // transaction), we should update the factorizedTable entry for that newly inserted
                 // rel.
                 auto ftTupleIdx = ftOfInsertedRels->findValueInFlatColumn(
-                    INTERNAL_REL_ID_IDX_IN_FT, listsUpdateInfo.relID);
+                    INTERNAL_REL_ID_IDX_IN_FT, listsUpdateInfo.relOffset);
                 ftOfInsertedRels->updateFlatCell(ftOfInsertedRels->getTuple(ftTupleIdx),
                     propertyIDToColIdxMap.at(listsUpdateInfo.propertyID),
                     listsUpdateInfo.propertyVector.get(),

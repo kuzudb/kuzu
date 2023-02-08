@@ -293,10 +293,10 @@ void RelTable::updateRel(const std::shared_ptr<ValueVector>& srcNodeIDVector,
     fwdRelTableData->updateRel(srcNodeIDVector, propertyID, propertyVector);
     bwdRelTableData->updateRel(dstNodeIDVector, propertyID, propertyVector);
     auto relID =
-        relIDVector->getValue<int64_t>(relIDVector->state->selVector->selectedPositions[0]);
-    ListsUpdateInfo listsUpdateInfo = ListsUpdateInfo{propertyVector, propertyID, relID,
-        fwdRelTableData->getListOffset(srcNode, relID),
-        bwdRelTableData->getListOffset(dstNode, relID)};
+        relIDVector->getValue<relID_t>(relIDVector->state->selVector->selectedPositions[0]);
+    ListsUpdateInfo listsUpdateInfo = ListsUpdateInfo{propertyVector, propertyID, relID.offset,
+        fwdRelTableData->getListOffset(srcNode, relID.offset),
+        bwdRelTableData->getListOffset(dstNode, relID.offset)};
     listsUpdatesStore->updateRelIfNecessary(srcNodeIDVector, dstNodeIDVector, listsUpdateInfo);
 }
 
