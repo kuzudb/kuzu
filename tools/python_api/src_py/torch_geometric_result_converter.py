@@ -20,35 +20,8 @@ class TorchGeometricResultConverter:
     def __get_node_property_names(self, table_name):
         if table_name in self.nodes_property_names_dict:
             return self.nodes_property_names_dict[table_name]
-
-        PRIMARY_KEY_SYMBOL = "(PRIMARY KEY)"
-        LIST_SYMBOL = "[]"
-        result_str = self.query_result.connection._connection.get_node_property_names(
+        results = self.query_result.connection._get_node_property_names(
             table_name)
-        results = {}
-        for (i, line) in enumerate(result_str.splitlines()):
-            # ignore first line
-            if i == 0:
-                continue
-            line = line.strip()
-            if line == "":
-                continue
-            line_splited = line.split(" ")
-            if len(line_splited) < 2:
-                continue
-
-            prop_name = line_splited[0]
-            prop_type = " ".join(line_splited[1:])
-
-            is_primary_key = PRIMARY_KEY_SYMBOL in prop_type
-            prop_type = prop_type.replace(PRIMARY_KEY_SYMBOL, "")
-            dimension = prop_type.count(LIST_SYMBOL)
-            prop_type = prop_type.replace(LIST_SYMBOL, "")
-            results[prop_name] = {
-                "type": prop_type,
-                "dimension": dimension,
-                "is_primary_key": is_primary_key
-            }
         self.nodes_property_names_dict[table_name] = results
         return results
 
