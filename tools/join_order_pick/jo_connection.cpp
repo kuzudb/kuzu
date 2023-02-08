@@ -1,9 +1,11 @@
 #include "jo_connection.h"
 
 #include "binder/binder.h"
+#include "json.hpp"
 #include "parser/parser.h"
 #include "planner/logical_plan/logical_plan_util.h"
 #include "planner/planner.h"
+#include "storage/storage_manager.h"
 
 using namespace kuzu::common;
 using namespace kuzu::parser;
@@ -15,7 +17,7 @@ namespace main {
 std::unique_ptr<QueryResult> JOConnection::query(
     const std::string& query, const std::string& encodedJoin) {
     assert(!query.empty());
-    lock_t lck{mtx};
+    std::unique_lock<std::mutex> lck{mtx};
     auto preparedStatement = std::make_unique<PreparedStatement>();
     try {
         auto statement = Parser::parseQuery(query);

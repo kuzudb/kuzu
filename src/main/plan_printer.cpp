@@ -2,6 +2,9 @@
 
 #include <sstream>
 
+#include "json.hpp"
+#include "processor/physical_plan.h"
+
 using namespace kuzu::common;
 using namespace kuzu::processor;
 
@@ -292,6 +295,27 @@ uint32_t OpProfileTree::calculateRowHeight(uint32_t rowIdx) const {
         }
     }
     return height + 2;
+}
+
+PlanPrinter::PlanPrinter(
+    processor::PhysicalPlan* physicalPlan, std::unique_ptr<common::Profiler> profiler)
+    : physicalPlan{physicalPlan}, profiler{std::move(profiler)} {}
+
+nlohmann::json PlanPrinter::printPlanToJson() {
+    return toJson(physicalPlan->lastOperator.get(), *profiler);
+}
+
+std::ostringstream PlanPrinter::printPlanToOstream() {
+    return OpProfileTree(physicalPlan->lastOperator.get(), *profiler).printPlanToOstream();
+}
+
+std::string PlanPrinter::getOperatorName(processor::PhysicalOperator* physicalOperator) {
+    return processor::PhysicalOperatorUtils::operatorTypeToString(
+        physicalOperator->getOperatorType());
+}
+
+std::string PlanPrinter::getOperatorParams(processor::PhysicalOperator* physicalOperator) {
+    return physicalOperator->getParamsString();
 }
 
 nlohmann::json PlanPrinter::toJson(PhysicalOperator* physicalOperator, Profiler& profiler_) {

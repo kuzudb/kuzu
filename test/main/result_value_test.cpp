@@ -37,18 +37,3 @@ TEST_F(ResultValueTest, getResultValueException) {
         FAIL();
     }
 }
-
-TEST_F(ResultValueTest, getResultValueWrongTypeException) {
-    auto query = "MATCH (a:person) RETURN a.fName";
-    auto result = conn->query(query);
-    auto flatTuple = result->getNext();
-    try {
-        flatTuple->getValue(0)->getValue<bool>();
-        FAIL();
-    } catch (RuntimeException& exception) {
-        ASSERT_STREQ("Runtime exception: Cannot get BOOL value from the STRING result value.",
-            exception.what());
-    } catch (Exception& exception) { FAIL(); } catch (std::exception& exception) {
-        FAIL();
-    }
-}

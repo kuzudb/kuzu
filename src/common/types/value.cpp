@@ -1,9 +1,32 @@
 #include "common/types/value.h"
 
-#include <utility>
-
 namespace kuzu {
 namespace common {
+
+void Value::setDataType(const DataType& dataType_) {
+    assert(dataType.typeID == ANY);
+    dataType = dataType_;
+}
+
+DataType Value::getDataType() const {
+    return dataType;
+}
+
+void Value::setNull(bool flag) {
+    isNull_ = flag;
+}
+
+void Value::setNull() {
+    isNull_ = true;
+}
+
+bool Value::isNull() const {
+    return isNull_;
+}
+
+std::unique_ptr<Value> Value::copy() const {
+    return std::make_unique<Value>(*this);
+}
 
 Value Value::createNullValue() {
     return {};
@@ -185,6 +208,10 @@ void Value::copyValueFrom(const Value& other) {
     }
 }
 
+const std::vector<std::unique_ptr<Value>>& Value::getListValReference() const {
+    return listVal;
+}
+
 std::string Value::toString() const {
     if (isNull_) {
         return "";
@@ -224,6 +251,14 @@ std::string Value::toString() const {
     }
 }
 
+Value::Value() : dataType{ANY}, isNull_{true} {}
+
+Value::Value(DataType dataType) : dataType{std::move(dataType)}, isNull_{true} {}
+
+void Value::validateType(DataTypeID typeID) const {
+    validateType(DataType(typeID));
+}
+
 void Value::validateType(const DataType& type) const {
     if (type != dataType) {
         throw RuntimeException(
@@ -256,6 +291,9 @@ static std::string propertiesToString(
     return result;
 }
 
+NodeVal::NodeVal(std::unique_ptr<Value> idVal, std::unique_ptr<Value> labelVal)
+    : idVal{std::move(idVal)}, labelVal{std::move(labelVal)} {}
+
 NodeVal::NodeVal(const NodeVal& other) {
     idVal = other.idVal->copy();
     labelVal = other.labelVal->copy();
@@ -264,12 +302,32 @@ NodeVal::NodeVal(const NodeVal& other) {
     }
 }
 
+void NodeVal::addProperty(const std::string& key, std::unique_ptr<Value> value) {
+    properties.emplace_back(key, std::move(value));
+}
+
+const std::vector<std::pair<std::string, std::unique_ptr<Value>>>& NodeVal::getProperties() const {
+    return properties;
+}
+
+Value* NodeVal::getNodeIDVal() {
+    return idVal.get();
+}
+
+Value* NodeVal::getLabelVal() {
+    return labelVal.get();
+}
+
 nodeID_t NodeVal::getNodeID() const {
     return idVal->getValue<nodeID_t>();
 }
 
 std::string NodeVal::getLabelName() const {
     return labelVal->getValue<std::string>();
+}
+
+std::unique_ptr<NodeVal> NodeVal::copy() const {
+    return std::make_unique<NodeVal>(*this);
 }
 
 std::string NodeVal::toString() const {
@@ -281,6 +339,11 @@ std::string NodeVal::toString() const {
     return result;
 }
 
+RelVal::RelVal(std::unique_ptr<Value> srcNodeIDVal, std::unique_ptr<Value> dstNodeIDVal,
+    std::unique_ptr<Value> labelVal)
+    : srcNodeIDVal{std::move(srcNodeIDVal)},
+      dstNodeIDVal{std::move(dstNodeIDVal)}, labelVal{std::move(labelVal)} {}
+
 RelVal::RelVal(const RelVal& other) {
     srcNodeIDVal = other.srcNodeIDVal->copy();
     dstNodeIDVal = other.dstNodeIDVal->copy();
@@ -288,6 +351,22 @@ RelVal::RelVal(const RelVal& other) {
     for (auto& [key, val] : other.properties) {
         addProperty(key, val->copy());
     }
+}
+
+void RelVal::addProperty(const std::string& key, std::unique_ptr<Value> value) {
+    properties.emplace_back(key, std::move(value));
+}
+
+const std::vector<std::pair<std::string, std::unique_ptr<Value>>>& RelVal::getProperties() const {
+    return properties;
+}
+
+Value* RelVal::getSrcNodeIDVal() {
+    return srcNodeIDVal.get();
+}
+
+Value* RelVal::getDstNodeIDVal() {
+    return dstNodeIDVal.get();
 }
 
 nodeID_t RelVal::getSrcNodeID() const {
@@ -308,6 +387,10 @@ std::string RelVal::toString() const {
     result += "-[label:" + labelVal->toString() + ", " + propertiesToString(properties) + "]->";
     result += "(" + dstNodeIDVal->toString() + ")";
     return result;
+}
+
+std::unique_ptr<RelVal> RelVal::copy() const {
+    return std::make_unique<RelVal>(*this);
 }
 
 } // namespace common

@@ -1,5 +1,8 @@
 #pragma once
 
+#include "common/api.h"
+#include "json_fwd.hpp"
+#include "kuzu_fwd.h"
 #include "plan_printer.h"
 
 namespace kuzu {
@@ -13,28 +16,24 @@ struct PreparedSummary {
 
 class QuerySummary {
     friend class Connection;
-    friend class PreparedStatement;
+    friend class benchmark::Benchmark;
 
 public:
-    inline double getCompilingTime() const { return preparedSummary.compilingTime; }
+    KUZU_API double getCompilingTime() const;
+    KUZU_API double getExecutionTime() const;
+    bool getIsExplain() const;
+    bool getIsProfile() const;
+    std::ostringstream& getPlanAsOstream();
+    KUZU_API std::string getPlan();
+    void setPreparedSummary(PreparedSummary preparedSummary_);
 
-    inline double getExecutionTime() const { return executionTime; }
-
-    inline bool getIsExplain() const { return preparedSummary.isExplain; }
-
-    inline bool getIsProfile() const { return preparedSummary.isProfile; }
-
-    inline std::ostringstream& getPlanAsOstream() { return planInOstream; }
-    inline nlohmann::json& printPlanToJson() { return planInJson; }
-
-    inline void setPreparedSummary(PreparedSummary preparedSummary_) {
-        preparedSummary = preparedSummary_;
-    }
+private:
+    nlohmann::json& printPlanToJson();
 
 private:
     double executionTime = 0;
     PreparedSummary preparedSummary;
-    nlohmann::json planInJson;
+    std::unique_ptr<nlohmann::json> planInJson;
     std::ostringstream planInOstream;
 };
 

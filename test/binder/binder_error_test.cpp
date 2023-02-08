@@ -1,4 +1,5 @@
 #include "graph_test/graph_test.h"
+#include "json.hpp"
 
 using namespace kuzu::testing;
 

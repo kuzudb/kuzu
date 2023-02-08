@@ -8,8 +8,33 @@
 namespace kuzu {
 namespace common {
 
+interval_t::interval_t() = default;
+
+interval_t::interval_t(int32_t months_p, int32_t days_p, int64_t micros_p)
+    : months(months_p), days(days_p), micros(micros_p) {}
+
+bool interval_t::operator==(const interval_t& rhs) const {
+    return this->days == rhs.days && this->months == rhs.months && this->micros == rhs.micros;
+}
+
+bool interval_t::operator!=(const interval_t& rhs) const {
+    return !(*this == rhs);
+}
+
 bool interval_t::operator>(const interval_t& rhs) const {
     return Interval::GreaterThan(*this, rhs);
+}
+
+bool interval_t::operator<=(const interval_t& rhs) const {
+    return !(*this > rhs);
+}
+
+bool interval_t::operator<(const interval_t& rhs) const {
+    return !(*this >= rhs);
+}
+
+bool interval_t::operator>=(const interval_t& rhs) const {
+    return *this > rhs || *this == rhs;
 }
 
 interval_t interval_t::operator+(const interval_t& rhs) const {
@@ -223,6 +248,14 @@ int32_t Interval::getIntervalPart(DatePartSpecifier specifier, interval_t& inter
     case DatePartSpecifier::HOUR:
         return interval.micros / Interval::MICROS_PER_HOUR;
     }
+}
+
+int64_t Interval::getMicro(const interval_t& val) {
+    return val.micros + val.months * MICROS_PER_MONTH + val.days * MICROS_PER_DAY;
+}
+
+int64_t Interval::getNanoseconds(const interval_t& val) {
+    return getMicro(val) * NANOS_PER_MICRO;
 }
 
 } // namespace common

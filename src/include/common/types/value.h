@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/api.h"
 #include "common/exception.h"
 #include "common/type_utils.h"
 #include "common/utils.h"
@@ -13,74 +14,71 @@ class RelVal;
 class Value {
 public:
     // Create a NULL value of any type.
-    static Value createNullValue();
+    KUZU_API static Value createNullValue();
     // Create a NULL value of a given type.
-    static Value createNullValue(DataType dataType);
+    KUZU_API static Value createNullValue(DataType dataType);
     // Create a default non-NULL value of a given type
-    static Value createDefaultValue(const DataType& dataType);
+    KUZU_API static Value createDefaultValue(const DataType& dataType);
 
-    explicit Value(bool val_);
-    explicit Value(int32_t val_);
-    explicit Value(int64_t val_);
-    explicit Value(double val_);
-    explicit Value(date_t val_);
-    explicit Value(timestamp_t val_);
-    explicit Value(interval_t val_);
-    explicit Value(internalID_t val_);
-    explicit Value(const char* val_);
-    explicit Value(const std::string& val_);
-    explicit Value(DataType dataType, std::vector<std::unique_ptr<Value>> vals);
-    explicit Value(std::unique_ptr<NodeVal> val_);
-    explicit Value(std::unique_ptr<RelVal> val_);
-    explicit Value(DataType dataType, const uint8_t* val_);
+    KUZU_API explicit Value(bool val_);
+    KUZU_API explicit Value(int32_t val_);
+    KUZU_API explicit Value(int64_t val_);
+    KUZU_API explicit Value(double val_);
+    KUZU_API explicit Value(date_t val_);
+    KUZU_API explicit Value(timestamp_t val_);
+    KUZU_API explicit Value(interval_t val_);
+    KUZU_API explicit Value(internalID_t val_);
+    KUZU_API explicit Value(const char* val_);
+    KUZU_API explicit Value(const std::string& val_);
+    KUZU_API explicit Value(DataType dataType, std::vector<std::unique_ptr<Value>> vals);
+    KUZU_API explicit Value(std::unique_ptr<NodeVal> val_);
+    KUZU_API explicit Value(std::unique_ptr<RelVal> val_);
+    KUZU_API explicit Value(DataType dataType, const uint8_t* val_);
 
-    Value(const Value& other);
+    KUZU_API Value(const Value& other);
 
-    inline void setDataType(const DataType& dataType_) {
-        assert(dataType.typeID == ANY);
-        dataType = dataType_;
-    }
-    inline DataType getDataType() const { return dataType; }
+    KUZU_API void setDataType(const DataType& dataType_);
+    KUZU_API DataType getDataType() const;
 
-    inline void setNull(bool flag) { isNull_ = flag; }
-    inline void setNull() { isNull_ = true; }
-    inline bool isNull() const { return isNull_; }
+    KUZU_API void setNull(bool flag);
+    KUZU_API void setNull();
+    KUZU_API bool isNull() const;
 
-    void copyValueFrom(const uint8_t* value);
-    void copyValueFrom(const Value& other);
+    KUZU_API void copyValueFrom(const uint8_t* value);
+    KUZU_API void copyValueFrom(const Value& other);
 
-    template<class T>
+    KUZU_API template<class T>
     T getValue() const {
-        throw InternalException("Unimplemented template for Value::getValue()");
+        throw std::runtime_error("Unimplemented template for Value::getValue()");
     }
 
-    template<class T>
+    KUZU_API template<class T>
     T& getValueReference() {
-        throw InternalException("Unimplemented template for Value::getValueReference()");
+        throw std::runtime_error("Unimplemented template for Value::getValueReference()");
     }
     // TODO(Guodong): think how can we template list get functions.
-    const std::vector<std::unique_ptr<Value>>& getListValReference() const { return listVal; }
+    KUZU_API const std::vector<std::unique_ptr<Value>>& getListValReference() const;
 
-    template<class T>
+    KUZU_API template<class T>
     static Value createValue(T value) {
-        throw InternalException("Unimplemented template for Value::createValue()");
+        throw std::runtime_error("Unimplemented template for Value::createValue()");
     }
 
-    inline std::unique_ptr<Value> copy() const { return std::make_unique<Value>(*this); }
+    KUZU_API std::unique_ptr<Value> copy() const;
 
-    std::string toString() const;
+    KUZU_API std::string toString() const;
 
 private:
-    Value() : dataType{ANY}, isNull_{true} {}
-    explicit Value(DataType dataType) : dataType{std::move(dataType)}, isNull_{true} {}
+    Value();
+    explicit Value(DataType dataType);
 
-    inline void validateType(DataTypeID typeID) const { validateType(DataType(typeID)); }
+    void validateType(DataTypeID typeID) const;
     void validateType(const DataType& type) const;
 
-    std::vector<std::unique_ptr<Value>> convertKUListToVector(common::ku_list_t& list) const;
+    std::vector<std::unique_ptr<Value>> convertKUListToVector(ku_list_t& list) const;
 
 public:
-    common::DataType dataType;
+    DataType dataType;
     bool isNull_;
 
     union Val {
@@ -88,10 +86,10 @@ public:
         bool booleanVal;
         int64_t int64Val;
         double doubleVal;
-        common::date_t dateVal;
-        common::timestamp_t timestampVal;
-        common::interval_t intervalVal;
-        common::internalID_t internalIDVal;
+        date_t dateVal;
+        timestamp_t timestampVal;
+        interval_t intervalVal;
+        internalID_t internalIDVal;
     } val;
     std::string strVal;
     std::vector<std::unique_ptr<Value>> listVal;
@@ -101,28 +99,24 @@ public:
 
 class NodeVal {
 public:
-    NodeVal(std::unique_ptr<Value> idVal, std::unique_ptr<Value> labelVal)
-        : idVal{std::move(idVal)}, labelVal{std::move(labelVal)} {}
-    NodeVal(const NodeVal& other);
+    KUZU_API NodeVal(std::unique_ptr<Value> idVal, std::unique_ptr<Value> labelVal);
 
-    inline void addProperty(const std::string& key, std::unique_ptr<Value> value) {
-        properties.emplace_back(key, std::move(value));
-    }
+    KUZU_API NodeVal(const NodeVal& other);
 
-    inline const std::vector<std::pair<std::string, std::unique_ptr<Value>>>&
-    getProperties() const {
-        return properties;
-    }
+    KUZU_API void addProperty(const std::string& key, std::unique_ptr<Value> value);
 
-    inline Value* getNodeIDVal() { return idVal.get(); }
-    inline Value* getLabelVal() { return labelVal.get(); }
+    KUZU_API const std::vector<std::pair<std::string, std::unique_ptr<Value>>>&
+    getProperties() const;
 
-    nodeID_t getNodeID() const;
-    std::string getLabelName() const;
+    KUZU_API Value* getNodeIDVal();
+    KUZU_API Value* getLabelVal();
 
-    inline std::unique_ptr<NodeVal> copy() const { return std::make_unique<NodeVal>(*this); }
+    KUZU_API nodeID_t getNodeID() const;
+    KUZU_API std::string getLabelName() const;
 
-    std::string toString() const;
+    KUZU_API std::unique_ptr<NodeVal> copy() const;
+
+    KUZU_API std::string toString() const;
 
 private:
     std::unique_ptr<Value> idVal;
@@ -132,31 +126,26 @@ private:
 
 class RelVal {
 public:
-    RelVal(std::unique_ptr<Value> srcNodeIDVal, std::unique_ptr<Value> dstNodeIDVal,
-        std::unique_ptr<Value> labelVal)
-        : srcNodeIDVal{std::move(srcNodeIDVal)},
-          dstNodeIDVal{std::move(dstNodeIDVal)}, labelVal{std::move(labelVal)} {}
-    RelVal(const RelVal& other);
+    KUZU_API RelVal(std::unique_ptr<Value> srcNodeIDVal, std::unique_ptr<Value> dstNodeIDVal,
+        std::unique_ptr<Value> labelVal);
 
-    inline void addProperty(const std::string& key, std::unique_ptr<Value> value) {
-        properties.emplace_back(key, std::move(value));
-    }
+    KUZU_API RelVal(const RelVal& other);
 
-    inline const std::vector<std::pair<std::string, std::unique_ptr<Value>>>&
-    getProperties() const {
-        return properties;
-    }
+    KUZU_API void addProperty(const std::string& key, std::unique_ptr<Value> value);
 
-    inline Value* getSrcNodeIDVal() { return srcNodeIDVal.get(); }
-    inline Value* getDstNodeIDVal() { return dstNodeIDVal.get(); }
+    KUZU_API const std::vector<std::pair<std::string, std::unique_ptr<Value>>>&
+    getProperties() const;
 
-    nodeID_t getSrcNodeID() const;
-    nodeID_t getDstNodeID() const;
-    std::string getLabelName();
+    KUZU_API Value* getSrcNodeIDVal();
+    KUZU_API Value* getDstNodeIDVal();
 
-    std::string toString() const;
+    KUZU_API nodeID_t getSrcNodeID() const;
+    KUZU_API nodeID_t getDstNodeID() const;
+    KUZU_API std::string getLabelName();
 
-    inline std::unique_ptr<RelVal> copy() const { return std::make_unique<RelVal>(*this); }
+    KUZU_API std::string toString() const;
+
+    KUZU_API inline std::unique_ptr<RelVal> copy() const;
 
 private:
     std::unique_ptr<Value> labelVal;
@@ -165,172 +154,172 @@ private:
     std::vector<std::pair<std::string, std::unique_ptr<Value>>> properties;
 };
 
-template<>
+KUZU_API template<>
 inline bool Value::getValue() const {
-    validateType(BOOL);
+    assert(dataType.getTypeID() == BOOL);
     return val.booleanVal;
 }
 
-template<>
+KUZU_API template<>
 inline int64_t Value::getValue() const {
-    validateType(INT64);
+    assert(dataType.getTypeID() == INT64);
     return val.int64Val;
 }
 
-template<>
+KUZU_API template<>
 inline double Value::getValue() const {
-    validateType(DOUBLE);
+    assert(dataType.getTypeID() == DOUBLE);
     return val.doubleVal;
 }
 
-template<>
+KUZU_API template<>
 inline date_t Value::getValue() const {
-    validateType(DATE);
+    assert(dataType.getTypeID() == DATE);
     return val.dateVal;
 }
 
-template<>
+KUZU_API template<>
 inline timestamp_t Value::getValue() const {
-    validateType(TIMESTAMP);
+    assert(dataType.getTypeID() == TIMESTAMP);
     return val.timestampVal;
 }
 
-template<>
+KUZU_API template<>
 inline interval_t Value::getValue() const {
-    validateType(INTERVAL);
+    assert(dataType.getTypeID() == INTERVAL);
     return val.intervalVal;
 }
 
-template<>
-inline nodeID_t Value::getValue() const {
-    validateType(INTERNAL_ID);
+KUZU_API template<>
+inline internalID_t Value::getValue() const {
+    assert(dataType.getTypeID() == INTERNAL_ID);
     return val.internalIDVal;
 }
 
-template<>
+KUZU_API template<>
 inline std::string Value::getValue() const {
-    validateType(STRING);
+    assert(dataType.getTypeID() == STRING);
     return strVal;
 }
 
-template<>
+KUZU_API template<>
 inline NodeVal Value::getValue() const {
-    validateType(NODE);
+    assert(dataType.getTypeID() == NODE);
     return *nodeVal;
 }
 
-template<>
+KUZU_API template<>
 inline RelVal Value::getValue() const {
-    validateType(REL);
+    assert(dataType.getTypeID() == REL);
     return *relVal;
 }
 
-template<>
+KUZU_API template<>
 inline bool& Value::getValueReference() {
-    assert(dataType.typeID == BOOL);
+    assert(dataType.getTypeID() == BOOL);
     return val.booleanVal;
 }
 
-template<>
+KUZU_API template<>
 inline int64_t& Value::getValueReference() {
-    assert(dataType.typeID == INT64);
+    assert(dataType.getTypeID() == INT64);
     return val.int64Val;
 }
 
-template<>
+KUZU_API template<>
 inline double& Value::getValueReference() {
-    assert(dataType.typeID == DOUBLE);
+    assert(dataType.getTypeID() == DOUBLE);
     return val.doubleVal;
 }
 
-template<>
+KUZU_API template<>
 inline date_t& Value::getValueReference() {
-    assert(dataType.typeID == DATE);
+    assert(dataType.getTypeID() == DATE);
     return val.dateVal;
 }
 
-template<>
+KUZU_API template<>
 inline timestamp_t& Value::getValueReference() {
-    assert(dataType.typeID == TIMESTAMP);
+    assert(dataType.getTypeID() == TIMESTAMP);
     return val.timestampVal;
 }
 
-template<>
+KUZU_API template<>
 inline interval_t& Value::getValueReference() {
-    assert(dataType.typeID == INTERVAL);
+    assert(dataType.getTypeID() == INTERVAL);
     return val.intervalVal;
 }
 
-template<>
+KUZU_API template<>
 inline nodeID_t& Value::getValueReference() {
-    assert(dataType.typeID == INTERNAL_ID);
+    assert(dataType.getTypeID() == INTERNAL_ID);
     return val.internalIDVal;
 }
 
-template<>
+KUZU_API template<>
 inline std::string& Value::getValueReference() {
-    assert(dataType.typeID == STRING);
+    assert(dataType.getTypeID() == STRING);
     return strVal;
 }
 
-template<>
+KUZU_API template<>
 inline NodeVal& Value::getValueReference() {
-    assert(dataType.typeID == NODE);
+    assert(dataType.getTypeID() == NODE);
     return *nodeVal;
 }
 
-template<>
+KUZU_API template<>
 inline RelVal& Value::getValueReference() {
-    assert(dataType.typeID == REL);
+    assert(dataType.getTypeID() == REL);
     return *relVal;
 }
 
-template<>
+KUZU_API template<>
 inline Value Value::createValue(bool val) {
     return Value(val);
 }
 
-template<>
+KUZU_API template<>
 inline Value Value::createValue(int64_t val) {
     return Value(val);
 }
 
-template<>
+KUZU_API template<>
 inline Value Value::createValue(double val) {
     return Value(val);
 }
 
-template<>
+KUZU_API template<>
 inline Value Value::createValue(date_t val) {
     return Value(val);
 }
 
-template<>
+KUZU_API template<>
 inline Value Value::createValue(timestamp_t val) {
     return Value(val);
 }
 
-template<>
+KUZU_API template<>
 inline Value Value::createValue(interval_t val) {
     return Value(val);
 }
 
-template<>
+KUZU_API template<>
 inline Value Value::createValue(nodeID_t val) {
     return Value(val);
 }
 
-template<>
+KUZU_API template<>
 inline Value Value::createValue(std::string val) {
     return Value(val);
 }
 
-template<>
+KUZU_API template<>
 inline Value Value::createValue(const std::string& val) {
     return Value(val);
 }
 
-template<>
+KUZU_API template<>
 inline Value Value::createValue(const char* value) {
     return Value(std::string(value));
 }

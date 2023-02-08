@@ -17,7 +17,7 @@ std::unique_ptr<Transaction> TransactionManager::beginWriteTransaction() {
             "Cannot start a new write transaction in the system. Only one write transaction at a "
             "time is allowed in the system.");
     }
-    auto transaction = std::make_unique<Transaction>(WRITE, ++lastTransactionID);
+    auto transaction = std::make_unique<Transaction>(TransactionType::WRITE, ++lastTransactionID);
     activeWriteTransactionID = lastTransactionID;
     return transaction;
 }
@@ -27,7 +27,8 @@ std::unique_ptr<Transaction> TransactionManager::beginReadOnlyTransaction() {
     // ensures calls to other public functions is not restricted.
     lock_t newTransactionLck{mtxForStartingNewTransactions};
     lock_t publicFunctionLck{mtxForSerializingPublicFunctionCalls};
-    auto transaction = std::make_unique<Transaction>(READ_ONLY, ++lastTransactionID);
+    auto transaction =
+        std::make_unique<Transaction>(TransactionType::READ_ONLY, ++lastTransactionID);
     activeReadOnlyTransactionIDs.insert(transaction->getID());
     return transaction;
 }

@@ -19,7 +19,10 @@ class RadixSortTest : public Test {
 public:
     void SetUp() override {
         bufferManager =
-            std::make_unique<BufferManager>(StorageConfig::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING);
+            std::make_unique<BufferManager>(StorageConfig::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING *
+                                                StorageConfig::DEFAULT_PAGES_BUFFER_RATIO,
+                StorageConfig::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING *
+                    StorageConfig::LARGE_PAGES_BUFFER_RATIO);
         memoryManager = std::make_unique<MemoryManager>(bufferManager.get());
     }
 

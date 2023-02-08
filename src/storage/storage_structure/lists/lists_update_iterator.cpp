@@ -238,8 +238,8 @@ ListsUpdateIterator::findListPageIdxAndInsertListPageToPageListIfNecessary(
     auto pageLists = lists->getListsMetadata().pageLists.get();
     uint32_t curIdxInPageList = pageListHeadIdx;
     while (ListsMetadataConfig::PAGE_LIST_GROUP_SIZE <= idxInPageList) {
-        auto nextIdxInPageList =
-            pageLists->get(curIdxInPageList + ListsMetadataConfig::PAGE_LIST_GROUP_SIZE, WRITE);
+        auto nextIdxInPageList = pageLists->get(
+            curIdxInPageList + ListsMetadataConfig::PAGE_LIST_GROUP_SIZE, TransactionType::WRITE);
         if (nextIdxInPageList == StorageStructureUtils::NULL_PAGE_IDX) {
             // If idxInPageList >= ListsMetadataConfig::PAGE_LIST_GROUP_SIZE but the
             // current page group does not have a new page group, it must be the case that
@@ -260,7 +260,7 @@ ListsUpdateIterator::findListPageIdxAndInsertListPageToPageListIfNecessary(
         idxInPageList -= ListsMetadataConfig::PAGE_LIST_GROUP_SIZE;
     }
     curIdxInPageList += idxInPageList;
-    page_idx_t listPageIdx = pageLists->get(curIdxInPageList, WRITE);
+    page_idx_t listPageIdx = pageLists->get(curIdxInPageList, TransactionType::WRITE);
     bool isInsertingNewListPage = false;
     if (listPageIdx == StorageStructureUtils::NULL_PAGE_IDX) {
         isInsertingNewListPage = true;

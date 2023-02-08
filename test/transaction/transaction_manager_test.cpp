@@ -14,7 +14,10 @@ protected:
     void SetUp() override {
         FileUtils::createDir(TestHelper::getTmpTestDir());
         bufferManager =
-            std::make_unique<BufferManager>(StorageConfig::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING);
+            std::make_unique<BufferManager>(StorageConfig::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING *
+                                                StorageConfig::DEFAULT_PAGES_BUFFER_RATIO,
+                StorageConfig::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING *
+                    StorageConfig::LARGE_PAGES_BUFFER_RATIO);
         wal = std::make_unique<WAL>(TestHelper::getTmpTestDir(), *bufferManager);
         transactionManager = std::make_unique<TransactionManager>(*wal);
     }
@@ -23,7 +26,7 @@ protected:
 
 public:
     void runTwoCommitRollback(TransactionType type, bool firstIsCommit, bool secondIsCommit) {
-        std::unique_ptr<Transaction> trx = WRITE == type ?
+        std::unique_ptr<Transaction> trx = TransactionType::WRITE == type ?
                                                transactionManager->beginWriteTransaction() :
                                                transactionManager->beginReadOnlyTransaction();
         if (firstIsCommit) {
@@ -57,26 +60,34 @@ TEST_F(TransactionManagerTest, MultipleWriteTransactionsErrors) {
 TEST_F(TransactionManagerTest, MultipleCommitsAndRollbacks) {
     // At TransactionManager level, we disallow multiple commit/rollbacks on a write transaction.
     try {
-        runTwoCommitRollback(WRITE, true /* firstIsCommit */, true /* secondIsCommit */);
+        runTwoCommitRollback(
+            TransactionType::WRITE, true /* firstIsCommit */, true /* secondIsCommit */);
         FAIL();
     } catch (TransactionManagerException& e) {}
     try {
-        runTwoCommitRollback(WRITE, true /* firstIsCommit */, false /* secondIsRollback */);
+        runTwoCommitRollback(
+            TransactionType::WRITE, true /* firstIsCommit */, false /* secondIsRollback */);
         FAIL();
     } catch (TransactionManagerException& e) {}
     try {
-        runTwoCommitRollback(WRITE, false /* firstIsRollback */, true /* secondIsCommit */);
+        runTwoCommitRollback(
+            TransactionType::WRITE, false /* firstIsRollback */, true /* secondIsCommit */);
         FAIL();
     } catch (TransactionManagerException& e) {}
     try {
-        runTwoCommitRollback(WRITE, false /* firstIsRollback */, false /* secondIsRollback */);
+        runTwoCommitRollback(
+            TransactionType::WRITE, false /* firstIsRollback */, false /* secondIsRollback */);
         FAIL();
     } catch (TransactionManagerException& e) {}
     // At TransactionManager level, we allow multiple commit/rollbacks on a read-only transaction.
-    runTwoCommitRollback(READ_ONLY, true /* firstIsCommit */, true /* secondIsCommit */);
-    runTwoCommitRollback(READ_ONLY, true /* firstIsCommit */, false /* secondIsRollback */);
-    runTwoCommitRollback(READ_ONLY, false /* firstIsRollback */, true /* secondIsCommit */);
-    runTwoCommitRollback(READ_ONLY, false /* firstIsRollback */, false /* secondIsRollback */);
+    runTwoCommitRollback(
+        TransactionType::READ_ONLY, true /* firstIsCommit */, true /* secondIsCommit */);
+    runTwoCommitRollback(
+        TransactionType::READ_ONLY, true /* firstIsCommit */, false /* secondIsRollback */);
+    runTwoCommitRollback(
+        TransactionType::READ_ONLY, false /* firstIsRollback */, true /* secondIsCommit */);
+    runTwoCommitRollback(
+        TransactionType::READ_ONLY, false /* firstIsRollback */, false /* secondIsRollback */);
 }
 
 TEST_F(TransactionManagerTest, BasicOneWriteMultipleReadOnlyTransactions) {
@@ -87,9 +98,9 @@ TEST_F(TransactionManagerTest, BasicOneWriteMultipleReadOnlyTransactions) {
     std::unique_ptr<Transaction> trx1 = transactionManager->beginReadOnlyTransaction();
     std::unique_ptr<Transaction> trx2 = transactionManager->beginWriteTransaction();
     std::unique_ptr<Transaction> trx3 = transactionManager->beginReadOnlyTransaction();
-    ASSERT_EQ(READ_ONLY, trx1->getType());
-    ASSERT_EQ(WRITE, trx2->getType());
-    ASSERT_EQ(READ_ONLY, trx3->getType());
+    ASSERT_EQ(TransactionType::READ_ONLY, trx1->getType());
+    ASSERT_EQ(TransactionType::WRITE, trx2->getType());
+    ASSERT_EQ(TransactionType::READ_ONLY, trx3->getType());
     ASSERT_EQ(trx1->getID() + 1, trx2->getID());
     ASSERT_EQ(trx2->getID() + 1, trx3->getID());
     ASSERT_EQ(trx2->getID(), transactionManager->getActiveWriteTransactionID());

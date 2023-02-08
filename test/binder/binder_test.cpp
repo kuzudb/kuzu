@@ -1,4 +1,6 @@
+#include "binder/binder.h"
 #include "graph_test/graph_test.h"
+#include "parser/parser.h"
 
 using namespace kuzu::common;
 using namespace kuzu::testing;

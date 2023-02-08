@@ -55,11 +55,7 @@ namespace storage {
 class BufferManager {
 
 public:
-    explicit BufferManager(
-        uint64_t maxSizeForDefaultPagePool = common::StorageConfig::DEFAULT_BUFFER_POOL_SIZE *
-                                             common::StorageConfig::DEFAULT_PAGES_BUFFER_RATIO,
-        uint64_t maxSizeForLargePagePool = common::StorageConfig::DEFAULT_BUFFER_POOL_SIZE *
-                                           common::StorageConfig::LARGE_PAGES_BUFFER_RATIO);
+    BufferManager(uint64_t maxSizeForDefaultPagePool, uint64_t maxSizeForLargePagePool);
     ~BufferManager();
 
     uint8_t* pin(FileHandle& fileHandle, common::page_idx_t pageIdx);

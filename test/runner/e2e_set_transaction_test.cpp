@@ -1,4 +1,5 @@
 #include "graph_test/graph_test.h"
+#include "transaction/transaction_manager.h"
 
 using namespace kuzu::common;
 using namespace kuzu::testing;

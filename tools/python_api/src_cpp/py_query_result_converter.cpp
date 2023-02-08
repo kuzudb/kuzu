@@ -1,6 +1,8 @@
 #include "include/py_query_result_converter.h"
 
+#include "common/types/value.h"
 #include "include/py_query_result.h"
+#include "processor/result/flat_tuple.h"
 
 using namespace kuzu::common;
 

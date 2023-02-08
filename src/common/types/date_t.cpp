@@ -9,6 +9,34 @@
 namespace kuzu {
 namespace common {
 
+date_t::date_t() : days{0} {}
+
+date_t::date_t(int32_t days_p) : days(days_p) {}
+
+bool date_t::operator==(const date_t& rhs) const {
+    return days == rhs.days;
+}
+
+bool date_t::operator!=(const date_t& rhs) const {
+    return days != rhs.days;
+}
+
+bool date_t::operator<=(const date_t& rhs) const {
+    return days <= rhs.days;
+}
+
+bool date_t::operator<(const date_t& rhs) const {
+    return days < rhs.days;
+}
+
+bool date_t::operator>(const date_t& rhs) const {
+    return days > rhs.days;
+}
+
+bool date_t::operator>=(const date_t& rhs) const {
+    return days >= rhs.days;
+}
+
 date_t date_t::operator+(const interval_t& interval) const {
     date_t result{};
     if (interval.months != 0) {
@@ -57,9 +85,32 @@ bool date_t::operator==(const timestamp_t& rhs) const {
     return Timestamp::FromDatetime(*this, dtime_t(0)).value == rhs.value;
 }
 
+bool date_t::operator!=(const timestamp_t& rhs) const {
+    return !(*this == rhs);
+}
+
 bool date_t::operator<(const timestamp_t& rhs) const {
     return Timestamp::FromDatetime(*this, dtime_t(0)).value < rhs.value;
 }
+
+bool date_t::operator<=(const timestamp_t& rhs) const {
+    return (*this) < rhs || (*this) == rhs;
+}
+
+bool date_t::operator>(const timestamp_t& rhs) const {
+    return !(*this <= rhs);
+}
+
+bool date_t::operator>=(const timestamp_t& rhs) const {
+    return !(*this < rhs);
+}
+
+date_t date_t::operator+(const int32_t& day) const {
+    return date_t(this->days + day);
+};
+date_t date_t::operator-(const int32_t& day) const {
+    return date_t(this->days - day);
+};
 
 const int32_t Date::NORMAL_DAYS[] = {0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 const int32_t Date::LEAP_DAYS[] = {0, 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
@@ -415,6 +466,10 @@ date_t Date::trunc(DatePartSpecifier specifier, date_t& date) {
     default:
         return date;
     }
+}
+
+int64_t Date::getEpochNanoSeconds(const date_t& date) {
+    return ((int64_t)date.days) * (Interval::MICROS_PER_DAY * Interval::NANOS_PER_MICRO);
 }
 
 } // namespace common

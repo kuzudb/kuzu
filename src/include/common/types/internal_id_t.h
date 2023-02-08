@@ -2,6 +2,8 @@
 
 #include <cstdint>
 
+#include "common/api.h"
+
 namespace kuzu {
 namespace common {
 
@@ -15,32 +17,20 @@ constexpr table_id_t INVALID_TABLE_ID = UINT64_MAX;
 constexpr offset_t INVALID_NODE_OFFSET = UINT64_MAX;
 
 // System representation for internalID.
-struct internalID_t {
+KUZU_API struct internalID_t {
     offset_t offset;
     table_id_t tableID;
 
-    internalID_t() = default;
-    internalID_t(offset_t offset, table_id_t tableID) : offset(offset), tableID(tableID) {}
+    internalID_t();
+    internalID_t(offset_t offset, table_id_t tableID);
 
     // comparison operators
-    inline bool operator==(const internalID_t& rhs) const {
-        return offset == rhs.offset && tableID == rhs.tableID;
-    };
-    inline bool operator!=(const internalID_t& rhs) const {
-        return offset != rhs.offset || tableID != rhs.tableID;
-    };
-    inline bool operator>(const internalID_t& rhs) const {
-        return (tableID > rhs.tableID) || (tableID == rhs.tableID && offset > rhs.offset);
-    };
-    inline bool operator>=(const internalID_t& rhs) const {
-        return (tableID > rhs.tableID) || (tableID == rhs.tableID && offset >= rhs.offset);
-    };
-    inline bool operator<(const internalID_t& rhs) const {
-        return (tableID < rhs.tableID) || (tableID == rhs.tableID && offset < rhs.offset);
-    };
-    inline bool operator<=(const internalID_t& rhs) const {
-        return (tableID < rhs.tableID) || (tableID == rhs.tableID && offset <= rhs.offset);
-    };
+    bool operator==(const internalID_t& rhs) const;
+    bool operator!=(const internalID_t& rhs) const;
+    bool operator>(const internalID_t& rhs) const;
+    bool operator>=(const internalID_t& rhs) const;
+    bool operator<(const internalID_t& rhs) const;
+    bool operator<=(const internalID_t& rhs) const;
 };
 
 } // namespace common

@@ -2,6 +2,7 @@
 
 #include "graph_test/graph_test.h"
 #include "processor/mapper/plan_mapper.h"
+#include "processor/processor.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;

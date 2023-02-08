@@ -1,5 +1,8 @@
 #include "common/configs.h"
 #include "graph_test/graph_test.h"
+#include "json.hpp"
+#include "storage/storage_manager.h"
+#include "transaction/transaction_manager.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;

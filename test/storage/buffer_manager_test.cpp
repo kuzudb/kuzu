@@ -20,8 +20,11 @@ TEST_F(BufferManagerTests, RemoveFilePagesFromFramesTest) {
     for (int pageIdx = 0; pageIdx < numPagesToAdd; ++pageIdx) {
         fileHandle.addNewPage();
     }
-    BufferManager* bufferManager =
-        new BufferManager(StorageConfig::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING);
+    auto bufferManager =
+        std::make_unique<BufferManager>(StorageConfig::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING *
+                                            StorageConfig::DEFAULT_PAGES_BUFFER_RATIO,
+            StorageConfig::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING *
+                StorageConfig::LARGE_PAGES_BUFFER_RATIO);
     // Pin and unpin some pages
     bufferManager->pinWithoutReadingFromFile(fileHandle, 10);
     bufferManager->pinWithoutReadingFromFile(fileHandle, 999);
@@ -38,5 +41,4 @@ TEST_F(BufferManagerTests, RemoveFilePagesFromFramesTest) {
     for (int pageIdx = 0; pageIdx < numPagesToAdd; ++pageIdx) {
         ASSERT_FALSE(FileHandle::isAFrame(fileHandle.getFrameIdx(pageIdx)));
     }
-    delete bufferManager;
 }

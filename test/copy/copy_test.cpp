@@ -1,5 +1,7 @@
 #include "common/csv_reader/csv_reader.h"
 #include "graph_test/graph_test.h"
+#include "json.hpp"
+#include "storage/storage_manager.h"
 
 using namespace kuzu::common;
 using namespace kuzu::catalog;

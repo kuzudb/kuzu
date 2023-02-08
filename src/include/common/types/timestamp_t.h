@@ -7,34 +7,31 @@ namespace kuzu {
 namespace common {
 
 // Type used to represent timestamps (value is in microseconds since 1970-01-01)
-struct timestamp_t {
+KUZU_API struct timestamp_t {
     int64_t value = 0;
 
-    timestamp_t() = default;
-    explicit inline timestamp_t(int64_t value_p) : value(value_p) {}
-    inline timestamp_t& operator=(int64_t value_p) {
-        value = value_p;
-        return *this;
-    }
+    timestamp_t();
+    explicit timestamp_t(int64_t value_p);
+    timestamp_t& operator=(int64_t value_p);
 
     // explicit conversion
-    explicit inline operator int64_t() const { return value; }
+    explicit operator int64_t() const;
 
     // Comparison operators with timestamp_t.
-    inline bool operator==(const timestamp_t& rhs) const { return value == rhs.value; };
-    inline bool operator!=(const timestamp_t& rhs) const { return value != rhs.value; };
-    inline bool operator<=(const timestamp_t& rhs) const { return value <= rhs.value; };
-    inline bool operator<(const timestamp_t& rhs) const { return value < rhs.value; };
-    inline bool operator>(const timestamp_t& rhs) const { return value > rhs.value; };
-    inline bool operator>=(const timestamp_t& rhs) const { return value >= rhs.value; };
+    bool operator==(const timestamp_t& rhs) const;
+    bool operator!=(const timestamp_t& rhs) const;
+    bool operator<=(const timestamp_t& rhs) const;
+    bool operator<(const timestamp_t& rhs) const;
+    bool operator>(const timestamp_t& rhs) const;
+    bool operator>=(const timestamp_t& rhs) const;
 
     // Comparison operators with date_t.
-    inline bool operator==(const date_t& rhs) const { return rhs == *this; };
-    inline bool operator!=(const date_t& rhs) const { return !(rhs == *this); };
-    inline bool operator<(const date_t& rhs) const { return rhs > *this; };
-    inline bool operator<=(const date_t& rhs) const { return rhs >= *this; };
-    inline bool operator>(const date_t& rhs) const { return rhs < *this; };
-    inline bool operator>=(const date_t& rhs) const { return rhs <= *this; };
+    bool operator==(const date_t& rhs) const;
+    bool operator!=(const date_t& rhs) const;
+    bool operator<(const date_t& rhs) const;
+    bool operator<=(const date_t& rhs) const;
+    bool operator>(const date_t& rhs) const;
+    bool operator>=(const date_t& rhs) const;
 
     // arithmetic operator
     timestamp_t operator+(const interval_t& interval) const;
@@ -54,36 +51,34 @@ struct timestamp_t {
 // timestamp/datetime uses 64 bits, high 32 bits for date and low 32 bits for time
 class Timestamp {
 public:
-    static timestamp_t FromCString(const char* str, uint64_t len);
+    KUZU_API static timestamp_t FromCString(const char* str, uint64_t len);
 
     // Convert a timestamp object to a std::string in the format "YYYY-MM-DD hh:mm:ss".
-    static std::string toString(timestamp_t timestamp);
+    KUZU_API static std::string toString(timestamp_t timestamp);
 
-    static date_t GetDate(timestamp_t timestamp);
+    KUZU_API static date_t GetDate(timestamp_t timestamp);
 
-    static dtime_t GetTime(timestamp_t timestamp);
+    KUZU_API static dtime_t GetTime(timestamp_t timestamp);
 
     // Create a Timestamp object from a specified (date, time) combination.
-    static timestamp_t FromDatetime(date_t date, dtime_t time);
+    KUZU_API static timestamp_t FromDatetime(date_t date, dtime_t time);
 
     // Extract the date and time from a given timestamp object.
-    static void Convert(timestamp_t timestamp, date_t& out_date, dtime_t& out_time);
+    KUZU_API static void Convert(timestamp_t timestamp, date_t& out_date, dtime_t& out_time);
 
     // Create a Timestamp object from the specified epochMs.
-    static timestamp_t FromEpochMs(int64_t epochMs);
+    KUZU_API static timestamp_t FromEpochMs(int64_t epochMs);
 
     // Create a Timestamp object from the specified epochSec.
-    static timestamp_t FromEpochSec(int64_t epochSec);
+    KUZU_API static timestamp_t FromEpochSec(int64_t epochSec);
 
-    static int32_t getTimestampPart(DatePartSpecifier specifier, timestamp_t& timestamp);
+    KUZU_API static int32_t getTimestampPart(DatePartSpecifier specifier, timestamp_t& timestamp);
 
-    static timestamp_t trunc(DatePartSpecifier specifier, timestamp_t& date);
+    KUZU_API static timestamp_t trunc(DatePartSpecifier specifier, timestamp_t& date);
 
-    static inline int64_t getEpochNanoSeconds(const timestamp_t& timestamp) {
-        return timestamp.value * Interval::NANOS_PER_MICRO;
-    }
+    KUZU_API static int64_t getEpochNanoSeconds(const timestamp_t& timestamp);
 
-    static bool TryParseUTCOffset(
+    KUZU_API static bool TryParseUTCOffset(
         const char* str, uint64_t& pos, uint64_t len, int& hour_offset, int& minute_offset);
 
 private:

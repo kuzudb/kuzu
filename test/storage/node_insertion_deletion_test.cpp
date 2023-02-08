@@ -1,4 +1,5 @@
 #include "graph_test/graph_test.h"
+#include "storage/storage_manager.h"
 #include "storage/wal_replayer.h"
 
 using namespace kuzu::common;

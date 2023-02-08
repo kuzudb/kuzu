@@ -4,6 +4,9 @@
 
 #include "binder/expression/node_rel_expression.h"
 #include "binder/expression/property_expression.h"
+#include "json.hpp"
+#include "processor/result/factorized_table.h"
+#include "processor/result/flat_tuple.h"
 
 using namespace kuzu::common;
 using namespace kuzu::processor;
@@ -31,6 +34,47 @@ std::unique_ptr<DataTypeInfo> DataTypeInfo::getInfoForDataType(
     }
     }
     return std::move(columnTypeInfo);
+}
+
+QueryResult::QueryResult() = default;
+
+QueryResult::QueryResult(const PreparedSummary& preparedSummary) {
+    querySummary = std::make_unique<QuerySummary>();
+    querySummary->setPreparedSummary(preparedSummary);
+}
+
+QueryResult::~QueryResult() = default;
+
+bool QueryResult::isSuccess() const {
+    return success;
+}
+
+std::string QueryResult::getErrorMessage() const {
+    return errMsg;
+}
+
+size_t QueryResult::getNumColumns() const {
+    return columnDataTypes.size();
+}
+
+std::vector<std::string> QueryResult::getColumnNames() {
+    return columnNames;
+}
+
+std::vector<common::DataType> QueryResult::getColumnDataTypes() {
+    return columnDataTypes;
+}
+
+uint64_t QueryResult::getNumTuples() {
+    return querySummary->getIsExplain() ? 0 : factorizedTable->getTotalNumFlatTuples();
+}
+
+QuerySummary* QueryResult::getQuerySummary() const {
+    return querySummary.get();
+}
+
+void QueryResult::resetIterator() {
+    iterator->resetState();
 }
 
 std::vector<std::unique_ptr<DataTypeInfo>> QueryResult::getColumnTypesInfo() {

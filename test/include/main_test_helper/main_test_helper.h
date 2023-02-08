@@ -1,6 +1,7 @@
 #pragma once
 
 #include "graph_test/graph_test.h"
+#include "json.hpp"
 
 namespace kuzu {
 namespace testing {

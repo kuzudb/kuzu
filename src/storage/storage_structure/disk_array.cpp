@@ -80,7 +80,7 @@ U BaseDiskArray<U>::get(uint64_t idx, TransactionType trxType) {
     checkOutOfBoundAccess(trxType, idx);
     auto apCursor = getAPIdxAndOffsetInAP(idx);
     page_idx_t apPageIdx = getAPPageIdxNoLock(apCursor.pageIdx, trxType);
-    if (trxType == READ_ONLY || !hasTransactionalUpdates ||
+    if (trxType == TransactionType::READ_ONLY || !hasTransactionalUpdates ||
         !((VersionedFileHandle&)fileHandle).hasWALPageVersionNoPageLock(apPageIdx)) {
         auto frame = bufferManager->pin(fileHandle, apPageIdx);
         auto retVal = *(U*)(frame + apCursor.offsetInPage);

@@ -1,11 +1,16 @@
 #include "main/connection.h"
 
+#include "binder/binder.h"
+#include "json.hpp"
 #include "main/database.h"
 #include "main/plan_printer.h"
 #include "optimizer/optimizer.h"
 #include "parser/parser.h"
 #include "planner/planner.h"
 #include "processor/mapper/plan_mapper.h"
+#include "processor/processor.h"
+#include "transaction/transaction.h"
+#include "transaction/transaction_manager.h"
 
 using namespace kuzu::parser;
 using namespace kuzu::binder;
@@ -21,13 +26,49 @@ Connection::Connection(Database* database) {
     assert(database != nullptr);
     this->database = database;
     clientContext = std::make_unique<ClientContext>();
-    transactionMode = AUTO_COMMIT;
+    transactionMode = ConnectionTransactionMode::AUTO_COMMIT;
 }
 
 Connection::~Connection() {
     if (activeTransaction) {
         database->transactionManager->rollback(activeTransaction.get());
     }
+}
+
+void Connection::beginReadOnlyTransaction() {
+    std::unique_lock<std::mutex> lck{mtx};
+    setTransactionModeNoLock(ConnectionTransactionMode::MANUAL);
+    beginTransactionNoLock(transaction::TransactionType::READ_ONLY);
+}
+
+void Connection::beginWriteTransaction() {
+    std::unique_lock<std::mutex> lck{mtx};
+    setTransactionModeNoLock(ConnectionTransactionMode::MANUAL);
+    beginTransactionNoLock(transaction::TransactionType::WRITE);
+}
+
+void Connection::commit() {
+    std::unique_lock<std::mutex> lck{mtx};
+    commitOrRollbackNoLock(true /* isCommit */);
+}
+
+void Connection::rollback() {
+    std::unique_lock<std::mutex> lck{mtx};
+    commitOrRollbackNoLock(false /* is rollback */);
+}
+
+void Connection::setMaxNumThreadForExec(uint64_t numThreads) {
+    clientContext->numThreadsForExecution = numThreads;
+}
+
+uint64_t Connection::getMaxNumThreadForExec() {
+    std::unique_lock<std::mutex> lck{mtx};
+    return clientContext->numThreadsForExecution;
+}
+
+std::unique_ptr<PreparedStatement> Connection::prepare(const std::string& query) {
+    std::unique_lock<std::mutex> lck{mtx};
+    return prepareNoLock(query);
 }
 
 std::unique_ptr<QueryResult> Connection::query(const std::string& query) {
@@ -42,6 +83,58 @@ std::unique_ptr<QueryResult> Connection::queryResultWithError(std::string& errMs
     queryResult->success = false;
     queryResult->errMsg = errMsg;
     return queryResult;
+}
+
+Connection::ConnectionTransactionMode Connection::getTransactionMode() {
+    std::unique_lock<std::mutex> lck{mtx};
+    return transactionMode;
+}
+
+void Connection::setTransactionModeNoLock(ConnectionTransactionMode newTransactionMode) {
+    if (activeTransaction && transactionMode == ConnectionTransactionMode::MANUAL &&
+        newTransactionMode == ConnectionTransactionMode::AUTO_COMMIT) {
+        throw common::ConnectionException(
+            "Cannot change transaction mode from MANUAL to AUTO_COMMIT when there is an "
+            "active transaction. Need to first commit or rollback the active transaction.");
+    }
+    transactionMode = newTransactionMode;
+}
+
+void Connection::commitButSkipCheckpointingForTestingRecovery() {
+    std::unique_lock<std::mutex> lck{mtx};
+    commitOrRollbackNoLock(true /* isCommit */, true /* skip checkpointing for testing */);
+}
+
+void Connection::rollbackButSkipCheckpointingForTestingRecovery() {
+    std::unique_lock<std::mutex> lck{mtx};
+    commitOrRollbackNoLock(false /* is rollback */, true /* skip checkpointing for testing */);
+}
+
+transaction::Transaction* Connection::getActiveTransaction() {
+    std::unique_lock<std::mutex> lck{mtx};
+    return activeTransaction.get();
+}
+
+uint64_t Connection::getActiveTransactionID() {
+    std::unique_lock<std::mutex> lck{mtx};
+    return activeTransaction ? activeTransaction->getID() : UINT64_MAX;
+}
+
+bool Connection::hasActiveTransaction() {
+    std::unique_lock<std::mutex> lck{mtx};
+    return activeTransaction != nullptr;
+}
+
+void Connection::commitNoLock() {
+    commitOrRollbackNoLock(true /* is commit */);
+}
+
+void Connection::rollbackIfNecessaryNoLock() {
+    // If there is no active transaction in the system (e.g., an exception occurs during
+    // planning), we shouldn't roll back the transaction.
+    if (activeTransaction != nullptr) {
+        commitOrRollbackNoLock(false /* is rollback */);
+    }
 }
 
 std::unique_ptr<PreparedStatement> Connection::prepareNoLock(
@@ -220,7 +313,7 @@ std::unique_ptr<QueryResult> Connection::executeAndAutoCommitIfNecessaryNoLock(
             executionContext->transaction = activeTransaction.get();
             resultFT =
                 database->queryProcessor->execute(physicalPlan.get(), executionContext.get());
-            if (AUTO_COMMIT == transactionMode) {
+            if (ConnectionTransactionMode::AUTO_COMMIT == transactionMode) {
                 commitNoLock();
             }
         } catch (Exception& exception) {
@@ -235,7 +328,8 @@ std::unique_ptr<QueryResult> Connection::executeAndAutoCommitIfNecessaryNoLock(
             preparedStatement->statementResult->getExpressionsToCollectPerColumn());
     }
     auto planPrinter = std::make_unique<PlanPrinter>(physicalPlan.get(), std::move(profiler));
-    queryResult->querySummary->planInJson = planPrinter->printPlanToJson();
+    queryResult->querySummary->planInJson =
+        std::make_unique<nlohmann::json>(planPrinter->printPlanToJson());
     queryResult->querySummary->planInOstream = planPrinter->printPlanToOstream();
     return queryResult;
 }
@@ -248,7 +342,7 @@ void Connection::beginTransactionNoLock(TransactionType type) {
             "transactions, please open other connections. Current active transaction is "
             "not affected by this exception and can still be used.");
     }
-    activeTransaction = type == READ_ONLY ?
+    activeTransaction = type == transaction::TransactionType::READ_ONLY ?
                             database->transactionManager->beginReadOnlyTransaction() :
                             database->transactionManager->beginWriteTransaction();
 }
@@ -263,7 +357,7 @@ void Connection::commitOrRollbackNoLock(bool isCommit, bool skipCheckpointForTes
                        database->transactionManager->rollback(activeTransaction.get());
         }
         activeTransaction.reset();
-        transactionMode = AUTO_COMMIT;
+        transactionMode = ConnectionTransactionMode::AUTO_COMMIT;
     }
 }
 
@@ -278,15 +372,17 @@ void Connection::beginTransactionIfAutoCommit(PreparedStatement* preparedStateme
             "active transaction, please commit or rollback your previous transaction and "
             "issue a ddl query without opening a transaction.");
     }
-    if (AUTO_COMMIT == transactionMode) {
+    if (ConnectionTransactionMode::AUTO_COMMIT == transactionMode) {
         assert(!activeTransaction);
         // If the caller didn't explicitly start a transaction, we do so now and commit or
         // rollback here if necessary, i.e., if the given prepared statement has write
         // operations.
-        beginTransactionNoLock(preparedStatement->isReadOnly() ? READ_ONLY : WRITE);
+        beginTransactionNoLock(preparedStatement->isReadOnly() ?
+                                   transaction::TransactionType::READ_ONLY :
+                                   transaction::TransactionType::WRITE);
     }
     if (!activeTransaction) {
-        assert(MANUAL == transactionMode);
+        assert(ConnectionTransactionMode::MANUAL == transactionMode);
         throw ConnectionException(
             "Transaction mode is manual but there is no active transaction. Please begin a "
             "transaction or set the transaction mode of the connection to AUTO_COMMIT");

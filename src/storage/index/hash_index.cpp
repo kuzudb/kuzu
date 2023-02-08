@@ -130,8 +130,8 @@ HashIndex<T>::HashIndex(const StorageStructureIDAndFName& storageStructureIDAndF
     headerArray = std::make_unique<BaseDiskArray<HashIndexHeader>>(
         *fileHandle, INDEX_HEADER_ARRAY_HEADER_PAGE_IDX, &bm, wal);
     // Read indexHeader from the headerArray, which contains only one element.
-    indexHeader =
-        std::make_unique<HashIndexHeader>(headerArray->get(INDEX_HEADER_IDX_IN_ARRAY, READ_ONLY));
+    indexHeader = std::make_unique<HashIndexHeader>(
+        headerArray->get(INDEX_HEADER_IDX_IN_ARRAY, TransactionType::READ_ONLY));
     assert(indexHeader->keyDataTypeID == keyDataType.typeID);
     pSlots =
         std::make_unique<BaseDiskArray<Slot<T>>>(*fileHandle, P_SLOTS_HEADER_PAGE_IDX, &bm, wal);

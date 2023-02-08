@@ -8,6 +8,14 @@ using namespace kuzu::utf8proc;
 namespace kuzu {
 namespace processor {
 
+void FlatTuple::addValue(std::unique_ptr<common::Value> value) {
+    values.push_back(std::move(value));
+}
+
+uint32_t FlatTuple::len() {
+    return values.size();
+}
+
 common::Value* FlatTuple::getValue(uint32_t idx) {
     if (idx >= len()) {
         throw common::RuntimeException(common::StringUtils::string_format(
