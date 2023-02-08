@@ -179,9 +179,11 @@ public:
     inline DirectedRelTableData* getDirectedTableData(common::RelDirection relDirection) {
         return relDirection == common::FWD ? fwdRelTableData.get() : bwdRelTableData.get();
     }
-    inline void removeProperty(common::property_id_t propertyID) {
+    inline void removeProperty(
+        common::property_id_t propertyID, catalog::RelTableSchema& relTableSchema) {
         fwdRelTableData->removeProperty(propertyID);
         bwdRelTableData->removeProperty(propertyID);
+        listsUpdatesStore->updateSchema(relTableSchema);
     }
     inline bool isSingleMultiplicityInDirection(common::RelDirection relDirection) {
         return relDirection == common::RelDirection::FWD ? fwdRelTableData->isSingleMultiplicity() :
@@ -208,7 +210,7 @@ public:
     void initEmptyRelsForNewNode(common::nodeID_t& nodeID);
     void batchInitEmptyRelsForNewNodes(
         const catalog::RelTableSchema* relTableSchema, uint64_t numNodesInTable);
-    void addProperty(catalog::Property property);
+    void addProperty(catalog::Property property, catalog::RelTableSchema& relTableSchema);
 
 private:
     inline void addToUpdatedRelTables() { wal->addToUpdatedRelTables(tableID); }

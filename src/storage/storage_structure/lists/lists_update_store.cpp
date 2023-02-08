@@ -27,8 +27,13 @@ bool ListsUpdatesForNodeOffset::hasAnyUpdatedPersistentListOffsets() const {
 }
 
 ListsUpdatesStore::ListsUpdatesStore(MemoryManager& memoryManager, RelTableSchema& relTableSchema)
-    : relTableSchema{relTableSchema}, memoryManager{memoryManager} {
-    initInsertedRels();
+    : memoryManager{memoryManager} {
+    updateSchema(relTableSchema);
+}
+
+void ListsUpdatesStore::updateSchema(RelTableSchema& relTableSchema) {
+    this->relTableSchema = relTableSchema;
+    initInsertedRelsAndListsUpdates();
     initListsUpdatesPerTablePerDirection();
 }
 
@@ -279,7 +284,7 @@ void ListsUpdatesStore::initNewlyAddedNodes(nodeID_t& nodeID) {
     }
 }
 
-void ListsUpdatesStore::initInsertedRels() {
+void ListsUpdatesStore::initInsertedRelsAndListsUpdates() {
     auto factorizedTableSchema = std::make_unique<FactorizedTableSchema>();
     // The first two columns of factorizedTable are for srcNodeID and dstNodeID.
     factorizedTableSchema->appendColumn(std::make_unique<ColumnSchema>(

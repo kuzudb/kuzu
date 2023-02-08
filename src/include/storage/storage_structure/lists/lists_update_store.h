@@ -83,6 +83,8 @@ public:
         return listsUpdatesPerDirection[relDirection];
     }
 
+    void updateSchema(catalog::RelTableSchema& relTableSchema);
+
     bool isNewlyAddedNode(ListFileID& listFileID, common::offset_t nodeOffset) const;
 
     uint64_t getNumDeletedRels(ListFileID& listFileID, common::offset_t nodeOffset) const;
@@ -142,7 +144,7 @@ private:
         return ftOfInsertedRels->findValueInFlatColumn(INTERNAL_REL_ID_IDX_IN_FT, relID);
     }
 
-    void initInsertedRels();
+    void initInsertedRelsAndListsUpdates();
 
     processor::ft_col_idx_t getColIdxInFT(ListFileID& listFileID) const;
 

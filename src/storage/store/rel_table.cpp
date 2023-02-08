@@ -151,8 +151,6 @@ void DirectedRelTableData::insertRel(const std::shared_ptr<ValueVector>& boundVe
 }
 
 void DirectedRelTableData::deleteRel(const std::shared_ptr<ValueVector>& boundVector) {
-    auto boundNode =
-        boundVector->getValue<nodeID_t>(boundVector->state->selVector->selectedPositions[0]);
     if (!isSingleMultiplicity()) {
         return;
     }
@@ -166,8 +164,6 @@ void DirectedRelTableData::deleteRel(const std::shared_ptr<ValueVector>& boundVe
 
 void DirectedRelTableData::updateRel(const std::shared_ptr<ValueVector>& boundVector,
     property_id_t propertyID, const std::shared_ptr<ValueVector>& propertyVector) {
-    auto boundNode =
-        boundVector->getValue<nodeID_t>(boundVector->state->selVector->selectedPositions[0]);
     if (!isSingleMultiplicity()) {
         return;
     }
@@ -322,9 +318,10 @@ void RelTable::batchInitEmptyRelsForNewNodes(
         relTableSchema, numNodesInTable, wal->getDirectory());
 }
 
-void RelTable::addProperty(Property property) {
+void RelTable::addProperty(Property property, RelTableSchema& relTableSchema) {
     fwdRelTableData->addProperty(property, wal);
     bwdRelTableData->addProperty(property, wal);
+    listsUpdatesStore->updateSchema(relTableSchema);
 }
 
 void RelTable::appendInMemListToLargeListOP(
