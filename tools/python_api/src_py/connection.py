@@ -3,14 +3,60 @@ from . import _kuzu
 
 
 class Connection:
+    """
+    Connection to a database.
+
+    Methods
+    -------
+    set_max_threads_for_exec(num_threads)
+        Set the maximum number of threads for executing queries.
+    
+    execute(query, parameters=[])
+        Execute a query.
+    """
+    
     def __init__(self, database, num_threads=0):
+        """
+        Parameters
+        ----------
+        database : _kuzu.Database
+            Database to connect to.
+        num_threads : int
+            Maximum number of threads to use for executing queries.
+        """
+
         self.database = database
         self._connection = _kuzu.Connection(database, num_threads)
 
     def set_max_threads_for_exec(self, num_threads):
+        """
+        Set the maximum number of threads for executing queries.
+
+        Parameters
+        ----------
+        num_threads : int
+            Maximum number of threads to use for executing queries.
+        """
+
         self._connection.set_max_threads_for_exec(num_threads)
 
     def execute(self, query, parameters=[]):
+        """
+        Execute a query.
+
+        Parameters
+        ----------
+        query : str
+            Query to execute.
+        parameters : list
+            Parameters for the query.
+
+        Returns
+        -------
+        QueryResult
+            Query result.
+        """
+
         return QueryResult(self, self._connection.execute(query, parameters))
 
     def _get_node_property_names(self, table_name):
