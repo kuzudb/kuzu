@@ -35,10 +35,10 @@ public:
     static std::vector<std::string> convertResultToString(
         QueryResult& queryResult, bool checkOutputOrder = false);
 
-    static void executeCypherScript(const std::string& path, Connection& conn);
+    static void executeScript(const std::string& path, Connection& conn);
 
     static constexpr char SCHEMA_FILE_NAME[] = "schema.cypher";
-    static constexpr char COPY_CSV_FILE_NAME[] = "copy.cypher";
+    static constexpr char COPY_FILE_NAME[] = "copy.cypher";
 
     static std::string getTmpTestDir() { return appendKuzuRootPath("test/unittest_temp/"); }
 

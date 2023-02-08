@@ -6,11 +6,22 @@ using namespace kuzu::testing;
 class DemoDBTest : public DBTest {
 public:
     std::string getInputDir() override {
-        return TestHelper::appendKuzuRootPath("dataset/demo-db/");
+        return TestHelper::appendKuzuRootPath("dataset/demo-db/csv/");
+    }
+};
+
+class DemoDBTestFromParquet : public DBTest {
+public:
+    std::string getInputDir() override {
+        return TestHelper::appendKuzuRootPath("dataset/demo-db/parquet/");
     }
 };
 
 TEST_F(DemoDBTest, DemoDBTest) {
+    runTest(TestHelper::appendKuzuRootPath("test/test_files/demo_db/demo_db.test"));
+}
+
+TEST_F(DemoDBTestFromParquet, DemoDBTest) {
     runTest(TestHelper::appendKuzuRootPath("test/test_files/demo_db/demo_db.test"));
 }
 

@@ -107,11 +107,9 @@ arrow::Status CopyNodeArrow::populateColumnsFromCSV(std::unique_ptr<HashIndexBui
     offset_t offsetStart = 0;
 
     std::shared_ptr<arrow::csv::StreamingReader> csv_streaming_reader;
-    auto status = initCSVReader(csv_streaming_reader, copyDescription.filePath);
-    throwCopyExceptionIfNotOK(status);
+    auto status = initCSVReaderAndCheckStatus(csv_streaming_reader, copyDescription.filePath);
 
     std::shared_ptr<arrow::RecordBatch> currBatch;
-
     int blockIdx = 0;
     auto it = csv_streaming_reader->begin();
     auto endIt = csv_streaming_reader->end();
@@ -141,8 +139,7 @@ arrow::Status CopyNodeArrow::populateColumnsFromArrow(
     offset_t offsetStart = 0;
 
     std::shared_ptr<arrow::ipc::RecordBatchFileReader> ipc_reader;
-    auto status = initArrowReader(ipc_reader, copyDescription.filePath);
-    throwCopyExceptionIfNotOK(status);
+    auto status = initArrowReaderAndCheckStatus(ipc_reader, copyDescription.filePath);
 
     std::shared_ptr<arrow::RecordBatch> currBatch;
 
@@ -173,8 +170,7 @@ arrow::Status CopyNodeArrow::populateColumnsFromParquet(
     offset_t offsetStart = 0;
 
     std::unique_ptr<parquet::arrow::FileReader> reader;
-    auto status = initParquetReader(reader, copyDescription.filePath);
-    throwCopyExceptionIfNotOK(status);
+    auto status = initParquetReaderAndCheckStatus(reader, copyDescription.filePath);
 
     std::shared_ptr<arrow::Table> currTable;
     int blockIdx = 0;

@@ -4,28 +4,40 @@ using namespace kuzu::common;
 using namespace kuzu::storage;
 using namespace kuzu::testing;
 
-class ArrowNodeCopyTest : public DBTest {
-    void SetUp() override {
-        BaseGraphTest::SetUp();
-        createDBAndConn();
-    }
-
+class CopyNodeFromCSVTest : public DBTest {
     std::string getInputDir() override {
         return TestHelper::appendKuzuRootPath("dataset/copy-test/node/csv/");
     }
 };
 
-TEST_F(ArrowNodeCopyTest, ArrowNodeCopyCSVTest) {
-    initGraphFromPath(TestHelper::appendKuzuRootPath("dataset/copy-test/node/csv/"));
+TEST_F(CopyNodeFromCSVTest, CopyNodeTest) {
     runTest(TestHelper::appendKuzuRootPath("test/test_files/copy/copy_node.test"));
 }
 
-TEST_F(ArrowNodeCopyTest, ArrowNodeCopyArrowTest) {
-    initGraphFromPath(TestHelper::appendKuzuRootPath("dataset/copy-test/node/arrow/"));
+class CopyNodeFromParquetTest : public DBTest {
+    std::string getInputDir() override {
+        return TestHelper::appendKuzuRootPath("dataset/copy-test/node/parquet/");
+    }
+};
+
+TEST_F(CopyNodeFromParquetTest, CopyNodeTest) {
     runTest(TestHelper::appendKuzuRootPath("test/test_files/copy/copy_node.test"));
 }
 
-TEST_F(ArrowNodeCopyTest, ArrowNodeCopyParquetTest) {
-    initGraphFromPath(TestHelper::appendKuzuRootPath("dataset/copy-test/node/parquet/"));
-    runTest(TestHelper::appendKuzuRootPath("test/test_files/copy/copy_node.test"));
+class CopyNodeWrongPathTest : public BaseGraphTest {
+public:
+    void SetUp() override {
+        BaseGraphTest::SetUp();
+        createDBAndConn();
+    }
+
+    std::string getInputDir() override { throw NotImplementedException("getInputDir()"); }
+};
+
+TEST_F(CopyNodeWrongPathTest, WrongPathTest) {
+    conn->query("CREATE NODE TABLE User(name STRING, age INT64, PRIMARY KEY (name))");
+    auto result = conn->query("COPY User FROM 'wrong_path.csv'");
+    ASSERT_FALSE(result->isSuccess());
+    result = conn->query("COPY User FROM 'wrong_path.parquet'");
+    ASSERT_FALSE(result->isSuccess());
 }

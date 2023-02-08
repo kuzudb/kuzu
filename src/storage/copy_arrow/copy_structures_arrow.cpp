@@ -123,8 +123,7 @@ void CopyStructuresArrow::countNumLines(const std::string& filePath) {
 
 arrow::Status CopyStructuresArrow::countNumLinesCSV(const std::string& filePath) {
     std::shared_ptr<arrow::csv::StreamingReader> csv_streaming_reader;
-    auto status = initCSVReader(csv_streaming_reader, filePath);
-
+    auto status = initCSVReaderAndCheckStatus(csv_streaming_reader, filePath);
     numRows = 0;
     numBlocks = 0;
     std::shared_ptr<arrow::RecordBatch> currBatch;
@@ -142,8 +141,7 @@ arrow::Status CopyStructuresArrow::countNumLinesCSV(const std::string& filePath)
 
 arrow::Status CopyStructuresArrow::countNumLinesArrow(const std::string& filePath) {
     std::shared_ptr<arrow::ipc::RecordBatchFileReader> ipc_reader;
-    auto status = initArrowReader(ipc_reader, filePath);
-
+    auto status = initArrowReaderAndCheckStatus(ipc_reader, filePath);
     numRows = 0;
     numBlocks = ipc_reader->num_record_batches();
     numLinesPerBlock.resize(numBlocks);
@@ -159,7 +157,7 @@ arrow::Status CopyStructuresArrow::countNumLinesArrow(const std::string& filePat
 
 arrow::Status CopyStructuresArrow::countNumLinesParquet(const std::string& filePath) {
     std::unique_ptr<parquet::arrow::FileReader> reader;
-    auto status = initParquetReader(reader, filePath);
+    auto status = initParquetReaderAndCheckStatus(reader, filePath);
 
     numRows = 0;
     numBlocks = reader->num_row_groups();
@@ -171,6 +169,14 @@ arrow::Status CopyStructuresArrow::countNumLinesParquet(const std::string& fileP
         numLinesPerBlock[blockId] = table->num_rows();
         numRows += table->num_rows();
     }
+    return status;
+}
+
+arrow::Status CopyStructuresArrow::initCSVReaderAndCheckStatus(
+    std::shared_ptr<arrow::csv::StreamingReader>& csv_streaming_reader,
+    const std::string& filePath) {
+    auto status = initCSVReader(csv_streaming_reader, filePath);
+    throwCopyExceptionIfNotOK(status);
     return status;
 }
 
@@ -202,6 +208,13 @@ arrow::Status CopyStructuresArrow::initCSVReader(
     return arrow::Status::OK();
 }
 
+arrow::Status CopyStructuresArrow::initArrowReaderAndCheckStatus(
+    std::shared_ptr<arrow::ipc::RecordBatchFileReader>& ipc_reader, const std::string& filePath) {
+    auto status = initArrowReader(ipc_reader, filePath);
+    throwCopyExceptionIfNotOK(status);
+    return status;
+}
+
 arrow::Status CopyStructuresArrow::initArrowReader(
     std::shared_ptr<arrow::ipc::RecordBatchFileReader>& ipc_reader, const std::string& filePath) {
     std::shared_ptr<arrow::io::ReadableFile> infile;
@@ -211,6 +224,13 @@ arrow::Status CopyStructuresArrow::initArrowReader(
 
     ARROW_ASSIGN_OR_RAISE(ipc_reader, arrow::ipc::RecordBatchFileReader::Open(infile));
     return arrow::Status::OK();
+}
+
+arrow::Status CopyStructuresArrow::initParquetReaderAndCheckStatus(
+    std::unique_ptr<parquet::arrow::FileReader>& reader, const std::string& filePath) {
+    auto status = initParquetReader(reader, filePath);
+    throwCopyExceptionIfNotOK(status);
+    return status;
 }
 
 arrow::Status CopyStructuresArrow::initParquetReader(
