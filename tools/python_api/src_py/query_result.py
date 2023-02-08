@@ -77,6 +77,10 @@ class QueryResult:
         nodes = {}
         rels = {}
         table_to_label_dict = {}
+        table_primary_key_dict = {}
+
+        def encode_node_id(node, table_primary_key_dict):
+            return node['_label'] + "_" + str(node[table_primary_key_dict[node['_label']]])
 
         # De-duplicate nodes and rels
         while self.has_next():
@@ -98,6 +102,13 @@ class QueryResult:
         for node in nodes.values():
             _id = node["_id"]
             node_id = node['_label'] + "_" + str(_id["offset"])
+            if node['_label'] not in table_primary_key_dict:
+                props = self.connection._get_node_property_names(node['_label'])
+                for prop_name in props:
+                    if props[prop_name]['is_primary_key']:
+                        table_primary_key_dict[node['_label']] = prop_name
+                        break
+            node_id = encode_node_id(node, table_primary_key_dict)
             node[node['_label']] = True
             nx_graph.add_node(node_id, **node)
 
@@ -105,10 +116,10 @@ class QueryResult:
         for rel in rels.values():
             _src = rel["_src"]
             _dst = rel["_dst"]
-            src_id = str(
-                table_to_label_dict[_src["table"]]) + "_" + str(_src["offset"])
-            dst_id = str(
-                table_to_label_dict[_dst["table"]]) + "_" + str(_dst["offset"])
+            src_node = nodes[(_src["table"], _src["offset"])]
+            dst_node = nodes[(_dst["table"], _dst["offset"])]
+            src_id = encode_node_id(src_node, table_primary_key_dict)
+            dst_id = encode_node_id(dst_node, table_primary_key_dict)
             nx_graph.add_edge(src_id, dst_id, **rel)
         return nx_graph
 

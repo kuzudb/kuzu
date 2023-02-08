@@ -52,7 +52,7 @@ def test_to_networkx_node(establish_connection):
     }
     for i in range(len(nodes)):
         node_id, node = nodes[i]
-        assert node_id == "%s_%d" % (node['_label'], node['_id']['offset'])
+        assert node_id == "%s_%d" % (node['_label'], node['ID'])
         for key in ground_truth:
             assert node[key] == ground_truth[key][i]
 
@@ -110,7 +110,7 @@ def test_networkx_undirected(establish_connection):
                    'person', 'person'],
     }
     for (node_id, node) in nodes:
-        assert node_id == "%s_%d" % (node['_label'], node['_id']['offset'])
+        assert node_id == "%s_%d" % (node['_label'], node['ID'])
 
     for (_, node) in nodes:
         found = False
@@ -166,7 +166,7 @@ def test_networkx_directed(establish_connection):
     }
 
     for (node_id, node) in nodes:
-        assert node_id == "%s_%d" % (node['_label'], node['_id']['offset'])
+        assert node_id == "%s_%d" % (node['_label'], node['ID'])
 
     for (_, node) in nodes:
         if 'person' not in node:
