@@ -47,9 +47,9 @@ public:
 struct ListsUpdateInfo {
 public:
     ListsUpdateInfo(const std::shared_ptr<common::ValueVector>& propertyVector,
-        common::property_id_t propertyID, int64_t relID, uint64_t fwdListOffset,
+        common::property_id_t propertyID, common::offset_t relOffset, uint64_t fwdListOffset,
         uint64_t bwdListOffset)
-        : propertyVector{propertyVector}, propertyID{propertyID}, relID{relID},
+        : propertyVector{propertyVector}, propertyID{propertyID}, relOffset{relOffset},
           fwdListOffset{fwdListOffset}, bwdListOffset{bwdListOffset} {}
 
     bool isStoredInPersistentStore() const { return fwdListOffset != -1 || bwdListOffset != -1; }
@@ -57,7 +57,7 @@ public:
 public:
     std::shared_ptr<common::ValueVector> propertyVector;
     common::property_id_t propertyID;
-    int64_t relID;
+    common::offset_t relOffset;
     list_offset_t fwdListOffset;
     list_offset_t bwdListOffset;
 };
