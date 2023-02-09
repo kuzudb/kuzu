@@ -22,28 +22,79 @@ public:
         const common::DataType& type, const std::string& name);
 };
 
+/**
+ * @brief QueryResult stores the result of a query execution.
+ */
 class QueryResult {
     friend class Connection;
 
 public:
-    // Only used when we failed to prepare a query.
+    /**
+     * @brief Used to create a QueryResult object for the failing query.
+     */
     KUZU_API QueryResult();
+    /**
+     * @brief Creates a QueryResult object.
+     * @param preparedSummary stores compiling time and query options.
+     */
     explicit QueryResult(const PreparedSummary& preparedSummary);
+    /**
+     * @brief Deconstructs the QueryResult object.
+     */
     KUZU_API ~QueryResult();
-
+    /**
+     * @return query is executed successfully or not.
+     */
     KUZU_API bool isSuccess() const;
+    /**
+     * @return error message of the query execution if the query fails.
+     */
     KUZU_API std::string getErrorMessage() const;
+    /**
+     * @return number of columns in query result.
+     */
     KUZU_API size_t getNumColumns() const;
+    /**
+     * @return name of each column in query result.
+     */
     KUZU_API std::vector<std::string> getColumnNames();
+    /**
+     * @return dataType of each column in query result.
+     */
     KUZU_API std::vector<common::DataType> getColumnDataTypes();
+    /**
+     * @return num of tuples in query result.
+     */
     KUZU_API uint64_t getNumTuples();
+    /**
+     * @return query summary which stores the execution time, compiling time, plan and query
+     * options.
+     */
     KUZU_API QuerySummary* getQuerySummary() const;
+    /**
+     * @return dataTypeInfo of each column.
+     */
     std::vector<std::unique_ptr<DataTypeInfo>> getColumnTypesInfo();
-
+    /**
+     * @return whether there are more tuples to read.
+     */
     KUZU_API bool hasNext();
+    /**
+     * @return next flat tuple in the query result.
+     */
     KUZU_API std::shared_ptr<processor::FlatTuple> getNext();
+    /**
+     * @brief writes the query result to a csv file.
+     * @param fileName name of the csv file.
+     * @param delimiter delimiter of the csv file.
+     * @param escapeCharacter escape character of the csv file.
+     * @param newline newline character of the csv file.
+     */
     KUZU_API void writeToCSV(const std::string& fileName, char delimiter = ',',
         char escapeCharacter = '"', char newline = '\n');
+    /**
+     * @brief Resets the result tuple iterator.
+     */
     KUZU_API void resetIterator();
 
 private:

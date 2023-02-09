@@ -7,6 +7,10 @@
 namespace kuzu {
 namespace main {
 
+/**
+ * @brief A prepared statement is a parameterized query which can avoid planning the same query for
+ * repeated execution.
+ */
 class PreparedStatement {
     friend class Connection;
     friend class JOConnection;
@@ -15,10 +19,27 @@ class PreparedStatement {
     friend class kuzu::transaction::TinySnbCopyCSVTransactionTest;
 
 public:
+    /**
+     * @brief DDL and COPY_CSV statements are automatically wrapped in a transaction and committed.
+     * As such, they cannot be part of an active transaction.
+     * @return the prepared statement is allowed to be part of an active transaction.
+     */
     KUZU_API bool allowActiveTransaction() const;
+    /**
+     * @return the query is prepared successfully or not.
+     */
     KUZU_API bool isSuccess() const;
+    /**
+     * @return the error message if the query is not prepared successfully.
+     */
     KUZU_API std::string getErrorMessage() const;
+    /**
+     * @return the prepared statement is read-only or not.
+     */
     KUZU_API bool isReadOnly() const;
+    /**
+     * @return expressions for generating query results.
+     */
     std::vector<std::shared_ptr<binder::Expression>> getExpressionsToCollect();
 
 private:
