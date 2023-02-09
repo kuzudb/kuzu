@@ -13,36 +13,9 @@ spdlog::level::level_enum LoggingLevelUtils::convertStrToLevelEnum(std::string l
         return spdlog::level::level_enum::debug;
     } else if (loggingLevel == "err") {
         return spdlog::level::level_enum::err;
-    }
-    throw ConversionException(
-        StringUtils::string_format("Unsupported logging level: %s.", loggingLevel.c_str()));
-}
-
-std::string LoggingLevelUtils::convertLevelEnumToStr(spdlog::level::level_enum levelEnum) {
-    switch (levelEnum) {
-    case spdlog::level::level_enum::trace: {
-        return "trace";
-    }
-    case spdlog::level::level_enum::debug: {
-        return "debug";
-    }
-    case spdlog::level::level_enum::info: {
-        return "info";
-    }
-    case spdlog::level::level_enum::warn: {
-        return "warn";
-    }
-    case spdlog::level::level_enum::err: {
-        return "err";
-    }
-    case spdlog::level::level_enum::critical: {
-        return "critical";
-    }
-    case spdlog::level::level_enum::off: {
-        return "off";
-    }
-    default:
-        throw ConversionException("Unsupported logging level conversion to string.");
+    } else {
+        throw ConversionException(
+            StringUtils::string_format("Unsupported logging level: %s.", loggingLevel.c_str()));
     }
 }
 

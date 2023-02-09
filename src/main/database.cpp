@@ -90,15 +90,8 @@ void Database::initLoggers() {
     spdlog::set_level(spdlog::level::err);
 }
 
-void Database::setLoggingLevel(spdlog::level::level_enum loggingLevel) {
-    if (loggingLevel != spdlog::level::level_enum::debug &&
-        loggingLevel != spdlog::level::level_enum::info &&
-        loggingLevel != spdlog::level::level_enum::err) {
-        printf("Unsupported logging level: %s.",
-            LoggingLevelUtils::convertLevelEnumToStr(loggingLevel).c_str());
-        return;
-    }
-    spdlog::set_level(loggingLevel);
+void Database::setLoggingLevel(std::string loggingLevel) {
+    spdlog::set_level(LoggingLevelUtils::convertStrToLevelEnum(std::move(loggingLevel)));
 }
 
 void Database::resizeBufferManager(uint64_t newSize) {
