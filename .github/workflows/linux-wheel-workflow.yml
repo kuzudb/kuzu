@@ -13,7 +13,7 @@ env:
 
 jobs:
   build-linux-wheels:
-    runs-on: self-hosted-linux-building
+    runs-on: kuzu-self-hosted-linux-building
     steps:
       - uses: actions/checkout@v3
 
