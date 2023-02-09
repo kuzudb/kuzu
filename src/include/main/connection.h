@@ -8,6 +8,10 @@
 namespace kuzu {
 namespace main {
 
+/**
+ * @brief Connection is used to interact with a Database instance. Each Connection is thread-safe.
+ * Multiple connections can connect to the same Database instance in a multi-threaded environment.
+ */
 class Connection {
     friend class kuzu::testing::ApiTest;
     friend class kuzu::testing::BaseGraphTest;
@@ -33,32 +37,98 @@ public:
     enum class ConnectionTransactionMode : uint8_t { AUTO_COMMIT = 0, MANUAL = 1 };
 
 public:
+    /**
+     * @brief Creates a connection to the database.
+     * @param database A pointer to the database instance that this connection will be connected to.
+     */
     KUZU_API explicit Connection(Database* database);
+    /**
+     * @brief Destructs the connection.
+     */
     KUZU_API ~Connection();
-
+    /**
+     * @brief Manually starts a new read-only transaction in the current connection and sets the
+     * current transaction mode to MANUAL.
+     */
     KUZU_API void beginReadOnlyTransaction();
+    /**
+     * @brief Manually starts a new write transaction in the current connection and sets the current
+     * transaction mode to MANUAL.
+     */
     KUZU_API void beginWriteTransaction();
+    /**
+     * @brief Manually commits the current transaction and sets the current transaction mode to
+     * AUTO_COMMIT.
+     */
     KUZU_API void commit();
+    /**
+     * @brief Manually rollbacks the current transaction and sets the current transaction mode to
+     * AUTO_COMMIT.
+     */
     KUZU_API void rollback();
+    /**
+     * @brief Sets the maximum number of threads to use for execution in the current connection.
+     * @param numThreads The number of threads to use for execution in the current connection.
+     */
     KUZU_API void setMaxNumThreadForExec(uint64_t numThreads);
+    /**
+     * @brief Returns the maximum number of threads to use for execution in the current connection.
+     * @return the maximum number of threads to use for execution in the current connection.
+     */
     KUZU_API uint64_t getMaxNumThreadForExec();
+    /**
+     * @brief Executes the given query and returns the result.
+     * @param query The query to execute.
+     * @return the result of the query.
+     */
     KUZU_API std::unique_ptr<QueryResult> query(const std::string& query);
+    /**
+     * @brief Prepares the given query and returns the prepared statement.
+     * @param query The query to prepare.
+     * @return the prepared statement.
+     */
     KUZU_API std::unique_ptr<PreparedStatement> prepare(const std::string& query);
-
+    /**
+     * @brief Executes the given prepared statement with args and returns the result.
+     * @param preparedStatement The prepared statement to execute.
+     * @param args The parameter pack where each arg is a std::pair with the first element being
+     * parameter name and second element being parameter value.
+     * @return the result of the query.
+     */
     KUZU_API template<typename... Args>
     inline std::unique_ptr<QueryResult> execute(
         PreparedStatement* preparedStatement, std::pair<std::string, Args>... args) {
         std::unordered_map<std::string, std::shared_ptr<common::Value>> inputParameters;
         return executeWithParams(preparedStatement, inputParameters, args...);
     }
-    // Note: Any call that goes through executeWithParams acquires a lock in the end by calling
-    // executeLock(...).
+    /**
+     * @brief Executes the given prepared statement with inputParams and returns the result.
+     * @param preparedStatement The prepared statement to execute.
+     * @param inputParams The parameter pack where each arg is a std::pair with the first element
+     * being parameter name and second element being parameter value.
+     * @return the result of the query.
+     * @note Any call that goes through executeWithParams acquires a lock in the end by calling
+     * executeLock(...).
+     */
     KUZU_API std::unique_ptr<QueryResult> executeWithParams(PreparedStatement* preparedStatement,
         std::unordered_map<std::string, std::shared_ptr<common::Value>>& inputParams);
-
+    /**
+     * @return all node table names in string format.
+     */
     KUZU_API std::string getNodeTableNames();
+    /**
+     * @return all rel table names in string format.
+     */
     KUZU_API std::string getRelTableNames();
+    /**
+     * @param nodeTableName The name of the node table.
+     * @return all property names of the given table.
+     */
     KUZU_API std::string getNodePropertyNames(const std::string& tableName);
+    /**
+     * @param relTableName The name of the rel table.
+     * @return all property names of the given table.
+     */
     KUZU_API std::string getRelPropertyNames(const std::string& relTableName);
 
 protected:
