@@ -28,6 +28,11 @@ protected:
     uint64_t getNumTuplesInTable() override;
 
 private:
+    inline bool allowCopyCSV() override {
+        return nodesStatistics->getNodeStatisticsAndDeletedIDs(tableID)->getNumTuples() == 0;
+    }
+
+private:
     storage::NodesStatisticsAndDeletedIDs* nodesStatistics;
     storage::RelsStore& relsStore;
 };
