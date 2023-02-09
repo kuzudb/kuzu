@@ -19,19 +19,46 @@ public:
 
 TEST_F(DemoDBTest, DemoDBTest) {
     runTest(TestHelper::appendKuzuRootPath("test/test_files/demo_db/demo_db.test"));
+    runTestAndCheckOrder(
+        TestHelper::appendKuzuRootPath("test/test_files/demo_db/demo_db_order.test"));
 }
 
 TEST_F(DemoDBTestFromParquet, DemoDBTest) {
     runTest(TestHelper::appendKuzuRootPath("test/test_files/demo_db/demo_db.test"));
+    runTestAndCheckOrder(
+        TestHelper::appendKuzuRootPath("test/test_files/demo_db/demo_db_order.test"));
 }
 
-TEST_F(DemoDBTest, CreateRelTest) {
+TEST_F(DemoDBTest, CreateNodeTest1) {
+    conn->query("create (u:User {name: 'Alice', age: 35})");
+    auto result = conn->query("MATCH (a:User) WHERE a.name = 'Alice' RETURN a.name, a.age");
+    auto groundTruth = std::vector<std::string>{"Alice|35"};
+    ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
+}
+
+TEST_F(DemoDBTest, CreateNodeTest2) {
+    conn->query("create (u:User {name: 'Dimitri'})");
+    auto result = conn->query("MATCH (a:User) WHERE a.name = 'Dimitri' RETURN a.name, a.age");
+    auto groundTruth = std::vector<std::string>{"Dimitri|"};
+    ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
+}
+
+TEST_F(DemoDBTest, CreateRelTest1) {
     conn->query("create (u:User {name: 'Alice'})");
     conn->query("MATCH (a:User) WHERE a.name = 'Adam' WITH a  MATCH (b:User) WHERE b.name = "
                 "'Alice' WITH a, b CREATE (a)-[e:Follows {since:1990}]->(b)");
     auto result = conn->query(
         "MATCH (a:User)-[:Follows]->(b:User) WHERE a.name = 'Adam' RETURN b.name ORDER BY b.name");
     auto groundTruth = std::vector<std::string>{"Alice", "Karissa", "Zhang"};
+    ASSERT_EQ(TestHelper::convertResultToString(*result, true /* check order */), groundTruth);
+}
+
+TEST_F(DemoDBTest, CreateRelTest2) {
+    conn->query("MATCH (a:User), (b:User) WHERE a.name='Zhang' AND b.name='Karissa' CREATE "
+                "(a)-[:Follows {since:2022}]->(b)");
+    auto result = conn->query(
+        "MATCH (a:User)-[:Follows]->(b:User) WHERE a.name = 'Zhang' RETURN b.name ORDER BY b.name");
+    auto groundTruth = std::vector<std::string>{"Karissa", "Noura"};
     ASSERT_EQ(TestHelper::convertResultToString(*result, true /* check order */), groundTruth);
 }
 
@@ -60,6 +87,16 @@ TEST_F(DemoDBTest, DeleteNodeTest) {
     ASSERT_EQ(TestHelper::convertResultToString(*result, true /* check order */), groundTruth);
 }
 
+TEST_F(DemoDBTest, DeleteRelTest) {
+    auto result = conn->query("MATCH (u:User)-[f:Follows]->(u1:User) WHERE u.name = 'Adam' AND "
+                              "u1.name = 'Karissa' DELETE f;");
+    ASSERT_TRUE(result->isSuccess());
+    result =
+        conn->query("MATCH (u:User)-[f:Follows]->(u1:User) WHERE u.name='Adam' RETURN u1.name");
+    auto groundTruth = std::vector<std::string>{"Zhang"};
+    ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
+}
+
 TEST_F(DemoDBTest, DeleteWithExceptionTest) {
     auto result = conn->query("MATCH (u:User) WHERE u.name = 'Adam' DELETE u;");
     ASSERT_FALSE(result->isSuccess());
@@ -78,6 +115,16 @@ TEST_F(DemoDBTest, SetNodeTest) {
     result = conn->query("MATCH (u:User) WHERE u.name='Adam' RETURN u.age");
     groundTruth = std::vector<std::string>{""};
     ASSERT_EQ(TestHelper::convertResultToString(*result, true /* check order */), groundTruth);
+}
+
+TEST_F(DemoDBTest, SetRelTest) {
+    auto result = conn->query("MATCH (u:User)-[f:Follows]->(u1:User) WHERE u.name = 'Adam' AND "
+                              "u1.name = 'Karissa' SET f.since=2012;");
+    ASSERT_TRUE(result->isSuccess());
+    result = conn->query(
+        "MATCH (u:User)-[f:Follows]->(u1:User) WHERE u.name='Adam' RETURN f.since, u1.name");
+    auto groundTruth = std::vector<std::string>{"2012|Karissa", "2020|Zhang"};
+    ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
 }
 
 TEST_F(DemoDBTest, CopyRelToNonEmptyTableErrorTest) {
