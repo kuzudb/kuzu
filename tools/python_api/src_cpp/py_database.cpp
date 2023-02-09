@@ -18,7 +18,7 @@ PyDatabase::PyDatabase(const std::string& databasePath, uint64_t bufferPoolSize)
         systemConfig.largePageBufferPoolSize =
             bufferPoolSize * StorageConfig::LARGE_PAGES_BUFFER_RATIO;
     }
-    database = std::make_unique<Database>(DatabaseConfig(databasePath), systemConfig);
+    database = std::make_unique<Database>(databasePath, systemConfig);
 }
 
 void PyDatabase::resizeBufferManager(uint64_t newSize) {

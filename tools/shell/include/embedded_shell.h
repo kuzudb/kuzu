@@ -12,7 +12,7 @@ namespace main {
 class EmbeddedShell {
 
 public:
-    EmbeddedShell(const DatabaseConfig& databaseConfig, const SystemConfig& systemConfig);
+    EmbeddedShell(const std::string& databasePath, const SystemConfig& systemConfig);
 
     void run();
 

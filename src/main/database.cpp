@@ -33,20 +33,17 @@ SystemConfig::SystemConfig(uint64_t bufferPoolSize) {
     maxNumThreads = std::thread::hardware_concurrency();
 }
 
-DatabaseConfig::DatabaseConfig(std::string databasePath) : databasePath{std::move(databasePath)} {}
+Database::Database(std::string databasePath) : Database{std::move(databasePath), SystemConfig()} {}
 
-Database::Database(DatabaseConfig databaseConfig)
-    : Database{std::move(databaseConfig), SystemConfig()} {}
-
-Database::Database(DatabaseConfig databaseConfig, SystemConfig systemConfig)
-    : databaseConfig{std::move(databaseConfig)},
+Database::Database(std::string databasePath, SystemConfig systemConfig)
+    : databasePath{std::move(databasePath)},
       systemConfig{systemConfig}, logger{LoggerUtils::getOrCreateLogger("database")} {
     initLoggers();
     initDBDirAndCoreFilesIfNecessary();
     bufferManager = std::make_unique<BufferManager>(
         this->systemConfig.defaultPageBufferPoolSize, this->systemConfig.largePageBufferPoolSize);
     memoryManager = std::make_unique<MemoryManager>(bufferManager.get());
-    wal = std::make_unique<WAL>(this->databaseConfig.databasePath, *bufferManager);
+    wal = std::make_unique<WAL>(this->databasePath, *bufferManager);
     recoverIfNecessary();
     queryProcessor = std::make_unique<processor::QueryProcessor>(this->systemConfig.maxNumThreads);
     catalog = std::make_unique<catalog::Catalog>(wal.get());
@@ -58,21 +55,20 @@ Database::Database(DatabaseConfig databaseConfig, SystemConfig systemConfig)
 Database::~Database() = default;
 
 void Database::initDBDirAndCoreFilesIfNecessary() const {
-    if (!FileUtils::fileOrPathExists(databaseConfig.databasePath)) {
-        FileUtils::createDir(databaseConfig.databasePath);
+    if (!FileUtils::fileOrPathExists(databasePath)) {
+        FileUtils::createDir(databasePath);
     }
     if (!FileUtils::fileOrPathExists(StorageUtils::getNodesStatisticsAndDeletedIDsFilePath(
-            databaseConfig.databasePath, DBFileType::ORIGINAL))) {
-        NodesStatisticsAndDeletedIDs::saveInitialNodesStatisticsAndDeletedIDsToFile(
-            databaseConfig.databasePath);
-    }
-    if (!FileUtils::fileOrPathExists(StorageUtils::getRelsStatisticsFilePath(
-            databaseConfig.databasePath, DBFileType::ORIGINAL))) {
-        RelsStatistics::saveInitialRelsStatisticsToFile(databaseConfig.databasePath);
+            databasePath, DBFileType::ORIGINAL))) {
+        NodesStatisticsAndDeletedIDs::saveInitialNodesStatisticsAndDeletedIDsToFile(databasePath);
     }
     if (!FileUtils::fileOrPathExists(
-            StorageUtils::getCatalogFilePath(databaseConfig.databasePath, DBFileType::ORIGINAL))) {
-        Catalog::saveInitialCatalogToFile(databaseConfig.databasePath);
+            StorageUtils::getRelsStatisticsFilePath(databasePath, DBFileType::ORIGINAL))) {
+        RelsStatistics::saveInitialRelsStatisticsToFile(databasePath);
+    }
+    if (!FileUtils::fileOrPathExists(
+            StorageUtils::getCatalogFilePath(databasePath, DBFileType::ORIGINAL))) {
+        Catalog::saveInitialCatalogToFile(databasePath);
     }
 }
 
@@ -120,11 +116,11 @@ void Database::commitAndCheckpointOrRollback(
             if (nodeTableHasUpdates) {
                 storageManager->getNodesStore()
                     .getNodesStatisticsAndDeletedIDs()
-                    .writeTablesStatisticsFileForWALRecord(databaseConfig.databasePath);
+                    .writeTablesStatisticsFileForWALRecord(databasePath);
             } else {
                 storageManager->getRelsStore()
                     .getRelsStatistics()
-                    .writeTablesStatisticsFileForWALRecord(databaseConfig.databasePath);
+                    .writeTablesStatisticsFileForWALRecord(databasePath);
             }
         }
     }
@@ -132,7 +128,7 @@ void Database::commitAndCheckpointOrRollback(
         wal->logCatalogRecord();
         // If we are committing, we also need to write the WAL file for catalog.
         if (isCommit) {
-            catalog->writeCatalogForWALRecord(databaseConfig.databasePath);
+            catalog->writeCatalogForWALRecord(databasePath);
         }
     }
     storageManager->prepareCommitOrRollbackIfNecessary(isCommit);

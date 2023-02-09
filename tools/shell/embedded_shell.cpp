@@ -198,12 +198,11 @@ void highlight(char* buffer, char* resultBuf, uint32_t maxLen, uint32_t cursorPo
     strcpy(resultBuf, highlightBuffer.str().c_str());
 }
 
-EmbeddedShell::EmbeddedShell(
-    const DatabaseConfig& databaseConfig, const SystemConfig& systemConfig) {
+EmbeddedShell::EmbeddedShell(const std::string& databasePath, const SystemConfig& systemConfig) {
     linenoiseHistoryLoad(HISTORY_PATH);
     linenoiseSetCompletionCallback(completion);
     linenoiseSetHighlightCallback(highlight);
-    database = std::make_unique<Database>(databaseConfig, systemConfig);
+    database = std::make_unique<Database>(databasePath, systemConfig);
     conn = std::make_unique<Connection>(database.get());
     updateTableNames();
 }

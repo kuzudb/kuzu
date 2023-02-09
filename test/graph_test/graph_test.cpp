@@ -41,13 +41,12 @@ void BaseGraphTest::validateListFilesExistence(
 void BaseGraphTest::validateNodeColumnFilesExistence(
     NodeTableSchema* nodeTableSchema, DBFileType dbFileType, bool existence) {
     for (auto& property : nodeTableSchema->properties) {
-        validateColumnFilesExistence(
-            StorageUtils::getNodePropertyColumnFName(databaseConfig->databasePath,
-                nodeTableSchema->tableID, property.propertyID, dbFileType),
+        validateColumnFilesExistence(StorageUtils::getNodePropertyColumnFName(databasePath,
+                                         nodeTableSchema->tableID, property.propertyID, dbFileType),
             existence, containsOverflowFile(property.dataType.typeID));
     }
-    validateColumnFilesExistence(StorageUtils::getNodeIndexFName(databaseConfig->databasePath,
-                                     nodeTableSchema->tableID, dbFileType),
+    validateColumnFilesExistence(
+        StorageUtils::getNodeIndexFName(databasePath, nodeTableSchema->tableID, dbFileType),
         existence, containsOverflowFile(nodeTableSchema->getPrimaryKey().dataType.typeID));
 }
 
@@ -55,15 +54,14 @@ void BaseGraphTest::validateRelColumnAndListFilesExistence(
     RelTableSchema* relTableSchema, DBFileType dbFileType, bool existence) {
     for (auto relDirection : REL_DIRECTIONS) {
         if (relTableSchema->relMultiplicity) {
-            validateColumnFilesExistence(
-                StorageUtils::getAdjColumnFName(databaseConfig->databasePath,
-                    relTableSchema->tableID, relDirection, dbFileType),
+            validateColumnFilesExistence(StorageUtils::getAdjColumnFName(databasePath,
+                                             relTableSchema->tableID, relDirection, dbFileType),
                 existence, false /* hasOverflow */);
             validateRelPropertyFiles(
                 relTableSchema, relDirection, true /* isColumnProperty */, dbFileType, existence);
 
         } else {
-            validateListFilesExistence(StorageUtils::getAdjListsFName(databaseConfig->databasePath,
+            validateListFilesExistence(StorageUtils::getAdjListsFName(databasePath,
                                            relTableSchema->tableID, relDirection, dbFileType),
                 existence, false /* hasOverflow */, true /* hasHeader */);
             validateRelPropertyFiles(
@@ -100,13 +98,13 @@ void BaseGraphTest::validateRelPropertyFiles(catalog::RelTableSchema* relTableSc
         auto hasOverflow = containsOverflowFile(property.dataType.typeID);
         if (isColumnProperty) {
             validateColumnFilesExistence(
-                StorageUtils::getRelPropertyColumnFName(databaseConfig->databasePath,
-                    relTableSchema->tableID, relDirection, property.propertyID, dbFileType),
+                StorageUtils::getRelPropertyColumnFName(databasePath, relTableSchema->tableID,
+                    relDirection, property.propertyID, dbFileType),
                 existence, hasOverflow);
         } else {
             validateListFilesExistence(
-                StorageUtils::getRelPropertyListsFName(databaseConfig->databasePath,
-                    relTableSchema->tableID, relDirection, property.propertyID, dbFileType),
+                StorageUtils::getRelPropertyListsFName(databasePath, relTableSchema->tableID,
+                    relDirection, property.propertyID, dbFileType),
                 existence, hasOverflow, false /* hasHeader */);
         }
     }
@@ -143,7 +141,7 @@ void BaseGraphTest::createDBAndConn() {
     if (database != nullptr) {
         database.reset();
     }
-    database = std::make_unique<main::Database>(*databaseConfig, *systemConfig);
+    database = std::make_unique<main::Database>(databasePath, *systemConfig);
     conn = std::make_unique<main::Connection>(database.get());
     spdlog::set_level(spdlog::level::info);
 }
