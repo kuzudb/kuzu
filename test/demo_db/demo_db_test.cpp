@@ -79,3 +79,12 @@ TEST_F(DemoDBTest, SetNodeTest) {
     groundTruth = std::vector<std::string>{""};
     ASSERT_EQ(TestHelper::convertResultToString(*result, true /* check order */), groundTruth);
 }
+
+TEST_F(DemoDBTest, CopyRelToNonEmptyTableErrorTest) {
+    ASSERT_TRUE(conn->query("MATCH (:User)-[f:Follows]->(:User) DELETE f")->isSuccess());
+    auto result = conn->query("COPY Follows FROM \"" +
+                              TestHelper::appendKuzuRootPath("/dataset/demo-db/csv/follows.csv\""));
+    ASSERT_FALSE(result->isSuccess());
+    ASSERT_EQ(result->getErrorMessage(),
+        "Copy exception: COPY commands can only be executed once on a table.");
+}
