@@ -54,7 +54,6 @@ void BaseGraphTest::validateNodeColumnFilesExistence(
 void BaseGraphTest::validateRelColumnAndListFilesExistence(
     RelTableSchema* relTableSchema, DBFileType dbFileType, bool existence) {
     for (auto relDirection : REL_DIRECTIONS) {
-        auto boundTableID = relTableSchema->getBoundTableID(relDirection);
         if (relTableSchema->relMultiplicity) {
             validateColumnFilesExistence(
                 StorageUtils::getAdjColumnFName(databaseConfig->databasePath,
@@ -113,7 +112,7 @@ void BaseGraphTest::validateRelPropertyFiles(catalog::RelTableSchema* relTableSc
     }
 }
 
-void TestHelper::executeCypherScript(const std::string& cypherScript, Connection& conn) {
+void TestHelper::executeScript(const std::string& cypherScript, Connection& conn) {
     std::cout << "cypherScript: " << cypherScript << std::endl;
     assert(FileUtils::fileOrPathExists(cypherScript));
     std::ifstream file(cypherScript);
@@ -140,14 +139,18 @@ void TestHelper::executeCypherScript(const std::string& cypherScript, Connection
     }
 }
 
-void BaseGraphTest::initGraph() {
-    TestHelper::executeCypherScript(getInputDir() + TestHelper::SCHEMA_FILE_NAME, *conn);
-    TestHelper::executeCypherScript(getInputDir() + TestHelper::COPY_CSV_FILE_NAME, *conn);
+void BaseGraphTest::createDBAndConn() {
+    if (database != nullptr) {
+        database.reset();
+    }
+    database = std::make_unique<main::Database>(*databaseConfig, *systemConfig);
+    conn = std::make_unique<main::Connection>(database.get());
+    spdlog::set_level(spdlog::level::info);
 }
 
-void BaseGraphTest::initGraphFromPath(const std::string& path) const {
-    TestHelper::executeCypherScript(path + TestHelper::SCHEMA_FILE_NAME, *conn);
-    TestHelper::executeCypherScript(path + TestHelper::COPY_CSV_FILE_NAME, *conn);
+void BaseGraphTest::initGraph() {
+    TestHelper::executeScript(getInputDir() + TestHelper::SCHEMA_FILE_NAME, *conn);
+    TestHelper::executeScript(getInputDir() + TestHelper::COPY_FILE_NAME, *conn);
 }
 
 void BaseGraphTest::commitOrRollbackConnection(

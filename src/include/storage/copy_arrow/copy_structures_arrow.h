@@ -57,12 +57,20 @@ protected:
 
     arrow::Status countNumLinesParquet(std::string const& filePath);
 
+    arrow::Status initCSVReaderAndCheckStatus(
+        std::shared_ptr<arrow::csv::StreamingReader>& csv_streaming_reader,
+        const std::string& filePath);
     arrow::Status initCSVReader(std::shared_ptr<arrow::csv::StreamingReader>& csv_streaming_reader,
         const std::string& filePath);
 
+    arrow::Status initArrowReaderAndCheckStatus(
+        std::shared_ptr<arrow::ipc::RecordBatchFileReader>& ipc_reader,
+        const std::string& filePath);
     arrow::Status initArrowReader(std::shared_ptr<arrow::ipc::RecordBatchFileReader>& ipc_reader,
         const std::string& filePath);
 
+    arrow::Status initParquetReaderAndCheckStatus(
+        std::unique_ptr<parquet::arrow::FileReader>& reader, const std::string& filePath);
     arrow::Status initParquetReader(
         std::unique_ptr<parquet::arrow::FileReader>& reader, const std::string& filePath);
 

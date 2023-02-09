@@ -35,18 +35,9 @@ public:
 
     void TearDown() override { common::FileUtils::removeDir(TestHelper::getTmpTestDir()); }
 
-    inline void createDBAndConn() {
-        if (database != nullptr) {
-            database.reset();
-        }
-        database = std::make_unique<main::Database>(*databaseConfig, *systemConfig);
-        conn = std::make_unique<main::Connection>(database.get());
-        spdlog::set_level(spdlog::level::info);
-    }
+    void createDBAndConn();
 
     void initGraph();
-
-    void initGraphFromPath(const std::string& path) const;
 
     void commitOrRollbackConnection(bool isCommit, TransactionTestType transactionTestType) const;
 
@@ -160,7 +151,6 @@ class EmptyDBTest : public BaseGraphTest {
 
 // This class starts database in on-disk mode.
 class DBTest : public BaseGraphTest {
-
 public:
     void SetUp() override {
         BaseGraphTest::SetUp();
