@@ -1,17 +1,3 @@
--NAME Agg1
--QUERY MATCH (u:User)-[:LivesIn]->(c:City) RETURN c.name, COUNT(*);
----- 3
-Guelph|1
-Kitchener|1
-Waterloo|2
-
--NAME Agg2
--QUERY MATCH (u:User)-[:LivesIn]->(c:City) RETURN distinct c.name
----- 3
-Waterloo
-Kitchener
-Guelph
-
 -NAME Limit1
 -QUERY MATCH (u:User) RETURN u.name ORDER BY u.age DESC LIMIT 3;
 ---- 3
@@ -19,18 +5,94 @@ Zhang
 Karissa
 Adam
 
--NAME Limit2
--QUERY MATCH (u:User) RETURN u.name LIMIT 1;
----- 1
-Adam
-
--NAME Match1
+-NAME MatchSingleNodeLabel
 -QUERY MATCH (a:User) RETURN a;
 ---- 4
 (label:User, 0:0, {name:Adam, age:30})
 (label:User, 0:1, {name:Karissa, age:40})
 (label:User, 0:2, {name:Zhang, age:50})
 (label:User, 0:3, {name:Noura, age:25})
+
+-NAME MatchMultipleNodeLabels
+-QUERY MATCH (a:User:City) RETURN a;
+---- 7
+(label:City, 1:0, {name:Waterloo, age:, population:150000})
+(label:City, 1:1, {name:Kitchener, age:, population:200000})
+(label:City, 1:2, {name:Guelph, age:, population:75000})
+(label:User, 0:0, {name:Adam, age:30, population:})
+(label:User, 0:1, {name:Karissa, age:40, population:})
+(label:User, 0:2, {name:Zhang, age:50, population:})
+(label:User, 0:3, {name:Noura, age:25, population:})
+
+-NAME MatchAnyNodeLabel
+-QUERY MATCH (a) RETURN a;
+---- 7
+(label:City, 1:0, {name:Waterloo, age:, population:150000})
+(label:City, 1:1, {name:Kitchener, age:, population:200000})
+(label:City, 1:2, {name:Guelph, age:, population:75000})
+(label:User, 0:0, {name:Adam, age:30, population:})
+(label:User, 0:1, {name:Karissa, age:40, population:})
+(label:User, 0:2, {name:Zhang, age:50, population:})
+(label:User, 0:3, {name:Noura, age:25, population:})
+
+-NAME MatchSingleRelLabel
+-QUERY MATCH (a:User)-[e:Follows]->(b:User) RETURN a.name, e, b.name;
+---- 4
+Adam|(0:0)-[label:Follows, {_id:2:0, since:2020}]->(0:1)|Karissa
+Adam|(0:0)-[label:Follows, {_id:2:1, since:2020}]->(0:2)|Zhang
+Karissa|(0:1)-[label:Follows, {_id:2:2, since:2021}]->(0:2)|Zhang
+Zhang|(0:2)-[label:Follows, {_id:2:3, since:2022}]->(0:3)|Noura
+
+-NAME MatchMultipleRelLabels
+-QUERY MATCH (a:User)-[e:Follows|:LivesIn]->(b:User:City) RETURN a.name, e, b.name;
+---- 8
+Adam|(0:0)-[label:Follows, {_id:2:0, since:2020}]->(0:1)|Karissa
+Adam|(0:0)-[label:Follows, {_id:2:1, since:2020}]->(0:2)|Zhang
+Adam|(0:0)-[label:LivesIn, {_id:3:0, since:}]->(1:0)|Waterloo
+Karissa|(0:1)-[label:Follows, {_id:2:2, since:2021}]->(0:2)|Zhang
+Karissa|(0:1)-[label:LivesIn, {_id:3:1, since:}]->(1:0)|Waterloo
+Noura|(0:3)-[label:LivesIn, {_id:3:3, since:}]->(1:2)|Guelph
+Zhang|(0:2)-[label:Follows, {_id:2:3, since:2022}]->(0:3)|Noura
+Zhang|(0:2)-[label:LivesIn, {_id:3:2, since:}]->(1:1)|Kitchener
+
+-NAME MatchAnyRelLabel
+-QUERY MATCH ()-[e]->() RETURN e;
+---- 8
+(0:0)-[label:Follows, {_id:2:0, since:2020}]->(0:1)
+(0:0)-[label:Follows, {_id:2:1, since:2020}]->(0:2)
+(0:0)-[label:LivesIn, {_id:3:0, since:}]->(1:0)
+(0:1)-[label:Follows, {_id:2:2, since:2021}]->(0:2)
+(0:1)-[label:LivesIn, {_id:3:1, since:}]->(1:0)
+(0:2)-[label:Follows, {_id:2:3, since:2022}]->(0:3)
+(0:2)-[label:LivesIn, {_id:3:2, since:}]->(1:1)
+(0:3)-[label:LivesIn, {_id:3:3, since:}]->(1:2)
+
+-NAME MatchTwoHop
+-QUERY MATCH (a:User)-[:Follows]->(:User)-[:LivesIn]->(c:City) WHERE a.name = "Adam" RETURN a, c.name, c.population;
+---- 2
+(label:User, 0:0, {name:Adam, age:30})|Kitchener|200000
+(label:User, 0:0, {name:Adam, age:30})|Waterloo|150000
+
+-NAME MatchCyclic
+-QUERY MATCH (a:User)-[:Follows]->(b:User)-[:Follows]->(c:User), (a)-[:Follows]->(c) RETURN a.name, b.name, c.name;
+---- 1
+Adam|Karissa|Zhang
+
+-NAME MatchFilter
+-QUERY MATCH (a:User)-[e:Follows {since: 2020}]->(b:User {name: "Zhang"}) RETURN a, e.since, b.name;
+---- 1
+(label:User, 0:0, {name:Adam, age:30})|2020|Zhang
+
+-NAME MatchVarLen
+-QUERY MATCH (a:User)-[:Follows*1..2]->(b:User) RETURN a, b;
+---- 7
+(label:User, 0:0, {name:Adam, age:30})|(label:User, 0:1, {name:Karissa, age:40})
+(label:User, 0:0, {name:Adam, age:30})|(label:User, 0:2, {name:Zhang, age:50})
+(label:User, 0:0, {name:Adam, age:30})|(label:User, 0:2, {name:Zhang, age:50})
+(label:User, 0:0, {name:Adam, age:30})|(label:User, 0:3, {name:Noura, age:25})
+(label:User, 0:1, {name:Karissa, age:40})|(label:User, 0:2, {name:Zhang, age:50})
+(label:User, 0:1, {name:Karissa, age:40})|(label:User, 0:3, {name:Noura, age:25})
+(label:User, 0:2, {name:Zhang, age:50})|(label:User, 0:3, {name:Noura, age:25})
 
 -NAME OptionalMatch1
 -QUERY MATCH (u:User) OPTIONAL MATCH (u)-[:Follows]->(u1:User) RETURN u.name, u1.name;
@@ -41,31 +103,55 @@ Karissa|Zhang
 Zhang|Noura
 Noura|
 
--NAME OrderBy1
--QUERY MATCH (u:User) RETURN u.name, u.age ORDER BY u.age;
+-NAME Return1
+-QUERY MATCH (a:User)-[e:Follows]->(b:User) RETURN a, e;
 ---- 4
-Noura|25
-Adam|30
-Karissa|40
-Zhang|50
+(label:User, 0:0, {name:Adam, age:30})|(0:0)-[label:Follows, {_id:2:0, since:2020}]->(0:1)
+(label:User, 0:0, {name:Adam, age:30})|(0:0)-[label:Follows, {_id:2:1, since:2020}]->(0:2)
+(label:User, 0:1, {name:Karissa, age:40})|(0:1)-[label:Follows, {_id:2:2, since:2021}]->(0:2)
+(label:User, 0:2, {name:Zhang, age:50})|(0:2)-[label:Follows, {_id:2:3, since:2022}]->(0:3)
 
--NAME OrderBy2
--QUERY MATCH (u:User)-[:LivesIn]->(c:City) WHERE c.name = "Waterloo" RETURN u.name, u.age ORDER BY u.age DESC;
----- 2
-Karissa|40
-Adam|30
+-NAME Return2
+-QUERY MATCH (a:User)-[:Follows]->(b:User) RETURN *;
+---- 4
+(label:User, 0:1, {name:Karissa, age:40})|(label:User, 0:0, {name:Adam, age:30})
+(label:User, 0:2, {name:Zhang, age:50})|(label:User, 0:0, {name:Adam, age:30})
+(label:User, 0:2, {name:Zhang, age:50})|(label:User, 0:1, {name:Karissa, age:40})
+(label:User, 0:3, {name:Noura, age:25})|(label:User, 0:2, {name:Zhang, age:50})
+
+-NAME Return3
+-QUERY MATCH (a:User)-[e:Follows]->(b:User) RETURN a.name, a.age, e.since;
+---- 4
+Adam|30|2020
+Adam|30|2020
+Karissa|40|2021
+Zhang|50|2022
+
+-NAME ReturnDistinct
+-QUERY MATCH (a:User)-[e:Follows]->(b:User) RETURN DISTINCT a.name, a.age, e.since;
+---- 3
+Adam|30|2020
+Karissa|40|2021
+Zhang|50|2022
+
+-NAME ReturnGroupByAgg
+-QUERY MATCH (a:User)-[e:Follows]->(b:User) RETURN a, avg(b.age) as avgFriendAge;
+---- 3
+(label:User, 0:0, {name:Adam, age:30})|45.000000
+(label:User, 0:1, {name:Karissa, age:40})|50.000000
+(label:User, 0:2, {name:Zhang, age:50})|25.000000
+
+-NAME ReturnGroupByAgg2
+-QUERY MATCH (u:User)-[:LivesIn]->(c:City) RETURN c.name, COUNT(*);
+---- 3
+Guelph|1
+Kitchener|1
+Waterloo|2
 
 -NAME Skip1
 -QUERY MATCH (u:User) RETURN u.name ORDER BY u.age SKIP 2;
 ---- 2
 Karissa
-Zhang
-
--NAME Skip2
--QUERY MATCH (u:User) RETURN u.name SKIP 1;
----- 3
-Karissa
-Noura
 Zhang
 
 -NAME Union1
@@ -82,14 +168,57 @@ Zhang
 40
 30
 
--NAME Unwind
+-NAME Union3
+-QUERY MATCH (u1:User)-[:Follows]->(u2:User) WHERE u2.name = 'Zhang' RETURN u1.age UNION MATCH (u3:User)-[:Follows]->(u4:User) WHERE u4.name = 'Karissa' RETURN u3.age;
+---- 2
+30
+40
+
+-NAME Unwind1
 -QUERY UNWIND ["Amy", "Bob", "Carol"] AS x RETURN 'name' as name, x;
 ---- 3
 name|Amy
 name|Bob
 name|Carol
 
--NAME Cyclic
--QUERY MATCH (a:User)-[:Follows]->(b:User)-[:Follows]->(c:User), (a)-[:Follows]->(c) RETURN COUNT(*);
+-NAME Unwind2
+-QUERY UNWIND [["Amy"], ["Bob", "Carol"]] AS x RETURN x;
+---- 2
+[Amy]
+[Bob,Carol]
+
+-NAME Where1
+-QUERY MATCH (a:User) WHERE a.age > 45 OR starts_with(a.name, "Kar") RETURN *;
+---- 2
+(label:User, 0:1, {name:Karissa, age:40})
+(label:User, 0:2, {name:Zhang, age:50})
+
+-NAME Where2
+-QUERY MATCH (a:User) WHERE a.age IS NOT NULL AND starts_with(a.name, "Kar") RETURN *;
 ---- 1
-1
+(label:User, 0:1, {name:Karissa, age:40})
+
+-NAME WhereExists1
+-QUERY MATCH (a:User) WHERE a.age < 100 AND EXISTS { MATCH (a)-[:Follows*3..3]->(b:User)} RETURN a.name, a.age;
+---- 1
+Adam|30
+
+-NAME WhereExists2
+-QUERY MATCH (a:User) WHERE a.age < 100 AND EXISTS { MATCH (a)-[:Follows*3..3]->(b:User) WHERE EXISTS {MATCH (b)-[:Follows]->(c:User)} } RETURN a.name, a.age;
+---- 0
+
+-NAME WhereExists3
+-QUERY MATCH (a:User) WHERE a.age < 100 AND EXISTS { MATCH (a)-[:Follows*3..3]->(b:User) WHERE EXISTS {MATCH (b)<-[:Follows]-(c:User)} } RETURN a.name, a.age;
+---- 1
+Adam|30
+
+-NAME With1
+-QUERY MATCH (a:User) WITH avg(a.age) as avgAge MATCH (b:User) WHERE b.age > avgAge RETURN *;
+---- 2
+(label:User, 0:1, {name:Karissa, age:40})|36.250000
+(label:User, 0:2, {name:Zhang, age:50})|36.250000
+
+-NAME With2
+-QUERY MATCH (a:User) WITH a ORDER BY a.age DESC LIMIT 1 MATCH (a)-[:Follows]->(b:User) RETURN *;
+---- 1
+(label:User, 0:3, {name:Noura, age:25})|(label:User, 0:2, {name:Zhang, age:50})

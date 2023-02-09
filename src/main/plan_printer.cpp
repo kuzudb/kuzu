@@ -327,7 +327,7 @@ nlohmann::json PlanPrinter::toJson(PhysicalOperator* physicalOperator, Profiler&
         }
     }
     for (auto i = 0u; i < physicalOperator->getNumChildren(); ++i) {
-        json["Child"] = toJson(physicalOperator->getChild(i), profiler_);
+        json["Child" + std::to_string(i)] = toJson(physicalOperator->getChild(i), profiler_);
     }
     return json;
 }
