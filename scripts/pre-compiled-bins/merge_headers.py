@@ -36,10 +36,11 @@ def generate_merged_headers():
     topo_order = list(reversed(list(nx.topological_sort(graph))))
     logging.info('Writing merged headers...')
     with open(OUTPUT_PATH, 'w') as f:
+        f.write('#pragma once\n')
         for header_name in topo_order:
             header_path = os.path.join(HEADER_PATH, header_name)
             with open(header_path, 'r') as f2:
-                # Skip lines that start with #pragma once
+                # Skip lines that start with #pragma once and #include
                 for line in f2.readlines():
                     if line.startswith('#pragma once'):
                         continue
@@ -48,6 +49,7 @@ def generate_merged_headers():
                     f.write(line)
             f.write('\n')
     logging.info('Done!')
+
 
 if __name__ == '__main__':
     generate_merged_headers()

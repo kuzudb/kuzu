@@ -13,12 +13,15 @@ env:
 
 jobs:
   build-precompiled-bin:
-    runs-on: self-hosted-mac
+    runs-on: self-hosted-mac-arm
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
-      - name: build-arm64
-        run: python3 pre_compile.py
+      - name: Install networkx
+        run: python3 -m pip install networkx --user
+
+      - name: Build precompiled binaries for Apple Silicon
+        run: python3 build.py
         working-directory: ./scripts/pre-compiled-bins/
         env:
           MACOSX_DEPLOYMENT_TARGET: 11.0
@@ -29,14 +32,11 @@ jobs:
           name: kuzu-${{ github.event.inputs.packageVersion }}-osx-arm64
           path: |
             ./scripts/pre-compiled-bins/kuzu
-            ./scripts/pre-compiled-bins/include
+            ./scripts/pre-compiled-bins/kuzu.h
             ./scripts/pre-compiled-bins/libkuzu.dylib
 
-      - name: cleanup
-        run: rm -rf ./scripts/pre-compiled-bins/kuzu ./scripts/pre-compiled-bins/include ./scripts/pre-compiled-bins/libkuzu.dylib
-
-      - name: build-x86_64
-        run: python3 pre_compile.py
+      - name: Build precompiled binaries for Intel
+        run: python3 build.py
         working-directory: ./scripts/pre-compiled-bins/
         env:
           MACOSX_DEPLOYMENT_TARGET: 10.15
@@ -47,8 +47,8 @@ jobs:
           name: kuzu-${{ github.event.inputs.packageVersion }}-osx-x86_64
           path: |
             ./scripts/pre-compiled-bins/kuzu
-            ./scripts/pre-compiled-bins/include
+            ./scripts/pre-compiled-bins/kuzu.h
             ./scripts/pre-compiled-bins/libkuzu.dylib
 
-      - name: cleanup
-        run: rm -rf ./scripts/pre-compiled-bins/kuzu ./scripts/pre-compiled-bins/include ./scripts/pre-compiled-bins/libkuzu.dylib
+      - name: Clean up
+        run: rm -rf ./scripts/pre-compiled-bins/kuzu ./scripts/pre-compiled-bins/headers ./scripts/pre-compiled-bins/libkuzu.dylib ./scripts/pre-compiled-bins/kuzu.h

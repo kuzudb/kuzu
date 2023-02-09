@@ -24,3 +24,6 @@ scripts/antlr4/antlr4.jar
 # Archive files
 *.zip
 *.tar.gz
+scripts/pre-compiled-bins/headers
+scripts/pre-compiled-bins/lib*
+scripts/pre-compiled-bins/kuzu*
