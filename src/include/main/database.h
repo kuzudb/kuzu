@@ -32,20 +32,7 @@ KUZU_API struct SystemConfig {
 };
 
 /**
- * @brief Stores databasePath.
- */
-KUZU_API struct DatabaseConfig {
-    /**
-     * @brief Creates a DatabaseConfig object.
-     * @param databasePath Path to store the database files.
-     */
-    explicit DatabaseConfig(std::string databasePath);
-
-    std::string databasePath;
-};
-
-/**
- * @brief Database class is the main class of the KuzuDB. It manages all database components.
+ * @brief Database class is the main class of KùzuDB. It manages all database components.
  */
 class Database {
     friend class EmbeddedShell;
@@ -56,17 +43,17 @@ class Database {
 public:
     /**
      * @brief Creates a database object with default buffer pool size and max num threads.
-     * @param databaseConfig Database configurations(database path).
+     * @param databaseConfig Database path.
      */
-    KUZU_API explicit Database(DatabaseConfig databaseConfig);
+    KUZU_API explicit Database(std::string databasePath);
     /**
      * @brief Creates a database object.
-     * @param databaseConfig Database configurations(database path).
-     * @param systemConfig System configurations(buffer pool size and max num threads).
+     * @param databasePath Database path.
+     * @param systemConfig System configurations (buffer pool size and max num threads).
      */
-    KUZU_API Database(DatabaseConfig databaseConfig, SystemConfig systemConfig);
+    KUZU_API Database(std::string databasePath, SystemConfig systemConfig);
     /**
-     * @brief Deconstructs the database object.
+     * @brief Destructs the database object.
      */
     KUZU_API ~Database();
 
@@ -102,7 +89,7 @@ private:
     void checkpointOrRollbackAndClearWAL(bool isRecovering, bool isCheckpoint);
 
 private:
-    DatabaseConfig databaseConfig;
+    std::string databasePath;
     SystemConfig systemConfig;
     std::unique_ptr<storage::MemoryManager> memoryManager;
     std::unique_ptr<processor::QueryProcessor> queryProcessor;

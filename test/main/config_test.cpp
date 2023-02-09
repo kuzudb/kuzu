@@ -21,7 +21,7 @@ TEST_F(ApiTest, ClientConfig) {
 TEST_F(ApiTest, DatabasePathIncorrect) {
     spdlog::set_level(spdlog::level::debug);
     try {
-        std::make_unique<Database>(DatabaseConfig("/\\0:* /? \" < > |"));
+        std::make_unique<Database>("0:* /? \" < > |");
         FAIL();
     } catch (Exception& e) {
         ASSERT_TRUE(std::string(e.what()).find("Failed to create directory") != std::string::npos);

@@ -28,7 +28,7 @@ public:
         if (common::FileUtils::fileOrPathExists(TestHelper::getTmpTestDir())) {
             common::FileUtils::removeDir(TestHelper::getTmpTestDir());
         }
-        databaseConfig = make_unique<main::DatabaseConfig>(TestHelper::getTmpTestDir());
+        databasePath = TestHelper::getTmpTestDir();
     }
 
     virtual std::string getInputDir() = 0;
@@ -138,8 +138,8 @@ private:
         bool existence);
 
 public:
+    std::string databasePath;
     std::unique_ptr<main::SystemConfig> systemConfig;
-    std::unique_ptr<main::DatabaseConfig> databaseConfig;
     std::unique_ptr<main::Database> database;
     std::unique_ptr<main::Connection> conn;
 };

@@ -276,9 +276,8 @@ public:
     void dropNodeTableProperty(TransactionTestType transactionTestType) {
         auto propertyToDrop =
             catalog->getReadOnlyVersion()->getNodeProperty(personTableID, "gender");
-        auto propertyFileName =
-            StorageUtils::getNodePropertyColumnFName(databaseConfig->databasePath, personTableID,
-                propertyToDrop.propertyID, DBFileType::ORIGINAL);
+        auto propertyFileName = StorageUtils::getNodePropertyColumnFName(
+            databasePath, personTableID, propertyToDrop.propertyID, DBFileType::ORIGINAL);
         bool hasOverflowFile = containsOverflowFile(propertyToDrop.dataType.typeID);
         executeQueryWithoutCommit("ALTER TABLE person DROP gender");
         validateColumnFilesExistence(propertyFileName, true /* existence */, hasOverflowFile);
@@ -311,12 +310,10 @@ public:
             catalog->getReadOnlyVersion()->getRelProperty(studyAtTableID, "places");
         // Note: studyAt is a MANY-ONE rel table. Properties are stored as columns in the fwd
         // direction and stored as lists in the bwd direction.
-        auto propertyFWDColumnFileName =
-            StorageUtils::getRelPropertyColumnFName(databaseConfig->databasePath, studyAtTableID,
-                RelDirection::FWD, propertyToDrop.propertyID, DBFileType::ORIGINAL);
-        auto propertyBWDListFileName =
-            StorageUtils::getRelPropertyListsFName(databaseConfig->databasePath, studyAtTableID,
-                RelDirection::BWD, propertyToDrop.propertyID, DBFileType::ORIGINAL);
+        auto propertyFWDColumnFileName = StorageUtils::getRelPropertyColumnFName(databasePath,
+            studyAtTableID, RelDirection::FWD, propertyToDrop.propertyID, DBFileType::ORIGINAL);
+        auto propertyBWDListFileName = StorageUtils::getRelPropertyListsFName(databasePath,
+            studyAtTableID, RelDirection::BWD, propertyToDrop.propertyID, DBFileType::ORIGINAL);
         bool hasOverflowFile = containsOverflowFile(propertyToDrop.dataType.typeID);
         executeQueryWithoutCommit("ALTER TABLE studyAt DROP places");
         validateColumnFilesExistence(
@@ -392,9 +389,9 @@ public:
         auto hasOverflow =
             containsOverflowFile(tableSchema->getProperty(propertyID).dataType.typeID);
         auto columnOriginalVersionFileName = StorageUtils::getNodePropertyColumnFName(
-            databaseConfig->databasePath, personTableID, propertyID, DBFileType::ORIGINAL);
+            databasePath, personTableID, propertyID, DBFileType::ORIGINAL);
         auto columnWALVersionFileName = StorageUtils::getNodePropertyColumnFName(
-            databaseConfig->databasePath, personTableID, propertyID, DBFileType::WAL_VERSION);
+            databasePath, personTableID, propertyID, DBFileType::WAL_VERSION);
         validateDatabaseFileBeforeCheckpointAddProperty(
             columnOriginalVersionFileName, columnWALVersionFileName, hasOverflow);
         if (transactionTestType == TransactionTestType::RECOVERY) {
@@ -423,9 +420,9 @@ public:
         auto hasOverflow =
             containsOverflowFile(tableSchema->getProperty(propertyID).dataType.typeID);
         auto columnOriginalVersionFileName = StorageUtils::getNodePropertyColumnFName(
-            databaseConfig->databasePath, personTableID, propertyID, DBFileType::ORIGINAL);
+            databasePath, personTableID, propertyID, DBFileType::ORIGINAL);
         auto columnWALVersionFileName = StorageUtils::getNodePropertyColumnFName(
-            databaseConfig->databasePath, personTableID, propertyID, DBFileType::WAL_VERSION);
+            databasePath, personTableID, propertyID, DBFileType::WAL_VERSION);
         validateDatabaseFileBeforeCheckpointAddProperty(
             columnOriginalVersionFileName, columnWALVersionFileName, hasOverflow);
         // The convertResultToString function will remove the single quote around the result
@@ -455,18 +452,14 @@ public:
         auto propertyID = tableSchema->getPropertyID("random");
         auto hasOverflow =
             containsOverflowFile(tableSchema->getProperty(propertyID).dataType.typeID);
-        auto fwdColumnOriginalVersionFileName =
-            StorageUtils::getRelPropertyColumnFName(databaseConfig->databasePath, studyAtTableID,
-                RelDirection::FWD, propertyID, DBFileType::ORIGINAL);
-        auto fwdColumnWALVersionFileName =
-            StorageUtils::getRelPropertyColumnFName(databaseConfig->databasePath, studyAtTableID,
-                RelDirection::FWD, propertyID, DBFileType::WAL_VERSION);
-        auto bwdListOriginalVersionFileName =
-            StorageUtils::getRelPropertyListsFName(databaseConfig->databasePath, studyAtTableID,
-                RelDirection::BWD, propertyID, DBFileType::ORIGINAL);
-        auto bwdListWALVersionFileName =
-            StorageUtils::getRelPropertyListsFName(databaseConfig->databasePath, studyAtTableID,
-                RelDirection::BWD, propertyID, DBFileType::WAL_VERSION);
+        auto fwdColumnOriginalVersionFileName = StorageUtils::getRelPropertyColumnFName(
+            databasePath, studyAtTableID, RelDirection::FWD, propertyID, DBFileType::ORIGINAL);
+        auto fwdColumnWALVersionFileName = StorageUtils::getRelPropertyColumnFName(
+            databasePath, studyAtTableID, RelDirection::FWD, propertyID, DBFileType::WAL_VERSION);
+        auto bwdListOriginalVersionFileName = StorageUtils::getRelPropertyListsFName(
+            databasePath, studyAtTableID, RelDirection::BWD, propertyID, DBFileType::ORIGINAL);
+        auto bwdListWALVersionFileName = StorageUtils::getRelPropertyListsFName(
+            databasePath, studyAtTableID, RelDirection::BWD, propertyID, DBFileType::WAL_VERSION);
         validateDatabaseFileBeforeCheckpointAddProperty(
             fwdColumnOriginalVersionFileName, fwdColumnWALVersionFileName, hasOverflow);
         validateDatabaseFileBeforeCheckpointAddProperty(
@@ -501,18 +494,14 @@ public:
         auto propertyID = relTableSchema->getPropertyID("random");
         auto hasOverflow =
             containsOverflowFile(relTableSchema->getProperty(propertyID).dataType.typeID);
-        auto fwdColumnOriginalVersionFileName =
-            StorageUtils::getRelPropertyColumnFName(databaseConfig->databasePath, studyAtTableID,
-                RelDirection::FWD, propertyID, DBFileType::ORIGINAL);
-        auto fwdColumnWALVersionFileName =
-            StorageUtils::getRelPropertyColumnFName(databaseConfig->databasePath, studyAtTableID,
-                RelDirection::FWD, propertyID, DBFileType::WAL_VERSION);
-        auto bwdListOriginalVersionFileName =
-            StorageUtils::getRelPropertyListsFName(databaseConfig->databasePath, studyAtTableID,
-                RelDirection::BWD, propertyID, DBFileType::ORIGINAL);
-        auto bwdListWALVersionFileName =
-            StorageUtils::getRelPropertyListsFName(databaseConfig->databasePath, studyAtTableID,
-                RelDirection::BWD, propertyID, DBFileType::WAL_VERSION);
+        auto fwdColumnOriginalVersionFileName = StorageUtils::getRelPropertyColumnFName(
+            databasePath, studyAtTableID, RelDirection::FWD, propertyID, DBFileType::ORIGINAL);
+        auto fwdColumnWALVersionFileName = StorageUtils::getRelPropertyColumnFName(
+            databasePath, studyAtTableID, RelDirection::FWD, propertyID, DBFileType::WAL_VERSION);
+        auto bwdListOriginalVersionFileName = StorageUtils::getRelPropertyListsFName(
+            databasePath, studyAtTableID, RelDirection::BWD, propertyID, DBFileType::ORIGINAL);
+        auto bwdListWALVersionFileName = StorageUtils::getRelPropertyListsFName(
+            databasePath, studyAtTableID, RelDirection::BWD, propertyID, DBFileType::WAL_VERSION);
         validateDatabaseFileBeforeCheckpointAddProperty(
             fwdColumnOriginalVersionFileName, fwdColumnWALVersionFileName, hasOverflow);
         validateDatabaseFileBeforeCheckpointAddProperty(

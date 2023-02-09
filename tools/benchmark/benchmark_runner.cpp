@@ -14,8 +14,7 @@ const std::string BENCHMARK_SUFFIX = ".benchmark";
 BenchmarkRunner::BenchmarkRunner(
     const std::string& datasetPath, std::unique_ptr<BenchmarkConfig> config)
     : config{std::move(config)} {
-    database = std::make_unique<Database>(
-        DatabaseConfig(datasetPath), SystemConfig(this->config->bufferPoolSize));
+    database = std::make_unique<Database>(datasetPath, SystemConfig(this->config->bufferPoolSize));
     spdlog::set_level(spdlog::level::debug);
 }
 

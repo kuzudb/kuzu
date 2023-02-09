@@ -29,9 +29,8 @@ int main(int argc, char* argv[]) {
         bpSizeInBytes = bpSizeInMB << 20;
     }
     SystemConfig systemConfig(bpSizeInBytes);
-    DatabaseConfig databaseConfig(databasePath);
     try {
-        auto shell = EmbeddedShell(databaseConfig, systemConfig);
+        auto shell = EmbeddedShell(databasePath, systemConfig);
         shell.run();
     } catch (std::exception& e) {
         std::cerr << e.what() << std::endl;
