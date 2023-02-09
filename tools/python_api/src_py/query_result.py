@@ -3,7 +3,52 @@ from .types import Type
 
 
 class QueryResult:
+    """
+    Query result.
+
+    Methods
+    -------
+    check_for_query_result_close()
+        Check if the query result is closed and raise an exception if it is.
+
+    has_next()
+        Check if there are more rows in the query result.
+
+    get_next()
+        Get the next row in the query result.
+
+    write_to_csv(filename, delimiter=',', escape_character='"', newline='\n')
+        Write the query result to a CSV file.
+
+    close()
+        Close the query result.
+    
+    get_as_df()
+        Get the query result as a Pandas DataFrame.
+
+    get_as_arrow(chunk_size)
+        Get the query result as a PyArrow Table.
+
+    get_column_data_types()
+        Get the data types of the columns in the query result.
+
+    get_column_names()
+        Get the names of the columns in the query result.
+
+    get_as_torch_geometric()
+        Get the query result as a PyTorch Geometric Data object.
+    """
+    
     def __init__(self, connection, query_result):
+        """
+        Parameters
+        ----------
+        connection : _kuzu.Connection
+            Connection to the database.
+        query_result : _kuzu.QueryResult
+            Query result.
+        """
+
         self.connection = connection
         self._query_result = query_result
         self.is_closed = False
@@ -12,23 +57,69 @@ class QueryResult:
         self.close()
 
     def check_for_query_result_close(self):
+        """
+        Check if the query result is closed and raise an exception if it is.
+
+        Raises
+        ------
+        Exception
+            If the query result is closed.
+        """
+
         if self.is_closed:
             raise Exception("Query result is closed")
 
     def has_next(self):
+        """
+        Check if there are more rows in the query result.
+
+        Returns
+        -------
+        bool
+            True if there are more rows in the query result, False otherwise.
+        """
+
         self.check_for_query_result_close()
         return self._query_result.hasNext()
 
     def get_next(self):
+        """
+        Get the next row in the query result.
+
+        Returns
+        -------
+        list
+            Next row in the query result.
+        """
+
         self.check_for_query_result_close()
         return self._query_result.getNext()
 
     def write_to_csv(self, filename, delimiter=',', escape_character='"', newline='\n'):
+        """
+        Write the query result to a CSV file.
+
+        Parameters
+        ----------
+        filename : str
+            Name of the CSV file to write to.
+        delimiter : str
+            Delimiter to use in the CSV file. Defaults to ','.
+        escape_character : str
+            Escape character to use in the CSV file. Defaults to '"'.
+        newline : str
+            Newline character to use in the CSV file. Defaults to '\n'.
+        """
+
         self.check_for_query_result_close()
         self._query_result.writeToCSV(
             filename, delimiter, escape_character, newline)
 
     def close(self):
+        """
+        Close the query result.
+        """
+
         if self.is_closed:
             return
         self._query_result.close()
@@ -38,6 +129,15 @@ class QueryResult:
         self.is_closed = True
 
     def get_as_df(self):
+        """
+        Get the query result as a Pandas DataFrame.
+
+        Returns
+        -------
+        pandas.DataFrame
+            Query result as a Pandas DataFrame.
+        """
+
         self.check_for_query_result_close()
         import numpy
         import pandas
@@ -45,24 +145,74 @@ class QueryResult:
         return self._query_result.getAsDF()
 
     def get_as_arrow(self, chunk_size):
+        """
+        Get the query result as a PyArrow Table.
+
+        Parameters
+        ----------
+        chunk_size : int
+            Number of rows to include in each chunk.
+
+        Returns
+        -------
+        pyarrow.Table
+            Query result as a PyArrow Table.
+        """
+
         self.check_for_query_result_close()
         import pyarrow
 
         return self._query_result.getAsArrow(chunk_size)
 
     def get_column_data_types(self):
+        """
+        Get the data types of the columns in the query result.
+
+        Returns
+        -------
+        list
+            Data types of the columns in the query result.
+        """
+
         self.check_for_query_result_close()
         return self._query_result.getColumnDataTypes()
 
     def get_column_names(self):
+        """
+        Get the names of the columns in the query result.
+
+        Returns
+        -------
+        list
+            Names of the columns in the query result.
+        """
+
         self.check_for_query_result_close()
         return self._query_result.getColumnNames()
 
     def reset_iterator(self):
+        """
+        Reset the iterator of the query result.
+        """
+
         self.check_for_query_result_close()
         self._query_result.resetIterator()
 
     def get_as_networkx(self, directed=True):
+        """
+        Get the query result as a NetworkX graph.
+
+        Parameters
+        ----------
+        directed : bool
+            Whether the graph should be directed. Defaults to True.
+        
+        Returns
+        -------
+        networkx.DiGraph or networkx.Graph
+            Query result as a NetworkX graph.
+        """
+        
         self.check_for_query_result_close()
         import networkx as nx
 
@@ -137,6 +287,15 @@ class QueryResult:
         return properties_to_extract
 
     def get_as_torch_geometric(self):
+        """
+        Get the query result as a PyTorch Geometric graph.
+
+        Returns
+        -------
+        torch_geometric.data.Data or torch_geometric.data.HeteroData
+            Query result as a PyTorch Geometric graph.
+        """
+
         self.check_for_query_result_close()
         # Despite we are not using torch_geometric in this file, we need to
         # import it here to throw an error early if the user does not have
