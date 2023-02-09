@@ -298,7 +298,7 @@ TEST_F(RadixSortTest, singleOrderByColNoNullStringTest) {
     std::vector<bool> nullMasks(8, false);
     std::vector<uint64_t> expectedFTBlockOffsetOrder = {0, 6, 1, 4, 5, 3, 7, 2};
     singleOrderByColTest(sortingData, nullMasks, expectedFTBlockOffsetOrder, STRING,
-        false /* is desc */, false /* hasPayLoadCol */);
+        false /* isAsc */, false /* hasPayLoadCol */);
 }
 
 TEST_F(RadixSortTest, singleOrderByColAllTiesStringTest) {

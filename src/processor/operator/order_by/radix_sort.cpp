@@ -215,13 +215,19 @@ void RadixSort::solveStringTies(TieRange& keyBlockTie, uint8_t* keyBlockPtr,
     auto tmpTuplePtrSortingBlockPtr = (uint8_t**)tmpTuplePtrSortingBlock->getData();
     std::sort(tmpTuplePtrSortingBlockPtr, tmpTuplePtrSortingBlockPtr + keyBlockTie.getNumTuples(),
         [this, keyColInfo](const uint8_t* leftPtr, const uint8_t* rightPtr) -> bool {
+            auto isLeftNull = OrderByKeyEncoder::isNullVal(
+                leftPtr + keyColInfo.colOffsetInEncodedKeyBlock, keyColInfo.isAscOrder);
+            auto isRightNull = OrderByKeyEncoder::isNullVal(
+                rightPtr + keyColInfo.colOffsetInEncodedKeyBlock, keyColInfo.isAscOrder);
             // Handle null value comparison.
-            if (OrderByKeyEncoder::isNullVal(
-                    rightPtr + keyColInfo.colOffsetInEncodedKeyBlock, keyColInfo.isAscOrder)) {
-                return keyColInfo.isAscOrder;
-            } else if (OrderByKeyEncoder::isNullVal(leftPtr + keyColInfo.colOffsetInEncodedKeyBlock,
-                           keyColInfo.isAscOrder)) {
+            if (isLeftNull && isRightNull) {
+                // If left and right strings are both null, we can't conclude that the left string
+                // is smaller than the right string.
+                return false;
+            } else if (isLeftNull) {
                 return !keyColInfo.isAscOrder;
+            } else if (isRightNull) {
+                return keyColInfo.isAscOrder;
             }
 
             // We only need to fetch the actual strings from the
@@ -251,10 +257,11 @@ void RadixSort::solveStringTies(TieRange& keyBlockTie, uint8_t* keyBlockPtr,
             const auto rightBlockIdx = OrderByKeyEncoder::getEncodedFTBlockIdx(rightTupleInfoPtr);
             const auto rightBlockOffset =
                 OrderByKeyEncoder::getEncodedFTBlockOffset(rightTupleInfoPtr);
-            return keyColInfo.isAscOrder == (factorizedTable.getData<ku_string_t>(leftBlockIdx,
-                                                 leftBlockOffset, keyColInfo.colOffsetInFT) <
-                                                factorizedTable.getData<ku_string_t>(rightBlockIdx,
-                                                    rightBlockOffset, keyColInfo.colOffsetInFT));
+            auto leftStr = factorizedTable.getData<ku_string_t>(
+                leftBlockIdx, leftBlockOffset, keyColInfo.colOffsetInFT);
+            auto rightStr = factorizedTable.getData<ku_string_t>(
+                rightBlockIdx, rightBlockOffset, keyColInfo.colOffsetInFT);
+            return keyColInfo.isAscOrder ? leftStr < rightStr : leftStr > rightStr;
         });
     reOrderKeyBlock(keyBlockTie, keyBlockPtr);
     findStringTies<ku_string_t>(keyBlockTie, keyBlockPtr, ties, keyColInfo);
