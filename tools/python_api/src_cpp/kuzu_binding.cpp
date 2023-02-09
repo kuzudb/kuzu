@@ -2,16 +2,7 @@
 #include "include/py_database.h"
 #include "spdlog/spdlog.h"
 
-void bindEnumTypes(py::module& m) {
-    py::enum_<spdlog::level::level_enum>(m, "loggingLevel")
-        .value("debug", spdlog::level::level_enum::debug)
-        .value("info", spdlog::level::level_enum::info)
-        .value("err", spdlog::level::level_enum::err)
-        .export_values();
-}
-
 void bind(py::module& m) {
-    bindEnumTypes(m);
     PyDatabase::initialize(m);
     PyConnection::initialize(m);
     PyQueryResult::initialize(m);

@@ -36,8 +36,7 @@ public:
     KUZU_API Database(DatabaseConfig databaseConfig, SystemConfig systemConfig);
     KUZU_API ~Database();
 
-    // TODO(Guodong): Change the input to be string.
-    void setLoggingLevel(spdlog::level::level_enum loggingLevel);
+    void setLoggingLevel(std::string loggingLevel);
 
     KUZU_API void resizeBufferManager(uint64_t newSize);
 
