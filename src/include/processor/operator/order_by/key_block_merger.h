@@ -64,13 +64,20 @@ private:
 struct BlockPtrInfo {
     inline BlockPtrInfo(
         uint64_t startTupleIdx, uint64_t endTupleIdx, std::shared_ptr<MergedKeyBlocks>& keyBlocks)
-        : keyBlocks{keyBlocks}, curTuplePtr{keyBlocks->getTuple(startTupleIdx)},
-          curBlockIdx{startTupleIdx / keyBlocks->getNumTuplesPerBlock()},
+        : keyBlocks{keyBlocks}, curBlockIdx{startTupleIdx / keyBlocks->getNumTuplesPerBlock()},
           endBlockIdx{endTupleIdx == 0 ? 0 : (endTupleIdx - 1) / keyBlocks->getNumTuplesPerBlock()},
-          curBlockEndTuplePtr{
-              keyBlocks->getBlockEndTuplePtr(curBlockIdx, endTupleIdx, endBlockIdx)},
-          endTuplePtr{keyBlocks->getBlockEndTuplePtr(endBlockIdx, endTupleIdx, endBlockIdx)},
-          endTupleIdx{endTupleIdx} {}
+          endTupleIdx{endTupleIdx} {
+        if (startTupleIdx == endTupleIdx) {
+            curTuplePtr = nullptr;
+            endTuplePtr = nullptr;
+            curBlockEndTuplePtr = nullptr;
+        } else {
+            curTuplePtr = keyBlocks->getTuple(startTupleIdx);
+            endTuplePtr = keyBlocks->getBlockEndTuplePtr(endBlockIdx, endTupleIdx, endBlockIdx);
+            curBlockEndTuplePtr =
+                keyBlocks->getBlockEndTuplePtr(curBlockIdx, endTupleIdx, endBlockIdx);
+        }
+    }
 
     inline bool hasMoreTuplesToRead() const { return curTuplePtr != endTuplePtr; }
 
