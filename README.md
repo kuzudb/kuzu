@@ -84,16 +84,11 @@ while result.hasNext():
 
 Refer to our [Data Import](https://kuzudb.com/docs/data-import) and [Cypher](https://kuzudb.com/docs/cypher) section for more information.
 
-## Code of Conduct
-We are developing Kùzu in a publicly open GitHub repo and encourage everyone 
-to comment and discuss topics related to Kùzu. However, we ask everyone to be
-very respectful and polite in discussions and avoid any hurtful language in any form.
-Kùzu is being developed in Canada, a land that is proud in their high standards
-for politeness and where a person you bumped into on the road will likely
-apologize to you even if it was your fault: so please be 
-kind and respectful to everyone. 
-If you prefer not to discuss something through open issues and discussions, 
-you can always reach us through [email](mailto:contact@kuzudb.com).
+## Contributing
+We welcome contributions to Kùzu. If you are interested in contributing to Kùzu, please read our [Contributing Guide](CONTRIBUTING.md).
+
+## License
+By contributing to Kùzu, you agree that your contributions will be licensed under the [MIT License](LICENSE).
 
 ## Citing Kùzu
 If you are a researcher and use Kùzu in your work, we encourage you to cite our work.
