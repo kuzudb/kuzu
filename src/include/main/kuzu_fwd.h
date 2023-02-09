@@ -42,7 +42,6 @@ class LogicalPlan;
 namespace processor {
 class QueryProcessor;
 class FactorizedTable;
-class FlatTuple;
 class FlatTupleIterator;
 class PhysicalOperator;
 class PhysicalPlan;

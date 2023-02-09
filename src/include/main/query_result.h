@@ -3,6 +3,7 @@
 #include "common/api.h"
 #include "common/types/types.h"
 #include "kuzu_fwd.h"
+#include "processor/result/flat_tuple.h"
 #include "query_summary.h"
 
 namespace kuzu {
