@@ -26,11 +26,15 @@ jobs:
 
       - uses: actions/upload-artifact@v3
         with:
-          name: kuzu-${{ github.event.inputs.packageVersion }}-linux-x86_64
+          name: libkuzu-${{ github.event.inputs.packageVersion }}-linux-x86_64
           path: |
-            ./scripts/pre-compiled-bins/kuzu
             ./scripts/pre-compiled-bins/kuzu.h
             ./scripts/pre-compiled-bins/libkuzu.so
+      
+      - uses: actions/upload-artifact@v3
+        with:
+          name: kuzu_cli-${{ github.event.inputs.packageVersion }}-linux-x86_64
+          path: ./scripts/pre-compiled-bins/kuzu
 
       - name: Clean up
         run: rm -rf ./scripts/pre-compiled-bins/kuzu ./scripts/pre-compiled-bins/headers ./scripts/pre-compiled-bins/libkuzu.so /scripts/pre-compiled-bins/kuzu.h
