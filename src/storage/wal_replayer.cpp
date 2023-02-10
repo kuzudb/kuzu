@@ -168,6 +168,9 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
                 // See comments for NODE_TABLE_RECORD.
                 storageManager->getRelsStore().createRelTable(walRecord.nodeTableRecord.tableID,
                     bufferManager, wal, catalogForCheckpointing.get(), memoryManager);
+                storageManager->getNodesStore()
+                    .getNodesStatisticsAndDeletedIDs()
+                    .setAdjListsAndColumns(&storageManager->getRelsStore());
             }
         } else {
             // See comments for NODE_TABLE_RECORD.

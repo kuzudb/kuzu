@@ -280,6 +280,28 @@ public:
     }
 };
 
+class DeleteNodeWithEdgesErrorTest : public EmptyDBTest {
+public:
+    void SetUp() override {
+        EmptyDBTest::SetUp();
+        createDBAndConn();
+    }
+};
+
+TEST_F(DeleteNodeWithEdgesErrorTest, DeleteNodeWithEdgesError) {
+    auto conn = std::make_unique<Connection>(database.get());
+    ASSERT_TRUE(conn->query("create node table person (ID INT64, primary key(ID));")->isSuccess());
+    ASSERT_TRUE(conn->query("create rel table isFriend (from person to person);")->isSuccess());
+    ASSERT_TRUE(conn->query("create (p:person {ID: 5})")->isSuccess());
+    ASSERT_TRUE(
+        conn->query("match (p0:person), (p1:person) create (p0)-[:isFriend]->(p1)")->isSuccess());
+    auto result = conn->query("match (p:person) delete p");
+    ASSERT_EQ(result->getErrorMessage(),
+        "Runtime exception: Currently deleting a node with edges is not supported. node table 0 "
+        "nodeOffset 0 has 1 (one-to-many or many-to-many) edges for edge file: " +
+            TestHelper::appendKuzuRootPath("test/unittest_temp/r-1-0.lists."));
+}
+
 TEST_F(CreateDeleteInt64NodeTrxTest, MixedInsertDeleteCommitNormalExecution) {
     testMixedDeleteAndInsert(true /* commit */, TransactionTestType::NORMAL_EXECUTION);
 }
