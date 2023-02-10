@@ -47,23 +47,19 @@ public:
      */
     KUZU_API ~Connection();
     /**
-     * @brief Manually starts a new read-only transaction in the current connection and sets the
-     * current transaction mode to MANUAL.
+     * @brief Manually starts a new read-only transaction in the current connection.
      */
     KUZU_API void beginReadOnlyTransaction();
     /**
-     * @brief Manually starts a new write transaction in the current connection and sets the current
-     * transaction mode to MANUAL.
+     * @brief Manually starts a new write transaction in the current connection.
      */
     KUZU_API void beginWriteTransaction();
     /**
-     * @brief Manually commits the current transaction and sets the current transaction mode to
-     * AUTO_COMMIT.
+     * @brief Manually commits the current transaction.
      */
     KUZU_API void commit();
     /**
-     * @brief Manually rollbacks the current transaction and sets the current transaction mode to
-     * AUTO_COMMIT.
+     * @brief Manually rollbacks the current transaction.
      */
     KUZU_API void rollback();
     /**
@@ -107,8 +103,6 @@ public:
      * @param inputParams The parameter pack where each arg is a std::pair with the first element
      * being parameter name and second element being parameter value.
      * @return the result of the query.
-     * @note Any call that goes through executeWithParams acquires a lock in the end by calling
-     * executeLock(...).
      */
     KUZU_API std::unique_ptr<QueryResult> executeWithParams(PreparedStatement* preparedStatement,
         std::unordered_map<std::string, std::shared_ptr<common::Value>>& inputParams);

@@ -37,9 +37,7 @@ public:
      * @return the prepared statement is read-only or not.
      */
     KUZU_API bool isReadOnly() const;
-    /**
-     * @return expressions for generating query results.
-     */
+
     std::vector<std::shared_ptr<binder::Expression>> getExpressionsToCollect();
 
 private:
