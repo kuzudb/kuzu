@@ -29,11 +29,11 @@ public:
     static std::vector<std::string> split(const std::string& input, const std::string& delimiter);
 
     static void toUpper(std::string& input) {
-        transform(input.begin(), input.end(), input.begin(), ::toupper);
+        std::transform(input.begin(), input.end(), input.begin(), ::toupper);
     }
 
     static void toLower(std::string& input) {
-        transform(input.begin(), input.end(), input.begin(), ::tolower);
+        std::transform(input.begin(), input.end(), input.begin(), ::tolower);
     }
 
     static bool CharacterIsSpace(char c) {
