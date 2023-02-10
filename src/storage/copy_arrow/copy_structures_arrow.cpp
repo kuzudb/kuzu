@@ -311,7 +311,7 @@ std::unique_ptr<Value> CopyStructuresArrow::getArrowList(std::string& l, int64_t
         }
         values.push_back(std::move(value));
     }
-    auto numBytesOfOverflow = values.size() * Types::getDataTypeSize(dataType.typeID);
+    auto numBytesOfOverflow = values.size() * Types::getDataTypeSize(childDataType.typeID);
     if (numBytesOfOverflow >= DEFAULT_PAGE_SIZE) {
         throw ReaderException(StringUtils::string_format(
             "Maximum num bytes of a LIST is %d. Input list's num bytes is %d.", DEFAULT_PAGE_SIZE,
