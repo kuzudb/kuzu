@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.11)
 
-project(Kuzu VERSION 0.0.1.5 LANGUAGES CXX)
+project(Kuzu VERSION 0.0.2 LANGUAGES CXX)
 
 find_package(Threads REQUIRED)
 
