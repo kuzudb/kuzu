@@ -241,7 +241,7 @@ void CopyNodeArrow::putPropsOfLineIntoColumns(
         auto column = structuredColumns[columnIdx].get();
         auto currentToken = arrow_columns[columnIdx]->GetScalar(blockOffset);
         if ((*currentToken)->is_valid) {
-            auto stringToken = currentToken->get()->ToString().substr(0, DEFAULT_PAGE_SIZE);
+            auto stringToken = currentToken->get()->ToString();
             const char* data = stringToken.c_str();
 
             switch (column->getDataType().typeID) {
@@ -270,6 +270,8 @@ void CopyNodeArrow::putPropsOfLineIntoColumns(
                 column->setElement(nodeOffset, reinterpret_cast<uint8_t*>(&val));
             } break;
             case STRING: {
+                stringToken = stringToken.substr(0, DEFAULT_PAGE_SIZE);
+                data = stringToken.c_str();
                 auto val =
                     column->getInMemOverflowFile()->copyString(data, overflowCursors[columnIdx]);
                 column->setElement(nodeOffset, reinterpret_cast<uint8_t*>(&val));
