@@ -33,10 +33,7 @@ public:
      * @brief Used to create a QueryResult object for the failing query.
      */
     KUZU_API QueryResult();
-    /**
-     * @brief Creates a QueryResult object.
-     * @param preparedSummary stores compiling time and query options.
-     */
+
     explicit QueryResult(const PreparedSummary& preparedSummary);
     /**
      * @brief Deconstructs the QueryResult object.
@@ -71,9 +68,7 @@ public:
      * options.
      */
     KUZU_API QuerySummary* getQuerySummary() const;
-    /**
-     * @return dataTypeInfo of each column.
-     */
+
     std::vector<std::unique_ptr<DataTypeInfo>> getColumnTypesInfo();
     /**
      * @return whether there are more tuples to read.

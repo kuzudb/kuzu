@@ -21,8 +21,9 @@ KUZU_API struct SystemConfig {
     /**
      * @brief Creates a SystemConfig object.
      * @param bufferPoolSize Buffer pool size in bytes.
-     * @note defaultPageBufferPoolSize and largePageBufferPoolSize are calculated based on the
-     * DEFAULT_PAGES_BUFFER_RATIO and LARGE_PAGES_BUFFER_RATIO constants in StorageConfig.
+     * @note Currently, we have two internal buffer pools with different frame size of 4KB and
+     * 256KB. When a user sets a customized buffer pool size, it is divided into two internal pools
+     * based on the DEFAULT_PAGES_BUFFER_RATIO and LARGE_PAGES_BUFFER_RATIO.
      */
     explicit SystemConfig(uint64_t bufferPoolSize);
 
