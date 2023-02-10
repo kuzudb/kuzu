@@ -454,3 +454,10 @@ TEST_F(BinderErrorTest, RenamePropertyDuplicateName) {
     auto input = "alter table person rename fName to gender";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
+
+TEST_F(BinderErrorTest, EmptyList) {
+    std::string expectedException =
+        "Binder exception: Cannot resolve child data type for LIST_CREATION.";
+    auto input = "RETURN []";
+    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
+}

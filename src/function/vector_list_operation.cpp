@@ -48,6 +48,10 @@ void VectorListOperations::ListCreation(
 
 void ListCreationVectorOperation::listCreationBindFunc(const std::vector<DataType>& argumentTypes,
     VectorOperationDefinition* definition, DataType& actualReturnType) {
+    if (argumentTypes.empty()) {
+        throw BinderException(
+            "Cannot resolve child data type for " + LIST_CREATION_FUNC_NAME + ".");
+    }
     for (auto i = 1u; i < argumentTypes.size(); i++) {
         if (argumentTypes[i] != argumentTypes[0]) {
             throw BinderException(getListFunctionIncompatibleChildrenTypeErrorMsg(
