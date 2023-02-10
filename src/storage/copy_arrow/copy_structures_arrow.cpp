@@ -245,22 +245,21 @@ arrow::Status CopyStructuresArrow::initParquetReader(
 
 std::unique_ptr<Value> CopyStructuresArrow::getArrowList(std::string& l, int64_t from, int64_t to,
     const DataType& dataType, CopyDescription& copyDescription) {
+    assert(dataType.typeID == common::LIST);
     auto childDataType = *dataType.childType;
 
     char delimiter = copyDescription.csvReaderConfig->delimiter;
     std::vector<std::pair<int64_t, int64_t>> split;
     int bracket = 0;
     int64_t last = from;
-    if (dataType.typeID == LIST) {
-        for (int64_t i = from; i <= to; i++) {
-            if (l[i] == copyDescription.csvReaderConfig->listBeginChar) {
-                bracket += 1;
-            } else if (l[i] == copyDescription.csvReaderConfig->listEndChar) {
-                bracket -= 1;
-            } else if (bracket == 0 && l[i] == delimiter) {
-                split.emplace_back(last, i - last);
-                last = i + 1;
-            }
+    for (int64_t i = from; i <= to; i++) {
+        if (l[i] == copyDescription.csvReaderConfig->listBeginChar) {
+            bracket += 1;
+        } else if (l[i] == copyDescription.csvReaderConfig->listEndChar) {
+            bracket -= 1;
+        } else if (bracket == 0 && l[i] == delimiter) {
+            split.emplace_back(last, i - last);
+            last = i + 1;
         }
     }
     split.emplace_back(last, to - last + 1);
