@@ -68,7 +68,17 @@ void QueryProcessor::decomposePlanIntoTasks(
     case PhysicalOperatorType::CREATE_NODE_TABLE:
     case PhysicalOperatorType::CREATE_REL_TABLE:
     case PhysicalOperatorType::DROP_TABLE:
-    case PhysicalOperatorType::DROP_PROPERTY: {
+    case PhysicalOperatorType::DROP_PROPERTY:
+    case PhysicalOperatorType::ADD_PROPERTY:
+    case PhysicalOperatorType::RENAME_PROPERTY:
+    case PhysicalOperatorType::RENAME_TABLE:
+        // As a temporary solution, update is executed in single thread mode.
+    case PhysicalOperatorType::SET_NODE_PROPERTY:
+    case PhysicalOperatorType::SET_REL_PROPERTY:
+    case PhysicalOperatorType::CREATE_NODE:
+    case PhysicalOperatorType::CREATE_REL:
+    case PhysicalOperatorType::DELETE_NODE:
+    case PhysicalOperatorType::DELETE_REL: {
         parentTask->setSingleThreadedTask();
     } break;
     default:
