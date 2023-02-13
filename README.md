@@ -23,7 +23,7 @@ To build from source code, Kùzu requires Cmake(>=3.11), Python 3, and a compile
 - Perform a full clean build with tests and benchmark (optional):
   - `make clean && make all`
 - Run tests (optional):
-  - `make test`
+  - `make test && make pytest`
 
 For development, use `make debug` to build a non-optimized debug version.
 To build in parallel, pass `NUM_THREADS` as parameter, e.g., `make NUM_THREADS=8`.
@@ -43,43 +43,50 @@ pip install kuzu
 For more installation and usage instructions, please refer to [our website](https://kuzudb.com/).
 
 ## Example
-We take `tinysnb` as an example graph, which is under `dataset/tinysnb` in our source code, and can be downloaded [here](https://github.com/kuzudb/kuzu/tree/master/dataset/tinysnb).
+We take `tinysnb` as an example graph, which is under `dataset/demo-db/csv` in our source code, and can be downloaded [here](https://github.com/kuzudb/kuzu/tree/master/dataset/demo-db/csv).
 
 ### CLI
 #### Start CLI
 ```
-./build/release/tools/shell/kuzu_shell -i "./test.db"
+./build/release/tools/shell/kuzu_shell -i "./testdb"
 ```
 #### Schema Definition
 ```cypher
-kuzu> CREATE NODE TABLE person (ID INt64, fName STRING, gender INT64, isStudent BOOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration interval, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], PRIMARY KEY (ID));
-kuzu> CREATE REL TABLE knows (FROM person TO person, date DATE, meetTime TIMESTAMP, validInterval INTERVAL, comments STRING[], MANY_MANY);
+kuzu> CREATE NODE TABLE User(name STRING, age INT64, PRIMARY KEY (name));
+kuzu> CREATE REL TABLE Follows(FROM User TO User, since INT64);
 ```
 
 #### Data Import
 ```cypher
-kuzu> COPY person FROM "dataset/tinysnb/vPerson.csv" (HEADER=true);
-kuzu> COPY knows FROM "dataset/tinysnb/eKnows.csv";
+kuzu> COPY User FROM "dataset/demo-db/csv/user.csv";
+kuzu> COPY Follows FROM "dataset/demo-db/csv/follows.csv";
 ```
 
 After creating node/rel tables, and importing csv files, you can now run queries!
 ```cypher
-kuzu> MATCH (b:person)<-[e1:knows]-(a:person)-[e2:knows]->(c:person) RETURN COUNT(*);
+kuzu> MATCH (a:User)-[f:Follows]->(b:User) RETURN a.name, b.name, f.since;
 ```
 
 ### Python
 ```python
 import kuzu
 
-db = kuzu.database('./testpy')
-conn = kuzu.connection(db)
-conn.execute("CREATE NODE TABLE person (ID INt64, fName STRING, gender INT64, isStudent BOOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration interval, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], PRIMARY KEY (ID));")
-conn.execute("CREATE REL TABLE knows (FROM person TO person, date DATE, meetTime TIMESTAMP, validInterval INTERVAL, comments STRING[], MANY_MANY);")
-conn.execute("COPY person FROM 'dataset/tinysnb/vPerson.csv' (HEADER=true);")
-conn.execute("COPY knows FROM 'dataset/tinysnb/eKnows.csv';")
-result = conn.execute("MATCH (b:person)<-[e1:knows]-(a:person)-[e2:knows]->(c:person) RETURN COUNT(*)")
-while result.hasNext():
-  print(result.getNext())
+db = kuzu.Database('./testdb')
+conn = kuzu.Connection(db)
+conn.execute("CREATE NODE TABLE User(name STRING, age INT64, PRIMARY KEY (name))")
+conn.execute("CREATE REL TABLE Follows(FROM User TO User, since INT64)")
+conn.execute('COPY User FROM "user.csv"')
+conn.execute('COPY Follows FROM "follows.csv"')
+# Run a query.
+results = conn.execute('MATCH (u:User) RETURN COUNT(*);')
+while results.hasNext():
+  print(results.getNext())
+# Run a query and get results as a pandas dataframe.
+results = conn.execute('MATCH (a:User)-[f:Follows]->(b:User) RETURN a.name, f.since, b.name;').getAsDF()
+print(results)
+# Run a query and get results as an arrow table.
+results = conn.execute('MATCH (u:User) RETURN u.name, u.age;').get_as_arrow(chunk_size=100)
+print(results)
 ```
 
 Refer to our [Data Import](https://kuzudb.com/docs/data-import) and [Cypher](https://kuzudb.com/docs/cypher) section for more information.
