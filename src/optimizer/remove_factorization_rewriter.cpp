@@ -24,6 +24,7 @@ std::shared_ptr<planner::LogicalOperator> RemoveFactorizationRewriter::rewriteOp
     if (op->getOperatorType() == planner::LogicalOperatorType::FLATTEN) {
         return op->getChild(0);
     }
+    op->getSchema()->clear();
     return op;
 }
 

@@ -16,6 +16,11 @@ class Expression;
 using expression_vector = std::vector<std::shared_ptr<Expression>>;
 using expression_pair = std::pair<std::shared_ptr<Expression>, std::shared_ptr<Expression>>;
 
+struct ExpressionHasher;
+struct ExpressionEquality;
+using expression_set =
+    std::unordered_set<std::shared_ptr<Expression>, ExpressionHasher, ExpressionEquality>;
+
 class Expression : public std::enable_shared_from_this<Expression> {
 public:
     Expression(common::ExpressionType expressionType, common::DataType dataType,
@@ -110,6 +115,19 @@ protected:
     // NOTE: an expression may not have a rawName since it is generated internally e.g. casting
     std::string rawName;
     expression_vector children;
+};
+
+struct ExpressionHasher {
+    std::size_t operator()(const std::shared_ptr<Expression>& expression) const {
+        return std::hash<std::string>{}(expression->getUniqueName());
+    }
+};
+
+struct ExpressionEquality {
+    bool operator()(
+        const std::shared_ptr<Expression>& left, const std::shared_ptr<Expression>& right) const {
+        return left->getUniqueName() == right->getUniqueName();
+    }
 };
 
 class ExpressionUtil {

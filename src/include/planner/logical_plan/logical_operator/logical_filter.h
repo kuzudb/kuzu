@@ -22,6 +22,7 @@ public:
     }
 
     inline std::shared_ptr<binder::Expression> getPredicate() const { return expression; }
+
     f_group_pos getGroupPosToSelect() const;
 
     inline std::unique_ptr<LogicalOperator> copy() override {
