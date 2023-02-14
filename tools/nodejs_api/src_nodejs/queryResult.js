@@ -12,6 +12,16 @@ class QueryResult {
         }
     }
 
+    hasNext(){
+        this.checkForQueryResultClose();
+        return this.#queryResult.hasNext();
+    }
+
+    getNext(){
+        this.checkForQueryResultClose();
+        return this.#queryResult.getNext();
+    }
+
     close(){
         if (this.#isClosed){
             return;
@@ -20,31 +30,24 @@ class QueryResult {
         this.#isClosed = true;
     }
 
-     async each(rowCallback, doneCallback) {
-        this.checkForQueryResultClose();
-         if (typeof rowCallback !== 'function' || typeof doneCallback !== 'function') {
-             throw new Error("If all is provided an argument it must be a callback function");
-         }
-        await this.#queryResult.each(rowCallback, doneCallback);
+    each() {
+        if (this.hasNext()) {
+            return this.getNext();
+        }
+        return;
     }
 
-    async all(callback = null) {
-        this.checkForQueryResultClose();
-        if (callback) {
-            if (typeof callback !== 'function') {
-                throw new Error("If all is provided an argument it must be a callback function");
+    all() {
+        const arr = [];
+        try {
+            while (this.hasNext()) {
+                arr.push(this.getNext());
             }
-            await this.#queryResult.all(callback);
-        } else {
-            return new Promise(async (resolve, reject) => {
-                await this.#queryResult.all((err, result) => {
-                    if (err) {
-                        return reject(err);
-                    }
-                    return resolve(result);
-                });
-            })
         }
+        catch(error){
+            console.log(error);
+        }
+        return arr;
     }
 }
 
