@@ -8,16 +8,19 @@ add_library(kuzu_planner_operator
         logical_distinct.cpp
         logical_expressions_scan.cpp
         logical_extend.cpp
+        logical_filter.cpp
         logical_flatten.cpp
         logical_ftable_scan.cpp
         logical_hash_join.cpp
         logical_intersect.cpp
+        logical_limit.cpp
         logical_order_by.cpp
         logical_plan.cpp
         logical_plan_util.cpp
         logical_projection.cpp
         logical_scan_node.cpp
         logical_scan_node_property.cpp
+        logical_skip.cpp
         logical_union.cpp
         logical_unwind.cpp
         schema.cpp

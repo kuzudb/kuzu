@@ -43,7 +43,15 @@ void LogicalHashJoin::computeSchema() {
         }
         SinkOperatorUtil::mergeSchema(
             *buildSchema, expressionsToMaterializeInNonKeyGroups, *schema);
-    } else {
+    } else { // mark join
+        std::unordered_set<f_group_pos> probeSideKeyGroupPositions;
+        for (auto& joinNodeID : joinNodeIDs) {
+            probeSideKeyGroupPositions.insert(probeSchema->getGroupPos(*joinNodeID));
+        }
+        if (probeSideKeyGroupPositions.size() > 1) {
+            SchemaUtils::validateNoUnFlatGroup(probeSideKeyGroupPositions, *probeSchema);
+        }
+        auto markPos = *probeSideKeyGroupPositions.begin();
         schema->insertToGroupAndScope(mark, markPos);
     }
 }

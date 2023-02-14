@@ -8,10 +8,10 @@ namespace planner {
 
 class LogicalFilter : public LogicalOperator {
 public:
-    LogicalFilter(std::shared_ptr<binder::Expression> expression, uint32_t groupPosToSelect,
-        std::shared_ptr<LogicalOperator> child)
-        : LogicalOperator{LogicalOperatorType::FILTER, std::move(child)},
-          expression{std::move(expression)}, groupPosToSelect{groupPosToSelect} {}
+    LogicalFilter(
+        std::shared_ptr<binder::Expression> expression, std::shared_ptr<LogicalOperator> child)
+        : LogicalOperator{LogicalOperatorType::FILTER, std::move(child)}, expression{std::move(
+                                                                              expression)} {}
 
     inline void computeSchema() override { copyChildSchema(0); }
 
@@ -20,14 +20,14 @@ public:
     }
 
     inline std::shared_ptr<binder::Expression> getPredicate() const { return expression; }
+    f_group_pos getGroupPosToSelect() const;
 
     inline std::unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalFilter>(expression, groupPosToSelect, children[0]->copy());
+        return make_unique<LogicalFilter>(expression, children[0]->copy());
     }
 
-public:
+private:
     std::shared_ptr<binder::Expression> expression;
-    uint32_t groupPosToSelect;
 };
 
 } // namespace planner

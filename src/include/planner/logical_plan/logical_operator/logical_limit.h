@@ -6,12 +6,9 @@ namespace kuzu {
 namespace planner {
 
 class LogicalLimit : public LogicalOperator {
-
 public:
-    LogicalLimit(
-        uint64_t limitNumber, uint32_t groupPosToSelect, std::shared_ptr<LogicalOperator> child)
-        : LogicalOperator{LogicalOperatorType::LIMIT, std::move(child)}, limitNumber{limitNumber},
-          groupPosToSelect{groupPosToSelect} {}
+    LogicalLimit(uint64_t limitNumber, std::shared_ptr<LogicalOperator> child)
+        : LogicalOperator{LogicalOperatorType::LIMIT, std::move(child)}, limitNumber{limitNumber} {}
 
     inline void computeSchema() override { copyChildSchema(0); }
 
@@ -21,19 +18,18 @@ public:
 
     inline uint64_t getLimitNumber() const { return limitNumber; }
 
-    inline uint32_t getGroupPosToSelect() const { return groupPosToSelect; }
+    f_group_pos getGroupPosToSelect() const;
 
-    inline std::unordered_set<uint32_t> getGroupsPosToLimit() const {
+    inline std::unordered_set<f_group_pos> getGroupsPosToLimit() const {
         return schema->getGroupsPosInScope();
     }
 
     inline std::unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalLimit>(limitNumber, groupPosToSelect, children[0]->copy());
+        return make_unique<LogicalLimit>(limitNumber, children[0]->copy());
     }
 
 private:
     uint64_t limitNumber;
-    uint32_t groupPosToSelect;
 };
 
 } // namespace planner

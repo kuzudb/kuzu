@@ -17,28 +17,27 @@ public:
         bool isProbeAcc, binder::expression_vector expressionsToMaterialize,
         std::shared_ptr<LogicalOperator> probeSideChild,
         std::shared_ptr<LogicalOperator> buildSideChild)
-        : LogicalHashJoin{std::move(joinNodeIDs), joinType, nullptr, UINT32_MAX, isProbeAcc,
+        : LogicalHashJoin{std::move(joinNodeIDs), joinType, nullptr, isProbeAcc,
               std::move(expressionsToMaterialize), std::move(probeSideChild),
               std::move(buildSideChild)} {}
 
     // Mark join.
     LogicalHashJoin(binder::expression_vector joinNodeIDs, std::shared_ptr<binder::Expression> mark,
-        uint32_t markPos, bool isProbeAcc, std::shared_ptr<LogicalOperator> probeSideChild,
+        bool isProbeAcc, std::shared_ptr<LogicalOperator> probeSideChild,
         std::shared_ptr<LogicalOperator> buildSideChild)
-        : LogicalHashJoin{std::move(joinNodeIDs), common::JoinType::MARK, std::move(mark), markPos,
+        : LogicalHashJoin{std::move(joinNodeIDs), common::JoinType::MARK, std::move(mark),
               isProbeAcc, binder::expression_vector{} /* expressionsToMaterialize */,
               std::move(probeSideChild), std::move(buildSideChild)} {}
 
     LogicalHashJoin(binder::expression_vector joinNodeIDs, common::JoinType joinType,
-        std::shared_ptr<binder::Expression> mark, uint32_t markPos, bool isProbeAcc,
+        std::shared_ptr<binder::Expression> mark, bool isProbeAcc,
         binder::expression_vector expressionsToMaterialize,
         std::shared_ptr<LogicalOperator> probeSideChild,
         std::shared_ptr<LogicalOperator> buildSideChild)
         : LogicalOperator{LogicalOperatorType::HASH_JOIN, std::move(probeSideChild),
               std::move(buildSideChild)},
           joinNodeIDs(std::move(joinNodeIDs)), joinType{joinType}, mark{std::move(mark)},
-          markPos{markPos}, isProbeAcc{isProbeAcc}, expressionsToMaterialize{
-                                                        std::move(expressionsToMaterialize)} {}
+          isProbeAcc{isProbeAcc}, expressionsToMaterialize{std::move(expressionsToMaterialize)} {}
 
     void computeSchema() override;
 
@@ -60,7 +59,7 @@ public:
     inline Schema* getBuildSideSchema() const { return children[1]->getSchema(); }
 
     inline std::unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalHashJoin>(joinNodeIDs, joinType, mark, markPos, isProbeAcc,
+        return make_unique<LogicalHashJoin>(joinNodeIDs, joinType, mark, isProbeAcc,
             expressionsToMaterialize, children[0]->copy(), children[1]->copy());
     }
 
@@ -68,7 +67,6 @@ private:
     binder::expression_vector joinNodeIDs;
     common::JoinType joinType;
     std::shared_ptr<binder::Expression> mark; // when joinType is Mark
-    uint32_t markPos;
     bool isProbeAcc;
     binder::expression_vector expressionsToMaterialize;
 };
