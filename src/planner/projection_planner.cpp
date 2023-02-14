@@ -90,23 +90,7 @@ void ProjectionPlanner::appendProjection(
     for (auto& expression : expressionsToProject) {
         queryPlanner->planSubqueryIfNecessary(expression, plan);
     }
-    std::vector<uint32_t> expressionsOutputPos;
-    for (auto& expression : expressionsToProject) {
-        if (plan.getSchema()->isExpressionInScope(*expression)) {
-            expressionsOutputPos.push_back(
-                plan.getSchema()->getGroupPos(expression->getUniqueName()));
-        } else {
-            auto dependentGroupsPos = plan.getSchema()->getDependentGroupsPos(expression);
-            if (dependentGroupsPos.empty()) { // e.g. constant that does not depend on any input.
-                expressionsOutputPos.push_back(UINT32_MAX);
-            } else {
-                auto outputPos = QueryPlanner::appendFlattensButOne(dependentGroupsPos, plan);
-                expressionsOutputPos.push_back(outputPos);
-            }
-        }
-    }
-    auto projection = make_shared<LogicalProjection>(
-        expressionsToProject, expressionsOutputPos, plan.getLastOperator());
+    auto projection = make_shared<LogicalProjection>(expressionsToProject, plan.getLastOperator());
     projection->computeSchema();
     plan.setLastOperator(std::move(projection));
 }
@@ -186,18 +170,16 @@ void ProjectionPlanner::appendMultiplicityReducer(LogicalPlan& plan) {
 }
 
 void ProjectionPlanner::appendLimit(uint64_t limitNumber, LogicalPlan& plan) {
-    auto groupPosToSelect =
-        QueryPlanner::appendFlattensButOne(plan.getSchema()->getGroupsPosInScope(), plan);
-    auto limit = make_shared<LogicalLimit>(limitNumber, groupPosToSelect, plan.getLastOperator());
+    QueryPlanner::appendFlattensButOne(plan.getSchema()->getGroupsPosInScope(), plan);
+    auto limit = make_shared<LogicalLimit>(limitNumber, plan.getLastOperator());
     limit->computeSchema();
     plan.setCardinality(limitNumber);
     plan.setLastOperator(std::move(limit));
 }
 
 void ProjectionPlanner::appendSkip(uint64_t skipNumber, LogicalPlan& plan) {
-    auto groupPosToSelect =
-        QueryPlanner::appendFlattensButOne(plan.getSchema()->getGroupsPosInScope(), plan);
-    auto skip = make_shared<LogicalSkip>(skipNumber, groupPosToSelect, plan.getLastOperator());
+    QueryPlanner::appendFlattensButOne(plan.getSchema()->getGroupsPosInScope(), plan);
+    auto skip = make_shared<LogicalSkip>(skipNumber, plan.getLastOperator());
     skip->computeSchema();
     plan.setCardinality(plan.getCardinality() - skipNumber);
     plan.setLastOperator(std::move(skip));

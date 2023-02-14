@@ -351,8 +351,8 @@ void QueryPlanner::appendFlattenIfNecessary(
 void QueryPlanner::appendFilter(const std::shared_ptr<Expression>& expression, LogicalPlan& plan) {
     planSubqueryIfNecessary(expression, plan);
     auto dependentGroupsPos = plan.getSchema()->getDependentGroupsPos(expression);
-    auto groupPosToSelect = appendFlattensButOne(dependentGroupsPos, plan);
-    auto filter = make_shared<LogicalFilter>(expression, groupPosToSelect, plan.getLastOperator());
+    appendFlattensButOne(dependentGroupsPos, plan);
+    auto filter = make_shared<LogicalFilter>(expression, plan.getLastOperator());
     filter->computeSchema();
     plan.multiplyCardinality(EnumeratorKnobs::PREDICATE_SELECTIVITY);
     plan.setLastOperator(std::move(filter));

@@ -676,8 +676,8 @@ void JoinOrderEnumerator::appendHashJoin(const expression_vector& joinNodeIDs, J
 void JoinOrderEnumerator::appendMarkJoin(const expression_vector& joinNodeIDs,
     const std::shared_ptr<Expression>& mark, bool isProbeAcc, LogicalPlan& probePlan,
     LogicalPlan& buildPlan) {
-    // Apply flattening all but one on join nodes of both probe and build side.
-    std::unordered_set<uint32_t> joinNodeGroupsPosInProbeSide, joinNodeGroupsPosInBuildSide;
+    // Apply flattening to probe side
+    std::unordered_set<f_group_pos> joinNodeGroupsPosInProbeSide;
     auto needFlattenProbeJoinKey = false;
     needFlattenProbeJoinKey |= joinNodeIDs.size() > 1;
     needFlattenProbeJoinKey |= !isJoinKeyUniqueOnBuildSide(*joinNodeIDs[0], buildPlan);
@@ -687,13 +687,16 @@ void JoinOrderEnumerator::appendMarkJoin(const expression_vector& joinNodeIDs,
             QueryPlanner::appendFlattenIfNecessary(probeKeyGroupPos, probePlan);
         }
         joinNodeGroupsPosInProbeSide.insert(probeKeyGroupPos);
+    }
+    // Apply flattening to build side
+    std::unordered_set<f_group_pos> joinNodeGroupsPosInBuildSide;
+    for (auto& joinNodeID : joinNodeIDs) {
         joinNodeGroupsPosInBuildSide.insert(buildPlan.getSchema()->getGroupPos(*joinNodeID));
     }
-    auto markGroupPos = *joinNodeGroupsPosInProbeSide.begin();
     QueryPlanner::appendFlattensButOne(joinNodeGroupsPosInBuildSide, buildPlan);
     probePlan.increaseCost(probePlan.getCardinality() + buildPlan.getCardinality());
-    auto hashJoin = make_shared<LogicalHashJoin>(joinNodeIDs, mark, markGroupPos, isProbeAcc,
-        probePlan.getLastOperator(), buildPlan.getLastOperator());
+    auto hashJoin = make_shared<LogicalHashJoin>(
+        joinNodeIDs, mark, isProbeAcc, probePlan.getLastOperator(), buildPlan.getLastOperator());
     hashJoin->computeSchema();
     probePlan.setLastOperator(std::move(hashJoin));
 }
