@@ -1,5 +1,6 @@
 #include "node_connection.h"
 #include "node_database.h"
+#include "node_query_result.h"
 
 #include "main/kuzu.h"
 
@@ -63,18 +64,19 @@ Napi::Value NodeConnection::Execute(const Napi::CallbackInfo& info) {
       Napi::TypeError::New(env, "Unsuccessful execute: " + queryResult->getErrorMessage()).ThrowAsJavaScriptException();
       return Napi::Object::New(env);
   }
-  Napi::Object output = Napi::Object::New(env);
-  int i = 0;
-  while (queryResult->hasNext()) {
-      auto row = queryResult->getNext();
-      Napi::Array obj = Napi::Array::New(env, row->len());
-      for (int j=0; j < row->len(); j++) {
-          obj.Set(j, row->getValue(j)->toString());
-      }
-      output.Set(uint32_t(i), obj);
-      ++i;
-  }
-  return output;
+//  Napi::Object output = Napi::Object::New(env);
+//  int i = 0;
+//  while (queryResult->hasNext()) {
+//      auto row = queryResult->getNext();
+//      Napi::Array obj = Napi::Array::New(env, row->len());
+//      for (int j=0; j < row->len(); j++) {
+//          obj.Set(j, row->getValue(j)->toString());
+//      }
+//      output.Set(uint32_t(i), obj);
+//      ++i;
+//  }
+//  return output;
+  return NodeQueryResult::Wrap(env, queryResult);
 }
 
 void NodeConnection::SetMaxNumThreadForExec(const Napi::CallbackInfo& info) {
