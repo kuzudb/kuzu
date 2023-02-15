@@ -41,6 +41,7 @@ TEST_F(TinySnbReadTest, Filter) {
 }
 
 TEST_F(TinySnbReadTest, Function) {
+    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinysnb/function/offset.test"));
     runTest(TestHelper::appendKuzuRootPath("test/test_files/tinysnb/function/date.test"));
     runTest(TestHelper::appendKuzuRootPath("test/test_files/tinysnb/function/timestamp.test"));
     runTest(TestHelper::appendKuzuRootPath("test/test_files/tinysnb/function/interval.test"));

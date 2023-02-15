@@ -6,6 +6,7 @@
 #include "function/date/vector_date_operations.h"
 #include "function/interval/vector_interval_operations.h"
 #include "function/list/vector_list_operations.h"
+#include "function/schema/vector_offset_operations.h"
 #include "function/string/vector_string_operations.h"
 #include "function/timestamp/vector_timestamp_operations.h"
 
@@ -24,6 +25,8 @@ void BuiltInVectorOperations::registerVectorOperations() {
     registerCastOperations();
     registerListOperations();
     registerInternalIDOperation();
+    // register internal offset operation
+    vectorOperations.insert({OFFSET_FUNC_NAME, OffsetVectorOperation::getDefinitions()});
 }
 
 bool BuiltInVectorOperations::canApplyStaticEvaluation(
