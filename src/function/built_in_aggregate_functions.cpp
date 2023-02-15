@@ -1,5 +1,7 @@
 #include "function/aggregate/built_in_aggregate_functions.h"
 
+#include "function/aggregate/collect.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {
@@ -35,10 +37,10 @@ uint32_t BuiltInAggregateFunctions::getFunctionCost(const std::vector<DataType>&
         isDistinct != function->isDistinct) {
         return UINT32_MAX;
     }
-    // Currently all aggregate functions takes either 0 or 1 parameter. Therefore we do not allow
-    // any implicit cast and require a perfect match.
     for (auto i = 0u; i < inputTypes.size(); ++i) {
-        if (inputTypes[i].typeID != function->parameterTypeIDs[i]) {
+        if (function->parameterTypeIDs[i] == ANY) {
+            continue;
+        } else if (inputTypes[i].typeID != function->parameterTypeIDs[i]) {
             return UINT32_MAX;
         }
     }
@@ -70,13 +72,14 @@ void BuiltInAggregateFunctions::registerAggregateFunctions() {
     registerAvg();
     registerMin();
     registerMax();
+    registerCollect();
 }
 
 void BuiltInAggregateFunctions::registerCountStar() {
     std::vector<std::unique_ptr<AggregateFunctionDefinition>> definitions;
     definitions.push_back(std::make_unique<AggregateFunctionDefinition>(COUNT_STAR_FUNC_NAME,
         std::vector<DataTypeID>{}, INT64, AggregateFunctionUtil::getCountStarFunction(), false));
-    aggregateFunctions.insert({COUNT_STAR_FUNC_NAME, move(definitions)});
+    aggregateFunctions.insert({COUNT_STAR_FUNC_NAME, std::move(definitions)});
 }
 
 void BuiltInAggregateFunctions::registerCount() {
@@ -90,7 +93,7 @@ void BuiltInAggregateFunctions::registerCount() {
                 AggregateFunctionUtil::getCountFunction(inputType, isDistinct), isDistinct));
         }
     }
-    aggregateFunctions.insert({COUNT_FUNC_NAME, move(definitions)});
+    aggregateFunctions.insert({COUNT_FUNC_NAME, std::move(definitions)});
 }
 
 void BuiltInAggregateFunctions::registerSum() {
@@ -102,7 +105,7 @@ void BuiltInAggregateFunctions::registerSum() {
                 AggregateFunctionUtil::getSumFunction(DataType(typeID), isDistinct), isDistinct));
         }
     }
-    aggregateFunctions.insert({SUM_FUNC_NAME, move(definitions)});
+    aggregateFunctions.insert({SUM_FUNC_NAME, std::move(definitions)});
 }
 
 void BuiltInAggregateFunctions::registerAvg() {
@@ -114,7 +117,7 @@ void BuiltInAggregateFunctions::registerAvg() {
                 AggregateFunctionUtil::getAvgFunction(DataType(typeID), isDistinct), isDistinct));
         }
     }
-    aggregateFunctions.insert({AVG_FUNC_NAME, move(definitions)});
+    aggregateFunctions.insert({AVG_FUNC_NAME, std::move(definitions)});
 }
 
 void BuiltInAggregateFunctions::registerMin() {
@@ -126,7 +129,7 @@ void BuiltInAggregateFunctions::registerMin() {
                 AggregateFunctionUtil::getMinFunction(DataType(typeID), isDistinct), isDistinct));
         }
     }
-    aggregateFunctions.insert({MIN_FUNC_NAME, move(definitions)});
+    aggregateFunctions.insert({MIN_FUNC_NAME, std::move(definitions)});
 }
 
 void BuiltInAggregateFunctions::registerMax() {
@@ -138,7 +141,18 @@ void BuiltInAggregateFunctions::registerMax() {
                 AggregateFunctionUtil::getMaxFunction(DataType(typeID), isDistinct), isDistinct));
         }
     }
-    aggregateFunctions.insert({MAX_FUNC_NAME, move(definitions)});
+    aggregateFunctions.insert({MAX_FUNC_NAME, std::move(definitions)});
+}
+
+void BuiltInAggregateFunctions::registerCollect() {
+    std::vector<std::unique_ptr<AggregateFunctionDefinition>> definitions;
+    for (auto isDistinct : std::vector<bool>{true, false}) {
+        definitions.push_back(std::make_unique<AggregateFunctionDefinition>(COLLECT_FUNC_NAME,
+            std::vector<DataTypeID>{ANY}, LIST,
+            AggregateFunctionUtil::getCollectFunction(DataType(ANY), isDistinct), isDistinct,
+            CollectFunction::bindFunc));
+    }
+    aggregateFunctions.insert({COLLECT_FUNC_NAME, std::move(definitions)});
 }
 
 } // namespace function

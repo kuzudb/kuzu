@@ -17,8 +17,6 @@ using scalar_exec_func = std::function<void(
     const std::vector<std::shared_ptr<common::ValueVector>>&, common::ValueVector&)>;
 using scalar_select_func = std::function<bool(
     const std::vector<std::shared_ptr<common::ValueVector>>&, common::SelectionVector&)>;
-using scalar_bind_func = std::function<void(
-    const std::vector<common::DataType>&, VectorOperationDefinition*, common::DataType&)>;
 
 struct VectorOperationDefinition : public FunctionDefinition {
 
@@ -37,14 +35,13 @@ struct VectorOperationDefinition : public FunctionDefinition {
     VectorOperationDefinition(std::string name, std::vector<common::DataTypeID> parameterTypeIDs,
         common::DataTypeID returnTypeID, scalar_exec_func execFunc, scalar_select_func selectFunc,
         scalar_bind_func bindFunc, bool isVarLength = false)
-        : FunctionDefinition{std::move(name), std::move(parameterTypeIDs), returnTypeID},
+        : FunctionDefinition{std::move(name), std::move(parameterTypeIDs), returnTypeID,
+              std::move(bindFunc)},
           execFunc{std::move(execFunc)},
-          selectFunc(std::move(selectFunc)), bindFunc{std::move(bindFunc)}, isVarLength{
-                                                                                isVarLength} {}
+          selectFunc(std::move(selectFunc)), isVarLength{isVarLength} {}
 
     scalar_exec_func execFunc;
     scalar_select_func selectFunc;
-    scalar_bind_func bindFunc;
     // Currently we only one variable-length function which is list creation. The expectation is
     // that all parameters must have the same type as parameterTypes[0].
     bool isVarLength;

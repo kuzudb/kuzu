@@ -18,8 +18,7 @@ void BaseAggregateScan::writeAggregateResultToVector(
     if (aggregateState->isNull) {
         vector.setNull(pos, true);
     } else {
-        memcpy(vector.getData() + pos * vector.getNumBytesPerValue(), aggregateState->getResult(),
-            vector.getNumBytesPerValue());
+        aggregateState->moveResultToVector(&vector, pos);
     }
 }
 

@@ -47,7 +47,7 @@ void VectorListOperations::ListCreation(
 }
 
 void ListCreationVectorOperation::listCreationBindFunc(const std::vector<DataType>& argumentTypes,
-    VectorOperationDefinition* definition, DataType& actualReturnType) {
+    FunctionDefinition* definition, DataType& actualReturnType) {
     if (argumentTypes.empty()) {
         throw BinderException(
             "Cannot resolve child data type for " + LIST_CREATION_FUNC_NAME + ".");
@@ -80,40 +80,41 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> ListLenVectorOperation::
 }
 
 void ListExtractVectorOperation::listExtractBindFunc(const std::vector<DataType>& argumentTypes,
-    VectorOperationDefinition* definition, DataType& returnType) {
+    FunctionDefinition* definition, DataType& returnType) {
     definition->returnTypeID = argumentTypes[0].childType->typeID;
+    auto vectorOperationDefinition = reinterpret_cast<VectorOperationDefinition*>(definition);
     returnType = *argumentTypes[0].childType;
     switch (definition->returnTypeID) {
     case BOOL: {
-        definition->execFunc =
+        vectorOperationDefinition->execFunc =
             BinaryListExecFunction<ku_list_t, int64_t, uint8_t, operation::ListExtract>;
     } break;
     case INT64: {
-        definition->execFunc =
+        vectorOperationDefinition->execFunc =
             BinaryListExecFunction<ku_list_t, int64_t, int64_t, operation::ListExtract>;
     } break;
     case DOUBLE: {
-        definition->execFunc =
+        vectorOperationDefinition->execFunc =
             BinaryListExecFunction<ku_list_t, int64_t, double_t, operation::ListExtract>;
     } break;
     case DATE: {
-        definition->execFunc =
+        vectorOperationDefinition->execFunc =
             BinaryListExecFunction<ku_list_t, int64_t, date_t, operation::ListExtract>;
     } break;
     case TIMESTAMP: {
-        definition->execFunc =
+        vectorOperationDefinition->execFunc =
             BinaryListExecFunction<ku_list_t, int64_t, timestamp_t, operation::ListExtract>;
     } break;
     case INTERVAL: {
-        definition->execFunc =
+        vectorOperationDefinition->execFunc =
             BinaryListExecFunction<ku_list_t, int64_t, interval_t, operation::ListExtract>;
     } break;
     case STRING: {
-        definition->execFunc =
+        vectorOperationDefinition->execFunc =
             BinaryListExecFunction<ku_list_t, int64_t, ku_string_t, operation::ListExtract>;
     } break;
     case LIST: {
-        definition->execFunc =
+        vectorOperationDefinition->execFunc =
             BinaryListExecFunction<ku_list_t, int64_t, ku_list_t, operation::ListExtract>;
     } break;
     default: {
@@ -139,8 +140,8 @@ std::vector<std::unique_ptr<VectorOperationDefinition>>
 ListConcatVectorOperation::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
     auto execFunc = BinaryListExecFunction<ku_list_t, ku_list_t, ku_list_t, operation::ListConcat>;
-    auto bindFunc = [](const std::vector<DataType>& argumentTypes,
-                        VectorOperationDefinition* definition, DataType& actualReturnType) {
+    auto bindFunc = [](const std::vector<DataType>& argumentTypes, FunctionDefinition* definition,
+                        DataType& actualReturnType) {
         if (argumentTypes[0] != argumentTypes[1]) {
             throw BinderException(getListFunctionIncompatibleChildrenTypeErrorMsg(
                 LIST_CONCAT_FUNC_NAME, argumentTypes[0], argumentTypes[1]));
@@ -155,44 +156,45 @@ ListConcatVectorOperation::getDefinitions() {
 }
 
 void ListAppendVectorOperation::listAppendBindFunc(const std::vector<DataType>& argumentTypes,
-    VectorOperationDefinition* definition, DataType& returnType) {
+    FunctionDefinition* definition, DataType& returnType) {
     if (*argumentTypes[0].childType != argumentTypes[1]) {
         throw BinderException(getListFunctionIncompatibleChildrenTypeErrorMsg(
             LIST_APPEND_FUNC_NAME, argumentTypes[0], argumentTypes[1]));
     }
+    auto vectorOperationDefinition = reinterpret_cast<VectorOperationDefinition*>(definition);
     definition->returnTypeID = argumentTypes[0].typeID;
     returnType = argumentTypes[0];
     switch (argumentTypes[1].typeID) {
     case INT64: {
-        definition->execFunc =
+        vectorOperationDefinition->execFunc =
             BinaryListExecFunction<ku_list_t, int64_t, ku_list_t, operation::ListAppend>;
     } break;
     case DOUBLE: {
-        definition->execFunc =
+        vectorOperationDefinition->execFunc =
             BinaryListExecFunction<ku_list_t, double_t, ku_list_t, operation::ListAppend>;
     } break;
     case BOOL: {
-        definition->execFunc =
+        vectorOperationDefinition->execFunc =
             BinaryListExecFunction<ku_list_t, uint8_t, ku_list_t, operation::ListAppend>;
     } break;
     case STRING: {
-        definition->execFunc =
+        vectorOperationDefinition->execFunc =
             BinaryListExecFunction<ku_list_t, ku_string_t, ku_list_t, operation::ListAppend>;
     } break;
     case DATE: {
-        definition->execFunc =
+        vectorOperationDefinition->execFunc =
             BinaryListExecFunction<ku_list_t, date_t, ku_list_t, operation::ListAppend>;
     } break;
     case TIMESTAMP: {
-        definition->execFunc =
+        vectorOperationDefinition->execFunc =
             BinaryListExecFunction<ku_list_t, timestamp_t, ku_list_t, operation::ListAppend>;
     } break;
     case INTERVAL: {
-        definition->execFunc =
+        vectorOperationDefinition->execFunc =
             BinaryListExecFunction<ku_list_t, interval_t, ku_list_t, operation::ListAppend>;
     } break;
     case LIST: {
-        definition->execFunc =
+        vectorOperationDefinition->execFunc =
             BinaryListExecFunction<ku_list_t, ku_list_t, ku_list_t, operation::ListAppend>;
     } break;
     default: {
@@ -211,44 +213,45 @@ ListAppendVectorOperation::getDefinitions() {
 }
 
 void ListPrependVectorOperation::listPrependBindFunc(const std::vector<DataType>& argumentTypes,
-    VectorOperationDefinition* definition, DataType& returnType) {
+    FunctionDefinition* definition, DataType& returnType) {
     if (argumentTypes[0] != *argumentTypes[1].childType) {
         throw BinderException(getListFunctionIncompatibleChildrenTypeErrorMsg(
             LIST_APPEND_FUNC_NAME, argumentTypes[0], argumentTypes[1]));
     }
+    auto vectorOperationDefinition = reinterpret_cast<VectorOperationDefinition*>(definition);
     definition->returnTypeID = argumentTypes[1].typeID;
     returnType = argumentTypes[1];
     switch (argumentTypes[0].typeID) {
     case INT64: {
-        definition->execFunc =
+        vectorOperationDefinition->execFunc =
             BinaryListExecFunction<int64_t, ku_list_t, ku_list_t, operation::ListPrepend>;
     } break;
     case DOUBLE: {
-        definition->execFunc =
+        vectorOperationDefinition->execFunc =
             BinaryListExecFunction<double_t, ku_list_t, ku_list_t, operation::ListPrepend>;
     } break;
     case BOOL: {
-        definition->execFunc =
+        vectorOperationDefinition->execFunc =
             BinaryListExecFunction<uint8_t, ku_list_t, ku_list_t, operation::ListPrepend>;
     } break;
     case STRING: {
-        definition->execFunc =
+        vectorOperationDefinition->execFunc =
             BinaryListExecFunction<ku_string_t, ku_list_t, ku_list_t, operation::ListPrepend>;
     } break;
     case DATE: {
-        definition->execFunc =
+        vectorOperationDefinition->execFunc =
             BinaryListExecFunction<date_t, ku_list_t, ku_list_t, operation::ListPrepend>;
     } break;
     case TIMESTAMP: {
-        definition->execFunc =
+        vectorOperationDefinition->execFunc =
             BinaryListExecFunction<timestamp_t, ku_list_t, ku_list_t, operation::ListPrepend>;
     } break;
     case INTERVAL: {
-        definition->execFunc =
+        vectorOperationDefinition->execFunc =
             BinaryListExecFunction<interval_t, ku_list_t, ku_list_t, operation::ListPrepend>;
     } break;
     case LIST: {
-        definition->execFunc =
+        vectorOperationDefinition->execFunc =
             BinaryListExecFunction<ku_list_t, ku_list_t, ku_list_t, operation::ListPrepend>;
     } break;
     default: {
@@ -280,8 +283,8 @@ ListContainsVectorOperation::getDefinitions() {
 
 std::vector<std::unique_ptr<VectorOperationDefinition>> ListSliceVectorOperation::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
-    auto bindFunc = [](const std::vector<DataType>& argumentTypes,
-                        VectorOperationDefinition* definition, DataType& actualReturnType) {
+    auto bindFunc = [](const std::vector<DataType>& argumentTypes, FunctionDefinition* definition,
+                        DataType& actualReturnType) {
         definition->returnTypeID = argumentTypes[0].typeID;
         actualReturnType = argumentTypes[0];
     };

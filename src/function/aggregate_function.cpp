@@ -1,6 +1,7 @@
 #include "function/aggregate/aggregate_function.h"
 
 #include "function/aggregate/avg.h"
+#include "function/aggregate/collect.h"
 #include "function/aggregate/count.h"
 #include "function/aggregate/count_star.h"
 #include "function/aggregate/min_max.h"
@@ -67,6 +68,13 @@ std::unique_ptr<AggregateFunction> AggregateFunctionUtil::getMinFunction(
 std::unique_ptr<AggregateFunction> AggregateFunctionUtil::getMaxFunction(
     const DataType& inputType, bool isDistinct) {
     return getMinMaxFunction<operation::GreaterThan>(inputType, isDistinct);
+}
+
+std::unique_ptr<AggregateFunction> AggregateFunctionUtil::getCollectFunction(
+    const common::DataType& inputType, bool isDistinct) {
+    return std::make_unique<AggregateFunction>(CollectFunction::initialize,
+        CollectFunction::updateAll, CollectFunction::updatePos, CollectFunction::combine,
+        CollectFunction::finalize, inputType, isDistinct);
 }
 
 template<typename FUNC>

@@ -479,8 +479,7 @@ public:
         validateDatabaseFileAfterCheckpointAddProperty(
             bwdListOriginalVersionFileName, bwdListWALVersionFileName, hasOverflow);
         // Note: the default value of the new property is NULL if not specified by the user.
-        auto result = conn->query(StringUtils::string_format(
-            "MATCH (:person)-[e:studyAt]->(:organisation) return e.random"));
+        auto result = conn->query("MATCH (:person)-[e:studyAt]->(:organisation) return e.random");
         while (result->hasNext()) {
             ASSERT_TRUE(result->getNext()->getValue(0 /* idx */)->isNull());
         }
