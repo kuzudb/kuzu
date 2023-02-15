@@ -7,10 +7,8 @@ namespace planner {
 
 class LogicalSkip : public LogicalOperator {
 public:
-    LogicalSkip(
-        uint64_t skipNumber, uint32_t groupPosToSelect, std::shared_ptr<LogicalOperator> child)
-        : LogicalOperator(LogicalOperatorType::SKIP, std::move(child)), skipNumber{skipNumber},
-          groupPosToSelect{groupPosToSelect} {}
+    LogicalSkip(uint64_t skipNumber, std::shared_ptr<LogicalOperator> child)
+        : LogicalOperator(LogicalOperatorType::SKIP, std::move(child)), skipNumber{skipNumber} {}
 
     inline void computeSchema() override { copyChildSchema(0); }
 
@@ -20,19 +18,18 @@ public:
 
     inline uint64_t getSkipNumber() const { return skipNumber; }
 
-    inline uint32_t getGroupPosToSelect() const { return groupPosToSelect; }
+    f_group_pos getGroupPosToSelect() const;
 
     inline std::unordered_set<uint32_t> getGroupsPosToSkip() const {
         return schema->getGroupsPosInScope();
     };
 
     std::unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalSkip>(skipNumber, groupPosToSelect, children[0]->copy());
+        return make_unique<LogicalSkip>(skipNumber, children[0]->copy());
     }
 
 private:
     uint64_t skipNumber;
-    uint32_t groupPosToSelect;
 };
 
 } // namespace planner

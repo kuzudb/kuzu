@@ -1,5 +1,7 @@
 #include "planner/logical_plan/logical_operator/schema.h"
 
+#include "common/exception.h"
+
 namespace kuzu {
 namespace planner {
 
@@ -106,6 +108,41 @@ std::vector<binder::expression_vector> SchemaUtils::getExpressionsPerGroup(
         result[groupPos].push_back(expression);
     }
     return result;
+}
+
+f_group_pos SchemaUtils::getLeadingGroupPos(
+    const std::unordered_set<f_group_pos>& groupPositions, const Schema& schema) {
+    auto leadingGroupPos = INVALID_F_GROUP_POS;
+    for (auto groupPos : groupPositions) {
+        if (!schema.getGroup(groupPos)->isFlat()) {
+            return groupPos;
+        }
+        leadingGroupPos = groupPos;
+    }
+    return leadingGroupPos;
+}
+
+void SchemaUtils::validateAtMostOneUnFlatGroup(
+    const std::unordered_set<f_group_pos>& groupPositions, const Schema& schema) {
+    auto hasUnFlatGroup = false;
+    for (auto groupPos : groupPositions) {
+        if (!schema.getGroup(groupPos)->isFlat()) {
+            if (hasUnFlatGroup) {
+                throw common::InternalException(
+                    "Unexpected multiple unFlat factorization groups found.");
+            }
+            hasUnFlatGroup = true;
+        }
+    }
+}
+
+void SchemaUtils::validateNoUnFlatGroup(
+    const std::unordered_set<f_group_pos>& groupPositions, const Schema& schema) {
+    for (auto groupPos : groupPositions) {
+        if (!schema.getGroup(groupPos)->isFlat()) {
+            throw common::InternalException("Unexpected unFlat factorization group found.");
+        }
+    }
 }
 
 } // namespace planner

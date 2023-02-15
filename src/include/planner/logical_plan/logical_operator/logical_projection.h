@@ -8,11 +8,10 @@ namespace planner {
 
 class LogicalProjection : public LogicalOperator {
 public:
-    explicit LogicalProjection(binder::expression_vector expressions,
-        std::vector<uint32_t> expressionsOutputPos, std::shared_ptr<LogicalOperator> child)
-        : LogicalOperator{LogicalOperatorType::PROJECTION, std::move(child)},
-          expressions{std::move(expressions)}, expressionsOutputPos{
-                                                   std::move(expressionsOutputPos)} {}
+    explicit LogicalProjection(
+        binder::expression_vector expressions, std::shared_ptr<LogicalOperator> child)
+        : LogicalOperator{LogicalOperatorType::PROJECTION, std::move(child)}, expressions{std::move(
+                                                                                  expressions)} {}
 
     void computeSchema() override;
 
@@ -25,13 +24,11 @@ public:
     std::unordered_set<uint32_t> getDiscardedGroupsPos() const;
 
     std::unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalProjection>(
-            expressions, expressionsOutputPos, children[0]->copy());
+        return make_unique<LogicalProjection>(expressions, children[0]->copy());
     }
 
 private:
     binder::expression_vector expressions;
-    std::vector<uint32_t> expressionsOutputPos;
 };
 
 } // namespace planner

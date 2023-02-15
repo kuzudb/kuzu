@@ -12,9 +12,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalFilterToPhysical(
     auto& logicalFilter = (const LogicalFilter&)*logicalOperator;
     auto inSchema = logicalFilter.getChild(0)->getSchema();
     auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0));
-    auto dataChunkToSelectPos = logicalFilter.groupPosToSelect;
-    auto physicalRootExpr = expressionMapper.mapExpression(logicalFilter.expression, *inSchema);
-    return make_unique<Filter>(std::move(physicalRootExpr), dataChunkToSelectPos,
+    auto physicalRootExpr = expressionMapper.mapExpression(logicalFilter.getPredicate(), *inSchema);
+    return make_unique<Filter>(std::move(physicalRootExpr), logicalFilter.getGroupPosToSelect(),
         std::move(prevOperator), getOperatorID(), logicalFilter.getExpressionsForPrinting());
 }
 
