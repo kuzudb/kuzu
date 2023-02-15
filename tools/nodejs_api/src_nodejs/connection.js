@@ -12,10 +12,18 @@ class Connection {
     }
 
     execute(query, callback){
-        let queryResult = this.#connection.execute(query);
-        queryResult = new QueryResult(queryResult);
-        return callback(queryResult);
+        this.#connection.execute(query, (err, queryResult) => {
+            console.log(err, queryResult);
+            if (err){
+                console.log(err);
+                throw err;
+            } else {
+                const queryResultJs = new QueryResult(queryResult);
+                callback(queryResultJs);
+            }
+        });
     }
+
     setMaxNumThreadForExec(numThreads) {
         this.#connection.setMaxNumThreadForExec(numThreads);
     }

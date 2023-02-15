@@ -1,6 +1,7 @@
 #include "node_connection.h"
 #include "node_database.h"
 #include "node_query_result.h"
+#include "ExecuteAsyncWorker.h"
 
 #include "main/kuzu.h"
 
@@ -53,18 +54,16 @@ Napi::Value NodeConnection::Execute(const Napi::CallbackInfo& info) {
   Napi::Env env = info.Env();
   Napi::HandleScope scope(env);
 
-  if (info.Length()!=1 || !info[0].IsString()) {
+  if (info.Length()!=2 || !info[0].IsString()) {
       Napi::TypeError::New(env, "Execute needs query parameter").ThrowAsJavaScriptException();
       return Napi::Object::New(env);
   }
   std::string query = info[0].ToString();
+  Function callback = info[1].As<Function>();
+  ExecuteAsyncWorker * asyncWorker = new ExecuteAsyncWorker(callback, connection, query);
+  asyncWorker->Queue();
 
-  std::unique_ptr<kuzu::main::QueryResult> queryResult = this->connection->query(query);
-  if (!queryResult->isSuccess()) {
-      Napi::TypeError::New(env, "Unsuccessful execute: " + queryResult->getErrorMessage()).ThrowAsJavaScriptException();
-      return Napi::Object::New(env);
-  }
-  return NodeQueryResult::Wrap(env, queryResult);
+  return info.Env().Undefined();
 }
 
 void NodeConnection::SetMaxNumThreadForExec(const Napi::CallbackInfo& info) {
