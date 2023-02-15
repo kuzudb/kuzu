@@ -163,6 +163,7 @@ const std::string TO_MICROSECONDS_FUNC_NAME = "TO_MICROSECONDS";
 // Node/Rel functions.
 const std::string ID_FUNC_NAME = "ID";
 const std::string LABEL_FUNC_NAME = "LABEL";
+const std::string OFFSET_FUNC_NAME = "OFFSET";
 
 enum ExpressionType : uint8_t {
 
