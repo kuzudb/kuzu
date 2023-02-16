@@ -1,6 +1,6 @@
 #include "storage/buffer_manager/buffer_manager.h"
 
-#include "common/configs.h"
+#include "common/constants.h"
 #include "common/exception.h"
 #include "common/utils.h"
 #include "spdlog/spdlog.h"
@@ -12,9 +12,10 @@ namespace storage {
 
 BufferManager::BufferManager(uint64_t maxSizeForDefaultPagePool, uint64_t maxSizeForLargePagePool)
     : logger{LoggerUtils::getOrCreateLogger("buffer_manager")},
-      bufferPoolDefaultPages(
-          std::make_unique<BufferPool>(DEFAULT_PAGE_SIZE, maxSizeForDefaultPagePool)),
-      bufferPoolLargePages(std::make_unique<BufferPool>(LARGE_PAGE_SIZE, maxSizeForLargePagePool)) {
+      bufferPoolDefaultPages(std::make_unique<BufferPool>(
+          BufferPoolConstants::DEFAULT_PAGE_SIZE, maxSizeForDefaultPagePool)),
+      bufferPoolLargePages(std::make_unique<BufferPool>(
+          BufferPoolConstants::LARGE_PAGE_SIZE, maxSizeForLargePagePool)) {
     logger->info("Done Initializing Buffer Manager.");
 }
 

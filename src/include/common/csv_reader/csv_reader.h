@@ -2,7 +2,7 @@
 
 #include <fstream>
 
-#include "common/configs.h"
+#include "common/constants.h"
 #include "common/types/types_include.h"
 #include "common/types/value.h"
 
@@ -15,12 +15,12 @@ namespace common {
 
 struct CSVReaderConfig {
     CSVReaderConfig()
-        : escapeChar{CopyConfig::DEFAULT_CSV_ESCAPE_CHAR},
-          delimiter{CopyConfig::DEFAULT_CSV_DELIMITER},
-          quoteChar{CopyConfig::DEFAULT_CSV_QUOTE_CHAR},
-          listBeginChar{CopyConfig::DEFAULT_CSV_LIST_BEGIN_CHAR},
-          listEndChar{CopyConfig::DEFAULT_CSV_LIST_END_CHAR},
-          hasHeader{CopyConfig::DEFAULT_CSV_HAS_HEADER} {}
+        : escapeChar{CopyConstants::DEFAULT_CSV_ESCAPE_CHAR},
+          delimiter{CopyConstants::DEFAULT_CSV_DELIMITER},
+          quoteChar{CopyConstants::DEFAULT_CSV_QUOTE_CHAR},
+          listBeginChar{CopyConstants::DEFAULT_CSV_LIST_BEGIN_CHAR},
+          listEndChar{CopyConstants::DEFAULT_CSV_LIST_END_CHAR},
+          hasHeader{CopyConstants::DEFAULT_CSV_HAS_HEADER} {}
 
     char escapeChar;
     char delimiter;

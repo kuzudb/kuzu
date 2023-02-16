@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common/configs.h"
+#include "common/constants.h"
 #include "file_handle.h"
 #include "storage/buffer_manager/file_handle.h"
 #include "storage/storage_utils.h"

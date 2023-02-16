@@ -14,10 +14,10 @@ protected:
     void SetUp() override {
         FileUtils::createDir(TestHelper::getTmpTestDir());
         bufferManager =
-            std::make_unique<BufferManager>(StorageConfig::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING *
-                                                StorageConfig::DEFAULT_PAGES_BUFFER_RATIO,
-                StorageConfig::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING *
-                    StorageConfig::LARGE_PAGES_BUFFER_RATIO);
+            std::make_unique<BufferManager>(StorageConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING *
+                                                StorageConstants::DEFAULT_PAGES_BUFFER_RATIO,
+                StorageConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING *
+                    StorageConstants::LARGE_PAGES_BUFFER_RATIO);
         wal = std::make_unique<WAL>(TestHelper::getTmpTestDir(), *bufferManager);
         transactionManager = std::make_unique<TransactionManager>(*wal);
     }

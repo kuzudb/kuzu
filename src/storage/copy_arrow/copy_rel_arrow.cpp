@@ -147,7 +147,7 @@ arrow::Status CopyRelArrow::populateFromCSV(PopulateTaskType populateTaskType) {
     auto it = csv_streaming_reader->begin();
     auto endIt = csv_streaming_reader->end();
     while (it != endIt) {
-        for (int i = 0; i < CopyConfig::NUM_COPIER_TASKS_TO_SCHEDULE_PER_BATCH; ++i) {
+        for (int i = 0; i < CopyConstants::NUM_COPIER_TASKS_TO_SCHEDULE_PER_BATCH; ++i) {
             if (it == endIt) {
                 break;
             }
@@ -159,7 +159,7 @@ arrow::Status CopyRelArrow::populateFromCSV(PopulateTaskType populateTaskType) {
             ++blockIdx;
         }
         taskScheduler.waitUntilEnoughTasksFinish(
-            CopyConfig::MINIMUM_NUM_COPIER_TASKS_TO_SCHEDULE_MORE);
+            CopyConstants::MINIMUM_NUM_COPIER_TASKS_TO_SCHEDULE_MORE);
     }
     taskScheduler.waitAllTasksToCompleteOrError();
     return arrow::Status::OK();
@@ -178,7 +178,7 @@ arrow::Status CopyRelArrow::populateFromArrow(PopulateTaskType populateTaskType)
     int blockIdx = 0;
     auto blockStartOffset = 0ull;
     while (blockIdx < numBlocks) {
-        for (int i = 0; i < CopyConfig::NUM_COPIER_TASKS_TO_SCHEDULE_PER_BATCH; ++i) {
+        for (int i = 0; i < CopyConstants::NUM_COPIER_TASKS_TO_SCHEDULE_PER_BATCH; ++i) {
             if (blockIdx == numBlocks) {
                 break;
             }
@@ -189,7 +189,7 @@ arrow::Status CopyRelArrow::populateFromArrow(PopulateTaskType populateTaskType)
             ++blockIdx;
         }
         taskScheduler.waitUntilEnoughTasksFinish(
-            CopyConfig::MINIMUM_NUM_COPIER_TASKS_TO_SCHEDULE_MORE);
+            CopyConstants::MINIMUM_NUM_COPIER_TASKS_TO_SCHEDULE_MORE);
     }
 
     taskScheduler.waitAllTasksToCompleteOrError();
@@ -210,7 +210,7 @@ arrow::Status CopyRelArrow::populateFromParquet(PopulateTaskType populateTaskTyp
     int blockIdx = 0;
     auto blockStartOffset = 0ull;
     while (blockIdx < numBlocks) {
-        for (int i = 0; i < CopyConfig::NUM_COPIER_TASKS_TO_SCHEDULE_PER_BATCH; ++i) {
+        for (int i = 0; i < CopyConstants::NUM_COPIER_TASKS_TO_SCHEDULE_PER_BATCH; ++i) {
             if (blockIdx == numBlocks) {
                 break;
             }
@@ -221,7 +221,7 @@ arrow::Status CopyRelArrow::populateFromParquet(PopulateTaskType populateTaskTyp
             ++blockIdx;
         }
         taskScheduler.waitUntilEnoughTasksFinish(
-            CopyConfig::MINIMUM_NUM_COPIER_TASKS_TO_SCHEDULE_MORE);
+            CopyConstants::MINIMUM_NUM_COPIER_TASKS_TO_SCHEDULE_MORE);
     }
 
     taskScheduler.waitAllTasksToCompleteOrError();
@@ -318,7 +318,8 @@ void CopyRelArrow::putPropsOfLineIntoColumns(CopyRelArrow* copier,
             ++colIndex;
             continue;
         }
-        auto stringToken = currentToken->get()->ToString().substr(0, DEFAULT_PAGE_SIZE);
+        auto stringToken =
+            currentToken->get()->ToString().substr(0, BufferPoolConstants::DEFAULT_PAGE_SIZE);
         const char* data = stringToken.c_str();
         switch (properties[propertyIdx].dataType.typeID) {
         case INT64: {
@@ -444,7 +445,8 @@ void CopyRelArrow::putPropsOfLineIntoLists(CopyRelArrow* copier,
             ++colIndex;
             continue;
         }
-        auto stringToken = currentToken->get()->ToString().substr(0, DEFAULT_PAGE_SIZE);
+        auto stringToken =
+            currentToken->get()->ToString().substr(0, BufferPoolConstants::DEFAULT_PAGE_SIZE);
         const char* data = stringToken.c_str();
         switch (properties[propertyIdx].dataType.typeID) {
         case INT64: {

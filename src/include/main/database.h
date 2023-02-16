@@ -4,7 +4,7 @@
 #include <thread>
 
 #include "common/api.h"
-#include "common/configs.h"
+#include "common/constants.h"
 #include "kuzu_fwd.h"
 
 namespace kuzu {

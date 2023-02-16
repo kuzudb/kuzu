@@ -22,11 +22,11 @@ OrderByKeyEncoder::OrderByKeyEncoder(std::vector<std::shared_ptr<ValueVector>>& 
     }
     keyBlocks.emplace_back(std::make_unique<DataBlock>(memoryManager));
     assert(this->numBytesPerTuple == getNumBytesPerTuple(orderByVectors));
-    maxNumTuplesPerBlock = LARGE_PAGE_SIZE / numBytesPerTuple;
+    maxNumTuplesPerBlock = BufferPoolConstants::LARGE_PAGE_SIZE / numBytesPerTuple;
     if (maxNumTuplesPerBlock <= 0) {
         throw RuntimeException(StringUtils::string_format(
             "TupleSize(%d bytes) is larger than the LARGE_PAGE_SIZE(%d bytes)", numBytesPerTuple,
-            LARGE_PAGE_SIZE));
+            BufferPoolConstants::LARGE_PAGE_SIZE));
     }
     encodeFunctions.resize(orderByVectors.size());
     for (auto i = 0u; i < orderByVectors.size(); i++) {

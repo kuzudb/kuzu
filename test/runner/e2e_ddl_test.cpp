@@ -108,10 +108,10 @@ public:
         catalog = getCatalog(*database);
         profiler = std::make_unique<Profiler>();
         bufferManager =
-            std::make_unique<BufferManager>(StorageConfig::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING *
-                                                StorageConfig::DEFAULT_PAGES_BUFFER_RATIO,
-                StorageConfig::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING *
-                    StorageConfig::LARGE_PAGES_BUFFER_RATIO);
+            std::make_unique<BufferManager>(StorageConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING *
+                                                StorageConstants::DEFAULT_PAGES_BUFFER_RATIO,
+                StorageConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING *
+                    StorageConstants::LARGE_PAGES_BUFFER_RATIO);
         memoryManager = std::make_unique<MemoryManager>(bufferManager.get());
         executionContext = std::make_unique<ExecutionContext>(
             1 /* numThreads */, profiler.get(), memoryManager.get(), bufferManager.get());

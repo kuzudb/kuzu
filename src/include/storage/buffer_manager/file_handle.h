@@ -6,7 +6,7 @@
 #include <shared_mutex>
 #include <vector>
 
-#include "common/configs.h"
+#include "common/constants.h"
 #include "common/exception.h"
 #include "common/file_utils.h"
 #include "common/types/types.h"
@@ -101,7 +101,8 @@ public:
     void releasePageLock(common::page_idx_t pageIdx) { pageLocks[pageIdx]->clear(); }
 
     inline uint64_t getPageSize() const {
-        return isLargePaged() ? common::LARGE_PAGE_SIZE : common::DEFAULT_PAGE_SIZE;
+        return isLargePaged() ? common::BufferPoolConstants::LARGE_PAGE_SIZE :
+                                common::BufferPoolConstants::DEFAULT_PAGE_SIZE;
     }
 
 protected:

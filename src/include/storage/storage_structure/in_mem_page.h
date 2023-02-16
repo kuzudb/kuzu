@@ -3,7 +3,7 @@
 #include <memory>
 #include <vector>
 
-#include "common/configs.h"
+#include "common/constants.h"
 #include "common/null_mask.h"
 #include "common/types/internal_id_t.h"
 

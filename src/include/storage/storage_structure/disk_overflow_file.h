@@ -24,7 +24,8 @@ public:
               constructOverflowStorageStructureIDAndFName(storageStructureIDAndFNameOfMainDBFile),
               bufferManager, wal),
           loggedNewOverflowFileNextBytePosRecord{false} {
-        nextBytePosToWriteTo = fileHandle.getNumPages() * common::DEFAULT_PAGE_SIZE;
+        nextBytePosToWriteTo =
+            fileHandle.getNumPages() * common::BufferPoolConstants::DEFAULT_PAGE_SIZE;
     }
 
     static inline StorageStructureIDAndFName constructOverflowStorageStructureIDAndFName(

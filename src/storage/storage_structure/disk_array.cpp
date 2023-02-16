@@ -13,7 +13,7 @@ namespace storage {
 
 DiskArrayHeader::DiskArrayHeader(uint64_t elementSize)
     : alignedElementSizeLog2{(uint64_t)ceil(log2(elementSize))},
-      numElementsPerPageLog2{DEFAULT_PAGE_SIZE_LOG_2 - alignedElementSizeLog2},
+      numElementsPerPageLog2{BufferPoolConstants::DEFAULT_PAGE_SIZE_LOG_2 - alignedElementSizeLog2},
       elementPageOffsetMask{BitmaskUtils::all1sMaskForLeastSignificantBits(numElementsPerPageLog2)},
       firstPIPPageIdx{StorageStructureUtils::NULL_PAGE_IDX}, numElements{0}, numAPs{0} {}
 

@@ -1,6 +1,6 @@
 #include <vector>
 
-#include "common/configs.h"
+#include "common/constants.h"
 #include "common/data_chunk/data_chunk.h"
 #include "gtest/gtest.h"
 #include "processor/operator/order_by/order_by_key_encoder.h"
@@ -15,10 +15,10 @@ class OrderByKeyEncoderTest : public Test {
 public:
     void SetUp() override {
         bufferManager =
-            std::make_unique<BufferManager>(StorageConfig::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING *
-                                                StorageConfig::DEFAULT_PAGES_BUFFER_RATIO,
-                StorageConfig::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING *
-                    StorageConfig::LARGE_PAGES_BUFFER_RATIO);
+            std::make_unique<BufferManager>(StorageConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING *
+                                                StorageConstants::DEFAULT_PAGES_BUFFER_RATIO,
+                StorageConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING *
+                    StorageConstants::LARGE_PAGES_BUFFER_RATIO);
         memoryManager = std::make_unique<MemoryManager>(bufferManager.get());
     }
 
@@ -128,7 +128,7 @@ public:
     std::unique_ptr<BufferManager> bufferManager;
     std::unique_ptr<MemoryManager> memoryManager;
     const uint32_t ftIdx = 14;
-    const uint32_t numTuplesPerBlockInFT = LARGE_PAGE_SIZE / 8;
+    const uint32_t numTuplesPerBlockInFT = BufferPoolConstants::LARGE_PAGE_SIZE / 8;
 };
 
 TEST_F(OrderByKeyEncoderTest, singleOrderByColInt64UnflatTest) {
@@ -571,7 +571,7 @@ TEST_F(OrderByKeyEncoderTest, largeNumBytesPerTupleErrorTest) {
     // If the numBytesPerTuple is larger than 4096 bytes, the encoder will raise an encoding
     // exception we need ((LARGE_PAGE_SIZE - 8) / 9  + 1 number of columns(with datatype INT) to
     // trigger that exception.
-    auto numOfOrderByCols = (LARGE_PAGE_SIZE - 8) / 9 + 1;
+    auto numOfOrderByCols = (BufferPoolConstants::LARGE_PAGE_SIZE - 8) / 9 + 1;
     auto valueVectors = getInt64TestValueVector(1, numOfOrderByCols, true);
     auto isAscOrder = std::vector<bool>(numOfOrderByCols, true);
     try {
@@ -582,13 +582,13 @@ TEST_F(OrderByKeyEncoderTest, largeNumBytesPerTupleErrorTest) {
         ASSERT_STREQ(e.what(),
             StringUtils::string_format("Runtime exception: TupleSize(%d bytes) is larger than "
                                        "the LARGE_PAGE_SIZE(%d bytes)",
-                9 * numOfOrderByCols + 8, LARGE_PAGE_SIZE)
+                9 * numOfOrderByCols + 8, BufferPoolConstants::LARGE_PAGE_SIZE)
                 .c_str());
     } catch (std::exception& e) { FAIL(); }
 }
 
 TEST_F(OrderByKeyEncoderTest, singleTuplePerBlockTest) {
-    uint32_t numOfOrderByCols = (LARGE_PAGE_SIZE - 8) / 9;
+    uint32_t numOfOrderByCols = (BufferPoolConstants::LARGE_PAGE_SIZE - 8) / 9;
     uint32_t numOfElementsPerCol = 10;
     auto valueVectors = getInt64TestValueVector(numOfElementsPerCol, numOfOrderByCols, true);
     auto isAscOrder = std::vector<bool>(numOfOrderByCols, false);
