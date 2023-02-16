@@ -13,6 +13,10 @@ class TransactionManagerTest : public Test {
 protected:
     void SetUp() override {
         FileUtils::createDir(TestHelper::getTmpTestDir());
+        LoggerUtils::createLogger(LoggerConstants::LoggerEnum::BUFFER_MANAGER);
+        LoggerUtils::createLogger(LoggerConstants::LoggerEnum::WAL);
+        LoggerUtils::createLogger(LoggerConstants::LoggerEnum::TRANSACTION_MANAGER);
+        LoggerUtils::createLogger(LoggerConstants::LoggerEnum::STORAGE);
         bufferManager =
             std::make_unique<BufferManager>(StorageConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING *
                                                 StorageConstants::DEFAULT_PAGES_BUFFER_RATIO,
@@ -22,7 +26,13 @@ protected:
         transactionManager = std::make_unique<TransactionManager>(*wal);
     }
 
-    void TearDown() override { FileUtils::removeDir(TestHelper::getTmpTestDir()); }
+    void TearDown() override {
+        FileUtils::removeDir(TestHelper::getTmpTestDir());
+        LoggerUtils::dropLogger(LoggerConstants::LoggerEnum::BUFFER_MANAGER);
+        LoggerUtils::dropLogger(LoggerConstants::LoggerEnum::WAL);
+        LoggerUtils::dropLogger(LoggerConstants::LoggerEnum::TRANSACTION_MANAGER);
+        LoggerUtils::dropLogger(LoggerConstants::LoggerEnum::STORAGE);
+    }
 
 public:
     void runTwoCommitRollback(TransactionType type, bool firstIsCommit, bool secondIsCommit) {

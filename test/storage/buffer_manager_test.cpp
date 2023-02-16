@@ -8,9 +8,17 @@ using namespace kuzu::testing;
 class BufferManagerTests : public Test {
 
 protected:
-    void SetUp() override { FileUtils::createDir(TestHelper::getTmpTestDir()); }
+    void SetUp() override {
+        FileUtils::createDir(TestHelper::getTmpTestDir());
+        LoggerUtils::createLogger(LoggerConstants::LoggerEnum::BUFFER_MANAGER);
+        LoggerUtils::createLogger(LoggerConstants::LoggerEnum::STORAGE);
+    }
 
-    void TearDown() override { FileUtils::removeDir(TestHelper::getTmpTestDir()); }
+    void TearDown() override {
+        FileUtils::removeDir(TestHelper::getTmpTestDir());
+        LoggerUtils::dropLogger(LoggerConstants::LoggerEnum::BUFFER_MANAGER);
+        LoggerUtils::dropLogger(LoggerConstants::LoggerEnum::STORAGE);
+    }
 };
 
 TEST_F(BufferManagerTests, RemoveFilePagesFromFramesTest) {

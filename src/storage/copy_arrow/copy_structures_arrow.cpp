@@ -11,8 +11,8 @@ namespace storage {
 
 CopyStructuresArrow::CopyStructuresArrow(CopyDescription& copyDescription,
     std::string outputDirectory, TaskScheduler& taskScheduler, Catalog& catalog)
-    : logger{LoggerUtils::getOrCreateLogger("loader")}, copyDescription{copyDescription},
-      outputDirectory{std::move(outputDirectory)}, numBlocks{0},
+    : logger{LoggerUtils::getLogger(LoggerConstants::LoggerEnum::LOADER)},
+      copyDescription{copyDescription}, outputDirectory{std::move(outputDirectory)}, numBlocks{0},
       taskScheduler{taskScheduler}, catalog{catalog}, numRows{0} {}
 
 // Lists headers are created for only AdjLists, which store data in the page without NULL bits.

@@ -11,7 +11,7 @@ namespace kuzu {
 namespace storage {
 
 BufferManager::BufferManager(uint64_t maxSizeForDefaultPagePool, uint64_t maxSizeForLargePagePool)
-    : logger{LoggerUtils::getOrCreateLogger("buffer_manager")},
+    : logger{LoggerUtils::getLogger(common::LoggerConstants::LoggerEnum::BUFFER_MANAGER)},
       bufferPoolDefaultPages(std::make_unique<BufferPool>(
           BufferPoolConstants::DEFAULT_PAGE_SIZE, maxSizeForDefaultPagePool)),
       bufferPoolLargePages(std::make_unique<BufferPool>(
@@ -19,9 +19,7 @@ BufferManager::BufferManager(uint64_t maxSizeForDefaultPagePool, uint64_t maxSiz
     logger->info("Done Initializing Buffer Manager.");
 }
 
-BufferManager::~BufferManager() {
-    spdlog::drop("buffer_manager");
-}
+BufferManager::~BufferManager() = default;
 
 void BufferManager::resize(uint64_t newSizeForDefaultPagePool, uint64_t newSizeForLargePagePool) {
     bufferPoolDefaultPages->resize(newSizeForDefaultPagePool);

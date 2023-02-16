@@ -53,7 +53,8 @@ void Frame::releaseBuffer() {
 }
 
 BufferPool::BufferPool(uint64_t pageSize, uint64_t maxSize)
-    : logger{LoggerUtils::getOrCreateLogger("buffer_manager")}, pageSize{pageSize}, clockHand{0},
+    : logger{LoggerUtils::getLogger(LoggerConstants::LoggerEnum::BUFFER_MANAGER)},
+      pageSize{pageSize}, clockHand{0},
       numFrames((page_idx_t)(ceil((double)maxSize / (double)pageSize))) {
     assert(pageSize == BufferPoolConstants::DEFAULT_PAGE_SIZE ||
            pageSize == BufferPoolConstants::LARGE_PAGE_SIZE);

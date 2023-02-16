@@ -64,7 +64,7 @@ void WALReplayer::replay() {
 }
 
 void WALReplayer::init() {
-    logger = LoggerUtils::getOrCreateLogger("storage");
+    logger = LoggerUtils::getLogger(LoggerConstants::LoggerEnum::STORAGE);
     walFileHandle = WAL::createWALFileHandle(wal->getDirectory());
     pageBuffer = std::make_unique<uint8_t[]>(BufferPoolConstants::DEFAULT_PAGE_SIZE);
 }

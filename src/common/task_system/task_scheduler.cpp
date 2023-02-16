@@ -9,7 +9,8 @@ namespace kuzu {
 namespace common {
 
 TaskScheduler::TaskScheduler(uint64_t numThreads)
-    : logger{LoggerUtils::getOrCreateLogger("processor")}, nextScheduledTaskID{0} {
+    : logger{LoggerUtils::getLogger(LoggerConstants::LoggerEnum::PROCESSOR)}, nextScheduledTaskID{
+                                                                                  0} {
     for (auto n = 0u; n < numThreads; ++n) {
         threads.emplace_back([&] { runWorkerThread(); });
     }

@@ -188,11 +188,11 @@ namespace kuzu {
 namespace catalog {
 
 CatalogContent::CatalogContent() : nextTableID{0} {
-    logger = LoggerUtils::getOrCreateLogger("catalog");
+    logger = LoggerUtils::getLogger(LoggerConstants::LoggerEnum::CATALOG);
 }
 
 CatalogContent::CatalogContent(const std::string& directory) {
-    logger = LoggerUtils::getOrCreateLogger("catalog");
+    logger = LoggerUtils::getLogger(LoggerConstants::LoggerEnum::CATALOG);
     logger->info("Initializing catalog.");
     readFromFile(directory, DBFileType::ORIGINAL);
     logger->info("Initializing catalog done.");
