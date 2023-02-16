@@ -36,10 +36,10 @@ SystemConfig::SystemConfig(uint64_t bufferPoolSize) {
 Database::Database(std::string databasePath) : Database{std::move(databasePath), SystemConfig()} {}
 
 Database::Database(std::string databasePath, SystemConfig systemConfig)
-    : databasePath{std::move(databasePath)},
-      systemConfig{systemConfig}, logger{LoggerUtils::getOrCreateLogger("database")} {
+    : databasePath{std::move(databasePath)}, systemConfig{systemConfig} {
     initLoggers();
     initDBDirAndCoreFilesIfNecessary();
+    logger = LoggerUtils::getLogger(LoggerConstants::LoggerEnum::DATABASE);
     bufferManager = std::make_unique<BufferManager>(
         this->systemConfig.defaultPageBufferPoolSize, this->systemConfig.largePageBufferPoolSize);
     memoryManager = std::make_unique<MemoryManager>(bufferManager.get());
@@ -52,7 +52,9 @@ Database::Database(std::string databasePath, SystemConfig systemConfig)
     transactionManager = std::make_unique<transaction::TransactionManager>(*wal);
 }
 
-Database::~Database() = default;
+Database::~Database() {
+    dropLoggers();
+}
 
 void Database::initDBDirAndCoreFilesIfNecessary() const {
     if (!FileUtils::fileOrPathExists(databasePath)) {
@@ -75,15 +77,28 @@ void Database::initDBDirAndCoreFilesIfNecessary() const {
 void Database::initLoggers() {
     // To avoid multi-threading issue in creating logger, we create all loggers together with
     // database instance. All system components should get logger instead of creating.
-    LoggerUtils::getOrCreateLogger("csv_reader");
-    LoggerUtils::getOrCreateLogger("loader");
-    LoggerUtils::getOrCreateLogger("processor");
-    LoggerUtils::getOrCreateLogger("buffer_manager");
-    LoggerUtils::getOrCreateLogger("catalog");
-    LoggerUtils::getOrCreateLogger("storage");
-    LoggerUtils::getOrCreateLogger("transaction_manager");
-    LoggerUtils::getOrCreateLogger("wal");
+    LoggerUtils::createLogger(LoggerConstants::LoggerEnum::DATABASE);
+    LoggerUtils::createLogger(LoggerConstants::LoggerEnum::CSV_READER);
+    LoggerUtils::createLogger(LoggerConstants::LoggerEnum::LOADER);
+    LoggerUtils::createLogger(LoggerConstants::LoggerEnum::PROCESSOR);
+    LoggerUtils::createLogger(LoggerConstants::LoggerEnum::BUFFER_MANAGER);
+    LoggerUtils::createLogger(LoggerConstants::LoggerEnum::CATALOG);
+    LoggerUtils::createLogger(LoggerConstants::LoggerEnum::STORAGE);
+    LoggerUtils::createLogger(LoggerConstants::LoggerEnum::TRANSACTION_MANAGER);
+    LoggerUtils::createLogger(LoggerConstants::LoggerEnum::WAL);
     spdlog::set_level(spdlog::level::err);
+}
+
+void Database::dropLoggers() {
+    LoggerUtils::dropLogger(LoggerConstants::LoggerEnum::DATABASE);
+    LoggerUtils::dropLogger(LoggerConstants::LoggerEnum::CSV_READER);
+    LoggerUtils::dropLogger(LoggerConstants::LoggerEnum::LOADER);
+    LoggerUtils::dropLogger(LoggerConstants::LoggerEnum::PROCESSOR);
+    LoggerUtils::dropLogger(LoggerConstants::LoggerEnum::BUFFER_MANAGER);
+    LoggerUtils::dropLogger(LoggerConstants::LoggerEnum::CATALOG);
+    LoggerUtils::dropLogger(LoggerConstants::LoggerEnum::STORAGE);
+    LoggerUtils::dropLogger(LoggerConstants::LoggerEnum::TRANSACTION_MANAGER);
+    LoggerUtils::dropLogger(LoggerConstants::LoggerEnum::WAL);
 }
 
 void Database::setLoggingLevel(std::string loggingLevel) {

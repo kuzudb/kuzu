@@ -9,6 +9,9 @@ class WALTests : public Test {
 protected:
     void SetUp() override {
         FileUtils::createDir(TestHelper::getTmpTestDir());
+        LoggerUtils::createLogger(LoggerConstants::LoggerEnum::BUFFER_MANAGER);
+        LoggerUtils::createLogger(LoggerConstants::LoggerEnum::WAL);
+        LoggerUtils::createLogger(LoggerConstants::LoggerEnum::STORAGE);
         bufferManager =
             std::make_unique<BufferManager>(StorageConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING *
                                                 StorageConstants::DEFAULT_PAGES_BUFFER_RATIO,
@@ -17,7 +20,12 @@ protected:
         wal = make_unique<WAL>(TestHelper::getTmpTestDir(), *bufferManager);
     }
 
-    void TearDown() override { FileUtils::removeDir(TestHelper::getTmpTestDir()); }
+    void TearDown() override {
+        FileUtils::removeDir(TestHelper::getTmpTestDir());
+        LoggerUtils::dropLogger(LoggerConstants::LoggerEnum::BUFFER_MANAGER);
+        LoggerUtils::dropLogger(LoggerConstants::LoggerEnum::WAL);
+        LoggerUtils::dropLogger(LoggerConstants::LoggerEnum::STORAGE);
+    }
 
     void addStructuredNodePropertyMainFilePageRecord(
         std::vector<uint64_t>& assignedPageIndices, uint64_t numRecordsToAdd) {

@@ -11,11 +11,15 @@ public:
 
     void SetUp() override {
         FileUtils::createDir(CATALOG_TEMP_DIRECTORY);
+        LoggerUtils::createLogger(LoggerConstants::LoggerEnum::CATALOG);
         catalog = std::make_unique<Catalog>();
         setupCatalog();
     }
 
-    void TearDown() override { FileUtils::removeDir(CATALOG_TEMP_DIRECTORY); }
+    void TearDown() override {
+        FileUtils::removeDir(CATALOG_TEMP_DIRECTORY);
+        LoggerUtils::dropLogger(LoggerConstants::LoggerEnum::CATALOG);
+    }
 
     void setupCatalog() {
         std::vector<PropertyNameDataType> personProperties;

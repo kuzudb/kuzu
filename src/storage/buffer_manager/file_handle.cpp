@@ -10,7 +10,7 @@ namespace kuzu {
 namespace storage {
 
 FileHandle::FileHandle(const std::string& path, uint8_t flags)
-    : logger{LoggerUtils::getOrCreateLogger("storage")}, flags(flags) {
+    : logger{LoggerUtils::getLogger(LoggerConstants::LoggerEnum::STORAGE)}, flags(flags) {
     logger->trace("FileHandle: Path {}", path);
     if (!isNewTmpFile()) {
         constructExistingFileHandle(path);

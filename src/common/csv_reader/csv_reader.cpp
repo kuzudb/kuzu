@@ -36,7 +36,8 @@ CSVReader::CSVReader(const std::string& fname, const CSVReaderConfig& config)
 
 CSVReader::CSVReader(
     char* line, uint64_t lineLen, int64_t linePtrStart, const CSVReaderConfig& config)
-    : fd{nullptr}, config{config}, logger{LoggerUtils::getOrCreateLogger("csv_reader")},
+    : fd{nullptr}, config{config}, logger{LoggerUtils::getLogger(
+                                       LoggerConstants::LoggerEnum::CSV_READER)},
       nextLineIsNotProcessed{false}, isEndOfBlock{false},
       nextTokenIsNotProcessed{false}, line{line}, lineCapacity{1024}, lineLen{lineLen},
       linePtrStart{linePtrStart}, linePtrEnd{linePtrStart}, readingBlockStartOffset{0},

@@ -13,7 +13,8 @@ namespace storage {
 
 StorageManager::StorageManager(
     catalog::Catalog& catalog, BufferManager& bufferManager, MemoryManager& memoryManager, WAL* wal)
-    : logger{LoggerUtils::getOrCreateLogger("storage")}, catalog{catalog}, wal{wal} {
+    : logger{LoggerUtils::getLogger(LoggerConstants::LoggerEnum::STORAGE)}, catalog{catalog},
+      wal{wal} {
     logger->info("Initializing StorageManager from directory: " + wal->getDirectory());
     nodesStore = std::make_unique<NodesStore>(catalog, bufferManager, wal);
     relsStore = std::make_unique<RelsStore>(catalog, bufferManager, memoryManager, wal);

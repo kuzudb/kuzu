@@ -17,8 +17,9 @@ class TransactionManager {
 
 public:
     explicit TransactionManager(storage::WAL& wal)
-        : logger{common::LoggerUtils::getOrCreateLogger("transaction_manager")}, wal{wal},
-          activeWriteTransactionID{INT64_MAX}, lastTransactionID{0}, lastCommitID{0} {};
+        : logger{common::LoggerUtils::getLogger(
+              common::LoggerConstants::LoggerEnum::TRANSACTION_MANAGER)},
+          wal{wal}, activeWriteTransactionID{INT64_MAX}, lastTransactionID{0}, lastCommitID{0} {};
     std::unique_ptr<Transaction> beginWriteTransaction();
     std::unique_ptr<Transaction> beginReadOnlyTransaction();
     void commit(Transaction* transaction);

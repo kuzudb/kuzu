@@ -8,7 +8,7 @@ namespace kuzu {
 namespace storage {
 
 TablesStatistics::TablesStatistics() {
-    logger = LoggerUtils::getOrCreateLogger("storage");
+    logger = LoggerUtils::getLogger(LoggerConstants::LoggerEnum::STORAGE);
     tablesStatisticsContentForReadOnlyTrx = std::make_unique<TablesStatisticsContent>();
 }
 

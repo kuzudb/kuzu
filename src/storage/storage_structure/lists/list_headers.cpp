@@ -9,7 +9,7 @@ namespace kuzu {
 namespace storage {
 
 BaseListHeaders::BaseListHeaders() {
-    logger = LoggerUtils::getOrCreateLogger("storage");
+    logger = LoggerUtils::getLogger(LoggerConstants::LoggerEnum::STORAGE);
 }
 
 ListHeadersBuilder::ListHeadersBuilder(const std::string& baseListFName, uint64_t numElements)

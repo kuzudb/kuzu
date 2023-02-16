@@ -24,7 +24,7 @@ class StorageStructure {
 public:
     StorageStructure(const StorageStructureIDAndFName& storageStructureIDAndFName,
         BufferManager& bufferManager, WAL* wal)
-        : logger{common::LoggerUtils::getOrCreateLogger("storage")},
+        : logger{common::LoggerUtils::getLogger(common::LoggerConstants::LoggerEnum::STORAGE)},
           fileHandle{storageStructureIDAndFName, FileHandle::O_PERSISTENT_FILE_NO_CREATE},
           bufferManager{bufferManager}, wal{wal} {}
 

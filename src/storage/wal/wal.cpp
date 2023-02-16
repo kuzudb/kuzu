@@ -10,7 +10,7 @@ namespace kuzu {
 namespace storage {
 
 WAL::WAL(const std::string& directory, BufferManager& bufferManager)
-    : logger{LoggerUtils::getOrCreateLogger("wal")}, directory{directory},
+    : logger{LoggerUtils::getLogger(LoggerConstants::LoggerEnum::WAL)}, directory{directory},
       bufferManager{bufferManager}, isLastLoggedRecordCommit_{false} {
     fileHandle = WAL::createWALFileHandle(directory);
     initCurrentPage();

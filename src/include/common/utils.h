@@ -9,6 +9,7 @@
 #include <thread>
 #include <vector>
 
+#include "common/constants.h"
 #include "exception.h"
 
 namespace spdlog {
@@ -21,7 +22,12 @@ namespace common {
 class LoggerUtils {
 public:
     // Note: create logger is not thread safe.
-    static std::shared_ptr<spdlog::logger> getOrCreateLogger(const std::string& loggerName);
+    static void createLogger(LoggerConstants::LoggerEnum loggerEnum);
+    static std::shared_ptr<spdlog::logger> getLogger(LoggerConstants::LoggerEnum loggerEnum);
+    static void dropLogger(LoggerConstants::LoggerEnum loggerEnum);
+
+private:
+    static std::string getLoggerName(LoggerConstants::LoggerEnum loggerEnum);
 };
 
 class StringUtils {

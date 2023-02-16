@@ -106,6 +106,20 @@ struct CopyConstants {
     static constexpr bool DEFAULT_CSV_HAS_HEADER = false;
 };
 
+struct LoggerConstants {
+    enum class LoggerEnum : uint8_t {
+        DATABASE = 0,
+        CSV_READER = 1,
+        LOADER = 2,
+        PROCESSOR = 3,
+        BUFFER_MANAGER = 4,
+        CATALOG = 5,
+        STORAGE = 6,
+        TRANSACTION_MANAGER = 7,
+        WAL = 8,
+    };
+};
+
 struct EnumeratorKnobs {
     static constexpr double PREDICATE_SELECTIVITY = 0.1;
     static constexpr double FLAT_PROBE_PENALTY = 10;
