@@ -2,7 +2,7 @@
 
 #include <memory>
 
-#include "common/configs.h"
+#include "common/constants.h"
 #include "common/types/types.h"
 
 namespace kuzu {

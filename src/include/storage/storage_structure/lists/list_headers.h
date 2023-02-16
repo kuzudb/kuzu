@@ -15,7 +15,7 @@ namespace storage {
 
 /**
  * ListHeaders holds the headers of all lists in a single Lists data structure, which implements a
- * chunked CSR, where each chunk stores ListsMetadataConfig::LISTS_CHUNK_SIZE many lists.
+ * chunked CSR, where each chunk stores ListsMetadataConstants::LISTS_CHUNK_SIZE many lists.
  *
  * A header of a list is a unsigned integer values. Each value describes the following
  * information about the list: 1) type: small or large, 2) location of the list in pages.
@@ -36,9 +36,9 @@ namespace storage {
  * can go to pageLists[idxOfPageListBeginInPageLists+idxInPageList], which gives us the physical
  * pageIdx that contains v's list in the .lists file. We cannot always directly go to
  * pageLists[idxOfPageListBeginInPageLists+idxInPageList] because the page list of the chunk is
- * logically divided into "page groups" ListsMetadataConfig::PAGE_LIST_GROUP_SIZE with a pointer to
- * the next page group. That is, suppose PAGE_LIST_GROUP_SIZE = 3 and we need to find the physical
- * pageIdx of idxInPageList=5'th page. Then we need to follow one "pointer" at
+ * logically divided into "page groups" ListsMetadataConstants::PAGE_LIST_GROUP_SIZE with a pointer
+ * to the next page group. That is, suppose PAGE_LIST_GROUP_SIZE = 3 and we need to find the
+ * physical pageIdx of idxInPageList=5'th page. Then we need to follow one "pointer" at
  * idxOfNextPageGroupBeginInPageLists=pageLists[idxOfPageListBeginInPageLists+3] (+0, +1, and +2
  * store the physical page idx's for the first 3 pages and +3 stores the pointer to the beginning of
  * the next page group). Then we go to pageLists[idxOfNextPageGroupBeginInPageLists + (5-3=2)].

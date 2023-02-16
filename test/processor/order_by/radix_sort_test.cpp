@@ -3,7 +3,7 @@
 #include <vector>
 
 #include "common/assert.h"
-#include "common/configs.h"
+#include "common/constants.h"
 #include "common/data_chunk/data_chunk.h"
 #include "gtest/gtest.h"
 #include "processor/operator/order_by/order_by_key_encoder.h"
@@ -19,10 +19,10 @@ class RadixSortTest : public Test {
 public:
     void SetUp() override {
         bufferManager =
-            std::make_unique<BufferManager>(StorageConfig::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING *
-                                                StorageConfig::DEFAULT_PAGES_BUFFER_RATIO,
-                StorageConfig::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING *
-                    StorageConfig::LARGE_PAGES_BUFFER_RATIO);
+            std::make_unique<BufferManager>(StorageConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING *
+                                                StorageConstants::DEFAULT_PAGES_BUFFER_RATIO,
+                StorageConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING *
+                    StorageConstants::LARGE_PAGES_BUFFER_RATIO);
         memoryManager = std::make_unique<MemoryManager>(bufferManager.get());
     }
 
@@ -30,7 +30,7 @@ public:
     std::unique_ptr<BufferManager> bufferManager;
     std::unique_ptr<MemoryManager> memoryManager;
     const uint8_t factorizedTableIdx = 9;
-    const uint32_t numTuplesPerBlockInFT = LARGE_PAGE_SIZE / 8;
+    const uint32_t numTuplesPerBlockInFT = BufferPoolConstants::LARGE_PAGE_SIZE / 8;
 
     void checkTupleIdxesAndFactorizedTableIdxes(uint8_t* keyBlockPtr, const uint64_t entrySize,
         const std::vector<uint64_t>& expectedFTBlockOffsetOrder) {

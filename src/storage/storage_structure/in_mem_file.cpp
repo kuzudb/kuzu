@@ -30,7 +30,7 @@ uint32_t InMemFile::addANewPage(bool setToZero) {
     pages.push_back(
         std::make_unique<InMemPage>(numElementsInAPage, numBytesForElement, hasNullMask));
     if (setToZero) {
-        memset(pages[newPageIdx]->data, 0, DEFAULT_PAGE_SIZE);
+        memset(pages[newPageIdx]->data, 0, BufferPoolConstants::DEFAULT_PAGE_SIZE);
     }
     return newPageIdx;
 }
@@ -42,8 +42,9 @@ void InMemFile::flush() {
     auto fileInfo = FileUtils::openFile(filePath, O_CREAT | O_WRONLY);
     for (auto pageIdx = 0u; pageIdx < pages.size(); pageIdx++) {
         pages[pageIdx]->encodeNullBits();
-        FileUtils::writeToFile(
-            fileInfo.get(), pages[pageIdx]->data, DEFAULT_PAGE_SIZE, pageIdx * DEFAULT_PAGE_SIZE);
+        FileUtils::writeToFile(fileInfo.get(), pages[pageIdx]->data,
+            BufferPoolConstants::DEFAULT_PAGE_SIZE,
+            pageIdx * BufferPoolConstants::DEFAULT_PAGE_SIZE);
     }
 }
 
@@ -56,7 +57,7 @@ ku_string_t InMemOverflowFile::appendString(const char* rawString) {
     if (length > ku_string_t::SHORT_STR_LENGTH) {
         std::unique_lock lck{lock};
         // Allocate a new page if necessary.
-        if (nextOffsetInPageToAppend + length >= DEFAULT_PAGE_SIZE) {
+        if (nextOffsetInPageToAppend + length >= BufferPoolConstants::DEFAULT_PAGE_SIZE) {
             addANewPage();
             nextOffsetInPageToAppend = 0;
             nextPageIdxToAppend++;
@@ -133,7 +134,7 @@ ku_list_t InMemOverflowFile::copyList(const Value& listValue, PageByteCursor& ov
     resultKUList.size = listValue.listVal.size();
     // Allocate a new page if necessary.
     if (overflowCursor.offsetInPage + (resultKUList.size * numBytesOfListElement) >=
-            DEFAULT_PAGE_SIZE ||
+            BufferPoolConstants::DEFAULT_PAGE_SIZE ||
         overflowCursor.pageIdx == UINT32_MAX) {
         overflowCursor.offsetInPage = 0;
         overflowCursor.pageIdx = addANewOverflowPage();
@@ -167,7 +168,7 @@ ku_list_t InMemOverflowFile::copyList(const Value& listValue, PageByteCursor& ov
 void InMemOverflowFile::copyStringOverflow(
     PageByteCursor& overflowCursor, uint8_t* srcOverflow, ku_string_t* dstKUString) {
     // Allocate a new page if necessary.
-    if (overflowCursor.offsetInPage + dstKUString->len >= DEFAULT_PAGE_SIZE ||
+    if (overflowCursor.offsetInPage + dstKUString->len >= BufferPoolConstants::DEFAULT_PAGE_SIZE ||
         overflowCursor.pageIdx == UINT32_MAX) {
         overflowCursor.offsetInPage = 0;
         overflowCursor.pageIdx = addANewOverflowPage();
@@ -186,7 +187,7 @@ void InMemOverflowFile::copyListOverflowFromFile(InMemOverflowFile* srcInMemOver
     auto numBytesOfListElement = Types::getDataTypeSize(*listChildDataType);
     // Allocate a new page if necessary.
     if (dstOverflowCursor.offsetInPage + (dstKUList->size * numBytesOfListElement) >=
-            DEFAULT_PAGE_SIZE ||
+            BufferPoolConstants::DEFAULT_PAGE_SIZE ||
         dstOverflowCursor.pageIdx == UINT32_MAX) {
         dstOverflowCursor.offsetInPage = 0;
         dstOverflowCursor.pageIdx = addANewOverflowPage();
@@ -230,7 +231,7 @@ void InMemOverflowFile::copyListOverflowToFile(
     auto numBytesOfListElement = Types::getDataTypeSize(*childDataType);
     // Allocate a new page if necessary.
     if (pageByteCursor.offsetInPage + (srcKUList->size * numBytesOfListElement) >=
-            DEFAULT_PAGE_SIZE ||
+            BufferPoolConstants::DEFAULT_PAGE_SIZE ||
         pageByteCursor.pageIdx == UINT32_MAX) {
         pageByteCursor.offsetInPage = 0;
         pageByteCursor.pageIdx = addANewOverflowPage();

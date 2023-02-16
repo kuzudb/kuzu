@@ -111,7 +111,8 @@ private:
     inline bool isLargeListAfterInsertion(
         common::list_header_t oldHeader, uint64_t numElementsAfterInsertion) override {
         return ListHeaders::isALargeList(oldHeader) ||
-               numElementsAfterInsertion * lists->elementSize > common::DEFAULT_PAGE_SIZE;
+               numElementsAfterInsertion * lists->elementSize >
+                   common::BufferPoolConstants::DEFAULT_PAGE_SIZE;
     }
 };
 

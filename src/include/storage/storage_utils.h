@@ -4,7 +4,7 @@
 #include <utility>
 
 #include "catalog/catalog_structs.h"
-#include "common/configs.h"
+#include "common/constants.h"
 #include "common/file_utils.h"
 #include "common/null_mask.h"
 #include "common/types/types_include.h"
@@ -68,8 +68,9 @@ public:
     static inline std::string getNodeIndexFName(const std::string& directory,
         const common::table_id_t& tableID, common::DBFileType dbFileType) {
         auto fName = common::StringUtils::string_format("n-%d", tableID);
-        return appendWALFileSuffixIfNecessary(common::FileUtils::joinPath(directory,
-                                                  fName + common::StorageConfig::INDEX_FILE_SUFFIX),
+        return appendWALFileSuffixIfNecessary(
+            common::FileUtils::joinPath(
+                directory, fName + common::StorageConstants::INDEX_FILE_SUFFIX),
             dbFileType);
     }
 
@@ -78,7 +79,7 @@ public:
         auto fName = common::StringUtils::string_format("n-%d-%d", tableID, propertyID);
         return appendWALFileSuffixIfNecessary(
             common::FileUtils::joinPath(
-                directory, fName + common::StorageConfig::COLUMN_FILE_SUFFIX),
+                directory, fName + common::StorageConstants::COLUMN_FILE_SUFFIX),
             dbFileType);
     }
 
@@ -123,7 +124,7 @@ public:
         auto fName = common::StringUtils::string_format("r-%d-%d", relTableID, relDirection);
         return appendWALFileSuffixIfNecessary(
             common::FileUtils::joinPath(
-                directory, fName + common::StorageConfig::COLUMN_FILE_SUFFIX),
+                directory, fName + common::StorageConstants::COLUMN_FILE_SUFFIX),
             dbFileType);
     }
 
@@ -140,8 +141,9 @@ public:
         const common::table_id_t& relTableID, const common::RelDirection& relDirection,
         common::DBFileType dbFileType) {
         auto fName = common::StringUtils::string_format("r-%d-%d", relTableID, relDirection);
-        return appendWALFileSuffixIfNecessary(common::FileUtils::joinPath(directory,
-                                                  fName + common::StorageConfig::LISTS_FILE_SUFFIX),
+        return appendWALFileSuffixIfNecessary(
+            common::FileUtils::joinPath(
+                directory, fName + common::StorageConstants::LISTS_FILE_SUFFIX),
             dbFileType);
     }
 
@@ -152,7 +154,7 @@ public:
             common::StringUtils::string_format("r-%d-%d-%d", relTableID, relDirection, propertyID);
         return appendWALFileSuffixIfNecessary(
             common::FileUtils::joinPath(
-                directory, fName + common::StorageConfig::COLUMN_FILE_SUFFIX),
+                directory, fName + common::StorageConstants::COLUMN_FILE_SUFFIX),
             dbFileType);
     }
 
@@ -171,8 +173,9 @@ public:
         const uint32_t propertyID, common::DBFileType dbFileType) {
         auto fName =
             common::StringUtils::string_format("r-%d-%d-%d", relTableID, relDirection, propertyID);
-        return appendWALFileSuffixIfNecessary(common::FileUtils::joinPath(directory,
-                                                  fName + common::StorageConfig::LISTS_FILE_SUFFIX),
+        return appendWALFileSuffixIfNecessary(
+            common::FileUtils::joinPath(
+                directory, fName + common::StorageConstants::LISTS_FILE_SUFFIX),
             dbFileType);
     }
 
@@ -186,7 +189,7 @@ public:
 
     static inline std::string getOverflowFileName(const std::string& fName) {
         return appendSuffixOrInsertBeforeWALSuffix(
-            fName, common::StorageConfig::OVERFLOW_FILE_SUFFIX);
+            fName, common::StorageConstants::OVERFLOW_FILE_SUFFIX);
     }
 
     static inline void overwriteNodesStatisticsAndDeletedIDsFileWithVersionFromWAL(
@@ -200,8 +203,8 @@ public:
         const std::string& directory, common::DBFileType dbFileType) {
         return common::FileUtils::joinPath(
             directory, dbFileType == common::DBFileType::ORIGINAL ?
-                           common::StorageConfig::NODES_STATISTICS_AND_DELETED_IDS_FILE_NAME :
-                           common::StorageConfig::NODES_STATISTICS_FILE_NAME_FOR_WAL);
+                           common::StorageConstants::NODES_STATISTICS_AND_DELETED_IDS_FILE_NAME :
+                           common::StorageConstants::NODES_STATISTICS_FILE_NAME_FOR_WAL);
     }
 
     static inline void overwriteRelsStatisticsFileWithVersionFromWAL(const std::string& directory) {
@@ -214,28 +217,28 @@ public:
         const std::string& directory, common::DBFileType dbFileType) {
         return common::FileUtils::joinPath(
             directory, dbFileType == common::DBFileType::ORIGINAL ?
-                           common::StorageConfig::RELS_METADATA_FILE_NAME :
-                           common::StorageConfig::RELS_METADATA_FILE_NAME_FOR_WAL);
+                           common::StorageConstants::RELS_METADATA_FILE_NAME :
+                           common::StorageConstants::RELS_METADATA_FILE_NAME_FOR_WAL);
     }
 
     static inline uint64_t getNumChunks(common::offset_t numNodes) {
         auto numChunks = StorageUtils::getListChunkIdx(numNodes);
-        if (0 != (numNodes & (common::ListsMetadataConfig::LISTS_CHUNK_SIZE - 1))) {
+        if (0 != (numNodes & (common::ListsMetadataConstants::LISTS_CHUNK_SIZE - 1))) {
             numChunks++;
         }
         return numChunks;
     }
 
     static inline uint64_t getListChunkIdx(common::offset_t nodeOffset) {
-        return nodeOffset >> common::ListsMetadataConfig::LISTS_CHUNK_SIZE_LOG_2;
+        return nodeOffset >> common::ListsMetadataConstants::LISTS_CHUNK_SIZE_LOG_2;
     }
 
     static inline common::offset_t getChunkIdxBeginNodeOffset(uint64_t chunkIdx) {
-        return chunkIdx << common::ListsMetadataConfig::LISTS_CHUNK_SIZE_LOG_2;
+        return chunkIdx << common::ListsMetadataConstants::LISTS_CHUNK_SIZE_LOG_2;
     }
 
     static inline common::offset_t getChunkIdxEndNodeOffsetInclusive(uint64_t chunkIdx) {
-        return ((chunkIdx + 1) << common::ListsMetadataConfig::LISTS_CHUNK_SIZE_LOG_2) - 1;
+        return ((chunkIdx + 1) << common::ListsMetadataConstants::LISTS_CHUNK_SIZE_LOG_2) - 1;
     }
 
     static inline void overwriteCatalogFileWithVersionFromWAL(const std::string& directory) {
@@ -248,8 +251,8 @@ public:
         const std::string& directory, common::DBFileType dbFileType) {
         return common::FileUtils::joinPath(
             directory, dbFileType == common::DBFileType::ORIGINAL ?
-                           common::StorageConfig::CATALOG_FILE_NAME :
-                           common::StorageConfig::CATALOG_FILE_NAME_FOR_WAL);
+                           common::StorageConstants::CATALOG_FILE_NAME :
+                           common::StorageConstants::CATALOG_FILE_NAME_FOR_WAL);
     }
 
     // Note: This is a relatively slow function because of division and mod and making std::pair.
@@ -260,7 +263,7 @@ public:
 
     static inline void removeAllWALFiles(const std::string& directory) {
         for (auto& folderIter : std::filesystem::directory_iterator(directory)) {
-            if (folderIter.path().extension() == common::StorageConfig::WAL_FILE_SUFFIX) {
+            if (folderIter.path().extension() == common::StorageConstants::WAL_FILE_SUFFIX) {
                 std::filesystem::remove(folderIter.path());
             }
         }
@@ -273,8 +276,8 @@ public:
     }
 
     static inline std::string appendWALFileSuffix(const std::string& fileName) {
-        assert(fileName.find(common::StorageConfig::WAL_FILE_SUFFIX) == std::string::npos);
-        return fileName + common::StorageConfig::WAL_FILE_SUFFIX;
+        assert(fileName.find(common::StorageConstants::WAL_FILE_SUFFIX) == std::string::npos);
+        return fileName + common::StorageConstants::WAL_FILE_SUFFIX;
     }
 
     static std::unique_ptr<common::FileInfo> getFileInfoForReadWrite(

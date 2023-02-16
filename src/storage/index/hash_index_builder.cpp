@@ -44,8 +44,8 @@ template<typename T>
 void HashIndexBuilder<T>::bulkReserve(uint32_t numEntries_) {
     slot_id_t numRequiredEntries = getNumRequiredEntries(numEntries.load(), numEntries_);
     // Build from scratch.
-    auto numRequiredSlots =
-        (numRequiredEntries + HashIndexConfig::SLOT_CAPACITY - 1) / HashIndexConfig::SLOT_CAPACITY;
+    auto numRequiredSlots = (numRequiredEntries + HashIndexConstants::SLOT_CAPACITY - 1) /
+                            HashIndexConstants::SLOT_CAPACITY;
     auto numSlotsOfCurrentLevel = 1 << indexHeader->currentLevel;
     while ((numSlotsOfCurrentLevel << 1) < numRequiredSlots) {
         indexHeader->incrementLevel();
@@ -70,7 +70,7 @@ bool HashIndexBuilder<T>::appendInternal(const uint8_t* key, offset_t value) {
             unlockSlot(pSlotInfo);
             return false;
         }
-        if (currentSlot->header.numEntries < HashIndexConfig::SLOT_CAPACITY) {
+        if (currentSlot->header.numEntries < HashIndexConstants::SLOT_CAPACITY) {
             break;
         }
         currentSlotInfo.slotId = currentSlot->header.nextOvfSlotId;
@@ -136,7 +136,7 @@ template<typename T>
 template<bool IS_LOOKUP>
 bool HashIndexBuilder<T>::lookupOrExistsInSlotWithoutLock(
     Slot<T>* slot, const uint8_t* key, offset_t* result) {
-    for (auto entryPos = 0u; entryPos < HashIndexConfig::SLOT_CAPACITY; entryPos++) {
+    for (auto entryPos = 0u; entryPos < HashIndexConstants::SLOT_CAPACITY; entryPos++) {
         if (!slot->header.isEntryValid(entryPos)) {
             continue;
         }
@@ -154,13 +154,13 @@ bool HashIndexBuilder<T>::lookupOrExistsInSlotWithoutLock(
 template<typename T>
 void HashIndexBuilder<T>::insertToSlotWithoutLock(
     Slot<T>* slot, const uint8_t* key, offset_t value) {
-    if (slot->header.numEntries == HashIndexConfig::SLOT_CAPACITY) {
+    if (slot->header.numEntries == HashIndexConstants::SLOT_CAPACITY) {
         // Allocate a new oSlot and change the nextOvfSlotId.
         auto ovfSlotId = allocateAOSlot();
         slot->header.nextOvfSlotId = ovfSlotId;
         slot = getSlot(SlotInfo{ovfSlotId, SlotType::OVF});
     }
-    for (auto entryPos = 0u; entryPos < HashIndexConfig::SLOT_CAPACITY; entryPos++) {
+    for (auto entryPos = 0u; entryPos < HashIndexConstants::SLOT_CAPACITY; entryPos++) {
         if (!slot->header.isEntryValid(entryPos)) {
             keyInsertFunc(key, value, slot->entries[entryPos].data, inMemOverflowFile.get());
             slot->header.setEntryValid(entryPos);

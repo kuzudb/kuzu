@@ -43,10 +43,12 @@ public:
 
     inline uint8_t* getData() const { return block->data; }
     inline void resetNumTuplesAndFreeSize() {
-        freeSize = common::LARGE_PAGE_SIZE;
+        freeSize = common::BufferPoolConstants::LARGE_PAGE_SIZE;
         numTuples = 0;
     }
-    inline void resetToZero() { memset(block->data, 0, common::LARGE_PAGE_SIZE); }
+    inline void resetToZero() {
+        memset(block->data, 0, common::BufferPoolConstants::LARGE_PAGE_SIZE);
+    }
 
     static void copyTuples(DataBlock* blockToCopyFrom, ft_tuple_idx_t tupleIdxToCopyFrom,
         DataBlock* blockToCopyInto, ft_tuple_idx_t tupleIdxToCopyTo, uint32_t numTuplesToCopy,

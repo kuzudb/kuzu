@@ -114,7 +114,7 @@ arrow::Status CopyNodeArrow::populateColumnsFromCSV(std::unique_ptr<HashIndexBui
     auto it = csv_streaming_reader->begin();
     auto endIt = csv_streaming_reader->end();
     while (it != endIt) {
-        for (int i = 0; i < CopyConfig::NUM_COPIER_TASKS_TO_SCHEDULE_PER_BATCH; ++i) {
+        for (int i = 0; i < CopyConstants::NUM_COPIER_TASKS_TO_SCHEDULE_PER_BATCH; ++i) {
             if (it == endIt) {
                 break;
             }
@@ -127,7 +127,7 @@ arrow::Status CopyNodeArrow::populateColumnsFromCSV(std::unique_ptr<HashIndexBui
             ++it;
         }
         taskScheduler.waitUntilEnoughTasksFinish(
-            CopyConfig::MINIMUM_NUM_COPIER_TASKS_TO_SCHEDULE_MORE);
+            CopyConstants::MINIMUM_NUM_COPIER_TASKS_TO_SCHEDULE_MORE);
     }
     taskScheduler.waitAllTasksToCompleteOrError();
     return arrow::Status::OK();
@@ -145,7 +145,7 @@ arrow::Status CopyNodeArrow::populateColumnsFromArrow(
 
     int blockIdx = 0;
     while (blockIdx < numBlocks) {
-        for (int i = 0; i < CopyConfig::NUM_COPIER_TASKS_TO_SCHEDULE_PER_BATCH; ++i) {
+        for (int i = 0; i < CopyConstants::NUM_COPIER_TASKS_TO_SCHEDULE_PER_BATCH; ++i) {
             if (blockIdx == numBlocks) {
                 break;
             }
@@ -157,7 +157,7 @@ arrow::Status CopyNodeArrow::populateColumnsFromArrow(
             ++blockIdx;
         }
         taskScheduler.waitUntilEnoughTasksFinish(
-            CopyConfig::MINIMUM_NUM_COPIER_TASKS_TO_SCHEDULE_MORE);
+            CopyConstants::MINIMUM_NUM_COPIER_TASKS_TO_SCHEDULE_MORE);
     }
 
     taskScheduler.waitAllTasksToCompleteOrError();
@@ -175,7 +175,7 @@ arrow::Status CopyNodeArrow::populateColumnsFromParquet(
     std::shared_ptr<arrow::Table> currTable;
     int blockIdx = 0;
     while (blockIdx < numBlocks) {
-        for (int i = 0; i < CopyConfig::NUM_COPIER_TASKS_TO_SCHEDULE_PER_BATCH; ++i) {
+        for (int i = 0; i < CopyConstants::NUM_COPIER_TASKS_TO_SCHEDULE_PER_BATCH; ++i) {
             if (blockIdx == numBlocks) {
                 break;
             }
@@ -188,7 +188,7 @@ arrow::Status CopyNodeArrow::populateColumnsFromParquet(
             ++blockIdx;
         }
         taskScheduler.waitUntilEnoughTasksFinish(
-            CopyConfig::MINIMUM_NUM_COPIER_TASKS_TO_SCHEDULE_MORE);
+            CopyConstants::MINIMUM_NUM_COPIER_TASKS_TO_SCHEDULE_MORE);
     }
 
     taskScheduler.waitAllTasksToCompleteOrError();
@@ -270,7 +270,7 @@ void CopyNodeArrow::putPropsOfLineIntoColumns(
                 column->setElement(nodeOffset, reinterpret_cast<uint8_t*>(&val));
             } break;
             case STRING: {
-                stringToken = stringToken.substr(0, DEFAULT_PAGE_SIZE);
+                stringToken = stringToken.substr(0, BufferPoolConstants::DEFAULT_PAGE_SIZE);
                 data = stringToken.c_str();
                 auto val =
                     column->getInMemOverflowFile()->copyString(data, overflowCursors[columnIdx]);

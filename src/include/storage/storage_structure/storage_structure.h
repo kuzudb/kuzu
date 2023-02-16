@@ -2,7 +2,7 @@
 
 #include <functional>
 
-#include "common/configs.h"
+#include "common/constants.h"
 #include "common/vector/value_vector.h"
 #include "storage/buffer_manager/buffer_manager.h"
 #include "storage/buffer_manager/versioned_file_handle.h"

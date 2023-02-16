@@ -168,8 +168,8 @@ void Binder::validateTableExist(const Catalog& _catalog, std::string& tableName)
 }
 
 bool Binder::validateStringParsingOptionName(std::string& parsingOptionName) {
-    for (auto i = 0; i < std::size(CopyConfig::STRING_CSV_PARSING_OPTIONS); i++) {
-        if (parsingOptionName == CopyConfig::STRING_CSV_PARSING_OPTIONS[i]) {
+    for (auto i = 0; i < std::size(CopyConstants::STRING_CSV_PARSING_OPTIONS); i++) {
+        if (parsingOptionName == CopyConstants::STRING_CSV_PARSING_OPTIONS[i]) {
             return true;
         }
     }

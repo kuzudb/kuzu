@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common/configs.h"
+#include "common/constants.h"
 #include "expression.h"
 
 namespace kuzu {

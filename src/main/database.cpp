@@ -23,13 +23,13 @@ SystemConfig::SystemConfig(uint64_t bufferPoolSize) {
     if (bufferPoolSize == -1u) {
         auto systemMemSize =
             (std::uint64_t)sysconf(_SC_PHYS_PAGES) * (std::uint64_t)sysconf(_SC_PAGESIZE);
-        bufferPoolSize = (uint64_t)(StorageConfig::DEFAULT_BUFFER_POOL_RATIO *
+        bufferPoolSize = (uint64_t)(StorageConstants::DEFAULT_BUFFER_POOL_RATIO *
                                     (double_t)std::min(systemMemSize, (std::uint64_t)UINTPTR_MAX));
     }
     defaultPageBufferPoolSize =
-        (uint64_t)((double_t)bufferPoolSize * StorageConfig::DEFAULT_PAGES_BUFFER_RATIO);
+        (uint64_t)((double_t)bufferPoolSize * StorageConstants::DEFAULT_PAGES_BUFFER_RATIO);
     largePageBufferPoolSize =
-        (uint64_t)((double_t)bufferPoolSize * StorageConfig::LARGE_PAGES_BUFFER_RATIO);
+        (uint64_t)((double_t)bufferPoolSize * StorageConstants::LARGE_PAGES_BUFFER_RATIO);
     maxNumThreads = std::thread::hardware_concurrency();
 }
 
@@ -91,8 +91,8 @@ void Database::setLoggingLevel(std::string loggingLevel) {
 }
 
 void Database::resizeBufferManager(uint64_t newSize) {
-    systemConfig.defaultPageBufferPoolSize = newSize * StorageConfig::DEFAULT_PAGES_BUFFER_RATIO;
-    systemConfig.largePageBufferPoolSize = newSize * StorageConfig::LARGE_PAGES_BUFFER_RATIO;
+    systemConfig.defaultPageBufferPoolSize = newSize * StorageConstants::DEFAULT_PAGES_BUFFER_RATIO;
+    systemConfig.largePageBufferPoolSize = newSize * StorageConstants::LARGE_PAGES_BUFFER_RATIO;
     bufferManager->resize(
         systemConfig.defaultPageBufferPoolSize, systemConfig.largePageBufferPoolSize);
 }

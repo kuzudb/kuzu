@@ -32,10 +32,10 @@ ListsMetadata::ListsMetadata(
 uint64_t BaseListsMetadata::getPageIdxFromAPageList(
     BaseInMemDiskArray<page_idx_t>* pageLists, uint32_t pageListHead, uint32_t idxInPageList) {
     auto pageListGroupHeadIdx = pageListHead;
-    while (ListsMetadataConfig::PAGE_LIST_GROUP_SIZE <= idxInPageList) {
+    while (ListsMetadataConstants::PAGE_LIST_GROUP_SIZE <= idxInPageList) {
         pageListGroupHeadIdx =
-            (*pageLists)[pageListGroupHeadIdx + ListsMetadataConfig::PAGE_LIST_GROUP_SIZE];
-        idxInPageList -= ListsMetadataConfig::PAGE_LIST_GROUP_SIZE;
+            (*pageLists)[pageListGroupHeadIdx + ListsMetadataConstants::PAGE_LIST_GROUP_SIZE];
+        idxInPageList -= ListsMetadataConstants::PAGE_LIST_GROUP_SIZE;
     }
     return (*pageLists)[pageListGroupHeadIdx + idxInPageList];
 }
@@ -103,8 +103,8 @@ void ListsMetadataBuilder::populateLargeListPageList(
 
 void ListsMetadataBuilder::populatePageIdsInAPageList(uint32_t numPages, uint32_t startPageId) {
     // calculate the number of pageListGroups to accommodate the pageList completely.
-    auto numPageListGroups = numPages / ListsMetadataConfig::PAGE_LIST_GROUP_SIZE;
-    if (0 != numPages % ListsMetadataConfig::PAGE_LIST_GROUP_SIZE) {
+    auto numPageListGroups = numPages / ListsMetadataConstants::PAGE_LIST_GROUP_SIZE;
+    if (0 != numPages % ListsMetadataConstants::PAGE_LIST_GROUP_SIZE) {
         numPageListGroups++;
     }
     // During the initial allocation, we allocate all the pageListGroups of a pageList
@@ -113,21 +113,22 @@ void ListsMetadataBuilder::populatePageIdsInAPageList(uint32_t numPages, uint32_
     uint32_t pageListHeadIdx = pageListsBuilder->header.numElements;
     auto pageListTailIdx =
         pageListHeadIdx +
-        ((ListsMetadataConfig::PAGE_LIST_GROUP_WITH_NEXT_PTR_SIZE)*numPageListGroups);
+        ((ListsMetadataConstants::PAGE_LIST_GROUP_WITH_NEXT_PTR_SIZE)*numPageListGroups);
     pageListsBuilder->resize(pageListTailIdx, false /* setToZero */);
     for (auto i = 0u; i < numPageListGroups; i++) {
-        auto numPagesInThisGroup = std::min(ListsMetadataConfig::PAGE_LIST_GROUP_SIZE, numPages);
+        auto numPagesInThisGroup = std::min(ListsMetadataConstants::PAGE_LIST_GROUP_SIZE, numPages);
         for (auto j = 0u; j < numPagesInThisGroup; j++) {
             (*pageListsBuilder)[pageListHeadIdx + j] = startPageId++;
         }
-        // if there are empty spots in the pageListGroup, put StorageConfig::NULL_PAGE_IDX in them.
-        for (auto j = numPagesInThisGroup; j < ListsMetadataConfig::PAGE_LIST_GROUP_SIZE; j++) {
+        // if there are empty spots in the pageListGroup, put StorageConstants::NULL_PAGE_IDX in
+        // them.
+        for (auto j = numPagesInThisGroup; j < ListsMetadataConstants::PAGE_LIST_GROUP_SIZE; j++) {
             (*pageListsBuilder)[pageListHeadIdx + j] = StorageStructureUtils::NULL_PAGE_IDX;
         }
         numPages -= numPagesInThisGroup;
-        pageListHeadIdx += ListsMetadataConfig::PAGE_LIST_GROUP_SIZE;
+        pageListHeadIdx += ListsMetadataConstants::PAGE_LIST_GROUP_SIZE;
         // store the id to the next pageListGroup, if exists, otherwise store
-        // StorageConfig::NULL_PAGE_IDX.
+        // StorageConstants::NULL_PAGE_IDX.
         (*pageListsBuilder)[pageListHeadIdx] =
             (0 == numPages) ? StorageStructureUtils::NULL_PAGE_IDX : 1 + pageListHeadIdx;
         pageListHeadIdx++;

@@ -24,7 +24,7 @@ class BaseGraphTest : public Test {
 public:
     void SetUp() override {
         systemConfig = std::make_unique<main::SystemConfig>(
-            common::StorageConfig::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING);
+            common::StorageConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING);
         if (common::FileUtils::fileOrPathExists(TestHelper::getTmpTestDir())) {
             common::FileUtils::removeDir(TestHelper::getTmpTestDir());
         }

@@ -15,7 +15,7 @@ namespace kuzu {
 namespace storage {
 
 using lock_t = std::unique_lock<std::mutex>;
-constexpr uint64_t WAL_HEADER_PAGE_SIZE = common::DEFAULT_PAGE_SIZE;
+constexpr uint64_t WAL_HEADER_PAGE_SIZE = common::BufferPoolConstants::DEFAULT_PAGE_SIZE;
 constexpr uint64_t WAL_HEADER_PAGE_NUM_RECORDS_FIELD_SIZE = sizeof(uint64_t);
 constexpr uint64_t WAL_HEADER_PAGE_NEXT_HEADER_PAGE_IDX_FIELD_SIZE = sizeof(common::page_idx_t);
 constexpr uint64_t WAL_HEADER_PAGE_PREFIX_FIELD_SIZES =
@@ -138,7 +138,7 @@ public:
 
     inline static std::shared_ptr<FileHandle> createWALFileHandle(const std::string& directory) {
         return make_shared<FileHandle>(common::FileUtils::joinPath(directory,
-                                           std::string(common::StorageConfig::WAL_FILE_SUFFIX)),
+                                           std::string(common::StorageConstants::WAL_FILE_SUFFIX)),
             FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS);
     }
 

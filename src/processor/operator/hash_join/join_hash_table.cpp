@@ -12,7 +12,7 @@ namespace processor {
 JoinHashTable::JoinHashTable(MemoryManager& memoryManager, uint64_t numKeyColumns,
     std::unique_ptr<FactorizedTableSchema> tableSchema)
     : BaseHashTable{memoryManager}, numKeyColumns{numKeyColumns} {
-    auto numSlotsPerBlock = LARGE_PAGE_SIZE / sizeof(uint8_t*);
+    auto numSlotsPerBlock = BufferPoolConstants::LARGE_PAGE_SIZE / sizeof(uint8_t*);
     assert(numSlotsPerBlock == nextPowerOfTwo(numSlotsPerBlock));
     numSlotsPerBlockLog2 = std::log2(numSlotsPerBlock);
     slotIdxInBlockMask = BitmaskUtils::all1sMaskForLeastSignificantBits(numSlotsPerBlockLog2);

@@ -174,11 +174,11 @@ void StorageUtils::createFileForRelListsPropertyWithDefaultVal(table_id_t relTab
 
 std::string StorageUtils::appendSuffixOrInsertBeforeWALSuffix(
     std::string fileName, std::string suffix) {
-    auto pos = fileName.find(StorageConfig::WAL_FILE_SUFFIX);
+    auto pos = fileName.find(StorageConstants::WAL_FILE_SUFFIX);
     if (pos == std::string::npos) {
         return fileName + suffix;
     } else {
-        return fileName.substr(0, pos) + suffix + StorageConfig::WAL_FILE_SUFFIX;
+        return fileName.substr(0, pos) + suffix + StorageConstants::WAL_FILE_SUFFIX;
     }
 }
 
@@ -186,11 +186,12 @@ uint32_t PageUtils::getNumElementsInAPage(uint32_t elementSize, bool hasNull) {
     auto numBytesPerNullEntry = NullMask::NUM_BITS_PER_NULL_ENTRY >> 3;
     auto numNullEntries =
         hasNull ? (uint32_t)ceil(
-                      (double)DEFAULT_PAGE_SIZE /
+                      (double)BufferPoolConstants::DEFAULT_PAGE_SIZE /
                       (double)(((uint64_t)elementSize << NullMask::NUM_BITS_PER_NULL_ENTRY_LOG2) +
                                numBytesPerNullEntry)) :
                   0;
-    return (DEFAULT_PAGE_SIZE - (numNullEntries * numBytesPerNullEntry)) / elementSize;
+    return (BufferPoolConstants::DEFAULT_PAGE_SIZE - (numNullEntries * numBytesPerNullEntry)) /
+           elementSize;
 }
 
 void StorageUtils::initializeListsHeaders(const RelTableSchema* relTableSchema,

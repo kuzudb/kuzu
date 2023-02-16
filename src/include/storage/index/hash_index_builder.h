@@ -28,7 +28,7 @@ static constexpr uint64_t INDEX_HEADER_IDX_IN_ARRAY = 0;
  *
  * The slot data structure:
  * Each slot (p/oSlot) consists of a slot header and several entries. The max number of entries in
- * slot is given by HashIndexConfig::SLOT_CAPACITY. The size of the slot is given by
+ * slot is given by HashIndexConstants::SLOT_CAPACITY. The size of the slot is given by
  * (sizeof(SlotHeader) + (SLOT_CAPACITY * sizeof(Entry)).
  *
  * SlotHeader: [numEntries, validityMask, nextOvfSlotId]

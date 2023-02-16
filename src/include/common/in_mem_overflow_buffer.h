@@ -68,10 +68,10 @@ public:
 
 private:
     inline bool requireNewBlock(uint64_t sizeToAllocate) {
-        if (sizeToAllocate > LARGE_PAGE_SIZE) {
+        if (sizeToAllocate > BufferPoolConstants::LARGE_PAGE_SIZE) {
             throw RuntimeException("Require size " + std::to_string(sizeToAllocate) +
                                    " greater than single block size " +
-                                   std::to_string(LARGE_PAGE_SIZE) + ".");
+                                   std::to_string(BufferPoolConstants::LARGE_PAGE_SIZE) + ".");
         }
         return currentBlock == nullptr ||
                (currentBlock->currentOffset + sizeToAllocate) > currentBlock->size;

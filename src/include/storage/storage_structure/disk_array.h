@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common/configs.h"
+#include "common/constants.h"
 #include "common/types/types.h"
 #include "storage/buffer_manager/versioned_file_handle.h"
 #include "storage/wal/wal.h"
@@ -13,7 +13,8 @@ namespace storage {
 class FileHandle;
 
 static constexpr uint64_t NUM_PAGE_IDXS_PER_PIP =
-    (common::DEFAULT_PAGE_SIZE - sizeof(common::page_idx_t)) / sizeof(common::page_idx_t);
+    (common::BufferPoolConstants::DEFAULT_PAGE_SIZE - sizeof(common::page_idx_t)) /
+    sizeof(common::page_idx_t);
 
 /**
  * Header page of a disk array.
@@ -73,7 +74,7 @@ struct PIPUpdates {
  * stable header page, i.e., the header page of the array is always in a pre-allocated page in the
  * file. The header page contains the pointer to the first ``page indices page'' (pip). Each pip
  * stores a list of page indices that store the ``array pages''. Each PIP also stores the pageIdx of
- * the next PIP if one exists (or we use StorageConfig::NULL_PAGE_IDX as null). Array pages store
+ * the next PIP if one exists (or we use StorageConstants::NULL_PAGE_IDX as null). Array pages store
  * the actual data in the array.
  *
  * Storage structures can use multiple disk arrays in a single file by giving each one a different
@@ -196,9 +197,11 @@ public:
 
 protected:
     inline uint64_t addInMemoryArrayPage(bool setToZero) {
-        inMemArrayPages.emplace_back(std::make_unique<uint8_t[]>(common::DEFAULT_PAGE_SIZE));
+        inMemArrayPages.emplace_back(
+            std::make_unique<uint8_t[]>(common::BufferPoolConstants::DEFAULT_PAGE_SIZE));
         if (setToZero) {
-            memset(inMemArrayPages[inMemArrayPages.size() - 1].get(), 0, common::DEFAULT_PAGE_SIZE);
+            memset(inMemArrayPages[inMemArrayPages.size() - 1].get(), 0,
+                common::BufferPoolConstants::DEFAULT_PAGE_SIZE);
         }
         return inMemArrayPages.size() - 1;
     }
