@@ -19,5 +19,11 @@ void LogicalExtend::computeSchema() {
     }
 }
 
+f_group_pos LogicalExtend::getGroupPosToFlatten() const {
+    assert(requireFlatInput());
+    auto childSchema = children[0]->getSchema();
+    return childSchema->getGroupPos(boundNode->getInternalIDPropertyName());
+}
+
 } // namespace planner
 } // namespace kuzu

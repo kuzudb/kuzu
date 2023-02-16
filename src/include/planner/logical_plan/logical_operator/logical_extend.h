@@ -30,6 +30,9 @@ public:
     inline common::RelDirection getDirection() const { return direction; }
     inline binder::expression_vector getProperties() const { return properties; }
 
+    inline bool requireFlatInput() const { return extendToNewGroup | rel->isVariableLength(); }
+    f_group_pos getGroupPosToFlatten() const;
+
     inline std::unique_ptr<LogicalOperator> copy() override {
         return make_unique<LogicalExtend>(
             boundNode, nbrNode, rel, direction, properties, extendToNewGroup, children[0]->copy());
