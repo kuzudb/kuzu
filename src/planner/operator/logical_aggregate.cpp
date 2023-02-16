@@ -1,7 +1,40 @@
 #include "planner/logical_plan/logical_operator/logical_aggregate.h"
 
+#include "binder/expression/function_expression.h"
+#include "planner/logical_plan/logical_operator/flatten_resolver.h"
+
 namespace kuzu {
 namespace planner {
+
+using namespace factorization;
+
+f_group_pos_set LogicalAggregate::getGroupsPosToFlattenForGroupBy() {
+    f_group_pos_set dependentGroupsPos;
+    for (auto& expression : expressionsToGroupBy) {
+        for (auto groupPos : children[0]->getSchema()->getDependentGroupsPos(expression)) {
+            dependentGroupsPos.insert(groupPos);
+        }
+    }
+    if (hasDistinctAggregate()) {
+        return FlattenAll::getGroupsPosToFlatten(dependentGroupsPos, children[0]->getSchema());
+    } else {
+        return FlattenAllButOne::getGroupsPosToFlatten(
+            dependentGroupsPos, children[0]->getSchema());
+    }
+}
+
+f_group_pos_set LogicalAggregate::getGroupsPosToFlattenForAggregate() {
+    if (hasDistinctAggregate() || expressionsToAggregate.size() > 1) {
+        f_group_pos_set dependentGroupsPos;
+        for (auto& expression : expressionsToAggregate) {
+            for (auto groupPos : children[0]->getSchema()->getDependentGroupsPos(expression)) {
+                dependentGroupsPos.insert(groupPos);
+            }
+        }
+        return FlattenAll::getGroupsPosToFlatten(dependentGroupsPos, children[0]->getSchema());
+    }
+    return f_group_pos_set{};
+}
 
 void LogicalAggregate::computeSchema() {
     createEmptySchema();
@@ -25,6 +58,16 @@ std::string LogicalAggregate::getExpressionsForPrinting() const {
     }
     result += "]";
     return result;
+}
+
+bool LogicalAggregate::hasDistinctAggregate() {
+    for (auto& expressionToAggregate : expressionsToAggregate) {
+        auto& functionExpression = (binder::AggregateFunctionExpression&)*expressionToAggregate;
+        if (functionExpression.isDistinct()) {
+            return true;
+        }
+    }
+    return false;
 }
 
 } // namespace planner

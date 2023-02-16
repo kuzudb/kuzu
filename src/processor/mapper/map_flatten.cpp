@@ -10,11 +10,9 @@ namespace processor {
 std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalFlattenToPhysical(
     LogicalOperator* logicalOperator) {
     auto flatten = (LogicalFlatten*)logicalOperator;
-    auto inSchema = flatten->getChild(0)->getSchema();
     auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0));
-    auto dataChunkPos = inSchema->getExpressionPos(*flatten->getExpression()).first;
-    return make_unique<Flatten>(
-        dataChunkPos, move(prevOperator), getOperatorID(), flatten->getExpressionsForPrinting());
+    return make_unique<Flatten>(flatten->getGroupPos(), std::move(prevOperator), getOperatorID(),
+        flatten->getExpressionsForPrinting());
 }
 
 } // namespace processor

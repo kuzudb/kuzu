@@ -1,9 +1,32 @@
 #include "planner/logical_plan/logical_operator/logical_hash_join.h"
 
+#include "planner/logical_plan/logical_operator/flatten_resolver.h"
+#include "planner/logical_plan/logical_operator/logical_scan_node.h"
 #include "planner/logical_plan/logical_operator/sink_util.h"
 
 namespace kuzu {
 namespace planner {
+
+f_group_pos_set LogicalHashJoin::getGroupsPosToFlattenOnProbeSide() {
+    f_group_pos_set result;
+    if (!requireFlatProbeKeys()) {
+        return result;
+    }
+    auto probeSchema = children[0]->getSchema();
+    for (auto& joinNodeID : joinNodeIDs) {
+        result.insert(probeSchema->getGroupPos(*joinNodeID));
+    }
+    return result;
+}
+
+f_group_pos_set LogicalHashJoin::getGroupsPosToFlattenOnBuildSide() {
+    auto buildSchema = children[1]->getSchema();
+    f_group_pos_set joinNodesGroupPos;
+    for (auto& joinNodeID : joinNodeIDs) {
+        joinNodesGroupPos.insert(buildSchema->getGroupPos(*joinNodeID));
+    }
+    return factorization::FlattenAllButOne::getGroupsPosToFlatten(joinNodesGroupPos, buildSchema);
+}
 
 void LogicalHashJoin::computeSchema() {
     auto probeSchema = children[0]->getSchema();
@@ -54,6 +77,42 @@ void LogicalHashJoin::computeSchema() {
         auto markPos = *probeSideKeyGroupPositions.begin();
         schema->insertToGroupAndScope(mark, markPos);
     }
+}
+
+bool LogicalHashJoin::requireFlatProbeKeys() {
+    if (joinNodeIDs.size() > 1) {
+        return true;
+    }
+    auto joinNodeID = joinNodeIDs[0].get();
+    return !isJoinKeyUniqueOnBuildSide(*joinNodeID);
+}
+
+bool LogicalHashJoin::isJoinKeyUniqueOnBuildSide(const binder::Expression& joinNodeID) {
+    auto buildSchema = children[1]->getSchema();
+    auto numGroupsInScope = buildSchema->getGroupsPosInScope().size();
+    bool hasProjectedOutGroups = buildSchema->getNumGroups() > numGroupsInScope;
+    if (numGroupsInScope > 1 || hasProjectedOutGroups) {
+        return false;
+    }
+    // Now there is a single factorization group, we need to further make sure joinNodeID comes from
+    // ScanNodeID operator. Because if joinNodeID comes from a ColExtend we cannot guarantee the
+    // reverse mapping is still many-to-one. We look for the most simple pattern where build plan is
+    // linear.
+    auto op = children[1].get();
+    while (op->getNumChildren() != 0) {
+        if (op->getNumChildren() > 1) {
+            return false;
+        }
+        op = op->getChild(0).get();
+    }
+    if (op->getOperatorType() != LogicalOperatorType::SCAN_NODE) {
+        return false;
+    }
+    auto scanNodeID = (LogicalScanNode*)op;
+    if (scanNodeID->getNode()->getInternalIDPropertyName() != joinNodeID.getUniqueName()) {
+        return false;
+    }
+    return true;
 }
 
 } // namespace planner

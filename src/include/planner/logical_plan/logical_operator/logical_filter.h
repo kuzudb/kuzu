@@ -13,6 +13,8 @@ public:
         : LogicalOperator{LogicalOperatorType::FILTER, std::move(child)}, expression{std::move(
                                                                               expression)} {}
 
+    f_group_pos_set getGroupsPosToFlatten();
+
     inline void computeSchema() override { copyChildSchema(0); }
 
     inline std::string getExpressionsForPrinting() const override {

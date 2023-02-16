@@ -13,6 +13,8 @@ public:
         : LogicalOperator{LogicalOperatorType::UNWIND, std::move(childOperator)},
           expression{std::move(expression)}, aliasExpression{std::move(aliasExpression)} {}
 
+    f_group_pos_set getGroupsPosToFlatten();
+
     void computeSchema() override;
 
     inline std::shared_ptr<binder::Expression> getExpression() { return expression; }

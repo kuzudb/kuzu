@@ -33,6 +33,9 @@ public:
         }
     }
 
+    f_group_pos_set getGroupsPosToFlattenOnProbeSide();
+    f_group_pos_set getGroupsPosToFlattenOnBuildSide(uint32_t buildIdx);
+
     void computeSchema() override;
 
     std::string getExpressionsForPrinting() const override { return intersectNodeID->getRawName(); }

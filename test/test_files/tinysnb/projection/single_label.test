@@ -132,6 +132,19 @@ False
 [[10]]
 [[7],[10],[6,7]]
 
+-NAME CrossProductReturn
+-QUERY MATCH (a:organisation), (b:organisation) RETURN a.orgCode = b.orgCode
+---- 9
+False
+False
+False
+False
+False
+False
+True
+True
+True
+
 -NAME KnowsOneHopTest1
 -QUERY MATCH (a:person)-[e:knows]->(b:person) WHERE b.age=20 RETURN b.age
 ---- 3

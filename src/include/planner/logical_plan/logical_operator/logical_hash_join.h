@@ -39,6 +39,9 @@ public:
           joinNodeIDs(std::move(joinNodeIDs)), joinType{joinType}, mark{std::move(mark)},
           isProbeAcc{isProbeAcc}, expressionsToMaterialize{std::move(expressionsToMaterialize)} {}
 
+    f_group_pos_set getGroupsPosToFlattenOnProbeSide();
+    f_group_pos_set getGroupsPosToFlattenOnBuildSide();
+
     void computeSchema() override;
 
     inline std::string getExpressionsForPrinting() const override {
@@ -62,6 +65,18 @@ public:
         return make_unique<LogicalHashJoin>(joinNodeIDs, joinType, mark, isProbeAcc,
             expressionsToMaterialize, children[0]->copy(), children[1]->copy());
     }
+
+private:
+    // Flat probe side key group in either of the following two cases:
+    // 1. there are multiple join nodes;
+    // 2. if the build side contains more than one group or the build side has projected out data
+    // chunks, which may increase the multiplicity of data chunks in the build side. The key is to
+    // keep probe side key unflat only when we know that there is only 0 or 1 match for each key.
+    // TODO(Guodong): when the build side has only flat payloads, we should consider getting rid of
+    // flattening probe key, instead duplicating keys as in vectorized processing if necessary.
+    bool requireFlatProbeKeys();
+
+    bool isJoinKeyUniqueOnBuildSide(const binder::Expression& joinNodeID);
 
 private:
     binder::expression_vector joinNodeIDs;

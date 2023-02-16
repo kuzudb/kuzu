@@ -3,6 +3,12 @@
 namespace kuzu {
 namespace planner {
 
+f_group_pos_set LogicalSkip::getGroupsPosToFlatten() {
+    auto childSchema = children[0]->getSchema();
+    return factorization::FlattenAllButOne::getGroupsPosToFlatten(
+        childSchema->getGroupsPosInScope(), childSchema);
+}
+
 f_group_pos LogicalSkip::getGroupPosToSelect() const {
     auto childSchema = children[0]->getSchema();
     auto groupsPosInScope = childSchema->getGroupsPosInScope();
