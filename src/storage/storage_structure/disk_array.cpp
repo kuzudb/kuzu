@@ -13,7 +13,7 @@ namespace storage {
 
 DiskArrayHeader::DiskArrayHeader(uint64_t elementSize)
     : alignedElementSizeLog2{(uint64_t)ceil(log2(elementSize))},
-      numElementsPerPageLog2{BufferPoolConstants::DEFAULT_PAGE_SIZE_LOG_2 - alignedElementSizeLog2},
+      numElementsPerPageLog2{PageSizeClass::PAGE_4KB - alignedElementSizeLog2},
       elementPageOffsetMask{BitmaskUtils::all1sMaskForLeastSignificantBits(numElementsPerPageLog2)},
       firstPIPPageIdx{StorageStructureUtils::NULL_PAGE_IDX}, numElements{0}, numAPs{0} {}
 
@@ -205,7 +205,7 @@ page_idx_t BaseDiskArray<U>::getUpdatedPageIdxOfPipNoLock(uint64_t pipIdx) {
 template<typename U>
 void BaseDiskArray<U>::clearWALPageVersionAndRemovePageFromFrameIfNecessary(page_idx_t pageIdx) {
     ((VersionedFileHandle&)this->fileHandle).clearWALPageVersionIfNecessary(pageIdx);
-    bufferManager->removePageFromFrameIfNecessary(this->fileHandle, pageIdx);
+    bufferManager->removePageFromFrameWithoutFlushingIfNecessary(this->fileHandle, pageIdx);
 }
 
 template<typename U>

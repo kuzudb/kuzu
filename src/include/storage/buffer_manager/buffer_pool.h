@@ -1,39 +1,16 @@
 #pragma once
 
-#include <mutex>
 #include <vector>
 
-#include "common/metric.h"
+#include "common/constants.h"
+#include "common/types/types.h"
 #include "storage/buffer_manager/file_handle.h"
-
-namespace spdlog {
-class logger;
-}
 
 namespace kuzu {
 namespace storage {
 
-struct BufferManagerMetrics {
-    uint64_t numPins{0};
-    // Number of pinning operations that required eviction from a Frame.
-    uint64_t numEvicts{0};
-    // Number of failed tries to evict the page from a Frame. This is incremented if either the
-    // eviction routine fails to get the lock on the page that is in the Frame or the pinCount of
-    // the Frame has increased after taking the locks of Frame and page.
-    uint64_t numEvictFails{0};
-    // Number of failed tried to evict the page frame a Frame because the Frame has been recently
-    // accessed and hence is given a second chance.
-    uint64_t numRecentlyAccessedWalkover{0};
-    uint64_t numCacheHit{0};
-    uint64_t numCacheMiss{0};
-    uint64_t numDirtyPageWriteIO{0};
-};
-
-// A frame is a unit of buffer space having a fixed size of 4KB, where a single file page is
-// read from the disk. Frame also stores other metadata to locate and maintain this buffer in the
-// Buffer Manager.
 class Frame {
-    friend class BufferPool;
+    friend class BufferManager;
 
 public:
     explicit Frame(common::page_offset_t pageSize, uint8_t* buffer);
@@ -42,8 +19,8 @@ public:
 private:
     void resetFrameWithoutLock();
     bool acquireFrameLock(bool block);
-    void releaseFrameLock() { frameLock.clear(); }
-    void setIsDirty(bool _isDirty) { isDirty = _isDirty; }
+    inline void releaseFrameLock() { frameLock.clear(); }
+    inline void setIsDirty(bool _isDirty) { isDirty = _isDirty; }
     void releaseBuffer();
 
 private:
@@ -53,86 +30,39 @@ private:
     std::atomic<common::page_idx_t> pageIdx;
     std::atomic<uint32_t> pinCount;
 
-    bool recentlyAccessed;
     bool isDirty;
     uint8_t* buffer;
     common::page_offset_t pageSize;
+    std::atomic<uint64_t> evictTimestamp;
     std::atomic_flag frameLock;
 };
 
-// The BufferPool is a cache of file pages of a fixed size. It provides the high-level functionality
-// of pin() and unpin() pages of files in memory and operates via their FileHandles
-// to make the page data available in one of the frames. It uses CLOCK replacement policy to evict
-// pages from frames, which is an approximate LRU policy that is based of FIFO-like operations.
+// The buffer pool holds a vector of frames with the same size class. Our buffer manager holds
+// multiple buffer pools with different size classes.
+// Each buffer pool is backed by one or more mmap regions, which are allocated through `mmap()`
+// system calls. For now, we assume the buffer pool is only destroyed when the process exits, which
+// will automatically unmap all mapped regions.
 class BufferPool {
     friend class BufferManager;
+    // MMAP_REGION_MAX_SIZE is the max size of virtual memory that can be allocated by mmap in a
+    // single call.
+    static constexpr std::size_t MMAP_REGION_MAX_SIZE = (std::size_t)-1;
 
 public:
-    BufferPool(uint64_t pageSize, uint64_t maxSize);
-
-    uint8_t* pin(FileHandle& fileHandle, common::page_idx_t pageIdx);
-
-    // Pins a new page that has been added to the file. This means that the BufferManager does not
-    // need to read the page from the file for now. Ensuring that the given pageIdx is new is the
-    // responsibility of the caller.
-    uint8_t* pinWithoutReadingFromFile(FileHandle& fileHandle, common::page_idx_t pageIdx);
-
-    uint8_t* pinWithoutAcquiringPageLock(
-        FileHandle& fileHandle, common::page_idx_t pageIdx, bool doNotReadFromFile);
-
-    void setPinnedPageDirty(FileHandle& fileHandle, common::page_idx_t pageIdx);
-
-    // The function assumes that the requested page is already pinned.
-    void unpin(FileHandle& fileHandle, common::page_idx_t pageIdx);
-
-    void unpinWithoutAcquiringPageLock(FileHandle& fileHandle, common::page_idx_t pageIdx);
+    explicit BufferPool(
+        uint64_t maxSize, common::PageSizeClass sizeClass = common::PageSizeClass::PAGE_4KB);
 
     void resize(uint64_t newSize);
 
-    // Note: These two functions that remove pages from frames is not designed for concurrency and
-    // therefore not tested under concurrency. If this is called while other threads are accessing
-    // the BM, it should work safely but this is not tested.
-    void removeFilePagesFromFrames(FileHandle& fileHandle);
-
-    void flushAllDirtyPagesInFrames(FileHandle& fileHandle);
-    void updateFrameIfPageIsInFrameWithoutPageOrFrameLock(
-        FileHandle& fileHandle, uint8_t* newPage, common::page_idx_t pageIdx);
-
-    void removePageFromFrameWithoutFlushingIfNecessary(
-        FileHandle& fileHandle, common::page_idx_t pageIdx);
-
-private:
-    uint8_t* pin(FileHandle& fileHandle, common::page_idx_t pageIdx, bool doNotReadFromFile);
-
-    common::page_idx_t claimAFrame(
-        FileHandle& fileHandle, common::page_idx_t pageIdx, bool doNotReadFromFile);
-
-    bool fillEmptyFrame(common::page_idx_t frameIdx, FileHandle& fileHandle,
-        common::page_idx_t pageIdx, bool doNotReadFromFile);
-
-    bool tryEvict(common::page_idx_t frameIdx, FileHandle& fileHandle, common::page_idx_t pageIdx,
-        bool doNotReadFromFile);
-
     void moveClockHand(uint64_t newClockHand);
-    // Performs 2 actions:
-    // 1) Clears the contents of the frame.
-    // 2) Unswizzles the pageIdx in the frame.
-    void clearFrameAndUnswizzleWithoutLock(const std::unique_ptr<Frame>& frame,
-        FileHandle& fileHandleInFrame, common::page_idx_t pageIdxInFrame);
-    void readNewPageIntoFrame(
-        Frame& frame, FileHandle& fileHandle, common::page_idx_t pageIdx, bool doNotReadFromFile);
-
-    void flushIfDirty(const std::unique_ptr<Frame>& frame);
-
-    void removePageFromFrame(FileHandle& fileHandle, common::page_idx_t pageIdx, bool shouldFlush);
 
 private:
-    std::shared_ptr<spdlog::logger> logger;
-    uint64_t pageSize;
-    std::vector<std::unique_ptr<Frame>> bufferCache;
+    void allocateMmapRegion(std::size_t regionSize);
+
+private:
+    common::PageSizeClass sizeClass;
+    std::vector<std::unique_ptr<Frame>> frames;
     std::atomic<uint64_t> clockHand;
-    common::page_idx_t numFrames;
-    BufferManagerMetrics bmMetrics;
 };
 
 } // namespace storage

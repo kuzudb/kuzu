@@ -33,13 +33,12 @@ class DataBlock {
 public:
     explicit DataBlock(storage::MemoryManager* memoryManager)
         : numTuples{0}, memoryManager{memoryManager} {
-        block = memoryManager->allocateBlock(true);
-        freeSize = block->size;
+        block = memoryManager->allocateBlock(
+            common::PageSizeClass::PAGE_256KB, true /* initializeToZero */);
+        freeSize = block->blockSize;
     }
 
     DataBlock(DataBlock&& other) = default;
-
-    ~DataBlock() { memoryManager->freeBlock(block->pageIdx); }
 
     inline uint8_t* getData() const { return block->data; }
     inline void resetNumTuplesAndFreeSize() {
@@ -60,7 +59,7 @@ public:
     storage::MemoryManager* memoryManager;
 
 private:
-    std::unique_ptr<storage::MemoryBlock> block;
+    std::unique_ptr<storage::BlockHandle> block;
 };
 
 class DataBlockCollection {

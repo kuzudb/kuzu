@@ -29,10 +29,7 @@ TEST_F(BufferManagerTests, RemoveFilePagesFromFramesTest) {
         fileHandle.addNewPage();
     }
     auto bufferManager =
-        std::make_unique<BufferManager>(StorageConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING *
-                                            StorageConstants::DEFAULT_PAGES_BUFFER_RATIO,
-            StorageConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING *
-                StorageConstants::LARGE_PAGES_BUFFER_RATIO);
+        std::make_unique<BufferManager>(BufferPoolConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING);
     // Pin and unpin some pages
     bufferManager->pinWithoutReadingFromFile(fileHandle, 10);
     bufferManager->pinWithoutReadingFromFile(fileHandle, 999);

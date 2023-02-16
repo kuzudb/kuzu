@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "common/metric.h"
+#include "concurrentqueue.h"
 #include "storage/buffer_manager/buffer_pool.h"
 #include "storage/buffer_manager/file_handle.h"
 
@@ -14,35 +15,42 @@ class logger;
 namespace kuzu {
 namespace storage {
 
+constexpr common::page_idx_t INVALID_PAGE_IDX = -1u;
+
+struct EvictionCandidate {
+    Frame* frame = nullptr;
+    common::page_idx_t frameIdx = -1u;
+    uint64_t evictTimestamp = -1u;
+};
+
 /**
  *
- * The Buffer Manager (BM) is the cache of database file pages. It provides the high-level
- * functionality of pin() and unpin() the pages of the database files used by the Column/Lists in
- * the storage layer, and operates via their FileHandles to make the page data available in one of
- * the frames. BM can also be used by any operator or other components of the system to acquire
- * memory blocks and ensure that they do not acquire memory directly from the OS. Depending on how
- * the user of the BM pins and unpins pages, operators can ensure either that the memory blocks they
- * acquire are safely spilled to disk and read back or always kept in memory (see below.)
+ * The Buffer Manager (BM) is a centralized manager of database memory resources.
+ * It provides two main functionalities:
+ * (1) it provides the high-level functionality of pin() and unpin() the pages of the database files
+ * used by the Column/Lists in the storage layer, and operates via their FileHandles to make the
+ * page data available in one of the frames.
+ * (2) it supports the MemoryManager (MM) to allocate memory blocks that are not backed by any disk
+ * files. Similar to disk files, MM provides in-mem file handles to the BM to pin/unpin pages.
+ *
+ * Additionally, for disk files, buffer manager provides the functionality to set pinned pages as
+ * dirty, which will be safely written back to disk when the page is evicted.
  *
  * Currently the BM has internal BufferPools to cache pages of 2 size: DEFAULT_PAGE_SIZE and
- * LARGE_PAGE_SIZE, both of which are defined in configs.h. We only have a mechanism to control the
- * memory size of each BufferPool. So when the BM of the system is constructed, one pool of memory
- * is allocated to cache files whose pages are of size DEFAULT_PAGE_SIZE, and a separate pool of
- * memory is allocated to cache files whose pages are of size LARGE_PAGE_SIZE. Ideally we should
- * move towards allocating a single pool of memory from which different size pages are allocated.
- * The Umbra paper (http://db.in.tum.de/~freitag/papers/p29-neumann-cidr20.pdf) describes an
- * mmap-based mechanism to do this (where the responsibility to handle memory fragmentation is
- * delegated to the OS).
+ * LARGE_PAGE_SIZE, both of which are defined in constants.h. Each buffer pool has its own virtual
+ * memory space, which are independent to each other. The BM uses mmap to allocate virtual memory
+ * space for buffer pools. Each buffer pool has the same max size limit as the BM does. In this way,
+ * buffer pools can share the same physical memory space between each other, where the
+ * responsibility to handle memory fragmentation is delegated to the OS.
+ * We followed Umbra's idea (http://db.in.tum.de/~freitag/papers/p29-neumann-cidr20.pdf) on this.
  *
- * The BM uses CLOCK replacement policy to evict pages from frames, which is an approximate LRU
- * policy that is based of FIFO-like operations.
+ * The BM uses queue based replacement policy to evict pages from frames, which is also adopted in
+ * Umbra and DuckDB. See comments above `claimAFrame()` for more details.
  *
- * All access to the BM is through a FileHandle. To use the BM to acquire in-memory blocks users can
- * pin pages, which will then lead the BM to put these pages in memory, and then never unpin them
- * and the BM will never spill those pages to disk. However *make sure to unpin these pages*
- * eventually, otherwise this would be a form of internal memory leak. See InMemOverflowBuffer for
- * an example, where this is done during the deconstruction of the InMemOverflowBuffer.
- *
+ * All access to the BM is through a FileHandle. This design is to de-centralize the management of
+ * locks and mappings from pages to frames from the BM to each file handle itself.
+ * Thus each on-disk file should have a unique FileHandle, and each page size class in MM also has a
+ * unique in-mem file-based FileHandle.
  * Users can also unpin their pages and then the BM might spill them to disk. The behavior of what
  * is guaranteed to be kept in memory and what can be spilled to disk is directly determined by the
  * pin/unpin calls of the users of BM.
@@ -55,47 +63,54 @@ namespace storage {
 class BufferManager {
 
 public:
-    BufferManager(uint64_t maxSizeForDefaultPagePool, uint64_t maxSizeForLargePagePool);
+    explicit BufferManager(uint64_t maxSize);
     ~BufferManager();
 
     uint8_t* pin(FileHandle& fileHandle, common::page_idx_t pageIdx);
-
-    // The caller should ensure that the given pageIdx is indeed a new page, so should not be read
-    // from disk
     uint8_t* pinWithoutReadingFromFile(FileHandle& fileHandle, common::page_idx_t pageIdx);
-
-    inline uint8_t* pinWithoutAcquiringPageLock(
-        FileHandle& fileHandle, common::page_idx_t pageIdx, bool doNotReadFromFile) {
-        return fileHandle.isLargePaged() ? bufferPoolLargePages->pinWithoutAcquiringPageLock(
-                                               fileHandle, pageIdx, doNotReadFromFile) :
-                                           bufferPoolDefaultPages->pinWithoutAcquiringPageLock(
-                                               fileHandle, pageIdx, doNotReadFromFile);
-    }
+    uint8_t* pinWithoutAcquiringPageLock(
+        FileHandle& fileHandle, common::page_idx_t pageIdx, bool doNotReadFromFile);
 
     void setPinnedPageDirty(FileHandle& fileHandle, common::page_idx_t pageIdx);
 
     // The function assumes that the requested page is already pinned.
     void unpin(FileHandle& fileHandle, common::page_idx_t pageIdx);
-    inline void unpinWithoutAcquiringPageLock(FileHandle& fileHandle, common::page_idx_t pageIdx) {
-        return fileHandle.isLargePaged() ?
-                   bufferPoolLargePages->unpinWithoutAcquiringPageLock(fileHandle, pageIdx) :
-                   bufferPoolDefaultPages->unpinWithoutAcquiringPageLock(fileHandle, pageIdx);
-    }
-
-    void resize(uint64_t newSizeForDefaultPagePool, uint64_t newSizeForLargePagePool);
+    void unpinWithoutAcquiringPageLock(FileHandle& fileHandle, common::page_idx_t pageIdx);
 
     void removeFilePagesFromFrames(FileHandle& fileHandle);
-
     void flushAllDirtyPagesInFrames(FileHandle& fileHandle);
     void updateFrameIfPageIsInFrameWithoutPageOrFrameLock(
         FileHandle& fileHandle, uint8_t* newPage, common::page_idx_t pageIdx);
+    void removePageFromFrameWithoutFlushingIfNecessary(
+        FileHandle& fileHandle, common::page_idx_t pageIdx);
 
-    void removePageFromFrameIfNecessary(FileHandle& fileHandle, common::page_idx_t pageIdx);
+    void resize(uint64_t newSize);
+
+private:
+    uint8_t* pin(FileHandle& fileHandle, common::page_idx_t pageIdx, bool doNotReadFromFile);
+    common::page_idx_t claimAFrame(
+        FileHandle& fileHandle, common::page_idx_t pageIdx, bool doNotReadFromFile);
+    bool fillEmptyFrame(
+        Frame* frame, FileHandle& fileHandle, common::page_idx_t pageIdx, bool doNotReadFromFile);
+    bool tryEvict(Frame* frame, common::page_idx_t pageIdx, bool doNotReadFromFile);
+
+    static void clearFrameAndUnSwizzleWithoutLock(
+        Frame* frame, FileHandle& fileHandle, common::page_idx_t pageIdx);
+    static void readNewPageIntoFrame(
+        Frame& frame, FileHandle& fileHandle, common::page_idx_t pageIdx, bool doNotReadFromFile);
+    static void flushIfDirty(Frame* frame);
+    void removePageFromFrame(FileHandle& fileHandle, common::page_idx_t pageIdx, bool shouldFlush);
+
+    void enEvictionQueue(Frame* frame, common::page_idx_t frameIdx);
+    void purgeEvictionQueue();
 
 private:
     std::shared_ptr<spdlog::logger> logger;
-    std::unique_ptr<BufferPool> bufferPoolDefaultPages;
-    std::unique_ptr<BufferPool> bufferPoolLargePages;
+    std::vector<std::unique_ptr<BufferPool>> bufferCache;
+    std::atomic<uint64_t> usedMemory;
+    std::atomic<uint64_t> maxMemory;
+    std::atomic<uint64_t> numEvictionQueueInsertions;
+    std::unique_ptr<moodycamel::ConcurrentQueue<EvictionCandidate>> evictionQueue;
 };
 
 } // namespace storage

@@ -6,6 +6,17 @@
 namespace kuzu {
 namespace common {
 
+std::string Utils::getPageSizeClassString(common::PageSizeClass sizeClass) {
+    switch (sizeClass) {
+    case common::PageSizeClass::PAGE_4KB: {
+        return "4KB";
+    } break;
+    case common::PageSizeClass::PAGE_256KB: {
+        return "256KB";
+    } break;
+    }
+}
+
 void LoggerUtils::createLogger(LoggerConstants::LoggerEnum loggerEnum) {
     auto loggerName = getLoggerName(loggerEnum);
     if (!spdlog::get(loggerName)) {

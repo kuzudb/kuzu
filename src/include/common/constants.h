@@ -26,6 +26,11 @@ constexpr const uint64_t DEFAULT_CHECKPOINT_WAIT_TIMEOUT_FOR_TRANSACTIONS_TO_LEA
 
 const std::string INTERNAL_ID_SUFFIX = "_id";
 
+enum PageSizeClass : uint8_t {
+    PAGE_4KB = 12,
+    PAGE_256KB = 18,
+};
+
 // Currently the system supports files with 2 different pages size, which we refer to as
 // DEFAULT_PAGE_SIZE and LARGE_PAGE_SIZE. Default size of the page which is the unit of read/write
 // to the database files, such as to store columns or lists. For now, this value cannot be changed.
@@ -34,23 +39,21 @@ const std::string INTERNAL_ID_SUFFIX = "_id";
 // number of bytes needed for an edge is 20 bytes so 11 + log_2(20) = 15.xxx, so certainly over
 // 2^16-size pages, we cannot utilize the page for storing adjacency lists.
 struct BufferPoolConstants {
-    static constexpr uint64_t DEFAULT_PAGE_SIZE_LOG_2 = 12;
-    static constexpr uint64_t DEFAULT_PAGE_SIZE = 1 << DEFAULT_PAGE_SIZE_LOG_2;
+    static constexpr uint64_t DEFAULT_PAGE_SIZE = (std::uint64_t)1 << PageSizeClass::PAGE_4KB;
     // Page size for files with large pages, e.g., temporary files that are used by operators that
     // may require large amounts of memory.
-    static constexpr const uint64_t LARGE_PAGE_SIZE_LOG_2 = 18;
-    static constexpr uint64_t LARGE_PAGE_SIZE = 1 << LARGE_PAGE_SIZE_LOG_2;
+    static constexpr uint64_t LARGE_PAGE_SIZE = (std::uint64_t)1 << PageSizeClass::PAGE_256KB;
+    static constexpr double DEFAULT_BUFFER_POOL_RATIO = 0.8;
+
+    // All supported page sizes.
+    static constexpr PageSizeClass PAGE_SIZE_CLASSES[] = {
+        PageSizeClass::PAGE_4KB, PageSizeClass::PAGE_256KB};
+
+    static constexpr uint64_t PURGE_EVICTION_QUEUE_INTERVAL = 1024;
+    static constexpr uint64_t DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING = 1ull << 26; // (64MB)
 };
 
 struct StorageConstants {
-    // The default amount of memory pre-allocated to both the default and large pages buffer pool.
-    static constexpr uint64_t DEFAULT_BUFFER_POOL_SIZE = 1ull << 30;             // (1GB)
-    static constexpr uint64_t DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING = 1ull << 26; // (64MB)
-    // The default ratio of system memory allocated to buffer pools (including default and large).
-    static constexpr double DEFAULT_BUFFER_POOL_RATIO = 0.8;
-    // The default ratio of buffer allocated to default and large pages.
-    static constexpr double DEFAULT_PAGES_BUFFER_RATIO = 0.75;
-    static constexpr double LARGE_PAGES_BUFFER_RATIO = 1.0 - DEFAULT_PAGES_BUFFER_RATIO;
     static constexpr char OVERFLOW_FILE_SUFFIX[] = ".ovf";
     static constexpr char COLUMN_FILE_SUFFIX[] = ".col";
     static constexpr char LISTS_FILE_SUFFIX[] = ".lists";

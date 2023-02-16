@@ -19,17 +19,14 @@ namespace main {
 
 SystemConfig::SystemConfig() : SystemConfig(-1u) {}
 
-SystemConfig::SystemConfig(uint64_t bufferPoolSize) {
-    if (bufferPoolSize == -1u) {
+SystemConfig::SystemConfig(uint64_t maxSize) {
+    if (maxSize == -1u) {
         auto systemMemSize =
             (std::uint64_t)sysconf(_SC_PHYS_PAGES) * (std::uint64_t)sysconf(_SC_PAGESIZE);
-        bufferPoolSize = (uint64_t)(StorageConstants::DEFAULT_BUFFER_POOL_RATIO *
-                                    (double_t)std::min(systemMemSize, (std::uint64_t)UINTPTR_MAX));
+        maxSize = (uint64_t)(BufferPoolConstants::DEFAULT_BUFFER_POOL_RATIO *
+                             (double_t)std::min(systemMemSize, (std::uint64_t)UINTPTR_MAX));
     }
-    defaultPageBufferPoolSize =
-        (uint64_t)((double_t)bufferPoolSize * StorageConstants::DEFAULT_PAGES_BUFFER_RATIO);
-    largePageBufferPoolSize =
-        (uint64_t)((double_t)bufferPoolSize * StorageConstants::LARGE_PAGES_BUFFER_RATIO);
+    bufferPoolSize = maxSize;
     maxNumThreads = std::thread::hardware_concurrency();
 }
 
@@ -40,8 +37,7 @@ Database::Database(std::string databasePath, SystemConfig systemConfig)
     initLoggers();
     initDBDirAndCoreFilesIfNecessary();
     logger = LoggerUtils::getLogger(LoggerConstants::LoggerEnum::DATABASE);
-    bufferManager = std::make_unique<BufferManager>(
-        this->systemConfig.defaultPageBufferPoolSize, this->systemConfig.largePageBufferPoolSize);
+    bufferManager = std::make_unique<BufferManager>(this->systemConfig.bufferPoolSize);
     memoryManager = std::make_unique<MemoryManager>(bufferManager.get());
     wal = std::make_unique<WAL>(this->databasePath, *bufferManager);
     recoverIfNecessary();
@@ -106,10 +102,8 @@ void Database::setLoggingLevel(std::string loggingLevel) {
 }
 
 void Database::resizeBufferManager(uint64_t newSize) {
-    systemConfig.defaultPageBufferPoolSize = newSize * StorageConstants::DEFAULT_PAGES_BUFFER_RATIO;
-    systemConfig.largePageBufferPoolSize = newSize * StorageConstants::LARGE_PAGES_BUFFER_RATIO;
-    bufferManager->resize(
-        systemConfig.defaultPageBufferPoolSize, systemConfig.largePageBufferPoolSize);
+    systemConfig.bufferPoolSize = newSize;
+    bufferManager->resize(systemConfig.bufferPoolSize);
 }
 
 void Database::commitAndCheckpointOrRollback(

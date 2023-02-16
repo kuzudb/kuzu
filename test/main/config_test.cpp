@@ -5,12 +5,9 @@ using namespace kuzu::testing;
 
 TEST_F(ApiTest, DatabaseConfig) {
     spdlog::set_level(spdlog::level::debug);
-    ASSERT_NO_THROW(database->resizeBufferManager(StorageConstants::DEFAULT_BUFFER_POOL_SIZE * 2));
-    ASSERT_EQ(
-        getDefaultBMSize(*database), (uint64_t)(StorageConstants::DEFAULT_BUFFER_POOL_SIZE * 2 *
-                                                StorageConstants::DEFAULT_PAGES_BUFFER_RATIO));
-    ASSERT_EQ(getLargeBMSize(*database), (uint64_t)(StorageConstants::DEFAULT_BUFFER_POOL_SIZE * 2 *
-                                                    StorageConstants::LARGE_PAGES_BUFFER_RATIO));
+    ASSERT_NO_THROW(database->resizeBufferManager(
+        BufferPoolConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING * 2));
+    ASSERT_EQ(getBMSize(*database), BufferPoolConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING * 2);
 }
 
 TEST_F(ApiTest, ClientConfig) {

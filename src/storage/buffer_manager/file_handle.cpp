@@ -9,8 +9,10 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-FileHandle::FileHandle(const std::string& path, uint8_t flags)
+FileHandle::FileHandle(const std::string& path, uint8_t flags, common::PageSizeClass sizeClass)
     : logger{LoggerUtils::getLogger(LoggerConstants::LoggerEnum::STORAGE)}, flags(flags) {
+    pageSize = (std::uint64_t)1 << sizeClass;
+    pageSizeClassIdx = Utils::getPageSizeClassIdx(sizeClass);
     logger->trace("FileHandle: Path {}", path);
     if (!isNewTmpFile()) {
         constructExistingFileHandle(path);
@@ -53,6 +55,7 @@ void FileHandle::initPageIdxToFrameMapAndLocks() {
 }
 
 bool FileHandle::acquirePageLock(page_idx_t pageIdx, bool block) {
+    std::shared_lock sLock(fhSharedMutex);
     if (block) {
         while (!acquire(pageIdx)) {} // spinning
         return true;
@@ -62,8 +65,9 @@ bool FileHandle::acquirePageLock(page_idx_t pageIdx, bool block) {
 
 bool FileHandle::acquire(page_idx_t pageIdx) {
     if (pageIdx >= pageLocks.size()) {
-        throw RuntimeException(
-            StringUtils::string_format("pageIdx %d is >= pageLocks.size()", pageIdx));
+        throw RuntimeException(StringUtils::string_format(
+            "pageIdx %d is >= pageLocks.size() %d from file %s with flags %d", pageIdx,
+            pageLocks.size(), fileInfo->path.c_str(), flags));
     }
     auto retVal = !pageLocks[pageIdx]->test_and_set(std::memory_order_acquire);
     return retVal;

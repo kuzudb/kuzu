@@ -10,6 +10,7 @@
 #include "common/exception.h"
 #include "common/file_utils.h"
 #include "common/types/types.h"
+#include "common/utils.h"
 
 namespace spdlog {
 class logger;
@@ -33,19 +34,18 @@ class BufferPool;
 // However, the query processor functions and those that change the internal structures *CANNOT* be
 // called concurrently. The caller needs to synchronize these calls.
 class FileHandle {
-    friend class BufferPool;
 
 public:
-    constexpr static uint8_t isLargePagedMask{0b0000'0001}; // represents 1st least sig. bit (LSB)
-    constexpr static uint8_t isNewInMemoryTmpFileMask{0b0000'0010}; // represents 2nd LSB
+    constexpr static uint8_t isNewInMemoryTmpFileMask{0b0000'0001}; // represents 2nd LSB
     // createIfNotExistsMask only applies to existing db files; tmp i-memory files are not created
-    constexpr static uint8_t createIfNotExistsMask{0b0000'0100}; // represents 3rd LSB
+    constexpr static uint8_t createIfNotExistsMask{0b0000'0010}; // represents 3rd LSB
 
     constexpr static uint8_t O_PERSISTENT_FILE_NO_CREATE{0b0000'0000};
-    constexpr static uint8_t O_PERSISTENT_FILE_CREATE_NOT_EXISTS{0b0000'0100};
-    constexpr static uint8_t O_IN_MEM_TEMP_FILE{0b0000'0011};
+    constexpr static uint8_t O_PERSISTENT_FILE_CREATE_NOT_EXISTS{0b0000'0010};
+    constexpr static uint8_t O_IN_MEM_TEMP_FILE{0b0000'0001};
 
-    FileHandle(const std::string& path, uint8_t flags);
+    FileHandle(const std::string& path, uint8_t flags,
+        common::PageSizeClass sizeClass = common::PageSizeClass::PAGE_4KB);
 
     // This function is intended to be used after a fileInfo is created and we want the file
     // to have not pages and page locks. Should be called after ensuring that the buffer manager
@@ -82,8 +82,6 @@ public:
     virtual common::page_idx_t addNewPage();
     virtual void removePageIdxAndTruncateIfNecessary(common::page_idx_t pageIdxToRemove);
 
-    inline bool isLargePaged() const { return flags & isLargePagedMask; }
-
     inline bool isNewTmpFile() const { return flags & isNewInMemoryTmpFileMask; }
     inline bool createFileIfNotExists() const { return flags & createIfNotExistsMask; }
     inline common::page_idx_t getNumPages() const { return numPages; }
@@ -98,11 +96,18 @@ public:
 
     bool acquirePageLock(common::page_idx_t pageIdx, bool block);
 
-    void releasePageLock(common::page_idx_t pageIdx) { pageLocks[pageIdx]->clear(); }
+    inline void releasePageLock(common::page_idx_t pageIdx) { pageLocks[pageIdx]->clear(); }
 
-    inline uint64_t getPageSize() const {
-        return isLargePaged() ? common::BufferPoolConstants::LARGE_PAGE_SIZE :
-                                common::BufferPoolConstants::DEFAULT_PAGE_SIZE;
+    inline uint64_t getPageSize() const { return pageSize; }
+
+    inline uint64_t getPageSizeClassIdx() const { return pageSizeClassIdx; }
+
+    inline void swizzle(common::page_idx_t pageIdx, common::page_idx_t swizzledVal) {
+        pageIdxToFrameMap[pageIdx]->store(swizzledVal);
+    }
+
+    inline void unswizzle(common::page_idx_t pageIdx) {
+        pageIdxToFrameMap[pageIdx]->store(UINT32_MAX);
     }
 
 protected:
@@ -118,14 +123,6 @@ protected:
 
     bool acquire(common::page_idx_t pageIdx);
 
-    inline void swizzle(common::page_idx_t pageIdx, common::page_idx_t swizzledVal) {
-        pageIdxToFrameMap[pageIdx]->store(swizzledVal);
-    }
-
-    inline void unswizzle(common::page_idx_t pageIdx) {
-        pageIdxToFrameMap[pageIdx]->store(UINT32_MAX);
-    }
-
     inline void addNewPageLockAndFramePtrWithoutLock(common::page_idx_t pageIdx) {
         pageLocks[pageIdx] = std::make_unique<std::atomic_flag>();
         pageIdxToFrameMap[pageIdx] = std::make_unique<std::atomic<common::page_idx_t>>(UINT32_MAX);
@@ -138,6 +135,8 @@ protected:
     std::vector<std::unique_ptr<std::atomic_flag>> pageLocks;
     std::vector<std::unique_ptr<std::atomic<common::page_idx_t>>> pageIdxToFrameMap;
     uint32_t numPages;
+    common::page_offset_t pageSize;
+    uint64_t pageSizeClassIdx;
     // This is the maximum number of pages the filehandle can currently support.
     uint32_t pageCapacity;
     // Intended to be used to coordinate calls to functions that change in the internal data

@@ -107,11 +107,8 @@ public:
         DBTest::SetUp();
         catalog = getCatalog(*database);
         profiler = std::make_unique<Profiler>();
-        bufferManager =
-            std::make_unique<BufferManager>(StorageConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING *
-                                                StorageConstants::DEFAULT_PAGES_BUFFER_RATIO,
-                StorageConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING *
-                    StorageConstants::LARGE_PAGES_BUFFER_RATIO);
+        bufferManager = std::make_unique<BufferManager>(
+            BufferPoolConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING);
         memoryManager = std::make_unique<MemoryManager>(bufferManager.get());
         executionContext = std::make_unique<ExecutionContext>(
             1 /* numThreads */, profiler.get(), memoryManager.get(), bufferManager.get());

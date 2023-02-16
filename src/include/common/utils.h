@@ -19,6 +19,19 @@ class logger;
 namespace kuzu {
 namespace common {
 
+class Utils {
+public:
+    static inline uint64_t getPageSizeClassIdx(common::PageSizeClass sizeClass) {
+        return sizeClass == PageSizeClass::PAGE_4KB ? 0 : 1;
+    }
+
+    static uint64_t getPageSizeForSizeClass(common::PageSizeClass sizeClass) {
+        return (uint64_t)1 << sizeClass;
+    }
+
+    static std::string getPageSizeClassString(common::PageSizeClass sizeClass);
+};
+
 class LoggerUtils {
 public:
     // Note: create logger is not thread safe.

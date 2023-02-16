@@ -10,13 +10,13 @@ namespace common {
 
 struct BufferBlock {
 public:
-    explicit BufferBlock(std::unique_ptr<storage::MemoryBlock> block)
-        : size{block->size}, currentOffset{0}, block{std::move(block)} {}
+    explicit BufferBlock(std::unique_ptr<storage::BlockHandle> block)
+        : size{block->blockSize}, currentOffset{0}, block{std::move(block)} {}
 
 public:
     uint64_t size;
     uint64_t currentOffset;
-    std::unique_ptr<storage::MemoryBlock> block;
+    std::unique_ptr<storage::BlockHandle> block;
 
     inline void resetCurrentOffset() { currentOffset = 0; }
 };
@@ -26,15 +26,6 @@ class InMemOverflowBuffer {
 public:
     explicit InMemOverflowBuffer(storage::MemoryManager* memoryManager)
         : memoryManager{memoryManager}, currentBlock{nullptr} {};
-
-    // The blocks used are allocated through the MemoryManager but are backed by the
-    // BufferManager. We need to therefore release them back by calling
-    // memoryManager->freeBlock.
-    ~InMemOverflowBuffer() {
-        for (auto& block : blocks) {
-            memoryManager->freeBlock(block->block->pageIdx);
-        }
-    }
 
     uint8_t* allocateSpace(uint64_t size);
 
@@ -54,9 +45,6 @@ public:
     inline void resetBuffer() {
         if (!blocks.empty()) {
             auto firstBlock = std::move(blocks[0]);
-            for (auto i = 1u; i < blocks.size(); ++i) {
-                memoryManager->freeBlock(blocks[i]->block->pageIdx);
-            }
             blocks.clear();
             firstBlock->resetCurrentOffset();
             blocks.push_back(std::move(firstBlock));
