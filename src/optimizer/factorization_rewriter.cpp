@@ -3,6 +3,7 @@
 #include "planner/logical_plan/logical_operator/logical_extend.h"
 #include "planner/logical_plan/logical_operator/logical_flatten.h"
 #include "planner/logical_plan/logical_operator/logical_hash_join.h"
+#include "planner/logical_plan/logical_operator/logical_intersect.h"
 
 using namespace kuzu::planner;
 
@@ -25,6 +26,9 @@ void FactorizationRewriter::visitOperator(planner::LogicalOperator* op) {
     case LogicalOperatorType::HASH_JOIN: {
         visitHashJoin(op);
     } break;
+    case LogicalOperatorType::INTERSECT: {
+        visitIntersect(op);
+    }
     default:
         break;
     }
@@ -48,6 +52,13 @@ void FactorizationRewriter::visitHashJoin(planner::LogicalOperator* op) {
     auto groupsPosToFlattenOnBuildSide =
         LogicalHashJoinFactorizationResolver::getGroupsPosToFlattenOnBuildSide(hashJoin);
     hashJoin->setChild(1, appendFlattens(hashJoin->getChild(1), groupsPosToFlattenOnBuildSide));
+}
+
+void FactorizationRewriter::visitIntersect(planner::LogicalOperator* op) {
+    auto intersect = (LogicalIntersect*)op;
+    auto groupsPosToFlattenOnProbeSide =
+        LogicalIntersectFactorizationResolver::getGroupsPosToFlattenOnProbeSide(intersect);
+    intersect->setChild(0, appendFlattens(intersect->getChild(0), groupsPosToFlattenOnProbeSide));
 }
 
 std::shared_ptr<planner::LogicalOperator> FactorizationRewriter::appendFlattens(

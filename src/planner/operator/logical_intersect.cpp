@@ -35,5 +35,15 @@ std::unique_ptr<LogicalOperator> LogicalIntersect::copy() {
     return result;
 }
 
+std::unordered_set<f_group_pos>
+LogicalIntersectFactorizationResolver::getGroupsPosToFlattenOnProbeSide(
+    const binder::expression_vector& boundNodeIDs, LogicalOperator* probeChild) {
+    std::unordered_set<f_group_pos> result;
+    for (auto& boundNodeID : boundNodeIDs) {
+        result.insert(probeChild->getSchema()->getGroupPos(*boundNodeID));
+    }
+    return result;
+}
+
 } // namespace planner
 } // namespace kuzu

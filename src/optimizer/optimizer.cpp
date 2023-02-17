@@ -8,14 +8,13 @@ namespace kuzu {
 namespace optimizer {
 
 void Optimizer::optimize(planner::LogicalPlan* plan) {
-//    IndexNestedLoopJoinOptimizer::rewrite(plan->getLastOperator());
-
     auto removeFactorizationRewriter = RemoveFactorizationRewriter();
     removeFactorizationRewriter.rewrite(plan);
 
+    //    IndexNestedLoopJoinOptimizer::rewrite(plan->getLastOperator());
+
     auto factorizationRewriter = FactorizationRewriter();
     factorizationRewriter.rewrite(plan);
-
 }
 
 } // namespace optimizer

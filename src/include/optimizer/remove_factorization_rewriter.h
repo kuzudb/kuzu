@@ -10,7 +10,8 @@ public:
 private:
     void visitOperator(planner::LogicalOperator* op);
 
-    std::shared_ptr<planner::LogicalOperator> getNonFlattenOp(std::shared_ptr<planner::LogicalOperator> op);
+    std::shared_ptr<planner::LogicalOperator> getNonFlattenOp(
+        std::shared_ptr<planner::LogicalOperator> op);
 };
 
 } // namespace optimizer

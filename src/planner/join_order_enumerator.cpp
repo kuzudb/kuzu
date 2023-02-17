@@ -338,13 +338,13 @@ void JoinOrderEnumerator::planWCOJoin(const SubqueryGraph& subgraph,
     auto newSubgraph = subgraph;
     std::vector<SubqueryGraph> prevSubgraphs;
     prevSubgraphs.push_back(subgraph);
-    std::vector<std::shared_ptr<NodeExpression>> boundNodes;
+    expression_vector boundNodeIDs;
     std::vector<std::unique_ptr<LogicalPlan>> relPlans;
     for (auto& rel : rels) {
         auto boundNode = rel->getSrcNodeName() == intersectNode->getUniqueName() ?
                              rel->getDstNode() :
                              rel->getSrcNode();
-        boundNodes.push_back(boundNode);
+        boundNodeIDs.push_back(boundNode->getInternalIDProperty());
         auto relPos = context->getQueryGraph()->getQueryRelPos(rel->getUniqueName());
         auto prevSubgraph = context->getEmptySubqueryGraph();
         prevSubgraph.addQueryRel(relPos);
@@ -366,7 +366,8 @@ void JoinOrderEnumerator::planWCOJoin(const SubqueryGraph& subgraph,
         for (auto& relPlan : relPlans) {
             rightPlansCopy.push_back(relPlan->shallowCopy());
         }
-        appendIntersect(intersectNode, boundNodes, *leftPlanCopy, rightPlansCopy);
+        appendIntersect(
+            intersectNode->getInternalIDProperty(), boundNodeIDs, *leftPlanCopy, rightPlansCopy);
         for (auto& predicate : predicates) {
             queryPlanner->appendFilter(predicate, *leftPlanCopy);
         }
@@ -661,22 +662,23 @@ void JoinOrderEnumerator::appendMarkJoin(const expression_vector& joinNodeIDs,
     probePlan.setLastOperator(std::move(hashJoin));
 }
 
-void JoinOrderEnumerator::appendIntersect(const std::shared_ptr<NodeExpression>& intersectNode,
-    std::vector<std::shared_ptr<NodeExpression>>& boundNodes, LogicalPlan& probePlan,
+void JoinOrderEnumerator::appendIntersect(const std::shared_ptr<Expression>& intersectNodeID,
+    binder::expression_vector& boundNodeIDs, LogicalPlan& probePlan,
     std::vector<std::unique_ptr<LogicalPlan>>& buildPlans) {
-    auto intersectNodeID = intersectNode->getInternalIDProperty();
-    assert(boundNodes.size() == buildPlans.size());
+    for (auto groupPos : LogicalIntersectFactorizationResolver::getGroupsPosToFlattenOnProbeSide(
+             boundNodeIDs, probePlan.getLastOperator().get())) {
+        QueryPlanner::appendFlattenIfNecessary(groupPos, probePlan);
+    }
+    assert(boundNodeIDs.size() == buildPlans.size());
     std::vector<std::shared_ptr<LogicalOperator>> buildChildren;
     std::vector<std::unique_ptr<LogicalIntersectBuildInfo>> buildInfos;
     for (auto i = 0u; i < buildPlans.size(); ++i) {
-        auto boundNodeID = boundNodes[i]->getInternalIDProperty();
-        QueryPlanner::appendFlattenIfNecessary(
-            probePlan.getSchema()->getGroupPos(*boundNodeID), probePlan);
+        auto boundNodeID = boundNodeIDs[i];
         auto buildPlan = buildPlans[i].get();
         auto buildSchema = buildPlan->getSchema();
         QueryPlanner::appendFlattenIfNecessary(buildSchema->getGroupPos(*boundNodeID), *buildPlan);
-        auto expressions = buildSchema->getExpressionsInScope();
-        auto buildInfo = std::make_unique<LogicalIntersectBuildInfo>(boundNodeID, expressions);
+        auto buildInfo = std::make_unique<LogicalIntersectBuildInfo>(
+            boundNodeID, buildSchema->getExpressionsInScope());
         buildChildren.push_back(buildPlan->getLastOperator());
         buildInfos.push_back(std::move(buildInfo));
     }

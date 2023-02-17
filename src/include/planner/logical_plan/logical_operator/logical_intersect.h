@@ -52,5 +52,18 @@ private:
     std::vector<std::unique_ptr<LogicalIntersectBuildInfo>> buildInfos;
 };
 
+class LogicalIntersectFactorizationResolver {
+public:
+    static std::unordered_set<f_group_pos> getGroupsPosToFlattenOnProbeSide(LogicalIntersect* intersect) {
+        binder::expression_vector boundNodeIDs;
+        for (auto i = 0u; i < intersect->getNumBuilds(); ++i) {
+            boundNodeIDs.push_back(intersect->getBuildInfo(i)->keyNodeID);
+        }
+        return getGroupsPosToFlattenOnProbeSide(boundNodeIDs, intersect->getChild(0).get());
+    }
+    static std::unordered_set<f_group_pos> getGroupsPosToFlattenOnProbeSide(
+        const binder::expression_vector& boundNodeIDs, LogicalOperator* probeChild);
+};
+
 } // namespace planner
 } // namespace kuzu
