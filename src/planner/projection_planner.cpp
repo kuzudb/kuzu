@@ -114,41 +114,6 @@ void ProjectionPlanner::appendAggregate(const expression_vector& expressionsToGr
              expressionsToAggregate, plan.getLastOperator().get())) {
         QueryPlanner::appendFlattenIfNecessary(groupPos, plan);
     }
-    //    bool hasDistinctFunc = false;
-    //    for (auto& expressionToAggregate : expressionsToAggregate) {
-    //        auto& functionExpression = (AggregateFunctionExpression&)*expressionToAggregate;
-    //        if (functionExpression.isDistinct()) {
-    //            hasDistinctFunc = true;
-    //        }
-    //    }
-    //    if (hasDistinctFunc) { // Flatten all inputs.
-    //        for (auto& expressionToGroupBy : expressionsToGroupBy) {
-    //            auto dependentGroupsPos =
-    //            plan.getSchema()->getDependentGroupsPos(expressionToGroupBy);
-    //            QueryPlanner::appendFlattens(dependentGroupsPos, plan);
-    //        }
-    //        for (auto& expressionToAggregate : expressionsToAggregate) {
-    //            auto dependentGroupsPos =
-    //                plan.getSchema()->getDependentGroupsPos(expressionToAggregate);
-    //            QueryPlanner::appendFlattens(dependentGroupsPos, plan);
-    //        }
-    //    } else {
-    //        // Flatten all but one for ALL group by keys.
-    //        std::unordered_set<uint32_t> groupByPoses;
-    //        for (auto& expressionToGroupBy : expressionsToGroupBy) {
-    //            auto dependentGroupsPos =
-    //            plan.getSchema()->getDependentGroupsPos(expressionToGroupBy);
-    //            groupByPoses.insert(dependentGroupsPos.begin(), dependentGroupsPos.end());
-    //        }
-    //        QueryPlanner::appendFlattensButOne(groupByPoses, plan);
-    //        if (expressionsToAggregate.size() > 1) {
-    //            for (auto& expressionToAggregate : expressionsToAggregate) {
-    //                auto dependentGroupsPos =
-    //                    plan.getSchema()->getDependentGroupsPos(expressionToAggregate);
-    //                QueryPlanner::appendFlattens(dependentGroupsPos, plan);
-    //            }
-    //        }
-    //    }
     auto aggregate = make_shared<LogicalAggregate>(
         expressionsToGroupBy, expressionsToAggregate, plan.getLastOperator());
     aggregate->computeSchema();
