@@ -41,6 +41,8 @@ public:
 
     void computeSchema() override;
 
+    //    static bool requireFlatProbeKeys()
+
     inline std::string getExpressionsForPrinting() const override {
         return binder::ExpressionUtil::toString(joinNodeIDs);
     }
@@ -69,6 +71,35 @@ private:
     std::shared_ptr<binder::Expression> mark; // when joinType is Mark
     bool isProbeAcc;
     binder::expression_vector expressionsToMaterialize;
+};
+
+class LogicalHashJoinFactorizationResolver {
+public:
+    static std::unordered_set<f_group_pos> getGroupsPosToFlattenOnProbeSide(
+        LogicalHashJoin* hashJoin) {
+        return getGroupsPosToFlattenOnProbeSide(
+            hashJoin->getJoinNodeIDs(), hashJoin->getChild(0).get(), hashJoin->getChild(1).get());
+    }
+    static std::unordered_set<f_group_pos> getGroupsPosToFlattenOnProbeSide(
+        const binder::expression_vector& joinNodeIDs, LogicalOperator* probeChild,
+        LogicalOperator* buildChild);
+    //    static std::unordered_set<f_group_pos> getGroupsPosToFlattenOnBuildSide(
+    //        LogicalHashJoin* hashJoin);
+    //    static std::unordered_set<f_group_pos> getGroupsPosToFlattenOnBuildSide();
+
+private:
+    // Flat probe side key group in either of the following two cases:
+    // 1. there are multiple join nodes;
+    // 2. if the build side contains more than one group or the build side has projected out data
+    // chunks, which may increase the multiplicity of data chunks in the build side. The key is to
+    // keep probe side key unflat only when we know that there is only 0 or 1 match for each key.
+    // TODO(Guodong): when the build side has only flat payloads, we should consider getting rid of
+    // flattening probe key, instead duplicating keys as in vectorized processing if necessary.
+    static bool requireFlatProbeKeys(
+        const binder::expression_vector& joinNodeIDs, LogicalOperator* buildChild);
+
+    static bool isJoinKeyUniqueOnBuildSide(
+        const binder::Expression& joinNodeID, LogicalOperator* buildChild);
 };
 
 } // namespace planner

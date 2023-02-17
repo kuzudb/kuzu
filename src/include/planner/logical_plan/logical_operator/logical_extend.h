@@ -29,9 +29,7 @@ public:
     inline std::shared_ptr<binder::RelExpression> getRel() const { return rel; }
     inline common::RelDirection getDirection() const { return direction; }
     inline binder::expression_vector getProperties() const { return properties; }
-
-    inline bool requireFlatInput() const { return extendToNewGroup | rel->isVariableLength(); }
-    f_group_pos getGroupPosToFlatten() const;
+    inline bool isExtendToNewGroup() const { return extendToNewGroup; }
 
     inline std::unique_ptr<LogicalOperator> copy() override {
         return make_unique<LogicalExtend>(
@@ -46,6 +44,23 @@ protected:
     binder::expression_vector properties;
     // When extend might increase cardinality (i.e. n * m), we extend to a new factorization group.
     bool extendToNewGroup;
+};
+
+class LogicalExtendFactorizationResolver {
+public:
+    static bool requireFlatBoundNode(LogicalExtend* extend) {
+        return requireFlatBoundNode(extend->isExtendToNewGroup(), *extend->getRel());
+    }
+    static f_group_pos getGroupPosToFlatten(LogicalExtend* extend) {
+        return getGroupPosToFlatten(*extend->getBoundNode(), extend->getChild(0).get());
+    }
+    static bool requireFlatBoundNode(bool extendToNewGroup, const binder::RelExpression& rel) {
+        return extendToNewGroup || rel.isVariableLength();
+    }
+    static f_group_pos getGroupPosToFlatten(
+        const binder::NodeExpression& boundNode, LogicalOperator* child) {
+        return child->getSchema()->getGroupPos(boundNode.getInternalIDPropertyName());
+    }
 };
 
 } // namespace planner

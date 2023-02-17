@@ -2,6 +2,7 @@
 
 #include "planner/logical_plan/logical_operator/logical_extend.h"
 #include "planner/logical_plan/logical_operator/logical_flatten.h"
+#include "planner/logical_plan/logical_operator/logical_hash_join.h"
 
 using namespace kuzu::planner;
 
@@ -21,6 +22,9 @@ void FactorizationRewriter::visitOperator(planner::LogicalOperator* op) {
     case LogicalOperatorType::EXTEND: {
         visitExtend(op);
     } break;
+    case LogicalOperatorType::HASH_JOIN: {
+        visitHashJoin(op);
+    } break;
     default:
         break;
     }
@@ -29,20 +33,38 @@ void FactorizationRewriter::visitOperator(planner::LogicalOperator* op) {
 
 void FactorizationRewriter::visitExtend(planner::LogicalOperator* op) {
     auto extend = (LogicalExtend*)op;
-    if (!extend->requireFlatInput()) {
+    if (!LogicalExtendFactorizationResolver::requireFlatBoundNode(extend)) {
         return;
     }
-    auto childSchema = extend->getChild(0)->getSchema();
-    auto groupPosToFlatten = extend->getGroupPosToFlatten();
-    if (childSchema->getGroup(groupPosToFlatten)->isFlat()) {
-        return;
+    auto groupPosToFlatten = LogicalExtendFactorizationResolver::getGroupPosToFlatten(extend);
+    extend->setChild(0, appendFlattenIfNecessary(extend->getChild(0), groupPosToFlatten));
+}
+
+void FactorizationRewriter::visitHashJoin(planner::LogicalOperator* op) {
+    auto hashJoin = (LogicalHashJoin*)op;
+    auto groupsPosToFlatten =
+        LogicalHashJoinFactorizationResolver::getGroupsPosToFlattenOnProbeSide(hashJoin);
+    hashJoin->setChild(0, appendFlattens(hashJoin->getChild(0), groupsPosToFlatten));
+}
+
+std::shared_ptr<planner::LogicalOperator> FactorizationRewriter::appendFlattens(
+    std::shared_ptr<planner::LogicalOperator> op, std::unordered_set<f_group_pos> groupsPos) {
+    auto currentChild = std::move(op);
+    for (auto groupPos : groupsPos) {
+        currentChild = appendFlattenIfNecessary(std::move(currentChild), groupPos);
     }
-    auto expression = childSchema->getExpressionsInScope(groupPosToFlatten)[0];
-    // TODO: refactor as function
-    auto flatten = std::make_shared<LogicalFlatten>(expression, extend->getChild(0));
+    return currentChild;
+}
+
+std::shared_ptr<planner::LogicalOperator> FactorizationRewriter::appendFlattenIfNecessary(
+    std::shared_ptr<planner::LogicalOperator> op, planner::f_group_pos groupPos) {
+    if (op->getSchema()->getGroup(groupPos)->isFlat()) {
+        return op;
+    }
+    auto expression = op->getSchema()->getExpressionsInScope(groupPos)[0];
+    auto flatten = std::make_shared<LogicalFlatten>(expression, std::move(op));
     flatten->computeSchema();
-    extend->setChild(0, std::move(flatten));
-    extend->computeSchema();
+    return flatten;
 }
 
 } // namespace optimizer

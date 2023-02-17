@@ -113,8 +113,7 @@ private:
     void appendIndexScanNode(std::shared_ptr<NodeExpression>& node,
         std::shared_ptr<Expression> indexExpression, LogicalPlan& plan);
 
-    bool needFlatInput(
-        RelExpression& rel, NodeExpression& boundNode, common::RelDirection direction);
+
     bool needExtendToNewGroup(
         RelExpression& rel, NodeExpression& boundNode, common::RelDirection direction);
     void appendExtend(std::shared_ptr<NodeExpression> boundNode,

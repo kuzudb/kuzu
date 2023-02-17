@@ -1,5 +1,6 @@
 #include "planner/logical_plan/logical_operator/logical_hash_join.h"
 
+#include "planner/logical_plan/logical_operator/logical_scan_node.h"
 #include "planner/logical_plan/logical_operator/sink_util.h"
 
 namespace kuzu {
@@ -54,6 +55,59 @@ void LogicalHashJoin::computeSchema() {
         auto markPos = *probeSideKeyGroupPositions.begin();
         schema->insertToGroupAndScope(mark, markPos);
     }
+}
+
+std::unordered_set<f_group_pos>
+LogicalHashJoinFactorizationResolver::getGroupsPosToFlattenOnProbeSide(
+    const binder::expression_vector& joinNodeIDs, LogicalOperator* probeChild,
+    LogicalOperator* buildChild) {
+    std::unordered_set<f_group_pos> result;
+    if (!requireFlatProbeKeys(joinNodeIDs, buildChild)) {
+        return result;
+    }
+    auto probeSchema = probeChild->getSchema();
+    for (auto& joinNodeID : joinNodeIDs) {
+        result.insert(probeSchema->getGroupPos(*joinNodeID));
+    }
+    return result;
+}
+
+bool LogicalHashJoinFactorizationResolver::requireFlatProbeKeys(
+    const binder::expression_vector& joinNodeIDs, kuzu::planner::LogicalOperator* buildChild) {
+    if (joinNodeIDs.size() > 1) {
+        return true;
+    }
+    auto joinNode = joinNodeIDs[0].get();
+    return !isJoinKeyUniqueOnBuildSide(*joinNode, buildChild);
+}
+
+bool LogicalHashJoinFactorizationResolver::isJoinKeyUniqueOnBuildSide(
+    const binder::Expression& joinNodeID, LogicalOperator* buildChild) {
+    auto buildSchema = buildChild->getSchema();
+    auto numGroupsInScope = buildSchema->getGroupsPosInScope().size();
+    bool hasProjectedOutGroups = buildSchema->getNumGroups() > numGroupsInScope;
+    if (numGroupsInScope > 1 || hasProjectedOutGroups) {
+        return false;
+    }
+    // Now there is a single factorization group, we need to further make sure joinNodeID comes from
+    // ScanNodeID operator. Because if joinNodeID comes from a ColExtend we cannot guarantee the
+    // reverse mapping is still many-to-one. We look for the most simple pattern where build plan is
+    // linear.
+    auto firstop = buildChild;
+    while (firstop->getNumChildren() != 0) {
+        if (firstop->getNumChildren() > 1) {
+            return false;
+        }
+        firstop = firstop->getChild(0).get();
+    }
+    if (firstop->getOperatorType() != LogicalOperatorType::SCAN_NODE) {
+        return false;
+    }
+    auto scanNodeID = (LogicalScanNode*)firstop;
+    if (scanNodeID->getNode()->getInternalIDPropertyName() != joinNodeID.getUniqueName()) {
+        return false;
+    }
+    return true;
 }
 
 } // namespace planner

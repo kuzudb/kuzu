@@ -97,5 +97,10 @@ protected:
     std::vector<std::shared_ptr<LogicalOperator>> children;
 };
 
+//class LogicalOperatorFactorizationResolver {
+//public:
+//
+//};
+
 } // namespace planner
 } // namespace kuzu
