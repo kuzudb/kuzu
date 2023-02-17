@@ -58,8 +58,8 @@ public:
         return extendToNewGroup || rel.isVariableLength();
     }
     static f_group_pos getGroupPosToFlatten(
-        const binder::NodeExpression& boundNode, LogicalOperator* child) {
-        return child->getSchema()->getGroupPos(boundNode.getInternalIDPropertyName());
+        const binder::NodeExpression& boundNode, LogicalOperator* extendChild) {
+        return extendChild->getSchema()->getGroupPos(boundNode.getInternalIDPropertyName());
     }
 };
 

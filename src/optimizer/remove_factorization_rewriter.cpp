@@ -30,6 +30,9 @@ void RemoveFactorizationRewriter::visitOperator(planner::LogicalOperator* op) {
     case LogicalOperatorType::PROJECTION: {
         op->setChild(0, getNonFlattenOp(op->getChild(0)));
     }
+    case LogicalOperatorType::AGGREGATE: {
+        op->setChild(0, getNonFlattenOp(op->getChild(0)));
+    }
     default:
         break;
     }

@@ -18,5 +18,16 @@ std::unordered_set<f_group_pos> FlattenAllButOneFactorizationResolver::getGroups
     return result;
 }
 
+std::unordered_set<f_group_pos> FlattenAllFactorizationSolver::getGroupsPosToFlatten(
+    const std::unordered_set<f_group_pos>& groupsPos, Schema* schema) {
+    std::unordered_set<f_group_pos> result;
+    for (auto groupPos : groupsPos) {
+        if (!schema->getGroup(groupPos)->isFlat()) {
+            result.insert(groupPos);
+        }
+    }
+    return result;
+}
+
 } // namespace planner
 } // namespace kuzu

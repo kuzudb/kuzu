@@ -1,6 +1,7 @@
 #include "optimizer/factorization_rewriter.h"
 
 #include "planner/logical_plan/logical_operator/factorization_resolver.h"
+#include "planner/logical_plan/logical_operator/logical_aggregate.h"
 #include "planner/logical_plan/logical_operator/logical_extend.h"
 #include "planner/logical_plan/logical_operator/logical_flatten.h"
 #include "planner/logical_plan/logical_operator/logical_hash_join.h"
@@ -33,6 +34,9 @@ void FactorizationRewriter::visitOperator(planner::LogicalOperator* op) {
     } break;
     case LogicalOperatorType::PROJECTION: {
         visitProjection(op);
+    } break;
+    case LogicalOperatorType::AGGREGATE: {
+        visitAggregate(op);
     } break;
     default:
         break;
@@ -75,13 +79,22 @@ void FactorizationRewriter::visitIntersect(planner::LogicalOperator* op) {
 
 void FactorizationRewriter::visitProjection(planner::LogicalOperator* op) {
     auto projection = (LogicalProjection*)op;
-    auto childSchema = op->getChild(0)->getSchema();
     for (auto& expression : projection->getExpressionsToProject()) {
-        auto dependentGroupsPos = childSchema->getDependentGroupsPos(expression);
+        auto dependentGroupsPos = op->getChild(0)->getSchema()->getDependentGroupsPos(expression);
         auto groupsPosToFlatten = FlattenAllButOneFactorizationResolver::getGroupsPosToFlatten(
-            dependentGroupsPos, childSchema);
+            dependentGroupsPos, op->getChild(0)->getSchema());
         projection->setChild(0, appendFlattens(projection->getChild(0), groupsPosToFlatten));
     }
+}
+
+void FactorizationRewriter::visitAggregate(planner::LogicalOperator* op) {
+    auto aggregate = (LogicalAggregate*)op;
+    auto groupsPosToFlattenForGroupBy =
+        LogicalAggregateFactorizationSolver::getGroupsPosToFlattenForGroupBy(aggregate);
+    aggregate->setChild(0, appendFlattens(aggregate->getChild(0), groupsPosToFlattenForGroupBy));
+    auto groupsPosToFlattenForAggregate =
+        LogicalAggregateFactorizationSolver::getGroupsPosToFlattenForAggregate(aggregate);
+    aggregate->setChild(0, appendFlattens(aggregate->getChild(0), groupsPosToFlattenForAggregate));
 }
 
 std::shared_ptr<planner::LogicalOperator> FactorizationRewriter::appendFlattens(

@@ -36,5 +36,26 @@ private:
     binder::expression_vector expressionsToAggregate;
 };
 
+class LogicalAggregateFactorizationSolver {
+public:
+    static std::unordered_set<f_group_pos> getGroupsPosToFlattenForGroupBy(
+        LogicalAggregate* aggregate) {
+        return getGroupsPosToFlattenForGroupBy(aggregate->getExpressionsToGroupBy(),
+            aggregate->getExpressionsToAggregate(), aggregate->getChild(0).get());
+    }
+    static std::unordered_set<f_group_pos> getGroupsPosToFlattenForAggregate(LogicalAggregate* aggregate) {
+        return getGroupsPosToFlattenForAggregate(
+            aggregate->getExpressionsToAggregate(), aggregate->getChild(0).get());
+    }
+    static std::unordered_set<f_group_pos> getGroupsPosToFlattenForGroupBy(
+        const binder::expression_vector& expressionsToGroupBy,
+        const binder::expression_vector& expressionsToAggregate, LogicalOperator* aggregateChild);
+    static std::unordered_set<f_group_pos> getGroupsPosToFlattenForAggregate(
+        const binder::expression_vector& expressionsToAggregate, LogicalOperator* aggregateChild);
+
+private:
+    static bool hasDistinctAggregate(const binder::expression_vector& expressionsToAggregate);
+};
+
 } // namespace planner
 } // namespace kuzu
