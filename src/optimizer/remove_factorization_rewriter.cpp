@@ -26,14 +26,18 @@ void RemoveFactorizationRewriter::visitOperator(planner::LogicalOperator* op) {
         for (auto i = 0u; i < op->getNumChildren(); ++i) {
             op->setChild(i, getNonFlattenOp(op->getChild(i)));
         }
-    } break ;
+    } break;
+    case LogicalOperatorType::PROJECTION: {
+        op->setChild(0, getNonFlattenOp(op->getChild(0)));
+    }
     default:
         break;
     }
     op->getSchema()->clear();
 }
 
-std::shared_ptr<planner::LogicalOperator> RemoveFactorizationRewriter::getNonFlattenOp(std::shared_ptr<planner::LogicalOperator> op) {
+std::shared_ptr<planner::LogicalOperator> RemoveFactorizationRewriter::getNonFlattenOp(
+    std::shared_ptr<planner::LogicalOperator> op) {
     auto currentOp = op;
     while (currentOp->getOperatorType() == LogicalOperatorType::FLATTEN) {
         currentOp = currentOp->getChild(0);

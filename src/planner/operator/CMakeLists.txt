@@ -1,6 +1,7 @@
 add_library(kuzu_planner_operator
         OBJECT
         base_logical_operator.cpp
+        factorization_resolver.cpp
         logical_accumulate.cpp
         logical_aggregate.cpp
         logical_create.cpp

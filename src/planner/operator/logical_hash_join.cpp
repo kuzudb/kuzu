@@ -1,5 +1,6 @@
 #include "planner/logical_plan/logical_operator/logical_hash_join.h"
 
+#include "planner/logical_plan/logical_operator/factorization_resolver.h"
 #include "planner/logical_plan/logical_operator/logical_scan_node.h"
 #include "planner/logical_plan/logical_operator/sink_util.h"
 
@@ -76,12 +77,11 @@ std::unordered_set<f_group_pos>
 LogicalHashJoinFactorizationResolver::getGroupsPosToFlattenOnBuildSide(
     const binder::expression_vector& joinNodeIDs, LogicalOperator* buildChild) {
     std::unordered_set<uint32_t> joinNodesGroupPos;
-    auto buildChildSchema = buildChild->getSchema();
     for (auto& joinNodeID : joinNodeIDs) {
-        joinNodesGroupPos.insert(buildChildSchema->getGroupPos(*joinNodeID));
+        joinNodesGroupPos.insert(buildChild->getSchema()->getGroupPos(*joinNodeID));
     }
     return FlattenAllButOneFactorizationResolver::getGroupsPosToFlatten(
-        joinNodesGroupPos, buildChildSchema);
+        joinNodesGroupPos, buildChild->getSchema());
 }
 
 bool LogicalHashJoinFactorizationResolver::requireFlatProbeKeys(
@@ -95,9 +95,8 @@ bool LogicalHashJoinFactorizationResolver::requireFlatProbeKeys(
 
 bool LogicalHashJoinFactorizationResolver::isJoinKeyUniqueOnBuildSide(
     const binder::Expression& joinNodeID, LogicalOperator* buildChild) {
-    auto buildSchema = buildChild->getSchema();
-    auto numGroupsInScope = buildSchema->getGroupsPosInScope().size();
-    bool hasProjectedOutGroups = buildSchema->getNumGroups() > numGroupsInScope;
+    auto numGroupsInScope = buildChild->getSchema()->getGroupsPosInScope().size();
+    bool hasProjectedOutGroups = buildChild->getSchema()->getNumGroups() > numGroupsInScope;
     if (numGroupsInScope > 1 || hasProjectedOutGroups) {
         return false;
     }

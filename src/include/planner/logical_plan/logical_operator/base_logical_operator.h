@@ -97,10 +97,5 @@ protected:
     std::vector<std::shared_ptr<LogicalOperator>> children;
 };
 
-struct FlattenAllButOneFactorizationResolver {
-    static std::unordered_set<f_group_pos> getGroupsPosToFlatten(
-        const std::unordered_set<f_group_pos>& groupsPos, Schema* inSchema);
-};
-
 } // namespace planner
 } // namespace kuzu

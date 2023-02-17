@@ -1,6 +1,7 @@
 #include "planner/projection_planner.h"
 
 #include "binder/expression/function_expression.h"
+#include "planner/logical_plan/logical_operator/factorization_resolver.h"
 #include "planner/logical_plan/logical_operator/logical_aggregate.h"
 #include "planner/logical_plan/logical_operator/logical_limit.h"
 #include "planner/logical_plan/logical_operator/logical_multiplcity_reducer.h"
@@ -89,6 +90,14 @@ void ProjectionPlanner::appendProjection(
     const expression_vector& expressionsToProject, LogicalPlan& plan) {
     for (auto& expression : expressionsToProject) {
         queryPlanner->planSubqueryIfNecessary(expression, plan);
+    }
+    for (auto& expression : expressionsToProject) {
+        auto dependentGroupsPos = plan.getSchema()->getDependentGroupsPos(expression);
+        auto groupsPosToFlatten = FlattenAllButOneFactorizationResolver::getGroupsPosToFlatten(
+            dependentGroupsPos, plan.getSchema());
+        for (auto groupPos : groupsPosToFlatten) {
+            QueryPlanner::appendFlattenIfNecessary(groupPos, plan);
+        }
     }
     auto projection = make_shared<LogicalProjection>(expressionsToProject, plan.getLastOperator());
     projection->computeSchema();

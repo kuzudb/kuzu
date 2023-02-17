@@ -12,6 +12,7 @@ private:
     void visitExtend(planner::LogicalOperator* op);
     void visitHashJoin(planner::LogicalOperator* op);
     void visitIntersect(planner::LogicalOperator* op);
+    void visitProjection(planner::LogicalOperator* op);
 
     std::shared_ptr<planner::LogicalOperator> appendFlattens(
         std::shared_ptr<planner::LogicalOperator> op,

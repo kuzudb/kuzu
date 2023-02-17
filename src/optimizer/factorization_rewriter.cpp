@@ -1,9 +1,11 @@
 #include "optimizer/factorization_rewriter.h"
 
+#include "planner/logical_plan/logical_operator/factorization_resolver.h"
 #include "planner/logical_plan/logical_operator/logical_extend.h"
 #include "planner/logical_plan/logical_operator/logical_flatten.h"
 #include "planner/logical_plan/logical_operator/logical_hash_join.h"
 #include "planner/logical_plan/logical_operator/logical_intersect.h"
+#include "planner/logical_plan/logical_operator/logical_projection.h"
 
 using namespace kuzu::planner;
 
@@ -28,7 +30,10 @@ void FactorizationRewriter::visitOperator(planner::LogicalOperator* op) {
     } break;
     case LogicalOperatorType::INTERSECT: {
         visitIntersect(op);
-    }
+    } break;
+    case LogicalOperatorType::PROJECTION: {
+        visitProjection(op);
+    } break;
     default:
         break;
     }
@@ -65,6 +70,17 @@ void FactorizationRewriter::visitIntersect(planner::LogicalOperator* op) {
         auto childIdx = i + 1; // skip probe
         intersect->setChild(
             childIdx, appendFlattenIfNecessary(intersect->getChild(childIdx), groupPosToFlatten));
+    }
+}
+
+void FactorizationRewriter::visitProjection(planner::LogicalOperator* op) {
+    auto projection = (LogicalProjection*)op;
+    auto childSchema = op->getChild(0)->getSchema();
+    for (auto& expression : projection->getExpressionsToProject()) {
+        auto dependentGroupsPos = childSchema->getDependentGroupsPos(expression);
+        auto groupsPosToFlatten = FlattenAllButOneFactorizationResolver::getGroupsPosToFlatten(
+            dependentGroupsPos, childSchema);
+        projection->setChild(0, appendFlattens(projection->getChild(0), groupsPosToFlatten));
     }
 }
 
