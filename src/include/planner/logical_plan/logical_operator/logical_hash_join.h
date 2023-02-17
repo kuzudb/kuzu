@@ -41,8 +41,6 @@ public:
 
     void computeSchema() override;
 
-    //    static bool requireFlatProbeKeys()
-
     inline std::string getExpressionsForPrinting() const override {
         return binder::ExpressionUtil::toString(joinNodeIDs);
     }
@@ -83,9 +81,13 @@ public:
     static std::unordered_set<f_group_pos> getGroupsPosToFlattenOnProbeSide(
         const binder::expression_vector& joinNodeIDs, LogicalOperator* probeChild,
         LogicalOperator* buildChild);
-    //    static std::unordered_set<f_group_pos> getGroupsPosToFlattenOnBuildSide(
-    //        LogicalHashJoin* hashJoin);
-    //    static std::unordered_set<f_group_pos> getGroupsPosToFlattenOnBuildSide();
+    static std::unordered_set<f_group_pos> getGroupsPosToFlattenOnBuildSide(
+        LogicalHashJoin* hashJoin) {
+        return getGroupsPosToFlattenOnBuildSide(
+            hashJoin->getJoinNodeIDs(), hashJoin->getChild(1).get());
+    }
+    static std::unordered_set<f_group_pos> getGroupsPosToFlattenOnBuildSide(
+        const binder::expression_vector& joinNodeIDs, LogicalOperator* buildChild);
 
 private:
     // Flat probe side key group in either of the following two cases:

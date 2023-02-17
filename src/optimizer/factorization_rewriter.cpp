@@ -42,13 +42,17 @@ void FactorizationRewriter::visitExtend(planner::LogicalOperator* op) {
 
 void FactorizationRewriter::visitHashJoin(planner::LogicalOperator* op) {
     auto hashJoin = (LogicalHashJoin*)op;
-    auto groupsPosToFlatten =
+    auto groupsPosToFlattenOnProbeSide =
         LogicalHashJoinFactorizationResolver::getGroupsPosToFlattenOnProbeSide(hashJoin);
-    hashJoin->setChild(0, appendFlattens(hashJoin->getChild(0), groupsPosToFlatten));
+    hashJoin->setChild(0, appendFlattens(hashJoin->getChild(0), groupsPosToFlattenOnProbeSide));
+    auto groupsPosToFlattenOnBuildSide =
+        LogicalHashJoinFactorizationResolver::getGroupsPosToFlattenOnBuildSide(hashJoin);
+    hashJoin->setChild(1, appendFlattens(hashJoin->getChild(1), groupsPosToFlattenOnBuildSide));
 }
 
 std::shared_ptr<planner::LogicalOperator> FactorizationRewriter::appendFlattens(
-    std::shared_ptr<planner::LogicalOperator> op, std::unordered_set<f_group_pos> groupsPos) {
+    std::shared_ptr<planner::LogicalOperator> op,
+    const std::unordered_set<f_group_pos>& groupsPos) {
     auto currentChild = std::move(op);
     for (auto groupPos : groupsPos) {
         currentChild = appendFlattenIfNecessary(std::move(currentChild), groupPos);

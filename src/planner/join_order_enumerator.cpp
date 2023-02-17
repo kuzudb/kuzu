@@ -606,7 +606,6 @@ void JoinOrderEnumerator::planJoin(const expression_vector& joinNodeIDs, JoinTyp
 
 void JoinOrderEnumerator::appendHashJoin(const expression_vector& joinNodeIDs, JoinType joinType,
     bool isProbeAcc, LogicalPlan& probePlan, LogicalPlan& buildPlan) {
-    probePlan.increaseCost(probePlan.getCardinality() + buildPlan.getCardinality());
     auto probeChild = probePlan.getLastOperator();
     auto buildChild = buildPlan.getLastOperator();
     // Apply flattening to probe side
@@ -616,16 +615,18 @@ void JoinOrderEnumerator::appendHashJoin(const expression_vector& joinNodeIDs, J
     for (auto groupPos : groupsPosToFlattenOnProbeSide) {
         QueryPlanner::appendFlattenIfNecessary(groupPos, probePlan);
     }
-    // Flat all but one build side key groups.
-    std::unordered_set<uint32_t> joinNodesGroupPos;
-    for (auto& joinNodeID : joinNodeIDs) {
-        joinNodesGroupPos.insert(buildPlan.getSchema()->getGroupPos(*joinNodeID));
+    // Apply flattening to build side
+    auto groupsPosToFlattenOnBuildSide =
+        LogicalHashJoinFactorizationResolver::getGroupsPosToFlattenOnBuildSide(
+            joinNodeIDs, buildChild.get());
+    for (auto groupPos : groupsPosToFlattenOnBuildSide) {
+        QueryPlanner::appendFlattenIfNecessary(groupPos, buildPlan);
     }
-    QueryPlanner::appendFlattensButOne(joinNodesGroupPos, buildPlan);
     auto hashJoin = make_shared<LogicalHashJoin>(joinNodeIDs, joinType, isProbeAcc,
         buildPlan.getSchema()->getExpressionsInScope(), probePlan.getLastOperator(),
         buildPlan.getLastOperator());
     hashJoin->computeSchema();
+    probePlan.increaseCost(probePlan.getCardinality() + buildPlan.getCardinality());
     if (!groupsPosToFlattenOnProbeSide.empty()) {
         probePlan.multiplyCardinality(
             buildPlan.getCardinality() * EnumeratorKnobs::PREDICATE_SELECTIVITY);
@@ -646,13 +647,13 @@ void JoinOrderEnumerator::appendMarkJoin(const expression_vector& joinNodeIDs,
     for (auto groupPos : groupsPosToFlattenOnProbeSide) {
         QueryPlanner::appendFlattenIfNecessary(groupPos, probePlan);
     }
-
     // Apply flattening to build side
-    std::unordered_set<f_group_pos> joinNodeGroupsPosInBuildSide;
-    for (auto& joinNodeID : joinNodeIDs) {
-        joinNodeGroupsPosInBuildSide.insert(buildPlan.getSchema()->getGroupPos(*joinNodeID));
+    auto groupsPosToFlattenOnBuildSide =
+        LogicalHashJoinFactorizationResolver::getGroupsPosToFlattenOnBuildSide(
+            joinNodeIDs, buildChild.get());
+    for (auto groupPos : groupsPosToFlattenOnBuildSide) {
+        QueryPlanner::appendFlattenIfNecessary(groupPos, buildPlan);
     }
-    QueryPlanner::appendFlattensButOne(joinNodeGroupsPosInBuildSide, buildPlan);
     probePlan.increaseCost(probePlan.getCardinality() + buildPlan.getCardinality());
     auto hashJoin = make_shared<LogicalHashJoin>(
         joinNodeIDs, mark, isProbeAcc, probePlan.getLastOperator(), buildPlan.getLastOperator());

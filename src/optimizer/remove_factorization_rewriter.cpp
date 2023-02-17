@@ -20,7 +20,7 @@ void RemoveFactorizationRewriter::visitOperator(planner::LogicalOperator* op) {
     } break;
     case LogicalOperatorType::HASH_JOIN: {
         op->setChild(0, getNonFlattenOp(op->getChild(0)));
-//        op->setChild(1, getNonFlattenOp(op->getChild(1)));
+        op->setChild(1, getNonFlattenOp(op->getChild(1)));
     } break;
     default:
         break;

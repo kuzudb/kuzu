@@ -72,8 +72,20 @@ LogicalHashJoinFactorizationResolver::getGroupsPosToFlattenOnProbeSide(
     return result;
 }
 
+std::unordered_set<f_group_pos>
+LogicalHashJoinFactorizationResolver::getGroupsPosToFlattenOnBuildSide(
+    const binder::expression_vector& joinNodeIDs, LogicalOperator* buildChild) {
+    std::unordered_set<uint32_t> joinNodesGroupPos;
+    auto buildChildSchema = buildChild->getSchema();
+    for (auto& joinNodeID : joinNodeIDs) {
+        joinNodesGroupPos.insert(buildChildSchema->getGroupPos(*joinNodeID));
+    }
+    return FlattenAllButOneFactorizationResolver::getGroupsPosToFlatten(
+        joinNodesGroupPos, buildChildSchema);
+}
+
 bool LogicalHashJoinFactorizationResolver::requireFlatProbeKeys(
-    const binder::expression_vector& joinNodeIDs, kuzu::planner::LogicalOperator* buildChild) {
+    const binder::expression_vector& joinNodeIDs, LogicalOperator* buildChild) {
     if (joinNodeIDs.size() > 1) {
         return true;
     }
@@ -93,17 +105,17 @@ bool LogicalHashJoinFactorizationResolver::isJoinKeyUniqueOnBuildSide(
     // ScanNodeID operator. Because if joinNodeID comes from a ColExtend we cannot guarantee the
     // reverse mapping is still many-to-one. We look for the most simple pattern where build plan is
     // linear.
-    auto firstop = buildChild;
-    while (firstop->getNumChildren() != 0) {
-        if (firstop->getNumChildren() > 1) {
+    auto op = buildChild;
+    while (op->getNumChildren() != 0) {
+        if (op->getNumChildren() > 1) {
             return false;
         }
-        firstop = firstop->getChild(0).get();
+        op = op->getChild(0).get();
     }
-    if (firstop->getOperatorType() != LogicalOperatorType::SCAN_NODE) {
+    if (op->getOperatorType() != LogicalOperatorType::SCAN_NODE) {
         return false;
     }
-    auto scanNodeID = (LogicalScanNode*)firstop;
+    auto scanNodeID = (LogicalScanNode*)op;
     if (scanNodeID->getNode()->getInternalIDPropertyName() != joinNodeID.getUniqueName()) {
         return false;
     }
