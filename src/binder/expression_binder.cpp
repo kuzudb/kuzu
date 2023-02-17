@@ -67,7 +67,7 @@ std::shared_ptr<Expression> ExpressionBinder::implicitCastIfNecessary(
         return expression;
     }
     if (expression->dataType.typeID == ANY) {
-        if (targetTypeID == LIST) {
+        if (targetTypeID == VAR_LIST) {
             // e.g. len($1) we cannot infer the child type for $1.
             throw BinderException("Cannot resolve recursive data type for expression " +
                                   expression->getRawName() + ".");
@@ -75,7 +75,7 @@ std::shared_ptr<Expression> ExpressionBinder::implicitCastIfNecessary(
         resolveAnyDataType(*expression, DataType(targetTypeID));
         return expression;
     }
-    assert(targetTypeID != LIST);
+    assert(targetTypeID != VAR_LIST);
     return implicitCast(expression, DataType(targetTypeID));
 }
 

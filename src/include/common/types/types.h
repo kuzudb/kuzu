@@ -54,12 +54,13 @@ KUZU_API enum DataTypeID : uint8_t {
     DATE = 25,
     TIMESTAMP = 26,
     INTERVAL = 27,
+    FIXED_LIST = 28,
 
     INTERNAL_ID = 40,
 
     // variable size types
     STRING = 50,
-    LIST = 52,
+    VAR_LIST = 52,
 };
 
 class DataType {
@@ -67,6 +68,8 @@ public:
     KUZU_API DataType();
     KUZU_API explicit DataType(DataTypeID typeID);
     KUZU_API DataType(DataTypeID typeID, std::unique_ptr<DataType> childType);
+    KUZU_API DataType(
+        DataTypeID typeID, std::unique_ptr<DataType> childType, uint64_t fixedNumElementsInList);
     KUZU_API DataType(const DataType& other);
     KUZU_API DataType(DataType&& other) noexcept;
 
@@ -86,7 +89,9 @@ public:
 
 public:
     DataTypeID typeID;
+    // The following fields are only used by LIST DataType.
     std::unique_ptr<DataType> childType;
+    uint64_t fixedNumElementsInList = UINT64_MAX;
 
 private:
     std::unique_ptr<DataType> copy();
@@ -100,9 +105,7 @@ public:
     static std::string dataTypesToString(const std::vector<DataTypeID>& dataTypeIDs);
     KUZU_API static DataType dataTypeFromString(const std::string& dataTypeString);
     static uint32_t getDataTypeSize(DataTypeID dataTypeID);
-    static inline uint32_t getDataTypeSize(const DataType& dataType) {
-        return getDataTypeSize(dataType.typeID);
-    }
+    static uint32_t getDataTypeSize(const DataType& dataType);
 
 private:
     static DataTypeID dataTypeIDFromString(const std::string& dataTypeIDString);

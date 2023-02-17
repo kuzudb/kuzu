@@ -491,6 +491,7 @@ public:
   public:
     KU_ListIdentifierContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
+    OC_IntegerLiteralContext *oC_IntegerLiteral();
 
    
   };

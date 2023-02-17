@@ -79,7 +79,7 @@ void ArrowConverter::setArrowFormat(
     case DataTypeID::STRING: {
         child.format = "u";
     } break;
-    case LIST: {
+    case VAR_LIST: {
         child.format = "+l";
         child.n_children = 1;
         rootHolder.nestedChildren.emplace_back();

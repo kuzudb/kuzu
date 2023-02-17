@@ -26,7 +26,7 @@ struct PropertyNameDataType {
     PropertyNameDataType(){};
     PropertyNameDataType(std::string name, DataTypeID dataTypeID)
         : PropertyNameDataType{std::move(name), DataType(dataTypeID)} {
-        assert(dataTypeID != common::LIST);
+        assert(dataTypeID != common::VAR_LIST);
     }
     PropertyNameDataType(std::string name, DataType dataType)
         : name{std::move(name)}, dataType{std::move(dataType)} {};

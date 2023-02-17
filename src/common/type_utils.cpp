@@ -73,7 +73,7 @@ std::string TypeUtils::elementToString(
         return TypeUtils::toString(((interval_t*)overflowPtr)[pos]);
     case STRING:
         return TypeUtils::toString(((ku_string_t*)overflowPtr)[pos]);
-    case LIST:
+    case VAR_LIST:
         return TypeUtils::toString(((ku_list_t*)overflowPtr)[pos], dataType);
     default:
         throw RuntimeException("Invalid data type " + Types::dataTypeToString(dataType) +

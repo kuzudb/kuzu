@@ -297,7 +297,7 @@ std::unique_ptr<Value> CSVReader::getList(const DataType& dataType) {
             case INTERVAL: {
                 val = std::make_unique<Value>(listCSVReader.getInterval());
             } break;
-            case LIST: {
+            case VAR_LIST: {
                 val = listCSVReader.getList(*dataType.childType);
             } break;
             default:
@@ -315,7 +315,7 @@ std::unique_ptr<Value> CSVReader::getList(const DataType& dataType) {
             BufferPoolConstants::DEFAULT_PAGE_SIZE, numBytesOfOverflow));
     }
     return std::make_unique<Value>(
-        DataType(LIST, std::make_unique<DataType>(dataType)), std::move(listVal));
+        DataType(VAR_LIST, std::make_unique<DataType>(dataType)), std::move(listVal));
 }
 
 void CSVReader::setNextTokenIsProcessed() {

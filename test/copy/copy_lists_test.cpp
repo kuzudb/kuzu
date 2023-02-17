@@ -10,7 +10,7 @@ class TinySnbListTest : public DBTest {
 
 public:
     static bool CheckEquals(const std::vector<std::string>& expected, const Value& listVal) {
-        if (listVal.dataType.typeID != LIST) {
+        if (listVal.dataType.typeID != VAR_LIST) {
             return false;
         }
         if (expected.size() != listVal.listVal.size()) {

@@ -666,7 +666,7 @@ void FactorizedTable::copyOverflowIfNecessary(
                 *stringToWriteFrom, *(ku_string_t*)dst);
         }
     } break;
-    case LIST: {
+    case VAR_LIST: {
         diskOverflowFile->writeListOverflowAndUpdateOverflowPtr(
             *(ku_list_t*)src, *(ku_list_t*)dst, type);
     } break;

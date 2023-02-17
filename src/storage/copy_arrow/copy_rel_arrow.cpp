@@ -59,7 +59,7 @@ void CopyRelArrow::initializeColumnsAndLists() {
         }
     }
     for (auto& property : relTableSchema->properties) {
-        if (property.dataType.typeID == LIST || property.dataType.typeID == STRING) {
+        if (property.dataType.typeID == VAR_LIST || property.dataType.typeID == STRING) {
             overflowFilePerPropertyID[property.propertyID] = std::make_unique<InMemOverflowFile>();
         }
     }
@@ -358,13 +358,19 @@ void CopyRelArrow::putPropsOfLineIntoColumns(CopyRelArrow* copier,
             putValueIntoColumns(propertyIdx, directionTablePropertyColumns, nodeIDs,
                 reinterpret_cast<uint8_t*>(&kuStr));
         } break;
-        case LIST: {
-            auto listVal = getArrowList(stringToken, 1, stringToken.length() - 2,
+        case VAR_LIST: {
+            auto varListVal = getArrowVarList(stringToken, 1, stringToken.length() - 2,
                 properties[propertyIdx].dataType, copyDescription);
             auto kuList = inMemOverflowFilePerPropertyID[propertyIdx]->copyList(
-                *listVal, inMemOverflowFileCursors[propertyIdx]);
+                *varListVal, inMemOverflowFileCursors[propertyIdx]);
             putValueIntoColumns(propertyIdx, directionTablePropertyColumns, nodeIDs,
                 reinterpret_cast<uint8_t*>(&kuList));
+        } break;
+        case FIXED_LIST: {
+            auto fixedListVal = getArrowFixedList(stringToken, 1, stringToken.length() - 2,
+                properties[propertyIdx].dataType, copyDescription);
+            putValueIntoColumns(
+                propertyIdx, directionTablePropertyColumns, nodeIDs, fixedListVal.get());
         } break;
         default:
             break;
@@ -485,13 +491,19 @@ void CopyRelArrow::putPropsOfLineIntoLists(CopyRelArrow* copier,
             putValueIntoLists(propertyIdx, directionTablePropertyLists, directionTableAdjLists,
                 nodeIDs, reversePos, reinterpret_cast<uint8_t*>(&kuStr));
         } break;
-        case LIST: {
-            auto listVal = getArrowList(stringToken, 1, stringToken.length() - 2,
+        case VAR_LIST: {
+            auto varListVal = getArrowVarList(stringToken, 1, stringToken.length() - 2,
                 properties[propertyIdx].dataType, copyDescription);
             auto kuList = inMemOverflowFilesPerProperty[propertyIdx]->copyList(
-                *listVal, inMemOverflowFileCursors[propertyIdx]);
+                *varListVal, inMemOverflowFileCursors[propertyIdx]);
             putValueIntoLists(propertyIdx, directionTablePropertyLists, directionTableAdjLists,
                 nodeIDs, reversePos, reinterpret_cast<uint8_t*>(&kuList));
+        } break;
+        case FIXED_LIST: {
+            auto fixedListVal = getArrowFixedList(stringToken, 1, stringToken.length() - 2,
+                properties[propertyIdx].dataType, copyDescription);
+            putValueIntoLists(propertyIdx, directionTablePropertyLists, directionTableAdjLists,
+                nodeIDs, reversePos, fixedListVal.get());
         } break;
         default:
             break;
@@ -640,7 +652,7 @@ void CopyRelArrow::sortOverflowValuesOfPropertyColumnTask(const DataType& dataTy
             auto kuStr = reinterpret_cast<ku_string_t*>(propertyColumn->getElement(offsetStart));
             copyStringOverflowFromUnorderedToOrderedPages(kuStr, unorderedOverflowCursor,
                 orderedOverflowCursor, unorderedInMemOverflowFile, orderedInMemOverflowFile);
-        } else if (dataType.typeID == LIST) {
+        } else if (dataType.typeID == VAR_LIST) {
             auto kuList = reinterpret_cast<ku_list_t*>(propertyColumn->getElement(offsetStart));
             copyListOverflowFromUnorderedToOrderedPages(kuList, dataType, unorderedOverflowCursor,
                 orderedOverflowCursor, unorderedInMemOverflowFile, orderedInMemOverflowFile);
@@ -671,7 +683,7 @@ void CopyRelArrow::sortOverflowValuesOfPropertyListsTask(const DataType& dataTyp
                     propertyListCursor.pageIdx, propertyListCursor.elemPosInPage));
                 copyStringOverflowFromUnorderedToOrderedPages(kuStr, unorderedOverflowCursor,
                     orderedOverflowCursor, unorderedInMemOverflowFile, orderedInMemOverflowFile);
-            } else if (dataType.typeID == LIST) {
+            } else if (dataType.typeID == VAR_LIST) {
                 auto kuList = reinterpret_cast<ku_list_t*>(propertyLists->getMemPtrToLoc(
                     propertyListCursor.pageIdx, propertyListCursor.elemPosInPage));
                 copyListOverflowFromUnorderedToOrderedPages(kuList, dataType,
@@ -693,7 +705,7 @@ void CopyRelArrow::sortAndCopyOverflowValues() {
             auto numBuckets = numNodes / 256;
             numBuckets += (numNodes % 256 != 0);
             for (auto& property : relTableSchema->properties) {
-                if (property.dataType.typeID == STRING || property.dataType.typeID == LIST) {
+                if (property.dataType.typeID == STRING || property.dataType.typeID == VAR_LIST) {
                     offset_t offsetStart = 0, offsetEnd = 0;
                     for (auto bucketIdx = 0u; bucketIdx < numBuckets; bucketIdx++) {
                         offsetStart = offsetEnd;
@@ -719,7 +731,7 @@ void CopyRelArrow::sortAndCopyOverflowValues() {
             auto numBuckets = numNodes / 256;
             numBuckets += (numNodes % 256 != 0);
             for (auto& property : relTableSchema->properties) {
-                if (property.dataType.typeID == STRING || property.dataType.typeID == LIST) {
+                if (property.dataType.typeID == STRING || property.dataType.typeID == VAR_LIST) {
                     offset_t offsetStart = 0, offsetEnd = 0;
                     for (auto bucketIdx = 0u; bucketIdx < numBuckets; bucketIdx++) {
                         offsetStart = offsetEnd;

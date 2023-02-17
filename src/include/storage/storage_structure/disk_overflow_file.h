@@ -52,7 +52,7 @@ public:
         transaction::TransactionType trxType, common::ValueVector& vector);
     inline void scanSingleListOverflow(
         transaction::TransactionType trxType, common::ValueVector& vector, uint64_t vectorPos) {
-        assert(vector.dataType.typeID == common::LIST && !vector.isNull(vectorPos));
+        assert(vector.dataType.typeID == common::VAR_LIST && !vector.isNull(vectorPos));
         auto& kuList = ((common::ku_list_t*)vector.getData())[vectorPos];
         readListToVector(trxType, kuList, vector.dataType, vector.getOverflowBuffer());
     }

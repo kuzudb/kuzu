@@ -148,7 +148,7 @@ TEST_F(TinySnbExceptionTest, ListFunctionMatchError1) {
     auto result = conn->query("MATCH (a:person) RETURN array_concat(a.workedHours, a.age)");
     ASSERT_STREQ(result->getErrorMessage().c_str(),
         "Binder exception: Cannot match a built-in function for given function "
-        "ARRAY_CONCAT(LIST,INT64). Supported inputs are\n(LIST,LIST) -> LIST\n");
+        "ARRAY_CONCAT(VAR_LIST,INT64). Supported inputs are\n(VAR_LIST,VAR_LIST) -> VAR_LIST\n");
 }
 
 TEST_F(TinySnbExceptionTest, ListFunctionMatchError2) {

@@ -34,11 +34,12 @@ public:
         personProperties.emplace_back("registerTime", TIMESTAMP);
         personProperties.emplace_back("lastJobDuration", INTERVAL);
         personProperties.emplace_back(
-            "workedHours", DataType(LIST, std::make_unique<DataType>(INT64)));
+            "workedHours", DataType(VAR_LIST, std::make_unique<DataType>(INT64)));
         personProperties.emplace_back(
-            "usedNames", DataType(LIST, std::make_unique<DataType>(STRING)));
+            "usedNames", DataType(VAR_LIST, std::make_unique<DataType>(STRING)));
         personProperties.emplace_back("courseScoresPerTerm",
-            DataType(LIST, std::make_unique<DataType>(LIST, std::make_unique<DataType>(INT64))));
+            DataType(
+                VAR_LIST, std::make_unique<DataType>(VAR_LIST, std::make_unique<DataType>(INT64))));
         PERSON_TABLE_ID = catalog->getReadOnlyVersion()->addNodeTableSchema(
             "person", 0 /* primaryKeyIdx */, std::move(personProperties));
 
@@ -99,7 +100,7 @@ TEST_F(CatalogTest, AddTablesTest) {
     ASSERT_EQ(catalog->getReadOnlyVersion()
                   ->getNodeProperty(PERSON_TABLE_ID, "workedHours")
                   .dataType.typeID,
-        LIST);
+        VAR_LIST);
     ASSERT_EQ(catalog->getReadOnlyVersion()
                   ->getNodeProperty(PERSON_TABLE_ID, "workedHours")
                   .dataType.childType->typeID,
@@ -107,7 +108,7 @@ TEST_F(CatalogTest, AddTablesTest) {
     ASSERT_EQ(catalog->getReadOnlyVersion()
                   ->getNodeProperty(PERSON_TABLE_ID, "usedNames")
                   .dataType.typeID,
-        LIST);
+        VAR_LIST);
     ASSERT_EQ(catalog->getReadOnlyVersion()
                   ->getNodeProperty(PERSON_TABLE_ID, "usedNames")
                   .dataType.childType->typeID,
@@ -115,12 +116,12 @@ TEST_F(CatalogTest, AddTablesTest) {
     ASSERT_EQ(catalog->getReadOnlyVersion()
                   ->getNodeProperty(PERSON_TABLE_ID, "courseScoresPerTerm")
                   .dataType.typeID,
-        LIST);
+        VAR_LIST);
 
     ASSERT_EQ(catalog->getReadOnlyVersion()
                   ->getNodeProperty(PERSON_TABLE_ID, "courseScoresPerTerm")
                   .dataType.childType->typeID,
-        LIST);
+        VAR_LIST);
     ASSERT_EQ(catalog->getReadOnlyVersion()
                   ->getNodeProperty(PERSON_TABLE_ID, "courseScoresPerTerm")
                   .dataType.childType->childType->typeID,

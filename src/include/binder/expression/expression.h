@@ -46,7 +46,7 @@ protected:
     Expression(common::ExpressionType expressionType, common::DataTypeID dataTypeID,
         const std::string& uniqueName)
         : Expression{expressionType, common::DataType(dataTypeID), uniqueName} {
-        assert(dataTypeID != common::LIST);
+        assert(dataTypeID != common::VAR_LIST);
     }
 
 public:

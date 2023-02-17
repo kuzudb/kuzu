@@ -1,7 +1,6 @@
 #include "common/arrow/arrow_row_batch.h"
 
 #include "common/types/value.h"
-#include "processor/result/flat_tuple.h"
 
 namespace kuzu {
 namespace common {
@@ -41,7 +40,7 @@ void ArrowRowBatch::templateInitializeVector<STRING>(
 }
 
 template<>
-void ArrowRowBatch::templateInitializeVector<LIST>(
+void ArrowRowBatch::templateInitializeVector<VAR_LIST>(
     ArrowVector* vector, const main::DataTypeInfo& typeInfo, std::int64_t capacity) {
     initializeNullBits(vector->validity, capacity);
     assert(typeInfo.childrenTypesInfo.size() == 1);
@@ -105,8 +104,8 @@ std::unique_ptr<ArrowVector> ArrowRowBatch::createVector(
     case STRING: {
         templateInitializeVector<STRING>(result.get(), typeInfo, capacity);
     } break;
-    case LIST: {
-        templateInitializeVector<LIST>(result.get(), typeInfo, capacity);
+    case VAR_LIST: {
+        templateInitializeVector<VAR_LIST>(result.get(), typeInfo, capacity);
     } break;
     case INTERNAL_ID: {
         templateInitializeVector<INTERNAL_ID>(result.get(), typeInfo, capacity);
@@ -180,7 +179,7 @@ void ArrowRowBatch::templateCopyNonNullValue<STRING>(
 }
 
 template<>
-void ArrowRowBatch::templateCopyNonNullValue<LIST>(
+void ArrowRowBatch::templateCopyNonNullValue<VAR_LIST>(
     ArrowVector* vector, const main::DataTypeInfo& typeInfo, Value* value, std::int64_t pos) {
     vector->data.resize((pos + 2) * sizeof(std::uint32_t));
     auto offsets = (std::uint32_t*)vector->data.data();
@@ -194,7 +193,7 @@ void ArrowRowBatch::templateCopyNonNullValue<LIST>(
     for (auto i = currentNumBytesForChildValidity; i < numBytesForChildValidity; i++) {
         vector->childData[0]->validity.data()[i] = 0xFF; // Init each value to be valid (as 1).
     }
-    if (typeInfo.childrenTypesInfo[0]->typeID != LIST) {
+    if (typeInfo.childrenTypesInfo[0]->typeID != VAR_LIST) {
         vector->childData[0]->data.resize(
             numChildElements * Types::getDataTypeSize(typeInfo.childrenTypesInfo[0]->typeID));
     }
@@ -268,8 +267,8 @@ void ArrowRowBatch::copyNonNullValue(
     case STRING: {
         templateCopyNonNullValue<STRING>(vector, typeInfo, value, pos);
     } break;
-    case LIST: {
-        templateCopyNonNullValue<LIST>(vector, typeInfo, value, pos);
+    case VAR_LIST: {
+        templateCopyNonNullValue<VAR_LIST>(vector, typeInfo, value, pos);
     } break;
     case INTERNAL_ID: {
         templateCopyNonNullValue<INTERNAL_ID>(vector, typeInfo, value, pos);
@@ -303,7 +302,7 @@ void ArrowRowBatch::templateCopyNullValue<STRING>(ArrowVector* vector, std::int6
 }
 
 template<>
-void ArrowRowBatch::templateCopyNullValue<LIST>(ArrowVector* vector, std::int64_t pos) {
+void ArrowRowBatch::templateCopyNullValue<VAR_LIST>(ArrowVector* vector, std::int64_t pos) {
     auto offsets = (std::uint32_t*)vector->data.data();
     offsets[pos + 1] = offsets[pos];
     setBitToZero(vector->validity.data(), pos);
@@ -333,8 +332,8 @@ void ArrowRowBatch::copyNullValue(ArrowVector* vector, Value* value, std::int64_
     case STRING: {
         templateCopyNullValue<STRING>(vector, pos);
     } break;
-    case LIST: {
-        templateCopyNullValue<LIST>(vector, pos);
+    case VAR_LIST: {
+        templateCopyNullValue<VAR_LIST>(vector, pos);
     } break;
     case INTERNAL_ID: {
         templateCopyNullValue<INTERNAL_ID>(vector, pos);
@@ -396,7 +395,7 @@ ArrowArray* ArrowRowBatch::templateCreateArray<STRING>(
 }
 
 template<>
-ArrowArray* ArrowRowBatch::templateCreateArray<LIST>(
+ArrowArray* ArrowRowBatch::templateCreateArray<VAR_LIST>(
     ArrowVector& vector, const main::DataTypeInfo& typeInfo) {
     auto result = createArrayFromVector(vector);
     vector.childPointers.resize(1);
@@ -465,8 +464,8 @@ ArrowArray* ArrowRowBatch::convertVectorToArray(
     case STRING: {
         return templateCreateArray<STRING>(vector, typeInfo);
     }
-    case LIST: {
-        return templateCreateArray<LIST>(vector, typeInfo);
+    case VAR_LIST: {
+        return templateCreateArray<VAR_LIST>(vector, typeInfo);
     }
     case INTERNAL_ID: {
         return templateCreateArray<INTERNAL_ID>(vector, typeInfo);

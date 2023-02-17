@@ -24,7 +24,7 @@ std::unique_ptr<DataTypeInfo> DataTypeInfo::getInfoForDataType(
         columnTypeInfo->childrenTypesInfo.push_back(
             std::make_unique<DataTypeInfo>(common::INT64, "tableID"));
     } break;
-    case common::LIST: {
+    case common::VAR_LIST: {
         auto parentTypeInfo = columnTypeInfo.get();
         auto childType = type.childType.get();
         parentTypeInfo->childrenTypesInfo.push_back(getInfoForDataType(*childType, ""));

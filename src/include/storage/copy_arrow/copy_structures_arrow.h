@@ -74,8 +74,14 @@ protected:
     arrow::Status initParquetReader(
         std::unique_ptr<parquet::arrow::FileReader>& reader, const std::string& filePath);
 
-    static std::unique_ptr<common::Value> getArrowList(std::string& l, int64_t from, int64_t to,
-        const common::DataType& dataType, common::CopyDescription& CopyDescription);
+    static std::vector<std::pair<int64_t, int64_t>> getListElementPos(
+        std::string& l, int64_t from, int64_t to, common::CopyDescription& copyDescription);
+
+    static std::unique_ptr<common::Value> getArrowVarList(std::string& l, int64_t from, int64_t to,
+        const common::DataType& dataType, common::CopyDescription& copyDescription);
+
+    static std::unique_ptr<uint8_t[]> getArrowFixedList(std::string& l, int64_t from, int64_t to,
+        const common::DataType& dataType, common::CopyDescription& copyDescription);
 
     static void throwCopyExceptionIfNotOK(const arrow::Status& status);
 
