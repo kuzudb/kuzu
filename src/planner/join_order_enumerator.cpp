@@ -675,10 +675,12 @@ void JoinOrderEnumerator::appendIntersect(const std::shared_ptr<Expression>& int
     for (auto i = 0u; i < buildPlans.size(); ++i) {
         auto boundNodeID = boundNodeIDs[i];
         auto buildPlan = buildPlans[i].get();
-        auto buildSchema = buildPlan->getSchema();
-        QueryPlanner::appendFlattenIfNecessary(buildSchema->getGroupPos(*boundNodeID), *buildPlan);
+        auto groupPosToFlatten =
+            LogicalIntersectFactorizationResolver::getGroupPosToFlattenOnBuildSide(
+                *boundNodeID, buildPlan->getLastOperator().get());
+        QueryPlanner::appendFlattenIfNecessary(groupPosToFlatten, *buildPlan);
         auto buildInfo = std::make_unique<LogicalIntersectBuildInfo>(
-            boundNodeID, buildSchema->getExpressionsInScope());
+            boundNodeID, buildPlan->getSchema()->getExpressionsInScope());
         buildChildren.push_back(buildPlan->getLastOperator());
         buildInfos.push_back(std::move(buildInfo));
     }

@@ -59,6 +59,13 @@ void FactorizationRewriter::visitIntersect(planner::LogicalOperator* op) {
     auto groupsPosToFlattenOnProbeSide =
         LogicalIntersectFactorizationResolver::getGroupsPosToFlattenOnProbeSide(intersect);
     intersect->setChild(0, appendFlattens(intersect->getChild(0), groupsPosToFlattenOnProbeSide));
+    for (auto i = 0u; i < intersect->getNumBuilds(); ++i) {
+        auto groupPosToFlatten =
+            LogicalIntersectFactorizationResolver::getGroupPosToFlattenOnBuildSide(intersect, i);
+        auto childIdx = i + 1; // skip probe
+        intersect->setChild(
+            childIdx, appendFlattenIfNecessary(intersect->getChild(childIdx), groupPosToFlatten));
+    }
 }
 
 std::shared_ptr<planner::LogicalOperator> FactorizationRewriter::appendFlattens(

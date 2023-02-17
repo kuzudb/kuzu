@@ -54,15 +54,25 @@ private:
 
 class LogicalIntersectFactorizationResolver {
 public:
-    static std::unordered_set<f_group_pos> getGroupsPosToFlattenOnProbeSide(LogicalIntersect* intersect) {
+    static std::unordered_set<f_group_pos> getGroupsPosToFlattenOnProbeSide(
+        LogicalIntersect* intersect) {
         binder::expression_vector boundNodeIDs;
         for (auto i = 0u; i < intersect->getNumBuilds(); ++i) {
             boundNodeIDs.push_back(intersect->getBuildInfo(i)->keyNodeID);
         }
         return getGroupsPosToFlattenOnProbeSide(boundNodeIDs, intersect->getChild(0).get());
     }
+    static f_group_pos getGroupPosToFlattenOnBuildSide(
+        LogicalIntersect* intersect, uint32_t buildIdx) {
+        return getGroupPosToFlattenOnBuildSide(*intersect->getBuildInfo(buildIdx)->keyNodeID,
+            intersect->getChild(buildIdx + 1 /* skip probe*/).get());
+    }
     static std::unordered_set<f_group_pos> getGroupsPosToFlattenOnProbeSide(
         const binder::expression_vector& boundNodeIDs, LogicalOperator* probeChild);
+    static f_group_pos getGroupPosToFlattenOnBuildSide(
+        const binder::Expression& boundNodeID, LogicalOperator* buildChild) {
+        return buildChild->getSchema()->getGroupPos(boundNodeID);
+    }
 };
 
 } // namespace planner
