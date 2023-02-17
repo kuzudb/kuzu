@@ -11,7 +11,10 @@ struct AvgFunction {
 
     struct AvgState : public AggregateState {
         inline uint32_t getStateSize() const override { return sizeof(*this); }
-        inline uint8_t* getResult() const override { return (uint8_t*)&avg; }
+        inline void moveResultToVector(common::ValueVector* outputVector, uint64_t pos) override {
+            memcpy(outputVector->getData() + pos * outputVector->getNumBytesPerValue(),
+                reinterpret_cast<uint8_t*>(&avg), outputVector->getNumBytesPerValue());
+        }
 
         T sum;
         uint64_t count = 0;
@@ -20,7 +23,8 @@ struct AvgFunction {
 
     static std::unique_ptr<AggregateState> initialize() { return std::make_unique<AvgState>(); }
 
-    static void updateAll(uint8_t* state_, common::ValueVector* input, uint64_t multiplicity) {
+    static void updateAll(uint8_t* state_, common::ValueVector* input, uint64_t multiplicity,
+        storage::MemoryManager* memoryManager) {
         auto state = reinterpret_cast<AvgState*>(state_);
         assert(!input->state->isFlat());
         if (input->hasNoNullsGuarantee()) {
@@ -38,8 +42,8 @@ struct AvgFunction {
         }
     }
 
-    static inline void updatePos(
-        uint8_t* state_, common::ValueVector* input, uint64_t multiplicity, uint32_t pos) {
+    static inline void updatePos(uint8_t* state_, common::ValueVector* input, uint64_t multiplicity,
+        uint32_t pos, storage::MemoryManager* memoryManager) {
         updateSingleValue(reinterpret_cast<AvgState*>(state_), input, pos, multiplicity);
     }
 

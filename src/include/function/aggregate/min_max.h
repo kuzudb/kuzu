@@ -11,7 +11,10 @@ struct MinMaxFunction {
 
     struct MinMaxState : public AggregateState {
         inline uint32_t getStateSize() const override { return sizeof(*this); }
-        inline uint8_t* getResult() const override { return (uint8_t*)&val; }
+        inline void moveResultToVector(common::ValueVector* outputVector, uint64_t pos) override {
+            memcpy(outputVector->getData() + pos * outputVector->getNumBytesPerValue(),
+                reinterpret_cast<uint8_t*>(&val), outputVector->getNumBytesPerValue());
+        }
 
         T val;
     };
@@ -19,7 +22,8 @@ struct MinMaxFunction {
     static std::unique_ptr<AggregateState> initialize() { return std::make_unique<MinMaxState>(); }
 
     template<class OP>
-    static void updateAll(uint8_t* state_, common::ValueVector* input, uint64_t multiplicity) {
+    static void updateAll(uint8_t* state_, common::ValueVector* input, uint64_t multiplicity,
+        storage::MemoryManager* memoryManager) {
         assert(!input->state->isFlat());
         auto state = reinterpret_cast<MinMaxState*>(state_);
         if (input->hasNoNullsGuarantee()) {
@@ -38,8 +42,8 @@ struct MinMaxFunction {
     }
 
     template<class OP>
-    static inline void updatePos(
-        uint8_t* state_, common::ValueVector* input, uint64_t multiplicity, uint32_t pos) {
+    static inline void updatePos(uint8_t* state_, common::ValueVector* input, uint64_t multiplicity,
+        uint32_t pos, storage::MemoryManager* memoryManager) {
         updateSingleValue<OP>(reinterpret_cast<MinMaxState*>(state_), input, pos);
     }
 

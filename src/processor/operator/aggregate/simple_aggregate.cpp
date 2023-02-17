@@ -65,7 +65,8 @@ void SimpleAggregate::executeInternal(ExecutionContext* context) {
                             aggVector, 1 /* Distinct aggregate should ignore
                                           multiplicity since they are known to be non-distinct. */
                             ,
-                            aggVector->state->selVector->selectedPositions[0]);
+                            aggVector->state->selVector->selectedPositions[0],
+                            context->memoryManager);
                     }
                 }
             } else {
@@ -73,11 +74,12 @@ void SimpleAggregate::executeInternal(ExecutionContext* context) {
                     if (!aggVector->isNull(aggVector->state->selVector->selectedPositions[0])) {
                         aggregateFunction->updatePosState((uint8_t*)localAggregateStates[i].get(),
                             aggVector, resultSet->multiplicity,
-                            aggVector->state->selVector->selectedPositions[0]);
+                            aggVector->state->selVector->selectedPositions[0],
+                            context->memoryManager);
                     }
                 } else {
                     aggregateFunction->updateAllState((uint8_t*)localAggregateStates[i].get(),
-                        aggVector, resultSet->multiplicity);
+                        aggVector, resultSet->multiplicity, context->memoryManager);
                 }
             }
         }

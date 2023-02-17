@@ -101,6 +101,12 @@ inline void Hash::operation(const common::interval_t& key, common::hash_t& resul
 }
 
 template<>
+inline void Hash::operation(const common::ku_list_t& key, common::hash_t& result) {
+    throw common::RuntimeException(
+        "Computing hash value of list DataType is currently unsupported.");
+}
+
+template<>
 inline void Hash::operation(const std::unordered_set<std::string>& key, common::hash_t& result) {
     for (auto&& s : key) {
         result ^= std::hash<std::string>()(s);

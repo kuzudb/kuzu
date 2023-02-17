@@ -34,6 +34,7 @@ private:
     void registerAvg();
     void registerMin();
     void registerMax();
+    void registerCollect();
 
 private:
     std::unordered_map<std::string, std::vector<std::unique_ptr<AggregateFunctionDefinition>>>

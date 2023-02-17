@@ -55,3 +55,34 @@ False
 -ENUMERATE
 ---- 1
 455|0|4.935714
+
+-NAME SimpleCollectINT64Test
+-QUERY MATCH (p:person) RETURN collect(p.age)
+---- 1
+[35,30,45,20,20,25,40,83]
+
+-NAME SimpleCollectSTRINGTest
+-QUERY MATCH (p:person) RETURN collect(p.fName)
+---- 1
+[Alice,Bob,Carol,Dan,Elizabeth,Farooq,Greg,Hubert Blaine Wolfeschlegelsteinhausenbergerdorff]
+
+-NAME SimpleCollectLISTOfINT64Test
+-QUERY MATCH (p:person) RETURN collect(p.workedHours)
+---- 1
+[[10,5],[12,8],[4,5],[1,9],[2],[3,4,5,6,7],[1],[10,11,12,3,4,5,6,7]]
+
+-NAME SimpleCollectLISTOfSTRINGTest
+-QUERY MATCH (p:person) RETURN collect(p.usedNames)
+---- 1
+[[Aida],[Bobby],[Carmen,Fred],[Wolfeschlegelstein,Daniel],[Ein],[Fesdwe],[Grad],[Ad,De,Hi,Kye,Orlan]]
+
+-NAME SimpleCollectLISTOfLISTOfINT64Test
+-QUERY MATCH (p:person) RETURN collect(p.courseScoresPerTerm)
+---- 1
+[[[10,8],[6,7,8]],[[8,9],[9,10]],[[8,10]],[[7,4],[8,8],[9]],[[6],[7],[8]],[[8]],[[10]],[[7],[10],[6,7]]]
+
+-NAME SimpleCollectLISTOfINT64MultiThreadTest
+-QUERY MATCH (p:person) RETURN collect(p.workedHours)
+-PARALLELISM 8
+---- 1
+[[10,5],[12,8],[4,5],[1,9],[2],[3,4,5,6,7],[1],[10,11,12,3,4,5,6,7]]

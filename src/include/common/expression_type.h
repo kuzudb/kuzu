@@ -17,6 +17,7 @@ const std::string SUM_FUNC_NAME = "SUM";
 const std::string AVG_FUNC_NAME = "AVG";
 const std::string MIN_FUNC_NAME = "MIN";
 const std::string MAX_FUNC_NAME = "MAX";
+const std::string COLLECT_FUNC_NAME = "COLLECT";
 
 // cast
 const std::string CAST_TO_DATE_FUNC_NAME = "DATE";

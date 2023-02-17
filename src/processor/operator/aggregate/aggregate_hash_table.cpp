@@ -438,7 +438,7 @@ void AggregateHashTable::updateDistinctAggState(
                 aggregateVector, 1 /* Distinct aggregate should ignore multiplicity
                                           since they are known to be non-distinct. */
                 ,
-                pos);
+                pos, &memoryManager);
         }
     }
 }
@@ -714,12 +714,12 @@ void AggregateHashTable::updateNullAggVectorState(
     if (groupByUnflatHashKeyVectors.empty()) {
         auto pos = groupByFlatHashKeyVectors[0]->state->selVector->selectedPositions[0];
         aggregateFunction->updatePosState(hashSlotsToUpdateAggState[pos]->entry + aggStateOffset,
-            nullptr, multiplicity, 0 /* dummy pos */);
+            nullptr, multiplicity, 0 /* dummy pos */, &memoryManager);
     } else if (groupByUnflatHashKeyVectors[0]->state->selVector->isUnfiltered()) {
         auto selectedSize = groupByUnflatHashKeyVectors[0]->state->selVector->selectedSize;
         for (auto i = 0u; i < selectedSize; i++) {
             aggregateFunction->updatePosState(hashSlotsToUpdateAggState[i]->entry + aggStateOffset,
-                nullptr, multiplicity, 0 /* dummy pos */);
+                nullptr, multiplicity, 0 /* dummy pos */, &memoryManager);
         }
     } else {
         auto selectedSize = groupByUnflatHashKeyVectors[0]->state->selVector->selectedSize;
@@ -727,7 +727,7 @@ void AggregateHashTable::updateNullAggVectorState(
             auto pos = groupByUnflatHashKeyVectors[0]->state->selVector->selectedPositions[i];
             aggregateFunction->updatePosState(
                 hashSlotsToUpdateAggState[pos]->entry + aggStateOffset, nullptr, multiplicity,
-                0 /* dummy pos */);
+                0 /* dummy pos */, &memoryManager);
         }
     }
 }
@@ -741,7 +741,7 @@ void AggregateHashTable::updateBothFlatAggVectorState(
         aggregateFunction->updatePosState(
             hashSlotsToUpdateAggState[hashVector->state->selVector->selectedPositions[0]]->entry +
                 aggStateOffset,
-            aggVector, multiplicity, aggPos);
+            aggVector, multiplicity, aggPos, &memoryManager);
     }
 }
 
@@ -757,14 +757,14 @@ void AggregateHashTable::updateFlatUnflatKeyFlatAggVectorState(
             for (auto i = 0u; i < selectedSize; i++) {
                 aggregateFunction->updatePosState(
                     hashSlotsToUpdateAggState[i]->entry + aggStateOffset, aggVector, multiplicity,
-                    aggPos);
+                    aggPos, &memoryManager);
             }
         } else {
             for (auto i = 0u; i < selectedSize; i++) {
                 auto pos = groupByUnflatHashKeyVectors[0]->state->selVector->selectedPositions[i];
                 aggregateFunction->updatePosState(
                     hashSlotsToUpdateAggState[pos]->entry + aggStateOffset, aggVector, multiplicity,
-                    aggPos);
+                    aggPos, &memoryManager);
             }
         }
     }
@@ -781,13 +781,15 @@ void AggregateHashTable::updateFlatKeyUnflatAggVectorState(
             for (auto i = 0u; i < aggVecSelectedSize; i++) {
                 aggregateFunction->updatePosState(
                     hashSlotsToUpdateAggState[groupByKeyPos]->entry + aggStateOffset, aggVector,
-                    multiplicity, aggVector->state->selVector->selectedPositions[i]);
+                    multiplicity, aggVector->state->selVector->selectedPositions[i],
+                    &memoryManager);
             }
         } else {
             for (auto i = 0u; i < aggVecSelectedSize; i++) {
                 aggregateFunction->updatePosState(
                     hashSlotsToUpdateAggState[groupByKeyPos]->entry + aggStateOffset, aggVector,
-                    multiplicity, aggVector->state->selVector->selectedPositions[i]);
+                    multiplicity, aggVector->state->selVector->selectedPositions[i],
+                    &memoryManager);
             }
         }
     } else {
@@ -796,7 +798,7 @@ void AggregateHashTable::updateFlatKeyUnflatAggVectorState(
                 if (!aggVector->isNull(i)) {
                     aggregateFunction->updatePosState(
                         hashSlotsToUpdateAggState[0]->entry + aggStateOffset, aggVector,
-                        multiplicity, i);
+                        multiplicity, i, &memoryManager);
                 }
             }
         } else {
@@ -805,7 +807,7 @@ void AggregateHashTable::updateFlatKeyUnflatAggVectorState(
                 if (!aggVector->isNull(pos)) {
                     aggregateFunction->updatePosState(
                         hashSlotsToUpdateAggState[0]->entry + aggStateOffset, aggVector,
-                        multiplicity, pos);
+                        multiplicity, pos, &memoryManager);
                 }
             }
         }
@@ -822,14 +824,14 @@ void AggregateHashTable::updateBothUnflatSameDCAggVectorState(
             for (auto i = 0u; i < aggVector->state->selVector->selectedSize; i++) {
                 aggregateFunction->updatePosState(
                     hashSlotsToUpdateAggState[i]->entry + aggStateOffset, aggVector, multiplicity,
-                    i);
+                    i, &memoryManager);
             }
         } else {
             for (auto i = 0u; i < aggVector->state->selVector->selectedSize; i++) {
                 auto pos = aggVector->state->selVector->selectedPositions[i];
                 aggregateFunction->updatePosState(
                     hashSlotsToUpdateAggState[pos]->entry + aggStateOffset, aggVector, multiplicity,
-                    pos);
+                    pos, &memoryManager);
             }
         }
     } else {
@@ -838,7 +840,7 @@ void AggregateHashTable::updateBothUnflatSameDCAggVectorState(
                 if (!aggVector->isNull(i)) {
                     aggregateFunction->updatePosState(
                         hashSlotsToUpdateAggState[i]->entry + aggStateOffset, aggVector,
-                        multiplicity, i);
+                        multiplicity, i, &memoryManager);
                 }
             }
         } else {
@@ -847,7 +849,7 @@ void AggregateHashTable::updateBothUnflatSameDCAggVectorState(
                 if (!aggVector->isNull(pos)) {
                     aggregateFunction->updatePosState(
                         hashSlotsToUpdateAggState[pos]->entry + aggStateOffset, aggVector,
-                        multiplicity, pos);
+                        multiplicity, pos, &memoryManager);
                 }
             }
         }
@@ -862,14 +864,15 @@ void AggregateHashTable::updateBothUnflatDifferentDCAggVectorState(
     auto selectedSize = groupByUnflatHashKeyVectors[0]->state->selVector->selectedSize;
     if (groupByUnflatHashKeyVectors[0]->state->selVector->isUnfiltered()) {
         for (auto i = 0u; i < selectedSize; i++) {
-            aggregateFunction->updateAllState(
-                hashSlotsToUpdateAggState[i]->entry + aggStateOffset, aggVector, multiplicity);
+            aggregateFunction->updateAllState(hashSlotsToUpdateAggState[i]->entry + aggStateOffset,
+                aggVector, multiplicity, &memoryManager);
         }
     } else {
         for (auto i = 0u; i < selectedSize; i++) {
             auto pos = groupByUnflatHashKeyVectors[0]->state->selVector->selectedPositions[i];
             aggregateFunction->updateAllState(
-                hashSlotsToUpdateAggState[pos]->entry + aggStateOffset, aggVector, multiplicity);
+                hashSlotsToUpdateAggState[pos]->entry + aggStateOffset, aggVector, multiplicity,
+                &memoryManager);
         }
     }
 }

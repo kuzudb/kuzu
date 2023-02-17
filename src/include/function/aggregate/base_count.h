@@ -9,7 +9,10 @@ struct BaseCountFunction {
 
     struct CountState : public AggregateState {
         inline uint32_t getStateSize() const override { return sizeof(*this); }
-        inline uint8_t* getResult() const override { return (uint8_t*)&count; }
+        inline void moveResultToVector(common::ValueVector* outputVector, uint64_t pos) override {
+            memcpy(outputVector->getData() + pos * outputVector->getNumBytesPerValue(),
+                reinterpret_cast<uint8_t*>(&count), outputVector->getNumBytesPerValue());
+        }
 
         uint64_t count = 0;
     };

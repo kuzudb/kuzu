@@ -85,8 +85,14 @@ std::shared_ptr<Expression> ExpressionBinder::bindAggregateFunctionExpression(
     if (children.empty()) {
         uniqueExpressionName = binder->getUniqueExpressionName(uniqueExpressionName);
     }
-    return make_shared<AggregateFunctionExpression>(DataType(function->returnTypeID),
-        std::move(children), function->aggregateFunction->clone(), uniqueExpressionName);
+    DataType returnType;
+    if (function->bindFunc) {
+        function->bindFunc(childrenTypes, function, returnType);
+    } else {
+        returnType = DataType(function->returnTypeID);
+    }
+    return make_shared<AggregateFunctionExpression>(returnType, std::move(children),
+        function->aggregateFunction->clone(), uniqueExpressionName);
 }
 
 std::shared_ptr<Expression> ExpressionBinder::staticEvaluate(const std::string& functionName,
