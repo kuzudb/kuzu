@@ -122,24 +122,9 @@ void ProjectionPlanner::appendAggregate(const expression_vector& expressionsToGr
 
 void ProjectionPlanner::appendOrderBy(
     const expression_vector& expressions, const std::vector<bool>& isAscOrders, LogicalPlan& plan) {
-    for (auto& expression : expressions) {
-        // We only allow orderby key(s) to be unflat, if they are all part of the same factorization
-        // group and there is no other factorized group in the schema, so any payload is also unflat
-        // and part of the same factorization group. The rationale for this limitation is this: (1)
-        // to keep both the frontend and orderby operators simpler, we want order by to not change
-        // the schema, so the input and output of order by should have the same factorization
-        // structure. (2) Because orderby needs to flatten the keys to sort, if a key column that is
-        // unflat is the input, we need to somehow flatten it in the factorized table. However
-        // whenever we can we want to avoid adding an explicit flatten operator as this makes us
-        // fall back to tuple-at-a-time processing. However in the specified limited case, we can
-        // give factorized table a set of unflat vectors (all in the same datachunk/factorization
-        // group), sort the table, and scan into unflat vectors, so the schema remains the same. In
-        // more complicated cases, e.g., when there are 2 factorization groups, FactorizedTable
-        // cannot read back a flat column into an unflat std::vector.
-        if (plan.getSchema()->getNumGroups() > 1) {
-            auto dependentGroupsPos = plan.getSchema()->getDependentGroupsPos(expression);
-            QueryPlanner::appendFlattens(dependentGroupsPos, plan);
-        }
+    for (auto groupPos : LogicalOrderByFactorizationSolver::getGroupsPosToFlatten(
+             expressions, plan.getLastOperator().get())) {
+        QueryPlanner::appendFlattenIfNecessary(groupPos, plan);
     }
     auto orderBy = make_shared<LogicalOrderBy>(expressions, isAscOrders,
         plan.getSchema()->getExpressionsInScope(), plan.getLastOperator());

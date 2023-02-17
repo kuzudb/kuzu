@@ -43,7 +43,8 @@ public:
         return getGroupsPosToFlattenForGroupBy(aggregate->getExpressionsToGroupBy(),
             aggregate->getExpressionsToAggregate(), aggregate->getChild(0).get());
     }
-    static std::unordered_set<f_group_pos> getGroupsPosToFlattenForAggregate(LogicalAggregate* aggregate) {
+    static std::unordered_set<f_group_pos> getGroupsPosToFlattenForAggregate(
+        LogicalAggregate* aggregate) {
         return getGroupsPosToFlattenForAggregate(
             aggregate->getExpressionsToAggregate(), aggregate->getChild(0).get());
     }

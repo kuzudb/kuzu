@@ -39,5 +39,15 @@ private:
     binder::expression_vector expressionsToMaterialize;
 };
 
+class LogicalOrderByFactorizationSolver {
+public:
+    static std::unordered_set<f_group_pos> getGroupsPosToFlatten(LogicalOrderBy* orderBy) {
+        return getGroupsPosToFlatten(
+            orderBy->getExpressionsToOrderBy(), orderBy->getChild(0).get());
+    }
+    static std::unordered_set<f_group_pos> getGroupsPosToFlatten(
+        const binder::expression_vector& expressions, LogicalOperator* orderByChild);
+};
+
 } // namespace planner
 } // namespace kuzu

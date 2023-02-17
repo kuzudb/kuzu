@@ -6,6 +6,7 @@
 #include "planner/logical_plan/logical_operator/logical_flatten.h"
 #include "planner/logical_plan/logical_operator/logical_hash_join.h"
 #include "planner/logical_plan/logical_operator/logical_intersect.h"
+#include "planner/logical_plan/logical_operator/logical_order_by.h"
 #include "planner/logical_plan/logical_operator/logical_projection.h"
 
 using namespace kuzu::planner;
@@ -37,6 +38,9 @@ void FactorizationRewriter::visitOperator(planner::LogicalOperator* op) {
     } break;
     case LogicalOperatorType::AGGREGATE: {
         visitAggregate(op);
+    } break;
+    case LogicalOperatorType::ORDER_BY: {
+        visitOrderBy(op);
     } break;
     default:
         break;
@@ -95,6 +99,12 @@ void FactorizationRewriter::visitAggregate(planner::LogicalOperator* op) {
     auto groupsPosToFlattenForAggregate =
         LogicalAggregateFactorizationSolver::getGroupsPosToFlattenForAggregate(aggregate);
     aggregate->setChild(0, appendFlattens(aggregate->getChild(0), groupsPosToFlattenForAggregate));
+}
+
+void FactorizationRewriter::visitOrderBy(planner::LogicalOperator* op) {
+    auto orderBy = (LogicalOrderBy*)op;
+    auto groupsPosToFlatten = LogicalOrderByFactorizationSolver::getGroupsPosToFlatten(orderBy);
+    orderBy->setChild(0, appendFlattens(orderBy->getChild(0), groupsPosToFlatten));
 }
 
 std::shared_ptr<planner::LogicalOperator> FactorizationRewriter::appendFlattens(
