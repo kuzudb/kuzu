@@ -1,3 +1,5 @@
+#pragma once
+
 #include "planner/logical_plan/logical_operator/base_logical_operator.h"
 
 namespace kuzu {

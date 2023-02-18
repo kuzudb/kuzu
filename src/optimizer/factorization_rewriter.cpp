@@ -6,8 +6,10 @@
 #include "planner/logical_plan/logical_operator/logical_flatten.h"
 #include "planner/logical_plan/logical_operator/logical_hash_join.h"
 #include "planner/logical_plan/logical_operator/logical_intersect.h"
+#include "planner/logical_plan/logical_operator/logical_limit.h"
 #include "planner/logical_plan/logical_operator/logical_order_by.h"
 #include "planner/logical_plan/logical_operator/logical_projection.h"
+#include "planner/logical_plan/logical_operator/logical_skip.h"
 
 using namespace kuzu::planner;
 
@@ -41,6 +43,12 @@ void FactorizationRewriter::visitOperator(planner::LogicalOperator* op) {
     } break;
     case LogicalOperatorType::ORDER_BY: {
         visitOrderBy(op);
+    } break;
+    case LogicalOperatorType::SKIP: {
+        visitSkip(op);
+    } break;
+    case LogicalOperatorType::LIMIT: {
+        visitLimit(op);
     } break;
     default:
         break;
@@ -105,6 +113,18 @@ void FactorizationRewriter::visitOrderBy(planner::LogicalOperator* op) {
     auto orderBy = (LogicalOrderBy*)op;
     auto groupsPosToFlatten = LogicalOrderByFactorizationSolver::getGroupsPosToFlatten(orderBy);
     orderBy->setChild(0, appendFlattens(orderBy->getChild(0), groupsPosToFlatten));
+}
+
+void FactorizationRewriter::visitSkip(planner::LogicalOperator* op) {
+    auto skip = (LogicalSkip*)op;
+    auto groupsPosToFlatten = LogicalSkipFactorizationSolver::getGroupsPosToFlatten(skip);
+    skip->setChild(0, appendFlattens(skip->getChild(0), groupsPosToFlatten));
+}
+
+void FactorizationRewriter::visitLimit(planner::LogicalOperator* op) {
+    auto limit = (LogicalLimit*)op;
+    auto groupsPosToFlatten = LogicalLimitFactorizationSolver::getGroupsPosToFlatten(limit);
+    limit->setChild(0, appendFlattens(limit->getChild(0), groupsPosToFlatten));
 }
 
 std::shared_ptr<planner::LogicalOperator> FactorizationRewriter::appendFlattens(

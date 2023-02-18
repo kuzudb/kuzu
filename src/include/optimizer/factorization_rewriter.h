@@ -15,6 +15,8 @@ private:
     void visitProjection(planner::LogicalOperator* op);
     void visitAggregate(planner::LogicalOperator* op);
     void visitOrderBy(planner::LogicalOperator* op);
+    void visitSkip(planner::LogicalOperator* op);
+    void visitLimit(planner::LogicalOperator* op);
 
     std::shared_ptr<planner::LogicalOperator> appendFlattens(
         std::shared_ptr<planner::LogicalOperator> op,

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "base_logical_operator.h"
+#include "planner/logical_plan/logical_operator/factorization_resolver.h"
 
 namespace kuzu {
 namespace planner {
@@ -30,6 +31,18 @@ public:
 
 private:
     uint64_t skipNumber;
+};
+
+class LogicalSkipFactorizationSolver {
+public:
+    static std::unordered_set<f_group_pos> getGroupsPosToFlatten(LogicalSkip* skip) {
+        return getGroupsPosToFlatten(skip->getChild(0).get());
+    }
+    static std::unordered_set<f_group_pos> getGroupsPosToFlatten(LogicalOperator* skipChild) {
+        auto dependentGroupsPos = skipChild->getSchema()->getGroupsPosInScope();
+        return FlattenAllButOneFactorizationResolver::getGroupsPosToFlatten(
+            dependentGroupsPos, skipChild->getSchema());
+    }
 };
 
 } // namespace planner

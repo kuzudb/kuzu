@@ -139,7 +139,10 @@ void ProjectionPlanner::appendMultiplicityReducer(LogicalPlan& plan) {
 }
 
 void ProjectionPlanner::appendLimit(uint64_t limitNumber, LogicalPlan& plan) {
-    QueryPlanner::appendFlattensButOne(plan.getSchema()->getGroupsPosInScope(), plan);
+    for (auto groupPos :
+        LogicalLimitFactorizationSolver::getGroupsPosToFlatten(plan.getLastOperator().get())) {
+        QueryPlanner::appendFlattenIfNecessary(groupPos, plan);
+    }
     auto limit = make_shared<LogicalLimit>(limitNumber, plan.getLastOperator());
     limit->computeSchema();
     plan.setCardinality(limitNumber);
@@ -147,7 +150,10 @@ void ProjectionPlanner::appendLimit(uint64_t limitNumber, LogicalPlan& plan) {
 }
 
 void ProjectionPlanner::appendSkip(uint64_t skipNumber, LogicalPlan& plan) {
-    QueryPlanner::appendFlattensButOne(plan.getSchema()->getGroupsPosInScope(), plan);
+    for (auto groupPos :
+        LogicalSkipFactorizationSolver::getGroupsPosToFlatten(plan.getLastOperator().get())) {
+        QueryPlanner::appendFlattenIfNecessary(groupPos, plan);
+    }
     auto skip = make_shared<LogicalSkip>(skipNumber, plan.getLastOperator());
     skip->computeSchema();
     plan.setCardinality(plan.getCardinality() - skipNumber);

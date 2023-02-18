@@ -1,6 +1,7 @@
 #pragma once
 
 #include "base_logical_operator.h"
+#include "planner/logical_plan/logical_operator/factorization_resolver.h"
 
 namespace kuzu {
 namespace planner {
@@ -30,6 +31,18 @@ public:
 
 private:
     uint64_t limitNumber;
+};
+
+class LogicalLimitFactorizationSolver {
+public:
+    static std::unordered_set<f_group_pos> getGroupsPosToFlatten(LogicalLimit* limit) {
+        return getGroupsPosToFlatten(limit->getChild(0).get());
+    }
+    static std::unordered_set<f_group_pos> getGroupsPosToFlatten(LogicalOperator* limitChild) {
+        auto dependentGroupsPos = limitChild->getSchema()->getGroupsPosInScope();
+        return FlattenAllButOneFactorizationResolver::getGroupsPosToFlatten(
+            dependentGroupsPos, limitChild->getSchema());
+    }
 };
 
 } // namespace planner
