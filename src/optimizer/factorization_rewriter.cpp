@@ -2,6 +2,7 @@
 
 #include "planner/logical_plan/logical_operator/factorization_resolver.h"
 #include "planner/logical_plan/logical_operator/logical_aggregate.h"
+#include "planner/logical_plan/logical_operator/logical_distinct.h"
 #include "planner/logical_plan/logical_operator/logical_extend.h"
 #include "planner/logical_plan/logical_operator/logical_flatten.h"
 #include "planner/logical_plan/logical_operator/logical_hash_join.h"
@@ -10,6 +11,7 @@
 #include "planner/logical_plan/logical_operator/logical_order_by.h"
 #include "planner/logical_plan/logical_operator/logical_projection.h"
 #include "planner/logical_plan/logical_operator/logical_skip.h"
+#include "planner/logical_plan/logical_operator/logical_unwind.h"
 
 using namespace kuzu::planner;
 
@@ -49,6 +51,12 @@ void FactorizationRewriter::visitOperator(planner::LogicalOperator* op) {
     } break;
     case LogicalOperatorType::LIMIT: {
         visitLimit(op);
+    } break;
+    case LogicalOperatorType::DISTINCT: {
+        visitDistinct(op);
+    } break;
+    case LogicalOperatorType::UNWIND: {
+        visitUnwind(op);
     } break;
     default:
         break;
@@ -125,6 +133,18 @@ void FactorizationRewriter::visitLimit(planner::LogicalOperator* op) {
     auto limit = (LogicalLimit*)op;
     auto groupsPosToFlatten = LogicalLimitFactorizationSolver::getGroupsPosToFlatten(limit);
     limit->setChild(0, appendFlattens(limit->getChild(0), groupsPosToFlatten));
+}
+
+void FactorizationRewriter::visitDistinct(planner::LogicalOperator* op) {
+    auto distinct = (LogicalDistinct*)op;
+    auto groupsPosToFlatten = LogicalDistinctFactorizationSolver::getGroupsPosToFlatten(distinct);
+    distinct->setChild(0, appendFlattens(distinct->getChild(0), groupsPosToFlatten));
+}
+
+void FactorizationRewriter::visitUnwind(planner::LogicalOperator* op) {
+    auto unwind = (LogicalUnwind*)op;
+    auto groupsPosToFlatten = LogicalUnwindFactorizationSolver::getGroupsPosToFlatten(unwind);
+    unwind->setChild(0, appendFlattens(unwind->getChild(0), groupsPosToFlatten));
 }
 
 std::shared_ptr<planner::LogicalOperator> FactorizationRewriter::appendFlattens(

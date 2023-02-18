@@ -30,5 +30,15 @@ private:
     binder::expression_vector expressionsToDistinct;
 };
 
+class LogicalDistinctFactorizationSolver {
+public:
+    static std::unordered_set<f_group_pos> getGroupsPosToFlatten(LogicalDistinct* distinct) {
+        return getGroupsPosToFlatten(
+            distinct->getExpressionsToDistinct(), distinct->getChild(0).get());
+    }
+    static std::unordered_set<f_group_pos> getGroupsPosToFlatten(
+        const binder::expression_vector& expressions, LogicalOperator* distinctChild);
+};
+
 } // namespace planner
 } // namespace kuzu

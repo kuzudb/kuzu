@@ -32,5 +32,14 @@ private:
     std::shared_ptr<binder::Expression> aliasExpression;
 };
 
+class LogicalUnwindFactorizationSolver {
+public:
+    static std::unordered_set<f_group_pos> getGroupsPosToFlatten(LogicalUnwind* unwind) {
+        return getGroupsPosToFlatten(unwind->getExpression(), unwind->getChild(0).get());
+    }
+    static std::unordered_set<f_group_pos> getGroupsPosToFlatten(
+        const std::shared_ptr<binder::Expression>& expression, LogicalOperator* unwindChild);
+};
+
 } // namespace planner
 } // namespace kuzu

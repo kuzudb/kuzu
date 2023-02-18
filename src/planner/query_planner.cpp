@@ -194,9 +194,6 @@ void QueryPlanner::planOptionalMatch(const QueryGraphCollection& queryGraphColle
         auto innerPlans = joinOrderEnumerator.enumerate(queryGraphCollection, predicates);
         auto bestInnerPlan = getBestPlan(std::move(innerPlans));
         joinOrderEnumerator.exitSubquery(std::move(prevContext));
-        for (auto& joinNodeID : joinNodeIDs) {
-            appendFlattenIfNecessary(joinNodeID, outerPlan);
-        }
         JoinOrderEnumerator::planLeftHashJoin(joinNodeIDs, outerPlan, *bestInnerPlan);
     } else {
         throw NotImplementedException("Correlated optional match is not supported.");
@@ -286,9 +283,9 @@ void QueryPlanner::appendExpressionsScan(const expression_vector& expressions, L
 
 void QueryPlanner::appendDistinct(
     const expression_vector& expressionsToDistinct, LogicalPlan& plan) {
-    for (auto& expression : expressionsToDistinct) {
-        auto dependentGroupsPos = plan.getSchema()->getDependentGroupsPos(expression);
-        appendFlattens(dependentGroupsPos, plan);
+    for (auto groupPos : LogicalDistinctFactorizationSolver::getGroupsPosToFlatten(
+             expressionsToDistinct, plan.getLastOperator().get())) {
+        QueryPlanner::appendFlattenIfNecessary(groupPos, plan);
     }
     auto distinct = make_shared<LogicalDistinct>(expressionsToDistinct, plan.getLastOperator());
     distinct->computeSchema();
@@ -296,10 +293,9 @@ void QueryPlanner::appendDistinct(
 }
 
 void QueryPlanner::appendUnwind(BoundUnwindClause& boundUnwindClause, LogicalPlan& plan) {
-    auto dependentGroupPos =
-        plan.getSchema()->getDependentGroupsPos(boundUnwindClause.getExpression());
-    if (!dependentGroupPos.empty()) {
-        appendFlattens(dependentGroupPos, plan);
+    for (auto groupPos : LogicalUnwindFactorizationSolver::getGroupsPosToFlatten(
+             boundUnwindClause.getExpression(), plan.getLastOperator().get())) {
+        QueryPlanner::appendFlattenIfNecessary(groupPos, plan);
     }
     auto logicalUnwind = make_shared<LogicalUnwind>(boundUnwindClause.getExpression(),
         boundUnwindClause.getAliasExpression(), plan.getLastOperator());
