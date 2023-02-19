@@ -12,6 +12,8 @@ private:
 
     std::shared_ptr<planner::LogicalOperator> getNonFlattenOp(
         std::shared_ptr<planner::LogicalOperator> op);
+
+    bool subPlanHasFlatten(planner::LogicalOperator* op);
 };
 
 } // namespace optimizer

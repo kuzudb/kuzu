@@ -185,12 +185,5 @@ void UpdatePlanner::appendDeleteRel(
     plan.setLastOperator(std::move(deleteRel));
 }
 
-void UpdatePlanner::flattenRel(const RelExpression& rel, LogicalPlan& plan) {
-    auto srcNodeID = rel.getSrcNode()->getInternalIDProperty();
-    QueryPlanner::appendFlattenIfNecessary(srcNodeID, plan);
-    auto dstNodeID = rel.getDstNode()->getInternalIDProperty();
-    QueryPlanner::appendFlattenIfNecessary(dstNodeID, plan);
-}
-
 } // namespace planner
 } // namespace kuzu

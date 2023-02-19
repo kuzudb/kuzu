@@ -303,34 +303,6 @@ void QueryPlanner::appendUnwind(BoundUnwindClause& boundUnwindClause, LogicalPla
     plan.setLastOperator(logicalUnwind);
 }
 
-void QueryPlanner::appendFlattens(
-    const std::unordered_set<uint32_t>& groupsPos, LogicalPlan& plan) {
-    for (auto& groupPos : groupsPos) {
-        appendFlattenIfNecessary(groupPos, plan);
-    }
-}
-
-uint32_t QueryPlanner::appendFlattensButOne(
-    const std::unordered_set<uint32_t>& groupsPos, LogicalPlan& plan) {
-    if (groupsPos.empty()) {
-        // an expression may not depend on any group. E.g. COUNT(*).
-        return UINT32_MAX;
-    }
-    std::vector<uint32_t> unFlatGroupsPos;
-    for (auto& groupPos : groupsPos) {
-        if (!plan.getSchema()->getGroup(groupPos)->isFlat()) {
-            unFlatGroupsPos.push_back(groupPos);
-        }
-    }
-    if (unFlatGroupsPos.empty()) {
-        return *groupsPos.begin();
-    }
-    for (auto i = 1u; i < unFlatGroupsPos.size(); ++i) {
-        appendFlattenIfNecessary(unFlatGroupsPos[i], plan);
-    }
-    return unFlatGroupsPos[0];
-}
-
 void QueryPlanner::appendFlattenIfNecessary(
     const std::shared_ptr<Expression>& expression, LogicalPlan& plan) {
     auto group = plan.getSchema()->getGroup(expression);

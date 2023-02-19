@@ -60,11 +60,6 @@ private:
 
     static void appendUnwind(BoundUnwindClause& boundUnwindClause, LogicalPlan& plan);
 
-    static void appendFlattens(const std::unordered_set<uint32_t>& groupsPos, LogicalPlan& plan);
-    // return position of the only unFlat group
-    // or position of any flat group if there is no unFlat group.
-    static uint32_t appendFlattensButOne(
-        const std::unordered_set<uint32_t>& groupsPos, LogicalPlan& plan);
     static void appendFlattenIfNecessary(
         const std::shared_ptr<Expression>& expression, LogicalPlan& plan);
     static inline void appendFlattenIfNecessary(uint32_t groupPos, LogicalPlan& plan) {

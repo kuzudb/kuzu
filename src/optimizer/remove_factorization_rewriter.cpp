@@ -7,6 +7,7 @@ namespace optimizer {
 
 void RemoveFactorizationRewriter::rewrite(planner::LogicalPlan* plan) {
     visitOperator(plan->getLastOperator().get());
+    assert(!subPlanHasFlatten(plan->getLastOperator().get()));
 }
 
 void RemoveFactorizationRewriter::visitOperator(planner::LogicalOperator* op) {
@@ -54,6 +55,18 @@ std::shared_ptr<planner::LogicalOperator> RemoveFactorizationRewriter::getNonFla
         currentOp = currentOp->getChild(0);
     }
     return currentOp;
+}
+
+bool RemoveFactorizationRewriter::subPlanHasFlatten(planner::LogicalOperator* op) {
+    if (op->getOperatorType() == planner::LogicalOperatorType::FLATTEN) {
+        return true;
+    }
+    for (auto& child : op->getChildren()) {
+        if (subPlanHasFlatten(child.get())) {
+            return true;
+        }
+    }
+    return false;
 }
 
 } // namespace optimizer

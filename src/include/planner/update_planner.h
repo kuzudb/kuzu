@@ -43,8 +43,6 @@ private:
         LogicalPlan& plan);
     void appendDeleteRel(
         const std::vector<std::shared_ptr<binder::RelExpression>>& deleteRels, LogicalPlan& plan);
-
-    void flattenRel(const binder::RelExpression& rel, LogicalPlan& plan);
 };
 
 } // namespace planner
