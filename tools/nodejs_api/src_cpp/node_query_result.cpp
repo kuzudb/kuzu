@@ -1,4 +1,5 @@
 #include "node_query_result.h"
+#include "AllAsyncWorker.h"
 
 #include "main/kuzu.h"
 
@@ -6,15 +7,16 @@ using namespace kuzu::main;
 
 Napi::FunctionReference NodeQueryResult::constructor;
 
-Napi::Object NodeQueryResult::Wrap(Napi::Env env, unique_ptr<kuzu::main::QueryResult>& queryResult) {
+Napi::Object NodeQueryResult::Wrap(Napi::Env env, shared_ptr<kuzu::main::QueryResult>& queryResult) {
     Napi::HandleScope scope(env);
     Napi::Object obj = DefineClass(env, "NodeQueryResult", {
       InstanceMethod("hasNext", &NodeQueryResult::HasNext),
       InstanceMethod("getNext", &NodeQueryResult::GetNext),
       InstanceMethod("close", &NodeQueryResult::Close),
+      InstanceMethod("all", &NodeQueryResult::All),
    }).New({});
     NodeQueryResult * nodeQueryResult = Unwrap(obj);
-    nodeQueryResult->queryResult = std::move(queryResult);
+    nodeQueryResult->queryResult = queryResult;
     return obj;
 }
 
@@ -46,7 +48,7 @@ Napi::Value NodeQueryResult::GetNext(const Napi::CallbackInfo& info) {
     for (int j=0; j < row->len(); j++) {
         obj.Set(j, row->getValue(j)->toString());
     }
-    return obj;
+   return obj;
 }
 
 void NodeQueryResult::Close(const Napi::CallbackInfo& info) {
@@ -54,6 +56,22 @@ void NodeQueryResult::Close(const Napi::CallbackInfo& info) {
     Napi::HandleScope scope(env);
 
     this->queryResult.reset();
+}
+
+Napi::Value NodeQueryResult::All(const Napi::CallbackInfo& info) {
+    Napi::Env env = info.Env();
+    Napi::HandleScope scope(env);
+
+    if (info.Length()!=1 || !info[0].IsFunction()) {
+        Napi::TypeError::New(env, "All needs callback").ThrowAsJavaScriptException();
+        return Napi::Object::New(env);
+    }
+
+    Function callback = info[0].As<Function>();
+
+    AllAsyncWorker * asyncWorker = new AllAsyncWorker(callback, queryResult);
+    asyncWorker->Queue();
+    return info.Env().Undefined();
 }
 
 NodeQueryResult::~NodeQueryResult() {}

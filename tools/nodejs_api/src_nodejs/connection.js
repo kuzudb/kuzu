@@ -7,19 +7,16 @@ class Connection {
         this.#connection = new kuzu.NodeConnection(database.database, numThreads);
     }
 
-    execute(query){
-        this.#connection.execute(query);
-    }
-
-    execute(query, callback){
+    execute(query, callback=null){
         this.#connection.execute(query, (err, queryResult) => {
-            console.log(err, queryResult);
             if (err){
                 console.log(err);
                 throw err;
             } else {
                 const queryResultJs = new QueryResult(queryResult);
-                callback(queryResultJs);
+               if (callback) {
+                   callback(queryResultJs);
+               }
             }
         });
     }
