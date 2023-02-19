@@ -34,7 +34,7 @@ InMemLists::InMemLists(
                                                                   numBytesForElement} {
     listsMetadataBuilder = make_unique<ListsMetadataBuilder>(this->fName);
     auto numChunks = StorageUtils::getListChunkIdx(numNodes);
-    if (0 != (numNodes & (ListsMetadataConfig::LISTS_CHUNK_SIZE - 1))) {
+    if (0 != (numNodes & (ListsMetadataConstants::LISTS_CHUNK_SIZE - 1))) {
         numChunks++;
     }
     listsMetadataBuilder->initChunkPageLists(numChunks);
@@ -88,7 +88,7 @@ void InMemLists::initListsMetadataAndAllocatePages(
     for (auto chunkIdx = 0u; chunkIdx < numChunks; chunkIdx++) {
         uint64_t numPages = 0u, offsetInPage = 0u;
         auto lastNodeOffsetInChunk =
-            std::min(nodeOffset + ListsMetadataConfig::LISTS_CHUNK_SIZE, numNodes);
+            std::min(nodeOffset + ListsMetadataConstants::LISTS_CHUNK_SIZE, numNodes);
         while (nodeOffset < lastNodeOffsetInChunk) {
             auto header = listHeaders->getHeader(nodeOffset);
             auto numElementsInList = ListHeaders::isALargeList(header) ?

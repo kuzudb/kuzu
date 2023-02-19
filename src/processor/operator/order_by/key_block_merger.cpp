@@ -12,8 +12,8 @@ namespace processor {
 
 MergedKeyBlocks::MergedKeyBlocks(
     uint32_t numBytesPerTuple, uint64_t numTuples, MemoryManager* memoryManager)
-    : numBytesPerTuple{numBytesPerTuple}, numTuplesPerBlock{(uint32_t)(
-                                              LARGE_PAGE_SIZE / numBytesPerTuple)},
+    : numBytesPerTuple{numBytesPerTuple},
+      numTuplesPerBlock{(uint32_t)(BufferPoolConstants::LARGE_PAGE_SIZE / numBytesPerTuple)},
       numTuples{numTuples}, endTupleOffset{numTuplesPerBlock * numBytesPerTuple} {
     auto numKeyBlocks = numTuples / numTuplesPerBlock + (numTuples % numTuplesPerBlock ? 1 : 0);
     for (auto i = 0u; i < numKeyBlocks; i++) {
@@ -23,8 +23,8 @@ MergedKeyBlocks::MergedKeyBlocks(
 
 // This constructor is used to convert a keyBlock to a MergedKeyBlocks.
 MergedKeyBlocks::MergedKeyBlocks(uint32_t numBytesPerTuple, std::shared_ptr<DataBlock> keyBlock)
-    : numBytesPerTuple{numBytesPerTuple}, numTuplesPerBlock{(uint32_t)(
-                                              LARGE_PAGE_SIZE / numBytesPerTuple)},
+    : numBytesPerTuple{numBytesPerTuple},
+      numTuplesPerBlock{(uint32_t)(BufferPoolConstants::LARGE_PAGE_SIZE / numBytesPerTuple)},
       numTuples{keyBlock->numTuples}, endTupleOffset{numTuplesPerBlock * numBytesPerTuple} {
     keyBlocks.emplace_back(keyBlock);
 }

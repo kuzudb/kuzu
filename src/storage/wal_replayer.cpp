@@ -64,9 +64,9 @@ void WALReplayer::replay() {
 }
 
 void WALReplayer::init() {
-    logger = LoggerUtils::getOrCreateLogger("storage");
+    logger = LoggerUtils::getLogger(LoggerConstants::LoggerEnum::STORAGE);
     walFileHandle = WAL::createWALFileHandle(wal->getDirectory());
-    pageBuffer = std::make_unique<uint8_t[]>(DEFAULT_PAGE_SIZE);
+    pageBuffer = std::make_unique<uint8_t[]>(BufferPoolConstants::DEFAULT_PAGE_SIZE);
 }
 
 void WALReplayer::replayWALRecord(WALRecord& walRecord) {
@@ -81,8 +81,9 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
             walFileHandle->readPage(
                 pageBuffer.get(), walRecord.pageInsertOrUpdateRecord.pageIdxInWAL);
             FileUtils::writeToFile(fileInfoOfStorageStructure.get(), pageBuffer.get(),
-                DEFAULT_PAGE_SIZE,
-                walRecord.pageInsertOrUpdateRecord.pageIdxInOriginalFile * DEFAULT_PAGE_SIZE);
+                BufferPoolConstants::DEFAULT_PAGE_SIZE,
+                walRecord.pageInsertOrUpdateRecord.pageIdxInOriginalFile *
+                    BufferPoolConstants::DEFAULT_PAGE_SIZE);
         }
         if (!isRecovering) {
             // 2: If we are not recovering, we do any in-memory checkpointing or rolling back work

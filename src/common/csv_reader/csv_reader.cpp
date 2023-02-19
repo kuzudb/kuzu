@@ -1,6 +1,6 @@
 #include "common/csv_reader/csv_reader.h"
 
-#include "common/configs.h"
+#include "common/constants.h"
 #include "common/type_utils.h"
 #include "common/utils.h"
 #include "spdlog/spdlog.h"
@@ -13,8 +13,8 @@ namespace common {
 
 CSVReader::CSVReader(const std::string& fName, const CSVReaderConfig& config, uint64_t blockId)
     : CSVReader{fName, config} {
-    readingBlockStartOffset = CopyConfig::CSV_READING_BLOCK_SIZE * blockId;
-    readingBlockEndOffset = CopyConfig::CSV_READING_BLOCK_SIZE * (blockId + 1);
+    readingBlockStartOffset = CopyConstants::CSV_READING_BLOCK_SIZE * blockId;
+    readingBlockEndOffset = CopyConstants::CSV_READING_BLOCK_SIZE * (blockId + 1);
     auto isBeginningOfLine = false;
     if (0 == readingBlockStartOffset) {
         isBeginningOfLine = true;
@@ -36,7 +36,8 @@ CSVReader::CSVReader(const std::string& fname, const CSVReaderConfig& config)
 
 CSVReader::CSVReader(
     char* line, uint64_t lineLen, int64_t linePtrStart, const CSVReaderConfig& config)
-    : fd{nullptr}, config{config}, logger{LoggerUtils::getOrCreateLogger("csv_reader")},
+    : fd{nullptr}, config{config}, logger{LoggerUtils::getLogger(
+                                       LoggerConstants::LoggerEnum::CSV_READER)},
       nextLineIsNotProcessed{false}, isEndOfBlock{false},
       nextTokenIsNotProcessed{false}, line{line}, lineCapacity{1024}, lineLen{lineLen},
       linePtrStart{linePtrStart}, linePtrEnd{linePtrStart}, readingBlockStartOffset{0},
@@ -233,10 +234,11 @@ uint8_t CSVReader::getBoolean() {
 char* CSVReader::getString() {
     setNextTokenIsProcessed();
     auto strVal = line + linePtrStart;
-    if (strlen(strVal) > DEFAULT_PAGE_SIZE) {
-        logger->warn(StringUtils::getLongStringErrorMessage(strVal, DEFAULT_PAGE_SIZE));
+    if (strlen(strVal) > BufferPoolConstants::DEFAULT_PAGE_SIZE) {
+        logger->warn(
+            StringUtils::getLongStringErrorMessage(strVal, BufferPoolConstants::DEFAULT_PAGE_SIZE));
         // If the std::string is too long, truncate it.
-        strVal[DEFAULT_PAGE_SIZE] = '\0';
+        strVal[BufferPoolConstants::DEFAULT_PAGE_SIZE] = '\0';
     }
     auto unicodeType = Utf8Proc::analyze(strVal, strlen(strVal));
     if (unicodeType == UnicodeType::ASCII) {
@@ -307,10 +309,10 @@ std::unique_ptr<Value> CSVReader::getList(const DataType& dataType) {
         }
     }
     auto numBytesOfOverflow = listVal.size() * Types::getDataTypeSize(dataType.typeID);
-    if (numBytesOfOverflow >= DEFAULT_PAGE_SIZE) {
+    if (numBytesOfOverflow >= BufferPoolConstants::DEFAULT_PAGE_SIZE) {
         throw ReaderException(StringUtils::string_format(
-            "Maximum num bytes of a LIST is %d. Input list's num bytes is %d.", DEFAULT_PAGE_SIZE,
-            numBytesOfOverflow));
+            "Maximum num bytes of a LIST is %d. Input list's num bytes is %d.",
+            BufferPoolConstants::DEFAULT_PAGE_SIZE, numBytesOfOverflow));
     }
     return std::make_unique<Value>(
         DataType(LIST, std::make_unique<DataType>(dataType)), std::move(listVal));

@@ -4,7 +4,7 @@
 #include <utility>
 #include <vector>
 
-#include "common/configs.h"
+#include "common/constants.h"
 
 namespace kuzu {
 namespace common {

@@ -17,7 +17,9 @@ public:
     static constexpr uint64_t LARGE_LIST_IDX_TO_PAGE_LIST_HEAD_IDX_MAP_HEADER_PAGE_IDX = 1;
     static constexpr uint64_t CHUNK_PAGE_LIST_HEADER_PAGE_IDX = 2;
 
-    explicit BaseListsMetadata() { logger = common::LoggerUtils::getOrCreateLogger("storage"); }
+    explicit BaseListsMetadata() {
+        logger = common::LoggerUtils::getLogger(common::LoggerConstants::LoggerEnum::STORAGE);
+    }
 
     inline static std::function<uint32_t(uint32_t)> getIdxInPageListToListPageIdxMapper(
         BaseInMemDiskArray<common::page_idx_t>* pageLists, uint32_t pageListsHead) {

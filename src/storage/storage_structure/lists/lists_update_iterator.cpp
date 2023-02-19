@@ -237,11 +237,12 @@ ListsUpdateIterator::findListPageIdxAndInsertListPageToPageListIfNecessary(
     page_idx_t idxInPageList, uint32_t pageListHeadIdx) {
     auto pageLists = lists->getListsMetadata().pageLists.get();
     uint32_t curIdxInPageList = pageListHeadIdx;
-    while (ListsMetadataConfig::PAGE_LIST_GROUP_SIZE <= idxInPageList) {
-        auto nextIdxInPageList = pageLists->get(
-            curIdxInPageList + ListsMetadataConfig::PAGE_LIST_GROUP_SIZE, TransactionType::WRITE);
+    while (ListsMetadataConstants::PAGE_LIST_GROUP_SIZE <= idxInPageList) {
+        auto nextIdxInPageList =
+            pageLists->get(curIdxInPageList + ListsMetadataConstants::PAGE_LIST_GROUP_SIZE,
+                TransactionType::WRITE);
         if (nextIdxInPageList == StorageStructureUtils::NULL_PAGE_IDX) {
-            // If idxInPageList >= ListsMetadataConfig::PAGE_LIST_GROUP_SIZE but the
+            // If idxInPageList >= ListsMetadataConstants::PAGE_LIST_GROUP_SIZE but the
             // current page group does not have a new page group, it must be the case that
             // the idxInPageList is the first page in the next page group. This is because we
             // are consecutively updating the lists. suppose next list needs to be put in
@@ -252,12 +253,12 @@ ListsUpdateIterator::findListPageIdxAndInsertListPageToPageListIfNecessary(
             // have only 1 page group. But x cannot be 4 and we ran out of page groups because
             // the previous list we stored would have created the page group for 3, 4, and 5
             // (note the first page group would store x 0, 1, and 2).
-            assert(idxInPageList == ListsMetadataConfig::PAGE_LIST_GROUP_SIZE);
+            assert(idxInPageList == ListsMetadataConstants::PAGE_LIST_GROUP_SIZE);
             curIdxInPageList = insertNewPageGroupAndSetHeadIdxMap(curIdxInPageList);
         } else {
             curIdxInPageList = nextIdxInPageList;
         }
-        idxInPageList -= ListsMetadataConfig::PAGE_LIST_GROUP_SIZE;
+        idxInPageList -= ListsMetadataConstants::PAGE_LIST_GROUP_SIZE;
     }
     curIdxInPageList += idxInPageList;
     page_idx_t listPageIdx = pageLists->get(curIdxInPageList, TransactionType::WRITE);
@@ -286,10 +287,10 @@ page_idx_t ListsUpdateIterator::insertNewPageGroupAndSetHeadIdxMap(
         }
     } else {
         // Update the next pointer of the current page group.
-        pageLists->update(beginIdxOfCurrentPageGroup + ListsMetadataConfig::PAGE_LIST_GROUP_SIZE,
+        pageLists->update(beginIdxOfCurrentPageGroup + ListsMetadataConstants::PAGE_LIST_GROUP_SIZE,
             beginIdxOfNextPageGroup);
     }
-    for (int i = 0; i < ListsMetadataConfig::PAGE_LIST_GROUP_WITH_NEXT_PTR_SIZE; ++i) {
+    for (int i = 0; i < ListsMetadataConstants::PAGE_LIST_GROUP_WITH_NEXT_PTR_SIZE; ++i) {
         pageLists->pushBack(StorageStructureUtils::NULL_PAGE_IDX);
     }
     return beginIdxOfNextPageGroup;

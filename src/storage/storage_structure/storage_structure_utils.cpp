@@ -56,7 +56,7 @@ WALPageIdxAndFrame StorageStructureUtils::createWALVersionIfNecessaryAndPinPage(
         uint8_t* originalFrame = bufferManager.pinWithoutAcquiringPageLock(
             fileHandle, originalPageIdx, insertingNewPage);
         // Note: This logic only works for db files with DEFAULT_PAGE_SIZEs.
-        memcpy(frame, originalFrame, DEFAULT_PAGE_SIZE);
+        memcpy(frame, originalFrame, BufferPoolConstants::DEFAULT_PAGE_SIZE);
         bufferManager.unpinWithoutAcquiringPageLock(fileHandle, originalPageIdx);
         fileHandle.setWALPageVersionNoLock(
             originalPageIdx /* pageIdxInOriginalFile */, pageIdxInWAL);

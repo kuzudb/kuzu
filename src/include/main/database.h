@@ -4,7 +4,7 @@
 #include <thread>
 
 #include "common/api.h"
-#include "common/configs.h"
+#include "common/constants.h"
 #include "kuzu_fwd.h"
 
 namespace kuzu {
@@ -63,7 +63,7 @@ public:
      * @param loggingLevel New logging level. (Supported logging levels are: "info", "debug",
      * "err").
      */
-    void setLoggingLevel(std::string loggingLevel);
+    static void setLoggingLevel(std::string loggingLevel);
 
     /**
      * @brief Resizes the buffer pool size of the database instance.
@@ -82,7 +82,8 @@ private:
         bool skipCheckpointForTestingRecovery = false);
 
     void initDBDirAndCoreFilesIfNecessary() const;
-    void initLoggers();
+    static void initLoggers();
+    static void dropLoggers();
 
     void checkpointAndClearWAL();
     void rollbackAndClearWAL();

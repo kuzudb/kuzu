@@ -1,6 +1,6 @@
 #include "storage/copy_arrow/copy_structures_arrow.h"
 
-#include "common/configs.h"
+#include "common/constants.h"
 #include "storage/storage_structure/lists/lists.h"
 
 using namespace kuzu::catalog;
@@ -11,8 +11,8 @@ namespace storage {
 
 CopyStructuresArrow::CopyStructuresArrow(CopyDescription& copyDescription,
     std::string outputDirectory, TaskScheduler& taskScheduler, Catalog& catalog)
-    : logger{LoggerUtils::getOrCreateLogger("loader")}, copyDescription{copyDescription},
-      outputDirectory{std::move(outputDirectory)}, numBlocks{0},
+    : logger{LoggerUtils::getLogger(LoggerConstants::LoggerEnum::LOADER)},
+      copyDescription{copyDescription}, outputDirectory{std::move(outputDirectory)}, numBlocks{0},
       taskScheduler{taskScheduler}, catalog{catalog}, numRows{0} {}
 
 // Lists headers are created for only AdjLists, which store data in the page without NULL bits.
@@ -27,7 +27,7 @@ void CopyStructuresArrow::calculateListHeadersTask(offset_t numNodes, uint32_t e
     for (auto chunkId = 0u; chunkId < numChunks; chunkId++) {
         auto csrOffset = 0u;
         auto lastNodeOffsetInChunk =
-            std::min(nodeOffset + ListsMetadataConfig::LISTS_CHUNK_SIZE, numNodes);
+            std::min(nodeOffset + ListsMetadataConstants::LISTS_CHUNK_SIZE, numNodes);
         for (auto i = nodeOffset; i < lastNodeOffsetInChunk; i++) {
             auto numElementsInList = (*listSizes)[nodeOffset].load(std::memory_order_relaxed);
             uint32_t header;
@@ -54,7 +54,7 @@ void CopyStructuresArrow::calculateListsMetadataAndAllocateInMemListPagesTask(ui
     auto largeListIdx = 0u;
     for (auto chunkId = 0u; chunkId < numChunks; chunkId++) {
         auto lastNodeOffsetInChunk =
-            std::min(nodeOffset + ListsMetadataConfig::LISTS_CHUNK_SIZE, numNodes);
+            std::min(nodeOffset + ListsMetadataConstants::LISTS_CHUNK_SIZE, numNodes);
         for (auto i = nodeOffset; i < lastNodeOffsetInChunk; i++) {
             if (ListHeaders::isALargeList(listHeadersBuilder->getHeader(nodeOffset))) {
                 largeListIdx++;
@@ -69,7 +69,7 @@ void CopyStructuresArrow::calculateListsMetadataAndAllocateInMemListPagesTask(ui
     for (auto chunkId = 0u; chunkId < numChunks; chunkId++) {
         auto numPages = 0u, offsetInPage = 0u;
         auto lastNodeOffsetInChunk =
-            std::min(nodeOffset + ListsMetadataConfig::LISTS_CHUNK_SIZE, numNodes);
+            std::min(nodeOffset + ListsMetadataConstants::LISTS_CHUNK_SIZE, numNodes);
         while (nodeOffset < lastNodeOffsetInChunk) {
             auto numElementsInList = (*listSizes)[nodeOffset].load(std::memory_order_relaxed);
             if (ListHeaders::isALargeList(listHeadersBuilder->getHeader(nodeOffset))) {
@@ -186,7 +186,7 @@ arrow::Status CopyStructuresArrow::initCSVReader(
     std::shared_ptr<arrow::io::InputStream> arrow_input_stream;
     ARROW_ASSIGN_OR_RAISE(arrow_input_stream, arrow::io::ReadableFile::Open(filePath));
     auto arrowRead = arrow::csv::ReadOptions::Defaults();
-    arrowRead.block_size = CopyConfig::CSV_READING_BLOCK_SIZE;
+    arrowRead.block_size = CopyConstants::CSV_READING_BLOCK_SIZE;
 
     if (!copyDescription.csvReaderConfig->hasHeader) {
         arrowRead.autogenerate_column_names = true;
@@ -311,10 +311,10 @@ std::unique_ptr<Value> CopyStructuresArrow::getArrowList(std::string& l, int64_t
         values.push_back(std::move(value));
     }
     auto numBytesOfOverflow = values.size() * Types::getDataTypeSize(childDataType.typeID);
-    if (numBytesOfOverflow >= DEFAULT_PAGE_SIZE) {
+    if (numBytesOfOverflow >= BufferPoolConstants::DEFAULT_PAGE_SIZE) {
         throw ReaderException(StringUtils::string_format(
-            "Maximum num bytes of a LIST is %d. Input list's num bytes is %d.", DEFAULT_PAGE_SIZE,
-            numBytesOfOverflow));
+            "Maximum num bytes of a LIST is %d. Input list's num bytes is %d.",
+            BufferPoolConstants::DEFAULT_PAGE_SIZE, numBytesOfOverflow));
     }
     return make_unique<Value>(
         DataType(LIST, std::make_unique<DataType>(childDataType)), std::move(values));

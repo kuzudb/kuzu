@@ -10,22 +10,7 @@ namespace common {
 constexpr uint64_t DEFAULT_VECTOR_CAPACITY_LOG_2 = 11;
 constexpr uint64_t DEFAULT_VECTOR_CAPACITY = (uint64_t)1 << DEFAULT_VECTOR_CAPACITY_LOG_2;
 
-// Currently the system supports files with 2 different pages size, which we refer to as
-// DEFAULT_PAGE_SIZE and LARGE_PAGE_SIZE. Default size of the page which is the unit of read/write
-// to the database files, such as to store columns or lists. For now, this value cannot be changed.
-// But technically it can change from 2^12 to 2^16. 2^12 lower bound is assuming the OS page size is
-// 4K. 2^16 is because currently we leave 11 fixed number of bits for relOffInPage and the maximum
-// number of bytes needed for an edge is 20 bytes so 11 + log_2(20) = 15.xxx, so certainly over
-// 2^16-size pages, we cannot utilize the page for storing adjacency lists.
-constexpr uint64_t DEFAULT_PAGE_SIZE_LOG_2 = 12;
-constexpr uint64_t DEFAULT_PAGE_SIZE = 1 << DEFAULT_PAGE_SIZE_LOG_2;
-// Page size for files with large pages, e.g., temporary files that are used by operators that may
-// require large amounts of memory.
-constexpr const uint64_t LARGE_PAGE_SIZE_LOG_2 = 18;
-constexpr uint64_t LARGE_PAGE_SIZE = 1 << LARGE_PAGE_SIZE_LOG_2;
-
 constexpr const double DEFAULT_HT_LOAD_FACTOR = 1.5;
-
 constexpr const uint32_t VAR_LENGTH_EXTEND_MAX_DEPTH = 30;
 
 // This is the default thread sleep time we use when a thread,
@@ -36,13 +21,28 @@ constexpr const uint64_t THREAD_SLEEP_TIME_WHEN_WAITING_IN_MICROS = 500;
 // design is meant to not contain any page version arrays if a group of pages do not contain
 // any updates to reduce our memory footprint.
 constexpr const uint64_t MULTI_VERSION_FILE_PAGE_GROUP_SIZE = 64;
-
 constexpr const uint64_t DEFAULT_CHECKPOINT_WAIT_TIMEOUT_FOR_TRANSACTIONS_TO_LEAVE_IN_MICROS =
     5000000;
 
 const std::string INTERNAL_ID_SUFFIX = "_id";
 
-struct StorageConfig {
+// Currently the system supports files with 2 different pages size, which we refer to as
+// DEFAULT_PAGE_SIZE and LARGE_PAGE_SIZE. Default size of the page which is the unit of read/write
+// to the database files, such as to store columns or lists. For now, this value cannot be changed.
+// But technically it can change from 2^12 to 2^16. 2^12 lower bound is assuming the OS page size is
+// 4K. 2^16 is because currently we leave 11 fixed number of bits for relOffInPage and the maximum
+// number of bytes needed for an edge is 20 bytes so 11 + log_2(20) = 15.xxx, so certainly over
+// 2^16-size pages, we cannot utilize the page for storing adjacency lists.
+struct BufferPoolConstants {
+    static constexpr uint64_t DEFAULT_PAGE_SIZE_LOG_2 = 12;
+    static constexpr uint64_t DEFAULT_PAGE_SIZE = 1 << DEFAULT_PAGE_SIZE_LOG_2;
+    // Page size for files with large pages, e.g., temporary files that are used by operators that
+    // may require large amounts of memory.
+    static constexpr const uint64_t LARGE_PAGE_SIZE_LOG_2 = 18;
+    static constexpr uint64_t LARGE_PAGE_SIZE = 1 << LARGE_PAGE_SIZE_LOG_2;
+};
+
+struct StorageConstants {
     // The default amount of memory pre-allocated to both the default and large pages buffer pool.
     static constexpr uint64_t DEFAULT_BUFFER_POOL_SIZE = 1ull << 30;             // (1GB)
     static constexpr uint64_t DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING = 1ull << 26; // (64MB)
@@ -67,7 +67,7 @@ struct StorageConfig {
     constexpr static double ARRAY_RESIZING_FACTOR = 1.2;
 };
 
-struct ListsMetadataConfig {
+struct ListsMetadataConstants {
     // LIST_CHUNK_SIZE should strictly be a power of 2.
     constexpr static uint16_t LISTS_CHUNK_SIZE_LOG_2 = 9;
     constexpr static uint16_t LISTS_CHUNK_SIZE = 1 << LISTS_CHUNK_SIZE_LOG_2;
@@ -80,12 +80,12 @@ struct ListsMetadataConfig {
 };
 
 // Hash Index Configurations
-struct HashIndexConfig {
+struct HashIndexConstants {
     static constexpr uint8_t SLOT_CAPACITY_LOG_2 = 2;
     static constexpr uint8_t SLOT_CAPACITY = (uint64_t)1 << SLOT_CAPACITY_LOG_2;
 };
 
-struct CopyConfig {
+struct CopyConstants {
     // Size (in bytes) of the chunks to be read in Node/Rel Copier
     static constexpr uint64_t CSV_READING_BLOCK_SIZE = 1 << 23;
 
@@ -106,9 +106,22 @@ struct CopyConfig {
     static constexpr bool DEFAULT_CSV_HAS_HEADER = false;
 };
 
+struct LoggerConstants {
+    enum class LoggerEnum : uint8_t {
+        DATABASE = 0,
+        CSV_READER = 1,
+        LOADER = 2,
+        PROCESSOR = 3,
+        BUFFER_MANAGER = 4,
+        CATALOG = 5,
+        STORAGE = 6,
+        TRANSACTION_MANAGER = 7,
+        WAL = 8,
+    };
+};
+
 struct EnumeratorKnobs {
     static constexpr double PREDICATE_SELECTIVITY = 0.1;
-    static constexpr double RANDOM_LOOKUP_PENALTY = 1000;
     static constexpr double FLAT_PROBE_PENALTY = 10;
 };
 

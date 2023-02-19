@@ -8,9 +8,17 @@ using namespace kuzu::testing;
 class BufferManagerTests : public Test {
 
 protected:
-    void SetUp() override { FileUtils::createDir(TestHelper::getTmpTestDir()); }
+    void SetUp() override {
+        FileUtils::createDir(TestHelper::getTmpTestDir());
+        LoggerUtils::createLogger(LoggerConstants::LoggerEnum::BUFFER_MANAGER);
+        LoggerUtils::createLogger(LoggerConstants::LoggerEnum::STORAGE);
+    }
 
-    void TearDown() override { FileUtils::removeDir(TestHelper::getTmpTestDir()); }
+    void TearDown() override {
+        FileUtils::removeDir(TestHelper::getTmpTestDir());
+        LoggerUtils::dropLogger(LoggerConstants::LoggerEnum::BUFFER_MANAGER);
+        LoggerUtils::dropLogger(LoggerConstants::LoggerEnum::STORAGE);
+    }
 };
 
 TEST_F(BufferManagerTests, RemoveFilePagesFromFramesTest) {
@@ -21,10 +29,10 @@ TEST_F(BufferManagerTests, RemoveFilePagesFromFramesTest) {
         fileHandle.addNewPage();
     }
     auto bufferManager =
-        std::make_unique<BufferManager>(StorageConfig::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING *
-                                            StorageConfig::DEFAULT_PAGES_BUFFER_RATIO,
-            StorageConfig::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING *
-                StorageConfig::LARGE_PAGES_BUFFER_RATIO);
+        std::make_unique<BufferManager>(StorageConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING *
+                                            StorageConstants::DEFAULT_PAGES_BUFFER_RATIO,
+            StorageConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING *
+                StorageConstants::LARGE_PAGES_BUFFER_RATIO);
     // Pin and unpin some pages
     bufferManager->pinWithoutReadingFromFile(fileHandle, 10);
     bufferManager->pinWithoutReadingFromFile(fileHandle, 999);

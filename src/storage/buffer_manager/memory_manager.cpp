@@ -21,7 +21,7 @@ std::unique_ptr<MemoryBlock> MemoryManager::allocateBlock(bool initializeToZero)
 
     auto blockHandle = std::make_unique<MemoryBlock>(pageIdx, data);
     if (initializeToZero) {
-        memset(blockHandle->data, 0, LARGE_PAGE_SIZE);
+        memset(blockHandle->data, 0, BufferPoolConstants::LARGE_PAGE_SIZE);
     }
 
     return blockHandle;

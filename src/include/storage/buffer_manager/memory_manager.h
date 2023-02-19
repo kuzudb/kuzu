@@ -5,7 +5,7 @@
 #include <mutex>
 #include <stack>
 
-#include "common/configs.h"
+#include "common/constants.h"
 #include "storage/buffer_manager/buffer_manager.h"
 
 namespace kuzu {
@@ -15,7 +15,7 @@ struct MemoryBlock {
 
 public:
     explicit MemoryBlock(common::page_idx_t pageIdx, uint8_t* data)
-        : size(common::LARGE_PAGE_SIZE), pageIdx(pageIdx), data(data) {}
+        : size(common::BufferPoolConstants::LARGE_PAGE_SIZE), pageIdx(pageIdx), data(data) {}
 
 public:
     uint64_t size;

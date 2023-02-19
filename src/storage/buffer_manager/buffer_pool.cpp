@@ -2,7 +2,7 @@
 
 #include <sys/mman.h>
 
-#include "common/configs.h"
+#include "common/constants.h"
 #include "common/exception.h"
 #include "common/utils.h"
 #include "spdlog/spdlog.h"
@@ -53,9 +53,11 @@ void Frame::releaseBuffer() {
 }
 
 BufferPool::BufferPool(uint64_t pageSize, uint64_t maxSize)
-    : logger{LoggerUtils::getOrCreateLogger("buffer_manager")}, pageSize{pageSize}, clockHand{0},
+    : logger{LoggerUtils::getLogger(LoggerConstants::LoggerEnum::BUFFER_MANAGER)},
+      pageSize{pageSize}, clockHand{0},
       numFrames((page_idx_t)(ceil((double)maxSize / (double)pageSize))) {
-    assert(pageSize == DEFAULT_PAGE_SIZE || pageSize == LARGE_PAGE_SIZE);
+    assert(pageSize == BufferPoolConstants::DEFAULT_PAGE_SIZE ||
+           pageSize == BufferPoolConstants::LARGE_PAGE_SIZE);
     auto mmapRegion = (u_int8_t*)mmap(
         NULL, (numFrames * pageSize), PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     for (auto i = 0u; i < numFrames; ++i) {
@@ -131,7 +133,7 @@ void BufferPool::updateFrameIfPageIsInFrameWithoutPageOrFrameLock(
     FileHandle& fileHandle, uint8_t* newPage, page_idx_t pageIdx) {
     auto frameIdx = fileHandle.getFrameIdx(pageIdx);
     if (FileHandle::isAFrame(frameIdx)) {
-        memcpy(bufferCache[frameIdx]->buffer, newPage, DEFAULT_PAGE_SIZE);
+        memcpy(bufferCache[frameIdx]->buffer, newPage, BufferPoolConstants::DEFAULT_PAGE_SIZE);
     }
 }
 

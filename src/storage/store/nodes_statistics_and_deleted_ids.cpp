@@ -1,6 +1,6 @@
 #include "storage/store/nodes_statistics_and_deleted_ids.h"
 
-#include "common/configs.h"
+#include "common/constants.h"
 #include "spdlog/spdlog.h"
 
 using namespace kuzu::common;

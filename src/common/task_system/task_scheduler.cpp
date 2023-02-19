@@ -1,6 +1,6 @@
 #include "common/task_system/task_scheduler.h"
 
-#include "common/configs.h"
+#include "common/constants.h"
 #include "spdlog/spdlog.h"
 
 using namespace kuzu::common;
@@ -9,7 +9,8 @@ namespace kuzu {
 namespace common {
 
 TaskScheduler::TaskScheduler(uint64_t numThreads)
-    : logger{LoggerUtils::getOrCreateLogger("processor")}, nextScheduledTaskID{0} {
+    : logger{LoggerUtils::getLogger(LoggerConstants::LoggerEnum::PROCESSOR)}, nextScheduledTaskID{
+                                                                                  0} {
     for (auto n = 0u; n < numThreads; ++n) {
         threads.emplace_back([&] { runWorkerThread(); });
     }
