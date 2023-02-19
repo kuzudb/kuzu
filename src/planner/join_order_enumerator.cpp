@@ -563,8 +563,8 @@ void JoinOrderEnumerator::appendExtend(std::shared_ptr<NodeExpression> boundNode
     std::shared_ptr<NodeExpression> nbrNode, std::shared_ptr<RelExpression> rel,
     RelDirection direction, const expression_vector& properties, LogicalPlan& plan) {
     auto extendToNewGroup = needExtendToNewGroup(*rel, *boundNode, direction);
-    if (LogicalExtendFactorizationResolver::requireFlatBoundNode(extendToNewGroup, *rel)) {
-        auto groupPosToFlatten = LogicalExtendFactorizationResolver::getGroupPosToFlatten(
+    if (LogicalExtendFactorizationSolver::requireFlatBoundNode(extendToNewGroup, *rel)) {
+        auto groupPosToFlatten = LogicalExtendFactorizationSolver::getGroupPosToFlatten(
             *boundNode, plan.getLastOperator().get());
         QueryPlanner::appendFlattenIfNecessary(groupPosToFlatten, plan);
     }
@@ -611,14 +611,14 @@ void JoinOrderEnumerator::appendHashJoin(const expression_vector& joinNodeIDs, J
     auto buildChild = buildPlan.getLastOperator();
     // Apply flattening to probe side
     auto groupsPosToFlattenOnProbeSide =
-        LogicalHashJoinFactorizationResolver::getGroupsPosToFlattenOnProbeSide(
+        LogicalHashJoinFactorizationSolver::getGroupsPosToFlattenOnProbeSide(
             joinNodeIDs, probeChild.get(), buildChild.get());
     for (auto groupPos : groupsPosToFlattenOnProbeSide) {
         QueryPlanner::appendFlattenIfNecessary(groupPos, probePlan);
     }
     // Apply flattening to build side
     auto groupsPosToFlattenOnBuildSide =
-        LogicalHashJoinFactorizationResolver::getGroupsPosToFlattenOnBuildSide(
+        LogicalHashJoinFactorizationSolver::getGroupsPosToFlattenOnBuildSide(
             joinNodeIDs, buildChild.get());
     for (auto groupPos : groupsPosToFlattenOnBuildSide) {
         QueryPlanner::appendFlattenIfNecessary(groupPos, buildPlan);
@@ -643,14 +643,14 @@ void JoinOrderEnumerator::appendMarkJoin(const expression_vector& joinNodeIDs,
     auto buildChild = buildPlan.getLastOperator();
     // Apply flattening to probe side
     auto groupsPosToFlattenOnProbeSide =
-        LogicalHashJoinFactorizationResolver::getGroupsPosToFlattenOnProbeSide(
+        LogicalHashJoinFactorizationSolver::getGroupsPosToFlattenOnProbeSide(
             joinNodeIDs, probeChild.get(), buildChild.get());
     for (auto groupPos : groupsPosToFlattenOnProbeSide) {
         QueryPlanner::appendFlattenIfNecessary(groupPos, probePlan);
     }
     // Apply flattening to build side
     auto groupsPosToFlattenOnBuildSide =
-        LogicalHashJoinFactorizationResolver::getGroupsPosToFlattenOnBuildSide(
+        LogicalHashJoinFactorizationSolver::getGroupsPosToFlattenOnBuildSide(
             joinNodeIDs, buildChild.get());
     for (auto groupPos : groupsPosToFlattenOnBuildSide) {
         QueryPlanner::appendFlattenIfNecessary(groupPos, buildPlan);
@@ -665,7 +665,7 @@ void JoinOrderEnumerator::appendMarkJoin(const expression_vector& joinNodeIDs,
 void JoinOrderEnumerator::appendIntersect(const std::shared_ptr<Expression>& intersectNodeID,
     binder::expression_vector& boundNodeIDs, LogicalPlan& probePlan,
     std::vector<std::unique_ptr<LogicalPlan>>& buildPlans) {
-    for (auto groupPos : LogicalIntersectFactorizationResolver::getGroupsPosToFlattenOnProbeSide(
+    for (auto groupPos : LogicalIntersectFactorizationSolver::getGroupsPosToFlattenOnProbeSide(
              boundNodeIDs, probePlan.getLastOperator().get())) {
         QueryPlanner::appendFlattenIfNecessary(groupPos, probePlan);
     }
@@ -676,7 +676,7 @@ void JoinOrderEnumerator::appendIntersect(const std::shared_ptr<Expression>& int
         auto boundNodeID = boundNodeIDs[i];
         auto buildPlan = buildPlans[i].get();
         auto groupPosToFlatten =
-            LogicalIntersectFactorizationResolver::getGroupPosToFlattenOnBuildSide(
+            LogicalIntersectFactorizationSolver::getGroupPosToFlattenOnBuildSide(
                 *boundNodeID, buildPlan->getLastOperator().get());
         QueryPlanner::appendFlattenIfNecessary(groupPosToFlatten, *buildPlan);
         auto buildInfo = std::make_unique<LogicalIntersectBuildInfo>(

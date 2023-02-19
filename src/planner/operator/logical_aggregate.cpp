@@ -44,7 +44,7 @@ LogicalAggregateFactorizationSolver::getGroupsPosToFlattenForGroupBy(
         return FlattenAllFactorizationSolver::getGroupsPosToFlatten(
             dependentGroupsPos, aggregateChild->getSchema());
     } else {
-        return FlattenAllButOneFactorizationResolver::getGroupsPosToFlatten(
+        return FlattenAllButOneFactorizationSolver::getGroupsPosToFlatten(
             dependentGroupsPos, aggregateChild->getSchema());
     }
 }

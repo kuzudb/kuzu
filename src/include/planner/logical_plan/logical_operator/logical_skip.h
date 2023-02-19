@@ -40,7 +40,7 @@ public:
     }
     static std::unordered_set<f_group_pos> getGroupsPosToFlatten(LogicalOperator* skipChild) {
         auto dependentGroupsPos = skipChild->getSchema()->getGroupsPosInScope();
-        return FlattenAllButOneFactorizationResolver::getGroupsPosToFlatten(
+        return FlattenAllButOneFactorizationSolver::getGroupsPosToFlatten(
             dependentGroupsPos, skipChild->getSchema());
     }
 };

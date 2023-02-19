@@ -8,9 +8,7 @@ public:
     void rewrite(planner::LogicalPlan* plan);
 
 private:
-    void visitOperator(planner::LogicalOperator* op);
-
-    std::shared_ptr<planner::LogicalOperator> getNonFlattenOp(
+    std::shared_ptr<planner::LogicalOperator> rewriteOperator(
         std::shared_ptr<planner::LogicalOperator> op);
 
     bool subPlanHasFlatten(planner::LogicalOperator* op);

@@ -59,7 +59,7 @@ void LogicalHashJoin::computeSchema() {
 }
 
 std::unordered_set<f_group_pos>
-LogicalHashJoinFactorizationResolver::getGroupsPosToFlattenOnProbeSide(
+LogicalHashJoinFactorizationSolver::getGroupsPosToFlattenOnProbeSide(
     const binder::expression_vector& joinNodeIDs, LogicalOperator* probeChild,
     LogicalOperator* buildChild) {
     std::unordered_set<f_group_pos> result;
@@ -74,17 +74,17 @@ LogicalHashJoinFactorizationResolver::getGroupsPosToFlattenOnProbeSide(
 }
 
 std::unordered_set<f_group_pos>
-LogicalHashJoinFactorizationResolver::getGroupsPosToFlattenOnBuildSide(
+LogicalHashJoinFactorizationSolver::getGroupsPosToFlattenOnBuildSide(
     const binder::expression_vector& joinNodeIDs, LogicalOperator* buildChild) {
     std::unordered_set<uint32_t> joinNodesGroupPos;
     for (auto& joinNodeID : joinNodeIDs) {
         joinNodesGroupPos.insert(buildChild->getSchema()->getGroupPos(*joinNodeID));
     }
-    return FlattenAllButOneFactorizationResolver::getGroupsPosToFlatten(
+    return FlattenAllButOneFactorizationSolver::getGroupsPosToFlatten(
         joinNodesGroupPos, buildChild->getSchema());
 }
 
-bool LogicalHashJoinFactorizationResolver::requireFlatProbeKeys(
+bool LogicalHashJoinFactorizationSolver::requireFlatProbeKeys(
     const binder::expression_vector& joinNodeIDs, LogicalOperator* buildChild) {
     if (joinNodeIDs.size() > 1) {
         return true;
@@ -93,7 +93,7 @@ bool LogicalHashJoinFactorizationResolver::requireFlatProbeKeys(
     return !isJoinKeyUniqueOnBuildSide(*joinNode, buildChild);
 }
 
-bool LogicalHashJoinFactorizationResolver::isJoinKeyUniqueOnBuildSide(
+bool LogicalHashJoinFactorizationSolver::isJoinKeyUniqueOnBuildSide(
     const binder::Expression& joinNodeID, LogicalOperator* buildChild) {
     auto numGroupsInScope = buildChild->getSchema()->getGroupsPosInScope().size();
     bool hasProjectedOutGroups = buildChild->getSchema()->getNumGroups() > numGroupsInScope;

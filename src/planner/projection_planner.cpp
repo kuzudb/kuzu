@@ -93,7 +93,7 @@ void ProjectionPlanner::appendProjection(
     }
     for (auto& expression : expressionsToProject) {
         auto dependentGroupsPos = plan.getSchema()->getDependentGroupsPos(expression);
-        auto groupsPosToFlatten = FlattenAllButOneFactorizationResolver::getGroupsPosToFlatten(
+        auto groupsPosToFlatten = FlattenAllButOneFactorizationSolver::getGroupsPosToFlatten(
             dependentGroupsPos, plan.getSchema());
         for (auto groupPos : groupsPosToFlatten) {
             QueryPlanner::appendFlattenIfNecessary(groupPos, plan);

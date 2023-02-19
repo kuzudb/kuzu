@@ -46,7 +46,7 @@ protected:
     bool extendToNewGroup;
 };
 
-class LogicalExtendFactorizationResolver {
+class LogicalExtendFactorizationSolver {
 public:
     static bool requireFlatBoundNode(LogicalExtend* extend) {
         return requireFlatBoundNode(extend->isExtendToNewGroup(), *extend->getRel());

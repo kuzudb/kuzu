@@ -71,7 +71,7 @@ private:
     binder::expression_vector expressionsToMaterialize;
 };
 
-class LogicalHashJoinFactorizationResolver {
+class LogicalHashJoinFactorizationSolver {
 public:
     static std::unordered_set<f_group_pos> getGroupsPosToFlattenOnProbeSide(
         LogicalHashJoin* hashJoin) {

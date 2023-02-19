@@ -3,7 +3,7 @@
 namespace kuzu {
 namespace planner {
 
-std::unordered_set<f_group_pos> FlattenAllButOneFactorizationResolver::getGroupsPosToFlatten(
+std::unordered_set<f_group_pos> FlattenAllButOneFactorizationSolver::getGroupsPosToFlatten(
     const std::unordered_set<f_group_pos>& groupsPos, Schema* schema) {
     std::vector<f_group_pos> unFlatGroupsPos;
     for (auto groupPos : groupsPos) {
@@ -12,6 +12,7 @@ std::unordered_set<f_group_pos> FlattenAllButOneFactorizationResolver::getGroups
         }
     }
     std::unordered_set<f_group_pos> result;
+    // Keep the first group as unFlat.
     for (auto i = 1u; i < unFlatGroupsPos.size(); ++i) {
         result.insert(unFlatGroupsPos[i]);
     }

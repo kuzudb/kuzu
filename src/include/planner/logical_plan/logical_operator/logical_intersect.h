@@ -52,7 +52,7 @@ private:
     std::vector<std::unique_ptr<LogicalIntersectBuildInfo>> buildInfos;
 };
 
-class LogicalIntersectFactorizationResolver {
+class LogicalIntersectFactorizationSolver {
 public:
     static std::unordered_set<f_group_pos> getGroupsPosToFlattenOnProbeSide(
         LogicalIntersect* intersect) {

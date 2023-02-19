@@ -15,7 +15,7 @@ f_group_pos LogicalFilter::getGroupPosToSelect() const {
 std::unordered_set<f_group_pos> LogicalFilterFactorizationSolver::getGroupsPosToFlatten(
     const std::shared_ptr<binder::Expression>& expression, LogicalOperator* filterChild) {
     auto dependentGroupsPos = filterChild->getSchema()->getDependentGroupsPos(expression);
-    return FlattenAllButOneFactorizationResolver::getGroupsPosToFlatten(
+    return FlattenAllButOneFactorizationSolver::getGroupsPosToFlatten(
         dependentGroupsPos, filterChild->getSchema());
 }
 

@@ -38,7 +38,7 @@ public:
         const std::shared_ptr<binder::Expression>& rhs, LogicalOperator* setNodePropertyChild) {
         auto schema = setNodePropertyChild->getSchema();
         auto dependentGroupsPos = schema->getDependentGroupsPos(rhs);
-        return FlattenAllButOneFactorizationResolver::getGroupsPosToFlatten(
+        return FlattenAllButOneFactorizationSolver::getGroupsPosToFlatten(
             dependentGroupsPos, schema);
     }
     static bool requireFlatLhs(const std::shared_ptr<binder::Expression>& lhsNodeID,

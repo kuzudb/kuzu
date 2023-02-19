@@ -44,9 +44,8 @@ void UpdatePlanner::planUpdatingClause(BoundUpdatingClause& updatingClause, Logi
 }
 
 void UpdatePlanner::planCreate(BoundCreateClause& createClause, LogicalPlan& plan) {
-    // Flatten all inputs. E.g. MATCH (a) CREATE (b). We need to create b for each tuple in the
-    // match clause. This is to simplify operator implementation.
-    for (auto groupPos = 0u; groupPos < plan.getSchema()->getNumGroups(); ++groupPos) {
+    for (auto groupPos :
+        LogicalCreateFactorizationSolver::getGroupsPosToFlatten(plan.getLastOperator().get())) {
         QueryPlanner::appendFlattenIfNecessary(groupPos, plan);
     }
     if (createClause.hasCreateNode()) {

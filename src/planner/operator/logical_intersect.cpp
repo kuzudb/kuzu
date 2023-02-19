@@ -36,7 +36,7 @@ std::unique_ptr<LogicalOperator> LogicalIntersect::copy() {
 }
 
 std::unordered_set<f_group_pos>
-LogicalIntersectFactorizationResolver::getGroupsPosToFlattenOnProbeSide(
+LogicalIntersectFactorizationSolver::getGroupsPosToFlattenOnProbeSide(
     const binder::expression_vector& boundNodeIDs, LogicalOperator* probeChild) {
     std::unordered_set<f_group_pos> result;
     for (auto& boundNodeID : boundNodeIDs) {

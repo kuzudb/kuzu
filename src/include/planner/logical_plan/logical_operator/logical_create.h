@@ -1,5 +1,6 @@
 #pragma once
 
+#include "factorization_resolver.h"
 #include "logical_update.h"
 
 namespace kuzu {
@@ -46,6 +47,17 @@ public:
 
 private:
     std::vector<std::vector<binder::expression_pair>> setItemsPerRel;
+};
+
+class LogicalCreateFactorizationSolver {
+public:
+    // Flatten all inputs. E.g. MATCH (a) CREATE (b). We need to create b for each tuple in the
+    // match clause. This is to simplify operator implementation.
+    static std::unordered_set<f_group_pos> getGroupsPosToFlatten(LogicalOperator* createChild) {
+        auto groupsPos = createChild->getSchema()->getGroupsPosInScope();
+        return FlattenAllFactorizationSolver::getGroupsPosToFlatten(
+            groupsPos, createChild->getSchema());
+    }
 };
 
 } // namespace planner

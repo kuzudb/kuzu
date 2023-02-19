@@ -1,7 +1,7 @@
 #include "optimizer/optimizer.h"
 
-#include "optimizer/index_nested_loop_join_optimizer.h"
 #include "optimizer/factorization_rewriter.h"
+#include "optimizer/index_nested_loop_join_optimizer.h"
 #include "optimizer/remove_factorization_rewriter.h"
 
 namespace kuzu {

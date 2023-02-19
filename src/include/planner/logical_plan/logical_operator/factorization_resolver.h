@@ -5,7 +5,7 @@
 namespace kuzu {
 namespace planner {
 
-struct FlattenAllButOneFactorizationResolver {
+struct FlattenAllButOneFactorizationSolver {
     static std::unordered_set<f_group_pos> getGroupsPosToFlatten(
         const std::unordered_set<f_group_pos>& groupsPos, Schema* schema);
 };

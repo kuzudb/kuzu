@@ -2,6 +2,7 @@
 
 #include "planner/logical_plan/logical_operator/factorization_resolver.h"
 #include "planner/logical_plan/logical_operator/logical_aggregate.h"
+#include "planner/logical_plan/logical_operator/logical_create.h"
 #include "planner/logical_plan/logical_operator/logical_delete.h"
 #include "planner/logical_plan/logical_operator/logical_distinct.h"
 #include "planner/logical_plan/logical_operator/logical_extend.h"
@@ -77,6 +78,10 @@ void FactorizationRewriter::visitOperator(planner::LogicalOperator* op) {
     case LogicalOperatorType::DELETE_REL: {
         visitDeleteRel(op);
     } break;
+    case LogicalOperatorType::CREATE_NODE:
+    case LogicalOperatorType::CREATE_REL: {
+        visitCreate(op);
+    } break;
     default:
         break;
     }
@@ -85,31 +90,31 @@ void FactorizationRewriter::visitOperator(planner::LogicalOperator* op) {
 
 void FactorizationRewriter::visitExtend(planner::LogicalOperator* op) {
     auto extend = (LogicalExtend*)op;
-    if (!LogicalExtendFactorizationResolver::requireFlatBoundNode(extend)) {
+    if (!LogicalExtendFactorizationSolver::requireFlatBoundNode(extend)) {
         return;
     }
-    auto groupPosToFlatten = LogicalExtendFactorizationResolver::getGroupPosToFlatten(extend);
+    auto groupPosToFlatten = LogicalExtendFactorizationSolver::getGroupPosToFlatten(extend);
     extend->setChild(0, appendFlattenIfNecessary(extend->getChild(0), groupPosToFlatten));
 }
 
 void FactorizationRewriter::visitHashJoin(planner::LogicalOperator* op) {
     auto hashJoin = (LogicalHashJoin*)op;
     auto groupsPosToFlattenOnProbeSide =
-        LogicalHashJoinFactorizationResolver::getGroupsPosToFlattenOnProbeSide(hashJoin);
+        LogicalHashJoinFactorizationSolver::getGroupsPosToFlattenOnProbeSide(hashJoin);
     hashJoin->setChild(0, appendFlattens(hashJoin->getChild(0), groupsPosToFlattenOnProbeSide));
     auto groupsPosToFlattenOnBuildSide =
-        LogicalHashJoinFactorizationResolver::getGroupsPosToFlattenOnBuildSide(hashJoin);
+        LogicalHashJoinFactorizationSolver::getGroupsPosToFlattenOnBuildSide(hashJoin);
     hashJoin->setChild(1, appendFlattens(hashJoin->getChild(1), groupsPosToFlattenOnBuildSide));
 }
 
 void FactorizationRewriter::visitIntersect(planner::LogicalOperator* op) {
     auto intersect = (LogicalIntersect*)op;
     auto groupsPosToFlattenOnProbeSide =
-        LogicalIntersectFactorizationResolver::getGroupsPosToFlattenOnProbeSide(intersect);
+        LogicalIntersectFactorizationSolver::getGroupsPosToFlattenOnProbeSide(intersect);
     intersect->setChild(0, appendFlattens(intersect->getChild(0), groupsPosToFlattenOnProbeSide));
     for (auto i = 0u; i < intersect->getNumBuilds(); ++i) {
         auto groupPosToFlatten =
-            LogicalIntersectFactorizationResolver::getGroupPosToFlattenOnBuildSide(intersect, i);
+            LogicalIntersectFactorizationSolver::getGroupPosToFlattenOnBuildSide(intersect, i);
         auto childIdx = i + 1; // skip probe
         intersect->setChild(
             childIdx, appendFlattenIfNecessary(intersect->getChild(childIdx), groupPosToFlatten));
@@ -120,7 +125,7 @@ void FactorizationRewriter::visitProjection(planner::LogicalOperator* op) {
     auto projection = (LogicalProjection*)op;
     for (auto& expression : projection->getExpressionsToProject()) {
         auto dependentGroupsPos = op->getChild(0)->getSchema()->getDependentGroupsPos(expression);
-        auto groupsPosToFlatten = FlattenAllButOneFactorizationResolver::getGroupsPosToFlatten(
+        auto groupsPosToFlatten = FlattenAllButOneFactorizationSolver::getGroupsPosToFlatten(
             dependentGroupsPos, op->getChild(0)->getSchema());
         projection->setChild(0, appendFlattens(projection->getChild(0), groupsPosToFlatten));
     }
@@ -218,6 +223,12 @@ void FactorizationRewriter::visitDeleteRel(planner::LogicalOperator* op) {
             deleteRel->getRel(i), deleteRel->getChild(0).get());
         deleteRel->setChild(0, appendFlattens(deleteRel->getChild(0), groupsPosToFlatten));
     }
+}
+
+void FactorizationRewriter::visitCreate(planner::LogicalOperator* op) {
+    auto groupsPosToFlatten =
+        LogicalCreateFactorizationSolver::getGroupsPosToFlatten(op->getChild(0).get());
+    op->setChild(0, appendFlattens(op->getChild(0), groupsPosToFlatten));
 }
 
 std::shared_ptr<planner::LogicalOperator> FactorizationRewriter::appendFlattens(
