@@ -13,6 +13,7 @@ function executeAllCallback(queryResult) {
         console.log("All result received");
         console.log(result);
     });
+    queryResult.close();
 }
 
 // Basic Case with all callback

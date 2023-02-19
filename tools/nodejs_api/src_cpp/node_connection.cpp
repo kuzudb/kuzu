@@ -1,9 +1,9 @@
 #include "node_connection.h"
+
+#include "execute_async_worker.h"
+#include "main/kuzu.h"
 #include "node_database.h"
 #include "node_query_result.h"
-#include "ExecuteAsyncWorker.h"
-
-#include "main/kuzu.h"
 
 using namespace kuzu::main;
 

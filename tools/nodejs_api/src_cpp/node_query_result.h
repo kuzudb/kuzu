@@ -13,8 +13,6 @@ class NodeQueryResult: public Napi::ObjectWrap<NodeQueryResult> {
 
  private:
     static Napi::FunctionReference constructor;
-    Napi::Value HasNext(const Napi::CallbackInfo& info);
-    Napi::Value GetNext(const Napi::CallbackInfo& info);
     void Close(const Napi::CallbackInfo& info);
     Napi::Value All(const Napi::CallbackInfo& info);
     Napi::Value Each(const Napi::CallbackInfo& info);

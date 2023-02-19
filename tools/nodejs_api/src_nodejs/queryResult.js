@@ -1,3 +1,5 @@
+const callbackWrapper = require("./common.js");
+
 class QueryResult {
     #queryResult
     #isClosed
@@ -23,27 +25,21 @@ class QueryResult {
     each(eachCallback, doneCallback) {
         this.checkForQueryResultClose();
         this.#queryResult.each((err, result) => {
-            if (err){
-                console.log("There is an error!!!" + err);
-                throw err;
-            } else {
+            callbackWrapper(err, () => {
                 eachCallback(result);
-                if (result.at(-1) == 0){
+                if (result.at(-1) == 0) {
                     doneCallback();
                 }
-            }
+            });
         });
     }
 
     all(callback) {
         this.checkForQueryResultClose();
         this.#queryResult.all((err, result) => {
-            if (err){
-                console.log("There is an error!!!" + err);
-                throw err;
-            } else {
+            callbackWrapper(err, () => {
                 callback(result);
-            }
+            });
         });
     }
 }
