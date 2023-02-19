@@ -34,7 +34,7 @@ NodeConnection::NodeConnection(const Napi::CallbackInfo& info) : Napi::ObjectWra
       Napi::TypeError::New(env, "Need a valid database class passed in").ThrowAsJavaScriptException();
       return;
   }
-  NodeDatabase * nodeDatabase = NodeDatabase::Unwrap(info[0].As<Napi::Object>());
+  NodeDatabase * nodeDatabase = Napi::ObjectWrap<NodeDatabase>::Unwrap(info[0].As<Napi::Object>());
   uint64_t numThreads = info[1].As<Napi::Number>().DoubleValue();
 
   try {
@@ -54,15 +54,14 @@ Napi::Value NodeConnection::Execute(const Napi::CallbackInfo& info) {
   Napi::Env env = info.Env();
   Napi::HandleScope scope(env);
 
-  if (info.Length()!=2 || !info[0].IsString()) {
-      Napi::TypeError::New(env, "Execute needs query parameter").ThrowAsJavaScriptException();
+  if (info.Length()==2 && (!info[0].IsString() || !info[1].IsFunction())) {
+      Napi::TypeError::New(env, "Execute needs query parameter & callback").ThrowAsJavaScriptException();
       return Napi::Object::New(env);
   }
   std::string query = info[0].ToString();
   Function callback = info[1].As<Function>();
   ExecuteAsyncWorker * asyncWorker = new ExecuteAsyncWorker(callback, connection, query);
   asyncWorker->Queue();
-
   return info.Env().Undefined();
 }
 

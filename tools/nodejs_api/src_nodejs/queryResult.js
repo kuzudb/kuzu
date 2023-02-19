@@ -12,16 +12,6 @@ class QueryResult {
         }
     }
 
-    hasNext(){
-        this.checkForQueryResultClose();
-        return this.#queryResult.hasNext();
-    }
-
-    getNext(){
-        this.checkForQueryResultClose();
-        return this.#queryResult.getNext();
-    }
-
     close(){
         if (this.#isClosed){
             return;
@@ -31,23 +21,19 @@ class QueryResult {
     }
 
     each() {
-        if (this.hasNext()) {
-            return this.getNext();
-        }
         return;
     }
 
-    all() {
-        const arr = [];
-        try {
-            while (this.hasNext()) {
-                arr.push(this.getNext());
+    all(callback) {
+        this.checkForQueryResultClose();
+        this.#queryResult.all((err, result) => {
+            if (err){
+                console.log("There is an error!!!" + err);
+                throw err;
+            } else {
+                callback(result);
             }
-        }
-        catch(error){
-            console.log(error);
-        }
-        return arr;
+        });
     }
 }
 
