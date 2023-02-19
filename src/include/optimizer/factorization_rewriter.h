@@ -21,6 +21,9 @@ private:
     void visitUnwind(planner::LogicalOperator* op);
     void visitUnion(planner::LogicalOperator* op);
     void visitFilter(planner::LogicalOperator* op);
+    void visitSetNodeProperty(planner::LogicalOperator* op);
+    void visitSetRelProperty(planner::LogicalOperator* op);
+    void visitDeleteRel(planner::LogicalOperator* op);
 
     std::shared_ptr<planner::LogicalOperator> appendFlattens(
         std::shared_ptr<planner::LogicalOperator> op,

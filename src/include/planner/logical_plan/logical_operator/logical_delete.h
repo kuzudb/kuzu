@@ -1,6 +1,7 @@
 #pragma once
 
 #include "logical_update.h"
+#include "planner/logical_plan/logical_operator/factorization_resolver.h"
 
 namespace kuzu {
 namespace planner {
@@ -34,6 +35,18 @@ public:
 
     inline std::unique_ptr<LogicalOperator> copy() override {
         return make_unique<LogicalDeleteRel>(rels, children[0]->copy());
+    }
+};
+
+class LogicalDeleteRelFactorizationSolver {
+public:
+    static std::unordered_set<f_group_pos> getGroupsPosToFlatten(
+        const std::shared_ptr<binder::RelExpression>& rel, LogicalOperator* deleteRelChild) {
+        std::unordered_set<f_group_pos> result;
+        auto schema = deleteRelChild->getSchema();
+        result.insert(schema->getGroupPos(*rel->getSrcNode()->getInternalIDProperty()));
+        result.insert(schema->getGroupPos(*rel->getDstNode()->getInternalIDProperty()));
+        return FlattenAllFactorizationSolver::getGroupsPosToFlatten(result, schema);
     }
 };
 

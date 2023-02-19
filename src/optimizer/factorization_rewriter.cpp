@@ -2,6 +2,7 @@
 
 #include "planner/logical_plan/logical_operator/factorization_resolver.h"
 #include "planner/logical_plan/logical_operator/logical_aggregate.h"
+#include "planner/logical_plan/logical_operator/logical_delete.h"
 #include "planner/logical_plan/logical_operator/logical_distinct.h"
 #include "planner/logical_plan/logical_operator/logical_extend.h"
 #include "planner/logical_plan/logical_operator/logical_filter.h"
@@ -11,6 +12,7 @@
 #include "planner/logical_plan/logical_operator/logical_limit.h"
 #include "planner/logical_plan/logical_operator/logical_order_by.h"
 #include "planner/logical_plan/logical_operator/logical_projection.h"
+#include "planner/logical_plan/logical_operator/logical_set.h"
 #include "planner/logical_plan/logical_operator/logical_skip.h"
 #include "planner/logical_plan/logical_operator/logical_union.h"
 #include "planner/logical_plan/logical_operator/logical_unwind.h"
@@ -65,6 +67,15 @@ void FactorizationRewriter::visitOperator(planner::LogicalOperator* op) {
     } break;
     case LogicalOperatorType::FILTER: {
         visitFilter(op);
+    } break;
+    case LogicalOperatorType::SET_NODE_PROPERTY: {
+        visitSetNodeProperty(op);
+    } break;
+    case LogicalOperatorType::SET_REL_PROPERTY: {
+        visitSetRelProperty(op);
+    } break;
+    case LogicalOperatorType::DELETE_REL: {
+        visitDeleteRel(op);
     } break;
     default:
         break;
@@ -169,6 +180,44 @@ void FactorizationRewriter::visitFilter(planner::LogicalOperator* op) {
     auto filter = (LogicalFilter*)op;
     auto groupsPosToFlatten = LogicalFilterFactorizationSolver::getGroupsPosToFlatten(filter);
     filter->setChild(0, appendFlattens(filter->getChild(0), groupsPosToFlatten));
+}
+
+void FactorizationRewriter::visitSetNodeProperty(planner::LogicalOperator* op) {
+    auto setNodeProperty = (LogicalSetNodeProperty*)op;
+    for (auto i = 0u; i < setNodeProperty->getNumNodes(); ++i) {
+        auto lhsNodeID = setNodeProperty->getNode(i)->getInternalIDProperty();
+        auto rhs = setNodeProperty->getSetItem(i).second;
+        auto groupsPosToFlatten =
+            LogicalSetNodePropertyFactorizationSolver::getGroupsPosToFlattenForRhs(
+                rhs, op->getChild(0).get());
+        setNodeProperty->setChild(
+            0, appendFlattens(setNodeProperty->getChild(0), groupsPosToFlatten));
+        if (LogicalSetNodePropertyFactorizationSolver::requireFlatLhs(
+                lhsNodeID, rhs, op->getChild(0).get())) {
+            auto groupPosToFlatten = op->getChild(0)->getSchema()->getGroupPos(*lhsNodeID);
+            setNodeProperty->setChild(
+                0, appendFlattenIfNecessary(setNodeProperty->getChild(0), groupPosToFlatten));
+        }
+    }
+}
+
+void FactorizationRewriter::visitSetRelProperty(planner::LogicalOperator* op) {
+    auto setRelProperty = (LogicalSetRelProperty*)op;
+    for (auto i = 0u; i < setRelProperty->getNumRels(); ++i) {
+        auto groupsPosToFlatten = LogicalSetRelPropertyFactorizationSolver::getGroupsPosToFlatten(
+            setRelProperty->getRel(i), setRelProperty->getSetItem(i).second, op->getChild(0).get());
+        setRelProperty->setChild(
+            0, appendFlattens(setRelProperty->getChild(0), groupsPosToFlatten));
+    }
+}
+
+void FactorizationRewriter::visitDeleteRel(planner::LogicalOperator* op) {
+    auto deleteRel = (LogicalDeleteRel*)op;
+    for (auto i = 0u; i < deleteRel->getNumRels(); ++i) {
+        auto groupsPosToFlatten = LogicalDeleteRelFactorizationSolver::getGroupsPosToFlatten(
+            deleteRel->getRel(i), deleteRel->getChild(0).get());
+        deleteRel->setChild(0, appendFlattens(deleteRel->getChild(0), groupsPosToFlatten));
+    }
 }
 
 std::shared_ptr<planner::LogicalOperator> FactorizationRewriter::appendFlattens(
