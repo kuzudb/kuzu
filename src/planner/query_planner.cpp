@@ -374,32 +374,39 @@ void QueryPlanner::appendScanNodePropIfNecessary(const expression_vector& proper
 
 std::unique_ptr<LogicalPlan> QueryPlanner::createUnionPlan(
     std::vector<std::unique_ptr<LogicalPlan>>& childrenPlans, bool isUnionAll) {
-    // If an expression to union has different flat/unflat state in different child, we
-    // need to flatten that expression in all the single queries.
-    assert(!childrenPlans.empty());
-    auto numExpressionsToUnion = childrenPlans[0]->getSchema()->getExpressionsInScope().size();
-    for (auto i = 0u; i < numExpressionsToUnion; i++) {
-        bool hasFlatExpression = false;
-        for (auto& childPlan : childrenPlans) {
-            auto childSchema = childPlan->getSchema();
-            auto expressionName = childSchema->getExpressionsInScope()[i]->getUniqueName();
-            hasFlatExpression |= childSchema->getGroup(expressionName)->isFlat();
-        }
-        if (hasFlatExpression) {
-            for (auto& childPlan : childrenPlans) {
-                auto childSchema = childPlan->getSchema();
-                auto expressionName = childSchema->getExpressionsInScope()[i]->getUniqueName();
-                appendFlattenIfNecessary(childSchema->getGroupPos(expressionName), *childPlan);
-            }
-        }
-    }
-    // we compute the schema based on first child
-    auto plan = std::make_unique<LogicalPlan>();
     std::vector<std::shared_ptr<LogicalOperator>> children;
     for (auto& childPlan : childrenPlans) {
-        plan->increaseCost(childPlan->getCost());
         children.push_back(childPlan->getLastOperator());
     }
+    assert(!childrenPlans.empty());
+    auto numExpressionsToUnion = childrenPlans[0]->getSchema()->getExpressionsInScope().size();
+    for (auto& childPlan : childrenPlans) {
+        for (auto groupPos : LogicalUnionFactorizationSolver::getGroupsPosToFlatten(
+                 numExpressionsToUnion, childPlan->getLastOperator().get(), children)) {
+            QueryPlanner::appendFlattenIfNecessary(groupPos, *childPlan);
+        }
+    }
+
+//    for (auto i = 0u; i < numExpressionsToUnion; i++) {
+//        bool hasFlatExpression = false;
+//        for (auto& childPlan : childrenPlans) {
+//            auto childSchema = childPlan->getSchema();
+//            auto expressionName = childSchema->getExpressionsInScope()[i]->getUniqueName();
+//            hasFlatExpression |= childSchema->getGroup(expressionName)->isFlat();
+//        }
+//        if (hasFlatExpression) {
+//            for (auto& childPlan : childrenPlans) {
+//                auto childSchema = childPlan->getSchema();
+//                auto expressionName = childSchema->getExpressionsInScope()[i]->getUniqueName();
+//                appendFlattenIfNecessary(childSchema->getGroupPos(expressionName), *childPlan);
+//            }
+//        }
+//    }
+    auto plan = std::make_unique<LogicalPlan>();
+    for (auto& childPlan : childrenPlans) {
+        plan->increaseCost(childPlan->getCost());
+    }
+    // we compute the schema based on first child
     auto logicalUnion = make_shared<LogicalUnion>(
         childrenPlans[0]->getSchema()->getExpressionsInScope(), std::move(children));
     logicalUnion->computeSchema();

@@ -19,6 +19,7 @@ private:
     void visitLimit(planner::LogicalOperator* op);
     void visitDistinct(planner::LogicalOperator* op);
     void visitUnwind(planner::LogicalOperator* op);
+    void visitUnion(planner::LogicalOperator* op);
 
     std::shared_ptr<planner::LogicalOperator> appendFlattens(
         std::shared_ptr<planner::LogicalOperator> op,

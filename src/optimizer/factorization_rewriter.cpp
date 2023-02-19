@@ -11,6 +11,7 @@
 #include "planner/logical_plan/logical_operator/logical_order_by.h"
 #include "planner/logical_plan/logical_operator/logical_projection.h"
 #include "planner/logical_plan/logical_operator/logical_skip.h"
+#include "planner/logical_plan/logical_operator/logical_union.h"
 #include "planner/logical_plan/logical_operator/logical_unwind.h"
 
 using namespace kuzu::planner;
@@ -57,6 +58,9 @@ void FactorizationRewriter::visitOperator(planner::LogicalOperator* op) {
     } break;
     case LogicalOperatorType::UNWIND: {
         visitUnwind(op);
+    } break;
+    case LogicalOperatorType::UNION_ALL: {
+        visitUnion(op);
     } break;
     default:
         break;
@@ -145,6 +149,16 @@ void FactorizationRewriter::visitUnwind(planner::LogicalOperator* op) {
     auto unwind = (LogicalUnwind*)op;
     auto groupsPosToFlatten = LogicalUnwindFactorizationSolver::getGroupsPosToFlatten(unwind);
     unwind->setChild(0, appendFlattens(unwind->getChild(0), groupsPosToFlatten));
+}
+
+void FactorizationRewriter::visitUnion(planner::LogicalOperator* op) {
+    auto union_ = (LogicalUnion*)op;
+    auto numExpressions = union_->getExpressionsToUnion().size();
+    for (auto i = 0u; i < union_->getNumChildren(); ++i) {
+        auto groupsPosToFlatten = LogicalUnionFactorizationSolver::getGroupsPosToFlatten(
+            numExpressions, union_->getChild(i).get(), union_->getChildren());
+        union_->setChild(i, appendFlattens(union_->getChild(i), groupsPosToFlatten));
+    }
 }
 
 std::shared_ptr<planner::LogicalOperator> FactorizationRewriter::appendFlattens(

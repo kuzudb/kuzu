@@ -26,5 +26,18 @@ private:
     binder::expression_vector expressionsToUnion;
 };
 
+class LogicalUnionFactorizationSolver {
+public:
+    static std::unordered_set<f_group_pos> getGroupsPosToFlatten(uint32_t numExpressions,
+        LogicalOperator* unionChild,
+        const std::vector<std::shared_ptr<LogicalOperator>>& unionChildren);
+
+private:
+    // If an expression to union has different flat/unflat state in different child, we
+    // need to flatten that expression in all the single queries.
+    static bool requireFlatExpression(
+        uint32_t expressionIdx, const std::vector<std::shared_ptr<LogicalOperator>>& unionChildren);
+};
+
 } // namespace planner
 } // namespace kuzu

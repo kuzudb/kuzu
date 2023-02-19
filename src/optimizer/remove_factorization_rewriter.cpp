@@ -22,7 +22,8 @@ void RemoveFactorizationRewriter::visitOperator(planner::LogicalOperator* op) {
         op->setChild(0, getNonFlattenOp(op->getChild(0)));
         op->setChild(1, getNonFlattenOp(op->getChild(1)));
     } break;
-    case LogicalOperatorType::INTERSECT: {
+    case LogicalOperatorType::INTERSECT:
+    case LogicalOperatorType::UNION_ALL: {
         for (auto i = 0u; i < op->getNumChildren(); ++i) {
             op->setChild(i, getNonFlattenOp(op->getChild(i)));
         }
