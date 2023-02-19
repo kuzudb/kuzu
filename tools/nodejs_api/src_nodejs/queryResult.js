@@ -20,8 +20,19 @@ class QueryResult {
         this.#isClosed = true;
     }
 
-    each() {
-        return;
+    each(eachCallback, doneCallback) {
+        this.checkForQueryResultClose();
+        this.#queryResult.each((err, result) => {
+            if (err){
+                console.log("There is an error!!!" + err);
+                throw err;
+            } else {
+                eachCallback(result);
+                if (result.at(-1) == 0){
+                    doneCallback();
+                }
+            }
+        });
     }
 
     all(callback) {

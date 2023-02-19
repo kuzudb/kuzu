@@ -1,5 +1,6 @@
 #include "node_query_result.h"
 #include "AllAsyncWorker.h"
+#include "EachAsyncWorker.h"
 
 #include "main/kuzu.h"
 
@@ -14,6 +15,7 @@ Napi::Object NodeQueryResult::Wrap(Napi::Env env, shared_ptr<kuzu::main::QueryRe
       InstanceMethod("getNext", &NodeQueryResult::GetNext),
       InstanceMethod("close", &NodeQueryResult::Close),
       InstanceMethod("all", &NodeQueryResult::All),
+      InstanceMethod("each", &NodeQueryResult::Each),
    }).New({});
     NodeQueryResult * nodeQueryResult = Unwrap(obj);
     nodeQueryResult->queryResult = queryResult;
@@ -63,13 +65,29 @@ Napi::Value NodeQueryResult::All(const Napi::CallbackInfo& info) {
     Napi::HandleScope scope(env);
 
     if (info.Length()!=1 || !info[0].IsFunction()) {
-        Napi::TypeError::New(env, "All needs callback").ThrowAsJavaScriptException();
+        Napi::TypeError::New(env, "All needs a callback").ThrowAsJavaScriptException();
         return Napi::Object::New(env);
     }
 
     Function callback = info[0].As<Function>();
 
     AllAsyncWorker * asyncWorker = new AllAsyncWorker(callback, queryResult);
+    asyncWorker->Queue();
+    return info.Env().Undefined();
+}
+
+Napi::Value NodeQueryResult::Each(const Napi::CallbackInfo& info) {
+    Napi::Env env = info.Env();
+    Napi::HandleScope scope(env);
+
+    if (info.Length()!=1 || !info[0].IsFunction()) {
+        Napi::TypeError::New(env, "Each needs a callback").ThrowAsJavaScriptException();
+        return Napi::Object::New(env);
+    }
+
+    Function callback = info[0].As<Function>();
+
+    EachAsyncWorker * asyncWorker = new EachAsyncWorker(callback, queryResult);
     asyncWorker->Queue();
     return info.Env().Undefined();
 }

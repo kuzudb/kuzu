@@ -15,18 +15,25 @@ function executeAllCallback(queryResult) {
     });
 }
 
-// Basic Case
+// Basic Case with all callback
 const database = new Database("test", 1000000000);
 console.log("The database looks like: ", database);
 const connection = new Connection(database);
 console.log ("The connection looks like: ", connection);
 connection.execute("create node table person (ID INt64, fName StRING, gender INT64, isStudent BoOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration interval, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], PRIMARY KEY (ID));", executeAllCallback);
 connection.execute("COPY person FROM \"../../dataset/tinysnb/vPerson.csv\" (HEADER=true);");
-connection.execute("MATCH (a:person) RETURN a.fName, a.age, a.eyeSight, a.isStudent;", executeAllCallback);
+const executeQuery = "MATCH (a:person) RETURN a.fName, a.age, a.eyeSight, a.isStudent;";
+connection.execute(executeQuery, executeAllCallback);
 
 // Extensive Case
 database.resizeBufferManager(2000000000);
 connection.setMaxNumThreadForExec(2);
-connection.execute("MATCH (a:person) RETURN a.fName, a.age, a.eyeSight, a.isStudent;", executeAllCallback);
+connection.execute(executeQuery, executeAllCallback);
 console.log(connection.getNodePropertyNames("person"));
 
+// Execute with each callback
+connection.execute(executeQuery, result => {
+    result.each(
+        row => { console.log(row); },
+        () => { console.log("all done"); })
+});
