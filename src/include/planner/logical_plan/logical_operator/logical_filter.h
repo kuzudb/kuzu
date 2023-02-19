@@ -30,5 +30,14 @@ private:
     std::shared_ptr<binder::Expression> expression;
 };
 
+class LogicalFilterFactorizationSolver {
+public:
+    static std::unordered_set<f_group_pos> getGroupsPosToFlatten(LogicalFilter* filter) {
+        return getGroupsPosToFlatten(filter->getPredicate(), filter->getChild(0).get());
+    }
+    static std::unordered_set<f_group_pos> getGroupsPosToFlatten(
+        const std::shared_ptr<binder::Expression>& expression, LogicalOperator* filterChild);
+};
+
 } // namespace planner
 } // namespace kuzu

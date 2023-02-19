@@ -346,8 +346,10 @@ void QueryPlanner::appendFlattenIfNecessary(
 
 void QueryPlanner::appendFilter(const std::shared_ptr<Expression>& expression, LogicalPlan& plan) {
     planSubqueryIfNecessary(expression, plan);
-    auto dependentGroupsPos = plan.getSchema()->getDependentGroupsPos(expression);
-    appendFlattensButOne(dependentGroupsPos, plan);
+    for (auto groupPos : LogicalFilterFactorizationSolver::getGroupsPosToFlatten(
+             expression, plan.getLastOperator().get())) {
+        appendFlattenIfNecessary(groupPos, plan);
+    }
     auto filter = make_shared<LogicalFilter>(expression, plan.getLastOperator());
     filter->computeSchema();
     plan.multiplyCardinality(EnumeratorKnobs::PREDICATE_SELECTIVITY);
@@ -386,22 +388,6 @@ std::unique_ptr<LogicalPlan> QueryPlanner::createUnionPlan(
             QueryPlanner::appendFlattenIfNecessary(groupPos, *childPlan);
         }
     }
-
-//    for (auto i = 0u; i < numExpressionsToUnion; i++) {
-//        bool hasFlatExpression = false;
-//        for (auto& childPlan : childrenPlans) {
-//            auto childSchema = childPlan->getSchema();
-//            auto expressionName = childSchema->getExpressionsInScope()[i]->getUniqueName();
-//            hasFlatExpression |= childSchema->getGroup(expressionName)->isFlat();
-//        }
-//        if (hasFlatExpression) {
-//            for (auto& childPlan : childrenPlans) {
-//                auto childSchema = childPlan->getSchema();
-//                auto expressionName = childSchema->getExpressionsInScope()[i]->getUniqueName();
-//                appendFlattenIfNecessary(childSchema->getGroupPos(expressionName), *childPlan);
-//            }
-//        }
-//    }
     auto plan = std::make_unique<LogicalPlan>();
     for (auto& childPlan : childrenPlans) {
         plan->increaseCost(childPlan->getCost());

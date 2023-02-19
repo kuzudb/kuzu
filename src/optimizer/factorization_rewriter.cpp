@@ -4,6 +4,7 @@
 #include "planner/logical_plan/logical_operator/logical_aggregate.h"
 #include "planner/logical_plan/logical_operator/logical_distinct.h"
 #include "planner/logical_plan/logical_operator/logical_extend.h"
+#include "planner/logical_plan/logical_operator/logical_filter.h"
 #include "planner/logical_plan/logical_operator/logical_flatten.h"
 #include "planner/logical_plan/logical_operator/logical_hash_join.h"
 #include "planner/logical_plan/logical_operator/logical_intersect.h"
@@ -61,6 +62,9 @@ void FactorizationRewriter::visitOperator(planner::LogicalOperator* op) {
     } break;
     case LogicalOperatorType::UNION_ALL: {
         visitUnion(op);
+    } break;
+    case LogicalOperatorType::FILTER: {
+        visitFilter(op);
     } break;
     default:
         break;
@@ -159,6 +163,12 @@ void FactorizationRewriter::visitUnion(planner::LogicalOperator* op) {
             numExpressions, union_->getChild(i).get(), union_->getChildren());
         union_->setChild(i, appendFlattens(union_->getChild(i), groupsPosToFlatten));
     }
+}
+
+void FactorizationRewriter::visitFilter(planner::LogicalOperator* op) {
+    auto filter = (LogicalFilter*)op;
+    auto groupsPosToFlatten = LogicalFilterFactorizationSolver::getGroupsPosToFlatten(filter);
+    filter->setChild(0, appendFlattens(filter->getChild(0), groupsPosToFlatten));
 }
 
 std::shared_ptr<planner::LogicalOperator> FactorizationRewriter::appendFlattens(

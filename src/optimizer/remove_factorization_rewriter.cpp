@@ -34,7 +34,8 @@ void RemoveFactorizationRewriter::visitOperator(planner::LogicalOperator* op) {
     case LogicalOperatorType::SKIP:
     case LogicalOperatorType::LIMIT:
     case LogicalOperatorType::DISTINCT:
-    case LogicalOperatorType::UNWIND: {
+    case LogicalOperatorType::UNWIND:
+    case LogicalOperatorType::FILTER: {
         op->setChild(0, getNonFlattenOp(op->getChild(0)));
     } break;
     default:
