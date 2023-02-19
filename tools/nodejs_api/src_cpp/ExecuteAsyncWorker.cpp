@@ -15,5 +15,6 @@ void ExecuteAsyncWorker::Execute() {
 };
 
 void ExecuteAsyncWorker::OnOK() {
+    shared_ptr<kuzu::main::QueryResult> queryResult = std::move(this->queryResult);
     Callback().Call({Env().Null(), NodeQueryResult::Wrap(Env(), queryResult)});
 };
