@@ -11,7 +11,7 @@ void Optimizer::optimize(planner::LogicalPlan* plan) {
     auto removeFactorizationRewriter = RemoveFactorizationRewriter();
     removeFactorizationRewriter.rewrite(plan);
 
-    //    IndexNestedLoopJoinOptimizer::rewrite(plan->getLastOperator());
+    IndexNestedLoopJoinOptimizer::rewrite(plan->getLastOperator());
 
     auto factorizationRewriter = FactorizationRewriter();
     factorizationRewriter.rewrite(plan);

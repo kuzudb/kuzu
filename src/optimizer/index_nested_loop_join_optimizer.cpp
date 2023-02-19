@@ -18,7 +18,6 @@ std::shared_ptr<planner::LogicalOperator> IndexNestedLoopJoinOptimizer::rewrite(
     for (auto i = 0u; i < op->getNumChildren(); ++i) {
         op->setChild(i, rewrite(op->getChild(i)));
     }
-    op->computeSchema();
     return op;
 }
 
@@ -50,11 +49,6 @@ std::shared_ptr<LogicalOperator> IndexNestedLoopJoinOptimizer::rewriteFilter(
         return op;
     }
     auto currentOp = op->getChild(0);
-    // Match flatten. TODO(Xiyang): remove flatten as a logical operator.
-    if (currentOp->getOperatorType() != LogicalOperatorType::FLATTEN) {
-        return op;
-    }
-    currentOp = currentOp->getChild(0);
     // Match cross product
     if (currentOp->getOperatorType() != LogicalOperatorType::CROSS_PRODUCT) {
         return op;
@@ -92,7 +86,6 @@ std::shared_ptr<LogicalOperator> IndexNestedLoopJoinOptimizer::rewriteCrossProdu
         rightOp = rightOp->getChild(0);
     }
     auto newRoot = op->getChild(1);
-    newRoot->computeSchemaRecursive();
     return newRoot;
 }
 
