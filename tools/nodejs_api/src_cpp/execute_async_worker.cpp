@@ -14,10 +14,10 @@ void ExecuteAsyncWorker::Execute() {
     try {
         shared_ptr<kuzu::main::QueryResult> queryResult;
         if (!params.empty()) {
-             auto preparedStatement = connection->prepare(query);
-             queryResult = connection->executeWithParams(preparedStatement.get(), params);
+            auto preparedStatement = connection->prepare(query);
+            queryResult = connection->executeWithParams(preparedStatement.get(), params);
         } else {
-             queryResult = connection->query(query);
+            queryResult = connection->query(query);
         }
 
         if (!queryResult->isSuccess()) {

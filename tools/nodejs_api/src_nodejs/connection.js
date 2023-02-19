@@ -1,5 +1,6 @@
 const kuzu = require("../Release/kuzujs.node");
 const QueryResult = require("./queryResult.js");
+const callbackWrapper = require("./common.js");
 
 class Connection {
     #connection;
@@ -9,15 +10,12 @@ class Connection {
 
     execute(query, callback=null){
         this.#connection.execute(query, (err, queryResult) => {
-            if (err){
-                console.log(err);
-                throw err;
-            } else {
-                const queryResultJs = new QueryResult(queryResult);
-               if (callback) {
-                   callback(queryResultJs);
-               }
-            }
+            callbackWrapper(err, () => {
+                if (callback) {
+                    const queryResultJs = new QueryResult(queryResult);
+                    callback(queryResultJs);
+                }
+            });
         });
     }
 
