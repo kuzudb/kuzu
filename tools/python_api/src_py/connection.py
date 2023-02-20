@@ -19,14 +19,15 @@ class Connection:
         """
         Parameters
         ----------
-        database : _kuzu.Database
+        database : Database
             Database to connect to.
         num_threads : int
             Maximum number of threads to use for executing queries.
         """
 
         self.database = database
-        self._connection = _kuzu.Connection(database, num_threads)
+        database.init_database()
+        self._connection = _kuzu.Connection(database._database, num_threads)
 
     def set_max_threads_for_exec(self, num_threads):
         """
