@@ -2,6 +2,15 @@
   <img src="https://kuzudb.com/kuzu-logo.png" height="100">
 </div>
 
+<p align="center">
+  <a href="https://github.com/kuzudb/kuzu/actions">
+    <img src="https://github.com/kuzudb/kuzu/actions/workflows/ci-workflow.yml/badge.svg?branch=master" alt="Github Actions Badge">
+  </a>
+  <a href="https://join.slack.com/t/kuzudb/shared_invite/zt-1n67h736q-E3AFGSI4w~ljlFMYr3_Sjg">
+    <img src="https://img.shields.io/badge/Slack-chat%20with%20us-informational" alt="slack" />
+  </a>
+</p>
+
 # Kùzu
 Kùzu is an in-process property graph database management system (GDBMS) built for query speed and scalability. Kùzu is optimized for handling complex join-heavy analytical workloads on very large graph databases, with the following core feature set:
 
