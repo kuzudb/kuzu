@@ -22,7 +22,7 @@ class KuzuFeatureStore(FeatureStore):
 
     def _get_tensor(self, attr: TensorAttr) -> Optional[FeatureTensorType]:
         table_name = attr.group_name
-        attr_name = attr.attr_name·
+        attr_name = attr.attr_name
         indices = attr.index
 
         if not self.connection:
