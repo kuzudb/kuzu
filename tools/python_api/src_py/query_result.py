@@ -4,8 +4,8 @@ from .types import Type
 
 class QueryResult:
     """
-    Query result.
-
+    QueryResult stores the result of a query execution.
+    
     Methods
     -------
     check_for_query_result_close()
