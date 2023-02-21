@@ -10,9 +10,14 @@ ExecuteAsyncWorker::ExecuteAsyncWorker(Function& callback, shared_ptr<kuzu::main
     : AsyncWorker(callback), connection(connection), query(query) {};
 
 void ExecuteAsyncWorker::Execute() {
-    this->queryResult = connection->query(query);
-    if (!queryResult->isSuccess()) {
-      SetError("Unsuccessful execute: " + queryResult->getErrorMessage());
+    try {
+        queryResult = connection->query(query);
+        if (!queryResult->isSuccess()) {
+            SetError("Query async execute unsuccessful: " + queryResult->getErrorMessage());
+        }
+    }
+    catch(const std::exception &exc) {
+        SetError("Unsuccessful async execute: " + queryResult->getErrorMessage());
     }
 };
 
