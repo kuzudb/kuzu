@@ -25,7 +25,12 @@ void NodeQueryResult::Close(const Napi::CallbackInfo& info) {
     Napi::Env env = info.Env();
     Napi::HandleScope scope(env);
 
-    this->queryResult.reset();
+    try {
+        this->queryResult.reset();
+    } catch(const std::exception &exc) {
+        Napi::TypeError::New(env, "Unsuccessful queryResult close: " + std::string(exc.what())).ThrowAsJavaScriptException();
+    }
+
 }
 
 Napi::Value NodeQueryResult::All(const Napi::CallbackInfo& info) {
@@ -39,8 +44,12 @@ Napi::Value NodeQueryResult::All(const Napi::CallbackInfo& info) {
 
     Function callback = info[0].As<Function>();
 
-    AllEachAsyncWorker * asyncWorker = new AllEachAsyncWorker(callback, queryResult, "all");
-    asyncWorker->Queue();
+    try {
+        AllEachAsyncWorker* asyncWorker = new AllEachAsyncWorker(callback, queryResult, "all");
+        asyncWorker->Queue();
+    } catch(const std::exception &exc) {
+        Napi::TypeError::New(env, "Unsuccessful all callback: " + std::string(exc.what())).ThrowAsJavaScriptException();
+    }
     return info.Env().Undefined();
 }
 
@@ -55,8 +64,12 @@ Napi::Value NodeQueryResult::Each(const Napi::CallbackInfo& info) {
 
     Function callback = info[0].As<Function>();
 
-    AllEachAsyncWorker * asyncWorker = new AllEachAsyncWorker(callback, queryResult, "each");
-    asyncWorker->Queue();
+    try {
+        AllEachAsyncWorker* asyncWorker = new AllEachAsyncWorker(callback, queryResult, "each");
+        asyncWorker->Queue();
+    } catch(const std::exception &exc) {
+        Napi::TypeError::New(env, "Unsuccessful each callback: " + std::string(exc.what())).ThrowAsJavaScriptException();
+    }
     return info.Env().Undefined();
 }
 

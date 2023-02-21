@@ -42,8 +42,7 @@ NodeConnection::NodeConnection(const Napi::CallbackInfo& info) : Napi::ObjectWra
       if (numThreads > 0) {
           this->connection->setMaxNumThreadForExec(numThreads);
       }
-  }
-  catch(const std::exception &exc){
+  } catch(const std::exception &exc){
       Napi::TypeError::New(env, "Unsuccessful Connection Initialization: " + std::string(exc.what())).ThrowAsJavaScriptException();
   }
 }
@@ -55,13 +54,18 @@ Napi::Value NodeConnection::Execute(const Napi::CallbackInfo& info) {
   Napi::HandleScope scope(env);
 
   if (info.Length()==2 && (!info[0].IsString() || !info[1].IsFunction())) {
-      Napi::TypeError::New(env, "Execute needs query parameter & callback").ThrowAsJavaScriptException();
+      Napi::TypeError::New(env, "Execute needs query parameter").ThrowAsJavaScriptException();
       return Napi::Object::New(env);
   }
   std::string query = info[0].ToString();
   Function callback = info[1].As<Function>();
-  ExecuteAsyncWorker * asyncWorker = new ExecuteAsyncWorker(callback, connection, query);
-  asyncWorker->Queue();
+
+  try {
+      ExecuteAsyncWorker* asyncWorker = new ExecuteAsyncWorker(callback, connection, query);
+      asyncWorker->Queue();
+  } catch(const std::exception &exc) {
+      Napi::TypeError::New(env, "Unsuccessful execute: " + std::string(exc.what())).ThrowAsJavaScriptException();
+  }
   return info.Env().Undefined();
 }
 
@@ -76,8 +80,7 @@ void NodeConnection::SetMaxNumThreadForExec(const Napi::CallbackInfo& info) {
   uint64_t numThreads = info[0].ToNumber().DoubleValue();
   try {
       this->connection->setMaxNumThreadForExec(numThreads);
-  }
-  catch(const std::exception &exc) {
+  } catch(const std::exception &exc) {
       Napi::TypeError::New(env, "Unsuccessful setMaxNumThreadForExec: " + std::string(exc.what())).ThrowAsJavaScriptException();
   }
   return;
@@ -95,8 +98,7 @@ Napi::Value NodeConnection::GetNodePropertyNames(const Napi::CallbackInfo& info)
   std::string propertyNames;
   try {
       propertyNames = this->connection->getNodePropertyNames(tableName);
-  }
-  catch(const std::exception &exc) {
+  } catch(const std::exception &exc) {
       Napi::TypeError::New(env, "Unsuccessful getNodePropertyNames: " + std::string(exc.what())).ThrowAsJavaScriptException();
       return Napi::Object::New(env);
   }
