@@ -22,25 +22,34 @@ class QueryResult {
         this.#isClosed = true;
     }
 
-    each(eachCallback, doneCallback) {
+    each(eachCallback= null, doneCallback = null) {
         this.checkForQueryResultClose();
         this.#queryResult.each((err, result) => {
             callbackWrapper(err, () => {
-                eachCallback(result);
-                if (result.at(-1) == 0) {
+                if (eachCallback) { eachCallback(result.slice(0, -1)); }
+                if (doneCallback && result.at(-1) == 0) {
                     doneCallback();
                 }
             });
         });
     }
 
-    all(callback) {
+    all(callback = null) {
         this.checkForQueryResultClose();
-        this.#queryResult.all((err, result) => {
-            callbackWrapper(err, () => {
-                callback(result);
+        if (callback) {
+            this.#queryResult.all((err, result) => {
+                callbackWrapper(err, () => {
+                    callback(result);
+                });
             });
-        });
+        } else {
+            return new Promise ((resolve, reject) => {
+                this.#queryResult.all((err, result) => {
+                    if (err) { return reject(err); }
+                    return resolve(result);
+                });
+            })
+        }
     }
 }
 
