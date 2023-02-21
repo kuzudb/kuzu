@@ -10,11 +10,11 @@ class Connection:
     -------
     set_max_threads_for_exec(num_threads)
         Set the maximum number of threads for executing queries.
-    
+
     execute(query, parameters=[])
         Execute a query.
     """
-    
+
     def __init__(self, database, num_threads=0):
         """
         Parameters
@@ -89,4 +89,39 @@ class Connection:
                 "dimension": dimension,
                 "is_primary_key": is_primary_key
             }
+        return results
+
+    def _get_node_table_names(self):
+        results = []
+        result_str = self._connection.get_node_table_names()
+        for (i, line) in enumerate(result_str.splitlines()):
+            # ignore first line
+            if i == 0:
+                continue
+            line = line.strip()
+            if line == "":
+                continue
+            results.append(line)
+        return results
+
+    def _get_rel_table_names(self):
+        results = []
+        result_str = self._connection.get_rel_table_names()
+        for i, line in enumerate(result_str.splitlines()):
+            if i == 0:
+                continue
+            line = line.strip()
+            if line == "":
+                continue
+            props_str = self._connection.get_rel_property_names(line)
+            src_node = None
+            dst_node = None
+            for prop_str in props_str.splitlines():
+                if "src node:" in prop_str:
+                    src_node = prop_str.split(":")[1].strip()
+                if "dst node:" in prop_str:
+                    dst_node = prop_str.split(":")[1].strip()
+                if src_node is not None and dst_node is not None:
+                    break
+            results.append({"name": line, "src": src_node, "dst": dst_node})
         return results

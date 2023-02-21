@@ -1,6 +1,6 @@
 from . import _kuzu
 from .torch_geometric_feature_store import KuzuFeatureStore
-# from .torch_geometric_graph_store import KuzuGraphStore
+from .torch_geometric_graph_store import KuzuGraphStore
 
 
 class Database:
@@ -83,4 +83,4 @@ class Database:
         """
         duplicated_db = Database(
             self.database_path, self.buffer_pool_size, True)
-        return KuzuFeatureStore(duplicated_db)
+        return KuzuFeatureStore(duplicated_db), KuzuGraphStore(duplicated_db)

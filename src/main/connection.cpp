@@ -232,7 +232,7 @@ std::string Connection::getRelPropertyNames(const std::string& relTableName) {
         catalog->getReadOnlyVersion()->getRelTableSchema(relTableID)->getBoundTableID(FWD);
     auto srcTableSchema = catalog->getReadOnlyVersion()->getNodeTableSchema(srcTableID);
     auto dstTableID =
-        catalog->getReadOnlyVersion()->getRelTableSchema(relTableID)->getBoundTableID(FWD);
+        catalog->getReadOnlyVersion()->getRelTableSchema(relTableID)->getBoundTableID(BWD);
     auto dstTableSchema = catalog->getReadOnlyVersion()->getNodeTableSchema(dstTableID);
     std::string result = relTableName + " src node: " + srcTableSchema->tableName + "\n";
     result += relTableName + " dst node: " + dstTableSchema->tableName + "\n";

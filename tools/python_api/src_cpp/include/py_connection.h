@@ -18,6 +18,12 @@ public:
 
     py::str getNodePropertyNames(const std::string& tableName);
 
+    py::str getNodeTableNames();
+
+    py::str getRelPropertyNames(const std::string& tableName);
+
+    py::str getRelTableNames();
+
 private:
     std::unordered_map<std::string, std::shared_ptr<kuzu::common::Value>> transformPythonParameters(
         py::list params);

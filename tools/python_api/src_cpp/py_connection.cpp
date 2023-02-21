@@ -16,7 +16,10 @@ void PyConnection::initialize(py::handle& m) {
             "execute", &PyConnection::execute, py::arg("query"), py::arg("parameters") = py::list())
         .def("set_max_threads_for_exec", &PyConnection::setMaxNumThreadForExec,
             py::arg("num_threads"))
-        .def("get_node_property_names", &PyConnection::getNodePropertyNames, py::arg("table_name"));
+        .def("get_node_property_names", &PyConnection::getNodePropertyNames, py::arg("table_name"))
+        .def("get_node_table_names", &PyConnection::getNodeTableNames)
+        .def("get_rel_property_names", &PyConnection::getRelPropertyNames, py::arg("table_name"))
+        .def("get_rel_table_names", &PyConnection::getRelTableNames);
     PyDateTime_IMPORT;
 }
 
@@ -47,6 +50,18 @@ void PyConnection::setMaxNumThreadForExec(uint64_t numThreads) {
 
 py::str PyConnection::getNodePropertyNames(const std::string& tableName) {
     return conn->getNodePropertyNames(tableName);
+}
+
+py::str PyConnection::getNodeTableNames() {
+    return conn->getNodeTableNames();
+}
+
+py::str PyConnection::getRelPropertyNames(const std::string& tableName) {
+    return conn->getRelPropertyNames(tableName);
+}
+
+py::str PyConnection::getRelTableNames() {
+    return conn->getRelTableNames();
 }
 
 std::unordered_map<std::string, std::shared_ptr<Value>> PyConnection::transformPythonParameters(
