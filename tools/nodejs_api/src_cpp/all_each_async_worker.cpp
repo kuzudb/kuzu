@@ -72,6 +72,7 @@ Napi::Value AllEachAsyncWorker::ConvertToNapiObject(const kuzu::common::Value& v
             return arr;
         }
         default:
-            throw NotImplementedException("Unsupported type: " + kuzu::common::Types::dataTypeToString(dataType));
+            SetError("Unsupported type: " + kuzu::common::Types::dataTypeToString(dataType));
     }
+    return Napi::Value();
 }
