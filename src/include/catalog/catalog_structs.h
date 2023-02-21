@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -84,7 +85,7 @@ public:
     }
 
     inline bool containProperty(std::string propertyName) const {
-        return any_of(properties.begin(), properties.end(),
+        return std::any_of(properties.begin(), properties.end(),
             [&propertyName](const Property& property) { return property.name == propertyName; });
     }
 
