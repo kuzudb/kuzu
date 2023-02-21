@@ -14,13 +14,18 @@ AllEachAsyncWorker::AllEachAsyncWorker(Function& callback, shared_ptr<kuzu::main
 
 void AllEachAsyncWorker::Execute() {
     unsigned int i = 0;
-    while(this->queryResult->hasNext()) {
-        auto row = this->queryResult->getNext();
-        allResult.emplace_back(vector<unique_ptr<kuzu::common::Value>>(row->len()));
-        for (unsigned int j = 0; j < row->len(); j++) {
-            allResult[i][j] = make_unique<kuzu::common::Value>(kuzu::common::Value(*row->getValue(j)));
+    try {
+        while (this->queryResult->hasNext()) {
+            auto row = this->queryResult->getNext();
+            allResult.emplace_back(vector<unique_ptr<kuzu::common::Value>>(row->len()));
+            for (unsigned int j = 0; j < row->len(); j++) {
+                allResult[i][j] =
+                    make_unique<kuzu::common::Value>(kuzu::common::Value(*row->getValue(j)));
+            }
+            i++;
         }
-        i++;
+    } catch(const std::exception &exc) {
+        SetError("Unsuccessful async All/Each callback: " + std::string(exc.what()));
     }
 };
 
