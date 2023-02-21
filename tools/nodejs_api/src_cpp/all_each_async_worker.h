@@ -12,9 +12,10 @@ public:
 
     void Execute();
     void OnOK();
+    Napi::Value ConvertToNapiObject(const kuzu::common::Value& value,  Napi::Env env);
 
 private:
     std::string executionType;
     shared_ptr<kuzu::main::QueryResult> queryResult;
-    std::vector<std::vector<std::string>> allResult;
+    std::vector<std::vector<unique_ptr<kuzu::common::Value>>> allResult;
 };
