@@ -38,3 +38,28 @@ connection.execute(executeQuery, result => {
         row => { console.log(row); },
         () => { console.log("all done"); })
 });
+
+// Execute with promise + await
+connection.execute(executeQuery).then(queryResult => {
+    queryResult.all( result => {
+        console.log("All result received for execution with a promise");
+        console.log(result);
+    });
+}).catch(error => {
+    console.log("Execution with a promise failed");
+    console.log(error);
+});
+
+async function asyncAwaitExecute(executeQuery) {
+    const queryResult = await connection.execute(executeQuery);
+    return queryResult;
+}
+asyncAwaitExecute(executeQuery).then(queryResult => {
+    queryResult.all( result => {
+        console.log("All result received for execution with await");
+        console.log(result);
+    });
+}).catch(error => {
+    console.log("Execution with await failed");
+    console.log(error);
+});

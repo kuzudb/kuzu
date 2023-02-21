@@ -9,14 +9,21 @@ class Connection {
     }
 
     execute(query, callback=null){
-        this.#connection.execute(query, (err, queryResult) => {
-            callbackWrapper(err, () => {
-                if (callback) {
-                    const queryResultJs = new QueryResult(queryResult);
-                    callback(queryResultJs);
-                }
+        if (callback) {
+            this.#connection.execute(query, (err, queryResult) => {
+                callbackWrapper(err, () => {
+                        const queryResultJs = new QueryResult(queryResult);
+                        callback(queryResultJs);
+                });
             });
-        });
+        } else {
+            return new Promise ((resolve, reject) => {
+                this.#connection.execute(query, (err, queryResult) => {
+                    if (err) { return reject(err); }
+                    return resolve(new QueryResult(queryResult));
+                })
+            })
+        }
     }
 
     setMaxNumThreadForExec(numThreads) {
