@@ -3,6 +3,21 @@
 namespace kuzu {
 namespace planner {
 
+f_group_pos_set LogicalIntersect::getGroupsPosToFlattenOnProbeSide() {
+    f_group_pos_set result;
+    for (auto& buildInfo : buildInfos) {
+        result.insert(children[0]->getSchema()->getGroupPos(*buildInfo->keyNodeID));
+    }
+    return result;
+}
+
+f_group_pos_set LogicalIntersect::getGroupsPosToFlattenOnBuildSide(uint32_t buildIdx) {
+    f_group_pos_set result;
+    auto childIdx = buildIdx + 1; // skip probe
+    result.insert(children[childIdx]->getSchema()->getGroupPos(*buildInfos[buildIdx]->keyNodeID));
+    return result;
+}
+
 void LogicalIntersect::computeSchema() {
     auto probeSchema = children[0]->getSchema();
     schema = probeSchema->copy();

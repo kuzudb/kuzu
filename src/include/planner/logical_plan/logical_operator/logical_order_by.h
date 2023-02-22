@@ -13,6 +13,8 @@ public:
           expressionsToOrderBy{std::move(expressionsToOrderBy)}, isAscOrders{std::move(sortOrders)},
           expressionsToMaterialize{std::move(expressionsToMaterialize)} {}
 
+    f_group_pos_set getGroupsPosToFlatten();
+
     void computeSchema() override;
 
     inline std::string getExpressionsForPrinting() const override {

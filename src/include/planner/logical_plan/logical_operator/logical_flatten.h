@@ -8,25 +8,21 @@ namespace planner {
 
 class LogicalFlatten : public LogicalOperator {
 public:
-    LogicalFlatten(
-        std::shared_ptr<binder::Expression> expression, std::shared_ptr<LogicalOperator> child)
-        : LogicalOperator{LogicalOperatorType::FLATTEN, std::move(child)}, expression{std::move(
-                                                                               expression)} {}
+    LogicalFlatten(f_group_pos groupPos, std::shared_ptr<LogicalOperator> child)
+        : LogicalOperator{LogicalOperatorType::FLATTEN, std::move(child)}, groupPos{groupPos} {}
 
     void computeSchema() override;
 
-    inline std::string getExpressionsForPrinting() const override {
-        return expression->getUniqueName();
-    }
+    inline std::string getExpressionsForPrinting() const override { return std::string{}; }
 
-    inline std::shared_ptr<binder::Expression> getExpression() const { return expression; }
+    inline f_group_pos getGroupPos() const { return groupPos; }
 
     inline std::unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalFlatten>(expression, children[0]->copy());
+        return make_unique<LogicalFlatten>(groupPos, children[0]->copy());
     }
 
 private:
-    std::shared_ptr<binder::Expression> expression;
+    f_group_pos groupPos;
 };
 
 } // namespace planner

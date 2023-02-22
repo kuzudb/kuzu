@@ -338,13 +338,13 @@ void JoinOrderEnumerator::planWCOJoin(const SubqueryGraph& subgraph,
     auto newSubgraph = subgraph;
     std::vector<SubqueryGraph> prevSubgraphs;
     prevSubgraphs.push_back(subgraph);
-    std::vector<std::shared_ptr<NodeExpression>> boundNodes;
+    expression_vector boundNodeIDs;
     std::vector<std::unique_ptr<LogicalPlan>> relPlans;
     for (auto& rel : rels) {
         auto boundNode = rel->getSrcNodeName() == intersectNode->getUniqueName() ?
                              rel->getDstNode() :
                              rel->getSrcNode();
-        boundNodes.push_back(boundNode);
+        boundNodeIDs.push_back(boundNode->getInternalIDProperty());
         auto relPos = context->getQueryGraph()->getQueryRelPos(rel->getUniqueName());
         auto prevSubgraph = context->getEmptySubqueryGraph();
         prevSubgraph.addQueryRel(relPos);
@@ -366,7 +366,8 @@ void JoinOrderEnumerator::planWCOJoin(const SubqueryGraph& subgraph,
         for (auto& relPlan : relPlans) {
             rightPlansCopy.push_back(relPlan->shallowCopy());
         }
-        appendIntersect(intersectNode, boundNodes, *leftPlanCopy, rightPlansCopy);
+        appendIntersect(
+            intersectNode->getInternalIDProperty(), boundNodeIDs, *leftPlanCopy, rightPlansCopy);
         for (auto& predicate : predicates) {
             queryPlanner->appendFilter(predicate, *leftPlanCopy);
         }
@@ -544,6 +545,7 @@ void JoinOrderEnumerator::appendIndexScanNode(std::shared_ptr<NodeExpression>& n
     plan.setLastOperator(std::move(scan));
 }
 
+// When extend might increase cardinality (i.e. n * m), we extend to a new factorization group.
 bool JoinOrderEnumerator::needExtendToNewGroup(
     RelExpression& rel, NodeExpression& boundNode, RelDirection direction) {
     auto extendToNewGroup = false;
@@ -557,22 +559,14 @@ bool JoinOrderEnumerator::needExtendToNewGroup(
     return extendToNewGroup;
 }
 
-bool JoinOrderEnumerator::needFlatInput(
-    RelExpression& rel, NodeExpression& boundNode, RelDirection direction) {
-    auto needFlatInput = needExtendToNewGroup(rel, boundNode, direction);
-    needFlatInput |= rel.isVariableLength();
-    return needFlatInput;
-}
-
 void JoinOrderEnumerator::appendExtend(std::shared_ptr<NodeExpression> boundNode,
     std::shared_ptr<NodeExpression> nbrNode, std::shared_ptr<RelExpression> rel,
     RelDirection direction, const expression_vector& properties, LogicalPlan& plan) {
     auto extendToNewGroup = needExtendToNewGroup(*rel, *boundNode, direction);
-    if (needFlatInput(*rel, *boundNode, direction)) {
-        QueryPlanner::appendFlattenIfNecessary(boundNode->getInternalIDProperty(), plan);
-    }
     auto extend = make_shared<LogicalExtend>(
         boundNode, nbrNode, rel, direction, properties, extendToNewGroup, plan.getLastOperator());
+    QueryPlanner::appendFlattens(extend->getGroupsPosToFlatten(), plan);
+    extend->setChild(0, plan.getLastOperator());
     extend->computeSchema();
     plan.setLastOperator(std::move(extend));
     // update cardinality estimation info
@@ -608,64 +602,21 @@ void JoinOrderEnumerator::planJoin(const expression_vector& joinNodeIDs, JoinTyp
     }
 }
 
-static bool isJoinKeyUniqueOnBuildSide(const Expression& joinNodeID, LogicalPlan& buildPlan) {
-    auto buildSchema = buildPlan.getSchema();
-    auto numGroupsInScope = buildSchema->getGroupsPosInScope().size();
-    bool hasProjectedOutGroups = buildSchema->getNumGroups() > numGroupsInScope;
-    if (numGroupsInScope > 1 || hasProjectedOutGroups) {
-        return false;
-    }
-    // Now there is a single factorization group, we need to further make sure joinNodeID comes from
-    // ScanNodeID operator. Because if joinNodeID comes from a ColExtend we cannot guarantee the
-    // reverse mapping is still many-to-one. We look for the most simple pattern where build plan is
-    // linear.
-    auto firstop = buildPlan.getLastOperator().get();
-    while (firstop->getNumChildren() != 0) {
-        if (firstop->getNumChildren() > 1) {
-            return false;
-        }
-        firstop = firstop->getChild(0).get();
-    }
-    if (firstop->getOperatorType() != LogicalOperatorType::SCAN_NODE) {
-        return false;
-    }
-    auto scanNodeID = (LogicalScanNode*)firstop;
-    if (scanNodeID->getNode()->getInternalIDPropertyName() != joinNodeID.getUniqueName()) {
-        return false;
-    }
-    return true;
-}
-
 void JoinOrderEnumerator::appendHashJoin(const expression_vector& joinNodeIDs, JoinType joinType,
     bool isProbeAcc, LogicalPlan& probePlan, LogicalPlan& buildPlan) {
-    probePlan.increaseCost(probePlan.getCardinality() + buildPlan.getCardinality());
-    // Flat probe side key group in either of the following two cases:
-    // 1. there are multiple join nodes;
-    // 2. if the build side contains more than one group or the build side has projected out data
-    // chunks, which may increase the multiplicity of data chunks in the build side. The key is to
-    // keep probe side key unflat only when we know that there is only 0 or 1 match for each key.
-    // TODO(Guodong): when the build side has only flat payloads, we should consider getting rid of
-    // flattening probe key, instead duplicating keys as in vectorized processing if necessary.
-    auto needFlattenProbeJoinKey = false;
-    needFlattenProbeJoinKey |= joinNodeIDs.size() > 1;
-    needFlattenProbeJoinKey |= !isJoinKeyUniqueOnBuildSide(*joinNodeIDs[0], buildPlan);
-    if (needFlattenProbeJoinKey) {
-        for (auto& joinNodeID : joinNodeIDs) {
-            auto probeSideKeyGroupPos = probePlan.getSchema()->getGroupPos(*joinNodeID);
-            QueryPlanner::appendFlattenIfNecessary(probeSideKeyGroupPos, probePlan);
-        }
-    }
-    // Flat all but one build side key groups.
-    std::unordered_set<uint32_t> joinNodesGroupPos;
-    for (auto& joinNodeID : joinNodeIDs) {
-        joinNodesGroupPos.insert(buildPlan.getSchema()->getGroupPos(*joinNodeID));
-    }
-    QueryPlanner::appendFlattensButOne(joinNodesGroupPos, buildPlan);
     auto hashJoin = make_shared<LogicalHashJoin>(joinNodeIDs, joinType, isProbeAcc,
         buildPlan.getSchema()->getExpressionsInScope(), probePlan.getLastOperator(),
         buildPlan.getLastOperator());
+    // Apply flattening to probe side
+    auto groupsPosToFlattenOnProbeSide = hashJoin->getGroupsPosToFlattenOnProbeSide();
+    QueryPlanner::appendFlattens(groupsPosToFlattenOnProbeSide, probePlan);
+    hashJoin->setChild(0, probePlan.getLastOperator());
+    // Apply flattening to build side
+    QueryPlanner::appendFlattens(hashJoin->getGroupsPosToFlattenOnBuildSide(), buildPlan);
+    hashJoin->setChild(1, buildPlan.getLastOperator());
     hashJoin->computeSchema();
-    if (needFlattenProbeJoinKey) {
+    probePlan.increaseCost(probePlan.getCardinality() + buildPlan.getCardinality());
+    if (!groupsPosToFlattenOnProbeSide.empty()) {
         probePlan.multiplyCardinality(
             buildPlan.getCardinality() * EnumeratorKnobs::PREDICATE_SELECTIVITY);
         probePlan.multiplyCost(EnumeratorKnobs::FLAT_PROBE_PENALTY);
@@ -676,54 +627,44 @@ void JoinOrderEnumerator::appendHashJoin(const expression_vector& joinNodeIDs, J
 void JoinOrderEnumerator::appendMarkJoin(const expression_vector& joinNodeIDs,
     const std::shared_ptr<Expression>& mark, bool isProbeAcc, LogicalPlan& probePlan,
     LogicalPlan& buildPlan) {
-    // Apply flattening to probe side
-    std::unordered_set<f_group_pos> joinNodeGroupsPosInProbeSide;
-    auto needFlattenProbeJoinKey = false;
-    needFlattenProbeJoinKey |= joinNodeIDs.size() > 1;
-    needFlattenProbeJoinKey |= !isJoinKeyUniqueOnBuildSide(*joinNodeIDs[0], buildPlan);
-    for (auto& joinNodeID : joinNodeIDs) {
-        auto probeKeyGroupPos = probePlan.getSchema()->getGroupPos(*joinNodeID);
-        if (needFlattenProbeJoinKey) {
-            QueryPlanner::appendFlattenIfNecessary(probeKeyGroupPos, probePlan);
-        }
-        joinNodeGroupsPosInProbeSide.insert(probeKeyGroupPos);
-    }
-    // Apply flattening to build side
-    std::unordered_set<f_group_pos> joinNodeGroupsPosInBuildSide;
-    for (auto& joinNodeID : joinNodeIDs) {
-        joinNodeGroupsPosInBuildSide.insert(buildPlan.getSchema()->getGroupPos(*joinNodeID));
-    }
-    QueryPlanner::appendFlattensButOne(joinNodeGroupsPosInBuildSide, buildPlan);
-    probePlan.increaseCost(probePlan.getCardinality() + buildPlan.getCardinality());
     auto hashJoin = make_shared<LogicalHashJoin>(
         joinNodeIDs, mark, isProbeAcc, probePlan.getLastOperator(), buildPlan.getLastOperator());
+    // Apply flattening to probe side
+    QueryPlanner::appendFlattens(hashJoin->getGroupsPosToFlattenOnProbeSide(), probePlan);
+    hashJoin->setChild(0, probePlan.getLastOperator());
+    // Apply flattening to build side
+    QueryPlanner::appendFlattens(hashJoin->getGroupsPosToFlattenOnBuildSide(), buildPlan);
+    hashJoin->setChild(1, buildPlan.getLastOperator());
     hashJoin->computeSchema();
+    probePlan.increaseCost(probePlan.getCardinality() + buildPlan.getCardinality());
     probePlan.setLastOperator(std::move(hashJoin));
 }
 
-void JoinOrderEnumerator::appendIntersect(const std::shared_ptr<NodeExpression>& intersectNode,
-    std::vector<std::shared_ptr<NodeExpression>>& boundNodes, LogicalPlan& probePlan,
+void JoinOrderEnumerator::appendIntersect(const std::shared_ptr<Expression>& intersectNodeID,
+    binder::expression_vector& boundNodeIDs, LogicalPlan& probePlan,
     std::vector<std::unique_ptr<LogicalPlan>>& buildPlans) {
-    auto intersectNodeID = intersectNode->getInternalIDProperty();
-    assert(boundNodes.size() == buildPlans.size());
+    assert(boundNodeIDs.size() == buildPlans.size());
     std::vector<std::shared_ptr<LogicalOperator>> buildChildren;
     std::vector<std::unique_ptr<LogicalIntersectBuildInfo>> buildInfos;
     for (auto i = 0u; i < buildPlans.size(); ++i) {
-        auto boundNodeID = boundNodes[i]->getInternalIDProperty();
-        QueryPlanner::appendFlattenIfNecessary(
-            probePlan.getSchema()->getGroupPos(*boundNodeID), probePlan);
+        auto boundNodeID = boundNodeIDs[i];
         auto buildPlan = buildPlans[i].get();
-        auto buildSchema = buildPlan->getSchema();
-        QueryPlanner::appendFlattenIfNecessary(buildSchema->getGroupPos(*boundNodeID), *buildPlan);
-        auto expressions = buildSchema->getExpressionsInScope();
-        auto buildInfo = std::make_unique<LogicalIntersectBuildInfo>(boundNodeID, expressions);
+        auto buildInfo = std::make_unique<LogicalIntersectBuildInfo>(
+            boundNodeID, buildPlan->getSchema()->getExpressionsInScope());
         buildChildren.push_back(buildPlan->getLastOperator());
         buildInfos.push_back(std::move(buildInfo));
     }
-    auto logicalIntersect = make_shared<LogicalIntersect>(intersectNodeID,
-        probePlan.getLastOperator(), std::move(buildChildren), std::move(buildInfos));
-    logicalIntersect->computeSchema();
-    probePlan.setLastOperator(std::move(logicalIntersect));
+    auto intersect = make_shared<LogicalIntersect>(intersectNodeID, probePlan.getLastOperator(),
+        std::move(buildChildren), std::move(buildInfos));
+    QueryPlanner::appendFlattens(intersect->getGroupsPosToFlattenOnProbeSide(), probePlan);
+    intersect->setChild(0, probePlan.getLastOperator());
+    for (auto i = 0u; i < buildPlans.size(); ++i) {
+        QueryPlanner::appendFlattens(
+            intersect->getGroupsPosToFlattenOnBuildSide(i), *buildPlans[i]);
+        intersect->setChild(i + 1, buildPlans[i]->getLastOperator());
+    }
+    intersect->computeSchema();
+    probePlan.setLastOperator(std::move(intersect));
 }
 
 void JoinOrderEnumerator::appendCrossProduct(LogicalPlan& probePlan, LogicalPlan& buildPlan) {

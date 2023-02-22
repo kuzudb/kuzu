@@ -1,6 +1,7 @@
 #pragma once
 
 #include "logical_update.h"
+#include "planner/logical_plan/logical_operator/flatten_resolver.h"
 
 namespace kuzu {
 namespace planner {
@@ -38,6 +39,8 @@ public:
         : LogicalUpdateRel{LogicalOperatorType::SET_REL_PROPERTY, std::move(rels),
               std::move(child)},
           setItems{std::move(setItems)} {}
+
+    f_group_pos_set getGroupsPosToFlatten(uint32_t setItemIdx);
 
     inline std::string getExpressionsForPrinting() const override {
         std::string result;

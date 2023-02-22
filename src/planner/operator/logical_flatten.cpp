@@ -5,7 +5,6 @@ namespace planner {
 
 void LogicalFlatten::computeSchema() {
     copyChildSchema(0);
-    auto groupPos = schema->getGroupPos(expression->getUniqueName());
     schema->flattenGroup(groupPos);
 }
 

@@ -17,6 +17,8 @@ public:
           nbrNode{std::move(nbrNode)}, rel{std::move(rel)}, direction{direction},
           properties{std::move(properties)}, extendToNewGroup{extendToNewGroup} {}
 
+    f_group_pos_set getGroupsPosToFlatten();
+
     void computeSchema() override;
 
     inline std::string getExpressionsForPrinting() const override {

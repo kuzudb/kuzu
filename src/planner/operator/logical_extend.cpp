@@ -1,7 +1,22 @@
 #include "planner/logical_plan/logical_operator/logical_extend.h"
 
+#include "planner/logical_plan/logical_operator/flatten_resolver.h"
+
 namespace kuzu {
 namespace planner {
+
+f_group_pos_set LogicalExtend::getGroupsPosToFlatten() {
+    f_group_pos_set result;
+    auto requireFlatBoundNode = extendToNewGroup || rel->isVariableLength();
+    if (requireFlatBoundNode) {
+        auto inSchema = children[0]->getSchema();
+        auto boundNodeGroupPos = inSchema->getGroupPos(*boundNode->getInternalIDProperty());
+        if (!inSchema->getGroup(boundNodeGroupPos)->isFlat()) {
+            result.insert(boundNodeGroupPos);
+        }
+    }
+    return result;
+}
 
 void LogicalExtend::computeSchema() {
     copyChildSchema(0);

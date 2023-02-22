@@ -1,6 +1,7 @@
 #include "planner/projection_planner.h"
 
 #include "binder/expression/function_expression.h"
+#include "planner/logical_plan/logical_operator/flatten_resolver.h"
 #include "planner/logical_plan/logical_operator/logical_aggregate.h"
 #include "planner/logical_plan/logical_operator/logical_limit.h"
 #include "planner/logical_plan/logical_operator/logical_multiplcity_reducer.h"
@@ -90,6 +91,12 @@ void ProjectionPlanner::appendProjection(
     for (auto& expression : expressionsToProject) {
         queryPlanner->planSubqueryIfNecessary(expression, plan);
     }
+    for (auto& expression : expressionsToProject) {
+        auto dependentGroupsPos = plan.getSchema()->getDependentGroupsPos(expression);
+        auto groupsPosToFlatten = factorization::FlattenAllButOne::getGroupsPosToFlatten(
+            dependentGroupsPos, plan.getSchema());
+        QueryPlanner::appendFlattens(groupsPosToFlatten, plan);
+    }
     auto projection = make_shared<LogicalProjection>(expressionsToProject, plan.getLastOperator());
     projection->computeSchema();
     plan.setLastOperator(std::move(projection));
@@ -97,68 +104,22 @@ void ProjectionPlanner::appendProjection(
 
 void ProjectionPlanner::appendAggregate(const expression_vector& expressionsToGroupBy,
     const expression_vector& expressionsToAggregate, LogicalPlan& plan) {
-    bool hasDistinctFunc = false;
-    for (auto& expressionToAggregate : expressionsToAggregate) {
-        auto& functionExpression = (AggregateFunctionExpression&)*expressionToAggregate;
-        if (functionExpression.isDistinct()) {
-            hasDistinctFunc = true;
-        }
-    }
-    if (hasDistinctFunc) { // Flatten all inputs.
-        for (auto& expressionToGroupBy : expressionsToGroupBy) {
-            auto dependentGroupsPos = plan.getSchema()->getDependentGroupsPos(expressionToGroupBy);
-            QueryPlanner::appendFlattens(dependentGroupsPos, plan);
-        }
-        for (auto& expressionToAggregate : expressionsToAggregate) {
-            auto dependentGroupsPos =
-                plan.getSchema()->getDependentGroupsPos(expressionToAggregate);
-            QueryPlanner::appendFlattens(dependentGroupsPos, plan);
-        }
-    } else {
-        // Flatten all but one for ALL group by keys.
-        std::unordered_set<uint32_t> groupByPoses;
-        for (auto& expressionToGroupBy : expressionsToGroupBy) {
-            auto dependentGroupsPos = plan.getSchema()->getDependentGroupsPos(expressionToGroupBy);
-            groupByPoses.insert(dependentGroupsPos.begin(), dependentGroupsPos.end());
-        }
-        QueryPlanner::appendFlattensButOne(groupByPoses, plan);
-        if (expressionsToAggregate.size() > 1) {
-            for (auto& expressionToAggregate : expressionsToAggregate) {
-                auto dependentGroupsPos =
-                    plan.getSchema()->getDependentGroupsPos(expressionToAggregate);
-                QueryPlanner::appendFlattens(dependentGroupsPos, plan);
-            }
-        }
-    }
     auto aggregate = make_shared<LogicalAggregate>(
         expressionsToGroupBy, expressionsToAggregate, plan.getLastOperator());
+    QueryPlanner::appendFlattens(aggregate->getGroupsPosToFlattenForGroupBy(), plan);
+    aggregate->setChild(0, plan.getLastOperator());
+    QueryPlanner::appendFlattens(aggregate->getGroupsPosToFlattenForAggregate(), plan);
+    aggregate->setChild(0, plan.getLastOperator());
     aggregate->computeSchema();
     plan.setLastOperator(std::move(aggregate));
 }
 
 void ProjectionPlanner::appendOrderBy(
     const expression_vector& expressions, const std::vector<bool>& isAscOrders, LogicalPlan& plan) {
-    for (auto& expression : expressions) {
-        // We only allow orderby key(s) to be unflat, if they are all part of the same factorization
-        // group and there is no other factorized group in the schema, so any payload is also unflat
-        // and part of the same factorization group. The rationale for this limitation is this: (1)
-        // to keep both the frontend and orderby operators simpler, we want order by to not change
-        // the schema, so the input and output of order by should have the same factorization
-        // structure. (2) Because orderby needs to flatten the keys to sort, if a key column that is
-        // unflat is the input, we need to somehow flatten it in the factorized table. However
-        // whenever we can we want to avoid adding an explicit flatten operator as this makes us
-        // fall back to tuple-at-a-time processing. However in the specified limited case, we can
-        // give factorized table a set of unflat vectors (all in the same datachunk/factorization
-        // group), sort the table, and scan into unflat vectors, so the schema remains the same. In
-        // more complicated cases, e.g., when there are 2 factorization groups, FactorizedTable
-        // cannot read back a flat column into an unflat std::vector.
-        if (plan.getSchema()->getNumGroups() > 1) {
-            auto dependentGroupsPos = plan.getSchema()->getDependentGroupsPos(expression);
-            QueryPlanner::appendFlattens(dependentGroupsPos, plan);
-        }
-    }
     auto orderBy = make_shared<LogicalOrderBy>(expressions, isAscOrders,
         plan.getSchema()->getExpressionsInScope(), plan.getLastOperator());
+    QueryPlanner::appendFlattens(orderBy->getGroupsPosToFlatten(), plan);
+    orderBy->setChild(0, plan.getLastOperator());
     orderBy->computeSchema();
     plan.setLastOperator(std::move(orderBy));
 }
@@ -170,16 +131,18 @@ void ProjectionPlanner::appendMultiplicityReducer(LogicalPlan& plan) {
 }
 
 void ProjectionPlanner::appendLimit(uint64_t limitNumber, LogicalPlan& plan) {
-    QueryPlanner::appendFlattensButOne(plan.getSchema()->getGroupsPosInScope(), plan);
     auto limit = make_shared<LogicalLimit>(limitNumber, plan.getLastOperator());
+    QueryPlanner::appendFlattens(limit->getGroupsPosToFlatten(), plan);
+    limit->setChild(0, plan.getLastOperator());
     limit->computeSchema();
     plan.setCardinality(limitNumber);
     plan.setLastOperator(std::move(limit));
 }
 
 void ProjectionPlanner::appendSkip(uint64_t skipNumber, LogicalPlan& plan) {
-    QueryPlanner::appendFlattensButOne(plan.getSchema()->getGroupsPosInScope(), plan);
     auto skip = make_shared<LogicalSkip>(skipNumber, plan.getLastOperator());
+    QueryPlanner::appendFlattens(skip->getGroupsPosToFlatten(), plan);
+    skip->setChild(0, plan.getLastOperator());
     skip->computeSchema();
     plan.setCardinality(plan.getCardinality() - skipNumber);
     plan.setLastOperator(std::move(skip));

@@ -13,6 +13,9 @@ public:
           expressionsToGroupBy{std::move(expressionsToGroupBy)}, expressionsToAggregate{std::move(
                                                                      expressionsToAggregate)} {}
 
+    f_group_pos_set getGroupsPosToFlattenForGroupBy();
+    f_group_pos_set getGroupsPosToFlattenForAggregate();
+
     void computeSchema() override;
 
     std::string getExpressionsForPrinting() const override;
@@ -30,6 +33,9 @@ public:
         return make_unique<LogicalAggregate>(
             expressionsToGroupBy, expressionsToAggregate, children[0]->copy());
     }
+
+private:
+    bool hasDistinctAggregate();
 
 private:
     binder::expression_vector expressionsToGroupBy;

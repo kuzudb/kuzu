@@ -1,6 +1,7 @@
 #pragma once
 
 #include "logical_update.h"
+#include "planner/logical_plan/logical_operator/flatten_resolver.h"
 
 namespace kuzu {
 namespace planner {
@@ -31,6 +32,15 @@ public:
         std::shared_ptr<LogicalOperator> child)
         : LogicalUpdateRel{LogicalOperatorType::DELETE_REL, std::move(rels), std::move(child)} {}
     ~LogicalDeleteRel() override = default;
+
+    inline f_group_pos_set getGroupsPosToFlatten(uint32_t relIdx) {
+        f_group_pos_set result;
+        auto rel = rels[relIdx];
+        auto childSchema = children[0]->getSchema();
+        result.insert(childSchema->getGroupPos(*rel->getSrcNode()->getInternalIDProperty()));
+        result.insert(childSchema->getGroupPos(*rel->getDstNode()->getInternalIDProperty()));
+        return factorization::FlattenAll::getGroupsPosToFlatten(result, childSchema);
+    }
 
     inline std::unique_ptr<LogicalOperator> copy() override {
         return make_unique<LogicalDeleteRel>(rels, children[0]->copy());
