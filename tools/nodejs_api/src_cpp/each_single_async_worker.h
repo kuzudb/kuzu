@@ -7,7 +7,7 @@ using namespace Napi;
 class EachSingleAsyncWorker : public AsyncWorker {
 
 public:
-    EachSingleAsyncWorker(Function& callback, shared_ptr<kuzu::common::FlatTuple>& flatTuple, size_t index);
+    EachSingleAsyncWorker(Function& callback, shared_ptr<kuzu::main::QueryResult>& queryResult, size_t index);
     virtual ~EachSingleAsyncWorker() {};
 
     void Execute();
@@ -16,6 +16,6 @@ public:
 
 private:
     size_t index;
-    shared_ptr<kuzu::common::FlatTuple> flatTuple;
+    shared_ptr<kuzu::main::QueryResult> queryResult;
     std::vector<unique_ptr<kuzu::common::Value>> rowResult;
 };

@@ -9,35 +9,21 @@
 
 using namespace std;
 
-AllEachAsyncWorker::AllEachAsyncWorker(Function& callback, shared_ptr<kuzu::main::QueryResult>& queryResult,
-    std::string executionType, Function& eachCallback)
-    : AsyncWorker(callback), queryResult(queryResult), executionType("each"), eachCallback(eachCallback) {};
-
-AllEachAsyncWorker::AllEachAsyncWorker(Function& callback, shared_ptr<kuzu::main::QueryResult>& queryResult,
-    std::string executionType)
-    : AsyncWorker(callback), queryResult(queryResult), executionType("all"), eachCallback(callback) {};
+AllEachAsyncWorker::AllEachAsyncWorker(Function& callback, shared_ptr<kuzu::main::QueryResult>& queryResult)
+    : AsyncWorker(callback), queryResult(queryResult) {};
 
 void AllEachAsyncWorker::Execute() {
 
     try {
-        if (executionType == "all") {
-            unsigned int i = 0;
-            while (this->queryResult->hasNext()) {
-                auto row = this->queryResult->getNext();
-                allResult.emplace_back(vector<unique_ptr<kuzu::common::Value>>(row->len()));
-                for (unsigned int j = 0; j < row->len(); j++) {
-                    allResult[i][j] =
-                        make_unique<kuzu::common::Value>(kuzu::common::Value(*row->getValue(j)));
-                }
-                i++;
+        size_t i = 0;
+        while (this->queryResult->hasNext()) {
+            auto row = this->queryResult->getNext();
+            allResult.emplace_back(vector<unique_ptr<kuzu::common::Value>>(row->len()));
+            for (size_t j = 0; j < row->len(); j++) {
+                allResult[i][j] =
+                    make_unique<kuzu::common::Value>(kuzu::common::Value(*row->getValue(j)));
             }
-        } else if (executionType == "each") {
-//            size_t i = 0;
-//            while (this->queryResult->hasNext()) {
-//                EachSingleAsyncWorker * asyncWorker = new EachSingleAsyncWorker(eachCallback, queryResult, i);
-//                asyncWorker->Queue();
-//                i++;
-//            }
+            i++;
         }
     } catch(const std::exception &exc) {
         SetError("Unsuccessful async All/Each callback: " + std::string(exc.what()));
@@ -45,20 +31,16 @@ void AllEachAsyncWorker::Execute() {
 };
 
 void AllEachAsyncWorker::OnOK() {
-    if (executionType == "all") {
-        Napi::Array arr = Napi::Array::New(Env(), allResult.size());
-        for (unsigned int i=0; i < allResult.size(); i++) {
-            Napi::Array rowArray = Napi::Array::New(Env(), allResult[i].size());
-            unsigned int j = 0;
-            for (; j < allResult[i].size(); j++){
-                rowArray.Set(j, ConvertToNapiObject(*allResult[i][j], Env()));
-            }
-            arr.Set(i, rowArray);
+    Napi::Array arr = Napi::Array::New(Env(), allResult.size());
+    for (size_t i=0; i < allResult.size(); i++) {
+        Napi::Array rowArray = Napi::Array::New(Env(), allResult[i].size());
+        size_t j = 0;
+        for (; j < allResult[i].size(); j++){
+            rowArray.Set(j, ConvertToNapiObject(*allResult[i][j], Env()));
         }
-        Callback().Call({Env().Null(), arr});
-    } else if (executionType == "each") {
-        Callback().Call({Env().Null()});
+        arr.Set(i, rowArray);
     }
+    Callback().Call({Env().Null(), arr});
 };
 
 
