@@ -26,7 +26,16 @@ public:
 
     std::vector<std::string> getFunctionNames();
 
+    static uint32_t getCastCost(common::DataTypeID inputTypeID, common::DataTypeID targetTypeID);
+
+    static uint32_t getCastCost(
+        const common::DataType& inputType, const common::DataType& targetType);
+
 private:
+    static uint32_t implicitCastInt64(common::DataTypeID targetTypeID);
+
+    static uint32_t implicitCastDouble(common::DataTypeID targetTypeID);
+
     VectorOperationDefinition* getBestMatch(std::vector<VectorOperationDefinition*>& functions);
 
     uint32_t getFunctionCost(const std::vector<common::DataType>& inputTypes,
@@ -35,7 +44,6 @@ private:
         const std::vector<common::DataTypeID>& targetTypeIDs, bool isOverload);
     uint32_t matchVarLengthParameters(const std::vector<common::DataType>& inputTypes,
         common::DataTypeID targetTypeID, bool isOverload);
-    uint32_t castRules(common::DataTypeID inputTypeID, common::DataTypeID targetTypeID);
 
     void validateNonEmptyCandidateFunctions(
         std::vector<VectorOperationDefinition*>& candidateFunctions, const std::string& name,

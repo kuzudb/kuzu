@@ -53,6 +53,12 @@ inline std::string CastToString::castToStringWithDataType(
     return common::TypeUtils::toString(input, dataType);
 }
 
+struct CastToDouble {
+    static inline void operation(int64_t& input, double_t& result) {
+        result = static_cast<double_t>(input);
+    }
+};
+
 } // namespace operation
 } // namespace function
 } // namespace kuzu

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "arithmetic_operations.h"
 #include "function/vector_operations.h"
 
 namespace kuzu {
