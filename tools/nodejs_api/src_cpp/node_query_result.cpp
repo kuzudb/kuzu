@@ -1,6 +1,8 @@
 #include "node_query_result.h"
 
 #include "all_each_async_worker.h"
+#include "each_single_async_worker.h"
+
 #include "main/kuzu.h"
 
 using namespace kuzu::main;
@@ -57,16 +59,24 @@ Napi::Value NodeQueryResult::Each(const Napi::CallbackInfo& info) {
     Napi::Env env = info.Env();
     Napi::HandleScope scope(env);
 
-    if (info.Length()!=1 || !info[0].IsFunction()) {
+    if (info.Length()!=2 || !info[0].IsFunction() || !info[1].IsFunction()) {
         Napi::TypeError::New(env, "Each needs a callback").ThrowAsJavaScriptException();
         return Napi::Object::New(env);
     }
 
-    Function callback = info[0].As<Function>();
+    Function eachCallback = info[0].As<Function>();
+    Function doneCallback = info[1].As<Function>();
 
     try {
-        AllEachAsyncWorker* asyncWorker = new AllEachAsyncWorker(callback, queryResult, "each");
-        asyncWorker->Queue();
+//        AllEachAsyncWorker* asyncWorker = new AllEachAsyncWorker(doneCallback, queryResult, "each", eachCallback);
+//        asyncWorker->Queue();
+        size_t i = 0;
+        while (this->queryResult->hasNext()) {
+            auto row = this->queryResult->getNext();
+            EachSingleAsyncWorker * asyncWorker = new EachSingleAsyncWorker(eachCallback, row, i);
+            asyncWorker->Queue();
+            i++;
+        }
     } catch(const std::exception &exc) {
         Napi::TypeError::New(env, "Unsuccessful each callback: " + std::string(exc.what())).ThrowAsJavaScriptException();
     }
