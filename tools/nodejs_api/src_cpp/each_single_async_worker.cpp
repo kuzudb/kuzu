@@ -8,14 +8,15 @@
 
 using namespace std;
 
-EachSingleAsyncWorker::EachSingleAsyncWorker(Function& callback, shared_ptr<kuzu::common::FlatTuple>& flatTuple, size_t index)
-    : AsyncWorker(callback), flatTuple(flatTuple), index(index) {};
+EachSingleAsyncWorker::EachSingleAsyncWorker(Function& callback, shared_ptr<kuzu::main::QueryResult>& queryResult, size_t index)
+    : AsyncWorker(callback), queryResult(queryResult), index(index) {};
 
 void EachSingleAsyncWorker::Execute() {
     try {
-        for (size_t j = 0; j < flatTuple->len(); j++) {
+        auto row = queryResult->getNext();
+        for (size_t j = 0; j < row->len(); j++) {
             rowResult.emplace_back(
-                make_unique<kuzu::common::Value>(kuzu::common::Value(*flatTuple->getValue(j))));
+                make_unique<kuzu::common::Value>(kuzu::common::Value(*row->getValue(j))));
         }
     } catch(const std::exception &exc) {
         SetError("Unsuccessful async Each callback: " + std::string(exc.what()));
