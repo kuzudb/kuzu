@@ -9,9 +9,10 @@
     "url": "https://github.com/kuzudb/kuzu.git"
   },
   "scripts": {
-    "build": "npm run js && (cd ../..; make release) && cmake-js compile",
+    "build": "(cd ../..; make release) && cmake-js compile && npm run js",
     "clean": "cmake-js clean && rm -rf cmake_install.cmake Makefile",
-    "js": "cp src_nodejs/* build/kuzu/"
+    "js": "cp src_nodejs/* build/kuzu/",
+    "all": "npm run clean && npm run build && node sample.js"
   },
   "author": "Kùzu Team",
   "license": "MIT",
