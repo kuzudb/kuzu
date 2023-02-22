@@ -26,11 +26,16 @@ class QueryResult {
         this.checkForQueryResultClose();
         this.#queryResult.each((err, result) => {
             callbackWrapper(err, () => {
-                if (eachCallback) { eachCallback(result.slice(0, -1)); }
-                if (doneCallback && result.at(-1) == 0) {
-                    doneCallback();
-                }
+                if (eachCallback) { eachCallback(result); }
+                // if (doneCallback && result.at(-1) == 0) {
+                //     doneCallback();
+                // }
             });
+        }, (err) => {
+            if (doneCallback) {
+                if (err) { console.log(err); }
+                else doneCallback();
+            }
         });
     }
 
