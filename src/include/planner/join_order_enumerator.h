@@ -113,8 +113,6 @@ private:
     void appendIndexScanNode(std::shared_ptr<NodeExpression>& node,
         std::shared_ptr<Expression> indexExpression, LogicalPlan& plan);
 
-    bool needFlatInput(
-        RelExpression& rel, NodeExpression& boundNode, common::RelDirection direction);
     bool needExtendToNewGroup(
         RelExpression& rel, NodeExpression& boundNode, common::RelDirection direction);
     void appendExtend(std::shared_ptr<NodeExpression> boundNode,
@@ -129,8 +127,8 @@ private:
     static void appendMarkJoin(const binder::expression_vector& joinNodeIDs,
         const std::shared_ptr<Expression>& mark, bool isProbeAcc, LogicalPlan& probePlan,
         LogicalPlan& buildPlan);
-    static void appendIntersect(const std::shared_ptr<NodeExpression>& intersectNode,
-        std::vector<std::shared_ptr<NodeExpression>>& boundNodes, LogicalPlan& probePlan,
+    static void appendIntersect(const std::shared_ptr<Expression>& intersectNodeID,
+        binder::expression_vector& boundNodeIDs, LogicalPlan& probePlan,
         std::vector<std::unique_ptr<LogicalPlan>>& buildPlans);
     static void appendCrossProduct(LogicalPlan& probePlan, LogicalPlan& buildPlan);
 

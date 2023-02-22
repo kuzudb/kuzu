@@ -8,6 +8,7 @@ namespace kuzu {
 namespace planner {
 
 typedef uint32_t f_group_pos;
+typedef std::unordered_set<f_group_pos> f_group_pos_set;
 constexpr f_group_pos INVALID_F_GROUP_POS = UINT32_MAX;
 
 class FactorizationGroup {

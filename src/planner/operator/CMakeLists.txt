@@ -1,6 +1,7 @@
 add_library(kuzu_planner_operator
         OBJECT
         base_logical_operator.cpp
+        flatten_resolver.cpp
         logical_accumulate.cpp
         logical_aggregate.cpp
         logical_create.cpp
@@ -20,6 +21,7 @@ add_library(kuzu_planner_operator
         logical_projection.cpp
         logical_scan_node.cpp
         logical_scan_node_property.cpp
+        logical_set.cpp
         logical_skip.cpp
         logical_union.cpp
         logical_unwind.cpp

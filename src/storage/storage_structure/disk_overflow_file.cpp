@@ -107,7 +107,7 @@ void DiskOverflowFile::readListToVector(TransactionType trxType, ku_list_t& kuLi
         for (auto i = 0u; i < kuList.size; i++) {
             readStringToVector(trxType, kuStrings[i], inMemOverflowBuffer);
         }
-    } else if (dataType.childType->typeID == LIST) {
+    } else if (dataType.childType->typeID == VAR_LIST) {
         auto kuLists = (ku_list_t*)(kuList.overflowPtr);
         for (auto i = 0u; i < kuList.size; i++) {
             readListToVector(trxType, kuLists[i], *dataType.childType, inMemOverflowBuffer);
@@ -148,7 +148,7 @@ std::vector<std::unique_ptr<Value>> DiskOverflowFile::readList(
             retValues.push_back(make_unique<Value>(readString(trxType, kuListVal)));
             cursor.offsetInPage += numBytesOfSingleValue;
         }
-    } else if (dataType.childType->typeID == LIST) {
+    } else if (dataType.childType->typeID == VAR_LIST) {
         for (auto i = 0u; i < numValuesInList; i++) {
             auto kuListVal = *(ku_list_t*)(frame + cursor.offsetInPage);
             retValues.push_back(make_unique<Value>(
@@ -254,7 +254,7 @@ void DiskOverflowFile::setListRecursiveIfNestedWithoutLock(
             setStringOverflowWithoutLock(
                 (const char*)kuString.overflowPtr, kuString.len, dstListElements[i]);
         }
-    } else if (dataType.childType->typeID == LIST) {
+    } else if (dataType.childType->typeID == VAR_LIST) {
         // Recursively copy overflow for list elements in the list.
         auto dstListElements = (ku_list_t*)(updatedPageInfoAndWALPageFrame.frame +
                                             updatedPageInfoAndWALPageFrame.posInPage);

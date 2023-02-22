@@ -243,12 +243,8 @@ arrow::Status CopyStructuresArrow::initParquetReader(
     return arrow::Status::OK();
 }
 
-std::unique_ptr<Value> CopyStructuresArrow::getArrowList(std::string& l, int64_t from, int64_t to,
-    const DataType& dataType, CopyDescription& copyDescription) {
-    assert(dataType.typeID == common::LIST);
-    auto childDataType = *dataType.childType;
-
-    char delimiter = copyDescription.csvReaderConfig->delimiter;
+std::vector<std::pair<int64_t, int64_t>> CopyStructuresArrow::getListElementPos(
+    std::string& l, int64_t from, int64_t to, CopyDescription& copyDescription) {
     std::vector<std::pair<int64_t, int64_t>> split;
     int bracket = 0;
     int64_t last = from;
@@ -257,14 +253,21 @@ std::unique_ptr<Value> CopyStructuresArrow::getArrowList(std::string& l, int64_t
             bracket += 1;
         } else if (l[i] == copyDescription.csvReaderConfig->listEndChar) {
             bracket -= 1;
-        } else if (bracket == 0 && l[i] == delimiter) {
+        } else if (bracket == 0 && l[i] == copyDescription.csvReaderConfig->delimiter) {
             split.emplace_back(last, i - last);
             last = i + 1;
         }
     }
     split.emplace_back(last, to - last + 1);
+    return split;
+}
 
+std::unique_ptr<Value> CopyStructuresArrow::getArrowVarList(std::string& l, int64_t from,
+    int64_t to, const DataType& dataType, CopyDescription& copyDescription) {
+    assert(dataType.typeID == common::VAR_LIST || dataType.typeID == common::FIXED_LIST);
+    auto split = getListElementPos(l, from, to, copyDescription);
     std::vector<std::unique_ptr<Value>> values;
+    auto childDataType = *dataType.childType;
     for (auto pair : split) {
         std::string element = l.substr(pair.first, pair.second);
         if (element.empty()) {
@@ -299,8 +302,8 @@ std::unique_ptr<Value> CopyStructuresArrow::getArrowList(std::string& l, int64_t
             value =
                 std::make_unique<Value>(Interval::FromCString(element.c_str(), element.length()));
         } break;
-        case LIST: {
-            value = getArrowList(l, pair.first + 1, pair.second + pair.first - 1,
+        case VAR_LIST: {
+            value = getArrowVarList(l, pair.first + 1, pair.second + pair.first - 1,
                 *dataType.childType, copyDescription);
         } break;
         default:
@@ -317,7 +320,45 @@ std::unique_ptr<Value> CopyStructuresArrow::getArrowList(std::string& l, int64_t
             BufferPoolConstants::DEFAULT_PAGE_SIZE, numBytesOfOverflow));
     }
     return make_unique<Value>(
-        DataType(LIST, std::make_unique<DataType>(childDataType)), std::move(values));
+        DataType(VAR_LIST, std::make_unique<DataType>(childDataType)), std::move(values));
+}
+
+std::unique_ptr<uint8_t[]> CopyStructuresArrow::getArrowFixedList(std::string& l, int64_t from,
+    int64_t to, const DataType& dataType, CopyDescription& copyDescription) {
+    assert(dataType.typeID == common::FIXED_LIST);
+    auto split = getListElementPos(l, from, to, copyDescription);
+    auto listVal = std::make_unique<uint8_t[]>(Types::getDataTypeSize(dataType));
+    auto childDataType = *dataType.childType;
+    uint64_t numElementsRead = 0;
+    for (auto pair : split) {
+        std::string element = l.substr(pair.first, pair.second);
+        if (element.empty()) {
+            continue;
+        }
+        switch (childDataType.typeID) {
+        case INT64: {
+            auto val = (int64_t)stoll(element);
+            memcpy(listVal.get() + numElementsRead * sizeof(int64_t), &val, sizeof(int64_t));
+            numElementsRead++;
+        } break;
+        case DOUBLE: {
+            auto val = stod(element);
+            memcpy(listVal.get() + numElementsRead * sizeof(double), &val, sizeof(double));
+            numElementsRead++;
+        } break;
+        default: {
+            throw ReaderException("Unsupported data type " +
+                                  Types::dataTypeToString(dataType.childType->typeID) +
+                                  " inside FIXED_LIST");
+        }
+        }
+    }
+    if (numElementsRead != dataType.fixedNumElementsInList) {
+        throw ReaderException(StringUtils::string_format(
+            "Each fixed list should have fixed number of elements. Expected: %d, Actual: %d.",
+            dataType.fixedNumElementsInList, numElementsRead));
+    }
+    return listVal;
 }
 
 void CopyStructuresArrow::throwCopyExceptionIfNotOK(const arrow::Status& status) {

@@ -177,7 +177,8 @@ private:
     void validateType(DataTypeID typeID) const;
     void validateType(const DataType& type) const;
 
-    std::vector<std::unique_ptr<Value>> convertKUListToVector(ku_list_t& list) const;
+    std::vector<std::unique_ptr<Value>> convertKUVarListToVector(ku_list_t& list) const;
+    std::vector<std::unique_ptr<Value>> convertKUFixedListToVector(const uint8_t* fixedList) const;
 
 public:
     DataType dataType;

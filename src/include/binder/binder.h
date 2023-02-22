@@ -53,6 +53,7 @@ private:
         std::vector<std::pair<std::string, std::string>> propertyNameDataTypes);
     common::property_id_t bindPropertyName(
         catalog::NodeTableSchema::TableSchema* tableSchema, const std::string& propertyName);
+    common::DataType bindDataType(const std::string& dataType);
 
     /*** bind copy csv ***/
     std::unique_ptr<BoundStatement> bindCopy(const parser::Statement& statement);

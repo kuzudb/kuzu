@@ -112,10 +112,10 @@ void InMemOverflowFile::copyVarSizedValuesInList(ku_list_t& resultKUList, const 
                 numBytesOfListElement);
         }
     } else {
-        assert(DT == LIST);
+        assert(DT == VAR_LIST);
         std::vector<ku_list_t> kuLists(listVal.listVal.size());
         for (auto i = 0u; i < listVal.listVal.size(); i++) {
-            assert(listVal.listVal[i]->dataType.typeID == LIST);
+            assert(listVal.listVal[i]->dataType.typeID == VAR_LIST);
             kuLists[i] = copyList(*listVal.listVal[i], overflowCursor);
         }
         std::shared_lock lck(lock);
@@ -128,7 +128,7 @@ void InMemOverflowFile::copyVarSizedValuesInList(ku_list_t& resultKUList, const 
 }
 
 ku_list_t InMemOverflowFile::copyList(const Value& listValue, PageByteCursor& overflowCursor) {
-    assert(listValue.dataType.typeID == LIST);
+    assert(listValue.dataType.typeID == VAR_LIST);
     ku_list_t resultKUList;
     auto numBytesOfListElement = Types::getDataTypeSize(*listValue.dataType.childType);
     resultKUList.size = listValue.listVal.size();
@@ -154,8 +154,8 @@ ku_list_t InMemOverflowFile::copyList(const Value& listValue, PageByteCursor& ov
         copyVarSizedValuesInList<STRING>(
             resultKUList, listValue, overflowCursor, numBytesOfListElement);
     } break;
-    case LIST: {
-        copyVarSizedValuesInList<LIST>(
+    case VAR_LIST: {
+        copyVarSizedValuesInList<VAR_LIST>(
             resultKUList, listValue, overflowCursor, numBytesOfListElement);
     } break;
     default: {
@@ -198,7 +198,7 @@ void InMemOverflowFile::copyListOverflowFromFile(InMemOverflowFile* srcInMemOver
                           srcOverflowCursor.offsetInPage;
     auto offsetToCopyInto = dstOverflowCursor.offsetInPage;
     dstOverflowCursor.offsetInPage += dstKUList->size * numBytesOfListElement;
-    if (listChildDataType->typeID == LIST) {
+    if (listChildDataType->typeID == VAR_LIST) {
         auto elementsInList = (ku_list_t*)dataToCopyFrom;
         for (auto i = 0u; i < dstKUList->size; i++) {
             PageByteCursor elementCursor;
@@ -272,7 +272,7 @@ std::string InMemOverflowFile::readString(ku_string_t* strInInMemOvfFile) {
 
 void InMemOverflowFile::resetElementsOverflowPtrIfNecessary(PageByteCursor& pageByteCursor,
     DataType* elementType, uint64_t numElementsToReset, uint8_t* elementsToReset) {
-    if (elementType->typeID == LIST) {
+    if (elementType->typeID == VAR_LIST) {
         auto kuListPtr = reinterpret_cast<ku_list_t*>(elementsToReset);
         for (auto i = 0u; i < numElementsToReset; i++) {
             copyListOverflowToFile(pageByteCursor, kuListPtr, elementType->childType.get());

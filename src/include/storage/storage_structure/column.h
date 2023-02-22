@@ -281,11 +281,12 @@ public:
         case common::DATE:
         case common::TIMESTAMP:
         case common::INTERVAL:
+        case common::FIXED_LIST:
             return std::make_unique<Column>(structureIDAndFName, dataType, bufferManager, wal);
         case common::STRING:
             return std::make_unique<StringPropertyColumn>(
                 structureIDAndFName, dataType, bufferManager, wal);
-        case common::LIST:
+        case common::VAR_LIST:
             return std::make_unique<ListPropertyColumn>(
                 structureIDAndFName, dataType, bufferManager, wal);
         case common::INTERNAL_ID:

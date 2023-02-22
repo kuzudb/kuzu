@@ -1,6 +1,7 @@
 #pragma once
 
 #include "py_database.h"
+#include "py_prepared_statement.h"
 #include "py_query_result.h"
 
 class PyConnection {
@@ -12,7 +13,7 @@ public:
 
     ~PyConnection() = default;
 
-    std::unique_ptr<PyQueryResult> execute(const std::string& query, py::list params);
+    std::unique_ptr<PyQueryResult> execute(PyPreparedStatement* preparedStatement, py::list params);
 
     void setMaxNumThreadForExec(uint64_t numThreads);
 
@@ -23,6 +24,8 @@ public:
     py::str getRelPropertyNames(const std::string& tableName);
 
     py::str getRelTableNames();
+
+    PyPreparedStatement prepare(const std::string& query);
 
 private:
     std::unordered_map<std::string, std::shared_ptr<kuzu::common::Value>> transformPythonParameters(

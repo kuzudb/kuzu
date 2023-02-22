@@ -99,7 +99,7 @@ kU_DataType
 
 kU_ListIdentifiers : kU_ListIdentifier ( kU_ListIdentifier )* ;
 
-kU_ListIdentifier : '[' ']' ;
+kU_ListIdentifier : '[' oC_IntegerLiteral? ']' ;
 
 oC_AnyCypherOption
     : oC_Explain

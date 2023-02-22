@@ -12,14 +12,15 @@ using namespace kuzu::common;
 void PyConnection::initialize(py::handle& m) {
     py::class_<PyConnection>(m, "Connection")
         .def(py::init<PyDatabase*, uint64_t>(), py::arg("database"), py::arg("num_threads") = 0)
-        .def(
-            "execute", &PyConnection::execute, py::arg("query"), py::arg("parameters") = py::list())
+        .def("execute", &PyConnection::execute, py::arg("prepared_statement"),
+            py::arg("parameters") = py::list())
         .def("set_max_threads_for_exec", &PyConnection::setMaxNumThreadForExec,
             py::arg("num_threads"))
         .def("get_node_property_names", &PyConnection::getNodePropertyNames, py::arg("table_name"))
         .def("get_node_table_names", &PyConnection::getNodeTableNames)
         .def("get_rel_property_names", &PyConnection::getRelPropertyNames, py::arg("table_name"))
-        .def("get_rel_table_names", &PyConnection::getRelTableNames);
+        .def("get_rel_table_names", &PyConnection::getRelTableNames)
+        .def("prepare", &PyConnection::prepare, py::arg("query"));
     PyDateTime_IMPORT;
 }
 
@@ -30,11 +31,12 @@ PyConnection::PyConnection(PyDatabase* pyDatabase, uint64_t numThreads) {
     }
 }
 
-std::unique_ptr<PyQueryResult> PyConnection::execute(const std::string& query, py::list params) {
-    auto preparedStatement = conn->prepare(query);
+std::unique_ptr<PyQueryResult> PyConnection::execute(
+    PyPreparedStatement* preparedStatement, py::list params) {
     auto parameters = transformPythonParameters(params);
     py::gil_scoped_release release;
-    auto queryResult = conn->executeWithParams(preparedStatement.get(), parameters);
+    auto queryResult =
+        conn->executeWithParams(preparedStatement->preparedStatement.get(), parameters);
     py::gil_scoped_acquire acquire;
     if (!queryResult->isSuccess()) {
         throw std::runtime_error(queryResult->getErrorMessage());
@@ -62,6 +64,13 @@ py::str PyConnection::getRelPropertyNames(const std::string& tableName) {
 
 py::str PyConnection::getRelTableNames() {
     return conn->getRelTableNames();
+}
+
+PyPreparedStatement PyConnection::prepare(const std::string& query) {
+    auto preparedStatement = conn->prepare(query);
+    PyPreparedStatement pyPreparedStatement;
+    pyPreparedStatement.preparedStatement = std::move(preparedStatement);
+    return pyPreparedStatement;
 }
 
 std::unordered_map<std::string, std::shared_ptr<Value>> PyConnection::transformPythonParameters(
@@ -93,6 +102,7 @@ std::pair<std::string, std::shared_ptr<Value>> PyConnection::transformPythonPara
 Value PyConnection::transformPythonValue(py::handle val) {
     auto datetime_mod = py::module::import("datetime");
     auto datetime_datetime = datetime_mod.attr("datetime");
+    auto time_delta = datetime_mod.attr("timedelta");
     auto datetime_time = datetime_mod.attr("time");
     auto datetime_date = datetime_mod.attr("date");
     if (py::isinstance<py::bool_>(val)) {
@@ -121,6 +131,16 @@ Value PyConnection::transformPythonValue(py::handle val) {
         auto month = PyDateTime_GET_MONTH(ptr);
         auto day = PyDateTime_GET_DAY(ptr);
         return Value::createValue<date_t>(Date::FromDate(year, month, day));
+    } else if (py::isinstance(val, time_delta)) {
+        auto ptr = val.ptr();
+        auto days = PyDateTime_DELTA_GET_DAYS(ptr);
+        auto seconds = PyDateTime_DELTA_GET_SECONDS(ptr);
+        auto microseconds = PyDateTime_DELTA_GET_MICROSECONDS(ptr);
+        interval_t interval;
+        Interval::addition(interval, days, "days");
+        Interval::addition(interval, seconds, "seconds");
+        Interval::addition(interval, microseconds, "microseconds");
+        return Value::createValue<interval_t>(interval);
     } else {
         throw std::runtime_error(
             "Unknown parameter type " + py::str(val.get_type()).cast<std::string>());

@@ -122,7 +122,7 @@ class InMemListColumn : public InMemColumnWithOverflow {
 public:
     InMemListColumn(std::string fName, common::DataType dataType, uint64_t numElements)
         : InMemColumnWithOverflow{std::move(fName), std::move(dataType), numElements} {
-        assert(this->dataType.typeID == common::LIST);
+        assert(this->dataType.typeID == common::VAR_LIST);
     };
 };
 

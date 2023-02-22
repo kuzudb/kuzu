@@ -1,4 +1,5 @@
 from .query_result import QueryResult
+from .prepared_statement import PreparedStatement
 from . import _kuzu
 
 
@@ -13,6 +14,9 @@ class Connection:
 
     execute(query, parameters=[])
         Execute a query.
+
+    prepare(query)
+        Create a prepared statement for a query.
     """
 
     def __init__(self, database, num_threads=0):
@@ -47,8 +51,10 @@ class Connection:
 
         Parameters
         ----------
-        query : str
-            Query to execute.
+        query : str | PreparedStatement
+            A prepared statement or a query string.
+            If a query string is given, a prepared statement will be created
+            automatically.
         parameters : list
             Parameters for the query.
 
@@ -58,7 +64,30 @@ class Connection:
             Query result.
         """
 
-        return QueryResult(self, self._connection.execute(query, parameters))
+        prepared_statement = self.prepare(
+            query) if type(query) == str else query
+        return QueryResult(self,
+                           self._connection.execute(
+                               prepared_statement._prepared_statement,
+                               parameters)
+                           )
+
+    def prepare(self, query):
+        """
+        Create a prepared statement for a query.
+
+        Parameters
+        ----------
+        query : str
+            Query to prepare.
+
+        Returns
+        -------
+        PreparedStatement
+            Prepared statement.
+        """
+
+        return PreparedStatement(self, query)
 
     def _get_node_property_names(self, table_name):
         PRIMARY_KEY_SYMBOL = "(PRIMARY KEY)"

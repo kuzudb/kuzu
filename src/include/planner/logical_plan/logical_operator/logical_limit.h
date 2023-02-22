@@ -1,6 +1,7 @@
 #pragma once
 
 #include "base_logical_operator.h"
+#include "planner/logical_plan/logical_operator/flatten_resolver.h"
 
 namespace kuzu {
 namespace planner {
@@ -9,6 +10,8 @@ class LogicalLimit : public LogicalOperator {
 public:
     LogicalLimit(uint64_t limitNumber, std::shared_ptr<LogicalOperator> child)
         : LogicalOperator{LogicalOperatorType::LIMIT, std::move(child)}, limitNumber{limitNumber} {}
+
+    f_group_pos_set getGroupsPosToFlatten();
 
     inline void computeSchema() override { copyChildSchema(0); }
 

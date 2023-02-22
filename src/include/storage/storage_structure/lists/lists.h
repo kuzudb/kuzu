@@ -277,13 +277,14 @@ public:
         case common::DATE:
         case common::TIMESTAMP:
         case common::INTERVAL:
+        case common::FIXED_LIST:
             return std::make_unique<Lists>(structureIDAndFName, dataType,
                 common::Types::getDataTypeSize(dataType), adjListsHeaders, bufferManager, wal,
                 listsUpdatesStore);
         case common::STRING:
             return std::make_unique<StringPropertyLists>(
                 structureIDAndFName, adjListsHeaders, bufferManager, wal, listsUpdatesStore);
-        case common::LIST:
+        case common::VAR_LIST:
             return std::make_unique<ListPropertyLists>(structureIDAndFName, dataType,
                 adjListsHeaders, bufferManager, wal, listsUpdatesStore);
         case common::INTERNAL_ID:

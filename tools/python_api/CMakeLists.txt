@@ -11,6 +11,7 @@ pybind11_add_module(_kuzu
         src_cpp/kuzu_binding.cpp
         src_cpp/py_connection.cpp
         src_cpp/py_database.cpp
+        src_cpp/py_prepared_statement.cpp
         src_cpp/py_query_result.cpp
         src_cpp/py_query_result_converter.cpp)
 

@@ -1,9 +1,22 @@
 #include "planner/logical_plan/logical_operator/logical_union.h"
 
+#include "planner/logical_plan/logical_operator/flatten_resolver.h"
 #include "planner/logical_plan/logical_operator/sink_util.h"
 
 namespace kuzu {
 namespace planner {
+
+f_group_pos_set LogicalUnion::getGroupsPosToFlatten(uint32_t childIdx) {
+    f_group_pos_set groupsPos;
+    auto childSchema = children[childIdx]->getSchema();
+    for (auto i = 0u; i < expressionsToUnion.size(); ++i) {
+        if (requireFlatExpression(i)) {
+            auto expression = childSchema->getExpressionsInScope()[i];
+            groupsPos.insert(childSchema->getGroupPos(*expression));
+        }
+    }
+    return factorization::FlattenAll::getGroupsPosToFlatten(groupsPos, childSchema);
+}
 
 void LogicalUnion::computeSchema() {
     auto firstChildSchema = children[0]->getSchema();
@@ -18,6 +31,17 @@ std::unique_ptr<LogicalOperator> LogicalUnion::copy() {
         copiedChildren.push_back(getChild(i)->copy());
     }
     return make_unique<LogicalUnion>(expressionsToUnion, std::move(copiedChildren));
+}
+
+bool LogicalUnion::requireFlatExpression(uint32_t expressionIdx) {
+    for (auto& child : children) {
+        auto childSchema = child->getSchema();
+        auto expression = childSchema->getExpressionsInScope()[expressionIdx];
+        if (childSchema->getGroup(expression)->isFlat()) {
+            return true;
+        }
+    }
+    return false;
 }
 
 } // namespace planner
