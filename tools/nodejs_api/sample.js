@@ -1,6 +1,6 @@
 // Make sure the test directory is removed as it will be recreated
 const fs = require("fs");
-const {Database, Connection, QueryResult} = require("./build/kuzu");
+const {Database, Connection} = require("./build/kuzu");
 
 try {
   fs.rmSync("./test", { recursive: true });
@@ -43,8 +43,8 @@ connection.execute(executeQuery, executeAllCallback);
 console.log(connection.getNodePropertyNames("person"));
 
 // Execute with each callback
-connection.execute(executeQuery,  async result => {
-    await result.each(
+connection.execute(executeQuery,  result => {
+    result.each(
         row => {
             console.log(row);
         },
