@@ -21,6 +21,9 @@ public:
         : Column(structureIDAndFName, dataType, common::Types::getDataTypeSize(dataType),
               bufferManager, wal){};
 
+    // Expose for feature store
+    void scan(const common::offset_t* nodeOffsets, size_t size, uint8_t* result);
+
     virtual void read(transaction::Transaction* transaction,
         const std::shared_ptr<common::ValueVector>& nodeIDVector,
         const std::shared_ptr<common::ValueVector>& resultVector);
