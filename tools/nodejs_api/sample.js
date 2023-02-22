@@ -34,43 +34,50 @@ connection.execute("create node table person (ID INt64, fName StRING, gender INT
 connection.execute("COPY person FROM \"../../dataset/tinysnb/vPerson.csv\" (HEADER=true);", executeAllPromise);
 const executeQuery = "MATCH (a:person) RETURN a.fName, a.age, a.eyeSight, a.isStudent;";
 connection.execute(executeQuery, executeAllCallback);
-// connection.execute(executeQuery, executeAllPromise);
-//
-// // Extensive Case
-// database.resizeBufferManager(2000000000);
-// connection.setMaxNumThreadForExec(2);
-// connection.execute(executeQuery, executeAllCallback);
-// console.log(connection.getNodePropertyNames("person"));
+connection.execute(executeQuery, executeAllPromise);
+
+// Extensive Case
+database.resizeBufferManager(2000000000);
+connection.setMaxNumThreadForExec(2);
+connection.execute(executeQuery, executeAllCallback);
+console.log(connection.getNodePropertyNames("person"));
 
 // Execute with each callback
-connection.execute(executeQuery,  result => {
-    result.each(
-        row => { console.log(row); },
-        () => { console.log("all of the each's are done callback"); }
+connection.execute(executeQuery,  async result => {
+    await result.each(
+        row => {
+            console.log(row);
+        },
+        () => {
+            console.log("all of the each's are done callback");
+        },
+        err => {
+            console.log(err);
+        }
     );
 });
-//
-// // Execute with promise + await
-// connection.execute(executeQuery).then(queryResult => {
-//     queryResult.all( result => {
-//         console.log("All result received for execution with a promise");
-//         console.log(result);
-//     });
-// }).catch(error => {
-//     console.log("Execution with a promise failed");
-//     console.log(error);
-// });
-//
-// async function asyncAwaitExecute(executeQuery) {
-//     const queryResult = await connection.execute(executeQuery);
-//     return queryResult;
-// }
-// asyncAwaitExecute(executeQuery).then(queryResult => {
-//     queryResult.all( result => {
-//         console.log("All result received for execution with await");
-//         console.log(result);
-//     });
-// }).catch(error => {
-//     console.log("Execution with await failed");
-//     console.log(error);
-// });
+
+// Execute with promise + await
+connection.execute(executeQuery).then(queryResult => {
+    queryResult.all( result => {
+        console.log("All result received for execution with a promise");
+        console.log(result);
+    });
+}).catch(error => {
+    console.log("Execution with a promise failed");
+    console.log(error);
+});
+
+async function asyncAwaitExecute(executeQuery) {
+    const queryResult = await connection.execute(executeQuery);
+    return queryResult;
+}
+asyncAwaitExecute(executeQuery).then(queryResult => {
+    queryResult.all( result => {
+        console.log("All result received for execution with await");
+        console.log(result);
+    });
+}).catch(error => {
+    console.log("Execution with await failed");
+    console.log(error);
+});

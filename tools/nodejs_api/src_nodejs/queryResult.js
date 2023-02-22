@@ -22,21 +22,29 @@ class QueryResult {
         this.#isClosed = true;
     }
 
-    each(eachCallback= null, doneCallback = null) {
+    async each(rowCallback, doneCallback, errorCallback) {
         this.checkForQueryResultClose();
-        this.#queryResult.each((err, result) => {
-            callbackWrapper(err, () => {
-                if (eachCallback) { eachCallback(result); }
-                // if (doneCallback && result.at(-1) == 0) {
-                //     doneCallback();
-                // }
-            });
-        }, (err) => {
-            if (doneCallback) {
-                if (err) { console.log(err); }
-                else doneCallback();
-            }
-        });
+        while (this.#queryResult.hasNext()) {
+            await this.each().then(row => {
+                rowCallback(row);
+            }).catch(err => {
+                errorCallback(err);
+            })
+        }
+        doneCallback();
+    }
+
+    async each() {
+        this.checkForQueryResultClose();
+        return new Promise((resolve, reject) => {
+            this.#queryResult.getNext((err, result) => {
+                if (err) {
+                    return reject(err);
+                } else {
+                    return resolve(result);
+                }
+            })
+        })
     }
 
     all(callback = null) {

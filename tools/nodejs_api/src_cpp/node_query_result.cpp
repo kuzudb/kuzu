@@ -14,7 +14,8 @@ Napi::Object NodeQueryResult::Wrap(Napi::Env env, shared_ptr<kuzu::main::QueryRe
     Napi::Object obj = DefineClass(env, "NodeQueryResult", {
       InstanceMethod("close", &NodeQueryResult::Close),
       InstanceMethod("all", &NodeQueryResult::All),
-      InstanceMethod("each", &NodeQueryResult::Each),
+      InstanceMethod("getNext", &NodeQueryResult::GetNext),
+      InstanceMethod("hasNext", &NodeQueryResult::HasNext),
    }).New({});
     NodeQueryResult * nodeQueryResult = Unwrap(obj);
     nodeQueryResult->queryResult = queryResult;
@@ -47,7 +48,7 @@ Napi::Value NodeQueryResult::All(const Napi::CallbackInfo& info) {
     Function callback = info[0].As<Function>();
 
     try {
-        AllEachAsyncWorker* asyncWorker = new AllEachAsyncWorker(callback, queryResult, "all");
+        AllEachAsyncWorker* asyncWorker = new AllEachAsyncWorker(callback, queryResult);
         asyncWorker->Queue();
     } catch(const std::exception &exc) {
         Napi::TypeError::New(env, "Unsuccessful all callback: " + std::string(exc.what())).ThrowAsJavaScriptException();
@@ -55,30 +56,44 @@ Napi::Value NodeQueryResult::All(const Napi::CallbackInfo& info) {
     return info.Env().Undefined();
 }
 
-Napi::Value NodeQueryResult::Each(const Napi::CallbackInfo& info) {
+Napi::Value NodeQueryResult::GetNext(const Napi::CallbackInfo& info) {
     Napi::Env env = info.Env();
     Napi::HandleScope scope(env);
 
-    if (info.Length()!=2 || !info[0].IsFunction() || !info[1].IsFunction()) {
+    if (info.Length()!=1 || !info[0].IsFunction()) {
         Napi::TypeError::New(env, "Each needs a callback").ThrowAsJavaScriptException();
         return Napi::Object::New(env);
     }
 
     Function eachCallback = info[0].As<Function>();
-    Function doneCallback = info[1].As<Function>();
+
+    if (!queryResult->hasNext()){
+        Napi::TypeError::New(env, "Cannot call getNext queryResult is empty").ThrowAsJavaScriptException();
+        return Napi::Object::New(env);
+    }
 
     try {
-//        AllEachAsyncWorker* asyncWorker = new AllEachAsyncWorker(doneCallback, queryResult, "each", eachCallback);
-//        asyncWorker->Queue();
-        size_t i = 0;
-        while (this->queryResult->hasNext()) {
-            auto row = this->queryResult->getNext();
-            EachSingleAsyncWorker * asyncWorker = new EachSingleAsyncWorker(eachCallback, row, i);
-            asyncWorker->Queue();
-            i++;
-        }
+        EachSingleAsyncWorker * asyncWorker = new EachSingleAsyncWorker(eachCallback, queryResult, 1);
+        asyncWorker->Queue();
     } catch(const std::exception &exc) {
-        Napi::TypeError::New(env, "Unsuccessful each callback: " + std::string(exc.what())).ThrowAsJavaScriptException();
+        Napi::TypeError::New(env, "Unsuccessful getNext callback: " + std::string(exc.what())).ThrowAsJavaScriptException();
+    }
+    return info.Env().Undefined();
+}
+
+Napi::Value NodeQueryResult::HasNext(const Napi::CallbackInfo& info) {
+    Napi::Env env = info.Env();
+    Napi::HandleScope scope(env);
+
+    if (info.Length()!=0) {
+        Napi::TypeError::New(env, "hasNext takes no arguments").ThrowAsJavaScriptException();
+        return Napi::Object::New(env);
+    }
+
+    try {
+        return Napi::Boolean::New(env, queryResult->hasNext());
+    } catch(const std::exception &exc) {
+        Napi::TypeError::New(env, "Unsuccessful hasNext: " + std::string(exc.what())).ThrowAsJavaScriptException();
     }
     return info.Env().Undefined();
 }
