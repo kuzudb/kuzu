@@ -25,7 +25,7 @@ class QueryResult {
     async each(rowCallback, doneCallback, errorCallback) {
         this.checkForQueryResultClose();
         while (this.#queryResult.hasNext()) {
-            await this.each().then(row => {
+            await this.getNext().then(row => {
                 rowCallback(row);
             }).catch(err => {
                 errorCallback(err);
@@ -34,7 +34,7 @@ class QueryResult {
         doneCallback();
     }
 
-    async each() {
+    async getNext() {
         this.checkForQueryResultClose();
         return new Promise((resolve, reject) => {
             this.#queryResult.getNext((err, result) => {
