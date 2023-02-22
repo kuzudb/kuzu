@@ -102,7 +102,7 @@ void ValueVector::copyValue(uint8_t* dest, const Value& value) {
         InMemOverflowBufferUtils::copyString(
             value.strVal.data(), value.strVal.length(), *(ku_string_t*)dest, getOverflowBuffer());
     } break;
-    case LIST: {
+    case VAR_LIST: {
         auto& entry = *(ku_list_t*)dest;
         auto numElements = value.listVal.size();
         auto elementSize = Types::getDataTypeSize(*dataType.childType);

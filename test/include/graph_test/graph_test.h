@@ -113,7 +113,7 @@ protected:
         ASSERT_EQ(actualResult, expectedResult);
     }
     static inline bool containsOverflowFile(common::DataTypeID typeID) {
-        return typeID == common::STRING || typeID == common::LIST;
+        return typeID == common::STRING || typeID == common::VAR_LIST;
     }
 
     void validateColumnFilesExistence(std::string fileName, bool existence, bool hasOverflow);

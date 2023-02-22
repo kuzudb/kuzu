@@ -38,9 +38,9 @@ template<>
 uint64_t SerDeser::serializeValue<DataType>(
     const DataType& value, FileInfo* fileInfo, uint64_t offset) {
     offset = SerDeser::serializeValue<DataTypeID>(value.typeID, fileInfo, offset);
-    if (value.childType) {
-        assert(value.typeID == LIST);
-        return SerDeser::serializeValue<DataType>(*value.childType, fileInfo, offset);
+    offset = SerDeser::serializeValue<uint64_t>(value.fixedNumElementsInList, fileInfo, offset);
+    if (value.typeID == VAR_LIST || value.typeID == FIXED_LIST) {
+        offset = SerDeser::serializeValue<DataType>(*value.childType, fileInfo, offset);
     }
     return offset;
 }
@@ -49,11 +49,11 @@ template<>
 uint64_t SerDeser::deserializeValue<DataType>(
     DataType& value, FileInfo* fileInfo, uint64_t offset) {
     offset = SerDeser::deserializeValue<DataTypeID>(value.typeID, fileInfo, offset);
-    if (value.typeID == LIST) {
+    offset = SerDeser::deserializeValue<uint64_t>(value.fixedNumElementsInList, fileInfo, offset);
+    if (value.typeID == VAR_LIST || value.typeID == FIXED_LIST) {
         auto childDataType = std::make_unique<DataType>();
         offset = SerDeser::deserializeValue<DataType>(*childDataType, fileInfo, offset);
         value.childType = std::move(childDataType);
-        return offset;
     }
     return offset;
 }

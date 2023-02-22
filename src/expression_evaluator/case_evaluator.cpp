@@ -119,7 +119,7 @@ void CaseExpressionEvaluator::fillAllSwitch(const ValueVector& thenVector) {
     case STRING: {
         fillAll<ku_string_t>(thenVector);
     } break;
-    case LIST: {
+    case VAR_LIST: {
         fillAll<ku_list_t>(thenVector);
     } break;
     default:
@@ -153,7 +153,7 @@ void CaseExpressionEvaluator::fillSelectedSwitch(
     case STRING: { // TODO(double check if this is correct)
         fillSelected<ku_string_t>(selVector, thenVector);
     } break;
-    case LIST: {
+    case VAR_LIST: {
         fillSelected<ku_list_t>(selVector, thenVector);
     } break;
     default:

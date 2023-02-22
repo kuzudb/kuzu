@@ -18,7 +18,7 @@ public:
     explicit ValueVector(DataType dataType, storage::MemoryManager* memoryManager = nullptr);
     explicit ValueVector(DataTypeID dataTypeID, storage::MemoryManager* memoryManager = nullptr)
         : ValueVector(DataType(dataTypeID), memoryManager) {
-        assert(dataTypeID != LIST);
+        assert(dataTypeID != VAR_LIST);
     }
 
     ~ValueVector() = default;
@@ -70,7 +70,7 @@ public:
 
 private:
     inline bool needOverflowBuffer() const {
-        return dataType.typeID == STRING || dataType.typeID == LIST;
+        return dataType.typeID == STRING || dataType.typeID == VAR_LIST;
     }
 
     void addString(uint32_t pos, char* value, uint64_t len) const;

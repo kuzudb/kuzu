@@ -42,9 +42,9 @@ struct VectorListOperations : public VectorOperations {
     getBinaryListOperationDefinitions(std::string funcName, common::DataTypeID resultTypeID) {
         std::vector<std::unique_ptr<VectorOperationDefinition>> result;
         scalar_exec_func execFunc;
-        for (auto& rightTypeID :
-            std::vector<common::DataTypeID>{common::BOOL, common::INT64, common::DOUBLE,
-                common::STRING, common::DATE, common::TIMESTAMP, common::INTERVAL, common::LIST}) {
+        for (auto& rightTypeID : std::vector<common::DataTypeID>{common::BOOL, common::INT64,
+                 common::DOUBLE, common::STRING, common::DATE, common::TIMESTAMP, common::INTERVAL,
+                 common::VAR_LIST}) {
             switch (rightTypeID) {
             case common::BOOL: {
                 execFunc = BinaryListPosAndContainsExecFunction<common::ku_list_t, uint8_t,
@@ -74,7 +74,7 @@ struct VectorListOperations : public VectorOperations {
                 execFunc = BinaryListPosAndContainsExecFunction<common::ku_list_t,
                     common::interval_t, RESULT_TYPE, OPERATION>;
             } break;
-            case common::LIST: {
+            case common::VAR_LIST: {
                 execFunc = BinaryListPosAndContainsExecFunction<common::ku_list_t,
                     common::ku_list_t, RESULT_TYPE, OPERATION>;
             } break;
@@ -83,8 +83,8 @@ struct VectorListOperations : public VectorOperations {
             }
             }
             result.push_back(make_unique<VectorOperationDefinition>(funcName,
-                std::vector<common::DataTypeID>{common::LIST, rightTypeID}, resultTypeID, execFunc,
-                nullptr, false /* isVarlength*/));
+                std::vector<common::DataTypeID>{common::VAR_LIST, rightTypeID}, resultTypeID,
+                execFunc, nullptr, false /* isVarlength*/));
         }
         return result;
     }

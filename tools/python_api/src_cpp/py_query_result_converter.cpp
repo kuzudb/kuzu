@@ -57,7 +57,7 @@ void NPArrayWrapper::appendElement(Value* value) {
             ((py::dict*)dataBuffer)[numElements] = PyQueryResult::convertValueToPyObject(*value);
             break;
         }
-        case LIST: {
+        case VAR_LIST: {
             ((py::list*)dataBuffer)[numElements] = PyQueryResult::convertValueToPyObject(*value);
             break;
         }
@@ -86,7 +86,7 @@ py::dtype NPArrayWrapper::convertToArrayType(const DataType& type) {
     }
     case NODE:
     case REL:
-    case LIST:
+    case VAR_LIST:
     case STRING: {
         dtype = "object";
         break;

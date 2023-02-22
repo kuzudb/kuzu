@@ -23,7 +23,7 @@ static std::string getListFunctionIncompatibleChildrenTypeErrorMsg(
 
 void VectorListOperations::ListCreation(
     const std::vector<std::shared_ptr<ValueVector>>& parameters, ValueVector& result) {
-    assert(!parameters.empty() && result.dataType.typeID == LIST);
+    assert(!parameters.empty() && result.dataType.typeID == VAR_LIST);
     result.resetOverflowBuffer();
     auto& childType = parameters[0]->dataType;
     auto numBytesOfListElement = Types::getDataTypeSize(childType);
@@ -58,15 +58,15 @@ void ListCreationVectorOperation::listCreationBindFunc(const std::vector<DataTyp
                 LIST_CREATION_FUNC_NAME, argumentTypes[0], argumentTypes[i]));
         }
     }
-    definition->returnTypeID = LIST;
-    actualReturnType = DataType(LIST, std::make_unique<DataType>(argumentTypes[0]));
+    definition->returnTypeID = VAR_LIST;
+    actualReturnType = DataType(VAR_LIST, std::make_unique<DataType>(argumentTypes[0]));
 }
 
 std::vector<std::unique_ptr<VectorOperationDefinition>>
 ListCreationVectorOperation::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
     result.push_back(std::make_unique<VectorOperationDefinition>(LIST_CREATION_FUNC_NAME,
-        std::vector<DataTypeID>{ANY}, LIST, ListCreation, nullptr, listCreationBindFunc,
+        std::vector<DataTypeID>{ANY}, VAR_LIST, ListCreation, nullptr, listCreationBindFunc,
         true /* isVarlength*/));
     return result;
 }
@@ -74,8 +74,8 @@ ListCreationVectorOperation::getDefinitions() {
 std::vector<std::unique_ptr<VectorOperationDefinition>> ListLenVectorOperation::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
     auto execFunc = UnaryExecFunction<ku_list_t, int64_t, operation::ListLen>;
-    result.push_back(std::make_unique<VectorOperationDefinition>(
-        LIST_LEN_FUNC_NAME, std::vector<DataTypeID>{LIST}, INT64, execFunc, true /* isVarlength*/));
+    result.push_back(std::make_unique<VectorOperationDefinition>(LIST_LEN_FUNC_NAME,
+        std::vector<DataTypeID>{VAR_LIST}, INT64, execFunc, true /* isVarlength*/));
     return result;
 }
 
@@ -113,7 +113,7 @@ void ListExtractVectorOperation::listExtractBindFunc(const std::vector<DataType>
         vectorOperationDefinition->execFunc =
             BinaryListExecFunction<ku_list_t, int64_t, ku_string_t, operation::ListExtract>;
     } break;
-    case LIST: {
+    case VAR_LIST: {
         vectorOperationDefinition->execFunc =
             BinaryListExecFunction<ku_list_t, int64_t, ku_list_t, operation::ListExtract>;
     } break;
@@ -127,7 +127,7 @@ std::vector<std::unique_ptr<VectorOperationDefinition>>
 ListExtractVectorOperation::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
     result.push_back(std::make_unique<VectorOperationDefinition>(LIST_EXTRACT_FUNC_NAME,
-        std::vector<DataTypeID>{LIST, INT64}, ANY, nullptr, nullptr, listExtractBindFunc,
+        std::vector<DataTypeID>{VAR_LIST, INT64}, ANY, nullptr, nullptr, listExtractBindFunc,
         false /* isVarlength*/));
     result.push_back(std::make_unique<VectorOperationDefinition>(LIST_EXTRACT_FUNC_NAME,
         std::vector<DataTypeID>{STRING, INT64}, STRING,
@@ -150,7 +150,7 @@ ListConcatVectorOperation::getDefinitions() {
         actualReturnType = argumentTypes[0];
     };
     result.push_back(std::make_unique<VectorOperationDefinition>(LIST_CONCAT_FUNC_NAME,
-        std::vector<DataTypeID>{LIST, LIST}, LIST, execFunc, nullptr, bindFunc,
+        std::vector<DataTypeID>{VAR_LIST, VAR_LIST}, VAR_LIST, execFunc, nullptr, bindFunc,
         false /* isVarlength*/));
     return result;
 }
@@ -193,7 +193,7 @@ void ListAppendVectorOperation::listAppendBindFunc(const std::vector<DataType>& 
         vectorOperationDefinition->execFunc =
             BinaryListExecFunction<ku_list_t, interval_t, ku_list_t, operation::ListAppend>;
     } break;
-    case LIST: {
+    case VAR_LIST: {
         vectorOperationDefinition->execFunc =
             BinaryListExecFunction<ku_list_t, ku_list_t, ku_list_t, operation::ListAppend>;
     } break;
@@ -207,7 +207,7 @@ std::vector<std::unique_ptr<VectorOperationDefinition>>
 ListAppendVectorOperation::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
     result.push_back(std::make_unique<VectorOperationDefinition>(LIST_APPEND_FUNC_NAME,
-        std::vector<DataTypeID>{LIST, ANY}, LIST, nullptr, nullptr, listAppendBindFunc,
+        std::vector<DataTypeID>{VAR_LIST, ANY}, VAR_LIST, nullptr, nullptr, listAppendBindFunc,
         false /* isVarlength*/));
     return result;
 }
@@ -250,7 +250,7 @@ void ListPrependVectorOperation::listPrependBindFunc(const std::vector<DataType>
         vectorOperationDefinition->execFunc =
             BinaryListExecFunction<interval_t, ku_list_t, ku_list_t, operation::ListPrepend>;
     } break;
-    case LIST: {
+    case VAR_LIST: {
         vectorOperationDefinition->execFunc =
             BinaryListExecFunction<ku_list_t, ku_list_t, ku_list_t, operation::ListPrepend>;
     } break;
@@ -264,7 +264,7 @@ std::vector<std::unique_ptr<VectorOperationDefinition>>
 ListPrependVectorOperation::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
     result.push_back(std::make_unique<VectorOperationDefinition>(LIST_PREPEND_FUNC_NAME,
-        std::vector<DataTypeID>{ANY, LIST}, LIST, nullptr, nullptr, listPrependBindFunc,
+        std::vector<DataTypeID>{ANY, VAR_LIST}, VAR_LIST, nullptr, nullptr, listPrependBindFunc,
         false /* isVarlength*/));
     return result;
 }
@@ -289,7 +289,7 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> ListSliceVectorOperation
         actualReturnType = argumentTypes[0];
     };
     result.push_back(std::make_unique<VectorOperationDefinition>(LIST_SLICE_FUNC_NAME,
-        std::vector<DataTypeID>{LIST, INT64, INT64}, LIST,
+        std::vector<DataTypeID>{VAR_LIST, INT64, INT64}, VAR_LIST,
         TernaryListExecFunction<ku_list_t, int64_t, int64_t, ku_list_t, operation::ListSlice>,
         nullptr, bindFunc, false /* isVarlength*/));
     result.push_back(std::make_unique<VectorOperationDefinition>(LIST_SLICE_FUNC_NAME,

@@ -166,13 +166,14 @@ fill_in_mem_lists_function_t InMemLists::getFillInMemListsFunc(const DataType& d
     case BOOL:
     case DATE:
     case TIMESTAMP:
-    case INTERVAL: {
+    case INTERVAL:
+    case FIXED_LIST: {
         return fillInMemListsWithNonOverflowValFunc;
     }
     case STRING: {
         return fillInMemListsWithStrValFunc;
     }
-    case LIST: {
+    case VAR_LIST: {
         return fillInMemListsWithListValFunc;
     }
     default: {
@@ -190,7 +191,7 @@ InMemListsWithOverflow::InMemListsWithOverflow(
     std::string fName, DataType dataType, uint64_t numNodes)
     : InMemLists{
           std::move(fName), std::move(dataType), Types::getDataTypeSize(dataType), numNodes} {
-    assert(this->dataType.typeID == STRING || this->dataType.typeID == LIST);
+    assert(this->dataType.typeID == STRING || this->dataType.typeID == VAR_LIST);
     overflowInMemFile =
         make_unique<InMemOverflowFile>(StorageUtils::getOverflowFileName(this->fName));
 }
@@ -209,10 +210,11 @@ std::unique_ptr<InMemLists> InMemListsFactory::getInMemPropertyLists(
     case DATE:
     case TIMESTAMP:
     case INTERVAL:
+    case FIXED_LIST:
         return make_unique<InMemLists>(fName, dataType, Types::getDataTypeSize(dataType), numNodes);
     case STRING:
         return make_unique<InMemStringLists>(fName, numNodes);
-    case LIST:
+    case VAR_LIST:
         return make_unique<InMemListLists>(fName, dataType, numNodes);
     case INTERNAL_ID:
         return make_unique<InMemRelIDLists>(fName, numNodes);

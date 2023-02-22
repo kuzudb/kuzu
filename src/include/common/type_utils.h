@@ -113,7 +113,7 @@ inline bool TypeUtils::isValueEqual(ku_list_t& left, ku_list_t& right, const Dat
                 return false;
             }
         } break;
-        case LIST: {
+        case VAR_LIST: {
             if (!isValueEqual(reinterpret_cast<ku_list_t*>(left.overflowPtr)[i],
                     reinterpret_cast<ku_list_t*>(right.overflowPtr)[i], *leftDataType.childType,
                     *rightDataType.childType)) {

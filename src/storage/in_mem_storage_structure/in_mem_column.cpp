@@ -66,7 +66,7 @@ fill_in_mem_column_function_t InMemColumn::getFillInMemColumnFunc(const DataType
     case STRING: {
         return fillInMemColumnWithStrValFunc;
     }
-    case LIST: {
+    case VAR_LIST: {
         return fillInMemColumnWithListValFunc;
     }
     default: {
@@ -79,7 +79,7 @@ InMemColumnWithOverflow::InMemColumnWithOverflow(
     std::string fName, DataType dataType, uint64_t numElements)
     : InMemColumn{
           std::move(fName), std::move(dataType), Types::getDataTypeSize(dataType), numElements} {
-    assert(this->dataType.typeID == STRING || this->dataType.typeID == LIST);
+    assert(this->dataType.typeID == STRING || this->dataType.typeID == VAR_LIST);
     inMemOverflowFile =
         make_unique<InMemOverflowFile>(StorageUtils::getOverflowFileName(this->fName));
 }
@@ -105,11 +105,12 @@ std::unique_ptr<InMemColumn> InMemColumnFactory::getInMemPropertyColumn(
     case DATE:
     case TIMESTAMP:
     case INTERVAL:
+    case FIXED_LIST:
         return make_unique<InMemColumn>(
             fName, dataType, Types::getDataTypeSize(dataType), numElements);
     case STRING:
         return make_unique<InMemStringColumn>(fName, numElements);
-    case LIST:
+    case VAR_LIST:
         return make_unique<InMemListColumn>(fName, dataType, numElements);
     case INTERNAL_ID:
         return make_unique<InMemRelIDColumn>(fName, numElements);

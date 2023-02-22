@@ -42,7 +42,7 @@ void InMemOverflowBufferUtils::copyListRecursiveIfNested(const ku_list_t& src, k
                 ((ku_string_t*)dest.overflowPtr)[i], inMemOverflowBuffer);
         }
     }
-    if (dataType.childType->typeID == LIST) {
+    if (dataType.childType->typeID == VAR_LIST) {
         for (auto i = 0u; i < dest.size; i++) {
             InMemOverflowBufferUtils::copyListRecursiveIfNested(
                 ((ku_list_t*)src.overflowPtr)[i + srcStartIdx], ((ku_list_t*)dest.overflowPtr)[i],

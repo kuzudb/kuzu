@@ -461,3 +461,17 @@ TEST_F(BinderErrorTest, EmptyList) {
     auto input = "RETURN []";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
+
+TEST_F(BinderErrorTest, InvalidFixedListChildType) {
+    std::string expectedException =
+        "Binder exception: The child type of a fixed list must be a numeric type. Given: STRING.";
+    auto input = "create node table test1(ID INT64, marks STRING[5], PRIMARY KEY(ID))";
+    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
+}
+
+TEST_F(BinderErrorTest, InvalidFixedListNumElements) {
+    std::string expectedException = "Binder exception: The number of elements in a fixed list must "
+                                    "be greater than 0. Given: 0.";
+    auto input = "create node table test1(ID INT64, marks INT64[0], PRIMARY KEY(ID))";
+    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
+}

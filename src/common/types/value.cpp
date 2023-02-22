@@ -54,7 +54,8 @@ Value Value::createDefaultValue(const DataType& dataType) {
         return Value(nodeID_t());
     case STRING:
         return Value(std::string(""));
-    case LIST:
+    case VAR_LIST:
+    case FIXED_LIST:
         return Value(dataType, std::vector<std::unique_ptr<Value>>{});
     default:
         throw RuntimeException("Data type " + Types::dataTypeToString(dataType) +
@@ -150,8 +151,11 @@ void Value::copyValueFrom(const uint8_t* value) {
     case STRING: {
         strVal = ((ku_string_t*)value)->getAsString();
     } break;
-    case LIST: {
-        listVal = convertKUListToVector(*(ku_list_t*)value);
+    case VAR_LIST: {
+        listVal = convertKUVarListToVector(*(ku_list_t*)value);
+    } break;
+    case FIXED_LIST: {
+        listVal = convertKUFixedListToVector(value);
     } break;
     default:
         throw RuntimeException(
@@ -191,7 +195,8 @@ void Value::copyValueFrom(const Value& other) {
     case STRING: {
         strVal = other.strVal;
     } break;
-    case LIST: {
+    case VAR_LIST:
+    case FIXED_LIST: {
         for (auto& value : other.listVal) {
             listVal.push_back(value->copy());
         }
@@ -233,7 +238,8 @@ std::string Value::toString() const {
         return TypeUtils::toString(val.internalIDVal);
     case STRING:
         return strVal;
-    case LIST: {
+    case VAR_LIST:
+    case FIXED_LIST: {
         std::string result = "[";
         for (auto i = 0u; i < listVal.size(); ++i) {
             result += listVal[i]->toString();
@@ -267,7 +273,7 @@ void Value::validateType(const DataType& type) const {
     }
 }
 
-std::vector<std::unique_ptr<Value>> Value::convertKUListToVector(ku_list_t& list) const {
+std::vector<std::unique_ptr<Value>> Value::convertKUVarListToVector(ku_list_t& list) const {
     std::vector<std::unique_ptr<Value>> listResultValue;
     auto numBytesPerElement = Types::getDataTypeSize(*dataType.childType);
     for (auto i = 0; i < list.size; i++) {
@@ -277,6 +283,29 @@ std::vector<std::unique_ptr<Value>> Value::convertKUListToVector(ku_list_t& list
         listResultValue.emplace_back(std::move(childValue));
     }
     return listResultValue;
+}
+
+std::vector<std::unique_ptr<Value>> Value::convertKUFixedListToVector(
+    const uint8_t* fixedList) const {
+    std::vector<std::unique_ptr<Value>> fixedListResultVal;
+    auto numBytesPerElement = Types::getDataTypeSize(*dataType.childType);
+    switch (dataType.childType->typeID) {
+    case common::DataTypeID::INT64: {
+        for (auto i = 0; i < dataType.fixedNumElementsInList; ++i) {
+            fixedListResultVal.emplace_back(
+                std::make_unique<Value>(*(int64_t*)(fixedList + i * numBytesPerElement)));
+        }
+    } break;
+    case common::DataTypeID::DOUBLE: {
+        for (auto i = 0; i < dataType.fixedNumElementsInList; ++i) {
+            fixedListResultVal.emplace_back(
+                std::make_unique<Value>(*(double_t*)(fixedList + i * numBytesPerElement)));
+        }
+    } break;
+    default:
+        assert(false);
+    }
+    return fixedListResultVal;
 }
 
 static std::string propertiesToString(

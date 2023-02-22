@@ -23,7 +23,7 @@ void ValueVectorUtils::copyNonNullDataWithSameType(const DataType& dataType, con
     if (dataType.typeID == STRING) {
         InMemOverflowBufferUtils::copyString(
             *(ku_string_t*)srcData, *(ku_string_t*)dstData, inMemOverflowBuffer);
-    } else if (dataType.typeID == LIST) {
+    } else if (dataType.typeID == VAR_LIST) {
         InMemOverflowBufferUtils::copyListRecursiveIfNested(
             *(ku_list_t*)srcData, *(ku_list_t*)dstData, dataType, inMemOverflowBuffer);
     } else {

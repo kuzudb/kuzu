@@ -181,7 +181,7 @@ Value StringPropertyColumn::readValue(offset_t offset) {
 
 void ListPropertyColumn::writeValueForSingleNodeIDPosition(offset_t nodeOffset,
     const std::shared_ptr<ValueVector>& vectorToWriteFrom, uint32_t posInVectorToWriteFrom) {
-    assert(vectorToWriteFrom->dataType.typeID == LIST);
+    assert(vectorToWriteFrom->dataType.typeID == VAR_LIST);
     auto updatedPageInfoAndWALPageFrame =
         beginUpdatingPage(nodeOffset, vectorToWriteFrom, posInVectorToWriteFrom);
     if (!vectorToWriteFrom->isNull(posInVectorToWriteFrom)) {

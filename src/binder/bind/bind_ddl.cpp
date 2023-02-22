@@ -79,7 +79,7 @@ std::unique_ptr<BoundStatement> Binder::bindAddProperty(const Statement& stateme
     validateTableExist(catalog, tableName);
     auto catalogContent = catalog.getReadOnlyVersion();
     auto tableID = catalogContent->getTableID(tableName);
-    auto dataType = Types::dataTypeFromString(addProperty.getDataType());
+    auto dataType = bindDataType(addProperty.getDataType());
     if (catalogContent->getTableSchema(tableID)->containProperty(addProperty.getPropertyName())) {
         throw BinderException("Property: " + addProperty.getPropertyName() + " already exists.");
     }
@@ -137,8 +137,8 @@ std::vector<PropertyNameDataType> Binder::bindPropertyNameDataTypes(
                     propertyNameDataType.first.c_str()));
         }
         StringUtils::toUpper(propertyNameDataType.second);
-        boundPropertyNameDataTypes.emplace_back(
-            propertyNameDataType.first, Types::dataTypeFromString(propertyNameDataType.second));
+        auto dataType = bindDataType(propertyNameDataType.second);
+        boundPropertyNameDataTypes.emplace_back(propertyNameDataType.first, dataType);
         boundPropertyNames.emplace(propertyNameDataType.first);
     }
     return boundPropertyNameDataTypes;
@@ -174,6 +174,31 @@ property_id_t Binder::bindPropertyName(TableSchema* tableSchema, const std::stri
     }
     throw BinderException(
         tableSchema->tableName + " table doesn't have property: " + propertyName + ".");
+}
+
+DataType Binder::bindDataType(const std::string& dataType) {
+    auto boundType = Types::dataTypeFromString(dataType);
+    if (boundType.typeID == common::FIXED_LIST) {
+        auto validNumericTypes = common::DataType::getNumericalTypeIDs();
+        if (find(validNumericTypes.begin(), validNumericTypes.end(), boundType.childType->typeID) ==
+            validNumericTypes.end()) {
+            throw common::BinderException(
+                "The child type of a fixed list must be a numeric type. Given: " +
+                common::Types::dataTypeToString(*boundType.childType) + ".");
+        }
+        if (boundType.fixedNumElementsInList == 0) {
+            // Note: the parser already guarantees that the number of elements is a non-negative
+            // number. However, we still need to check whether the number of elements is 0.
+            throw common::BinderException(
+                "The number of elements in a fixed list must be greater than 0. Given: " +
+                std::to_string(boundType.fixedNumElementsInList) + ".");
+        }
+        if (Types::getDataTypeSize(boundType) > common::BufferPoolConstants::DEFAULT_PAGE_SIZE) {
+            throw common::BinderException("The size of fixed list is larger than a "
+                                          "DEFAULT_PAGE_SIZE, which is not supported yet.");
+        }
+    }
+    return boundType;
 }
 
 } // namespace binder

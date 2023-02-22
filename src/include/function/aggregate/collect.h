@@ -30,7 +30,7 @@ struct CollectFunction {
                         outputVector->getOverflowBuffer());
                 }
             } break;
-            case common::LIST: {
+            case common::VAR_LIST: {
                 for (auto i = 0u; i < dstKUList.size; i++) {
                     common::InMemOverflowBufferUtils::copyListRecursiveIfNested(
                         *reinterpret_cast<common::ku_list_t*>(factorizedTable->getTuple(i)),
@@ -126,8 +126,8 @@ struct CollectFunction {
         assert(argumentTypes.size() == 1);
         auto aggFuncDefinition = reinterpret_cast<AggregateFunctionDefinition*>(definition);
         aggFuncDefinition->aggregateFunction->setInputDataType(argumentTypes[0]);
-        returnType =
-            common::DataType(common::LIST, std::make_unique<common::DataType>(argumentTypes[0]));
+        returnType = common::DataType(
+            common::VAR_LIST, std::make_unique<common::DataType>(argumentTypes[0]));
     }
 };
 
