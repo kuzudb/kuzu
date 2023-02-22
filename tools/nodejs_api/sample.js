@@ -8,14 +8,14 @@ try {
   // ignore
 }
 
-function executeAllCallback(queryResult) {
-    queryResult.all( result => {
+function executeAllCallback(err, queryResult) {
+    queryResult.all( (err, result) => {
         console.log("All result received Callback");
         console.log(result);
     });
 }
 
-function executeAllPromise(queryResult) {
+function executeAllPromise(err, queryResult) {
     queryResult.all().then( result => {
         console.log("All result received Promise");
         console.log(result);
@@ -43,7 +43,7 @@ connection.execute(executeQuery, executeAllCallback);
 console.log(connection.getNodePropertyNames("person"));
 
 // Execute with each callback
-connection.execute(executeQuery,  result => {
+connection.execute(executeQuery,  (err, result) => {
     result.each(
         row => {
             console.log(row);
@@ -59,7 +59,7 @@ connection.execute(executeQuery,  result => {
 
 // Execute with promise + await
 connection.execute(executeQuery).then(queryResult => {
-    queryResult.all( result => {
+    queryResult.all( (err, result) => {
         console.log("All result received for execution with a promise");
         console.log(result);
     });
@@ -73,7 +73,7 @@ async function asyncAwaitExecute(executeQuery) {
     return queryResult;
 }
 asyncAwaitExecute(executeQuery).then(queryResult => {
-    queryResult.all( result => {
+    queryResult.all( (err, result) => {
         console.log("All result received for execution with await");
         console.log(result);
     });
