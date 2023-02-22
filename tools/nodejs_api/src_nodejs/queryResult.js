@@ -1,5 +1,3 @@
-const callbackWrapper = require("./common.js");
-
 class QueryResult {
     #queryResult
     #isClosed
@@ -50,11 +48,7 @@ class QueryResult {
     all(callback = null) {
         this.checkForQueryResultClose();
         if (callback) {
-            this.#queryResult.all((err, result) => {
-                callbackWrapper(err, () => {
-                    callback(result);
-                });
-            });
+            this.#queryResult.all(callback);
         } else {
             return new Promise ((resolve, reject) => {
                 this.#queryResult.all((err, result) => {
