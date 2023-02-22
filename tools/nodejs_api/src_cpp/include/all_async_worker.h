@@ -4,11 +4,11 @@
 
 using namespace Napi;
 
-class AllEachAsyncWorker : public AsyncWorker {
+class AllAsyncWorker : public AsyncWorker {
 
 public:
-    AllEachAsyncWorker(Function& callback, shared_ptr<kuzu::main::QueryResult>& queryResult);
-    virtual ~AllEachAsyncWorker() {};
+    AllAsyncWorker(Function& callback, shared_ptr<kuzu::main::QueryResult>& queryResult);
+    virtual ~AllAsyncWorker() {};
 
     void Execute();
     void OnOK();

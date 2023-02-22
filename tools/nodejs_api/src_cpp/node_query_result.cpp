@@ -1,8 +1,7 @@
-#include "node_query_result.h"
+#include "include/node_query_result.h"
 
-#include "all_each_async_worker.h"
-#include "each_single_async_worker.h"
-
+#include "include/all_async_worker.h"
+#include "include/each_single_async_worker.h"
 #include "main/kuzu.h"
 
 using namespace kuzu::main;
@@ -48,7 +47,7 @@ Napi::Value NodeQueryResult::All(const Napi::CallbackInfo& info) {
     Function callback = info[0].As<Function>();
 
     try {
-        AllEachAsyncWorker* asyncWorker = new AllEachAsyncWorker(callback, queryResult);
+        AllAsyncWorker* asyncWorker = new AllAsyncWorker(callback, queryResult);
         asyncWorker->Queue();
     } catch(const std::exception &exc) {
         Napi::TypeError::New(env, "Unsuccessful all callback: " + std::string(exc.what())).ThrowAsJavaScriptException();

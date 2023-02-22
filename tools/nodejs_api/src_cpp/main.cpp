@@ -1,5 +1,5 @@
-#include "node_connection.h"
-#include "node_database.h"
+#include "include/node_connection.h"
+#include "include/node_database.h"
 #include <napi.h>
 
 Napi::Object InitAll(Napi::Env env, Napi::Object exports) {
