@@ -1,4 +1,4 @@
-#include "node_database.h"
+#include "include/node_database.h"
 
 #include "main/kuzu.h"
 
