@@ -1,9 +1,9 @@
-#include "execute_async_worker.h"
+#include "include/execute_async_worker.h"
 
 #include <chrono>
 #include <thread>
 
-#include "node_query_result.h"
+#include "include/node_query_result.h"
 
 ExecuteAsyncWorker::ExecuteAsyncWorker(Function& callback, shared_ptr<kuzu::main::Connection>& connection,
     std::string query)

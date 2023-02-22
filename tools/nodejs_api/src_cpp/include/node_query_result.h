@@ -7,8 +7,7 @@
 
 class NodeQueryResult: public Napi::ObjectWrap<NodeQueryResult> {
  public:
-  static Napi::Object Init(Napi::Env env, Napi::Object exports);
-  void SetQueryResult(shared_ptr<kuzu::main::QueryResult> & inputQueryResult);
+  static Napi::Object Wrap(Napi::Env env, shared_ptr<kuzu::main::QueryResult> & queryResult);
   NodeQueryResult(const Napi::CallbackInfo& info);
   ~NodeQueryResult();
 
@@ -16,10 +15,9 @@ class NodeQueryResult: public Napi::ObjectWrap<NodeQueryResult> {
     static Napi::FunctionReference constructor;
     void Close(const Napi::CallbackInfo& info);
     Napi::Value All(const Napi::CallbackInfo& info);
-    Napi::Value Each(const Napi::CallbackInfo& info);
+    Napi::Value GetNext(const Napi::CallbackInfo& info);
+    Napi::Value HasNext(const Napi::CallbackInfo& info);
     shared_ptr<kuzu::main::QueryResult> queryResult;
-
-
 };
 
 
