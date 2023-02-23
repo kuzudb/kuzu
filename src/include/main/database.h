@@ -39,6 +39,7 @@ class Database {
     friend class EmbeddedShell;
     friend class Connection;
     friend class JOConnection;
+    friend class StorageDriver;
     friend class kuzu::testing::BaseGraphTest;
 
 public:
