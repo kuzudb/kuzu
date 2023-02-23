@@ -20,6 +20,9 @@ public:
         assert(params.size() == 1);
         UnaryOperationExecutor::executeCast<OPERAND_TYPE, RESULT_TYPE, FUNC>(*params[0], result);
     }
+
+    static scalar_exec_func bindExecFunc(
+        common::DataTypeID sourceTypeID, common::DataTypeID targetTypeID);
 };
 
 struct CastToDateVectorOperation : public VectorCastOperations {
@@ -35,6 +38,10 @@ struct CastToIntervalVectorOperation : public VectorCastOperations {
 };
 
 struct CastToStringVectorOperation : public VectorCastOperations {
+    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
+struct CastToDoubleVectorOperation : public VectorCastOperations {
     static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
 };
 

@@ -19,7 +19,11 @@ public:
         const std::string& paramsString)
         : PhysicalOperator{PhysicalOperatorType::INTERSECT, std::move(children), id, paramsString},
           outputDataPos{outputDataPos},
-          intersectDataInfos{std::move(intersectDataInfos)}, sharedHTs{std::move(sharedHTs)} {}
+          intersectDataInfos{std::move(intersectDataInfos)}, sharedHTs{std::move(sharedHTs)} {
+        tupleIdxPerBuildSide.resize(this->sharedHTs.size(), 0);
+        carryBuildSideIdx = -1u;
+        probedFlatTuples.resize(this->sharedHTs.size());
+    }
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
@@ -33,14 +37,17 @@ public:
     }
 
 private:
-    std::vector<common::nodeID_t> getProbeKeys();
-    std::vector<uint8_t*> probeHTs(const std::vector<common::nodeID_t>& keys);
+    // For each build side, probe its HT and return a vector of matched flat tuples.
+    void probeHTs();
     // Left is always the one with less num of values.
     static void twoWayIntersect(common::nodeID_t* leftNodeIDs, common::SelectionVector& lSelVector,
         common::nodeID_t* rightNodeIDs, common::SelectionVector& rSelVector);
     void intersectLists(const std::vector<common::overflow_value_t>& listsToIntersect);
     void populatePayloads(
         const std::vector<uint8_t*>& tuples, const std::vector<uint32_t>& listIdxes);
+    bool hasNextTuplesToIntersect();
+
+    inline uint32_t getNumBuilds() { return sharedHTs.size(); }
 
 private:
     DataPos outputDataPos;
@@ -53,6 +60,11 @@ private:
     std::vector<std::unique_ptr<common::SelectionVector>> intersectSelVectors;
     std::vector<std::shared_ptr<IntersectSharedState>> sharedHTs;
     std::vector<bool> isIntersectListAFlatValue;
+    std::vector<std::vector<uint8_t*>> probedFlatTuples;
+    // Keep track of the tuple to intersect for each build side.
+    std::vector<uint32_t> tupleIdxPerBuildSide;
+    // This is used to indicate which build side to increment the tuple idx for.
+    uint32_t carryBuildSideIdx;
 };
 
 } // namespace processor

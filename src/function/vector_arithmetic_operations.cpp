@@ -1,7 +1,5 @@
 #include "function/arithmetic/vector_arithmetic_operations.h"
 
-#include "function/arithmetic/arithmetic_operations.h"
-
 using namespace kuzu::common;
 
 namespace kuzu {
@@ -16,12 +14,18 @@ static DataTypeID resolveResultType(DataTypeID leftTypeID, DataTypeID rightTypeI
 
 std::vector<std::unique_ptr<VectorOperationDefinition>> AddVectorOperation::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
-    for (auto& leftTypeID : DataType::getNumericalTypeIDs()) {
-        for (auto& rightTypeID : DataType::getNumericalTypeIDs()) {
-            result.push_back(getBinaryDefinition<operation::Add>(ADD_FUNC_NAME, leftTypeID,
-                rightTypeID, resolveResultType(leftTypeID, rightTypeID)));
-        }
-    }
+    // int64 + int64 -> int64
+    result.push_back(make_unique<VectorOperationDefinition>(ADD_FUNC_NAME,
+        std::vector<common::DataTypeID>{INT64, INT64}, INT64,
+        BinaryExecFunction<int64_t, int64_t, int64_t, operation::Add>));
+    // double + double -> double
+    result.push_back(make_unique<VectorOperationDefinition>(ADD_FUNC_NAME,
+        std::vector<common::DataTypeID>{DOUBLE, DOUBLE}, DOUBLE,
+        BinaryExecFunction<double_t, double_t, double_t, operation::Add>));
+    // interval + interval → interval
+    result.push_back(make_unique<VectorOperationDefinition>(ADD_FUNC_NAME,
+        std::vector<DataTypeID>{INTERVAL, INTERVAL}, INTERVAL,
+        BinaryExecFunction<interval_t, interval_t, interval_t, operation::Add>));
     // date + int → date
     result.push_back(
         make_unique<VectorOperationDefinition>(ADD_FUNC_NAME, std::vector<DataTypeID>{DATE, INT64},
@@ -46,22 +50,20 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> AddVectorOperation::getD
     result.push_back(make_unique<VectorOperationDefinition>(ADD_FUNC_NAME,
         std::vector<DataTypeID>{INTERVAL, TIMESTAMP}, TIMESTAMP,
         BinaryExecFunction<interval_t, timestamp_t, timestamp_t, operation::Add>));
-    // interval + interval → interval
-    result.push_back(make_unique<VectorOperationDefinition>(ADD_FUNC_NAME,
-        std::vector<DataTypeID>{INTERVAL, INTERVAL}, INTERVAL,
-        BinaryExecFunction<interval_t, interval_t, interval_t, operation::Add>));
     return result;
 }
 
 std::vector<std::unique_ptr<VectorOperationDefinition>> SubtractVectorOperation::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
-    for (auto& leftTypeID : DataType::getNumericalTypeIDs()) {
-        for (auto& rightTypeID : DataType::getNumericalTypeIDs()) {
-            result.push_back(getBinaryDefinition<operation::Subtract>(SUBTRACT_FUNC_NAME,
-                leftTypeID, rightTypeID, resolveResultType(leftTypeID, rightTypeID)));
-        }
-    }
-    // date - date → integer
+    // int64_t - int64_t -> int64_t
+    result.push_back(make_unique<VectorOperationDefinition>(SUBTRACT_FUNC_NAME,
+        std::vector<DataTypeID>{INT64, INT64}, INT64,
+        BinaryExecFunction<int64_t, int64_t, int64_t, operation::Subtract>));
+    // double_t - double_t -> double_t
+    result.push_back(make_unique<VectorOperationDefinition>(SUBTRACT_FUNC_NAME,
+        std::vector<DataTypeID>{DOUBLE, DOUBLE}, DOUBLE,
+        BinaryExecFunction<double_t, double_t, double_t, operation::Subtract>));
+    // date - date → int64
     result.push_back(make_unique<VectorOperationDefinition>(SUBTRACT_FUNC_NAME,
         std::vector<DataTypeID>{DATE, DATE}, INT64,
         BinaryExecFunction<date_t, date_t, int64_t, operation::Subtract>));
@@ -90,23 +92,27 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> SubtractVectorOperation:
 
 std::vector<std::unique_ptr<VectorOperationDefinition>> MultiplyVectorOperation::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
-    for (auto& leftTypeID : DataType::getNumericalTypeIDs()) {
-        for (auto& rightTypeID : DataType::getNumericalTypeIDs()) {
-            result.push_back(getBinaryDefinition<operation::Multiply>(MULTIPLY_FUNC_NAME,
-                leftTypeID, rightTypeID, resolveResultType(leftTypeID, rightTypeID)));
-        }
-    }
+    // int64_t * int64_t -> int64_t
+    result.push_back(make_unique<VectorOperationDefinition>(MULTIPLY_FUNC_NAME,
+        std::vector<DataTypeID>{INT64, INT64}, INT64,
+        BinaryExecFunction<int64_t, int64_t, int64_t, operation::Multiply>));
+    // double_t * double_t -> double_t
+    result.push_back(make_unique<VectorOperationDefinition>(MULTIPLY_FUNC_NAME,
+        std::vector<DataTypeID>{DOUBLE, DOUBLE}, DOUBLE,
+        BinaryExecFunction<double_t, double_t, double_t, operation::Multiply>));
     return result;
 }
 
 std::vector<std::unique_ptr<VectorOperationDefinition>> DivideVectorOperation::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
-    for (auto& leftType : DataType::getNumericalTypeIDs()) {
-        for (auto& rightType : DataType::getNumericalTypeIDs()) {
-            result.push_back(getBinaryDefinition<operation::Divide>(
-                DIVIDE_FUNC_NAME, leftType, rightType, resolveResultType(leftType, rightType)));
-        }
-    }
+    // int64_t / int64_t -> int64_t
+    result.push_back(make_unique<VectorOperationDefinition>(DIVIDE_FUNC_NAME,
+        std::vector<DataTypeID>{INT64, INT64}, INT64,
+        BinaryExecFunction<int64_t, int64_t, int64_t, operation::Divide>));
+    // double_t / double_t -> double_t
+    result.push_back(make_unique<VectorOperationDefinition>(DIVIDE_FUNC_NAME,
+        std::vector<DataTypeID>{DOUBLE, DOUBLE}, DOUBLE,
+        BinaryExecFunction<double_t, double_t, double_t, operation::Divide>));
     // interval / int → interval
     result.push_back(make_unique<VectorOperationDefinition>(DIVIDE_FUNC_NAME,
         std::vector<DataTypeID>{INTERVAL, INT64}, INTERVAL,
@@ -116,12 +122,14 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> DivideVectorOperation::g
 
 std::vector<std::unique_ptr<VectorOperationDefinition>> ModuloVectorOperation::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
-    for (auto& leftTypeID : DataType::getNumericalTypeIDs()) {
-        for (auto& rightTypeID : DataType::getNumericalTypeIDs()) {
-            result.push_back(getBinaryDefinition<operation::Modulo>(MODULO_FUNC_NAME, leftTypeID,
-                rightTypeID, resolveResultType(leftTypeID, rightTypeID)));
-        }
-    }
+    // int64_t % int64_t -> int64_t
+    result.push_back(make_unique<VectorOperationDefinition>(MODULO_FUNC_NAME,
+        std::vector<DataTypeID>{INT64, INT64}, INT64,
+        BinaryExecFunction<int64_t, int64_t, int64_t, operation::Modulo>));
+    // double_t % double_t -> double_t
+    result.push_back(make_unique<VectorOperationDefinition>(MODULO_FUNC_NAME,
+        std::vector<DataTypeID>{DOUBLE, DOUBLE}, DOUBLE,
+        BinaryExecFunction<double_t, double_t, double_t, operation::Modulo>));
     return result;
 }
 
