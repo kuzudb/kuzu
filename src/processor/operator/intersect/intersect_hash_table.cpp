@@ -5,7 +5,7 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
-static void sortSelectedPos(const std::shared_ptr<ValueVector>& nodeIDVector) {
+static void sortSelectedPos(ValueVector* nodeIDVector) {
     auto selVector = nodeIDVector->state->selVector.get();
     auto size = selVector->selectedSize;
     auto selectedPos = selVector->getSelectedPositionsBuffer();
@@ -23,16 +23,19 @@ void IntersectHashTable::append(const std::vector<std::shared_ptr<ValueVector>>&
     // Based on the way we are planning, we assume that the first and second vectors are both
     // nodeIDs from extending, while the first one is key, and the second one is payload.
     auto keyState = vectorsToAppend[0]->state.get();
-    auto payloadNodeIDVector = vectorsToAppend[1];
+    auto payloadNodeIDVector = vectorsToAppend[1].get();
     auto payloadsState = payloadNodeIDVector->state.get();
     assert(keyState->isFlat());
     if (!payloadsState->isFlat()) {
+        // Sorting is only needed when the payload is unflat (a list of values).
         sortSelectedPos(payloadNodeIDVector);
     }
     // A single appendInfo will return from `allocateFlatTupleBlocks` when numTuplesToAppend is 1.
-    auto appendInfo = factorizedTable->allocateFlatTupleBlocks(numTuplesToAppend)[0];
+    auto appendInfos = factorizedTable->allocateFlatTupleBlocks(numTuplesToAppend);
+    assert(appendInfos.size() == 1);
     for (auto i = 0u; i < vectorsToAppend.size(); i++) {
-        factorizedTable->copyVectorToColumn(*vectorsToAppend[i], appendInfo, numTuplesToAppend, i);
+        factorizedTable->copyVectorToColumn(
+            *vectorsToAppend[i], appendInfos[0], numTuplesToAppend, i);
     }
     if (!payloadsState->isFlat()) {
         payloadsState->selVector->resetSelectorToUnselected();
