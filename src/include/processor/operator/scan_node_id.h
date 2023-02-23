@@ -8,45 +8,48 @@
 namespace kuzu {
 namespace processor {
 
+/// NOT Thread safe
 struct Mask {
 public:
-    Mask(uint64_t size, uint8_t maskedFlag) : maskedFlag{maskedFlag} {
-        data = std::make_unique<uint8_t[]>(size);
-        std::fill(data.get(), data.get() + size, 0);
+    explicit Mask(uint64_t size) {
+        boolMask = std::make_unique<bool[]>(size);
+        std::fill(boolMask.get(), boolMask.get() + size, false);
     }
 
-    // Notice: This function is not protected with a lock for concurrent writes because of the
-    // special use case that there is no mixed reads and writes to the mask, and all writes to the
-    // mask try to set a position to the same value, thus it doesn't matter which thread succeeds.
-    inline void setMask(uint64_t pos, uint8_t maskerIdx, uint8_t maskValue) {
-        // Note: blindly update mask does not parallel well, so we minimize write by first checking
-        // if the mask is true or not.
-        if (data[pos] == maskerIdx) {
-            data[pos] = maskValue;
+    /**
+     * sets the position (pos) in the Mask (`boolMask` array) to TRUE
+     * @param pos - position in `boolMask`
+     */
+    inline void setMask(uint64_t pos) {
+        if (!boolMask[pos]) {
+            boolMask[pos] = true;
         }
     }
-    inline bool isMasked(uint64_t pos) { return data[pos] == maskedFlag; }
+
+    /**
+     * returns TRUE if position (pos) in the Mask is set to TRUE
+     * @param pos - position in `boolMask`
+     * @return - true / false
+     */
+    inline bool isMasked(uint64_t pos) { return boolMask[pos]; }
 
 private:
-    // The value of maskedFlag is equivalent to the num of maskers passed. It is used to check if a
-    // value is selected by all maskers or not. Each masker will increment its selected value by 1.
-    uint8_t maskedFlag;
-    std::unique_ptr<uint8_t[]> data;
+    std::unique_ptr<bool[]> boolMask;
 };
 
 struct ScanNodeIDSemiMask {
 public:
-    ScanNodeIDSemiMask(common::offset_t maxNodeOffset, uint8_t maskedFlag) {
-        nodeMask = std::make_unique<Mask>(maxNodeOffset + 1, maskedFlag);
-        morselMask = std::make_unique<Mask>(
-            (maxNodeOffset >> common::DEFAULT_VECTOR_CAPACITY_LOG_2) + 1, maskedFlag);
+    ScanNodeIDSemiMask(common::offset_t maxNodeOffset) {
+        nodeMask = std::make_unique<Mask>(maxNodeOffset + 1);
+        morselMask =
+            std::make_unique<Mask>((maxNodeOffset >> common::DEFAULT_VECTOR_CAPACITY_LOG_2) + 1);
     }
 
     inline bool isNodeMaskEnabled() { return nodeMask != nullptr; }
     inline bool isMorselMasked(uint64_t morselIdx) { return morselMask->isMasked(morselIdx); }
     inline bool isNodeMasked(uint64_t nodeOffset) { return nodeMask->isMasked(nodeOffset); }
 
-    void setMask(uint64_t nodeOffset, uint8_t maskerIdx);
+    void setMask(uint64_t nodeOffset);
 
 private:
     std::unique_ptr<Mask> nodeMask;
@@ -69,8 +72,7 @@ public:
 
     inline void initSemiMask(transaction::Transaction* transaction) {
         if (semiMask == nullptr) {
-            semiMask = std::make_unique<ScanNodeIDSemiMask>(
-                table->getMaxNodeOffset(transaction), numMaskers);
+            semiMask = std::make_unique<ScanNodeIDSemiMask>(table->getMaxNodeOffset(transaction));
         }
     }
     inline bool isSemiMaskEnabled() { return semiMask != nullptr && semiMask->isNodeMaskEnabled(); }

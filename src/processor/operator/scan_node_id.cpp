@@ -5,9 +5,9 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
-void ScanNodeIDSemiMask::setMask(uint64_t nodeOffset, uint8_t maskerIdx) {
-    nodeMask->setMask(nodeOffset, maskerIdx, maskerIdx + 1);
-    morselMask->setMask(nodeOffset >> DEFAULT_VECTOR_CAPACITY_LOG_2, maskerIdx, maskerIdx + 1);
+void ScanNodeIDSemiMask::setMask(uint64_t nodeOffset) {
+    nodeMask->setMask(nodeOffset);
+    morselMask->setMask(nodeOffset >> DEFAULT_VECTOR_CAPACITY_LOG_2);
 }
 
 std::pair<offset_t, offset_t> ScanTableNodeIDSharedState::getNextRangeToRead() {

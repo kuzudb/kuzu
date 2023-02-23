@@ -19,7 +19,7 @@ bool SemiMasker::getNextTuplesInternal() {
     for (auto i = 0u; i < numValues; i++) {
         auto pos = keyValueVector->state->selVector->selectedPositions[i];
         scanTableNodeIDSharedState->getSemiMask()->setMask(
-            keyValueVector->getValue<nodeID_t>(pos).offset, maskerIdx);
+            keyValueVector->getValue<nodeID_t>(pos).offset);
     }
     metrics->numOutputTuple.increase(
         keyValueVector->state->isFlat() ? 1 : keyValueVector->state->selVector->selectedSize);
