@@ -100,12 +100,19 @@ void TestHelper::initializeConnection(TestQueryConfig* config, Connection& conn)
 bool TestHelper::testQuery(TestQueryConfig* config, Connection& conn) {
     initializeConnection(config, conn);
     auto preparedStatement = conn.prepareNoLock(config->query, config->enumerate);
-    assert(!preparedStatement->logicalPlans.empty());
+    if (!preparedStatement->isSuccess()) {
+        spdlog::error(preparedStatement->getErrorMessage());
+        return false;
+    }
     auto numPlans = preparedStatement->logicalPlans.size();
+    if (numPlans == 0) {
+        spdlog::error("Query {} has no plans" + config->name);
+        return false;
+    }
     auto numPassedPlans = 0u;
     for (auto i = 0u; i < numPlans; ++i) {
         auto plan = preparedStatement->logicalPlans[i].get();
-        auto planStr = preparedStatement->logicalPlans[i]->toString();
+        auto planStr = plan->toString();
         auto result = conn.executeAndAutoCommitIfNecessaryNoLock(preparedStatement.get(), i);
         assert(result->isSuccess());
         std::vector<std::string> resultTuples =

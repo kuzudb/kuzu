@@ -23,50 +23,12 @@ void ProjectionPushDownOptimizer::rewrite(planner::LogicalPlan* plan) {
 }
 
 void ProjectionPushDownOptimizer::visitOperator(LogicalOperator* op) {
-    switch (op->getOperatorType()) {
-    case LogicalOperatorType::ACCUMULATE: {
-        visitAccumulate(op);
-    } break;
-    case LogicalOperatorType::FILTER: {
-        visitFilter(op);
-    } break;
-    case LogicalOperatorType::HASH_JOIN: {
-        visitHashJoin(op);
-    } break;
-    case LogicalOperatorType::PROJECTION: {
-        visitProjection(op);
+    visitOperatorSwitch(op);
+    if (op->getOperatorType() == LogicalOperatorType::PROJECTION) {
+        // We will start a new optimizer once a projection is encountered.
         return;
     }
-    case LogicalOperatorType::INTERSECT: {
-        visitIntersect(op);
-    } break;
-    case LogicalOperatorType::ORDER_BY: {
-        visitOrderBy(op);
-    } break;
-    case LogicalOperatorType::UNWIND: {
-        visitUnwind(op);
-    } break;
-    case LogicalOperatorType::CREATE_NODE: {
-        visitCreateNode(op);
-    } break;
-    case LogicalOperatorType::CREATE_REL: {
-        visitCreateRel(op);
-    } break;
-    case LogicalOperatorType::DELETE_NODE: {
-        visitDeleteNode(op);
-    } break;
-    case LogicalOperatorType::DELETE_REL: {
-        visitDeleteRel(op);
-    } break;
-    case LogicalOperatorType::SET_NODE_PROPERTY: {
-        visitSetNodeProperty(op);
-    } break;
-    case LogicalOperatorType::SET_REL_PROPERTY: {
-        visitSetRelProperty(op);
-    } break;
-    default:
-        break;
-    }
+    // top-down traversal
     for (auto i = 0; i < op->getNumChildren(); ++i) {
         visitOperator(op->getChild(i).get());
     }
