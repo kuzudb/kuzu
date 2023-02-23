@@ -30,20 +30,23 @@ void Intersect::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* c
     }
 }
 
-std::vector<uint8_t*> Intersect::probeHTs(const std::vector<nodeID_t>& keys) {
-    std::vector<uint8_t*> tuples(keys.size());
-    hash_t tmpHash;
-    for (auto i = 0u; i < keys.size(); i++) {
-        Hash::operation<nodeID_t>(keys[i], false, tmpHash);
-        tuples[i] = sharedHTs[i]->getHashTable()->getTupleForHash(tmpHash);
-        while (tuples[i]) {
-            if (*(nodeID_t*)tuples[i] == keys[i]) {
-                break; // The build side should guarantee each key only has one matching tuple.
+void Intersect::probeHTs() {
+    std::vector<std::vector<overflow_value_t>> flatTuples(probeKeyVectors.size());
+    hash_t hashVal;
+    for (auto i = 0u; i < probeKeyVectors.size(); i++) {
+        assert(probeKeyVectors[i]->state->isFlat());
+        probedFlatTuples[i].clear();
+        auto key = probeKeyVectors[i]->getValue<nodeID_t>(
+            probeKeyVectors[i]->state->selVector->selectedPositions[0]);
+        Hash::operation<nodeID_t>(key, false, hashVal);
+        auto flatTuple = sharedHTs[i]->getHashTable()->getTupleForHash(hashVal);
+        while (flatTuple) {
+            if (*(nodeID_t*)flatTuple == key) {
+                probedFlatTuples[i].push_back(flatTuple);
             }
-            tuples[i] = *sharedHTs[i]->getHashTable()->getPrevTuple(tuples[i]);
+            flatTuple = *sharedHTs[i]->getHashTable()->getPrevTuple(flatTuple);
         }
     }
-    return tuples;
 }
 
 void Intersect::twoWayIntersect(nodeID_t* leftNodeIDs, SelectionVector& lSelVector,
@@ -71,23 +74,10 @@ void Intersect::twoWayIntersect(nodeID_t* leftNodeIDs, SelectionVector& lSelVect
     rSelVector.resetSelectorToValuePosBufferWithSize(outputValuePosition);
 }
 
-std::vector<nodeID_t> Intersect::getProbeKeys() {
-    std::vector<nodeID_t> keys(probeKeyVectors.size());
-    for (auto i = 0u; i < keys.size(); i++) {
-        assert(probeKeyVectors[i]->state->isFlat());
-        keys[i] = probeKeyVectors[i]->getValue<nodeID_t>(
-            probeKeyVectors[i]->state->selVector->selectedPositions[0]);
-    }
-    return keys;
-}
-
 static std::vector<overflow_value_t> fetchListsToIntersectFromTuples(
     const std::vector<uint8_t*>& tuples, const std::vector<bool>& isFlatValue) {
     std::vector<overflow_value_t> listsToIntersect(tuples.size());
     for (auto i = 0u; i < tuples.size(); i++) {
-        if (!tuples[i]) {
-            continue; // overflow_value will be initialized with size 0 for non-matching tuples.
-        }
         listsToIntersect[i] =
             isFlatValue[i] ? overflow_value_t{1 /* numElements */, tuples[i] + sizeof(nodeID_t)} :
                              *(overflow_value_t*)(tuples[i] + sizeof(nodeID_t));
@@ -160,17 +150,59 @@ void Intersect::populatePayloads(
     }
 }
 
-bool Intersect::getNextTuplesInternal() {
-    do {
-        if (!children[0]->getNextTuple()) {
+bool Intersect::hasNextTuplesToIntersect() {
+    tupleIdxPerBuildSide[carryBuildSideIdx]++;
+    if (tupleIdxPerBuildSide[carryBuildSideIdx] == probedFlatTuples[carryBuildSideIdx].size()) {
+        if (carryBuildSideIdx == 0) {
             return false;
         }
-        auto tuples = probeHTs(getProbeKeys());
-        auto listsToIntersect = fetchListsToIntersectFromTuples(tuples, isIntersectListAFlatValue);
+        tupleIdxPerBuildSide[carryBuildSideIdx] = 0;
+        carryBuildSideIdx--;
+        if (!hasNextTuplesToIntersect()) {
+            return false;
+        }
+        carryBuildSideIdx++;
+    }
+    return true;
+}
+
+bool Intersect::getNextTuplesInternal() {
+    do {
+        while (carryBuildSideIdx == -1u) {
+            if (!children[0]->getNextTuple()) {
+                return false;
+            }
+            // For each build side, probe its HT and return a vector of matched flat tuples.
+            probeHTs();
+            auto maxNumTuplesToIntersect = 1u;
+            for (auto i = 0u; i < getNumBuilds(); i++) {
+                maxNumTuplesToIntersect *= probedFlatTuples[i].size();
+            }
+            if (maxNumTuplesToIntersect == 0) {
+                // Skip if any build side has no matches.
+                continue;
+            }
+            carryBuildSideIdx = getNumBuilds() - 1;
+            std::fill(tupleIdxPerBuildSide.begin(), tupleIdxPerBuildSide.end(), 0);
+        }
+        // Cartesian product of all flat tuples probed from all build sides.
+        // Notice: when there are large adjacency lists in the build side, which means the list is
+        // too large to fit in a single ValueVector, we end up chunking the list as multiple tuples
+        // in FTable. Thus, when performing the intersection, we need to perform cartesian product
+        // between all flat tuples probed from all build sides.
+        std::vector<uint8_t*> flatTuplesToIntersect(getNumBuilds());
+        for (auto i = 0u; i < getNumBuilds(); i++) {
+            flatTuplesToIntersect[i] = probedFlatTuples[i][tupleIdxPerBuildSide[i]];
+        }
+        auto listsToIntersect =
+            fetchListsToIntersectFromTuples(flatTuplesToIntersect, isIntersectListAFlatValue);
         auto listIdxes = swapSmallestListToFront(listsToIntersect);
         intersectLists(listsToIntersect);
         if (outKeyVector->state->selVector->selectedSize != 0) {
-            populatePayloads(tuples, listIdxes);
+            populatePayloads(flatTuplesToIntersect, listIdxes);
+        }
+        if (!hasNextTuplesToIntersect()) {
+            carryBuildSideIdx = -1u;
         }
     } while (outKeyVector->state->selVector->selectedSize == 0);
     return true;
