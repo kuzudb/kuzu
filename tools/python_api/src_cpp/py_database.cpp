@@ -10,13 +10,13 @@ void PyDatabase::initialize(py::handle& m) {
             py::arg("buffer_pool_size") = 0)
         .def("resize_buffer_manager", &PyDatabase::resizeBufferManager, py::arg("new_size"))
         .def("set_logging_level", &PyDatabase::setLoggingLevel, py::arg("logging_level"))
-        .def("scan_node_table_as_int64", &PyDatabase::scanNodeTableAsInt64,
+        .def("scan_node_table_as_int64", &PyDatabase::scanNodeTable<int64_t>,
             py::return_value_policy::take_ownership, py::arg("table_name"), py::arg("prop_name"),
             py::arg("indices"))
-        .def("scan_node_table_as_double", &PyDatabase::scanNodeTableAsDouble,
+        .def("scan_node_table_as_double", &PyDatabase::scanNodeTable<double_t>,
             py::return_value_policy::take_ownership, py::arg("table_name"), py::arg("prop_name"),
             py::arg("indices"))
-        .def("scan_node_table_as_bool", &PyDatabase::scanNodeTableAsBool,
+        .def("scan_node_table_as_bool", &PyDatabase::scanNodeTable<bool>,
             py::return_value_policy::take_ownership, py::arg("table_name"), py::arg("prop_name"),
             py::arg("indices"));
 }
@@ -34,21 +34,6 @@ PyDatabase::PyDatabase(const std::string& databasePath, uint64_t bufferPoolSize)
 
 void PyDatabase::resizeBufferManager(uint64_t newSize) {
     database->resizeBufferManager(newSize);
-}
-
-py::array_t<int64_t> PyDatabase::scanNodeTableAsInt64(
-    const std::string& tableName, const std::string& propName, py::list indices) {
-    return scanNodeTable<int64_t>(tableName, propName, indices);
-}
-
-py::array_t<double_t> PyDatabase::scanNodeTableAsDouble(
-    const std::string& tableName, const std::string& propName, py::list indices) {
-    return scanNodeTable<double_t>(tableName, propName, indices);
-}
-
-py::array_t<bool> PyDatabase::scanNodeTableAsBool(
-    const std::string& tableName, const std::string& propName, py::list indices) {
-    return scanNodeTable<bool>(tableName, propName, indices);
 }
 
 template<class T>
