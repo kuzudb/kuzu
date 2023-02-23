@@ -73,6 +73,59 @@ std::vector<std::string> BuiltInVectorOperations::getFunctionNames() {
     return result;
 }
 
+uint32_t BuiltInVectorOperations::getCastCost(DataTypeID inputTypeID, DataTypeID targetTypeID) {
+    if (inputTypeID == targetTypeID) {
+        return 0;
+    } else {
+        if (targetTypeID == ANY) {
+            // Any inputTypeID can match to type ANY
+            return 0;
+        }
+        switch (inputTypeID) {
+        case common::ANY:
+            // ANY type can be any type
+            return 0;
+        case common::INT64:
+            return implicitCastInt64(targetTypeID);
+        case common::DOUBLE:
+            return implicitCastDouble(targetTypeID);
+        default:
+            return UINT32_MAX;
+        }
+    }
+}
+
+uint32_t BuiltInVectorOperations::getCastCost(
+    const DataType& inputType, const DataType& targetType) {
+    if (inputType == targetType) {
+        return 0;
+    } else {
+        switch (inputType.typeID) {
+        case common::FIXED_LIST:
+        case common::VAR_LIST:
+            return UINT32_MAX;
+        default:
+            return getCastCost(inputType.typeID, targetType.typeID);
+        }
+    }
+}
+
+uint32_t BuiltInVectorOperations::implicitCastInt64(common::DataTypeID targetTypeID) {
+    switch (targetTypeID) {
+    case common::DOUBLE:
+        return 102;
+    default:
+        return UINT32_MAX;
+    }
+}
+
+uint32_t BuiltInVectorOperations::implicitCastDouble(common::DataTypeID targetTypeID) {
+    switch (targetTypeID) {
+    default:
+        return UINT32_MAX;
+    }
+}
+
 // When there is multiple candidates functions, e.g. double + int and double + double for input
 // "1.5 + parameter", we prefer the one without any implicit casting i.e. double + double.
 VectorOperationDefinition* BuiltInVectorOperations::getBestMatch(
@@ -113,7 +166,7 @@ uint32_t BuiltInVectorOperations::matchParameters(const std::vector<DataType>& i
     }
     auto cost = 0u;
     for (auto i = 0u; i < inputTypes.size(); ++i) {
-        auto castCost = castRules(inputTypes[i].typeID, targetTypeIDs[i]);
+        auto castCost = getCastCost(inputTypes[i].typeID, targetTypeIDs[i]);
         if (castCost == UINT32_MAX) {
             return UINT32_MAX;
         }
@@ -126,29 +179,13 @@ uint32_t BuiltInVectorOperations::matchVarLengthParameters(
     const std::vector<DataType>& inputTypes, DataTypeID targetTypeID, bool isOverload) {
     auto cost = 0u;
     for (auto& inputType : inputTypes) {
-        auto castCost = castRules(inputType.typeID, targetTypeID);
+        auto castCost = getCastCost(inputType.typeID, targetTypeID);
         if (castCost == UINT32_MAX) {
             return UINT32_MAX;
         }
         cost += castCost;
     }
     return cost;
-}
-
-uint32_t BuiltInVectorOperations::castRules(DataTypeID inputTypeID, DataTypeID targetTypeID) {
-    if (inputTypeID == ANY) {
-        // ANY type can be any type
-        return 0;
-    }
-    if (targetTypeID == ANY) {
-        // Any inputTypeID can match to type ANY
-        return 0;
-    }
-    if (inputTypeID != targetTypeID) {
-        // Unable to cast
-        return UINT32_MAX;
-    }
-    return 0; // no cast needed
 }
 
 void BuiltInVectorOperations::validateNonEmptyCandidateFunctions(
@@ -290,6 +327,8 @@ void BuiltInVectorOperations::registerCastOperations() {
         {CAST_TO_INTERVAL_FUNC_NAME, CastToIntervalVectorOperation::getDefinitions()});
     vectorOperations.insert(
         {CAST_TO_STRING_FUNC_NAME, CastToStringVectorOperation::getDefinitions()});
+    vectorOperations.insert(
+        {CAST_TO_DOUBLE_FUNC_NAME, CastToDoubleVectorOperation::getDefinitions()});
 }
 
 void BuiltInVectorOperations::registerListOperations() {

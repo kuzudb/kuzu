@@ -1,9 +1,11 @@
 #include "binder/expression_binder.h"
 
 #include "binder/binder.h"
+#include "binder/expression/function_expression.h"
 #include "binder/expression/literal_expression.h"
 #include "binder/expression/parameter_expression.h"
 #include "common/type_utils.h"
+#include "function/cast/vector_cast_operations.h"
 
 using namespace kuzu::common;
 using namespace kuzu::function;
@@ -79,6 +81,21 @@ std::shared_ptr<Expression> ExpressionBinder::implicitCastIfNecessary(
     return implicitCast(expression, DataType(targetTypeID));
 }
 
+std::shared_ptr<Expression> ExpressionBinder::implicitCast(
+    const std::shared_ptr<Expression>& expression, const common::DataType& targetType) {
+    if (BuiltInVectorOperations::getCastCost(expression->dataType, targetType) != UINT32_MAX) {
+        return std::make_shared<ScalarFunctionExpression>(FUNCTION, DataType{targetType.typeID},
+            expression_vector{expression},
+            VectorCastOperations::bindExecFunc(expression->dataType.typeID, targetType.typeID),
+            nullptr /* selectFunc */, expression->getUniqueName() + " cast expression");
+    } else {
+        throw common::BinderException("Expression " + expression->getRawName() + " has data type " +
+                                      common::Types::dataTypeToString(expression->dataType) +
+                                      " but expect " + common::Types::dataTypeToString(targetType) +
+                                      ". Implicit cast is not supported.");
+    }
+}
+
 void ExpressionBinder::resolveAnyDataType(Expression& expression, const DataType& targetType) {
     if (expression.expressionType == PARAMETER) { // expression is parameter
         ((ParameterExpression&)expression).setDataType(targetType);
@@ -86,14 +103,6 @@ void ExpressionBinder::resolveAnyDataType(Expression& expression, const DataType
         assert(expression.expressionType == LITERAL);
         ((LiteralExpression&)expression).setDataType(targetType);
     }
-}
-
-std::shared_ptr<Expression> ExpressionBinder::implicitCast(
-    const std::shared_ptr<Expression>& expression, const DataType& targetType) {
-    throw BinderException("Expression " + expression->getRawName() + " has data type " +
-                          Types::dataTypeToString(expression->dataType) + " but expect " +
-                          Types::dataTypeToString(targetType) +
-                          ". Implicit cast is not supported.");
 }
 
 void ExpressionBinder::validateExpectedDataType(

@@ -50,11 +50,12 @@ struct UnaryOperationExecutor {
         result.resetOverflowBuffer();
         auto resultValues = (RESULT_TYPE*)result.getData();
         if (operand.state->isFlat()) {
-            auto pos = operand.state->selVector->selectedPositions[0];
-            result.setNull(pos, operand.isNull(pos));
-            if (!result.isNull(pos)) {
+            auto inputPos = operand.state->selVector->selectedPositions[0];
+            auto resultPos = result.state->selVector->selectedPositions[0];
+            result.setNull(resultPos, operand.isNull(inputPos));
+            if (!result.isNull(inputPos)) {
                 executeOnValue<OPERAND_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(
-                    operand, pos, resultValues[pos], result);
+                    operand, inputPos, resultValues[resultPos], result);
             }
         } else {
             if (operand.hasNoNullsGuarantee()) {
