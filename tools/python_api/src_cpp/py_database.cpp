@@ -1,5 +1,7 @@
 #include "include/py_database.h"
 
+#include "main/storage_driver.h"
+
 using namespace kuzu::common;
 
 void PyDatabase::initialize(py::handle& m) {
@@ -7,7 +9,16 @@ void PyDatabase::initialize(py::handle& m) {
         .def(py::init<const std::string&, uint64_t>(), py::arg("database_path"),
             py::arg("buffer_pool_size") = 0)
         .def("resize_buffer_manager", &PyDatabase::resizeBufferManager, py::arg("new_size"))
-        .def("set_logging_level", &PyDatabase::setLoggingLevel, py::arg("logging_level"));
+        .def("set_logging_level", &PyDatabase::setLoggingLevel, py::arg("logging_level"))
+        .def("scan_node_table_as_int64", &PyDatabase::scanNodeTableAsInt64,
+            py::return_value_policy::take_ownership, py::arg("table_name"), py::arg("prop_name"),
+            py::arg("indices"))
+        .def("scan_node_table_as_double", &PyDatabase::scanNodeTableAsDouble,
+            py::return_value_policy::take_ownership, py::arg("table_name"), py::arg("prop_name"),
+            py::arg("indices"))
+        .def("scan_node_table_as_bool", &PyDatabase::scanNodeTableAsBool,
+            py::return_value_policy::take_ownership, py::arg("table_name"), py::arg("prop_name"),
+            py::arg("indices"));
 }
 
 PyDatabase::PyDatabase(const std::string& databasePath, uint64_t bufferPoolSize) {
@@ -23,4 +34,39 @@ PyDatabase::PyDatabase(const std::string& databasePath, uint64_t bufferPoolSize)
 
 void PyDatabase::resizeBufferManager(uint64_t newSize) {
     database->resizeBufferManager(newSize);
+}
+
+py::array_t<int64_t> PyDatabase::scanNodeTableAsInt64(
+    const std::string& tableName, const std::string& propName, py::list indices) {
+    return scanNodeTable<int64_t>(tableName, propName, indices);
+}
+
+py::array_t<double_t> PyDatabase::scanNodeTableAsDouble(
+    const std::string& tableName, const std::string& propName, py::list indices) {
+    return scanNodeTable<double_t>(tableName, propName, indices);
+}
+
+py::array_t<bool> PyDatabase::scanNodeTableAsBool(
+    const std::string& tableName, const std::string& propName, py::list indices) {
+    return scanNodeTable<bool>(tableName, propName, indices);
+}
+
+template<class T>
+py::array_t<T> PyDatabase::scanNodeTable(
+    const std::string& tableName, const std::string& propName, py::list indices) {
+    auto size = indices.size();
+    auto nodeOffsetsBuffer = std::make_unique<uint8_t[]>(sizeof(offset_t) * size);
+    uint64_t i = 0;
+    for (auto idx : indices) {
+        nodeOffsetsBuffer[i] = idx.cast<uint8_t>();
+    }
+    auto nodeOffsets = (offset_t*)nodeOffsetsBuffer.get();
+    auto storageDriver = std::make_unique<StorageDriver>(database.get());
+    auto scanResult = storageDriver->scan(tableName, propName, nodeOffsets, size);
+    auto buffer = (T*)(scanResult.first).get();
+    auto bufferSize = scanResult.second;
+    auto numberOfItems = bufferSize / sizeof(T);
+    return py::array_t<T>(
+        py::buffer_info(buffer, sizeof(T), py::format_descriptor<double>::format(), 1,
+            std::vector<size_t>{numberOfItems}, std::vector<size_t>{sizeof(T)}));
 }

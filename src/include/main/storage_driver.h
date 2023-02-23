@@ -12,8 +12,8 @@ public:
 
     ~StorageDriver();
 
-    std::unique_ptr<uint8_t[]> scan(const std::string& nodeName, const std::string& propertyName,
-        common::offset_t* offsets, size_t size);
+    std::pair<std::unique_ptr<uint8_t[]>, size_t> scan(const std::string& nodeName,
+        const std::string& propertyName, common::offset_t* offsets, size_t size);
 
 private:
     catalog::Catalog* catalog;

@@ -19,6 +19,19 @@ public:
 
     void resizeBufferManager(uint64_t newSize);
 
+    py::array_t<int64_t> scanNodeTableAsInt64(
+        const std::string& tableName, const std::string& propName, py::list indices);
+
+    py::array_t<double_t> scanNodeTableAsDouble(
+        const std::string& tableName, const std::string& propName, py::list indices);
+
+    py::array_t<bool> scanNodeTableAsBool(
+        const std::string& tableName, const std::string& propName, py::list indices);
+
+    template<class T>
+    py::array_t<T> scanNodeTable(
+        const std::string& tableName, const std::string& propName, py::list indices);
+
     ~PyDatabase() = default;
 
 private:

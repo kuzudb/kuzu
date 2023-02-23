@@ -1,6 +1,7 @@
 from . import _kuzu
 from .torch_geometric_feature_store import KuzuFeatureStore
 from .torch_geometric_graph_store import KuzuGraphStore
+from .types import Type
 
 
 class Database:
@@ -84,3 +85,20 @@ class Database:
         duplicated_db = Database(
             self.database_path, self.buffer_pool_size, True)
         return KuzuFeatureStore(duplicated_db), KuzuGraphStore(duplicated_db)
+
+    def _scan_node_table(self, table_name, prop_name, prop_type, indices):
+        """
+        Scan a node table from storage directly, bypassing query engine.
+        Used internally by torch_geometric remote backend only.
+        """
+        self.init_database()
+        if prop_type == Type.INT64.value:
+            return self._database.scan_node_table_as_int64(
+                table_name, prop_name, indices)
+        if prop_type == Type.DOUBLE.value:
+            return self._database.scan_node_table_as_double(
+                table_name, prop_name, indices)
+        if prop_type == Type.BOOL.value:
+            return self._database.scan_node_table_as_bool(
+                table_name, prop_name, indices)
+        raise ValueError("Unsupported property type: {}".format(prop_type))

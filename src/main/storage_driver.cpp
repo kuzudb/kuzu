@@ -13,7 +13,7 @@ StorageDriver::StorageDriver(kuzu::main::Database* database)
 
 StorageDriver::~StorageDriver() = default;
 
-std::unique_ptr<uint8_t[]> StorageDriver::scan(const std::string& nodeName,
+std::pair<std::unique_ptr<uint8_t[]>, size_t> StorageDriver::scan(const std::string& nodeName,
     const std::string& propertyName, common::offset_t* offsets, size_t size) {
     auto catalogContent = catalog->getReadOnlyVersion();
     auto nodeTableID = catalogContent->getTableID(nodeName);
@@ -21,9 +21,10 @@ std::unique_ptr<uint8_t[]> StorageDriver::scan(const std::string& nodeName,
     auto nodeTable = storageManager->getNodesStore().getNodeTable(nodeTableID);
     auto column = nodeTable->getPropertyColumn(propertyID);
 
-    auto result = std::make_unique<uint8_t[]>(column->elementSize * size);
+    auto bufferSize = column->elementSize * size;
+    auto result = std::make_unique<uint8_t[]>(bufferSize);
     column->scan(offsets, size, result.get());
-    return result;
+    return std::make_pair(std::move(result), bufferSize);
 }
 
 } // namespace main

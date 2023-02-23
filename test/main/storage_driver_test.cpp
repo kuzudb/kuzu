@@ -13,7 +13,7 @@ TEST_F(ApiTest, StorageDriverScan) {
     nodeOffsets[1] = 0;
     nodeOffsets[2] = 3;
     auto result = storageDriver->scan("person", "ID", nodeOffsets, size);
-    auto ids = (int64_t*)result.get();
+    auto ids = (int64_t*)result.first.get();
     ASSERT_EQ(ids[0], 10);
     ASSERT_EQ(ids[1], 0);
     ASSERT_EQ(ids[2], 5);
