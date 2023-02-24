@@ -5,6 +5,18 @@
 0.340000
 0.320000
 
+-NAME moduloFunctionOnDoubleFloatTest
+-QUERY MATCH (a:person) RETURN a.eyeSight % a.height
+---- 8
+1.538000
+0.150000
+0.000000
+0.900000
+0.311000
+1.480000
+0.100000
+0.931000
+
 -NAME sinFunctionOnDoubleTest
 -QUERY MATCH (a:organisation) WHERE a.name <> 'abc' RETURN sin(a.mark)
 ---- 3
@@ -19,12 +31,25 @@
 -0.811656
 0.785018
 
+-NAME sinFunctionOnFloatTest
+-QUERY MATCH (a:person) RETURN sin(a.height)
+---- 8
+0.987195
+0.836026
+0.841471
+0.963558
+0.994196
+0.998152
+0.999574
+0.969455
+
 -NAME cosFunctionOnDoubleTest
 -QUERY MATCH (a:organisation) RETURN cos(a.mark)
 ---- 3
 -0.848100
 -0.574824
 -0.574824
+
 -NAME cosFunctionOnInt64Test
 -QUERY MATCH (a:organisation) RETURN cos(a.orgCode)
 ---- 3
@@ -105,16 +130,28 @@
 -NAME evenFunctionOnDoubleTest
 -QUERY MATCH (a:organisation) RETURN even(a.mark)
 ---- 3
-4
-6
-6
+4.000000
+6.000000
+6.000000
+
+-NAME evenFunctionOnFloatTest
+-QUERY MATCH (a:person) RETURN even(a.height)
+---- 8
+2.000000
+2.000000
+2.000000
+2.000000
+2.000000
+2.000000
+2.000000
+2.000000
 
 -NAME evenFunctionOnInt64Test
 -QUERY MATCH (a:organisation) RETURN even(a.orgCode)
 ---- 3
-326
-934
-824
+326.000000
+934.000000
+824.000000
 
 -NAME factorialFunctionOnInt64Test
 -QUERY MATCH (a:organisation) RETURN factorial(a.orgCode % 20)
@@ -182,9 +219,9 @@
 -NAME gammaFunctionOnInt64Test
 -QUERY MATCH (a:organisation) RETURN gamma(a.orgCode % 10)
 ---- 3
-24
-6
-6
+24.000000
+6.000000
+6.000000
 
 -NAME lgammaFunctionOnDoubleTest
 -QUERY MATCH (a:organisation) RETURN lgamma(a.mark)
@@ -297,6 +334,18 @@
 1.559412
 1.566407
 1.565821
+
+-NAME atan2FunctionOnFloatDoubleTest
+-QUERY MATCH (a:person) RETURN atan2(a.height, a.eyeSight)
+---- 8
+0.191733
+0.197396
+0.263712
+0.264488
+0.301770
+0.315616
+0.323749
+0.333286
 
 -NAME roundFunctionOnDoubleTest
 -QUERY MATCH (a:organisation) WHERE a.ID <> 2 RETURN round(a.rating, 1)

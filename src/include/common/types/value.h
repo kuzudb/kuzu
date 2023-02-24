@@ -83,6 +83,11 @@ public:
      */
     KUZU_API explicit Value(DataType dataType, std::vector<std::unique_ptr<Value>> vals);
     /**
+     * @param val_ the string value to set.
+     * @return a Value with STRING type and val_ value.
+     */
+    KUZU_API explicit Value(float_t val_);
+    /**
      * @param val_ the node value to set.
      * @return a Value with NODE type and val_ value.
      */
@@ -193,6 +198,7 @@ public:
         timestamp_t timestampVal;
         interval_t intervalVal;
         internalID_t internalIDVal;
+        float floatVal;
     } val;
     std::string strVal;
     std::vector<std::unique_ptr<Value>> listVal;

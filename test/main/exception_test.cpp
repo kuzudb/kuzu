@@ -38,10 +38,10 @@ TEST_F(ApiTest, Exception) {
     auto function_error =
         "Binder exception: Cannot match a built-in function for given function "
         "+(INT64,STRING). Supported inputs "
-        "are\n(INT64,INT64) -> INT64\n(DOUBLE,DOUBLE) -> DOUBLE\n(INTERVAL,INTERVAL) -> "
-        "INTERVAL\n(DATE,INT64) -> DATE\n(INT64,DATE) -> DATE\n(DATE,INTERVAL) -> "
-        "DATE\n(INTERVAL,DATE) -> DATE\n(TIMESTAMP,INTERVAL) -> TIMESTAMP\n(INTERVAL,TIMESTAMP) -> "
-        "TIMESTAMP\n";
+        "are\n(INT64,INT64) -> INT64\n(DOUBLE,DOUBLE) -> DOUBLE\n(FLOAT,FLOAT) -> "
+        "FLOAT\n(INTERVAL,INTERVAL) -> INTERVAL\n(DATE,INT64) -> DATE\n(INT64,DATE) -> "
+        "DATE\n(DATE,INTERVAL) -> DATE\n(INTERVAL,DATE) -> DATE\n(TIMESTAMP,INTERVAL) -> "
+        "TIMESTAMP\n(INTERVAL,TIMESTAMP) -> TIMESTAMP\n";
     result = conn->query(function_error_query);
     ASSERT_FALSE(result->isSuccess());
     ASSERT_STREQ(result->getErrorMessage().c_str(), function_error);

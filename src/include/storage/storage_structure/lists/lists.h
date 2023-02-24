@@ -278,6 +278,7 @@ public:
         case common::TIMESTAMP:
         case common::INTERVAL:
         case common::FIXED_LIST:
+        case common::FLOAT:
             return std::make_unique<Lists>(structureIDAndFName, dataType,
                 common::Types::getDataTypeSize(dataType), adjListsHeaders, bufferManager, wal,
                 listsUpdatesStore);

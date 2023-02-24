@@ -10,6 +10,11 @@
 ---- 1
 37.250000|4.862500
 
+-NAME SimpleAvgFloatTest
+-QUERY MATCH (a:person) RETURN AVG(a.height) + 5
+---- 1
+6.364625
+
 -NAME SimpleCountTest
 -QUERY MATCH (a:person) RETURN COUNT(a.age) + 1
 ---- 1
@@ -34,6 +39,11 @@
 -QUERY MATCH (a:person) WHERE a.birthdate = date('1980-10-26') RETURN SUM(a.age+10) > SUM(a.age*2)
 ---- 1
 False
+
+-NAME SimpleSumTest4
+-QUERY MATCH (a:person) RETURN sum(a.height) + 2.2
+---- 1
+13.117001
 
 -NAME SimpleAvgTest
 -QUERY MATCH (a:person) RETURN AVG(a.age), AVG(a.eyeSight)
@@ -65,6 +75,11 @@ False
 -QUERY MATCH (p:person) RETURN collect(p.fName)
 ---- 1
 [Alice,Bob,Carol,Dan,Elizabeth,Farooq,Greg,Hubert Blaine Wolfeschlegelsteinhausenbergerdorff]
+
+-NAME SimpleCollectFLOATTest
+-QUERY MATCH (p:person) RETURN collect(p.height)
+---- 1
+[1.731000,0.990000,1.000000,1.300000,1.463000,1.510000,1.600000,1.323000]
 
 -NAME SimpleCollectLISTOfINT64Test
 -QUERY MATCH (p:person) RETURN collect(p.workedHours)

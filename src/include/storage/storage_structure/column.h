@@ -282,6 +282,7 @@ public:
         case common::TIMESTAMP:
         case common::INTERVAL:
         case common::FIXED_LIST:
+        case common::FLOAT:
             return std::make_unique<Column>(structureIDAndFName, dataType, bufferManager, wal);
         case common::STRING:
             return std::make_unique<StringPropertyColumn>(
