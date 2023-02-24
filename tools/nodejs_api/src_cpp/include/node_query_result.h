@@ -7,7 +7,8 @@
 
 class NodeQueryResult: public Napi::ObjectWrap<NodeQueryResult> {
  public:
-  static Napi::Object Wrap(Napi::Env env, shared_ptr<kuzu::main::QueryResult> & queryResult);
+  static Napi::Object Init(Napi::Env env, Napi::Object exports);
+  void SetQueryResult(shared_ptr<kuzu::main::QueryResult> & inputQueryResult);
   NodeQueryResult(const Napi::CallbackInfo& info);
   ~NodeQueryResult();
 

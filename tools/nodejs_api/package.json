@@ -18,6 +18,6 @@
   "license": "MIT",
   "dependencies": {
     "cmake-js": "^7.1.1",
-    "node-addon-api": "^5.1.0"
+    "node-addon-api": "^6.0.0"
   }
 }
