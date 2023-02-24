@@ -8,20 +8,28 @@ using namespace kuzu::main;
 
 Napi::FunctionReference NodeQueryResult::constructor;
 
-Napi::Object NodeQueryResult::Wrap(Napi::Env env, shared_ptr<kuzu::main::QueryResult>& queryResult) {
+Napi::Object NodeQueryResult::Init(Napi::Env env, Napi::Object exports) {
     Napi::HandleScope scope(env);
-    Napi::Object obj = DefineClass(env, "NodeQueryResult", {
-      InstanceMethod("close", &NodeQueryResult::Close),
-      InstanceMethod("all", &NodeQueryResult::All),
-      InstanceMethod("getNext", &NodeQueryResult::GetNext),
-      InstanceMethod("hasNext", &NodeQueryResult::HasNext),
-   }).New({});
-    NodeQueryResult * nodeQueryResult = Unwrap(obj);
-    nodeQueryResult->queryResult = queryResult;
-    return obj;
+
+    Napi::Function t = DefineClass(env, "NodeQueryResult", {
+       InstanceMethod("close", &NodeQueryResult::Close),
+       InstanceMethod("all", &NodeQueryResult::All),
+       InstanceMethod("getNext", &NodeQueryResult::GetNext),
+       InstanceMethod("hasNext", &NodeQueryResult::HasNext),
+    });
+
+    constructor = Napi::Persistent(t);
+    constructor.SuppressDestruct();
+
+    exports.Set("NodeQueryResult", t);
+    return exports;
 }
 
 NodeQueryResult::NodeQueryResult(const Napi::CallbackInfo& info) : Napi::ObjectWrap<NodeQueryResult>(info)  {}
+
+void NodeQueryResult::SetQueryResult(shared_ptr<kuzu::main::QueryResult> & inputQueryResult) {
+    this->queryResult = inputQueryResult;
+}
 
 void NodeQueryResult::Close(const Napi::CallbackInfo& info) {
     Napi::Env env = info.Env();
@@ -45,7 +53,6 @@ Napi::Value NodeQueryResult::All(const Napi::CallbackInfo& info) {
     }
 
     Function callback = info[0].As<Function>();
-
     try {
         AllAsyncWorker* asyncWorker = new AllAsyncWorker(callback, queryResult);
         asyncWorker->Queue();

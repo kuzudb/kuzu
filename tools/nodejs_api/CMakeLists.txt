@@ -3,7 +3,7 @@ project (kuzujs)
 
 set(CMAKE_CXX_STANDARD 20)
 
-add_definitions(-DNAPI_VERSION=4)
+add_definitions(-DNAPI_VERSION=5)
 
 if (CMAKE_BUILD_TYPE EQUAL "DEBUG")
     set(LIB_KUZU_PATH ../../build/debug/src/libkuzu_shared.so)
@@ -43,3 +43,12 @@ file(COPY ${CMAKE_JS_SRC} DESTINATION ./kuzu)
 add_library(${PROJECT_NAME} SHARED ${SOURCE_FILES} ${CMAKE_JS_SRC})
 set_target_properties(${PROJECT_NAME} PROPERTIES PREFIX "" SUFFIX ".node")
 target_link_libraries(${PROJECT_NAME} PRIVATE ${CMAKE_JS_LIB} kuzu)
+
+# Include Node-API wrappers
+execute_process(COMMAND node -p "require('node-addon-api').include"
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        OUTPUT_VARIABLE NODE_ADDON_API_DIR
+        )
+string(REPLACE "\n" "" NODE_ADDON_API_DIR ${NODE_ADDON_API_DIR})
+string(REPLACE "\"" "" NODE_ADDON_API_DIR ${NODE_ADDON_API_DIR})
+target_include_directories(${PROJECT_NAME} PRIVATE ${NODE_ADDON_API_DIR})

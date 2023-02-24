@@ -13,7 +13,6 @@ AllAsyncWorker::AllAsyncWorker(Function& callback, shared_ptr<kuzu::main::QueryR
     : AsyncWorker(callback), queryResult(queryResult) {};
 
 void AllAsyncWorker::Execute() {
-
     try {
         size_t i = 0;
         while (this->queryResult->hasNext()) {
