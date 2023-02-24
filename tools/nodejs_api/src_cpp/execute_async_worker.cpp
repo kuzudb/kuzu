@@ -6,22 +6,22 @@
 #include "include/node_query_result.h"
 
 ExecuteAsyncWorker::ExecuteAsyncWorker(Function& callback, shared_ptr<kuzu::main::Connection>& connection,
-    std::string query)
-    : AsyncWorker(callback), connection(connection), query(query) {};
+    std::string query, NodeQueryResult * nodeQueryResult)
+    : AsyncWorker(callback), connection(connection), query(query), nodeQueryResult(nodeQueryResult) {};
 
 void ExecuteAsyncWorker::Execute() {
     try {
-        queryResult = connection->query(query);
+        shared_ptr<kuzu::main::QueryResult> queryResult = connection->query(query);
         if (!queryResult->isSuccess()) {
             SetError("Query async execute unsuccessful: " + queryResult->getErrorMessage());
         }
+        nodeQueryResult->SetQueryResult(queryResult);
     }
     catch(const std::exception &exc) {
-        SetError("Unsuccessful async execute: " + queryResult->getErrorMessage());
+        SetError("Unsuccessful async execute: " + std::string(exc.what()));
     }
 };
 
 void ExecuteAsyncWorker::OnOK() {
-    shared_ptr<kuzu::main::QueryResult> queryResult = std::move(this->queryResult);
-    Callback().Call({Env().Null(), NodeQueryResult::Wrap(Env(), queryResult)});
+    Callback().Call({Env().Null()});
 };

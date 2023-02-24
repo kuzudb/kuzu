@@ -26,8 +26,22 @@ Napi::Value Util::ConvertToNapiObject(const kuzu::common::Value& value, Napi::En
         }
         return arr;
     }
+    case kuzu::common::DATE: {
+        auto dateVal = value.getValue<date_t>();
+        int32_t year, month, day;
+        kuzu::common::Date::Convert(dateVal, year, month, day);
+        return Napi::Date::New(env, GetEpochFromDate(year, month, day));
+    }
     default:
         Napi::TypeError::New(env, "Unsupported type: " + kuzu::common::Types::dataTypeToString(dataType));
     }
     return Napi::Value();
+}
+
+unsigned long Util::GetEpochFromDate(int32_t year, int32_t month, int32_t day) {
+    std::tm t{};
+    t.tm_year = year - 1900;
+    t.tm_mon = month - 1;
+    t.tm_mday = day;
+    return std::chrono::system_clock::from_time_t(std::mktime(&t)).time_since_epoch().count();
 }

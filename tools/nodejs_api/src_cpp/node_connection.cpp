@@ -53,15 +53,16 @@ Napi::Value NodeConnection::Execute(const Napi::CallbackInfo& info) {
   Napi::Env env = info.Env();
   Napi::HandleScope scope(env);
 
-  if (info.Length()==2 && (!info[0].IsString() || !info[1].IsFunction())) {
+  if (!info.Length()==3 || !info[0].IsString() || !info[1].IsFunction() || !info[2].IsObject()) {
       Napi::TypeError::New(env, "Execute needs query parameter").ThrowAsJavaScriptException();
       return Napi::Object::New(env);
   }
   std::string query = info[0].ToString();
   Function callback = info[1].As<Function>();
+  NodeQueryResult * nodeQueryResult = Napi::ObjectWrap<NodeQueryResult>::Unwrap(info[2].As<Napi::Object>());
 
   try {
-      ExecuteAsyncWorker* asyncWorker = new ExecuteAsyncWorker(callback, connection, query);
+      ExecuteAsyncWorker* asyncWorker = new ExecuteAsyncWorker(callback, connection, query, nodeQueryResult);
       asyncWorker->Queue();
   } catch(const std::exception &exc) {
       Napi::TypeError::New(env, "Unsuccessful execute: " + std::string(exc.what())).ThrowAsJavaScriptException();
