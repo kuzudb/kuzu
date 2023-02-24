@@ -208,10 +208,14 @@ DataTypeID Types::dataTypeIDFromString(const std::string& dataTypeIDString) {
 
 std::string Types::dataTypeToString(const DataType& dataType) {
     switch (dataType.typeID) {
-    case VAR_LIST:
-    case FIXED_LIST: {
+    case VAR_LIST: {
         assert(dataType.childType);
         return dataTypeToString(*dataType.childType) + "[]";
+    }
+    case FIXED_LIST: {
+        assert(dataType.childType);
+        return dataTypeToString(*dataType.childType) + "[" +
+               std::to_string(dataType.fixedNumElementsInList) + "]";
     }
     case ANY:
     case NODE:

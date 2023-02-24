@@ -2,6 +2,7 @@ from . import _kuzu
 from .torch_geometric_feature_store import KuzuFeatureStore
 from .torch_geometric_graph_store import KuzuGraphStore
 from .types import Type
+import time
 
 
 class Database:
@@ -87,18 +88,30 @@ class Database:
         return KuzuFeatureStore(duplicated_db), KuzuGraphStore(duplicated_db)
 
     def _scan_node_table(self, table_name, prop_name, prop_type, indices):
+        import torch
+        import numpy as np
         """
         Scan a node table from storage directly, bypassing query engine.
         Used internally by torch_geometric remote backend only.
         """
         self.init_database()
+        start = time.time()
+        indices_cast = np.array(indices, dtype=np.uint64)
+        end = time.time() - start
+        print("Index cast time: ", end)
+
+        start = time.time()
+        result = None
         if prop_type == Type.INT64.value:
-            return self._database.scan_node_table_as_int64(
-                table_name, prop_name, indices)
+            result = self._database.scan_node_table_as_int64(
+                table_name, prop_name, indices_cast)
         if prop_type == Type.DOUBLE.value:
-            return self._database.scan_node_table_as_double(
-                table_name, prop_name, indices)
+            result = self._database.scan_node_table_as_double(
+                table_name, prop_name, indices_cast)
         if prop_type == Type.BOOL.value:
-            return self._database.scan_node_table_as_bool(
-                table_name, prop_name, indices)
+            result = self._database.scan_node_table_as_bool(
+                table_name, prop_name, indices_cast)
+        end = time.time() - start
+        print("Scan time: ", end)
+        return result
         raise ValueError("Unsupported property type: {}".format(prop_type))

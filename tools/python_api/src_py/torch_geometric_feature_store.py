@@ -1,5 +1,6 @@
 from .connection import Connection
 from typing import Dict, List, Optional, Tuple
+from .types import Type
 import numpy as np
 
 import torch
@@ -17,6 +18,7 @@ class KuzuFeatureStore(FeatureStore):
         super().__init__()
         self.db = db
         self.connection = None
+        self.node_properties_cache = {}
         os.register_at_fork(before=self.__close_connection)
 
     def _put_tensor(self, tensor: FeatureTensorType, attr: TensorAttr) -> bool:
@@ -45,10 +47,30 @@ class KuzuFeatureStore(FeatureStore):
                 where_clause = "WHERE offset(id(item)) >= %d AND offset(id(item)) < %d AND (offset(id(item)) - %d) %% %d = 0" % (
                     indices.start, indices.stop, indices.start, indices.step)
         elif isinstance(indices, Tensor) or isinstance(indices, list) or isinstance(indices, np.ndarray) or isinstance(indices, tuple):
-            where_clause = "WHERE"
-            for i in indices:
-                where_clause += " offset(id(item)) = %d OR" % int(i)
-            where_clause = where_clause[:-3]
+            if table_name not in self.node_properties_cache:
+                self.node_properties_cache[table_name] = self.connection._get_node_property_names(
+                    table_name)
+            attr_info = self.node_properties_cache[table_name][attr_name]
+            if (not attr_info["type"] in [Type.INT64.value, Type.DOUBLE.value, Type.BOOL.value]) or (attr_info["dimension"] > 0 and "shape" not in attr_info):
+                where_clause = "WHERE"
+                for i in indices:
+                    where_clause += " offset(id(item)) = %d OR" % int(i)
+                where_clause = where_clause[:-3]
+            else:
+                scan_result = self.connection.database._scan_node_table(
+                    table_name, attr_name, attr_info["type"], indices)
+                start = time.time()
+                if attr_info['dimension'] > 0 and "shape" in attr_info:
+                    result_shape = (len(indices),) + attr_info["shape"]
+                    scan_result = scan_result.reshape(result_shape)
+                end = time.time() - start
+                print("Reshape time: ", end)
+
+                start = time.time()
+                result = torch.from_numpy(scan_result)
+                end = time.time() - start
+                print("Tensor cast time: ", end)
+                return result
         else:
             raise ValueError("Invalid attr.index type: %s" % type(indices))
 
@@ -79,7 +101,10 @@ class KuzuFeatureStore(FeatureStore):
         if not self.connection:
             self.connection = Connection(self.db, num_threads=1)
         for table_name in self.connection._get_node_table_names():
-            for attr_name in self.connection._get_node_property_names(table_name):
+            if table_name not in self.node_properties_cache:
+                self.node_properties_cache[table_name] = self.connection._get_node_property_names(
+                    table_name)
+            for attr_name in self.node_properties_cache[table_name]:
                 retult_list.append(TensorAttr(table_name, attr_name))
         return retult_list
 

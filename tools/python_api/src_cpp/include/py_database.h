@@ -2,7 +2,7 @@
 
 #include "main/kuzu.h"
 #include "pybind_include.h"
-
+#define PYBIND11_DETAILED_ERROR_MESSAGES
 using namespace kuzu::main;
 
 class PyDatabase {
@@ -21,7 +21,7 @@ public:
 
     template<class T>
     py::array_t<T> scanNodeTable(
-        const std::string& tableName, const std::string& propName, py::list indices);
+        const std::string& tableName, const std::string& propName, py::array_t<uint64_t> indices);
 
     ~PyDatabase() = default;
 

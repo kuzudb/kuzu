@@ -91,7 +91,8 @@ class Connection:
 
     def _get_node_property_names(self, table_name):
         PRIMARY_KEY_SYMBOL = "(PRIMARY KEY)"
-        LIST_SYMBOL = "[]"
+        LIST_START_SYMBOL = "["
+        LIST_END_SYMBOL = "]"
         result_str = self._connection.get_node_property_names(
             table_name)
         results = {}
@@ -111,13 +112,23 @@ class Connection:
 
             is_primary_key = PRIMARY_KEY_SYMBOL in prop_type
             prop_type = prop_type.replace(PRIMARY_KEY_SYMBOL, "")
-            dimension = prop_type.count(LIST_SYMBOL)
-            prop_type = prop_type.replace(LIST_SYMBOL, "")
+            dimension = prop_type.count(LIST_START_SYMBOL)
+            splited = prop_type.split(LIST_START_SYMBOL)
+            shape = []
+            for s in splited:
+                if LIST_END_SYMBOL not in s:
+                    continue
+                s = s.split(LIST_END_SYMBOL)[0]
+                if s != "":
+                    shape.append(int(s))
+            prop_type = splited[0]
             results[prop_name] = {
                 "type": prop_type,
                 "dimension": dimension,
                 "is_primary_key": is_primary_key
             }
+            if len(shape) > 0:
+                results[prop_name]["shape"] = tuple(shape)
         return results
 
     def _get_node_table_names(self):
