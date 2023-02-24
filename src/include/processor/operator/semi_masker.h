@@ -20,12 +20,9 @@ public:
           keyDataPos{other.keyDataPos}, maskerIdx{other.maskerIdx},
           scanTableNodeIDSharedState{other.scanTableNodeIDSharedState} {}
 
-    inline void setSharedState(ScanTableNodeIDSharedState* sharedState) {
-        scanTableNodeIDSharedState = sharedState;
-        maskerIdx = scanTableNodeIDSharedState->getNumMaskers();
-        assert(maskerIdx < UINT8_MAX);
-        scanTableNodeIDSharedState->incrementNumMaskers();
-    }
+    // This function is used in the plan mapper to configure the shared state between the SemiMasker
+    // and ScanNodeID.
+    void setSharedState(ScanTableNodeIDSharedState* sharedState);
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
@@ -36,7 +33,9 @@ public:
     }
 
 private:
-    void initGlobalStateInternal(ExecutionContext* context) override;
+    inline void initGlobalStateInternal(ExecutionContext* context) override {
+        scanTableNodeIDSharedState->initSemiMask(context->transaction);
+    }
 
 private:
     DataPos keyDataPos;
