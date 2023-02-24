@@ -176,8 +176,7 @@ DataType Types::dataTypeFromString(const std::string& dataTypeString) {
         dataType.childType = std::make_unique<DataType>(
             dataTypeFromString(dataTypeString.substr(0, leftBracketPos)));
         dataType.fixedNumElementsInList = std::strtoll(
-            dataTypeString.substr(leftBracketPos + 1, dataTypeString.size() - rightBracketPos)
-                .c_str(),
+            dataTypeString.substr(leftBracketPos + 1, rightBracketPos - leftBracketPos - 1).c_str(),
             nullptr, 0 /* base */);
     } else {
         dataType.typeID = dataTypeIDFromString(dataTypeString);
