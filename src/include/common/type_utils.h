@@ -10,7 +10,6 @@ class TypeUtils {
 
 public:
     static int64_t convertToInt64(const char* data);
-    static double_t convertToDouble(const char* data);
     static uint32_t convertToUint32(const char* data);
     static bool convertToBoolean(const char* data);
 
@@ -45,7 +44,24 @@ public:
         return left == right;
     }
 
+    template<typename T>
+    static T convertFloatingPointNumber(const char* data, DataTypeID typeID) {
+        char* eptr;
+        errno = 0;
+        auto retVal = convertStringToFloatingPointNumber<T>(data, &eptr);
+        throwConversionExceptionIfNoOrNotEveryCharacterIsConsumed(data, eptr, typeID);
+        if ((HUGE_VAL == retVal || -HUGE_VAL == retVal) && errno == ERANGE) {
+            throwConversionExceptionOutOfRange(data, typeID);
+        }
+        return retVal;
+    }
+
 private:
+    template<typename T>
+    inline static T convertStringToFloatingPointNumber(const char* data, char** eptr) {
+        throw common::NotImplementedException{
+            "Unimplemented convertStringToFloatingPointNumber operation."};
+    }
     static std::string elementToString(
         const DataType& dataType, uint8_t* overflowPtr, uint64_t pos);
 
@@ -54,6 +70,16 @@ private:
         const char* data, const char* eptr, DataTypeID dataTypeID);
     static std::string prefixConversionExceptionMessage(const char* data, DataTypeID dataTypeID);
 };
+
+template<>
+inline double_t TypeUtils::convertStringToFloatingPointNumber(const char* data, char** eptr) {
+    return strtod(data, eptr);
+}
+
+template<>
+inline float_t TypeUtils::convertStringToFloatingPointNumber(const char* data, char** eptr) {
+    return strtof(data, eptr);
+}
 
 template<>
 inline bool TypeUtils::isValueEqual(ku_list_t& left, ku_list_t& right, const DataType& leftDataType,

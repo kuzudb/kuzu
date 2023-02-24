@@ -211,7 +211,7 @@ encode_function_t OrderByKeyEncoder::getEncodingFunction(DataTypeID typeId) {
         return encodeTemplate<int64_t>;
     }
     case DOUBLE: {
-        return encodeTemplate<double>;
+        return encodeTemplate<double_t>;
     }
     case STRING: {
         return encodeTemplate<ku_string_t>;
@@ -224,6 +224,9 @@ encode_function_t OrderByKeyEncoder::getEncodingFunction(DataTypeID typeId) {
     }
     case INTERVAL: {
         return encodeTemplate<interval_t>;
+    }
+    case FLOAT: {
+        return encodeTemplate<float_t>;
     }
     default: {
         throw RuntimeException("Cannot encode data type " + Types::dataTypeToString(typeId));
@@ -256,7 +259,7 @@ void OrderByKeyEncoder::encodeData(bool data, uint8_t* resultPtr, bool swapBytes
 }
 
 template<>
-void OrderByKeyEncoder::encodeData(double data, uint8_t* resultPtr, bool swapBytes) {
+void OrderByKeyEncoder::encodeData(double_t data, uint8_t* resultPtr, bool swapBytes) {
     memcpy(resultPtr, &data, sizeof(data));
     uint64_t* dataBytes = (uint64_t*)resultPtr;
     if (swapBytes) {
@@ -299,6 +302,20 @@ void OrderByKeyEncoder::encodeData(ku_string_t data, uint8_t* resultPtr, bool sw
         memset(resultPtr + data.len, '\0', ku_string_t::SHORT_STR_LENGTH + 1 - data.len);
     } else {
         resultPtr[12] = UINT8_MAX;
+    }
+}
+
+template<>
+void OrderByKeyEncoder::encodeData(float_t data, uint8_t* resultPtr, bool swapBytes) {
+    memcpy(resultPtr, &data, sizeof(data));
+    uint32_t* dataBytes = (uint32_t*)resultPtr;
+    if (swapBytes) {
+        *dataBytes = BSWAP32(*dataBytes);
+    }
+    if (data < (float)0) {
+        *dataBytes = ~*dataBytes;
+    } else {
+        resultPtr[0] = flipSign(resultPtr[0]);
     }
 }
 

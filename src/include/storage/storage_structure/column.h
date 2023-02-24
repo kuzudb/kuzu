@@ -277,6 +277,7 @@ public:
         switch (dataType.typeID) {
         case common::INT64:
         case common::DOUBLE:
+        case common::FLOAT:
         case common::BOOL:
         case common::DATE:
         case common::TIMESTAMP:

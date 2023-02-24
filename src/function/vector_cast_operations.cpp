@@ -13,8 +13,20 @@ scalar_exec_func VectorCastOperations::bindExecFunc(
     switch (sourceTypeID) {
     case common::INT64: {
         switch (targetTypeID) {
+        case common::FLOAT:
+            return VectorOperations::UnaryExecFunction<int64_t, float_t, operation::CastToFloat>;
         case common::DOUBLE:
             return VectorOperations::UnaryExecFunction<int64_t, double_t, operation::CastToDouble>;
+        default:
+            throw common::InternalException("Undefined casting operation from " +
+                                            common::Types::dataTypeToString(sourceTypeID) + " to " +
+                                            common::Types::dataTypeToString(targetTypeID) + ".");
+        }
+    }
+    case common::FLOAT: {
+        switch (targetTypeID) {
+        case common::DOUBLE:
+            return VectorOperations::UnaryExecFunction<float_t, double_t, operation::CastToDouble>;
         default:
             throw common::InternalException("Undefined casting operation from " +
                                             common::Types::dataTypeToString(sourceTypeID) + " to " +
@@ -82,6 +94,9 @@ CastToStringVectorOperation::getDefinitions() {
     result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_STRING_FUNC_NAME,
         std::vector<DataTypeID>{VAR_LIST}, STRING,
         UnaryCastExecFunction<ku_list_t, ku_string_t, operation::CastToString>));
+    result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_STRING_FUNC_NAME,
+        std::vector<DataTypeID>{FLOAT}, STRING,
+        UnaryCastExecFunction<float_t, ku_string_t, operation::CastToString>));
     return result;
 }
 
@@ -90,6 +105,16 @@ CastToDoubleVectorOperation::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
     result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_DOUBLE_FUNC_NAME,
         std::vector<DataTypeID>{INT64}, DOUBLE, bindExecFunc(INT64, DOUBLE)));
+    result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_DOUBLE_FUNC_NAME,
+        std::vector<DataTypeID>{FLOAT}, DOUBLE, bindExecFunc(FLOAT, DOUBLE)));
+    return result;
+}
+
+std::vector<std::unique_ptr<VectorOperationDefinition>>
+CastToFloatVectorOperation::getDefinitions() {
+    std::vector<std::unique_ptr<VectorOperationDefinition>> result;
+    result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_FLOAT_FUNC_NAME,
+        std::vector<DataTypeID>{INT64}, FLOAT, bindExecFunc(INT64, FLOAT)));
     return result;
 }
 

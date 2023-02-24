@@ -25,6 +25,7 @@ const std::string CAST_TO_TIMESTAMP_FUNC_NAME = "TIMESTAMP";
 const std::string CAST_TO_INTERVAL_FUNC_NAME = "INTERVAL";
 const std::string CAST_TO_STRING_FUNC_NAME = "STRING";
 const std::string CAST_TO_DOUBLE_FUNC_NAME = "TO_DOUBLE";
+const std::string CAST_TO_FLOAT_FUNC_NAME = "TO_FLOAT";
 const std::string IMPLICIT_CAST_TO_BOOL_FUNC_NAME = "_BOOL";
 const std::string IMPLICIT_CAST_TO_INT_FUNC_NAME = "_INT";
 const std::string IMPLICIT_CAST_TO_STRING_FUNC_NAME = "_STRING";

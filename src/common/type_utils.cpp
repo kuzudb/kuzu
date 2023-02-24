@@ -31,17 +31,6 @@ uint32_t TypeUtils::convertToUint32(const char* data) {
     return val;
 }
 
-double_t TypeUtils::convertToDouble(const char* data) {
-    char* eptr;
-    errno = 0;
-    auto retVal = strtod(data, &eptr);
-    throwConversionExceptionIfNoOrNotEveryCharacterIsConsumed(data, eptr, DOUBLE);
-    if ((HUGE_VAL == retVal || -HUGE_VAL == retVal) && errno == ERANGE) {
-        throwConversionExceptionOutOfRange(data, DOUBLE);
-    }
-    return retVal;
-};
-
 bool TypeUtils::convertToBoolean(const char* data) {
     auto len = strlen(data);
     if (len == 4 && 't' == tolower(data[0]) && 'r' == tolower(data[1]) && 'u' == tolower(data[2]) &&

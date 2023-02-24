@@ -101,6 +101,7 @@ std::unique_ptr<InMemColumn> InMemColumnFactory::getInMemPropertyColumn(
     switch (dataType.typeID) {
     case INT64:
     case DOUBLE:
+    case FLOAT:
     case BOOL:
     case DATE:
     case TIMESTAMP:

@@ -206,6 +206,7 @@ std::unique_ptr<InMemLists> InMemListsFactory::getInMemPropertyLists(
     switch (dataType.typeID) {
     case INT64:
     case DOUBLE:
+    case FLOAT:
     case BOOL:
     case DATE:
     case TIMESTAMP:

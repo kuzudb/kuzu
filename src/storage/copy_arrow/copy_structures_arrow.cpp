@@ -346,6 +346,11 @@ std::unique_ptr<uint8_t[]> CopyStructuresArrow::getArrowFixedList(std::string& l
             memcpy(listVal.get() + numElementsRead * sizeof(double), &val, sizeof(double));
             numElementsRead++;
         } break;
+        case FLOAT: {
+            auto val = stof(element);
+            memcpy(listVal.get() + numElementsRead * sizeof(float), &val, sizeof(float));
+            numElementsRead++;
+        } break;
         default: {
             throw ReaderException("Unsupported data type " +
                                   Types::dataTypeToString(dataType.childType->typeID) +

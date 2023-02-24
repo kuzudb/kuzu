@@ -83,6 +83,11 @@ public:
      */
     KUZU_API explicit Value(DataType dataType, std::vector<std::unique_ptr<Value>> vals);
     /**
+     * @param val_ the string value to set.
+     * @return a Value with STRING type and val_ value.
+     */
+    KUZU_API explicit Value(float_t val_);
+    /**
      * @param val_ the node value to set.
      * @return a Value with NODE type and val_ value.
      */
@@ -177,6 +182,15 @@ private:
     void validateType(DataTypeID typeID) const;
     void validateType(const DataType& type) const;
 
+    template<typename T>
+    static inline void putValuesIntoVector(std::vector<std::unique_ptr<Value>>& fixedListResultVal,
+        const uint8_t* fixedList, uint64_t numBytesPerElement) {
+        for (auto i = 0; i < fixedListResultVal.size(); ++i) {
+            fixedListResultVal[i] =
+                std::make_unique<Value>(*(T*)(fixedList + i * numBytesPerElement));
+        }
+    }
+
     std::vector<std::unique_ptr<Value>> convertKUVarListToVector(ku_list_t& list) const;
     std::vector<std::unique_ptr<Value>> convertKUFixedListToVector(const uint8_t* fixedList) const;
 
@@ -189,6 +203,7 @@ public:
         bool booleanVal;
         int64_t int64Val;
         double doubleVal;
+        float floatVal;
         date_t dateVal;
         timestamp_t timestampVal;
         interval_t intervalVal;

@@ -14,10 +14,8 @@ protected:
     static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions(
         const std::string& name) {
         std::vector<std::unique_ptr<VectorOperationDefinition>> definitions;
-        for (auto& leftTypeID : common::DataType::getNumericalTypeIDs()) {
-            for (auto& rightTypeID : common::DataType::getNumericalTypeIDs()) {
-                definitions.push_back(getDefinition<FUNC>(name, leftTypeID, rightTypeID));
-            }
+        for (auto& numericTypeID : common::DataType::getNumericalTypeIDs()) {
+            definitions.push_back(getDefinition<FUNC>(name, numericTypeID, numericTypeID));
         }
         for (auto& typeID : std::vector<common::DataTypeID>{common::BOOL, common::STRING,
                  common::INTERNAL_ID, common::DATE, common::TIMESTAMP, common::INTERVAL}) {
@@ -44,32 +42,13 @@ private:
         common::DataTypeID leftTypeID, common::DataTypeID rightTypeID) {
         switch (leftTypeID) {
         case common::INT64: {
-            switch (rightTypeID) {
-            case common::INT64: {
-                return BinaryExecFunction<int64_t, int64_t, uint8_t, FUNC>;
-            }
-            case common::DOUBLE: {
-                return BinaryExecFunction<int64_t, double_t, uint8_t, FUNC>;
-            }
-            default:
-                throw common::RuntimeException(
-                    "Invalid input data types(" + common::Types::dataTypeToString(leftTypeID) +
-                    "," + common::Types::dataTypeToString(rightTypeID) + ") for getExecFunc.");
-            }
+            return BinaryExecFunction<int64_t, int64_t, uint8_t, FUNC>;
         }
         case common::DOUBLE: {
-            switch (rightTypeID) {
-            case common::INT64: {
-                return BinaryExecFunction<double_t, int64_t, uint8_t, FUNC>;
-            }
-            case common::DOUBLE: {
-                return BinaryExecFunction<double_t, double_t, uint8_t, FUNC>;
-            }
-            default:
-                throw common::RuntimeException(
-                    "Invalid input data types(" + common::Types::dataTypeToString(leftTypeID) +
-                    "," + common::Types::dataTypeToString(rightTypeID) + ") for getExecFunc.");
-            }
+            return BinaryExecFunction<double, double, uint8_t, FUNC>;
+        }
+        case common::FLOAT: {
+            return BinaryExecFunction<float, float, uint8_t, FUNC>;
         }
         case common::BOOL: {
             assert(rightTypeID == common::BOOL);
@@ -127,32 +106,13 @@ private:
         common::DataTypeID leftTypeID, common::DataTypeID rightTypeID) {
         switch (leftTypeID) {
         case common::INT64: {
-            switch (rightTypeID) {
-            case common::INT64: {
-                return BinarySelectFunction<int64_t, int64_t, FUNC>;
-            }
-            case common::DOUBLE: {
-                return BinarySelectFunction<int64_t, double_t, FUNC>;
-            }
-            default:
-                throw common::RuntimeException(
-                    "Invalid input data types(" + common::Types::dataTypeToString(leftTypeID) +
-                    "," + common::Types::dataTypeToString(rightTypeID) + ") for getSelectFunc.");
-            }
+            return BinarySelectFunction<int64_t, int64_t, FUNC>;
         }
         case common::DOUBLE: {
-            switch (rightTypeID) {
-            case common::INT64: {
-                return BinarySelectFunction<double_t, int64_t, FUNC>;
-            }
-            case common::DOUBLE: {
-                return BinarySelectFunction<double_t, double_t, FUNC>;
-            }
-            default:
-                throw common::RuntimeException(
-                    "Invalid input data types(" + common::Types::dataTypeToString(leftTypeID) +
-                    "," + common::Types::dataTypeToString(rightTypeID) + ") for getSelectFunc.");
-            }
+            return BinarySelectFunction<double_t, double_t, FUNC>;
+        }
+        case common::FLOAT: {
+            return BinarySelectFunction<float_t, float_t, FUNC>;
         }
         case common::BOOL: {
             assert(rightTypeID == common::BOOL);

@@ -868,8 +868,9 @@ std::unique_ptr<ParsedExpression> Transformer::transformIntegerLiteral(
 
 std::unique_ptr<ParsedExpression> Transformer::transformDoubleLiteral(
     CypherParser::OC_DoubleLiteralContext& ctx) {
-    auto value = std::make_unique<common::Value>(
-        common::TypeUtils::convertToDouble(ctx.RegularDecimalReal()->getText().c_str()));
+    auto value =
+        std::make_unique<common::Value>(common::TypeUtils::convertFloatingPointNumber<double_t>(
+            ctx.RegularDecimalReal()->getText().c_str(), common::DOUBLE));
     return std::make_unique<ParsedLiteralExpression>(std::move(value), ctx.getText());
 }
 
