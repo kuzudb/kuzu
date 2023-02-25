@@ -4,6 +4,7 @@
 #include "include/node_database.h"
 #include "include/node_query_result.h"
 #include "main/kuzu.h"
+#include "include/util.h"
 
 using namespace kuzu::main;
 
@@ -53,16 +54,16 @@ Napi::Value NodeConnection::Execute(const Napi::CallbackInfo& info) {
   Napi::Env env = info.Env();
   Napi::HandleScope scope(env);
 
-  if (!info.Length()==3 || !info[0].IsString() || !info[1].IsFunction() || !info[2].IsObject()) {
+  if (!info.Length()==4 || !info[0].IsString() || !info[1].IsFunction() || !info[2].IsObject() || !info[3].IsArray()) {
       Napi::TypeError::New(env, "Execute needs query parameter").ThrowAsJavaScriptException();
       return Napi::Object::New(env);
   }
   std::string query = info[0].ToString();
   Function callback = info[1].As<Function>();
   NodeQueryResult * nodeQueryResult = Napi::ObjectWrap<NodeQueryResult>::Unwrap(info[2].As<Napi::Object>());
-
+  auto params = Util::transformParameters(info[3].As<Napi::Array>());
   try {
-      ExecuteAsyncWorker* asyncWorker = new ExecuteAsyncWorker(callback, connection, query, nodeQueryResult);
+      ExecuteAsyncWorker* asyncWorker = new ExecuteAsyncWorker(callback, connection, query, nodeQueryResult, params);
       asyncWorker->Queue();
   } catch(const std::exception &exc) {
       Napi::TypeError::New(env, "Unsuccessful execute: " + std::string(exc.what())).ThrowAsJavaScriptException();
