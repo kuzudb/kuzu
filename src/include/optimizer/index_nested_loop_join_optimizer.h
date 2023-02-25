@@ -2,7 +2,7 @@
 
 #include <vector>
 
-#include "planner/logical_plan/logical_operator/base_logical_operator.h"
+#include "planner/logical_plan/logical_plan.h"
 
 namespace kuzu {
 namespace optimizer {
@@ -16,10 +16,12 @@ namespace optimizer {
 // implemented.
 class IndexNestedLoopJoinOptimizer {
 public:
+    static void rewrite(planner::LogicalPlan* plan);
+
+private:
     static std::shared_ptr<planner::LogicalOperator> rewrite(
         std::shared_ptr<planner::LogicalOperator> op);
 
-private:
     static std::shared_ptr<planner::LogicalOperator> rewriteFilter(
         std::shared_ptr<planner::LogicalOperator> op);
 
