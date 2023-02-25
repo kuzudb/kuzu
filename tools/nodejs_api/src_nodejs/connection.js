@@ -7,19 +7,19 @@ class Connection {
         this.#connection = new kuzu.NodeConnection(database.database, numThreads);
     }
 
-    execute(query, callback=null){
+    execute(query, callback=null, params=[]){
         const nodeQueryResult = new kuzu.NodeQueryResult();
         if (callback) {
             this.#connection.execute(query, err => {
                 const queryResult = new QueryResult(nodeQueryResult);
                 callback(err, queryResult);
-            }, nodeQueryResult);
+            }, nodeQueryResult, params);
         } else {
             return new Promise ((resolve, reject) => {
                 this.#connection.execute(query, err => {
                     if (err) { return reject(err); }
                     return resolve(new QueryResult(nodeQueryResult));
-                }, nodeQueryResult);
+                }, nodeQueryResult, params);
             })
         }
     }

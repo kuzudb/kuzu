@@ -9,7 +9,7 @@ class ExecuteAsyncWorker : public AsyncWorker {
 
 public:
     ExecuteAsyncWorker(Function& callback, shared_ptr<kuzu::main::Connection>& connection,
-        std::string query, NodeQueryResult * nodeQueryResult);
+        std::string query, NodeQueryResult * nodeQueryResult, unordered_map<std::string, shared_ptr<kuzu::common::Value>> & params);
     virtual ~ExecuteAsyncWorker() {};
 
     void Execute();
@@ -19,4 +19,5 @@ private:
     NodeQueryResult * nodeQueryResult;
     std::string query;
     shared_ptr<kuzu::main::Connection> connection;
+    unordered_map<std::string, shared_ptr<kuzu::common::Value>> params;
 };
