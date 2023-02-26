@@ -372,6 +372,11 @@ void CopyRelArrow::putPropsOfLineIntoColumns(CopyRelArrow* copier,
             putValueIntoColumns(
                 propertyIdx, directionTablePropertyColumns, nodeIDs, fixedListVal.get());
         } break;
+        case FLOAT: {
+            float_t val = TypeUtils::convertToFloat(data);
+            putValueIntoColumns(propertyIdx, directionTablePropertyColumns, nodeIDs,
+                reinterpret_cast<uint8_t*>(&val));
+        } break;
         default:
             break;
         }
@@ -504,6 +509,11 @@ void CopyRelArrow::putPropsOfLineIntoLists(CopyRelArrow* copier,
                 properties[propertyIdx].dataType, copyDescription);
             putValueIntoLists(propertyIdx, directionTablePropertyLists, directionTableAdjLists,
                 nodeIDs, reversePos, fixedListVal.get());
+        } break;
+        case FLOAT: {
+            float_t val = TypeUtils::convertToFloat(data);
+            putValueIntoLists(propertyIdx, directionTablePropertyLists, directionTableAdjLists,
+                nodeIDs, reversePos, reinterpret_cast<uint8_t*>(&val));
         } break;
         default:
             break;

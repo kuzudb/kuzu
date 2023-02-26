@@ -54,8 +54,16 @@ inline std::string CastToString::castToStringWithDataType(
 }
 
 struct CastToDouble {
-    static inline void operation(int64_t& input, double_t& result) {
+    template<typename T>
+    static inline void operation(T& input, double_t& result) {
         result = static_cast<double_t>(input);
+    }
+};
+
+struct CastToFloat {
+    template<typename T>
+    static inline void operation(T& input, float_t& result) {
+        result = static_cast<float_t>(input);
     }
 };
 

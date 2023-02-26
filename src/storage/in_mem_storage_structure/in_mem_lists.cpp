@@ -211,6 +211,7 @@ std::unique_ptr<InMemLists> InMemListsFactory::getInMemPropertyLists(
     case TIMESTAMP:
     case INTERVAL:
     case FIXED_LIST:
+    case FLOAT:
         return make_unique<InMemLists>(fName, dataType, Types::getDataTypeSize(dataType), numNodes);
     case STRING:
         return make_unique<InMemStringLists>(fName, numNodes);

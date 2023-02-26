@@ -108,6 +108,18 @@ Alice|1
 1|[35,45,20]
 2|[30,20,25,40,83]
 
+-NAME HashCollectFloatTest
+-QUERY MATCH (p:person) RETURN p.height, collect(p.eyeSight)
+---- 8
+1.731000|[5.000000]
+0.990000|[5.100000]
+1.000000|[5.000000]
+1.300000|[4.800000]
+1.463000|[4.700000]
+1.510000|[4.500000]
+1.600000|[4.900000]
+1.323000|[4.900000]
+
 -NAME HashCollectSTRINGTest
 -QUERY MATCH (p:person) RETURN p.age, collect(p.fName)
 ---- 7

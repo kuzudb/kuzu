@@ -106,6 +106,7 @@ std::unique_ptr<InMemColumn> InMemColumnFactory::getInMemPropertyColumn(
     case TIMESTAMP:
     case INTERVAL:
     case FIXED_LIST:
+    case FLOAT:
         return make_unique<InMemColumn>(
             fName, dataType, Types::getDataTypeSize(dataType), numElements);
     case STRING:

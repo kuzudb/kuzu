@@ -89,6 +89,8 @@ uint32_t BuiltInVectorOperations::getCastCost(DataTypeID inputTypeID, DataTypeID
             return implicitCastInt64(targetTypeID);
         case common::DOUBLE:
             return implicitCastDouble(targetTypeID);
+        case common::FLOAT:
+            return implicitCastFloat(targetTypeID);
         default:
             return UINT32_MAX;
         }
@@ -110,10 +112,22 @@ uint32_t BuiltInVectorOperations::getCastCost(
     }
 }
 
-uint32_t BuiltInVectorOperations::implicitCastInt64(common::DataTypeID targetTypeID) {
-    switch (targetTypeID) {
+uint32_t BuiltInVectorOperations::getTargetTypeCost(common::DataTypeID typeID) {
+    switch (typeID) {
+    case common::FLOAT:
+        return 110;
     case common::DOUBLE:
         return 102;
+    default:
+        throw InternalException("Unsupported casting operation.");
+    }
+}
+
+uint32_t BuiltInVectorOperations::implicitCastInt64(common::DataTypeID targetTypeID) {
+    switch (targetTypeID) {
+    case common::FLOAT:
+    case common::DOUBLE:
+        return getTargetTypeCost(targetTypeID);
     default:
         return UINT32_MAX;
     }
@@ -121,6 +135,15 @@ uint32_t BuiltInVectorOperations::implicitCastInt64(common::DataTypeID targetTyp
 
 uint32_t BuiltInVectorOperations::implicitCastDouble(common::DataTypeID targetTypeID) {
     switch (targetTypeID) {
+    default:
+        return UINT32_MAX;
+    }
+}
+
+uint32_t BuiltInVectorOperations::implicitCastFloat(common::DataTypeID targetTypeID) {
+    switch (targetTypeID) {
+    case common::DOUBLE:
+        return getTargetTypeCost(targetTypeID);
     default:
         return UINT32_MAX;
     }
@@ -329,6 +352,8 @@ void BuiltInVectorOperations::registerCastOperations() {
         {CAST_TO_STRING_FUNC_NAME, CastToStringVectorOperation::getDefinitions()});
     vectorOperations.insert(
         {CAST_TO_DOUBLE_FUNC_NAME, CastToDoubleVectorOperation::getDefinitions()});
+    vectorOperations.insert(
+        {CAST_TO_FLOAT_FUNC_NAME, CastToFloatVectorOperation::getDefinitions()});
 }
 
 void BuiltInVectorOperations::registerListOperations() {

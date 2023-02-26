@@ -43,7 +43,7 @@ Value Value::createDefaultValue(const DataType& dataType) {
     case BOOL:
         return Value(true);
     case DOUBLE:
-        return Value(0.0);
+        return Value((double)0);
     case DATE:
         return Value(date_t());
     case TIMESTAMP:
@@ -54,6 +54,8 @@ Value Value::createDefaultValue(const DataType& dataType) {
         return Value(nodeID_t());
     case STRING:
         return Value(std::string(""));
+    case FLOAT:
+        return Value(float(0));
     case VAR_LIST:
     case FIXED_LIST:
         return Value(dataType, std::vector<std::unique_ptr<Value>>{});
@@ -108,6 +110,10 @@ Value::Value(DataType dataType, std::vector<std::unique_ptr<Value>> vals)
     listVal = std::move(vals);
 }
 
+Value::Value(float_t val_) : dataType{FLOAT}, isNull_{false} {
+    val.floatVal = val_;
+}
+
 Value::Value(std::unique_ptr<NodeVal> val_) : dataType{NODE}, isNull_{false} {
     nodeVal = std::move(val_);
 }
@@ -156,6 +162,9 @@ void Value::copyValueFrom(const uint8_t* value) {
     } break;
     case FIXED_LIST: {
         listVal = convertKUFixedListToVector(value);
+    } break;
+    case FLOAT: {
+        val.floatVal = *((float_t*)value);
     } break;
     default:
         throw RuntimeException(
@@ -207,6 +216,9 @@ void Value::copyValueFrom(const Value& other) {
     case REL: {
         relVal = other.relVal->copy();
     } break;
+    case FLOAT: {
+        val.floatVal = other.val.floatVal;
+    } break;
     default:
         throw NotImplementedException("Value::Value(const Value&) for type " +
                                       Types::dataTypeToString(dataType) + " is not implemented.");
@@ -251,6 +263,8 @@ std::string Value::toString() const {
         return nodeVal->toString();
     case REL:
         return relVal->toString();
+    case FLOAT:
+        return TypeUtils::toString(val.floatVal);
     default:
         throw NotImplementedException("Value::toString for type " +
                                       Types::dataTypeToString(dataType) + " is not implemented.");
@@ -300,6 +314,12 @@ std::vector<std::unique_ptr<Value>> Value::convertKUFixedListToVector(
         for (auto i = 0; i < dataType.fixedNumElementsInList; ++i) {
             fixedListResultVal.emplace_back(
                 std::make_unique<Value>(*(double_t*)(fixedList + i * numBytesPerElement)));
+        }
+    } break;
+    case common::DataTypeID::FLOAT: {
+        for (auto i = 0; i < dataType.fixedNumElementsInList; ++i) {
+            fixedListResultVal.emplace_back(
+                std::make_unique<Value>(*(float_t*)(fixedList + i * numBytesPerElement)));
         }
     } break;
     default:

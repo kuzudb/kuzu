@@ -152,9 +152,11 @@ struct Atan {
 
 struct Even {
     template<class T>
-    static inline void operation(T& input, int64_t& result) {
+    static inline void operation(T& input, double_t& result) {
         result = input >= 0 ? ceil(input) : floor(input);
-        if (result % 2) {
+        // Note: c++ doesn't support double % integer, so we have to use the following code to check
+        // whether result is odd or even.
+        if (std::floor(result / 2) * 2 != result) {
             result += (input >= 0 ? 1 : -1);
         }
     }

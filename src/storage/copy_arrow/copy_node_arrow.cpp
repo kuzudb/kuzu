@@ -288,6 +288,10 @@ void CopyNodeArrow::putPropsOfLineIntoColumns(
                     column->getDataType(), copyDescription);
                 column->setElement(nodeOffset, fixedListVal.get());
             } break;
+            case FLOAT: {
+                auto val = TypeUtils::convertToFloat(data);
+                column->setElement(nodeOffset, reinterpret_cast<uint8_t*>(&val));
+            } break;
             default:
                 break;
             }

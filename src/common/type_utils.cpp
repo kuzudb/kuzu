@@ -42,6 +42,17 @@ double_t TypeUtils::convertToDouble(const char* data) {
     return retVal;
 };
 
+float_t TypeUtils::convertToFloat(const char* data) {
+    char* eptr;
+    errno = 0;
+    auto retVal = strtof(data, &eptr);
+    throwConversionExceptionIfNoOrNotEveryCharacterIsConsumed(data, eptr, FLOAT);
+    if ((HUGE_VAL == retVal || -HUGE_VAL == retVal) && errno == ERANGE) {
+        throwConversionExceptionOutOfRange(data, FLOAT);
+    }
+    return retVal;
+}
+
 bool TypeUtils::convertToBoolean(const char* data) {
     auto len = strlen(data);
     if (len == 4 && 't' == tolower(data[0]) && 'r' == tolower(data[1]) && 'u' == tolower(data[2]) &&

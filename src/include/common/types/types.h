@@ -55,6 +55,7 @@ KUZU_API enum DataTypeID : uint8_t {
     TIMESTAMP = 26,
     INTERVAL = 27,
     FIXED_LIST = 28,
+    FLOAT = 29,
 
     INTERNAL_ID = 40,
 

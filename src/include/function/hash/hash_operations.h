@@ -107,6 +107,11 @@ inline void Hash::operation(const common::ku_list_t& key, common::hash_t& result
 }
 
 template<>
+inline void Hash::operation(const float_t& key, common::hash_t& result) {
+    result = murmurhash64(key);
+}
+
+template<>
 inline void Hash::operation(const std::unordered_set<std::string>& key, common::hash_t& result) {
     for (auto&& s : key) {
         result ^= std::hash<std::string>()(s);

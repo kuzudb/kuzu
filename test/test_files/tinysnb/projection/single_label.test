@@ -360,3 +360,33 @@ Dan|Carol
 [2.100000,4.400000]
 [3.800000,2.500000]
 [9.200000,3.100000]
+
+-NAME ReturnFloatNodeProp
+-QUERY MATCH (a:person) RETURN a.height
+---- 8
+1.731000
+0.990000
+1.000000
+1.300000
+1.463000
+1.510000
+1.600000
+1.323000
+
+-NAME ReturnFloatRelProp
+-QUERY MATCH (a:person)-[e:workAt]->(o:organisation) RETURN e.rating
+---- 3
+8.200000
+7.600000
+9.200000
+
+-NAME ReturnFixedListFloatRelProp
+-QUERY MATCH (a:person)-[e:meets]->(b:person) RETURN e.location
+---- 7
+[7.820000,3.540000]
+[2.870000,4.230000]
+[3.650000,8.440000]
+[2.110000,3.100000]
+[2.200000,9.000000]
+[3.000000,5.200000]
+[3.500000,1.100000]
