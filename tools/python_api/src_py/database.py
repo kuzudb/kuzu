@@ -118,6 +118,9 @@ class Database:
         if prop_type == Type.BOOL.value:
             result = self._database.scan_node_table_as_bool(
                 table_name, prop_name, indices_cast)
+        if prop_type == Type.FLOAT.value:
+            result = self._database.scan_node_table_as_float(
+                table_name, prop_name, indices_cast)
         end = time.time() - start
         # print("Scan time: ", end)
         if result is not None:

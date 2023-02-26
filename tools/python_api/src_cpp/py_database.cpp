@@ -16,6 +16,9 @@ void PyDatabase::initialize(py::handle& m) {
         .def("scan_node_table_as_double", &PyDatabase::scanNodeTable<std::double_t>,
             py::return_value_policy::take_ownership, py::arg("table_name"), py::arg("prop_name"),
             py::arg("indices"))
+        .def("scan_node_table_as_float", &PyDatabase::scanNodeTable<std::float_t>,
+            py::return_value_policy::take_ownership, py::arg("table_name"), py::arg("prop_name"),
+            py::arg("indices"))
         .def("scan_node_table_as_bool", &PyDatabase::scanNodeTable<bool>,
             py::return_value_policy::take_ownership, py::arg("table_name"), py::arg("prop_name"),
             py::arg("indices"));

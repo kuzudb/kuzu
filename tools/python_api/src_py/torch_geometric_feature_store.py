@@ -59,7 +59,9 @@ class KuzuFeatureStore(FeatureStore):
                 self.node_properties_cache[table_name] = self.connection._get_node_property_names(
                     table_name)
             attr_info = self.node_properties_cache[table_name][attr_name]
-            if (not attr_info["type"] in [Type.INT64.value, Type.DOUBLE.value, Type.BOOL.value]) or (attr_info["dimension"] > 0 and "shape" not in attr_info):
+            if (not attr_info["type"] in [
+                Type.INT64.value, Type.DOUBLE.value, Type.FLOAT.value, Type.BOOL.value
+            ]) or (attr_info["dimension"] > 0 and "shape" not in attr_info):
                 where_clause = "WHERE"
                 for i in indices:
                     where_clause += " offset(id(item)) = %d OR" % int(i)

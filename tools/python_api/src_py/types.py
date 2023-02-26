@@ -6,6 +6,7 @@ class Type(Enum):
     BOOL = "BOOL"
     INT64 = "INT64"
     DOUBLE = "DOUBLE"
+    FLOAT = "FLOAT"
     STRING = "STRING"
     DATE = "DATE"
     TIMESTAMP = "TIMESTAMP"
