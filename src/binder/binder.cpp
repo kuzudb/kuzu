@@ -1,5 +1,7 @@
 #include "binder/binder.h"
 
+#include "binder/expression/variable_expression.h"
+
 using namespace kuzu::common;
 using namespace kuzu::parser;
 using namespace kuzu::catalog;
@@ -67,8 +69,7 @@ std::shared_ptr<Expression> Binder::createVariable(
         throw BinderException("Variable " + name + " already exists.");
     }
     auto uniqueName = getUniqueExpressionName(name);
-    auto variable = make_shared<Expression>(ExpressionType::VARIABLE, dataType, uniqueName);
-    variable->setRawName(name);
+    auto variable = make_shared<VariableExpression>(dataType, uniqueName, name);
     variable->setAlias(name);
     variablesInScope.insert({name, variable});
     return variable;
@@ -83,8 +84,7 @@ void Binder::validateFirstMatchIsNotOptional(const SingleQuery& singleQuery) {
 void Binder::validateProjectionColumnNamesAreUnique(const expression_vector& expressions) {
     auto existColumnNames = std::unordered_set<std::string>();
     for (auto& expression : expressions) {
-        auto columnName =
-            expression->hasAlias() ? expression->getAlias() : expression->getRawName();
+        auto columnName = expression->hasAlias() ? expression->getAlias() : expression->toString();
         if (existColumnNames.contains(columnName)) {
             throw BinderException(
                 "Multiple result column with the same name " + columnName + " are not supported.");

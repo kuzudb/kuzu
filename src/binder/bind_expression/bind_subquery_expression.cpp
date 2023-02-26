@@ -13,9 +13,10 @@ std::shared_ptr<Expression> ExpressionBinder::bindExistentialSubqueryExpression(
     auto& subqueryExpression = (ParsedSubqueryExpression&)parsedExpression;
     auto prevVariablesInScope = binder->enterSubquery();
     auto [queryGraph, _] = binder->bindGraphPattern(subqueryExpression.getPatternElements());
-    auto name = binder->getUniqueExpressionName(parsedExpression.getRawName());
-    auto boundSubqueryExpression =
-        make_shared<ExistentialSubqueryExpression>(std::move(queryGraph), std::move(name));
+    auto rawName = parsedExpression.getRawName();
+    auto uniqueName = binder->getUniqueExpressionName(rawName);
+    auto boundSubqueryExpression = make_shared<ExistentialSubqueryExpression>(
+        std::move(queryGraph), std::move(uniqueName), std::move(rawName));
     if (subqueryExpression.hasWhereClause()) {
         boundSubqueryExpression->setWhereExpression(
             binder->bindWhereExpression(*subqueryExpression.getWhereClause()));

@@ -22,8 +22,8 @@ public:
     void computeSchema() override;
 
     inline std::string getExpressionsForPrinting() const override {
-        return boundNode->getRawName() + (direction == common::RelDirection::FWD ? "->" : "<-") +
-               nbrNode->getRawName();
+        return boundNode->toString() + (direction == common::RelDirection::FWD ? "->" : "<-") +
+               nbrNode->toString();
     }
 
     inline std::shared_ptr<binder::NodeExpression> getBoundNode() const { return boundNode; }

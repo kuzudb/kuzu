@@ -128,7 +128,7 @@ expression_vector Binder::bindOrderByExpressions(
     for (auto& expression : orderByExpressions) {
         auto boundExpression = expressionBinder.bindExpression(*expression);
         if (boundExpression->dataType.typeID == NODE || boundExpression->dataType.typeID == REL) {
-            throw BinderException("Cannot order by " + boundExpression->getRawName() +
+            throw BinderException("Cannot order by " + boundExpression->toString() +
                                   ". Order by node or rel is not supported.");
         }
         boundOrderByExpressions.push_back(std::move(boundExpression));
@@ -151,7 +151,7 @@ uint64_t Binder::bindSkipLimitExpression(const ParsedExpression& expression) {
 void Binder::addExpressionsToScope(const expression_vector& projectionExpressions) {
     for (auto& expression : projectionExpressions) {
         // In RETURN clause, if expression is not aliased, its input name will serve its alias.
-        auto alias = expression->hasAlias() ? expression->getAlias() : expression->getRawName();
+        auto alias = expression->hasAlias() ? expression->getAlias() : expression->toString();
         variablesInScope.insert({alias, expression});
     }
 }

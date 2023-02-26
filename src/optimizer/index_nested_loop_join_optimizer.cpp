@@ -10,6 +10,10 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace optimizer {
 
+void IndexNestedLoopJoinOptimizer::rewrite(planner::LogicalPlan* plan) {
+    rewrite(plan->getLastOperator());
+}
+
 std::shared_ptr<planner::LogicalOperator> IndexNestedLoopJoinOptimizer::rewrite(
     std::shared_ptr<planner::LogicalOperator> op) {
     if (op->getOperatorType() == LogicalOperatorType::FILTER) {

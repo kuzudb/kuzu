@@ -58,8 +58,8 @@ static void validateNodeRelConnectivity(const Catalog& catalog_, const RelExpres
             }
         }
     }
-    throw BinderException("Nodes " + srcNode.getRawName() + " and " + dstNode.getRawName() +
-                          " are not connected through rel " + rel.getRawName() + ".");
+    throw BinderException("Nodes " + srcNode.toString() + " and " + dstNode.toString() +
+                          " are not connected through rel " + rel.toString() + ".");
 }
 
 static std::vector<std::pair<std::string, std::vector<Property>>> getPropertyNameAndSchemasPairs(
@@ -126,10 +126,9 @@ void Binder::bindQueryRel(const RelPattern& relPattern,
     }
     // bind variable length
     auto [lowerBound, upperBound] = bindVariableLengthRelBound(relPattern);
-    auto queryRel = make_shared<RelExpression>(
-        getUniqueExpressionName(parsedName), tableIDs, srcNode, dstNode, lowerBound, upperBound);
+    auto queryRel = make_shared<RelExpression>(getUniqueExpressionName(parsedName), parsedName,
+        tableIDs, srcNode, dstNode, lowerBound, upperBound);
     queryRel->setAlias(parsedName);
-    queryRel->setRawName(parsedName);
     validateNodeRelConnectivity(catalog, *queryRel, *srcNode, *dstNode);
     // resolve properties associate with rel table
     std::vector<RelTableSchema*> relTableSchemas;
@@ -205,9 +204,9 @@ std::shared_ptr<NodeExpression> Binder::bindQueryNode(
 std::shared_ptr<NodeExpression> Binder::createQueryNode(const NodePattern& nodePattern) {
     auto parsedName = nodePattern.getVariableName();
     auto tableIDs = bindNodeTableIDs(nodePattern.getTableNames());
-    auto queryNode = make_shared<NodeExpression>(getUniqueExpressionName(parsedName), tableIDs);
+    auto queryNode =
+        make_shared<NodeExpression>(getUniqueExpressionName(parsedName), parsedName, tableIDs);
     queryNode->setAlias(parsedName);
-    queryNode->setRawName(parsedName);
     queryNode->setInternalIDProperty(expressionBinder.createInternalNodeIDExpression(*queryNode));
     // resolve properties associate with node table
     std::vector<NodeTableSchema*> nodeTableSchemas;

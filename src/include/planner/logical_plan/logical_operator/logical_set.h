@@ -17,7 +17,7 @@ public:
     inline std::string getExpressionsForPrinting() const override {
         std::string result;
         for (auto& [lhs, rhs] : setItems) {
-            result += lhs->getRawName() + " = " + rhs->getRawName() + ",";
+            result += lhs->toString() + " = " + rhs->toString() + ",";
         }
         return result;
     }
@@ -45,7 +45,7 @@ public:
     inline std::string getExpressionsForPrinting() const override {
         std::string result;
         for (auto& [lhs, rhs] : setItems) {
-            result += lhs->getRawName() + " = " + rhs->getRawName() + ",";
+            result += lhs->toString() + " = " + rhs->toString() + ",";
         }
         return result;
     }

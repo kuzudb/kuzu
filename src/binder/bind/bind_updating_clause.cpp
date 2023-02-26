@@ -40,13 +40,13 @@ std::unique_ptr<BoundUpdatingClause> Binder::bindCreateClause(
         auto queryGraph = queryGraphCollection->getQueryGraph(i);
         for (auto j = 0u; j < queryGraph->getNumQueryNodes(); ++j) {
             auto node = queryGraph->getQueryNode(j);
-            if (!prevVariablesInScope.contains(node->getRawName())) {
+            if (!prevVariablesInScope.contains(node->toString())) {
                 boundCreateClause->addCreateNode(bindCreateNode(node, *propertyCollection));
             }
         }
         for (auto j = 0u; j < queryGraph->getNumQueryRels(); ++j) {
             auto rel = queryGraph->getQueryRel(j);
-            if (!prevVariablesInScope.contains(rel->getRawName())) {
+            if (!prevVariablesInScope.contains(rel->toString())) {
                 boundCreateClause->addCreateRel(bindCreateRel(rel, *propertyCollection));
             }
         }
@@ -58,7 +58,7 @@ std::unique_ptr<BoundCreateNode> Binder::bindCreateNode(
     std::shared_ptr<NodeExpression> node, const PropertyKeyValCollection& collection) {
     if (node->isMultiLabeled()) {
         throw BinderException(
-            "Create node " + node->getRawName() + " with multiple node labels is not supported.");
+            "Create node " + node->toString() + " with multiple node labels is not supported.");
     }
     auto nodeTableID = node->getSingleTableID();
     auto nodeTableSchema = catalog.getReadOnlyVersion()->getNodeTableSchema(nodeTableID);
@@ -73,7 +73,7 @@ std::unique_ptr<BoundCreateNode> Binder::bindCreateNode(
         setItems.emplace_back(key, val);
     }
     if (primaryKeyExpression == nullptr) {
-        throw BinderException("Create node " + node->getRawName() + " expects primary key " +
+        throw BinderException("Create node " + node->toString() + " expects primary key " +
                               primaryKey.name + " as input.");
     }
     return std::make_unique<BoundCreateNode>(
@@ -84,7 +84,7 @@ std::unique_ptr<BoundCreateRel> Binder::bindCreateRel(
     std::shared_ptr<RelExpression> rel, const PropertyKeyValCollection& collection) {
     if (rel->isMultiLabeled() || rel->isBoundByMultiLabeledNode()) {
         throw BinderException(
-            "Create rel " + rel->getRawName() +
+            "Create rel " + rel->toString() +
             " with multiple rel labels or bound by multiple node labels is not supported.");
     }
     auto relTableID = rel->getSingleTableID();
@@ -133,7 +133,7 @@ std::unique_ptr<BoundUpdatingClause> Binder::bindSetClause(const UpdatingClause&
 std::unique_ptr<BoundSetNodeProperty> Binder::bindSetNodeProperty(
     std::shared_ptr<NodeExpression> node, std::pair<ParsedExpression*, ParsedExpression*> setItem) {
     if (node->isMultiLabeled()) {
-        throw BinderException("Set property of node " + node->getRawName() +
+        throw BinderException("Set property of node " + node->toString() +
                               " with multiple node labels is not supported.");
     }
     return std::make_unique<BoundSetNodeProperty>(std::move(node), bindSetItem(setItem));
@@ -142,7 +142,7 @@ std::unique_ptr<BoundSetNodeProperty> Binder::bindSetNodeProperty(
 std::unique_ptr<BoundSetRelProperty> Binder::bindSetRelProperty(
     std::shared_ptr<RelExpression> rel, std::pair<ParsedExpression*, ParsedExpression*> setItem) {
     if (rel->isMultiLabeled() || rel->isBoundByMultiLabeledNode()) {
-        throw BinderException("Set property of rel " + rel->getRawName() +
+        throw BinderException("Set property of rel " + rel->toString() +
                               " with multiple rel labels or bound by multiple node labels "
                               "is not supported.");
     }
@@ -183,7 +183,7 @@ std::unique_ptr<BoundDeleteNode> Binder::bindDeleteNode(
     const std::shared_ptr<NodeExpression>& node) {
     if (node->isMultiLabeled()) {
         throw BinderException(
-            "Delete node " + node->getRawName() + " with multiple node labels is not supported.");
+            "Delete node " + node->toString() + " with multiple node labels is not supported.");
     }
     auto nodeTableID = node->getSingleTableID();
     auto nodeTableSchema = catalog.getReadOnlyVersion()->getNodeTableSchema(nodeTableID);
@@ -195,7 +195,7 @@ std::unique_ptr<BoundDeleteNode> Binder::bindDeleteNode(
 std::shared_ptr<RelExpression> Binder::bindDeleteRel(std::shared_ptr<RelExpression> rel) {
     if (rel->isMultiLabeled() || rel->isBoundByMultiLabeledNode()) {
         throw BinderException(
-            "Delete rel " + rel->getRawName() +
+            "Delete rel " + rel->toString() +
             " with multiple rel labels or bound by multiple node labels is not supported.");
     }
     return rel;

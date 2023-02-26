@@ -3,6 +3,7 @@ add_library(kuzu_optimizer
         factorization_rewriter.cpp
         index_nested_loop_join_optimizer.cpp
         optimizer.cpp
+        projection_push_down_optimizer.cpp
         remove_factorization_rewriter.cpp)
 
 set(ALL_OBJECT_FILES

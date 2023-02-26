@@ -15,7 +15,7 @@ public:
 
     inline void computeSchema() override { copyChildSchema(0); }
 
-    inline std::string getExpressionsForPrinting() const override { return nodeID->getRawName(); }
+    inline std::string getExpressionsForPrinting() const override { return nodeID->toString(); }
 
     inline std::shared_ptr<binder::Expression> getNodeID() const { return nodeID; }
 

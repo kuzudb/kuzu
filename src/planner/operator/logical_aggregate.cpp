@@ -50,11 +50,11 @@ void LogicalAggregate::computeSchema() {
 std::string LogicalAggregate::getExpressionsForPrinting() const {
     std::string result = "Group By [";
     for (auto& expression : expressionsToGroupBy) {
-        result += expression->getUniqueName() + ", ";
+        result += expression->toString() + ", ";
     }
     result += "], Aggregate [";
     for (auto& expression : expressionsToAggregate) {
-        result += expression->getUniqueName() + ", ";
+        result += expression->toString() + ", ";
     }
     result += "]";
     return result;

@@ -8,10 +8,10 @@ namespace binder {
 
 class ExistentialSubqueryExpression : public Expression {
 public:
-    ExistentialSubqueryExpression(
-        std::unique_ptr<QueryGraphCollection> queryGraphCollection, const std::string& name)
-        : Expression{common::EXISTENTIAL_SUBQUERY, common::BOOL, name},
-          queryGraphCollection{std::move(queryGraphCollection)} {}
+    ExistentialSubqueryExpression(std::unique_ptr<QueryGraphCollection> queryGraphCollection,
+        std::string uniqueName, std::string rawName)
+        : Expression{common::EXISTENTIAL_SUBQUERY, common::BOOL, std::move(uniqueName)},
+          queryGraphCollection{std::move(queryGraphCollection)}, rawName{std::move(rawName)} {}
 
     inline QueryGraphCollection* getQueryGraphCollection() const {
         return queryGraphCollection.get();
@@ -25,9 +25,12 @@ public:
 
     expression_vector getChildren() const override;
 
+    std::string toString() const override { return rawName; }
+
 private:
     std::unique_ptr<QueryGraphCollection> queryGraphCollection;
     std::shared_ptr<Expression> whereExpression;
+    std::string rawName;
 };
 
 } // namespace binder

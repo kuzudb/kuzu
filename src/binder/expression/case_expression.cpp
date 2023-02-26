@@ -13,5 +13,15 @@ expression_vector CaseExpression::getChildren() const {
     return result;
 }
 
+std::string CaseExpression::toString() const {
+    std::string result = "CASE ";
+    for (auto& caseAlternative : caseAlternatives) {
+        result += "WHEN " + caseAlternative->whenExpression->toString() + " THEN " +
+                  caseAlternative->thenExpression->toString();
+    }
+    result += " ELSE " + elseExpression->toString();
+    return result;
+}
+
 } // namespace binder
 } // namespace kuzu

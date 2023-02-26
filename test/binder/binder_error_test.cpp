@@ -50,7 +50,7 @@ TEST_F(BinderErrorTest, BindToDifferentVariableType1) {
 
 TEST_F(BinderErrorTest, BindToDifferentVariableType2) {
     std::string expectedException =
-        "Binder exception: a.age + 1 has data type INT64. (NODE) was expected.";
+        "Binder exception: +(a.age,1) has data type INT64. (NODE) was expected.";
     auto input = "MATCH (a:person)-[e1:knows]->(b:person) WITH a.age + 1 AS a MATCH (a) RETURN *;";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
@@ -76,7 +76,7 @@ TEST_F(BinderErrorTest, BindVariableNotInScope2) {
 
 TEST_F(BinderErrorTest, BindPropertyLookUpOnExpression) {
     std::string expectedException =
-        "Binder exception: a.age + 2 has data type INT64. (REL,NODE) was expected.";
+        "Binder exception: +(a.age,2) has data type INT64. (REL,NODE) was expected.";
     auto input = "MATCH (a:person)-[e1:knows]->(b:person) RETURN (a.age + 2).age;";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
@@ -220,7 +220,7 @@ TEST_F(BinderErrorTest, VarLenExtendZeroLowerBound) {
 
 TEST_F(BinderErrorTest, SetDataTypeMisMatch) {
     std::string expectedException =
-        "Binder exception: Expression 'hh' has data type STRING but expect "
+        "Binder exception: Expression hh has data type STRING but expect "
         "INT64. Implicit cast is not supported.";
     auto input = "MATCH (a:person) SET a.age = 'hh'";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
@@ -228,7 +228,7 @@ TEST_F(BinderErrorTest, SetDataTypeMisMatch) {
 
 TEST_F(BinderErrorTest, CreateNodeDataTypeMisMatch) {
     std::string expectedException =
-        "Binder exception: Expression 'hh' has data type STRING but expect "
+        "Binder exception: Expression hh has data type STRING but expect "
         "INT64. Implicit cast is not supported.";
     auto input = "CREATE (a:person {age:'hh'})";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
@@ -393,7 +393,7 @@ TEST_F(BinderErrorTest, MaxNodeID) {
 
 TEST_F(BinderErrorTest, OrderByNodeID) {
     std::string expectedException =
-        "Binder exception: Cannot order by x. Order by node or rel is not supported.";
+        "Binder exception: Cannot order by p. Order by node or rel is not supported.";
     auto input = "match (p:person) with p as x order by x skip 1 return x;";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
@@ -424,7 +424,7 @@ TEST_F(BinderErrorTest, AddPropertyDuplicateName) {
 
 TEST_F(BinderErrorTest, AddPropertyUnmatchedDefaultValueType) {
     std::string expectedException =
-        "Binder exception: Expression 3.2 has data type DOUBLE but expect "
+        "Binder exception: Expression 3.200000 has data type DOUBLE but expect "
         "INT64. Implicit cast is not supported.";
     auto input = "alter table person add intCol INT64 DEFAULT 3.2";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
