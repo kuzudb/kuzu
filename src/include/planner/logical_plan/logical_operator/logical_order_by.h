@@ -26,6 +26,9 @@ public:
     }
     inline std::vector<bool> getIsAscOrders() const { return isAscOrders; }
     inline Schema* getSchemaBeforeOrderBy() const { return children[0]->getSchema(); }
+    inline void setExpressionsToMaterialize(binder::expression_vector expressions) {
+        expressionsToMaterialize = std::move(expressions);
+    }
     inline binder::expression_vector getExpressionsToMaterialize() const {
         return expressionsToMaterialize;
     }

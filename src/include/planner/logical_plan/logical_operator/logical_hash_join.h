@@ -48,11 +48,8 @@ public:
         return binder::ExpressionUtil::toString(joinNodeIDs);
     }
 
-    inline void setExpressionsToMaterialize(binder::expression_set expressions) {
-        expressionsToMaterialize.clear();
-        for (auto& expression : expressions) {
-            expressionsToMaterialize.push_back(expression);
-        }
+    inline void setExpressionsToMaterialize(binder::expression_vector expressions) {
+        expressionsToMaterialize = std::move(expressions);
     }
     inline binder::expression_vector getExpressionsToMaterialize() const {
         return expressionsToMaterialize;
