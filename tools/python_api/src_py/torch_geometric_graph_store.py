@@ -26,6 +26,14 @@ class KuzuGraphStore(GraphStore):
         self.__populate_edge_attrs()
         os.register_at_fork(before=self.__close_connection)
 
+    def __getstate__(self):
+        state = {
+            "connection": None,
+            "store": self.store,
+            "db": self.db.__getstate__()
+        }
+        return state
+
     @staticmethod
     def key(attr: EdgeAttr) -> Tuple:
         return (attr.edge_type, attr.layout.value, attr.is_sorted)

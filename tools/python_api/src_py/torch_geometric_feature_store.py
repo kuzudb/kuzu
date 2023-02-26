@@ -21,6 +21,14 @@ class KuzuFeatureStore(FeatureStore):
         self.node_properties_cache = {}
         os.register_at_fork(before=self.__close_connection)
 
+    def __getstate__(self):
+        state = {
+            "connection": None,
+            "node_properties_cache": self.node_properties_cache,
+            "db": self.db.__getstate__()
+        }
+        return state
+
     def _put_tensor(self, tensor: FeatureTensorType, attr: TensorAttr) -> bool:
         raise NotImplementedError
 
@@ -64,12 +72,12 @@ class KuzuFeatureStore(FeatureStore):
                     result_shape = (len(indices),) + attr_info["shape"]
                     scan_result = scan_result.reshape(result_shape)
                 end = time.time() - start
-                print("Reshape time: ", end)
+                # print("Reshape time: ", end)
 
                 start = time.time()
                 result = torch.from_numpy(scan_result)
                 end = time.time() - start
-                print("Tensor cast time: ", end)
+                # print("Tensor cast time: ", end)
                 return result
         else:
             raise ValueError("Invalid attr.index type: %s" % type(indices))

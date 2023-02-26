@@ -39,6 +39,15 @@ class Database:
         self._database = None
         if not lazy_init:
             self.init_database()
+    
+    def __getstate__(self):
+        state = {
+            "database_path": self.database_path,
+            "buffer_pool_size": self.buffer_pool_size,
+            "database": None
+        }
+        return state
+
 
     def init_database(self):
         """
@@ -83,9 +92,7 @@ class Database:
         graph_store : KuzuGraphStore
             Graph store compatible with torch_geometric.
         """
-        duplicated_db = Database(
-            self.database_path, self.buffer_pool_size, True)
-        return KuzuFeatureStore(duplicated_db), KuzuGraphStore(duplicated_db)
+        return KuzuFeatureStore(self), KuzuGraphStore(self)
 
     def _scan_node_table(self, table_name, prop_name, prop_type, indices):
         import torch
@@ -98,7 +105,7 @@ class Database:
         start = time.time()
         indices_cast = np.array(indices, dtype=np.uint64)
         end = time.time() - start
-        print("Index cast time: ", end)
+        # print("Index cast time: ", end)
 
         start = time.time()
         result = None
@@ -112,6 +119,7 @@ class Database:
             result = self._database.scan_node_table_as_bool(
                 table_name, prop_name, indices_cast)
         end = time.time() - start
-        print("Scan time: ", end)
-        return result
+        # print("Scan time: ", end)
+        if result is not None:
+            return result
         raise ValueError("Unsupported property type: {}".format(prop_type))
