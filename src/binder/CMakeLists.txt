@@ -6,6 +6,7 @@ add_subdirectory(query)
 add_library(kuzu_binder
         OBJECT
         binder.cpp
+        bound_statement_result.cpp
         expression_binder.cpp
         query_normalizer.cpp)
 

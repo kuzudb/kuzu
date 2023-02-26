@@ -33,7 +33,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
     }
     auto uniqueExpressionName =
         ScalarFunctionExpression::getUniqueName(function->name, childrenAfterCast);
-    return make_shared<ScalarFunctionExpression>(expressionType,
+    return make_shared<ScalarFunctionExpression>(functionName, expressionType,
         common::DataType(function->returnTypeID), std::move(childrenAfterCast), function->execFunc,
         function->selectFunc, uniqueExpressionName);
 }

@@ -95,7 +95,7 @@ void LogicalPlanUtil::encodeCrossProduct(
 
 void LogicalPlanUtil::encodeIntersect(LogicalOperator* logicalOperator, std::string& encodeString) {
     auto logicalIntersect = (LogicalIntersect*)logicalOperator;
-    encodeString += "I(" + logicalIntersect->getIntersectNodeID()->getRawName() + ")";
+    encodeString += "I(" + logicalIntersect->getIntersectNodeID()->toString() + ")";
 }
 
 void LogicalPlanUtil::encodeHashJoin(LogicalOperator* logicalOperator, std::string& encodeString) {
@@ -106,13 +106,13 @@ void LogicalPlanUtil::encodeHashJoin(LogicalOperator* logicalOperator, std::stri
 
 void LogicalPlanUtil::encodeExtend(LogicalOperator* logicalOperator, std::string& encodeString) {
     auto logicalExtend = (LogicalExtend*)logicalOperator;
-    encodeString += "E(" + logicalExtend->getNbrNode()->getRawName() + ")";
+    encodeString += "E(" + logicalExtend->getNbrNode()->toString() + ")";
 }
 
 void LogicalPlanUtil::encodeScanNodeID(
     LogicalOperator* logicalOperator, std::string& encodeString) {
     auto logicalScanNode = (LogicalScanNode*)logicalOperator;
-    encodeString += "S(" + logicalScanNode->getNode()->getRawName() + ")";
+    encodeString += "S(" + logicalScanNode->getNode()->toString() + ")";
 }
 
 } // namespace planner

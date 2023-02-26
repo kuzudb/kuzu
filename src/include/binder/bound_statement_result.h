@@ -17,13 +17,7 @@ public:
         return std::make_unique<BoundStatementResult>();
     }
 
-    static std::unique_ptr<BoundStatementResult> createSingleStringColumnResult() {
-        auto result = std::make_unique<BoundStatementResult>();
-        auto stringColumn = std::make_shared<Expression>(
-            common::LITERAL, common::DataType{common::STRING}, "outputMsg");
-        result->addColumn(stringColumn, expression_vector{stringColumn});
-        return result;
-    }
+    static std::unique_ptr<BoundStatementResult> createSingleStringColumnResult();
 
     inline void addColumn(
         std::shared_ptr<Expression> column, expression_vector expressionToCollect) {
@@ -35,15 +29,7 @@ public:
         return expressionsToCollectPerColumn;
     }
 
-    inline expression_vector getExpressionsToCollect() {
-        expression_vector result;
-        for (auto& expressionsToCollect : expressionsToCollectPerColumn) {
-            for (auto& expression : expressionsToCollect) {
-                result.push_back(expression);
-            }
-        }
-        return result;
-    }
+    expression_vector getExpressionsToCollect();
 
     inline std::shared_ptr<Expression> getSingleExpressionToCollect() {
         auto expressionsToCollect = getExpressionsToCollect();

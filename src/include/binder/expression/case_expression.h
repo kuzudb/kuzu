@@ -34,6 +34,8 @@ public:
 
     expression_vector getChildren() const override;
 
+    std::string toString() const override;
+
 private:
     std::vector<std::unique_ptr<CaseAlternative>> caseAlternatives;
     std::shared_ptr<Expression> elseExpression;

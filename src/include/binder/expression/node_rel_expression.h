@@ -9,10 +9,11 @@ namespace binder {
 
 class NodeOrRelExpression : public Expression {
 public:
-    NodeOrRelExpression(common::DataTypeID dataTypeID, const std::string& uniqueName,
-        std::vector<common::table_id_t> tableIDs)
-        : Expression{common::VARIABLE, dataTypeID, uniqueName}, tableIDs{std::move(tableIDs)} {}
-    ~NodeOrRelExpression() override = default;
+    NodeOrRelExpression(common::DataTypeID dataTypeID, std::string uniqueName,
+        std::string variableName, std::vector<common::table_id_t> tableIDs)
+        : Expression{common::VARIABLE, dataTypeID, std::move(uniqueName)},
+          variableName(std::move(variableName)), tableIDs{std::move(tableIDs)} {}
+    virtual ~NodeOrRelExpression() override = default;
 
     inline void addTableIDs(const std::vector<common::table_id_t>& tableIDsToAdd) {
         auto tableIDsMap = std::unordered_set<common::table_id_t>(tableIDs.begin(), tableIDs.end());
@@ -47,7 +48,10 @@ public:
         return properties;
     }
 
+    std::string toString() const override { return variableName; }
+
 protected:
+    std::string variableName;
     std::vector<common::table_id_t> tableIDs;
     std::unordered_map<std::string, size_t> propertyNameToIdx;
     std::vector<std::unique_ptr<Expression>> properties;

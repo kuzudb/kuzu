@@ -23,6 +23,8 @@ public:
 
     static scalar_exec_func bindExecFunc(
         common::DataTypeID sourceTypeID, common::DataTypeID targetTypeID);
+
+    static std::string bindCastFunctionName(common::DataTypeID targetTypeID);
 };
 
 struct CastToDateVectorOperation : public VectorCastOperations {

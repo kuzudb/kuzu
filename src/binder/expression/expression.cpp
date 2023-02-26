@@ -102,9 +102,9 @@ std::string ExpressionUtil::toString(const expression_vector& expressions) {
     if (expressions.empty()) {
         return std::string{};
     }
-    auto result = expressions[0]->getRawName();
+    auto result = expressions[0]->toString();
     for (auto i = 1u; i < expressions.size(); ++i) {
-        result += "," + expressions[i]->getRawName();
+        result += "," + expressions[i]->toString();
     }
     return result;
 }

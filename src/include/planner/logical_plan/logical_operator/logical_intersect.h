@@ -38,7 +38,7 @@ public:
 
     void computeSchema() override;
 
-    std::string getExpressionsForPrinting() const override { return intersectNodeID->getRawName(); }
+    std::string getExpressionsForPrinting() const override { return intersectNodeID->toString(); }
 
     inline std::shared_ptr<binder::Expression> getIntersectNodeID() const {
         return intersectNodeID;

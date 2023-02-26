@@ -38,7 +38,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalIntersectToPhysical(
         sharedStates.push_back(sharedState);
         children.push_back(make_unique<IntersectBuild>(
             std::make_unique<ResultSetDescriptor>(*buildSchema), sharedState, buildDataInfo,
-            std::move(buildSidePrevOperator), getOperatorID(), buildInfo->keyNodeID->getRawName()));
+            std::move(buildSidePrevOperator), getOperatorID(), buildInfo->keyNodeID->toString()));
         IntersectDataInfo info{
             DataPos(outSchema->getExpressionPos(*buildInfo->keyNodeID)), payloadsDataPos};
         intersectDataInfos.push_back(info);

@@ -15,22 +15,20 @@ public:
         : Expression{common::PROPERTY, std::move(dataType),
               nodeOrRel.getUniqueName() + "." + propertyName},
           isPrimaryKey_{isPrimaryKey_}, propertyName{propertyName},
-          variableName{nodeOrRel.getUniqueName()}, propertyIDPerTable{
-                                                       std::move(propertyIDPerTable)} {
-        rawName = nodeOrRel.getRawName() + "." + propertyName;
-    }
+          uniqueVariableName{nodeOrRel.getUniqueName()}, rawVariableName{nodeOrRel.toString()},
+          propertyIDPerTable{std::move(propertyIDPerTable)} {}
+
     PropertyExpression(const PropertyExpression& other)
         : Expression{common::PROPERTY, other.dataType, other.uniqueName},
           isPrimaryKey_{other.isPrimaryKey_}, propertyName{other.propertyName},
-          variableName{other.variableName}, propertyIDPerTable{other.propertyIDPerTable} {
-        rawName = other.rawName;
-    }
+          uniqueVariableName{other.uniqueVariableName}, rawVariableName{other.rawVariableName},
+          propertyIDPerTable{other.propertyIDPerTable} {}
 
     inline bool isPrimaryKey() const { return isPrimaryKey_; }
 
     inline std::string getPropertyName() const { return propertyName; }
 
-    inline std::string getVariableName() const { return variableName; }
+    inline std::string getVariableName() const { return uniqueVariableName; }
 
     inline bool hasPropertyID(common::table_id_t tableID) const {
         return propertyIDPerTable.contains(tableID);
@@ -46,11 +44,15 @@ public:
         return make_unique<PropertyExpression>(*this);
     }
 
+    inline std::string toString() const override { return rawVariableName + "." + propertyName; }
+
 private:
     bool isPrimaryKey_ = false;
     std::string propertyName;
-    // reference to a node/rel table
-    std::string variableName;
+    // unique identifier references to a node/rel table.
+    std::string uniqueVariableName;
+    // printable identifier references to a node/rel table.
+    std::string rawVariableName;
     std::unordered_map<common::table_id_t, common::property_id_t> propertyIDPerTable;
 };
 

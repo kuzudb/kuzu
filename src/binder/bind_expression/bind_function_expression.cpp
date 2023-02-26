@@ -60,8 +60,9 @@ std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
     }
     auto uniqueExpressionName =
         ScalarFunctionExpression::getUniqueName(function->name, childrenAfterCast);
-    return make_shared<ScalarFunctionExpression>(FUNCTION, returnType, std::move(childrenAfterCast),
-        function->execFunc, function->selectFunc, uniqueExpressionName);
+    return make_shared<ScalarFunctionExpression>(functionName, FUNCTION, returnType,
+        std::move(childrenAfterCast), function->execFunc, function->selectFunc,
+        uniqueExpressionName);
 }
 
 std::shared_ptr<Expression> ExpressionBinder::bindAggregateFunctionExpression(
@@ -91,7 +92,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindAggregateFunctionExpression(
     } else {
         returnType = DataType(function->returnTypeID);
     }
-    return make_shared<AggregateFunctionExpression>(returnType, std::move(children),
+    return make_shared<AggregateFunctionExpression>(functionName, returnType, std::move(children),
         function->aggregateFunction->clone(), uniqueExpressionName);
 }
 
@@ -186,8 +187,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindNodeLabelFunction(const Expres
     children.push_back(createLiteralExpression(std::move(labelsValue)));
     auto execFunc = function::LabelVectorOperation::execFunction;
     auto uniqueExpressionName = ScalarFunctionExpression::getUniqueName(LABEL_FUNC_NAME, children);
-    return make_shared<ScalarFunctionExpression>(
-        FUNCTION, DataType(STRING), std::move(children), execFunc, nullptr, uniqueExpressionName);
+    return make_shared<ScalarFunctionExpression>(LABEL_FUNC_NAME, FUNCTION, DataType(STRING),
+        std::move(children), execFunc, nullptr, uniqueExpressionName);
 }
 
 std::shared_ptr<Expression> ExpressionBinder::bindRelLabelFunction(const Expression& expression) {
@@ -206,8 +207,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindRelLabelFunction(const Express
     children.push_back(createLiteralExpression(std::move(labelsValue)));
     auto execFunc = function::LabelVectorOperation::execFunction;
     auto uniqueExpressionName = ScalarFunctionExpression::getUniqueName(LABEL_FUNC_NAME, children);
-    return make_shared<ScalarFunctionExpression>(
-        FUNCTION, DataType(STRING), std::move(children), execFunc, nullptr, uniqueExpressionName);
+    return make_shared<ScalarFunctionExpression>(LABEL_FUNC_NAME, FUNCTION, DataType(STRING),
+        std::move(children), execFunc, nullptr, uniqueExpressionName);
 }
 
 } // namespace binder
