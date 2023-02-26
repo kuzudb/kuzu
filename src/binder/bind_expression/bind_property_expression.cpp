@@ -34,7 +34,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindNodePropertyExpression(
     auto& nodeOrRel = (NodeOrRelExpression&)expression;
     if (!nodeOrRel.hasPropertyExpression(propertyName)) {
         throw BinderException(
-            "Cannot find property " + propertyName + " for " + expression.getRawName() + ".");
+            "Cannot find property " + propertyName + " for " + expression.toString() + ".");
     }
     return nodeOrRel.getPropertyExpression(propertyName);
 }
@@ -63,11 +63,11 @@ std::shared_ptr<Expression> ExpressionBinder::bindRelPropertyExpression(
     auto& rel = (RelExpression&)expression;
     if (rel.isVariableLength()) {
         throw BinderException(
-            "Cannot read property of variable length rel " + rel.getRawName() + ".");
+            "Cannot read property of variable length rel " + rel.toString() + ".");
     }
     if (!rel.hasPropertyExpression(propertyName)) {
         throw BinderException(
-            "Cannot find property " + propertyName + " for " + expression.getRawName() + ".");
+            "Cannot find property " + propertyName + " for " + expression.toString() + ".");
     }
     return rel.getPropertyExpression(propertyName);
 }
@@ -77,7 +77,7 @@ std::unique_ptr<Expression> ExpressionBinder::createPropertyExpression(
     assert(!properties.empty());
     auto anchorProperty = properties[0];
     validatePropertiesWithSameDataType(
-        properties, anchorProperty.dataType, anchorProperty.name, nodeOrRel.getRawName());
+        properties, anchorProperty.dataType, anchorProperty.name, nodeOrRel.toString());
     return make_unique<PropertyExpression>(anchorProperty.dataType, anchorProperty.name, nodeOrRel,
         populatePropertyIDPerTable(properties), isPrimaryKey);
 }

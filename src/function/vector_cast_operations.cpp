@@ -28,6 +28,17 @@ scalar_exec_func VectorCastOperations::bindExecFunc(
     }
 }
 
+std::string VectorCastOperations::bindCastFunctionName(common::DataTypeID targetTypeID) {
+    switch (targetTypeID) {
+    case common::DOUBLE: {
+        return CAST_TO_DOUBLE_FUNC_NAME;
+    }
+    default:
+        throw common::InternalException("Cannot bind function name for cast to " +
+                                        common::Types::dataTypeToString(targetTypeID));
+    }
+}
+
 std::vector<std::unique_ptr<VectorOperationDefinition>>
 CastToDateVectorOperation::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> result;

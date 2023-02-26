@@ -117,7 +117,7 @@ void QueryResult::initResultTableAndIterator(
     for (auto i = 0u; i < columns.size(); ++i) {
         auto column = columns[i].get();
         auto columnType = column->getDataType();
-        auto columnName = column->hasAlias() ? column->getAlias() : column->getRawName();
+        auto columnName = column->hasAlias() ? column->getAlias() : column->toString();
         columnDataTypes.push_back(columnType);
         columnNames.push_back(columnName);
         auto expressionsToCollect = expressionToCollectPerColumn[i];

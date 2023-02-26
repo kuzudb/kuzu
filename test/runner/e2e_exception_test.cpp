@@ -140,7 +140,8 @@ TEST_F(TinySnbExceptionTest, CastStrToIntervalError) {
 TEST_F(TinySnbExceptionTest, SetListPropertyError) {
     auto result = conn->query("MATCH (a:person) SET a.workedHours=['A', 'B']");
     ASSERT_STREQ(result->getErrorMessage().c_str(),
-        "Binder exception: Expression ['A', 'B'] has data type STRING[] but expect INT64[]. "
+        "Binder exception: Expression LIST_CREATION(A,B) has data type STRING[] but expect "
+        "INT64[]. "
         "Implicit cast is not supported.");
 }
 

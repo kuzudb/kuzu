@@ -31,33 +31,33 @@ public:
     // Create binary expression.
     Expression(common::ExpressionType expressionType, common::DataType dataType,
         const std::shared_ptr<Expression>& left, const std::shared_ptr<Expression>& right,
-        const std::string& uniqueName)
-        : Expression{
-              expressionType, std::move(dataType), expression_vector{left, right}, uniqueName} {}
+        std::string uniqueName)
+        : Expression{expressionType, std::move(dataType), expression_vector{left, right},
+              std::move(uniqueName)} {}
 
     // Create unary expression.
     Expression(common::ExpressionType expressionType, common::DataType dataType,
-        const std::shared_ptr<Expression>& child, const std::string& uniqueName)
-        : Expression{expressionType, std::move(dataType), expression_vector{child}, uniqueName} {}
+        const std::shared_ptr<Expression>& child, std::string uniqueName)
+        : Expression{expressionType, std::move(dataType), expression_vector{child},
+              std::move(uniqueName)} {}
 
     // Create leaf expression
-    Expression(common::ExpressionType expressionType, common::DataType dataType,
-        const std::string& uniqueName)
-        : Expression{expressionType, std::move(dataType), expression_vector{}, uniqueName} {}
+    Expression(
+        common::ExpressionType expressionType, common::DataType dataType, std::string uniqueName)
+        : Expression{
+              expressionType, std::move(dataType), expression_vector{}, std::move(uniqueName)} {}
 
     virtual ~Expression() = default;
 
 protected:
     Expression(common::ExpressionType expressionType, common::DataTypeID dataTypeID,
-        const std::string& uniqueName)
-        : Expression{expressionType, common::DataType(dataTypeID), uniqueName} {
+        std::string uniqueName)
+        : Expression{expressionType, common::DataType(dataTypeID), std::move(uniqueName)} {
         assert(dataTypeID != common::VAR_LIST);
     }
 
 public:
     inline void setAlias(const std::string& name) { alias = name; }
-
-    inline void setRawName(const std::string& name) { rawName = name; }
 
     inline std::string getUniqueName() const {
         assert(!uniqueName.empty());
@@ -69,8 +69,6 @@ public:
     inline bool hasAlias() const { return !alias.empty(); }
 
     inline std::string getAlias() const { return alias; }
-
-    inline std::string getRawName() const { return rawName; }
 
     inline uint32_t getNumChildren() const { return children.size(); }
 
@@ -94,6 +92,8 @@ public:
 
     expression_vector splitOnAND();
 
+    virtual std::string toString() const = 0;
+
     virtual std::unique_ptr<Expression> copy() const {
         throw common::InternalException("Unimplemented expression copy().");
     }
@@ -108,12 +108,8 @@ public:
 
 protected:
     // Name that serves as the unique identifier.
-    // NOTE: an expression must have a unique name
     std::string uniqueName;
     std::string alias;
-    // Name that matches user input.
-    // NOTE: an expression may not have a rawName since it is generated internally e.g. casting
-    std::string rawName;
     expression_vector children;
 };
 

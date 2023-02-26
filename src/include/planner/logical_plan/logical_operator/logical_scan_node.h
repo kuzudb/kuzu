@@ -13,7 +13,7 @@ public:
 
     void computeSchema() override;
 
-    inline std::string getExpressionsForPrinting() const override { return node->getRawName(); }
+    inline std::string getExpressionsForPrinting() const override { return node->toString(); }
 
     inline std::shared_ptr<binder::NodeExpression> getNode() const { return node; }
 
@@ -34,7 +34,7 @@ public:
 
     void computeSchema() override;
 
-    inline std::string getExpressionsForPrinting() const override { return node->getRawName(); }
+    inline std::string getExpressionsForPrinting() const override { return node->toString(); }
 
     inline std::shared_ptr<binder::NodeExpression> getNode() const { return node; }
     inline std::shared_ptr<binder::Expression> getIndexExpression() const {

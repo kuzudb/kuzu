@@ -17,9 +17,7 @@ public:
 
     inline void computeSchema() override { copyChildSchema(0); }
 
-    inline std::string getExpressionsForPrinting() const override {
-        return expression->getRawName();
-    }
+    inline std::string getExpressionsForPrinting() const override { return expression->toString(); }
 
     inline std::shared_ptr<binder::Expression> getPredicate() const { return expression; }
 
