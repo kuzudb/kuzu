@@ -5,17 +5,24 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
-void ScanNodeIDSemiMask::setMask(uint64_t nodeOffset, uint8_t maskerIdx) {
-    nodeMask->setMask(nodeOffset, maskerIdx, maskerIdx + 1);
-    morselMask->setMask(nodeOffset >> DEFAULT_VECTOR_CAPACITY_LOG_2, maskerIdx, maskerIdx + 1);
+// Note: blindly update mask does not parallelize well, so we minimize write by first checking
+// if the mask is set to true (mask value is equal to the expected currentMaskValue) or not.
+void ScanNodeIDSemiMask::incrementMaskValue(uint64_t nodeOffset, uint8_t currentMaskValue) {
+    if (nodeMask->isMasked(nodeOffset, currentMaskValue)) {
+        nodeMask->setMask(nodeOffset, currentMaskValue + 1);
+    }
+    auto morselIdx = nodeOffset >> DEFAULT_VECTOR_CAPACITY_LOG_2;
+    if (morselMask->isMasked(morselIdx, currentMaskValue)) {
+        morselMask->setMask(morselIdx, currentMaskValue + 1);
+    }
 }
 
 std::pair<offset_t, offset_t> ScanTableNodeIDSharedState::getNextRangeToRead() {
     // Note: we use maxNodeOffset=UINT64_MAX to represent an empty table.
-    if (currentNodeOffset > maxNodeOffset || maxNodeOffset == UINT64_MAX) {
+    if (currentNodeOffset > maxNodeOffset || maxNodeOffset == INVALID_NODE_OFFSET) {
         return std::make_pair(currentNodeOffset, currentNodeOffset);
     }
-    if (semiMask) {
+    if (isSemiMaskEnabled()) {
         auto currentMorselIdx = currentNodeOffset >> DEFAULT_VECTOR_CAPACITY_LOG_2;
         assert(currentNodeOffset % DEFAULT_VECTOR_CAPACITY == 0);
         while (currentMorselIdx <= maxMorselIdx && !semiMask->isMorselMasked(currentMorselIdx)) {
@@ -71,10 +78,6 @@ bool ScanNodeID::getNextTuplesInternal() {
     } while (outValueVector->state->selVector->selectedSize == 0);
     metrics->numOutputTuple.increase(outValueVector->state->selVector->selectedSize);
     return true;
-}
-
-void ScanNodeID::initGlobalStateInternal(ExecutionContext* context) {
-    sharedState->initialize(context->transaction);
 }
 
 void ScanNodeID::setSelVector(

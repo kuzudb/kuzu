@@ -8,75 +8,77 @@
 namespace kuzu {
 namespace processor {
 
+// Note: This class is not thread-safe.
 struct Mask {
 public:
-    Mask(uint64_t size, uint8_t maskedFlag) : maskedFlag{maskedFlag} {
+    explicit Mask(uint64_t size) {
         data = std::make_unique<uint8_t[]>(size);
         std::fill(data.get(), data.get() + size, 0);
     }
 
-    // Notice: This function is not protected with a lock for concurrent writes because of the
-    // special use case that there is no mixed reads and writes to the mask, and all writes to the
-    // mask try to set a position to the same value, thus it doesn't matter which thread succeeds.
-    inline void setMask(uint64_t pos, uint8_t maskerIdx, uint8_t maskValue) {
-        // Note: blindly update mask does not parallel well, so we minimize write by first checking
-        // if the mask is true or not.
-        if (data[pos] == maskerIdx) {
-            data[pos] = maskValue;
-        }
-    }
-    inline bool isMasked(uint64_t pos) { return data[pos] == maskedFlag; }
+    inline void setMask(uint64_t pos, uint8_t maskValue) { data[pos] = maskValue; }
+    inline bool isMasked(uint64_t pos, uint8_t trueMaskVal) { return data[pos] == trueMaskVal; }
 
 private:
-    // The value of maskedFlag is equivalent to the num of maskers passed. It is used to check if a
-    // value is selected by all maskers or not. Each masker will increment its selected value by 1.
-    uint8_t maskedFlag;
     std::unique_ptr<uint8_t[]> data;
 };
 
+// Note: This class is not thread-safe.
 struct ScanNodeIDSemiMask {
 public:
-    ScanNodeIDSemiMask(common::offset_t maxNodeOffset, uint8_t maskedFlag) {
-        nodeMask = std::make_unique<Mask>(maxNodeOffset + 1, maskedFlag);
-        morselMask = std::make_unique<Mask>(
-            (maxNodeOffset >> common::DEFAULT_VECTOR_CAPACITY_LOG_2) + 1, maskedFlag);
+    explicit ScanNodeIDSemiMask() : numMaskers{0} {}
+
+    inline void initializeMaskData(common::offset_t maxNodeOffset, common::offset_t maxMorselIdx) {
+        if (nodeMask == nullptr) {
+            assert(morselMask == nullptr);
+            nodeMask = std::make_unique<Mask>(maxNodeOffset + 1);
+            morselMask = std::make_unique<Mask>(maxMorselIdx + 1);
+        }
     }
 
-    inline bool isNodeMaskEnabled() { return nodeMask != nullptr; }
-    inline bool isMorselMasked(uint64_t morselIdx) { return morselMask->isMasked(morselIdx); }
-    inline bool isNodeMasked(uint64_t nodeOffset) { return nodeMask->isMasked(nodeOffset); }
+    inline bool isMorselMasked(uint64_t morselIdx) {
+        return morselMask->isMasked(morselIdx, numMaskers);
+    }
+    inline bool isNodeMasked(uint64_t nodeOffset) {
+        return nodeMask->isMasked(nodeOffset, numMaskers);
+    }
 
-    void setMask(uint64_t nodeOffset, uint8_t maskerIdx);
+    // Increment mask value for the given nodeOffset if its current mask value is equal to
+    // the specified `currentMaskValue`.
+    void incrementMaskValue(uint64_t nodeOffset, uint8_t currentMaskValue);
+
+    inline uint8_t getNumMaskers() const { return numMaskers; }
+    inline void incrementNumMaskers() { numMaskers++; }
 
 private:
     std::unique_ptr<Mask> nodeMask;
     std::unique_ptr<Mask> morselMask;
+    uint8_t numMaskers;
 };
 
+// Note: This class is not thread-safe. It relies on its caller to correctly synchronize its state.
 class ScanTableNodeIDSharedState {
 public:
     explicit ScanTableNodeIDSharedState(storage::NodeTable* table)
-        : table{table}, maxNodeOffset{UINT64_MAX}, maxMorselIdx{UINT64_MAX}, currentNodeOffset{0},
-          numMaskers{0}, semiMask{nullptr} {}
+        : table{table}, maxNodeOffset{UINT64_MAX}, maxMorselIdx{UINT64_MAX}, currentNodeOffset{0} {
+        semiMask = std::make_unique<ScanNodeIDSemiMask>();
+    }
 
     inline storage::NodeTable* getTable() { return table; }
 
-    inline void initialize(transaction::Transaction* transaction) {
+    inline void initializeMaxOffset(transaction::Transaction* transaction) {
         assert(maxNodeOffset == UINT64_MAX && maxMorselIdx == UINT64_MAX);
         maxNodeOffset = table->getMaxNodeOffset(transaction);
         maxMorselIdx = maxNodeOffset >> common::DEFAULT_VECTOR_CAPACITY_LOG_2;
     }
 
     inline void initSemiMask(transaction::Transaction* transaction) {
-        if (semiMask == nullptr) {
-            semiMask = std::make_unique<ScanNodeIDSemiMask>(
-                table->getMaxNodeOffset(transaction), numMaskers);
-        }
+        semiMask->initializeMaskData(maxNodeOffset, maxMorselIdx);
     }
-    inline bool isSemiMaskEnabled() { return semiMask != nullptr && semiMask->isNodeMaskEnabled(); }
+    inline bool isSemiMaskEnabled() { return semiMask->getNumMaskers() > 0; }
     inline ScanNodeIDSemiMask* getSemiMask() { return semiMask.get(); }
-    inline uint8_t getNumMaskers() const { return numMaskers; }
-    inline void incrementNumMaskers() { numMaskers++; }
+    inline uint8_t getNumMaskers() const { return semiMask->getNumMaskers(); }
+    inline void incrementNumMaskers() { semiMask->incrementNumMaskers(); }
 
     std::pair<common::offset_t, common::offset_t> getNextRangeToRead();
 
@@ -85,7 +87,6 @@ private:
     uint64_t maxNodeOffset;
     uint64_t maxMorselIdx;
     uint64_t currentNodeOffset;
-    uint8_t numMaskers;
     std::unique_ptr<ScanNodeIDSemiMask> semiMask;
 };
 
@@ -103,7 +104,7 @@ public:
 
     inline void initialize(transaction::Transaction* transaction) {
         for (auto& tableState : tableStates) {
-            tableState->initialize(transaction);
+            tableState->initializeMaxOffset(transaction);
         }
     }
 
@@ -112,7 +113,6 @@ public:
 
 private:
     std::mutex mtx;
-
     std::vector<std::unique_ptr<ScanTableNodeIDSharedState>> tableStates;
     uint32_t currentStateIdx;
 };
@@ -139,7 +139,9 @@ public:
     }
 
 private:
-    void initGlobalStateInternal(ExecutionContext* context) override;
+    inline void initGlobalStateInternal(ExecutionContext* context) override {
+        sharedState->initialize(context->transaction);
+    }
 
     void setSelVector(ScanTableNodeIDSharedState* tableState, common::offset_t startOffset,
         common::offset_t endOffset);
@@ -148,7 +150,6 @@ private:
     std::string nodeID;
     DataPos outDataPos;
     std::shared_ptr<ScanNodeIDSharedState> sharedState;
-
     std::shared_ptr<common::ValueVector> outValueVector;
 };
 

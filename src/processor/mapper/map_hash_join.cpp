@@ -59,6 +59,8 @@ static void mapASPJoin(Expression* joinNodeID, HashJoinProbe* hashJoinProbe) {
     assert(scanNodeIDCandidates.size() == 1);
     // set semi masker
     auto tableScan = getTableScanForAccHashJoin(hashJoinProbe);
+    // TODO(Xiyang): `tableScan->getChild(0)->getChild(0)`. This is not a good practice, can we
+    // change this to a more meaningful way?
     assert(tableScan->getChild(0)->getChild(0)->getOperatorType() ==
            PhysicalOperatorType::SEMI_MASKER);
     auto semiMasker = (SemiMasker*)tableScan->getChild(0)->getChild(0);
