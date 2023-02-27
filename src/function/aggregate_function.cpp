@@ -37,6 +37,10 @@ std::unique_ptr<AggregateFunction> AggregateFunctionUtil::getAvgFunction(
         return std::make_unique<AggregateFunction>(AvgFunction<double_t>::initialize,
             AvgFunction<double_t>::updateAll, AvgFunction<double_t>::updatePos,
             AvgFunction<double_t>::combine, AvgFunction<double_t>::finalize, inputType, isDistinct);
+    case FLOAT:
+        return std::make_unique<AggregateFunction>(AvgFunction<float_t>::initialize,
+            AvgFunction<float_t>::updateAll, AvgFunction<float_t>::updatePos,
+            AvgFunction<float_t>::combine, AvgFunction<float_t>::finalize, inputType, isDistinct);
     default:
         throw RuntimeException("Unsupported input data type " + Types::dataTypeToString(inputType) +
                                " for AggregateFunctionUtil::getAvgFunction.");
@@ -54,6 +58,10 @@ std::unique_ptr<AggregateFunction> AggregateFunctionUtil::getSumFunction(
         return std::make_unique<AggregateFunction>(SumFunction<double_t>::initialize,
             SumFunction<double_t>::updateAll, SumFunction<double_t>::updatePos,
             SumFunction<double_t>::combine, SumFunction<double_t>::finalize, inputType, isDistinct);
+    case FLOAT:
+        return std::make_unique<AggregateFunction>(SumFunction<float_t>::initialize,
+            SumFunction<float_t>::updateAll, SumFunction<float_t>::updatePos,
+            SumFunction<float_t>::combine, SumFunction<float_t>::finalize, inputType, isDistinct);
     default:
         throw RuntimeException("Unsupported input data type " + Types::dataTypeToString(inputType) +
                                " for AggregateFunctionUtil::getSumFunction.");

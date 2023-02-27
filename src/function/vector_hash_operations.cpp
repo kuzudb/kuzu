@@ -36,6 +36,9 @@ void VectorHashOperations::computeHash(ValueVector* operand, ValueVector* result
     case INTERVAL: {
         UnaryHashOperationExecutor::execute<interval_t, hash_t>(*operand, *result);
     } break;
+    case FLOAT: {
+        UnaryHashOperationExecutor::execute<float_t, hash_t>(*operand, *result);
+    } break;
     default: {
         throw RuntimeException(
             "Cannot hash data type " + Types::dataTypeToString(operand->dataType.typeID));

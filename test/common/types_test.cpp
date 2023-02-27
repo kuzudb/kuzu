@@ -62,39 +62,45 @@ TEST(TypesTests, StringToINT64ConversionErrors) {
 }
 
 TEST(TypesTests, StringToDoubleConversion) {
-    EXPECT_EQ(12235.14, TypeUtils::TypeUtils::convertToDouble("12235.14"));
-    EXPECT_EQ(-12235.14013, TypeUtils::TypeUtils::convertToDouble("-12235.14013"));
-    EXPECT_EQ(0.001, TypeUtils::TypeUtils::convertToDouble("0.001"));
-    EXPECT_EQ(-0.001, TypeUtils::TypeUtils::convertToDouble("-0.001"));
-    EXPECT_EQ(0.0, TypeUtils::TypeUtils::convertToDouble("0.0"));
-    EXPECT_EQ(0.0, TypeUtils::TypeUtils::convertToDouble("-0.0"));
+    EXPECT_EQ(12235.14, TypeUtils::TypeUtils::convertFloatingPointNumber<double_t>(
+                            "12235.14", kuzu::common::DOUBLE));
+    EXPECT_EQ(-12235.14013, TypeUtils::TypeUtils::convertFloatingPointNumber<double_t>(
+                                "-12235.14013", kuzu::common::DOUBLE));
+    EXPECT_EQ(0.001,
+        TypeUtils::TypeUtils::convertFloatingPointNumber<double_t>("0.001", kuzu::common::DOUBLE));
+    EXPECT_EQ(-0.001,
+        TypeUtils::TypeUtils::convertFloatingPointNumber<double_t>("-0.001", kuzu::common::DOUBLE));
+    EXPECT_EQ(0.0,
+        TypeUtils::TypeUtils::convertFloatingPointNumber<double_t>("0.0", kuzu::common::DOUBLE));
+    EXPECT_EQ(0.0,
+        TypeUtils::TypeUtils::convertFloatingPointNumber<double_t>("-0.0", kuzu::common::DOUBLE));
 }
 
 TEST(TypesTests, StringToDoubleConversionErrors) {
     // Wrong input
     try {
-        TypeUtils::convertToDouble("x2.4r432");
+        TypeUtils::convertFloatingPointNumber<double_t>("x2.4r432", kuzu::common::DOUBLE);
         FAIL();
     } catch (ConversionException& e) {
     } catch (std::exception& e) { FAIL(); }
 
     // Empty input
     try {
-        TypeUtils::convertToDouble("");
+        TypeUtils::convertFloatingPointNumber<double_t>("", kuzu::common::DOUBLE);
         FAIL();
     } catch (ConversionException& e) {
     } catch (std::exception& e) { FAIL(); }
 
     // Not all characters consumed
     try {
-        TypeUtils::convertToDouble("2.4r432");
+        TypeUtils::convertFloatingPointNumber<double_t>("2.4r432", kuzu::common::DOUBLE);
         FAIL();
     } catch (ConversionException& e) {
     } catch (std::exception& e) { FAIL(); }
 
     // Not all characters consumed
     try {
-        TypeUtils::convertToDouble("0.0f");
+        TypeUtils::convertFloatingPointNumber<double_t>("0.0f", kuzu::common::DOUBLE);
         FAIL();
     } catch (ConversionException& e) {
     } catch (std::exception& e) { FAIL(); }
@@ -127,7 +133,7 @@ TEST(TypesTests, StringToBoolConversionErrors) {
 
     // empty
     try {
-        TypeUtils::convertToDouble("");
+        TypeUtils::convertFloatingPointNumber<double_t>("", kuzu::common::DOUBLE);
         FAIL();
     } catch (ConversionException& e) {
     } catch (std::exception& e) { FAIL(); }

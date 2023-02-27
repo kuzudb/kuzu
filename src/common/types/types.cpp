@@ -44,6 +44,7 @@ DataType::DataType(const DataType& other) {
     case DATE:
     case TIMESTAMP:
     case INTERVAL:
+    case FLOAT:
     case STRING: {
         typeID = other.typeID;
     } break;
@@ -57,13 +58,13 @@ DataType::DataType(DataType&& other) noexcept
       fixedNumElementsInList{other.fixedNumElementsInList} {}
 
 std::vector<DataTypeID> DataType::getNumericalTypeIDs() {
-    return std::vector<DataTypeID>{INT64, DOUBLE};
+    return std::vector<DataTypeID>{INT64, DOUBLE, FLOAT};
 }
 
 std::vector<DataTypeID> DataType::getAllValidTypeIDs() {
     // TODO(Ziyi): Add FIX_LIST type to allValidTypeID when we support functions on VAR_LIST.
     return std::vector<DataTypeID>{
-        INTERNAL_ID, BOOL, INT64, DOUBLE, STRING, DATE, TIMESTAMP, INTERVAL, VAR_LIST};
+        INTERNAL_ID, BOOL, INT64, DOUBLE, STRING, DATE, TIMESTAMP, INTERVAL, VAR_LIST, FLOAT};
 }
 
 DataType& DataType::operator=(const DataType& other) {
@@ -84,6 +85,7 @@ DataType& DataType::operator=(const DataType& other) {
     case DATE:
     case TIMESTAMP:
     case INTERVAL:
+    case FLOAT:
     case STRING: {
         typeID = other.typeID;
     } break;
@@ -112,6 +114,7 @@ bool DataType::operator==(const DataType& other) const {
     case DATE:
     case TIMESTAMP:
     case INTERVAL:
+    case FLOAT:
     case STRING:
         return typeID == other.typeID;
     default:
@@ -149,6 +152,7 @@ std::unique_ptr<DataType> DataType::copy() {
     case TIMESTAMP:
     case INTERVAL:
     case STRING:
+    case FLOAT:
         return std::make_unique<DataType>(typeID);
     default:
         throw InternalException("Unsupported DataType: " + Types::dataTypeToString(typeID) + ".");
@@ -201,6 +205,8 @@ DataTypeID Types::dataTypeIDFromString(const std::string& dataTypeIDString) {
         return TIMESTAMP;
     } else if ("INTERVAL" == dataTypeIDString) {
         return INTERVAL;
+    } else if ("FLOAT" == dataTypeIDString) {
+        return FLOAT;
     } else {
         throw InternalException("Cannot parse dataTypeID: " + dataTypeIDString);
     }
@@ -224,6 +230,7 @@ std::string Types::dataTypeToString(const DataType& dataType) {
     case TIMESTAMP:
     case INTERVAL:
     case STRING:
+    case FLOAT:
         return dataTypeToString(dataType.typeID);
     default:
         throw InternalException("Unsupported DataType: " + Types::dataTypeToString(dataType) + ".");
@@ -258,6 +265,8 @@ std::string Types::dataTypeToString(DataTypeID dataTypeID) {
         return "VAR_LIST";
     case FIXED_LIST:
         return "FIXED_LIST";
+    case FLOAT:
+        return "FLOAT";
     default:
         throw InternalException(
             "Unsupported DataType: " + Types::dataTypeToString(dataTypeID) + ".");
@@ -304,6 +313,8 @@ uint32_t Types::getDataTypeSize(DataTypeID dataTypeID) {
         return sizeof(ku_string_t);
     case VAR_LIST:
         return sizeof(ku_list_t);
+    case FLOAT:
+        return sizeof(float_t);
     default:
         throw InternalException(
             "Cannot infer the size of dataTypeID: " + dataTypeToString(dataTypeID) + ".");
@@ -323,6 +334,7 @@ uint32_t Types::getDataTypeSize(const DataType& dataType) {
     case INTERVAL:
     case STRING:
     case VAR_LIST:
+    case FLOAT:
         return getDataTypeSize(dataType.typeID);
     default:
         throw InternalException(

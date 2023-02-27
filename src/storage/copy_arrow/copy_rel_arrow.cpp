@@ -328,7 +328,7 @@ void CopyRelArrow::putPropsOfLineIntoColumns(CopyRelArrow* copier,
                 reinterpret_cast<uint8_t*>(&val));
         } break;
         case DOUBLE: {
-            double_t val = TypeUtils::convertToDouble(data);
+            double_t val = TypeUtils::convertFloatingPointNumber<double_t>(data, DOUBLE);
             putValueIntoColumns(propertyIdx, directionTablePropertyColumns, nodeIDs,
                 reinterpret_cast<uint8_t*>(&val));
         } break;
@@ -371,6 +371,11 @@ void CopyRelArrow::putPropsOfLineIntoColumns(CopyRelArrow* copier,
                 properties[propertyIdx].dataType, copyDescription);
             putValueIntoColumns(
                 propertyIdx, directionTablePropertyColumns, nodeIDs, fixedListVal.get());
+        } break;
+        case FLOAT: {
+            float_t val = TypeUtils::convertFloatingPointNumber<float_t>(data, FLOAT);
+            putValueIntoColumns(propertyIdx, directionTablePropertyColumns, nodeIDs,
+                reinterpret_cast<uint8_t*>(&val));
         } break;
         default:
             break;
@@ -461,7 +466,7 @@ void CopyRelArrow::putPropsOfLineIntoLists(CopyRelArrow* copier,
                 nodeIDs, reversePos, reinterpret_cast<uint8_t*>(&val));
         } break;
         case DOUBLE: {
-            double_t val = TypeUtils::convertToDouble(data);
+            double_t val = TypeUtils::convertFloatingPointNumber<double_t>(data, DOUBLE);
             putValueIntoLists(propertyIdx, directionTablePropertyLists, directionTableAdjLists,
                 nodeIDs, reversePos, reinterpret_cast<uint8_t*>(&val));
         } break;
@@ -504,6 +509,11 @@ void CopyRelArrow::putPropsOfLineIntoLists(CopyRelArrow* copier,
                 properties[propertyIdx].dataType, copyDescription);
             putValueIntoLists(propertyIdx, directionTablePropertyLists, directionTableAdjLists,
                 nodeIDs, reversePos, fixedListVal.get());
+        } break;
+        case FLOAT: {
+            auto val = TypeUtils::convertFloatingPointNumber<float_t>(data, FLOAT);
+            putValueIntoLists(propertyIdx, directionTablePropertyLists, directionTableAdjLists,
+                nodeIDs, reversePos, reinterpret_cast<uint8_t*>(&val));
         } break;
         default:
             break;

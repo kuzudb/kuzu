@@ -47,5 +47,9 @@ struct CastToDoubleVectorOperation : public VectorCastOperations {
     static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
 };
 
+struct CastToFloatVectorOperation : public VectorCastOperations {
+    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
 } // namespace function
 } // namespace kuzu

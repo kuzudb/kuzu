@@ -223,7 +223,7 @@ int64_t CSVReader::getInt64() {
 
 double_t CSVReader::getDouble() {
     setNextTokenIsProcessed();
-    return TypeUtils::convertToDouble(line + linePtrStart);
+    return TypeUtils::convertFloatingPointNumber<double_t>(line + linePtrStart, DOUBLE);
 }
 
 uint8_t CSVReader::getBoolean() {

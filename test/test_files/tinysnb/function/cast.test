@@ -106,6 +106,18 @@ Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
 [[10]]
 [[7],[10],[6,7]]
 
+-NAME CastFloatToString
+-QUERY MATCH (p:person) RETURN string(p.height)
+---- 8
+1.731000
+0.990000
+1.000000
+1.300000
+1.463000
+1.510000
+1.600000
+1.323000
+
 -NAME CastInt64ToDouble
 -QUERY MATCH (p:person) RETURN to_double(p.age)
 ---- 8
@@ -117,3 +129,27 @@ Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
 25.000000
 40.000000
 83.000000
+
+-NAME CastFloatToDouble
+-QUERY MATCH (p:person) RETURN to_double(p.height)
+---- 8
+1.731000
+0.990000
+1.000000
+1.300000
+1.463000
+1.510000
+1.600000
+1.323000
+
+-NAME CastInt64ToFloat
+-QUERY MATCH (p:person) RETURN to_float(p.gender)
+---- 8
+1.000000
+2.000000
+1.000000
+2.000000
+1.000000
+2.000000
+2.000000
+2.000000

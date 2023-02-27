@@ -38,6 +38,19 @@ False
 5.000000
 5.100000
 
+-NAME OrderByFloatTest
+-QUERY MATCH (p:person) RETURN p.height ORDER BY p.height
+-PARALLELISM 3
+---- 8
+0.990000
+1.000000
+1.300000
+1.323000
+1.463000
+1.510000
+1.600000
+1.731000
+
 -NAME OrderByDateTest
 -QUERY MATCH (p:person) RETURN p.birthdate ORDER BY p.birthdate desc
 -PARALLELISM 3
@@ -138,8 +151,8 @@ Bob
 Dan
 Carol
 
-# If the payload column and the orderBy key column are in different dataChunks and one of them is unflat, the order by
-# scanner can only scan one tuple from factorizedTable at a time.
+#If the payload column and the orderBy key column are in different dataChunks and one of them is unflat,                                                                                        \
+#the order by scanner can only scan one tuple from factorizedTable at a time.
 -NAME OrderByScanSingleTupleTest
 -QUERY MATCH (a:person)-[:knows]->(b:person) return a.fName order by b.fName, a.fName
 #-PARALLELISM 2
@@ -163,4 +176,3 @@ Elizabeth
 -NAME OrderByEmptyResult
 -QUERY MATCH (p:person) WHERE p.age > 100 RETURN p.age ORDER BY p.age 
 ---- 0
-

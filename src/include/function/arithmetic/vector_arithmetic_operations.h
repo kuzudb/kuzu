@@ -9,85 +9,72 @@ namespace function {
 class VectorArithmeticOperations : public VectorOperations {
 
 public:
-    template<typename FUNC, bool INT_RESULT = false, bool DOUBLE_RESULT = false>
+    template<typename FUNC>
+    static std::unique_ptr<VectorOperationDefinition> getUnaryDefinition(
+        std::string name, common::DataTypeID operandTypeID) {
+        return make_unique<VectorOperationDefinition>(std::move(name),
+            std::vector<common::DataTypeID>{operandTypeID}, operandTypeID,
+            getUnaryExecFunc<FUNC>(operandTypeID));
+    }
+
+    template<typename FUNC, typename OPERAND_TYPE, typename RETURN_TYPE = OPERAND_TYPE>
     static std::unique_ptr<VectorOperationDefinition> getUnaryDefinition(
         std::string name, common::DataTypeID operandTypeID, common::DataTypeID resultTypeID) {
         return make_unique<VectorOperationDefinition>(std::move(name),
             std::vector<common::DataTypeID>{operandTypeID}, resultTypeID,
-            getUnaryExecFunc<FUNC, INT_RESULT, DOUBLE_RESULT>(operandTypeID));
+            VectorArithmeticOperations::UnaryExecFunction<OPERAND_TYPE, RETURN_TYPE, FUNC>);
     }
 
-    template<typename FUNC, bool DOUBLE_RESULT = false>
-    static inline std::unique_ptr<VectorOperationDefinition> getBinaryDefinition(std::string name,
-        common::DataTypeID leftTypeID, common::DataTypeID rightTypeID,
-        common::DataTypeID resultTypeID) {
+    template<typename FUNC>
+    static inline std::unique_ptr<VectorOperationDefinition> getBinaryDefinition(
+        std::string name, common::DataTypeID operandTypeID) {
         return make_unique<VectorOperationDefinition>(std::move(name),
-            std::vector<common::DataTypeID>{leftTypeID, rightTypeID}, resultTypeID,
-            getBinaryExecFunc<FUNC, DOUBLE_RESULT>(leftTypeID, rightTypeID));
+            std::vector<common::DataTypeID>{operandTypeID, operandTypeID}, operandTypeID,
+            getBinaryExecFunc<FUNC>(operandTypeID));
+    }
+
+    template<typename FUNC, typename OPERAND_TYPE, typename RETURN_TYPE = OPERAND_TYPE>
+    static inline std::unique_ptr<VectorOperationDefinition> getBinaryDefinition(
+        std::string name, common::DataTypeID operandTypeID, common::DataTypeID resultTypeID) {
+        return make_unique<VectorOperationDefinition>(std::move(name),
+            std::vector<common::DataTypeID>{operandTypeID, operandTypeID}, resultTypeID,
+            VectorArithmeticOperations::BinaryExecFunction<OPERAND_TYPE, OPERAND_TYPE, RETURN_TYPE,
+                FUNC>);
     }
 
 private:
-    template<typename FUNC, bool DOUBLE_RESULT>
-    static scalar_exec_func getBinaryExecFunc(
-        common::DataTypeID leftTypeID, common::DataTypeID rightTypeID) {
-        switch (leftTypeID) {
-        case common::INT64: {
-            switch (rightTypeID) {
-            case common::INT64: {
-                if constexpr (DOUBLE_RESULT) {
-                    return BinaryExecFunction<int64_t, int64_t, double_t, FUNC>;
-                } else {
-                    return BinaryExecFunction<int64_t, int64_t, int64_t, FUNC>;
-                }
-            }
-            case common::DOUBLE: {
-                return BinaryExecFunction<int64_t, double_t, double_t, FUNC>;
-            }
-            default:
-                throw common::RuntimeException("Invalid input data types(" +
-                                               common::Types::dataTypeToString(leftTypeID) + "," +
-                                               common::Types::dataTypeToString(rightTypeID) +
-                                               ") for getBinaryExecFunc.");
-            }
-        }
-        case common::DOUBLE: {
-            switch (rightTypeID) {
-            case common::INT64: {
-                return BinaryExecFunction<double_t, int64_t, double_t, FUNC>;
-            }
-            case common::DOUBLE: {
-                return BinaryExecFunction<double_t, double_t, double_t, FUNC>;
-            }
-            default:
-                throw common::RuntimeException("Invalid input data types(" +
-                                               common::Types::dataTypeToString(leftTypeID) + "," +
-                                               common::Types::dataTypeToString(rightTypeID) +
-                                               ") for getBinaryExecFunc.");
-            }
-        }
-        default:
-            throw common::RuntimeException(
-                "Invalid input data types(" + common::Types::dataTypeToString(leftTypeID) + "," +
-                common::Types::dataTypeToString(rightTypeID) + ") for getBinaryExecFunc.");
-        }
-    }
-
-    template<typename FUNC, bool INT_RESULT, bool DOUBLE_RESULT>
+    template<typename FUNC>
     static scalar_exec_func getUnaryExecFunc(common::DataTypeID operandTypeID) {
         switch (operandTypeID) {
         case common::INT64: {
-            if constexpr (DOUBLE_RESULT) {
-                return UnaryExecFunction<int64_t, double_t, FUNC>;
-            } else {
-                return UnaryExecFunction<int64_t, int64_t, FUNC>;
-            }
+            return VectorArithmeticOperations::UnaryExecFunction<int64_t, int64_t, FUNC>;
         }
         case common::DOUBLE: {
-            if constexpr (INT_RESULT) {
-                return UnaryExecFunction<double_t, int64_t, FUNC>;
-            } else {
-                return UnaryExecFunction<double_t, double_t, FUNC>;
-            }
+            return VectorArithmeticOperations::UnaryExecFunction<double_t, double_t, FUNC>;
+        }
+        case common::FLOAT: {
+            return VectorArithmeticOperations::UnaryExecFunction<float_t, float_t, FUNC>;
+            ;
+        }
+        default:
+            throw common::RuntimeException("Invalid input data types(" +
+                                           common::Types::dataTypeToString(operandTypeID) +
+                                           ") for getUnaryExecFunc.");
+        }
+    }
+
+    template<typename FUNC>
+    static scalar_exec_func getBinaryExecFunc(common::DataTypeID operandTypeID) {
+        switch (operandTypeID) {
+        case common::INT64: {
+            return VectorArithmeticOperations::BinaryExecFunction<int64_t, int64_t, int64_t, FUNC>;
+        }
+        case common::DOUBLE: {
+            return VectorArithmeticOperations::BinaryExecFunction<double_t, double_t, double_t,
+                FUNC>;
+        }
+        case common::FLOAT: {
+            return VectorArithmeticOperations::BinaryExecFunction<float_t, float_t, float_t, FUNC>;
         }
         default:
             throw common::RuntimeException("Invalid input data types(" +

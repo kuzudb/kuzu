@@ -32,9 +32,13 @@ public:
         const common::DataType& inputType, const common::DataType& targetType);
 
 private:
-    static uint32_t implicitCastInt64(common::DataTypeID targetTypeID);
+    static uint32_t getTargetTypeCost(common::DataTypeID typeID);
 
-    static uint32_t implicitCastDouble(common::DataTypeID targetTypeID);
+    static uint32_t castInt64(common::DataTypeID targetTypeID);
+
+    static uint32_t castDouble(common::DataTypeID targetTypeID);
+
+    static uint32_t castFloat(common::DataTypeID targetTypeID);
 
     VectorOperationDefinition* getBestMatch(std::vector<VectorOperationDefinition*>& functions);
 

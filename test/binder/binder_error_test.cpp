@@ -97,10 +97,10 @@ TEST_F(BinderErrorTest, BindIDArithmetic) {
     std::string expectedException =
         "Binder exception: Cannot match a built-in function for given function "
         "+(INTERNAL_ID,INT64). Supported inputs "
-        "are\n(INT64,INT64) -> INT64\n(DOUBLE,DOUBLE) -> DOUBLE\n(INTERVAL,INTERVAL) -> "
-        "INTERVAL\n(DATE,INT64) -> DATE\n(INT64,DATE) -> DATE\n(DATE,INTERVAL) -> "
-        "DATE\n(INTERVAL,DATE) -> DATE\n(TIMESTAMP,INTERVAL) -> TIMESTAMP\n(INTERVAL,TIMESTAMP) -> "
-        "TIMESTAMP\n";
+        "are\n(INT64,INT64) -> INT64\n(DOUBLE,DOUBLE) -> DOUBLE\n(FLOAT,FLOAT) -> "
+        "FLOAT\n(INTERVAL,INTERVAL) -> INTERVAL\n(DATE,INT64) -> DATE\n(INT64,DATE) -> "
+        "DATE\n(DATE,INTERVAL) -> DATE\n(INTERVAL,DATE) -> DATE\n(TIMESTAMP,INTERVAL) -> "
+        "TIMESTAMP\n(INTERVAL,TIMESTAMP) -> TIMESTAMP\n";
     auto input = "MATCH (a:person)-[e1:knows]->(b:person) WHERE id(a) + 1 < id(b) RETURN *;";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
@@ -109,7 +109,8 @@ TEST_F(BinderErrorTest, BindDateAddDate) {
     std::string expectedException =
         "Binder exception: Cannot match a built-in function for given function "
         "+(DATE,DATE). Supported inputs "
-        "are\n(INT64,INT64) -> INT64\n(DOUBLE,DOUBLE) -> DOUBLE\n(INTERVAL,INTERVAL) -> "
+        "are\n(INT64,INT64) -> INT64\n(DOUBLE,DOUBLE) -> DOUBLE\n(FLOAT,FLOAT) -> "
+        "FLOAT\n(INTERVAL,INTERVAL) -> "
         "INTERVAL\n(DATE,INT64) -> DATE\n(INT64,DATE) -> DATE\n(DATE,INTERVAL) -> "
         "DATE\n(INTERVAL,DATE) -> DATE\n(TIMESTAMP,INTERVAL) -> TIMESTAMP\n(INTERVAL,TIMESTAMP) -> "
         "TIMESTAMP\n";
@@ -121,7 +122,8 @@ TEST_F(BinderErrorTest, BindTimestampArithmetic) {
     std::string expectedException =
         "Binder exception: Cannot match a built-in function for given function "
         "+(TIMESTAMP,INT64). Supported inputs "
-        "are\n(INT64,INT64) -> INT64\n(DOUBLE,DOUBLE) -> DOUBLE\n(INTERVAL,INTERVAL) -> "
+        "are\n(INT64,INT64) -> INT64\n(DOUBLE,DOUBLE) -> DOUBLE\n(FLOAT,FLOAT) -> "
+        "FLOAT\n(INTERVAL,INTERVAL) -> "
         "INTERVAL\n(DATE,INT64) -> DATE\n(INT64,DATE) -> DATE\n(DATE,INTERVAL) -> "
         "DATE\n(INTERVAL,DATE) -> DATE\n(TIMESTAMP,INTERVAL) -> TIMESTAMP\n(INTERVAL,TIMESTAMP) -> "
         "TIMESTAMP\n";
@@ -133,10 +135,10 @@ TEST_F(BinderErrorTest, BindTimestampAddTimestamp) {
     std::string expectedException =
         "Binder exception: Cannot match a built-in function for given function "
         "+(TIMESTAMP,TIMESTAMP). Supported inputs "
-        "are\n(INT64,INT64) -> INT64\n(DOUBLE,DOUBLE) -> DOUBLE\n(INTERVAL,INTERVAL) -> "
-        "INTERVAL\n(DATE,INT64) -> DATE\n(INT64,DATE) -> DATE\n(DATE,INTERVAL) -> "
-        "DATE\n(INTERVAL,DATE) -> DATE\n(TIMESTAMP,INTERVAL) -> TIMESTAMP\n(INTERVAL,TIMESTAMP) -> "
-        "TIMESTAMP\n";
+        "are\n(INT64,INT64) -> INT64\n(DOUBLE,DOUBLE) -> DOUBLE\n(FLOAT,FLOAT) -> "
+        "FLOAT\n(INTERVAL,INTERVAL) -> INTERVAL\n(DATE,INT64) -> DATE\n(INT64,DATE) -> "
+        "DATE\n(DATE,INTERVAL) -> DATE\n(INTERVAL,DATE) -> DATE\n(TIMESTAMP,INTERVAL) -> "
+        "TIMESTAMP\n(INTERVAL,TIMESTAMP) -> TIMESTAMP\n";
     auto input = "MATCH (a:person) RETURN a.registerTime + timestamp('2031-02-11 01:02:03');";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
