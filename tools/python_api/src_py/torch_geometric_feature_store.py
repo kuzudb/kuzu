@@ -19,7 +19,6 @@ class KuzuFeatureStore(FeatureStore):
         self.db = db
         self.connection = None
         self.node_properties_cache = {}
-        os.register_at_fork(before=self.__close_connection)
 
     def __getstate__(self):
         state = {

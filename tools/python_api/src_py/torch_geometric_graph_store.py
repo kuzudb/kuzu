@@ -24,7 +24,6 @@ class KuzuGraphStore(GraphStore):
         self.connection = None
         self.store = {}
         self.__populate_edge_attrs()
-        os.register_at_fork(before=self.__close_connection)
 
     def __getstate__(self):
         state = {

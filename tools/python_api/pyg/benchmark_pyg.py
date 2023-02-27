@@ -8,6 +8,12 @@ import multiprocessing
 
 if __name__ == "__main__":
     multiprocessing.freeze_support()
+
+    if len(sys.argv) != 6:
+        print(
+            "Usage: %s <db_path> <num_workers> <batch_size> <warmup> <batches>" % sys.argv[0])
+        sys.exit(1)
+
     data_path = sys.argv[1]
     num_workers = int(sys.argv[2])
     batch_size = int(sys.argv[3])
@@ -30,17 +36,17 @@ if __name__ == "__main__":
     i = 0
     for b in loader_pyg:
         i += 1
-        if i + 1 == warmup:
+        if i == warmup:
             break
 
     start = time.time()
     i = 0
     for b in loader_pyg:
         i += 1
-        if i + 1 == batches:
+        if i == batches:
             break
     end = time.time() - start
 
     batch_time = end / batches
 
-    print("%d\t%d\t%d\t%f" % (num_workers, batch_size, batch_time))
+    print("pyg\t%d\t%d\t%f" % (num_workers, batch_size, batch_time))
