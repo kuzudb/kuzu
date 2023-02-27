@@ -1,6 +1,7 @@
 #include "storage/store/rels_store.h"
 
 using namespace kuzu::catalog;
+using namespace kuzu::common;
 
 namespace kuzu {
 namespace storage {

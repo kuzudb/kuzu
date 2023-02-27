@@ -3,6 +3,8 @@
 #include "common/exception.h"
 #include "common/utils.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace catalog {
 

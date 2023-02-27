@@ -4,6 +4,6 @@
 7:2|2|1905-12-12
 
 -NAME MultiLabelAggTest2
--QUERY MATCH (a:person)-[e1:marries|studyAt]->(b:person) RETURN e1.year, COUNT(*)
+-QUERY MATCH (a:person)-[e1:marries|studyAt]->(b:person) RETURN NULL, COUNT(*)
 ---- 1
 |3

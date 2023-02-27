@@ -80,7 +80,13 @@ void LogicalHashJoin::computeSchema() {
 }
 
 bool LogicalHashJoin::requireFlatProbeKeys() {
+    // Flatten for multiple join keys.
     if (joinNodeIDs.size() > 1) {
+        return true;
+    }
+    // Flatten for left join.
+    // TODO(Guodong): fix this.
+    if (joinType == common::JoinType::LEFT) {
         return true;
     }
     auto joinNodeID = joinNodeIDs[0].get();
