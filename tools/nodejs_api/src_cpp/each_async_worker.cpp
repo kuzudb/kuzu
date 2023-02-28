@@ -1,18 +1,17 @@
-#include "include/each_single_async_worker.h"
-
 #include <chrono>
 #include <thread>
 #include <vector>
 
+#include "include/each_async_worker.h"
 #include "include/node_query_result.h"
 #include "include/util.h"
 
 using namespace std;
 
-EachSingleAsyncWorker::EachSingleAsyncWorker(Function& callback, shared_ptr<kuzu::main::QueryResult>& queryResult, size_t index)
+EachAsyncWorker::EachAsyncWorker(Function& callback, shared_ptr<kuzu::main::QueryResult>& queryResult, size_t index)
     : AsyncWorker(callback), queryResult(queryResult), index(index) {};
 
-void EachSingleAsyncWorker::Execute() {
+void EachAsyncWorker::Execute() {
     try {
         auto row = queryResult->getNext();
         for (size_t j = 0; j < row->len(); j++) {
@@ -24,7 +23,7 @@ void EachSingleAsyncWorker::Execute() {
     }
 }
 
-void EachSingleAsyncWorker::OnOK() {
+void EachAsyncWorker::OnOK() {
     Napi::Array rowArray = Napi::Array::New(Env(), rowResult.size() + 1);
     size_t j = 0;
     for (; j < rowResult.size(); j++){
