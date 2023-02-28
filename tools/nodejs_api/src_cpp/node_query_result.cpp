@@ -1,7 +1,7 @@
 #include "include/node_query_result.h"
 
 #include "include/all_async_worker.h"
-#include "include/each_single_async_worker.h"
+#include "include/each_async_worker.h"
 #include "main/kuzu.h"
 
 using namespace kuzu::main;
@@ -79,7 +79,7 @@ Napi::Value NodeQueryResult::GetNext(const Napi::CallbackInfo& info) {
     }
 
     try {
-        EachSingleAsyncWorker * asyncWorker = new EachSingleAsyncWorker(eachCallback, queryResult, 1);
+        EachAsyncWorker * asyncWorker = new EachAsyncWorker(eachCallback, queryResult, 1);
         asyncWorker->Queue();
     } catch(const std::exception &exc) {
         Napi::TypeError::New(env, "Unsuccessful getNext callback: " + std::string(exc.what())).ThrowAsJavaScriptException();
