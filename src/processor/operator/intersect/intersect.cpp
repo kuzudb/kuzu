@@ -17,6 +17,9 @@ void Intersect::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* c
         for (auto i = 0u; i < dataInfo.payloadsDataPos.size(); i++) {
             auto vector = resultSet->getValueVector(dataInfo.payloadsDataPos[i]);
             // Always skip the first two columns in the fTable: build key and intersect key.
+            // TODO(Guodong): this is a potential bug because you cannot guarantee intersect key is
+            // the second column. Once this is solved, go back and refactor projection push down for
+            // intersect.
             columnIdxesToScanFrom.push_back(i + 2);
             vectorsToReadInto.push_back(vector);
         }

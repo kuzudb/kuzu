@@ -39,6 +39,17 @@ static FactorizedTableScan* getTableScanForAccHashJoin(HashJoinProbe* hashJoinPr
     return (FactorizedTableScan*)op;
 }
 
+static SemiMasker* getSemiMasker(FactorizedTableScan* tableScan) {
+    auto op = (PhysicalOperator*)tableScan;
+    // Search on current pipeline.
+    while (
+        op->getNumChildren() == 1 && op->getOperatorType() != PhysicalOperatorType::SEMI_MASKER) {
+        op = op->getChild(0);
+    }
+    assert(op->getOperatorType() == PhysicalOperatorType::SEMI_MASKER);
+    return (SemiMasker*)op;
+}
+
 static void constructAccPipeline(FactorizedTableScan* tableScan, HashJoinProbe* hashJoinProbe) {
     auto resultCollector = tableScan->moveUnaryChild();
     hashJoinProbe->addChild(std::move(resultCollector));
@@ -59,11 +70,7 @@ static void mapASPJoin(Expression* joinNodeID, HashJoinProbe* hashJoinProbe) {
     assert(scanNodeIDCandidates.size() == 1);
     // set semi masker
     auto tableScan = getTableScanForAccHashJoin(hashJoinProbe);
-    // TODO(Xiyang): `tableScan->getChild(0)->getChild(0)`. This is not a good practice, can we
-    // change this to a more meaningful way?
-    assert(tableScan->getChild(0)->getChild(0)->getOperatorType() ==
-           PhysicalOperatorType::SEMI_MASKER);
-    auto semiMasker = (SemiMasker*)tableScan->getChild(0)->getChild(0);
+    auto semiMasker = getSemiMasker(tableScan);
     auto sharedState = scanNodeIDCandidates[0]->getSharedState();
     assert(sharedState->getNumTableStates() == 1);
     semiMasker->setSharedState(sharedState->getTableState(0));

@@ -12,6 +12,13 @@ struct LogicalIntersectBuildInfo {
         std::shared_ptr<binder::Expression> keyNodeID, binder::expression_vector expressions)
         : keyNodeID{std::move(keyNodeID)}, expressionsToMaterialize{std::move(expressions)} {}
 
+    inline void setExpressionsToMaterialize(binder::expression_vector expressions) {
+        expressionsToMaterialize = std::move(expressions);
+    }
+    inline binder::expression_vector getExpressionsToMaterialize() const {
+        return expressionsToMaterialize;
+    }
+
     inline std::unique_ptr<LogicalIntersectBuildInfo> copy() {
         return make_unique<LogicalIntersectBuildInfo>(keyNodeID, expressionsToMaterialize);
     }

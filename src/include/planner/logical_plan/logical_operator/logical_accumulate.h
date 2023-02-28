@@ -17,6 +17,9 @@ public:
         return binder::ExpressionUtil::toString(expressions);
     }
 
+    inline void setExpressions(binder::expression_vector expressions_) {
+        expressions = std::move(expressions_);
+    }
     inline binder::expression_vector getExpressions() const { return expressions; }
     inline Schema* getSchemaBeforeSink() const { return children[0]->getSchema(); }
 
