@@ -345,7 +345,8 @@ public:
         auto result = conn->query(
             "MATCH (:person)-[s:studyAt]->(:organisation) RETURN * ORDER BY s.year DESC LIMIT 1");
         ASSERT_EQ(TestHelper::convertResultToString(*result),
-            std::vector<std::string>{"(0:0)-[label:studyAt, {_id:4:0, year:2021}]->(1:0)"});
+            std::vector<std::string>{
+                "(0:0)-[label:studyAt, {_id:4:0, year:2021, length:5}]->(1:0)"});
     }
 
     void ddlStatementsInsideActiveTransactionErrorTest(std::string query) {

@@ -112,7 +112,10 @@ void BaseGraphTest::validateRelPropertyFiles(catalog::RelTableSchema* relTableSc
 
 void TestHelper::executeScript(const std::string& cypherScript, Connection& conn) {
     std::cout << "cypherScript: " << cypherScript << std::endl;
-    assert(FileUtils::fileOrPathExists(cypherScript));
+    if (!FileUtils::fileOrPathExists(cypherScript)) {
+        std::cout << "CopyCSV script not found, skip executing copy csv statements." << std::endl;
+        return;
+    }
     std::ifstream file(cypherScript);
     if (!file.is_open()) {
         throw Exception(StringUtils::string_format(

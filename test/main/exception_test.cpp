@@ -38,7 +38,8 @@ TEST_F(ApiTest, Exception) {
     auto function_error =
         "Binder exception: Cannot match a built-in function for given function "
         "+(INT64,STRING). Supported inputs "
-        "are\n(INT64,INT64) -> INT64\n(DOUBLE,DOUBLE) -> DOUBLE\n(FLOAT,FLOAT) -> "
+        "are\n(INT64,INT64) -> INT64\n(INT32,INT32) -> INT32\n(INT16,INT16) -> "
+        "INT16\n(DOUBLE,DOUBLE) -> DOUBLE\n(FLOAT,FLOAT) -> "
         "FLOAT\n(INTERVAL,INTERVAL) -> INTERVAL\n(DATE,INT64) -> DATE\n(INT64,DATE) -> "
         "DATE\n(DATE,INTERVAL) -> DATE\n(INTERVAL,DATE) -> DATE\n(TIMESTAMP,INTERVAL) -> "
         "TIMESTAMP\n(INTERVAL,TIMESTAMP) -> TIMESTAMP\n";

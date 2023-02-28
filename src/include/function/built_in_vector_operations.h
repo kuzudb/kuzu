@@ -36,6 +36,10 @@ private:
 
     static uint32_t castInt64(common::DataTypeID targetTypeID);
 
+    static uint32_t castInt32(common::DataTypeID targetTypeID);
+
+    static uint32_t castInt16(common::DataTypeID targetTypeID);
+
     static uint32_t castDouble(common::DataTypeID targetTypeID);
 
     static uint32_t castFloat(common::DataTypeID targetTypeID);

@@ -83,8 +83,17 @@ void ValueVector::copyValue(uint8_t* dest, const Value& value) {
     case INT64: {
         memcpy(dest, &value.val.int64Val, size);
     } break;
+    case INT32: {
+        memcpy(dest, &value.val.int32Val, size);
+    } break;
+    case INT16: {
+        memcpy(dest, &value.val.int16Val, size);
+    } break;
     case DOUBLE: {
         memcpy(dest, &value.val.doubleVal, size);
+    } break;
+    case FLOAT: {
+        memcpy(dest, &value.val.floatVal, size);
     } break;
     case BOOL: {
         memcpy(dest, &value.val.booleanVal, size);

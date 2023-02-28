@@ -205,6 +205,8 @@ std::unique_ptr<InMemLists> InMemListsFactory::getInMemPropertyLists(
     const std::string& fName, const DataType& dataType, uint64_t numNodes) {
     switch (dataType.typeID) {
     case INT64:
+    case INT32:
+    case INT16:
     case DOUBLE:
     case FLOAT:
     case BOOL:

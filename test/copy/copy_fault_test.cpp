@@ -36,6 +36,12 @@ class CopyRelTableMultiplicityViolationTest : public CopyFaultTest {
     }
 };
 
+class CopyInvalidNumberTest : public CopyFaultTest {
+    std::string getInputDir() override {
+        return TestHelper::appendKuzuRootPath("dataset/copy-fault-tests/invalid-number/");
+    }
+};
+
 TEST_F(CopyDuplicateIDTest, DuplicateIDsError) {
     validateCopyException(
         "COPY person FROM \"" +
@@ -54,8 +60,7 @@ TEST_F(CopyNodeUnmatchedColumnTypeTest, UnMatchedColumnTypeError) {
     auto result =
         conn->query("COPY person FROM \"" +
                     TestHelper::appendKuzuRootPath("dataset/tinysnb/vPerson.csv\" (HEADER=true)"));
-    ASSERT_EQ(result->getErrorMessage(),
-        "Cannot convert string Alice to INT64.. Invalid input. No characters consumed.");
+    ASSERT_EQ(result->getErrorMessage(), "Invalid number: Alice.");
 }
 
 TEST_F(CopyWrongHeaderTest, HeaderError) {
@@ -134,4 +139,18 @@ TEST_F(CopyRelTableMultiplicityViolationTest, OneOneMultiplicityViolationError) 
                 "dataset/copy-fault-tests/rel-table-multiplicity-violation/eMatches.csv\""),
         "Copy exception: RelTable matches is a ONE_ONE table, but node(nodeOffset: 1, "
         "tableName: person) has more than one neighbour in the forward direction.");
+}
+
+TEST_F(CopyInvalidNumberTest, INT32OverflowError) {
+    validateCopyException(
+        "COPY person FROM \"" +
+            TestHelper::appendKuzuRootPath("dataset/copy-fault-tests/invalid-number/vPerson.csv\""),
+        "Invalid number: 2147483650.");
+}
+
+TEST_F(CopyInvalidNumberTest, InvalidNumberError) {
+    validateCopyException(
+        "COPY person FROM \"" +
+            TestHelper::appendKuzuRootPath("dataset/copy-fault-tests/invalid-number/vMovie.csv\""),
+        "Invalid number: 312abc.");
 }

@@ -17,6 +17,20 @@
 0.100000
 0.931000
 
+-NAME moduloFunctionOnINT64INT16Test
+-QUERY MATCH (:person)-[e:studyAt]->(:organisation) RETURN e.year % e.length
+---- 3
+1
+40
+18
+
+-NAME moduloFunctionOnINT32INT32Test
+-QUERY MATCH (m:movies) RETURN m.length % m.length
+---- 3
+0
+0
+0
+
 -NAME sinFunctionOnDoubleTest
 -QUERY MATCH (a:organisation) WHERE a.name <> 'abc' RETURN sin(a.mark)
 ---- 3
@@ -57,6 +71,13 @@
 -0.584135
 0.619473
 
+-NAME cosFunctionOnInt32Test
+-QUERY MATCH (m:movies) RETURN cos(m.length)
+---- 3
+0.943984
+0.771215
+-0.899880
+
 -NAME tanFunctionOnDoubleTest
 -QUERY MATCH (a:organisation) RETURN tan(a.mark)
 ---- 3
@@ -77,6 +98,13 @@
 1.600684
 0.702481
 0.702481
+
+-NAME cotFunctionOnInt16Test
+-QUERY MATCH (:person)-[s:studyAt]->(:organisation) RETURN cot(s.length)
+---- 3
+-0.295813
+-0.022132
+112.973210
 
 -NAME cotFunctionOnInt64Test
 -QUERY MATCH (a:organisation) RETURN cot(a.orgCode)

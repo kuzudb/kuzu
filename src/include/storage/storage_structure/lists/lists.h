@@ -272,6 +272,8 @@ public:
         assert(listsUpdatesStore != nullptr);
         switch (dataType.typeID) {
         case common::INT64:
+        case common::INT32:
+        case common::INT16:
         case common::DOUBLE:
         case common::FLOAT:
         case common::BOOL:

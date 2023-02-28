@@ -252,10 +252,10 @@ TEST_F(TinySnbUpdateTest, InsertSingleNTo1RelTest) {
     // insert studyAt edge between Greg and CsWork
     conn->query("MATCH (a:person), (b:organisation) WHERE a.ID = 9 AND b.orgCode = 934 "
                 "CREATE (a)-[:studyAt {year:2022}]->(b);");
-    auto groundTruth =
-        std::vector<std::string>{"8|325|(0:5)-[label:studyAt, {_id:4:2, year:2020, "
-                                 "places:[awndsnjwejwen,isuhuwennjnuhuhuwewe]}]->(1:0)|4:2",
-            "9|934|(0:6)-[label:studyAt, {_id:4:3, year:2022, places:}]->(1:1)|4:3"};
+    auto groundTruth = std::vector<std::string>{
+        "8|325|(0:5)-[label:studyAt, {_id:4:2, year:2020, "
+        "places:[awndsnjwejwen,isuhuwennjnuhuhuwewe], length:22}]->(1:0)|4:2",
+        "9|934|(0:6)-[label:studyAt, {_id:4:3, year:2022, places:, length:}]->(1:1)|4:3"};
     auto result = conn->query("MATCH (a:person)-[e:studyAt]->(b:organisation) WHERE a.ID > 5 "
                               "RETURN a.ID, b.orgCode, e, ID(e)");
     ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);

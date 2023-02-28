@@ -1,25 +1,10 @@
 #include "common/type_utils.h"
 
-#include <cerrno>
-#include <climits>
-
 #include "common/exception.h"
 #include "common/utils.h"
 
 namespace kuzu {
 namespace common {
-
-int64_t TypeUtils::convertToInt64(const char* data) {
-    char* eptr;
-    errno = 0;
-    auto retVal = strtoll(data, &eptr, 10);
-    throwConversionExceptionIfNoOrNotEveryCharacterIsConsumed(data, eptr, INT64);
-    if ((LLONG_MAX == retVal || LLONG_MIN == retVal) && errno == ERANGE) {
-        throw ConversionException(
-            prefixConversionExceptionMessage(data, INT64) + " Input out of range.");
-    }
-    return retVal;
-}
 
 uint32_t TypeUtils::convertToUint32(const char* data) {
     std::istringstream iss(data);
@@ -86,24 +71,6 @@ std::string TypeUtils::toString(const ku_list_t& val, const DataType& dataType) 
 std::string TypeUtils::prefixConversionExceptionMessage(const char* data, DataTypeID dataTypeID) {
     return "Cannot convert string " + std::string(data) + " to " +
            Types::dataTypeToString(dataTypeID) + ".";
-}
-
-void TypeUtils::throwConversionExceptionIfNoOrNotEveryCharacterIsConsumed(
-    const char* data, const char* eptr, DataTypeID dataTypeID) {
-    if (data == eptr) {
-        throw ConversionException(prefixConversionExceptionMessage(data, dataTypeID) +
-                                  ". Invalid input. No characters consumed.");
-    }
-    if (*eptr != '\0') {
-        throw ConversionException(prefixConversionExceptionMessage(data, dataTypeID) +
-                                  " Not all characters were read. read from character " + *data +
-                                  " up to character: " + *eptr + ".");
-    }
-}
-
-void TypeUtils::throwConversionExceptionOutOfRange(const char* data, DataTypeID dataTypeID) {
-    throw ConversionException(
-        prefixConversionExceptionMessage(data, dataTypeID) + " Input out of range.");
 }
 
 } // namespace common

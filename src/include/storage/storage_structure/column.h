@@ -276,6 +276,8 @@ public:
         const common::DataType& dataType, BufferManager& bufferManager, WAL* wal) {
         switch (dataType.typeID) {
         case common::INT64:
+        case common::INT32:
+        case common::INT16:
         case common::DOUBLE:
         case common::FLOAT:
         case common::BOOL:

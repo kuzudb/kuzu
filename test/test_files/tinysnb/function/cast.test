@@ -118,6 +118,55 @@ Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
 1.600000
 1.323000
 
+-NAME CastInt16ToDouble
+-QUERY MATCH (:person)-[e:studyAt]->(:organisation) RETURN to_double(e.length)
+---- 3
+5.000000
+55.000000
+22.000000
+
+-NAME CastInt16ToFloat
+-QUERY MATCH (:person)-[e:studyAt]->(:organisation) RETURN to_float(e.length)
+---- 3
+5.000000
+55.000000
+22.000000
+
+-NAME CastInt16ToInt64
+-QUERY MATCH (:person)-[e:studyAt]->(:organisation) RETURN to_int64(e.length)
+---- 3
+5
+55
+22
+
+-NAME CastInt16ToInt32
+-QUERY MATCH (:person)-[e:studyAt]->(:organisation) RETURN to_int32(e.length)
+---- 3
+5
+55
+22
+
+-NAME CastInt32ToDouble
+-QUERY MATCH (m:movies) RETURN to_double(m.length)
+---- 3
+126.000000
+2544.000000
+298.000000
+
+-NAME CastInt32ToFloat
+-QUERY MATCH (m:movies) RETURN to_float(m.length)
+---- 3
+126.000000
+2544.000000
+298.000000
+
+-NAME CastInt32ToInt64
+-QUERY MATCH (m:movies) RETURN to_int64(m.length)
+---- 3
+126
+2544
+298
+
 -NAME CastInt64ToDouble
 -QUERY MATCH (p:person) RETURN to_double(p.age)
 ---- 8
@@ -130,18 +179,6 @@ Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
 40.000000
 83.000000
 
--NAME CastFloatToDouble
--QUERY MATCH (p:person) RETURN to_double(p.height)
----- 8
-1.731000
-0.990000
-1.000000
-1.300000
-1.463000
-1.510000
-1.600000
-1.323000
-
 -NAME CastInt64ToFloat
 -QUERY MATCH (p:person) RETURN to_float(p.gender)
 ---- 8
@@ -153,3 +190,15 @@ Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
 2.000000
 2.000000
 2.000000
+
+-NAME CastFloatToDouble
+-QUERY MATCH (p:person) RETURN to_double(p.height)
+---- 8
+1.731000
+0.990000
+1.000000
+1.300000
+1.463000
+1.510000
+1.600000
+1.323000
