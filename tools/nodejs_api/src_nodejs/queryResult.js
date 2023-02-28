@@ -22,11 +22,13 @@ class QueryResult {
 
     async each(rowCallback, doneCallback, errorCallback) {
         this.checkForQueryResultClose();
-        while (this.#queryResult.hasNext()) {
+        let hasError = false;
+        while (this.#queryResult.hasNext() && !hasError) {
             await this.getNext().then(row => {
                 rowCallback(row);
             }).catch(err => {
                 errorCallback(err);
+                hasError = true;
             })
         }
         doneCallback();
@@ -48,6 +50,9 @@ class QueryResult {
     all(callback = null) {
         this.checkForQueryResultClose();
         if (callback) {
+            if (typeof callback !== 'function') {
+                throw new Error("If all is provided an argument it must be a callback function");
+            }
             this.#queryResult.all(callback);
         } else {
             return new Promise ((resolve, reject) => {

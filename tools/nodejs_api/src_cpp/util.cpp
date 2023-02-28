@@ -68,7 +68,7 @@ kuzu::common::Value Util::transformNapiValue(Napi::Value val) {
         return Value::createValue<bool>(temp);
     } else if (val.IsNumber()) {
         double temp = val.ToNumber().DoubleValue();
-        if (floor(temp) == temp) {
+        if (!isnan(temp) && (temp >= INT_MIN) && (temp <= INT_MAX) && ((double) ((int) temp) == temp)) {
             return Value::createValue<int64_t>(temp);
         } else {
             return Value::createValue<double_t>(temp);
@@ -78,17 +78,8 @@ kuzu::common::Value Util::transformNapiValue(Napi::Value val) {
         return Value::createValue<string>(temp);
     } else if (val.IsDate()) {
         double dateMilliseconds = val.As<Napi::Date>().ValueOf();
-        time_t seconds = (time_t)(dateMilliseconds/1000);
-        auto tm = gmtime(&seconds);
-        auto year = tm->tm_year + 1900;
-        auto month = tm->tm_mon + 1;
-        auto day = tm->tm_mday;
-        auto hour = tm->tm_hour;
-        auto minute = tm->tm_min;
-        auto second = tm->tm_sec;
-        auto date = Date::FromDate(year, month, day);
-        auto time = Time::FromTime(hour, minute, second);
-        return Value::createValue<timestamp_t>(Timestamp::FromDatetime(date, time));
+        auto time = kuzu::common::Timestamp::FromEpochMs((int64_t) dateMilliseconds);
+        return Value::createValue<timestamp_t>(time);
     } else {
         throw runtime_error("Unknown parameter type " + val.Type());
     }
