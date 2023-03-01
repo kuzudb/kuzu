@@ -11,12 +11,6 @@
 namespace kuzu {
 namespace catalog {
 
-using table_id_t = common::table_id_t;
-using property_id_t = common::property_id_t;
-using DataType = common::DataType;
-using DataTypeID = common::DataTypeID;
-using RelDirection = common::RelDirection;
-
 enum RelMultiplicity : uint8_t { MANY_MANY, MANY_ONE, ONE_MANY, ONE_ONE };
 RelMultiplicity getRelMultiplicityFromString(const std::string& relMultiplicityString);
 std::string getRelMultiplicityAsString(RelMultiplicity relMultiplicity);
@@ -25,16 +19,16 @@ std::string getRelMultiplicityAsString(RelMultiplicity relMultiplicity);
 struct PropertyNameDataType {
     // This constructor is needed for ser/deser functions
     PropertyNameDataType(){};
-    PropertyNameDataType(std::string name, DataTypeID dataTypeID)
-        : PropertyNameDataType{std::move(name), DataType(dataTypeID)} {
+    PropertyNameDataType(std::string name, common::DataTypeID dataTypeID)
+        : PropertyNameDataType{std::move(name), common::DataType(dataTypeID)} {
         assert(dataTypeID != common::VAR_LIST);
     }
-    PropertyNameDataType(std::string name, DataType dataType)
+    PropertyNameDataType(std::string name, common::DataType dataType)
         : name{std::move(name)}, dataType{std::move(dataType)} {};
     virtual ~PropertyNameDataType() = default;
 
     std::string name;
-    DataType dataType;
+    common::DataType dataType;
 };
 
 struct Property : PropertyNameDataType {
@@ -42,31 +36,32 @@ public:
     // This constructor is needed for ser/deser functions
     Property() = default;
 
-    Property(std::string name, DataType dataType, property_id_t propertyID, table_id_t tableID)
+    Property(std::string name, common::DataType dataType, common::property_id_t propertyID,
+        common::table_id_t tableID)
         : PropertyNameDataType{std::move(name), std::move(dataType)},
           propertyID{propertyID}, tableID{tableID} {}
 
-    static Property constructNodeProperty(
-        const PropertyNameDataType& nameDataType, property_id_t propertyID, table_id_t tableID) {
+    static Property constructNodeProperty(const PropertyNameDataType& nameDataType,
+        common::property_id_t propertyID, common::table_id_t tableID) {
         return {nameDataType.name, nameDataType.dataType, propertyID, tableID};
     }
 
-    static inline Property constructRelProperty(
-        const PropertyNameDataType& nameDataType, property_id_t propertyID, table_id_t tableID) {
+    static inline Property constructRelProperty(const PropertyNameDataType& nameDataType,
+        common::property_id_t propertyID, common::table_id_t tableID) {
         return {nameDataType.name, nameDataType.dataType, propertyID, tableID};
     }
 
-    property_id_t propertyID;
-    table_id_t tableID;
+    common::property_id_t propertyID;
+    common::table_id_t tableID;
 };
 
 struct TableSchema {
 public:
-    TableSchema(std::string tableName, table_id_t tableID, bool isNodeTable,
+    TableSchema(std::string tableName, common::table_id_t tableID, bool isNodeTable,
         std::vector<Property> properties)
         : tableName{std::move(tableName)}, tableID{tableID}, isNodeTable{isNodeTable},
           properties{std::move(properties)}, nextPropertyID{
-                                                 (property_id_t)this->properties.size()} {}
+                                                 (common::property_id_t)this->properties.size()} {}
 
     virtual ~TableSchema() = default;
 
@@ -76,7 +71,7 @@ public:
 
     inline uint32_t getNumProperties() const { return properties.size(); }
 
-    inline void dropProperty(property_id_t propertyID) {
+    inline void dropProperty(common::property_id_t propertyID) {
         properties.erase(std::remove_if(properties.begin(), properties.end(),
                              [propertyID](const Property& property) {
                                  return property.propertyID == propertyID;
@@ -89,41 +84,41 @@ public:
             [&propertyName](const Property& property) { return property.name == propertyName; });
     }
 
-    inline void addProperty(std::string propertyName, DataType dataType) {
+    inline void addProperty(std::string propertyName, common::DataType dataType) {
         properties.emplace_back(
             std::move(propertyName), std::move(dataType), increaseNextPropertyID(), tableID);
     }
 
-    std::string getPropertyName(property_id_t propertyID) const;
+    std::string getPropertyName(common::property_id_t propertyID) const;
 
-    property_id_t getPropertyID(const std::string& propertyName) const;
+    common::property_id_t getPropertyID(const std::string& propertyName) const;
 
-    Property getProperty(property_id_t propertyID) const;
+    Property getProperty(common::property_id_t propertyID) const;
 
-    void renameProperty(property_id_t propertyID, const std::string& newName);
+    void renameProperty(common::property_id_t propertyID, const std::string& newName);
 
 private:
-    inline property_id_t increaseNextPropertyID() { return nextPropertyID++; }
+    inline common::property_id_t increaseNextPropertyID() { return nextPropertyID++; }
 
 public:
     std::string tableName;
-    table_id_t tableID;
+    common::table_id_t tableID;
     bool isNodeTable;
     std::vector<Property> properties;
-    property_id_t nextPropertyID;
+    common::property_id_t nextPropertyID;
 };
 
 struct NodeTableSchema : TableSchema {
     NodeTableSchema()
         : NodeTableSchema{
               "", common::INVALID_TABLE_ID, common::INVALID_PROPERTY_ID, std::vector<Property>{}} {}
-    NodeTableSchema(std::string tableName, table_id_t tableID, property_id_t primaryPropertyId,
-        std::vector<Property> properties)
+    NodeTableSchema(std::string tableName, common::table_id_t tableID,
+        common::property_id_t primaryPropertyId, std::vector<Property> properties)
         : TableSchema{std::move(tableName), tableID, true /* isNodeTable */, std::move(properties)},
           primaryKeyPropertyID{primaryPropertyId} {}
 
-    inline void addFwdRelTableID(table_id_t tableID) { fwdRelTableIDSet.insert(tableID); }
-    inline void addBwdRelTableID(table_id_t tableID) { bwdRelTableIDSet.insert(tableID); }
+    inline void addFwdRelTableID(common::table_id_t tableID) { fwdRelTableIDSet.insert(tableID); }
+    inline void addBwdRelTableID(common::table_id_t tableID) { bwdRelTableIDSet.insert(tableID); }
 
     inline Property getPrimaryKey() const { return properties[primaryKeyPropertyID]; }
 
@@ -133,9 +128,9 @@ struct NodeTableSchema : TableSchema {
     // a more robust mechanism to keep track of which property is the primary key (e.g., store this
     // information with the property). This is an idx, not an ID, so as the columns/properties of
     // the table change, the idx can change.
-    property_id_t primaryKeyPropertyID;
-    std::unordered_set<table_id_t> fwdRelTableIDSet; // srcNode->rel
-    std::unordered_set<table_id_t> bwdRelTableIDSet; // dstNode->rel
+    common::property_id_t primaryKeyPropertyID;
+    std::unordered_set<common::table_id_t> fwdRelTableIDSet; // srcNode->rel
+    std::unordered_set<common::table_id_t> bwdRelTableIDSet; // dstNode->rel
 };
 
 struct RelTableSchema : TableSchema {
@@ -145,8 +140,9 @@ public:
     RelTableSchema()
         : TableSchema{"", common::INVALID_TABLE_ID, false /* isNodeTable */, {} /* properties */},
           relMultiplicity{MANY_MANY} {}
-    RelTableSchema(std::string tableName, table_id_t tableID, RelMultiplicity relMultiplicity,
-        std::vector<Property> properties, table_id_t srcTableID, table_id_t dstTableID)
+    RelTableSchema(std::string tableName, common::table_id_t tableID,
+        RelMultiplicity relMultiplicity, std::vector<Property> properties,
+        common::table_id_t srcTableID, common::table_id_t dstTableID)
         : TableSchema{std::move(tableName), tableID, false /* isNodeTable */,
               std::move(properties)},
           relMultiplicity{relMultiplicity}, srcTableID{srcTableID}, dstTableID{dstTableID} {}
@@ -160,36 +156,31 @@ public:
         throw common::InternalException("Cannot find internal rel ID definition.");
     }
 
-    inline bool isSingleMultiplicityInDirection(RelDirection direction) const {
+    inline bool isSingleMultiplicityInDirection(common::RelDirection direction) const {
         return relMultiplicity == ONE_ONE ||
-               relMultiplicity == (direction == RelDirection::FWD ? MANY_ONE : ONE_MANY);
+               relMultiplicity == (direction == common::RelDirection::FWD ? MANY_ONE : ONE_MANY);
     }
 
     inline uint32_t getNumUserDefinedProperties() const {
         // Note: the first column stores the relID property.
         return properties.size() - 1;
     }
-    inline bool isStoredAsLists(RelDirection relDirection) const {
-        return relMultiplicity == MANY_MANY ||
-               (relMultiplicity == ONE_MANY && relDirection == RelDirection::FWD) ||
-               (relMultiplicity == MANY_ONE && relDirection == RelDirection::BWD);
-    }
 
-    inline bool isSrcOrDstTable(table_id_t tableID) const {
+    inline bool isSrcOrDstTable(common::table_id_t tableID) const {
         return srcTableID == tableID || dstTableID == tableID;
     }
 
-    inline table_id_t getBoundTableID(RelDirection relDirection) const {
-        return relDirection == RelDirection::FWD ? srcTableID : dstTableID;
+    inline common::table_id_t getBoundTableID(common::RelDirection relDirection) const {
+        return relDirection == common::RelDirection::FWD ? srcTableID : dstTableID;
     }
 
-    inline table_id_t getNbrTableID(RelDirection relDirection) const {
-        return relDirection == RelDirection::FWD ? dstTableID : srcTableID;
+    inline common::table_id_t getNbrTableID(common::RelDirection relDirection) const {
+        return relDirection == common::RelDirection::FWD ? dstTableID : srcTableID;
     }
 
     RelMultiplicity relMultiplicity;
-    table_id_t srcTableID;
-    table_id_t dstTableID;
+    common::table_id_t srcTableID;
+    common::table_id_t dstTableID;
 };
 
 } // namespace catalog

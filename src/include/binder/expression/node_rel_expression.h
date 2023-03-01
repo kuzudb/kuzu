@@ -16,15 +16,18 @@ public:
     virtual ~NodeOrRelExpression() override = default;
 
     inline void addTableIDs(const std::vector<common::table_id_t>& tableIDsToAdd) {
-        auto tableIDsMap = std::unordered_set<common::table_id_t>(tableIDs.begin(), tableIDs.end());
+        auto tableIDsSet = getTableIDsSet();
         for (auto tableID : tableIDsToAdd) {
-            if (!tableIDsMap.contains(tableID)) {
+            if (!tableIDsSet.contains(tableID)) {
                 tableIDs.push_back(tableID);
             }
         }
     }
     inline bool isMultiLabeled() const { return tableIDs.size() > 1; }
     inline std::vector<common::table_id_t> getTableIDs() const { return tableIDs; }
+    inline std::unordered_set<common::table_id_t> getTableIDsSet() const {
+        return {tableIDs.begin(), tableIDs.end()};
+    }
     inline common::table_id_t getSingleTableID() const {
         assert(tableIDs.size() == 1);
         return tableIDs[0];
