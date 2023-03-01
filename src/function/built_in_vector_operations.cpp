@@ -87,6 +87,10 @@ uint32_t BuiltInVectorOperations::getCastCost(DataTypeID inputTypeID, DataTypeID
             return 0;
         case common::INT64:
             return castInt64(targetTypeID);
+        case common::INT32:
+            return castInt32(targetTypeID);
+        case common::INT16:
+            return castInt16(targetTypeID);
         case common::DOUBLE:
             return castDouble(targetTypeID);
         case common::FLOAT:
@@ -114,17 +118,49 @@ uint32_t BuiltInVectorOperations::getCastCost(
 
 uint32_t BuiltInVectorOperations::getTargetTypeCost(common::DataTypeID typeID) {
     switch (typeID) {
-    case common::FLOAT:
+    case common::INT32: {
+        return 103;
+    }
+    case common::INT64: {
+        return 101;
+    }
+    case common::FLOAT: {
         return 110;
-    case common::DOUBLE:
+    }
+    case common::DOUBLE: {
         return 102;
-    default:
+    }
+    default: {
         throw InternalException("Unsupported casting operation.");
+    }
     }
 }
 
 uint32_t BuiltInVectorOperations::castInt64(common::DataTypeID targetTypeID) {
     switch (targetTypeID) {
+    case common::FLOAT:
+    case common::DOUBLE:
+        return getTargetTypeCost(targetTypeID);
+    default:
+        return UINT32_MAX;
+    }
+}
+
+uint32_t BuiltInVectorOperations::castInt32(common::DataTypeID targetTypeID) {
+    switch (targetTypeID) {
+    case common::INT64:
+    case common::FLOAT:
+    case common::DOUBLE:
+        return getTargetTypeCost(targetTypeID);
+    default:
+        return UINT32_MAX;
+    }
+}
+
+uint32_t BuiltInVectorOperations::castInt16(common::DataTypeID targetTypeID) {
+    switch (targetTypeID) {
+    case common::INT32:
+    case common::INT64:
     case common::FLOAT:
     case common::DOUBLE:
         return getTargetTypeCost(targetTypeID);
@@ -354,6 +390,10 @@ void BuiltInVectorOperations::registerCastOperations() {
         {CAST_TO_DOUBLE_FUNC_NAME, CastToDoubleVectorOperation::getDefinitions()});
     vectorOperations.insert(
         {CAST_TO_FLOAT_FUNC_NAME, CastToFloatVectorOperation::getDefinitions()});
+    vectorOperations.insert(
+        {CAST_TO_INT64_FUNC_NAME, CastToInt64VectorOperation::getDefinitions()});
+    vectorOperations.insert(
+        {CAST_TO_INT32_FUNC_NAME, CastToInt32VectorOperation::getDefinitions()});
 }
 
 void BuiltInVectorOperations::registerListOperations() {

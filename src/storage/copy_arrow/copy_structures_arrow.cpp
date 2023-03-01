@@ -337,18 +337,28 @@ std::unique_ptr<uint8_t[]> CopyStructuresArrow::getArrowFixedList(std::string& l
         }
         switch (childDataType.typeID) {
         case INT64: {
-            auto val = (int64_t)stoll(element);
+            auto val = TypeUtils::convertStringToNumber<int64_t>(element.c_str());
             memcpy(listVal.get() + numElementsRead * sizeof(int64_t), &val, sizeof(int64_t));
             numElementsRead++;
         } break;
+        case INT32: {
+            auto val = TypeUtils::convertStringToNumber<int32_t>(element.c_str());
+            memcpy(listVal.get() + numElementsRead * sizeof(int32_t), &val, sizeof(int32_t));
+            numElementsRead++;
+        } break;
+        case INT16: {
+            auto val = TypeUtils::convertStringToNumber<int16_t>(element.c_str());
+            memcpy(listVal.get() + numElementsRead * sizeof(int16_t), &val, sizeof(int16_t));
+            numElementsRead++;
+        } break;
         case DOUBLE: {
-            auto val = stod(element);
-            memcpy(listVal.get() + numElementsRead * sizeof(double), &val, sizeof(double));
+            auto val = TypeUtils::convertStringToNumber<double_t>(element.c_str());
+            memcpy(listVal.get() + numElementsRead * sizeof(double_t), &val, sizeof(double_t));
             numElementsRead++;
         } break;
         case FLOAT: {
-            auto val = stof(element);
-            memcpy(listVal.get() + numElementsRead * sizeof(float), &val, sizeof(float));
+            auto val = TypeUtils::convertStringToNumber<float_t>(element.c_str());
+            memcpy(listVal.get() + numElementsRead * sizeof(float_t), &val, sizeof(float_t));
             numElementsRead++;
         } break;
         default: {

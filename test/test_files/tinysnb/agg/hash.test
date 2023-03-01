@@ -170,3 +170,16 @@ Bob|[35,45,20]
 Carol|[35,30,20]
 Dan|[35,30,45]
 Elizabeth|[25,40]
+
+-NAME HashCollectOnInt32Test
+-QUERY MATCH (m:movies) RETURN m.length, collect(m.name)
+---- 3
+126|[Sóló cón tu párejâ]
+2544|[The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie]
+298|[Roma]
+
+-NAME HashCollectOnInt16Test
+-QUERY MATCH (:person)-[s:studyAt]->(:organisation) RETURN s.year, collect(s.length)
+---- 2
+2020|[55,22]
+2021|[5]

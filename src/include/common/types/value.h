@@ -33,8 +33,13 @@ public:
      */
     KUZU_API explicit Value(bool val_);
     /**
-     * @param val_ the int64_t value to set.
-     * @return a Value with INT64 type and val_ value.
+     * @param val_ the int16_t value to set.
+     * @return a Value with INT16 type and val_ value.
+     */
+    KUZU_API explicit Value(int16_t val_);
+    /**
+     * @param val_ the int32_t value to set.
+     * @return a Value with INT32 type and val_ value.
      */
     KUZU_API explicit Value(int32_t val_);
     /**
@@ -202,6 +207,8 @@ public:
         constexpr Val() : booleanVal{false} {}
         bool booleanVal;
         int64_t int64Val;
+        int32_t int32Val;
+        int16_t int16Val;
         double doubleVal;
         float floatVal;
         date_t dateVal;
@@ -350,6 +357,24 @@ inline bool Value::getValue() const {
 }
 
 /**
+ * @return int16 value.
+ */
+KUZU_API template<>
+inline int16_t Value::getValue() const {
+    assert(dataType.getTypeID() == INT16);
+    return val.int16Val;
+}
+
+/**
+ * @return int32 value.
+ */
+KUZU_API template<>
+inline int32_t Value::getValue() const {
+    assert(dataType.getTypeID() == INT32);
+    return val.int32Val;
+}
+
+/**
  * @return int64 value.
  */
 KUZU_API template<>
@@ -440,6 +465,24 @@ inline bool& Value::getValueReference() {
 }
 
 /**
+ * @return the reference to the int16 value.
+ */
+KUZU_API template<>
+inline int16_t& Value::getValueReference() {
+    assert(dataType.getTypeID() == INT16);
+    return val.int16Val;
+}
+
+/**
+ * @return the reference to the int32 value.
+ */
+KUZU_API template<>
+inline int32_t& Value::getValueReference() {
+    assert(dataType.getTypeID() == INT32);
+    return val.int32Val;
+}
+
+/**
  * @return the reference to the int64 value.
  */
 KUZU_API template<>
@@ -449,10 +492,19 @@ inline int64_t& Value::getValueReference() {
 }
 
 /**
+ * @return the reference to the float value.
+ */
+KUZU_API template<>
+inline float_t& Value::getValueReference() {
+    assert(dataType.getTypeID() == FLOAT);
+    return val.floatVal;
+}
+
+/**
  * @return the reference to the double value.
  */
 KUZU_API template<>
-inline double& Value::getValueReference() {
+inline double_t& Value::getValueReference() {
     assert(dataType.getTypeID() == DOUBLE);
     return val.doubleVal;
 }
@@ -526,6 +578,24 @@ inline RelVal& Value::getValueReference() {
  */
 KUZU_API template<>
 inline Value Value::createValue(bool val) {
+    return Value(val);
+}
+
+/**
+ * @param val the int16 value
+ * @return a Value with INT16 type and val value.
+ */
+KUZU_API template<>
+inline Value Value::createValue(int16_t val) {
+    return Value(val);
+}
+
+/**
+ * @param val the int32 value
+ * @return a Value with INT32 type and val value.
+ */
+KUZU_API template<>
+inline Value Value::createValue(int32_t val) {
     return Value(val);
 }
 

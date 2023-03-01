@@ -243,14 +243,25 @@ void CopyNodeArrow::putPropsOfLineIntoColumns(
         if ((*currentToken)->is_valid) {
             auto stringToken = currentToken->get()->ToString();
             const char* data = stringToken.c_str();
-
             switch (column->getDataType().typeID) {
             case INT64: {
-                int64_t val = TypeUtils::convertToInt64(data);
+                auto val = TypeUtils::convertStringToNumber<int64_t>(data);
+                column->setElement(nodeOffset, reinterpret_cast<uint8_t*>(&val));
+            } break;
+            case INT32: {
+                auto val = TypeUtils::convertStringToNumber<int32_t>(data);
+                column->setElement(nodeOffset, reinterpret_cast<uint8_t*>(&val));
+            } break;
+            case INT16: {
+                auto val = TypeUtils::convertStringToNumber<int16_t>(data);
                 column->setElement(nodeOffset, reinterpret_cast<uint8_t*>(&val));
             } break;
             case DOUBLE: {
-                double_t val = TypeUtils::convertFloatingPointNumber<double_t>(data, DOUBLE);
+                double_t val = TypeUtils::convertStringToNumber<double_t>(data);
+                column->setElement(nodeOffset, reinterpret_cast<uint8_t*>(&val));
+            } break;
+            case FLOAT: {
+                auto val = TypeUtils::convertStringToNumber<float_t>(data);
                 column->setElement(nodeOffset, reinterpret_cast<uint8_t*>(&val));
             } break;
             case BOOL: {
@@ -287,10 +298,6 @@ void CopyNodeArrow::putPropsOfLineIntoColumns(
                 auto fixedListVal = getArrowFixedList(stringToken, 1, stringToken.length() - 2,
                     column->getDataType(), copyDescription);
                 column->setElement(nodeOffset, fixedListVal.get());
-            } break;
-            case FLOAT: {
-                auto val = TypeUtils::convertFloatingPointNumber<float_t>(data, FLOAT);
-                column->setElement(nodeOffset, reinterpret_cast<uint8_t*>(&val));
             } break;
             default:
                 break;

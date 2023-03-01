@@ -218,12 +218,12 @@ bool CSVReader::hasNextTokenOrError() {
 
 int64_t CSVReader::getInt64() {
     setNextTokenIsProcessed();
-    return TypeUtils::convertToInt64(line + linePtrStart);
+    return TypeUtils::convertStringToNumber<int64_t>(line + linePtrStart);
 }
 
 double_t CSVReader::getDouble() {
     setNextTokenIsProcessed();
-    return TypeUtils::convertFloatingPointNumber<double_t>(line + linePtrStart, DOUBLE);
+    return TypeUtils::convertStringToNumber<double_t>(line + linePtrStart);
 }
 
 uint8_t CSVReader::getBoolean() {

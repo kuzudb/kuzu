@@ -39,7 +39,11 @@ Value Value::createNullValue(DataType dataType) {
 Value Value::createDefaultValue(const DataType& dataType) {
     switch (dataType.typeID) {
     case INT64:
-        return Value(0);
+        return Value((int64_t)0);
+    case INT32:
+        return Value((int32_t)0);
+    case INT16:
+        return Value((int16_t)0);
     case BOOL:
         return Value(true);
     case DOUBLE:
@@ -69,8 +73,12 @@ Value::Value(bool val_) : dataType{BOOL}, isNull_{false} {
     val.booleanVal = val_;
 }
 
-Value::Value(int32_t val_) : dataType{INT64}, isNull_{false} {
-    val.int64Val = (int64_t)val_;
+Value::Value(int16_t val_) : dataType{INT16}, isNull_{false} {
+    val.int16Val = val_;
+}
+
+Value::Value(int32_t val_) : dataType{INT32}, isNull_{false} {
+    val.int32Val = val_;
 }
 
 Value::Value(int64_t val_) : dataType{INT64}, isNull_{false} {
@@ -136,6 +144,12 @@ void Value::copyValueFrom(const uint8_t* value) {
     case INT64: {
         val.int64Val = *((int64_t*)value);
     } break;
+    case INT32: {
+        val.int32Val = *((int32_t*)value);
+    } break;
+    case INT16: {
+        val.int16Val = *((int16_t*)value);
+    } break;
     case BOOL: {
         val.booleanVal = *((bool*)value);
     } break;
@@ -185,6 +199,12 @@ void Value::copyValueFrom(const Value& other) {
     } break;
     case INT64: {
         val.int64Val = other.val.int64Val;
+    } break;
+    case INT32: {
+        val.int32Val = other.val.int32Val;
+    } break;
+    case INT16: {
+        val.int16Val = other.val.int16Val;
     } break;
     case DOUBLE: {
         val.doubleVal = other.val.doubleVal;
@@ -238,6 +258,10 @@ std::string Value::toString() const {
         return TypeUtils::toString(val.booleanVal);
     case INT64:
         return TypeUtils::toString(val.int64Val);
+    case INT32:
+        return TypeUtils::toString(val.int32Val);
+    case INT16:
+        return TypeUtils::toString(val.int16Val);
     case DOUBLE:
         return TypeUtils::toString(val.doubleVal);
     case DATE:
@@ -306,6 +330,12 @@ std::vector<std::unique_ptr<Value>> Value::convertKUFixedListToVector(
     switch (dataType.childType->typeID) {
     case common::DataTypeID::INT64: {
         putValuesIntoVector<int64_t>(fixedListResultVal, fixedList, numBytesPerElement);
+    } break;
+    case common::DataTypeID::INT32: {
+        putValuesIntoVector<int32_t>(fixedListResultVal, fixedList, numBytesPerElement);
+    } break;
+    case common::DataTypeID::INT16: {
+        putValuesIntoVector<int16_t>(fixedListResultVal, fixedList, numBytesPerElement);
     } break;
     case common::DataTypeID::DOUBLE: {
         putValuesIntoVector<double_t>(fixedListResultVal, fixedList, numBytesPerElement);

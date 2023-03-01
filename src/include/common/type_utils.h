@@ -1,5 +1,7 @@
 #pragma once
 
+#include <sstream>
+
 #include "common/exception.h"
 #include "common/types/types_include.h"
 
@@ -9,12 +11,13 @@ namespace common {
 class TypeUtils {
 
 public:
-    static int64_t convertToInt64(const char* data);
     static uint32_t convertToUint32(const char* data);
     static bool convertToBoolean(const char* data);
 
     static inline std::string toString(bool boolVal) { return boolVal ? "True" : "False"; }
     static inline std::string toString(int64_t val) { return std::to_string(val); }
+    static inline std::string toString(int32_t val) { return std::to_string(val); }
+    static inline std::string toString(int16_t val) { return std::to_string(val); }
     static inline std::string toString(double val) { return std::to_string(val); }
     static inline std::string toString(const nodeID_t& val) {
         return std::to_string(val.tableID) + ":" + std::to_string(val.offset);
@@ -45,41 +48,25 @@ public:
     }
 
     template<typename T>
-    static T convertFloatingPointNumber(const char* data, DataTypeID typeID) {
-        char* eptr;
-        errno = 0;
-        auto retVal = convertStringToFloatingPointNumber<T>(data, &eptr);
-        throwConversionExceptionIfNoOrNotEveryCharacterIsConsumed(data, eptr, typeID);
-        if ((HUGE_VAL == retVal || -HUGE_VAL == retVal) && errno == ERANGE) {
-            throwConversionExceptionOutOfRange(data, typeID);
+    static T convertStringToNumber(const char* data) {
+        std::istringstream iss{data};
+        if (iss.str().empty()) {
+            throw ConversionException{"Empty string."};
+        }
+        T retVal;
+        iss >> retVal;
+        if (iss.fail() || !iss.eof()) {
+            throw ConversionException{"Invalid number: " + std::string{data} + "."};
         }
         return retVal;
     }
 
 private:
-    template<typename T>
-    inline static T convertStringToFloatingPointNumber(const char* data, char** eptr) {
-        throw common::NotImplementedException{
-            "Unimplemented convertStringToFloatingPointNumber operation."};
-    }
     static std::string elementToString(
         const DataType& dataType, uint8_t* overflowPtr, uint64_t pos);
 
-    static void throwConversionExceptionOutOfRange(const char* data, DataTypeID dataTypeID);
-    static void throwConversionExceptionIfNoOrNotEveryCharacterIsConsumed(
-        const char* data, const char* eptr, DataTypeID dataTypeID);
     static std::string prefixConversionExceptionMessage(const char* data, DataTypeID dataTypeID);
 };
-
-template<>
-inline double_t TypeUtils::convertStringToFloatingPointNumber(const char* data, char** eptr) {
-    return strtod(data, eptr);
-}
-
-template<>
-inline float_t TypeUtils::convertStringToFloatingPointNumber(const char* data, char** eptr) {
-    return strtof(data, eptr);
-}
 
 template<>
 inline bool TypeUtils::isValueEqual(ku_list_t& left, ku_list_t& right, const DataType& leftDataType,

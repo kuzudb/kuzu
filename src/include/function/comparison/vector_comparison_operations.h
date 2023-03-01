@@ -44,6 +44,12 @@ private:
         case common::INT64: {
             return BinaryExecFunction<int64_t, int64_t, uint8_t, FUNC>;
         }
+        case common::INT32: {
+            return BinaryExecFunction<int32_t, int32_t, uint8_t, FUNC>;
+        }
+        case common::INT16: {
+            return BinaryExecFunction<int16_t, int16_t, uint8_t, FUNC>;
+        }
         case common::DOUBLE: {
             return BinaryExecFunction<double, double, uint8_t, FUNC>;
         }
@@ -107,6 +113,12 @@ private:
         switch (leftTypeID) {
         case common::INT64: {
             return BinarySelectFunction<int64_t, int64_t, FUNC>;
+        }
+        case common::INT32: {
+            return BinarySelectFunction<int32_t, int32_t, FUNC>;
+        }
+        case common::INT16: {
+            return BinarySelectFunction<int16_t, int16_t, FUNC>;
         }
         case common::DOUBLE: {
             return BinarySelectFunction<double_t, double_t, FUNC>;

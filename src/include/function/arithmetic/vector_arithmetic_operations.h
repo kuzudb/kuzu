@@ -49,6 +49,12 @@ private:
         case common::INT64: {
             return VectorArithmeticOperations::UnaryExecFunction<int64_t, int64_t, FUNC>;
         }
+        case common::INT32: {
+            return VectorArithmeticOperations::UnaryExecFunction<int32_t, int32_t, FUNC>;
+        }
+        case common::INT16: {
+            return VectorArithmeticOperations::UnaryExecFunction<int16_t, int16_t, FUNC>;
+        }
         case common::DOUBLE: {
             return VectorArithmeticOperations::UnaryExecFunction<double_t, double_t, FUNC>;
         }
@@ -68,6 +74,12 @@ private:
         switch (operandTypeID) {
         case common::INT64: {
             return VectorArithmeticOperations::BinaryExecFunction<int64_t, int64_t, int64_t, FUNC>;
+        }
+        case common::INT32: {
+            return VectorArithmeticOperations::BinaryExecFunction<int32_t, int32_t, int32_t, FUNC>;
+        }
+        case common::INT16: {
+            return VectorArithmeticOperations::BinaryExecFunction<int16_t, int16_t, int16_t, FUNC>;
         }
         case common::DOUBLE: {
             return VectorArithmeticOperations::BinaryExecFunction<double_t, double_t, double_t,

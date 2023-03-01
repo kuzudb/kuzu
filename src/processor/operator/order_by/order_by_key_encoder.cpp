@@ -210,8 +210,17 @@ encode_function_t OrderByKeyEncoder::getEncodingFunction(DataTypeID typeId) {
     case INT64: {
         return encodeTemplate<int64_t>;
     }
+    case INT32: {
+        return encodeTemplate<int32_t>;
+    }
+    case INT16: {
+        return encodeTemplate<int16_t>;
+    }
     case DOUBLE: {
         return encodeTemplate<double_t>;
+    }
+    case FLOAT: {
+        return encodeTemplate<float_t>;
     }
     case STRING: {
         return encodeTemplate<ku_string_t>;
@@ -225,13 +234,19 @@ encode_function_t OrderByKeyEncoder::getEncodingFunction(DataTypeID typeId) {
     case INTERVAL: {
         return encodeTemplate<interval_t>;
     }
-    case FLOAT: {
-        return encodeTemplate<float_t>;
-    }
     default: {
         throw RuntimeException("Cannot encode data type " + Types::dataTypeToString(typeId));
     }
     }
+}
+
+template<>
+void OrderByKeyEncoder::encodeData(int16_t data, uint8_t* resultPtr, bool swapBytes) {
+    if (swapBytes) {
+        data = BSWAP16(data);
+    }
+    memcpy(resultPtr, (void*)&data, sizeof(data));
+    resultPtr[0] = flipSign(resultPtr[0]);
 }
 
 template<>
