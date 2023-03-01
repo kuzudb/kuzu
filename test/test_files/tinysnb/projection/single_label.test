@@ -338,9 +338,9 @@ Dan|Carol
 -NAME QueryOneToOneRelTable
 -QUERY MATCH (:person)-[m:marries]->(:person) RETURN m
 ---- 3
-(0:0)-[label:marries, {_id:7:0, usedAddress:[toronto], note:}]->(0:1)
-(0:2)-[label:marries, {_id:7:1, usedAddress:, note:long long long string}]->(0:3)
-(0:4)-[label:marries, {_id:7:2, usedAddress:[vancouver], note:short str}]->(0:5)
+(0:0)-[label:marries, {_id:7:0, usedAddress:[toronto], address:[4,5], note:}]->(0:1)
+(0:2)-[label:marries, {_id:7:1, usedAddress:, address:[2,5], note:long long long string}]->(0:3)
+(0:4)-[label:marries, {_id:7:2, usedAddress:[vancouver], address:[3,9], note:short str}]->(0:5)
 
 -NAME ReturnFixedListNodeProp
 -QUERY MATCH (a:person) RETURN a.grades
@@ -390,3 +390,35 @@ Dan|Carol
 [2.200000,9.000000]
 [3.000000,5.200000]
 [3.500000,1.100000]
+
+-NAME ReturnInt32NodeProp
+-QUERY MATCH (m:movies) RETURN m.length
+---- 3
+126
+2544
+298
+
+-NAME ReturnInt16NodeProp
+-QUERY MATCH (:person)-[e:studyAt]->(:organisation) RETURN e.length
+---- 3
+5
+55
+22
+
+-NAME ReturnFixedListInt16RelProp
+-QUERY MATCH (a:person)-[e:marries]->(b:person) RETURN e.address
+---- 3
+[4,5]
+[2,5]
+[3,9]
+
+-NAME ReturnIntRelProp
+-QUERY MATCH (a:person)-[e:marries]->(b:person) RETURN e.times
+---- 7
+5
+2
+3
+7
+9
+11
+13

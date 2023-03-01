@@ -685,8 +685,17 @@ compare_function_t AggregateHashTable::getCompareEntryWithKeysFunc(DataTypeID ty
     case INT64: {
         return compareEntryWithKeys<int64_t>;
     }
+    case INT32: {
+        return compareEntryWithKeys<int32_t>;
+    }
+    case INT16: {
+        return compareEntryWithKeys<int16_t>;
+    }
     case DOUBLE: {
         return compareEntryWithKeys<double_t>;
+    }
+    case FLOAT: {
+        return compareEntryWithKeys<float_t>;
     }
     case STRING: {
         return compareEntryWithKeys<ku_string_t>;

@@ -43,23 +43,21 @@ std::unique_ptr<QueryGraph> Binder::bindPatternElement(
     return queryGraph;
 }
 
-// E.g. MATCH (:person)-[:studyAt]->(:person) ...
-static void validateNodeRelConnectivity(const Catalog& catalog_, const RelExpression& rel,
-    const NodeExpression& srcNode, const NodeExpression& dstNode) {
-    std::set<std::pair<table_id_t, table_id_t>> srcDstTableIDs;
-    for (auto relTableID : rel.getTableIDs()) {
+static std::vector<table_id_t> pruneRelTableIDs(const Catalog& catalog_,
+    const std::vector<table_id_t>& relTableIDs, const NodeExpression& srcNode,
+    const NodeExpression& dstNode) {
+    auto srcNodeTableIDs = srcNode.getTableIDsSet();
+    auto dstNodeTableIDs = dstNode.getTableIDsSet();
+    std::vector<table_id_t> result;
+    for (auto& relTableID : relTableIDs) {
         auto relTableSchema = catalog_.getReadOnlyVersion()->getRelTableSchema(relTableID);
-        srcDstTableIDs.insert({relTableSchema->srcTableID, relTableSchema->dstTableID});
-    }
-    for (auto srcTableID : srcNode.getTableIDs()) {
-        for (auto dstTableID : dstNode.getTableIDs()) {
-            if (srcDstTableIDs.contains(std::make_pair(srcTableID, dstTableID))) {
-                return;
-            }
+        if (!srcNodeTableIDs.contains(relTableSchema->srcTableID) ||
+            !dstNodeTableIDs.contains(relTableSchema->dstTableID)) {
+            continue;
         }
+        result.push_back(relTableID);
     }
-    throw BinderException("Nodes " + srcNode.toString() + " and " + dstNode.toString() +
-                          " are not connected through rel " + rel.toString() + ".");
+    return result;
 }
 
 static std::vector<std::pair<std::string, std::vector<Property>>> getPropertyNameAndSchemasPairs(
@@ -124,12 +122,17 @@ void Binder::bindQueryRel(const RelPattern& relPattern,
     if (srcNode->getUniqueName() == dstNode->getUniqueName()) {
         throw BinderException("Self-loop rel " + parsedName + " is not supported.");
     }
+    // prune rel table IDs
+    tableIDs = pruneRelTableIDs(catalog, tableIDs, *srcNode, *dstNode);
+    if (tableIDs.empty()) {
+        throw BinderException("Nodes " + srcNode->toString() + " and " + dstNode->toString() +
+                              " are not connected through rel " + parsedName + ".");
+    }
     // bind variable length
     auto [lowerBound, upperBound] = bindVariableLengthRelBound(relPattern);
     auto queryRel = make_shared<RelExpression>(getUniqueExpressionName(parsedName), parsedName,
         tableIDs, srcNode, dstNode, lowerBound, upperBound);
     queryRel->setAlias(parsedName);
-    validateNodeRelConnectivity(catalog, *queryRel, *srcNode, *dstNode);
     // resolve properties associate with rel table
     std::vector<RelTableSchema*> relTableSchemas;
     for (auto tableID : tableIDs) {

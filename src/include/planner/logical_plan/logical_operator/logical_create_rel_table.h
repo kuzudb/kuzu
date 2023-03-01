@@ -10,8 +10,8 @@ class LogicalCreateRelTable : public LogicalCreateTable {
 public:
     LogicalCreateRelTable(std::string tableName,
         std::vector<catalog::PropertyNameDataType> propertyNameDataTypes,
-        catalog::RelMultiplicity relMultiplicity, catalog::table_id_t srcTableID,
-        catalog::table_id_t dstTableID, std::shared_ptr<binder::Expression> outputExpression)
+        catalog::RelMultiplicity relMultiplicity, common::table_id_t srcTableID,
+        common::table_id_t dstTableID, std::shared_ptr<binder::Expression> outputExpression)
         : LogicalCreateTable{LogicalOperatorType::CREATE_REL_TABLE, std::move(tableName),
               std::move(propertyNameDataTypes), std::move(outputExpression)},
           relMultiplicity{relMultiplicity}, srcTableID{srcTableID}, dstTableID{dstTableID} {}

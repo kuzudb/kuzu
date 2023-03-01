@@ -67,6 +67,20 @@ struct CastToFloat {
     }
 };
 
+struct CastToInt64 {
+    template<typename T>
+    static inline void operation(T& input, int64_t& result) {
+        result = static_cast<int64_t>(input);
+    }
+};
+
+struct CastToInt32 {
+    template<typename T>
+    static inline void operation(T& input, int32_t& result) {
+        result = static_cast<int32_t>(input);
+    }
+};
+
 } // namespace operation
 } // namespace function
 } // namespace kuzu

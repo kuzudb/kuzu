@@ -40,7 +40,10 @@ DataType::DataType(const DataType& other) {
     case INTERNAL_ID:
     case BOOL:
     case INT64:
+    case INT32:
+    case INT16:
     case DOUBLE:
+    case FLOAT:
     case DATE:
     case TIMESTAMP:
     case INTERVAL:
@@ -58,13 +61,13 @@ DataType::DataType(DataType&& other) noexcept
       fixedNumElementsInList{other.fixedNumElementsInList} {}
 
 std::vector<DataTypeID> DataType::getNumericalTypeIDs() {
-    return std::vector<DataTypeID>{INT64, DOUBLE, FLOAT};
+    return std::vector<DataTypeID>{INT64, INT32, INT16, DOUBLE, FLOAT};
 }
 
 std::vector<DataTypeID> DataType::getAllValidTypeIDs() {
     // TODO(Ziyi): Add FIX_LIST type to allValidTypeID when we support functions on VAR_LIST.
-    return std::vector<DataTypeID>{
-        INTERNAL_ID, BOOL, INT64, DOUBLE, STRING, DATE, TIMESTAMP, INTERVAL, VAR_LIST, FLOAT};
+    return std::vector<DataTypeID>{INTERNAL_ID, BOOL, INT64, INT32, INT16, DOUBLE, STRING, DATE,
+        TIMESTAMP, INTERVAL, VAR_LIST, FLOAT};
 }
 
 DataType& DataType::operator=(const DataType& other) {
@@ -81,7 +84,10 @@ DataType& DataType::operator=(const DataType& other) {
     case INTERNAL_ID:
     case BOOL:
     case INT64:
+    case INT32:
+    case INT16:
     case DOUBLE:
+    case FLOAT:
     case DATE:
     case TIMESTAMP:
     case INTERVAL:
@@ -110,7 +116,10 @@ bool DataType::operator==(const DataType& other) const {
     case INTERNAL_ID:
     case BOOL:
     case INT64:
+    case INT32:
+    case INT16:
     case DOUBLE:
+    case FLOAT:
     case DATE:
     case TIMESTAMP:
     case INTERVAL:
@@ -147,7 +156,10 @@ std::unique_ptr<DataType> DataType::copy() {
     case INTERNAL_ID:
     case BOOL:
     case INT64:
+    case INT32:
+    case INT16:
     case DOUBLE:
+    case FLOAT:
     case DATE:
     case TIMESTAMP:
     case INTERVAL:
@@ -193,8 +205,16 @@ DataTypeID Types::dataTypeIDFromString(const std::string& dataTypeIDString) {
         return INTERNAL_ID;
     } else if ("INT64" == dataTypeIDString) {
         return INT64;
+    } else if ("INT32" == dataTypeIDString) {
+        return INT32;
+    } else if ("INT16" == dataTypeIDString) {
+        return INT16;
+    } else if ("INT" == dataTypeIDString) {
+        return INT32;
     } else if ("DOUBLE" == dataTypeIDString) {
         return DOUBLE;
+    } else if ("FLOAT" == dataTypeIDString) {
+        return FLOAT;
     } else if ("BOOLEAN" == dataTypeIDString) {
         return BOOL;
     } else if ("STRING" == dataTypeIDString) {
@@ -229,7 +249,10 @@ std::string Types::dataTypeToString(const DataType& dataType) {
     case INTERNAL_ID:
     case BOOL:
     case INT64:
+    case INT32:
+    case INT16:
     case DOUBLE:
+    case FLOAT:
     case DATE:
     case TIMESTAMP:
     case INTERVAL:
@@ -255,8 +278,14 @@ std::string Types::dataTypeToString(DataTypeID dataTypeID) {
         return "BOOL";
     case INT64:
         return "INT64";
+    case INT32:
+        return "INT32";
+    case INT16:
+        return "INT16";
     case DOUBLE:
         return "DOUBLE";
+    case FLOAT:
+        return "FLOAT";
     case DATE:
         return "DATE";
     case TIMESTAMP:
@@ -305,8 +334,14 @@ uint32_t Types::getDataTypeSize(DataTypeID dataTypeID) {
         return sizeof(uint8_t);
     case INT64:
         return sizeof(int64_t);
+    case INT32:
+        return sizeof(int32_t);
+    case INT16:
+        return sizeof(int16_t);
     case DOUBLE:
         return sizeof(double_t);
+    case FLOAT:
+        return sizeof(float_t);
     case DATE:
         return sizeof(date_t);
     case TIMESTAMP:
@@ -332,7 +367,10 @@ uint32_t Types::getDataTypeSize(const DataType& dataType) {
     case INTERNAL_ID:
     case BOOL:
     case INT64:
+    case INT32:
+    case INT16:
     case DOUBLE:
+    case FLOAT:
     case DATE:
     case TIMESTAMP:
     case INTERVAL:

@@ -88,7 +88,8 @@ std::shared_ptr<Expression> ExpressionBinder::implicitCast(
         auto uniqueName = ScalarFunctionExpression::getUniqueName(functionName, children);
         return std::make_shared<ScalarFunctionExpression>(functionName, FUNCTION,
             DataType{targetType.typeID}, std::move(children),
-            VectorCastOperations::bindExecFunc(expression->dataType.typeID, targetType.typeID),
+            VectorCastOperations::bindImplicitCastFunc(
+                expression->dataType.typeID, targetType.typeID),
             nullptr /* selectFunc */, std::move(uniqueName));
     } else {
         throw common::BinderException("Expression " + expression->toString() + " has data type " +

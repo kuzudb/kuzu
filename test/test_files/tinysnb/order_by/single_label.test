@@ -11,6 +11,20 @@
 45
 83
 
+-NAME OrderByInt32Test
+-QUERY MATCH (m:movies) RETURN m.length ORDER BY m.length
+---- 3
+126
+298
+2544
+
+-NAME OrderByInt16Test
+-QUERY MATCH (:person)-[e:studyAt]->(:organisation) RETURN e.length ORDER BY e.length
+---- 3
+5
+22
+55
+
 -NAME OrderByBooleanTest
 -QUERY MATCH (p:person) RETURN p.isStudent ORDER BY p.isStudent desc
 -PARALLELISM 3
@@ -151,13 +165,10 @@ Bob
 Dan
 Carol
 
-#If the payload column and the orderBy key column are in different dataChunks and one of them is   \
-    unflat,                                                                                        \
-    the order by
-#scanner can only scan one tuple from factorizedTable at a time.
+#If the payload column and the orderBy key column are in different dataChunks and one of them is unflat,                                                                                        \
+#the order by scanner can only scan one tuple from factorizedTable at a time.
 -NAME OrderByScanSingleTupleTest
 -QUERY MATCH (a:person)-[:knows]->(b:person) return a.fName order by b.fName, a.fName
-#- PARALLELISM 2
 -ENUMERATE
 ---- 14
 Bob

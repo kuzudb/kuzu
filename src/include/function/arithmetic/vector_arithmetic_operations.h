@@ -18,6 +18,14 @@ public:
     }
 
     template<typename FUNC, typename OPERAND_TYPE, typename RETURN_TYPE = OPERAND_TYPE>
+    static std::unique_ptr<VectorOperationDefinition> getUnaryDefinition(
+        std::string name, common::DataTypeID operandTypeID) {
+        return make_unique<VectorOperationDefinition>(std::move(name),
+            std::vector<common::DataTypeID>{operandTypeID}, operandTypeID,
+            getUnaryExecFunc<FUNC>(operandTypeID));
+    }
+
+    template<typename FUNC, typename OPERAND_TYPE, typename RETURN_TYPE = OPERAND_TYPE>
     static std::unique_ptr<VectorOperationDefinition> getUnaryDefinitionWithPhysicalTypes(
         std::string name, common::DataTypeID operandTypeID, common::DataTypeID resultTypeID) {
         return make_unique<VectorOperationDefinition>(std::move(name),
@@ -34,7 +42,7 @@ public:
     }
 
     template<typename FUNC, typename OPERAND_TYPE, typename RETURN_TYPE = OPERAND_TYPE>
-    static inline std::unique_ptr<VectorOperationDefinition> getBinaryDefinitionWithPhysicalTypes(
+    static inline std::unique_ptr<VectorOperationDefinition> getBinaryDefinition(
         std::string name, common::DataTypeID operandTypeID, common::DataTypeID resultTypeID) {
         return make_unique<VectorOperationDefinition>(std::move(name),
             std::vector<common::DataTypeID>{operandTypeID, operandTypeID}, resultTypeID,
@@ -48,6 +56,12 @@ private:
         switch (operandTypeID) {
         case common::INT64: {
             return VectorArithmeticOperations::UnaryExecFunction<int64_t, int64_t, FUNC>;
+        }
+        case common::INT32: {
+            return VectorArithmeticOperations::UnaryExecFunction<int32_t, int32_t, FUNC>;
+        }
+        case common::INT16: {
+            return VectorArithmeticOperations::UnaryExecFunction<int16_t, int16_t, FUNC>;
         }
         case common::DOUBLE: {
             return VectorArithmeticOperations::UnaryExecFunction<double_t, double_t, FUNC>;
@@ -68,6 +82,12 @@ private:
         switch (operandTypeID) {
         case common::INT64: {
             return VectorArithmeticOperations::BinaryExecFunction<int64_t, int64_t, int64_t, FUNC>;
+        }
+        case common::INT32: {
+            return VectorArithmeticOperations::BinaryExecFunction<int32_t, int32_t, int32_t, FUNC>;
+        }
+        case common::INT16: {
+            return VectorArithmeticOperations::BinaryExecFunction<int16_t, int16_t, int16_t, FUNC>;
         }
         case common::DOUBLE: {
             return VectorArithmeticOperations::BinaryExecFunction<double_t, double_t, double_t,

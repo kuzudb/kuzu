@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://kuzudb.com/kuzu-logo.png" height="100">
+  <img src="https://kuzudb.com/img/kuzu-logo.png" height="100">
 </div>
 
 <p align="center">
@@ -7,7 +7,10 @@
     <img src="https://github.com/kuzudb/kuzu/actions/workflows/ci-workflow.yml/badge.svg?branch=master" alt="Github Actions Badge">
   </a>
   <a href="https://join.slack.com/t/kuzudb/shared_invite/zt-1n67h736q-E3AFGSI4w~ljlFMYr3_Sjg">
-    <img src="https://img.shields.io/badge/Slack-chat%20with%20us-informational" alt="slack" />
+    <img src="https://img.shields.io/badge/Slack-chat%20with%20us-informational?logo=slack" alt="slack" />
+  </a>
+  <a href="https://twitter.com/kuzudb">
+    <img src="https://img.shields.io/badge/follow-@kuzudb-1DA1F2?logo=twitter" alt="twitter">
   </a>
 </p>
 

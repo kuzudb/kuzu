@@ -7,4 +7,3 @@
 -QUERY MATCH (a:organisation) RETURN COUNT(*)
 ---- 1
 3
-

@@ -323,12 +323,22 @@ void CopyRelArrow::putPropsOfLineIntoColumns(CopyRelArrow* copier,
         const char* data = stringToken.c_str();
         switch (properties[propertyIdx].dataType.typeID) {
         case INT64: {
-            int64_t val = TypeUtils::convertToInt64(data);
+            int64_t val = TypeUtils::convertStringToNumber<int64_t>(data);
+            putValueIntoColumns(propertyIdx, directionTablePropertyColumns, nodeIDs,
+                reinterpret_cast<uint8_t*>(&val));
+        } break;
+        case INT32: {
+            int32_t val = TypeUtils::convertStringToNumber<int32_t>(data);
+            putValueIntoColumns(propertyIdx, directionTablePropertyColumns, nodeIDs,
+                reinterpret_cast<uint8_t*>(&val));
+        } break;
+        case INT16: {
+            int16_t val = TypeUtils::convertStringToNumber<int16_t>(data);
             putValueIntoColumns(propertyIdx, directionTablePropertyColumns, nodeIDs,
                 reinterpret_cast<uint8_t*>(&val));
         } break;
         case DOUBLE: {
-            double_t val = TypeUtils::convertToDouble(data);
+            double_t val = TypeUtils::convertStringToNumber<double_t>(data);
             putValueIntoColumns(propertyIdx, directionTablePropertyColumns, nodeIDs,
                 reinterpret_cast<uint8_t*>(&val));
         } break;
@@ -373,7 +383,7 @@ void CopyRelArrow::putPropsOfLineIntoColumns(CopyRelArrow* copier,
                 propertyIdx, directionTablePropertyColumns, nodeIDs, fixedListVal.get());
         } break;
         case FLOAT: {
-            float_t val = TypeUtils::convertToFloat(data);
+            float_t val = TypeUtils::convertStringToNumber<float_t>(data);
             putValueIntoColumns(propertyIdx, directionTablePropertyColumns, nodeIDs,
                 reinterpret_cast<uint8_t*>(&val));
         } break;
@@ -398,7 +408,7 @@ void CopyRelArrow::inferTableIDsAndOffsets(const std::vector<std::shared_ptr<T>>
         ++colIndex;
         switch (nodeIDTypes[relDirection].typeID) {
         case INT64: {
-            auto key = TypeUtils::convertToInt64(keyStr);
+            auto key = TypeUtils::convertStringToNumber<int64_t>(keyStr);
             if (!pkIndexes.at(nodeIDs[relDirection].tableID)
                      ->lookup(transaction, key, nodeIDs[relDirection].offset)) {
                 throw CopyException("Cannot find key: " + std::to_string(key) + " in the pkIndex.");
@@ -461,12 +471,22 @@ void CopyRelArrow::putPropsOfLineIntoLists(CopyRelArrow* copier,
         const char* data = stringToken.c_str();
         switch (properties[propertyIdx].dataType.typeID) {
         case INT64: {
-            int64_t val = TypeUtils::convertToInt64(data);
+            int64_t val = TypeUtils::convertStringToNumber<int64_t>(data);
+            putValueIntoLists(propertyIdx, directionTablePropertyLists, directionTableAdjLists,
+                nodeIDs, reversePos, reinterpret_cast<uint8_t*>(&val));
+        } break;
+        case INT32: {
+            int32_t val = TypeUtils::convertStringToNumber<int64_t>(data);
+            putValueIntoLists(propertyIdx, directionTablePropertyLists, directionTableAdjLists,
+                nodeIDs, reversePos, reinterpret_cast<uint8_t*>(&val));
+        } break;
+        case INT16: {
+            int16_t val = TypeUtils::convertStringToNumber<int64_t>(data);
             putValueIntoLists(propertyIdx, directionTablePropertyLists, directionTableAdjLists,
                 nodeIDs, reversePos, reinterpret_cast<uint8_t*>(&val));
         } break;
         case DOUBLE: {
-            double_t val = TypeUtils::convertToDouble(data);
+            double_t val = TypeUtils::convertStringToNumber<double_t>(data);
             putValueIntoLists(propertyIdx, directionTablePropertyLists, directionTableAdjLists,
                 nodeIDs, reversePos, reinterpret_cast<uint8_t*>(&val));
         } break;
@@ -511,7 +531,7 @@ void CopyRelArrow::putPropsOfLineIntoLists(CopyRelArrow* copier,
                 nodeIDs, reversePos, fixedListVal.get());
         } break;
         case FLOAT: {
-            float_t val = TypeUtils::convertToFloat(data);
+            auto val = TypeUtils::convertStringToNumber<float_t>(data);
             putValueIntoLists(propertyIdx, directionTablePropertyLists, directionTableAdjLists,
                 nodeIDs, reversePos, reinterpret_cast<uint8_t*>(&val));
         } break;

@@ -71,6 +71,16 @@ False
 ---- 1
 [35,30,45,20,20,25,40,83]
 
+-NAME SimpleCollectINT32Test
+-QUERY MATCH (m:movies) RETURN collect(m.length)
+---- 1
+[126,2544,298]
+
+-NAME SimpleCollectINT16Test
+-QUERY MATCH (:person)-[e:studyAt]->(:organisation) RETURN collect(e.length)
+---- 1
+[5,55,22]
+
 -NAME SimpleCollectSTRINGTest
 -QUERY MATCH (p:person) RETURN collect(p.fName)
 ---- 1

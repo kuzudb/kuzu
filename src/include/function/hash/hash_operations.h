@@ -70,7 +70,22 @@ inline void Hash::operation(const int64_t& key, common::hash_t& result) {
 }
 
 template<>
+inline void Hash::operation(const int32_t& key, common::hash_t& result) {
+    result = murmurhash64(key);
+}
+
+template<>
+inline void Hash::operation(const int16_t& key, common::hash_t& result) {
+    result = murmurhash64(key);
+}
+
+template<>
 inline void Hash::operation(const double_t& key, common::hash_t& result) {
+    result = murmurhash64(key);
+}
+
+template<>
+inline void Hash::operation(const float_t& key, common::hash_t& result) {
     result = murmurhash64(key);
 }
 
