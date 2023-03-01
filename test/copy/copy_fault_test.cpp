@@ -42,6 +42,12 @@ class CopyInvalidNumberTest : public CopyFaultTest {
     }
 };
 
+class CopyNullPKTest : public CopyFaultTest {
+    std::string getInputDir() override {
+        return TestHelper::appendKuzuRootPath("dataset/copy-fault-tests/null-pk/");
+    }
+};
+
 TEST_F(CopyDuplicateIDTest, DuplicateIDsError) {
     validateCopyException(
         "COPY person FROM \"" +
@@ -153,4 +159,11 @@ TEST_F(CopyInvalidNumberTest, InvalidNumberError) {
         "COPY person FROM \"" +
             TestHelper::appendKuzuRootPath("dataset/copy-fault-tests/invalid-number/vMovie.csv\""),
         "Invalid number: 312abc.");
+}
+
+TEST_F(CopyNullPKTest, NullPKErrpr) {
+    validateCopyException(
+        "COPY person FROM \"" +
+            TestHelper::appendKuzuRootPath("dataset/copy-fault-tests/null-pk/vPerson.csv\""),
+        "Reader exception: Primary key cannot be null.");
 }
