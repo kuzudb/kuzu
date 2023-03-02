@@ -88,18 +88,13 @@ public:
 
     void encodeKeys();
 
-private:
-    static inline uint8_t flipSign(uint8_t key_byte) { return key_byte ^ 128; }
-
-    template<typename type>
-    static inline void encodeTemplate(const uint8_t* data, uint8_t* resultPtr, bool swapBytes) {
-        encodeData(*(type*)data, resultPtr, swapBytes);
-    }
-
     template<typename type>
     static void encodeData(type data, uint8_t* resultPtr, bool swapBytes) {
         assert(false);
     }
+
+private:
+    static inline uint8_t flipSign(uint8_t key_byte) { return key_byte ^ 128; }
 
     void flipBytesIfNecessary(
         uint32_t keyColIdx, uint8_t* tuplePtr, uint32_t numEntriesToEncode, common::DataType& type);
@@ -138,5 +133,9 @@ private:
     std::vector<encode_function_t> encodeFunctions;
 };
 
+template<typename type>
+static inline void encodeTemplate(const uint8_t* data, uint8_t* resultPtr, bool swapBytes) {
+    OrderByKeyEncoder::encodeData(*(type*)data, resultPtr, swapBytes);
+}
 } // namespace processor
 } // namespace kuzu

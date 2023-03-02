@@ -12,7 +12,7 @@ std::unique_ptr<FileInfo> FileUtils::openFile(const std::string& path, int flags
     if (fd == -1) {
         throw Exception("Cannot open file: " + path);
     }
-    return make_unique<FileInfo>(path, fd);
+    return std::make_unique<FileInfo>(path, fd);
 }
 
 void FileUtils::createFileWithSize(const std::string& path, uint64_t size) {
@@ -33,6 +33,15 @@ void FileUtils::writeToFile(
     uint64_t maxBytesToWriteAtOnce = 1ull << 30; // 1ull << 30 = 1G
     while (remainingNumBytesToWrite > 0) {
         uint64_t numBytesToWrite = std::min(remainingNumBytesToWrite, maxBytesToWriteAtOnce);
+
+        #if defined(_WIN32)
+        if (lseek(fileInfo->fd, offset, SEEK_SET) == -1) {
+            throw Exception(StringUtils::string_format(
+                "Cannot seek to offset {} in file {}. fileDescriptor: {}",
+                offset, fileInfo->path, fileInfo->fd));
+        }
+        uint64_t numBytesWritten = write(fileInfo->fd, buffer + bufferOffset, remainingNumBytesToWrite);
+        #else
         uint64_t numBytesWritten =
             pwrite(fileInfo->fd, buffer + bufferOffset, numBytesToWrite, offset);
         if (numBytesWritten != numBytesToWrite) {
@@ -41,6 +50,7 @@ void FileUtils::writeToFile(
                 "numBytesToWrite: {} numBytesWritten: {}",
                 fileInfo->path, fileInfo->fd, offset, numBytesToWrite, numBytesWritten));
         }
+        #endif
         remainingNumBytesToWrite -= numBytesWritten;
         offset += numBytesWritten;
         bufferOffset += numBytesWritten;
@@ -60,7 +70,16 @@ void FileUtils::overwriteFile(const std::string& from, const std::string& to) {
 
 void FileUtils::readFromFile(
     FileInfo* fileInfo, void* buffer, uint64_t numBytes, uint64_t position) {
+    #if defined(_WIN32)
+    if (lseek(fileInfo->fd, position, SEEK_SET) == -1) {
+        throw Exception(StringUtils::string_format(
+            "Cannot seek to offset {} in file {}. fileDescriptor: {}",
+            position, fileInfo->path, fileInfo->fd));
+    }
+    auto numBytesRead = read(fileInfo->fd, buffer, numBytes);
+    #else
     auto numBytesRead = pread(fileInfo->fd, buffer, numBytes, position);
+    #endif
     if (numBytesRead != numBytes && getFileSize(fileInfo->fd) != position + numBytesRead) {
         throw Exception(
             StringUtils::string_format("Cannot read from file: {} fileDescriptor: {} "
@@ -135,6 +154,18 @@ std::vector<std::string> FileUtils::findAllDirectories(const std::string& path) 
         }
     }
     return directories;
+}
+
+void FileUtils::truncateFileToSize(FileInfo* fileInfo, uint64_t size) {
+    #if defined(_WIN32)
+    if (lseek(fileInfo->fd, size, SEEK_SET) == -1) {
+        throw Exception(StringUtils::string_format(
+            "Cannot seek to offset 0 in file {}. fileDescriptor: {}", fileInfo->path, fileInfo->fd));
+    }
+    write(fileInfo->fd, "", size);
+    #else
+    ftruncate(fileInfo->fd, size);
+    #endif
 }
 
 } // namespace common

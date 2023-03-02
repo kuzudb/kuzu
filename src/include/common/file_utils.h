@@ -3,7 +3,11 @@
 #include <fcntl.h>
 #include <glob.h>
 #include <sys/stat.h>
+#if defined(_WIN32)
+#include <io.h>
+#else
 #include <unistd.h>
+#endif
 
 #include <filesystem>
 #include <string>
@@ -40,7 +44,7 @@ public:
     static void removeDir(const std::string& dir);
 
     static inline std::string joinPath(const std::string& base, const std::string& part) {
-        return std::filesystem::path(base) / part;
+        return (std::filesystem::path(base) / part).string();
     }
 
     static void renameFileIfExists(const std::string& oldName, const std::string& newName);
@@ -48,9 +52,8 @@ public:
     static inline void truncateFileToEmpty(FileInfo* fileInfo) {
         truncateFileToSize(fileInfo, 0 /* size */);
     }
-    static inline void truncateFileToSize(FileInfo* fileInfo, uint64_t size) {
-        ftruncate(fileInfo->fd, size);
-    }
+    static void truncateFileToSize(FileInfo* fileInfo, uint64_t size);
+
     static inline bool fileOrPathExists(const std::string& path) {
         return std::filesystem::exists(path);
     }

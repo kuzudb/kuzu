@@ -22,7 +22,7 @@ public:
         std::string name, common::DataTypeID operandTypeID, common::DataTypeID resultTypeID) {
         return std::make_unique<VectorOperationDefinition>(std::move(name),
             std::vector<common::DataTypeID>{operandTypeID}, resultTypeID,
-            VectorArithmeticOperations::UnaryExecFunction<OPERAND_TYPE, RETURN_TYPE, FUNC>);
+            kuzu::function::UnaryExecFunction<OPERAND_TYPE, RETURN_TYPE, FUNC>);
     }
 
     template<typename FUNC>
@@ -38,7 +38,7 @@ public:
         std::string name, common::DataTypeID operandTypeID, common::DataTypeID resultTypeID) {
         return std::make_unique<VectorOperationDefinition>(std::move(name),
             std::vector<common::DataTypeID>{operandTypeID, operandTypeID}, resultTypeID,
-            VectorArithmeticOperations::BinaryExecFunction<OPERAND_TYPE, OPERAND_TYPE, RETURN_TYPE,
+            kuzu::function::BinaryExecFunction<OPERAND_TYPE, OPERAND_TYPE, RETURN_TYPE,
                 FUNC>);
     }
 
@@ -47,19 +47,19 @@ private:
     static scalar_exec_func getUnaryExecFunc(common::DataTypeID operandTypeID) {
         switch (operandTypeID) {
         case common::INT64: {
-            return VectorArithmeticOperations::UnaryExecFunction<int64_t, int64_t, FUNC>;
+            return kuzu::function::UnaryExecFunction<int64_t, int64_t, FUNC>;
         }
         case common::INT32: {
-            return VectorArithmeticOperations::UnaryExecFunction<int32_t, int32_t, FUNC>;
+            return kuzu::function::UnaryExecFunction<int32_t, int32_t, FUNC>;
         }
         case common::INT16: {
-            return VectorArithmeticOperations::UnaryExecFunction<int16_t, int16_t, FUNC>;
+            return kuzu::function::UnaryExecFunction<int16_t, int16_t, FUNC>;
         }
         case common::DOUBLE: {
-            return VectorArithmeticOperations::UnaryExecFunction<double_t, double_t, FUNC>;
+            return kuzu::function::UnaryExecFunction<double_t, double_t, FUNC>;
         }
         case common::FLOAT: {
-            return VectorArithmeticOperations::UnaryExecFunction<float_t, float_t, FUNC>;
+            return kuzu::function::UnaryExecFunction<float_t, float_t, FUNC>;
             ;
         }
         default:
@@ -73,20 +73,20 @@ private:
     static scalar_exec_func getBinaryExecFunc(common::DataTypeID operandTypeID) {
         switch (operandTypeID) {
         case common::INT64: {
-            return VectorArithmeticOperations::BinaryExecFunction<int64_t, int64_t, int64_t, FUNC>;
+            return kuzu::function::BinaryExecFunction<int64_t, int64_t, int64_t, FUNC>;
         }
         case common::INT32: {
-            return VectorArithmeticOperations::BinaryExecFunction<int32_t, int32_t, int32_t, FUNC>;
+            return kuzu::function::BinaryExecFunction<int32_t, int32_t, int32_t, FUNC>;
         }
         case common::INT16: {
-            return VectorArithmeticOperations::BinaryExecFunction<int16_t, int16_t, int16_t, FUNC>;
+            return kuzu::function::BinaryExecFunction<int16_t, int16_t, int16_t, FUNC>;
         }
         case common::DOUBLE: {
-            return VectorArithmeticOperations::BinaryExecFunction<double_t, double_t, double_t,
+            return kuzu::function::BinaryExecFunction<double_t, double_t, double_t,
                 FUNC>;
         }
         case common::FLOAT: {
-            return VectorArithmeticOperations::BinaryExecFunction<float_t, float_t, float_t, FUNC>;
+            return kuzu::function::BinaryExecFunction<float_t, float_t, float_t, FUNC>;
         }
         default:
             throw common::RuntimeException("Invalid input data types(" +

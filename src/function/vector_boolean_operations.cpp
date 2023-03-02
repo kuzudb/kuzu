@@ -35,13 +35,13 @@ scalar_exec_func VectorBooleanOperations::bindBinaryExecFunction(
     assert(leftType.typeID == BOOL && rightType.typeID == BOOL);
     switch (expressionType) {
     case AND: {
-        return BinaryBooleanExecFunction<operation::And>;
+        return &BinaryBooleanExecFunction<operation::And>;
     }
     case OR: {
-        return BinaryBooleanExecFunction<operation::Or>;
+        return &BinaryBooleanExecFunction<operation::Or>;
     }
     case XOR: {
-        return BinaryBooleanExecFunction<operation::Xor>;
+        return &BinaryBooleanExecFunction<operation::Xor>;
     }
     default:
         throw RuntimeException("Invalid expression type " + expressionTypeToString(expressionType) +
@@ -57,13 +57,13 @@ scalar_select_func VectorBooleanOperations::bindBinarySelectFunction(
     assert(leftType.typeID == BOOL && rightType.typeID == BOOL);
     switch (expressionType) {
     case AND: {
-        return BinaryBooleanSelectFunction<operation::And>;
+        return &BinaryBooleanSelectFunction<operation::And>;
     }
     case OR: {
-        return BinaryBooleanSelectFunction<operation::Or>;
+        return &BinaryBooleanSelectFunction<operation::Or>;
     }
     case XOR: {
-        return BinaryBooleanSelectFunction<operation::Xor>;
+        return &BinaryBooleanSelectFunction<operation::Xor>;
     }
     default:
         throw RuntimeException("Invalid expression type " + expressionTypeToString(expressionType) +
@@ -76,7 +76,7 @@ scalar_exec_func VectorBooleanOperations::bindUnaryExecFunction(
     assert(children.size() == 1 && children[0]->dataType.typeID == BOOL);
     switch (expressionType) {
     case NOT: {
-        return UnaryBooleanExecFunction<operation::Not>;
+        return &UnaryBooleanExecFunction<operation::Not>;
     }
     default:
         throw RuntimeException("Invalid expression type " + expressionTypeToString(expressionType) +
@@ -89,7 +89,7 @@ scalar_select_func VectorBooleanOperations::bindUnarySelectFunction(
     assert(children.size() == 1 && children[0]->dataType.typeID == BOOL);
     switch (expressionType) {
     case NOT: {
-        return UnaryBooleanSelectFunction<operation::Not>;
+        return &UnaryBooleanSelectFunction<operation::Not>;
     }
     default:
         throw RuntimeException("Invalid expression type " + expressionTypeToString(expressionType) +

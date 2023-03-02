@@ -10,6 +10,12 @@ ifndef $(NUM_THREADS)
 	NUM_THREADS=1
 endif
 
+ifeq ($(OS),Windows_NT)
+	ifndef $(GEN)
+		GEN=ninja
+	endif
+endif
+
 ifeq ($(GEN),ninja)
 	GENERATOR=-G "Ninja"
 	FORCE_COLOR=-DFORCE_COLORED_OUTPUT=1
@@ -26,17 +32,34 @@ ifeq ($(UBSAN), 1)
 endif
 
 arrow:
+ifeq ($(OS),Windows_NT)
+	cd external\ && \
+	if not exist build\ mkdir build\ && \
+	cd build\ && \
+	cmake $(FORCE_COLOR) $(SANITIZER_FLAG) $(GENERATOR) .. && \
+	cmake --build . -- -j $(NUM_THREADS)
+else
 	cd external && \
 	mkdir -p build && \
 	cd build && \
 	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) -DCMAKE_BUILD_TYPE=Release ../ && \
 	cmake --build . --config Release -- -j $(NUM_THREADS)
+endif
 
 release: arrow
+ifeq ($(OS),Windows_NT)
+	if not exist build\ mkdir build\ && \
+	cd build\ && \
+	if not exist release\ mkdir release\ && \
+	cd release\ &&\
+	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) -DCMAKE_BUILD_TYPE=Release ..\.. && \
+	cmake --build . --config Release -- -j $(NUM_THREADS)
+else
 	mkdir -p build/release && \
 	cd build/release && \
 	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) -DCMAKE_BUILD_TYPE=Release ../.. && \
 	cmake --build . --config Release -- -j $(NUM_THREADS)
+endif
 
 debug: arrow
 	mkdir -p build/debug && \

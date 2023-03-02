@@ -47,7 +47,7 @@ offset_t NodeTable::addNodeAndResetProperties(ValueVector* primaryKeyVector) {
     }
     // TODO(Guodong): Handle SERIAL.
     if (!pkIndex->insert(primaryKeyVector, pkValPos, nodeOffset)) {
-        std::string pkStr = primaryKeyVector->dataType.typeID == INT64 ?
+        std::string pkStr = primaryKeyVector->dataType.typeID == DataTypeID::INT64 ?
                                 std::to_string(primaryKeyVector->getValue<int64_t>(pkValPos)) :
                                 primaryKeyVector->getValue<ku_string_t>(pkValPos).getAsString();
         throw RuntimeException(Exception::getExistedPKExceptionMsg(pkStr));

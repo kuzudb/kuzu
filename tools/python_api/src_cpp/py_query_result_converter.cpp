@@ -17,34 +17,34 @@ void NPArrayWrapper::appendElement(Value* value) {
     ((uint8_t*)mask.mutable_data())[numElements] = value->isNull();
     if (!value->isNull()) {
         switch (type.typeID) {
-        case BOOL: {
+        case DataTypeID::BOOL: {
             ((uint8_t*)dataBuffer)[numElements] = value->getValue<bool>();
             break;
         }
-        case INT64: {
+        case DataTypeID::INT64: {
             ((int64_t*)dataBuffer)[numElements] = value->getValue<int64_t>();
             break;
         }
-        case DOUBLE: {
+        case DataTypeID::DOUBLE: {
             ((double_t*)dataBuffer)[numElements] = value->getValue<double>();
             break;
         }
-        case DATE: {
+        case DataTypeID::DATE: {
             ((int64_t*)dataBuffer)[numElements] =
                 Date::getEpochNanoSeconds(value->getValue<date_t>());
             break;
         }
-        case TIMESTAMP: {
+        case DataTypeID::TIMESTAMP: {
             ((int64_t*)dataBuffer)[numElements] =
                 Timestamp::getEpochNanoSeconds(value->getValue<timestamp_t>());
             break;
         }
-        case INTERVAL: {
+        case DataTypeID::INTERVAL: {
             ((int64_t*)dataBuffer)[numElements] =
                 Interval::getNanoseconds(value->getValue<interval_t>());
             break;
         }
-        case STRING: {
+        case DataTypeID::STRING: {
             auto val = value->getValue<std::string>();
             auto result = PyUnicode_New(val.length(), 127);
             auto target_data = PyUnicode_DATA(result);
@@ -52,12 +52,12 @@ void NPArrayWrapper::appendElement(Value* value) {
             ((PyObject**)dataBuffer)[numElements] = result;
             break;
         }
-        case NODE:
-        case REL: {
+        case DataTypeID::NODE:
+        case DataTypeID::REL: {
             ((py::dict*)dataBuffer)[numElements] = PyQueryResult::convertValueToPyObject(*value);
             break;
         }
-        case VAR_LIST: {
+        case DataTypeID::VAR_LIST: {
             ((py::list*)dataBuffer)[numElements] = PyQueryResult::convertValueToPyObject(*value);
             break;
         }
@@ -72,31 +72,31 @@ void NPArrayWrapper::appendElement(Value* value) {
 py::dtype NPArrayWrapper::convertToArrayType(const DataType& type) {
     std::string dtype;
     switch (type.typeID) {
-    case INT64: {
+    case DataTypeID::INT64: {
         dtype = "int64";
         break;
     }
-    case DOUBLE: {
+    case DataTypeID::DOUBLE: {
         dtype = "float64";
         break;
     }
-    case BOOL: {
+    case DataTypeID::BOOL: {
         dtype = "bool";
         break;
     }
-    case NODE:
-    case REL:
-    case VAR_LIST:
-    case STRING: {
+    case DataTypeID::NODE:
+    case DataTypeID::REL:
+    case DataTypeID::VAR_LIST:
+    case DataTypeID::STRING: {
         dtype = "object";
         break;
     }
-    case DATE:
-    case TIMESTAMP: {
+    case DataTypeID::DATE:
+    case DataTypeID::TIMESTAMP: {
         dtype = "datetime64[ns]";
         break;
     }
-    case INTERVAL: {
+    case DataTypeID::INTERVAL: {
         dtype = "timedelta64[ns]";
         break;
     }
