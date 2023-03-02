@@ -13,9 +13,6 @@ Napi::Object NodeDatabase::Init(Napi::Env env, Napi::Object exports) {
           InstanceMethod("resizeBufferManager", &NodeDatabase::ResizeBufferManager),
       });
 
-    constructor = Napi::Persistent(t);
-    constructor.SuppressDestruct();
-
     exports.Set("NodeDatabase", t);
     return exports;
 }
