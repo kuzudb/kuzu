@@ -32,61 +32,7 @@ void FactorizationRewriter::visitOperator(planner::LogicalOperator* op) {
     for (auto i = 0u; i < op->getNumChildren(); ++i) {
         visitOperator(op->getChild(i).get());
     }
-    switch (op->getOperatorType()) {
-    case LogicalOperatorType::EXTEND: {
-        visitExtend(op);
-    } break;
-    case LogicalOperatorType::HASH_JOIN: {
-        visitHashJoin(op);
-    } break;
-    case LogicalOperatorType::INTERSECT: {
-        visitIntersect(op);
-    } break;
-    case LogicalOperatorType::PROJECTION: {
-        visitProjection(op);
-    } break;
-    case LogicalOperatorType::AGGREGATE: {
-        visitAggregate(op);
-    } break;
-    case LogicalOperatorType::ORDER_BY: {
-        visitOrderBy(op);
-    } break;
-    case LogicalOperatorType::SKIP: {
-        visitSkip(op);
-    } break;
-    case LogicalOperatorType::LIMIT: {
-        visitLimit(op);
-    } break;
-    case LogicalOperatorType::DISTINCT: {
-        visitDistinct(op);
-    } break;
-    case LogicalOperatorType::UNWIND: {
-        visitUnwind(op);
-    } break;
-    case LogicalOperatorType::UNION_ALL: {
-        visitUnion(op);
-    } break;
-    case LogicalOperatorType::FILTER: {
-        visitFilter(op);
-    } break;
-    case LogicalOperatorType::SET_NODE_PROPERTY: {
-        visitSetNodeProperty(op);
-    } break;
-    case LogicalOperatorType::SET_REL_PROPERTY: {
-        visitSetRelProperty(op);
-    } break;
-    case LogicalOperatorType::DELETE_REL: {
-        visitDeleteRel(op);
-    } break;
-    case LogicalOperatorType::CREATE_NODE: {
-        visitCreateNode(op);
-    } break;
-    case LogicalOperatorType::CREATE_REL: {
-        visitCreateRel(op);
-    } break;
-    default:
-        break;
-    }
+    visitOperatorSwitch(op);
     op->computeSchema();
 }
 

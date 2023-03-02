@@ -2,6 +2,7 @@ add_library(kuzu_optimizer
         OBJECT
         factorization_rewriter.cpp
         index_nested_loop_join_optimizer.cpp
+        logical_operator_visitor.cpp
         optimizer.cpp
         projection_push_down_optimizer.cpp
         remove_factorization_rewriter.cpp

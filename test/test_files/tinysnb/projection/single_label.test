@@ -413,7 +413,7 @@ Dan|Carol
 [3,9]
 
 -NAME ReturnIntRelProp
--QUERY MATCH (a:person)-[e:marries]->(b:person) RETURN e.times
+-QUERY MATCH (a:person)-[e:meets]->(b:person) RETURN e.times
 ---- 7
 5
 2

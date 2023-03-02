@@ -13,9 +13,11 @@ void Optimizer::optimize(planner::LogicalPlan* plan) {
     auto removeFactorizationRewriter = RemoveFactorizationRewriter();
     removeFactorizationRewriter.rewrite(plan);
 
-    RemoveUnnecessaryJoinOptimizer::rewrite(plan);
+    auto removeUnnecessaryJoinOptimizer = RemoveUnnecessaryJoinOptimizer();
+    removeUnnecessaryJoinOptimizer.rewrite(plan);
 
-    IndexNestedLoopJoinOptimizer::rewrite(plan);
+    auto indexNestedLoopJoinOptimizer = IndexNestedLoopJoinOptimizer();
+    indexNestedLoopJoinOptimizer.rewrite(plan);
 
     auto projectionPushDownOptimizer = ProjectionPushDownOptimizer();
     projectionPushDownOptimizer.rewrite(plan);

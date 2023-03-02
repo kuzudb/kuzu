@@ -1,5 +1,6 @@
 #pragma once
 
+#include "logical_operator_visitor.h"
 #include "planner/logical_plan/logical_plan.h"
 
 namespace kuzu {
@@ -15,15 +16,16 @@ namespace optimizer {
 //    |
 //   S(a)
 // This optimizer prunes such redundant joins.
-class RemoveUnnecessaryJoinOptimizer {
+class RemoveUnnecessaryJoinOptimizer : public LogicalOperatorVisitor {
 public:
-    static void rewrite(planner::LogicalPlan* plan);
+    void rewrite(planner::LogicalPlan* plan);
 
 private:
-    static std::shared_ptr<planner::LogicalOperator> visitOperator(
+    std::shared_ptr<planner::LogicalOperator> visitOperator(
         std::shared_ptr<planner::LogicalOperator> op);
-    static std::shared_ptr<planner::LogicalOperator> visitHashJoin(
-        std::shared_ptr<planner::LogicalOperator> op);
+
+    std::shared_ptr<planner::LogicalOperator> visitHashJoinReplace(
+        std::shared_ptr<planner::LogicalOperator> op) override;
 };
 
 } // namespace optimizer

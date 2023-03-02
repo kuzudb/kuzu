@@ -11,18 +11,15 @@ namespace kuzu {
 namespace optimizer {
 
 void IndexNestedLoopJoinOptimizer::rewrite(planner::LogicalPlan* plan) {
-    rewrite(plan->getLastOperator());
+    visitOperator(plan->getLastOperator());
 }
 
-std::shared_ptr<planner::LogicalOperator> IndexNestedLoopJoinOptimizer::rewrite(
+std::shared_ptr<planner::LogicalOperator> IndexNestedLoopJoinOptimizer::visitOperator(
     std::shared_ptr<planner::LogicalOperator> op) {
-    if (op->getOperatorType() == LogicalOperatorType::FILTER) {
-        return rewriteFilter(op);
-    }
     for (auto i = 0u; i < op->getNumChildren(); ++i) {
-        op->setChild(i, rewrite(op->getChild(i)));
+        op->setChild(i, visitOperator(op->getChild(i)));
     }
-    return op;
+    return visitOperatorReplaceSwitch(op);
 }
 
 static bool isPrimaryKey(const binder::Expression& expression) {
@@ -44,7 +41,7 @@ static bool isPrimaryKeyEqualityComparison(const Expression& expression) {
     return false;
 }
 
-std::shared_ptr<LogicalOperator> IndexNestedLoopJoinOptimizer::rewriteFilter(
+std::shared_ptr<LogicalOperator> IndexNestedLoopJoinOptimizer::visitFilterReplace(
     std::shared_ptr<LogicalOperator> op) {
     // Match filter on primary key
     auto filter = (LogicalFilter*)op.get();
