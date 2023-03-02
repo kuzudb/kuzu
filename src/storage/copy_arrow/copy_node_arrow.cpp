@@ -200,6 +200,9 @@ void CopyNodeArrow::populatePKIndex(
     InMemColumn* column, HashIndexBuilder<T>* pkIndex, offset_t startOffset, uint64_t numValues) {
     for (auto i = 0u; i < numValues; i++) {
         auto offset = i + startOffset;
+        if (column->isNullAtNodeOffset(offset)) {
+            throw ReaderException("Primary key cannot be null.");
+        }
         if constexpr (std::is_same<T, int64_t>::value) {
             auto key = (int64_t*)column->getElement(offset);
             if (!pkIndex->append(*key, offset)) {
@@ -257,7 +260,7 @@ void CopyNodeArrow::putPropsOfLineIntoColumns(
                 column->setElement(nodeOffset, reinterpret_cast<uint8_t*>(&val));
             } break;
             case DOUBLE: {
-                double_t val = TypeUtils::convertStringToNumber<double_t>(data);
+                auto val = TypeUtils::convertStringToNumber<double_t>(data);
                 column->setElement(nodeOffset, reinterpret_cast<uint8_t*>(&val));
             } break;
             case FLOAT: {
@@ -265,7 +268,7 @@ void CopyNodeArrow::putPropsOfLineIntoColumns(
                 column->setElement(nodeOffset, reinterpret_cast<uint8_t*>(&val));
             } break;
             case BOOL: {
-                bool val = TypeUtils::convertToBoolean(data);
+                auto val = TypeUtils::convertToBoolean(data);
                 column->setElement(nodeOffset, reinterpret_cast<uint8_t*>(&val));
             } break;
             case DATE: {

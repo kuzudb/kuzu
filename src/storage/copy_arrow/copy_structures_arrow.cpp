@@ -187,19 +187,21 @@ arrow::Status CopyStructuresArrow::initCSVReader(
     ARROW_ASSIGN_OR_RAISE(arrow_input_stream, arrow::io::ReadableFile::Open(filePath));
     auto arrowRead = arrow::csv::ReadOptions::Defaults();
     arrowRead.block_size = CopyConstants::CSV_READING_BLOCK_SIZE;
-
     if (!copyDescription.csvReaderConfig->hasHeader) {
         arrowRead.autogenerate_column_names = true;
     }
 
     auto arrowConvert = arrow::csv::ConvertOptions::Defaults();
     arrowConvert.strings_can_be_null = true;
+    // Only the empty string is treated as NULL.
+    arrowConvert.null_values = {""};
     arrowConvert.quoted_strings_can_be_null = false;
 
     auto arrowParse = arrow::csv::ParseOptions::Defaults();
     arrowParse.delimiter = copyDescription.csvReaderConfig->delimiter;
     arrowParse.escape_char = copyDescription.csvReaderConfig->escapeChar;
     arrowParse.quote_char = copyDescription.csvReaderConfig->quoteChar;
+    arrowParse.ignore_empty_lines = false;
     arrowParse.escaping = true;
 
     ARROW_ASSIGN_OR_RAISE(
