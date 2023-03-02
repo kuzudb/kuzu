@@ -59,7 +59,7 @@ public:
         // in the original list.
         for (auto i = 1; i < 2301; i++) {
             expectedResult.push_back(
-                kuzu::common::StringUtils::string_format("%d|%d|[%d]", i, 3000 - i, 3000 - i));
+                kuzu::common::StringUtils::string_format("{}|{}|[{}]", i, 3000 - i, 3000 - i));
         }
         if (isCommit) {
             // We can only see newly inserted rels only if we commit the transaction.
@@ -82,7 +82,7 @@ public:
         for (auto i = 51; i < 1500; i++) {
             insertRel("person" /* srcNode */, 1 /* srcPK */, "person" /* dstNode */, i /* dstPK */,
                 "knows" /* relation */,
-                kuzu::common::StringUtils::string_format("{length: %d, place: '%d', tag: ['%d']}",
+                kuzu::common::StringUtils::string_format("{{length: {}, place: '{}', tag: ['{}']}}",
                     i, 1000 - i, 1000 - i) /* propertyValues */);
         }
         commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, transactionTestType);
@@ -94,13 +94,13 @@ public:
         // in the original list.
         for (auto i = 0; i <= 50; i++) {
             expectedResult.push_back(
-                kuzu::common::StringUtils::string_format("%d|%d|[%d]", i, 1000 - i, 1000 - i));
+                kuzu::common::StringUtils::string_format("{}|{}|[{}]", i, 1000 - i, 1000 - i));
         }
         if (isCommit) {
             // We can only see newly inserted rels only if we commit the transaction.
             for (auto i = 51; i < 1500; i++) {
                 expectedResult.push_back(
-                    kuzu::common::StringUtils::string_format("%d|%d|[%d]", i, 1000 - i, 1000 - i));
+                    kuzu::common::StringUtils::string_format("{}|{}|[{}]", i, 1000 - i, 1000 - i));
             }
         }
         sortAndCheckTestResults(actualResult, expectedResult);

@@ -129,12 +129,12 @@ std::vector<PropertyNameDataType> Binder::bindPropertyNameDataTypes(
     for (auto& propertyNameDataType : propertyNameDataTypes) {
         if (boundPropertyNames.contains(propertyNameDataType.first)) {
             throw BinderException(StringUtils::string_format(
-                "Duplicated column name: %s, column name must be unique.",
-                propertyNameDataType.first.c_str()));
+                "Duplicated column name: {}, column name must be unique.",
+                propertyNameDataType.first));
         } else if (TableSchema::isReservedPropertyName(propertyNameDataType.first)) {
             throw BinderException(
-                StringUtils::string_format("PropertyName: %s is an internal reserved propertyName.",
-                    propertyNameDataType.first.c_str()));
+                StringUtils::string_format("PropertyName: {} is an internal reserved propertyName.",
+                    propertyNameDataType.first));
         }
         StringUtils::toUpper(propertyNameDataType.second);
         auto dataType = bindDataType(propertyNameDataType.second);

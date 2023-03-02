@@ -77,10 +77,10 @@ void CopyNodeArrow::initializeColumnsAndList() {
 template<typename T>
 arrow::Status CopyNodeArrow::populateColumns() {
     logger->info("Populating properties");
-    auto pkIndex =
-        make_unique<HashIndexBuilder<T>>(StorageUtils::getNodeIndexFName(this->outputDirectory,
-                                             nodeTableSchema->tableID, DBFileType::WAL_VERSION),
-            nodeTableSchema->getPrimaryKey().dataType);
+    auto pkIndex = std::make_unique<HashIndexBuilder<T>>(
+        StorageUtils::getNodeIndexFName(
+            this->outputDirectory, nodeTableSchema->tableID, DBFileType::WAL_VERSION),
+        nodeTableSchema->getPrimaryKey().dataType);
     pkIndex->bulkReserve(numRows);
 
     arrow::Status status;

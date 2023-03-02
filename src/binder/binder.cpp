@@ -180,8 +180,8 @@ void Binder::validateNodeTableHasNoEdge(const Catalog& _catalog, table_id_t tabl
     for (auto& tableIDSchema : _catalog.getReadOnlyVersion()->getRelTableSchemas()) {
         if (tableIDSchema.second->isSrcOrDstTable(tableID)) {
             throw BinderException(StringUtils::string_format(
-                "Cannot delete a node table with edges. It is on the edges of rel: %s.",
-                tableIDSchema.second->tableName.c_str()));
+                "Cannot delete a node table with edges. It is on the edges of rel: {}.",
+                tableIDSchema.second->tableName));
         }
     }
 }

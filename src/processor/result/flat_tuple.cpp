@@ -19,7 +19,7 @@ uint32_t FlatTuple::len() {
 common::Value* FlatTuple::getValue(uint32_t idx) {
     if (idx >= len()) {
         throw common::RuntimeException(common::StringUtils::string_format(
-            "ValIdx is out of range. Number of values in flatTuple: %d, valIdx: %d.", len(), idx));
+            "ValIdx is out of range. Number of values in flatTuple: {}, valIdx: {}.", len(), idx));
     }
     return values[idx].get();
 }

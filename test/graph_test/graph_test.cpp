@@ -118,8 +118,8 @@ void TestHelper::executeScript(const std::string& cypherScript, Connection& conn
     }
     std::ifstream file(cypherScript);
     if (!file.is_open()) {
-        throw Exception(StringUtils::string_format(
-            "Error opening file: %s, errno: %d.", cypherScript.c_str(), errno));
+        throw Exception(
+            StringUtils::string_format("Error opening file: {}, errno: {}.", cypherScript, errno));
     }
     std::string line;
     while (getline(file, line)) {
@@ -133,9 +133,8 @@ void TestHelper::executeScript(const std::string& cypherScript, Connection& conn
         auto result = conn.query(line);
         std::cout << "Executed query: " << line << std::endl;
         if (!result->isSuccess()) {
-            throw Exception(
-                StringUtils::string_format("Failed to execute statement: %s.\nError: %s",
-                    line.c_str(), result->getErrorMessage().c_str()));
+            throw Exception(StringUtils::string_format(
+                "Failed to execute statement: {}.\nError: {}", line, result->getErrorMessage()));
         }
     }
 }

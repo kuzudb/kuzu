@@ -229,7 +229,7 @@ date_t Date::FromDate(int32_t year, int32_t month, int32_t day) {
     int32_t n = 0;
     if (!Date::IsValid(year, month, day)) {
         throw ConversionException(
-            StringUtils::string_format("Date out of range: %d-%d-%d.", year, month, day));
+            StringUtils::string_format("Date out of range: {}-{}-{}.", year, month, day));
     }
     while (year < 1970) {
         year += Date::YEAR_INTERVAL;

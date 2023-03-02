@@ -11,25 +11,25 @@ public:
     std::string getDeleteKnowsRelQuery(
         std::string srcTable, std::string dstTable, int64_t srcID, int64_t dstID) {
         return StringUtils::string_format(
-            "MATCH (p1:%s)-[e:knows]->(p2:%s) WHERE p1.ID = %d AND p2.ID = %d delete e;",
-            srcTable.c_str(), dstTable.c_str(), srcID, dstID);
+            "MATCH (p1:{})-[e:knows]->(p2:{}) WHERE p1.ID = {} AND p2.ID = {} delete e;", srcTable,
+            dstTable, srcID, dstID);
     }
     std::string getInsertKnowsRelQuery(
         std::string srcTable, std::string dstTable, int64_t srcID, int64_t dstID) {
-        return StringUtils::string_format("MATCH (p1:%s), (p2:%s) WHERE p1.ID = %d AND p2.ID "
-                                          "= %d create (p1)-[:knows {length: %d}]->(p2);",
-            srcTable.c_str(), dstTable.c_str(), srcID, dstID, dstID);
+        return StringUtils::string_format("MATCH (p1:{}), (p2:{}) WHERE p1.ID = {} AND p2.ID "
+                                          "= {} create (p1)-[:knows {{length: {}}}]->(p2);",
+            srcTable, dstTable, srcID, dstID, dstID);
     }
 
     std::string getDeleteTeachesRelQuery(int64_t srcID, int64_t dstID) {
         return StringUtils::string_format(
-            "MATCH (p1:person)-[t:teaches]->(p2:person) WHERE p1.ID = %d AND p2.ID = %d delete t;",
+            "MATCH (p1:person)-[t:teaches]->(p2:person) WHERE p1.ID = {} AND p2.ID = {} delete t;",
             srcID, dstID);
     }
 
     std::string getDeleteHasOwnerRelQuery(int64_t srcID, int64_t dstID) {
         return StringUtils::string_format(
-            "MATCH (a:animal)-[h:hasOwner]->(p:person) WHERE a.ID = %d AND p.ID = %d delete h;",
+            "MATCH (a:animal)-[h:hasOwner]->(p:person) WHERE a.ID = {} AND p.ID = {} delete h;",
             srcID, dstID);
     }
 

@@ -318,7 +318,7 @@ std::unique_ptr<Value> CopyStructuresArrow::getArrowVarList(std::string& l, int6
     auto numBytesOfOverflow = values.size() * Types::getDataTypeSize(childDataType.typeID);
     if (numBytesOfOverflow >= BufferPoolConstants::DEFAULT_PAGE_SIZE) {
         throw ReaderException(StringUtils::string_format(
-            "Maximum num bytes of a LIST is %d. Input list's num bytes is %d.",
+            "Maximum num bytes of a LIST is {}. Input list's num bytes is {}.",
             BufferPoolConstants::DEFAULT_PAGE_SIZE, numBytesOfOverflow));
     }
     return make_unique<Value>(
@@ -372,7 +372,7 @@ std::unique_ptr<uint8_t[]> CopyStructuresArrow::getArrowFixedList(std::string& l
     }
     if (numElementsRead != dataType.fixedNumElementsInList) {
         throw ReaderException(StringUtils::string_format(
-            "Each fixed list should have fixed number of elements. Expected: %d, Actual: %d.",
+            "Each fixed list should have fixed number of elements. Expected: {}, Actual: {}.",
             dataType.fixedNumElementsInList, numElementsRead));
     }
     return listVal;

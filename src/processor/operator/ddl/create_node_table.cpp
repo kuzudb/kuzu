@@ -12,7 +12,7 @@ void CreateNodeTable::executeDDLInternal() {
 }
 
 std::string CreateNodeTable::getOutputMsg() {
-    return StringUtils::string_format("NodeTable: %s has been created.", tableName.c_str());
+    return StringUtils::string_format("NodeTable: {} has been created.", tableName);
 }
 
 } // namespace processor

@@ -43,7 +43,7 @@ struct VectorStringOperations : public VectorOperations {
     static inline std::vector<std::unique_ptr<VectorOperationDefinition>>
     getUnaryStrFunctionDefintion(std::string funcName) {
         std::vector<std::unique_ptr<VectorOperationDefinition>> definitions;
-        definitions.emplace_back(make_unique<VectorOperationDefinition>(funcName,
+        definitions.emplace_back(std::make_unique<VectorOperationDefinition>(funcName,
             std::vector<common::DataTypeID>{common::STRING}, common::STRING,
             UnaryStringExecFunction<common::ku_string_t, common::ku_string_t, OPERATION>,
             false /* isVarLength */));

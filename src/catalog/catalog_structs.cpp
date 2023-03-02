@@ -47,8 +47,8 @@ std::string TableSchema::getPropertyName(property_id_t propertyID) const {
             return property.name;
         }
     }
-    throw common::RuntimeException(common::StringUtils::string_format(
-        "Table: %s doesn't have a property with propertyID=%d.", tableName.c_str(), propertyID));
+    throw common::RuntimeException(StringUtils::string_format(
+        "Table: {} doesn't have a property with propertyID={}.", tableName, propertyID));
 }
 
 property_id_t TableSchema::getPropertyID(const std::string& propertyName) const {
@@ -57,9 +57,8 @@ property_id_t TableSchema::getPropertyID(const std::string& propertyName) const 
             return property.propertyID;
         }
     }
-    throw common::RuntimeException(common::StringUtils::string_format(
-        "Table: %s doesn't have a property with propertyName=%s.", tableName.c_str(),
-        propertyName.c_str()));
+    throw common::RuntimeException(StringUtils::string_format(
+        "Table: {} doesn't have a property with propertyName={}.", tableName, propertyName));
 }
 
 Property TableSchema::getProperty(property_id_t propertyID) const {
@@ -68,8 +67,8 @@ Property TableSchema::getProperty(property_id_t propertyID) const {
             return property;
         }
     }
-    throw common::RuntimeException(common::StringUtils::string_format(
-        "Table: %s doesn't have a property with propertyID=%d.", tableName.c_str(), propertyID));
+    throw common::RuntimeException(StringUtils::string_format(
+        "Table: {} doesn't have a property with propertyID={}.", tableName, propertyID));
 }
 
 void TableSchema::renameProperty(property_id_t propertyID, const std::string& newName) {
@@ -80,7 +79,7 @@ void TableSchema::renameProperty(property_id_t propertyID, const std::string& ne
         }
     }
     throw common::InternalException(
-        "Property with id=" + std::to_string(propertyID) + " not found.");
+        StringUtils::string_format("Property with id={} not found.", propertyID));
 }
 
 } // namespace catalog

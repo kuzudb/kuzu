@@ -2,4 +2,4 @@
 -COMPARE_RESULT 1
 -QUERY MATCH (comment:Comment) RETURN MIN(gamma(comment.length % 2 + 2))
 ---- 1
-1
+1.000000

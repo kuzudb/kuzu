@@ -18,7 +18,7 @@ void FileUtils::writeToFile(
     FileInfo* fileInfo, uint8_t* buffer, uint64_t numBytes, uint64_t offset) {
     auto fileSize = getFileSize(fileInfo->fd);
     if (fileSize == -1) {
-        throw Exception(StringUtils::string_format("File %s not open.", fileInfo->path.c_str()));
+        throw Exception(StringUtils::string_format("File {} not open.", fileInfo->path));
     }
     uint64_t remainingNumBytesToWrite = numBytes;
     uint64_t bufferOffset = 0;
@@ -30,9 +30,9 @@ void FileUtils::writeToFile(
             pwrite(fileInfo->fd, buffer + bufferOffset, numBytesToWrite, offset);
         if (numBytesWritten != numBytesToWrite) {
             throw Exception(StringUtils::string_format(
-                "Cannot write to file. path: %s fileDescriptor: %d offsetToWrite: %llu "
-                "numBytesToWrite: %llu numBytesWritten: %llu",
-                fileInfo->path.c_str(), fileInfo->fd, offset, numBytesToWrite, numBytesWritten));
+                "Cannot write to file. path: {} fileDescriptor: {} offsetToWrite: {} "
+                "numBytesToWrite: {} numBytesWritten: {}",
+                fileInfo->path, fileInfo->fd, offset, numBytesToWrite, numBytesWritten));
         }
         remainingNumBytesToWrite -= numBytesWritten;
         offset += numBytesWritten;
@@ -46,8 +46,8 @@ void FileUtils::overwriteFile(const std::string& from, const std::string& to) {
     std::error_code errorCode;
     if (!std::filesystem::copy_file(
             from, to, std::filesystem::copy_options::overwrite_existing, errorCode)) {
-        throw Exception(StringUtils::string_format("Error copying file %s to %s.  ErrorMessage: %s",
-            from.c_str(), to.c_str(), errorCode.message().c_str()));
+        throw Exception(StringUtils::string_format(
+            "Error copying file {} to {}.  ErrorMessage: {}", from, to, errorCode.message()));
     }
 }
 
@@ -56,25 +56,24 @@ void FileUtils::readFromFile(
     auto numBytesRead = pread(fileInfo->fd, buffer, numBytes, position);
     if (numBytesRead != numBytes && getFileSize(fileInfo->fd) != position + numBytesRead) {
         throw Exception(
-            StringUtils::string_format("Cannot read from file: %s fileDescriptor: %d "
-                                       "numBytesRead: %llu numBytesToRead: %llu position: %llu",
-                fileInfo->path.c_str(), fileInfo->fd, numBytesRead, numBytes, position));
+            StringUtils::string_format("Cannot read from file: {} fileDescriptor: {} "
+                                       "numBytesRead: {} numBytesToRead: {} position: {}",
+                fileInfo->path, fileInfo->fd, numBytesRead, numBytes, position));
     }
 }
 
 void FileUtils::createDir(const std::string& dir) {
     try {
         if (std::filesystem::exists(dir)) {
-            throw Exception(
-                StringUtils::string_format("Directory %s already exists.", dir.c_str()));
+            throw Exception(StringUtils::string_format("Directory {} already exists.", dir));
         }
         if (!std::filesystem::create_directory(dir)) {
             throw Exception(StringUtils::string_format(
-                "Directory %s cannot be created. Check if it exists and remove it.", dir.c_str()));
+                "Directory {} cannot be created. Check if it exists and remove it.", dir));
         }
     } catch (std::exception& e) {
-        throw Exception(StringUtils::string_format(
-            "Failed to create directory %s due to: %s", dir.c_str(), e.what()));
+        throw Exception(
+            StringUtils::string_format("Failed to create directory {} due to: {}", dir, e.what()));
     }
 }
 
@@ -83,9 +82,8 @@ void FileUtils::removeDir(const std::string& dir) {
     if (!fileOrPathExists(dir))
         return;
     if (!std::filesystem::remove_all(dir, removeErrorCode)) {
-        throw Exception(
-            StringUtils::string_format("Error removing directory %s.  Error Message: %s",
-                dir.c_str(), removeErrorCode.message().c_str()));
+        throw Exception(StringUtils::string_format(
+            "Error removing directory {}.  Error Message: {}", dir, removeErrorCode.message()));
     }
 }
 
@@ -97,8 +95,8 @@ void FileUtils::renameFileIfExists(const std::string& oldName, const std::string
     std::filesystem::rename(oldName, newName, errorCode);
     if (errorCode.value() != 0) {
         throw Exception(
-            StringUtils::string_format("Error replacing file %s to %s.  ErrorMessage: %s",
-                oldName.c_str(), newName.c_str(), errorCode.message().c_str()));
+            StringUtils::string_format("Error replacing file {} to {}.  ErrorMessage: {}", oldName,
+                newName, errorCode.message()));
     }
 }
 
@@ -107,7 +105,7 @@ void FileUtils::removeFileIfExists(const std::string& path) {
         return;
     if (remove(path.c_str()) != 0) {
         throw Exception(StringUtils::string_format(
-            "Error removing directory or file %s.  Error Message: ", path.c_str()));
+            "Error removing directory or file {}.  Error Message: ", path));
     }
 }
 

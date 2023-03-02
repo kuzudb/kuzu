@@ -32,7 +32,7 @@ private:
         const std::string& name, common::DataTypeID leftTypeID, common::DataTypeID rightTypeID) {
         auto execFunc = getExecFunc<FUNC>(leftTypeID, rightTypeID);
         auto selectFunc = getSelectFunc<FUNC>(leftTypeID, rightTypeID);
-        return make_unique<VectorOperationDefinition>(name,
+        return std::make_unique<VectorOperationDefinition>(name,
             std::vector<common::DataTypeID>{leftTypeID, rightTypeID}, common::BOOL, execFunc,
             selectFunc);
     }

@@ -69,7 +69,7 @@ void BaseDiskArray<U>::checkOutOfBoundAccess(TransactionType trxType, uint64_t i
     auto currentNumElements = getNumElementsNoLock(trxType);
     if (idx >= currentNumElements) {
         throw RuntimeException(StringUtils::string_format(
-            "idx: %d of the DiskArray to be accessed is >= numElements in DiskArray%d.", idx,
+            "idx: {} of the DiskArray to be accessed is >= numElements in DiskArray{}.", idx,
             currentNumElements));
     }
 }

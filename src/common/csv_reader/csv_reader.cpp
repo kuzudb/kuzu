@@ -210,7 +210,7 @@ bool CSVReader::hasNextTokenOrError() {
     if (!hasNextToken()) {
         throw ReaderException(
             StringUtils::string_format("CSV Reader was expecting more tokens but the line does not "
-                                       "have any tokens left. Last token: %s",
+                                       "have any tokens left. Last token: {}",
                 line + linePtrStart));
     }
     return true;
@@ -311,7 +311,7 @@ std::unique_ptr<Value> CSVReader::getList(const DataType& dataType) {
     auto numBytesOfOverflow = listVal.size() * Types::getDataTypeSize(dataType.typeID);
     if (numBytesOfOverflow >= BufferPoolConstants::DEFAULT_PAGE_SIZE) {
         throw ReaderException(StringUtils::string_format(
-            "Maximum num bytes of a LIST is %d. Input list's num bytes is %d.",
+            "Maximum num bytes of a LIST is {}. Input list's num bytes is {}.",
             BufferPoolConstants::DEFAULT_PAGE_SIZE, numBytesOfOverflow));
     }
     return std::make_unique<Value>(

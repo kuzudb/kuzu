@@ -111,8 +111,7 @@ bool TestHelper::testQuery(TestQueryConfig* config, Connection& conn) {
     }
     auto numPassedPlans = 0u;
     for (auto i = 0u; i < numPlans; ++i) {
-        auto plan = preparedStatement->logicalPlans[i].get();
-        auto planStr = plan->toString();
+        auto planStr = preparedStatement->logicalPlans[i]->toString();
         auto result = conn.executeAndAutoCommitIfNecessaryNoLock(preparedStatement.get(), i);
         assert(result->isSuccess());
         std::vector<std::string> resultTuples =
