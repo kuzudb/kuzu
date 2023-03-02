@@ -19,9 +19,6 @@ Napi::Object NodeConnection::Init(Napi::Env env, Napi::Object exports) {
       InstanceMethod("getNodePropertyNames", &NodeConnection::GetNodePropertyNames),
   });
 
-  constructor = Napi::Persistent(t);
-  constructor.SuppressDestruct();
-
   exports.Set("NodeConnection", t);
   return exports;
 }

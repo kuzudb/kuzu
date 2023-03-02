@@ -43,58 +43,58 @@ const parameterizedExecuteQuery = "MATCH (a:person) WHERE a.age > $1 and a.isStu
 
 connection.execute(executeQuery, executeAllCallback);
 connection.execute(parameterizedExecuteQuery, executeAllPromise, [["1", 29], ["2", true], ["3", "B"]]);
-
-// Extensive Case
-database.resizeBufferManager(2000000000);
-connection.setMaxNumThreadForExec(2);
-connection.execute(executeQuery, executeAllCallback);
-console.log(connection.getNodePropertyNames("person"));
-
-// Execute with each callback
-connection.execute(executeQuery,  (err, result) => {
-    if (err) { console.log(err); }
-    else {
-        result.each(
-            row => {
-                console.log(row);
-            },
-            () => {
-                console.log("all of the each's are done callback");
-            },
-            err => {
-                console.log(err);
-            }
-        );
-    }
-});
-
-// Execute with promise + await
-connection.execute(executeQuery).then(queryResult => {
-    queryResult.all( (err, result) => {
-        if (err) { console.log(err); }
-        else {
-            console.log("All result received for execution with a promise");
-            console.log(result);
-        }
-    });
-}).catch(error => {
-    console.log("Execution with a promise failed");
-    console.log(error);
-});
-
-async function asyncAwaitExecute(executeQuery) {
-    const queryResult = await connection.execute(executeQuery);
-    return queryResult;
-}
-asyncAwaitExecute(executeQuery).then(queryResult => {
-    queryResult.all( (err, result) => {
-        if (err) { console.log(err); }
-        else {
-            console.log("All result received for execution with await");
-            console.log(result);
-        }
-    });
-}).catch(error => {
-    console.log("Execution with await failed");
-    console.log(error);
-});
+//
+// // Extensive Case
+// database.resizeBufferManager(2000000000);
+// connection.setMaxNumThreadForExec(2);
+// connection.execute(executeQuery, executeAllCallback);
+// console.log(connection.getNodePropertyNames("person"));
+//
+// // Execute with each callback
+// connection.execute(executeQuery,  (err, result) => {
+//     if (err) { console.log(err); }
+//     else {
+//         result.each(
+//             row => {
+//                 console.log(row);
+//             },
+//             () => {
+//                 console.log("all of the each's are done callback");
+//             },
+//             err => {
+//                 console.log(err);
+//             }
+//         );
+//     }
+// });
+//
+// // Execute with promise + await
+// connection.execute(executeQuery).then(queryResult => {
+//     queryResult.all( (err, result) => {
+//         if (err) { console.log(err); }
+//         else {
+//             console.log("All result received for execution with a promise");
+//             console.log(result);
+//         }
+//     });
+// }).catch(error => {
+//     console.log("Execution with a promise failed");
+//     console.log(error);
+// });
+//
+// async function asyncAwaitExecute(executeQuery) {
+//     const queryResult = await connection.execute(executeQuery);
+//     return queryResult;
+// }
+// asyncAwaitExecute(executeQuery).then(queryResult => {
+//     queryResult.all( (err, result) => {
+//         if (err) { console.log(err); }
+//         else {
+//             console.log("All result received for execution with await");
+//             console.log(result);
+//         }
+//     });
+// }).catch(error => {
+//     console.log("Execution with await failed");
+//     console.log(error);
+// });
