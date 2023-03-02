@@ -36,10 +36,6 @@ std::shared_ptr<planner::LogicalOperator> RemoveUnnecessaryJoinOptimizer::visitH
     }
     if (op->getChild(1)->getOperatorType() == LogicalOperatorType::SCAN_NODE) {
         // Build side is trivial. Prune build side.
-        if (op->getChild(0)->getOperatorType() == planner::LogicalOperatorType::ACCUMULATE) {
-            // TODO(Xiyang): Revisit this once we have an ASP optimizer.
-            return op;
-        }
         return op->getChild(0);
     }
     if (op->getChild(0)->getOperatorType() == LogicalOperatorType::SCAN_NODE) {

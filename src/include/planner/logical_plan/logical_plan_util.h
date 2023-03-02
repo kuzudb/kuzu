@@ -11,23 +11,12 @@ public:
     // Return the node whose ID has sequential guarantee on the plan.
     static std::shared_ptr<binder::NodeExpression> getSequentialNode(LogicalPlan& plan);
 
-    static inline std::vector<LogicalOperator*> collectOperators(
-        const LogicalPlan& plan, LogicalOperatorType operatorType) {
-        return collectOperators(plan.getLastOperator().get(), operatorType);
-    }
-
-    static std::vector<LogicalOperator*> collectOperators(
-        LogicalOperator* root, LogicalOperatorType operatorType);
-
     static inline std::string encodeJoin(LogicalPlan& logicalPlan) {
         return encodeJoin(logicalPlan.getLastOperator().get());
     }
 
 private:
     static LogicalOperator* getCurrentPipelineSourceOperator(LogicalPlan& plan);
-
-    static void collectOperatorsRecursive(LogicalOperator* op, LogicalOperatorType operatorType,
-        std::vector<LogicalOperator*>& result);
 
     static std::string encodeJoin(LogicalOperator* logicalOperator) {
         std::string result;

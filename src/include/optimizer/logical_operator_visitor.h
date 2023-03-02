@@ -21,6 +21,12 @@ protected:
         return op;
     }
 
+    virtual void visitScanNode(planner::LogicalOperator* op) {}
+    virtual std::shared_ptr<planner::LogicalOperator> visitScanNodeReplace(
+        std::shared_ptr<planner::LogicalOperator> op) {
+        return op;
+    }
+
     virtual void visitExtend(planner::LogicalOperator* op) {}
     virtual std::shared_ptr<planner::LogicalOperator> visitExtendReplace(
         std::shared_ptr<planner::LogicalOperator> op) {
