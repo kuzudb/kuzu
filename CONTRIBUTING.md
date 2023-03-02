@@ -12,9 +12,9 @@ This project and everyone participating in it is governed by a [Code of Conduct]
 By participating, you are expected to uphold this code. 
 Please report unacceptable behavior to [contact@kuzudb.com](mailto:contact@kuzudb.com).
 
-### Agreeing to Licence Your Contribution Under the Project's Open Source Licence
-When you contribute code, you affirm that the contribution is your original work and that you license the work to the project under the project's open source license. 
-Whether or not you state this explicitly, by submitting any copyrighted material via pull request, email, or other means you agree to license the material under the project's open source license and warrant that you have the legal authority to do so.
+## Agreeing to the Contributor Agreement
+When you contribute code, you affirm that the contribution is your original work and that you have read and agreed to the project's [Contributor Agreement (CLA) document  here](CLA.md). 
+Whether or not you state this explicitly, by submitting any copyrighted material via pull request, email, or other means you affirm that you agree to the [CLA](CLA.md) and warrant that you have the legal authority to do so.
 
 ## General Steps and Guidelines to Contribute
 * Discuss your intended changes with the core team on Github or Slack, so we can assign appropriate issue(s) for you to work on.
