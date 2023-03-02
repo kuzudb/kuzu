@@ -347,18 +347,18 @@ void RelCopyExecutor::inferTableIDsAndOffsets(const std::vector<std::shared_ptr<
         auto keyStr = keyToken.c_str();
         ++colIndex;
         switch (nodeIDTypes[relDirection].typeID) {
-        case SERIAL: {
+        case DataTypeID::SERIAL: {
             auto key = TypeUtils::convertStringToNumber<int64_t>(keyStr);
             nodeIDs[relDirection].offset = key;
         } break;
-        case INT64: {
+        case DataTypeID::INT64: {
             auto key = TypeUtils::convertStringToNumber<int64_t>(keyStr);
             if (!pkIndexes.at(nodeIDs[relDirection].tableID)
                      ->lookup(transaction, key, nodeIDs[relDirection].offset)) {
                 throw CopyException("Cannot find key: " + std::to_string(key) + " in the pkIndex.");
             }
         } break;
-        case STRING: {
+        case DataTypeID::STRING: {
             if (!pkIndexes.at(nodeIDs[relDirection].tableID)
                      ->lookup(transaction, keyStr, nodeIDs[relDirection].offset)) {
                 throw CopyException("Cannot find key: " + std::string(keyStr) + " in the pkIndex.");
@@ -394,53 +394,53 @@ void RelCopyExecutor::putPropsOfLineIntoColumns(RelCopyExecutor* copier,
             currentToken->get()->ToString().substr(0, BufferPoolConstants::PAGE_4KB_SIZE);
         const char* data = stringToken.c_str();
         switch (properties[propertyID].dataType.typeID) {
-        case INT64: {
+        case DataTypeID::INT64: {
             auto val = TypeUtils::convertStringToNumber<int64_t>(data);
             putValueIntoColumns(propertyID, directionTablePropertyColumns, nodeIDs,
                 reinterpret_cast<uint8_t*>(&val));
         } break;
-        case INT32: {
+        case DataTypeID::INT32: {
             auto val = TypeUtils::convertStringToNumber<int32_t>(data);
             putValueIntoColumns(propertyID, directionTablePropertyColumns, nodeIDs,
                 reinterpret_cast<uint8_t*>(&val));
         } break;
-        case INT16: {
+        case DataTypeID::INT16: {
             auto val = TypeUtils::convertStringToNumber<int16_t>(data);
             putValueIntoColumns(propertyID, directionTablePropertyColumns, nodeIDs,
                 reinterpret_cast<uint8_t*>(&val));
         } break;
-        case DOUBLE: {
+        case DataTypeID::DOUBLE: {
             auto val = TypeUtils::convertStringToNumber<double_t>(data);
             putValueIntoColumns(propertyID, directionTablePropertyColumns, nodeIDs,
                 reinterpret_cast<uint8_t*>(&val));
         } break;
-        case BOOL: {
+        case DataTypeID::BOOL: {
             auto val = TypeUtils::convertToBoolean(data);
             putValueIntoColumns(propertyID, directionTablePropertyColumns, nodeIDs,
                 reinterpret_cast<uint8_t*>(&val));
         } break;
-        case DATE: {
+        case DataTypeID::DATE: {
             auto val = Date::FromCString(data, stringToken.length());
             putValueIntoColumns(propertyID, directionTablePropertyColumns, nodeIDs,
                 reinterpret_cast<uint8_t*>(&val));
         } break;
-        case TIMESTAMP: {
+        case DataTypeID::TIMESTAMP: {
             auto val = Timestamp::FromCString(data, stringToken.length());
             putValueIntoColumns(propertyID, directionTablePropertyColumns, nodeIDs,
                 reinterpret_cast<uint8_t*>(&val));
         } break;
-        case INTERVAL: {
+        case DataTypeID::INTERVAL: {
             auto val = Interval::FromCString(data, stringToken.length());
             putValueIntoColumns(propertyID, directionTablePropertyColumns, nodeIDs,
                 reinterpret_cast<uint8_t*>(&val));
         } break;
-        case STRING: {
+        case DataTypeID::STRING: {
             auto kuStr = inMemOverflowFilePerPropertyID[propertyID]->copyString(
                 data, strlen(data), inMemOverflowFileCursors[propertyID]);
             putValueIntoColumns(propertyID, directionTablePropertyColumns, nodeIDs,
                 reinterpret_cast<uint8_t*>(&kuStr));
         } break;
-        case VAR_LIST: {
+        case DataTypeID::VAR_LIST: {
             auto varListVal = getArrowVarList(stringToken, 1, stringToken.length() - 2,
                 properties[propertyID].dataType, copier->copyDescription);
             auto kuList = inMemOverflowFilePerPropertyID[propertyID]->copyList(
@@ -448,13 +448,13 @@ void RelCopyExecutor::putPropsOfLineIntoColumns(RelCopyExecutor* copier,
             putValueIntoColumns(propertyID, directionTablePropertyColumns, nodeIDs,
                 reinterpret_cast<uint8_t*>(&kuList));
         } break;
-        case FIXED_LIST: {
+        case DataTypeID::FIXED_LIST: {
             auto fixedListVal = getArrowFixedList(stringToken, 1, stringToken.length() - 2,
                 properties[propertyID].dataType, copier->copyDescription);
             putValueIntoColumns(
                 propertyID, directionTablePropertyColumns, nodeIDs, fixedListVal.get());
         } break;
-        case FLOAT: {
+        case DataTypeID::FLOAT: {
             auto val = TypeUtils::convertStringToNumber<float_t>(data);
             putValueIntoColumns(propertyID, directionTablePropertyColumns, nodeIDs,
                 reinterpret_cast<uint8_t*>(&val));
@@ -490,53 +490,53 @@ void RelCopyExecutor::putPropsOfLineIntoLists(RelCopyExecutor* copier,
             currentToken->get()->ToString().substr(0, BufferPoolConstants::PAGE_4KB_SIZE);
         const char* data = stringToken.c_str();
         switch (properties[propertyID].dataType.typeID) {
-        case INT64: {
+        case DataTypeID::INT64: {
             auto val = TypeUtils::convertStringToNumber<int64_t>(data);
             putValueIntoLists(propertyID, directionTablePropertyLists, directionTableAdjLists,
                 nodeIDs, reversePos, reinterpret_cast<uint8_t*>(&val));
         } break;
-        case INT32: {
+        case DataTypeID::INT32: {
             auto val = TypeUtils::convertStringToNumber<int64_t>(data);
             putValueIntoLists(propertyID, directionTablePropertyLists, directionTableAdjLists,
                 nodeIDs, reversePos, reinterpret_cast<uint8_t*>(&val));
         } break;
-        case INT16: {
+        case DataTypeID::INT16: {
             auto val = TypeUtils::convertStringToNumber<int64_t>(data);
             putValueIntoLists(propertyID, directionTablePropertyLists, directionTableAdjLists,
                 nodeIDs, reversePos, reinterpret_cast<uint8_t*>(&val));
         } break;
-        case DOUBLE: {
+        case DataTypeID::DOUBLE: {
             auto val = TypeUtils::convertStringToNumber<double_t>(data);
             putValueIntoLists(propertyID, directionTablePropertyLists, directionTableAdjLists,
                 nodeIDs, reversePos, reinterpret_cast<uint8_t*>(&val));
         } break;
-        case BOOL: {
+        case DataTypeID::BOOL: {
             auto val = TypeUtils::convertToBoolean(data);
             putValueIntoLists(propertyID, directionTablePropertyLists, directionTableAdjLists,
                 nodeIDs, reversePos, reinterpret_cast<uint8_t*>(&val));
         } break;
-        case DATE: {
+        case DataTypeID::DATE: {
             auto val = Date::FromCString(data, stringToken.length());
             putValueIntoLists(propertyID, directionTablePropertyLists, directionTableAdjLists,
                 nodeIDs, reversePos, reinterpret_cast<uint8_t*>(&val));
         } break;
-        case TIMESTAMP: {
+        case DataTypeID::TIMESTAMP: {
             auto val = Timestamp::FromCString(data, stringToken.length());
             putValueIntoLists(propertyID, directionTablePropertyLists, directionTableAdjLists,
                 nodeIDs, reversePos, reinterpret_cast<uint8_t*>(&val));
         } break;
-        case INTERVAL: {
+        case DataTypeID::INTERVAL: {
             auto val = Interval::FromCString(data, stringToken.length());
             putValueIntoLists(propertyID, directionTablePropertyLists, directionTableAdjLists,
                 nodeIDs, reversePos, reinterpret_cast<uint8_t*>(&val));
         } break;
-        case STRING: {
+        case DataTypeID::STRING: {
             auto kuStr = inMemOverflowFilesPerProperty[propertyID]->copyString(
                 data, strlen(data), inMemOverflowFileCursors[propertyID]);
             putValueIntoLists(propertyID, directionTablePropertyLists, directionTableAdjLists,
                 nodeIDs, reversePos, reinterpret_cast<uint8_t*>(&kuStr));
         } break;
-        case VAR_LIST: {
+        case DataTypeID::VAR_LIST: {
             auto varListVal = getArrowVarList(stringToken, 1, stringToken.length() - 2,
                 properties[propertyID].dataType, copyDescription);
             auto kuList = inMemOverflowFilesPerProperty[propertyID]->copyList(
@@ -544,13 +544,13 @@ void RelCopyExecutor::putPropsOfLineIntoLists(RelCopyExecutor* copier,
             putValueIntoLists(propertyID, directionTablePropertyLists, directionTableAdjLists,
                 nodeIDs, reversePos, reinterpret_cast<uint8_t*>(&kuList));
         } break;
-        case FIXED_LIST: {
+        case DataTypeID::FIXED_LIST: {
             auto fixedListVal = getArrowFixedList(stringToken, 1, stringToken.length() - 2,
                 properties[propertyID].dataType, copyDescription);
             putValueIntoLists(propertyID, directionTablePropertyLists, directionTableAdjLists,
                 nodeIDs, reversePos, fixedListVal.get());
         } break;
-        case FLOAT: {
+        case DataTypeID::FLOAT: {
             auto val = TypeUtils::convertStringToNumber<float_t>(data);
             putValueIntoLists(propertyID, directionTablePropertyLists, directionTableAdjLists,
                 nodeIDs, reversePos, reinterpret_cast<uint8_t*>(&val));

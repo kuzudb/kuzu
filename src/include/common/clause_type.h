@@ -8,7 +8,8 @@ namespace common {
 enum class ClauseType : uint8_t {
     // updating clause
     SET = 0,
-    DELETE = 1,
+    // winnt.h defines DELETE as a macro, so we need to use DELETE_ instead of DELETE.
+    DELETE_ = 1,
     CREATE = 2,
     // reading clause
     MATCH = 3,

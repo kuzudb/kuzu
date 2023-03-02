@@ -40,10 +40,10 @@ scalar_select_func VectorNullOperations::bindUnarySelectFunction(
     assert(children.size() == 1);
     switch (expressionType) {
     case IS_NULL: {
-        return UnaryNullSelectFunction<operation::IsNull>;
+        return &UnaryNullSelectFunction<operation::IsNull>;
     }
     case IS_NOT_NULL: {
-        return UnaryNullSelectFunction<operation::IsNotNull>;
+        return &UnaryNullSelectFunction<operation::IsNotNull>;
     }
     default:
         throw RuntimeException("Invalid expression type " + expressionTypeToString(expressionType) +

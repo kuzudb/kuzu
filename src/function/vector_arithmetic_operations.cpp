@@ -15,28 +15,28 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> AddVectorOperation::getD
         ADD_FUNC_NAME, INTERVAL, INTERVAL));
     // date + int → date
     result.push_back(
-        make_unique<VectorOperationDefinition>(ADD_FUNC_NAME, std::vector<DataTypeID>{DATE, INT64},
-            DATE, BinaryExecFunction<date_t, int64_t, date_t, operation::Add>));
+        std::make_unique<VectorOperationDefinition>(ADD_FUNC_NAME, std::vector<DataTypeID>{DATE, INT64},
+            DATE, &BinaryExecFunction<date_t, int64_t, date_t, operation::Add>));
     // int + date → date
     result.push_back(
-        make_unique<VectorOperationDefinition>(ADD_FUNC_NAME, std::vector<DataTypeID>{INT64, DATE},
-            DATE, BinaryExecFunction<int64_t, date_t, date_t, operation::Add>));
+        std::make_unique<VectorOperationDefinition>(ADD_FUNC_NAME, std::vector<DataTypeID>{INT64, DATE},
+            DATE, &BinaryExecFunction<int64_t, date_t, date_t, operation::Add>));
     // date + interval → date
-    result.push_back(make_unique<VectorOperationDefinition>(ADD_FUNC_NAME,
+    result.push_back(std::make_unique<VectorOperationDefinition>(ADD_FUNC_NAME,
         std::vector<DataTypeID>{DATE, INTERVAL}, DATE,
-        BinaryExecFunction<date_t, interval_t, date_t, operation::Add>));
+        &BinaryExecFunction<date_t, interval_t, date_t, operation::Add>));
     // interval + date → date
-    result.push_back(make_unique<VectorOperationDefinition>(ADD_FUNC_NAME,
+    result.push_back(std::make_unique<VectorOperationDefinition>(ADD_FUNC_NAME,
         std::vector<DataTypeID>{INTERVAL, DATE}, DATE,
-        BinaryExecFunction<interval_t, date_t, date_t, operation::Add>));
+        &BinaryExecFunction<interval_t, date_t, date_t, operation::Add>));
     // timestamp + interval → timestamp
-    result.push_back(make_unique<VectorOperationDefinition>(ADD_FUNC_NAME,
+    result.push_back(std::make_unique<VectorOperationDefinition>(ADD_FUNC_NAME,
         std::vector<DataTypeID>{TIMESTAMP, INTERVAL}, TIMESTAMP,
-        BinaryExecFunction<timestamp_t, interval_t, timestamp_t, operation::Add>));
+        &BinaryExecFunction<timestamp_t, interval_t, timestamp_t, operation::Add>));
     // interval + timestamp → timestamp
-    result.push_back(make_unique<VectorOperationDefinition>(ADD_FUNC_NAME,
+    result.push_back(std::make_unique<VectorOperationDefinition>(ADD_FUNC_NAME,
         std::vector<DataTypeID>{INTERVAL, TIMESTAMP}, TIMESTAMP,
-        BinaryExecFunction<interval_t, timestamp_t, timestamp_t, operation::Add>));
+        &BinaryExecFunction<interval_t, timestamp_t, timestamp_t, operation::Add>));
     return result;
 }
 
@@ -49,20 +49,20 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> SubtractVectorOperation:
     result.push_back(
         getBinaryDefinition<operation::Subtract, date_t, int64_t>(SUBTRACT_FUNC_NAME, DATE, INT64));
     // date - integer → date
-    result.push_back(make_unique<VectorOperationDefinition>(SUBTRACT_FUNC_NAME,
+    result.push_back(std::make_unique<VectorOperationDefinition>(SUBTRACT_FUNC_NAME,
         std::vector<DataTypeID>{DATE, INT64}, DATE,
-        BinaryExecFunction<date_t, int64_t, date_t, operation::Subtract>));
+        &BinaryExecFunction<date_t, int64_t, date_t, operation::Subtract>));
     // date - interval → date
-    result.push_back(make_unique<VectorOperationDefinition>(SUBTRACT_FUNC_NAME,
+    result.push_back(std::make_unique<VectorOperationDefinition>(SUBTRACT_FUNC_NAME,
         std::vector<DataTypeID>{DATE, INTERVAL}, DATE,
-        BinaryExecFunction<date_t, interval_t, date_t, operation::Subtract>));
+        &BinaryExecFunction<date_t, interval_t, date_t, operation::Subtract>));
     // timestamp - timestamp → interval
     result.push_back(getBinaryDefinition<operation::Subtract, timestamp_t, interval_t>(
         SUBTRACT_FUNC_NAME, TIMESTAMP, INTERVAL));
     // timestamp - interval → timestamp
-    result.push_back(make_unique<VectorOperationDefinition>(SUBTRACT_FUNC_NAME,
+    result.push_back(std::make_unique<VectorOperationDefinition>(SUBTRACT_FUNC_NAME,
         std::vector<DataTypeID>{TIMESTAMP, INTERVAL}, TIMESTAMP,
-        BinaryExecFunction<timestamp_t, interval_t, timestamp_t, operation::Subtract>));
+        &BinaryExecFunction<timestamp_t, interval_t, timestamp_t, operation::Subtract>));
     // interval - interval → interval
     result.push_back(getBinaryDefinition<operation::Subtract, interval_t, interval_t>(
         SUBTRACT_FUNC_NAME, INTERVAL, INTERVAL));
@@ -83,9 +83,9 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> DivideVectorOperation::g
         result.push_back(getBinaryDefinition<operation::Divide>(DIVIDE_FUNC_NAME, typeID));
     }
     // interval / int → interval
-    result.push_back(make_unique<VectorOperationDefinition>(DIVIDE_FUNC_NAME,
+    result.push_back(std::make_unique<VectorOperationDefinition>(DIVIDE_FUNC_NAME,
         std::vector<DataTypeID>{INTERVAL, INT64}, INTERVAL,
-        BinaryExecFunction<interval_t, int64_t, interval_t, operation::Divide>));
+        &BinaryExecFunction<interval_t, int64_t, interval_t, operation::Divide>));
     return result;
 }
 
@@ -182,7 +182,7 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> AtanVectorOperation::get
 std::vector<std::unique_ptr<VectorOperationDefinition>> FactorialVectorOperation::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
     result.push_back(
-        make_unique<VectorOperationDefinition>(FACTORIAL_FUNC_NAME, std::vector<DataTypeID>{INT64},
+        std::make_unique<VectorOperationDefinition>(FACTORIAL_FUNC_NAME, std::vector<DataTypeID>{INT64},
             INT64, UnaryExecFunction<int64_t, int64_t, operation::Factorial>));
     return result;
 }
@@ -268,7 +268,7 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> Atan2VectorOperation::ge
 
 std::vector<std::unique_ptr<VectorOperationDefinition>> RoundVectorOperation::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
-    result.push_back(make_unique<VectorOperationDefinition>(ROUND_FUNC_NAME,
+    result.push_back(std::make_unique<VectorOperationDefinition>(ROUND_FUNC_NAME,
         std::vector<common::DataTypeID>{DOUBLE, INT64}, DOUBLE,
         BinaryExecFunction<double_t, int64_t, double_t, operation::Round>));
     return result;
@@ -315,7 +315,7 @@ BitShiftRightVectorOperation::getDefinitions() {
 
 std::vector<std::unique_ptr<VectorOperationDefinition>> PiVectorOperation::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
-    result.push_back(make_unique<VectorOperationDefinition>(PI_FUNC_NAME, std::vector<DataTypeID>{},
+    result.push_back(std::make_unique<VectorOperationDefinition>(PI_FUNC_NAME, std::vector<DataTypeID>{},
         DOUBLE, ConstExecFunction<double_t, operation::Pi>));
     return result;
 }

@@ -447,9 +447,9 @@ void BuiltInVectorOperations::registerListOperations() {
 
 void BuiltInVectorOperations::registerInternalIDOperation() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> definitions;
-    definitions.push_back(make_unique<VectorOperationDefinition>(
+    definitions.push_back(std::make_unique<VectorOperationDefinition>(
         ID_FUNC_NAME, std::vector<DataTypeID>{NODE}, INTERNAL_ID, nullptr));
-    definitions.push_back(make_unique<VectorOperationDefinition>(
+    definitions.push_back(std::make_unique<VectorOperationDefinition>(
         ID_FUNC_NAME, std::vector<DataTypeID>{REL}, INTERNAL_ID, nullptr));
     vectorOperations.insert({ID_FUNC_NAME, std::move(definitions)});
 }

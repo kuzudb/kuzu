@@ -1,6 +1,11 @@
 #include "main/database.h"
 
 #include <utility>
+#if defined(_WIN32)
+#include <windows.h>
+#else
+#include <unistd.h>
+#endif
 
 #include "common/logging_level_utils.h"
 #include "processor/processor.h"
@@ -21,10 +26,19 @@ SystemConfig::SystemConfig() : SystemConfig(-1u) {}
 
 SystemConfig::SystemConfig(uint64_t bufferPoolSize_) {
     if (bufferPoolSize_ == -1u) {
+        #if defined(_WIN32)
+        MEMORYSTATUSEX status;
+        status.dwLength = sizeof(status);
+        GlobalMemoryStatusEx(&status);
+        auto systemMemSize = (std::uint64_t)status.ullTotalPhys;
+        bufferPoolSize = (uint64_t)(BufferPoolConstants::DEFAULT_PHY_MEM_SIZE_RATIO_FOR_BM *
+                                    (double_t)min(systemMemSize, (std::uint64_t)UINTPTR_MAX));
+        #else
         auto systemMemSize =
             (std::uint64_t)sysconf(_SC_PHYS_PAGES) * (std::uint64_t)sysconf(_SC_PAGESIZE);
         bufferPoolSize_ = (uint64_t)(BufferPoolConstants::DEFAULT_PHY_MEM_SIZE_RATIO_FOR_BM *
                                      (double_t)std::min(systemMemSize, (std::uint64_t)UINTPTR_MAX));
+        #endif
     }
     bufferPoolSize = bufferPoolSize_;
     auto maxConcurrency = std::thread::hardware_concurrency();

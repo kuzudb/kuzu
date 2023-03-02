@@ -6,6 +6,23 @@
 namespace kuzu {
 namespace function {
 
+template<typename SOURCE_TYPE, typename TARGET_TYPE, typename FUNC>
+inline static std::unique_ptr<VectorOperationDefinition> bindVectorOperation(
+    const std::string& funcName, common::DataTypeID sourceTypeID,
+    common::DataTypeID targetTypeID) {
+    return std::make_unique<VectorOperationDefinition>(funcName,
+        std::vector<common::DataTypeID>{sourceTypeID}, targetTypeID,
+        kuzu::function::UnaryExecFunction<SOURCE_TYPE, TARGET_TYPE, FUNC>);
+}
+
+template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
+static void UnaryCastExecFunction(
+    const std::vector<std::shared_ptr<common::ValueVector>>& params,
+    common::ValueVector& result) {
+    assert(params.size() == 1);
+    UnaryOperationExecutor::executeCast<OPERAND_TYPE, RESULT_TYPE, FUNC>(*params[0], result);
+}
+
 /**
  *  In the system we define explicit cast and implicit cast.
  *  Explicit casts are performed from user function calls, e.g. date(), string().
@@ -20,37 +37,22 @@ public:
     static scalar_exec_func bindImplicitCastFunc(
         common::DataTypeID sourceTypeID, common::DataTypeID targetTypeID);
 
-    template<typename SOURCE_TYPE, typename TARGET_TYPE, typename FUNC>
-    inline static std::unique_ptr<VectorOperationDefinition> bindVectorOperation(
-        const std::string& funcName, common::DataTypeID sourceTypeID,
-        common::DataTypeID targetTypeID) {
-        return std::make_unique<VectorOperationDefinition>(funcName,
-            std::vector<common::DataTypeID>{sourceTypeID}, targetTypeID,
-            VectorOperations::UnaryExecFunction<SOURCE_TYPE, TARGET_TYPE, FUNC>);
-    }
-
-    template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
-    static void UnaryCastExecFunction(
-        const std::vector<std::shared_ptr<common::ValueVector>>& params,
-        common::ValueVector& result) {
-        assert(params.size() == 1);
-        UnaryOperationExecutor::executeCast<OPERAND_TYPE, RESULT_TYPE, FUNC>(*params[0], result);
-    }
+    static std::string bindCastFunctionName(common::DataTypeID targetTypeID);
 
 private:
     template<typename DST_TYPE, typename OP>
     static scalar_exec_func bindImplicitNumericalCastFunc(common::DataTypeID srcTypeID) {
         switch (srcTypeID) {
         case common::INT16:
-            return VectorOperations::UnaryExecFunction<int16_t, DST_TYPE, OP>;
+            return kuzu::function::UnaryExecFunction<int16_t, DST_TYPE, OP>;
         case common::INT32:
-            return VectorOperations::UnaryExecFunction<int32_t, DST_TYPE, OP>;
+            return kuzu::function::UnaryExecFunction<int32_t, DST_TYPE, OP>;
         case common::INT64:
-            return VectorOperations::UnaryExecFunction<int64_t, DST_TYPE, OP>;
+            return kuzu::function::UnaryExecFunction<int64_t, DST_TYPE, OP>;
         case common::FLOAT:
-            return VectorOperations::UnaryExecFunction<float_t, DST_TYPE, OP>;
+            return kuzu::function::UnaryExecFunction<float_t, DST_TYPE, OP>;
         case common::DOUBLE:
-            return VectorOperations::UnaryExecFunction<double_t, DST_TYPE, OP>;
+            return kuzu::function::UnaryExecFunction<double_t, DST_TYPE, OP>;
         default:
             throw common::NotImplementedException("Unimplemented casting operation from " +
                                                   common::Types::dataTypeToString(srcTypeID) +

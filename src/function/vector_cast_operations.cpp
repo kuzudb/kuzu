@@ -75,17 +75,17 @@ scalar_exec_func VectorCastOperations::bindImplicitCastFunc(
     }
     case common::DATE: {
         assert(sourceTypeID == common::STRING);
-        return VectorOperations::UnaryExecFunction<ku_string_t, date_t,
+        return &kuzu::function::UnaryExecFunction<ku_string_t, date_t,
             operation::CastStringToDate>;
     }
     case common::TIMESTAMP: {
         assert(sourceTypeID == common::STRING);
-        return VectorOperations::UnaryExecFunction<ku_string_t, timestamp_t,
+        return &kuzu::function::UnaryExecFunction<ku_string_t, timestamp_t,
             operation::CastStringToTimestamp>;
     }
     case common::INTERVAL: {
         assert(sourceTypeID == common::STRING);
-        return VectorOperations::UnaryExecFunction<ku_string_t, interval_t,
+        return &kuzu::function::UnaryExecFunction<ku_string_t, interval_t,
             operation::CastStringToInterval>;
     }
     default:
@@ -99,7 +99,7 @@ scalar_exec_func VectorCastOperations::bindImplicitCastFunc(
 std::vector<std::unique_ptr<VectorOperationDefinition>>
 CastToDateVectorOperation::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
-    result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_DATE_FUNC_NAME,
+    result.push_back(std::make_unique<VectorOperationDefinition>(CAST_TO_DATE_FUNC_NAME,
         std::vector<DataTypeID>{STRING}, DATE,
         UnaryExecFunction<ku_string_t, date_t, operation::CastStringToDate>));
     return result;
@@ -108,7 +108,7 @@ CastToDateVectorOperation::getDefinitions() {
 std::vector<std::unique_ptr<VectorOperationDefinition>>
 CastToTimestampVectorOperation::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
-    result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_TIMESTAMP_FUNC_NAME,
+    result.push_back(std::make_unique<VectorOperationDefinition>(CAST_TO_TIMESTAMP_FUNC_NAME,
         std::vector<DataTypeID>{STRING}, TIMESTAMP,
         UnaryExecFunction<ku_string_t, timestamp_t, operation::CastStringToTimestamp>));
     return result;
@@ -117,7 +117,7 @@ CastToTimestampVectorOperation::getDefinitions() {
 std::vector<std::unique_ptr<VectorOperationDefinition>>
 CastToIntervalVectorOperation::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
-    result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_INTERVAL_FUNC_NAME,
+    result.push_back(std::make_unique<VectorOperationDefinition>(CAST_TO_INTERVAL_FUNC_NAME,
         std::vector<DataTypeID>{STRING}, INTERVAL,
         UnaryExecFunction<ku_string_t, interval_t, operation::CastStringToInterval>));
     return result;
@@ -126,28 +126,28 @@ CastToIntervalVectorOperation::getDefinitions() {
 std::vector<std::unique_ptr<VectorOperationDefinition>>
 CastToStringVectorOperation::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
-    result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_STRING_FUNC_NAME,
+    result.push_back(std::make_unique<VectorOperationDefinition>(CAST_TO_STRING_FUNC_NAME,
         std::vector<DataTypeID>{BOOL}, STRING,
         UnaryCastExecFunction<bool, ku_string_t, operation::CastToString>));
-    result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_STRING_FUNC_NAME,
+    result.push_back(std::make_unique<VectorOperationDefinition>(CAST_TO_STRING_FUNC_NAME,
         std::vector<DataTypeID>{INT64}, STRING,
         UnaryCastExecFunction<int64_t, ku_string_t, operation::CastToString>));
-    result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_STRING_FUNC_NAME,
+    result.push_back(std::make_unique<VectorOperationDefinition>(CAST_TO_STRING_FUNC_NAME,
         std::vector<DataTypeID>{DOUBLE}, STRING,
         UnaryCastExecFunction<double_t, ku_string_t, operation::CastToString>));
-    result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_STRING_FUNC_NAME,
+    result.push_back(std::make_unique<VectorOperationDefinition>(CAST_TO_STRING_FUNC_NAME,
         std::vector<DataTypeID>{DATE}, STRING,
         UnaryCastExecFunction<date_t, ku_string_t, operation::CastToString>));
-    result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_STRING_FUNC_NAME,
+    result.push_back(std::make_unique<VectorOperationDefinition>(CAST_TO_STRING_FUNC_NAME,
         std::vector<DataTypeID>{TIMESTAMP}, STRING,
         UnaryCastExecFunction<timestamp_t, ku_string_t, operation::CastToString>));
-    result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_STRING_FUNC_NAME,
+    result.push_back(std::make_unique<VectorOperationDefinition>(CAST_TO_STRING_FUNC_NAME,
         std::vector<DataTypeID>{INTERVAL}, STRING,
         UnaryCastExecFunction<interval_t, ku_string_t, operation::CastToString>));
-    result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_STRING_FUNC_NAME,
+    result.push_back(std::make_unique<VectorOperationDefinition>(CAST_TO_STRING_FUNC_NAME,
         std::vector<DataTypeID>{STRING}, STRING,
         UnaryCastExecFunction<ku_string_t, ku_string_t, operation::CastToString>));
-    result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_STRING_FUNC_NAME,
+    result.push_back(std::make_unique<VectorOperationDefinition>(CAST_TO_STRING_FUNC_NAME,
         std::vector<DataTypeID>{VAR_LIST}, STRING,
         UnaryCastExecFunction<list_entry_t, ku_string_t, operation::CastToString>));
     return result;

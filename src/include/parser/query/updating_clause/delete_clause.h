@@ -8,7 +8,7 @@ namespace parser {
 
 class DeleteClause : public UpdatingClause {
 public:
-    DeleteClause() : UpdatingClause{common::ClauseType::DELETE} {};
+    DeleteClause() : UpdatingClause{common::ClauseType::DELETE_} {};
     ~DeleteClause() override = default;
 
     inline void addExpression(std::unique_ptr<ParsedExpression> expression) {

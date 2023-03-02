@@ -21,7 +21,7 @@ std::unique_ptr<BoundUpdatingClause> Binder::bindUpdatingClause(
     case ClauseType::SET: {
         return bindSetClause(updatingClause);
     }
-    case ClauseType::DELETE: {
+    case ClauseType::DELETE_: {
         return bindDeleteClause(updatingClause);
     }
     default:

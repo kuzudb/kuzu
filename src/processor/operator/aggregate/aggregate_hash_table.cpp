@@ -661,47 +661,40 @@ void AggregateHashTable::resizeHashTableIfNecessary(uint32_t maxNumDistinctHashK
     }
 }
 
-template<typename type>
-bool AggregateHashTable::compareEntryWithKeys(const uint8_t* keyValue, const uint8_t* entry) {
-    uint8_t result;
-    Equals::operation(*(type*)keyValue, *(type*)entry, result);
-    return result != 0;
-}
-
 compare_function_t AggregateHashTable::getCompareEntryWithKeysFunc(DataTypeID typeId) {
     switch (typeId) {
     case INTERNAL_ID: {
-        return compareEntryWithKeys<nodeID_t>;
+        return &compareEntryWithKeys<nodeID_t>;
     }
     case BOOL: {
-        return compareEntryWithKeys<bool>;
+        return &compareEntryWithKeys<bool>;
     }
     case INT64: {
-        return compareEntryWithKeys<int64_t>;
+        return &compareEntryWithKeys<int64_t>;
     }
     case INT32: {
-        return compareEntryWithKeys<int32_t>;
+        return &compareEntryWithKeys<int32_t>;
     }
     case INT16: {
-        return compareEntryWithKeys<int16_t>;
+        return &compareEntryWithKeys<int16_t>;
     }
     case DOUBLE: {
-        return compareEntryWithKeys<double_t>;
+        return &compareEntryWithKeys<double_t>;
     }
     case FLOAT: {
-        return compareEntryWithKeys<float_t>;
+        return &compareEntryWithKeys<float_t>;
     }
     case STRING: {
-        return compareEntryWithKeys<ku_string_t>;
+        return &compareEntryWithKeys<ku_string_t>;
     }
     case DATE: {
-        return compareEntryWithKeys<date_t>;
+        return &compareEntryWithKeys<date_t>;
     }
     case TIMESTAMP: {
-        return compareEntryWithKeys<timestamp_t>;
+        return &compareEntryWithKeys<timestamp_t>;
     }
     case INTERVAL: {
-        return compareEntryWithKeys<interval_t>;
+        return &compareEntryWithKeys<interval_t>;
     }
     default: {
         throw RuntimeException("Cannot compare data type " + Types::dataTypeToString(typeId));
