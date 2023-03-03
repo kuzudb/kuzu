@@ -136,12 +136,12 @@ void DirectedRelTableData::insertRel(const std::shared_ptr<ValueVector>& boundVe
     // TODO(Guodong): We should pass a write transaction pointer down.
     if (!adjColumn->isNull(nodeOffset, transaction::Transaction::getDummyWriteTrx().get())) {
         throw RuntimeException(
-            StringUtils::string_format("Node(nodeOffset: %d, tableID: %d) in RelTable %d cannot "
-                                       "have more than one neighbour in the %s direction.",
+            StringUtils::string_format("Node(nodeOffset: {}, tableID: {}) in RelTable {} cannot "
+                                       "have more than one neighbour in the {} direction.",
                 nodeOffset,
                 boundVector->getValue<nodeID_t>(boundVector->state->selVector->selectedPositions[0])
                     .tableID,
-                tableID, getRelDirectionAsString(direction).c_str()));
+                tableID, getRelDirectionAsString(direction)));
     }
     adjColumn->writeValues(boundVector, nbrVector);
     for (auto i = 0u; i < relPropertyVectors.size(); i++) {

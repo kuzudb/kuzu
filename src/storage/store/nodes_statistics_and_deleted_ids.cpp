@@ -54,15 +54,15 @@ void NodeStatisticsAndDeletedIDs::deleteNode(offset_t nodeOffset) {
     auto maxNodeOffset = getMaxNodeOffset();
     if (maxNodeOffset == UINT64_MAX || nodeOffset > maxNodeOffset) {
         throw RuntimeException(
-            StringUtils::string_format("Cannot delete nodeOffset %d in nodeTable %d. maxNodeOffset "
-                                       "is either -1 or nodeOffset is > maxNodeOffset: %d.",
+            StringUtils::string_format("Cannot delete nodeOffset {} in nodeTable {}. maxNodeOffset "
+                                       "is either -1 or nodeOffset is > maxNodeOffset: {}.",
                 nodeOffset, tableID, maxNodeOffset));
     }
     auto morselIdxAndOffset =
         StorageUtils::getQuotientRemainder(nodeOffset, DEFAULT_VECTOR_CAPACITY);
     if (isDeleted(nodeOffset, morselIdxAndOffset.first)) {
         throw RuntimeException(
-            StringUtils::string_format("Node with offset %d is already deleted.", nodeOffset));
+            StringUtils::string_format("Node with offset {} is already deleted.", nodeOffset));
     }
     errorIfNodeHasEdges(nodeOffset);
     if (!hasDeletedNodesPerMorsel[morselIdxAndOffset.first]) {
@@ -128,8 +128,8 @@ void NodeStatisticsAndDeletedIDs::errorIfNodeHasEdges(offset_t nodeOffset) {
             adjList->getTotalNumElementsInList(transaction::TransactionType::WRITE, nodeOffset);
         if (numElementsInList != 0) {
             throw RuntimeException(StringUtils::string_format(
-                "Currently deleting a node with edges is not supported. node table %d nodeOffset "
-                "%d has %d (one-to-many or many-to-many) edges for edge file: %s.",
+                "Currently deleting a node with edges is not supported. node table {} nodeOffset "
+                "{} has {} (one-to-many or many-to-many) edges for edge file: {}.",
                 tableID, nodeOffset, numElementsInList,
                 adjList->getFileHandle()->getFileInfo()->path.c_str()));
         }
@@ -137,8 +137,8 @@ void NodeStatisticsAndDeletedIDs::errorIfNodeHasEdges(offset_t nodeOffset) {
     for (AdjColumn* adjColumn : adjListsAndColumns.second) {
         if (!adjColumn->isNull(nodeOffset, transaction::Transaction::getDummyWriteTrx().get())) {
             throw RuntimeException(StringUtils::string_format(
-                "Currently deleting a node with edges is not supported. node table %d nodeOffset "
-                "%d  has a 1-1 edge for edge file: %s.",
+                "Currently deleting a node with edges is not supported. node table {} nodeOffset "
+                "{}  has a 1-1 edge for edge file: {}.",
                 tableID, nodeOffset, adjColumn->getFileHandle()->getFileInfo()->path.c_str()));
         }
     }

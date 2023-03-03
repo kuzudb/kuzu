@@ -156,6 +156,9 @@ void Value::copyValueFrom(const uint8_t* value) {
     case DOUBLE: {
         val.doubleVal = *((double*)value);
     } break;
+    case FLOAT: {
+        val.floatVal = *((float_t*)value);
+    } break;
     case DATE: {
         val.dateVal = *((date_t*)value);
     } break;
@@ -176,9 +179,6 @@ void Value::copyValueFrom(const uint8_t* value) {
     } break;
     case FIXED_LIST: {
         listVal = convertKUFixedListToVector(value);
-    } break;
-    case FLOAT: {
-        val.floatVal = *((float_t*)value);
     } break;
     default:
         throw RuntimeException(
@@ -209,6 +209,9 @@ void Value::copyValueFrom(const Value& other) {
     case DOUBLE: {
         val.doubleVal = other.val.doubleVal;
     } break;
+    case FLOAT: {
+        val.floatVal = other.val.floatVal;
+    } break;
     case DATE: {
         val.dateVal = other.val.dateVal;
     } break;
@@ -236,9 +239,6 @@ void Value::copyValueFrom(const Value& other) {
     case REL: {
         relVal = other.relVal->copy();
     } break;
-    case FLOAT: {
-        val.floatVal = other.val.floatVal;
-    } break;
     default:
         throw NotImplementedException("Value::Value(const Value&) for type " +
                                       Types::dataTypeToString(dataType) + " is not implemented.");
@@ -264,6 +264,8 @@ std::string Value::toString() const {
         return TypeUtils::toString(val.int16Val);
     case DOUBLE:
         return TypeUtils::toString(val.doubleVal);
+    case FLOAT:
+        return TypeUtils::toString(val.floatVal);
     case DATE:
         return TypeUtils::toString(val.dateVal);
     case TIMESTAMP:
@@ -287,8 +289,6 @@ std::string Value::toString() const {
         return nodeVal->toString();
     case REL:
         return relVal->toString();
-    case FLOAT:
-        return TypeUtils::toString(val.floatVal);
     default:
         throw NotImplementedException("Value::toString for type " +
                                       Types::dataTypeToString(dataType) + " is not implemented.");
@@ -306,8 +306,8 @@ void Value::validateType(DataTypeID typeID) const {
 void Value::validateType(const DataType& type) const {
     if (type != dataType) {
         throw RuntimeException(
-            StringUtils::string_format("Cannot get %s value from the %s result value.",
-                Types::dataTypeToString(type).c_str(), Types::dataTypeToString(dataType).c_str()));
+            StringUtils::string_format("Cannot get {} value from the {} result value.",
+                Types::dataTypeToString(type), Types::dataTypeToString(dataType)));
     }
 }
 

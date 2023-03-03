@@ -12,7 +12,7 @@ void CreateRelTable::executeDDLInternal() {
 }
 
 std::string CreateRelTable::getOutputMsg() {
-    return StringUtils::string_format("RelTable: %s has been created.", tableName.c_str());
+    return StringUtils::string_format("RelTable: {} has been created.", tableName);
 }
 
 } // namespace processor

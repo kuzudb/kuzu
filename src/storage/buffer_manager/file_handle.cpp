@@ -63,7 +63,7 @@ bool FileHandle::acquirePageLock(page_idx_t pageIdx, bool block) {
 bool FileHandle::acquire(page_idx_t pageIdx) {
     if (pageIdx >= pageLocks.size()) {
         throw RuntimeException(
-            StringUtils::string_format("pageIdx %d is >= pageLocks.size()", pageIdx));
+            StringUtils::string_format("pageIdx {} is >= pageLocks.size()", pageIdx));
     }
     auto retVal = !pageLocks[pageIdx]->test_and_set(std::memory_order_acquire);
     return retVal;

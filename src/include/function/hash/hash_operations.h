@@ -24,7 +24,7 @@ struct Hash {
     template<class T>
     static inline void operation(const T& key, common::hash_t& result) {
         throw common::RuntimeException(common::StringUtils::string_format(
-            "Hash type: %s is not supported.", typeid(T).name()));
+            "Hash type: {} is not supported.", typeid(T).name()));
     }
 
     template<class T>

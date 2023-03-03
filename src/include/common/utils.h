@@ -11,6 +11,7 @@
 
 #include "common/constants.h"
 #include "exception.h"
+#include "spdlog/fmt/fmt.h"
 
 namespace spdlog {
 class logger;
@@ -33,6 +34,11 @@ private:
 class StringUtils {
 
 public:
+    template<typename... Args>
+    inline static std::string string_format(const std::string& format, Args... args) {
+        return fmt::format(fmt::runtime(format), args...);
+    }
+
     static std::vector<std::string> split(const std::string& input, const std::string& delimiter);
 
     static void toUpper(std::string& input) {
@@ -48,23 +54,11 @@ public:
     }
 
     static bool CharacterIsDigit(char c) { return c >= '0' && c <= '9'; }
-    template<typename... Args>
-    static std::string string_format(const std::string& format, Args... args) {
-        int size_s = snprintf(nullptr, 0, format.c_str(), args...) + 1; // Extra space for '\0'
-        if (size_s <= 0) {
-            throw Exception("Error during formatting.");
-        }
-        auto size = static_cast<size_t>(size_s);
-        auto buf = std::make_unique<char[]>(size);
-        snprintf(buf.get(), size, format.c_str(), args...);
-        return {buf.get(), buf.get() + size - 1}; // We don't want the '\0' inside
-    }
 
     static std::string getLongStringErrorMessage(
         const char* strToInsert, uint64_t maxAllowedStrSize) {
-        return StringUtils::string_format(
-            "Maximum length of strings is %d. Input string's length is %d.", maxAllowedStrSize,
-            strlen(strToInsert), strToInsert);
+        return string_format("Maximum length of strings is {}. Input string's length is {}.",
+            maxAllowedStrSize, strlen(strToInsert), strToInsert);
     }
 };
 

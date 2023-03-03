@@ -67,7 +67,7 @@ class StorageUtils {
 public:
     static inline std::string getNodeIndexFName(const std::string& directory,
         const common::table_id_t& tableID, common::DBFileType dbFileType) {
-        auto fName = common::StringUtils::string_format("n-%d", tableID);
+        auto fName = common::StringUtils::string_format("n-{}", tableID);
         return appendWALFileSuffixIfNecessary(
             common::FileUtils::joinPath(
                 directory, fName + common::StorageConstants::INDEX_FILE_SUFFIX),
@@ -76,7 +76,7 @@ public:
 
     static inline std::string getNodePropertyColumnFName(const std::string& directory,
         const common::table_id_t& tableID, uint32_t propertyID, common::DBFileType dbFileType) {
-        auto fName = common::StringUtils::string_format("n-%d-%d", tableID, propertyID);
+        auto fName = common::StringUtils::string_format("n-{}-{}", tableID, propertyID);
         return appendWALFileSuffixIfNecessary(
             common::FileUtils::joinPath(
                 directory, fName + common::StorageConstants::COLUMN_FILE_SUFFIX),
@@ -121,7 +121,7 @@ public:
     static inline std::string getAdjColumnFName(const std::string& directory,
         const common::table_id_t& relTableID, const common::RelDirection& relDirection,
         common::DBFileType dbFileType) {
-        auto fName = common::StringUtils::string_format("r-%d-%d", relTableID, relDirection);
+        auto fName = common::StringUtils::string_format("r-{}-{}", relTableID, relDirection);
         return appendWALFileSuffixIfNecessary(
             common::FileUtils::joinPath(
                 directory, fName + common::StorageConstants::COLUMN_FILE_SUFFIX),
@@ -140,7 +140,7 @@ public:
     static inline std::string getAdjListsFName(const std::string& directory,
         const common::table_id_t& relTableID, const common::RelDirection& relDirection,
         common::DBFileType dbFileType) {
-        auto fName = common::StringUtils::string_format("r-%d-%d", relTableID, relDirection);
+        auto fName = common::StringUtils::string_format("r-{}-{}", relTableID, relDirection);
         return appendWALFileSuffixIfNecessary(
             common::FileUtils::joinPath(
                 directory, fName + common::StorageConstants::LISTS_FILE_SUFFIX),
@@ -151,7 +151,7 @@ public:
         const common::table_id_t& relTableID, const common::RelDirection& relDirection,
         const uint32_t propertyID, common::DBFileType dbFileType) {
         auto fName =
-            common::StringUtils::string_format("r-%d-%d-%d", relTableID, relDirection, propertyID);
+            common::StringUtils::string_format("r-{}-{}-{}", relTableID, relDirection, propertyID);
         return appendWALFileSuffixIfNecessary(
             common::FileUtils::joinPath(
                 directory, fName + common::StorageConstants::COLUMN_FILE_SUFFIX),
@@ -172,7 +172,7 @@ public:
         const common::table_id_t& relTableID, const common::RelDirection& relDirection,
         const uint32_t propertyID, common::DBFileType dbFileType) {
         auto fName =
-            common::StringUtils::string_format("r-%d-%d-%d", relTableID, relDirection, propertyID);
+            common::StringUtils::string_format("r-{}-{}-{}", relTableID, relDirection, propertyID);
         return appendWALFileSuffixIfNecessary(
             common::FileUtils::joinPath(
                 directory, fName + common::StorageConstants::LISTS_FILE_SUFFIX),

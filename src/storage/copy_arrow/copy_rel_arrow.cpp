@@ -68,7 +68,7 @@ void CopyRelArrow::initializeColumnsAndLists() {
 void CopyRelArrow::initializeColumns(RelDirection relDirection) {
     auto boundTableID = relTableSchema->getBoundTableID(relDirection);
     auto numNodes = maxNodeOffsetsPerTable.at(boundTableID) + 1;
-    adjColumnsPerDirection[relDirection] = make_unique<InMemAdjColumn>(
+    adjColumnsPerDirection[relDirection] = std::make_unique<InMemAdjColumn>(
         StorageUtils::getAdjColumnFName(
             outputDirectory, relTableSchema->tableID, relDirection, DBFileType::WAL_VERSION),
         numNodes);
@@ -87,7 +87,7 @@ void CopyRelArrow::initializeColumns(RelDirection relDirection) {
 void CopyRelArrow::initializeLists(RelDirection relDirection) {
     auto boundTableID = relTableSchema->getBoundTableID(relDirection);
     auto numNodes = maxNodeOffsetsPerTable.at(boundTableID) + 1;
-    adjListsPerDirection[relDirection] = make_unique<InMemAdjLists>(
+    adjListsPerDirection[relDirection] = std::make_unique<InMemAdjLists>(
         StorageUtils::getAdjListsFName(
             outputDirectory, relTableSchema->tableID, relDirection, DBFileType::WAL_VERSION),
         numNodes);
@@ -273,13 +273,12 @@ void CopyRelArrow::populateAdjColumnsAndCountRelsInAdjListsTask(uint64_t blockId
                 if (!copier->adjColumnsPerDirection[relDirection]->isNullAtNodeOffset(nodeOffset)) {
                     auto relTableSchema = copier->relTableSchema;
                     throw CopyException(StringUtils::string_format(
-                        "RelTable %s is a %s table, but node(nodeOffset: %d, tableName: %s) has "
-                        "more than one neighbour in the %s direction.",
-                        relTableSchema->tableName.c_str(),
-                        getRelMultiplicityAsString(relTableSchema->relMultiplicity).c_str(),
-                        nodeOffset,
-                        copier->catalog.getReadOnlyVersion()->getTableName(tableID).c_str(),
-                        getRelDirectionAsString(relDirection).c_str()));
+                        "RelTable {} is a {} table, but node(nodeOffset: {}, tableName: {}) has "
+                        "more than one neighbour in the {} direction.",
+                        relTableSchema->tableName,
+                        getRelMultiplicityAsString(relTableSchema->relMultiplicity), nodeOffset,
+                        copier->catalog.getReadOnlyVersion()->getTableName(tableID),
+                        getRelDirectionAsString(relDirection)));
                 }
                 copier->adjColumnsPerDirection[relDirection]->setElement(
                     nodeOffset, (uint8_t*)&nodeIDs[!relDirection]);

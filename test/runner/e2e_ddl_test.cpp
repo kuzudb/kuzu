@@ -385,7 +385,7 @@ public:
     void addPropertyToPersonTableWithoutDefaultValue(
         std::string propertyType, TransactionTestType transactionTestType) {
         executeQueryWithoutCommit(
-            StringUtils::string_format("ALTER TABLE person ADD random %s", propertyType.c_str()));
+            StringUtils::string_format("ALTER TABLE person ADD random {}", propertyType));
         auto tableSchema = catalog->getWriteVersion()->getTableSchema(personTableID);
         auto propertyID = tableSchema->getPropertyID("random");
         auto hasOverflow =
@@ -449,7 +449,7 @@ public:
     void addPropertyToStudyAtTableWithoutDefaultValue(
         std::string propertyType, TransactionTestType transactionTestType) {
         executeQueryWithoutCommit(
-            StringUtils::string_format("ALTER TABLE studyAt ADD random %s", propertyType.c_str()));
+            StringUtils::string_format("ALTER TABLE studyAt ADD random {}", propertyType));
         auto tableSchema = catalog->getWriteVersion()->getTableSchema(studyAtTableID);
         auto propertyID = tableSchema->getPropertyID("random");
         auto hasOverflow =
@@ -489,8 +489,8 @@ public:
 
     void addPropertyToStudyAtTableWithDefaultValue(
         std::string propertyType, std::string defaultVal, TransactionTestType transactionTestType) {
-        executeQueryWithoutCommit(
-            "ALTER TABLE studyAt ADD random " + propertyType + " DEFAULT " + defaultVal);
+        executeQueryWithoutCommit(StringUtils::string_format(
+            "ALTER TABLE studyAt ADD random {} DEFAULT {}", propertyType, defaultVal));
         auto relTableSchema = catalog->getWriteVersion()->getTableSchema(studyAtTableID);
         auto propertyID = relTableSchema->getPropertyID("random");
         auto hasOverflow =

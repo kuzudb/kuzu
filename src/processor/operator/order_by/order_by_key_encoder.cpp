@@ -25,7 +25,7 @@ OrderByKeyEncoder::OrderByKeyEncoder(std::vector<std::shared_ptr<ValueVector>>& 
     maxNumTuplesPerBlock = BufferPoolConstants::LARGE_PAGE_SIZE / numBytesPerTuple;
     if (maxNumTuplesPerBlock <= 0) {
         throw RuntimeException(StringUtils::string_format(
-            "TupleSize(%d bytes) is larger than the LARGE_PAGE_SIZE(%d bytes)", numBytesPerTuple,
+            "TupleSize({} bytes) is larger than the LARGE_PAGE_SIZE({} bytes)", numBytesPerTuple,
             BufferPoolConstants::LARGE_PAGE_SIZE));
     }
     encodeFunctions.resize(orderByVectors.size());

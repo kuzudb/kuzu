@@ -22,7 +22,7 @@ public:
     inline static std::unique_ptr<VectorOperationDefinition> bindVectorOperation(
         const std::string& funcName, common::DataTypeID sourceTypeID,
         common::DataTypeID targetTypeID) {
-        return make_unique<VectorOperationDefinition>(funcName,
+        return std::make_unique<VectorOperationDefinition>(funcName,
             std::vector<common::DataTypeID>{sourceTypeID}, targetTypeID,
             VectorOperations::UnaryExecFunction<SOURCE_TYPE, TARGET_TYPE, FUNC>);
     }

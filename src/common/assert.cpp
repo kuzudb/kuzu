@@ -11,7 +11,7 @@ void kuAssertInternal(bool condition, const char* condition_name, const char* fi
         return;
     }
     throw InternalException(StringUtils::string_format(
-        "Assertion triggered in file \"%s\" on line %d: %s", file, linenr, condition_name));
+        "Assertion triggered in file \"{}\" on line {}: {}", file, linenr, condition_name));
 }
 
 } // namespace common

@@ -11,7 +11,7 @@ uint32_t TypeUtils::convertToUint32(const char* data) {
     uint32_t val;
     if (!(iss >> val)) {
         throw ConversionException(
-            StringUtils::string_format("Failed to convert %s to uint32_t", data));
+            StringUtils::string_format("Failed to convert {} to uint32_t", data));
     }
     return val;
 }

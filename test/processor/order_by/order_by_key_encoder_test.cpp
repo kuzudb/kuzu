@@ -587,8 +587,8 @@ TEST_F(OrderByKeyEncoderTest, largeNumBytesPerTupleErrorTest) {
         FAIL();
     } catch (Exception& e) {
         ASSERT_STREQ(e.what(),
-            StringUtils::string_format("Runtime exception: TupleSize(%d bytes) is larger than "
-                                       "the LARGE_PAGE_SIZE(%d bytes)",
+            StringUtils::string_format("Runtime exception: TupleSize({} bytes) is larger than "
+                                       "the LARGE_PAGE_SIZE({} bytes)",
                 9 * numOfOrderByCols + 8, BufferPoolConstants::LARGE_PAGE_SIZE)
                 .c_str());
     } catch (std::exception& e) { FAIL(); }

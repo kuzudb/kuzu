@@ -11,8 +11,8 @@ void DropTable::executeDDLInternal() {
 
 std::string DropTable::getOutputMsg() {
     auto tableSchema = catalog->getReadOnlyVersion()->getTableSchema(tableID);
-    return StringUtils::string_format("%sTable: %s has been dropped.",
-        tableSchema->isNodeTable ? "Node" : "Rel", tableSchema->tableName.c_str());
+    return StringUtils::string_format("{}Table: {} has been dropped.",
+        tableSchema->isNodeTable ? "Node" : "Rel", tableSchema->tableName);
 }
 
 } // namespace processor

@@ -18,7 +18,7 @@ std::string Copy::execute(TaskScheduler* taskScheduler, ExecutionContext* execut
 }
 
 std::string Copy::getOutputMsg(uint64_t numTuplesCopied) {
-    return StringUtils::string_format("%d number of tuples has been copied to table: %s.",
+    return StringUtils::string_format("{} number of tuples has been copied to table: {}.",
         numTuplesCopied, catalog->getReadOnlyVersion()->getTableName(tableID).c_str());
 }
 
