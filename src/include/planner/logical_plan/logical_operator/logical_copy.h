@@ -2,7 +2,7 @@
 
 #include "base_logical_operator.h"
 #include "catalog/catalog_structs.h"
-#include "common/csv_reader/csv_reader.h"
+#include "common/copier_config/copier_config.h"
 
 namespace kuzu {
 namespace planner {
