@@ -13,7 +13,8 @@ public:
         const std::vector<std::unique_ptr<function::AggregateFunction>>& aggregateFunctions);
 
     void combineAggregateStates(
-        const std::vector<std::unique_ptr<function::AggregateState>>& localAggregateStates);
+        const std::vector<std::unique_ptr<function::AggregateState>>& localAggregateStates,
+        storage::MemoryManager* memoryManager);
 
     void finalizeAggregateStates();
 

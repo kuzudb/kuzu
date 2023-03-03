@@ -59,7 +59,8 @@ struct SumFunction {
         }
     }
 
-    static void combine(uint8_t* state_, uint8_t* otherState_) {
+    static void combine(
+        uint8_t* state_, uint8_t* otherState_, storage::MemoryManager* memoryManager) {
         auto otherState = reinterpret_cast<SumState*>(otherState_);
         if (otherState->isNull) {
             return;
