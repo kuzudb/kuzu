@@ -1,7 +1,7 @@
 #pragma once
 
 #include "binder/query/bound_regular_query.h"
-#include "common/csv_reader/csv_reader.h"
+#include "common/copier_config/copier_config.h"
 #include "expression_binder.h"
 #include "parser/query/regular_query.h"
 #include "query_normalizer.h"

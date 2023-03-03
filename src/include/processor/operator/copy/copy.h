@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common/csv_reader/csv_reader.h"
+#include "common/copier_config/copier_config.h"
 #include "common/task_system/task_scheduler.h"
 #include "processor/operator/physical_operator.h"
 #include "storage/store/nodes_statistics_and_deleted_ids.h"

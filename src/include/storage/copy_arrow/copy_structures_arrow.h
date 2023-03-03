@@ -1,7 +1,7 @@
 #pragma once
 
 #include "catalog/catalog.h"
-#include "common/csv_reader/csv_reader.h"
+#include "common/copier_config/copier_config.h"
 #include "common/logging_level_utils.h"
 #include "common/task_system/task_scheduler.h"
 #include "storage/in_mem_storage_structure/in_mem_column.h"

@@ -1,5 +1,5 @@
 add_subdirectory(arrow)
-add_subdirectory(csv_reader)
+add_subdirectory(copier_config)
 add_subdirectory(data_chunk)
 add_subdirectory(task_system)
 add_subdirectory(types)

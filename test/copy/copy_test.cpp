@@ -1,4 +1,7 @@
-#include "common/csv_reader/csv_reader.h"
+#include <fstream>
+#include <iostream>
+#include <string>
+
 #include "graph_test/graph_test.h"
 #include "json.hpp"
 #include "storage/storage_manager.h"
@@ -94,25 +97,35 @@ TEST_F(CopyNodePropertyTest, NodeStructuredStringPropertyTest) {
         graph->getNodesStore().getNodePropertyColumn(tableID, propertyIdx.propertyID));
     std::string fName =
         TestHelper::appendKuzuRootPath("dataset/copy-node-property-test/vPerson.csv");
-    CSVReaderConfig config;
-    CSVReader csvReader(fName, config);
+    std::ifstream f(fName);
+    ASSERT_TRUE(f.is_open());
     int lineIdx = 0;
     uint64_t count = 0;
     auto dummyReadOnlyTrx = Transaction::getDummyReadOnlyTrx();
-    while (csvReader.hasNextLine()) {
-        csvReader.hasNextToken();
-        csvReader.skipToken();
-        csvReader.hasNextToken();
+    while (f.good()) {
+        std::string line;
+        std::getline(f, line);
+        if (line.empty()) {
+            continue;
+        }
+        auto pos = line.find(",");
+        line = line.substr(pos + 1);
+        if (line[0] == '"') {
+            line = line.substr(1);
+        }
+        if (line[line.length() - 1] == '"') {
+            line = line.substr(0, line.length() - 1);
+        }
         if ((count % 100) == 0) {
             ASSERT_TRUE(column->isNull(count /* nodeOffset */, dummyReadOnlyTrx.get()));
         } else {
             ASSERT_FALSE(column->isNull(count /* nodeOffset */, dummyReadOnlyTrx.get()));
-            EXPECT_EQ(std::string(csvReader.getString()), column->readValue(lineIdx).strVal);
+            EXPECT_EQ(line, column->readValue(lineIdx).strVal);
         }
         lineIdx++;
-        csvReader.skipLine();
         count++;
     }
+    f.close();
 }
 
 void verifyP0ToP5999(KnowsTablePTablePKnowsLists& knowsTablePTablePKnowsLists) {
