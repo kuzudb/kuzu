@@ -71,34 +71,18 @@ Napi::Value NodeQueryResult::All(const Napi::CallbackInfo& info) {
     shared_ptr<kuzu::main::QueryResult> localQueryResult = queryResult;
 
     nativeThread = std::thread( [localQueryResult] {
-        auto callback = []( Napi::Env env, Function jsCallback, valuePtr ** allResult ) {
-            size_t numRows = 0;
-            for(size_t i = 0;;i++){
-                if (allResult[i] == nullptr) break;
-                numRows++;
-            }
-
-            size_t numCols = 0;
-            if (numRows > 0) {
-                for (size_t j = 0;; j++) {
-                    if (allResult[0][j] == nullptr)
-                        break;
-                    numCols++;
-                }
-            }
-
-            Napi::Array arr = Napi::Array::New(env, numRows);
-            for (size_t i = 0; i < numRows; i++) {
-                Napi::Array rowArray = Napi::Array::New(env, numCols);
-                size_t j = 0;
-                for (; j < numCols; j++) {
-                    rowArray.Set(j, Util::ConvertToNapiObject(*allResult[i][j], env));
-                    delete allResult[i][j];
-                }
-                delete[] allResult[i];
-                arr.Set(i, rowArray);
-            }
-            delete allResult;
+        auto callback = []( Napi::Env env, Function jsCallback, kuzu::main::QueryResult * localQueryResult) {
+            Napi::Array arr = Napi::Array::New(env);
+//            size_t i = 0;
+//            while (localQueryResult->hasNext()) {
+//                Napi::Array rowArray = Napi::Array::New(env);
+//                auto row = localQueryResult->getNext();
+//                for (size_t j = 0; j < row->len(); j++) {
+//                    rowArray.Set(j, Util::ConvertToNapiObject(*row->getValue(j), env));
+//                }
+//                arr.Set(i, rowArray);
+//                i++;
+//            }
             jsCallback.Call({env.Null(), arr});
         };
 
@@ -107,34 +91,7 @@ Napi::Value NodeQueryResult::All(const Napi::CallbackInfo& info) {
             jsCallback.Call({error.Value(), env.Undefined()});
         };
 
-        vector<vector<valuePtr>> allResult;
-        size_t i = 0;
-        while (localQueryResult->hasNext()) {
-            auto row = localQueryResult->getNext();
-            allResult.emplace_back(vector<valuePtr>(row->len()));
-            for (size_t j = 0; j < row->len(); j++) {
-                allResult[i][j] = new kuzu::common::Value(*row->getValue(j));
-            }
-            i++;
-        }
-
-        const int numRows = allResult.size();
-        size_t tempCols = 0;
-        if (numRows > 0) tempCols = allResult[0].size();
-        const int numCols = tempCols;
-
-        auto valueArray = new valuePtr * [numRows + 1];
-        for (i = 0; i < numRows; i++) {
-            valueArray[i] = new valuePtr[numCols + 1];
-            size_t j = 0;
-            for (; j < numCols; j++){
-                valueArray[i][j] = allResult[i][j];
-            }
-            valueArray[i][j] = nullptr;
-        }
-        valueArray[i] = nullptr;
-
-        napi_status status = tsfn.BlockingCall( valueArray, callback );
+        napi_status status = tsfn.BlockingCall( localQueryResult.get(), callback );
         if ( status != napi_ok )
         {
             tsfn.BlockingCall( errorCallback );
