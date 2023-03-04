@@ -5,14 +5,12 @@
 #include "main/kuzu.h"
 #include "include/util.h"
 #include <thread>
-#include <array>
-#include <type_traits>
+#include <chrono>
 
 using namespace kuzu::main;
 
 std::thread nativeThread;
 Napi::ThreadSafeFunction tsfn;
-typedef kuzu::common::Value * valuePtr;
 
 Napi::FunctionReference NodeQueryResult::constructor;
 
@@ -48,6 +46,8 @@ void NodeQueryResult::Close(const Napi::CallbackInfo& info) {
 
 }
 
+// Exported JavaScript function. Creates the thread-safe function and native
+// thread. Promise is resolved in the thread-safe function's finalizer.
 Napi::Value NodeQueryResult::All(const Napi::CallbackInfo& info) {
     Napi::Env env = info.Env();
     Napi::HandleScope scope(env);
@@ -57,50 +57,25 @@ Napi::Value NodeQueryResult::All(const Napi::CallbackInfo& info) {
         return Napi::Object::New(env);
     }
 
-    Function callback = info[0].As<Function>();
+    // Construct context data
+    auto testData = new Util::TsfnContext(env, queryResult);
 
-    tsfn = Napi::ThreadSafeFunction::New(
-        env,
-        callback,  // JavaScript function called asynchronously
-        "Resource Name",         // Name
-        0,                       // Unlimited queue
-        1,                       // Only one thread will use this initially
-        []( Napi::Env ) {        // Finalizer used to clean threads up
-            nativeThread.join();
-        } );
-    shared_ptr<kuzu::main::QueryResult> localQueryResult = queryResult;
+    // Create a new ThreadSafeFunction.
+    testData->tsfn = Napi::ThreadSafeFunction::New(
+        env,                           // Environment
+        info[0].As<Napi::Function>(),  // JS function from caller
+        "TSFN",                        // Resource name
+        0,                             // Max queue size (0 = unlimited).
+        1,                             // Initial thread count
+        testData,                      // Context,
+        Util::FinalizerCallback,       // Finalizer
+        (void*)nullptr                 // Finalizer data
+    );
+    testData->nativeThread = std::thread(Util::threadEntry, testData);
 
-    nativeThread = std::thread( [localQueryResult] {
-        auto callback = []( Napi::Env env, Function jsCallback, kuzu::main::QueryResult * localQueryResult) {
-            Napi::Array arr = Napi::Array::New(env);
-//            size_t i = 0;
-//            while (localQueryResult->hasNext()) {
-//                Napi::Array rowArray = Napi::Array::New(env);
-//                auto row = localQueryResult->getNext();
-//                for (size_t j = 0; j < row->len(); j++) {
-//                    rowArray.Set(j, Util::ConvertToNapiObject(*row->getValue(j), env));
-//                }
-//                arr.Set(i, rowArray);
-//                i++;
-//            }
-            jsCallback.Call({env.Null(), arr});
-        };
-
-        auto errorCallback = []( Napi::Env env, Function jsCallback ) {
-            Napi::Error error = Napi::Error::New(env, "Unsuccessful async all callback");
-            jsCallback.Call({error.Value(), env.Undefined()});
-        };
-
-        napi_status status = tsfn.BlockingCall( localQueryResult.get(), callback );
-        if ( status != napi_ok )
-        {
-            tsfn.BlockingCall( errorCallback );
-        }
-
-        tsfn.Release();
-    } );
-
-    return info.Env().Undefined();
+    // Return the deferred's Promise. This Promise is resolved in the thread-safe
+    // function's finalizer callback.
+    return testData->deferred.Promise();
 }
 
 Napi::Value NodeQueryResult::GetNext(const Napi::CallbackInfo& info) {
