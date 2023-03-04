@@ -19,6 +19,8 @@ class NodeQueryResult: public Napi::ObjectWrap<NodeQueryResult> {
     Napi::Value GetNext(const Napi::CallbackInfo& info);
     Napi::Value HasNext(const Napi::CallbackInfo& info);
     shared_ptr<kuzu::main::QueryResult> queryResult;
+
+
 };
 
 

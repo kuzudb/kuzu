@@ -47,17 +47,19 @@ class QueryResult {
         })
     }
 
-    all(callback = null) {
+    async all(callback = null) {
         this.checkForQueryResultClose();
         if (callback) {
             if (typeof callback !== 'function') {
                 throw new Error("If all is provided an argument it must be a callback function");
             }
-            this.#queryResult.all(callback);
+            await this.#queryResult.all(callback);
         } else {
-            return new Promise ((resolve, reject) => {
-                this.#queryResult.all((err, result) => {
-                    if (err) { return reject(err); }
+            return new Promise(async (resolve, reject) => {
+                await this.#queryResult.all((err, result) => {
+                    if (err) {
+                        return reject(err);
+                    }
                     return resolve(result);
                 });
             })

@@ -44,11 +44,11 @@ const parameterizedExecuteQuery = "MATCH (a:person) WHERE a.age > $1 and a.isStu
 connection.execute(executeQuery, executeAllPromise);
 connection.execute(parameterizedExecuteQuery, executeAllPromise, [["1", 29], ["2", true], ["3", "B"]]);
 
-// // Extensive Case
-// database.resizeBufferManager(2000000000);
-// connection.setMaxNumThreadForExec(2);
-// connection.execute(executeQuery, executeAllCallback);
-// console.log(connection.getNodePropertyNames("person"));
+// Extensive Case
+database.resizeBufferManager(2000000000);
+connection.setMaxNumThreadForExec(2);
+connection.execute(executeQuery, executeAllCallback);
+console.log(connection.getNodePropertyNames("person"));
 
 // Execute with each callback
 connection.execute(executeQuery,  (err, result) => {
