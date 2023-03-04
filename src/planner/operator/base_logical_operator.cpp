@@ -141,13 +141,6 @@ LogicalOperator::LogicalOperator(
     }
 }
 
-void LogicalOperator::computeSchemaRecursive() {
-    for (auto& child : children) {
-        child->computeSchemaRecursive();
-    }
-    computeSchema();
-}
-
 std::string LogicalOperator::toString(uint64_t depth) const {
     auto padding = std::string(depth * 4, ' ');
     std::string result = padding;
