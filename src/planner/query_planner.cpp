@@ -68,13 +68,7 @@ std::vector<std::unique_ptr<LogicalPlan>> QueryPlanner::planSingleQuery(
     for (auto i = 0u; i < singleQuery.getNumQueryParts(); ++i) {
         plans = planQueryPart(*singleQuery.getQueryPart(i), std::move(plans));
     }
-    std::vector<std::unique_ptr<LogicalPlan>> result;
-    for (auto& plan : plans) {
-        // This is copy is to avoid sharing operator across plans. Later optimization requires
-        // each plan to be independent.
-        result.push_back(plan->deepCopy());
-    }
-    return result;
+    return plans;
 }
 
 std::vector<std::unique_ptr<LogicalPlan>> QueryPlanner::planQueryPart(
@@ -405,15 +399,15 @@ std::vector<std::vector<std::unique_ptr<LogicalPlan>>> QueryPlanner::cartesianPr
         for (auto& childLogicalPlan : childLogicalPlans) {
             if (resultChildrenPlans.empty()) {
                 std::vector<std::unique_ptr<LogicalPlan>> logicalPlans;
-                logicalPlans.push_back(childLogicalPlan->deepCopy());
+                logicalPlans.push_back(childLogicalPlan->shallowCopy());
                 curChildResultLogicalPlans.push_back(std::move(logicalPlans));
             } else {
                 for (auto& resultChildPlans : resultChildrenPlans) {
                     std::vector<std::unique_ptr<LogicalPlan>> logicalPlans;
                     for (auto& resultChildPlan : resultChildPlans) {
-                        logicalPlans.push_back(resultChildPlan->deepCopy());
+                        logicalPlans.push_back(resultChildPlan->shallowCopy());
                     }
-                    logicalPlans.push_back(childLogicalPlan->deepCopy());
+                    logicalPlans.push_back(childLogicalPlan->shallowCopy());
                     curChildResultLogicalPlans.push_back(std::move(logicalPlans));
                 }
             }

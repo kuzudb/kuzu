@@ -66,7 +66,13 @@ std::vector<std::unique_ptr<LogicalPlan>> Planner::getAllPlans(const Catalog& ca
     // We enumerate all plans for our testing framework. This API should only be used for QUERY
     // but not DDL or COPY_CSV.
     assert(statement.getStatementType() == StatementType::QUERY);
-    return QueryPlanner(catalog, nodesStatistics, relsStatistics).getAllPlans(statement);
+    auto planner = QueryPlanner(catalog, nodesStatistics, relsStatistics);
+    std::vector<std::unique_ptr<LogicalPlan>> plans;
+    for (auto& plan : planner.getAllPlans(statement)) {
+        // Avoid sharing operator across plans.
+        plans.push_back(plan->deepCopy());
+    }
+    return plans;
 }
 
 std::unique_ptr<LogicalPlan> Planner::planCreateNodeTable(const BoundStatement& statement) {
