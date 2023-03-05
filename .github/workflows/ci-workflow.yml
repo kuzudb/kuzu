@@ -95,7 +95,6 @@ jobs:
 
   benchmark:
     name: benchmark
-    needs: [gcc-build-test, clang-build-test]
     runs-on: kuzu-self-hosted-benchmarking
     steps:
       - uses: actions/checkout@v3
