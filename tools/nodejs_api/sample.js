@@ -55,14 +55,12 @@ connection.execute(executeQuery,  (err, result) => {
     if (err) { console.log(err); }
     else {
         result.each(
-            row => {
-                console.log(row);
+            (err, rowResult) => {
+                if (err) { console.log(err) }
+                else { console.log(rowResult); }
             },
             () => {
                 console.log("all of the each's are done callback");
-            },
-            err => {
-                console.log(err);
             }
         );
     }
