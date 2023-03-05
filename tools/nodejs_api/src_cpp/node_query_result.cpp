@@ -1,9 +1,8 @@
 #include "include/node_query_result.h"
 
-#include "include/all_async_worker.h"
-#include "include/each_async_worker.h"
 #include "main/kuzu.h"
 #include "include/util.h"
+#include "include/tsfn_context.h"
 #include <thread>
 #include <chrono>
 
@@ -20,8 +19,7 @@ Napi::Object NodeQueryResult::Init(Napi::Env env, Napi::Object exports) {
     Napi::Function t = DefineClass(env, "NodeQueryResult", {
        InstanceMethod("close", &NodeQueryResult::Close),
        InstanceMethod("all", &NodeQueryResult::All),
-       InstanceMethod("getNext", &NodeQueryResult::GetNext),
-       InstanceMethod("hasNext", &NodeQueryResult::HasNext),
+       InstanceMethod("each", &NodeQueryResult::Each),
     });
 
     exports.Set("NodeQueryResult", t);
@@ -58,7 +56,7 @@ Napi::Value NodeQueryResult::All(const Napi::CallbackInfo& info) {
     }
 
     // Construct context data
-    auto testData = new Util::TsfnContext(env, queryResult);
+    auto testData = new TsfnContext(env, queryResult, TsfnContext::ALL);
 
     // Create a new ThreadSafeFunction.
     testData->tsfn = Napi::ThreadSafeFunction::New(
@@ -68,56 +66,47 @@ Napi::Value NodeQueryResult::All(const Napi::CallbackInfo& info) {
         0,                             // Max queue size (0 = unlimited).
         1,                             // Initial thread count
         testData,                      // Context,
-        Util::FinalizerCallback,       // Finalizer
+        TsfnContext::FinalizerCallback,// Finalizer
         (void*)nullptr                 // Finalizer data
     );
-    testData->nativeThread = std::thread(Util::threadEntry, testData);
+    testData->nativeThread = std::thread(TsfnContext::threadEntry, testData);
 
     // Return the deferred's Promise. This Promise is resolved in the thread-safe
     // function's finalizer callback.
     return testData->deferred.Promise();
 }
 
-Napi::Value NodeQueryResult::GetNext(const Napi::CallbackInfo& info) {
+
+// Exported JavaScript function. Creates the thread-safe function and native
+// thread. Promise is resolved in the thread-safe function's finalizer.
+Napi::Value NodeQueryResult::Each(const Napi::CallbackInfo& info) {
     Napi::Env env = info.Env();
     Napi::HandleScope scope(env);
 
-    if (info.Length()!=1 || !info[0].IsFunction()) {
+    if (info.Length()!=2 || !info[0].IsFunction() || !info[1].IsFunction()) {
         Napi::TypeError::New(env, "Each needs a callback").ThrowAsJavaScriptException();
         return Napi::Object::New(env);
     }
 
-    Function eachCallback = info[0].As<Function>();
+    // Construct context data
+    auto testData = new TsfnContext(env, queryResult, TsfnContext::TsfnContext::EACH, info[1].As<Napi::Function>());
 
-    if (!queryResult->hasNext()){
-        Napi::TypeError::New(env, "Cannot call getNext queryResult is empty").ThrowAsJavaScriptException();
-        return Napi::Object::New(env);
-    }
+    // Create a new ThreadSafeFunction.
+    testData->tsfn = Napi::ThreadSafeFunction::New(
+        env,                           // Environment
+        info[0].As<Napi::Function>(),  // JS function from caller
+        "TSFN",                        // Resource name
+        0,                             // Max queue size (0 = unlimited).
+        1,                             // Initial thread count
+        testData,                      // Context,
+        TsfnContext::FinalizerCallback,// Finalizer
+        (void * ) nullptr  // Finalizer data
+    );
+    testData->nativeThread = std::thread(TsfnContext::threadEntry, testData);
 
-    try {
-        EachAsyncWorker * asyncWorker = new EachAsyncWorker(eachCallback, queryResult, 1);
-        asyncWorker->Queue();
-    } catch(const std::exception &exc) {
-        Napi::TypeError::New(env, "Unsuccessful getNext callback: " + std::string(exc.what())).ThrowAsJavaScriptException();
-    }
-    return info.Env().Undefined();
-}
-
-Napi::Value NodeQueryResult::HasNext(const Napi::CallbackInfo& info) {
-    Napi::Env env = info.Env();
-    Napi::HandleScope scope(env);
-
-    if (info.Length()!=0) {
-        Napi::TypeError::New(env, "hasNext takes no arguments").ThrowAsJavaScriptException();
-        return Napi::Object::New(env);
-    }
-
-    try {
-        return Napi::Boolean::New(env, queryResult->hasNext());
-    } catch(const std::exception &exc) {
-        Napi::TypeError::New(env, "Unsuccessful hasNext: " + std::string(exc.what())).ThrowAsJavaScriptException();
-    }
-    return info.Env().Undefined();
+    // Return the deferred's Promise. This Promise is resolved in the thread-safe
+    // function's finalizer callback.
+    return testData->deferred.Promise();
 }
 
 NodeQueryResult::~NodeQueryResult() {}

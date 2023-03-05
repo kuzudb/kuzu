@@ -4,7 +4,6 @@
 
 #include <napi.h>
 #include "main/kuzu.h"
-#include <iostream>
 
 // Data structure representing our thread-safe function context.
 struct TsfnContext {
