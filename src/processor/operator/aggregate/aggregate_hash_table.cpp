@@ -111,7 +111,8 @@ void AggregateHashTable::merge(AggregateHashTable& other) {
             for (auto i = 0u; i < numTuplesToScan; i++) {
                 aggregateFunction->combineState(
                     hashSlotsToUpdateAggState[i]->entry + aggregateStateOffset,
-                    other.factorizedTable->getTuple(startTupleIdx + i) + aggregateStateOffset);
+                    other.factorizedTable->getTuple(startTupleIdx + i) + aggregateStateOffset,
+                    &memoryManager);
             }
             aggregateStateOffset += aggregateFunction->getAggregateStateSize();
         }

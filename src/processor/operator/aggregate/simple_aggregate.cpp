@@ -15,12 +15,13 @@ SimpleAggregateSharedState::SimpleAggregateSharedState(
 }
 
 void SimpleAggregateSharedState::combineAggregateStates(
-    const std::vector<std::unique_ptr<AggregateState>>& localAggregateStates) {
+    const std::vector<std::unique_ptr<AggregateState>>& localAggregateStates,
+    storage::MemoryManager* memoryManager) {
     assert(localAggregateStates.size() == globalAggregateStates.size());
     auto lck = acquireLock();
     for (auto i = 0u; i < aggregateFunctions.size(); ++i) {
-        aggregateFunctions[i]->combineState(
-            (uint8_t*)globalAggregateStates[i].get(), (uint8_t*)localAggregateStates[i].get());
+        aggregateFunctions[i]->combineState((uint8_t*)globalAggregateStates[i].get(),
+            (uint8_t*)localAggregateStates[i].get(), memoryManager);
     }
 }
 
@@ -84,7 +85,7 @@ void SimpleAggregate::executeInternal(ExecutionContext* context) {
             }
         }
     }
-    sharedState->combineAggregateStates(localAggregateStates);
+    sharedState->combineAggregateStates(localAggregateStates, context->memoryManager);
 }
 
 std::unique_ptr<PhysicalOperator> SimpleAggregate::clone() {

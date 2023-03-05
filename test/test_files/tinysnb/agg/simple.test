@@ -60,6 +60,11 @@ False
 ---- 1
 20|83|False|True|4.500000|5.100000|1900-01-01|1990-11-27
 
+-NAME SimpleMinTest
+-QUERY MATCH (m:movies) RETURN MIN(m.note)
+---- 1
+ the movie is very very good
+
 -NAME TwoHopTest
 -QUERY MATCH (a:person)-[:knows]->(b:person) RETURN SUM(b.age), MIN(b.ID), AVG(b.eyeSight)
 -ENUMERATE

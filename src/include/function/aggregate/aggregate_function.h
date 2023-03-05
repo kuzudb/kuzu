@@ -44,7 +44,8 @@ using aggr_update_all_function_t = std::function<void(uint8_t* state, common::Va
     uint64_t multiplicity, storage::MemoryManager* memoryManager)>;
 using aggr_update_pos_function_t = std::function<void(uint8_t* state, common::ValueVector* input,
     uint64_t multiplicity, uint32_t pos, storage::MemoryManager* memoryManager)>;
-using aggr_combine_function_t = std::function<void(uint8_t* state, uint8_t* otherState)>;
+using aggr_combine_function_t =
+    std::function<void(uint8_t* state, uint8_t* otherState, storage::MemoryManager* memoryManager)>;
 using aggr_finalize_function_t = std::function<void(uint8_t* state)>;
 
 class AggregateFunction {
@@ -81,8 +82,9 @@ public:
         return updatePosFunc(state, input, multiplicity, pos, memoryManager);
     }
 
-    inline void combineState(uint8_t* state, uint8_t* otherState) {
-        return combineFunc(state, otherState);
+    inline void combineState(
+        uint8_t* state, uint8_t* otherState, storage::MemoryManager* memoryManager) {
+        return combineFunc(state, otherState, memoryManager);
     }
 
     inline void finalizeState(uint8_t* state) { return finalizeFunc(state); }
