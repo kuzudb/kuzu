@@ -27,39 +27,37 @@ namespace planner {
 std::unique_ptr<LogicalPlan> Planner::getBestPlan(const Catalog& catalog,
     const NodesStatisticsAndDeletedIDs& nodesStatistics, const RelsStatistics& relsStatistics,
     const BoundStatement& statement) {
-    std::unique_ptr<LogicalPlan> plan;
     switch (statement.getStatementType()) {
     case StatementType::QUERY: {
-        plan = QueryPlanner(catalog, nodesStatistics, relsStatistics).getBestPlan(statement);
-    } break;
+        return QueryPlanner(catalog, nodesStatistics, relsStatistics).getBestPlan(statement);
+    }
     case StatementType::CREATE_NODE_CLAUSE: {
-        plan = planCreateNodeTable(statement);
-    } break;
+        return planCreateNodeTable(statement);
+    }
     case StatementType::CREATE_REL_CLAUSE: {
-        plan = planCreateRelTable(statement);
-    } break;
+        return planCreateRelTable(statement);
+    }
     case StatementType::COPY_CSV: {
-        plan = planCopy(statement);
-    } break;
+        return planCopy(statement);
+    }
     case StatementType::DROP_TABLE: {
-        plan = planDropTable(statement);
-    } break;
+        return planDropTable(statement);
+    }
     case StatementType::RENAME_TABLE: {
-        plan = planRenameTable(statement);
-    } break;
+        return planRenameTable(statement);
+    }
     case StatementType::ADD_PROPERTY: {
-        plan = planAddProperty(statement);
-    } break;
+        return planAddProperty(statement);
+    }
     case StatementType::DROP_PROPERTY: {
-        plan = planDropProperty(statement);
-    } break;
+        return planDropProperty(statement);
+    }
     case StatementType::RENAME_PROPERTY: {
-        plan = planRenameProperty(statement);
-    } break;
+        return planRenameProperty(statement);
+    }
     default:
         throw common::NotImplementedException("getBestPlan()");
     }
-    return plan->deepCopy();
 }
 
 std::vector<std::unique_ptr<LogicalPlan>> Planner::getAllPlans(const Catalog& catalog,
