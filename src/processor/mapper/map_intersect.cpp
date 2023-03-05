@@ -19,12 +19,12 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalIntersectToPhysical(
     std::vector<IntersectDataInfo> intersectDataInfos;
     // Map build side children.
     for (auto i = 1u; i < logicalIntersect->getNumChildren(); i++) {
-        auto buildInfo = logicalIntersect->getBuildInfo(i - 1);
+        auto keyNodeID = logicalIntersect->getKeyNodeID(i - 1);
         auto buildSchema = logicalIntersect->getChild(i)->getSchema();
         auto buildSidePrevOperator = mapLogicalOperatorToPhysical(logicalIntersect->getChild(i));
         std::vector<DataPos> payloadsDataPos;
-        auto buildDataInfo = generateBuildDataInfo(
-            *buildSchema, {buildInfo->keyNodeID}, buildInfo->expressionsToMaterialize);
+        auto buildDataInfo =
+            generateBuildDataInfo(*buildSchema, {keyNodeID}, buildSchema->getExpressionsInScope());
         for (auto& [dataPos, _] : buildDataInfo.payloadsPosAndType) {
             auto expression = buildSchema->getGroup(dataPos.dataChunkPos)
                                   ->getExpressions()[dataPos.valueVectorPos];
@@ -38,9 +38,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalIntersectToPhysical(
         sharedStates.push_back(sharedState);
         children.push_back(make_unique<IntersectBuild>(
             std::make_unique<ResultSetDescriptor>(*buildSchema), sharedState, buildDataInfo,
-            std::move(buildSidePrevOperator), getOperatorID(), buildInfo->keyNodeID->toString()));
-        IntersectDataInfo info{
-            DataPos(outSchema->getExpressionPos(*buildInfo->keyNodeID)), payloadsDataPos};
+            std::move(buildSidePrevOperator), getOperatorID(), keyNodeID->toString()));
+        IntersectDataInfo info{DataPos(outSchema->getExpressionPos(*keyNodeID)), payloadsDataPos};
         intersectDataInfos.push_back(info);
     }
     // Map intersect.

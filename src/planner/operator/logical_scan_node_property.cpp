@@ -3,11 +3,18 @@
 namespace kuzu {
 namespace planner {
 
-void LogicalScanNodeProperty::computeSchema() {
+void LogicalScanNodeProperty::computeFactorizedSchema() {
     copyChildSchema(0);
     auto groupPos = schema->getGroupPos(node->getInternalIDPropertyName());
     for (auto& property : properties) {
         schema->insertToGroupAndScope(property, groupPos);
+    }
+}
+
+void LogicalScanNodeProperty::computeFlatSchema() {
+    copyChildSchema(0);
+    for (auto& property : properties) {
+        schema->insertToGroupAndScope(property, 0);
     }
 }
 

@@ -12,19 +12,15 @@ public:
         : LogicalOperator{operatorType}, tableName{std::move(tableName)},
           outputExpression{std::move(outputExpression)} {}
 
+    void computeFactorizedSchema() override;
+    void computeFlatSchema() override;
+
     inline std::string getTableName() const { return tableName; }
     inline std::shared_ptr<binder::Expression> getOutputExpression() const {
         return outputExpression;
     }
 
     inline std::string getExpressionsForPrinting() const override { return tableName; }
-
-    inline void computeSchema() override {
-        schema = std::make_unique<Schema>();
-        auto groupPos = schema->createGroup();
-        schema->insertToGroupAndScope(outputExpression, groupPos);
-        schema->setGroupAsSingleState(groupPos);
-    }
 
 protected:
     std::string tableName;

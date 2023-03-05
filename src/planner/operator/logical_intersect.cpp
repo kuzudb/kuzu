@@ -5,8 +5,8 @@ namespace planner {
 
 f_group_pos_set LogicalIntersect::getGroupsPosToFlattenOnProbeSide() {
     f_group_pos_set result;
-    for (auto& buildInfo : buildInfos) {
-        result.insert(children[0]->getSchema()->getGroupPos(*buildInfo->keyNodeID));
+    for (auto& keyNodeID : keyNodeIDs) {
+        result.insert(children[0]->getSchema()->getGroupPos(*keyNodeID));
     }
     return result;
 }
@@ -14,11 +14,11 @@ f_group_pos_set LogicalIntersect::getGroupsPosToFlattenOnProbeSide() {
 f_group_pos_set LogicalIntersect::getGroupsPosToFlattenOnBuildSide(uint32_t buildIdx) {
     f_group_pos_set result;
     auto childIdx = buildIdx + 1; // skip probe
-    result.insert(children[childIdx]->getSchema()->getGroupPos(*buildInfos[buildIdx]->keyNodeID));
+    result.insert(children[childIdx]->getSchema()->getGroupPos(*keyNodeIDs[buildIdx]));
     return result;
 }
 
-void LogicalIntersect::computeSchema() {
+void LogicalIntersect::computeFactorizedSchema() {
     auto probeSchema = children[0]->getSchema();
     schema = probeSchema->copy();
     // Write intersect node and rels into a new group regardless of whether rel is n-n.
@@ -26,11 +26,11 @@ void LogicalIntersect::computeSchema() {
     schema->insertToGroupAndScope(intersectNodeID, outGroupPos);
     for (auto i = 1; i < children.size(); ++i) {
         auto buildSchema = children[i]->getSchema();
-        auto buildInfo = buildInfos[i - 1].get();
+        auto keyNodeID = keyNodeIDs[i - 1];
         // Write rel properties into output group.
         for (auto& expression : buildSchema->getExpressionsInScope()) {
             if (expression->getUniqueName() == intersectNodeID->getUniqueName() ||
-                expression->getUniqueName() == buildInfo->keyNodeID->getUniqueName()) {
+                expression->getUniqueName() == keyNodeID->getUniqueName()) {
                 continue;
             }
             schema->insertToGroupAndScope(expression, outGroupPos);
@@ -38,16 +38,31 @@ void LogicalIntersect::computeSchema() {
     }
 }
 
+void LogicalIntersect::computeFlatSchema() {
+    auto probeSchema = children[0]->getSchema();
+    schema = probeSchema->copy();
+    schema->createGroup();
+    schema->insertToGroupAndScope(intersectNodeID, 0);
+    for (auto i = 1; i < children.size(); ++i) {
+        auto buildSchema = children[i]->getSchema();
+        auto keyNodeID = keyNodeIDs[i - 1];
+        for (auto& expression : buildSchema->getExpressionsInScope()) {
+            if (expression->getUniqueName() == intersectNodeID->getUniqueName() ||
+                expression->getUniqueName() == keyNodeID->getUniqueName()) {
+                continue;
+            }
+            schema->insertToGroupAndScope(expression, 0);
+        }
+    }
+}
+
 std::unique_ptr<LogicalOperator> LogicalIntersect::copy() {
     std::vector<std::shared_ptr<LogicalOperator>> buildChildren;
-    std::vector<std::unique_ptr<LogicalIntersectBuildInfo>> buildInfos_;
     for (auto i = 1u; i < children.size(); ++i) {
         buildChildren.push_back(children[i]->copy());
-        buildInfos_.push_back(buildInfos[i - 1]->copy());
     }
-    auto result = make_unique<LogicalIntersect>(
-        intersectNodeID, children[0]->copy(), std::move(buildChildren), std::move(buildInfos_));
-    return result;
+    return make_unique<LogicalIntersect>(
+        intersectNodeID, keyNodeIDs, children[0]->copy(), std::move(buildChildren));
 }
 
 } // namespace planner

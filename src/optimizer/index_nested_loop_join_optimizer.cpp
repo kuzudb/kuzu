@@ -19,7 +19,9 @@ std::shared_ptr<planner::LogicalOperator> IndexNestedLoopJoinOptimizer::visitOpe
     for (auto i = 0u; i < op->getNumChildren(); ++i) {
         op->setChild(i, visitOperator(op->getChild(i)));
     }
-    return visitOperatorReplaceSwitch(op);
+    auto result = visitOperatorReplaceSwitch(op);
+    result->computeFlatSchema();
+    return result;
 }
 
 static bool isPrimaryKey(const binder::Expression& expression) {
@@ -77,6 +79,7 @@ std::shared_ptr<LogicalOperator> IndexNestedLoopJoinOptimizer::rewriteCrossProdu
     // Append index scan to left branch
     auto indexScan =
         make_shared<LogicalIndexScanNode>(rightScan->getNode(), primaryKey, op->getChild(0));
+    indexScan->computeFlatSchema();
     // Append right branch (except for node table scan) to left branch
     auto rightOp = op->getChild(1);
     while (rightOp->getNumChildren() != 0) {
@@ -86,8 +89,7 @@ std::shared_ptr<LogicalOperator> IndexNestedLoopJoinOptimizer::rewriteCrossProdu
         }
         rightOp = rightOp->getChild(0);
     }
-    auto newRoot = op->getChild(1);
-    return newRoot;
+    return op->getChild(1); // new root
 }
 
 LogicalOperator* IndexNestedLoopJoinOptimizer::searchScanNodeOnPipeline(

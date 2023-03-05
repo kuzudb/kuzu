@@ -13,10 +13,11 @@ public:
           expressionsToGroupBy{std::move(expressionsToGroupBy)}, expressionsToAggregate{std::move(
                                                                      expressionsToAggregate)} {}
 
+    void computeFactorizedSchema() override;
+    void computeFlatSchema() override;
+
     f_group_pos_set getGroupsPosToFlattenForGroupBy();
     f_group_pos_set getGroupsPosToFlattenForAggregate();
-
-    void computeSchema() override;
 
     std::string getExpressionsForPrinting() const override;
 

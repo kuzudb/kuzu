@@ -18,11 +18,19 @@ f_group_pos_set LogicalUnion::getGroupsPosToFlatten(uint32_t childIdx) {
     return factorization::FlattenAll::getGroupsPosToFlatten(groupsPos, childSchema);
 }
 
-void LogicalUnion::computeSchema() {
+void LogicalUnion::computeFactorizedSchema() {
     auto firstChildSchema = children[0]->getSchema();
-    schema = std::make_unique<Schema>();
+    createEmptySchema();
     SinkOperatorUtil::recomputeSchema(
         *firstChildSchema, firstChildSchema->getExpressionsInScope(), *schema);
+}
+
+void LogicalUnion::computeFlatSchema() {
+    createEmptySchema();
+    schema->createGroup();
+    for (auto& expression : children[0]->getSchema()->getExpressionsInScope()) {
+        schema->insertToGroupAndScope(expression, 0);
+    }
 }
 
 std::unique_ptr<LogicalOperator> LogicalUnion::copy() {

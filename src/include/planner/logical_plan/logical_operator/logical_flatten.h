@@ -11,7 +11,8 @@ public:
     LogicalFlatten(f_group_pos groupPos, std::shared_ptr<LogicalOperator> child)
         : LogicalOperator{LogicalOperatorType::FLATTEN, std::move(child)}, groupPos{groupPos} {}
 
-    void computeSchema() override;
+    void computeFactorizedSchema() override;
+    void computeFlatSchema() override;
 
     inline std::string getExpressionsForPrinting() const override { return std::string{}; }
 

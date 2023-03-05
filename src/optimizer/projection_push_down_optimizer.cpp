@@ -32,6 +32,7 @@ void ProjectionPushDownOptimizer::visitOperator(LogicalOperator* op) {
     for (auto i = 0; i < op->getNumChildren(); ++i) {
         visitOperator(op->getChild(i).get());
     }
+    op->computeFlatSchema();
 }
 
 void ProjectionPushDownOptimizer::visitAccumulate(planner::LogicalOperator* op) {
@@ -41,10 +42,7 @@ void ProjectionPushDownOptimizer::visitAccumulate(planner::LogicalOperator* op) 
     if (expressionsBeforePruning.size() == expressionsAfterPruning.size()) {
         return;
     }
-    accumulate->setExpressions(expressionsAfterPruning);
-    auto projection = std::make_shared<LogicalProjection>(
-        std::move(expressionsAfterPruning), accumulate->getChild(0));
-    accumulate->setChild(0, std::move(projection));
+    preAppendProjection(op, 0, expressionsAfterPruning);
 }
 
 void ProjectionPushDownOptimizer::visitFilter(planner::LogicalOperator* op) {
@@ -66,31 +64,30 @@ void ProjectionPushDownOptimizer::visitHashJoin(planner::LogicalOperator* op) {
         // TODO(Xiyang): replace this with a separate optimizer.
         return;
     }
-    hashJoin->setExpressionsToMaterialize(expressionsAfterPruning);
-    auto projection = std::make_shared<LogicalProjection>(
-        std::move(expressionsAfterPruning), hashJoin->getChild(1));
-    hashJoin->setChild(1, std::move(projection));
+    preAppendProjection(op, 1, expressionsAfterPruning);
 }
 
 void ProjectionPushDownOptimizer::visitIntersect(planner::LogicalOperator* op) {
     auto intersect = (LogicalIntersect*)op;
     collectPropertiesInUse(intersect->getIntersectNodeID());
     for (auto i = 0u; i < intersect->getNumBuilds(); ++i) {
-        auto buildInfo = intersect->getBuildInfo(i);
-        collectPropertiesInUse(buildInfo->keyNodeID);
+        auto childIdx = i + 1; // skip probe
+        auto keyNodeID = intersect->getKeyNodeID(i);
+        collectPropertiesInUse(keyNodeID);
         // Note: we have a potential bug under intersect.cpp. The following code ensures build key
         // and intersect key always appear as the first and second column. Should be removed once
         // the bug is fixed.
         expression_vector expressionsBeforePruning;
         expression_vector expressionsAfterPruning;
-        for (auto& expression : buildInfo->expressionsToMaterialize) {
+        for (auto& expression :
+            intersect->getChild(childIdx)->getSchema()->getExpressionsInScope()) {
             if (expression->getUniqueName() == intersect->getIntersectNodeID()->getUniqueName() ||
-                expression->getUniqueName() == buildInfo->keyNodeID->getUniqueName()) {
+                expression->getUniqueName() == keyNodeID->getUniqueName()) {
                 continue;
             }
             expressionsBeforePruning.push_back(expression);
         }
-        expressionsAfterPruning.push_back(buildInfo->keyNodeID);
+        expressionsAfterPruning.push_back(keyNodeID);
         expressionsAfterPruning.push_back(intersect->getIntersectNodeID());
         for (auto& expression : pruneExpressions(expressionsBeforePruning)) {
             expressionsAfterPruning.push_back(expression);
@@ -98,11 +95,8 @@ void ProjectionPushDownOptimizer::visitIntersect(planner::LogicalOperator* op) {
         if (expressionsBeforePruning.size() == expressionsAfterPruning.size()) {
             return;
         }
-        buildInfo->setExpressionsToMaterialize(expressionsAfterPruning);
-        auto childIdx = i + 1; // skip probe
-        auto projection = std::make_shared<LogicalProjection>(
-            std::move(expressionsAfterPruning), intersect->getChild(childIdx));
-        intersect->setChild(childIdx, std::move(projection));
+
+        preAppendProjection(op, childIdx, expressionsAfterPruning);
     }
 }
 
@@ -127,10 +121,7 @@ void ProjectionPushDownOptimizer::visitOrderBy(planner::LogicalOperator* op) {
     if (expressionsBeforePruning.size() == expressionsAfterPruning.size()) {
         return;
     }
-    orderBy->setExpressionsToMaterialize(expressionsAfterPruning);
-    auto projection = std::make_shared<LogicalProjection>(
-        std::move(expressionsAfterPruning), orderBy->getChild(0));
-    orderBy->setChild(0, std::move(projection));
+    preAppendProjection(op, 0, expressionsAfterPruning);
 }
 
 void ProjectionPushDownOptimizer::visitUnwind(planner::LogicalOperator* op) {
@@ -216,6 +207,14 @@ binder::expression_vector ProjectionPushDownOptimizer::pruneExpressions(
         }
     }
     return expression_vector{expressionsAfterPruning.begin(), expressionsAfterPruning.end()};
+}
+
+void ProjectionPushDownOptimizer::preAppendProjection(
+    planner::LogicalOperator* op, uint32_t childIdx, binder::expression_vector expressions) {
+    auto projection =
+        std::make_shared<LogicalProjection>(std::move(expressions), op->getChild(childIdx));
+    projection->computeFlatSchema();
+    op->setChild(childIdx, std::move(projection));
 }
 
 } // namespace optimizer

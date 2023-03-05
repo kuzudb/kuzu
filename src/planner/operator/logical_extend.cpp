@@ -18,7 +18,7 @@ f_group_pos_set LogicalExtend::getGroupsPosToFlatten() {
     return result;
 }
 
-void LogicalExtend::computeSchema() {
+void LogicalExtend::computeFactorizedSchema() {
     copyChildSchema(0);
     auto boundGroupPos = schema->getGroupPos(boundNode->getInternalIDPropertyName());
     uint32_t nbrGroupPos = 0u;
@@ -31,6 +31,14 @@ void LogicalExtend::computeSchema() {
     schema->insertToGroupAndScope(nbrNode->getInternalIDProperty(), nbrGroupPos);
     for (auto& property : properties) {
         schema->insertToGroupAndScope(property, nbrGroupPos);
+    }
+}
+
+void LogicalExtend::computeFlatSchema() {
+    copyChildSchema(0);
+    schema->insertToGroupAndScope(nbrNode->getInternalIDProperty(), 0);
+    for (auto& property : properties) {
+        schema->insertToGroupAndScope(property, 0);
     }
 }
 

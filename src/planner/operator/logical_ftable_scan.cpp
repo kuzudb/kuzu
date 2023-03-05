@@ -3,7 +3,7 @@
 namespace kuzu {
 namespace planner {
 
-void LogicalFTableScan::computeSchema() {
+void LogicalFTableScan::computeFactorizedSchema() {
     createEmptySchema();
     for (auto [prevPos, expressions] : populateGroupPosToExpressionsMap()) {
         auto newPos = schema->createGroup();
@@ -11,6 +11,14 @@ void LogicalFTableScan::computeSchema() {
         if (schemaToScanFrom->getGroup(prevPos)->isFlat()) {
             schema->setGroupAsSingleState(newPos);
         }
+    }
+}
+
+void LogicalFTableScan::computeFlatSchema() {
+    createEmptySchema();
+    schema->createGroup();
+    for (auto& expression : expressionsToScan) {
+        schema->insertToGroupAndScope(expression, 0);
     }
 }
 

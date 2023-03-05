@@ -15,7 +15,8 @@ public:
         : LogicalOperator{LogicalOperatorType::COPY_CSV},
           copyDescription{copyDescription}, tableID{tableID}, tableName{std::move(tableName)} {}
 
-    inline void computeSchema() override { createEmptySchema(); }
+    inline void computeFactorizedSchema() override { createEmptySchema(); }
+    inline void computeFlatSchema() override { createEmptySchema(); }
 
     inline std::string getExpressionsForPrinting() const override { return tableName; }
 

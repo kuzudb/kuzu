@@ -13,7 +13,8 @@ public:
 
     f_group_pos_set getGroupsPosToFlatten();
 
-    inline void computeSchema() override { copyChildSchema(0); }
+    inline void computeFactorizedSchema() override { copyChildSchema(0); }
+    inline void computeFlatSchema() override { copyChildSchema(0); }
 
     inline std::string getExpressionsForPrinting() const override {
         return std::to_string(skipNumber);

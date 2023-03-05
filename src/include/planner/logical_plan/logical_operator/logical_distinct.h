@@ -13,9 +13,10 @@ public:
         : LogicalOperator{LogicalOperatorType::DISTINCT, std::move(child)},
           expressionsToDistinct{std::move(expressionsToDistinct)} {}
 
-    f_group_pos_set getGroupsPosToFlatten();
+    void computeFactorizedSchema() override;
+    void computeFlatSchema() override;
 
-    void computeSchema() override;
+    f_group_pos_set getGroupsPosToFlatten();
 
     std::string getExpressionsForPrinting() const override;
 

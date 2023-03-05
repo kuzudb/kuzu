@@ -13,7 +13,8 @@ public:
         : LogicalOperator{LogicalOperatorType::CROSS_PRODUCT, std::move(probeSideChild),
               std::move(buildSideChild)} {}
 
-    void computeSchema() override;
+    void computeFactorizedSchema() override;
+    void computeFlatSchema() override;
 
     inline std::string getExpressionsForPrinting() const override { return std::string(); }
 

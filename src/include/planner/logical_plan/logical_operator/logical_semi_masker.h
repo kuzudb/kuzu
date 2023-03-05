@@ -13,7 +13,8 @@ public:
         : LogicalOperator{LogicalOperatorType::SEMI_MASKER, std::move(child)}, nodeID{std::move(
                                                                                    nodeID)} {}
 
-    inline void computeSchema() override { copyChildSchema(0); }
+    inline void computeFactorizedSchema() override { copyChildSchema(0); }
+    inline void computeFlatSchema() override { copyChildSchema(0); }
 
     inline std::string getExpressionsForPrinting() const override { return nodeID->toString(); }
 

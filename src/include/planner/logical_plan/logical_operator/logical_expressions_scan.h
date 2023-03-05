@@ -14,7 +14,8 @@ public:
         : LogicalOperator{LogicalOperatorType::EXPRESSIONS_SCAN}, expressions{
                                                                       std::move(expressions)} {}
 
-    void computeSchema() override;
+    void computeFactorizedSchema() override;
+    void computeFlatSchema() override;
 
     inline std::string getExpressionsForPrinting() const override {
         return binder::ExpressionUtil::toString(expressions);

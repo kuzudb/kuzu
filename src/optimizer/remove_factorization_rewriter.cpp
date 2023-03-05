@@ -23,8 +23,9 @@ std::shared_ptr<planner::LogicalOperator> RemoveFactorizationRewriter::visitOper
     for (auto i = 0; i < op->getNumChildren(); ++i) {
         op->setChild(i, visitOperator(op->getChild(i)));
     }
-    assert(op->getSchema() == nullptr);
-    return visitOperatorReplaceSwitch(op);
+    auto result = visitOperatorReplaceSwitch(op);
+    result->computeFlatSchema();
+    return result;
 }
 
 std::shared_ptr<planner::LogicalOperator> RemoveFactorizationRewriter::visitFlattenReplace(

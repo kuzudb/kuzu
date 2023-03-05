@@ -33,10 +33,18 @@ f_group_pos_set LogicalOrderBy::getGroupsPosToFlatten() {
     return f_group_pos_set{};
 }
 
-void LogicalOrderBy::computeSchema() {
-    auto childSchema = children[0]->getSchema();
-    schema = std::make_unique<Schema>();
-    SinkOperatorUtil::recomputeSchema(*childSchema, expressionsToMaterialize, *schema);
+void LogicalOrderBy::computeFactorizedSchema() {
+    createEmptySchema();
+    SinkOperatorUtil::recomputeSchema(
+        *children[0]->getSchema(), getExpressionsToMaterialize(), *schema);
+}
+
+void LogicalOrderBy::computeFlatSchema() {
+    createEmptySchema();
+    schema->createGroup();
+    for (auto& expression : children[0]->getSchema()->getExpressionsInScope()) {
+        schema->insertToScope(expression, 0);
+    }
 }
 
 } // namespace planner

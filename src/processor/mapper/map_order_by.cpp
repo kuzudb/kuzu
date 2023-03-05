@@ -13,7 +13,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOrderByToPhysical(
     LogicalOperator* logicalOperator) {
     auto& logicalOrderBy = (LogicalOrderBy&)*logicalOperator;
     auto outSchema = logicalOrderBy.getSchema();
-    auto inSchema = logicalOrderBy.getSchemaBeforeOrderBy();
+    auto inSchema = logicalOrderBy.getChild(0)->getSchema();
     auto prevOperator = mapLogicalOperatorToPhysical(logicalOrderBy.getChild(0));
     auto paramsString = logicalOrderBy.getExpressionsForPrinting();
     std::vector<std::pair<DataPos, common::DataType>> keysPosAndType;
@@ -31,7 +31,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOrderByToPhysical(
         outVectorPos.emplace_back(outSchema->getExpressionPos(*expression));
     }
     // See comment in planOrderBy in projectionPlanner.cpp
-    auto mayContainUnflatKey = logicalOrderBy.getSchemaBeforeOrderBy()->getNumGroups() == 1;
+    auto mayContainUnflatKey = inSchema->getNumGroups() == 1;
     auto orderByDataInfo = OrderByDataInfo(keysPosAndType, payloadsPosAndType, isPayloadFlat,
         logicalOrderBy.getIsAscOrders(), mayContainUnflatKey);
     auto orderBySharedState = std::make_shared<SharedFactorizedTablesAndSortedKeyBlocks>();

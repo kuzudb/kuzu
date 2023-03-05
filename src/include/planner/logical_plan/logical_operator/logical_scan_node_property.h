@@ -13,7 +13,8 @@ public:
         : LogicalOperator{LogicalOperatorType::SCAN_NODE_PROPERTY, std::move(child)},
           node{std::move(node)}, properties{std::move(properties)} {}
 
-    void computeSchema() override;
+    void computeFactorizedSchema() override;
+    void computeFlatSchema() override;
 
     inline std::string getExpressionsForPrinting() const override {
         return binder::ExpressionUtil::toString(properties);

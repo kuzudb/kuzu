@@ -130,7 +130,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalHashJoinToPhysical(
     LogicalOperator* logicalOperator) {
     auto hashJoin = (LogicalHashJoin*)logicalOperator;
     auto outSchema = hashJoin->getSchema();
-    auto buildSchema = hashJoin->getBuildSideSchema();
+    auto buildSchema = hashJoin->getChild(1)->getSchema();
     auto buildSidePrevOperator = mapLogicalOperatorToPhysical(hashJoin->getChild(1));
     auto probeSidePrevOperator = mapLogicalOperatorToPhysical(hashJoin->getChild(0));
     // Populate build side and probe side std::vector positions

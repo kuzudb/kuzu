@@ -262,16 +262,15 @@ void QueryPlanner::planSubqueryIfNecessary(
 }
 
 void QueryPlanner::appendAccumulate(LogicalPlan& plan) {
-    auto sink = make_shared<LogicalAccumulate>(
-        plan.getSchema()->getExpressionsInScope(), plan.getLastOperator());
-    sink->computeSchema();
+    auto sink = make_shared<LogicalAccumulate>(plan.getLastOperator());
+    sink->computeFactorizedSchema();
     plan.setLastOperator(sink);
 }
 
 void QueryPlanner::appendExpressionsScan(const expression_vector& expressions, LogicalPlan& plan) {
     assert(plan.isEmpty());
     auto expressionsScan = make_shared<LogicalExpressionsScan>(expressions);
-    expressionsScan->computeSchema();
+    expressionsScan->computeFactorizedSchema();
     plan.setLastOperator(std::move(expressionsScan));
 }
 
@@ -280,7 +279,7 @@ void QueryPlanner::appendDistinct(
     auto distinct = make_shared<LogicalDistinct>(expressionsToDistinct, plan.getLastOperator());
     QueryPlanner::appendFlattens(distinct->getGroupsPosToFlatten(), plan);
     distinct->setChild(0, plan.getLastOperator());
-    distinct->computeSchema();
+    distinct->computeFactorizedSchema();
     plan.setLastOperator(std::move(distinct));
 }
 
@@ -289,7 +288,7 @@ void QueryPlanner::appendUnwind(BoundUnwindClause& boundUnwindClause, LogicalPla
         boundUnwindClause.getAliasExpression(), plan.getLastOperator());
     QueryPlanner::appendFlattens(unwind->getGroupsPosToFlatten(), plan);
     unwind->setChild(0, plan.getLastOperator());
-    unwind->computeSchema();
+    unwind->computeFactorizedSchema();
     plan.setLastOperator(unwind);
 }
 
@@ -305,7 +304,7 @@ void QueryPlanner::appendFlattenIfNecessary(f_group_pos groupPos, LogicalPlan& p
         return;
     }
     auto flatten = make_shared<LogicalFlatten>(groupPos, plan.getLastOperator());
-    flatten->computeSchema();
+    flatten->computeFactorizedSchema();
     // update cardinality estimation info
     plan.multiplyCardinality(group->getMultiplier());
     plan.setLastOperator(std::move(flatten));
@@ -316,7 +315,7 @@ void QueryPlanner::appendFilter(const std::shared_ptr<Expression>& expression, L
     auto filter = make_shared<LogicalFilter>(expression, plan.getLastOperator());
     QueryPlanner::appendFlattens(filter->getGroupsPosToFlatten(), plan);
     filter->setChild(0, plan.getLastOperator());
-    filter->computeSchema();
+    filter->computeFactorizedSchema();
     plan.multiplyCardinality(EnumeratorKnobs::PREDICATE_SELECTIVITY);
     plan.setLastOperator(std::move(filter));
 }
@@ -335,7 +334,7 @@ void QueryPlanner::appendScanNodePropIfNecessary(const expression_vector& proper
     }
     auto scanNodeProperty = make_shared<LogicalScanNodeProperty>(
         std::move(node), std::move(propertyExpressionToScan), plan.getLastOperator());
-    scanNodeProperty->computeSchema();
+    scanNodeProperty->computeFactorizedSchema();
     plan.setLastOperator(std::move(scanNodeProperty));
 }
 
@@ -355,7 +354,7 @@ std::unique_ptr<LogicalPlan> QueryPlanner::createUnionPlan(
         appendFlattens(union_->getGroupsPosToFlatten(i), *childrenPlans[i]);
         union_->setChild(i, childrenPlans[i]->getLastOperator());
     }
-    union_->computeSchema();
+    union_->computeFactorizedSchema();
     plan->setLastOperator(union_);
     if (!isUnionAll) {
         appendDistinct(union_->getExpressionsToUnion(), *plan);
