@@ -27,37 +27,40 @@ namespace planner {
 std::unique_ptr<LogicalPlan> Planner::getBestPlan(const Catalog& catalog,
     const NodesStatisticsAndDeletedIDs& nodesStatistics, const RelsStatistics& relsStatistics,
     const BoundStatement& statement) {
+    std::unique_ptr<LogicalPlan> plan;
     switch (statement.getStatementType()) {
     case StatementType::QUERY: {
-        return QueryPlanner(catalog, nodesStatistics, relsStatistics).getBestPlan(statement);
-    }
+        plan = QueryPlanner(catalog, nodesStatistics, relsStatistics).getBestPlan(statement);
+    } break;
     case StatementType::CREATE_NODE_CLAUSE: {
-        return planCreateNodeTable(statement);
-    }
+        plan = planCreateNodeTable(statement);
+    } break;
     case StatementType::CREATE_REL_CLAUSE: {
-        return planCreateRelTable(statement);
-    }
+        plan = planCreateRelTable(statement);
+    } break;
     case StatementType::COPY_CSV: {
-        return planCopy(statement);
-    }
+        plan = planCopy(statement);
+    } break;
     case StatementType::DROP_TABLE: {
-        return planDropTable(statement);
-    }
+        plan = planDropTable(statement);
+    } break;
     case StatementType::RENAME_TABLE: {
-        return planRenameTable(statement);
-    }
+        plan = planRenameTable(statement);
+    } break;
     case StatementType::ADD_PROPERTY: {
-        return planAddProperty(statement);
-    }
+        plan = planAddProperty(statement);
+    } break;
     case StatementType::DROP_PROPERTY: {
-        return planDropProperty(statement);
-    }
+        plan = planDropProperty(statement);
+    } break;
     case StatementType::RENAME_PROPERTY: {
-        return planRenameProperty(statement);
-    }
+        plan = planRenameProperty(statement);
+    } break;
     default:
-        assert(false);
+        throw common::NotImplementedException("getBestPlan()");
     }
+    // Avoid sharing operator across plans.
+    return plan->deepCopy();
 }
 
 std::vector<std::unique_ptr<LogicalPlan>> Planner::getAllPlans(const Catalog& catalog,
@@ -66,7 +69,13 @@ std::vector<std::unique_ptr<LogicalPlan>> Planner::getAllPlans(const Catalog& ca
     // We enumerate all plans for our testing framework. This API should only be used for QUERY
     // but not DDL or COPY_CSV.
     assert(statement.getStatementType() == StatementType::QUERY);
-    return QueryPlanner(catalog, nodesStatistics, relsStatistics).getAllPlans(statement);
+    auto planner = QueryPlanner(catalog, nodesStatistics, relsStatistics);
+    std::vector<std::unique_ptr<LogicalPlan>> plans;
+    for (auto& plan : planner.getAllPlans(statement)) {
+        // Avoid sharing operator across plans.
+        plans.push_back(plan->deepCopy());
+    }
+    return plans;
 }
 
 std::unique_ptr<LogicalPlan> Planner::planCreateNodeTable(const BoundStatement& statement) {
@@ -75,7 +84,6 @@ std::unique_ptr<LogicalPlan> Planner::planCreateNodeTable(const BoundStatement& 
     auto createNodeTable = make_shared<LogicalCreateNodeTable>(createNodeClause.getTableName(),
         createNodeClause.getPropertyNameDataTypes(), createNodeClause.getPrimaryKeyIdx(),
         statement.getStatementResult()->getSingleExpressionToCollect());
-    createNodeTable->computeSchema();
     plan->setLastOperator(std::move(createNodeTable));
     return plan;
 }
@@ -87,7 +95,6 @@ std::unique_ptr<LogicalPlan> Planner::planCreateRelTable(const BoundStatement& s
         createRelClause.getPropertyNameDataTypes(), createRelClause.getRelMultiplicity(),
         createRelClause.getSrcTableID(), createRelClause.getDstTableID(),
         statement.getStatementResult()->getSingleExpressionToCollect());
-    createRelTable->computeSchema();
     plan->setLastOperator(std::move(createRelTable));
     return plan;
 }
@@ -98,7 +105,6 @@ std::unique_ptr<LogicalPlan> Planner::planDropTable(const BoundStatement& statem
     auto dropTable =
         make_shared<LogicalDropTable>(dropTableClause.getTableID(), dropTableClause.getTableName(),
             statement.getStatementResult()->getSingleExpressionToCollect());
-    dropTable->computeSchema();
     plan->setLastOperator(std::move(dropTable));
     return plan;
 }
@@ -109,7 +115,6 @@ std::unique_ptr<LogicalPlan> Planner::planRenameTable(const BoundStatement& stat
     auto renameTable = make_shared<LogicalRenameTable>(renameTableClause.getTableID(),
         renameTableClause.getTableName(), renameTableClause.getNewName(),
         statement.getStatementResult()->getSingleExpressionToCollect());
-    renameTable->computeSchema();
     plan->setLastOperator(std::move(renameTable));
     return plan;
 }
@@ -121,7 +126,6 @@ std::unique_ptr<LogicalPlan> Planner::planAddProperty(const BoundStatement& stat
         addPropertyClause.getPropertyName(), addPropertyClause.getDataType(),
         addPropertyClause.getDefaultValue(), addPropertyClause.getTableName(),
         statement.getStatementResult()->getSingleExpressionToCollect());
-    addProperty->computeSchema();
     plan->setLastOperator(std::move(addProperty));
     return plan;
 }
@@ -132,7 +136,6 @@ std::unique_ptr<LogicalPlan> Planner::planDropProperty(const BoundStatement& sta
     auto dropProperty = make_shared<LogicalDropProperty>(dropPropertyClause.getTableID(),
         dropPropertyClause.getPropertyID(), dropPropertyClause.getTableName(),
         statement.getStatementResult()->getSingleExpressionToCollect());
-    dropProperty->computeSchema();
     plan->setLastOperator(std::move(dropProperty));
     return plan;
 }
@@ -144,7 +147,6 @@ std::unique_ptr<LogicalPlan> Planner::planRenameProperty(const BoundStatement& s
         renamePropertyClause.getTableName(), renamePropertyClause.getPropertyID(),
         renamePropertyClause.getNewName(),
         statement.getStatementResult()->getSingleExpressionToCollect());
-    renameProperty->computeSchema();
     plan->setLastOperator(std::move(renameProperty));
     return plan;
 }
@@ -154,7 +156,6 @@ std::unique_ptr<LogicalPlan> Planner::planCopy(const BoundStatement& statement) 
     auto plan = std::make_unique<LogicalPlan>();
     auto copyCSV = make_shared<LogicalCopy>(copyCSVClause.getCopyDescription(),
         copyCSVClause.getTableID(), copyCSVClause.getTableName());
-    copyCSV->computeSchema();
     plan->setLastOperator(std::move(copyCSV));
     return plan;
 }

@@ -77,7 +77,6 @@ public:
     inline LogicalOperatorType getOperatorType() const { return operatorType; }
 
     inline Schema* getSchema() const { return schema.get(); }
-    void computeSchemaRecursive();
     virtual void computeSchema() = 0;
 
     virtual std::string getExpressionsForPrinting() const = 0;
