@@ -1,4 +1,5 @@
 add_kuzu_test(main_test
+        capi_test.cpp
         config_test.cpp
         connection_test.cpp
         csv_output_test.cpp

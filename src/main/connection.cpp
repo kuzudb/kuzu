@@ -267,6 +267,10 @@ std::string Connection::getRelPropertyNames(const std::string& relTableName) {
     return result;
 }
 
+std::unique_ptr<QueryResult> Connection::kuzu_query(const char* queryString) {
+    return query(queryString);
+}
+
 std::unique_ptr<QueryResult> Connection::executeWithParams(PreparedStatement* preparedStatement,
     std::unordered_map<std::string, std::shared_ptr<Value>>& inputParams) {
     lock_t lck{mtx};
