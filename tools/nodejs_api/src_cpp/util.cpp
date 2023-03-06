@@ -1,5 +1,14 @@
 #include "include/util.h"
 
+Napi::Object Util::GetObjectFromProperties(const vector<pair<std::string, unique_ptr<kuzu::common::Value>>>& properties, Napi::Env env) {
+    Napi::Object nodeObj = Napi::Object::New(env);
+    for (auto i = 0u; i < properties.size(); ++i) {
+        auto& [name, value] = properties[i];
+        nodeObj.Set(name, Util::ConvertToNapiObject(*value, env));
+    }
+    return nodeObj;
+}
+
 Napi::Value Util::ConvertToNapiObject(const kuzu::common::Value& value, Napi::Env env) {
     if (value.isNull()) {
         return Napi::Value();
@@ -18,6 +27,23 @@ Napi::Value Util::ConvertToNapiObject(const kuzu::common::Value& value, Napi::En
     case kuzu::common::STRING: {
         return Napi::String::New(env, value.getValue<string>());
     }
+    case kuzu::common::DATE: {
+        auto dateVal = value.getValue<date_t>();
+        return Napi::Date::New(env, kuzu::common::Date::getEpochMicroSeconds(dateVal)
+                                        * (1 / kuzu::common::Interval::MICROS_PER_MSEC));
+    }
+    case kuzu::common::TIMESTAMP: {
+        auto timestampVal = value.getValue<timestamp_t>();
+        return Napi::Date::New(env, timestampVal.value * (1 / kuzu::common::Interval::MICROS_PER_MSEC));
+    }
+    case kuzu::common::INTERVAL: {
+        auto intervalVal = value.getValue<interval_t>();
+        auto days = Interval::DAYS_PER_MONTH * intervalVal.months + intervalVal.days;
+        Napi::Object intervalObj = Napi::Object::New(env);
+        intervalObj.Set("days", Napi::Number::New(env, days));
+        intervalObj.Set("microseconds", Napi::Number::New(env, intervalVal.micros));
+        return intervalObj;
+    }
     case kuzu::common::LIST: {
         auto& listVal = value.getListValReference();
         Napi::Array arr = Napi::Array::New(env, listVal.size());
@@ -26,11 +52,34 @@ Napi::Value Util::ConvertToNapiObject(const kuzu::common::Value& value, Napi::En
         }
         return arr;
     }
-    case kuzu::common::DATE: {
-        auto dateVal = value.getValue<date_t>();
-        int32_t year, month, day;
-        kuzu::common::Date::Convert(dateVal, year, month, day);
-        return Napi::Date::New(env, GetEpochFromDate(year, month, day));
+    case kuzu::common::NODE: {
+        auto nodeVal = value.getValue<NodeVal>();
+        Napi::Object nodeObj = GetObjectFromProperties(nodeVal.getProperties(), env);
+
+        nodeObj.Set("_label", Napi::String::New(env, nodeVal.getLabelName()));
+
+        Napi::Object nestedObj = Napi::Object::New(env);
+        nestedObj.Set("offset", Napi::Number::New(env, nodeVal.getNodeID().offset));
+        nestedObj.Set("table", Napi::Number::New(env, nodeVal.getNodeID().tableID));
+        nodeObj.Set("_id", nestedObj);
+
+        return nodeObj;
+    }
+    case kuzu::common::REL: {
+        auto relVal = value.getValue<RelVal>();
+        Napi::Object nodeObj = GetObjectFromProperties(relVal.getProperties(), env);
+
+        Napi::Object nestedObjSrc = Napi::Object::New(env);
+        nestedObjSrc.Set("offset", Napi::Number::New(env, relVal.getSrcNodeID().offset));
+        nestedObjSrc.Set("table", Napi::Number::New(env, relVal.getSrcNodeID().tableID));
+        nodeObj.Set("_src", nestedObjSrc);
+
+        Napi::Object nestedObjDst = Napi::Object::New(env);
+        nestedObjDst.Set("offset", Napi::Number::New(env, relVal.getDstNodeID().offset));
+        nestedObjDst.Set("table", Napi::Number::New(env, relVal.getDstNodeID().tableID));
+        nodeObj.Set("_dst", nestedObjDst);
+
+        return nodeObj;
     }
     default:
         Napi::TypeError::New(env, "Unsupported type: " + kuzu::common::Types::dataTypeToString(dataType));
@@ -79,7 +128,11 @@ kuzu::common::Value Util::transformNapiValue(Napi::Value val) {
     } else if (val.IsDate()) {
         double dateMilliseconds = val.As<Napi::Date>().ValueOf();
         auto time = kuzu::common::Timestamp::FromEpochMs((int64_t) dateMilliseconds);
-        return Value::createValue<timestamp_t>(time);
+        if (kuzu::common::Timestamp::trunc(kuzu::common::DatePartSpecifier::DAY, time)
+             == time) {
+            return Value::createValue<date_t>(kuzu::common::Timestamp::GetDate(time));
+        }
+       return Value::createValue<timestamp_t>(time);
     } else {
         throw runtime_error("Unknown parameter type " + val.Type());
     }
