@@ -22,7 +22,7 @@ JoinHashTable::JoinHashTable(MemoryManager& memoryManager, uint64_t numKeyColumn
 }
 
 bool JoinHashTable::discardNullFromKeys(
-    const std::vector<std::shared_ptr<ValueVector>>& vectors, uint32_t numKeyVectors) {
+    const std::vector<ValueVector*>& vectors, uint32_t numKeyVectors) {
     bool hasNonNullKeys = true;
     for (auto i = 0u; i < numKeyVectors; i++) {
         if (!NodeIDVector::discardNull(*vectors[i])) {
@@ -35,7 +35,7 @@ bool JoinHashTable::discardNullFromKeys(
 
 // TODO(Guodong): refactor this function to partially re-use FactorizedTable::append, but calculate
 // numTuplesToAppend here.
-void JoinHashTable::append(const std::vector<std::shared_ptr<ValueVector>>& vectorsToAppend) {
+void JoinHashTable::append(const std::vector<ValueVector*>& vectorsToAppend) {
     if (!discardNullFromKeys(vectorsToAppend, numKeyColumns)) {
         return;
     }
@@ -80,8 +80,7 @@ void JoinHashTable::buildHashSlots() {
     }
 }
 
-void JoinHashTable::probe(
-    const std::vector<std::shared_ptr<ValueVector>>& keyVectors, uint8_t** probedTuples) {
+void JoinHashTable::probe(const std::vector<ValueVector*>& keyVectors, uint8_t** probedTuples) {
     assert(keyVectors.size() == numKeyColumns);
     if (getNumTuples() == 0) {
         return;
@@ -92,9 +91,9 @@ void JoinHashTable::probe(
     auto hashVector = std::make_unique<ValueVector>(INT64, &memoryManager);
     std::unique_ptr<ValueVector> tmpHashVector =
         keyVectors.size() == 1 ? nullptr : std::make_unique<ValueVector>(INT64, &memoryManager);
-    function::VectorHashOperations::computeHash(keyVectors[0].get(), hashVector.get());
+    function::VectorHashOperations::computeHash(keyVectors[0], hashVector.get());
     for (auto i = 1u; i < numKeyColumns; i++) {
-        function::VectorHashOperations::computeHash(keyVectors[i].get(), tmpHashVector.get());
+        function::VectorHashOperations::computeHash(keyVectors[i], tmpHashVector.get());
         function::VectorHashOperations::combineHash(
             hashVector.get(), tmpHashVector.get(), hashVector.get());
     }

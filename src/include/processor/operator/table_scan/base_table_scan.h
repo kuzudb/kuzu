@@ -45,7 +45,7 @@ protected:
     std::vector<DataPos> outVecPositions;
     std::vector<uint32_t> colIndicesToScan;
 
-    std::vector<std::shared_ptr<common::ValueVector>> vectorsToScan;
+    std::vector<common::ValueVector*> vectorsToScan;
 };
 
 } // namespace processor

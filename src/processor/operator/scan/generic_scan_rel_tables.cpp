@@ -12,8 +12,8 @@ void RelTableCollection::resetState() {
     nextRelTableIdxToScan = 0;
 }
 
-bool RelTableCollection::scan(const std::shared_ptr<ValueVector>& inVector,
-    std::vector<std::shared_ptr<ValueVector>>& outputVectors, Transaction* transaction) {
+bool RelTableCollection::scan(ValueVector* inVector, const std::vector<ValueVector*>& outputVectors,
+    Transaction* transaction) {
     do {
         if (tableScanStates[currentRelTableIdxToScan]->hasMoreAndSwitchSourceIfNecessary()) {
             assert(tableScanStates[currentRelTableIdxToScan]->relTableDataType ==

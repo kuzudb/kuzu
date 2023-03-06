@@ -1,7 +1,6 @@
 #include "processor/operator/hash_join/hash_join_probe.h"
 
 #include "function/hash/hash_operations.h"
-#include "function/hash/vector_hash_operations.h"
 
 using namespace kuzu::common;
 using namespace kuzu::function::operation;
@@ -12,15 +11,13 @@ namespace processor {
 void HashJoinProbe::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     probeState = std::make_unique<ProbeState>();
     for (auto& keyDataPos : probeDataInfo.keysDataPos) {
-        auto keyVector = resultSet->getValueVector(keyDataPos);
-        keyVectors.push_back(keyVector);
+        keyVectors.push_back(resultSet->getValueVector(keyDataPos).get());
     }
     if (joinType == JoinType::MARK) {
         markVector = resultSet->getValueVector(probeDataInfo.markDataPos);
     }
     for (auto& dataPos : probeDataInfo.payloadsOutPos) {
-        auto probePayloadVector = resultSet->getValueVector(dataPos);
-        vectorsToReadInto.push_back(probePayloadVector);
+        vectorsToReadInto.push_back(resultSet->getValueVector(dataPos).get());
     }
     // We only need to read nonKeys from the factorizedTable. Key columns are always kept as first k
     // columns in the factorizedTable, so we skip the first k columns.

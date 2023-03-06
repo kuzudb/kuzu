@@ -76,8 +76,8 @@ void DirectedRelTableData::initializeLists(
 }
 
 void DirectedRelTableData::scanColumns(transaction::Transaction* transaction,
-    RelTableScanState& scanState, const std::shared_ptr<ValueVector>& inNodeIDVector,
-    std::vector<std::shared_ptr<ValueVector>>& outputVectors) {
+    RelTableScanState& scanState, common::ValueVector* inNodeIDVector,
+    const std::vector<common::ValueVector*>& outputVectors) {
     // Note: The scan operator should guarantee that the first property in the output is adj column.
     adjColumn->read(transaction, inNodeIDVector, outputVectors[0]);
     NodeIDVector::discardNull(*outputVectors[0]);
@@ -97,8 +97,8 @@ void DirectedRelTableData::scanColumns(transaction::Transaction* transaction,
 }
 
 void DirectedRelTableData::scanLists(transaction::Transaction* transaction,
-    RelTableScanState& scanState, const std::shared_ptr<ValueVector>& inNodeIDVector,
-    std::vector<std::shared_ptr<ValueVector>>& outputVectors) {
+    RelTableScanState& scanState, ValueVector* inNodeIDVector,
+    const std::vector<common::ValueVector*>& outputVectors) {
     if (scanState.syncState->isBoundNodeOffsetInValid()) {
         auto currentIdx = inNodeIDVector->state->selVector->selectedPositions[0];
         if (inNodeIDVector->isNull(currentIdx)) {
@@ -125,9 +125,8 @@ void DirectedRelTableData::scanLists(transaction::Transaction* transaction,
     }
 }
 
-void DirectedRelTableData::insertRel(const std::shared_ptr<ValueVector>& boundVector,
-    const std::shared_ptr<ValueVector>& nbrVector,
-    const std::vector<std::shared_ptr<ValueVector>>& relPropertyVectors) {
+void DirectedRelTableData::insertRel(common::ValueVector* boundVector,
+    common::ValueVector* nbrVector, const std::vector<common::ValueVector*>& relPropertyVectors) {
     if (!isSingleMultiplicity()) {
         return;
     }
@@ -150,7 +149,7 @@ void DirectedRelTableData::insertRel(const std::shared_ptr<ValueVector>& boundVe
     }
 }
 
-void DirectedRelTableData::deleteRel(const std::shared_ptr<ValueVector>& boundVector) {
+void DirectedRelTableData::deleteRel(ValueVector* boundVector) {
     if (!isSingleMultiplicity()) {
         return;
     }
@@ -162,8 +161,8 @@ void DirectedRelTableData::deleteRel(const std::shared_ptr<ValueVector>& boundVe
     }
 }
 
-void DirectedRelTableData::updateRel(const std::shared_ptr<ValueVector>& boundVector,
-    property_id_t propertyID, const std::shared_ptr<ValueVector>& propertyVector) {
+void DirectedRelTableData::updateRel(
+    ValueVector* boundVector, property_id_t propertyID, ValueVector* propertyVector) {
     if (!isSingleMultiplicity()) {
         return;
     }
@@ -261,18 +260,16 @@ void RelTable::rollbackInMemoryIfNecessary() {
 
 // This function assumes that the order of vectors in relPropertyVectorsPerRelTable as:
 // [relProp1, relProp2, ..., relPropN] and all vectors are flat.
-void RelTable::insertRel(const std::shared_ptr<ValueVector>& srcNodeIDVector,
-    const std::shared_ptr<ValueVector>& dstNodeIDVector,
-    const std::vector<std::shared_ptr<ValueVector>>& relPropertyVectors) {
+void RelTable::insertRel(ValueVector* srcNodeIDVector, ValueVector* dstNodeIDVector,
+    const std::vector<ValueVector*>& relPropertyVectors) {
     assert(srcNodeIDVector->state->isFlat() && dstNodeIDVector->state->isFlat());
     fwdRelTableData->insertRel(srcNodeIDVector, dstNodeIDVector, relPropertyVectors);
     bwdRelTableData->insertRel(dstNodeIDVector, srcNodeIDVector, relPropertyVectors);
     listsUpdatesStore->insertRelIfNecessary(srcNodeIDVector, dstNodeIDVector, relPropertyVectors);
 }
 
-void RelTable::deleteRel(const std::shared_ptr<ValueVector>& srcNodeIDVector,
-    const std::shared_ptr<ValueVector>& dstNodeIDVector,
-    const std::shared_ptr<ValueVector>& relIDVector) {
+void RelTable::deleteRel(
+    ValueVector* srcNodeIDVector, ValueVector* dstNodeIDVector, ValueVector* relIDVector) {
     assert(srcNodeIDVector->state->isFlat() && dstNodeIDVector->state->isFlat() &&
            relIDVector->state->isFlat());
     fwdRelTableData->deleteRel(srcNodeIDVector);
@@ -280,10 +277,8 @@ void RelTable::deleteRel(const std::shared_ptr<ValueVector>& srcNodeIDVector,
     listsUpdatesStore->deleteRelIfNecessary(srcNodeIDVector, dstNodeIDVector, relIDVector);
 }
 
-void RelTable::updateRel(const std::shared_ptr<ValueVector>& srcNodeIDVector,
-    const std::shared_ptr<ValueVector>& dstNodeIDVector,
-    const std::shared_ptr<ValueVector>& relIDVector,
-    const std::shared_ptr<ValueVector>& propertyVector, uint32_t propertyID) {
+void RelTable::updateRel(common::ValueVector* srcNodeIDVector, common::ValueVector* dstNodeIDVector,
+    common::ValueVector* relIDVector, common::ValueVector* propertyVector, uint32_t propertyID) {
     assert(srcNodeIDVector->state->isFlat() && dstNodeIDVector->state->isFlat() &&
            relIDVector->state->isFlat() && propertyVector->state->isFlat());
     auto srcNode = srcNodeIDVector->getValue<nodeID_t>(

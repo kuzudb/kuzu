@@ -8,7 +8,7 @@ namespace processor {
 void OrderByScan::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     for (auto dataPos : outVectorPos) {
         auto valueVector = resultSet->getValueVector(dataPos);
-        vectorsToRead.emplace_back(valueVector);
+        vectorsToRead.push_back(valueVector.get());
     }
     initMergedKeyBlockScanState();
 }

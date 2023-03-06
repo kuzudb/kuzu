@@ -98,7 +98,7 @@ FactorizedTable::FactorizedTable(
     }
 }
 
-void FactorizedTable::append(const std::vector<std::shared_ptr<ValueVector>>& vectors) {
+void FactorizedTable::append(const std::vector<ValueVector*>& vectors) {
     auto numTuplesToAppend = computeNumTuplesToAppend(vectors);
     auto appendInfos = allocateFlatTupleBlocks(numTuplesToAppend);
     for (auto i = 0u; i < vectors.size(); i++) {
@@ -126,9 +126,8 @@ uint8_t* FactorizedTable::appendEmptyTuple() {
     return tuplePtr;
 }
 
-void FactorizedTable::scan(std::vector<std::shared_ptr<ValueVector>>& vectors,
-    ft_tuple_idx_t tupleIdx, uint64_t numTuplesToScan,
-    std::vector<ft_col_idx_t>& colIdxesToScan) const {
+void FactorizedTable::scan(std::vector<ValueVector*>& vectors, ft_tuple_idx_t tupleIdx,
+    uint64_t numTuplesToScan, std::vector<ft_col_idx_t>& colIdxesToScan) const {
     assert(tupleIdx + numTuplesToScan <= numTuples);
     assert(vectors.size() == colIdxesToScan.size());
     std::unique_ptr<uint8_t*[]> tuplesToRead = std::make_unique<uint8_t*[]>(numTuplesToScan);
@@ -138,7 +137,7 @@ void FactorizedTable::scan(std::vector<std::shared_ptr<ValueVector>>& vectors,
     return lookup(vectors, colIdxesToScan, tuplesToRead.get(), 0 /* startPos */, numTuplesToScan);
 }
 
-void FactorizedTable::lookup(std::vector<std::shared_ptr<ValueVector>>& vectors,
+void FactorizedTable::lookup(std::vector<ValueVector*>& vectors,
     std::vector<ft_col_idx_t>& colIdxesToScan, uint8_t** tuplesToRead, uint64_t startPos,
     uint64_t numTuplesToRead) const {
     assert(vectors.size() == colIdxesToScan.size());
@@ -156,9 +155,8 @@ void FactorizedTable::lookup(std::vector<std::shared_ptr<ValueVector>>& vectors,
     }
 }
 
-void FactorizedTable::lookup(std::vector<std::shared_ptr<ValueVector>>& vectors,
-    const SelectionVector* selVector, std::vector<ft_col_idx_t>& colIdxesToScan,
-    uint8_t* tupleToRead) const {
+void FactorizedTable::lookup(std::vector<ValueVector*>& vectors, const SelectionVector* selVector,
+    std::vector<ft_col_idx_t>& colIdxesToScan, uint8_t* tupleToRead) const {
     assert(vectors.size() == colIdxesToScan.size());
     for (auto i = 0u; i < colIdxesToScan.size(); i++) {
         ft_col_idx_t colIdx = colIdxesToScan[i];
@@ -170,7 +168,7 @@ void FactorizedTable::lookup(std::vector<std::shared_ptr<ValueVector>>& vectors,
     }
 }
 
-void FactorizedTable::lookup(std::vector<std::shared_ptr<ValueVector>>& vectors,
+void FactorizedTable::lookup(std::vector<ValueVector*>& vectors,
     std::vector<ft_col_idx_t>& colIdxesToScan, std::vector<ft_tuple_idx_t>& tupleIdxesToRead,
     uint64_t startPos, uint64_t numTuplesToRead) const {
     assert(vectors.size() == colIdxesToScan.size());
@@ -248,7 +246,7 @@ void FactorizedTable::updateFlatCell(
 }
 
 void FactorizedTable::copySingleValueToVector(ft_tuple_idx_t tupleIdx, ft_col_idx_t colIdx,
-    std::shared_ptr<ValueVector> valueVector, uint32_t posInVector) const {
+    ValueVector* valueVector, uint32_t posInVector) const {
     auto tuple = getTuple(tupleIdx);
     auto isNullInFT = isNonOverflowColNull(tuple + tableSchema->getNullMapOffset(), colIdx);
     valueVector->setNull(posInVector, isNullInFT);
@@ -359,7 +357,7 @@ void FactorizedTable::setOverflowColNull(
 
 // TODO(Guodong): change this function to not use dataChunkPos in ColumnSchema.
 uint64_t FactorizedTable::computeNumTuplesToAppend(
-    const std::vector<std::shared_ptr<ValueVector>>& vectorsToAppend) const {
+    const std::vector<ValueVector*>& vectorsToAppend) const {
     auto unflatDataChunkPos = -1ul;
     auto numTuplesToAppend = 1ul;
     for (auto i = 0u; i < vectorsToAppend.size(); i++) {

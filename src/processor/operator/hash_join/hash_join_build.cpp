@@ -22,12 +22,10 @@ void HashJoinSharedState::mergeLocalHashTable(JoinHashTable& localHashTable) {
 
 void HashJoinBuild::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     for (auto& [pos, dataType] : buildDataInfo.keysPosAndType) {
-        auto keyVector = resultSet->getValueVector(pos);
-        vectorsToAppend.push_back(keyVector);
+        vectorsToAppend.push_back(resultSet->getValueVector(pos).get());
     }
     for (auto& [pos, dataType] : buildDataInfo.payloadsPosAndType) {
-        auto vector = resultSet->getValueVector(pos);
-        vectorsToAppend.push_back(vector);
+        vectorsToAppend.push_back(resultSet->getValueVector(pos).get());
     }
     auto tableSchema = populateTableSchema();
     initLocalHashTable(*context->memoryManager, std::move(tableSchema));

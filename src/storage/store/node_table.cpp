@@ -24,9 +24,8 @@ void NodeTable::initializeData(NodeTableSchema* nodeTableSchema) {
         nodeTableSchema->getPrimaryKey().dataType, bufferManager, wal);
 }
 
-void NodeTable::scan(transaction::Transaction* transaction,
-    const std::shared_ptr<ValueVector>& inputIDVector, const std::vector<uint32_t>& columnIds,
-    std::vector<std::shared_ptr<ValueVector>> outputVectors) {
+void NodeTable::scan(transaction::Transaction* transaction, ValueVector* inputIDVector,
+    const std::vector<uint32_t>& columnIds, std::vector<ValueVector*> outputVectors) {
     assert(columnIds.size() == outputVectors.size());
     for (auto i = 0u; i < columnIds.size(); i++) {
         if (columnIds[i] == UINT32_MAX) {

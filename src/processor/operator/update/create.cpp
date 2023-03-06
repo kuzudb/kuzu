@@ -36,11 +36,13 @@ bool CreateNode::getNextTuplesInternal() {
 void CreateRel::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     for (auto& createRelInfo : createRelInfos) {
         auto createRelVectors = std::make_unique<CreateRelVectors>();
-        createRelVectors->srcNodeIDVector = resultSet->getValueVector(createRelInfo->srcNodePos);
-        createRelVectors->dstNodeIDVector = resultSet->getValueVector(createRelInfo->dstNodePos);
+        createRelVectors->srcNodeIDVector =
+            resultSet->getValueVector(createRelInfo->srcNodePos).get();
+        createRelVectors->dstNodeIDVector =
+            resultSet->getValueVector(createRelInfo->dstNodePos).get();
         for (auto& evaluator : createRelInfo->evaluators) {
             evaluator->init(*resultSet, context->memoryManager);
-            createRelVectors->propertyVectors.push_back(evaluator->resultVector);
+            createRelVectors->propertyVectors.push_back(evaluator->resultVector.get());
         }
         createRelVectorsPerRel.push_back(std::move(createRelVectors));
     }

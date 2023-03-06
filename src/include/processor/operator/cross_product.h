@@ -38,7 +38,7 @@ private:
     std::vector<uint32_t> colIndicesToScan;
 
     uint64_t startIdx = 0u;
-    std::vector<std::shared_ptr<common::ValueVector>> vectorsToScan;
+    std::vector<common::ValueVector*> vectorsToScan;
 };
 
 } // namespace processor

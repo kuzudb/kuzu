@@ -40,8 +40,7 @@ private:
     // This function resets the dfsLevelInfo at level and adds the dfsLevelInfo to the
     // dfsStack if the parent has adjacent nodes. The function returns true if the
     // parent has adjacent nodes, otherwise returns false.
-    bool addDFSLevelToStackIfParentExtends(
-        std::shared_ptr<common::ValueVector>& parentValueVector, uint8_t level);
+    bool addDFSLevelToStackIfParentExtends(common::ValueVector* parentValueVector, uint8_t level);
 };
 
 } // namespace processor

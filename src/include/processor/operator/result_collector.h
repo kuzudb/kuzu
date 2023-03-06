@@ -74,7 +74,7 @@ private:
 private:
     std::vector<std::pair<DataPos, common::DataType>> payloadsPosAndType;
     std::vector<bool> isPayloadFlat;
-    std::vector<std::shared_ptr<common::ValueVector>> vectorsToCollect;
+    std::vector<common::ValueVector*> vectorsToCollect;
     std::shared_ptr<FTableSharedState> sharedState;
     std::unique_ptr<FactorizedTable> localTable;
 };

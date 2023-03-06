@@ -232,7 +232,7 @@ private:
     bool hasStrCol = false;
     // Temporary arrays to hold intermediate results.
     std::shared_ptr<common::DataChunkState> hashState;
-    std::shared_ptr<common::ValueVector> hashVector;
+    std::unique_ptr<common::ValueVector> hashVector;
     std::unique_ptr<HashSlot*[]> hashSlotsToUpdateAggState;
     std::unique_ptr<uint64_t[]> tmpValueIdxes;
     std::unique_ptr<uint64_t[]> entryIdxesToInitialize;

@@ -82,10 +82,10 @@ public:
             }
         }
         dataChunk->insert(0, valueVector);
-        std::vector<std::shared_ptr<ValueVector>> orderByVectors{
-            valueVector}; // only contains order_by columns
-        std::vector<std::shared_ptr<ValueVector>> allVectors{
-            valueVector}; // all columns including order_by and payload columns
+        std::vector<ValueVector*> orderByVectors{
+            valueVector.get()}; // only contains order_by columns
+        std::vector<ValueVector*> allVectors{
+            valueVector.get()}; // all columns including order_by and payload columns
         std::vector<bool> isAscOrder{isAsc};
 
         std::unique_ptr<FactorizedTableSchema> tableSchema =
@@ -103,7 +103,7 @@ public:
             dataChunk->insert(1, payloadValueVector);
             // To test whether the orderByCol -> ftIdx works properly, we put the
             // payload column at index 0, and the orderByCol at index 1.
-            allVectors.insert(allVectors.begin(), payloadValueVector);
+            allVectors.insert(allVectors.begin(), payloadValueVector.get());
             tableSchema->appendColumn(std::make_unique<ColumnSchema>(
                 false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(dataTypeID)));
             strKeyColsInfo.emplace_back(
@@ -136,7 +136,7 @@ public:
     void multipleOrderByColSolveTieTest(std::vector<bool>& isAscOrder,
         std::vector<uint64_t>& expectedBlockOffsetOrder,
         std::vector<std::vector<std::string>>& stringValues) {
-        std::vector<std::shared_ptr<ValueVector>> orderByVectors;
+        std::vector<ValueVector*> orderByVectors;
         auto mockDataChunk = std::make_shared<DataChunk>(stringValues.size());
         mockDataChunk->state->currIdx = 0;
         std::unique_ptr<FactorizedTableSchema> tableSchema =
@@ -154,7 +154,7 @@ public:
             for (auto j = 0u; j < stringValues[i].size(); j++) {
                 stringValueVector->setValue(j, stringValues[i][j]);
             }
-            orderByVectors.emplace_back(stringValueVector);
+            orderByVectors.emplace_back(stringValueVector.get());
         }
 
         FactorizedTable factorizedTable(memoryManager.get(), std::move(tableSchema));
@@ -352,9 +352,8 @@ TEST_F(RadixSortTest, multipleOrderByColNoTieTest) {
     timestampFlatValueVector->state->currIdx = 0;
     dateFlatValueVector->state->currIdx = 0;
 
-    std::vector<std::shared_ptr<ValueVector>> orderByVectors{intFlatValueVector,
-        doubleFlatValueVector, stringFlatValueVector, timestampFlatValueVector,
-        dateFlatValueVector};
+    std::vector<ValueVector*> orderByVectors{intFlatValueVector.get(), doubleFlatValueVector.get(),
+        stringFlatValueVector.get(), timestampFlatValueVector.get(), dateFlatValueVector.get()};
     intFlatValueVector->setValue(0, (int64_t)41);
     intFlatValueVector->setValue(1, (int64_t)-132);
     intFlatValueVector->setValue(2, (int64_t)41);

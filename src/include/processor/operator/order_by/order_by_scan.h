@@ -49,7 +49,7 @@ private:
 private:
     std::vector<DataPos> outVectorPos;
     std::shared_ptr<SharedFactorizedTablesAndSortedKeyBlocks> sharedState;
-    std::vector<std::shared_ptr<common::ValueVector>> vectorsToRead;
+    std::vector<common::ValueVector*> vectorsToRead;
     std::unique_ptr<MergedKeyBlockScanState> mergedKeyBlockScanState;
 };
 

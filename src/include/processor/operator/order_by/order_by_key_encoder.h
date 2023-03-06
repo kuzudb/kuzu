@@ -45,7 +45,7 @@ using encode_function_t = std::function<void(const uint8_t*, uint8_t*, bool)>;
 class OrderByKeyEncoder {
 
 public:
-    OrderByKeyEncoder(std::vector<std::shared_ptr<common::ValueVector>>& orderByVectors,
+    OrderByKeyEncoder(std::vector<common::ValueVector*>& orderByVectors,
         std::vector<bool>& isAscOrder, storage::MemoryManager* memoryManager, uint8_t ftIdx,
         uint32_t numTuplesPerBlockInFT, uint32_t numBytesPerTuple);
 
@@ -56,6 +56,8 @@ public:
     inline uint32_t getMaxNumTuplesPerBlock() const { return maxNumTuplesPerBlock; }
 
     inline uint32_t getNumTuplesInCurBlock() const { return keyBlocks.back()->numTuples; }
+
+    static uint32_t getNumBytesPerTuple(const std::vector<common::ValueVector*>& keyVectors);
 
     static inline uint32_t getEncodedFTBlockIdx(const uint8_t* tupleInfoPtr) {
         return *(uint32_t*)tupleInfoPtr;
@@ -104,14 +106,13 @@ private:
     void flipBytesIfNecessary(
         uint32_t keyColIdx, uint8_t* tuplePtr, uint32_t numEntriesToEncode, common::DataType& type);
 
-    void encodeFlatVector(
-        std::shared_ptr<common::ValueVector> vector, uint8_t* tuplePtr, uint32_t keyColIdx);
+    void encodeFlatVector(common::ValueVector* vector, uint8_t* tuplePtr, uint32_t keyColIdx);
 
-    void encodeUnflatVector(std::shared_ptr<common::ValueVector> vector, uint8_t* tuplePtr,
-        uint32_t encodedTuples, uint32_t numEntriesToEncode, uint32_t keyColIdx);
+    void encodeUnflatVector(common ::ValueVector* vector, uint8_t* tuplePtr, uint32_t encodedTuples,
+        uint32_t numEntriesToEncode, uint32_t keyColIdx);
 
-    void encodeVector(std::shared_ptr<common::ValueVector> vector, uint8_t* tuplePtr,
-        uint32_t encodedTuples, uint32_t numEntriesToEncode, uint32_t keyColIdx);
+    void encodeVector(common::ValueVector* vector, uint8_t* tuplePtr, uint32_t encodedTuples,
+        uint32_t numEntriesToEncode, uint32_t keyColIdx);
 
     void encodeFTIdx(uint32_t numEntriesToEncode, uint8_t* tupleInfoPtr);
 
@@ -122,7 +123,7 @@ private:
 private:
     storage::MemoryManager* memoryManager;
     std::vector<std::shared_ptr<DataBlock>> keyBlocks;
-    std::vector<std::shared_ptr<common::ValueVector>>& orderByVectors;
+    std::vector<common::ValueVector*>& orderByVectors;
     std::vector<bool> isAscOrder;
     uint32_t numBytesPerTuple;
     uint32_t maxNumTuplesPerBlock;

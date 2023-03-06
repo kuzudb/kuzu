@@ -26,7 +26,7 @@ void ResultCollector::initLocalStateInternal(ResultSet* resultSet, ExecutionCont
     for (auto [dataPos, _] : payloadsPosAndType) {
         auto vector =
             resultSet->dataChunks[dataPos.dataChunkPos]->valueVectors[dataPos.valueVectorPos];
-        vectorsToCollect.push_back(vector);
+        vectorsToCollect.push_back(vector.get());
     }
     localTable = std::make_unique<FactorizedTable>(context->memoryManager, populateTableSchema());
 }

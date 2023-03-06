@@ -72,10 +72,10 @@ public:
         }
         dataChunk->insert(0, valueVector);
 
-        std::vector<std::shared_ptr<ValueVector>> orderByVectors{
-            valueVector}; // only contains order_by columns
-        std::vector<std::shared_ptr<ValueVector>> allVectors{
-            valueVector}; // all columns including order_by and payload columns
+        std::vector<ValueVector*> orderByVectors{
+            valueVector.get()}; // only contains order_by columns
+        std::vector<ValueVector*> allVectors{
+            valueVector.get()}; // all columns including order_by and payload columns
 
         std::unique_ptr<FactorizedTableSchema> tableSchema =
             std::make_unique<FactorizedTableSchema>();
@@ -90,7 +90,7 @@ public:
             dataChunk->insert(1, payloadValueVector);
             // To test whether the orderByCol -> factorizedTableColIdx works properly, we put the
             // payload column at index 0, and the orderByCol at index 1.
-            allVectors.insert(allVectors.begin(), payloadValueVector);
+            allVectors.insert(allVectors.begin(), payloadValueVector.get());
             tableSchema->appendColumn(std::make_unique<ColumnSchema>(
                 false, 0 /* dataChunkPos */, Types::getDataTypeSize(dataTypeID)));
         }
@@ -159,9 +159,9 @@ public:
     OrderByKeyEncoder prepareMultipleOrderByColsEncoder(uint16_t factorizedTableIdx,
         std::vector<std::shared_ptr<FactorizedTable>>& factorizedTables,
         std::shared_ptr<DataChunk>& dataChunk, std::unique_ptr<FactorizedTableSchema> tableSchema) {
-        std::vector<std::shared_ptr<ValueVector>> orderByVectors;
+        std::vector<ValueVector*> orderByVectors;
         for (auto i = 0u; i < dataChunk->getNumValueVectors(); i++) {
-            orderByVectors.emplace_back(dataChunk->getValueVector(i));
+            orderByVectors.emplace_back(dataChunk->getValueVector(i).get());
         }
 
         std::vector<bool> isAscOrder(orderByVectors.size(), true);
@@ -317,12 +317,12 @@ public:
         }
 
         // The first, second, fourth columns are keyColumns.
-        std::vector<std::shared_ptr<ValueVector>> orderByVectors{dataChunk->getValueVector(0),
-            dataChunk->getValueVector(1), dataChunk->getValueVector(3)};
+        std::vector<ValueVector*> orderByVectors{dataChunk->getValueVector(0).get(),
+            dataChunk->getValueVector(1).get(), dataChunk->getValueVector(3).get()};
 
-        std::vector<std::shared_ptr<ValueVector>> allVectors{dataChunk->getValueVector(0),
-            dataChunk->getValueVector(1), dataChunk->getValueVector(2),
-            dataChunk->getValueVector(3)};
+        std::vector<ValueVector*> allVectors{dataChunk->getValueVector(0).get(),
+            dataChunk->getValueVector(1).get(), dataChunk->getValueVector(2).get(),
+            dataChunk->getValueVector(3).get()};
 
         std::unique_ptr<FactorizedTableSchema> tableSchema =
             std::make_unique<FactorizedTableSchema>();

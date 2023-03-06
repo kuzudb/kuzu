@@ -46,16 +46,15 @@ public:
 
 struct ListsUpdateInfo {
 public:
-    ListsUpdateInfo(const std::shared_ptr<common::ValueVector>& propertyVector,
-        common::property_id_t propertyID, common::offset_t relOffset, uint64_t fwdListOffset,
-        uint64_t bwdListOffset)
+    ListsUpdateInfo(common::ValueVector* propertyVector, common::property_id_t propertyID,
+        common::offset_t relOffset, uint64_t fwdListOffset, uint64_t bwdListOffset)
         : propertyVector{propertyVector}, propertyID{propertyID}, relOffset{relOffset},
           fwdListOffset{fwdListOffset}, bwdListOffset{bwdListOffset} {}
 
     bool isStoredInPersistentStore() const { return fwdListOffset != -1 || bwdListOffset != -1; }
 
 public:
-    std::shared_ptr<common::ValueVector> propertyVector;
+    common::ValueVector* propertyVector;
     common::property_id_t propertyID;
     common::offset_t relOffset;
     list_offset_t fwdListOffset;
@@ -101,19 +100,18 @@ public:
 
     // If this is a one-to-one relTable, all properties are stored in columns.
     // In this case, the listsUpdatesStore should not store the insert rels in FT.
-    void insertRelIfNecessary(const std::shared_ptr<common::ValueVector>& srcNodeIDVector,
-        const std::shared_ptr<common::ValueVector>& dstNodeIDVector,
-        const std::vector<std::shared_ptr<common::ValueVector>>& relPropertyVectors);
+    void insertRelIfNecessary(const common::ValueVector* srcNodeIDVector,
+        const common::ValueVector* dstNodeIDVector,
+        const std::vector<common::ValueVector*>& relPropertyVectors);
 
-    void deleteRelIfNecessary(const std::shared_ptr<common::ValueVector>& srcNodeIDVector,
-        const std::shared_ptr<common::ValueVector>& dstNodeIDVector,
-        const std::shared_ptr<common::ValueVector>& relIDVector);
+    void deleteRelIfNecessary(common::ValueVector* srcNodeIDVector,
+        common::ValueVector* dstNodeIDVector, common::ValueVector* relIDVector);
 
     uint64_t getNumInsertedRelsForNodeOffset(
         ListFileID& listFileID, common::offset_t nodeOffset) const;
 
-    void readValues(ListFileID& listFileID, ListHandle& listSyncState,
-        std::shared_ptr<common::ValueVector> valueVector) const;
+    void readValues(
+        ListFileID& listFileID, ListHandle& listSyncState, common::ValueVector* valueVector) const;
 
     bool hasAnyDeletedRelsInPersistentStore(
         ListFileID& listFileID, common::offset_t nodeOffset) const;
@@ -121,12 +119,11 @@ public:
     // This function is called ifNecessary because it only handles the updates to a propertyList.
     // If the property is stored as a column in both direction(e.g. we are updating a ONE-ONE rel
     // table), this function won't do any operations in this case.
-    void updateRelIfNecessary(const std::shared_ptr<common::ValueVector>& srcNodeIDVector,
-        const std::shared_ptr<common::ValueVector>& dstNodeIDVector,
-        const ListsUpdateInfo& listsUpdateInfo);
+    void updateRelIfNecessary(common::ValueVector* srcNodeIDVector,
+        common::ValueVector* dstNodeIDVector, const ListsUpdateInfo& listsUpdateInfo);
 
     void readUpdatesToPropertyVectorIfExists(ListFileID& listFileID, common::offset_t nodeOffset,
-        const std::shared_ptr<common::ValueVector>& valueVector, list_offset_t startListOffset);
+        common::ValueVector* propertyVector, list_offset_t startListOffset);
 
     void readPropertyUpdateToInMemList(ListFileID& listFileID, processor::ft_tuple_idx_t ftTupleIdx,
         InMemList& inMemList, uint64_t posToWriteToInMemList, const common::DataType& dataType,

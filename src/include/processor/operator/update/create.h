@@ -101,9 +101,9 @@ public:
 
 private:
     struct CreateRelVectors {
-        std::shared_ptr<common::ValueVector> srcNodeIDVector;
-        std::shared_ptr<common::ValueVector> dstNodeIDVector;
-        std::vector<std::shared_ptr<common::ValueVector>> propertyVectors;
+        common::ValueVector* srcNodeIDVector;
+        common::ValueVector* dstNodeIDVector;
+        std::vector<common::ValueVector*> propertyVectors;
     };
 
 private:

@@ -91,9 +91,9 @@ public:
 private:
     storage::RelsStatistics& relsStatistics;
     std::vector<std::unique_ptr<DeleteRelInfo>> deleteRelInfos;
-    std::vector<std::shared_ptr<common::ValueVector>> srcNodeVectors;
-    std::vector<std::shared_ptr<common::ValueVector>> dstNodeVectors;
-    std::vector<std::shared_ptr<common::ValueVector>> relIDVectors;
+    std::vector<common::ValueVector*> srcNodeVectors;
+    std::vector<common::ValueVector*> dstNodeVectors;
+    std::vector<common::ValueVector*> relIDVectors;
 };
 
 } // namespace processor

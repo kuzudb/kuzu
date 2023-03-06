@@ -2,7 +2,6 @@
 
 #include "processor/operator/aggregate/base_aggregate.h"
 #include "processor/operator/copy/copy.h"
-#include "processor/operator/ddl/ddl.h"
 #include "processor/operator/result_collector.h"
 #include "processor/operator/sink.h"
 #include "processor/processor_task.h"
@@ -102,7 +101,7 @@ std::shared_ptr<FactorizedTable> QueryProcessor::getFactorizedTableForOutputMsg(
     outputKUStr.set(outputMsg);
     outputMsgVector->setValue(0, outputKUStr);
     outputMsgVector->state->currIdx = 0;
-    factorizedTable->append(std::vector<std::shared_ptr<ValueVector>>{outputMsgVector});
+    factorizedTable->append(std::vector<ValueVector*>{outputMsgVector.get()});
     return factorizedTable;
 }
 

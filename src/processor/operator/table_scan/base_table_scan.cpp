@@ -6,7 +6,7 @@ namespace processor {
 void BaseTableScan::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     for (auto& dataPos : outVecPositions) {
         auto valueVector = resultSet->getValueVector(dataPos);
-        vectorsToScan.push_back(valueVector);
+        vectorsToScan.push_back(valueVector.get());
     }
     setMaxMorselSize();
 }
