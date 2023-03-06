@@ -106,6 +106,10 @@ public:
         return ((int64_t)date.days) * (Interval::MICROS_PER_DAY * Interval::NANOS_PER_MICRO);
     }
 
+    static inline int64_t getEpochMicroSeconds(const date_t& date) {
+        return ((int64_t)date.days) * (Interval::MICROS_PER_DAY);
+    }
+
 private:
     static void ExtractYearOffset(int32_t& n, int32_t& year, int32_t& year_offset);
 };
