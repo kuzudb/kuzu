@@ -38,7 +38,6 @@ KUZU_API struct SystemConfig {
 class Database {
     friend class EmbeddedShell;
     friend class Connection;
-    friend class JOConnection;
     friend class kuzu::testing::BaseGraphTest;
 
 public:

@@ -13,7 +13,6 @@ namespace main {
  */
 class PreparedStatement {
     friend class Connection;
-    friend class JOConnection;
     friend class kuzu::testing::TestHelper;
     friend class kuzu::transaction::TinySnbDDLTest;
     friend class kuzu::transaction::TinySnbCopyCSVTransactionTest;
