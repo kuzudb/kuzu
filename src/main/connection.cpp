@@ -6,6 +6,7 @@
 #include "main/plan_printer.h"
 #include "optimizer/optimizer.h"
 #include "parser/parser.h"
+#include "planner/logical_plan/logical_plan_util.h"
 #include "planner/planner.h"
 #include "processor/mapper/plan_mapper.h"
 #include "processor/processor.h"
@@ -73,8 +74,14 @@ std::unique_ptr<PreparedStatement> Connection::prepare(const std::string& query)
 
 std::unique_ptr<QueryResult> Connection::query(const std::string& query) {
     lock_t lck{mtx};
-    std::unique_ptr<PreparedStatement> preparedStatement;
-    preparedStatement = prepareNoLock(query);
+    auto preparedStatement = prepareNoLock(query);
+    return executeAndAutoCommitIfNecessaryNoLock(preparedStatement.get());
+}
+
+std::unique_ptr<QueryResult> Connection::query(
+    const std::string& query, const std::string& encodedJoin) {
+    lock_t lck{mtx};
+    auto preparedStatement = prepareNoLock(query, true /* enumerate all plans */, encodedJoin);
     return executeAndAutoCommitIfNecessaryNoLock(preparedStatement.get());
 }
 
@@ -138,7 +145,7 @@ void Connection::rollbackIfNecessaryNoLock() {
 }
 
 std::unique_ptr<PreparedStatement> Connection::prepareNoLock(
-    const std::string& query, bool enumerateAllPlans) {
+    const std::string& query, bool enumerateAllPlans, std::string encodedJoin) {
     auto preparedStatement = std::make_unique<PreparedStatement>();
     if (query.empty()) {
         preparedStatement->success = false;
@@ -173,10 +180,24 @@ std::unique_ptr<PreparedStatement> Connection::prepareNoLock(
             plans.push_back(Planner::getBestPlan(
                 *database->catalog, nodeStatistics, relStatistics, *boundStatement));
         }
+        // optimizing
         for (auto& plan : plans) {
             optimizer::Optimizer::optimize(plan.get());
         }
-        preparedStatement->logicalPlans = std::move(plans);
+        if (!encodedJoin.empty()) {
+            std::unique_ptr<LogicalPlan> match;
+            for (auto& plan : plans) {
+                if (LogicalPlanUtil::encodeJoin(*plan) == encodedJoin) {
+                    match = std::move(plan);
+                }
+            }
+            if (match == nullptr) {
+                throw ConnectionException("Cannot find a plan matching " + encodedJoin);
+            }
+            preparedStatement->logicalPlans.push_back(std::move(match));
+        } else {
+            preparedStatement->logicalPlans = std::move(plans);
+        }
     } catch (std::exception& exception) {
         preparedStatement->success = false;
         preparedStatement->errMsg = exception.what();

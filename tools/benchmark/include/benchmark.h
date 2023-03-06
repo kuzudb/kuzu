@@ -1,7 +1,6 @@
 #pragma once
 
 #include "benchmark_config.h"
-#include "jo_connection.h"
 #include "main/kuzu.h"
 
 namespace kuzu {
@@ -26,7 +25,7 @@ private:
 
 public:
     BenchmarkConfig& config;
-    std::unique_ptr<main::JOConnection> conn;
+    std::unique_ptr<main::Connection> conn;
     std::string name;
     std::string query;
     std::vector<std::string> expectedOutput;

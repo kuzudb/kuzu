@@ -7,8 +7,7 @@ set(CMAKE_CXX_STANDARD 20)
 include_directories(
         ../../src/include
         ./include
-        ../../test/test_helper/include
-        ../../tools/join_order_pick/include)
+        ../../test/include/test_helper)
 link_directories(../../build/release/src)
 
 add_executable(kuzu_benchmark
@@ -16,4 +15,4 @@ add_executable(kuzu_benchmark
         benchmark_runner.cpp
         main.cpp)
 
-target_link_libraries(kuzu_benchmark kuzu join_order_pick test_helper)
+target_link_libraries(kuzu_benchmark kuzu test_helper)

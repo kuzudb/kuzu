@@ -16,6 +16,7 @@ class Connection {
     friend class kuzu::testing::ApiTest;
     friend class kuzu::testing::BaseGraphTest;
     friend class kuzu::testing::TestHelper;
+    friend class kuzu::benchmark::Benchmark;
 
 public:
     /**
@@ -129,6 +130,7 @@ protected:
     ConnectionTransactionMode getTransactionMode();
     void setTransactionModeNoLock(ConnectionTransactionMode newTransactionMode);
 
+    std::unique_ptr<QueryResult> query(const std::string& query, const std::string& encodedJoin);
     // Note: This is only added for testing recovery algorithms in unit tests. Do not use
     // this otherwise.
     void commitButSkipCheckpointingForTestingRecovery();
@@ -151,8 +153,8 @@ protected:
 
     std::unique_ptr<QueryResult> queryResultWithError(std::string& errMsg);
 
-    std::unique_ptr<PreparedStatement> prepareNoLock(
-        const std::string& query, bool enumerateAllPlans = false);
+    std::unique_ptr<PreparedStatement> prepareNoLock(const std::string& query,
+        bool enumerateAllPlans = false, std::string joinOrder = std::string{});
 
     template<typename T, typename... Args>
     std::unique_ptr<QueryResult> executeWithParams(PreparedStatement* preparedStatement,
