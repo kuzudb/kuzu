@@ -7,9 +7,9 @@ using namespace kuzu::main;
 
 int main(int argc, char* argv[]) {
     args::ArgumentParser parser("KuzuDB Shell");
+    args::Positional<std::string> inputDirFlag(
+        parser, "databasePath", "Database path.", args::Options::Required);
     args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
-    args::ValueFlag<std::string> inputDirFlag(
-        parser, "", "Database path.", {'i', "inputDir"}, args::Options::Required);
     args::ValueFlag<uint64_t> bpSizeInMBFlag(parser, "",
         "Size of buffer pool for default and large page sizes in megabytes", {'d', "defaultBPSize"},
         -1u);
