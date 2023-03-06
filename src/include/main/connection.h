@@ -73,6 +73,7 @@ public:
      * @return the maximum number of threads to use for execution in the current connection.
      */
     KUZU_API uint64_t getMaxNumThreadForExec();
+
     /**
      * @brief Executes the given query and returns the result.
      * @param query The query to execute.
@@ -125,6 +126,10 @@ public:
      * @return all property names of the given table.
      */
     KUZU_API std::string getRelPropertyNames(const std::string& relTableName);
+
+    // Temporary patching for C-style APIs.
+    // TODO(Change): move this to C-header once we have C-APIs.
+    KUZU_API std::unique_ptr<QueryResult> kuzu_query(const char* queryString);
 
 protected:
     ConnectionTransactionMode getTransactionMode();

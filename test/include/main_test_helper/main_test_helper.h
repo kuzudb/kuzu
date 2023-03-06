@@ -7,7 +7,6 @@ namespace kuzu {
 namespace testing {
 
 class ApiTest : public BaseGraphTest {
-
 public:
     void SetUp() override {
         BaseGraphTest::SetUp();
@@ -29,5 +28,6 @@ public:
         ASSERT_FALSE(result->hasNext());
     }
 };
+
 } // namespace testing
 } // namespace kuzu
