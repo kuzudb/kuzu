@@ -6,7 +6,7 @@
   <a href="https://github.com/kuzudb/kuzu/actions">
     <img src="https://github.com/kuzudb/kuzu/actions/workflows/ci-workflow.yml/badge.svg?branch=master" alt="Github Actions Badge">
   </a>
-  <a href="https://join.slack.com/t/kuzudb/shared_invite/zt-1n67h736q-E3AFGSI4w~ljlFMYr3_Sjg">
+  <a href="https://join.slack.com/t/kuzudb/shared_invite/zt-1qgxnn8ed-9LL7rfKozijOtvw5HyWDlQ">
     <img src="https://img.shields.io/badge/Slack-chat%20with%20us-informational?logo=slack" alt="slack" />
   </a>
   <a href="https://twitter.com/kuzudb">
