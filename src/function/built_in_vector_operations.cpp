@@ -146,16 +146,6 @@ uint32_t BuiltInVectorOperations::castInt64(common::DataTypeID targetTypeID) {
     }
 }
 
-uint32_t BuiltInVectorOperations::implicitCastInt64(common::DataTypeID targetTypeID) {
-    switch (targetTypeID) {
-    case common::FLOAT:
-    case common::DOUBLE:
-        return getTargetTypeCost(targetTypeID);
-    default:
-        return UINT32_MAX;
-    }
-}
-
 uint32_t BuiltInVectorOperations::castInt32(common::DataTypeID targetTypeID) {
     switch (targetTypeID) {
     case common::INT64:

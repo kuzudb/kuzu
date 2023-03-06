@@ -46,6 +46,7 @@ py::array_t<T> PyDatabase::scanNodeTable(
     auto ptr1 = static_cast<uint64_t*>(buf.ptr);
     auto size = indices.size();
     auto nodeOffsets = (offset_t*)ptr1;
+    // TODO(Chang): better to create storageDriver once during construction.
     auto storageDriver = std::make_unique<StorageDriver>(database.get());
     auto scanResult = storageDriver->scan(tableName, propName, nodeOffsets, size);
     auto buffer = (T*)(scanResult.first).get();

@@ -201,122 +201,68 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> CbrtVectorOperation::get
 
 std::vector<std::unique_ptr<VectorOperationDefinition>> GammaVectorOperation::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
-<<<<<<< HEAD
-    result.push_back(getUnaryDefinitionWithPhysicalTypes<operation::Gamma, double_t>(
-        GAMMA_FUNC_NAME, DOUBLE, DOUBLE));
-=======
     result.push_back(
         getUnaryDefinition<operation::Gamma, double_t>(GAMMA_FUNC_NAME, DOUBLE, DOUBLE));
->>>>>>> origin/master
     return result;
 }
 
 std::vector<std::unique_ptr<VectorOperationDefinition>> LgammaVectorOperation::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
-<<<<<<< HEAD
-    result.push_back(getUnaryDefinitionWithPhysicalTypes<operation::Lgamma, double_t>(
-        LGAMMA_FUNC_NAME, DOUBLE, DOUBLE));
-=======
     result.push_back(
         getUnaryDefinition<operation::Lgamma, double_t>(LGAMMA_FUNC_NAME, DOUBLE, DOUBLE));
->>>>>>> origin/master
     return result;
 }
 
 std::vector<std::unique_ptr<VectorOperationDefinition>> LnVectorOperation::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
-<<<<<<< HEAD
-    result.push_back(
-        getUnaryDefinitionWithPhysicalTypes<operation::Ln, double_t>(LN_FUNC_NAME, DOUBLE, DOUBLE));
-=======
     result.push_back(getUnaryDefinition<operation::Ln, double_t>(LN_FUNC_NAME, DOUBLE, DOUBLE));
->>>>>>> origin/master
     return result;
 }
 
 std::vector<std::unique_ptr<VectorOperationDefinition>> LogVectorOperation::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
-<<<<<<< HEAD
-    result.push_back(getUnaryDefinitionWithPhysicalTypes<operation::Log, double_t>(
-        LOG_FUNC_NAME, DOUBLE, DOUBLE));
-=======
     result.push_back(getUnaryDefinition<operation::Log, double_t>(LOG_FUNC_NAME, DOUBLE, DOUBLE));
->>>>>>> origin/master
     return result;
 }
 
 std::vector<std::unique_ptr<VectorOperationDefinition>> Log2VectorOperation::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
-<<<<<<< HEAD
-    result.push_back(getUnaryDefinitionWithPhysicalTypes<operation::Log2, double_t>(
-        LOG2_FUNC_NAME, DOUBLE, DOUBLE));
-=======
     result.push_back(getUnaryDefinition<operation::Log2, double_t>(LOG2_FUNC_NAME, DOUBLE, DOUBLE));
->>>>>>> origin/master
     return result;
 }
 
 std::vector<std::unique_ptr<VectorOperationDefinition>> DegreesVectorOperation::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
-<<<<<<< HEAD
-    result.push_back(getUnaryDefinitionWithPhysicalTypes<operation::Degrees, double_t>(
-        DEGREES_FUNC_NAME, DOUBLE, DOUBLE));
-=======
     result.push_back(
         getUnaryDefinition<operation::Degrees, double_t>(DEGREES_FUNC_NAME, DOUBLE, DOUBLE));
->>>>>>> origin/master
     return result;
 }
 
 std::vector<std::unique_ptr<VectorOperationDefinition>> RadiansVectorOperation::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
-<<<<<<< HEAD
-    result.push_back(getUnaryDefinitionWithPhysicalTypes<operation::Radians, double_t>(
-        RADIANS_FUNC_NAME, DOUBLE, DOUBLE));
-=======
     result.push_back(
         getUnaryDefinition<operation::Radians, double_t>(RADIANS_FUNC_NAME, DOUBLE, DOUBLE));
->>>>>>> origin/master
     return result;
 }
 
 std::vector<std::unique_ptr<VectorOperationDefinition>> EvenVectorOperation::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
-<<<<<<< HEAD
-    result.push_back(getUnaryDefinitionWithPhysicalTypes<operation::Even, double_t>(
-        EVEN_FUNC_NAME, DOUBLE, DOUBLE));
-=======
     result.push_back(getUnaryDefinition<operation::Even, double_t>(EVEN_FUNC_NAME, DOUBLE, DOUBLE));
->>>>>>> origin/master
     return result;
 }
 
 std::vector<std::unique_ptr<VectorOperationDefinition>> SignVectorOperation::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
-<<<<<<< HEAD
-    result.push_back(getUnaryDefinitionWithPhysicalTypes<operation::Sign, int64_t>(
-        SIGN_FUNC_NAME, INT64, INT64));
-    result.push_back(getUnaryDefinitionWithPhysicalTypes<operation::Sign, int64_t>(
-        SIGN_FUNC_NAME, DOUBLE, INT64));
-    result.push_back(getUnaryDefinitionWithPhysicalTypes<operation::Sign, int64_t>(
-        SIGN_FUNC_NAME, FLOAT, INT64));
-=======
     result.push_back(getUnaryDefinition<operation::Sign, int64_t>(SIGN_FUNC_NAME, INT64, INT64));
     result.push_back(getUnaryDefinition<operation::Sign, int64_t>(SIGN_FUNC_NAME, DOUBLE, INT64));
     result.push_back(getUnaryDefinition<operation::Sign, int64_t>(SIGN_FUNC_NAME, FLOAT, INT64));
->>>>>>> origin/master
     return result;
 }
 
 std::vector<std::unique_ptr<VectorOperationDefinition>> Atan2VectorOperation::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
-<<<<<<< HEAD
-    result.push_back(getBinaryDefinitionWithPhysicalTypes<operation::Atan2, double_t>(
-        ATAN2_FUNC_NAME, DOUBLE, DOUBLE));
-=======
     result.push_back(
         getBinaryDefinition<operation::Atan2, double_t>(ATAN2_FUNC_NAME, DOUBLE, DOUBLE));
->>>>>>> origin/master
     return result;
 }
 
@@ -331,49 +277,30 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> RoundVectorOperation::ge
 std::vector<std::unique_ptr<VectorOperationDefinition>>
 BitwiseXorVectorOperation::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
-<<<<<<< HEAD
-    result.push_back(getBinaryDefinitionWithPhysicalTypes<operation::BitwiseXor, int64_t>(
-        BITWISE_XOR_FUNC_NAME, INT64, INT64));
-=======
     result.push_back(
         getBinaryDefinition<operation::BitwiseXor, int64_t>(BITWISE_XOR_FUNC_NAME, INT64, INT64));
->>>>>>> origin/master
     return result;
 }
 
 std::vector<std::unique_ptr<VectorOperationDefinition>>
 BitwiseAndVectorOperation::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
-<<<<<<< HEAD
-    result.push_back(getBinaryDefinitionWithPhysicalTypes<operation::BitwiseAnd, int64_t>(
-        BITWISE_AND_FUNC_NAME, INT64, INT64));
-=======
     result.push_back(
         getBinaryDefinition<operation::BitwiseAnd, int64_t>(BITWISE_AND_FUNC_NAME, INT64, INT64));
->>>>>>> origin/master
     return result;
 }
 
 std::vector<std::unique_ptr<VectorOperationDefinition>> BitwiseOrVectorOperation::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
-<<<<<<< HEAD
-    result.push_back(getBinaryDefinitionWithPhysicalTypes<operation::BitwiseOr, int64_t>(
-        BITWISE_OR_FUNC_NAME, INT64, INT64));
-=======
     result.push_back(
         getBinaryDefinition<operation::BitwiseOr, int64_t>(BITWISE_OR_FUNC_NAME, INT64, INT64));
->>>>>>> origin/master
     return result;
 }
 
 std::vector<std::unique_ptr<VectorOperationDefinition>>
 BitShiftLeftVectorOperation::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
-<<<<<<< HEAD
-    result.push_back(getBinaryDefinitionWithPhysicalTypes<operation::BitShiftLeft, int64_t>(
-=======
     result.push_back(getBinaryDefinition<operation::BitShiftLeft, int64_t>(
->>>>>>> origin/master
         BITSHIFT_LEFT_FUNC_NAME, INT64, INT64));
     return result;
 }
@@ -381,11 +308,7 @@ BitShiftLeftVectorOperation::getDefinitions() {
 std::vector<std::unique_ptr<VectorOperationDefinition>>
 BitShiftRightVectorOperation::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
-<<<<<<< HEAD
-    result.push_back(getBinaryDefinitionWithPhysicalTypes<operation::BitShiftRight, int64_t>(
-=======
     result.push_back(getBinaryDefinition<operation::BitShiftRight, int64_t>(
->>>>>>> origin/master
         BITSHIFT_RIGHT_FUNC_NAME, INT64, INT64));
     return result;
 }

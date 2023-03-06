@@ -215,7 +215,6 @@ public:
         timestamp_t timestampVal;
         interval_t intervalVal;
         internalID_t internalIDVal;
-        float floatVal;
     } val;
     std::string strVal;
     std::vector<std::unique_ptr<Value>> listVal;

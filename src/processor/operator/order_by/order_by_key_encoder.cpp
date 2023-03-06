@@ -234,9 +234,6 @@ encode_function_t OrderByKeyEncoder::getEncodingFunction(DataTypeID typeId) {
     case INTERVAL: {
         return encodeTemplate<interval_t>;
     }
-    case FLOAT: {
-        return encodeTemplate<float_t>;
-    }
     default: {
         throw RuntimeException("Cannot encode data type " + Types::dataTypeToString(typeId));
     }

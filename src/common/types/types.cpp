@@ -47,7 +47,6 @@ DataType::DataType(const DataType& other) {
     case DATE:
     case TIMESTAMP:
     case INTERVAL:
-    case FLOAT:
     case STRING: {
         typeID = other.typeID;
     } break;
@@ -91,7 +90,6 @@ DataType& DataType::operator=(const DataType& other) {
     case DATE:
     case TIMESTAMP:
     case INTERVAL:
-    case FLOAT:
     case STRING: {
         typeID = other.typeID;
     } break;
@@ -123,7 +121,6 @@ bool DataType::operator==(const DataType& other) const {
     case DATE:
     case TIMESTAMP:
     case INTERVAL:
-    case FLOAT:
     case STRING:
         return typeID == other.typeID;
     default:
@@ -164,7 +161,6 @@ std::unique_ptr<DataType> DataType::copy() {
     case TIMESTAMP:
     case INTERVAL:
     case STRING:
-    case FLOAT:
         return std::make_unique<DataType>(typeID);
     default:
         throw InternalException("Unsupported DataType: " + Types::dataTypeToString(typeID) + ".");
@@ -257,7 +253,6 @@ std::string Types::dataTypeToString(const DataType& dataType) {
     case TIMESTAMP:
     case INTERVAL:
     case STRING:
-    case FLOAT:
         return dataTypeToString(dataType.typeID);
     default:
         throw InternalException("Unsupported DataType: " + Types::dataTypeToString(dataType) + ".");
@@ -298,8 +293,6 @@ std::string Types::dataTypeToString(DataTypeID dataTypeID) {
         return "VAR_LIST";
     case FIXED_LIST:
         return "FIXED_LIST";
-    case FLOAT:
-        return "FLOAT";
     default:
         throw InternalException(
             "Unsupported DataType: " + Types::dataTypeToString(dataTypeID) + ".");
@@ -352,8 +345,6 @@ uint32_t Types::getDataTypeSize(DataTypeID dataTypeID) {
         return sizeof(ku_string_t);
     case VAR_LIST:
         return sizeof(ku_list_t);
-    case FLOAT:
-        return sizeof(float_t);
     default:
         throw InternalException(
             "Cannot infer the size of dataTypeID: " + dataTypeToString(dataTypeID) + ".");
@@ -376,7 +367,6 @@ uint32_t Types::getDataTypeSize(const DataType& dataType) {
     case INTERVAL:
     case STRING:
     case VAR_LIST:
-    case FLOAT:
         return getDataTypeSize(dataType.typeID);
     default:
         throw InternalException(

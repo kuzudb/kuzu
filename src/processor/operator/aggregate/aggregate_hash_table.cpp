@@ -709,8 +709,6 @@ compare_function_t AggregateHashTable::getCompareEntryWithKeysFunc(DataTypeID ty
     case INTERVAL: {
         return compareEntryWithKeys<interval_t>;
     }
-    case FLOAT:
-        return compareEntryWithKeys<float_t>;
     default: {
         throw RuntimeException("Cannot compare data type " + Types::dataTypeToString(typeId));
     }

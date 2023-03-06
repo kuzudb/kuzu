@@ -23,16 +23,6 @@ scalar_exec_func VectorCastOperations::bindImplicitCastFunc(
     case common::FLOAT: {
         return bindImplicitCastFloatFunc(targetTypeID);
     }
-    case common::FLOAT: {
-        switch (targetTypeID) {
-        case common::DOUBLE:
-            return VectorOperations::UnaryExecFunction<float_t, double_t, operation::CastToDouble>;
-        default:
-            throw common::InternalException("Undefined casting operation from " +
-                                            common::Types::dataTypeToString(sourceTypeID) + " to " +
-                                            common::Types::dataTypeToString(targetTypeID) + ".");
-        }
-    }
     default:
         throw common::InternalException("Undefined casting operation from " +
                                         common::Types::dataTypeToString(sourceTypeID) + " to " +
@@ -181,12 +171,6 @@ CastToStringVectorOperation::getDefinitions() {
 std::vector<std::unique_ptr<VectorOperationDefinition>>
 CastToDoubleVectorOperation::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
-<<<<<<< HEAD
-    result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_DOUBLE_FUNC_NAME,
-        std::vector<DataTypeID>{INT64}, DOUBLE, bindExecFunc(INT64, DOUBLE)));
-    result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_DOUBLE_FUNC_NAME,
-        std::vector<DataTypeID>{FLOAT}, DOUBLE, bindExecFunc(FLOAT, DOUBLE)));
-=======
     result.push_back(bindVectorOperation<int16_t, double_t, operation::CastToDouble>(
         CAST_TO_DOUBLE_FUNC_NAME, INT16, DOUBLE));
     result.push_back(bindVectorOperation<int32_t, double_t, operation::CastToDouble>(
@@ -195,17 +179,12 @@ CastToDoubleVectorOperation::getDefinitions() {
         CAST_TO_DOUBLE_FUNC_NAME, INT64, DOUBLE));
     result.push_back(bindVectorOperation<float_t, double_t, operation::CastToDouble>(
         CAST_TO_DOUBLE_FUNC_NAME, FLOAT, DOUBLE));
->>>>>>> origin/master
     return result;
 }
 
 std::vector<std::unique_ptr<VectorOperationDefinition>>
 CastToFloatVectorOperation::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
-<<<<<<< HEAD
-    result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_FLOAT_FUNC_NAME,
-        std::vector<DataTypeID>{INT64}, FLOAT, bindExecFunc(INT64, FLOAT)));
-=======
     result.push_back(bindVectorOperation<int16_t, float_t, operation::CastToFloat>(
         CAST_TO_FLOAT_FUNC_NAME, INT16, FLOAT));
     result.push_back(bindVectorOperation<int32_t, float_t, operation::CastToFloat>(
@@ -230,7 +209,6 @@ CastToInt32VectorOperation::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
     result.push_back(bindVectorOperation<int16_t, int32_t, operation::CastToInt32>(
         CAST_TO_INT32_FUNC_NAME, INT16, INT32));
->>>>>>> origin/master
     return result;
 }
 

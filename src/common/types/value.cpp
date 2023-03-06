@@ -343,12 +343,6 @@ std::vector<std::unique_ptr<Value>> Value::convertKUFixedListToVector(
     case common::DataTypeID::FLOAT: {
         putValuesIntoVector<float_t>(fixedListResultVal, fixedList, numBytesPerElement);
     } break;
-    case common::DataTypeID::FLOAT: {
-        for (auto i = 0; i < dataType.fixedNumElementsInList; ++i) {
-            fixedListResultVal.emplace_back(
-                std::make_unique<Value>(*(float_t*)(fixedList + i * numBytesPerElement)));
-        }
-    } break;
     default:
         assert(false);
     }

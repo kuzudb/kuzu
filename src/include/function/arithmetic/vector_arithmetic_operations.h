@@ -19,16 +19,8 @@ public:
 
     template<typename FUNC, typename OPERAND_TYPE, typename RETURN_TYPE = OPERAND_TYPE>
     static std::unique_ptr<VectorOperationDefinition> getUnaryDefinition(
-        std::string name, common::DataTypeID operandTypeID) {
-        return make_unique<VectorOperationDefinition>(std::move(name),
-            std::vector<common::DataTypeID>{operandTypeID}, operandTypeID,
-            getUnaryExecFunc<FUNC>(operandTypeID));
-    }
-
-    template<typename FUNC, typename OPERAND_TYPE, typename RETURN_TYPE = OPERAND_TYPE>
-    static std::unique_ptr<VectorOperationDefinition> getUnaryDefinitionWithPhysicalTypes(
         std::string name, common::DataTypeID operandTypeID, common::DataTypeID resultTypeID) {
-        return make_unique<VectorOperationDefinition>(std::move(name),
+        return std::make_unique<VectorOperationDefinition>(std::move(name),
             std::vector<common::DataTypeID>{operandTypeID}, resultTypeID,
             VectorArithmeticOperations::UnaryExecFunction<OPERAND_TYPE, RETURN_TYPE, FUNC>);
     }
