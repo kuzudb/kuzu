@@ -9,7 +9,7 @@ void HashAggregateScan::initLocalStateInternal(ResultSet* resultSet, ExecutionCo
     BaseAggregateScan::initLocalStateInternal(resultSet, context);
     for (auto& dataPos : groupByKeyVectorsPos) {
         auto valueVector = resultSet->getValueVector(dataPos);
-        groupByKeyVectors.push_back(valueVector);
+        groupByKeyVectors.push_back(valueVector.get());
     }
     groupByKeyVectorsColIdxes.resize(groupByKeyVectors.size());
     iota(groupByKeyVectorsColIdxes.begin(), groupByKeyVectorsColIdxes.end(), 0);

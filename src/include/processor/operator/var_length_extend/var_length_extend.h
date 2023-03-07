@@ -9,11 +9,11 @@ namespace processor {
 
 struct DFSLevelInfo {
     DFSLevelInfo(uint8_t level, ExecutionContext& context)
-        : level{level}, hasBeenOutput{false}, children{std::make_shared<common::ValueVector>(
+        : level{level}, hasBeenOutput{false}, children{std::make_unique<common::ValueVector>(
                                                   common::INTERNAL_ID, context.memoryManager)} {};
     const uint8_t level;
     bool hasBeenOutput;
-    std::shared_ptr<common::ValueVector> children;
+    std::unique_ptr<common::ValueVector> children;
 };
 
 class VarLengthExtend : public PhysicalOperator {
@@ -36,8 +36,8 @@ protected:
     storage::BaseColumnOrList* storage;
     uint8_t lowerBound;
     uint8_t upperBound;
-    std::shared_ptr<common::ValueVector> boundNodeValueVector;
-    std::shared_ptr<common::ValueVector> nbrNodeValueVector;
+    common::ValueVector* boundNodeValueVector;
+    common::ValueVector* nbrNodeValueVector;
     std::stack<std::shared_ptr<DFSLevelInfo>> dfsStack;
     // The VarLenExtend has the invariant that at any point in time, there will be one DSFLevelInfo
     // in the dfsStack for each level. dfsLevelInfos is a pool of DFSLevelInfos that holds

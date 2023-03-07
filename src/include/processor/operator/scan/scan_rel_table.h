@@ -21,8 +21,8 @@ protected:
     DataPos inNodeIDVectorPos;
     std::vector<DataPos> outputVectorsPos;
     // vectors
-    std::shared_ptr<common::ValueVector> inNodeIDVector;
-    std::vector<std::shared_ptr<common::ValueVector>> outputVectors;
+    common::ValueVector* inNodeIDVector;
+    std::vector<common::ValueVector*> outputVectors;
 };
 
 } // namespace processor

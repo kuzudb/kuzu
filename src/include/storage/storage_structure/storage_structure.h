@@ -77,43 +77,41 @@ protected:
         common::DataType dataType, const size_t& elementSize, BufferManager& bufferManager,
         bool hasNULLBytes, WAL* wal);
 
-    void readBySequentialCopy(transaction::Transaction* transaction,
-        const std::shared_ptr<common::ValueVector>& vector, PageElementCursor& cursor,
+    void readBySequentialCopy(transaction::Transaction* transaction, common::ValueVector* vector,
+        PageElementCursor& cursor,
         const std::function<common::page_idx_t(common::page_idx_t)>& logicalToPhysicalPageMapper);
 
     void readInternalIDsBySequentialCopy(transaction::Transaction* transaction,
-        const std::shared_ptr<common::ValueVector>& vector, PageElementCursor& cursor,
+        common::ValueVector* vector, PageElementCursor& cursor,
         const std::function<common::page_idx_t(common::page_idx_t)>& logicalToPhysicalPageMapper,
         common::table_id_t commonTableID, bool hasNoNullGuarantee);
 
     void readInternalIDsFromAPageBySequentialCopy(transaction::Transaction* transaction,
-        const std::shared_ptr<common::ValueVector>& vector, uint64_t vectorStartPos,
-        common::page_idx_t physicalPageIdx, uint16_t pagePosOfFirstElement,
-        uint64_t numValuesToRead, common::table_id_t commonTableID, bool hasNoNullGuarantee);
+        common::ValueVector* vector, uint64_t vectorStartPos, common::page_idx_t physicalPageIdx,
+        uint16_t pagePosOfFirstElement, uint64_t numValuesToRead, common::table_id_t commonTableID,
+        bool hasNoNullGuarantee);
 
     void readInternalIDsBySequentialCopyWithSelState(transaction::Transaction* transaction,
-        const std::shared_ptr<common::ValueVector>& vector, PageElementCursor& cursor,
+        common::ValueVector* vector, PageElementCursor& cursor,
         const std::function<common::page_idx_t(common::page_idx_t)>& logicalToPhysicalPageMapper,
         common::table_id_t commonTableID);
 
     void readBySequentialCopyWithSelState(transaction::Transaction* transaction,
-        const std::shared_ptr<common::ValueVector>& vector, PageElementCursor& cursor,
+        common::ValueVector* vector, PageElementCursor& cursor,
         const std::function<common::page_idx_t(common::page_idx_t)>& logicalToPhysicalPageMapper);
 
-    void readSingleNullBit(const std::shared_ptr<common::ValueVector>& valueVector,
-        const uint8_t* frame, uint64_t elementPos, uint64_t offsetInVector) const;
+    void readSingleNullBit(common::ValueVector* valueVector, const uint8_t* frame,
+        uint64_t elementPos, uint64_t offsetInVector) const;
 
     void setNullBitOfAPosInFrame(const uint8_t* frame, uint16_t elementPos, bool isNull) const;
 
 private:
     void readAPageBySequentialCopy(transaction::Transaction* transaction,
-        const std::shared_ptr<common::ValueVector>& vector, uint64_t vectorStartPos,
-        common::page_idx_t physicalPageIdx, uint16_t pagePosOfFirstElement,
-        uint64_t numValuesToRead);
+        common::ValueVector* vector, uint64_t vectorStartPos, common::page_idx_t physicalPageIdx,
+        uint16_t pagePosOfFirstElement, uint64_t numValuesToRead);
 
-    void readNullBitsFromAPage(const std::shared_ptr<common::ValueVector>& valueVector,
-        const uint8_t* frame, uint64_t posInPage, uint64_t posInVector,
-        uint64_t numBitsToRead) const;
+    void readNullBitsFromAPage(common::ValueVector* valueVector, const uint8_t* frame,
+        uint64_t posInPage, uint64_t posInVector, uint64_t numBitsToRead) const;
 
 public:
     common::DataType dataType;

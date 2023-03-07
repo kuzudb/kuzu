@@ -6,7 +6,7 @@ namespace processor {
 void CrossProduct::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     for (auto pos : outVecPos) {
         auto vector = resultSet->getValueVector(pos);
-        vectorsToScan.push_back(vector);
+        vectorsToScan.push_back(vector.get());
     }
     startIdx = sharedState->getTable()->getNumTuples();
 }

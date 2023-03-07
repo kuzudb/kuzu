@@ -54,7 +54,7 @@ private:
     std::vector<IntersectDataInfo> intersectDataInfos;
     // payloadColumnIdxesToScanFrom and payloadVectorsToScanInto are organized by each build child.
     std::vector<std::vector<uint32_t>> payloadColumnIdxesToScanFrom;
-    std::vector<std::vector<std::shared_ptr<common::ValueVector>>> payloadVectorsToScanInto;
+    std::vector<std::vector<common::ValueVector*>> payloadVectorsToScanInto;
     std::shared_ptr<common::ValueVector> outKeyVector;
     std::vector<std::shared_ptr<common::ValueVector>> probeKeyVectors;
     std::vector<std::unique_ptr<common::SelectionVector>> intersectSelVectors;

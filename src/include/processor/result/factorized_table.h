@@ -179,7 +179,7 @@ public:
     FactorizedTable(
         storage::MemoryManager* memoryManager, std::unique_ptr<FactorizedTableSchema> tableSchema);
 
-    void append(const std::vector<std::shared_ptr<common::ValueVector>>& vectors);
+    void append(const std::vector<common::ValueVector*>& vectors);
 
     //! This function appends an empty tuple to the factorizedTable and returns a pointer to that
     //! tuple.
@@ -187,25 +187,24 @@ public:
 
     // This function scans numTuplesToScan of rows to vectors starting at tupleIdx. Callers are
     // responsible for making sure all the parameters are valid.
-    inline void scan(std::vector<std::shared_ptr<common::ValueVector>>& vectors,
-        ft_tuple_idx_t tupleIdx, uint64_t numTuplesToScan) const {
+    inline void scan(std::vector<common::ValueVector*>& vectors, ft_tuple_idx_t tupleIdx,
+        uint64_t numTuplesToScan) const {
         std::vector<uint32_t> colIdxes(tableSchema->getNumColumns());
         iota(colIdxes.begin(), colIdxes.end(), 0);
         scan(vectors, tupleIdx, numTuplesToScan, colIdxes);
     }
     inline bool isEmpty() const { return getNumTuples() == 0; }
-    void scan(std::vector<std::shared_ptr<common::ValueVector>>& vectors, ft_tuple_idx_t tupleIdx,
+    void scan(std::vector<common::ValueVector*>& vectors, ft_tuple_idx_t tupleIdx,
         uint64_t numTuplesToScan, std::vector<uint32_t>& colIdxToScan) const;
     // TODO(Guodong): Unify these two interfaces along with `readUnflatCol`.
-    void lookup(std::vector<std::shared_ptr<common::ValueVector>>& vectors,
-        std::vector<uint32_t>& colIdxesToScan, uint8_t** tuplesToRead, uint64_t startPos,
-        uint64_t numTuplesToRead) const;
-    void lookup(std::vector<std::shared_ptr<common::ValueVector>>& vectors,
+    void lookup(std::vector<common::ValueVector*>& vectors, std::vector<uint32_t>& colIdxesToScan,
+        uint8_t** tuplesToRead, uint64_t startPos, uint64_t numTuplesToRead) const;
+    void lookup(std::vector<common::ValueVector*>& vectors,
         const common::SelectionVector* selVector, std::vector<uint32_t>& colIdxesToScan,
         uint8_t* tupleToRead) const;
-    void lookup(std::vector<std::shared_ptr<common::ValueVector>>& vectors,
-        std::vector<uint32_t>& colIdxesToScan, std::vector<ft_tuple_idx_t>& tupleIdxesToRead,
-        uint64_t startPos, uint64_t numTuplesToRead) const;
+    void lookup(std::vector<common::ValueVector*>& vectors, std::vector<uint32_t>& colIdxesToScan,
+        std::vector<ft_tuple_idx_t>& tupleIdxesToRead, uint64_t startPos,
+        uint64_t numTuplesToRead) const;
 
     // When we merge two factorizedTables, we need to update the hasNoNullGuarantee based on
     // other factorizedTable.
@@ -253,7 +252,7 @@ public:
     }
 
     void copySingleValueToVector(ft_tuple_idx_t tupleIdx, ft_col_idx_t colIdx,
-        std::shared_ptr<common::ValueVector> valueVector, uint32_t posInVector) const;
+        common::ValueVector* valueVector, uint32_t posInVector) const;
     bool isOverflowColNull(
         const uint8_t* nullBuffer, ft_tuple_idx_t tupleIdx, ft_col_idx_t colIdx) const;
     bool isNonOverflowColNull(const uint8_t* nullBuffer, ft_col_idx_t colIdx) const;
@@ -272,7 +271,7 @@ private:
     void setOverflowColNull(uint8_t* nullBuffer, ft_col_idx_t colIdx, ft_tuple_idx_t tupleIdx);
 
     uint64_t computeNumTuplesToAppend(
-        const std::vector<std::shared_ptr<common::ValueVector>>& vectorsToAppend) const;
+        const std::vector<common::ValueVector*>& vectorsToAppend) const;
 
     inline uint8_t* getCell(
         ft_block_idx_t blockIdx, ft_block_offset_t blockOffset, ft_col_offset_t colOffset) const {

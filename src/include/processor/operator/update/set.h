@@ -41,7 +41,7 @@ public:
 private:
     std::vector<std::unique_ptr<SetNodePropertyInfo>> infos;
 
-    std::vector<std::shared_ptr<common::ValueVector>> nodeIDVectors;
+    std::vector<common::ValueVector*> nodeIDVectors;
 };
 
 struct SetRelPropertyInfo {
@@ -49,12 +49,11 @@ struct SetRelPropertyInfo {
     DataPos srcNodePos;
     DataPos dstNodePos;
     DataPos relIDPos;
-    // TODO(Ziyi): see issue 1122 and do a typedef on our column & list idx.
-    uint64_t propertyId;
+    common::property_id_t propertyId;
     std::unique_ptr<evaluator::BaseExpressionEvaluator> evaluator;
 
     SetRelPropertyInfo(storage::RelTable* table, const DataPos& srcNodePos,
-        const DataPos& dstNodePos, const DataPos& relIDPos, uint64_t propertyId,
+        const DataPos& dstNodePos, const DataPos& relIDPos, common::property_id_t propertyId,
         std::unique_ptr<evaluator::BaseExpressionEvaluator> evaluator)
         : table{table}, srcNodePos{srcNodePos}, dstNodePos{dstNodePos}, relIDPos{relIDPos},
           propertyId{propertyId}, evaluator{std::move(evaluator)} {}
@@ -84,9 +83,9 @@ public:
 private:
     std::vector<std::unique_ptr<SetRelPropertyInfo>> infos;
 
-    std::vector<std::shared_ptr<common::ValueVector>> srcNodeVectors;
-    std::vector<std::shared_ptr<common::ValueVector>> dstNodeVectors;
-    std::vector<std::shared_ptr<common::ValueVector>> relIDVectors;
+    std::vector<common::ValueVector*> srcNodeVectors;
+    std::vector<common::ValueVector*> dstNodeVectors;
+    std::vector<common::ValueVector*> relIDVectors;
 };
 
 } // namespace processor

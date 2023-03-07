@@ -84,16 +84,15 @@ void ListsUpdatesStore::readInsertedRelsToList(ListFileID& listFileID,
         diskOverflowFile, dataType);
 }
 
-void ListsUpdatesStore::insertRelIfNecessary(const std::shared_ptr<ValueVector>& srcNodeIDVector,
-    const std::shared_ptr<ValueVector>& dstNodeIDVector,
-    const std::vector<std::shared_ptr<ValueVector>>& relPropertyVectors) {
+void ListsUpdatesStore::insertRelIfNecessary(const ValueVector* srcNodeIDVector,
+    const ValueVector* dstNodeIDVector, const std::vector<ValueVector*>& relPropertyVectors) {
     auto srcNodeID = srcNodeIDVector->getValue<nodeID_t>(
         srcNodeIDVector->state->selVector->selectedPositions[0]);
     auto dstNodeID = dstNodeIDVector->getValue<nodeID_t>(
         dstNodeIDVector->state->selVector->selectedPositions[0]);
     bool hasInsertedToFT = false;
     auto vectorsToAppendToFT =
-        std::vector<std::shared_ptr<ValueVector>>{srcNodeIDVector, dstNodeIDVector};
+        std::vector<ValueVector*>{(ValueVector*)srcNodeIDVector, (ValueVector*)dstNodeIDVector};
     vectorsToAppendToFT.insert(
         vectorsToAppendToFT.end(), relPropertyVectors.begin(), relPropertyVectors.end());
     for (auto direction : REL_DIRECTIONS) {
@@ -109,9 +108,8 @@ void ListsUpdatesStore::insertRelIfNecessary(const std::shared_ptr<ValueVector>&
     }
 }
 
-void ListsUpdatesStore::deleteRelIfNecessary(const std::shared_ptr<ValueVector>& srcNodeIDVector,
-    const std::shared_ptr<ValueVector>& dstNodeIDVector,
-    const std::shared_ptr<ValueVector>& relIDVector) {
+void ListsUpdatesStore::deleteRelIfNecessary(common::ValueVector* srcNodeIDVector,
+    common::ValueVector* dstNodeIDVector, common::ValueVector* relIDVector) {
     auto srcNodeID = srcNodeIDVector->getValue<nodeID_t>(
         srcNodeIDVector->state->selVector->selectedPositions[0]);
     auto dstNodeID = dstNodeIDVector->getValue<nodeID_t>(
@@ -158,15 +156,15 @@ uint64_t ListsUpdatesStore::getNumInsertedRelsForNodeOffset(
     return listsUpdatesForNodeOffset->insertedRelsTupleIdxInFT.size();
 }
 
-void ListsUpdatesStore::readValues(ListFileID& listFileID, ListHandle& listHandle,
-    std::shared_ptr<ValueVector> valueVector) const {
+void ListsUpdatesStore::readValues(
+    ListFileID& listFileID, ListHandle& listHandle, ValueVector* valueVector) const {
     auto numTuplesToRead = listHandle.getNumValuesToRead();
     auto nodeOffset = listHandle.getBoundNodeOffset();
     if (numTuplesToRead == 0) {
         valueVector->state->initOriginalAndSelectedSize(0);
         return;
     }
-    auto vectorsToRead = std::vector<std::shared_ptr<ValueVector>>{valueVector};
+    auto vectorsToRead = std::vector<ValueVector*>{valueVector};
     auto columnsToRead = std::vector<ft_col_idx_t>{getColIdxInFT(listFileID)};
     auto relNodeTableAndDir = getRelNodeTableAndDirFromListFileID(listFileID);
     auto& listUpdates = listsUpdatesPerDirection[relNodeTableAndDir.dir]
@@ -186,8 +184,8 @@ bool ListsUpdatesStore::hasAnyDeletedRelsInPersistentStore(
     return !listsUpdatesForNodeOffset->deletedRelOffsets.empty();
 }
 
-void ListsUpdatesStore::updateRelIfNecessary(const std::shared_ptr<ValueVector>& srcNodeIDVector,
-    const std::shared_ptr<ValueVector>& dstNodeIDVector, const ListsUpdateInfo& listsUpdateInfo) {
+void ListsUpdatesStore::updateRelIfNecessary(ValueVector* srcNodeIDVector,
+    ValueVector* dstNodeIDVector, const ListsUpdateInfo& listsUpdateInfo) {
     auto srcNodeID = srcNodeIDVector->getValue<nodeID_t>(
         srcNodeIDVector->state->selVector->selectedPositions[0]);
     auto dstNodeID = dstNodeIDVector->getValue<nodeID_t>(
@@ -207,8 +205,7 @@ void ListsUpdatesStore::updateRelIfNecessary(const std::shared_ptr<ValueVector>&
                 // updatedPersistentListOffsets of the boundNode.
                 if (insertUpdatedRel) {
                     listsUpdates.at(listsUpdateInfo.propertyID)
-                        ->append(std::vector<std::shared_ptr<ValueVector>>{
-                            listsUpdateInfo.propertyVector});
+                        ->append(std::vector<ValueVector*>{listsUpdateInfo.propertyVector});
                     insertUpdatedRel = false;
                 }
                 getOrCreateListsUpdatesForNodeOffset(direction, boundNodeID)
@@ -225,7 +222,7 @@ void ListsUpdatesStore::updateRelIfNecessary(const std::shared_ptr<ValueVector>&
                     INTERNAL_REL_ID_IDX_IN_FT, listsUpdateInfo.relOffset);
                 ftOfInsertedRels->updateFlatCell(ftOfInsertedRels->getTuple(ftTupleIdx),
                     propertyIDToColIdxMap.at(listsUpdateInfo.propertyID),
-                    listsUpdateInfo.propertyVector.get(),
+                    listsUpdateInfo.propertyVector,
                     listsUpdateInfo.propertyVector->state->selVector->selectedPositions[0]);
             }
         }
@@ -233,8 +230,7 @@ void ListsUpdatesStore::updateRelIfNecessary(const std::shared_ptr<ValueVector>&
 }
 
 void ListsUpdatesStore::readUpdatesToPropertyVectorIfExists(ListFileID& listFileID,
-    offset_t nodeOffset, const std::shared_ptr<ValueVector>& valueVector,
-    list_offset_t startListOffset) {
+    offset_t nodeOffset, ValueVector* propertyVector, list_offset_t startListOffset) {
     // Note: only rel property lists can have updates.
     assert(listFileID.listType == ListType::REL_PROPERTY_LISTS);
     auto listsUpdatesForNodeOffset = getListsUpdatesForNodeOffsetIfExists(listFileID, nodeOffset);
@@ -246,13 +242,13 @@ void ListsUpdatesStore::readUpdatesToPropertyVectorIfExists(ListFileID& listFile
     for (auto& [listOffset, ftTupleIdx] : updatedPersistentListOffsets.listOffsetFTIdxMap) {
         if (startListOffset > listOffset) {
             continue;
-        } else if (startListOffset + valueVector->state->originalSize <= listOffset) {
+        } else if (startListOffset + propertyVector->state->originalSize <= listOffset) {
             return;
         }
         auto elemPosInVector = listOffset - startListOffset;
         listsUpdates.at(listFileID.relPropertyListID.propertyID)
             ->copySingleValueToVector(
-                ftTupleIdx, LISTS_UPDATES_IDX_IN_FT, valueVector, elemPosInVector);
+                ftTupleIdx, LISTS_UPDATES_IDX_IN_FT, propertyVector, elemPosInVector);
     }
 }
 

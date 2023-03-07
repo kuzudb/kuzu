@@ -53,11 +53,11 @@ public:
     }
 
     // This function generates a ValueVector of int64 tuples that are all 5.
-    std::vector<std::shared_ptr<ValueVector>> getInt64TestValueVector(
+    std::pair<std::vector<ValueVector*>, std::shared_ptr<DataChunk>> getInt64TestValueVector(
         const uint64_t numOfElementsPerCol, const uint64_t numOfOrderByCols, bool flatCol) {
         std::shared_ptr<DataChunk> dataChunk = std::make_shared<DataChunk>(numOfOrderByCols);
         dataChunk->state->selVector->selectedSize = numOfElementsPerCol;
-        std::vector<std::shared_ptr<ValueVector>> valueVectors;
+        std::vector<ValueVector*> valueVectors;
         for (auto i = 0u; i < numOfOrderByCols; i++) {
             std::shared_ptr<ValueVector> valueVector =
                 std::make_shared<ValueVector>(INT64, memoryManager.get());
@@ -66,14 +66,13 @@ public:
             }
             dataChunk->insert(i, valueVector);
             valueVector->state->currIdx = flatCol ? 0 : -1;
-            valueVectors.emplace_back(valueVector);
+            valueVectors.emplace_back(valueVector.get());
         }
-        return valueVectors;
+        return {valueVectors, dataChunk};
     }
 
     // This function assumes that all columns have datatype: INT64, and each tuple is 5.
-    void checkKeyBlockForInt64TestValueVector(
-        std::vector<std::shared_ptr<ValueVector>>& valueVectors,
+    void checkKeyBlockForInt64TestValueVector(std::vector<ValueVector*>& valueVectors,
         std::vector<std::shared_ptr<DataBlock>>& keyBlocks, uint64_t numOfElements,
         std::vector<bool>& isAscOrder, uint64_t numTuplesPerBlock) {
         for (auto i = 0u; i < keyBlocks.size(); i++) {
@@ -107,7 +106,7 @@ public:
 
     void singleOrderByColMultiBlockTest(bool isFlat) {
         uint64_t numOfElements = 2000;
-        auto valueVectors = getInt64TestValueVector(numOfElements, 1, isFlat);
+        auto [valueVectors, dataChunk] = getInt64TestValueVector(numOfElements, 1, isFlat);
         auto isAscOrder = std::vector<bool>(1, false);
         auto orderByKeyEncoder = OrderByKeyEncoder(valueVectors, isAscOrder, memoryManager.get(),
             ftIdx, numTuplesPerBlockInFT, OrderByKeyEncoder::getNumBytesPerTuple(valueVectors));
@@ -141,8 +140,7 @@ public:
 TEST_F(OrderByKeyEncoderTest, singleOrderByColInt64UnflatTest) {
     std::shared_ptr<DataChunk> dataChunk = std::make_shared<DataChunk>(1);
     dataChunk->state->selVector->selectedSize = 6;
-    std::shared_ptr<ValueVector> int64ValueVector =
-        std::make_shared<ValueVector>(INT64, memoryManager.get());
+    auto int64ValueVector = std::make_shared<ValueVector>(INT64, memoryManager.get());
     int64ValueVector->setValue(0, (int64_t)73); // positive number
     int64ValueVector->setNull(1, true);
     int64ValueVector->setValue(2, (int64_t)-132);  // negative 1 byte number
@@ -150,8 +148,8 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColInt64UnflatTest) {
     int64ValueVector->setValue(4, (int64_t)INT64_MAX);
     int64ValueVector->setValue(5, (int64_t)INT64_MIN);
     dataChunk->insert(0, int64ValueVector);
-    std::vector<std::shared_ptr<ValueVector>> valueVectors;
-    valueVectors.emplace_back(int64ValueVector);
+    std::vector<ValueVector*> valueVectors;
+    valueVectors.emplace_back(int64ValueVector.get());
     auto isAscOrder = std::vector<bool>(1, true);
     auto orderByKeyEncoder = OrderByKeyEncoder(valueVectors, isAscOrder, memoryManager.get(), ftIdx,
         numTuplesPerBlockInFT, OrderByKeyEncoder::getNumBytesPerTuple(valueVectors));
@@ -220,8 +218,8 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColInt64UnflatWithFilterTest) {
     int64ValueVector->state->selVector->selectedPositions[0] = 0;
     int64ValueVector->state->selVector->selectedPositions[1] = 2;
     int64ValueVector->state->selVector->selectedSize = 2;
-    std::vector<std::shared_ptr<ValueVector>> valueVectors;
-    valueVectors.emplace_back(int64ValueVector);
+    std::vector<ValueVector*> valueVectors;
+    valueVectors.emplace_back(int64ValueVector.get());
     auto isAscOrder = std::vector<bool>(1, true);
     auto orderByKeyEncoder = OrderByKeyEncoder(valueVectors, isAscOrder, memoryManager.get(), ftIdx,
         numTuplesPerBlockInFT, OrderByKeyEncoder::getNumBytesPerTuple(valueVectors));
@@ -256,8 +254,8 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColBoolUnflatTest) {
     boolValueVector->setValue(1, false);
     boolValueVector->setNull(2, true);
     dataChunk->insert(0, boolValueVector);
-    std::vector<std::shared_ptr<ValueVector>> valueVectors;
-    valueVectors.emplace_back(boolValueVector);
+    std::vector<ValueVector*> valueVectors;
+    valueVectors.emplace_back(boolValueVector.get());
     auto isAscOrder = std::vector<bool>(1, false);
     auto orderByKeyEncoder = OrderByKeyEncoder(valueVectors, isAscOrder, memoryManager.get(), ftIdx,
         numTuplesPerBlockInFT, OrderByKeyEncoder::getNumBytesPerTuple(valueVectors));
@@ -289,8 +287,8 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColDateUnflatTest) {
     dateValueVector->setValue(
         2, Date::FromCString("1949-10-01", strlen("1949-10-01"))); // date before 1970-01-01
     dataChunk->insert(0, dateValueVector);
-    std::vector<std::shared_ptr<ValueVector>> valueVectors;
-    valueVectors.emplace_back(dateValueVector);
+    std::vector<ValueVector*> valueVectors;
+    valueVectors.emplace_back(dateValueVector.get());
     auto isAscOrder = std::vector<bool>(1, true);
     auto orderByKeyEncoder = OrderByKeyEncoder(valueVectors, isAscOrder, memoryManager.get(), ftIdx,
         numTuplesPerBlockInFT, OrderByKeyEncoder::getNumBytesPerTuple(valueVectors));
@@ -330,8 +328,8 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColTimestampUnflatTest) {
     timestampValueVector->setValue(
         2, Timestamp::FromCString("2035-07-01 11:14:33", strlen("2035-07-01 11:14:33")));
     dataChunk->insert(0, timestampValueVector);
-    std::vector<std::shared_ptr<ValueVector>> valueVectors;
-    valueVectors.emplace_back(timestampValueVector);
+    std::vector<ValueVector*> valueVectors;
+    valueVectors.emplace_back(timestampValueVector.get());
     auto isAscOrder = std::vector<bool>(1, true);
     auto orderByKeyEncoder = OrderByKeyEncoder(valueVectors, isAscOrder, memoryManager.get(), ftIdx,
         numTuplesPerBlockInFT, OrderByKeyEncoder::getNumBytesPerTuple(valueVectors));
@@ -378,8 +376,8 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColIntervalUnflatTest) {
                strlen("18 hours 55 days 13 years 8 milliseconds 3 months")));
     intervalValueVector->setNull(1, true);
     dataChunk->insert(0, intervalValueVector);
-    std::vector<std::shared_ptr<ValueVector>> valueVectors;
-    valueVectors.emplace_back(intervalValueVector);
+    std::vector<ValueVector*> valueVectors;
+    valueVectors.emplace_back(intervalValueVector.get());
     auto isAscOrder = std::vector<bool>(1, true);
     auto orderByKeyEncoder = OrderByKeyEncoder(valueVectors, isAscOrder, memoryManager.get(), ftIdx,
         numTuplesPerBlockInFT, OrderByKeyEncoder::getNumBytesPerTuple(valueVectors));
@@ -427,8 +425,8 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColStringUnflatTest) {
     stringValueVector->setValue<std::string>(
         3, "commonprefix string2"); // long string(encoding: commonprefix)
     dataChunk->insert(0, stringValueVector);
-    std::vector<std::shared_ptr<ValueVector>> valueVectors;
-    valueVectors.emplace_back(stringValueVector);
+    std::vector<ValueVector*> valueVectors;
+    valueVectors.emplace_back(stringValueVector.get());
     auto isAscOrder = std::vector<bool>(1, true);
     auto orderByKeyEncoder = OrderByKeyEncoder(valueVectors, isAscOrder, memoryManager.get(), ftIdx,
         numTuplesPerBlockInFT, OrderByKeyEncoder::getNumBytesPerTuple(valueVectors));
@@ -502,8 +500,8 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColDoubleUnflatTest) {
     doubleValueVector->setValue(4, (double_t)92931312341415);  // large positive number
     doubleValueVector->setValue(5, (double_t)-31234142783434); // large negative number
     dataChunk->insert(0, doubleValueVector);
-    std::vector<std::shared_ptr<ValueVector>> valueVectors;
-    valueVectors.emplace_back(doubleValueVector);
+    std::vector<ValueVector*> valueVectors;
+    valueVectors.emplace_back(doubleValueVector.get());
     auto isAscOrder = std::vector<bool>(1, true);
     auto orderByKeyEncoder = OrderByKeyEncoder(valueVectors, isAscOrder, memoryManager.get(), ftIdx,
         numTuplesPerBlockInFT, OrderByKeyEncoder::getNumBytesPerTuple(valueVectors));
@@ -579,7 +577,7 @@ TEST_F(OrderByKeyEncoderTest, largeNumBytesPerTupleErrorTest) {
     // exception we need ((LARGE_PAGE_SIZE - 8) / 9  + 1 number of columns(with datatype INT) to
     // trigger that exception.
     auto numOfOrderByCols = (BufferPoolConstants::LARGE_PAGE_SIZE - 8) / 9 + 1;
-    auto valueVectors = getInt64TestValueVector(1, numOfOrderByCols, true);
+    auto [valueVectors, dataChunk] = getInt64TestValueVector(1, numOfOrderByCols, true);
     auto isAscOrder = std::vector<bool>(numOfOrderByCols, true);
     try {
         auto orderByKeyEncoder = OrderByKeyEncoder(valueVectors, isAscOrder, memoryManager.get(),
@@ -597,7 +595,8 @@ TEST_F(OrderByKeyEncoderTest, largeNumBytesPerTupleErrorTest) {
 TEST_F(OrderByKeyEncoderTest, singleTuplePerBlockTest) {
     uint32_t numOfOrderByCols = (BufferPoolConstants::LARGE_PAGE_SIZE - 8) / 9;
     uint32_t numOfElementsPerCol = 10;
-    auto valueVectors = getInt64TestValueVector(numOfElementsPerCol, numOfOrderByCols, true);
+    auto [valueVectors, dataChunk] =
+        getInt64TestValueVector(numOfElementsPerCol, numOfOrderByCols, true);
     auto isAscOrder = std::vector<bool>(numOfOrderByCols, false);
     auto orderByKeyEncoder = OrderByKeyEncoder(valueVectors, isAscOrder, memoryManager.get(), ftIdx,
         numTuplesPerBlockInFT, OrderByKeyEncoder::getNumBytesPerTuple(valueVectors));
@@ -643,12 +642,12 @@ TEST_F(OrderByKeyEncoderTest, multipleOrderByColSingleBlockTest) {
     timestampFlatValueVector->state->currIdx = 0;
     dateFlatValueVector->state->currIdx = 0;
 
-    std::vector<std::shared_ptr<ValueVector>> valueVectors;
-    valueVectors.emplace_back(intFlatValueVector);
-    valueVectors.emplace_back(doubleFlatValueVector);
-    valueVectors.emplace_back(stringFlatValueVector);
-    valueVectors.emplace_back(timestampFlatValueVector);
-    valueVectors.emplace_back(dateFlatValueVector);
+    std::vector<ValueVector*> valueVectors;
+    valueVectors.emplace_back(intFlatValueVector.get());
+    valueVectors.emplace_back(doubleFlatValueVector.get());
+    valueVectors.emplace_back(stringFlatValueVector.get());
+    valueVectors.emplace_back(timestampFlatValueVector.get());
+    valueVectors.emplace_back(dateFlatValueVector.get());
 
     auto orderByKeyEncoder = OrderByKeyEncoder(valueVectors, isAscOrder, memoryManager.get(), ftIdx,
         numTuplesPerBlockInFT, OrderByKeyEncoder::getNumBytesPerTuple(valueVectors));
@@ -816,7 +815,8 @@ TEST_F(OrderByKeyEncoderTest, multipleOrderByColSingleBlockTest) {
 TEST_F(OrderByKeyEncoderTest, multipleOrderByColMultiBlockTest) {
     const auto numOfOrderByCols = 10;
     const auto numOfElementsPerCol = 2000;
-    auto valueVectors = getInt64TestValueVector(numOfElementsPerCol, numOfOrderByCols, true);
+    auto [valueVectors, dataChunk] =
+        getInt64TestValueVector(numOfElementsPerCol, numOfOrderByCols, true);
     auto isAscOrder = std::vector<bool>(numOfOrderByCols, true);
     auto orderByKeyEncoder = OrderByKeyEncoder(valueVectors, isAscOrder, memoryManager.get(), ftIdx,
         numTuplesPerBlockInFT, OrderByKeyEncoder::getNumBytesPerTuple(valueVectors));

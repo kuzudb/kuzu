@@ -50,7 +50,8 @@ bool VarLengthColumnExtend::getNextTuplesInternal() {
                 dfsLevelInfo->hasBeenOutput = true;
                 return true;
             } else if (!dfsLevelInfo->hasBeenExtended && dfsLevelInfo->level != upperBound) {
-                addDFSLevelToStackIfParentExtends(dfsLevelInfo->children, dfsLevelInfo->level + 1);
+                addDFSLevelToStackIfParentExtends(
+                    dfsLevelInfo->children.get(), dfsLevelInfo->level + 1);
                 dfsLevelInfo->hasBeenExtended = true;
             } else {
                 dfsStack.pop();
@@ -67,10 +68,10 @@ bool VarLengthColumnExtend::getNextTuplesInternal() {
 }
 
 bool VarLengthColumnExtend::addDFSLevelToStackIfParentExtends(
-    std::shared_ptr<ValueVector>& parentValueVector, uint8_t level) {
+    common::ValueVector* parentValueVector, uint8_t level) {
     auto dfsLevelInfo = static_pointer_cast<ColumnExtendDFSLevelInfo>(dfsLevelInfos[level - 1]);
     dfsLevelInfo->reset();
-    ((Column*)storage)->read(transaction, parentValueVector, dfsLevelInfo->children);
+    ((Column*)storage)->read(transaction, parentValueVector, dfsLevelInfo->children.get());
     if (!dfsLevelInfo->children->isNull(
             parentValueVector->state->selVector->selectedPositions[0])) {
         dfsStack.emplace(std::move(dfsLevelInfo));

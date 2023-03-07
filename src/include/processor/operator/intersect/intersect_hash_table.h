@@ -11,7 +11,7 @@ public:
         storage::MemoryManager& memoryManager, std::unique_ptr<FactorizedTableSchema> tableSchema)
         : JoinHashTable{memoryManager, 1 /* numKeyColumns */, std::move(tableSchema)} {}
 
-    void append(const std::vector<std::shared_ptr<common::ValueVector>>& vectorsToAppend) override;
+    void append(const std::vector<common::ValueVector*>& vectorsToAppend) override;
 };
 
 } // namespace processor

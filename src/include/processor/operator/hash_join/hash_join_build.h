@@ -94,7 +94,7 @@ protected:
 protected:
     std::shared_ptr<HashJoinSharedState> sharedState;
     BuildDataInfo buildDataInfo;
-    std::vector<std::shared_ptr<common::ValueVector>> vectorsToAppend;
+    std::vector<common::ValueVector*> vectorsToAppend;
     std::unique_ptr<JoinHashTable> hashTable;
 };
 

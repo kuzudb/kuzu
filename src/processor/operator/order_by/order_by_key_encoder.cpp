@@ -10,7 +10,7 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace processor {
 
-OrderByKeyEncoder::OrderByKeyEncoder(std::vector<std::shared_ptr<ValueVector>>& orderByVectors,
+OrderByKeyEncoder::OrderByKeyEncoder(std::vector<ValueVector*>& orderByVectors,
     std::vector<bool>& isAscOrder, MemoryManager* memoryManager, uint8_t ftIdx,
     uint32_t numTuplesPerBlockInFT, uint32_t numBytesPerTuple)
     : memoryManager{memoryManager}, orderByVectors{orderByVectors}, isAscOrder{isAscOrder},
@@ -21,7 +21,7 @@ OrderByKeyEncoder::OrderByKeyEncoder(std::vector<std::shared_ptr<ValueVector>>& 
             "The number of tuples per block of factorizedTable exceeds the maximum blockOffset!");
     }
     keyBlocks.emplace_back(std::make_unique<DataBlock>(memoryManager));
-    assert(this->numBytesPerTuple == getNumBytesPerTuple(orderByVectors));
+    assert(this->numBytesPerTuple == getNumBytesPerTuple());
     maxNumTuplesPerBlock = BufferPoolConstants::LARGE_PAGE_SIZE / numBytesPerTuple;
     if (maxNumTuplesPerBlock <= 0) {
         throw RuntimeException(StringUtils::string_format(
@@ -56,8 +56,7 @@ void OrderByKeyEncoder::encodeKeys() {
     }
 }
 
-uint32_t OrderByKeyEncoder::getNumBytesPerTuple(
-    const std::vector<std::shared_ptr<ValueVector>>& keyVectors) {
+uint32_t OrderByKeyEncoder::getNumBytesPerTuple(const std::vector<ValueVector*>& keyVectors) {
     uint32_t result = 0u;
     for (auto& vector : keyVectors) {
         result += getEncodingSize(vector->dataType);
@@ -98,7 +97,7 @@ void OrderByKeyEncoder::flipBytesIfNecessary(
 }
 
 void OrderByKeyEncoder::encodeFlatVector(
-    std::shared_ptr<ValueVector> vector, uint8_t* tuplePtr, uint32_t keyColIdx) {
+    ValueVector* vector, uint8_t* tuplePtr, uint32_t keyColIdx) {
     auto pos = vector->state->selVector->selectedPositions[0];
     if (vector->isNull(pos)) {
         for (auto j = 0u; j < getEncodingSize(vector->dataType); j++) {
@@ -111,7 +110,7 @@ void OrderByKeyEncoder::encodeFlatVector(
     }
 }
 
-void OrderByKeyEncoder::encodeUnflatVector(std::shared_ptr<ValueVector> vector, uint8_t* tuplePtr,
+void OrderByKeyEncoder::encodeUnflatVector(ValueVector* vector, uint8_t* tuplePtr,
     uint32_t encodedTuples, uint32_t numEntriesToEncode, uint32_t keyColIdx) {
     if (vector->state->selVector->isUnfiltered()) {
         auto value = vector->getData() + encodedTuples * vector->getNumBytesPerValue();
@@ -166,8 +165,8 @@ void OrderByKeyEncoder::encodeUnflatVector(std::shared_ptr<ValueVector> vector, 
     }
 }
 
-void OrderByKeyEncoder::encodeVector(std::shared_ptr<ValueVector> vector, uint8_t* tuplePtr,
-    uint32_t encodedTuples, uint32_t numEntriesToEncode, uint32_t keyColIdx) {
+void OrderByKeyEncoder::encodeVector(ValueVector* vector, uint8_t* tuplePtr, uint32_t encodedTuples,
+    uint32_t numEntriesToEncode, uint32_t keyColIdx) {
     if (vector->state->isFlat()) {
         encodeFlatVector(vector, tuplePtr, keyColIdx);
     } else {

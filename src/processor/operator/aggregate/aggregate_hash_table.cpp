@@ -70,31 +70,31 @@ bool AggregateHashTable::isAggregateValueDistinctForGroupByKeys(
 
 void AggregateHashTable::merge(AggregateHashTable& other) {
     std::shared_ptr<DataChunkState> vectorsToScanState = std::make_shared<DataChunkState>();
-    std::vector<std::shared_ptr<ValueVector>> vectorsToScan(
+    std::vector<ValueVector*> vectorsToScan(
         groupByHashKeysDataTypes.size() + groupByNonHashKeysDataTypes.size());
     std::vector<ValueVector*> groupByHashVectors(groupByHashKeysDataTypes.size());
     std::vector<ValueVector*> groupByNonHashVectors(groupByNonHashKeysDataTypes.size());
-    std::vector<std::shared_ptr<ValueVector>> hashKeyVectors(groupByHashKeysDataTypes.size());
-    std::vector<std::shared_ptr<ValueVector>> nonHashKeyVectors(groupByNonHashVectors.size());
+    std::vector<std::unique_ptr<ValueVector>> hashKeyVectors(groupByHashKeysDataTypes.size());
+    std::vector<std::unique_ptr<ValueVector>> nonHashKeyVectors(groupByNonHashVectors.size());
     for (auto i = 0u; i < groupByHashKeysDataTypes.size(); i++) {
         auto hashKeyVec =
-            std::make_shared<ValueVector>(groupByHashKeysDataTypes[i], &memoryManager);
+            std::make_unique<ValueVector>(groupByHashKeysDataTypes[i], &memoryManager);
         hashKeyVec->state = vectorsToScanState;
-        hashKeyVectors[i] = hashKeyVec;
-        vectorsToScan[i] = hashKeyVec;
+        vectorsToScan[i] = hashKeyVec.get();
         groupByHashVectors[i] = hashKeyVec.get();
+        hashKeyVectors[i] = std::move(hashKeyVec);
     }
     for (auto i = 0u; i < groupByNonHashKeysDataTypes.size(); i++) {
         auto nonHashKeyVec =
-            std::make_shared<ValueVector>(groupByNonHashKeysDataTypes[i], &memoryManager);
+            std::make_unique<ValueVector>(groupByNonHashKeysDataTypes[i], &memoryManager);
         nonHashKeyVec->state = vectorsToScanState;
-        nonHashKeyVectors[i] = nonHashKeyVec;
-        vectorsToScan[i + groupByHashKeysDataTypes.size()] = nonHashKeyVec;
+        vectorsToScan[i + groupByHashKeysDataTypes.size()] = nonHashKeyVec.get();
         groupByNonHashVectors[i] = nonHashKeyVec.get();
+        nonHashKeyVectors[i] = std::move(nonHashKeyVec);
     }
     hashVector->state = vectorsToScanState;
     hashVector->setAllNonNull();
-    vectorsToScan.emplace_back(hashVector);
+    vectorsToScan.emplace_back(hashVector.get());
 
     std::vector<uint32_t> colIdxesToScan(vectorsToScan.size() - 1);
     iota(colIdxesToScan.begin(), colIdxesToScan.end(), 0);
@@ -194,7 +194,7 @@ void AggregateHashTable::initializeHashTable(uint64_t numEntriesToAllocate) {
 void AggregateHashTable::initializeTmpVectors() {
     hashState = std::make_shared<DataChunkState>();
     hashState->currIdx = 0;
-    hashVector = std::make_shared<ValueVector>(INT64, &memoryManager);
+    hashVector = std::make_unique<ValueVector>(INT64, &memoryManager);
     hashVector->state = hashState;
     hashSlotsToUpdateAggState = std::make_unique<HashSlot*[]>(DEFAULT_VECTOR_CAPACITY);
     tmpValueIdxes = std::make_unique<uint64_t[]>(DEFAULT_VECTOR_CAPACITY);

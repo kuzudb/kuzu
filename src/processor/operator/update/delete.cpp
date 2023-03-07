@@ -26,11 +26,11 @@ bool DeleteNode::getNextTuplesInternal() {
 void DeleteRel::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     for (auto& deleteRelInfo : deleteRelInfos) {
         auto srcNodeIDVector = resultSet->getValueVector(deleteRelInfo->srcNodePos);
-        srcNodeVectors.push_back(srcNodeIDVector);
+        srcNodeVectors.push_back(srcNodeIDVector.get());
         auto dstNodeIDVector = resultSet->getValueVector(deleteRelInfo->dstNodePos);
-        dstNodeVectors.push_back(dstNodeIDVector);
+        dstNodeVectors.push_back(dstNodeIDVector.get());
         auto relIDVector = resultSet->getValueVector(deleteRelInfo->relIDPos);
-        relIDVectors.push_back(relIDVector);
+        relIDVectors.push_back(relIDVector.get());
     }
 }
 

@@ -4,10 +4,10 @@ namespace kuzu {
 namespace processor {
 
 void ScanColumns::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
-    inputNodeIDVector = resultSet->getValueVector(inputNodeIDVectorPos);
+    inputNodeIDVector = resultSet->getValueVector(inputNodeIDVectorPos).get();
     for (auto& dataPos : outPropertyVectorsPos) {
         auto vector = resultSet->getValueVector(dataPos);
-        outPropertyVectors.push_back(vector);
+        outPropertyVectors.push_back(vector.get());
     }
 }
 

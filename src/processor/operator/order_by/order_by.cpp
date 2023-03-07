@@ -8,7 +8,7 @@ namespace processor {
 void OrderBy::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     for (auto [dataPos, _] : orderByDataInfo.payloadsPosAndType) {
         auto vector = resultSet->getValueVector(dataPos);
-        vectorsToAppend.push_back(vector);
+        vectorsToAppend.push_back(vector.get());
     }
     // TODO(Ziyi): this is implemented differently from other sink operators. Normally we append
     // local table to global at the end of the execution. But here your encoder seem to need encode
@@ -19,8 +19,7 @@ void OrderBy::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* con
     factorizedTableIdx = sharedState->getNextFactorizedTableIdx();
     sharedState->appendFactorizedTable(factorizedTableIdx, localFactorizedTable);
     for (auto [dataPos, _] : orderByDataInfo.keysPosAndType) {
-        auto vector = resultSet->getValueVector(dataPos);
-        keyVectors.emplace_back(vector);
+        keyVectors.push_back(resultSet->getValueVector(dataPos).get());
     }
     orderByKeyEncoder = std::make_unique<OrderByKeyEncoder>(keyVectors, orderByDataInfo.isAscOrder,
         context->memoryManager, factorizedTableIdx, localFactorizedTable->getNumTuplesPerBlock(),

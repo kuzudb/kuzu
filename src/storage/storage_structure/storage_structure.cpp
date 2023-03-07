@@ -50,8 +50,8 @@ BaseColumnOrList::BaseColumnOrList(const StorageStructureIDAndFName& storageStru
     numElementsPerPage = PageUtils::getNumElementsInAPage(elementSize, hasNULLBytes);
 }
 
-void BaseColumnOrList::readBySequentialCopy(Transaction* transaction,
-    const std::shared_ptr<ValueVector>& vector, PageElementCursor& cursor,
+void BaseColumnOrList::readBySequentialCopy(Transaction* transaction, common::ValueVector* vector,
+    PageElementCursor& cursor,
     const std::function<page_idx_t(page_idx_t)>& logicalToPhysicalPageMapper) {
     uint64_t numValuesToRead = vector->state->originalSize;
     uint64_t vectorPos = 0;
@@ -67,7 +67,7 @@ void BaseColumnOrList::readBySequentialCopy(Transaction* transaction,
 }
 
 void BaseColumnOrList::readInternalIDsBySequentialCopy(Transaction* transaction,
-    const std::shared_ptr<ValueVector>& vector, PageElementCursor& cursor,
+    ValueVector* vector, PageElementCursor& cursor,
     const std::function<page_idx_t(page_idx_t)>& logicalToPhysicalPageMapper,
     table_id_t commonTableID, bool hasNoNullGuarantee) {
     uint64_t numValuesToRead = vector->state->originalSize;
@@ -84,7 +84,7 @@ void BaseColumnOrList::readInternalIDsBySequentialCopy(Transaction* transaction,
 }
 
 void BaseColumnOrList::readInternalIDsFromAPageBySequentialCopy(Transaction* transaction,
-    const std::shared_ptr<ValueVector>& vector, uint64_t vectorStartPos, page_idx_t physicalPageIdx,
+    ValueVector* vector, uint64_t vectorStartPos, page_idx_t physicalPageIdx,
     uint16_t pagePosOfFirstElement, uint64_t numValuesToRead, table_id_t commonTableID,
     bool hasNoNullGuarantee) {
     auto [fileHandleToPin, pageIdxToPin] =
@@ -108,7 +108,7 @@ void BaseColumnOrList::readInternalIDsFromAPageBySequentialCopy(Transaction* tra
 }
 
 void BaseColumnOrList::readInternalIDsBySequentialCopyWithSelState(Transaction* transaction,
-    const std::shared_ptr<common::ValueVector>& vector, PageElementCursor& cursor,
+    ValueVector* vector, PageElementCursor& cursor,
     const std::function<page_idx_t(page_idx_t)>& logicalToPhysicalPageMapper,
     table_id_t commonTableID) {
     auto selectedState = vector->state;
@@ -137,7 +137,7 @@ void BaseColumnOrList::readInternalIDsBySequentialCopyWithSelState(Transaction* 
 }
 
 void BaseColumnOrList::readBySequentialCopyWithSelState(Transaction* transaction,
-    const std::shared_ptr<ValueVector>& vector, PageElementCursor& cursor,
+    ValueVector* vector, PageElementCursor& cursor,
     const std::function<page_idx_t(page_idx_t)>& logicalToPhysicalPageMapper) {
     auto selectedState = vector->state;
     auto numValuesToRead = vector->state->originalSize;
@@ -163,16 +163,16 @@ void BaseColumnOrList::readBySequentialCopyWithSelState(Transaction* transaction
     }
 }
 
-void BaseColumnOrList::readSingleNullBit(const std::shared_ptr<ValueVector>& valueVector,
-    const uint8_t* frame, uint64_t elementPos, uint64_t offsetInVector) const {
+void BaseColumnOrList::readSingleNullBit(ValueVector* valueVector, const uint8_t* frame,
+    uint64_t elementPos, uint64_t offsetInVector) const {
     auto inputNullEntries = (uint64_t*)getNullBufferInPage(frame);
     bool isNull = NullMask::isNull(inputNullEntries, elementPos);
     valueVector->setNull(offsetInVector, isNull);
 }
 
-void BaseColumnOrList::readAPageBySequentialCopy(Transaction* transaction,
-    const std::shared_ptr<ValueVector>& vector, uint64_t vectorStartPos, page_idx_t physicalPageIdx,
-    uint16_t pagePosOfFirstElement, uint64_t numValuesToRead) {
+void BaseColumnOrList::readAPageBySequentialCopy(Transaction* transaction, ValueVector* vector,
+    uint64_t vectorStartPos, page_idx_t physicalPageIdx, uint16_t pagePosOfFirstElement,
+    uint64_t numValuesToRead) {
     auto [fileHandleToPin, pageIdxToPin] =
         StorageStructureUtils::getFileHandleAndPhysicalPageIdxToPin(
             fileHandle, physicalPageIdx, *wal, transaction->getType());
@@ -185,8 +185,8 @@ void BaseColumnOrList::readAPageBySequentialCopy(Transaction* transaction,
     bufferManager.unpin(*fileHandleToPin, pageIdxToPin);
 }
 
-void BaseColumnOrList::readNullBitsFromAPage(const std::shared_ptr<ValueVector>& valueVector,
-    const uint8_t* frame, uint64_t posInPage, uint64_t posInVector, uint64_t numBitsToRead) const {
+void BaseColumnOrList::readNullBitsFromAPage(ValueVector* valueVector, const uint8_t* frame,
+    uint64_t posInPage, uint64_t posInVector, uint64_t numBitsToRead) const {
     auto hasNullInSrcNullMask = NullMask::copyNullMask((uint64_t*)getNullBufferInPage(frame),
         posInPage, valueVector->getNullMaskData(), posInVector, numBitsToRead);
     if (hasNullInSrcNullMask) {

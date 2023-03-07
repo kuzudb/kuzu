@@ -26,10 +26,8 @@ public:
         nodesStatisticsAndDeletedIDs->setDeletedNodeOffsetsForMorsel(trx, vector, tableID);
     }
 
-    void scan(transaction::Transaction* transaction,
-        const std::shared_ptr<common::ValueVector>& inputIDVector,
-        const std::vector<uint32_t>& columnIdxes,
-        std::vector<std::shared_ptr<common::ValueVector>> outputVectors);
+    void scan(transaction::Transaction* transaction, common::ValueVector* inputIDVector,
+        const std::vector<uint32_t>& columnIdxes, std::vector<common::ValueVector*> outputVectors);
 
     inline Column* getPropertyColumn(common::property_id_t propertyIdx) {
         assert(propertyColumns.contains(propertyIdx));

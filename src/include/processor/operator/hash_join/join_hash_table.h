@@ -15,13 +15,12 @@ public:
 
     virtual ~JoinHashTable() = default;
 
-    virtual void append(const std::vector<std::shared_ptr<common::ValueVector>>& vectorsToAppend);
+    virtual void append(const std::vector<common::ValueVector*>& vectorsToAppend);
     void allocateHashSlots(uint64_t numTuples);
     void buildHashSlots();
-    void probe(const std::vector<std::shared_ptr<common::ValueVector>>& keyVectors,
-        uint8_t** probedTuples);
+    void probe(const std::vector<common::ValueVector*>& keyVectors, uint8_t** probedTuples);
 
-    inline void lookup(std::vector<std::shared_ptr<common::ValueVector>>& vectors,
+    inline void lookup(std::vector<common::ValueVector*>& vectors,
         std::vector<uint32_t>& colIdxesToScan, uint8_t** tuplesToRead, uint64_t startPos,
         uint64_t numTuplesToRead) {
         factorizedTable->lookup(vectors, colIdxesToScan, tuplesToRead, startPos, numTuplesToRead);
@@ -48,7 +47,7 @@ protected:
 
     // This function returns a boolean flag indicating if there is non-null keys after discarding.
     static bool discardNullFromKeys(
-        const std::vector<std::shared_ptr<common::ValueVector>>& vectors, uint32_t numKeyVectors);
+        const std::vector<common::ValueVector*>& vectors, uint32_t numKeyVectors);
 
 private:
     uint64_t numKeyColumns;

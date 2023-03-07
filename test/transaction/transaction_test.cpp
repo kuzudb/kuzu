@@ -64,7 +64,7 @@ public:
         dataChunk->state->currIdx = nodeOffset;
         dataChunk->state->selVector->resetSelectorToValuePosBuffer();
         dataChunk->state->selVector->selectedPositions[0] = nodeOffset;
-        personAgeColumn->read(trx, nodeVector, agePropertyVectorToReadDataInto);
+        personAgeColumn->read(trx, nodeVector.get(), agePropertyVectorToReadDataInto.get());
         if (isNull) {
             ASSERT_TRUE(agePropertyVectorToReadDataInto->isNull(dataChunk->state->currIdx));
         } else {
@@ -79,7 +79,7 @@ public:
         dataChunk->state->currIdx = nodeOffset;
         dataChunk->state->selVector->resetSelectorToValuePosBuffer();
         dataChunk->state->selVector->selectedPositions[0] = nodeOffset;
-        personEyeSightColumn->read(trx, nodeVector, eyeSightVectorToReadDataInto);
+        personEyeSightColumn->read(trx, nodeVector.get(), eyeSightVectorToReadDataInto.get());
         if (isNull) {
             ASSERT_TRUE(eyeSightVectorToReadDataInto->isNull(dataChunk->state->currIdx));
         } else {
@@ -104,7 +104,7 @@ public:
             propertyVectorToWriteDataTo->setValue(
                 dataChunk->state->currIdx, (uint64_t)expectedValue);
         }
-        personAgeColumn->writeValues(nodeVector, propertyVectorToWriteDataTo);
+        personAgeColumn->writeValues(nodeVector.get(), propertyVectorToWriteDataTo.get());
     }
 
     void writeToEyeSightPropertyNode(uint64_t nodeOffset, double expectedValue, bool isNull) {
@@ -122,7 +122,7 @@ public:
             propertyVectorToWriteDataTo->setValue(
                 dataChunk->state->currIdx, (double_t)expectedValue);
         }
-        personEyeSightColumn->writeValues(nodeVector, propertyVectorToWriteDataTo);
+        personEyeSightColumn->writeValues(nodeVector.get(), propertyVectorToWriteDataTo.get());
     }
 
     void assertOriginalAgeAndEyeSightPropertiesForNodes0And1(Transaction* transaction) {

@@ -18,12 +18,12 @@ static void sortSelectedPos(ValueVector* nodeIDVector) {
     });
 }
 
-void IntersectHashTable::append(const std::vector<std::shared_ptr<ValueVector>>& vectorsToAppend) {
+void IntersectHashTable::append(const std::vector<ValueVector*>& vectorsToAppend) {
     auto numTuplesToAppend = 1;
     // Based on the way we are planning, we assume that the first and second vectors are both
     // nodeIDs from extending, while the first one is key, and the second one is payload.
     auto keyState = vectorsToAppend[0]->state.get();
-    auto payloadNodeIDVector = vectorsToAppend[1].get();
+    auto payloadNodeIDVector = vectorsToAppend[1];
     auto payloadsState = payloadNodeIDVector->state.get();
     assert(keyState->isFlat());
     if (!payloadsState->isFlat()) {

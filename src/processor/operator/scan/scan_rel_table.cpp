@@ -4,10 +4,10 @@ namespace kuzu {
 namespace processor {
 
 void ScanRelTable::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
-    inNodeIDVector = resultSet->getValueVector(inNodeIDVectorPos);
+    inNodeIDVector = resultSet->getValueVector(inNodeIDVectorPos).get();
     for (auto& dataPos : outputVectorsPos) {
         auto vector = resultSet->getValueVector(dataPos);
-        outputVectors.push_back(vector);
+        outputVectors.push_back(vector.get());
     }
 }
 

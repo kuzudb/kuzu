@@ -16,8 +16,7 @@ public:
     void resetState();
     inline uint32_t getNumTablesInCollection() { return tables.size(); }
 
-    bool scan(const std::shared_ptr<common::ValueVector>& inVector,
-        std::vector<std::shared_ptr<common::ValueVector>>& outputVectors,
+    bool scan(common::ValueVector* inVector, const std::vector<common::ValueVector*>& outputVectors,
         transaction::Transaction* transaction);
 
     std::unique_ptr<RelTableCollection> clone() const;

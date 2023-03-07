@@ -79,17 +79,14 @@ public:
     virtual inline void rollbackInMemoryIfNecessary() { metadata.rollbackInMemoryIfNecessary(); }
     virtual inline bool mayContainNulls() const { return true; }
     virtual inline void setDeletedRelsIfNecessary(transaction::Transaction* transaction,
-        ListHandle& listHandle, const std::shared_ptr<common::ValueVector>& valueVector) {
+        ListHandle& listHandle, common::ValueVector* valueVector) {
         // DO NOTHING.
     }
-    virtual void readValues(transaction::Transaction* transaction,
-        const std::shared_ptr<common::ValueVector>& valueVector, ListHandle& listHandle);
-    virtual void readFromSmallList(
-        const std::shared_ptr<common::ValueVector>& valueVector, ListHandle& listHandle);
-    virtual void readFromLargeList(
-        const std::shared_ptr<common::ValueVector>& valueVector, ListHandle& listHandle);
-    void readFromList(
-        const std::shared_ptr<common::ValueVector>& valueVector, ListHandle& listHandle);
+    virtual void readValues(transaction::Transaction* transaction, common::ValueVector* valueVector,
+        ListHandle& listHandle);
+    virtual void readFromSmallList(common::ValueVector* valueVector, ListHandle& listHandle);
+    virtual void readFromLargeList(common::ValueVector* valueVector, ListHandle& listHandle);
+    void readFromList(common::ValueVector* valueVector, ListHandle& listHandle);
     uint64_t getNumElementsInPersistentStore(
         transaction::TransactionType transactionType, common::offset_t nodeOffset);
     void initListReadingState(common::offset_t nodeOffset, ListHandle& listHandle,
@@ -163,10 +160,8 @@ public:
               headers, bufferManager, wal, listsUpdatesStore} {};
 
 private:
-    void readFromLargeList(
-        const std::shared_ptr<common::ValueVector>& valueVector, ListHandle& listHandle) override;
-    void readFromSmallList(
-        const std::shared_ptr<common::ValueVector>& valueVector, ListHandle& listHandle) override;
+    void readFromLargeList(common::ValueVector* valueVector, ListHandle& listHandle) override;
+    void readFromSmallList(common::ValueVector* valueVector, ListHandle& listHandle) override;
 };
 
 class ListPropertyLists : public PropertyListsWithOverflow {
@@ -179,10 +174,8 @@ public:
               wal, listsUpdatesStore} {};
 
 private:
-    void readFromLargeList(
-        const std::shared_ptr<common::ValueVector>& valueVector, ListHandle& listHandle) override;
-    void readFromSmallList(
-        const std::shared_ptr<common::ValueVector>& valueVector, ListHandle& listHandle) override;
+    void readFromLargeList(common::ValueVector* valueVector, ListHandle& listHandle) override;
+    void readFromSmallList(common::ValueVector* valueVector, ListHandle& listHandle) override;
 };
 
 class AdjLists : public Lists {
@@ -199,8 +192,8 @@ public:
 
     inline bool mayContainNulls() const override { return false; }
 
-    void readValues(transaction::Transaction* transaction,
-        const std::shared_ptr<common::ValueVector>& valueVector, ListHandle& listHandle) override;
+    void readValues(transaction::Transaction* transaction, common::ValueVector* valueVector,
+        ListHandle& listHandle) override;
 
     // Currently, used only in copyCSV tests.
     std::unique_ptr<std::vector<common::nodeID_t>> readAdjacencyListOfNode(
@@ -217,14 +210,10 @@ public:
     }
 
 private:
-    void readFromLargeList(
-        const std::shared_ptr<common::ValueVector>& valueVector, ListHandle& listHandle) override;
-    void readFromSmallList(
-        const std::shared_ptr<common::ValueVector>& valueVector, ListHandle& listHandle) override;
-    void readFromListsUpdatesStore(
-        ListHandle& listHandle, const std::shared_ptr<common::ValueVector>& valueVector);
-    void readFromPersistentStore(
-        ListHandle& listHandle, const std::shared_ptr<common::ValueVector>& valueVector);
+    void readFromLargeList(common::ValueVector* valueVector, ListHandle& listHandle) override;
+    void readFromSmallList(common::ValueVector* valueVector, ListHandle& listHandle) override;
+    void readFromListsUpdatesStore(ListHandle& listHandle, common::ValueVector* valueVector);
+    void readFromPersistentStore(ListHandle& listHandle, common::ValueVector* valueVector);
 
 private:
     common::table_id_t nbrTableID;
@@ -241,18 +230,16 @@ public:
     }
 
     void setDeletedRelsIfNecessary(transaction::Transaction* transaction, ListHandle& listHandle,
-        const std::shared_ptr<common::ValueVector>& relIDVector) override;
+        common::ValueVector* relIDVector) override;
 
     std::unordered_set<uint64_t> getDeletedRelOffsetsInListForNodeOffset(
         common::offset_t nodeOffset);
 
     list_offset_t getListOffset(common::offset_t nodeOffset, common::offset_t relOffset);
 
-    void readFromSmallList(
-        const std::shared_ptr<common::ValueVector>& valueVector, ListHandle& listHandle) override;
+    void readFromSmallList(common::ValueVector* valueVector, ListHandle& listHandle) override;
 
-    void readFromLargeList(
-        const std::shared_ptr<common::ValueVector>& valueVector, ListHandle& listHandle) override;
+    void readFromLargeList(common::ValueVector* valueVector, ListHandle& listHandle) override;
 
 private:
     inline bool mayContainNulls() const override { return false; }
