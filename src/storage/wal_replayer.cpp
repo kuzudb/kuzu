@@ -353,10 +353,10 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
             auto propertyID = walRecord.dropPropertyRecord.propertyID;
             if (!isRecovering) {
                 if (catalog->getReadOnlyVersion()->containNodeTable(tableID)) {
-                    storageManager->getNodesStore().getNodeTable(tableID)->removeProperty(
-                        propertyID);
                     WALReplayerUtils::removeDBFilesForNodeProperty(
                         wal->getDirectory(), tableID, propertyID);
+                    storageManager->getNodesStore().getNodeTable(tableID)->removeProperty(
+                        propertyID);
                 } else {
                     WALReplayerUtils::removeDBFilesForRelProperty(wal->getDirectory(),
                         catalog->getReadOnlyVersion()->getRelTableSchema(tableID), propertyID);
@@ -364,7 +364,7 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
                         propertyID, *catalog->getReadOnlyVersion()->getRelTableSchema(tableID));
                 }
             } else {
-                auto catalogForRecovery = getCatalogForRecovery(DBFileType::ORIGINAL);
+                auto catalogForRecovery = getCatalogForRecovery(DBFileType::WAL_VERSION);
                 if (catalogForRecovery->getReadOnlyVersion()->containNodeTable(tableID)) {
                     WALReplayerUtils::removeDBFilesForNodeProperty(
                         wal->getDirectory(), tableID, propertyID);

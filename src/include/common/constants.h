@@ -45,7 +45,7 @@ struct BufferPoolConstants {
 struct StorageConstants {
     // The default amount of memory pre-allocated to both the default and large pages buffer pool.
     static constexpr uint64_t DEFAULT_BUFFER_POOL_SIZE = 1ull << 30;             // (1GB)
-    static constexpr uint64_t DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING = 1ull << 26; // (64MB)
+    static constexpr uint64_t DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING = 1ull << 27; // (128MB)
     // The default ratio of system memory allocated to buffer pools (including default and large).
     static constexpr double DEFAULT_BUFFER_POOL_RATIO = 0.8;
     // The default ratio of buffer allocated to default and large pages.
