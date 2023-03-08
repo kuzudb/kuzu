@@ -22,7 +22,7 @@ void Benchmark::loadBenchmark(const std::string& benchmarkPath) {
     auto queryConfigs = testing::TestHelper::parseTestFile(benchmarkPath);
     assert(queryConfigs.size() == 1);
     auto queryConfig = queryConfigs[0].get();
-    query = config.enableProfile ? "PROFILE " : "";
+    //    query = config.enableProfile ? "PROFILE " : "";
     query += queryConfig->query;
     name = queryConfig->name;
     expectedOutput = queryConfig->expectedTuples;
