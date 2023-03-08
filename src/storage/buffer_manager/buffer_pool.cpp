@@ -58,7 +58,7 @@ BufferPool::BufferPool(uint64_t pageSize, uint64_t maxSize)
       numFrames((page_idx_t)(ceil((double)maxSize / (double)pageSize))) {
     assert(pageSize == BufferPoolConstants::DEFAULT_PAGE_SIZE ||
            pageSize == BufferPoolConstants::LARGE_PAGE_SIZE);
-    auto mmapRegion = (u_int8_t*)mmap(
+    auto mmapRegion = (uint8_t*)mmap(
         NULL, (numFrames * pageSize), PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     for (auto i = 0u; i < numFrames; ++i) {
         auto buffer = mmapRegion + (i * pageSize);
@@ -75,7 +75,7 @@ void BufferPool::resize(uint64_t newSize) {
     auto newNumFrames = (page_idx_t)(ceil((double)newSize / (double)pageSize));
     assert(newNumFrames < UINT32_MAX);
     auto mmapRegion =
-        (u_int8_t*)mmap(NULL, newSize, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+        (uint8_t*)mmap(NULL, newSize, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     for (auto i = 0u; i < newNumFrames - numFrames; ++i) {
         auto buffer = mmapRegion + (i * pageSize);
         bufferCache.emplace_back(std::make_unique<Frame>(pageSize, buffer));
