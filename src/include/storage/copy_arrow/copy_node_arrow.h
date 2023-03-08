@@ -12,22 +12,27 @@ class CopyNodeArrow : public CopyStructuresArrow {
 public:
     CopyNodeArrow(common::CopyDescription& copyDescription, std::string outputDirectory,
         common::TaskScheduler& taskScheduler, catalog::Catalog& catalog, common::table_id_t tableID,
-        NodesStatisticsAndDeletedIDs* nodesStatisticsAndDeletedIDs);
-
-    ~CopyNodeArrow() override = default;
-
-    uint64_t copy();
-
-    void saveToFile() override;
+        NodesStatisticsAndDeletedIDs* nodesStatisticsAndDeletedIDs)
+        : CopyStructuresArrow{copyDescription, std::move(outputDirectory), taskScheduler, catalog,
+              tableID},
+          nodesStatisticsAndDeletedIDs{nodesStatisticsAndDeletedIDs} {}
 
 private:
-    void initializeColumnsAndList();
+    inline void updateTableStatistics() override {
+        nodesStatisticsAndDeletedIDs->setNumTuplesForTable(tableSchema->tableID, numRows);
+    }
+
+    void initializeColumnsAndLists() override;
+
+    void populateColumnsAndLists() override;
+
+    void saveToFile() override;
 
     template<typename T>
     arrow::Status populateColumns();
 
     template<typename T>
-    arrow::Status populateColumnsFromCSV(std::unique_ptr<HashIndexBuilder<T>>& pkIndex);
+    arrow::Status populateColumnsFromFiles(std::unique_ptr<HashIndexBuilder<T>>& pkIndex);
 
     template<typename T>
     arrow::Status populateColumnsFromArrow(std::unique_ptr<HashIndexBuilder<T>>& pkIndex);
@@ -48,13 +53,16 @@ private:
     // Concurrent tasks.
     // Note that primaryKeyPropertyIdx is *NOT* the property ID of the primary key property.
     template<typename T1, typename T2>
-    static arrow::Status batchPopulateColumnsTask(uint64_t primaryKeyPropertyIdx, uint64_t blockId,
-        uint64_t offsetStart, HashIndexBuilder<T1>* pkIndex, CopyNodeArrow* copier,
-        const std::vector<std::shared_ptr<T2>>& batchColumns,
-        common::CopyDescription& copyDescription);
+    static arrow::Status batchPopulateColumnsTask(uint64_t primaryKeyPropertyIdx, uint64_t blockIdx,
+        uint64_t startOffset, HashIndexBuilder<T1>* pkIndex, CopyNodeArrow* copier,
+        const std::vector<std::shared_ptr<T2>>& batchColumns, std::string filePath);
+
+    template<typename T>
+    arrow::Status assignCopyTasks(std::shared_ptr<arrow::csv::StreamingReader>& csvStreamingReader,
+        common::offset_t startOffset, std::string filePath,
+        std::unique_ptr<HashIndexBuilder<T>>& pkIndex);
 
 private:
-    catalog::NodeTableSchema* nodeTableSchema;
     std::vector<std::unique_ptr<InMemColumn>> columns;
     NodesStatisticsAndDeletedIDs* nodesStatisticsAndDeletedIDs;
 };

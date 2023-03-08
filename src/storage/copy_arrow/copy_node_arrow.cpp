@@ -9,25 +9,22 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-CopyNodeArrow::CopyNodeArrow(CopyDescription& copyDescription, std::string outputDirectory,
-    TaskScheduler& taskScheduler, Catalog& catalog, table_id_t tableID,
-    NodesStatisticsAndDeletedIDs* nodesStatisticsAndDeletedIDs)
-    : CopyStructuresArrow{copyDescription, std::move(outputDirectory), taskScheduler, catalog},
-      nodesStatisticsAndDeletedIDs{nodesStatisticsAndDeletedIDs} {
-    nodeTableSchema = catalog.getReadOnlyVersion()->getNodeTableSchema(tableID);
+void CopyNodeArrow::initializeColumnsAndLists() {
+    logger->info("Initializing in memory columns.");
+    columns.resize(tableSchema->getNumProperties());
+    for (auto& property : tableSchema->properties) {
+        auto fName = StorageUtils::getNodePropertyColumnFName(
+            outputDirectory, tableSchema->tableID, property.propertyID, DBFileType::WAL_VERSION);
+        columns[property.propertyID] =
+            InMemColumnFactory::getInMemPropertyColumn(fName, property.dataType, numRows);
+    }
+    logger->info("Done initializing in memory columns.");
 }
 
-uint64_t CopyNodeArrow::copy() {
-    auto read_start = std::chrono::high_resolution_clock::now();
-    logger->info(
-        "Reading " + CopyDescription::getFileTypeName(copyDescription.fileType) + " file.");
-
-    countNumLines(copyDescription.filePath);
-    initializeColumnsAndList();
-
+void CopyNodeArrow::populateColumnsAndLists() {
     arrow::Status status;
-
-    switch (nodeTableSchema->getPrimaryKey().dataType.typeID) {
+    auto primaryKey = reinterpret_cast<NodeTableSchema*>(tableSchema)->getPrimaryKey();
+    switch (primaryKey.dataType.typeID) {
     case INT64: {
         status = populateColumns<int64_t>();
     } break;
@@ -35,58 +32,36 @@ uint64_t CopyNodeArrow::copy() {
         status = populateColumns<ku_string_t>();
     } break;
     default: {
-        throw CopyException("Unsupported data type " +
-                            Types::dataTypeToString(nodeTableSchema->getPrimaryKey().dataType) +
-                            " for the ID index.");
+        throw CopyException(StringUtils::string_format("Unsupported data type {} for the ID index.",
+            Types::dataTypeToString(primaryKey.dataType)));
     }
     }
-
     throwCopyExceptionIfNotOK(status);
-
-    auto read_end = std::chrono::high_resolution_clock::now();
-    auto write_start = std::chrono::high_resolution_clock::now();
-
-    saveToFile();
-    nodesStatisticsAndDeletedIDs->setNumTuplesForTable(nodeTableSchema->tableID, numRows);
-    logger->info("Done copying node {} with table {}.", nodeTableSchema->tableName,
-        nodeTableSchema->tableID);
-
-    auto write_end = std::chrono::high_resolution_clock::now();
-    auto read_time = std::chrono::duration_cast<std::chrono::microseconds>(read_end - read_start);
-    auto write_time =
-        std::chrono::duration_cast<std::chrono::microseconds>(write_end - write_start);
-    auto total_time = std::chrono::duration_cast<std::chrono::microseconds>(write_end - read_start);
-    logger->debug("read time: {}.", read_time.count());
-    logger->debug("write time: {}.", write_time.count());
-    logger->debug("total time: {}.", total_time.count());
-    return numRows;
 }
 
-void CopyNodeArrow::initializeColumnsAndList() {
-    logger->info("Initializing in memory columns.");
-    columns.resize(nodeTableSchema->getNumProperties());
-    for (auto& property : nodeTableSchema->properties) {
-        auto fName = StorageUtils::getNodePropertyColumnFName(outputDirectory,
-            nodeTableSchema->tableID, property.propertyID, DBFileType::WAL_VERSION);
-        columns[property.propertyID] =
-            InMemColumnFactory::getInMemPropertyColumn(fName, property.dataType, numRows);
+void CopyNodeArrow::saveToFile() {
+    logger->debug("Writing node columns to disk.");
+    assert(!columns.empty());
+    for (auto& column : columns) {
+        taskScheduler.scheduleTask(CopyTaskFactory::createCopyTask(
+            [&](InMemColumn* x) { x->saveToFile(); }, column.get()));
     }
-    logger->info("Done initializing in memory columns.");
+    taskScheduler.waitAllTasksToCompleteOrError();
+    logger->debug("Done writing node columns to disk.");
 }
 
 template<typename T>
 arrow::Status CopyNodeArrow::populateColumns() {
     logger->info("Populating properties");
-    auto pkIndex = std::make_unique<HashIndexBuilder<T>>(
-        StorageUtils::getNodeIndexFName(
-            this->outputDirectory, nodeTableSchema->tableID, DBFileType::WAL_VERSION),
-        nodeTableSchema->getPrimaryKey().dataType);
+    auto pkIndex =
+        std::make_unique<HashIndexBuilder<T>>(StorageUtils::getNodeIndexFName(this->outputDirectory,
+                                                  tableSchema->tableID, DBFileType::WAL_VERSION),
+            reinterpret_cast<NodeTableSchema*>(tableSchema)->getPrimaryKey().dataType);
     pkIndex->bulkReserve(numRows);
-
     arrow::Status status;
     switch (copyDescription.fileType) {
     case CopyDescription::FileType::CSV:
-        status = populateColumnsFromCSV<T>(pkIndex);
+        status = populateColumnsFromFiles<T>(pkIndex);
         break;
     case CopyDescription::FileType::ARROW:
         status = populateColumnsFromArrow<T>(pkIndex);
@@ -95,7 +70,6 @@ arrow::Status CopyNodeArrow::populateColumns() {
         status = populateColumnsFromParquet<T>(pkIndex);
         break;
     }
-
     logger->info("Flush the pk index to disk.");
     pkIndex->flush();
     logger->info("Done populating properties, constructing the pk index.");
@@ -103,63 +77,44 @@ arrow::Status CopyNodeArrow::populateColumns() {
 }
 
 template<typename T>
-arrow::Status CopyNodeArrow::populateColumnsFromCSV(std::unique_ptr<HashIndexBuilder<T>>& pkIndex) {
-    offset_t offsetStart = 0;
-
-    std::shared_ptr<arrow::csv::StreamingReader> csv_streaming_reader;
-    auto status = initCSVReaderAndCheckStatus(csv_streaming_reader, copyDescription.filePath);
-
-    std::shared_ptr<arrow::RecordBatch> currBatch;
-    int blockIdx = 0;
-    auto it = csv_streaming_reader->begin();
-    auto endIt = csv_streaming_reader->end();
-    while (it != endIt) {
-        for (int i = 0; i < CopyConstants::NUM_COPIER_TASKS_TO_SCHEDULE_PER_BATCH; ++i) {
-            if (it == endIt) {
-                break;
-            }
-            ARROW_ASSIGN_OR_RAISE(currBatch, *it);
-            taskScheduler.scheduleTask(CopyTaskFactory::createCopyTask(
-                batchPopulateColumnsTask<T, arrow::Array>, nodeTableSchema->primaryKeyPropertyID,
-                blockIdx, offsetStart, pkIndex.get(), this, currBatch->columns(), copyDescription));
-            offsetStart += currBatch->num_rows();
-            ++blockIdx;
-            ++it;
-        }
-        taskScheduler.waitUntilEnoughTasksFinish(
-            CopyConstants::MINIMUM_NUM_COPIER_TASKS_TO_SCHEDULE_MORE);
+arrow::Status CopyNodeArrow::populateColumnsFromFiles(
+    std::unique_ptr<HashIndexBuilder<T>>& pkIndex) {
+    for (auto& filePath : copyDescription.filePaths) {
+        offset_t startOffset = fileBlockInfos.at(filePath).startOffset;
+        std::shared_ptr<arrow::csv::StreamingReader> csvStreamingReader;
+        auto status = initCSVReaderAndCheckStatus(csvStreamingReader, filePath);
+        status = assignCopyTasks<T>(csvStreamingReader, startOffset, filePath, pkIndex);
+        throwCopyExceptionIfNotOK(status);
     }
-    taskScheduler.waitAllTasksToCompleteOrError();
     return arrow::Status::OK();
 }
 
 template<typename T>
 arrow::Status CopyNodeArrow::populateColumnsFromArrow(
     std::unique_ptr<HashIndexBuilder<T>>& pkIndex) {
-    offset_t offsetStart = 0;
-
     std::shared_ptr<arrow::ipc::RecordBatchFileReader> ipc_reader;
-    auto status = initArrowReaderAndCheckStatus(ipc_reader, copyDescription.filePath);
-
+    auto status = initArrowReaderAndCheckStatus(ipc_reader, copyDescription.filePaths[0]);
     std::shared_ptr<arrow::RecordBatch> currBatch;
-
     int blockIdx = 0;
-    while (blockIdx < numBlocks) {
+    offset_t startOffset = 0;
+    auto numBlocksInFile = fileBlockInfos.at(copyDescription.filePaths[0]).numBlocks;
+    while (blockIdx < numBlocksInFile) {
         for (int i = 0; i < CopyConstants::NUM_COPIER_TASKS_TO_SCHEDULE_PER_BATCH; ++i) {
-            if (blockIdx == numBlocks) {
+            if (blockIdx == numBlocksInFile) {
                 break;
             }
             ARROW_ASSIGN_OR_RAISE(currBatch, ipc_reader->ReadRecordBatch(blockIdx));
-            taskScheduler.scheduleTask(CopyTaskFactory::createCopyTask(
-                batchPopulateColumnsTask<T, arrow::Array>, nodeTableSchema->primaryKeyPropertyID,
-                blockIdx, offsetStart, pkIndex.get(), this, currBatch->columns(), copyDescription));
-            offsetStart += currBatch->num_rows();
+            taskScheduler.scheduleTask(
+                CopyTaskFactory::createCopyTask(batchPopulateColumnsTask<T, arrow::Array>,
+                    reinterpret_cast<NodeTableSchema*>(tableSchema)->primaryKeyPropertyID, blockIdx,
+                    startOffset, pkIndex.get(), this, currBatch->columns(),
+                    copyDescription.filePaths[0]));
+            startOffset += currBatch->num_rows();
             ++blockIdx;
         }
         taskScheduler.waitUntilEnoughTasksFinish(
             CopyConstants::MINIMUM_NUM_COPIER_TASKS_TO_SCHEDULE_MORE);
     }
-
     taskScheduler.waitAllTasksToCompleteOrError();
     return arrow::Status::OK();
 }
@@ -167,13 +122,12 @@ arrow::Status CopyNodeArrow::populateColumnsFromArrow(
 template<typename T>
 arrow::Status CopyNodeArrow::populateColumnsFromParquet(
     std::unique_ptr<HashIndexBuilder<T>>& pkIndex) {
-    offset_t offsetStart = 0;
-
     std::unique_ptr<parquet::arrow::FileReader> reader;
-    auto status = initParquetReaderAndCheckStatus(reader, copyDescription.filePath);
-
+    auto status = initParquetReaderAndCheckStatus(reader, copyDescription.filePaths[0]);
     std::shared_ptr<arrow::Table> currTable;
     int blockIdx = 0;
+    offset_t startOffset = 0;
+    auto numBlocks = fileBlockInfos.at(copyDescription.filePaths[0]).numBlocks;
     while (blockIdx < numBlocks) {
         for (int i = 0; i < CopyConstants::NUM_COPIER_TASKS_TO_SCHEDULE_PER_BATCH; ++i) {
             if (blockIdx == numBlocks) {
@@ -182,15 +136,15 @@ arrow::Status CopyNodeArrow::populateColumnsFromParquet(
             ARROW_RETURN_NOT_OK(reader->RowGroup(blockIdx)->ReadTable(&currTable));
             taskScheduler.scheduleTask(
                 CopyTaskFactory::createCopyTask(batchPopulateColumnsTask<T, arrow::ChunkedArray>,
-                    nodeTableSchema->primaryKeyPropertyID, blockIdx, offsetStart, pkIndex.get(),
-                    this, currTable->columns(), copyDescription));
-            offsetStart += currTable->num_rows();
+                    reinterpret_cast<NodeTableSchema*>(tableSchema)->primaryKeyPropertyID, blockIdx,
+                    startOffset, pkIndex.get(), this, currTable->columns(),
+                    copyDescription.filePaths[0]));
+            startOffset += currTable->num_rows();
             ++blockIdx;
         }
         taskScheduler.waitUntilEnoughTasksFinish(
             CopyConstants::MINIMUM_NUM_COPIER_TASKS_TO_SCHEDULE_MORE);
     }
-
     taskScheduler.waitAllTasksToCompleteOrError();
     return arrow::Status::OK();
 }
@@ -220,17 +174,19 @@ void CopyNodeArrow::populatePKIndex(
 
 template<typename T1, typename T2>
 arrow::Status CopyNodeArrow::batchPopulateColumnsTask(uint64_t primaryKeyPropertyIdx,
-    uint64_t blockId, uint64_t offsetStart, HashIndexBuilder<T1>* pkIndex, CopyNodeArrow* copier,
-    const std::vector<std::shared_ptr<T2>>& batchColumns, CopyDescription& copyDescription) {
-    copier->logger->trace("Start: path={0} blkIdx={1}", copier->copyDescription.filePath, blockId);
-    std::vector<PageByteCursor> overflowCursors(copier->nodeTableSchema->getNumProperties());
-    for (auto blockOffset = 0u; blockOffset < copier->numLinesPerBlock[blockId]; ++blockOffset) {
+    uint64_t blockIdx, uint64_t startOffset, HashIndexBuilder<T1>* pkIndex, CopyNodeArrow* copier,
+    const std::vector<std::shared_ptr<T2>>& batchColumns, std::string filePath) {
+    copier->logger->trace("Start: path={0} blkIdx={1}", filePath, blockIdx);
+    std::vector<PageByteCursor> overflowCursors(copier->tableSchema->getNumProperties());
+    auto numLinesInCurBlock = copier->fileBlockInfos.at(filePath).numLinesPerBlock[blockIdx];
+    for (auto blockOffset = 0u; blockOffset < numLinesInCurBlock; ++blockOffset) {
         putPropsOfLineIntoColumns(copier->columns, overflowCursors, batchColumns,
-            offsetStart + blockOffset, blockOffset, copyDescription);
+            startOffset + blockOffset, blockOffset, copier->copyDescription);
     }
-    populatePKIndex(copier->columns[primaryKeyPropertyIdx].get(), pkIndex, offsetStart,
-        copier->numLinesPerBlock[blockId]);
-    copier->logger->trace("End: path={0} blkIdx={1}", copier->copyDescription.filePath, blockId);
+    populatePKIndex(
+        copier->columns[primaryKeyPropertyIdx].get(), pkIndex, startOffset, numLinesInCurBlock);
+    copier->logger->trace(
+        "End: path={0} blkIdx={1}", copier->copyDescription.filePaths[0], blockIdx);
     return arrow::Status::OK();
 }
 
@@ -309,15 +265,33 @@ void CopyNodeArrow::putPropsOfLineIntoColumns(
     }
 }
 
-void CopyNodeArrow::saveToFile() {
-    logger->debug("Writing node columns to disk.");
-    assert(!columns.empty());
-    for (auto& column : columns) {
-        taskScheduler.scheduleTask(CopyTaskFactory::createCopyTask(
-            [&](InMemColumn* x) { x->saveToFile(); }, column.get()));
+template<typename T>
+arrow::Status CopyNodeArrow::assignCopyTasks(
+    std::shared_ptr<arrow::csv::StreamingReader>& csv_streaming_reader, offset_t startOffset,
+    std::string filePath, std::unique_ptr<HashIndexBuilder<T>>& pkIndex) {
+    auto it = csv_streaming_reader->begin();
+    auto endIt = csv_streaming_reader->end();
+    std::shared_ptr<arrow::RecordBatch> currBatch;
+    int blockIdx = 0;
+    while (it != endIt) {
+        for (int i = 0; i < common::CopyConstants::NUM_COPIER_TASKS_TO_SCHEDULE_PER_BATCH; ++i) {
+            if (it == endIt) {
+                break;
+            }
+            ARROW_ASSIGN_OR_RAISE(currBatch, *it);
+            taskScheduler.scheduleTask(
+                CopyTaskFactory::createCopyTask(batchPopulateColumnsTask<T, arrow::Array>,
+                    reinterpret_cast<NodeTableSchema*>(tableSchema)->primaryKeyPropertyID, blockIdx,
+                    startOffset, pkIndex.get(), this, currBatch->columns(), filePath));
+            startOffset += currBatch->num_rows();
+            ++blockIdx;
+            ++it;
+        }
+        taskScheduler.waitUntilEnoughTasksFinish(
+            CopyConstants::MINIMUM_NUM_COPIER_TASKS_TO_SCHEDULE_MORE);
     }
     taskScheduler.waitAllTasksToCompleteOrError();
-    logger->debug("Done writing node columns to disk.");
+    return arrow::Status::OK();
 }
 
 } // namespace storage
