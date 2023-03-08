@@ -14,7 +14,8 @@ public:
           primaryKeys{std::move(primaryKeys)} {}
     ~LogicalCreateNode() override = default;
 
-    void computeSchema() override;
+    void computeFactorizedSchema() override;
+    void computeFlatSchema() override;
 
     inline f_group_pos_set getGroupsPosToFlatten() {
         // Flatten all inputs. E.g. MATCH (a) CREATE (b). We need to create b for each tuple in the
@@ -44,6 +45,9 @@ public:
         : LogicalUpdateRel{LogicalOperatorType::CREATE_REL, std::move(rels), std::move(child)},
           setItemsPerRel{std::move(setItemsPerRel)} {}
     ~LogicalCreateRel() override = default;
+
+    inline void computeFactorizedSchema() override { copyChildSchema(0); }
+    inline void computeFlatSchema() override { copyChildSchema(0); }
 
     inline f_group_pos_set getGroupsPosToFlatten() {
         auto childSchema = children[0]->getSchema();

@@ -14,6 +14,9 @@ public:
               std::move(child)},
           setItems{std::move(setItems)} {}
 
+    inline void computeFactorizedSchema() override { copyChildSchema(0); }
+    inline void computeFlatSchema() override { copyChildSchema(0); }
+
     inline std::string getExpressionsForPrinting() const override {
         std::string result;
         for (auto& [lhs, rhs] : setItems) {
@@ -39,6 +42,9 @@ public:
         : LogicalUpdateRel{LogicalOperatorType::SET_REL_PROPERTY, std::move(rels),
               std::move(child)},
           setItems{std::move(setItems)} {}
+
+    inline void computeFactorizedSchema() override { copyChildSchema(0); }
+    inline void computeFlatSchema() override { copyChildSchema(0); }
 
     f_group_pos_set getGroupsPosToFlatten(uint32_t setItemIdx);
 

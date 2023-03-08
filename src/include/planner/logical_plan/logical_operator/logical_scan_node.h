@@ -11,7 +11,8 @@ public:
     explicit LogicalScanNode(std::shared_ptr<binder::NodeExpression> node)
         : LogicalOperator{LogicalOperatorType::SCAN_NODE}, node{std::move(node)} {}
 
-    void computeSchema() override;
+    void computeFactorizedSchema() override;
+    void computeFlatSchema() override;
 
     inline std::string getExpressionsForPrinting() const override { return node->toString(); }
 
@@ -32,7 +33,8 @@ public:
         : LogicalOperator{LogicalOperatorType::INDEX_SCAN_NODE, std::move(child)},
           node{std::move(node)}, indexExpression{std::move(indexExpression)} {}
 
-    void computeSchema() override;
+    void computeFactorizedSchema() override;
+    void computeFlatSchema() override;
 
     inline std::string getExpressionsForPrinting() const override { return node->toString(); }
 

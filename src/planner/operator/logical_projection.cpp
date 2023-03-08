@@ -3,7 +3,7 @@
 namespace kuzu {
 namespace planner {
 
-void LogicalProjection::computeSchema() {
+void LogicalProjection::computeFactorizedSchema() {
     auto childSchema = children[0]->getSchema();
     schema = childSchema->copy();
     schema->clearExpressionsInScope();
@@ -27,6 +27,22 @@ void LogicalProjection::computeSchema() {
                 groupPos = SchemaUtils::getLeadingGroupPos(dependentGroupPos, *childSchema);
             }
             schema->insertToGroupAndScope(expression, groupPos);
+        }
+    }
+}
+
+void LogicalProjection::computeFlatSchema() {
+    copyChildSchema(0);
+    auto childSchema = children[0]->getSchema();
+    schema->clearExpressionsInScope();
+    for (auto& expression : expressions) {
+        if (schema->isExpressionInScope(*expression)) {
+            continue;
+        }
+        if (childSchema->isExpressionInScope(*expression)) {
+            schema->insertToScope(expression, 0);
+        } else {
+            schema->insertToGroupAndScope(expression, 0);
         }
     }
 }

@@ -19,7 +19,8 @@ public:
 
     f_group_pos_set getGroupsPosToFlatten();
 
-    void computeSchema() override;
+    void computeFactorizedSchema() override;
+    void computeFlatSchema() override;
 
     inline std::string getExpressionsForPrinting() const override {
         return boundNode->toString() + (direction == common::RelDirection::FWD ? "->" : "<-") +

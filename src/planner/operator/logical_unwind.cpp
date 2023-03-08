@@ -11,10 +11,16 @@ f_group_pos_set LogicalUnwind::getGroupsPosToFlatten() {
     return factorization::FlattenAll::getGroupsPosToFlatten(dependentGroupsPos, childSchema);
 }
 
-void LogicalUnwind::computeSchema() {
+void LogicalUnwind::computeFactorizedSchema() {
     copyChildSchema(0);
     auto groupPos = schema->createGroup();
     schema->insertToGroupAndScope(aliasExpression, groupPos);
+}
+
+void LogicalUnwind::computeFlatSchema() {
+    copyChildSchema(0);
+    schema->createGroup();
+    schema->insertToGroupAndScope(aliasExpression, 0);
 }
 
 } // namespace planner

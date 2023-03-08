@@ -68,7 +68,7 @@ void UpdatePlanner::appendCreateNode(
         std::move(nodes), std::move(primaryKeys), plan.getLastOperator());
     QueryPlanner::appendFlattens(createNode->getGroupsPosToFlatten(), plan);
     createNode->setChild(0, plan.getLastOperator());
-    createNode->computeSchema();
+    createNode->computeFactorizedSchema();
     plan.setLastOperator(createNode);
     appendSetNodeProperty(setNodeProperties, plan);
 }
@@ -85,7 +85,7 @@ void UpdatePlanner::appendCreateRel(
         std::move(rels), std::move(setItemsPerRel), plan.getLastOperator());
     QueryPlanner::appendFlattens(createRel->getGroupsPosToFlatten(), plan);
     createRel->setChild(0, plan.getLastOperator());
-    createRel->computeSchema();
+    createRel->computeFactorizedSchema();
     plan.setLastOperator(createRel);
 }
 
@@ -125,7 +125,7 @@ void UpdatePlanner::appendSetNodeProperty(
     }
     auto setNodeProperty = make_shared<LogicalSetNodeProperty>(
         std::move(nodes), std::move(setItems), plan.getLastOperator());
-    setNodeProperty->computeSchema();
+    setNodeProperty->computeFactorizedSchema();
     plan.setLastOperator(setNodeProperty);
 }
 
@@ -143,7 +143,7 @@ void UpdatePlanner::appendSetRelProperty(
         QueryPlanner::appendFlattens(setRelProperty->getGroupsPosToFlatten(i), plan);
         setRelProperty->setChild(0, plan.getLastOperator());
     }
-    setRelProperty->computeSchema();
+    setRelProperty->computeFactorizedSchema();
     plan.setLastOperator(setRelProperty);
 }
 
@@ -166,7 +166,7 @@ void UpdatePlanner::appendDeleteNode(
     }
     auto deleteNode = make_shared<LogicalDeleteNode>(
         std::move(nodes), std::move(primaryKeys), plan.getLastOperator());
-    deleteNode->computeSchema();
+    deleteNode->computeFactorizedSchema();
     plan.setLastOperator(std::move(deleteNode));
 }
 
@@ -177,7 +177,7 @@ void UpdatePlanner::appendDeleteRel(
         QueryPlanner::appendFlattens(deleteRel->getGroupsPosToFlatten(i), plan);
         deleteRel->setChild(0, plan.getLastOperator());
     }
-    deleteRel->computeSchema();
+    deleteRel->computeFactorizedSchema();
     plan.setLastOperator(std::move(deleteRel));
 }
 

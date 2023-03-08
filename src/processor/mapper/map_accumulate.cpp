@@ -13,7 +13,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalAccumulateToPhysical(
     LogicalOperator* logicalOperator) {
     auto logicalAccumulate = (LogicalAccumulate*)logicalOperator;
     auto outSchema = logicalAccumulate->getSchema();
-    auto inSchema = logicalAccumulate->getSchemaBeforeSink();
+    auto inSchema = logicalAccumulate->getChild(0)->getSchema();
     // append result collector
     auto prevOperator = mapLogicalOperatorToPhysical(logicalAccumulate->getChild(0));
     auto expressions = logicalAccumulate->getExpressions();

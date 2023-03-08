@@ -5,6 +5,22 @@
 namespace kuzu {
 namespace planner {
 
+void LogicalDistinct::computeFactorizedSchema() {
+    createEmptySchema();
+    auto groupPos = schema->createGroup();
+    for (auto& expression : expressionsToDistinct) {
+        schema->insertToGroupAndScope(expression, groupPos);
+    }
+}
+
+void LogicalDistinct::computeFlatSchema() {
+    createEmptySchema();
+    schema->createGroup();
+    for (auto& expression : expressionsToDistinct) {
+        schema->insertToGroupAndScope(expression, 0);
+    }
+}
+
 f_group_pos_set LogicalDistinct::getGroupsPosToFlatten() {
     f_group_pos_set dependentGroupsPos;
     auto childSchema = children[0]->getSchema();
@@ -22,14 +38,6 @@ std::string LogicalDistinct::getExpressionsForPrinting() const {
         result += expression->getUniqueName() + ", ";
     }
     return result;
-}
-
-void LogicalDistinct::computeSchema() {
-    createEmptySchema();
-    auto groupPos = schema->createGroup();
-    for (auto& expression : expressionsToDistinct) {
-        schema->insertToGroupAndScope(expression, groupPos);
-    }
 }
 
 } // namespace planner

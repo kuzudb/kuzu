@@ -8,6 +8,28 @@ namespace planner {
 
 using namespace factorization;
 
+void LogicalAggregate::computeFactorizedSchema() {
+    createEmptySchema();
+    auto groupPos = schema->createGroup();
+    for (auto& expression : expressionsToGroupBy) {
+        schema->insertToGroupAndScope(expression, groupPos);
+    }
+    for (auto& expression : expressionsToAggregate) {
+        schema->insertToGroupAndScope(expression, groupPos);
+    }
+}
+
+void LogicalAggregate::computeFlatSchema() {
+    createEmptySchema();
+    schema->createGroup();
+    for (auto& expression : expressionsToGroupBy) {
+        schema->insertToGroupAndScope(expression, 0);
+    }
+    for (auto& expression : expressionsToAggregate) {
+        schema->insertToGroupAndScope(expression, 0);
+    }
+}
+
 f_group_pos_set LogicalAggregate::getGroupsPosToFlattenForGroupBy() {
     f_group_pos_set dependentGroupsPos;
     for (auto& expression : expressionsToGroupBy) {
@@ -34,17 +56,6 @@ f_group_pos_set LogicalAggregate::getGroupsPosToFlattenForAggregate() {
         return FlattenAll::getGroupsPosToFlatten(dependentGroupsPos, children[0]->getSchema());
     }
     return f_group_pos_set{};
-}
-
-void LogicalAggregate::computeSchema() {
-    createEmptySchema();
-    auto groupPos = schema->createGroup();
-    for (auto& expression : expressionsToGroupBy) {
-        schema->insertToGroupAndScope(expression, groupPos);
-    }
-    for (auto& expression : expressionsToAggregate) {
-        schema->insertToGroupAndScope(expression, groupPos);
-    }
 }
 
 std::string LogicalAggregate::getExpressionsForPrinting() const {

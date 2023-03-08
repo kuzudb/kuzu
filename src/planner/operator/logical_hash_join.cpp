@@ -28,11 +28,13 @@ f_group_pos_set LogicalHashJoin::getGroupsPosToFlattenOnBuildSide() {
     return factorization::FlattenAllButOne::getGroupsPosToFlatten(joinNodesGroupPos, buildSchema);
 }
 
-void LogicalHashJoin::computeSchema() {
+void LogicalHashJoin::computeFactorizedSchema() {
     auto probeSchema = children[0]->getSchema();
     auto buildSchema = children[1]->getSchema();
     schema = probeSchema->copy();
-    if (joinType != common::JoinType::MARK) {
+    switch (joinType) {
+    case common::JoinType::INNER:
+    case common::JoinType::LEFT: {
         // resolve key groups
         std::unordered_map<f_group_pos, std::unordered_set<std::string>> keyGroupPosToKeys;
         for (auto& joinNodeID : joinNodeIDs) {
@@ -44,7 +46,7 @@ void LogicalHashJoin::computeSchema() {
         }
         // resolve expressions to materialize in each group
         auto expressionsToMaterializePerGroup =
-            SchemaUtils::getExpressionsPerGroup(expressionsToMaterialize, *buildSchema);
+            SchemaUtils::getExpressionsPerGroup(getExpressionsToMaterialize(), *buildSchema);
         binder::expression_vector expressionsToMaterializeInNonKeyGroups;
         for (auto i = 0; i < buildSchema->getNumGroups(); ++i) {
             auto expressions = expressionsToMaterializePerGroup[i];
@@ -66,7 +68,8 @@ void LogicalHashJoin::computeSchema() {
         }
         SinkOperatorUtil::mergeSchema(
             *buildSchema, expressionsToMaterializeInNonKeyGroups, *schema);
-    } else { // mark join
+    } break;
+    case common::JoinType::MARK: {
         std::unordered_set<f_group_pos> probeSideKeyGroupPositions;
         for (auto& joinNodeID : joinNodeIDs) {
             probeSideKeyGroupPositions.insert(probeSchema->getGroupPos(*joinNodeID));
@@ -76,6 +79,46 @@ void LogicalHashJoin::computeSchema() {
         }
         auto markPos = *probeSideKeyGroupPositions.begin();
         schema->insertToGroupAndScope(mark, markPos);
+    } break;
+    default:
+        throw common::NotImplementedException("HashJoin::computeFactorizedSchema()");
+    }
+}
+
+void LogicalHashJoin::computeFlatSchema() {
+    auto probeSchema = children[0]->getSchema();
+    auto buildSchema = children[1]->getSchema();
+    schema = probeSchema->copy();
+    switch (joinType) {
+    case common::JoinType::INNER:
+    case common::JoinType::LEFT: {
+        auto joinKeysSet = binder::expression_set{joinNodeIDs.begin(), joinNodeIDs.end()};
+        for (auto& expression : buildSchema->getExpressionsInScope()) {
+            if (joinKeysSet.contains(expression)) {
+                continue;
+            }
+            schema->insertToGroupAndScope(expression, 0);
+        }
+    } break;
+    case common::JoinType::MARK: {
+        schema->insertToGroupAndScope(mark, 0);
+    } break;
+    default:
+        throw common::NotImplementedException("HashJoin::computeFlatSchema()");
+    }
+}
+
+binder::expression_vector LogicalHashJoin::getExpressionsToMaterialize() const {
+    switch (joinType) {
+    case common::JoinType::INNER:
+    case common::JoinType::LEFT: {
+        return children[1]->getSchema()->getExpressionsInScope();
+    }
+    case common::JoinType::MARK: {
+        return binder::expression_vector{};
+    }
+    default:
+        throw common::NotImplementedException("HashJoin::getExpressionsToMaterialize");
     }
 }
 

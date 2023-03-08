@@ -14,8 +14,6 @@ public:
         : LogicalOperator{operatorType, std::move(child)}, nodes{std::move(nodes)} {}
     ~LogicalUpdateNode() override = default;
 
-    inline void computeSchema() override { copyChildSchema(0); }
-
     inline std::string getExpressionsForPrinting() const override {
         binder::expression_vector expressions;
         for (auto& node : nodes) {
@@ -42,8 +40,6 @@ public:
         std::shared_ptr<LogicalOperator> child)
         : LogicalOperator{operatorType, std::move(child)}, rels{std::move(rels)} {}
     ~LogicalUpdateRel() override = default;
-
-    inline void computeSchema() override { copyChildSchema(0); }
 
     inline std::string getExpressionsForPrinting() const override {
         binder::expression_vector expressions;

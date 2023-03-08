@@ -13,7 +13,8 @@ public:
           expressionsToScan{std::move(expressionsToScan)}, schemaToScanFrom{
                                                                std::move(schemaToScanFrom)} {}
 
-    void computeSchema() override;
+    void computeFactorizedSchema() override;
+    void computeFlatSchema() override;
 
     inline std::string getExpressionsForPrinting() const override {
         return binder::ExpressionUtil::toString(expressionsToScan);

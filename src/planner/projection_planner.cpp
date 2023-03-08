@@ -98,7 +98,7 @@ void ProjectionPlanner::appendProjection(
         QueryPlanner::appendFlattens(groupsPosToFlatten, plan);
     }
     auto projection = make_shared<LogicalProjection>(expressionsToProject, plan.getLastOperator());
-    projection->computeSchema();
+    projection->computeFactorizedSchema();
     plan.setLastOperator(std::move(projection));
 }
 
@@ -110,23 +110,22 @@ void ProjectionPlanner::appendAggregate(const expression_vector& expressionsToGr
     aggregate->setChild(0, plan.getLastOperator());
     QueryPlanner::appendFlattens(aggregate->getGroupsPosToFlattenForAggregate(), plan);
     aggregate->setChild(0, plan.getLastOperator());
-    aggregate->computeSchema();
+    aggregate->computeFactorizedSchema();
     plan.setLastOperator(std::move(aggregate));
 }
 
 void ProjectionPlanner::appendOrderBy(
     const expression_vector& expressions, const std::vector<bool>& isAscOrders, LogicalPlan& plan) {
-    auto orderBy = make_shared<LogicalOrderBy>(expressions, isAscOrders,
-        plan.getSchema()->getExpressionsInScope(), plan.getLastOperator());
+    auto orderBy = make_shared<LogicalOrderBy>(expressions, isAscOrders, plan.getLastOperator());
     QueryPlanner::appendFlattens(orderBy->getGroupsPosToFlatten(), plan);
     orderBy->setChild(0, plan.getLastOperator());
-    orderBy->computeSchema();
+    orderBy->computeFactorizedSchema();
     plan.setLastOperator(std::move(orderBy));
 }
 
 void ProjectionPlanner::appendMultiplicityReducer(LogicalPlan& plan) {
     auto multiplicityReducer = make_shared<LogicalMultiplicityReducer>(plan.getLastOperator());
-    multiplicityReducer->computeSchema();
+    multiplicityReducer->computeFactorizedSchema();
     plan.setLastOperator(std::move(multiplicityReducer));
 }
 
@@ -134,7 +133,7 @@ void ProjectionPlanner::appendLimit(uint64_t limitNumber, LogicalPlan& plan) {
     auto limit = make_shared<LogicalLimit>(limitNumber, plan.getLastOperator());
     QueryPlanner::appendFlattens(limit->getGroupsPosToFlatten(), plan);
     limit->setChild(0, plan.getLastOperator());
-    limit->computeSchema();
+    limit->computeFactorizedSchema();
     plan.setCardinality(limitNumber);
     plan.setLastOperator(std::move(limit));
 }
@@ -143,7 +142,7 @@ void ProjectionPlanner::appendSkip(uint64_t skipNumber, LogicalPlan& plan) {
     auto skip = make_shared<LogicalSkip>(skipNumber, plan.getLastOperator());
     QueryPlanner::appendFlattens(skip->getGroupsPosToFlatten(), plan);
     skip->setChild(0, plan.getLastOperator());
-    skip->computeSchema();
+    skip->computeFactorizedSchema();
     plan.setCardinality(plan.getCardinality() - skipNumber);
     plan.setLastOperator(std::move(skip));
 }

@@ -33,7 +33,7 @@ void FactorizationRewriter::visitOperator(planner::LogicalOperator* op) {
         visitOperator(op->getChild(i).get());
     }
     visitOperatorSwitch(op);
-    op->computeSchema();
+    op->computeFactorizedSchema();
 }
 
 void FactorizationRewriter::visitExtend(planner::LogicalOperator* op) {
@@ -191,7 +191,7 @@ std::shared_ptr<planner::LogicalOperator> FactorizationRewriter::appendFlattenIf
         return op;
     }
     auto flatten = std::make_shared<LogicalFlatten>(groupPos, std::move(op));
-    flatten->computeSchema();
+    flatten->computeFactorizedSchema();
     return flatten;
 }
 

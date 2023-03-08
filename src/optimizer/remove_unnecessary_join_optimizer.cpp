@@ -17,7 +17,9 @@ std::shared_ptr<planner::LogicalOperator> RemoveUnnecessaryJoinOptimizer::visitO
     for (auto i = 0; i < op->getNumChildren(); ++i) {
         op->setChild(i, visitOperator(op->getChild(i)));
     }
-    return visitOperatorReplaceSwitch(op);
+    auto result = visitOperatorReplaceSwitch(op);
+    result->computeFlatSchema();
+    return result;
 }
 
 std::shared_ptr<planner::LogicalOperator> RemoveUnnecessaryJoinOptimizer::visitHashJoinReplace(

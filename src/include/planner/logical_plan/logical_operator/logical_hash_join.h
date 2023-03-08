@@ -14,46 +14,38 @@ class LogicalHashJoin : public LogicalOperator {
 public:
     // Inner and left join.
     LogicalHashJoin(binder::expression_vector joinNodeIDs, common::JoinType joinType,
-        bool isProbeAcc, binder::expression_vector expressionsToMaterialize,
-        std::shared_ptr<LogicalOperator> probeSideChild,
+        bool isProbeAcc, std::shared_ptr<LogicalOperator> probeSideChild,
         std::shared_ptr<LogicalOperator> buildSideChild)
         : LogicalHashJoin{std::move(joinNodeIDs), joinType, nullptr, isProbeAcc,
-              std::move(expressionsToMaterialize), std::move(probeSideChild),
-              std::move(buildSideChild)} {}
+              std::move(probeSideChild), std::move(buildSideChild)} {}
 
     // Mark join.
     LogicalHashJoin(binder::expression_vector joinNodeIDs, std::shared_ptr<binder::Expression> mark,
         bool isProbeAcc, std::shared_ptr<LogicalOperator> probeSideChild,
         std::shared_ptr<LogicalOperator> buildSideChild)
         : LogicalHashJoin{std::move(joinNodeIDs), common::JoinType::MARK, std::move(mark),
-              isProbeAcc, binder::expression_vector{} /* expressionsToMaterialize */,
-              std::move(probeSideChild), std::move(buildSideChild)} {}
+              isProbeAcc, std::move(probeSideChild), std::move(buildSideChild)} {}
 
     LogicalHashJoin(binder::expression_vector joinNodeIDs, common::JoinType joinType,
         std::shared_ptr<binder::Expression> mark, bool isProbeAcc,
-        binder::expression_vector expressionsToMaterialize,
         std::shared_ptr<LogicalOperator> probeSideChild,
         std::shared_ptr<LogicalOperator> buildSideChild)
         : LogicalOperator{LogicalOperatorType::HASH_JOIN, std::move(probeSideChild),
               std::move(buildSideChild)},
           joinNodeIDs(std::move(joinNodeIDs)), joinType{joinType}, mark{std::move(mark)},
-          isProbeAcc{isProbeAcc}, expressionsToMaterialize{std::move(expressionsToMaterialize)} {}
+          isProbeAcc{isProbeAcc} {}
 
     f_group_pos_set getGroupsPosToFlattenOnProbeSide();
     f_group_pos_set getGroupsPosToFlattenOnBuildSide();
 
-    void computeSchema() override;
+    void computeFactorizedSchema() override;
+    void computeFlatSchema() override;
 
     inline std::string getExpressionsForPrinting() const override {
         return binder::ExpressionUtil::toString(joinNodeIDs);
     }
 
-    inline void setExpressionsToMaterialize(binder::expression_vector expressions) {
-        expressionsToMaterialize = std::move(expressions);
-    }
-    inline binder::expression_vector getExpressionsToMaterialize() const {
-        return expressionsToMaterialize;
-    }
+    binder::expression_vector getExpressionsToMaterialize() const;
     inline binder::expression_vector getJoinNodeIDs() const { return joinNodeIDs; }
     inline common::JoinType getJoinType() const { return joinType; }
 
@@ -62,11 +54,10 @@ public:
         return mark;
     }
     inline bool getIsProbeAcc() const { return isProbeAcc; }
-    inline Schema* getBuildSideSchema() const { return children[1]->getSchema(); }
 
     inline std::unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalHashJoin>(joinNodeIDs, joinType, mark, isProbeAcc,
-            expressionsToMaterialize, children[0]->copy(), children[1]->copy());
+        return make_unique<LogicalHashJoin>(
+            joinNodeIDs, joinType, mark, isProbeAcc, children[0]->copy(), children[1]->copy());
     }
 
 private:
@@ -86,7 +77,6 @@ private:
     common::JoinType joinType;
     std::shared_ptr<binder::Expression> mark; // when joinType is Mark
     bool isProbeAcc;
-    binder::expression_vector expressionsToMaterialize;
 };
 
 } // namespace planner

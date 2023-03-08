@@ -8,14 +8,15 @@ namespace planner {
 class LogicalOrderBy : public LogicalOperator {
 public:
     LogicalOrderBy(binder::expression_vector expressionsToOrderBy, std::vector<bool> sortOrders,
-        binder::expression_vector expressionsToMaterialize, std::shared_ptr<LogicalOperator> child)
+        std::shared_ptr<LogicalOperator> child)
         : LogicalOperator{LogicalOperatorType::ORDER_BY, std::move(child)},
-          expressionsToOrderBy{std::move(expressionsToOrderBy)}, isAscOrders{std::move(sortOrders)},
-          expressionsToMaterialize{std::move(expressionsToMaterialize)} {}
+          expressionsToOrderBy{std::move(expressionsToOrderBy)}, isAscOrders{
+                                                                     std::move(sortOrders)} {}
 
     f_group_pos_set getGroupsPosToFlatten();
 
-    void computeSchema() override;
+    void computeFactorizedSchema() override;
+    void computeFlatSchema() override;
 
     inline std::string getExpressionsForPrinting() const override {
         return binder::ExpressionUtil::toString(expressionsToOrderBy);
@@ -25,23 +26,17 @@ public:
         return expressionsToOrderBy;
     }
     inline std::vector<bool> getIsAscOrders() const { return isAscOrders; }
-    inline Schema* getSchemaBeforeOrderBy() const { return children[0]->getSchema(); }
-    inline void setExpressionsToMaterialize(binder::expression_vector expressions) {
-        expressionsToMaterialize = std::move(expressions);
-    }
     inline binder::expression_vector getExpressionsToMaterialize() const {
-        return expressionsToMaterialize;
+        return children[0]->getSchema()->getExpressionsInScope();
     }
 
     inline std::unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalOrderBy>(
-            expressionsToOrderBy, isAscOrders, expressionsToMaterialize, children[0]->copy());
+        return make_unique<LogicalOrderBy>(expressionsToOrderBy, isAscOrders, children[0]->copy());
     }
 
 private:
     binder::expression_vector expressionsToOrderBy;
     std::vector<bool> isAscOrders;
-    binder::expression_vector expressionsToMaterialize;
 };
 
 } // namespace planner

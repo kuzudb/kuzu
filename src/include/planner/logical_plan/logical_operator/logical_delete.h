@@ -14,6 +14,9 @@ public:
           primaryKeys{std::move(primaryKeys)} {}
     ~LogicalDeleteNode() override = default;
 
+    inline void computeFactorizedSchema() override { copyChildSchema(0); }
+    inline void computeFlatSchema() override { copyChildSchema(0); }
+
     inline std::shared_ptr<binder::Expression> getPrimaryKey(size_t idx) const {
         return primaryKeys[idx];
     }
@@ -32,6 +35,9 @@ public:
         std::shared_ptr<LogicalOperator> child)
         : LogicalUpdateRel{LogicalOperatorType::DELETE_REL, std::move(rels), std::move(child)} {}
     ~LogicalDeleteRel() override = default;
+
+    inline void computeFactorizedSchema() override { copyChildSchema(0); }
+    inline void computeFlatSchema() override { copyChildSchema(0); }
 
     inline f_group_pos_set getGroupsPosToFlatten(uint32_t relIdx) {
         f_group_pos_set result;

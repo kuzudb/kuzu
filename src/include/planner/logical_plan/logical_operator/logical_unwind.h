@@ -15,7 +15,8 @@ public:
 
     f_group_pos_set getGroupsPosToFlatten();
 
-    void computeSchema() override;
+    void computeFactorizedSchema() override;
+    void computeFlatSchema() override;
 
     inline std::shared_ptr<binder::Expression> getExpression() { return expression; }
 

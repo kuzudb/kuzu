@@ -5,10 +5,14 @@
 namespace kuzu {
 namespace planner {
 
-void LogicalAccumulate::computeSchema() {
-    auto childSchema = children[0]->getSchema();
+void LogicalAccumulate::computeFactorizedSchema() {
     createEmptySchema();
-    SinkOperatorUtil::recomputeSchema(*childSchema, expressions, *schema);
+    auto childSchema = children[0]->getSchema();
+    SinkOperatorUtil::recomputeSchema(*childSchema, getExpressions(), *schema);
+}
+
+void LogicalAccumulate::computeFlatSchema() {
+    copyChildSchema(0);
 }
 
 } // namespace planner
