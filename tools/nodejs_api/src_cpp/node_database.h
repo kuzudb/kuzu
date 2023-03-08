@@ -12,5 +12,5 @@ public:
 private:
     void ResizeBufferManager(const Napi::CallbackInfo& info);
     static Napi::FunctionReference constructor;
-    unique_ptr<kuzu::main::Database> database;
+    std::unique_ptr<kuzu::main::Database> database;
 };
