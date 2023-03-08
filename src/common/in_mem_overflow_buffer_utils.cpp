@@ -25,6 +25,10 @@ void InMemOverflowBufferUtils::copyListNonRecursive(const uint8_t* srcValues, ku
 void InMemOverflowBufferUtils::copyListRecursiveIfNested(const ku_list_t& src, ku_list_t& dest,
     const DataType& dataType, InMemOverflowBuffer& inMemOverflowBuffer, uint32_t srcStartIdx,
     uint32_t srcEndIdx) {
+    if (src.size == 0) {
+        dest.size = 0;
+        return;
+    }
     if (srcEndIdx == UINT32_MAX) {
         srcEndIdx = src.size - 1;
     }

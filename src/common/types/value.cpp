@@ -281,8 +281,11 @@ std::string Value::toString() const {
         std::string result = "[";
         for (auto i = 0u; i < listVal.size(); ++i) {
             result += listVal[i]->toString();
-            result += (i == listVal.size() - 1 ? "]" : ",");
+            if (i != listVal.size() - 1) {
+                result += ",";
+            }
         }
+        result += "]";
         return result;
     }
     case NODE:
