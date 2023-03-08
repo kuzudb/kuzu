@@ -8,20 +8,22 @@ try {
   // ignore
 }
 
-function executeAllCallback(err, queryResult) {
-    if (err) { console.log(err); }
-    else {
-        queryResult.all((err, result) => {
+async function executeAllCallback(err, queryResult) {
+    if (err) {
+        console.log(err);
+    } else {
+        await queryResult.all((err, result) => {
             console.log("All result received Callback");
             console.log(result);
         });
     }
 }
 
-function executeAllPromise(err, queryResult) {
-    if (err) { console.log(err); }
-    else {
-        queryResult.all().then(result => {
+async function executeAllPromise(err, queryResult) {
+    if (err) {
+        console.log(err);
+    } else {
+        await queryResult.all().then(result => {
             console.log("All result received Promise");
             console.log(result);
         }).catch(error => {
@@ -51,13 +53,17 @@ connection.execute(executeQuery, executeAllCallback);
 console.log(connection.getNodePropertyNames("person"));
 
 // Execute with each callback
-connection.execute(executeQuery,  (err, result) => {
-    if (err) { console.log(err); }
-    else {
-        result.each(
+connection.execute(executeQuery,  async (err, result) => {
+    if (err) {
+        console.log(err);
+    } else {
+        await result.each(
             (err, rowResult) => {
-                if (err) { console.log(err) }
-                else { console.log(rowResult); }
+                if (err) {
+                    console.log(err)
+                } else {
+                    console.log(rowResult);
+                }
             },
             () => {
                 console.log("all of the each's are done callback");
@@ -67,10 +73,11 @@ connection.execute(executeQuery,  (err, result) => {
 });
 
 // Execute with promise + await
-connection.execute(executeQuery).then(queryResult => {
-    queryResult.all( (err, result) => {
-        if (err) { console.log(err); }
-        else {
+connection.execute(executeQuery).then(async queryResult => {
+    await queryResult.all((err, result) => {
+        if (err) {
+            console.log(err);
+        } else {
             console.log("All result received for execution with a promise");
             console.log(result);
         }
@@ -84,10 +91,11 @@ async function asyncAwaitExecute(executeQuery) {
     const queryResult = await connection.execute(executeQuery);
     return queryResult;
 }
-asyncAwaitExecute(executeQuery).then(queryResult => {
-    queryResult.all( (err, result) => {
-        if (err) { console.log(err); }
-        else {
+asyncAwaitExecute(executeQuery).then(async queryResult => {
+    await queryResult.all((err, result) => {
+        if (err) {
+            console.log(err);
+        } else {
             console.log("All result received for execution with await");
             console.log(result);
         }
