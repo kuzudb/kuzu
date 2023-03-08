@@ -11,20 +11,20 @@ void TsfnContext::threadEntry(TsfnContext* context) {
         Napi::Array arr = Napi::Array::New(env);
         size_t i = 0;
         auto columnNames = context->queryResult->getColumnNames();
+        Napi::Array colArray = Napi::Array::New(env);
+        for (auto i = 0u; i < columnNames.size(); ++i) {
+            colArray.Set(i, columnNames[i]);
+        }
+        arr.Set(i++, colArray);
         while (context->queryResult->hasNext()) {
             auto row = context->queryResult->getNext();
-            Napi::Object rowDic = Napi::Object::New(env);
+            Napi::Array rowArray = Napi::Array::New(env);
             for (size_t j = 0; j < row->len(); j++) {
                 Napi::Value val = Util::ConvertToNapiObject(*row->getValue(j), env);
-                if (j < columnNames.size()) {
-                    rowDic.Set(columnNames[j], val);
-                } else {
-                    rowDic.Set("", val);
-                }
+                rowArray.Set(j, val);
             }
-            if (context->type == TsfnContext::EACH) { jsCallback.Call({env.Null(), rowDic}); }
-            arr.Set(i, rowDic);
-            i++;
+            if (context->type == TsfnContext::EACH) { jsCallback.Call({env.Null(), rowArray}); }
+            arr.Set(i++, rowArray);
         }
         if (context->type == TsfnContext::ALL) { jsCallback.Call({env.Null(), arr}); }
         else if (context->type == TsfnContext::EACH) { context->_doneCallback->Call({}); }
