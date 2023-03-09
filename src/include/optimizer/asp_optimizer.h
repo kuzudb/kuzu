@@ -4,7 +4,7 @@
 namespace kuzu {
 namespace optimizer {
 
-// This optimizer implements the ASP join algorithm as introduced in paper "Kùzu Graph Database
+// This optimizer enables the ASP join algorithm as introduced in paper "Kuzu Graph Database
 // Management System".
 class ASPOptimizer : public LogicalOperatorVisitor {
 public:
@@ -15,7 +15,8 @@ private:
 
     void visitHashJoin(planner::LogicalOperator* op) override;
 
-    bool canApplyASP(planner::LogicalOperator* op);
+    std::vector<planner::LogicalOperator*> resolveScanNodesToApplySemiMask(
+        planner::LogicalOperator* op);
 };
 
 } // namespace optimizer

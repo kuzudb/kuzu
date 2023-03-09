@@ -182,8 +182,11 @@ std::unique_ptr<PhysicalOperator> PhysicalOperator::moveUnaryChild() {
 }
 
 void PhysicalOperator::initGlobalState(ExecutionContext* context) {
-    for (auto& child : children) {
-        child->initGlobalState(context);
+    // Init from right to left so that we init in the same order as we decompose.
+    // TODO(Xiyang): this is a very implicit assumption. We should init global state during
+    // decomposition ideally.
+    for (auto i = children.size(); i > 0; --i) {
+        children[i - 1]->initGlobalState(context);
     }
     initGlobalStateInternal(context);
 }

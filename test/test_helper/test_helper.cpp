@@ -99,7 +99,13 @@ void TestHelper::initializeConnection(TestQueryConfig* config, Connection& conn)
 
 bool TestHelper::testQuery(TestQueryConfig* config, Connection& conn) {
     initializeConnection(config, conn);
-    auto preparedStatement = conn.prepareNoLock(config->query, config->enumerate);
+    std::unique_ptr<PreparedStatement> preparedStatement;
+    if (config->encodedJoin.empty()) {
+        preparedStatement = conn.prepareNoLock(config->query, config->enumerate);
+    } else {
+        preparedStatement =
+            conn.prepareNoLock(config->query, true /* enumerate*/, config->encodedJoin);
+    }
     if (!preparedStatement->isSuccess()) {
         spdlog::error(preparedStatement->getErrorMessage());
         return false;

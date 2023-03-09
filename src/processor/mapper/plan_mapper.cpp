@@ -135,8 +135,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
         physicalOperator = mapLogicalRenamePropertyToPhysical(logicalOperator.get());
     } break;
     default:
-        assert(false);
+        throw common::NotImplementedException("PlanMapper::mapLogicalOperatorToPhysical()");
     }
+    logicalOpToPhysicalOpMap.insert({logicalOperator.get(), physicalOperator.get()});
     return physicalOperator;
 }
 
