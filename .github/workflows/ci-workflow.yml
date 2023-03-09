@@ -109,4 +109,4 @@ jobs:
         run: make benchmark NUM_THREADS=30
 
       - name: Benchmark
-        run: python3 benchmark/benchmark_runner.py --dataset ldbc-sf100 --thread 1
+        run: python3 benchmark/benchmark_runner.py --dataset ldbc-sf100 --thread 10
