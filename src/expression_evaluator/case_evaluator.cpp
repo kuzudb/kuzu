@@ -150,7 +150,7 @@ void CaseExpressionEvaluator::fillSelectedSwitch(
     case INTERVAL: {
         fillSelected<interval_t>(selVector, thenVector);
     } break;
-    case STRING: { // TODO(double check if this is correct)
+    case STRING: {
         fillSelected<ku_string_t>(selVector, thenVector);
     } break;
     case VAR_LIST: {

@@ -1,5 +1,6 @@
 #include "optimizer/optimizer.h"
 
+#include "optimizer/asp_optimizer.h"
 #include "optimizer/factorization_rewriter.h"
 #include "optimizer/index_nested_loop_join_optimizer.h"
 #include "optimizer/projection_push_down_optimizer.h"
@@ -10,6 +11,7 @@ namespace kuzu {
 namespace optimizer {
 
 void Optimizer::optimize(planner::LogicalPlan* plan) {
+    // Factorization structure should be removed before further optimization can be applied.
     auto removeFactorizationRewriter = RemoveFactorizationRewriter();
     removeFactorizationRewriter.rewrite(plan);
 
@@ -18,6 +20,10 @@ void Optimizer::optimize(planner::LogicalPlan* plan) {
 
     auto indexNestedLoopJoinOptimizer = IndexNestedLoopJoinOptimizer();
     indexNestedLoopJoinOptimizer.rewrite(plan);
+
+    // ASP optimizer should be applied after optimizers that manipulate hash join.
+    auto aspOptimizer = ASPOptimizer();
+    aspOptimizer.rewrite(plan);
 
     auto projectionPushDownOptimizer = ProjectionPushDownOptimizer();
     projectionPushDownOptimizer.rewrite(plan);

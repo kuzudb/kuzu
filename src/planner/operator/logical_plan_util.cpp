@@ -20,13 +20,6 @@ std::shared_ptr<NodeExpression> LogicalPlanUtil::getSequentialNode(LogicalPlan& 
     return ((LogicalScanNode*)pipelineSource)->getNode();
 }
 
-std::vector<LogicalOperator*> LogicalPlanUtil::collectOperators(
-    LogicalOperator* root, LogicalOperatorType operatorType) {
-    std::vector<LogicalOperator*> result;
-    collectOperatorsRecursive(root, operatorType, result);
-    return result;
-}
-
 LogicalOperator* LogicalPlanUtil::getCurrentPipelineSourceOperator(LogicalPlan& plan) {
     auto op = plan.getLastOperator().get();
     // Operator with more than one child will be broken into different pipelines.
@@ -75,16 +68,6 @@ void LogicalPlanUtil::encodeJoinRecursive(
         for (auto i = 0u; i < logicalOperator->getNumChildren(); ++i) {
             encodeJoinRecursive(logicalOperator->getChild(i).get(), encodeString);
         }
-    }
-}
-
-void LogicalPlanUtil::collectOperatorsRecursive(
-    LogicalOperator* op, LogicalOperatorType operatorType, std::vector<LogicalOperator*>& result) {
-    if (op->getOperatorType() == operatorType) {
-        result.push_back(op);
-    }
-    for (auto i = 0u; i < op->getNumChildren(); ++i) {
-        collectOperatorsRecursive(op->getChild(i).get(), operatorType, result);
     }
 }
 

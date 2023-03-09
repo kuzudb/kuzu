@@ -2,7 +2,6 @@ add_subdirectory(operator)
 
 add_library(kuzu_planner
         OBJECT
-        asp_optimizer.cpp
         join_order_enumerator.cpp
         join_order_enumerator_context.cpp
         planner.cpp
