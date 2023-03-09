@@ -6,6 +6,8 @@
 #include "main/kuzu.h"
 #include <iostream>
 
+using namespace std;
+
 // Data structure representing our thread-safe function context.
 struct TsfnContext {
     enum Type { ALL, EACH };

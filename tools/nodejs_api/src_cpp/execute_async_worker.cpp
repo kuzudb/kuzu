@@ -5,6 +5,8 @@
 
 #include "include/node_query_result.h"
 
+using namespace Napi;
+
 ExecuteAsyncWorker::ExecuteAsyncWorker(Function& callback, shared_ptr<kuzu::main::Connection>& connection,
     std::string query, NodeQueryResult * nodeQueryResult, unordered_map<std::string, shared_ptr<kuzu::common::Value>>& params)
     : AsyncWorker(callback), connection(connection), query(query), nodeQueryResult(nodeQueryResult)
@@ -14,8 +16,8 @@ void ExecuteAsyncWorker::Execute() {
     try {
         shared_ptr<kuzu::main::QueryResult> queryResult;
         if (!params.empty()) {
-             auto preparedStatement = connection->prepare(query);
-             queryResult = connection->executeWithParams(preparedStatement.get(), params);
+//             auto preparedStatement = std::move(connection->prepare(query));
+//             queryResult = connection->executeWithParams(preparedStatement.get(), params);
         } else {
              queryResult = connection->query(query);
         }

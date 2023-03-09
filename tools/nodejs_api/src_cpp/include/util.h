@@ -7,6 +7,8 @@
 #include <napi.h>
 #include "main/kuzu.h"
 
+using namespace std;
+
 class Util {
     public:
         static Napi::Object GetObjectFromProperties(

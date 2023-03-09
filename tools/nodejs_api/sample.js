@@ -44,7 +44,7 @@ const executeQuery = "MATCH (a:person) RETURN a.fName, a.age, a.eyeSight, a.isSt
 const parameterizedExecuteQuery = "MATCH (a:person) WHERE a.age > $1 and a.isStudent = $2 and a.fName < $3  RETURN a.fName, a.age, a.eyeSight, a.isStudent;";
 
 connection.execute(executeQuery, executeAllPromise);
-connection.execute(parameterizedExecuteQuery, executeAllPromise, [["1", 29], ["2", true], ["3", "B"]]);
+// connection.execute(parameterizedExecuteQuery, executeAllPromise, [["1", 29], ["2", true], ["3", "B"]]);
 
 // Extensive Case
 database.resizeBufferManager(2000000000);
