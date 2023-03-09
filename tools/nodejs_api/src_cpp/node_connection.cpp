@@ -56,7 +56,7 @@ Napi::Value NodeConnection::Execute(const Napi::CallbackInfo& info) {
       return Napi::Object::New(env);
   }
   std::string query = info[0].ToString();
-  Function callback = info[1].As<Function>();
+  Napi::Function callback = info[1].As<Napi::Function>();
   NodeQueryResult * nodeQueryResult = Napi::ObjectWrap<NodeQueryResult>::Unwrap(info[2].As<Napi::Object>());
   auto params = Util::transformParameters(info[3].As<Napi::Array>());
   try {

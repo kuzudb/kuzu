@@ -34,13 +34,18 @@ NodeDatabase::NodeDatabase(const Napi::CallbackInfo& info) : Napi::ObjectWrap<No
     }
 
     std::string databasePath = info[0].ToString();
-    DatabaseConfig databaseConfig(databasePath);
+    std::int64_t bufferPoolSize = info[1].As<Napi::Number>().DoubleValue();
 
-    std::int64_t bufferSize = info[1].As<Napi::Number>().DoubleValue();
-    SystemConfig systemConfig(bufferSize);
+    auto systemConfig = kuzu::main::SystemConfig();
+    if (bufferPoolSize > 0) {
+        systemConfig.defaultPageBufferPoolSize =
+            bufferPoolSize * kuzu::common::StorageConstants::DEFAULT_PAGES_BUFFER_RATIO;
+        systemConfig.largePageBufferPoolSize =
+            bufferPoolSize * kuzu::common::StorageConstants::LARGE_PAGES_BUFFER_RATIO;
+    }
 
     try {
-        this->database = make_unique<kuzu::main::Database>(databaseConfig, systemConfig);
+        this->database = make_unique<kuzu::main::Database>(databasePath, systemConfig);
     } catch(const std::exception &exc) {
         Napi::TypeError::New(env, "Unsuccessful Database Initialization: " + std::string(exc.what())).ThrowAsJavaScriptException();
     }

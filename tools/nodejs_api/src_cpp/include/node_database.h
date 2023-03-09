@@ -2,6 +2,8 @@
 #include <iostream>
 #include "main/kuzu.h"
 
+using namespace std;
+
 class NodeDatabase : public Napi::ObjectWrap<NodeDatabase> {
 public:
     static Napi::Object Init(Napi::Env env, Napi::Object exports);
