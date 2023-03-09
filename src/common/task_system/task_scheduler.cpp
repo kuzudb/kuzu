@@ -1,6 +1,6 @@
 #include "common/task_system/task_scheduler.h"
 
-#include "common/configs.h"
+#include "common/constants.h"
 #include "spdlog/spdlog.h"
 
 using namespace kuzu::common;
@@ -9,7 +9,8 @@ namespace kuzu {
 namespace common {
 
 TaskScheduler::TaskScheduler(uint64_t numThreads)
-    : logger{LoggerUtils::getOrCreateLogger("processor")}, nextScheduledTaskID{0} {
+    : logger{LoggerUtils::getLogger(LoggerConstants::LoggerEnum::PROCESSOR)}, nextScheduledTaskID{
+                                                                                  0} {
     for (auto n = 0u; n < numThreads; ++n) {
         threads.emplace_back([&] { runWorkerThread(); });
     }
@@ -22,9 +23,9 @@ TaskScheduler::~TaskScheduler() {
     }
 }
 
-shared_ptr<ScheduledTask> TaskScheduler::scheduleTask(const shared_ptr<Task>& task) {
+std::shared_ptr<ScheduledTask> TaskScheduler::scheduleTask(const std::shared_ptr<Task>& task) {
     lock_t lck{mtx};
-    auto scheduledTask = make_shared<ScheduledTask>(task, nextScheduledTaskID++);
+    auto scheduledTask = std::make_shared<ScheduledTask>(task, nextScheduledTaskID++);
     taskQueue.push_back(scheduledTask);
     return scheduledTask;
 }
@@ -56,17 +57,19 @@ void TaskScheduler::waitAllTasksToCompleteOrError() {
         }
         errorIfThereIsAnExceptionNoLock();
         lck.unlock();
-        this_thread::sleep_for(chrono::microseconds(THREAD_SLEEP_TIME_WHEN_WAITING_IN_MICROS));
+        std::this_thread::sleep_for(
+            std::chrono::microseconds(THREAD_SLEEP_TIME_WHEN_WAITING_IN_MICROS));
     }
 }
 
-void TaskScheduler::scheduleTaskAndWaitOrError(const shared_ptr<Task>& task) {
+void TaskScheduler::scheduleTaskAndWaitOrError(const std::shared_ptr<Task>& task) {
     for (auto& dependency : task->children) {
         scheduleTaskAndWaitOrError(dependency);
     }
     auto scheduledTask = scheduleTask(task);
     while (!task->isCompleted()) {
-        this_thread::sleep_for(chrono::microseconds(THREAD_SLEEP_TIME_WHEN_WAITING_IN_MICROS));
+        std::this_thread::sleep_for(
+            std::chrono::microseconds(THREAD_SLEEP_TIME_WHEN_WAITING_IN_MICROS));
     }
     if (task->hasException()) {
         removeErroringTask(scheduledTask->ID);
@@ -77,11 +80,12 @@ void TaskScheduler::scheduleTaskAndWaitOrError(const shared_ptr<Task>& task) {
 void TaskScheduler::waitUntilEnoughTasksFinish(int64_t minimumNumTasksToScheduleMore) {
     while (getNumTasks() > minimumNumTasksToScheduleMore) {
         errorIfThereIsAnException();
-        this_thread::sleep_for(chrono::microseconds(THREAD_SLEEP_TIME_WHEN_WAITING_IN_MICROS));
+        std::this_thread::sleep_for(
+            std::chrono::microseconds(THREAD_SLEEP_TIME_WHEN_WAITING_IN_MICROS));
     }
 }
 
-shared_ptr<ScheduledTask> TaskScheduler::getTaskAndRegister() {
+std::shared_ptr<ScheduledTask> TaskScheduler::getTaskAndRegister() {
     lock_t lck{mtx};
     if (taskQueue.empty()) {
         return nullptr;
@@ -125,14 +129,15 @@ void TaskScheduler::runWorkerThread() {
         }
         auto scheduledTask = getTaskAndRegister();
         if (!scheduledTask) {
-            this_thread::sleep_for(chrono::microseconds(THREAD_SLEEP_TIME_WHEN_WAITING_IN_MICROS));
+            std::this_thread::sleep_for(
+                std::chrono::microseconds(THREAD_SLEEP_TIME_WHEN_WAITING_IN_MICROS));
             continue;
         }
         try {
             scheduledTask->task->run();
             scheduledTask->task->deRegisterThreadAndFinalizeTaskIfNecessary();
-        } catch (exception& e) {
-            scheduledTask->task->setException(current_exception());
+        } catch (std::exception& e) {
+            scheduledTask->task->setException(std::current_exception());
             scheduledTask->task->deRegisterThreadAndFinalizeTaskIfNecessary();
             continue;
         }

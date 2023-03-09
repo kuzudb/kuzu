@@ -7,45 +7,40 @@
 namespace kuzu {
 namespace planner {
 
-struct LogicalIntersectBuildInfo {
-    LogicalIntersectBuildInfo(shared_ptr<Expression> keyNodeID, expression_vector expressions)
-        : keyNodeID{std::move(keyNodeID)}, expressionsToMaterialize{std::move(expressions)} {}
-
-    inline unique_ptr<LogicalIntersectBuildInfo> copy() {
-        return make_unique<LogicalIntersectBuildInfo>(keyNodeID, expressionsToMaterialize);
-    }
-
-    shared_ptr<Expression> keyNodeID;
-    expression_vector expressionsToMaterialize;
-};
-
 class LogicalIntersect : public LogicalOperator {
 public:
-    LogicalIntersect(shared_ptr<Expression> intersectNodeID, shared_ptr<LogicalOperator> probeChild,
-        vector<shared_ptr<LogicalOperator>> buildChildren,
-        vector<unique_ptr<LogicalIntersectBuildInfo>> buildInfos)
+    LogicalIntersect(std::shared_ptr<binder::Expression> intersectNodeID,
+        binder::expression_vector keyNodeIDs, std::shared_ptr<LogicalOperator> probeChild,
+        std::vector<std::shared_ptr<LogicalOperator>> buildChildren)
         : LogicalOperator{LogicalOperatorType::INTERSECT, std::move(probeChild)},
-          intersectNodeID{std::move(intersectNodeID)}, buildInfos{std::move(buildInfos)} {
+          intersectNodeID{std::move(intersectNodeID)}, keyNodeIDs{std::move(keyNodeIDs)} {
         for (auto& child : buildChildren) {
             children.push_back(std::move(child));
         }
     }
 
-    void computeSchema() override;
+    f_group_pos_set getGroupsPosToFlattenOnProbeSide();
+    f_group_pos_set getGroupsPosToFlattenOnBuildSide(uint32_t buildIdx);
 
-    string getExpressionsForPrinting() const override { return intersectNodeID->getRawName(); }
+    void computeFactorizedSchema() override;
+    void computeFlatSchema() override;
 
-    inline shared_ptr<Expression> getIntersectNodeID() const { return intersectNodeID; }
-    inline LogicalIntersectBuildInfo* getBuildInfo(uint32_t idx) const {
-        return buildInfos[idx].get();
+    std::string getExpressionsForPrinting() const override { return intersectNodeID->toString(); }
+
+    inline std::shared_ptr<binder::Expression> getIntersectNodeID() const {
+        return intersectNodeID;
     }
-    inline uint32_t getNumBuilds() const { return buildInfos.size(); }
 
-    unique_ptr<LogicalOperator> copy() override;
+    inline uint32_t getNumBuilds() const { return keyNodeIDs.size(); }
+    inline std::shared_ptr<binder::Expression> getKeyNodeID(uint32_t idx) const {
+        return keyNodeIDs[idx];
+    }
+
+    std::unique_ptr<LogicalOperator> copy() override;
 
 private:
-    shared_ptr<Expression> intersectNodeID;
-    vector<unique_ptr<LogicalIntersectBuildInfo>> buildInfos;
+    std::shared_ptr<binder::Expression> intersectNodeID;
+    binder::expression_vector keyNodeIDs;
 };
 
 } // namespace planner

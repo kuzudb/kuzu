@@ -3,29 +3,33 @@
 #include "base_logical_operator.h"
 #include "binder/expression/expression.h"
 
-using namespace kuzu::binder;
-
 namespace kuzu {
 namespace planner {
 
 class LogicalFilter : public LogicalOperator {
 public:
-    LogicalFilter(shared_ptr<Expression> expression, uint32_t groupPosToSelect,
-        shared_ptr<LogicalOperator> child)
-        : LogicalOperator{LogicalOperatorType::FILTER, std::move(child)},
-          expression{std::move(expression)}, groupPosToSelect{groupPosToSelect} {}
+    LogicalFilter(
+        std::shared_ptr<binder::Expression> expression, std::shared_ptr<LogicalOperator> child)
+        : LogicalOperator{LogicalOperatorType::FILTER, std::move(child)}, expression{std::move(
+                                                                              expression)} {}
 
-    inline void computeSchema() override { copyChildSchema(0); }
+    inline void computeFactorizedSchema() override { copyChildSchema(0); }
+    inline void computeFlatSchema() override { copyChildSchema(0); }
 
-    inline string getExpressionsForPrinting() const override { return expression->getUniqueName(); }
+    f_group_pos_set getGroupsPosToFlatten();
 
-    inline unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalFilter>(expression, groupPosToSelect, children[0]->copy());
+    inline std::string getExpressionsForPrinting() const override { return expression->toString(); }
+
+    inline std::shared_ptr<binder::Expression> getPredicate() const { return expression; }
+
+    f_group_pos getGroupPosToSelect() const;
+
+    inline std::unique_ptr<LogicalOperator> copy() override {
+        return make_unique<LogicalFilter>(expression, children[0]->copy());
     }
 
-public:
-    shared_ptr<Expression> expression;
-    uint32_t groupPosToSelect;
+private:
+    std::shared_ptr<binder::Expression> expression;
 };
 
 } // namespace planner

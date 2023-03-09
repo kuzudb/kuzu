@@ -1,21 +1,13 @@
 #include "include/py_connection.h"
 #include "include/py_database.h"
-
-void bindEnumTypes(py::module& m) {
-    py::enum_<spdlog::level::level_enum>(m, "loggingLevel")
-        .value("debug", spdlog::level::level_enum::debug)
-        .value("info", spdlog::level::level_enum::info)
-        .value("err", spdlog::level::level_enum::err)
-        .export_values();
-}
+#include "include/py_prepared_statement.h"
+#include "spdlog/spdlog.h"
 
 void bind(py::module& m) {
-    bindEnumTypes(m);
     PyDatabase::initialize(m);
     PyConnection::initialize(m);
+    PyPreparedStatement::initialize(m);
     PyQueryResult::initialize(m);
-
-    m.doc() = "Kuzu is an embedded graph database";
 }
 
 PYBIND11_MODULE(_kuzu, m) {

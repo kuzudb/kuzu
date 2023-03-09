@@ -9,21 +9,21 @@ namespace processor {
 
 class RelTableCollection {
 public:
-    RelTableCollection(
-        vector<DirectedRelTableData*> tables, vector<unique_ptr<RelTableScanState>> tableScanStates)
+    RelTableCollection(std::vector<storage::DirectedRelTableData*> tables,
+        std::vector<std::unique_ptr<storage::RelTableScanState>> tableScanStates)
         : tables{std::move(tables)}, tableScanStates{std::move(tableScanStates)} {}
 
     void resetState();
     inline uint32_t getNumTablesInCollection() { return tables.size(); }
 
-    bool scan(const shared_ptr<ValueVector>& inVector,
-        vector<shared_ptr<ValueVector>>& outputVectors, Transaction* transaction);
+    bool scan(common::ValueVector* inVector, const std::vector<common::ValueVector*>& outputVectors,
+        transaction::Transaction* transaction);
 
-    unique_ptr<RelTableCollection> clone() const;
+    std::unique_ptr<RelTableCollection> clone() const;
 
 private:
-    vector<DirectedRelTableData*> tables;
-    vector<unique_ptr<RelTableScanState>> tableScanStates;
+    std::vector<storage::DirectedRelTableData*> tables;
+    std::vector<std::unique_ptr<storage::RelTableScanState>> tableScanStates;
 
     uint32_t currentRelTableIdxToScan = UINT32_MAX;
     uint32_t nextRelTableIdxToScan = 0;
@@ -31,9 +31,10 @@ private:
 
 class GenericScanRelTables : public ScanRelTable {
 public:
-    GenericScanRelTables(const DataPos& inNodeIDVectorPos, vector<DataPos> outputVectorsPos,
-        unordered_map<table_id_t, unique_ptr<RelTableCollection>> relTableCollectionPerNodeTable,
-        unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
+    GenericScanRelTables(const DataPos& inNodeIDVectorPos, std::vector<DataPos> outputVectorsPos,
+        std::unordered_map<common::table_id_t, std::unique_ptr<RelTableCollection>>
+            relTableCollectionPerNodeTable,
+        std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
         : ScanRelTable{inNodeIDVectorPos, std::move(outputVectorsPos),
               PhysicalOperatorType::GENERIC_SCAN_REL_TABLES, std::move(child), id, paramsString},
           relTableCollectionPerNodeTable{std::move(relTableCollectionPerNodeTable)} {}
@@ -42,8 +43,9 @@ public:
 
     bool getNextTuplesInternal() override;
 
-    unique_ptr<PhysicalOperator> clone() override {
-        unordered_map<table_id_t, unique_ptr<RelTableCollection>> clonedCollections;
+    std::unique_ptr<PhysicalOperator> clone() override {
+        std::unordered_map<common::table_id_t, std::unique_ptr<RelTableCollection>>
+            clonedCollections;
         for (auto& [tableID, propertyCollection] : relTableCollectionPerNodeTable) {
             clonedCollections.insert({tableID, propertyCollection->clone()});
         }
@@ -53,10 +55,11 @@ public:
 
 private:
     bool scanCurrentRelTableCollection();
-    void initCurrentRelTableCollection(const nodeID_t& nodeID);
+    void initCurrentRelTableCollection(const common::nodeID_t& nodeID);
 
 private:
-    unordered_map<table_id_t, unique_ptr<RelTableCollection>> relTableCollectionPerNodeTable;
+    std::unordered_map<common::table_id_t, std::unique_ptr<RelTableCollection>>
+        relTableCollectionPerNodeTable;
     RelTableCollection* currentRelTableCollection = nullptr;
 };
 

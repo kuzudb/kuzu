@@ -1,12 +1,14 @@
 #include "processor/operator/order_by/order_by.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace processor {
 
 void OrderBy::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     for (auto [dataPos, _] : orderByDataInfo.payloadsPosAndType) {
         auto vector = resultSet->getValueVector(dataPos);
-        vectorsToAppend.push_back(vector);
+        vectorsToAppend.push_back(vector.get());
     }
     // TODO(Ziyi): this is implemented differently from other sink operators. Normally we append
     // local table to global at the end of the execution. But here your encoder seem to need encode
@@ -17,18 +19,17 @@ void OrderBy::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* con
     factorizedTableIdx = sharedState->getNextFactorizedTableIdx();
     sharedState->appendFactorizedTable(factorizedTableIdx, localFactorizedTable);
     for (auto [dataPos, _] : orderByDataInfo.keysPosAndType) {
-        auto vector = resultSet->getValueVector(dataPos);
-        keyVectors.emplace_back(vector);
+        keyVectors.push_back(resultSet->getValueVector(dataPos).get());
     }
-    orderByKeyEncoder = make_unique<OrderByKeyEncoder>(keyVectors, orderByDataInfo.isAscOrder,
+    orderByKeyEncoder = std::make_unique<OrderByKeyEncoder>(keyVectors, orderByDataInfo.isAscOrder,
         context->memoryManager, factorizedTableIdx, localFactorizedTable->getNumTuplesPerBlock(),
         sharedState->numBytesPerTuple);
-    radixSorter = make_unique<RadixSort>(context->memoryManager, *localFactorizedTable,
+    radixSorter = std::make_unique<RadixSort>(context->memoryManager, *localFactorizedTable,
         *orderByKeyEncoder, sharedState->strKeyColsInfo);
 }
 
-unique_ptr<FactorizedTableSchema> OrderBy::populateTableSchema() {
-    unique_ptr<FactorizedTableSchema> tableSchema = make_unique<FactorizedTableSchema>();
+std::unique_ptr<FactorizedTableSchema> OrderBy::populateTableSchema() {
+    std::unique_ptr<FactorizedTableSchema> tableSchema = std::make_unique<FactorizedTableSchema>();
     // The orderByKeyEncoder requires that the orderByKey columns are flat in the
     // factorizedTable. If there is only one unflat dataChunk, we need to flatten the payload
     // columns in factorizedTable because the payload and key columns are in the same
@@ -36,14 +37,14 @@ unique_ptr<FactorizedTableSchema> OrderBy::populateTableSchema() {
     for (auto i = 0u; i < orderByDataInfo.payloadsPosAndType.size(); ++i) {
         auto [dataPos, dataType] = orderByDataInfo.payloadsPosAndType[i];
         bool isUnflat = !orderByDataInfo.isPayloadFlat[i] && !orderByDataInfo.mayContainUnflatKey;
-        tableSchema->appendColumn(make_unique<ColumnSchema>(isUnflat, dataPos.dataChunkPos,
+        tableSchema->appendColumn(std::make_unique<ColumnSchema>(isUnflat, dataPos.dataChunkPos,
             isUnflat ? (uint32_t)sizeof(overflow_value_t) : Types::getDataTypeSize(dataType)));
     }
     return tableSchema;
 }
 
 void OrderBy::initGlobalStateInternal(kuzu::processor::ExecutionContext* context) {
-    vector<StrKeyColInfo> strKeyColInfo;
+    std::vector<StrKeyColInfo> strKeyColInfo;
     auto encodedKeyBlockColOffset = 0ul;
     auto tableSchema = populateTableSchema();
     for (auto i = 0u; i < orderByDataInfo.keysPosAndType.size(); ++i) {

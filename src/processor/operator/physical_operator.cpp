@@ -4,6 +4,8 @@
 
 #include "common/exception.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace processor {
 
@@ -60,18 +62,6 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
     case PhysicalOperatorType::FLATTEN: {
         return "FLATTEN";
     }
-    case PhysicalOperatorType::RENAME_PROPERTY: {
-        return "RENAME_PROPERTY";
-    }
-    case PhysicalOperatorType::RENAME_TABLE: {
-        return "RENAME_TABLE";
-    }
-    case PhysicalOperatorType::SCAN_REL_TABLE_COLUMNS: {
-        return "SCAN_REL_TABLE_COLUMNS";
-    }
-    case PhysicalOperatorType::SCAN_REL_TABLE_LISTS: {
-        return "SCAN_REL_TABLE_LISTS";
-    }
     case PhysicalOperatorType::GENERIC_SCAN_REL_TABLES: {
         return "GENERIC_SCAN_REL_TABLES";
     }
@@ -99,8 +89,11 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
     case PhysicalOperatorType::PROJECTION: {
         return "PROJECTION";
     }
-    case PhysicalOperatorType::SCAN_REL_PROPERTY: {
-        return "SCAN_REL_PROPERTY";
+    case PhysicalOperatorType::RENAME_PROPERTY: {
+        return "RENAME_PROPERTY";
+    }
+    case PhysicalOperatorType::RENAME_TABLE: {
+        return "RENAME_TABLE";
     }
     case PhysicalOperatorType::RESULT_COLLECTOR: {
         return "RESULT_COLLECTOR";
@@ -110,6 +103,15 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
     }
     case PhysicalOperatorType::SCAN_NODE_PROPERTY: {
         return "SCAN_NODE_PROPERTY";
+    }
+    case PhysicalOperatorType::SCAN_REL_PROPERTY: {
+        return "SCAN_REL_PROPERTY";
+    }
+    case PhysicalOperatorType::SCAN_REL_TABLE_COLUMNS: {
+        return "SCAN_REL_TABLE_COLUMNS";
+    }
+    case PhysicalOperatorType::SCAN_REL_TABLE_LISTS: {
+        return "SCAN_REL_TABLE_LISTS";
     }
     case PhysicalOperatorType::SEMI_MASKER: {
         return "SEMI_MASKER";
@@ -150,28 +152,29 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
 }
 
 PhysicalOperator::PhysicalOperator(PhysicalOperatorType operatorType,
-    unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
+    std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
     : PhysicalOperator{operatorType, id, paramsString} {
     children.push_back(std::move(child));
 }
 
 PhysicalOperator::PhysicalOperator(PhysicalOperatorType operatorType,
-    unique_ptr<PhysicalOperator> left, unique_ptr<PhysicalOperator> right, uint32_t id,
-    const string& paramsString)
+    std::unique_ptr<PhysicalOperator> left, std::unique_ptr<PhysicalOperator> right, uint32_t id,
+    const std::string& paramsString)
     : PhysicalOperator{operatorType, id, paramsString} {
     children.push_back(std::move(left));
     children.push_back(std::move(right));
 }
 
 PhysicalOperator::PhysicalOperator(PhysicalOperatorType operatorType,
-    vector<unique_ptr<PhysicalOperator>> children, uint32_t id, const string& paramsString)
+    std::vector<std::unique_ptr<PhysicalOperator>> children, uint32_t id,
+    const std::string& paramsString)
     : PhysicalOperator{operatorType, id, paramsString} {
     for (auto& child : children) {
         this->children.push_back(std::move(child));
     }
 }
 
-unique_ptr<PhysicalOperator> PhysicalOperator::moveUnaryChild() {
+std::unique_ptr<PhysicalOperator> PhysicalOperator::moveUnaryChild() {
     assert(children.size() == 1);
     auto result = std::move(children[0]);
     children.clear();
@@ -199,7 +202,7 @@ void PhysicalOperator::initLocalState(ResultSet* resultSet_, ExecutionContext* c
 void PhysicalOperator::registerProfilingMetrics(Profiler* profiler) {
     auto executionTime = profiler->registerTimeMetric(getTimeMetricKey());
     auto numOutputTuple = profiler->registerNumericMetric(getNumTupleMetricKey());
-    metrics = make_unique<OperatorMetrics>(*executionTime, *numOutputTuple);
+    metrics = std::make_unique<OperatorMetrics>(*executionTime, *numOutputTuple);
 }
 
 double PhysicalOperator::getExecutionTime(Profiler& profiler) const {
@@ -214,16 +217,16 @@ uint64_t PhysicalOperator::getNumOutputTuples(Profiler& profiler) const {
     return profiler.sumAllNumericMetricsWithKey(getNumTupleMetricKey());
 }
 
-unordered_map<string, string> PhysicalOperator::getProfilerKeyValAttributes(
+std::unordered_map<std::string, std::string> PhysicalOperator::getProfilerKeyValAttributes(
     Profiler& profiler) const {
-    unordered_map<string, string> result;
-    result.insert({"ExecutionTime", to_string(getExecutionTime(profiler))});
-    result.insert({"NumOutputTuples", to_string(getNumOutputTuples(profiler))});
+    std::unordered_map<std::string, std::string> result;
+    result.insert({"ExecutionTime", std::to_string(getExecutionTime(profiler))});
+    result.insert({"NumOutputTuples", std::to_string(getNumOutputTuples(profiler))});
     return result;
 }
 
-vector<string> PhysicalOperator::getProfilerAttributes(Profiler& profiler) const {
-    vector<string> result;
+std::vector<std::string> PhysicalOperator::getProfilerAttributes(Profiler& profiler) const {
+    std::vector<std::string> result;
     for (auto& [key, val] : getProfilerKeyValAttributes(profiler)) {
         result.emplace_back(key + ": " + val);
     }

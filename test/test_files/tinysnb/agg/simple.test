@@ -10,6 +10,11 @@
 ---- 1
 37.250000|4.862500
 
+-NAME SimpleAvgFloatTest
+-QUERY MATCH (a:person) RETURN AVG(a.height) + 5
+---- 1
+6.364625
+
 -NAME SimpleCountTest
 -QUERY MATCH (a:person) RETURN COUNT(a.age) + 1
 ---- 1
@@ -35,6 +40,11 @@
 ---- 1
 False
 
+-NAME SimpleSumTest4
+-QUERY MATCH (a:person) RETURN sum(a.height) + 2.2
+---- 1
+13.117001
+
 -NAME SimpleAvgTest
 -QUERY MATCH (a:person) RETURN AVG(a.age), AVG(a.eyeSight)
 ---- 1
@@ -50,8 +60,59 @@ False
 ---- 1
 20|83|False|True|4.500000|5.100000|1900-01-01|1990-11-27
 
+-NAME SimpleMinTest
+-QUERY MATCH (m:movies) RETURN MIN(m.note)
+---- 1
+ the movie is very very good
+
 -NAME TwoHopTest
 -QUERY MATCH (a:person)-[:knows]->(b:person) RETURN SUM(b.age), MIN(b.ID), AVG(b.eyeSight)
 -ENUMERATE
 ---- 1
 455|0|4.935714
+
+-NAME SimpleCollectINT64Test
+-QUERY MATCH (p:person) RETURN collect(p.age)
+---- 1
+[35,30,45,20,20,25,40,83]
+
+-NAME SimpleCollectINT32Test
+-QUERY MATCH (m:movies) RETURN collect(m.length)
+---- 1
+[126,2544,298]
+
+-NAME SimpleCollectINT16Test
+-QUERY MATCH (:person)-[e:studyAt]->(:organisation) RETURN collect(e.length)
+---- 1
+[5,55,22]
+
+-NAME SimpleCollectSTRINGTest
+-QUERY MATCH (p:person) RETURN collect(p.fName)
+---- 1
+[Alice,Bob,Carol,Dan,Elizabeth,Farooq,Greg,Hubert Blaine Wolfeschlegelsteinhausenbergerdorff]
+
+-NAME SimpleCollectFLOATTest
+-QUERY MATCH (p:person) RETURN collect(p.height)
+---- 1
+[1.731000,0.990000,1.000000,1.300000,1.463000,1.510000,1.600000,1.323000]
+
+-NAME SimpleCollectLISTOfINT64Test
+-QUERY MATCH (p:person) RETURN collect(p.workedHours)
+---- 1
+[[10,5],[12,8],[4,5],[1,9],[2],[3,4,5,6,7],[1],[10,11,12,3,4,5,6,7]]
+
+-NAME SimpleCollectLISTOfSTRINGTest
+-QUERY MATCH (p:person) RETURN collect(p.usedNames)
+---- 1
+[[Aida],[Bobby],[Carmen,Fred],[Wolfeschlegelstein,Daniel],[Ein],[Fesdwe],[Grad],[Ad,De,Hi,Kye,Orlan]]
+
+-NAME SimpleCollectLISTOfLISTOfINT64Test
+-QUERY MATCH (p:person) RETURN collect(p.courseScoresPerTerm)
+---- 1
+[[[10,8],[6,7,8]],[[8,9],[9,10]],[[8,10]],[[7,4],[8,8],[9]],[[6],[7],[8]],[[8]],[[10]],[[7],[10],[6,7]]]
+
+-NAME SimpleCollectLISTOfINT64MultiThreadTest
+-QUERY MATCH (p:person) RETURN collect(p.workedHours)
+-PARALLELISM 8
+---- 1
+[[10,5],[12,8],[4,5],[1,9],[2],[3,4,5,6,7],[1],[10,11,12,3,4,5,6,7]]

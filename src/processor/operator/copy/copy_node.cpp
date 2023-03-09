@@ -2,6 +2,8 @@
 
 #include "storage/copy_arrow/copy_node_arrow.h"
 
+using namespace kuzu::storage;
+
 namespace kuzu {
 namespace processor {
 
@@ -10,6 +12,10 @@ uint64_t CopyNode::executeInternal(
     auto nodeCSVCopier = make_unique<CopyNodeArrow>(
         copyDescription, wal->getDirectory(), *taskScheduler, *catalog, tableID, nodesStatistics);
     auto numNodesCopied = nodeCSVCopier->copy();
+    for (auto& relTableSchema : catalog->getAllRelTableSchemasContainBoundTable(tableID)) {
+        relsStore.getRelTable(relTableSchema->tableID)
+            ->batchInitEmptyRelsForNewNodes(relTableSchema, numNodesCopied);
+    }
     wal->logCopyNodeRecord(tableID);
     return numNodesCopied;
 }

@@ -3,8 +3,6 @@
 #include "aggregate_function.h"
 #include "function/arithmetic/arithmetic_operations.h"
 
-using namespace kuzu::function::operation;
-
 namespace kuzu {
 namespace function {
 
@@ -13,14 +11,18 @@ struct SumFunction {
 
     struct SumState : public AggregateState {
         inline uint32_t getStateSize() const override { return sizeof(*this); }
-        inline uint8_t* getResult() const override { return (uint8_t*)&sum; }
+        inline void moveResultToVector(common::ValueVector* outputVector, uint64_t pos) override {
+            memcpy(outputVector->getData() + pos * outputVector->getNumBytesPerValue(),
+                reinterpret_cast<uint8_t*>(&sum), outputVector->getNumBytesPerValue());
+        }
 
         T sum;
     };
 
-    static unique_ptr<AggregateState> initialize() { return make_unique<SumState>(); }
+    static std::unique_ptr<AggregateState> initialize() { return std::make_unique<SumState>(); }
 
-    static void updateAll(uint8_t* state_, ValueVector* input, uint64_t multiplicity) {
+    static void updateAll(uint8_t* state_, common::ValueVector* input, uint64_t multiplicity,
+        storage::MemoryManager* memoryManager) {
         assert(!input->state->isFlat());
         auto state = reinterpret_cast<SumState*>(state_);
         if (input->hasNoNullsGuarantee()) {
@@ -38,26 +40,27 @@ struct SumFunction {
         }
     }
 
-    static inline void updatePos(
-        uint8_t* state_, ValueVector* input, uint64_t multiplicity, uint32_t pos) {
+    static inline void updatePos(uint8_t* state_, common::ValueVector* input, uint64_t multiplicity,
+        uint32_t pos, storage::MemoryManager* memoryManager) {
         auto state = reinterpret_cast<SumState*>(state_);
         updateSingleValue(state, input, pos, multiplicity);
     }
 
     static void updateSingleValue(
-        SumState* state, ValueVector* input, uint32_t pos, uint64_t multiplicity) {
+        SumState* state, common::ValueVector* input, uint32_t pos, uint64_t multiplicity) {
         T val = input->getValue<T>(pos);
         for (auto j = 0u; j < multiplicity; ++j) {
             if (state->isNull) {
                 state->sum = val;
                 state->isNull = false;
             } else {
-                Add::operation(state->sum, val, state->sum);
+                operation::Add::operation(state->sum, val, state->sum);
             }
         }
     }
 
-    static void combine(uint8_t* state_, uint8_t* otherState_) {
+    static void combine(
+        uint8_t* state_, uint8_t* otherState_, storage::MemoryManager* memoryManager) {
         auto otherState = reinterpret_cast<SumState*>(otherState_);
         if (otherState->isNull) {
             return;
@@ -67,7 +70,7 @@ struct SumFunction {
             state->sum = otherState->sum;
             state->isNull = false;
         } else {
-            Add::operation(state->sum, otherState->sum, state->sum);
+            operation::Add::operation(state->sum, otherState->sum, state->sum);
         }
     }
 

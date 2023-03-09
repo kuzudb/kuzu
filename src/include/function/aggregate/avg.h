@@ -3,9 +3,6 @@
 #include "aggregate_function.h"
 #include "function/arithmetic/arithmetic_operations.h"
 
-using namespace std;
-using namespace kuzu::function::operation;
-
 namespace kuzu {
 namespace function {
 
@@ -14,16 +11,20 @@ struct AvgFunction {
 
     struct AvgState : public AggregateState {
         inline uint32_t getStateSize() const override { return sizeof(*this); }
-        inline uint8_t* getResult() const override { return (uint8_t*)&avg; }
+        inline void moveResultToVector(common::ValueVector* outputVector, uint64_t pos) override {
+            memcpy(outputVector->getData() + pos * outputVector->getNumBytesPerValue(),
+                reinterpret_cast<uint8_t*>(&avg), outputVector->getNumBytesPerValue());
+        }
 
         T sum;
         uint64_t count = 0;
         double_t avg = 0;
     };
 
-    static unique_ptr<AggregateState> initialize() { return make_unique<AvgState>(); }
+    static std::unique_ptr<AggregateState> initialize() { return std::make_unique<AvgState>(); }
 
-    static void updateAll(uint8_t* state_, ValueVector* input, uint64_t multiplicity) {
+    static void updateAll(uint8_t* state_, common::ValueVector* input, uint64_t multiplicity,
+        storage::MemoryManager* memoryManager) {
         auto state = reinterpret_cast<AvgState*>(state_);
         assert(!input->state->isFlat());
         if (input->hasNoNullsGuarantee()) {
@@ -41,26 +42,27 @@ struct AvgFunction {
         }
     }
 
-    static inline void updatePos(
-        uint8_t* state_, ValueVector* input, uint64_t multiplicity, uint32_t pos) {
+    static inline void updatePos(uint8_t* state_, common::ValueVector* input, uint64_t multiplicity,
+        uint32_t pos, storage::MemoryManager* memoryManager) {
         updateSingleValue(reinterpret_cast<AvgState*>(state_), input, pos, multiplicity);
     }
 
     static void updateSingleValue(
-        AvgState* state, ValueVector* input, uint32_t pos, uint64_t multiplicity) {
+        AvgState* state, common::ValueVector* input, uint32_t pos, uint64_t multiplicity) {
         T val = input->getValue<T>(pos);
         for (auto i = 0u; i < multiplicity; ++i) {
             if (state->isNull) {
                 state->sum = val;
                 state->isNull = false;
             } else {
-                Add::operation(state->sum, val, state->sum);
+                operation::Add::operation(state->sum, val, state->sum);
             }
         }
         state->count += multiplicity;
     }
 
-    static void combine(uint8_t* state_, uint8_t* otherState_) {
+    static void combine(
+        uint8_t* state_, uint8_t* otherState_, storage::MemoryManager* memoryManager) {
         auto otherState = reinterpret_cast<AvgState*>(otherState_);
         if (otherState->isNull) {
             return;
@@ -70,7 +72,7 @@ struct AvgFunction {
             state->sum = otherState->sum;
             state->isNull = false;
         } else {
-            Add::operation(state->sum, otherState->sum, state->sum);
+            operation::Add::operation(state->sum, otherState->sum, state->sum);
         }
         state->count = state->count + otherState->count;
     }

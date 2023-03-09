@@ -5,11 +5,10 @@
 namespace kuzu {
 namespace parser {
 
-using namespace std;
-
 class DropTable : public DDL {
 public:
-    explicit DropTable(string tableName) : DDL{StatementType::DROP_TABLE, std::move(tableName)} {}
+    explicit DropTable(std::string tableName)
+        : DDL{common::StatementType::DROP_TABLE, std::move(tableName)} {}
 };
 
 } // namespace parser

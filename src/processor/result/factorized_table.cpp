@@ -4,7 +4,7 @@
 #include "common/vector/value_vector_utils.h"
 
 using namespace kuzu::common;
-using namespace std;
+using namespace kuzu::storage;
 
 namespace kuzu {
 namespace processor {
@@ -18,11 +18,11 @@ ColumnSchema::ColumnSchema(const ColumnSchema& other) {
 
 FactorizedTableSchema::FactorizedTableSchema(const FactorizedTableSchema& other) {
     for (auto& column : other.columns) {
-        appendColumn(make_unique<ColumnSchema>(*column));
+        appendColumn(std::make_unique<ColumnSchema>(*column));
     }
 }
 
-void FactorizedTableSchema::appendColumn(unique_ptr<ColumnSchema> column) {
+void FactorizedTableSchema::appendColumn(std::unique_ptr<ColumnSchema> column) {
     numBytesForDataPerTuple += column->getNumBytes();
     columns.push_back(std::move(column));
     colOffsets.push_back(
@@ -69,7 +69,7 @@ void DataBlockCollection::merge(DataBlockCollection& other) {
     // Insert back tuples in the old last block to the new last block.
     auto newLastBlock = blocks.back().get();
     auto numTuplesToAppendIntoNewLastBlock =
-        min(numTuplesPerBlock - newLastBlock->numTuples, oldLastBlock->numTuples);
+        std::min(numTuplesPerBlock - newLastBlock->numTuples, oldLastBlock->numTuples);
     DataBlock::copyTuples(oldLastBlock.get(), 0, newLastBlock, newLastBlock->numTuples,
         numTuplesToAppendIntoNewLastBlock, numBytesPerTuple);
     // If any tuples left in the old last block, shift them to the beginning, and push the old last
@@ -85,19 +85,20 @@ void DataBlockCollection::merge(DataBlockCollection& other) {
 }
 
 FactorizedTable::FactorizedTable(
-    MemoryManager* memoryManager, unique_ptr<FactorizedTableSchema> tableSchema)
+    MemoryManager* memoryManager, std::unique_ptr<FactorizedTableSchema> tableSchema)
     : memoryManager{memoryManager}, tableSchema{std::move(tableSchema)}, numTuples{0} {
-    assert(this->tableSchema->getNumBytesPerTuple() <= LARGE_PAGE_SIZE);
+    assert(this->tableSchema->getNumBytesPerTuple() <= BufferPoolConstants::LARGE_PAGE_SIZE);
     if (!this->tableSchema->isEmpty()) {
-        inMemOverflowBuffer = make_unique<InMemOverflowBuffer>(memoryManager);
-        numTuplesPerBlock = LARGE_PAGE_SIZE / this->tableSchema->getNumBytesPerTuple();
-        flatTupleBlockCollection = make_unique<DataBlockCollection>(
+        inMemOverflowBuffer = std::make_unique<InMemOverflowBuffer>(memoryManager);
+        numTuplesPerBlock =
+            BufferPoolConstants::LARGE_PAGE_SIZE / this->tableSchema->getNumBytesPerTuple();
+        flatTupleBlockCollection = std::make_unique<DataBlockCollection>(
             this->tableSchema->getNumBytesPerTuple(), numTuplesPerBlock);
-        unflatTupleBlockCollection = make_unique<DataBlockCollection>();
+        unflatTupleBlockCollection = std::make_unique<DataBlockCollection>();
     }
 }
 
-void FactorizedTable::append(const vector<shared_ptr<ValueVector>>& vectors) {
+void FactorizedTable::append(const std::vector<ValueVector*>& vectors) {
     auto numTuplesToAppend = computeNumTuplesToAppend(vectors);
     auto appendInfos = allocateFlatTupleBlocks(numTuplesToAppend);
     for (auto i = 0u; i < vectors.size(); i++) {
@@ -115,29 +116,29 @@ uint8_t* FactorizedTable::appendEmptyTuple() {
     if (flatTupleBlockCollection->isEmpty() ||
         flatTupleBlockCollection->getBlocks().back()->freeSize <
             tableSchema->getNumBytesPerTuple()) {
-        flatTupleBlockCollection->append(make_unique<DataBlock>(memoryManager));
+        flatTupleBlockCollection->append(std::make_unique<DataBlock>(memoryManager));
     }
     auto& block = flatTupleBlockCollection->getBlocks().back();
-    uint8_t* tuplePtr = block->getData() + LARGE_PAGE_SIZE - block->freeSize;
+    uint8_t* tuplePtr = block->getData() + BufferPoolConstants::LARGE_PAGE_SIZE - block->freeSize;
     block->freeSize -= tableSchema->getNumBytesPerTuple();
     block->numTuples++;
     numTuples++;
     return tuplePtr;
 }
 
-void FactorizedTable::scan(vector<shared_ptr<ValueVector>>& vectors, ft_tuple_idx_t tupleIdx,
-    uint64_t numTuplesToScan, vector<ft_col_idx_t>& colIdxesToScan) const {
+void FactorizedTable::scan(std::vector<ValueVector*>& vectors, ft_tuple_idx_t tupleIdx,
+    uint64_t numTuplesToScan, std::vector<ft_col_idx_t>& colIdxesToScan) const {
     assert(tupleIdx + numTuplesToScan <= numTuples);
     assert(vectors.size() == colIdxesToScan.size());
-    unique_ptr<uint8_t*[]> tuplesToRead = make_unique<uint8_t*[]>(numTuplesToScan);
+    std::unique_ptr<uint8_t*[]> tuplesToRead = std::make_unique<uint8_t*[]>(numTuplesToScan);
     for (auto i = 0u; i < numTuplesToScan; i++) {
         tuplesToRead[i] = getTuple(tupleIdx + i);
     }
     return lookup(vectors, colIdxesToScan, tuplesToRead.get(), 0 /* startPos */, numTuplesToScan);
 }
 
-void FactorizedTable::lookup(vector<shared_ptr<ValueVector>>& vectors,
-    vector<ft_col_idx_t>& colIdxesToScan, uint8_t** tuplesToRead, uint64_t startPos,
+void FactorizedTable::lookup(std::vector<ValueVector*>& vectors,
+    std::vector<ft_col_idx_t>& colIdxesToScan, uint8_t** tuplesToRead, uint64_t startPos,
     uint64_t numTuplesToRead) const {
     assert(vectors.size() == colIdxesToScan.size());
     for (auto i = 0u; i < colIdxesToScan.size(); i++) {
@@ -154,9 +155,8 @@ void FactorizedTable::lookup(vector<shared_ptr<ValueVector>>& vectors,
     }
 }
 
-void FactorizedTable::lookup(vector<shared_ptr<ValueVector>>& vectors,
-    const SelectionVector* selVector, vector<ft_col_idx_t>& colIdxesToScan,
-    uint8_t* tupleToRead) const {
+void FactorizedTable::lookup(std::vector<ValueVector*>& vectors, const SelectionVector* selVector,
+    std::vector<ft_col_idx_t>& colIdxesToScan, uint8_t* tupleToRead) const {
     assert(vectors.size() == colIdxesToScan.size());
     for (auto i = 0u; i < colIdxesToScan.size(); i++) {
         ft_col_idx_t colIdx = colIdxesToScan[i];
@@ -168,11 +168,11 @@ void FactorizedTable::lookup(vector<shared_ptr<ValueVector>>& vectors,
     }
 }
 
-void FactorizedTable::lookup(vector<shared_ptr<ValueVector>>& vectors,
-    vector<ft_col_idx_t>& colIdxesToScan, vector<ft_tuple_idx_t>& tupleIdxesToRead,
+void FactorizedTable::lookup(std::vector<ValueVector*>& vectors,
+    std::vector<ft_col_idx_t>& colIdxesToScan, std::vector<ft_tuple_idx_t>& tupleIdxesToRead,
     uint64_t startPos, uint64_t numTuplesToRead) const {
     assert(vectors.size() == colIdxesToScan.size());
-    auto tuplesToRead = make_unique<uint8_t*[]>(tupleIdxesToRead.size());
+    auto tuplesToRead = std::make_unique<uint8_t*[]>(tupleIdxesToRead.size());
     for (auto i = 0u; i < numTuplesToRead; i++) {
         tuplesToRead[i] = getTuple(tupleIdxesToRead[i + startPos]);
     }
@@ -200,7 +200,7 @@ void FactorizedTable::merge(FactorizedTable& other) {
 }
 
 bool FactorizedTable::hasUnflatCol() const {
-    vector<ft_col_idx_t> colIdxes(tableSchema->getNumColumns());
+    std::vector<ft_col_idx_t> colIdxes(tableSchema->getNumColumns());
     iota(colIdxes.begin(), colIdxes.end(), 0);
     return hasUnflatCol(colIdxes);
 }
@@ -214,7 +214,7 @@ uint64_t FactorizedTable::getTotalNumFlatTuples() const {
 }
 
 uint64_t FactorizedTable::getNumFlatTuples(ft_tuple_idx_t tupleIdx) const {
-    unordered_map<uint32_t, bool> calculatedDataChunkPoses;
+    std::unordered_map<uint32_t, bool> calculatedDataChunkPoses;
     uint64_t numFlatTuples = 1;
     auto tupleBuffer = getTuple(tupleIdx);
     for (auto i = 0u; i < tableSchema->getNumColumns(); i++) {
@@ -246,7 +246,7 @@ void FactorizedTable::updateFlatCell(
 }
 
 void FactorizedTable::copySingleValueToVector(ft_tuple_idx_t tupleIdx, ft_col_idx_t colIdx,
-    shared_ptr<ValueVector> valueVector, uint32_t posInVector) const {
+    ValueVector* valueVector, uint32_t posInVector) const {
     auto tuple = getTuple(tupleIdx);
     auto isNullInFT = isNonOverflowColNull(tuple + tableSchema->getNullMapOffset(), colIdx);
     valueVector->setNull(posInVector, isNullInFT);
@@ -278,16 +278,14 @@ void FactorizedTable::setNonOverflowColNull(uint8_t* nullBuffer, ft_col_idx_t co
     tableSchema->setMayContainsNullsToTrue(colIdx);
 }
 
-void FactorizedTable::copyToInMemList(ft_col_idx_t colIdx, vector<ft_tuple_idx_t>& tupleIdxesToRead,
-    uint8_t* data, NullMask* nullMask, uint64_t startElemPosInList,
-    DiskOverflowFile* overflowFileOfInMemList, const DataType& type,
-    NodeIDCompressionScheme* nodeIDCompressionScheme) const {
+void FactorizedTable::copyToInMemList(ft_col_idx_t colIdx,
+    std::vector<ft_tuple_idx_t>& tupleIdxesToRead, uint8_t* data, NullMask* nullMask,
+    uint64_t startElemPosInList, DiskOverflowFile* overflowFileOfInMemList,
+    const DataType& type) const {
     auto column = tableSchema->getColumn(colIdx);
     assert(column->isFlat() == true);
     auto numBytesPerValue =
-        nodeIDCompressionScheme == nullptr ?
-            (type.typeID == INTERNAL_ID ? sizeof(offset_t) : Types::getDataTypeSize(type)) :
-            nodeIDCompressionScheme->getNumBytesForNodeIDAfterCompression();
+        type.typeID == INTERNAL_ID ? sizeof(offset_t) : Types::getDataTypeSize(type);
     auto colOffset = tableSchema->getColOffset(colIdx);
     auto listToFill = data + startElemPosInList * numBytesPerValue;
     for (auto i = 0u; i < tupleIdxesToRead.size(); i++) {
@@ -333,9 +331,9 @@ int64_t FactorizedTable::findValueInFlatColumn(ft_col_idx_t colIdx, int64_t valu
 
 void FactorizedTable::clear() {
     numTuples = 0;
-    flatTupleBlockCollection =
-        make_unique<DataBlockCollection>(tableSchema->getNumBytesPerTuple(), numTuplesPerBlock);
-    unflatTupleBlockCollection = make_unique<DataBlockCollection>();
+    flatTupleBlockCollection = std::make_unique<DataBlockCollection>(
+        tableSchema->getNumBytesPerTuple(), numTuplesPerBlock);
+    unflatTupleBlockCollection = std::make_unique<DataBlockCollection>();
     inMemOverflowBuffer->resetBuffer();
 }
 
@@ -359,7 +357,7 @@ void FactorizedTable::setOverflowColNull(
 
 // TODO(Guodong): change this function to not use dataChunkPos in ColumnSchema.
 uint64_t FactorizedTable::computeNumTuplesToAppend(
-    const vector<shared_ptr<ValueVector>>& vectorsToAppend) const {
+    const std::vector<ValueVector*>& vectorsToAppend) const {
     auto unflatDataChunkPos = -1ul;
     auto numTuplesToAppend = 1ul;
     for (auto i = 0u; i < vectorsToAppend.size(); i++) {
@@ -379,20 +377,22 @@ uint64_t FactorizedTable::computeNumTuplesToAppend(
     return numTuplesToAppend;
 }
 
-vector<BlockAppendingInfo> FactorizedTable::allocateFlatTupleBlocks(uint64_t numTuplesToAppend) {
+std::vector<BlockAppendingInfo> FactorizedTable::allocateFlatTupleBlocks(
+    uint64_t numTuplesToAppend) {
     auto numBytesPerTuple = tableSchema->getNumBytesPerTuple();
-    assert(numBytesPerTuple < LARGE_PAGE_SIZE);
-    vector<BlockAppendingInfo> appendingInfos;
+    assert(numBytesPerTuple < BufferPoolConstants::LARGE_PAGE_SIZE);
+    std::vector<BlockAppendingInfo> appendingInfos;
     while (numTuplesToAppend > 0) {
         if (flatTupleBlockCollection->isEmpty() ||
             flatTupleBlockCollection->getBlocks().back()->freeSize < numBytesPerTuple) {
-            flatTupleBlockCollection->append(make_unique<DataBlock>(memoryManager));
+            flatTupleBlockCollection->append(std::make_unique<DataBlock>(memoryManager));
         }
         auto& block = flatTupleBlockCollection->getBlocks().back();
         auto numTuplesToAppendInCurBlock =
-            min(numTuplesToAppend, block->freeSize / numBytesPerTuple);
+            std::min(numTuplesToAppend, block->freeSize / numBytesPerTuple);
         appendingInfos.emplace_back(
-            block->getData() + LARGE_PAGE_SIZE - block->freeSize, numTuplesToAppendInCurBlock);
+            block->getData() + BufferPoolConstants::LARGE_PAGE_SIZE - block->freeSize,
+            numTuplesToAppendInCurBlock);
         block->freeSize -= numTuplesToAppendInCurBlock * numBytesPerTuple;
         block->numTuples += numTuplesToAppendInCurBlock;
         numTuplesToAppend -= numTuplesToAppendInCurBlock;
@@ -401,16 +401,17 @@ vector<BlockAppendingInfo> FactorizedTable::allocateFlatTupleBlocks(uint64_t num
 }
 
 uint8_t* FactorizedTable::allocateUnflatTupleBlock(uint32_t numBytes) {
-    assert(numBytes < LARGE_PAGE_SIZE);
+    assert(numBytes < BufferPoolConstants::LARGE_PAGE_SIZE);
     if (unflatTupleBlockCollection->isEmpty()) {
-        unflatTupleBlockCollection->append(make_unique<DataBlock>(memoryManager));
+        unflatTupleBlockCollection->append(std::make_unique<DataBlock>(memoryManager));
     }
     auto lastBlock = unflatTupleBlockCollection->getBlocks().back().get();
     if (lastBlock->freeSize > numBytes) {
         lastBlock->freeSize -= numBytes;
-        return lastBlock->getData() + LARGE_PAGE_SIZE - lastBlock->freeSize - numBytes;
+        return lastBlock->getData() + BufferPoolConstants::LARGE_PAGE_SIZE - lastBlock->freeSize -
+               numBytes;
     }
-    unflatTupleBlockCollection->append(make_unique<DataBlock>(memoryManager));
+    unflatTupleBlockCollection->append(std::make_unique<DataBlock>(memoryManager));
     lastBlock = unflatTupleBlockCollection->getBlocks().back().get();
     lastBlock->freeSize -= numBytes;
     return lastBlock->getData();
@@ -663,7 +664,7 @@ void FactorizedTable::copyOverflowIfNecessary(
                 *stringToWriteFrom, *(ku_string_t*)dst);
         }
     } break;
-    case LIST: {
+    case VAR_LIST: {
         diskOverflowFile->writeListOverflowAndUpdateOverflowPtr(
             *(ku_list_t*)src, *(ku_list_t*)dst, type);
     } break;
@@ -672,7 +673,7 @@ void FactorizedTable::copyOverflowIfNecessary(
     }
 }
 
-FlatTupleIterator::FlatTupleIterator(FactorizedTable& factorizedTable, vector<Value*> values)
+FlatTupleIterator::FlatTupleIterator(FactorizedTable& factorizedTable, std::vector<Value*> values)
     : factorizedTable{factorizedTable}, numFlatTuples{0}, nextFlatTupleIdx{0},
       nextTupleIdx{1}, values{std::move(values)} {
     resetState();
@@ -750,7 +751,7 @@ void FlatTupleIterator::updateInvalidEntriesInFlatTuplePositionsInDataChunk() {
             }
         }
         if (!isValidEntry) {
-            flatTuplePositionsInDataChunk[i] = make_pair(UINT64_MAX, UINT64_MAX);
+            flatTuplePositionsInDataChunk[i] = std::make_pair(UINT64_MAX, UINT64_MAX);
         }
     }
 }
@@ -769,7 +770,7 @@ void FlatTupleIterator::updateNumElementsInDataChunk() {
             flatTuplePositionsInDataChunk.resize(column->getDataChunkPos() + 1);
         }
         flatTuplePositionsInDataChunk[column->getDataChunkPos()] =
-            make_pair(0 /* nextIdxToReadInDataChunk */, numElementsInDataChunk);
+            std::make_pair(0 /* nextIdxToReadInDataChunk */, numElementsInDataChunk);
         colOffsetInTupleBuffer += column->getNumBytes();
     }
 }

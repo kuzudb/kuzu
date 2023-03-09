@@ -1,17 +1,17 @@
 #include "common/exception.h"
 #include "graph_test/graph_test.h"
 
+using namespace kuzu::common;
 using namespace kuzu::testing;
 
 class CopyFaultTest : public EmptyDBTest {
 public:
     void SetUp() override {
         EmptyDBTest::SetUp();
-        databaseConfig->inMemoryMode = true;
         createDBAndConn();
     }
 
-    void validateCopyException(string copyQuery, string expectedException) {
+    void validateCopyException(std::string copyQuery, std::string expectedException) {
         initGraph();
         auto result = conn->query(copyQuery);
         ASSERT_FALSE(result->isSuccess());
@@ -20,7 +20,7 @@ public:
 };
 
 class CopyDuplicateIDTest : public CopyFaultTest {
-    string getInputDir() override {
+    std::string getInputDir() override {
         return TestHelper::appendKuzuRootPath("dataset/copy-fault-tests/duplicate-ids/");
     }
 };
@@ -30,9 +30,21 @@ class CopyNodeUnmatchedColumnTypeTest : public CopyFaultTest {};
 class CopyWrongHeaderTest : public CopyFaultTest {};
 
 class CopyRelTableMultiplicityViolationTest : public CopyFaultTest {
-    string getInputDir() override {
+    std::string getInputDir() override {
         return TestHelper::appendKuzuRootPath(
             "dataset/copy-fault-tests/rel-table-multiplicity-violation/");
+    }
+};
+
+class CopyInvalidNumberTest : public CopyFaultTest {
+    std::string getInputDir() override {
+        return TestHelper::appendKuzuRootPath("dataset/copy-fault-tests/invalid-number/");
+    }
+};
+
+class CopyNullPKTest : public CopyFaultTest {
+    std::string getInputDir() override {
+        return TestHelper::appendKuzuRootPath("dataset/copy-fault-tests/null-pk/");
     }
 };
 
@@ -54,8 +66,7 @@ TEST_F(CopyNodeUnmatchedColumnTypeTest, UnMatchedColumnTypeError) {
     auto result =
         conn->query("COPY person FROM \"" +
                     TestHelper::appendKuzuRootPath("dataset/tinysnb/vPerson.csv\" (HEADER=true)"));
-    ASSERT_EQ(result->getErrorMessage(),
-        "Cannot convert string Alice to INT64.. Invalid input. No characters consumed.");
+    ASSERT_EQ(result->getErrorMessage(), "Invalid number: Alice.");
 }
 
 TEST_F(CopyWrongHeaderTest, HeaderError) {
@@ -134,4 +145,25 @@ TEST_F(CopyRelTableMultiplicityViolationTest, OneOneMultiplicityViolationError) 
                 "dataset/copy-fault-tests/rel-table-multiplicity-violation/eMatches.csv\""),
         "Copy exception: RelTable matches is a ONE_ONE table, but node(nodeOffset: 1, "
         "tableName: person) has more than one neighbour in the forward direction.");
+}
+
+TEST_F(CopyInvalidNumberTest, INT32OverflowError) {
+    validateCopyException(
+        "COPY person FROM \"" +
+            TestHelper::appendKuzuRootPath("dataset/copy-fault-tests/invalid-number/vPerson.csv\""),
+        "Invalid number: 2147483650.");
+}
+
+TEST_F(CopyInvalidNumberTest, InvalidNumberError) {
+    validateCopyException(
+        "COPY person FROM \"" +
+            TestHelper::appendKuzuRootPath("dataset/copy-fault-tests/invalid-number/vMovie.csv\""),
+        "Invalid number: 312abc.");
+}
+
+TEST_F(CopyNullPKTest, NullPKErrpr) {
+    validateCopyException(
+        "COPY person FROM \"" +
+            TestHelper::appendKuzuRootPath("dataset/copy-fault-tests/null-pk/vPerson.csv\""),
+        "Reader exception: Primary key cannot be null.");
 }

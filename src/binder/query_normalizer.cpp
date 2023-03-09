@@ -5,9 +5,9 @@
 namespace kuzu {
 namespace binder {
 
-unique_ptr<NormalizedSingleQuery> QueryNormalizer::normalizeQuery(
+std::unique_ptr<NormalizedSingleQuery> QueryNormalizer::normalizeQuery(
     const BoundSingleQuery& singleQuery) {
-    auto normalizedQuery = make_unique<NormalizedSingleQuery>();
+    auto normalizedQuery = std::make_unique<NormalizedSingleQuery>();
     for (auto i = 0u; i < singleQuery.getNumQueryParts(); ++i) {
         normalizedQuery->appendQueryPart(normalizeQueryPart(*singleQuery.getQueryPart(i)));
     }
@@ -16,9 +16,9 @@ unique_ptr<NormalizedSingleQuery> QueryNormalizer::normalizeQuery(
     return normalizedQuery;
 }
 
-unique_ptr<BoundQueryPart> QueryNormalizer::normalizeFinalMatchesAndReturnAsQueryPart(
+std::unique_ptr<BoundQueryPart> QueryNormalizer::normalizeFinalMatchesAndReturnAsQueryPart(
     const BoundSingleQuery& singleQuery) {
-    auto queryPart = make_unique<BoundQueryPart>();
+    auto queryPart = std::make_unique<BoundQueryPart>();
     for (auto i = 0u; i < singleQuery.getNumReadingClauses(); i++) {
         queryPart->addReadingClause(singleQuery.getReadingClause(i)->copy());
     }
@@ -26,15 +26,16 @@ unique_ptr<BoundQueryPart> QueryNormalizer::normalizeFinalMatchesAndReturnAsQuer
         queryPart->addUpdatingClause(singleQuery.getUpdatingClause(i)->copy());
     }
     if (singleQuery.hasReturnClause()) {
-        queryPart->setWithClause(make_unique<BoundWithClause>(
-            make_unique<BoundProjectionBody>(*singleQuery.getReturnClause()->getProjectionBody())));
+        queryPart->setWithClause(
+            std::make_unique<BoundWithClause>(std::make_unique<BoundProjectionBody>(
+                *singleQuery.getReturnClause()->getProjectionBody())));
     }
     return queryPart;
 }
 
-unique_ptr<NormalizedQueryPart> QueryNormalizer::normalizeQueryPart(
+std::unique_ptr<NormalizedQueryPart> QueryNormalizer::normalizeQueryPart(
     const BoundQueryPart& queryPart) {
-    auto normalizedQueryPart = make_unique<NormalizedQueryPart>();
+    auto normalizedQueryPart = std::make_unique<NormalizedQueryPart>();
     for (auto i = 0u; i < queryPart.getNumReadingClauses(); i++) {
         normalizedQueryPart->addReadingClause(queryPart.getReadingClause(i)->copy());
     }

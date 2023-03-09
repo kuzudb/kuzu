@@ -4,75 +4,179 @@
 
 #include "binder/expression/node_rel_expression.h"
 #include "binder/expression/property_expression.h"
+#include "json.hpp"
+#include "processor/result/factorized_table.h"
+#include "processor/result/flat_tuple.h"
 
-using namespace std;
+using namespace kuzu::common;
 using namespace kuzu::processor;
 
 namespace kuzu {
 namespace main {
 
+std::unique_ptr<DataTypeInfo> DataTypeInfo::getInfoForDataType(
+    const DataType& type, const std::string& name) {
+    auto columnTypeInfo = std::make_unique<DataTypeInfo>(type.typeID, name);
+    switch (type.typeID) {
+    case common::INTERNAL_ID: {
+        columnTypeInfo->childrenTypesInfo.push_back(
+            std::make_unique<DataTypeInfo>(common::INT64, "offset"));
+        columnTypeInfo->childrenTypesInfo.push_back(
+            std::make_unique<DataTypeInfo>(common::INT64, "tableID"));
+    } break;
+    case common::VAR_LIST: {
+        auto parentTypeInfo = columnTypeInfo.get();
+        auto childType = type.childType.get();
+        parentTypeInfo->childrenTypesInfo.push_back(getInfoForDataType(*childType, ""));
+    } break;
+    default: {
+        // DO NOTHING
+    }
+    }
+    return std::move(columnTypeInfo);
+}
+
+QueryResult::QueryResult() = default;
+
+QueryResult::QueryResult(const PreparedSummary& preparedSummary) {
+    querySummary = std::make_unique<QuerySummary>();
+    querySummary->setPreparedSummary(preparedSummary);
+}
+
+QueryResult::~QueryResult() = default;
+
+bool QueryResult::isSuccess() const {
+    return success;
+}
+
+std::string QueryResult::getErrorMessage() const {
+    return errMsg;
+}
+
+size_t QueryResult::getNumColumns() const {
+    return columnDataTypes.size();
+}
+
+std::vector<std::string> QueryResult::getColumnNames() {
+    return columnNames;
+}
+
+std::vector<common::DataType> QueryResult::getColumnDataTypes() {
+    return columnDataTypes;
+}
+
+uint64_t QueryResult::getNumTuples() {
+    return querySummary->getIsExplain() ? 0 : factorizedTable->getTotalNumFlatTuples();
+}
+
+QuerySummary* QueryResult::getQuerySummary() const {
+    return querySummary.get();
+}
+
+void QueryResult::resetIterator() {
+    iterator->resetState();
+}
+
+std::vector<std::unique_ptr<DataTypeInfo>> QueryResult::getColumnTypesInfo() {
+    std::vector<std::unique_ptr<DataTypeInfo>> result;
+    for (auto i = 0u; i < columnDataTypes.size(); i++) {
+        auto columnTypeInfo = DataTypeInfo::getInfoForDataType(columnDataTypes[i], columnNames[i]);
+        if (columnTypeInfo->typeID == common::NODE) {
+            auto value = tuple->getValue(i)->nodeVal.get();
+            columnTypeInfo->childrenTypesInfo.push_back(
+                DataTypeInfo::getInfoForDataType(DataType(common::INTERNAL_ID), "_id"));
+            columnTypeInfo->childrenTypesInfo.push_back(
+                DataTypeInfo::getInfoForDataType(DataType(common::STRING), "_label"));
+            for (auto& [name, val] : value->getProperties()) {
+                columnTypeInfo->childrenTypesInfo.push_back(
+                    DataTypeInfo::getInfoForDataType(val->dataType, name));
+            }
+        } else if (columnTypeInfo->typeID == common::REL) {
+            auto value = tuple->getValue(i)->relVal.get();
+            columnTypeInfo->childrenTypesInfo.push_back(
+                DataTypeInfo::getInfoForDataType(DataType(common::INTERNAL_ID), "_src"));
+            columnTypeInfo->childrenTypesInfo.push_back(
+                DataTypeInfo::getInfoForDataType(DataType(common::INTERNAL_ID), "_dst"));
+            for (auto& [name, val] : value->getProperties()) {
+                columnTypeInfo->childrenTypesInfo.push_back(
+                    DataTypeInfo::getInfoForDataType(val->dataType, name));
+            }
+        }
+        result.push_back(std::move(columnTypeInfo));
+    }
+    return std::move(result);
+}
+
 void QueryResult::initResultTableAndIterator(
-    std::shared_ptr<processor::FactorizedTable> factorizedTable_, const expression_vector& columns,
-    const vector<expression_vector>& expressionToCollectPerColumn) {
+    std::shared_ptr<processor::FactorizedTable> factorizedTable_,
+    const binder::expression_vector& columns,
+    const std::vector<binder::expression_vector>& expressionToCollectPerColumn) {
     factorizedTable = std::move(factorizedTable_);
-    tuple = make_shared<FlatTuple>();
-    vector<Value*> valuesToCollect;
+    tuple = std::make_shared<FlatTuple>();
+    std::vector<Value*> valuesToCollect;
     for (auto i = 0u; i < columns.size(); ++i) {
         auto column = columns[i].get();
         auto columnType = column->getDataType();
-        auto columnName = column->hasAlias() ? column->getAlias() : column->getRawName();
+        auto columnName = column->hasAlias() ? column->getAlias() : column->toString();
         columnDataTypes.push_back(columnType);
         columnNames.push_back(columnName);
         auto expressionsToCollect = expressionToCollectPerColumn[i];
-        unique_ptr<Value> value;
+        std::unique_ptr<Value> value;
         if (columnType.typeID == common::NODE) {
             // first expression is node ID.
             assert(expressionsToCollect[0]->dataType.typeID == common::INTERNAL_ID);
-            auto nodeIDVal = make_unique<Value>(Value::createDefaultValue(DataType(INTERNAL_ID)));
+            auto nodeIDVal =
+                std::make_unique<Value>(Value::createDefaultValue(DataType(INTERNAL_ID)));
             valuesToCollect.push_back(nodeIDVal.get());
             // second expression is node label function.
             assert(expressionsToCollect[1]->dataType.typeID == common::STRING);
-            auto labelNameVal = make_unique<Value>(Value::createDefaultValue(DataType(STRING)));
+            auto labelNameVal =
+                std::make_unique<Value>(Value::createDefaultValue(DataType(STRING)));
             valuesToCollect.push_back(labelNameVal.get());
-            auto nodeVal = make_unique<NodeVal>(std::move(nodeIDVal), std::move(labelNameVal));
+            auto nodeVal = std::make_unique<NodeVal>(std::move(nodeIDVal), std::move(labelNameVal));
             for (auto j = 2u; j < expressionsToCollect.size(); ++j) {
                 assert(expressionsToCollect[j]->expressionType == common::PROPERTY);
-                auto property = (PropertyExpression*)expressionsToCollect[j].get();
+                auto property = (binder::PropertyExpression*)expressionsToCollect[j].get();
                 auto propertyValue =
-                    make_unique<Value>(Value::createDefaultValue(property->getDataType()));
+                    std::make_unique<Value>(Value::createDefaultValue(property->getDataType()));
                 valuesToCollect.push_back(propertyValue.get());
                 nodeVal->addProperty(property->getPropertyName(), std::move(propertyValue));
             }
-            value = make_unique<Value>(std::move(nodeVal));
+            value = std::make_unique<Value>(std::move(nodeVal));
         } else if (columnType.typeID == common::REL) {
             // first expression is src node ID.
             assert(expressionsToCollect[0]->dataType.typeID == common::INTERNAL_ID);
             auto srcNodeIDVal =
-                make_unique<Value>(Value::createDefaultValue(DataType(INTERNAL_ID)));
+                std::make_unique<Value>(Value::createDefaultValue(DataType(INTERNAL_ID)));
             valuesToCollect.push_back(srcNodeIDVal.get());
             // second expression is dst node ID.
             assert(expressionsToCollect[1]->dataType.typeID == common::INTERNAL_ID);
             auto dstNodeIDVal =
-                make_unique<Value>(Value::createDefaultValue(DataType(INTERNAL_ID)));
+                std::make_unique<Value>(Value::createDefaultValue(DataType(INTERNAL_ID)));
             valuesToCollect.push_back(dstNodeIDVal.get());
-            auto relVal = make_unique<RelVal>(std::move(srcNodeIDVal), std::move(dstNodeIDVal));
-            for (auto j = 2u; j < expressionsToCollect.size(); ++j) {
+            // third expression is rel label function.
+            auto labelNameVal =
+                std::make_unique<Value>(Value::createDefaultValue(DataType(STRING)));
+            valuesToCollect.push_back(labelNameVal.get());
+            auto relVal = std::make_unique<RelVal>(
+                std::move(srcNodeIDVal), std::move(dstNodeIDVal), std::move(labelNameVal));
+            for (auto j = 3u; j < expressionsToCollect.size(); ++j) {
                 assert(expressionsToCollect[j]->expressionType == common::PROPERTY);
-                auto property = (PropertyExpression*)expressionsToCollect[j].get();
+                auto property = (binder::PropertyExpression*)expressionsToCollect[j].get();
                 auto propertyValue =
-                    make_unique<Value>(Value::createDefaultValue(property->getDataType()));
+                    std::make_unique<Value>(Value::createDefaultValue(property->getDataType()));
                 valuesToCollect.push_back(propertyValue.get());
                 relVal->addProperty(property->getPropertyName(), std::move(propertyValue));
             }
-            value = make_unique<Value>(std::move(relVal));
+            value = std::make_unique<Value>(std::move(relVal));
         } else {
-            value = make_unique<Value>(Value::createDefaultValue(columnType));
+            value = std::make_unique<Value>(Value::createDefaultValue(columnType));
             assert(expressionsToCollect.size() == 1);
             valuesToCollect.push_back(value.get());
         }
         tuple->addValue(std::move(value));
     }
-    iterator = make_unique<FlatTupleIterator>(*factorizedTable, std::move(valuesToCollect));
+    iterator = std::make_unique<FlatTupleIterator>(*factorizedTable, std::move(valuesToCollect));
 }
 
 bool QueryResult::hasNext() {
@@ -81,7 +185,7 @@ bool QueryResult::hasNext() {
     return iterator->hasNextFlatTuple();
 }
 
-shared_ptr<FlatTuple> QueryResult::getNext() {
+std::shared_ptr<FlatTuple> QueryResult::getNext() {
     if (!hasNext()) {
         throw RuntimeException(
             "No more tuples in QueryResult, Please check hasNext() before calling getNext().");
@@ -92,22 +196,22 @@ shared_ptr<FlatTuple> QueryResult::getNext() {
 }
 
 void QueryResult::writeToCSV(
-    const string& fileName, char delimiter, char escapeCharacter, char newline) {
-    ofstream file;
+    const std::string& fileName, char delimiter, char escapeCharacter, char newline) {
+    std::ofstream file;
     file.open(fileName);
-    shared_ptr<FlatTuple> nextTuple;
+    std::shared_ptr<FlatTuple> nextTuple;
     assert(delimiter != '\0');
     assert(newline != '\0');
     while (hasNext()) {
         nextTuple = getNext();
         for (auto idx = 0ul; idx < nextTuple->len(); idx++) {
-            string resultVal = nextTuple->getValue(idx)->toString();
+            std::string resultVal = nextTuple->getValue(idx)->toString();
             bool isStringList = false;
             if (Types::dataTypeToString(nextTuple->getValue(idx)->getDataType()) == "STRING[]") {
                 isStringList = true;
             }
             bool surroundQuotes = false;
-            string csvStr;
+            std::string csvStr;
             for (long unsigned int j = 0; j < resultVal.length(); j++) {
                 if (!surroundQuotes) {
                     if (resultVal[j] == escapeCharacter || resultVal[j] == newline ||

@@ -3,10 +3,14 @@
 #include "processor/mapper/plan_mapper.h"
 #include "processor/operator/update/create.h"
 
+using namespace kuzu::evaluator;
+using namespace kuzu::planner;
+using namespace kuzu::storage;
+
 namespace kuzu {
 namespace processor {
 
-unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCreateNodeToPhysical(
+std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCreateNodeToPhysical(
     LogicalOperator* logicalOperator) {
     auto logicalCreateNode = (LogicalCreateNode*)logicalOperator;
     auto outSchema = logicalCreateNode->getSchema();
@@ -14,16 +18,16 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCreateNodeToPhysical(
     auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0));
     auto& nodesStore = storageManager.getNodesStore();
     auto catalogContent = catalog->getReadOnlyVersion();
-    vector<unique_ptr<CreateNodeInfo>> createNodeInfos;
+    std::vector<std::unique_ptr<CreateNodeInfo>> createNodeInfos;
     for (auto i = 0u; i < logicalCreateNode->getNumNodes(); ++i) {
         auto node = logicalCreateNode->getNode(i);
         auto primaryKey = logicalCreateNode->getPrimaryKey(i);
         auto nodeTableID = node->getSingleTableID();
         auto table = nodesStore.getNodeTable(nodeTableID);
         auto primaryKeyEvaluator = expressionMapper.mapExpression(primaryKey, *inSchema);
-        vector<RelTable*> relTablesToInit;
+        std::vector<RelTable*> relTablesToInit;
         for (auto& [relTableID, relTableSchema] : catalogContent->getRelTableSchemas()) {
-            if (relTableSchema->edgeContainsNodeTable(nodeTableID)) {
+            if (relTableSchema->isSrcOrDstTable(nodeTableID)) {
                 relTablesToInit.push_back(storageManager.getRelsStore().getRelTable(relTableID));
             }
         }
@@ -35,13 +39,13 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCreateNodeToPhysical(
         getOperatorID(), logicalCreateNode->getExpressionsForPrinting());
 }
 
-unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCreateRelToPhysical(
+std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCreateRelToPhysical(
     LogicalOperator* logicalOperator) {
     auto logicalCreateRel = (LogicalCreateRel*)logicalOperator;
     auto inSchema = logicalCreateRel->getChild(0)->getSchema();
     auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0));
     auto& relStore = storageManager.getRelsStore();
-    vector<unique_ptr<CreateRelInfo>> createRelInfos;
+    std::vector<std::unique_ptr<CreateRelInfo>> createRelInfos;
     for (auto i = 0u; i < logicalCreateRel->getNumRels(); ++i) {
         auto rel = logicalCreateRel->getRel(i);
         auto table = relStore.getRelTable(rel->getSingleTableID());
@@ -51,12 +55,12 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCreateRelToPhysical(
         auto dstNodePos =
             DataPos(inSchema->getExpressionPos(*rel->getDstNode()->getInternalIDProperty()));
         auto dstNodeTableID = rel->getDstNode()->getSingleTableID();
-        vector<unique_ptr<BaseExpressionEvaluator>> evaluators;
+        std::vector<std::unique_ptr<BaseExpressionEvaluator>> evaluators;
         uint32_t relIDEvaluatorIdx = UINT32_MAX;
         auto setItems = logicalCreateRel->getSetItems(i);
         for (auto j = 0u; j < setItems.size(); ++j) {
             auto& [lhs, rhs] = setItems[j];
-            auto propertyExpression = static_pointer_cast<PropertyExpression>(lhs);
+            auto propertyExpression = static_pointer_cast<binder::PropertyExpression>(lhs);
             if (propertyExpression->isInternalID()) {
                 relIDEvaluatorIdx = j;
             }

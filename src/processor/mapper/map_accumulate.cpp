@@ -4,22 +4,23 @@
 #include "processor/operator/result_collector.h"
 #include "processor/operator/table_scan/factorized_table_scan.h"
 
+using namespace kuzu::planner;
+
 namespace kuzu {
 namespace processor {
 
-unique_ptr<PhysicalOperator> PlanMapper::mapLogicalAccumulateToPhysical(
+std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalAccumulateToPhysical(
     LogicalOperator* logicalOperator) {
     auto logicalAccumulate = (LogicalAccumulate*)logicalOperator;
     auto outSchema = logicalAccumulate->getSchema();
-    auto inSchema = logicalAccumulate->getSchemaBeforeSink();
+    auto inSchema = logicalAccumulate->getChild(0)->getSchema();
     // append result collector
     auto prevOperator = mapLogicalOperatorToPhysical(logicalAccumulate->getChild(0));
-    auto resultCollector = appendResultCollector(
-        inSchema->getExpressionsInScope(), *inSchema, std::move(prevOperator));
-    // append factorized table scan
-    vector<DataPos> outDataPoses;
-    vector<uint32_t> colIndicesToScan;
     auto expressions = logicalAccumulate->getExpressions();
+    auto resultCollector = appendResultCollector(expressions, *inSchema, std::move(prevOperator));
+    // append factorized table scan
+    std::vector<DataPos> outDataPoses;
+    std::vector<uint32_t> colIndicesToScan;
     for (auto i = 0u; i < expressions.size(); ++i) {
         auto expression = expressions[i];
         outDataPoses.emplace_back(outSchema->getExpressionPos(*expression));
@@ -31,16 +32,16 @@ unique_ptr<PhysicalOperator> PlanMapper::mapLogicalAccumulateToPhysical(
         logicalAccumulate->getExpressionsForPrinting());
 }
 
-unique_ptr<PhysicalOperator> PlanMapper::mapLogicalFTableScanToPhysical(
+std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalFTableScanToPhysical(
     LogicalOperator* logicalOperator) {
     auto logicalFTableScan = (LogicalFTableScan*)logicalOperator;
     auto outSchema = logicalFTableScan->getSchema();
-    vector<DataPos> outDataPoses;
-    vector<uint32_t> colIndicesToScan;
+    std::vector<DataPos> outDataPoses;
+    std::vector<uint32_t> colIndicesToScan;
     for (auto& expression : logicalFTableScan->getExpressionsToScan()) {
         outDataPoses.emplace_back(outSchema->getExpressionPos(*expression));
-        auto colIdx =
-            ExpressionUtil::find(expression.get(), logicalFTableScan->getExpressionsAccumulated());
+        auto colIdx = binder::ExpressionUtil::find(
+            expression.get(), logicalFTableScan->getExpressionsAccumulated());
         assert(colIdx != UINT32_MAX);
         colIndicesToScan.push_back(colIdx);
     }

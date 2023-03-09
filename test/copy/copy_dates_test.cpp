@@ -1,11 +1,15 @@
 #include "graph_test/graph_test.h"
+#include "storage/storage_manager.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;
 using namespace kuzu::testing;
+using namespace kuzu::transaction;
 
-class TinySnbCopyDateTest : public InMemoryDBTest {
-    string getInputDir() override { return TestHelper::appendKuzuRootPath("dataset/tinysnb/"); }
+class TinySnbCopyDateTest : public DBTest {
+    std::string getInputDir() override {
+        return TestHelper::appendKuzuRootPath("dataset/tinysnb/");
+    }
 };
 
 // Warning: This test assumes that each line in tinysnb's vPerson.csv gets

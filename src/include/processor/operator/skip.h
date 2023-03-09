@@ -8,9 +8,9 @@ namespace processor {
 
 class Skip : public PhysicalOperator, public SelVectorOverWriter {
 public:
-    Skip(uint64_t skipNumber, shared_ptr<atomic_uint64_t> counter, uint32_t dataChunkToSelectPos,
-        unordered_set<uint32_t> dataChunksPosInScope, unique_ptr<PhysicalOperator> child,
-        uint32_t id, const string& paramsString)
+    Skip(uint64_t skipNumber, std::shared_ptr<std::atomic_uint64_t> counter,
+        uint32_t dataChunkToSelectPos, std::unordered_set<uint32_t> dataChunksPosInScope,
+        std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
         : PhysicalOperator{PhysicalOperatorType::SKIP, std::move(child), id, paramsString},
           skipNumber{skipNumber}, counter{std::move(counter)},
           dataChunkToSelectPos{dataChunkToSelectPos}, dataChunksPosInScope{
@@ -20,17 +20,17 @@ public:
 
     bool getNextTuplesInternal() override;
 
-    inline unique_ptr<PhysicalOperator> clone() override {
+    inline std::unique_ptr<PhysicalOperator> clone() override {
         return make_unique<Skip>(skipNumber, counter, dataChunkToSelectPos, dataChunksPosInScope,
             children[0]->clone(), id, paramsString);
     }
 
 private:
     uint64_t skipNumber;
-    shared_ptr<atomic_uint64_t> counter;
+    std::shared_ptr<std::atomic_uint64_t> counter;
     uint32_t dataChunkToSelectPos;
-    shared_ptr<DataChunk> dataChunkToSelect;
-    unordered_set<uint32_t> dataChunksPosInScope;
+    std::shared_ptr<common::DataChunk> dataChunkToSelect;
+    std::unordered_set<uint32_t> dataChunksPosInScope;
 };
 
 } // namespace processor

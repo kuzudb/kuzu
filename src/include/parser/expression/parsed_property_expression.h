@@ -7,15 +7,15 @@ namespace parser {
 
 class ParsedPropertyExpression : public ParsedExpression {
 public:
-    ParsedPropertyExpression(
-        ExpressionType type, string propertyName, unique_ptr<ParsedExpression> child, string raw)
+    ParsedPropertyExpression(common::ExpressionType type, std::string propertyName,
+        std::unique_ptr<ParsedExpression> child, std::string raw)
         : ParsedExpression{type, std::move(child), std::move(raw)}, propertyName{
                                                                         std::move(propertyName)} {}
 
-    inline string getPropertyName() const { return propertyName; }
+    inline std::string getPropertyName() const { return propertyName; }
 
 private:
-    string propertyName;
+    std::string propertyName;
 };
 
 } // namespace parser

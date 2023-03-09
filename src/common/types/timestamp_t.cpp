@@ -5,6 +5,67 @@
 namespace kuzu {
 namespace common {
 
+timestamp_t::timestamp_t() : value(0) {}
+
+timestamp_t::timestamp_t(int64_t value_p) : value(value_p) {}
+
+timestamp_t& timestamp_t::operator=(int64_t value_p) {
+    value = value_p;
+    return *this;
+}
+
+timestamp_t::operator int64_t() const {
+    return value;
+}
+
+bool timestamp_t::operator==(const timestamp_t& rhs) const {
+    return value == rhs.value;
+}
+
+bool timestamp_t::operator!=(const timestamp_t& rhs) const {
+    return value != rhs.value;
+}
+
+bool timestamp_t::operator<=(const timestamp_t& rhs) const {
+    return value <= rhs.value;
+}
+
+bool timestamp_t::operator<(const timestamp_t& rhs) const {
+    return value < rhs.value;
+}
+
+bool timestamp_t::operator>(const timestamp_t& rhs) const {
+    return value > rhs.value;
+}
+
+bool timestamp_t::operator>=(const timestamp_t& rhs) const {
+    return value >= rhs.value;
+};
+
+bool timestamp_t::operator==(const date_t& rhs) const {
+    return rhs == *this;
+}
+
+bool timestamp_t::operator!=(const date_t& rhs) const {
+    return !(rhs == *this);
+}
+
+bool timestamp_t::operator<(const date_t& rhs) const {
+    return rhs > *this;
+}
+
+bool timestamp_t::operator<=(const date_t& rhs) const {
+    return rhs >= *this;
+}
+
+bool timestamp_t::operator>(const date_t& rhs) const {
+    return rhs < *this;
+}
+
+bool timestamp_t::operator>=(const date_t& rhs) const {
+    return rhs <= *this;
+}
+
 timestamp_t timestamp_t::operator+(const interval_t& interval) const {
     date_t date{};
     date_t result_date{};
@@ -35,7 +96,7 @@ timestamp_t timestamp_t::operator-(const interval_t& interval) const {
 
 interval_t timestamp_t::operator-(const timestamp_t& rhs) const {
     interval_t result{};
-    uint64_t diff = abs(value - rhs.value);
+    uint64_t diff = std::abs(value - rhs.value);
     result.months = 0;
     result.days = diff / Interval::MICROS_PER_DAY;
     result.micros = diff % Interval::MICROS_PER_DAY;
@@ -150,7 +211,7 @@ bool Timestamp::TryParseUTCOffset(
     return true;
 }
 
-string Timestamp::toString(timestamp_t timestamp) {
+std::string Timestamp::toString(timestamp_t timestamp) {
     date_t date;
     dtime_t time;
     Timestamp::Convert(timestamp, date, time);
@@ -237,6 +298,10 @@ timestamp_t Timestamp::trunc(DatePartSpecifier specifier, timestamp_t& timestamp
         date_t date = GetDate(timestamp);
         return FromDatetime(Date::trunc(specifier, date), dtime_t(0));
     }
+}
+
+int64_t Timestamp::getEpochNanoSeconds(const timestamp_t& timestamp) {
+    return timestamp.value * Interval::NANOS_PER_MICRO;
 }
 
 } // namespace common

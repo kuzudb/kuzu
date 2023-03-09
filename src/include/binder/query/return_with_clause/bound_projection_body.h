@@ -8,7 +8,7 @@ namespace binder {
 class BoundProjectionBody {
 public:
     explicit BoundProjectionBody(bool isDistinct, expression_vector projectionExpressions)
-        : isDistinct{isDistinct}, projectionExpressions{move(projectionExpressions)},
+        : isDistinct{isDistinct}, projectionExpressions{std::move(projectionExpressions)},
           skipNumber{UINT64_MAX}, limitNumber{UINT64_MAX} {}
 
     BoundProjectionBody(const BoundProjectionBody& other)
@@ -24,13 +24,13 @@ public:
 
     bool hasAggregationExpressions() const;
 
-    void setOrderByExpressions(expression_vector expressions, vector<bool> sortOrders);
+    void setOrderByExpressions(expression_vector expressions, std::vector<bool> sortOrders);
 
     inline bool hasOrderByExpressions() const { return !orderByExpressions.empty(); }
 
     inline const expression_vector& getOrderByExpressions() const { return orderByExpressions; }
 
-    inline const vector<bool>& getSortingOrders() const { return isAscOrders; }
+    inline const std::vector<bool>& getSortingOrders() const { return isAscOrders; }
 
     inline void setSkipNumber(uint64_t number) { skipNumber = number; }
 
@@ -48,15 +48,15 @@ public:
 
     expression_vector getPropertiesToRead() const;
 
-    inline unique_ptr<BoundProjectionBody> copy() const {
-        return make_unique<BoundProjectionBody>(*this);
+    inline std::unique_ptr<BoundProjectionBody> copy() const {
+        return std::make_unique<BoundProjectionBody>(*this);
     }
 
 private:
     bool isDistinct;
     expression_vector projectionExpressions;
     expression_vector orderByExpressions;
-    vector<bool> isAscOrders;
+    std::vector<bool> isAscOrders;
     uint64_t skipNumber;
     uint64_t limitNumber;
 };

@@ -6,11 +6,11 @@ namespace kuzu {
 namespace parser {
 
 struct ParsedCaseAlternative {
-    unique_ptr<ParsedExpression> whenExpression;
-    unique_ptr<ParsedExpression> thenExpression;
+    std::unique_ptr<ParsedExpression> whenExpression;
+    std::unique_ptr<ParsedExpression> thenExpression;
 
-    ParsedCaseAlternative(
-        unique_ptr<ParsedExpression> whenExpression, unique_ptr<ParsedExpression> thenExpression)
+    ParsedCaseAlternative(std::unique_ptr<ParsedExpression> whenExpression,
+        std::unique_ptr<ParsedExpression> thenExpression)
         : whenExpression{std::move(whenExpression)}, thenExpression{std::move(thenExpression)} {}
 };
 
@@ -21,15 +21,16 @@ struct ParsedCaseAlternative {
 //    WHEN a.age = 20 THEN ...
 class ParsedCaseExpression : public ParsedExpression {
 public:
-    ParsedCaseExpression(string raw) : ParsedExpression{CASE_ELSE, std::move(raw)} {};
+    explicit ParsedCaseExpression(std::string raw)
+        : ParsedExpression{common::CASE_ELSE, std::move(raw)} {};
 
-    inline void setCaseExpression(unique_ptr<ParsedExpression> expression) {
+    inline void setCaseExpression(std::unique_ptr<ParsedExpression> expression) {
         caseExpression = std::move(expression);
     }
     inline bool hasCaseExpression() const { return caseExpression != nullptr; }
     inline ParsedExpression* getCaseExpression() const { return caseExpression.get(); }
 
-    inline void addCaseAlternative(unique_ptr<ParsedCaseAlternative> caseAlternative) {
+    inline void addCaseAlternative(std::unique_ptr<ParsedCaseAlternative> caseAlternative) {
         caseAlternatives.push_back(std::move(caseAlternative));
     }
     inline uint32_t getNumCaseAlternative() const { return caseAlternatives.size(); }
@@ -37,7 +38,7 @@ public:
         return caseAlternatives[idx].get();
     }
 
-    inline void setElseExpression(unique_ptr<ParsedExpression> expression) {
+    inline void setElseExpression(std::unique_ptr<ParsedExpression> expression) {
         elseExpression = std::move(expression);
     }
     inline bool hasElseExpression() const { return elseExpression != nullptr; }
@@ -45,10 +46,10 @@ public:
 
 private:
     // Optional. If not specified, directly check next whenExpression
-    unique_ptr<ParsedExpression> caseExpression;
-    vector<unique_ptr<ParsedCaseAlternative>> caseAlternatives;
+    std::unique_ptr<ParsedExpression> caseExpression;
+    std::vector<std::unique_ptr<ParsedCaseAlternative>> caseAlternatives;
     // Optional. If not specified, evaluate as null
-    unique_ptr<ParsedExpression> elseExpression;
+    std::unique_ptr<ParsedExpression> elseExpression;
 };
 
 } // namespace parser

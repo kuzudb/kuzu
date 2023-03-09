@@ -6,31 +6,29 @@
 #include "common/type_utils.h"
 #include "common/utils.h"
 
-using namespace kuzu::common;
-
 namespace kuzu {
 namespace function {
 namespace operation {
 
 constexpr const uint64_t NULL_HASH = UINT64_MAX;
 
-inline hash_t murmurhash64(uint64_t x) {
+inline common::hash_t murmurhash64(uint64_t x) {
     return x * UINT64_C(0xbf58476d1ce4e5b9);
 }
 
-inline hash_t combineHashScalar(hash_t a, hash_t b) {
+inline common::hash_t combineHashScalar(common::hash_t a, common::hash_t b) {
     return (a * UINT64_C(0xbf58476d1ce4e5b9)) ^ b;
 }
 
 struct Hash {
     template<class T>
-    static inline void operation(const T& key, hash_t& result) {
-        throw RuntimeException(
-            StringUtils::string_format("Hash type: %s is not supported.", typeid(T).name()));
+    static inline void operation(const T& key, common::hash_t& result) {
+        throw common::RuntimeException(common::StringUtils::string_format(
+            "Hash type: {} is not supported.", typeid(T).name()));
     }
 
     template<class T>
-    static inline void operation(const T& key, bool isNull, hash_t& result) {
+    static inline void operation(const T& key, bool isNull, common::hash_t& result) {
         if (isNull) {
             result = NULL_HASH;
             return;
@@ -40,71 +38,93 @@ struct Hash {
 };
 
 struct CombineHash {
-    static inline void operation(hash_t& left, hash_t& right, hash_t& result) {
+    static inline void operation(
+        common::hash_t& left, common::hash_t& right, common::hash_t& result) {
         result = combineHashScalar(left, right);
     }
 };
 
 template<>
-inline void Hash::operation(const internalID_t& key, hash_t& result) {
+inline void Hash::operation(const common::internalID_t& key, common::hash_t& result) {
     result = murmurhash64(key.offset) ^ murmurhash64(key.tableID);
 }
 
 template<>
-inline void Hash::operation(const bool& key, hash_t& result) {
+inline void Hash::operation(const bool& key, common::hash_t& result) {
     result = murmurhash64(key);
 }
 
 template<>
-inline void Hash::operation(const uint32_t& key, hash_t& result) {
+inline void Hash::operation(const uint32_t& key, common::hash_t& result) {
     result = murmurhash64(key);
 }
 
 template<>
-inline void Hash::operation(const uint64_t& key, hash_t& result) {
+inline void Hash::operation(const uint64_t& key, common::hash_t& result) {
     result = murmurhash64(key);
 }
 
 template<>
-inline void Hash::operation(const int64_t& key, hash_t& result) {
+inline void Hash::operation(const int64_t& key, common::hash_t& result) {
     result = murmurhash64(key);
 }
 
 template<>
-inline void Hash::operation(const double_t& key, hash_t& result) {
+inline void Hash::operation(const int32_t& key, common::hash_t& result) {
     result = murmurhash64(key);
 }
 
 template<>
-inline void Hash::operation(const string& key, hash_t& result) {
-    result = std::hash<string>()(key);
+inline void Hash::operation(const int16_t& key, common::hash_t& result) {
+    result = murmurhash64(key);
 }
 
 template<>
-inline void Hash::operation(const ku_string_t& key, hash_t& result) {
-    result = std::hash<string>()(key.getAsString());
+inline void Hash::operation(const double_t& key, common::hash_t& result) {
+    result = murmurhash64(key);
 }
 
 template<>
-inline void Hash::operation(const date_t& key, hash_t& result) {
+inline void Hash::operation(const float_t& key, common::hash_t& result) {
+    result = murmurhash64(key);
+}
+
+template<>
+inline void Hash::operation(const std::string& key, common::hash_t& result) {
+    result = std::hash<std::string>()(key);
+}
+
+template<>
+inline void Hash::operation(const common::ku_string_t& key, common::hash_t& result) {
+    result = std::hash<std::string>()(key.getAsString());
+}
+
+template<>
+inline void Hash::operation(const common::date_t& key, common::hash_t& result) {
     result = murmurhash64(key.days);
 }
 
 template<>
-inline void Hash::operation(const timestamp_t& key, hash_t& result) {
+inline void Hash::operation(const common::timestamp_t& key, common::hash_t& result) {
     result = murmurhash64(key.value);
 }
 
 template<>
-inline void Hash::operation(const interval_t& key, hash_t& result) {
+inline void Hash::operation(const common::interval_t& key, common::hash_t& result) {
     result = combineHashScalar(murmurhash64(key.months),
         combineHashScalar(murmurhash64(key.days), murmurhash64(key.micros)));
 }
 
 template<>
-inline void Hash::operation(const unordered_set<string>& key, hash_t& result) {
+inline void Hash::operation(const common::ku_list_t& key, common::hash_t& result) {
+    throw common::RuntimeException(
+        "Computing hash value of list DataType is currently unsupported.");
+}
+
+template<>
+inline void Hash::operation(const std::unordered_set<std::string>& key, common::hash_t& result) {
     for (auto&& s : key) {
-        result ^= std::hash<string>()(s);
+        result ^= std::hash<std::string>()(s);
     }
 }
 

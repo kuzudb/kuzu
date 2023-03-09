@@ -10,24 +10,25 @@ class LogicalExpressionsScan : public LogicalOperator {
 public:
     // LogicalExpressionsScan does not take input from child operator. So its input expressions must
     // be evaluated statically i.e. must be value.
-    explicit LogicalExpressionsScan(expression_vector expressions)
+    explicit LogicalExpressionsScan(binder::expression_vector expressions)
         : LogicalOperator{LogicalOperatorType::EXPRESSIONS_SCAN}, expressions{
                                                                       std::move(expressions)} {}
 
-    void computeSchema() override;
+    void computeFactorizedSchema() override;
+    void computeFlatSchema() override;
 
-    inline string getExpressionsForPrinting() const override {
-        return ExpressionUtil::toString(expressions);
+    inline std::string getExpressionsForPrinting() const override {
+        return binder::ExpressionUtil::toString(expressions);
     }
 
-    inline expression_vector getExpressions() const { return expressions; }
+    inline binder::expression_vector getExpressions() const { return expressions; }
 
-    inline unique_ptr<LogicalOperator> copy() override {
+    inline std::unique_ptr<LogicalOperator> copy() override {
         return make_unique<LogicalExpressionsScan>(expressions);
     }
 
 private:
-    expression_vector expressions;
+    binder::expression_vector expressions;
 };
 
 } // namespace planner

@@ -7,97 +7,97 @@
 using namespace kuzu::common;
 
 TEST(TypesTests, StringToINT64Conversion) {
-    EXPECT_EQ(2147483648, TypeUtils::TypeUtils::convertToInt64("2147483648"));
-    EXPECT_EQ(-2147483648, TypeUtils::TypeUtils::convertToInt64("-2147483648"));
-    EXPECT_EQ(2147483648000, TypeUtils::TypeUtils::convertToInt64("2147483648000"));
-    EXPECT_EQ(-2147483648000, TypeUtils::TypeUtils::convertToInt64("-2147483648000"));
-    EXPECT_EQ(648, TypeUtils::TypeUtils::convertToInt64("648"));
-    EXPECT_EQ(-648, TypeUtils::TypeUtils::convertToInt64("-648"));
-    EXPECT_EQ(0, TypeUtils::TypeUtils::convertToInt64("0"));
-    EXPECT_EQ(0, TypeUtils::TypeUtils::convertToInt64("-0"));
+    EXPECT_EQ(2147483648, TypeUtils::convertStringToNumber<int64_t>("2147483648"));
+    EXPECT_EQ(-2147483648, TypeUtils::convertStringToNumber<int64_t>("-2147483648"));
+    EXPECT_EQ(2147483648000, TypeUtils::convertStringToNumber<int64_t>("2147483648000"));
+    EXPECT_EQ(-2147483648000, TypeUtils::convertStringToNumber<int64_t>("-2147483648000"));
+    EXPECT_EQ(648, TypeUtils::convertStringToNumber<int64_t>("648"));
+    EXPECT_EQ(-648, TypeUtils::convertStringToNumber<int64_t>("-648"));
+    EXPECT_EQ(0, TypeUtils::convertStringToNumber<int64_t>("0"));
+    EXPECT_EQ(0, TypeUtils::convertStringToNumber<int64_t>("-0"));
 }
 
 TEST(TypesTests, StringToINT64ConversionErrors) {
     // Max overflow
     try {
-        TypeUtils::convertToInt64("2147483648000000000000");
+        TypeUtils::convertStringToNumber<int64_t>("2147483648000000000000");
         FAIL();
     } catch (ConversionException& e) {
-    } catch (exception& e) { FAIL(); }
+    } catch (std::exception& e) { FAIL(); }
 
     // Min underflow
     try {
-        TypeUtils::convertToInt64("-2147483648000000000000");
+        TypeUtils::convertStringToNumber<int64_t>("-2147483648000000000000");
         FAIL();
     } catch (ConversionException& e) {
-    } catch (exception& e) { FAIL(); }
+    } catch (std::exception& e) { FAIL(); }
 
     // Wrong input
     try {
-        TypeUtils::convertToInt64("qq1244");
+        TypeUtils::convertStringToNumber<int64_t>("qq1244");
         FAIL();
     } catch (ConversionException& e) {
-    } catch (exception& e) { FAIL(); }
+    } catch (std::exception& e) { FAIL(); }
 
     // Empty input
     try {
-        TypeUtils::convertToInt64("");
+        TypeUtils::convertStringToNumber<int64_t>("");
         FAIL();
     } catch (ConversionException& e) {
-    } catch (exception& e) { FAIL(); }
+    } catch (std::exception& e) { FAIL(); }
 
     // Not all characters consumed
     try {
-        TypeUtils::convertToInt64("24x[xd432");
+        TypeUtils::convertStringToNumber<int64_t>("24x[xd432");
         FAIL();
     } catch (ConversionException& e) {
-    } catch (exception& e) { FAIL(); }
+    } catch (std::exception& e) { FAIL(); }
 
     // Not all characters consumed
     try {
-        TypeUtils::convertToInt64("0L");
+        TypeUtils::convertStringToNumber<int64_t>("0L");
         FAIL();
     } catch (ConversionException& e) {
-    } catch (exception& e) { FAIL(); }
+    } catch (std::exception& e) { FAIL(); }
 }
 
 TEST(TypesTests, StringToDoubleConversion) {
-    EXPECT_EQ(12235.14, TypeUtils::TypeUtils::convertToDouble("12235.14"));
-    EXPECT_EQ(-12235.14013, TypeUtils::TypeUtils::convertToDouble("-12235.14013"));
-    EXPECT_EQ(0.001, TypeUtils::TypeUtils::convertToDouble("0.001"));
-    EXPECT_EQ(-0.001, TypeUtils::TypeUtils::convertToDouble("-0.001"));
-    EXPECT_EQ(0.0, TypeUtils::TypeUtils::convertToDouble("0.0"));
-    EXPECT_EQ(0.0, TypeUtils::TypeUtils::convertToDouble("-0.0"));
+    EXPECT_EQ(12235.14, TypeUtils::convertStringToNumber<double_t>("12235.14"));
+    EXPECT_EQ(-12235.14013, TypeUtils::convertStringToNumber<double_t>("-12235.14013"));
+    EXPECT_EQ(0.001, TypeUtils::convertStringToNumber<double_t>("0.001"));
+    EXPECT_EQ(-0.001, TypeUtils::convertStringToNumber<double_t>("-0.001"));
+    EXPECT_EQ(0.0, TypeUtils::convertStringToNumber<double_t>("0.0"));
+    EXPECT_EQ(0.0, TypeUtils::convertStringToNumber<double_t>("-0.0"));
 }
 
 TEST(TypesTests, StringToDoubleConversionErrors) {
     // Wrong input
     try {
-        TypeUtils::convertToDouble("x2.4r432");
+        TypeUtils::convertStringToNumber<double_t>("x2.4r432");
         FAIL();
     } catch (ConversionException& e) {
-    } catch (exception& e) { FAIL(); }
+    } catch (std::exception& e) { FAIL(); }
 
     // Empty input
     try {
-        TypeUtils::convertToDouble("");
+        TypeUtils::convertStringToNumber<double_t>("");
         FAIL();
     } catch (ConversionException& e) {
-    } catch (exception& e) { FAIL(); }
+    } catch (std::exception& e) { FAIL(); }
 
     // Not all characters consumed
     try {
-        TypeUtils::convertToDouble("2.4r432");
+        TypeUtils::convertStringToNumber<double_t>("2.4r432");
         FAIL();
     } catch (ConversionException& e) {
-    } catch (exception& e) { FAIL(); }
+    } catch (std::exception& e) { FAIL(); }
 
     // Not all characters consumed
     try {
-        TypeUtils::convertToDouble("0.0f");
+        TypeUtils::convertStringToNumber<double_t>("0.0f");
         FAIL();
     } catch (ConversionException& e) {
-    } catch (exception& e) { FAIL(); }
+    } catch (std::exception& e) { FAIL(); }
 }
 
 TEST(TypesTests, StringToBoolConversion) {
@@ -117,18 +117,18 @@ TEST(TypesTests, StringToBoolConversionErrors) {
         TypeUtils::convertToBoolean("TREE");
         FAIL();
     } catch (ConversionException& e) {
-    } catch (exception& e) { FAIL(); }
+    } catch (std::exception& e) { FAIL(); }
 
     try {
         TypeUtils::convertToBoolean("falst ");
         FAIL();
     } catch (ConversionException& e) {
-    } catch (exception& e) { FAIL(); }
+    } catch (std::exception& e) { FAIL(); }
 
     // empty
     try {
-        TypeUtils::convertToDouble("");
+        TypeUtils::convertStringToNumber<double_t>("");
         FAIL();
     } catch (ConversionException& e) {
-    } catch (exception& e) { FAIL(); }
+    } catch (std::exception& e) { FAIL(); }
 }

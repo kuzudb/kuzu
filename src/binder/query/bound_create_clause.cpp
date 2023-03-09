@@ -3,8 +3,8 @@
 namespace kuzu {
 namespace binder {
 
-vector<expression_pair> BoundCreateClause::getAllSetItems() const {
-    vector<expression_pair> result;
+std::vector<expression_pair> BoundCreateClause::getAllSetItems() const {
+    std::vector<expression_pair> result;
     for (auto& createNode : createNodes) {
         for (auto& setItem : createNode->getSetItems()) {
             result.push_back(setItem);
@@ -28,8 +28,8 @@ expression_vector BoundCreateClause::getPropertiesToRead() const {
     return result;
 }
 
-unique_ptr<BoundUpdatingClause> BoundCreateClause::copy() {
-    auto result = make_unique<BoundCreateClause>();
+std::unique_ptr<BoundUpdatingClause> BoundCreateClause::copy() {
+    auto result = std::make_unique<BoundCreateClause>();
     for (auto& createNode : createNodes) {
         result->addCreateNode(createNode->copy());
     }

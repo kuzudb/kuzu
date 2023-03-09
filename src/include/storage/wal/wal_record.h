@@ -3,8 +3,6 @@
 #include "common/types/types_include.h"
 #include "common/utils.h"
 
-using namespace kuzu::common;
-
 namespace kuzu {
 namespace storage {
 
@@ -26,18 +24,16 @@ enum class ColumnType : uint8_t {
 };
 
 struct RelNodeTableAndDir {
-    table_id_t relTableID;
-    table_id_t srcNodeTableID;
-    RelDirection dir;
+    common::table_id_t relTableID;
+    common::RelDirection dir;
 
     RelNodeTableAndDir() = default;
 
-    RelNodeTableAndDir(table_id_t relTableID, table_id_t srcNodeTableID, RelDirection dir)
-        : relTableID{relTableID}, srcNodeTableID{srcNodeTableID}, dir{dir} {}
+    RelNodeTableAndDir(common::table_id_t relTableID, common::RelDirection dir)
+        : relTableID{relTableID}, dir{dir} {}
 
     inline bool operator==(const RelNodeTableAndDir& rhs) const {
-        return relTableID == rhs.relTableID && srcNodeTableID == rhs.srcNodeTableID &&
-               dir == rhs.dir;
+        return relTableID == rhs.relTableID && dir == rhs.dir;
     }
 };
 
@@ -56,11 +52,11 @@ struct AdjListsID {
 
 struct RelPropertyListsID {
     RelNodeTableAndDir relNodeTableAndDir;
-    property_id_t propertyID;
+    common::property_id_t propertyID;
 
     RelPropertyListsID() = default;
 
-    RelPropertyListsID(RelNodeTableAndDir relNodeTableAndDir, property_id_t propertyID)
+    RelPropertyListsID(RelNodeTableAndDir relNodeTableAndDir, common::property_id_t propertyID)
         : relNodeTableAndDir{relNodeTableAndDir}, propertyID{propertyID} {}
 
     inline bool operator==(const RelPropertyListsID& rhs) const {
@@ -101,12 +97,12 @@ struct ListFileID {
 };
 
 struct NodePropertyColumnID {
-    table_id_t tableID;
-    property_id_t propertyID;
+    common::table_id_t tableID;
+    common::property_id_t propertyID;
 
     NodePropertyColumnID() = default;
 
-    NodePropertyColumnID(table_id_t tableID, property_id_t propertyID)
+    NodePropertyColumnID(common::table_id_t tableID, common::property_id_t propertyID)
         : tableID{tableID}, propertyID{propertyID} {}
 
     inline bool operator==(const NodePropertyColumnID& rhs) const {
@@ -129,11 +125,11 @@ struct AdjColumnID {
 
 struct RelPropertyColumnID {
     RelNodeTableAndDir relNodeTableAndDir;
-    property_id_t propertyID;
+    common::property_id_t propertyID;
 
     RelPropertyColumnID() = default;
 
-    RelPropertyColumnID(RelNodeTableAndDir relNodeTableAndDir, property_id_t propertyID)
+    RelPropertyColumnID(RelNodeTableAndDir relNodeTableAndDir, common::property_id_t propertyID)
         : relNodeTableAndDir{relNodeTableAndDir}, propertyID{propertyID} {}
 
     inline bool operator==(const RelPropertyColumnID& rhs) const {
@@ -183,11 +179,11 @@ struct ColumnFileID {
 };
 
 struct NodeIndexID {
-    table_id_t tableID;
+    common::table_id_t tableID;
 
     NodeIndexID() = default;
 
-    explicit NodeIndexID(table_id_t tableID) : tableID{tableID} {}
+    explicit NodeIndexID(common::table_id_t tableID) : tableID{tableID} {}
 
     inline bool operator==(const NodeIndexID& rhs) const { return tableID == rhs.tableID; }
 };
@@ -198,7 +194,7 @@ enum class StorageStructureType : uint8_t {
     NODE_INDEX = 2,
 };
 
-string storageStructureTypeToString(StorageStructureType storageStructureType);
+std::string storageStructureTypeToString(StorageStructureType storageStructureType);
 
 // StorageStructureIDs start with 1 byte type and 1 byte isOverflow field followed with additional
 // bytes needed by the different log types. We don't need these to be byte aligned because they are
@@ -232,21 +228,22 @@ struct StorageStructureID {
         }
     }
 
-    static StorageStructureID newNodePropertyColumnID(table_id_t tableID, property_id_t propertyID);
+    static StorageStructureID newNodePropertyColumnID(
+        common::table_id_t tableID, common::property_id_t propertyID);
 
     static StorageStructureID newRelPropertyColumnID(
-        table_id_t nodeTableID, table_id_t relTableID, RelDirection dir, property_id_t propertyID);
+        common::table_id_t relTableID, common::RelDirection dir, common::property_id_t propertyID);
 
     static StorageStructureID newAdjColumnID(
-        table_id_t nodeTableID, table_id_t relTableID, RelDirection dir);
+        common::table_id_t relTableID, common::RelDirection dir);
 
-    static StorageStructureID newNodeIndexID(table_id_t tableID);
+    static StorageStructureID newNodeIndexID(common::table_id_t tableID);
 
     static StorageStructureID newAdjListsID(
-        table_id_t tableID, table_id_t srcNodeTableID, RelDirection dir, ListFileType listFileType);
+        common::table_id_t relTableID, common::RelDirection dir, ListFileType listFileType);
 
-    static StorageStructureID newRelPropertyListsID(table_id_t nodeTableID, table_id_t relTableID,
-        RelDirection dir, property_id_t propertyID, ListFileType listFileType);
+    static StorageStructureID newRelPropertyListsID(common::table_id_t relTableID,
+        common::RelDirection dir, common::property_id_t propertyID, ListFileType listFileType);
 };
 
 enum class WALRecordType : uint8_t {
@@ -266,7 +263,7 @@ enum class WALRecordType : uint8_t {
     ADD_PROPERTY_RECORD = 11,
 };
 
-string walRecordTypeToString(WALRecordType walRecordType);
+std::string walRecordTypeToString(WALRecordType walRecordType);
 
 struct PageUpdateOrInsertRecord {
     StorageStructureID storageStructureID;
@@ -302,21 +299,21 @@ struct CommitRecord {
 };
 
 struct NodeTableRecord {
-    table_id_t tableID;
+    common::table_id_t tableID;
 
     NodeTableRecord() = default;
 
-    explicit NodeTableRecord(table_id_t tableID) : tableID{tableID} {}
+    explicit NodeTableRecord(common::table_id_t tableID) : tableID{tableID} {}
 
     inline bool operator==(const NodeTableRecord& rhs) const { return tableID == rhs.tableID; }
 };
 
 struct RelTableRecord {
-    table_id_t tableID;
+    common::table_id_t tableID;
 
     RelTableRecord() = default;
 
-    explicit RelTableRecord(table_id_t tableID) : tableID{tableID} {}
+    explicit RelTableRecord(common::table_id_t tableID) : tableID{tableID} {}
 
     inline bool operator==(const RelTableRecord& rhs) const { return tableID == rhs.tableID; }
 };
@@ -338,21 +335,21 @@ struct DiskOverflowFileNextBytePosRecord {
 };
 
 struct CopyNodeRecord {
-    table_id_t tableID;
+    common::table_id_t tableID;
 
     CopyNodeRecord() = default;
 
-    explicit CopyNodeRecord(table_id_t tableID) : tableID{tableID} {}
+    explicit CopyNodeRecord(common::table_id_t tableID) : tableID{tableID} {}
 
     inline bool operator==(const CopyNodeRecord& rhs) const { return tableID == rhs.tableID; }
 };
 
 struct CopyRelRecord {
-    table_id_t tableID;
+    common::table_id_t tableID;
 
     CopyRelRecord() = default;
 
-    explicit CopyRelRecord(table_id_t tableID) : tableID{tableID} {}
+    explicit CopyRelRecord(common::table_id_t tableID) : tableID{tableID} {}
 
     inline bool operator==(const CopyRelRecord& rhs) const { return tableID == rhs.tableID; }
 };
@@ -370,22 +367,22 @@ struct TableStatisticsRecord {
 };
 
 struct DropTableRecord {
-    table_id_t tableID;
+    common::table_id_t tableID;
 
     DropTableRecord() = default;
 
-    DropTableRecord(table_id_t tableID) : tableID{tableID} {}
+    explicit DropTableRecord(common::table_id_t tableID) : tableID{tableID} {}
 
     inline bool operator==(const DropTableRecord& rhs) const { return tableID == rhs.tableID; }
 };
 
 struct DropPropertyRecord {
-    table_id_t tableID;
-    property_id_t propertyID;
+    common::table_id_t tableID;
+    common::property_id_t propertyID;
 
     DropPropertyRecord() = default;
 
-    DropPropertyRecord(table_id_t tableID, property_id_t propertyID)
+    DropPropertyRecord(common::table_id_t tableID, common::property_id_t propertyID)
         : tableID{tableID}, propertyID{propertyID} {}
 
     inline bool operator==(const DropPropertyRecord& rhs) const {
@@ -394,12 +391,12 @@ struct DropPropertyRecord {
 };
 
 struct AddPropertyRecord {
-    table_id_t tableID;
-    property_id_t propertyID;
+    common::table_id_t tableID;
+    common::property_id_t propertyID;
 
     AddPropertyRecord() = default;
 
-    AddPropertyRecord(table_id_t tableID, property_id_t propertyID)
+    AddPropertyRecord(common::table_id_t tableID, common::property_id_t propertyID)
         : tableID{tableID}, propertyID{propertyID} {}
 
     inline bool operator==(const AddPropertyRecord& rhs) const {
@@ -466,8 +463,8 @@ struct WALRecord {
             return addPropertyRecord == rhs.addPropertyRecord;
         }
         default: {
-            throw RuntimeException("Unrecognized WAL record type inside ==. recordType: " +
-                                   walRecordTypeToString(recordType));
+            throw common::RuntimeException("Unrecognized WAL record type inside ==. recordType: " +
+                                           walRecordTypeToString(recordType));
         }
         }
     }
@@ -479,15 +476,17 @@ struct WALRecord {
     static WALRecord newCommitRecord(uint64_t transactionID);
     static WALRecord newTableStatisticsRecord(bool isNodeTable);
     static WALRecord newCatalogRecord();
-    static WALRecord newNodeTableRecord(table_id_t tableID);
-    static WALRecord newRelTableRecord(table_id_t tableID);
+    static WALRecord newNodeTableRecord(common::table_id_t tableID);
+    static WALRecord newRelTableRecord(common::table_id_t tableID);
     static WALRecord newOverflowFileNextBytePosRecord(
         StorageStructureID storageStructureID_, uint64_t prevNextByteToWriteTo_);
-    static WALRecord newCopyNodeRecord(table_id_t tableID);
-    static WALRecord newCopyRelRecord(table_id_t tableID);
-    static WALRecord newDropTableRecord(table_id_t tableID);
-    static WALRecord newDropPropertyRecord(table_id_t tableID, property_id_t propertyID);
-    static WALRecord newAddPropertyRecord(table_id_t tableID, property_id_t propertyID);
+    static WALRecord newCopyNodeRecord(common::table_id_t tableID);
+    static WALRecord newCopyRelRecord(common::table_id_t tableID);
+    static WALRecord newDropTableRecord(common::table_id_t tableID);
+    static WALRecord newDropPropertyRecord(
+        common::table_id_t tableID, common::property_id_t propertyID);
+    static WALRecord newAddPropertyRecord(
+        common::table_id_t tableID, common::property_id_t propertyID);
     static void constructWALRecordFromBytes(WALRecord& retVal, uint8_t* bytes, uint64_t& offset);
     // This functions assumes that the caller ensures there is enough space in the bytes pointer
     // to write the record. This should be checked by calling numBytesToWrite.

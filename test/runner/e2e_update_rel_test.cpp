@@ -1,138 +1,146 @@
 #include "graph_test/graph_test.h"
 
+using namespace kuzu::common;
 using namespace kuzu::testing;
 
 class UpdateRelTest : public DBTest {
 public:
-    string getInputDir() override {
-        return TestHelper::appendKuzuRootPath("dataset/rel-insertion-tests/");
+    std::string getInputDir() override {
+        return TestHelper::appendKuzuRootPath("dataset/rel-update-tests/");
     }
-    string getUpdateRelQuery(string srcTable, string dstTable, string relation, int64_t srcID,
-        int64_t dstID, string setPropertyClause) {
-        return StringUtils::string_format(
-            "MATCH (p1:%s)-[e:%s]->(p2:%s) WHERE p1.ID = %d AND p2.ID = %d " + setPropertyClause,
-            srcTable.c_str(), relation.c_str(), dstTable.c_str(), srcID, dstID);
+    std::string getUpdateRelQuery(std::string srcTable, std::string dstTable, std::string relation,
+        int64_t srcID, int64_t dstID, std::string setPropertyClause) {
+        return kuzu::common::StringUtils::string_format(
+                   "MATCH (p1:{})-[e:{}]->(p2:{}) WHERE p1.ID = {} AND p2.ID = {} ", srcTable,
+                   relation, dstTable, srcID, dstID) +
+               setPropertyClause;
     }
-    string getInsertKnowsRelQuery(
-        string srcTable, string dstTable, int64_t srcID, int64_t dstID, int64_t lengthProp) {
-        return StringUtils::string_format("MATCH (p1:%s), (p2:%s) WHERE p1.ID = %d AND p2.ID "
-                                          "= %d create (p1)-[:knows {length: %d}]->(p2);",
-            srcTable.c_str(), dstTable.c_str(), srcID, dstID, lengthProp);
+    std::string getInsertKnowsRelQuery(std::string srcTable, std::string dstTable, int64_t srcID,
+        int64_t dstID, int64_t lengthProp) {
+        return kuzu::common::StringUtils::string_format(
+            "MATCH (p1:{}), (p2:{}) WHERE p1.ID = {} AND p2.ID = {} create "
+            "(p1)-[:knows {{length: {}}}]->(p2);",
+            srcTable, dstTable, srcID, dstID, lengthProp);
     }
-    string getDeleteKnowsRelQuery(string srcTable, string dstTable, int64_t srcID, int64_t dstID) {
-        return StringUtils::string_format(
-            "MATCH (p1:%s)-[e:knows]->(p2:%s) WHERE p1.ID = %d AND p2.ID = %d DELETE e",
-            srcTable.c_str(), dstTable.c_str(), srcID, dstID);
+    std::string getDeleteKnowsRelQuery(
+        std::string srcTable, std::string dstTable, int64_t srcID, int64_t dstID) {
+        return kuzu::common::StringUtils::string_format(
+            "MATCH (p1:{})-[e:knows]->(p2:{}) WHERE p1.ID = {} AND p2.ID = {} DELETE e", srcTable,
+            dstTable, srcID, dstID);
     }
 
     void updateIntProp(bool isCommit, TransactionTestType transactionTestType) {
         conn->beginWriteTransaction();
-        ASSERT_TRUE(conn->query(getUpdateRelQuery("animal" /* srcTable */, "person" /* dstTable */,
-                                    "knows" /* relation */, 20 /* srcID */, 0 /* dstID */,
+        ASSERT_TRUE(conn->query(getUpdateRelQuery("person" /* srcTable */, "person" /* dstTable */,
+                                    "knows" /* relation */, 0 /* srcID */, 20 /* dstID */,
                                     "set e.length = null"))
                         ->isSuccess());
-        ASSERT_TRUE(conn->query(getUpdateRelQuery("animal" /* srcTable */, "person" /* dstTable */,
-                                    "knows" /* relation */, 25 /* srcID */, 0 /* dstID */,
+        ASSERT_TRUE(conn->query(getUpdateRelQuery("person" /* srcTable */, "person" /* dstTable */,
+                                    "knows" /* relation */, 0 /* srcID */, 25 /* dstID */,
                                     "set e.length = 210"))
                         ->isSuccess());
-        ASSERT_TRUE(conn->query(getUpdateRelQuery("animal" /* srcTable */, "person" /* dstTable */,
-                                    "knows" /* relation */, 30 /* srcID */, 0 /* dstID */,
+        ASSERT_TRUE(conn->query(getUpdateRelQuery("person" /* srcTable */, "person" /* dstTable */,
+                                    "knows" /* relation */, 0 /* srcID */, 30 /* dstID */,
                                     "set e.length = 300"))
                         ->isSuccess());
         commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, transactionTestType);
-        auto result = conn->query("MATCH (a:animal)-[e:knows]->(:person) where a.ID >= 20 and a.ID "
-                                  "<= 30 return e.length");
+        auto result =
+            conn->query("MATCH (p0:person)-[e:knows]->(p1:person) WHERE p1.ID >= 20 AND p1.ID "
+                        "<= 30 AND p0.ID = 0 return e.length");
         auto actualResult = TestHelper::convertResultToString(*result);
-        vector<string> expectedResult =
-            isCommit ?
-                vector<string>{"", "21", "22", "23", "24", "210", "26", "27", "28", "29", "300"} :
-                vector<string>{"20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30"};
+        std::vector<std::string> expectedResult =
+            isCommit ? std::vector<std::string>{"", "21", "22", "23", "24", "210", "26", "27", "28",
+                           "29", "300"} :
+                       std::vector<std::string>{
+                           "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30"};
         sortAndCheckTestResults(actualResult, expectedResult);
     }
 
     void updateStrProp(bool isCommit, TransactionTestType transactionTestType) {
         conn->beginWriteTransaction();
-        ASSERT_TRUE(conn->query(getUpdateRelQuery("animal" /* srcTable */, "person" /* dstTable */,
-                                    "knows" /* relation */, 15 /* srcID */, 0 /* dstID */,
+        ASSERT_TRUE(conn->query(getUpdateRelQuery("person" /* srcTable */, "person" /* dstTable */,
+                                    "knows" /* relation */, 0 /* srcID */, 15 /* dstID */,
                                     "set e.place = 'waterloo'"))
                         ->isSuccess());
-        ASSERT_TRUE(conn->query(getUpdateRelQuery("animal" /* srcTable */, "person" /* dstTable */,
-                                    "knows" /* relation */, 16 /* srcID */, 0 /* dstID */,
+        ASSERT_TRUE(conn->query(getUpdateRelQuery("person" /* srcTable */, "person" /* dstTable */,
+                                    "knows" /* relation */, 0 /* srcID */, 16 /* dstID */,
                                     "set e.place = 'kitchener'"))
                         ->isSuccess());
-        ASSERT_TRUE(conn->query(getUpdateRelQuery("animal" /* srcTable */, "person" /* dstTable */,
-                                    "knows" /* relation */, 19 /* srcID */, 0 /* dstID */,
+        ASSERT_TRUE(conn->query(getUpdateRelQuery("person" /* srcTable */, "person" /* dstTable */,
+                                    "knows" /* relation */, 0 /* srcID */, 19 /* dstID */,
                                     "set e.place = null"))
                         ->isSuccess());
         commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, transactionTestType);
-        auto result = conn->query(
-            "MATCH (a:animal)-[e:knows]->(:person) where a.ID >= 10 and a.ID <= 20 return e.place");
+        auto result = conn->query("MATCH (p0:person)-[e:knows]->(p1:person) where p1.ID >= 10 and "
+                                  "p1.ID <= 20 and p0.ID = 0 return e.place");
         auto actualResult = TestHelper::convertResultToString(*result);
-        auto expectedResult =
-            isCommit ? vector<string>{"990990990", "989", "988988988", "987", "986986986",
-                           "waterloo", "kitchener", "983", "982982982", "", "980980980"} :
-                       vector<string>{"990990990", "989", "988988988", "987", "986986986", "985",
-                           "984984984", "983", "982982982", "981", "980980980"};
+        auto expectedResult = isCommit ?
+                                  std::vector<std::string>{"2990", "2989", "2988", "2987", "2986",
+                                      "waterloo", "kitchener", "2983", "2982", "", "2980"} :
+                                  std::vector<std::string>{"2990", "2989", "2988", "2987", "2986",
+                                      "2985", "2984", "2983", "2982", "2981", "2980"};
         sortAndCheckTestResults(actualResult, expectedResult);
     }
 
     void updateListProp(bool isCommit, TransactionTestType transactionTestType) {
         conn->beginWriteTransaction();
-        ASSERT_TRUE(conn->query(getUpdateRelQuery("animal" /* srcTable */, "person" /* dstTable */,
-                                    "knows" /* relation */, 43 /* srcID */, 0 /* dstID */,
+        ASSERT_TRUE(conn->query(getUpdateRelQuery("person" /* srcTable */, "person" /* dstTable */,
+                                    "knows" /* relation */, 0 /* srcID */, 43 /* dstID */,
                                     "set e.tag = [\"updated property1\", \"50\"]"))
                         ->isSuccess());
-        ASSERT_TRUE(conn->query(getUpdateRelQuery("animal" /* srcTable */, "person" /* dstTable */,
-                                    "knows" /* relation */, 47 /* srcID */, 0 /* dstID */,
+        ASSERT_TRUE(conn->query(getUpdateRelQuery("person" /* srcTable */, "person" /* dstTable */,
+                                    "knows" /* relation */, 0 /* srcID */, 47 /* dstID */,
                                     "set e.tag = null"))
                         ->isSuccess());
-        ASSERT_TRUE(conn->query(getUpdateRelQuery("animal" /* srcTable */, "person" /* dstTable */,
-                                    "knows" /* relation */, 49 /* srcID */, 0 /* dstID */,
+        ASSERT_TRUE(conn->query(getUpdateRelQuery("person" /* srcTable */, "person" /* dstTable */,
+                                    "knows" /* relation */, 0 /* srcID */, 49 /* dstID */,
                                     "set e.tag = [\"updated property3\", \"54\"]"))
                         ->isSuccess());
         commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, transactionTestType);
-        auto result = conn->query(
-            "MATCH (a:animal)-[e:knows]->(:person) where a.ID >= 40 and a.ID <= 50 return e.tag");
+        auto result = conn->query("MATCH (p0:person)-[e:knows]->(p1:person) where p1.ID >= 40 and "
+                                  "p1.ID <= 50 and p0.ID = 0 return e.tag");
         auto actualResult = TestHelper::convertResultToString(*result);
         auto expectedResult =
-            isCommit ? vector<string>{"[960960960]", "[959]", "[958958958]",
-                           "[updated property1,50]", "[956956956]", "[955]", "[954954954]", "",
-                           "[952952952]", "[updated property3,54]", "[950950950]"} :
-                       vector<string>{"[960960960]", "[959]", "[958958958]", "[957]", "[956956956]",
-                           "[955]", "[954954954]", "[953]", "[952952952]", "[951]", "[950950950]"};
+            isCommit ? std::vector<std::string>{"[2960]", "[2959]", "[2958]",
+                           "[updated property1,50]", "[2956]", "[2955]", "[2954]", "", "[2952]",
+                           "[updated property3,54]", "[2950]"} :
+                       std::vector<std::string>{"[2960]", "[2959]", "[2958]", "[2957]", "[2956]",
+                           "[2955]", "[2954]", "[2953]", "[2952]", "[2951]", "[2950]"};
         sortAndCheckTestResults(actualResult, expectedResult);
     }
 
     void updateEachElementOfSmallList(bool isCommit, TransactionTestType transactionTestType) {
         conn->beginWriteTransaction();
-        vector<string> expectedResult;
+        std::vector<std::string> expectedResult;
         for (auto i = 0u; i <= 50; i++) {
             ASSERT_TRUE(
-                conn->query(getUpdateRelQuery("animal" /* srcTable */, "person" /* dstTable */,
-                                "knows" /* relation */, i /* srcID */, 0 /* dstID */,
-                                "set e.length = " + to_string(i + 10)))
+                conn->query(getUpdateRelQuery("person" /* srcTable */, "person" /* dstTable */,
+                                "knows" /* relation */, 1 /* srcID */, i /* dstID */,
+                                "set e.length = " + std::to_string(i + 10)))
                     ->isSuccess());
-            expectedResult.push_back(to_string(isCommit ? i + 10 : i));
+            expectedResult.push_back(std::to_string(isCommit ? i + 10 : i));
         }
         commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, transactionTestType);
-        auto result = conn->query("MATCH (:animal)-[e:knows]->(p:person) return e.length");
+        auto result =
+            conn->query("MATCH (p0:person)-[e:knows]->(p1:person) WHERE p0.ID = 1 RETURN e.length");
         auto actualResult = TestHelper::convertResultToString(*result);
         sortAndCheckTestResults(actualResult, expectedResult);
     }
 
     void updateEachElementOfLargeList(bool isCommit, TransactionTestType transactionTestType) {
         conn->beginWriteTransaction();
-        vector<string> expectedResult;
-        for (auto i = 1u; i <= NUM_PERSON_KNOWS_PERSON_RELS; i++) {
+        std::vector<std::string> expectedResult;
+        for (auto i = 1u; i <= NUM_RELS_FOR_PERSON_0; i++) {
             ASSERT_TRUE(
                 conn->query(getUpdateRelQuery("person" /* srcTable */, "person" /* dstTable */,
                                 "knows" /* relation */, 0 /* srcID */, i /* dstID */,
-                                "set e.length = " + to_string(i)))
+                                "set e.length = " + std::to_string(3 * i)))
                     ->isSuccess());
-            expectedResult.push_back(to_string(isCommit ? i : 3 * (i - 1)));
+            expectedResult.push_back(std::to_string(isCommit ? 3 * i : i));
         }
         commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, transactionTestType);
-        auto result = conn->query("MATCH (:person)-[e:knows]->(p:person) return e.length");
+        auto result =
+            conn->query("MATCH (p0:person)-[e:knows]->(p1:person) WHERE p0.ID = 0 return e.length");
         auto actualResult = TestHelper::convertResultToString(*result);
         sortAndCheckTestResults(actualResult, expectedResult);
     }
@@ -155,21 +163,23 @@ public:
         auto result =
             conn->query("MATCH (p:person)-[e:knows]->(:person) where p.ID > 4 return e.length");
         auto actualResult = TestHelper::convertResultToString(*result);
-        auto expectedResult = isCommit ? vector<string>{"", "55", "201"} : vector<string>{};
+        auto expectedResult =
+            isCommit ? std::vector<std::string>{"", "55", "201"} : std::vector<std::string>{};
         sortAndCheckTestResults(actualResult, expectedResult);
     }
 
     void updateRelsTwoHop(bool isCommit, TransactionTestType transactionTestType) {
         conn->beginWriteTransaction();
         ASSERT_TRUE(
-            conn->query("MATCH (a:animal)-[e1:knows]->(p:person)-[e2:knows]->(p1:person) WHERE "
-                        "p1.ID = 2500 AND a.ID = 5 SET e1.length = 300, e2.length = null"));
+            conn->query("MATCH (p0:person)-[e1:knows]->(p1:person)-[e2:knows]->(p2:person) WHERE "
+                        "p0.ID = 1 AND p2.ID = 1145 SET e1.length = 300, e2.length = null"));
         commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, transactionTestType);
         auto result =
-            conn->query("MATCH (a:animal)-[e1:knows]->(p:person)-[e2:knows]->(p1:person) WHERE "
-                        "p1.ID = 2500 AND a.ID = 5 RETURN e1.length, e2.length");
+            conn->query("MATCH (p0:person)-[e1:knows]->(p1:person)-[e2:knows]->(p2:person) WHERE "
+                        "p0.ID = 1 AND p2.ID = 1145 RETURN e1.length, e2.length");
         auto actualResult = TestHelper::convertResultToString(*result);
-        auto expectedResult = isCommit ? vector<string>{"300|"} : vector<string>{"5|7497"};
+        auto expectedResult =
+            isCommit ? std::vector<std::string>{"300|"} : std::vector<std::string>{"0|1145"};
         sortAndCheckTestResults(actualResult, expectedResult);
     }
 
@@ -194,31 +204,31 @@ public:
         ASSERT_TRUE(conn->query(getUpdateRelQuery("person" /* srcTable */, "person" /* dstTable */,
             "knows" /* relation */, 0 /* srcID */, 500 /* dstID */, "SET e.length=400")));
         commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, transactionTestType);
-        vector<string> expectedResult;
-        for (auto i = 1u; i <= NUM_PERSON_KNOWS_PERSON_RELS; i++) {
-            expectedResult.push_back(to_string(3 * (i - 1)));
+        std::vector<std::string> expectedResult;
+        for (auto i = 1u; i <= NUM_RELS_FOR_PERSON_0; i++) {
+            expectedResult.push_back(std::to_string(i));
         }
         if (isCommit) {
-            // 1. We deleted knows rels: person0->person50 (lengthProp = 3 * (50 - 1)),
-            // person0->person612 (lengthProp = 3 * (612 - 1)), person0->person1300(lengthProp = 3 *
-            // (1300 - 1)).
+            // 1. We deleted knows rels: person0->person50 (lengthProp = 50),
+            // person0->person612 (lengthProp = 612), person0->person1300(lengthProp = 1300).
             expectedResult.erase(
-                std::remove(expectedResult.begin(), expectedResult.end(), to_string(3 * (50 - 1))),
+                std::remove(expectedResult.begin(), expectedResult.end(), std::to_string(50)),
                 expectedResult.end());
             expectedResult.erase(
-                std::remove(expectedResult.begin(), expectedResult.end(), to_string(3 * (612 - 1))),
+                std::remove(expectedResult.begin(), expectedResult.end(), std::to_string(612)),
                 expectedResult.end());
-            expectedResult.erase(std::remove(expectedResult.begin(), expectedResult.end(),
-                                     to_string(3 * (1300 - 1))),
+            expectedResult.erase(
+                std::remove(expectedResult.begin(), expectedResult.end(), std::to_string(1300)),
                 expectedResult.end());
             // 2. We insert knows rel: person0->person0 (lengthProp = 30);
-            expectedResult.push_back("30");
+            expectedResult.emplace_back("30");
             // 3. We update the following rels: person0->person100(SET length=712),
             // person0->person500(SET length=400)
-            *find(expectedResult.begin(), expectedResult.end(), to_string(3 * (100 - 1))) = "712";
-            *find(expectedResult.begin(), expectedResult.end(), to_string(3 * (500 - 1))) = "400";
+            *find(expectedResult.begin(), expectedResult.end(), std::to_string(100)) = "712";
+            *find(expectedResult.begin(), expectedResult.end(), std::to_string(500)) = "400";
         }
-        auto result = conn->query("MATCH (:person)-[e:knows]->(p:person) return e.length");
+        auto result =
+            conn->query("MATCH (p0:person)-[e:knows]->(p1:person) WHERE p0.ID = 0 return e.length");
         auto actualResult = TestHelper::convertResultToString(*result);
         sortAndCheckTestResults(actualResult, expectedResult);
     }
@@ -236,7 +246,8 @@ public:
         ASSERT_TRUE(conn->query(getUpdateRelQuery("person" /* srcTable */, "person" /* relation */,
             "knows" /* relation */, 2501 /* srcID */, 8 /* dstID */, "SET e.length = 421")));
         commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, transactionTestType);
-        auto expectedResult = isCommit ? vector<string>{"20", "421"} : vector<string>{};
+        auto expectedResult =
+            isCommit ? std::vector<std::string>{"20", "421"} : std::vector<std::string>{};
         auto result =
             conn->query("MATCH (p:person)-[e:knows]->(:person) WHERE p.ID > 2500 RETURN e.length");
         auto actualResult = TestHelper::convertResultToString(*result);
@@ -252,8 +263,9 @@ public:
         ASSERT_TRUE(conn->query(getUpdateRelQuery("person" /* srcTable */, "person" /* relation */,
             "teaches" /* relation */, 33 /* srcID */, 3 /* dstID */, "SET e.length = 312")));
         commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, transactionTestType);
-        auto expectedResult = isCommit ? vector<string>{"11", "", "22", "31", "512", "312"} :
-                                         vector<string>{"11", "21", "22", "31", "32", "33"};
+        auto expectedResult = isCommit ?
+                                  std::vector<std::string>{"11", "", "22", "31", "512", "312"} :
+                                  std::vector<std::string>{"11", "21", "22", "31", "32", "33"};
         auto result = conn->query("MATCH (p:person)-[e:teaches]->(:person) RETURN e.length");
         auto actualResult = TestHelper::convertResultToString(*result);
         sortAndCheckTestResults(actualResult, expectedResult);
@@ -269,16 +281,16 @@ public:
             "hasOwner" /* relation */, 8 /* srcID */, 58 /* dstID */, "SET e.place=null")));
         commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, transactionTestType);
         auto expectedResult =
-            isCommit ? vector<string>{"1999", "kuzu", "1997", "db", "1995", "199419941994", "1993",
-                           "", "1991", "1989"} :
-                       vector<string>{"1999", "199819981998", "1997", "199619961996", "1995",
-                           "199419941994", "1993", "199219921992", "1991", "1989"};
+            isCommit ? std::vector<std::string>{"1999", "kuzu", "1997", "db", "1995",
+                           "199419941994", "1993", "", "1991", "1989"} :
+                       std::vector<std::string>{"1999", "199819981998", "1997", "199619961996",
+                           "1995", "199419941994", "1993", "199219921992", "1991", "1989"};
         auto result = conn->query("MATCH (:animal)-[e:hasOwner]->(:person) RETURN e.place");
         auto actualResult = TestHelper::convertResultToString(*result);
         sortAndCheckTestResults(actualResult, expectedResult);
     }
 
-    static constexpr uint64_t NUM_PERSON_KNOWS_PERSON_RELS = 2500;
+    static constexpr uint64_t NUM_RELS_FOR_PERSON_0 = 2300;
 };
 
 TEST_F(UpdateRelTest, UpdateIntPropCommitNormalExecution) {

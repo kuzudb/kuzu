@@ -43,7 +43,7 @@ NODE : ( 'N' | 'n' ) ( 'O' | 'o' ) ( 'D' | 'd' ) ( 'E' | 'e' ) ;
 TABLE: ( 'T' | 't' ) ( 'A' | 'a' ) ( 'B' | 'b' ) ( 'L' | 'l' ) ( 'E' | 'e' ) ;
 
 kU_CreateRel
-    : CREATE SP REL SP TABLE SP oC_SchemaName SP? '(' SP? kU_RelConnections SP? ( ',' SP? kU_PropertyDefinitions SP? )? ( ',' SP? oC_SymbolicName SP? )?  ')' ;
+    : CREATE SP REL SP TABLE SP oC_SchemaName SP? '(' SP? FROM SP oC_SchemaName SP TO SP oC_SchemaName SP? ( ',' SP? kU_PropertyDefinitions SP? )? ( ',' SP? oC_SymbolicName SP? )?  ')' ;
 
 kU_DropTable
     : DROP SP TABLE SP oC_SchemaName ;
@@ -79,12 +79,6 @@ RENAME: ( 'R' | 'r' ) ( 'E' | 'e' ) ( 'N' | 'n' ) ( 'A' | 'a' ) ( 'M' | 'm' ) ( 
 
 ADD: ( 'A' | 'a' ) ( 'D' | 'd' ) ( 'D' | 'd' ) ;
 
-kU_RelConnections : kU_RelConnection ( SP? ',' SP? kU_RelConnection )* ;
-
-kU_RelConnection: FROM SP kU_NodeLabels SP TO SP kU_NodeLabels ;
-
-kU_NodeLabels: oC_SchemaName ( SP? '|' SP ? oC_SchemaName )* ;
-
 kU_PropertyDefinitions : kU_PropertyDefinition ( SP? ',' SP? kU_PropertyDefinition )* ;
 
 kU_PropertyDefinition : oC_PropertyKeyName SP kU_DataType ;
@@ -105,7 +99,7 @@ kU_DataType
 
 kU_ListIdentifiers : kU_ListIdentifier ( kU_ListIdentifier )* ;
 
-kU_ListIdentifier : '[' ']' ;
+kU_ListIdentifier : '[' oC_IntegerLiteral? ']' ;
 
 oC_AnyCypherOption
     : oC_Explain

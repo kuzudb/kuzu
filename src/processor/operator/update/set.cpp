@@ -6,7 +6,7 @@ namespace processor {
 void SetNodeProperty::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     for (auto& info : infos) {
         auto nodeIDVector = resultSet->getValueVector(info->nodeIDPos);
-        nodeIDVectors.push_back(nodeIDVector);
+        nodeIDVectors.push_back(nodeIDVector.get());
         info->evaluator->init(*resultSet, context->memoryManager);
     }
 }
@@ -18,13 +18,13 @@ bool SetNodeProperty::getNextTuplesInternal() {
     for (auto i = 0u; i < infos.size(); ++i) {
         auto info = infos[i].get();
         info->evaluator->evaluate();
-        info->column->writeValues(nodeIDVectors[i], info->evaluator->resultVector);
+        info->column->writeValues(nodeIDVectors[i], info->evaluator->resultVector.get());
     }
     return true;
 }
 
-unique_ptr<PhysicalOperator> SetNodeProperty::clone() {
-    vector<unique_ptr<SetNodePropertyInfo>> clonedInfos;
+std::unique_ptr<PhysicalOperator> SetNodeProperty::clone() {
+    std::vector<std::unique_ptr<SetNodePropertyInfo>> clonedInfos;
     for (auto& info : infos) {
         clonedInfos.push_back(info->clone());
     }
@@ -35,11 +35,11 @@ unique_ptr<PhysicalOperator> SetNodeProperty::clone() {
 void SetRelProperty::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     for (auto& info : infos) {
         auto srcNodeIDVector = resultSet->getValueVector(info->srcNodePos);
-        srcNodeVectors.push_back(srcNodeIDVector);
+        srcNodeVectors.push_back(srcNodeIDVector.get());
         auto dstNodeIDVector = resultSet->getValueVector(info->dstNodePos);
-        dstNodeVectors.push_back(dstNodeIDVector);
+        dstNodeVectors.push_back(dstNodeIDVector.get());
         auto relIDVector = resultSet->getValueVector(info->relIDPos);
-        relIDVectors.push_back(relIDVector);
+        relIDVectors.push_back(relIDVector.get());
         info->evaluator->init(*resultSet, context->memoryManager);
     }
 }
@@ -52,13 +52,13 @@ bool SetRelProperty::getNextTuplesInternal() {
         auto info = infos[i].get();
         info->evaluator->evaluate();
         info->table->updateRel(srcNodeVectors[i], dstNodeVectors[i], relIDVectors[i],
-            info->evaluator->resultVector, info->propertyId);
+            info->evaluator->resultVector.get(), info->propertyId);
     }
     return true;
 }
 
-unique_ptr<PhysicalOperator> SetRelProperty::clone() {
-    vector<unique_ptr<SetRelPropertyInfo>> clonedInfos;
+std::unique_ptr<PhysicalOperator> SetRelProperty::clone() {
+    std::vector<std::unique_ptr<SetRelPropertyInfo>> clonedInfos;
     for (auto& info : infos) {
         clonedInfos.push_back(info->clone());
     }

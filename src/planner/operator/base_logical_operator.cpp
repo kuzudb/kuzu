@@ -43,6 +43,9 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
     case LogicalOperatorType::DISTINCT: {
         return "DISTINCT";
     }
+    case LogicalOperatorType::DROP_PROPERTY: {
+        return "DROP_PROPERTY";
+    }
     case LogicalOperatorType::DROP_TABLE: {
         return "DROP_TABLE";
     }
@@ -79,6 +82,12 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
     case LogicalOperatorType::PROJECTION: {
         return "PROJECTION";
     }
+    case LogicalOperatorType::RENAME_TABLE: {
+        return "RENAME_TABLE";
+    }
+    case LogicalOperatorType::RENAME_PROPERTY: {
+        return "RENAME_PROPERTY";
+    }
     case LogicalOperatorType::SCAN_NODE: {
         return "SCAN_NODE";
     }
@@ -107,41 +116,34 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
         return "UNWIND";
     }
     default:
-        throw NotImplementedException("LogicalOperatorTypeToString()");
+        throw common::NotImplementedException("LogicalOperatorTypeToString()");
     }
 }
 
 LogicalOperator::LogicalOperator(
-    LogicalOperatorType operatorType, shared_ptr<LogicalOperator> child)
+    LogicalOperatorType operatorType, std::shared_ptr<LogicalOperator> child)
     : operatorType{operatorType} {
     children.push_back(std::move(child));
 }
 
-LogicalOperator::LogicalOperator(LogicalOperatorType operatorType, shared_ptr<LogicalOperator> left,
-    shared_ptr<LogicalOperator> right)
+LogicalOperator::LogicalOperator(LogicalOperatorType operatorType,
+    std::shared_ptr<LogicalOperator> left, std::shared_ptr<LogicalOperator> right)
     : operatorType{operatorType} {
     children.push_back(std::move(left));
     children.push_back(std::move(right));
 }
 
 LogicalOperator::LogicalOperator(
-    LogicalOperatorType operatorType, vector<shared_ptr<LogicalOperator>> children)
+    LogicalOperatorType operatorType, const std::vector<std::shared_ptr<LogicalOperator>>& children)
     : operatorType{operatorType} {
     for (auto& child : children) {
         this->children.push_back(child);
     }
 }
 
-void LogicalOperator::computeSchemaRecursive() {
-    for (auto& child : children) {
-        child->computeSchemaRecursive();
-    }
-    computeSchema();
-}
-
-string LogicalOperator::toString(uint64_t depth) const {
-    auto padding = string(depth * 4, ' ');
-    string result = padding;
+std::string LogicalOperator::toString(uint64_t depth) const {
+    auto padding = std::string(depth * 4, ' ');
+    std::string result = padding;
     result += LogicalOperatorUtils::logicalOperatorTypeToString(operatorType) + "[" +
               getExpressionsForPrinting() + "]";
     if (children.size() == 1) {

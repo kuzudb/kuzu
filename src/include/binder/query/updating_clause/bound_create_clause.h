@@ -8,78 +8,81 @@ namespace binder {
 
 class BoundCreateNodeOrRel {
 public:
-    BoundCreateNodeOrRel(vector<expression_pair> setItems) : setItems{std::move(setItems)} {}
+    explicit BoundCreateNodeOrRel(std::vector<expression_pair> setItems)
+        : setItems{std::move(setItems)} {}
     virtual ~BoundCreateNodeOrRel() = default;
 
-    inline vector<expression_pair> getSetItems() const { return setItems; }
+    inline std::vector<expression_pair> getSetItems() const { return setItems; }
 
 protected:
-    vector<expression_pair> setItems;
+    std::vector<expression_pair> setItems;
 };
 
 class BoundCreateNode : public BoundCreateNodeOrRel {
 public:
-    BoundCreateNode(shared_ptr<NodeExpression> node, shared_ptr<Expression> primaryKeyExpression,
-        vector<expression_pair> setItems)
+    BoundCreateNode(std::shared_ptr<NodeExpression> node,
+        std::shared_ptr<Expression> primaryKeyExpression, std::vector<expression_pair> setItems)
         : BoundCreateNodeOrRel{std::move(setItems)}, node{std::move(node)},
           primaryKeyExpression{std::move(primaryKeyExpression)} {}
 
-    inline shared_ptr<NodeExpression> getNode() const { return node; }
-    inline shared_ptr<Expression> getPrimaryKeyExpression() const { return primaryKeyExpression; }
+    inline std::shared_ptr<NodeExpression> getNode() const { return node; }
+    inline std::shared_ptr<Expression> getPrimaryKeyExpression() const {
+        return primaryKeyExpression;
+    }
 
-    inline unique_ptr<BoundCreateNode> copy() const {
+    inline std::unique_ptr<BoundCreateNode> copy() const {
         return make_unique<BoundCreateNode>(node, primaryKeyExpression, setItems);
     }
 
 private:
-    shared_ptr<NodeExpression> node;
-    shared_ptr<Expression> primaryKeyExpression;
+    std::shared_ptr<NodeExpression> node;
+    std::shared_ptr<Expression> primaryKeyExpression;
 };
 
 class BoundCreateRel : public BoundCreateNodeOrRel {
 public:
-    BoundCreateRel(shared_ptr<RelExpression> rel, vector<expression_pair> setItems)
+    BoundCreateRel(std::shared_ptr<RelExpression> rel, std::vector<expression_pair> setItems)
         : BoundCreateNodeOrRel{std::move(setItems)}, rel{std::move(rel)} {}
 
-    inline shared_ptr<RelExpression> getRel() const { return rel; }
+    inline std::shared_ptr<RelExpression> getRel() const { return rel; }
 
-    inline unique_ptr<BoundCreateRel> copy() const {
+    inline std::unique_ptr<BoundCreateRel> copy() const {
         return make_unique<BoundCreateRel>(rel, setItems);
     }
 
 private:
-    shared_ptr<RelExpression> rel;
+    std::shared_ptr<RelExpression> rel;
 };
 
 class BoundCreateClause : public BoundUpdatingClause {
 public:
-    BoundCreateClause() : BoundUpdatingClause{ClauseType::CREATE} {};
+    BoundCreateClause() : BoundUpdatingClause{common::ClauseType::CREATE} {};
     ~BoundCreateClause() override = default;
 
-    inline void addCreateNode(unique_ptr<BoundCreateNode> createNode) {
+    inline void addCreateNode(std::unique_ptr<BoundCreateNode> createNode) {
         createNodes.push_back(std::move(createNode));
     }
     inline bool hasCreateNode() const { return !createNodes.empty(); }
-    inline uint32_t getNumCreateNodes() const { return createNodes.size(); }
-    inline BoundCreateNode* getCreateNode(uint32_t idx) const { return createNodes[idx].get(); }
-    inline const vector<unique_ptr<BoundCreateNode>>& getCreateNodes() const { return createNodes; }
+    inline const std::vector<std::unique_ptr<BoundCreateNode>>& getCreateNodes() const {
+        return createNodes;
+    }
 
-    inline void addCreateRel(unique_ptr<BoundCreateRel> createRel) {
+    inline void addCreateRel(std::unique_ptr<BoundCreateRel> createRel) {
         createRels.push_back(std::move(createRel));
     }
     inline bool hasCreateRel() const { return !createRels.empty(); }
-    inline uint32_t getNumCreateRels() const { return createRels.size(); }
-    inline BoundCreateRel* getCreateRel(uint32_t idx) const { return createRels[idx].get(); }
-    inline const vector<unique_ptr<BoundCreateRel>>& getCreateRels() const { return createRels; }
+    inline const std::vector<std::unique_ptr<BoundCreateRel>>& getCreateRels() const {
+        return createRels;
+    }
 
-    vector<expression_pair> getAllSetItems() const;
+    std::vector<expression_pair> getAllSetItems() const;
     expression_vector getPropertiesToRead() const override;
 
-    unique_ptr<BoundUpdatingClause> copy() override;
+    std::unique_ptr<BoundUpdatingClause> copy() override;
 
 private:
-    vector<unique_ptr<BoundCreateNode>> createNodes;
-    vector<unique_ptr<BoundCreateRel>> createRels;
+    std::vector<std::unique_ptr<BoundCreateNode>> createNodes;
+    std::vector<std::unique_ptr<BoundCreateRel>> createRels;
 };
 
 } // namespace binder

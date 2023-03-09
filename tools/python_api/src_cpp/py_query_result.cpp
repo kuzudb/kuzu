@@ -5,6 +5,9 @@
 #include "common/arrow/arrow_converter.h"
 #include "datetime.h" // python lib
 #include "include/py_query_result_converter.h"
+#include "json.hpp"
+#include "processor/result/factorized_table.h"
+#include "processor/result/flat_tuple.h"
 
 using namespace kuzu::common;
 
@@ -74,7 +77,7 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value) {
         return py::cast(value.getValue<double>());
     }
     case STRING: {
-        return py::cast(value.getValue<string>());
+        return py::cast(value.getValue<std::string>());
     }
     case DATE: {
         auto dateVal = value.getValue<date_t>();
@@ -100,7 +103,7 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value) {
                                         .attr("timedelta")(py::arg("days") = days,
                                             py::arg("microseconds") = intervalVal.micros));
     }
-    case LIST: {
+    case VAR_LIST: {
         auto& listVal = value.getListValReference();
         py::list list;
         for (auto i = 0u; i < listVal.size(); ++i) {
@@ -113,14 +116,14 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value) {
         auto dict = PyQueryResult::getPyDictFromProperties(nodeVal.getProperties());
         dict["_label"] = py::cast(nodeVal.getLabelName());
         dict["_id"] = convertNodeIdToPyDict(nodeVal.getNodeID());
-        return move(dict);
+        return std::move(dict);
     }
     case REL: {
         auto relVal = value.getValue<RelVal>();
         auto dict = PyQueryResult::getPyDictFromProperties(relVal.getProperties());
         dict["_src"] = convertNodeIdToPyDict(relVal.getSrcNodeID());
         dict["_dst"] = convertNodeIdToPyDict(relVal.getDstNodeID());
-        return move(dict);
+        return std::move(dict);
     }
     case INTERNAL_ID: {
         return convertNodeIdToPyDict(value.getValue<nodeID_t>());
@@ -134,27 +137,24 @@ py::object PyQueryResult::getAsDF() {
     return QueryResultConverter(queryResult.get()).toDF();
 }
 
-bool PyQueryResult::getNextArrowChunk(py::list& batches, std::int64_t chunkSize) {
+bool PyQueryResult::getNextArrowChunk(
+    const ArrowSchema& schema, py::list& batches, std::int64_t chunkSize) {
     if (!queryResult->hasNext()) {
         return false;
     }
-    ArrowSchema arrowSchema;
     ArrowArray data;
-    auto types = queryResult->getColumnDataTypes();
-    auto names = queryResult->getColumnNames();
-    ArrowConverter::toArrowSchema(&arrowSchema, types, names);
     ArrowConverter::toArrowArray(*queryResult, &data, chunkSize);
 
     auto pyarrowLibModule = py::module::import("pyarrow").attr("lib");
     auto batchImportFunc = pyarrowLibModule.attr("RecordBatch").attr("_import_from_c");
-    batches.append(batchImportFunc((std::uint64_t)&data, (std::uint64_t)&arrowSchema));
+    batches.append(batchImportFunc((std::uint64_t)&data, (std::uint64_t)&schema));
     return true;
 }
 
-py::object PyQueryResult::getArrowChunks(std::int64_t chunkSize) {
+py::object PyQueryResult::getArrowChunks(const ArrowSchema& schema, std::int64_t chunkSize) {
     auto pyarrowLibModule = py::module::import("pyarrow").attr("lib");
     py::list batches;
-    while (getNextArrowChunk(batches, chunkSize)) {}
+    while (getNextArrowChunk(schema, batches, chunkSize)) {}
     return std::move(batches);
 }
 
@@ -165,13 +165,10 @@ kuzu::pyarrow::Table PyQueryResult::getAsArrow(std::int64_t chunkSize) {
     auto fromBatchesFunc = pyarrowLibModule.attr("Table").attr("from_batches");
     auto schemaImportFunc = pyarrowLibModule.attr("Schema").attr("_import_from_c");
 
-    ArrowSchema schema;
-    auto types = queryResult->getColumnDataTypes();
-    auto names = queryResult->getColumnNames();
-    ArrowConverter::toArrowSchema(&schema, types, names);
-
-    auto schemaObj = schemaImportFunc((std::uint64_t)&schema);
-    py::list batches = getArrowChunks(chunkSize);
+    auto typesInfo = queryResult->getColumnTypesInfo();
+    auto schema = ArrowConverter::toArrowSchema(typesInfo);
+    auto schemaObj = schemaImportFunc((std::uint64_t)schema.get());
+    py::list batches = getArrowChunks(*schema, chunkSize);
     return py::cast<kuzu::pyarrow::Table>(fromBatchesFunc(batches, schemaObj));
 }
 
@@ -198,7 +195,7 @@ void PyQueryResult::resetIterator() {
 }
 
 py::dict PyQueryResult::getPyDictFromProperties(
-    const vector<pair<std::string, unique_ptr<Value>>>& properties) {
+    const std::vector<std::pair<std::string, std::unique_ptr<Value>>>& properties) {
     py::dict result;
     for (auto i = 0u; i < properties.size(); ++i) {
         auto& [name, value] = properties[i];

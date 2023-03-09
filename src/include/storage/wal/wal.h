@@ -14,10 +14,10 @@ class logger;
 namespace kuzu {
 namespace storage {
 
-using lock_t = unique_lock<mutex>;
-constexpr uint64_t WAL_HEADER_PAGE_SIZE = DEFAULT_PAGE_SIZE;
+using lock_t = std::unique_lock<std::mutex>;
+constexpr uint64_t WAL_HEADER_PAGE_SIZE = common::BufferPoolConstants::DEFAULT_PAGE_SIZE;
 constexpr uint64_t WAL_HEADER_PAGE_NUM_RECORDS_FIELD_SIZE = sizeof(uint64_t);
-constexpr uint64_t WAL_HEADER_PAGE_NEXT_HEADER_PAGE_IDX_FIELD_SIZE = sizeof(page_idx_t);
+constexpr uint64_t WAL_HEADER_PAGE_NEXT_HEADER_PAGE_IDX_FIELD_SIZE = sizeof(common::page_idx_t);
 constexpr uint64_t WAL_HEADER_PAGE_PREFIX_FIELD_SIZES =
     WAL_HEADER_PAGE_NUM_RECORDS_FIELD_SIZE + WAL_HEADER_PAGE_NEXT_HEADER_PAGE_IDX_FIELD_SIZE;
 
@@ -28,10 +28,10 @@ class BaseWALAndWALIterator {
 protected:
     BaseWALAndWALIterator() : BaseWALAndWALIterator(nullptr) {}
 
-    explicit BaseWALAndWALIterator(shared_ptr<FileHandle> fileHandle)
+    explicit BaseWALAndWALIterator(std::shared_ptr<FileHandle> fileHandle)
         : fileHandle{std::move(fileHandle)}, offsetInCurrentHeaderPage{INT64_MAX},
           currentHeaderPageIdx{INT32_MAX} {
-        currentHeaderPageBuffer = make_unique<uint8_t[]>(WAL_HEADER_PAGE_SIZE);
+        currentHeaderPageBuffer = std::make_unique<uint8_t[]>(WAL_HEADER_PAGE_SIZE);
     }
 
 protected:
@@ -43,14 +43,14 @@ protected:
         ((uint64_t*)currentHeaderPageBuffer.get())[0]++;
     }
 
-    inline page_idx_t getNextHeaderPageOfCurrentHeaderPage() const {
-        return *(
-            page_idx_t*)(currentHeaderPageBuffer.get() + WAL_HEADER_PAGE_NUM_RECORDS_FIELD_SIZE);
+    inline common::page_idx_t getNextHeaderPageOfCurrentHeaderPage() const {
+        return *(common::page_idx_t*)(currentHeaderPageBuffer.get() +
+                                      WAL_HEADER_PAGE_NUM_RECORDS_FIELD_SIZE);
     }
 
-    inline void setNextHeaderPageOfCurrentHeaderPage(page_idx_t nextHeaderPageIdx) const {
-        ((page_idx_t*)(currentHeaderPageBuffer.get() + WAL_HEADER_PAGE_NUM_RECORDS_FIELD_SIZE))[0] =
-            nextHeaderPageIdx;
+    inline void setNextHeaderPageOfCurrentHeaderPage(common::page_idx_t nextHeaderPageIdx) const {
+        ((common::page_idx_t*)(currentHeaderPageBuffer.get() +
+                               WAL_HEADER_PAGE_NUM_RECORDS_FIELD_SIZE))[0] = nextHeaderPageIdx;
     }
 
     inline void resetCurrentHeaderPagePrefix() {
@@ -61,19 +61,19 @@ protected:
     }
 
 public:
-    shared_ptr<FileHandle> fileHandle;
+    std::shared_ptr<FileHandle> fileHandle;
     // Used by WAL as the next offset to write and by WALIterator as the next offset to read
     uint64_t offsetInCurrentHeaderPage;
     // First header page of the WAL, if it exists, is always located at page 0 of the WAL.
-    page_idx_t currentHeaderPageIdx;
-    unique_ptr<uint8_t[]> currentHeaderPageBuffer;
+    common::page_idx_t currentHeaderPageIdx;
+    std::unique_ptr<uint8_t[]> currentHeaderPageBuffer;
 };
 
 class WAL : public BaseWALAndWALIterator {
     friend WALIterator;
 
 public:
-    WAL(const string& directory, BufferManager& bufferManager);
+    WAL(const std::string& directory, BufferManager& bufferManager);
 
     // Destructing WAL flushes any unwritten header page but not the other pages. The caller
     // which possibly has access to the buffer manager needs to ensure any unwritten pages
@@ -85,17 +85,17 @@ public:
         flushHeaderPages();
     }
 
-    inline unique_ptr<WALIterator> getIterator() {
+    inline std::unique_ptr<WALIterator> getIterator() {
         lock_t lck{mtx};
         flushHeaderPages();
         return make_unique<WALIterator>(fileHandle, mtx);
     }
 
-    page_idx_t logPageUpdateRecord(
-        StorageStructureID storageStructureID, page_idx_t pageIdxInOriginalFile);
+    common::page_idx_t logPageUpdateRecord(
+        StorageStructureID storageStructureID, common::page_idx_t pageIdxInOriginalFile);
 
-    page_idx_t logPageInsertRecord(
-        StorageStructureID storageStructureID, page_idx_t pageIdxInOriginalFile);
+    common::page_idx_t logPageInsertRecord(
+        StorageStructureID storageStructureID, common::page_idx_t pageIdxInOriginalFile);
 
     void logCommit(uint64_t transactionID);
 
@@ -103,22 +103,22 @@ public:
 
     void logCatalogRecord();
 
-    void logNodeTableRecord(table_id_t tableID);
+    void logNodeTableRecord(common::table_id_t tableID);
 
-    void logRelTableRecord(table_id_t tableID);
+    void logRelTableRecord(common::table_id_t tableID);
 
     void logOverflowFileNextBytePosRecord(
         StorageStructureID storageStructureID, uint64_t prevNextByteToWriteTo);
 
-    void logCopyNodeRecord(table_id_t tableID);
+    void logCopyNodeRecord(common::table_id_t tableID);
 
-    void logCopyRelRecord(table_id_t tableID);
+    void logCopyRelRecord(common::table_id_t tableID);
 
-    void logDropTableRecord(table_id_t tableID);
+    void logDropTableRecord(common::table_id_t tableID);
 
-    void logDropPropertyRecord(table_id_t tableID, property_id_t propertyID);
+    void logDropPropertyRecord(common::table_id_t tableID, common::property_id_t propertyID);
 
-    void logAddPropertyRecord(table_id_t tableID, property_id_t propertyID);
+    void logAddPropertyRecord(common::table_id_t tableID, common::property_id_t propertyID);
 
     // Removes the contents of WAL file.
     void clearWAL();
@@ -136,19 +136,19 @@ public:
         return currentHeaderPageIdx == 0 && (getNumRecordsInCurrentHeaderPage() == 0);
     }
 
-    inline static shared_ptr<FileHandle> createWALFileHandle(const string& directory) {
-        return make_shared<FileHandle>(
-            FileUtils::joinPath(directory, string(StorageConfig::WAL_FILE_SUFFIX)),
+    inline static std::shared_ptr<FileHandle> createWALFileHandle(const std::string& directory) {
+        return make_shared<FileHandle>(common::FileUtils::joinPath(directory,
+                                           std::string(common::StorageConstants::WAL_FILE_SUFFIX)),
             FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS);
     }
 
-    inline string getDirectory() const { return directory; }
+    inline std::string getDirectory() const { return directory; }
 
-    inline void addToUpdatedNodeTables(table_id_t nodeTableID) {
+    inline void addToUpdatedNodeTables(common::table_id_t nodeTableID) {
         updatedNodeTables.insert(nodeTableID);
     }
 
-    inline void addToUpdatedRelTables(table_id_t relTableID) {
+    inline void addToUpdatedRelTables(common::table_id_t relTableID) {
         updatedRelTables.insert(relTableID);
     }
 
@@ -166,20 +166,20 @@ private:
 public:
     // Node/Rel tables that might have changes to their in-memory data structures that need to be
     // committed/rolled back accordingly during the wal replaying.
-    unordered_set<table_id_t> updatedNodeTables;
-    unordered_set<table_id_t> updatedRelTables;
+    std::unordered_set<common::table_id_t> updatedNodeTables;
+    std::unordered_set<common::table_id_t> updatedRelTables;
 
 private:
-    shared_ptr<spdlog::logger> logger;
-    string directory;
-    mutex mtx;
+    std::shared_ptr<spdlog::logger> logger;
+    std::string directory;
+    std::mutex mtx;
     BufferManager& bufferManager;
     bool isLastLoggedRecordCommit_;
 };
 
 class WALIterator : public BaseWALAndWALIterator {
 public:
-    explicit WALIterator(const shared_ptr<FileHandle>& fileHandle, mutex& mtx);
+    explicit WALIterator(const std::shared_ptr<FileHandle>& fileHandle, std::mutex& mtx);
 
     inline bool hasNextRecord() {
         lock_t lck{mtx};
@@ -194,7 +194,7 @@ private:
     }
 
 public:
-    mutex& mtx;
+    std::mutex& mtx;
     uint64_t numRecordsReadInCurrentHeaderPage;
 };
 

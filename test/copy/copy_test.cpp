@@ -1,59 +1,56 @@
-#include "common/csv_reader/csv_reader.h"
+#include <fstream>
+#include <iostream>
+#include <string>
+
 #include "graph_test/graph_test.h"
+#include "json.hpp"
+#include "storage/storage_manager.h"
 
 using namespace kuzu::common;
 using namespace kuzu::catalog;
 using namespace kuzu::storage;
 using namespace kuzu::testing;
+using namespace kuzu::transaction;
 
 namespace kuzu {
 namespace testing {
 
-class CopyNodePropertyTest : public InMemoryDBTest {
+class CopyNodePropertyTest : public DBTest {
 public:
-    string getInputDir() override {
+    std::string getInputDir() override {
         return TestHelper::appendKuzuRootPath("dataset/copy-node-property-test/");
     }
 };
 
-class CopySpecialCharTest : public InMemoryDBTest {
+class CopySpecialCharTest : public DBTest {
 public:
-    string getInputDir() override {
+    std::string getInputDir() override {
         return TestHelper::appendKuzuRootPath("dataset/copy-special-char-test/");
     }
 };
 
-class CopyReadLists2BytesPerEdgeTest : public InMemoryDBTest {
+class CopyLargeListTest : public DBTest {
 public:
-    string getInputDir() override {
-        return TestHelper::appendKuzuRootPath("dataset/read-list-tests/2-bytes-per-edge/");
+    std::string getInputDir() override {
+        return TestHelper::appendKuzuRootPath("dataset/read-list-tests/large-list/");
     }
 };
 
-class CopyReadLists3BytesPerEdgeTest : public InMemoryDBTest {
-public:
-    string getInputDir() override {
-        return TestHelper::appendKuzuRootPath("dataset/read-list-tests/3-bytes-per-edge/");
-    }
-};
-
-class CopyReadLists4BytesPerEdgeTest : public InMemoryDBTest {
-public:
-    string getInputDir() override {
-        return TestHelper::appendKuzuRootPath("dataset/read-list-tests/4-bytes-per-edge/");
-    }
-};
-
-class CopyReadLists5BytesPerEdgeTest : public InMemoryDBTest {
-public:
-    string getInputDir() override {
-        return TestHelper::appendKuzuRootPath("dataset/read-list-tests/5-bytes-per-edge/");
-    }
-};
-
-class CopyLongStringTest : public InMemoryDBTest {
-    string getInputDir() override {
+class CopyLongStringTest : public DBTest {
+    std::string getInputDir() override {
         return TestHelper::appendKuzuRootPath("dataset/copy-fault-tests/long-string/");
+    }
+};
+
+class CopyNodeInitRelTablesTest : public BaseGraphTest {
+public:
+    void SetUp() override {
+        BaseGraphTest::SetUp();
+        createDBAndConn();
+    }
+
+    std::string getInputDir() override {
+        return TestHelper::appendKuzuRootPath("dataset/tinysnb/");
     }
 };
 
@@ -75,10 +72,8 @@ KnowsTablePTablePKnowsLists getKnowsTablePTablePKnowsLists(
     KnowsTablePTablePKnowsLists retVal;
     retVal.pNodeTableID = catalog.getReadOnlyVersion()->getTableID("person");
     retVal.knowsRelTableID = catalog.getReadOnlyVersion()->getTableID("knows");
-    retVal.fwdPKnowsLists =
-        graph->getRelsStore().getAdjLists(FWD, retVal.pNodeTableID, retVal.knowsRelTableID);
-    retVal.bwdPKnowsLists =
-        graph->getRelsStore().getAdjLists(BWD, retVal.pNodeTableID, retVal.knowsRelTableID);
+    retVal.fwdPKnowsLists = graph->getRelsStore().getAdjLists(FWD, retVal.knowsRelTableID);
+    retVal.bwdPKnowsLists = graph->getRelsStore().getAdjLists(BWD, retVal.knowsRelTableID);
     return retVal;
 }
 
@@ -86,10 +81,8 @@ ATableAKnowsLists getATableAKnowsLists(const Catalog& catalog, StorageManager* s
     ATableAKnowsLists retVal;
     retVal.aNodeTableID = catalog.getReadOnlyVersion()->getTableID("animal");
     auto knowsRelTableID = catalog.getReadOnlyVersion()->getTableID("knows");
-    retVal.fwdAKnowsLists =
-        storageManager->getRelsStore().getAdjLists(FWD, retVal.aNodeTableID, knowsRelTableID);
-    retVal.bwdAKnowsLists =
-        storageManager->getRelsStore().getAdjLists(BWD, retVal.aNodeTableID, knowsRelTableID);
+    retVal.fwdAKnowsLists = storageManager->getRelsStore().getAdjLists(FWD, knowsRelTableID);
+    retVal.bwdAKnowsLists = storageManager->getRelsStore().getAdjLists(BWD, knowsRelTableID);
     return retVal;
 }
 } // namespace testing
@@ -102,26 +95,37 @@ TEST_F(CopyNodePropertyTest, NodeStructuredStringPropertyTest) {
     auto propertyIdx = catalog->getReadOnlyVersion()->getNodeProperty(tableID, "randomString");
     auto column = reinterpret_cast<StringPropertyColumn*>(
         graph->getNodesStore().getNodePropertyColumn(tableID, propertyIdx.propertyID));
-    string fName = TestHelper::appendKuzuRootPath("dataset/copy-node-property-test/vPerson.csv");
-    CSVReaderConfig config;
-    CSVReader csvReader(fName, config);
+    std::string fName =
+        TestHelper::appendKuzuRootPath("dataset/copy-node-property-test/vPerson.csv");
+    std::ifstream f(fName);
+    ASSERT_TRUE(f.is_open());
     int lineIdx = 0;
     uint64_t count = 0;
     auto dummyReadOnlyTrx = Transaction::getDummyReadOnlyTrx();
-    while (csvReader.hasNextLine()) {
-        csvReader.hasNextToken();
-        csvReader.skipToken();
-        csvReader.hasNextToken();
+    while (f.good()) {
+        std::string line;
+        std::getline(f, line);
+        if (line.empty()) {
+            continue;
+        }
+        auto pos = line.find(",");
+        line = line.substr(pos + 1);
+        if (line[0] == '"') {
+            line = line.substr(1);
+        }
+        if (line[line.length() - 1] == '"') {
+            line = line.substr(0, line.length() - 1);
+        }
         if ((count % 100) == 0) {
             ASSERT_TRUE(column->isNull(count /* nodeOffset */, dummyReadOnlyTrx.get()));
         } else {
             ASSERT_FALSE(column->isNull(count /* nodeOffset */, dummyReadOnlyTrx.get()));
-            EXPECT_EQ(string(csvReader.getString()), column->readValue(lineIdx).strVal);
+            EXPECT_EQ(line, column->readValue(lineIdx).strVal);
         }
         lineIdx++;
-        csvReader.skipLine();
         count++;
     }
+    f.close();
 }
 
 void verifyP0ToP5999(KnowsTablePTablePKnowsLists& knowsTablePTablePKnowsLists) {
@@ -196,34 +200,23 @@ void verifyP6001ToP65999(KnowsTablePTablePKnowsLists& knowsTablePTablePKnowsList
     }
 }
 
-TEST_F(CopyReadLists2BytesPerEdgeTest, ReadLists2BytesPerEdgeTest) {
+TEST_F(CopyLargeListTest, ReadLargeListTest) {
     auto knowsTablePTablePKnowsLists =
         getKnowsTablePTablePKnowsLists(*getCatalog(*database), getStorageManager(*database));
     verifyP0ToP5999(knowsTablePTablePKnowsLists);
 }
 
-TEST_F(CopyReadLists3BytesPerEdgeTest, ReadLists3BytesPerEdgeTest) {
-    auto knowsTablePTablePKnowsLists =
-        getKnowsTablePTablePKnowsLists(*getCatalog(*database), getStorageManager(*database));
-    verifyP0ToP5999(knowsTablePTablePKnowsLists);
-    verifya0Andp6000(
-        knowsTablePTablePKnowsLists, *getCatalog(*database), getStorageManager(*database));
-}
-
-TEST_F(CopyReadLists4BytesPerEdgeTest, ReadLists4BytesPerEdgeTest) {
-    auto knowsTablePTablePKnowsLists =
-        getKnowsTablePTablePKnowsLists(*getCatalog(*database), getStorageManager(*database));
-    verifyP0ToP5999(knowsTablePTablePKnowsLists);
-    verifyP6001ToP65999(knowsTablePTablePKnowsLists);
-}
-
-TEST_F(CopyReadLists5BytesPerEdgeTest, ReadLists5BytesPerEdgeTest) {
-    auto knowsTablePTablePKnowsLists =
-        getKnowsTablePTablePKnowsLists(*getCatalog(*database), getStorageManager(*database));
-    verifyP0ToP5999(knowsTablePTablePKnowsLists);
-    verifya0Andp6000(
-        knowsTablePTablePKnowsLists, *getCatalog(*database), getStorageManager(*database));
-    verifyP6001ToP65999(knowsTablePTablePKnowsLists);
+TEST_F(CopyLargeListTest, AddPropertyWithLargeListTest) {
+    ASSERT_TRUE(conn->query("alter table knows add length INT64 DEFAULT 50")->isSuccess());
+    auto actualResult = TestHelper::convertResultToString(
+        *conn->query("match (:person)-[e:knows]->(:person) return e.length"));
+    std::vector<std::string> expectedResult{10001, "50"};
+    ASSERT_EQ(actualResult, expectedResult);
+    ASSERT_TRUE(conn->query("match (:person)-[e:knows]->(:person) set e.length = 37")->isSuccess());
+    actualResult = TestHelper::convertResultToString(
+        *conn->query("match (p:person)-[e:knows]->(:person) return e.length"), true);
+    expectedResult = std::vector<std::string>{10001, "37"};
+    ASSERT_EQ(actualResult, expectedResult);
 }
 
 TEST_F(CopySpecialCharTest, CopySpecialChars) {
@@ -241,6 +234,7 @@ TEST_F(CopySpecialCharTest, CopySpecialChars) {
     EXPECT_EQ("only one # should be recognized", col->readValue(4).strVal);
     EXPECT_EQ("this is a #plain# string", col->readValue(5).strVal);
     EXPECT_EQ("this is another #plain# string with \\", col->readValue(6).strVal);
+    EXPECT_EQ("NA", col->readValue(7).strVal);
 
     tableID = catalog->getReadOnlyVersion()->getTableID("organisation");
     propertyIdx = catalog->getReadOnlyVersion()->getNodeProperty(tableID, "name");
@@ -259,9 +253,9 @@ TEST_F(CopyLongStringTest, LongStringError) {
         storageManager->getNodesStore().getNodePropertyColumn(tableID, propertyIdx.propertyID);
 
     EXPECT_EQ(4096, col->readValue(0).strVal.length());
-    string expectedResultName = "Alice";
+    std::string expectedResultName = "Alice";
     auto repeatedTimes = 4096 / expectedResultName.length() + 1;
-    ostringstream os;
+    std::ostringstream os;
     for (auto i = 0; i < repeatedTimes; i++) {
         os << expectedResultName;
     }
@@ -272,4 +266,26 @@ TEST_F(CopyLongStringTest, LongStringError) {
     col = storageManager->getNodesStore().getNodePropertyColumn(tableID, propertyIdx.propertyID);
     EXPECT_EQ(1, col->readValue(0).val.int64Val);
     EXPECT_EQ(2, col->readValue(1).val.int64Val);
+}
+
+TEST_F(CopyNodeInitRelTablesTest, CopyNodeAndQueryEmptyRelTable) {
+    // The purpose of this test is to make sure that we correctly initialize the rel table for the
+    // newly added nodes (E.g. we need to set the column entry to NULL and create listHeader for
+    // each newly added node).
+    ASSERT_TRUE(
+        conn->query(
+                "create node table person (ID INt64, fName StRING, gender INT64, isStudent "
+                "BoOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, "
+                "registerTime TIMESTAMP, lastJobDuration interval, workedHours INT64[], usedNames "
+                "STRING[], courseScoresPerTerm INT64[][], PRIMARY KEY (ID));")
+            ->isSuccess());
+    ASSERT_TRUE(conn->query("create rel table knows (FROM person TO person, date DATE, meetTime "
+                            "TIMESTAMP, validInterval INTERVAL, comments STRING[], MANY_MANY);")
+                    ->isSuccess());
+    ASSERT_TRUE(conn->query("create rel table meets (FROM person TO person, MANY_ONE);"));
+    ASSERT_TRUE(
+        conn->query("COPY person FROM \"" +
+                    TestHelper::appendKuzuRootPath("dataset/tinysnb/vPerson.csv\" (HEADER=true);"))
+            ->isSuccess());
+    ASSERT_TRUE(conn->query("MATCH (:person)-[:knows]->(:person) return count(*)")->isSuccess());
 }

@@ -1,50 +1,53 @@
 #pragma once
 
+#include "common/api.h"
+#include "kuzu_fwd.h"
 #include "query_summary.h"
-
-namespace kuzu::testing {
-class TestHelper;
-}
-
-namespace kuzu::transaction {
-class TinySnbDDLTest;
-class TinySnbCopyCSVTransactionTest;
-} // namespace kuzu::transaction
 
 namespace kuzu {
 namespace main {
 
+/**
+ * @brief A prepared statement is a parameterized query which can avoid planning the same query for
+ * repeated execution.
+ */
 class PreparedStatement {
     friend class Connection;
-    friend class JOConnection;
     friend class kuzu::testing::TestHelper;
     friend class kuzu::transaction::TinySnbDDLTest;
     friend class kuzu::transaction::TinySnbCopyCSVTransactionTest;
 
 public:
-    inline bool allowActiveTransaction() const {
-        return !StatementTypeUtils::isDDLOrCopyCSV(statementType);
-    }
+    /**
+     * @brief DDL and COPY_CSV statements are automatically wrapped in a transaction and committed.
+     * As such, they cannot be part of an active transaction.
+     * @return the prepared statement is allowed to be part of an active transaction.
+     */
+    KUZU_API bool allowActiveTransaction() const;
+    /**
+     * @return the query is prepared successfully or not.
+     */
+    KUZU_API bool isSuccess() const;
+    /**
+     * @return the error message if the query is not prepared successfully.
+     */
+    KUZU_API std::string getErrorMessage() const;
+    /**
+     * @return the prepared statement is read-only or not.
+     */
+    KUZU_API bool isReadOnly() const;
 
-    inline bool isSuccess() const { return success; }
-
-    inline string getErrorMessage() const { return errMsg; }
-
-    inline bool isReadOnly() const { return readOnly; }
-
-    inline expression_vector getExpressionsToCollect() {
-        return statementResult->getExpressionsToCollect();
-    }
+    std::vector<std::shared_ptr<binder::Expression>> getExpressionsToCollect();
 
 private:
-    StatementType statementType;
+    common::StatementType statementType;
     bool success = true;
     bool readOnly = false;
-    string errMsg;
+    std::string errMsg;
     PreparedSummary preparedSummary;
-    unordered_map<string, shared_ptr<Value>> parameterMap;
-    unique_ptr<BoundStatementResult> statementResult;
-    vector<unique_ptr<LogicalPlan>> logicalPlans;
+    std::unordered_map<std::string, std::shared_ptr<common::Value>> parameterMap;
+    std::unique_ptr<binder::BoundStatementResult> statementResult;
+    std::vector<std::unique_ptr<planner::LogicalPlan>> logicalPlans;
 };
 
 } // namespace main

@@ -10,6 +10,47 @@ namespace common {
 
 static_assert(sizeof(dtime_t) == sizeof(int64_t), "dtime_t was padded");
 
+dtime_t::dtime_t() : micros(0) {}
+
+dtime_t::dtime_t(int64_t micros_p) : micros(micros_p) {}
+
+dtime_t& dtime_t::operator=(int64_t micros_p) {
+    micros = micros_p;
+    return *this;
+}
+
+dtime_t::operator int64_t() const {
+    return micros;
+}
+
+dtime_t::operator double() const {
+    return micros;
+}
+
+bool dtime_t::operator==(const dtime_t& rhs) const {
+    return micros == rhs.micros;
+}
+
+bool dtime_t::operator!=(const dtime_t& rhs) const {
+    return micros != rhs.micros;
+}
+
+bool dtime_t::operator<=(const dtime_t& rhs) const {
+    return micros <= rhs.micros;
+}
+
+bool dtime_t::operator<(const dtime_t& rhs) const {
+    return micros < rhs.micros;
+}
+
+bool dtime_t::operator>(const dtime_t& rhs) const {
+    return micros > rhs.micros;
+}
+
+bool dtime_t::operator>=(const dtime_t& rhs) const {
+    return micros >= rhs.micros;
+}
+
 // string format is hh:mm:ss[.mmmmmm] (ISO 8601) (m represent microseconds)
 // microseconds is optional, timezone is currently not supported
 bool Time::TryConvertTime(const char* buf, uint64_t len, uint64_t& pos, dtime_t& result) {
@@ -90,22 +131,23 @@ dtime_t Time::FromCString(const char* buf, uint64_t len) {
     dtime_t result;
     uint64_t pos;
     if (!Time::TryConvertTime(buf, len, pos, result)) {
-        throw ConversionException(StringUtils::string_format(
-            "Error occurred during parsing time. Given: \"" + string(buf, len) +
-            "\". Expected format: (hh:mm:ss[.zzzzzz])."));
+        throw ConversionException(
+            StringUtils::string_format("Error occurred during parsing time. Given: \"{}\". "
+                                       "Expected format: (hh:mm:ss[.zzzzzz]).",
+                std::string(buf, len)));
     }
     return result;
 }
 
-string Time::toString(dtime_t time) {
+std::string Time::toString(dtime_t time) {
     int32_t time_units[4];
     Time::Convert(time, time_units[0], time_units[1], time_units[2], time_units[3]);
 
     char micro_buffer[6];
     auto length = TimeToStringCast::Length(time_units, micro_buffer);
-    auto buffer = unique_ptr<char[]>(new char[length]);
+    auto buffer = std::unique_ptr<char[]>(new char[length]);
     TimeToStringCast::Format(buffer.get(), length, time_units, micro_buffer);
-    return string(buffer.get(), length);
+    return std::string(buffer.get(), length);
 }
 
 bool Time::IsValid(int32_t hour, int32_t minute, int32_t second, int32_t microseconds) {
@@ -119,7 +161,7 @@ bool Time::IsValid(int32_t hour, int32_t minute, int32_t second, int32_t microse
 dtime_t Time::FromTime(int32_t hour, int32_t minute, int32_t second, int32_t microseconds) {
     if (!Time::IsValid(hour, minute, second, microseconds)) {
         throw ConversionException(StringUtils::string_format(
-            "Time field value out of range: %d:%d:%d[.%d].", hour, minute, second, microseconds));
+            "Time field value out of range: {}:{}:{}[.{}].", hour, minute, second, microseconds));
     }
     int64_t result;
     result = hour;                                             // hours

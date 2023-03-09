@@ -1,6 +1,8 @@
 #pragma once
 
 #include "arrow_array.h"
+#include "common/arrow/arrow.h"
+#include "common/types/internal_id_t.h"
 #include "main/kuzu.h"
 #include "pybind_include.h"
 
@@ -24,7 +26,7 @@ public:
 
     void close();
 
-    static py::object convertValueToPyObject(const Value& value);
+    static py::object convertValueToPyObject(const kuzu::common::Value& value);
 
     py::object getAsDF();
 
@@ -38,13 +40,14 @@ public:
 
 private:
     static py::dict getPyDictFromProperties(
-        const vector<pair<std::string, unique_ptr<Value>>>& properties);
+        const std::vector<std::pair<std::string, std::unique_ptr<kuzu::common::Value>>>&
+            properties);
 
-    static py::dict convertNodeIdToPyDict(const nodeID_t& nodeId);
+    static py::dict convertNodeIdToPyDict(const kuzu::common::nodeID_t& nodeId);
 
-    bool getNextArrowChunk(py::list& batches, std::int64_t chunk_size);
-    py::object getArrowChunks(std::int64_t chunkSize);
+    bool getNextArrowChunk(const ArrowSchema& schema, py::list& batches, std::int64_t chunk_size);
+    py::object getArrowChunks(const ArrowSchema& schema, std::int64_t chunkSize);
 
 private:
-    unique_ptr<QueryResult> queryResult;
+    std::unique_ptr<QueryResult> queryResult;
 };

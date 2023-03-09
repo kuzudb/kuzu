@@ -11,10 +11,11 @@ namespace parser {
 class WithClause : public ReturnClause {
 
 public:
-    WithClause(unique_ptr<ProjectionBody> projectionBody) : ReturnClause{move(projectionBody)} {}
+    explicit WithClause(std::unique_ptr<ProjectionBody> projectionBody)
+        : ReturnClause{std::move(projectionBody)} {}
 
-    inline void setWhereExpression(unique_ptr<ParsedExpression> expression) {
-        whereExpression = move(expression);
+    inline void setWhereExpression(std::unique_ptr<ParsedExpression> expression) {
+        whereExpression = std::move(expression);
     }
 
     inline bool hasWhereExpression() const { return whereExpression != nullptr; }
@@ -22,7 +23,7 @@ public:
     inline ParsedExpression* getWhereExpression() const { return whereExpression.get(); }
 
 private:
-    unique_ptr<ParsedExpression> whereExpression;
+    std::unique_ptr<ParsedExpression> whereExpression;
 };
 
 } // namespace parser

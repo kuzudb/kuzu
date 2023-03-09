@@ -7,19 +7,20 @@ namespace planner {
 
 class LogicalDropTable : public LogicalDDL {
 public:
-    explicit LogicalDropTable(
-        table_id_t tableID, string tableName, shared_ptr<Expression> outputExpression)
-        : LogicalDDL{LogicalOperatorType::DROP_TABLE, std::move(tableName), outputExpression},
+    explicit LogicalDropTable(common::table_id_t tableID, std::string tableName,
+        std::shared_ptr<binder::Expression> outputExpression)
+        : LogicalDDL{LogicalOperatorType::DROP_TABLE, std::move(tableName),
+              std::move(outputExpression)},
           tableID{tableID} {}
 
-    inline table_id_t getTableID() const { return tableID; }
+    inline common::table_id_t getTableID() const { return tableID; }
 
-    inline unique_ptr<LogicalOperator> copy() override {
+    inline std::unique_ptr<LogicalOperator> copy() override {
         return make_unique<LogicalDropTable>(tableID, tableName, outputExpression);
     }
 
 private:
-    table_id_t tableID;
+    common::table_id_t tableID;
 };
 
 } // namespace planner

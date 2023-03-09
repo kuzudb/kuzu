@@ -26,11 +26,11 @@ bool DeleteNode::getNextTuplesInternal() {
 void DeleteRel::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     for (auto& deleteRelInfo : deleteRelInfos) {
         auto srcNodeIDVector = resultSet->getValueVector(deleteRelInfo->srcNodePos);
-        srcNodeVectors.push_back(srcNodeIDVector);
+        srcNodeVectors.push_back(srcNodeIDVector.get());
         auto dstNodeIDVector = resultSet->getValueVector(deleteRelInfo->dstNodePos);
-        dstNodeVectors.push_back(dstNodeIDVector);
+        dstNodeVectors.push_back(dstNodeIDVector.get());
         auto relIDVector = resultSet->getValueVector(deleteRelInfo->relIDPos);
-        relIDVectors.push_back(relIDVector);
+        relIDVectors.push_back(relIDVector.get());
     }
 }
 
@@ -39,13 +39,12 @@ bool DeleteRel::getNextTuplesInternal() {
         return false;
     }
     for (auto i = 0u; i < deleteRelInfos.size(); ++i) {
-        auto createRelInfo = deleteRelInfos[i].get();
+        auto deleteRelInfo = deleteRelInfos[i].get();
         auto srcNodeVector = srcNodeVectors[i];
         auto dstNodeVector = dstNodeVectors[i];
         auto relIDVector = relIDVectors[i];
-        createRelInfo->table->deleteRel(srcNodeVector, dstNodeVector, relIDVector);
-        relsStatistics.updateNumRelsByValue(createRelInfo->table->getRelTableID(),
-            createRelInfo->srcNodeTableID, createRelInfo->dstNodeTableID,
+        deleteRelInfo->table->deleteRel(srcNodeVector, dstNodeVector, relIDVector);
+        relsStatistics.updateNumRelsByValue(deleteRelInfo->table->getRelTableID(),
             -1 /* decrement numRelsPerDirectionBoundTable by 1 */);
     }
     return true;

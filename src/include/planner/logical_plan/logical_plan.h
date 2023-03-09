@@ -9,11 +9,13 @@ class LogicalPlan {
 public:
     LogicalPlan() : estCardinality{1}, cost{0} {}
 
-    inline void setLastOperator(shared_ptr<LogicalOperator> op) { lastOperator = std::move(op); }
+    inline void setLastOperator(std::shared_ptr<LogicalOperator> op) {
+        lastOperator = std::move(op);
+    }
 
     inline bool isEmpty() const { return lastOperator == nullptr; }
 
-    inline shared_ptr<LogicalOperator> getLastOperator() const { return lastOperator; }
+    inline std::shared_ptr<LogicalOperator> getLastOperator() const { return lastOperator; }
     inline Schema* getSchema() const { return lastOperator->getSchema(); }
 
     inline void multiplyCardinality(uint64_t factor) { estCardinality *= factor; }
@@ -24,14 +26,14 @@ public:
     inline void increaseCost(uint64_t costToIncrease) { cost += costToIncrease; }
     inline uint64_t getCost() const { return cost; }
 
-    inline string toString() const { return lastOperator->toString(); }
+    inline std::string toString() const { return lastOperator->toString(); }
 
-    unique_ptr<LogicalPlan> shallowCopy() const;
+    std::unique_ptr<LogicalPlan> shallowCopy() const;
 
-    unique_ptr<LogicalPlan> deepCopy() const;
+    std::unique_ptr<LogicalPlan> deepCopy() const;
 
 private:
-    shared_ptr<LogicalOperator> lastOperator;
+    std::shared_ptr<LogicalOperator> lastOperator;
     uint64_t estCardinality;
     uint64_t cost;
 };

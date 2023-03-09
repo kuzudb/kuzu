@@ -5,21 +5,19 @@
 namespace kuzu {
 namespace parser {
 
-using namespace std;
-
 class RenameProperty : public DDL {
 public:
-    explicit RenameProperty(string tableName, string propertyName, string newName)
-        : DDL{StatementType::RENAME_PROPERTY, std::move(tableName)},
+    explicit RenameProperty(std::string tableName, std::string propertyName, std::string newName)
+        : DDL{common::StatementType::RENAME_PROPERTY, std::move(tableName)},
           propertyName{std::move(propertyName)}, newName{std::move(newName)} {}
 
-    inline string getPropertyName() const { return propertyName; }
+    inline std::string getPropertyName() const { return propertyName; }
 
-    inline string getNewName() const { return newName; }
+    inline std::string getNewName() const { return newName; }
 
 private:
-    string propertyName;
-    string newName;
+    std::string propertyName;
+    std::string newName;
 };
 
 } // namespace parser

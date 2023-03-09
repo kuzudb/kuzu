@@ -2,8 +2,6 @@
 
 #include <string>
 
-using namespace std;
-
 namespace kuzu {
 namespace benchmark {
 
@@ -19,9 +17,7 @@ struct BenchmarkConfig {
     // number of threads to execute benchmark
     uint32_t numThreads = 1;
     // output benchmark log to file
-    string outputPath;
-    // in-memory mode
-    bool isInMemoryMode = false;
+    std::string outputPath;
     uint64_t bufferPoolSize = 1 << 23;
 };
 

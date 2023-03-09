@@ -2,8 +2,6 @@
 
 #include "schema.h"
 
-using namespace std;
-
 namespace kuzu {
 namespace planner {
 
@@ -56,43 +54,48 @@ public:
     // Leaf operator.
     explicit LogicalOperator(LogicalOperatorType operatorType) : operatorType{operatorType} {}
     // Unary operator.
-    explicit LogicalOperator(LogicalOperatorType operatorType, shared_ptr<LogicalOperator> child);
-    // Binary operator.
-    explicit LogicalOperator(LogicalOperatorType operatorType, shared_ptr<LogicalOperator> left,
-        shared_ptr<LogicalOperator> right);
     explicit LogicalOperator(
-        LogicalOperatorType operatorType, vector<shared_ptr<LogicalOperator>> children);
+        LogicalOperatorType operatorType, std::shared_ptr<LogicalOperator> child);
+    // Binary operator.
+    explicit LogicalOperator(LogicalOperatorType operatorType,
+        std::shared_ptr<LogicalOperator> left, std::shared_ptr<LogicalOperator> right);
+    explicit LogicalOperator(LogicalOperatorType operatorType,
+        const std::vector<std::shared_ptr<LogicalOperator>>& children);
 
     virtual ~LogicalOperator() = default;
 
     inline uint32_t getNumChildren() const { return children.size(); }
 
     // Used for operators with more than two children e.g. Union
-    inline void addChild(shared_ptr<LogicalOperator> op) { children.push_back(std::move(op)); }
-    inline shared_ptr<LogicalOperator> getChild(uint64_t idx) const { return children[idx]; }
+    inline void addChild(std::shared_ptr<LogicalOperator> op) { children.push_back(std::move(op)); }
+    inline std::shared_ptr<LogicalOperator> getChild(uint64_t idx) const { return children[idx]; }
+    inline std::vector<std::shared_ptr<LogicalOperator>> getChildren() const { return children; }
+    inline void setChild(uint64_t idx, std::shared_ptr<LogicalOperator> child) {
+        children[idx] = std::move(child);
+    }
 
     inline LogicalOperatorType getOperatorType() const { return operatorType; }
 
     inline Schema* getSchema() const { return schema.get(); }
-    void computeSchemaRecursive();
-    virtual void computeSchema() = 0;
+    virtual void computeFactorizedSchema() = 0;
+    virtual void computeFlatSchema() = 0;
 
-    virtual string getExpressionsForPrinting() const = 0;
+    virtual std::string getExpressionsForPrinting() const = 0;
 
     // Print the sub-plan rooted at this operator.
-    virtual string toString(uint64_t depth = 0) const;
+    virtual std::string toString(uint64_t depth = 0) const;
 
     // TODO: remove this function once planner do not share operator across plans
-    virtual unique_ptr<LogicalOperator> copy() = 0;
+    virtual std::unique_ptr<LogicalOperator> copy() = 0;
 
 protected:
-    inline void createEmptySchema() { schema = make_unique<Schema>(); }
+    inline void createEmptySchema() { schema = std::make_unique<Schema>(); }
     inline void copyChildSchema(uint32_t idx) { schema = children[idx]->getSchema()->copy(); }
 
 protected:
     LogicalOperatorType operatorType;
-    unique_ptr<Schema> schema;
-    vector<shared_ptr<LogicalOperator>> children;
+    std::unique_ptr<Schema> schema;
+    std::vector<std::shared_ptr<LogicalOperator>> children;
 };
 
 } // namespace planner

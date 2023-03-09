@@ -1,6 +1,18 @@
 <div align="center">
-  <img src="/logo/kuzu-logo.png" height="100">
+  <img src="https://kuzudb.com/img/kuzu-logo.png" height="100">
 </div>
+
+<p align="center">
+  <a href="https://github.com/kuzudb/kuzu/actions">
+    <img src="https://github.com/kuzudb/kuzu/actions/workflows/ci-workflow.yml/badge.svg?branch=master" alt="Github Actions Badge">
+  </a>
+  <a href="https://join.slack.com/t/kuzudb/shared_invite/zt-1qgxnn8ed-9LL7rfKozijOtvw5HyWDlQ">
+    <img src="https://img.shields.io/badge/Slack-chat%20with%20us-informational?logo=slack" alt="slack" />
+  </a>
+  <a href="https://twitter.com/kuzudb">
+    <img src="https://img.shields.io/badge/follow-@kuzudb-1DA1F2?logo=twitter" alt="twitter">
+  </a>
+</p>
 
 # Kùzu
 Kùzu is an in-process property graph database management system (GDBMS) built for query speed and scalability. Kùzu is optimized for handling complex join-heavy analytical workloads on very large graph databases, with the following core feature set:
@@ -23,7 +35,7 @@ To build from source code, Kùzu requires Cmake(>=3.11), Python 3, and a compile
 - Perform a full clean build with tests and benchmark (optional):
   - `make clean && make all`
 - Run tests (optional):
-  - `make test`
+  - `make test && make pytest`
 
 For development, use `make debug` to build a non-optimized debug version.
 To build in parallel, pass `NUM_THREADS` as parameter, e.g., `make NUM_THREADS=8`.
@@ -43,57 +55,59 @@ pip install kuzu
 For more installation and usage instructions, please refer to [our website](https://kuzudb.com/).
 
 ## Example
-We take `tinysnb` as an example graph, which is under `dataset/tinysnb` in our source code, and can be downloaded [here](https://github.com/kuzudb/kuzu/tree/master/dataset/tinysnb).
+We take `tinysnb` as an example graph, which is under `dataset/demo-db/csv` in our source code, and can be downloaded [here](https://github.com/kuzudb/kuzu/tree/master/dataset/demo-db/csv).
 
 ### CLI
 #### Start CLI
 ```
-./build/release/tools/shell/kuzu_shell -i "./test.db"
+./build/release/tools/shell/kuzu_shell -i "./testdb"
 ```
 #### Schema Definition
 ```cypher
-kuzu> CREATE NODE TABLE person (ID INt64, fName STRING, gender INT64, isStudent BOOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration interval, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], PRIMARY KEY (ID));
-kuzu> CREATE REL TABLE knows (FROM person TO person, date DATE, meetTime TIMESTAMP, validInterval INTERVAL, comments STRING[], MANY_MANY);
+kuzu> CREATE NODE TABLE User(name STRING, age INT64, PRIMARY KEY (name));
+kuzu> CREATE REL TABLE Follows(FROM User TO User, since INT64);
 ```
 
 #### Data Import
 ```cypher
-kuzu> COPY person FROM "dataset/tinysnb/vPerson.csv" (HEADER=true);
-kuzu> COPY knows FROM "dataset/tinysnb/eKnows.csv";
+kuzu> COPY User FROM "dataset/demo-db/csv/user.csv";
+kuzu> COPY Follows FROM "dataset/demo-db/csv/follows.csv";
 ```
 
 After creating node/rel tables, and importing csv files, you can now run queries!
 ```cypher
-kuzu> MATCH (b:person)<-[e1:knows]-(a:person)-[e2:knows]->(c:person) RETURN COUNT(*);
+kuzu> MATCH (a:User)-[f:Follows]->(b:User) RETURN a.name, b.name, f.since;
 ```
 
 ### Python
 ```python
 import kuzu
 
-db = kuzu.database('./testpy')
-conn = kuzu.connection(db)
-conn.execute("CREATE NODE TABLE person (ID INt64, fName STRING, gender INT64, isStudent BOOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration interval, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], PRIMARY KEY (ID));")
-conn.execute("CREATE REL TABLE knows (FROM person TO person, date DATE, meetTime TIMESTAMP, validInterval INTERVAL, comments STRING[], MANY_MANY);")
-conn.execute("COPY person FROM 'dataset/tinysnb/vPerson.csv' (HEADER=true);")
-conn.execute("COPY knows FROM 'dataset/tinysnb/eKnows.csv';")
-result = conn.execute("MATCH (b:person)<-[e1:knows]-(a:person)-[e2:knows]->(c:person) RETURN COUNT(*)")
-while result.hasNext():
-  print(result.getNext())
+db = kuzu.Database('./testdb')
+conn = kuzu.Connection(db)
+conn.execute("CREATE NODE TABLE User(name STRING, age INT64, PRIMARY KEY (name))")
+conn.execute("CREATE REL TABLE Follows(FROM User TO User, since INT64)")
+conn.execute('COPY User FROM "user.csv"')
+conn.execute('COPY Follows FROM "follows.csv"')
+# Run a query.
+results = conn.execute('MATCH (u:User) RETURN COUNT(*);')
+while results.hasNext():
+  print(results.getNext())
+# Run a query and get results as a pandas dataframe.
+results = conn.execute('MATCH (a:User)-[f:Follows]->(b:User) RETURN a.name, f.since, b.name;').getAsDF()
+print(results)
+# Run a query and get results as an arrow table.
+results = conn.execute('MATCH (u:User) RETURN u.name, u.age;').get_as_arrow(chunk_size=100)
+print(results)
 ```
 
 Refer to our [Data Import](https://kuzudb.com/docs/data-import) and [Cypher](https://kuzudb.com/docs/cypher) section for more information.
 
-## Code of Conduct
-We are developing Kùzu in a publicly open GitHub repo and encourage everyone 
-to comment and discuss topics related to Kùzu. However, we ask everyone to be
-very respectful and polite in discussions and avoid any hurtful language in any form.
-Kùzu is being developed in Canada, a land that is proud in their high standards
-for politeness and where a person you bumped into on the road will likely
-apologize to you even if it was your fault: so please be 
-kind and respectful to everyone. 
-If you prefer not to discuss something through open issues and discussions, 
-you can always reach us through [email](mailto:contact@kuzudb.com).
+## Contributing
+We welcome contributions to Kùzu. If you are interested in contributing to Kùzu, please read our [Contributing Guide](CONTRIBUTING.md).
+
+## License
+By contributing to Kùzu, you agree that your contributions will be licensed under the [MIT License](LICENSE).
 
 ## Citing Kùzu
 If you are a researcher and use Kùzu in your work, we encourage you to cite our work.

@@ -2,6 +2,8 @@
 
 #include "storage/storage_structure/lists/lists.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace storage {
 
@@ -27,12 +29,12 @@ PageElementCursor InMemListsUtils::calcPageElementCursor(uint32_t header, uint64
 }
 
 InMemLists::InMemLists(
-    string fName, DataType dataType, uint64_t numBytesForElement, uint64_t numNodes)
+    std::string fName, DataType dataType, uint64_t numBytesForElement, uint64_t numNodes)
     : fName{std::move(fName)}, dataType{std::move(dataType)}, numBytesForElement{
                                                                   numBytesForElement} {
     listsMetadataBuilder = make_unique<ListsMetadataBuilder>(this->fName);
     auto numChunks = StorageUtils::getListChunkIdx(numNodes);
-    if (0 != (numNodes & (ListsMetadataConfig::LISTS_CHUNK_SIZE - 1))) {
+    if (0 != (numNodes & (ListsMetadataConstants::LISTS_CHUNK_SIZE - 1))) {
         numChunks++;
     }
     listsMetadataBuilder->initChunkPageLists(numChunks);
@@ -72,8 +74,7 @@ void InMemAdjLists::setElement(uint32_t header, offset_t nodeOffset, uint64_t po
         nodeOffset, *listsMetadataBuilder, false /* hasNULLBytes */);
     auto node = (nodeID_t*)val;
     inMemFile->getPage(cursor.pageIdx)
-        ->writeNodeID(node, cursor.elemPosInPage * numBytesForElement, cursor.elemPosInPage,
-            nodeIDCompressionScheme);
+        ->writeNodeID(node, cursor.elemPosInPage * numBytesForElement, cursor.elemPosInPage);
 }
 
 void InMemLists::initListsMetadataAndAllocatePages(
@@ -87,7 +88,7 @@ void InMemLists::initListsMetadataAndAllocatePages(
     for (auto chunkIdx = 0u; chunkIdx < numChunks; chunkIdx++) {
         uint64_t numPages = 0u, offsetInPage = 0u;
         auto lastNodeOffsetInChunk =
-            min(nodeOffset + ListsMetadataConfig::LISTS_CHUNK_SIZE, numNodes);
+            std::min(nodeOffset + ListsMetadataConstants::LISTS_CHUNK_SIZE, numNodes);
         while (nodeOffset < lastNodeOffsetInChunk) {
             auto header = listHeaders->getHeader(nodeOffset);
             auto numElementsInList = ListHeaders::isALargeList(header) ?
@@ -123,7 +124,7 @@ void InMemLists::initLargeListPageLists(uint64_t numNodes, ListHeaders* listHead
 void InMemLists::allocatePagesForLargeList(
     uint64_t numElementsInList, uint64_t numElementsPerPage, uint32_t& largeListIdx) {
     auto numPagesForLargeList =
-        numElementsInList / numElementsPerPage + numElementsInList % numElementsPerPage ? 1 : 0;
+        numElementsInList / numElementsPerPage + (numElementsInList % numElementsPerPage ? 1 : 0);
     listsMetadataBuilder->populateLargeListPageList(
         largeListIdx, numPagesForLargeList, numElementsInList, inMemFile->getNumPages());
     inMemFile->addNewPages(numPagesForLargeList);
@@ -165,13 +166,14 @@ fill_in_mem_lists_function_t InMemLists::getFillInMemListsFunc(const DataType& d
     case BOOL:
     case DATE:
     case TIMESTAMP:
-    case INTERVAL: {
+    case INTERVAL:
+    case FIXED_LIST: {
         return fillInMemListsWithNonOverflowValFunc;
     }
     case STRING: {
         return fillInMemListsWithStrValFunc;
     }
-    case LIST: {
+    case VAR_LIST: {
         return fillInMemListsWithListValFunc;
     }
     default: {
@@ -185,10 +187,11 @@ void InMemAdjLists::saveToFile() {
     InMemLists::saveToFile();
 }
 
-InMemListsWithOverflow::InMemListsWithOverflow(string fName, DataType dataType, uint64_t numNodes)
+InMemListsWithOverflow::InMemListsWithOverflow(
+    std::string fName, DataType dataType, uint64_t numNodes)
     : InMemLists{
           std::move(fName), std::move(dataType), Types::getDataTypeSize(dataType), numNodes} {
-    assert(this->dataType.typeID == STRING || this->dataType.typeID == LIST);
+    assert(this->dataType.typeID == STRING || this->dataType.typeID == VAR_LIST);
     overflowInMemFile =
         make_unique<InMemOverflowFile>(StorageUtils::getOverflowFileName(this->fName));
 }
@@ -198,19 +201,23 @@ void InMemListsWithOverflow::saveToFile() {
     overflowInMemFile->flush();
 }
 
-unique_ptr<InMemLists> InMemListsFactory::getInMemPropertyLists(
-    const string& fName, const DataType& dataType, uint64_t numNodes) {
+std::unique_ptr<InMemLists> InMemListsFactory::getInMemPropertyLists(
+    const std::string& fName, const DataType& dataType, uint64_t numNodes) {
     switch (dataType.typeID) {
     case INT64:
+    case INT32:
+    case INT16:
     case DOUBLE:
+    case FLOAT:
     case BOOL:
     case DATE:
     case TIMESTAMP:
     case INTERVAL:
+    case FIXED_LIST:
         return make_unique<InMemLists>(fName, dataType, Types::getDataTypeSize(dataType), numNodes);
     case STRING:
         return make_unique<InMemStringLists>(fName, numNodes);
-    case LIST:
+    case VAR_LIST:
         return make_unique<InMemListLists>(fName, dataType, numNodes);
     case INTERNAL_ID:
         return make_unique<InMemRelIDLists>(fName, numNodes);

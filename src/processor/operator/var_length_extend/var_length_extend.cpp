@@ -4,8 +4,8 @@ namespace kuzu {
 namespace processor {
 
 void VarLengthExtend::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
-    boundNodeValueVector = resultSet->getValueVector(boundNodeDataPos);
-    nbrNodeValueVector = resultSet->getValueVector(nbrNodeDataPos);
+    boundNodeValueVector = resultSet->getValueVector(boundNodeDataPos).get();
+    nbrNodeValueVector = resultSet->getValueVector(nbrNodeDataPos).get();
 }
 
 } // namespace processor

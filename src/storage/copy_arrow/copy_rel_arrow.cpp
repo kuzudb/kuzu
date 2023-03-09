@@ -3,25 +3,24 @@
 #include "spdlog/spdlog.h"
 #include "storage/copy_arrow/copy_task.h"
 
+using namespace kuzu::catalog;
+using namespace kuzu::common;
+using namespace kuzu::transaction;
+
 namespace kuzu {
 namespace storage {
 
-CopyRelArrow::CopyRelArrow(CopyDescription& copyDescription, string outputDirectory,
+CopyRelArrow::CopyRelArrow(CopyDescription& copyDescription, std::string outputDirectory,
     TaskScheduler& taskScheduler, Catalog& catalog,
-    map<table_id_t, offset_t> maxNodeOffsetsPerNodeTable, BufferManager* bufferManager,
+    std::map<table_id_t, offset_t> maxNodeOffsetsPerNodeTable, BufferManager* bufferManager,
     table_id_t tableID, RelsStatistics* relsStatistics)
     : CopyStructuresArrow{copyDescription, std::move(outputDirectory), taskScheduler, catalog},
       maxNodeOffsetsPerTable{std::move(maxNodeOffsetsPerNodeTable)}, relsStatistics{
                                                                          relsStatistics} {
     dummyReadOnlyTrx = Transaction::getDummyReadOnlyTrx();
     relTableSchema = catalog.getReadOnlyVersion()->getRelTableSchema(tableID);
-    for (auto& nodeTableID : relTableSchema->getAllNodeTableIDs()) {
-        assert(!pkIndexes.contains(nodeTableID));
-        pkIndexes[nodeTableID] = make_unique<PrimaryKeyIndex>(
-            StorageUtils::getNodeIndexIDAndFName(this->outputDirectory, nodeTableID),
-            catalog.getReadOnlyVersion()->getNodeTableSchema(nodeTableID)->getPrimaryKey().dataType,
-            *bufferManager, nullptr /* wal */);
-    }
+    initializePkIndexes(relTableSchema->srcTableID, *bufferManager);
+    initializePkIndexes(relTableSchema->dstTableID, *bufferManager);
 }
 
 uint64_t CopyRelArrow::copy() {
@@ -35,7 +34,7 @@ uint64_t CopyRelArrow::copy() {
 
     // Construct columns and lists.
     populateAdjColumnsAndCountRelsInAdjLists();
-    if (!directionTableAdjLists[FWD].empty() || !directionTableAdjLists[BWD].empty()) {
+    if (adjListsPerDirection[FWD] != nullptr || adjListsPerDirection[BWD] != nullptr) {
         initAdjListsHeaders();
         initListsMetadata();
         populateLists();
@@ -49,21 +48,9 @@ uint64_t CopyRelArrow::copy() {
 }
 
 void CopyRelArrow::initializeColumnsAndLists() {
-    directionNumRelsPerTable.resize(2);
-    directionTableListSizes.resize(2);
     for (auto relDirection : REL_DIRECTIONS) {
-        for (auto& boundTableID : catalog.getReadOnlyVersion()->getNodeTableIDsForRelTableDirection(
-                 relTableSchema->tableID, relDirection)) {
-            // Note we cannot do:
-            // directionNumRelsPerTable[relDirection][tableIDSchema.first] = atomic<uint64_t>(0);
-            // because atomic values are not movable.
-            directionNumRelsPerTable[relDirection].emplace(boundTableID, 0);
-            directionTableListSizes[relDirection][boundTableID] = make_unique<atomic_uint64_vec_t>(
-                maxNodeOffsetsPerTable.at(boundTableID) + 1 /* num nodes */);
-            directionNodeIDCompressionScheme[relDirection][boundTableID] = NodeIDCompressionScheme(
-                relTableSchema->getUniqueNbrTableIDsForBoundTableIDDirection(
-                    relDirection, boundTableID));
-        }
+        listSizesPerDirection[relDirection] = std::make_unique<atomic_uint64_vec_t>(
+            maxNodeOffsetsPerTable.at(relTableSchema->getBoundTableID(relDirection)) + 1);
         if (catalog.getReadOnlyVersion()->isSingleMultiplicityInDirection(
                 relTableSchema->tableID, relDirection)) {
             initializeColumns(relDirection);
@@ -72,59 +59,48 @@ void CopyRelArrow::initializeColumnsAndLists() {
         }
     }
     for (auto& property : relTableSchema->properties) {
-        if (property.dataType.typeID == LIST || property.dataType.typeID == STRING) {
-            overflowFilePerPropertyID[property.propertyID] = make_unique<InMemOverflowFile>();
+        if (property.dataType.typeID == VAR_LIST || property.dataType.typeID == STRING) {
+            overflowFilePerPropertyID[property.propertyID] = std::make_unique<InMemOverflowFile>();
         }
     }
 }
 
 void CopyRelArrow::initializeColumns(RelDirection relDirection) {
-    auto boundTableIDs = catalog.getReadOnlyVersion()->getNodeTableIDsForRelTableDirection(
-        relTableSchema->tableID, relDirection);
-    for (auto boundTableID : boundTableIDs) {
-        auto numNodes = maxNodeOffsetsPerTable.at(boundTableID) + 1;
-        directionTableAdjColumns[relDirection].emplace(boundTableID,
-            make_unique<InMemAdjColumn>(
-                StorageUtils::getAdjColumnFName(outputDirectory, relTableSchema->tableID,
-                    boundTableID, relDirection, DBFileType::WAL_VERSION),
-                directionNodeIDCompressionScheme[relDirection][boundTableID], numNodes));
-        vector<unique_ptr<InMemColumn>> propertyColumns(relTableSchema->getNumProperties());
-        for (auto i = 0u; i < relTableSchema->getNumProperties(); ++i) {
-            auto propertyID = relTableSchema->properties[i].propertyID;
-            auto propertyDataType = relTableSchema->properties[i].dataType;
-            auto fName =
-                StorageUtils::getRelPropertyColumnFName(outputDirectory, relTableSchema->tableID,
-                    boundTableID, relDirection, propertyID, DBFileType::WAL_VERSION);
-            propertyColumns[i] =
-                InMemColumnFactory::getInMemPropertyColumn(fName, propertyDataType, numNodes);
-        }
-        directionTablePropertyColumns[relDirection].emplace(
-            boundTableID, std::move(propertyColumns));
+    auto boundTableID = relTableSchema->getBoundTableID(relDirection);
+    auto numNodes = maxNodeOffsetsPerTable.at(boundTableID) + 1;
+    adjColumnsPerDirection[relDirection] = std::make_unique<InMemAdjColumn>(
+        StorageUtils::getAdjColumnFName(
+            outputDirectory, relTableSchema->tableID, relDirection, DBFileType::WAL_VERSION),
+        numNodes);
+    std::unordered_map<property_id_t, std::unique_ptr<InMemColumn>> propertyColumns;
+    for (auto i = 0u; i < relTableSchema->getNumProperties(); ++i) {
+        auto propertyID = relTableSchema->properties[i].propertyID;
+        auto propertyDataType = relTableSchema->properties[i].dataType;
+        auto fName = StorageUtils::getRelPropertyColumnFName(outputDirectory,
+            relTableSchema->tableID, relDirection, propertyID, DBFileType::WAL_VERSION);
+        propertyColumns.emplace(propertyID,
+            InMemColumnFactory::getInMemPropertyColumn(fName, propertyDataType, numNodes));
     }
+    propertyColumnsPerDirection[relDirection] = std::move(propertyColumns);
 }
 
 void CopyRelArrow::initializeLists(RelDirection relDirection) {
-    auto boundTableIDs = catalog.getReadOnlyVersion()->getNodeTableIDsForRelTableDirection(
-        relTableSchema->tableID, relDirection);
-    for (auto boundTableID : boundTableIDs) {
-        auto numNodes = maxNodeOffsetsPerTable.at(boundTableID) + 1;
-        directionTableAdjLists[relDirection].emplace(boundTableID,
-            make_unique<InMemAdjLists>(
-                StorageUtils::getAdjListsFName(outputDirectory, relTableSchema->tableID,
-                    boundTableID, relDirection, DBFileType::WAL_VERSION),
-                directionNodeIDCompressionScheme[relDirection][boundTableID], numNodes));
-        vector<unique_ptr<InMemLists>> propertyLists(relTableSchema->getNumProperties());
-        for (auto i = 0u; i < relTableSchema->getNumProperties(); ++i) {
-            auto propertyName = relTableSchema->properties[i].name;
-            auto propertyDataType = relTableSchema->properties[i].dataType;
-            auto fName = StorageUtils::getRelPropertyListsFName(outputDirectory,
-                relTableSchema->tableID, boundTableID, relDirection,
-                relTableSchema->properties[i].propertyID, DBFileType::WAL_VERSION);
-            propertyLists[i] =
-                InMemListsFactory::getInMemPropertyLists(fName, propertyDataType, numNodes);
-        }
-        directionTablePropertyLists[relDirection].emplace(boundTableID, std::move(propertyLists));
+    auto boundTableID = relTableSchema->getBoundTableID(relDirection);
+    auto numNodes = maxNodeOffsetsPerTable.at(boundTableID) + 1;
+    adjListsPerDirection[relDirection] = std::make_unique<InMemAdjLists>(
+        StorageUtils::getAdjListsFName(
+            outputDirectory, relTableSchema->tableID, relDirection, DBFileType::WAL_VERSION),
+        numNodes);
+    std::unordered_map<property_id_t, std::unique_ptr<InMemLists>> propertyLists;
+    for (auto i = 0u; i < relTableSchema->getNumProperties(); ++i) {
+        auto propertyID = relTableSchema->properties[i].propertyID;
+        auto propertyDataType = relTableSchema->properties[i].dataType;
+        auto fName = StorageUtils::getRelPropertyListsFName(outputDirectory,
+            relTableSchema->tableID, relDirection, propertyID, DBFileType::WAL_VERSION);
+        propertyLists.emplace(propertyID,
+            InMemListsFactory::getInMemPropertyLists(fName, propertyDataType, numNodes));
     }
+    propertyListsPerDirection[relDirection] = std::move(propertyLists);
 }
 
 arrow::Status CopyRelArrow::executePopulateTask(PopulateTaskType populateTaskType) {
@@ -151,8 +127,6 @@ void CopyRelArrow::populateAdjColumnsAndCountRelsInAdjLists() {
     auto status =
         executePopulateTask(PopulateTaskType::populateAdjColumnsAndCountRelsInAdjListsTask);
     throwCopyExceptionIfNotOK(status);
-    relsStatistics->setNumRelsPerDirectionBoundTableID(
-        relTableSchema->tableID, directionNumRelsPerTable);
     logger->info("Done populating adj columns and rel property columns for rel {}.",
         relTableSchema->tableName);
 }
@@ -164,16 +138,16 @@ arrow::Status CopyRelArrow::populateFromCSV(PopulateTaskType populateTaskType) {
     }
     logger->debug("Assigning task {0}", getTaskTypeName(populateTaskType));
 
-    shared_ptr<arrow::csv::StreamingReader> csv_streaming_reader;
-    auto status = initCSVReader(csv_streaming_reader, copyDescription.filePath);
-    throwCopyExceptionIfNotOK(status);
+    std::shared_ptr<arrow::csv::StreamingReader> csv_streaming_reader;
+    auto status = initCSVReaderAndCheckStatus(csv_streaming_reader, copyDescription.filePath);
+
     std::shared_ptr<arrow::RecordBatch> currBatch;
     int blockIdx = 0;
     auto blockStartOffset = 0ull;
     auto it = csv_streaming_reader->begin();
     auto endIt = csv_streaming_reader->end();
     while (it != endIt) {
-        for (int i = 0; i < CopyConfig::NUM_COPIER_TASKS_TO_SCHEDULE_PER_BATCH; ++i) {
+        for (int i = 0; i < CopyConstants::NUM_COPIER_TASKS_TO_SCHEDULE_PER_BATCH; ++i) {
             if (it == endIt) {
                 break;
             }
@@ -185,7 +159,7 @@ arrow::Status CopyRelArrow::populateFromCSV(PopulateTaskType populateTaskType) {
             ++blockIdx;
         }
         taskScheduler.waitUntilEnoughTasksFinish(
-            CopyConfig::MINIMUM_NUM_COPIER_TASKS_TO_SCHEDULE_MORE);
+            CopyConstants::MINIMUM_NUM_COPIER_TASKS_TO_SCHEDULE_MORE);
     }
     taskScheduler.waitAllTasksToCompleteOrError();
     return arrow::Status::OK();
@@ -199,13 +173,12 @@ arrow::Status CopyRelArrow::populateFromArrow(PopulateTaskType populateTaskType)
     logger->debug("Assigning task {0}", getTaskTypeName(populateTaskType));
 
     std::shared_ptr<arrow::ipc::RecordBatchFileReader> ipc_reader;
-    auto status = initArrowReader(ipc_reader, copyDescription.filePath);
-    throwCopyExceptionIfNotOK(status);
+    auto status = initArrowReaderAndCheckStatus(ipc_reader, copyDescription.filePath);
     std::shared_ptr<arrow::RecordBatch> currBatch;
     int blockIdx = 0;
     auto blockStartOffset = 0ull;
     while (blockIdx < numBlocks) {
-        for (int i = 0; i < CopyConfig::NUM_COPIER_TASKS_TO_SCHEDULE_PER_BATCH; ++i) {
+        for (int i = 0; i < CopyConstants::NUM_COPIER_TASKS_TO_SCHEDULE_PER_BATCH; ++i) {
             if (blockIdx == numBlocks) {
                 break;
             }
@@ -216,7 +189,7 @@ arrow::Status CopyRelArrow::populateFromArrow(PopulateTaskType populateTaskType)
             ++blockIdx;
         }
         taskScheduler.waitUntilEnoughTasksFinish(
-            CopyConfig::MINIMUM_NUM_COPIER_TASKS_TO_SCHEDULE_MORE);
+            CopyConstants::MINIMUM_NUM_COPIER_TASKS_TO_SCHEDULE_MORE);
     }
 
     taskScheduler.waitAllTasksToCompleteOrError();
@@ -231,13 +204,13 @@ arrow::Status CopyRelArrow::populateFromParquet(PopulateTaskType populateTaskTyp
     logger->debug("Assigning task {0}", getTaskTypeName(populateTaskType));
 
     std::unique_ptr<parquet::arrow::FileReader> reader;
-    auto status = initParquetReader(reader, copyDescription.filePath);
-    throwCopyExceptionIfNotOK(status);
+    auto status = initParquetReaderAndCheckStatus(reader, copyDescription.filePath);
+
     std::shared_ptr<arrow::Table> currTable;
     int blockIdx = 0;
     auto blockStartOffset = 0ull;
     while (blockIdx < numBlocks) {
-        for (int i = 0; i < CopyConfig::NUM_COPIER_TASKS_TO_SCHEDULE_PER_BATCH; ++i) {
+        for (int i = 0; i < CopyConstants::NUM_COPIER_TASKS_TO_SCHEDULE_PER_BATCH; ++i) {
             if (blockIdx == numBlocks) {
                 break;
             }
@@ -248,7 +221,7 @@ arrow::Status CopyRelArrow::populateFromParquet(PopulateTaskType populateTaskTyp
             ++blockIdx;
         }
         taskScheduler.waitUntilEnoughTasksFinish(
-            CopyConfig::MINIMUM_NUM_COPIER_TASKS_TO_SCHEDULE_MORE);
+            CopyConstants::MINIMUM_NUM_COPIER_TASKS_TO_SCHEDULE_MORE);
     }
 
     taskScheduler.waitAllTasksToCompleteOrError();
@@ -256,76 +229,71 @@ arrow::Status CopyRelArrow::populateFromParquet(PopulateTaskType populateTaskTyp
 }
 
 static void putValueIntoColumns(uint64_t propertyIdx,
-    vector<table_property_in_mem_columns_map_t>& directionTablePropertyColumns,
-    const vector<nodeID_t>& nodeIDs, uint8_t* val) {
+    std::vector<std::unordered_map<property_id_t, std::unique_ptr<InMemColumn>>>&
+        directionTablePropertyColumns,
+    const std::vector<common::nodeID_t>& nodeIDs, uint8_t* val) {
     for (auto relDirection : REL_DIRECTIONS) {
-        auto tableID = nodeIDs[relDirection].tableID;
-        if (directionTablePropertyColumns[relDirection].contains(tableID)) {
-            auto propertyColumn =
-                directionTablePropertyColumns[relDirection].at(tableID)[propertyIdx].get();
-            auto nodeOffset = nodeIDs[relDirection].offset;
-            propertyColumn->setElement(nodeOffset, val);
+        if (directionTablePropertyColumns[relDirection].size() == 0) {
+            continue;
         }
+        auto propertyColumn = directionTablePropertyColumns[relDirection][propertyIdx].get();
+        auto nodeOffset = nodeIDs[relDirection].offset;
+        propertyColumn->setElement(nodeOffset, val);
     }
 }
 
 template<typename T>
 void CopyRelArrow::populateAdjColumnsAndCountRelsInAdjListsTask(uint64_t blockId,
-    uint64_t blockStartRelID, CopyRelArrow* copier, const vector<shared_ptr<T>>& batchColumns,
-    CopyDescription& copyDescription) {
+    uint64_t blockStartRelID, CopyRelArrow* copier,
+    const std::vector<std::shared_ptr<T>>& batchColumns, CopyDescription& copyDescription) {
     copier->logger->debug(
         "Start: path=`{0}` blkIdx={1}", copier->copyDescription.filePath, blockId);
-    vector<bool> requireToReadTableLabels{true, true};
-    vector<nodeID_t> nodeIDs{2};
-    vector<DataType> nodePKTypes{2};
+    std::vector<bool> requireToReadTableLabels{true, true};
+    std::vector<nodeID_t> nodeIDs{2};
+    std::vector<DataType> nodePKTypes{2};
     for (auto& relDirection : REL_DIRECTIONS) {
-        auto nodeTableIDs =
-            copier->catalog.getReadOnlyVersion()->getNodeTableIDsForRelTableDirection(
-                copier->relTableSchema->tableID, relDirection);
-        requireToReadTableLabels[relDirection] = nodeTableIDs.size() > 1;
-        nodeIDs[relDirection].tableID = *nodeTableIDs.begin();
+        auto boundTableID = copier->relTableSchema->getBoundTableID(relDirection);
+        nodeIDs[relDirection].tableID = boundTableID;
         nodePKTypes[relDirection] = copier->catalog.getReadOnlyVersion()
-                                        ->getNodeTableSchema(nodeIDs[relDirection].tableID)
+                                        ->getNodeTableSchema(boundTableID)
                                         ->getPrimaryKey()
                                         .dataType;
     }
-    vector<PageByteCursor> inMemOverflowFileCursors{copier->relTableSchema->getNumProperties()};
+    std::vector<PageByteCursor> inMemOverflowFileCursors{
+        copier->relTableSchema->getNumProperties()};
     uint64_t relID = blockStartRelID;
     for (auto blockOffset = 0u; blockOffset < copier->numLinesPerBlock[blockId]; ++blockOffset) {
         int64_t colIndex = 0;
         inferTableIDsAndOffsets(batchColumns, nodeIDs, nodePKTypes, copier->pkIndexes,
-            copier->dummyReadOnlyTrx.get(), copier->catalog, requireToReadTableLabels, blockOffset,
-            colIndex);
+            copier->dummyReadOnlyTrx.get(), copier->catalog, blockOffset, colIndex);
         for (auto relDirection : REL_DIRECTIONS) {
             auto tableID = nodeIDs[relDirection].tableID;
             auto nodeOffset = nodeIDs[relDirection].offset;
-            if (copier->directionTableAdjColumns[relDirection].contains(tableID)) {
-                if (!copier->directionTableAdjColumns[relDirection].at(tableID)->isNullAtNodeOffset(
-                        nodeOffset)) {
+            if (copier->relTableSchema->isSingleMultiplicityInDirection(relDirection)) {
+                if (!copier->adjColumnsPerDirection[relDirection]->isNullAtNodeOffset(nodeOffset)) {
                     auto relTableSchema = copier->relTableSchema;
                     throw CopyException(StringUtils::string_format(
-                        "RelTable %s is a %s table, but node(nodeOffset: %d, tableName: %s) has "
-                        "more than one neighbour in the %s direction.",
-                        relTableSchema->tableName.c_str(),
-                        getRelMultiplicityAsString(relTableSchema->relMultiplicity).c_str(),
-                        nodeOffset,
-                        copier->catalog.getReadOnlyVersion()->getTableName(tableID).c_str(),
-                        getRelDirectionAsString(relDirection).c_str()));
+                        "RelTable {} is a {} table, but node(nodeOffset: {}, tableName: {}) has "
+                        "more than one neighbour in the {} direction.",
+                        relTableSchema->tableName,
+                        getRelMultiplicityAsString(relTableSchema->relMultiplicity), nodeOffset,
+                        copier->catalog.getReadOnlyVersion()->getTableName(tableID),
+                        getRelDirectionAsString(relDirection)));
                 }
-                copier->directionTableAdjColumns[relDirection].at(tableID)->setElement(
+                copier->adjColumnsPerDirection[relDirection]->setElement(
                     nodeOffset, (uint8_t*)&nodeIDs[!relDirection]);
             } else {
                 InMemListsUtils::incrementListSize(
-                    *copier->directionTableListSizes[relDirection].at(tableID), nodeOffset, 1);
+                    *copier->listSizesPerDirection[relDirection], nodeOffset, 1);
             }
-            copier->directionNumRelsPerTable[relDirection].at(tableID)++;
+            copier->numRels++;
         }
         if (copier->relTableSchema->getNumUserDefinedProperties() != 0) {
             putPropsOfLineIntoColumns<T>(copier, inMemOverflowFileCursors, batchColumns, nodeIDs,
                 blockOffset, colIndex, copyDescription);
         }
         putValueIntoColumns(copier->relTableSchema->getRelIDDefinition().propertyID,
-            copier->directionTablePropertyColumns, nodeIDs, (uint8_t*)&relID);
+            copier->propertyColumnsPerDirection, nodeIDs, (uint8_t*)&relID);
         relID++;
     }
     copier->logger->debug("End: path=`{0}` blkIdx={1}", copier->copyDescription.filePath, blockId);
@@ -333,11 +301,11 @@ void CopyRelArrow::populateAdjColumnsAndCountRelsInAdjListsTask(uint64_t blockId
 
 template<typename T>
 void CopyRelArrow::putPropsOfLineIntoColumns(CopyRelArrow* copier,
-    vector<PageByteCursor>& inMemOverflowFileCursors, const vector<shared_ptr<T>>& batchColumns,
-    const vector<nodeID_t>& nodeIDs, int64_t blockOffset, int64_t& colIndex,
-    CopyDescription& copyDescription) {
+    std::vector<PageByteCursor>& inMemOverflowFileCursors,
+    const std::vector<std::shared_ptr<T>>& batchColumns, const std::vector<nodeID_t>& nodeIDs,
+    int64_t blockOffset, int64_t& colIndex, CopyDescription& copyDescription) {
     auto& properties = copier->relTableSchema->properties;
-    auto& directionTablePropertyColumns = copier->directionTablePropertyColumns;
+    auto& directionTablePropertyColumns = copier->propertyColumnsPerDirection;
     auto& inMemOverflowFilePerPropertyID = copier->overflowFilePerPropertyID;
     for (auto propertyIdx = RelTableSchema::INTERNAL_REL_ID_PROPERTY_IDX + 1;
          propertyIdx < properties.size(); propertyIdx++) {
@@ -349,16 +317,27 @@ void CopyRelArrow::putPropsOfLineIntoColumns(CopyRelArrow* copier,
             ++colIndex;
             continue;
         }
-        auto stringToken = currentToken->get()->ToString().substr(0, DEFAULT_PAGE_SIZE);
+        auto stringToken =
+            currentToken->get()->ToString().substr(0, BufferPoolConstants::DEFAULT_PAGE_SIZE);
         const char* data = stringToken.c_str();
         switch (properties[propertyIdx].dataType.typeID) {
         case INT64: {
-            int64_t val = TypeUtils::convertToInt64(data);
+            int64_t val = TypeUtils::convertStringToNumber<int64_t>(data);
+            putValueIntoColumns(propertyIdx, directionTablePropertyColumns, nodeIDs,
+                reinterpret_cast<uint8_t*>(&val));
+        } break;
+        case INT32: {
+            int32_t val = TypeUtils::convertStringToNumber<int32_t>(data);
+            putValueIntoColumns(propertyIdx, directionTablePropertyColumns, nodeIDs,
+                reinterpret_cast<uint8_t*>(&val));
+        } break;
+        case INT16: {
+            int16_t val = TypeUtils::convertStringToNumber<int16_t>(data);
             putValueIntoColumns(propertyIdx, directionTablePropertyColumns, nodeIDs,
                 reinterpret_cast<uint8_t*>(&val));
         } break;
         case DOUBLE: {
-            double_t val = TypeUtils::convertToDouble(data);
+            double_t val = TypeUtils::convertStringToNumber<double_t>(data);
             putValueIntoColumns(propertyIdx, directionTablePropertyColumns, nodeIDs,
                 reinterpret_cast<uint8_t*>(&val));
         } break;
@@ -388,13 +367,24 @@ void CopyRelArrow::putPropsOfLineIntoColumns(CopyRelArrow* copier,
             putValueIntoColumns(propertyIdx, directionTablePropertyColumns, nodeIDs,
                 reinterpret_cast<uint8_t*>(&kuStr));
         } break;
-        case LIST: {
-            auto listVal = getArrowList(stringToken, 1, stringToken.length() - 2,
+        case VAR_LIST: {
+            auto varListVal = getArrowVarList(stringToken, 1, stringToken.length() - 2,
                 properties[propertyIdx].dataType, copyDescription);
             auto kuList = inMemOverflowFilePerPropertyID[propertyIdx]->copyList(
-                *listVal, inMemOverflowFileCursors[propertyIdx]);
+                *varListVal, inMemOverflowFileCursors[propertyIdx]);
             putValueIntoColumns(propertyIdx, directionTablePropertyColumns, nodeIDs,
                 reinterpret_cast<uint8_t*>(&kuList));
+        } break;
+        case FIXED_LIST: {
+            auto fixedListVal = getArrowFixedList(stringToken, 1, stringToken.length() - 2,
+                properties[propertyIdx].dataType, copyDescription);
+            putValueIntoColumns(
+                propertyIdx, directionTablePropertyColumns, nodeIDs, fixedListVal.get());
+        } break;
+        case FLOAT: {
+            float_t val = TypeUtils::convertStringToNumber<float_t>(data);
+            putValueIntoColumns(propertyIdx, directionTablePropertyColumns, nodeIDs,
+                reinterpret_cast<uint8_t*>(&val));
         } break;
         default:
             break;
@@ -404,23 +394,11 @@ void CopyRelArrow::putPropsOfLineIntoColumns(CopyRelArrow* copier,
 }
 
 template<typename T>
-void CopyRelArrow::inferTableIDsAndOffsets(const vector<shared_ptr<T>>& batchColumns,
-    vector<nodeID_t>& nodeIDs, vector<DataType>& nodeIDTypes,
-    const map<table_id_t, unique_ptr<PrimaryKeyIndex>>& pkIndexes, Transaction* transaction,
-    const Catalog& catalog, vector<bool> requireToReadTableLabels, int64_t blockOffset,
-    int64_t& colIndex) {
+void CopyRelArrow::inferTableIDsAndOffsets(const std::vector<std::shared_ptr<T>>& batchColumns,
+    std::vector<nodeID_t>& nodeIDs, std::vector<DataType>& nodeIDTypes,
+    const std::map<table_id_t, std::unique_ptr<PrimaryKeyIndex>>& pkIndexes,
+    Transaction* transaction, const Catalog& catalog, int64_t blockOffset, int64_t& colIndex) {
     for (auto& relDirection : REL_DIRECTIONS) {
-        if (requireToReadTableLabels[relDirection]) {
-            if (colIndex >= batchColumns.size()) {
-                throw CopyException("Number of columns mismatch.");
-            }
-            auto nodeTableName = batchColumns[colIndex]->GetScalar(blockOffset)->get()->ToString();
-            if (!catalog.getReadOnlyVersion()->containNodeTable(nodeTableName)) {
-                throw CopyException("NodeTableName: " + nodeTableName + " does not exist.");
-            }
-            nodeIDs[relDirection].tableID = catalog.getReadOnlyVersion()->getTableID(nodeTableName);
-            ++colIndex;
-        }
         if (colIndex >= batchColumns.size()) {
             throw CopyException("Number of columns mismatch.");
         }
@@ -429,16 +407,16 @@ void CopyRelArrow::inferTableIDsAndOffsets(const vector<shared_ptr<T>>& batchCol
         ++colIndex;
         switch (nodeIDTypes[relDirection].typeID) {
         case INT64: {
-            auto key = TypeUtils::convertToInt64(keyStr);
+            auto key = TypeUtils::convertStringToNumber<int64_t>(keyStr);
             if (!pkIndexes.at(nodeIDs[relDirection].tableID)
                      ->lookup(transaction, key, nodeIDs[relDirection].offset)) {
-                throw CopyException("Cannot find key: " + to_string(key) + " in the pkIndex.");
+                throw CopyException("Cannot find key: " + std::to_string(key) + " in the pkIndex.");
             }
         } break;
         case STRING: {
             if (!pkIndexes.at(nodeIDs[relDirection].tableID)
                      ->lookup(transaction, keyStr, nodeIDs[relDirection].offset)) {
-                throw CopyException("Cannot find key: " + string(keyStr) + " in the pkIndex.");
+                throw CopyException("Cannot find key: " + std::string(keyStr) + " in the pkIndex.");
             }
         } break;
         default:
@@ -450,31 +428,32 @@ void CopyRelArrow::inferTableIDsAndOffsets(const vector<shared_ptr<T>>& batchCol
 }
 
 static void putValueIntoLists(uint64_t propertyIdx,
-    vector<table_property_in_mem_lists_map_t>& directionTablePropertyLists,
-    vector<table_adj_in_mem_lists_map_t>& directionTableAdjLists, const vector<nodeID_t>& nodeIDs,
-    const vector<uint64_t>& reversePos, uint8_t* val) {
+    std::vector<std::unordered_map<common::property_id_t, std::unique_ptr<InMemLists>>>&
+        directionTablePropertyLists,
+    std::vector<std::unique_ptr<InMemAdjLists>>& directionTableAdjLists,
+    const std::vector<nodeID_t>& nodeIDs, const std::vector<uint64_t>& reversePos, uint8_t* val) {
     for (auto relDirection : REL_DIRECTIONS) {
-        auto tableID = nodeIDs[relDirection].tableID;
-        if (directionTablePropertyLists[relDirection].contains(tableID)) {
-            auto propertyList =
-                directionTablePropertyLists[relDirection].at(tableID)[propertyIdx].get();
-            auto nodeOffset = nodeIDs[relDirection].offset;
-            auto header =
-                directionTableAdjLists[relDirection][tableID]->getListHeadersBuilder()->getHeader(
-                    nodeOffset);
-            propertyList->setElement(header, nodeOffset, reversePos[relDirection], val);
+        if (directionTableAdjLists[relDirection] == nullptr) {
+            continue;
         }
+        auto tableID = nodeIDs[relDirection].tableID;
+        auto propertyList = directionTablePropertyLists[relDirection][propertyIdx].get();
+        auto nodeOffset = nodeIDs[relDirection].offset;
+        auto header =
+            directionTableAdjLists[relDirection]->getListHeadersBuilder()->getHeader(nodeOffset);
+        propertyList->setElement(header, nodeOffset, reversePos[relDirection], val);
     }
 }
 
 template<typename T>
 void CopyRelArrow::putPropsOfLineIntoLists(CopyRelArrow* copier,
-    vector<PageByteCursor>& inMemOverflowFileCursors, const vector<shared_ptr<T>>& batchColumns,
-    const vector<nodeID_t>& nodeIDs, const vector<uint64_t>& reversePos, int64_t blockOffset,
-    int64_t& colIndex, CopyDescription& copyDescription) {
+    std::vector<PageByteCursor>& inMemOverflowFileCursors,
+    const std::vector<std::shared_ptr<T>>& batchColumns, const std::vector<nodeID_t>& nodeIDs,
+    const std::vector<uint64_t>& reversePos, int64_t blockOffset, int64_t& colIndex,
+    CopyDescription& copyDescription) {
     auto& properties = copier->relTableSchema->properties;
-    auto& directionTablePropertyLists = copier->directionTablePropertyLists;
-    auto& directionTableAdjLists = copier->directionTableAdjLists;
+    auto& directionTablePropertyLists = copier->propertyListsPerDirection;
+    auto& directionTableAdjLists = copier->adjListsPerDirection;
     auto& inMemOverflowFilesPerProperty = copier->overflowFilePerPropertyID;
     for (auto propertyIdx = RelTableSchema::INTERNAL_REL_ID_PROPERTY_IDX + 1;
          propertyIdx < properties.size(); propertyIdx++) {
@@ -486,16 +465,27 @@ void CopyRelArrow::putPropsOfLineIntoLists(CopyRelArrow* copier,
             ++colIndex;
             continue;
         }
-        auto stringToken = currentToken->get()->ToString().substr(0, DEFAULT_PAGE_SIZE);
+        auto stringToken =
+            currentToken->get()->ToString().substr(0, BufferPoolConstants::DEFAULT_PAGE_SIZE);
         const char* data = stringToken.c_str();
         switch (properties[propertyIdx].dataType.typeID) {
         case INT64: {
-            int64_t val = TypeUtils::convertToInt64(data);
+            int64_t val = TypeUtils::convertStringToNumber<int64_t>(data);
+            putValueIntoLists(propertyIdx, directionTablePropertyLists, directionTableAdjLists,
+                nodeIDs, reversePos, reinterpret_cast<uint8_t*>(&val));
+        } break;
+        case INT32: {
+            int32_t val = TypeUtils::convertStringToNumber<int64_t>(data);
+            putValueIntoLists(propertyIdx, directionTablePropertyLists, directionTableAdjLists,
+                nodeIDs, reversePos, reinterpret_cast<uint8_t*>(&val));
+        } break;
+        case INT16: {
+            int16_t val = TypeUtils::convertStringToNumber<int64_t>(data);
             putValueIntoLists(propertyIdx, directionTablePropertyLists, directionTableAdjLists,
                 nodeIDs, reversePos, reinterpret_cast<uint8_t*>(&val));
         } break;
         case DOUBLE: {
-            double_t val = TypeUtils::convertToDouble(data);
+            double_t val = TypeUtils::convertStringToNumber<double_t>(data);
             putValueIntoLists(propertyIdx, directionTablePropertyLists, directionTableAdjLists,
                 nodeIDs, reversePos, reinterpret_cast<uint8_t*>(&val));
         } break;
@@ -525,13 +515,24 @@ void CopyRelArrow::putPropsOfLineIntoLists(CopyRelArrow* copier,
             putValueIntoLists(propertyIdx, directionTablePropertyLists, directionTableAdjLists,
                 nodeIDs, reversePos, reinterpret_cast<uint8_t*>(&kuStr));
         } break;
-        case LIST: {
-            auto listVal = getArrowList(stringToken, 1, stringToken.length() - 2,
+        case VAR_LIST: {
+            auto varListVal = getArrowVarList(stringToken, 1, stringToken.length() - 2,
                 properties[propertyIdx].dataType, copyDescription);
             auto kuList = inMemOverflowFilesPerProperty[propertyIdx]->copyList(
-                *listVal, inMemOverflowFileCursors[propertyIdx]);
+                *varListVal, inMemOverflowFileCursors[propertyIdx]);
             putValueIntoLists(propertyIdx, directionTablePropertyLists, directionTableAdjLists,
                 nodeIDs, reversePos, reinterpret_cast<uint8_t*>(&kuList));
+        } break;
+        case FIXED_LIST: {
+            auto fixedListVal = getArrowFixedList(stringToken, 1, stringToken.length() - 2,
+                properties[propertyIdx].dataType, copyDescription);
+            putValueIntoLists(propertyIdx, directionTablePropertyLists, directionTableAdjLists,
+                nodeIDs, reversePos, fixedListVal.get());
+        } break;
+        case FLOAT: {
+            auto val = TypeUtils::convertStringToNumber<float_t>(data);
+            putValueIntoLists(propertyIdx, directionTablePropertyLists, directionTableAdjLists,
+                nodeIDs, reversePos, reinterpret_cast<uint8_t*>(&val));
         } break;
         default:
             break;
@@ -543,13 +544,12 @@ void CopyRelArrow::putPropsOfLineIntoLists(CopyRelArrow* copier,
 void CopyRelArrow::initAdjListsHeaders() {
     logger->debug("Initializing AdjListHeaders for rel {}.", relTableSchema->tableName);
     for (auto relDirection : REL_DIRECTIONS) {
-        for (auto& [boundTableID, adjList] : directionTableAdjLists[relDirection]) {
-            auto numBytesPerNode = directionNodeIDCompressionScheme[relDirection][boundTableID]
-                                       .getNumBytesForNodeIDAfterCompression();
+        if (!relTableSchema->isSingleMultiplicityInDirection(relDirection)) {
+            auto boundTableID = relTableSchema->getBoundTableID(relDirection);
             taskScheduler.scheduleTask(CopyTaskFactory::createCopyTask(calculateListHeadersTask,
-                maxNodeOffsetsPerTable.at(boundTableID) + 1, numBytesPerNode,
-                directionTableListSizes[relDirection][boundTableID].get(),
-                adjList->getListHeadersBuilder(), logger));
+                maxNodeOffsetsPerTable.at(boundTableID) + 1, sizeof(offset_t),
+                listSizesPerDirection[relDirection].get(),
+                adjListsPerDirection[relDirection]->getListHeadersBuilder(), logger));
         }
     }
     taskScheduler.waitAllTasksToCompleteOrError();
@@ -560,22 +560,21 @@ void CopyRelArrow::initListsMetadata() {
     logger->debug(
         "Initializing adjLists and propertyLists metadata for rel {}.", relTableSchema->tableName);
     for (auto relDirection : REL_DIRECTIONS) {
-        for (auto& [boundTableID, adjList] : directionTableAdjLists[relDirection]) {
+        if (!relTableSchema->isSingleMultiplicityInDirection(relDirection)) {
+            auto boundTableID = relTableSchema->getBoundTableID(relDirection);
+            auto adjLists = adjListsPerDirection[relDirection].get();
             auto numNodes = maxNodeOffsetsPerTable.at(boundTableID) + 1;
-            auto listSizes = directionTableListSizes[relDirection][boundTableID].get();
-            taskScheduler.scheduleTask(CopyTaskFactory::createCopyTask(
-                calculateListsMetadataAndAllocateInMemListPagesTask, numNodes,
-                directionNodeIDCompressionScheme[relDirection][boundTableID]
-                    .getNumBytesForNodeIDAfterCompression(),
-                listSizes, adjList->getListHeadersBuilder(), adjList.get(), false /*hasNULLBytes*/,
-                logger));
+            auto listSizes = listSizesPerDirection[relDirection].get();
+            taskScheduler.scheduleTask(
+                CopyTaskFactory::createCopyTask(calculateListsMetadataAndAllocateInMemListPagesTask,
+                    numNodes, sizeof(offset_t), listSizes, adjLists->getListHeadersBuilder(),
+                    adjLists, false /*hasNULLBytes*/, logger));
             for (auto& property : relTableSchema->properties) {
                 taskScheduler.scheduleTask(CopyTaskFactory::createCopyTask(
                     calculateListsMetadataAndAllocateInMemListPagesTask, numNodes,
                     Types::getDataTypeSize(property.dataType), listSizes,
-                    adjList->getListHeadersBuilder(),
-                    directionTablePropertyLists[relDirection][boundTableID][property.propertyID]
-                        .get(),
+                    adjLists->getListHeadersBuilder(),
+                    propertyListsPerDirection[relDirection][property.propertyID].get(),
                     true /*hasNULLBytes*/, logger));
             }
         }
@@ -583,6 +582,14 @@ void CopyRelArrow::initListsMetadata() {
     taskScheduler.waitAllTasksToCompleteOrError();
     logger->debug("Done initializing adjLists and propertyLists metadata for rel {}.",
         relTableSchema->tableName);
+}
+
+void CopyRelArrow::initializePkIndexes(table_id_t nodeTableID, BufferManager& bufferManager) {
+    pkIndexes.emplace(nodeTableID,
+        std::make_unique<PrimaryKeyIndex>(
+            StorageUtils::getNodeIndexIDAndFName(this->outputDirectory, nodeTableID),
+            catalog.getReadOnlyVersion()->getNodeTableSchema(nodeTableID)->getPrimaryKey().dataType,
+            bufferManager, nullptr /* wal */));
 }
 
 void CopyRelArrow::populateLists() {
@@ -596,42 +603,37 @@ void CopyRelArrow::populateLists() {
 
 template<typename T>
 void CopyRelArrow::populateListsTask(uint64_t blockId, uint64_t blockStartRelID,
-    CopyRelArrow* copier, const vector<shared_ptr<T>>& batchColumns,
+    CopyRelArrow* copier, const std::vector<std::shared_ptr<T>>& batchColumns,
     CopyDescription& copyDescription) {
     copier->logger->trace(
         "Start: path=`{0}` blkIdx={1}", copier->copyDescription.filePath, blockId);
-    vector<bool> requireToReadTableLabels{true, true};
-    vector<nodeID_t> nodeIDs(2);
-    vector<DataType> nodePKTypes(2);
-    vector<uint64_t> reversePos(2);
+    std::vector<nodeID_t> nodeIDs(2);
+    std::vector<DataType> nodePKTypes(2);
+    std::vector<uint64_t> reversePos(2);
     for (auto relDirection : REL_DIRECTIONS) {
-        auto nodeTableIDs =
-            copier->catalog.getReadOnlyVersion()->getNodeTableIDsForRelTableDirection(
-                copier->relTableSchema->tableID, relDirection);
-        requireToReadTableLabels[relDirection] = nodeTableIDs.size() != 1;
-        nodeIDs[relDirection].tableID = *nodeTableIDs.begin();
+        auto boundTableID = copier->relTableSchema->getBoundTableID(relDirection);
+        nodeIDs[relDirection].tableID = boundTableID;
         nodePKTypes[relDirection] = copier->catalog.getReadOnlyVersion()
                                         ->getNodeTableSchema(nodeIDs[relDirection].tableID)
                                         ->getPrimaryKey()
                                         .dataType;
     }
-    vector<PageByteCursor> inMemOverflowFileCursors(copier->relTableSchema->getNumProperties());
+    std::vector<PageByteCursor> inMemOverflowFileCursors(
+        copier->relTableSchema->getNumProperties());
     uint64_t relID = blockStartRelID;
     for (auto blockOffset = 0u; blockOffset < copier->numLinesPerBlock[blockId]; ++blockOffset) {
         int64_t colIndex = 0;
         inferTableIDsAndOffsets(batchColumns, nodeIDs, nodePKTypes, copier->pkIndexes,
-            copier->dummyReadOnlyTrx.get(), copier->catalog, requireToReadTableLabels, blockOffset,
-            colIndex);
+            copier->dummyReadOnlyTrx.get(), copier->catalog, blockOffset, colIndex);
         for (auto relDirection : REL_DIRECTIONS) {
             if (!copier->catalog.getReadOnlyVersion()->isSingleMultiplicityInDirection(
                     copier->relTableSchema->tableID, relDirection)) {
                 auto nodeOffset = nodeIDs[relDirection].offset;
                 auto tableID = nodeIDs[relDirection].tableID;
-                auto adjList = copier->directionTableAdjLists[relDirection][tableID].get();
+                auto adjLists = copier->adjListsPerDirection[relDirection].get();
                 reversePos[relDirection] = InMemListsUtils::decrementListSize(
-                    *copier->directionTableListSizes[relDirection][tableID],
-                    nodeIDs[relDirection].offset, 1);
-                adjList->setElement(adjList->getListHeadersBuilder()->getHeader(nodeOffset),
+                    *copier->listSizesPerDirection[relDirection], nodeIDs[relDirection].offset, 1);
+                adjLists->setElement(adjLists->getListHeadersBuilder()->getHeader(nodeOffset),
                     nodeOffset, reversePos[relDirection], (uint8_t*)(&nodeIDs[!relDirection]));
             }
         }
@@ -640,8 +642,8 @@ void CopyRelArrow::populateListsTask(uint64_t blockId, uint64_t blockStartRelID,
                 reversePos, blockOffset, colIndex, copyDescription);
         }
         putValueIntoLists(copier->relTableSchema->getRelIDDefinition().propertyID,
-            copier->directionTablePropertyLists, copier->directionTableAdjLists, nodeIDs,
-            reversePos, (uint8_t*)&relID);
+            copier->propertyListsPerDirection, copier->adjListsPerDirection, nodeIDs, reversePos,
+            (uint8_t*)&relID);
         relID++;
     }
     copier->logger->trace("End: path=`{0}` blkIdx={1}", copier->copyDescription.filePath, blockId);
@@ -679,7 +681,7 @@ void CopyRelArrow::sortOverflowValuesOfPropertyColumnTask(const DataType& dataTy
             auto kuStr = reinterpret_cast<ku_string_t*>(propertyColumn->getElement(offsetStart));
             copyStringOverflowFromUnorderedToOrderedPages(kuStr, unorderedOverflowCursor,
                 orderedOverflowCursor, unorderedInMemOverflowFile, orderedInMemOverflowFile);
-        } else if (dataType.typeID == LIST) {
+        } else if (dataType.typeID == VAR_LIST) {
             auto kuList = reinterpret_cast<ku_list_t*>(propertyColumn->getElement(offsetStart));
             copyListOverflowFromUnorderedToOrderedPages(kuList, dataType, unorderedOverflowCursor,
                 orderedOverflowCursor, unorderedInMemOverflowFile, orderedInMemOverflowFile);
@@ -710,7 +712,7 @@ void CopyRelArrow::sortOverflowValuesOfPropertyListsTask(const DataType& dataTyp
                     propertyListCursor.pageIdx, propertyListCursor.elemPosInPage));
                 copyStringOverflowFromUnorderedToOrderedPages(kuStr, unorderedOverflowCursor,
                     orderedOverflowCursor, unorderedInMemOverflowFile, orderedInMemOverflowFile);
-            } else if (dataType.typeID == LIST) {
+            } else if (dataType.typeID == VAR_LIST) {
                 auto kuList = reinterpret_cast<ku_list_t*>(propertyLists->getMemPtrToLoc(
                     propertyListCursor.pageIdx, propertyListCursor.elemPosInPage));
                 copyListOverflowFromUnorderedToOrderedPages(kuList, dataType,
@@ -726,22 +728,22 @@ void CopyRelArrow::sortOverflowValuesOfPropertyListsTask(const DataType& dataTyp
 void CopyRelArrow::sortAndCopyOverflowValues() {
     for (auto relDirection : REL_DIRECTIONS) {
         // Sort overflow values of property Lists.
-        for (auto& [tableID, adjList] : directionTableAdjLists[relDirection]) {
-            auto numNodes = maxNodeOffsetsPerTable.at(tableID) + 1;
+        if (!relTableSchema->isSingleMultiplicityInDirection(relDirection)) {
+            auto boundTableID = relTableSchema->getBoundTableID(relDirection);
+            auto numNodes = maxNodeOffsetsPerTable.at(boundTableID) + 1;
             auto numBuckets = numNodes / 256;
             numBuckets += (numNodes % 256 != 0);
             for (auto& property : relTableSchema->properties) {
-                if (property.dataType.typeID == STRING || property.dataType.typeID == LIST) {
+                if (property.dataType.typeID == STRING || property.dataType.typeID == VAR_LIST) {
                     offset_t offsetStart = 0, offsetEnd = 0;
                     for (auto bucketIdx = 0u; bucketIdx < numBuckets; bucketIdx++) {
                         offsetStart = offsetEnd;
-                        offsetEnd = min(offsetStart + 256, numNodes);
-                        auto propertyList = directionTablePropertyLists[relDirection]
-                                                .at(tableID)[property.propertyID]
-                                                .get();
+                        offsetEnd = std::min(offsetStart + 256, numNodes);
+                        auto propertyList =
+                            propertyListsPerDirection[relDirection][property.propertyID].get();
                         taskScheduler.scheduleTask(CopyTaskFactory::createCopyTask(
                             sortOverflowValuesOfPropertyListsTask, property.dataType, offsetStart,
-                            offsetEnd, adjList.get(), propertyList,
+                            offsetEnd, adjListsPerDirection[relDirection].get(), propertyList,
                             overflowFilePerPropertyID.at(property.propertyID).get(),
                             propertyList->getInMemOverflowFile()));
                     }
@@ -752,19 +754,19 @@ void CopyRelArrow::sortAndCopyOverflowValues() {
     }
     // Sort overflow values of property columns.
     for (auto relDirection : REL_DIRECTIONS) {
-        for (auto& [tableID, column] : directionTablePropertyColumns[relDirection]) {
-            auto numNodes = maxNodeOffsetsPerTable.at(tableID) + 1;
+        if (relTableSchema->isSingleMultiplicityInDirection(relDirection)) {
+            auto numNodes =
+                maxNodeOffsetsPerTable.at(relTableSchema->getBoundTableID(relDirection)) + 1;
             auto numBuckets = numNodes / 256;
             numBuckets += (numNodes % 256 != 0);
             for (auto& property : relTableSchema->properties) {
-                if (property.dataType.typeID == STRING || property.dataType.typeID == LIST) {
+                if (property.dataType.typeID == STRING || property.dataType.typeID == VAR_LIST) {
                     offset_t offsetStart = 0, offsetEnd = 0;
                     for (auto bucketIdx = 0u; bucketIdx < numBuckets; bucketIdx++) {
                         offsetStart = offsetEnd;
-                        offsetEnd = min(offsetStart + 256, numNodes);
-                        auto propertyColumn = directionTablePropertyColumns[relDirection]
-                                                  .at(tableID)[property.propertyID]
-                                                  .get();
+                        offsetEnd = std::min(offsetStart + 256, numNodes);
+                        auto propertyColumn =
+                            propertyColumnsPerDirection[relDirection][property.propertyID].get();
                         taskScheduler.scheduleTask(
                             CopyTaskFactory::createCopyTask(sortOverflowValuesOfPropertyColumnTask,
                                 property.dataType, offsetStart, offsetEnd, propertyColumn,
@@ -782,23 +784,15 @@ void CopyRelArrow::sortAndCopyOverflowValues() {
 void CopyRelArrow::saveToFile() {
     logger->debug("Writing columns and Lists to disk for rel {}.", relTableSchema->tableName);
     for (auto relDirection : REL_DIRECTIONS) {
-        // Write columns
-        for (auto& [_, adjColumn] : directionTableAdjColumns[relDirection]) {
-            adjColumn->saveToFile();
-        }
-        for (auto& [_, propertyColumns] : directionTablePropertyColumns[relDirection]) {
-            for (auto propertyIdx = 0u; propertyIdx < relTableSchema->getNumProperties();
-                 propertyIdx++) {
-                propertyColumns[propertyIdx]->saveToFile();
+        if (relTableSchema->isSingleMultiplicityInDirection(relDirection)) {
+            adjColumnsPerDirection[relDirection]->saveToFile();
+            for (auto& [_, propertyColumn] : propertyColumnsPerDirection[relDirection]) {
+                propertyColumn->saveToFile();
             }
-        }
-        for (auto& [_, adjList] : directionTableAdjLists[relDirection]) {
-            adjList->saveToFile();
-        }
-        for (auto& [_, propertyLists] : directionTablePropertyLists[relDirection]) {
-            for (auto propertyIdx = 0u; propertyIdx < relTableSchema->getNumProperties();
-                 propertyIdx++) {
-                propertyLists[propertyIdx]->saveToFile();
+        } else {
+            adjListsPerDirection[relDirection]->saveToFile();
+            for (auto& [_, propertyLists] : propertyListsPerDirection[relDirection]) {
+                propertyLists->saveToFile();
             }
         }
     }

@@ -23,3 +23,14 @@
 -ENUMERATE
 ---- 1
 5
+
+-NAME SimpleDistinctCollectINT64Test
+-QUERY MATCH (p:person) RETURN collect(distinct p.age)
+---- 1
+[35,30,45,20,25,40,83]
+
+-NAME HashDistinctCollectDoubleTest
+-QUERY MATCH (p:person) RETURN p.gender, collect(distinct p.isStudent)
+---- 2
+1|[True,False]
+2|[True,False]

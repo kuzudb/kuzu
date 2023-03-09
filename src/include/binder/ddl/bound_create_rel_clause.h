@@ -7,20 +7,24 @@ namespace binder {
 
 class BoundCreateRelClause : public BoundCreateTable {
 public:
-    explicit BoundCreateRelClause(string tableName,
-        vector<PropertyNameDataType> propertyNameDataTypes, RelMultiplicity relMultiplicity,
-        vector<pair<table_id_t, table_id_t>> srcDstTableIDs)
-        : BoundCreateTable{StatementType::CREATE_REL_CLAUSE, move(tableName),
-              move(propertyNameDataTypes)},
-          relMultiplicity{relMultiplicity}, srcDstTableIDs{move(srcDstTableIDs)} {}
+    BoundCreateRelClause(std::string tableName,
+        std::vector<catalog::PropertyNameDataType> propertyNameDataTypes,
+        catalog::RelMultiplicity relMultiplicity, common::table_id_t srcTableID,
+        common::table_id_t dstTableID)
+        : BoundCreateTable{common::StatementType::CREATE_REL_CLAUSE, std::move(tableName),
+              std::move(propertyNameDataTypes)},
+          relMultiplicity{relMultiplicity}, srcTableID{srcTableID}, dstTableID{dstTableID} {}
 
-    RelMultiplicity getRelMultiplicity() const { return relMultiplicity; }
+    inline catalog::RelMultiplicity getRelMultiplicity() const { return relMultiplicity; }
 
-    vector<pair<table_id_t, table_id_t>> getSrcDstTableIDs() const { return srcDstTableIDs; }
+    inline common::table_id_t getSrcTableID() const { return srcTableID; }
+
+    inline common::table_id_t getDstTableID() const { return dstTableID; }
 
 private:
-    RelMultiplicity relMultiplicity;
-    vector<pair<table_id_t, table_id_t>> srcDstTableIDs;
+    catalog::RelMultiplicity relMultiplicity;
+    common::table_id_t srcTableID;
+    common::table_id_t dstTableID;
 };
 
 } // namespace binder

@@ -7,9 +7,6 @@
 #include "common/types/ku_string.h"
 #include "function/string/operations/array_extract_operation.h"
 
-using namespace std;
-using namespace kuzu::common;
-
 namespace kuzu {
 namespace function {
 namespace operation {
@@ -17,7 +14,7 @@ namespace operation {
 struct ListExtract {
 public:
     template<typename T>
-    static inline void setValue(T& src, T& dest, ValueVector& resultValueVector) {
+    static inline void setValue(T& src, T& dest, common::ValueVector& resultValueVector) {
         dest = src;
     }
 
@@ -25,18 +22,19 @@ public:
     // is 1).
     template<typename T>
     static inline void operation(
-        ku_list_t& list, int64_t pos, T& result, ValueVector& resultValueVector) {
+        common::ku_list_t& list, int64_t pos, T& result, common::ValueVector& resultValueVector) {
         auto uint64Pos = (uint64_t)pos;
         if (list.size < uint64Pos) {
-            throw RuntimeException("list_extract(list, index): index=" + TypeUtils::toString(pos) +
-                                   " is out of range.");
+            throw common::RuntimeException("list_extract(list, index): index=" +
+                                           common::TypeUtils::toString(pos) + " is out of range.");
         }
         auto values = reinterpret_cast<T*>(list.overflowPtr);
         result = values[uint64Pos - 1];
         setValue(values[uint64Pos - 1], result, resultValueVector);
     }
 
-    static inline void operation(ku_string_t& str, int64_t& idx, ku_string_t& result) {
+    static inline void operation(
+        common::ku_string_t& str, int64_t& idx, common::ku_string_t& result) {
         if (str.len < idx) {
             result.set("", 0);
         } else {
@@ -47,8 +45,8 @@ public:
 
 template<>
 inline void ListExtract::setValue(
-    ku_string_t& src, ku_string_t& dest, ValueVector& resultValueVector) {
-    if (!ku_string_t::isShortString(src.len)) {
+    common::ku_string_t& src, common::ku_string_t& dest, common::ValueVector& resultValueVector) {
+    if (!common::ku_string_t::isShortString(src.len)) {
         dest.overflowPtr = reinterpret_cast<uint64_t>(
             resultValueVector.getOverflowBuffer().allocateSpace(src.len));
     }
@@ -56,8 +54,9 @@ inline void ListExtract::setValue(
 }
 
 template<>
-inline void ListExtract::setValue(ku_list_t& src, ku_list_t& dest, ValueVector& resultValueVector) {
-    InMemOverflowBufferUtils::copyListRecursiveIfNested(
+inline void ListExtract::setValue(
+    common::ku_list_t& src, common::ku_list_t& dest, common::ValueVector& resultValueVector) {
+    common::InMemOverflowBufferUtils::copyListRecursiveIfNested(
         src, dest, resultValueVector.dataType, resultValueVector.getOverflowBuffer());
 }
 

@@ -7,26 +7,32 @@ namespace planner {
 
 class LogicalUnwind : public LogicalOperator {
 public:
-    LogicalUnwind(shared_ptr<Expression> expression, shared_ptr<Expression> aliasExpression,
-        shared_ptr<LogicalOperator> childOperator)
+    LogicalUnwind(std::shared_ptr<binder::Expression> expression,
+        std::shared_ptr<binder::Expression> aliasExpression,
+        std::shared_ptr<LogicalOperator> childOperator)
         : LogicalOperator{LogicalOperatorType::UNWIND, std::move(childOperator)},
           expression{std::move(expression)}, aliasExpression{std::move(aliasExpression)} {}
 
-    void computeSchema() override;
+    f_group_pos_set getGroupsPosToFlatten();
 
-    inline shared_ptr<Expression> getExpression() { return expression; }
+    void computeFactorizedSchema() override;
+    void computeFlatSchema() override;
 
-    inline shared_ptr<Expression> getAliasExpression() { return aliasExpression; }
+    inline std::shared_ptr<binder::Expression> getExpression() { return expression; }
 
-    inline string getExpressionsForPrinting() const override { return expression->getUniqueName(); }
+    inline std::shared_ptr<binder::Expression> getAliasExpression() { return aliasExpression; }
 
-    inline unique_ptr<LogicalOperator> copy() override {
+    inline std::string getExpressionsForPrinting() const override {
+        return expression->getUniqueName();
+    }
+
+    inline std::unique_ptr<LogicalOperator> copy() override {
         return make_unique<LogicalUnwind>(expression, aliasExpression, children[0]->copy());
     }
 
 private:
-    shared_ptr<Expression> expression;
-    shared_ptr<Expression> aliasExpression;
+    std::shared_ptr<binder::Expression> expression;
+    std::shared_ptr<binder::Expression> aliasExpression;
 };
 
 } // namespace planner

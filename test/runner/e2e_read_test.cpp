@@ -4,14 +4,16 @@ using ::testing::Test;
 using namespace kuzu::testing;
 
 class LongStringPKTest : public DBTest {
-    string getInputDir() override {
+    std::string getInputDir() override {
         return TestHelper::appendKuzuRootPath("dataset/long-string-pk-tests/");
     }
 };
 
 class TinySnbReadTest : public DBTest {
 public:
-    string getInputDir() override { return TestHelper::appendKuzuRootPath("dataset/tinysnb/"); }
+    std::string getInputDir() override {
+        return TestHelper::appendKuzuRootPath("dataset/tinysnb/");
+    }
 };
 
 TEST_F(LongStringPKTest, LongStringPKTest) {
@@ -39,6 +41,7 @@ TEST_F(TinySnbReadTest, Filter) {
 }
 
 TEST_F(TinySnbReadTest, Function) {
+    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinysnb/function/offset.test"));
     runTest(TestHelper::appendKuzuRootPath("test/test_files/tinysnb/function/date.test"));
     runTest(TestHelper::appendKuzuRootPath("test/test_files/tinysnb/function/timestamp.test"));
     runTest(TestHelper::appendKuzuRootPath("test/test_files/tinysnb/function/interval.test"));

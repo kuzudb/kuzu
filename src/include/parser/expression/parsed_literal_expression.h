@@ -8,13 +8,13 @@ namespace parser {
 
 class ParsedLiteralExpression : public ParsedExpression {
 public:
-    ParsedLiteralExpression(unique_ptr<Value> value, string raw)
-        : ParsedExpression{LITERAL, std::move(raw)}, value{std::move(value)} {}
+    ParsedLiteralExpression(std::unique_ptr<common::Value> value, std::string raw)
+        : ParsedExpression{common::LITERAL, std::move(raw)}, value{std::move(value)} {}
 
-    inline Value* getValue() const { return value.get(); }
+    inline common::Value* getValue() const { return value.get(); }
 
 private:
-    unique_ptr<Value> value;
+    std::unique_ptr<common::Value> value;
 };
 
 } // namespace parser

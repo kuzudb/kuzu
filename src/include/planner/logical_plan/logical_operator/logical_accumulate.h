@@ -7,25 +7,21 @@ namespace planner {
 
 class LogicalAccumulate : public LogicalOperator {
 public:
-    LogicalAccumulate(expression_vector expressions, shared_ptr<LogicalOperator> child)
-        : LogicalOperator{LogicalOperatorType::ACCUMULATE, std::move(child)}, expressions{std::move(
-                                                                                  expressions)} {}
+    LogicalAccumulate(std::shared_ptr<LogicalOperator> child)
+        : LogicalOperator{LogicalOperatorType::ACCUMULATE, std::move(child)} {}
 
-    void computeSchema() override;
+    void computeFactorizedSchema() override;
+    void computeFlatSchema() override;
 
-    inline string getExpressionsForPrinting() const override {
-        return ExpressionUtil::toString(expressions);
+    inline std::string getExpressionsForPrinting() const override { return std::string{}; }
+
+    inline binder::expression_vector getExpressions() const {
+        return children[0]->getSchema()->getExpressionsInScope();
     }
 
-    inline expression_vector getExpressions() const { return expressions; }
-    inline Schema* getSchemaBeforeSink() const { return children[0]->getSchema(); }
-
-    inline unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalAccumulate>(expressions, children[0]->copy());
+    inline std::unique_ptr<LogicalOperator> copy() override {
+        return make_unique<LogicalAccumulate>(children[0]->copy());
     }
-
-private:
-    expression_vector expressions;
 };
 
 } // namespace planner

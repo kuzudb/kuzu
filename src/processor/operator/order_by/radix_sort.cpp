@@ -4,6 +4,7 @@
 
 #include "function/comparison/comparison_operations.h"
 
+using namespace kuzu::common;
 using namespace kuzu::function::operation;
 
 namespace kuzu {
@@ -12,7 +13,7 @@ namespace processor {
 void RadixSort::sortSingleKeyBlock(const DataBlock& keyBlock) {
     auto numBytesSorted = 0ul;
     auto numTuplesInKeyBlock = keyBlock.numTuples;
-    queue<TieRange> ties;
+    std::queue<TieRange> ties;
     // We need to sort the whole keyBlock for the first radix sort, so just mark all tuples as a
     // tie.
     ties.push(TieRange{0, numTuplesInKeyBlock - 1});
@@ -74,7 +75,7 @@ void RadixSort::radixSort(uint8_t* keyBlockPtr, uint32_t numTuplesToSort, uint32
         }
         auto maxCounter = count[0];
         for (auto val = 1ul; val < countingArraySize; val++) {
-            maxCounter = max(count[val], maxCounter);
+            maxCounter = std::max(count[val], maxCounter);
             count[val] = count[val] + count[val - 1];
         }
         // If all bytes have the same value (tie), continue on the next byte.
@@ -96,9 +97,9 @@ void RadixSort::radixSort(uint8_t* keyBlockPtr, uint32_t numTuplesToSort, uint32
     }
 }
 
-vector<TieRange> RadixSort::findTies(uint8_t* keyBlockPtr, uint32_t numTuplesToFindTies,
+std::vector<TieRange> RadixSort::findTies(uint8_t* keyBlockPtr, uint32_t numTuplesToFindTies,
     uint32_t numBytesToSort, uint32_t baseTupleIdx) {
-    vector<TieRange> newTiesInKeyBlock;
+    std::vector<TieRange> newTiesInKeyBlock;
     auto iTuplePtr = keyBlockPtr;
     for (auto i = 0u; i < numTuplesToFindTies - 1; i++) {
         auto j = i + 1;
@@ -139,8 +140,8 @@ void RadixSort::reOrderKeyBlock(TieRange& keyBlockTie, uint8_t* keyBlockPtr) {
 }
 
 template<typename TYPE>
-void RadixSort::findStringTies(
-    TieRange& keyBlockTie, uint8_t* keyBlockPtr, queue<TieRange>& ties, StrKeyColInfo& keyColInfo) {
+void RadixSort::findStringTies(TieRange& keyBlockTie, uint8_t* keyBlockPtr,
+    std::queue<TieRange>& ties, StrKeyColInfo& keyColInfo) {
     auto iTuplePtr = keyBlockPtr;
     for (auto i = keyBlockTie.startingTupleIdx; i < keyBlockTie.endingTupleIdx; i++) {
         bool isIValNull = OrderByKeyEncoder::isNullVal(
@@ -172,7 +173,7 @@ void RadixSort::findStringTies(
                 // not equal.
                 break;
             }
-            if constexpr (is_same<TYPE, ku_string_t>::value) {
+            if constexpr (std::is_same<TYPE, ku_string_t>::value) {
                 // We do an optimization here to minimize the number of times that we fetch
                 // tuples from factorizedTable. If both left and right string are short, they
                 // must equal to each other (since they have the same prefix). If one string is
@@ -208,19 +209,25 @@ void RadixSort::findStringTies(
     }
 }
 
-void RadixSort::solveStringTies(
-    TieRange& keyBlockTie, uint8_t* keyBlockPtr, queue<TieRange>& ties, StrKeyColInfo& keyColInfo) {
+void RadixSort::solveStringTies(TieRange& keyBlockTie, uint8_t* keyBlockPtr,
+    std::queue<TieRange>& ties, StrKeyColInfo& keyColInfo) {
     fillTmpTuplePtrSortingBlock(keyBlockTie, keyBlockPtr);
     auto tmpTuplePtrSortingBlockPtr = (uint8_t**)tmpTuplePtrSortingBlock->getData();
-    sort(tmpTuplePtrSortingBlockPtr, tmpTuplePtrSortingBlockPtr + keyBlockTie.getNumTuples(),
+    std::sort(tmpTuplePtrSortingBlockPtr, tmpTuplePtrSortingBlockPtr + keyBlockTie.getNumTuples(),
         [this, keyColInfo](const uint8_t* leftPtr, const uint8_t* rightPtr) -> bool {
+            auto isLeftNull = OrderByKeyEncoder::isNullVal(
+                leftPtr + keyColInfo.colOffsetInEncodedKeyBlock, keyColInfo.isAscOrder);
+            auto isRightNull = OrderByKeyEncoder::isNullVal(
+                rightPtr + keyColInfo.colOffsetInEncodedKeyBlock, keyColInfo.isAscOrder);
             // Handle null value comparison.
-            if (OrderByKeyEncoder::isNullVal(
-                    rightPtr + keyColInfo.colOffsetInEncodedKeyBlock, keyColInfo.isAscOrder)) {
-                return keyColInfo.isAscOrder;
-            } else if (OrderByKeyEncoder::isNullVal(leftPtr + keyColInfo.colOffsetInEncodedKeyBlock,
-                           keyColInfo.isAscOrder)) {
+            if (isLeftNull && isRightNull) {
+                // If left and right strings are both null, we can't conclude that the left string
+                // is smaller than the right string.
+                return false;
+            } else if (isLeftNull) {
                 return !keyColInfo.isAscOrder;
+            } else if (isRightNull) {
+                return keyColInfo.isAscOrder;
             }
 
             // We only need to fetch the actual strings from the
@@ -250,10 +257,11 @@ void RadixSort::solveStringTies(
             const auto rightBlockIdx = OrderByKeyEncoder::getEncodedFTBlockIdx(rightTupleInfoPtr);
             const auto rightBlockOffset =
                 OrderByKeyEncoder::getEncodedFTBlockOffset(rightTupleInfoPtr);
-            return keyColInfo.isAscOrder == (factorizedTable.getData<ku_string_t>(leftBlockIdx,
-                                                 leftBlockOffset, keyColInfo.colOffsetInFT) <
-                                                factorizedTable.getData<ku_string_t>(rightBlockIdx,
-                                                    rightBlockOffset, keyColInfo.colOffsetInFT));
+            auto leftStr = factorizedTable.getData<ku_string_t>(
+                leftBlockIdx, leftBlockOffset, keyColInfo.colOffsetInFT);
+            auto rightStr = factorizedTable.getData<ku_string_t>(
+                rightBlockIdx, rightBlockOffset, keyColInfo.colOffsetInFT);
+            return keyColInfo.isAscOrder ? leftStr < rightStr : leftStr > rightStr;
         });
     reOrderKeyBlock(keyBlockTie, keyBlockPtr);
     findStringTies<ku_string_t>(keyBlockTie, keyBlockPtr, ties, keyColInfo);

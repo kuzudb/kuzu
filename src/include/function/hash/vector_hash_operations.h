@@ -8,7 +8,7 @@ namespace function {
 
 struct UnaryHashOperationExecutor {
     template<typename OPERAND_TYPE, typename RESULT_TYPE>
-    static void execute(ValueVector& operand, ValueVector& result) {
+    static void execute(common::ValueVector& operand, common::ValueVector& result) {
         auto resultValues = (RESULT_TYPE*)result.getData();
         if (operand.state->isFlat()) {
             auto pos = operand.state->selVector->selectedPositions[0];
@@ -58,9 +58,10 @@ struct UnaryHashOperationExecutor {
 };
 
 struct VectorHashOperations {
-    static void computeHash(ValueVector* operand, ValueVector* result);
+    static void computeHash(common::ValueVector* operand, common::ValueVector* result);
 
-    static void combineHash(ValueVector* left, ValueVector* right, ValueVector* result);
+    static void combineHash(
+        common::ValueVector* left, common::ValueVector* right, common::ValueVector* result);
 };
 
 } // namespace function

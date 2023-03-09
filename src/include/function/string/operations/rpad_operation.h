@@ -6,23 +6,21 @@
 #include "base_pad_operation.h"
 #include "common/types/ku_string.h"
 
-using namespace std;
-using namespace kuzu::common;
-
 namespace kuzu {
 namespace function {
 namespace operation {
 
 struct Rpad : BasePadOperation {
 public:
-    static inline void operation(ku_string_t& src, int64_t count, ku_string_t& characterToPad,
-        ku_string_t& result, ValueVector& resultValueVector) {
+    static inline void operation(common::ku_string_t& src, int64_t count,
+        common::ku_string_t& characterToPad, common::ku_string_t& result,
+        common::ValueVector& resultValueVector) {
         BasePadOperation::operation(
             src, count, characterToPad, result, resultValueVector, rpadOperation);
     }
 
-    static void rpadOperation(
-        ku_string_t& src, int64_t count, ku_string_t& characterToPad, string& paddedResult) {
+    static void rpadOperation(common::ku_string_t& src, int64_t count,
+        common::ku_string_t& characterToPad, std::string& paddedResult) {
         auto srcPadInfo =
             BasePadOperation::padCountChars(count, (const char*)src.getData(), src.len);
         auto srcData = (const char*)src.getData();

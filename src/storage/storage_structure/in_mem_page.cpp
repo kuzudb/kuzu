@@ -3,12 +3,14 @@
 #include <cmath>
 #include <cstring>
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace storage {
 
 InMemPage::InMemPage(uint32_t maxNumElements, uint16_t numBytesForElement, bool hasNullEntries)
     : nullEntriesInPage{nullptr}, maxNumElements{maxNumElements} {
-    buffer = make_unique<uint8_t[]>(DEFAULT_PAGE_SIZE);
+    buffer = std::make_unique<uint8_t[]>(BufferPoolConstants::DEFAULT_PAGE_SIZE);
     data = buffer.get();
     if (hasNullEntries) {
         // In a page, null entries are stored right after the element data. Each null entry contains
@@ -19,8 +21,8 @@ InMemPage::InMemPage(uint32_t maxNumElements, uint16_t numBytesForElement, bool 
         nullEntriesInPage = (uint64_t*)(data + (numBytesForElement * maxNumElements));
         auto numNullEntries = (maxNumElements + NullMask::NUM_BITS_PER_NULL_ENTRY - 1) /
                               NullMask::NUM_BITS_PER_NULL_ENTRY;
-        fill(nullEntriesInPage, nullEntriesInPage + numNullEntries, NullMask::ALL_NULL_ENTRY);
-        nullMask = make_unique<uint8_t[]>(maxNumElements);
+        std::fill(nullEntriesInPage, nullEntriesInPage + numNullEntries, NullMask::ALL_NULL_ENTRY);
+        nullMask = std::make_unique<uint8_t[]>(maxNumElements);
         memset(nullMask.get(), UINT8_MAX, maxNumElements);
     }
 }
@@ -31,9 +33,9 @@ void InMemPage::setElementAtPosToNonNull(uint32_t pos) {
     nullEntriesInPage[entryPos] &= NULL_BITMASKS_WITH_SINGLE_ZERO[bitPosInEntry];
 }
 
-uint8_t* InMemPage::writeNodeID(nodeID_t* nodeID, uint32_t byteOffsetInPage, uint32_t elemPosInPage,
-    const NodeIDCompressionScheme& nodeIDCompressionScheme) {
-    nodeIDCompressionScheme.writeNodeID(data + byteOffsetInPage, *nodeID);
+uint8_t* InMemPage::writeNodeID(
+    nodeID_t* nodeID, uint32_t byteOffsetInPage, uint32_t elemPosInPage) {
+    *(offset_t*)(data + byteOffsetInPage) = nodeID->offset;
     if (nullMask) {
         nullMask[elemPosInPage] = false;
     }

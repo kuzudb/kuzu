@@ -1,10 +1,7 @@
 #pragma once
 
 #include "benchmark_config.h"
-#include "jo_connection.h"
 #include "main/kuzu.h"
-
-using namespace kuzu::main;
 
 namespace kuzu {
 namespace benchmark {
@@ -15,23 +12,24 @@ namespace benchmark {
 class Benchmark {
 
 public:
-    Benchmark(const string& benchmarkPath, Database* database, BenchmarkConfig& config);
+    Benchmark(const std::string& benchmarkPath, main::Database* database, BenchmarkConfig& config);
 
-    unique_ptr<QueryResult> run() const;
-    void log(uint32_t runNum, QueryResult& queryResult) const;
+    std::unique_ptr<main::QueryResult> run() const;
+    void log(uint32_t runNum, main::QueryResult& queryResult) const;
 
 private:
-    void loadBenchmark(const string& benchmarkPath);
-    void logQueryInfo(ofstream& log, uint32_t runNum, vector<string>& actualOutput) const;
-    void verify(vector<string>& actualOutput) const;
+    void loadBenchmark(const std::string& benchmarkPath);
+    void logQueryInfo(
+        std::ofstream& log, uint32_t runNum, std::vector<std::string>& actualOutput) const;
+    void verify(std::vector<std::string>& actualOutput) const;
 
 public:
     BenchmarkConfig& config;
-    unique_ptr<JOConnection> conn;
-    string name;
-    string query;
-    vector<string> expectedOutput;
-    string encodedJoin;
+    std::unique_ptr<main::Connection> conn;
+    std::string name;
+    std::string query;
+    std::vector<std::string> expectedOutput;
+    std::string encodedJoin;
 };
 
 } // namespace benchmark

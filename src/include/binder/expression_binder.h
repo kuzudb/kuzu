@@ -5,10 +5,6 @@
 #include "common/types/value.h"
 #include "parser/expression/parsed_expression.h"
 
-using namespace kuzu::common;
-using namespace kuzu::parser;
-using namespace kuzu::catalog;
-
 namespace kuzu {
 namespace binder {
 
@@ -21,53 +17,66 @@ class ExpressionBinder {
 public:
     explicit ExpressionBinder(Binder* queryBinder) : binder{queryBinder} {}
 
-    shared_ptr<Expression> bindExpression(const ParsedExpression& parsedExpression);
+    std::shared_ptr<Expression> bindExpression(const parser::ParsedExpression& parsedExpression);
 
 private:
-    shared_ptr<Expression> bindBooleanExpression(const ParsedExpression& parsedExpression);
-    shared_ptr<Expression> bindBooleanExpression(
-        ExpressionType expressionType, const expression_vector& children);
+    std::shared_ptr<Expression> bindBooleanExpression(
+        const parser::ParsedExpression& parsedExpression);
+    std::shared_ptr<Expression> bindBooleanExpression(
+        common::ExpressionType expressionType, const expression_vector& children);
 
-    shared_ptr<Expression> bindComparisonExpression(const ParsedExpression& parsedExpression);
-    shared_ptr<Expression> bindComparisonExpression(
-        ExpressionType expressionType, const expression_vector& children);
+    std::shared_ptr<Expression> bindComparisonExpression(
+        const parser::ParsedExpression& parsedExpression);
+    std::shared_ptr<Expression> bindComparisonExpression(
+        common::ExpressionType expressionType, const expression_vector& children);
 
-    shared_ptr<Expression> bindNullOperatorExpression(const ParsedExpression& parsedExpression);
+    std::shared_ptr<Expression> bindNullOperatorExpression(
+        const parser::ParsedExpression& parsedExpression);
 
-    shared_ptr<Expression> bindPropertyExpression(const ParsedExpression& parsedExpression);
-    shared_ptr<Expression> bindNodePropertyExpression(
-        const Expression& expression, const string& propertyName);
-    shared_ptr<Expression> bindRelPropertyExpression(
-        const Expression& expression, const string& propertyName);
-    unique_ptr<Expression> createPropertyExpression(
-        const Expression& nodeOrRel, const vector<Property>& propertyName);
+    std::shared_ptr<Expression> bindPropertyExpression(
+        const parser::ParsedExpression& parsedExpression);
+    std::shared_ptr<Expression> bindNodePropertyExpression(
+        const Expression& expression, const std::string& propertyName);
+    std::shared_ptr<Expression> bindRelPropertyExpression(
+        const Expression& expression, const std::string& propertyName);
+    std::unique_ptr<Expression> createPropertyExpression(const Expression& nodeOrRel,
+        const std::vector<catalog::Property>& propertyName, bool isPrimaryKey);
 
-    shared_ptr<Expression> bindFunctionExpression(const ParsedExpression& parsedExpression);
-    shared_ptr<Expression> bindScalarFunctionExpression(
-        const ParsedExpression& parsedExpression, const string& functionName);
-    shared_ptr<Expression> bindAggregateFunctionExpression(
-        const ParsedExpression& parsedExpression, const string& functionName, bool isDistinct);
+    std::shared_ptr<Expression> bindFunctionExpression(
+        const parser::ParsedExpression& parsedExpression);
+    std::shared_ptr<Expression> bindScalarFunctionExpression(
+        const parser::ParsedExpression& parsedExpression, const std::string& functionName);
+    std::shared_ptr<Expression> bindAggregateFunctionExpression(
+        const parser::ParsedExpression& parsedExpression, const std::string& functionName,
+        bool isDistinct);
 
-    shared_ptr<Expression> staticEvaluate(const string& functionName,
-        const ParsedExpression& parsedExpression, const expression_vector& children);
+    std::shared_ptr<Expression> staticEvaluate(const std::string& functionName,
+        const parser::ParsedExpression& parsedExpression, const expression_vector& children);
 
-    shared_ptr<Expression> bindInternalIDExpression(const ParsedExpression& parsedExpression);
-    shared_ptr<Expression> bindInternalIDExpression(const Expression& expression);
-    unique_ptr<Expression> createInternalNodeIDExpression(const Expression& node);
-    shared_ptr<Expression> bindLabelFunction(const ParsedExpression& parsedExpression);
-    shared_ptr<Expression> bindNodeLabelFunction(const Expression& expression);
+    std::shared_ptr<Expression> bindInternalIDExpression(
+        const parser::ParsedExpression& parsedExpression);
+    std::shared_ptr<Expression> bindInternalIDExpression(const Expression& expression);
+    std::unique_ptr<Expression> createInternalNodeIDExpression(const Expression& node);
+    std::shared_ptr<Expression> bindLabelFunction(const parser::ParsedExpression& parsedExpression);
+    std::shared_ptr<Expression> bindNodeLabelFunction(const Expression& expression);
+    std::shared_ptr<Expression> bindRelLabelFunction(const Expression& expression);
 
-    shared_ptr<Expression> bindParameterExpression(const ParsedExpression& parsedExpression);
+    std::shared_ptr<Expression> bindParameterExpression(
+        const parser::ParsedExpression& parsedExpression);
 
-    shared_ptr<Expression> bindLiteralExpression(const ParsedExpression& parsedExpression);
-    shared_ptr<Expression> bindNullLiteralExpression();
+    std::shared_ptr<Expression> bindLiteralExpression(
+        const parser::ParsedExpression& parsedExpression);
+    std::shared_ptr<Expression> createLiteralExpression(std::unique_ptr<common::Value> value);
+    std::shared_ptr<Expression> createNullLiteralExpression();
 
-    shared_ptr<Expression> bindVariableExpression(const ParsedExpression& parsedExpression);
+    std::shared_ptr<Expression> bindVariableExpression(
+        const parser::ParsedExpression& parsedExpression);
 
-    shared_ptr<Expression> bindExistentialSubqueryExpression(
-        const ParsedExpression& parsedExpression);
+    std::shared_ptr<Expression> bindExistentialSubqueryExpression(
+        const parser::ParsedExpression& parsedExpression);
 
-    shared_ptr<Expression> bindCaseExpression(const ParsedExpression& parsedExpression);
+    std::shared_ptr<Expression> bindCaseExpression(
+        const parser::ParsedExpression& parsedExpression);
 
     /****** cast *****/
     // Note: we expose two implicitCastIfNecessary interfaces.
@@ -75,26 +84,26 @@ private:
     // recursively generated, e.g. list_extract(param) we only declare param with type LIST but do
     // not specify its child type.
     // For the rest, i.e. set clause binding, we cast with data type. For example, a.list = $1.
-    static shared_ptr<Expression> implicitCastIfNecessary(
-        const shared_ptr<Expression>& expression, DataType targetType);
-    static shared_ptr<Expression> implicitCastIfNecessary(
-        const shared_ptr<Expression>& expression, DataTypeID targetTypeID);
-    static void resolveAnyDataType(Expression& expression, DataType targetType);
-    static shared_ptr<Expression> implicitCast(
-        const shared_ptr<Expression>& expression, DataType targetType);
+    static std::shared_ptr<Expression> implicitCastIfNecessary(
+        const std::shared_ptr<Expression>& expression, const common::DataType& targetType);
+    static std::shared_ptr<Expression> implicitCastIfNecessary(
+        const std::shared_ptr<Expression>& expression, common::DataTypeID targetTypeID);
+    static void resolveAnyDataType(Expression& expression, const common::DataType& targetType);
+    static std::shared_ptr<Expression> implicitCast(
+        const std::shared_ptr<Expression>& expression, const common::DataType& targetType);
 
     /****** validation *****/
-    static void validateExpectedDataType(const Expression& expression, DataTypeID target) {
-        validateExpectedDataType(expression, unordered_set<DataTypeID>{target});
+    static void validateExpectedDataType(const Expression& expression, common::DataTypeID target) {
+        validateExpectedDataType(expression, std::unordered_set<common::DataTypeID>{target});
     }
     static void validateExpectedDataType(
-        const Expression& expression, const unordered_set<DataTypeID>& targets);
+        const Expression& expression, const std::unordered_set<common::DataTypeID>& targets);
     // E.g. SUM(SUM(a.age)) is not allowed
     static void validateAggregationExpressionIsNotNested(const Expression& expression);
 
 private:
     Binder* binder;
-    unordered_map<string, shared_ptr<Value>> parameterMap;
+    std::unordered_map<std::string, std::shared_ptr<common::Value>> parameterMap;
 };
 
 } // namespace binder

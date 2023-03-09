@@ -5,8 +5,6 @@
 
 #include "common/type_utils.h"
 
-using namespace kuzu::common;
-
 namespace kuzu {
 namespace function {
 namespace operation {

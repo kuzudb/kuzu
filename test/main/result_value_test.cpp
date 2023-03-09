@@ -1,5 +1,6 @@
 #include "main_test_helper/main_test_helper.h"
 
+using namespace kuzu::common;
 using namespace kuzu::testing;
 
 class ResultValueTest : public ApiTest {};
@@ -31,21 +32,6 @@ TEST_F(ResultValueTest, getResultValueException) {
     } catch (RuntimeException& exception) {
         ASSERT_STREQ("Runtime exception: ValIdx is out of range. Number of values in flatTuple: 1, "
                      "valIdx: 100.",
-            exception.what());
-    } catch (Exception& exception) { FAIL(); } catch (std::exception& exception) {
-        FAIL();
-    }
-}
-
-TEST_F(ResultValueTest, getResultValueWrongTypeException) {
-    auto query = "MATCH (a:person) RETURN a.fName";
-    auto result = conn->query(query);
-    auto flatTuple = result->getNext();
-    try {
-        flatTuple->getValue(0)->getValue<bool>();
-        FAIL();
-    } catch (RuntimeException& exception) {
-        ASSERT_STREQ("Runtime exception: Cannot get BOOL value from the STRING result value.",
             exception.what());
     } catch (Exception& exception) { FAIL(); } catch (std::exception& exception) {
         FAIL();

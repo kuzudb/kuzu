@@ -3,17 +3,13 @@
 #include "catalog/catalog.h"
 #include "processor/operator/physical_operator.h"
 
-using namespace std;
-using namespace kuzu::common;
-using namespace kuzu::catalog;
-
 namespace kuzu {
 namespace processor {
 
 class DDL : public PhysicalOperator {
 public:
-    DDL(PhysicalOperatorType operatorType, Catalog* catalog, const DataPos& outputPos, uint32_t id,
-        const string& paramsString)
+    DDL(PhysicalOperatorType operatorType, catalog::Catalog* catalog, const DataPos& outputPos,
+        uint32_t id, const std::string& paramsString)
         : PhysicalOperator{operatorType, id, paramsString}, catalog{catalog}, outputPos{outputPos} {
     }
     virtual ~DDL() override = default;
@@ -29,9 +25,9 @@ protected:
     virtual void executeDDLInternal() = 0;
 
 protected:
-    Catalog* catalog;
+    catalog::Catalog* catalog;
     DataPos outputPos;
-    ValueVector* outputVector;
+    common::ValueVector* outputVector;
 
     bool hasExecuted = false;
 };

@@ -8,25 +8,29 @@ namespace planner {
 
 class LogicalCreateRelTable : public LogicalCreateTable {
 public:
-    LogicalCreateRelTable(string tableName, vector<PropertyNameDataType> propertyNameDataTypes,
-        RelMultiplicity relMultiplicity, vector<pair<table_id_t, table_id_t>> srcDstTableIDs,
-        shared_ptr<Expression> outputExpression)
+    LogicalCreateRelTable(std::string tableName,
+        std::vector<catalog::PropertyNameDataType> propertyNameDataTypes,
+        catalog::RelMultiplicity relMultiplicity, common::table_id_t srcTableID,
+        common::table_id_t dstTableID, std::shared_ptr<binder::Expression> outputExpression)
         : LogicalCreateTable{LogicalOperatorType::CREATE_REL_TABLE, std::move(tableName),
               std::move(propertyNameDataTypes), std::move(outputExpression)},
-          relMultiplicity{relMultiplicity}, srcDstTableIDs{std::move(srcDstTableIDs)} {}
+          relMultiplicity{relMultiplicity}, srcTableID{srcTableID}, dstTableID{dstTableID} {}
 
-    inline RelMultiplicity getRelMultiplicity() const { return relMultiplicity; }
+    inline catalog::RelMultiplicity getRelMultiplicity() const { return relMultiplicity; }
 
-    inline vector<pair<table_id_t, table_id_t>> getSrcDstTableIDs() const { return srcDstTableIDs; }
+    inline common::table_id_t getSrcTableID() const { return srcTableID; }
 
-    inline unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalCreateRelTable>(
-            tableName, propertyNameDataTypes, relMultiplicity, srcDstTableIDs, outputExpression);
+    inline common::table_id_t getDstTableID() const { return dstTableID; }
+
+    inline std::unique_ptr<LogicalOperator> copy() override {
+        return make_unique<LogicalCreateRelTable>(tableName, propertyNameDataTypes, relMultiplicity,
+            srcTableID, dstTableID, outputExpression);
     }
 
 private:
-    RelMultiplicity relMultiplicity;
-    vector<pair<table_id_t, table_id_t>> srcDstTableIDs;
+    catalog::RelMultiplicity relMultiplicity;
+    common::table_id_t srcTableID;
+    common::table_id_t dstTableID;
 };
 
 } // namespace planner

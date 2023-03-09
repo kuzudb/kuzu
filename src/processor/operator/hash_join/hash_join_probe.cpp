@@ -1,25 +1,23 @@
 #include "processor/operator/hash_join/hash_join_probe.h"
 
 #include "function/hash/hash_operations.h"
-#include "function/hash/vector_hash_operations.h"
 
+using namespace kuzu::common;
 using namespace kuzu::function::operation;
 
 namespace kuzu {
 namespace processor {
 
 void HashJoinProbe::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
-    probeState = make_unique<ProbeState>();
+    probeState = std::make_unique<ProbeState>();
     for (auto& keyDataPos : probeDataInfo.keysDataPos) {
-        auto keyVector = resultSet->getValueVector(keyDataPos);
-        keyVectors.push_back(keyVector);
+        keyVectors.push_back(resultSet->getValueVector(keyDataPos).get());
     }
     if (joinType == JoinType::MARK) {
         markVector = resultSet->getValueVector(probeDataInfo.markDataPos);
     }
     for (auto& dataPos : probeDataInfo.payloadsOutPos) {
-        auto probePayloadVector = resultSet->getValueVector(dataPos);
-        vectorsToReadInto.push_back(probePayloadVector);
+        vectorsToReadInto.push_back(resultSet->getValueVector(dataPos).get());
     }
     // We only need to read nonKeys from the factorizedTable. Key columns are always kept as first k
     // columns in the factorizedTable, so we skip the first k columns.
@@ -140,7 +138,7 @@ uint64_t HashJoinProbe::getNextMarkJoinResult() {
         markValues[markVector->state->selVector->selectedPositions[0]] =
             probeState->matchedSelVector->selectedSize != 0;
     } else {
-        fill(markValues, markValues + DEFAULT_VECTOR_CAPACITY, false);
+        std::fill(markValues, markValues + DEFAULT_VECTOR_CAPACITY, false);
         for (auto i = 0u; i < probeState->matchedSelVector->selectedSize; i++) {
             markValues[probeState->matchedSelVector->selectedPositions[i]] = true;
         }

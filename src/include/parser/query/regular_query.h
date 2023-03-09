@@ -9,12 +9,13 @@ namespace parser {
 class RegularQuery : public Statement {
 
 public:
-    explicit RegularQuery(unique_ptr<SingleQuery> singleQuery) : Statement{StatementType::QUERY} {
-        singleQueries.push_back(move(singleQuery));
+    explicit RegularQuery(std::unique_ptr<SingleQuery> singleQuery)
+        : Statement{common::StatementType::QUERY} {
+        singleQueries.push_back(std::move(singleQuery));
     }
 
-    inline void addSingleQuery(unique_ptr<SingleQuery> singleQuery, bool isUnionAllQuery) {
-        singleQueries.push_back(move(singleQuery));
+    inline void addSingleQuery(std::unique_ptr<SingleQuery> singleQuery, bool isUnionAllQuery) {
+        singleQueries.push_back(std::move(singleQuery));
         isUnionAll.push_back(isUnionAllQuery);
     }
 
@@ -24,11 +25,11 @@ public:
         return singleQueries[singleQueryIdx].get();
     }
 
-    inline vector<bool> getIsUnionAll() const { return isUnionAll; }
+    inline std::vector<bool> getIsUnionAll() const { return isUnionAll; }
 
 private:
-    vector<unique_ptr<SingleQuery>> singleQueries;
-    vector<bool> isUnionAll;
+    std::vector<std::unique_ptr<SingleQuery>> singleQueries;
+    std::vector<bool> isUnionAll;
 };
 
 } // namespace parser

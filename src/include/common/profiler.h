@@ -11,21 +11,21 @@ namespace common {
 class Profiler {
 
 public:
-    TimeMetric* registerTimeMetric(const string& key);
+    TimeMetric* registerTimeMetric(const std::string& key);
 
-    NumericMetric* registerNumericMetric(const string& key);
+    NumericMetric* registerNumericMetric(const std::string& key);
 
-    double sumAllTimeMetricsWithKey(const string& key);
+    double sumAllTimeMetricsWithKey(const std::string& key);
 
-    uint64_t sumAllNumericMetricsWithKey(const string& key);
+    uint64_t sumAllNumericMetricsWithKey(const std::string& key);
 
 private:
-    void addMetric(const string& key, unique_ptr<Metric> metric);
+    void addMetric(const std::string& key, std::unique_ptr<Metric> metric);
 
 public:
-    mutex mtx;
+    std::mutex mtx;
     bool enabled;
-    unordered_map<string, vector<unique_ptr<Metric>>> metrics;
+    std::unordered_map<std::string, std::vector<std::unique_ptr<Metric>>> metrics;
 };
 
 } // namespace common

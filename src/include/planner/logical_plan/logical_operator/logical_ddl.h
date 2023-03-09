@@ -7,26 +7,24 @@ namespace planner {
 
 class LogicalDDL : public LogicalOperator {
 public:
-    LogicalDDL(
-        LogicalOperatorType operatorType, string tableName, shared_ptr<Expression> outputExpression)
+    LogicalDDL(LogicalOperatorType operatorType, std::string tableName,
+        std::shared_ptr<binder::Expression> outputExpression)
         : LogicalOperator{operatorType}, tableName{std::move(tableName)},
           outputExpression{std::move(outputExpression)} {}
 
-    inline string getTableName() const { return tableName; }
-    inline shared_ptr<Expression> getOutputExpression() const { return outputExpression; }
+    void computeFactorizedSchema() override;
+    void computeFlatSchema() override;
 
-    inline string getExpressionsForPrinting() const override { return tableName; }
-
-    inline void computeSchema() override {
-        schema = make_unique<Schema>();
-        auto groupPos = schema->createGroup();
-        schema->insertToGroupAndScope(outputExpression, groupPos);
-        schema->setGroupAsSingleState(groupPos);
+    inline std::string getTableName() const { return tableName; }
+    inline std::shared_ptr<binder::Expression> getOutputExpression() const {
+        return outputExpression;
     }
 
+    inline std::string getExpressionsForPrinting() const override { return tableName; }
+
 protected:
-    string tableName;
-    shared_ptr<Expression> outputExpression;
+    std::string tableName;
+    std::shared_ptr<binder::Expression> outputExpression;
 };
 
 } // namespace planner

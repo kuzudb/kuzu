@@ -3,11 +3,14 @@
 #include "common/in_mem_overflow_buffer_utils.h"
 #include "storage/storage_structure/storage_structure_utils.h"
 
+using namespace kuzu::common;
+using namespace kuzu::transaction;
+
 namespace kuzu {
 namespace storage {
 
-void Column::read(Transaction* transaction, const shared_ptr<ValueVector>& nodeIDVector,
-    const shared_ptr<ValueVector>& resultVector) {
+void Column::read(Transaction* transaction, common::ValueVector* nodeIDVector,
+    common::ValueVector* resultVector) {
     if (nodeIDVector->state->isFlat()) {
         auto pos = nodeIDVector->state->selVector->selectedPositions[0];
         lookup(transaction, nodeIDVector, resultVector, pos);
@@ -29,7 +32,7 @@ void Column::read(Transaction* transaction, const shared_ptr<ValueVector>& nodeI
 }
 
 void Column::writeValues(
-    const shared_ptr<ValueVector>& nodeIDVector, const shared_ptr<ValueVector>& vectorToWriteFrom) {
+    common::ValueVector* nodeIDVector, common::ValueVector* vectorToWriteFrom) {
     if (nodeIDVector->state->isFlat() && vectorToWriteFrom->state->isFlat()) {
         auto nodeOffset =
             nodeIDVector->readNodeOffset(nodeIDVector->state->selVector->selectedPositions[0]);
@@ -98,8 +101,8 @@ void Column::setNodeOffsetToNull(offset_t nodeOffset) {
         updatedPageInfoAndWALPageFrame, fileHandle, bufferManager, *wal);
 }
 
-void Column::lookup(Transaction* transaction, const shared_ptr<ValueVector>& nodeIDVector,
-    const shared_ptr<ValueVector>& resultVector, uint32_t vectorPos) {
+void Column::lookup(Transaction* transaction, common::ValueVector* nodeIDVector,
+    common::ValueVector* resultVector, uint32_t vectorPos) {
     if (nodeIDVector->isNull(vectorPos)) {
         resultVector->setNull(vectorPos, true);
         return;
@@ -109,8 +112,8 @@ void Column::lookup(Transaction* transaction, const shared_ptr<ValueVector>& nod
     lookup(transaction, resultVector, vectorPos, pageCursor);
 }
 
-void Column::lookup(Transaction* transaction, const shared_ptr<ValueVector>& resultVector,
-    uint32_t vectorPos, PageElementCursor& cursor) {
+void Column::lookup(Transaction* transaction, common::ValueVector* resultVector, uint32_t vectorPos,
+    PageElementCursor& cursor) {
     auto [fileHandleToPin, pageIdxToPin] =
         StorageStructureUtils::getFileHandleAndPhysicalPageIdxToPin(
             fileHandle, cursor.pageIdx, *wal, transaction->getType());
@@ -122,8 +125,8 @@ void Column::lookup(Transaction* transaction, const shared_ptr<ValueVector>& res
     bufferManager.unpin(*fileHandleToPin, pageIdxToPin);
 }
 
-WALPageIdxPosInPageAndFrame Column::beginUpdatingPage(offset_t nodeOffset,
-    const shared_ptr<ValueVector>& vectorToWriteFrom, uint32_t posInVectorToWriteFrom) {
+WALPageIdxPosInPageAndFrame Column::beginUpdatingPage(
+    offset_t nodeOffset, common::ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom) {
     auto isNull = vectorToWriteFrom->isNull(posInVectorToWriteFrom);
     auto walPageInfo = beginUpdatingPageAndWriteOnlyNullBit(nodeOffset, isNull);
     if (!isNull) {
@@ -139,16 +142,16 @@ WALPageIdxPosInPageAndFrame Column::beginUpdatingPageAndWriteOnlyNullBit(
     return walPageInfo;
 }
 
-void Column::writeValueForSingleNodeIDPosition(offset_t nodeOffset,
-    const shared_ptr<ValueVector>& vectorToWriteFrom, uint32_t posInVectorToWriteFrom) {
+void Column::writeValueForSingleNodeIDPosition(
+    offset_t nodeOffset, common::ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom) {
     auto updatedPageInfoAndWALPageFrame =
         beginUpdatingPage(nodeOffset, vectorToWriteFrom, posInVectorToWriteFrom);
     StorageStructureUtils::unpinWALPageAndReleaseOriginalPageLock(
         updatedPageInfoAndWALPageFrame, fileHandle, bufferManager, *wal);
 }
 
-void StringPropertyColumn::writeValueForSingleNodeIDPosition(offset_t nodeOffset,
-    const shared_ptr<ValueVector>& vectorToWriteFrom, uint32_t posInVectorToWriteFrom) {
+void StringPropertyColumn::writeValueForSingleNodeIDPosition(
+    offset_t nodeOffset, common::ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom) {
     auto updatedPageInfoAndWALPageFrame =
         beginUpdatingPage(nodeOffset, vectorToWriteFrom, posInVectorToWriteFrom);
     if (!vectorToWriteFrom->isNull(posInVectorToWriteFrom)) {
@@ -176,9 +179,9 @@ Value StringPropertyColumn::readValue(offset_t offset) {
     return Value(diskOverflowFile.readString(TransactionType::READ_ONLY, kuString));
 }
 
-void ListPropertyColumn::writeValueForSingleNodeIDPosition(offset_t nodeOffset,
-    const shared_ptr<ValueVector>& vectorToWriteFrom, uint32_t posInVectorToWriteFrom) {
-    assert(vectorToWriteFrom->dataType.typeID == LIST);
+void ListPropertyColumn::writeValueForSingleNodeIDPosition(
+    offset_t nodeOffset, common::ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom) {
+    assert(vectorToWriteFrom->dataType.typeID == VAR_LIST);
     auto updatedPageInfoAndWALPageFrame =
         beginUpdatingPage(nodeOffset, vectorToWriteFrom, posInVectorToWriteFrom);
     if (!vectorToWriteFrom->isNull(posInVectorToWriteFrom)) {

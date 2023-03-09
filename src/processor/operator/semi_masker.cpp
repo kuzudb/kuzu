@@ -1,7 +1,16 @@
 #include "processor/operator/semi_masker.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace processor {
+
+void SemiMasker::setSharedState(ScanTableNodeIDSharedState* sharedState) {
+    scanTableNodeIDSharedState = sharedState;
+    maskerIdx = scanTableNodeIDSharedState->getNumMaskers();
+    assert(maskerIdx < UINT8_MAX);
+    scanTableNodeIDSharedState->incrementNumMaskers();
+}
 
 void SemiMasker::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     keyValueVector = resultSet->getValueVector(keyDataPos);
@@ -16,16 +25,12 @@ bool SemiMasker::getNextTuplesInternal() {
         keyValueVector->state->isFlat() ? 1 : keyValueVector->state->selVector->selectedSize;
     for (auto i = 0u; i < numValues; i++) {
         auto pos = keyValueVector->state->selVector->selectedPositions[i];
-        scanTableNodeIDSharedState->getSemiMask()->setMask(
+        scanTableNodeIDSharedState->getSemiMask()->incrementMaskValue(
             keyValueVector->getValue<nodeID_t>(pos).offset, maskerIdx);
     }
     metrics->numOutputTuple.increase(
         keyValueVector->state->isFlat() ? 1 : keyValueVector->state->selVector->selectedSize);
     return true;
-}
-
-void SemiMasker::initGlobalStateInternal(ExecutionContext* context) {
-    scanTableNodeIDSharedState->initSemiMask(context->transaction);
 }
 
 } // namespace processor

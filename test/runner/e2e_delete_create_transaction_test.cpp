@@ -6,12 +6,12 @@ class BaseDeleteCreateTrxTest : public DBTest {
 public:
     void SetUp() override {
         DBTest::SetUp();
-        readConn = make_unique<Connection>(database.get());
+        readConn = std::make_unique<Connection>(database.get());
     }
 
     void initDBAndConnection() {
         createDBAndConn();
-        readConn = make_unique<Connection>(database.get());
+        readConn = std::make_unique<Connection>(database.get());
     }
 
     void commitOrRollbackConnectionAndInitDBIfNecessary(
@@ -25,7 +25,7 @@ public:
     }
 
     // Create nodes
-    void createNodes(const vector<string>& nodeIDs) {
+    void createNodes(const std::vector<std::string>& nodeIDs) {
         for (auto& nodeID : nodeIDs) {
             createNode(nodeID);
         }
@@ -34,63 +34,64 @@ public:
         for (auto i = 0u; i < numNodes; ++i) {
             auto key = 10000 + i;
             if (isStringPK) {
-                createNode("'" + to_string(key) + "'");
+                createNode("'" + std::to_string(key) + "'");
             } else {
-                createNode(to_string(key));
+                createNode(std::to_string(key));
             }
         }
     }
-    void createNode(const string& nodeID) {
+    void createNode(const std::string& nodeID) {
         auto query = "CREATE (a:person {ID: " + nodeID + "})";
         ASSERT_TRUE(conn->query(query)->isSuccess());
     }
     // Delete nodes
     void deleteNodesInRange(uint64_t startOffset, uint64_t endOffset, bool isStringPK) {
-        auto query = "MATCH (a:person) WHERE a.ID>=" +
-                     (isStringPK ? "'" + to_string(startOffset) + "'" : to_string(startOffset)) +
-                     " AND a.ID<" +
-                     (isStringPK ? "'" + to_string(startOffset) + "'" : to_string(startOffset)) +
-                     " DELETE a";
+        auto query =
+            "MATCH (a:person) WHERE a.ID>=" +
+            (isStringPK ? "'" + std::to_string(startOffset) + "'" : std::to_string(startOffset)) +
+            " AND a.ID<" +
+            (isStringPK ? "'" + std::to_string(startOffset) + "'" : std::to_string(startOffset)) +
+            " DELETE a";
         ASSERT_TRUE(conn->query(query)->isSuccess());
     }
-    void deleteNodes(const vector<string>& nodeIDs) {
+    void deleteNodes(const std::vector<std::string>& nodeIDs) {
         for (auto& nodeID : nodeIDs) {
             deleteNode(nodeID);
         }
     }
-    void deleteNode(const string& nodeID) {
+    void deleteNode(const std::string& nodeID) {
         auto query = "MATCH (a:person) WHERE a.ID=" + nodeID + " DELETE a";
         ASSERT_TRUE(conn->query(query)->isSuccess());
     }
-    static int64_t getCount(Connection* connection, const string& queryPrefix) {
+    static int64_t getCount(Connection* connection, const std::string& queryPrefix) {
         auto result = connection->query(queryPrefix + " RETURN COUNT(*)");
         return result->getNext()->getValue(0)->getValue<int64_t>();
     }
     int64_t getNumNodes(Connection* connection) { return getCount(connection, "MATCH (:person)"); }
     void validateNodesExistOrNot(
-        Connection* connection, const vector<string>& nodeIDs, bool exist) {
+        Connection* connection, const std::vector<std::string>& nodeIDs, bool exist) {
         for (auto& nodeID : nodeIDs) {
             validateNodeExistOrNot(connection, nodeID, exist);
         }
     }
     // Will trigger index scan.
-    void validateNodeExistOrNot(Connection* connection, const string& nodeID, bool exist) {
+    void validateNodeExistOrNot(Connection* connection, const std::string& nodeID, bool exist) {
         auto query = "MATCH (a:person) WHERE a.ID=" + nodeID;
         ASSERT_EQ(getCount(connection, query), exist ? 1 : 0);
     }
 
 public:
-    unique_ptr<Connection> readConn;
+    std::unique_ptr<Connection> readConn;
 };
 
 class CreateDeleteInt64NodeTrxTest : public BaseDeleteCreateTrxTest {
 public:
-    string getInputDir() override {
+    std::string getInputDir() override {
         return TestHelper::appendKuzuRootPath("dataset/node-insertion-deletion-tests/int64-pk/");
     }
 
     void testIndexScanAfterInsertion(bool isCommit, TransactionTestType trxTestType) {
-        auto nodeIDsToInsert = vector<string>{"10003", "10005"};
+        auto nodeIDsToInsert = std::vector<std::string>{"10003", "10005"};
         conn->beginWriteTransaction();
         createNodes(nodeIDsToInsert);
         validateNodesExistOrNot(conn.get(), nodeIDsToInsert, true /* exist */);
@@ -104,7 +105,7 @@ public:
     }
 
     void testIndexScanAfterDeletion(bool isCommit, TransactionTestType trxTestType) {
-        auto nodeIDsToDelete = vector<string>{"10", "1400", "6000"};
+        auto nodeIDsToDelete = std::vector<std::string>{"10", "1400", "6000"};
         conn->beginWriteTransaction();
         deleteNodes(nodeIDsToDelete);
         validateNodesExistOrNot(conn.get(), nodeIDsToDelete, false /* exist */);
@@ -145,8 +146,8 @@ public:
 
     void testMixedDeleteAndInsert(bool isCommit, TransactionTestType trxTestType) {
         conn->beginWriteTransaction();
-        deleteNodes(vector<string>{"8000", "9000"});
-        createNodes(vector<string>{"8000", "9000", "10001", "10002"});
+        deleteNodes(std::vector<std::string>{"8000", "9000"});
+        createNodes(std::vector<std::string>{"8000", "9000", "10001", "10002"});
         ASSERT_EQ(getNumNodes(readConn.get()), 10000);
         ASSERT_EQ(getNumNodes(conn.get()), 10002);
         commitOrRollbackConnectionAndInitDBIfNecessary(isCommit, trxTestType);
@@ -182,12 +183,12 @@ public:
 
 class CreateDeleteStringNodeTrxTest : public BaseDeleteCreateTrxTest {
 public:
-    string getInputDir() override {
+    std::string getInputDir() override {
         return TestHelper::appendKuzuRootPath("dataset/node-insertion-deletion-tests/string-pk/");
     }
 
     void testIndexScanAfterInsertion(bool isCommit, TransactionTestType trxTestType) {
-        auto nodeIDsToInsert = vector<string>{"'abcdefg'", "'huy23b287sfw33232'"};
+        auto nodeIDsToInsert = std::vector<std::string>{"'abcdefg'", "'huy23b287sfw33232'"};
         conn->beginWriteTransaction();
         createNodes(nodeIDsToInsert);
         validateNodesExistOrNot(conn.get(), nodeIDsToInsert, true /* exist */);
@@ -202,7 +203,7 @@ public:
 
     void testIndexScanAfterDeletion(bool isCommit, TransactionTestType trxTestType) {
         auto nodeIDsToDelete =
-            vector<string>{"'999999999999'", "'1000000000000'", "'1000000000001'"};
+            std::vector<std::string>{"'999999999999'", "'1000000000000'", "'1000000000001'"};
         conn->beginWriteTransaction();
         deleteNodes(nodeIDsToDelete);
         validateNodesExistOrNot(conn.get(), nodeIDsToDelete, false /* not exist */);
@@ -243,8 +244,8 @@ public:
 
     void testMixedDeleteAndInsert(bool isCommit, TransactionTestType trxTestType) {
         conn->beginWriteTransaction();
-        deleteNodes(vector<string>{"'999999995061'", "'1000000004126'"});
-        createNodes(vector<string>{
+        deleteNodes(std::vector<std::string>{"'999999995061'", "'1000000004126'"});
+        createNodes(std::vector<std::string>{
             "'kmjiowe89njsn'", "'jdsknewkew'", "'jsnjwe893n2juihi3232'", "'jsnjwe893n2juihi3ew'"});
         ASSERT_EQ(getNumNodes(readConn.get()), 10000);
         ASSERT_EQ(getNumNodes(conn.get()), 10002);
@@ -278,6 +279,28 @@ public:
         }
     }
 };
+
+class DeleteNodeWithEdgesErrorTest : public EmptyDBTest {
+public:
+    void SetUp() override {
+        EmptyDBTest::SetUp();
+        createDBAndConn();
+    }
+};
+
+TEST_F(DeleteNodeWithEdgesErrorTest, DeleteNodeWithEdgesError) {
+    auto conn = std::make_unique<Connection>(database.get());
+    ASSERT_TRUE(conn->query("create node table person (ID INT64, primary key(ID));")->isSuccess());
+    ASSERT_TRUE(conn->query("create rel table isFriend (from person to person);")->isSuccess());
+    ASSERT_TRUE(conn->query("create (p:person {ID: 5})")->isSuccess());
+    ASSERT_TRUE(
+        conn->query("match (p0:person), (p1:person) create (p0)-[:isFriend]->(p1)")->isSuccess());
+    auto result = conn->query("match (p:person) delete p");
+    ASSERT_EQ(result->getErrorMessage(),
+        "Runtime exception: Currently deleting a node with edges is not supported. node table 0 "
+        "nodeOffset 0 has 1 (one-to-many or many-to-many) edges for edge file: " +
+            TestHelper::appendKuzuRootPath("test/unittest_temp/r-1-0.lists."));
+}
 
 TEST_F(CreateDeleteInt64NodeTrxTest, MixedInsertDeleteCommitNormalExecution) {
     testMixedDeleteAndInsert(true /* commit */, TransactionTestType::NORMAL_EXECUTION);
@@ -437,334 +460,4 @@ TEST_F(CreateDeleteStringNodeTrxTest, MixedInsertDeleteRollbackNormalExecution) 
 
 TEST_F(CreateDeleteStringNodeTrxTest, MixedInsertDeleteRollbackRecovery) {
     testMixedDeleteAndInsert(false /* rollback */, TransactionTestType::RECOVERY);
-}
-
-// TODO(Guodong/Xiyang): refactor these tests to follow the above convention.
-class CreateRelTrxTest : public BaseDeleteCreateTrxTest {
-public:
-    string getInputDir() override {
-        return TestHelper::appendKuzuRootPath("dataset/rel-insertion-tests/");
-    }
-
-    void insertKnowsRels(const string& srcLabel, const string& dstLabel, uint64_t numRelsToInsert,
-        bool testNullAndLongString = false) {
-        for (auto i = 0u; i < numRelsToInsert; ++i) {
-            auto length = to_string(i);
-            auto place = to_string(i);
-            auto tag = to_string(i);
-            if (testNullAndLongString) {
-                length = "null";
-                place = getLongStr(place);
-            }
-            insertKnowsRel(
-                srcLabel, dstLabel, "1", to_string(i + 1), length, place, "['" + tag + "']");
-        }
-    }
-
-    void insertKnowsRel(const string& srcLabel, const string& dstLabel, const string& srcID,
-        const string& dstID, const string& length, const string& place, const string& tag) {
-        auto matchClause = "MATCH (a:" + srcLabel + "),(b:" + dstLabel + ") WHERE a.ID=" + srcID +
-                           " AND b.ID=" + dstID + " ";
-        auto createClause = "CREATE (a)-[e:knows {length:" + length + ",place:'" + place +
-                            "',tag:" + tag + "}]->(b)";
-        string query = matchClause + createClause;
-        ASSERT_TRUE(conn->query(query)->isSuccess());
-    }
-
-    vector<string> readAllKnowsProperty(Connection* connection, const string& srcLabel,
-        const string& dstLabel, bool validateBwdOrder = false) {
-        auto result = connection->query("MATCH (a:" + srcLabel + ")-[e:knows]->(b:" + dstLabel +
-                                        ") RETURN e.length, e.place, e.tag");
-        return TestHelper::convertResultToString(*result, true /* checkOrder, do not sort */);
-    }
-
-    static string getLongStr(const string& val) { return "long long string prefix " + val; }
-
-    void validateExceptionMessage(string query, string expectedException) {
-        conn->query(query);
-        auto result = conn->query(query);
-        ASSERT_FALSE(result->isSuccess());
-        ASSERT_STREQ(result->getErrorMessage().c_str(), expectedException.c_str());
-    }
-
-public:
-    static const int64_t smallNumRelsToInsert = 10;
-    // For a relTable with simple relation(src,dst nodeIDs are 1): we need to insert at least
-    // PAGE_SIZE / 8 number of rels to make a smallList become largeList.
-    // For a relTable with complex relation(src,dst nodeIDs > 1): we need to insert at least
-    // PAGE_SIZE / 16 number of rels to make a smallList become largeList.
-    static const int64_t largeNumRelsToInsert = 510;
-};
-
-static void validateInsertedRel(
-    const string& result, uint64_t param, bool testNullAndLongString = false) {
-    auto length = to_string(param);
-    auto place = to_string(param);
-    if (testNullAndLongString) {
-        length = "";
-        place = CreateRelTrxTest::getLongStr(place);
-    }
-    auto groundTruth = length + "|" + place + "|[" + to_string(param) + "]";
-    ASSERT_STREQ(groundTruth.c_str(), result.c_str());
-}
-
-static void validateInsertRelsToEmptyListSucceed(
-    vector<string> resultStr, uint64_t numRelsInserted, bool testNullAndLongString = false) {
-    for (auto i = 0u; i < numRelsInserted; i++) {
-        validateInsertedRel(resultStr[i], i, testNullAndLongString);
-    }
-}
-
-static void validateInsertRelsToEmptyListFail(const vector<string>& resultStr) {
-    ASSERT_EQ(resultStr.size(), 0);
-}
-
-TEST_F(CreateRelTrxTest, InsertRelsToEmptyListCommitNormalExecution) {
-    conn->beginWriteTransaction();
-    insertKnowsRels("animal", "animal", smallNumRelsToInsert);
-    validateInsertRelsToEmptyListSucceed(
-        readAllKnowsProperty(conn.get(), "animal", "animal"), smallNumRelsToInsert);
-    validateInsertRelsToEmptyListFail(readAllKnowsProperty(readConn.get(), "animal", "animal"));
-    conn->commit();
-    validateInsertRelsToEmptyListSucceed(
-        readAllKnowsProperty(conn.get(), "animal", "animal"), smallNumRelsToInsert);
-}
-
-TEST_F(CreateRelTrxTest, InsertRelsToEmptyListCommitRecovery) {
-    conn->beginWriteTransaction();
-    insertKnowsRels("animal", "animal", smallNumRelsToInsert);
-    commitButSkipCheckpointingForTestingRecovery(*conn);
-    createDBAndConn(); // run recovery
-    validateInsertRelsToEmptyListSucceed(
-        readAllKnowsProperty(conn.get(), "animal", "animal"), smallNumRelsToInsert);
-}
-
-TEST_F(CreateRelTrxTest, InsertRelsToEmptyListRollbackNormalExecution) {
-    conn->beginWriteTransaction();
-    insertKnowsRels("animal", "animal", smallNumRelsToInsert);
-    conn->rollback();
-    validateInsertRelsToEmptyListFail(readAllKnowsProperty(conn.get(), "animal", "animal"));
-}
-
-TEST_F(CreateRelTrxTest, InsertRelsToEmptyListRollbackRecovery) {
-    conn->beginWriteTransaction();
-    insertKnowsRels("animal", "animal", smallNumRelsToInsert);
-    rollbackButSkipCheckpointingForTestingRecovery(*conn);
-    createDBAndConn(); // run recovery
-    validateInsertRelsToEmptyListFail(readAllKnowsProperty(conn.get(), "animal", "animal"));
-}
-
-TEST_F(CreateRelTrxTest, InsertManyRelsToEmptyListWithNullAndLongStrCommitNormalExecution) {
-    conn->beginWriteTransaction();
-    insertKnowsRels("animal", "animal", largeNumRelsToInsert, true /* testNullAndLongString */);
-    validateInsertRelsToEmptyListSucceed(readAllKnowsProperty(conn.get(), "animal", "animal"),
-        largeNumRelsToInsert, true /* testNullAndLongString */);
-    validateInsertRelsToEmptyListFail(readAllKnowsProperty(readConn.get(), "animal", "animal"));
-    conn->commit();
-    validateInsertRelsToEmptyListSucceed(readAllKnowsProperty(conn.get(), "animal", "animal"),
-        largeNumRelsToInsert, true /* testNullAndLongString */);
-}
-
-TEST_F(CreateRelTrxTest, InsertManyRelsToEmptyListWithNullAndLongStrRollbackNormalExecution) {
-    conn->beginWriteTransaction();
-    insertKnowsRels("animal", "animal", largeNumRelsToInsert, true /* testNullAndLongString */);
-    conn->rollback();
-    validateInsertRelsToEmptyListFail(readAllKnowsProperty(conn.get(), "animal", "animal"));
-}
-
-TEST_F(CreateRelTrxTest, InsertManyRelsToEmptyListWithNullAndLongStrRollbackRecovery) {
-    conn->beginWriteTransaction();
-    insertKnowsRels("animal", "animal", largeNumRelsToInsert, true /* testNullAndLongString */);
-    rollbackButSkipCheckpointingForTestingRecovery(*conn);
-    createDBAndConn(); // run recovery
-    validateInsertRelsToEmptyListFail(readAllKnowsProperty(conn.get(), "animal", "animal"));
-}
-
-static int64_t numAnimalPersonRelsInDB = 51;
-
-static string generateStrFromInt(uint64_t val) {
-    string result = to_string(val);
-    if (val % 2 == 0) {
-        for (auto i = 0; i < 2; i++) {
-            result.append(to_string(val));
-        }
-    }
-    return result;
-}
-
-static void validateExistingAnimalPersonRel(const string& result, uint64_t param) {
-    auto strVal = generateStrFromInt(1000 - param);
-    auto groundTruth = to_string(param) + "|" + strVal + "|[" + strVal + "]";
-    ASSERT_STREQ(groundTruth.c_str(), result.c_str());
-}
-
-static void validateInsertRelsToSmallListSucceed(
-    vector<string> resultStr, uint64_t numRelsInserted) {
-    auto currIdx = 0u;
-    auto insertedRelsOffset = 2;
-    for (auto i = 0u; i < insertedRelsOffset; ++i, ++currIdx) {
-        validateExistingAnimalPersonRel(resultStr[currIdx], i);
-    }
-    for (auto i = 0u; i < numRelsInserted; ++i, ++currIdx) {
-        validateInsertedRel(resultStr[currIdx], i);
-    }
-    for (auto i = 0u; i < numAnimalPersonRelsInDB - insertedRelsOffset; ++i, ++currIdx) {
-        validateExistingAnimalPersonRel(resultStr[currIdx], i + insertedRelsOffset);
-    }
-}
-
-static void validateInsertRelsToSmallListFail(vector<string> resultStr) {
-    ASSERT_EQ(resultStr.size(), numAnimalPersonRelsInDB);
-    validateInsertRelsToSmallListSucceed(resultStr, 0);
-}
-
-TEST_F(CreateRelTrxTest, InsertRelsToSmallListCommitNormalExecution) {
-    conn->beginWriteTransaction();
-    insertKnowsRels("animal", "person", smallNumRelsToInsert);
-    validateInsertRelsToSmallListSucceed(
-        readAllKnowsProperty(conn.get(), "animal", "person"), smallNumRelsToInsert);
-    validateInsertRelsToSmallListFail(readAllKnowsProperty(readConn.get(), "animal", "person"));
-    conn->commit();
-    validateInsertRelsToSmallListSucceed(
-        readAllKnowsProperty(conn.get(), "animal", "person"), smallNumRelsToInsert);
-}
-
-TEST_F(CreateRelTrxTest, InsertRelsToSmallListCommitRecovery) {
-    conn->beginWriteTransaction();
-    insertKnowsRels("animal", "person", smallNumRelsToInsert);
-    commitButSkipCheckpointingForTestingRecovery(*conn);
-    createDBAndConn(); // run recovery
-    validateInsertRelsToSmallListSucceed(
-        readAllKnowsProperty(conn.get(), "animal", "person"), smallNumRelsToInsert);
-}
-
-TEST_F(CreateRelTrxTest, InsertRelsToSmallListRollbackNormalExecution) {
-    conn->beginWriteTransaction();
-    insertKnowsRels("animal", "person", smallNumRelsToInsert);
-    conn->rollback();
-    validateInsertRelsToSmallListFail(readAllKnowsProperty(conn.get(), "animal", "person"));
-}
-
-TEST_F(CreateRelTrxTest, InsertRelsToSmallListRollbackRecovery) {
-    conn->beginWriteTransaction();
-    insertKnowsRels("animal", "person", smallNumRelsToInsert);
-    rollbackButSkipCheckpointingForTestingRecovery(*conn);
-    createDBAndConn(); // run recovery
-    validateInsertRelsToSmallListFail(readAllKnowsProperty(conn.get(), "animal", "person"));
-}
-
-TEST_F(CreateRelTrxTest, InsertLargeNumRelsToSmallListCommitNormalExecution) {
-    conn->beginWriteTransaction();
-    insertKnowsRels("animal", "person", largeNumRelsToInsert);
-    validateInsertRelsToSmallListSucceed(
-        readAllKnowsProperty(conn.get(), "animal", "person"), largeNumRelsToInsert);
-    validateInsertRelsToSmallListFail(readAllKnowsProperty(readConn.get(), "animal", "person"));
-    conn->commit();
-    validateInsertRelsToSmallListSucceed(
-        readAllKnowsProperty(conn.get(), "animal", "person"), largeNumRelsToInsert);
-}
-
-TEST_F(CreateRelTrxTest, InsertLargeNumRelsToSmallListCommitRecovery) {
-    conn->beginWriteTransaction();
-    insertKnowsRels("animal", "person", largeNumRelsToInsert);
-    commitButSkipCheckpointingForTestingRecovery(*conn);
-    createDBAndConn(); // run recovery
-    validateInsertRelsToSmallListSucceed(
-        readAllKnowsProperty(conn.get(), "animal", "person"), largeNumRelsToInsert);
-}
-
-static int numPersonPersonRelsInDB = 2500;
-
-static void validateExistingPersonPersonRel(const string& result, uint64_t param) {
-    auto strVal = generateStrFromInt(3000 - param);
-    auto groundTruth = to_string(3 * param) + "|" + strVal + "|[" + strVal + "]";
-    ASSERT_STREQ(groundTruth.c_str(), result.c_str());
-}
-
-static void validateInsertRelsToLargeListSucceed(
-    vector<string> resultStr, uint64_t numRelsInserted, bool testNullAndLongString = false) {
-    auto currIdx = 0u;
-    for (auto i = 0u; i < numPersonPersonRelsInDB; ++i, ++currIdx) {
-        validateExistingPersonPersonRel(resultStr[currIdx], i);
-    }
-    for (auto i = 0u; i < numRelsInserted; ++i, ++currIdx) {
-        validateInsertedRel(resultStr[currIdx], i, testNullAndLongString);
-    }
-}
-
-static void validateInsertRelsToLargeListFail(vector<string> resultStr) {
-    ASSERT_EQ(resultStr.size(), numPersonPersonRelsInDB);
-    validateInsertRelsToLargeListSucceed(resultStr, 0);
-}
-
-TEST_F(CreateRelTrxTest, InsertRelsToLargeListCommitNormalExecution) {
-    conn->beginWriteTransaction();
-    insertKnowsRels("person", "person", smallNumRelsToInsert);
-    validateInsertRelsToLargeListSucceed(
-        readAllKnowsProperty(conn.get(), "person", "person"), smallNumRelsToInsert);
-    validateInsertRelsToLargeListFail(readAllKnowsProperty(readConn.get(), "person", "person"));
-    conn->commit();
-    validateInsertRelsToLargeListSucceed(
-        readAllKnowsProperty(conn.get(), "person", "person"), smallNumRelsToInsert);
-}
-
-TEST_F(CreateRelTrxTest, InsertRelsToLargeListCommitRecovery) {
-    conn->beginWriteTransaction();
-    insertKnowsRels("person", "person", smallNumRelsToInsert);
-    commitButSkipCheckpointingForTestingRecovery(*conn);
-    createDBAndConn(); // run recovery
-    validateInsertRelsToLargeListSucceed(
-        readAllKnowsProperty(conn.get(), "person", "person"), smallNumRelsToInsert);
-}
-
-TEST_F(CreateRelTrxTest, InsertRelsToLargeListRollbackNormalExecution) {
-    conn->beginWriteTransaction();
-    insertKnowsRels("person", "person", smallNumRelsToInsert);
-    conn->rollback();
-    validateInsertRelsToLargeListFail(readAllKnowsProperty(conn.get(), "person", "person"));
-}
-
-TEST_F(CreateRelTrxTest, InsertRelsToLargeListRollbackRecovery) {
-    conn->beginWriteTransaction();
-    insertKnowsRels("person", "person", smallNumRelsToInsert);
-    rollbackButSkipCheckpointingForTestingRecovery(*conn);
-    createDBAndConn(); // run recovery
-    validateInsertRelsToLargeListFail(readAllKnowsProperty(conn.get(), "person", "person"));
-}
-
-TEST_F(CreateRelTrxTest, InsertRelsToLargeListWithNullCommitNormalExecution) {
-    conn->beginWriteTransaction();
-    insertKnowsRels("person", "person", smallNumRelsToInsert, true /* testNullAndLongString */);
-    validateInsertRelsToLargeListSucceed(readAllKnowsProperty(conn.get(), "person", "person"),
-        smallNumRelsToInsert, true /* testNullAndLongString */);
-    validateInsertRelsToLargeListFail(readAllKnowsProperty(readConn.get(), "person", "person"));
-    conn->commit();
-    validateInsertRelsToLargeListSucceed(readAllKnowsProperty(conn.get(), "person", "person"),
-        smallNumRelsToInsert, true /* testNullAndLongString */);
-}
-
-TEST_F(CreateRelTrxTest, ViolateManyOneMultiplicityError) {
-    conn->beginWriteTransaction();
-    validateExceptionMessage(
-        "MATCH (p1:person), (p2:person) WHERE p1.ID = 10 AND p2.ID = 10 CREATE "
-        "(p1)-[:teaches]->(p2);",
-        "Runtime exception: Node(nodeOffset: 10, tableID: 1) in RelTable 5 cannot have more than "
-        "one neighbour in the forward direction.");
-}
-
-TEST_F(CreateRelTrxTest, ViolateOneOneMultiplicityError) {
-    conn->beginWriteTransaction();
-    validateExceptionMessage("MATCH (a:animal), (p:person) WHERE a.ID = 10 AND p.ID = 10 CREATE "
-                             "(a)-[:hasOwner]->(p);",
-        "Runtime exception: Node(nodeOffset: 10, tableID: 0) in RelTable 4 cannot have more than "
-        "one neighbour in the forward direction.");
-}
-
-TEST_F(CreateRelTrxTest, CreateRelToEmptyRelTable) {
-    conn->query("create node table student(id INT64, PRIMARY KEY(id))");
-    conn->query("create rel table follows(FROM student TO student)");
-    conn->query("CREATE (s:student {id: 1})");
-    ASSERT_EQ(TestHelper::convertResultToString(
-                  *conn->query("match (s:student)-[:follows]->(:student) return count(s.id)"))[0],
-        to_string(0));
 }

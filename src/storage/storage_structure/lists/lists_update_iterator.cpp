@@ -2,6 +2,9 @@
 
 #include "storage/storage_structure/storage_structure_utils.h"
 
+using namespace kuzu::common;
+using namespace kuzu::transaction;
+
 namespace kuzu {
 namespace storage {
 
@@ -61,7 +64,7 @@ void ListsUpdateIterator::doneUpdating() {
         // because we want to slide the node with offset
         // getChunkIdxEndNodeOffsetInclusive(curChunkIdx).
         auto endNodeOffsetToSeekTo =
-            min(lists->getHeaders()->headersDiskArray->getNumElements(TransactionType::WRITE),
+            std::min(lists->getHeaders()->headersDiskArray->getNumElements(TransactionType::WRITE),
                 StorageUtils::getChunkIdxEndNodeOffsetInclusive(curChunkIdx) + 1);
         seekToNodeOffsetAndSlideListsIfNecessary(endNodeOffsetToSeekTo);
     }
@@ -88,7 +91,7 @@ void ListsUpdateIterator::slideListsIfNecessary(uint64_t endNodeOffsetInclusive)
             list_header_t newHeader = ListHeaders::getSmallListHeader(curCSROffset, listLen);
             if (newHeader != oldHeader) {
                 InMemList inMemList{listLen, lists->elementSize, lists->mayContainNulls()};
-                const unordered_set<uint64_t> deletedRelOffsetsInList;
+                const std::unordered_set<uint64_t> deletedRelOffsetsInList;
                 lists->fillInMemListsFromPersistentStore(nodeOffsetToSlide,
                     lists->getNumElementsFromListHeader(nodeOffsetToSlide), inMemList,
                     deletedRelOffsetsInList);
@@ -128,7 +131,7 @@ void ListsUpdateIterator::writeInMemListToListPages(
     uint64_t idxInPageList;
     uint64_t elementOffsetInListPage;
     if (isSmallList) {
-        pair<uint64_t, uint64_t> idInPageGroupAndOffsetInListPage =
+        std::pair<uint64_t, uint64_t> idInPageGroupAndOffsetInListPage =
             StorageUtils::getQuotientRemainder(curCSROffset, lists->numElementsPerPage);
         idxInPageList = idInPageGroupAndOffsetInListPage.first;
         elementOffsetInListPage = idInPageGroupAndOffsetInListPage.second;
@@ -229,15 +232,17 @@ void ListsUpdateIterator::updateSmallListAndCurCSROffset(
     curCSROffset += inMemList.numElements;
 }
 
-pair<page_idx_t, bool> ListsUpdateIterator::findListPageIdxAndInsertListPageToPageListIfNecessary(
+std::pair<page_idx_t, bool>
+ListsUpdateIterator::findListPageIdxAndInsertListPageToPageListIfNecessary(
     page_idx_t idxInPageList, uint32_t pageListHeadIdx) {
     auto pageLists = lists->getListsMetadata().pageLists.get();
     uint32_t curIdxInPageList = pageListHeadIdx;
-    while (ListsMetadataConfig::PAGE_LIST_GROUP_SIZE <= idxInPageList) {
+    while (ListsMetadataConstants::PAGE_LIST_GROUP_SIZE <= idxInPageList) {
         auto nextIdxInPageList =
-            pageLists->get(curIdxInPageList + ListsMetadataConfig::PAGE_LIST_GROUP_SIZE, WRITE);
+            pageLists->get(curIdxInPageList + ListsMetadataConstants::PAGE_LIST_GROUP_SIZE,
+                TransactionType::WRITE);
         if (nextIdxInPageList == StorageStructureUtils::NULL_PAGE_IDX) {
-            // If idxInPageList >= ListsMetadataConfig::PAGE_LIST_GROUP_SIZE but the
+            // If idxInPageList >= ListsMetadataConstants::PAGE_LIST_GROUP_SIZE but the
             // current page group does not have a new page group, it must be the case that
             // the idxInPageList is the first page in the next page group. This is because we
             // are consecutively updating the lists. suppose next list needs to be put in
@@ -248,22 +253,22 @@ pair<page_idx_t, bool> ListsUpdateIterator::findListPageIdxAndInsertListPageToPa
             // have only 1 page group. But x cannot be 4 and we ran out of page groups because
             // the previous list we stored would have created the page group for 3, 4, and 5
             // (note the first page group would store x 0, 1, and 2).
-            assert(idxInPageList == ListsMetadataConfig::PAGE_LIST_GROUP_SIZE);
+            assert(idxInPageList == ListsMetadataConstants::PAGE_LIST_GROUP_SIZE);
             curIdxInPageList = insertNewPageGroupAndSetHeadIdxMap(curIdxInPageList);
         } else {
             curIdxInPageList = nextIdxInPageList;
         }
-        idxInPageList -= ListsMetadataConfig::PAGE_LIST_GROUP_SIZE;
+        idxInPageList -= ListsMetadataConstants::PAGE_LIST_GROUP_SIZE;
     }
     curIdxInPageList += idxInPageList;
-    page_idx_t listPageIdx = pageLists->get(curIdxInPageList, WRITE);
+    page_idx_t listPageIdx = pageLists->get(curIdxInPageList, TransactionType::WRITE);
     bool isInsertingNewListPage = false;
     if (listPageIdx == StorageStructureUtils::NULL_PAGE_IDX) {
         isInsertingNewListPage = true;
         listPageIdx = lists->getFileHandle()->addNewPage();
         pageLists->update(curIdxInPageList, listPageIdx);
     }
-    return make_pair(listPageIdx, isInsertingNewListPage);
+    return std::make_pair(listPageIdx, isInsertingNewListPage);
 }
 
 page_idx_t ListsUpdateIterator::insertNewPageGroupAndSetHeadIdxMap(
@@ -282,10 +287,10 @@ page_idx_t ListsUpdateIterator::insertNewPageGroupAndSetHeadIdxMap(
         }
     } else {
         // Update the next pointer of the current page group.
-        pageLists->update(beginIdxOfCurrentPageGroup + ListsMetadataConfig::PAGE_LIST_GROUP_SIZE,
+        pageLists->update(beginIdxOfCurrentPageGroup + ListsMetadataConstants::PAGE_LIST_GROUP_SIZE,
             beginIdxOfNextPageGroup);
     }
-    for (int i = 0; i < ListsMetadataConfig::PAGE_LIST_GROUP_WITH_NEXT_PTR_SIZE; ++i) {
+    for (int i = 0; i < ListsMetadataConstants::PAGE_LIST_GROUP_WITH_NEXT_PTR_SIZE; ++i) {
         pageLists->pushBack(StorageStructureUtils::NULL_PAGE_IDX);
     }
     return beginIdxOfNextPageGroup;
@@ -307,8 +312,8 @@ void ListsUpdateIterator::writeAtOffset(InMemList& inMemList, page_idx_t pageLis
         // Now find the physical pageIdx that this corresponds to the logical idxInPageList
         auto [listPageIdx, insertingNewPage] =
             findListPageIdxAndInsertListPageToPageListIfNecessary(idxInPageList, pageListHeadIdx);
-        uint64_t numElementsToWriteToCurrentPage =
-            min(remainingNumElementsToWrite, lists->numElementsPerPage - elementOffsetInListPage);
+        uint64_t numElementsToWriteToCurrentPage = std::min(
+            remainingNumElementsToWrite, lists->numElementsPerPage - elementOffsetInListPage);
         StorageStructureUtils::updatePage(*(lists->getFileHandle()), listPageIdx, insertingNewPage,
             lists->bufferManager, *(lists->wal),
             [&inMemList, &elementOffsetInListPage, &numElementsToWriteToCurrentPage, &elementSize,

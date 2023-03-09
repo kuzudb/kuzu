@@ -7,10 +7,10 @@ namespace binder {
 
 class BoundCreateNodeClause : public BoundCreateTable {
 public:
-    explicit BoundCreateNodeClause(string tableName,
-        vector<PropertyNameDataType> propertyNameDataTypes, uint32_t primaryKeyIdx)
-        : BoundCreateTable{StatementType::CREATE_NODE_CLAUSE, move(tableName),
-              move(propertyNameDataTypes)},
+    explicit BoundCreateNodeClause(std::string tableName,
+        std::vector<catalog::PropertyNameDataType> propertyNameDataTypes, uint32_t primaryKeyIdx)
+        : BoundCreateTable{common::StatementType::CREATE_NODE_CLAUSE, std::move(tableName),
+              std::move(propertyNameDataTypes)},
           primaryKeyIdx{primaryKeyIdx} {}
 
     inline uint32_t getPrimaryKeyIdx() const { return primaryKeyIdx; }

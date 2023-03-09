@@ -1,21 +1,24 @@
 #include "storage/copy_arrow/copy_structures_arrow.h"
 
-#include "common/configs.h"
+#include "common/constants.h"
 #include "storage/storage_structure/lists/lists.h"
+
+using namespace kuzu::catalog;
+using namespace kuzu::common;
 
 namespace kuzu {
 namespace storage {
 
-CopyStructuresArrow::CopyStructuresArrow(CopyDescription& copyDescription, string outputDirectory,
-    TaskScheduler& taskScheduler, Catalog& catalog)
-    : logger{LoggerUtils::getOrCreateLogger("loader")}, copyDescription{copyDescription},
-      outputDirectory{std::move(outputDirectory)}, numBlocks{0},
+CopyStructuresArrow::CopyStructuresArrow(CopyDescription& copyDescription,
+    std::string outputDirectory, TaskScheduler& taskScheduler, Catalog& catalog)
+    : logger{LoggerUtils::getLogger(LoggerConstants::LoggerEnum::LOADER)},
+      copyDescription{copyDescription}, outputDirectory{std::move(outputDirectory)}, numBlocks{0},
       taskScheduler{taskScheduler}, catalog{catalog}, numRows{0} {}
 
 // Lists headers are created for only AdjLists, which store data in the page without NULL bits.
 void CopyStructuresArrow::calculateListHeadersTask(offset_t numNodes, uint32_t elementSize,
     atomic_uint64_vec_t* listSizes, ListHeadersBuilder* listHeadersBuilder,
-    const shared_ptr<spdlog::logger>& logger) {
+    const std::shared_ptr<spdlog::logger>& logger) {
     logger->trace("Start: ListHeadersBuilder={0:p}", (void*)listHeadersBuilder);
     auto numElementsPerPage = PageUtils::getNumElementsInAPage(elementSize, false /* hasNull */);
     auto numChunks = StorageUtils::getNumChunks(numNodes);
@@ -24,9 +27,9 @@ void CopyStructuresArrow::calculateListHeadersTask(offset_t numNodes, uint32_t e
     for (auto chunkId = 0u; chunkId < numChunks; chunkId++) {
         auto csrOffset = 0u;
         auto lastNodeOffsetInChunk =
-            min(nodeOffset + ListsMetadataConfig::LISTS_CHUNK_SIZE, numNodes);
+            std::min(nodeOffset + ListsMetadataConstants::LISTS_CHUNK_SIZE, numNodes);
         for (auto i = nodeOffset; i < lastNodeOffsetInChunk; i++) {
-            auto numElementsInList = (*listSizes)[nodeOffset].load(memory_order_relaxed);
+            auto numElementsInList = (*listSizes)[nodeOffset].load(std::memory_order_relaxed);
             uint32_t header;
             if (numElementsInList >= numElementsPerPage) {
                 header = ListHeaders::getLargeListHeader(lAdjListsIdx++);
@@ -43,7 +46,7 @@ void CopyStructuresArrow::calculateListHeadersTask(offset_t numNodes, uint32_t e
 
 void CopyStructuresArrow::calculateListsMetadataAndAllocateInMemListPagesTask(uint64_t numNodes,
     uint32_t elementSize, atomic_uint64_vec_t* listSizes, ListHeadersBuilder* listHeadersBuilder,
-    InMemLists* inMemList, bool hasNULLBytes, const shared_ptr<spdlog::logger>& logger) {
+    InMemLists* inMemList, bool hasNULLBytes, const std::shared_ptr<spdlog::logger>& logger) {
     logger->trace("Start: listsMetadataBuilder={0:p} adjListHeadersBuilder={1:p}",
         (void*)inMemList->getListsMetadataBuilder(), (void*)listHeadersBuilder);
     auto numChunks = StorageUtils::getNumChunks(numNodes);
@@ -51,7 +54,7 @@ void CopyStructuresArrow::calculateListsMetadataAndAllocateInMemListPagesTask(ui
     auto largeListIdx = 0u;
     for (auto chunkId = 0u; chunkId < numChunks; chunkId++) {
         auto lastNodeOffsetInChunk =
-            min(nodeOffset + ListsMetadataConfig::LISTS_CHUNK_SIZE, numNodes);
+            std::min(nodeOffset + ListsMetadataConstants::LISTS_CHUNK_SIZE, numNodes);
         for (auto i = nodeOffset; i < lastNodeOffsetInChunk; i++) {
             if (ListHeaders::isALargeList(listHeadersBuilder->getHeader(nodeOffset))) {
                 largeListIdx++;
@@ -66,9 +69,9 @@ void CopyStructuresArrow::calculateListsMetadataAndAllocateInMemListPagesTask(ui
     for (auto chunkId = 0u; chunkId < numChunks; chunkId++) {
         auto numPages = 0u, offsetInPage = 0u;
         auto lastNodeOffsetInChunk =
-            min(nodeOffset + ListsMetadataConfig::LISTS_CHUNK_SIZE, numNodes);
+            std::min(nodeOffset + ListsMetadataConstants::LISTS_CHUNK_SIZE, numNodes);
         while (nodeOffset < lastNodeOffsetInChunk) {
-            auto numElementsInList = (*listSizes)[nodeOffset].load(memory_order_relaxed);
+            auto numElementsInList = (*listSizes)[nodeOffset].load(std::memory_order_relaxed);
             if (ListHeaders::isALargeList(listHeadersBuilder->getHeader(nodeOffset))) {
                 auto numPagesForLargeList = numElementsInList / numPerPage;
                 if (0 != numElementsInList % numPerPage) {
@@ -119,9 +122,8 @@ void CopyStructuresArrow::countNumLines(const std::string& filePath) {
 }
 
 arrow::Status CopyStructuresArrow::countNumLinesCSV(const std::string& filePath) {
-    shared_ptr<arrow::csv::StreamingReader> csv_streaming_reader;
-    auto status = initCSVReader(csv_streaming_reader, filePath);
-
+    std::shared_ptr<arrow::csv::StreamingReader> csv_streaming_reader;
+    auto status = initCSVReaderAndCheckStatus(csv_streaming_reader, filePath);
     numRows = 0;
     numBlocks = 0;
     std::shared_ptr<arrow::RecordBatch> currBatch;
@@ -139,8 +141,7 @@ arrow::Status CopyStructuresArrow::countNumLinesCSV(const std::string& filePath)
 
 arrow::Status CopyStructuresArrow::countNumLinesArrow(const std::string& filePath) {
     std::shared_ptr<arrow::ipc::RecordBatchFileReader> ipc_reader;
-    auto status = initArrowReader(ipc_reader, filePath);
-
+    auto status = initArrowReaderAndCheckStatus(ipc_reader, filePath);
     numRows = 0;
     numBlocks = ipc_reader->num_record_batches();
     numLinesPerBlock.resize(numBlocks);
@@ -156,7 +157,7 @@ arrow::Status CopyStructuresArrow::countNumLinesArrow(const std::string& filePat
 
 arrow::Status CopyStructuresArrow::countNumLinesParquet(const std::string& filePath) {
     std::unique_ptr<parquet::arrow::FileReader> reader;
-    auto status = initParquetReader(reader, filePath);
+    auto status = initParquetReaderAndCheckStatus(reader, filePath);
 
     numRows = 0;
     numBlocks = reader->num_row_groups();
@@ -171,31 +172,49 @@ arrow::Status CopyStructuresArrow::countNumLinesParquet(const std::string& fileP
     return status;
 }
 
+arrow::Status CopyStructuresArrow::initCSVReaderAndCheckStatus(
+    std::shared_ptr<arrow::csv::StreamingReader>& csv_streaming_reader,
+    const std::string& filePath) {
+    auto status = initCSVReader(csv_streaming_reader, filePath);
+    throwCopyExceptionIfNotOK(status);
+    return status;
+}
+
 arrow::Status CopyStructuresArrow::initCSVReader(
-    shared_ptr<arrow::csv::StreamingReader>& csv_streaming_reader, const std::string& filePath) {
-    shared_ptr<arrow::io::InputStream> arrow_input_stream;
+    std::shared_ptr<arrow::csv::StreamingReader>& csv_streaming_reader,
+    const std::string& filePath) {
+    std::shared_ptr<arrow::io::InputStream> arrow_input_stream;
     ARROW_ASSIGN_OR_RAISE(arrow_input_stream, arrow::io::ReadableFile::Open(filePath));
     auto arrowRead = arrow::csv::ReadOptions::Defaults();
-    arrowRead.block_size = CopyConfig::CSV_READING_BLOCK_SIZE;
-
+    arrowRead.block_size = CopyConstants::CSV_READING_BLOCK_SIZE;
     if (!copyDescription.csvReaderConfig->hasHeader) {
         arrowRead.autogenerate_column_names = true;
     }
 
     auto arrowConvert = arrow::csv::ConvertOptions::Defaults();
     arrowConvert.strings_can_be_null = true;
+    // Only the empty string is treated as NULL.
+    arrowConvert.null_values = {""};
     arrowConvert.quoted_strings_can_be_null = false;
 
     auto arrowParse = arrow::csv::ParseOptions::Defaults();
     arrowParse.delimiter = copyDescription.csvReaderConfig->delimiter;
     arrowParse.escape_char = copyDescription.csvReaderConfig->escapeChar;
     arrowParse.quote_char = copyDescription.csvReaderConfig->quoteChar;
+    arrowParse.ignore_empty_lines = false;
     arrowParse.escaping = true;
 
     ARROW_ASSIGN_OR_RAISE(
         csv_streaming_reader, arrow::csv::StreamingReader::Make(arrow::io::default_io_context(),
                                   arrow_input_stream, arrowRead, arrowParse, arrowConvert));
     return arrow::Status::OK();
+}
+
+arrow::Status CopyStructuresArrow::initArrowReaderAndCheckStatus(
+    std::shared_ptr<arrow::ipc::RecordBatchFileReader>& ipc_reader, const std::string& filePath) {
+    auto status = initArrowReader(ipc_reader, filePath);
+    throwCopyExceptionIfNotOK(status);
+    return status;
 }
 
 arrow::Status CopyStructuresArrow::initArrowReader(
@@ -209,6 +228,13 @@ arrow::Status CopyStructuresArrow::initArrowReader(
     return arrow::Status::OK();
 }
 
+arrow::Status CopyStructuresArrow::initParquetReaderAndCheckStatus(
+    std::unique_ptr<parquet::arrow::FileReader>& reader, const std::string& filePath) {
+    auto status = initParquetReader(reader, filePath);
+    throwCopyExceptionIfNotOK(status);
+    return status;
+}
+
 arrow::Status CopyStructuresArrow::initParquetReader(
     std::unique_ptr<parquet::arrow::FileReader>& reader, const std::string& filePath) {
     std::shared_ptr<arrow::io::ReadableFile> infile;
@@ -219,63 +245,67 @@ arrow::Status CopyStructuresArrow::initParquetReader(
     return arrow::Status::OK();
 }
 
-unique_ptr<Value> CopyStructuresArrow::getArrowList(string& l, int64_t from, int64_t to,
-    const DataType& dataType, CopyDescription& copyDescription) {
-    auto childDataType = *dataType.childType;
-
-    char delimiter = copyDescription.csvReaderConfig->delimiter;
-    vector<pair<int64_t, int64_t>> split;
+std::vector<std::pair<int64_t, int64_t>> CopyStructuresArrow::getListElementPos(
+    std::string& l, int64_t from, int64_t to, CopyDescription& copyDescription) {
+    std::vector<std::pair<int64_t, int64_t>> split;
     int bracket = 0;
     int64_t last = from;
-    if (dataType.typeID == LIST) {
-        for (int64_t i = from; i <= to; i++) {
-            if (l[i] == copyDescription.csvReaderConfig->listBeginChar) {
-                bracket += 1;
-            } else if (l[i] == copyDescription.csvReaderConfig->listEndChar) {
-                bracket -= 1;
-            } else if (bracket == 0 && l[i] == delimiter) {
-                split.emplace_back(last, i - last);
-                last = i + 1;
-            }
+    for (int64_t i = from; i <= to; i++) {
+        if (l[i] == copyDescription.csvReaderConfig->listBeginChar) {
+            bracket += 1;
+        } else if (l[i] == copyDescription.csvReaderConfig->listEndChar) {
+            bracket -= 1;
+        } else if (bracket == 0 && l[i] == copyDescription.csvReaderConfig->delimiter) {
+            split.emplace_back(last, i - last);
+            last = i + 1;
         }
     }
     split.emplace_back(last, to - last + 1);
+    return split;
+}
 
-    vector<unique_ptr<Value>> values;
+std::unique_ptr<Value> CopyStructuresArrow::getArrowVarList(std::string& l, int64_t from,
+    int64_t to, const DataType& dataType, CopyDescription& copyDescription) {
+    assert(dataType.typeID == common::VAR_LIST || dataType.typeID == common::FIXED_LIST);
+    auto split = getListElementPos(l, from, to, copyDescription);
+    std::vector<std::unique_ptr<Value>> values;
+    auto childDataType = *dataType.childType;
     for (auto pair : split) {
-        string element = l.substr(pair.first, pair.second);
+        std::string element = l.substr(pair.first, pair.second);
         if (element.empty()) {
             continue;
         }
-        unique_ptr<Value> value;
+        std::unique_ptr<Value> value;
         switch (childDataType.typeID) {
         case INT64: {
-            value = make_unique<Value>((int64_t)stoll(element));
+            value = std::make_unique<Value>((int64_t)stoll(element));
         } break;
         case DOUBLE: {
-            value = make_unique<Value>(stod(element));
+            value = std::make_unique<Value>(stod(element));
         } break;
         case BOOL: {
             transform(element.begin(), element.end(), element.begin(), ::tolower);
             std::istringstream is(element);
             bool b;
             is >> std::boolalpha >> b;
-            value = make_unique<Value>(b);
+            value = std::make_unique<Value>(b);
         } break;
         case STRING: {
             value = make_unique<Value>(element);
         } break;
         case DATE: {
-            value = make_unique<Value>(Date::FromCString(element.c_str(), element.length()));
+            value = std::make_unique<Value>(Date::FromCString(element.c_str(), element.length()));
         } break;
         case TIMESTAMP: {
-            value = make_unique<Value>(Timestamp::FromCString(element.c_str(), element.length()));
+            value =
+                std::make_unique<Value>(Timestamp::FromCString(element.c_str(), element.length()));
         } break;
         case INTERVAL: {
-            value = make_unique<Value>(Interval::FromCString(element.c_str(), element.length()));
+            value =
+                std::make_unique<Value>(Interval::FromCString(element.c_str(), element.length()));
         } break;
-        case LIST: {
-            value = getArrowList(l, pair.first + 1, pair.second + pair.first - 1,
+        case VAR_LIST: {
+            value = getArrowVarList(l, pair.first + 1, pair.second + pair.first - 1,
                 *dataType.childType, copyDescription);
         } break;
         default:
@@ -285,14 +315,67 @@ unique_ptr<Value> CopyStructuresArrow::getArrowList(string& l, int64_t from, int
         }
         values.push_back(std::move(value));
     }
-    auto numBytesOfOverflow = values.size() * Types::getDataTypeSize(dataType.typeID);
-    if (numBytesOfOverflow >= DEFAULT_PAGE_SIZE) {
+    auto numBytesOfOverflow = values.size() * Types::getDataTypeSize(childDataType.typeID);
+    if (numBytesOfOverflow >= BufferPoolConstants::DEFAULT_PAGE_SIZE) {
         throw ReaderException(StringUtils::string_format(
-            "Maximum num bytes of a LIST is %d. Input list's num bytes is %d.", DEFAULT_PAGE_SIZE,
-            numBytesOfOverflow));
+            "Maximum num bytes of a LIST is {}. Input list's num bytes is {}.",
+            BufferPoolConstants::DEFAULT_PAGE_SIZE, numBytesOfOverflow));
     }
     return make_unique<Value>(
-        DataType(LIST, make_unique<DataType>(childDataType)), std::move(values));
+        DataType(VAR_LIST, std::make_unique<DataType>(childDataType)), std::move(values));
+}
+
+std::unique_ptr<uint8_t[]> CopyStructuresArrow::getArrowFixedList(std::string& l, int64_t from,
+    int64_t to, const DataType& dataType, CopyDescription& copyDescription) {
+    assert(dataType.typeID == common::FIXED_LIST);
+    auto split = getListElementPos(l, from, to, copyDescription);
+    auto listVal = std::make_unique<uint8_t[]>(Types::getDataTypeSize(dataType));
+    auto childDataType = *dataType.childType;
+    uint64_t numElementsRead = 0;
+    for (auto pair : split) {
+        std::string element = l.substr(pair.first, pair.second);
+        if (element.empty()) {
+            continue;
+        }
+        switch (childDataType.typeID) {
+        case INT64: {
+            auto val = TypeUtils::convertStringToNumber<int64_t>(element.c_str());
+            memcpy(listVal.get() + numElementsRead * sizeof(int64_t), &val, sizeof(int64_t));
+            numElementsRead++;
+        } break;
+        case INT32: {
+            auto val = TypeUtils::convertStringToNumber<int32_t>(element.c_str());
+            memcpy(listVal.get() + numElementsRead * sizeof(int32_t), &val, sizeof(int32_t));
+            numElementsRead++;
+        } break;
+        case INT16: {
+            auto val = TypeUtils::convertStringToNumber<int16_t>(element.c_str());
+            memcpy(listVal.get() + numElementsRead * sizeof(int16_t), &val, sizeof(int16_t));
+            numElementsRead++;
+        } break;
+        case DOUBLE: {
+            auto val = TypeUtils::convertStringToNumber<double_t>(element.c_str());
+            memcpy(listVal.get() + numElementsRead * sizeof(double_t), &val, sizeof(double_t));
+            numElementsRead++;
+        } break;
+        case FLOAT: {
+            auto val = TypeUtils::convertStringToNumber<float_t>(element.c_str());
+            memcpy(listVal.get() + numElementsRead * sizeof(float_t), &val, sizeof(float_t));
+            numElementsRead++;
+        } break;
+        default: {
+            throw ReaderException("Unsupported data type " +
+                                  Types::dataTypeToString(dataType.childType->typeID) +
+                                  " inside FIXED_LIST");
+        }
+        }
+    }
+    if (numElementsRead != dataType.fixedNumElementsInList) {
+        throw ReaderException(StringUtils::string_format(
+            "Each fixed list should have fixed number of elements. Expected: {}, Actual: {}.",
+            dataType.fixedNumElementsInList, numElementsRead));
+    }
+    return listVal;
 }
 
 void CopyStructuresArrow::throwCopyExceptionIfNotOK(const arrow::Status& status) {

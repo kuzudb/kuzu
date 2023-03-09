@@ -8,12 +8,13 @@ namespace processor {
 
 class Sink : public PhysicalOperator {
 public:
-    Sink(unique_ptr<ResultSetDescriptor> resultSetDescriptor, PhysicalOperatorType operatorType,
-        uint32_t id, const string& paramsString)
+    Sink(std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
+        PhysicalOperatorType operatorType, uint32_t id, const std::string& paramsString)
         : PhysicalOperator{operatorType, id, paramsString}, resultSetDescriptor{
                                                                 std::move(resultSetDescriptor)} {}
-    Sink(unique_ptr<ResultSetDescriptor> resultSetDescriptor, PhysicalOperatorType operatorType,
-        unique_ptr<PhysicalOperator> child, uint32_t id, const string& paramsString)
+    Sink(std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
+        PhysicalOperatorType operatorType, std::unique_ptr<PhysicalOperator> child, uint32_t id,
+        const std::string& paramsString)
         : PhysicalOperator{operatorType, std::move(child), id, paramsString},
           resultSetDescriptor{std::move(resultSetDescriptor)} {}
 
@@ -30,17 +31,18 @@ public:
 
     virtual void finalize(ExecutionContext* context){};
 
-    unique_ptr<PhysicalOperator> clone() override = 0;
+    std::unique_ptr<PhysicalOperator> clone() override = 0;
 
 protected:
     virtual void executeInternal(ExecutionContext* context) = 0;
 
     bool getNextTuplesInternal() final {
-        throw InternalException("getNextTupleInternal() should not be called on sink operator.");
+        throw common::InternalException(
+            "getNextTupleInternal() should not be called on sink operator.");
     }
 
 protected:
-    unique_ptr<ResultSetDescriptor> resultSetDescriptor;
+    std::unique_ptr<ResultSetDescriptor> resultSetDescriptor;
 };
 
 } // namespace processor

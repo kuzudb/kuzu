@@ -1,10 +1,13 @@
 #include "processor/operator/aggregate/simple_aggregate.h"
 
+using namespace kuzu::common;
+using namespace kuzu::function;
+
 namespace kuzu {
 namespace processor {
 
 SimpleAggregateSharedState::SimpleAggregateSharedState(
-    const vector<unique_ptr<AggregateFunction>>& aggregateFunctions)
+    const std::vector<std::unique_ptr<AggregateFunction>>& aggregateFunctions)
     : BaseAggregateSharedState{aggregateFunctions} {
     for (auto& aggregateFunction : this->aggregateFunctions) {
         globalAggregateStates.push_back(aggregateFunction->createInitialNullAggregateState());
@@ -12,12 +15,13 @@ SimpleAggregateSharedState::SimpleAggregateSharedState(
 }
 
 void SimpleAggregateSharedState::combineAggregateStates(
-    const vector<unique_ptr<AggregateState>>& localAggregateStates) {
+    const std::vector<std::unique_ptr<AggregateState>>& localAggregateStates,
+    storage::MemoryManager* memoryManager) {
     assert(localAggregateStates.size() == globalAggregateStates.size());
     auto lck = acquireLock();
     for (auto i = 0u; i < aggregateFunctions.size(); ++i) {
-        aggregateFunctions[i]->combineState(
-            (uint8_t*)globalAggregateStates[i].get(), (uint8_t*)localAggregateStates[i].get());
+        aggregateFunctions[i]->combineState((uint8_t*)globalAggregateStates[i].get(),
+            (uint8_t*)localAggregateStates[i].get(), memoryManager);
     }
 }
 
@@ -28,14 +32,14 @@ void SimpleAggregateSharedState::finalizeAggregateStates() {
     }
 }
 
-pair<uint64_t, uint64_t> SimpleAggregateSharedState::getNextRangeToRead() {
+std::pair<uint64_t, uint64_t> SimpleAggregateSharedState::getNextRangeToRead() {
     auto lck = acquireLock();
     if (currentOffset >= 1) {
-        return make_pair(currentOffset, currentOffset);
+        return std::make_pair(currentOffset, currentOffset);
     }
     auto startOffset = currentOffset;
     currentOffset++;
-    return make_pair(startOffset, currentOffset);
+    return std::make_pair(startOffset, currentOffset);
 }
 
 void SimpleAggregate::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
@@ -44,7 +48,7 @@ void SimpleAggregate::initLocalStateInternal(ResultSet* resultSet, ExecutionCont
         localAggregateStates.push_back(aggregateFunction->createInitialNullAggregateState());
     }
     distinctHashTables = AggregateHashTableUtils::createDistinctHashTables(
-        *context->memoryManager, vector<DataType>{}, this->aggregateFunctions);
+        *context->memoryManager, std::vector<DataType>{}, this->aggregateFunctions);
 }
 
 void SimpleAggregate::executeInternal(ExecutionContext* context) {
@@ -56,13 +60,14 @@ void SimpleAggregate::executeInternal(ExecutionContext* context) {
                 auto distinctHT = distinctHashTables[i].get();
                 assert(distinctHT != nullptr);
                 if (distinctHT->isAggregateValueDistinctForGroupByKeys(
-                        vector<ValueVector*>{}, aggVector)) {
+                        std::vector<ValueVector*>{}, aggVector)) {
                     if (!aggVector->isNull(aggVector->state->selVector->selectedPositions[0])) {
                         aggregateFunction->updatePosState((uint8_t*)localAggregateStates[i].get(),
                             aggVector, 1 /* Distinct aggregate should ignore
                                           multiplicity since they are known to be non-distinct. */
                             ,
-                            aggVector->state->selVector->selectedPositions[0]);
+                            aggVector->state->selVector->selectedPositions[0],
+                            context->memoryManager);
                     }
                 }
             } else {
@@ -70,20 +75,21 @@ void SimpleAggregate::executeInternal(ExecutionContext* context) {
                     if (!aggVector->isNull(aggVector->state->selVector->selectedPositions[0])) {
                         aggregateFunction->updatePosState((uint8_t*)localAggregateStates[i].get(),
                             aggVector, resultSet->multiplicity,
-                            aggVector->state->selVector->selectedPositions[0]);
+                            aggVector->state->selVector->selectedPositions[0],
+                            context->memoryManager);
                     }
                 } else {
                     aggregateFunction->updateAllState((uint8_t*)localAggregateStates[i].get(),
-                        aggVector, resultSet->multiplicity);
+                        aggVector, resultSet->multiplicity, context->memoryManager);
                 }
             }
         }
     }
-    sharedState->combineAggregateStates(localAggregateStates);
+    sharedState->combineAggregateStates(localAggregateStates, context->memoryManager);
 }
 
-unique_ptr<PhysicalOperator> SimpleAggregate::clone() {
-    vector<unique_ptr<AggregateFunction>> clonedAggregateFunctions;
+std::unique_ptr<PhysicalOperator> SimpleAggregate::clone() {
+    std::vector<std::unique_ptr<AggregateFunction>> clonedAggregateFunctions;
     for (auto& aggregateFunction : aggregateFunctions) {
         clonedAggregateFunctions.push_back(aggregateFunction->clone());
     }

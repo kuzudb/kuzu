@@ -8,19 +8,27 @@ using namespace kuzu::utf8proc;
 namespace kuzu {
 namespace processor {
 
+void FlatTuple::addValue(std::unique_ptr<common::Value> value) {
+    values.push_back(std::move(value));
+}
+
+uint32_t FlatTuple::len() {
+    return values.size();
+}
+
 common::Value* FlatTuple::getValue(uint32_t idx) {
     if (idx >= len()) {
         throw common::RuntimeException(common::StringUtils::string_format(
-            "ValIdx is out of range. Number of values in flatTuple: %d, valIdx: %d.", len(), idx));
+            "ValIdx is out of range. Number of values in flatTuple: {}, valIdx: {}.", len(), idx));
     }
     return values[idx].get();
 }
 
-string FlatTuple::toString(
-    const vector<uint32_t>& colsWidth, const string& delimiter, const uint32_t maxWidth) {
-    ostringstream result;
+std::string FlatTuple::toString(
+    const std::vector<uint32_t>& colsWidth, const std::string& delimiter, const uint32_t maxWidth) {
+    std::ostringstream result;
     for (auto i = 0ul; i < values.size(); i++) {
-        string value = values[i]->toString();
+        std::string value = values[i]->toString();
         if (value.length() > maxWidth) {
             value = value.substr(0, maxWidth - 3) + "...";
         }
@@ -33,9 +41,9 @@ string FlatTuple::toString(
             fieldLen += Utf8Proc::renderWidth(value.c_str(), chrIter);
             chrIter = utf8proc_next_grapheme(value.c_str(), value.length(), chrIter);
         }
-        fieldLen = min(fieldLen, maxWidth + 2);
+        fieldLen = std::min(fieldLen, maxWidth + 2);
         if (colsWidth[i] != 0) {
-            result << value << string(colsWidth[i] - fieldLen, ' ');
+            result << value << std::string(colsWidth[i] - fieldLen, ' ');
         } else {
             result << value;
         }

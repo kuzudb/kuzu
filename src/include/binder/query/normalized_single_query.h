@@ -20,7 +20,7 @@ public:
         return true;
     }
 
-    inline void appendQueryPart(unique_ptr<NormalizedQueryPart> queryPart) {
+    inline void appendQueryPart(std::unique_ptr<NormalizedQueryPart> queryPart) {
         queryParts.push_back(std::move(queryPart));
     }
     inline uint32_t getNumQueryParts() const { return queryParts.size(); }
@@ -29,7 +29,7 @@ public:
     expression_vector getPropertiesToRead() const;
 
 private:
-    vector<unique_ptr<NormalizedQueryPart>> queryParts;
+    std::vector<std::unique_ptr<NormalizedQueryPart>> queryParts;
 };
 
 } // namespace binder

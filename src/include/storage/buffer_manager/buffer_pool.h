@@ -6,8 +6,6 @@
 #include "common/metric.h"
 #include "storage/buffer_manager/file_handle.h"
 
-using namespace kuzu::common;
-
 namespace spdlog {
 class logger;
 }
@@ -38,7 +36,7 @@ class Frame {
     friend class BufferPool;
 
 public:
-    explicit Frame(uint64_t pageSize);
+    explicit Frame(common::page_offset_t pageSize, uint8_t* buffer);
     ~Frame() noexcept(false);
 
 private:
@@ -46,18 +44,20 @@ private:
     bool acquireFrameLock(bool block);
     void releaseFrameLock() { frameLock.clear(); }
     void setIsDirty(bool _isDirty) { isDirty = _isDirty; }
+    void releaseBuffer();
 
 private:
     // fileHandlePtr and pageIdx identify the file and the page in file whose data the buffer is
     // maintaining. pageIdx of -1u means that the frame is empty, i.e. it has no data.
-    atomic<uint64_t> fileHandlePtr;
-    atomic<page_idx_t> pageIdx;
-    atomic<uint32_t> pinCount;
+    std::atomic<uint64_t> fileHandlePtr;
+    std::atomic<common::page_idx_t> pageIdx;
+    std::atomic<uint32_t> pinCount;
 
     bool recentlyAccessed;
     bool isDirty;
-    unique_ptr<uint8_t[]> buffer;
-    atomic_flag frameLock;
+    uint8_t* buffer;
+    common::page_offset_t pageSize;
+    std::atomic_flag frameLock;
 };
 
 // The BufferPool is a cache of file pages of a fixed size. It provides the high-level functionality
@@ -70,22 +70,22 @@ class BufferPool {
 public:
     BufferPool(uint64_t pageSize, uint64_t maxSize);
 
-    uint8_t* pin(FileHandle& fileHandle, page_idx_t pageIdx);
+    uint8_t* pin(FileHandle& fileHandle, common::page_idx_t pageIdx);
 
     // Pins a new page that has been added to the file. This means that the BufferManager does not
     // need to read the page from the file for now. Ensuring that the given pageIdx is new is the
     // responsibility of the caller.
-    uint8_t* pinWithoutReadingFromFile(FileHandle& fileHandle, page_idx_t pageIdx);
+    uint8_t* pinWithoutReadingFromFile(FileHandle& fileHandle, common::page_idx_t pageIdx);
 
     uint8_t* pinWithoutAcquiringPageLock(
-        FileHandle& fileHandle, page_idx_t pageIdx, bool doNotReadFromFile);
+        FileHandle& fileHandle, common::page_idx_t pageIdx, bool doNotReadFromFile);
 
-    void setPinnedPageDirty(FileHandle& fileHandle, page_idx_t pageIdx);
+    void setPinnedPageDirty(FileHandle& fileHandle, common::page_idx_t pageIdx);
 
     // The function assumes that the requested page is already pinned.
-    void unpin(FileHandle& fileHandle, page_idx_t pageIdx);
+    void unpin(FileHandle& fileHandle, common::page_idx_t pageIdx);
 
-    void unpinWithoutAcquiringPageLock(FileHandle& fileHandle, page_idx_t pageIdx);
+    void unpinWithoutAcquiringPageLock(FileHandle& fileHandle, common::page_idx_t pageIdx);
 
     void resize(uint64_t newSize);
 
@@ -96,41 +96,42 @@ public:
 
     void flushAllDirtyPagesInFrames(FileHandle& fileHandle);
     void updateFrameIfPageIsInFrameWithoutPageOrFrameLock(
-        FileHandle& fileHandle, uint8_t* newPage, page_idx_t pageIdx);
+        FileHandle& fileHandle, uint8_t* newPage, common::page_idx_t pageIdx);
 
-    void removePageFromFrameWithoutFlushingIfNecessary(FileHandle& fileHandle, page_idx_t pageIdx);
+    void removePageFromFrameWithoutFlushingIfNecessary(
+        FileHandle& fileHandle, common::page_idx_t pageIdx);
 
 private:
-    uint8_t* pin(FileHandle& fileHandle, page_idx_t pageIdx, bool doNotReadFromFile);
+    uint8_t* pin(FileHandle& fileHandle, common::page_idx_t pageIdx, bool doNotReadFromFile);
 
-    page_idx_t claimAFrame(FileHandle& fileHandle, page_idx_t pageIdx, bool doNotReadFromFile);
+    common::page_idx_t claimAFrame(
+        FileHandle& fileHandle, common::page_idx_t pageIdx, bool doNotReadFromFile);
 
-    bool fillEmptyFrame(
-        page_idx_t frameIdx, FileHandle& fileHandle, page_idx_t pageIdx, bool doNotReadFromFile);
+    bool fillEmptyFrame(common::page_idx_t frameIdx, FileHandle& fileHandle,
+        common::page_idx_t pageIdx, bool doNotReadFromFile);
 
-    bool tryEvict(
-        page_idx_t frameIdx, FileHandle& fileHandle, page_idx_t pageIdx, bool doNotReadFromFile);
+    bool tryEvict(common::page_idx_t frameIdx, FileHandle& fileHandle, common::page_idx_t pageIdx,
+        bool doNotReadFromFile);
 
     void moveClockHand(uint64_t newClockHand);
     // Performs 2 actions:
     // 1) Clears the contents of the frame.
     // 2) Unswizzles the pageIdx in the frame.
-    void clearFrameAndUnswizzleWithoutLock(
-        const unique_ptr<Frame>& frame, FileHandle& fileHandleInFrame, page_idx_t pageIdxInFrame);
+    void clearFrameAndUnswizzleWithoutLock(const std::unique_ptr<Frame>& frame,
+        FileHandle& fileHandleInFrame, common::page_idx_t pageIdxInFrame);
     void readNewPageIntoFrame(
-        Frame& frame, FileHandle& fileHandle, page_idx_t pageIdx, bool doNotReadFromFile);
+        Frame& frame, FileHandle& fileHandle, common::page_idx_t pageIdx, bool doNotReadFromFile);
 
-    void flushIfDirty(const unique_ptr<Frame>& frame);
+    void flushIfDirty(const std::unique_ptr<Frame>& frame);
 
-    void removePageFromFrame(FileHandle& fileHandle, page_idx_t pageIdx, bool shouldFlush);
+    void removePageFromFrame(FileHandle& fileHandle, common::page_idx_t pageIdx, bool shouldFlush);
 
 private:
-    shared_ptr<spdlog::logger> logger;
+    std::shared_ptr<spdlog::logger> logger;
     uint64_t pageSize;
-    vector<unique_ptr<Frame>> bufferCache;
-    atomic<uint64_t> clockHand;
-    page_idx_t numFrames;
-
+    std::vector<std::unique_ptr<Frame>> bufferCache;
+    std::atomic<uint64_t> clockHand;
+    common::page_idx_t numFrames;
     BufferManagerMetrics bmMetrics;
 };
 

@@ -1,4 +1,4 @@
--NAME CastStructuredBoolToString
+-NAME CastBoolToString
 -QUERY MATCH (p:person) RETURN string(p.isStudent)
 ---- 8
 True
@@ -10,7 +10,7 @@ True
 False
 False
 
--NAME CastStructuredInt64ToString
+-NAME CastInt64ToString
 -QUERY MATCH (p:person) RETURN string(p.age)
 ---- 8
 35
@@ -22,7 +22,7 @@ False
 40
 83
 
--NAME CastStructuredDoubleToString
+-NAME CastDoubleToString
 -QUERY MATCH (p:person) RETURN string(p.eyeSight)
 ---- 8
 5.000000
@@ -34,7 +34,7 @@ False
 4.900000
 4.900000
 
--NAME CastStructuredDateToString
+-NAME CastDateToString
 -QUERY MATCH (p:person) RETURN string(p.birthdate)
 ---- 8
 1900-01-01
@@ -46,7 +46,7 @@ False
 1980-10-26
 1990-11-27
 
--NAME CastStructuredTimestampToString
+-NAME CastTimestampToString
 -QUERY MATCH (p:person) RETURN string(p.registerTime)
 ---- 8
 2011-08-20 11:25:30
@@ -58,7 +58,7 @@ False
 1976-12-23 04:41:42
 2023-02-21 13:25:30
 
--NAME CastStructuredIntervalToString
+-NAME CastIntervalToString
 -QUERY MATCH (p:person) RETURN string(p.lastJobDuration)
 ---- 8
 3 years 2 days 13:02:00
@@ -70,7 +70,7 @@ False
 10 years 5 months 13:00:00.000024
 3 years 2 days 13:02:00
 
--NAME CastStructuredStringToString
+-NAME CastStringToString
 -QUERY MATCH (p:person) RETURN string(p.fName)
 ---- 8
 Alice
@@ -82,7 +82,7 @@ Farooq
 Greg
 Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
 
--NAME CastStructuredListOfIntsToString
+-NAME CastListOfIntsToString
 -QUERY MATCH (p:person) RETURN string(p.workedHours)
 ---- 8
 [10,5]
@@ -94,7 +94,7 @@ Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
 [1]
 [10,11,12,3,4,5,6,7]
 
--NAME CastStructuredListOfListOfIntsToString
+-NAME CastListOfListOfIntsToString
 -QUERY MATCH (p:person) RETURN string(p.courseScoresPerTerm)
 ---- 8
 [[10,8],[6,7,8]]
@@ -105,3 +105,100 @@ Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
 [[8]]
 [[10]]
 [[7],[10],[6,7]]
+
+-NAME CastFloatToString
+-QUERY MATCH (p:person) RETURN string(p.height)
+---- 8
+1.731000
+0.990000
+1.000000
+1.300000
+1.463000
+1.510000
+1.600000
+1.323000
+
+-NAME CastInt16ToDouble
+-QUERY MATCH (:person)-[e:studyAt]->(:organisation) RETURN to_double(e.length)
+---- 3
+5.000000
+55.000000
+22.000000
+
+-NAME CastInt16ToFloat
+-QUERY MATCH (:person)-[e:studyAt]->(:organisation) RETURN to_float(e.length)
+---- 3
+5.000000
+55.000000
+22.000000
+
+-NAME CastInt16ToInt64
+-QUERY MATCH (:person)-[e:studyAt]->(:organisation) RETURN to_int64(e.length)
+---- 3
+5
+55
+22
+
+-NAME CastInt16ToInt32
+-QUERY MATCH (:person)-[e:studyAt]->(:organisation) RETURN to_int32(e.length)
+---- 3
+5
+55
+22
+
+-NAME CastInt32ToDouble
+-QUERY MATCH (m:movies) RETURN to_double(m.length)
+---- 3
+126.000000
+2544.000000
+298.000000
+
+-NAME CastInt32ToFloat
+-QUERY MATCH (m:movies) RETURN to_float(m.length)
+---- 3
+126.000000
+2544.000000
+298.000000
+
+-NAME CastInt32ToInt64
+-QUERY MATCH (m:movies) RETURN to_int64(m.length)
+---- 3
+126
+2544
+298
+
+-NAME CastInt64ToDouble
+-QUERY MATCH (p:person) RETURN to_double(p.age)
+---- 8
+35.000000
+30.000000
+45.000000
+20.000000
+20.000000
+25.000000
+40.000000
+83.000000
+
+-NAME CastInt64ToFloat
+-QUERY MATCH (p:person) RETURN to_float(p.gender)
+---- 8
+1.000000
+2.000000
+1.000000
+2.000000
+1.000000
+2.000000
+2.000000
+2.000000
+
+-NAME CastFloatToDouble
+-QUERY MATCH (p:person) RETURN to_double(p.height)
+---- 8
+1.731000
+0.990000
+1.000000
+1.300000
+1.463000
+1.510000
+1.600000
+1.323000

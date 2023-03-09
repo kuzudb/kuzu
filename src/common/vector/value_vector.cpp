@@ -5,15 +5,15 @@
 namespace kuzu {
 namespace common {
 
-ValueVector::ValueVector(DataType dataType, MemoryManager* memoryManager)
+ValueVector::ValueVector(DataType dataType, storage::MemoryManager* memoryManager)
     : dataType{std::move(dataType)} {
-    valueBuffer =
-        make_unique<uint8_t[]>(Types::getDataTypeSize(this->dataType) * DEFAULT_VECTOR_CAPACITY);
+    valueBuffer = std::make_unique<uint8_t[]>(
+        Types::getDataTypeSize(this->dataType) * DEFAULT_VECTOR_CAPACITY);
     if (needOverflowBuffer()) {
         assert(memoryManager != nullptr);
-        inMemOverflowBuffer = make_unique<InMemOverflowBuffer>(memoryManager);
+        inMemOverflowBuffer = std::make_unique<InMemOverflowBuffer>(memoryManager);
     }
-    nullMask = make_unique<NullMask>();
+    nullMask = std::make_unique<NullMask>();
     numBytesPerValue = Types::getDataTypeSize(this->dataType);
 }
 
@@ -52,7 +52,7 @@ void ValueVector::setValue(uint32_t pos, T val) {
 }
 
 template<>
-void ValueVector::setValue(uint32_t pos, string val) {
+void ValueVector::setValue(uint32_t pos, std::string val) {
     addString(pos, val.data(), val.length());
 }
 
@@ -83,8 +83,17 @@ void ValueVector::copyValue(uint8_t* dest, const Value& value) {
     case INT64: {
         memcpy(dest, &value.val.int64Val, size);
     } break;
+    case INT32: {
+        memcpy(dest, &value.val.int32Val, size);
+    } break;
+    case INT16: {
+        memcpy(dest, &value.val.int16Val, size);
+    } break;
     case DOUBLE: {
         memcpy(dest, &value.val.doubleVal, size);
+    } break;
+    case FLOAT: {
+        memcpy(dest, &value.val.floatVal, size);
     } break;
     case BOOL: {
         memcpy(dest, &value.val.booleanVal, size);
@@ -102,7 +111,7 @@ void ValueVector::copyValue(uint8_t* dest, const Value& value) {
         InMemOverflowBufferUtils::copyString(
             value.strVal.data(), value.strVal.length(), *(ku_string_t*)dest, getOverflowBuffer());
     } break;
-    case LIST: {
+    case VAR_LIST: {
         auto& entry = *(ku_list_t*)dest;
         auto numElements = value.listVal.size();
         auto elementSize = Types::getDataTypeSize(*dataType.childType);

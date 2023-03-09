@@ -4,16 +4,14 @@
 
 #include "antlr4-runtime.h"
 
-using namespace antlr4;
-using namespace std;
-
 namespace kuzu {
 namespace parser {
 
-class ParserErrorStrategy : public DefaultErrorStrategy {
+class ParserErrorStrategy : public antlr4::DefaultErrorStrategy {
 
 protected:
-    void reportNoViableAlternative(Parser* recognizer, const NoViableAltException& e);
+    void reportNoViableAlternative(
+        antlr4::Parser* recognizer, const antlr4::NoViableAltException& e) override;
 };
 
 } // namespace parser

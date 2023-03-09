@@ -7,7 +7,8 @@ namespace function {
 
 struct CountFunction : public BaseCountFunction {
 
-    static void updateAll(uint8_t* state_, ValueVector* input, uint64_t multiplicity) {
+    static void updateAll(uint8_t* state_, common::ValueVector* input, uint64_t multiplicity,
+        storage::MemoryManager* memoryManager) {
         auto state = reinterpret_cast<CountState*>(state_);
         if (input->hasNoNullsGuarantee()) {
             for (auto i = 0u; i < input->state->selVector->selectedSize; ++i) {
@@ -23,8 +24,8 @@ struct CountFunction : public BaseCountFunction {
         }
     }
 
-    static inline void updatePos(
-        uint8_t* state_, ValueVector* input, uint64_t multiplicity, uint32_t pos) {
+    static inline void updatePos(uint8_t* state_, common::ValueVector* input, uint64_t multiplicity,
+        uint32_t pos, storage::MemoryManager* memoryManager) {
         reinterpret_cast<CountState*>(state_)->count += multiplicity;
     }
 };

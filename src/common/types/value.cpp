@@ -1,9 +1,32 @@
 #include "common/types/value.h"
 
-#include <utility>
-
 namespace kuzu {
 namespace common {
+
+void Value::setDataType(const DataType& dataType_) {
+    assert(dataType.typeID == ANY);
+    dataType = dataType_;
+}
+
+DataType Value::getDataType() const {
+    return dataType;
+}
+
+void Value::setNull(bool flag) {
+    isNull_ = flag;
+}
+
+void Value::setNull() {
+    isNull_ = true;
+}
+
+bool Value::isNull() const {
+    return isNull_;
+}
+
+std::unique_ptr<Value> Value::copy() const {
+    return std::make_unique<Value>(*this);
+}
 
 Value Value::createNullValue() {
     return {};
@@ -16,11 +39,15 @@ Value Value::createNullValue(DataType dataType) {
 Value Value::createDefaultValue(const DataType& dataType) {
     switch (dataType.typeID) {
     case INT64:
-        return Value(0);
+        return Value((int64_t)0);
+    case INT32:
+        return Value((int32_t)0);
+    case INT16:
+        return Value((int16_t)0);
     case BOOL:
         return Value(true);
     case DOUBLE:
-        return Value(0.0);
+        return Value((double_t)0);
     case DATE:
         return Value(date_t());
     case TIMESTAMP:
@@ -30,9 +57,12 @@ Value Value::createDefaultValue(const DataType& dataType) {
     case INTERNAL_ID:
         return Value(nodeID_t());
     case STRING:
-        return Value(string(""));
-    case LIST:
-        return Value(dataType, vector<unique_ptr<Value>>{});
+        return Value(std::string(""));
+    case FLOAT:
+        return Value((float_t)0);
+    case VAR_LIST:
+    case FIXED_LIST:
+        return Value(dataType, std::vector<std::unique_ptr<Value>>{});
     default:
         throw RuntimeException("Data type " + Types::dataTypeToString(dataType) +
                                " is not supported for Value::createDefaultValue");
@@ -43,8 +73,12 @@ Value::Value(bool val_) : dataType{BOOL}, isNull_{false} {
     val.booleanVal = val_;
 }
 
-Value::Value(int32_t val_) : dataType{INT64}, isNull_{false} {
-    val.int64Val = (int64_t)val_;
+Value::Value(int16_t val_) : dataType{INT16}, isNull_{false} {
+    val.int16Val = val_;
+}
+
+Value::Value(int32_t val_) : dataType{INT32}, isNull_{false} {
+    val.int32Val = val_;
 }
 
 Value::Value(int64_t val_) : dataType{INT64}, isNull_{false} {
@@ -72,23 +106,27 @@ Value::Value(kuzu::common::internalID_t val_) : dataType{INTERNAL_ID}, isNull_{f
 }
 
 Value::Value(const char* val_) : dataType{STRING}, isNull_{false} {
-    strVal = string(val_);
+    strVal = std::string(val_);
 }
 
 Value::Value(const std::string& val_) : dataType{STRING}, isNull_{false} {
     strVal = val_;
 }
 
-Value::Value(DataType dataType, vector<unique_ptr<Value>> vals)
+Value::Value(DataType dataType, std::vector<std::unique_ptr<Value>> vals)
     : dataType{std::move(dataType)}, isNull_{false} {
     listVal = std::move(vals);
 }
 
-Value::Value(unique_ptr<NodeVal> val_) : dataType{NODE}, isNull_{false} {
+Value::Value(float_t val_) : dataType{FLOAT}, isNull_{false} {
+    val.floatVal = val_;
+}
+
+Value::Value(std::unique_ptr<NodeVal> val_) : dataType{NODE}, isNull_{false} {
     nodeVal = std::move(val_);
 }
 
-Value::Value(unique_ptr<RelVal> val_) : dataType{REL}, isNull_{false} {
+Value::Value(std::unique_ptr<RelVal> val_) : dataType{REL}, isNull_{false} {
     relVal = std::move(val_);
 }
 
@@ -106,11 +144,20 @@ void Value::copyValueFrom(const uint8_t* value) {
     case INT64: {
         val.int64Val = *((int64_t*)value);
     } break;
+    case INT32: {
+        val.int32Val = *((int32_t*)value);
+    } break;
+    case INT16: {
+        val.int16Val = *((int16_t*)value);
+    } break;
     case BOOL: {
         val.booleanVal = *((bool*)value);
     } break;
     case DOUBLE: {
         val.doubleVal = *((double*)value);
+    } break;
+    case FLOAT: {
+        val.floatVal = *((float_t*)value);
     } break;
     case DATE: {
         val.dateVal = *((date_t*)value);
@@ -127,8 +174,11 @@ void Value::copyValueFrom(const uint8_t* value) {
     case STRING: {
         strVal = ((ku_string_t*)value)->getAsString();
     } break;
-    case LIST: {
-        listVal = convertKUListToVector(*(ku_list_t*)value);
+    case VAR_LIST: {
+        listVal = convertKUVarListToVector(*(ku_list_t*)value);
+    } break;
+    case FIXED_LIST: {
+        listVal = convertKUFixedListToVector(value);
     } break;
     default:
         throw RuntimeException(
@@ -150,8 +200,17 @@ void Value::copyValueFrom(const Value& other) {
     case INT64: {
         val.int64Val = other.val.int64Val;
     } break;
+    case INT32: {
+        val.int32Val = other.val.int32Val;
+    } break;
+    case INT16: {
+        val.int16Val = other.val.int16Val;
+    } break;
     case DOUBLE: {
         val.doubleVal = other.val.doubleVal;
+    } break;
+    case FLOAT: {
+        val.floatVal = other.val.floatVal;
     } break;
     case DATE: {
         val.dateVal = other.val.dateVal;
@@ -168,7 +227,8 @@ void Value::copyValueFrom(const Value& other) {
     case STRING: {
         strVal = other.strVal;
     } break;
-    case LIST: {
+    case VAR_LIST:
+    case FIXED_LIST: {
         for (auto& value : other.listVal) {
             listVal.push_back(value->copy());
         }
@@ -185,7 +245,11 @@ void Value::copyValueFrom(const Value& other) {
     }
 }
 
-string Value::toString() const {
+const std::vector<std::unique_ptr<Value>>& Value::getListValReference() const {
+    return listVal;
+}
+
+std::string Value::toString() const {
     if (isNull_) {
         return "";
     }
@@ -194,8 +258,14 @@ string Value::toString() const {
         return TypeUtils::toString(val.booleanVal);
     case INT64:
         return TypeUtils::toString(val.int64Val);
+    case INT32:
+        return TypeUtils::toString(val.int32Val);
+    case INT16:
+        return TypeUtils::toString(val.int16Val);
     case DOUBLE:
         return TypeUtils::toString(val.doubleVal);
+    case FLOAT:
+        return TypeUtils::toString(val.floatVal);
     case DATE:
         return TypeUtils::toString(val.dateVal);
     case TIMESTAMP:
@@ -206,12 +276,16 @@ string Value::toString() const {
         return TypeUtils::toString(val.internalIDVal);
     case STRING:
         return strVal;
-    case LIST: {
-        string result = "[";
+    case VAR_LIST:
+    case FIXED_LIST: {
+        std::string result = "[";
         for (auto i = 0u; i < listVal.size(); ++i) {
             result += listVal[i]->toString();
-            result += (i == listVal.size() - 1 ? "]" : ",");
+            if (i != listVal.size() - 1) {
+                result += ",";
+            }
         }
+        result += "]";
         return result;
     }
     case NODE:
@@ -224,19 +298,27 @@ string Value::toString() const {
     }
 }
 
+Value::Value() : dataType{ANY}, isNull_{true} {}
+
+Value::Value(DataType dataType) : dataType{std::move(dataType)}, isNull_{true} {}
+
+void Value::validateType(DataTypeID typeID) const {
+    validateType(DataType(typeID));
+}
+
 void Value::validateType(const DataType& type) const {
     if (type != dataType) {
         throw RuntimeException(
-            StringUtils::string_format("Cannot get %s value from the %s result value.",
-                Types::dataTypeToString(type).c_str(), Types::dataTypeToString(dataType).c_str()));
+            StringUtils::string_format("Cannot get {} value from the {} result value.",
+                Types::dataTypeToString(type), Types::dataTypeToString(dataType)));
     }
 }
 
-vector<unique_ptr<Value>> Value::convertKUListToVector(ku_list_t& list) const {
-    vector<unique_ptr<Value>> listResultValue;
+std::vector<std::unique_ptr<Value>> Value::convertKUVarListToVector(ku_list_t& list) const {
+    std::vector<std::unique_ptr<Value>> listResultValue;
     auto numBytesPerElement = Types::getDataTypeSize(*dataType.childType);
     for (auto i = 0; i < list.size; i++) {
-        auto childValue = make_unique<Value>(Value::createDefaultValue(*dataType.childType));
+        auto childValue = std::make_unique<Value>(Value::createDefaultValue(*dataType.childType));
         childValue->copyValueFrom(
             reinterpret_cast<uint8_t*>(list.overflowPtr + i * numBytesPerElement));
         listResultValue.emplace_back(std::move(childValue));
@@ -244,8 +326,34 @@ vector<unique_ptr<Value>> Value::convertKUListToVector(ku_list_t& list) const {
     return listResultValue;
 }
 
+std::vector<std::unique_ptr<Value>> Value::convertKUFixedListToVector(
+    const uint8_t* fixedList) const {
+    std::vector<std::unique_ptr<Value>> fixedListResultVal{dataType.fixedNumElementsInList};
+    auto numBytesPerElement = Types::getDataTypeSize(*dataType.childType);
+    switch (dataType.childType->typeID) {
+    case common::DataTypeID::INT64: {
+        putValuesIntoVector<int64_t>(fixedListResultVal, fixedList, numBytesPerElement);
+    } break;
+    case common::DataTypeID::INT32: {
+        putValuesIntoVector<int32_t>(fixedListResultVal, fixedList, numBytesPerElement);
+    } break;
+    case common::DataTypeID::INT16: {
+        putValuesIntoVector<int16_t>(fixedListResultVal, fixedList, numBytesPerElement);
+    } break;
+    case common::DataTypeID::DOUBLE: {
+        putValuesIntoVector<double_t>(fixedListResultVal, fixedList, numBytesPerElement);
+    } break;
+    case common::DataTypeID::FLOAT: {
+        putValuesIntoVector<float_t>(fixedListResultVal, fixedList, numBytesPerElement);
+    } break;
+    default:
+        assert(false);
+    }
+    return fixedListResultVal;
+}
+
 static std::string propertiesToString(
-    const vector<pair<std::string, unique_ptr<Value>>>& properties) {
+    const std::vector<std::pair<std::string, std::unique_ptr<Value>>>& properties) {
     std::string result = "{";
     for (auto i = 0u; i < properties.size(); ++i) {
         auto& [name, value] = properties[i];
@@ -256,6 +364,9 @@ static std::string propertiesToString(
     return result;
 }
 
+NodeVal::NodeVal(std::unique_ptr<Value> idVal, std::unique_ptr<Value> labelVal)
+    : idVal{std::move(idVal)}, labelVal{std::move(labelVal)} {}
+
 NodeVal::NodeVal(const NodeVal& other) {
     idVal = other.idVal->copy();
     labelVal = other.labelVal->copy();
@@ -264,29 +375,71 @@ NodeVal::NodeVal(const NodeVal& other) {
     }
 }
 
+void NodeVal::addProperty(const std::string& key, std::unique_ptr<Value> value) {
+    properties.emplace_back(key, std::move(value));
+}
+
+const std::vector<std::pair<std::string, std::unique_ptr<Value>>>& NodeVal::getProperties() const {
+    return properties;
+}
+
+Value* NodeVal::getNodeIDVal() {
+    return idVal.get();
+}
+
+Value* NodeVal::getLabelVal() {
+    return labelVal.get();
+}
+
 nodeID_t NodeVal::getNodeID() const {
     return idVal->getValue<nodeID_t>();
 }
 
-string NodeVal::getLabelName() const {
-    return labelVal->getValue<string>();
+std::string NodeVal::getLabelName() const {
+    return labelVal->getValue<std::string>();
 }
 
-string NodeVal::toString() const {
+std::unique_ptr<NodeVal> NodeVal::copy() const {
+    return std::make_unique<NodeVal>(*this);
+}
+
+std::string NodeVal::toString() const {
     std::string result = "(";
-    result += idVal->toString();
-    result += ":" + labelVal->toString() + " ";
+    result += "label:" + labelVal->toString() + ", ";
+    result += idVal->toString() + ", ";
     result += propertiesToString(properties);
     result += ")";
     return result;
 }
 
+RelVal::RelVal(std::unique_ptr<Value> srcNodeIDVal, std::unique_ptr<Value> dstNodeIDVal,
+    std::unique_ptr<Value> labelVal)
+    : srcNodeIDVal{std::move(srcNodeIDVal)},
+      dstNodeIDVal{std::move(dstNodeIDVal)}, labelVal{std::move(labelVal)} {}
+
 RelVal::RelVal(const RelVal& other) {
     srcNodeIDVal = other.srcNodeIDVal->copy();
     dstNodeIDVal = other.dstNodeIDVal->copy();
+    labelVal = other.labelVal->copy();
     for (auto& [key, val] : other.properties) {
         addProperty(key, val->copy());
     }
+}
+
+void RelVal::addProperty(const std::string& key, std::unique_ptr<Value> value) {
+    properties.emplace_back(key, std::move(value));
+}
+
+const std::vector<std::pair<std::string, std::unique_ptr<Value>>>& RelVal::getProperties() const {
+    return properties;
+}
+
+Value* RelVal::getSrcNodeIDVal() {
+    return srcNodeIDVal.get();
+}
+
+Value* RelVal::getDstNodeIDVal() {
+    return dstNodeIDVal.get();
 }
 
 nodeID_t RelVal::getSrcNodeID() const {
@@ -297,12 +450,20 @@ nodeID_t RelVal::getDstNodeID() const {
     return dstNodeIDVal->getValue<nodeID_t>();
 }
 
-string RelVal::toString() const {
+std::string RelVal::getLabelName() {
+    return labelVal->getValue<std::string>();
+}
+
+std::string RelVal::toString() const {
     std::string result;
     result += "(" + srcNodeIDVal->toString() + ")";
-    result += "-[" + propertiesToString(properties) + "]->";
+    result += "-[label:" + labelVal->toString() + ", " + propertiesToString(properties) + "]->";
     result += "(" + dstNodeIDVal->toString() + ")";
     return result;
+}
+
+std::unique_ptr<RelVal> RelVal::copy() const {
+    return std::make_unique<RelVal>(*this);
 }
 
 } // namespace common

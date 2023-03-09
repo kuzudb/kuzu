@@ -1,281 +1,122 @@
 import os
 import sys
-import glob
 import shutil
-import pathlib
 import logging
-import stat
 from hashlib import md5
 from pathlib import Path
 
 logging.basicConfig(level=logging.DEBUG)
 
+HEADER_BASE_PATH = os.path.realpath(
+    os.path.join(os.path.dirname(__file__), '../../src/include'))
 MAIN_HEADER_PATH = os.path.realpath(
-    os.path.join(os.path.dirname(__file__), '../../src/'))
-MAIN_DIR_NAME = os.path.basename(os.path.realpath(
-    os.path.join(os.path.dirname(__file__), '../../')))
+    os.path.join(HEADER_BASE_PATH, 'main'))
+START_POINT = os.path.realpath(
+    os.path.join(MAIN_HEADER_PATH, 'kuzu.h')
+)
+JSON_HEADER_PATH = os.path.realpath(
+    os.path.join(os.path.dirname(__file__), '../../third_party/nlohmann_json/json_fwd.hpp'))
+HEADER_TARGET_PATH = os.path.realpath(
+    os.path.join(os.path.dirname(__file__), 'headers')
+)
 
-BAZEL_WORKSPACE_NAME = 'bazel-%s' % MAIN_DIR_NAME
-EXTERNAL_HEADER_PATH = os.path.realpath(
-    os.path.join(os.path.dirname(__file__), '../../%s/external' % BAZEL_WORKSPACE_NAME))
-
-MAIN_OBJ_PATH = os.path.realpath(
-    os.path.join(os.path.dirname(__file__), '../../bazel-bin/src'))
-EXTERNAL_OBJ_PATH = os.path.realpath(
-    os.path.join(os.path.dirname(__file__), '../../bazel-bin/external'))
-
-MAIN_EXE_PATH = os.path.realpath(
-    os.path.join(os.path.dirname(__file__), '../../bazel-bin/tools/shell/kuzu'))
-
-UNUSED_HEADER_EXCLUDE_PREFIXES = [
-    'src/main',
-]
-DEPLOYMENT_HEADER_PREFIX = ''
-
-if not os.path.exists(EXTERNAL_HEADER_PATH):
-    logging.error('External header path does not exist: ' +
-                  EXTERNAL_HEADER_PATH)
-    sys.exit(1)
-if not os.path.exists(MAIN_OBJ_PATH):
-    logging.error('Main object path does not exist: ' + MAIN_OBJ_PATH)
-    sys.exit(1)
-
-if not os.path.exists(EXTERNAL_OBJ_PATH):
-    logging.error('External object path does not exist: ' + EXTERNAL_OBJ_PATH)
-    sys.exit(1)
-
-logging.info("Main header path: " + MAIN_HEADER_PATH)
-logging.info("External header path: " + EXTERNAL_HEADER_PATH)
-logging.info("Main object path: " + MAIN_OBJ_PATH)
-logging.info("External object path: " + EXTERNAL_OBJ_PATH)
-
-shutil.rmtree('include', ignore_errors=True)
-shutil.rmtree('objs', ignore_errors=True)
-
-os.mkdir('include')
-os.mkdir('objs')
+logging.debug('HEADER_BASE_PATH: %s', HEADER_BASE_PATH)
+logging.debug('MAIN_HEADER_PATH: %s', MAIN_HEADER_PATH)
+logging.debug('START_POINT: %s', START_POINT)
+logging.debug('JSON_HEADER_PATH: %s', JSON_HEADER_PATH)
 
 
-def collect_internal_headers():
-    filename_path_map = {}
-    logging.info("Collecting headers...")
-    collect_internal_headers_from_dir(MAIN_HEADER_PATH, filename_path_map)
-    logging.info("Collected " + str(len(filename_path_map)) + " headers")
-
-    logging.info("Copying headers...")
-    # Copy the files to the include directory
-    for filename, filepath in filename_path_map.items():
-        shutil.copy(filepath, 'include/' + filename)
-    logging.info("Copied " + str(len(filename_path_map)) + " headers")
-
-    # Create a reverse map, remove path before 'src'
-    path_filename_map = {}
-    for filename, filepath in filename_path_map.items():
-        rel_path = os.path.join(
-            'src/', os.path.relpath(filepath, MAIN_HEADER_PATH))
-        path_filename_map[rel_path] = filename
-        logging.debug(rel_path + ' -> ' + filename)
-    return path_filename_map
-
-
-def collect_internal_headers_from_dir(dir, filename_path_map):
-    for filepath in glob.iglob(dir + '**/**', recursive=True):
-        if os.path.isfile(filepath) and filepath.endswith('.h') or filepath.endswith('.hpp'):
-            filename = os.path.basename(filepath)
-            i = 1
-            # If there are multiple files with the same name, append a number to the end
-            while filename in filename_path_map:
-                extension = pathlib.Path(filepath).suffix
-                filename_without_extension = pathlib.Path(filename).stem
-                filename = filename_without_extension + \
-                    '_' + str(i) + extension
-                i += 1
-            if i > 1:
-                logging.warning('Duplicate header file name: ' +
-                                filepath + ' -> ' + filename)
-            filename_path_map[filename] = filepath
-    return filename_path_map
-
-
-def replace_include_paths_for_internal_headers(path_filename_map):
-    logging.info("Replacing include paths...")
-    for _, curr_header in path_filename_map.items():
-        # Replace all include paths with the new path
-        logging.debug("Replacing include paths in " + curr_header)
-        with open('include/' + curr_header, 'r') as f:
-            filedata = f.read()
-        for path, filename in path_filename_map.items():
-            if path in filedata:
-                deployed_path = DEPLOYMENT_HEADER_PREFIX + filename
-                filedata = filedata.replace(path, deployed_path)
-                logging.debug("Replaced " + path + " -> " + deployed_path)
-        with open('include/' + curr_header, 'w') as f:
-            f.write(filedata)
-    logging.info("Replaced include paths")
-
-
-def check_for_unresolved_include_paths():
-    logging.info("Checking for unresolved include paths...")
-    unresolved_include_paths = {}
-    for filepath in glob.iglob('include/*', recursive=True):
-        if os.path.isfile(filepath) and filepath.endswith('.h') or filepath.endswith('.hpp'):
-            with open(filepath, 'r') as f:
-                lines = f.readlines()
-                for line in lines:
-                    if not (line.startswith('#include') and '"' in line):
-                        continue
-                    path = line.split('"')[1]
-                    if os.path.exists('include/' + path):
-                        continue
-                    if path not in unresolved_include_paths:
-                        unresolved_include_paths[path] = []
-                    unresolved_include_paths[path].append(filepath)
-    return unresolved_include_paths
-
-
-def resolve_external_headers(unresolved_dict):
-    all_unresolved_paths = list(unresolved_dict.keys())
-
-    external_headers = []
-    required_libs = []
-    required_libs_name = []
-
-    for filepath in glob.iglob(EXTERNAL_HEADER_PATH + '**/**', recursive=True):
-        if os.path.isfile(filepath) and filepath.endswith('.h') or filepath.endswith('.hpp'):
-            external_headers.append(filepath)
-    logging.info("Found " + str(len(external_headers)) + " external headers")
-
-    for unresolved_path in all_unresolved_paths:
-        for e in external_headers:
-            if unresolved_path in e:
-                rel_path = os.path.relpath(e, EXTERNAL_HEADER_PATH)
-                first_level_dir = Path(rel_path).parts[0]
-                required_libs_name.append(first_level_dir)
-                required_libs.append(
-                    os.path.join(EXTERNAL_HEADER_PATH, first_level_dir))
-
-    external_headers_to_copy = []
-    for lib in required_libs:
-        for h in external_headers:
-            if lib in h:
-                external_headers_to_copy.append(h)
-
-    candidate_paths = []
-    # Copy all external headers to the include directory
-    logging.info("Copying required external headers...")
-    for filepath in external_headers_to_copy:
-        rel_path = os.path.relpath(filepath, EXTERNAL_HEADER_PATH)
-        rel_path_dir = os.path.dirname(rel_path)
-        os.makedirs(os.path.join('include/external/',
-                    rel_path_dir), exist_ok=True)
-        shutil.copy(filepath, os.path.join('include/external/', rel_path))
-        candidate_paths.append(os.path.join('external/', rel_path))
-    logging.info("Copied " + str(len(candidate_paths)) +
-                 " external headers to include/external")
-
-    for unresolved_path in all_unresolved_paths:
-        for candidate_path in candidate_paths:
-            if unresolved_path in candidate_path:
-                logging.debug("Found " + unresolved_path +
-                              " -> " + candidate_path)
-                for f in unresolved_dict[unresolved_path]:
-                    logging.debug("Replacing include path in " + f)
-                    with open(f, 'r') as file:
-                        filedata = file.read()
-                    filedata = filedata.replace(
-                        unresolved_path, candidate_path)
-                    logging.debug("Replaced " + unresolved_path +
-                                  " -> " + candidate_path)
-                    with open(f, 'w') as file:
-                        file.write(filedata)
-
-    patch_spdlog()
-    return required_libs_name
-
-
-def patch_spdlog():
-    # We manually override the include path for spdlog to use relative paths
-    logging.info("Patching spdlog...")
-    candidate_paths = [filepath for filepath in glob.iglob(
-        'include/external/gabime_spdlog/**/**', recursive=True) if os.path.isfile(filepath) and filepath.endswith('.h') or filepath.endswith('.hpp')]
-
-    for filepath in candidate_paths:
-        if not os.path.isfile(filepath) and filepath.endswith('.h') or filepath.endswith('.hpp'):
-            continue
-        with open(filepath, 'r') as f:
-            lines = f.readlines()
-            f.seek(0)
-            content = f.read()
-        for line in lines:
-            if not (line.startswith('#include') and '<' in line and "spdlog" in line):
+def collect_header_file_path_recurse(start_point):
+    global processed_header_files
+    global header_map
+    if start_point in processed_header_files:
+        return []
+    curr_header_files = []
+    with open(start_point, 'r') as f:
+        for line in f.readlines():
+            if not line.startswith('#include "'):
                 continue
-            path = line.split('<')[1].split('>')[0]
-            for c in candidate_paths:
-                if path in c:
-                    rel_path = os.path.relpath(c, os.path.dirname(filepath))
-                    correct_include = '#include "%s"\n' % rel_path
-                    logging.debug("Replaced " + line[:-1] +
-                                  " in " + filepath + " -> " + correct_include[:-1])
-                    content = content.replace(line, correct_include)
-        with open(filepath, 'w') as f:
-            f.write(content)
-    logging.info("Patched spdlog")
+            header_path = line.split('"')[1]
+            header_real_path = None
+            # Special case for json_fwd.hpp
+            if header_path == 'json_fwd.hpp':
+                header_real_path = JSON_HEADER_PATH
+                logging.debug('Found header: %s at %s',
+                              header_path, header_real_path)
+            else:
+                # Check if the header is in the current directory
+                start_point_dir = os.path.dirname(start_point)
+                header_real_path = os.path.join(
+                    start_point_dir, header_path)
+                if os.path.exists(header_real_path):
+                    logging.debug('Found header: %s at %s',
+                                  header_path, header_real_path)
+                else:
+                    # Check if the header is in the include directory
+                    header_real_path = os.path.join(
+                        HEADER_BASE_PATH, header_path)
+                    if os.path.exists(header_real_path):
+                        logging.debug('Found header: %s at %s',
+                                      header_path, header_real_path)
+            if header_real_path is None:
+                logging.error('Could not find header: %s', header_path)
+                sys.exit(1)
+            curr_header_files.append(header_real_path)
+            if start_point not in header_map:
+                header_map[start_point] = {}
+            header_map[start_point][header_path] = header_real_path
+    for header_file in curr_header_files:
+        curr_header_files += collect_header_file_path_recurse(header_file)
+
+    processed_header_files.add(start_point)
+    return curr_header_files
 
 
-def collect_obj_files_from_dir(dir, obj_map):
-    for filepath in glob.iglob(dir + '**/**', recursive=True):
-        if os.path.isfile(filepath) and filepath.endswith('.o'):
-            md5sum = md5(open(filepath, 'rb').read()).hexdigest()
-            if md5sum not in obj_map:
-                obj_map[md5sum] = filepath
+def collect_header_file_paths():
+    global processed_header_files
+    global header_map
+    processed_header_files = set()
+    header_map = {}
+    collect_header_file_path_recurse(START_POINT)
 
 
-def collect_obj_files(external_lib_names):
-    logging.info("Collecting object files...")
-    paths_to_collect = [MAIN_OBJ_PATH]
-    for lib in external_lib_names:
-        paths_to_collect.append(os.path.join(EXTERNAL_OBJ_PATH, lib))
-    obj_map = {}
-    for path in paths_to_collect:
-        collect_obj_files_from_dir(path, obj_map)
-    logging.info("Collected " + str(len(obj_map)) + " object files")
-    logging.info("Copying object files...")
-    for md5sum in obj_map:
-        shutil.copy(obj_map[md5sum], 'objs/' + md5sum + '.o')
+def copy_header(header_real_path):
+    global copied_headers
+    if header_real_path in copied_headers:
+        return copied_headers[header_real_path]
+    header_name = os.path.basename(header_real_path)
+    # Rename the header if it is already copied
+    if os.path.exists(os.path.join(HEADER_TARGET_PATH, header_name)):
+        header_name = md5(header_real_path.encode()).hexdigest() + '.h'
+    target_path = os.path.join(HEADER_TARGET_PATH, header_name)
+    shutil.copyfile(header_real_path, target_path)
+    copied_headers[header_real_path] = header_name
+    logging.debug('Copied header: %s to %s', header_real_path, target_path)
+    return header_name
 
 
-def collect_executable():
-    logging.info("Collecting executable...")
-    dest = os.path.realpath(
-        os.path.join('.', 'kuzu'))
-    logging.debug("Copying executable: " + MAIN_EXE_PATH + " -> " + dest)
-    shutil.copyfile(MAIN_EXE_PATH, dest)
-    logging.debug("Fixing permissions for executable: " + dest)
-    st = os.stat(dest)
-    os.chmod(dest, st.st_mode | stat.S_IEXEC)
-    logging.info("Copied executable")
+def copy_headers():
+    global header_map
+    global copied_headers
+    copied_headers = {}
+    if os.path.exists(HEADER_TARGET_PATH):
+        shutil.rmtree(HEADER_TARGET_PATH, ignore_errors=True)
+    os.makedirs(HEADER_TARGET_PATH)
+    for src_header in header_map:
+        src_header_copied_name = copy_header(src_header)
+        src_header_copied_path = os.path.join(
+            HEADER_TARGET_PATH, src_header_copied_name)
+        file = Path(src_header_copied_path)
+        for original_header_path in header_map[src_header]:
+            header_real_path = header_map[src_header][original_header_path]
+            header_name = copy_header(header_real_path)
+            file.write_text(file.read_text().replace(
+                original_header_path, header_name))
 
 
-def main():
-    path_filename_map = collect_internal_headers()
-    replace_include_paths_for_internal_headers(
-        path_filename_map)
-    unresolved_include_paths = check_for_unresolved_include_paths()
-    if len(unresolved_include_paths) > 0:
-        for path in unresolved_include_paths:
-            logging.info("Unresolved path with internal headers: " + path + " in " +
-                         str(unresolved_include_paths[path]))
-        logging.info(
-            "Trying to resolve the paths above with external headers...")
-        external_lib_names = resolve_external_headers(unresolved_include_paths)
-    unresolved_include_paths = check_for_unresolved_include_paths()
-    if len(unresolved_include_paths) > 0:
-        for path in unresolved_include_paths:
-            logging.warning("Unresolved path with external headers: " + path + " in " +
-                            str(unresolved_include_paths[path]))
-    collect_obj_files(external_lib_names)
-    collect_executable()
-
-
-if __name__ == "__main__":
-    main()
+if __name__ == '__main__':
+    logging.info('Collecting header files...')
+    collect_header_file_paths()
+    logging.info('Copying header files...')
+    copy_headers()
+    logging.info('Done!')

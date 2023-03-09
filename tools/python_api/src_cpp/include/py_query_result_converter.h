@@ -3,33 +3,31 @@
 #include "main/kuzu.h"
 #include "pybind_include.h"
 
-using namespace kuzu::main;
-
 struct NPArrayWrapper {
 
 public:
-    NPArrayWrapper(const DataType& type, uint64_t numFlatTuple);
+    NPArrayWrapper(const kuzu::common::DataType& type, uint64_t numFlatTuple);
 
-    void appendElement(Value* value);
+    void appendElement(kuzu::common::Value* value);
 
 private:
-    py::dtype convertToArrayType(const DataType& type);
+    py::dtype convertToArrayType(const kuzu::common::DataType& type);
 
 public:
     py::array data;
     uint8_t* dataBuffer;
     py::array mask;
-    DataType type;
+    kuzu::common::DataType type;
     uint64_t numElements;
 };
 
 class QueryResultConverter {
 public:
-    explicit QueryResultConverter(QueryResult* queryResult);
+    explicit QueryResultConverter(kuzu::main::QueryResult* queryResult);
 
     py::object toDF();
 
 private:
-    QueryResult* queryResult;
-    vector<unique_ptr<NPArrayWrapper>> columns;
+    kuzu::main::QueryResult* queryResult;
+    std::vector<std::unique_ptr<NPArrayWrapper>> columns;
 };

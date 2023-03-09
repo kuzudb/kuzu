@@ -1,55 +1,102 @@
 #pragma once
 
+#include "common/api.h"
 #include "common/types/types.h"
-#include "processor/result/factorized_table.h"
+#include "kuzu_fwd.h"
 #include "processor/result/flat_tuple.h"
 #include "query_summary.h"
-
-using namespace kuzu::processor;
 
 namespace kuzu {
 namespace main {
 
+struct DataTypeInfo {
+public:
+    DataTypeInfo(common::DataTypeID typeID, std::string name)
+        : typeID{typeID}, name{std::move(name)} {}
+
+    common::DataTypeID typeID;
+    std::string name;
+    std::vector<std::unique_ptr<DataTypeInfo>> childrenTypesInfo;
+
+    static std::unique_ptr<DataTypeInfo> getInfoForDataType(
+        const common::DataType& type, const std::string& name);
+};
+
+/**
+ * @brief QueryResult stores the result of a query execution.
+ */
 class QueryResult {
     friend class Connection;
 
 public:
-    // Only used when we failed to prepare a query.
-    QueryResult() = default;
-    explicit QueryResult(const PreparedSummary& preparedSummary) {
-        querySummary = make_unique<QuerySummary>();
-        querySummary->setPreparedSummary(preparedSummary);
-    }
+    /**
+     * @brief Used to create a QueryResult object for the failing query.
+     */
+    KUZU_API QueryResult();
 
-    inline bool isSuccess() const { return success; }
-    inline string getErrorMessage() const { return errMsg; }
+    explicit QueryResult(const PreparedSummary& preparedSummary);
+    /**
+     * @brief Deconstructs the QueryResult object.
+     */
+    KUZU_API ~QueryResult();
+    /**
+     * @return query is executed successfully or not.
+     */
+    KUZU_API bool isSuccess() const;
+    /**
+     * @return error message of the query execution if the query fails.
+     */
+    KUZU_API std::string getErrorMessage() const;
+    /**
+     * @return number of columns in query result.
+     */
+    KUZU_API size_t getNumColumns() const;
+    /**
+     * @return name of each column in query result.
+     */
+    KUZU_API std::vector<std::string> getColumnNames();
+    /**
+     * @return dataType of each column in query result.
+     */
+    KUZU_API std::vector<common::DataType> getColumnDataTypes();
+    /**
+     * @return num of tuples in query result.
+     */
+    KUZU_API uint64_t getNumTuples();
+    /**
+     * @return query summary which stores the execution time, compiling time, plan and query
+     * options.
+     */
+    KUZU_API QuerySummary* getQuerySummary() const;
 
-    inline size_t getNumColumns() const { return columnDataTypes.size(); }
-    inline vector<std::string> getColumnNames() { return columnNames; }
-    inline std::vector<common::DataType> getColumnDataTypes() { return columnDataTypes; }
-
-    inline uint64_t getNumTuples() {
-        return querySummary->getIsExplain() ? 0 : factorizedTable->getTotalNumFlatTuples();
-    }
-
-    inline QuerySummary* getQuerySummary() const { return querySummary.get(); }
-
-    void initResultTableAndIterator(std::shared_ptr<processor::FactorizedTable> factorizedTable_,
-        const expression_vector& columns,
-        const vector<expression_vector>& expressionToCollectPerColumn);
-
-    bool hasNext();
-
-    std::shared_ptr<processor::FlatTuple> getNext();
-
-    void writeToCSV(const string& fileName, char delimiter = ',', char escapeCharacter = '"',
-        char newline = '\n');
-
-    // TODO: interfaces below should be removed
-    // used in shell to walk the result twice (first time getting maximum column width)
-    inline void resetIterator() { iterator->resetState(); }
+    std::vector<std::unique_ptr<DataTypeInfo>> getColumnTypesInfo();
+    /**
+     * @return whether there are more tuples to read.
+     */
+    KUZU_API bool hasNext();
+    /**
+     * @return next flat tuple in the query result.
+     */
+    KUZU_API std::shared_ptr<processor::FlatTuple> getNext();
+    /**
+     * @brief writes the query result to a csv file.
+     * @param fileName name of the csv file.
+     * @param delimiter delimiter of the csv file.
+     * @param escapeCharacter escape character of the csv file.
+     * @param newline newline character of the csv file.
+     */
+    KUZU_API void writeToCSV(const std::string& fileName, char delimiter = ',',
+        char escapeCharacter = '"', char newline = '\n');
+    /**
+     * @brief Resets the result tuple iterator.
+     */
+    KUZU_API void resetIterator();
 
 private:
+    void initResultTableAndIterator(std::shared_ptr<processor::FactorizedTable> factorizedTable_,
+        const std::vector<std::shared_ptr<binder::Expression>>& columns,
+        const std::vector<std::vector<std::shared_ptr<binder::Expression>>>&
+            expressionToCollectPerColumn);
     void validateQuerySucceed();
 
 private:
@@ -63,7 +110,7 @@ private:
     // data
     std::shared_ptr<processor::FactorizedTable> factorizedTable;
     std::unique_ptr<processor::FlatTupleIterator> iterator;
-    shared_ptr<FlatTuple> tuple;
+    std::shared_ptr<processor::FlatTuple> tuple;
 
     // execution statistics
     std::unique_ptr<QuerySummary> querySummary;

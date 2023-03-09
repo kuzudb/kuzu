@@ -16,8 +16,8 @@ expression_vector BoundDeleteClause::getPropertiesToRead() const {
     return result;
 }
 
-unique_ptr<BoundUpdatingClause> BoundDeleteClause::copy() {
-    auto result = make_unique<BoundDeleteClause>();
+std::unique_ptr<BoundUpdatingClause> BoundDeleteClause::copy() {
+    auto result = std::make_unique<BoundDeleteClause>();
     for (auto& deleteNode : deleteNodes) {
         result->addDeleteNode(deleteNode->copy());
     }

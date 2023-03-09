@@ -1,49 +1,59 @@
 #include "processor/operator/scan_node_id.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace processor {
 
-void ScanNodeIDSemiMask::setMask(uint64_t nodeOffset, uint8_t maskerIdx) {
-    nodeMask->setMask(nodeOffset, maskerIdx, maskerIdx + 1);
-    morselMask->setMask(nodeOffset >> DEFAULT_VECTOR_CAPACITY_LOG_2, maskerIdx, maskerIdx + 1);
+// Note: blindly update mask does not parallelize well, so we minimize write by first checking
+// if the mask is set to true (mask value is equal to the expected currentMaskValue) or not.
+void ScanNodeIDSemiMask::incrementMaskValue(uint64_t nodeOffset, uint8_t currentMaskValue) {
+    if (nodeMask->isMasked(nodeOffset, currentMaskValue)) {
+        nodeMask->setMask(nodeOffset, currentMaskValue + 1);
+    }
+    auto morselIdx = nodeOffset >> DEFAULT_VECTOR_CAPACITY_LOG_2;
+    if (morselMask->isMasked(morselIdx, currentMaskValue)) {
+        morselMask->setMask(morselIdx, currentMaskValue + 1);
+    }
 }
 
-pair<offset_t, offset_t> ScanTableNodeIDSharedState::getNextRangeToRead() {
+std::pair<offset_t, offset_t> ScanTableNodeIDSharedState::getNextRangeToRead() {
     // Note: we use maxNodeOffset=UINT64_MAX to represent an empty table.
-    if (currentNodeOffset > maxNodeOffset || maxNodeOffset == UINT64_MAX) {
-        return make_pair(currentNodeOffset, currentNodeOffset);
+    if (currentNodeOffset > maxNodeOffset || maxNodeOffset == INVALID_NODE_OFFSET) {
+        return std::make_pair(currentNodeOffset, currentNodeOffset);
     }
-    if (semiMask) {
+    if (isSemiMaskEnabled()) {
         auto currentMorselIdx = currentNodeOffset >> DEFAULT_VECTOR_CAPACITY_LOG_2;
         assert(currentNodeOffset % DEFAULT_VECTOR_CAPACITY == 0);
         while (currentMorselIdx <= maxMorselIdx && !semiMask->isMorselMasked(currentMorselIdx)) {
             currentMorselIdx++;
         }
-        currentNodeOffset = min(currentMorselIdx * DEFAULT_VECTOR_CAPACITY, maxNodeOffset);
+        currentNodeOffset = std::min(currentMorselIdx * DEFAULT_VECTOR_CAPACITY, maxNodeOffset);
     }
     auto startOffset = currentNodeOffset;
-    auto range = min(DEFAULT_VECTOR_CAPACITY, maxNodeOffset + 1 - currentNodeOffset);
+    auto range = std::min(DEFAULT_VECTOR_CAPACITY, maxNodeOffset + 1 - currentNodeOffset);
     currentNodeOffset += range;
-    return make_pair(startOffset, startOffset + range);
+    return std::make_pair(startOffset, startOffset + range);
 }
 
-tuple<ScanTableNodeIDSharedState*, offset_t, offset_t> ScanNodeIDSharedState::getNextRangeToRead() {
-    unique_lock lck{mtx};
+std::tuple<ScanTableNodeIDSharedState*, offset_t, offset_t>
+ScanNodeIDSharedState::getNextRangeToRead() {
+    std::unique_lock lck{mtx};
     if (currentStateIdx == tableStates.size()) {
-        return make_tuple(nullptr, INVALID_NODE_OFFSET, INVALID_NODE_OFFSET);
+        return std::make_tuple(nullptr, INVALID_NODE_OFFSET, INVALID_NODE_OFFSET);
     }
     auto [startOffset, endOffset] = tableStates[currentStateIdx]->getNextRangeToRead();
     while (startOffset >= endOffset) {
         currentStateIdx++;
         if (currentStateIdx == tableStates.size()) {
-            return make_tuple(nullptr, INVALID_NODE_OFFSET, INVALID_NODE_OFFSET);
+            return std::make_tuple(nullptr, INVALID_NODE_OFFSET, INVALID_NODE_OFFSET);
         }
         auto [_startOffset, _endOffset] = tableStates[currentStateIdx]->getNextRangeToRead();
         startOffset = _startOffset;
         endOffset = _endOffset;
     }
     assert(currentStateIdx < tableStates.size());
-    return make_tuple(tableStates[currentStateIdx].get(), startOffset, endOffset);
+    return std::make_tuple(tableStates[currentStateIdx].get(), startOffset, endOffset);
 }
 
 void ScanNodeID::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
@@ -68,10 +78,6 @@ bool ScanNodeID::getNextTuplesInternal() {
     } while (outValueVector->state->selVector->selectedSize == 0);
     metrics->numOutputTuple.increase(outValueVector->state->selVector->selectedSize);
     return true;
-}
-
-void ScanNodeID::initGlobalStateInternal(ExecutionContext* context) {
-    sharedState->initialize(context->transaction);
 }
 
 void ScanNodeID::setSelVector(

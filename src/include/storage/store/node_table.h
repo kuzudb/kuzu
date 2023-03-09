@@ -13,23 +13,23 @@ class NodeTable {
 
 public:
     NodeTable(NodesStatisticsAndDeletedIDs* nodesStatisticsAndDeletedIDs,
-        BufferManager& bufferManager, bool isInMemory, WAL* wal, NodeTableSchema* nodeTableSchema);
+        BufferManager& bufferManager, WAL* wal, catalog::NodeTableSchema* nodeTableSchema);
 
-    void initializeData(NodeTableSchema* nodeTableSchema);
+    void initializeData(catalog::NodeTableSchema* nodeTableSchema);
 
-    inline offset_t getMaxNodeOffset(Transaction* trx) const {
+    inline common::offset_t getMaxNodeOffset(transaction::Transaction* trx) const {
         return nodesStatisticsAndDeletedIDs->getMaxNodeOffset(trx, tableID);
     }
     inline void setSelVectorForDeletedOffsets(
-        Transaction* trx, shared_ptr<ValueVector>& vector) const {
+        transaction::Transaction* trx, std::shared_ptr<common::ValueVector>& vector) const {
         assert(vector->isSequential());
         nodesStatisticsAndDeletedIDs->setDeletedNodeOffsetsForMorsel(trx, vector, tableID);
     }
 
-    void scan(Transaction* transaction, const shared_ptr<ValueVector>& inputIDVector,
-        const vector<uint32_t>& columnIdxes, vector<shared_ptr<ValueVector>> outputVectors);
+    void scan(transaction::Transaction* transaction, common::ValueVector* inputIDVector,
+        const std::vector<uint32_t>& columnIdxes, std::vector<common::ValueVector*> outputVectors);
 
-    inline Column* getPropertyColumn(property_id_t propertyIdx) {
+    inline Column* getPropertyColumn(common::property_id_t propertyIdx) {
         assert(propertyColumns.contains(propertyIdx));
         return propertyColumns.at(propertyIdx).get();
     }
@@ -37,31 +37,33 @@ public:
     inline NodesStatisticsAndDeletedIDs* getNodeStatisticsAndDeletedIDs() const {
         return nodesStatisticsAndDeletedIDs;
     }
-    inline table_id_t getTableID() const { return tableID; }
+    inline common::table_id_t getTableID() const { return tableID; }
     inline void checkpointInMemoryIfNecessary() { pkIndex->checkpointInMemoryIfNecessary(); }
     inline void rollbackInMemoryIfNecessary() { pkIndex->rollbackInMemoryIfNecessary(); }
-    inline void removeProperty(property_id_t propertyID) { propertyColumns.erase(propertyID); }
-    inline void addProperty(Property property) {
+    inline void removeProperty(common::property_id_t propertyID) {
+        propertyColumns.erase(propertyID);
+    }
+    inline void addProperty(catalog::Property property) {
         propertyColumns.emplace(property.propertyID,
             ColumnFactory::getColumn(StorageUtils::getNodePropertyColumnStructureIDAndFName(
                                          wal->getDirectory(), property),
-                property.dataType, bufferManager, isInMemory, wal));
+                property.dataType, bufferManager, wal));
     }
 
-    offset_t addNodeAndResetProperties(ValueVector* primaryKeyVector);
-    void deleteNodes(ValueVector* nodeIDVector, ValueVector* primaryKeyVector);
+    common::offset_t addNodeAndResetProperties(common::ValueVector* primaryKeyVector);
+    void deleteNodes(common::ValueVector* nodeIDVector, common::ValueVector* primaryKeyVector);
 
     void prepareCommitOrRollbackIfNecessary(bool isCommit);
 
 private:
-    void deleteNode(offset_t nodeOffset, ValueVector* primaryKeyVector, uint32_t pos) const;
+    void deleteNode(
+        common::offset_t nodeOffset, common::ValueVector* primaryKeyVector, uint32_t pos) const;
 
 private:
     NodesStatisticsAndDeletedIDs* nodesStatisticsAndDeletedIDs;
-    unordered_map<property_id_t, unique_ptr<Column>> propertyColumns;
-    unique_ptr<PrimaryKeyIndex> pkIndex;
-    table_id_t tableID;
-    bool isInMemory;
+    std::unordered_map<common::property_id_t, std::unique_ptr<Column>> propertyColumns;
+    std::unique_ptr<PrimaryKeyIndex> pkIndex;
+    common::table_id_t tableID;
     BufferManager& bufferManager;
     WAL* wal;
 };

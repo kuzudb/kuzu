@@ -1,20 +1,7 @@
 -NAME MultiLabelCyclicTest
--QUERY MATCH (a:person)-[:workAt|:knows|:studyAt]->(b:organisation), (a)-[:mixed|:workAt]->(b) RETURN COUNT(*)
----- 1
-6
-
--NAME MultiLabelCyclicTest
--QUERY MATCH (a:person)-[e2:workAt|:knows|:studyAt]->(b:organisation), (a)-[e1:mixed|:workAt]->(b) WHERE ID(e1) <> ID(e2) RETURN COUNT(*)
--ENUMERATE
+-QUERY MATCH (a:person)-[:workAt|:knows|:studyAt]->(b:organisation), (a)-[:workAt]->(b) RETURN COUNT(*)
 ---- 1
 3
-
--NAME MultiLabelCyclicTest
--QUERY MATCH (a:person:organisation)-[e1:mixed]->(b:organisation:person), (a)<-[e2:mixed]-(b) RETURN e1.year, e2.year
--ENUMERATE
----- 2
-2088|2066
-2066|2088
 
 # TODO(Guodong): generic extend sames to give correct output but not getting correct final result
 # Also remember to add one with edge filter

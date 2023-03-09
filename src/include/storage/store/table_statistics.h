@@ -11,15 +11,13 @@
 namespace kuzu {
 namespace storage {
 
-using lock_t = unique_lock<mutex>;
-using namespace transaction;
-using namespace catalog;
-typedef vector<atomic<uint64_t>> atomic_uint64_vec_t;
+using lock_t = std::unique_lock<std::mutex>;
+using atomic_uint64_vec_t = std::vector<std::atomic<uint64_t>>;
 
 class TableStatistics {
 
 public:
-    TableStatistics() = default;
+    TableStatistics() : numTuples{0} {}
 
     virtual ~TableStatistics() = default;
 
@@ -27,7 +25,7 @@ public:
         assert(numTuples != UINT64_MAX);
     }
 
-    inline bool isEmpty() { return numTuples == 0; }
+    inline bool isEmpty() const { return numTuples == 0; }
 
     inline uint64_t getNumTuples() const { return numTuples; }
 
@@ -41,8 +39,8 @@ private:
 };
 
 struct TablesStatisticsContent {
-    TablesStatisticsContent() {}
-    unordered_map<table_id_t, unique_ptr<TableStatistics>> tableStatisticPerTable;
+    TablesStatisticsContent() = default;
+    std::unordered_map<common::table_id_t, std::unique_ptr<TableStatistics>> tableStatisticPerTable;
 };
 
 class TablesStatistics {
@@ -52,65 +50,65 @@ public:
 
     virtual ~TablesStatistics() = default;
 
-    inline void writeTablesStatisticsFileForWALRecord(const string& directory) {
-        saveToFile(directory, DBFileType::WAL_VERSION, TransactionType::WRITE);
+    inline void writeTablesStatisticsFileForWALRecord(const std::string& directory) {
+        saveToFile(directory, common::DBFileType::WAL_VERSION, transaction::TransactionType::WRITE);
     }
 
     inline bool hasUpdates() { return tablesStatisticsContentForWriteTrx != nullptr; }
 
     inline void checkpointInMemoryIfNecessary() {
         lock_t lck{mtx};
-        tablesStatisticsContentForReadOnlyTrx = move(tablesStatisticsContentForWriteTrx);
+        tablesStatisticsContentForReadOnlyTrx = std::move(tablesStatisticsContentForWriteTrx);
     }
 
     inline TablesStatisticsContent* getReadOnlyVersion() const {
         return tablesStatisticsContentForReadOnlyTrx.get();
     }
 
-    inline void addTableStatistic(TableSchema* tableSchema) {
+    inline void addTableStatistic(catalog::TableSchema* tableSchema) {
         initTableStatisticPerTableForWriteTrxIfNecessary();
         tablesStatisticsContentForWriteTrx->tableStatisticPerTable[tableSchema->tableID] =
             constructTableStatistic(tableSchema);
     }
-    inline void removeTableStatistic(table_id_t tableID) {
+    inline void removeTableStatistic(common::table_id_t tableID) {
         tablesStatisticsContentForReadOnlyTrx->tableStatisticPerTable.erase(tableID);
     }
 
-    inline uint64_t getNumTuplesForTable(table_id_t tableID) {
+    inline uint64_t getNumTuplesForTable(common::table_id_t tableID) {
         return tablesStatisticsContentForReadOnlyTrx->tableStatisticPerTable[tableID]
             ->getNumTuples();
     }
 
 protected:
-    virtual inline string getTableTypeForPrinting() const = 0;
+    virtual inline std::string getTableTypeForPrinting() const = 0;
 
-    virtual inline unique_ptr<TableStatistics> constructTableStatistic(
-        TableSchema* tableSchema) = 0;
+    virtual inline std::unique_ptr<TableStatistics> constructTableStatistic(
+        catalog::TableSchema* tableSchema) = 0;
 
-    virtual inline unique_ptr<TableStatistics> constructTableStatistic(
+    virtual inline std::unique_ptr<TableStatistics> constructTableStatistic(
         TableStatistics* tableStatistics) = 0;
 
-    virtual inline string getTableStatisticsFilePath(
-        const string& directory, DBFileType dbFileType) = 0;
+    virtual inline std::string getTableStatisticsFilePath(
+        const std::string& directory, common::DBFileType dbFileType) = 0;
 
-    virtual unique_ptr<TableStatistics> deserializeTableStatistics(
-        uint64_t numTuples, uint64_t& offset, FileInfo* fileInfo, uint64_t tableID) = 0;
+    virtual std::unique_ptr<TableStatistics> deserializeTableStatistics(
+        uint64_t numTuples, uint64_t& offset, common::FileInfo* fileInfo, uint64_t tableID) = 0;
 
     virtual void serializeTableStatistics(
-        TableStatistics* tableStatistics, uint64_t& offset, FileInfo* fileInfo) = 0;
+        TableStatistics* tableStatistics, uint64_t& offset, common::FileInfo* fileInfo) = 0;
 
-    void readFromFile(const string& directory);
+    void readFromFile(const std::string& directory);
 
-    void saveToFile(
-        const string& directory, DBFileType dbFileType, TransactionType transactionType);
+    void saveToFile(const std::string& directory, common::DBFileType dbFileType,
+        transaction::TransactionType transactionType);
 
     void initTableStatisticPerTableForWriteTrxIfNecessary();
 
 protected:
-    shared_ptr<spdlog::logger> logger;
-    unique_ptr<TablesStatisticsContent> tablesStatisticsContentForReadOnlyTrx;
-    unique_ptr<TablesStatisticsContent> tablesStatisticsContentForWriteTrx;
-    mutex mtx;
+    std::shared_ptr<spdlog::logger> logger;
+    std::unique_ptr<TablesStatisticsContent> tablesStatisticsContentForReadOnlyTrx;
+    std::unique_ptr<TablesStatisticsContent> tablesStatisticsContentForWriteTrx;
+    std::mutex mtx;
 };
 
 } // namespace storage

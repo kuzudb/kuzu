@@ -1,9 +1,15 @@
 #include "binder/binder.h"
 
+#include "binder/expression/variable_expression.h"
+
+using namespace kuzu::common;
+using namespace kuzu::parser;
+using namespace kuzu::catalog;
+
 namespace kuzu {
 namespace binder {
 
-unique_ptr<BoundStatement> Binder::bind(const Statement& statement) {
+std::unique_ptr<BoundStatement> Binder::bind(const Statement& statement) {
     switch (statement.getStatementType()) {
     case StatementType::CREATE_NODE_CLAUSE: {
         return bindCreateNodeClause(statement);
@@ -37,33 +43,33 @@ unique_ptr<BoundStatement> Binder::bind(const Statement& statement) {
     }
 }
 
-shared_ptr<Expression> Binder::bindWhereExpression(const ParsedExpression& parsedExpression) {
+std::shared_ptr<Expression> Binder::bindWhereExpression(const ParsedExpression& parsedExpression) {
     auto whereExpression = expressionBinder.bindExpression(parsedExpression);
     ExpressionBinder::implicitCastIfNecessary(whereExpression, BOOL);
     return whereExpression;
 }
 
-table_id_t Binder::bindRelTableID(const string& tableName) const {
+table_id_t Binder::bindRelTableID(const std::string& tableName) const {
     if (!catalog.getReadOnlyVersion()->containRelTable(tableName)) {
         throw BinderException("Rel table " + tableName + " does not exist.");
     }
     return catalog.getReadOnlyVersion()->getTableID(tableName);
 }
 
-table_id_t Binder::bindNodeTableID(const string& tableName) const {
+table_id_t Binder::bindNodeTableID(const std::string& tableName) const {
     if (!catalog.getReadOnlyVersion()->containNodeTable(tableName)) {
         throw BinderException("Node table " + tableName + " does not exist.");
     }
     return catalog.getReadOnlyVersion()->getTableID(tableName);
 }
 
-shared_ptr<Expression> Binder::createVariable(const string& name, const DataType& dataType) {
+std::shared_ptr<Expression> Binder::createVariable(
+    const std::string& name, const DataType& dataType) {
     if (variablesInScope.contains(name)) {
         throw BinderException("Variable " + name + " already exists.");
     }
     auto uniqueName = getUniqueExpressionName(name);
-    auto variable = make_shared<Expression>(ExpressionType::VARIABLE, dataType, uniqueName);
-    variable->setRawName(name);
+    auto variable = make_shared<VariableExpression>(dataType, uniqueName, name);
     variable->setAlias(name);
     variablesInScope.insert({name, variable});
     return variable;
@@ -76,10 +82,9 @@ void Binder::validateFirstMatchIsNotOptional(const SingleQuery& singleQuery) {
 }
 
 void Binder::validateProjectionColumnNamesAreUnique(const expression_vector& expressions) {
-    auto existColumnNames = unordered_set<string>();
+    auto existColumnNames = std::unordered_set<std::string>();
     for (auto& expression : expressions) {
-        auto columnName =
-            expression->hasAlias() ? expression->getAlias() : expression->getRawName();
+        auto columnName = expression->hasAlias() ? expression->getAlias() : expression->toString();
         if (existColumnNames.contains(columnName)) {
             throw BinderException(
                 "Multiple result column with the same name " + columnName + " are not supported.");
@@ -105,7 +110,7 @@ void Binder::validateOrderByFollowedBySkipOrLimitInWithClause(
 }
 
 void Binder::validateUnionColumnsOfTheSameType(
-    const vector<unique_ptr<BoundSingleQuery>>& boundSingleQueries) {
+    const std::vector<std::unique_ptr<BoundSingleQuery>>& boundSingleQueries) {
     if (boundSingleQueries.size() <= 1) {
         return;
     }
@@ -155,16 +160,16 @@ void Binder::validateReadNotFollowUpdate(const NormalizedSingleQuery& singleQuer
     }
 }
 
-void Binder::validateTableExist(const Catalog& _catalog, string& tableName) {
+void Binder::validateTableExist(const Catalog& _catalog, std::string& tableName) {
     if (!_catalog.getReadOnlyVersion()->containNodeTable(tableName) &&
         !_catalog.getReadOnlyVersion()->containRelTable(tableName)) {
         throw BinderException("Node/Rel " + tableName + " does not exist.");
     }
 }
 
-bool Binder::validateStringParsingOptionName(string& parsingOptionName) {
-    for (auto i = 0; i < size(CopyConfig::STRING_CSV_PARSING_OPTIONS); i++) {
-        if (parsingOptionName == CopyConfig::STRING_CSV_PARSING_OPTIONS[i]) {
+bool Binder::validateStringParsingOptionName(std::string& parsingOptionName) {
+    for (auto i = 0; i < std::size(CopyConstants::STRING_CSV_PARSING_OPTIONS); i++) {
+        if (parsingOptionName == CopyConstants::STRING_CSV_PARSING_OPTIONS[i]) {
             return true;
         }
     }
@@ -173,23 +178,24 @@ bool Binder::validateStringParsingOptionName(string& parsingOptionName) {
 
 void Binder::validateNodeTableHasNoEdge(const Catalog& _catalog, table_id_t tableID) {
     for (auto& tableIDSchema : _catalog.getReadOnlyVersion()->getRelTableSchemas()) {
-        if (tableIDSchema.second->edgeContainsNodeTable(tableID)) {
+        if (tableIDSchema.second->isSrcOrDstTable(tableID)) {
             throw BinderException(StringUtils::string_format(
-                "Cannot delete a node table with edges. It is on the edges of rel: %s.",
-                tableIDSchema.second->tableName.c_str()));
+                "Cannot delete a node table with edges. It is on the edges of rel: {}.",
+                tableIDSchema.second->tableName));
         }
     }
 }
 
-string Binder::getUniqueExpressionName(const string& name) {
-    return "_" + to_string(lastExpressionId++) + "_" + name;
+std::string Binder::getUniqueExpressionName(const std::string& name) {
+    return "_" + std::to_string(lastExpressionId++) + "_" + name;
 }
 
-unordered_map<string, shared_ptr<Expression>> Binder::enterSubquery() {
+std::unordered_map<std::string, std::shared_ptr<Expression>> Binder::enterSubquery() {
     return variablesInScope;
 }
 
-void Binder::exitSubquery(unordered_map<string, shared_ptr<Expression>> prevVariablesInScope) {
+void Binder::exitSubquery(
+    std::unordered_map<std::string, std::shared_ptr<Expression>> prevVariablesInScope) {
     variablesInScope = std::move(prevVariablesInScope);
 }
 

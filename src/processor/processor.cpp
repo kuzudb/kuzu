@@ -2,21 +2,21 @@
 
 #include "processor/operator/aggregate/base_aggregate.h"
 #include "processor/operator/copy/copy.h"
-#include "processor/operator/ddl/ddl.h"
 #include "processor/operator/result_collector.h"
 #include "processor/operator/sink.h"
 #include "processor/processor_task.h"
 
 using namespace kuzu::common;
+using namespace kuzu::storage;
 
 namespace kuzu {
 namespace processor {
 
 QueryProcessor::QueryProcessor(uint64_t numThreads) {
-    taskScheduler = make_unique<TaskScheduler>(numThreads);
+    taskScheduler = std::make_unique<TaskScheduler>(numThreads);
 }
 
-shared_ptr<FactorizedTable> QueryProcessor::execute(
+std::shared_ptr<FactorizedTable> QueryProcessor::execute(
     PhysicalPlan* physicalPlan, ExecutionContext* context) {
     if (physicalPlan->isCopy()) {
         auto copy = (Copy*)physicalPlan->lastOperator.get();
@@ -32,7 +32,7 @@ shared_ptr<FactorizedTable> QueryProcessor::execute(
         // expect to have linear plans. For binary operators, e.g., HashJoin, we  keep probe and its
         // prevOperator in the same pipeline, and decompose build and its prevOperator into another
         // one.
-        auto task = make_shared<ProcessorTask>(resultCollector, context);
+        auto task = std::make_shared<ProcessorTask>(resultCollector, context);
         decomposePlanIntoTasks(lastOperator, nullptr, task.get(), context);
         taskScheduler->scheduleTaskAndWaitOrError(task);
         return resultCollector->getResultFactorizedTable();
@@ -42,7 +42,7 @@ shared_ptr<FactorizedTable> QueryProcessor::execute(
 void QueryProcessor::decomposePlanIntoTasks(
     PhysicalOperator* op, PhysicalOperator* parent, Task* parentTask, ExecutionContext* context) {
     if (op->isSink() && parent != nullptr) {
-        auto childTask = make_unique<ProcessorTask>(reinterpret_cast<Sink*>(op), context);
+        auto childTask = std::make_unique<ProcessorTask>(reinterpret_cast<Sink*>(op), context);
         if (op->getOperatorType() == PhysicalOperatorType::AGGREGATE) {
             auto aggregate = (BaseAggregate*)op;
             if (aggregate->containDistinctAggregate()) {
@@ -60,17 +60,24 @@ void QueryProcessor::decomposePlanIntoTasks(
     }
     switch (op->getOperatorType()) {
         // Ordered table should be scanned in single-thread mode.
-    case PhysicalOperatorType::ORDER_BY_MERGE:
-        // Index lookup should happen exactly once. We don't need to lock if index look is executed
-        // in single-thread mode.
-    case PhysicalOperatorType::INDEX_SCAN: {
+    case PhysicalOperatorType::ORDER_BY_MERGE: {
         parentTask->setSingleThreadedTask();
     } break;
         // DDL should be executed exactly once.
     case PhysicalOperatorType::CREATE_NODE_TABLE:
     case PhysicalOperatorType::CREATE_REL_TABLE:
     case PhysicalOperatorType::DROP_TABLE:
-    case PhysicalOperatorType::DROP_PROPERTY: {
+    case PhysicalOperatorType::DROP_PROPERTY:
+    case PhysicalOperatorType::ADD_PROPERTY:
+    case PhysicalOperatorType::RENAME_PROPERTY:
+    case PhysicalOperatorType::RENAME_TABLE:
+        // As a temporary solution, update is executed in single thread mode.
+    case PhysicalOperatorType::SET_NODE_PROPERTY:
+    case PhysicalOperatorType::SET_REL_PROPERTY:
+    case PhysicalOperatorType::CREATE_NODE:
+    case PhysicalOperatorType::CREATE_REL:
+    case PhysicalOperatorType::DELETE_NODE:
+    case PhysicalOperatorType::DELETE_REL: {
         parentTask->setSingleThreadedTask();
     } break;
     default:
@@ -78,14 +85,15 @@ void QueryProcessor::decomposePlanIntoTasks(
     }
 }
 
-shared_ptr<FactorizedTable> QueryProcessor::getFactorizedTableForOutputMsg(
-    string& outputMsg, MemoryManager* memoryManager) {
-    auto ftTableSchema = make_unique<FactorizedTableSchema>();
-    ftTableSchema->appendColumn(make_unique<ColumnSchema>(
+std::shared_ptr<FactorizedTable> QueryProcessor::getFactorizedTableForOutputMsg(
+    std::string& outputMsg, MemoryManager* memoryManager) {
+    auto ftTableSchema = std::make_unique<FactorizedTableSchema>();
+    ftTableSchema->appendColumn(std::make_unique<ColumnSchema>(
         false /* flat */, 0 /* dataChunkPos */, Types::getDataTypeSize(STRING)));
-    auto factorizedTable = make_shared<FactorizedTable>(memoryManager, std::move(ftTableSchema));
-    auto outputMsgVector = make_shared<ValueVector>(STRING, memoryManager);
-    auto outputMsgChunk = make_shared<DataChunk>(1 /* numValueVectors */);
+    auto factorizedTable =
+        std::make_shared<FactorizedTable>(memoryManager, std::move(ftTableSchema));
+    auto outputMsgVector = std::make_shared<ValueVector>(STRING, memoryManager);
+    auto outputMsgChunk = std::make_shared<DataChunk>(1 /* numValueVectors */);
     outputMsgChunk->insert(0 /* pos */, outputMsgVector);
     ku_string_t outputKUStr = ku_string_t();
     outputKUStr.overflowPtr = reinterpret_cast<uint64_t>(
@@ -93,7 +101,7 @@ shared_ptr<FactorizedTable> QueryProcessor::getFactorizedTableForOutputMsg(
     outputKUStr.set(outputMsg);
     outputMsgVector->setValue(0, outputKUStr);
     outputMsgVector->state->currIdx = 0;
-    factorizedTable->append(vector<shared_ptr<ValueVector>>{outputMsgVector});
+    factorizedTable->append(std::vector<ValueVector*>{outputMsgVector.get()});
     return factorizedTable;
 }
 

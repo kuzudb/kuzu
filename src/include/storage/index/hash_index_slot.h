@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-#include "common/configs.h"
+#include "common/constants.h"
 #include "common/types/internal_id_t.h"
 #include "common/types/ku_string.h"
 
@@ -46,7 +46,7 @@ struct SlotEntry {
 template<typename T>
 struct Slot {
     SlotHeader header;
-    SlotEntry<T> entries[common::HashIndexConfig::SLOT_CAPACITY];
+    SlotEntry<T> entries[common::HashIndexConstants::SLOT_CAPACITY];
 };
 
 } // namespace storage

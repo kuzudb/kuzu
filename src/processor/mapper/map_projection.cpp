@@ -2,17 +2,19 @@
 #include "processor/mapper/plan_mapper.h"
 #include "processor/operator/projection.h"
 
+using namespace kuzu::planner;
+
 namespace kuzu {
 namespace processor {
 
-unique_ptr<PhysicalOperator> PlanMapper::mapLogicalProjectionToPhysical(
+std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalProjectionToPhysical(
     LogicalOperator* logicalOperator) {
     auto& logicalProjection = (const LogicalProjection&)*logicalOperator;
     auto outSchema = logicalProjection.getSchema();
     auto inSchema = logicalProjection.getChild(0)->getSchema();
     auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0));
-    vector<unique_ptr<BaseExpressionEvaluator>> expressionEvaluators;
-    vector<DataPos> expressionsOutputPos;
+    std::vector<std::unique_ptr<evaluator::BaseExpressionEvaluator>> expressionEvaluators;
+    std::vector<DataPos> expressionsOutputPos;
     for (auto& expression : logicalProjection.getExpressionsToProject()) {
         expressionEvaluators.push_back(expressionMapper.mapExpression(expression, *inSchema));
         expressionsOutputPos.emplace_back(outSchema->getExpressionPos(*expression));

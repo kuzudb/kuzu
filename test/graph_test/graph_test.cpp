@@ -1,12 +1,22 @@
 #include "graph_test/graph_test.h"
 
+#include "binder/binder.h"
+#include "json.hpp"
+#include "parser/parser.h"
+#include "storage/storage_manager.h"
+
 using ::testing::Test;
+using namespace kuzu::catalog;
+using namespace kuzu::common;
+using namespace kuzu::planner;
+using namespace kuzu::storage;
+using namespace kuzu::transaction;
 
 namespace kuzu {
 namespace testing {
 
 void BaseGraphTest::validateColumnFilesExistence(
-    string fileName, bool existence, bool hasOverflow) {
+    std::string fileName, bool existence, bool hasOverflow) {
     ASSERT_EQ(FileUtils::fileOrPathExists(fileName), existence);
     if (hasOverflow) {
         ASSERT_EQ(
@@ -15,7 +25,7 @@ void BaseGraphTest::validateColumnFilesExistence(
 }
 
 void BaseGraphTest::validateListFilesExistence(
-    string fileName, bool existence, bool hasOverflow, bool hasHeader) {
+    std::string fileName, bool existence, bool hasOverflow, bool hasHeader) {
     ASSERT_EQ(FileUtils::fileOrPathExists(fileName), existence);
     ASSERT_EQ(FileUtils::fileOrPathExists(StorageUtils::getListMetadataFName(fileName)), existence);
     if (hasOverflow) {
@@ -31,48 +41,40 @@ void BaseGraphTest::validateListFilesExistence(
 void BaseGraphTest::validateNodeColumnFilesExistence(
     NodeTableSchema* nodeTableSchema, DBFileType dbFileType, bool existence) {
     for (auto& property : nodeTableSchema->properties) {
-        validateColumnFilesExistence(
-            StorageUtils::getNodePropertyColumnFName(databaseConfig->databasePath,
-                nodeTableSchema->tableID, property.propertyID, dbFileType),
+        validateColumnFilesExistence(StorageUtils::getNodePropertyColumnFName(databasePath,
+                                         nodeTableSchema->tableID, property.propertyID, dbFileType),
             existence, containsOverflowFile(property.dataType.typeID));
     }
-    validateColumnFilesExistence(StorageUtils::getNodeIndexFName(databaseConfig->databasePath,
-                                     nodeTableSchema->tableID, dbFileType),
+    validateColumnFilesExistence(
+        StorageUtils::getNodeIndexFName(databasePath, nodeTableSchema->tableID, dbFileType),
         existence, containsOverflowFile(nodeTableSchema->getPrimaryKey().dataType.typeID));
 }
 
 void BaseGraphTest::validateRelColumnAndListFilesExistence(
     RelTableSchema* relTableSchema, DBFileType dbFileType, bool existence) {
     for (auto relDirection : REL_DIRECTIONS) {
-        unordered_set<table_id_t> boundTableIDs = relDirection == FWD ?
-                                                      relTableSchema->getUniqueSrcTableIDs() :
-                                                      relTableSchema->getUniqueDstTableIDs();
         if (relTableSchema->relMultiplicity) {
-            for (auto boundTableID : boundTableIDs) {
-                validateColumnFilesExistence(
-                    StorageUtils::getAdjColumnFName(databaseConfig->databasePath,
-                        relTableSchema->tableID, boundTableID, relDirection, dbFileType),
-                    existence, false /* hasOverflow */);
-                validateRelPropertyFiles(relTableSchema, boundTableID, relDirection,
-                    true /* isColumnProperty */, dbFileType, existence);
-            }
+            validateColumnFilesExistence(StorageUtils::getAdjColumnFName(databasePath,
+                                             relTableSchema->tableID, relDirection, dbFileType),
+                existence, false /* hasOverflow */);
+            validateRelPropertyFiles(
+                relTableSchema, relDirection, true /* isColumnProperty */, dbFileType, existence);
+
         } else {
-            for (auto boundTableID : boundTableIDs) {
-                validateListFilesExistence(
-                    StorageUtils::getAdjListsFName(databaseConfig->databasePath,
-                        relTableSchema->tableID, boundTableID, relDirection, dbFileType),
-                    existence, false /* hasOverflow */, true /* hasHeader */);
-                validateRelPropertyFiles(relTableSchema, boundTableID, relDirection,
-                    false /* isColumnProperty */, dbFileType, existence);
-            }
+            validateListFilesExistence(StorageUtils::getAdjListsFName(databasePath,
+                                           relTableSchema->tableID, relDirection, dbFileType),
+                existence, false /* hasOverflow */, true /* hasHeader */);
+            validateRelPropertyFiles(
+                relTableSchema, relDirection, false /* isColumnProperty */, dbFileType, existence);
         }
     }
 }
 
-void BaseGraphTest::validateQueryBestPlanJoinOrder(string query, string expectedJoinOrder) {
+void BaseGraphTest::validateQueryBestPlanJoinOrder(
+    std::string query, std::string expectedJoinOrder) {
     auto catalog = getCatalog(*database);
-    auto statement = Parser::parseQuery(query);
-    auto parsedQuery = (RegularQuery*)statement.get();
+    auto statement = parser::Parser::parseQuery(query);
+    auto parsedQuery = (parser::RegularQuery*)statement.get();
     auto boundQuery = Binder(*catalog).bind(*parsedQuery);
     auto plan = Planner::getBestPlan(*catalog,
         getStorageManager(*database)->getNodesStore().getNodesStatisticsAndDeletedIDs(),
@@ -91,60 +93,64 @@ void BaseGraphTest::commitOrRollbackConnectionAndInitDBIfNecessary(
 }
 
 void BaseGraphTest::validateRelPropertyFiles(catalog::RelTableSchema* relTableSchema,
-    table_id_t tableID, RelDirection relDirection, bool isColumnProperty, DBFileType dbFileType,
-    bool existence) {
+    RelDirection relDirection, bool isColumnProperty, DBFileType dbFileType, bool existence) {
     for (auto& property : relTableSchema->properties) {
         auto hasOverflow = containsOverflowFile(property.dataType.typeID);
         if (isColumnProperty) {
             validateColumnFilesExistence(
-                StorageUtils::getRelPropertyColumnFName(databaseConfig->databasePath,
-                    relTableSchema->tableID, tableID, relDirection, property.propertyID,
-                    dbFileType),
+                StorageUtils::getRelPropertyColumnFName(databasePath, relTableSchema->tableID,
+                    relDirection, property.propertyID, dbFileType),
                 existence, hasOverflow);
         } else {
-            validateListFilesExistence(StorageUtils::getRelPropertyListsFName(
-                                           databaseConfig->databasePath, relTableSchema->tableID,
-                                           tableID, relDirection, property.propertyID, dbFileType),
+            validateListFilesExistence(
+                StorageUtils::getRelPropertyListsFName(databasePath, relTableSchema->tableID,
+                    relDirection, property.propertyID, dbFileType),
                 existence, hasOverflow, false /* hasHeader */);
         }
     }
 }
 
-void TestHelper::executeCypherScript(const string& cypherScript, Connection& conn) {
-    cout << "cypherScript: " << cypherScript << endl;
-    assert(FileUtils::fileOrPathExists(cypherScript));
-    ifstream file(cypherScript);
-    if (!file.is_open()) {
-        throw Exception(StringUtils::string_format(
-            "Error opening file: %s, errno: %d.", cypherScript.c_str(), errno));
+void TestHelper::executeScript(const std::string& cypherScript, Connection& conn) {
+    std::cout << "cypherScript: " << cypherScript << std::endl;
+    if (!FileUtils::fileOrPathExists(cypherScript)) {
+        std::cout << "CopyCSV script not found, skip executing copy csv statements." << std::endl;
+        return;
     }
-    string line;
+    std::ifstream file(cypherScript);
+    if (!file.is_open()) {
+        throw Exception(
+            StringUtils::string_format("Error opening file: {}, errno: {}.", cypherScript, errno));
+    }
+    std::string line;
     while (getline(file, line)) {
         // If this is a COPY_CSV statement, we need to append the KUZU_ROOT_DIRECTORY to the csv
         // file path.
         auto pos = line.find('"');
-        if (pos != string::npos) {
-            line.insert(pos + 1, KUZU_ROOT_DIRECTORY + string("/"));
+        if (pos != std::string::npos) {
+            line.insert(pos + 1, KUZU_ROOT_DIRECTORY + std::string("/"));
         }
-        cout << "Starting to execute query: " << line << endl;
+        std::cout << "Starting to execute query: " << line << std::endl;
         auto result = conn.query(line);
-        cout << "Executed query: " << line << endl;
+        std::cout << "Executed query: " << line << std::endl;
         if (!result->isSuccess()) {
-            throw Exception(
-                StringUtils::string_format("Failed to execute statement: %s.\nError: %s",
-                    line.c_str(), result->getErrorMessage().c_str()));
+            throw Exception(StringUtils::string_format(
+                "Failed to execute statement: {}.\nError: {}", line, result->getErrorMessage()));
         }
     }
 }
 
-void BaseGraphTest::initGraph() {
-    TestHelper::executeCypherScript(getInputDir() + TestHelper::SCHEMA_FILE_NAME, *conn);
-    TestHelper::executeCypherScript(getInputDir() + TestHelper::COPY_CSV_FILE_NAME, *conn);
+void BaseGraphTest::createDBAndConn() {
+    if (database != nullptr) {
+        database.reset();
+    }
+    database = std::make_unique<main::Database>(databasePath, *systemConfig);
+    conn = std::make_unique<main::Connection>(database.get());
+    spdlog::set_level(spdlog::level::info);
 }
 
-void BaseGraphTest::initGraphFromPath(const string& path) const {
-    TestHelper::executeCypherScript(path + TestHelper::SCHEMA_FILE_NAME, *conn);
-    TestHelper::executeCypherScript(path + TestHelper::COPY_CSV_FILE_NAME, *conn);
+void BaseGraphTest::initGraph() {
+    TestHelper::executeScript(getInputDir() + TestHelper::SCHEMA_FILE_NAME, *conn);
+    TestHelper::executeScript(getInputDir() + TestHelper::COPY_FILE_NAME, *conn);
 }
 
 void BaseGraphTest::commitOrRollbackConnection(

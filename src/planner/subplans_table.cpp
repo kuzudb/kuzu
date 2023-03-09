@@ -5,13 +5,11 @@
 namespace kuzu {
 namespace planner {
 
-const uint64_t MAX_NUM_PLANS_PER_SUBGRAPH = 100;
-
 void SubPlansTable::resize(uint32_t newSize) {
     auto prevSize = subPlans.size();
     subPlans.resize(newSize);
     for (auto i = prevSize; i < newSize; ++i) {
-        subPlans[i] = make_unique<SubqueryGraphPlansMap>();
+        subPlans[i] = std::make_unique<SubqueryGraphPlansMap>();
     }
 }
 
@@ -19,39 +17,42 @@ bool SubPlansTable::containSubgraphPlans(const SubqueryGraph& subqueryGraph) con
     return subPlans[subqueryGraph.getTotalNumVariables()]->contains(subqueryGraph);
 }
 
-vector<unique_ptr<LogicalPlan>>& SubPlansTable::getSubgraphPlans(
+std::vector<std::unique_ptr<LogicalPlan>>& SubPlansTable::getSubgraphPlans(
     const SubqueryGraph& subqueryGraph) {
     auto subqueryGraphPlansMap = subPlans[subqueryGraph.getTotalNumVariables()].get();
     KU_ASSERT(subqueryGraphPlansMap->contains(subqueryGraph));
     return subqueryGraphPlansMap->at(subqueryGraph);
 }
 
-vector<SubqueryGraph> SubPlansTable::getSubqueryGraphs(uint32_t level) {
-    vector<SubqueryGraph> result;
+std::vector<SubqueryGraph> SubPlansTable::getSubqueryGraphs(uint32_t level) {
+    std::vector<SubqueryGraph> result;
     for (auto& [subGraph, plans] : *subPlans[level]) {
         result.push_back(subGraph);
     }
     return result;
 }
 
-void SubPlansTable::addPlan(const SubqueryGraph& subqueryGraph, unique_ptr<LogicalPlan> plan) {
+void SubPlansTable::addPlan(const SubqueryGraph& subqueryGraph, std::unique_ptr<LogicalPlan> plan) {
     assert(subPlans[subqueryGraph.getTotalNumVariables()]);
     auto subgraphPlansMap = subPlans[subqueryGraph.getTotalNumVariables()].get();
-    if (!subgraphPlansMap->contains(subqueryGraph)) {
-        subgraphPlansMap->emplace(subqueryGraph, vector<unique_ptr<LogicalPlan>>());
+    if (subgraphPlansMap->size() > MAX_NUM_SUBGRAPHS_PER_LEVEL) {
+        return;
     }
-    subgraphPlansMap->at(subqueryGraph).push_back(move(plan));
+    if (!subgraphPlansMap->contains(subqueryGraph)) {
+        subgraphPlansMap->emplace(subqueryGraph, std::vector<std::unique_ptr<LogicalPlan>>());
+    }
+    subgraphPlansMap->at(subqueryGraph).push_back(std::move(plan));
 }
 
 void SubPlansTable::finalizeLevel(uint32_t level) {
+    // cap number of plans per subgraph
     for (auto& [subgraph, plans] : *subPlans[level]) {
         if (plans.size() < MAX_NUM_PLANS_PER_SUBGRAPH) {
             continue;
         }
         sort(plans.begin(), plans.end(),
-            [](const unique_ptr<LogicalPlan>& a, const unique_ptr<LogicalPlan>& b) -> bool {
-                return a->getCost() < b->getCost();
-            });
+            [](const std::unique_ptr<LogicalPlan>& a, const std::unique_ptr<LogicalPlan>& b)
+                -> bool { return a->getCost() < b->getCost(); });
         plans.resize(MAX_NUM_PLANS_PER_SUBGRAPH);
     }
 }

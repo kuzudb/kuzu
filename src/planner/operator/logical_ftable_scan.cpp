@@ -3,7 +3,7 @@
 namespace kuzu {
 namespace planner {
 
-void LogicalFTableScan::computeSchema() {
+void LogicalFTableScan::computeFactorizedSchema() {
     createEmptySchema();
     for (auto [prevPos, expressions] : populateGroupPosToExpressionsMap()) {
         auto newPos = schema->createGroup();
@@ -14,12 +14,21 @@ void LogicalFTableScan::computeSchema() {
     }
 }
 
-unordered_map<uint32_t, expression_vector> LogicalFTableScan::populateGroupPosToExpressionsMap() {
-    unordered_map<uint32_t, expression_vector> groupPosToExpressionsMap;
+void LogicalFTableScan::computeFlatSchema() {
+    createEmptySchema();
+    schema->createGroup();
+    for (auto& expression : expressionsToScan) {
+        schema->insertToGroupAndScope(expression, 0);
+    }
+}
+
+std::unordered_map<uint32_t, binder::expression_vector>
+LogicalFTableScan::populateGroupPosToExpressionsMap() {
+    std::unordered_map<uint32_t, binder::expression_vector> groupPosToExpressionsMap;
     for (auto& expression : expressionsToScan) {
         auto groupPos = schemaToScanFrom->getGroupPos(expression->getUniqueName());
         if (!groupPosToExpressionsMap.contains(groupPos)) {
-            groupPosToExpressionsMap.insert({groupPos, expression_vector{}});
+            groupPosToExpressionsMap.insert({groupPos, binder::expression_vector{}});
         }
         groupPosToExpressionsMap.at(groupPos).push_back(expression);
     }

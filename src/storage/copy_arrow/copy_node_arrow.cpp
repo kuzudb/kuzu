@@ -3,10 +3,13 @@
 #include "storage/copy_arrow/copy_task.h"
 #include "storage/storage_structure/in_mem_file.h"
 
+using namespace kuzu::catalog;
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace storage {
 
-CopyNodeArrow::CopyNodeArrow(CopyDescription& copyDescription, string outputDirectory,
+CopyNodeArrow::CopyNodeArrow(CopyDescription& copyDescription, std::string outputDirectory,
     TaskScheduler& taskScheduler, Catalog& catalog, table_id_t tableID,
     NodesStatisticsAndDeletedIDs* nodesStatisticsAndDeletedIDs)
     : CopyStructuresArrow{copyDescription, std::move(outputDirectory), taskScheduler, catalog},
@@ -74,10 +77,10 @@ void CopyNodeArrow::initializeColumnsAndList() {
 template<typename T>
 arrow::Status CopyNodeArrow::populateColumns() {
     logger->info("Populating properties");
-    auto pkIndex =
-        make_unique<HashIndexBuilder<T>>(StorageUtils::getNodeIndexFName(this->outputDirectory,
-                                             nodeTableSchema->tableID, DBFileType::WAL_VERSION),
-            nodeTableSchema->getPrimaryKey().dataType);
+    auto pkIndex = std::make_unique<HashIndexBuilder<T>>(
+        StorageUtils::getNodeIndexFName(
+            this->outputDirectory, nodeTableSchema->tableID, DBFileType::WAL_VERSION),
+        nodeTableSchema->getPrimaryKey().dataType);
     pkIndex->bulkReserve(numRows);
 
     arrow::Status status;
@@ -100,20 +103,18 @@ arrow::Status CopyNodeArrow::populateColumns() {
 }
 
 template<typename T>
-arrow::Status CopyNodeArrow::populateColumnsFromCSV(unique_ptr<HashIndexBuilder<T>>& pkIndex) {
+arrow::Status CopyNodeArrow::populateColumnsFromCSV(std::unique_ptr<HashIndexBuilder<T>>& pkIndex) {
     offset_t offsetStart = 0;
 
-    shared_ptr<arrow::csv::StreamingReader> csv_streaming_reader;
-    auto status = initCSVReader(csv_streaming_reader, copyDescription.filePath);
-    throwCopyExceptionIfNotOK(status);
+    std::shared_ptr<arrow::csv::StreamingReader> csv_streaming_reader;
+    auto status = initCSVReaderAndCheckStatus(csv_streaming_reader, copyDescription.filePath);
 
     std::shared_ptr<arrow::RecordBatch> currBatch;
-
     int blockIdx = 0;
     auto it = csv_streaming_reader->begin();
     auto endIt = csv_streaming_reader->end();
     while (it != endIt) {
-        for (int i = 0; i < CopyConfig::NUM_COPIER_TASKS_TO_SCHEDULE_PER_BATCH; ++i) {
+        for (int i = 0; i < CopyConstants::NUM_COPIER_TASKS_TO_SCHEDULE_PER_BATCH; ++i) {
             if (it == endIt) {
                 break;
             }
@@ -126,25 +127,25 @@ arrow::Status CopyNodeArrow::populateColumnsFromCSV(unique_ptr<HashIndexBuilder<
             ++it;
         }
         taskScheduler.waitUntilEnoughTasksFinish(
-            CopyConfig::MINIMUM_NUM_COPIER_TASKS_TO_SCHEDULE_MORE);
+            CopyConstants::MINIMUM_NUM_COPIER_TASKS_TO_SCHEDULE_MORE);
     }
     taskScheduler.waitAllTasksToCompleteOrError();
     return arrow::Status::OK();
 }
 
 template<typename T>
-arrow::Status CopyNodeArrow::populateColumnsFromArrow(unique_ptr<HashIndexBuilder<T>>& pkIndex) {
+arrow::Status CopyNodeArrow::populateColumnsFromArrow(
+    std::unique_ptr<HashIndexBuilder<T>>& pkIndex) {
     offset_t offsetStart = 0;
 
     std::shared_ptr<arrow::ipc::RecordBatchFileReader> ipc_reader;
-    auto status = initArrowReader(ipc_reader, copyDescription.filePath);
-    throwCopyExceptionIfNotOK(status);
+    auto status = initArrowReaderAndCheckStatus(ipc_reader, copyDescription.filePath);
 
     std::shared_ptr<arrow::RecordBatch> currBatch;
 
     int blockIdx = 0;
     while (blockIdx < numBlocks) {
-        for (int i = 0; i < CopyConfig::NUM_COPIER_TASKS_TO_SCHEDULE_PER_BATCH; ++i) {
+        for (int i = 0; i < CopyConstants::NUM_COPIER_TASKS_TO_SCHEDULE_PER_BATCH; ++i) {
             if (blockIdx == numBlocks) {
                 break;
             }
@@ -156,7 +157,7 @@ arrow::Status CopyNodeArrow::populateColumnsFromArrow(unique_ptr<HashIndexBuilde
             ++blockIdx;
         }
         taskScheduler.waitUntilEnoughTasksFinish(
-            CopyConfig::MINIMUM_NUM_COPIER_TASKS_TO_SCHEDULE_MORE);
+            CopyConstants::MINIMUM_NUM_COPIER_TASKS_TO_SCHEDULE_MORE);
     }
 
     taskScheduler.waitAllTasksToCompleteOrError();
@@ -164,17 +165,17 @@ arrow::Status CopyNodeArrow::populateColumnsFromArrow(unique_ptr<HashIndexBuilde
 }
 
 template<typename T>
-arrow::Status CopyNodeArrow::populateColumnsFromParquet(unique_ptr<HashIndexBuilder<T>>& pkIndex) {
+arrow::Status CopyNodeArrow::populateColumnsFromParquet(
+    std::unique_ptr<HashIndexBuilder<T>>& pkIndex) {
     offset_t offsetStart = 0;
 
     std::unique_ptr<parquet::arrow::FileReader> reader;
-    auto status = initParquetReader(reader, copyDescription.filePath);
-    throwCopyExceptionIfNotOK(status);
+    auto status = initParquetReaderAndCheckStatus(reader, copyDescription.filePath);
 
     std::shared_ptr<arrow::Table> currTable;
     int blockIdx = 0;
     while (blockIdx < numBlocks) {
-        for (int i = 0; i < CopyConfig::NUM_COPIER_TASKS_TO_SCHEDULE_PER_BATCH; ++i) {
+        for (int i = 0; i < CopyConstants::NUM_COPIER_TASKS_TO_SCHEDULE_PER_BATCH; ++i) {
             if (blockIdx == numBlocks) {
                 break;
             }
@@ -187,7 +188,7 @@ arrow::Status CopyNodeArrow::populateColumnsFromParquet(unique_ptr<HashIndexBuil
             ++blockIdx;
         }
         taskScheduler.waitUntilEnoughTasksFinish(
-            CopyConfig::MINIMUM_NUM_COPIER_TASKS_TO_SCHEDULE_MORE);
+            CopyConstants::MINIMUM_NUM_COPIER_TASKS_TO_SCHEDULE_MORE);
     }
 
     taskScheduler.waitAllTasksToCompleteOrError();
@@ -199,10 +200,13 @@ void CopyNodeArrow::populatePKIndex(
     InMemColumn* column, HashIndexBuilder<T>* pkIndex, offset_t startOffset, uint64_t numValues) {
     for (auto i = 0u; i < numValues; i++) {
         auto offset = i + startOffset;
-        if constexpr (is_same<T, int64_t>::value) {
+        if (column->isNullAtNodeOffset(offset)) {
+            throw ReaderException("Primary key cannot be null.");
+        }
+        if constexpr (std::is_same<T, int64_t>::value) {
             auto key = (int64_t*)column->getElement(offset);
             if (!pkIndex->append(*key, offset)) {
-                throw CopyException(Exception::getExistedPKExceptionMsg(to_string(*key)));
+                throw CopyException(Exception::getExistedPKExceptionMsg(std::to_string(*key)));
             }
         } else {
             auto element = (ku_string_t*)column->getElement(offset);
@@ -217,9 +221,9 @@ void CopyNodeArrow::populatePKIndex(
 template<typename T1, typename T2>
 arrow::Status CopyNodeArrow::batchPopulateColumnsTask(uint64_t primaryKeyPropertyIdx,
     uint64_t blockId, uint64_t offsetStart, HashIndexBuilder<T1>* pkIndex, CopyNodeArrow* copier,
-    const vector<shared_ptr<T2>>& batchColumns, CopyDescription& copyDescription) {
+    const std::vector<std::shared_ptr<T2>>& batchColumns, CopyDescription& copyDescription) {
     copier->logger->trace("Start: path={0} blkIdx={1}", copier->copyDescription.filePath, blockId);
-    vector<PageByteCursor> overflowCursors(copier->nodeTableSchema->getNumProperties());
+    std::vector<PageByteCursor> overflowCursors(copier->nodeTableSchema->getNumProperties());
     for (auto blockOffset = 0u; blockOffset < copier->numLinesPerBlock[blockId]; ++blockOffset) {
         putPropsOfLineIntoColumns(copier->columns, overflowCursors, batchColumns,
             offsetStart + blockOffset, blockOffset, copyDescription);
@@ -231,27 +235,40 @@ arrow::Status CopyNodeArrow::batchPopulateColumnsTask(uint64_t primaryKeyPropert
 }
 
 template<typename T>
-void CopyNodeArrow::putPropsOfLineIntoColumns(vector<unique_ptr<InMemColumn>>& structuredColumns,
-    vector<PageByteCursor>& overflowCursors, const std::vector<shared_ptr<T>>& arrow_columns,
-    uint64_t nodeOffset, uint64_t blockOffset, CopyDescription& copyDescription) {
+void CopyNodeArrow::putPropsOfLineIntoColumns(
+    std::vector<std::unique_ptr<InMemColumn>>& structuredColumns,
+    std::vector<PageByteCursor>& overflowCursors,
+    const std::vector<std::shared_ptr<T>>& arrow_columns, uint64_t nodeOffset, uint64_t blockOffset,
+    CopyDescription& copyDescription) {
     for (auto columnIdx = 0u; columnIdx < structuredColumns.size(); columnIdx++) {
         auto column = structuredColumns[columnIdx].get();
         auto currentToken = arrow_columns[columnIdx]->GetScalar(blockOffset);
         if ((*currentToken)->is_valid) {
-            auto stringToken = currentToken->get()->ToString().substr(0, DEFAULT_PAGE_SIZE);
+            auto stringToken = currentToken->get()->ToString();
             const char* data = stringToken.c_str();
-
             switch (column->getDataType().typeID) {
             case INT64: {
-                int64_t val = TypeUtils::convertToInt64(data);
+                auto val = TypeUtils::convertStringToNumber<int64_t>(data);
+                column->setElement(nodeOffset, reinterpret_cast<uint8_t*>(&val));
+            } break;
+            case INT32: {
+                auto val = TypeUtils::convertStringToNumber<int32_t>(data);
+                column->setElement(nodeOffset, reinterpret_cast<uint8_t*>(&val));
+            } break;
+            case INT16: {
+                auto val = TypeUtils::convertStringToNumber<int16_t>(data);
                 column->setElement(nodeOffset, reinterpret_cast<uint8_t*>(&val));
             } break;
             case DOUBLE: {
-                double_t val = TypeUtils::convertToDouble(data);
+                auto val = TypeUtils::convertStringToNumber<double_t>(data);
+                column->setElement(nodeOffset, reinterpret_cast<uint8_t*>(&val));
+            } break;
+            case FLOAT: {
+                auto val = TypeUtils::convertStringToNumber<float_t>(data);
                 column->setElement(nodeOffset, reinterpret_cast<uint8_t*>(&val));
             } break;
             case BOOL: {
-                bool val = TypeUtils::convertToBoolean(data);
+                auto val = TypeUtils::convertToBoolean(data);
                 column->setElement(nodeOffset, reinterpret_cast<uint8_t*>(&val));
             } break;
             case DATE: {
@@ -267,16 +284,23 @@ void CopyNodeArrow::putPropsOfLineIntoColumns(vector<unique_ptr<InMemColumn>>& s
                 column->setElement(nodeOffset, reinterpret_cast<uint8_t*>(&val));
             } break;
             case STRING: {
+                stringToken = stringToken.substr(0, BufferPoolConstants::DEFAULT_PAGE_SIZE);
+                data = stringToken.c_str();
                 auto val =
                     column->getInMemOverflowFile()->copyString(data, overflowCursors[columnIdx]);
                 column->setElement(nodeOffset, reinterpret_cast<uint8_t*>(&val));
             } break;
-            case LIST: {
-                auto listVal = getArrowList(stringToken, 1, stringToken.length() - 2,
+            case VAR_LIST: {
+                auto varListVal = getArrowVarList(stringToken, 1, stringToken.length() - 2,
                     column->getDataType(), copyDescription);
-                auto kuList =
-                    column->getInMemOverflowFile()->copyList(*listVal, overflowCursors[columnIdx]);
+                auto kuList = column->getInMemOverflowFile()->copyList(
+                    *varListVal, overflowCursors[columnIdx]);
                 column->setElement(nodeOffset, reinterpret_cast<uint8_t*>(&kuList));
+            } break;
+            case FIXED_LIST: {
+                auto fixedListVal = getArrowFixedList(stringToken, 1, stringToken.length() - 2,
+                    column->getDataType(), copyDescription);
+                column->setElement(nodeOffset, fixedListVal.get());
             } break;
             default:
                 break;

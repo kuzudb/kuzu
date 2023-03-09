@@ -7,25 +7,25 @@ namespace binder {
 
 class BoundAddProperty : public BoundDDL {
 public:
-    explicit BoundAddProperty(table_id_t tableID, string propertyName, DataType dataType,
-        shared_ptr<Expression> defaultValue, string tableName)
-        : BoundDDL{StatementType::ADD_PROPERTY, std::move(tableName)}, tableID{tableID},
-          propertyName{std::move(propertyName)}, dataType{std::move(dataType)}, defaultValue{
-                                                                                    defaultValue} {}
+    explicit BoundAddProperty(common::table_id_t tableID, std::string propertyName,
+        common::DataType dataType, std::shared_ptr<Expression> defaultValue, std::string tableName)
+        : BoundDDL{common::StatementType::ADD_PROPERTY, std::move(tableName)}, tableID{tableID},
+          propertyName{std::move(propertyName)}, dataType{std::move(dataType)},
+          defaultValue{std::move(defaultValue)} {}
 
-    inline table_id_t getTableID() const { return tableID; }
+    inline common::table_id_t getTableID() const { return tableID; }
 
-    inline string getPropertyName() const { return propertyName; }
+    inline std::string getPropertyName() const { return propertyName; }
 
-    inline DataType getDataType() const { return dataType; }
+    inline common::DataType getDataType() const { return dataType; }
 
-    inline shared_ptr<Expression> getDefaultValue() const { return defaultValue; }
+    inline std::shared_ptr<Expression> getDefaultValue() const { return defaultValue; }
 
 private:
-    table_id_t tableID;
-    string propertyName;
-    DataType dataType;
-    shared_ptr<Expression> defaultValue;
+    common::table_id_t tableID;
+    std::string propertyName;
+    common::DataType dataType;
+    std::shared_ptr<Expression> defaultValue;
 };
 
 } // namespace binder

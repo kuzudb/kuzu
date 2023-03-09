@@ -1,5 +1,6 @@
 #include "graph_test/graph_test.h"
 
+using namespace kuzu::common;
 using namespace kuzu::testing;
 using namespace kuzu::storage;
 
@@ -8,15 +9,26 @@ class WALTests : public Test {
 protected:
     void SetUp() override {
         FileUtils::createDir(TestHelper::getTmpTestDir());
+        LoggerUtils::createLogger(LoggerConstants::LoggerEnum::BUFFER_MANAGER);
+        LoggerUtils::createLogger(LoggerConstants::LoggerEnum::WAL);
+        LoggerUtils::createLogger(LoggerConstants::LoggerEnum::STORAGE);
         bufferManager =
-            make_unique<BufferManager>(StorageConfig::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING);
+            std::make_unique<BufferManager>(StorageConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING *
+                                                StorageConstants::DEFAULT_PAGES_BUFFER_RATIO,
+                StorageConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING *
+                    StorageConstants::LARGE_PAGES_BUFFER_RATIO);
         wal = make_unique<WAL>(TestHelper::getTmpTestDir(), *bufferManager);
     }
 
-    void TearDown() override { FileUtils::removeDir(TestHelper::getTmpTestDir()); }
+    void TearDown() override {
+        FileUtils::removeDir(TestHelper::getTmpTestDir());
+        LoggerUtils::dropLogger(LoggerConstants::LoggerEnum::BUFFER_MANAGER);
+        LoggerUtils::dropLogger(LoggerConstants::LoggerEnum::WAL);
+        LoggerUtils::dropLogger(LoggerConstants::LoggerEnum::STORAGE);
+    }
 
     void addStructuredNodePropertyMainFilePageRecord(
-        vector<uint64_t>& assignedPageIndices, uint64_t numRecordsToAdd) {
+        std::vector<uint64_t>& assignedPageIndices, uint64_t numRecordsToAdd) {
         for (int i = 0; i < numRecordsToAdd; ++i) {
             table_id_t tableID = 4;
             uint32_t propertyID = 89;
@@ -29,7 +41,8 @@ protected:
     }
 
     void readAndVerifyStructuredNodePropertyMainFilePageRecords(WALIterator* walIterator,
-        vector<uint64_t>& assignedPageIndices, uint64_t startOff, uint64_t numRecordsToVerify) {
+        std::vector<uint64_t>& assignedPageIndices, uint64_t startOff,
+        uint64_t numRecordsToVerify) {
         for (int i = 0; i < numRecordsToVerify; ++i) {
             WALRecord expectedRecord =
                 WALRecord::newPageUpdateRecord(StorageStructureID::newNodePropertyColumnID(4, 89),
@@ -42,7 +55,7 @@ protected:
     }
 
     void addStructuredNodePropertyOveflowFilePageRecord(
-        vector<uint64_t>& assignedPageIndices, uint64_t numRecordsToAdd) {
+        std::vector<uint64_t>& assignedPageIndices, uint64_t numRecordsToAdd) {
         for (int i = 0; i < numRecordsToAdd; ++i) {
             table_id_t tableID = 0;
             uint32_t propertyID = 2463;
@@ -55,7 +68,8 @@ protected:
     }
 
     void readAndVerifyStructuredNodePropertyOveflowFilePageRecord(WALIterator* walIterator,
-        vector<uint64_t>& assignedPageIndices, uint64_t startOff, uint64_t numRecordsToVerify) {
+        std::vector<uint64_t>& assignedPageIndices, uint64_t startOff,
+        uint64_t numRecordsToVerify) {
         for (int i = 0; i < numRecordsToVerify; ++i) {
             WALRecord expectedRecord =
                 WALRecord::newPageUpdateRecord(StorageStructureID::newNodePropertyColumnID(0, 2463),
@@ -78,12 +92,12 @@ protected:
     }
 
 public:
-    unique_ptr<BufferManager> bufferManager;
-    unique_ptr<WAL> wal;
+    std::unique_ptr<BufferManager> bufferManager;
+    std::unique_ptr<WAL> wal;
 };
 
 TEST_F(WALTests, LogNewStructuredNodePropertyMainPageTest) {
-    vector<uint64_t> assignedPageIndices;
+    std::vector<uint64_t> assignedPageIndices;
     addStructuredNodePropertyMainFilePageRecord(assignedPageIndices, 1 /* numRecordsToAdd */);
     auto walIterator = wal->getIterator();
     readAndVerifyStructuredNodePropertyMainFilePageRecords(
@@ -91,7 +105,7 @@ TEST_F(WALTests, LogNewStructuredNodePropertyMainPageTest) {
 }
 
 TEST_F(WALTests, LogNewStructuredNodePropertyOverlfowPageTest) {
-    vector<uint64_t> assignedPageIndices;
+    std::vector<uint64_t> assignedPageIndices;
     addStructuredNodePropertyOveflowFilePageRecord(assignedPageIndices, 1 /* numRecordsToAdd */);
     auto walIterator = wal->getIterator();
     readAndVerifyStructuredNodePropertyOveflowFilePageRecord(
@@ -106,7 +120,7 @@ TEST_F(WALTests, LogCommitTest) {
 
 TEST_F(WALTests, LogManyRecords) {
     uint64_t numStructuredNodePropertyMainFilePageRecords = 1000;
-    vector<uint64_t> assignedPageIdxs;
+    std::vector<uint64_t> assignedPageIdxs;
     addStructuredNodePropertyMainFilePageRecord(
         assignedPageIdxs, numStructuredNodePropertyMainFilePageRecords);
 
@@ -127,7 +141,7 @@ TEST_F(WALTests, LogManyRecords) {
 
 TEST_F(WALTests, TestDeleteAndReopenWALFile) {
     uint64_t numStructuredNodePropertyMainFilePageRecords = 1500;
-    vector<uint64_t> assignedPageIdxs;
+    std::vector<uint64_t> assignedPageIdxs;
     addStructuredNodePropertyMainFilePageRecord(
         assignedPageIdxs, numStructuredNodePropertyMainFilePageRecords);
     addCommitRecord();
@@ -151,7 +165,7 @@ TEST_F(WALTests, TestDeleteAndReopenWALFile) {
 
 TEST_F(WALTests, TestOpeningExistingWAL) {
     uint64_t numStructuredNodePropertyMainFilePageRecords = 100;
-    vector<uint64_t> assignedPageIdxs;
+    std::vector<uint64_t> assignedPageIdxs;
     addStructuredNodePropertyMainFilePageRecord(
         assignedPageIdxs, numStructuredNodePropertyMainFilePageRecords);
     wal.reset();

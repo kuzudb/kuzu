@@ -4,8 +4,6 @@
 #include "storage/storage_structure/lists/list_headers.h"
 #include "storage/storage_structure/lists/lists_metadata.h"
 
-using namespace kuzu::common;
-
 namespace kuzu {
 namespace storage {
 
@@ -30,7 +28,9 @@ class ListSyncState {
 public:
     explicit ListSyncState() { resetState(); };
 
-    inline bool isBoundNodeOffsetInValid() const { return boundNodeOffset == INVALID_NODE_OFFSET; }
+    inline bool isBoundNodeOffsetInValid() const {
+        return boundNodeOffset == common::INVALID_NODE_OFFSET;
+    }
 
     bool hasMoreAndSwitchSourceIfNecessary();
 
@@ -51,8 +51,8 @@ private:
     }
 
 private:
-    offset_t boundNodeOffset;
-    list_header_t listHeader;
+    common::offset_t boundNodeOffset;
+    common::list_header_t listHeader;
     uint32_t numValuesInUpdateStore;
     uint32_t numValuesInPersistentStore;
     uint32_t startElemOffset;
@@ -63,15 +63,15 @@ private:
 struct ListHandle {
     explicit ListHandle(ListSyncState& listSyncState) : listSyncState{listSyncState} {}
 
-    static inline std::function<uint32_t(uint32_t)> getPageMapper(
-        ListsMetadata& listMetadata, list_header_t listHeader, offset_t nodeOffset) {
+    static inline std::function<uint32_t(uint32_t)> getPageMapper(ListsMetadata& listMetadata,
+        common::list_header_t listHeader, common::offset_t nodeOffset) {
         return ListHeaders::isALargeList(listHeader) ?
                    listMetadata.getPageMapperForLargeListIdx(
                        ListHeaders::getLargeListIdx(listHeader)) :
                    listMetadata.getPageMapperForChunkIdx(StorageUtils::getListChunkIdx(nodeOffset));
     }
     static inline PageElementCursor getPageCursor(
-        list_header_t listHeader, uint64_t numElementsPerPage) {
+        common::list_header_t listHeader, uint64_t numElementsPerPage) {
         return ListHeaders::isALargeList(listHeader) ?
                    PageUtils::getPageElementCursorForPos(0, numElementsPerPage) :
                    PageUtils::getPageElementCursorForPos(
@@ -83,7 +83,7 @@ struct ListHandle {
             getPageMapper(listMetadata, listSyncState.listHeader, listSyncState.boundNodeOffset);
     }
     inline void resetSyncState() { listSyncState.resetState(); }
-    inline void initSyncState(offset_t boundNodeOffset, list_header_t listHeader,
+    inline void initSyncState(common::offset_t boundNodeOffset, common::list_header_t listHeader,
         uint64_t numValuesInUpdateStore, uint64_t numValuesInPersistentStore,
         ListSourceStore sourceStore) {
         listSyncState.boundNodeOffset = boundNodeOffset;
@@ -92,8 +92,8 @@ struct ListHandle {
         listSyncState.numValuesInPersistentStore = numValuesInPersistentStore;
         listSyncState.sourceStore = sourceStore;
     }
-    inline list_header_t getListHeader() const { return listSyncState.listHeader; }
-    inline offset_t getBoundNodeOffset() const { return listSyncState.boundNodeOffset; }
+    inline common::list_header_t getListHeader() const { return listSyncState.listHeader; }
+    inline common::offset_t getBoundNodeOffset() const { return listSyncState.boundNodeOffset; }
     inline ListSourceStore getListSourceStore() { return listSyncState.sourceStore; }
     inline uint32_t getStartElemOffset() const { return listSyncState.startElemOffset; }
     inline uint32_t getEndElemOffset() const {

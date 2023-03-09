@@ -1,10 +1,16 @@
+#include "binder/binder.h"
 #include "graph_test/graph_test.h"
+#include "parser/parser.h"
 
+using namespace kuzu::common;
 using namespace kuzu::testing;
+using namespace kuzu::parser;
 
 class BinderTest : public DBTest {
 public:
-    string getInputDir() override { return TestHelper::appendKuzuRootPath("dataset/tinysnb/"); }
+    std::string getInputDir() override {
+        return TestHelper::appendKuzuRootPath("dataset/tinysnb/");
+    }
 };
 
 TEST_F(BinderTest, VarLenExtendMaxDepthTest) {

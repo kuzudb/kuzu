@@ -4,17 +4,16 @@
 #include "expression_evaluator/base_evaluator.h"
 #include "storage/storage_manager.h"
 
-using namespace kuzu::catalog;
-
 namespace kuzu {
 namespace processor {
 
 class AddProperty : public DDL {
 public:
-    AddProperty(Catalog* catalog, table_id_t tableID, string propertyName, DataType dataType,
-        unique_ptr<evaluator::BaseExpressionEvaluator> expressionEvaluator,
-        StorageManager& storageManager, const DataPos& outputPos, uint32_t id,
-        const string& paramsString)
+    AddProperty(catalog::Catalog* catalog, common::table_id_t tableID, std::string propertyName,
+        common::DataType dataType,
+        std::unique_ptr<evaluator::BaseExpressionEvaluator> expressionEvaluator,
+        storage::StorageManager& storageManager, const DataPos& outputPos, uint32_t id,
+        const std::string& paramsString)
         : DDL{PhysicalOperatorType::ADD_PROPERTY, catalog, outputPos, id, paramsString},
           tableID{tableID}, propertyName{std::move(propertyName)}, dataType{std::move(dataType)},
           expressionEvaluator{std::move(expressionEvaluator)}, storageManager{storageManager} {}
@@ -26,7 +25,7 @@ public:
 
     void executeDDLInternal() override;
 
-    string getOutputMsg() override { return {"Add Succeed."}; }
+    std::string getOutputMsg() override { return {"Add Succeed."}; }
 
 protected:
     inline bool isDefaultValueNull() const {
@@ -37,11 +36,11 @@ protected:
     uint8_t* getDefaultVal();
 
 protected:
-    table_id_t tableID;
-    string propertyName;
-    DataType dataType;
-    unique_ptr<evaluator::BaseExpressionEvaluator> expressionEvaluator;
-    StorageManager& storageManager;
+    common::table_id_t tableID;
+    std::string propertyName;
+    common::DataType dataType;
+    std::unique_ptr<evaluator::BaseExpressionEvaluator> expressionEvaluator;
+    storage::StorageManager& storageManager;
 };
 
 } // namespace processor

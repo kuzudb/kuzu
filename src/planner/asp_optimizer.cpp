@@ -41,14 +41,14 @@ bool ASPOptimizer::canApplyASP(const expression_vector& joinNodeIDs, bool isLeft
 }
 
 void ASPOptimizer::applyASP(
-    const shared_ptr<Expression>& joinNodeID, LogicalPlan& leftPlan, LogicalPlan& rightPlan) {
+    const std::shared_ptr<Expression>& joinNodeID, LogicalPlan& leftPlan, LogicalPlan& rightPlan) {
     appendSemiMasker(joinNodeID, leftPlan);
     QueryPlanner::appendAccumulate(leftPlan);
 }
 
-void ASPOptimizer::appendSemiMasker(const shared_ptr<Expression>& nodeID, LogicalPlan& plan) {
+void ASPOptimizer::appendSemiMasker(const std::shared_ptr<Expression>& nodeID, LogicalPlan& plan) {
     auto semiMasker = make_shared<LogicalSemiMasker>(nodeID, plan.getLastOperator());
-    semiMasker->computeSchema();
+    semiMasker->computeFactorizedSchema();
     plan.setLastOperator(std::move(semiMasker));
 }
 

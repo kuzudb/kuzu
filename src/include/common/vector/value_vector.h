@@ -15,15 +15,15 @@ namespace common {
 class ValueVector {
 
 public:
-    explicit ValueVector(DataType dataType, MemoryManager* memoryManager = nullptr);
-    explicit ValueVector(DataTypeID dataTypeID, MemoryManager* memoryManager = nullptr)
+    explicit ValueVector(DataType dataType, storage::MemoryManager* memoryManager = nullptr);
+    explicit ValueVector(DataTypeID dataTypeID, storage::MemoryManager* memoryManager = nullptr)
         : ValueVector(DataType(dataTypeID), memoryManager) {
-        assert(dataTypeID != LIST);
+        assert(dataTypeID != VAR_LIST);
     }
 
     ~ValueVector() = default;
 
-    inline void setState(shared_ptr<DataChunkState> state_) { state = std::move(state_); }
+    inline void setState(std::shared_ptr<DataChunkState> state_) { state = std::move(state_); }
 
     inline void setAllNull() { nullMask->setAllNull(); }
     inline void setAllNonNull() { nullMask->setAllNonNull(); }
@@ -70,7 +70,7 @@ public:
 
 private:
     inline bool needOverflowBuffer() const {
-        return dataType.typeID == STRING || dataType.typeID == LIST;
+        return dataType.typeID == STRING || dataType.typeID == VAR_LIST;
     }
 
     void addString(uint32_t pos, char* value, uint64_t len) const;
@@ -79,13 +79,13 @@ private:
 
 public:
     DataType dataType;
-    shared_ptr<DataChunkState> state;
+    std::shared_ptr<DataChunkState> state;
 
 private:
     bool _isSequential = false;
-    unique_ptr<InMemOverflowBuffer> inMemOverflowBuffer;
-    unique_ptr<uint8_t[]> valueBuffer;
-    unique_ptr<NullMask> nullMask;
+    std::unique_ptr<InMemOverflowBuffer> inMemOverflowBuffer;
+    std::unique_ptr<uint8_t[]> valueBuffer;
+    std::unique_ptr<NullMask> nullMask;
     uint32_t numBytesPerValue;
 };
 

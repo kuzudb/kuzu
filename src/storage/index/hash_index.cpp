@@ -4,6 +4,7 @@
 #include "storage/index/hash_index_utils.h"
 
 using namespace kuzu::common;
+using namespace kuzu::transaction;
 
 namespace kuzu {
 namespace storage {
@@ -43,40 +44,40 @@ bool TemplatedHashIndexLocalStorage<T>::insert(const T& key, offset_t value) {
 }
 
 template class TemplatedHashIndexLocalStorage<int64_t>;
-template class TemplatedHashIndexLocalStorage<string>;
+template class TemplatedHashIndexLocalStorage<std::string>;
 
 HashIndexLocalLookupState HashIndexLocalStorage::lookup(const uint8_t* key, offset_t& result) {
-    shared_lock sLck{localStorageSharedMutex};
+    std::shared_lock sLck{localStorageSharedMutex};
     if (keyDataType.typeID == INT64) {
         auto keyVal = *(int64_t*)key;
         return templatedLocalStorageForInt.lookup(keyVal, result);
     } else {
         assert(keyDataType.typeID == STRING);
-        auto keyVal = string((char*)key);
+        auto keyVal = std::string((char*)key);
         return templatedLocalStorageForString.lookup(keyVal, result);
     }
 }
 
 void HashIndexLocalStorage::deleteKey(const uint8_t* key) {
-    unique_lock xLck{localStorageSharedMutex};
+    std::unique_lock xLck{localStorageSharedMutex};
     if (keyDataType.typeID == INT64) {
         auto keyVal = *(int64_t*)key;
         templatedLocalStorageForInt.deleteKey(keyVal);
     } else {
         assert(keyDataType.typeID == STRING);
-        auto keyVal = string((char*)key);
+        auto keyVal = std::string((char*)key);
         templatedLocalStorageForString.deleteKey(keyVal);
     }
 }
 
 bool HashIndexLocalStorage::insert(const uint8_t* key, offset_t value) {
-    unique_lock xLck{localStorageSharedMutex};
+    std::unique_lock xLck{localStorageSharedMutex};
     if (keyDataType.typeID == INT64) {
         auto keyVal = *(int64_t*)key;
         return templatedLocalStorageForInt.insert(keyVal, value);
     } else {
         assert(keyDataType.typeID == STRING);
-        auto keyVal = string((char*)key);
+        auto keyVal = std::string((char*)key);
         return templatedLocalStorageForString.insert(keyVal, value);
     }
 }
@@ -124,24 +125,25 @@ HashIndex<T>::HashIndex(const StorageStructureIDAndFName& storageStructureIDAndF
     const DataType& keyDataType, BufferManager& bufferManager, WAL* wal)
     : BaseHashIndex{keyDataType},
       storageStructureIDAndFName{storageStructureIDAndFName}, bm{bufferManager}, wal{wal} {
-    fileHandle = make_unique<VersionedFileHandle>(
+    fileHandle = std::make_unique<VersionedFileHandle>(
         storageStructureIDAndFName, FileHandle::O_PERSISTENT_FILE_NO_CREATE);
-    headerArray = make_unique<BaseDiskArray<HashIndexHeader>>(
+    headerArray = std::make_unique<BaseDiskArray<HashIndexHeader>>(
         *fileHandle, INDEX_HEADER_ARRAY_HEADER_PAGE_IDX, &bm, wal);
     // Read indexHeader from the headerArray, which contains only one element.
-    indexHeader =
-        make_unique<HashIndexHeader>(headerArray->get(INDEX_HEADER_IDX_IN_ARRAY, READ_ONLY));
+    indexHeader = std::make_unique<HashIndexHeader>(
+        headerArray->get(INDEX_HEADER_IDX_IN_ARRAY, TransactionType::READ_ONLY));
     assert(indexHeader->keyDataTypeID == keyDataType.typeID);
-    pSlots = make_unique<BaseDiskArray<Slot<T>>>(*fileHandle, P_SLOTS_HEADER_PAGE_IDX, &bm, wal);
-    oSlots = make_unique<BaseDiskArray<Slot<T>>>(*fileHandle, O_SLOTS_HEADER_PAGE_IDX, &bm, wal);
+    pSlots =
+        std::make_unique<BaseDiskArray<Slot<T>>>(*fileHandle, P_SLOTS_HEADER_PAGE_IDX, &bm, wal);
+    oSlots =
+        std::make_unique<BaseDiskArray<Slot<T>>>(*fileHandle, O_SLOTS_HEADER_PAGE_IDX, &bm, wal);
     // Initialize functions.
     keyHashFunc = HashIndexUtils::initializeHashFunc(indexHeader->keyDataTypeID);
     keyInsertFunc = HashIndexUtils::initializeInsertFunc(indexHeader->keyDataTypeID);
     keyEqualsFunc = HashIndexUtils::initializeEqualsFunc(indexHeader->keyDataTypeID);
-    localStorage = make_unique<HashIndexLocalStorage>(keyDataType);
+    localStorage = std::make_unique<HashIndexLocalStorage>(keyDataType);
     if (keyDataType.typeID == STRING) {
-        diskOverflowFile = make_unique<DiskOverflowFile>(
-            storageStructureIDAndFName, bm, false /* on disk by default */, wal);
+        diskOverflowFile = std::make_unique<DiskOverflowFile>(storageStructureIDAndFName, bm, wal);
     }
 }
 
@@ -205,7 +207,7 @@ bool HashIndex<T>::performActionInChainedSlots(TransactionType trxType, HashInde
     while (slotInfo.slotType == SlotType::PRIMARY || slotInfo.slotId != 0) {
         auto slot = getSlot(trxType, slotInfo);
         if constexpr (action == ChainedSlotsAction::FIND_FREE_SLOT) {
-            if (slot.header.numEntries < HashIndexConfig::SLOT_CAPACITY ||
+            if (slot.header.numEntries < HashIndexConstants::SLOT_CAPACITY ||
                 slot.header.nextOvfSlotId == 0) {
                 // Found a slot with empty space.
                 break;
@@ -247,7 +249,7 @@ void HashIndex<T>::insertIntoPersistentIndex(const uint8_t* key, offset_t value)
     auto header = headerArray->get(INDEX_HEADER_IDX_IN_ARRAY, TransactionType::WRITE);
     slot_id_t numRequiredEntries = getNumRequiredEntries(header.numEntries, 1);
     while (numRequiredEntries >
-           pSlots->getNumElements(TransactionType::WRITE) * HashIndexConfig::SLOT_CAPACITY) {
+           pSlots->getNumElements(TransactionType::WRITE) * HashIndexConstants::SLOT_CAPACITY) {
         splitSlot(header);
     }
     auto pSlotId = getPrimarySlotIdForKey(header, key);
@@ -275,7 +277,7 @@ template<typename T>
 void HashIndex<T>::loopChainedSlotsToFindOneWithFreeSpace(SlotInfo& slotInfo, Slot<T>& slot) {
     while (slotInfo.slotType == SlotType::PRIMARY || slotInfo.slotId > 0) {
         slot = getSlot(TransactionType::WRITE, slotInfo);
-        if (slot.header.numEntries < HashIndexConfig::SLOT_CAPACITY ||
+        if (slot.header.numEntries < HashIndexConstants::SLOT_CAPACITY ||
             slot.header.nextOvfSlotId == 0) {
             // Found a slot with empty space.
             break;
@@ -299,7 +301,7 @@ void HashIndex<T>::rehashSlots(HashIndexHeader& header) {
         auto slotHeader = slot.header;
         slot.header.reset();
         updateSlot(slotInfo, slot);
-        for (auto entryPos = 0u; entryPos < HashIndexConfig::SLOT_CAPACITY; entryPos++) {
+        for (auto entryPos = 0u; entryPos < HashIndexConstants::SLOT_CAPACITY; entryPos++) {
             if (!slotHeader.isEntryValid(entryPos)) {
                 continue; // Skip invalid entries.
             }
@@ -327,8 +329,8 @@ void HashIndex<T>::copyEntryToSlot(slot_id_t slotId, uint8_t* entry) {
 }
 
 template<typename T>
-vector<pair<SlotInfo, Slot<T>>> HashIndex<T>::getChainedSlots(slot_id_t pSlotId) {
-    vector<pair<SlotInfo, Slot<T>>> slots;
+std::vector<std::pair<SlotInfo, Slot<T>>> HashIndex<T>::getChainedSlots(slot_id_t pSlotId) {
+    std::vector<std::pair<SlotInfo, Slot<T>>> slots;
     SlotInfo slotInfo{pSlotId, SlotType::PRIMARY};
     while (slotInfo.slotType == SlotType::PRIMARY || slotInfo.slotId != 0) {
         auto slot = getSlot(TransactionType::WRITE, slotInfo);
@@ -354,7 +356,7 @@ void HashIndex<T>::copyAndUpdateSlotHeader(
 template<typename T>
 void HashIndex<T>::copyKVOrEntryToSlot(
     bool isCopyEntry, const SlotInfo& slotInfo, Slot<T>& slot, const uint8_t* key, offset_t value) {
-    if (slot.header.numEntries == HashIndexConfig::SLOT_CAPACITY) {
+    if (slot.header.numEntries == HashIndexConstants::SLOT_CAPACITY) {
         // Allocate a new oSlot, insert the entry to the new oSlot, and update slot's
         // nextOvfSlotId.
         Slot<T> newSlot;
@@ -362,7 +364,7 @@ void HashIndex<T>::copyKVOrEntryToSlot(
         copyAndUpdateSlotHeader(isCopyEntry, newSlot, entryPos, key, value);
         slot.header.nextOvfSlotId = oSlots->pushBack(newSlot);
     } else {
-        for (auto entryPos = 0u; entryPos < HashIndexConfig::SLOT_CAPACITY; entryPos++) {
+        for (auto entryPos = 0u; entryPos < HashIndexConstants::SLOT_CAPACITY; entryPos++) {
             if (!slot.header.isEntryValid(entryPos)) {
                 copyAndUpdateSlotHeader(isCopyEntry, slot, entryPos, key, value);
                 break;
@@ -375,7 +377,7 @@ void HashIndex<T>::copyKVOrEntryToSlot(
 template<typename T>
 entry_pos_t HashIndex<T>::findMatchedEntryInSlot(
     TransactionType trxType, const Slot<T>& slot, const uint8_t* key) const {
-    for (auto entryPos = 0u; entryPos < HashIndexConfig::SLOT_CAPACITY; entryPos++) {
+    for (auto entryPos = 0u; entryPos < HashIndexConstants::SLOT_CAPACITY; entryPos++) {
         if (!slot.header.isEntryValid(entryPos)) {
             continue;
         }
@@ -397,7 +399,7 @@ void HashIndex<T>::prepareCommit() {
 
 template<typename T>
 void HashIndex<T>::prepareCommitOrRollbackIfNecessary(bool isCommit) {
-    unique_lock xlock{localStorage->localStorageSharedMutex};
+    std::unique_lock xlock{localStorage->localStorageSharedMutex};
     if (!localStorage->hasUpdates()) {
         return;
     }
@@ -412,7 +414,7 @@ void HashIndex<T>::checkpointInMemoryIfNecessary() {
     if (!localStorage->hasUpdates()) {
         return;
     }
-    indexHeader = make_unique<HashIndexHeader>(
+    indexHeader = std::make_unique<HashIndexHeader>(
         headerArray->get(INDEX_HEADER_IDX_IN_ARRAY, TransactionType::WRITE));
     headerArray->checkpointInMemoryIfNecessary();
     pSlots->checkpointInMemoryIfNecessary();

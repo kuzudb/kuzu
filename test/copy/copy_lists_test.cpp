@@ -1,15 +1,16 @@
 #include "common/type_utils.h"
 #include "graph_test/graph_test.h"
+#include "storage/storage_manager.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;
 using namespace kuzu::testing;
 
-class TinySnbListTest : public InMemoryDBTest {
+class TinySnbListTest : public DBTest {
 
 public:
-    static bool CheckEquals(const vector<string>& expected, const Value& listVal) {
-        if (listVal.dataType.typeID != LIST) {
+    static bool CheckEquals(const std::vector<std::string>& expected, const Value& listVal) {
+        if (listVal.dataType.typeID != VAR_LIST) {
             return false;
         }
         if (expected.size() != listVal.listVal.size()) {
@@ -22,7 +23,9 @@ public:
         }
         return true;
     }
-    string getInputDir() override { return TestHelper::appendKuzuRootPath("dataset/tinysnb/"); }
+    std::string getInputDir() override {
+        return TestHelper::appendKuzuRootPath("dataset/tinysnb/");
+    }
 };
 
 // Warning: This test assumes that each line in tinysnb's vPerson.csv gets
@@ -66,8 +69,8 @@ TEST_F(TinySnbListTest, RelPropertyColumnWithList) {
     auto tableID = catalog->getReadOnlyVersion()->getTableID("studyAt");
     auto nodeTablesForAdjColumnAndProperties = catalog->getReadOnlyVersion()->getTableID("person");
     auto& property = catalog->getReadOnlyVersion()->getRelProperty(tableID, "places");
-    auto col = graph->getRelsStore().getRelPropertyColumn(
-        RelDirection::FWD, nodeTablesForAdjColumnAndProperties, tableID, property.propertyID);
+    auto col =
+        graph->getRelsStore().getRelPropertyColumn(RelDirection::FWD, tableID, property.propertyID);
     ASSERT_TRUE(CheckEquals({"wwAewsdndweusd", "wek"}, col->readValue(0)));
     ASSERT_TRUE(CheckEquals({"anew", "jsdnwusklklklwewsd"}, col->readValue(1)));
     ASSERT_TRUE(CheckEquals({"awndsnjwejwen", "isuhuwennjnuhuhuwewe"}, col->readValue(5)));

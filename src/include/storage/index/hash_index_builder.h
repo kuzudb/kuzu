@@ -9,9 +9,9 @@
 namespace kuzu {
 namespace storage {
 
-static constexpr page_idx_t INDEX_HEADER_ARRAY_HEADER_PAGE_IDX = 0;
-static constexpr page_idx_t P_SLOTS_HEADER_PAGE_IDX = 1;
-static constexpr page_idx_t O_SLOTS_HEADER_PAGE_IDX = 2;
+static constexpr common::page_idx_t INDEX_HEADER_ARRAY_HEADER_PAGE_IDX = 0;
+static constexpr common::page_idx_t P_SLOTS_HEADER_PAGE_IDX = 1;
+static constexpr common::page_idx_t O_SLOTS_HEADER_PAGE_IDX = 2;
 static constexpr uint64_t INDEX_HEADER_IDX_IN_ARRAY = 0;
 
 /**
@@ -28,7 +28,7 @@ static constexpr uint64_t INDEX_HEADER_IDX_IN_ARRAY = 0;
  *
  * The slot data structure:
  * Each slot (p/oSlot) consists of a slot header and several entries. The max number of entries in
- * slot is given by HashIndexConfig::SLOT_CAPACITY. The size of the slot is given by
+ * slot is given by HashIndexConstants::SLOT_CAPACITY. The size of the slot is given by
  * (sizeof(SlotHeader) + (SLOT_CAPACITY * sizeof(Entry)).
  *
  * SlotHeader: [numEntries, validityMask, nextOvfSlotId]
@@ -50,7 +50,7 @@ struct SlotInfo {
 
 class BaseHashIndex {
 public:
-    explicit BaseHashIndex(const DataType& keyDataType) {
+    explicit BaseHashIndex(const common::DataType& keyDataType) {
         keyHashFunc = HashIndexUtils::initializeHashFunc(keyDataType.typeID);
     }
 
@@ -61,12 +61,12 @@ protected:
 
     static inline uint64_t getNumRequiredEntries(
         uint64_t numExistingEntries, uint64_t numNewEntries) {
-        return ceil((double)(numExistingEntries + numNewEntries) * DEFAULT_HT_LOAD_FACTOR);
+        return ceil((double)(numExistingEntries + numNewEntries) * common::DEFAULT_HT_LOAD_FACTOR);
     }
 
 protected:
-    unique_ptr<HashIndexHeader> indexHeader;
-    shared_mutex pSlotSharedMutex;
+    std::unique_ptr<HashIndexHeader> indexHeader;
+    std::shared_mutex pSlotSharedMutex;
     hash_function_t keyHashFunc;
 };
 
@@ -74,7 +74,7 @@ template<typename T>
 class HashIndexBuilder : public BaseHashIndex {
 
 public:
-    HashIndexBuilder(const string& fName, const DataType& keyDataType);
+    HashIndexBuilder(const std::string& fName, const common::DataType& keyDataType);
 
 public:
     // Reserves space for at least the specified number of elements.
@@ -82,13 +82,13 @@ public:
 
     // Note: append assumes that bulkRserve has been called before it and the index has reserved
     // enough space already.
-    inline bool append(int64_t key, offset_t value) {
+    inline bool append(int64_t key, common::offset_t value) {
         return appendInternal(reinterpret_cast<const uint8_t*>(&key), value);
     }
-    inline bool append(const char* key, offset_t value) {
+    inline bool append(const char* key, common::offset_t value) {
         return appendInternal(reinterpret_cast<const uint8_t*>(key), value);
     }
-    inline bool lookup(int64_t key, offset_t& result) {
+    inline bool lookup(int64_t key, common::offset_t& result) {
         return lookupInternalWithoutLock(reinterpret_cast<const uint8_t*>(&key), result);
     }
 
@@ -96,39 +96,39 @@ public:
     void flush();
 
 private:
-    bool appendInternal(const uint8_t* key, offset_t value);
-    bool lookupInternalWithoutLock(const uint8_t* key, offset_t& result);
+    bool appendInternal(const uint8_t* key, common::offset_t value);
+    bool lookupInternalWithoutLock(const uint8_t* key, common::offset_t& result);
 
     template<bool IS_LOOKUP>
     bool lookupOrExistsInSlotWithoutLock(
-        Slot<T>* slot, const uint8_t* key, offset_t* result = nullptr);
-    void insertToSlotWithoutLock(Slot<T>* slot, const uint8_t* key, offset_t value);
+        Slot<T>* slot, const uint8_t* key, common::offset_t* result = nullptr);
+    void insertToSlotWithoutLock(Slot<T>* slot, const uint8_t* key, common::offset_t value);
     Slot<T>* getSlot(const SlotInfo& slotInfo);
     uint32_t allocatePSlots(uint32_t numSlotsToAllocate);
     uint32_t allocateAOSlot();
 
     inline void lockSlot(SlotInfo& slotInfo) {
         assert(slotInfo.slotType == SlotType::PRIMARY);
-        shared_lock sLck{pSlotSharedMutex};
+        std::shared_lock sLck{pSlotSharedMutex};
         pSlotsMutexes[slotInfo.slotId]->lock();
     }
     inline void unlockSlot(const SlotInfo& slotInfo) {
         assert(slotInfo.slotType == SlotType::PRIMARY);
-        shared_lock sLck{pSlotSharedMutex};
+        std::shared_lock sLck{pSlotSharedMutex};
         pSlotsMutexes[slotInfo.slotId]->unlock();
     }
 
 private:
-    unique_ptr<FileHandle> fileHandle;
-    unique_ptr<InMemDiskArrayBuilder<HashIndexHeader>> headerArray;
-    shared_mutex oSlotsSharedMutex;
-    unique_ptr<InMemDiskArrayBuilder<Slot<T>>> pSlots;
-    unique_ptr<InMemDiskArrayBuilder<Slot<T>>> oSlots;
-    vector<unique_ptr<mutex>> pSlotsMutexes;
+    std::unique_ptr<FileHandle> fileHandle;
+    std::unique_ptr<InMemDiskArrayBuilder<HashIndexHeader>> headerArray;
+    std::shared_mutex oSlotsSharedMutex;
+    std::unique_ptr<InMemDiskArrayBuilder<Slot<T>>> pSlots;
+    std::unique_ptr<InMemDiskArrayBuilder<Slot<T>>> oSlots;
+    std::vector<std::unique_ptr<std::mutex>> pSlotsMutexes;
     in_mem_insert_function_t keyInsertFunc;
     in_mem_equals_function_t keyEqualsFunc;
-    unique_ptr<InMemOverflowFile> inMemOverflowFile;
-    atomic<uint64_t> numEntries;
+    std::unique_ptr<InMemOverflowFile> inMemOverflowFile;
+    std::atomic<uint64_t> numEntries;
 };
 
 } // namespace storage

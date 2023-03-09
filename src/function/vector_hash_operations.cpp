@@ -3,6 +3,8 @@
 #include "function/binary_operation_executor.h"
 #include "function/unary_operation_executor.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace function {
 
@@ -19,8 +21,17 @@ void VectorHashOperations::computeHash(ValueVector* operand, ValueVector* result
     case INT64: {
         UnaryHashOperationExecutor::execute<int64_t, hash_t>(*operand, *result);
     } break;
+    case INT32: {
+        UnaryHashOperationExecutor::execute<int32_t, hash_t>(*operand, *result);
+    } break;
+    case INT16: {
+        UnaryHashOperationExecutor::execute<int16_t, hash_t>(*operand, *result);
+    } break;
     case DOUBLE: {
         UnaryHashOperationExecutor::execute<double, hash_t>(*operand, *result);
+    } break;
+    case FLOAT: {
+        UnaryHashOperationExecutor::execute<float_t, hash_t>(*operand, *result);
     } break;
     case STRING: {
         UnaryHashOperationExecutor::execute<ku_string_t, hash_t>(*operand, *result);

@@ -1,34 +1,22 @@
 #pragma once
 
-#include "binder/binder.h"
-#include "catalog/catalog.h"
 #include "client_context.h"
-#include "main/database.h"
-#include "planner/logical_plan/logical_plan.h"
+#include "database.h"
 #include "prepared_statement.h"
 #include "query_result.h"
-#include "storage/wal/wal.h"
-#include "transaction/transaction_manager.h"
-
-using namespace kuzu::planner;
-using namespace kuzu::transaction;
-using lock_t = unique_lock<mutex>;
-
-namespace kuzu {
-namespace testing {
-class ApiTest;
-class BaseGraphTest;
-class TestHelper;
-} // namespace testing
-} // namespace kuzu
 
 namespace kuzu {
 namespace main {
 
+/**
+ * @brief Connection is used to interact with a Database instance. Each Connection is thread-safe.
+ * Multiple connections can connect to the same Database instance in a multi-threaded environment.
+ */
 class Connection {
     friend class kuzu::testing::ApiTest;
     friend class kuzu::testing::BaseGraphTest;
     friend class kuzu::testing::TestHelper;
+    friend class kuzu::benchmark::Benchmark;
 
 public:
     /**
@@ -47,137 +35,144 @@ public:
      * Note: When a Connection object is deconstructed, if the connection has an active (manual)
      * transaction, then the active transaction is rolled back.
      */
-    enum ConnectionTransactionMode : uint8_t { AUTO_COMMIT, MANUAL };
+    enum class ConnectionTransactionMode : uint8_t { AUTO_COMMIT = 0, MANUAL = 1 };
 
 public:
-    explicit Connection(Database* database);
+    /**
+     * @brief Creates a connection to the database.
+     * @param database A pointer to the database instance that this connection will be connected to.
+     */
+    KUZU_API explicit Connection(Database* database);
+    /**
+     * @brief Destructs the connection.
+     */
+    KUZU_API ~Connection();
+    /**
+     * @brief Manually starts a new read-only transaction in the current connection.
+     */
+    KUZU_API void beginReadOnlyTransaction();
+    /**
+     * @brief Manually starts a new write transaction in the current connection.
+     */
+    KUZU_API void beginWriteTransaction();
+    /**
+     * @brief Manually commits the current transaction.
+     */
+    KUZU_API void commit();
+    /**
+     * @brief Manually rollbacks the current transaction.
+     */
+    KUZU_API void rollback();
+    /**
+     * @brief Sets the maximum number of threads to use for execution in the current connection.
+     * @param numThreads The number of threads to use for execution in the current connection.
+     */
+    KUZU_API void setMaxNumThreadForExec(uint64_t numThreads);
+    /**
+     * @brief Returns the maximum number of threads to use for execution in the current connection.
+     * @return the maximum number of threads to use for execution in the current connection.
+     */
+    KUZU_API uint64_t getMaxNumThreadForExec();
 
-    ~Connection();
-
-    inline void beginReadOnlyTransaction() {
-        lock_t lck{mtx};
-        setTransactionModeNoLock(MANUAL);
-        beginTransactionNoLock(READ_ONLY);
-    }
-
-    inline void beginWriteTransaction() {
-        lock_t lck{mtx};
-        setTransactionModeNoLock(MANUAL);
-        beginTransactionNoLock(WRITE);
-    }
-
-    inline void commit() {
-        lock_t lck{mtx};
-        commitOrRollbackNoLock(true /* isCommit */);
-    }
-
-    inline void rollback() {
-        lock_t lck{mtx};
-        commitOrRollbackNoLock(false /* is rollback */);
-    }
-
-    inline void setMaxNumThreadForExec(uint64_t numThreads) {
-        clientContext->numThreadsForExecution = numThreads;
-    }
-    inline uint64_t getMaxNumThreadForExec() {
-        lock_t lck{mtx};
-        return clientContext->numThreadsForExecution;
-    }
-
-    std::unique_ptr<QueryResult> query(const std::string& query);
-
-    std::unique_ptr<PreparedStatement> prepare(const std::string& query) {
-        lock_t lck{mtx};
-        return prepareNoLock(query);
-    }
-
-    template<typename... Args>
+    /**
+     * @brief Executes the given query and returns the result.
+     * @param query The query to execute.
+     * @return the result of the query.
+     */
+    KUZU_API std::unique_ptr<QueryResult> query(const std::string& query);
+    /**
+     * @brief Prepares the given query and returns the prepared statement.
+     * @param query The query to prepare.
+     * @return the prepared statement.
+     */
+    KUZU_API std::unique_ptr<PreparedStatement> prepare(const std::string& query);
+    /**
+     * @brief Executes the given prepared statement with args and returns the result.
+     * @param preparedStatement The prepared statement to execute.
+     * @param args The parameter pack where each arg is a std::pair with the first element being
+     * parameter name and second element being parameter value.
+     * @return the result of the query.
+     */
+    KUZU_API template<typename... Args>
     inline std::unique_ptr<QueryResult> execute(
-        PreparedStatement* preparedStatement, pair<string, Args>... args) {
-        unordered_map<string, shared_ptr<Value>> inputParameters;
+        PreparedStatement* preparedStatement, std::pair<std::string, Args>... args) {
+        std::unordered_map<std::string, std::shared_ptr<common::Value>> inputParameters;
         return executeWithParams(preparedStatement, inputParameters, args...);
     }
-    // Note: Any call that goes through executeWithParams acquires a lock in the end by calling
-    // executeLock(...).
-    std::unique_ptr<QueryResult> executeWithParams(PreparedStatement* preparedStatement,
-        unordered_map<string, shared_ptr<Value>>& inputParams);
+    /**
+     * @brief Executes the given prepared statement with inputParams and returns the result.
+     * @param preparedStatement The prepared statement to execute.
+     * @param inputParams The parameter pack where each arg is a std::pair with the first element
+     * being parameter name and second element being parameter value.
+     * @return the result of the query.
+     */
+    KUZU_API std::unique_ptr<QueryResult> executeWithParams(PreparedStatement* preparedStatement,
+        std::unordered_map<std::string, std::shared_ptr<common::Value>>& inputParams);
+    /**
+     * @return all node table names in string format.
+     */
+    KUZU_API std::string getNodeTableNames();
+    /**
+     * @return all rel table names in string format.
+     */
+    KUZU_API std::string getRelTableNames();
+    /**
+     * @param nodeTableName The name of the node table.
+     * @return all property names of the given table.
+     */
+    KUZU_API std::string getNodePropertyNames(const std::string& tableName);
+    /**
+     * @param relTableName The name of the rel table.
+     * @return all property names of the given table.
+     */
+    KUZU_API std::string getRelPropertyNames(const std::string& relTableName);
 
-    string getNodeTableNames();
-    string getRelTableNames();
-    string getNodePropertyNames(const string& tableName);
-    string getRelPropertyNames(const string& relTableName);
+    // Temporary patching for C-style APIs.
+    // TODO(Change): move this to C-header once we have C-APIs.
+    KUZU_API std::unique_ptr<QueryResult> kuzu_query(const char* queryString);
 
 protected:
-    inline ConnectionTransactionMode getTransactionMode() {
-        lock_t lck{mtx};
-        return transactionMode;
-    }
-    inline void setTransactionModeNoLock(ConnectionTransactionMode newTransactionMode) {
-        if (activeTransaction && transactionMode == MANUAL && newTransactionMode == AUTO_COMMIT) {
-            throw ConnectionException(
-                "Cannot change transaction mode from MANUAL to AUTO_COMMIT when there is an "
-                "active transaction. Need to first commit or rollback the active transaction.");
-        }
-        transactionMode = newTransactionMode;
-    }
+    ConnectionTransactionMode getTransactionMode();
+    void setTransactionModeNoLock(ConnectionTransactionMode newTransactionMode);
+
+    std::unique_ptr<QueryResult> query(const std::string& query, const std::string& encodedJoin);
     // Note: This is only added for testing recovery algorithms in unit tests. Do not use
     // this otherwise.
-    inline void commitButSkipCheckpointingForTestingRecovery() {
-        lock_t lck{mtx};
-        commitOrRollbackNoLock(true /* isCommit */, true /* skip checkpointing for testing */);
-    }
+    void commitButSkipCheckpointingForTestingRecovery();
     // Note: This is only added for testing recovery algorithms in unit tests. Do not use
     // this otherwise.
-    inline void rollbackButSkipCheckpointingForTestingRecovery() {
-        lock_t lck{mtx};
-        commitOrRollbackNoLock(false /* is rollback */, true /* skip checkpointing for testing */);
-    }
+    void rollbackButSkipCheckpointingForTestingRecovery();
     // Note: This is only added for testing recovery algorithms in unit tests. Do not use
     // this otherwise.
-    inline Transaction* getActiveTransaction() {
-        lock_t lck{mtx};
-        return activeTransaction.get();
-    }
+    transaction::Transaction* getActiveTransaction();
     // used in API test
 
-    inline uint64_t getActiveTransactionID() {
-        lock_t lck{mtx};
-        return activeTransaction ? activeTransaction->getID() : UINT64_MAX;
-    }
-    inline bool hasActiveTransaction() {
-        lock_t lck{mtx};
-        return activeTransaction != nullptr;
-    }
-    inline void commitNoLock() { commitOrRollbackNoLock(true /* is commit */); }
-    inline void rollbackIfNecessaryNoLock() {
-        // If there is no active transaction in the system (e.g., an exception occurs during
-        // planning), we shouldn't roll back the transaction.
-        if (activeTransaction != nullptr) {
-            commitOrRollbackNoLock(false /* is rollback */);
-        }
-    }
+    uint64_t getActiveTransactionID();
+    bool hasActiveTransaction();
+    void commitNoLock();
+    void rollbackIfNecessaryNoLock();
 
-    void beginTransactionNoLock(TransactionType type);
+    void beginTransactionNoLock(transaction::TransactionType type);
 
     void commitOrRollbackNoLock(bool isCommit, bool skipCheckpointForTesting = false);
 
-    unique_ptr<QueryResult> queryResultWithError(std::string& errMsg);
+    std::unique_ptr<QueryResult> queryResultWithError(std::string& errMsg);
 
-    std::unique_ptr<PreparedStatement> prepareNoLock(
-        const std::string& query, bool enumerateAllPlans = false);
+    std::unique_ptr<PreparedStatement> prepareNoLock(const std::string& query,
+        bool enumerateAllPlans = false, std::string joinOrder = std::string{});
 
     template<typename T, typename... Args>
     std::unique_ptr<QueryResult> executeWithParams(PreparedStatement* preparedStatement,
-        unordered_map<string, shared_ptr<Value>>& params, pair<string, T> arg,
-        pair<string, Args>... args) {
+        std::unordered_map<std::string, std::shared_ptr<common::Value>>& params,
+        std::pair<std::string, T> arg, std::pair<std::string, Args>... args) {
         auto name = arg.first;
-        auto val = make_shared<Value>(Value::createValue<T>(arg.second));
+        auto val = std::make_shared<common::Value>((T)arg.second);
         params.insert({name, val});
         return executeWithParams(preparedStatement, params, args...);
     }
 
     void bindParametersNoLock(PreparedStatement* preparedStatement,
-        unordered_map<string, shared_ptr<Value>>& inputParams);
+        std::unordered_map<std::string, std::shared_ptr<common::Value>>& inputParams);
 
     std::unique_ptr<QueryResult> executeAndAutoCommitIfNecessaryNoLock(
         PreparedStatement* preparedStatement, uint32_t planIdx = 0u);
@@ -187,7 +182,7 @@ protected:
 protected:
     Database* database;
     std::unique_ptr<ClientContext> clientContext;
-    std::unique_ptr<Transaction> activeTransaction;
+    std::unique_ptr<transaction::Transaction> activeTransaction;
     ConnectionTransactionMode transactionMode;
     std::mutex mtx;
 };

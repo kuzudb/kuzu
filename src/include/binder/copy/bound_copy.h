@@ -6,31 +6,30 @@
 
 #include "binder/bound_statement.h"
 #include "catalog/catalog_structs.h"
-#include "common/csv_reader/csv_reader.h"
-
-using namespace kuzu::catalog;
+#include "common/copier_config/copier_config.h"
 
 namespace kuzu {
 namespace binder {
 
 class BoundCopy : public BoundStatement {
 public:
-    BoundCopy(CopyDescription copyDescription, table_id_t tableID, string tableName)
-        : BoundStatement{StatementType::COPY_CSV,
+    BoundCopy(
+        common::CopyDescription copyDescription, common::table_id_t tableID, std::string tableName)
+        : BoundStatement{common::StatementType::COPY_CSV,
               BoundStatementResult::createSingleStringColumnResult()},
           copyDescription{std::move(copyDescription)}, tableID{tableID}, tableName{std::move(
                                                                              tableName)} {}
 
-    inline CopyDescription getCopyDescription() const { return copyDescription; }
+    inline common::CopyDescription getCopyDescription() const { return copyDescription; }
 
-    inline table_id_t getTableID() const { return tableID; }
+    inline common::table_id_t getTableID() const { return tableID; }
 
-    inline string getTableName() const { return tableName; }
+    inline std::string getTableName() const { return tableName; }
 
 private:
-    CopyDescription copyDescription;
-    table_id_t tableID;
-    string tableName;
+    common::CopyDescription copyDescription;
+    common::table_id_t tableID;
+    std::string tableName;
 };
 
 } // namespace binder

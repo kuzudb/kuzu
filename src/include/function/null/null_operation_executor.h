@@ -8,8 +8,8 @@ namespace function {
 struct NullOperationExecutor {
 
     template<typename FUNC>
-    static void execute(ValueVector& operand, ValueVector& result) {
-        assert(result.dataType.typeID == BOOL);
+    static void execute(common::ValueVector& operand, common::ValueVector& result) {
+        assert(result.dataType.typeID == common::BOOL);
         auto resultValues = (uint8_t*)result.getData();
         if (operand.state->isFlat()) {
             auto pos = operand.state->selVector->selectedPositions[0];
@@ -32,7 +32,7 @@ struct NullOperationExecutor {
     }
 
     template<typename FUNC>
-    static bool select(ValueVector& operand, SelectionVector& selVector) {
+    static bool select(common::ValueVector& operand, common::SelectionVector& selVector) {
         if (operand.state->isFlat()) {
             auto pos = operand.state->selVector->selectedPositions[0];
             uint8_t resultValue = 0;
@@ -51,8 +51,8 @@ struct NullOperationExecutor {
     }
 
     template<typename FUNC>
-    static void selectOnValue(ValueVector& operand, uint64_t operandPos,
-        uint64_t& numSelectedValues, sel_t* selectedPositionsBuffer) {
+    static void selectOnValue(common::ValueVector& operand, uint64_t operandPos,
+        uint64_t& numSelectedValues, common::sel_t* selectedPositionsBuffer) {
         uint8_t resultValue = 0;
         FUNC::operation(
             operand.getValue<uint8_t>(operandPos), operand.isNull(operandPos), resultValue);

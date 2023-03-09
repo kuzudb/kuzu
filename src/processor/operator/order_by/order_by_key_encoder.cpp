@@ -2,17 +2,16 @@
 
 #include <string.h>
 
-#include <cmath>
 #include <cstdint>
 
-using namespace std;
 using namespace kuzu::common;
+using namespace kuzu::storage;
 
 namespace kuzu {
 namespace processor {
 
-OrderByKeyEncoder::OrderByKeyEncoder(vector<shared_ptr<ValueVector>>& orderByVectors,
-    vector<bool>& isAscOrder, MemoryManager* memoryManager, uint8_t ftIdx,
+OrderByKeyEncoder::OrderByKeyEncoder(std::vector<ValueVector*>& orderByVectors,
+    std::vector<bool>& isAscOrder, MemoryManager* memoryManager, uint8_t ftIdx,
     uint32_t numTuplesPerBlockInFT, uint32_t numBytesPerTuple)
     : memoryManager{memoryManager}, orderByVectors{orderByVectors}, isAscOrder{isAscOrder},
       numBytesPerTuple{numBytesPerTuple}, ftIdx{ftIdx},
@@ -21,13 +20,13 @@ OrderByKeyEncoder::OrderByKeyEncoder(vector<shared_ptr<ValueVector>>& orderByVec
         throw RuntimeException(
             "The number of tuples per block of factorizedTable exceeds the maximum blockOffset!");
     }
-    keyBlocks.emplace_back(make_unique<DataBlock>(memoryManager));
-    assert(this->numBytesPerTuple == getNumBytesPerTuple(orderByVectors));
-    maxNumTuplesPerBlock = LARGE_PAGE_SIZE / numBytesPerTuple;
+    keyBlocks.emplace_back(std::make_unique<DataBlock>(memoryManager));
+    assert(this->numBytesPerTuple == getNumBytesPerTuple());
+    maxNumTuplesPerBlock = BufferPoolConstants::LARGE_PAGE_SIZE / numBytesPerTuple;
     if (maxNumTuplesPerBlock <= 0) {
         throw RuntimeException(StringUtils::string_format(
-            "TupleSize(%d bytes) is larger than the LARGE_PAGE_SIZE(%d bytes)", numBytesPerTuple,
-            LARGE_PAGE_SIZE));
+            "TupleSize({} bytes) is larger than the LARGE_PAGE_SIZE({} bytes)", numBytesPerTuple,
+            BufferPoolConstants::LARGE_PAGE_SIZE));
     }
     encodeFunctions.resize(orderByVectors.size());
     for (auto i = 0u; i < orderByVectors.size(); i++) {
@@ -41,7 +40,7 @@ void OrderByKeyEncoder::encodeKeys() {
     while (numEntries > 0) {
         allocateMemoryIfFull();
         uint32_t numEntriesToEncode =
-            min(numEntries, maxNumTuplesPerBlock - getNumTuplesInCurBlock());
+            std::min(numEntries, maxNumTuplesPerBlock - getNumTuplesInCurBlock());
         auto tuplePtr =
             keyBlocks.back()->getData() + keyBlocks.back()->numTuples * numBytesPerTuple;
         uint32_t tuplePtrOffset = 0;
@@ -57,7 +56,7 @@ void OrderByKeyEncoder::encodeKeys() {
     }
 }
 
-uint32_t OrderByKeyEncoder::getNumBytesPerTuple(const vector<shared_ptr<ValueVector>>& keyVectors) {
+uint32_t OrderByKeyEncoder::getNumBytesPerTuple(const std::vector<ValueVector*>& keyVectors) {
     uint32_t result = 0u;
     for (auto& vector : keyVectors) {
         result += getEncodingSize(vector->dataType);
@@ -98,7 +97,7 @@ void OrderByKeyEncoder::flipBytesIfNecessary(
 }
 
 void OrderByKeyEncoder::encodeFlatVector(
-    shared_ptr<ValueVector> vector, uint8_t* tuplePtr, uint32_t keyColIdx) {
+    ValueVector* vector, uint8_t* tuplePtr, uint32_t keyColIdx) {
     auto pos = vector->state->selVector->selectedPositions[0];
     if (vector->isNull(pos)) {
         for (auto j = 0u; j < getEncodingSize(vector->dataType); j++) {
@@ -111,7 +110,7 @@ void OrderByKeyEncoder::encodeFlatVector(
     }
 }
 
-void OrderByKeyEncoder::encodeUnflatVector(shared_ptr<ValueVector> vector, uint8_t* tuplePtr,
+void OrderByKeyEncoder::encodeUnflatVector(ValueVector* vector, uint8_t* tuplePtr,
     uint32_t encodedTuples, uint32_t numEntriesToEncode, uint32_t keyColIdx) {
     if (vector->state->selVector->isUnfiltered()) {
         auto value = vector->getData() + encodedTuples * vector->getNumBytesPerValue();
@@ -166,8 +165,8 @@ void OrderByKeyEncoder::encodeUnflatVector(shared_ptr<ValueVector> vector, uint8
     }
 }
 
-void OrderByKeyEncoder::encodeVector(shared_ptr<ValueVector> vector, uint8_t* tuplePtr,
-    uint32_t encodedTuples, uint32_t numEntriesToEncode, uint32_t keyColIdx) {
+void OrderByKeyEncoder::encodeVector(ValueVector* vector, uint8_t* tuplePtr, uint32_t encodedTuples,
+    uint32_t numEntriesToEncode, uint32_t keyColIdx) {
     if (vector->state->isFlat()) {
         encodeFlatVector(vector, tuplePtr, keyColIdx);
     } else {
@@ -179,7 +178,7 @@ void OrderByKeyEncoder::encodeVector(shared_ptr<ValueVector> vector, uint8_t* tu
 void OrderByKeyEncoder::encodeFTIdx(uint32_t numEntriesToEncode, uint8_t* tupleInfoPtr) {
     uint32_t numUpdatedFTInfoEntries = 0;
     while (numUpdatedFTInfoEntries < numEntriesToEncode) {
-        auto nextBatchOfEntries = min(
+        auto nextBatchOfEntries = std::min(
             numEntriesToEncode - numUpdatedFTInfoEntries, numTuplesPerBlockInFT - ftBlockOffset);
         for (auto i = 0u; i < nextBatchOfEntries; i++) {
             *(uint32_t*)tupleInfoPtr = ftBlockIdx;
@@ -198,7 +197,7 @@ void OrderByKeyEncoder::encodeFTIdx(uint32_t numEntriesToEncode, uint8_t* tupleI
 
 void OrderByKeyEncoder::allocateMemoryIfFull() {
     if (getNumTuplesInCurBlock() == maxNumTuplesPerBlock) {
-        keyBlocks.emplace_back(make_shared<DataBlock>(memoryManager));
+        keyBlocks.emplace_back(std::make_shared<DataBlock>(memoryManager));
     }
 }
 
@@ -210,8 +209,17 @@ encode_function_t OrderByKeyEncoder::getEncodingFunction(DataTypeID typeId) {
     case INT64: {
         return encodeTemplate<int64_t>;
     }
+    case INT32: {
+        return encodeTemplate<int32_t>;
+    }
+    case INT16: {
+        return encodeTemplate<int16_t>;
+    }
     case DOUBLE: {
-        return encodeTemplate<double>;
+        return encodeTemplate<double_t>;
+    }
+    case FLOAT: {
+        return encodeTemplate<float_t>;
     }
     case STRING: {
         return encodeTemplate<ku_string_t>;
@@ -229,6 +237,15 @@ encode_function_t OrderByKeyEncoder::getEncodingFunction(DataTypeID typeId) {
         throw RuntimeException("Cannot encode data type " + Types::dataTypeToString(typeId));
     }
     }
+}
+
+template<>
+void OrderByKeyEncoder::encodeData(int16_t data, uint8_t* resultPtr, bool swapBytes) {
+    if (swapBytes) {
+        data = BSWAP16(data);
+    }
+    memcpy(resultPtr, (void*)&data, sizeof(data));
+    resultPtr[0] = flipSign(resultPtr[0]);
 }
 
 template<>
@@ -256,7 +273,7 @@ void OrderByKeyEncoder::encodeData(bool data, uint8_t* resultPtr, bool swapBytes
 }
 
 template<>
-void OrderByKeyEncoder::encodeData(double data, uint8_t* resultPtr, bool swapBytes) {
+void OrderByKeyEncoder::encodeData(double_t data, uint8_t* resultPtr, bool swapBytes) {
     memcpy(resultPtr, &data, sizeof(data));
     uint64_t* dataBytes = (uint64_t*)resultPtr;
     if (swapBytes) {
@@ -294,11 +311,25 @@ template<>
 void OrderByKeyEncoder::encodeData(ku_string_t data, uint8_t* resultPtr, bool swapBytes) {
     // Only encode the prefix of ku_string.
     memcpy(resultPtr, (void*)data.getAsString().c_str(),
-        min((uint32_t)ku_string_t::SHORT_STR_LENGTH, data.len));
+        std::min((uint32_t)ku_string_t::SHORT_STR_LENGTH, data.len));
     if (ku_string_t::isShortString(data.len)) {
         memset(resultPtr + data.len, '\0', ku_string_t::SHORT_STR_LENGTH + 1 - data.len);
     } else {
         resultPtr[12] = UINT8_MAX;
+    }
+}
+
+template<>
+void OrderByKeyEncoder::encodeData(float_t data, uint8_t* resultPtr, bool swapBytes) {
+    memcpy(resultPtr, &data, sizeof(data));
+    uint32_t* dataBytes = (uint32_t*)resultPtr;
+    if (swapBytes) {
+        *dataBytes = BSWAP32(*dataBytes);
+    }
+    if (data < (float)0) {
+        *dataBytes = ~*dataBytes;
+    } else {
+        resultPtr[0] = flipSign(resultPtr[0]);
     }
 }
 

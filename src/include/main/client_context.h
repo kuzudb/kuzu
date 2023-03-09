@@ -2,18 +2,27 @@
 
 #include <cstdint>
 
+#include "common/api.h"
+
 namespace kuzu {
 namespace main {
 
-// Contain client side configuration.
-// We make profiler associated per query, so profiler is not maintained in client context.
+/**
+ * @brief Contain client side configuration. We make profiler associated per query, so profiler is
+ * not maintained in client context.
+ */
 class ClientContext {
     friend class Connection;
 
 public:
-    explicit ClientContext() : numThreadsForExecution{1} {}
-
-    ~ClientContext() = default;
+    /**
+     * @brief Constructs the ClientContext object.
+     */
+    KUZU_API explicit ClientContext();
+    /**
+     * @brief Deconstructs the ClientContext object.
+     */
+    KUZU_API ~ClientContext() = default;
 
 private:
     uint64_t numThreadsForExecution;

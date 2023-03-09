@@ -2,6 +2,7 @@
 
 #include "main_test_helper/main_test_helper.h"
 
+using namespace kuzu::common;
 using namespace kuzu::testing;
 
 TEST_F(ApiTest, BasicConnect) {
@@ -16,9 +17,9 @@ static void parallel_query(Connection* conn) {
 
 TEST_F(ApiTest, ParallelQuerySingleConnect) {
     auto numThreads = 20u;
-    thread threads[numThreads];
+    std::thread threads[numThreads];
     for (auto i = 0u; i < numThreads; ++i) {
-        threads[i] = thread(parallel_query, conn.get());
+        threads[i] = std::thread(parallel_query, conn.get());
     }
     for (auto i = 0u; i < numThreads; ++i) {
         threads[i].join();
@@ -26,15 +27,15 @@ TEST_F(ApiTest, ParallelQuerySingleConnect) {
 }
 
 static void parallel_connect(Database* database) {
-    auto conn = make_unique<Connection>(database);
+    auto conn = std::make_unique<Connection>(database);
     ApiTest::assertMatchPersonCountStar(conn.get());
 }
 
 TEST_F(ApiTest, ParallelConnect) {
     auto numThreads = 5u;
-    thread threads[numThreads];
+    std::thread threads[numThreads];
     for (auto i = 0u; i < numThreads; ++i) {
-        threads[i] = thread(parallel_connect, database.get());
+        threads[i] = std::thread(parallel_connect, database.get());
     }
     for (auto i = 0u; i < numThreads; ++i) {
         threads[i].join();
@@ -81,7 +82,7 @@ TEST_F(ApiTest, MultipleCallsFromSameTransaction) {
     ASSERT_EQ(activeTransactionID, getActiveTransactionID(*conn));
     auto preparedStatement =
         conn->prepare("MATCH (a:person) WHERE a.isStudent = $1 RETURN COUNT(*)");
-    conn->execute(preparedStatement.get(), make_pair(string("1"), true));
+    conn->execute(preparedStatement.get(), std::make_pair(std::string("1"), true));
     ASSERT_EQ(activeTransactionID, getActiveTransactionID(*conn));
     conn->commit();
     ASSERT_FALSE(hasActiveTransaction(*conn));

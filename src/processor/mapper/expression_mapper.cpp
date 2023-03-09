@@ -8,11 +8,16 @@
 #include "expression_evaluator/literal_evaluator.h"
 #include "expression_evaluator/reference_evaluator.h"
 
+using namespace kuzu::binder;
+using namespace kuzu::common;
+using namespace kuzu::evaluator;
+using namespace kuzu::planner;
+
 namespace kuzu {
 namespace processor {
 
-unique_ptr<BaseExpressionEvaluator> ExpressionMapper::mapExpression(
-    const shared_ptr<Expression>& expression, const Schema& schema) {
+std::unique_ptr<evaluator::BaseExpressionEvaluator> ExpressionMapper::mapExpression(
+    const std::shared_ptr<Expression>& expression, const Schema& schema) {
     auto expressionType = expression->expressionType;
     if (schema.isExpressionInScope(*expression)) {
         return mapReferenceExpression(expression, schema);
@@ -27,50 +32,50 @@ unique_ptr<BaseExpressionEvaluator> ExpressionMapper::mapExpression(
     }
 }
 
-unique_ptr<BaseExpressionEvaluator> ExpressionMapper::mapLiteralExpression(
-    const shared_ptr<Expression>& expression) {
+std::unique_ptr<evaluator::BaseExpressionEvaluator> ExpressionMapper::mapLiteralExpression(
+    const std::shared_ptr<Expression>& expression) {
     auto& literalExpression = (LiteralExpression&)*expression;
-    return make_unique<LiteralExpressionEvaluator>(
-        make_shared<Value>(*literalExpression.getValue()));
+    return std::make_unique<LiteralExpressionEvaluator>(
+        std::make_shared<Value>(*literalExpression.getValue()));
 }
 
-unique_ptr<BaseExpressionEvaluator> ExpressionMapper::mapParameterExpression(
-    const shared_ptr<Expression>& expression) {
+std::unique_ptr<evaluator::BaseExpressionEvaluator> ExpressionMapper::mapParameterExpression(
+    const std::shared_ptr<binder::Expression>& expression) {
     auto& parameterExpression = (ParameterExpression&)*expression;
     assert(parameterExpression.getLiteral() != nullptr);
-    return make_unique<LiteralExpressionEvaluator>(parameterExpression.getLiteral());
+    return std::make_unique<LiteralExpressionEvaluator>(parameterExpression.getLiteral());
 }
 
-unique_ptr<BaseExpressionEvaluator> ExpressionMapper::mapReferenceExpression(
-    const shared_ptr<Expression>& expression, const Schema& schema) {
+std::unique_ptr<evaluator::BaseExpressionEvaluator> ExpressionMapper::mapReferenceExpression(
+    const std::shared_ptr<binder::Expression>& expression, const Schema& schema) {
     auto vectorPos = DataPos(schema.getExpressionPos(*expression));
     auto expressionGroup = schema.getGroup(expression->getUniqueName());
-    return make_unique<ReferenceExpressionEvaluator>(vectorPos, expressionGroup->isFlat());
+    return std::make_unique<ReferenceExpressionEvaluator>(vectorPos, expressionGroup->isFlat());
 }
 
-unique_ptr<BaseExpressionEvaluator> ExpressionMapper::mapCaseExpression(
-    const shared_ptr<Expression>& expression, const Schema& schema) {
+std::unique_ptr<evaluator::BaseExpressionEvaluator> ExpressionMapper::mapCaseExpression(
+    const std::shared_ptr<binder::Expression>& expression, const Schema& schema) {
     auto& caseExpression = (CaseExpression&)*expression;
-    vector<unique_ptr<CaseAlternativeEvaluator>> alternativeEvaluators;
+    std::vector<std::unique_ptr<CaseAlternativeEvaluator>> alternativeEvaluators;
     for (auto i = 0u; i < caseExpression.getNumCaseAlternatives(); ++i) {
         auto alternative = caseExpression.getCaseAlternative(i);
         auto whenEvaluator = mapExpression(alternative->whenExpression, schema);
         auto thenEvaluator = mapExpression(alternative->thenExpression, schema);
-        alternativeEvaluators.push_back(make_unique<CaseAlternativeEvaluator>(
+        alternativeEvaluators.push_back(std::make_unique<CaseAlternativeEvaluator>(
             std::move(whenEvaluator), std::move(thenEvaluator)));
     }
     auto elseEvaluator = mapExpression(caseExpression.getElseExpression(), schema);
-    return make_unique<CaseExpressionEvaluator>(
+    return std::make_unique<CaseExpressionEvaluator>(
         expression, std::move(alternativeEvaluators), std::move(elseEvaluator));
 }
 
-unique_ptr<BaseExpressionEvaluator> ExpressionMapper::mapFunctionExpression(
-    const shared_ptr<Expression>& expression, const Schema& schema) {
-    vector<unique_ptr<BaseExpressionEvaluator>> children;
+std::unique_ptr<evaluator::BaseExpressionEvaluator> ExpressionMapper::mapFunctionExpression(
+    const std::shared_ptr<binder::Expression>& expression, const Schema& schema) {
+    std::vector<std::unique_ptr<evaluator::BaseExpressionEvaluator>> children;
     for (auto i = 0u; i < expression->getNumChildren(); ++i) {
         children.push_back(mapExpression(expression->getChild(i), schema));
     }
-    return make_unique<FunctionExpressionEvaluator>(expression, std::move(children));
+    return std::make_unique<FunctionExpressionEvaluator>(expression, std::move(children));
 }
 
 } // namespace processor

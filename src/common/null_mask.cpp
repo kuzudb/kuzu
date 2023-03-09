@@ -15,8 +15,8 @@ void NullMask::setNull(uint32_t pos, bool isNull) {
     }
 }
 
-bool NullMask::copyNullMask(uint64_t* srcNullEntries, uint64_t srcOffset, uint64_t* dstNullEntries,
-    uint64_t dstOffset, uint64_t numBitsToCopy) {
+bool NullMask::copyNullMask(const uint64_t* srcNullEntries, uint64_t srcOffset,
+    uint64_t* dstNullEntries, uint64_t dstOffset, uint64_t numBitsToCopy) {
     auto [srcNullEntryPos, srcNullBitPos] = getNullEntryAndBitPos(srcOffset);
     auto [dstNullEntryPos, dstNullBitPos] = getNullEntryAndBitPos(dstOffset);
     uint64_t bitPos = 0;

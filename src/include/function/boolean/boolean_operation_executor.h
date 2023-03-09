@@ -14,8 +14,8 @@ namespace function {
 struct BinaryBooleanOperationExecutor {
 
     template<typename FUNC>
-    static inline void executeOnValueNoNull(ValueVector& left, ValueVector& right,
-        ValueVector& result, uint64_t lPos, uint64_t rPos, uint64_t resPos) {
+    static inline void executeOnValueNoNull(common::ValueVector& left, common::ValueVector& right,
+        common::ValueVector& result, uint64_t lPos, uint64_t rPos, uint64_t resPos) {
         auto resValues = (uint8_t*)result.getData();
         FUNC::operation(left.getValue<uint8_t>(lPos), right.getValue<uint8_t>(rPos),
             resValues[resPos], false /* isLeftNull */, false /* isRightNull */);
@@ -23,8 +23,8 @@ struct BinaryBooleanOperationExecutor {
     }
 
     template<typename FUNC>
-    static inline void executeOnValue(ValueVector& left, ValueVector& right, ValueVector& result,
-        uint64_t lPos, uint64_t rPos, uint64_t resPos) {
+    static inline void executeOnValue(common::ValueVector& left, common::ValueVector& right,
+        common::ValueVector& result, uint64_t lPos, uint64_t rPos, uint64_t resPos) {
         auto resValues = (uint8_t*)result.getData();
         FUNC::operation(left.getValue<uint8_t>(lPos), right.getValue<uint8_t>(rPos),
             resValues[resPos], left.isNull(lPos), right.isNull(rPos));
@@ -32,7 +32,8 @@ struct BinaryBooleanOperationExecutor {
     }
 
     template<typename FUNC>
-    static inline void executeBothFlat(ValueVector& left, ValueVector& right, ValueVector& result) {
+    static inline void executeBothFlat(
+        common::ValueVector& left, common::ValueVector& right, common::ValueVector& result) {
         auto lPos = left.state->selVector->selectedPositions[0];
         auto rPos = right.state->selVector->selectedPositions[0];
         auto resPos = result.state->selVector->selectedPositions[0];
@@ -40,7 +41,8 @@ struct BinaryBooleanOperationExecutor {
     }
 
     template<typename FUNC>
-    static void executeFlatUnFlat(ValueVector& left, ValueVector& right, ValueVector& result) {
+    static void executeFlatUnFlat(
+        common::ValueVector& left, common::ValueVector& right, common::ValueVector& result) {
         auto lPos = left.state->selVector->selectedPositions[0];
         if (right.state->selVector->isUnfiltered()) {
             if (right.hasNoNullsGuarantee() && !left.isNull(lPos)) {
@@ -68,7 +70,8 @@ struct BinaryBooleanOperationExecutor {
     }
 
     template<typename FUNC>
-    static void executeUnFlatFlat(ValueVector& left, ValueVector& right, ValueVector& result) {
+    static void executeUnFlatFlat(
+        common::ValueVector& left, common::ValueVector& right, common::ValueVector& result) {
         auto rPos = right.state->selVector->selectedPositions[0];
         if (left.state->selVector->isUnfiltered()) {
             if (left.hasNoNullsGuarantee() && !right.isNull(rPos)) {
@@ -96,7 +99,8 @@ struct BinaryBooleanOperationExecutor {
     }
 
     template<typename FUNC>
-    static void executeBothUnFlat(ValueVector& left, ValueVector& right, ValueVector& result) {
+    static void executeBothUnFlat(
+        common::ValueVector& left, common::ValueVector& right, common::ValueVector& result) {
         assert(left.state == right.state);
         if (left.state->selVector->isUnfiltered()) {
             if (left.hasNoNullsGuarantee() && right.hasNoNullsGuarantee()) {
@@ -124,9 +128,10 @@ struct BinaryBooleanOperationExecutor {
     }
 
     template<typename FUNC>
-    static void execute(ValueVector& left, ValueVector& right, ValueVector& result) {
-        assert(left.dataType.typeID == BOOL && right.dataType.typeID == BOOL &&
-               result.dataType.typeID == BOOL);
+    static void execute(
+        common::ValueVector& left, common::ValueVector& right, common::ValueVector& result) {
+        assert(left.dataType.typeID == common::BOOL && right.dataType.typeID == common::BOOL &&
+               result.dataType.typeID == common::BOOL);
         if (left.state->isFlat() && right.state->isFlat()) {
             executeBothFlat<FUNC>(left, right, result);
         } else if (left.state->isFlat() && !right.state->isFlat()) {
@@ -139,8 +144,9 @@ struct BinaryBooleanOperationExecutor {
     }
 
     template<class FUNC>
-    static void selectOnValue(ValueVector& left, ValueVector& right, uint64_t lPos, uint64_t rPos,
-        uint64_t resPos, uint64_t& numSelectedValues, sel_t* selectedPositionsBuffer) {
+    static void selectOnValue(common::ValueVector& left, common::ValueVector& right, uint64_t lPos,
+        uint64_t rPos, uint64_t resPos, uint64_t& numSelectedValues,
+        common::sel_t* selectedPositionsBuffer) {
         uint8_t resultValue = 0;
         FUNC::operation(left.getValue<uint8_t>(lPos), right.getValue<uint8_t>(rPos), resultValue,
             left.isNull(lPos), right.isNull(rPos));
@@ -149,7 +155,7 @@ struct BinaryBooleanOperationExecutor {
     }
 
     template<typename FUNC>
-    static bool selectBothFlat(ValueVector& left, ValueVector& right) {
+    static bool selectBothFlat(common::ValueVector& left, common::ValueVector& right) {
         auto lPos = left.state->selVector->selectedPositions[0];
         auto rPos = right.state->selVector->selectedPositions[0];
         uint8_t resultValue = 0;
@@ -160,7 +166,7 @@ struct BinaryBooleanOperationExecutor {
 
     template<typename FUNC>
     static bool selectFlatUnFlat(
-        ValueVector& left, ValueVector& right, SelectionVector& selVector) {
+        common::ValueVector& left, common::ValueVector& right, common::SelectionVector& selVector) {
         auto lPos = left.state->selVector->selectedPositions[0];
         uint64_t numSelectedValues = 0;
         auto selectedPositionsBuffer = selVector.getSelectedPositionsBuffer();
@@ -182,7 +188,7 @@ struct BinaryBooleanOperationExecutor {
 
     template<typename FUNC>
     static bool selectUnFlatFlat(
-        ValueVector& left, ValueVector& right, SelectionVector& selVector) {
+        common::ValueVector& left, common::ValueVector& right, common::SelectionVector& selVector) {
         auto rPos = right.state->selVector->selectedPositions[0];
         uint64_t numSelectedValues = 0;
         auto selectedPositionsBuffer = selVector.getSelectedPositionsBuffer();
@@ -204,7 +210,7 @@ struct BinaryBooleanOperationExecutor {
 
     template<typename FUNC>
     static bool selectBothUnFlat(
-        ValueVector& left, ValueVector& right, SelectionVector& selVector) {
+        common::ValueVector& left, common::ValueVector& right, common::SelectionVector& selVector) {
         uint64_t numSelectedValues = 0;
         auto selectedPositionsBuffer = selVector.getSelectedPositionsBuffer();
         if (left.state->selVector->isUnfiltered()) {
@@ -224,8 +230,9 @@ struct BinaryBooleanOperationExecutor {
     }
 
     template<typename FUNC>
-    static bool select(ValueVector& left, ValueVector& right, SelectionVector& selVector) {
-        assert(left.dataType.typeID == BOOL && right.dataType.typeID == BOOL);
+    static bool select(
+        common::ValueVector& left, common::ValueVector& right, common::SelectionVector& selVector) {
+        assert(left.dataType.typeID == common::BOOL && right.dataType.typeID == common::BOOL);
         if (left.state->isFlat() && right.state->isFlat()) {
             return selectBothFlat<FUNC>(left, right);
         } else if (left.state->isFlat() && !right.state->isFlat()) {
@@ -242,7 +249,7 @@ struct UnaryBooleanOperationExecutor {
 
     template<typename FUNC>
     static inline void executeOnValue(
-        ValueVector& operand, uint64_t operandPos, ValueVector& result) {
+        common::ValueVector& operand, uint64_t operandPos, common::ValueVector& result) {
         auto resultValues = (uint8_t*)result.getData();
         FUNC::operation(operand.getValue<uint8_t>(operandPos), operand.isNull(operandPos),
             resultValues[operandPos]);
@@ -250,7 +257,7 @@ struct UnaryBooleanOperationExecutor {
     }
 
     template<typename FUNC>
-    static void executeSwitch(ValueVector& operand, ValueVector& result) {
+    static void executeSwitch(common::ValueVector& operand, common::ValueVector& result) {
         result.resetOverflowBuffer();
         if (operand.state->isFlat()) {
             auto pos = operand.state->selVector->selectedPositions[0];
@@ -270,13 +277,13 @@ struct UnaryBooleanOperationExecutor {
     }
 
     template<typename FUNC>
-    static inline void execute(ValueVector& operand, ValueVector& result) {
+    static inline void execute(common::ValueVector& operand, common::ValueVector& result) {
         executeSwitch<FUNC>(operand, result);
     }
 
     template<typename FUNC>
-    static inline void selectOnValue(ValueVector& operand, uint64_t operandPos,
-        uint64_t& numSelectedValues, sel_t* selectedPositionsBuffer) {
+    static inline void selectOnValue(common::ValueVector& operand, uint64_t operandPos,
+        uint64_t& numSelectedValues, common::sel_t* selectedPositionsBuffer) {
         uint8_t resultValue = 0;
         FUNC::operation(
             operand.getValue<uint8_t>(operandPos), operand.isNull(operandPos), resultValue);
@@ -285,7 +292,7 @@ struct UnaryBooleanOperationExecutor {
     }
 
     template<typename FUNC>
-    static bool select(ValueVector& operand, SelectionVector& selVector) {
+    static bool select(common::ValueVector& operand, common::SelectionVector& selVector) {
         if (operand.state->isFlat()) {
             auto pos = operand.state->selVector->selectedPositions[0];
             uint8_t resultValue = 0;

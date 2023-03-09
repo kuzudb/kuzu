@@ -8,15 +8,17 @@ namespace processor {
 
 class CopyNode : public Copy {
 public:
-    CopyNode(Catalog* catalog, CopyDescription copyDescription, table_id_t tableID, WAL* wal,
-        NodesStatisticsAndDeletedIDs* nodesStatistics, uint32_t id, const string& paramsString)
+    CopyNode(catalog::Catalog* catalog, common::CopyDescription copyDescription,
+        common::table_id_t tableID, storage::WAL* wal,
+        storage::NodesStatisticsAndDeletedIDs* nodesStatistics, storage::RelsStore& relsStore,
+        uint32_t id, const std::string& paramsString)
         : Copy{PhysicalOperatorType::COPY_NODE, catalog, std::move(copyDescription), tableID, wal,
               id, paramsString},
-          nodesStatistics{nodesStatistics} {}
+          nodesStatistics{nodesStatistics}, relsStore{relsStore} {}
 
-    unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<CopyNode>(
-            catalog, copyDescription, tableID, wal, nodesStatistics, id, paramsString);
+    std::unique_ptr<PhysicalOperator> clone() override {
+        return std::make_unique<CopyNode>(
+            catalog, copyDescription, tableID, wal, nodesStatistics, relsStore, id, paramsString);
     }
 
 protected:
@@ -26,7 +28,13 @@ protected:
     uint64_t getNumTuplesInTable() override;
 
 private:
-    NodesStatisticsAndDeletedIDs* nodesStatistics;
+    inline bool allowCopyCSV() override {
+        return nodesStatistics->getNodeStatisticsAndDeletedIDs(tableID)->getNumTuples() == 0;
+    }
+
+private:
+    storage::NodesStatisticsAndDeletedIDs* nodesStatistics;
+    storage::RelsStore& relsStore;
 };
 
 } // namespace processor

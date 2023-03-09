@@ -14,28 +14,28 @@ class BoundMatchClause : public BoundReadingClause {
 
 public:
     explicit BoundMatchClause(
-        unique_ptr<QueryGraphCollection> queryGraphCollection, bool isOptional)
-        : BoundReadingClause{ClauseType::MATCH},
+        std::unique_ptr<QueryGraphCollection> queryGraphCollection, bool isOptional)
+        : BoundReadingClause{common::ClauseType::MATCH},
           queryGraphCollection{std::move(queryGraphCollection)}, isOptional{isOptional} {}
 
     BoundMatchClause(const BoundMatchClause& other)
-        : BoundReadingClause(ClauseType::MATCH),
+        : BoundReadingClause(common::ClauseType::MATCH),
           queryGraphCollection{other.queryGraphCollection->copy()},
           whereExpression(other.whereExpression), isOptional{other.isOptional} {}
 
-    ~BoundMatchClause() = default;
+    ~BoundMatchClause() override = default;
 
     inline QueryGraphCollection* getQueryGraphCollection() const {
         return queryGraphCollection.get();
     }
 
-    inline void setWhereExpression(shared_ptr<Expression> expression) {
-        whereExpression = move(expression);
+    inline void setWhereExpression(std::shared_ptr<Expression> expression) {
+        whereExpression = std::move(expression);
     }
 
     inline bool hasWhereExpression() const { return whereExpression != nullptr; }
 
-    inline shared_ptr<Expression> getWhereExpression() const { return whereExpression; }
+    inline std::shared_ptr<Expression> getWhereExpression() const { return whereExpression; }
 
     inline bool getIsOptional() const { return isOptional; }
 
@@ -54,13 +54,13 @@ public:
         return expressions;
     }
 
-    inline unique_ptr<BoundReadingClause> copy() override {
-        return make_unique<BoundMatchClause>(*this);
+    inline std::unique_ptr<BoundReadingClause> copy() override {
+        return std::make_unique<BoundMatchClause>(*this);
     }
 
 private:
-    unique_ptr<QueryGraphCollection> queryGraphCollection;
-    shared_ptr<Expression> whereExpression;
+    std::unique_ptr<QueryGraphCollection> queryGraphCollection;
+    std::shared_ptr<Expression> whereExpression;
     bool isOptional;
 };
 

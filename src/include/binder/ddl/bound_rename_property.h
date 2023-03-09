@@ -7,21 +7,21 @@ namespace binder {
 
 class BoundRenameProperty : public BoundDDL {
 public:
-    explicit BoundRenameProperty(
-        table_id_t tableID, string tableName, property_id_t propertyID, string newName)
-        : BoundDDL{StatementType::RENAME_PROPERTY, std::move(tableName)}, tableID{tableID},
+    explicit BoundRenameProperty(common::table_id_t tableID, std::string tableName,
+        common::property_id_t propertyID, std::string newName)
+        : BoundDDL{common::StatementType::RENAME_PROPERTY, std::move(tableName)}, tableID{tableID},
           propertyID{propertyID}, newName{std::move(newName)} {}
 
-    inline table_id_t getTableID() const { return tableID; }
+    inline common::table_id_t getTableID() const { return tableID; }
 
-    inline property_id_t getPropertyID() const { return propertyID; }
+    inline common::property_id_t getPropertyID() const { return propertyID; }
 
-    inline string getNewName() const { return newName; }
+    inline std::string getNewName() const { return newName; }
 
 private:
-    table_id_t tableID;
-    property_id_t propertyID;
-    string newName;
+    common::table_id_t tableID;
+    common::property_id_t propertyID;
+    std::string newName;
 };
 
 } // namespace binder

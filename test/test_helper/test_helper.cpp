@@ -2,17 +2,19 @@
 
 #include <fstream>
 
+#include "json.hpp"
 #include "spdlog/spdlog.h"
 
-using namespace std;
+using namespace kuzu::common;
 using namespace kuzu::planner;
+using namespace kuzu::main;
 
 namespace kuzu {
 namespace testing {
 
-vector<unique_ptr<TestQueryConfig>> TestHelper::parseTestFile(
-    const string& path, bool checkOutputOrder) {
-    vector<unique_ptr<TestQueryConfig>> result;
+std::vector<std::unique_ptr<TestQueryConfig>> TestHelper::parseTestFile(
+    const std::string& path, bool checkOutputOrder) {
+    std::vector<std::unique_ptr<TestQueryConfig>> result;
     if (access(path.c_str(), 0) != 0) {
         throw Exception("Test file not exists! [" + path + "].");
     }
@@ -21,12 +23,12 @@ vector<unique_ptr<TestQueryConfig>> TestHelper::parseTestFile(
     if (status.st_mode & S_IFDIR) {
         throw Exception("Test file is a directory. [" + path + "].");
     }
-    ifstream ifs(path);
-    string line;
+    std::ifstream ifs(path);
+    std::string line;
     TestQueryConfig* currentConfig;
     while (getline(ifs, line)) {
         if (line.starts_with("-NAME")) {
-            auto config = make_unique<TestQueryConfig>();
+            auto config = std::make_unique<TestQueryConfig>();
             currentConfig = config.get();
             result.push_back(std::move(config));
             currentConfig->name = line.substr(6, line.length());
@@ -53,10 +55,11 @@ vector<unique_ptr<TestQueryConfig>> TestHelper::parseTestFile(
     return result;
 }
 
-bool TestHelper::testQueries(vector<unique_ptr<TestQueryConfig>>& configs, Connection& conn) {
+bool TestHelper::testQueries(
+    std::vector<std::unique_ptr<TestQueryConfig>>& configs, Connection& conn) {
     spdlog::set_level(spdlog::level::info);
     auto numPassedQueries = 0u;
-    vector<uint64_t> failedQueries;
+    std::vector<uint64_t> failedQueries;
     for (auto i = 0u; i < configs.size(); i++) {
         if (testQuery(configs[i].get(), conn)) {
             numPassedQueries++;
@@ -75,11 +78,12 @@ bool TestHelper::testQueries(vector<unique_ptr<TestQueryConfig>>& configs, Conne
     return numPassedQueries == configs.size();
 }
 
-vector<string> TestHelper::convertResultToString(QueryResult& queryResult, bool checkOutputOrder) {
-    vector<string> actualOutput;
+std::vector<std::string> TestHelper::convertResultToString(
+    QueryResult& queryResult, bool checkOutputOrder) {
+    std::vector<std::string> actualOutput;
     while (queryResult.hasNext()) {
         auto tuple = queryResult.getNext();
-        actualOutput.push_back(tuple->toString(vector<uint32_t>(tuple->len(), 0)));
+        actualOutput.push_back(tuple->toString(std::vector<uint32_t>(tuple->len(), 0)));
     }
     if (!checkOutputOrder) {
         sort(actualOutput.begin(), actualOutput.end());
@@ -96,15 +100,22 @@ void TestHelper::initializeConnection(TestQueryConfig* config, Connection& conn)
 bool TestHelper::testQuery(TestQueryConfig* config, Connection& conn) {
     initializeConnection(config, conn);
     auto preparedStatement = conn.prepareNoLock(config->query, config->enumerate);
-    assert(!preparedStatement->logicalPlans.empty());
+    if (!preparedStatement->isSuccess()) {
+        spdlog::error(preparedStatement->getErrorMessage());
+        return false;
+    }
     auto numPlans = preparedStatement->logicalPlans.size();
+    if (numPlans == 0) {
+        spdlog::error("Query {} has no plans" + config->name);
+        return false;
+    }
     auto numPassedPlans = 0u;
     for (auto i = 0u; i < numPlans; ++i) {
-        auto plan = preparedStatement->logicalPlans[i].get();
         auto planStr = preparedStatement->logicalPlans[i]->toString();
         auto result = conn.executeAndAutoCommitIfNecessaryNoLock(preparedStatement.get(), i);
         assert(result->isSuccess());
-        vector<string> resultTuples = convertResultToString(*result, config->checkOutputOrder);
+        std::vector<std::string> resultTuples =
+            convertResultToString(*result, config->checkOutputOrder);
         if (resultTuples.size() == result->getNumTuples() &&
             resultTuples == config->expectedTuples) {
             spdlog::info(

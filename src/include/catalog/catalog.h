@@ -13,22 +13,19 @@
 #include "function/built_in_vector_operations.h"
 #include "storage/wal/wal.h"
 
-using namespace kuzu::common;
-using namespace kuzu::function;
-using namespace kuzu::storage;
-
 namespace spdlog {
 class logger;
 }
 
 namespace kuzu {
 namespace catalog {
+
 class CatalogContent {
 public:
     // This constructor is only used for mock catalog testing only.
     CatalogContent();
 
-    explicit CatalogContent(const string& directory);
+    explicit CatalogContent(const std::string& directory);
 
     CatalogContent(const CatalogContent& other);
 
@@ -37,54 +34,55 @@ public:
     /**
      * Node and Rel table functions.
      */
-    table_id_t addNodeTableSchema(string tableName, property_id_t primaryKeyId,
-        vector<PropertyNameDataType> propertyDefinitions);
+    common::table_id_t addNodeTableSchema(std::string tableName, common::property_id_t primaryKeyId,
+        std::vector<PropertyNameDataType> propertyDefinitions);
 
-    table_id_t addRelTableSchema(string tableName, RelMultiplicity relMultiplicity,
-        const vector<PropertyNameDataType>& propertyDefinitions,
-        vector<pair<table_id_t, table_id_t>> srcDstTableIDs);
+    common::table_id_t addRelTableSchema(std::string tableName, RelMultiplicity relMultiplicity,
+        const std::vector<PropertyNameDataType>& propertyDefinitions, common::table_id_t srcTableID,
+        common::table_id_t dstTableID);
 
-    inline bool containNodeTable(table_id_t tableID) const {
+    inline bool containNodeTable(common::table_id_t tableID) const {
         return nodeTableSchemas.contains(tableID);
     }
-    inline bool containRelTable(table_id_t tableID) const {
+    inline bool containRelTable(common::table_id_t tableID) const {
         return relTableSchemas.contains(tableID);
     }
-    inline bool containTable(const string& name) const {
+    inline bool containTable(const std::string& name) const {
         return containNodeTable(name) || containRelTable(name);
     }
 
-    inline string getTableName(table_id_t tableID) const {
+    inline std::string getTableName(common::table_id_t tableID) const {
         return getTableSchema(tableID)->tableName;
     }
 
-    inline NodeTableSchema* getNodeTableSchema(table_id_t tableID) const {
+    inline NodeTableSchema* getNodeTableSchema(common::table_id_t tableID) const {
         assert(containNodeTable(tableID));
         return nodeTableSchemas.at(tableID).get();
     }
-    inline RelTableSchema* getRelTableSchema(table_id_t tableID) const {
+    inline RelTableSchema* getRelTableSchema(common::table_id_t tableID) const {
         assert(containRelTable(tableID));
         return relTableSchemas.at(tableID).get();
     }
-    inline TableSchema* getTableSchema(table_id_t tableID) const {
+    inline TableSchema* getTableSchema(common::table_id_t tableID) const {
         assert(containRelTable(tableID) || containNodeTable(tableID));
         return nodeTableSchemas.contains(tableID) ?
                    (TableSchema*)nodeTableSchemas.at(tableID).get() :
                    (TableSchema*)relTableSchemas.at(tableID).get();
     }
 
-    inline bool containNodeTable(const string& tableName) const {
+    inline bool containNodeTable(const std::string& tableName) const {
         return nodeTableNameToIDMap.contains(tableName);
     }
-    inline bool containRelTable(const string& tableName) const {
+    inline bool containRelTable(const std::string& tableName) const {
         return relTableNameToIDMap.contains(tableName);
     }
 
-    inline table_id_t getTableID(const string& tableName) const {
+    inline common::table_id_t getTableID(const std::string& tableName) const {
         return nodeTableNameToIDMap.contains(tableName) ? nodeTableNameToIDMap.at(tableName) :
                                                           relTableNameToIDMap.at(tableName);
     }
-    inline bool isSingleMultiplicityInDirection(table_id_t tableID, RelDirection direction) const {
+    inline bool isSingleMultiplicityInDirection(
+        common::table_id_t tableID, common::RelDirection direction) const {
         return relTableSchemas.at(tableID)->isSingleMultiplicityInDirection(direction);
     }
 
@@ -93,66 +91,64 @@ public:
      */
     // getNodeProperty and getRelProperty should be called after checking if property exists
     // (containNodeProperty and containRelProperty).
-    const Property& getNodeProperty(table_id_t tableID, const string& propertyName) const;
-    const Property& getRelProperty(table_id_t tableID, const string& propertyName) const;
+    const Property& getNodeProperty(
+        common::table_id_t tableID, const std::string& propertyName) const;
+    const Property& getRelProperty(
+        common::table_id_t tableID, const std::string& propertyName) const;
 
-    vector<Property> getAllNodeProperties(table_id_t tableID) const;
-    inline const vector<Property>& getRelProperties(table_id_t tableID) const {
+    std::vector<Property> getAllNodeProperties(common::table_id_t tableID) const;
+    inline const std::vector<Property>& getRelProperties(common::table_id_t tableID) const {
         return relTableSchemas.at(tableID)->properties;
     }
-    inline vector<table_id_t> getNodeTableIDs() const {
-        vector<table_id_t> nodeTableIDs;
+    inline std::vector<common::table_id_t> getNodeTableIDs() const {
+        std::vector<common::table_id_t> nodeTableIDs;
         for (auto& [tableID, _] : nodeTableSchemas) {
             nodeTableIDs.push_back(tableID);
         }
         return nodeTableIDs;
     }
-    inline vector<table_id_t> getRelTableIDs() const {
-        vector<table_id_t> relTableIDs;
+    inline std::vector<common::table_id_t> getRelTableIDs() const {
+        std::vector<common::table_id_t> relTableIDs;
         for (auto& [tableID, _] : relTableSchemas) {
             relTableIDs.push_back(tableID);
         }
         return relTableIDs;
     }
-    inline unordered_map<table_id_t, unique_ptr<NodeTableSchema>>& getNodeTableSchemas() {
+    inline std::unordered_map<common::table_id_t, std::unique_ptr<NodeTableSchema>>&
+    getNodeTableSchemas() {
         return nodeTableSchemas;
     }
-    inline unordered_map<table_id_t, unique_ptr<RelTableSchema>>& getRelTableSchemas() {
+    inline std::unordered_map<common::table_id_t, std::unique_ptr<RelTableSchema>>&
+    getRelTableSchemas() {
         return relTableSchemas;
     }
-    inline unordered_set<table_id_t> getNodeTableIDsForRelTableDirection(
-        table_id_t relTableID, RelDirection direction) const {
-        auto relTableSchema = getRelTableSchema(relTableID);
-        return direction == FWD ? relTableSchema->getUniqueSrcTableIDs() :
-                                  relTableSchema->getUniqueDstTableIDs();
-    }
 
-    void dropTableSchema(table_id_t tableID);
+    void dropTableSchema(common::table_id_t tableID);
 
-    void renameTable(table_id_t tableID, string newName);
+    void renameTable(common::table_id_t tableID, std::string newName);
 
-    void saveToFile(const string& directory, DBFileType dbFileType);
-    void readFromFile(const string& directory, DBFileType dbFileType);
+    void saveToFile(const std::string& directory, common::DBFileType dbFileType);
+    void readFromFile(const std::string& directory, common::DBFileType dbFileType);
 
 private:
-    inline table_id_t assignNextTableID() { return nextTableID++; }
+    inline common::table_id_t assignNextTableID() { return nextTableID++; }
 
 private:
-    shared_ptr<spdlog::logger> logger;
-    unordered_map<table_id_t, unique_ptr<NodeTableSchema>> nodeTableSchemas;
-    unordered_map<table_id_t, unique_ptr<RelTableSchema>> relTableSchemas;
+    std::shared_ptr<spdlog::logger> logger;
+    std::unordered_map<common::table_id_t, std::unique_ptr<NodeTableSchema>> nodeTableSchemas;
+    std::unordered_map<common::table_id_t, std::unique_ptr<RelTableSchema>> relTableSchemas;
     // These two maps are maintained as caches. They are not serialized to the catalog file, but
     // is re-constructed when reading from the catalog file.
-    unordered_map<string, table_id_t> nodeTableNameToIDMap;
-    unordered_map<string, table_id_t> relTableNameToIDMap;
-    table_id_t nextTableID;
+    std::unordered_map<std::string, common::table_id_t> nodeTableNameToIDMap;
+    std::unordered_map<std::string, common::table_id_t> relTableNameToIDMap;
+    common::table_id_t nextTableID;
 };
 
 class Catalog {
 public:
     Catalog();
 
-    explicit Catalog(WAL* wal);
+    explicit Catalog(storage::WAL* wal);
 
     virtual ~Catalog() = default;
 
@@ -160,10 +156,10 @@ public:
 
     inline CatalogContent* getWriteVersion() const { return catalogContentForWriteTrx.get(); }
 
-    inline BuiltInVectorOperations* getBuiltInScalarFunctions() const {
+    inline function::BuiltInVectorOperations* getBuiltInScalarFunctions() const {
         return builtInVectorOperations.get();
     }
-    inline BuiltInAggregateFunctions* getBuiltInAggregateFunction() const {
+    inline function::BuiltInAggregateFunctions* getBuiltInAggregateFunction() const {
         return builtInAggregateFunctions.get();
     }
 
@@ -173,43 +169,50 @@ public:
 
     inline void initCatalogContentForWriteTrxIfNecessary() {
         if (!catalogContentForWriteTrx) {
-            catalogContentForWriteTrx = make_unique<CatalogContent>(*catalogContentForReadOnlyTrx);
+            catalogContentForWriteTrx =
+                std::make_unique<CatalogContent>(*catalogContentForReadOnlyTrx);
         }
     }
 
-    inline void writeCatalogForWALRecord(const string& directory) {
-        catalogContentForWriteTrx->saveToFile(directory, DBFileType::WAL_VERSION);
+    inline void writeCatalogForWALRecord(const std::string& directory) {
+        catalogContentForWriteTrx->saveToFile(directory, common::DBFileType::WAL_VERSION);
     }
 
-    static inline void saveInitialCatalogToFile(const string& directory) {
-        make_unique<Catalog>()->getReadOnlyVersion()->saveToFile(directory, DBFileType::ORIGINAL);
+    static inline void saveInitialCatalogToFile(const std::string& directory) {
+        std::make_unique<Catalog>()->getReadOnlyVersion()->saveToFile(
+            directory, common::DBFileType::ORIGINAL);
     }
 
-    ExpressionType getFunctionType(const string& name) const;
+    common::ExpressionType getFunctionType(const std::string& name) const;
 
-    table_id_t addNodeTableSchema(string tableName, property_id_t primaryKeyId,
-        vector<PropertyNameDataType> propertyDefinitions);
+    common::table_id_t addNodeTableSchema(std::string tableName, common::property_id_t primaryKeyId,
+        std::vector<PropertyNameDataType> propertyDefinitions);
 
-    table_id_t addRelTableSchema(string tableName, RelMultiplicity relMultiplicity,
-        const vector<PropertyNameDataType>& propertyDefinitions,
-        vector<pair<table_id_t, table_id_t>> srcDstTableIDs);
+    common::table_id_t addRelTableSchema(std::string tableName, RelMultiplicity relMultiplicity,
+        const std::vector<PropertyNameDataType>& propertyDefinitions, common::table_id_t srcTableID,
+        common::table_id_t dstTableID);
 
-    void dropTableSchema(table_id_t tableID);
+    void dropTableSchema(common::table_id_t tableID);
 
-    void renameTable(table_id_t tableID, string newName);
+    void renameTable(common::table_id_t tableID, std::string newName);
 
-    void addProperty(table_id_t tableID, string propertyName, DataType dataType);
+    void addProperty(
+        common::table_id_t tableID, std::string propertyName, common::DataType dataType);
 
-    void dropProperty(table_id_t tableID, property_id_t propertyID);
+    void dropProperty(common::table_id_t tableID, common::property_id_t propertyID);
 
-    void renameProperty(table_id_t tableID, property_id_t propertyID, string newName);
+    void renameProperty(
+        common::table_id_t tableID, common::property_id_t propertyID, std::string newName);
+
+    std::unordered_set<RelTableSchema*> getAllRelTableSchemasContainBoundTable(
+        common::table_id_t boundTableID);
 
 protected:
-    unique_ptr<BuiltInVectorOperations> builtInVectorOperations;
-    unique_ptr<BuiltInAggregateFunctions> builtInAggregateFunctions;
-    unique_ptr<CatalogContent> catalogContentForReadOnlyTrx;
-    unique_ptr<CatalogContent> catalogContentForWriteTrx;
-    WAL* wal;
+    std::unique_ptr<function::BuiltInVectorOperations> builtInVectorOperations;
+    std::unique_ptr<function::BuiltInAggregateFunctions> builtInAggregateFunctions;
+    std::unique_ptr<CatalogContent> catalogContentForReadOnlyTrx;
+    std::unique_ptr<CatalogContent> catalogContentForWriteTrx;
+    storage::WAL* wal;
 };
 
 } // namespace catalog

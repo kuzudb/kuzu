@@ -7,17 +7,15 @@
 namespace kuzu {
 namespace parser {
 
-using namespace std;
-
 class DDL : public Statement {
 public:
-    explicit DDL(StatementType statementType, string tableName)
-        : Statement{statementType}, tableName{move(tableName)} {}
+    explicit DDL(common::StatementType statementType, std::string tableName)
+        : Statement{statementType}, tableName{std::move(tableName)} {}
 
-    inline string getTableName() const { return tableName; }
+    inline std::string getTableName() const { return tableName; }
 
 protected:
-    string tableName;
+    std::string tableName;
 };
 
 } // namespace parser

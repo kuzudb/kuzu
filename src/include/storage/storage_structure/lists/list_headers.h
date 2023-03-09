@@ -6,9 +6,6 @@
 #include "storage/buffer_manager/versioned_file_handle.h"
 #include "storage/storage_structure/disk_array.h"
 
-using namespace std;
-using namespace kuzu::common;
-
 namespace spdlog {
 class logger;
 }
@@ -18,7 +15,7 @@ namespace storage {
 
 /**
  * ListHeaders holds the headers of all lists in a single Lists data structure, which implements a
- * chunked CSR, where each chunk stores ListsMetadataConfig::LISTS_CHUNK_SIZE many lists.
+ * chunked CSR, where each chunk stores ListsMetadataConstants::LISTS_CHUNK_SIZE many lists.
  *
  * A header of a list is a unsigned integer values. Each value describes the following
  * information about the list: 1) type: small or large, 2) location of the list in pages.
@@ -39,9 +36,9 @@ namespace storage {
  * can go to pageLists[idxOfPageListBeginInPageLists+idxInPageList], which gives us the physical
  * pageIdx that contains v's list in the .lists file. We cannot always directly go to
  * pageLists[idxOfPageListBeginInPageLists+idxInPageList] because the page list of the chunk is
- * logically divided into "page groups" ListsMetadataConfig::PAGE_LIST_GROUP_SIZE with a pointer to
- * the next page group. That is, suppose PAGE_LIST_GROUP_SIZE = 3 and we need to find the physical
- * pageIdx of idxInPageList=5'th page. Then we need to follow one "pointer" at
+ * logically divided into "page groups" ListsMetadataConstants::PAGE_LIST_GROUP_SIZE with a pointer
+ * to the next page group. That is, suppose PAGE_LIST_GROUP_SIZE = 3 and we need to find the
+ * physical pageIdx of idxInPageList=5'th page. Then we need to follow one "pointer" at
  * idxOfNextPageGroupBeginInPageLists=pageLists[idxOfPageListBeginInPageLists+3] (+0, +1, and +2
  * store the physical page idx's for the first 3 pages and +3 stores the pointer to the beginning of
  * the next page group). Then we go to pageLists[idxOfNextPageGroupBeginInPageLists + (5-3=2)].
@@ -67,71 +64,81 @@ public:
 
     explicit BaseListHeaders();
 
-    static inline bool isALargeList(list_header_t header) { return header & 0x80000000; };
+    static inline bool isALargeList(common::list_header_t header) { return header & 0x80000000; };
 
     // For small lists.
-    static inline uint32_t getSmallListLen(list_header_t header) { return header & 0x7ff; };
-    static inline uint32_t getSmallListCSROffset(list_header_t header) {
+    static inline uint32_t getSmallListLen(common::list_header_t header) { return header & 0x7ff; };
+    static inline uint32_t getSmallListCSROffset(common::list_header_t header) {
         return header >> 11 & 0xfffff;
     };
-    static inline pair<uint32_t, uint32_t> getSmallListLenAndCSROffset(list_header_t header) {
-        return make_pair(getSmallListLen(header), getSmallListCSROffset(header));
+    static inline std::pair<uint32_t, uint32_t> getSmallListLenAndCSROffset(
+        common::list_header_t header) {
+        return std::make_pair(getSmallListLen(header), getSmallListCSROffset(header));
     }
 
     // Constructs a small list header for a list that starts at offset csrOffset and has
     // numElementsInList many elements.
     // Note: if the csrOffset is 0 and the list is empty the header is 0.
-    static inline list_header_t getSmallListHeader(uint32_t csrOffset, uint32_t numElementsInList) {
+    static inline common::list_header_t getSmallListHeader(
+        uint32_t csrOffset, uint32_t numElementsInList) {
         return ((csrOffset & 0xfffff) << 11) | (numElementsInList & 0x7ff);
     }
 
     // For large lists.
-    static inline uint32_t getLargeListIdx(list_header_t header) { return header & 0x7fffffff; };
-    static inline list_header_t getLargeListHeader(uint32_t listIdx) {
+    static inline uint32_t getLargeListIdx(common::list_header_t header) {
+        return header & 0x7fffffff;
+    };
+    static inline common::list_header_t getLargeListHeader(uint32_t listIdx) {
         return 0x80000000 | (listIdx & 0x7fffffff);
     }
 
 protected:
-    shared_ptr<spdlog::logger> logger;
+    std::shared_ptr<spdlog::logger> logger;
 };
 
 class ListHeadersBuilder : public BaseListHeaders {
 public:
-    explicit ListHeadersBuilder(const string& baseListFName, uint64_t numElements);
+    explicit ListHeadersBuilder(const std::string& baseListFName, uint64_t numElements);
 
-    inline list_header_t getHeader(offset_t offset) { return (*headersBuilder)[offset]; };
+    inline common::list_header_t getHeader(common::offset_t offset) {
+        return (*headersBuilder)[offset];
+    };
 
-    inline void setHeader(offset_t offset, list_header_t header) {
+    inline void setHeader(common::offset_t offset, common::list_header_t header) {
         (*headersBuilder)[offset] = header;
     }
     void saveToDisk();
 
 private:
-    unique_ptr<FileHandle> fileHandle;
-    unique_ptr<InMemDiskArrayBuilder<list_header_t>> headersBuilder;
+    std::unique_ptr<FileHandle> fileHandle;
+    std::unique_ptr<InMemDiskArrayBuilder<common::list_header_t>> headersBuilder;
 };
 
 class ListHeaders : public BaseListHeaders {
 
 public:
-    explicit ListHeaders(const StorageStructureIDAndFName storageStructureIDAndFNameForBaseList,
+    explicit ListHeaders(const StorageStructureIDAndFName& storageStructureIDAndFNameForBaseList,
         BufferManager* bufferManager, WAL* wal);
 
-    inline list_header_t getHeader(offset_t offset) { return (*headersDiskArray)[offset]; };
+    inline common::list_header_t getHeader(common::offset_t offset) const {
+        return (*headersDiskArray)[offset];
+    };
 
     inline VersionedFileHandle* getFileHandle() { return versionedFileHandle.get(); }
 
-    inline void checkpointInMemoryIfNecessary() {
+    inline void checkpointInMemoryIfNecessary() const {
         headersDiskArray->checkpointInMemoryIfNecessary();
     }
 
-    inline void rollbackInMemoryIfNecessary() { headersDiskArray->rollbackInMemoryIfNecessary(); }
+    inline void rollbackInMemoryIfNecessary() const {
+        headersDiskArray->rollbackInMemoryIfNecessary();
+    }
 
 public:
-    unique_ptr<InMemDiskArray<list_header_t>> headersDiskArray;
+    std::unique_ptr<InMemDiskArray<common::list_header_t>> headersDiskArray;
 
 private:
-    unique_ptr<VersionedFileHandle> versionedFileHandle;
+    std::unique_ptr<VersionedFileHandle> versionedFileHandle;
     StorageStructureIDAndFName storageStructureIDAndFName;
 };
 } // namespace storage

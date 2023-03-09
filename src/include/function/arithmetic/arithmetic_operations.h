@@ -5,8 +5,6 @@
 
 #include "common/type_utils.h"
 
-using namespace kuzu::common;
-
 namespace kuzu {
 namespace function {
 namespace operation {
@@ -44,7 +42,7 @@ inline void Divide::operation(int64_t& left, int64_t& right, int64_t& result) {
     if (right == 0) {
         // According to c++ standard, only INT64 / 0(INT64) is undefined. (eg. DOUBLE / 0(INT64) and
         // INT64 / 0.0(DOUBLE) are well-defined).
-        throw RuntimeException("Divide by zero.");
+        throw common::RuntimeException("Divide by zero.");
     }
     result = left / right;
 }
@@ -61,7 +59,7 @@ inline void Modulo::operation(int64_t& left, int64_t& right, int64_t& result) {
     if (right == 0) {
         // According to c++ standard, only INT64 % 0(INT64) is undefined. (eg. DOUBLE % 0(INT64) and
         // INT64 % 0.0(DOUBLE) are well-defined).
-        throw RuntimeException("Modulo by zero.");
+        throw common::RuntimeException("Modulo by zero.");
     }
     result = left % right;
 }
@@ -154,9 +152,11 @@ struct Atan {
 
 struct Even {
     template<class T>
-    static inline void operation(T& input, int64_t& result) {
+    static inline void operation(T& input, double_t& result) {
         result = input >= 0 ? ceil(input) : floor(input);
-        if (result % 2) {
+        // Note: c++ doesn't support double % integer, so we have to use the following code to check
+        // whether result is odd or even.
+        if (std::floor(result / 2) * 2 != result) {
             result += (input >= 0 ? 1 : -1);
         }
     }

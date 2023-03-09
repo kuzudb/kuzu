@@ -8,28 +8,30 @@ namespace processor {
 
 class CreateRelTable : public CreateTable {
 public:
-    CreateRelTable(Catalog* catalog, string tableName,
-        vector<PropertyNameDataType> propertyNameDataTypes, RelMultiplicity relMultiplicity,
-        vector<pair<table_id_t, table_id_t>> srcDstTableIDs, const DataPos& outputPos, uint32_t id,
-        const string& paramsString, RelsStatistics* relsStatistics)
+    CreateRelTable(catalog::Catalog* catalog, std::string tableName,
+        std::vector<catalog::PropertyNameDataType> propertyNameDataTypes,
+        catalog::RelMultiplicity relMultiplicity, common::table_id_t srcTableID,
+        common::table_id_t dstTableID, const DataPos& outputPos, uint32_t id,
+        const std::string& paramsString, storage::RelsStatistics* relsStatistics)
         : CreateTable{PhysicalOperatorType::CREATE_REL_TABLE, catalog, std::move(tableName),
               std::move(propertyNameDataTypes), outputPos, id, paramsString},
-          relMultiplicity{relMultiplicity}, srcDstTableIDs{std::move(srcDstTableIDs)},
+          relMultiplicity{relMultiplicity}, srcTableID{srcTableID}, dstTableID{dstTableID},
           relsStatistics{relsStatistics} {}
 
     void executeDDLInternal() override;
 
     std::string getOutputMsg() override;
 
-    unique_ptr<PhysicalOperator> clone() override {
+    std::unique_ptr<PhysicalOperator> clone() override {
         return make_unique<CreateRelTable>(catalog, tableName, propertyNameDataTypes,
-            relMultiplicity, srcDstTableIDs, outputPos, id, paramsString, relsStatistics);
+            relMultiplicity, srcTableID, dstTableID, outputPos, id, paramsString, relsStatistics);
     }
 
 private:
-    RelMultiplicity relMultiplicity;
-    vector<pair<table_id_t, table_id_t>> srcDstTableIDs;
-    RelsStatistics* relsStatistics;
+    catalog::RelMultiplicity relMultiplicity;
+    common::table_id_t srcTableID;
+    common::table_id_t dstTableID;
+    storage::RelsStatistics* relsStatistics;
 };
 
 } // namespace processor

@@ -1,5 +1,7 @@
 #include "processor/operator/unwind.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace processor {
 
@@ -22,7 +24,7 @@ void Unwind::copyTuplesToOutVector(uint64_t startPos, uint64_t endPos) const {
 
 bool Unwind::getNextTuplesInternal() {
     if (hasMoreToRead()) {
-        auto totalElementsCopy = min(DEFAULT_VECTOR_CAPACITY, inputList.size - startIndex);
+        auto totalElementsCopy = std::min(DEFAULT_VECTOR_CAPACITY, inputList.size - startIndex);
         copyTuplesToOutVector(startIndex, (totalElementsCopy + startIndex));
         startIndex += totalElementsCopy;
         outValueVector->state->initOriginalAndSelectedSize(totalElementsCopy);
@@ -40,7 +42,7 @@ bool Unwind::getNextTuplesInternal() {
         }
         inputList = expressionEvaluator->resultVector->getValue<ku_list_t>(pos);
         startIndex = 0;
-        auto totalElementsCopy = min(DEFAULT_VECTOR_CAPACITY, inputList.size);
+        auto totalElementsCopy = std::min(DEFAULT_VECTOR_CAPACITY, inputList.size);
         copyTuplesToOutVector(0, totalElementsCopy);
         startIndex += totalElementsCopy;
         outValueVector->state->initOriginalAndSelectedSize(startIndex);

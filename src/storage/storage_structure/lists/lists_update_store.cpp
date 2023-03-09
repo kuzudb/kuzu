@@ -2,6 +2,10 @@
 
 #include "storage/storage_structure/lists/lists.h"
 
+using namespace kuzu::common;
+using namespace kuzu::catalog;
+using namespace kuzu::processor;
+
 namespace kuzu {
 namespace storage {
 
@@ -23,8 +27,13 @@ bool ListsUpdatesForNodeOffset::hasAnyUpdatedPersistentListOffsets() const {
 }
 
 ListsUpdatesStore::ListsUpdatesStore(MemoryManager& memoryManager, RelTableSchema& relTableSchema)
-    : relTableSchema{relTableSchema}, memoryManager{memoryManager} {
-    initInsertedRels();
+    : memoryManager{memoryManager} {
+    updateSchema(relTableSchema);
+}
+
+void ListsUpdatesStore::updateSchema(RelTableSchema& relTableSchema) {
+    this->relTableSchema = relTableSchema;
+    initInsertedRelsAndListsUpdates();
     initListsUpdatesPerTablePerDirection();
 }
 
@@ -55,13 +64,10 @@ bool ListsUpdatesStore::isRelDeletedInPersistentStore(
 
 bool ListsUpdatesStore::hasUpdates() const {
     for (auto relDirection : REL_DIRECTIONS) {
-        for (auto& [tableID, listsUpdatesPerTable] :
-            listsUpdatesPerTablePerDirection[relDirection]) {
-            for (auto& [chunkIdx, listsUpdatesPerChunk] : listsUpdatesPerTable) {
-                for (auto& [nodeOffset, listsUpdatesForNodeOffset] : listsUpdatesPerChunk) {
-                    if (listsUpdatesForNodeOffset->hasUpdates()) {
-                        return true;
-                    }
+        for (auto& [_, listsUpdatesPerNode] : listsUpdatesPerDirection[relDirection]) {
+            for (auto& [_, listsUpdatesForNodeOffset] : listsUpdatesPerNode) {
+                if (listsUpdatesForNodeOffset->hasUpdates()) {
+                    return true;
                 }
             }
         }
@@ -71,28 +77,27 @@ bool ListsUpdatesStore::hasUpdates() const {
 
 // Note: This function also resets the overflowptr of each string in inMemList if necessary.
 void ListsUpdatesStore::readInsertedRelsToList(ListFileID& listFileID,
-    vector<ft_tuple_idx_t> tupleIdxes, InMemList& inMemList, uint64_t numElementsInPersistentStore,
-    DiskOverflowFile* diskOverflowFile, DataType dataType,
-    NodeIDCompressionScheme* nodeIDCompressionScheme) {
+    std::vector<ft_tuple_idx_t> tupleIdxes, InMemList& inMemList,
+    uint64_t numElementsInPersistentStore, DiskOverflowFile* diskOverflowFile, DataType dataType) {
     ftOfInsertedRels->copyToInMemList(getColIdxInFT(listFileID), tupleIdxes,
         inMemList.getListData(), inMemList.nullMask.get(), numElementsInPersistentStore,
-        diskOverflowFile, dataType, nodeIDCompressionScheme);
+        diskOverflowFile, dataType);
 }
 
-void ListsUpdatesStore::insertRelIfNecessary(const shared_ptr<ValueVector>& srcNodeIDVector,
-    const shared_ptr<ValueVector>& dstNodeIDVector,
-    const vector<shared_ptr<ValueVector>>& relPropertyVectors) {
+void ListsUpdatesStore::insertRelIfNecessary(const ValueVector* srcNodeIDVector,
+    const ValueVector* dstNodeIDVector, const std::vector<ValueVector*>& relPropertyVectors) {
     auto srcNodeID = srcNodeIDVector->getValue<nodeID_t>(
         srcNodeIDVector->state->selVector->selectedPositions[0]);
     auto dstNodeID = dstNodeIDVector->getValue<nodeID_t>(
         dstNodeIDVector->state->selVector->selectedPositions[0]);
     bool hasInsertedToFT = false;
-    auto vectorsToAppendToFT = vector<shared_ptr<ValueVector>>{srcNodeIDVector, dstNodeIDVector};
+    auto vectorsToAppendToFT =
+        std::vector<ValueVector*>{(ValueVector*)srcNodeIDVector, (ValueVector*)dstNodeIDVector};
     vectorsToAppendToFT.insert(
         vectorsToAppendToFT.end(), relPropertyVectors.begin(), relPropertyVectors.end());
     for (auto direction : REL_DIRECTIONS) {
-        auto boundNodeID = direction == RelDirection::FWD ? srcNodeID : dstNodeID;
-        if (listsUpdatesPerTablePerDirection[direction].contains(boundNodeID.tableID)) {
+        auto boundNodeID = direction == FWD ? srcNodeID : dstNodeID;
+        if (!relTableSchema.isSingleMultiplicityInDirection(direction)) {
             if (!hasInsertedToFT) {
                 ftOfInsertedRels->append(vectorsToAppendToFT);
                 hasInsertedToFT = true;
@@ -103,8 +108,8 @@ void ListsUpdatesStore::insertRelIfNecessary(const shared_ptr<ValueVector>& srcN
     }
 }
 
-void ListsUpdatesStore::deleteRelIfNecessary(const shared_ptr<ValueVector>& srcNodeIDVector,
-    const shared_ptr<ValueVector>& dstNodeIDVector, const shared_ptr<ValueVector>& relIDVector) {
+void ListsUpdatesStore::deleteRelIfNecessary(common::ValueVector* srcNodeIDVector,
+    common::ValueVector* dstNodeIDVector, common::ValueVector* relIDVector) {
     auto srcNodeID = srcNodeIDVector->getValue<nodeID_t>(
         srcNodeIDVector->state->selVector->selectedPositions[0]);
     auto dstNodeID = dstNodeIDVector->getValue<nodeID_t>(
@@ -118,12 +123,12 @@ void ListsUpdatesStore::deleteRelIfNecessary(const shared_ptr<ValueVector>& srcN
         // direction. Note: we don't reuse the space for inserted rel tuple in factorizedTable.
         for (auto direction : REL_DIRECTIONS) {
             auto boundNodeID = direction == RelDirection::FWD ? srcNodeID : dstNodeID;
-            if (listsUpdatesPerTablePerDirection[direction].contains(boundNodeID.tableID)) {
+            if (!relTableSchema.isSingleMultiplicityInDirection(direction)) {
                 auto& insertedRelsTupleIdxInFT =
-                    listsUpdatesPerTablePerDirection[direction]
-                        .at(boundNodeID.tableID)[StorageUtils::getListChunkIdx(boundNodeID.offset)]
-                        .at(boundNodeID.offset)
-                        ->insertedRelsTupleIdxInFT;
+                    listsUpdatesPerDirection[direction]
+                                            [StorageUtils::getListChunkIdx(boundNodeID.offset)]
+                                                .at(boundNodeID.offset)
+                                                ->insertedRelsTupleIdxInFT;
                 assert(find(insertedRelsTupleIdxInFT.begin(), insertedRelsTupleIdxInFT.end(),
                            tupleIdx) != insertedRelsTupleIdxInFT.end());
                 insertedRelsTupleIdxInFT.erase(remove(insertedRelsTupleIdxInFT.begin(),
@@ -134,7 +139,7 @@ void ListsUpdatesStore::deleteRelIfNecessary(const shared_ptr<ValueVector>& srcN
     } else {
         for (auto direction : REL_DIRECTIONS) {
             auto boundNodeID = direction == RelDirection::FWD ? srcNodeID : dstNodeID;
-            if (listsUpdatesPerTablePerDirection[direction].contains(boundNodeID.tableID)) {
+            if (!relTableSchema.isSingleMultiplicityInDirection(direction)) {
                 getOrCreateListsUpdatesForNodeOffset(direction, boundNodeID)
                     ->deletedRelOffsets.insert(relID.offset);
             }
@@ -152,18 +157,17 @@ uint64_t ListsUpdatesStore::getNumInsertedRelsForNodeOffset(
 }
 
 void ListsUpdatesStore::readValues(
-    ListFileID& listFileID, ListHandle& listHandle, shared_ptr<ValueVector> valueVector) const {
+    ListFileID& listFileID, ListHandle& listHandle, ValueVector* valueVector) const {
     auto numTuplesToRead = listHandle.getNumValuesToRead();
     auto nodeOffset = listHandle.getBoundNodeOffset();
     if (numTuplesToRead == 0) {
         valueVector->state->initOriginalAndSelectedSize(0);
         return;
     }
-    auto vectorsToRead = vector<shared_ptr<ValueVector>>{valueVector};
-    auto columnsToRead = vector<ft_col_idx_t>{getColIdxInFT(listFileID)};
+    auto vectorsToRead = std::vector<ValueVector*>{valueVector};
+    auto columnsToRead = std::vector<ft_col_idx_t>{getColIdxInFT(listFileID)};
     auto relNodeTableAndDir = getRelNodeTableAndDirFromListFileID(listFileID);
-    auto& listUpdates = listsUpdatesPerTablePerDirection[relNodeTableAndDir.dir]
-                            .at(relNodeTableAndDir.srcNodeTableID)
+    auto& listUpdates = listsUpdatesPerDirection[relNodeTableAndDir.dir]
                             .at(StorageUtils::getListChunkIdx(nodeOffset))
                             .at(nodeOffset);
     ftOfInsertedRels->lookup(vectorsToRead, columnsToRead, listUpdates->insertedRelsTupleIdxInFT,
@@ -180,8 +184,8 @@ bool ListsUpdatesStore::hasAnyDeletedRelsInPersistentStore(
     return !listsUpdatesForNodeOffset->deletedRelOffsets.empty();
 }
 
-void ListsUpdatesStore::updateRelIfNecessary(const shared_ptr<ValueVector>& srcNodeIDVector,
-    const shared_ptr<ValueVector>& dstNodeIDVector, const ListsUpdateInfo& listsUpdateInfo) {
+void ListsUpdatesStore::updateRelIfNecessary(ValueVector* srcNodeIDVector,
+    ValueVector* dstNodeIDVector, const ListsUpdateInfo& listsUpdateInfo) {
     auto srcNodeID = srcNodeIDVector->getValue<nodeID_t>(
         srcNodeIDVector->state->selVector->selectedPositions[0]);
     auto dstNodeID = dstNodeIDVector->getValue<nodeID_t>(
@@ -193,7 +197,7 @@ void ListsUpdatesStore::updateRelIfNecessary(const shared_ptr<ValueVector>& srcN
         // current direction. (E.g. We update a rel property of a MANY-ONE rel table which stores
         // the property as column in the fwd direction, and list in the bwd direction, we should
         // only handle the updates for the bwd direction in this function).
-        if (listsUpdatesPerTablePerDirection[direction].contains(boundNodeID.tableID)) {
+        if (!relTableSchema.isSingleMultiplicityInDirection(direction)) {
             // The rel that we are going to update either stored in persistentStore or updateStore.
             if (listsUpdateInfo.isStoredInPersistentStore()) {
                 // If the rel is stored in persistentStore, we should store the update in the
@@ -201,7 +205,7 @@ void ListsUpdatesStore::updateRelIfNecessary(const shared_ptr<ValueVector>& srcN
                 // updatedPersistentListOffsets of the boundNode.
                 if (insertUpdatedRel) {
                     listsUpdates.at(listsUpdateInfo.propertyID)
-                        ->append(vector<shared_ptr<ValueVector>>{listsUpdateInfo.propertyVector});
+                        ->append(std::vector<ValueVector*>{listsUpdateInfo.propertyVector});
                     insertUpdatedRel = false;
                 }
                 getOrCreateListsUpdatesForNodeOffset(direction, boundNodeID)
@@ -215,10 +219,10 @@ void ListsUpdatesStore::updateRelIfNecessary(const shared_ptr<ValueVector>& srcN
                 // transaction), we should update the factorizedTable entry for that newly inserted
                 // rel.
                 auto ftTupleIdx = ftOfInsertedRels->findValueInFlatColumn(
-                    INTERNAL_REL_ID_IDX_IN_FT, listsUpdateInfo.relID);
+                    INTERNAL_REL_ID_IDX_IN_FT, listsUpdateInfo.relOffset);
                 ftOfInsertedRels->updateFlatCell(ftOfInsertedRels->getTuple(ftTupleIdx),
                     propertyIDToColIdxMap.at(listsUpdateInfo.propertyID),
-                    listsUpdateInfo.propertyVector.get(),
+                    listsUpdateInfo.propertyVector,
                     listsUpdateInfo.propertyVector->state->selVector->selectedPositions[0]);
             }
         }
@@ -226,8 +230,7 @@ void ListsUpdatesStore::updateRelIfNecessary(const shared_ptr<ValueVector>& srcN
 }
 
 void ListsUpdatesStore::readUpdatesToPropertyVectorIfExists(ListFileID& listFileID,
-    offset_t nodeOffset, const shared_ptr<ValueVector>& valueVector,
-    list_offset_t startListOffset) {
+    offset_t nodeOffset, ValueVector* propertyVector, list_offset_t startListOffset) {
     // Note: only rel property lists can have updates.
     assert(listFileID.listType == ListType::REL_PROPERTY_LISTS);
     auto listsUpdatesForNodeOffset = getListsUpdatesForNodeOffsetIfExists(listFileID, nodeOffset);
@@ -239,13 +242,13 @@ void ListsUpdatesStore::readUpdatesToPropertyVectorIfExists(ListFileID& listFile
     for (auto& [listOffset, ftTupleIdx] : updatedPersistentListOffsets.listOffsetFTIdxMap) {
         if (startListOffset > listOffset) {
             continue;
-        } else if (startListOffset + valueVector->state->originalSize <= listOffset) {
+        } else if (startListOffset + propertyVector->state->originalSize <= listOffset) {
             return;
         }
         auto elemPosInVector = listOffset - startListOffset;
         listsUpdates.at(listFileID.relPropertyListID.propertyID)
             ->copySingleValueToVector(
-                ftTupleIdx, LISTS_UPDATES_IDX_IN_FT, valueVector, elemPosInVector);
+                ftTupleIdx, LISTS_UPDATES_IDX_IN_FT, propertyVector, elemPosInVector);
     }
 }
 
@@ -254,37 +257,36 @@ void ListsUpdatesStore::readPropertyUpdateToInMemList(ListFileID& listFileID,
     const DataType& dataType, DiskOverflowFile* overflowFileOfInMemList) {
     assert(listFileID.listType == ListType::REL_PROPERTY_LISTS);
     auto propertyID = listFileID.relPropertyListID.propertyID;
-    auto tupleIdxesToRead = vector<ft_tuple_idx_t>{ftTupleIdx};
+    auto tupleIdxesToRead = std::vector<ft_tuple_idx_t>{ftTupleIdx};
     // Updating source and dst nodeID of a relation is not allowed, so the nodeIDCompression is
     // always a nullptr.
     listsUpdates.at(propertyID)
         ->copyToInMemList(LISTS_UPDATES_IDX_IN_FT, tupleIdxesToRead, inMemList.getListData(),
-            inMemList.nullMask.get(), posToWriteToInMemList, overflowFileOfInMemList, dataType,
-            nullptr /* nodeIDCompression */);
+            inMemList.nullMask.get(), posToWriteToInMemList, overflowFileOfInMemList, dataType);
 }
 
 void ListsUpdatesStore::initNewlyAddedNodes(nodeID_t& nodeID) {
     for (auto direction : REL_DIRECTIONS) {
-        if (listsUpdatesPerTablePerDirection[direction].contains(nodeID.tableID)) {
+        if (!relTableSchema.isSingleMultiplicityInDirection(direction) &&
+            nodeID.tableID == relTableSchema.getBoundTableID(direction)) {
             auto& listsUpdatesPerNode =
-                listsUpdatesPerTablePerDirection[direction][nodeID.tableID]
-                                                [StorageUtils::getListChunkIdx(nodeID.offset)];
+                listsUpdatesPerDirection[direction][StorageUtils::getListChunkIdx(nodeID.offset)];
             if (!listsUpdatesPerNode.contains(nodeID.offset)) {
                 listsUpdatesPerNode.emplace(
-                    nodeID.offset, make_unique<ListsUpdatesForNodeOffset>(relTableSchema));
+                    nodeID.offset, std::make_unique<ListsUpdatesForNodeOffset>(relTableSchema));
             }
             listsUpdatesPerNode.at(nodeID.offset)->isNewlyAddedNode = true;
         }
     }
 }
 
-void ListsUpdatesStore::initInsertedRels() {
-    auto factorizedTableSchema = make_unique<FactorizedTableSchema>();
+void ListsUpdatesStore::initInsertedRelsAndListsUpdates() {
+    auto factorizedTableSchema = std::make_unique<FactorizedTableSchema>();
     // The first two columns of factorizedTable are for srcNodeID and dstNodeID.
-    factorizedTableSchema->appendColumn(
-        make_unique<ColumnSchema>(false /* isUnflat */, 0 /* dataChunkPos */, sizeof(nodeID_t)));
-    factorizedTableSchema->appendColumn(
-        make_unique<ColumnSchema>(false /* isUnflat */, 0 /* dataChunkPos */, sizeof(nodeID_t)));
+    factorizedTableSchema->appendColumn(std::make_unique<ColumnSchema>(
+        false /* isUnflat */, 0 /* dataChunkPos */, sizeof(nodeID_t)));
+    factorizedTableSchema->appendColumn(std::make_unique<ColumnSchema>(
+        false /* isUnflat */, 0 /* dataChunkPos */, sizeof(nodeID_t)));
     for (auto& relProperty : relTableSchema.properties) {
         auto numBytesForProperty =
             relProperty.propertyID == RelTableSchema::INTERNAL_REL_ID_PROPERTY_IDX ?
@@ -292,17 +294,17 @@ void ListsUpdatesStore::initInsertedRels() {
                 Types::getDataTypeSize(relProperty.dataType);
         propertyIDToColIdxMap.emplace(
             relProperty.propertyID, factorizedTableSchema->getNumColumns());
-        factorizedTableSchema->appendColumn(make_unique<ColumnSchema>(
+        factorizedTableSchema->appendColumn(std::make_unique<ColumnSchema>(
             false /* isUnflat */, 0 /* dataChunkPos */, numBytesForProperty));
         // Note: we create one factorizedTable to store the updated properties for each property.
-        auto updatedRelsSchema = make_unique<FactorizedTableSchema>();
-        updatedRelsSchema->appendColumn(make_unique<ColumnSchema>(
+        auto updatedRelsSchema = std::make_unique<FactorizedTableSchema>();
+        updatedRelsSchema->appendColumn(std::make_unique<ColumnSchema>(
             false /* isUnflat */, 0 /* dataChunkPos */, numBytesForProperty));
         listsUpdates.emplace(relProperty.propertyID,
-            make_unique<FactorizedTable>(&memoryManager, std::move(updatedRelsSchema)));
+            std::make_unique<FactorizedTable>(&memoryManager, std::move(updatedRelsSchema)));
     }
     ftOfInsertedRels =
-        make_unique<FactorizedTable>(&memoryManager, std::move(factorizedTableSchema));
+        std::make_unique<FactorizedTable>(&memoryManager, std::move(factorizedTableSchema));
 }
 
 ft_col_idx_t ListsUpdatesStore::getColIdxInFT(ListFileID& listFileID) const {
@@ -315,29 +317,20 @@ ft_col_idx_t ListsUpdatesStore::getColIdxInFT(ListFileID& listFileID) const {
 }
 
 void ListsUpdatesStore::initListsUpdatesPerTablePerDirection() {
-    listsUpdatesPerTablePerDirection.clear();
+    listsUpdatesPerDirection.clear();
     for (auto direction : REL_DIRECTIONS) {
-        listsUpdatesPerTablePerDirection.emplace_back();
-        auto boundTableIDs = direction == RelDirection::FWD ?
-                                 relTableSchema.getUniqueSrcTableIDs() :
-                                 relTableSchema.getUniqueDstTableIDs();
-        if (relTableSchema.isStoredAsLists(direction)) {
-            for (auto boundTableID : boundTableIDs) {
-                listsUpdatesPerTablePerDirection[direction].emplace(
-                    boundTableID, ListsUpdatesPerChunk{});
-            }
-        }
+        listsUpdatesPerDirection.emplace_back();
     }
 }
 
 ListsUpdatesForNodeOffset* ListsUpdatesStore::getOrCreateListsUpdatesForNodeOffset(
     RelDirection relDirection, nodeID_t nodeID) {
     auto nodeOffset = nodeID.offset;
-    auto& listsUpdatesPerNodeOffset = listsUpdatesPerTablePerDirection[relDirection].at(
-        nodeID.tableID)[StorageUtils::getListChunkIdx(nodeOffset)];
+    auto& listsUpdatesPerNodeOffset =
+        listsUpdatesPerDirection[relDirection][StorageUtils::getListChunkIdx(nodeOffset)];
     if (!listsUpdatesPerNodeOffset.contains(nodeOffset)) {
         listsUpdatesPerNodeOffset.emplace(
-            nodeOffset, make_unique<ListsUpdatesForNodeOffset>(relTableSchema));
+            nodeOffset, std::make_unique<ListsUpdatesForNodeOffset>(relTableSchema));
     }
     return listsUpdatesPerNodeOffset.at(nodeOffset).get();
 }
@@ -345,8 +338,7 @@ ListsUpdatesForNodeOffset* ListsUpdatesStore::getOrCreateListsUpdatesForNodeOffs
 ListsUpdatesForNodeOffset* ListsUpdatesStore::getListsUpdatesForNodeOffsetIfExists(
     ListFileID& listFileID, offset_t nodeOffset) const {
     auto relNodeTableAndDir = getRelNodeTableAndDirFromListFileID(listFileID);
-    auto& listsUpdatesPerChunk = listsUpdatesPerTablePerDirection[relNodeTableAndDir.dir].at(
-        relNodeTableAndDir.srcNodeTableID);
+    auto& listsUpdatesPerChunk = listsUpdatesPerDirection[relNodeTableAndDir.dir];
     auto chunkIdx = StorageUtils::getListChunkIdx(nodeOffset);
     if (!listsUpdatesPerChunk.contains(chunkIdx) ||
         !listsUpdatesPerChunk.at(chunkIdx).contains(nodeOffset)) {

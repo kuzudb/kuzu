@@ -1,5 +1,6 @@
 #pragma once
 
+#include "flatten_resolver.h"
 #include "logical_update.h"
 
 namespace kuzu {
@@ -7,40 +8,63 @@ namespace planner {
 
 class LogicalCreateNode : public LogicalUpdateNode {
 public:
-    LogicalCreateNode(vector<shared_ptr<NodeExpression>> nodes, expression_vector primaryKeys,
-        shared_ptr<LogicalOperator> child)
+    LogicalCreateNode(std::vector<std::shared_ptr<binder::NodeExpression>> nodes,
+        binder::expression_vector primaryKeys, std::shared_ptr<LogicalOperator> child)
         : LogicalUpdateNode{LogicalOperatorType::CREATE_NODE, std::move(nodes), std::move(child)},
           primaryKeys{std::move(primaryKeys)} {}
     ~LogicalCreateNode() override = default;
 
-    void computeSchema() override;
+    void computeFactorizedSchema() override;
+    void computeFlatSchema() override;
 
-    inline shared_ptr<Expression> getPrimaryKey(size_t idx) const { return primaryKeys[idx]; }
+    inline f_group_pos_set getGroupsPosToFlatten() {
+        // Flatten all inputs. E.g. MATCH (a) CREATE (b). We need to create b for each tuple in the
+        // match clause. This is to simplify operator implementation.
+        auto childSchema = children[0]->getSchema();
+        return factorization::FlattenAll::getGroupsPosToFlatten(
+            childSchema->getGroupsPosInScope(), childSchema);
+    }
 
-    inline unique_ptr<LogicalOperator> copy() override {
+    inline std::shared_ptr<binder::Expression> getPrimaryKey(size_t idx) const {
+        return primaryKeys[idx];
+    }
+
+    inline std::unique_ptr<LogicalOperator> copy() override {
         return make_unique<LogicalCreateNode>(nodes, primaryKeys, children[0]->copy());
     }
 
 private:
-    expression_vector primaryKeys;
+    binder::expression_vector primaryKeys;
 };
 
 class LogicalCreateRel : public LogicalUpdateRel {
 public:
-    LogicalCreateRel(vector<shared_ptr<RelExpression>> rels,
-        vector<vector<expression_pair>> setItemsPerRel, shared_ptr<LogicalOperator> child)
+    LogicalCreateRel(std::vector<std::shared_ptr<binder::RelExpression>> rels,
+        std::vector<std::vector<binder::expression_pair>> setItemsPerRel,
+        std::shared_ptr<LogicalOperator> child)
         : LogicalUpdateRel{LogicalOperatorType::CREATE_REL, std::move(rels), std::move(child)},
           setItemsPerRel{std::move(setItemsPerRel)} {}
     ~LogicalCreateRel() override = default;
 
-    inline vector<expression_pair> getSetItems(uint32_t idx) const { return setItemsPerRel[idx]; }
+    inline void computeFactorizedSchema() override { copyChildSchema(0); }
+    inline void computeFlatSchema() override { copyChildSchema(0); }
 
-    inline unique_ptr<LogicalOperator> copy() override {
+    inline f_group_pos_set getGroupsPosToFlatten() {
+        auto childSchema = children[0]->getSchema();
+        return factorization::FlattenAll::getGroupsPosToFlatten(
+            childSchema->getGroupsPosInScope(), childSchema);
+    }
+
+    inline std::vector<binder::expression_pair> getSetItems(uint32_t idx) const {
+        return setItemsPerRel[idx];
+    }
+
+    inline std::unique_ptr<LogicalOperator> copy() override {
         return make_unique<LogicalCreateRel>(rels, setItemsPerRel, children[0]->copy());
     }
 
 private:
-    vector<vector<expression_pair>> setItemsPerRel;
+    std::vector<std::vector<binder::expression_pair>> setItemsPerRel;
 };
 
 } // namespace planner

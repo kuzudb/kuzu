@@ -3,21 +3,23 @@
 #include "binder/expression_binder.h"
 #include "parser/expression/parsed_case_expression.h"
 
+using namespace kuzu::parser;
+
 namespace kuzu {
 namespace binder {
 
-shared_ptr<Expression> ExpressionBinder::bindCaseExpression(
+std::shared_ptr<Expression> ExpressionBinder::bindCaseExpression(
     const ParsedExpression& parsedExpression) {
     auto& parsedCaseExpression = (ParsedCaseExpression&)parsedExpression;
     auto anchorCaseAlternative = parsedCaseExpression.getCaseAlternative(0);
     auto outDataType = bindExpression(*anchorCaseAlternative->thenExpression)->dataType;
     auto name = binder->getUniqueExpressionName(parsedExpression.getRawName());
     // bind ELSE ...
-    shared_ptr<Expression> elseExpression;
+    std::shared_ptr<Expression> elseExpression;
     if (parsedCaseExpression.hasElseExpression()) {
         elseExpression = bindExpression(*parsedCaseExpression.getElseExpression());
     } else {
-        elseExpression = bindNullLiteralExpression();
+        elseExpression = createNullLiteralExpression();
     }
     elseExpression = implicitCastIfNecessary(elseExpression, outDataType);
     auto boundCaseExpression =
@@ -31,7 +33,7 @@ shared_ptr<Expression> ExpressionBinder::bindCaseExpression(
             boundWhen = implicitCastIfNecessary(boundWhen, boundCase->dataType);
             // rewrite "CASE a.age WHEN 1" as "CASE WHEN a.age = 1"
             boundWhen = bindComparisonExpression(
-                EQUALS, vector<shared_ptr<Expression>>{boundCase, boundWhen});
+                common::EQUALS, std::vector<std::shared_ptr<Expression>>{boundCase, boundWhen});
             auto boundThen = bindExpression(*caseAlternative->thenExpression);
             boundThen = implicitCastIfNecessary(boundThen, outDataType);
             boundCaseExpression->addCaseAlternative(boundWhen, boundThen);
@@ -40,7 +42,7 @@ shared_ptr<Expression> ExpressionBinder::bindCaseExpression(
         for (auto i = 0u; i < parsedCaseExpression.getNumCaseAlternative(); ++i) {
             auto caseAlternative = parsedCaseExpression.getCaseAlternative(i);
             auto boundWhen = bindExpression(*caseAlternative->whenExpression);
-            boundWhen = implicitCastIfNecessary(boundWhen, BOOL);
+            boundWhen = implicitCastIfNecessary(boundWhen, common::BOOL);
             auto boundThen = bindExpression(*caseAlternative->thenExpression);
             boundThen = implicitCastIfNecessary(boundThen, outDataType);
             boundCaseExpression->addCaseAlternative(boundWhen, boundThen);

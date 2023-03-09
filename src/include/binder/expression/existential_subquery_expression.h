@@ -8,26 +8,29 @@ namespace binder {
 
 class ExistentialSubqueryExpression : public Expression {
 public:
-    ExistentialSubqueryExpression(
-        unique_ptr<QueryGraphCollection> queryGraphCollection, const string& name)
-        : Expression{EXISTENTIAL_SUBQUERY, BOOL, name}, queryGraphCollection{
-                                                            std::move(queryGraphCollection)} {}
+    ExistentialSubqueryExpression(std::unique_ptr<QueryGraphCollection> queryGraphCollection,
+        std::string uniqueName, std::string rawName)
+        : Expression{common::EXISTENTIAL_SUBQUERY, common::BOOL, std::move(uniqueName)},
+          queryGraphCollection{std::move(queryGraphCollection)}, rawName{std::move(rawName)} {}
 
     inline QueryGraphCollection* getQueryGraphCollection() const {
         return queryGraphCollection.get();
     }
 
-    inline void setWhereExpression(shared_ptr<Expression> expression) {
+    inline void setWhereExpression(std::shared_ptr<Expression> expression) {
         whereExpression = std::move(expression);
     }
     inline bool hasWhereExpression() const { return whereExpression != nullptr; }
-    inline shared_ptr<Expression> getWhereExpression() const { return whereExpression; }
+    inline std::shared_ptr<Expression> getWhereExpression() const { return whereExpression; }
 
     expression_vector getChildren() const override;
 
+    std::string toString() const override { return rawName; }
+
 private:
-    unique_ptr<QueryGraphCollection> queryGraphCollection;
-    shared_ptr<Expression> whereExpression;
+    std::unique_ptr<QueryGraphCollection> queryGraphCollection;
+    std::shared_ptr<Expression> whereExpression;
+    std::string rawName;
 };
 
 } // namespace binder

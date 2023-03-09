@@ -9,7 +9,7 @@ namespace processor {
 
 class PhysicalPlan {
 public:
-    explicit PhysicalPlan(unique_ptr<PhysicalOperator> lastOperator)
+    explicit PhysicalPlan(std::unique_ptr<PhysicalOperator> lastOperator)
         : lastOperator{std::move(lastOperator)} {}
 
     inline bool isCopy() const {
@@ -18,17 +18,17 @@ public:
     }
 
 public:
-    unique_ptr<PhysicalOperator> lastOperator;
+    std::unique_ptr<PhysicalOperator> lastOperator;
 };
 
 class PhysicalPlanUtil {
 public:
-    static vector<PhysicalOperator*> collectOperators(
+    static std::vector<PhysicalOperator*> collectOperators(
         PhysicalOperator* root, PhysicalOperatorType operatorType);
 
 private:
-    static void collectOperatorsRecursive(
-        PhysicalOperator* op, PhysicalOperatorType operatorType, vector<PhysicalOperator*>& result);
+    static void collectOperatorsRecursive(PhysicalOperator* op, PhysicalOperatorType operatorType,
+        std::vector<PhysicalOperator*>& result);
 };
 
 } // namespace processor

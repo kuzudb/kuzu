@@ -14,13 +14,13 @@ public:
     BoundSingleQuery() = default;
     ~BoundSingleQuery() = default;
 
-    inline void addQueryPart(unique_ptr<BoundQueryPart> queryPart) {
+    inline void addQueryPart(std::unique_ptr<BoundQueryPart> queryPart) {
         queryParts.push_back(std::move(queryPart));
     }
     inline uint32_t getNumQueryParts() const { return queryParts.size(); }
     inline BoundQueryPart* getQueryPart(uint32_t idx) const { return queryParts[idx].get(); }
 
-    inline void addReadingClause(unique_ptr<BoundReadingClause> readingClause) {
+    inline void addReadingClause(std::unique_ptr<BoundReadingClause> readingClause) {
         readingClauses.push_back(std::move(readingClause));
     }
     inline uint32_t getNumReadingClauses() const { return readingClauses.size(); }
@@ -28,7 +28,7 @@ public:
         return readingClauses[idx].get();
     }
 
-    inline void addUpdatingClause(unique_ptr<BoundUpdatingClause> updatingClause) {
+    inline void addUpdatingClause(std::unique_ptr<BoundUpdatingClause> updatingClause) {
         updatingClauses.push_back(std::move(updatingClause));
     }
     inline uint32_t getNumUpdatingClauses() const { return updatingClauses.size(); }
@@ -36,7 +36,7 @@ public:
         return updatingClauses[idx].get();
     }
 
-    inline void setReturnClause(unique_ptr<BoundReturnClause> boundReturnClause) {
+    inline void setReturnClause(std::unique_ptr<BoundReturnClause> boundReturnClause) {
         returnClause = std::move(boundReturnClause);
     }
     inline bool hasReturnClause() const { return returnClause != nullptr; }
@@ -48,10 +48,10 @@ public:
     }
 
 private:
-    vector<unique_ptr<BoundQueryPart>> queryParts;
-    vector<unique_ptr<BoundReadingClause>> readingClauses;
-    vector<unique_ptr<BoundUpdatingClause>> updatingClauses;
-    unique_ptr<BoundReturnClause> returnClause;
+    std::vector<std::unique_ptr<BoundQueryPart>> queryParts;
+    std::vector<std::unique_ptr<BoundReadingClause>> readingClauses;
+    std::vector<std::unique_ptr<BoundUpdatingClause>> updatingClauses;
+    std::unique_ptr<BoundReturnClause> returnClause;
 };
 
 } // namespace binder

@@ -76,13 +76,13 @@ def test_to_df(establish_connection):
     conn.set_max_threads_for_exec(4)
     _test_to_df(conn)
 
-    db.set_logging_level(kuzu.loggingLevel.debug)
+    db.set_logging_level("debug")
     _test_to_df(conn)
 
-    db.set_logging_level(kuzu.loggingLevel.info)
+    db.set_logging_level("info")
     _test_to_df(conn)
 
-    db.set_logging_level(kuzu.loggingLevel.err)
+    db.set_logging_level("err")
     _test_to_df(conn)
 
 

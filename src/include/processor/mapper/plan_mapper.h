@@ -9,9 +9,6 @@
 #include "storage/storage_manager.h"
 #include "storage/store/nodes_statistics_and_deleted_ids.h"
 
-using namespace kuzu::storage;
-using namespace kuzu::planner;
-
 namespace kuzu {
 namespace processor {
 
@@ -20,88 +17,120 @@ struct BuildDataInfo;
 class PlanMapper {
 public:
     // Create plan mapper with default mapper context.
-    PlanMapper(StorageManager& storageManager, MemoryManager* memoryManager, Catalog* catalog)
+    PlanMapper(storage::StorageManager& storageManager, storage::MemoryManager* memoryManager,
+        catalog::Catalog* catalog)
         : storageManager{storageManager}, memoryManager{memoryManager},
           expressionMapper{}, catalog{catalog}, physicalOperatorID{0} {}
 
-    unique_ptr<PhysicalPlan> mapLogicalPlanToPhysical(LogicalPlan* logicalPlan,
-        const expression_vector& expressionsToCollect, common::StatementType statementType);
+    std::unique_ptr<PhysicalPlan> mapLogicalPlanToPhysical(planner::LogicalPlan* logicalPlan,
+        const binder::expression_vector& expressionsToCollect, common::StatementType statementType);
 
 private:
-    unique_ptr<PhysicalOperator> mapLogicalOperatorToPhysical(
-        const shared_ptr<LogicalOperator>& logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapLogicalOperatorToPhysical(
+        const std::shared_ptr<planner::LogicalOperator>& logicalOperator);
 
-    unique_ptr<PhysicalOperator> mapLogicalScanNodeToPhysical(LogicalOperator* logicalOperator);
-    unique_ptr<PhysicalOperator> mapLogicalIndexScanNodeToPhysical(
-        LogicalOperator* logicalOperator);
-    unique_ptr<PhysicalOperator> mapLogicalUnwindToPhysical(LogicalOperator* logicalOperator);
-    unique_ptr<PhysicalOperator> mapLogicalExtendToPhysical(LogicalOperator* logicalOperator);
-    unique_ptr<PhysicalOperator> mapLogicalFlattenToPhysical(LogicalOperator* logicalOperator);
-    unique_ptr<PhysicalOperator> mapLogicalFilterToPhysical(LogicalOperator* logicalOperator);
-    unique_ptr<PhysicalOperator> mapLogicalProjectionToPhysical(LogicalOperator* logicalOperator);
-    unique_ptr<PhysicalOperator> mapLogicalScanNodePropertyToPhysical(
-        LogicalOperator* logicalOperator);
-    unique_ptr<PhysicalOperator> mapLogicalSemiMaskerToPhysical(LogicalOperator* logicalOperator);
-    unique_ptr<PhysicalOperator> mapLogicalHashJoinToPhysical(LogicalOperator* logicalOperator);
-    unique_ptr<PhysicalOperator> mapLogicalIntersectToPhysical(LogicalOperator* logicalOperator);
-    unique_ptr<PhysicalOperator> mapLogicalCrossProductToPhysical(LogicalOperator* logicalOperator);
-    unique_ptr<PhysicalOperator> mapLogicalMultiplicityReducerToPhysical(
-        LogicalOperator* logicalOperator);
-    unique_ptr<PhysicalOperator> mapLogicalSkipToPhysical(LogicalOperator* logicalOperator);
-    unique_ptr<PhysicalOperator> mapLogicalLimitToPhysical(LogicalOperator* logicalOperator);
-    unique_ptr<PhysicalOperator> mapLogicalAggregateToPhysical(LogicalOperator* logicalOperator);
-    unique_ptr<PhysicalOperator> mapLogicalDistinctToPhysical(LogicalOperator* logicalOperator);
-    unique_ptr<PhysicalOperator> mapLogicalOrderByToPhysical(LogicalOperator* logicalOperator);
-    unique_ptr<PhysicalOperator> mapLogicalUnionAllToPhysical(LogicalOperator* logicalOperator);
-    unique_ptr<PhysicalOperator> mapLogicalAccumulateToPhysical(LogicalOperator* logicalOperator);
-    unique_ptr<PhysicalOperator> mapLogicalExpressionsScanToPhysical(
-        LogicalOperator* logicalOperator);
-    unique_ptr<PhysicalOperator> mapLogicalFTableScanToPhysical(LogicalOperator* logicalOperator);
-    unique_ptr<PhysicalOperator> mapLogicalCreateNodeToPhysical(LogicalOperator* logicalOperator);
-    unique_ptr<PhysicalOperator> mapLogicalCreateRelToPhysical(LogicalOperator* logicalOperator);
-    unique_ptr<PhysicalOperator> mapLogicalSetNodePropertyToPhysical(
-        LogicalOperator* logicalOperator);
-    unique_ptr<PhysicalOperator> mapLogicalSetRelPropertyToPhysical(
-        LogicalOperator* logicalOperator);
-    unique_ptr<PhysicalOperator> mapLogicalDeleteNodeToPhysical(LogicalOperator* logicalOperator);
-    unique_ptr<PhysicalOperator> mapLogicalDeleteRelToPhysical(LogicalOperator* logicalOperator);
-    unique_ptr<PhysicalOperator> mapLogicalCreateNodeTableToPhysical(
-        LogicalOperator* logicalOperator);
-    unique_ptr<PhysicalOperator> mapLogicalCreateRelTableToPhysical(
-        LogicalOperator* logicalOperator);
-    unique_ptr<PhysicalOperator> mapLogicalCopyToPhysical(LogicalOperator* logicalOperator);
-    unique_ptr<PhysicalOperator> mapLogicalDropTableToPhysical(LogicalOperator* logicalOperator);
-    unique_ptr<PhysicalOperator> mapLogicalRenameTableToPhysical(LogicalOperator* logicalOperator);
-    unique_ptr<PhysicalOperator> mapLogicalAddPropertyToPhysical(LogicalOperator* logicalOperator);
-    unique_ptr<PhysicalOperator> mapLogicalDropPropertyToPhysical(LogicalOperator* logicalOperator);
-    unique_ptr<PhysicalOperator> mapLogicalRenamePropertyToPhysical(
-        LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapLogicalScanNodeToPhysical(
+        planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapLogicalIndexScanNodeToPhysical(
+        planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapLogicalUnwindToPhysical(
+        planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapLogicalExtendToPhysical(
+        planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapLogicalFlattenToPhysical(
+        planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapLogicalFilterToPhysical(
+        planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapLogicalProjectionToPhysical(
+        planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapLogicalScanNodePropertyToPhysical(
+        planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapLogicalSemiMaskerToPhysical(
+        planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapLogicalHashJoinToPhysical(
+        planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapLogicalIntersectToPhysical(
+        planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapLogicalCrossProductToPhysical(
+        planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapLogicalMultiplicityReducerToPhysical(
+        planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapLogicalSkipToPhysical(
+        planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapLogicalLimitToPhysical(
+        planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapLogicalAggregateToPhysical(
+        planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapLogicalDistinctToPhysical(
+        planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapLogicalOrderByToPhysical(
+        planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapLogicalUnionAllToPhysical(
+        planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapLogicalAccumulateToPhysical(
+        planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapLogicalExpressionsScanToPhysical(
+        planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapLogicalFTableScanToPhysical(
+        planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapLogicalCreateNodeToPhysical(
+        planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapLogicalCreateRelToPhysical(
+        planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapLogicalSetNodePropertyToPhysical(
+        planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapLogicalSetRelPropertyToPhysical(
+        planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapLogicalDeleteNodeToPhysical(
+        planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapLogicalDeleteRelToPhysical(
+        planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapLogicalCreateNodeTableToPhysical(
+        planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapLogicalCreateRelTableToPhysical(
+        planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapLogicalCopyToPhysical(
+        planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapLogicalDropTableToPhysical(
+        planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapLogicalRenameTableToPhysical(
+        planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapLogicalAddPropertyToPhysical(
+        planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapLogicalDropPropertyToPhysical(
+        planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapLogicalRenamePropertyToPhysical(
+        planner::LogicalOperator* logicalOperator);
 
-    unique_ptr<ResultCollector> appendResultCollector(const expression_vector& expressionsToCollect,
-        const Schema& schema, unique_ptr<PhysicalOperator> prevOperator);
+    std::unique_ptr<ResultCollector> appendResultCollector(
+        const binder::expression_vector& expressionsToCollect, const planner::Schema& schema,
+        std::unique_ptr<PhysicalOperator> prevOperator);
 
     inline uint32_t getOperatorID() { return physicalOperatorID++; }
 
-    unique_ptr<PhysicalOperator> createHashAggregate(
-        vector<unique_ptr<AggregateFunction>> aggregateFunctions,
-        vector<DataPos> inputAggVectorsPos, vector<DataPos> outputAggVectorsPos,
-        vector<DataType> outputAggVectorsDataType, const expression_vector& groupByExpressions,
-        unique_ptr<PhysicalOperator> prevOperator, const Schema& inSchema, const Schema& outSchema,
-        const string& paramsString);
+    std::unique_ptr<PhysicalOperator> createHashAggregate(
+        std::vector<std::unique_ptr<function::AggregateFunction>> aggregateFunctions,
+        std::vector<DataPos> inputAggVectorsPos, std::vector<DataPos> outputAggVectorsPos,
+        std::vector<common::DataType> outputAggVectorsDataType,
+        const binder::expression_vector& groupByExpressions,
+        std::unique_ptr<PhysicalOperator> prevOperator, const planner::Schema& inSchema,
+        const planner::Schema& outSchema, const std::string& paramsString);
 
-    void appendGroupByExpressions(const expression_vector& groupByExpressions,
-        vector<DataPos>& inputGroupByHashKeyVectorsPos, vector<DataPos>& outputGroupByKeyVectorsPos,
-        vector<DataType>& outputGroupByKeyVectorsDataTypes, const Schema& inSchema,
-        const Schema& outSchema, vector<bool>& isInputGroupByHashKeyVectorFlat);
+    void appendGroupByExpressions(const binder::expression_vector& groupByExpressions,
+        std::vector<DataPos>& inputGroupByHashKeyVectorsPos,
+        std::vector<DataPos>& outputGroupByKeyVectorsPos,
+        std::vector<common::DataType>& outputGroupByKeyVectorsDataTypes,
+        const planner::Schema& inSchema, const planner::Schema& outSchema,
+        std::vector<bool>& isInputGroupByHashKeyVectorFlat);
 
-    static BuildDataInfo generateBuildDataInfo(const Schema& buildSideSchema,
-        const expression_vector& keys, const expression_vector& payloads);
+    static BuildDataInfo generateBuildDataInfo(const planner::Schema& buildSideSchema,
+        const binder::expression_vector& keys, const binder::expression_vector& payloads);
 
 public:
-    StorageManager& storageManager;
-    MemoryManager* memoryManager;
+    storage::StorageManager& storageManager;
+    storage::MemoryManager* memoryManager;
     ExpressionMapper expressionMapper;
-    Catalog* catalog;
+    catalog::Catalog* catalog;
 
 private:
     uint32_t physicalOperatorID;

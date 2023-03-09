@@ -1,5 +1,7 @@
 #include "processor/operator/update/create.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace processor {
 
@@ -24,7 +26,7 @@ bool CreateNode::getNextTuplesInternal() {
         auto vector = outValueVectors[i];
         nodeID_t nodeID{nodeOffset, nodeTable->getTableID()};
         vector->setValue(vector->state->selVector->selectedPositions[0], nodeID);
-        for (auto& relTable : createNodeInfos[i]->relTablesToInit) {
+        for (auto& relTable : createNodeInfo->relTablesToInit) {
             relTable->initEmptyRelsForNewNode(nodeID);
         }
     }
@@ -33,12 +35,14 @@ bool CreateNode::getNextTuplesInternal() {
 
 void CreateRel::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     for (auto& createRelInfo : createRelInfos) {
-        auto createRelVectors = make_unique<CreateRelVectors>();
-        createRelVectors->srcNodeIDVector = resultSet->getValueVector(createRelInfo->srcNodePos);
-        createRelVectors->dstNodeIDVector = resultSet->getValueVector(createRelInfo->dstNodePos);
+        auto createRelVectors = std::make_unique<CreateRelVectors>();
+        createRelVectors->srcNodeIDVector =
+            resultSet->getValueVector(createRelInfo->srcNodePos).get();
+        createRelVectors->dstNodeIDVector =
+            resultSet->getValueVector(createRelInfo->dstNodePos).get();
         for (auto& evaluator : createRelInfo->evaluators) {
             evaluator->init(*resultSet, context->memoryManager);
-            createRelVectors->propertyVectors.push_back(evaluator->resultVector);
+            createRelVectors->propertyVectors.push_back(evaluator->resultVector.get());
         }
         createRelVectorsPerRel.push_back(std::move(createRelVectors));
     }
@@ -68,7 +72,6 @@ bool CreateRel::getNextTuplesInternal() {
         createRelInfo->table->insertRel(createRelVectors->srcNodeIDVector,
             createRelVectors->dstNodeIDVector, createRelVectors->propertyVectors);
         relsStatistics.updateNumRelsByValue(createRelInfo->table->getRelTableID(),
-            createRelInfo->srcNodeTableID, createRelInfo->dstNodeTableID,
             1 /* increment numRelsPerDirectionBoundTable by 1 */);
     }
     return true;

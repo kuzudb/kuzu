@@ -1,11 +1,14 @@
 #include "graph_test/graph_test.h"
 
 using ::testing::Test;
+using namespace kuzu::common;
 using namespace kuzu::testing;
 
 class TinySnbExceptionTest : public DBTest {
 public:
-    string getInputDir() override { return TestHelper::appendKuzuRootPath("dataset/tinysnb/"); }
+    std::string getInputDir() override {
+        return TestHelper::appendKuzuRootPath("dataset/tinysnb/");
+    }
 };
 
 TEST_F(TinySnbExceptionTest, ReadVarlengthRelPropertyTest1) {
@@ -51,7 +54,7 @@ TEST_F(TinySnbExceptionTest, InsertNodeWithExistedPKError2) {
 
 TEST_F(TinySnbExceptionTest, InsertNodeWithNullPK) {
     auto result = conn->query("CREATE (a:person {ID:NULL, fName:'Guodong'});");
-    string expectedErrorMsg = "Runtime exception: Null is not allowed as a primary key value.";
+    std::string expectedErrorMsg = "Runtime exception: Null is not allowed as a primary key value.";
     ASSERT_STREQ(expectedErrorMsg.c_str(), result->getErrorMessage().c_str());
 }
 
@@ -137,7 +140,8 @@ TEST_F(TinySnbExceptionTest, CastStrToIntervalError) {
 TEST_F(TinySnbExceptionTest, SetListPropertyError) {
     auto result = conn->query("MATCH (a:person) SET a.workedHours=['A', 'B']");
     ASSERT_STREQ(result->getErrorMessage().c_str(),
-        "Binder exception: Expression ['A', 'B'] has data type STRING[] but expect INT64[]. "
+        "Binder exception: Expression LIST_CREATION(A,B) has data type STRING[] but expect "
+        "INT64[]. "
         "Implicit cast is not supported.");
 }
 
@@ -145,7 +149,7 @@ TEST_F(TinySnbExceptionTest, ListFunctionMatchError1) {
     auto result = conn->query("MATCH (a:person) RETURN array_concat(a.workedHours, a.age)");
     ASSERT_STREQ(result->getErrorMessage().c_str(),
         "Binder exception: Cannot match a built-in function for given function "
-        "ARRAY_CONCAT(LIST,INT64). Supported inputs are\n(LIST,LIST) -> LIST\n");
+        "ARRAY_CONCAT(VAR_LIST,INT64). Supported inputs are\n(VAR_LIST,VAR_LIST) -> VAR_LIST\n");
 }
 
 TEST_F(TinySnbExceptionTest, ListFunctionMatchError2) {
@@ -170,11 +174,11 @@ TEST_F(TinySnbExceptionTest, ParsingErrorRollbackTest) {
     conn->beginWriteTransaction();
     conn->query("create (p:person {ID: 100})");
     ASSERT_EQ(TestHelper::convertResultToString(*conn->query("MATCH (:person) RETURN count(*)")),
-        vector<string>{"9"});
+        std::vector<std::string>{"9"});
     auto result = conn->query("RETURN make_date(2011,1,32)");
     ASSERT_STREQ(result->getErrorMessage().c_str(), "Date out of range: 2011-1-32.");
     ASSERT_EQ(TestHelper::convertResultToString(*conn->query("MATCH (:person) RETURN count(*)")),
-        vector<string>{"8"});
+        std::vector<std::string>{"8"});
 }
 
 TEST_F(TinySnbExceptionTest, DivideBy0Error) {
@@ -201,14 +205,10 @@ TEST_F(TinySnbExceptionTest, ReadAfterUpdate2) {
 }
 
 TEST_F(TinySnbExceptionTest, MultiLabelUpdate) {
-    unique_ptr<QueryResult> result;
+    std::unique_ptr<QueryResult> result;
     result = conn->query("CREATE (a:person:organisation {ID:0})");
     ASSERT_STREQ(result->getErrorMessage().c_str(),
         "Binder exception: Create node a with multiple node labels is not supported.");
-    result = conn->query("CREATE (a:person {ID:0})-[e:knows|:mixed]->(b:person {ID:1})");
-    ASSERT_STREQ(result->getErrorMessage().c_str(),
-        "Binder exception: Create rel e with multiple rel labels or bound by multiple node labels "
-        "is not supported.");
     result = conn->query("MATCH (a:person), (b:person:organisation) CREATE (a)-[e:knows]->(b)");
     ASSERT_STREQ(result->getErrorMessage().c_str(),
         "Binder exception: Create rel e with multiple rel labels or bound by multiple node labels "

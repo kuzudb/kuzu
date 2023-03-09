@@ -7,13 +7,13 @@ namespace binder {
 
 class BoundDropTable : public BoundDDL {
 public:
-    explicit BoundDropTable(table_id_t tableID, string tableName)
-        : BoundDDL{StatementType::DROP_TABLE, std::move(tableName)}, tableID{tableID} {}
+    explicit BoundDropTable(common::table_id_t tableID, std::string tableName)
+        : BoundDDL{common::StatementType::DROP_TABLE, std::move(tableName)}, tableID{tableID} {}
 
-    inline table_id_t getTableID() const { return tableID; }
+    inline common::table_id_t getTableID() const { return tableID; }
 
 private:
-    table_id_t tableID;
+    common::table_id_t tableID;
 };
 
 } // namespace binder

@@ -3,14 +3,11 @@
 #include <string>
 #include <vector>
 
-#include "common/configs.h"
+#include "common/constants.h"
 #include "common/exception.h"
 #include "common/utils.h"
 #include "common/vector/value_vector.h"
 #include "processor/result/factorized_table.h"
-
-using namespace std;
-using namespace kuzu::common;
 
 namespace kuzu {
 namespace processor {
@@ -29,6 +26,8 @@ namespace processor {
     ((uint32_t)((((uint32_t)(x)&0xff000000) >> 24) | (((uint32_t)(x)&0x00ff0000) >> 8) |           \
                 (((uint32_t)(x)&0x0000ff00) << 8) | (((uint32_t)(x)&0x000000ff) << 24)))
 
+#define BSWAP16(x) ((uint16_t)((((uint16_t)(x)&0xff00) >> 8) | (((uint16_t)(x)&0x00ff) << 8)))
+
 // The OrderByKeyEncoder encodes all columns in the ORDER BY clause into a single binary sequence
 // that, when compared using memcmp will yield the correct overall sorting order. On little-endian
 // hardware, the least-significant byte is stored at the smallest address. To encode the sorting
@@ -46,17 +45,19 @@ using encode_function_t = std::function<void(const uint8_t*, uint8_t*, bool)>;
 class OrderByKeyEncoder {
 
 public:
-    OrderByKeyEncoder(vector<shared_ptr<ValueVector>>& orderByVectors, vector<bool>& isAscOrder,
-        MemoryManager* memoryManager, uint8_t ftIdx, uint32_t numTuplesPerBlockInFT,
-        uint32_t numBytesPerTuple);
+    OrderByKeyEncoder(std::vector<common::ValueVector*>& orderByVectors,
+        std::vector<bool>& isAscOrder, storage::MemoryManager* memoryManager, uint8_t ftIdx,
+        uint32_t numTuplesPerBlockInFT, uint32_t numBytesPerTuple);
 
-    inline vector<shared_ptr<DataBlock>>& getKeyBlocks() { return keyBlocks; }
+    inline std::vector<std::shared_ptr<DataBlock>>& getKeyBlocks() { return keyBlocks; }
 
     inline uint32_t getNumBytesPerTuple() const { return numBytesPerTuple; }
 
     inline uint32_t getMaxNumTuplesPerBlock() const { return maxNumTuplesPerBlock; }
 
     inline uint32_t getNumTuplesInCurBlock() const { return keyBlocks.back()->numTuples; }
+
+    static uint32_t getNumBytesPerTuple(const std::vector<common::ValueVector*>& keyVectors);
 
     static inline uint32_t getEncodedFTBlockIdx(const uint8_t* tupleInfoPtr) {
         return *(uint32_t*)tupleInfoPtr;
@@ -80,9 +81,10 @@ public:
         return *(strBuffer + 13) == (isAsc ? UINT8_MAX : 0);
     }
 
-    static uint32_t getNumBytesPerTuple(const vector<shared_ptr<ValueVector>>& keyVectors);
+    static uint32_t getNumBytesPerTuple(
+        const std::vector<std::shared_ptr<common::ValueVector>>& keyVectors);
 
-    static uint32_t getEncodingSize(const DataType& dataType);
+    static uint32_t getEncodingSize(const common::DataType& dataType);
 
     void encodeKeys();
 
@@ -102,27 +104,27 @@ private:
     static bool isLittleEndian();
 
     void flipBytesIfNecessary(
-        uint32_t keyColIdx, uint8_t* tuplePtr, uint32_t numEntriesToEncode, DataType& type);
+        uint32_t keyColIdx, uint8_t* tuplePtr, uint32_t numEntriesToEncode, common::DataType& type);
 
-    void encodeFlatVector(shared_ptr<ValueVector> vector, uint8_t* tuplePtr, uint32_t keyColIdx);
+    void encodeFlatVector(common::ValueVector* vector, uint8_t* tuplePtr, uint32_t keyColIdx);
 
-    void encodeUnflatVector(shared_ptr<ValueVector> vector, uint8_t* tuplePtr,
-        uint32_t encodedTuples, uint32_t numEntriesToEncode, uint32_t keyColIdx);
+    void encodeUnflatVector(common ::ValueVector* vector, uint8_t* tuplePtr, uint32_t encodedTuples,
+        uint32_t numEntriesToEncode, uint32_t keyColIdx);
 
-    void encodeVector(shared_ptr<ValueVector> vector, uint8_t* tuplePtr, uint32_t encodedTuples,
+    void encodeVector(common::ValueVector* vector, uint8_t* tuplePtr, uint32_t encodedTuples,
         uint32_t numEntriesToEncode, uint32_t keyColIdx);
 
     void encodeFTIdx(uint32_t numEntriesToEncode, uint8_t* tupleInfoPtr);
 
     void allocateMemoryIfFull();
 
-    static encode_function_t getEncodingFunction(DataTypeID typeId);
+    static encode_function_t getEncodingFunction(common::DataTypeID typeId);
 
 private:
-    MemoryManager* memoryManager;
-    vector<shared_ptr<DataBlock>> keyBlocks;
-    vector<shared_ptr<ValueVector>>& orderByVectors;
-    vector<bool> isAscOrder;
+    storage::MemoryManager* memoryManager;
+    std::vector<std::shared_ptr<DataBlock>> keyBlocks;
+    std::vector<common::ValueVector*>& orderByVectors;
+    std::vector<bool> isAscOrder;
     uint32_t numBytesPerTuple;
     uint32_t maxNumTuplesPerBlock;
     uint32_t ftBlockIdx = 0;
@@ -135,7 +137,7 @@ private:
     uint32_t numTuplesPerBlockInFT;
     // We need to swap the encoded binary strings if we are using little endian hardware.
     bool swapBytes;
-    vector<encode_function_t> encodeFunctions;
+    std::vector<encode_function_t> encodeFunctions;
 };
 
 } // namespace processor

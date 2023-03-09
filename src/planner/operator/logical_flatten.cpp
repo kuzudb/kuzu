@@ -3,10 +3,13 @@
 namespace kuzu {
 namespace planner {
 
-void LogicalFlatten::computeSchema() {
+void LogicalFlatten::computeFactorizedSchema() {
     copyChildSchema(0);
-    auto groupPos = schema->getGroupPos(expression->getUniqueName());
     schema->flattenGroup(groupPos);
+}
+
+void LogicalFlatten::computeFlatSchema() {
+    throw common::InternalException("LogicalFlatten::computeFlatSchema() should never be used.");
 }
 
 } // namespace planner

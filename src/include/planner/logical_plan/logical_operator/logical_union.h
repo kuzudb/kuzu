@@ -7,22 +7,31 @@ namespace planner {
 
 class LogicalUnion : public LogicalOperator {
 public:
-    LogicalUnion(expression_vector expressions, vector<shared_ptr<LogicalOperator>> children)
+    LogicalUnion(binder::expression_vector expressions,
+        std::vector<std::shared_ptr<LogicalOperator>> children)
         : LogicalOperator{LogicalOperatorType::UNION_ALL, std::move(children)},
           expressionsToUnion{std::move(expressions)} {}
 
-    void computeSchema() override;
+    f_group_pos_set getGroupsPosToFlatten(uint32_t childIdx);
 
-    inline string getExpressionsForPrinting() const override { return string(); }
+    void computeFactorizedSchema() override;
+    void computeFlatSchema() override;
 
-    inline expression_vector getExpressionsToUnion() { return expressionsToUnion; }
+    inline std::string getExpressionsForPrinting() const override { return std::string{}; }
+
+    inline binder::expression_vector getExpressionsToUnion() { return expressionsToUnion; }
 
     inline Schema* getSchemaBeforeUnion(uint32_t idx) { return children[idx]->getSchema(); }
 
-    unique_ptr<LogicalOperator> copy() override;
+    std::unique_ptr<LogicalOperator> copy() override;
 
 private:
-    expression_vector expressionsToUnion;
+    // If an expression to union has different flat/unflat state in different child, we
+    // need to flatten that expression in all the single queries.
+    bool requireFlatExpression(uint32_t expressionIdx);
+
+private:
+    binder::expression_vector expressionsToUnion;
 };
 
 } // namespace planner

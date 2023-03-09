@@ -2,22 +2,27 @@
 #include "graph_test/graph_test.h"
 
 using namespace kuzu::catalog;
+using namespace kuzu::common;
 
 class CatalogTest : public testing::Test {
 public:
-    const string CATALOG_TEMP_DIRECTORY =
+    const std::string CATALOG_TEMP_DIRECTORY =
         kuzu::testing::TestHelper::appendKuzuRootPath("test/catalog_temp");
 
     void SetUp() override {
         FileUtils::createDir(CATALOG_TEMP_DIRECTORY);
-        catalog = make_unique<Catalog>();
+        LoggerUtils::createLogger(LoggerConstants::LoggerEnum::CATALOG);
+        catalog = std::make_unique<Catalog>();
         setupCatalog();
     }
 
-    void TearDown() override { FileUtils::removeDir(CATALOG_TEMP_DIRECTORY); }
+    void TearDown() override {
+        FileUtils::removeDir(CATALOG_TEMP_DIRECTORY);
+        LoggerUtils::dropLogger(LoggerConstants::LoggerEnum::CATALOG);
+    }
 
     void setupCatalog() {
-        vector<PropertyNameDataType> personProperties;
+        std::vector<PropertyNameDataType> personProperties;
         personProperties.emplace_back("ID", INT64);
         personProperties.emplace_back("fName", STRING);
         personProperties.emplace_back("gender", INT64);
@@ -28,14 +33,17 @@ public:
         personProperties.emplace_back("birthdate", DATE);
         personProperties.emplace_back("registerTime", TIMESTAMP);
         personProperties.emplace_back("lastJobDuration", INTERVAL);
-        personProperties.emplace_back("workedHours", DataType(LIST, make_unique<DataType>(INT64)));
-        personProperties.emplace_back("usedNames", DataType(LIST, make_unique<DataType>(STRING)));
+        personProperties.emplace_back(
+            "workedHours", DataType(VAR_LIST, std::make_unique<DataType>(INT64)));
+        personProperties.emplace_back(
+            "usedNames", DataType(VAR_LIST, std::make_unique<DataType>(STRING)));
         personProperties.emplace_back("courseScoresPerTerm",
-            DataType(LIST, make_unique<DataType>(LIST, make_unique<DataType>(INT64))));
+            DataType(
+                VAR_LIST, std::make_unique<DataType>(VAR_LIST, std::make_unique<DataType>(INT64))));
         PERSON_TABLE_ID = catalog->getReadOnlyVersion()->addNodeTableSchema(
             "person", 0 /* primaryKeyIdx */, std::move(personProperties));
 
-        vector<PropertyNameDataType> knowsProperties;
+        std::vector<PropertyNameDataType> knowsProperties;
         knowsProperties.emplace_back("START_ID_TABLE", STRING);
         knowsProperties.emplace_back("START_ID", INT64);
         knowsProperties.emplace_back("END_ID_TABLE", STRING);
@@ -43,13 +51,12 @@ public:
         knowsProperties.emplace_back("date", DATE);
         knowsProperties.emplace_back("meetTime", TIMESTAMP);
         knowsProperties.emplace_back("validInterval", INTERVAL);
-        KNOWS_TABLE_ID =
-            catalog->getReadOnlyVersion()->addRelTableSchema("knows", MANY_MANY, knowsProperties,
-                vector<pair<table_id_t, table_id_t>>{{0 /* srcTableID */, 0 /* dstTableID */}});
+        KNOWS_TABLE_ID = catalog->getReadOnlyVersion()->addRelTableSchema(
+            "knows", MANY_MANY, knowsProperties, 0 /* srcTableID */, 0 /* dstTableID */);
     }
 
 public:
-    unique_ptr<Catalog> catalog;
+    std::unique_ptr<Catalog> catalog;
     table_id_t PERSON_TABLE_ID;
     table_id_t KNOWS_TABLE_ID;
 };
@@ -93,7 +100,7 @@ TEST_F(CatalogTest, AddTablesTest) {
     ASSERT_EQ(catalog->getReadOnlyVersion()
                   ->getNodeProperty(PERSON_TABLE_ID, "workedHours")
                   .dataType.typeID,
-        LIST);
+        VAR_LIST);
     ASSERT_EQ(catalog->getReadOnlyVersion()
                   ->getNodeProperty(PERSON_TABLE_ID, "workedHours")
                   .dataType.childType->typeID,
@@ -101,7 +108,7 @@ TEST_F(CatalogTest, AddTablesTest) {
     ASSERT_EQ(catalog->getReadOnlyVersion()
                   ->getNodeProperty(PERSON_TABLE_ID, "usedNames")
                   .dataType.typeID,
-        LIST);
+        VAR_LIST);
     ASSERT_EQ(catalog->getReadOnlyVersion()
                   ->getNodeProperty(PERSON_TABLE_ID, "usedNames")
                   .dataType.childType->typeID,
@@ -109,12 +116,12 @@ TEST_F(CatalogTest, AddTablesTest) {
     ASSERT_EQ(catalog->getReadOnlyVersion()
                   ->getNodeProperty(PERSON_TABLE_ID, "courseScoresPerTerm")
                   .dataType.typeID,
-        LIST);
+        VAR_LIST);
 
     ASSERT_EQ(catalog->getReadOnlyVersion()
                   ->getNodeProperty(PERSON_TABLE_ID, "courseScoresPerTerm")
                   .dataType.childType->typeID,
-        LIST);
+        VAR_LIST);
     ASSERT_EQ(catalog->getReadOnlyVersion()
                   ->getNodeProperty(PERSON_TABLE_ID, "courseScoresPerTerm")
                   .dataType.childType->childType->typeID,
@@ -132,7 +139,7 @@ TEST_F(CatalogTest, AddTablesTest) {
 
 TEST_F(CatalogTest, SaveAndReadTest) {
     catalog->getReadOnlyVersion()->saveToFile(CATALOG_TEMP_DIRECTORY, DBFileType::ORIGINAL);
-    auto newCatalog = make_unique<Catalog>();
+    auto newCatalog = std::make_unique<Catalog>();
     newCatalog->getReadOnlyVersion()->readFromFile(CATALOG_TEMP_DIRECTORY, DBFileType::ORIGINAL);
     /* primary key of person table is a column name ID, which is at idx 0 in the predefined
      * properties */

@@ -7,13 +7,11 @@
 #include <filesystem>
 #include <string>
 
-using namespace std;
-
 namespace kuzu {
 namespace common {
 
 struct FileInfo {
-    FileInfo(string path, const int fd) : path{std::move(path)}, fd{fd} {}
+    FileInfo(std::string path, const int fd) : path{std::move(path)}, fd{fd} {}
 
     ~FileInfo() {
         if (fd != -1) {
@@ -21,32 +19,33 @@ struct FileInfo {
         }
     }
 
-    const string path;
+    const std::string path;
     const int fd;
 };
 
 class FileUtils {
 public:
-    static unique_ptr<FileInfo> openFile(const string& path, int flags);
-    static void closeFile(int fd);
+    static std::unique_ptr<FileInfo> openFile(const std::string& path, int flags);
 
     static void readFromFile(
         FileInfo* fileInfo, void* buffer, uint64_t numBytes, uint64_t position);
     static void writeToFile(
         FileInfo* fileInfo, uint8_t* buffer, uint64_t numBytes, uint64_t offset);
     // This function is a no-op if either file, from or to, does not exist.
-    static void overwriteFile(const string& from, const string& to);
-    static void createDir(const string& dir);
-    static void removeDir(const string& dir);
+    static void overwriteFile(const std::string& from, const std::string& to);
+    static void createDir(const std::string& dir);
+    static void removeDir(const std::string& dir);
 
-    static inline string joinPath(const string& base, const string& part) {
-        return filesystem::path(base) / part;
+    static inline std::string joinPath(const std::string& base, const std::string& part) {
+        return std::filesystem::path(base) / part;
     }
 
-    static void renameFileIfExists(const string& oldName, const string& newName);
-    static void removeFileIfExists(const string& path);
+    static void renameFileIfExists(const std::string& oldName, const std::string& newName);
+    static void removeFileIfExists(const std::string& path);
     static void truncateFileToEmpty(FileInfo* fileInfo);
-    static inline bool fileOrPathExists(const string& path) { return filesystem::exists(path); }
+    static inline bool fileOrPathExists(const std::string& path) {
+        return std::filesystem::exists(path);
+    }
 
     static inline int64_t getFileSize(int fd) {
         struct stat s;
