@@ -145,7 +145,7 @@ private:
 class RelTable {
 public:
     RelTable(const catalog::Catalog& catalog, common::table_id_t tableID,
-        BufferManager& bufferManager, MemoryManager& memoryManager, WAL* wal);
+        MemoryManager& memoryManager, WAL* wal);
 
     void initializeData(catalog::RelTableSchema* tableSchema);
 

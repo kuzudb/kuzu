@@ -22,8 +22,9 @@ protected:
 };
 
 TEST_F(BufferManagerTests, RemoveFilePagesFromFramesTest) {
-    FileHandle fileHandle(std::string(TestHelper::getTmpTestDir()) + "bm_test.bin",
-        FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS);
+    BufferManagedFileHandle fileHandle(std::string(TestHelper::getTmpTestDir()) + "bm_test.bin",
+        FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS,
+        BufferManagedFileHandle::FileVersionedType::NON_VERSIONED_FILE);
     uint64_t numPagesToAdd = 1000;
     for (int pageIdx = 0; pageIdx < numPagesToAdd; ++pageIdx) {
         fileHandle.addNewPage();
@@ -38,15 +39,15 @@ TEST_F(BufferManagerTests, RemoveFilePagesFromFramesTest) {
     bufferManager->pinWithoutReadingFromFile(fileHandle, 999);
     for (int pageIdx = 0; pageIdx < numPagesToAdd; ++pageIdx) {
         if (pageIdx == 10 || pageIdx == 999) {
-            ASSERT_TRUE(FileHandle::isAFrame(fileHandle.getFrameIdx(pageIdx)));
+            ASSERT_TRUE(BufferManagedFileHandle::isAFrame(fileHandle.getFrameIdx(pageIdx)));
         } else {
-            ASSERT_FALSE(FileHandle::isAFrame(fileHandle.getFrameIdx(pageIdx)));
+            ASSERT_FALSE(BufferManagedFileHandle::isAFrame(fileHandle.getFrameIdx(pageIdx)));
         }
     }
     bufferManager->unpin(fileHandle, 10);
     bufferManager->unpin(fileHandle, 999);
     bufferManager->removeFilePagesFromFrames(fileHandle);
     for (int pageIdx = 0; pageIdx < numPagesToAdd; ++pageIdx) {
-        ASSERT_FALSE(FileHandle::isAFrame(fileHandle.getFrameIdx(pageIdx)));
+        ASSERT_FALSE(BufferManagedFileHandle::isAFrame(fileHandle.getFrameIdx(pageIdx)));
     }
 }

@@ -29,18 +29,21 @@ class MemoryManager {
 public:
     explicit MemoryManager(BufferManager* bm) : bm(bm) {
         // Because the memory manager only manages blocks in memory, this file should never be
-        // created, opened, or written to. It's a place holder name. We keep the name for logging
+        // created, opened, or written to. It's a place_holder name. We keep the name for logging
         // purposes.
-        fh = std::make_shared<FileHandle>(
-            "mm-place-holder-file-name", FileHandle::O_IN_MEM_TEMP_FILE);
+        fh = bm->getBufferManagedFileHandle("mm-place-holder-file-name",
+            FileHandle::O_IN_MEM_TEMP_FILE,
+            BufferManagedFileHandle::FileVersionedType::NON_VERSIONED_FILE);
     }
 
     std::unique_ptr<MemoryBlock> allocateBlock(bool initializeToZero = false);
 
     void freeBlock(common::page_idx_t pageIdx);
 
+    inline BufferManager* getBufferManager() const { return bm; }
+
 private:
-    std::shared_ptr<FileHandle> fh;
+    std::unique_ptr<BufferManagedFileHandle> fh;
     BufferManager* bm;
     std::stack<common::page_idx_t> freePages;
     std::mutex memMgrLock;

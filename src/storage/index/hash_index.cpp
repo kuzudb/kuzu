@@ -125,18 +125,20 @@ HashIndex<T>::HashIndex(const StorageStructureIDAndFName& storageStructureIDAndF
     const DataType& keyDataType, BufferManager& bufferManager, WAL* wal)
     : BaseHashIndex{keyDataType},
       storageStructureIDAndFName{storageStructureIDAndFName}, bm{bufferManager}, wal{wal} {
-    fileHandle = std::make_unique<VersionedFileHandle>(
-        storageStructureIDAndFName, FileHandle::O_PERSISTENT_FILE_NO_CREATE);
-    headerArray = std::make_unique<BaseDiskArray<HashIndexHeader>>(
-        *fileHandle, INDEX_HEADER_ARRAY_HEADER_PAGE_IDX, &bm, wal);
+    fileHandle = bufferManager.getBufferManagedFileHandle(storageStructureIDAndFName.fName,
+        FileHandle::O_PERSISTENT_FILE_NO_CREATE,
+        BufferManagedFileHandle::FileVersionedType::VERSIONED_FILE);
+    headerArray = std::make_unique<BaseDiskArray<HashIndexHeader>>(*fileHandle,
+        storageStructureIDAndFName.storageStructureID, INDEX_HEADER_ARRAY_HEADER_PAGE_IDX, &bm,
+        wal);
     // Read indexHeader from the headerArray, which contains only one element.
     indexHeader = std::make_unique<HashIndexHeader>(
         headerArray->get(INDEX_HEADER_IDX_IN_ARRAY, TransactionType::READ_ONLY));
     assert(indexHeader->keyDataTypeID == keyDataType.typeID);
-    pSlots =
-        std::make_unique<BaseDiskArray<Slot<T>>>(*fileHandle, P_SLOTS_HEADER_PAGE_IDX, &bm, wal);
-    oSlots =
-        std::make_unique<BaseDiskArray<Slot<T>>>(*fileHandle, O_SLOTS_HEADER_PAGE_IDX, &bm, wal);
+    pSlots = std::make_unique<BaseDiskArray<Slot<T>>>(*fileHandle,
+        storageStructureIDAndFName.storageStructureID, P_SLOTS_HEADER_PAGE_IDX, &bm, wal);
+    oSlots = std::make_unique<BaseDiskArray<Slot<T>>>(*fileHandle,
+        storageStructureIDAndFName.storageStructureID, O_SLOTS_HEADER_PAGE_IDX, &bm, wal);
     // Initialize functions.
     keyHashFunc = HashIndexUtils::initializeHashFunc(indexHeader->keyDataTypeID);
     keyInsertFunc = HashIndexUtils::initializeInsertFunc(indexHeader->keyDataTypeID);

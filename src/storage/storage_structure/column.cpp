@@ -61,36 +61,36 @@ void Column::writeValues(
 
 Value Column::readValue(offset_t offset) {
     auto cursor = PageUtils::getPageElementCursorForPos(offset, numElementsPerPage);
-    auto frame = bufferManager.pin(fileHandle, cursor.pageIdx);
+    auto frame = bufferManager.pin(*fileHandle, cursor.pageIdx);
     auto retVal = Value(dataType, frame + mapElementPosToByteOffset(cursor.elemPosInPage));
-    bufferManager.unpin(fileHandle, cursor.pageIdx);
+    bufferManager.unpin(*fileHandle, cursor.pageIdx);
     return retVal;
 }
 
 bool Column::isNull(offset_t nodeOffset, Transaction* transaction) {
     auto cursor = PageUtils::getPageElementCursorForPos(nodeOffset, numElementsPerPage);
     auto originalPageIdx = cursor.pageIdx;
-    fileHandle.acquirePageLock(originalPageIdx, true /* block */);
+    fileHandle->acquirePageLock(originalPageIdx, true /* block */);
     auto checkWALVersionOfPage =
-        !transaction->isReadOnly() && fileHandle.hasWALPageVersionNoPageLock(originalPageIdx);
+        !transaction->isReadOnly() && fileHandle->hasWALPageVersionNoPageLock(originalPageIdx);
     uint8_t* frame;
     page_idx_t pageIdxInWAL;
     if (checkWALVersionOfPage) {
-        pageIdxInWAL = fileHandle.getWALPageVersionNoPageLock(originalPageIdx);
+        pageIdxInWAL = fileHandle->getWALPageVersionNoPageLock(originalPageIdx);
         frame = bufferManager.pinWithoutAcquiringPageLock(
             *wal->fileHandle, pageIdxInWAL, false /* read from file */);
     } else {
         frame = bufferManager.pinWithoutAcquiringPageLock(
-            fileHandle, originalPageIdx, false /* read from file */);
+            *fileHandle, originalPageIdx, false /* read from file */);
     }
     auto nullEntries = (uint64_t*)(frame + (elementSize * numElementsPerPage));
     auto isNull = NullMask::isNull(nullEntries, cursor.elemPosInPage);
     if (checkWALVersionOfPage) {
         bufferManager.unpinWithoutAcquiringPageLock(*wal->fileHandle, pageIdxInWAL);
     } else {
-        bufferManager.unpinWithoutAcquiringPageLock(fileHandle, originalPageIdx);
+        bufferManager.unpinWithoutAcquiringPageLock(*fileHandle, originalPageIdx);
     }
-    fileHandle.releasePageLock(originalPageIdx);
+    fileHandle->releasePageLock(originalPageIdx);
     return isNull;
 }
 
@@ -98,7 +98,7 @@ void Column::setNodeOffsetToNull(offset_t nodeOffset) {
     auto updatedPageInfoAndWALPageFrame =
         beginUpdatingPageAndWriteOnlyNullBit(nodeOffset, true /* isNull */);
     StorageStructureUtils::unpinWALPageAndReleaseOriginalPageLock(
-        updatedPageInfoAndWALPageFrame, fileHandle, bufferManager, *wal);
+        updatedPageInfoAndWALPageFrame, *fileHandle, bufferManager, *wal);
 }
 
 void Column::lookup(Transaction* transaction, common::ValueVector* nodeIDVector,
@@ -116,7 +116,7 @@ void Column::lookup(Transaction* transaction, common::ValueVector* resultVector,
     PageElementCursor& cursor) {
     auto [fileHandleToPin, pageIdxToPin] =
         StorageStructureUtils::getFileHandleAndPhysicalPageIdxToPin(
-            fileHandle, cursor.pageIdx, *wal, transaction->getType());
+            *fileHandle, cursor.pageIdx, *wal, transaction->getType());
     auto frame = bufferManager.pin(*fileHandleToPin, pageIdxToPin);
     auto vectorBytesOffset = getElemByteOffset(vectorPos);
     auto frameBytesOffset = getElemByteOffset(cursor.elemPosInPage);
@@ -147,7 +147,7 @@ void Column::writeValueForSingleNodeIDPosition(
     auto updatedPageInfoAndWALPageFrame =
         beginUpdatingPage(nodeOffset, vectorToWriteFrom, posInVectorToWriteFrom);
     StorageStructureUtils::unpinWALPageAndReleaseOriginalPageLock(
-        updatedPageInfoAndWALPageFrame, fileHandle, bufferManager, *wal);
+        updatedPageInfoAndWALPageFrame, *fileHandle, bufferManager, *wal);
 }
 
 void StringPropertyColumn::writeValueForSingleNodeIDPosition(
@@ -167,15 +167,15 @@ void StringPropertyColumn::writeValueForSingleNodeIDPosition(
         }
     }
     StorageStructureUtils::unpinWALPageAndReleaseOriginalPageLock(
-        updatedPageInfoAndWALPageFrame, fileHandle, bufferManager, *wal);
+        updatedPageInfoAndWALPageFrame, *fileHandle, bufferManager, *wal);
 }
 
 Value StringPropertyColumn::readValue(offset_t offset) {
     auto cursor = PageUtils::getPageElementCursorForPos(offset, numElementsPerPage);
     ku_string_t kuString;
-    auto frame = bufferManager.pin(fileHandle, cursor.pageIdx);
+    auto frame = bufferManager.pin(*fileHandle, cursor.pageIdx);
     memcpy(&kuString, frame + mapElementPosToByteOffset(cursor.elemPosInPage), sizeof(ku_string_t));
-    bufferManager.unpin(fileHandle, cursor.pageIdx);
+    bufferManager.unpin(*fileHandle, cursor.pageIdx);
     return Value(diskOverflowFile.readString(TransactionType::READ_ONLY, kuString));
 }
 
@@ -193,15 +193,15 @@ void ListPropertyColumn::writeValueForSingleNodeIDPosition(
             kuListToWriteFrom, *kuListToWriteTo, vectorToWriteFrom->dataType);
     }
     StorageStructureUtils::unpinWALPageAndReleaseOriginalPageLock(
-        updatedPageInfoAndWALPageFrame, fileHandle, bufferManager, *wal);
+        updatedPageInfoAndWALPageFrame, *fileHandle, bufferManager, *wal);
 }
 
 Value ListPropertyColumn::readValue(offset_t offset) {
     auto cursor = PageUtils::getPageElementCursorForPos(offset, numElementsPerPage);
     ku_list_t kuList;
-    auto frame = bufferManager.pin(fileHandle, cursor.pageIdx);
+    auto frame = bufferManager.pin(*fileHandle, cursor.pageIdx);
     memcpy(&kuList, frame + mapElementPosToByteOffset(cursor.elemPosInPage), sizeof(ku_list_t));
-    bufferManager.unpin(fileHandle, cursor.pageIdx);
+    bufferManager.unpin(*fileHandle, cursor.pageIdx);
     return Value(dataType, diskOverflowFile.readList(TransactionType::READ_ONLY, kuList, dataType));
 }
 

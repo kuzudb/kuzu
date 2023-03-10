@@ -3,7 +3,6 @@
 #include <memory>
 
 #include "common/types/types_include.h"
-#include "storage/buffer_manager/versioned_file_handle.h"
 #include "storage/storage_structure/disk_array.h"
 
 namespace spdlog {
@@ -124,8 +123,6 @@ public:
         return (*headersDiskArray)[offset];
     };
 
-    inline VersionedFileHandle* getFileHandle() { return versionedFileHandle.get(); }
-
     inline void checkpointInMemoryIfNecessary() const {
         headersDiskArray->checkpointInMemoryIfNecessary();
     }
@@ -138,7 +135,7 @@ public:
     std::unique_ptr<InMemDiskArray<common::list_header_t>> headersDiskArray;
 
 private:
-    std::unique_ptr<VersionedFileHandle> versionedFileHandle;
+    std::unique_ptr<BufferManagedFileHandle> fileHandle;
     StorageStructureIDAndFName storageStructureIDAndFName;
 };
 } // namespace storage
