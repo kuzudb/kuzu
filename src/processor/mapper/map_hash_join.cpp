@@ -1,6 +1,5 @@
 #include "planner/logical_plan/logical_operator/logical_hash_join.h"
 #include "planner/logical_plan/logical_operator/logical_semi_masker.h"
-#include "planner/logical_plan/logical_plan_util.h"
 #include "processor/mapper/plan_mapper.h"
 #include "processor/operator/hash_join/hash_join_build.h"
 #include "processor/operator/hash_join/hash_join_probe.h"
@@ -23,11 +22,6 @@ static bool containASPOnPipeline(LogicalHashJoin* logicalHashJoin) {
         op = op->getChild(0);
     }
     return false;
-}
-
-static bool containFTableScan(LogicalHashJoin* logicalHashJoin) {
-    auto root = logicalHashJoin->getChild(1).get(); // check build side
-    return !LogicalPlanUtil::collectOperators(root, LogicalOperatorType::FTABLE_SCAN).empty();
 }
 
 static FactorizedTableScan* getTableScanForAccHashJoin(HashJoinProbe* hashJoinProbe) {
@@ -74,29 +68,6 @@ static void mapASPJoin(Expression* joinNodeID, HashJoinProbe* hashJoinProbe) {
     auto sharedState = scanNodeIDCandidates[0]->getSharedState();
     assert(sharedState->getNumTableStates() == 1);
     semiMasker->setSharedState(sharedState->getTableState(0));
-    constructAccPipeline(tableScan, hashJoinProbe);
-}
-
-static void mapAccJoin(HashJoinProbe* hashJoinProbe) {
-    auto hashJoinBuild = hashJoinProbe->getChild(1);
-    assert(hashJoinBuild->getOperatorType() == PhysicalOperatorType::HASH_JOIN_BUILD);
-    // fetch factorized table on probe side
-    auto tableScan = getTableScanForAccHashJoin(hashJoinProbe);
-    assert(tableScan->getChild(0)->getOperatorType() == PhysicalOperatorType::RESULT_COLLECTOR);
-    auto resultCollector = (ResultCollector*)tableScan->getChild(0);
-    auto sharedState = resultCollector->getSharedState();
-    // fetch fTableScan on build side
-    std::vector<PhysicalOperator*> tableScanCandidates;
-    for (auto& op : PhysicalPlanUtil::collectOperators(
-             hashJoinBuild, PhysicalOperatorType::FACTORIZED_TABLE_SCAN)) {
-        if (op->getNumChildren() == 0) {
-            tableScanCandidates.push_back(op);
-        }
-    }
-    // This might not be true for nested exists subquery.
-    assert(tableScanCandidates.size() == 1);
-    auto tableScanCandidate = (FactorizedTableScan*)tableScanCandidates[0];
-    tableScanCandidate->setSharedState(sharedState);
     constructAccPipeline(tableScan, hashJoinProbe);
 }
 
@@ -162,13 +133,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalHashJoinToPhysical(
     auto hashJoinProbe = make_unique<HashJoinProbe>(sharedState, hashJoin->getJoinType(),
         probeDataInfo, std::move(probeSidePrevOperator), std::move(hashJoinBuild), getOperatorID(),
         paramsString);
-    if (hashJoin->getIsProbeAcc()) {
-        if (containASPOnPipeline(hashJoin)) {
-            mapASPJoin(hashJoin->getJoinNodeIDs()[0].get(), hashJoinProbe.get());
-        } else {
-            assert(containFTableScan(hashJoin));
-            mapAccJoin(hashJoinProbe.get());
-        }
+    if (hashJoin->getInfoPassing() == planner::HashJoinSideWayInfoPassing::LEFT_TO_RIGHT) {
+        assert(containASPOnPipeline(hashJoin));
+        mapASPJoin(hashJoin->getJoinNodeIDs()[0].get(), hashJoinProbe.get());
     }
     return hashJoinProbe;
 }

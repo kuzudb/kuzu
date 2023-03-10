@@ -70,8 +70,6 @@ private:
     std::vector<std::unique_ptr<LogicalPlan>> enumerate(
         QueryGraph* queryGraph, binder::expression_vector& predicates);
 
-    void planOuterExpressionsScan(binder::expression_vector& expressions);
-
     void planTableScan();
 
     void planNodeScan(uint32_t nodePos);
@@ -106,9 +104,6 @@ private:
     // Filter push down for hash join.
     void planFiltersForHashJoin(binder::expression_vector& predicates, LogicalPlan& plan);
 
-    void appendFTableScan(
-        LogicalPlan* outerPlan, binder::expression_vector& expressionsToScan, LogicalPlan& plan);
-
     void appendScanNode(std::shared_ptr<NodeExpression>& node, LogicalPlan& plan);
     void appendIndexScanNode(std::shared_ptr<NodeExpression>& node,
         std::shared_ptr<Expression> indexExpression, LogicalPlan& plan);
@@ -123,10 +118,9 @@ private:
     static void planJoin(const binder::expression_vector& joinNodeIDs, common::JoinType joinType,
         std::shared_ptr<Expression> mark, LogicalPlan& probePlan, LogicalPlan& buildPlan);
     static void appendHashJoin(const binder::expression_vector& joinNodeIDs,
-        common::JoinType joinType, bool isProbeAcc, LogicalPlan& probePlan, LogicalPlan& buildPlan);
+        common::JoinType joinType, LogicalPlan& probePlan, LogicalPlan& buildPlan);
     static void appendMarkJoin(const binder::expression_vector& joinNodeIDs,
-        const std::shared_ptr<Expression>& mark, bool isProbeAcc, LogicalPlan& probePlan,
-        LogicalPlan& buildPlan);
+        const std::shared_ptr<Expression>& mark, LogicalPlan& probePlan, LogicalPlan& buildPlan);
     static void appendIntersect(const std::shared_ptr<Expression>& intersectNodeID,
         binder::expression_vector& boundNodeIDs, LogicalPlan& probePlan,
         std::vector<std::unique_ptr<LogicalPlan>>& buildPlans);
