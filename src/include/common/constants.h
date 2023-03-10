@@ -10,19 +10,14 @@ namespace common {
 constexpr uint64_t DEFAULT_VECTOR_CAPACITY_LOG_2 = 11;
 constexpr uint64_t DEFAULT_VECTOR_CAPACITY = (uint64_t)1 << DEFAULT_VECTOR_CAPACITY_LOG_2;
 
-constexpr const double DEFAULT_HT_LOAD_FACTOR = 1.5;
-constexpr const uint32_t VAR_LENGTH_EXTEND_MAX_DEPTH = 30;
+constexpr double DEFAULT_HT_LOAD_FACTOR = 1.5;
+constexpr uint32_t VAR_LENGTH_EXTEND_MAX_DEPTH = 30;
 
 // This is the default thread sleep time we use when a thread,
 // e.g., a worker thread is in TaskScheduler, needs to block.
-constexpr const uint64_t THREAD_SLEEP_TIME_WHEN_WAITING_IN_MICROS = 500;
+constexpr uint64_t THREAD_SLEEP_TIME_WHEN_WAITING_IN_MICROS = 500;
 
-// The number of pages for which we maintain a lock and a page version array for. Multi version file
-// design is meant to not contain any page version arrays if a group of pages do not contain
-// any updates to reduce our memory footprint.
-constexpr const uint64_t MULTI_VERSION_FILE_PAGE_GROUP_SIZE = 64;
-constexpr const uint64_t DEFAULT_CHECKPOINT_WAIT_TIMEOUT_FOR_TRANSACTIONS_TO_LEAVE_IN_MICROS =
-    5000000;
+constexpr uint64_t DEFAULT_CHECKPOINT_WAIT_TIMEOUT_FOR_TRANSACTIONS_TO_LEAVE_IN_MICROS = 5000000;
 
 const std::string INTERNAL_ID_SUFFIX = "_id";
 
@@ -38,7 +33,7 @@ struct BufferPoolConstants {
     static constexpr uint64_t DEFAULT_PAGE_SIZE = 1 << DEFAULT_PAGE_SIZE_LOG_2;
     // Page size for files with large pages, e.g., temporary files that are used by operators that
     // may require large amounts of memory.
-    static constexpr const uint64_t LARGE_PAGE_SIZE_LOG_2 = 18;
+    static constexpr uint64_t LARGE_PAGE_SIZE_LOG_2 = 18;
     static constexpr uint64_t LARGE_PAGE_SIZE = 1 << LARGE_PAGE_SIZE_LOG_2;
 };
 
@@ -64,7 +59,10 @@ struct StorageConstants {
     static constexpr char RELS_METADATA_FILE_NAME_FOR_WAL[] = "rels.statistics.wal";
     static constexpr char CATALOG_FILE_NAME[] = "catalog.bin";
     static constexpr char CATALOG_FILE_NAME_FOR_WAL[] = "catalog.bin.wal";
-    constexpr static double ARRAY_RESIZING_FACTOR = 1.2;
+
+    // The number of pages that we add at one time when we need to grow a file.
+    static constexpr uint64_t PAGE_GROUP_SIZE_LOG2 = 10;
+    static constexpr uint64_t PAGE_GROUP_SIZE = (uint64_t)1 << PAGE_GROUP_SIZE_LOG2;
 };
 
 struct ListsMetadataConstants {

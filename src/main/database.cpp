@@ -47,8 +47,7 @@ Database::Database(std::string databasePath, SystemConfig systemConfig)
     recoverIfNecessary();
     queryProcessor = std::make_unique<processor::QueryProcessor>(this->systemConfig.maxNumThreads);
     catalog = std::make_unique<catalog::Catalog>(wal.get());
-    storageManager = std::make_unique<storage::StorageManager>(
-        *catalog, *bufferManager, *memoryManager, wal.get());
+    storageManager = std::make_unique<storage::StorageManager>(*catalog, *memoryManager, wal.get());
     transactionManager = std::make_unique<transaction::TransactionManager>(*wal);
 }
 
@@ -214,10 +213,9 @@ void Database::checkpointOrRollbackAndClearWAL(bool isRecovering, bool isCheckpo
                                  std::string("rolling back the wal contents")) +
                  " in the storage manager during " +
                  (isRecovering ? "recovery." : "normal db execution (i.e., not recovering)."));
-    WALReplayer walReplayer = isRecovering ?
-                                  WALReplayer(wal.get()) :
-                                  WALReplayer(wal.get(), storageManager.get(), bufferManager.get(),
-                                      memoryManager.get(), catalog.get(), isCheckpoint);
+    WALReplayer walReplayer = isRecovering ? WALReplayer(wal.get()) :
+                                             WALReplayer(wal.get(), storageManager.get(),
+                                                 memoryManager.get(), catalog.get(), isCheckpoint);
     walReplayer.replay();
     logger->info("Finished " +
                  (isCheckpoint ? std::string("checkpointing") :

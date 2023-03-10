@@ -1,8 +1,6 @@
 #include "storage/buffer_manager/buffer_manager.h"
 
-#include "common/constants.h"
 #include "common/exception.h"
-#include "common/utils.h"
 #include "spdlog/spdlog.h"
 
 using namespace kuzu::common;
@@ -35,7 +33,7 @@ void BufferManager::resize(uint64_t newSizeForDefaultPagePool, uint64_t newSizeF
 // should be flushed to disk if it is evicted.
 // (3) If multiple threads are writing to the page, they should coordinate separately because they
 // both get access to the same piece of memory.
-uint8_t* BufferManager::pin(FileHandle& fileHandle, page_idx_t pageIdx) {
+uint8_t* BufferManager::pin(BufferManagedFileHandle& fileHandle, page_idx_t pageIdx) {
     return fileHandle.isLargePaged() ? bufferPoolLargePages->pin(fileHandle, pageIdx) :
                                        bufferPoolDefaultPages->pin(fileHandle, pageIdx);
 }
@@ -48,35 +46,36 @@ uint8_t* BufferManager::pin(FileHandle& fileHandle, page_idx_t pageIdx) {
 // page is added FileHandle, ensuring that no other thread can try to pin the newly created page
 // (with serious side effects). See the detailed explanation in FileHandle::addNewPage() for
 // details.
-uint8_t* BufferManager::pinWithoutReadingFromFile(FileHandle& fileHandle, page_idx_t pageIdx) {
+uint8_t* BufferManager::pinWithoutReadingFromFile(
+    BufferManagedFileHandle& fileHandle, page_idx_t pageIdx) {
     return fileHandle.isLargePaged() ?
                bufferPoolLargePages->pinWithoutReadingFromFile(fileHandle, pageIdx) :
                bufferPoolDefaultPages->pinWithoutReadingFromFile(fileHandle, pageIdx);
 }
 
 // Important Note: The caller should make sure that they have pinned the page before calling this.
-void BufferManager::setPinnedPageDirty(FileHandle& fileHandle, page_idx_t pageIdx) {
+void BufferManager::setPinnedPageDirty(BufferManagedFileHandle& fileHandle, page_idx_t pageIdx) {
     fileHandle.isLargePaged() ? bufferPoolLargePages->setPinnedPageDirty(fileHandle, pageIdx) :
                                 bufferPoolDefaultPages->setPinnedPageDirty(fileHandle, pageIdx);
 }
 
-void BufferManager::unpin(FileHandle& fileHandle, page_idx_t pageIdx) {
+void BufferManager::unpin(BufferManagedFileHandle& fileHandle, page_idx_t pageIdx) {
     return fileHandle.isLargePaged() ? bufferPoolLargePages->unpin(fileHandle, pageIdx) :
                                        bufferPoolDefaultPages->unpin(fileHandle, pageIdx);
 }
 
-void BufferManager::removeFilePagesFromFrames(FileHandle& fileHandle) {
+void BufferManager::removeFilePagesFromFrames(BufferManagedFileHandle& fileHandle) {
     fileHandle.isLargePaged() ? bufferPoolLargePages->removeFilePagesFromFrames(fileHandle) :
                                 bufferPoolDefaultPages->removeFilePagesFromFrames(fileHandle);
 }
 
-void BufferManager::flushAllDirtyPagesInFrames(FileHandle& fileHandle) {
+void BufferManager::flushAllDirtyPagesInFrames(BufferManagedFileHandle& fileHandle) {
     fileHandle.isLargePaged() ? bufferPoolLargePages->flushAllDirtyPagesInFrames(fileHandle) :
                                 bufferPoolDefaultPages->flushAllDirtyPagesInFrames(fileHandle);
 }
 
 void BufferManager::updateFrameIfPageIsInFrameWithoutPageOrFrameLock(
-    FileHandle& fileHandle, uint8_t* newPage, page_idx_t pageIdx) {
+    BufferManagedFileHandle& fileHandle, uint8_t* newPage, page_idx_t pageIdx) {
     fileHandle.isLargePaged() ?
         bufferPoolLargePages->updateFrameIfPageIsInFrameWithoutPageOrFrameLock(
             fileHandle, newPage, pageIdx) :
@@ -84,7 +83,8 @@ void BufferManager::updateFrameIfPageIsInFrameWithoutPageOrFrameLock(
             fileHandle, newPage, pageIdx);
 }
 
-void BufferManager::removePageFromFrameIfNecessary(FileHandle& fileHandle, page_idx_t pageIdx) {
+void BufferManager::removePageFromFrameIfNecessary(
+    BufferManagedFileHandle& fileHandle, page_idx_t pageIdx) {
     fileHandle.isLargePaged() ?
         bufferPoolLargePages->removePageFromFrameWithoutFlushingIfNecessary(fileHandle, pageIdx) :
         bufferPoolDefaultPages->removePageFromFrameWithoutFlushingIfNecessary(fileHandle, pageIdx);

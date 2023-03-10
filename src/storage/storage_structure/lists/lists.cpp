@@ -134,11 +134,11 @@ void Lists::fillInMemListsFromPersistentStore(offset_t nodeOffset,
         auto numElementsToReadInCurPage = std::min(numElementsToRead - numElementsRead,
             (uint64_t)(numElementsPerPage - pageCursor.elemPosInPage));
         auto physicalPageIdx = pageMapper(pageCursor.pageIdx);
-        auto frame = bufferManager.pin(fileHandle, physicalPageIdx);
+        auto frame = bufferManager.pin(*fileHandle, physicalPageIdx);
         fillInMemListsFromFrame(inMemList, frame, pageCursor.elemPosInPage,
             numElementsToReadInCurPage, deletedRelOffsetsInList, numElementsRead,
             nextPosToWriteToInMemList, updatedPersistentListOffsets);
-        bufferManager.unpin(fileHandle, physicalPageIdx);
+        bufferManager.unpin(*fileHandle, physicalPageIdx);
         numElementsRead += numElementsToReadInCurPage;
         pageCursor.nextPage();
     }
@@ -265,10 +265,10 @@ std::unique_ptr<std::vector<nodeID_t>> AdjLists::readAdjacencyListOfNode(
         auto sizeToCopyInPage =
             std::min(((uint64_t)(numElementsPerPage - pageCursor.elemPosInPage) * elementSize),
                 sizeLeftToCopy);
-        auto frame = bufferManager.pin(fileHandle, physicalPageIdx);
+        auto frame = bufferManager.pin(*fileHandle, physicalPageIdx);
         memcpy(bufferPtr, frame + mapElementPosToByteOffset(pageCursor.elemPosInPage),
             sizeToCopyInPage);
-        bufferManager.unpin(fileHandle, physicalPageIdx);
+        bufferManager.unpin(*fileHandle, physicalPageIdx);
         bufferPtr += sizeToCopyInPage;
         sizeLeftToCopy -= sizeToCopyInPage;
         pageCursor.nextPage();
@@ -397,7 +397,7 @@ std::unordered_set<uint64_t> RelIDList::getDeletedRelOffsetsInListForNodeOffset(
         auto numElementsToReadInCurPage = std::min(numElementsInPersistentStore - numElementsRead,
             (uint64_t)(numElementsPerPage - pageCursor.elemPosInPage));
         auto physicalPageIdx = pageMapper(pageCursor.pageIdx);
-        auto frame = bufferManager.pin(fileHandle, physicalPageIdx) +
+        auto frame = bufferManager.pin(*fileHandle, physicalPageIdx) +
                      getElemByteOffset(pageCursor.elemPosInPage);
         for (auto i = 0u; i < numElementsToReadInCurPage; i++) {
             auto relID = *(int64_t*)frame;
@@ -408,7 +408,7 @@ std::unordered_set<uint64_t> RelIDList::getDeletedRelOffsetsInListForNodeOffset(
             numElementsRead++;
             frame += elementSize;
         }
-        bufferManager.unpin(fileHandle, physicalPageIdx);
+        bufferManager.unpin(*fileHandle, physicalPageIdx);
         pageCursor.nextPage();
     }
     return deletedRelOffsetsInList;
@@ -424,18 +424,18 @@ list_offset_t RelIDList::getListOffset(offset_t nodeOffset, offset_t relOffset) 
         auto numElementsToReadInCurPage = std::min(numElementsInPersistentStore - numElementsRead,
             (uint64_t)(numElementsPerPage - pageCursor.elemPosInPage));
         auto physicalPageIdx = pageMapper(pageCursor.pageIdx);
-        auto frame = bufferManager.pin(fileHandle, physicalPageIdx) +
+        auto frame = bufferManager.pin(*fileHandle, physicalPageIdx) +
                      getElemByteOffset(pageCursor.elemPosInPage);
         for (auto i = 0u; i < numElementsToReadInCurPage; i++) {
             auto relIDInList = *(int64_t*)frame;
             if (relIDInList == relOffset) {
-                bufferManager.unpin(fileHandle, physicalPageIdx);
+                bufferManager.unpin(*fileHandle, physicalPageIdx);
                 return numElementsRead;
             }
             numElementsRead++;
             frame += elementSize;
         }
-        bufferManager.unpin(fileHandle, physicalPageIdx);
+        bufferManager.unpin(*fileHandle, physicalPageIdx);
         pageCursor.nextPage();
     }
     // If we don't find the associated listOffset for the given relID in persistent store list, it

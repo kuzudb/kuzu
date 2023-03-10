@@ -2,8 +2,8 @@
 
 #include <vector>
 
-#include "storage/buffer_manager/file_handle.h"
 #include "storage/buffer_manager/memory_manager.h"
+#include "storage/file_handle.h"
 
 namespace kuzu {
 namespace common {

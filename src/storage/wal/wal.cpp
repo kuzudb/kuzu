@@ -12,7 +12,11 @@ namespace storage {
 WAL::WAL(const std::string& directory, BufferManager& bufferManager)
     : logger{LoggerUtils::getLogger(LoggerConstants::LoggerEnum::WAL)}, directory{directory},
       bufferManager{bufferManager}, isLastLoggedRecordCommit_{false} {
-    fileHandle = WAL::createWALFileHandle(directory);
+    fileHandle = bufferManager.getBufferManagedFileHandle(
+        common::FileUtils::joinPath(
+            directory, std::string(common::StorageConstants::WAL_FILE_SUFFIX)),
+        FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS,
+        BufferManagedFileHandle::FileVersionedType::NON_VERSIONED_FILE);
     initCurrentPage();
 }
 
@@ -169,11 +173,11 @@ void WAL::setIsLastRecordCommit() {
     }
 }
 
-WALIterator::WALIterator(const std::shared_ptr<FileHandle>& fileHandle, std::mutex& mtx)
-    : BaseWALAndWALIterator(fileHandle), mtx{mtx} {
+WALIterator::WALIterator(std::shared_ptr<BufferManagedFileHandle> fileHandle, std::mutex& mtx)
+    : BaseWALAndWALIterator{std::move(fileHandle)}, mtx{mtx} {
     resetCurrentHeaderPagePrefix();
-    if (fileHandle->getNumPages() > 0) {
-        fileHandle->readPage(
+    if (this->fileHandle->getNumPages() > 0) {
+        this->fileHandle->readPage(
             currentHeaderPageBuffer.get(), 0 /* first header page is at pageIdx 0 */);
     }
     numRecordsReadInCurrentHeaderPage = 0;

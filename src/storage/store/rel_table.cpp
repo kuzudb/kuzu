@@ -193,17 +193,17 @@ DirectedRelTableData::getListsUpdateIteratorsForDirection() {
     return listsUpdateIteratorsForDirection;
 }
 
-RelTable::RelTable(const Catalog& catalog, table_id_t tableID, BufferManager& bufferManager,
-    MemoryManager& memoryManager, WAL* wal)
+RelTable::RelTable(
+    const Catalog& catalog, table_id_t tableID, MemoryManager& memoryManager, WAL* wal)
     : tableID{tableID}, wal{wal} {
     auto tableSchema = catalog.getReadOnlyVersion()->getRelTableSchema(tableID);
     listsUpdatesStore = std::make_unique<ListsUpdatesStore>(memoryManager, *tableSchema);
     fwdRelTableData = std::make_unique<DirectedRelTableData>(tableID,
-        tableSchema->getBoundTableID(FWD), FWD, listsUpdatesStore.get(), bufferManager,
-        tableSchema->isSingleMultiplicityInDirection(FWD));
+        tableSchema->getBoundTableID(FWD), FWD, listsUpdatesStore.get(),
+        *memoryManager.getBufferManager(), tableSchema->isSingleMultiplicityInDirection(FWD));
     bwdRelTableData = std::make_unique<DirectedRelTableData>(tableID,
-        tableSchema->getBoundTableID(BWD), BWD, listsUpdatesStore.get(), bufferManager,
-        tableSchema->isSingleMultiplicityInDirection(BWD));
+        tableSchema->getBoundTableID(BWD), BWD, listsUpdatesStore.get(),
+        *memoryManager.getBufferManager(), tableSchema->isSingleMultiplicityInDirection(BWD));
     initializeData(tableSchema);
 }
 

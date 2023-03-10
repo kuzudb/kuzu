@@ -2,7 +2,7 @@
 
 #include "common/constants.h"
 #include "common/types/types.h"
-#include "storage/buffer_manager/versioned_file_handle.h"
+#include "storage/buffer_manager/buffer_managed_file_handle.h"
 #include "storage/wal/wal.h"
 #include "storage_structure_utils.h"
 #include "transaction/transaction.h"
@@ -99,8 +99,8 @@ public:
     // Used by copiers.
     BaseDiskArray(FileHandle& fileHandle, common::page_idx_t headerPageIdx, uint64_t elementSize);
     // Used when loading from file
-    BaseDiskArray(FileHandle& fileHandle, common::page_idx_t headerPageIdx,
-        BufferManager* bufferManager, WAL* wal);
+    BaseDiskArray(FileHandle& fileHandle, StorageStructureID storageStructureID,
+        common::page_idx_t headerPageIdx, BufferManager* bufferManager, WAL* wal);
 
     virtual ~BaseDiskArray() = default;
 
@@ -172,6 +172,7 @@ public:
 
 protected:
     FileHandle& fileHandle;
+    StorageStructureID storageStructureID;
     common::page_idx_t headerPageIdx;
     bool hasTransactionalUpdates;
     BufferManager* bufferManager;
@@ -186,8 +187,8 @@ class BaseInMemDiskArray : public BaseDiskArray<U> {
 protected:
     BaseInMemDiskArray(
         FileHandle& fileHandle, common::page_idx_t headerPageIdx, uint64_t elementSize);
-    BaseInMemDiskArray(FileHandle& fileHandle, common::page_idx_t headerPageIdx,
-        BufferManager* bufferManager, WAL* wal);
+    BaseInMemDiskArray(FileHandle& fileHandle, StorageStructureID storageStructureID,
+        common::page_idx_t headerPageIdx, BufferManager* bufferManager, WAL* wal);
 
 public:
     // [] operator can be used to update elements, e.g., diskArray[5] = 4, when building an
@@ -222,8 +223,8 @@ protected:
 template<typename T>
 class InMemDiskArray : public BaseInMemDiskArray<T> {
 public:
-    InMemDiskArray(VersionedFileHandle& fileHandle, common::page_idx_t headerPageIdx,
-        BufferManager* bufferManager, WAL* wal);
+    InMemDiskArray(FileHandle& fileHandle, StorageStructureID storageStructureID,
+        common::page_idx_t headerPageIdx, BufferManager* bufferManager, WAL* wal);
 
     inline void checkpointInMemoryIfNecessary() override {
         std::unique_lock xlock{this->diskArraySharedMtx};
@@ -234,7 +235,7 @@ public:
         InMemDiskArray<T>::checkpointOrRollbackInMemoryIfNecessaryNoLock(false /* is rollback */);
     }
 
-    inline VersionedFileHandle* getFileHandle() { return (VersionedFileHandle*)&this->fileHandle; }
+    inline FileHandle* getFileHandle() { return (FileHandle*)&this->fileHandle; }
 
 private:
     void checkpointOrRollbackInMemoryIfNecessaryNoLock(bool isCheckpoint) override;
