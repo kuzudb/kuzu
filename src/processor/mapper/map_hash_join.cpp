@@ -13,17 +13,6 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace processor {
 
-static bool containASPOnPipeline(LogicalHashJoin* logicalHashJoin) {
-    auto op = logicalHashJoin->getChild(0); // check probe side
-    while (op->getNumChildren() == 1) {     // check pipeline
-        if (op->getOperatorType() == LogicalOperatorType::SEMI_MASKER) {
-            return true;
-        }
-        op = op->getChild(0);
-    }
-    return false;
-}
-
 static FactorizedTableScan* getTableScanForAccHashJoin(HashJoinProbe* hashJoinProbe) {
     auto op = hashJoinProbe->getChild(0);
     while (op->getOperatorType() == PhysicalOperatorType::FLATTEN) {
@@ -33,42 +22,10 @@ static FactorizedTableScan* getTableScanForAccHashJoin(HashJoinProbe* hashJoinPr
     return (FactorizedTableScan*)op;
 }
 
-static SemiMasker* getSemiMasker(FactorizedTableScan* tableScan) {
-    auto op = (PhysicalOperator*)tableScan;
-    // Search on current pipeline.
-    while (
-        op->getNumChildren() == 1 && op->getOperatorType() != PhysicalOperatorType::SEMI_MASKER) {
-        op = op->getChild(0);
-    }
-    assert(op->getOperatorType() == PhysicalOperatorType::SEMI_MASKER);
-    return (SemiMasker*)op;
-}
-
-static void constructAccPipeline(FactorizedTableScan* tableScan, HashJoinProbe* hashJoinProbe) {
+static void mapASPJoin(HashJoinProbe* hashJoinProbe) {
+    auto tableScan = getTableScanForAccHashJoin(hashJoinProbe);
     auto resultCollector = tableScan->moveUnaryChild();
     hashJoinProbe->addChild(std::move(resultCollector));
-}
-
-static void mapASPJoin(Expression* joinNodeID, HashJoinProbe* hashJoinProbe) {
-    // fetch scan node ID on build side
-    auto hashJoinBuild = hashJoinProbe->getChild(1);
-    assert(hashJoinBuild->getOperatorType() == PhysicalOperatorType::HASH_JOIN_BUILD);
-    std::vector<ScanNodeID*> scanNodeIDCandidates;
-    for (auto& op :
-        PhysicalPlanUtil::collectOperators(hashJoinBuild, PhysicalOperatorType::SCAN_NODE_ID)) {
-        auto scanNodeID = (ScanNodeID*)op;
-        if (scanNodeID->getNodeID() == joinNodeID->getUniqueName()) {
-            scanNodeIDCandidates.push_back(scanNodeID);
-        }
-    }
-    assert(scanNodeIDCandidates.size() == 1);
-    // set semi masker
-    auto tableScan = getTableScanForAccHashJoin(hashJoinProbe);
-    auto semiMasker = getSemiMasker(tableScan);
-    auto sharedState = scanNodeIDCandidates[0]->getSharedState();
-    assert(sharedState->getNumTableStates() == 1);
-    semiMasker->setSharedState(sharedState->getTableState(0));
-    constructAccPipeline(tableScan, hashJoinProbe);
 }
 
 BuildDataInfo PlanMapper::generateBuildDataInfo(const Schema& buildSideSchema,
@@ -134,8 +91,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalHashJoinToPhysical(
         probeDataInfo, std::move(probeSidePrevOperator), std::move(hashJoinBuild), getOperatorID(),
         paramsString);
     if (hashJoin->getInfoPassing() == planner::HashJoinSideWayInfoPassing::LEFT_TO_RIGHT) {
-        assert(containASPOnPipeline(hashJoin));
-        mapASPJoin(hashJoin->getJoinNodeIDs()[0].get(), hashJoinProbe.get());
+        mapASPJoin(hashJoinProbe.get());
     }
     return hashJoinProbe;
 }
@@ -145,9 +101,15 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalSemiMaskerToPhysical(
     auto logicalSemiMasker = (LogicalSemiMasker*)logicalOperator;
     auto inSchema = logicalSemiMasker->getChild(0)->getSchema();
     auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0));
-    auto keyDataPos = DataPos(inSchema->getExpressionPos(*logicalSemiMasker->getNodeID()));
-    return make_unique<SemiMasker>(keyDataPos, std::move(prevOperator), getOperatorID(),
+    auto logicalScanNode = logicalSemiMasker->getScanNode();
+    auto physicalScanNode = (ScanNodeID*)logicalOpToPhysicalOpMap.at(logicalScanNode);
+    auto keyDataPos =
+        DataPos(inSchema->getExpressionPos(*logicalScanNode->getNode()->getInternalIDProperty()));
+    auto semiMasker = make_unique<SemiMasker>(keyDataPos, std::move(prevOperator), getOperatorID(),
         logicalSemiMasker->getExpressionsForPrinting());
+    assert(physicalScanNode->getSharedState()->getNumTableStates() == 1);
+    semiMasker->setSharedState(physicalScanNode->getSharedState()->getTableState(0));
+    return semiMasker;
 }
 
 } // namespace processor
