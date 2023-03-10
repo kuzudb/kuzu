@@ -931,7 +931,7 @@ TEST_F(TinySnbDDLTest, RenamePropertyNormalExecution) {
 }
 
 TEST_F(TinySnbDDLTest, RenamePropertyRecovery) {
-    renameTable(TransactionTestType::RECOVERY);
+    renameProperty(TransactionTestType::RECOVERY);
 }
 
 } // namespace transaction
