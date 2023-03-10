@@ -3,7 +3,7 @@ project (kuzujs)
 
 set(CMAKE_CXX_STANDARD 20)
 
-add_definitions(-DNAPI_VERSION=4)
+add_definitions(-DNAPI_VERSION=5)
 
 if (CMAKE_BUILD_TYPE EQUAL "DEBUG")
     set(LIB_KUZU_PATH ../../build/debug/src/libkuzu_shared.so)

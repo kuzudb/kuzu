@@ -1,4 +1,4 @@
-#include "node_database.h"
+#include "include/node_database.h"
 
 #include "main/kuzu.h"
 
@@ -12,9 +12,6 @@ Napi::Object NodeDatabase::Init(Napi::Env env, Napi::Object exports) {
     Napi::Function t = DefineClass(env, "NodeDatabase", {
           InstanceMethod("resizeBufferManager", &NodeDatabase::ResizeBufferManager),
       });
-
-    constructor = Napi::Persistent(t);
-    constructor.SuppressDestruct();
 
     exports.Set("NodeDatabase", t);
     return exports;
@@ -44,8 +41,7 @@ NodeDatabase::NodeDatabase(const Napi::CallbackInfo& info) : Napi::ObjectWrap<No
 
     try {
         this->database = make_unique<kuzu::main::Database>(databaseConfig, systemConfig);
-    }
-    catch(const std::exception &exc) {
+    } catch(const std::exception &exc) {
         Napi::TypeError::New(env, "Unsuccessful Database Initialization: " + std::string(exc.what())).ThrowAsJavaScriptException();
     }
 }
@@ -65,8 +61,7 @@ void NodeDatabase::ResizeBufferManager(const Napi::CallbackInfo& info) {
 
     try {
         this->database->resizeBufferManager(bufferSize);
-    }
-    catch(const std::exception &exc) {
+    } catch(const std::exception &exc) {
         Napi::TypeError::New(env, "Unsuccessful resizeBufferManager: " + std::string(exc.what())).ThrowAsJavaScriptException();
     }
     return;

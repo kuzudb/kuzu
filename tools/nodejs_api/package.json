@@ -9,13 +9,15 @@
     "url": "https://github.com/kuzudb/kuzu.git"
   },
   "scripts": {
-    "build": "(cd ../..; make release) && cmake-js compile",
-    "clean": "cmake-js clean && rm -rf cmake_install.cmake Makefile"
+    "build": "(cd ../..; make release) && cmake-js compile && npm run js",
+    "clean": "cmake-js clean && rm -rf cmake_install.cmake Makefile",
+    "js": "cp src_nodejs/* build/kuzu/",
+    "all": "npm run clean && npm run build && node sample.js"
   },
   "author": "Kùzu Team",
   "license": "MIT",
   "dependencies": {
     "cmake-js": "^7.1.1",
-    "node-addon-api": "^5.1.0"
+    "node-addon-api": "^6.0.0"
   }
 }

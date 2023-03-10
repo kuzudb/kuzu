@@ -13,5 +13,5 @@ class NodeConnection : public Napi::ObjectWrap<NodeConnection> {
   Napi::Value Execute(const Napi::CallbackInfo& info);
   void SetMaxNumThreadForExec(const Napi::CallbackInfo& info);
   Napi::Value GetNodePropertyNames(const Napi::CallbackInfo& info);
-  unique_ptr<kuzu::main::Connection> connection;
+  shared_ptr<kuzu::main::Connection> connection;
 };
