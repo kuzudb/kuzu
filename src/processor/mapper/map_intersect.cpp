@@ -13,8 +13,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalIntersectToPhysical(
     auto logicalIntersect = (LogicalIntersect*)logicalOperator;
     auto outSchema = logicalIntersect->getSchema();
     std::vector<std::unique_ptr<PhysicalOperator>> children;
-    // 0th child is the probe child. others are build children.
-    children.push_back(mapLogicalOperatorToPhysical(logicalIntersect->getChild(0)));
+    children.resize(logicalOperator->getNumChildren());
     std::vector<std::shared_ptr<IntersectSharedState>> sharedStates;
     std::vector<IntersectDataInfo> intersectDataInfos;
     // Map build side children.
@@ -36,17 +35,23 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalIntersectToPhysical(
         }
         auto sharedState = std::make_shared<IntersectSharedState>();
         sharedStates.push_back(sharedState);
-        children.push_back(make_unique<IntersectBuild>(
+        children[i] = make_unique<IntersectBuild>(
             std::make_unique<ResultSetDescriptor>(*buildSchema), sharedState, buildDataInfo,
-            std::move(buildSidePrevOperator), getOperatorID(), keyNodeID->toString()));
+            std::move(buildSidePrevOperator), getOperatorID(), keyNodeID->toString());
         IntersectDataInfo info{DataPos(outSchema->getExpressionPos(*keyNodeID)), payloadsDataPos};
         intersectDataInfos.push_back(info);
     }
+    // Map probe side child.
+    children[0] = mapLogicalOperatorToPhysical(logicalIntersect->getChild(0));
     // Map intersect.
     auto outputDataPos =
         DataPos(outSchema->getExpressionPos(*logicalIntersect->getIntersectNodeID()));
-    return make_unique<Intersect>(outputDataPos, intersectDataInfos, sharedStates,
+    auto intersect = make_unique<Intersect>(outputDataPos, intersectDataInfos, sharedStates,
         std::move(children), getOperatorID(), logicalIntersect->getExpressionsForPrinting());
+    if (logicalIntersect->getSIP() == SidewaysInfoPassing::LEFT_TO_RIGHT) {
+        mapASP(intersect.get());
+    }
+    return intersect;
 }
 
 } // namespace processor

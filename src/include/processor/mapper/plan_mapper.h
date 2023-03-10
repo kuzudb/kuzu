@@ -123,8 +123,10 @@ private:
         const planner::Schema& inSchema, const planner::Schema& outSchema,
         std::vector<bool>& isInputGroupByHashKeyVectorFlat);
 
-    static BuildDataInfo generateBuildDataInfo(const planner::Schema& buildSideSchema,
+    BuildDataInfo generateBuildDataInfo(const planner::Schema& buildSideSchema,
         const binder::expression_vector& keys, const binder::expression_vector& payloads);
+
+    void mapASP(PhysicalOperator* probe);
 
 public:
     storage::StorageManager& storageManager;

@@ -3,16 +3,11 @@
 #include <utility>
 
 #include "base_logical_operator.h"
-#include "binder/expression/node_expression.h"
 #include "common/join_type.h"
+#include "side_way_info_passing.h"
 
 namespace kuzu {
 namespace planner {
-
-enum class HashJoinSideWayInfoPassing : uint8_t {
-    NONE = 0,
-    LEFT_TO_RIGHT = 1,
-};
 
 // Probe side on left, i.e. children[0]. Build side on right, i.e. children[1].
 class LogicalHashJoin : public LogicalOperator {
@@ -37,7 +32,7 @@ public:
         : LogicalOperator{LogicalOperatorType::HASH_JOIN, std::move(probeSideChild),
               std::move(buildSideChild)},
           joinNodeIDs(std::move(joinNodeIDs)), joinType{joinType}, mark{std::move(mark)},
-          infoPassing{HashJoinSideWayInfoPassing::NONE} {}
+          sip{SidewaysInfoPassing::NONE} {}
 
     f_group_pos_set getGroupsPosToFlattenOnProbeSide();
     f_group_pos_set getGroupsPosToFlattenOnBuildSide();
@@ -56,10 +51,8 @@ public:
         assert(joinType == common::JoinType::MARK && mark);
         return mark;
     }
-    inline void setInfoPassing(HashJoinSideWayInfoPassing infoPassing_) {
-        infoPassing = infoPassing_;
-    }
-    inline HashJoinSideWayInfoPassing getInfoPassing() const { return infoPassing; }
+    inline void setSIP(SidewaysInfoPassing sip_) { sip = sip_; }
+    inline SidewaysInfoPassing getSIP() const { return sip; }
 
     inline std::unique_ptr<LogicalOperator> copy() override {
         return make_unique<LogicalHashJoin>(
@@ -82,7 +75,7 @@ private:
     binder::expression_vector joinNodeIDs;
     common::JoinType joinType;
     std::shared_ptr<binder::Expression> mark; // when joinType is Mark
-    HashJoinSideWayInfoPassing infoPassing;
+    SidewaysInfoPassing sip;
 };
 
 } // namespace planner
