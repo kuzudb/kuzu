@@ -472,5 +472,9 @@ int64_t Date::getEpochNanoSeconds(const date_t& date) {
     return ((int64_t)date.days) * (Interval::MICROS_PER_DAY * Interval::NANOS_PER_MICRO);
 }
 
+int64_t Date::getEpochMicroSeconds(const date_t& date) {
+    return ((int64_t)date.days) * (Interval::MICROS_PER_DAY);
+}
+
 } // namespace common
 } // namespace kuzu

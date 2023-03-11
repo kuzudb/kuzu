@@ -105,13 +105,7 @@ public:
 
     KUZU_API static int64_t getEpochNanoSeconds(const date_t& date);
 
-    static inline int64_t getEpochMicroSeconds(const date_t& date) {
-        return ((int64_t)date.days) * (Interval::MICROS_PER_DAY);
-    }
-
-    static inline int64_t getEpochMicroSeconds(const date_t& date) {
-        return ((int64_t)date.days) * (Interval::MICROS_PER_DAY);
-    }
+    KUZU_API static int64_t getEpochMicroSeconds(const date_t& date);
 
 private:
     static void ExtractYearOffset(int32_t& n, int32_t& year, int32_t& year_offset);
