@@ -50,11 +50,6 @@ Napi::Value NodeQueryResult::All(const Napi::CallbackInfo& info) {
     Napi::Env env = info.Env();
     Napi::HandleScope scope(env);
 
-    if (info.Length()!=1 || !info[0].IsFunction()) {
-        Napi::TypeError::New(env, "All needs a callback").ThrowAsJavaScriptException();
-        return Napi::Object::New(env);
-    }
-
     // Construct context data
     auto testData = new TsfnContext(env, queryResult, TsfnContext::ALL);
 
@@ -82,11 +77,6 @@ Napi::Value NodeQueryResult::All(const Napi::CallbackInfo& info) {
 Napi::Value NodeQueryResult::Each(const Napi::CallbackInfo& info) {
     Napi::Env env = info.Env();
     Napi::HandleScope scope(env);
-
-    if (info.Length()!=2 || !info[0].IsFunction() || !info[1].IsFunction()) {
-        Napi::TypeError::New(env, "Each needs a callback").ThrowAsJavaScriptException();
-        return Napi::Object::New(env);
-    }
 
     // Construct context data
     auto testData = new TsfnContext(env, queryResult, TsfnContext::TsfnContext::EACH, info[1].As<Napi::Function>());

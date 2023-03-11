@@ -26,8 +26,8 @@ class Connection {
         const nodeQueryResult = new kuzu.NodeQueryResult();
         if ('callback' in opts) {
             const callback = opts['callback'];
-            if (typeof callback !== "function" || callback.length != 2){
-                throw new Error("if execute is given a callback that takes 2 arguments");
+            if (typeof callback !== "function" || callback.length !== 2){
+                throw new Error("if execute is given a callback, it must take 2 arguments: (err, result)");
             }
             this.#connection.execute(query, err => {
                 const queryResult = new QueryResult(nodeQueryResult);

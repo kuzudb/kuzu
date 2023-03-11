@@ -12,10 +12,10 @@ async function executeAllCallback(err, queryResult) {
     if (err) {
         console.log(err);
     } else {
-        await queryResult.all((err, result) => {
+        await queryResult.all({"callback": (err, result) => {
             console.log("All result received Callback");
             console.log(result);
-        });
+        }});
     }
 }
 
@@ -74,14 +74,14 @@ connection.execute(executeQuery, {"callback": async (err, result) => {
 
 // Execute with promise + await
 connection.execute(executeQuery).then(async queryResult => {
-    await queryResult.all((err, result) => {
+    await queryResult.all({"callback": (err, result) => {
         if (err) {
             console.log(err);
         } else {
             console.log("All result received for execution with a promise");
             console.log(result);
         }
-    });
+    }});
 }).catch(error => {
     console.log("Execution with a promise failed");
     console.log(error);
@@ -92,14 +92,14 @@ async function asyncAwaitExecute(executeQuery) {
     return queryResult;
 }
 asyncAwaitExecute(executeQuery).then(async queryResult => {
-    await queryResult.all((err, result) => {
+    await queryResult.all({"callback":(err, result) => {
         if (err) {
             console.log(err);
         } else {
             console.log("All result received for execution with await");
             console.log(result);
         }
-    });
+    }});
 }).catch(error => {
     console.log("Execution with await failed");
     console.log(error);
