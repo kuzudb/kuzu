@@ -15,5 +15,5 @@ npm run clean
 
 ## Run test
 ```
-node test.js
+node sample.js
 ```

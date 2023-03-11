@@ -117,7 +117,6 @@ unordered_map<string, shared_ptr<kuzu::common::Value>> Util::transformParameters
         auto transformedVal = transformNapiValue(param.Get(uint32_t(1)));
         result.insert({name, make_shared<kuzu::common::Value>(transformedVal)});
     }
-    assert(result.empty());
     return result;
 }
 
