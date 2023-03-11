@@ -5,7 +5,7 @@ class Connection {
     #connection;
     constructor(database, numThreads = 0) {
         if (typeof database !== "object" || database.constructor.name !==  "Database" || typeof numThreads !== "number" || !Number.isInteger(numThreads)){
-            throw new Error("connection constructor requires a database object and optional numThreads integer as argument(s)");
+            throw new Error("Connection constructor requires a database object and optional numThreads integer as argument(s)");
         }
         this.#connection = new kuzu.NodeConnection(database.database, numThreads);
     }
