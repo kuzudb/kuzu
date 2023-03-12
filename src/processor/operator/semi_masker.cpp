@@ -5,8 +5,8 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
-void SemiMasker::setSharedState(ScanTableNodeIDSharedState* sharedState) {
-    scanTableNodeIDSharedState = sharedState;
+void SemiMasker::initGlobalStateInternal(kuzu::processor::ExecutionContext* context) {
+    scanTableNodeIDSharedState->initSemiMask(context->transaction);
     maskerIdx = scanTableNodeIDSharedState->getNumMaskers();
     assert(maskerIdx < UINT8_MAX);
     scanTableNodeIDSharedState->incrementNumMaskers();

@@ -12,8 +12,7 @@ namespace storage {
 class RelsStore {
 
 public:
-    RelsStore(const catalog::Catalog& catalog, BufferManager& bufferManager,
-        MemoryManager& memoryManager, WAL* wal);
+    RelsStore(const catalog::Catalog& catalog, MemoryManager& memoryManager, WAL* wal);
 
     inline Column* getRelPropertyColumn(common::RelDirection relDirection,
         common::table_id_t relTableID, uint64_t propertyIdx) const {
@@ -39,8 +38,7 @@ public:
     // is running on the system, so we can directly create and insert a RelTable into relTables.
     inline void createRelTable(common::table_id_t tableID, BufferManager* bufferManager, WAL* wal,
         catalog::Catalog* catalog, MemoryManager* memoryManager) {
-        relTables[tableID] =
-            std::make_unique<RelTable>(*catalog, tableID, *bufferManager, *memoryManager, wal);
+        relTables[tableID] = std::make_unique<RelTable>(*catalog, tableID, *memoryManager, wal);
     }
 
     // This function is used for testing only.
@@ -69,7 +67,7 @@ public:
     }
 
     std::pair<std::vector<AdjLists*>, std::vector<AdjColumn*>> getAdjListsAndColumns(
-        const common::table_id_t boundTableID) const;
+        common::table_id_t boundTableID) const;
 
 private:
     std::unordered_map<common::table_id_t, std::unique_ptr<RelTable>> relTables;

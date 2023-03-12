@@ -2,7 +2,6 @@
 
 #include "catalog/catalog.h"
 #include "storage/buffer_manager/buffer_manager.h"
-#include "storage/buffer_manager/versioned_file_handle.h"
 #include "storage/wal/wal.h"
 #include "storage/wal/wal_record.h"
 
@@ -15,15 +14,16 @@ namespace storage {
 
 class StorageManager;
 
+// Note: This class is not thread-safe.
 class WALReplayer {
 public:
     // This interface is used for recovery only. We always recover the disk files before
     // constructing the storageManager and catalog. So this specialized recovery constructor
     // doesn't take in storageManager and bufferManager.
-    WALReplayer(WAL* wal);
+    explicit WALReplayer(WAL* wal);
 
-    WALReplayer(WAL* wal, StorageManager* storageManager, BufferManager* bufferManager,
-        MemoryManager* memoryManager, catalog::Catalog* catalog, bool isCheckpoint);
+    WALReplayer(WAL* wal, StorageManager* storageManager, MemoryManager* memoryManager,
+        catalog::Catalog* catalog, bool isCheckpoint);
 
     void replay();
 
@@ -32,9 +32,9 @@ private:
     void replayWALRecord(WALRecord& walRecord);
     void checkpointOrRollbackVersionedFileHandleAndBufferManager(
         const WALRecord& walRecord, const StorageStructureID& storageStructureID);
-    void truncateFileIfInsertion(
-        VersionedFileHandle* fileHandle, const PageUpdateOrInsertRecord& pageInsertOrUpdateRecord);
-    VersionedFileHandle* getVersionedFileHandleIfWALVersionAndBMShouldBeCleared(
+    void truncateFileIfInsertion(BufferManagedFileHandle* fileHandle,
+        const PageUpdateOrInsertRecord& pageInsertOrUpdateRecord);
+    BufferManagedFileHandle* getVersionedFileHandleIfWALVersionAndBMShouldBeCleared(
         const StorageStructureID& storageStructureID);
     std::unique_ptr<catalog::Catalog> getCatalogForRecovery(common::DBFileType dbFileType);
 
@@ -46,7 +46,7 @@ private:
     StorageManager* storageManager;
     BufferManager* bufferManager;
     MemoryManager* memoryManager;
-    std::shared_ptr<FileHandle> walFileHandle;
+    std::shared_ptr<BufferManagedFileHandle> walFileHandle;
     std::unique_ptr<uint8_t[]> pageBuffer;
     std::shared_ptr<spdlog::logger> logger;
     WAL* wal;

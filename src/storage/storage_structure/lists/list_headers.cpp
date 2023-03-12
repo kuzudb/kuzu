@@ -33,14 +33,16 @@ ListHeaders::ListHeaders(const StorageStructureIDAndFName& storageStructureIDAnd
     storageStructureIDAndFName.storageStructureID.listFileID.listFileType = ListFileType::HEADERS;
     storageStructureIDAndFName.fName =
         StorageUtils::getListHeadersFName(storageStructureIDAndFNameForBaseList.fName);
-    versionedFileHandle = std::make_unique<VersionedFileHandle>(
-        storageStructureIDAndFName, FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS);
+    fileHandle = bufferManager->getBufferManagedFileHandle(storageStructureIDAndFName.fName,
+        FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS,
+        BufferManagedFileHandle::FileVersionedType::VERSIONED_FILE);
     storageStructureIDAndFName.storageStructureID.listFileID.listFileType = ListFileType::HEADERS;
-    storageStructureIDAndFName.fName = versionedFileHandle->getFileInfo()->path;
-    headersDiskArray = std::make_unique<InMemDiskArray<list_header_t>>(
-        *versionedFileHandle, LIST_HEADERS_HEADER_PAGE_IDX, bufferManager, wal);
+    storageStructureIDAndFName.fName = fileHandle->getFileInfo()->path;
+    headersDiskArray = std::make_unique<InMemDiskArray<list_header_t>>(*fileHandle,
+        storageStructureIDAndFName.storageStructureID, LIST_HEADERS_HEADER_PAGE_IDX, bufferManager,
+        wal);
     logger->info("ListHeaders: #numNodeOffsets {}", headersDiskArray->header.numElements);
-};
+}
 
 } // namespace storage
 } // namespace kuzu

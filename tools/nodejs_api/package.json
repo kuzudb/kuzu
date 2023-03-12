@@ -12,12 +12,16 @@
     "build": "(cd ../..; make release) && cmake-js compile && npm run js",
     "clean": "cmake-js clean && rm -rf cmake_install.cmake Makefile",
     "js": "cp src_nodejs/* build/kuzu/",
-    "all": "npm run clean && npm run build && node sample.js"
+    "all": "npm run clean && npm run build && node sample.js",
+    "test": "mocha"
   },
   "author": "Kùzu Team",
   "license": "MIT",
   "dependencies": {
+    "chai": "^4.3.7",
     "cmake-js": "^7.1.1",
-    "node-addon-api": "^6.0.0"
+    "mocha": "^10.2.0",
+    "node-addon-api": "^6.0.0",
+    "tmp": "^0.2.1"
   }
 }

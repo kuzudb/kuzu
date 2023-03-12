@@ -15,9 +15,11 @@ std::unique_ptr<BoundStatement> Binder::bindCopy(const Statement& statement) {
     auto tableName = copyCSV.getTableName();
     validateTableExist(catalog, tableName);
     auto tableID = catalogContent->getTableID(tableName);
-    auto filePath = copyCSV.getCSVFileName();
+    auto filePaths = copyCSV.getFilePaths();
     auto csvReaderConfig = bindParsingOptions(copyCSV.getParsingOptions());
-    return make_unique<BoundCopy>(CopyDescription(filePath, csvReaderConfig), tableID, tableName);
+    auto fileType = bindFileType(filePaths);
+    return make_unique<BoundCopy>(
+        CopyDescription(filePaths, csvReaderConfig, fileType), tableID, tableName);
 }
 
 CSVReaderConfig Binder::bindParsingOptions(
@@ -74,6 +76,38 @@ char Binder::bindParsingOptionValue(std::string value) {
                               "optional escape character.");
     }
     return value[value.length() - 1];
+}
+
+CopyDescription::FileType Binder::bindFileType(std::vector<std::string> filePaths) {
+    // We currently only support loading from files with the same type. Loading files with different
+    // types is not supported.
+    auto fileName = filePaths[0];
+    auto csvSuffix = CopyDescription::getFileTypeSuffix(CopyDescription::FileType::CSV);
+    auto arrowSuffix = CopyDescription::getFileTypeSuffix(CopyDescription::FileType::ARROW);
+    auto parquetSuffix = CopyDescription::getFileTypeSuffix(CopyDescription::FileType::PARQUET);
+
+    if (fileName.length() >= csvSuffix.length()) {
+        if (!fileName.compare(
+                fileName.length() - csvSuffix.length(), csvSuffix.length(), csvSuffix)) {
+            return CopyDescription::FileType::CSV;
+        }
+    }
+
+    if (fileName.length() >= arrowSuffix.length()) {
+        if (!fileName.compare(
+                fileName.length() - arrowSuffix.length(), arrowSuffix.length(), arrowSuffix)) {
+            return CopyDescription::FileType::ARROW;
+        }
+    }
+
+    if (fileName.length() >= parquetSuffix.length()) {
+        if (!fileName.compare(fileName.length() - parquetSuffix.length(), parquetSuffix.length(),
+                parquetSuffix)) {
+            return CopyDescription::FileType::PARQUET;
+        }
+    }
+
+    throw CopyException("Unsupported file type: " + fileName);
 }
 
 } // namespace binder

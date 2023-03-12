@@ -4,7 +4,6 @@
 
 #include "common/types/types_include.h"
 #include "storage/buffer_manager/buffer_manager.h"
-#include "storage/buffer_manager/file_handle.h"
 #include "storage/wal/wal_record.h"
 
 namespace spdlog {
@@ -28,7 +27,7 @@ class BaseWALAndWALIterator {
 protected:
     BaseWALAndWALIterator() : BaseWALAndWALIterator(nullptr) {}
 
-    explicit BaseWALAndWALIterator(std::shared_ptr<FileHandle> fileHandle)
+    explicit BaseWALAndWALIterator(std::shared_ptr<BufferManagedFileHandle> fileHandle)
         : fileHandle{std::move(fileHandle)}, offsetInCurrentHeaderPage{INT64_MAX},
           currentHeaderPageIdx{INT32_MAX} {
         currentHeaderPageBuffer = std::make_unique<uint8_t[]>(WAL_HEADER_PAGE_SIZE);
@@ -61,7 +60,7 @@ protected:
     }
 
 public:
-    std::shared_ptr<FileHandle> fileHandle;
+    std::shared_ptr<BufferManagedFileHandle> fileHandle;
     // Used by WAL as the next offset to write and by WALIterator as the next offset to read
     uint64_t offsetInCurrentHeaderPage;
     // First header page of the WAL, if it exists, is always located at page 0 of the WAL.
@@ -136,12 +135,6 @@ public:
         return currentHeaderPageIdx == 0 && (getNumRecordsInCurrentHeaderPage() == 0);
     }
 
-    inline static std::shared_ptr<FileHandle> createWALFileHandle(const std::string& directory) {
-        return make_shared<FileHandle>(common::FileUtils::joinPath(directory,
-                                           std::string(common::StorageConstants::WAL_FILE_SUFFIX)),
-            FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS);
-    }
-
     inline std::string getDirectory() const { return directory; }
 
     inline void addToUpdatedNodeTables(common::table_id_t nodeTableID) {
@@ -179,7 +172,7 @@ private:
 
 class WALIterator : public BaseWALAndWALIterator {
 public:
-    explicit WALIterator(const std::shared_ptr<FileHandle>& fileHandle, std::mutex& mtx);
+    explicit WALIterator(std::shared_ptr<BufferManagedFileHandle> fileHandle, std::mutex& mtx);
 
     inline bool hasNextRecord() {
         lock_t lck{mtx};

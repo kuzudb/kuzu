@@ -5,7 +5,6 @@
 #include "common/constants.h"
 #include "common/vector/value_vector.h"
 #include "storage/buffer_manager/buffer_manager.h"
-#include "storage/buffer_manager/versioned_file_handle.h"
 #include "storage/storage_structure/storage_structure_utils.h"
 #include "storage/storage_utils.h"
 #include "storage/wal/wal.h"
@@ -25,12 +24,16 @@ public:
     StorageStructure(const StorageStructureIDAndFName& storageStructureIDAndFName,
         BufferManager& bufferManager, WAL* wal)
         : logger{common::LoggerUtils::getLogger(common::LoggerConstants::LoggerEnum::STORAGE)},
-          fileHandle{storageStructureIDAndFName, FileHandle::O_PERSISTENT_FILE_NO_CREATE},
-          bufferManager{bufferManager}, wal{wal} {}
+          storageStructureID{storageStructureIDAndFName.storageStructureID},
+          bufferManager{bufferManager}, wal{wal} {
+        fileHandle = bufferManager.getBufferManagedFileHandle(storageStructureIDAndFName.fName,
+            FileHandle::O_PERSISTENT_FILE_NO_CREATE,
+            BufferManagedFileHandle::FileVersionedType::VERSIONED_FILE);
+    }
 
     virtual ~StorageStructure() = default;
 
-    inline VersionedFileHandle* getFileHandle() { return &fileHandle; }
+    inline BufferManagedFileHandle* getFileHandle() { return fileHandle.get(); }
 
 protected:
     void addNewPageToFileHandle();
@@ -46,7 +49,8 @@ protected:
 
 protected:
     std::shared_ptr<spdlog::logger> logger;
-    VersionedFileHandle fileHandle;
+    StorageStructureID storageStructureID;
+    std::unique_ptr<BufferManagedFileHandle> fileHandle;
     BufferManager& bufferManager;
     WAL* wal;
 };

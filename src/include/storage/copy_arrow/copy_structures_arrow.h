@@ -23,35 +23,39 @@ namespace kuzu {
 namespace storage {
 
 class CopyStructuresArrow {
-protected:
+    struct FileBlockInfo {
+        FileBlockInfo(common::offset_t startOffset, uint64_t numBlocks,
+            std::vector<uint64_t> numLinesPerBlock)
+            : startOffset{startOffset}, numBlocks{numBlocks}, numLinesPerBlock{
+                                                                  std::move(numLinesPerBlock)} {}
+        common::offset_t startOffset;
+        uint64_t numBlocks;
+        std::vector<uint64_t> numLinesPerBlock;
+    };
+
+public:
     CopyStructuresArrow(common::CopyDescription& copyDescription, std::string outputDirectory,
-        common::TaskScheduler& taskScheduler, catalog::Catalog& catalog);
+        common::TaskScheduler& taskScheduler, catalog::Catalog& catalog,
+        common::table_id_t tableID);
+
+    uint64_t copy();
 
     virtual ~CopyStructuresArrow() = default;
 
-public:
+protected:
+    virtual void updateTableStatistics() = 0;
+
+    virtual void initializeColumnsAndLists() = 0;
+
+    virtual void populateColumnsAndLists() = 0;
+
     virtual void saveToFile() = 0;
 
-protected:
-    // Initializes (in listHeadersBuilder) the header of each list in a Lists structure, from the
-    // listSizes. ListSizes is used to determine if the list is small or large, based on which,
-    // information is encoded in the 4 byte header.
-    static void calculateListHeadersTask(common::offset_t numNodes, uint32_t elementSize,
-        atomic_uint64_vec_t* listSizes, ListHeadersBuilder* listHeadersBuilder,
-        const std::shared_ptr<spdlog::logger>& logger);
+    void populateInMemoryStructures();
 
-    // Initializes Metadata information of a Lists structure, that is chunksPagesMap and
-    // largeListsPagesMap, using listSizes and listHeadersBuilder.
-    // **Note that this file also allocates the in-memory pages of the InMemFile that will actually
-    // store the data in the lists (e.g., neighbor ids or edge properties).
-    static void calculateListsMetadataAndAllocateInMemListPagesTask(uint64_t numNodes,
-        uint32_t elementSize, atomic_uint64_vec_t* listSizes,
-        ListHeadersBuilder* listHeadersBuilder, InMemLists* inMemList, bool hasNULLBytes,
-        const std::shared_ptr<spdlog::logger>& logger);
+    void countNumLines(const std::vector<std::string>& filePath);
 
-    void countNumLines(const std::string& filePath);
-
-    arrow::Status countNumLinesCSV(std::string const& filePath);
+    arrow::Status countNumLinesCSV(const std::vector<std::string>& filePaths);
 
     arrow::Status countNumLinesArrow(std::string const& filePath);
 
@@ -71,6 +75,7 @@ protected:
 
     arrow::Status initParquetReaderAndCheckStatus(
         std::unique_ptr<parquet::arrow::FileReader>& reader, const std::string& filePath);
+
     arrow::Status initParquetReader(
         std::unique_ptr<parquet::arrow::FileReader>& reader, const std::string& filePath);
 
@@ -89,10 +94,10 @@ protected:
     std::shared_ptr<spdlog::logger> logger;
     common::CopyDescription& copyDescription;
     std::string outputDirectory;
-    uint64_t numBlocks;
-    std::vector<uint64_t> numLinesPerBlock;
+    std::unordered_map<std::string, FileBlockInfo> fileBlockInfos;
     common::TaskScheduler& taskScheduler;
     catalog::Catalog& catalog;
+    catalog::TableSchema* tableSchema;
     uint64_t numRows;
 };
 

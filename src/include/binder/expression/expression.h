@@ -3,6 +3,7 @@
 #include <cassert>
 #include <functional>
 #include <memory>
+#include <unordered_map>
 #include <unordered_set>
 
 #include "common/exception.h"
@@ -20,6 +21,9 @@ struct ExpressionHasher;
 struct ExpressionEquality;
 using expression_set =
     std::unordered_set<std::shared_ptr<Expression>, ExpressionHasher, ExpressionEquality>;
+template<typename T>
+using expression_map =
+    std::unordered_map<std::shared_ptr<Expression>, T, ExpressionHasher, ExpressionEquality>;
 
 class Expression : public std::enable_shared_from_this<Expression> {
 public:

@@ -89,7 +89,7 @@ public:
     }
     inline DiskOverflowFile* getDiskOverflowFile() { return &diskOverflowFile; }
 
-    inline VersionedFileHandle* getDiskOverflowFileHandle() {
+    inline BufferManagedFileHandle* getDiskOverflowFileHandle() {
         return diskOverflowFile.getFileHandle();
     }
 

@@ -40,6 +40,10 @@ TEST_F(TinySnbReadTest, Filter) {
     runTest(TestHelper::appendKuzuRootPath("test/test_files/tinysnb/filter/multi_label.test"));
 }
 
+TEST_F(TinySnbReadTest, Asp) {
+    runTest(TestHelper::appendKuzuRootPath("test/test_files/tinysnb/asp/asp.test"));
+}
+
 TEST_F(TinySnbReadTest, Function) {
     runTest(TestHelper::appendKuzuRootPath("test/test_files/tinysnb/function/offset.test"));
     runTest(TestHelper::appendKuzuRootPath("test/test_files/tinysnb/function/date.test"));

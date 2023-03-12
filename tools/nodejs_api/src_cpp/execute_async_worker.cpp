@@ -16,8 +16,8 @@ void ExecuteAsyncWorker::Execute() {
     try {
         shared_ptr<kuzu::main::QueryResult> queryResult;
         if (!params.empty()) {
-//             auto preparedStatement = std::move(connection->prepare(query));
-//             queryResult = connection->executeWithParams(preparedStatement.get(), params);
+            auto preparedStatement = std::move(connection->prepare(query));
+            queryResult = connection->executeWithParams(preparedStatement.get(), params);
         } else {
              queryResult = connection->query(query);
         }

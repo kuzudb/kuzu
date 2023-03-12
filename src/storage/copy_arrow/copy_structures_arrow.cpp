@@ -10,131 +10,71 @@ namespace kuzu {
 namespace storage {
 
 CopyStructuresArrow::CopyStructuresArrow(CopyDescription& copyDescription,
-    std::string outputDirectory, TaskScheduler& taskScheduler, Catalog& catalog)
+    std::string outputDirectory, TaskScheduler& taskScheduler, Catalog& catalog,
+    common::table_id_t tableID)
     : logger{LoggerUtils::getLogger(LoggerConstants::LoggerEnum::LOADER)},
-      copyDescription{copyDescription}, outputDirectory{std::move(outputDirectory)}, numBlocks{0},
-      taskScheduler{taskScheduler}, catalog{catalog}, numRows{0} {}
+      copyDescription{copyDescription}, outputDirectory{std::move(outputDirectory)},
+      taskScheduler{taskScheduler}, catalog{catalog}, numRows{0},
+      tableSchema{catalog.getReadOnlyVersion()->getTableSchema(tableID)} {}
 
-// Lists headers are created for only AdjLists, which store data in the page without NULL bits.
-void CopyStructuresArrow::calculateListHeadersTask(offset_t numNodes, uint32_t elementSize,
-    atomic_uint64_vec_t* listSizes, ListHeadersBuilder* listHeadersBuilder,
-    const std::shared_ptr<spdlog::logger>& logger) {
-    logger->trace("Start: ListHeadersBuilder={0:p}", (void*)listHeadersBuilder);
-    auto numElementsPerPage = PageUtils::getNumElementsInAPage(elementSize, false /* hasNull */);
-    auto numChunks = StorageUtils::getNumChunks(numNodes);
-    offset_t nodeOffset = 0u;
-    uint64_t lAdjListsIdx = 0u;
-    for (auto chunkId = 0u; chunkId < numChunks; chunkId++) {
-        auto csrOffset = 0u;
-        auto lastNodeOffsetInChunk =
-            std::min(nodeOffset + ListsMetadataConstants::LISTS_CHUNK_SIZE, numNodes);
-        for (auto i = nodeOffset; i < lastNodeOffsetInChunk; i++) {
-            auto numElementsInList = (*listSizes)[nodeOffset].load(std::memory_order_relaxed);
-            uint32_t header;
-            if (numElementsInList >= numElementsPerPage) {
-                header = ListHeaders::getLargeListHeader(lAdjListsIdx++);
-            } else {
-                header = ListHeaders::getSmallListHeader(csrOffset, numElementsInList);
-                csrOffset += numElementsInList;
-            }
-            listHeadersBuilder->setHeader(nodeOffset, header);
-            nodeOffset++;
-        }
-    }
-    logger->trace("End: adjListHeadersBuilder={0:p}", (void*)listHeadersBuilder);
+uint64_t CopyStructuresArrow::copy() {
+    logger->info(StringUtils::string_format("Copying {} file to table {}.",
+        CopyDescription::getFileTypeName(copyDescription.fileType), tableSchema->tableName));
+    populateInMemoryStructures();
+    updateTableStatistics();
+    saveToFile();
+    logger->info("Done copying file to table {}.", tableSchema->tableName);
+    return numRows;
 }
 
-void CopyStructuresArrow::calculateListsMetadataAndAllocateInMemListPagesTask(uint64_t numNodes,
-    uint32_t elementSize, atomic_uint64_vec_t* listSizes, ListHeadersBuilder* listHeadersBuilder,
-    InMemLists* inMemList, bool hasNULLBytes, const std::shared_ptr<spdlog::logger>& logger) {
-    logger->trace("Start: listsMetadataBuilder={0:p} adjListHeadersBuilder={1:p}",
-        (void*)inMemList->getListsMetadataBuilder(), (void*)listHeadersBuilder);
-    auto numChunks = StorageUtils::getNumChunks(numNodes);
-    offset_t nodeOffset = 0u;
-    auto largeListIdx = 0u;
-    for (auto chunkId = 0u; chunkId < numChunks; chunkId++) {
-        auto lastNodeOffsetInChunk =
-            std::min(nodeOffset + ListsMetadataConstants::LISTS_CHUNK_SIZE, numNodes);
-        for (auto i = nodeOffset; i < lastNodeOffsetInChunk; i++) {
-            if (ListHeaders::isALargeList(listHeadersBuilder->getHeader(nodeOffset))) {
-                largeListIdx++;
-            }
-            nodeOffset++;
-        }
-    }
-    inMemList->getListsMetadataBuilder()->initLargeListPageLists(largeListIdx);
-    nodeOffset = 0u;
-    largeListIdx = 0u;
-    auto numPerPage = PageUtils::getNumElementsInAPage(elementSize, hasNULLBytes);
-    for (auto chunkId = 0u; chunkId < numChunks; chunkId++) {
-        auto numPages = 0u, offsetInPage = 0u;
-        auto lastNodeOffsetInChunk =
-            std::min(nodeOffset + ListsMetadataConstants::LISTS_CHUNK_SIZE, numNodes);
-        while (nodeOffset < lastNodeOffsetInChunk) {
-            auto numElementsInList = (*listSizes)[nodeOffset].load(std::memory_order_relaxed);
-            if (ListHeaders::isALargeList(listHeadersBuilder->getHeader(nodeOffset))) {
-                auto numPagesForLargeList = numElementsInList / numPerPage;
-                if (0 != numElementsInList % numPerPage) {
-                    numPagesForLargeList++;
-                }
-                inMemList->getListsMetadataBuilder()->populateLargeListPageList(largeListIdx,
-                    numPagesForLargeList, numElementsInList,
-                    inMemList->inMemFile->getNumPages() /* start idx of pages in .lists file */);
-                inMemList->inMemFile->addNewPages(numPagesForLargeList);
-                largeListIdx++;
-            } else {
-                while (numElementsInList + offsetInPage > numPerPage) {
-                    numElementsInList -= (numPerPage - offsetInPage);
-                    numPages++;
-                    offsetInPage = 0;
-                }
-                offsetInPage += numElementsInList;
-            }
-            nodeOffset++;
-        }
-        if (0 != offsetInPage) {
-            numPages++;
-        }
-        inMemList->getListsMetadataBuilder()->populateChunkPageList(chunkId, numPages,
-            inMemList->inMemFile->getNumPages() /* start idx of pages in .lists file */);
-        inMemList->inMemFile->addNewPages(numPages);
-    }
-    logger->trace("End: listsMetadata={0:p} listHeadersBuilder={1:p}",
-        (void*)inMemList->getListsMetadataBuilder(), (void*)listHeadersBuilder);
+void CopyStructuresArrow::populateInMemoryStructures() {
+    countNumLines(copyDescription.filePaths);
+    initializeColumnsAndLists();
+    populateColumnsAndLists();
 }
 
-void CopyStructuresArrow::countNumLines(const std::string& filePath) {
+void CopyStructuresArrow::countNumLines(const std::vector<std::string>& filePaths) {
     arrow::Status status;
     switch (copyDescription.fileType) {
-    case CopyDescription::FileType::CSV:
-        status = countNumLinesCSV(filePath);
-        break;
-
-    case CopyDescription::FileType::ARROW:
-        status = countNumLinesArrow(filePath);
-        break;
-
-    case CopyDescription::FileType::PARQUET:
-        status = countNumLinesParquet(filePath);
-        break;
+    case CopyDescription::FileType::CSV: {
+        status = countNumLinesCSV(filePaths);
+    } break;
+    // Note: we only support copying a single arrow/parquet file to a table.
+    case CopyDescription::FileType::ARROW: {
+        status = countNumLinesArrow(filePaths[0]);
+    } break;
+    case CopyDescription::FileType::PARQUET: {
+        status = countNumLinesParquet(filePaths[0]);
+    } break;
+    default: {
+        throw CopyException{StringUtils::string_format("Unrecognized file type: {}.",
+            CopyDescription::getFileTypeName(copyDescription.fileType))};
+    }
     }
     throwCopyExceptionIfNotOK(status);
 }
 
-arrow::Status CopyStructuresArrow::countNumLinesCSV(const std::string& filePath) {
-    std::shared_ptr<arrow::csv::StreamingReader> csv_streaming_reader;
-    auto status = initCSVReaderAndCheckStatus(csv_streaming_reader, filePath);
+arrow::Status CopyStructuresArrow::countNumLinesCSV(const std::vector<std::string>& filePaths) {
     numRows = 0;
-    numBlocks = 0;
-    std::shared_ptr<arrow::RecordBatch> currBatch;
-
-    auto endIt = csv_streaming_reader->end();
-    for (auto it = csv_streaming_reader->begin(); it != endIt; ++it) {
-        ARROW_ASSIGN_OR_RAISE(currBatch, *it);
-        ++numBlocks;
-        auto currNumRows = currBatch->num_rows();
-        numLinesPerBlock.push_back(currNumRows);
-        numRows += currNumRows;
+    arrow::Status status;
+    for (auto& filePath : filePaths) {
+        std::shared_ptr<arrow::csv::StreamingReader> csv_streaming_reader;
+        status = initCSVReaderAndCheckStatus(csv_streaming_reader, filePath);
+        throwCopyExceptionIfNotOK(status);
+        std::shared_ptr<arrow::RecordBatch> currBatch;
+        uint64_t numBlocks = 0;
+        std::vector<uint64_t> numLinesPerBlock;
+        auto endIt = csv_streaming_reader->end();
+        auto startNodeOffset = numRows;
+        for (auto it = csv_streaming_reader->begin(); it != endIt; ++it) {
+            ARROW_ASSIGN_OR_RAISE(currBatch, *it);
+            ++numBlocks;
+            auto currNumRows = currBatch->num_rows();
+            numLinesPerBlock.push_back(currNumRows);
+            numRows += currNumRows;
+        }
+        fileBlockInfos.emplace(
+            filePath, FileBlockInfo{startNodeOffset, numBlocks, numLinesPerBlock});
     }
     return status;
 }
@@ -143,32 +83,31 @@ arrow::Status CopyStructuresArrow::countNumLinesArrow(const std::string& filePat
     std::shared_ptr<arrow::ipc::RecordBatchFileReader> ipc_reader;
     auto status = initArrowReaderAndCheckStatus(ipc_reader, filePath);
     numRows = 0;
-    numBlocks = ipc_reader->num_record_batches();
-    numLinesPerBlock.resize(numBlocks);
-    std::shared_ptr<arrow::RecordBatch> rbatch;
-
-    for (uint64_t blockId = 0; blockId < numBlocks; ++blockId) {
-        ARROW_ASSIGN_OR_RAISE(rbatch, ipc_reader->ReadRecordBatch(blockId));
-        numLinesPerBlock[blockId] = rbatch->num_rows();
-        numRows += rbatch->num_rows();
+    uint64_t numBlocks = ipc_reader->num_record_batches();
+    std::vector<uint64_t> numLinesPerBlock(numBlocks);
+    std::shared_ptr<arrow::RecordBatch> recordBatch;
+    for (uint64_t blockIdx = 0; blockIdx < numBlocks; ++blockIdx) {
+        ARROW_ASSIGN_OR_RAISE(recordBatch, ipc_reader->ReadRecordBatch(blockIdx));
+        numLinesPerBlock[blockIdx] = recordBatch->num_rows();
+        numRows += recordBatch->num_rows();
     }
+    fileBlockInfos.emplace(filePath, FileBlockInfo{numRows, numBlocks, numLinesPerBlock});
     return status;
 }
 
 arrow::Status CopyStructuresArrow::countNumLinesParquet(const std::string& filePath) {
     std::unique_ptr<parquet::arrow::FileReader> reader;
     auto status = initParquetReaderAndCheckStatus(reader, filePath);
-
     numRows = 0;
-    numBlocks = reader->num_row_groups();
-    numLinesPerBlock.resize(numBlocks);
+    uint64_t numBlocks = reader->num_row_groups();
+    std::vector<uint64_t> numLinesPerBlock(numBlocks);
     std::shared_ptr<arrow::Table> table;
-
-    for (uint64_t blockId = 0; blockId < numBlocks; ++blockId) {
-        ARROW_RETURN_NOT_OK(reader->RowGroup(blockId)->ReadTable(&table));
-        numLinesPerBlock[blockId] = table->num_rows();
+    for (auto blockIdx = 0; blockIdx < numBlocks; ++blockIdx) {
+        ARROW_RETURN_NOT_OK(reader->RowGroup(blockIdx)->ReadTable(&table));
+        numLinesPerBlock[blockIdx] = table->num_rows();
         numRows += table->num_rows();
     }
+    fileBlockInfos.emplace(filePath, FileBlockInfo{numRows, numBlocks, numLinesPerBlock});
     return status;
 }
 
