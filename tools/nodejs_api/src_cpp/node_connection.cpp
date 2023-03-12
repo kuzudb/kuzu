@@ -28,10 +28,6 @@ NodeConnection::NodeConnection(const Napi::CallbackInfo& info) : Napi::ObjectWra
   Napi::Env env = info.Env();
   Napi::HandleScope scope(env);
 
-  if (info.Length()!=2 || !info[0].IsObject() || !info[1].IsNumber()) {
-      Napi::TypeError::New(env, "Need a valid database class passed in").ThrowAsJavaScriptException();
-      return;
-  }
   NodeDatabase * nodeDatabase = Napi::ObjectWrap<NodeDatabase>::Unwrap(info[0].As<Napi::Object>());
   uint64_t numThreads = info[1].As<Napi::Number>().DoubleValue();
 
@@ -51,12 +47,8 @@ Napi::Value NodeConnection::Execute(const Napi::CallbackInfo& info) {
   Napi::Env env = info.Env();
   Napi::HandleScope scope(env);
 
-  if (!info.Length()==4 || !info[0].IsString() || !info[1].IsFunction() || !info[2].IsObject() || !info[3].IsArray()) {
-      Napi::TypeError::New(env, "Execute needs query parameter").ThrowAsJavaScriptException();
-      return Napi::Object::New(env);
-  }
   std::string query = info[0].ToString();
-  Function callback = info[1].As<Function>();
+  Napi::Function callback = info[1].As<Napi::Function>();
   NodeQueryResult * nodeQueryResult = Napi::ObjectWrap<NodeQueryResult>::Unwrap(info[2].As<Napi::Object>());
   auto params = Util::transformParameters(info[3].As<Napi::Array>());
   try {
@@ -72,10 +64,6 @@ void NodeConnection::SetMaxNumThreadForExec(const Napi::CallbackInfo& info) {
   Napi::Env env = info.Env();
   Napi::HandleScope scope(env);
 
-  if (info.Length()!=1 || !info[0].IsNumber()) {
-      Napi::TypeError::New(env, "Need Integer Number of Threads as an argument").ThrowAsJavaScriptException();
-      return;
-  }
   uint64_t numThreads = info[0].ToNumber().DoubleValue();
   try {
       this->connection->setMaxNumThreadForExec(numThreads);
@@ -89,10 +77,6 @@ Napi::Value NodeConnection::GetNodePropertyNames(const Napi::CallbackInfo& info)
   Napi::Env env = info.Env();
   Napi::HandleScope scope(env);
 
-  if (info.Length()!=1 || !info[0].IsString()) {
-      Napi::TypeError::New(env, "Need Table Name as an argument").ThrowAsJavaScriptException();
-      return Napi::Object::New(env);
-  }
   std::string tableName = info[0].ToString();
   std::string propertyNames;
   try {

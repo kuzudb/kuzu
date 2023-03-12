@@ -1,5 +1,7 @@
 #include "include/util.h"
 
+using namespace kuzu::common;
+
 Napi::Object Util::GetObjectFromProperties(const vector<pair<std::string, unique_ptr<kuzu::common::Value>>>& properties, Napi::Env env) {
     Napi::Object nodeObj = Napi::Object::New(env);
     for (auto i = 0u; i < properties.size(); ++i) {
@@ -44,7 +46,7 @@ Napi::Value Util::ConvertToNapiObject(const kuzu::common::Value& value, Napi::En
         intervalObj.Set("microseconds", Napi::Number::New(env, intervalVal.micros));
         return intervalObj;
     }
-    case kuzu::common::LIST: {
+    case kuzu::common::VAR_LIST: {
         auto& listVal = value.getListValReference();
         Napi::Array arr = Napi::Array::New(env, listVal.size());
         for (auto i = 0u; i < listVal.size(); ++i) {
@@ -80,6 +82,13 @@ Napi::Value Util::ConvertToNapiObject(const kuzu::common::Value& value, Napi::En
         nodeObj.Set("_dst", nestedObjDst);
 
         return nodeObj;
+    }
+    case kuzu::common::INTERNAL_ID: {
+        auto internalIDVal = value.getValue<nodeID_t>();
+        Napi::Object nestedObjDst = Napi::Object::New(env);
+        nestedObjDst.Set("offset", Napi::Number::New(env, internalIDVal.offset));
+        nestedObjDst.Set("table", Napi::Number::New(env, internalIDVal.tableID));
+        return nestedObjDst;
     }
     default:
         Napi::TypeError::New(env, "Unsupported type: " + kuzu::common::Types::dataTypeToString(dataType));

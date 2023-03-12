@@ -15,7 +15,8 @@ void TsfnContext::threadEntry(TsfnContext* context) {
         for (auto i = 0u; i < columnNames.size(); ++i) {
             colArray.Set(i, columnNames[i]);
         }
-        arr.Set(i++, colArray);
+        if (context->type == TsfnContext::EACH) { jsCallback.Call({env.Null(), colArray}); }
+        else { arr.Set(i++, colArray); }
         while (context->queryResult->hasNext()) {
             auto row = context->queryResult->getNext();
             Napi::Array rowArray = Napi::Array::New(env);
@@ -24,7 +25,7 @@ void TsfnContext::threadEntry(TsfnContext* context) {
                 rowArray.Set(j, val);
             }
             if (context->type == TsfnContext::EACH) { jsCallback.Call({env.Null(), rowArray}); }
-            arr.Set(i++, rowArray);
+            else { arr.Set(i++, rowArray); }
         }
         if (context->type == TsfnContext::ALL) { jsCallback.Call({env.Null(), arr}); }
         else if (context->type == TsfnContext::EACH) { context->_doneCallback->Call({}); }
