@@ -4,6 +4,9 @@
 #include <napi.h>
 #include <iostream>
 #include "main/kuzu.h"
+#include "binder/bound_statement_result.h"
+#include "planner/logical_plan/logical_plan.h"
+#include "processor/result/factorized_table.h"
 
 using namespace std;
 
