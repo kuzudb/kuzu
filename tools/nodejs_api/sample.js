@@ -3,7 +3,7 @@ const fs = require("fs");
 const {Database, Connection} = require("./build/kuzu");
 
 try {
-  fs.rmSync("./test", { recursive: true });
+  fs.rmSync("./testDb", { recursive: true });
 } catch (e) {
   // ignore
 }
@@ -34,7 +34,7 @@ async function executeAllPromise(err, queryResult) {
 }
 
 // Basic Case with all callback
-const database = new Database("test", 1000000000);
+const database = new Database("testDb", 1000000000);
 console.log("The database looks like: ", database);
 const connection = new Connection(database);
 console.log ("The connection looks like: ", connection);
