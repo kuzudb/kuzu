@@ -25,3 +25,9 @@ Dan|Carol
 ---- 2
 Carol
 Dan
+
+-NAME AspIntersect
+-QUERY MATCH (a:person)<-[e1:knows]-(b:person)-[e2:knows]->(c:person), (a)-[e3:knows]->(c) WHERE b.fName='Bob' AND a.fName='Alice' RETURN COUNT(*)
+-ENUMERATE
+---- 1
+2

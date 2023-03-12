@@ -14,9 +14,16 @@ private:
     void visitOperator(planner::LogicalOperator* op);
 
     void visitHashJoin(planner::LogicalOperator* op) override;
+    void visitIntersect(planner::LogicalOperator* op) override;
+
+    bool isProbeSideQualified(planner::LogicalOperator* probeRoot);
 
     std::vector<planner::LogicalOperator*> resolveScanNodesToApplySemiMask(
-        planner::LogicalOperator* op);
+        const binder::expression_vector& nodeIDCandidates,
+        const std::vector<planner::LogicalOperator*>& buildRoots);
+
+    void applyASP(
+        const std::vector<planner::LogicalOperator*>& scanNodes, planner::LogicalOperator* op);
 };
 
 } // namespace optimizer
