@@ -18,8 +18,8 @@ const initTests = async () => {
     });
   });
 
-  const db = new kuzu.Database(dbPath, 1 << 29 /* 512MB */);
-  const conn = new kuzu.Connection(db);
+  const db = new kuzu.Database(dbPath, 1 << 28 /* 256MB */);
+  const conn = new kuzu.Connection(db, 4);
   await conn.execute(`CREATE NODE TABLE person (ID INT64, fName STRING, 
                       gender INT64, isStudent BOOLEAN, isWorker BOOLEAN, 
                       age INT64, eyeSight DOUBLE, birthdate DATE, 
