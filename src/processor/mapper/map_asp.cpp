@@ -33,11 +33,15 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalSemiMaskerToPhysical(
     auto physicalScanNode = (ScanNodeID*)logicalOpToPhysicalOpMap.at(logicalScanNode);
     auto keyDataPos =
         DataPos(inSchema->getExpressionPos(*logicalScanNode->getNode()->getInternalIDProperty()));
-    auto semiMasker = make_unique<SemiMasker>(keyDataPos, std::move(prevOperator), getOperatorID(),
-        logicalSemiMasker->getExpressionsForPrinting());
-    assert(physicalScanNode->getSharedState()->getNumTableStates() == 1);
-    semiMasker->setSharedState(physicalScanNode->getSharedState()->getTableState(0));
-    return semiMasker;
+    if (physicalScanNode->getSharedState()->getNumTableStates() > 1) {
+        return std::make_unique<MultiTableSemiMasker>(keyDataPos,
+            physicalScanNode->getSharedState(), std::move(prevOperator), getOperatorID(),
+            logicalSemiMasker->getExpressionsForPrinting());
+    } else {
+        return std::make_unique<SingleTableSemiMasker>(keyDataPos,
+            physicalScanNode->getSharedState(), std::move(prevOperator), getOperatorID(),
+            logicalSemiMasker->getExpressionsForPrinting());
+    }
 }
 
 } // namespace processor

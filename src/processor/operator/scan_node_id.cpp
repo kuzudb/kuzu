@@ -7,7 +7,7 @@ namespace processor {
 
 // Note: blindly update mask does not parallelize well, so we minimize write by first checking
 // if the mask is set to true (mask value is equal to the expected currentMaskValue) or not.
-void ScanNodeIDSemiMask::incrementMaskValue(uint64_t nodeOffset, uint8_t currentMaskValue) {
+void NodeTableSemiMask::incrementMaskValue(uint64_t nodeOffset, uint8_t currentMaskValue) {
     if (nodeMask->isMasked(nodeOffset, currentMaskValue)) {
         nodeMask->setMask(nodeOffset, currentMaskValue + 1);
     }
@@ -17,7 +17,7 @@ void ScanNodeIDSemiMask::incrementMaskValue(uint64_t nodeOffset, uint8_t current
     }
 }
 
-std::pair<offset_t, offset_t> ScanTableNodeIDSharedState::getNextRangeToRead() {
+std::pair<offset_t, offset_t> NodeTableState::getNextRangeToRead() {
     // Note: we use maxNodeOffset=UINT64_MAX to represent an empty table.
     if (currentNodeOffset > maxNodeOffset || maxNodeOffset == INVALID_NODE_OFFSET) {
         return std::make_pair(currentNodeOffset, currentNodeOffset);
@@ -36,8 +36,7 @@ std::pair<offset_t, offset_t> ScanTableNodeIDSharedState::getNextRangeToRead() {
     return std::make_pair(startOffset, startOffset + range);
 }
 
-std::tuple<ScanTableNodeIDSharedState*, offset_t, offset_t>
-ScanNodeIDSharedState::getNextRangeToRead() {
+std::tuple<NodeTableState*, offset_t, offset_t> ScanNodeIDSharedState::getNextRangeToRead() {
     std::unique_lock lck{mtx};
     if (currentStateIdx == tableStates.size()) {
         return std::make_tuple(nullptr, INVALID_NODE_OFFSET, INVALID_NODE_OFFSET);
@@ -81,7 +80,7 @@ bool ScanNodeID::getNextTuplesInternal() {
 }
 
 void ScanNodeID::setSelVector(
-    ScanTableNodeIDSharedState* tableState, offset_t startOffset, offset_t endOffset) {
+    NodeTableState* tableState, offset_t startOffset, offset_t endOffset) {
     if (tableState->isSemiMaskEnabled()) {
         outValueVector->state->selVector->resetSelectorToValuePosBuffer();
         // Fill selected positions based on node mask for nodes between the given startOffset and
