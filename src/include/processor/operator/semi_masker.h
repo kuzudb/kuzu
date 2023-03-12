@@ -7,7 +7,6 @@ namespace kuzu {
 namespace processor {
 
 class SemiMasker : public PhysicalOperator {
-
 public:
     SemiMasker(const DataPos& keyDataPos, std::unique_ptr<PhysicalOperator> child, uint32_t id,
         const std::string& paramsString)
@@ -20,11 +19,9 @@ public:
           keyDataPos{other.keyDataPos}, maskerIdx{other.maskerIdx},
           scanTableNodeIDSharedState{other.scanTableNodeIDSharedState} {}
 
-    // This function is used in the plan mapper to configure the shared state between the SemiMasker
-    // and ScanNodeID.
-    void setSharedState(ScanTableNodeIDSharedState* sharedState);
-
-    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
+    inline void setSharedState(ScanTableNodeIDSharedState* sharedState) {
+        scanTableNodeIDSharedState = sharedState;
+    }
 
     bool getNextTuplesInternal() override;
 
@@ -33,9 +30,9 @@ public:
     }
 
 private:
-    inline void initGlobalStateInternal(ExecutionContext* context) override {
-        scanTableNodeIDSharedState->initSemiMask(context->transaction);
-    }
+    void initGlobalStateInternal(ExecutionContext* context) override;
+
+    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
 private:
     DataPos keyDataPos;

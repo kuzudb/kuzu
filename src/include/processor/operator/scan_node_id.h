@@ -29,11 +29,13 @@ public:
     explicit ScanNodeIDSemiMask() : numMaskers{0} {}
 
     inline void initializeMaskData(common::offset_t maxNodeOffset, common::offset_t maxMorselIdx) {
-        if (nodeMask == nullptr) {
-            assert(morselMask == nullptr);
-            nodeMask = std::make_unique<Mask>(maxNodeOffset + 1);
-            morselMask = std::make_unique<Mask>(maxMorselIdx + 1);
+        if (nodeMask != nullptr) {
+            // Multiple semi mask might be applied to the same sacn and thus initialize repeatedly.
+            return;
         }
+        assert(morselMask == nullptr && maxNodeOffset != common::INVALID_NODE_OFFSET);
+        nodeMask = std::make_unique<Mask>(maxNodeOffset + 1);
+        morselMask = std::make_unique<Mask>(maxMorselIdx + 1);
     }
 
     inline bool isMorselMasked(uint64_t morselIdx) {
@@ -67,12 +69,17 @@ public:
     inline storage::NodeTable* getTable() { return table; }
 
     inline void initializeMaxOffset(transaction::Transaction* transaction) {
-        assert(maxNodeOffset == UINT64_MAX && maxMorselIdx == UINT64_MAX);
+        if (maxNodeOffset != common::INVALID_NODE_OFFSET) {
+            // We might initialize twice because semi mask (which is on a different pipeline that
+            // execute beforehand) will also try to initialize.
+            return;
+        }
         maxNodeOffset = table->getMaxNodeOffset(transaction);
         maxMorselIdx = maxNodeOffset >> common::DEFAULT_VECTOR_CAPACITY_LOG_2;
     }
 
     inline void initSemiMask(transaction::Transaction* transaction) {
+        initializeMaxOffset(transaction);
         semiMask->initializeMaskData(maxNodeOffset, maxMorselIdx);
     }
     inline bool isSemiMaskEnabled() { return semiMask->getNumMaskers() > 0; }
@@ -119,15 +126,13 @@ private:
 
 class ScanNodeID : public PhysicalOperator {
 public:
-    ScanNodeID(std::string nodeID, const DataPos& outDataPos,
-        std::shared_ptr<ScanNodeIDSharedState> sharedState, uint32_t id,
-        const std::string& paramsString)
+    ScanNodeID(const DataPos& outDataPos, std::shared_ptr<ScanNodeIDSharedState> sharedState,
+        uint32_t id, const std::string& paramsString)
         : PhysicalOperator{PhysicalOperatorType::SCAN_NODE_ID, id, paramsString},
-          nodeID{std::move(nodeID)}, outDataPos{outDataPos}, sharedState{std::move(sharedState)} {}
+          outDataPos{outDataPos}, sharedState{std::move(sharedState)} {}
 
     bool isSource() const override { return true; }
 
-    inline std::string getNodeID() const { return nodeID; }
     inline ScanNodeIDSharedState* getSharedState() const { return sharedState.get(); }
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
@@ -135,7 +140,7 @@ public:
     bool getNextTuplesInternal() override;
 
     inline std::unique_ptr<PhysicalOperator> clone() override {
-        return std::make_unique<ScanNodeID>(nodeID, outDataPos, sharedState, id, paramsString);
+        return std::make_unique<ScanNodeID>(outDataPos, sharedState, id, paramsString);
     }
 
 private:
@@ -147,7 +152,6 @@ private:
         common::offset_t endOffset);
 
 private:
-    std::string nodeID;
     DataPos outDataPos;
     std::shared_ptr<ScanNodeIDSharedState> sharedState;
     std::shared_ptr<common::ValueVector> outValueVector;

@@ -17,16 +17,18 @@ ListsMetadata::ListsMetadata(
     storageStructureIDAndFName.storageStructureID.listFileID.listFileType = ListFileType::METADATA;
     storageStructureIDAndFName.fName =
         StorageUtils::getListMetadataFName(storageStructureIDAndFNameForBaseList.fName);
-    metadataVersionedFileHandle = std::make_unique<VersionedFileHandle>(
-        storageStructureIDAndFName, FileHandle::O_PERSISTENT_FILE_NO_CREATE);
-    chunkToPageListHeadIdxMap =
-        std::make_unique<InMemDiskArray<uint32_t>>(*metadataVersionedFileHandle,
-            CHUNK_PAGE_LIST_HEAD_IDX_MAP_HEADER_PAGE_IDX, bufferManager, wal);
-    largeListIdxToPageListHeadIdxMap =
-        std::make_unique<InMemDiskArray<uint32_t>>(*metadataVersionedFileHandle,
-            LARGE_LIST_IDX_TO_PAGE_LIST_HEAD_IDX_MAP_HEADER_PAGE_IDX, bufferManager, wal);
-    pageLists = std::make_unique<InMemDiskArray<page_idx_t>>(
-        *metadataVersionedFileHandle, CHUNK_PAGE_LIST_HEADER_PAGE_IDX, bufferManager, wal);
+    metadataVersionedFileHandle = bufferManager->getBufferManagedFileHandle(
+        storageStructureIDAndFName.fName, FileHandle::O_PERSISTENT_FILE_NO_CREATE,
+        BufferManagedFileHandle::FileVersionedType::VERSIONED_FILE);
+    chunkToPageListHeadIdxMap = std::make_unique<InMemDiskArray<uint32_t>>(
+        *metadataVersionedFileHandle, storageStructureIDAndFName.storageStructureID,
+        CHUNK_PAGE_LIST_HEAD_IDX_MAP_HEADER_PAGE_IDX, bufferManager, wal);
+    largeListIdxToPageListHeadIdxMap = std::make_unique<InMemDiskArray<uint32_t>>(
+        *metadataVersionedFileHandle, storageStructureIDAndFName.storageStructureID,
+        LARGE_LIST_IDX_TO_PAGE_LIST_HEAD_IDX_MAP_HEADER_PAGE_IDX, bufferManager, wal);
+    pageLists = std::make_unique<InMemDiskArray<page_idx_t>>(*metadataVersionedFileHandle,
+        storageStructureIDAndFName.storageStructureID, CHUNK_PAGE_LIST_HEADER_PAGE_IDX,
+        bufferManager, wal);
 }
 
 uint64_t BaseListsMetadata::getPageIdxFromAPageList(

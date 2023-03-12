@@ -4,8 +4,8 @@
 #include <vector>
 
 #include "common/metric.h"
+#include "storage/buffer_manager/buffer_managed_file_handle.h"
 #include "storage/buffer_manager/buffer_pool.h"
-#include "storage/buffer_manager/file_handle.h"
 
 namespace spdlog {
 class logger;
@@ -58,25 +58,27 @@ public:
     BufferManager(uint64_t maxSizeForDefaultPagePool, uint64_t maxSizeForLargePagePool);
     ~BufferManager();
 
-    uint8_t* pin(FileHandle& fileHandle, common::page_idx_t pageIdx);
+    uint8_t* pin(BufferManagedFileHandle& fileHandle, common::page_idx_t pageIdx);
 
     // The caller should ensure that the given pageIdx is indeed a new page, so should not be read
     // from disk
-    uint8_t* pinWithoutReadingFromFile(FileHandle& fileHandle, common::page_idx_t pageIdx);
+    uint8_t* pinWithoutReadingFromFile(
+        BufferManagedFileHandle& fileHandle, common::page_idx_t pageIdx);
 
     inline uint8_t* pinWithoutAcquiringPageLock(
-        FileHandle& fileHandle, common::page_idx_t pageIdx, bool doNotReadFromFile) {
+        BufferManagedFileHandle& fileHandle, common::page_idx_t pageIdx, bool doNotReadFromFile) {
         return fileHandle.isLargePaged() ? bufferPoolLargePages->pinWithoutAcquiringPageLock(
                                                fileHandle, pageIdx, doNotReadFromFile) :
                                            bufferPoolDefaultPages->pinWithoutAcquiringPageLock(
                                                fileHandle, pageIdx, doNotReadFromFile);
     }
 
-    void setPinnedPageDirty(FileHandle& fileHandle, common::page_idx_t pageIdx);
+    void setPinnedPageDirty(BufferManagedFileHandle& fileHandle, common::page_idx_t pageIdx);
 
     // The function assumes that the requested page is already pinned.
-    void unpin(FileHandle& fileHandle, common::page_idx_t pageIdx);
-    inline void unpinWithoutAcquiringPageLock(FileHandle& fileHandle, common::page_idx_t pageIdx) {
+    void unpin(BufferManagedFileHandle& fileHandle, common::page_idx_t pageIdx);
+    inline void unpinWithoutAcquiringPageLock(
+        BufferManagedFileHandle& fileHandle, common::page_idx_t pageIdx) {
         return fileHandle.isLargePaged() ?
                    bufferPoolLargePages->unpinWithoutAcquiringPageLock(fileHandle, pageIdx) :
                    bufferPoolDefaultPages->unpinWithoutAcquiringPageLock(fileHandle, pageIdx);
@@ -84,13 +86,22 @@ public:
 
     void resize(uint64_t newSizeForDefaultPagePool, uint64_t newSizeForLargePagePool);
 
-    void removeFilePagesFromFrames(FileHandle& fileHandle);
+    void removeFilePagesFromFrames(BufferManagedFileHandle& fileHandle);
 
-    void flushAllDirtyPagesInFrames(FileHandle& fileHandle);
+    void flushAllDirtyPagesInFrames(BufferManagedFileHandle& fileHandle);
     void updateFrameIfPageIsInFrameWithoutPageOrFrameLock(
-        FileHandle& fileHandle, uint8_t* newPage, common::page_idx_t pageIdx);
+        BufferManagedFileHandle& fileHandle, uint8_t* newPage, common::page_idx_t pageIdx);
 
-    void removePageFromFrameIfNecessary(FileHandle& fileHandle, common::page_idx_t pageIdx);
+    void removePageFromFrameIfNecessary(
+        BufferManagedFileHandle& fileHandle, common::page_idx_t pageIdx);
+
+    // Note: This function is not thread-safe.
+    // For files that are managed by BM, their FileHandles should be created through this function.
+    inline std::unique_ptr<BufferManagedFileHandle> getBufferManagedFileHandle(
+        const std::string& filePath, uint8_t flags,
+        BufferManagedFileHandle::FileVersionedType fileVersionedType) {
+        return std::make_unique<BufferManagedFileHandle>(filePath, flags, fileVersionedType);
+    }
 
 private:
     std::shared_ptr<spdlog::logger> logger;

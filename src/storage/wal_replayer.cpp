@@ -1,6 +1,5 @@
 #include "storage/wal_replayer.h"
 
-#include "spdlog/spdlog.h"
 #include "storage/storage_manager.h"
 #include "storage/storage_utils.h"
 #include "storage/wal_replayer_utils.h"
@@ -15,11 +14,18 @@ WALReplayer::WALReplayer(WAL* wal) : isRecovering{true}, isCheckpoint{true}, wal
     init();
 }
 
-WALReplayer::WALReplayer(WAL* wal, StorageManager* storageManager, BufferManager* bufferManager,
-    MemoryManager* memoryManager, Catalog* catalog, bool isCheckpoint)
+WALReplayer::WALReplayer(WAL* wal, StorageManager* storageManager, MemoryManager* memoryManager,
+    Catalog* catalog, bool isCheckpoint)
     : isRecovering{false}, isCheckpoint{isCheckpoint}, storageManager{storageManager},
-      bufferManager{bufferManager}, memoryManager{memoryManager}, wal{wal}, catalog{catalog} {
+      bufferManager{memoryManager->getBufferManager()},
+      memoryManager{memoryManager}, wal{wal}, catalog{catalog} {
     init();
+}
+
+void WALReplayer::init() {
+    logger = LoggerUtils::getLogger(LoggerConstants::LoggerEnum::STORAGE);
+    walFileHandle = wal->fileHandle;
+    pageBuffer = std::make_unique<uint8_t[]>(BufferPoolConstants::DEFAULT_PAGE_SIZE);
 }
 
 void WALReplayer::replay() {
@@ -61,12 +67,6 @@ void WALReplayer::replay() {
             relTable->rollbackInMemoryIfNecessary();
         }
     }
-}
-
-void WALReplayer::init() {
-    logger = LoggerUtils::getLogger(LoggerConstants::LoggerEnum::STORAGE);
-    walFileHandle = WAL::createWALFileHandle(wal->getDirectory());
-    pageBuffer = std::make_unique<uint8_t[]>(BufferPoolConstants::DEFAULT_PAGE_SIZE);
 }
 
 void WALReplayer::replayWALRecord(WALRecord& walRecord) {
@@ -420,7 +420,7 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
 }
 
 void WALReplayer::truncateFileIfInsertion(
-    VersionedFileHandle* fileHandle, const PageUpdateOrInsertRecord& pageInsertOrUpdateRecord) {
+    BufferManagedFileHandle* fileHandle, const PageUpdateOrInsertRecord& pageInsertOrUpdateRecord) {
     if (pageInsertOrUpdateRecord.isInsert) {
         // If we are rolling back and this is a page insertion we truncate the fileHandle's
         // data structures that hold locks for pageIdxs.
@@ -440,7 +440,7 @@ void WALReplayer::truncateFileIfInsertion(
 
 void WALReplayer::checkpointOrRollbackVersionedFileHandleAndBufferManager(
     const WALRecord& walRecord, const StorageStructureID& storageStructureID) {
-    VersionedFileHandle* fileHandle =
+    BufferManagedFileHandle* fileHandle =
         getVersionedFileHandleIfWALVersionAndBMShouldBeCleared(storageStructureID);
     if (fileHandle) {
         fileHandle->clearWALPageVersionIfNecessary(
@@ -457,7 +457,7 @@ void WALReplayer::checkpointOrRollbackVersionedFileHandleAndBufferManager(
     }
 }
 
-VersionedFileHandle* WALReplayer::getVersionedFileHandleIfWALVersionAndBMShouldBeCleared(
+BufferManagedFileHandle* WALReplayer::getVersionedFileHandleIfWALVersionAndBMShouldBeCleared(
     const StorageStructureID& storageStructureID) {
     switch (storageStructureID.storageStructureType) {
     case StorageStructureType::COLUMN: {

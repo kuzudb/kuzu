@@ -13,14 +13,13 @@
 namespace kuzu {
 namespace common {
 
-typedef uint16_t sel_t;
-typedef uint64_t hash_t;
-typedef uint32_t page_idx_t;
-typedef uint32_t page_offset_t;
+using sel_t = uint16_t;
+using hash_t = uint64_t;
+using page_idx_t = uint32_t;
+using page_offset_t = uint32_t;
 constexpr page_idx_t PAGE_IDX_MAX = UINT32_MAX;
-typedef uint32_t list_header_t;
-
-typedef uint32_t property_id_t;
+using list_header_t = uint32_t;
+using property_id_t = uint32_t;
 constexpr property_id_t INVALID_PROPERTY_ID = UINT32_MAX;
 
 // System representation for a variable-sized overflow value.

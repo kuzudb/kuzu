@@ -31,19 +31,20 @@ struct CSVReaderConfig {
 };
 
 struct CopyDescription {
-    CopyDescription(const std::string& filePath, CSVReaderConfig csvReaderConfig);
+    enum class FileType { CSV, ARROW, PARQUET };
+
+    CopyDescription(const std::vector<std::string>& filePaths, CSVReaderConfig csvReaderConfig,
+        FileType fileType);
 
     CopyDescription(const CopyDescription& copyDescription);
 
-    enum class FileType { CSV, ARROW, PARQUET };
+    inline static std::string getFileTypeSuffix(FileType fileType) {
+        return "." + getFileTypeName(fileType);
+    }
 
     static std::string getFileTypeName(FileType fileType);
 
-    static std::string getFileTypeSuffix(FileType fileType);
-
-    void setFileType(std::string const& fileName);
-
-    const std::string filePath;
+    const std::vector<std::string> filePaths;
     std::unique_ptr<CSVReaderConfig> csvReaderConfig;
     FileType fileType;
 };

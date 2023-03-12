@@ -133,6 +133,7 @@ public:
     catalog::Catalog* catalog;
 
 private:
+    std::unordered_map<planner::LogicalOperator*, PhysicalOperator*> logicalOpToPhysicalOpMap;
     uint32_t physicalOperatorID;
 };
 

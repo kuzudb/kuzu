@@ -4,7 +4,6 @@
 
 #include "common/vector/value_vector.h"
 #include "storage/buffer_manager/buffer_manager.h"
-#include "storage/buffer_manager/versioned_file_handle.h"
 #include "storage/storage_structure/storage_structure.h"
 #include "storage/storage_structure/storage_structure_utils.h"
 #include "storage/storage_utils.h"
@@ -25,7 +24,7 @@ public:
               bufferManager, wal),
           loggedNewOverflowFileNextBytePosRecord{false} {
         nextBytePosToWriteTo =
-            fileHandle.getNumPages() * common::BufferPoolConstants::DEFAULT_PAGE_SIZE;
+            fileHandle->getNumPages() * common::BufferPoolConstants::DEFAULT_PAGE_SIZE;
     }
 
     static inline StorageStructureIDAndFName constructOverflowStorageStructureIDAndFName(

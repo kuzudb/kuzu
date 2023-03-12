@@ -14,13 +14,12 @@ static inline bool isInRange(uint64_t val, uint64_t start, uint64_t end) {
 }
 
 void StorageStructure::addNewPageToFileHandle() {
-    auto pageIdxInOriginalFile = fileHandle.addNewPage();
-    auto pageIdxInWAL = wal->logPageInsertRecord(
-        fileHandle.getStorageStructureIDIDForWALRecord(), pageIdxInOriginalFile);
+    auto pageIdxInOriginalFile = fileHandle->addNewPage();
+    auto pageIdxInWAL = wal->logPageInsertRecord(storageStructureID, pageIdxInOriginalFile);
     bufferManager.pinWithoutAcquiringPageLock(
         *wal->fileHandle, pageIdxInWAL, true /* do not read from file */);
-    fileHandle.createPageVersionGroupIfNecessary(pageIdxInOriginalFile);
-    fileHandle.setWALPageVersion(pageIdxInOriginalFile, pageIdxInWAL);
+    fileHandle->createPageVersionGroupIfNecessary(pageIdxInOriginalFile);
+    fileHandle->setWALPageVersion(pageIdxInOriginalFile, pageIdxInWAL);
     bufferManager.setPinnedPageDirty(*wal->fileHandle, pageIdxInWAL);
     bufferManager.unpinWithoutAcquiringPageLock(*wal->fileHandle, pageIdxInWAL);
 }
@@ -30,16 +29,15 @@ WALPageIdxPosInPageAndFrame StorageStructure::createWALVersionOfPageIfNecessaryF
     auto originalPageCursor =
         PageUtils::getPageElementCursorForPos(elementOffset, numElementsPerPage);
     bool insertingNewPage = false;
-    if (originalPageCursor.pageIdx >= fileHandle.getNumPages()) {
-        assert(originalPageCursor.pageIdx == fileHandle.getNumPages());
-        // TODO(Semih/Guodong): What if the column is in memory? How do we ensure that the file
-        // remains pinned?
+    if (originalPageCursor.pageIdx >= fileHandle->getNumPages()) {
+        assert(originalPageCursor.pageIdx == fileHandle->getNumPages());
         addNewPageToFileHandle();
         insertingNewPage = true;
     }
-    auto walPageIdxAndFrame = StorageStructureUtils::createWALVersionIfNecessaryAndPinPage(
-        originalPageCursor.pageIdx, insertingNewPage, fileHandle, bufferManager, *wal);
-    return WALPageIdxPosInPageAndFrame(walPageIdxAndFrame, originalPageCursor.elemPosInPage);
+    auto walPageIdxAndFrame =
+        StorageStructureUtils::createWALVersionIfNecessaryAndPinPage(originalPageCursor.pageIdx,
+            insertingNewPage, *fileHandle, storageStructureID, bufferManager, *wal);
+    return {walPageIdxAndFrame, originalPageCursor.elemPosInPage};
 }
 
 BaseColumnOrList::BaseColumnOrList(const StorageStructureIDAndFName& storageStructureIDAndFName,
@@ -89,7 +87,7 @@ void BaseColumnOrList::readInternalIDsFromAPageBySequentialCopy(Transaction* tra
     bool hasNoNullGuarantee) {
     auto [fileHandleToPin, pageIdxToPin] =
         StorageStructureUtils::getFileHandleAndPhysicalPageIdxToPin(
-            fileHandle, physicalPageIdx, *wal, transaction->getType());
+            *fileHandle, physicalPageIdx, *wal, transaction->getType());
     auto frame = bufferManager.pin(*fileHandleToPin, pageIdxToPin);
     if (hasNoNullGuarantee) {
         vector->setRangeNonNull(vectorStartPos, numValuesToRead);
@@ -175,7 +173,7 @@ void BaseColumnOrList::readAPageBySequentialCopy(Transaction* transaction, Value
     uint64_t numValuesToRead) {
     auto [fileHandleToPin, pageIdxToPin] =
         StorageStructureUtils::getFileHandleAndPhysicalPageIdxToPin(
-            fileHandle, physicalPageIdx, *wal, transaction->getType());
+            *fileHandle, physicalPageIdx, *wal, transaction->getType());
     auto vectorBytesOffset = getElemByteOffset(vectorStartPos);
     auto frameBytesOffset = getElemByteOffset(pagePosOfFirstElement);
     auto frame = bufferManager.pin(*fileHandleToPin, pageIdxToPin);

@@ -2,30 +2,31 @@
 
 #include "base_logical_operator.h"
 #include "binder/expression/node_expression.h"
+#include "logical_scan_node.h"
 
 namespace kuzu {
 namespace planner {
 
 class LogicalSemiMasker : public LogicalOperator {
 public:
-    LogicalSemiMasker(
-        std::shared_ptr<binder::Expression> nodeID, std::shared_ptr<LogicalOperator> child)
-        : LogicalOperator{LogicalOperatorType::SEMI_MASKER, std::move(child)}, nodeID{std::move(
-                                                                                   nodeID)} {}
+    LogicalSemiMasker(LogicalScanNode* scanNode, std::shared_ptr<LogicalOperator> child)
+        : LogicalOperator{LogicalOperatorType::SEMI_MASKER, std::move(child)}, scanNode{scanNode} {}
 
     inline void computeFactorizedSchema() override { copyChildSchema(0); }
     inline void computeFlatSchema() override { copyChildSchema(0); }
 
-    inline std::string getExpressionsForPrinting() const override { return nodeID->toString(); }
+    inline std::string getExpressionsForPrinting() const override {
+        return scanNode->getNode()->toString();
+    }
 
-    inline std::shared_ptr<binder::Expression> getNodeID() const { return nodeID; }
+    inline LogicalScanNode* getScanNode() const { return scanNode; }
 
     inline std::unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalSemiMasker>(nodeID, children[0]->copy());
+        return make_unique<LogicalSemiMasker>(scanNode, children[0]->copy());
     }
 
 private:
-    std::shared_ptr<binder::Expression> nodeID;
+    LogicalScanNode* scanNode;
 };
 
 } // namespace planner
