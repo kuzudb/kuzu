@@ -241,10 +241,10 @@ std::unique_ptr<Value> CopyStructuresArrow::getArrowVarList(std::string& l, int6
         values.push_back(std::move(value));
     }
     auto numBytesOfOverflow = values.size() * Types::getDataTypeSize(childDataType.typeID);
-    if (numBytesOfOverflow >= BufferPoolConstants::DEFAULT_PAGE_SIZE) {
+    if (numBytesOfOverflow >= BufferPoolConstants::PAGE_4KB_SIZE) {
         throw ReaderException(StringUtils::string_format(
             "Maximum num bytes of a LIST is {}. Input list's num bytes is {}.",
-            BufferPoolConstants::DEFAULT_PAGE_SIZE, numBytesOfOverflow));
+            BufferPoolConstants::PAGE_4KB_SIZE, numBytesOfOverflow));
     }
     return make_unique<Value>(
         DataType(VAR_LIST, std::make_unique<DataType>(childDataType)), std::move(values));

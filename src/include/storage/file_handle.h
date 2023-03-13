@@ -48,8 +48,8 @@ public:
     inline common::page_idx_t getNumPages() const { return numPages; }
     inline common::FileInfo* getFileInfo() const { return fileInfo.get(); }
     inline uint64_t getPageSize() const {
-        return isLargePaged() ? common::BufferPoolConstants::LARGE_PAGE_SIZE :
-                                common::BufferPoolConstants::DEFAULT_PAGE_SIZE;
+        return isLargePaged() ? common::BufferPoolConstants::PAGE_256KB_SIZE :
+                                common::BufferPoolConstants::PAGE_4KB_SIZE;
     }
 
 protected:

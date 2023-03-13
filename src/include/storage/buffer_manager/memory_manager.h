@@ -11,42 +11,69 @@
 namespace kuzu {
 namespace storage {
 
-struct MemoryBlock {
+class MemoryAllocator;
+
+class MemoryBuffer {
+public:
+    MemoryBuffer(MemoryAllocator* allocator, common::page_idx_t blockIdx, uint8_t* buffer);
+    ~MemoryBuffer();
 
 public:
-    explicit MemoryBlock(common::page_idx_t pageIdx, uint8_t* data)
-        : size(common::BufferPoolConstants::LARGE_PAGE_SIZE), pageIdx(pageIdx), data(data) {}
-
-public:
-    uint64_t size;
+    uint8_t* buffer;
     common::page_idx_t pageIdx;
-    uint8_t* data;
+    MemoryAllocator* allocator;
 };
 
-// Memory manager for allocating/reclaiming large intermediate memory blocks. It can allocate a
-// memory block with fixed size of LARGE_PAGE_SIZE from the buffer manager.
-class MemoryManager {
+class MemoryAllocator {
+    friend class MemoryBuffer;
+
 public:
-    explicit MemoryManager(BufferManager* bm) : bm(bm) {
-        // Because the memory manager only manages blocks in memory, this file should never be
-        // created, opened, or written to. It's a place_holder name. We keep the name for logging
-        // purposes.
-        fh = bm->getBufferManagedFileHandle("mm-place-holder-file-name",
-            FileHandle::O_IN_MEM_TEMP_FILE,
-            BufferManagedFileHandle::FileVersionedType::NON_VERSIONED_FILE);
-    }
+    explicit MemoryAllocator(BufferManager* bm);
+    ~MemoryAllocator();
 
-    std::unique_ptr<MemoryBlock> allocateBlock(bool initializeToZero = false);
+    std::unique_ptr<MemoryBuffer> allocateBuffer(bool initializeToZero = false);
+    inline common::page_offset_t getPageSize() const { return pageSize; }
 
+private:
     void freeBlock(common::page_idx_t pageIdx);
 
+private:
+    std::unique_ptr<BMFileHandle> fh;
+    BufferManager* bm;
+    common::page_offset_t pageSize;
+    std::stack<common::page_idx_t> freePages;
+    std::mutex allocatorLock;
+};
+
+/*
+ * The Memory Manager (MM) is used for allocating/reclaiming intermediate memory blocks.
+ * It can allocate a memory buffer of size PAGE_256KB from the buffer manager backed by a
+ * BMFileHandle with temp in-mem file.
+ *
+ * Internally, MM uses a MemoryAllocator. The MemoryAllocator is holding the BMFileHandle backed by
+ * a temp in-mem file, and responsible for allocating/reclaiming memory buffers of its size class
+ * from the buffer manager. The MemoryAllocator keeps track of free pages in the BMFileHandle, so
+ * that it can reuse those freed pages without allocating new pages. The MemoryAllocator is
+ * thread-safe, so that multiple threads can allocate/reclaim memory blocks with the same size class
+ * at the same time.
+ *
+ * MM will return a MemoryBuffer to the caller, which is a wrapper of the allocated memory block,
+ * and it will automatically call its allocator to reclaim the memory block when it is destroyed.
+ */
+class MemoryManager {
+public:
+    explicit MemoryManager(BufferManager* bm) : bm{bm} {
+        allocator = std::make_unique<MemoryAllocator>(bm);
+    }
+
+    inline std::unique_ptr<MemoryBuffer> allocateBuffer(bool initializeToZero = false) {
+        return allocator->allocateBuffer(initializeToZero);
+    }
     inline BufferManager* getBufferManager() const { return bm; }
 
 private:
-    std::unique_ptr<BufferManagedFileHandle> fh;
     BufferManager* bm;
-    std::stack<common::page_idx_t> freePages;
-    std::mutex memMgrLock;
+    std::unique_ptr<MemoryAllocator> allocator;
 };
 } // namespace storage
 } // namespace kuzu

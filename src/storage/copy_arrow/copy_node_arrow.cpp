@@ -188,7 +188,7 @@ void CopyNodeArrow::putPropsOfLineIntoColumns(
                 column->setElement(nodeOffset, reinterpret_cast<uint8_t*>(&val));
             } break;
             case STRING: {
-                stringToken = stringToken.substr(0, BufferPoolConstants::DEFAULT_PAGE_SIZE);
+                stringToken = stringToken.substr(0, BufferPoolConstants::PAGE_4KB_SIZE);
                 data = stringToken.c_str();
                 auto val =
                     column->getInMemOverflowFile()->copyString(data, overflowCursors[columnIdx]);

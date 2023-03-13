@@ -17,7 +17,7 @@ void StorageStructure::addNewPageToFileHandle() {
     auto pageIdxInOriginalFile = fileHandle->addNewPage();
     auto pageIdxInWAL = wal->logPageInsertRecord(storageStructureID, pageIdxInOriginalFile);
     bufferManager.pinWithoutAcquiringPageLock(
-        *wal->fileHandle, pageIdxInWAL, true /* do not read from file */);
+        *wal->fileHandle, pageIdxInWAL, BufferManager::PageReadPolicy::DONT_READ_PAGE);
     fileHandle->createPageVersionGroupIfNecessary(pageIdxInOriginalFile);
     fileHandle->setWALPageVersion(pageIdxInOriginalFile, pageIdxInWAL);
     bufferManager.setPinnedPageDirty(*wal->fileHandle, pageIdxInWAL);

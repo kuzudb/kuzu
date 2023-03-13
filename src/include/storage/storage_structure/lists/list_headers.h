@@ -135,7 +135,7 @@ public:
     std::unique_ptr<InMemDiskArray<common::list_header_t>> headersDiskArray;
 
 private:
-    std::unique_ptr<BufferManagedFileHandle> fileHandle;
+    std::unique_ptr<BMFileHandle> fileHandle;
     StorageStructureIDAndFName storageStructureIDAndFName;
 };
 } // namespace storage

@@ -182,7 +182,7 @@ TEST_F(SetNodeStructuredPropTransactionTest, SetNodeLongStringPropRollbackTest) 
 TEST_F(SetNodeStructuredPropTransactionTest, SetVeryLongStringErrorsTest) {
     conn->beginWriteTransaction();
     std::string veryLongStr = "";
-    for (auto i = 0u; i < BufferPoolConstants::DEFAULT_PAGE_SIZE + 1; ++i) {
+    for (auto i = 0u; i < BufferPoolConstants::PAGE_4KB_SIZE + 1; ++i) {
         veryLongStr += "a";
     }
     auto result = conn->query("MATCH (a:person) WHERE a.ID=0 SET a.fName='" + veryLongStr + "'");

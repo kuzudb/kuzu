@@ -12,7 +12,7 @@ namespace storage {
 
 DiskArrayHeader::DiskArrayHeader(uint64_t elementSize)
     : alignedElementSizeLog2{(uint64_t)ceil(log2(elementSize))},
-      numElementsPerPageLog2{BufferPoolConstants::DEFAULT_PAGE_SIZE_LOG_2 - alignedElementSizeLog2},
+      numElementsPerPageLog2{BufferPoolConstants::PAGE_4KB_SIZE_LOG2 - alignedElementSizeLog2},
       elementPageOffsetMask{BitmaskUtils::all1sMaskForLeastSignificantBits(numElementsPerPageLog2)},
       firstPIPPageIdx{StorageStructureUtils::NULL_PAGE_IDX}, numElements{0}, numAPs{0} {}
 
@@ -79,19 +79,18 @@ U BaseDiskArray<U>::get(uint64_t idx, TransactionType trxType) {
     checkOutOfBoundAccess(trxType, idx);
     auto apCursor = getAPIdxAndOffsetInAP(idx);
     page_idx_t apPageIdx = getAPPageIdxNoLock(apCursor.pageIdx, trxType);
-    auto& bufferManagedFileHandle = (BufferManagedFileHandle&)fileHandle;
+    auto& bmFileHandle = (BMFileHandle&)fileHandle;
     if (trxType == TransactionType::READ_ONLY || !hasTransactionalUpdates ||
-        !bufferManagedFileHandle.hasWALPageVersionNoPageLock(apPageIdx)) {
-        auto frame = bufferManager->pin(bufferManagedFileHandle, apPageIdx);
+        !bmFileHandle.hasWALPageVersionNoPageLock(apPageIdx)) {
+        auto frame = bufferManager->pin(bmFileHandle, apPageIdx);
         auto retVal = *(U*)(frame + apCursor.offsetInPage);
-        bufferManager->unpin(bufferManagedFileHandle, apPageIdx);
+        bufferManager->unpin(bmFileHandle, apPageIdx);
         return retVal;
     } else {
         U retVal;
-        StorageStructureUtils::readWALVersionOfPage(bufferManagedFileHandle, apPageIdx,
-            *bufferManager, *wal, [&retVal, &apCursor](const uint8_t* frame) -> void {
-                retVal = *(U*)(frame + apCursor.offsetInPage);
-            });
+        StorageStructureUtils::readWALVersionOfPage(bmFileHandle, apPageIdx, *bufferManager, *wal,
+            [&retVal, &apCursor](
+                const uint8_t* frame) -> void { retVal = *(U*)(frame + apCursor.offsetInPage); });
         return retVal;
     }
 }
@@ -112,8 +111,8 @@ void BaseDiskArray<U>::update(uint64_t idx, U val) {
     // getAPPageIdxNoLock logic needs to change to give the same guarantee (e.g., an apIdx = 0, may
     // no longer to be guaranteed to be in pips[0].)
     page_idx_t apPageIdx = getAPPageIdxNoLock(apCursor.pageIdx, TransactionType::WRITE);
-    StorageStructureUtils::updatePage((BufferManagedFileHandle&)fileHandle, storageStructureID,
-        apPageIdx, false /* not inserting a new page */, *bufferManager, *wal,
+    StorageStructureUtils::updatePage((BMFileHandle&)fileHandle, storageStructureID, apPageIdx,
+        false /* not inserting a new page */, *bufferManager, *wal,
         [&apCursor, &val](uint8_t* frame) -> void { *(U*)(frame + apCursor.offsetInPage) = val; });
 }
 
@@ -122,7 +121,7 @@ uint64_t BaseDiskArray<U>::pushBack(U val) {
     std::unique_lock xLck{diskArraySharedMtx};
     hasTransactionalUpdates = true;
     uint64_t elementIdx;
-    StorageStructureUtils::updatePage((BufferManagedFileHandle&)(fileHandle), storageStructureID,
+    StorageStructureUtils::updatePage((BMFileHandle&)(fileHandle), storageStructureID,
         headerPageIdx, false /* not inserting a new page */, *bufferManager, *wal,
         [this, &val, &elementIdx](uint8_t* frame) -> void {
             auto updatedDiskArrayHeader = ((DiskArrayHeader*)frame);
@@ -131,8 +130,8 @@ uint64_t BaseDiskArray<U>::pushBack(U val) {
             auto [apPageIdx, isNewlyAdded] = getAPPageIdxAndAddAPToPIPIfNecessaryForWriteTrxNoLock(
                 (DiskArrayHeader*)frame, apCursor.pageIdx);
             // Now do the push back.
-            StorageStructureUtils::updatePage((BufferManagedFileHandle&)(fileHandle),
-                storageStructureID, apPageIdx, isNewlyAdded, *bufferManager, *wal,
+            StorageStructureUtils::updatePage((BMFileHandle&)(fileHandle), storageStructureID,
+                apPageIdx, isNewlyAdded, *bufferManager, *wal,
                 [&apCursor, &val](
                     uint8_t* frame) -> void { *(U*)(frame + apCursor.offsetInPage) = val; });
             updatedDiskArrayHeader->numElements++;
@@ -161,7 +160,7 @@ void BaseDiskArray<U>::setNextPIPPageIDxOfPIPNoLock(DiskArrayHeader* updatedDisk
          * pipPageIdxOfPreviousPIP. 2) if pipPageIdxOfPreviousPIP is an existing PIP, in which
          * case again this function is not creating pipPageIdxOfPreviousPIP.
          */
-        StorageStructureUtils::updatePage((BufferManagedFileHandle&)fileHandle, storageStructureID,
+        StorageStructureUtils::updatePage((BMFileHandle&)fileHandle, storageStructureID,
             pipPageIdxOfPreviousPIP, false /* not inserting a new page */, *bufferManager, *wal,
             [&nextPIPPageIdx](
                 const uint8_t* frame) -> void { ((PIP*)frame)->nextPipPageIdx = nextPIPPageIdx; });
@@ -186,10 +185,10 @@ page_idx_t BaseDiskArray<U>::getAPPageIdxNoLock(page_idx_t apIdx, TransactionTyp
     } else {
         page_idx_t retVal;
         page_idx_t pageIdxOfUpdatedPip = getUpdatedPageIdxOfPipNoLock(pipIdx);
-        StorageStructureUtils::readWALVersionOfPage((BufferManagedFileHandle&)fileHandle,
-            pageIdxOfUpdatedPip, *bufferManager, *wal,
-            [&retVal, &offsetInPIP](
-                const uint8_t* frame) -> void { retVal = ((PIP*)frame)->pageIdxs[offsetInPIP]; });
+        StorageStructureUtils::readWALVersionOfPage((BMFileHandle&)fileHandle, pageIdxOfUpdatedPip,
+            *bufferManager, *wal, [&retVal, &offsetInPIP](const uint8_t* frame) -> void {
+                retVal = ((PIP*)frame)->pageIdxs[offsetInPIP];
+            });
         return retVal;
     }
 }
@@ -204,9 +203,8 @@ page_idx_t BaseDiskArray<U>::getUpdatedPageIdxOfPipNoLock(uint64_t pipIdx) {
 
 template<typename U>
 void BaseDiskArray<U>::clearWALPageVersionAndRemovePageFromFrameIfNecessary(page_idx_t pageIdx) {
-    ((BufferManagedFileHandle&)this->fileHandle).clearWALPageVersionIfNecessary(pageIdx);
-    bufferManager->removePageFromFrameIfNecessary(
-        (BufferManagedFileHandle&)this->fileHandle, pageIdx);
+    ((BMFileHandle&)this->fileHandle).clearWALPageVersionIfNecessary(pageIdx);
+    bufferManager->removePageFromFrameIfNecessary((BMFileHandle&)this->fileHandle, pageIdx);
 }
 
 template<typename U>
@@ -236,7 +234,7 @@ void BaseDiskArray<U>::checkpointOrRollbackInMemoryIfNecessaryNoLock(bool isChec
         clearWALPageVersionAndRemovePageFromFrameIfNecessary(pipPageIdxOfNewPIP);
         if (!isCheckpoint) {
             // These are newly inserted pages, so we can truncate the file handle.
-            ((BufferManagedFileHandle&)this->fileHandle)
+            ((BMFileHandle&)this->fileHandle)
                 .removePageIdxAndTruncateIfNecessary(pipPageIdxOfNewPIP);
         }
     }
@@ -259,14 +257,14 @@ bool BaseDiskArray<U>::hasPIPUpdatesNoLock(uint64_t pipIdx) {
 template<typename U>
 uint64_t BaseDiskArray<U>::readUInt64HeaderFieldNoLock(
     TransactionType trxType, std::function<uint64_t(DiskArrayHeader*)> readOp) {
-    auto bufferManagedFileHandle = reinterpret_cast<BufferManagedFileHandle*>(&fileHandle);
+    auto bmFileHandle = reinterpret_cast<BMFileHandle*>(&fileHandle);
     if ((trxType == TransactionType::READ_ONLY) ||
-        !bufferManagedFileHandle->hasWALPageVersionNoPageLock(headerPageIdx)) {
+        !bmFileHandle->hasWALPageVersionNoPageLock(headerPageIdx)) {
         return readOp(&this->header);
     } else {
         uint64_t retVal;
-        StorageStructureUtils::readWALVersionOfPage((BufferManagedFileHandle&)fileHandle,
-            headerPageIdx, *bufferManager, *wal, [&retVal, &readOp](uint8_t* frame) -> void {
+        StorageStructureUtils::readWALVersionOfPage((BMFileHandle&)fileHandle, headerPageIdx,
+            *bufferManager, *wal, [&retVal, &readOp](uint8_t* frame) -> void {
                 retVal = readOp((DiskArrayHeader*)frame);
             });
         return retVal;
@@ -314,8 +312,8 @@ std::pair<page_idx_t, bool> BaseDiskArray<U>::getAPPageIdxAndAddAPToPIPIfNecessa
             setNextPIPPageIDxOfPIPNoLock(updatedDiskArrayHeader, pipIdxOfPreviousPIP, pipPageIdx);
         }
         // Finally we update the PIP page (possibly newly created) and add newAPPageIdx into it.
-        StorageStructureUtils::updatePage((BufferManagedFileHandle&)fileHandle, storageStructureID,
-            pipPageIdx, isInsertingANewPIPPage, *bufferManager, *wal,
+        StorageStructureUtils::updatePage((BMFileHandle&)fileHandle, storageStructureID, pipPageIdx,
+            isInsertingANewPIPPage, *bufferManager, *wal,
             [&isInsertingANewPIPPage, &newAPPageIdx, &offsetOfNewAPInPIP](
                 const uint8_t* frame) -> void {
                 if (isInsertingANewPIPPage) {
@@ -376,7 +374,7 @@ void InMemDiskArray<T>::checkpointOrRollbackInMemoryIfNecessaryNoLock(bool isChe
     uint64_t numOldAPs = this->getNumAPsNoLock(TransactionType::READ_ONLY);
     for (uint64_t apIdx = 0; apIdx < numOldAPs; ++apIdx) {
         uint64_t apPageIdx = this->getAPPageIdxNoLock(apIdx, TransactionType::READ_ONLY);
-        if (reinterpret_cast<BufferManagedFileHandle&>(this->fileHandle)
+        if (reinterpret_cast<BMFileHandle&>(this->fileHandle)
                 .hasWALPageVersionNoPageLock(apPageIdx)) {
             // Note we can directly read the new image from disk because the WALReplayer checkpoints
             // the disk image of the page before calling
@@ -423,7 +421,7 @@ void InMemDiskArray<T>::checkpointOrRollbackInMemoryIfNecessaryNoLock(bool isChe
         BaseDiskArray<T>::checkpointOrRollbackInMemoryIfNecessaryNoLock(true /* is checkpoint */);
     } else {
         BaseDiskArray<T>::checkpointOrRollbackInMemoryIfNecessaryNoLock(false /* is rollback */);
-        ((BufferManagedFileHandle&)this->fileHandle)
+        ((BMFileHandle&)this->fileHandle)
             .removePageIdxAndTruncateIfNecessary(minNewAPPageIdxToTruncateTo);
     }
 }

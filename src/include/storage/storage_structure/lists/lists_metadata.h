@@ -69,7 +69,7 @@ public:
     }
 
 private:
-    std::unique_ptr<BufferManagedFileHandle> metadataVersionedFileHandle;
+    std::unique_ptr<BMFileHandle> metadataVersionedFileHandle;
     StorageStructureIDAndFName storageStructureIDAndFName;
     // chunkToPageListHeadIdxMapBuilder holds pointers to the head of pageList of each chunk.
     // For instance, chunkToPageListHeadIdxMapBuilder[3] is a pointer in `pageLists` from where

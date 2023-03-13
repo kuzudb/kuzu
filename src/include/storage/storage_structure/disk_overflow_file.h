@@ -24,7 +24,7 @@ public:
               bufferManager, wal),
           loggedNewOverflowFileNextBytePosRecord{false} {
         nextBytePosToWriteTo =
-            fileHandle->getNumPages() * common::BufferPoolConstants::DEFAULT_PAGE_SIZE;
+            fileHandle->getNumPages() * common::BufferPoolConstants::PAGE_4KB_SIZE;
     }
 
     static inline StorageStructureIDAndFName constructOverflowStorageStructureIDAndFName(
@@ -73,7 +73,7 @@ public:
 
 private:
     struct OverflowPageCache {
-        BufferManagedFileHandle* bufferManagedFileHandle = nullptr;
+        BMFileHandle* bmFileHandle = nullptr;
         common::page_idx_t pageIdx = UINT32_MAX;
         uint8_t* frame = nullptr;
     };
@@ -89,8 +89,8 @@ private:
     void setListRecursiveIfNestedWithoutLock(const common::ku_list_t& inMemSrcList,
         common::ku_list_t& diskDstList, const common::DataType& dataType);
     void logNewOverflowFileNextBytePosRecordIfNecessaryWithoutLock();
-    void pinOverflowPageCache(BufferManagedFileHandle* bufferManagedFileHandleToPin,
-        common::page_idx_t pageIdxToPin, OverflowPageCache& overflowPageCache);
+    void pinOverflowPageCache(BMFileHandle* bmFileHandleToPin, common::page_idx_t pageIdxToPin,
+        OverflowPageCache& overflowPageCache);
     void unpinOverflowPageCache(OverflowPageCache& overflowPageCache);
 
 private:

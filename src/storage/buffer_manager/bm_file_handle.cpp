@@ -1,61 +1,74 @@
-#include "storage/buffer_manager/buffer_managed_file_handle.h"
+#include "storage/buffer_manager/bm_file_handle.h"
+
+#include "storage/buffer_manager/buffer_manager.h"
 
 using namespace kuzu::common;
 
 namespace kuzu {
 namespace storage {
 
-BufferManagedFileHandle::BufferManagedFileHandle(
-    const std::string& path, uint8_t flags, FileVersionedType fileVersionedType)
-    : FileHandle{path, flags}, fileVersionedType{fileVersionedType} {
-    initPageIdxToFrameMapAndLocks();
-    if (fileVersionedType == FileVersionedType::VERSIONED_FILE) {
-        resizePageGroupLocksAndPageVersionsWithoutLock();
-    }
+void PageState::setInFrame(common::page_idx_t pageIdx_) {
+    pageIdx = 0;
+    pageIdx = pageIdx_;
+    pageIdx |= IS_IN_FRAME_MASK;
 }
 
-void BufferManagedFileHandle::initPageIdxToFrameMapAndLocks() {
-    pageIdxToFrameMap.resize(pageCapacity);
-    pageLocks.resize(pageCapacity);
-    for (auto i = 0ull; i < numPages; i++) {
-        pageIdxToFrameMap[i] = std::make_unique<std::atomic<common::page_idx_t>>(UINT32_MAX);
-        pageLocks[i] = std::make_unique<std::atomic_flag>();
-    }
-}
-
-common::page_idx_t BufferManagedFileHandle::addNewPageWithoutLock() {
-    if (numPages == pageCapacity) {
-        pageCapacity += StorageConstants::PAGE_GROUP_SIZE;
-        pageIdxToFrameMap.resize(pageCapacity);
-        pageLocks.resize(pageCapacity);
-    }
-    pageLocks[numPages] = std::make_unique<std::atomic_flag>();
-    pageIdxToFrameMap[numPages] = std::make_unique<std::atomic<common::page_idx_t>>(UINT32_MAX);
-    auto newPageIdx = numPages++;
-    if (fileVersionedType == FileVersionedType::VERSIONED_FILE) {
-        resizePageGroupLocksAndPageVersionsWithoutLock();
-    }
-    return newPageIdx;
-}
-
-bool BufferManagedFileHandle::acquirePageLock(page_idx_t pageIdx, bool block) {
-    if (block) {
-        while (!acquire(pageIdx)) {} // spinning
+bool PageState::acquireLock(LockMode lockMode) {
+    if (lockMode == LockMode::SPIN) {
+        while (lock.test_and_set()) // spinning
+            ;
         return true;
     }
-    return acquire(pageIdx);
+    return !lock.test_and_set();
 }
 
-bool BufferManagedFileHandle::acquire(common::page_idx_t pageIdx) {
-    if (pageIdx >= pageLocks.size()) {
-        throw RuntimeException(
-            StringUtils::string_format("pageIdx {} is >= pageLocks.size()", pageIdx));
+void PageState::resetState() {
+    pageIdx = 0;
+    pinCount = 0;
+    evictionTimestamp = 0;
+}
+
+BMFileHandle::BMFileHandle(const std::string& path, uint8_t flags, BufferManager* bm,
+    common::PageSizeClass pageSizeClass, FileVersionedType fileVersionedType)
+    : FileHandle{path, flags}, bm{bm}, pageSizeClass{pageSizeClass}, fileVersionedType{
+                                                                         fileVersionedType} {
+    initPageStatesAndGroups();
+}
+
+void BMFileHandle::initPageStatesAndGroups() {
+    pageStates.resize(pageCapacity);
+    for (auto i = 0ull; i < numPages; i++) {
+        pageStates[i] = std::make_unique<PageState>();
     }
-    auto retVal = !pageLocks[pageIdx]->test_and_set(std::memory_order_acquire);
-    return retVal;
+    auto numPageGroups = getNumPageGroups();
+    frameGroupIdxes.resize(numPageGroups);
+    pageGroupLocks.resize(numPageGroups);
+    pageVersions.resize(numPageGroups);
+    for (auto i = 0u; i < numPageGroups; i++) {
+        frameGroupIdxes[i] = bm->addNewFrameGroup(pageSizeClass);
+        pageGroupLocks[i] = std::make_unique<std::atomic_flag>();
+    }
 }
 
-void BufferManagedFileHandle::createPageVersionGroupIfNecessary(page_idx_t pageIdx) {
+common::page_idx_t BMFileHandle::addNewPageWithoutLock() {
+    if (numPages == pageCapacity) {
+        addNewPageGroupWithoutLock();
+    }
+    pageStates[numPages] = std::make_unique<PageState>();
+    return numPages++;
+}
+
+void BMFileHandle::addNewPageGroupWithoutLock() {
+    pageCapacity += StorageConstants::PAGE_GROUP_SIZE;
+    pageStates.resize(pageCapacity);
+    frameGroupIdxes.push_back(bm->addNewFrameGroup(pageSizeClass));
+    if (fileVersionedType == FileVersionedType::VERSIONED_FILE) {
+        pageGroupLocks.push_back(std::make_unique<std::atomic_flag>());
+        pageVersions.emplace_back();
+    }
+}
+
+void BMFileHandle::createPageVersionGroupIfNecessary(page_idx_t pageIdx) {
     assert(fileVersionedType == FileVersionedType::VERSIONED_FILE);
     // Note that we do not have to acquire an xlock here because this function assumes that prior to
     // calling this function,  pageVersion and pageGroupLocks have been resized correctly.
@@ -79,50 +92,40 @@ void BufferManagedFileHandle::createPageVersionGroupIfNecessary(page_idx_t pageI
     pageGroupLocks[pageGroupIdxAndPosInGroup.pageIdx]->clear();
 }
 
-void BufferManagedFileHandle::resetToZeroPagesAndPageCapacity() {
+void BMFileHandle::resetToZeroPagesAndPageCapacity() {
     std::unique_lock xlock(fhSharedMutex);
     numPages = 0;
     pageCapacity = 0;
     FileUtils::truncateFileToEmpty(fileInfo.get());
-    initPageIdxToFrameMapAndLocks();
+    initPageStatesAndGroups();
 }
 
-void BufferManagedFileHandle::removePageIdxAndTruncateIfNecessary(common::page_idx_t pageIdx) {
+void BMFileHandle::removePageIdxAndTruncateIfNecessary(common::page_idx_t pageIdx) {
     std::unique_lock xLck{fhSharedMutex};
     removePageIdxAndTruncateIfNecessaryWithoutLock(pageIdx);
-    if (fileVersionedType == FileVersionedType::VERSIONED_FILE) {
-        resizePageGroupLocksAndPageVersionsWithoutLock();
-    }
 }
 
-void BufferManagedFileHandle::removePageIdxAndTruncateIfNecessaryWithoutLock(
+void BMFileHandle::removePageIdxAndTruncateIfNecessaryWithoutLock(
     common::page_idx_t pageIdxToRemove) {
     if (numPages <= pageIdxToRemove) {
         return;
     }
     for (auto pageIdx = pageIdxToRemove; pageIdx < numPages; ++pageIdx) {
-        pageIdxToFrameMap[pageIdx].reset();
-        pageLocks[pageIdx].reset();
+        pageStates[pageIdx].reset();
     }
     numPages = pageIdxToRemove;
-}
-
-void BufferManagedFileHandle::resizePageGroupLocksAndPageVersionsWithoutLock() {
     auto numPageGroups = getNumPageGroups();
-    if (pageGroupLocks.size() == numPageGroups) {
+    if (numPageGroups == frameGroupIdxes.size()) {
         return;
-    } else if (pageGroupLocks.size() < numPageGroups) {
-        for (auto i = pageGroupLocks.size(); i < numPageGroups; ++i) {
-            pageGroupLocks.push_back(std::make_unique<std::atomic_flag>());
-        }
-    } else {
-        pageGroupLocks.resize(numPageGroups);
     }
+    assert(numPageGroups < frameGroupIdxes.size());
+    frameGroupIdxes.resize(numPageGroups);
+    pageGroupLocks.resize(numPageGroups);
     pageVersions.resize(numPageGroups);
 }
 
 // This function assumes that the caller has already acquired the lock for originalPageIdx.
-bool BufferManagedFileHandle::hasWALPageVersionNoPageLock(common::page_idx_t originalPageIdx) {
+bool BMFileHandle::hasWALPageVersionNoPageLock(common::page_idx_t originalPageIdx) {
     assert(fileVersionedType == FileVersionedType::VERSIONED_FILE);
     auto pageGroupIdxAndPosInGroup =
         PageUtils::getPageElementCursorForPos(originalPageIdx, StorageConstants::PAGE_GROUP_SIZE);
@@ -141,7 +144,7 @@ bool BufferManagedFileHandle::hasWALPageVersionNoPageLock(common::page_idx_t ori
     return retVal;
 }
 
-void BufferManagedFileHandle::clearWALPageVersionIfNecessary(common::page_idx_t pageIdx) {
+void BMFileHandle::clearWALPageVersionIfNecessary(common::page_idx_t pageIdx) {
     {
         std::shared_lock sLck{fhSharedMutex};
         if (numPages <= pageIdx) {
@@ -150,12 +153,12 @@ void BufferManagedFileHandle::clearWALPageVersionIfNecessary(common::page_idx_t 
     }
     createPageVersionGroupIfNecessary(pageIdx);
     setWALPageVersionNoLock(pageIdx, UINT32_MAX);
+    // TODO(Guodong): Why do we release lock here? Need to understand how the lock was acquired.
     releasePageLock(pageIdx);
 }
 
 // This function assumes that the caller has already acquired the lock for originalPageIdx.
-common::page_idx_t BufferManagedFileHandle::getWALPageVersionNoPageLock(
-    common::page_idx_t originalPageIdx) {
+common::page_idx_t BMFileHandle::getWALPageVersionNoPageLock(common::page_idx_t originalPageIdx) {
     assert(fileVersionedType == FileVersionedType::VERSIONED_FILE);
     // See the comment about a shared lock in hasWALPageVersionNoPageLock
     std::shared_lock sLck{fhSharedMutex};
@@ -164,14 +167,14 @@ common::page_idx_t BufferManagedFileHandle::getWALPageVersionNoPageLock(
     return pageVersions[pageGroupIdxAndPosInGroup.pageIdx][pageGroupIdxAndPosInGroup.elemPosInPage];
 }
 
-void BufferManagedFileHandle::setWALPageVersion(
+void BMFileHandle::setWALPageVersion(
     common::page_idx_t originalPageIdx, common::page_idx_t pageIdxInWAL) {
     assert(fileVersionedType == FileVersionedType::VERSIONED_FILE);
     std::shared_lock sLck{fhSharedMutex};
     setWALPageVersionNoLock(originalPageIdx, pageIdxInWAL);
 }
 
-void BufferManagedFileHandle::setWALPageVersionNoLock(
+void BMFileHandle::setWALPageVersionNoLock(
     common::page_idx_t originalPageIdx, common::page_idx_t pageIdxInWAL) {
     auto pageGroupIdxAndPosInGroup =
         PageUtils::getPageElementCursorForPos(originalPageIdx, StorageConstants::PAGE_GROUP_SIZE);

@@ -33,9 +33,9 @@ ListHeaders::ListHeaders(const StorageStructureIDAndFName& storageStructureIDAnd
     storageStructureIDAndFName.storageStructureID.listFileID.listFileType = ListFileType::HEADERS;
     storageStructureIDAndFName.fName =
         StorageUtils::getListHeadersFName(storageStructureIDAndFNameForBaseList.fName);
-    fileHandle = bufferManager->getBufferManagedFileHandle(storageStructureIDAndFName.fName,
+    fileHandle = bufferManager->getBMFileHandle(storageStructureIDAndFName.fName,
         FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS,
-        BufferManagedFileHandle::FileVersionedType::VERSIONED_FILE);
+        BMFileHandle::FileVersionedType::VERSIONED_FILE);
     storageStructureIDAndFName.storageStructureID.listFileID.listFileType = ListFileType::HEADERS;
     storageStructureIDAndFName.fName = fileHandle->getFileInfo()->path;
     headersDiskArray = std::make_unique<InMemDiskArray<list_header_t>>(*fileHandle,

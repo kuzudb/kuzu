@@ -125,9 +125,8 @@ HashIndex<T>::HashIndex(const StorageStructureIDAndFName& storageStructureIDAndF
     const DataType& keyDataType, BufferManager& bufferManager, WAL* wal)
     : BaseHashIndex{keyDataType},
       storageStructureIDAndFName{storageStructureIDAndFName}, bm{bufferManager}, wal{wal} {
-    fileHandle = bufferManager.getBufferManagedFileHandle(storageStructureIDAndFName.fName,
-        FileHandle::O_PERSISTENT_FILE_NO_CREATE,
-        BufferManagedFileHandle::FileVersionedType::VERSIONED_FILE);
+    fileHandle = bufferManager.getBMFileHandle(storageStructureIDAndFName.fName,
+        FileHandle::O_PERSISTENT_FILE_NO_CREATE, BMFileHandle::FileVersionedType::VERSIONED_FILE);
     headerArray = std::make_unique<BaseDiskArray<HashIndexHeader>>(*fileHandle,
         storageStructureIDAndFName.storageStructureID, INDEX_HEADER_ARRAY_HEADER_PAGE_IDX, &bm,
         wal);

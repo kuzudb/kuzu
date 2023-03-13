@@ -393,7 +393,7 @@ void CopyRelArrow::putPropsOfLineIntoColumns(CopyRelArrow* copier,
             continue;
         }
         auto stringToken =
-            currentToken->get()->ToString().substr(0, BufferPoolConstants::DEFAULT_PAGE_SIZE);
+            currentToken->get()->ToString().substr(0, BufferPoolConstants::PAGE_4KB_SIZE);
         const char* data = stringToken.c_str();
         switch (properties[propertyIdx].dataType.typeID) {
         case INT64: {
@@ -489,7 +489,7 @@ void CopyRelArrow::putPropsOfLineIntoLists(CopyRelArrow* copier,
             continue;
         }
         auto stringToken =
-            currentToken->get()->ToString().substr(0, BufferPoolConstants::DEFAULT_PAGE_SIZE);
+            currentToken->get()->ToString().substr(0, BufferPoolConstants::PAGE_4KB_SIZE);
         const char* data = stringToken.c_str();
         switch (properties[propertyIdx].dataType.typeID) {
         case INT64: {

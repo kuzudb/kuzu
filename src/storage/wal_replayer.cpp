@@ -25,7 +25,7 @@ WALReplayer::WALReplayer(WAL* wal, StorageManager* storageManager, MemoryManager
 void WALReplayer::init() {
     logger = LoggerUtils::getLogger(LoggerConstants::LoggerEnum::STORAGE);
     walFileHandle = wal->fileHandle;
-    pageBuffer = std::make_unique<uint8_t[]>(BufferPoolConstants::DEFAULT_PAGE_SIZE);
+    pageBuffer = std::make_unique<uint8_t[]>(BufferPoolConstants::PAGE_4KB_SIZE);
 }
 
 void WALReplayer::replay() {
@@ -81,9 +81,9 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
             walFileHandle->readPage(
                 pageBuffer.get(), walRecord.pageInsertOrUpdateRecord.pageIdxInWAL);
             FileUtils::writeToFile(fileInfoOfStorageStructure.get(), pageBuffer.get(),
-                BufferPoolConstants::DEFAULT_PAGE_SIZE,
+                BufferPoolConstants::PAGE_4KB_SIZE,
                 walRecord.pageInsertOrUpdateRecord.pageIdxInOriginalFile *
-                    BufferPoolConstants::DEFAULT_PAGE_SIZE);
+                    BufferPoolConstants::PAGE_4KB_SIZE);
         }
         if (!isRecovering) {
             // 2: If we are not recovering, we do any in-memory checkpointing or rolling back work
@@ -420,7 +420,7 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
 }
 
 void WALReplayer::truncateFileIfInsertion(
-    BufferManagedFileHandle* fileHandle, const PageUpdateOrInsertRecord& pageInsertOrUpdateRecord) {
+    BMFileHandle* fileHandle, const PageUpdateOrInsertRecord& pageInsertOrUpdateRecord) {
     if (pageInsertOrUpdateRecord.isInsert) {
         // If we are rolling back and this is a page insertion we truncate the fileHandle's
         // data structures that hold locks for pageIdxs.
@@ -440,7 +440,7 @@ void WALReplayer::truncateFileIfInsertion(
 
 void WALReplayer::checkpointOrRollbackVersionedFileHandleAndBufferManager(
     const WALRecord& walRecord, const StorageStructureID& storageStructureID) {
-    BufferManagedFileHandle* fileHandle =
+    BMFileHandle* fileHandle =
         getVersionedFileHandleIfWALVersionAndBMShouldBeCleared(storageStructureID);
     if (fileHandle) {
         fileHandle->clearWALPageVersionIfNecessary(
@@ -449,15 +449,15 @@ void WALReplayer::checkpointOrRollbackVersionedFileHandleAndBufferManager(
             // Update the page in buffer manager if it is in a frame. Note that we assume
             // that the pageBuffer currently contains the contents of the WALVersion, so the
             // caller needs to make sure that this assumption holds.
-            bufferManager->updateFrameIfPageIsInFrameWithoutPageOrFrameLock(*fileHandle,
-                pageBuffer.get(), walRecord.pageInsertOrUpdateRecord.pageIdxInOriginalFile);
+            bufferManager->updateFrameIfPageIsInFrameWithoutLock(*fileHandle, pageBuffer.get(),
+                walRecord.pageInsertOrUpdateRecord.pageIdxInOriginalFile);
         } else {
             truncateFileIfInsertion(fileHandle, walRecord.pageInsertOrUpdateRecord);
         }
     }
 }
 
-BufferManagedFileHandle* WALReplayer::getVersionedFileHandleIfWALVersionAndBMShouldBeCleared(
+BMFileHandle* WALReplayer::getVersionedFileHandleIfWALVersionAndBMShouldBeCleared(
     const StorageStructureID& storageStructureID) {
     switch (storageStructureID.storageStructureType) {
     case StorageStructureType::COLUMN: {

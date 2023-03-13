@@ -20,11 +20,8 @@ public:
     void SetUp() override {
         LoggerUtils::createLogger(LoggerConstants::LoggerEnum::BUFFER_MANAGER);
         LoggerUtils::createLogger(LoggerConstants::LoggerEnum::STORAGE);
-        bufferManager =
-            std::make_unique<BufferManager>(StorageConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING *
-                                                StorageConstants::DEFAULT_PAGES_BUFFER_RATIO,
-                StorageConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING *
-                    StorageConstants::LARGE_PAGES_BUFFER_RATIO);
+        bufferManager = std::make_unique<BufferManager>(
+            BufferPoolConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING);
         memoryManager = std::make_unique<MemoryManager>(bufferManager.get());
     }
 
@@ -36,7 +33,7 @@ public:
 public:
     std::unique_ptr<BufferManager> bufferManager;
     std::unique_ptr<MemoryManager> memoryManager;
-    uint32_t numTuplesPerBlockInFT = BufferPoolConstants::LARGE_PAGE_SIZE / 8;
+    uint32_t numTuplesPerBlockInFT = BufferPoolConstants::PAGE_256KB_SIZE / 8;
 
     static void checkTupleIdxesAndFactorizedTableIdxes(uint8_t* keyBlockPtr,
         const uint64_t keyBlockEntrySizeInBytes,

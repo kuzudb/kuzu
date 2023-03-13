@@ -17,9 +17,8 @@ ListsMetadata::ListsMetadata(
     storageStructureIDAndFName.storageStructureID.listFileID.listFileType = ListFileType::METADATA;
     storageStructureIDAndFName.fName =
         StorageUtils::getListMetadataFName(storageStructureIDAndFNameForBaseList.fName);
-    metadataVersionedFileHandle = bufferManager->getBufferManagedFileHandle(
-        storageStructureIDAndFName.fName, FileHandle::O_PERSISTENT_FILE_NO_CREATE,
-        BufferManagedFileHandle::FileVersionedType::VERSIONED_FILE);
+    metadataVersionedFileHandle = bufferManager->getBMFileHandle(storageStructureIDAndFName.fName,
+        FileHandle::O_PERSISTENT_FILE_NO_CREATE, BMFileHandle::FileVersionedType::VERSIONED_FILE);
     chunkToPageListHeadIdxMap = std::make_unique<InMemDiskArray<uint32_t>>(
         *metadataVersionedFileHandle, storageStructureIDAndFName.storageStructureID,
         CHUNK_PAGE_LIST_HEAD_IDX_MAP_HEADER_PAGE_IDX, bufferManager, wal);

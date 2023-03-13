@@ -193,7 +193,7 @@ DataType Binder::bindDataType(const std::string& dataType) {
                 "The number of elements in a fixed list must be greater than 0. Given: " +
                 std::to_string(boundType.fixedNumElementsInList) + ".");
         }
-        if (Types::getDataTypeSize(boundType) > common::BufferPoolConstants::DEFAULT_PAGE_SIZE) {
+        if (Types::getDataTypeSize(boundType) > common::BufferPoolConstants::PAGE_4KB_SIZE) {
             throw common::BinderException("The size of fixed list is larger than a "
                                           "DEFAULT_PAGE_SIZE, which is not supported yet.");
         }

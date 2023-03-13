@@ -2,33 +2,49 @@
 
 #include <cstring>
 
+#include "common/utils.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {
 namespace storage {
 
-std::unique_ptr<MemoryBlock> MemoryManager::allocateBlock(bool initializeToZero) {
-    std::lock_guard<std::mutex> lock(memMgrLock);
+MemoryBuffer::MemoryBuffer(MemoryAllocator* allocator, page_idx_t pageIdx, uint8_t* buffer)
+    : buffer{buffer}, pageIdx{pageIdx}, allocator{allocator} {}
+
+MemoryBuffer::~MemoryBuffer() {
+    if (buffer != nullptr) {
+        allocator->freeBlock(pageIdx);
+    }
+}
+
+MemoryAllocator::MemoryAllocator(BufferManager* bm) : bm{bm} {
+    pageSize = BufferPoolConstants::PAGE_256KB_SIZE;
+    fh = bm->getBMFileHandle("mm-256KB", FileHandle::O_IN_MEM_TEMP_FILE,
+        BMFileHandle::FileVersionedType::NON_VERSIONED_FILE, PAGE_256KB);
+}
+
+MemoryAllocator::~MemoryAllocator() = default;
+
+std::unique_ptr<MemoryBuffer> MemoryAllocator::allocateBuffer(bool initializeToZero) {
+    std::unique_lock<std::mutex> lock(allocatorLock);
     page_idx_t pageIdx;
-    uint8_t* data;
     if (freePages.empty()) {
         pageIdx = fh->addNewPage();
     } else {
         pageIdx = freePages.top();
         freePages.pop();
     }
-    data = bm->pinWithoutReadingFromFile(*fh, pageIdx);
-
-    auto blockHandle = std::make_unique<MemoryBlock>(pageIdx, data);
+    auto buffer = bm->pin(*fh, pageIdx, BufferManager::PageReadPolicy::DONT_READ_PAGE);
+    auto memoryBuffer = std::make_unique<MemoryBuffer>(this, pageIdx, buffer);
     if (initializeToZero) {
-        memset(blockHandle->data, 0, BufferPoolConstants::LARGE_PAGE_SIZE);
+        memset(memoryBuffer->buffer, 0, pageSize);
     }
-
-    return blockHandle;
+    return memoryBuffer;
 }
 
-void MemoryManager::freeBlock(page_idx_t pageIdx) {
-    std::lock_guard<std::mutex> lock(memMgrLock);
+void MemoryAllocator::freeBlock(page_idx_t pageIdx) {
+    std::unique_lock<std::mutex> lock(allocatorLock);
     bm->unpin(*fh, pageIdx);
     freePages.push(pageIdx);
 }

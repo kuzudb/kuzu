@@ -4,18 +4,18 @@ namespace kuzu {
 namespace common {
 
 uint8_t* InMemOverflowBuffer::allocateSpace(uint64_t size) {
-    assert(size <= BufferPoolConstants::LARGE_PAGE_SIZE);
+    assert(size <= BufferPoolConstants::PAGE_256KB_SIZE);
     if (requireNewBlock(size)) {
         allocateNewBlock();
     }
-    auto data = currentBlock->block->data + currentBlock->currentOffset;
+    auto data = currentBlock->block->buffer + currentBlock->currentOffset;
     currentBlock->currentOffset += size;
     return data;
 }
 
 void InMemOverflowBuffer::allocateNewBlock() {
     auto newBlock = make_unique<BufferBlock>(
-        memoryManager->allocateBlock(false /* do not initialize to zero */));
+        memoryManager->allocateBuffer(false /* do not initialize to zero */));
     currentBlock = newBlock.get();
     blocks.push_back(std::move(newBlock));
 }

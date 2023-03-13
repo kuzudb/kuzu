@@ -11,16 +11,16 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-void DiskOverflowFile::pinOverflowPageCache(BufferManagedFileHandle* bufferManagedFileHandleToPin,
+void DiskOverflowFile::pinOverflowPageCache(BMFileHandle* bmFileHandleToPin,
     page_idx_t pageIdxToPin, OverflowPageCache& overflowPageCache) {
-    overflowPageCache.frame = bufferManager.pin(*bufferManagedFileHandleToPin, pageIdxToPin);
-    overflowPageCache.bufferManagedFileHandle = bufferManagedFileHandleToPin;
+    overflowPageCache.frame = bufferManager.pin(*bmFileHandleToPin, pageIdxToPin);
+    overflowPageCache.bmFileHandle = bmFileHandleToPin;
     overflowPageCache.pageIdx = pageIdxToPin;
 }
 
 void DiskOverflowFile::unpinOverflowPageCache(OverflowPageCache& overflowPageCache) {
     if (overflowPageCache.pageIdx != UINT32_MAX) {
-        bufferManager.unpin(*overflowPageCache.bufferManagedFileHandle, overflowPageCache.pageIdx);
+        bufferManager.unpin(*overflowPageCache.bmFileHandle, overflowPageCache.pageIdx);
     }
 }
 
@@ -162,12 +162,12 @@ std::vector<std::unique_ptr<Value>> DiskOverflowFile::readList(
 
 void DiskOverflowFile::addNewPageIfNecessaryWithoutLock(uint32_t numBytesToAppend) {
     PageElementCursor byteCursor = PageUtils::getPageElementCursorForPos(
-        nextBytePosToWriteTo, BufferPoolConstants::DEFAULT_PAGE_SIZE);
-    if ((byteCursor.elemPosInPage == 0) || ((byteCursor.elemPosInPage + numBytesToAppend - 1) >
-                                               BufferPoolConstants::DEFAULT_PAGE_SIZE)) {
+        nextBytePosToWriteTo, BufferPoolConstants::PAGE_4KB_SIZE);
+    if ((byteCursor.elemPosInPage == 0) ||
+        ((byteCursor.elemPosInPage + numBytesToAppend - 1) > BufferPoolConstants::PAGE_4KB_SIZE)) {
         // Note that if byteCursor.pos is already 0 the next operation keeps the nextBytePos
         // where it is.
-        nextBytePosToWriteTo = (fileHandle->getNumPages() * BufferPoolConstants::DEFAULT_PAGE_SIZE);
+        nextBytePosToWriteTo = (fileHandle->getNumPages() * BufferPoolConstants::PAGE_4KB_SIZE);
         addNewPageToFileHandle();
     }
 }
@@ -176,13 +176,13 @@ void DiskOverflowFile::setStringOverflowWithoutLock(
     const char* srcRawString, uint64_t len, ku_string_t& diskDstString) {
     if (len <= ku_string_t::SHORT_STR_LENGTH) {
         return;
-    } else if (len > BufferPoolConstants::DEFAULT_PAGE_SIZE) {
+    } else if (len > BufferPoolConstants::PAGE_4KB_SIZE) {
         throw RuntimeException(StringUtils::getLongStringErrorMessage(
-            srcRawString, BufferPoolConstants::DEFAULT_PAGE_SIZE));
+            srcRawString, BufferPoolConstants::PAGE_4KB_SIZE));
     }
     addNewPageIfNecessaryWithoutLock(len);
     auto updatedPageInfoAndWALPageFrame = createWALVersionOfPageIfNecessaryForElement(
-        nextBytePosToWriteTo, BufferPoolConstants::DEFAULT_PAGE_SIZE);
+        nextBytePosToWriteTo, BufferPoolConstants::PAGE_4KB_SIZE);
     memcpy(updatedPageInfoAndWALPageFrame.frame + updatedPageInfoAndWALPageFrame.posInPage,
         srcRawString, len);
     TypeUtils::encodeOverflowPtr(diskDstString.overflowPtr,
@@ -222,14 +222,14 @@ void DiskOverflowFile::writeStringOverflowAndUpdateOverflowPtr(
 void DiskOverflowFile::setListRecursiveIfNestedWithoutLock(
     const ku_list_t& inMemSrcList, ku_list_t& diskDstList, const DataType& dataType) {
     auto elementSize = Types::getDataTypeSize(*dataType.childType);
-    if (inMemSrcList.size * elementSize > BufferPoolConstants::DEFAULT_PAGE_SIZE) {
+    if (inMemSrcList.size * elementSize > BufferPoolConstants::PAGE_4KB_SIZE) {
         throw RuntimeException(StringUtils::string_format(
             "Maximum num bytes of a LIST is %d. Input list's num bytes is %d.",
-            BufferPoolConstants::DEFAULT_PAGE_SIZE, inMemSrcList.size * elementSize));
+            BufferPoolConstants::PAGE_4KB_SIZE, inMemSrcList.size * elementSize));
     }
     addNewPageIfNecessaryWithoutLock(inMemSrcList.size * elementSize);
     auto updatedPageInfoAndWALPageFrame = createWALVersionOfPageIfNecessaryForElement(
-        nextBytePosToWriteTo, BufferPoolConstants::DEFAULT_PAGE_SIZE);
+        nextBytePosToWriteTo, BufferPoolConstants::PAGE_4KB_SIZE);
     diskDstList.size = inMemSrcList.size;
     // Copy non-overflow part for elements in the list.
     memcpy(updatedPageInfoAndWALPageFrame.frame + updatedPageInfoAndWALPageFrame.posInPage,
