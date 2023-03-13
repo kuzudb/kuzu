@@ -81,10 +81,6 @@ std::vector<planner::LogicalOperator*> ASPOptimizer::resolveScanNodesToApplySemi
         scanNodesCollector.collect(buildRoot);
         for (auto& op : scanNodesCollector.getOperators()) {
             auto scanNode = (LogicalScanNode*)op;
-            if (scanNode->getNode()->isMultiLabeled()) {
-                // We don't push semi mask to multi-labeled scan. This can be solved.
-                continue;
-            }
             auto nodeID = scanNode->getNode()->getInternalIDProperty();
             if (!nodeIDToScanOperatorsMap.contains(nodeID)) {
                 nodeIDToScanOperatorsMap.insert({nodeID, std::vector<LogicalOperator*>{}});

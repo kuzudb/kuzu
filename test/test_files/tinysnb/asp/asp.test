@@ -6,6 +6,15 @@ Alice
 Bob
 Dan
 
+-NAME AspMultiLabel
+-QUERY MATCH (a:person)-[e1:knows|:studyAt|:workAt]->(b:person:organisation) WHERE a.age > 35 RETURN b.fName, b.name
+-ENCODED_JOIN HJ(b._id){E(b)S(a)}{S(b)}
+---- 4
+Alice|
+Bob|
+Dan|
+|CsWork
+
 -NAME AspMultiKey
 -QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person), (a)-[e3:knows]->(c) WHERE a.fName='Alice' RETURN b.fName, c.fName
 #-ENCODED_JOIN HJ(c._id,b._id){E(b)E(c)S(a)}{HJ(b._id){S(b)}{E(b)S(c)}}

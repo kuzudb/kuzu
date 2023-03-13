@@ -51,7 +51,7 @@ def serialize(dataset_name, dataset_path, serialized_graph_path):
         try:
             # Run kuzu shell one query at a time. This ensures a new process is
             # created for each query to avoid memory leaks.
-            subprocess.run([kuzu_exec_path, '-i', serialized_graph_path],
+            subprocess.run([kuzu_exec_path, serialized_graph_path],
                            input=(s + ";" + "\n").encode("ascii"), check=True)
         except subprocess.CalledProcessError as e:
             logging.error('Error executing query: %s', s)

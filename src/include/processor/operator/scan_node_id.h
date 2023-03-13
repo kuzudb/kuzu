@@ -24,9 +24,9 @@ private:
 };
 
 // Note: This class is not thread-safe.
-struct ScanNodeIDSemiMask {
+struct NodeTableSemiMask {
 public:
-    explicit ScanNodeIDSemiMask() : numMaskers{0} {}
+    NodeTableSemiMask() : numMaskers{0} {}
 
     inline void initializeMaskData(common::offset_t maxNodeOffset, common::offset_t maxMorselIdx) {
         if (nodeMask != nullptr) {
@@ -59,11 +59,12 @@ private:
 };
 
 // Note: This class is not thread-safe. It relies on its caller to correctly synchronize its state.
-class ScanTableNodeIDSharedState {
+class NodeTableState {
 public:
-    explicit ScanTableNodeIDSharedState(storage::NodeTable* table)
-        : table{table}, maxNodeOffset{UINT64_MAX}, maxMorselIdx{UINT64_MAX}, currentNodeOffset{0} {
-        semiMask = std::make_unique<ScanNodeIDSemiMask>();
+    explicit NodeTableState(storage::NodeTable* table)
+        : table{table}, maxNodeOffset{common::INVALID_NODE_OFFSET}, maxMorselIdx{UINT64_MAX},
+          currentNodeOffset{0} {
+        semiMask = std::make_unique<NodeTableSemiMask>();
     }
 
     inline storage::NodeTable* getTable() { return table; }
@@ -83,7 +84,7 @@ public:
         semiMask->initializeMaskData(maxNodeOffset, maxMorselIdx);
     }
     inline bool isSemiMaskEnabled() { return semiMask->getNumMaskers() > 0; }
-    inline ScanNodeIDSemiMask* getSemiMask() { return semiMask.get(); }
+    inline NodeTableSemiMask* getSemiMask() { return semiMask.get(); }
     inline uint8_t getNumMaskers() const { return semiMask->getNumMaskers(); }
     inline void incrementNumMaskers() { semiMask->incrementNumMaskers(); }
 
@@ -94,7 +95,7 @@ private:
     uint64_t maxNodeOffset;
     uint64_t maxMorselIdx;
     uint64_t currentNodeOffset;
-    std::unique_ptr<ScanNodeIDSemiMask> semiMask;
+    std::unique_ptr<NodeTableSemiMask> semiMask;
 };
 
 class ScanNodeIDSharedState {
@@ -102,12 +103,10 @@ public:
     ScanNodeIDSharedState() : currentStateIdx{0} {};
 
     inline void addTableState(storage::NodeTable* table) {
-        tableStates.push_back(std::make_unique<ScanTableNodeIDSharedState>(table));
+        tableStates.push_back(std::make_unique<NodeTableState>(table));
     }
     inline uint32_t getNumTableStates() const { return tableStates.size(); }
-    inline ScanTableNodeIDSharedState* getTableState(uint32_t idx) const {
-        return tableStates[idx].get();
-    }
+    inline NodeTableState* getTableState(uint32_t idx) const { return tableStates[idx].get(); }
 
     inline void initialize(transaction::Transaction* transaction) {
         for (auto& tableState : tableStates) {
@@ -115,12 +114,11 @@ public:
         }
     }
 
-    std::tuple<ScanTableNodeIDSharedState*, common::offset_t, common::offset_t>
-    getNextRangeToRead();
+    std::tuple<NodeTableState*, common::offset_t, common::offset_t> getNextRangeToRead();
 
 private:
     std::mutex mtx;
-    std::vector<std::unique_ptr<ScanTableNodeIDSharedState>> tableStates;
+    std::vector<std::unique_ptr<NodeTableState>> tableStates;
     uint32_t currentStateIdx;
 };
 
@@ -148,8 +146,8 @@ private:
         sharedState->initialize(context->transaction);
     }
 
-    void setSelVector(ScanTableNodeIDSharedState* tableState, common::offset_t startOffset,
-        common::offset_t endOffset);
+    void setSelVector(
+        NodeTableState* tableState, common::offset_t startOffset, common::offset_t endOffset);
 
 private:
     DataPos outDataPos;
