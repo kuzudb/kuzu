@@ -43,10 +43,10 @@ void CopyNodeArrow::saveToFile() {
     logger->debug("Writing node columns to disk.");
     assert(!columns.empty());
     for (auto& column : columns) {
-        taskScheduler.scheduleTask(CopyTaskFactory::createCopyTask(
+        taskScheduler->scheduleTask(CopyTaskFactory::createCopyTask(
             [&](InMemColumn* x) { x->saveToFile(); }, column.get()));
     }
-    taskScheduler.waitAllTasksToCompleteOrError();
+    taskScheduler->waitAllTasksToCompleteOrError();
     logger->debug("Done writing node columns to disk.");
 }
 
@@ -104,7 +104,7 @@ arrow::Status CopyNodeArrow::populateColumnsFromArrow(
                 break;
             }
             ARROW_ASSIGN_OR_RAISE(currBatch, ipc_reader->ReadRecordBatch(blockIdx));
-            taskScheduler.scheduleTask(
+            taskScheduler->scheduleTask(
                 CopyTaskFactory::createCopyTask(batchPopulateColumnsTask<T, arrow::Array>,
                     reinterpret_cast<NodeTableSchema*>(tableSchema)->primaryKeyPropertyID, blockIdx,
                     startOffset, pkIndex.get(), this, currBatch->columns(),
@@ -112,10 +112,10 @@ arrow::Status CopyNodeArrow::populateColumnsFromArrow(
             startOffset += currBatch->num_rows();
             ++blockIdx;
         }
-        taskScheduler.waitUntilEnoughTasksFinish(
+        taskScheduler->waitUntilEnoughTasksFinish(
             CopyConstants::MINIMUM_NUM_COPIER_TASKS_TO_SCHEDULE_MORE);
     }
-    taskScheduler.waitAllTasksToCompleteOrError();
+    taskScheduler->waitAllTasksToCompleteOrError();
     return arrow::Status::OK();
 }
 
@@ -134,7 +134,7 @@ arrow::Status CopyNodeArrow::populateColumnsFromParquet(
                 break;
             }
             ARROW_RETURN_NOT_OK(reader->RowGroup(blockIdx)->ReadTable(&currTable));
-            taskScheduler.scheduleTask(
+            taskScheduler->scheduleTask(
                 CopyTaskFactory::createCopyTask(batchPopulateColumnsTask<T, arrow::ChunkedArray>,
                     reinterpret_cast<NodeTableSchema*>(tableSchema)->primaryKeyPropertyID, blockIdx,
                     startOffset, pkIndex.get(), this, currTable->columns(),
@@ -142,10 +142,10 @@ arrow::Status CopyNodeArrow::populateColumnsFromParquet(
             startOffset += currTable->num_rows();
             ++blockIdx;
         }
-        taskScheduler.waitUntilEnoughTasksFinish(
+        taskScheduler->waitUntilEnoughTasksFinish(
             CopyConstants::MINIMUM_NUM_COPIER_TASKS_TO_SCHEDULE_MORE);
     }
-    taskScheduler.waitAllTasksToCompleteOrError();
+    taskScheduler->waitAllTasksToCompleteOrError();
     return arrow::Status::OK();
 }
 
@@ -279,7 +279,7 @@ arrow::Status CopyNodeArrow::assignCopyTasks(
                 break;
             }
             ARROW_ASSIGN_OR_RAISE(currBatch, *it);
-            taskScheduler.scheduleTask(
+            taskScheduler->scheduleTask(
                 CopyTaskFactory::createCopyTask(batchPopulateColumnsTask<T, arrow::Array>,
                     reinterpret_cast<NodeTableSchema*>(tableSchema)->primaryKeyPropertyID, blockIdx,
                     startOffset, pkIndex.get(), this, currBatch->columns(), filePath));
@@ -287,10 +287,10 @@ arrow::Status CopyNodeArrow::assignCopyTasks(
             ++blockIdx;
             ++it;
         }
-        taskScheduler.waitUntilEnoughTasksFinish(
+        taskScheduler->waitUntilEnoughTasksFinish(
             CopyConstants::MINIMUM_NUM_COPIER_TASKS_TO_SCHEDULE_MORE);
     }
-    taskScheduler.waitAllTasksToCompleteOrError();
+    taskScheduler->waitAllTasksToCompleteOrError();
     return arrow::Status::OK();
 }
 

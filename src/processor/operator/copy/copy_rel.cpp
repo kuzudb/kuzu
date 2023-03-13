@@ -7,18 +7,13 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace processor {
 
-uint64_t CopyRel::executeInternal(
-    kuzu::common::TaskScheduler* taskScheduler, ExecutionContext* executionContext) {
-    auto relCSVCopier = make_unique<CopyRelArrow>(copyDescription, wal->getDirectory(),
-        *taskScheduler, *catalog, nodesStatistics->getMaxNodeOffsetPerTable(),
-        executionContext->bufferManager, tableID, relsStatistics);
+uint64_t CopyRel::copy(common::CopyDescription& copyDescription, uint64_t numThreads) {
+    auto relCSVCopier = make_unique<CopyRelArrow>(copyDescription, wal->getDirectory(), *catalog,
+        nodesStatistics->getMaxNodeOffsetPerTable(), bufferManager, tableID, relsStatistics,
+        numThreads);
     auto numRelsCopied = relCSVCopier->copy();
     wal->logCopyRelRecord(tableID);
     return numRelsCopied;
-}
-
-uint64_t CopyRel::getNumTuplesInTable() {
-    return relsStatistics->getReadOnlyVersion()->tableStatisticPerTable[tableID]->getNumTuples();
 }
 
 } // namespace processor

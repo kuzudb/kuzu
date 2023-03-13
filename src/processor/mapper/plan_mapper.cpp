@@ -14,10 +14,8 @@ namespace processor {
 std::unique_ptr<PhysicalPlan> PlanMapper::mapLogicalPlanToPhysical(LogicalPlan* logicalPlan,
     const binder::expression_vector& expressionsToCollect, common::StatementType statementType) {
     auto lastOperator = mapLogicalOperatorToPhysical(logicalPlan->getLastOperator());
-    if (!StatementTypeUtils::isCopyCSV(statementType)) {
-        lastOperator = appendResultCollector(
-            expressionsToCollect, *logicalPlan->getSchema(), std::move(lastOperator));
-    }
+    lastOperator = appendResultCollector(
+        expressionsToCollect, *logicalPlan->getSchema(), std::move(lastOperator));
     return make_unique<PhysicalPlan>(std::move(lastOperator));
 }
 

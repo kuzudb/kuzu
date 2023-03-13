@@ -13,21 +13,24 @@ namespace binder {
 
 class BoundCopy : public BoundStatement {
 public:
-    BoundCopy(
-        common::CopyDescription copyDescription, common::table_id_t tableID, std::string tableName)
+    BoundCopy(std::shared_ptr<Expression> filePaths, common::CSVReaderConfig csvReaderConfig,
+        common::table_id_t tableID, std::string tableName)
         : BoundStatement{common::StatementType::COPY_CSV,
               BoundStatementResult::createSingleStringColumnResult()},
-          copyDescription{std::move(copyDescription)}, tableID{tableID}, tableName{std::move(
-                                                                             tableName)} {}
+          filePaths{std::move(filePaths)}, csvReaderConfig{std::move(csvReaderConfig)},
+          tableID{tableID}, tableName{std::move(tableName)} {}
 
-    inline common::CopyDescription getCopyDescription() const { return copyDescription; }
+    inline std::shared_ptr<Expression> getFilePaths() const { return filePaths; }
+
+    inline common::CSVReaderConfig getCSVReaderConfig() const { return csvReaderConfig; }
 
     inline common::table_id_t getTableID() const { return tableID; }
 
     inline std::string getTableName() const { return tableName; }
 
 private:
-    common::CopyDescription copyDescription;
+    std::shared_ptr<Expression> filePaths;
+    common::CSVReaderConfig csvReaderConfig;
     common::table_id_t tableID;
     std::string tableName;
 };

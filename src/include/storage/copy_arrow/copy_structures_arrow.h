@@ -35,8 +35,7 @@ class CopyStructuresArrow {
 
 public:
     CopyStructuresArrow(common::CopyDescription& copyDescription, std::string outputDirectory,
-        common::TaskScheduler& taskScheduler, catalog::Catalog& catalog,
-        common::table_id_t tableID);
+        catalog::Catalog& catalog, common::table_id_t tableID, uint64_t numThreads);
 
     uint64_t copy();
 
@@ -95,7 +94,7 @@ protected:
     common::CopyDescription& copyDescription;
     std::string outputDirectory;
     std::unordered_map<std::string, FileBlockInfo> fileBlockInfos;
-    common::TaskScheduler& taskScheduler;
+    std::unique_ptr<common::TaskScheduler> taskScheduler;
     catalog::Catalog& catalog;
     catalog::TableSchema* tableSchema;
     uint64_t numRows;

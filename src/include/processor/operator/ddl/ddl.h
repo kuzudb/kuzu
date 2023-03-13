@@ -12,7 +12,6 @@ public:
         uint32_t id, const std::string& paramsString)
         : PhysicalOperator{operatorType, id, paramsString}, catalog{catalog}, outputPos{outputPos} {
     }
-    virtual ~DDL() override = default;
 
     inline bool isSource() const override { return true; }
 

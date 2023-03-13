@@ -15,9 +15,10 @@ class CopyRelArrow : public CopyStructuresArrow {
 
 public:
     CopyRelArrow(common::CopyDescription& copyDescription, std::string outputDirectory,
-        common::TaskScheduler& taskScheduler, catalog::Catalog& catalog,
+        catalog::Catalog& catalog,
         std::map<common::table_id_t, common::offset_t> maxNodeOffsetsPerNodeTable,
-        BufferManager* bufferManager, common::table_id_t tableID, RelsStatistics* relsStatistics);
+        BufferManager* bufferManager, common::table_id_t tableID, RelsStatistics* relsStatistics,
+        uint64_t numThreads);
 
 private:
     static std::string getTaskTypeName(PopulateTaskType populateTaskType);

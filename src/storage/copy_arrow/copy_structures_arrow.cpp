@@ -10,12 +10,13 @@ namespace kuzu {
 namespace storage {
 
 CopyStructuresArrow::CopyStructuresArrow(CopyDescription& copyDescription,
-    std::string outputDirectory, TaskScheduler& taskScheduler, Catalog& catalog,
-    common::table_id_t tableID)
+    std::string outputDirectory, Catalog& catalog, common::table_id_t tableID, uint64_t numThreads)
     : logger{LoggerUtils::getLogger(LoggerConstants::LoggerEnum::LOADER)},
       copyDescription{copyDescription}, outputDirectory{std::move(outputDirectory)},
-      taskScheduler{taskScheduler}, catalog{catalog}, numRows{0},
-      tableSchema{catalog.getReadOnlyVersion()->getTableSchema(tableID)} {}
+      catalog{catalog}, numRows{0}, tableSchema{
+                                        catalog.getReadOnlyVersion()->getTableSchema(tableID)} {
+    taskScheduler = std::make_unique<TaskScheduler>(numThreads);
+}
 
 uint64_t CopyStructuresArrow::copy() {
     logger->info(StringUtils::string_format("Copying {} file to table {}.",

@@ -18,25 +18,19 @@ QueryProcessor::QueryProcessor(uint64_t numThreads) {
 
 std::shared_ptr<FactorizedTable> QueryProcessor::execute(
     PhysicalPlan* physicalPlan, ExecutionContext* context) {
-    if (physicalPlan->isCopy()) {
-        auto copy = (Copy*)physicalPlan->lastOperator.get();
-        auto outputMsg = copy->execute(taskScheduler.get(), context);
-        return getFactorizedTableForOutputMsg(outputMsg, context->memoryManager);
-    } else {
-        auto lastOperator = physicalPlan->lastOperator.get();
-        // Init global state before decompose into pipelines. Otherwise, each pipeline will try to
-        // init global state. Result in global state being initialized multiple times.
-        lastOperator->initGlobalState(context);
-        auto resultCollector = reinterpret_cast<ResultCollector*>(lastOperator);
-        // The root pipeline(task) consists of operators and its prevOperator only, because we
-        // expect to have linear plans. For binary operators, e.g., HashJoin, we  keep probe and its
-        // prevOperator in the same pipeline, and decompose build and its prevOperator into another
-        // one.
-        auto task = std::make_shared<ProcessorTask>(resultCollector, context);
-        decomposePlanIntoTasks(lastOperator, nullptr, task.get(), context);
-        taskScheduler->scheduleTaskAndWaitOrError(task);
-        return resultCollector->getResultFactorizedTable();
-    }
+    auto lastOperator = physicalPlan->lastOperator.get();
+    // Init global state before decompose into pipelines. Otherwise, each pipeline will try to
+    // init global state. Result in global state being initialized multiple times.
+    lastOperator->initGlobalState(context);
+    auto resultCollector = reinterpret_cast<ResultCollector*>(lastOperator);
+    // The root pipeline(task) consists of operators and its prevOperator only, because we
+    // expect to have linear plans. For binary operators, e.g., HashJoin, we  keep probe and its
+    // prevOperator in the same pipeline, and decompose build and its prevOperator into another
+    // one.
+    auto task = std::make_shared<ProcessorTask>(resultCollector, context);
+    decomposePlanIntoTasks(lastOperator, nullptr, task.get(), context);
+    taskScheduler->scheduleTaskAndWaitOrError(task);
+    return resultCollector->getResultFactorizedTable();
 }
 
 void QueryProcessor::decomposePlanIntoTasks(
@@ -61,7 +55,7 @@ void QueryProcessor::decomposePlanIntoTasks(
     switch (op->getOperatorType()) {
         // Ordered table should be scanned in single-thread mode.
     case PhysicalOperatorType::ORDER_BY_MERGE:
-        // DDL should be executed exactly once.
+        // DDL and COPY_CSV should be executed exactly once.
     case PhysicalOperatorType::CREATE_NODE_TABLE:
     case PhysicalOperatorType::CREATE_REL_TABLE:
     case PhysicalOperatorType::DROP_TABLE:
@@ -69,6 +63,8 @@ void QueryProcessor::decomposePlanIntoTasks(
     case PhysicalOperatorType::ADD_PROPERTY:
     case PhysicalOperatorType::RENAME_PROPERTY:
     case PhysicalOperatorType::RENAME_TABLE:
+    case PhysicalOperatorType::COPY_NODE:
+    case PhysicalOperatorType::COPY_REL:
         // As a temporary solution, update is executed in single thread mode.
     case PhysicalOperatorType::SET_NODE_PROPERTY:
     case PhysicalOperatorType::SET_REL_PROPERTY:

@@ -33,8 +33,7 @@ struct CSVReaderConfig {
 struct CopyDescription {
     enum class FileType { CSV, ARROW, PARQUET };
 
-    CopyDescription(const std::vector<std::string>& filePaths, CSVReaderConfig csvReaderConfig,
-        FileType fileType);
+    CopyDescription(const std::vector<std::string>& filePaths, CSVReaderConfig csvReaderConfig);
 
     CopyDescription(const CopyDescription& copyDescription);
 
@@ -42,9 +41,11 @@ struct CopyDescription {
         return "." + getFileTypeName(fileType);
     }
 
+    void inferFileType();
+
     static std::string getFileTypeName(FileType fileType);
 
-    const std::vector<std::string> filePaths;
+    std::vector<std::string> filePaths;
     std::unique_ptr<CSVReaderConfig> csvReaderConfig;
     FileType fileType;
 };

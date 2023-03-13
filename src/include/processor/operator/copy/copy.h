@@ -11,35 +11,49 @@ namespace processor {
 class Copy : public PhysicalOperator {
 public:
     Copy(PhysicalOperatorType operatorType, catalog::Catalog* catalog,
-        common::CopyDescription copyDescription, common::table_id_t tableID, storage::WAL* wal,
+        common::CSVReaderConfig csvReaderConfig, common::table_id_t tableID, storage::WAL* wal,
+        const DataPos& inputPos, const DataPos& outputPos, std::unique_ptr<PhysicalOperator> child,
         uint32_t id, const std::string& paramsString)
-        : PhysicalOperator{operatorType, id, paramsString}, catalog{catalog},
-          copyDescription{std::move(copyDescription)}, tableID{tableID}, wal{wal} {}
+        : PhysicalOperator{operatorType, std::move(child), id, paramsString}, catalog{catalog},
+          csvReaderConfig{std::move(csvReaderConfig)}, tableID{tableID}, wal{wal},
+          inputPos{inputPos}, outputPos{outputPos}, hasExecuted{false} {}
 
     inline bool isSource() const override { return true; }
 
-    std::string execute(common::TaskScheduler* taskScheduler, ExecutionContext* executionContext);
+    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
-    bool getNextTuplesInternal() override {
-        throw common::InternalException(
-            "getNextTupleInternal() should not be called on CopyCSV operator.");
-    }
+    bool getNextTuplesInternal() override;
 
 protected:
-    std::string getOutputMsg(uint64_t numTuplesCopied);
-
-    virtual uint64_t executeInternal(
-        common::TaskScheduler* taskScheduler, ExecutionContext* executionContext) = 0;
-
-    virtual uint64_t getNumTuplesInTable() = 0;
+    virtual uint64_t copy(common::CopyDescription& copyDescription, uint64_t numThreads) = 0;
 
     virtual bool allowCopyCSV() = 0;
 
+    inline std::string getOutputMsg(uint64_t numTuplesCopied) {
+        return common::StringUtils::string_format(
+            "{} number of tuples has been copied to table: {}.", numTuplesCopied,
+            catalog->getReadOnlyVersion()->getTableName(tableID).c_str());
+    }
+
+private:
+    static inline void globPath(std::vector<std::string>& filePaths, const std::string& rawPath) {
+        auto expandedPaths = storage::StorageUtils::globFilePath(rawPath);
+        filePaths.insert(filePaths.end(), expandedPaths.begin(), expandedPaths.end());
+    }
+
+    common::CopyDescription getCopyDescription() const;
+
 protected:
     catalog::Catalog* catalog;
-    common::CopyDescription copyDescription;
+    common::CSVReaderConfig csvReaderConfig;
     common::table_id_t tableID;
     storage::WAL* wal;
+    DataPos inputPos;
+    DataPos outputPos;
+    common::ValueVector* inputVector;
+    common::ValueVector* outputVector;
+    bool hasExecuted;
+    uint64_t numThreads;
 };
 
 } // namespace processor

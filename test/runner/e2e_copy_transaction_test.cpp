@@ -94,6 +94,7 @@ public:
         if (transactionTestType == TransactionTestType::RECOVERY) {
             commitButSkipCheckpointingForTestingRecovery(*conn);
             validateDatabaseStateBeforeCheckPointCopyNode(tableID);
+            physicalPlan.reset();
             initWithoutLoadingGraph();
             validateDatabaseStateAfterCheckPointCopyNode(tableID);
         } else {
@@ -178,6 +179,7 @@ public:
         if (transactionTestType == TransactionTestType::RECOVERY) {
             commitButSkipCheckpointingForTestingRecovery(*conn);
             validateDatabaseStateBeforeCheckPointCopyRel(tableID);
+            physicalPlan.reset();
             initWithoutLoadingGraph();
             validateDatabaseStateAfterCheckPointCopyRel(tableID);
         } else {

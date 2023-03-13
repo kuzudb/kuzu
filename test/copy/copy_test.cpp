@@ -296,13 +296,10 @@ TEST_F(CopyNodeInitRelTablesTest, CopyNodeAndQueryEmptyRelTable) {
 }
 
 TEST_F(CopyMultipleFilesTest, CopyMultipleFilesTest) {
-    ASSERT_TRUE(
-        conn
-            ->query(StringUtils::string_format(R"(COPY person FROM ["{}", "{}", "{}"])",
-                TestHelper::appendKuzuRootPath("dataset/copy-multiple-files-test/vPerson1.csv"),
-                TestHelper::appendKuzuRootPath("dataset/copy-multiple-files-test/vPerson2.csv"),
-                TestHelper::appendKuzuRootPath("dataset/copy-multiple-files-test/vPerson3.csv")))
-            ->isSuccess());
+    ASSERT_TRUE(conn->query(StringUtils::string_format(R"(COPY person FROM ["{}"])",
+                                TestHelper::appendKuzuRootPath(
+                                    "dataset/copy-multiple-files-test/vPerson*.csv")))
+                    ->isSuccess());
     ASSERT_TRUE(
         conn->query(
                 StringUtils::string_format(R"(COPY knows FROM ["{}", "{}"])",

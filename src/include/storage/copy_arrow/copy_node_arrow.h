@@ -11,10 +11,10 @@ class CopyNodeArrow : public CopyStructuresArrow {
 
 public:
     CopyNodeArrow(common::CopyDescription& copyDescription, std::string outputDirectory,
-        common::TaskScheduler& taskScheduler, catalog::Catalog& catalog, common::table_id_t tableID,
-        NodesStatisticsAndDeletedIDs* nodesStatisticsAndDeletedIDs)
-        : CopyStructuresArrow{copyDescription, std::move(outputDirectory), taskScheduler, catalog,
-              tableID},
+        catalog::Catalog& catalog, common::table_id_t tableID,
+        NodesStatisticsAndDeletedIDs* nodesStatisticsAndDeletedIDs, uint64_t numThreads)
+        : CopyStructuresArrow{copyDescription, std::move(outputDirectory), catalog, tableID,
+              numThreads},
           nodesStatisticsAndDeletedIDs{nodesStatisticsAndDeletedIDs} {}
 
 private:

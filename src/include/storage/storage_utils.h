@@ -1,5 +1,7 @@
 #pragma once
 
+#include <glob.h>
+
 #include <string>
 #include <utility>
 
@@ -299,6 +301,16 @@ public:
 
     static void initializeListsHeaders(const catalog::RelTableSchema* relTableSchema,
         uint64_t numNodesInTable, const std::string& directory, common::RelDirection relDirection);
+
+    static std::vector<std::string> globFilePath(const std::string& path) {
+        std::vector<std::string> result;
+        glob_t globResult;
+        glob(path.c_str(), GLOB_TILDE, nullptr, &globResult);
+        for (auto i = 0u; i < globResult.gl_pathc; ++i) {
+            result.emplace_back(globResult.gl_pathv[i]);
+        }
+        return result;
+    }
 
 private:
     static std::string appendSuffixOrInsertBeforeWALSuffix(

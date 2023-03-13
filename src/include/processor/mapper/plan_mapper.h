@@ -2,6 +2,7 @@
 
 #include "binder/expression/node_expression.h"
 #include "common/statement_type.h"
+#include "planner/logical_plan/logical_operator/logical_copy.h"
 #include "planner/logical_plan/logical_plan.h"
 #include "processor/mapper/expression_mapper.h"
 #include "processor/operator/result_collector.h"
@@ -127,6 +128,13 @@ private:
         const binder::expression_vector& keys, const binder::expression_vector& payloads);
 
     void mapASP(PhysicalOperator* probe);
+
+    static inline DataPos getDataPos(
+        planner::Schema* schema, std::shared_ptr<binder::Expression> expression) {
+        return DataPos(schema->getExpressionPos(*expression));
+    }
+
+    static DataPos getInputPos(planner::LogicalCopy* logicalCopy);
 
 public:
     storage::StorageManager& storageManager;

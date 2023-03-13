@@ -11,11 +11,11 @@ namespace kuzu {
 namespace storage {
 
 CopyRelArrow::CopyRelArrow(CopyDescription& copyDescription, std::string outputDirectory,
-    TaskScheduler& taskScheduler, Catalog& catalog,
-    std::map<table_id_t, offset_t> maxNodeOffsetsPerNodeTable, BufferManager* bufferManager,
-    table_id_t tableID, RelsStatistics* relsStatistics)
-    : CopyStructuresArrow{copyDescription, std::move(outputDirectory), taskScheduler, catalog,
-          tableID},
+    Catalog& catalog, std::map<table_id_t, offset_t> maxNodeOffsetsPerNodeTable,
+    BufferManager* bufferManager, table_id_t tableID, RelsStatistics* relsStatistics,
+    uint64_t numThreads)
+    : CopyStructuresArrow{copyDescription, std::move(outputDirectory), catalog, tableID,
+          numThreads},
       maxNodeOffsetsPerTable{std::move(maxNodeOffsetsPerNodeTable)}, relsStatistics{
                                                                          relsStatistics} {
     dummyReadOnlyTrx = Transaction::getDummyReadOnlyTrx();
@@ -131,13 +131,13 @@ void CopyRelArrow::initAdjListsHeaders() {
                  ->isSingleMultiplicityInDirection(relDirection)) {
             auto boundTableID =
                 reinterpret_cast<RelTableSchema*>(tableSchema)->getBoundTableID(relDirection);
-            taskScheduler.scheduleTask(CopyTaskFactory::createCopyTask(calculateListHeadersTask,
+            taskScheduler->scheduleTask(CopyTaskFactory::createCopyTask(calculateListHeadersTask,
                 maxNodeOffsetsPerTable.at(boundTableID) + 1, sizeof(offset_t),
                 listSizesPerDirection[relDirection].get(),
                 adjListsPerDirection[relDirection]->getListHeadersBuilder(), logger));
         }
     }
-    taskScheduler.waitAllTasksToCompleteOrError();
+    taskScheduler->waitAllTasksToCompleteOrError();
     logger->debug("Done initializing AdjListHeaders for rel {}.", tableSchema->tableName);
 }
 
@@ -152,12 +152,12 @@ void CopyRelArrow::initListsMetadata() {
             auto adjLists = adjListsPerDirection[relDirection].get();
             auto numNodes = maxNodeOffsetsPerTable.at(boundTableID) + 1;
             auto listSizes = listSizesPerDirection[relDirection].get();
-            taskScheduler.scheduleTask(
+            taskScheduler->scheduleTask(
                 CopyTaskFactory::createCopyTask(calculateListsMetadataAndAllocateInMemListPagesTask,
                     numNodes, sizeof(offset_t), listSizes, adjLists->getListHeadersBuilder(),
                     adjLists, false /*hasNULLBytes*/, logger));
             for (auto& property : tableSchema->properties) {
-                taskScheduler.scheduleTask(CopyTaskFactory::createCopyTask(
+                taskScheduler->scheduleTask(CopyTaskFactory::createCopyTask(
                     calculateListsMetadataAndAllocateInMemListPagesTask, numNodes,
                     Types::getDataTypeSize(property.dataType), listSizes,
                     adjLists->getListHeadersBuilder(),
@@ -166,7 +166,7 @@ void CopyRelArrow::initListsMetadata() {
             }
         }
     }
-    taskScheduler.waitAllTasksToCompleteOrError();
+    taskScheduler->waitAllTasksToCompleteOrError();
     logger->debug("Done initializing adjLists and propertyLists metadata for rel {}.",
         tableSchema->tableName);
 }
@@ -216,16 +216,16 @@ arrow::Status CopyRelArrow::populateFromCSV(PopulateTaskType populateTaskType) {
                     break;
                 }
                 ARROW_ASSIGN_OR_RAISE(currBatch, *it);
-                taskScheduler.scheduleTask(CopyTaskFactory::createCopyTask(
+                taskScheduler->scheduleTask(CopyTaskFactory::createCopyTask(
                     populateTask, blockIdx, startOffset, this, currBatch->columns(), filePath));
                 startOffset += currBatch->num_rows();
                 ++blockIdx;
                 ++it;
             }
-            taskScheduler.waitUntilEnoughTasksFinish(
+            taskScheduler->waitUntilEnoughTasksFinish(
                 CopyConstants::MINIMUM_NUM_COPIER_TASKS_TO_SCHEDULE_MORE);
         }
-        taskScheduler.waitAllTasksToCompleteOrError();
+        taskScheduler->waitAllTasksToCompleteOrError();
     }
     return arrow::Status::OK();
 }
@@ -249,16 +249,16 @@ arrow::Status CopyRelArrow::populateFromArrow(PopulateTaskType populateTaskType)
                 break;
             }
             ARROW_ASSIGN_OR_RAISE(currBatch, ipc_reader->ReadRecordBatch(blockIdx));
-            taskScheduler.scheduleTask(CopyTaskFactory::createCopyTask(populateTask, blockIdx,
+            taskScheduler->scheduleTask(CopyTaskFactory::createCopyTask(populateTask, blockIdx,
                 startOffset, this, currBatch->columns(), copyDescription.filePaths[0]));
             startOffset += currBatch->num_rows();
             ++blockIdx;
         }
-        taskScheduler.waitUntilEnoughTasksFinish(
+        taskScheduler->waitUntilEnoughTasksFinish(
             CopyConstants::MINIMUM_NUM_COPIER_TASKS_TO_SCHEDULE_MORE);
     }
 
-    taskScheduler.waitAllTasksToCompleteOrError();
+    taskScheduler->waitAllTasksToCompleteOrError();
     return arrow::Status::OK();
 }
 
@@ -281,16 +281,16 @@ arrow::Status CopyRelArrow::populateFromParquet(PopulateTaskType populateTaskTyp
                 break;
             }
             ARROW_RETURN_NOT_OK(reader->RowGroup(blockIdx)->ReadTable(&currTable));
-            taskScheduler.scheduleTask(CopyTaskFactory::createCopyTask(populateTask, blockIdx,
+            taskScheduler->scheduleTask(CopyTaskFactory::createCopyTask(populateTask, blockIdx,
                 startOffset, this, currTable->columns(), copyDescription.filePaths[0]));
             startOffset += currTable->num_rows();
             ++blockIdx;
         }
-        taskScheduler.waitUntilEnoughTasksFinish(
+        taskScheduler->waitUntilEnoughTasksFinish(
             CopyConstants::MINIMUM_NUM_COPIER_TASKS_TO_SCHEDULE_MORE);
     }
 
-    taskScheduler.waitAllTasksToCompleteOrError();
+    taskScheduler->waitAllTasksToCompleteOrError();
     return arrow::Status::OK();
 }
 
@@ -330,13 +330,13 @@ void CopyRelArrow::sortAndCopyOverflowValues() {
                         offsetEnd = std::min(offsetStart + 256, numNodes);
                         auto propertyList =
                             propertyListsPerDirection[relDirection][property.propertyID].get();
-                        taskScheduler.scheduleTask(CopyTaskFactory::createCopyTask(
+                        taskScheduler->scheduleTask(CopyTaskFactory::createCopyTask(
                             sortOverflowValuesOfPropertyListsTask, property.dataType, offsetStart,
                             offsetEnd, adjListsPerDirection[relDirection].get(), propertyList,
                             overflowFilePerPropertyID.at(property.propertyID).get(),
                             propertyList->getInMemOverflowFile()));
                     }
-                    taskScheduler.waitAllTasksToCompleteOrError();
+                    taskScheduler->waitAllTasksToCompleteOrError();
                 }
             }
         }
@@ -359,13 +359,13 @@ void CopyRelArrow::sortAndCopyOverflowValues() {
                         offsetEnd = std::min(offsetStart + 256, numNodes);
                         auto propertyColumn =
                             propertyColumnsPerDirection[relDirection][property.propertyID].get();
-                        taskScheduler.scheduleTask(
+                        taskScheduler->scheduleTask(
                             CopyTaskFactory::createCopyTask(sortOverflowValuesOfPropertyColumnTask,
                                 property.dataType, offsetStart, offsetEnd, propertyColumn,
                                 overflowFilePerPropertyID.at(property.propertyID).get(),
                                 propertyColumn->getInMemOverflowFile()));
                     }
-                    taskScheduler.waitAllTasksToCompleteOrError();
+                    taskScheduler->waitAllTasksToCompleteOrError();
                 }
             }
         }

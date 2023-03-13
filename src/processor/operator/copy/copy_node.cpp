@@ -7,10 +7,9 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace processor {
 
-uint64_t CopyNode::executeInternal(
-    common::TaskScheduler* taskScheduler, ExecutionContext* executionContext) {
+uint64_t CopyNode::copy(common::CopyDescription& copyDescription, uint64_t numThreads) {
     auto nodeCSVCopier = make_unique<CopyNodeArrow>(
-        copyDescription, wal->getDirectory(), *taskScheduler, *catalog, tableID, nodesStatistics);
+        copyDescription, wal->getDirectory(), *catalog, tableID, nodesStatistics, numThreads);
     auto numNodesCopied = nodeCSVCopier->copy();
     for (auto& relTableSchema : catalog->getAllRelTableSchemasContainBoundTable(tableID)) {
         relsStore.getRelTable(relTableSchema->tableID)
@@ -18,12 +17,6 @@ uint64_t CopyNode::executeInternal(
     }
     wal->logCopyNodeRecord(tableID);
     return numNodesCopied;
-}
-
-uint64_t CopyNode::getNumTuplesInTable() {
-    // TODO(Ziyi): this chains looks weird. Fix when refactoring table statistics. Ditto in
-    // CopyRel.
-    return nodesStatistics->getReadOnlyVersion()->tableStatisticPerTable[tableID]->getNumTuples();
 }
 
 } // namespace processor

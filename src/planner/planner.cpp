@@ -154,8 +154,10 @@ std::unique_ptr<LogicalPlan> Planner::planRenameProperty(const BoundStatement& s
 std::unique_ptr<LogicalPlan> Planner::planCopy(const BoundStatement& statement) {
     auto& copyCSVClause = (BoundCopy&)statement;
     auto plan = std::make_unique<LogicalPlan>();
-    auto copyCSV = make_shared<LogicalCopy>(copyCSVClause.getCopyDescription(),
-        copyCSVClause.getTableID(), copyCSVClause.getTableName());
+    QueryPlanner::appendExpressionsScan(expression_vector{copyCSVClause.getFilePaths()}, *plan);
+    auto copyCSV = make_shared<LogicalCopy>(copyCSVClause.getCSVReaderConfig(),
+        copyCSVClause.getTableID(), copyCSVClause.getTableName(), plan->getLastOperator(),
+        statement.getStatementResult()->getSingleExpressionToCollect());
     plan->setLastOperator(std::move(copyCSV));
     return plan;
 }

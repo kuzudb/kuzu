@@ -1004,21 +1004,12 @@ std::string Transformer::transformPrimaryKey(CypherParser::KU_CreateNodeConstrai
 }
 
 std::unique_ptr<Statement> Transformer::transformCopyCSV(CypherParser::KU_CopyCSVContext& ctx) {
-    auto filePaths = transformFilePaths(*ctx.kU_FilePaths());
     auto tableName = transformSchemaName(*ctx.oC_SchemaName());
     auto parsingOptions = ctx.kU_ParsingOptions() ?
                               transformParsingOptions(*ctx.kU_ParsingOptions()) :
                               std::unordered_map<std::string, std::unique_ptr<ParsedExpression>>();
     return std::make_unique<CopyCSV>(
-        std::move(filePaths), std::move(tableName), std::move(parsingOptions));
-}
-
-std::vector<std::string> Transformer::transformFilePaths(CypherParser::KU_FilePathsContext& ctx) {
-    std::vector<std::string> csvFiles;
-    for (auto& csvFile : ctx.StringLiteral()) {
-        csvFiles.push_back(transformStringLiteral(*csvFile));
-    }
-    return csvFiles;
+        transformExpression(*ctx.oC_Expression()), std::move(tableName), std::move(parsingOptions));
 }
 
 std::unordered_map<std::string, std::unique_ptr<ParsedExpression>>

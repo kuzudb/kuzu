@@ -17,11 +17,7 @@ oC_Cypher
     : SP ? oC_AnyCypherOption? SP? ( oC_Statement | kU_DDL | kU_CopyCSV ) ( SP? ';' )? SP? EOF ;
 
 kU_CopyCSV
-    : COPY SP oC_SchemaName SP FROM SP kU_FilePaths ( SP? '(' SP? kU_ParsingOptions SP? ')' )? ;
-
-kU_FilePaths
-    : '[' SP? StringLiteral ( SP? ',' SP? StringLiteral )* ']'
-        | StringLiteral ;
+    : COPY SP oC_SchemaName SP FROM SP oC_Expression ( SP? '(' SP? kU_ParsingOptions SP? ')' )? ;
 
 kU_ParsingOptions
     : kU_ParsingOption ( SP? ',' SP? kU_ParsingOption )* ;

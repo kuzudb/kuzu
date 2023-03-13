@@ -28,6 +28,8 @@ public:
         return getBestPlan(getAllPlans(boundStatement));
     }
 
+    static void appendExpressionsScan(const expression_vector& expressions, LogicalPlan& plan);
+
 private:
     std::unique_ptr<LogicalPlan> getBestPlan(std::vector<std::unique_ptr<LogicalPlan>> plans);
 
@@ -53,8 +55,6 @@ private:
     void planSubqueryIfNecessary(const std::shared_ptr<Expression>& expression, LogicalPlan& plan);
 
     static void appendAccumulate(LogicalPlan& plan);
-
-    static void appendExpressionsScan(const expression_vector& expressions, LogicalPlan& plan);
 
     static void appendDistinct(const expression_vector& expressionsToDistinct, LogicalPlan& plan);
 

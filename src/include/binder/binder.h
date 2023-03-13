@@ -64,7 +64,6 @@ private:
     void bindStringParsingOptions(common::CSVReaderConfig& csvReaderConfig,
         const std::string& optionName, std::string& optionValue);
     char bindParsingOptionValue(std::string value);
-    common::CopyDescription::FileType bindFileType(std::vector<std::string> filePaths);
 
     /*** bind query ***/
     std::unique_ptr<BoundRegularQuery> bindQuery(const parser::RegularQuery& regularQuery);
