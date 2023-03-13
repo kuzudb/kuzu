@@ -61,9 +61,10 @@ void Column::writeValues(
 
 Value Column::readValueForTestingOnly(offset_t offset) {
     auto cursor = PageUtils::getPageElementCursorForPos(offset, numElementsPerPage);
-    auto frame = bufferManager.pin(*fileHandle, cursor.pageIdx);
-    auto retVal = Value(dataType, frame + mapElementPosToByteOffset(cursor.elemPosInPage));
-    bufferManager.unpin(*fileHandle, cursor.pageIdx);
+    Value retVal = Value::createDefaultValue(dataType);
+    bufferManager.optimisticRead(*fileHandle, cursor.pageIdx, [&](uint8_t* frame) {
+        retVal.copyValueFrom(frame + mapElementPosToByteOffset(cursor.elemPosInPage));
+    });
     return retVal;
 }
 
@@ -123,12 +124,12 @@ void Column::lookup(Transaction* transaction, common::ValueVector* resultVector,
     auto [fileHandleToPin, pageIdxToPin] =
         StorageStructureUtils::getFileHandleAndPhysicalPageIdxToPin(
             *fileHandle, cursor.pageIdx, *wal, transaction->getType());
-    auto frame = bufferManager.pin(*fileHandleToPin, pageIdxToPin);
-    auto vectorBytesOffset = getElemByteOffset(vectorPos);
-    auto frameBytesOffset = getElemByteOffset(cursor.elemPosInPage);
-    memcpy(resultVector->getData() + vectorBytesOffset, frame + frameBytesOffset, elementSize);
-    readSingleNullBit(resultVector, frame, cursor.elemPosInPage, vectorPos);
-    bufferManager.unpin(*fileHandleToPin, pageIdxToPin);
+    bufferManager.optimisticRead(*fileHandleToPin, pageIdxToPin, [&](uint8_t* frame) -> void {
+        auto vectorBytesOffset = getElemByteOffset(vectorPos);
+        auto frameBytesOffset = getElemByteOffset(cursor.elemPosInPage);
+        memcpy(resultVector->getData() + vectorBytesOffset, frame + frameBytesOffset, elementSize);
+        readSingleNullBit(resultVector, frame, cursor.elemPosInPage, vectorPos);
+    });
 }
 
 WALPageIdxPosInPageAndFrame Column::beginUpdatingPage(
@@ -189,9 +190,10 @@ void StringPropertyColumn::writeValueForSingleNodeIDPosition(
 Value StringPropertyColumn::readValueForTestingOnly(offset_t offset) {
     auto cursor = PageUtils::getPageElementCursorForPos(offset, numElementsPerPage);
     ku_string_t kuString;
-    auto frame = bufferManager.pin(*fileHandle, cursor.pageIdx);
-    memcpy(&kuString, frame + mapElementPosToByteOffset(cursor.elemPosInPage), sizeof(ku_string_t));
-    bufferManager.unpin(*fileHandle, cursor.pageIdx);
+    bufferManager.optimisticRead(*fileHandle, cursor.pageIdx, [&](uint8_t* frame) -> void {
+        memcpy(&kuString, frame + mapElementPosToByteOffset(cursor.elemPosInPage),
+            sizeof(ku_string_t));
+    });
     return Value(diskOverflowFile.readString(TransactionType::READ_ONLY, kuString));
 }
 
@@ -225,9 +227,9 @@ void ListPropertyColumn::writeValueForSingleNodeIDPosition(
 Value ListPropertyColumn::readValueForTestingOnly(offset_t offset) {
     auto cursor = PageUtils::getPageElementCursorForPos(offset, numElementsPerPage);
     ku_list_t kuList;
-    auto frame = bufferManager.pin(*fileHandle, cursor.pageIdx);
-    memcpy(&kuList, frame + mapElementPosToByteOffset(cursor.elemPosInPage), sizeof(ku_list_t));
-    bufferManager.unpin(*fileHandle, cursor.pageIdx);
+    bufferManager.optimisticRead(*fileHandle, cursor.pageIdx, [&](uint8_t* frame) -> void {
+        memcpy(&kuList, frame + mapElementPosToByteOffset(cursor.elemPosInPage), sizeof(ku_list_t));
+    });
     return Value(dataType, diskOverflowFile.readList(TransactionType::READ_ONLY, kuList, dataType));
 }
 

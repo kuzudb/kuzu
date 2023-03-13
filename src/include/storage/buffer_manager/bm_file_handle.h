@@ -6,44 +6,87 @@
 namespace kuzu {
 namespace storage {
 
-static constexpr uint64_t IS_IN_FRAME_MASK = 0x8000000000000000;
-static constexpr uint64_t DIRTY_MASK = 0x4000000000000000;
-static constexpr uint64_t PAGE_IDX_MASK = 0x3FFFFFFFFFFFFFFF;
-
-enum class LockMode : uint8_t { SPIN = 0, NON_BLOCKING = 1 };
-
 class BMFileHandle;
 class BufferManager;
 
 // Keeps the state information of a page in a file.
 class PageState {
-public:
-    inline bool isInFrame() const { return pageIdx & IS_IN_FRAME_MASK; }
-    inline void setDirty() { pageIdx |= DIRTY_MASK; }
-    inline void clearDirty() { pageIdx &= ~DIRTY_MASK; }
-    inline bool isDirty() const { return pageIdx & DIRTY_MASK; }
-    inline common::page_idx_t getPageIdx() const {
-        return (common::page_idx_t)(pageIdx & PAGE_IDX_MASK);
-    }
-    inline uint64_t incrementPinCount() { return pinCount.fetch_add(1); }
-    inline uint64_t decrementPinCount() { return pinCount.fetch_sub(1); }
-    inline void setPinCount(uint64_t newPinCount) { pinCount.store(newPinCount); }
-    inline uint64_t getPinCount() const { return pinCount.load(); }
-    inline uint64_t getEvictionTimestamp() const { return evictionTimestamp.load(); }
-    inline uint64_t incrementEvictionTimestamp() { return evictionTimestamp.fetch_add(1); }
-    inline void releaseLock() { lock.clear(); }
+    static constexpr uint64_t DIRTY_MASK = 0x0080000000000000;
+    static constexpr uint64_t STATE_MASK = 0xFF00000000000000;
+    static constexpr uint64_t VERSION_MASK = 0x00FFFFFFFFFFFFFF;
+    static constexpr uint64_t NUM_BITS_TO_SHIFT_FOR_STATE = 56;
 
-    bool acquireLock(LockMode lockMode);
-    void setInFrame(common::page_idx_t pageIdx);
-    void resetState();
+public:
+    static constexpr uint64_t UNLOCKED = 0;
+    static constexpr uint64_t LOCKED = 1;
+    static constexpr uint64_t MARKED = 2;
+    static constexpr uint64_t EVICTED = 3;
+
+    PageState() {
+        stateAndVersion.store(EVICTED << NUM_BITS_TO_SHIFT_FOR_STATE, std::memory_order_release);
+    }
+
+    inline uint64_t getState() { return getState(stateAndVersion.load()); }
+    inline static uint64_t getState(uint64_t stateAndVersion) {
+        return (stateAndVersion & STATE_MASK) >> NUM_BITS_TO_SHIFT_FOR_STATE;
+    }
+    inline static uint64_t getVersion(uint64_t stateAndVersion) {
+        return stateAndVersion & VERSION_MASK;
+    }
+    inline static uint64_t updateStateWithSameVersion(
+        uint64_t oldStateAndVersion, uint64_t newState) {
+        return ((oldStateAndVersion << 8) >> 8) | (newState << NUM_BITS_TO_SHIFT_FOR_STATE);
+    }
+    inline static uint64_t updateStateAndIncrementVersion(
+        uint64_t oldStateAndVersion, uint64_t newState) {
+        return (((oldStateAndVersion << 8) >> 8) + 1) | (newState << NUM_BITS_TO_SHIFT_FOR_STATE);
+    }
+    inline void spinLock(uint64_t oldStateAndVersion) {
+        while (true) {
+            if (tryLock(oldStateAndVersion)) {
+                return;
+            }
+        }
+    }
+    inline bool tryLock(uint64_t oldStateAndVersion) {
+        return stateAndVersion.compare_exchange_strong(
+            oldStateAndVersion, updateStateWithSameVersion(oldStateAndVersion, LOCKED));
+    }
+    inline void unlock() {
+        assert(getState(stateAndVersion.load()) == LOCKED);
+        stateAndVersion.store(updateStateAndIncrementVersion(stateAndVersion.load(), UNLOCKED),
+            std::memory_order_release);
+    }
+    // Change page state from Mark to Unlocked.
+    inline bool tryClearMark(uint64_t oldStateAndVersion) {
+        assert(getState(oldStateAndVersion) == MARKED);
+        return stateAndVersion.compare_exchange_strong(
+            oldStateAndVersion, updateStateWithSameVersion(oldStateAndVersion, UNLOCKED));
+    }
+    inline bool tryMark(uint64_t oldStateAndVersion) {
+        return stateAndVersion.compare_exchange_strong(
+            oldStateAndVersion, updateStateWithSameVersion(oldStateAndVersion, MARKED));
+    }
+
+    inline void setDirty() {
+        assert(getState(stateAndVersion.load()) == LOCKED);
+        stateAndVersion |= DIRTY_MASK;
+    }
+    inline void clearDirty() {
+        assert(getState(stateAndVersion.load()) == LOCKED);
+        stateAndVersion &= ~DIRTY_MASK;
+    }
+    inline bool isDirty() const { return stateAndVersion & DIRTY_MASK; }
+    uint64_t getStateAndVersion() const { return stateAndVersion.load(); }
+
+    inline void resetToEvicted() {
+        stateAndVersion.store(EVICTED << NUM_BITS_TO_SHIFT_FOR_STATE, std::memory_order_release);
+    }
 
 private:
-    std::atomic_flag lock = ATOMIC_FLAG_INIT;
-    // Highest 1st bit indicates if this page is loaded or not, 2nd bit indicates if this
-    // page is dirty or not. The rest 62 bits records the page idx inside the file.
-    uint64_t pageIdx = 0;
-    std::atomic<uint32_t> pinCount = 0;
-    std::atomic<uint64_t> evictionTimestamp = 0;
+    // Highest 1 bit is dirty bit, and the rest are page state and version bits.
+    // In the rest bits, the lowest 1 byte is state, and the rest are version.
+    std::atomic<uint64_t> stateAndVersion;
 };
 
 // This class is used to keep the WAL page idxes of a page group in the original file handle.
@@ -94,6 +137,12 @@ public:
     BMFileHandle(const std::string& path, uint8_t flags, BufferManager* bm,
         common::PageSizeClass pageSizeClass, FileVersionedType fileVersionedType);
 
+    // This function assumes the page is already LOCKED.
+    inline void setLockedPageDirty(common::page_idx_t pageIdx) {
+        assert(pageIdx < numPages);
+        pageStates[pageIdx]->setDirty();
+    }
+
     common::page_group_idx_t addWALPageIdxGroupIfNecessary(common::page_idx_t originalPageIdx);
     // This function is intended to be used after a fileInfo is created and we want the file
     // to have no pages and page locks. Should be called after ensuring that the buffer manager
@@ -121,16 +170,6 @@ private:
     inline PageState* getPageState(common::page_idx_t pageIdx) {
         assert(pageIdx < numPages && pageStates[pageIdx]);
         return pageStates[pageIdx].get();
-    }
-    inline void clearPageState(common::page_idx_t pageIdx) {
-        assert(pageIdx < numPages && pageStates[pageIdx]);
-        pageStates[pageIdx]->resetState();
-    }
-    inline bool acquirePageLock(common::page_idx_t pageIdx, LockMode lockMode) {
-        return getPageState(pageIdx)->acquireLock(lockMode);
-    }
-    inline void releasePageLock(common::page_idx_t pageIdx) {
-        getPageState(pageIdx)->releaseLock();
     }
     inline common::frame_idx_t getFrameIdx(common::page_idx_t pageIdx) {
         assert(pageIdx < pageCapacity);

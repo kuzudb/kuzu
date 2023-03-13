@@ -7,27 +7,6 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-void PageState::setInFrame(common::page_idx_t pageIdx_) {
-    pageIdx = 0;
-    pageIdx = pageIdx_;
-    pageIdx |= IS_IN_FRAME_MASK;
-}
-
-bool PageState::acquireLock(LockMode lockMode) {
-    if (lockMode == LockMode::SPIN) {
-        while (lock.test_and_set()) // spinning
-            ;
-        return true;
-    }
-    return !lock.test_and_set();
-}
-
-void PageState::resetState() {
-    pageIdx = 0;
-    pinCount = 0;
-    evictionTimestamp = 0;
-}
-
 WALPageIdxGroup::WALPageIdxGroup() {
     walPageIdxes.resize(common::StorageConstants::PAGE_GROUP_SIZE, common::INVALID_PAGE_IDX);
     walPageIdxLocks.resize(common::StorageConstants::PAGE_GROUP_SIZE);
