@@ -72,8 +72,8 @@ bool ASPOptimizer::isProbeSideQualified(planner::LogicalOperator* probeRoot) {
     return true;
 }
 
-std::vector<planner::LogicalOperator*> ASPOptimizer::resolveScanNodesToApplySemiMask(
-    const binder::expression_vector& nodeIDCandidates,
+binder::expression_map<std::vector<planner::LogicalOperator*>>
+ASPOptimizer::resolveScanNodesToApplySemiMask(const binder::expression_vector& nodeIDCandidates,
     const std::vector<planner::LogicalOperator*>& buildRoots) {
     binder::expression_map<std::vector<LogicalOperator*>> nodeIDToScanOperatorsMap;
     for (auto& buildRoot : buildRoots) {
@@ -89,27 +89,23 @@ std::vector<planner::LogicalOperator*> ASPOptimizer::resolveScanNodesToApplySemi
         }
     }
     // Match node ID candidate with scanNode operators.
-    std::vector<LogicalOperator*> result;
+    binder::expression_map<std::vector<planner::LogicalOperator*>> result;
     for (auto& nodeID : nodeIDCandidates) {
         if (!nodeIDToScanOperatorsMap.contains(nodeID)) {
             // No scan on the build side to push semi mask to.
             continue;
         }
-        if (nodeIDToScanOperatorsMap.at(nodeID).size() > 1) {
-            // We don't push semi mask to multiple scans. This can be solved.
-            continue;
-        }
-        result.push_back(nodeIDToScanOperatorsMap.at(nodeID)[0]);
+        result.insert({nodeID, nodeIDToScanOperatorsMap.at(nodeID)});
     }
     return result;
 }
 
 void ASPOptimizer::applyASP(
-    const std::vector<planner::LogicalOperator*>& scanNodes, planner::LogicalOperator* op) {
+    const binder::expression_map<std::vector<planner::LogicalOperator*>>& nodeIDToScanNodes,
+    planner::LogicalOperator* op) {
     auto currentChild = op->getChild(0);
-    for (auto& op_ : scanNodes) {
-        auto scanNode = (LogicalScanNode*)op_;
-        auto semiMasker = std::make_shared<LogicalSemiMasker>(scanNode, currentChild);
+    for (auto& [nodeID, scanNodes] : nodeIDToScanNodes) {
+        auto semiMasker = std::make_shared<LogicalSemiMasker>(nodeID, scanNodes, currentChild);
         semiMasker->computeFlatSchema();
         currentChild = semiMasker;
     }

@@ -18,12 +18,13 @@ private:
 
     bool isProbeSideQualified(planner::LogicalOperator* probeRoot);
 
-    std::vector<planner::LogicalOperator*> resolveScanNodesToApplySemiMask(
+    binder::expression_map<std::vector<planner::LogicalOperator*>> resolveScanNodesToApplySemiMask(
         const binder::expression_vector& nodeIDCandidates,
         const std::vector<planner::LogicalOperator*>& buildRoots);
 
     void applyASP(
-        const std::vector<planner::LogicalOperator*>& scanNodes, planner::LogicalOperator* op);
+        const binder::expression_map<std::vector<planner::LogicalOperator*>>& nodeIDToScanNodes,
+        planner::LogicalOperator* op);
 };
 
 } // namespace optimizer

@@ -29,17 +29,19 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalSemiMaskerToPhysical(
     auto logicalSemiMasker = (LogicalSemiMasker*)logicalOperator;
     auto inSchema = logicalSemiMasker->getChild(0)->getSchema();
     auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0));
-    auto logicalScanNode = logicalSemiMasker->getScanNode();
-    auto physicalScanNode = (ScanNodeID*)logicalOpToPhysicalOpMap.at(logicalScanNode);
-    auto keyDataPos =
-        DataPos(inSchema->getExpressionPos(*logicalScanNode->getNode()->getInternalIDProperty()));
-    if (physicalScanNode->getSharedState()->getNumTableStates() > 1) {
-        return std::make_unique<MultiTableSemiMasker>(keyDataPos,
-            physicalScanNode->getSharedState(), std::move(prevOperator), getOperatorID(),
+    std::vector<ScanNodeIDSharedState*> scanStates;
+    for (auto& op : logicalSemiMasker->getScanNodes()) {
+        auto physicalScanNode = (ScanNodeID*)logicalOpToPhysicalOpMap.at(op);
+        scanStates.push_back(physicalScanNode->getSharedState());
+    }
+    auto keyDataPos = DataPos(inSchema->getExpressionPos(*logicalSemiMasker->getNodeID()));
+    if (logicalSemiMasker->isMultiLabel()) {
+        return std::make_unique<MultiTableSemiMasker>(keyDataPos, std::move(scanStates),
+            std::move(prevOperator), getOperatorID(),
             logicalSemiMasker->getExpressionsForPrinting());
     } else {
-        return std::make_unique<SingleTableSemiMasker>(keyDataPos,
-            physicalScanNode->getSharedState(), std::move(prevOperator), getOperatorID(),
+        return std::make_unique<SingleTableSemiMasker>(keyDataPos, std::move(scanStates),
+            std::move(prevOperator), getOperatorID(),
             logicalSemiMasker->getExpressionsForPrinting());
     }
 }
