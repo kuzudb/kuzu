@@ -15,11 +15,24 @@ std::unique_ptr<BoundStatement> Binder::bindCopy(const Statement& statement) {
     auto tableName = copyCSV.getTableName();
     validateTableExist(catalog, tableName);
     auto tableID = catalogContent->getTableID(tableName);
-    auto filePaths = copyCSV.getFilePaths();
     auto csvReaderConfig = bindParsingOptions(copyCSV.getParsingOptions());
+    auto filePaths = bindFilePaths(copyCSV.getFilePaths());
     auto fileType = bindFileType(filePaths);
     return make_unique<BoundCopy>(
         CopyDescription(filePaths, csvReaderConfig, fileType), tableID, tableName);
+}
+
+std::vector<std::string> Binder::bindFilePaths(const std::vector<std::string>& filePaths) {
+    std::vector<std::string> boundFilePaths;
+    for (auto& filePath : filePaths) {
+        auto globbedFilePaths = FileUtils::globFilePath(filePath);
+        boundFilePaths.insert(
+            boundFilePaths.end(), globbedFilePaths.begin(), globbedFilePaths.end());
+    }
+    if (boundFilePaths.empty()) {
+        throw BinderException{StringUtils::string_format("Invalid file path: {}.", filePaths[0])};
+    }
+    return boundFilePaths;
 }
 
 CSVReaderConfig Binder::bindParsingOptions(
@@ -85,29 +98,15 @@ CopyDescription::FileType Binder::bindFileType(std::vector<std::string> filePath
     auto csvSuffix = CopyDescription::getFileTypeSuffix(CopyDescription::FileType::CSV);
     auto arrowSuffix = CopyDescription::getFileTypeSuffix(CopyDescription::FileType::ARROW);
     auto parquetSuffix = CopyDescription::getFileTypeSuffix(CopyDescription::FileType::PARQUET);
-
-    if (fileName.length() >= csvSuffix.length()) {
-        if (!fileName.compare(
-                fileName.length() - csvSuffix.length(), csvSuffix.length(), csvSuffix)) {
-            return CopyDescription::FileType::CSV;
-        }
+    if (fileName.ends_with(csvSuffix)) {
+        return CopyDescription::FileType::CSV;
+    } else if (fileName.ends_with(arrowSuffix)) {
+        return CopyDescription::FileType::ARROW;
+    } else if (fileName.ends_with(parquetSuffix)) {
+        return CopyDescription::FileType::PARQUET;
+    } else {
+        throw CopyException("Unsupported file type: " + fileName);
     }
-
-    if (fileName.length() >= arrowSuffix.length()) {
-        if (!fileName.compare(
-                fileName.length() - arrowSuffix.length(), arrowSuffix.length(), arrowSuffix)) {
-            return CopyDescription::FileType::ARROW;
-        }
-    }
-
-    if (fileName.length() >= parquetSuffix.length()) {
-        if (!fileName.compare(fileName.length() - parquetSuffix.length(), parquetSuffix.length(),
-                parquetSuffix)) {
-            return CopyDescription::FileType::PARQUET;
-        }
-    }
-
-    throw CopyException("Unsupported file type: " + fileName);
 }
 
 } // namespace binder

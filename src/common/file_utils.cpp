@@ -113,5 +113,15 @@ void FileUtils::truncateFileToEmpty(FileInfo* fileInfo) {
     ftruncate(fileInfo->fd, 0);
 }
 
+std::vector<std::string> FileUtils::globFilePath(const std::string& path) {
+    std::vector<std::string> result;
+    glob_t globResult;
+    glob(path.c_str(), GLOB_TILDE, nullptr, &globResult);
+    for (auto i = 0u; i < globResult.gl_pathc; ++i) {
+        result.emplace_back(globResult.gl_pathv[i]);
+    }
+    return result;
+}
+
 } // namespace common
 } // namespace kuzu

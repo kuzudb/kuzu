@@ -19,21 +19,21 @@ public:
     T__26 = 27, T__27 = 28, T__28 = 29, T__29 = 30, T__30 = 31, T__31 = 32, 
     T__32 = 33, T__33 = 34, T__34 = 35, T__35 = 36, T__36 = 37, T__37 = 38, 
     T__38 = 39, T__39 = 40, T__40 = 41, T__41 = 42, T__42 = 43, T__43 = 44, 
-    T__44 = 45, T__45 = 46, COPY = 47, FROM = 48, NODE = 49, TABLE = 50, 
-    DROP = 51, ALTER = 52, DEFAULT = 53, RENAME = 54, ADD = 55, PRIMARY = 56, 
-    KEY = 57, REL = 58, TO = 59, EXPLAIN = 60, PROFILE = 61, UNION = 62, 
-    ALL = 63, OPTIONAL = 64, MATCH = 65, UNWIND = 66, CREATE = 67, SET = 68, 
-    DELETE = 69, WITH = 70, RETURN = 71, DISTINCT = 72, STAR = 73, AS = 74, 
-    ORDER = 75, BY = 76, L_SKIP = 77, LIMIT = 78, ASCENDING = 79, ASC = 80, 
-    DESCENDING = 81, DESC = 82, WHERE = 83, OR = 84, XOR = 85, AND = 86, 
-    NOT = 87, INVALID_NOT_EQUAL = 88, MINUS = 89, FACTORIAL = 90, STARTS = 91, 
-    ENDS = 92, CONTAINS = 93, IS = 94, NULL_ = 95, TRUE = 96, FALSE = 97, 
-    EXISTS = 98, CASE = 99, ELSE = 100, END = 101, WHEN = 102, THEN = 103, 
-    StringLiteral = 104, EscapedChar = 105, DecimalInteger = 106, HexLetter = 107, 
-    HexDigit = 108, Digit = 109, NonZeroDigit = 110, NonZeroOctDigit = 111, 
-    ZeroDigit = 112, RegularDecimalReal = 113, UnescapedSymbolicName = 114, 
-    IdentifierStart = 115, IdentifierPart = 116, EscapedSymbolicName = 117, 
-    SP = 118, WHITESPACE = 119, Comment = 120, Unknown = 121
+    T__44 = 45, T__45 = 46, GLOB = 47, COPY = 48, FROM = 49, NODE = 50, 
+    TABLE = 51, DROP = 52, ALTER = 53, DEFAULT = 54, RENAME = 55, ADD = 56, 
+    PRIMARY = 57, KEY = 58, REL = 59, TO = 60, EXPLAIN = 61, PROFILE = 62, 
+    UNION = 63, ALL = 64, OPTIONAL = 65, MATCH = 66, UNWIND = 67, CREATE = 68, 
+    SET = 69, DELETE = 70, WITH = 71, RETURN = 72, DISTINCT = 73, STAR = 74, 
+    AS = 75, ORDER = 76, BY = 77, L_SKIP = 78, LIMIT = 79, ASCENDING = 80, 
+    ASC = 81, DESCENDING = 82, DESC = 83, WHERE = 84, OR = 85, XOR = 86, 
+    AND = 87, NOT = 88, INVALID_NOT_EQUAL = 89, MINUS = 90, FACTORIAL = 91, 
+    STARTS = 92, ENDS = 93, CONTAINS = 94, IS = 95, NULL_ = 96, TRUE = 97, 
+    FALSE = 98, EXISTS = 99, CASE = 100, ELSE = 101, END = 102, WHEN = 103, 
+    THEN = 104, StringLiteral = 105, EscapedChar = 106, DecimalInteger = 107, 
+    HexLetter = 108, HexDigit = 109, Digit = 110, NonZeroDigit = 111, NonZeroOctDigit = 112, 
+    ZeroDigit = 113, RegularDecimalReal = 114, UnescapedSymbolicName = 115, 
+    IdentifierStart = 116, IdentifierPart = 117, EscapedSymbolicName = 118, 
+    SP = 119, WHITESPACE = 120, Comment = 121, Unknown = 122
   };
 
   enum {
@@ -243,6 +243,7 @@ public:
     antlr4::tree::TerminalNode* StringLiteral(size_t i);
     std::vector<antlr4::tree::TerminalNode *> SP();
     antlr4::tree::TerminalNode* SP(size_t i);
+    antlr4::tree::TerminalNode *GLOB();
 
    
   };

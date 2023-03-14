@@ -21,7 +21,10 @@ kU_CopyCSV
 
 kU_FilePaths
     : '[' SP? StringLiteral ( SP? ',' SP? StringLiteral )* ']'
-        | StringLiteral ;
+        | StringLiteral
+        | GLOB SP? '(' SP? StringLiteral SP? ')' ;
+
+GLOB : ( 'G' | 'g' ) ( 'L' | 'l' ) ( 'O' | 'o' ) ( 'B' | 'b' ) ;
 
 kU_ParsingOptions
     : kU_ParsingOption ( SP? ',' SP? kU_ParsingOption )* ;

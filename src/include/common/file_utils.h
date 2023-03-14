@@ -1,11 +1,13 @@
 #pragma once
 
 #include <fcntl.h>
+#include <glob.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
 #include <filesystem>
 #include <string>
+#include <vector>
 
 namespace kuzu {
 namespace common {
@@ -54,6 +56,9 @@ public:
         }
         return s.st_size;
     }
+
+    static std::vector<std::string> globFilePath(const std::string& path);
 };
+
 } // namespace common
 } // namespace kuzu

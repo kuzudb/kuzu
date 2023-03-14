@@ -25,8 +25,6 @@ protected:
     uint64_t executeInternal(
         common::TaskScheduler* taskScheduler, ExecutionContext* executionContext) override;
 
-    uint64_t getNumTuplesInTable() override;
-
 private:
     inline bool allowCopyCSV() override {
         return relsStatistics->getRelStatistics(tableID)->getNextRelOffset() == 0;
