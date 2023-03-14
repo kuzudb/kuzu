@@ -19,16 +19,23 @@ jobs:
       - name: Ensure Python dependencies
         run: |
           pip install torch~=1.13 --extra-index-url https://download.pytorch.org/whl/cpu &&\
-          pip install --user -r tools/python_api/requirements_dev.txt
+          pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-1.13.0+cpu.html
 
-      - name: Build
-        run: CC=gcc CXX=g++ make release NUM_THREADS=32
-
-      - name: Test
-        run: CC=gcc CXX=g++ make test NUM_THREADS=32
+      - name: Test with coverage
+        run: CC=gcc CXX=g++ make lcov NUM_THREADS=32
 
       - name: Python test
-        run: CC=gcc CXX=g++ make pytest NUM_THREADS=32
+        run: CC=clang-14 CXX=clang++-14 make pytest NUM_THREADS=32
+
+      - name: Generate coverage report
+        run: |
+          lcov -c -d ./ --no-external -o cover.info &&\
+          lcov --remove cover.info $(< .github/workflows/lcov_exclude) -o cover.info
+
+      - name: Upload coverage report
+        uses: codecov/codecov-action@v3
+        with:
+          file: cover.info
 
   gcc-build-test-with-asan:
     name: gcc build & test with asan
@@ -40,7 +47,7 @@ jobs:
       - name: Ensure Python dependencies
         run: |
           pip install torch~=1.13 --extra-index-url https://download.pytorch.org/whl/cpu &&\
-          pip install --user -r tools/python_api/requirements_dev.txt
+          pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-1.13.0+cpu.html
 
       - name: Build debug
         run: CC=gcc CXX=g++ make alldebug NUM_THREADS=32
@@ -70,7 +77,7 @@ jobs:
       - name: Ensure python dependencies
         run: |
           pip install torch~=1.13 --extra-index-url https://download.pytorch.org/whl/cpu &&\
-          pip install --user -r tools/python_api/requirements_dev.txt
+          pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-1.13.0+cpu.html
 
       - name: Build
         run: CC=clang-14 CXX=clang++-14 make release NUM_THREADS=32
@@ -103,7 +110,7 @@ jobs:
       - name: Ensure Python dependencies
         run: |
           pip install torch~=1.13 --extra-index-url https://download.pytorch.org/whl/cpu &&\
-          pip install --user -r tools/python_api/requirements_dev.txt
+          pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-1.13.0+cpu.html
 
       - name: Build
         run: make benchmark NUM_THREADS=30
