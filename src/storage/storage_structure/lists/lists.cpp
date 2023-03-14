@@ -215,13 +215,13 @@ void Lists::readPropertyUpdatesToInMemListIfExists(InMemList& inMemList,
 void StringPropertyLists::readFromLargeList(ValueVector* valueVector, ListHandle& listHandle) {
     valueVector->resetOverflowBuffer();
     Lists::readFromLargeList(valueVector, listHandle);
-    diskOverflowFile.readStringsToVector(TransactionType::READ_ONLY, *valueVector);
+    diskOverflowFile.scanStrings(TransactionType::READ_ONLY, *valueVector);
 }
 
 void StringPropertyLists::readFromSmallList(ValueVector* valueVector, ListHandle& listHandle) {
     valueVector->resetOverflowBuffer();
     Lists::readFromSmallList(valueVector, listHandle);
-    diskOverflowFile.readStringsToVector(TransactionType::READ_ONLY, *valueVector);
+    diskOverflowFile.scanStrings(TransactionType::READ_ONLY, *valueVector);
 }
 
 void ListPropertyLists::readFromLargeList(ValueVector* valueVector, ListHandle& listHandle) {
