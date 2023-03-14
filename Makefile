@@ -70,6 +70,14 @@ test: arrow
 	cd $(ROOT_DIR)/build/release/test && \
 	ctest
 
+lcov: arrow
+	mkdir -p build/release && \
+	cd build/release && \
+	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=TRUE -DBUILD_LCOV=TRUE ../.. && \
+	cmake --build . --config Release -- -j $(NUM_THREADS)
+	cd $(ROOT_DIR)/build/release/test && \
+	ctest
+
 pytest: arrow
 	$(MAKE) release
 	cd $(ROOT_DIR)/tools/python_api/test && \

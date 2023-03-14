@@ -30,6 +30,31 @@ jobs:
       - name: Python test
         run: CC=gcc CXX=g++ make pytest NUM_THREADS=32
 
+  test-coverage-report:
+    name: test coverage report
+    runs-on: code-coverage
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Ensure Python dependencies
+        run: |
+          pip install torch~=1.13 --extra-index-url https://download.pytorch.org/whl/cpu &&\
+          pip install --user -r tools/python_api/requirements_dev.txt
+
+      - name: Run tests
+        run: CC=gcc CXX=g++ make lcov NUM_THREADS=32
+
+      - name: Generate coverage report
+        run: |
+          lcov -c -d ./ --no-external -o cover.info &&\
+          lcov --remove cover.info $(< .github/workflows/lcov_exclude) -o cover.info
+
+      - name: Upload coverage report
+        uses: codecov/codecov-action@v3
+        with:
+          file: cover.info
+          token: ${{ secrets.CODECOV_TOKEN }}
+
   gcc-build-test-with-asan:
     name: gcc build & test with asan
     needs: [gcc-build-test]
