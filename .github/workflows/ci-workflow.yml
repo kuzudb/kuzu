@@ -21,27 +21,6 @@ jobs:
           pip install torch~=1.13 --extra-index-url https://download.pytorch.org/whl/cpu &&\
           pip install --user -r tools/python_api/requirements_dev.txt
 
-      - name: Build
-        run: CC=gcc CXX=g++ make release NUM_THREADS=32
-
-      - name: Test
-        run: CC=gcc CXX=g++ make test NUM_THREADS=32
-
-      - name: Python test
-        run: CC=gcc CXX=g++ make pytest NUM_THREADS=32
-
-  test-coverage-report:
-    name: test coverage report
-    needs: [gcc-build-test]
-    runs-on: code-coverage
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Ensure Python dependencies
-        run: |
-          pip install torch~=1.13 --extra-index-url https://download.pytorch.org/whl/cpu &&\
-          pip install --user -r tools/python_api/requirements_dev.txt
-
       - name: Run tests
         run: CC=gcc CXX=g++ make lcov NUM_THREADS=32
 
@@ -54,7 +33,6 @@ jobs:
         uses: codecov/codecov-action@v3
         with:
           file: cover.info
-          token: ${{ secrets.CODECOV_TOKEN }}
 
   gcc-build-test-with-asan:
     name: gcc build & test with asan
@@ -129,7 +107,7 @@ jobs:
       - name: Ensure Python dependencies
         run: |
           pip install torch~=1.13 --extra-index-url https://download.pytorch.org/whl/cpu &&\
-          pip install --user -r tools/python_api/requirements_dev.txt
+          pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-1.13.0+cpu.html
 
       - name: Build
         run: make benchmark NUM_THREADS=30
