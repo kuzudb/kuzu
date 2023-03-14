@@ -21,8 +21,11 @@ jobs:
           pip install torch~=1.13 --extra-index-url https://download.pytorch.org/whl/cpu &&\
           pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-1.13.0+cpu.html
 
-      - name: Run tests
+      - name: Test with coverage
         run: CC=gcc CXX=g++ make lcov NUM_THREADS=32
+
+      - name: Python test
+        run: CC=clang-14 CXX=clang++-14 make pytest NUM_THREADS=32
 
       - name: Generate coverage report
         run: |
