@@ -19,7 +19,7 @@ jobs:
       - name: Ensure Python dependencies
         run: |
           pip install torch~=1.13 --extra-index-url https://download.pytorch.org/whl/cpu &&\
-          pip install --user -r tools/python_api/requirements_dev.txt
+          pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-1.13.0+cpu.html
 
       - name: Run tests
         run: CC=gcc CXX=g++ make lcov NUM_THREADS=32
@@ -44,7 +44,7 @@ jobs:
       - name: Ensure Python dependencies
         run: |
           pip install torch~=1.13 --extra-index-url https://download.pytorch.org/whl/cpu &&\
-          pip install --user -r tools/python_api/requirements_dev.txt
+          pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-1.13.0+cpu.html
 
       - name: Build debug
         run: CC=gcc CXX=g++ make alldebug NUM_THREADS=32
@@ -74,7 +74,7 @@ jobs:
       - name: Ensure python dependencies
         run: |
           pip install torch~=1.13 --extra-index-url https://download.pytorch.org/whl/cpu &&\
-          pip install --user -r tools/python_api/requirements_dev.txt
+          pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-1.13.0+cpu.html
 
       - name: Build
         run: CC=clang-14 CXX=clang++-14 make release NUM_THREADS=32
