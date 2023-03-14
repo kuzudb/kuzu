@@ -58,6 +58,8 @@ private:
     /*** bind copy csv ***/
     std::unique_ptr<BoundStatement> bindCopy(const parser::Statement& statement);
 
+    std::vector<std::string> bindFilePaths(const std::vector<std::string>& filePaths);
+
     common::CSVReaderConfig bindParsingOptions(
         const std::unordered_map<std::string, std::unique_ptr<parser::ParsedExpression>>*
             parsingOptions);

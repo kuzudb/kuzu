@@ -20,11 +20,5 @@ uint64_t CopyNode::executeInternal(
     return numNodesCopied;
 }
 
-uint64_t CopyNode::getNumTuplesInTable() {
-    // TODO(Ziyi): this chains looks weird. Fix when refactoring table statistics. Ditto in
-    // CopyRel.
-    return nodesStatistics->getReadOnlyVersion()->tableStatisticPerTable[tableID]->getNumTuples();
-}
-
 } // namespace processor
 } // namespace kuzu

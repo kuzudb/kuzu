@@ -54,6 +54,24 @@ public:
 };
 
 class CopyMultipleFilesTest : public DBTest {
+
+public:
+    void validatePersonTableAfterCopying() {
+        auto result = conn->query("MATCH (p:person) RETURN p.ID");
+        ASSERT_TRUE(result->isSuccess());
+        auto groundTruth =
+            std::vector<std::string>{"1", "12", "15", "20", "21", "4", "5", "6", "7", "8", "9"};
+        ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
+    }
+
+    void validateKnowsTableAfterCopying() {
+        auto result = conn->query("MATCH (:person)-[e:knows]->(:person) RETURN e.weight");
+        ASSERT_TRUE(result->isSuccess());
+        auto groundTruth = std::vector<std::string>{"22", "25", "33", "41", "44", "79", "80", "85"};
+        ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
+    }
+
+private:
     std::string getInputDir() override {
         return TestHelper::appendKuzuRootPath("dataset/copy-multiple-files-test/");
     }
@@ -303,19 +321,25 @@ TEST_F(CopyMultipleFilesTest, CopyMultipleFilesTest) {
                 TestHelper::appendKuzuRootPath("dataset/copy-multiple-files-test/vPerson2.csv"),
                 TestHelper::appendKuzuRootPath("dataset/copy-multiple-files-test/vPerson3.csv")))
             ->isSuccess());
+    validatePersonTableAfterCopying();
     ASSERT_TRUE(
         conn->query(
                 StringUtils::string_format(R"(COPY knows FROM ["{}", "{}"])",
                     TestHelper::appendKuzuRootPath("dataset/copy-multiple-files-test/eKnows1.csv"),
                     TestHelper::appendKuzuRootPath("dataset/copy-multiple-files-test/eKnows2.csv")))
             ->isSuccess());
-    auto result = conn->query("MATCH (p:person) RETURN p.ID");
-    ASSERT_TRUE(result->isSuccess());
-    auto groundTruth =
-        std::vector<std::string>{"1", "12", "15", "20", "21", "4", "5", "6", "7", "8", "9"};
-    ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
-    result = conn->query("MATCH (:person)-[e:knows]->(:person) RETURN e.weight");
-    ASSERT_TRUE(result->isSuccess());
-    groundTruth = std::vector<std::string>{"22", "25", "33", "41", "44", "79", "80", "85"};
-    ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
+    validateKnowsTableAfterCopying();
+}
+
+TEST_F(CopyMultipleFilesTest, CopyFilesWithWildcardPattern) {
+    ASSERT_TRUE(conn->query(StringUtils::string_format(R"(COPY person FROM "{}")",
+                                TestHelper::appendKuzuRootPath(
+                                    "dataset/copy-multiple-files-test/vPerson?.csv")))
+                    ->isSuccess());
+    validatePersonTableAfterCopying();
+    ASSERT_TRUE(
+        conn->query(StringUtils::string_format(R"(COPY knows FROM glob("{}"))",
+                        TestHelper::appendKuzuRootPath("dataset/copy-multiple-files-test/eK*")))
+            ->isSuccess());
+    validateKnowsTableAfterCopying();
 }

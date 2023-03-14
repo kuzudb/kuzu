@@ -17,9 +17,5 @@ uint64_t CopyRel::executeInternal(
     return numRelsCopied;
 }
 
-uint64_t CopyRel::getNumTuplesInTable() {
-    return relsStatistics->getReadOnlyVersion()->tableStatisticPerTable[tableID]->getNumTuples();
-}
-
 } // namespace processor
 } // namespace kuzu
