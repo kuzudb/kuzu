@@ -11,19 +11,34 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-void DiskOverflowFile::readStringsToVector(TransactionType trxType, ValueVector& valueVector) {
+void DiskOverflowFile::pinOverflowPageCache(BufferManagedFileHandle* bufferManagedFileHandleToPin,
+    page_idx_t pageIdxToPin, OverflowPageCache& overflowPageCache) {
+    overflowPageCache.frame = bufferManager.pin(*bufferManagedFileHandleToPin, pageIdxToPin);
+    overflowPageCache.bufferManagedFileHandle = bufferManagedFileHandleToPin;
+    overflowPageCache.pageIdx = pageIdxToPin;
+}
+
+void DiskOverflowFile::unpinOverflowPageCache(OverflowPageCache& overflowPageCache) {
+    if (overflowPageCache.pageIdx != UINT32_MAX) {
+        bufferManager.unpin(*overflowPageCache.bufferManagedFileHandle, overflowPageCache.pageIdx);
+    }
+}
+
+void DiskOverflowFile::scanStrings(TransactionType trxType, ValueVector& valueVector) {
     assert(!valueVector.state->isFlat());
+    OverflowPageCache overflowPageCache;
     for (auto i = 0u; i < valueVector.state->selVector->selectedSize; i++) {
         auto pos = valueVector.state->selVector->selectedPositions[i];
         if (valueVector.isNull(pos)) {
             continue;
         }
-        readStringToVector(
-            trxType, ((ku_string_t*)valueVector.getData())[pos], valueVector.getOverflowBuffer());
+        lookupString(trxType, ((ku_string_t*)valueVector.getData())[pos],
+            valueVector.getOverflowBuffer(), overflowPageCache);
     }
+    unpinOverflowPageCache(overflowPageCache);
 }
 
-void DiskOverflowFile::readStringToVector(
+void DiskOverflowFile::lookupString(
     TransactionType trxType, ku_string_t& kuStr, InMemOverflowBuffer& inMemOverflowBuffer) {
     if (ku_string_t::isShortString(kuStr.len)) {
         return;
@@ -39,45 +54,22 @@ void DiskOverflowFile::readStringToVector(
     bufferManager.unpin(*fileHandleToPin, pageIdxToPin);
 }
 
-void DiskOverflowFile::scanSequentialStringOverflow(TransactionType trxType, ValueVector& vector) {
-    BufferManagedFileHandle* cachedFileHandle = nullptr;
-    page_idx_t cachedPageIdx = UINT32_MAX;
-    uint8_t* cachedFrame = nullptr;
-    for (auto i = 0u; i < vector.state->selVector->selectedSize; ++i) {
-        auto pos = vector.state->selVector->selectedPositions[i];
-        if (vector.isNull(pos)) {
-            continue;
-        }
-        auto& kuString = ((ku_string_t*)vector.getData())[pos];
-        if (ku_string_t::isShortString(kuString.len)) {
-            continue;
-        }
-        page_idx_t pageIdx = UINT32_MAX;
-        uint16_t pagePos = UINT16_MAX;
-        TypeUtils::decodeOverflowPtr(kuString.overflowPtr, pageIdx, pagePos);
-        auto [fileHandleToPin, pageIdxToPin] =
-            StorageStructureUtils::getFileHandleAndPhysicalPageIdxToPin(
-                *fileHandle, pageIdx, *wal, trxType);
-        if (pageIdxToPin == cachedPageIdx) { // cache hit
-            InMemOverflowBufferUtils::copyString(
-                (char*)(cachedFrame + pagePos), kuString.len, kuString, vector.getOverflowBuffer());
-            continue;
-        }
-        // cache miss
-        if (cachedPageIdx != UINT32_MAX) { // unpin cached frame
-            bufferManager.unpin(*cachedFileHandle, cachedPageIdx);
-        }
-        // pin new frame and update cache
-        auto frame = bufferManager.pin(*fileHandleToPin, pageIdxToPin);
-        InMemOverflowBufferUtils::copyString(
-            (char*)(frame + pagePos), kuString.len, kuString, vector.getOverflowBuffer());
-        cachedFileHandle = fileHandleToPin;
-        cachedPageIdx = pageIdxToPin;
-        cachedFrame = frame;
+void DiskOverflowFile::lookupString(TransactionType trxType, ku_string_t& kuStr,
+    InMemOverflowBuffer& inMemOverflowBuffer, OverflowPageCache& overflowPageCache) {
+    if (ku_string_t::isShortString(kuStr.len)) {
+        return;
     }
-    if (cachedPageIdx != UINT32_MAX) {
-        bufferManager.unpin(*cachedFileHandle, cachedPageIdx);
+    PageByteCursor cursor;
+    TypeUtils::decodeOverflowPtr(kuStr.overflowPtr, cursor.pageIdx, cursor.offsetInPage);
+    auto [fileHandleToPin, pageIdxToPin] =
+        StorageStructureUtils::getFileHandleAndPhysicalPageIdxToPin(
+            *fileHandle, cursor.pageIdx, *wal, trxType);
+    if (pageIdxToPin != overflowPageCache.pageIdx) { // cache miss
+        unpinOverflowPageCache(overflowPageCache);
+        pinOverflowPageCache(fileHandleToPin, pageIdxToPin, overflowPageCache);
     }
+    InMemOverflowBufferUtils::copyString((char*)(overflowPageCache.frame + cursor.offsetInPage),
+        kuStr.len, kuStr, inMemOverflowBuffer);
 }
 
 void DiskOverflowFile::readListsToVector(TransactionType trxType, ValueVector& valueVector) {
@@ -104,9 +96,11 @@ void DiskOverflowFile::readListToVector(TransactionType trxType, ku_list_t& kuLi
     bufferManager.unpin(*fileHandleToPin, pageIdxToPin);
     if (dataType.childType->typeID == STRING) {
         auto kuStrings = (ku_string_t*)(kuList.overflowPtr);
+        OverflowPageCache overflowPageCache;
         for (auto i = 0u; i < kuList.size; i++) {
-            readStringToVector(trxType, kuStrings[i], inMemOverflowBuffer);
+            lookupString(trxType, kuStrings[i], inMemOverflowBuffer, overflowPageCache);
         }
+        unpinOverflowPageCache(overflowPageCache);
     } else if (dataType.childType->typeID == VAR_LIST) {
         auto kuLists = (ku_list_t*)(kuList.overflowPtr);
         for (auto i = 0u; i < kuList.size; i++) {

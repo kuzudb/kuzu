@@ -36,19 +36,14 @@ public:
         return copy;
     }
 
-    void readStringsToVector(
-        transaction::TransactionType trxType, common::ValueVector& valueVector);
-    void readStringToVector(transaction::TransactionType trxType, common::ku_string_t& kuStr,
-        common::InMemOverflowBuffer& inMemOverflowBuffer);
+    void scanStrings(transaction::TransactionType trxType, common::ValueVector& valueVector);
 
     inline void scanSingleStringOverflow(
         transaction::TransactionType trxType, common::ValueVector& vector, uint64_t vectorPos) {
         assert(vector.dataType.typeID == common::STRING && !vector.isNull(vectorPos));
         auto& kuString = ((common::ku_string_t*)vector.getData())[vectorPos];
-        readStringToVector(trxType, kuString, vector.getOverflowBuffer());
+        lookupString(trxType, kuString, vector.getOverflowBuffer());
     }
-    void scanSequentialStringOverflow(
-        transaction::TransactionType trxType, common::ValueVector& vector);
     inline void scanSingleListOverflow(
         transaction::TransactionType trxType, common::ValueVector& vector, uint64_t vectorPos) {
         assert(vector.dataType.typeID == common::VAR_LIST && !vector.isNull(vectorPos));
@@ -77,6 +72,15 @@ public:
     }
 
 private:
+    struct OverflowPageCache {
+        BufferManagedFileHandle* bufferManagedFileHandle = nullptr;
+        common::page_idx_t pageIdx = UINT32_MAX;
+        uint8_t* frame = nullptr;
+    };
+    void lookupString(transaction::TransactionType trxType, common::ku_string_t& kuStr,
+        common::InMemOverflowBuffer& inMemOverflowBuffer);
+    void lookupString(transaction::TransactionType trxType, common::ku_string_t& kuStr,
+        common::InMemOverflowBuffer& inMemOverflowBuffer, OverflowPageCache& overflowPageCache);
     void addNewPageIfNecessaryWithoutLock(uint32_t numBytesToAppend);
     void readListToVector(transaction::TransactionType trxType, common::ku_list_t& kuList,
         const common::DataType& dataType, common::InMemOverflowBuffer& inMemOverflowBuffer);
@@ -85,6 +89,9 @@ private:
     void setListRecursiveIfNestedWithoutLock(const common::ku_list_t& inMemSrcList,
         common::ku_list_t& diskDstList, const common::DataType& dataType);
     void logNewOverflowFileNextBytePosRecordIfNecessaryWithoutLock();
+    void pinOverflowPageCache(BufferManagedFileHandle* bufferManagedFileHandleToPin,
+        common::page_idx_t pageIdxToPin, OverflowPageCache& overflowPageCache);
+    void unpinOverflowPageCache(OverflowPageCache& overflowPageCache);
 
 private:
     // This is the index of the last free byte to which we can write.

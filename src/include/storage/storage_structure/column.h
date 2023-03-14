@@ -123,12 +123,12 @@ private:
     inline void scan(transaction::Transaction* transaction, common::ValueVector* resultVector,
         PageElementCursor& cursor) override {
         Column::scan(transaction, resultVector, cursor);
-        diskOverflowFile.scanSequentialStringOverflow(transaction->getType(), *resultVector);
+        diskOverflowFile.scanStrings(transaction->getType(), *resultVector);
     }
     void scanWithSelState(transaction::Transaction* transaction, common::ValueVector* resultVector,
         PageElementCursor& cursor) override {
         Column::scanWithSelState(transaction, resultVector, cursor);
-        diskOverflowFile.scanSequentialStringOverflow(transaction->getType(), *resultVector);
+        diskOverflowFile.scanStrings(transaction->getType(), *resultVector);
     }
 };
 
