@@ -57,9 +57,7 @@ protected:
 
     arrow::Status countNumLinesCSV(const std::vector<std::string>& filePaths);
 
-    arrow::Status countNumLinesArrow(std::string const& filePath);
-
-    arrow::Status countNumLinesParquet(std::string const& filePath);
+    arrow::Status countNumLinesParquet(const std::vector<std::string>& filePaths);
 
     arrow::Status initCSVReaderAndCheckStatus(
         std::shared_ptr<arrow::csv::StreamingReader>& csv_streaming_reader,

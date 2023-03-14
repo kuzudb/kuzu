@@ -46,8 +46,6 @@ private:
 
     arrow::Status populateFromCSV(PopulateTaskType populateTaskType);
 
-    arrow::Status populateFromArrow(PopulateTaskType populateTaskType);
-
     arrow::Status populateFromParquet(PopulateTaskType populateTaskType);
 
     void populateAdjColumnsAndCountRelsInAdjLists();

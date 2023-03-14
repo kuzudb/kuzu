@@ -39,12 +39,8 @@ void CopyStructuresArrow::countNumLines(const std::vector<std::string>& filePath
     case CopyDescription::FileType::CSV: {
         status = countNumLinesCSV(filePaths);
     } break;
-    // Note: we only support copying a single arrow/parquet file to a table.
-    case CopyDescription::FileType::ARROW: {
-        status = countNumLinesArrow(filePaths[0]);
-    } break;
     case CopyDescription::FileType::PARQUET: {
-        status = countNumLinesParquet(filePaths[0]);
+        status = countNumLinesParquet(filePaths);
     } break;
     default: {
         throw CopyException{StringUtils::string_format("Unrecognized file type: {}.",
@@ -79,35 +75,25 @@ arrow::Status CopyStructuresArrow::countNumLinesCSV(const std::vector<std::strin
     return status;
 }
 
-arrow::Status CopyStructuresArrow::countNumLinesArrow(const std::string& filePath) {
-    std::shared_ptr<arrow::ipc::RecordBatchFileReader> ipc_reader;
-    auto status = initArrowReaderAndCheckStatus(ipc_reader, filePath);
+arrow::Status CopyStructuresArrow::countNumLinesParquet(const std::vector<std::string>& filePaths) {
     numRows = 0;
-    uint64_t numBlocks = ipc_reader->num_record_batches();
-    std::vector<uint64_t> numLinesPerBlock(numBlocks);
-    std::shared_ptr<arrow::RecordBatch> recordBatch;
-    for (uint64_t blockIdx = 0; blockIdx < numBlocks; ++blockIdx) {
-        ARROW_ASSIGN_OR_RAISE(recordBatch, ipc_reader->ReadRecordBatch(blockIdx));
-        numLinesPerBlock[blockIdx] = recordBatch->num_rows();
-        numRows += recordBatch->num_rows();
+    arrow::Status status;
+    for (auto& filePath : filePaths) {
+        std::unique_ptr<parquet::arrow::FileReader> reader;
+        status = initParquetReaderAndCheckStatus(reader, filePath);
+        throwCopyExceptionIfNotOK(status);
+        uint64_t numBlocks = reader->num_row_groups();
+        std::vector<uint64_t> numLinesPerBlock;
+        std::shared_ptr<arrow::Table> table;
+        auto startNodeOffset = numRows;
+        for (auto blockIdx = 0; blockIdx < numBlocks; ++blockIdx) {
+            ARROW_RETURN_NOT_OK(reader->RowGroup(blockIdx)->ReadTable(&table));
+            numLinesPerBlock.push_back(table->num_rows());
+            numRows += table->num_rows();
+        }
+        fileBlockInfos.emplace(
+            filePath, FileBlockInfo{startNodeOffset, numBlocks, numLinesPerBlock});
     }
-    fileBlockInfos.emplace(filePath, FileBlockInfo{numRows, numBlocks, numLinesPerBlock});
-    return status;
-}
-
-arrow::Status CopyStructuresArrow::countNumLinesParquet(const std::string& filePath) {
-    std::unique_ptr<parquet::arrow::FileReader> reader;
-    auto status = initParquetReaderAndCheckStatus(reader, filePath);
-    numRows = 0;
-    uint64_t numBlocks = reader->num_row_groups();
-    std::vector<uint64_t> numLinesPerBlock(numBlocks);
-    std::shared_ptr<arrow::Table> table;
-    for (auto blockIdx = 0; blockIdx < numBlocks; ++blockIdx) {
-        ARROW_RETURN_NOT_OK(reader->RowGroup(blockIdx)->ReadTable(&table));
-        numLinesPerBlock[blockIdx] = table->num_rows();
-        numRows += table->num_rows();
-    }
-    fileBlockInfos.emplace(filePath, FileBlockInfo{numRows, numBlocks, numLinesPerBlock});
     return status;
 }
 
