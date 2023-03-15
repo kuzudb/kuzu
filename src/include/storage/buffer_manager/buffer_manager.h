@@ -84,8 +84,6 @@ public:
                    bufferPoolDefaultPages->unpinWithoutAcquiringPageLock(fileHandle, pageIdx);
     }
 
-    void resize(uint64_t newSizeForDefaultPagePool, uint64_t newSizeForLargePagePool);
-
     void removeFilePagesFromFrames(BufferManagedFileHandle& fileHandle);
 
     void flushAllDirtyPagesInFrames(BufferManagedFileHandle& fileHandle);

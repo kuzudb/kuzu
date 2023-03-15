@@ -68,23 +68,6 @@ BufferPool::BufferPool(uint64_t pageSize, uint64_t maxSize)
         pageSize, numFrames);
 }
 
-void BufferPool::resize(uint64_t newSize) {
-    if ((numFrames * pageSize) > newSize) {
-        throw BufferManagerException("Resizing to a smaller Buffer Pool Size is unsupported.");
-    }
-    auto newNumFrames = (page_idx_t)(ceil((double)newSize / (double)pageSize));
-    assert(newNumFrames < UINT32_MAX);
-    auto mmapRegion =
-        (uint8_t*)mmap(NULL, newSize, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-    for (auto i = 0u; i < newNumFrames - numFrames; ++i) {
-        auto buffer = mmapRegion + (i * pageSize);
-        bufferCache.emplace_back(std::make_unique<Frame>(pageSize, buffer));
-    }
-    numFrames = newNumFrames;
-    logger->info(
-        "Resize buffer pool's max size to {}B, #{}byte-pages {}.", newSize, pageSize, newNumFrames);
-}
-
 uint8_t* BufferPool::pin(BufferManagedFileHandle& fileHandle, page_idx_t pageIdx) {
     return pin(fileHandle, pageIdx, false /* read page from file */);
 }

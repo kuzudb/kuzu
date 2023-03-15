@@ -19,11 +19,6 @@ BufferManager::BufferManager(uint64_t maxSizeForDefaultPagePool, uint64_t maxSiz
 
 BufferManager::~BufferManager() = default;
 
-void BufferManager::resize(uint64_t newSizeForDefaultPagePool, uint64_t newSizeForLargePagePool) {
-    bufferPoolDefaultPages->resize(newSizeForDefaultPagePool);
-    bufferPoolLargePages->resize(newSizeForLargePagePool);
-}
-
 // Important Note: Pin returns a raw pointer to the frame. This is potentially very dangerous and
 // trusts the caller is going to protect this memory space.
 // Important responsibilities for the caller are:

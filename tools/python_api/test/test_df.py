@@ -69,13 +69,6 @@ def test_to_df(establish_connection):
     conn.set_max_threads_for_exec(1)
     _test_to_df(conn)
 
-    db.resize_buffer_manager(384 * 1024 * 1024)
-    _test_to_df(conn)
-
-    db.resize_buffer_manager(512 * 1024 * 1024)
-    conn.set_max_threads_for_exec(4)
-    _test_to_df(conn)
-
     db.set_logging_level("debug")
     _test_to_df(conn)
 

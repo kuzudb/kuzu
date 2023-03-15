@@ -31,14 +31,13 @@ struct ShellCommand {
     const std::string CLEAR = ":clear";
     const std::string QUIT = ":quit";
     const std::string THREAD = ":thread";
-    const std::string BUFFER_MANAGER_SIZE = ":buffer_manager_size";
     const std::string LIST_NODES = ":list_nodes";
     const std::string LIST_RELS = ":list_rels";
     const std::string SHOW_NODE = ":show_node";
     const std::string SHOW_REL = ":show_rel";
     const std::string LOGGING_LEVEL = ":logging_level";
-    const std::vector<std::string> commandList = {HELP, CLEAR, QUIT, THREAD, BUFFER_MANAGER_SIZE,
-        LIST_NODES, LIST_RELS, SHOW_NODE, SHOW_REL, LOGGING_LEVEL};
+    const std::vector<std::string> commandList = {HELP, CLEAR, QUIT, THREAD, LIST_NODES, LIST_RELS,
+        SHOW_NODE, SHOW_REL, LOGGING_LEVEL};
 } shellCommand;
 
 const char* TAB = "    ";
@@ -227,8 +226,6 @@ void EmbeddedShell::run() {
             break;
         } else if (lineStr.rfind(shellCommand.THREAD) == 0) {
             setNumThreads(lineStr.substr(shellCommand.THREAD.length()));
-        } else if (lineStr.rfind(shellCommand.BUFFER_MANAGER_SIZE) == 0) {
-            setBufferManagerSize(lineStr.substr(shellCommand.BUFFER_MANAGER_SIZE.length()));
         } else if (lineStr.rfind(shellCommand.LIST_NODES) == 0) {
             printf("%s", conn->getNodeTableNames().c_str());
         } else if (lineStr.rfind(shellCommand.LIST_RELS) == 0) {
@@ -278,18 +275,6 @@ void EmbeddedShell::setNumThreads(const std::string& numThreadsString) {
     } catch (Exception& e) { printf("%s", e.what()); }
 }
 
-void EmbeddedShell::setBufferManagerSize(const std::string& bufferManagerSizeString) {
-    auto newPageSize = 0;
-    try {
-        newPageSize = stoull(bufferManagerSizeString);
-    } catch (std::exception& e) {
-        printf("Cannot parse '%s' as buffer manager size. Expect integer.\n", e.what());
-    }
-    try {
-        database->resizeBufferManager(newPageSize);
-    } catch (Exception& e) { printf("%s\n", e.what()); }
-}
-
 static inline std::string ltrim(const std::string& input) {
     auto s = input;
     s.erase(s.begin(), find_if(s.begin(), s.end(), [](unsigned char ch) { return !isspace(ch); }));
@@ -316,8 +301,6 @@ void EmbeddedShell::printHelp() {
     printf("%s%s %sexit from shell\n", TAB, shellCommand.QUIT.c_str(), TAB);
     printf("%s%s [num_threads] %sset number of threads for query execution\n", TAB,
         shellCommand.THREAD.c_str(), TAB);
-    printf("%s%s [bm_size_in_bytes] %sset buffer manager size in bytes\n", TAB,
-        shellCommand.BUFFER_MANAGER_SIZE.c_str(), TAB);
     printf("%s%s [logging_level] %sset logging level of database, available options: debug, info, "
            "err\n",
         TAB, shellCommand.LOGGING_LEVEL.c_str(), TAB);

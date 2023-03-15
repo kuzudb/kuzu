@@ -64,14 +64,6 @@ public:
      */
     static void setLoggingLevel(std::string loggingLevel);
 
-    /**
-     * @brief Resizes the buffer pool size of the database instance.
-     * @param newSize New buffer pool size in bytes.
-     * @throws BufferManagerException if the new size is smaller than the current buffer manager
-     * size.
-     */
-    KUZU_API void resizeBufferManager(uint64_t newSize);
-
     // Temporary patching for C-style APIs.
     // TODO(Change): move this to C-header once we have C-APIs.
     KUZU_API explicit Database(const char* databasePath);
