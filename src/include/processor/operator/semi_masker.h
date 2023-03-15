@@ -6,26 +6,32 @@
 namespace kuzu {
 namespace processor {
 
+// Multiple maskers can point to the same SemiMask, thus we associate each masker with an idx
+// to indicate the execution sequence of its pipeline. Also, the maskerIdx is used as a flag to
+// indicate if a value in the mask is masked or not, as each masker will increment the selected
+// value in the mask by 1. More details are described in NodeTableSemiMask.
+using mask_and_idx_pair = std::pair<NodeTableSemiMask*, uint8_t>;
+
 class BaseSemiMasker : public PhysicalOperator {
 protected:
-    BaseSemiMasker(const DataPos& keyDataPos, ScanNodeIDSharedState* scanNodeIDSharedState,
+    BaseSemiMasker(const DataPos& keyDataPos, std::vector<ScanNodeIDSharedState*> scanStates,
         std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
         : PhysicalOperator{PhysicalOperatorType::SEMI_MASKER, std::move(child), id, paramsString},
-          keyDataPos{keyDataPos}, scanNodeIDSharedState{scanNodeIDSharedState} {}
+          keyDataPos{keyDataPos}, scanStates{std::move(scanStates)} {}
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
 protected:
     DataPos keyDataPos;
-    ScanNodeIDSharedState* scanNodeIDSharedState;
+    std::vector<ScanNodeIDSharedState*> scanStates;
     std::shared_ptr<common::ValueVector> keyValueVector;
 };
 
 class SingleTableSemiMasker : public BaseSemiMasker {
 public:
-    SingleTableSemiMasker(const DataPos& keyDataPos, ScanNodeIDSharedState* scanNodeIDSharedState,
+    SingleTableSemiMasker(const DataPos& keyDataPos, std::vector<ScanNodeIDSharedState*> scanStates,
         std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
-        : BaseSemiMasker{keyDataPos, scanNodeIDSharedState, std::move(child), id, paramsString} {}
+        : BaseSemiMasker{keyDataPos, std::move(scanStates), std::move(child), id, paramsString} {}
 
     void initGlobalStateInternal(kuzu::processor::ExecutionContext* context) override;
 
@@ -33,24 +39,20 @@ public:
 
     inline std::unique_ptr<PhysicalOperator> clone() override {
         auto result = std::make_unique<SingleTableSemiMasker>(
-            keyDataPos, scanNodeIDSharedState, children[0]->clone(), id, paramsString);
-        result->maskerIdxAndMask = maskerIdxAndMask;
+            keyDataPos, scanStates, children[0]->clone(), id, paramsString);
+        result->maskPerScan = maskPerScan;
         return result;
     }
 
 private:
-    // Multiple maskers can point to the same SemiMask, thus we associate each masker with an idx
-    // to indicate the execution sequence of its pipeline. Also, the maskerIdx is used as a flag to
-    // indicate if a value in the mask is masked or not, as each masker will increment the selected
-    // value in the mask by 1. More details are described in NodeTableSemiMask.
-    std::pair<uint8_t, NodeTableSemiMask*> maskerIdxAndMask;
+    std::vector<mask_and_idx_pair> maskPerScan;
 };
 
 class MultiTableSemiMasker : public BaseSemiMasker {
 public:
-    MultiTableSemiMasker(const DataPos& keyDataPos, ScanNodeIDSharedState* scanNodeIDSharedState,
+    MultiTableSemiMasker(const DataPos& keyDataPos, std::vector<ScanNodeIDSharedState*> scanStates,
         std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
-        : BaseSemiMasker{keyDataPos, scanNodeIDSharedState, std::move(child), id, paramsString} {}
+        : BaseSemiMasker{keyDataPos, std::move(scanStates), std::move(child), id, paramsString} {}
 
     void initGlobalStateInternal(kuzu::processor::ExecutionContext* context) override;
 
@@ -58,14 +60,13 @@ public:
 
     inline std::unique_ptr<PhysicalOperator> clone() override {
         auto result = std::make_unique<MultiTableSemiMasker>(
-            keyDataPos, scanNodeIDSharedState, children[0]->clone(), id, paramsString);
-        result->maskerIdxAndMasks = maskerIdxAndMasks;
+            keyDataPos, scanStates, children[0]->clone(), id, paramsString);
+        result->maskerPerLabelPerScan = maskerPerLabelPerScan;
         return result;
     }
 
 private:
-    std::unordered_map<common::table_id_t, std::pair<uint8_t, NodeTableSemiMask*>>
-        maskerIdxAndMasks;
+    std::vector<std::unordered_map<common::table_id_t, mask_and_idx_pair>> maskerPerLabelPerScan;
 };
 
 } // namespace processor
