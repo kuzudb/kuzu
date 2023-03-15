@@ -61,10 +61,7 @@ arrow::Status CopyNodeArrow::populateColumns() {
     arrow::Status status;
     switch (copyDescription.fileType) {
     case CopyDescription::FileType::CSV:
-        status = populateColumnsFromFiles<T>(pkIndex);
-        break;
-    case CopyDescription::FileType::ARROW:
-        status = populateColumnsFromArrow<T>(pkIndex);
+        status = populateColumnsFromCSV<T>(pkIndex);
         break;
     case CopyDescription::FileType::PARQUET:
         status = populateColumnsFromParquet<T>(pkIndex);
@@ -77,75 +74,27 @@ arrow::Status CopyNodeArrow::populateColumns() {
 }
 
 template<typename T>
-arrow::Status CopyNodeArrow::populateColumnsFromFiles(
-    std::unique_ptr<HashIndexBuilder<T>>& pkIndex) {
+arrow::Status CopyNodeArrow::populateColumnsFromCSV(std::unique_ptr<HashIndexBuilder<T>>& pkIndex) {
     for (auto& filePath : copyDescription.filePaths) {
-        offset_t startOffset = fileBlockInfos.at(filePath).startOffset;
         std::shared_ptr<arrow::csv::StreamingReader> csvStreamingReader;
         auto status = initCSVReaderAndCheckStatus(csvStreamingReader, filePath);
-        status = assignCopyTasks<T>(csvStreamingReader, startOffset, filePath, pkIndex);
+        status = assignCopyCSVTasks<T>(
+            csvStreamingReader.get(), fileBlockInfos.at(filePath).startOffset, filePath, pkIndex);
         throwCopyExceptionIfNotOK(status);
     }
     return arrow::Status::OK();
 }
 
 template<typename T>
-arrow::Status CopyNodeArrow::populateColumnsFromArrow(
-    std::unique_ptr<HashIndexBuilder<T>>& pkIndex) {
-    std::shared_ptr<arrow::ipc::RecordBatchFileReader> ipc_reader;
-    auto status = initArrowReaderAndCheckStatus(ipc_reader, copyDescription.filePaths[0]);
-    std::shared_ptr<arrow::RecordBatch> currBatch;
-    int blockIdx = 0;
-    offset_t startOffset = 0;
-    auto numBlocksInFile = fileBlockInfos.at(copyDescription.filePaths[0]).numBlocks;
-    while (blockIdx < numBlocksInFile) {
-        for (int i = 0; i < CopyConstants::NUM_COPIER_TASKS_TO_SCHEDULE_PER_BATCH; ++i) {
-            if (blockIdx == numBlocksInFile) {
-                break;
-            }
-            ARROW_ASSIGN_OR_RAISE(currBatch, ipc_reader->ReadRecordBatch(blockIdx));
-            taskScheduler.scheduleTask(
-                CopyTaskFactory::createCopyTask(batchPopulateColumnsTask<T, arrow::Array>,
-                    reinterpret_cast<NodeTableSchema*>(tableSchema)->primaryKeyPropertyID, blockIdx,
-                    startOffset, pkIndex.get(), this, currBatch->columns(),
-                    copyDescription.filePaths[0]));
-            startOffset += currBatch->num_rows();
-            ++blockIdx;
-        }
-        taskScheduler.waitUntilEnoughTasksFinish(
-            CopyConstants::MINIMUM_NUM_COPIER_TASKS_TO_SCHEDULE_MORE);
-    }
-    taskScheduler.waitAllTasksToCompleteOrError();
-    return arrow::Status::OK();
-}
-
-template<typename T>
 arrow::Status CopyNodeArrow::populateColumnsFromParquet(
     std::unique_ptr<HashIndexBuilder<T>>& pkIndex) {
-    std::unique_ptr<parquet::arrow::FileReader> reader;
-    auto status = initParquetReaderAndCheckStatus(reader, copyDescription.filePaths[0]);
-    std::shared_ptr<arrow::Table> currTable;
-    int blockIdx = 0;
-    offset_t startOffset = 0;
-    auto numBlocks = fileBlockInfos.at(copyDescription.filePaths[0]).numBlocks;
-    while (blockIdx < numBlocks) {
-        for (int i = 0; i < CopyConstants::NUM_COPIER_TASKS_TO_SCHEDULE_PER_BATCH; ++i) {
-            if (blockIdx == numBlocks) {
-                break;
-            }
-            ARROW_RETURN_NOT_OK(reader->RowGroup(blockIdx)->ReadTable(&currTable));
-            taskScheduler.scheduleTask(
-                CopyTaskFactory::createCopyTask(batchPopulateColumnsTask<T, arrow::ChunkedArray>,
-                    reinterpret_cast<NodeTableSchema*>(tableSchema)->primaryKeyPropertyID, blockIdx,
-                    startOffset, pkIndex.get(), this, currTable->columns(),
-                    copyDescription.filePaths[0]));
-            startOffset += currTable->num_rows();
-            ++blockIdx;
-        }
-        taskScheduler.waitUntilEnoughTasksFinish(
-            CopyConstants::MINIMUM_NUM_COPIER_TASKS_TO_SCHEDULE_MORE);
+    for (auto& filePath : copyDescription.filePaths) {
+        std::unique_ptr<parquet::arrow::FileReader> reader;
+        auto status = initParquetReaderAndCheckStatus(reader, filePath);
+        status = assignCopyParquetTasks<T>(
+            reader.get(), fileBlockInfos.at(filePath).startOffset, filePath, pkIndex);
+        throwCopyExceptionIfNotOK(status);
     }
-    taskScheduler.waitAllTasksToCompleteOrError();
     return arrow::Status::OK();
 }
 
@@ -185,8 +134,7 @@ arrow::Status CopyNodeArrow::batchPopulateColumnsTask(uint64_t primaryKeyPropert
     }
     populatePKIndex(
         copier->columns[primaryKeyPropertyIdx].get(), pkIndex, startOffset, numLinesInCurBlock);
-    copier->logger->trace(
-        "End: path={0} blkIdx={1}", copier->copyDescription.filePaths[0], blockIdx);
+    copier->logger->trace("End: path={0} blkIdx={1}", filePath, blockIdx);
     return arrow::Status::OK();
 }
 
@@ -266,11 +214,10 @@ void CopyNodeArrow::putPropsOfLineIntoColumns(
 }
 
 template<typename T>
-arrow::Status CopyNodeArrow::assignCopyTasks(
-    std::shared_ptr<arrow::csv::StreamingReader>& csv_streaming_reader, offset_t startOffset,
-    std::string filePath, std::unique_ptr<HashIndexBuilder<T>>& pkIndex) {
-    auto it = csv_streaming_reader->begin();
-    auto endIt = csv_streaming_reader->end();
+arrow::Status CopyNodeArrow::assignCopyCSVTasks(arrow::csv::StreamingReader* csvStreamingReader,
+    offset_t startOffset, std::string filePath, std::unique_ptr<HashIndexBuilder<T>>& pkIndex) {
+    auto it = csvStreamingReader->begin();
+    auto endIt = csvStreamingReader->end();
     std::shared_ptr<arrow::RecordBatch> currBatch;
     int blockIdx = 0;
     while (it != endIt) {
@@ -289,6 +236,33 @@ arrow::Status CopyNodeArrow::assignCopyTasks(
         }
         taskScheduler.waitUntilEnoughTasksFinish(
             CopyConstants::MINIMUM_NUM_COPIER_TASKS_TO_SCHEDULE_MORE);
+    }
+    taskScheduler.waitAllTasksToCompleteOrError();
+    return arrow::Status::OK();
+}
+
+template<typename T>
+arrow::Status CopyNodeArrow::assignCopyParquetTasks(parquet::arrow::FileReader* parquetReader,
+    common::offset_t startOffset, std::string filePath,
+    std::unique_ptr<HashIndexBuilder<T>>& pkIndex) {
+    auto numBlocks = fileBlockInfos.at(filePath).numBlocks;
+    auto blockIdx = 0u;
+    std::shared_ptr<arrow::Table> currTable;
+    while (blockIdx < numBlocks) {
+        for (int i = 0; i < common::CopyConstants::NUM_COPIER_TASKS_TO_SCHEDULE_PER_BATCH; ++i) {
+            if (blockIdx == numBlocks) {
+                break;
+            }
+            ARROW_RETURN_NOT_OK(parquetReader->RowGroup(blockIdx)->ReadTable(&currTable));
+            taskScheduler.scheduleTask(
+                CopyTaskFactory::createCopyTask(batchPopulateColumnsTask<T, arrow::ChunkedArray>,
+                    reinterpret_cast<NodeTableSchema*>(tableSchema)->primaryKeyPropertyID, blockIdx,
+                    startOffset, pkIndex.get(), this, currTable->columns(), filePath));
+            startOffset += currTable->num_rows();
+            ++blockIdx;
+        }
+        taskScheduler.waitUntilEnoughTasksFinish(
+            common::CopyConstants::MINIMUM_NUM_COPIER_TASKS_TO_SCHEDULE_MORE);
     }
     taskScheduler.waitAllTasksToCompleteOrError();
     return arrow::Status::OK();

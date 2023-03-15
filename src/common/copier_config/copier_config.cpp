@@ -28,9 +28,6 @@ std::string CopyDescription::getFileTypeName(FileType fileType) {
     case FileType::CSV: {
         return "csv";
     }
-    case FileType::ARROW: {
-        return "arrow";
-    }
     case FileType::PARQUET: {
         return "parquet";
     }

@@ -185,9 +185,6 @@ arrow::Status CopyRelArrow::executePopulateTask(PopulateTaskType populateTaskTyp
     case CopyDescription::FileType::CSV: {
         status = populateFromCSV(populateTaskType);
     } break;
-    case CopyDescription::FileType::ARROW: {
-        status = populateFromArrow(populateTaskType);
-    } break;
     case CopyDescription::FileType::PARQUET: {
         status = populateFromParquet(populateTaskType);
     } break;
@@ -230,38 +227,6 @@ arrow::Status CopyRelArrow::populateFromCSV(PopulateTaskType populateTaskType) {
     return arrow::Status::OK();
 }
 
-arrow::Status CopyRelArrow::populateFromArrow(PopulateTaskType populateTaskType) {
-    auto populateTask = populateAdjColumnsAndCountRelsInAdjListsTask<arrow::Array>;
-    if (populateTaskType == PopulateTaskType::populateListsTask) {
-        populateTask = populateListsTask<arrow::Array>;
-    }
-    logger->debug("Assigning task {0}", getTaskTypeName(populateTaskType));
-
-    std::shared_ptr<arrow::ipc::RecordBatchFileReader> ipc_reader;
-    auto status = initArrowReaderAndCheckStatus(ipc_reader, copyDescription.filePaths[0]);
-    std::shared_ptr<arrow::RecordBatch> currBatch;
-    int blockIdx = 0;
-    offset_t startOffset = 0;
-    auto numBlocksInFile = fileBlockInfos.at(copyDescription.filePaths[0]).numBlocks;
-    while (blockIdx < numBlocksInFile) {
-        for (int i = 0; i < CopyConstants::NUM_COPIER_TASKS_TO_SCHEDULE_PER_BATCH; ++i) {
-            if (blockIdx == numBlocksInFile) {
-                break;
-            }
-            ARROW_ASSIGN_OR_RAISE(currBatch, ipc_reader->ReadRecordBatch(blockIdx));
-            taskScheduler.scheduleTask(CopyTaskFactory::createCopyTask(populateTask, blockIdx,
-                startOffset, this, currBatch->columns(), copyDescription.filePaths[0]));
-            startOffset += currBatch->num_rows();
-            ++blockIdx;
-        }
-        taskScheduler.waitUntilEnoughTasksFinish(
-            CopyConstants::MINIMUM_NUM_COPIER_TASKS_TO_SCHEDULE_MORE);
-    }
-
-    taskScheduler.waitAllTasksToCompleteOrError();
-    return arrow::Status::OK();
-}
-
 arrow::Status CopyRelArrow::populateFromParquet(PopulateTaskType populateTaskType) {
     auto populateTask = populateAdjColumnsAndCountRelsInAdjListsTask<arrow::ChunkedArray>;
     if (populateTaskType == PopulateTaskType::populateListsTask) {
@@ -269,28 +234,30 @@ arrow::Status CopyRelArrow::populateFromParquet(PopulateTaskType populateTaskTyp
     }
     logger->debug("Assigning task {0}", getTaskTypeName(populateTaskType));
 
-    std::unique_ptr<parquet::arrow::FileReader> reader;
-    auto status = initParquetReaderAndCheckStatus(reader, copyDescription.filePaths[0]);
-    std::shared_ptr<arrow::Table> currTable;
-    int blockIdx = 0;
-    offset_t startOffset = 0;
-    auto numBlocks = fileBlockInfos.at(copyDescription.filePaths[0]).numBlocks;
-    while (blockIdx < numBlocks) {
-        for (int i = 0; i < CopyConstants::NUM_COPIER_TASKS_TO_SCHEDULE_PER_BATCH; ++i) {
-            if (blockIdx == numBlocks) {
-                break;
+    for (auto& filePath : copyDescription.filePaths) {
+        std::unique_ptr<parquet::arrow::FileReader> reader;
+        auto status = initParquetReaderAndCheckStatus(reader, filePath);
+        std::shared_ptr<arrow::Table> currTable;
+        int blockIdx = 0;
+        offset_t startOffset = 0;
+        auto numBlocks = fileBlockInfos.at(filePath).numBlocks;
+        while (blockIdx < numBlocks) {
+            for (int i = 0; i < CopyConstants::NUM_COPIER_TASKS_TO_SCHEDULE_PER_BATCH; ++i) {
+                if (blockIdx == numBlocks) {
+                    break;
+                }
+                ARROW_RETURN_NOT_OK(reader->RowGroup(blockIdx)->ReadTable(&currTable));
+                taskScheduler.scheduleTask(CopyTaskFactory::createCopyTask(
+                    populateTask, blockIdx, startOffset, this, currTable->columns(), filePath));
+                startOffset += currTable->num_rows();
+                ++blockIdx;
             }
-            ARROW_RETURN_NOT_OK(reader->RowGroup(blockIdx)->ReadTable(&currTable));
-            taskScheduler.scheduleTask(CopyTaskFactory::createCopyTask(populateTask, blockIdx,
-                startOffset, this, currTable->columns(), copyDescription.filePaths[0]));
-            startOffset += currTable->num_rows();
-            ++blockIdx;
+            taskScheduler.waitUntilEnoughTasksFinish(
+                CopyConstants::MINIMUM_NUM_COPIER_TASKS_TO_SCHEDULE_MORE);
         }
-        taskScheduler.waitUntilEnoughTasksFinish(
-            CopyConstants::MINIMUM_NUM_COPIER_TASKS_TO_SCHEDULE_MORE);
-    }
 
-    taskScheduler.waitAllTasksToCompleteOrError();
+        taskScheduler.waitAllTasksToCompleteOrError();
+    }
     return arrow::Status::OK();
 }
 
@@ -624,8 +591,7 @@ template<typename T>
 void CopyRelArrow::populateAdjColumnsAndCountRelsInAdjListsTask(uint64_t blockIdx,
     uint64_t blockStartRelID, CopyRelArrow* copier,
     const std::vector<std::shared_ptr<T>>& batchColumns, const std::string& filePath) {
-    copier->logger->debug(
-        "Start: path=`{0}` blkIdx={1}", copier->copyDescription.filePaths[0], blockIdx);
+    copier->logger->debug("Start: path=`{0}` blkIdx={1}", filePath, blockIdx);
     std::vector<bool> requireToReadTableLabels{true, true};
     std::vector<nodeID_t> nodeIDs{2};
     std::vector<DataType> nodePKTypes{2};
@@ -674,16 +640,14 @@ void CopyRelArrow::populateAdjColumnsAndCountRelsInAdjListsTask(uint64_t blockId
             copier->propertyColumnsPerDirection, nodeIDs, (uint8_t*)&relID);
         relID++;
     }
-    copier->logger->debug(
-        "End: path=`{0}` blkIdx={1}", copier->copyDescription.filePaths[0], blockIdx);
+    copier->logger->debug("End: path=`{0}` blkIdx={1}", filePath, blockIdx);
 }
 
 template<typename T>
 void CopyRelArrow::populateListsTask(uint64_t blockId, uint64_t blockStartRelID,
     CopyRelArrow* copier, const std::vector<std::shared_ptr<T>>& batchColumns,
     const std::string& filePath) {
-    copier->logger->trace(
-        "Start: path=`{0}` blkIdx={1}", copier->copyDescription.filePaths[0], blockId);
+    copier->logger->trace("Start: path=`{0}` blkIdx={1}", filePath, blockId);
     std::vector<nodeID_t> nodeIDs(2);
     std::vector<DataType> nodePKTypes(2);
     std::vector<uint64_t> reversePos(2);
@@ -723,8 +687,7 @@ void CopyRelArrow::populateListsTask(uint64_t blockId, uint64_t blockStartRelID,
             (uint8_t*)&relID);
         relID++;
     }
-    copier->logger->trace(
-        "End: path=`{0}` blkIdx={1}", copier->copyDescription.filePaths[0], blockId);
+    copier->logger->trace("End: path=`{0}` blkIdx={1}", filePath, blockId);
 }
 
 void CopyRelArrow::sortOverflowValuesOfPropertyColumnTask(const DataType& dataType,

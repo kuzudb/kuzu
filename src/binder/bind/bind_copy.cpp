@@ -96,12 +96,9 @@ CopyDescription::FileType Binder::bindFileType(std::vector<std::string> filePath
     // types is not supported.
     auto fileName = filePaths[0];
     auto csvSuffix = CopyDescription::getFileTypeSuffix(CopyDescription::FileType::CSV);
-    auto arrowSuffix = CopyDescription::getFileTypeSuffix(CopyDescription::FileType::ARROW);
     auto parquetSuffix = CopyDescription::getFileTypeSuffix(CopyDescription::FileType::PARQUET);
     if (fileName.ends_with(csvSuffix)) {
         return CopyDescription::FileType::CSV;
-    } else if (fileName.ends_with(arrowSuffix)) {
-        return CopyDescription::FileType::ARROW;
     } else if (fileName.ends_with(parquetSuffix)) {
         return CopyDescription::FileType::PARQUET;
     } else {

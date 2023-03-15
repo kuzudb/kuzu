@@ -32,10 +32,7 @@ private:
     arrow::Status populateColumns();
 
     template<typename T>
-    arrow::Status populateColumnsFromFiles(std::unique_ptr<HashIndexBuilder<T>>& pkIndex);
-
-    template<typename T>
-    arrow::Status populateColumnsFromArrow(std::unique_ptr<HashIndexBuilder<T>>& pkIndex);
+    arrow::Status populateColumnsFromCSV(std::unique_ptr<HashIndexBuilder<T>>& pkIndex);
 
     template<typename T>
     arrow::Status populateColumnsFromParquet(std::unique_ptr<HashIndexBuilder<T>>& pkIndex);
@@ -58,7 +55,12 @@ private:
         const std::vector<std::shared_ptr<T2>>& batchColumns, std::string filePath);
 
     template<typename T>
-    arrow::Status assignCopyTasks(std::shared_ptr<arrow::csv::StreamingReader>& csvStreamingReader,
+    arrow::Status assignCopyCSVTasks(arrow::csv::StreamingReader* csvStreamingReader,
+        common::offset_t startOffset, std::string filePath,
+        std::unique_ptr<HashIndexBuilder<T>>& pkIndex);
+
+    template<typename T>
+    arrow::Status assignCopyParquetTasks(parquet::arrow::FileReader* parquetReader,
         common::offset_t startOffset, std::string filePath,
         std::unique_ptr<HashIndexBuilder<T>>& pkIndex);
 

@@ -31,7 +31,7 @@ struct CSVReaderConfig {
 };
 
 struct CopyDescription {
-    enum class FileType { CSV, ARROW, PARQUET };
+    enum class FileType : uint8_t { CSV = 0, PARQUET = 1 };
 
     CopyDescription(const std::vector<std::string>& filePaths, CSVReaderConfig csvReaderConfig,
         FileType fileType);

@@ -120,6 +120,7 @@ std::vector<std::string> FileUtils::globFilePath(const std::string& path) {
     for (auto i = 0u; i < globResult.gl_pathc; ++i) {
         result.emplace_back(globResult.gl_pathv[i]);
     }
+    globfree(&globResult);
     return result;
 }
 
