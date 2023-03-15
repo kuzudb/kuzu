@@ -13,10 +13,6 @@ def test_exception(establish_connection):
     with pytest.raises(RuntimeError, match="Binder exception: Cannot find property dummy for a."):
         conn.execute("MATCH (a:person) RETURN a.dummy;")
 
-    with pytest.raises(RuntimeError,
-                       match="Buffer manager exception: Resizing to a smaller Buffer Pool Size is unsupported."):
-        db.resize_buffer_manager(1)
-
 
 def test_db_path_exception():
     path = '/:* /? " < > |'

@@ -19,8 +19,6 @@ public:
 private:
     void setNumThreads(const std::string& numThreadsString);
 
-    void setBufferManagerSize(const std::string& bufferManagerSizeString);
-
     void printNodeSchema(const std::string& tableName);
     void printRelSchema(const std::string& tableName);
 

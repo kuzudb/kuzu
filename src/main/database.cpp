@@ -110,13 +110,6 @@ void Database::setLoggingLevel(std::string loggingLevel) {
     spdlog::set_level(LoggingLevelUtils::convertStrToLevelEnum(std::move(loggingLevel)));
 }
 
-void Database::resizeBufferManager(uint64_t newSize) {
-    systemConfig.defaultPageBufferPoolSize = newSize * StorageConstants::DEFAULT_PAGES_BUFFER_RATIO;
-    systemConfig.largePageBufferPoolSize = newSize * StorageConstants::LARGE_PAGES_BUFFER_RATIO;
-    bufferManager->resize(
-        systemConfig.defaultPageBufferPoolSize, systemConfig.largePageBufferPoolSize);
-}
-
 void Database::commitAndCheckpointOrRollback(
     Transaction* writeTransaction, bool isCommit, bool skipCheckpointForTestingRecovery) {
     // Irrespective of whether we are checkpointing or rolling back we add a

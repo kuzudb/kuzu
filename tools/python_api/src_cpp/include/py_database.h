@@ -17,8 +17,6 @@ public:
 
     explicit PyDatabase(const std::string& databasePath, uint64_t bufferPoolSize);
 
-    void resizeBufferManager(uint64_t newSize);
-
     ~PyDatabase() = default;
 
 private:

@@ -89,8 +89,6 @@ public:
     void unpinWithoutAcquiringPageLock(
         BufferManagedFileHandle& fileHandle, common::page_idx_t pageIdx);
 
-    void resize(uint64_t newSize);
-
     // Note: These two functions that remove pages from frames is not designed for concurrency and
     // therefore not tested under concurrency. If this is called while other threads are accessing
     // the BM, it should work safely but this is not tested.
