@@ -58,6 +58,13 @@ Dan|1950-05-14|Bob|1950-05-14|Carol|2000-01-01
 -ENUMERATE
 ---- 0
 
+-NAME TriangleTest6
+-QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person), (a)-[e3:knows]->(c) WHERE a.fName='Alice' AND e1.meetTime=timestamp('1986-10-21 21:08:31.521') RETURN b.fName, c.fName
+-ENUMERATE
+---- 2
+Bob|Carol
+Bob|Dan
+
 -NAME TriangleWithProjectionTest
 -QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:studyAt]->(c:organisation), (a)-[e3:studyAt]->(c) RETURN a.fName, e1.date, b.fName, e2.year, c.name, e3.year
 -ENUMERATE

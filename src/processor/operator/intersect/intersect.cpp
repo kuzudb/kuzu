@@ -17,9 +17,8 @@ void Intersect::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* c
         for (auto i = 0u; i < dataInfo.payloadsDataPos.size(); i++) {
             auto vector = resultSet->getValueVector(dataInfo.payloadsDataPos[i]);
             // Always skip the first two columns in the fTable: build key and intersect key.
-            // TODO(Guodong): this is a potential bug because you cannot guarantee intersect key is
-            // the second column. Once this is solved, go back and refactor projection push down for
-            // intersect.
+            // TODO(Guodong): Remove this assumption so that keys can be stored in any order. Change
+            // mapping logic too so that we don't need to maintain this order explicitly.
             columnIdxesToScanFrom.push_back(i + 2);
             vectorsToReadInto.push_back(vector.get());
         }
@@ -147,7 +146,7 @@ void Intersect::populatePayloads(
     const std::vector<uint8_t*>& tuples, const std::vector<uint32_t>& listIdxes) {
     for (auto i = 0u; i < listIdxes.size(); i++) {
         auto listIdx = listIdxes[i];
-        sharedHTs[i]->getHashTable()->getFactorizedTable()->lookup(
+        sharedHTs[listIdx]->getHashTable()->getFactorizedTable()->lookup(
             payloadVectorsToScanInto[listIdx], intersectSelVectors[i].get(),
             payloadColumnIdxesToScanFrom[listIdx], tuples[listIdx]);
     }

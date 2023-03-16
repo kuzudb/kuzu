@@ -6,60 +6,64 @@ namespace kuzu {
 namespace planner {
 
 void SubPlansTable::resize(uint32_t newSize) {
-    auto prevSize = subPlans.size();
-    subPlans.resize(newSize);
+    auto prevSize = dpLevels.size();
+    dpLevels.resize(newSize);
     for (auto i = prevSize; i < newSize; ++i) {
-        subPlans[i] = std::make_unique<SubqueryGraphPlansMap>();
+        dpLevels[i] = std::make_unique<dp_level_t>();
     }
 }
 
 bool SubPlansTable::containSubgraphPlans(const SubqueryGraph& subqueryGraph) const {
-    return subPlans[subqueryGraph.getTotalNumVariables()]->contains(subqueryGraph);
+    return getDPLevel(subqueryGraph)->contains(subqueryGraph);
 }
 
 std::vector<std::unique_ptr<LogicalPlan>>& SubPlansTable::getSubgraphPlans(
     const SubqueryGraph& subqueryGraph) {
-    auto subqueryGraphPlansMap = subPlans[subqueryGraph.getTotalNumVariables()].get();
-    KU_ASSERT(subqueryGraphPlansMap->contains(subqueryGraph));
-    return subqueryGraphPlansMap->at(subqueryGraph);
+    auto dpLevel = getDPLevel(subqueryGraph);
+    KU_ASSERT(dpLevel->contains(subqueryGraph));
+    return dpLevel->at(subqueryGraph)->getPlans();
 }
 
 std::vector<SubqueryGraph> SubPlansTable::getSubqueryGraphs(uint32_t level) {
     std::vector<SubqueryGraph> result;
-    for (auto& [subGraph, plans] : *subPlans[level]) {
+    for (auto& [subGraph, _] : *dpLevels[level]) {
         result.push_back(subGraph);
     }
     return result;
 }
 
 void SubPlansTable::addPlan(const SubqueryGraph& subqueryGraph, std::unique_ptr<LogicalPlan> plan) {
-    assert(subPlans[subqueryGraph.getTotalNumVariables()]);
-    auto subgraphPlansMap = subPlans[subqueryGraph.getTotalNumVariables()].get();
-    if (subgraphPlansMap->size() > MAX_NUM_SUBGRAPHS_PER_LEVEL) {
+    auto dpLevel = getDPLevel(subqueryGraph);
+    if (dpLevel->size() > MAX_NUM_SUBGRAPHS_PER_LEVEL) {
         return;
     }
-    if (!subgraphPlansMap->contains(subqueryGraph)) {
-        subgraphPlansMap->emplace(subqueryGraph, std::vector<std::unique_ptr<LogicalPlan>>());
+    if (!dpLevel->contains(subqueryGraph)) {
+        dpLevel->emplace(subqueryGraph, std::make_unique<PlanSet>());
     }
-    subgraphPlansMap->at(subqueryGraph).push_back(std::move(plan));
-}
-
-void SubPlansTable::finalizeLevel(uint32_t level) {
-    // cap number of plans per subgraph
-    for (auto& [subgraph, plans] : *subPlans[level]) {
-        if (plans.size() < MAX_NUM_PLANS_PER_SUBGRAPH) {
-            continue;
-        }
-        sort(plans.begin(), plans.end(),
-            [](const std::unique_ptr<LogicalPlan>& a, const std::unique_ptr<LogicalPlan>& b)
-                -> bool { return a->getCost() < b->getCost(); });
-        plans.resize(MAX_NUM_PLANS_PER_SUBGRAPH);
-    }
+    dpLevel->at(subqueryGraph)->addPlan(std::move(plan));
 }
 
 void SubPlansTable::clear() {
-    for (auto& subPlan : subPlans) {
-        subPlan->clear();
+    for (auto& dpLevel : dpLevels) {
+        dpLevel->clear();
+    }
+}
+
+void SubPlansTable::PlanSet::addPlan(std::unique_ptr<LogicalPlan> plan) {
+    if (plans.size() >= MAX_NUM_PLANS_PER_SUBGRAPH) {
+        return;
+    }
+    auto schema = plan->getSchema();
+    if (!schemaToPlanIdx.contains(schema)) { // add plan if this is a new factorization schema
+        schemaToPlanIdx.insert({schema, plans.size()});
+        plans.push_back(std::move(plan));
+    } else { // swap plan for lower cost under the same factorization schema
+        auto idx = schemaToPlanIdx.at(schema);
+        assert(idx < MAX_NUM_PLANS_PER_SUBGRAPH);
+        auto currentPlan = plans[idx].get();
+        if (currentPlan->getCost() > plan->getCost()) {
+            plans[idx] = std::move(plan);
+        }
     }
 }
 

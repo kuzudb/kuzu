@@ -104,7 +104,6 @@ void JoinOrderEnumerator::planLevel(uint32_t level) {
     } else {
         planLevelExactly(level);
     }
-    context->subPlansTable->finalizeLevel(level);
 }
 
 void JoinOrderEnumerator::planLevelExactly(uint32_t level) {

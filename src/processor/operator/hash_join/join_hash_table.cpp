@@ -34,7 +34,8 @@ bool JoinHashTable::discardNullFromKeys(
 }
 
 // TODO(Guodong): refactor this function to partially re-use FactorizedTable::append, but calculate
-// numTuplesToAppend here.
+// numTuplesToAppend here. The refactor should also handle the case where multiple unFlat vectors
+// are in the same dataChunk.
 void JoinHashTable::append(const std::vector<ValueVector*>& vectorsToAppend) {
     if (!discardNullFromKeys(vectorsToAppend, numKeyColumns)) {
         return;
@@ -42,9 +43,12 @@ void JoinHashTable::append(const std::vector<ValueVector*>& vectorsToAppend) {
     // TODO(Guodong): use compiling information to remove the for loop.
     auto numTuplesToAppend = 1;
     for (auto i = 0u; i < numKeyColumns; i++) {
-        numTuplesToAppend *= (vectorsToAppend[i]->state->isFlat() ?
-                                  1 :
-                                  vectorsToAppend[i]->state->selVector->selectedSize);
+        // At most one unFlat key data chunk. If there are multiple unFlat key vectors, they must
+        // share the same state.
+        if (!vectorsToAppend[i]->state->isFlat()) {
+            numTuplesToAppend = vectorsToAppend[i]->state->selVector->selectedSize;
+            break;
+        }
     }
     auto appendInfos = factorizedTable->allocateFlatTupleBlocks(numTuplesToAppend);
     for (auto i = 0u; i < vectorsToAppend.size(); i++) {
