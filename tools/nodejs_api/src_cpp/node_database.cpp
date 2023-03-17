@@ -4,8 +4,6 @@
 
 using namespace kuzu::main;
 
-Napi::FunctionReference NodeDatabase::constructor;
-
 Napi::Object NodeDatabase::Init(Napi::Env env, Napi::Object exports) {
     Napi::HandleScope scope(env);
 
@@ -39,8 +37,6 @@ NodeDatabase::NodeDatabase(const Napi::CallbackInfo& info) : Napi::ObjectWrap<No
         Napi::TypeError::New(env, "Unsuccessful Database Initialization: " + std::string(exc.what())).ThrowAsJavaScriptException();
     }
 }
-
-NodeDatabase::~NodeDatabase() {}
 
 void NodeDatabase::ResizeBufferManager(const Napi::CallbackInfo& info) {
     Napi::Env env = info.Env();

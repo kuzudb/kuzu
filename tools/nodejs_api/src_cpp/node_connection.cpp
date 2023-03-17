@@ -8,8 +8,6 @@
 
 using namespace kuzu::main;
 
-Napi::FunctionReference NodeConnection::constructor;
-
 Napi::Object NodeConnection::Init(Napi::Env env, Napi::Object exports) {
   Napi::HandleScope scope(env);
 
@@ -40,8 +38,6 @@ NodeConnection::NodeConnection(const Napi::CallbackInfo& info) : Napi::ObjectWra
       Napi::TypeError::New(env, "Unsuccessful Connection Initialization: " + std::string(exc.what())).ThrowAsJavaScriptException();
   }
 }
-
-NodeConnection::~NodeConnection() {}
 
 Napi::Value NodeConnection::Execute(const Napi::CallbackInfo& info) {
   Napi::Env env = info.Env();

@@ -1,24 +1,20 @@
 class QueryResult {
+    #connection
+    #database;
     #queryResult
     #isClosed
-    constructor(queryResult) {
+    constructor(connection, queryResult) {
         if (typeof queryResult !== "object" || queryResult.constructor.name !==  "NodeQueryResult"){
             throw new Error("QueryResult constructor requires a NodeQueryResult object as an argument");
         }
+        this.#connection = connection;
         this.#queryResult = queryResult;
-        this.#isClosed = false;
     }
 
     checkForQueryResultClose(){
         if (this.#isClosed){
             throw new Error("Query Result is Closed");
         }
-    }
-
-    close(){
-        this.checkForQueryResultClose();
-        this.#queryResult.close();
-        this.#isClosed = true;
     }
 
      async each(rowCallback, doneCallback) {

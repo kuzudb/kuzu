@@ -13,8 +13,13 @@ async function executeAllCallback(err, queryResult) {
         console.log(err);
     } else {
         await queryResult.all({"callback": (err, result) => {
-            console.log("All result received Callback");
-            console.log(result);
+            if (err) {
+                console.log("All result with Callback failed");
+                console.log(err);
+            } else {
+                console.log(result);
+                console.log("All result received Callback");
+            }
         }});
     }
 }
@@ -24,8 +29,8 @@ async function executeAllPromise(err, queryResult) {
         console.log(err);
     } else {
         await queryResult.all().then(result => {
-            console.log("All result received Promise");
             console.log(result);
+            console.log("All result received Promise");
         }).catch(error => {
             console.log("All with Promise failed");
             console.log(error);
@@ -44,7 +49,7 @@ const executeQuery = "MATCH (a:person) RETURN a.fName, a.age, a.eyeSight, a.isSt
 const parameterizedExecuteQuery = "MATCH (a:person) WHERE a.age > $1 and a.isStudent = $2 and a.fName < $3  RETURN a.fName, a.age, a.eyeSight, a.isStudent;";
 
 connection.execute(executeQuery, {"callback": executeAllPromise});
-// connection.execute(parameterizedExecuteQuery, {"callback": executeAllPromise, "params":[["1", 29], ["2", true], ["3", "B"]]});
+connection.execute(parameterizedExecuteQuery, {"callback": executeAllPromise, "params":[["1", 29], ["2", true], ["3", "B"]]});
 
 // Extensive Case
 database.resizeBufferManager(2000000000);
@@ -78,8 +83,8 @@ connection.execute(executeQuery).then(async queryResult => {
         if (err) {
             console.log(err);
         } else {
-            console.log("All result received for execution with a promise");
             console.log(result);
+            console.log("All result received for execution with a promise");
         }
     }});
 }).catch(error => {
@@ -96,8 +101,8 @@ asyncAwaitExecute(executeQuery).then(async queryResult => {
         if (err) {
             console.log(err);
         } else {
-            console.log("All result received for execution with await");
             console.log(result);
+            console.log("All result received for execution with await");
         }
     }});
 }).catch(error => {

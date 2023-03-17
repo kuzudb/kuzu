@@ -11,18 +11,12 @@ void TsfnContext::threadEntry(TsfnContext* context) {
         Napi::Array arr = Napi::Array::New(env);
         size_t i = 0;
         auto columnNames = context->queryResult->getColumnNames();
-        Napi::Array colArray = Napi::Array::New(env);
-        for (auto i = 0u; i < columnNames.size(); ++i) {
-            colArray.Set(i, columnNames[i]);
-        }
-        if (context->type == TsfnContext::EACH) { jsCallback.Call({env.Null(), colArray}); }
-        else { arr.Set(i++, colArray); }
         while (context->queryResult->hasNext()) {
             auto row = context->queryResult->getNext();
-            Napi::Array rowArray = Napi::Array::New(env);
+            Napi::Object rowArray = Napi::Object::New(env);
             for (size_t j = 0; j < row->len(); j++) {
                 Napi::Value val = Util::ConvertToNapiObject(*row->getValue(j), env);
-                rowArray.Set(j, val);
+                rowArray.Set( (j >= columnNames.size()) ? "" : columnNames[j], val);
             }
             if (context->type == TsfnContext::EACH) { jsCallback.Call({env.Null(), rowArray}); }
             else { arr.Set(i++, rowArray); }
