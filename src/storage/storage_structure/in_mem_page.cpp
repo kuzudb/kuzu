@@ -10,7 +10,7 @@ namespace storage {
 
 InMemPage::InMemPage(uint32_t maxNumElements, uint16_t numBytesForElement, bool hasNullEntries)
     : nullEntriesInPage{nullptr}, maxNumElements{maxNumElements} {
-    buffer = std::make_unique<uint8_t[]>(BufferPoolConstants::DEFAULT_PAGE_SIZE);
+    buffer = std::make_unique<uint8_t[]>(BufferPoolConstants::PAGE_4KB_SIZE);
     data = buffer.get();
     if (hasNullEntries) {
         // In a page, null entries are stored right after the element data. Each null entry contains

@@ -32,9 +32,9 @@ private:
     void replayWALRecord(WALRecord& walRecord);
     void checkpointOrRollbackVersionedFileHandleAndBufferManager(
         const WALRecord& walRecord, const StorageStructureID& storageStructureID);
-    void truncateFileIfInsertion(BufferManagedFileHandle* fileHandle,
-        const PageUpdateOrInsertRecord& pageInsertOrUpdateRecord);
-    BufferManagedFileHandle* getVersionedFileHandleIfWALVersionAndBMShouldBeCleared(
+    void truncateFileIfInsertion(
+        BMFileHandle* fileHandle, const PageUpdateOrInsertRecord& pageInsertOrUpdateRecord);
+    BMFileHandle* getVersionedFileHandleIfWALVersionAndBMShouldBeCleared(
         const StorageStructureID& storageStructureID);
     std::unique_ptr<catalog::Catalog> getCatalogForRecovery(common::DBFileType dbFileType);
 
@@ -46,7 +46,7 @@ private:
     StorageManager* storageManager;
     BufferManager* bufferManager;
     MemoryManager* memoryManager;
-    std::shared_ptr<BufferManagedFileHandle> walFileHandle;
+    std::shared_ptr<BMFileHandle> walFileHandle;
     std::unique_ptr<uint8_t[]> pageBuffer;
     std::shared_ptr<spdlog::logger> logger;
     WAL* wal;

@@ -87,11 +87,11 @@ void DataBlockCollection::merge(DataBlockCollection& other) {
 FactorizedTable::FactorizedTable(
     MemoryManager* memoryManager, std::unique_ptr<FactorizedTableSchema> tableSchema)
     : memoryManager{memoryManager}, tableSchema{std::move(tableSchema)}, numTuples{0} {
-    assert(this->tableSchema->getNumBytesPerTuple() <= BufferPoolConstants::LARGE_PAGE_SIZE);
+    assert(this->tableSchema->getNumBytesPerTuple() <= BufferPoolConstants::PAGE_256KB_SIZE);
     if (!this->tableSchema->isEmpty()) {
         inMemOverflowBuffer = std::make_unique<InMemOverflowBuffer>(memoryManager);
         numTuplesPerBlock =
-            BufferPoolConstants::LARGE_PAGE_SIZE / this->tableSchema->getNumBytesPerTuple();
+            BufferPoolConstants::PAGE_256KB_SIZE / this->tableSchema->getNumBytesPerTuple();
         flatTupleBlockCollection = std::make_unique<DataBlockCollection>(
             this->tableSchema->getNumBytesPerTuple(), numTuplesPerBlock);
         unflatTupleBlockCollection = std::make_unique<DataBlockCollection>();
@@ -119,7 +119,7 @@ uint8_t* FactorizedTable::appendEmptyTuple() {
         flatTupleBlockCollection->append(std::make_unique<DataBlock>(memoryManager));
     }
     auto& block = flatTupleBlockCollection->getBlocks().back();
-    uint8_t* tuplePtr = block->getData() + BufferPoolConstants::LARGE_PAGE_SIZE - block->freeSize;
+    uint8_t* tuplePtr = block->getData() + BufferPoolConstants::PAGE_256KB_SIZE - block->freeSize;
     block->freeSize -= tableSchema->getNumBytesPerTuple();
     block->numTuples++;
     numTuples++;
@@ -380,7 +380,7 @@ uint64_t FactorizedTable::computeNumTuplesToAppend(
 std::vector<BlockAppendingInfo> FactorizedTable::allocateFlatTupleBlocks(
     uint64_t numTuplesToAppend) {
     auto numBytesPerTuple = tableSchema->getNumBytesPerTuple();
-    assert(numBytesPerTuple < BufferPoolConstants::LARGE_PAGE_SIZE);
+    assert(numBytesPerTuple < BufferPoolConstants::PAGE_256KB_SIZE);
     std::vector<BlockAppendingInfo> appendingInfos;
     while (numTuplesToAppend > 0) {
         if (flatTupleBlockCollection->isEmpty() ||
@@ -391,7 +391,7 @@ std::vector<BlockAppendingInfo> FactorizedTable::allocateFlatTupleBlocks(
         auto numTuplesToAppendInCurBlock =
             std::min(numTuplesToAppend, block->freeSize / numBytesPerTuple);
         appendingInfos.emplace_back(
-            block->getData() + BufferPoolConstants::LARGE_PAGE_SIZE - block->freeSize,
+            block->getData() + BufferPoolConstants::PAGE_256KB_SIZE - block->freeSize,
             numTuplesToAppendInCurBlock);
         block->freeSize -= numTuplesToAppendInCurBlock * numBytesPerTuple;
         block->numTuples += numTuplesToAppendInCurBlock;
@@ -401,14 +401,14 @@ std::vector<BlockAppendingInfo> FactorizedTable::allocateFlatTupleBlocks(
 }
 
 uint8_t* FactorizedTable::allocateUnflatTupleBlock(uint32_t numBytes) {
-    assert(numBytes < BufferPoolConstants::LARGE_PAGE_SIZE);
+    assert(numBytes < BufferPoolConstants::PAGE_256KB_SIZE);
     if (unflatTupleBlockCollection->isEmpty()) {
         unflatTupleBlockCollection->append(std::make_unique<DataBlock>(memoryManager));
     }
     auto lastBlock = unflatTupleBlockCollection->getBlocks().back().get();
     if (lastBlock->freeSize > numBytes) {
         lastBlock->freeSize -= numBytes;
-        return lastBlock->getData() + BufferPoolConstants::LARGE_PAGE_SIZE - lastBlock->freeSize -
+        return lastBlock->getData() + BufferPoolConstants::PAGE_256KB_SIZE - lastBlock->freeSize -
                numBytes;
     }
     unflatTupleBlockCollection->append(std::make_unique<DataBlock>(memoryManager));

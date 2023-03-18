@@ -14,7 +14,7 @@ namespace kuzu {
 namespace storage {
 
 using lock_t = std::unique_lock<std::mutex>;
-constexpr uint64_t WAL_HEADER_PAGE_SIZE = common::BufferPoolConstants::DEFAULT_PAGE_SIZE;
+constexpr uint64_t WAL_HEADER_PAGE_SIZE = common::BufferPoolConstants::PAGE_4KB_SIZE;
 constexpr uint64_t WAL_HEADER_PAGE_NUM_RECORDS_FIELD_SIZE = sizeof(uint64_t);
 constexpr uint64_t WAL_HEADER_PAGE_NEXT_HEADER_PAGE_IDX_FIELD_SIZE = sizeof(common::page_idx_t);
 constexpr uint64_t WAL_HEADER_PAGE_PREFIX_FIELD_SIZES =
@@ -27,7 +27,7 @@ class BaseWALAndWALIterator {
 protected:
     BaseWALAndWALIterator() : BaseWALAndWALIterator(nullptr) {}
 
-    explicit BaseWALAndWALIterator(std::shared_ptr<BufferManagedFileHandle> fileHandle)
+    explicit BaseWALAndWALIterator(std::shared_ptr<BMFileHandle> fileHandle)
         : fileHandle{std::move(fileHandle)}, offsetInCurrentHeaderPage{INT64_MAX},
           currentHeaderPageIdx{INT32_MAX} {
         currentHeaderPageBuffer = std::make_unique<uint8_t[]>(WAL_HEADER_PAGE_SIZE);
@@ -60,7 +60,7 @@ protected:
     }
 
 public:
-    std::shared_ptr<BufferManagedFileHandle> fileHandle;
+    std::shared_ptr<BMFileHandle> fileHandle;
     // Used by WAL as the next offset to write and by WALIterator as the next offset to read
     uint64_t offsetInCurrentHeaderPage;
     // First header page of the WAL, if it exists, is always located at page 0 of the WAL.
@@ -172,7 +172,7 @@ private:
 
 class WALIterator : public BaseWALAndWALIterator {
 public:
-    explicit WALIterator(std::shared_ptr<BufferManagedFileHandle> fileHandle, std::mutex& mtx);
+    explicit WALIterator(std::shared_ptr<BMFileHandle> fileHandle, std::mutex& mtx);
 
     inline bool hasNextRecord() {
         lock_t lck{mtx};

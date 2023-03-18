@@ -70,7 +70,7 @@ Value Column::readValue(offset_t offset) {
 bool Column::isNull(offset_t nodeOffset, Transaction* transaction) {
     auto cursor = PageUtils::getPageElementCursorForPos(nodeOffset, numElementsPerPage);
     auto originalPageIdx = cursor.pageIdx;
-    fileHandle->acquirePageLock(originalPageIdx, true /* block */);
+    fileHandle->acquirePageLock(originalPageIdx, LockMode::SPIN);
     auto checkWALVersionOfPage =
         !transaction->isReadOnly() && fileHandle->hasWALPageVersionNoPageLock(originalPageIdx);
     uint8_t* frame;
@@ -78,10 +78,10 @@ bool Column::isNull(offset_t nodeOffset, Transaction* transaction) {
     if (checkWALVersionOfPage) {
         pageIdxInWAL = fileHandle->getWALPageVersionNoPageLock(originalPageIdx);
         frame = bufferManager.pinWithoutAcquiringPageLock(
-            *wal->fileHandle, pageIdxInWAL, false /* read from file */);
+            *wal->fileHandle, pageIdxInWAL, BufferManager::PageReadPolicy::READ_PAGE);
     } else {
         frame = bufferManager.pinWithoutAcquiringPageLock(
-            *fileHandle, originalPageIdx, false /* read from file */);
+            *fileHandle, originalPageIdx, BufferManager::PageReadPolicy::READ_PAGE);
     }
     auto nullEntries = (uint64_t*)(frame + (elementSize * numElementsPerPage));
     auto isNull = NullMask::isNull(nullEntries, cursor.elemPosInPage);

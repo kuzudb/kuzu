@@ -2,7 +2,6 @@
 
 #include <fstream>
 
-#include "spdlog/spdlog.h"
 #include "storage/buffer_manager/buffer_manager.h"
 #include "storage/wal_replayer.h"
 

@@ -21,7 +21,7 @@ public:
     }
 
     void initWithoutLoadingGraph() {
-        systemConfig->largePageBufferPoolSize = (1ull << 22);
+        systemConfig->bufferPoolSize = (1ull << 22);
         // Note we do not actually use the connection field in these tests. We only need the
         // database.
         createDBAndConn();

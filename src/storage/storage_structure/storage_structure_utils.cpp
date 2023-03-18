@@ -5,9 +5,9 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-std::pair<BufferManagedFileHandle*, page_idx_t>
-StorageStructureUtils::getFileHandleAndPhysicalPageIdxToPin(BufferManagedFileHandle& fileHandle,
-    page_idx_t physicalPageIdx, WAL& wal, transaction::TransactionType trxType) {
+std::pair<BMFileHandle*, page_idx_t> StorageStructureUtils::getFileHandleAndPhysicalPageIdxToPin(
+    BMFileHandle& fileHandle, page_idx_t physicalPageIdx, WAL& wal,
+    transaction::TransactionType trxType) {
     if (trxType == transaction::TransactionType::READ_ONLY ||
         !fileHandle.hasWALPageVersionNoPageLock(physicalPageIdx)) {
         return std::make_pair(&fileHandle, physicalPageIdx);
@@ -17,7 +17,7 @@ StorageStructureUtils::getFileHandleAndPhysicalPageIdxToPin(BufferManagedFileHan
     }
 }
 
-void StorageStructureUtils::updatePage(BufferManagedFileHandle& fileHandle,
+void StorageStructureUtils::updatePage(BMFileHandle& fileHandle,
     StorageStructureID storageStructureID, page_idx_t originalPageIdx, bool isInsertingNewPage,
     BufferManager& bufferManager, WAL& wal, const std::function<void(uint8_t*)>& updateOp) {
     auto walPageIdxAndFrame = StorageStructureUtils::createWALVersionIfNecessaryAndPinPage(
@@ -26,37 +26,38 @@ void StorageStructureUtils::updatePage(BufferManagedFileHandle& fileHandle,
     unpinWALPageAndReleaseOriginalPageLock(walPageIdxAndFrame, fileHandle, bufferManager, wal);
 }
 
-void StorageStructureUtils::readWALVersionOfPage(BufferManagedFileHandle& fileHandle,
+void StorageStructureUtils::readWALVersionOfPage(BMFileHandle& fileHandle,
     page_idx_t originalPageIdx, BufferManager& bufferManager, WAL& wal,
     const std::function<void(uint8_t*)>& readOp) {
     page_idx_t pageIdxInWAL = fileHandle.getWALPageVersionNoPageLock(originalPageIdx);
     auto frame = bufferManager.pinWithoutAcquiringPageLock(
-        *wal.fileHandle, pageIdxInWAL, false /* read from file */);
+        *wal.fileHandle, pageIdxInWAL, BufferManager::PageReadPolicy::READ_PAGE);
     readOp(frame);
     unpinPageIdxInWALAndReleaseOriginalPageLock(
         pageIdxInWAL, originalPageIdx, fileHandle, bufferManager, wal);
 }
 
 WALPageIdxAndFrame StorageStructureUtils::createWALVersionIfNecessaryAndPinPage(
-    page_idx_t originalPageIdx, bool insertingNewPage, BufferManagedFileHandle& fileHandle,
+    page_idx_t originalPageIdx, bool insertingNewPage, BMFileHandle& fileHandle,
     StorageStructureID storageStructureID, BufferManager& bufferManager, WAL& wal) {
     fileHandle.createPageVersionGroupIfNecessary(originalPageIdx);
-    fileHandle.acquirePageLock(originalPageIdx, true /* block */);
+    fileHandle.acquirePageLock(originalPageIdx, LockMode::SPIN);
     page_idx_t pageIdxInWAL;
     uint8_t* frame;
     if (fileHandle.hasWALPageVersionNoPageLock(originalPageIdx)) {
         pageIdxInWAL = fileHandle.getWALPageVersionNoPageLock(originalPageIdx);
         frame = bufferManager.pinWithoutAcquiringPageLock(
-            *wal.fileHandle, pageIdxInWAL, false /* read from file */);
+            *wal.fileHandle, pageIdxInWAL, BufferManager::PageReadPolicy::READ_PAGE);
     } else {
         pageIdxInWAL = wal.logPageUpdateRecord(
             storageStructureID, originalPageIdx /* pageIdxInOriginalFile */);
         frame = bufferManager.pinWithoutAcquiringPageLock(
-            *wal.fileHandle, pageIdxInWAL, true /* do not read from file */);
-        uint8_t* originalFrame = bufferManager.pinWithoutAcquiringPageLock(
-            fileHandle, originalPageIdx, insertingNewPage);
+            *wal.fileHandle, pageIdxInWAL, BufferManager::PageReadPolicy::DONT_READ_PAGE);
+        auto originalFrame = bufferManager.pinWithoutAcquiringPageLock(fileHandle, originalPageIdx,
+            insertingNewPage ? BufferManager::PageReadPolicy::DONT_READ_PAGE :
+                               BufferManager::PageReadPolicy::READ_PAGE);
         // Note: This logic only works for db files with DEFAULT_PAGE_SIZEs.
-        memcpy(frame, originalFrame, BufferPoolConstants::DEFAULT_PAGE_SIZE);
+        memcpy(frame, originalFrame, BufferPoolConstants::PAGE_4KB_SIZE);
         bufferManager.unpinWithoutAcquiringPageLock(fileHandle, originalPageIdx);
         fileHandle.setWALPageVersionNoLock(
             originalPageIdx /* pageIdxInOriginalFile */, pageIdxInWAL);
@@ -66,16 +67,15 @@ WALPageIdxAndFrame StorageStructureUtils::createWALVersionIfNecessaryAndPinPage(
 }
 
 void StorageStructureUtils::unpinWALPageAndReleaseOriginalPageLock(
-    WALPageIdxAndFrame& walPageIdxAndFrame, BufferManagedFileHandle& fileHandle,
-    BufferManager& bufferManager, WAL& wal) {
+    WALPageIdxAndFrame& walPageIdxAndFrame, BMFileHandle& fileHandle, BufferManager& bufferManager,
+    WAL& wal) {
     StorageStructureUtils::unpinPageIdxInWALAndReleaseOriginalPageLock(
         walPageIdxAndFrame.pageIdxInWAL, walPageIdxAndFrame.originalPageIdx, fileHandle,
         bufferManager, wal);
 }
 
 void StorageStructureUtils::unpinPageIdxInWALAndReleaseOriginalPageLock(page_idx_t pageIdxInWAL,
-    page_idx_t originalPageIdx, BufferManagedFileHandle& fileHandle, BufferManager& bufferManager,
-    WAL& wal) {
+    page_idx_t originalPageIdx, BMFileHandle& fileHandle, BufferManager& bufferManager, WAL& wal) {
     bufferManager.unpinWithoutAcquiringPageLock(*wal.fileHandle, pageIdxInWAL);
     fileHandle.releasePageLock(originalPageIdx);
 }

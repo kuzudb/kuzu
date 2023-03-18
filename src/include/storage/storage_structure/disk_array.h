@@ -2,7 +2,7 @@
 
 #include "common/constants.h"
 #include "common/types/types.h"
-#include "storage/buffer_manager/buffer_managed_file_handle.h"
+#include "storage/buffer_manager/bm_file_handle.h"
 #include "storage/wal/wal.h"
 #include "storage_structure_utils.h"
 #include "transaction/transaction.h"
@@ -13,7 +13,7 @@ namespace storage {
 class FileHandle;
 
 static constexpr uint64_t NUM_PAGE_IDXS_PER_PIP =
-    (common::BufferPoolConstants::DEFAULT_PAGE_SIZE - sizeof(common::page_idx_t)) /
+    (common::BufferPoolConstants::PAGE_4KB_SIZE - sizeof(common::page_idx_t)) /
     sizeof(common::page_idx_t);
 
 /**
@@ -199,10 +199,10 @@ public:
 protected:
     inline uint64_t addInMemoryArrayPage(bool setToZero) {
         inMemArrayPages.emplace_back(
-            std::make_unique<uint8_t[]>(common::BufferPoolConstants::DEFAULT_PAGE_SIZE));
+            std::make_unique<uint8_t[]>(common::BufferPoolConstants::PAGE_4KB_SIZE));
         if (setToZero) {
             memset(inMemArrayPages[inMemArrayPages.size() - 1].get(), 0,
-                common::BufferPoolConstants::DEFAULT_PAGE_SIZE);
+                common::BufferPoolConstants::PAGE_4KB_SIZE);
         }
         return inMemArrayPages.size() - 1;
     }

@@ -33,21 +33,19 @@ class DataBlock {
 public:
     explicit DataBlock(storage::MemoryManager* memoryManager)
         : numTuples{0}, memoryManager{memoryManager} {
-        block = memoryManager->allocateBlock(true);
-        freeSize = block->size;
+        block = memoryManager->allocateBuffer(true /* initializeToZero */);
+        freeSize = block->allocator->getPageSize();
     }
 
     DataBlock(DataBlock&& other) = default;
 
-    ~DataBlock() { memoryManager->freeBlock(block->pageIdx); }
-
-    inline uint8_t* getData() const { return block->data; }
+    inline uint8_t* getData() const { return block->buffer; }
     inline void resetNumTuplesAndFreeSize() {
-        freeSize = common::BufferPoolConstants::LARGE_PAGE_SIZE;
+        freeSize = common::BufferPoolConstants::PAGE_256KB_SIZE;
         numTuples = 0;
     }
     inline void resetToZero() {
-        memset(block->data, 0, common::BufferPoolConstants::LARGE_PAGE_SIZE);
+        memset(block->buffer, 0, common::BufferPoolConstants::PAGE_256KB_SIZE);
     }
 
     static void copyTuples(DataBlock* blockToCopyFrom, ft_tuple_idx_t tupleIdxToCopyFrom,
@@ -60,7 +58,7 @@ public:
     storage::MemoryManager* memoryManager;
 
 private:
-    std::unique_ptr<storage::MemoryBlock> block;
+    std::unique_ptr<storage::MemoryBuffer> block;
 };
 
 class DataBlockCollection {

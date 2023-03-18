@@ -397,16 +397,16 @@ std::unordered_set<uint64_t> RelIDList::getDeletedRelOffsetsInListForNodeOffset(
         auto numElementsToReadInCurPage = std::min(numElementsInPersistentStore - numElementsRead,
             (uint64_t)(numElementsPerPage - pageCursor.elemPosInPage));
         auto physicalPageIdx = pageMapper(pageCursor.pageIdx);
-        auto frame = bufferManager.pin(*fileHandle, physicalPageIdx) +
-                     getElemByteOffset(pageCursor.elemPosInPage);
+        auto buffer = bufferManager.pin(*fileHandle, physicalPageIdx) +
+                      getElemByteOffset(pageCursor.elemPosInPage);
         for (auto i = 0u; i < numElementsToReadInCurPage; i++) {
-            auto relID = *(int64_t*)frame;
+            auto relID = *(int64_t*)buffer;
             if (listsUpdatesStore->isRelDeletedInPersistentStore(
                     storageStructureIDAndFName.storageStructureID.listFileID, nodeOffset, relID)) {
                 deletedRelOffsetsInList.emplace(numElementsRead);
             }
             numElementsRead++;
-            frame += elementSize;
+            buffer += elementSize;
         }
         bufferManager.unpin(*fileHandle, physicalPageIdx);
         pageCursor.nextPage();
@@ -424,16 +424,16 @@ list_offset_t RelIDList::getListOffset(offset_t nodeOffset, offset_t relOffset) 
         auto numElementsToReadInCurPage = std::min(numElementsInPersistentStore - numElementsRead,
             (uint64_t)(numElementsPerPage - pageCursor.elemPosInPage));
         auto physicalPageIdx = pageMapper(pageCursor.pageIdx);
-        auto frame = bufferManager.pin(*fileHandle, physicalPageIdx) +
-                     getElemByteOffset(pageCursor.elemPosInPage);
+        auto buffer = bufferManager.pin(*fileHandle, physicalPageIdx) +
+                      getElemByteOffset(pageCursor.elemPosInPage);
         for (auto i = 0u; i < numElementsToReadInCurPage; i++) {
-            auto relIDInList = *(int64_t*)frame;
+            auto relIDInList = *(int64_t*)buffer;
             if (relIDInList == relOffset) {
                 bufferManager.unpin(*fileHandle, physicalPageIdx);
                 return numElementsRead;
             }
             numElementsRead++;
-            frame += elementSize;
+            buffer += elementSize;
         }
         bufferManager.unpin(*fileHandle, physicalPageIdx);
         pageCursor.nextPage();

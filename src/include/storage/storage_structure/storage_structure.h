@@ -26,14 +26,14 @@ public:
         : logger{common::LoggerUtils::getLogger(common::LoggerConstants::LoggerEnum::STORAGE)},
           storageStructureID{storageStructureIDAndFName.storageStructureID},
           bufferManager{bufferManager}, wal{wal} {
-        fileHandle = bufferManager.getBufferManagedFileHandle(storageStructureIDAndFName.fName,
+        fileHandle = bufferManager.getBMFileHandle(storageStructureIDAndFName.fName,
             FileHandle::O_PERSISTENT_FILE_NO_CREATE,
-            BufferManagedFileHandle::FileVersionedType::VERSIONED_FILE);
+            BMFileHandle::FileVersionedType::VERSIONED_FILE);
     }
 
     virtual ~StorageStructure() = default;
 
-    inline BufferManagedFileHandle* getFileHandle() { return fileHandle.get(); }
+    inline BMFileHandle* getFileHandle() { return fileHandle.get(); }
 
 protected:
     void addNewPageToFileHandle();
@@ -50,7 +50,7 @@ protected:
 protected:
     std::shared_ptr<spdlog::logger> logger;
     StorageStructureID storageStructureID;
-    std::unique_ptr<BufferManagedFileHandle> fileHandle;
+    std::unique_ptr<BMFileHandle> fileHandle;
     BufferManager& bufferManager;
     WAL* wal;
 };

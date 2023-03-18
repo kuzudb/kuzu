@@ -112,7 +112,7 @@ private:
         common::list_header_t oldHeader, uint64_t numElementsAfterInsertion) override {
         return ListHeaders::isALargeList(oldHeader) ||
                numElementsAfterInsertion * lists->elementSize >
-                   common::BufferPoolConstants::DEFAULT_PAGE_SIZE;
+                   common::BufferPoolConstants::PAGE_4KB_SIZE;
     }
 };
 

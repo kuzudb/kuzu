@@ -12,11 +12,11 @@ namespace storage {
 WAL::WAL(const std::string& directory, BufferManager& bufferManager)
     : logger{LoggerUtils::getLogger(LoggerConstants::LoggerEnum::WAL)}, directory{directory},
       bufferManager{bufferManager}, isLastLoggedRecordCommit_{false} {
-    fileHandle = bufferManager.getBufferManagedFileHandle(
-        common::FileUtils::joinPath(
-            directory, std::string(common::StorageConstants::WAL_FILE_SUFFIX)),
-        FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS,
-        BufferManagedFileHandle::FileVersionedType::NON_VERSIONED_FILE);
+    fileHandle =
+        bufferManager.getBMFileHandle(common::FileUtils::joinPath(directory,
+                                          std::string(common::StorageConstants::WAL_FILE_SUFFIX)),
+            FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS,
+            BMFileHandle::FileVersionedType::NON_VERSIONED_FILE);
     initCurrentPage();
 }
 
@@ -173,7 +173,7 @@ void WAL::setIsLastRecordCommit() {
     }
 }
 
-WALIterator::WALIterator(std::shared_ptr<BufferManagedFileHandle> fileHandle, std::mutex& mtx)
+WALIterator::WALIterator(std::shared_ptr<BMFileHandle> fileHandle, std::mutex& mtx)
     : BaseWALAndWALIterator{std::move(fileHandle)}, mtx{mtx} {
     resetCurrentHeaderPagePrefix();
     if (this->fileHandle->getNumPages() > 0) {

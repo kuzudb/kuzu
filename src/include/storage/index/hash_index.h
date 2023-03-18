@@ -93,7 +93,7 @@ public:
     void prepareCommitOrRollbackIfNecessary(bool isCommit);
     void checkpointInMemoryIfNecessary();
     void rollbackInMemoryIfNecessary() const;
-    inline BufferManagedFileHandle* getFileHandle() const { return fileHandle.get(); }
+    inline BMFileHandle* getFileHandle() const { return fileHandle.get(); }
 
 private:
     template<ChainedSlotsAction action>
@@ -134,7 +134,7 @@ public:
     StorageStructureIDAndFName storageStructureIDAndFName;
     BufferManager& bm;
     WAL* wal;
-    std::unique_ptr<BufferManagedFileHandle> fileHandle;
+    std::unique_ptr<BMFileHandle> fileHandle;
     std::unique_ptr<BaseDiskArray<HashIndexHeader>> headerArray;
     std::unique_ptr<BaseDiskArray<Slot<T>>> pSlots;
     std::unique_ptr<BaseDiskArray<Slot<T>>> oSlots;
@@ -196,7 +196,7 @@ public:
                    hashIndexForInt64->prepareCommitOrRollbackIfNecessary(isCommit) :
                    hashIndexForString->prepareCommitOrRollbackIfNecessary(isCommit);
     }
-    inline BufferManagedFileHandle* getFileHandle() {
+    inline BMFileHandle* getFileHandle() {
         return keyDataTypeID == common::INT64 ? hashIndexForInt64->getFileHandle() :
                                                 hashIndexForString->getFileHandle();
     }

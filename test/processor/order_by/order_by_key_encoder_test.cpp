@@ -16,11 +16,8 @@ public:
     void SetUp() override {
         LoggerUtils::createLogger(LoggerConstants::LoggerEnum::BUFFER_MANAGER);
         LoggerUtils::createLogger(LoggerConstants::LoggerEnum::STORAGE);
-        bufferManager =
-            std::make_unique<BufferManager>(StorageConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING *
-                                                StorageConstants::DEFAULT_PAGES_BUFFER_RATIO,
-                StorageConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING *
-                    StorageConstants::LARGE_PAGES_BUFFER_RATIO);
+        bufferManager = std::make_unique<BufferManager>(
+            BufferPoolConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING);
         memoryManager = std::make_unique<MemoryManager>(bufferManager.get());
     }
 
@@ -134,7 +131,7 @@ public:
     std::unique_ptr<BufferManager> bufferManager;
     std::unique_ptr<MemoryManager> memoryManager;
     const uint32_t ftIdx = 14;
-    const uint32_t numTuplesPerBlockInFT = BufferPoolConstants::LARGE_PAGE_SIZE / 8;
+    const uint32_t numTuplesPerBlockInFT = BufferPoolConstants::PAGE_256KB_SIZE / 8;
 };
 
 TEST_F(OrderByKeyEncoderTest, singleOrderByColInt64UnflatTest) {
@@ -576,7 +573,7 @@ TEST_F(OrderByKeyEncoderTest, largeNumBytesPerTupleErrorTest) {
     // If the numBytesPerTuple is larger than 4096 bytes, the encoder will raise an encoding
     // exception we need ((LARGE_PAGE_SIZE - 8) / 9  + 1 number of columns(with datatype INT) to
     // trigger that exception.
-    auto numOfOrderByCols = (BufferPoolConstants::LARGE_PAGE_SIZE - 8) / 9 + 1;
+    auto numOfOrderByCols = (BufferPoolConstants::PAGE_256KB_SIZE - 8) / 9 + 1;
     auto [valueVectors, dataChunk] = getInt64TestValueVector(1, numOfOrderByCols, true);
     auto isAscOrder = std::vector<bool>(numOfOrderByCols, true);
     try {
@@ -587,13 +584,13 @@ TEST_F(OrderByKeyEncoderTest, largeNumBytesPerTupleErrorTest) {
         ASSERT_STREQ(e.what(),
             StringUtils::string_format("Runtime exception: TupleSize({} bytes) is larger than "
                                        "the LARGE_PAGE_SIZE({} bytes)",
-                9 * numOfOrderByCols + 8, BufferPoolConstants::LARGE_PAGE_SIZE)
+                9 * numOfOrderByCols + 8, BufferPoolConstants::PAGE_256KB_SIZE)
                 .c_str());
     } catch (std::exception& e) { FAIL(); }
 }
 
 TEST_F(OrderByKeyEncoderTest, singleTuplePerBlockTest) {
-    uint32_t numOfOrderByCols = (BufferPoolConstants::LARGE_PAGE_SIZE - 8) / 9;
+    uint32_t numOfOrderByCols = (BufferPoolConstants::PAGE_256KB_SIZE - 8) / 9;
     uint32_t numOfElementsPerCol = 10;
     auto [valueVectors, dataChunk] =
         getInt64TestValueVector(numOfElementsPerCol, numOfOrderByCols, true);

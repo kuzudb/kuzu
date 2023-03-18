@@ -12,11 +12,8 @@ protected:
         LoggerUtils::createLogger(LoggerConstants::LoggerEnum::BUFFER_MANAGER);
         LoggerUtils::createLogger(LoggerConstants::LoggerEnum::WAL);
         LoggerUtils::createLogger(LoggerConstants::LoggerEnum::STORAGE);
-        bufferManager =
-            std::make_unique<BufferManager>(StorageConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING *
-                                                StorageConstants::DEFAULT_PAGES_BUFFER_RATIO,
-                StorageConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING *
-                    StorageConstants::LARGE_PAGES_BUFFER_RATIO);
+        bufferManager = std::make_unique<BufferManager>(
+            BufferPoolConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING);
         wal = make_unique<WAL>(TestHelper::getTmpTestDir(), *bufferManager);
     }
 

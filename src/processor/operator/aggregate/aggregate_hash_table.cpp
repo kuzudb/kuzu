@@ -178,9 +178,9 @@ void AggregateHashTable::initializeFT(
 
 void AggregateHashTable::initializeHashTable(uint64_t numEntriesToAllocate) {
     maxNumHashSlots = nextPowerOfTwo(
-        std::max(BufferPoolConstants::LARGE_PAGE_SIZE / sizeof(HashSlot), numEntriesToAllocate));
+        std::max(BufferPoolConstants::PAGE_256KB_SIZE / sizeof(HashSlot), numEntriesToAllocate));
     bitmask = maxNumHashSlots - 1;
-    auto numHashSlotsPerBlock = BufferPoolConstants::LARGE_PAGE_SIZE / sizeof(HashSlot);
+    auto numHashSlotsPerBlock = BufferPoolConstants::PAGE_256KB_SIZE / sizeof(HashSlot);
     assert(numHashSlotsPerBlock == nextPowerOfTwo(numHashSlotsPerBlock));
     numSlotsPerBlockLog2 = log2(numHashSlotsPerBlock);
     slotIdxInBlockMask = BitmaskUtils::all1sMaskForLeastSignificantBits(numSlotsPerBlockLog2);
