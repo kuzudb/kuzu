@@ -73,12 +73,6 @@ private:
     void planTableScan();
 
     void planNodeScan(uint32_t nodePos);
-    // Filter push down for node table.
-    void planFiltersForNode(binder::expression_vector& predicates,
-        std::shared_ptr<NodeExpression> node, LogicalPlan& plan);
-    // Property push down for node table.
-    void planPropertyScansForNode(std::shared_ptr<NodeExpression> node, LogicalPlan& plan);
-
     void planRelScan(uint32_t relPos);
 
     void planExtendAndFilters(std::shared_ptr<RelExpression> rel, common::RelDirection direction,
@@ -105,8 +99,6 @@ private:
     void planFiltersForHashJoin(binder::expression_vector& predicates, LogicalPlan& plan);
 
     void appendScanNode(std::shared_ptr<NodeExpression>& node, LogicalPlan& plan);
-    void appendIndexScanNode(std::shared_ptr<NodeExpression>& node,
-        std::shared_ptr<Expression> indexExpression, LogicalPlan& plan);
 
     bool needExtendToNewGroup(
         RelExpression& rel, NodeExpression& boundNode, common::RelDirection direction);
@@ -126,8 +118,6 @@ private:
         std::vector<std::unique_ptr<LogicalPlan>>& buildPlans);
     static void appendCrossProduct(LogicalPlan& probePlan, LogicalPlan& buildPlan);
 
-    binder::expression_vector getPropertiesForVariable(
-        Expression& expression, Expression& variable);
     uint64_t getExtensionRate(
         const RelExpression& rel, const NodeExpression& boundNode, common::RelDirection direction);
 

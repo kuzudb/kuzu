@@ -63,7 +63,8 @@ private:
     static void appendFlattens(const f_group_pos_set& groupsPos, LogicalPlan& plan);
     static void appendFlattenIfNecessary(f_group_pos groupPos, LogicalPlan& plan);
 
-    void appendFilter(const std::shared_ptr<Expression>& expression, LogicalPlan& plan);
+    void appendFilters(const binder::expression_vector& predicates, LogicalPlan& plan);
+    void appendFilter(const std::shared_ptr<Expression>& predicate, LogicalPlan& plan);
 
     void appendScanNodePropIfNecessary(const expression_vector& propertyExpressions,
         std::shared_ptr<NodeExpression> node, LogicalPlan& plan);

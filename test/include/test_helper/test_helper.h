@@ -46,6 +46,9 @@ public:
         return KUZU_ROOT_DIRECTORY + std::string("/") + path;
     }
 
+    static std::unique_ptr<planner::LogicalPlan> getLogicalPlan(
+        const std::string& query, Connection& conn);
+
 private:
     static void initializeConnection(TestQueryConfig* config, Connection& conn);
     static bool testQuery(TestQueryConfig* config, Connection& conn);

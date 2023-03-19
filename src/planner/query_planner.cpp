@@ -310,13 +310,35 @@ void QueryPlanner::appendFlattenIfNecessary(f_group_pos groupPos, LogicalPlan& p
     plan.setLastOperator(std::move(flatten));
 }
 
-void QueryPlanner::appendFilter(const std::shared_ptr<Expression>& expression, LogicalPlan& plan) {
-    planSubqueryIfNecessary(expression, plan);
-    auto filter = make_shared<LogicalFilter>(expression, plan.getLastOperator());
+void QueryPlanner::appendFilters(
+    const binder::expression_vector& predicates, kuzu::planner::LogicalPlan& plan) {
+    for (auto& predicate : predicates) {
+        appendFilter(predicate, plan);
+    }
+}
+
+static bool isPrimaryKey(const Expression& expression) {
+    if (expression.expressionType != common::ExpressionType::PROPERTY) {
+        return false;
+    }
+    return ((PropertyExpression&)expression).isPrimaryKey();
+}
+
+void QueryPlanner::appendFilter(const std::shared_ptr<Expression>& predicate, LogicalPlan& plan) {
+    planSubqueryIfNecessary(predicate, plan);
+    auto filter = make_shared<LogicalFilter>(predicate, plan.getLastOperator());
     QueryPlanner::appendFlattens(filter->getGroupsPosToFlatten(), plan);
     filter->setChild(0, plan.getLastOperator());
     filter->computeFactorizedSchema();
-    plan.multiplyCardinality(EnumeratorKnobs::PREDICATE_SELECTIVITY);
+    if (predicate->expressionType == common::EQUALS) {
+        if (isPrimaryKey(*predicate->getChild(0)) || isPrimaryKey(*predicate->getChild(1))) {
+            plan.setCardinality(1);
+        } else {
+            plan.multiplyCardinality(EnumeratorKnobs::EQUALITY_PREDICATE_SELECTIVITY);
+        }
+    } else {
+        plan.multiplyCardinality(EnumeratorKnobs::NON_EQUALITY_PREDICATE_SELECTIVITY);
+    }
     plan.setLastOperator(std::move(filter));
 }
 

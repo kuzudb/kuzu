@@ -19,7 +19,6 @@ void LogicalUnwind::computeFactorizedSchema() {
 
 void LogicalUnwind::computeFlatSchema() {
     copyChildSchema(0);
-    schema->createGroup();
     schema->insertToGroupAndScope(aliasExpression, 0);
 }
 

@@ -131,48 +131,6 @@ void JoinOrderEnumerator::planTableScan() {
     }
 }
 
-static bool isPrimaryPropertyAndLiteralPair(const Expression& left, const Expression& right) {
-    if (left.expressionType != PROPERTY || right.expressionType != LITERAL) {
-        return false;
-    }
-    auto propertyExpression = (const PropertyExpression&)left;
-    return propertyExpression.isPrimaryKey();
-}
-
-static bool isIndexScanExpression(Expression& expression) {
-    if (expression.expressionType != EQUALS) { // check equality comparison
-        return false;
-    }
-    auto left = expression.getChild(0);
-    auto right = expression.getChild(1);
-    if (isPrimaryPropertyAndLiteralPair(*left, *right) ||
-        isPrimaryPropertyAndLiteralPair(*right, *left)) {
-        return true;
-    }
-    return false;
-}
-
-static std::shared_ptr<Expression> extractIndexExpression(Expression& expression) {
-    if (expression.getChild(0)->expressionType == LITERAL) {
-        return expression.getChild(0);
-    }
-    return expression.getChild(1);
-}
-
-static std::pair<std::shared_ptr<Expression>, expression_vector> splitIndexAndPredicates(
-    const expression_vector& predicates) {
-    std::shared_ptr<Expression> indexExpression;
-    expression_vector predicatesToApply;
-    for (auto& predicate : predicates) {
-        if (isIndexScanExpression(*predicate)) {
-            indexExpression = extractIndexExpression(*predicate);
-        } else {
-            predicatesToApply.push_back(predicate);
-        }
-    }
-    return make_pair(indexExpression, predicatesToApply);
-}
-
 void JoinOrderEnumerator::planNodeScan(uint32_t nodePos) {
     auto node = context->queryGraph->getQueryNode(nodePos);
     auto newSubgraph = context->getEmptySubqueryGraph();
@@ -185,39 +143,14 @@ void JoinOrderEnumerator::planNodeScan(uint32_t nodePos) {
     // scanning storage twice, we keep track of node table "a" and make sure when planning inner
     // query, we only scan internal ID of "a".
     if (!context->nodeToScanFromInnerAndOuter(node.get())) {
-        std::shared_ptr<Expression> indexExpression = nullptr;
-        expression_vector predicatesToApply = predicates;
-        if (!node->isMultiLabeled()) { // check for index scan
-            auto [_indexExpression, _predicatesToApply] = splitIndexAndPredicates(predicates);
-            indexExpression = _indexExpression;
-            predicatesToApply = _predicatesToApply;
-        }
-        if (indexExpression != nullptr) {
-            appendIndexScanNode(node, indexExpression, *plan);
-        } else {
-            appendScanNode(node, *plan);
-        }
-        planFiltersForNode(predicatesToApply, node, *plan);
-        planPropertyScansForNode(node, *plan);
+        appendScanNode(node, *plan);
+        auto properties = queryPlanner->getPropertiesForNode(*node);
+        queryPlanner->appendScanNodePropIfNecessary(properties, node, *plan);
+        queryPlanner->appendFilters(predicates, *plan);
     } else {
         appendScanNode(node, *plan);
     }
     context->addPlan(newSubgraph, std::move(plan));
-}
-
-void JoinOrderEnumerator::planFiltersForNode(
-    expression_vector& predicates, std::shared_ptr<NodeExpression> node, LogicalPlan& plan) {
-    for (auto& predicate : predicates) {
-        auto propertiesToScan = getPropertiesForVariable(*predicate, *node);
-        queryPlanner->appendScanNodePropIfNecessary(propertiesToScan, node, plan);
-        queryPlanner->appendFilter(predicate, plan);
-    }
-}
-
-void JoinOrderEnumerator::planPropertyScansForNode(
-    std::shared_ptr<NodeExpression> node, LogicalPlan& plan) {
-    auto properties = queryPlanner->getPropertiesForNode(*node);
-    queryPlanner->appendScanNodePropIfNecessary(properties, node, plan);
 }
 
 static std::pair<std::shared_ptr<NodeExpression>, std::shared_ptr<NodeExpression>>
@@ -247,9 +180,7 @@ void JoinOrderEnumerator::planExtendAndFilters(std::shared_ptr<RelExpression> re
     auto [boundNode, dstNode] = getBoundAndNbrNodes(*rel, direction);
     auto properties = queryPlanner->getPropertiesForRel(*rel);
     appendExtend(boundNode, dstNode, rel, direction, properties, plan);
-    for (auto& predicate : predicates) {
-        queryPlanner->appendFilter(predicate, plan);
-    }
+    queryPlanner->appendFilters(predicates, plan);
 }
 
 static std::unordered_map<uint32_t, std::vector<std::shared_ptr<RelExpression>>>
@@ -500,19 +431,6 @@ void JoinOrderEnumerator::appendScanNode(std::shared_ptr<NodeExpression>& node, 
     plan.setLastOperator(std::move(scan));
 }
 
-void JoinOrderEnumerator::appendIndexScanNode(std::shared_ptr<NodeExpression>& node,
-    std::shared_ptr<Expression> indexExpression, LogicalPlan& plan) {
-    assert(plan.isEmpty());
-    QueryPlanner::appendExpressionsScan(expression_vector{indexExpression}, plan);
-    auto scan =
-        make_shared<LogicalIndexScanNode>(node, std::move(indexExpression), plan.getLastOperator());
-    scan->computeFactorizedSchema();
-    // update cardinality
-    auto group = scan->getSchema()->getGroup(node->getInternalIDPropertyName());
-    group->setMultiplier(1);
-    plan.setLastOperator(std::move(scan));
-}
-
 // When extend might increase cardinality (i.e. n * m), we extend to a new factorization group.
 bool JoinOrderEnumerator::needExtendToNewGroup(
     RelExpression& rel, NodeExpression& boundNode, RelDirection direction) {
@@ -579,7 +497,7 @@ void JoinOrderEnumerator::appendHashJoin(const expression_vector& joinNodeIDs, J
     probePlan.increaseCost(probePlan.getCardinality() + buildPlan.getCardinality());
     if (!groupsPosToFlattenOnProbeSide.empty()) {
         probePlan.multiplyCardinality(
-            buildPlan.getCardinality() * EnumeratorKnobs::PREDICATE_SELECTIVITY);
+            buildPlan.getCardinality() * EnumeratorKnobs::EQUALITY_PREDICATE_SELECTIVITY);
         probePlan.multiplyCost(EnumeratorKnobs::FLAT_PROBE_PENALTY);
     }
     probePlan.setLastOperator(std::move(hashJoin));
@@ -629,24 +547,6 @@ void JoinOrderEnumerator::appendCrossProduct(LogicalPlan& probePlan, LogicalPlan
     crossProduct->computeFactorizedSchema();
     probePlan.increaseCost(probePlan.getCardinality() + buildPlan.getCardinality());
     probePlan.setLastOperator(std::move(crossProduct));
-}
-
-expression_vector JoinOrderEnumerator::getPropertiesForVariable(
-    Expression& expression, Expression& variable) {
-    expression_vector result;
-    std::unordered_set<std::string> matchedPropertyNames; // remove duplication
-    for (auto& expr : expression.getSubPropertyExpressions()) {
-        auto propertyExpression = (PropertyExpression*)expr.get();
-        if (propertyExpression->getVariableName() != variable.getUniqueName()) {
-            continue;
-        }
-        if (matchedPropertyNames.contains(propertyExpression->getUniqueName())) {
-            continue;
-        }
-        matchedPropertyNames.insert(propertyExpression->getUniqueName());
-        result.push_back(expr);
-    }
-    return result;
 }
 
 uint64_t JoinOrderEnumerator::getExtensionRate(

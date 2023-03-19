@@ -76,7 +76,12 @@ public:
 
     inline uint32_t getNumChildren() const { return children.size(); }
 
-    inline std::shared_ptr<Expression> getChild(uint32_t idx) const { return children[idx]; }
+    inline std::shared_ptr<Expression> getChild(common::vector_idx_t idx) const {
+        return children[idx];
+    }
+    inline void setChild(common::vector_idx_t idx, std::shared_ptr<Expression> child) {
+        children[idx] = child;
+    }
 
     inline virtual expression_vector getChildren() const { return children; }
 

@@ -140,5 +140,10 @@ bool TestHelper::testQuery(TestQueryConfig* config, Connection& conn) {
     return numPassedPlans == numPlans;
 }
 
+std::unique_ptr<planner::LogicalPlan> TestHelper::getLogicalPlan(
+    const std::string& query, kuzu::main::Connection& conn) {
+    return std::move(conn.prepare(query)->logicalPlans[0]);
+}
+
 } // namespace testing
 } // namespace kuzu
