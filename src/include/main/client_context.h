@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <cstdint>
 
 #include "common/api.h"
@@ -24,8 +25,14 @@ public:
      */
     KUZU_API ~ClientContext() = default;
 
+    /**
+     * @brief Returns whether the current query is interrupted or not.
+     */
+    KUZU_API bool isInterrupted() const { return interrupted; }
+
 private:
     uint64_t numThreadsForExecution;
+    std::atomic<bool> interrupted;
 };
 
 } // namespace main

@@ -12,8 +12,8 @@ void DeleteNode::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* 
     }
 }
 
-bool DeleteNode::getNextTuplesInternal() {
-    if (!children[0]->getNextTuple()) {
+bool DeleteNode::getNextTuplesInternal(ExecutionContext* context) {
+    if (!children[0]->getNextTuple(context)) {
         return false;
     }
     for (auto i = 0u; i < deleteNodeInfos.size(); ++i) {
@@ -34,8 +34,8 @@ void DeleteRel::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* c
     }
 }
 
-bool DeleteRel::getNextTuplesInternal() {
-    if (!children[0]->getNextTuple()) {
+bool DeleteRel::getNextTuplesInternal(ExecutionContext* context) {
+    if (!children[0]->getNextTuple(context)) {
         return false;
     }
     for (auto i = 0u; i < deleteRelInfos.size(); ++i) {

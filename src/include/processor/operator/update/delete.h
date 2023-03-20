@@ -29,7 +29,7 @@ public:
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
-    bool getNextTuplesInternal() override;
+    bool getNextTuplesInternal(ExecutionContext* context) override;
 
     inline std::unique_ptr<PhysicalOperator> clone() override {
         std::vector<std::unique_ptr<DeleteNodeInfo>> clonedDeleteNodeInfos;
@@ -77,7 +77,7 @@ public:
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
-    bool getNextTuplesInternal() override;
+    bool getNextTuplesInternal(ExecutionContext* context) override;
 
     std::unique_ptr<PhysicalOperator> clone() override {
         std::vector<std::unique_ptr<DeleteRelInfo>> clonedDeleteRelInfos;

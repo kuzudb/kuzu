@@ -3,10 +3,10 @@
 namespace kuzu {
 namespace processor {
 
-bool ScanRelTableColumns::getNextTuplesInternal() {
+bool ScanRelTableColumns::getNextTuplesInternal(ExecutionContext* context) {
     do {
         restoreSelVector(inNodeIDVector->state->selVector);
-        if (!children[0]->getNextTuple()) {
+        if (!children[0]->getNextTuple(context)) {
             return false;
         }
         saveSelVector(inNodeIDVector->state->selVector);

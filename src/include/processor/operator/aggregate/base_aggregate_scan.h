@@ -27,7 +27,7 @@ public:
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
-    bool getNextTuplesInternal() override = 0;
+    bool getNextTuplesInternal(ExecutionContext* context) override = 0;
 
     std::unique_ptr<PhysicalOperator> clone() override = 0;
 

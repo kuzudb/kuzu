@@ -20,7 +20,7 @@ public:
 
     std::string execute(common::TaskScheduler* taskScheduler, ExecutionContext* executionContext);
 
-    bool getNextTuplesInternal() override {
+    bool getNextTuplesInternal(ExecutionContext* context) override {
         throw common::InternalException(
             "getNextTupleInternal() should not be called on CopyCSV operator.");
     }

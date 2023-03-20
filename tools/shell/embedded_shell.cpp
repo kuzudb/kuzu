@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <csignal>
 #include <regex>
 
 #include "catalog/catalog.h"
@@ -9,7 +10,6 @@
 #include "common/type_utils.h"
 #include "json.hpp"
 #include "processor/result/factorized_table.h"
-#include "processor/result/flat_tuple.h"
 #include "utf8proc.h"
 #include "utf8proc_wrapper.h"
 
@@ -36,8 +36,8 @@ struct ShellCommand {
     const std::string SHOW_NODE = ":show_node";
     const std::string SHOW_REL = ":show_rel";
     const std::string LOGGING_LEVEL = ":logging_level";
-    const std::vector<std::string> commandList = {HELP, CLEAR, QUIT, THREAD, LIST_NODES, LIST_RELS,
-        SHOW_NODE, SHOW_REL, LOGGING_LEVEL};
+    const std::vector<std::string> commandList = {
+        HELP, CLEAR, QUIT, THREAD, LIST_NODES, LIST_RELS, SHOW_NODE, SHOW_REL, LOGGING_LEVEL};
 } shellCommand;
 
 const char* TAB = "    ";
@@ -62,6 +62,8 @@ std::vector<std::string> relTableNames;
 
 bool continueLine = false;
 std::string currLine;
+
+static Connection* globalConnection;
 
 void EmbeddedShell::updateTableNames() {
     nodeTableNames.clear();
@@ -203,7 +205,9 @@ EmbeddedShell::EmbeddedShell(const std::string& databasePath, const SystemConfig
     linenoiseSetHighlightCallback(highlight);
     database = std::make_unique<Database>(databasePath, systemConfig);
     conn = std::make_unique<Connection>(database.get());
+    globalConnection = conn.get();
     updateTableNames();
+    signal(SIGINT, interruptHandler);
 }
 
 void EmbeddedShell::run() {
@@ -259,6 +263,10 @@ void EmbeddedShell::run() {
         linenoiseHistorySave("history.txt");
         free(line);
     }
+}
+
+void EmbeddedShell::interruptHandler(int signal) {
+    globalConnection->interrupt();
 }
 
 void EmbeddedShell::setNumThreads(const std::string& numThreadsString) {

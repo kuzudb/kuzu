@@ -14,7 +14,7 @@ public:
               paramsString},
           prevMultiplicity{1}, numRepeat{0} {}
 
-    bool getNextTuplesInternal() override;
+    bool getNextTuplesInternal(ExecutionContext* context) override;
 
     std::unique_ptr<PhysicalOperator> clone() override {
         return make_unique<MultiplicityReducer>(children[0]->clone(), id, paramsString);

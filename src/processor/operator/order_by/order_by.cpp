@@ -73,7 +73,7 @@ void OrderBy::initGlobalStateInternal(kuzu::processor::ExecutionContext* context
 
 void OrderBy::executeInternal(ExecutionContext* context) {
     // Append thread-local tuples.
-    while (children[0]->getNextTuple()) {
+    while (children[0]->getNextTuple(context)) {
         for (auto i = 0u; i < resultSet->multiplicity; i++) {
             orderByKeyEncoder->encodeKeys();
             // The orderByKeyEncoder requires that the orderByKey columns are flat in the

@@ -91,5 +91,10 @@ public:
     explicit TransactionManagerException(const std::string& msg) : Exception(msg){};
 };
 
+class InterruptException : public Exception {
+public:
+    explicit InterruptException() : Exception("Interrupted by the user."){};
+};
+
 } // namespace common
 } // namespace kuzu

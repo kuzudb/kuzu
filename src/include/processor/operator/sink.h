@@ -36,7 +36,7 @@ public:
 protected:
     virtual void executeInternal(ExecutionContext* context) = 0;
 
-    bool getNextTuplesInternal() final {
+    bool getNextTuplesInternal(ExecutionContext* context) final {
         throw common::InternalException(
             "getNextTupleInternal() should not be called on sink operator.");
     }

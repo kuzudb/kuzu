@@ -35,7 +35,7 @@ public:
 
     void initGlobalStateInternal(kuzu::processor::ExecutionContext* context) override;
 
-    bool getNextTuplesInternal() override;
+    bool getNextTuplesInternal(ExecutionContext* context) override;
 
     inline std::unique_ptr<PhysicalOperator> clone() override {
         auto result = std::make_unique<SingleTableSemiMasker>(
@@ -56,7 +56,7 @@ public:
 
     void initGlobalStateInternal(kuzu::processor::ExecutionContext* context) override;
 
-    bool getNextTuplesInternal() override;
+    bool getNextTuplesInternal(ExecutionContext* context) override;
 
     inline std::unique_ptr<PhysicalOperator> clone() override {
         auto result = std::make_unique<MultiTableSemiMasker>(

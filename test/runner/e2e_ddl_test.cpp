@@ -110,8 +110,9 @@ public:
         bufferManager = std::make_unique<BufferManager>(
             BufferPoolConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING);
         memoryManager = std::make_unique<MemoryManager>(bufferManager.get());
-        executionContext = std::make_unique<ExecutionContext>(
-            1 /* numThreads */, profiler.get(), memoryManager.get(), bufferManager.get());
+        clientContext = std::make_unique<ClientContext>();
+        executionContext = std::make_unique<ExecutionContext>(1 /* numThreads */, profiler.get(),
+            memoryManager.get(), bufferManager.get(), clientContext.get());
         personTableID = catalog->getReadOnlyVersion()->getTableID("person");
         studyAtTableID = catalog->getReadOnlyVersion()->getTableID("studyAt");
     }
@@ -576,6 +577,7 @@ public:
     std::unique_ptr<BufferManager> bufferManager;
     std::unique_ptr<MemoryManager> memoryManager;
     std::unique_ptr<ExecutionContext> executionContext;
+    std::unique_ptr<ClientContext> clientContext;
     std::unique_ptr<Profiler> profiler;
     table_id_t personTableID;
     table_id_t studyAtTableID;

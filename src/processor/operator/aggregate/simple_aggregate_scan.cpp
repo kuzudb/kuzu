@@ -13,7 +13,7 @@ void SimpleAggregateScan::initLocalStateInternal(ResultSet* resultSet, Execution
     outDataChunk = resultSet->dataChunks[outDataChunkPos].get();
 }
 
-bool SimpleAggregateScan::getNextTuplesInternal() {
+bool SimpleAggregateScan::getNextTuplesInternal(ExecutionContext* context) {
     auto [startOffset, endOffset] = sharedState->getNextRangeToRead();
     if (startOffset >= endOffset) {
         return false;

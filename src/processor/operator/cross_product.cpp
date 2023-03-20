@@ -11,15 +11,15 @@ void CrossProduct::initLocalStateInternal(ResultSet* resultSet, ExecutionContext
     startIdx = sharedState->getTable()->getNumTuples();
 }
 
-bool CrossProduct::getNextTuplesInternal() {
+bool CrossProduct::getNextTuplesInternal(ExecutionContext* context) {
     // Note: we should NOT morselize right table scanning (i.e. calling sharedState.getMorsel)
     // because every thread should scan its own table.
     auto table = sharedState->getTable();
     if (table->getNumTuples() == 0) {
         return false;
     }
-    if (startIdx == table->getNumTuples()) { // no more to scan from right
-        if (!children[0]->getNextTuple()) {  // fetch a new left tuple
+    if (startIdx == table->getNumTuples()) {       // no more to scan from right
+        if (!children[0]->getNextTuple(context)) { // fetch a new left tuple
             return false;
         }
         startIdx = 0; // reset right table scanning for a new left tuple

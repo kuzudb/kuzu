@@ -131,6 +131,11 @@ public:
     // TODO(Change): move this to C-header once we have C-APIs.
     KUZU_API std::unique_ptr<QueryResult> kuzu_query(const char* queryString);
 
+    /**
+     * @brief interrupts all queries currently executed within this connection.
+     */
+    KUZU_API void interrupt();
+
 protected:
     ConnectionTransactionMode getTransactionMode();
     void setTransactionModeNoLock(ConnectionTransactionMode newTransactionMode);
@@ -178,6 +183,12 @@ protected:
         PreparedStatement* preparedStatement, uint32_t planIdx = 0u);
 
     void beginTransactionIfAutoCommit(PreparedStatement* preparedStatement);
+
+private:
+    inline std::unique_ptr<QueryResult> getQueryResultWithError(std::string exceptionMessage) {
+        rollbackIfNecessaryNoLock();
+        return queryResultWithError(exceptionMessage);
+    }
 
 protected:
     Database* database;

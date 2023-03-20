@@ -36,7 +36,7 @@ void VarLengthAdjListExtend::initLocalStateInternal(
     }
 }
 
-bool VarLengthAdjListExtend::getNextTuplesInternal() {
+bool VarLengthAdjListExtend::getNextTuplesInternal(ExecutionContext* context) {
     while (true) {
         while (!dfsStack.empty()) {
             auto dfsLevelInfo = static_pointer_cast<AdjListExtendDFSLevelInfo>(dfsStack.top());
@@ -69,7 +69,7 @@ bool VarLengthAdjListExtend::getNextTuplesInternal() {
         }
         uint64_t curIdx;
         do {
-            if (!children[0]->getNextTuple()) {
+            if (!children[0]->getNextTuple(context)) {
                 return false;
             }
             curIdx = boundNodeValueVector->state->selVector->selectedPositions[0];

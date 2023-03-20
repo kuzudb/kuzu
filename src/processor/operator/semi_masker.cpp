@@ -27,8 +27,8 @@ void SingleTableSemiMasker::initGlobalStateInternal(kuzu::processor::ExecutionCo
     }
 }
 
-bool SingleTableSemiMasker::getNextTuplesInternal() {
-    if (!children[0]->getNextTuple()) {
+bool SingleTableSemiMasker::getNextTuplesInternal(ExecutionContext* context) {
+    if (!children[0]->getNextTuple(context)) {
         return false;
     }
     auto numValues =
@@ -57,8 +57,8 @@ void MultiTableSemiMasker::initGlobalStateInternal(kuzu::processor::ExecutionCon
     }
 }
 
-bool MultiTableSemiMasker::getNextTuplesInternal() {
-    if (!children[0]->getNextTuple()) {
+bool MultiTableSemiMasker::getNextTuplesInternal(ExecutionContext* context) {
+    if (!children[0]->getNextTuple(context)) {
         return false;
     }
     auto numValues =

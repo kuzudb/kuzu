@@ -169,10 +169,10 @@ bool Intersect::hasNextTuplesToIntersect() {
     return true;
 }
 
-bool Intersect::getNextTuplesInternal() {
+bool Intersect::getNextTuplesInternal(ExecutionContext* context) {
     do {
         while (carryBuildSideIdx == -1u) {
-            if (!children[0]->getNextTuple()) {
+            if (!children[0]->getNextTuple(context)) {
                 return false;
             }
             // For each build side, probe its HT and return a vector of matched flat tuples.

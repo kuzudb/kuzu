@@ -3,9 +3,9 @@
 namespace kuzu {
 namespace processor {
 
-bool Limit::getNextTuplesInternal() {
+bool Limit::getNextTuplesInternal(ExecutionContext* context) {
     // end of execution due to no more input
-    if (!children[0]->getNextTuple()) {
+    if (!children[0]->getNextTuple(context)) {
         return false;
     }
     auto numTupleAvailable = resultSet->getNumTuples(dataChunksPosInScope);

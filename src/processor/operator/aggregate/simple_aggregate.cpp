@@ -52,7 +52,7 @@ void SimpleAggregate::initLocalStateInternal(ResultSet* resultSet, ExecutionCont
 }
 
 void SimpleAggregate::executeInternal(ExecutionContext* context) {
-    while (children[0]->getNextTuple()) {
+    while (children[0]->getNextTuple(context)) {
         for (auto i = 0u; i < aggregateFunctions.size(); i++) {
             auto aggregateFunction = aggregateFunctions[i].get();
             auto aggVector = aggregateVectors[i];

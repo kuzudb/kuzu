@@ -76,7 +76,7 @@ void HashJoinBuild::finalize(ExecutionContext* context) {
 
 void HashJoinBuild::executeInternal(ExecutionContext* context) {
     // Append thread-local tuples
-    while (children[0]->getNextTuple()) {
+    while (children[0]->getNextTuple(context)) {
         for (auto i = 0u; i < resultSet->multiplicity; ++i) {
             appendVectors();
         }

@@ -11,8 +11,8 @@ void SetNodeProperty::initLocalStateInternal(ResultSet* resultSet, ExecutionCont
     }
 }
 
-bool SetNodeProperty::getNextTuplesInternal() {
-    if (!children[0]->getNextTuple()) {
+bool SetNodeProperty::getNextTuplesInternal(ExecutionContext* context) {
+    if (!children[0]->getNextTuple(context)) {
         return false;
     }
     for (auto i = 0u; i < infos.size(); ++i) {
@@ -44,8 +44,8 @@ void SetRelProperty::initLocalStateInternal(ResultSet* resultSet, ExecutionConte
     }
 }
 
-bool SetRelProperty::getNextTuplesInternal() {
-    if (!children[0]->getNextTuple()) {
+bool SetRelProperty::getNextTuplesInternal(ExecutionContext* context) {
+    if (!children[0]->getNextTuple(context)) {
         return false;
     }
     for (auto i = 0u; i < infos.size(); ++i) {

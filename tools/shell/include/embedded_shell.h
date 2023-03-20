@@ -16,6 +16,8 @@ public:
 
     void run();
 
+    static void interruptHandler(int signal);
+
 private:
     void setNumThreads(const std::string& numThreadsString);
 
