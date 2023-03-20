@@ -31,12 +31,13 @@ Napi::Value Util::ConvertToNapiObject(const kuzu::common::Value& value, Napi::En
     }
     case kuzu::common::DATE: {
         auto dateVal = value.getValue<date_t>();
-        return Napi::Date::New(env, kuzu::common::Date::getEpochMicroSeconds(dateVal)
-                                        * (1 / kuzu::common::Interval::MICROS_PER_MSEC));
+        auto milliseconds = kuzu::common::Date::getEpochMilSeconds(dateVal);
+        return Napi::Date::New(env, milliseconds);
     }
     case kuzu::common::TIMESTAMP: {
         auto timestampVal = value.getValue<timestamp_t>();
-        return Napi::Date::New(env, timestampVal.value * (1 / kuzu::common::Interval::MICROS_PER_MSEC));
+        auto milliseconds = timestampVal.value / kuzu::common::Interval::MICROS_PER_MSEC;
+        return Napi::Date::New(env, milliseconds);
     }
     case kuzu::common::INTERVAL: {
         auto intervalVal = value.getValue<interval_t>();
@@ -94,14 +95,6 @@ Napi::Value Util::ConvertToNapiObject(const kuzu::common::Value& value, Napi::En
         Napi::TypeError::New(env, "Unsupported type: " + kuzu::common::Types::dataTypeToString(dataType));
     }
     return Napi::Value();
-}
-
-unsigned long Util::GetEpochFromDate(int32_t year, int32_t month, int32_t day) {
-    std::tm t{};
-    t.tm_year = year - 1900;
-    t.tm_mon = month - 1;
-    t.tm_mday = day;
-    return std::chrono::system_clock::from_time_t(std::mktime(&t)).time_since_epoch().count();
 }
 
 unordered_map<string, shared_ptr<kuzu::common::Value>> Util::transformParameters(Napi::Array params) {
