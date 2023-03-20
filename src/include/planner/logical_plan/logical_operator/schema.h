@@ -7,9 +7,15 @@
 namespace kuzu {
 namespace planner {
 
-typedef uint32_t f_group_pos;
-typedef std::unordered_set<f_group_pos> f_group_pos_set;
+using f_group_pos = uint32_t;
+using f_group_pos_set = std::unordered_set<f_group_pos>;
 constexpr f_group_pos INVALID_F_GROUP_POS = UINT32_MAX;
+
+class Schema;
+struct SchemaHasher;
+struct SchemaApproximateEquality;
+template<typename T>
+using schema_map_t = std::unordered_map<Schema*, T, SchemaHasher, SchemaApproximateEquality>;
 
 class FactorizationGroup {
     friend class Schema;
@@ -57,7 +63,9 @@ private:
 
 class Schema {
 public:
-    inline f_group_pos getNumGroups() const { return groups.size(); }
+    inline size_t getNumGroups() const { return groups.size(); }
+    inline size_t getNumFlatGroups() const { return getNumGroups(true /* isFlat */); }
+    inline size_t getNumUnFlatGroups() const { return getNumGroups(false /* isFlat */); }
 
     inline FactorizationGroup* getGroup(std::shared_ptr<binder::Expression> expression) const {
         return getGroup(getGroupPos(expression->getUniqueName()));
@@ -114,11 +122,14 @@ public:
     }
 
     // Get the group positions containing at least one expression in scope.
-    std::unordered_set<f_group_pos> getGroupsPosInScope() const;
+    f_group_pos_set getGroupsPosInScope() const;
 
     std::unique_ptr<Schema> copy() const;
 
     void clear();
+
+private:
+    size_t getNumGroups(bool isFlat) const;
 
 private:
     std::vector<std::unique_ptr<FactorizationGroup>> groups;
@@ -126,6 +137,14 @@ private:
     // Our projection doesn't explicitly remove expressions. Instead, we keep track of what
     // expressions are in scope (i.e. being projected).
     binder::expression_vector expressionsInScope;
+};
+
+struct SchemaHasher {
+    std::size_t operator()(const Schema* const& schema) const;
+};
+
+struct SchemaApproximateEquality {
+    bool operator()(const Schema* const& left, const Schema* const& right) const;
 };
 
 class SchemaUtils {

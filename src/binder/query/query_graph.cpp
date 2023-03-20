@@ -59,8 +59,7 @@ std::unordered_set<uint32_t> SubqueryGraph::getRelNbrPositions() const {
     return result;
 }
 
-std::unordered_set<SubqueryGraph, SubqueryGraphHasher> SubqueryGraph::getNbrSubgraphs(
-    uint32_t size) const {
+subquery_graph_set_t SubqueryGraph::getNbrSubgraphs(uint32_t size) const {
     auto result = getBaseNbrSubgraph();
     for (auto i = 1u; i < size; ++i) {
         std::unordered_set<SubqueryGraph, SubqueryGraphHasher> tmp;
@@ -106,8 +105,8 @@ std::unordered_set<uint32_t> SubqueryGraph::getNodePositionsIgnoringNodeSelector
     return result;
 }
 
-std::unordered_set<SubqueryGraph, SubqueryGraphHasher> SubqueryGraph::getBaseNbrSubgraph() const {
-    std::unordered_set<SubqueryGraph, SubqueryGraphHasher> result;
+subquery_graph_set_t SubqueryGraph::getBaseNbrSubgraph() const {
+    subquery_graph_set_t result;
     for (auto& nodePos : getNodeNbrPositions()) {
         auto nbr = SubqueryGraph(queryGraph);
         nbr.addQueryNode(nodePos);
@@ -121,9 +120,8 @@ std::unordered_set<SubqueryGraph, SubqueryGraphHasher> SubqueryGraph::getBaseNbr
     return result;
 }
 
-std::unordered_set<SubqueryGraph, SubqueryGraphHasher> SubqueryGraph::getNextNbrSubgraphs(
-    const SubqueryGraph& prevNbr) const {
-    std::unordered_set<SubqueryGraph, SubqueryGraphHasher> result;
+subquery_graph_set_t SubqueryGraph::getNextNbrSubgraphs(const SubqueryGraph& prevNbr) const {
+    subquery_graph_set_t result;
     for (auto& nodePos : prevNbr.getNodeNbrPositions()) {
         if (queryNodesSelector[nodePos]) {
             continue;

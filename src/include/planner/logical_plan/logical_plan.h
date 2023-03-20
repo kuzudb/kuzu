@@ -5,6 +5,8 @@
 namespace kuzu {
 namespace planner {
 
+class LogicalPlan;
+
 class LogicalPlan {
 public:
     LogicalPlan() : estCardinality{1}, cost{0} {}
