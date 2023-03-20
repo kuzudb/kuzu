@@ -168,8 +168,9 @@ TEST_F(BinderErrorTest, BindFunctionWithWrongParamType) {
 }
 
 TEST_F(BinderErrorTest, OrderByVariableNotInScope) {
-    std::string expectedException = "Binder exception: Variable a is not in scope.";
-    auto input = "MATCH (a:person)-[e1:knows]->(b:person) RETURN SUM(a.age) ORDER BY a;";
+    std::string expectedException =
+        "Binder exception: Order by expression a.ID is not in RETURN or WITH clause.";
+    auto input = "MATCH (a:person)-[e1:knows]->(b:person) RETURN SUM(a.age) ORDER BY a.ID;";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
 

@@ -189,3 +189,19 @@ Elizabeth
 -NAME OrderByEmptyResult
 -QUERY MATCH (p:person) WHERE p.age > 100 RETURN p.age ORDER BY p.age 
 ---- 0
+
+-NAME OrderByAggregateTest1
+-QUERY MATCH (a:person)-[:knows]->(b:person) return a.age, COUNT(b) as c ORDER BY a.age
+-ENUMERATE
+---- 4
+20|5
+30|3
+35|3
+45|3
+
+-NAME OrderByAggregateTest2
+-QUERY MATCH (a:person)-[:knows]->(b:person) return a.gender, COUNT(b) ORDER BY COUNT(b) DESC
+-ENUMERATE
+---- 2
+1|8
+2|6
