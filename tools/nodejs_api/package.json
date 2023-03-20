@@ -13,7 +13,8 @@
     "clean": "cmake-js clean && rm -rf cmake_install.cmake Makefile",
     "js": "cp src_nodejs/* build/kuzu/",
     "all": "npm run clean && npm run build && node sample.js",
-    "test": "mocha"
+    "test": "mocha",
+    "buildtest": "npm run build && mocha"
   },
   "author": "Kùzu Team",
   "license": "MIT",

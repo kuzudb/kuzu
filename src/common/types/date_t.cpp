@@ -472,8 +472,8 @@ int64_t Date::getEpochNanoSeconds(const date_t& date) {
     return ((int64_t)date.days) * (Interval::MICROS_PER_DAY * Interval::NANOS_PER_MICRO);
 }
 
-int64_t Date::getEpochMicroSeconds(const date_t& date) {
-    return ((int64_t)date.days) * (Interval::MICROS_PER_DAY);
+int64_t Date::getEpochMilSeconds(const date_t& date) {
+    return ((int64_t)date.days) * (Interval::MICROS_PER_DAY) / Interval::MICROS_PER_MSEC;
 }
 
 } // namespace common
