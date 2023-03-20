@@ -100,17 +100,29 @@ expression_vector Binder::rewriteRelExpression(const Expression& expression) {
 
 void Binder::bindOrderBySkipLimitIfNecessary(
     BoundProjectionBody& boundProjectionBody, const ProjectionBody& projectionBody) {
+    auto projectionExpressions = boundProjectionBody.getProjectionExpressions();
     if (projectionBody.hasOrderByExpressions()) {
+        addExpressionsToScope(projectionExpressions);
+        auto orderByExpressions = bindOrderByExpressions(projectionBody.getOrderByExpressions());
         // Cypher rule of ORDER BY expression scope: if projection contains aggregation, only
         // expressions in projection are available. Otherwise, expressions before projection are
         // also available
         if (boundProjectionBody.hasAggregationExpressions()) {
-            variablesInScope.clear();
+            // TODO(Xiyang): abstract return/with clause as a temporary table and introduce
+            // reference expression to solve this. Our property expression should also be changed to
+            // reference expression.
+            auto projectionExpressionSet =
+                expression_set{projectionExpressions.begin(), projectionExpressions.end()};
+
+            for (auto& orderByExpression : orderByExpressions) {
+                if (!projectionExpressionSet.contains(orderByExpression)) {
+                    throw BinderException("Order by expression " + orderByExpression->toString() +
+                                          " is not in RETURN or WITH clause.");
+                }
+            }
         }
-        addExpressionsToScope(boundProjectionBody.getProjectionExpressions());
         boundProjectionBody.setOrderByExpressions(
-            bindOrderByExpressions(projectionBody.getOrderByExpressions()),
-            projectionBody.getSortOrders());
+            std::move(orderByExpressions), projectionBody.getSortOrders());
     }
     if (projectionBody.hasSkipExpression()) {
         boundProjectionBody.setSkipNumber(
