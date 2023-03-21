@@ -93,7 +93,7 @@ public:
 
 class InterruptException : public Exception {
 public:
-    explicit InterruptException() : Exception("Interrupted by the user."){};
+    explicit InterruptException() : Exception("Interrupted."){};
 };
 
 } // namespace common

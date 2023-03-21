@@ -133,5 +133,10 @@ struct EnumeratorKnobs {
     static constexpr double FLAT_PROBE_PENALTY = 10;
 };
 
+struct ClientContextConstants {
+    // We disable query timeout by default.
+    static constexpr uint64_t TIMEOUT_IN_MS = 0;
+};
+
 } // namespace common
 } // namespace kuzu

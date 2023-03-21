@@ -6,6 +6,7 @@
 
 #include "common/task_system/task.h"
 #include "common/utils.h"
+#include "processor/execution_context.h"
 
 namespace kuzu {
 namespace common {
@@ -57,7 +58,8 @@ public:
     // whether or not the given task or one of its dependencies errors, when this function
     // returns, no task related to the given task will be in the task queue. Further no worker
     // thread will be working on the given task.
-    void scheduleTaskAndWaitOrError(const std::shared_ptr<Task>& task);
+    void scheduleTaskAndWaitOrError(
+        const std::shared_ptr<Task>& task, processor::ExecutionContext* context);
 
     // If a user, e.g., currently the copier, adds a set of tasks T1, ..., Tk, to the task scheduler
     // without waiting for them to finish, the user needs to call waitAllTasksToCompleteOrError() if
@@ -93,6 +95,8 @@ private:
     // Functions to launch worker threads and for the worker threads to use to grab task from queue.
     void runWorkerThread();
     std::shared_ptr<ScheduledTask> getTaskAndRegister();
+
+    void interruptTaskIfTimeOutNoLock(processor::ExecutionContext* context);
 
 private:
     std::shared_ptr<spdlog::logger> logger;

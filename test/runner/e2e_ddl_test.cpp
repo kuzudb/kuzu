@@ -9,7 +9,7 @@ using namespace kuzu::storage;
 using namespace kuzu::testing;
 
 namespace kuzu {
-namespace transaction {
+namespace testing {
 
 class PrimaryKeyTest : public EmptyDBTest {
 public:
@@ -365,6 +365,7 @@ public:
         auto physicalPlan =
             mapper.mapLogicalPlanToPhysical(preparedStatement->logicalPlans[0].get(),
                 preparedStatement->getExpressionsToCollect(), preparedStatement->statementType);
+        executionContext->clientContext->activeQuery = std::make_unique<ActiveQuery>();
         getQueryProcessor(*database)->execute(physicalPlan.get(), executionContext.get());
     }
 
@@ -933,5 +934,5 @@ TEST_F(TinySnbDDLTest, RenamePropertyRecovery) {
     renameProperty(TransactionTestType::RECOVERY);
 }
 
-} // namespace transaction
+} // namespace testing
 } // namespace kuzu

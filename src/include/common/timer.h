@@ -31,6 +31,12 @@ public:
         throw Exception("Timer is still running.");
     }
 
+    int64_t getElapsedTimeInMS() {
+        auto now = std::chrono::high_resolution_clock::now();
+        auto duration = now - startTime;
+        return std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
+    }
+
 private:
     std::chrono::time_point<std::chrono::high_resolution_clock> startTime;
     std::chrono::time_point<std::chrono::high_resolution_clock> stopTime;
