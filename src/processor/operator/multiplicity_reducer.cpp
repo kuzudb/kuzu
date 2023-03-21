@@ -3,10 +3,10 @@
 namespace kuzu {
 namespace processor {
 
-bool MultiplicityReducer::getNextTuplesInternal() {
+bool MultiplicityReducer::getNextTuplesInternal(ExecutionContext* context) {
     if (numRepeat == 0) {
         restoreMultiplicity();
-        if (!children[0]->getNextTuple()) {
+        if (!children[0]->getNextTuple(context)) {
             return false;
         }
         saveMultiplicity();

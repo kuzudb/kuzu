@@ -60,7 +60,7 @@ void ScanNodeID::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* 
     outValueVector->setSequential();
 }
 
-bool ScanNodeID::getNextTuplesInternal() {
+bool ScanNodeID::getNextTuplesInternal(ExecutionContext* context) {
     do {
         auto [state, startOffset, endOffset] = sharedState->getNextRangeToRead();
         if (state == nullptr) {

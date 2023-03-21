@@ -5,7 +5,8 @@
 namespace kuzu {
 namespace main {
 
-ClientContext::ClientContext() : numThreadsForExecution{std::thread::hardware_concurrency()} {}
+ClientContext::ClientContext()
+    : numThreadsForExecution{std::thread::hardware_concurrency()}, interrupted{false} {}
 
 } // namespace main
 } // namespace kuzu

@@ -18,7 +18,7 @@ public:
             std::move(propertyIds), storage::RelTableDataType::LISTS);
     }
 
-    bool getNextTuplesInternal() override;
+    bool getNextTuplesInternal(ExecutionContext* context) override;
 
     inline std::unique_ptr<PhysicalOperator> clone() override {
         return make_unique<ScanRelTableLists>(tableData, scanState->propertyIds, inNodeIDVectorPos,

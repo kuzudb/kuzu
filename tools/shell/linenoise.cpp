@@ -1056,7 +1056,8 @@ static int linenoiseEdit(
                 continue;
         }
         switch (c) {
-        case ENTER: /* enter */
+        case CTRL_C: /* ctrl-c */
+        case ENTER:  /* enter */
             if (pastedInput(l.ifd)) {
                 linenoiseEditInsert(&l, ' ');
                 inputLeft = true;
@@ -1078,9 +1079,6 @@ static int linenoiseEdit(
                 hintsCallback = hc;
             }
             return (int)l.len;
-        case CTRL_C: /* ctrl-c */
-            errno = EAGAIN;
-            return -1;
         case BACKSPACE: /* backspace */
         case 8:         /* ctrl-h */
             linenoiseEditBackspace(&l);

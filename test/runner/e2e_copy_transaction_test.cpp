@@ -21,8 +21,9 @@ public:
         createDBAndConn();
         catalog = getCatalog(*database);
         profiler = std::make_unique<Profiler>();
+        clientContext = std::make_unique<ClientContext>();
         executionContext = std::make_unique<ExecutionContext>(1 /* numThreads */, profiler.get(),
-            getMemoryManager(*database), getBufferManager(*database));
+            getMemoryManager(*database), getBufferManager(*database), clientContext.get());
     }
 
     void initWithoutLoadingGraph() {
@@ -203,6 +204,7 @@ public:
         "COPY knows FROM \"" + TestHelper::appendKuzuRootPath("dataset/tinysnb/eKnows.csv\"");
     std::unique_ptr<Profiler> profiler;
     std::unique_ptr<ExecutionContext> executionContext;
+    std::unique_ptr<ClientContext> clientContext;
 };
 
 TEST_F(TinySnbCopyCSVTransactionTest, CopyNodeCommitNormalExecution) {

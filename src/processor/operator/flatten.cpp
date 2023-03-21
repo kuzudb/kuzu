@@ -10,11 +10,11 @@ void Flatten::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* con
     currentSelVector->resetSelectorToValuePosBufferWithSize(1 /* size */);
 }
 
-bool Flatten::getNextTuplesInternal() {
+bool Flatten::getNextTuplesInternal(ExecutionContext* context) {
     if (isCurrIdxInitialOrLast()) {
         dataChunkToFlatten->state->currIdx = -1;
         restoreSelVector(dataChunkToFlatten->state->selVector);
-        if (!children[0]->getNextTuple()) {
+        if (!children[0]->getNextTuple(context)) {
             return false;
         }
         saveSelVector(dataChunkToFlatten->state->selVector);

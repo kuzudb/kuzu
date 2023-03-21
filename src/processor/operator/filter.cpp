@@ -8,11 +8,11 @@ void Filter::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* cont
     dataChunkToSelect = resultSet->dataChunks[dataChunkToSelectPos];
 }
 
-bool Filter::getNextTuplesInternal() {
+bool Filter::getNextTuplesInternal(ExecutionContext* context) {
     bool hasAtLeastOneSelectedValue;
     do {
         restoreSelVector(dataChunkToSelect->state->selVector);
-        if (!children[0]->getNextTuple()) {
+        if (!children[0]->getNextTuple(context)) {
             return false;
         }
         saveSelVector(dataChunkToSelect->state->selVector);

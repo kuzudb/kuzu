@@ -22,7 +22,7 @@ void Unwind::copyTuplesToOutVector(uint64_t startPos, uint64_t endPos) const {
     }
 }
 
-bool Unwind::getNextTuplesInternal() {
+bool Unwind::getNextTuplesInternal(ExecutionContext* context) {
     if (hasMoreToRead()) {
         auto totalElementsCopy = std::min(DEFAULT_VECTOR_CAPACITY, inputList.size - startIndex);
         copyTuplesToOutVector(startIndex, (totalElementsCopy + startIndex));
@@ -31,7 +31,7 @@ bool Unwind::getNextTuplesInternal() {
         return true;
     }
     do {
-        if (!children[0]->getNextTuple()) {
+        if (!children[0]->getNextTuple(context)) {
             return false;
         }
         expressionEvaluator->evaluate();

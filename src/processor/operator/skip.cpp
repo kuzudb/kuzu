@@ -7,13 +7,13 @@ void Skip::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* contex
     dataChunkToSelect = resultSet->dataChunks[dataChunkToSelectPos];
 }
 
-bool Skip::getNextTuplesInternal() {
+bool Skip::getNextTuplesInternal(ExecutionContext* context) {
     auto numTupleSkippedBefore = 0u;
     auto numTuplesAvailable = 1u;
     do {
         restoreSelVector(dataChunkToSelect->state->selVector);
         // end of execution due to no more input
-        if (!children[0]->getNextTuple()) {
+        if (!children[0]->getNextTuple(context)) {
             return false;
         }
         saveSelVector(dataChunkToSelect->state->selVector);

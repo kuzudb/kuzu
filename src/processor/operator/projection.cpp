@@ -15,9 +15,9 @@ void Projection::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* 
     }
 }
 
-bool Projection::getNextTuplesInternal() {
+bool Projection::getNextTuplesInternal(ExecutionContext* context) {
     restoreMultiplicity();
-    if (!children[0]->getNextTuple()) {
+    if (!children[0]->getNextTuple(context)) {
         return false;
     }
     saveMultiplicity();

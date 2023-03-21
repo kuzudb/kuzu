@@ -137,3 +137,10 @@ TEST_F(ApiTest, Profile) {
                     "b.fName='Farooq' } RETURN a.ID, min(a.age)");
     ASSERT_TRUE(result->isSuccess());
 }
+
+TEST_F(ApiTest, Interrupt) {
+    std::thread longRunningQueryThread(executeLongRunningQuery, conn.get());
+    sleep(1 /* sleep 1 second before interrupt the query */);
+    conn->interrupt();
+    longRunningQueryThread.join();
+}

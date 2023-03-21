@@ -5,16 +5,16 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
-bool ScanSingleNodeTable::getNextTuplesInternal() {
-    if (!children[0]->getNextTuple()) {
+bool ScanSingleNodeTable::getNextTuplesInternal(ExecutionContext* context) {
+    if (!children[0]->getNextTuple(context)) {
         return false;
     }
     table->scan(transaction, inputNodeIDVector, propertyColumnIds, outPropertyVectors);
     return true;
 }
 
-bool ScanMultiNodeTables::getNextTuplesInternal() {
-    if (!children[0]->getNextTuple()) {
+bool ScanMultiNodeTables::getNextTuplesInternal(ExecutionContext* context) {
+    if (!children[0]->getNextTuple(context)) {
         return false;
     }
     auto tableID =

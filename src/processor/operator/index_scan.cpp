@@ -13,11 +13,11 @@ void IndexScan::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* c
     outVector = resultSet->getValueVector(outDataPos);
 }
 
-bool IndexScan::getNextTuplesInternal() {
+bool IndexScan::getNextTuplesInternal(ExecutionContext* context) {
     auto numSelectedValues = 0u;
     do {
         restoreSelVector(outVector->state->selVector);
-        if (!children[0]->getNextTuple()) {
+        if (!children[0]->getNextTuple(context)) {
             return false;
         }
         saveSelVector(outVector->state->selVector);

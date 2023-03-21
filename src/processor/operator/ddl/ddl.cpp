@@ -7,7 +7,7 @@ void DDL::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context
     outputVector = resultSet->getValueVector(outputPos).get();
 }
 
-bool DDL::getNextTuplesInternal() {
+bool DDL::getNextTuplesInternal(ExecutionContext* context) {
     if (hasExecuted) {
         return false;
     }

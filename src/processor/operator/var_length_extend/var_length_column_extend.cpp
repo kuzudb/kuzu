@@ -29,7 +29,7 @@ void VarLengthColumnExtend::initLocalStateInternal(
     }
 }
 
-bool VarLengthColumnExtend::getNextTuplesInternal() {
+bool VarLengthColumnExtend::getNextTuplesInternal(ExecutionContext* context) {
     // This general loop structure and how we fetch more data from the child operator after the
     // while(true) loop block is almost the same as that in VarLengthAdjListExtend but there are
     // several differences (e.g., we have one less else if branch here), so we are not refactoring.
@@ -58,7 +58,7 @@ bool VarLengthColumnExtend::getNextTuplesInternal() {
             }
         }
         do {
-            if (!children[0]->getNextTuple()) {
+            if (!children[0]->getNextTuple(context)) {
                 return false;
             }
         } while (boundNodeValueVector->isNull(

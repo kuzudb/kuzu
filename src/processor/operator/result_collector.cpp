@@ -32,7 +32,7 @@ void ResultCollector::initLocalStateInternal(ResultSet* resultSet, ExecutionCont
 }
 
 void ResultCollector::executeInternal(ExecutionContext* context) {
-    while (children[0]->getNextTuple()) {
+    while (children[0]->getNextTuple(context)) {
         if (!vectorsToCollect.empty()) {
             for (auto i = 0u; i < resultSet->multiplicity; i++) {
                 localTable->append(vectorsToCollect);

@@ -15,7 +15,7 @@ void HashAggregateScan::initLocalStateInternal(ResultSet* resultSet, ExecutionCo
     iota(groupByKeyVectorsColIdxes.begin(), groupByKeyVectorsColIdxes.end(), 0);
 }
 
-bool HashAggregateScan::getNextTuplesInternal() {
+bool HashAggregateScan::getNextTuplesInternal(ExecutionContext* context) {
     auto [startOffset, endOffset] = sharedState->getNextRangeToRead();
     if (startOffset >= endOffset) {
         return false;

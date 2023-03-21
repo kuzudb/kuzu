@@ -15,7 +15,7 @@ public:
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
-    bool getNextTuplesInternal() override;
+    bool getNextTuplesInternal(ExecutionContext* context) override;
 
     inline std::unique_ptr<PhysicalOperator> clone() override {
         return make_unique<Flatten>(dataChunkToFlattenPos, children[0]->clone(), id, paramsString);

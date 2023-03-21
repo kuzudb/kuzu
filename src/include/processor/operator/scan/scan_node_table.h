@@ -16,7 +16,7 @@ public:
               paramsString},
           table{table}, propertyColumnIds{std::move(propertyColumnIds)} {}
 
-    bool getNextTuplesInternal() override;
+    bool getNextTuplesInternal(ExecutionContext* context) override;
 
     inline std::unique_ptr<PhysicalOperator> clone() override {
         return make_unique<ScanSingleNodeTable>(inputNodeIDVectorPos, outPropertyVectorsPos, table,
@@ -39,7 +39,7 @@ public:
               paramsString},
           tables{std::move(tables)}, tableIDToScanColumnIds{std::move(tableIDToScanColumnIds)} {}
 
-    bool getNextTuplesInternal() override;
+    bool getNextTuplesInternal(ExecutionContext* context) override;
 
     inline std::unique_ptr<PhysicalOperator> clone() override {
         return make_unique<ScanMultiNodeTables>(inputNodeIDVectorPos, outPropertyVectorsPos, tables,

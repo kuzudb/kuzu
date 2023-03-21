@@ -13,7 +13,7 @@ void OrderByScan::initLocalStateInternal(ResultSet* resultSet, ExecutionContext*
     initMergedKeyBlockScanState();
 }
 
-bool OrderByScan::getNextTuplesInternal() {
+bool OrderByScan::getNextTuplesInternal(ExecutionContext* context) {
     // If there is no more tuples to read, just return false.
     if (mergedKeyBlockScanState == nullptr ||
         mergedKeyBlockScanState->nextTupleIdxToReadInMergedKeyBlock >=

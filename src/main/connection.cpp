@@ -271,6 +271,10 @@ std::unique_ptr<QueryResult> Connection::kuzu_query(const char* queryString) {
     return query(queryString);
 }
 
+void Connection::interrupt() {
+    clientContext->interrupted = true;
+}
+
 std::unique_ptr<QueryResult> Connection::executeWithParams(PreparedStatement* preparedStatement,
     std::unordered_map<std::string, std::shared_ptr<Value>>& inputParams) {
     lock_t lck{mtx};
@@ -326,7 +330,7 @@ std::unique_ptr<QueryResult> Connection::executeAndAutoCommitIfNecessaryNoLock(
     auto profiler = std::make_unique<Profiler>();
     auto executionContext =
         std::make_unique<ExecutionContext>(clientContext->numThreadsForExecution, profiler.get(),
-            database->memoryManager.get(), database->bufferManager.get());
+            database->memoryManager.get(), database->bufferManager.get(), clientContext.get());
     // Execute query if EXPLAIN is not enabled.
     if (!preparedStatement->preparedSummary.isExplain) {
         profiler->enabled = preparedStatement->preparedSummary.isProfile;
@@ -341,11 +345,10 @@ std::unique_ptr<QueryResult> Connection::executeAndAutoCommitIfNecessaryNoLock(
             if (ConnectionTransactionMode::AUTO_COMMIT == transactionMode) {
                 commitNoLock();
             }
-        } catch (Exception& exception) {
-            rollbackIfNecessaryNoLock();
-            std::string errMsg = exception.what();
-            return queryResultWithError(errMsg);
-        }
+        } catch (InterruptException& exception) {
+            clientContext->interrupted = false;
+            return getQueryResultWithError(exception.what());
+        } catch (Exception& exception) { return getQueryResultWithError(exception.what()); }
         executingTimer.stop();
         queryResult->querySummary->executionTime = executingTimer.getElapsedTimeMS();
         queryResult->initResultTableAndIterator(std::move(resultFT),

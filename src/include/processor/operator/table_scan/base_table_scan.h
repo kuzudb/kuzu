@@ -38,7 +38,7 @@ protected:
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
-    bool getNextTuplesInternal() override;
+    bool getNextTuplesInternal(ExecutionContext* context) override;
 
 protected:
     uint64_t maxMorselSize;

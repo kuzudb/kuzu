@@ -67,7 +67,7 @@ public:
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
-    bool getNextTuplesInternal() override;
+    bool getNextTuplesInternal(ExecutionContext* context) override;
 
     inline std::unique_ptr<PhysicalOperator> clone() override {
         return make_unique<HashJoinProbe>(
@@ -76,7 +76,7 @@ public:
 
 private:
     bool hasMoreLeft();
-    bool getNextBatchOfMatchedTuples();
+    bool getNextBatchOfMatchedTuples(ExecutionContext* context);
     uint64_t getNextInnerJoinResult();
     uint64_t getNextLeftJoinResult();
     uint64_t getNextMarkJoinResult();

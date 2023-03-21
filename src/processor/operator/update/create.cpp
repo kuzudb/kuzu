@@ -13,8 +13,8 @@ void CreateNode::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* 
     }
 }
 
-bool CreateNode::getNextTuplesInternal() {
-    if (!children[0]->getNextTuple()) {
+bool CreateNode::getNextTuplesInternal(ExecutionContext* context) {
+    if (!children[0]->getNextTuple(context)) {
         return false;
     }
     for (auto i = 0u; i < createNodeInfos.size(); ++i) {
@@ -48,8 +48,8 @@ void CreateRel::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* c
     }
 }
 
-bool CreateRel::getNextTuplesInternal() {
-    if (!children[0]->getNextTuple()) {
+bool CreateRel::getNextTuplesInternal(ExecutionContext* context) {
+    if (!children[0]->getNextTuple(context)) {
         return false;
     }
     for (auto i = 0u; i < createRelInfos.size(); ++i) {

@@ -18,7 +18,7 @@ public:
           outDataType{std::move(outDataType)}, outDataPos{outDataPos},
           expressionEvaluator{std::move(expressionEvaluator)}, startIndex{0u} {}
 
-    bool getNextTuplesInternal() override;
+    bool getNextTuplesInternal(ExecutionContext* context) override;
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 

@@ -26,7 +26,7 @@ public:
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
-    bool getNextTuplesInternal() override;
+    bool getNextTuplesInternal(ExecutionContext* context) override;
 
     // SimpleAggregateScan is the source operator of a pipeline, so it should not clone its child.
     std::unique_ptr<PhysicalOperator> clone() override {

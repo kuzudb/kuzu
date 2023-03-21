@@ -70,7 +70,7 @@ void HashAggregate::initLocalStateInternal(ResultSet* resultSet, ExecutionContex
 }
 
 void HashAggregate::executeInternal(ExecutionContext* context) {
-    while (children[0]->getNextTuple()) {
+    while (children[0]->getNextTuple(context)) {
         localAggregateHashTable->append(groupByFlatHashKeyVectors, groupByUnflatHashKeyVectors,
             groupByNonHashKeyVectors, aggregateVectors, resultSet->multiplicity);
     }

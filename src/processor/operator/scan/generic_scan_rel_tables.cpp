@@ -55,13 +55,13 @@ void GenericScanRelTables::initLocalStateInternal(ResultSet* resultSet, Executio
     currentRelTableCollection = nullptr;
 }
 
-bool GenericScanRelTables::getNextTuplesInternal() {
+bool GenericScanRelTables::getNextTuplesInternal(ExecutionContext* context) {
     while (true) {
         if (scanCurrentRelTableCollection()) {
             metrics->numOutputTuple.increase(outputVectors[0]->state->selVector->selectedSize);
             return true;
         }
-        if (!children[0]->getNextTuple()) {
+        if (!children[0]->getNextTuple(context)) {
             return false;
         }
         auto currentIdx = inNodeIDVector->state->selVector->selectedPositions[0];

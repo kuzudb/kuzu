@@ -11,7 +11,7 @@ void BaseTableScan::initLocalStateInternal(ResultSet* resultSet, ExecutionContex
     setMaxMorselSize();
 }
 
-bool BaseTableScan::getNextTuplesInternal() {
+bool BaseTableScan::getNextTuplesInternal(ExecutionContext* context) {
     auto morsel = getMorsel();
     if (morsel->numTuples == 0) {
         return false;

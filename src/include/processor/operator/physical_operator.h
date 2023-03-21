@@ -112,9 +112,12 @@ public:
     // Local state is initialized for each thread.
     void initLocalState(ResultSet* resultSet, ExecutionContext* context);
 
-    inline bool getNextTuple() {
+    inline bool getNextTuple(ExecutionContext* context) {
+        if (context->clientContext->isInterrupted()) {
+            throw common::InterruptException{};
+        }
         metrics->executionTime.start();
-        auto result = getNextTuplesInternal();
+        auto result = getNextTuplesInternal(context);
         metrics->executionTime.stop();
         return result;
     }
@@ -129,7 +132,7 @@ protected:
     virtual void initGlobalStateInternal(ExecutionContext* context) {}
     virtual void initLocalStateInternal(ResultSet* resultSet_, ExecutionContext* context) {}
     // Return false if no more tuples to pull, otherwise return true
-    virtual bool getNextTuplesInternal() = 0;
+    virtual bool getNextTuplesInternal(ExecutionContext* context) = 0;
 
     inline std::string getTimeMetricKey() const { return "time-" + std::to_string(id); }
     inline std::string getNumTupleMetricKey() const { return "numTuple-" + std::to_string(id); }
