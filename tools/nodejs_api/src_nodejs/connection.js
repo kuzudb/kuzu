@@ -13,8 +13,16 @@ class Connection {
     }
 
     execute(query, opts = {}) {
+        const optsKeys = Object.keys(opts);
         if (typeof opts !== "object") {
             throw new Error("optional opts in execute must be an object");
+        } else if (optsKeys.length > 2) {
+            throw new Error("opts can only have optional fields 'callback' and/or 'params'");
+        }
+
+        const validSet = new Set(optsKeys.concat(['callback', 'params']));
+        if (validSet.size > 2) {
+            throw new Error("opts has at least 1 invalid field: it can only have optional fields 'callback' and/or 'params'");
         }
 
         let params = [];

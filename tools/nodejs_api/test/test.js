@@ -11,4 +11,5 @@ describe("kuzu", () => {
     return initTests();
   });
   importTest("datatype", "./testDatatype.js");
+  importTest("exception", "./testException.js");
 });

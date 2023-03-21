@@ -215,7 +215,6 @@ describe("REL", function () {
                 return queryResult.all();
             })
             .then((n) => {
-                console.log(n)
                 n = n[0]
                 const p = n["p"];
                 const r = n["r"];
