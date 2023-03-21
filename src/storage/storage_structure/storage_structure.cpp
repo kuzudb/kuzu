@@ -16,12 +16,12 @@ static inline bool isInRange(uint64_t val, uint64_t start, uint64_t end) {
 void StorageStructure::addNewPageToFileHandle() {
     auto pageIdxInOriginalFile = fileHandle->addNewPage();
     auto pageIdxInWAL = wal->logPageInsertRecord(storageStructureID, pageIdxInOriginalFile);
-    bufferManager.pinWithoutAcquiringPageLock(
+    bufferManager.pin(
         *wal->fileHandle, pageIdxInWAL, BufferManager::PageReadPolicy::DONT_READ_PAGE);
-    fileHandle->createPageVersionGroupIfNecessary(pageIdxInOriginalFile);
-    fileHandle->setWALPageVersion(pageIdxInOriginalFile, pageIdxInWAL);
+    fileHandle->addWALPageIdxGroupIfNecessary(pageIdxInOriginalFile);
+    fileHandle->setWALPageIdx(pageIdxInOriginalFile, pageIdxInWAL);
     bufferManager.setPinnedPageDirty(*wal->fileHandle, pageIdxInWAL);
-    bufferManager.unpinWithoutAcquiringPageLock(*wal->fileHandle, pageIdxInWAL);
+    bufferManager.unpin(*wal->fileHandle, pageIdxInWAL);
 }
 
 WALPageIdxPosInPageAndFrame StorageStructure::createWALVersionOfPageIfNecessaryForElement(

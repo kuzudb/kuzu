@@ -37,7 +37,7 @@ struct WALPageIdxPosInPageAndFrame : WALPageIdxAndFrame {
 
 class StorageStructureUtils {
 public:
-    constexpr static common::page_idx_t NULL_PAGE_IDX = common::PAGE_IDX_MAX;
+    constexpr static common::page_idx_t NULL_PAGE_IDX = common::INVALID_PAGE_IDX;
     constexpr static uint32_t NULL_CHUNK_OR_LARGE_LIST_HEAD_IDX = UINT32_MAX;
 
 public:

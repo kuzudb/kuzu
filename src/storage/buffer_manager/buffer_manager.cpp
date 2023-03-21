@@ -71,13 +71,6 @@ BufferManager::~BufferManager() = default;
 uint8_t* BufferManager::pin(
     BMFileHandle& fileHandle, common::page_idx_t pageIdx, PageReadPolicy pageReadPolicy) {
     fileHandle.acquirePageLock(pageIdx, LockMode::SPIN);
-    auto retVal = pinWithoutAcquiringPageLock(fileHandle, pageIdx, pageReadPolicy);
-    fileHandle.releasePageLock(pageIdx);
-    return retVal;
-}
-
-uint8_t* BufferManager::pinWithoutAcquiringPageLock(
-    BMFileHandle& fileHandle, common::page_idx_t pageIdx, PageReadPolicy pageReadPolicy) {
     auto pageState = fileHandle.getPageState(pageIdx);
     if (pageState->isInFrame()) {
         pageState->incrementPinCount();
@@ -87,7 +80,9 @@ uint8_t* BufferManager::pinWithoutAcquiringPageLock(
             throw BufferManagerException("Failed to claim a frame.");
         }
     }
-    return getFrame(fileHandle, pageIdx);
+    auto retVal = getFrame(fileHandle, pageIdx);
+    fileHandle.releasePageLock(pageIdx);
+    return retVal;
 }
 
 // Important Note: The caller should make sure that they have pinned the page before calling this.
@@ -108,12 +103,6 @@ void BufferManager::setPinnedPageDirty(BMFileHandle& fileHandle, page_idx_t page
 
 void BufferManager::unpin(BMFileHandle& fileHandle, page_idx_t pageIdx) {
     fileHandle.acquirePageLock(pageIdx, LockMode::SPIN);
-    unpinWithoutAcquiringPageLock(fileHandle, pageIdx);
-    fileHandle.releasePageLock(pageIdx);
-}
-
-void BufferManager::unpinWithoutAcquiringPageLock(
-    BMFileHandle& fileHandle, common::page_idx_t pageIdx) {
     auto pageState = fileHandle.getPageState(pageIdx);
     // `count` is the value of `pinCount` before sub.
     auto count = pageState->decrementPinCount();
@@ -121,6 +110,7 @@ void BufferManager::unpinWithoutAcquiringPageLock(
     if (count == 1) {
         addToEvictionQueue(&fileHandle, pageState);
     }
+    fileHandle.releasePageLock(pageIdx);
 }
 
 // This function tries to load the given page into a frame. Due to our design of mmap, each page is
