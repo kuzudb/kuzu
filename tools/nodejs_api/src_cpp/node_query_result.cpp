@@ -11,8 +11,6 @@ using namespace kuzu::main;
 std::thread nativeThread;
 Napi::ThreadSafeFunction tsfn;
 
-Napi::FunctionReference NodeQueryResult::constructor;
-
 Napi::Object NodeQueryResult::Init(Napi::Env env, Napi::Object exports) {
     Napi::HandleScope scope(env);
 
@@ -98,5 +96,3 @@ Napi::Value NodeQueryResult::Each(const Napi::CallbackInfo& info) {
     // function's finalizer callback.
     return testData->deferred.Promise();
 }
-
-NodeQueryResult::~NodeQueryResult() {}
