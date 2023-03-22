@@ -65,12 +65,27 @@ describe("EXECUTE", function () {
 });
 
 describe("SETMAXTHREADS", function () {
-    it('query callback in opts should be function that takes 2 arguments', function () {
+    it('decrease max threads', function () {
+        conn.setMaxNumThreadForExec(2);
+    });
+
+    it('increase max threads', function () {
+        conn.setMaxNumThreadForExec(5);
+    });
+
+    it('should only take number as argument', function () {
         try {
-            conn.setMaxNumThreadForExec(0);
+            conn.setMaxNumThreadForExec("hi");
         } catch (err) {
-            console.log(err)
-            assert.equal(err.message, "Buffer manager exception: Resizing to a smaller Buffer Pool Size is unsupported.")
+            assert.equal(err.message, "setMaxNumThreadForExec needs an integer numThreads as an argument");;
+        }
+    });
+
+    it('should only take integer as argument', function () {
+        try {
+            conn.setMaxNumThreadForExec(5.6);
+        } catch (err) {
+            assert.equal(err.message, "setMaxNumThreadForExec needs an integer numThreads as an argument");;
         }
     });
 });
