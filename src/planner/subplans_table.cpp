@@ -63,6 +63,8 @@ void SubPlansTable::PlanSet::addPlan(std::unique_ptr<LogicalPlan> plan) {
         auto currentPlan = plans[idx].get();
         if (currentPlan->getCost() > plan->getCost()) {
             plans[idx] = std::move(plan);
+            schemaToPlanIdx.erase(schema);
+            schemaToPlanIdx.insert({schema, idx});
         }
     }
 }

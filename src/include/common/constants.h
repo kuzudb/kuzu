@@ -129,7 +129,8 @@ struct LoggerConstants {
 };
 
 struct EnumeratorKnobs {
-    static constexpr double PREDICATE_SELECTIVITY = 0.1;
+    static constexpr double NON_EQUALITY_PREDICATE_SELECTIVITY = 0.1;
+    static constexpr double EQUALITY_PREDICATE_SELECTIVITY = 0.01;
     static constexpr double FLAT_PROBE_PENALTY = 10;
 };
 

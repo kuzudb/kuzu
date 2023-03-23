@@ -25,6 +25,7 @@ using list_header_t = uint32_t;
 using property_id_t = uint32_t;
 constexpr property_id_t INVALID_PROPERTY_ID = UINT32_MAX;
 using vector_idx_t = uint32_t;
+constexpr vector_idx_t INVALID_VECTOR_IDX = UINT32_MAX;
 
 // System representation for a variable-sized overflow value.
 struct overflow_value_t {
