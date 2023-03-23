@@ -143,7 +143,7 @@ TEST_F(CopyNodePropertyTest, NodeStructuredStringPropertyTest) {
             ASSERT_TRUE(column->isNull(count /* nodeOffset */, dummyReadOnlyTrx.get()));
         } else {
             ASSERT_FALSE(column->isNull(count /* nodeOffset */, dummyReadOnlyTrx.get()));
-            EXPECT_EQ(line, column->readValue(lineIdx).strVal);
+            EXPECT_EQ(line, column->readValueForTestingOnly(lineIdx).strVal);
         }
         lineIdx++;
         count++;
@@ -250,21 +250,21 @@ TEST_F(CopySpecialCharTest, CopySpecialChars) {
     auto col =
         storageManager->getNodesStore().getNodePropertyColumn(tableID, propertyIdx.propertyID);
 
-    EXPECT_EQ("this is |the first line", col->readValue(0).strVal);
-    EXPECT_EQ("the \" should be ignored", col->readValue(1).strVal);
-    EXPECT_EQ("the - should be escaped", col->readValue(2).strVal);
-    EXPECT_EQ("this -is #a mixed test", col->readValue(3).strVal);
-    EXPECT_EQ("only one # should be recognized", col->readValue(4).strVal);
-    EXPECT_EQ("this is a #plain# string", col->readValue(5).strVal);
-    EXPECT_EQ("this is another #plain# string with \\", col->readValue(6).strVal);
-    EXPECT_EQ("NA", col->readValue(7).strVal);
+    EXPECT_EQ("this is |the first line", col->readValueForTestingOnly(0).strVal);
+    EXPECT_EQ("the \" should be ignored", col->readValueForTestingOnly(1).strVal);
+    EXPECT_EQ("the - should be escaped", col->readValueForTestingOnly(2).strVal);
+    EXPECT_EQ("this -is #a mixed test", col->readValueForTestingOnly(3).strVal);
+    EXPECT_EQ("only one # should be recognized", col->readValueForTestingOnly(4).strVal);
+    EXPECT_EQ("this is a #plain# string", col->readValueForTestingOnly(5).strVal);
+    EXPECT_EQ("this is another #plain# string with \\", col->readValueForTestingOnly(6).strVal);
+    EXPECT_EQ("NA", col->readValueForTestingOnly(7).strVal);
 
     tableID = catalog->getReadOnlyVersion()->getTableID("organisation");
     propertyIdx = catalog->getReadOnlyVersion()->getNodeProperty(tableID, "name");
     col = storageManager->getNodesStore().getNodePropertyColumn(tableID, propertyIdx.propertyID);
-    EXPECT_EQ("ABFsUni", col->readValue(0).strVal);
-    EXPECT_EQ("CsW,ork", col->readValue(1).strVal);
-    EXPECT_EQ("DEsW#ork", col->readValue(2).strVal);
+    EXPECT_EQ("ABFsUni", col->readValueForTestingOnly(0).strVal);
+    EXPECT_EQ("CsW,ork", col->readValueForTestingOnly(1).strVal);
+    EXPECT_EQ("DEsW#ork", col->readValueForTestingOnly(2).strVal);
 }
 
 TEST_F(CopyLongStringTest, LongStringError) {
@@ -275,20 +275,20 @@ TEST_F(CopyLongStringTest, LongStringError) {
     auto col =
         storageManager->getNodesStore().getNodePropertyColumn(tableID, propertyIdx.propertyID);
 
-    EXPECT_EQ(4096, col->readValue(0).strVal.length());
+    EXPECT_EQ(4096, col->readValueForTestingOnly(0).strVal.length());
     std::string expectedResultName = "Alice";
     auto repeatedTimes = 4096 / expectedResultName.length() + 1;
     std::ostringstream os;
     for (auto i = 0; i < repeatedTimes; i++) {
         os << expectedResultName;
     }
-    EXPECT_EQ(os.str().substr(0, 4096), col->readValue(0).strVal);
-    EXPECT_EQ("Bob", col->readValue(1).strVal);
+    EXPECT_EQ(os.str().substr(0, 4096), col->readValueForTestingOnly(0).strVal);
+    EXPECT_EQ("Bob", col->readValueForTestingOnly(1).strVal);
 
     propertyIdx = catalog->getReadOnlyVersion()->getNodeProperty(tableID, "gender");
     col = storageManager->getNodesStore().getNodePropertyColumn(tableID, propertyIdx.propertyID);
-    EXPECT_EQ(1, col->readValue(0).val.int64Val);
-    EXPECT_EQ(2, col->readValue(1).val.int64Val);
+    EXPECT_EQ(1, col->readValueForTestingOnly(0).val.int64Val);
+    EXPECT_EQ(2, col->readValueForTestingOnly(1).val.int64Val);
 }
 
 TEST_F(CopyNodeInitRelTablesTest, CopyNodeAndQueryEmptyRelTable) {

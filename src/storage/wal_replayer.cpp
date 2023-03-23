@@ -443,7 +443,7 @@ void WALReplayer::checkpointOrRollbackVersionedFileHandleAndBufferManager(
     BMFileHandle* fileHandle =
         getVersionedFileHandleIfWALVersionAndBMShouldBeCleared(storageStructureID);
     if (fileHandle) {
-        fileHandle->clearWALPageVersionIfNecessary(
+        fileHandle->clearWALPageIdxIfNecessary(
             walRecord.pageInsertOrUpdateRecord.pageIdxInOriginalFile);
         if (isCheckpoint) {
             // Update the page in buffer manager if it is in a frame. Note that we assume

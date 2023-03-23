@@ -26,10 +26,11 @@ public:
 
     void writeValues(common::ValueVector* nodeIDVector, common::ValueVector* vectorToWriteFrom);
 
-    // Currently, used only in CopyCSV tests.
-    virtual common::Value readValue(common::offset_t offset);
     bool isNull(common::offset_t nodeOffset, transaction::Transaction* transaction);
     void setNodeOffsetToNull(common::offset_t nodeOffset);
+
+    // Currently, used only in CopyCSV tests.
+    virtual common::Value readValueForTestingOnly(common::offset_t offset);
 
 protected:
     void lookup(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
@@ -107,7 +108,7 @@ public:
         common::ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom) override;
 
     // Currently, used only in CopyCSV tests.
-    common::Value readValue(common::offset_t offset) override;
+    common::Value readValueForTestingOnly(common::offset_t offset) override;
 
 private:
     inline void lookup(transaction::Transaction* transaction, common::ValueVector* resultVector,
@@ -141,7 +142,7 @@ public:
     void writeValueForSingleNodeIDPosition(common::offset_t nodeOffset,
         common::ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom) override;
 
-    common::Value readValue(common::offset_t offset) override;
+    common::Value readValueForTestingOnly(common::offset_t offset) override;
 
 private:
     inline void lookup(transaction::Transaction* transaction, common::ValueVector* resultVector,

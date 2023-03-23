@@ -37,14 +37,15 @@ TEST_F(TinySnbListTest, NodePropertyIntColumnWithList) {
     auto tableID = catalog->getReadOnlyVersion()->getTableID("person");
     auto& property = catalog->getReadOnlyVersion()->getNodeProperty(tableID, "workedHours");
     auto col = graph->getNodesStore().getNodePropertyColumn(tableID, property.propertyID);
-    ASSERT_TRUE(CheckEquals({"10", "5"}, col->readValue(0)));
-    ASSERT_TRUE(CheckEquals({"12", "8"}, col->readValue(1)));
-    ASSERT_TRUE(CheckEquals({"4", "5"}, col->readValue(2)));
-    ASSERT_TRUE(CheckEquals({"1", "9"}, col->readValue(3)));
-    ASSERT_TRUE(CheckEquals({"2"}, col->readValue(4)));
-    ASSERT_TRUE(CheckEquals({"3", "4", "5", "6", "7"}, col->readValue(5)));
-    ASSERT_TRUE(CheckEquals({"1"}, col->readValue(6)));
-    ASSERT_TRUE(CheckEquals({"10", "11", "12", "3", "4", "5", "6", "7"}, col->readValue(7)));
+    ASSERT_TRUE(CheckEquals({"10", "5"}, col->readValueForTestingOnly(0)));
+    ASSERT_TRUE(CheckEquals({"12", "8"}, col->readValueForTestingOnly(1)));
+    ASSERT_TRUE(CheckEquals({"4", "5"}, col->readValueForTestingOnly(2)));
+    ASSERT_TRUE(CheckEquals({"1", "9"}, col->readValueForTestingOnly(3)));
+    ASSERT_TRUE(CheckEquals({"2"}, col->readValueForTestingOnly(4)));
+    ASSERT_TRUE(CheckEquals({"3", "4", "5", "6", "7"}, col->readValueForTestingOnly(5)));
+    ASSERT_TRUE(CheckEquals({"1"}, col->readValueForTestingOnly(6)));
+    ASSERT_TRUE(
+        CheckEquals({"10", "11", "12", "3", "4", "5", "6", "7"}, col->readValueForTestingOnly(7)));
 }
 
 TEST_F(TinySnbListTest, NodePropertyStringColumnWithList) {
@@ -53,14 +54,14 @@ TEST_F(TinySnbListTest, NodePropertyStringColumnWithList) {
     auto tableID = catalog->getReadOnlyVersion()->getTableID("person");
     auto& property = catalog->getReadOnlyVersion()->getNodeProperty(tableID, "usedNames");
     auto col = graph->getNodesStore().getNodePropertyColumn(tableID, property.propertyID);
-    ASSERT_TRUE(CheckEquals({"Aida"}, col->readValue(0)));
-    ASSERT_TRUE(CheckEquals({"Bobby"}, col->readValue(1)));
-    ASSERT_TRUE(CheckEquals({"Carmen", "Fred"}, col->readValue(2)));
-    ASSERT_TRUE(CheckEquals({"Wolfeschlegelstein", "Daniel"}, col->readValue(3)));
-    ASSERT_TRUE(CheckEquals({"Ein"}, col->readValue(4)));
-    ASSERT_TRUE(CheckEquals({"Fesdwe"}, col->readValue(5)));
-    ASSERT_TRUE(CheckEquals({"Grad"}, col->readValue(6)));
-    ASSERT_TRUE(CheckEquals({"Ad", "De", "Hi", "Kye", "Orlan"}, col->readValue(7)));
+    ASSERT_TRUE(CheckEquals({"Aida"}, col->readValueForTestingOnly(0)));
+    ASSERT_TRUE(CheckEquals({"Bobby"}, col->readValueForTestingOnly(1)));
+    ASSERT_TRUE(CheckEquals({"Carmen", "Fred"}, col->readValueForTestingOnly(2)));
+    ASSERT_TRUE(CheckEquals({"Wolfeschlegelstein", "Daniel"}, col->readValueForTestingOnly(3)));
+    ASSERT_TRUE(CheckEquals({"Ein"}, col->readValueForTestingOnly(4)));
+    ASSERT_TRUE(CheckEquals({"Fesdwe"}, col->readValueForTestingOnly(5)));
+    ASSERT_TRUE(CheckEquals({"Grad"}, col->readValueForTestingOnly(6)));
+    ASSERT_TRUE(CheckEquals({"Ad", "De", "Hi", "Kye", "Orlan"}, col->readValueForTestingOnly(7)));
 }
 
 TEST_F(TinySnbListTest, RelPropertyColumnWithList) {
@@ -71,7 +72,8 @@ TEST_F(TinySnbListTest, RelPropertyColumnWithList) {
     auto& property = catalog->getReadOnlyVersion()->getRelProperty(tableID, "places");
     auto col =
         graph->getRelsStore().getRelPropertyColumn(RelDirection::FWD, tableID, property.propertyID);
-    ASSERT_TRUE(CheckEquals({"wwAewsdndweusd", "wek"}, col->readValue(0)));
-    ASSERT_TRUE(CheckEquals({"anew", "jsdnwusklklklwewsd"}, col->readValue(1)));
-    ASSERT_TRUE(CheckEquals({"awndsnjwejwen", "isuhuwennjnuhuhuwewe"}, col->readValue(5)));
+    ASSERT_TRUE(CheckEquals({"wwAewsdndweusd", "wek"}, col->readValueForTestingOnly(0)));
+    ASSERT_TRUE(CheckEquals({"anew", "jsdnwusklklklwewsd"}, col->readValueForTestingOnly(1)));
+    ASSERT_TRUE(
+        CheckEquals({"awndsnjwejwen", "isuhuwennjnuhuhuwewe"}, col->readValueForTestingOnly(5)));
 }

@@ -102,14 +102,11 @@ public:
 
     uint8_t* pin(BMFileHandle& fileHandle, common::page_idx_t pageIdx,
         PageReadPolicy pageReadPolicy = PageReadPolicy::READ_PAGE);
-    uint8_t* pinWithoutAcquiringPageLock(
-        BMFileHandle& fileHandle, common::page_idx_t pageIdx, PageReadPolicy pageReadPolicy);
 
     void setPinnedPageDirty(BMFileHandle& fileHandle, common::page_idx_t pageIdx);
 
     // The function assumes that the requested page is already pinned.
     void unpin(BMFileHandle& fileHandle, common::page_idx_t pageIdx);
-    void unpinWithoutAcquiringPageLock(BMFileHandle& fileHandle, common::page_idx_t pageIdx);
 
     void removeFilePagesFromFrames(BMFileHandle& fileHandle);
     void flushAllDirtyPagesInFrames(BMFileHandle& fileHandle);

@@ -81,7 +81,7 @@ U BaseDiskArray<U>::get(uint64_t idx, TransactionType trxType) {
     page_idx_t apPageIdx = getAPPageIdxNoLock(apCursor.pageIdx, trxType);
     auto& bmFileHandle = (BMFileHandle&)fileHandle;
     if (trxType == TransactionType::READ_ONLY || !hasTransactionalUpdates ||
-        !bmFileHandle.hasWALPageVersionNoPageLock(apPageIdx)) {
+        !bmFileHandle.hasWALPageVersionNoWALPageIdxLock(apPageIdx)) {
         auto frame = bufferManager->pin(bmFileHandle, apPageIdx);
         auto retVal = *(U*)(frame + apCursor.offsetInPage);
         bufferManager->unpin(bmFileHandle, apPageIdx);
@@ -203,7 +203,7 @@ page_idx_t BaseDiskArray<U>::getUpdatedPageIdxOfPipNoLock(uint64_t pipIdx) {
 
 template<typename U>
 void BaseDiskArray<U>::clearWALPageVersionAndRemovePageFromFrameIfNecessary(page_idx_t pageIdx) {
-    ((BMFileHandle&)this->fileHandle).clearWALPageVersionIfNecessary(pageIdx);
+    ((BMFileHandle&)this->fileHandle).clearWALPageIdxIfNecessary(pageIdx);
     bufferManager->removePageFromFrameIfNecessary((BMFileHandle&)this->fileHandle, pageIdx);
 }
 
@@ -259,7 +259,7 @@ uint64_t BaseDiskArray<U>::readUInt64HeaderFieldNoLock(
     TransactionType trxType, std::function<uint64_t(DiskArrayHeader*)> readOp) {
     auto bmFileHandle = reinterpret_cast<BMFileHandle*>(&fileHandle);
     if ((trxType == TransactionType::READ_ONLY) ||
-        !bmFileHandle->hasWALPageVersionNoPageLock(headerPageIdx)) {
+        !bmFileHandle->hasWALPageVersionNoWALPageIdxLock(headerPageIdx)) {
         return readOp(&this->header);
     } else {
         uint64_t retVal;
@@ -375,7 +375,7 @@ void InMemDiskArray<T>::checkpointOrRollbackInMemoryIfNecessaryNoLock(bool isChe
     for (uint64_t apIdx = 0; apIdx < numOldAPs; ++apIdx) {
         uint64_t apPageIdx = this->getAPPageIdxNoLock(apIdx, TransactionType::READ_ONLY);
         if (reinterpret_cast<BMFileHandle&>(this->fileHandle)
-                .hasWALPageVersionNoPageLock(apPageIdx)) {
+                .hasWALPageVersionNoWALPageIdxLock(apPageIdx)) {
             // Note we can directly read the new image from disk because the WALReplayer checkpoints
             // the disk image of the page before calling
             // InMemDiskArray::checkpointInMemoryIfNecessary.
@@ -402,7 +402,7 @@ void InMemDiskArray<T>::checkpointOrRollbackInMemoryIfNecessaryNoLock(bool isChe
     // fault somewhere. So we do not truncate these in order not to accidentally remove newly
     // added PIPs, which we would need if we kept calling removePageIdxAndTruncateIfNecessary
     // for each newly added array pages.
-    page_idx_t minNewAPPageIdxToTruncateTo = PAGE_IDX_MAX;
+    page_idx_t minNewAPPageIdxToTruncateTo = INVALID_PAGE_IDX;
     for (uint64_t apIdx = this->header.numAPs; apIdx < newNumAPs; apIdx++) {
         page_idx_t apPageIdx = this->getAPPageIdxNoLock(apIdx, TransactionType::WRITE);
         if (isCheckpoint) {
