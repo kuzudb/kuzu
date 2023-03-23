@@ -31,7 +31,7 @@ public:
     static void executeLongRunningQuery(Connection* conn) {
         auto result = conn->query("MATCH (a:person)-[:knows*1..28]->(b:person) RETURN COUNT(*)");
         ASSERT_FALSE(result->isSuccess());
-        ASSERT_EQ(result->getErrorMessage(), "Interrupted by the user.");
+        ASSERT_EQ(result->getErrorMessage(), "Interrupted.");
     }
 };
 

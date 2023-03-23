@@ -11,7 +11,7 @@ using namespace kuzu::storage;
 using namespace kuzu::testing;
 
 namespace kuzu {
-namespace transaction {
+namespace testing {
 
 class TinySnbCopyCSVTransactionTest : public EmptyDBTest {
 
@@ -58,7 +58,7 @@ public:
         ASSERT_EQ(getStorageManager(*database)
                       ->getNodesStore()
                       .getNodesStatisticsAndDeletedIDs()
-                      .getMaxNodeOffset(TransactionType::READ_ONLY, tableID),
+                      .getMaxNodeOffset(transaction::TransactionType::READ_ONLY, tableID),
             UINT64_MAX);
     }
 
@@ -76,7 +76,7 @@ public:
         ASSERT_EQ(getStorageManager(*database)
                       ->getNodesStore()
                       .getNodesStatisticsAndDeletedIDs()
-                      .getMaxNodeOffset(TransactionType::READ_ONLY, tableID),
+                      .getMaxNodeOffset(transaction::TransactionType::READ_ONLY, tableID),
             7);
     }
 
@@ -89,6 +89,7 @@ public:
         auto physicalPlan =
             mapper.mapLogicalPlanToPhysical(preparedStatement->logicalPlans[0].get(),
                 preparedStatement->getExpressionsToCollect(), preparedStatement->statementType);
+        clientContext->activeQuery = std::make_unique<ActiveQuery>();
         getQueryProcessor(*database)->execute(physicalPlan.get(), executionContext.get());
         auto tableID = catalog->getReadOnlyVersion()->getTableID("person");
         validateDatabaseStateBeforeCheckPointCopyNode(tableID);
@@ -136,7 +137,7 @@ public:
             relTableSchema, DBFileType::WAL_VERSION, true /* existence */);
         validateRelColumnAndListFilesExistence(
             relTableSchema, DBFileType::ORIGINAL, true /* existence */);
-        auto dummyWriteTrx = Transaction::getDummyWriteTrx();
+        auto dummyWriteTrx = transaction::Transaction::getDummyWriteTrx();
         ASSERT_EQ(getStorageManager(*database)->getRelsStore().getRelsStatistics().getNextRelOffset(
                       dummyWriteTrx.get(), tableID),
             14);
@@ -153,7 +154,7 @@ public:
             relTableSchema, DBFileType::ORIGINAL, true /* existence */);
         validateTinysnbKnowsDateProperty();
         auto& relsStatistics = getStorageManager(*database)->getRelsStore().getRelsStatistics();
-        auto dummyWriteTrx = Transaction::getDummyWriteTrx();
+        auto dummyWriteTrx = transaction::Transaction::getDummyWriteTrx();
         ASSERT_EQ(relsStatistics.getNextRelOffset(dummyWriteTrx.get(), knowsTableID), 14);
         ASSERT_EQ(relsStatistics.getReadOnlyVersion()->tableStatisticPerTable.size(), 1);
         auto knowsRelStatistics = (RelStatistics*)relsStatistics.getReadOnlyVersion()
@@ -173,6 +174,7 @@ public:
         auto physicalPlan =
             mapper.mapLogicalPlanToPhysical(preparedStatement->logicalPlans[0].get(),
                 preparedStatement->getExpressionsToCollect(), preparedStatement->statementType);
+        clientContext->activeQuery = std::make_unique<ActiveQuery>();
         getQueryProcessor(*database)->execute(physicalPlan.get(), executionContext.get());
         auto tableID = catalog->getReadOnlyVersion()->getTableID("knows");
         validateDatabaseStateBeforeCheckPointCopyRel(tableID);
@@ -245,5 +247,5 @@ TEST_F(TinySnbCopyCSVTransactionTest, CopyCSVStatementWithActiveTransactionError
         "previous transaction and issue a ddl query without opening a transaction.");
 }
 
-} // namespace transaction
+} // namespace testing
 } // namespace kuzu

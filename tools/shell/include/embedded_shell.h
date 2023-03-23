@@ -32,6 +32,8 @@ private:
 
     void setLoggingLevel(const std::string& loggingLevel);
 
+    void setQueryTimeout(const std::string& timeoutInMS);
+
 private:
     std::unique_ptr<Database> database;
     std::unique_ptr<Connection> conn;

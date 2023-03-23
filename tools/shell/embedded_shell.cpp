@@ -36,8 +36,9 @@ struct ShellCommand {
     const std::string SHOW_NODE = ":show_node";
     const std::string SHOW_REL = ":show_rel";
     const std::string LOGGING_LEVEL = ":logging_level";
-    const std::vector<std::string> commandList = {
-        HELP, CLEAR, QUIT, THREAD, LIST_NODES, LIST_RELS, SHOW_NODE, SHOW_REL, LOGGING_LEVEL};
+    const std::string QUERY_TIMEOUT = ":timeout";
+    const std::vector<std::string> commandList = {HELP, CLEAR, QUIT, THREAD, LIST_NODES, LIST_RELS,
+        SHOW_NODE, SHOW_REL, LOGGING_LEVEL, QUERY_TIMEOUT};
 } shellCommand;
 
 const char* TAB = "    ";
@@ -240,6 +241,8 @@ void EmbeddedShell::run() {
             printRelSchema(lineStr.substr(shellCommand.SHOW_REL.length()));
         } else if (lineStr.rfind(shellCommand.LOGGING_LEVEL) == 0) {
             setLoggingLevel(lineStr.substr(shellCommand.LOGGING_LEVEL.length()));
+        } else if (lineStr.rfind(shellCommand.QUERY_TIMEOUT) == 0) {
+            setQueryTimeout(lineStr.substr(shellCommand.QUERY_TIMEOUT.length()));
         } else if (!lineStr.empty()) {
             ss.clear();
             ss.str(lineStr);
@@ -312,6 +315,8 @@ void EmbeddedShell::printHelp() {
     printf("%s%s [logging_level] %sset logging level of database, available options: debug, info, "
            "err\n",
         TAB, shellCommand.LOGGING_LEVEL.c_str(), TAB);
+    printf("%s%s [query_timeout] %sset query timeout in ms\n", TAB,
+        shellCommand.QUERY_TIMEOUT.c_str(), TAB);
     printf("%s%s %slist all node tables\n", TAB, shellCommand.LIST_NODES.c_str(), TAB);
     printf("%s%s %slist all rel tables\n", TAB, shellCommand.LIST_RELS.c_str(), TAB);
     printf("%s%s %s[table_name] show node schema\n", TAB, shellCommand.SHOW_NODE.c_str(), TAB);
@@ -401,6 +406,12 @@ void EmbeddedShell::setLoggingLevel(const std::string& loggingLevel) {
         database->setLoggingLevel(level);
         printf("logging level has been set to: %s.\n", level.c_str());
     } catch (Exception& e) { printf("%s", e.what()); }
+}
+
+void EmbeddedShell::setQueryTimeout(const std::string& timeoutInMS) {
+    auto queryTimeOutVal = std::stoull(ltrim(timeoutInMS));
+    conn->setQueryTimeOut(queryTimeOutVal);
+    printf("query timeout value has been set to: %llu ms.\n", queryTimeOutVal);
 }
 
 } // namespace main

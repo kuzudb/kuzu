@@ -272,7 +272,12 @@ std::unique_ptr<QueryResult> Connection::kuzu_query(const char* queryString) {
 }
 
 void Connection::interrupt() {
-    clientContext->interrupted = true;
+    clientContext->activeQuery->interrupted = true;
+}
+
+void Connection::setQueryTimeOut(uint64_t timeoutInMS) {
+    lock_t lck{mtx};
+    clientContext->timeoutInMS = timeoutInMS;
 }
 
 std::unique_ptr<QueryResult> Connection::executeWithParams(PreparedStatement* preparedStatement,
@@ -309,6 +314,8 @@ void Connection::bindParametersNoLock(PreparedStatement* preparedStatement,
 
 std::unique_ptr<QueryResult> Connection::executeAndAutoCommitIfNecessaryNoLock(
     PreparedStatement* preparedStatement, uint32_t planIdx) {
+    clientContext->activeQuery = std::make_unique<ActiveQuery>();
+    clientContext->startTimingIfEnabled();
     auto mapper = PlanMapper(
         *database->storageManager, database->memoryManager.get(), database->catalog.get());
     std::unique_ptr<PhysicalPlan> physicalPlan;
@@ -345,9 +352,6 @@ std::unique_ptr<QueryResult> Connection::executeAndAutoCommitIfNecessaryNoLock(
             if (ConnectionTransactionMode::AUTO_COMMIT == transactionMode) {
                 commitNoLock();
             }
-        } catch (InterruptException& exception) {
-            clientContext->interrupted = false;
-            return getQueryResultWithError(exception.what());
         } catch (Exception& exception) { return getQueryResultWithError(exception.what()); }
         executingTimer.stop();
         queryResult->querySummary->executionTime = executingTimer.getElapsedTimeMS();

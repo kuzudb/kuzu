@@ -144,3 +144,10 @@ TEST_F(ApiTest, Interrupt) {
     conn->interrupt();
     longRunningQueryThread.join();
 }
+
+TEST_F(ApiTest, TimeOut) {
+    conn->setQueryTimeOut(1000 /* timeoutInMS */);
+    auto result = conn->query("MATCH (a:person)-[:knows*1..28]->(b:person) RETURN COUNT(*);");
+    ASSERT_FALSE(result->isSuccess());
+    ASSERT_EQ(result->getErrorMessage(), "Interrupted.");
+}

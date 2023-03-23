@@ -13,9 +13,9 @@ namespace main {
  */
 class PreparedStatement {
     friend class Connection;
-    friend class kuzu::testing::TestHelper;
-    friend class kuzu::transaction::TinySnbDDLTest;
-    friend class kuzu::transaction::TinySnbCopyCSVTransactionTest;
+    friend class testing::TestHelper;
+    friend class testing::TinySnbDDLTest;
+    friend class testing::TinySnbCopyCSVTransactionTest;
 
 public:
     /**

@@ -2,11 +2,21 @@
 
 #include <atomic>
 #include <cstdint>
+#include <memory>
 
 #include "common/api.h"
+#include "common/timer.h"
+#include "main/kuzu_fwd.h"
 
 namespace kuzu {
 namespace main {
+
+struct ActiveQuery {
+    explicit ActiveQuery();
+
+    std::atomic<bool> interrupted;
+    common::Timer timer;
+};
 
 /**
  * @brief Contain client side configuration. We make profiler associated per query, so profiler is
@@ -14,25 +24,30 @@ namespace main {
  */
 class ClientContext {
     friend class Connection;
+    friend class testing::TinySnbDDLTest;
+    friend class testing::TinySnbCopyCSVTransactionTest;
 
 public:
-    /**
-     * @brief Constructs the ClientContext object.
-     */
-    KUZU_API explicit ClientContext();
-    /**
-     * @brief Deconstructs the ClientContext object.
-     */
-    KUZU_API ~ClientContext() = default;
+    explicit ClientContext();
 
-    /**
-     * @brief Returns whether the current query is interrupted or not.
-     */
-    KUZU_API bool isInterrupted() const { return interrupted; }
+    ~ClientContext() = default;
+
+    inline void interrupt() { activeQuery->interrupted = true; }
+
+    bool isInterrupted() const { return activeQuery->interrupted; }
+
+    inline bool isTimeOut() { return activeQuery->timer.getElapsedTimeInMS() > timeoutInMS; }
+
+    inline bool isTimeOutEnabled() const { return timeoutInMS != 0; }
+
+    inline uint64_t getTimeOutMS() const { return timeoutInMS; }
+
+    void startTimingIfEnabled();
 
 private:
     uint64_t numThreadsForExecution;
-    std::atomic<bool> interrupted;
+    std::unique_ptr<ActiveQuery> activeQuery;
+    uint64_t timeoutInMS;
 };
 
 } // namespace main
