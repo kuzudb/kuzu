@@ -1,9 +1,9 @@
 -NAME node1
--QUERY MATCH (a:person) RETURN COUNT(*)
+-QUERY MATCH (a:person /* returns all person */) RETURN COUNT(*)
 ---- 1
 8
 
 -NAME node2
--QUERY MATCH (a:organisation) RETURN COUNT(*)
+-QUERY MATCH (a:organisation) RETURN COUNT(*) --Returns the total number of nodes in organisation
 ---- 1
 3
