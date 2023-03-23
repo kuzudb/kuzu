@@ -262,8 +262,11 @@ void JoinOrderEnumerator::planWCOJoin(const SubqueryGraph& subgraph,
         relSubgraph.addQueryRel(relPos);
         assert(context->subPlansTable->containSubgraphPlans(relSubgraph));
         auto& relPlanCandidates = context->subPlansTable->getSubgraphPlans(relSubgraph);
-        assert(relPlanCandidates.size() == 2); // 2 directions
-        relPlans.push_back(getWCOJBuildPlanForRel(relPlanCandidates, *boundNode));
+        auto relPlan = getWCOJBuildPlanForRel(relPlanCandidates, *boundNode);
+        if (relPlan == nullptr) { // Cannot find a suitable rel plan.
+            return;
+        }
+        relPlans.push_back(std::move(relPlan));
     }
     auto predicates =
         getNewlyMatchedExpressions(prevSubgraphs, newSubgraph, context->getWhereExpressions());

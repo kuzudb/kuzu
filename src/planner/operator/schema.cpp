@@ -107,43 +107,6 @@ size_t Schema::getNumGroups(bool isFlat) const {
     return result;
 }
 
-std::size_t SchemaHasher::operator()(const Schema* const& schema) const {
-    return std::hash<size_t>{}(schema->getNumFlatGroups()) ^
-           std::hash<size_t>{}(schema->getNumUnFlatGroups());
-}
-
-// We use this equality in join order enumeration to make sure at each DP level, we don't just keep
-// the best plan, but keep best plan for each unique factorization schema.
-// In order to balance enumeration time, we use an approximate equality check to reduce computation.
-// We check the following
-// - number of factorization groups
-// - number of unFlat factorization groups
-// - number of expressions
-// - if an expression has the same flat/unFlat flag in both schemas
-bool SchemaApproximateEquality::operator()(
-    const Schema* const& left, const Schema* const& right) const {
-    if (left->getNumGroups() != right->getNumGroups()) {
-        return false;
-    }
-    if (left->getNumUnFlatGroups() != right->getNumUnFlatGroups()) {
-        return false;
-    }
-    if (left->getExpressionsInScope().size() != right->getExpressionsInScope().size()) {
-        return false;
-    }
-    for (auto& expression : left->getExpressionsInScope()) {
-        if (!right->isExpressionInScope(*expression)) {
-            return false;
-        }
-        auto leftGroupPos = left->getGroupPos(*expression);
-        auto rightGroupPos = right->getGroupPos(*expression);
-        if (left->getGroup(leftGroupPos)->isFlat() != right->getGroup(rightGroupPos)->isFlat()) {
-            return false;
-        }
-    }
-    return true;
-}
-
 std::vector<binder::expression_vector> SchemaUtils::getExpressionsPerGroup(
     const binder::expression_vector& expressions, const Schema& schema) {
     std::vector<binder::expression_vector> result;

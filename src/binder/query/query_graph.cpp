@@ -5,9 +5,9 @@ namespace binder {
 
 std::size_t SubqueryGraphHasher::operator()(const SubqueryGraph& key) const {
     if (0 == key.queryRelsSelector.count()) {
-        return std::hash<std::bitset<MAX_NUM_VARIABLES>>{}(key.queryNodesSelector);
+        return std::hash<std::bitset<MAX_NUM_QUERY_VARIABLES>>{}(key.queryNodesSelector);
     }
-    return std::hash<std::bitset<MAX_NUM_VARIABLES>>{}(key.queryRelsSelector);
+    return std::hash<std::bitset<MAX_NUM_QUERY_VARIABLES>>{}(key.queryRelsSelector);
 }
 
 bool SubqueryGraph::containAllVariables(std::unordered_set<std::string>& variables) const {
