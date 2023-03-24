@@ -89,3 +89,10 @@ describe("SETMAXTHREADS", function () {
         }
     });
 });
+
+describe("GETNODEPROPERTYNAMES", function () {
+    it('decrease max threads', function () {
+        conn.setMaxNumThreadForExec(2);
+    });
+
+});
