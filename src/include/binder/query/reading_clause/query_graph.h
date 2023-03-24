@@ -8,7 +8,7 @@
 namespace kuzu {
 namespace binder {
 
-const uint8_t MAX_NUM_VARIABLES = 64;
+constexpr static uint8_t MAX_NUM_QUERY_VARIABLES = 64;
 
 class QueryGraph;
 struct SubqueryGraph;
@@ -25,8 +25,8 @@ struct SubqueryGraphHasher {
 struct SubqueryGraph {
 
     const QueryGraph& queryGraph;
-    std::bitset<MAX_NUM_VARIABLES> queryNodesSelector;
-    std::bitset<MAX_NUM_VARIABLES> queryRelsSelector;
+    std::bitset<MAX_NUM_QUERY_VARIABLES> queryNodesSelector;
+    std::bitset<MAX_NUM_QUERY_VARIABLES> queryRelsSelector;
 
     explicit SubqueryGraph(const QueryGraph& queryGraph) : queryGraph{queryGraph} {}
 
