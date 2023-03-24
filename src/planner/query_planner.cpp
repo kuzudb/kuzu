@@ -187,7 +187,7 @@ void QueryPlanner::planOptionalMatch(const QueryGraphCollection& queryGraphColle
         auto innerPlans = joinOrderEnumerator.enumerate(queryGraphCollection, predicates);
         auto bestInnerPlan = getBestPlan(std::move(innerPlans));
         joinOrderEnumerator.exitSubquery(std::move(prevContext));
-        JoinOrderEnumerator::planLeftHashJoin(joinNodeIDs, outerPlan, *bestInnerPlan);
+        joinOrderEnumerator.planLeftHashJoin(joinNodeIDs, outerPlan, *bestInnerPlan);
     } else {
         throw NotImplementedException("Correlated optional match is not supported.");
     }
@@ -216,9 +216,9 @@ void QueryPlanner::planRegularMatch(const QueryGraphCollection& queryGraphCollec
     joinOrderEnumerator.exitSubquery(std::move(prevContext));
     auto bestPlan = getBestPlan(std::move(plans));
     if (joinNodeIDs.empty()) {
-        JoinOrderEnumerator::planCrossProduct(prevPlan, *bestPlan);
+        joinOrderEnumerator.planCrossProduct(prevPlan, *bestPlan);
     } else {
-        JoinOrderEnumerator::planInnerHashJoin(joinNodeIDs, prevPlan, *bestPlan);
+        joinOrderEnumerator.planInnerHashJoin(joinNodeIDs, prevPlan, *bestPlan);
     }
     for (auto& predicate : predicatesToPullUp) {
         appendFilter(predicate, prevPlan);
@@ -243,7 +243,7 @@ void QueryPlanner::planExistsSubquery(
         auto bestInnerPlan = getBestPlan(
             joinOrderEnumerator.enumerate(*subquery->getQueryGraphCollection(), predicates));
         joinOrderEnumerator.exitSubquery(std::move(prevContext));
-        JoinOrderEnumerator::planMarkJoin(joinNodeIDs, expression, outerPlan, *bestInnerPlan);
+        joinOrderEnumerator.planMarkJoin(joinNodeIDs, expression, outerPlan, *bestInnerPlan);
     } else {
         throw NotImplementedException("Correlated exists subquery is not supported.");
     }
@@ -302,8 +302,8 @@ void QueryPlanner::appendFlattenIfNecessary(f_group_pos groupPos, LogicalPlan& p
     }
     auto flatten = make_shared<LogicalFlatten>(groupPos, plan.getLastOperator());
     flatten->computeFactorizedSchema();
-    // update cardinality estimation info
-    plan.multiplyCardinality(group->getMultiplier());
+    // update cardinality
+    plan.setCardinality(cardinalityEstimator->estimateFlatten(plan, groupPos));
     plan.setLastOperator(std::move(flatten));
 }
 
@@ -314,28 +314,14 @@ void QueryPlanner::appendFilters(
     }
 }
 
-static bool isPrimaryKey(const Expression& expression) {
-    if (expression.expressionType != common::ExpressionType::PROPERTY) {
-        return false;
-    }
-    return ((PropertyExpression&)expression).isPrimaryKey();
-}
-
 void QueryPlanner::appendFilter(const std::shared_ptr<Expression>& predicate, LogicalPlan& plan) {
     planSubqueryIfNecessary(predicate, plan);
     auto filter = make_shared<LogicalFilter>(predicate, plan.getLastOperator());
     QueryPlanner::appendFlattens(filter->getGroupsPosToFlatten(), plan);
     filter->setChild(0, plan.getLastOperator());
     filter->computeFactorizedSchema();
-    if (predicate->expressionType == common::EQUALS) {
-        if (isPrimaryKey(*predicate->getChild(0)) || isPrimaryKey(*predicate->getChild(1))) {
-            plan.setCardinality(1);
-        } else {
-            plan.multiplyCardinality(EnumeratorKnobs::EQUALITY_PREDICATE_SELECTIVITY);
-        }
-    } else {
-        plan.multiplyCardinality(EnumeratorKnobs::NON_EQUALITY_PREDICATE_SELECTIVITY);
-    }
+    // estimate cardinality
+    plan.setCardinality(cardinalityEstimator->estimateFilter(plan, *predicate));
     plan.setLastOperator(std::move(filter));
 }
 
@@ -363,7 +349,6 @@ std::unique_ptr<LogicalPlan> QueryPlanner::createUnionPlan(
     auto plan = std::make_unique<LogicalPlan>();
     std::vector<std::shared_ptr<LogicalOperator>> children;
     for (auto& childPlan : childrenPlans) {
-        plan->increaseCost(childPlan->getCost());
         children.push_back(childPlan->getLastOperator());
     }
     // we compute the schema based on first child

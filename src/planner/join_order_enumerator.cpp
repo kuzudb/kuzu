@@ -1,12 +1,12 @@
 #include "planner/join_order_enumerator.h"
 
+#include "planner/join_order/cost_model.h"
 #include "planner/logical_plan/logical_operator/logical_cross_product.h"
 #include "planner/logical_plan/logical_operator/logical_extend.h"
 #include "planner/logical_plan/logical_operator/logical_ftable_scan.h"
 #include "planner/logical_plan/logical_operator/logical_hash_join.h"
 #include "planner/logical_plan/logical_operator/logical_intersect.h"
 #include "planner/logical_plan/logical_operator/logical_scan_node.h"
-#include "planner/logical_plan/logical_plan_util.h"
 #include "planner/projection_planner.h"
 #include "planner/query_planner.h"
 
@@ -73,6 +73,7 @@ std::vector<std::unique_ptr<LogicalPlan>> JoinOrderEnumerator::planCrossProduct(
 std::vector<std::unique_ptr<LogicalPlan>> JoinOrderEnumerator::enumerate(
     QueryGraph* queryGraph, expression_vector& predicates) {
     context->init(queryGraph, predicates);
+    queryPlanner->cardinalityEstimator->initNodeIDDom(queryGraph);
     planBaseTableScan();
     context->currentLevel++;
     while (context->currentLevel < context->maxLevel) {
@@ -425,12 +426,7 @@ void JoinOrderEnumerator::appendScanNodeID(
     auto scan = make_shared<LogicalScanNode>(node);
     scan->computeFactorizedSchema();
     // update cardinality
-    auto group = scan->getSchema()->getGroup(node->getInternalIDPropertyName());
-    auto numNodes = 0u;
-    for (auto& tableID : node->getTableIDs()) {
-        numNodes += nodesStatistics.getNodeStatisticsAndDeletedIDs(tableID)->getNumTuples();
-    }
-    group->setMultiplier(numNodes);
+    plan.setCardinality(queryPlanner->cardinalityEstimator->estimateScanNode(scan.get()));
     plan.setLastOperator(std::move(scan));
 }
 
@@ -454,18 +450,18 @@ void JoinOrderEnumerator::appendExtend(std::shared_ptr<NodeExpression> boundNode
     auto extendToNewGroup = needExtendToNewGroup(*rel, *boundNode, direction);
     auto extend = make_shared<LogicalExtend>(
         boundNode, nbrNode, rel, direction, properties, extendToNewGroup, plan.getLastOperator());
-    QueryPlanner::appendFlattens(extend->getGroupsPosToFlatten(), plan);
+    queryPlanner->appendFlattens(extend->getGroupsPosToFlatten(), plan);
     extend->setChild(0, plan.getLastOperator());
     extend->computeFactorizedSchema();
-    plan.setLastOperator(std::move(extend));
-    // update cardinality estimation info
+    // update cost
+    plan.setCost(CostModel::computeExtendCost(plan));
+    // update cardinality. Note that extend does not change cardinality.
     if (extendToNewGroup) {
-        auto extensionRate = getExtensionRate(*rel, *boundNode, direction);
-        plan.getSchema()
-            ->getGroup(nbrNode->getInternalIDPropertyName())
-            ->setMultiplier(extensionRate);
+        auto group = extend->getSchema()->getGroup(nbrNode->getInternalIDProperty());
+        group->setMultiplier(
+            queryPlanner->cardinalityEstimator->getExtensionRate(*rel, *boundNode));
     }
-    plan.increaseCost(plan.getCardinality());
+    plan.setLastOperator(std::move(extend));
 }
 
 void JoinOrderEnumerator::planJoin(const expression_vector& joinNodeIDs, JoinType joinType,
@@ -491,18 +487,17 @@ void JoinOrderEnumerator::appendHashJoin(const expression_vector& joinNodeIDs, J
         joinNodeIDs, joinType, probePlan.getLastOperator(), buildPlan.getLastOperator());
     // Apply flattening to probe side
     auto groupsPosToFlattenOnProbeSide = hashJoin->getGroupsPosToFlattenOnProbeSide();
-    QueryPlanner::appendFlattens(groupsPosToFlattenOnProbeSide, probePlan);
+    queryPlanner->appendFlattens(groupsPosToFlattenOnProbeSide, probePlan);
     hashJoin->setChild(0, probePlan.getLastOperator());
     // Apply flattening to build side
-    QueryPlanner::appendFlattens(hashJoin->getGroupsPosToFlattenOnBuildSide(), buildPlan);
+    queryPlanner->appendFlattens(hashJoin->getGroupsPosToFlattenOnBuildSide(), buildPlan);
     hashJoin->setChild(1, buildPlan.getLastOperator());
     hashJoin->computeFactorizedSchema();
-    probePlan.increaseCost(probePlan.getCardinality() + buildPlan.getCardinality());
-    if (!groupsPosToFlattenOnProbeSide.empty()) {
-        probePlan.multiplyCardinality(
-            buildPlan.getCardinality() * EnumeratorKnobs::EQUALITY_PREDICATE_SELECTIVITY);
-        probePlan.multiplyCost(EnumeratorKnobs::FLAT_PROBE_PENALTY);
-    }
+    // update cost
+    probePlan.setCost(CostModel::computeHashJoinCost(joinNodeIDs, probePlan, buildPlan));
+    // update cardinality
+    probePlan.setCardinality(
+        queryPlanner->cardinalityEstimator->estimateHashJoin(joinNodeIDs, probePlan, buildPlan));
     probePlan.setLastOperator(std::move(hashJoin));
 }
 
@@ -511,13 +506,14 @@ void JoinOrderEnumerator::appendMarkJoin(const expression_vector& joinNodeIDs,
     auto hashJoin = make_shared<LogicalHashJoin>(
         joinNodeIDs, mark, probePlan.getLastOperator(), buildPlan.getLastOperator());
     // Apply flattening to probe side
-    QueryPlanner::appendFlattens(hashJoin->getGroupsPosToFlattenOnProbeSide(), probePlan);
+    queryPlanner->appendFlattens(hashJoin->getGroupsPosToFlattenOnProbeSide(), probePlan);
     hashJoin->setChild(0, probePlan.getLastOperator());
     // Apply flattening to build side
-    QueryPlanner::appendFlattens(hashJoin->getGroupsPosToFlattenOnBuildSide(), buildPlan);
+    queryPlanner->appendFlattens(hashJoin->getGroupsPosToFlattenOnBuildSide(), buildPlan);
     hashJoin->setChild(1, buildPlan.getLastOperator());
     hashJoin->computeFactorizedSchema();
-    probePlan.increaseCost(probePlan.getCardinality() + buildPlan.getCardinality());
+    // update cost. Mark join does not change cardinality.
+    probePlan.setCost(CostModel::computeMarkJoinCost(joinNodeIDs, probePlan, buildPlan));
     probePlan.setLastOperator(std::move(hashJoin));
 }
 
@@ -533,14 +529,19 @@ void JoinOrderEnumerator::appendIntersect(const std::shared_ptr<Expression>& int
     }
     auto intersect = make_shared<LogicalIntersect>(intersectNodeID, std::move(keyNodeIDs),
         probePlan.getLastOperator(), std::move(buildChildren));
-    QueryPlanner::appendFlattens(intersect->getGroupsPosToFlattenOnProbeSide(), probePlan);
+    queryPlanner->appendFlattens(intersect->getGroupsPosToFlattenOnProbeSide(), probePlan);
     intersect->setChild(0, probePlan.getLastOperator());
     for (auto i = 0u; i < buildPlans.size(); ++i) {
-        QueryPlanner::appendFlattens(
+        queryPlanner->appendFlattens(
             intersect->getGroupsPosToFlattenOnBuildSide(i), *buildPlans[i]);
         intersect->setChild(i + 1, buildPlans[i]->getLastOperator());
     }
     intersect->computeFactorizedSchema();
+    // update cost
+    probePlan.setCost(CostModel::computeIntersectCost(probePlan, buildPlans));
+    // update cardinality
+    probePlan.setCardinality(
+        queryPlanner->cardinalityEstimator->estimateIntersect(boundNodeIDs, probePlan, buildPlans));
     probePlan.setLastOperator(std::move(intersect));
 }
 
@@ -548,25 +549,12 @@ void JoinOrderEnumerator::appendCrossProduct(LogicalPlan& probePlan, LogicalPlan
     auto crossProduct =
         make_shared<LogicalCrossProduct>(probePlan.getLastOperator(), buildPlan.getLastOperator());
     crossProduct->computeFactorizedSchema();
-    probePlan.increaseCost(probePlan.getCardinality() + buildPlan.getCardinality());
+    // update cost
+    probePlan.setCost(probePlan.getCardinality() + buildPlan.getCardinality());
+    // update cardinality
+    probePlan.setCardinality(
+        queryPlanner->cardinalityEstimator->estimateCrossProduct(probePlan, buildPlan));
     probePlan.setLastOperator(std::move(crossProduct));
-}
-
-uint64_t JoinOrderEnumerator::getExtensionRate(
-    const RelExpression& rel, const NodeExpression& boundNode, RelDirection direction) {
-    double numBoundNodes = 0;
-    double numRels = 0;
-    for (auto boundNodeTableID : boundNode.getTableIDs()) {
-        numBoundNodes +=
-            nodesStatistics.getNodeStatisticsAndDeletedIDs(boundNodeTableID)->getNumTuples();
-        for (auto relTableID : rel.getTableIDs()) {
-            auto relStatistic = (storage::RelStatistics*)relsStatistics.getReadOnlyVersion()
-                                    ->tableStatisticPerTable[relTableID]
-                                    .get();
-            numRels += relStatistic->getNumTuples();
-        }
-    }
-    return ceil(numRels / numBoundNodes);
 }
 
 expression_vector JoinOrderEnumerator::getNewlyMatchedExpressions(

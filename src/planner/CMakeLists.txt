@@ -1,3 +1,4 @@
+add_subdirectory(join_order)
 add_subdirectory(operator)
 
 add_library(kuzu_planner

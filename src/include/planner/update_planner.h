@@ -10,9 +10,11 @@
 namespace kuzu {
 namespace planner {
 
+class QueryPlanner;
+
 class UpdatePlanner {
 public:
-    UpdatePlanner() = default;
+    UpdatePlanner(QueryPlanner* queryPlanner) : queryPlanner{queryPlanner} {};
 
     inline void planUpdatingClause(binder::BoundUpdatingClause& updatingClause,
         std::vector<std::unique_ptr<LogicalPlan>>& plans) {
@@ -43,6 +45,9 @@ private:
         LogicalPlan& plan);
     void appendDeleteRel(
         const std::vector<std::shared_ptr<binder::RelExpression>>& deleteRels, LogicalPlan& plan);
+
+private:
+    QueryPlanner* queryPlanner;
 };
 
 } // namespace planner

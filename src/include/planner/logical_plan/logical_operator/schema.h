@@ -13,6 +13,7 @@ constexpr f_group_pos INVALID_F_GROUP_POS = UINT32_MAX;
 
 class FactorizationGroup {
     friend class Schema;
+    friend class CardinalityEstimator;
 
 public:
     FactorizationGroup() : flat{false}, singleState{false}, cardinalityMultiplier{1} {}
@@ -33,8 +34,8 @@ public:
     }
     inline bool isSingleState() const { return singleState; }
 
-    inline void setMultiplier(uint64_t multiplier) { cardinalityMultiplier = multiplier; }
-    inline uint64_t getMultiplier() const { return cardinalityMultiplier; }
+    inline void setMultiplier(double multiplier) { cardinalityMultiplier = multiplier; }
+    inline double getMultiplier() const { return cardinalityMultiplier; }
 
     inline void insertExpression(const std::shared_ptr<binder::Expression>& expression) {
         assert(!expressionNameToPos.contains(expression->getUniqueName()));
@@ -50,7 +51,7 @@ public:
 private:
     bool flat;
     bool singleState;
-    uint64_t cardinalityMultiplier;
+    double cardinalityMultiplier;
     binder::expression_vector expressions;
     std::unordered_map<std::string, uint32_t> expressionNameToPos;
 };

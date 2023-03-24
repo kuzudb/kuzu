@@ -3,6 +3,7 @@
 #include "binder/bound_statement.h"
 #include "binder/expression/existential_subquery_expression.h"
 #include "join_order_enumerator.h"
+#include "planner/join_order/cardinality_estimator.h"
 #include "projection_planner.h"
 #include "update_planner.h"
 
@@ -13,14 +14,14 @@ class QueryPlanner {
     friend class JoinOrderEnumerator;
     friend class ProjectionPlanner;
     friend class UpdatePlanner;
-    friend class ASPOptimizer;
 
 public:
     explicit QueryPlanner(const catalog::Catalog& catalog,
         const storage::NodesStatisticsAndDeletedIDs& nodesStatistics,
         const storage::RelsStatistics& relsStatistics)
-        : catalog{catalog}, joinOrderEnumerator{catalog, nodesStatistics, relsStatistics, this},
-          projectionPlanner{this}, updatePlanner{} {}
+        : catalog{catalog}, cardinalityEstimator{std::make_unique<CardinalityEstimator>(
+                                nodesStatistics, relsStatistics)},
+          joinOrderEnumerator{catalog, this}, projectionPlanner{this}, updatePlanner{this} {}
 
     std::vector<std::unique_ptr<LogicalPlan>> getAllPlans(const BoundStatement& boundStatement);
 
@@ -52,16 +53,16 @@ private:
     void planExistsSubquery(std::shared_ptr<Expression>& subquery, LogicalPlan& outerPlan);
     void planSubqueryIfNecessary(const std::shared_ptr<Expression>& expression, LogicalPlan& plan);
 
-    static void appendAccumulate(LogicalPlan& plan);
+    void appendAccumulate(LogicalPlan& plan);
 
-    static void appendExpressionsScan(const expression_vector& expressions, LogicalPlan& plan);
+    void appendExpressionsScan(const expression_vector& expressions, LogicalPlan& plan);
 
-    static void appendDistinct(const expression_vector& expressionsToDistinct, LogicalPlan& plan);
+    void appendDistinct(const expression_vector& expressionsToDistinct, LogicalPlan& plan);
 
-    static void appendUnwind(BoundUnwindClause& boundUnwindClause, LogicalPlan& plan);
+    void appendUnwind(BoundUnwindClause& boundUnwindClause, LogicalPlan& plan);
 
-    static void appendFlattens(const f_group_pos_set& groupsPos, LogicalPlan& plan);
-    static void appendFlattenIfNecessary(f_group_pos groupPos, LogicalPlan& plan);
+    void appendFlattens(const f_group_pos_set& groupsPos, LogicalPlan& plan);
+    void appendFlattenIfNecessary(f_group_pos groupPos, LogicalPlan& plan);
 
     void appendFilters(const binder::expression_vector& predicates, LogicalPlan& plan);
     void appendFilter(const std::shared_ptr<Expression>& predicate, LogicalPlan& plan);
@@ -82,6 +83,7 @@ private:
 
 private:
     const catalog::Catalog& catalog;
+    std::unique_ptr<CardinalityEstimator> cardinalityEstimator;
     expression_vector propertiesToScan;
     JoinOrderEnumerator joinOrderEnumerator;
     ProjectionPlanner projectionPlanner;

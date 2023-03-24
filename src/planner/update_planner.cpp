@@ -20,20 +20,20 @@ void UpdatePlanner::planUpdatingClause(BoundUpdatingClause& updatingClause, Logi
             for (auto& setItem : createClause.getAllSetItems()) {
                 expressions.push_back(setItem.second);
             }
-            QueryPlanner::appendExpressionsScan(expressions, plan);
+            queryPlanner->appendExpressionsScan(expressions, plan);
         } else {
-            QueryPlanner::appendAccumulate(plan);
+            queryPlanner->appendAccumulate(plan);
         }
         planCreate((BoundCreateClause&)updatingClause, plan);
         return;
     }
     case ClauseType::SET: {
-        QueryPlanner::appendAccumulate(plan);
+        queryPlanner->appendAccumulate(plan);
         planSet((BoundSetClause&)updatingClause, plan);
         return;
     }
     case ClauseType::DELETE: {
-        QueryPlanner::appendAccumulate(plan);
+        queryPlanner->appendAccumulate(plan);
         planDelete((BoundDeleteClause&)updatingClause, plan);
         return;
     }
@@ -66,7 +66,7 @@ void UpdatePlanner::appendCreateNode(
     }
     auto createNode = make_shared<LogicalCreateNode>(
         std::move(nodes), std::move(primaryKeys), plan.getLastOperator());
-    QueryPlanner::appendFlattens(createNode->getGroupsPosToFlatten(), plan);
+    queryPlanner->appendFlattens(createNode->getGroupsPosToFlatten(), plan);
     createNode->setChild(0, plan.getLastOperator());
     createNode->computeFactorizedSchema();
     plan.setLastOperator(createNode);
@@ -83,7 +83,7 @@ void UpdatePlanner::appendCreateRel(
     }
     auto createRel = make_shared<LogicalCreateRel>(
         std::move(rels), std::move(setItemsPerRel), plan.getLastOperator());
-    QueryPlanner::appendFlattens(createRel->getGroupsPosToFlatten(), plan);
+    queryPlanner->appendFlattens(createRel->getGroupsPosToFlatten(), plan);
     createRel->setChild(0, plan.getLastOperator());
     createRel->computeFactorizedSchema();
     plan.setLastOperator(createRel);
@@ -114,13 +114,13 @@ void UpdatePlanner::appendSetNodeProperty(
         auto rhsDependentGroupsPos = plan.getSchema()->getDependentGroupsPos(rhs);
         auto rhsGroupsPosToFlatten = factorization::FlattenAllButOne::getGroupsPosToFlatten(
             rhsDependentGroupsPos, plan.getSchema());
-        QueryPlanner::appendFlattens(rhsGroupsPosToFlatten, plan);
+        queryPlanner->appendFlattens(rhsGroupsPosToFlatten, plan);
         // flatten lhs if needed
         auto lhsGroupPos = plan.getSchema()->getGroupPos(*lhsNodeID);
         auto rhsLeadingGroupPos =
             SchemaUtils::getLeadingGroupPos(rhsDependentGroupsPos, *plan.getSchema());
         if (lhsGroupPos != rhsLeadingGroupPos) {
-            QueryPlanner::appendFlattenIfNecessary(lhsGroupPos, plan);
+            queryPlanner->appendFlattenIfNecessary(lhsGroupPos, plan);
         }
     }
     auto setNodeProperty = make_shared<LogicalSetNodeProperty>(
@@ -140,7 +140,7 @@ void UpdatePlanner::appendSetRelProperty(
     auto setRelProperty = make_shared<LogicalSetRelProperty>(
         std::move(rels), std::move(setItems), plan.getLastOperator());
     for (auto i = 0u; i < setRelProperty->getNumRels(); ++i) {
-        QueryPlanner::appendFlattens(setRelProperty->getGroupsPosToFlatten(i), plan);
+        queryPlanner->appendFlattens(setRelProperty->getGroupsPosToFlatten(i), plan);
         setRelProperty->setChild(0, plan.getLastOperator());
     }
     setRelProperty->computeFactorizedSchema();
@@ -174,7 +174,7 @@ void UpdatePlanner::appendDeleteRel(
     const std::vector<std::shared_ptr<RelExpression>>& deleteRels, LogicalPlan& plan) {
     auto deleteRel = make_shared<LogicalDeleteRel>(deleteRels, plan.getLastOperator());
     for (auto i = 0u; i < deleteRel->getNumRels(); ++i) {
-        QueryPlanner::appendFlattens(deleteRel->getGroupsPosToFlatten(i), plan);
+        queryPlanner->appendFlattens(deleteRel->getGroupsPosToFlatten(i), plan);
         deleteRel->setChild(0, plan.getLastOperator());
     }
     deleteRel->computeFactorizedSchema();

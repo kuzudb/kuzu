@@ -1,4 +1,5 @@
 #include "graph_test/graph_test.h"
+#include "planner/logical_plan/logical_plan_util.h"
 
 namespace kuzu {
 namespace testing {
@@ -7,6 +8,10 @@ class OptimizerTest : public DBTest {
 public:
     std::string getInputDir() override {
         return TestHelper::appendKuzuRootPath("dataset/tinysnb/");
+    }
+
+    std::string getEncodedPlan(const std::string& query) {
+        return planner::LogicalPlanUtil::encodeJoin(*TestHelper::getLogicalPlan(query, *conn));
     }
 
     std::shared_ptr<planner::LogicalOperator> getRoot(const std::string& query) {
@@ -61,6 +66,24 @@ TEST_F(OptimizerTest, ProjectionPushDownJoinTest) {
     ASSERT_EQ(op->getOperatorType(), planner::LogicalOperatorType::HASH_JOIN);
     op = op->getChild(1);
     ASSERT_EQ(op->getOperatorType(), planner::LogicalOperatorType::PROJECTION);
+}
+
+TEST_F(OptimizerTest, JoinOrderTest1) {
+    auto encodedPlan = getEncodedPlan("MATCH (a:person)-[e:knows]->(b:person) RETURN a.ID, b.ID;");
+    ASSERT_STREQ(encodedPlan.c_str(), "HJ(b._id){E(b)S(a)}{S(b)}");
+}
+
+TEST_F(OptimizerTest, JoinOrderTest2) {
+    auto encodedPlan = getEncodedPlan(
+        "MATCH (a:person)-[e:knows]->(b:person)-[:knows]->(c:person) RETURN a.ID, b.ID, c.ID;");
+    ASSERT_STREQ(encodedPlan.c_str(), "HJ(c._id){HJ(a._id){E(c)E(a)S(b)}{S(a)}}{S(c)}");
+}
+
+TEST_F(OptimizerTest, JoinOrderTest3) {
+    auto encodedPlan =
+        getEncodedPlan("MATCH (a:person)-[e:knows]->(b:person)-[:knows]->(c:person), "
+                       "(a)-[:knows]->(c) RETURN a.ID, b.ID;");
+    ASSERT_STREQ(encodedPlan.c_str(), "I(c._id){HJ(b._id){E(b)S(a)}{S(b)}}{E(c)S(a)}{E(c)S(b)}");
 }
 
 } // namespace testing
