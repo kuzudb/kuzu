@@ -44,6 +44,7 @@ const initTests = async () => {
     `COPY organisation FROM "../../dataset/tinysnb/vOrganisation.csv"`
   );
   await conn.execute(`COPY workAt FROM "../../dataset/tinysnb/eWorkAt.csv"`);
+  global.dbPath = dbPath
   global.db = db;
   global.conn = conn;
 };
