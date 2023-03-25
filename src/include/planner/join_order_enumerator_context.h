@@ -13,9 +13,9 @@ class JoinOrderEnumeratorContext {
 public:
     JoinOrderEnumeratorContext()
         : currentLevel{0}, maxLevel{0}, subPlansTable{std::make_unique<SubPlansTable>()},
-          queryGraph{nullptr}, outerPlan{nullptr} {}
+          queryGraph{nullptr} {}
 
-    void init(QueryGraph* queryGraph, expression_vector& predicates);
+    void init(QueryGraph* queryGraph, const expression_vector& predicates);
 
     inline expression_vector getWhereExpressions() { return whereExpressionsSplitOnAND; }
 
@@ -55,8 +55,6 @@ private:
     std::unique_ptr<SubPlansTable> subPlansTable;
     QueryGraph* queryGraph;
 
-    LogicalPlan* outerPlan;
-    expression_vector expressionsToScanFromOuter;
     expression_vector nodeIDsToScanFromInnerAndOuter;
 };
 
