@@ -1,20 +1,20 @@
 #pragma once
 
-#include "copy_structures_arrow.h"
+#include "storage/in_mem_storage_structure/node_in_mem_column.h"
 #include "storage/index/hash_index_builder.h"
 #include "storage/store/nodes_statistics_and_deleted_ids.h"
+#include "table_copier.h"
 
 namespace kuzu {
 namespace storage {
 
-class NodeCopier : public CopyStructuresArrow {
+class NodeCopier : public TableCopier {
 
 public:
     NodeCopier(common::CopyDescription& copyDescription, std::string outputDirectory,
         common::TaskScheduler& taskScheduler, catalog::Catalog& catalog, common::table_id_t tableID,
         NodesStatisticsAndDeletedIDs* nodesStatisticsAndDeletedIDs)
-        : CopyStructuresArrow{copyDescription, std::move(outputDirectory), taskScheduler, catalog,
-              tableID},
+        : TableCopier{copyDescription, std::move(outputDirectory), taskScheduler, catalog, tableID},
           nodesStatisticsAndDeletedIDs{nodesStatisticsAndDeletedIDs} {}
 
 protected:
@@ -29,10 +29,11 @@ protected:
     void saveToFile() override;
 
     template<typename T>
-    static void populatePKIndex(InMemColumn* column, HashIndexBuilder<T>* pkIndex,
-        common::offset_t startOffset, uint64_t numValues);
+    static void populatePKIndex(InMemColumnChunk* chunk, InMemOverflowFile* overflowFile,
+        common::NullMask* nullMask, HashIndexBuilder<T>* pkIndex, common::offset_t startOffset,
+        uint64_t numValues);
 
-    std::unordered_map<common::property_id_t, std::unique_ptr<InMemColumn>> columns;
+    std::unordered_map<common::property_id_t, std::unique_ptr<NodeInMemColumn>> columns;
 
 private:
     template<typename T>
@@ -46,10 +47,12 @@ private:
 
     template<typename T>
     static void putPropsOfLineIntoColumns(
-        std::unordered_map<common::property_id_t, std::unique_ptr<InMemColumn>>& columns,
+        std::unordered_map<uint64_t, std::unique_ptr<InMemColumnChunk>>& chunks,
+        std::unordered_map<common::property_id_t, std::unique_ptr<NodeInMemColumn>>&
+            propertyColumns,
         std::vector<PageByteCursor>& overflowCursors,
-        const std::vector<std::shared_ptr<T>>& arrow_columns, uint64_t nodeOffset,
-        uint64_t bufferOffset, common::CopyDescription& copyDescription);
+        const std::vector<std::shared_ptr<T>>& arrow_columns, common::offset_t nodeOffset,
+        uint64_t blockOffset, common::CopyDescription& copyDescription);
 
     // Concurrent tasks.
     // Note that primaryKeyPropertyIdx is *NOT* the property ID of the primary key property.
@@ -67,6 +70,12 @@ private:
     arrow::Status assignCopyParquetTasks(parquet::arrow::FileReader* parquetReader,
         common::offset_t startOffset, std::string filePath,
         std::unique_ptr<HashIndexBuilder<T>>& pkIndex);
+
+    template<typename T>
+    static void appendPKIndex(InMemColumnChunk* chunk, InMemOverflowFile* overflowFile,
+        common::offset_t offset, HashIndexBuilder<T>* pkIndex) {
+        assert(false);
+    }
 
 private:
     NodesStatisticsAndDeletedIDs* nodesStatisticsAndDeletedIDs;

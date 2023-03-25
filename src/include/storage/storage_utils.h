@@ -24,7 +24,6 @@ struct StorageStructureIDAndFName {
 };
 
 struct PageByteCursor {
-
     PageByteCursor(common::page_idx_t pageIdx, uint16_t offsetInPage)
         : pageIdx{pageIdx}, offsetInPage{offsetInPage} {};
     PageByteCursor() : PageByteCursor{UINT32_MAX, UINT16_MAX} {};
@@ -46,6 +45,18 @@ struct PageElementCursor {
 
     common::page_idx_t pageIdx;
     uint16_t elemPosInPage;
+};
+
+struct CursorUtils {
+    inline static common::page_idx_t getPageIdx(common::offset_t offset, uint64_t numBytesInAPage) {
+        return (common::page_idx_t)(offset / numBytesInAPage);
+    }
+
+    inline static PageElementCursor getPageElementCursor(
+        common::offset_t offset, uint64_t numElementsInAPage) {
+        return PageElementCursor{
+            getPageIdx(offset, numElementsInAPage), (uint16_t)(offset % numElementsInAPage)};
+    }
 };
 
 struct PageUtils {

@@ -15,16 +15,16 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-class CopyNodeNpy : public NodeCopier {
+class NpyNodeCopier : public NodeCopier {
 
 public:
-    CopyNodeNpy(CopyDescription& copyDescription, std::string outputDirectory,
+    NpyNodeCopier(CopyDescription& copyDescription, std::string outputDirectory,
         TaskScheduler& taskScheduler, catalog::Catalog& catalog, table_id_t tableID,
         NodesStatisticsAndDeletedIDs* nodesStatisticsAndDeletedIDs)
         : NodeCopier(copyDescription, outputDirectory, taskScheduler, catalog, tableID,
               nodesStatisticsAndDeletedIDs){};
 
-    ~CopyNodeNpy() = default;
+    ~NpyNodeCopier() override = default;
 
 private:
     void populateColumnsAndLists() override;
@@ -42,7 +42,8 @@ private:
 
     static void batchPopulateColumnsTask(common::property_id_t primaryKeyPropertyIdx,
         uint64_t blockIdx, offset_t startOffset, uint64_t numLinesInCurBlock,
-        HashIndexBuilder<int64_t>* pkIndex, CopyNodeNpy* copier, common::property_id_t propertyIdx);
+        HashIndexBuilder<int64_t>* pkIndex, NpyNodeCopier* copier,
+        common::property_id_t propertyIdx);
 
 private:
     std::unordered_map<common::property_id_t, std::unique_ptr<NpyReader>> npyReaderMap;
