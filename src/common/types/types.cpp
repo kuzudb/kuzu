@@ -63,6 +63,11 @@ std::vector<DataTypeID> DataType::getNumericalTypeIDs() {
     return std::vector<DataTypeID>{INT64, INT32, INT16, DOUBLE, FLOAT};
 }
 
+std::vector<DataTypeID> DataType::getAllValidComparableTypes() {
+    return std::vector<DataTypeID>{
+        BOOL, INT64, INT32, INT16, DOUBLE, FLOAT, DATE, TIMESTAMP, INTERVAL, STRING};
+}
+
 std::vector<DataTypeID> DataType::getAllValidTypeIDs() {
     // TODO(Ziyi): Add FIX_LIST type to allValidTypeID when we support functions on VAR_LIST.
     return std::vector<DataTypeID>{INTERNAL_ID, BOOL, INT64, INT32, INT16, DOUBLE, STRING, DATE,

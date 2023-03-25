@@ -122,7 +122,7 @@ void BuiltInAggregateFunctions::registerAvg() {
 
 void BuiltInAggregateFunctions::registerMin() {
     std::vector<std::unique_ptr<AggregateFunctionDefinition>> definitions;
-    for (auto typeID : std::vector<DataTypeID>{BOOL, INT64, DOUBLE, DATE, STRING}) {
+    for (auto typeID : DataType::getAllValidComparableTypes()) {
         for (auto isDistinct : std::vector<bool>{true, false}) {
             definitions.push_back(std::make_unique<AggregateFunctionDefinition>(MIN_FUNC_NAME,
                 std::vector<DataTypeID>{typeID}, typeID,
@@ -134,7 +134,7 @@ void BuiltInAggregateFunctions::registerMin() {
 
 void BuiltInAggregateFunctions::registerMax() {
     std::vector<std::unique_ptr<AggregateFunctionDefinition>> definitions;
-    for (auto typeID : std::vector<DataTypeID>{BOOL, INT64, DOUBLE, DATE, STRING}) {
+    for (auto typeID : DataType::getAllValidComparableTypes()) {
         for (auto isDistinct : std::vector<bool>{true, false}) {
             definitions.push_back(std::make_unique<AggregateFunctionDefinition>(MAX_FUNC_NAME,
                 std::vector<DataTypeID>{typeID}, typeID,
