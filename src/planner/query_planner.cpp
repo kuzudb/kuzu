@@ -183,8 +183,7 @@ void QueryPlanner::planOptionalMatch(const QueryGraphCollection& queryGraphColle
         // When correlated variables are all NODE IDs, the subquery can be un-nested as left join.
         // Join nodes are scanned twice in both outer and inner. However, we make sure inner table
         // scan only scans node ID and does not scan from storage (i.e. no property scan).
-        auto prevContext = joinOrderEnumerator.enterSubquery(
-            &outerPlan, expression_vector{} /* nothing to scan from outer */, joinNodeIDs);
+        auto prevContext = joinOrderEnumerator.enterSubquery(joinNodeIDs);
         auto innerPlans = joinOrderEnumerator.enumerate(queryGraphCollection, predicates);
         auto bestInnerPlan = getBestPlan(std::move(innerPlans));
         joinOrderEnumerator.exitSubquery(std::move(prevContext));
@@ -212,8 +211,7 @@ void QueryPlanner::planRegularMatch(const QueryGraphCollection& queryGraphCollec
     // Multi-part query is actually CTE and CTE can be considered as a subquery but does not scan
     // from outer (i.e. can always be un-nest). So we plan multi-part query in the same way as
     // planning an un-nest subquery.
-    auto prevContext = joinOrderEnumerator.enterSubquery(
-        &prevPlan, expression_vector{} /* nothing to scan from outer */, joinNodeIDs);
+    auto prevContext = joinOrderEnumerator.enterSubquery(joinNodeIDs);
     auto plans = joinOrderEnumerator.enumerate(queryGraphCollection, predicatesToPushDown);
     joinOrderEnumerator.exitSubquery(std::move(prevContext));
     auto bestPlan = getBestPlan(std::move(plans));
@@ -238,8 +236,7 @@ void QueryPlanner::planExistsSubquery(
     if (ExpressionUtil::allExpressionsHaveDataType(correlatedExpressions, INTERNAL_ID)) {
         auto joinNodeIDs = getJoinNodeIDs(correlatedExpressions);
         // Unnest as mark join. See planOptionalMatch for unnesting logic.
-        auto prevContext = joinOrderEnumerator.enterSubquery(
-            &outerPlan, expression_vector{} /* nothing to scan from outer */, joinNodeIDs);
+        auto prevContext = joinOrderEnumerator.enterSubquery(joinNodeIDs);
         auto predicates = subquery->hasWhereExpression() ?
                               subquery->getWhereExpression()->splitOnAND() :
                               expression_vector{};

@@ -10,26 +10,6 @@ using namespace kuzu::binder;
 namespace kuzu {
 namespace planner {
 
-std::shared_ptr<NodeExpression> LogicalPlanUtil::getSequentialNode(LogicalPlan& plan) {
-    auto pipelineSource = getCurrentPipelineSourceOperator(plan);
-    if (pipelineSource->getOperatorType() != LogicalOperatorType::SCAN_NODE) {
-        // Pipeline source is not ScanNodeID, meaning at least one sink has happened (e.g. HashJoin)
-        // and we loose any sequential guarantees.
-        return nullptr;
-    }
-    return ((LogicalScanNode*)pipelineSource)->getNode();
-}
-
-LogicalOperator* LogicalPlanUtil::getCurrentPipelineSourceOperator(LogicalPlan& plan) {
-    auto op = plan.getLastOperator().get();
-    // Operator with more than one child will be broken into different pipelines.
-    while (op->getNumChildren() == 1) {
-        op = op->getChild(0).get();
-    }
-    assert(op != nullptr);
-    return op;
-}
-
 void LogicalPlanUtil::encodeJoinRecursive(
     LogicalOperator* logicalOperator, std::string& encodeString) {
     switch (logicalOperator->getOperatorType()) {

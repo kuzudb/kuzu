@@ -18,8 +18,6 @@ class JoinOrderEnumeratorContext;
  *      filter push down
  */
 class JoinOrderEnumerator {
-    friend class ASPOptimizer;
-
 public:
     JoinOrderEnumerator(const catalog::Catalog& catalog,
         const storage::NodesStatisticsAndDeletedIDs& nodesStatistics,
@@ -32,8 +30,7 @@ public:
 
     inline void resetState() { context->resetState(); }
 
-    std::unique_ptr<JoinOrderEnumeratorContext> enterSubquery(LogicalPlan* outerPlan,
-        binder::expression_vector expressionsToScan,
+    std::unique_ptr<JoinOrderEnumeratorContext> enterSubquery(
         binder::expression_vector nodeIDsToScanFromInnerAndOuter);
     void exitSubquery(std::unique_ptr<JoinOrderEnumeratorContext> prevContext);
 
@@ -70,13 +67,11 @@ private:
     std::vector<std::unique_ptr<LogicalPlan>> enumerate(
         QueryGraph* queryGraph, binder::expression_vector& predicates);
 
-    void planTableScan();
-
+    void planBaseTableScan();
     void planNodeScan(uint32_t nodePos);
     void planRelScan(uint32_t relPos);
-
-    void planExtendAndFilters(std::shared_ptr<RelExpression> rel, common::RelDirection direction,
-        binder::expression_vector& predicates, LogicalPlan& plan);
+    void appendExtendAndFilter(std::shared_ptr<RelExpression> rel, common::RelDirection direction,
+        const expression_vector& predicates, LogicalPlan& plan);
 
     void planLevel(uint32_t level);
     void planLevelExactly(uint32_t level);
@@ -89,16 +84,14 @@ private:
 
     void planInnerJoin(uint32_t leftLevel, uint32_t rightLevel);
 
-    bool canApplyINLJoin(const SubqueryGraph& subgraph, const SubqueryGraph& otherSubgraph,
-        const std::vector<std::shared_ptr<NodeExpression>>& joinNodes);
-    void planInnerINLJoin(const SubqueryGraph& subgraph, const SubqueryGraph& otherSubgraph,
+    bool tryPlanINLJoin(const SubqueryGraph& subgraph, const SubqueryGraph& otherSubgraph,
         const std::vector<std::shared_ptr<NodeExpression>>& joinNodes);
     void planInnerHashJoin(const SubqueryGraph& subgraph, const SubqueryGraph& otherSubgraph,
         std::vector<std::shared_ptr<NodeExpression>> joinNodes, bool flipPlan);
     // Filter push down for hash join.
     void planFiltersForHashJoin(binder::expression_vector& predicates, LogicalPlan& plan);
 
-    void appendScanNode(std::shared_ptr<NodeExpression>& node, LogicalPlan& plan);
+    void appendScanNodeID(std::shared_ptr<NodeExpression>& node, LogicalPlan& plan);
 
     bool needExtendToNewGroup(
         RelExpression& rel, NodeExpression& boundNode, common::RelDirection direction);
