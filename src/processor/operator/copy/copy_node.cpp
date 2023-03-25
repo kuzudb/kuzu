@@ -9,8 +9,8 @@ namespace processor {
 
 uint64_t CopyNode::executeInternal(
     common::TaskScheduler* taskScheduler, ExecutionContext* executionContext) {
-    auto nodeCSVCopier = make_unique<CopyNodeArrow>(
-        copyDescription, wal->getDirectory(), *taskScheduler, *catalog, tableID, nodesStatistics);
+    auto nodeCSVCopier = make_unique<CopyNodeArrow>(copyDescription, wal->getDirectory(),
+        *taskScheduler, *catalog, tableID, nodesStatistics, executionContext->bufferManager);
     auto numNodesCopied = nodeCSVCopier->copy();
     for (auto& relTableSchema : catalog->getAllRelTableSchemasContainBoundTable(tableID)) {
         relsStore.getRelTable(relTableSchema->tableID)

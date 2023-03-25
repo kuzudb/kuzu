@@ -1,7 +1,6 @@
 #include "storage/copy_arrow/copy_node_arrow.h"
 
 #include "storage/copy_arrow/copy_task.h"
-#include "storage/storage_structure/in_mem_file.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
@@ -15,8 +14,8 @@ void CopyNodeArrow::initializeColumnsAndLists() {
     for (auto& property : tableSchema->properties) {
         auto fName = StorageUtils::getNodePropertyColumnFName(
             outputDirectory, tableSchema->tableID, property.propertyID, DBFileType::WAL_VERSION);
-        columns[property.propertyID] =
-            InMemColumnFactory::getInMemPropertyColumn(fName, property.dataType, numRows);
+        columns[property.propertyID] = InMemBMPageCollectionFactory::getInMemBMPageCollection(
+            fName, property.dataType, numRows, bufferManager);
     }
     logger->info("Done initializing in memory columns.");
 }
@@ -44,7 +43,7 @@ void CopyNodeArrow::saveToFile() {
     assert(!columns.empty());
     for (auto& column : columns) {
         taskScheduler.scheduleTask(CopyTaskFactory::createCopyTask(
-            [&](InMemColumn* x) { x->saveToFile(); }, column.get()));
+            [&](BMBackedInMemColumn* x) { x->saveToFile(); }, column.get()));
     }
     taskScheduler.waitAllTasksToCompleteOrError();
     logger->debug("Done writing node columns to disk.");
@@ -99,25 +98,14 @@ arrow::Status CopyNodeArrow::populateColumnsFromParquet(
 }
 
 template<typename T>
-void CopyNodeArrow::populatePKIndex(
-    InMemColumn* column, HashIndexBuilder<T>* pkIndex, offset_t startOffset, uint64_t numValues) {
+void CopyNodeArrow::populatePKIndex(BMBackedInMemColumn* pkColumn, HashIndexBuilder<T>* pkIndex,
+    offset_t startOffset, uint64_t numValues) {
     for (auto i = 0u; i < numValues; i++) {
         auto offset = i + startOffset;
-        if (column->isNullAtNodeOffset(offset)) {
+        if (pkColumn->isNullAtNodeOffset(offset)) {
             throw ReaderException("Primary key cannot be null.");
         }
-        if constexpr (std::is_same<T, int64_t>::value) {
-            auto key = (int64_t*)column->getElement(offset);
-            if (!pkIndex->append(*key, offset)) {
-                throw CopyException(Exception::getExistedPKExceptionMsg(std::to_string(*key)));
-            }
-        } else {
-            auto element = (ku_string_t*)column->getElement(offset);
-            auto key = column->getInMemOverflowFile()->readString(element);
-            if (!pkIndex->append(key.c_str(), offset)) {
-                throw CopyException(Exception::getExistedPKExceptionMsg(key));
-            }
-        }
+        appendPKIndex(pkColumn, offset, pkIndex);
     }
 }
 
@@ -126,27 +114,44 @@ arrow::Status CopyNodeArrow::batchPopulateColumnsTask(uint64_t primaryKeyPropert
     uint64_t blockIdx, uint64_t startOffset, HashIndexBuilder<T1>* pkIndex, CopyNodeArrow* copier,
     const std::vector<std::shared_ptr<T2>>& batchColumns, std::string filePath) {
     copier->logger->trace("Start: path={0} blkIdx={1}", filePath, blockIdx);
-    std::vector<PageByteCursor> overflowCursors(copier->tableSchema->getNumProperties());
     auto numLinesInCurBlock = copier->fileBlockInfos.at(filePath).numLinesPerBlock[blockIdx];
+
+    // Pin each page within the [StartOffset, endOffset] range.
+    auto endOffset = startOffset + numLinesInCurBlock - 1;
+    for (auto& column : copier->columns) {
+        column->pinPagesForNodeOffsets(startOffset, endOffset);
+    }
+    std::vector<PageByteCursor> overflowCursors(copier->tableSchema->getNumProperties());
     for (auto blockOffset = 0u; blockOffset < numLinesInCurBlock; ++blockOffset) {
         putPropsOfLineIntoColumns(copier->columns, overflowCursors, batchColumns,
             startOffset + blockOffset, blockOffset, copier->copyDescription);
     }
+    // Flush each page within the [StartOffset, endOffset] range.
+    for (auto& column : copier->columns) {
+        column->flushPagesForNodeOffsetRange(startOffset, endOffset);
+    }
+
     populatePKIndex(
         copier->columns[primaryKeyPropertyIdx].get(), pkIndex, startOffset, numLinesInCurBlock);
+
+    // Unpin each page within the [StartOffset, endOffset] range.
+    for (auto& column : copier->columns) {
+        column->unpinPagesForNodeOffsetRange(startOffset, endOffset);
+    }
+
     copier->logger->trace("End: path={0} blkIdx={1}", filePath, blockIdx);
     return arrow::Status::OK();
 }
 
 template<typename T>
 void CopyNodeArrow::putPropsOfLineIntoColumns(
-    std::vector<std::unique_ptr<InMemColumn>>& structuredColumns,
+    std::vector<std::unique_ptr<BMBackedInMemColumn>>& propertyColumns,
     std::vector<PageByteCursor>& overflowCursors,
-    const std::vector<std::shared_ptr<T>>& arrow_columns, uint64_t nodeOffset, uint64_t blockOffset,
-    CopyDescription& copyDescription) {
-    for (auto columnIdx = 0u; columnIdx < structuredColumns.size(); columnIdx++) {
-        auto column = structuredColumns[columnIdx].get();
-        auto currentToken = arrow_columns[columnIdx]->GetScalar(blockOffset);
+    const std::vector<std::shared_ptr<T>>& arrow_columns, uint64_t nodeOffset,
+    uint64_t bufferOffset, CopyDescription& copyDescription) {
+    for (auto columnIdx = 0u; columnIdx < propertyColumns.size(); columnIdx++) {
+        auto column = propertyColumns[columnIdx].get();
+        auto currentToken = arrow_columns[columnIdx]->GetScalar(bufferOffset);
         if ((*currentToken)->is_valid) {
             auto stringToken = currentToken->get()->ToString();
             const char* data = stringToken.c_str();
@@ -190,15 +195,17 @@ void CopyNodeArrow::putPropsOfLineIntoColumns(
             case STRING: {
                 stringToken = stringToken.substr(0, BufferPoolConstants::PAGE_4KB_SIZE);
                 data = stringToken.c_str();
-                auto val =
-                    column->getInMemOverflowFile()->copyString(data, overflowCursors[columnIdx]);
+                auto val = reinterpret_cast<BMBackedInMemColumnWithOverflow*>(column)
+                               ->getInMemOverflowFile()
+                               ->copyString(data, overflowCursors[columnIdx]);
                 column->setElement(nodeOffset, reinterpret_cast<uint8_t*>(&val));
             } break;
             case VAR_LIST: {
                 auto varListVal = getArrowVarList(stringToken, 1, stringToken.length() - 2,
                     column->getDataType(), copyDescription);
-                auto kuList = column->getInMemOverflowFile()->copyList(
-                    *varListVal, overflowCursors[columnIdx]);
+                auto kuList = reinterpret_cast<BMBackedInMemColumnWithOverflow*>(column)
+                                  ->getInMemOverflowFile()
+                                  ->copyList(*varListVal, overflowCursors[columnIdx]);
                 column->setElement(nodeOffset, reinterpret_cast<uint8_t*>(&kuList));
             } break;
             case FIXED_LIST: {
@@ -266,6 +273,28 @@ arrow::Status CopyNodeArrow::assignCopyParquetTasks(parquet::arrow::FileReader* 
     }
     taskScheduler.waitAllTasksToCompleteOrError();
     return arrow::Status::OK();
+}
+
+template<>
+void CopyNodeArrow::appendPKIndex(
+    BMBackedInMemColumn* pkColumn, common::offset_t offset, HashIndexBuilder<int64_t>* pkIndex) {
+    auto element = pkColumn->getElement<int64_t>(offset);
+    if (!pkIndex->append(*element, offset)) {
+        throw common::CopyException(
+            common::Exception::getExistedPKExceptionMsg(std::to_string(*element)));
+    }
+}
+
+template<>
+void CopyNodeArrow::appendPKIndex(BMBackedInMemColumn* pkColumn, common::offset_t offset,
+    HashIndexBuilder<common::ku_string_t>* pkIndex) {
+    auto element = pkColumn->getElement<common::ku_string_t>(offset);
+    auto key = reinterpret_cast<BMBackedInMemColumnWithOverflow*>(pkColumn)
+                   ->getInMemOverflowFile()
+                   ->readString(element.get());
+    if (!pkIndex->append(key.c_str(), offset)) {
+        throw common::CopyException(common::Exception::getExistedPKExceptionMsg(key));
+    }
 }
 
 } // namespace storage
