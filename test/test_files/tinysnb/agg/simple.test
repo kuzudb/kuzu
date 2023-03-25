@@ -116,3 +116,52 @@ False
 -PARALLELISM 8
 ---- 1
 [[10,5],[12,8],[4,5],[1,9],[2],[3,4,5,6,7],[1],[10,11,12,3,4,5,6,7]]
+
+-NAME SimpleAggMinTimestampTest
+-QUERY MATCH (a:person) RETURN MIN(a.registerTime)
+-PARALLELISM 8
+-ENUMERATE
+---- 1
+1911-08-20 02:32:21
+
+-NAME SimpleAggMinDateTest
+-QUERY MATCH (a:person) RETURN MIN(a.birthdate)
+-PARALLELISM 7
+-ENUMERATE
+---- 1
+1900-01-01
+
+-NAME SimpleAggMinIntervalTest
+-QUERY MATCH (a:person) RETURN MIN(a.lastJobDuration)
+-PARALLELISM 4
+-ENUMERATE
+---- 1
+00:18:00.024
+
+-NAME SimpleAggMaxFloatTest
+-QUERY MATCH (:person)-[w:workAt]->(:organisation) RETURN MAX(w.rating)
+-PARALLELISM 3
+-ENUMERATE
+---- 1
+9.200000
+
+-NAME SimpleAggMaxInt16Test
+-QUERY MATCH (:person)-[s:studyAt]->(:organisation) RETURN MAX(s.length)
+-PARALLELISM 4
+-ENUMERATE
+---- 1
+55
+
+-NAME SimpleAggSumInt16Test
+-QUERY MATCH (:person)-[s:studyAt]->(:organisation) RETURN SUM(s.length)
+-PARALLELISM 2
+-ENUMERATE
+---- 1
+82
+
+-NAME SimpleAggAvgInt16Test
+-QUERY MATCH (m:movies) RETURN AVG(m.length)
+-PARALLELISM 7
+-ENUMERATE
+---- 1
+989.333333

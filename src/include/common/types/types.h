@@ -81,6 +81,7 @@ public:
     KUZU_API DataType(DataType&& other) noexcept;
 
     static std::vector<DataTypeID> getNumericalTypeIDs();
+    static std::vector<DataTypeID> getAllValidComparableTypes();
     static std::vector<DataTypeID> getAllValidTypeIDs();
 
     KUZU_API DataType& operator=(const DataType& other);

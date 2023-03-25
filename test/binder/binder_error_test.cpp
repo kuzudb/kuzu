@@ -389,9 +389,12 @@ TEST_F(BinderErrorTest, MaxNodeID) {
     std::string expectedException =
         "Binder exception: Cannot match a built-in function for given function MIN(INTERNAL_ID). "
         "Supported inputs are\nDISTINCT (BOOL) -> BOOL\n(BOOL) -> BOOL\nDISTINCT (INT64) -> "
-        "INT64\n(INT64) -> INT64\nDISTINCT (DOUBLE) -> DOUBLE\n(DOUBLE) -> DOUBLE\nDISTINCT "
-        "(DATE) -> DATE\n(DATE) -> DATE\nDISTINCT (STRING) -> STRING\n(STRING) -> "
-        "STRING\n";
+        "INT64\n(INT64) -> INT64\nDISTINCT (INT32) -> INT32\n(INT32) -> INT32\nDISTINCT (INT16) -> "
+        "INT16\n(INT16) -> INT16\nDISTINCT (DOUBLE) -> DOUBLE\n(DOUBLE) -> DOUBLE\nDISTINCT "
+        "(FLOAT) -> FLOAT\n(FLOAT) -> FLOAT\nDISTINCT "
+        "(DATE) -> DATE\n(DATE) -> DATE\nDISTINCT (TIMESTAMP) -> TIMESTAMP\n(TIMESTAMP) -> "
+        "TIMESTAMP\nDISTINCT (INTERVAL) -> INTERVAL\n(INTERVAL) -> INTERVAL\nDISTINCT (STRING) -> "
+        "STRING\n(STRING) -> STRING\n";
     auto input = "MATCH (a:person) RETURN MIN(a);";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }

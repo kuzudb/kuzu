@@ -140,6 +140,17 @@ std::unique_ptr<AggregateFunction> AggregateFunctionUtil::getMinMaxFunction(
             MinMaxFunction<date_t>::updateAll<FUNC>, MinMaxFunction<date_t>::updatePos<FUNC>,
             MinMaxFunction<date_t>::combine<FUNC>, MinMaxFunction<date_t>::finalize, inputType,
             isDistinct);
+    case TIMESTAMP:
+        return std::make_unique<AggregateFunction>(MinMaxFunction<timestamp_t>::initialize,
+            MinMaxFunction<timestamp_t>::updateAll<FUNC>,
+            MinMaxFunction<timestamp_t>::updatePos<FUNC>,
+            MinMaxFunction<timestamp_t>::combine<FUNC>, MinMaxFunction<timestamp_t>::finalize,
+            inputType, isDistinct);
+    case INTERVAL:
+        return std::make_unique<AggregateFunction>(MinMaxFunction<interval_t>::initialize,
+            MinMaxFunction<interval_t>::updateAll<FUNC>,
+            MinMaxFunction<interval_t>::updatePos<FUNC>, MinMaxFunction<interval_t>::combine<FUNC>,
+            MinMaxFunction<interval_t>::finalize, inputType, isDistinct);
     case STRING:
         return std::make_unique<AggregateFunction>(MinMaxFunction<ku_string_t>::initialize,
             MinMaxFunction<ku_string_t>::updateAll<FUNC>,
