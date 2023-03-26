@@ -104,7 +104,7 @@ unordered_map<string, shared_ptr<kuzu::common::Value>> Util::transformParameters
         if (param.Length()!=2) {
             throw runtime_error("Each parameter must be in the form of <name, val>");
         } else if (!param.Get(uint32_t(0)).IsString()) {
-            throw runtime_error("Parameter name must be of type string but get " + param.Get(uint32_t(0)).Type());
+            throw runtime_error("Parameter name must be of type string");
         }
         string name = param.Get(uint32_t(0)).ToString();
         auto transformedVal = transformNapiValue(param.Get(uint32_t(1)));
@@ -136,7 +136,7 @@ kuzu::common::Value Util::transformNapiValue(Napi::Value val) {
         }
        return Value::createValue<timestamp_t>(time);
     } else {
-        throw runtime_error("Unknown parameter type " + val.Type());
+        throw runtime_error("Unknown parameter type");
     }
 }
 

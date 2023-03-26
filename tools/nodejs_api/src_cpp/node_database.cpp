@@ -34,7 +34,7 @@ NodeDatabase::NodeDatabase(const Napi::CallbackInfo& info) : Napi::ObjectWrap<No
     try {
         this->database = make_unique<kuzu::main::Database>(databasePath, systemConfig);
     } catch(const std::exception &exc) {
-        Napi::TypeError::New(env, "Unsuccessful Database Initialization: " + std::string(exc.what())).ThrowAsJavaScriptException();
+        Napi::Error::New(env, "Unsuccessful Database Initialization: " + std::string(exc.what())).ThrowAsJavaScriptException();
     }
 }
 
@@ -47,7 +47,7 @@ void NodeDatabase::ResizeBufferManager(const Napi::CallbackInfo& info) {
     try {
         this->database->resizeBufferManager(bufferSize);
     } catch(const std::exception &exc) {
-        Napi::TypeError::New(env, "Unsuccessful resizeBufferManager: " + std::string(exc.what())).ThrowAsJavaScriptException();
+        Napi::Error::New(env, "Unsuccessful resizeBufferManager: " + std::string(exc.what())).ThrowAsJavaScriptException();
     }
     return;
 }

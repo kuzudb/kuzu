@@ -39,7 +39,7 @@ void NodeQueryResult::Close(const Napi::CallbackInfo& info) {
     try {
         this->queryResult.reset();
     } catch(const std::exception &exc) {
-        Napi::TypeError::New(env, "Unsuccessful queryResult close: " + std::string(exc.what())).ThrowAsJavaScriptException();
+        Napi::Error::New(env, "Unsuccessful queryResult close: " + std::string(exc.what())).ThrowAsJavaScriptException();
     }
 
 }

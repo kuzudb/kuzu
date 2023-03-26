@@ -294,7 +294,10 @@ void Connection::bindParametersNoLock(PreparedStatement* preparedStatement,
             throw Exception("Parameter " + name + " not found.");
         }
         auto expectParam = parameterMap.at(name);
-        if (expectParam->dataType != value->getDataType()) {
+        if (value->getDataType().getTypeID() == DataTypeID::INT64
+            && expectParam->dataType.getTypeID() == DataTypeID::DOUBLE) {
+            value = std::make_shared<Value>(Value::createValue<double>(value->getValue<int64_t>()));
+        } else if (expectParam->dataType != value->getDataType()) {
             throw Exception("Parameter " + name + " has data type " +
                             Types::dataTypeToString(value->getDataType()) + " but expect " +
                             Types::dataTypeToString(expectParam->dataType) + ".");
