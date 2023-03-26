@@ -49,6 +49,10 @@ describe("RESIZEBUFFERMANAGER", function () {
             assert.equal(err.message, "Unsuccessful resizeBufferManager: Buffer manager exception: Resizing to a smaller Buffer Pool Size is unsupported.")
         }
     });
+
+    it('should execute successfully',  function () {
+            db.resizeBufferManager(1 << 29)
+    });
 });
 
 describe("CONNECTION CONSTRUCTOR", function () {
@@ -197,4 +201,88 @@ describe("GETNODEPROPERTYNAMES", function () {
             assert.equal(err.message, "getNodePropertyNames needs a string tableName as an argument");
         }
     });
+});
+
+
+describe("QUERYRESULT CONSTRUCTOR", function () {
+    it('should throw error when invalid queryresult passed in',  function () {
+        try {
+            new kuzu.QueryResult(conn, {});
+        } catch (err) {
+            assert.equal(err.message, "QueryResult constructor requires a 'NodeQueryResult' object as an argument");
+        }
+    });
+
+    it('should throw error when invalid connection passed in',  function () {
+        try {
+            new kuzu.QueryResult({}, {});
+        } catch (err) {
+            assert.equal(err.message, "Connection constructor requires a 'Connection' object as an argument");
+        }
+    });
+});
+
+describe("EACH", function () {
+    it('should throw error when rowCallback to each is invalid', function (done) {
+            conn.execute("MATCH (a:person) RETURN a.isStudent").then(queryResult => {
+                queryResult.each((err) => {
+                    console.log(err);
+                }, () => console.log("done")).catch(err => {
+                    assert.equal(err.message, "all must have 2 callbacks: rowCallback takes 2 arguments: (err, result), doneCallback takes none");
+                    done();
+                });
+            })
+    })
+
+    it('should throw error when doneCallback to each is invalid', function (done) {
+        conn.execute("MATCH (a:person) RETURN a.isStudent").then(queryResult => {
+            queryResult.each((err, result) => {
+                console.log(result);
+            }, (err) => console.log(err)).catch(err => {
+                assert.equal(err.message, "all must have 2 callbacks: rowCallback takes 2 arguments: (err, result), doneCallback takes none");
+                done();
+            });
+        })
+    })
+
+});
+
+describe("ALL", function () {
+    it('should throw error when invalid filed in opts', function (done) {
+        conn.execute("MATCH (a:person) RETURN a.isStudent").then(queryResult => {
+            queryResult.all({'james': {}}).catch(err => {
+                assert.equal(err.message, "opts has at least 1 invalid field: it can only have optional field 'callback'");
+                done();
+            });
+        })
+    })
+
+    it('should throw error when callback has invalid params', function (done) {
+        conn.execute("MATCH (a:person) RETURN a.isStudent").then(queryResult => {
+            queryResult.all({'callback': {function(err) { console.log(err) }}}).catch(err => {
+                assert.equal(err.message, "if execute is given a callback, it must take 2 arguments: (err, result)");
+                done();
+            });
+        })
+    })
+
+    it('should throw error when callback is invalid type', function (done) {
+        conn.execute("MATCH (a:person) RETURN a.isStudent").then(queryResult => {
+            queryResult.all({'callback': 5}).catch(err => {
+                assert.equal(err.message, "if execute is given a callback, it must take 2 arguments: (err, result)");
+                done();
+            });
+        })
+    })
+
+    it('should execute successfully with callback', function (done) {
+        conn.execute("MATCH (a:person) WHERE a.ID = 0 RETURN a.isStudent;").then((queryResult) => {
+            queryResult.all({
+                'callback': function (err, result) {
+                    assert.equal(result[0]["a.isStudent"], true);
+                    done();
+                }
+            });
+        });
+    })
 });

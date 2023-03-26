@@ -37,7 +37,7 @@ class Connection {
         const queryResult = new QueryResult(this, nodeQueryResult);
         if ('callback' in opts) {
             const callback = opts['callback'];
-            if (typeof callback !== "function" || callback.length !== 2){
+            if (typeof callback !== "function" || callback.length !== 2) {
                 throw new Error("if execute is given a callback, it must take 2 arguments: (err, result)");
             }
             this.#connection.execute(query, err => {
