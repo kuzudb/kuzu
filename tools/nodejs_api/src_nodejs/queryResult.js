@@ -49,6 +49,14 @@ class QueryResult {
             }
         })
     }
+
+    getColumnDataTypes() {
+        return this.#queryResult.getColumnDataTypes();
+    }
+
+    getColumnNames() {
+        return this.#queryResult.getColumnNames();
+    }
 }
 
 module.exports = QueryResult

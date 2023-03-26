@@ -21,6 +21,8 @@ class NodeQueryResult: public Napi::ObjectWrap<NodeQueryResult> {
     void Close(const Napi::CallbackInfo& info);
     Napi::Value All(const Napi::CallbackInfo& info);
     Napi::Value Each(const Napi::CallbackInfo& info);
+    Napi::Value GetColumnDataTypes(const Napi::CallbackInfo& info);
+    Napi::Value GetColumnNames(const Napi::CallbackInfo& info);
     shared_ptr<kuzu::main::QueryResult> queryResult;
 };
 

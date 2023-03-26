@@ -18,6 +18,8 @@ Napi::Object NodeQueryResult::Init(Napi::Env env, Napi::Object exports) {
        InstanceMethod("close", &NodeQueryResult::Close),
        InstanceMethod("all", &NodeQueryResult::All),
        InstanceMethod("each", &NodeQueryResult::Each),
+       InstanceMethod("getColumnDataTypes", &NodeQueryResult::All),
+       InstanceMethod("getColumnNames", &NodeQueryResult::Each),
     });
 
     exports.Set("NodeQueryResult", t);
@@ -95,4 +97,30 @@ Napi::Value NodeQueryResult::Each(const Napi::CallbackInfo& info) {
     // Return the deferred's Promise. This Promise is resolved in the thread-safe
     // function's finalizer callback.
     return testData->deferred.Promise();
+}
+
+Napi::Value NodeQueryResult::GetColumnDataTypes(const Napi::CallbackInfo& info) {
+    Napi::Env env = info.Env();
+    Napi::HandleScope scope(env);
+
+    auto columnDataTypes = queryResult->getColumnDataTypes();
+    Napi::Array arr = Napi::Array::New(env, columnDataTypes.size());
+
+    for (auto i = 0u; i < columnDataTypes.size(); ++i) {
+        arr.Set(i, kuzu::common::Types::dataTypeToString(columnDataTypes[i]));
+    }
+    return arr;
+}
+
+Napi::Value NodeQueryResult::GetColumnNames(const Napi::CallbackInfo& info) {
+    Napi::Env env = info.Env();
+    Napi::HandleScope scope(env);
+
+    auto columnNames = queryResult->getColumnNames();
+    Napi::Array arr = Napi::Array::New(env, columnNames.size());
+
+    for (auto i = 0u; i < columnNames.size(); ++i) {
+        arr.Set(i, columnNames[i]);
+    }
+    return arr;
 }
