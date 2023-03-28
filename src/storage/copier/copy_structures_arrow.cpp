@@ -1,4 +1,4 @@
-#include "storage/copy_arrow/copy_structures_arrow.h"
+#include "storage/copier/copy_structures_arrow.h"
 
 #include "common/constants.h"
 #include "storage/storage_structure/lists/lists.h"

@@ -103,6 +103,9 @@ struct CopyConstants {
     // Lower bound for number of incomplete tasks in copier to trigger scheduling a new batch.
     static constexpr uint64_t MINIMUM_NUM_COPIER_TASKS_TO_SCHEDULE_MORE = 50;
 
+    // Number of rows per block for npy files
+    static constexpr uint64_t NUM_ROWS_PER_BLOCK_FOR_NPY = 2048;
+
     // Default configuration for csv file parsing
     static constexpr const char* STRING_CSV_PARSING_OPTIONS[5] = {
         "ESCAPE", "DELIM", "QUOTE", "LIST_BEGIN", "LIST_END"};

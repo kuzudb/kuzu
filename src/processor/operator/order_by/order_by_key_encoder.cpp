@@ -76,12 +76,6 @@ uint32_t OrderByKeyEncoder::getEncodingSize(const DataType& dataType) {
     }
 }
 
-bool OrderByKeyEncoder::isLittleEndian() {
-    // Little endian arch stores the least significant value in the lower bytes.
-    int testNumber = 1;
-    return *(uint8_t*)&testNumber == 1;
-}
-
 void OrderByKeyEncoder::flipBytesIfNecessary(
     uint32_t keyColIdx, uint8_t* tuplePtr, uint32_t numEntriesToEncode, DataType& type) {
     if (!isAscOrder[keyColIdx]) {

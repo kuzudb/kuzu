@@ -1,7 +1,7 @@
-#include "storage/copy_arrow/copy_rel_arrow.h"
+#include "storage/copier/copy_rel_arrow.h"
 
 #include "spdlog/spdlog.h"
-#include "storage/copy_arrow/copy_task.h"
+#include "storage/copier/copy_task.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;

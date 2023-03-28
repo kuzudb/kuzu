@@ -60,6 +60,9 @@ private:
 
     std::vector<std::string> bindFilePaths(const std::vector<std::string>& filePaths);
 
+    std::unordered_map<common::property_id_t, std::string> bindPropertyToNpyMap(
+        common::table_id_t tableId, const std::vector<std::string>& filePaths);
+
     common::CSVReaderConfig bindParsingOptions(
         const std::unordered_map<std::string, std::unique_ptr<parser::ParsedExpression>>*
             parsingOptions);

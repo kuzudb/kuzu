@@ -124,10 +124,29 @@ void TestHelper::executeScript(const std::string& cypherScript, Connection& conn
     std::string line;
     while (getline(file, line)) {
         // If this is a COPY_CSV statement, we need to append the KUZU_ROOT_DIRECTORY to the csv
-        // file path.
-        auto pos = line.find('"');
-        if (pos != std::string::npos) {
-            line.insert(pos + 1, KUZU_ROOT_DIRECTORY + std::string("/"));
+        // file path. There maybe multiple csv files in the line, so we need to find all of them.
+        std::vector<std::string> csvFilePaths;
+        size_t index = 0;
+        while (true) {
+            size_t start = line.find("\"", index);
+            if (start == std::string::npos) {
+                break;
+            }
+            size_t end = line.find("\"", start + 1);
+            std::string substr = line.substr(start + 1, end - start - 1);
+            // convert to lower case
+            auto substrLower = substr;
+            std::transform(substrLower.begin(), substrLower.end(), substrLower.begin(), ::tolower);
+            if (substrLower.find(".csv") != std::string::npos ||
+                substrLower.find(".parquet") != std::string::npos ||
+                substrLower.find(".npy") != std::string::npos) {
+                csvFilePaths.push_back(substr);
+            }
+            index = end + 1;
+        }
+        for (auto& csvFilePath : csvFilePaths) {
+            auto fullPath = appendKuzuRootPath(csvFilePath);
+            line.replace(line.find(csvFilePath), csvFilePath.length(), fullPath);
         }
         std::cout << "Starting to execute query: " << line << std::endl;
         auto result = conn.query(line);

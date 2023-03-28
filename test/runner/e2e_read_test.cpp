@@ -16,6 +16,11 @@ public:
     }
 };
 
+class OneDimNpyReadTest : public DBTest {
+public:
+    std::string getInputDir() override { return TestHelper::appendKuzuRootPath("dataset/npy-1d/"); }
+};
+
 TEST_F(LongStringPKTest, LongStringPKTest) {
     runTest(TestHelper::appendKuzuRootPath("test/test_files/long_string_pk/long_string_pk.test"));
 }
@@ -110,4 +115,8 @@ TEST_F(TinySnbReadTest, VarLengthExtendTests) {
         "test/test_files/tinysnb/var_length_extend/var_length_adj_list_extend.test"));
     runTest(TestHelper::appendKuzuRootPath(
         "test/test_files/tinysnb/var_length_extend/var_length_column_extend.test"));
+}
+
+TEST_F(OneDimNpyReadTest, Match) {
+    runTest(TestHelper::appendKuzuRootPath("test/test_files/npy-1d/match.test"));
 }
