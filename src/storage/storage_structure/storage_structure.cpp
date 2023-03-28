@@ -20,7 +20,7 @@ void StorageStructure::addNewPageToFileHandle() {
         *wal->fileHandle, pageIdxInWAL, BufferManager::PageReadPolicy::DONT_READ_PAGE);
     fileHandle->addWALPageIdxGroupIfNecessary(pageIdxInOriginalFile);
     fileHandle->setWALPageIdx(pageIdxInOriginalFile, pageIdxInWAL);
-    bufferManager.setPinnedPageDirty(*wal->fileHandle, pageIdxInWAL);
+    wal->fileHandle->setLockedPageDirty(pageIdxInWAL);
     bufferManager.unpin(*wal->fileHandle, pageIdxInWAL);
 }
 
@@ -88,21 +88,21 @@ void BaseColumnOrList::readInternalIDsFromAPageBySequentialCopy(Transaction* tra
     auto [fileHandleToPin, pageIdxToPin] =
         StorageStructureUtils::getFileHandleAndPhysicalPageIdxToPin(
             *fileHandle, physicalPageIdx, *wal, transaction->getType());
-    auto frame = bufferManager.pin(*fileHandleToPin, pageIdxToPin);
-    if (hasNoNullGuarantee) {
-        vector->setRangeNonNull(vectorStartPos, numValuesToRead);
-    } else {
-        readNullBitsFromAPage(
-            vector, frame, pagePosOfFirstElement, vectorStartPos, numValuesToRead);
-    }
-    auto currentFrameHead = frame + getElemByteOffset(pagePosOfFirstElement);
-    for (auto i = 0u; i < numValuesToRead; i++) {
-        internalID_t internalID{0, commonTableID};
-        internalID.offset = *(offset_t*)currentFrameHead;
-        currentFrameHead += sizeof(offset_t);
-        vector->setValue(vectorStartPos + i, internalID);
-    }
-    bufferManager.unpin(*fileHandleToPin, pageIdxToPin);
+    bufferManager.optimisticRead(*fileHandleToPin, pageIdxToPin, [&](uint8_t* frame) {
+        if (hasNoNullGuarantee) {
+            vector->setRangeNonNull(vectorStartPos, numValuesToRead);
+        } else {
+            readNullBitsFromAPage(
+                vector, frame, pagePosOfFirstElement, vectorStartPos, numValuesToRead);
+        }
+        auto currentFrameHead = frame + getElemByteOffset(pagePosOfFirstElement);
+        for (auto i = 0u; i < numValuesToRead; i++) {
+            internalID_t internalID{0, commonTableID};
+            internalID.offset = *(offset_t*)currentFrameHead;
+            currentFrameHead += sizeof(offset_t);
+            vector->setValue(vectorStartPos + i, internalID);
+        }
+    });
 }
 
 void BaseColumnOrList::readInternalIDsBySequentialCopyWithSelState(Transaction* transaction,
@@ -176,11 +176,12 @@ void BaseColumnOrList::readAPageBySequentialCopy(Transaction* transaction, Value
             *fileHandle, physicalPageIdx, *wal, transaction->getType());
     auto vectorBytesOffset = getElemByteOffset(vectorStartPos);
     auto frameBytesOffset = getElemByteOffset(pagePosOfFirstElement);
-    auto frame = bufferManager.pin(*fileHandleToPin, pageIdxToPin);
-    memcpy(vector->getData() + vectorBytesOffset, frame + frameBytesOffset,
-        numValuesToRead * elementSize);
-    readNullBitsFromAPage(vector, frame, pagePosOfFirstElement, vectorStartPos, numValuesToRead);
-    bufferManager.unpin(*fileHandleToPin, pageIdxToPin);
+    bufferManager.optimisticRead(*fileHandleToPin, pageIdxToPin, [&](uint8_t* frame) {
+        memcpy(vector->getData() + vectorBytesOffset, frame + frameBytesOffset,
+            numValuesToRead * elementSize);
+        readNullBitsFromAPage(
+            vector, frame, pagePosOfFirstElement, vectorStartPos, numValuesToRead);
+    });
 }
 
 void BaseColumnOrList::readNullBitsFromAPage(ValueVector* valueVector, const uint8_t* frame,

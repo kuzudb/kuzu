@@ -134,11 +134,11 @@ void Lists::fillInMemListsFromPersistentStore(offset_t nodeOffset,
         auto numElementsToReadInCurPage = std::min(numElementsToRead - numElementsRead,
             (uint64_t)(numElementsPerPage - pageCursor.elemPosInPage));
         auto physicalPageIdx = pageMapper(pageCursor.pageIdx);
-        auto frame = bufferManager.pin(*fileHandle, physicalPageIdx);
-        fillInMemListsFromFrame(inMemList, frame, pageCursor.elemPosInPage,
-            numElementsToReadInCurPage, deletedRelOffsetsInList, numElementsRead,
-            nextPosToWriteToInMemList, updatedPersistentListOffsets);
-        bufferManager.unpin(*fileHandle, physicalPageIdx);
+        bufferManager.optimisticRead(*fileHandle, physicalPageIdx, [&](uint8_t* frame) {
+            fillInMemListsFromFrame(inMemList, frame, pageCursor.elemPosInPage,
+                numElementsToReadInCurPage, deletedRelOffsetsInList, numElementsRead,
+                nextPosToWriteToInMemList, updatedPersistentListOffsets);
+        });
         numElementsRead += numElementsToReadInCurPage;
         pageCursor.nextPage();
     }
@@ -265,10 +265,10 @@ std::unique_ptr<std::vector<nodeID_t>> AdjLists::readAdjacencyListOfNode(
         auto sizeToCopyInPage =
             std::min(((uint64_t)(numElementsPerPage - pageCursor.elemPosInPage) * elementSize),
                 sizeLeftToCopy);
-        auto frame = bufferManager.pin(*fileHandle, physicalPageIdx);
-        memcpy(bufferPtr, frame + mapElementPosToByteOffset(pageCursor.elemPosInPage),
-            sizeToCopyInPage);
-        bufferManager.unpin(*fileHandle, physicalPageIdx);
+        bufferManager.optimisticRead(*fileHandle, physicalPageIdx, [&](uint8_t* frame) {
+            memcpy(bufferPtr, frame + mapElementPosToByteOffset(pageCursor.elemPosInPage),
+                sizeToCopyInPage);
+        });
         bufferPtr += sizeToCopyInPage;
         sizeLeftToCopy -= sizeToCopyInPage;
         pageCursor.nextPage();
@@ -397,18 +397,19 @@ std::unordered_set<uint64_t> RelIDList::getDeletedRelOffsetsInListForNodeOffset(
         auto numElementsToReadInCurPage = std::min(numElementsInPersistentStore - numElementsRead,
             (uint64_t)(numElementsPerPage - pageCursor.elemPosInPage));
         auto physicalPageIdx = pageMapper(pageCursor.pageIdx);
-        auto buffer = bufferManager.pin(*fileHandle, physicalPageIdx) +
-                      getElemByteOffset(pageCursor.elemPosInPage);
-        for (auto i = 0u; i < numElementsToReadInCurPage; i++) {
-            auto relID = *(int64_t*)buffer;
-            if (listsUpdatesStore->isRelDeletedInPersistentStore(
-                    storageStructureIDAndFName.storageStructureID.listFileID, nodeOffset, relID)) {
-                deletedRelOffsetsInList.emplace(numElementsRead);
+        bufferManager.optimisticRead(*fileHandle, physicalPageIdx, [&](uint8_t* frame) -> void {
+            auto buffer = frame + getElemByteOffset(pageCursor.elemPosInPage);
+            for (auto i = 0u; i < numElementsToReadInCurPage; i++) {
+                auto relID = *(int64_t*)buffer;
+                if (listsUpdatesStore->isRelDeletedInPersistentStore(
+                        storageStructureIDAndFName.storageStructureID.listFileID, nodeOffset,
+                        relID)) {
+                    deletedRelOffsetsInList.emplace(numElementsRead);
+                }
+                numElementsRead++;
+                buffer += elementSize;
             }
-            numElementsRead++;
-            buffer += elementSize;
-        }
-        bufferManager.unpin(*fileHandle, physicalPageIdx);
+        });
         pageCursor.nextPage();
     }
     return deletedRelOffsetsInList;
@@ -420,27 +421,28 @@ list_offset_t RelIDList::getListOffset(offset_t nodeOffset, offset_t relOffset) 
     auto pageCursor = ListHandle::getPageCursor(listHeader, numElementsPerPage);
     auto numElementsInPersistentStore = getNumElementsFromListHeader(nodeOffset);
     uint64_t numElementsRead = 0;
-    while (numElementsRead < numElementsInPersistentStore) {
+    uint64_t retVal = UINT64_MAX;
+    while (numElementsRead < numElementsInPersistentStore && retVal == UINT64_MAX) {
         auto numElementsToReadInCurPage = std::min(numElementsInPersistentStore - numElementsRead,
             (uint64_t)(numElementsPerPage - pageCursor.elemPosInPage));
         auto physicalPageIdx = pageMapper(pageCursor.pageIdx);
-        auto buffer = bufferManager.pin(*fileHandle, physicalPageIdx) +
-                      getElemByteOffset(pageCursor.elemPosInPage);
-        for (auto i = 0u; i < numElementsToReadInCurPage; i++) {
-            auto relIDInList = *(int64_t*)buffer;
-            if (relIDInList == relOffset) {
-                bufferManager.unpin(*fileHandle, physicalPageIdx);
-                return numElementsRead;
+        bufferManager.optimisticRead(*fileHandle, physicalPageIdx, [&](uint8_t* frame) -> void {
+            auto buffer = frame + getElemByteOffset(pageCursor.elemPosInPage);
+            for (auto i = 0u; i < numElementsToReadInCurPage; i++) {
+                auto relIDInList = *(int64_t*)buffer;
+                if (relIDInList == relOffset) {
+                    retVal = numElementsRead;
+                    return;
+                }
+                numElementsRead++;
+                buffer += elementSize;
             }
-            numElementsRead++;
-            buffer += elementSize;
-        }
-        bufferManager.unpin(*fileHandle, physicalPageIdx);
+        });
         pageCursor.nextPage();
     }
     // If we don't find the associated listOffset for the given relID in persistent store list, it
     // means that this rel is stored in update store, and we return UINT64_MAX for this case.
-    return UINT64_MAX;
+    return retVal;
 }
 
 void RelIDList::readFromSmallList(ValueVector* valueVector, ListHandle& listHandle) {

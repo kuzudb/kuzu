@@ -696,9 +696,9 @@ TEST_F(TinySnbDDLTest, DropNodeTablePropertyNormalExecution) {
     dropNodeTableProperty(TransactionTestType::NORMAL_EXECUTION);
 }
 
-// TEST_F(TinySnbDDLTest, DropNodeTablePropertyRecovery) {
-//    dropNodeTableProperty(TransactionTestType::RECOVERY);
-//}
+TEST_F(TinySnbDDLTest, DropNodeTablePropertyRecovery) {
+    dropNodeTableProperty(TransactionTestType::RECOVERY);
+}
 
 TEST_F(TinySnbDDLTest, DropRelTablePropertyNormalExecution) {
     dropRelTableProperty(TransactionTestType::NORMAL_EXECUTION);

@@ -82,9 +82,9 @@ U BaseDiskArray<U>::get(uint64_t idx, TransactionType trxType) {
     auto& bmFileHandle = (BMFileHandle&)fileHandle;
     if (trxType == TransactionType::READ_ONLY || !hasTransactionalUpdates ||
         !bmFileHandle.hasWALPageVersionNoWALPageIdxLock(apPageIdx)) {
-        auto frame = bufferManager->pin(bmFileHandle, apPageIdx);
-        auto retVal = *(U*)(frame + apCursor.offsetInPage);
-        bufferManager->unpin(bmFileHandle, apPageIdx);
+        U retVal;
+        bufferManager->optimisticRead(bmFileHandle, apPageIdx,
+            [&](const uint8_t* frame) -> void { retVal = *(U*)(frame + apCursor.offsetInPage); });
         return retVal;
     } else {
         U retVal;

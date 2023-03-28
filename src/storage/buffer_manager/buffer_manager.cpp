@@ -1,7 +1,5 @@
 #include "storage/buffer_manager/buffer_manager.h"
 
-#include <sys/mman.h>
-
 #include "common/constants.h"
 #include "common/exception.h"
 #include "spdlog/spdlog.h"
@@ -11,37 +9,36 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-// In this function, we try to remove as more as possible candidates that are not evictable from the
+// In this function, we try to remove as many as possible candidates that are not evictable from the
 // eviction queue until we hit a candidate that is evictable.
-// Two kinds of candidates are not evictable: 1) it is currently pinned; 2) it has been recently
-// visited.
-// To identify those recently accessed candidates, we use the eviction timestamp. If the
-// eviction timestamp of a candidate is different from the timestamp in its corresponding pageState,
-// it means that the candidate has been recently visited and we should not evict it. The idea is
-// that eviction timestamp is a logical per-page timestamp starting from 0, and is incremented each
-// time the page is pushed into the eviction queue. For example, the first time p5 is pushed into
-// the eviction queue, it will end up with a timestamp 1. When we push a page into the queue, we
-// create an EvictionCandidate object for the page. Let's call this object c0 when p5 is first
-// pushed. c0 will consist of (ptr to p5, 1), where the latter is the eviction timestamp at the time
-// c0 is put into the queue. Suppose p5 is put into the eviction queue again (e.g., because it was
-// pinned and unpinned). At this point we create another EvictionCandidate object c1 (ptr to p5, 2)
-// where the latter eviction timestamp is now incremented by 1, which makes c1 now not evictable.
-// This idea is inspired by DuckDB's queue-based eviction implementation.
+// 1) If the candidate page's version has changed, which means the page was pinned and unpinned, we
+// remove the candidate from the queue.
+// 2) If the candidate page's state is UNLOCKED, and its page version hasn't changed, which means
+// the page was optimistically read, we give a second chance to evict the page by marking the page
+// as MARKED, and moving the candidate to the back of the queue.
+// 3) If the candidate page's state is LOCKED, we remove the candidate from the queue.
 void EvictionQueue::removeNonEvictableCandidates() {
     EvictionCandidate evictionCandidate;
     while (true) {
         if (!queue->try_dequeue(evictionCandidate)) {
             break;
         }
-        if (evictionCandidate.pageState->getPinCount() != 0 ||
-            evictionCandidate.pageState->getEvictionTimestamp() !=
-                evictionCandidate.evictionTimestamp) {
-            // Remove the candidate from the eviction queue if it is still pinned or if it has
-            // been recently visited.
-            continue;
-        } else {
+        auto pageStateAndVersion = evictionCandidate.pageState->getStateAndVersion();
+        if (evictionCandidate.isEvictable(pageStateAndVersion)) {
             queue->enqueue(evictionCandidate);
             break;
+        } else if (evictionCandidate.isSecondChanceEvictable(pageStateAndVersion)) {
+            // The page was optimistically read, mark it as MARKED, and enqueue to be evicted later.
+            evictionCandidate.pageState->tryMark(pageStateAndVersion);
+            queue->enqueue(evictionCandidate);
+            continue;
+        } else {
+            // Cases to remove the candidate from the queue:
+            // 1) The page is currently LOCKED (it is currently pinned), remove the candidate from
+            // the queue.
+            // 2) The page's version number has changed (it was pinned and unpinned), another
+            // candidate exists for this page in the queue. remove the candidate from the queue.
+            continue;
         }
     }
 }
@@ -70,47 +67,67 @@ BufferManager::~BufferManager() = default;
 // both get access to the same piece of memory.
 uint8_t* BufferManager::pin(
     BMFileHandle& fileHandle, common::page_idx_t pageIdx, PageReadPolicy pageReadPolicy) {
-    fileHandle.acquirePageLock(pageIdx, LockMode::SPIN);
     auto pageState = fileHandle.getPageState(pageIdx);
-    if (pageState->isInFrame()) {
-        pageState->incrementPinCount();
-    } else {
-        if (!claimAFrame(fileHandle, pageIdx, pageReadPolicy)) {
-            pageState->releaseLock();
-            throw BufferManagerException("Failed to claim a frame.");
+    while (true) {
+        auto currStateAndVersion = pageState->getStateAndVersion();
+        switch (PageState::getState(currStateAndVersion)) {
+        case PageState::EVICTED: {
+            if (pageState->tryLock(currStateAndVersion)) {
+                if (!claimAFrame(fileHandle, pageIdx, pageReadPolicy)) {
+                    pageState->unlock();
+                    throw BufferManagerException("Failed to claim a frame.");
+                }
+                return getFrame(fileHandle, pageIdx);
+            }
+        } break;
+        case PageState::UNLOCKED:
+        case PageState::MARKED: {
+            if (pageState->tryLock(currStateAndVersion)) {
+                return getFrame(fileHandle, pageIdx);
+            }
+        } break;
+        case PageState::LOCKED: {
+            continue;
+        }
         }
     }
-    auto retVal = getFrame(fileHandle, pageIdx);
-    fileHandle.releasePageLock(pageIdx);
-    return retVal;
 }
 
-// Important Note: The caller should make sure that they have pinned the page before calling this.
-void BufferManager::setPinnedPageDirty(BMFileHandle& fileHandle, page_idx_t pageIdx) {
-    fileHandle.acquirePageLock(pageIdx, LockMode::SPIN);
+void BufferManager::optimisticRead(BMFileHandle& fileHandle, common::page_idx_t pageIdx,
+    const std::function<void(uint8_t*)>& func) {
     auto pageState = fileHandle.getPageState(pageIdx);
-    if (pageState && pageState->getPinCount() >= 1) {
-        pageState->setDirty();
-        fileHandle.releasePageLock(pageIdx);
-    } else {
-        fileHandle.releasePageLock(pageIdx);
-        throw BufferManagerException("If a page is not in memory or is not pinned, cannot set "
-                                     "it to isDirty = true. filePath: " +
-                                     fileHandle.getFileInfo()->path +
-                                     " pageIdx: " + std::to_string(pageIdx) + ".");
+    while (true) {
+        auto currStateAndVersion = pageState->getStateAndVersion();
+        switch (PageState::getState(currStateAndVersion)) {
+        case PageState::UNLOCKED: {
+            func(getFrame(fileHandle, pageIdx));
+            if (pageState->getStateAndVersion() == currStateAndVersion) {
+                return;
+            }
+        } break;
+        case PageState::MARKED: {
+            // If the page is marked, we try to switch to unlocked. If we succeed, we read the page.
+            if (pageState->tryClearMark(currStateAndVersion)) {
+                func(getFrame(fileHandle, pageIdx));
+                return;
+            }
+        } break;
+        case PageState::EVICTED: {
+            pin(fileHandle, pageIdx, PageReadPolicy::READ_PAGE);
+            unpin(fileHandle, pageIdx);
+        } break;
+        default: {
+            // When locked, continue the spinning.
+            continue;
+        }
+        }
     }
 }
 
 void BufferManager::unpin(BMFileHandle& fileHandle, page_idx_t pageIdx) {
-    fileHandle.acquirePageLock(pageIdx, LockMode::SPIN);
     auto pageState = fileHandle.getPageState(pageIdx);
-    // `count` is the value of `pinCount` before sub.
-    auto count = pageState->decrementPinCount();
-    assert(count >= 1);
-    if (count == 1) {
-        addToEvictionQueue(&fileHandle, pageState);
-    }
-    fileHandle.releasePageLock(pageIdx);
+    pageState->unlock();
+    addToEvictionQueue(&fileHandle, pageIdx, pageState);
 }
 
 // This function tries to load the given page into a frame. Due to our design of mmap, each page is
@@ -135,13 +152,17 @@ bool BufferManager::claimAFrame(
             freeUsedMemory(pageSizeToClaim);
             return false;
         }
-        if (!evictionCandidate.isEvictable()) {
+        auto pageStateAndVersion = evictionCandidate.pageState->getStateAndVersion();
+        if (!evictionCandidate.isEvictable(pageStateAndVersion)) {
+            if (evictionCandidate.isSecondChanceEvictable(pageStateAndVersion)) {
+                evictionCandidate.pageState->tryMark(pageStateAndVersion);
+                evictionQueue->enqueue(evictionCandidate);
+            }
             continue;
         }
-        // We found a page whose pin count can be 0, and potentially haven't been accessed since
-        // enqueued. We try to evict the page from its frame by calling `tryEvictPage`, which will
-        // check if the page's pin count is actually 0 and the page has not been accessed recently,
-        // if so, we evict the page from its frame.
+        // We found a page that potentially hasn't been accessed since enqueued. We try to evict the
+        // page from its frame by calling `tryEvictPage`, which will check if the page's version has
+        // changed, if not, we evict the page from its frame.
         claimedMemory += tryEvictPage(evictionCandidate);
         currentUsedMem = usedMemory.load();
     }
@@ -156,47 +177,43 @@ bool BufferManager::claimAFrame(
     return true;
 }
 
-void BufferManager::addToEvictionQueue(BMFileHandle* fileHandle, PageState* pageState) {
-    auto timestampBeforeEvict = pageState->incrementEvictionTimestamp();
+void BufferManager::addToEvictionQueue(
+    BMFileHandle* fileHandle, common::page_idx_t pageIdx, PageState* pageState) {
+    auto currStateAndVersion = pageState->getStateAndVersion();
     if (++numEvictionQueueInsertions == BufferPoolConstants::EVICTION_QUEUE_PURGING_INTERVAL) {
         evictionQueue->removeNonEvictableCandidates();
         numEvictionQueueInsertions = 0;
     }
-    evictionQueue->enqueue(fileHandle, pageState, timestampBeforeEvict + 1);
+    pageState->tryMark(currStateAndVersion);
+    evictionQueue->enqueue(
+        fileHandle, pageIdx, pageState, PageState::getVersion(currStateAndVersion));
 }
 
 uint64_t BufferManager::tryEvictPage(EvictionCandidate& candidate) {
     auto& pageState = *candidate.pageState;
-    if (!pageState.acquireLock(LockMode::NON_BLOCKING)) {
+    auto currStateAndVersion = pageState.getStateAndVersion();
+    // We check if the page is evictable again. Note that if the page's state or version has
+    // changed after the check, `tryLock` will fail, and we will abort the eviction of this page.
+    if (!candidate.isEvictable(currStateAndVersion) || !pageState.tryLock(currStateAndVersion)) {
         return 0;
     }
-    // We check pinCount and evictionTimestamp again after acquiring the lock on page currently
-    // residing in the frame. At this point in time, no other thread can change the pinCount and the
-    // evictionTimestamp.
-    if (!candidate.isEvictable()) {
-        pageState.releaseLock();
-        return 0;
-    }
-    // Else, flush out the frame into the file page if the frame is dirty. Then remove the page
-    // from the frame and release the lock on it.
-    flushIfDirtyWithoutLock(*candidate.fileHandle, pageState.getPageIdx());
+    // At this point, the page is LOCKED. Next, flush out the frame into the file page if the frame
+    // is dirty. Finally remove the page from the frame and reset the page to EVICTED.
+    flushIfDirtyWithoutLock(*candidate.fileHandle, candidate.pageIdx);
     auto numBytesFreed = candidate.fileHandle->getPageSize();
-    releaseFrameForPage(*candidate.fileHandle, pageState.getPageIdx());
-    pageState.resetState();
-    pageState.releaseLock();
+    releaseFrameForPage(*candidate.fileHandle, candidate.pageIdx);
+    pageState.resetToEvicted();
     return numBytesFreed;
 }
 
 void BufferManager::cachePageIntoFrame(
     BMFileHandle& fileHandle, common::page_idx_t pageIdx, PageReadPolicy pageReadPolicy) {
     auto pageState = fileHandle.getPageState(pageIdx);
-    pageState->setPinCount(1);
     pageState->clearDirty();
     if (pageReadPolicy == PageReadPolicy::READ_PAGE) {
         FileUtils::readFromFile(fileHandle.getFileInfo(), (void*)getFrame(fileHandle, pageIdx),
             fileHandle.getPageSize(), pageIdx * fileHandle.getPageSize());
     }
-    pageState->setInFrame(pageIdx);
 }
 
 void BufferManager::flushIfDirtyWithoutLock(BMFileHandle& fileHandle, common::page_idx_t pageIdx) {
@@ -234,20 +251,16 @@ void BufferManager::removePageFromFrameIfNecessary(BMFileHandle& fileHandle, pag
     removePageFromFrame(fileHandle, pageIdx, false /* do not flush */);
 }
 
-// NOTE: We assume the page is not pinned here.
+// NOTE: We assume the page is not pinned (locked) here.
 void BufferManager::removePageFromFrame(
     BMFileHandle& fileHandle, common::page_idx_t pageIdx, bool shouldFlush) {
-    fileHandle.acquirePageLock(pageIdx, LockMode::SPIN);
     auto pageState = fileHandle.getPageState(pageIdx);
-    if (pageState && pageState->isInFrame()) {
-        if (shouldFlush) {
-            flushIfDirtyWithoutLock(fileHandle, pageIdx);
-        }
-        fileHandle.clearPageState(pageIdx);
-        releaseFrameForPage(fileHandle, pageIdx);
-        freeUsedMemory(fileHandle.getPageSize());
+    pageState->spinLock(pageState->getStateAndVersion());
+    if (shouldFlush) {
+        flushIfDirtyWithoutLock(fileHandle, pageIdx);
     }
-    fileHandle.releasePageLock(pageIdx);
+    releaseFrameForPage(fileHandle, pageIdx);
+    pageState->resetToEvicted();
 }
 
 } // namespace storage

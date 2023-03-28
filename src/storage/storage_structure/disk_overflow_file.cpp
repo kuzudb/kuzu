@@ -48,10 +48,10 @@ void DiskOverflowFile::lookupString(
     auto [fileHandleToPin, pageIdxToPin] =
         StorageStructureUtils::getFileHandleAndPhysicalPageIdxToPin(
             *fileHandle, cursor.pageIdx, *wal, trxType);
-    auto frame = bufferManager.pin(*fileHandleToPin, pageIdxToPin);
-    InMemOverflowBufferUtils::copyString(
-        (char*)(frame + cursor.offsetInPage), kuStr.len, kuStr, inMemOverflowBuffer);
-    bufferManager.unpin(*fileHandleToPin, pageIdxToPin);
+    bufferManager.optimisticRead(*fileHandleToPin, pageIdxToPin, [&](uint8_t* frame) {
+        InMemOverflowBufferUtils::copyString(
+            (char*)(frame + cursor.offsetInPage), kuStr.len, kuStr, inMemOverflowBuffer);
+    });
 }
 
 void DiskOverflowFile::lookupString(TransactionType trxType, ku_string_t& kuStr,
@@ -90,10 +90,10 @@ void DiskOverflowFile::readListToVector(TransactionType trxType, ku_list_t& kuLi
     auto [fileHandleToPin, pageIdxToPin] =
         StorageStructureUtils::getFileHandleAndPhysicalPageIdxToPin(
             *fileHandle, cursor.pageIdx, *wal, trxType);
-    auto frame = bufferManager.pin(*fileHandleToPin, pageIdxToPin);
-    InMemOverflowBufferUtils::copyListNonRecursive(
-        frame + cursor.offsetInPage, kuList, dataType, inMemOverflowBuffer);
-    bufferManager.unpin(*fileHandleToPin, pageIdxToPin);
+    bufferManager.optimisticRead(*fileHandleToPin, pageIdxToPin, [&](uint8_t* frame) {
+        InMemOverflowBufferUtils::copyListNonRecursive(
+            frame + cursor.offsetInPage, kuList, dataType, inMemOverflowBuffer);
+    });
     if (dataType.childType->typeID == STRING) {
         auto kuStrings = (ku_string_t*)(kuList.overflowPtr);
         OverflowPageCache overflowPageCache;
@@ -118,9 +118,10 @@ std::string DiskOverflowFile::readString(TransactionType trxType, const ku_strin
         auto [fileHandleToPin, pageIdxToPin] =
             StorageStructureUtils::getFileHandleAndPhysicalPageIdxToPin(
                 *fileHandle, cursor.pageIdx, *wal, trxType);
-        auto frame = bufferManager.pin(*fileHandleToPin, pageIdxToPin);
-        auto retVal = std::string((char*)(frame + cursor.offsetInPage), str.len);
-        bufferManager.unpin(*fileHandleToPin, pageIdxToPin);
+        std::string retVal;
+        bufferManager.optimisticRead(*fileHandleToPin, pageIdxToPin, [&](uint8_t* frame) {
+            retVal = std::string((char*)(frame + cursor.offsetInPage), str.len);
+        });
         return retVal;
     }
 }
@@ -132,10 +133,20 @@ std::vector<std::unique_ptr<Value>> DiskOverflowFile::readList(
     auto [fileHandleToPin, pageIdxToPin] =
         StorageStructureUtils::getFileHandleAndPhysicalPageIdxToPin(
             *fileHandle, cursor.pageIdx, *wal, trxType);
-    auto frame = bufferManager.pin(*fileHandleToPin, pageIdxToPin);
     auto numBytesOfSingleValue = Types::getDataTypeSize(*dataType.childType);
     auto numValuesInList = listVal.size;
     std::vector<std::unique_ptr<Value>> retValues;
+    bufferManager.optimisticRead(*fileHandleToPin, pageIdxToPin, [&](uint8_t* frame) -> void {
+        readValuesInList(
+            trxType, dataType, retValues, numBytesOfSingleValue, numValuesInList, cursor, frame);
+    });
+    return retValues;
+}
+
+void DiskOverflowFile::readValuesInList(transaction::TransactionType trxType,
+    const common::DataType& dataType, std::vector<std::unique_ptr<common::Value>>& retValues,
+    uint32_t numBytesOfSingleValue, uint64_t numValuesInList, PageByteCursor& cursor,
+    uint8_t* frame) {
     if (dataType.childType->typeID == STRING) {
         for (auto i = 0u; i < numValuesInList; i++) {
             auto kuListVal = *(ku_string_t*)(frame + cursor.offsetInPage);
@@ -156,8 +167,6 @@ std::vector<std::unique_ptr<Value>> DiskOverflowFile::readList(
             cursor.offsetInPage += numBytesOfSingleValue;
         }
     }
-    bufferManager.unpin(*fileHandleToPin, pageIdxToPin);
-    return retValues;
 }
 
 void DiskOverflowFile::addNewPageIfNecessaryWithoutLock(uint32_t numBytesToAppend) {

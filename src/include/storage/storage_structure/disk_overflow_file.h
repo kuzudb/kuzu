@@ -89,6 +89,9 @@ private:
     void setListRecursiveIfNestedWithoutLock(const common::ku_list_t& inMemSrcList,
         common::ku_list_t& diskDstList, const common::DataType& dataType);
     void logNewOverflowFileNextBytePosRecordIfNecessaryWithoutLock();
+    void readValuesInList(transaction::TransactionType trxType, const common::DataType& dataType,
+        std::vector<std::unique_ptr<common::Value>>& retValues, uint32_t numBytesOfSingleValue,
+        uint64_t numValuesInList, PageByteCursor& cursor, uint8_t* frame);
     void pinOverflowPageCache(BMFileHandle* bmFileHandleToPin, common::page_idx_t pageIdxToPin,
         OverflowPageCache& overflowPageCache);
     void unpinOverflowPageCache(OverflowPageCache& overflowPageCache);

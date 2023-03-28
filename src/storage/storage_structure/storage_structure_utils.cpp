@@ -42,27 +42,26 @@ WALPageIdxAndFrame StorageStructureUtils::createWALVersionIfNecessaryAndPinPage(
     StorageStructureID storageStructureID, BufferManager& bufferManager, WAL& wal) {
     fileHandle.addWALPageIdxGroupIfNecessary(originalPageIdx);
     page_idx_t pageIdxInWAL;
-    uint8_t* frame;
+    uint8_t* walFrame;
     fileHandle.acquireWALPageIdxLock(originalPageIdx);
     if (fileHandle.hasWALPageVersionNoWALPageIdxLock(originalPageIdx)) {
         pageIdxInWAL = fileHandle.getWALPageIdxNoWALPageIdxLock(originalPageIdx);
-        frame = bufferManager.pin(
+        walFrame = bufferManager.pin(
             *wal.fileHandle, pageIdxInWAL, BufferManager::PageReadPolicy::READ_PAGE);
     } else {
         pageIdxInWAL = wal.logPageUpdateRecord(
             storageStructureID, originalPageIdx /* pageIdxInOriginalFile */);
-        frame = bufferManager.pin(
+        walFrame = bufferManager.pin(
             *wal.fileHandle, pageIdxInWAL, BufferManager::PageReadPolicy::DONT_READ_PAGE);
-        auto originalFrame = bufferManager.pin(fileHandle, originalPageIdx,
-            insertingNewPage ? BufferManager::PageReadPolicy::DONT_READ_PAGE :
-                               BufferManager::PageReadPolicy::READ_PAGE);
-        // Note: This logic only works for db files with DEFAULT_PAGE_SIZEs.
-        memcpy(frame, originalFrame, BufferPoolConstants::PAGE_4KB_SIZE);
-        bufferManager.unpin(fileHandle, originalPageIdx);
+        if (!insertingNewPage) {
+            bufferManager.optimisticRead(fileHandle, originalPageIdx, [&](uint8_t* frame) -> void {
+                memcpy(walFrame, frame, BufferPoolConstants::PAGE_4KB_SIZE);
+            });
+        }
         fileHandle.setWALPageIdxNoLock(originalPageIdx /* pageIdxInOriginalFile */, pageIdxInWAL);
-        bufferManager.setPinnedPageDirty(*wal.fileHandle, pageIdxInWAL);
+        wal.fileHandle->setLockedPageDirty(pageIdxInWAL);
     }
-    return {originalPageIdx, pageIdxInWAL, frame};
+    return {originalPageIdx, pageIdxInWAL, walFrame};
 }
 
 void StorageStructureUtils::unpinWALPageAndReleaseOriginalPageLock(
