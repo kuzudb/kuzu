@@ -89,8 +89,7 @@ struct ListsMetadataConstants {
 
 // Hash Index Configurations
 struct HashIndexConstants {
-    static constexpr uint8_t SLOT_CAPACITY_LOG_2 = 2;
-    static constexpr uint8_t SLOT_CAPACITY = (uint64_t)1 << SLOT_CAPACITY_LOG_2;
+    static constexpr uint8_t SLOT_CAPACITY = 3;
 };
 
 struct CopyConstants {
