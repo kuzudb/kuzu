@@ -36,7 +36,7 @@ void ProjectionPlanner::planProjectionBody(
                 expressionsToScan.push_back(expression);
             }
         }
-        QueryPlanner::appendExpressionsScan(expressionsToScan, plan);
+        queryPlanner->appendExpressionsScan(expressionsToScan, plan);
     }
     // NOTE: As a temporary solution, we rewrite variables in WITH clause as all properties in scope
     // during planning stage. The purpose is to avoid reading unnecessary properties for WITH.
@@ -56,7 +56,7 @@ void ProjectionPlanner::planProjectionBody(
     }
     appendProjection(expressionsToProject, plan);
     if (projectionBody.getIsDistinct()) {
-        QueryPlanner::appendDistinct(expressionsToProject, plan);
+        queryPlanner->appendDistinct(expressionsToProject, plan);
     }
     if (projectionBody.hasSkipOrLimit()) {
         appendMultiplicityReducer(plan);
@@ -95,7 +95,7 @@ void ProjectionPlanner::appendProjection(
         auto dependentGroupsPos = plan.getSchema()->getDependentGroupsPos(expression);
         auto groupsPosToFlatten = factorization::FlattenAllButOne::getGroupsPosToFlatten(
             dependentGroupsPos, plan.getSchema());
-        QueryPlanner::appendFlattens(groupsPosToFlatten, plan);
+        queryPlanner->appendFlattens(groupsPosToFlatten, plan);
     }
     auto projection = make_shared<LogicalProjection>(expressionsToProject, plan.getLastOperator());
     projection->computeFactorizedSchema();
@@ -106,9 +106,9 @@ void ProjectionPlanner::appendAggregate(const expression_vector& expressionsToGr
     const expression_vector& expressionsToAggregate, LogicalPlan& plan) {
     auto aggregate = make_shared<LogicalAggregate>(
         expressionsToGroupBy, expressionsToAggregate, plan.getLastOperator());
-    QueryPlanner::appendFlattens(aggregate->getGroupsPosToFlattenForGroupBy(), plan);
+    queryPlanner->appendFlattens(aggregate->getGroupsPosToFlattenForGroupBy(), plan);
     aggregate->setChild(0, plan.getLastOperator());
-    QueryPlanner::appendFlattens(aggregate->getGroupsPosToFlattenForAggregate(), plan);
+    queryPlanner->appendFlattens(aggregate->getGroupsPosToFlattenForAggregate(), plan);
     aggregate->setChild(0, plan.getLastOperator());
     aggregate->computeFactorizedSchema();
     plan.setLastOperator(std::move(aggregate));
@@ -117,7 +117,7 @@ void ProjectionPlanner::appendAggregate(const expression_vector& expressionsToGr
 void ProjectionPlanner::appendOrderBy(
     const expression_vector& expressions, const std::vector<bool>& isAscOrders, LogicalPlan& plan) {
     auto orderBy = make_shared<LogicalOrderBy>(expressions, isAscOrders, plan.getLastOperator());
-    QueryPlanner::appendFlattens(orderBy->getGroupsPosToFlatten(), plan);
+    queryPlanner->appendFlattens(orderBy->getGroupsPosToFlatten(), plan);
     orderBy->setChild(0, plan.getLastOperator());
     orderBy->computeFactorizedSchema();
     plan.setLastOperator(std::move(orderBy));
@@ -131,7 +131,7 @@ void ProjectionPlanner::appendMultiplicityReducer(LogicalPlan& plan) {
 
 void ProjectionPlanner::appendLimit(uint64_t limitNumber, LogicalPlan& plan) {
     auto limit = make_shared<LogicalLimit>(limitNumber, plan.getLastOperator());
-    QueryPlanner::appendFlattens(limit->getGroupsPosToFlatten(), plan);
+    queryPlanner->appendFlattens(limit->getGroupsPosToFlatten(), plan);
     limit->setChild(0, plan.getLastOperator());
     limit->computeFactorizedSchema();
     plan.setCardinality(limitNumber);
@@ -140,7 +140,7 @@ void ProjectionPlanner::appendLimit(uint64_t limitNumber, LogicalPlan& plan) {
 
 void ProjectionPlanner::appendSkip(uint64_t skipNumber, LogicalPlan& plan) {
     auto skip = make_shared<LogicalSkip>(skipNumber, plan.getLastOperator());
-    QueryPlanner::appendFlattens(skip->getGroupsPosToFlatten(), plan);
+    queryPlanner->appendFlattens(skip->getGroupsPosToFlatten(), plan);
     skip->setChild(0, plan.getLastOperator());
     skip->computeFactorizedSchema();
     plan.setCardinality(plan.getCardinality() - skipNumber);

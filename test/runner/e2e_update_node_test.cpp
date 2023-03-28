@@ -273,7 +273,6 @@ TEST_F(TinySnbUpdateTest, InsertRepeatedNToNRelTest) {
 TEST_F(TinySnbUpdateTest, InsertMixedRelTest) {
     conn->query(
         "MATCH (a:person), (b:person), (c:organisation) WHERE a.ID = 0 AND b.ID = 9 AND c.ID = 4 "
-        "MATCH (a:person), (b:person), (c:organisation) WHERE a.ID = 0 AND b.ID = 9 AND c.ID = 4 "
         "CREATE (b)-[:studyAt]->(c), (a)<-[:knows]-(b)");
     auto groundTruth = std::vector<std::string>{"9"};
     auto result = conn->query(
