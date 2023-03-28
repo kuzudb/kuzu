@@ -1,0 +1,25 @@
+-NAME count
+-QUERY MATCH (n:npytable) RETURN COUNT(*)
+---- 1
+3
+
+-NAME i64
+-QUERY MATCH (n:npytable) RETURN n.i64 ORDER BY n.i64
+---- 3
+1
+2
+3
+
+-NAME i32
+-QUERY MATCH (n:npytable) RETURN n.i32 ORDER BY n.i32
+---- 3
+1
+2
+3
+
+-NAME i16
+-QUERY MATCH (n:npytable) RETURN n.i16 ORDER BY n.i16
+---- 3
+1
+2
+3

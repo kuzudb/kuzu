@@ -14,10 +14,13 @@ grammar Cypher;
 }
 
 oC_Cypher
-    : SP ? oC_AnyCypherOption? SP? ( oC_Statement | kU_DDL | kU_CopyCSV ) ( SP? ';' )? SP? EOF ;
+    : SP ? oC_AnyCypherOption? SP? ( oC_Statement | kU_DDL | kU_CopyNPY | kU_CopyCSV ) ( SP? ';' )? SP? EOF ;
 
 kU_CopyCSV
     : COPY SP oC_SchemaName SP FROM SP kU_FilePaths ( SP? '(' SP? kU_ParsingOptions SP? ')' )? ;
+
+kU_CopyNPY
+    : COPY SP oC_SchemaName SP FROMNPY ( SP '(' SP? StringLiteral ( SP? ',' SP? StringLiteral )* ')' ) ;
 
 kU_FilePaths
     : '[' SP? StringLiteral ( SP? ',' SP? StringLiteral )* ']'
@@ -35,6 +38,8 @@ kU_ParsingOption
 COPY : ( 'C' | 'c' ) ( 'O' | 'o' ) ( 'P' | 'p') ( 'Y' | 'y' ) ;
 
 FROM : ( 'F' | 'f' ) ( 'R' | 'r' ) ( 'O' | 'o' ) ( 'M' | 'm' );
+
+FROMNPY : ( 'F' | 'f' ) ( 'R' | 'r' ) ( 'O' | 'o' ) ( 'M' | 'm' ) ( 'N' | 'n' ) ( 'P' | 'p' ) ( 'Y' | 'y' ) ;
 
 kU_DDL
     : kU_CreateNode

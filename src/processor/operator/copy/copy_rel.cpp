@@ -1,6 +1,6 @@
 #include "processor/operator/copy/copy_rel.h"
 
-#include "storage/copy_arrow/copy_rel_arrow.h"
+#include "storage/copier/copy_rel_arrow.h"
 
 using namespace kuzu::storage;
 

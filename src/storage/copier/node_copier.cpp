@@ -1,6 +1,6 @@
-#include "storage/copy_arrow/copy_node_arrow.h"
+#include "storage/copier/node_copier.h"
 
-#include "storage/copy_arrow/copy_task.h"
+#include "storage/copier/copy_task.h"
 #include "storage/storage_structure/in_mem_file.h"
 
 using namespace kuzu::catalog;
@@ -9,9 +9,8 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-void CopyNodeArrow::initializeColumnsAndLists() {
+void NodeCopier::initializeColumnsAndLists() {
     logger->info("Initializing in memory columns.");
-    columns.resize(tableSchema->getNumProperties());
     for (auto& property : tableSchema->properties) {
         auto fName = StorageUtils::getNodePropertyColumnFName(
             outputDirectory, tableSchema->tableID, property.propertyID, DBFileType::WAL_VERSION);
@@ -21,7 +20,7 @@ void CopyNodeArrow::initializeColumnsAndLists() {
     logger->info("Done initializing in memory columns.");
 }
 
-void CopyNodeArrow::populateColumnsAndLists() {
+void NodeCopier::populateColumnsAndLists() {
     arrow::Status status;
     auto primaryKey = reinterpret_cast<NodeTableSchema*>(tableSchema)->getPrimaryKey();
     switch (primaryKey.dataType.typeID) {
@@ -39,19 +38,42 @@ void CopyNodeArrow::populateColumnsAndLists() {
     throwCopyExceptionIfNotOK(status);
 }
 
-void CopyNodeArrow::saveToFile() {
+void NodeCopier::saveToFile() {
     logger->debug("Writing node columns to disk.");
     assert(!columns.empty());
-    for (auto& column : columns) {
+    for (auto& it : columns) {
         taskScheduler.scheduleTask(CopyTaskFactory::createCopyTask(
-            [&](InMemColumn* x) { x->saveToFile(); }, column.get()));
+            [&](InMemColumn* x) { x->saveToFile(); }, it.second.get()));
     }
     taskScheduler.waitAllTasksToCompleteOrError();
     logger->debug("Done writing node columns to disk.");
 }
 
 template<typename T>
-arrow::Status CopyNodeArrow::populateColumns() {
+void NodeCopier::populatePKIndex(
+    InMemColumn* column, HashIndexBuilder<T>* pkIndex, offset_t startOffset, uint64_t numValues) {
+    for (auto i = 0u; i < numValues; i++) {
+        auto offset = i + startOffset;
+        if (column->isNullAtNodeOffset(offset)) {
+            throw ReaderException("Primary key cannot be null.");
+        }
+        if constexpr (std::is_same<T, int64_t>::value) {
+            auto key = (int64_t*)column->getElement(offset);
+            if (!pkIndex->append(*key, offset)) {
+                throw CopyException(Exception::getExistedPKExceptionMsg(std::to_string(*key)));
+            }
+        } else {
+            auto element = (ku_string_t*)column->getElement(offset);
+            auto key = column->getInMemOverflowFile()->readString(element);
+            if (!pkIndex->append(key.c_str(), offset)) {
+                throw CopyException(Exception::getExistedPKExceptionMsg(key));
+            }
+        }
+    }
+}
+
+template<typename T>
+arrow::Status NodeCopier::populateColumns() {
     logger->info("Populating properties");
     auto pkIndex =
         std::make_unique<HashIndexBuilder<T>>(StorageUtils::getNodeIndexFName(this->outputDirectory,
@@ -74,7 +96,7 @@ arrow::Status CopyNodeArrow::populateColumns() {
 }
 
 template<typename T>
-arrow::Status CopyNodeArrow::populateColumnsFromCSV(std::unique_ptr<HashIndexBuilder<T>>& pkIndex) {
+arrow::Status NodeCopier::populateColumnsFromCSV(std::unique_ptr<HashIndexBuilder<T>>& pkIndex) {
     for (auto& filePath : copyDescription.filePaths) {
         std::shared_ptr<arrow::csv::StreamingReader> csvStreamingReader;
         auto status = initCSVReaderAndCheckStatus(csvStreamingReader, filePath);
@@ -86,7 +108,7 @@ arrow::Status CopyNodeArrow::populateColumnsFromCSV(std::unique_ptr<HashIndexBui
 }
 
 template<typename T>
-arrow::Status CopyNodeArrow::populateColumnsFromParquet(
+arrow::Status NodeCopier::populateColumnsFromParquet(
     std::unique_ptr<HashIndexBuilder<T>>& pkIndex) {
     for (auto& filePath : copyDescription.filePaths) {
         std::unique_ptr<parquet::arrow::FileReader> reader;
@@ -98,32 +120,9 @@ arrow::Status CopyNodeArrow::populateColumnsFromParquet(
     return arrow::Status::OK();
 }
 
-template<typename T>
-void CopyNodeArrow::populatePKIndex(
-    InMemColumn* column, HashIndexBuilder<T>* pkIndex, offset_t startOffset, uint64_t numValues) {
-    for (auto i = 0u; i < numValues; i++) {
-        auto offset = i + startOffset;
-        if (column->isNullAtNodeOffset(offset)) {
-            throw ReaderException("Primary key cannot be null.");
-        }
-        if constexpr (std::is_same<T, int64_t>::value) {
-            auto key = (int64_t*)column->getElement(offset);
-            if (!pkIndex->append(*key, offset)) {
-                throw CopyException(Exception::getExistedPKExceptionMsg(std::to_string(*key)));
-            }
-        } else {
-            auto element = (ku_string_t*)column->getElement(offset);
-            auto key = column->getInMemOverflowFile()->readString(element);
-            if (!pkIndex->append(key.c_str(), offset)) {
-                throw CopyException(Exception::getExistedPKExceptionMsg(key));
-            }
-        }
-    }
-}
-
 template<typename T1, typename T2>
-arrow::Status CopyNodeArrow::batchPopulateColumnsTask(uint64_t primaryKeyPropertyIdx,
-    uint64_t blockIdx, uint64_t startOffset, HashIndexBuilder<T1>* pkIndex, CopyNodeArrow* copier,
+arrow::Status NodeCopier::batchPopulateColumnsTask(uint64_t primaryKeyPropertyIdx,
+    uint64_t blockIdx, uint64_t startOffset, HashIndexBuilder<T1>* pkIndex, NodeCopier* copier,
     const std::vector<std::shared_ptr<T2>>& batchColumns, std::string filePath) {
     copier->logger->trace("Start: path={0} blkIdx={1}", filePath, blockIdx);
     std::vector<PageByteCursor> overflowCursors(copier->tableSchema->getNumProperties());
@@ -139,8 +138,8 @@ arrow::Status CopyNodeArrow::batchPopulateColumnsTask(uint64_t primaryKeyPropert
 }
 
 template<typename T>
-void CopyNodeArrow::putPropsOfLineIntoColumns(
-    std::vector<std::unique_ptr<InMemColumn>>& structuredColumns,
+void NodeCopier::putPropsOfLineIntoColumns(
+    std::unordered_map<common::property_id_t, std::unique_ptr<InMemColumn>>& structuredColumns,
     std::vector<PageByteCursor>& overflowCursors,
     const std::vector<std::shared_ptr<T>>& arrow_columns, uint64_t nodeOffset, uint64_t blockOffset,
     CopyDescription& copyDescription) {
@@ -214,7 +213,7 @@ void CopyNodeArrow::putPropsOfLineIntoColumns(
 }
 
 template<typename T>
-arrow::Status CopyNodeArrow::assignCopyCSVTasks(arrow::csv::StreamingReader* csvStreamingReader,
+arrow::Status NodeCopier::assignCopyCSVTasks(arrow::csv::StreamingReader* csvStreamingReader,
     offset_t startOffset, std::string filePath, std::unique_ptr<HashIndexBuilder<T>>& pkIndex) {
     auto it = csvStreamingReader->begin();
     auto endIt = csvStreamingReader->end();
@@ -242,7 +241,7 @@ arrow::Status CopyNodeArrow::assignCopyCSVTasks(arrow::csv::StreamingReader* csv
 }
 
 template<typename T>
-arrow::Status CopyNodeArrow::assignCopyParquetTasks(parquet::arrow::FileReader* parquetReader,
+arrow::Status NodeCopier::assignCopyParquetTasks(parquet::arrow::FileReader* parquetReader,
     common::offset_t startOffset, std::string filePath,
     std::unique_ptr<HashIndexBuilder<T>>& pkIndex) {
     auto numBlocks = fileBlockInfos.at(filePath).numBlocks;

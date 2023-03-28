@@ -12,9 +12,11 @@ namespace parser {
 class CopyCSV : public Statement {
 public:
     explicit CopyCSV(std::vector<std::string> filePaths, std::string tableName,
-        std::unordered_map<std::string, std::unique_ptr<ParsedExpression>> parsingOptions)
+        std::unordered_map<std::string, std::unique_ptr<ParsedExpression>> parsingOptions,
+        common::CopyDescription::FileType fileType)
         : Statement{common::StatementType::COPY_CSV}, filePaths{std::move(filePaths)},
-          tableName{std::move(tableName)}, parsingOptions{std::move(parsingOptions)} {}
+          tableName{std::move(tableName)},
+          parsingOptions{std::move(parsingOptions)}, fileType{fileType} {}
 
     inline std::vector<std::string> getFilePaths() const { return filePaths; }
     inline std::string getTableName() const { return tableName; }
@@ -22,9 +24,11 @@ public:
     getParsingOptions() const {
         return &parsingOptions;
     }
+    inline common::CopyDescription::FileType getFileType() const { return fileType; }
 
 private:
     std::vector<std::string> filePaths;
+    common::CopyDescription::FileType fileType;
     std::string tableName;
     std::unordered_map<std::string, std::unique_ptr<ParsedExpression>> parsingOptions;
 };

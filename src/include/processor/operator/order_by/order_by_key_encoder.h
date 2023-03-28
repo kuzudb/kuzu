@@ -101,8 +101,6 @@ private:
         assert(false);
     }
 
-    static bool isLittleEndian();
-
     void flipBytesIfNecessary(
         uint32_t keyColIdx, uint8_t* tuplePtr, uint32_t numEntriesToEncode, common::DataType& type);
 

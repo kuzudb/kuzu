@@ -31,10 +31,11 @@ struct CSVReaderConfig {
 };
 
 struct CopyDescription {
-    enum class FileType : uint8_t { CSV = 0, PARQUET = 1 };
+    enum class FileType : uint8_t { UNKNOWN = 0, CSV = 1, PARQUET = 2, NPY = 3 };
 
-    CopyDescription(const std::vector<std::string>& filePaths, CSVReaderConfig csvReaderConfig,
-        FileType fileType);
+    CopyDescription(const std::vector<std::string>& filePaths,
+        std::unordered_map<common::property_id_t, std::string> propertyToNpyMap,
+        CSVReaderConfig csvReaderConfig, FileType fileType);
 
     CopyDescription(const CopyDescription& copyDescription);
 
@@ -46,6 +47,7 @@ struct CopyDescription {
 
     const std::vector<std::string> filePaths;
     std::unique_ptr<CSVReaderConfig> csvReaderConfig;
+    std::unordered_map<common::property_id_t, std::string> propertyIDToNpyMap;
     FileType fileType;
 };
 

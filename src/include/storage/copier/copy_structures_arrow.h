@@ -38,9 +38,9 @@ public:
         common::TaskScheduler& taskScheduler, catalog::Catalog& catalog,
         common::table_id_t tableID);
 
-    uint64_t copy();
-
     virtual ~CopyStructuresArrow() = default;
+
+    uint64_t copy();
 
 protected:
     virtual void updateTableStatistics() = 0;
@@ -51,7 +51,7 @@ protected:
 
     virtual void saveToFile() = 0;
 
-    void populateInMemoryStructures();
+    virtual void populateInMemoryStructures();
 
     void countNumLines(const std::vector<std::string>& filePath);
 

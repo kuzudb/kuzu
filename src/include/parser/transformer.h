@@ -238,7 +238,10 @@ private:
 
     std::unique_ptr<Statement> transformCopyCSV(CypherParser::KU_CopyCSVContext& ctx);
 
-    std::vector<std::string> transformFilePaths(CypherParser::KU_FilePathsContext& ctx);
+    std::unique_ptr<Statement> transformCopyNPY(CypherParser::KU_CopyNPYContext& ctx);
+
+    std::vector<std::string> transformFilePaths(
+        std::vector<antlr4::tree::TerminalNode*> stringLiteral);
 
     std::unordered_map<std::string, std::unique_ptr<ParsedExpression>> transformParsingOptions(
         CypherParser::KU_ParsingOptionsContext& ctx);
