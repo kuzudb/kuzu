@@ -13,6 +13,9 @@ void LogicalOperatorVisitor::visitOperatorSwitch(planner::LogicalOperator* op) {
     case LogicalOperatorType::SCAN_NODE: {
         visitScanNode(op);
     } break;
+    case LogicalOperatorType::INDEX_SCAN_NODE: {
+        visitIndexScanNode(op);
+    } break;
     case LogicalOperatorType::EXTEND: {
         visitExtend(op);
     } break;
@@ -83,6 +86,9 @@ std::shared_ptr<planner::LogicalOperator> LogicalOperatorVisitor::visitOperatorR
     }
     case LogicalOperatorType::SCAN_NODE: {
         return visitScanNodeReplace(op);
+    }
+    case LogicalOperatorType::INDEX_SCAN_NODE: {
+        return visitIndexScanNodeReplace(op);
     }
     case LogicalOperatorType::EXTEND: {
         return visitExtendReplace(op);

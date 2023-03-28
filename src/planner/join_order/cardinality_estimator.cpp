@@ -58,7 +58,7 @@ uint64_t CardinalityEstimator::estimateIntersect(const binder::expression_vector
     const LogicalPlan& probePlan, const std::vector<std::unique_ptr<LogicalPlan>>& buildPlans) {
     // Formula 1: treat intersect as a Filter on probe side.
     uint64_t estCardinality1 =
-        probePlan.estCardinality * common::EnumeratorKnobs::NON_EQUALITY_PREDICATE_SELECTIVITY;
+        probePlan.estCardinality * common::PlannerKnobs::NON_EQUALITY_PREDICATE_SELECTIVITY;
     // Formula 2: assume independence on join conditions.
     auto denominator = 1u;
     for (auto& joinNodeID : joinNodeIDs) {
@@ -93,11 +93,11 @@ uint64_t CardinalityEstimator::estimateFilter(
             return 1;
         } else {
             return atLeastOne(
-                childPlan.estCardinality * common::EnumeratorKnobs::EQUALITY_PREDICATE_SELECTIVITY);
+                childPlan.estCardinality * common::PlannerKnobs::EQUALITY_PREDICATE_SELECTIVITY);
         }
     } else {
         return atLeastOne(
-            childPlan.estCardinality * common::EnumeratorKnobs::NON_EQUALITY_PREDICATE_SELECTIVITY);
+            childPlan.estCardinality * common::PlannerKnobs::NON_EQUALITY_PREDICATE_SELECTIVITY);
     }
 }
 

@@ -31,5 +31,10 @@ protected:
     void visitScanNode(planner::LogicalOperator* op) override { ops.push_back(op); }
 };
 
+class LogicalIndexScanNodeCollector : public LogicalOperatorCollector {
+protected:
+    void visitIndexScanNode(planner::LogicalOperator* op) override { ops.push_back(op); }
+};
+
 } // namespace optimizer
 } // namespace kuzu

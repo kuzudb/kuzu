@@ -36,6 +36,8 @@ std::string CopyDescription::getFileTypeName(FileType fileType) {
     case FileType::NPY: {
         return "npy";
     }
+    default:
+        throw InternalException("Unimplemented getFileTypeName().");
     }
 }
 

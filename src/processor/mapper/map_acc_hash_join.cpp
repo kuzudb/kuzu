@@ -18,7 +18,7 @@ static FactorizedTableScan* getTableScanForAccHashJoin(PhysicalOperator* probe) 
     return (FactorizedTableScan*)op;
 }
 
-void PlanMapper::mapASP(kuzu::processor::PhysicalOperator* probe) {
+void PlanMapper::mapAccHashJoin(kuzu::processor::PhysicalOperator* probe) {
     auto tableScan = getTableScanForAccHashJoin(probe);
     auto resultCollector = tableScan->moveUnaryChild();
     probe->addChild(std::move(resultCollector));
