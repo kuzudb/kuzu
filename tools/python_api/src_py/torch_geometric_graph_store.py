@@ -87,6 +87,7 @@ class KuzuGraphStore(GraphStore):
             "MATCH (a:%s)-[%s]->(b:%s) RETURN offset(id(a)), offset(id(b))" % edge_type).get_as_df()
         src = torch.LongTensor(edges.iloc[:, 0])
         dst = torch.LongTensor(edges.iloc[:, 1])
+        del edges
         edge_list = torch.stack([src, dst], dim=0)
         rel.edge_index = edge_list
         rel.materialized = True
