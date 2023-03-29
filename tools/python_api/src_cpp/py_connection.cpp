@@ -17,7 +17,8 @@ void PyConnection::initialize(py::handle& m) {
         .def("set_max_threads_for_exec", &PyConnection::setMaxNumThreadForExec,
             py::arg("num_threads"))
         .def("get_node_property_names", &PyConnection::getNodePropertyNames, py::arg("table_name"))
-        .def("prepare", &PyConnection::prepare, py::arg("query"));
+        .def("prepare", &PyConnection::prepare, py::arg("query"))
+        .def("set_query_timeout", &PyConnection::setQueryTimeout, py::arg("timeout_in_ms"));
     PyDateTime_IMPORT;
 }
 
@@ -26,6 +27,10 @@ PyConnection::PyConnection(PyDatabase* pyDatabase, uint64_t numThreads) {
     if (numThreads > 0) {
         conn->setMaxNumThreadForExec(numThreads);
     }
+}
+
+void PyConnection::setQueryTimeout(uint64_t timeoutInMS) {
+    conn->setQueryTimeOut(timeoutInMS);
 }
 
 std::unique_ptr<PyQueryResult> PyConnection::execute(
