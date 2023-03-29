@@ -38,6 +38,8 @@ public:
 
     void resetIterator();
 
+    bool isSuccess() const;
+
 private:
     static py::dict getPyDictFromProperties(
         const std::vector<std::pair<std::string, std::unique_ptr<kuzu::common::Value>>>&

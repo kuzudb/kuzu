@@ -17,6 +17,9 @@ class Connection:
 
     prepare(query)
         Create a prepared statement for a query.
+
+    set_query_timeout(timeout_in_ms)
+        Set the query timeout in milliseconds.
     """
 
     def __init__(self, database, num_threads=0):
@@ -95,7 +98,7 @@ class Connection:
             table_name)
         results = {}
         for (i, line) in enumerate(result_str.splitlines()):
-            # ignore first line
+            #ignore first line
             if i == 0:
                 continue
             line = line.strip()
@@ -118,3 +121,15 @@ class Connection:
                 "is_primary_key": is_primary_key
             }
         return results
+
+    def set_query_timeout(self, timeout_in_ms):
+        """
+        Set the query timeout value in ms for executing queries.
+
+        Parameters
+        ----------
+        timeout_in_ms : int
+            query timeout value in ms for executing queries.
+        """
+
+        self._connection.set_query_timeout(timeout_in_ms)

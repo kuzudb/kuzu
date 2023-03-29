@@ -11,24 +11,28 @@ def test_read(establish_connection):
 
     result = conn.execute(prepared_statement,
                           [("1", False), ("k", False)])
+    assert result.is_success()
     assert result.has_next()
     assert result.get_next() == [1]
     assert not result.has_next()
 
     result = conn.execute(prepared_statement,
                           [("1", True), ("k", False)])
+    assert result.is_success()
     assert result.has_next()
     assert result.get_next() == [3]
     assert not result.has_next()
 
     result = conn.execute(prepared_statement,
                           [("1", False), ("k", True)])
+    assert result.is_success()
     assert result.has_next()
     assert result.get_next() == [4]
     assert not result.has_next()
 
     result = conn.execute(prepared_statement,
                           [("1", True), ("k", True)])
+    assert result.is_success()
     assert result.has_next()
     assert result.get_next() == [0]
     assert not result.has_next()

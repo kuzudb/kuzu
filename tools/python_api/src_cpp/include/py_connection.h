@@ -13,6 +13,8 @@ public:
 
     ~PyConnection() = default;
 
+    void setQueryTimeout(uint64_t timeoutInMS);
+
     std::unique_ptr<PyQueryResult> execute(PyPreparedStatement* preparedStatement, py::list params);
 
     void setMaxNumThreadForExec(uint64_t numThreads);

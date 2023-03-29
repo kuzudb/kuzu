@@ -23,7 +23,8 @@ void PyQueryResult::initialize(py::handle& m) {
         .def("getAsArrow", &PyQueryResult::getAsArrow)
         .def("getColumnNames", &PyQueryResult::getColumnNames)
         .def("getColumnDataTypes", &PyQueryResult::getColumnDataTypes)
-        .def("resetIterator", &PyQueryResult::resetIterator);
+        .def("resetIterator", &PyQueryResult::resetIterator)
+        .def("isSuccess", &PyQueryResult::isSuccess);
     // PyDateTime_IMPORT is a macro that must be invoked before calling any other cpython datetime
     // macros. One could also invoke this in a separate function like constructor. See
     // https://docs.python.org/3/c-api/datetime.html for details.
@@ -192,6 +193,10 @@ py::list PyQueryResult::getColumnNames() {
 
 void PyQueryResult::resetIterator() {
     queryResult->resetIterator();
+}
+
+bool PyQueryResult::isSuccess() const {
+    return queryResult->isSuccess();
 }
 
 py::dict PyQueryResult::getPyDictFromProperties(
