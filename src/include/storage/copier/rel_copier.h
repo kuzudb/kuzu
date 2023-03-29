@@ -22,10 +22,6 @@ public:
 private:
     static std::string getTaskTypeName(PopulateTaskType populateTaskType);
 
-    inline void updateTableStatistics() override {
-        relsStatistics->setNumRelsForTable(tableSchema->tableID, numRows);
-    }
-
     void initializeColumnsAndLists() override;
 
     void populateColumnsAndLists() override;
@@ -145,7 +141,6 @@ private:
 
 private:
     const std::map<common::table_id_t, common::offset_t> maxNodeOffsetsPerTable;
-    RelsStatistics* relsStatistics;
     std::unique_ptr<transaction::Transaction> dummyReadOnlyTrx;
     std::map<common::table_id_t, std::unique_ptr<PrimaryKeyIndex>> pkIndexes;
     std::atomic<uint64_t> numRels = 0;

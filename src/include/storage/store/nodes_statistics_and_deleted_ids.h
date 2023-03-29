@@ -108,7 +108,7 @@ public:
             directory, common::DBFileType::ORIGINAL, transaction::TransactionType::READ_ONLY);
     }
 
-    inline void setNumTuplesForTable(common::table_id_t tableID, uint64_t numTuples) {
+    inline void setNumTuplesForTable(common::table_id_t tableID, uint64_t numTuples) override {
         initTableStatisticPerTableForWriteTrxIfNecessary();
         ((NodeStatisticsAndDeletedIDs*)tablesStatisticsContentForWriteTrx
                 ->tableStatisticPerTable[tableID]
