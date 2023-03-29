@@ -1,0 +1,54 @@
+CREATE NODE TABLE Paper(id INT64, feat FLOAT[768], year INT32, label FLOAT, PRIMARY KEY(id))
+;
+CREATE NODE TABLE Paper(id INT64, feat FLOAT[768], year INT32, label FLOAT, PRIMARY KEY(id))
+:help
+:show node paper
+;
+:show_node paper;
+:show_node Paper;
+CREATE NODE TABLE Paper(id INT64, feat FLOAT[768], year INT32, label FLOAT, PRIMARY KEY(id))
+:show_node
+:help
+:list_nodes
+:show_node Paper;
+:show_node [Paper];
+COPY TABLE(id, feat, year, label) FROM "/home/lc/Developer/mag240m/mag240m_kddcup2021/processed/paper/node_id.npy", "/home/lc/Developer/mag240m/mag240m_kddcup2021/processed/paper/node_feat.npy", "/home/lc/Developer/mag240m/mag240m_kddcup2021/processed/paper/node_year.npy", "/home/lc/Developer/mag240m/mag240m_kddcup2021/processed/paper/node_label.npy";
+COPY Paper(id, feat, year, label) FROM "/home/lc/Developer/mag240m/mag240m_kddcup2021/processed/paper/node_id.npy", "/home/lc/Developer/mag240m/mag240m_kddcup2021/processed/paper/node_feat.npy", "/home/lc/Developer/mag240m/mag240m_kddcup2021/processed/paper/node_year.npy", "/home/lc/Developer/mag240m/mag240m_kddcup2021/processed/paper/node_label.npy";
+CREATE NODE TABLE Paper(id INT64, feat FLOAT[768], year INT64, label DOUBLE, PRIMARY KEY(id));
+COPY Paper FROMNPY ("/home/lc/Developer/mag240m/mag240m_kddcup2021/processed/paper/node_id.np;
+CREATE NODE TABLE Paper(id INT64, feat FLOAT[768], year INT64, label DOUBLE, PRIMARY KEY(id));
+COPY Paper FROMNPY ("/home/lc/Developer/mag240m/mag240m_kddcup2021/processed/paper/nod
+COPY Paper FROMNPY ("/home/lc/Developer/mag240m/mag240m_kddcup2021/processed/paper/node_id.npy", "/home/lc/Developer/mag240m/mag240m_kddcup2021/processed/paper/node_feat.npy", "/home/lc/Developer/mag240m/mag240m_kddcup2021/processed/paper/node_year.npy", "/home/lc/Developer/mag240m/mag240m_kddcup2021/processed/paper/node_label.npy");
+CREATE NODE TABLE Paper(id INT64, feat FLOAT[768], year INT64, label DOUBLE, PRIMARY KEY(id));
+:help
+:logging_level debug;
+COPY Paper FROMNPY ("/home/lc/Developer/mag240m/mag240m_kddcup2021/processed/paper/node_id.npy", "/home/lc/Developer/mag240m/mag240m_kddcup2021/processed/paper/node_feat.npy", "/home/lc/Developer/mag240m/mag240m_kddcup2021/processed/paper/node_year.npy", "/home/lc/Developer/mag240m/mag240m_kddcup2021/processed/paper/node_label.npy");
+:logging_level debug;
+CREATE NODE TABLE Paper(id INT64, feat FLOAT[768], year INT64, label DOUBLE, PRIMARY KEY(id));
+COPY Paper FROMNPY ("/home/lc/Developer/mag240m/mag240m_kddcup2021/processed/paper/node_id.npy", "/home/lc/Developer/mag240m/mag240m_kddcup2021/processed/paper/node_feat.npy", "/home/lc/Developer/mag240m/mag240m_kddcup2021/processed/paper/node_year.npy", "/home/lc/Developer/mag240m/mag240m_kddcup2021/processed/paper/node_label.npy");
+CREATE NODE TABLE Paper(id INT64, feat FLOAT[768], year INT64, label DOUBLE, PRIMARY KEY(id));
+:help
+:logging_level debug
+COPY Paper FROMNPY ("/home/lc/Developer/mag240m/mag240m_kddcup2021/processed/paper/node_id.npy", "/home/lc/Developer/mag240m/mag240m_kddcup2021/processed/paper/node_feat.npy", "/home/lc/Developer/mag240m/mag240m_kddcup2021/processed/paper/node_year.npy", "/home/lc/Developer/mag240m/mag240m_kddcup2021/processed/paper/node_label.npy");
+:logging_level debug
+COPY Paper FROMNPY ("/home/lc/Developer/mag240m/mag240m_kddcup2021/processed/paper/node_id.npy", "/home/lc/Developer/mag240m/mag240m_kddcup2021/processed/paper/node_feat_f32.npy", "/home/lc/Developer/mag240m/mag240m_kddcup2021/processed/paper/node_year.npy", "/home/lc/Developer/mag240m/mag240m_kddcup2021/processed/paper/node_label.npy");
+CREATE NODE TABLE Paper(id INT64, feat FLOAT[768], year INT64, label DOUBLE, PRIMARY KEY(id));
+:logging_level debug
+COPY Paper FROMNPY ("/home/lc/Developer/mag240m/mag240m_kddcup2021/processed/paper/node_id.npy", "/home/lc/Developer/mag240m/mag240m_kddcup2021/processed/paper/node_feat_f32.npy", "/home/lc/Developer/mag240m/mag240m_kddcup2021/processed/paper/node_year.npy", "/home/lc/Developer/mag240m/mag240m_kddcup2021/processed/paper/node_label.npy");
+exit
+;
+quit
+;
+CREATE NODE TABLE Paper(id INT64, x FLOAT[768], year INT64, label DOUBLE, PRIMARY KEY(id));
+COPY Paper FROMNPY ("/home/lc/Developer/mag100m/kuzu/id.npy", "/home/lc/Developer/mag100m/kuzu/", "", "");
+CREATE NODE TABLE Paper(id INT64, x FLOAT[128], year INT64, label DOUBLE, PRIMARY KEY(id));
+COPY Paper FROMNPY ("/home/lc/Developer/mag100m/kuzu/id.npy", "/home/lc/Developer/mag100m/kuzu/x.npy", "/home/lc/Developer/mag100m/kuzu/year.npy", "");
+CREATE NODE TABLE Paper(id INT64, x FLOAT[128], year INT64, y DOUBLE, PRIMARY KEY(id));
+COPY Paper FROMNPY ("/home/lc/Developer/mag100m/kuzu/id.npy", "/home/lc/Developer/mag100m/kuzu/x.npy", "/home/lc/Developer/mag100m/kuzu/year.npy", "/home/lc/Developer/mag100m/kuzu/y.npy");
+CREATE NODE TABLE Paper(id INT64, x FLOAT[128], year INT64, y FLOAT, PRIMARY KEY(id));
+COPY Paper FROMNPY ("/home/lc/Developer/mag100m/kuzu/id.npy", "/home/lc/Developer/mag100m/kuzu/x.npy", "/home/lc/Developer/mag100m/kuzu/year.npy", "/home/lc/Developer/mag100m/kuzu/y.npy");
+:help
+:logging_level debug
+CREATE REL TABLE Cites (FROM Paper TO Paper, MANY_MANY);
+:logging_level debug
+COPY Cites FROM "/home/lc/Developer/mag100m/kuzu/cites.csv" (HEADER=true);

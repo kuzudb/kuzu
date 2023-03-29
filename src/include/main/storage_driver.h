@@ -41,7 +41,7 @@ public:
 
     ~StorageDriver();
 
-    std::pair<std::unique_ptr<uint8_t[]>, size_t> scan(const std::string& nodeName,
+    std::pair<uint8_t*, size_t> scan(const std::string& nodeName,
         const std::string& propertyName, common::offset_t* offsets, size_t size);
 
 private:

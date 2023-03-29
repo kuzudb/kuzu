@@ -36,8 +36,8 @@ void PyConnection::setQueryTimeout(uint64_t timeoutInMS) {
     conn->setQueryTimeOut(timeoutInMS);
 }
 
-std::unique_ptr<PyQueryResult> PyConnection::execute(
-    PyPreparedStatement* preparedStatement, py::list params) {
+std::unique_ptr<PyQueryResult> PyConnection::execute(PyPreparedStatement* preparedStatement,
+    py::list params) {
     auto parameters = transformPythonParameters(params);
     py::gil_scoped_release release;
     auto queryResult =
@@ -77,6 +77,23 @@ PyPreparedStatement PyConnection::prepare(const std::string& query) {
     pyPreparedStatement.preparedStatement = std::move(preparedStatement);
     return pyPreparedStatement;
 }
+
+py::array_t<uint64_t> PyConnection::getAllEdgesForTorchGeometric(const std::string& srcTableName,
+    const std::string& relName, const std::string& dstTableName) {
+        auto countQuery = "MATCH (a:{})-[{}]->(b:{}) RETURN count(*)";
+        auto countQueryWithParams = StringUtils::string_format(countQuery, srcTableName, relName, dstTableName);
+        auto countResult = conn->execute(countQueryWithParams);
+        if (!countResult->isSuccess()) {
+            throw std::runtime_error(countResult->getErrorMessage());
+        }
+        auto count = countResult
+        auto queryString = "MATCH (a:{})-[{}]->(b:{}) RETURN offset(id(a)), offset(id(b))";
+        auto query = StringUtils::string_format(queryString, srcTableName, relName, dstTableName);
+        auto result = conn->execute(query);
+        if (!result->isSuccess()) {
+            throw std::runtime_error(result->getErrorMessage());
+        }
+    }
 
 std::unordered_map<std::string, std::shared_ptr<Value>> PyConnection::transformPythonParameters(
     py::list params) {

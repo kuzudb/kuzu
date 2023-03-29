@@ -83,14 +83,28 @@ class KuzuGraphStore(GraphStore):
         if rel.layout != EdgeLayout.COO.value:
             raise ValueError("Only COO layout is supported")
         edge_type = rel.edge_type
-        edges = self.connection.execute(
-            "MATCH (a:%s)-[%s]->(b:%s) RETURN offset(id(a)), offset(id(b))" % edge_type).get_as_df()
-        src = torch.LongTensor(edges.iloc[:, 0])
-        dst = torch.LongTensor(edges.iloc[:, 1])
-        del edges
-        edge_list = torch.stack([src, dst], dim=0)
+        print("Getting edge list size")
+        size = self.__get_edges_count(edge_type)
+        print("Size: %d" % size)
+        query = "MATCH (a:%s)-[%s]->(b:%s) RETURN offset(id(a)), offset(id(b))" % edge_type
+        print("Executing query: %s" % query)
+        result = self.connection.execute(query)
+        print("Allocating edge list")
+        edge_list = torch.zeros((2, size), dtype=torch.long)
+        print("Getting results")
+        i = 0
+        while result.has_next():
+            row = result.get_next()
+            edge_list[0, i] = row[0]
+            edge_list[1, i] = row[1]
+            i += 1
+            if(i % 10000000 == 0):
+                print("%d/%d" % (i, size))
+        print("%d/%d" % (i, size))
+        print("Setting edge index")
         rel.edge_index = edge_list
         rel.materialized = True
+        print("Done")
 
     def __populate_edge_attrs(self):
         if not self.connection:
@@ -111,3 +125,7 @@ class KuzuGraphStore(GraphStore):
             "MATCH (a:%s) RETURN COUNT(*)" % edge_type[-1]).get_next()[0]
         size = (src_count, dst_count)
         return size
+
+    def __get_edges_count(self, edge_type):
+        query = "MATCH (a:%s)-[%s]->(b:%s) RETURN COUNT(*)" % edge_type
+        return self.connection.execute(query).get_next()[0]

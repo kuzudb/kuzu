@@ -10,22 +10,22 @@ void PyDatabase::initialize(py::handle& m) {
             py::arg("buffer_pool_size") = 0)
         .def("set_logging_level", &PyDatabase::setLoggingLevel, py::arg("logging_level"))
         .def("scan_node_table_as_int64", &PyDatabase::scanNodeTable<std::int64_t>,
-            py::return_value_policy::take_ownership, py::arg("table_name"), py::arg("prop_name"),
+            py::return_value_policy::move, py::arg("table_name"), py::arg("prop_name"),
             py::arg("indices"), py::arg("num_threads"))
         .def("scan_node_table_as_int32", &PyDatabase::scanNodeTable<std::int32_t>,
-            py::return_value_policy::take_ownership, py::arg("table_name"), py::arg("prop_name"),
+            py::return_value_policy::move, py::arg("table_name"), py::arg("prop_name"),
             py::arg("indices"), py::arg("num_threads"))
         .def("scan_node_table_as_int16", &PyDatabase::scanNodeTable<std::int16_t>,
-            py::return_value_policy::take_ownership, py::arg("table_name"), py::arg("prop_name"),
+            py::return_value_policy::move, py::arg("table_name"), py::arg("prop_name"),
             py::arg("indices"), py::arg("num_threads"))
         .def("scan_node_table_as_double", &PyDatabase::scanNodeTable<std::double_t>,
-            py::return_value_policy::take_ownership, py::arg("table_name"), py::arg("prop_name"),
+            py::return_value_policy::move, py::arg("table_name"), py::arg("prop_name"),
             py::arg("indices"), py::arg("num_threads"))
         .def("scan_node_table_as_float", &PyDatabase::scanNodeTable<std::float_t>,
-            py::return_value_policy::take_ownership, py::arg("table_name"), py::arg("prop_name"),
+            py::return_value_policy::move, py::arg("table_name"), py::arg("prop_name"),
             py::arg("indices"), py::arg("num_threads"))
         .def("scan_node_table_as_bool", &PyDatabase::scanNodeTable<bool>,
-            py::return_value_policy::take_ownership, py::arg("table_name"), py::arg("prop_name"),
+            py::return_value_policy::move, py::arg("table_name"), py::arg("prop_name"),
             py::arg("indices"), py::arg("num_threads"));
 }
 
@@ -48,7 +48,7 @@ py::array_t<T> PyDatabase::scanNodeTable(const std::string& tableName, const std
         storageDriver = std::make_unique<StorageDriver>(database.get());
     }
     auto scanResult = storageDriver->scan(tableName, propName, nodeOffsets, size);
-    auto buffer = (T*)(scanResult.first).get();
+    auto buffer = scanResult.first;
     auto bufferSize = scanResult.second;
     auto numberOfItems = bufferSize / sizeof(T);
     return py::array_t<T>(py::buffer_info(buffer, sizeof(T), py::format_descriptor<T>::format(), 1,

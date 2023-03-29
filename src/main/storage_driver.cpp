@@ -45,7 +45,7 @@ StorageDriver::StorageDriver(kuzu::main::Database* database, size_t numThreads)
 
 StorageDriver::~StorageDriver() = default;
 
-std::pair<std::unique_ptr<uint8_t[]>, size_t> StorageDriver::scan(const std::string& nodeName,
+std::pair<uint8_t*, size_t> StorageDriver::scan(const std::string& nodeName,
     const std::string& propertyName, common::offset_t* offsets, size_t size) {
     // Resolve files to read from
     auto catalogContent = catalog->getReadOnlyVersion();
@@ -55,8 +55,7 @@ std::pair<std::unique_ptr<uint8_t[]>, size_t> StorageDriver::scan(const std::str
     auto column = nodeTable->getPropertyColumn(propertyID);
 
     auto bufferSize = column->elementSize * size;
-    auto result = std::make_unique<uint8_t[]>(bufferSize);
-    auto buffer = result.get();
+    uint8_t* buffer = (uint8_t*) malloc(bufferSize);
     std::vector<std::thread> threads;
     auto numElementsPerThread = size / numThreads + 1;
     auto sizeLeft = size;
@@ -70,7 +69,7 @@ std::pair<std::unique_ptr<uint8_t[]>, size_t> StorageDriver::scan(const std::str
     for (auto& thread : threads) {
         thread.join();
     }
-    return std::make_pair(std::move(result), bufferSize);
+    return std::make_pair(buffer, bufferSize);
 }
 
 void StorageDriver::scanColumn(
