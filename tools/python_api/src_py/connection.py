@@ -26,14 +26,15 @@ class Connection:
         """
         Parameters
         ----------
-        database : _kuzu.Database
+        database : Database
             Database to connect to.
         num_threads : int
             Maximum number of threads to use for executing queries.
         """
 
         self.database = database
-        self._connection = _kuzu.Connection(database, num_threads)
+        database.init_database()
+        self._connection = _kuzu.Connection(database._database, num_threads)
 
     def set_max_threads_for_exec(self, num_threads):
         """
@@ -93,7 +94,8 @@ class Connection:
 
     def _get_node_property_names(self, table_name):
         PRIMARY_KEY_SYMBOL = "(PRIMARY KEY)"
-        LIST_SYMBOL = "[]"
+        LIST_START_SYMBOL = "["
+        LIST_END_SYMBOL = "]"
         result_str = self._connection.get_node_property_names(
             table_name)
         results = {}
@@ -113,13 +115,58 @@ class Connection:
 
             is_primary_key = PRIMARY_KEY_SYMBOL in prop_type
             prop_type = prop_type.replace(PRIMARY_KEY_SYMBOL, "")
-            dimension = prop_type.count(LIST_SYMBOL)
-            prop_type = prop_type.replace(LIST_SYMBOL, "")
+            dimension = prop_type.count(LIST_START_SYMBOL)
+            splited = prop_type.split(LIST_START_SYMBOL)
+            shape = []
+            for s in splited:
+                if LIST_END_SYMBOL not in s:
+                    continue
+                s = s.split(LIST_END_SYMBOL)[0]
+                if s != "":
+                    shape.append(int(s))
+            prop_type = splited[0]
             results[prop_name] = {
                 "type": prop_type,
                 "dimension": dimension,
                 "is_primary_key": is_primary_key
             }
+            if len(shape) > 0:
+                results[prop_name]["shape"] = tuple(shape)
+        return results
+
+    def _get_node_table_names(self):
+        results = []
+        result_str = self._connection.get_node_table_names()
+        for (i, line) in enumerate(result_str.splitlines()):
+            # ignore first line
+            if i == 0:
+                continue
+            line = line.strip()
+            if line == "":
+                continue
+            results.append(line)
+        return results
+
+    def _get_rel_table_names(self):
+        results = []
+        result_str = self._connection.get_rel_table_names()
+        for i, line in enumerate(result_str.splitlines()):
+            if i == 0:
+                continue
+            line = line.strip()
+            if line == "":
+                continue
+            props_str = self._connection.get_rel_property_names(line)
+            src_node = None
+            dst_node = None
+            for prop_str in props_str.splitlines():
+                if "src node:" in prop_str:
+                    src_node = prop_str.split(":")[1].strip()
+                if "dst node:" in prop_str:
+                    dst_node = prop_str.split(":")[1].strip()
+                if src_node is not None and dst_node is not None:
+                    break
+            results.append({"name": line, "src": src_node, "dst": dst_node})
         return results
 
     def set_query_timeout(self, timeout_in_ms):

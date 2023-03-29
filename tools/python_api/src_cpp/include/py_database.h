@@ -1,8 +1,9 @@
 #pragma once
 
 #include "main/kuzu.h"
+#include "main/storage_driver.h"
 #include "pybind_include.h"
-
+#define PYBIND11_DETAILED_ERROR_MESSAGES
 using namespace kuzu::main;
 
 class PyDatabase {
@@ -17,8 +18,13 @@ public:
 
     explicit PyDatabase(const std::string& databasePath, uint64_t bufferPoolSize);
 
+    template<class T>
+    py::array_t<T> scanNodeTable(const std::string& tableName, const std::string& propName,
+        const py::array_t<uint64_t>& indices, int numThreads);
+
     ~PyDatabase() = default;
 
 private:
     std::unique_ptr<Database> database;
+    std::unique_ptr<StorageDriver> storageDriver;
 };

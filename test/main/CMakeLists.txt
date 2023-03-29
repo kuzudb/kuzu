@@ -5,4 +5,5 @@ add_kuzu_test(main_test
         csv_output_test.cpp
         exception_test.cpp
         prepare_test.cpp
-        result_value_test.cpp)
+        result_value_test.cpp
+        storage_driver_test.cpp)

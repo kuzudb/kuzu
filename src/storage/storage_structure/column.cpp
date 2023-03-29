@@ -9,6 +9,20 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
+void Column::scan(const common::offset_t* nodeOffsets, size_t size, uint8_t* result) {
+    for (auto i = 0u; i < size; ++i) {
+        auto nodeOffset = nodeOffsets[i];
+        auto cursor = PageUtils::getPageElementCursorForPos(nodeOffset, numElementsPerPage);
+        auto [fileHandleToPin, pageIdxToPin] =
+            StorageStructureUtils::getFileHandleAndPhysicalPageIdxToPin(
+                *fileHandle, cursor.pageIdx, *wal, TransactionType::READ_ONLY);
+        auto frame = bufferManager.pin(*fileHandleToPin, pageIdxToPin);
+        auto frameBytesOffset = getElemByteOffset(cursor.elemPosInPage);
+        memcpy(result + i * elementSize, frame + frameBytesOffset, elementSize);
+        bufferManager.unpin(*fileHandleToPin, pageIdxToPin);
+    }
+}
+
 void Column::read(Transaction* transaction, common::ValueVector* nodeIDVector,
     common::ValueVector* resultVector) {
     if (nodeIDVector->state->isFlat()) {

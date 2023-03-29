@@ -21,6 +21,12 @@ public:
 
     py::str getNodePropertyNames(const std::string& tableName);
 
+    py::str getNodeTableNames();
+
+    py::str getRelPropertyNames(const std::string& tableName);
+
+    py::str getRelTableNames();
+
     PyPreparedStatement prepare(const std::string& query);
 
 private:

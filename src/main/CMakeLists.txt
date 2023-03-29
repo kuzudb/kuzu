@@ -6,7 +6,8 @@ add_library(kuzu_main
         plan_printer.cpp
         prepared_statement.cpp
         query_result.cpp
-        query_summary.cpp)
+        query_summary.cpp
+        storage_driver.cpp)
 
 set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_main>
