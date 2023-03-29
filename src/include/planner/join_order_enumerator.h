@@ -36,14 +36,6 @@ public:
         std::shared_ptr<Expression> mark, LogicalPlan& probePlan, LogicalPlan& buildPlan) {
         planJoin(joinNodeIDs, common::JoinType::MARK, mark, probePlan, buildPlan);
     }
-    inline void planInnerHashJoin(const std::vector<std::shared_ptr<NodeExpression>>& joinNodes,
-        LogicalPlan& probePlan, LogicalPlan& buildPlan) {
-        binder::expression_vector joinNodeIDs;
-        for (auto& joinNode : joinNodes) {
-            joinNodeIDs.push_back(joinNode->getInternalIDProperty());
-        }
-        planJoin(joinNodeIDs, common::JoinType::INNER, nullptr /* mark */, probePlan, buildPlan);
-    }
     inline void planInnerHashJoin(const binder::expression_vector& joinNodeIDs,
         LogicalPlan& probePlan, LogicalPlan& buildPlan) {
         planJoin(joinNodeIDs, common::JoinType::INNER, nullptr /* mark */, probePlan, buildPlan);

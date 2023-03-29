@@ -15,7 +15,7 @@ uint64_t CostModel::computeHashJoinCost(const binder::expression_vector& joinNod
     cost += probe.getCost();
     cost += build.getCost();
     cost += probe.getCardinality();
-    cost += common::EnumeratorKnobs::BUILD_PENALTY * build.getCardinality();
+    cost += common::PlannerKnobs::BUILD_PENALTY * build.getCardinality();
     return cost;
 }
 

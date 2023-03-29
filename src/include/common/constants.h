@@ -130,10 +130,13 @@ struct LoggerConstants {
     };
 };
 
-struct EnumeratorKnobs {
+struct PlannerKnobs {
     static constexpr double NON_EQUALITY_PREDICATE_SELECTIVITY = 0.1;
     static constexpr double EQUALITY_PREDICATE_SELECTIVITY = 0.01;
     static constexpr uint64_t BUILD_PENALTY = 2;
+    // Avoid doing probe to build SIP if we have to accumulate a probe side that is much bigger than
+    // build side. Also avoid doing build to probe SIP if probe side is not much bigger than build.
+    static constexpr uint64_t ACC_HJ_PROBE_BUILD_RATIO = 5;
 };
 
 struct ClientContextConstants {

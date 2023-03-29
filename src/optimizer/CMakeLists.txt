@@ -1,6 +1,6 @@
 add_library(kuzu_optimizer
         OBJECT
-        asp_optimizer.cpp
+        acc_hash_join_optimizer.cpp
         factorization_rewriter.cpp
         filter_push_down_optimizer.cpp
         logical_operator_collector.cpp
