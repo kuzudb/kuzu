@@ -1,4 +1,4 @@
-#include "storage/copier/copy_rel_arrow.h"
+#include "storage/copier/rel_copier.h"
 
 #include "spdlog/spdlog.h"
 #include "storage/copier/copy_task.h"
@@ -10,12 +10,11 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-CopyRelArrow::CopyRelArrow(CopyDescription& copyDescription, std::string outputDirectory,
+RelCopier::RelCopier(CopyDescription& copyDescription, std::string outputDirectory,
     TaskScheduler& taskScheduler, Catalog& catalog,
     std::map<table_id_t, offset_t> maxNodeOffsetsPerNodeTable, BufferManager* bufferManager,
     table_id_t tableID, RelsStatistics* relsStatistics)
-    : CopyStructuresArrow{copyDescription, std::move(outputDirectory), taskScheduler, catalog,
-          tableID},
+    : TableCopier{copyDescription, std::move(outputDirectory), taskScheduler, catalog, tableID},
       maxNodeOffsetsPerTable{std::move(maxNodeOffsetsPerNodeTable)}, relsStatistics{
                                                                          relsStatistics} {
     dummyReadOnlyTrx = Transaction::getDummyReadOnlyTrx();
@@ -24,7 +23,7 @@ CopyRelArrow::CopyRelArrow(CopyDescription& copyDescription, std::string outputD
     initializePkIndexes(relTableSchema->dstTableID, *bufferManager);
 }
 
-std::string CopyRelArrow::getTaskTypeName(PopulateTaskType populateTaskType) {
+std::string RelCopier::getTaskTypeName(PopulateTaskType populateTaskType) {
     switch (populateTaskType) {
     case PopulateTaskType::populateAdjColumnsAndCountRelsInAdjListsTask: {
         return "populateAdjColumnsAndCountRelsInAdjListsTask";
@@ -35,7 +34,7 @@ std::string CopyRelArrow::getTaskTypeName(PopulateTaskType populateTaskType) {
     }
 }
 
-void CopyRelArrow::initializeColumnsAndLists() {
+void RelCopier::initializeColumnsAndLists() {
     for (auto relDirection : REL_DIRECTIONS) {
         listSizesPerDirection[relDirection] = std::make_unique<atomic_uint64_vec_t>(
             maxNodeOffsetsPerTable.at(
@@ -55,7 +54,7 @@ void CopyRelArrow::initializeColumnsAndLists() {
     }
 }
 
-void CopyRelArrow::populateColumnsAndLists() {
+void RelCopier::populateColumnsAndLists() {
     populateAdjColumnsAndCountRelsInAdjLists();
     if (adjListsPerDirection[FWD] != nullptr || adjListsPerDirection[BWD] != nullptr) {
         initAdjListsHeaders();
@@ -65,7 +64,7 @@ void CopyRelArrow::populateColumnsAndLists() {
     sortAndCopyOverflowValues();
 }
 
-void CopyRelArrow::saveToFile() {
+void RelCopier::saveToFile() {
     logger->debug("Writing columns and Lists to disk for rel {}.", tableSchema->tableName);
     for (auto relDirection : REL_DIRECTIONS) {
         if (reinterpret_cast<RelTableSchema*>(tableSchema)
@@ -84,7 +83,7 @@ void CopyRelArrow::saveToFile() {
     logger->debug("Done writing columns and lists to disk for rel {}.", tableSchema->tableName);
 }
 
-void CopyRelArrow::initializeColumns(RelDirection relDirection) {
+void RelCopier::initializeColumns(RelDirection relDirection) {
     auto boundTableID =
         reinterpret_cast<RelTableSchema*>(tableSchema)->getBoundTableID(relDirection);
     auto numNodes = maxNodeOffsetsPerTable.at(boundTableID) + 1;
@@ -104,7 +103,7 @@ void CopyRelArrow::initializeColumns(RelDirection relDirection) {
     propertyColumnsPerDirection[relDirection] = std::move(propertyColumns);
 }
 
-void CopyRelArrow::initializeLists(RelDirection relDirection) {
+void RelCopier::initializeLists(RelDirection relDirection) {
     auto boundTableID =
         reinterpret_cast<RelTableSchema*>(tableSchema)->getBoundTableID(relDirection);
     auto numNodes = maxNodeOffsetsPerTable.at(boundTableID) + 1;
@@ -124,7 +123,7 @@ void CopyRelArrow::initializeLists(RelDirection relDirection) {
     propertyListsPerDirection[relDirection] = std::move(propertyLists);
 }
 
-void CopyRelArrow::initAdjListsHeaders() {
+void RelCopier::initAdjListsHeaders() {
     logger->debug("Initializing AdjListHeaders for rel {}.", tableSchema->tableName);
     for (auto relDirection : REL_DIRECTIONS) {
         if (!reinterpret_cast<RelTableSchema*>(tableSchema)
@@ -141,7 +140,7 @@ void CopyRelArrow::initAdjListsHeaders() {
     logger->debug("Done initializing AdjListHeaders for rel {}.", tableSchema->tableName);
 }
 
-void CopyRelArrow::initListsMetadata() {
+void RelCopier::initListsMetadata() {
     logger->debug(
         "Initializing adjLists and propertyLists metadata for rel {}.", tableSchema->tableName);
     for (auto relDirection : REL_DIRECTIONS) {
@@ -171,7 +170,7 @@ void CopyRelArrow::initListsMetadata() {
         tableSchema->tableName);
 }
 
-void CopyRelArrow::initializePkIndexes(table_id_t nodeTableID, BufferManager& bufferManager) {
+void RelCopier::initializePkIndexes(table_id_t nodeTableID, BufferManager& bufferManager) {
     pkIndexes.emplace(nodeTableID,
         std::make_unique<PrimaryKeyIndex>(
             StorageUtils::getNodeIndexIDAndFName(this->outputDirectory, nodeTableID),
@@ -179,7 +178,7 @@ void CopyRelArrow::initializePkIndexes(table_id_t nodeTableID, BufferManager& bu
             bufferManager, nullptr /* wal */));
 }
 
-arrow::Status CopyRelArrow::executePopulateTask(PopulateTaskType populateTaskType) {
+arrow::Status RelCopier::executePopulateTask(PopulateTaskType populateTaskType) {
     arrow::Status status;
     switch (copyDescription.fileType) {
     case CopyDescription::FileType::CSV: {
@@ -192,7 +191,7 @@ arrow::Status CopyRelArrow::executePopulateTask(PopulateTaskType populateTaskTyp
     return status;
 }
 
-arrow::Status CopyRelArrow::populateFromCSV(PopulateTaskType populateTaskType) {
+arrow::Status RelCopier::populateFromCSV(PopulateTaskType populateTaskType) {
     auto populateTask = populateAdjColumnsAndCountRelsInAdjListsTask<arrow::Array>;
     if (populateTaskType == PopulateTaskType::populateListsTask) {
         populateTask = populateListsTask<arrow::Array>;
@@ -227,7 +226,7 @@ arrow::Status CopyRelArrow::populateFromCSV(PopulateTaskType populateTaskType) {
     return arrow::Status::OK();
 }
 
-arrow::Status CopyRelArrow::populateFromParquet(PopulateTaskType populateTaskType) {
+arrow::Status RelCopier::populateFromParquet(PopulateTaskType populateTaskType) {
     auto populateTask = populateAdjColumnsAndCountRelsInAdjListsTask<arrow::ChunkedArray>;
     if (populateTaskType == PopulateTaskType::populateListsTask) {
         populateTask = populateListsTask<arrow::ChunkedArray>;
@@ -261,7 +260,7 @@ arrow::Status CopyRelArrow::populateFromParquet(PopulateTaskType populateTaskTyp
     return arrow::Status::OK();
 }
 
-void CopyRelArrow::populateAdjColumnsAndCountRelsInAdjLists() {
+void RelCopier::populateAdjColumnsAndCountRelsInAdjLists() {
     logger->info(
         "Populating adj columns and rel property columns for rel {}.", tableSchema->tableName);
     auto status =
@@ -271,7 +270,7 @@ void CopyRelArrow::populateAdjColumnsAndCountRelsInAdjLists() {
         "Done populating adj columns and rel property columns for rel {}.", tableSchema->tableName);
 }
 
-void CopyRelArrow::populateLists() {
+void RelCopier::populateLists() {
     logger->debug("Populating adjLists and rel property lists for rel {}.", tableSchema->tableName);
     auto status = executePopulateTask(PopulateTaskType::populateListsTask);
     throwCopyExceptionIfNotOK(status);
@@ -279,7 +278,7 @@ void CopyRelArrow::populateLists() {
         "Done populating adjLists and rel property lists for rel {}.", tableSchema->tableName);
 }
 
-void CopyRelArrow::sortAndCopyOverflowValues() {
+void RelCopier::sortAndCopyOverflowValues() {
     for (auto relDirection : REL_DIRECTIONS) {
         // Sort overflow values of property Lists.
         if (!reinterpret_cast<RelTableSchema*>(tableSchema)
@@ -341,7 +340,7 @@ void CopyRelArrow::sortAndCopyOverflowValues() {
 }
 
 template<typename T>
-void CopyRelArrow::inferTableIDsAndOffsets(const std::vector<std::shared_ptr<T>>& batchColumns,
+void RelCopier::inferTableIDsAndOffsets(const std::vector<std::shared_ptr<T>>& batchColumns,
     std::vector<nodeID_t>& nodeIDs, std::vector<DataType>& nodeIDTypes,
     const std::map<table_id_t, std::unique_ptr<PrimaryKeyIndex>>& pkIndexes,
     Transaction* transaction, int64_t blockOffset, int64_t& colIndex) {
@@ -375,7 +374,7 @@ void CopyRelArrow::inferTableIDsAndOffsets(const std::vector<std::shared_ptr<T>>
 }
 
 template<typename T>
-void CopyRelArrow::putPropsOfLineIntoColumns(CopyRelArrow* copier,
+void RelCopier::putPropsOfLineIntoColumns(RelCopier* copier,
     std::vector<PageByteCursor>& inMemOverflowFileCursors,
     const std::vector<std::shared_ptr<T>>& batchColumns, const std::vector<nodeID_t>& nodeIDs,
     int64_t blockOffset, int64_t& colIndex) {
@@ -469,7 +468,7 @@ void CopyRelArrow::putPropsOfLineIntoColumns(CopyRelArrow* copier,
 }
 
 template<typename T>
-void CopyRelArrow::putPropsOfLineIntoLists(CopyRelArrow* copier,
+void RelCopier::putPropsOfLineIntoLists(RelCopier* copier,
     std::vector<PageByteCursor>& inMemOverflowFileCursors,
     const std::vector<std::shared_ptr<T>>& batchColumns, const std::vector<nodeID_t>& nodeIDs,
     const std::vector<uint64_t>& reversePos, int64_t blockOffset, int64_t& colIndex,
@@ -564,7 +563,7 @@ void CopyRelArrow::putPropsOfLineIntoLists(CopyRelArrow* copier,
     }
 }
 
-void CopyRelArrow::copyStringOverflowFromUnorderedToOrderedPages(ku_string_t* kuStr,
+void RelCopier::copyStringOverflowFromUnorderedToOrderedPages(ku_string_t* kuStr,
     PageByteCursor& unorderedOverflowCursor, PageByteCursor& orderedOverflowCursor,
     InMemOverflowFile* unorderedOverflowFile, InMemOverflowFile* orderedOverflowFile) {
     if (kuStr->len > ku_string_t::SHORT_STR_LENGTH) {
@@ -577,7 +576,7 @@ void CopyRelArrow::copyStringOverflowFromUnorderedToOrderedPages(ku_string_t* ku
     }
 }
 
-void CopyRelArrow::copyListOverflowFromUnorderedToOrderedPages(ku_list_t* kuList,
+void RelCopier::copyListOverflowFromUnorderedToOrderedPages(ku_list_t* kuList,
     const DataType& dataType, PageByteCursor& unorderedOverflowCursor,
     PageByteCursor& orderedOverflowCursor, InMemOverflowFile* unorderedOverflowFile,
     InMemOverflowFile* orderedOverflowFile) {
@@ -588,8 +587,8 @@ void CopyRelArrow::copyListOverflowFromUnorderedToOrderedPages(ku_list_t* kuList
 }
 
 template<typename T>
-void CopyRelArrow::populateAdjColumnsAndCountRelsInAdjListsTask(uint64_t blockIdx,
-    uint64_t blockStartRelID, CopyRelArrow* copier,
+void RelCopier::populateAdjColumnsAndCountRelsInAdjListsTask(uint64_t blockIdx,
+    uint64_t blockStartRelID, RelCopier* copier,
     const std::vector<std::shared_ptr<T>>& batchColumns, const std::string& filePath) {
     copier->logger->debug("Start: path=`{0}` blkIdx={1}", filePath, blockIdx);
     std::vector<bool> requireToReadTableLabels{true, true};
@@ -644,9 +643,8 @@ void CopyRelArrow::populateAdjColumnsAndCountRelsInAdjListsTask(uint64_t blockId
 }
 
 template<typename T>
-void CopyRelArrow::populateListsTask(uint64_t blockId, uint64_t blockStartRelID,
-    CopyRelArrow* copier, const std::vector<std::shared_ptr<T>>& batchColumns,
-    const std::string& filePath) {
+void RelCopier::populateListsTask(uint64_t blockId, uint64_t blockStartRelID, RelCopier* copier,
+    const std::vector<std::shared_ptr<T>>& batchColumns, const std::string& filePath) {
     copier->logger->trace("Start: path=`{0}` blkIdx={1}", filePath, blockId);
     std::vector<nodeID_t> nodeIDs(2);
     std::vector<DataType> nodePKTypes(2);
@@ -690,7 +688,7 @@ void CopyRelArrow::populateListsTask(uint64_t blockId, uint64_t blockStartRelID,
     copier->logger->trace("End: path=`{0}` blkIdx={1}", filePath, blockId);
 }
 
-void CopyRelArrow::sortOverflowValuesOfPropertyColumnTask(const DataType& dataType,
+void RelCopier::sortOverflowValuesOfPropertyColumnTask(const DataType& dataType,
     offset_t offsetStart, offset_t offsetEnd, InMemColumn* propertyColumn,
     InMemOverflowFile* unorderedInMemOverflowFile, InMemOverflowFile* orderedInMemOverflowFile) {
     PageByteCursor unorderedOverflowCursor, orderedOverflowCursor;
@@ -709,7 +707,7 @@ void CopyRelArrow::sortOverflowValuesOfPropertyColumnTask(const DataType& dataTy
     }
 }
 
-void CopyRelArrow::sortOverflowValuesOfPropertyListsTask(const DataType& dataType,
+void RelCopier::sortOverflowValuesOfPropertyListsTask(const DataType& dataType,
     offset_t offsetStart, offset_t offsetEnd, InMemAdjLists* adjLists, InMemLists* propertyLists,
     InMemOverflowFile* unorderedInMemOverflowFile, InMemOverflowFile* orderedInMemOverflowFile) {
     PageByteCursor unorderedOverflowCursor, orderedOverflowCursor;
@@ -743,7 +741,7 @@ void CopyRelArrow::sortOverflowValuesOfPropertyListsTask(const DataType& dataTyp
     }
 }
 
-void CopyRelArrow::putValueIntoColumns(uint64_t propertyIdx,
+void RelCopier::putValueIntoColumns(uint64_t propertyIdx,
     std::vector<std::unordered_map<property_id_t, std::unique_ptr<InMemColumn>>>&
         directionTablePropertyColumns,
     const std::vector<common::nodeID_t>& nodeIDs, uint8_t* val) {
@@ -757,7 +755,7 @@ void CopyRelArrow::putValueIntoColumns(uint64_t propertyIdx,
     }
 }
 
-void CopyRelArrow::putValueIntoLists(uint64_t propertyIdx,
+void RelCopier::putValueIntoLists(uint64_t propertyIdx,
     std::vector<std::unordered_map<common::property_id_t, std::unique_ptr<InMemLists>>>&
         directionTablePropertyLists,
     std::vector<std::unique_ptr<InMemAdjLists>>& directionTableAdjLists,
@@ -775,7 +773,7 @@ void CopyRelArrow::putValueIntoLists(uint64_t propertyIdx,
 }
 
 // Lists headers are created for only AdjLists, which store data in the page without NULL bits.
-void CopyRelArrow::calculateListHeadersTask(offset_t numNodes, uint32_t elementSize,
+void RelCopier::calculateListHeadersTask(offset_t numNodes, uint32_t elementSize,
     atomic_uint64_vec_t* listSizes, ListHeadersBuilder* listHeadersBuilder,
     const std::shared_ptr<spdlog::logger>& logger) {
     logger->trace("Start: ListHeadersBuilder={0:p}", (void*)listHeadersBuilder);
@@ -803,7 +801,7 @@ void CopyRelArrow::calculateListHeadersTask(offset_t numNodes, uint32_t elementS
     logger->trace("End: adjListHeadersBuilder={0:p}", (void*)listHeadersBuilder);
 }
 
-void CopyRelArrow::calculateListsMetadataAndAllocateInMemListPagesTask(uint64_t numNodes,
+void RelCopier::calculateListsMetadataAndAllocateInMemListPagesTask(uint64_t numNodes,
     uint32_t elementSize, atomic_uint64_vec_t* listSizes, ListHeadersBuilder* listHeadersBuilder,
     InMemLists* inMemList, bool hasNULLBytes, const std::shared_ptr<spdlog::logger>& logger) {
     logger->trace("Start: listsMetadataBuilder={0:p} adjListHeadersBuilder={1:p}",

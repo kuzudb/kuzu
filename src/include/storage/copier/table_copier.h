@@ -22,7 +22,7 @@
 namespace kuzu {
 namespace storage {
 
-class CopyStructuresArrow {
+class TableCopier {
     struct FileBlockInfo {
         FileBlockInfo(common::offset_t startOffset, uint64_t numBlocks,
             std::vector<uint64_t> numLinesPerBlock)
@@ -34,11 +34,11 @@ class CopyStructuresArrow {
     };
 
 public:
-    CopyStructuresArrow(common::CopyDescription& copyDescription, std::string outputDirectory,
+    TableCopier(common::CopyDescription& copyDescription, std::string outputDirectory,
         common::TaskScheduler& taskScheduler, catalog::Catalog& catalog,
         common::table_id_t tableID);
 
-    virtual ~CopyStructuresArrow() = default;
+    virtual ~TableCopier() = default;
 
     uint64_t copy();
 
@@ -87,6 +87,14 @@ protected:
         const common::DataType& dataType, common::CopyDescription& copyDescription);
 
     static void throwCopyExceptionIfNotOK(const arrow::Status& status);
+
+    uint64_t getNumBlocks() const {
+        uint64_t numBlocks = 0;
+        for (auto& [_, info] : fileBlockInfos) {
+            numBlocks += info.numBlocks;
+        }
+        return numBlocks;
+    }
 
 protected:
     std::shared_ptr<spdlog::logger> logger;

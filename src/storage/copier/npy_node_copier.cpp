@@ -1,4 +1,4 @@
-#include "storage/copier/copy_node_npy.h"
+#include "storage/copier/npy_node_copier.h"
 
 #include "storage/copier/copy_task.h"
 #include "storage/storage_structure/in_mem_file.h"
@@ -9,14 +9,14 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-void CopyNodeNpy::populateInMemoryStructures() {
+void NpyNodeCopier::populateInMemoryStructures() {
     initializeNpyReaders();
     initializeColumnsAndLists();
     validateNpyReaders();
     populateColumnsAndLists();
 }
 
-void CopyNodeNpy::initializeNpyReaders() {
+void NpyNodeCopier::initializeNpyReaders() {
     logger->info("Initializing npy readers.");
     for (auto& property : tableSchema->properties) {
         auto npyPath = copyDescription.propertyIDToNpyMap[property.propertyID];
@@ -27,7 +27,7 @@ void CopyNodeNpy::initializeNpyReaders() {
     logger->info("Done initializing npy readers.");
 }
 
-void CopyNodeNpy::validateNpyReaders() {
+void NpyNodeCopier::validateNpyReaders() {
     for (auto& [_, npyReader] : npyReaderMap) {
         auto length = npyReader->getLength();
         if (length == 0) {
@@ -69,7 +69,7 @@ void CopyNodeNpy::validateNpyReaders() {
     }
 }
 
-void CopyNodeNpy::populateColumnsAndLists() {
+void NpyNodeCopier::populateColumnsAndLists() {
     logger->info("Populating properties");
     auto primaryKey = reinterpret_cast<NodeTableSchema*>(tableSchema)->getPrimaryKey();
     if (primaryKey.dataType.typeID != INT64) {
@@ -88,13 +88,13 @@ void CopyNodeNpy::populateColumnsAndLists() {
     logger->info("Done populating properties, constructing the pk index.");
 }
 
-void CopyNodeNpy::populateColumnsFromNpy(std::unique_ptr<HashIndexBuilder<int64_t>>& pkIndex) {
+void NpyNodeCopier::populateColumnsFromNpy(std::unique_ptr<HashIndexBuilder<int64_t>>& pkIndex) {
     for (auto& [propertyIdx, _] : columns) {
         assignCopyNpyTasks(propertyIdx, pkIndex);
     }
 }
 
-void CopyNodeNpy::assignCopyNpyTasks(
+void NpyNodeCopier::assignCopyNpyTasks(
     common::property_id_t propertyIdx, std::unique_ptr<HashIndexBuilder<int64_t>>& pkIndex) {
     auto& npyReader = npyReaderMap[propertyIdx];
     offset_t currRowIdx = 0;
@@ -122,21 +122,30 @@ void CopyNodeNpy::assignCopyNpyTasks(
     taskScheduler.waitAllTasksToCompleteOrError();
 }
 
-void CopyNodeNpy::batchPopulateColumnsTask(common::property_id_t primaryKeyPropertyIdx,
-    uint64_t blockIdx, offset_t startOffset, uint64_t numLinesInCurBlock,
-    HashIndexBuilder<int64_t>* pkIndex, CopyNodeNpy* copier, common::property_id_t propertyIdx) {
+void NpyNodeCopier::batchPopulateColumnsTask(common::property_id_t primaryKeyPropertyIdx,
+    uint64_t blockIdx, offset_t startNodeOffset, uint64_t numLinesInCurBlock,
+    HashIndexBuilder<int64_t>* pkIndex, NpyNodeCopier* copier, common::property_id_t propertyIdx) {
     auto& npyReader = copier->npyReaderMap[propertyIdx];
     copier->logger->trace("Start: path={0} blkIdx={1}", npyReader->getFileName(), blockIdx);
 
+    // Create a column chunk for tuples within the [StartOffset, endOffset] range.
+    auto endNodeOffset = startNodeOffset + numLinesInCurBlock - 1;
     auto& column = copier->columns[propertyIdx];
-    for (auto i = startOffset; i < startOffset + numLinesInCurBlock; ++i) {
+    std::unique_ptr<InMemColumnChunk> columnChunk =
+        std::make_unique<InMemColumnChunk>(startNodeOffset, endNodeOffset,
+            column->getNumBytesForElement(), column->getNumElementsInAPage());
+    for (auto i = startNodeOffset; i < startNodeOffset + numLinesInCurBlock; ++i) {
         void* data = npyReader->getPointerToRow(i);
-        column->setElement(i, (uint8_t*)data);
+        column->setElementInChunk(columnChunk.get(), i, (uint8_t*)data);
     }
+    column->flushChunk(columnChunk.get(), startNodeOffset, endNodeOffset);
+
     if (propertyIdx == primaryKeyPropertyIdx) {
-        populatePKIndex(
-            copier->columns[propertyIdx].get(), pkIndex, startOffset, numLinesInCurBlock);
+        auto pkColumn = copier->columns.at(primaryKeyPropertyIdx).get();
+        populatePKIndex(columnChunk.get(), pkColumn->getInMemOverflowFile(),
+            pkColumn->getNullMask(), pkIndex, startNodeOffset, numLinesInCurBlock);
     }
+
     copier->logger->trace("End: path={0} blkIdx={1}", npyReader->getFileName(), blockIdx);
 }
 } // namespace storage

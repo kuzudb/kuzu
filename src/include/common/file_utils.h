@@ -29,6 +29,7 @@ class FileUtils {
 public:
     static std::unique_ptr<FileInfo> openFile(const std::string& path, int flags);
 
+    static void createFileWithSize(const std::string& path, uint64_t size);
     static void readFromFile(
         FileInfo* fileInfo, void* buffer, uint64_t numBytes, uint64_t position);
     static void writeToFile(
@@ -44,7 +45,12 @@ public:
 
     static void renameFileIfExists(const std::string& oldName, const std::string& newName);
     static void removeFileIfExists(const std::string& path);
-    static void truncateFileToEmpty(FileInfo* fileInfo);
+    static inline void truncateFileToEmpty(FileInfo* fileInfo) {
+        truncateFileToSize(fileInfo, 0 /* size */);
+    }
+    static inline void truncateFileToSize(FileInfo* fileInfo, uint64_t size) {
+        ftruncate(fileInfo->fd, size);
+    }
     static inline bool fileOrPathExists(const std::string& path) {
         return std::filesystem::exists(path);
     }

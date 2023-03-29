@@ -1,7 +1,7 @@
 #include "processor/operator/copy/copy_node.h"
 
-#include "storage/copier/copy_node_npy.h"
 #include "storage/copier/node_copier.h"
+#include "storage/copier/npy_node_copier.h"
 
 using namespace kuzu::storage;
 
@@ -13,7 +13,7 @@ uint64_t CopyNode::executeInternal(
     size_t numNodesCopied;
 
     if (copyDescription.fileType == common::CopyDescription::FileType::NPY) {
-        auto nodeCopier = std::make_unique<CopyNodeNpy>(copyDescription, wal->getDirectory(),
+        auto nodeCopier = std::make_unique<NpyNodeCopier>(copyDescription, wal->getDirectory(),
             *taskScheduler, *catalog, tableID, nodesStatistics);
         numNodesCopied = nodeCopier->copy();
     } else {

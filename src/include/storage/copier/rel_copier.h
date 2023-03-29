@@ -1,20 +1,20 @@
 #pragma once
 
-#include "copy_structures_arrow.h"
 #include "storage/index/hash_index.h"
 #include "storage/store/rels_statistics.h"
+#include "table_copier.h"
 
 namespace kuzu {
 namespace storage {
 
-class CopyRelArrow : public CopyStructuresArrow {
+class RelCopier : public TableCopier {
     enum class PopulateTaskType : uint8_t {
         populateAdjColumnsAndCountRelsInAdjListsTask = 0,
         populateListsTask = 1
     };
 
 public:
-    CopyRelArrow(common::CopyDescription& copyDescription, std::string outputDirectory,
+    RelCopier(common::CopyDescription& copyDescription, std::string outputDirectory,
         common::TaskScheduler& taskScheduler, catalog::Catalog& catalog,
         std::map<common::table_id_t, common::offset_t> maxNodeOffsetsPerNodeTable,
         BufferManager* bufferManager, common::table_id_t tableID, RelsStatistics* relsStatistics);
@@ -75,13 +75,13 @@ private:
         transaction::Transaction* transaction, int64_t blockOffset, int64_t& colIndex);
 
     template<typename T>
-    static void putPropsOfLineIntoColumns(CopyRelArrow* copier,
+    static void putPropsOfLineIntoColumns(RelCopier* copier,
         std::vector<PageByteCursor>& inMemOverflowFileCursors,
         const std::vector<std::shared_ptr<T>>& batchColumns,
         const std::vector<common::nodeID_t>& nodeIDs, int64_t blockOffset, int64_t& colIndex);
 
     template<typename T>
-    static void putPropsOfLineIntoLists(CopyRelArrow* copier,
+    static void putPropsOfLineIntoLists(RelCopier* copier,
         std::vector<PageByteCursor>& inMemOverflowFileCursors,
         const std::vector<std::shared_ptr<T>>& batchColumns,
         const std::vector<common::nodeID_t>& nodeIDs, const std::vector<uint64_t>& reversePos,
@@ -99,11 +99,11 @@ private:
     // Concurrent tasks.
     template<typename T>
     static void populateAdjColumnsAndCountRelsInAdjListsTask(uint64_t blockIdx,
-        uint64_t blockStartRelID, CopyRelArrow* copier,
+        uint64_t blockStartRelID, RelCopier* copier,
         const std::vector<std::shared_ptr<T>>& batchColumns, const std::string& filePath);
 
     template<typename T>
-    static void populateListsTask(uint64_t blockId, uint64_t blockStartRelID, CopyRelArrow* copier,
+    static void populateListsTask(uint64_t blockId, uint64_t blockStartRelID, RelCopier* copier,
         const std::vector<std::shared_ptr<T>>& batchColumns, const std::string& filePath);
 
     static void sortOverflowValuesOfPropertyColumnTask(const common::DataType& dataType,
