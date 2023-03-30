@@ -16,10 +16,10 @@ void Column::scan(const common::offset_t* nodeOffsets, size_t size, uint8_t* res
         auto [fileHandleToPin, pageIdxToPin] =
             StorageStructureUtils::getFileHandleAndPhysicalPageIdxToPin(
                 *fileHandle, cursor.pageIdx, *wal, TransactionType::READ_ONLY);
-        auto frame = bufferManager.pin(*fileHandleToPin, pageIdxToPin);
-        auto frameBytesOffset = getElemByteOffset(cursor.elemPosInPage);
-        memcpy(result + i * elementSize, frame + frameBytesOffset, elementSize);
-        bufferManager.unpin(*fileHandleToPin, pageIdxToPin);
+        bufferManager.optimisticRead(*fileHandleToPin, pageIdxToPin, [&](uint8_t* frame) -> void {
+            auto frameBytesOffset = getElemByteOffset(cursor.elemPosInPage);
+            memcpy(result + i * elementSize, frame + frameBytesOffset, elementSize);
+        });
     }
 }
 
