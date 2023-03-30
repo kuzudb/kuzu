@@ -117,7 +117,7 @@ void NodeCopier::populatePKIndex(InMemColumnChunk* chunk, InMemOverflowFile* ove
 template<typename T1, typename T2>
 arrow::Status NodeCopier::batchPopulateColumnsTask(uint64_t primaryKeyPropertyIdx,
     uint64_t blockIdx, uint64_t startOffset, HashIndexBuilder<T1>* pkIndex, NodeCopier* copier,
-    const std::vector<std::shared_ptr<T2>>& batchColumns, std::string filePath) {
+    const std::vector<std::shared_ptr<T2>>& batchArrays, std::string filePath) {
     copier->logger->trace("Start: path={0} blkIdx={1}", filePath, blockIdx);
     auto numLinesInCurBlock = copier->fileBlockInfos.at(filePath).numLinesPerBlock[blockIdx];
 
@@ -129,9 +129,10 @@ arrow::Status NodeCopier::batchPopulateColumnsTask(uint64_t primaryKeyPropertyId
             column->getNumBytesForElement(), column->getNumElementsInAPage());
     }
     std::vector<PageByteCursor> overflowCursors(copier->tableSchema->getNumProperties());
-    for (auto blockOffset = 0u; blockOffset < numLinesInCurBlock; ++blockOffset) {
-        putPropsOfLineIntoColumns(chunks, copier->columns, overflowCursors, batchColumns,
-            startOffset + blockOffset, blockOffset, copier->copyDescription);
+    for (auto& [propertyIdx, column] : copier->columns) {
+        putPropsOfLinesIntoColumns(chunks.at(propertyIdx).get(), column.get(),
+            batchArrays[propertyIdx], startOffset, numLinesInCurBlock, copier->copyDescription,
+            overflowCursors[propertyIdx]);
     }
     // Flush each page within the [StartOffset, endOffset] range.
     for (auto& [propertyIdx, column] : copier->columns) {
@@ -147,80 +148,17 @@ arrow::Status NodeCopier::batchPopulateColumnsTask(uint64_t primaryKeyPropertyId
 }
 
 template<typename T>
-void NodeCopier::putPropsOfLineIntoColumns(
-    std::unordered_map<uint64_t, std::unique_ptr<InMemColumnChunk>>& chunks,
-    std::unordered_map<common::property_id_t, std::unique_ptr<NodeInMemColumn>>& propertyColumns,
-    std::vector<PageByteCursor>& overflowCursors,
-    const std::vector<std::shared_ptr<T>>& arrow_columns, uint64_t nodeOffset,
-    uint64_t bufferOffset, CopyDescription& copyDescription) {
-    for (auto columnIdx = 0u; columnIdx < propertyColumns.size(); columnIdx++) {
-        auto column = propertyColumns.at(columnIdx).get();
-        auto chunk = chunks.at(columnIdx).get();
-        auto currentToken = arrow_columns[columnIdx]->GetScalar(bufferOffset);
+void NodeCopier::putPropsOfLinesIntoColumns(InMemColumnChunk* columnChunk, NodeInMemColumn* column,
+    std::shared_ptr<T> arrowArray, common::offset_t startNodeOffset, uint64_t numLinesInCurBlock,
+    CopyDescription& copyDescription, PageByteCursor& overflowCursor) {
+    auto setElementFunc =
+        getSetElementFunc(column->getDataType().typeID, copyDescription, overflowCursor);
+    for (auto i = 0u; i < numLinesInCurBlock; i++) {
+        auto nodeOffset = startNodeOffset + i;
+        auto currentToken = arrowArray->GetScalar(i);
         if ((*currentToken)->is_valid) {
             auto stringToken = currentToken->get()->ToString();
-            const char* data = stringToken.c_str();
-            switch (column->getDataType().typeID) {
-            case INT64: {
-                auto val = TypeUtils::convertStringToNumber<int64_t>(data);
-                column->setElementInChunk(chunk, nodeOffset, reinterpret_cast<uint8_t*>(&val));
-            } break;
-            case INT32: {
-                auto val = TypeUtils::convertStringToNumber<int32_t>(data);
-                column->setElementInChunk(chunk, nodeOffset, reinterpret_cast<uint8_t*>(&val));
-            } break;
-            case INT16: {
-                auto val = TypeUtils::convertStringToNumber<int16_t>(data);
-                column->setElementInChunk(chunk, nodeOffset, reinterpret_cast<uint8_t*>(&val));
-            } break;
-            case DOUBLE: {
-                auto val = TypeUtils::convertStringToNumber<double_t>(data);
-                column->setElementInChunk(chunk, nodeOffset, reinterpret_cast<uint8_t*>(&val));
-            } break;
-            case FLOAT: {
-                auto val = TypeUtils::convertStringToNumber<float_t>(data);
-                column->setElementInChunk(chunk, nodeOffset, reinterpret_cast<uint8_t*>(&val));
-            } break;
-            case BOOL: {
-                auto val = TypeUtils::convertToBoolean(data);
-                column->setElementInChunk(chunk, nodeOffset, reinterpret_cast<uint8_t*>(&val));
-            } break;
-            case DATE: {
-                date_t val = Date::FromCString(data, stringToken.length());
-                column->setElementInChunk(chunk, nodeOffset, reinterpret_cast<uint8_t*>(&val));
-            } break;
-            case TIMESTAMP: {
-                timestamp_t val = Timestamp::FromCString(data, stringToken.length());
-                column->setElementInChunk(chunk, nodeOffset, reinterpret_cast<uint8_t*>(&val));
-            } break;
-            case INTERVAL: {
-                interval_t val = Interval::FromCString(data, stringToken.length());
-                column->setElementInChunk(chunk, nodeOffset, reinterpret_cast<uint8_t*>(&val));
-            } break;
-            case STRING: {
-                stringToken = stringToken.substr(0, BufferPoolConstants::PAGE_4KB_SIZE);
-                data = stringToken.c_str();
-                auto val = reinterpret_cast<NodeInMemColumnWithOverflow*>(column)
-                               ->getInMemOverflowFile()
-                               ->copyString(data, overflowCursors[columnIdx]);
-                column->setElementInChunk(chunk, nodeOffset, reinterpret_cast<uint8_t*>(&val));
-            } break;
-            case VAR_LIST: {
-                auto varListVal = getArrowVarList(stringToken, 1, stringToken.length() - 2,
-                    column->getDataType(), copyDescription);
-                auto kuList = reinterpret_cast<NodeInMemColumnWithOverflow*>(column)
-                                  ->getInMemOverflowFile()
-                                  ->copyList(*varListVal, overflowCursors[columnIdx]);
-                column->setElementInChunk(chunk, nodeOffset, reinterpret_cast<uint8_t*>(&kuList));
-            } break;
-            case FIXED_LIST: {
-                auto fixedListVal = getArrowFixedList(stringToken, 1, stringToken.length() - 2,
-                    column->getDataType(), copyDescription);
-                column->setElementInChunk(chunk, nodeOffset, fixedListVal.get());
-            } break;
-            default:
-                break;
-            }
+            setElementFunc(column, columnChunk, nodeOffset, stringToken);
         }
     }
 }
@@ -297,6 +235,41 @@ void NodeCopier::appendPKIndex(InMemColumnChunk* chunk, InMemOverflowFile* overf
     auto key = overflowFile->readString(&element);
     if (!pkIndex->append(key.c_str(), offset)) {
         throw common::CopyException(common::Exception::getExistedPKExceptionMsg(key));
+    }
+}
+
+set_element_func_t NodeCopier::getSetElementFunc(common::DataTypeID typeID,
+    common::CopyDescription& copyDescription, PageByteCursor& pageByteCursor) {
+    switch (typeID) {
+    case common::DataTypeID::INT64:
+        return setNumericElement<int64_t>;
+    case common::DataTypeID::INT32:
+        return setNumericElement<int32_t>;
+    case common::DataTypeID::INT16:
+        return setNumericElement<int16_t>;
+    case common::DataTypeID::DOUBLE:
+        return setNumericElement<double_t>;
+    case common::DataTypeID::FLOAT:
+        return setNumericElement<float_t>;
+    case common::DataTypeID::BOOL:
+        return setBoolElement;
+    case common::DataTypeID::DATE:
+        return setTimeElement<common::Date>;
+    case common::DataTypeID::TIMESTAMP:
+        return setTimeElement<common::Timestamp>;
+    case common::DataTypeID::INTERVAL:
+        return setTimeElement<common::Interval>;
+    case common::DataTypeID::STRING:
+        return std::bind(setStringElement, std::placeholders::_1, std::placeholders::_2,
+            std::placeholders::_3, std::placeholders::_4, pageByteCursor);
+    case common::DataTypeID::VAR_LIST:
+        return std::bind(setVarListElement, std::placeholders::_1, std::placeholders::_2,
+            std::placeholders::_3, std::placeholders::_4, copyDescription, pageByteCursor);
+    case common::DataTypeID::FIXED_LIST:
+        return std::bind(setFixedListElement, std::placeholders::_1, std::placeholders::_2,
+            std::placeholders::_3, std::placeholders::_4, copyDescription);
+    default:
+        throw common::RuntimeException("Unsupported data type.");
     }
 }
 

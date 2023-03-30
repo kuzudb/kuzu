@@ -52,7 +52,7 @@ public:
         return (RelStatistics*)tableStatisticPerTable[tableID].get();
     }
 
-    void setNumRelsForTable(common::table_id_t relTableID, uint64_t numRels);
+    void setNumTuplesForTable(common::table_id_t relTableID, uint64_t numRels) override;
 
     void updateNumRelsByValue(common::table_id_t relTableID, int64_t value);
 

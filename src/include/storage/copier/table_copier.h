@@ -6,6 +6,7 @@
 #include "common/task_system/task_scheduler.h"
 #include "storage/in_mem_storage_structure/in_mem_column.h"
 #include "storage/in_mem_storage_structure/in_mem_lists.h"
+#include "storage/store/table_statistics.h"
 #include <arrow/api.h>
 #include <arrow/csv/api.h>
 #include <arrow/io/api.h>
@@ -35,16 +36,14 @@ class TableCopier {
 
 public:
     TableCopier(common::CopyDescription& copyDescription, std::string outputDirectory,
-        common::TaskScheduler& taskScheduler, catalog::Catalog& catalog,
-        common::table_id_t tableID);
+        common::TaskScheduler& taskScheduler, catalog::Catalog& catalog, common::table_id_t tableID,
+        TablesStatistics* tableStatisticsAndDeletedIDs);
 
     virtual ~TableCopier() = default;
 
     uint64_t copy();
 
 protected:
-    virtual void updateTableStatistics() = 0;
-
     virtual void initializeColumnsAndLists() = 0;
 
     virtual void populateColumnsAndLists() = 0;
@@ -52,6 +51,10 @@ protected:
     virtual void saveToFile() = 0;
 
     virtual void populateInMemoryStructures();
+
+    inline void updateTableStatistics() {
+        tablesStatistics->setNumTuplesForTable(tableSchema->tableID, numRows);
+    }
 
     void countNumLines(const std::vector<std::string>& filePath);
 
@@ -78,13 +81,13 @@ protected:
         std::unique_ptr<parquet::arrow::FileReader>& reader, const std::string& filePath);
 
     static std::vector<std::pair<int64_t, int64_t>> getListElementPos(
-        std::string& l, int64_t from, int64_t to, common::CopyDescription& copyDescription);
+        const std::string& l, int64_t from, int64_t to, common::CopyDescription& copyDescription);
 
-    static std::unique_ptr<common::Value> getArrowVarList(std::string& l, int64_t from, int64_t to,
-        const common::DataType& dataType, common::CopyDescription& copyDescription);
+    static std::unique_ptr<common::Value> getArrowVarList(const std::string& l, int64_t from,
+        int64_t to, const common::DataType& dataType, common::CopyDescription& copyDescription);
 
-    static std::unique_ptr<uint8_t[]> getArrowFixedList(std::string& l, int64_t from, int64_t to,
-        const common::DataType& dataType, common::CopyDescription& copyDescription);
+    static std::unique_ptr<uint8_t[]> getArrowFixedList(const std::string& l, int64_t from,
+        int64_t to, const common::DataType& dataType, common::CopyDescription& copyDescription);
 
     static void throwCopyExceptionIfNotOK(const arrow::Status& status);
 
@@ -105,6 +108,7 @@ protected:
     catalog::Catalog& catalog;
     catalog::TableSchema* tableSchema;
     uint64_t numRows;
+    TablesStatistics* tablesStatistics;
 };
 
 } // namespace storage

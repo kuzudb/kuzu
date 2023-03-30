@@ -6,7 +6,7 @@ namespace kuzu {
 namespace storage {
 
 // We should only call this function after we call setNumRelsPerDirectionBoundTableID.
-void RelsStatistics::setNumRelsForTable(table_id_t relTableID, uint64_t numRels) {
+void RelsStatistics::setNumTuplesForTable(table_id_t relTableID, uint64_t numRels) {
     lock_t lck{mtx};
     initTableStatisticPerTableForWriteTrxIfNecessary();
     assert(tablesStatisticsContentForWriteTrx->tableStatisticPerTable.contains(relTableID));
