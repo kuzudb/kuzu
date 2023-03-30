@@ -52,3 +52,8 @@ COPY Paper FROMNPY ("/home/lc/Developer/mag100m/kuzu/id.npy", "/home/lc/Develope
 CREATE REL TABLE Cites (FROM Paper TO Paper, MANY_MANY);
 :logging_level debug
 COPY Cites FROM "/home/lc/Developer/mag100m/kuzu/cites.csv" (HEADER=true);
+explain MATCH (a:Paper)-[:Cites]->(b:Paper) RETURN offset(id(a)), offset(id(b));
+profile MATCH (a:Paper)-[:Cites]->(b:Paper) RETURN offset(id(a)), offset(id(b));
+MATCH (a:Paper)-[:Cites]->(b:Paper) RETURN count(*);
+:thread 10
+MATCH (a:Paper)-[:Cites]->(b:Paper) RETURN count(*);
