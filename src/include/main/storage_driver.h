@@ -34,6 +34,12 @@ namespace main {
 //    std::condition_variable condition;
 //    bool stop = false;
 //};
+struct ScanResult {
+    uint8_t* buffer;
+    size_t size;
+
+    ScanResult(uint8_t* buffer, size_t size) : buffer{buffer}, size{size} {}
+};
 
 class StorageDriver {
 public:
@@ -41,8 +47,8 @@ public:
 
     ~StorageDriver();
 
-    std::pair<uint8_t*, size_t> scan(const std::string& nodeName,
-        const std::string& propertyName, common::offset_t* offsets, size_t size);
+    ScanResult scan(const std::string& nodeName, const std::string& propertyName,
+        common::offset_t* offsets, size_t size);
 
 private:
     void scanColumn(

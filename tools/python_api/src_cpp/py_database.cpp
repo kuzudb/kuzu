@@ -48,8 +48,8 @@ py::array_t<T> PyDatabase::scanNodeTable(const std::string& tableName, const std
         storageDriver = std::make_unique<StorageDriver>(database.get());
     }
     auto scanResult = storageDriver->scan(tableName, propName, nodeOffsets, size);
-    auto buffer = scanResult.first;
-    auto bufferSize = scanResult.second;
+    auto buffer = scanResult.buffer;
+    auto bufferSize = scanResult.size;
     auto numberOfItems = bufferSize / sizeof(T);
     return py::array_t<T>(py::buffer_info(buffer, sizeof(T), py::format_descriptor<T>::format(), 1,
         std::vector<size_t>{numberOfItems}, std::vector<size_t>{sizeof(T)}));

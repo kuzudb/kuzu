@@ -21,7 +21,10 @@ void PyConnection::initialize(py::handle& m) {
         .def("get_rel_property_names", &PyConnection::getRelPropertyNames, py::arg("table_name"))
         .def("get_rel_table_names", &PyConnection::getRelTableNames)
         .def("prepare", &PyConnection::prepare, py::arg("query"))
-        .def("set_query_timeout", &PyConnection::setQueryTimeout, py::arg("timeout_in_ms"));
+        .def("set_query_timeout", &PyConnection::setQueryTimeout, py::arg("timeout_in_ms"))
+        .def("get_all_edges_for_torch_geometric", &PyConnection::getAllEdgesForTorchGeometric,
+            py::return_value_policy::take_ownership, py::arg("src_table_name"), py::arg("rel_name"),
+            py::arg("dst_table_name"));
     PyDateTime_IMPORT;
 }
 
@@ -36,8 +39,8 @@ void PyConnection::setQueryTimeout(uint64_t timeoutInMS) {
     conn->setQueryTimeOut(timeoutInMS);
 }
 
-std::unique_ptr<PyQueryResult> PyConnection::execute(PyPreparedStatement* preparedStatement,
-    py::list params) {
+std::unique_ptr<PyQueryResult> PyConnection::execute(
+    PyPreparedStatement* preparedStatement, py::list params) {
     auto parameters = transformPythonParameters(params);
     py::gil_scoped_release release;
     auto queryResult =
@@ -78,22 +81,34 @@ PyPreparedStatement PyConnection::prepare(const std::string& query) {
     return pyPreparedStatement;
 }
 
-py::array_t<uint64_t> PyConnection::getAllEdgesForTorchGeometric(const std::string& srcTableName,
-    const std::string& relName, const std::string& dstTableName) {
-        auto countQuery = "MATCH (a:{})-[{}]->(b:{}) RETURN count(*)";
-        auto countQueryWithParams = StringUtils::string_format(countQuery, srcTableName, relName, dstTableName);
-        auto countResult = conn->execute(countQueryWithParams);
-        if (!countResult->isSuccess()) {
-            throw std::runtime_error(countResult->getErrorMessage());
-        }
-        auto count = countResult
-        auto queryString = "MATCH (a:{})-[{}]->(b:{}) RETURN offset(id(a)), offset(id(b))";
-        auto query = StringUtils::string_format(queryString, srcTableName, relName, dstTableName);
-        auto result = conn->execute(query);
-        if (!result->isSuccess()) {
-            throw std::runtime_error(result->getErrorMessage());
-        }
+py::array_t<int64_t> PyConnection::getAllEdgesForTorchGeometric(
+    const std::string& srcTableName, const std::string& relName, const std::string& dstTableName) {
+    auto countQuery = "MATCH (a:{})-[{}]->(b:{}) RETURN count(*)";
+    auto countQueryWithParams =
+        StringUtils::string_format(countQuery, srcTableName, relName, dstTableName);
+    auto countResult = conn->query(countQueryWithParams);
+    if (!countResult->isSuccess()) {
+        throw std::runtime_error(countResult->getErrorMessage());
     }
+    uint64_t count = countResult->getNext()->getValue(0)->getValue<int64_t>();
+    auto* buffer = (int64_t*)malloc(count * 2 * sizeof(int64_t));
+    auto queryString = "MATCH (a:{})-[{}]->(b:{}) RETURN offset(id(a)), offset(id(b))";
+    auto query = StringUtils::string_format(queryString, srcTableName, relName, dstTableName);
+    auto result = conn->query(query);
+    if (!result->isSuccess()) {
+        throw std::runtime_error(result->getErrorMessage());
+    }
+    auto i = 0;
+    while (result->hasNext()) {
+        auto row = result->getNext();
+        buffer[i] = row->getValue(0)->getValue<int64_t>();
+        buffer[i + count] = row->getValue(1)->getValue<int64_t>();
+        i += 1;
+    }
+    return py::array_t<int64_t>(
+        py::buffer_info(buffer, sizeof(int64_t), py::format_descriptor<int64_t>::format(), 1,
+            std::vector<size_t>{count * 2}, std::vector<size_t>{sizeof(int64_t)}));
+}
 
 std::unordered_map<std::string, std::shared_ptr<Value>> PyConnection::transformPythonParameters(
     py::list params) {

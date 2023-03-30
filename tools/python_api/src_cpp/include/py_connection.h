@@ -29,7 +29,7 @@ public:
 
     PyPreparedStatement prepare(const std::string& query);
 
-    py::array_t<uint64_t> getAllEdgesForTorchGeometric(const std::string& srcTableName,
+    py::array_t<int64_t> getAllEdgesForTorchGeometric(const std::string& srcTableName,
         const std::string& relName, const std::string& dstTableName);
 
 private:
