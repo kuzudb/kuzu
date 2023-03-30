@@ -6,6 +6,8 @@ from torch_geometric.data.graph_store import EdgeAttr, GraphStore, EdgeLayout
 from torch_geometric.typing import EdgeTensorType
 from .connection import Connection
 
+REL_BATCH_SIZE = 1000000
+
 
 class Rel:
     def __init__(self, edge_type, layout, is_sorted, size, materialized=False, edge_index=None):
@@ -85,7 +87,7 @@ class KuzuGraphStore(GraphStore):
             raise ValueError("Only COO layout is supported")
         edge_type = rel.edge_type
         result = self.connection._connection.get_all_edges_for_torch_geometric(
-            edge_type[0], edge_type[1], edge_type[2])
+            edge_type[0], edge_type[1], edge_type[2], REL_BATCH_SIZE)
         edge_list = torch.from_numpy(result)
         edge_list = edge_list.reshape((2, edge_list.shape[0] // 2))
         rel.edge_index = edge_list

@@ -81,15 +81,22 @@ PyPreparedStatement PyConnection::prepare(const std::string& query) {
     return pyPreparedStatement;
 }
 
-py::array_t<int64_t> PyConnection::getAllEdgesForTorchGeometric(
-    const std::string& srcTableName, const std::string& relName, const std::string& dstTableName, size_t queryBatchSize) {
+py::array_t<int64_t> PyConnection::getAllEdgesForTorchGeometric(const std::string& srcTableName,
+    const std::string& relName, const std::string& dstTableName, size_t queryBatchSize) {
+    // Get the number of nodes in the src table for batching.
     auto numNodesQuery = "MATCH (a:{}) RETURN count(*)";
     auto numNodesQueryWithParams = StringUtils::string_format(numNodesQuery, srcTableName);
     auto numNodesResult = conn->query(numNodesQueryWithParams);
     if (!numNodesResult->isSuccess()) {
         throw std::runtime_error(numNodesResult->getErrorMessage());
     }
-    uint64_t numNodes = numNodesResult->getNext()->getValue(0)->getValue<int64_t>();
+    auto numNodes = numNodesResult->getNext()->getValue(0)->getValue<int64_t>();
+    int64_t batches = numNodes / queryBatchSize;
+    if (numNodes % queryBatchSize != 0) {
+        batches += 1;
+    }
+
+    // Get total number of edges for allocating the buffer.
     auto countQuery = "MATCH (a:{})-[:{}]->(b:{}) RETURN count(*)";
     auto countQueryWithParams =
         StringUtils::string_format(countQuery, srcTableName, relName, dstTableName);
@@ -97,32 +104,32 @@ py::array_t<int64_t> PyConnection::getAllEdgesForTorchGeometric(
     if (!countResult->isSuccess()) {
         throw std::runtime_error(countResult->getErrorMessage());
     }
-    auto queryString = "MATCH (a:{})-[:{}]->(b:{}) WHERE offset(id(a))  RETURN offset(id(a)), offset(id(b))";
-    auto query = StringUtils::string_format(queryString, srcTableName, relName, dstTableName);
-
-    auto* buffer = (int64_t*)malloc(count * 2 * sizeof(int64_t));
     uint64_t count = countResult->getNext()->getValue(0)->getValue<int64_t>();
-    size_t batches = numNodes / queryBatchSize;
-    if (numNodes % queryBatchSize != 0) {
-        batches += 1;
-    }
-    for(auto batch = 0; batch < batches; ++batch){
+    auto* buffer = (int64_t*)malloc(count * 2 * sizeof(int64_t));
 
-    }
-
-
-
-
-    auto result = conn->query(query);
-    if (!result->isSuccess()) {
-        throw std::runtime_error(result->getErrorMessage());
-    }
-    auto i = 0;
-    while (result->hasNext()) {
-        auto row = result->getNext();
-        buffer[i] = row->getValue(0)->getValue<int64_t>();
-        buffer[i + count] = row->getValue(1)->getValue<int64_t>();
-        i += 1;
+    // Run queries in batch to fetch edges.
+    auto queryString = "MATCH (a:{})-[:{}]->(b:{}) WHERE offset(id(a)) >= $s AND offset(id(a)) < "
+                       "$e RETURN offset(id(a)), offset(id(b))";
+    auto query = StringUtils::string_format(queryString, srcTableName, relName, dstTableName);
+    auto preparedStatement = conn->prepare(query);
+    uint64_t i = 0;
+    for (int64_t batch = 0; batch < batches; ++batch) {
+        int64_t start = batch * queryBatchSize;
+        int64_t end = (batch + 1) * queryBatchSize;
+        end = end > numNodes ? numNodes : end;
+        std::unordered_map<std::string, std::shared_ptr<Value>> parameters;
+        parameters["s"] = std::make_shared<Value>(start);
+        parameters["e"] = std::make_shared<Value>(end);
+        auto result = conn->executeWithParams(preparedStatement.get(), parameters);
+        if (!result->isSuccess()) {
+            throw std::runtime_error(result->getErrorMessage());
+        }
+        while (result->hasNext()) {
+            auto row = result->getNext();
+            buffer[i] = row->getValue(0)->getValue<int64_t>();
+            buffer[i + count] = row->getValue(1)->getValue<int64_t>();
+            i += 1;
+        }
     }
     return py::array_t<int64_t>(
         py::buffer_info(buffer, sizeof(int64_t), py::format_descriptor<int64_t>::format(), 1,
