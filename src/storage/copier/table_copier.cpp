@@ -10,11 +10,13 @@ namespace kuzu {
 namespace storage {
 
 TableCopier::TableCopier(CopyDescription& copyDescription, std::string outputDirectory,
-    TaskScheduler& taskScheduler, Catalog& catalog, common::table_id_t tableID)
+    TaskScheduler& taskScheduler, Catalog& catalog, common::table_id_t tableID,
+    TablesStatistics* tablesStatistics)
     : logger{LoggerUtils::getLogger(LoggerConstants::LoggerEnum::LOADER)},
       copyDescription{copyDescription}, outputDirectory{std::move(outputDirectory)},
       taskScheduler{taskScheduler}, catalog{catalog}, numRows{0},
-      tableSchema{catalog.getReadOnlyVersion()->getTableSchema(tableID)} {}
+      tableSchema{catalog.getReadOnlyVersion()->getTableSchema(tableID)}, tablesStatistics{
+                                                                              tablesStatistics} {}
 
 uint64_t TableCopier::copy() {
     logger->info(StringUtils::string_format("Copying {} file to table {}.",
@@ -170,7 +172,7 @@ arrow::Status TableCopier::initParquetReader(
 }
 
 std::vector<std::pair<int64_t, int64_t>> TableCopier::getListElementPos(
-    std::string& l, int64_t from, int64_t to, CopyDescription& copyDescription) {
+    const std::string& l, int64_t from, int64_t to, CopyDescription& copyDescription) {
     std::vector<std::pair<int64_t, int64_t>> split;
     int bracket = 0;
     int64_t last = from;
@@ -188,7 +190,7 @@ std::vector<std::pair<int64_t, int64_t>> TableCopier::getListElementPos(
     return split;
 }
 
-std::unique_ptr<Value> TableCopier::getArrowVarList(std::string& l, int64_t from, int64_t to,
+std::unique_ptr<Value> TableCopier::getArrowVarList(const std::string& l, int64_t from, int64_t to,
     const DataType& dataType, CopyDescription& copyDescription) {
     assert(dataType.typeID == common::VAR_LIST || dataType.typeID == common::FIXED_LIST);
     auto split = getListElementPos(l, from, to, copyDescription);
@@ -249,8 +251,8 @@ std::unique_ptr<Value> TableCopier::getArrowVarList(std::string& l, int64_t from
         DataType(VAR_LIST, std::make_unique<DataType>(childDataType)), std::move(values));
 }
 
-std::unique_ptr<uint8_t[]> TableCopier::getArrowFixedList(std::string& l, int64_t from, int64_t to,
-    const DataType& dataType, CopyDescription& copyDescription) {
+std::unique_ptr<uint8_t[]> TableCopier::getArrowFixedList(const std::string& l, int64_t from,
+    int64_t to, const DataType& dataType, CopyDescription& copyDescription) {
     assert(dataType.typeID == common::FIXED_LIST);
     auto split = getListElementPos(l, from, to, copyDescription);
     auto listVal = std::make_unique<uint8_t[]>(Types::getDataTypeSize(dataType));

@@ -50,6 +50,8 @@ public:
 
     virtual ~TablesStatistics() = default;
 
+    virtual void setNumTuplesForTable(common::table_id_t tableID, uint64_t numTuples) = 0;
+
     inline void writeTablesStatisticsFileForWALRecord(const std::string& directory) {
         saveToFile(directory, common::DBFileType::WAL_VERSION, transaction::TransactionType::WRITE);
     }

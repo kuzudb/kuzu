@@ -14,9 +14,9 @@ RelCopier::RelCopier(CopyDescription& copyDescription, std::string outputDirecto
     TaskScheduler& taskScheduler, Catalog& catalog,
     std::map<table_id_t, offset_t> maxNodeOffsetsPerNodeTable, BufferManager* bufferManager,
     table_id_t tableID, RelsStatistics* relsStatistics)
-    : TableCopier{copyDescription, std::move(outputDirectory), taskScheduler, catalog, tableID},
-      maxNodeOffsetsPerTable{std::move(maxNodeOffsetsPerNodeTable)}, relsStatistics{
-                                                                         relsStatistics} {
+    : TableCopier{copyDescription, std::move(outputDirectory), taskScheduler, catalog, tableID,
+          relsStatistics},
+      maxNodeOffsetsPerTable{std::move(maxNodeOffsetsPerNodeTable)} {
     dummyReadOnlyTrx = Transaction::getDummyReadOnlyTrx();
     auto relTableSchema = reinterpret_cast<RelTableSchema*>(tableSchema);
     initializePkIndexes(relTableSchema->srcTableID, *bufferManager);
