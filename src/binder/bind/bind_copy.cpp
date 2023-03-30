@@ -40,6 +40,10 @@ std::vector<std::string> Binder::bindFilePaths(const std::vector<std::string>& f
     std::vector<std::string> boundFilePaths;
     for (auto& filePath : filePaths) {
         auto globbedFilePaths = FileUtils::globFilePath(filePath);
+        if (globbedFilePaths.empty()) {
+            throw BinderException{StringUtils::string_format(
+                "No file found that matches the pattern: {}.", filePath)};
+        }
         boundFilePaths.insert(
             boundFilePaths.end(), globbedFilePaths.begin(), globbedFilePaths.end());
     }
