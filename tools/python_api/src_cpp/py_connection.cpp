@@ -24,7 +24,7 @@ void PyConnection::initialize(py::handle& m) {
         .def("set_query_timeout", &PyConnection::setQueryTimeout, py::arg("timeout_in_ms"))
         .def("get_all_edges_for_torch_geometric", &PyConnection::getAllEdgesForTorchGeometric,
             py::return_value_policy::take_ownership, py::arg("src_table_name"), py::arg("rel_name"),
-            py::arg("dst_table_name"));
+            py::arg("dst_table_name"), py::arg("query_batch_size"));
     PyDateTime_IMPORT;
 }
 
@@ -82,18 +82,37 @@ PyPreparedStatement PyConnection::prepare(const std::string& query) {
 }
 
 py::array_t<int64_t> PyConnection::getAllEdgesForTorchGeometric(
-    const std::string& srcTableName, const std::string& relName, const std::string& dstTableName) {
-    auto countQuery = "MATCH (a:{})-[{}]->(b:{}) RETURN count(*)";
+    const std::string& srcTableName, const std::string& relName, const std::string& dstTableName, size_t queryBatchSize) {
+    auto numNodesQuery = "MATCH (a:{}) RETURN count(*)";
+    auto numNodesQueryWithParams = StringUtils::string_format(numNodesQuery, srcTableName);
+    auto numNodesResult = conn->query(numNodesQueryWithParams);
+    if (!numNodesResult->isSuccess()) {
+        throw std::runtime_error(numNodesResult->getErrorMessage());
+    }
+    uint64_t numNodes = numNodesResult->getNext()->getValue(0)->getValue<int64_t>();
+    auto countQuery = "MATCH (a:{})-[:{}]->(b:{}) RETURN count(*)";
     auto countQueryWithParams =
         StringUtils::string_format(countQuery, srcTableName, relName, dstTableName);
     auto countResult = conn->query(countQueryWithParams);
     if (!countResult->isSuccess()) {
         throw std::runtime_error(countResult->getErrorMessage());
     }
-    uint64_t count = countResult->getNext()->getValue(0)->getValue<int64_t>();
-    auto* buffer = (int64_t*)malloc(count * 2 * sizeof(int64_t));
-    auto queryString = "MATCH (a:{})-[{}]->(b:{}) RETURN offset(id(a)), offset(id(b))";
+    auto queryString = "MATCH (a:{})-[:{}]->(b:{}) WHERE offset(id(a))  RETURN offset(id(a)), offset(id(b))";
     auto query = StringUtils::string_format(queryString, srcTableName, relName, dstTableName);
+
+    auto* buffer = (int64_t*)malloc(count * 2 * sizeof(int64_t));
+    uint64_t count = countResult->getNext()->getValue(0)->getValue<int64_t>();
+    size_t batches = numNodes / queryBatchSize;
+    if (numNodes % queryBatchSize != 0) {
+        batches += 1;
+    }
+    for(auto batch = 0; batch < batches; ++batch){
+
+    }
+
+
+
+
     auto result = conn->query(query);
     if (!result->isSuccess()) {
         throw std::runtime_error(result->getErrorMessage());

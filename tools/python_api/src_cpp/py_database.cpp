@@ -45,7 +45,7 @@ py::array_t<T> PyDatabase::scanNodeTable(const std::string& tableName, const std
     auto size = indices.size();
     auto nodeOffsets = (offset_t*)ptr;
     if (!storageDriver) {
-        storageDriver = std::make_unique<StorageDriver>(database.get());
+        storageDriver = std::make_unique<StorageDriver>(database.get(), numThreads);
     }
     auto scanResult = storageDriver->scan(tableName, propName, nodeOffsets, size);
     auto buffer = scanResult.buffer;

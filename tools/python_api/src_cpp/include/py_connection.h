@@ -30,7 +30,7 @@ public:
     PyPreparedStatement prepare(const std::string& query);
 
     py::array_t<int64_t> getAllEdgesForTorchGeometric(const std::string& srcTableName,
-        const std::string& relName, const std::string& dstTableName);
+        const std::string& relName, const std::string& dstTableName, size_t queryBatchSize);
 
 private:
     std::unordered_map<std::string, std::shared_ptr<kuzu::common::Value>> transformPythonParameters(
