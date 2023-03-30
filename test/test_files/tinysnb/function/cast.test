@@ -1,3 +1,28 @@
+-NAME CastFromINT16
+-QUERY MATCH (p:person)-[e:studyAt]->(o:organisation) WHERE p.ID=0 RETURN to_int32(e.length), to_int64(e.length), to_float(e.length), to_double(e.length)
+---- 1
+5|5|5.000000|5.000000
+
+-NAME CastFromINT32
+-QUERY MATCH (m:movies) WHERE m.name='Roma' RETURN to_int16(m.length), to_int64(m.length), to_float(m.length), to_double(m.length)
+---- 1
+298|298|298.000000|298.000000
+
+-NAME CastFromINT64
+-QUERY MATCH (p:person) WHERE p.ID=0 RETURN to_int16(p.gender), to_int32(p.gender), to_float(p.gender), to_double(p.gender)
+---- 1
+1|1|1.000000|1.000000
+
+-NAME CastFromFLOAT
+-QUERY MATCH (p:person) WHERE p.ID=0 RETURN to_int16(p.height), to_int32(p.height), to_int64(p.height), to_double(p.height)
+---- 1
+1|1|1|1.731000
+
+-NAME CastFromDOUBLE
+-QUERY MATCH (p:person) WHERE p.ID=0 RETURN to_int16(p.eyeSight), to_int32(p.eyeSight), to_int64(p.eyeSight), to_float(p.eyeSight)
+---- 1
+5|5|5|5.000000
+
 -NAME CastBoolToString
 -QUERY MATCH (p:person) RETURN string(p.isStudent)
 ---- 8

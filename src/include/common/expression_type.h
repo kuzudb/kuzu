@@ -28,11 +28,7 @@ const std::string CAST_TO_DOUBLE_FUNC_NAME = "TO_DOUBLE";
 const std::string CAST_TO_FLOAT_FUNC_NAME = "TO_FLOAT";
 const std::string CAST_TO_INT64_FUNC_NAME = "TO_INT64";
 const std::string CAST_TO_INT32_FUNC_NAME = "TO_INT32";
-const std::string IMPLICIT_CAST_TO_BOOL_FUNC_NAME = "_BOOL";
-const std::string IMPLICIT_CAST_TO_INT_FUNC_NAME = "_INT";
-const std::string IMPLICIT_CAST_TO_STRING_FUNC_NAME = "_STRING";
-const std::string IMPLICIT_CAST_TO_DATE_FUNC_NAME = "_DATE";
-const std::string IMPLICIT_CAST_TO_TIMESTAMP_FUNC_NAME = "_TIMESTAMP";
+const std::string CAST_TO_INT16_FUNC_NAME = "TO_INT16";
 
 // list
 const std::string LIST_CREATION_FUNC_NAME = "LIST_CREATION";

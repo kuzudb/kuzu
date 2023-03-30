@@ -204,6 +204,18 @@ TEST_F(TinySnbExceptionTest, ReadAfterUpdate2) {
         result->getErrorMessage().c_str(), "Binder exception: Read after update is not supported.");
 }
 
+TEST_F(TinySnbExceptionTest, Overflow) {
+    auto result = conn->query("RETURN to_int16(10000000000)");
+    ASSERT_STREQ(result->getErrorMessage().c_str(),
+        "Runtime exception: Cast failed. 10000000000 is not in INT16 range.");
+}
+
+TEST_F(TinySnbExceptionTest, Int32PrimaryKey) {
+    auto result = conn->query("CREATE NODE TABLE play(a INT32, PRIMARY KEY (a))");
+    ASSERT_STREQ(
+        result->getErrorMessage().c_str(), "Binder exception: Invalid primary key type: INT32.");
+}
+
 TEST_F(TinySnbExceptionTest, MultiLabelUpdate) {
     std::unique_ptr<QueryResult> result;
     result = conn->query("CREATE (a:person:organisation {ID:0})");

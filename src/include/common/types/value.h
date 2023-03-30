@@ -384,6 +384,15 @@ inline int64_t Value::getValue() const {
 }
 
 /**
+ * @return float value.
+ */
+KUZU_API template<>
+inline float Value::getValue() const {
+    assert(dataType.getTypeID() == FLOAT);
+    return val.floatVal;
+}
+
+/**
  * @return double value.
  */
 KUZU_API template<>

@@ -85,6 +85,10 @@ Value::Value(int64_t val_) : dataType{INT64}, isNull_{false} {
     val.int64Val = val_;
 }
 
+Value::Value(float_t val_) : dataType{FLOAT}, isNull_{false} {
+    val.floatVal = val_;
+}
+
 Value::Value(double val_) : dataType{DOUBLE}, isNull_{false} {
     val.doubleVal = val_;
 }
@@ -116,10 +120,6 @@ Value::Value(const std::string& val_) : dataType{STRING}, isNull_{false} {
 Value::Value(DataType dataType, std::vector<std::unique_ptr<Value>> vals)
     : dataType{std::move(dataType)}, isNull_{false} {
     listVal = std::move(vals);
-}
-
-Value::Value(float_t val_) : dataType{FLOAT}, isNull_{false} {
-    val.floatVal = val_;
 }
 
 Value::Value(std::unique_ptr<NodeVal> val_) : dataType{NODE}, isNull_{false} {

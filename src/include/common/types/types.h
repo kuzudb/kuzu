@@ -115,6 +115,7 @@ public:
     KUZU_API static DataType dataTypeFromString(const std::string& dataTypeString);
     static uint32_t getDataTypeSize(DataTypeID dataTypeID);
     static uint32_t getDataTypeSize(const DataType& dataType);
+    static bool isNumerical(const DataType& dataType);
 
 private:
     static DataTypeID dataTypeIDFromString(const std::string& dataTypeIDString);

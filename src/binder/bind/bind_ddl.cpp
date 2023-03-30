@@ -158,9 +158,12 @@ uint32_t Binder::bindPrimaryKey(
     }
     auto primaryKey = propertyNameDataTypes[primaryKeyIdx];
     StringUtils::toUpper(primaryKey.second);
-    // We only support INT64 and STRING column as the primary key.
-    if ((primaryKey.second != std::string("INT64")) &&
-        (primaryKey.second != std::string("STRING"))) {
+    // We only support INT64, and STRING column as the primary key.
+    switch (Types::dataTypeFromString(primaryKey.second).typeID) {
+    case common::INT64:
+    case common::STRING:
+        break;
+    default:
         throw BinderException("Invalid primary key type: " + primaryKey.second + ".");
     }
     return primaryKeyIdx;
