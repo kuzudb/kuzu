@@ -31,6 +31,21 @@ bool FunctionExpressionEvaluator::select(SelectionVector& selVector) {
     for (auto& child : children) {
         child->evaluate();
     }
+    // Temporary code path for function whose return type is BOOL but select interface is not
+    // implemented (e.g. list_contains). We should remove this if statement eventually.
+    if (selectFunc == nullptr) {
+        assert(resultVector->dataType.typeID == BOOL);
+        execFunc(parameters, *resultVector);
+        auto numSelectedValues = 0u;
+        for (auto i = 0u; i < resultVector->state->selVector->selectedSize; ++i) {
+            auto pos = resultVector->state->selVector->selectedPositions[i];
+            auto selectedPosBuffer = selVector.getSelectedPositionsBuffer();
+            selectedPosBuffer[numSelectedValues] = pos;
+            numSelectedValues += resultVector->getValue<bool>(pos);
+        }
+        selVector.selectedSize = numSelectedValues;
+        return numSelectedValues > 0;
+    }
     return selectFunc(parameters, selVector);
 }
 

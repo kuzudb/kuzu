@@ -51,8 +51,8 @@ void ProjectionPlanner::planProjectionBody(
         planAggregate(expressionsToAggregate, expressionsToGroupBy, plan);
     }
     if (projectionBody.hasOrderByExpressions()) {
-        appendOrderBy(
-            projectionBody.getOrderByExpressions(), projectionBody.getSortingOrders(), plan);
+        planOrderBy(expressionsToProject, projectionBody.getOrderByExpressions(),
+            projectionBody.getSortingOrders(), plan);
     }
     appendProjection(expressionsToProject, plan);
     if (projectionBody.getIsDistinct()) {
@@ -84,6 +84,21 @@ void ProjectionPlanner::planAggregate(const expression_vector& expressionsToAggr
     }
     appendProjection(expressionsToProject, plan);
     appendAggregate(expressionsToGroupBy, expressionsToAggregate, plan);
+}
+
+void ProjectionPlanner::planOrderBy(const binder::expression_vector& expressionsToProject,
+    const binder::expression_vector& expressionsToOrderBy, const std::vector<bool>& isAscOrders,
+    kuzu::planner::LogicalPlan& plan) {
+    auto expressionsToProjectBeforeOrderBy = expressionsToProject;
+    auto expressionsToProjectSet =
+        expression_set{expressionsToProject.begin(), expressionsToProject.end()};
+    for (auto& expression : expressionsToOrderBy) {
+        if (!expressionsToProjectSet.contains(expression)) {
+            expressionsToProjectBeforeOrderBy.push_back(expression);
+        }
+    }
+    appendProjection(expressionsToProjectBeforeOrderBy, plan);
+    appendOrderBy(expressionsToOrderBy, isAscOrders, plan);
 }
 
 void ProjectionPlanner::appendProjection(

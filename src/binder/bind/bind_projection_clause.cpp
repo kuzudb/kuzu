@@ -113,7 +113,6 @@ void Binder::bindOrderBySkipLimitIfNecessary(
             // reference expression.
             auto projectionExpressionSet =
                 expression_set{projectionExpressions.begin(), projectionExpressions.end()};
-
             for (auto& orderByExpression : orderByExpressions) {
                 if (!projectionExpressionSet.contains(orderByExpression)) {
                     throw BinderException("Order by expression " + orderByExpression->toString() +

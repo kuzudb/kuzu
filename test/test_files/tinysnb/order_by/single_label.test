@@ -1,15 +1,15 @@
 -NAME OrderByInt64Test
--QUERY MATCH (p:person) RETURN p.age ORDER BY p.age
+-QUERY MATCH (p:person) RETURN p.ID, p.age ORDER BY p.age + p.ID
 -PARALLELISM 3
 ---- 8
-20
-20
-25
-30
-35
-40
-45
-83
+5|20
+7|20
+2|30
+8|25
+0|35
+3|45
+9|40
+10|83
 
 -NAME OrderByInt32Test
 -QUERY MATCH (m:movies) RETURN m.length ORDER BY m.length
