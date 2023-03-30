@@ -126,7 +126,7 @@ private:
     BuildDataInfo generateBuildDataInfo(const planner::Schema& buildSideSchema,
         const binder::expression_vector& keys, const binder::expression_vector& payloads);
 
-    void mapASP(PhysicalOperator* probe);
+    void mapAccHashJoin(PhysicalOperator* probe);
 
 public:
     storage::StorageManager& storageManager;

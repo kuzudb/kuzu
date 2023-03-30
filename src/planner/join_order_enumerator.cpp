@@ -394,21 +394,29 @@ void JoinOrderEnumerator::planInnerHashJoin(const SubqueryGraph& subgraph,
     bool flipPlan) {
     auto newSubgraph = subgraph;
     newSubgraph.addSubqueryGraph(otherSubgraph);
+    auto maxCost = context->subPlansTable->getMaxCost(newSubgraph);
+    binder::expression_vector joinNodeIDs;
+    for (auto& joinNode : joinNodes) {
+        joinNodeIDs.push_back(joinNode->getInternalIDProperty());
+    }
     auto predicates =
         getNewlyMatchedExpressions(std::vector<SubqueryGraph>{subgraph, otherSubgraph}, newSubgraph,
             context->getWhereExpressions());
     for (auto& leftPlan : context->getPlans(subgraph)) {
         for (auto& rightPlan : context->getPlans(otherSubgraph)) {
-            auto leftPlanProbeCopy = leftPlan->shallowCopy();
-            auto rightPlanBuildCopy = rightPlan->shallowCopy();
-            auto leftPlanBuildCopy = leftPlan->shallowCopy();
-            auto rightPlanProbeCopy = rightPlan->shallowCopy();
-            planInnerHashJoin(joinNodes, *leftPlanProbeCopy, *rightPlanBuildCopy);
-            planFiltersForHashJoin(predicates, *leftPlanProbeCopy);
-            context->addPlan(newSubgraph, std::move(leftPlanProbeCopy));
+            if (CostModel::computeHashJoinCost(joinNodeIDs, *leftPlan, *rightPlan) < maxCost) {
+                auto leftPlanProbeCopy = leftPlan->shallowCopy();
+                auto rightPlanBuildCopy = rightPlan->shallowCopy();
+                planInnerHashJoin(joinNodeIDs, *leftPlanProbeCopy, *rightPlanBuildCopy);
+                planFiltersForHashJoin(predicates, *leftPlanProbeCopy);
+                context->addPlan(newSubgraph, std::move(leftPlanProbeCopy));
+            }
             // flip build and probe side to get another HashJoin plan
-            if (flipPlan) {
-                planInnerHashJoin(joinNodes, *rightPlanProbeCopy, *leftPlanBuildCopy);
+            if (flipPlan &&
+                CostModel::computeHashJoinCost(joinNodeIDs, *rightPlan, *leftPlan) < maxCost) {
+                auto leftPlanBuildCopy = leftPlan->shallowCopy();
+                auto rightPlanProbeCopy = rightPlan->shallowCopy();
+                planInnerHashJoin(joinNodeIDs, *rightPlanProbeCopy, *leftPlanBuildCopy);
                 planFiltersForHashJoin(predicates, *rightPlanProbeCopy);
                 context->addPlan(newSubgraph, std::move(rightPlanProbeCopy));
             }
@@ -493,6 +501,12 @@ void JoinOrderEnumerator::appendHashJoin(const expression_vector& joinNodeIDs, J
     queryPlanner->appendFlattens(hashJoin->getGroupsPosToFlattenOnBuildSide(), buildPlan);
     hashJoin->setChild(1, buildPlan.getLastOperator());
     hashJoin->computeFactorizedSchema();
+    auto ratio = probePlan.getCardinality() / buildPlan.getCardinality();
+    if (ratio > common::PlannerKnobs::ACC_HJ_PROBE_BUILD_RATIO) {
+        hashJoin->setSIP(SidewaysInfoPassing::PROHIBIT_PROBE_TO_BUILD);
+    } else {
+        hashJoin->setSIP(SidewaysInfoPassing::PROHIBIT_BUILD_TO_PROBE);
+    }
     // update cost
     probePlan.setCost(CostModel::computeHashJoinCost(joinNodeIDs, probePlan, buildPlan));
     // update cardinality
@@ -535,6 +549,10 @@ void JoinOrderEnumerator::appendIntersect(const std::shared_ptr<Expression>& int
         queryPlanner->appendFlattens(
             intersect->getGroupsPosToFlattenOnBuildSide(i), *buildPlans[i]);
         intersect->setChild(i + 1, buildPlans[i]->getLastOperator());
+        if (probePlan.getCardinality() / buildPlans[i]->getCardinality() >
+            common::PlannerKnobs::ACC_HJ_PROBE_BUILD_RATIO) {
+            intersect->setSIP(SidewaysInfoPassing::PROHIBIT_PROBE_TO_BUILD);
+        }
     }
     intersect->computeFactorizedSchema();
     // update cost

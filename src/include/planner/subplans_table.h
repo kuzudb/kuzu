@@ -29,6 +29,8 @@ class SubgraphPlans {
 public:
     SubgraphPlans(const SubqueryGraph& subqueryGraph);
 
+    inline uint64_t getMaxCost() const { return maxCost; }
+
     void addPlan(std::unique_ptr<LogicalPlan> plan);
 
     std::vector<std::unique_ptr<LogicalPlan>>& getPlans() { return plans; }
@@ -42,6 +44,7 @@ private:
     constexpr static uint32_t MAX_NUM_PLANS = 10;
 
 private:
+    uint64_t maxCost = UINT64_MAX;
     binder::expression_vector nodeIDsToEncode;
     std::vector<std::unique_ptr<LogicalPlan>> plans;
     std::unordered_map<std::bitset<MAX_NUM_QUERY_VARIABLES>, common::vector_idx_t>
@@ -76,6 +79,8 @@ private:
 class SubPlansTable {
 public:
     void resize(uint32_t newSize);
+
+    uint64_t getMaxCost(const SubqueryGraph& subqueryGraph) const;
 
     bool containSubgraphPlans(const SubqueryGraph& subqueryGraph) const;
 

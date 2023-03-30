@@ -1,4 +1,4 @@
-#include "storage/copier/copy_structures_arrow.h"
+#include "storage/copier/table_copier.h"
 
 #include "common/constants.h"
 #include "storage/storage_structure/lists/lists.h"
@@ -9,15 +9,14 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-CopyStructuresArrow::CopyStructuresArrow(CopyDescription& copyDescription,
-    std::string outputDirectory, TaskScheduler& taskScheduler, Catalog& catalog,
-    common::table_id_t tableID)
+TableCopier::TableCopier(CopyDescription& copyDescription, std::string outputDirectory,
+    TaskScheduler& taskScheduler, Catalog& catalog, common::table_id_t tableID)
     : logger{LoggerUtils::getLogger(LoggerConstants::LoggerEnum::LOADER)},
       copyDescription{copyDescription}, outputDirectory{std::move(outputDirectory)},
       taskScheduler{taskScheduler}, catalog{catalog}, numRows{0},
       tableSchema{catalog.getReadOnlyVersion()->getTableSchema(tableID)} {}
 
-uint64_t CopyStructuresArrow::copy() {
+uint64_t TableCopier::copy() {
     logger->info(StringUtils::string_format("Copying {} file to table {}.",
         CopyDescription::getFileTypeName(copyDescription.fileType), tableSchema->tableName));
     populateInMemoryStructures();
@@ -27,13 +26,13 @@ uint64_t CopyStructuresArrow::copy() {
     return numRows;
 }
 
-void CopyStructuresArrow::populateInMemoryStructures() {
+void TableCopier::populateInMemoryStructures() {
     countNumLines(copyDescription.filePaths);
     initializeColumnsAndLists();
     populateColumnsAndLists();
 }
 
-void CopyStructuresArrow::countNumLines(const std::vector<std::string>& filePaths) {
+void TableCopier::countNumLines(const std::vector<std::string>& filePaths) {
     arrow::Status status;
     switch (copyDescription.fileType) {
     case CopyDescription::FileType::CSV: {
@@ -50,7 +49,7 @@ void CopyStructuresArrow::countNumLines(const std::vector<std::string>& filePath
     throwCopyExceptionIfNotOK(status);
 }
 
-arrow::Status CopyStructuresArrow::countNumLinesCSV(const std::vector<std::string>& filePaths) {
+arrow::Status TableCopier::countNumLinesCSV(const std::vector<std::string>& filePaths) {
     numRows = 0;
     arrow::Status status;
     for (auto& filePath : filePaths) {
@@ -75,7 +74,7 @@ arrow::Status CopyStructuresArrow::countNumLinesCSV(const std::vector<std::strin
     return status;
 }
 
-arrow::Status CopyStructuresArrow::countNumLinesParquet(const std::vector<std::string>& filePaths) {
+arrow::Status TableCopier::countNumLinesParquet(const std::vector<std::string>& filePaths) {
     numRows = 0;
     arrow::Status status;
     for (auto& filePath : filePaths) {
@@ -97,7 +96,7 @@ arrow::Status CopyStructuresArrow::countNumLinesParquet(const std::vector<std::s
     return status;
 }
 
-arrow::Status CopyStructuresArrow::initCSVReaderAndCheckStatus(
+arrow::Status TableCopier::initCSVReaderAndCheckStatus(
     std::shared_ptr<arrow::csv::StreamingReader>& csv_streaming_reader,
     const std::string& filePath) {
     auto status = initCSVReader(csv_streaming_reader, filePath);
@@ -105,7 +104,7 @@ arrow::Status CopyStructuresArrow::initCSVReaderAndCheckStatus(
     return status;
 }
 
-arrow::Status CopyStructuresArrow::initCSVReader(
+arrow::Status TableCopier::initCSVReader(
     std::shared_ptr<arrow::csv::StreamingReader>& csv_streaming_reader,
     const std::string& filePath) {
     std::shared_ptr<arrow::io::InputStream> arrow_input_stream;
@@ -135,14 +134,14 @@ arrow::Status CopyStructuresArrow::initCSVReader(
     return arrow::Status::OK();
 }
 
-arrow::Status CopyStructuresArrow::initArrowReaderAndCheckStatus(
+arrow::Status TableCopier::initArrowReaderAndCheckStatus(
     std::shared_ptr<arrow::ipc::RecordBatchFileReader>& ipc_reader, const std::string& filePath) {
     auto status = initArrowReader(ipc_reader, filePath);
     throwCopyExceptionIfNotOK(status);
     return status;
 }
 
-arrow::Status CopyStructuresArrow::initArrowReader(
+arrow::Status TableCopier::initArrowReader(
     std::shared_ptr<arrow::ipc::RecordBatchFileReader>& ipc_reader, const std::string& filePath) {
     std::shared_ptr<arrow::io::ReadableFile> infile;
 
@@ -153,14 +152,14 @@ arrow::Status CopyStructuresArrow::initArrowReader(
     return arrow::Status::OK();
 }
 
-arrow::Status CopyStructuresArrow::initParquetReaderAndCheckStatus(
+arrow::Status TableCopier::initParquetReaderAndCheckStatus(
     std::unique_ptr<parquet::arrow::FileReader>& reader, const std::string& filePath) {
     auto status = initParquetReader(reader, filePath);
     throwCopyExceptionIfNotOK(status);
     return status;
 }
 
-arrow::Status CopyStructuresArrow::initParquetReader(
+arrow::Status TableCopier::initParquetReader(
     std::unique_ptr<parquet::arrow::FileReader>& reader, const std::string& filePath) {
     std::shared_ptr<arrow::io::ReadableFile> infile;
     ARROW_ASSIGN_OR_RAISE(
@@ -170,7 +169,7 @@ arrow::Status CopyStructuresArrow::initParquetReader(
     return arrow::Status::OK();
 }
 
-std::vector<std::pair<int64_t, int64_t>> CopyStructuresArrow::getListElementPos(
+std::vector<std::pair<int64_t, int64_t>> TableCopier::getListElementPos(
     std::string& l, int64_t from, int64_t to, CopyDescription& copyDescription) {
     std::vector<std::pair<int64_t, int64_t>> split;
     int bracket = 0;
@@ -189,8 +188,8 @@ std::vector<std::pair<int64_t, int64_t>> CopyStructuresArrow::getListElementPos(
     return split;
 }
 
-std::unique_ptr<Value> CopyStructuresArrow::getArrowVarList(std::string& l, int64_t from,
-    int64_t to, const DataType& dataType, CopyDescription& copyDescription) {
+std::unique_ptr<Value> TableCopier::getArrowVarList(std::string& l, int64_t from, int64_t to,
+    const DataType& dataType, CopyDescription& copyDescription) {
     assert(dataType.typeID == common::VAR_LIST || dataType.typeID == common::FIXED_LIST);
     auto split = getListElementPos(l, from, to, copyDescription);
     std::vector<std::unique_ptr<Value>> values;
@@ -250,8 +249,8 @@ std::unique_ptr<Value> CopyStructuresArrow::getArrowVarList(std::string& l, int6
         DataType(VAR_LIST, std::make_unique<DataType>(childDataType)), std::move(values));
 }
 
-std::unique_ptr<uint8_t[]> CopyStructuresArrow::getArrowFixedList(std::string& l, int64_t from,
-    int64_t to, const DataType& dataType, CopyDescription& copyDescription) {
+std::unique_ptr<uint8_t[]> TableCopier::getArrowFixedList(std::string& l, int64_t from, int64_t to,
+    const DataType& dataType, CopyDescription& copyDescription) {
     assert(dataType.typeID == common::FIXED_LIST);
     auto split = getListElementPos(l, from, to, copyDescription);
     auto listVal = std::make_unique<uint8_t[]>(Types::getDataTypeSize(dataType));
@@ -303,7 +302,7 @@ std::unique_ptr<uint8_t[]> CopyStructuresArrow::getArrowFixedList(std::string& l
     return listVal;
 }
 
-void CopyStructuresArrow::throwCopyExceptionIfNotOK(const arrow::Status& status) {
+void TableCopier::throwCopyExceptionIfNotOK(const arrow::Status& status) {
     if (!status.ok()) {
         throw CopyException(status.ToString());
     }

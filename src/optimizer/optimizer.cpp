@@ -1,6 +1,6 @@
 #include "optimizer/optimizer.h"
 
-#include "optimizer/asp_optimizer.h"
+#include "optimizer/acc_hash_join_optimizer.h"
 #include "optimizer/factorization_rewriter.h"
 #include "optimizer/filter_push_down_optimizer.h"
 #include "optimizer/projection_push_down_optimizer.h"
@@ -22,8 +22,8 @@ void Optimizer::optimize(planner::LogicalPlan* plan) {
     filterPushDownOptimizer.rewrite(plan);
 
     // ASP optimizer should be applied after optimizers that manipulate hash join.
-    auto aspOptimizer = ASPOptimizer();
-    aspOptimizer.rewrite(plan);
+    auto accHashJoinOptimizer = AccHashJoinOptimizer();
+    accHashJoinOptimizer.rewrite(plan);
 
     auto projectionPushDownOptimizer = ProjectionPushDownOptimizer();
     projectionPushDownOptimizer.rewrite(plan);
