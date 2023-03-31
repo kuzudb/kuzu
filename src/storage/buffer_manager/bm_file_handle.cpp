@@ -22,6 +22,10 @@ BMFileHandle::BMFileHandle(const std::string& path, uint8_t flags, BufferManager
     initPageStatesAndGroups();
 }
 
+BMFileHandle::~BMFileHandle() {
+    bm->removeFilePagesFromFrames(*this);
+}
+
 void BMFileHandle::initPageStatesAndGroups() {
     pageStates.resize(pageCapacity);
     for (auto i = 0ull; i < numPages; i++) {

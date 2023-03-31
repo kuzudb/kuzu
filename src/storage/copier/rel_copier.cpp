@@ -11,12 +11,13 @@ namespace kuzu {
 namespace storage {
 
 RelCopier::RelCopier(CopyDescription& copyDescription, std::string outputDirectory,
-    TaskScheduler& taskScheduler, Catalog& catalog,
-    std::map<table_id_t, offset_t> maxNodeOffsetsPerNodeTable, BufferManager* bufferManager,
-    table_id_t tableID, RelsStatistics* relsStatistics)
+    TaskScheduler& taskScheduler, Catalog& catalog, storage::NodesStore& nodesStore,
+    BufferManager* bufferManager, table_id_t tableID, RelsStatistics* relsStatistics)
     : TableCopier{copyDescription, std::move(outputDirectory), taskScheduler, catalog, tableID,
           relsStatistics},
-      maxNodeOffsetsPerTable{std::move(maxNodeOffsetsPerNodeTable)} {
+      nodesStore{nodesStore},
+      maxNodeOffsetsPerTable{
+          nodesStore.getNodesStatisticsAndDeletedIDs().getMaxNodeOffsetPerTable()} {
     dummyReadOnlyTrx = Transaction::getDummyReadOnlyTrx();
     auto relTableSchema = reinterpret_cast<RelTableSchema*>(tableSchema);
     initializePkIndexes(relTableSchema->srcTableID, *bufferManager);
@@ -171,11 +172,7 @@ void RelCopier::initListsMetadata() {
 }
 
 void RelCopier::initializePkIndexes(table_id_t nodeTableID, BufferManager& bufferManager) {
-    pkIndexes.emplace(nodeTableID,
-        std::make_unique<PrimaryKeyIndex>(
-            StorageUtils::getNodeIndexIDAndFName(this->outputDirectory, nodeTableID),
-            catalog.getReadOnlyVersion()->getNodeTableSchema(nodeTableID)->getPrimaryKey().dataType,
-            bufferManager, nullptr /* wal */));
+    pkIndexes.emplace(nodeTableID, nodesStore.getPKIndex(nodeTableID));
 }
 
 arrow::Status RelCopier::executePopulateTask(PopulateTaskType populateTaskType) {
@@ -342,8 +339,8 @@ void RelCopier::sortAndCopyOverflowValues() {
 template<typename T>
 void RelCopier::inferTableIDsAndOffsets(const std::vector<std::shared_ptr<T>>& batchColumns,
     std::vector<nodeID_t>& nodeIDs, std::vector<DataType>& nodeIDTypes,
-    const std::map<table_id_t, std::unique_ptr<PrimaryKeyIndex>>& pkIndexes,
-    Transaction* transaction, int64_t blockOffset, int64_t& colIndex) {
+    const std::map<table_id_t, PrimaryKeyIndex*>& pkIndexes, Transaction* transaction,
+    int64_t blockOffset, int64_t& colIndex) {
     for (auto& relDirection : REL_DIRECTIONS) {
         if (colIndex >= batchColumns.size()) {
             throw CopyException("Number of columns mismatch.");

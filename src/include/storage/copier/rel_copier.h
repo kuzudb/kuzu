@@ -1,6 +1,7 @@
 #pragma once
 
 #include "storage/index/hash_index.h"
+#include "storage/store/nodes_store.h"
 #include "storage/store/rels_statistics.h"
 #include "table_copier.h"
 
@@ -16,8 +17,8 @@ class RelCopier : public TableCopier {
 public:
     RelCopier(common::CopyDescription& copyDescription, std::string outputDirectory,
         common::TaskScheduler& taskScheduler, catalog::Catalog& catalog,
-        std::map<common::table_id_t, common::offset_t> maxNodeOffsetsPerNodeTable,
-        BufferManager* bufferManager, common::table_id_t tableID, RelsStatistics* relsStatistics);
+        storage::NodesStore& nodesStore, BufferManager* bufferManager, common::table_id_t tableID,
+        RelsStatistics* relsStatistics);
 
 private:
     static std::string getTaskTypeName(PopulateTaskType populateTaskType);
@@ -67,7 +68,7 @@ private:
     template<typename T>
     static void inferTableIDsAndOffsets(const std::vector<std::shared_ptr<T>>& batchColumns,
         std::vector<common::nodeID_t>& nodeIDs, std::vector<common::DataType>& nodeIDTypes,
-        const std::map<common::table_id_t, std::unique_ptr<PrimaryKeyIndex>>& pkIndexes,
+        const std::map<common::table_id_t, PrimaryKeyIndex*>& pkIndexes,
         transaction::Transaction* transaction, int64_t blockOffset, int64_t& colIndex);
 
     template<typename T>
@@ -140,9 +141,10 @@ private:
         const std::shared_ptr<spdlog::logger>& logger);
 
 private:
+    storage::NodesStore& nodesStore;
     const std::map<common::table_id_t, common::offset_t> maxNodeOffsetsPerTable;
     std::unique_ptr<transaction::Transaction> dummyReadOnlyTrx;
-    std::map<common::table_id_t, std::unique_ptr<PrimaryKeyIndex>> pkIndexes;
+    std::map<common::table_id_t, PrimaryKeyIndex*> pkIndexes;
     std::atomic<uint64_t> numRels = 0;
     std::vector<std::unique_ptr<atomic_uint64_vec_t>> listSizesPerDirection{2};
     std::vector<std::unique_ptr<InMemAdjColumn>> adjColumnsPerDirection{2};

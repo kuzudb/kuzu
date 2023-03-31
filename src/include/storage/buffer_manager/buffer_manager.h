@@ -38,17 +38,31 @@ struct EvictionCandidate {
 
 class EvictionQueue {
 public:
-    EvictionQueue() { queue = std::make_unique<moodycamel::ConcurrentQueue<EvictionCandidate>>(); }
+    explicit EvictionQueue(uint64_t capacity) : capacity{capacity} {
+        queue = std::make_unique<moodycamel::ConcurrentQueue<EvictionCandidate>>(capacity);
+    }
 
-    inline void enqueue(EvictionCandidate& candidate) { queue->enqueue(candidate); }
+    inline void enqueue(EvictionCandidate& candidate) {
+        std::shared_lock sLck{mtx};
+        queue->enqueue(candidate);
+    }
     inline void enqueue(BMFileHandle* fileHandle, common::page_idx_t pageIdx, PageState* pageState,
         uint64_t pageVersion) {
+        std::shared_lock sLck{mtx};
         queue->enqueue(EvictionCandidate{fileHandle, pageIdx, pageState, pageVersion});
     }
-    inline bool dequeue(EvictionCandidate& candidate) { return queue->try_dequeue(candidate); }
+    inline bool dequeue(EvictionCandidate& candidate) {
+        std::shared_lock sLck{mtx};
+        return queue->try_dequeue(candidate);
+    }
+
     void removeNonEvictableCandidates();
 
+    void removeCandidatesForFile(BMFileHandle& fileHandle);
+
 private:
+    std::shared_mutex mtx;
+    uint64_t capacity;
     std::unique_ptr<moodycamel::ConcurrentQueue<EvictionCandidate>> queue;
 };
 
@@ -152,7 +166,7 @@ public:
     enum class PageReadPolicy : uint8_t { READ_PAGE = 0, DONT_READ_PAGE = 1 };
 
     explicit BufferManager(uint64_t bufferPoolSize);
-    ~BufferManager();
+    ~BufferManager() = default;
 
     uint8_t* pin(BMFileHandle& fileHandle, common::page_idx_t pageIdx,
         PageReadPolicy pageReadPolicy = PageReadPolicy::READ_PAGE);

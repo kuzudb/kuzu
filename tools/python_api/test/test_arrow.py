@@ -125,7 +125,6 @@ def test_to_arrow_complex(establish_connection):
     conn, db = establish_connection
 
     def _test_node(_conn):
-        # query = "MATCH (a:person) RETURN a.ID, a.fName, a.gender, a.isStudent, a.isWorker, a.age, a.eyeSight, a.birthdate, a.registerTime, a.lastJobDuration, a.workedHours, a.usedNames, a.courseScoresPerTerm ORDER BY a.ID;"
         query = "MATCH (p:person) RETURN p ORDER BY p.ID"
         query_result = _conn.execute(query)
         arrow_tbl = query_result.get_as_arrow(12)

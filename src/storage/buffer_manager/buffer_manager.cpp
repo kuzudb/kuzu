@@ -8,7 +8,6 @@ using namespace kuzu::common;
 
 namespace kuzu {
 namespace storage {
-
 // In this function, we try to remove as many as possible candidates that are not evictable from the
 // eviction queue until we hit a candidate that is evictable.
 // 1) If the candidate page's version has changed, which means the page was pinned and unpinned, we
@@ -18,8 +17,9 @@ namespace storage {
 // as MARKED, and moving the candidate to the back of the queue.
 // 3) If the candidate page's state is LOCKED, we remove the candidate from the queue.
 void EvictionQueue::removeNonEvictableCandidates() {
-    EvictionCandidate evictionCandidate;
+    std::shared_lock sLck{mtx};
     while (true) {
+        EvictionCandidate evictionCandidate;
         if (!queue->try_dequeue(evictionCandidate)) {
             break;
         }
@@ -43,18 +43,33 @@ void EvictionQueue::removeNonEvictableCandidates() {
     }
 }
 
+void EvictionQueue::removeCandidatesForFile(kuzu::storage::BMFileHandle& fileHandle) {
+    std::unique_lock xLck{mtx};
+    EvictionCandidate candidate;
+    uint64_t loopedCandidateIdx = 0;
+    auto numCandidatesInQueue = queue->size_approx();
+    while (loopedCandidateIdx < numCandidatesInQueue && queue->try_dequeue(candidate)) {
+        if (candidate.fileHandle != &fileHandle) {
+            queue->enqueue(candidate);
+        }
+        loopedCandidateIdx++;
+    }
+}
+
 BufferManager::BufferManager(uint64_t bufferPoolSize)
     : logger{LoggerUtils::getLogger(common::LoggerConstants::LoggerEnum::BUFFER_MANAGER)},
       usedMemory{0}, bufferPoolSize{bufferPoolSize}, numEvictionQueueInsertions{0} {
     logger->info("Done initializing buffer manager.");
+    if (bufferPoolSize < BufferPoolConstants::PAGE_4KB_SIZE) {
+        throw BufferManagerException("The given buffer pool size should be at least 4KB.");
+    }
     vmRegions.resize(2);
     vmRegions[0] = std::make_unique<VMRegion>(
         PageSizeClass::PAGE_4KB, BufferPoolConstants::DEFAULT_VM_REGION_MAX_SIZE);
     vmRegions[1] = std::make_unique<VMRegion>(PageSizeClass::PAGE_256KB, bufferPoolSize);
-    evictionQueue = std::make_unique<EvictionQueue>();
+    evictionQueue =
+        std::make_unique<EvictionQueue>(bufferPoolSize / BufferPoolConstants::PAGE_4KB_SIZE);
 }
-
-BufferManager::~BufferManager() = default;
 
 // Important Note: Pin returns a raw pointer to the frame. This is potentially very dangerous and
 // trusts the caller is going to protect this memory space.
@@ -225,6 +240,7 @@ void BufferManager::flushIfDirtyWithoutLock(BMFileHandle& fileHandle, common::pa
 }
 
 void BufferManager::removeFilePagesFromFrames(BMFileHandle& fileHandle) {
+    evictionQueue->removeCandidatesForFile(fileHandle);
     for (auto pageIdx = 0u; pageIdx < fileHandle.getNumPages(); ++pageIdx) {
         removePageFromFrame(fileHandle, pageIdx, false /* do not flush */);
     }

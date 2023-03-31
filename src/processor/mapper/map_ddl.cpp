@@ -61,8 +61,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCopyToPhysical(
             getOperatorID(), copy->getExpressionsForPrinting());
     } else {
         return std::make_unique<CopyRel>(catalog, copy->getCopyDescription(), copy->getTableID(),
-            storageManager.getWAL(), nodesStatistics, relsStatistics, getOperatorID(),
-            copy->getExpressionsForPrinting());
+            storageManager.getWAL(), relsStatistics, storageManager.getNodesStore(),
+            getOperatorID(), copy->getExpressionsForPrinting());
     }
 }
 
