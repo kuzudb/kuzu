@@ -373,6 +373,19 @@ uint32_t Types::getDataTypeSize(const DataType& dataType) {
     }
 }
 
+bool Types::isNumerical(const kuzu::common::DataType& dataType) {
+    switch (dataType.typeID) {
+    case INT64:
+    case INT32:
+    case INT16:
+    case DOUBLE:
+    case FLOAT:
+        return true;
+    default:
+        return false;
+    }
+}
+
 RelDirection operator!(RelDirection& direction) {
     return (FWD == direction) ? BWD : FWD;
 }

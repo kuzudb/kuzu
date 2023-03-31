@@ -82,8 +82,8 @@ std::shared_ptr<Expression> ExpressionBinder::implicitCastIfNecessary(
 
 std::shared_ptr<Expression> ExpressionBinder::implicitCast(
     const std::shared_ptr<Expression>& expression, const common::DataType& targetType) {
-    if (BuiltInVectorOperations::getCastCost(expression->dataType, targetType) != UINT32_MAX) {
-        auto functionName = VectorCastOperations::bindCastFunctionName(targetType.typeID);
+    if (VectorCastOperations::hasImplicitCast(expression->dataType, targetType)) {
+        auto functionName = VectorCastOperations::bindImplicitCastFuncName(targetType);
         auto children = expression_vector{expression};
         auto uniqueName = ScalarFunctionExpression::getUniqueName(functionName, children);
         return std::make_shared<ScalarFunctionExpression>(functionName, FUNCTION,

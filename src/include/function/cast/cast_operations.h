@@ -2,6 +2,7 @@
 
 #include <cassert>
 
+#include "common/exception.h"
 #include "common/in_mem_overflow_buffer_utils.h"
 #include "common/type_utils.h"
 #include "common/vector/value_vector.h"
@@ -29,7 +30,6 @@ struct CastStringToInterval {
 };
 
 struct CastToString {
-
     template<typename T>
     static inline std::string castToStringWithDataType(T& input, const common::DataType& dataType) {
         return common::TypeUtils::toString(input);
@@ -53,6 +53,15 @@ inline std::string CastToString::castToStringWithDataType(
     return common::TypeUtils::toString(input, dataType);
 }
 
+template<typename SRC, typename DST>
+static inline void numericDownCast(SRC& input, DST& result, const std::string& dstTypeStr) {
+    if (input < std::numeric_limits<DST>::min() || input > std::numeric_limits<DST>::max()) {
+        throw common::RuntimeException(
+            "Cast failed. " + std::to_string(input) + " is not in " + dstTypeStr + " range.");
+    }
+    result = (DST)input;
+}
+
 struct CastToDouble {
     template<typename T>
     static inline void operation(T& input, double_t& result) {
@@ -67,6 +76,11 @@ struct CastToFloat {
     }
 };
 
+template<>
+inline void CastToFloat::operation(double_t& input, float_t& result) {
+    numericDownCast<double_t, float_t>(input, result, "FLOAT");
+}
+
 struct CastToInt64 {
     template<typename T>
     static inline void operation(T& input, int64_t& result) {
@@ -74,12 +88,64 @@ struct CastToInt64 {
     }
 };
 
+template<>
+inline void CastToInt64::operation(double_t& input, int64_t& result) {
+    numericDownCast<double_t, int64_t>(input, result, "INT64");
+}
+
+template<>
+inline void CastToInt64::operation(float_t& input, int64_t& result) {
+    numericDownCast<float_t, int64_t>(input, result, "INT64");
+}
+
 struct CastToInt32 {
     template<typename T>
     static inline void operation(T& input, int32_t& result) {
         result = static_cast<int32_t>(input);
     }
 };
+
+template<>
+inline void CastToInt32::operation(double_t& input, int32_t& result) {
+    numericDownCast<double_t, int32_t>(input, result, "INT32");
+}
+
+template<>
+inline void CastToInt32::operation(float_t& input, int32_t& result) {
+    numericDownCast<float_t, int32_t>(input, result, "INT32");
+}
+
+template<>
+inline void CastToInt32::operation(int64_t& input, int32_t& result) {
+    numericDownCast<int64_t, int32_t>(input, result, "INT32");
+}
+
+struct CastToInt16 {
+    template<typename T>
+    static inline void operation(T& input, int16_t& result) {
+        result = static_cast<int16_t>(input);
+    }
+};
+
+template<>
+inline void CastToInt16::operation(double_t& input, int16_t& result) {
+    numericDownCast<double_t, int16_t>(input, result, "INT16");
+}
+
+template<>
+inline void CastToInt16::operation(float_t& input, int16_t& result) {
+    numericDownCast<float_t, int16_t>(input, result, "INT16");
+}
+
+template<>
+inline void CastToInt16::operation(int64_t& input, int16_t& result) {
+    numericDownCast<int64_t, int16_t>(input, result, "INT16");
+}
+
+template<>
+inline void CastToInt16::operation(int32_t& input, int16_t& result) {
+    numericDownCast<int32_t, int16_t>(input, result, "INT16");
+}
 
 } // namespace operation
 } // namespace function

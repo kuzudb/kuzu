@@ -394,6 +394,8 @@ void BuiltInVectorOperations::registerCastOperations() {
         {CAST_TO_INT64_FUNC_NAME, CastToInt64VectorOperation::getDefinitions()});
     vectorOperations.insert(
         {CAST_TO_INT32_FUNC_NAME, CastToInt32VectorOperation::getDefinitions()});
+    vectorOperations.insert(
+        {CAST_TO_INT16_FUNC_NAME, CastToInt16VectorOperation::getDefinitions()});
 }
 
 void BuiltInVectorOperations::registerListOperations() {

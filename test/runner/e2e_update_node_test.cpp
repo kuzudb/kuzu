@@ -10,28 +10,40 @@ public:
     }
 
     std::string getStringExceedsOverflow() {
-        std::string veryLongList = "[";
-        for (int i = 0; i < 599; ++i) {
+        std::string veryLongList = "'[";
+        for (int i = 0; i < 5990; ++i) {
             veryLongList += std::to_string(i);
             veryLongList += ",";
         }
-        veryLongList += "599]";
+        veryLongList += "599]'";
         return veryLongList;
     }
 };
 
 // SET clause tests
 
-TEST_F(TinySnbUpdateTest, SetNodeIntPropTest) {
+TEST_F(TinySnbUpdateTest, SetNodeInt64PropTest) {
     conn->query("MATCH (a:person) WHERE a.ID=0 SET a.age=20 + 50");
     auto result = conn->query("MATCH (a:person) WHERE a.ID=0 RETURN a.age");
     ASSERT_EQ(result->getNext()->getValue(0)->getValue<int64_t>(), 70);
 }
 
+TEST_F(TinySnbUpdateTest, SetNodeInt32PropTest) {
+    conn->query("MATCH (a:movies) WHERE a.name='Roma' SET a.length=2.2");
+    auto result = conn->query("MATCH (a:movies) WHERE a.name='Roma' RETURN a.length");
+    ASSERT_EQ(result->getNext()->getValue(0)->getValue<int32_t>(), 2);
+}
+
 TEST_F(TinySnbUpdateTest, SetNodeDoublePropTest) {
     conn->query("MATCH (a:person) WHERE a.ID=0 SET a.eyeSight=1.0");
     auto result = conn->query("MATCH (a:person) WHERE a.ID=0 RETURN a.eyeSight");
-    ASSERT_EQ(result->getNext()->getValue(0)->getValue<double>(), 1.0);
+    ASSERT_EQ(result->getNext()->getValue(0)->getValue<double_t>(), 1.0);
+}
+
+TEST_F(TinySnbUpdateTest, SetNodeFloatPropTest) {
+    conn->query("MATCH (a:person) WHERE a.ID=0 SET a.height=12");
+    auto result = conn->query("MATCH (a:person) WHERE a.ID=0 RETURN a.height");
+    ASSERT_EQ(result->getNext()->getValue(0)->getValue<float_t>(), 12);
 }
 
 TEST_F(TinySnbUpdateTest, SetNodeBoolPropTest) {
@@ -41,14 +53,13 @@ TEST_F(TinySnbUpdateTest, SetNodeBoolPropTest) {
 }
 
 TEST_F(TinySnbUpdateTest, SetNodeDatePropTest) {
-    conn->query("MATCH (a:person) WHERE a.ID=0 SET a.birthdate=date('2200-10-10')");
+    conn->query("MATCH (a:person) WHERE a.ID=0 SET a.birthdate='2200-10-10'");
     auto result = conn->query("MATCH (a:person) WHERE a.ID=0 RETURN a.birthdate");
     ASSERT_EQ(result->getNext()->getValue(0)->getValue<date_t>(), Date::FromDate(2200, 10, 10));
 }
 
 TEST_F(TinySnbUpdateTest, SetNodeTimestampPropTest) {
-    conn->query(
-        "MATCH (a:person) WHERE a.ID=0 SET a.registerTime=timestamp('2200-10-10 12:01:01')");
+    conn->query("MATCH (a:person) WHERE a.ID=0 SET a.registerTime='2200-10-10 12:01:01'");
     auto result = conn->query("MATCH (a:person) WHERE a.ID=0 RETURN a.registerTime");
     ASSERT_EQ(result->getNext()->getValue(0)->getValue<timestamp_t>(),
         Timestamp::FromDatetime(Date::FromDate(2200, 10, 10), Time::FromTime(12, 1, 1)));
@@ -61,9 +72,9 @@ TEST_F(TinySnbUpdateTest, SetNodeEmptyStringPropTest) {
 }
 
 TEST_F(TinySnbUpdateTest, SetNodeShortStringPropTest) {
-    conn->query("MATCH (a:person) WHERE a.ID=0 SET a.fName='abcdef'");
+    conn->query("MATCH (a:person) WHERE a.ID=0 SET a.fName=string(22)");
     auto result = conn->query("MATCH (a:person) WHERE a.ID=0 RETURN a.fName");
-    ASSERT_EQ(result->getNext()->getValue(0)->getValue<std::string>(), "abcdef");
+    ASSERT_EQ(result->getNext()->getValue(0)->getValue<std::string>(), "22");
 }
 
 TEST_F(TinySnbUpdateTest, SetNodeLongStringPropTest) {
@@ -166,6 +177,13 @@ TEST_F(TinySnbUpdateTest, SetIndexNestedLoopJoinTest) {
     auto result = conn->query("MATCH (a:person) RETURN a.ID, a.age");
     auto groundTruth =
         std::vector<std::string>{"0|1", "10|2", "2|2", "3|1", "5|2", "7|1", "8|2", "9|2"};
+    ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
+}
+
+TEST_F(TinySnbUpdateTest, SetRelInt16PropTest) {
+    conn->query("MATCH (a:person)-[e:studyAt]->(b:organisation) WHERE a.ID = 0 SET e.length=99");
+    auto result = conn->query("MATCH (a:person)-[e:studyAt]->(b:organisation) RETURN e.length");
+    auto groundTruth = std::vector<std::string>{"22", "55", "99"};
     ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
 }
 

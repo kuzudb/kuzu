@@ -15,6 +15,8 @@ class VectorCastOperations : public VectorOperations {
 public:
     // This function is only used by expression binder when implicit cast is needed.
     // The expression binder should consider reusing the existing matchFunction() API.
+    static bool hasImplicitCast(const common::DataType& srcType, const common::DataType& dstType);
+    static std::string bindImplicitCastFuncName(const common::DataType& dstType);
     static scalar_exec_func bindImplicitCastFunc(
         common::DataTypeID sourceTypeID, common::DataTypeID targetTypeID);
 
@@ -35,13 +37,48 @@ public:
         UnaryOperationExecutor::executeCast<OPERAND_TYPE, RESULT_TYPE, FUNC>(*params[0], result);
     }
 
-    static std::string bindCastFunctionName(common::DataTypeID targetTypeID);
-
 private:
-    static scalar_exec_func bindImplicitCastInt16Func(common::DataTypeID targetTypeID);
-    static scalar_exec_func bindImplicitCastInt32Func(common::DataTypeID targetTypeID);
-    static scalar_exec_func bindImplicitCastInt64Func(common::DataTypeID targetTypeID);
-    static scalar_exec_func bindImplicitCastFloatFunc(common::DataTypeID targetTypeID);
+    template<typename DST_TYPE, typename OP>
+    static scalar_exec_func bindImplicitNumericalCastFunc(common::DataTypeID srcTypeID) {
+        switch (srcTypeID) {
+        case common::INT16:
+            return VectorOperations::UnaryExecFunction<int16_t, DST_TYPE, OP>;
+        case common::INT32:
+            return VectorOperations::UnaryExecFunction<int32_t, DST_TYPE, OP>;
+        case common::INT64:
+            return VectorOperations::UnaryExecFunction<int64_t, DST_TYPE, OP>;
+        case common::FLOAT:
+            return VectorOperations::UnaryExecFunction<float_t, DST_TYPE, OP>;
+        case common::DOUBLE:
+            return VectorOperations::UnaryExecFunction<double_t, DST_TYPE, OP>;
+        default:
+            throw common::NotImplementedException("Unimplemented casting operation from " +
+                                                  common::Types::dataTypeToString(srcTypeID) +
+                                                  " to numeric.");
+        }
+    }
+
+    template<typename DST_TYPE, typename OP>
+    static scalar_exec_func bindImplicitStringCastFunc(common::DataTypeID srcTypeID) {
+        switch (srcTypeID) {
+        case common::INT64:
+            return UnaryCastExecFunction<int64_t, DST_TYPE, OP>;
+        case common::DOUBLE:
+            return UnaryCastExecFunction<double_t, DST_TYPE, OP>;
+        case common::DATE:
+            return UnaryCastExecFunction<common::date_t, DST_TYPE, OP>;
+        case common::TIMESTAMP:
+            return UnaryCastExecFunction<common::timestamp_t, DST_TYPE, OP>;
+        case common::INTERVAL:
+            return UnaryCastExecFunction<common::interval_t, DST_TYPE, OP>;
+        case common::VAR_LIST:
+            return UnaryCastExecFunction<common::ku_list_t, DST_TYPE, OP>;
+        default:
+            throw common::NotImplementedException("Unimplemented casting operation from " +
+                                                  common::Types::dataTypeToString(srcTypeID) +
+                                                  " to string.");
+        }
+    }
 };
 
 struct CastToDateVectorOperation : public VectorCastOperations {
@@ -73,6 +110,10 @@ struct CastToInt64VectorOperation : public VectorCastOperations {
 };
 
 struct CastToInt32VectorOperation : public VectorCastOperations {
+    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
+struct CastToInt16VectorOperation : public VectorCastOperations {
     static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
 };
 

@@ -8,103 +8,91 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
+bool VectorCastOperations::hasImplicitCast(
+    const common::DataType& srcType, const common::DataType& dstType) {
+    // We allow cast between any numerical types
+    if (Types::isNumerical(srcType) && Types::isNumerical(dstType)) {
+        return true;
+    }
+    switch (srcType.typeID) {
+    case common::STRING: {
+        switch (dstType.typeID) {
+        case common::DATE:
+        case common::TIMESTAMP:
+        case common::INTERVAL:
+            return true;
+        default:
+            return false;
+        }
+    }
+    default:
+        return false;
+    }
+}
+
+std::string VectorCastOperations::bindImplicitCastFuncName(const common::DataType& dstType) {
+    switch (dstType.typeID) {
+    case common::INT16:
+        return CAST_TO_INT16_FUNC_NAME;
+    case common::INT32:
+        return CAST_TO_INT32_FUNC_NAME;
+    case common::INT64:
+        return CAST_TO_INT64_FUNC_NAME;
+    case common::FLOAT:
+        return CAST_TO_FLOAT_FUNC_NAME;
+    case common::DOUBLE:
+        return CAST_TO_DOUBLE_FUNC_NAME;
+    case common::DATE:
+        return CAST_TO_DATE_FUNC_NAME;
+    case common::TIMESTAMP:
+        return CAST_TO_TIMESTAMP_FUNC_NAME;
+    case common::INTERVAL:
+        return CAST_TO_INTERVAL_FUNC_NAME;
+    case common::STRING:
+        return CAST_TO_STRING_FUNC_NAME;
+    default:
+        throw common::NotImplementedException("bindImplicitCastFuncName()");
+    }
+}
+
 scalar_exec_func VectorCastOperations::bindImplicitCastFunc(
     common::DataTypeID sourceTypeID, common::DataTypeID targetTypeID) {
-    switch (sourceTypeID) {
+    switch (targetTypeID) {
     case common::INT16: {
-        return bindImplicitCastInt16Func(targetTypeID);
+        return bindImplicitNumericalCastFunc<int16_t, operation::CastToInt16>(sourceTypeID);
     }
     case common::INT32: {
-        return bindImplicitCastInt32Func(targetTypeID);
+        return bindImplicitNumericalCastFunc<int32_t, operation::CastToInt32>(sourceTypeID);
     }
     case common::INT64: {
-        return bindImplicitCastInt64Func(targetTypeID);
+        return bindImplicitNumericalCastFunc<int64_t, operation::CastToInt64>(sourceTypeID);
     }
     case common::FLOAT: {
-        return bindImplicitCastFloatFunc(targetTypeID);
-    }
-    default:
-        throw common::InternalException("Undefined casting operation from " +
-                                        common::Types::dataTypeToString(sourceTypeID) + " to " +
-                                        common::Types::dataTypeToString(targetTypeID) + ".");
-    }
-}
-
-scalar_exec_func VectorCastOperations::bindImplicitCastInt16Func(common::DataTypeID targetTypeID) {
-    switch (targetTypeID) {
-    case common::INT32: {
-        return VectorOperations::UnaryExecFunction<int16_t, int32_t, operation::CastToInt32>;
-    }
-    case common::INT64: {
-        return VectorOperations::UnaryExecFunction<int16_t, int64_t, operation::CastToInt64>;
-    }
-    case common::FLOAT: {
-        return VectorOperations::UnaryExecFunction<int16_t, float_t, operation::CastToFloat>;
+        return bindImplicitNumericalCastFunc<float_t, operation::CastToFloat>(sourceTypeID);
     }
     case common::DOUBLE: {
-        return VectorOperations::UnaryExecFunction<int16_t, double_t, operation::CastToDouble>;
+        return bindImplicitNumericalCastFunc<double_t, operation::CastToDouble>(sourceTypeID);
     }
-    default: {
-        throw common::InternalException("Undefined casting operation from INT16 to " +
-                                        common::Types::dataTypeToString(targetTypeID) + ".");
+    case common::DATE: {
+        assert(sourceTypeID == common::STRING);
+        return VectorOperations::UnaryExecFunction<ku_string_t, date_t,
+            operation::CastStringToDate>;
     }
+    case common::TIMESTAMP: {
+        assert(sourceTypeID == common::STRING);
+        return VectorOperations::UnaryExecFunction<ku_string_t, timestamp_t,
+            operation::CastStringToTimestamp>;
     }
-}
-
-scalar_exec_func VectorCastOperations::bindImplicitCastInt32Func(common::DataTypeID targetTypeID) {
-    switch (targetTypeID) {
-    case common::INT64:
-        return VectorOperations::UnaryExecFunction<int32_t, int64_t, operation::CastToInt64>;
-    case common::FLOAT:
-        return VectorOperations::UnaryExecFunction<int32_t, float_t, operation::CastToFloat>;
-    case common::DOUBLE:
-        return VectorOperations::UnaryExecFunction<int32_t, double_t, operation::CastToDouble>;
+    case common::INTERVAL: {
+        assert(sourceTypeID == common::STRING);
+        return VectorOperations::UnaryExecFunction<ku_string_t, interval_t,
+            operation::CastStringToInterval>;
+    }
     default:
-        throw common::InternalException("Undefined casting operation from INT32 to " +
-                                        common::Types::dataTypeToString(targetTypeID) + ".");
-    }
-}
-
-scalar_exec_func VectorCastOperations::bindImplicitCastInt64Func(common::DataTypeID targetTypeID) {
-    switch (targetTypeID) {
-    case common::FLOAT:
-        return VectorOperations::UnaryExecFunction<int64_t, float_t, operation::CastToFloat>;
-    case common::DOUBLE:
-        return VectorOperations::UnaryExecFunction<int64_t, double_t, operation::CastToDouble>;
-    default:
-        throw common::InternalException("Undefined casting operation from INT64 to " +
-                                        common::Types::dataTypeToString(targetTypeID) + ".");
-    }
-}
-
-scalar_exec_func VectorCastOperations::bindImplicitCastFloatFunc(common::DataTypeID targetTypeID) {
-    switch (targetTypeID) {
-    case common::DOUBLE:
-        return VectorOperations::UnaryExecFunction<float_t, double_t, operation::CastToDouble>;
-    default:
-        throw common::InternalException("Undefined casting operation from FLOAT to " +
-                                        common::Types::dataTypeToString(targetTypeID) + ".");
-    }
-}
-
-std::string VectorCastOperations::bindCastFunctionName(common::DataTypeID targetTypeID) {
-    switch (targetTypeID) {
-    case common::INT64: {
-        return CAST_TO_INT64_FUNC_NAME;
-    }
-    case common::INT32: {
-        return CAST_TO_INT32_FUNC_NAME;
-    }
-    case common::DOUBLE: {
-        return CAST_TO_DOUBLE_FUNC_NAME;
-    }
-    case common::FLOAT: {
-        return CAST_TO_FLOAT_FUNC_NAME;
-    }
-    default: {
-        throw common::InternalException("Cannot bind function name for cast to " +
-                                        common::Types::dataTypeToString(targetTypeID));
-    }
+        throw common::NotImplementedException("Unimplemented casting operation from " +
+                                              common::Types::dataTypeToString(sourceTypeID) +
+                                              " to " +
+                                              common::Types::dataTypeToString(targetTypeID) + ".");
     }
 }
 
@@ -162,9 +150,6 @@ CastToStringVectorOperation::getDefinitions() {
     result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_STRING_FUNC_NAME,
         std::vector<DataTypeID>{VAR_LIST}, STRING,
         UnaryCastExecFunction<ku_list_t, ku_string_t, operation::CastToString>));
-    result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_STRING_FUNC_NAME,
-        std::vector<DataTypeID>{FLOAT}, STRING,
-        UnaryCastExecFunction<float_t, ku_string_t, operation::CastToString>));
     return result;
 }
 
@@ -191,6 +176,9 @@ CastToFloatVectorOperation::getDefinitions() {
         CAST_TO_FLOAT_FUNC_NAME, INT32, FLOAT));
     result.push_back(bindVectorOperation<int64_t, float_t, operation::CastToFloat>(
         CAST_TO_FLOAT_FUNC_NAME, INT64, FLOAT));
+    // down cast
+    result.push_back(bindVectorOperation<double_t, float_t, operation::CastToFloat>(
+        CAST_TO_FLOAT_FUNC_NAME, DOUBLE, FLOAT));
     return result;
 }
 
@@ -201,6 +189,11 @@ CastToInt64VectorOperation::getDefinitions() {
         CAST_TO_INT64_FUNC_NAME, INT16, INT64));
     result.push_back(bindVectorOperation<int32_t, int64_t, operation::CastToInt64>(
         CAST_TO_INT64_FUNC_NAME, INT32, INT64));
+    // down cast
+    result.push_back(bindVectorOperation<float_t, int64_t, operation::CastToInt64>(
+        CAST_TO_INT64_FUNC_NAME, FLOAT, INT64));
+    result.push_back(bindVectorOperation<double_t, int64_t, operation::CastToInt64>(
+        CAST_TO_INT64_FUNC_NAME, DOUBLE, INT64));
     return result;
 }
 
@@ -209,6 +202,28 @@ CastToInt32VectorOperation::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
     result.push_back(bindVectorOperation<int16_t, int32_t, operation::CastToInt32>(
         CAST_TO_INT32_FUNC_NAME, INT16, INT32));
+    // down cast
+    result.push_back(bindVectorOperation<int64_t, int32_t, operation::CastToInt32>(
+        CAST_TO_INT32_FUNC_NAME, INT64, INT32));
+    result.push_back(bindVectorOperation<float_t, int32_t, operation::CastToInt32>(
+        CAST_TO_INT32_FUNC_NAME, FLOAT, INT32));
+    result.push_back(bindVectorOperation<double_t, int32_t, operation::CastToInt32>(
+        CAST_TO_INT32_FUNC_NAME, DOUBLE, INT32));
+    return result;
+}
+
+std::vector<std::unique_ptr<VectorOperationDefinition>>
+CastToInt16VectorOperation::getDefinitions() {
+    std::vector<std::unique_ptr<VectorOperationDefinition>> result;
+    // down cast
+    result.push_back(bindVectorOperation<int32_t, int16_t, operation::CastToInt16>(
+        CAST_TO_INT32_FUNC_NAME, INT32, INT16));
+    result.push_back(bindVectorOperation<int64_t, int16_t, operation::CastToInt16>(
+        CAST_TO_INT32_FUNC_NAME, INT64, INT16));
+    result.push_back(bindVectorOperation<float_t, int16_t, operation::CastToInt16>(
+        CAST_TO_INT32_FUNC_NAME, FLOAT, INT16));
+    result.push_back(bindVectorOperation<double_t, int16_t, operation::CastToInt16>(
+        CAST_TO_INT32_FUNC_NAME, DOUBLE, INT16));
     return result;
 }
 

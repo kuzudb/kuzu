@@ -431,10 +431,9 @@ TEST_F(BinderErrorTest, AddPropertyDuplicateName) {
 }
 
 TEST_F(BinderErrorTest, AddPropertyUnmatchedDefaultValueType) {
-    std::string expectedException =
-        "Binder exception: Expression 3.200000 has data type DOUBLE but expect "
-        "INT64. Implicit cast is not supported.";
-    auto input = "alter table person add intCol INT64 DEFAULT 3.2";
+    std::string expectedException = "Binder exception: Expression 3.2 has data type STRING but "
+                                    "expect INT64. Implicit cast is not supported.";
+    auto input = "alter table person add intCol INT64 DEFAULT '3.2'";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
 
