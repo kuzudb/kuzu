@@ -39,8 +39,11 @@ void testPyG(Connection* conn, const std::string& srcTableName,
         throw std::runtime_error(countResult->getErrorMessage());
     }
     uint64_t count = countResult->getNext()->getValue(0)->getValue<int64_t>();
-    auto* buffer = (int64_t*)malloc(count * 2 * sizeof(int64_t));
-
+    std::cout << "Allocate buffer." << std::endl;
+    uint64_t bufferSize = count * 2 * sizeof(int64_t);
+    auto* buffer = (int64_t*)malloc(bufferSize);
+    memset(buffer, 0, bufferSize);
+    std::cout << "Done allocating buffer." << std::endl;
     // Run queries in batch to fetch edges.
     auto queryString = "MATCH (a:{})-[:{}]->(b:{}) WHERE offset(id(a)) >= $s AND offset(id(a)) < "
                        "$e RETURN offset(id(a)), offset(id(b))";
@@ -73,7 +76,9 @@ void testPyG(Connection* conn, const std::string& srcTableName,
 int main() {
     std::string dbPath = "/home/lc/Developer/mag100m-kuzu";
     // std::string dbPath = "/home/kuzu/Developer/mag100m-kuzu";
-    auto database = std::make_unique<Database>(dbPath);
+    kuzu::main::SystemConfig systemConfig;
+    systemConfig.bufferPoolSize = (std::uint64_t)10 * 1024 * 1024 * 1024;
+    auto database = std::make_unique<Database>(dbPath, systemConfig);
     auto conn = std::make_unique<Connection>(database.get());
     testPyG(conn.get(), "Paper", "Cites", "Paper", 1000000);
     std::cout << "Done processing! Now we wait" << std::endl;
