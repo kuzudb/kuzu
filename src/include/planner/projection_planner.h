@@ -20,6 +20,9 @@ private:
     void planProjectionBody(const binder::BoundProjectionBody& projectionBody, LogicalPlan& plan);
     void planAggregate(const binder::expression_vector& expressionsToAggregate,
         const binder::expression_vector& expressionsToGroupBy, LogicalPlan& plan);
+    void planOrderBy(const binder::expression_vector& expressionsToProject,
+        const binder::expression_vector& expressionsToOrderBy, const std::vector<bool>& isAscOrders,
+        LogicalPlan& plan);
 
     void appendProjection(const binder::expression_vector& expressionsToProject, LogicalPlan& plan);
     void appendAggregate(const binder::expression_vector& expressionsToGroupBy,

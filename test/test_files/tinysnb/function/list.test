@@ -578,6 +578,12 @@ True
 False
 True
 
+-NAME ListContainsSelect
+-QUERY MATCH (a:person) WHERE list_contains(a.courseScoresPerTerm, [8]) RETURN a.ID
+---- 2
+7
+8
+
 -NAME ListContainsStructuredListOfStrings
 -QUERY MATCH (a:person) RETURN list_has(a.usedNames, "Grad")
 ---- 8
