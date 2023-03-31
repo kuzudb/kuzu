@@ -111,3 +111,5 @@ elseif (${BUILD_BENCHMARK})
     add_subdirectory(test/test_helper)
 endif()
 add_subdirectory(tools)
+
+add_subdirectory(examples)
