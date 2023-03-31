@@ -14,7 +14,6 @@ namespace kuzu {
 namespace processor {
 
 typedef uint64_t ft_tuple_idx_t;
-typedef uint32_t ft_col_idx_t;
 typedef uint32_t ft_col_offset_t;
 typedef uint32_t ft_block_idx_t;
 typedef uint32_t ft_block_offset_t;
@@ -134,7 +133,7 @@ public:
 
     void appendColumn(std::unique_ptr<ColumnSchema> column);
 
-    inline ColumnSchema* getColumn(ft_col_idx_t idx) const { return columns[idx].get(); }
+    inline ColumnSchema* getColumn(common::col_idx_t idx) const { return columns[idx].get(); }
 
     inline uint32_t getNumColumns() const { return columns.size(); }
 
@@ -142,9 +141,9 @@ public:
 
     inline uint32_t getNumBytesPerTuple() const { return numBytesPerTuple; }
 
-    inline ft_col_offset_t getColOffset(ft_col_idx_t idx) const { return colOffsets[idx]; }
+    inline ft_col_offset_t getColOffset(common::col_idx_t idx) const { return colOffsets[idx]; }
 
-    inline void setMayContainsNullsToTrue(ft_col_idx_t idx) {
+    inline void setMayContainsNullsToTrue(common::col_idx_t idx) {
         assert(idx < columns.size());
         columns[idx]->setMayContainsNullsToTrue();
     }
@@ -214,9 +213,9 @@ public:
     }
 
     bool hasUnflatCol() const;
-    inline bool hasUnflatCol(std::vector<ft_col_idx_t>& colIdxes) const {
+    inline bool hasUnflatCol(std::vector<common::col_idx_t>& colIdxes) const {
         return any_of(colIdxes.begin(), colIdxes.end(),
-            [this](ft_col_idx_t colIdx) { return !tableSchema->getColumn(colIdx)->isFlat(); });
+            [this](common::col_idx_t colIdx) { return !tableSchema->getColumn(colIdx)->isFlat(); });
     }
 
     inline uint64_t getNumTuples() const { return numTuples; }
@@ -236,37 +235,37 @@ public:
 
     uint8_t* getTuple(ft_tuple_idx_t tupleIdx) const;
 
-    void updateFlatCell(
-        uint8_t* tuplePtr, ft_col_idx_t colIdx, common::ValueVector* valueVector, uint32_t pos);
-    inline void updateFlatCellNoNull(uint8_t* ftTuplePtr, ft_col_idx_t colIdx, void* dataBuf) {
+    void updateFlatCell(uint8_t* tuplePtr, common::col_idx_t colIdx,
+        common::ValueVector* valueVector, uint32_t pos);
+    inline void updateFlatCellNoNull(uint8_t* ftTuplePtr, common::col_idx_t colIdx, void* dataBuf) {
         memcpy(ftTuplePtr + tableSchema->getColOffset(colIdx), dataBuf,
             tableSchema->getColumn(colIdx)->getNumBytes());
     }
 
     inline uint64_t getNumTuplesPerBlock() const { return numTuplesPerBlock; }
 
-    inline bool hasNoNullGuarantee(ft_col_idx_t colIdx) const {
+    inline bool hasNoNullGuarantee(common::col_idx_t colIdx) const {
         return tableSchema->getColumn(colIdx)->hasNoNullGuarantee();
     }
 
-    void copySingleValueToVector(ft_tuple_idx_t tupleIdx, ft_col_idx_t colIdx,
+    void copySingleValueToVector(ft_tuple_idx_t tupleIdx, common::col_idx_t colIdx,
         common::ValueVector* valueVector, uint32_t posInVector) const;
     bool isOverflowColNull(
-        const uint8_t* nullBuffer, ft_tuple_idx_t tupleIdx, ft_col_idx_t colIdx) const;
-    bool isNonOverflowColNull(const uint8_t* nullBuffer, ft_col_idx_t colIdx) const;
-    void setNonOverflowColNull(uint8_t* nullBuffer, ft_col_idx_t colIdx);
+        const uint8_t* nullBuffer, ft_tuple_idx_t tupleIdx, common::col_idx_t colIdx) const;
+    bool isNonOverflowColNull(const uint8_t* nullBuffer, common::col_idx_t colIdx) const;
+    void setNonOverflowColNull(uint8_t* nullBuffer, common::col_idx_t colIdx);
     // Note: this function also resets the overflow ptr of list and string to point to a buffer
     // inside overflowFileOfInMemList.
-    void copyToInMemList(ft_col_idx_t colIdx, std::vector<ft_tuple_idx_t>& tupleIdxesToRead,
+    void copyToInMemList(common::col_idx_t colIdx, std::vector<ft_tuple_idx_t>& tupleIdxesToRead,
         uint8_t* data, common::NullMask* nullMask, uint64_t startElemPosInList,
         storage::DiskOverflowFile* overflowFileOfInMemList, const common::DataType& type) const;
     void clear();
-    int64_t findValueInFlatColumn(ft_col_idx_t colIdx, int64_t value) const;
+    int64_t findValueInFlatColumn(common::col_idx_t colIdx, int64_t value) const;
 
 private:
-    static bool isNull(const uint8_t* nullMapBuffer, ft_col_idx_t idx);
-    void setNull(uint8_t* nullBuffer, ft_col_idx_t idx);
-    void setOverflowColNull(uint8_t* nullBuffer, ft_col_idx_t colIdx, ft_tuple_idx_t tupleIdx);
+    static bool isNull(const uint8_t* nullMapBuffer, common::col_idx_t idx);
+    void setNull(uint8_t* nullBuffer, common::col_idx_t idx);
+    void setOverflowColNull(uint8_t* nullBuffer, common::col_idx_t colIdx, ft_tuple_idx_t tupleIdx);
 
     uint64_t computeNumTuplesToAppend(
         const std::vector<common::ValueVector*>& vectorsToAppend) const;
@@ -284,33 +283,35 @@ private:
     std::vector<BlockAppendingInfo> allocateFlatTupleBlocks(uint64_t numTuplesToAppend);
     uint8_t* allocateUnflatTupleBlock(uint32_t numBytes);
     void copyFlatVectorToFlatColumn(const common::ValueVector& vector,
-        const BlockAppendingInfo& blockAppendInfo, ft_col_idx_t colIdx);
+        const BlockAppendingInfo& blockAppendInfo, common::col_idx_t colIdx);
     void copyUnflatVectorToFlatColumn(const common::ValueVector& vector,
-        const BlockAppendingInfo& blockAppendInfo, uint64_t numAppendedTuples, ft_col_idx_t colIdx);
+        const BlockAppendingInfo& blockAppendInfo, uint64_t numAppendedTuples,
+        common::col_idx_t colIdx);
     inline void copyVectorToFlatColumn(const common::ValueVector& vector,
         const BlockAppendingInfo& blockAppendInfo, uint64_t numAppendedTuples,
-        ft_col_idx_t colIdx) {
+        common::col_idx_t colIdx) {
         vector.state->isFlat() ?
             copyFlatVectorToFlatColumn(vector, blockAppendInfo, colIdx) :
             copyUnflatVectorToFlatColumn(vector, blockAppendInfo, numAppendedTuples, colIdx);
     }
     void copyVectorToUnflatColumn(const common::ValueVector& vector,
-        const BlockAppendingInfo& blockAppendInfo, ft_col_idx_t colIdx);
+        const BlockAppendingInfo& blockAppendInfo, common::col_idx_t colIdx);
     void copyVectorToColumn(const common::ValueVector& vector,
-        const BlockAppendingInfo& blockAppendInfo, uint64_t numAppendedTuples, ft_col_idx_t colIdx);
+        const BlockAppendingInfo& blockAppendInfo, uint64_t numAppendedTuples,
+        common::col_idx_t colIdx);
     common::overflow_value_t appendVectorToUnflatTupleBlocks(
-        const common::ValueVector& vector, ft_col_idx_t colIdx);
+        const common::ValueVector& vector, common::col_idx_t colIdx);
 
     // TODO(Guodong): Unify these two `readUnflatCol()` with a (possibly templated) copy executor.
     void readUnflatCol(
-        uint8_t** tuplesToRead, ft_col_idx_t colIdx, common::ValueVector& vector) const;
+        uint8_t** tuplesToRead, common::col_idx_t colIdx, common::ValueVector& vector) const;
     void readUnflatCol(const uint8_t* tupleToRead, const common::SelectionVector* selVector,
-        ft_col_idx_t colIdx, common::ValueVector& vector) const;
+        common::col_idx_t colIdx, common::ValueVector& vector) const;
     void readFlatColToFlatVector(
-        uint8_t** tuplesToRead, ft_col_idx_t colIdx, common::ValueVector& vector) const;
-    void readFlatColToUnflatVector(uint8_t** tuplesToRead, ft_col_idx_t colIdx,
+        uint8_t** tuplesToRead, common::col_idx_t colIdx, common::ValueVector& vector) const;
+    void readFlatColToUnflatVector(uint8_t** tuplesToRead, common::col_idx_t colIdx,
         common::ValueVector& vector, uint64_t numTuplesToRead) const;
-    inline void readFlatCol(uint8_t** tuplesToRead, ft_col_idx_t colIdx,
+    inline void readFlatCol(uint8_t** tuplesToRead, common::col_idx_t colIdx,
         common::ValueVector& vector, uint64_t numTuplesToRead) const {
         vector.state->isFlat() ?
             readFlatColToFlatVector(tuplesToRead, colIdx, vector) :
@@ -353,9 +354,9 @@ private:
         values[colIdx]->copyValueFrom(valueBuffer);
     }
 
-    void readUnflatColToFlatTuple(ft_col_idx_t colIdx, uint8_t* valueBuffer);
+    void readUnflatColToFlatTuple(common::col_idx_t colIdx, uint8_t* valueBuffer);
 
-    void readFlatColToFlatTuple(ft_col_idx_t colIdx, uint8_t* valueBuffer);
+    void readFlatColToFlatTuple(common::col_idx_t colIdx, uint8_t* valueBuffer);
 
     // We put pair(UINT64_MAX, UINT64_MAX) in all invalid entries in
     // FlatTuplePositionsInDataChunk.

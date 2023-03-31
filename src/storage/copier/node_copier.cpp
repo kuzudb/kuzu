@@ -114,6 +114,14 @@ void NodeCopier::populatePKIndex(InMemColumnChunk* chunk, InMemOverflowFile* ove
     }
 }
 
+std::vector<common::property_id_t> NodeCopier::getAllPropertyIdxes() {
+    std::vector<common::property_id_t> propertyIdxes;
+    for (auto& property : tableSchema->properties) {
+        propertyIdxes.push_back(property.propertyID);
+    }
+    return propertyIdxes;
+}
+
 template<typename T1, typename T2>
 arrow::Status NodeCopier::batchPopulateColumnsTask(uint64_t primaryKeyPropertyIdx,
     uint64_t blockIdx, uint64_t startOffset, HashIndexBuilder<T1>* pkIndex, NodeCopier* copier,
@@ -128,11 +136,10 @@ arrow::Status NodeCopier::batchPopulateColumnsTask(uint64_t primaryKeyPropertyId
         chunks[propertyIdx] = std::make_unique<InMemColumnChunk>(startOffset, endOffset,
             column->getNumBytesForElement(), column->getNumElementsInAPage());
     }
-    std::vector<PageByteCursor> overflowCursors(copier->tableSchema->getNumProperties());
     for (auto& [propertyIdx, column] : copier->columns) {
         putPropsOfLinesIntoColumns(chunks.at(propertyIdx).get(), column.get(),
-            batchArrays[propertyIdx], startOffset, numLinesInCurBlock, copier->copyDescription,
-            overflowCursors[propertyIdx]);
+            batchArrays[copier->propertyIdxToBatchColumnIdxMap[propertyIdx]], startOffset,
+            numLinesInCurBlock, copier->copyDescription);
     }
     // Flush each page within the [StartOffset, endOffset] range.
     for (auto& [propertyIdx, column] : copier->columns) {
@@ -150,7 +157,8 @@ arrow::Status NodeCopier::batchPopulateColumnsTask(uint64_t primaryKeyPropertyId
 template<typename T>
 void NodeCopier::putPropsOfLinesIntoColumns(InMemColumnChunk* columnChunk, NodeInMemColumn* column,
     std::shared_ptr<T> arrowArray, common::offset_t startNodeOffset, uint64_t numLinesInCurBlock,
-    CopyDescription& copyDescription, PageByteCursor& overflowCursor) {
+    CopyDescription& copyDescription) {
+    PageByteCursor overflowCursor;
     auto setElementFunc =
         getSetElementFunc(column->getDataType().typeID, copyDescription, overflowCursor);
     for (auto i = 0u; i < numLinesInCurBlock; i++) {

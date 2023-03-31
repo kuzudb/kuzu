@@ -50,11 +50,15 @@ protected:
 
     virtual void saveToFile() = 0;
 
+    virtual common::col_idx_t getPropertyBatchColumnStartIdx() = 0;
+
     virtual void populateInMemoryStructures();
 
     inline void updateTableStatistics() {
         tablesStatistics->setNumTuplesForTable(tableSchema->tableID, numRows);
     }
+
+    virtual std::vector<common::property_id_t> getAllPropertyIdxes() = 0;
 
     void countNumLines(const std::vector<std::string>& filePath);
 
@@ -99,6 +103,9 @@ protected:
         return numBlocks;
     }
 
+private:
+    void initializePropertyIdxToBatchColumnIdxMap();
+
 protected:
     std::shared_ptr<spdlog::logger> logger;
     common::CopyDescription& copyDescription;
@@ -109,6 +116,7 @@ protected:
     catalog::TableSchema* tableSchema;
     uint64_t numRows;
     TablesStatistics* tablesStatistics;
+    std::unordered_map<common::property_id_t, common::col_idx_t> propertyIdxToBatchColumnIdxMap;
 };
 
 } // namespace storage

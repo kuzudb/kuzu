@@ -35,6 +35,10 @@ protected:
     std::unordered_map<common::property_id_t, std::unique_ptr<NodeInMemColumn>> columns;
 
 private:
+    inline common::col_idx_t getPropertyBatchColumnStartIdx() override { return 0; }
+
+    std::vector<common::property_id_t> getAllPropertyIdxes() override;
+
     template<typename T>
     arrow::Status populateColumns();
 
@@ -47,15 +51,14 @@ private:
     template<typename T>
     static void putPropsOfLinesIntoColumns(InMemColumnChunk* columnChunk, NodeInMemColumn* column,
         std::shared_ptr<T> arrowArray, common::offset_t startNodeOffset,
-        uint64_t numLinesInCurBlock, common::CopyDescription& copyDescription,
-        PageByteCursor& overflowCursor);
+        uint64_t numLinesInCurBlock, common::CopyDescription& copyDescription);
 
     // Concurrent tasks.
     // Note that primaryKeyPropertyIdx is *NOT* the property ID of the primary key property.
     template<typename T1, typename T2>
     static arrow::Status batchPopulateColumnsTask(uint64_t primaryKeyPropertyIdx, uint64_t blockIdx,
         uint64_t startOffset, HashIndexBuilder<T1>* pkIndex, NodeCopier* copier,
-        const std::vector<std::shared_ptr<T2>>& batchColumns, std::string filePath);
+        const std::vector<std::shared_ptr<T2>>& batchArrays, std::string filePath);
 
     template<typename T>
     arrow::Status assignCopyCSVTasks(arrow::csv::StreamingReader* csvStreamingReader,

@@ -77,6 +77,35 @@ private:
     }
 };
 
+class CopyWithDropAddPropertyTest : public DBTest {
+public:
+    std::string getInputDir() override {
+        return TestHelper::appendKuzuRootPath("dataset/copy-with-drop-add-prop-test/");
+    }
+
+    void copyToUniversityAndCheckState() {
+        ASSERT_TRUE(conn->query(StringUtils::string_format(R"(COPY belongs FROM "{}")",
+                                    TestHelper::appendKuzuRootPath(
+                                        "dataset/copy-with-drop-add-prop-test/eBelongs.csv")))
+                        ->isSuccess());
+        std::vector<std::string> expectedResult = {"location", "name", "refer"};
+        ASSERT_EQ(TestHelper::convertResultToString(
+                      *conn->query("MATCH (:university)-[e:belongs]->(:university) RETURN e.reason "
+                                   "ORDER BY e.reason")),
+            expectedResult);
+    }
+
+    void copyToPersonAndCheckState() {
+        ASSERT_TRUE(conn->query(StringUtils::string_format(R"(COPY person FROM "{}")",
+                                    TestHelper::appendKuzuRootPath(
+                                        "dataset/copy-with-drop-add-prop-test/vPerson.csv")))
+                        ->isSuccess());
+        std::vector<std::string> expectedResult = {"Alice", "Bob", "Charlie"};
+        ASSERT_EQ(TestHelper::convertResultToString(*conn->query("MATCH (p:person) RETURN p.name")),
+            expectedResult);
+    }
+};
+
 struct KnowsTablePTablePKnowsLists {
     table_id_t knowsRelTableID;
     table_id_t pNodeTableID;
@@ -350,4 +379,52 @@ TEST_F(CopyMultipleFilesTest, CopyFilesWithWrongPath) {
     ASSERT_FALSE(result->isSuccess());
     ASSERT_EQ(result->getErrorMessage(),
         "Binder exception: No file found that matches the pattern: 1.csv.");
+}
+
+TEST_F(CopyWithDropAddPropertyTest, CopyNodeWithDropAddProp) {
+    ASSERT_TRUE(conn->query("create node table person (name STRING, ID INT64, PRIMARY KEY (ID));")
+                    ->isSuccess());
+    ASSERT_TRUE(conn->query("alter table person drop name")->isSuccess());
+    ASSERT_TRUE(conn->query("alter table person add name STRING")->isSuccess());
+    copyToPersonAndCheckState();
+}
+
+TEST_F(CopyWithDropAddPropertyTest, CopyNodeWithDropProp) {
+    ASSERT_TRUE(
+        conn->query(
+                "create node table person (grade INT64, ID INT64, name STRING, PRIMARY KEY (ID));")
+            ->isSuccess());
+    ASSERT_TRUE(conn->query("alter table person drop grade")->isSuccess());
+    copyToPersonAndCheckState();
+}
+
+TEST_F(CopyWithDropAddPropertyTest, CopyNodeWithAddProp) {
+    ASSERT_TRUE(conn->query("create node table person (ID INT64, PRIMARY KEY (ID));")->isSuccess());
+    ASSERT_TRUE(conn->query("alter table person add name STRING")->isSuccess());
+    copyToPersonAndCheckState();
+}
+
+TEST_F(CopyWithDropAddPropertyTest, CopyRelWithDropAddProp) {
+    ASSERT_TRUE(conn->query("create rel table belongs (from university to university, length "
+                            "INT64, reason STRING);")
+                    ->isSuccess());
+    ASSERT_TRUE(conn->query("alter table belongs drop length")->isSuccess());
+    ASSERT_TRUE(conn->query("alter table belongs add length INT64")->isSuccess());
+    copyToUniversityAndCheckState();
+}
+
+TEST_F(CopyWithDropAddPropertyTest, CopyRelWithDropProp) {
+    ASSERT_TRUE(conn->query("create rel table belongs (from university to university, reason "
+                            "STRING, age INT64, history STRING);")
+                    ->isSuccess());
+    ASSERT_TRUE(conn->query("alter table belongs drop history")->isSuccess());
+    copyToUniversityAndCheckState();
+}
+
+TEST_F(CopyWithDropAddPropertyTest, CopyRelWithAddProp) {
+    ASSERT_TRUE(
+        conn->query("create rel table belongs (from university to university, reason STRING);")
+            ->isSuccess());
+    ASSERT_TRUE(conn->query("alter table belongs add age INT64")->isSuccess());
+    copyToUniversityAndCheckState();
 }

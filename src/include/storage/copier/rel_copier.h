@@ -13,6 +13,8 @@ class RelCopier : public TableCopier {
         populateListsTask = 1
     };
 
+    static constexpr uint64_t NUM_COLUMNS_FOR_SRC_DST_TABLE_ID = 2;
+
 public:
     RelCopier(common::CopyDescription& copyDescription, std::string outputDirectory,
         common::TaskScheduler& taskScheduler, catalog::Catalog& catalog,
@@ -20,6 +22,13 @@ public:
         BufferManager* bufferManager, common::table_id_t tableID, RelsStatistics* relsStatistics);
 
 private:
+    inline common::col_idx_t getPropertyBatchColumnStartIdx() override {
+        return NUM_COLUMNS_FOR_SRC_DST_TABLE_ID; /* First two columns store src/dst tableID
+                                                    respectively. */
+    }
+
+    std::vector<common::property_id_t> getAllPropertyIdxes() override;
+
     static std::string getTaskTypeName(PopulateTaskType populateTaskType);
 
     void initializeColumnsAndLists() override;
@@ -68,20 +77,20 @@ private:
     static void inferTableIDsAndOffsets(const std::vector<std::shared_ptr<T>>& batchColumns,
         std::vector<common::nodeID_t>& nodeIDs, std::vector<common::DataType>& nodeIDTypes,
         const std::map<common::table_id_t, std::unique_ptr<PrimaryKeyIndex>>& pkIndexes,
-        transaction::Transaction* transaction, int64_t blockOffset, int64_t& colIndex);
+        transaction::Transaction* transaction, int64_t blockOffset);
 
     template<typename T>
     static void putPropsOfLineIntoColumns(RelCopier* copier,
         std::vector<PageByteCursor>& inMemOverflowFileCursors,
         const std::vector<std::shared_ptr<T>>& batchColumns,
-        const std::vector<common::nodeID_t>& nodeIDs, int64_t blockOffset, int64_t& colIndex);
+        const std::vector<common::nodeID_t>& nodeIDs, int64_t blockOffset);
 
     template<typename T>
     static void putPropsOfLineIntoLists(RelCopier* copier,
         std::vector<PageByteCursor>& inMemOverflowFileCursors,
         const std::vector<std::shared_ptr<T>>& batchColumns,
         const std::vector<common::nodeID_t>& nodeIDs, const std::vector<uint64_t>& reversePos,
-        int64_t blockOffset, int64_t& colIndex, common::CopyDescription& copyDescription);
+        int64_t blockOffset, common::CopyDescription& copyDescription);
 
     static void copyStringOverflowFromUnorderedToOrderedPages(common::ku_string_t* kuStr,
         PageByteCursor& unorderedOverflowCursor, PageByteCursor& orderedOverflowCursor,

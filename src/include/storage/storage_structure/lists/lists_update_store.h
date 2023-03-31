@@ -143,7 +143,7 @@ private:
 
     void initInsertedRelsAndListsUpdates();
 
-    processor::ft_col_idx_t getColIdxInFT(ListFileID& listFileID) const;
+    common::col_idx_t getColIdxInFT(ListFileID& listFileID) const;
 
     void initListsUpdatesPerTablePerDirection();
 
@@ -170,7 +170,7 @@ private:
     std::unordered_map<common::property_id_t, std::unique_ptr<processor::FactorizedTable>>
         listsUpdates;
     std::vector<ListsUpdatesPerChunk> listsUpdatesPerDirection;
-    std::unordered_map<common::property_id_t, processor::ft_col_idx_t> propertyIDToColIdxMap;
+    std::unordered_map<common::property_id_t, common::col_idx_t> propertyIDToColIdxMap;
     catalog::RelTableSchema relTableSchema;
     MemoryManager& memoryManager;
 };

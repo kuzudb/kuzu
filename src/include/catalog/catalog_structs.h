@@ -120,7 +120,7 @@ struct NodeTableSchema : TableSchema {
     inline void addFwdRelTableID(common::table_id_t tableID) { fwdRelTableIDSet.insert(tableID); }
     inline void addBwdRelTableID(common::table_id_t tableID) { bwdRelTableIDSet.insert(tableID); }
 
-    inline Property getPrimaryKey() const { return properties[primaryKeyPropertyID]; }
+    inline Property getPrimaryKey() const { return getProperty(primaryKeyPropertyID); }
 
     inline std::vector<Property> getAllNodeProperties() const { return properties; }
 

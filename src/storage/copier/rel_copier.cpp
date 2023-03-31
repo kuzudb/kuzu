@@ -23,6 +23,16 @@ RelCopier::RelCopier(CopyDescription& copyDescription, std::string outputDirecto
     initializePkIndexes(relTableSchema->dstTableID, *bufferManager);
 }
 
+std::vector<common::property_id_t> RelCopier::getAllPropertyIdxes() {
+    std::vector<common::property_id_t> propertyIdxes;
+    for (auto& property : tableSchema->properties) {
+        if (property.propertyID != RelTableSchema::INTERNAL_REL_ID_PROPERTY_IDX) {
+            propertyIdxes.push_back(property.propertyID);
+        }
+    }
+    return propertyIdxes;
+}
+
 std::string RelCopier::getTaskTypeName(PopulateTaskType populateTaskType) {
     switch (populateTaskType) {
     case PopulateTaskType::populateAdjColumnsAndCountRelsInAdjListsTask: {
@@ -343,14 +353,14 @@ template<typename T>
 void RelCopier::inferTableIDsAndOffsets(const std::vector<std::shared_ptr<T>>& batchColumns,
     std::vector<nodeID_t>& nodeIDs, std::vector<DataType>& nodeIDTypes,
     const std::map<table_id_t, std::unique_ptr<PrimaryKeyIndex>>& pkIndexes,
-    Transaction* transaction, int64_t blockOffset, int64_t& colIndex) {
+    Transaction* transaction, int64_t blockOffset) {
     for (auto& relDirection : REL_DIRECTIONS) {
-        if (colIndex >= batchColumns.size()) {
+        common::col_idx_t colIdx = relDirection == FWD ? 0 : 1;
+        if (colIdx >= batchColumns.size()) {
             throw CopyException("Number of columns mismatch.");
         }
-        auto keyToken = batchColumns[colIndex]->GetScalar(blockOffset)->get()->ToString();
+        auto keyToken = batchColumns[colIdx]->GetScalar(blockOffset)->get()->ToString();
         auto keyStr = keyToken.c_str();
-        ++colIndex;
         switch (nodeIDTypes[relDirection].typeID) {
         case INT64: {
             auto key = TypeUtils::convertStringToNumber<int64_t>(keyStr);
@@ -377,24 +387,27 @@ template<typename T>
 void RelCopier::putPropsOfLineIntoColumns(RelCopier* copier,
     std::vector<PageByteCursor>& inMemOverflowFileCursors,
     const std::vector<std::shared_ptr<T>>& batchColumns, const std::vector<nodeID_t>& nodeIDs,
-    int64_t blockOffset, int64_t& colIndex) {
+    int64_t blockOffset) {
     auto& properties = copier->tableSchema->properties;
     auto& directionTablePropertyColumns = copier->propertyColumnsPerDirection;
     auto& inMemOverflowFilePerPropertyID = copier->overflowFilePerPropertyID;
-    for (auto propertyIdx = RelTableSchema::INTERNAL_REL_ID_PROPERTY_IDX + 1;
-         propertyIdx < properties.size(); propertyIdx++) {
-        if (colIndex >= batchColumns.size()) {
+    for (auto& property : copier->tableSchema->properties) {
+        if (property.propertyID == RelTableSchema::INTERNAL_REL_ID_PROPERTY_IDX) {
+            continue;
+        }
+        auto propertyIdx = property.propertyID;
+        auto batchColumnIdx = copier->propertyIdxToBatchColumnIdxMap.at(property.propertyID);
+        if (batchColumnIdx >= batchColumns.size()) {
             throw CopyException("Number of columns mismatch.");
         }
-        auto currentToken = batchColumns[colIndex]->GetScalar(blockOffset);
+        auto currentToken = batchColumns[batchColumnIdx]->GetScalar(blockOffset);
         if (!(*currentToken)->is_valid) {
-            ++colIndex;
             continue;
         }
         auto stringToken =
             currentToken->get()->ToString().substr(0, BufferPoolConstants::PAGE_4KB_SIZE);
         const char* data = stringToken.c_str();
-        switch (properties[propertyIdx].dataType.typeID) {
+        switch (property.dataType.typeID) {
         case INT64: {
             auto val = TypeUtils::convertStringToNumber<int64_t>(data);
             putValueIntoColumns(propertyIdx, directionTablePropertyColumns, nodeIDs,
@@ -463,7 +476,6 @@ void RelCopier::putPropsOfLineIntoColumns(RelCopier* copier,
         default:
             break;
         }
-        ++colIndex;
     }
 }
 
@@ -471,26 +483,29 @@ template<typename T>
 void RelCopier::putPropsOfLineIntoLists(RelCopier* copier,
     std::vector<PageByteCursor>& inMemOverflowFileCursors,
     const std::vector<std::shared_ptr<T>>& batchColumns, const std::vector<nodeID_t>& nodeIDs,
-    const std::vector<uint64_t>& reversePos, int64_t blockOffset, int64_t& colIndex,
+    const std::vector<uint64_t>& reversePos, int64_t blockOffset,
     CopyDescription& copyDescription) {
     auto& properties = copier->tableSchema->properties;
     auto& directionTablePropertyLists = copier->propertyListsPerDirection;
     auto& directionTableAdjLists = copier->adjListsPerDirection;
     auto& inMemOverflowFilesPerProperty = copier->overflowFilePerPropertyID;
-    for (auto propertyIdx = RelTableSchema::INTERNAL_REL_ID_PROPERTY_IDX + 1;
-         propertyIdx < properties.size(); propertyIdx++) {
-        if (colIndex >= batchColumns.size()) {
+    for (auto& property : copier->tableSchema->properties) {
+        if (property.propertyID == RelTableSchema::INTERNAL_REL_ID_PROPERTY_IDX) {
+            continue;
+        }
+        auto propertyIdx = property.propertyID;
+        auto colIdx = copier->propertyIdxToBatchColumnIdxMap.at(propertyIdx);
+        if (colIdx >= batchColumns.size()) {
             throw CopyException("Number of columns mismatch.");
         }
-        auto currentToken = batchColumns[colIndex]->GetScalar(blockOffset);
+        auto currentToken = batchColumns[colIdx]->GetScalar(blockOffset);
         if (!(*currentToken)->is_valid) {
-            ++colIndex;
             continue;
         }
         auto stringToken =
             currentToken->get()->ToString().substr(0, BufferPoolConstants::PAGE_4KB_SIZE);
         const char* data = stringToken.c_str();
-        switch (properties[propertyIdx].dataType.typeID) {
+        switch (property.dataType.typeID) {
         case INT64: {
             auto val = TypeUtils::convertStringToNumber<int64_t>(data);
             putValueIntoLists(propertyIdx, directionTablePropertyLists, directionTableAdjLists,
@@ -559,7 +574,6 @@ void RelCopier::putPropsOfLineIntoLists(RelCopier* copier,
         default:
             break;
         }
-        ++colIndex;
     }
 }
 
@@ -607,9 +621,8 @@ void RelCopier::populateAdjColumnsAndCountRelsInAdjListsTask(uint64_t blockIdx,
     uint64_t relID = blockStartRelID;
     auto numLinesInCurBlock = copier->fileBlockInfos.at(filePath).numLinesPerBlock[blockIdx];
     for (auto blockOffset = 0u; blockOffset < numLinesInCurBlock; ++blockOffset) {
-        int64_t colIndex = 0;
         inferTableIDsAndOffsets(batchColumns, nodeIDs, nodePKTypes, copier->pkIndexes,
-            copier->dummyReadOnlyTrx.get(), blockOffset, colIndex);
+            copier->dummyReadOnlyTrx.get(), blockOffset);
         for (auto relDirection : REL_DIRECTIONS) {
             auto tableID = nodeIDs[relDirection].tableID;
             auto nodeOffset = nodeIDs[relDirection].offset;
@@ -633,7 +646,7 @@ void RelCopier::populateAdjColumnsAndCountRelsInAdjListsTask(uint64_t blockIdx,
         }
         if (relTableSchema->getNumUserDefinedProperties() != 0) {
             putPropsOfLineIntoColumns<T>(
-                copier, inMemOverflowFileCursors, batchColumns, nodeIDs, blockOffset, colIndex);
+                copier, inMemOverflowFileCursors, batchColumns, nodeIDs, blockOffset);
         }
         putValueIntoColumns(relTableSchema->getRelIDDefinition().propertyID,
             copier->propertyColumnsPerDirection, nodeIDs, (uint8_t*)&relID);
@@ -664,7 +677,7 @@ void RelCopier::populateListsTask(uint64_t blockId, uint64_t blockStartRelID, Re
     for (auto blockOffset = 0u; blockOffset < numLinesInCurBlock; ++blockOffset) {
         int64_t colIndex = 0;
         inferTableIDsAndOffsets(batchColumns, nodeIDs, nodePKTypes, copier->pkIndexes,
-            copier->dummyReadOnlyTrx.get(), blockOffset, colIndex);
+            copier->dummyReadOnlyTrx.get(), blockOffset);
         for (auto relDirection : REL_DIRECTIONS) {
             if (!copier->catalog.getReadOnlyVersion()->isSingleMultiplicityInDirection(
                     copier->tableSchema->tableID, relDirection)) {
@@ -678,7 +691,7 @@ void RelCopier::populateListsTask(uint64_t blockId, uint64_t blockStartRelID, Re
         }
         if (relTableSchema->getNumUserDefinedProperties() != 0) {
             putPropsOfLineIntoLists<T>(copier, inMemOverflowFileCursors, batchColumns, nodeIDs,
-                reversePos, blockOffset, colIndex, copier->copyDescription);
+                reversePos, blockOffset, copier->copyDescription);
         }
         putValueIntoLists(relTableSchema->getRelIDDefinition().propertyID,
             copier->propertyListsPerDirection, copier->adjListsPerDirection, nodeIDs, reversePos,

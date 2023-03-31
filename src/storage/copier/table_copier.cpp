@@ -21,6 +21,7 @@ TableCopier::TableCopier(CopyDescription& copyDescription, std::string outputDir
 uint64_t TableCopier::copy() {
     logger->info(StringUtils::string_format("Copying {} file to table {}.",
         CopyDescription::getFileTypeName(copyDescription.fileType), tableSchema->tableName));
+    initializePropertyIdxToBatchColumnIdxMap();
     populateInMemoryStructures();
     updateTableStatistics();
     saveToFile();
@@ -307,6 +308,15 @@ std::unique_ptr<uint8_t[]> TableCopier::getArrowFixedList(const std::string& l, 
 void TableCopier::throwCopyExceptionIfNotOK(const arrow::Status& status) {
     if (!status.ok()) {
         throw CopyException(status.ToString());
+    }
+}
+
+void TableCopier::initializePropertyIdxToBatchColumnIdxMap() {
+    auto propertyIdxes = getAllPropertyIdxes();
+    std::sort(propertyIdxes.begin(), propertyIdxes.end());
+    col_idx_t batchColumnIdx = getPropertyBatchColumnStartIdx();
+    for (auto& propertyIdx : propertyIdxes) {
+        propertyIdxToBatchColumnIdxMap[propertyIdx] = batchColumnIdx++;
     }
 }
 

@@ -165,7 +165,7 @@ void ListsUpdatesStore::readValues(
         return;
     }
     auto vectorsToRead = std::vector<ValueVector*>{valueVector};
-    auto columnsToRead = std::vector<ft_col_idx_t>{getColIdxInFT(listFileID)};
+    auto columnsToRead = std::vector<col_idx_t>{getColIdxInFT(listFileID)};
     auto relNodeTableAndDir = getRelNodeTableAndDirFromListFileID(listFileID);
     auto& listUpdates = listsUpdatesPerDirection[relNodeTableAndDir.dir]
                             .at(StorageUtils::getListChunkIdx(nodeOffset))
@@ -307,7 +307,7 @@ void ListsUpdatesStore::initInsertedRelsAndListsUpdates() {
         std::make_unique<FactorizedTable>(&memoryManager, std::move(factorizedTableSchema));
 }
 
-ft_col_idx_t ListsUpdatesStore::getColIdxInFT(ListFileID& listFileID) const {
+col_idx_t ListsUpdatesStore::getColIdxInFT(ListFileID& listFileID) const {
     if (listFileID.listType == ListType::ADJ_LISTS) {
         return listFileID.adjListsID.relNodeTableAndDir.dir == FWD ? DST_TABLE_ID_IDX_IN_FT :
                                                                      SRC_TABLE_ID_IDX_IN_FT;
