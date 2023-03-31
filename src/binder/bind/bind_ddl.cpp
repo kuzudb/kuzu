@@ -193,9 +193,12 @@ DataType Binder::bindDataType(const std::string& dataType) {
                 "The number of elements in a fixed list must be greater than 0. Given: " +
                 std::to_string(boundType.fixedNumElementsInList) + ".");
         }
-        if (Types::getDataTypeSize(boundType) > common::BufferPoolConstants::PAGE_4KB_SIZE) {
-            throw common::BinderException("The size of fixed list is larger than a "
-                                          "DEFAULT_PAGE_SIZE, which is not supported yet.");
+        auto numElementsPerPage = storage::PageUtils::getNumElementsInAPage(
+            Types::getDataTypeSize(boundType), true /* hasNull */);
+        if (numElementsPerPage == 0) {
+            throw common::BinderException(
+                StringUtils::string_format("Cannot store a fixed list of size {} in a page.",
+                    Types::getDataTypeSize(boundType)));
         }
     }
     return boundType;

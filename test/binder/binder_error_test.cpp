@@ -483,3 +483,10 @@ TEST_F(BinderErrorTest, InvalidFixedListNumElements) {
     auto input = "create node table test1(ID INT64, marks INT64[0], PRIMARY KEY(ID))";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
+
+TEST_F(BinderErrorTest, InvalidFixedListSize) {
+    std::string expectedException =
+        "Binder exception: Cannot store a fixed list of size 4096 in a page.";
+    auto input = "create node table test1(ID INT64, marks INT64[512], PRIMARY KEY(ID))";
+    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
+}
