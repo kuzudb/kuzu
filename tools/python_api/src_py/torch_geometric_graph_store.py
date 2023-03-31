@@ -88,10 +88,10 @@ class KuzuGraphStore(GraphStore):
         edge_type = rel.edge_type
         result = self.connection._connection.get_all_edges_for_torch_geometric(
             edge_type[0], edge_type[1], edge_type[2], REL_BATCH_SIZE)
-        edge_list = torch.from_numpy(result)
-        edge_list = edge_list.reshape((2, edge_list.shape[0] // 2))
-        rel.edge_index = edge_list
-        rel.materialized = True
+        #edge_list = torch.from_numpy(result)
+        #edge_list = edge_list.reshape((2, edge_list.shape[0] // 2))
+        #rel.edge_index = edge_list
+        #rel.materialized = True
 
     def __populate_edge_attrs(self):
         if not self.connection:

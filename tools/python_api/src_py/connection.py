@@ -180,3 +180,6 @@ class Connection:
         """
 
         self._connection.set_query_timeout(timeout_in_ms)
+
+    def get_all_edges_for_torch_geometric(self, src_table_name, rel_table_name, dst_table_name, batch_size):
+        self._connection.get_all_edges_for_torch_geometric(src_table_name, rel_table_name, dst_table_name, batch_size)

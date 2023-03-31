@@ -6,6 +6,7 @@
 #include "main/connection.h"
 #include "planner/logical_plan/logical_plan.h"
 #include "processor/result/factorized_table.h"
+#include <iostream>
 
 using namespace kuzu::common;
 
@@ -86,7 +87,10 @@ py::array_t<int64_t> PyConnection::getAllEdgesForTorchGeometric(const std::strin
     // Get the number of nodes in the src table for batching.
     auto numNodesQuery = "MATCH (a:{}) RETURN count(*)";
     auto numNodesQueryWithParams = StringUtils::string_format(numNodesQuery, srcTableName);
+    std::cout << "Execute query: " << numNodesQueryWithParams << std::endl;
     auto numNodesResult = conn->query(numNodesQueryWithParams);
+    std::cout << "Done executing query: " << numNodesQueryWithParams << std::endl;
+
     if (!numNodesResult->isSuccess()) {
         throw std::runtime_error(numNodesResult->getErrorMessage());
     }
@@ -100,12 +104,19 @@ py::array_t<int64_t> PyConnection::getAllEdgesForTorchGeometric(const std::strin
     auto countQuery = "MATCH (a:{})-[:{}]->(b:{}) RETURN count(*)";
     auto countQueryWithParams =
         StringUtils::string_format(countQuery, srcTableName, relName, dstTableName);
+    std::cout << "Execute query: " << countQueryWithParams << std::endl;
     auto countResult = conn->query(countQueryWithParams);
+    std::cout << "Done executing query: " << countQueryWithParams << std::endl;
+
     if (!countResult->isSuccess()) {
         throw std::runtime_error(countResult->getErrorMessage());
     }
     uint64_t count = countResult->getNext()->getValue(0)->getValue<int64_t>();
-    auto* buffer = (int64_t*)malloc(count * 2 * sizeof(int64_t));
+    std::cout << "Allocate buffer for result numpy arrays." << std::endl;
+    auto bufferSize = count * 2 * sizeof(int64_t);
+    auto* buffer = (int64_t*)malloc(bufferSize);
+    memset(buffer, 0xA, bufferSize);
+    std::cout << "Done allocating buffer for result numpy arrays." << std::endl;
 
     // Run queries in batch to fetch edges.
     auto queryString = "MATCH (a:{})-[:{}]->(b:{}) WHERE offset(id(a)) >= $s AND offset(id(a)) < "
