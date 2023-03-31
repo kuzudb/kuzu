@@ -343,3 +343,11 @@ TEST_F(CopyMultipleFilesTest, CopyFilesWithWildcardPattern) {
             ->isSuccess());
     validateKnowsTableAfterCopying();
 }
+
+TEST_F(CopyMultipleFilesTest, CopyFilesWithWrongPath) {
+    auto result = conn->query(StringUtils::string_format(R"(COPY person FROM ["1.csv", "{}"])",
+        TestHelper::appendKuzuRootPath("dataset/copy-multiple-files-test/vPerson?.csv")));
+    ASSERT_FALSE(result->isSuccess());
+    ASSERT_EQ(result->getErrorMessage(),
+        "Binder exception: No file found that matches the pattern: 1.csv.");
+}
