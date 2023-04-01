@@ -24,14 +24,34 @@ void PyConnection::initialize(py::handle& m) {
         .def("get_rel_table_names", &PyConnection::getRelTableNames)
         .def("prepare", &PyConnection::prepare, py::arg("query"))
         .def("set_query_timeout", &PyConnection::setQueryTimeout, py::arg("timeout_in_ms"))
+        .def("get_num_nodes", &PyConnection::getNumNodes, py::arg("node_name"))
+        .def("get_num_rels", &PyConnection::getNumRels, py::arg("rel_name"))
         .def("get_all_edges_for_torch_geometric", &PyConnection::getAllEdgesForTorchGeometric,
             py::arg("np_array"), py::arg("src_table_name"), py::arg("rel_name"),
-            py::arg("dst_table_name"), py::arg("query_batch_size"));
+            py::arg("dst_table_name"), py::arg("query_batch_size"))
+        .def("scan_node_table_as_int64", &PyConnection::scanNodeProperty<std::int64_t>,
+            py::arg("table_name"), py::arg("prop_name"), py::arg("indices"), py::arg("np_array"),
+            py::arg("num_threads"))
+        .def("scan_node_table_as_int32", &PyConnection::scanNodeProperty<std::int32_t>,
+            py::arg("table_name"), py::arg("prop_name"), py::arg("indices"), py::arg("np_array"),
+            py::arg("num_threads"))
+        .def("scan_node_table_as_int16", &PyConnection::scanNodeProperty<std::int16_t>,
+            py::arg("table_name"), py::arg("prop_name"), py::arg("indices"), py::arg("np_array"),
+            py::arg("num_threads"))
+        .def("scan_node_table_as_double", &PyConnection::scanNodeProperty<std::double_t>,
+            py::arg("table_name"), py::arg("prop_name"), py::arg("indices"), py::arg("np_array"),
+            py::arg("num_threads"))
+        .def("scan_node_table_as_float", &PyConnection::scanNodeProperty<std::float_t>,
+            py::arg("table_name"), py::arg("prop_name"), py::arg("indices"), py::arg("np_array"),
+            py::arg("num_threads"))
+        .def("scan_node_table_as_bool", &PyConnection::scanNodeProperty<bool>,
+            py::arg("table_name"), py::arg("prop_name"), py::arg("indices"), py::arg("np_array"),
+            py::arg("num_threads"));
     PyDateTime_IMPORT;
 }
 
 PyConnection::PyConnection(PyDatabase* pyDatabase, uint64_t numThreads) {
-    storageDriver = pyDatabase->storageDriver.get();
+    storageDriver = std::make_unique<kuzu::main::StorageDriver>(pyDatabase->database.get());
     conn = std::make_unique<Connection>(pyDatabase->database.get());
     if (numThreads > 0) {
         conn->setMaxNumThreadForExec(numThreads);
@@ -84,16 +104,24 @@ PyPreparedStatement PyConnection::prepare(const std::string& query) {
     return pyPreparedStatement;
 }
 
+uint64_t PyConnection::getNumNodes(const std::string& nodeName) {
+    return storageDriver->getNumNodes(nodeName);
+}
+
+uint64_t PyConnection::getNumRels(const std::string& relName) {
+    return storageDriver->getNumRels(relName);
+}
+
 void PyConnection::getAllEdgesForTorchGeometric(py::array_t<int64_t>& npArray,
     const std::string& srcTableName, const std::string& relName, const std::string& dstTableName,
     size_t queryBatchSize) {
     // Get the number of nodes in the src table for batching.
-    auto numSrcNodes = storageDriver->getNumNodes(srcTableName);
+    auto numSrcNodes = getNumNodes(srcTableName);
     int64_t batches = numSrcNodes / queryBatchSize;
     if (numSrcNodes % queryBatchSize != 0) {
         batches += 1;
     }
-    auto numRels = storageDriver->getNumRels(relName);
+    auto numRels = getNumRels(relName);
 
     auto buffer_info = npArray.request();
     auto buffer = (int64_t*)buffer_info.ptr;
@@ -116,30 +144,56 @@ void PyConnection::getAllEdgesForTorchGeometric(py::array_t<int64_t>& npArray,
         if (!result->isSuccess()) {
             throw std::runtime_error(result->getErrorMessage());
         }
-        std::cout << "Fill result for batch " << batch << " from " << start << " to " << end
-                  << std::endl;
-        auto table = result->getTable();
-        auto tableSchema = table->getTableSchema();
         auto srcBuffer = buffer;
         auto dstBuffer = buffer + numRels;
-        if (!(tableSchema->getColumn(0)->isFlat() && !tableSchema->getColumn(1)->isFlat())) {
-            std::cout << "Wrong flat schema." << std::endl;
-        };
-        for (auto i = 0u; i < table->getNumTuples(); ++i) {
-            auto tuple = table->getTuple(i);
-            auto overflowValue =
-                (kuzu::common::overflow_value_t*)(tuple + tableSchema->getColOffset(1));
-            for (auto j = 0u; j < overflowValue->numElements; ++j) {
-                srcBuffer[j] = *(int64_t*)(tuple + tableSchema->getColOffset(0));
+
+        auto table = result->getTable();
+        auto tableSchema = table->getTableSchema();
+        if (tableSchema->getColumn(0)->isFlat() && !tableSchema->getColumn(1)->isFlat()) {
+            for (auto i = 0u; i < table->getNumTuples(); ++i) {
+                auto tuple = table->getTuple(i);
+                auto overflowValue =
+                    (kuzu::common::overflow_value_t*)(tuple + tableSchema->getColOffset(1));
+                for (auto j = 0u; j < overflowValue->numElements; ++j) {
+                    srcBuffer[j] = *(int64_t*)(tuple + tableSchema->getColOffset(0));
+                }
+                for (auto j = 0u; j < overflowValue->numElements; ++j) {
+                    dstBuffer[j] = ((int64_t*)overflowValue->value)[j];
+                }
+                srcBuffer += overflowValue->numElements;
+                dstBuffer += overflowValue->numElements;
             }
-            for (auto j = 0u; j < overflowValue->numElements; ++j) {
-                dstBuffer[j] = ((int64_t*)overflowValue->value)[j];
+        } else if (tableSchema->getColumn(1)->isFlat() && !tableSchema->getColumn(0)->isFlat()) {
+            for (auto i = 0u; i < table->getNumTuples(); ++i) {
+                auto tuple = table->getTuple(i);
+                auto overflowValue =
+                    (kuzu::common::overflow_value_t*)(tuple + tableSchema->getColOffset(0));
+                for (auto j = 0u; j < overflowValue->numElements; ++j) {
+                    srcBuffer[j] = ((int64_t*)overflowValue->value)[j];
+                }
+                for (auto j = 0u; j < overflowValue->numElements; ++j) {
+                    dstBuffer[j] = *(int64_t*)(tuple + tableSchema->getColOffset(1));
+                }
+                srcBuffer += overflowValue->numElements;
+                dstBuffer += overflowValue->numElements;
             }
-            srcBuffer += overflowValue->numElements;
-            dstBuffer += overflowValue->numElements;
+        } else {
+            throw std::runtime_error("Wrong result table schema.");
         }
     }
     std::cout << "Done fetching edges." << std::endl;
+}
+
+template<class T>
+void PyConnection::scanNodeProperty(const std::string& tableName, const std::string& propName,
+    const py::array_t<uint64_t>& indices, py::array_t<T>& result, int numThreads) {
+    auto indices_buffer_info = indices.request(false);
+    auto indices_buffer = static_cast<uint64_t*>(indices_buffer_info.ptr);
+    auto nodeOffsets = (offset_t*)indices_buffer;
+    auto result_buffer_info = result.request();
+    auto result_buffer = (uint8_t*)result_buffer_info.ptr;
+    auto size = indices.size();
+    storageDriver->scan(tableName, propName, nodeOffsets, size, result_buffer, numThreads);
 }
 
 std::unordered_map<std::string, std::shared_ptr<Value>> PyConnection::transformPythonParameters(

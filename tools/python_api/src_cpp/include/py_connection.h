@@ -3,6 +3,7 @@
 #include "py_database.h"
 #include "py_prepared_statement.h"
 #include "py_query_result.h"
+#include "main/storage_driver.h"
 
 class PyConnection {
 
@@ -29,9 +30,17 @@ public:
 
     PyPreparedStatement prepare(const std::string& query);
 
+    uint64_t getNumNodes(const std::string& nodeName);
+
+    uint64_t getNumRels(const std::string& relName);
+
     void getAllEdgesForTorchGeometric(py::array_t<int64_t>& npArray,
         const std::string& srcTableName, const std::string& relName,
         const std::string& dstTableName, size_t queryBatchSize);
+
+    template<class T>
+    void scanNodeProperty(const std::string& tableName, const std::string& propName,
+        const py::array_t<uint64_t>& indices, py::array_t<T>& result, int numThreads);
 
 private:
     std::unordered_map<std::string, std::shared_ptr<kuzu::common::Value>> transformPythonParameters(
@@ -43,6 +52,6 @@ private:
     kuzu::common::Value transformPythonValue(py::handle val);
 
 private:
-    StorageDriver* storageDriver;
+    std::unique_ptr<StorageDriver> storageDriver;
     std::unique_ptr<Connection> conn;
 };

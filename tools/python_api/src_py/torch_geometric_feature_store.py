@@ -84,7 +84,9 @@ class KuzuFeatureStore(FeatureStore):
             scan_result = np.zeros(len(indices), dtype=np.float32)
         elif attr_info["type"] == Type.BOOL.value:
             scan_result = np.zeros(len(indices), dtype=np.bool)
-        self.connection.database._scan_node_table(
+        else:
+            raise ValueError("Invalid type: %s" % attr_info["type"])
+        self.connection._scan_node_table(
             table_name, attr_name, attr_info["type"], indices, scan_result, self.num_threads)
         if attr_info['dimension'] > 0 and "shape" in attr_info:
             result_shape = (len(indices),) + attr_info["shape"]
