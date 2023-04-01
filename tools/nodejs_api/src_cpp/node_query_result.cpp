@@ -18,8 +18,8 @@ Napi::Object NodeQueryResult::Init(Napi::Env env, Napi::Object exports) {
        InstanceMethod("close", &NodeQueryResult::Close),
        InstanceMethod("all", &NodeQueryResult::All),
        InstanceMethod("each", &NodeQueryResult::Each),
-       InstanceMethod("getColumnDataTypes", &NodeQueryResult::All),
-       InstanceMethod("getColumnNames", &NodeQueryResult::Each),
+       InstanceMethod("getColumnDataTypes", &NodeQueryResult::GetColumnDataTypes),
+       InstanceMethod("getColumnNames", &NodeQueryResult::GetColumnNames),
     });
 
     exports.Set("NodeQueryResult", t);

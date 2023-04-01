@@ -12,4 +12,6 @@ describe("kuzu", () => {
   });
   importTest("datatype", "./testDatatype.js");
   importTest("exception", "./testException.js");
+  importTest("getHeader", "./testGetHeader.js");
+  importTest("parameter", "./testParameter.js");
 });
