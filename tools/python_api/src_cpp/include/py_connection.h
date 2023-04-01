@@ -38,10 +38,6 @@ public:
         const std::string& srcTableName, const std::string& relName,
         const std::string& dstTableName, size_t queryBatchSize);
 
-    template<class T>
-    void scanNodeProperty(const std::string& tableName, const std::string& propName,
-        const py::array_t<uint64_t>& indices, py::array_t<T>& result, int numThreads);
-
 private:
     std::unordered_map<std::string, std::shared_ptr<kuzu::common::Value>> transformPythonParameters(
         py::list params);

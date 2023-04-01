@@ -101,7 +101,7 @@ class Database:
         """
         return KuzuFeatureStore(self, num_threads), KuzuGraphStore(self, num_threads)
 
-    def _scan_node_table(self, table_name, prop_name, prop_type, indices, num_threads):
+    def _scan_node_table(self, table_name, prop_name, prop_type, dim, indices, num_threads):
         import numpy as np
         """
         Scan a node table from storage directly, bypassing query engine.
@@ -112,23 +112,25 @@ class Database:
 
         result = None
         if prop_type == Type.INT64.value:
-            result = self._database.scan_node_table_as_int64(
-                table_name, prop_name, indices_cast, num_threads)
+            result = np.zeros(len(indices) * dim, dtype=np.int64)
+            self._database.scan_node_table_as_int64(
+                table_name, prop_name, indices_cast, result, num_threads)
         if prop_type == Type.INT32.value:
-            result = self._database.scan_node_table_as_int32(
-                table_name, prop_name, indices_cast, num_threads)
+            result = np.zeros(len(indices) * dim, dtype=np.int32)
+            self._database.scan_node_table_as_int32(
+                table_name, prop_name, indices_cast, result, num_threads)
         if prop_type == Type.INT16.value:
-            result = self._database.scan_node_table_as_int16(
-                table_name, prop_name, indices_cast, num_threads)
+            result = np.zeros(len(indices) * dim, dtype=np.int16)
+            self._database.scan_node_table_as_int16(
+                table_name, prop_name, indices_cast, result, num_threads)
         if prop_type == Type.DOUBLE.value:
-            result = self._database.scan_node_table_as_double(
-                table_name, prop_name, indices_cast, num_threads)
-        if prop_type == Type.BOOL.value:
-            result = self._database.scan_node_table_as_bool(
-                table_name, prop_name, indices_cast, num_threads)
+            result = np.zeros(len(indices) * dim, dtype=np.float64)
+            self._database.scan_node_table_as_double(
+                table_name, prop_name, indices_cast, result, num_threads)
         if prop_type == Type.FLOAT.value:
-            result = self._database.scan_node_table_as_float(
-                table_name, prop_name, indices_cast, num_threads)
+            result = np.zeros(len(indices) * dim, dtype=np.float32)
+            self._database.scan_node_table_as_float(
+                table_name, prop_name, indices_cast, result, num_threads)
         if result is not None:
             return result
         raise ValueError("Unsupported property type: {}".format(prop_type))

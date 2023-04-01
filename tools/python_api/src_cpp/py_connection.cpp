@@ -28,25 +28,7 @@ void PyConnection::initialize(py::handle& m) {
         .def("get_num_rels", &PyConnection::getNumRels, py::arg("rel_name"))
         .def("get_all_edges_for_torch_geometric", &PyConnection::getAllEdgesForTorchGeometric,
             py::arg("np_array"), py::arg("src_table_name"), py::arg("rel_name"),
-            py::arg("dst_table_name"), py::arg("query_batch_size"))
-        .def("scan_node_table_as_int64", &PyConnection::scanNodeProperty<std::int64_t>,
-            py::arg("table_name"), py::arg("prop_name"), py::arg("indices"), py::arg("np_array"),
-            py::arg("num_threads"))
-        .def("scan_node_table_as_int32", &PyConnection::scanNodeProperty<std::int32_t>,
-            py::arg("table_name"), py::arg("prop_name"), py::arg("indices"), py::arg("np_array"),
-            py::arg("num_threads"))
-        .def("scan_node_table_as_int16", &PyConnection::scanNodeProperty<std::int16_t>,
-            py::arg("table_name"), py::arg("prop_name"), py::arg("indices"), py::arg("np_array"),
-            py::arg("num_threads"))
-        .def("scan_node_table_as_double", &PyConnection::scanNodeProperty<std::double_t>,
-            py::arg("table_name"), py::arg("prop_name"), py::arg("indices"), py::arg("np_array"),
-            py::arg("num_threads"))
-        .def("scan_node_table_as_float", &PyConnection::scanNodeProperty<std::float_t>,
-            py::arg("table_name"), py::arg("prop_name"), py::arg("indices"), py::arg("np_array"),
-            py::arg("num_threads"))
-        .def("scan_node_table_as_bool", &PyConnection::scanNodeProperty<bool>,
-            py::arg("table_name"), py::arg("prop_name"), py::arg("indices"), py::arg("np_array"),
-            py::arg("num_threads"));
+            py::arg("dst_table_name"), py::arg("query_batch_size"));
     PyDateTime_IMPORT;
 }
 
@@ -182,18 +164,6 @@ void PyConnection::getAllEdgesForTorchGeometric(py::array_t<int64_t>& npArray,
         }
     }
     std::cout << "Done fetching edges." << std::endl;
-}
-
-template<class T>
-void PyConnection::scanNodeProperty(const std::string& tableName, const std::string& propName,
-    const py::array_t<uint64_t>& indices, py::array_t<T>& result, int numThreads) {
-    auto indices_buffer_info = indices.request(false);
-    auto indices_buffer = static_cast<uint64_t*>(indices_buffer_info.ptr);
-    auto nodeOffsets = (offset_t*)indices_buffer;
-    auto result_buffer_info = result.request();
-    auto result_buffer = (uint8_t*)result_buffer_info.ptr;
-    auto size = indices.size();
-    storageDriver->scan(tableName, propName, nodeOffsets, size, result_buffer, numThreads);
 }
 
 std::unordered_map<std::string, std::shared_ptr<Value>> PyConnection::transformPythonParameters(

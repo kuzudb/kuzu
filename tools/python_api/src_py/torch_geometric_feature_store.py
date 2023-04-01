@@ -72,22 +72,15 @@ class KuzuFeatureStore(FeatureStore):
                 table_name)
         attr_info = self.node_properties_cache[table_name][attr_name]
 
-        if attr_info["type"] == Type.INT64.value:
-            scan_result = np.zeros(len(indices), dtype=np.int64)
-        elif attr_info["type"] == Type.INT32.value:
-            scan_result = np.zeros(len(indices), dtype=np.int32)
-        elif attr_info["type"] == Type.INT16.value:
-            scan_result = np.zeros(len(indices), dtype=np.int16)
-        elif attr_info["type"] == Type.DOUBLE.value:
-            scan_result = np.zeros(len(indices), dtype=np.float64)
-        elif attr_info["type"] == Type.FLOAT.value:
-            scan_result = np.zeros(len(indices), dtype=np.float32)
-        elif attr_info["type"] == Type.BOOL.value:
-            scan_result = np.zeros(len(indices), dtype=np.bool)
-        else:
-            raise ValueError("Invalid type: %s" % attr_info["type"])
-        self.connection._scan_node_table(
-            table_name, attr_name, attr_info["type"], indices, scan_result, self.num_threads)
+        flat_dim = 1
+        if attr_info["dimension"] > 0:
+            for i in range(attr_info["dimension"]):
+                flat_dim *= attr_info["shape"][i]
+
+        scan_result = self.connection.database._scan_node_table(
+            table_name, attr_name, attr_info["type"], flat_dim, indices, self.num_threads)
+
+
         if attr_info['dimension'] > 0 and "shape" in attr_info:
             result_shape = (len(indices),) + attr_info["shape"]
             scan_result = scan_result.reshape(result_shape)

@@ -1,9 +1,9 @@
 #include "main/storage_driver.h"
 
-#include "catalog/catalog.h"
 #include "storage/storage_manager.h"
 
 using namespace kuzu::common;
+
 
 namespace kuzu {
 namespace main {
@@ -27,7 +27,7 @@ void StorageDriver::scan(const std::string& nodeName, const std::string& propert
     auto numElementsPerThread = size / numThreads + 1;
     auto sizeLeft = size;
     while (sizeLeft > 0) {
-        auto sizeToRead = std::min(numElementsPerThread, sizeLeft);
+        uint64_t sizeToRead = std::min(numElementsPerThread, sizeLeft);
         threads.emplace_back(&StorageDriver::scanColumn, this, column, offsets, sizeToRead, current_buffer);
         offsets += sizeToRead;
         current_buffer += sizeToRead * column->elementSize;
