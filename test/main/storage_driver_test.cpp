@@ -5,7 +5,7 @@ using namespace kuzu::testing;
 using namespace kuzu::common;
 
 TEST_F(ApiTest, StorageDriverScan) {
-    auto storageDriver = std::make_unique<StorageDriver>(database.get(), 3);
+    auto storageDriver = std::make_unique<StorageDriver>(database.get());
     auto size = 6;
     auto nodeOffsetsBuffer = std::make_unique<uint8_t[]>(sizeof(offset_t) * size);
     auto nodeOffsets = (offset_t*)nodeOffsetsBuffer.get();
@@ -15,8 +15,10 @@ TEST_F(ApiTest, StorageDriverScan) {
     nodeOffsets[3] = 1;
     nodeOffsets[4] = 2;
     nodeOffsets[5] = 6;
-    auto result = storageDriver->scan("person", "ID", nodeOffsets, size);
-    auto ids = (int64_t*)result.buffer;
+    auto result = std::make_unique<uint8_t[]>(sizeof(int64_t) * size);
+    auto resultBuffer = (uint8_t*)result.get();
+    storageDriver->scan("person", "ID", nodeOffsets, size, resultBuffer, 3);
+    auto ids = (int64_t*)resultBuffer;
     ASSERT_EQ(ids[0], 10);
     ASSERT_EQ(ids[1], 0);
     ASSERT_EQ(ids[2], 5);

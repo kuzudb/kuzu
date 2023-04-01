@@ -92,7 +92,9 @@ public:
      */
     KUZU_API void resetIterator();
 
-    processor::FactorizedTable* getTable();
+    processor::FactorizedTable* getTable() {
+        return factorizedTable.get();
+    }
 
 private:
     void initResultTableAndIterator(std::shared_ptr<processor::FactorizedTable> factorizedTable_,

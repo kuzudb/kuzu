@@ -19,8 +19,8 @@ public:
     explicit PyDatabase(const std::string& databasePath, uint64_t bufferPoolSize);
 
     template<class T>
-    py::array_t<T> scanNodeTable(const std::string& tableName, const std::string& propName,
-        const py::array_t<uint64_t>& indices, int numThreads);
+    void scanNodeTable(const std::string& tableName, const std::string& propName,
+        const py::array_t<uint64_t>& indices, py::array_t<T>& result, int numThreads);
 
     ~PyDatabase() = default;
 

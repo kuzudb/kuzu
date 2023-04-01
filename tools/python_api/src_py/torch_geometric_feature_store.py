@@ -71,8 +71,21 @@ class KuzuFeatureStore(FeatureStore):
             self.node_properties_cache[table_name] = self.connection._get_node_property_names(
                 table_name)
         attr_info = self.node_properties_cache[table_name][attr_name]
-        scan_result = self.connection.database._scan_node_table(
-            table_name, attr_name, attr_info["type"], indices, self.num_threads)
+
+        if attr_info["type"] == Type.INT64.value:
+            scan_result = np.zeros(len(indices), dtype=np.int64)
+        elif attr_info["type"] == Type.INT32.value:
+            scan_result = np.zeros(len(indices), dtype=np.int32)
+        elif attr_info["type"] == Type.INT16.value:
+            scan_result = np.zeros(len(indices), dtype=np.int16)
+        elif attr_info["type"] == Type.DOUBLE.value:
+            scan_result = np.zeros(len(indices), dtype=np.float64)
+        elif attr_info["type"] == Type.FLOAT.value:
+            scan_result = np.zeros(len(indices), dtype=np.float32)
+        elif attr_info["type"] == Type.BOOL.value:
+            scan_result = np.zeros(len(indices), dtype=np.bool)
+        self.connection.database._scan_node_table(
+            table_name, attr_name, attr_info["type"], indices, scan_result, self.num_threads)
         if attr_info['dimension'] > 0 and "shape" in attr_info:
             result_shape = (len(indices),) + attr_info["shape"]
             scan_result = scan_result.reshape(result_shape)
