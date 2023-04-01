@@ -1,12 +1,13 @@
 #include "include/py_connection.h"
 
+#include <iostream>
+
 #include "binder/bound_statement_result.h"
 #include "datetime.h" // from Python
 #include "json.hpp"
 #include "main/connection.h"
 #include "planner/logical_plan/logical_plan.h"
 #include "processor/result/factorized_table.h"
-#include <iostream>
 
 using namespace kuzu::common;
 
@@ -30,6 +31,7 @@ void PyConnection::initialize(py::handle& m) {
 }
 
 PyConnection::PyConnection(PyDatabase* pyDatabase, uint64_t numThreads) {
+    storageDriver = pyDatabase->storageDriver.get();
     conn = std::make_unique<Connection>(pyDatabase->database.get());
     if (numThreads > 0) {
         conn->setMaxNumThreadForExec(numThreads);
@@ -86,38 +88,13 @@ void PyConnection::getAllEdgesForTorchGeometric(py::array_t<int64_t>& npArray,
     const std::string& srcTableName, const std::string& relName, const std::string& dstTableName,
     size_t queryBatchSize) {
     // Get the number of nodes in the src table for batching.
-    auto numNodesQuery = "MATCH (a:{}) RETURN count(*)";
-    auto numNodesQueryWithParams = StringUtils::string_format(numNodesQuery, srcTableName);
-    std::cout << "Execute query: " << numNodesQueryWithParams << std::endl;
-    auto numNodesResult = conn->query(numNodesQueryWithParams);
-    std::cout << "Done executing query: " << numNodesQueryWithParams << std::endl;
-
-    if (!numNodesResult->isSuccess()) {
-        throw std::runtime_error(numNodesResult->getErrorMessage());
-    }
-    auto numNodes = numNodesResult->getNext()->getValue(0)->getValue<int64_t>();
-    int64_t batches = numNodes / queryBatchSize;
-    if (numNodes % queryBatchSize != 0) {
+    auto numSrcNodes = storageDriver->getNumNodes(srcTableName);
+    int64_t batches = numSrcNodes / queryBatchSize;
+    if (numSrcNodes % queryBatchSize != 0) {
         batches += 1;
     }
+    auto numRels = storageDriver->getNumRels(relName);
 
-    // Get total number of edges for allocating the buffer.
-    auto countQuery = "MATCH (a:{})-[:{}]->(b:{}) RETURN count(*)";
-    auto countQueryWithParams =
-        StringUtils::string_format(countQuery, srcTableName, relName, dstTableName);
-    std::cout << "Execute query: " << countQueryWithParams << std::endl;
-    auto countResult = conn->query(countQueryWithParams);
-    std::cout << "Done executing query: " << countQueryWithParams << std::endl;
-
-    if (!countResult->isSuccess()) {
-        throw std::runtime_error(countResult->getErrorMessage());
-    }
-    uint64_t count = countResult->getNext()->getValue(0)->getValue<int64_t>();
-    std::cout << "Count of nodes is " << count << std::endl;
-    std::cout << "Get buffer for result numpy arrays." << std::endl;
-    // auto bufferSize = count * 2 * sizeof(int64_t);
-    // auto* buffer = (int64_t*)malloc(bufferSize);
-    // memset(buffer, 0xA, bufferSize);
     auto buffer_info = npArray.request();
     auto buffer = (int64_t*)buffer_info.ptr;
     std::cout << "Done getting buffer for result numpy arrays." << std::endl;
@@ -127,11 +104,10 @@ void PyConnection::getAllEdgesForTorchGeometric(py::array_t<int64_t>& npArray,
                        "$e RETURN offset(id(a)), offset(id(b))";
     auto query = StringUtils::string_format(queryString, srcTableName, relName, dstTableName);
     auto preparedStatement = conn->prepare(query);
-    uint64_t i = 0;
     for (int64_t batch = 0; batch < batches; ++batch) {
         int64_t start = batch * queryBatchSize;
         int64_t end = (batch + 1) * queryBatchSize;
-        end = end > numNodes ? numNodes : end;
+        end = end > numSrcNodes ? numSrcNodes : end;
         std::unordered_map<std::string, std::shared_ptr<Value>> parameters;
         parameters["s"] = std::make_shared<Value>(start);
         parameters["e"] = std::make_shared<Value>(end);
@@ -140,21 +116,30 @@ void PyConnection::getAllEdgesForTorchGeometric(py::array_t<int64_t>& npArray,
         if (!result->isSuccess()) {
             throw std::runtime_error(result->getErrorMessage());
         }
-        std::cout << "Fill result for batch " << batch << " from " << start << " to " << end << std::endl;
-        while (result->hasNext()) {
-            auto row = result->getNext();
-            int64_t lVal = row->getValue(0)->getValue<int64_t>();
-            int64_t rVal = row->getValue(1)->getValue<int64_t>();
-            buffer[i] = lVal;
-            buffer[i + count] = rVal;
-            i += 1;
+        std::cout << "Fill result for batch " << batch << " from " << start << " to " << end
+                  << std::endl;
+        auto table = result->getTable();
+        auto tableSchema = table->getTableSchema();
+        auto srcBuffer = buffer;
+        auto dstBuffer = buffer + numRels;
+        if (!(tableSchema->getColumn(0)->isFlat() && !tableSchema->getColumn(1)->isFlat())) {
+            std::cout << "Wrong flat schema." << std::endl;
+        };
+        for (auto i = 0u; i < table->getNumTuples(); ++i) {
+            auto tuple = table->getTuple(i);
+            auto overflowValue =
+                (kuzu::common::overflow_value_t*)(tuple + tableSchema->getColOffset(1));
+            for (auto j = 0u; j < overflowValue->numElements; ++j) {
+                srcBuffer[j] = *(int64_t*)(tuple + tableSchema->getColOffset(0));
+            }
+            for (auto j = 0u; j < overflowValue->numElements; ++j) {
+                dstBuffer[j] = ((int64_t*)overflowValue->value)[j];
+            }
+            srcBuffer += overflowValue->numElements;
+            dstBuffer += overflowValue->numElements;
         }
     }
     std::cout << "Done fetching edges." << std::endl;
-//    std::cout << "Now return numpy array buffer." << std::endl;
-//    return py::array_t<int64_t>(
-//        py::buffer_info(buffer, sizeof(int64_t), py::format_descriptor<int64_t>::format(), 1,
-//            std::vector<size_t>{count * 2}, std::vector<size_t>{sizeof(int64_t)}));
 }
 
 std::unordered_map<std::string, std::shared_ptr<Value>> PyConnection::transformPythonParameters(

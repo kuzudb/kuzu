@@ -12,28 +12,6 @@ class Column;
 
 namespace main {
 
-//// Note: pooling is tricky to figure out "Busy state"
-// class ThreadPool {
-// public:
-//    ThreadPool(size_t numThreads);
-//    ~ThreadPool();
-//
-//    template<typename F, typename... Args>
-//    void enqueue(F&& f, Args&&... args) {
-//        {
-//            std::unique_lock<std::mutex> lock(queueMtx);
-//            tasks.emplace([=] { std::invoke(f, args...); });
-//        }
-//        condition.notify_one();
-//    }
-//
-// private:
-//    std::vector<std::thread> threads;
-//    std::queue<std::function<void()>> tasks;
-//    std::mutex queueMtx;
-//    std::condition_variable condition;
-//    bool stop = false;
-//};
 struct ScanResult {
     uint8_t* buffer;
     size_t size;
@@ -43,12 +21,15 @@ struct ScanResult {
 
 class StorageDriver {
 public:
-    explicit StorageDriver(Database* database, size_t numThreads = 1);
+    explicit StorageDriver(Database* database);
 
     ~StorageDriver();
 
     ScanResult scan(const std::string& nodeName, const std::string& propertyName,
-        common::offset_t* offsets, size_t size);
+        common::offset_t* offsets, size_t size, size_t numThreads);
+
+    uint64_t getNumNodes(const std::string& nodeName);
+    uint64_t getNumRels(const std::string& relName);
 
 private:
     void scanColumn(
@@ -57,7 +38,6 @@ private:
 private:
     catalog::Catalog* catalog;
     storage::StorageManager* storageManager;
-    size_t numThreads;
 };
 
 } // namespace main

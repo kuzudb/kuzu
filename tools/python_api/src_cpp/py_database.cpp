@@ -35,6 +35,7 @@ PyDatabase::PyDatabase(const std::string& databasePath, uint64_t bufferPoolSize)
         systemConfig.bufferPoolSize = bufferPoolSize;
     }
     database = std::make_unique<Database>(databasePath, systemConfig);
+    storageDriver = std::make_unique<StorageDriver>(database.get());
 }
 
 template<class T>
@@ -44,10 +45,7 @@ py::array_t<T> PyDatabase::scanNodeTable(const std::string& tableName, const std
     auto ptr = static_cast<uint64_t*>(buf.ptr);
     auto size = indices.size();
     auto nodeOffsets = (offset_t*)ptr;
-    if (!storageDriver) {
-        storageDriver = std::make_unique<StorageDriver>(database.get(), numThreads);
-    }
-    auto scanResult = storageDriver->scan(tableName, propName, nodeOffsets, size);
+    auto scanResult = storageDriver->scan(tableName, propName, nodeOffsets, size, numThreads);
     auto buffer = scanResult.buffer;
     auto bufferSize = scanResult.size;
     auto numberOfItems = bufferSize / sizeof(T);

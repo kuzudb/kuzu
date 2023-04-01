@@ -43,5 +43,6 @@ private:
     kuzu::common::Value transformPythonValue(py::handle val);
 
 private:
+    StorageDriver* storageDriver;
     std::unique_ptr<Connection> conn;
 };

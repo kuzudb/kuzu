@@ -8,45 +8,13 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace main {
 
-// ThreadPool::ThreadPool(size_t numThreads) {
-//    for (auto i = 0u; i < numThreads; ++i) {
-//        threads.emplace_back([this] {
-//            while (true) {
-//                std::function<void()> task;
-//                {
-//                    std::unique_lock<std::mutex> lck(queueMtx);
-//                    condition.wait(lck, [this] { return stop || !tasks.empty(); });
-//                    if (stop && tasks.empty()) {
-//                        return;
-//                    }
-//                    task = std::move(tasks.front());
-//                    tasks.pop();
-//                }
-//                task();
-//            }
-//        });
-//    }
-//}
-//
-// ThreadPool::~ThreadPool() {
-//    {
-//        std::unique_lock<std::mutex> lck(queueMtx);
-//        stop = true;
-//    }
-//    condition.notify_all();
-//    for (auto& thread : threads) {
-//        thread.join();
-//    }
-//}
-
-StorageDriver::StorageDriver(kuzu::main::Database* database, size_t numThreads)
-    : catalog{database->catalog.get()}, storageManager{database->storageManager.get()},
-      numThreads{numThreads} {}
+StorageDriver::StorageDriver(kuzu::main::Database* database)
+    : catalog{database->catalog.get()}, storageManager{database->storageManager.get()} {}
 
 StorageDriver::~StorageDriver() = default;
 
 ScanResult StorageDriver::scan(const std::string& nodeName, const std::string& propertyName,
-    common::offset_t* offsets, size_t size) {
+    common::offset_t* offsets, size_t size, size_t numThreads) {
     // Resolve files to read from
     auto catalogContent = catalog->getReadOnlyVersion();
     auto nodeTableID = catalogContent->getTableID(nodeName);
@@ -55,7 +23,7 @@ ScanResult StorageDriver::scan(const std::string& nodeName, const std::string& p
     auto column = nodeTable->getPropertyColumn(propertyID);
 
     auto bufferSize = column->elementSize * size;
-    uint8_t* buffer = new uint8_t[bufferSize];
+    auto* buffer = new uint8_t[bufferSize];
     auto result = buffer;
     std::vector<std::thread> threads;
     auto numElementsPerThread = size / numThreads + 1;
@@ -71,6 +39,23 @@ ScanResult StorageDriver::scan(const std::string& nodeName, const std::string& p
         thread.join();
     }
     return ScanResult(result, bufferSize);
+}
+
+uint64_t StorageDriver::getNumNodes(const std::string& nodeName) {
+    auto catalogContent = catalog->getReadOnlyVersion();
+    auto nodeTableID = catalogContent->getTableID(nodeName);
+    auto nodeStatistics = storageManager->getNodesStore()
+                              .getNodesStatisticsAndDeletedIDs()
+                              .getNodeStatisticsAndDeletedIDs(nodeTableID);
+    return nodeStatistics->getNumTuples();
+}
+
+uint64_t StorageDriver::getNumRels(const std::string& relName) {
+    auto catalogContent = catalog->getReadOnlyVersion();
+    auto relTableID = catalogContent->getTableID(relName);
+    auto relStatistics =
+        storageManager->getRelsStore().getRelsStatistics().getRelStatistics(relTableID);
+    return relStatistics->getNumTuples();
 }
 
 void StorageDriver::scanColumn(

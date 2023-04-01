@@ -26,5 +26,6 @@ public:
 
 private:
     std::unique_ptr<Database> database;
+    // TODO: move to connection
     std::unique_ptr<StorageDriver> storageDriver;
 };
