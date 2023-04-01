@@ -24,7 +24,7 @@ void PyConnection::initialize(py::handle& m) {
         .def("prepare", &PyConnection::prepare, py::arg("query"))
         .def("set_query_timeout", &PyConnection::setQueryTimeout, py::arg("timeout_in_ms"))
         .def("get_all_edges_for_torch_geometric", &PyConnection::getAllEdgesForTorchGeometric,
-            py::return_value_policy::take_ownership, py::arg("src_table_name"), py::arg("rel_name"),
+            py::arg("np_array"), py::arg("src_table_name"), py::arg("rel_name"),
             py::arg("dst_table_name"), py::arg("query_batch_size"));
     PyDateTime_IMPORT;
 }
@@ -82,8 +82,9 @@ PyPreparedStatement PyConnection::prepare(const std::string& query) {
     return pyPreparedStatement;
 }
 
-py::array_t<int64_t> PyConnection::getAllEdgesForTorchGeometric(const std::string& srcTableName,
-    const std::string& relName, const std::string& dstTableName, size_t queryBatchSize) {
+void PyConnection::getAllEdgesForTorchGeometric(py::array_t<int64_t>& npArray,
+    const std::string& srcTableName, const std::string& relName, const std::string& dstTableName,
+    size_t queryBatchSize) {
     // Get the number of nodes in the src table for batching.
     auto numNodesQuery = "MATCH (a:{}) RETURN count(*)";
     auto numNodesQueryWithParams = StringUtils::string_format(numNodesQuery, srcTableName);
@@ -112,11 +113,14 @@ py::array_t<int64_t> PyConnection::getAllEdgesForTorchGeometric(const std::strin
         throw std::runtime_error(countResult->getErrorMessage());
     }
     uint64_t count = countResult->getNext()->getValue(0)->getValue<int64_t>();
-    std::cout << "Allocate buffer for result numpy arrays." << std::endl;
-    auto bufferSize = count * 2 * sizeof(int64_t);
-    auto* buffer = (int64_t*)malloc(bufferSize);
-    memset(buffer, 0xA, bufferSize);
-    std::cout << "Done allocating buffer for result numpy arrays." << std::endl;
+    std::cout << "Count of nodes is " << count << std::endl;
+    std::cout << "Get buffer for result numpy arrays." << std::endl;
+    // auto bufferSize = count * 2 * sizeof(int64_t);
+    // auto* buffer = (int64_t*)malloc(bufferSize);
+    // memset(buffer, 0xA, bufferSize);
+    auto buffer_info = npArray.request();
+    auto buffer = (int64_t*)buffer_info.ptr;
+    std::cout << "Done getting buffer for result numpy arrays." << std::endl;
 
     // Run queries in batch to fetch edges.
     auto queryString = "MATCH (a:{})-[:{}]->(b:{}) WHERE offset(id(a)) >= $s AND offset(id(a)) < "
@@ -131,20 +135,26 @@ py::array_t<int64_t> PyConnection::getAllEdgesForTorchGeometric(const std::strin
         std::unordered_map<std::string, std::shared_ptr<Value>> parameters;
         parameters["s"] = std::make_shared<Value>(start);
         parameters["e"] = std::make_shared<Value>(end);
+        std::cout << "Batch " << batch << " from " << start << " to " << end << std::endl;
         auto result = conn->executeWithParams(preparedStatement.get(), parameters);
         if (!result->isSuccess()) {
             throw std::runtime_error(result->getErrorMessage());
         }
+        std::cout << "Fill result for batch " << batch << " from " << start << " to " << end << std::endl;
         while (result->hasNext()) {
             auto row = result->getNext();
-            buffer[i] = row->getValue(0)->getValue<int64_t>();
-            buffer[i + count] = row->getValue(1)->getValue<int64_t>();
+            int64_t lVal = row->getValue(0)->getValue<int64_t>();
+            int64_t rVal = row->getValue(1)->getValue<int64_t>();
+            buffer[i] = lVal;
+            buffer[i + count] = rVal;
             i += 1;
         }
     }
-    return py::array_t<int64_t>(
-        py::buffer_info(buffer, sizeof(int64_t), py::format_descriptor<int64_t>::format(), 1,
-            std::vector<size_t>{count * 2}, std::vector<size_t>{sizeof(int64_t)}));
+    std::cout << "Done fetching edges." << std::endl;
+//    std::cout << "Now return numpy array buffer." << std::endl;
+//    return py::array_t<int64_t>(
+//        py::buffer_info(buffer, sizeof(int64_t), py::format_descriptor<int64_t>::format(), 1,
+//            std::vector<size_t>{count * 2}, std::vector<size_t>{sizeof(int64_t)}));
 }
 
 std::unordered_map<std::string, std::shared_ptr<Value>> PyConnection::transformPythonParameters(
