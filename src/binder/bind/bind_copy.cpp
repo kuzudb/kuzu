@@ -22,7 +22,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopy(const Statement& statement) {
     std::unordered_map<common::property_id_t, std::string> propertyToNpyMap;
     if (expectedFileType == common::CopyDescription::FileType::UNKNOWN &&
         actualFileType == common::CopyDescription::FileType::NPY) {
-        throw BinderException("Please use COPY FROMNPY statement for copying npy files.");
+        throw BinderException("Please use NPY COPY statement for copying npy files.");
     }
     if (expectedFileType == common::CopyDescription::FileType::NPY &&
         actualFileType != expectedFileType) {
