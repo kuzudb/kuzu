@@ -164,7 +164,8 @@ uint32_t Binder::bindPrimaryKey(
     case common::STRING:
         break;
     default:
-        throw BinderException("Invalid primary key type: " + primaryKey.second + ".");
+        throw BinderException(
+            "Invalid primary key type: " + primaryKey.second + " expected STRING or INT64.");
     }
     return primaryKeyIdx;
 }
