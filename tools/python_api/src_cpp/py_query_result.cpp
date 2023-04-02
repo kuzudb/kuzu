@@ -71,8 +71,17 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value) {
     case BOOL: {
         return py::cast(value.getValue<bool>());
     }
+    case INT16: {
+        return py::cast(value.getValue<int16_t>());
+    }
+    case INT32: {
+        return py::cast(value.getValue<int32_t>());
+    }
     case INT64: {
         return py::cast(value.getValue<int64_t>());
+    }
+    case FLOAT: {
+        return py::cast(value.getValue<float>());
     }
     case DOUBLE: {
         return py::cast(value.getValue<double>());
