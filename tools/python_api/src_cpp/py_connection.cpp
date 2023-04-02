@@ -1,5 +1,7 @@
 #include "include/py_connection.h"
 
+#include <iostream>
+
 #include "binder/bound_statement_result.h"
 #include "datetime.h" // from Python
 #include "json.hpp"
@@ -17,12 +19,21 @@ void PyConnection::initialize(py::handle& m) {
         .def("set_max_threads_for_exec", &PyConnection::setMaxNumThreadForExec,
             py::arg("num_threads"))
         .def("get_node_property_names", &PyConnection::getNodePropertyNames, py::arg("table_name"))
+        .def("get_node_table_names", &PyConnection::getNodeTableNames)
+        .def("get_rel_property_names", &PyConnection::getRelPropertyNames, py::arg("table_name"))
+        .def("get_rel_table_names", &PyConnection::getRelTableNames)
         .def("prepare", &PyConnection::prepare, py::arg("query"))
-        .def("set_query_timeout", &PyConnection::setQueryTimeout, py::arg("timeout_in_ms"));
+        .def("set_query_timeout", &PyConnection::setQueryTimeout, py::arg("timeout_in_ms"))
+        .def("get_num_nodes", &PyConnection::getNumNodes, py::arg("node_name"))
+        .def("get_num_rels", &PyConnection::getNumRels, py::arg("rel_name"))
+        .def("get_all_edges_for_torch_geometric", &PyConnection::getAllEdgesForTorchGeometric,
+            py::arg("np_array"), py::arg("src_table_name"), py::arg("rel_name"),
+            py::arg("dst_table_name"), py::arg("query_batch_size"));
     PyDateTime_IMPORT;
 }
 
 PyConnection::PyConnection(PyDatabase* pyDatabase, uint64_t numThreads) {
+    storageDriver = std::make_unique<kuzu::main::StorageDriver>(pyDatabase->database.get());
     conn = std::make_unique<Connection>(pyDatabase->database.get());
     if (numThreads > 0) {
         conn->setMaxNumThreadForExec(numThreads);
@@ -56,11 +67,103 @@ py::str PyConnection::getNodePropertyNames(const std::string& tableName) {
     return conn->getNodePropertyNames(tableName);
 }
 
+py::str PyConnection::getNodeTableNames() {
+    return conn->getNodeTableNames();
+}
+
+py::str PyConnection::getRelPropertyNames(const std::string& tableName) {
+    return conn->getRelPropertyNames(tableName);
+}
+
+py::str PyConnection::getRelTableNames() {
+    return conn->getRelTableNames();
+}
+
 PyPreparedStatement PyConnection::prepare(const std::string& query) {
     auto preparedStatement = conn->prepare(query);
     PyPreparedStatement pyPreparedStatement;
     pyPreparedStatement.preparedStatement = std::move(preparedStatement);
     return pyPreparedStatement;
+}
+
+uint64_t PyConnection::getNumNodes(const std::string& nodeName) {
+    return storageDriver->getNumNodes(nodeName);
+}
+
+uint64_t PyConnection::getNumRels(const std::string& relName) {
+    return storageDriver->getNumRels(relName);
+}
+
+void PyConnection::getAllEdgesForTorchGeometric(py::array_t<int64_t>& npArray,
+    const std::string& srcTableName, const std::string& relName, const std::string& dstTableName,
+    size_t queryBatchSize) {
+    // Get the number of nodes in the src table for batching.
+    auto numSrcNodes = getNumNodes(srcTableName);
+    int64_t batches = numSrcNodes / queryBatchSize;
+    if (numSrcNodes % queryBatchSize != 0) {
+        batches += 1;
+    }
+    auto numRels = getNumRels(relName);
+
+    auto buffer_info = npArray.request();
+    auto buffer = (int64_t*)buffer_info.ptr;
+    std::cout << "Done getting buffer for result numpy arrays." << std::endl;
+
+    // Run queries in batch to fetch edges.
+    auto queryString = "MATCH (a:{})-[:{}]->(b:{}) WHERE offset(id(a)) >= $s AND offset(id(a)) < "
+                       "$e RETURN offset(id(a)), offset(id(b))";
+    auto query = StringUtils::string_format(queryString, srcTableName, relName, dstTableName);
+    auto preparedStatement = conn->prepare(query);
+    for (int64_t batch = 0; batch < batches; ++batch) {
+        int64_t start = batch * queryBatchSize;
+        int64_t end = (batch + 1) * queryBatchSize;
+        end = end > numSrcNodes ? numSrcNodes : end;
+        std::unordered_map<std::string, std::shared_ptr<Value>> parameters;
+        parameters["s"] = std::make_shared<Value>(start);
+        parameters["e"] = std::make_shared<Value>(end);
+        std::cout << "Batch " << batch << " from " << start << " to " << end << std::endl;
+        auto result = conn->executeWithParams(preparedStatement.get(), parameters);
+        if (!result->isSuccess()) {
+            throw std::runtime_error(result->getErrorMessage());
+        }
+        auto srcBuffer = buffer;
+        auto dstBuffer = buffer + numRels;
+
+        auto table = result->getTable();
+        auto tableSchema = table->getTableSchema();
+        if (tableSchema->getColumn(0)->isFlat() && !tableSchema->getColumn(1)->isFlat()) {
+            for (auto i = 0u; i < table->getNumTuples(); ++i) {
+                auto tuple = table->getTuple(i);
+                auto overflowValue =
+                    (kuzu::common::overflow_value_t*)(tuple + tableSchema->getColOffset(1));
+                for (auto j = 0u; j < overflowValue->numElements; ++j) {
+                    srcBuffer[j] = *(int64_t*)(tuple + tableSchema->getColOffset(0));
+                }
+                for (auto j = 0u; j < overflowValue->numElements; ++j) {
+                    dstBuffer[j] = ((int64_t*)overflowValue->value)[j];
+                }
+                srcBuffer += overflowValue->numElements;
+                dstBuffer += overflowValue->numElements;
+            }
+        } else if (tableSchema->getColumn(1)->isFlat() && !tableSchema->getColumn(0)->isFlat()) {
+            for (auto i = 0u; i < table->getNumTuples(); ++i) {
+                auto tuple = table->getTuple(i);
+                auto overflowValue =
+                    (kuzu::common::overflow_value_t*)(tuple + tableSchema->getColOffset(0));
+                for (auto j = 0u; j < overflowValue->numElements; ++j) {
+                    srcBuffer[j] = ((int64_t*)overflowValue->value)[j];
+                }
+                for (auto j = 0u; j < overflowValue->numElements; ++j) {
+                    dstBuffer[j] = *(int64_t*)(tuple + tableSchema->getColOffset(1));
+                }
+                srcBuffer += overflowValue->numElements;
+                dstBuffer += overflowValue->numElements;
+            }
+        } else {
+            throw std::runtime_error("Wrong result table schema.");
+        }
+    }
+    std::cout << "Done fetching edges." << std::endl;
 }
 
 std::unordered_map<std::string, std::shared_ptr<Value>> PyConnection::transformPythonParameters(

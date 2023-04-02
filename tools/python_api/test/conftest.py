@@ -6,7 +6,6 @@ import shutil
 sys.path.append('../build/')
 import kuzu
 
-
 # Note conftest is the default file name for sharing fixture through multiple test files. Do not change file name.
 @pytest.fixture
 def init_tiny_snb(tmp_path):
@@ -42,6 +41,18 @@ def init_tiny_snb(tmp_path):
         "CREATE REL TABLE knowsLongString (FROM personLongString TO personLongString, MANY_MANY)")
     conn.execute(
         'COPY knowsLongString FROM "../../../dataset/long-string-pk-tests/eKnows.csv"')
+    conn.execute(
+        'create node table npyoned (i64 INT64,i32 INT32,i16 INT16,f64 DOUBLE,f32 FLOAT, PRIMARY KEY(i64));'
+    )
+    conn.execute(
+        'copy npyoned fromnpy ("../../../dataset/npy-1d/one_dim_int64.npy",  "../../../dataset/npy-1d/one_dim_int32.npy",  "../../../dataset/npy-1d/one_dim_int16.npy",  "../../../dataset/npy-1d/one_dim_double.npy", "../../../dataset/npy-1d/one_dim_float.npy");'
+    )
+    conn.execute(
+        'create node table npytwod (id INT64, i64 INT64[3],i32 INT32[3],i16 INT16[3],f64 DOUBLE[3],f32 FLOAT[3],PRIMARY KEY(id));'
+    )
+    conn.execute(
+        'copy npytwod fromNPY ("../../../dataset/npy-2d/id_int64.npy", "../../../dataset/npy-2d/two_dim_int64.npy", "../../../dataset/npy-2d/two_dim_int32.npy",  "../../../dataset/npy-2d/two_dim_int16.npy",  "../../../dataset/npy-2d/two_dim_double.npy", "../../../dataset/npy-2d/two_dim_float.npy");'
+    )
     return output_path
 
 
