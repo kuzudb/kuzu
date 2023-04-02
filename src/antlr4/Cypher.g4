@@ -20,7 +20,7 @@ kU_CopyCSV
     : COPY SP oC_SchemaName SP FROM SP kU_FilePaths ( SP? '(' SP? kU_ParsingOptions SP? ')' )? ;
 
 kU_CopyNPY
-    : COPY SP oC_SchemaName SP FROMNPY ( SP '(' SP? StringLiteral ( SP? ',' SP? StringLiteral )* ')' ) ;
+    : NPY SP COPY SP oC_SchemaName SP FROM ( SP '(' SP? StringLiteral ( SP? ',' SP? StringLiteral )* ')' ) ;
 
 kU_FilePaths
     : '[' SP? StringLiteral ( SP? ',' SP? StringLiteral )* ']'
@@ -39,7 +39,7 @@ COPY : ( 'C' | 'c' ) ( 'O' | 'o' ) ( 'P' | 'p') ( 'Y' | 'y' ) ;
 
 FROM : ( 'F' | 'f' ) ( 'R' | 'r' ) ( 'O' | 'o' ) ( 'M' | 'm' );
 
-FROMNPY : ( 'F' | 'f' ) ( 'R' | 'r' ) ( 'O' | 'o' ) ( 'M' | 'm' ) ( 'N' | 'n' ) ( 'P' | 'p' ) ( 'Y' | 'y' ) ;
+NPY : ( 'N' | 'n' ) ( 'P' | 'p' ) ( 'Y' | 'y' ) ;
 
 kU_DDL
     : kU_CreateNode
