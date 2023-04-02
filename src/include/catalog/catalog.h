@@ -11,6 +11,7 @@
 #include "common/utils.h"
 #include "function/aggregate/built_in_aggregate_functions.h"
 #include "function/built_in_vector_operations.h"
+#include "storage/storage_info.h"
 #include "storage/wal/wal.h"
 
 namespace spdlog {
@@ -132,6 +133,12 @@ public:
 
 private:
     inline common::table_id_t assignNextTableID() { return nextTableID++; }
+
+    void validateStorageVersion(storage::storage_version_t savedStorageVersion) const;
+
+    void validateMagicBytes(common::FileInfo* fileInfo, common::offset_t& offset) const;
+
+    void writeMagicBytes(common::FileInfo* fileInfo, common::offset_t& offset) const;
 
 private:
     std::shared_ptr<spdlog::logger> logger;

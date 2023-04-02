@@ -296,6 +296,9 @@ void CatalogContent::saveToFile(const std::string& directory, DBFileType dbFileT
     auto catalogPath = StorageUtils::getCatalogFilePath(directory, dbFileType);
     auto fileInfo = FileUtils::openFile(catalogPath, O_WRONLY | O_CREAT);
     uint64_t offset = 0;
+    writeMagicBytes(fileInfo.get(), offset);
+    offset = SerDeser::serializeValue<uint64_t>(
+        StorageVersionInfo::getStorageVersion(), fileInfo.get(), offset);
     offset = SerDeser::serializeValue<uint64_t>(nodeTableSchemas.size(), fileInfo.get(), offset);
     offset = SerDeser::serializeValue<uint64_t>(relTableSchemas.size(), fileInfo.get(), offset);
     for (auto& nodeTableSchema : nodeTableSchemas) {
@@ -316,6 +319,10 @@ void CatalogContent::readFromFile(const std::string& directory, DBFileType dbFil
     logger->debug("Reading from {}.", catalogPath);
     auto fileInfo = FileUtils::openFile(catalogPath, O_RDONLY);
     uint64_t offset = 0;
+    validateMagicBytes(fileInfo.get(), offset);
+    storage::storage_version_t savedStorageVersion;
+    offset = SerDeser::deserializeValue<uint64_t>(savedStorageVersion, fileInfo.get(), offset);
+    validateStorageVersion(savedStorageVersion);
     uint64_t numNodeTables, numRelTables;
     offset = SerDeser::deserializeValue<uint64_t>(numNodeTables, fileInfo.get(), offset);
     offset = SerDeser::deserializeValue<uint64_t>(numRelTables, fileInfo.get(), offset);
@@ -340,6 +347,36 @@ void CatalogContent::readFromFile(const std::string& directory, DBFileType dbFil
         relTableNameToIDMap[relTableSchema.second->tableName] = relTableSchema.second->tableID;
     }
     SerDeser::deserializeValue<table_id_t>(nextTableID, fileInfo.get(), offset);
+}
+
+void CatalogContent::validateStorageVersion(storage_version_t savedStorageVersion) const {
+    auto storageVersion = StorageVersionInfo::getStorageVersion();
+    if (savedStorageVersion != storageVersion) {
+        throw common::RuntimeException(StringUtils::string_format(
+            "Trying to read a database file with a different version. "
+            "Database file version: {}, Current build storage version: {}",
+            savedStorageVersion, storageVersion));
+    }
+}
+
+void CatalogContent::validateMagicBytes(FileInfo* fileInfo, offset_t& offset) const {
+    auto numMagicBytes = strlen(StorageVersionInfo::MAGIC_BYTES);
+    uint8_t magicBytes[4];
+    for (auto i = 0u; i < numMagicBytes; i++) {
+        offset = SerDeser::deserializeValue<uint8_t>(magicBytes[i], fileInfo, offset);
+    }
+    if (memcmp(magicBytes, StorageVersionInfo::MAGIC_BYTES, numMagicBytes) != 0) {
+        throw common::RuntimeException(
+            "This is not a valid Kuzu database directory for the current version of Kuzu.");
+    }
+}
+
+void CatalogContent::writeMagicBytes(FileInfo* fileInfo, offset_t& offset) const {
+    auto numMagicBytes = strlen(StorageVersionInfo::MAGIC_BYTES);
+    for (auto i = 0u; i < numMagicBytes; i++) {
+        offset =
+            SerDeser::serializeValue<uint8_t>(StorageVersionInfo::MAGIC_BYTES[i], fileInfo, offset);
+    }
 }
 
 Catalog::Catalog() : wal{nullptr} {
