@@ -104,7 +104,8 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value) {
                                         .attr("timedelta")(py::arg("days") = days,
                                             py::arg("microseconds") = intervalVal.micros));
     }
-    case VAR_LIST: {
+    case VAR_LIST:
+    case FIXED_LIST: {
         auto& listVal = value.getListValReference();
         py::list list;
         for (auto i = 0u; i < listVal.size(); ++i) {

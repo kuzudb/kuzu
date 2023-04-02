@@ -85,7 +85,7 @@ setup(name='kuzu',
       install_requires=[],
       ext_modules=[CMakeExtension(
           name="kuzu", sourcedir=base_dir)],
-      description='KuzuDB Python API',
+      description='An in-process property graph database management system built for query speed and scalability.',
       license='MIT',
       long_description=open(os.path.join(base_dir, "README.md"), 'r').read(),
       long_description_content_type="text/markdown",
