@@ -10,8 +10,7 @@ namespace processor {
 uint64_t CopyRel::executeInternal(
     kuzu::common::TaskScheduler* taskScheduler, ExecutionContext* executionContext) {
     auto relCSVCopier = make_unique<RelCopier>(copyDescription, wal->getDirectory(), *taskScheduler,
-        *catalog, nodesStatistics->getMaxNodeOffsetPerTable(), executionContext->bufferManager,
-        tableID, relsStatistics);
+        *catalog, nodesStore, executionContext->bufferManager, tableID, relsStatistics);
     auto numRelsCopied = relCSVCopier->copy();
     wal->logCopyRelRecord(tableID);
     return numRelsCopied;

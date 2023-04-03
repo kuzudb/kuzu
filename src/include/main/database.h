@@ -86,9 +86,9 @@ private:
 private:
     std::string databasePath;
     SystemConfig systemConfig;
+    std::unique_ptr<storage::BufferManager> bufferManager;
     std::unique_ptr<storage::MemoryManager> memoryManager;
     std::unique_ptr<processor::QueryProcessor> queryProcessor;
-    std::unique_ptr<storage::BufferManager> bufferManager;
     std::unique_ptr<catalog::Catalog> catalog;
     std::unique_ptr<storage::StorageManager> storageManager;
     std::unique_ptr<transaction::TransactionManager> transactionManager;
