@@ -25,6 +25,7 @@ tar -cf sdist.tar \
     --exclude="./*.sh" .
 rm -rf sdist && mkdir sdist
 tar -xf sdist.tar -C ./sdist
+(cd ./sdist; python3 setup.py egg_info)
 rm -rf sdist.tar
 
 # Create tar.gz for PyPI
