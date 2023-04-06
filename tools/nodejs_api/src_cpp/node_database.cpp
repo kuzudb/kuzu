@@ -32,7 +32,7 @@ NodeDatabase::NodeDatabase(const Napi::CallbackInfo& info) : Napi::ObjectWrap<No
     }
 
     try {
-        this->database = make_unique<kuzu::main::Database>(databasePath, systemConfig);
+        this->database = make_shared<kuzu::main::Database>(databasePath, systemConfig);
     } catch(const std::exception &exc) {
         Napi::Error::New(env, "Unsuccessful Database Initialization: " + std::string(exc.what())).ThrowAsJavaScriptException();
     }

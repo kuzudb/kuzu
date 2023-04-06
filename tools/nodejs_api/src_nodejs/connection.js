@@ -4,15 +4,34 @@ const QueryResult = require("./queryResult.js");
 class Connection {
     #connection;
     #database;
+    #initPromise;
+    #initialized;
     constructor(database, numThreads = 0) {
-        if (typeof database !== "object" || database.constructor.name !==  "Database" || typeof numThreads !== "number" || !Number.isInteger(numThreads)){
+        if (typeof database !== "object" || database.constructor.name !== "Database" || typeof numThreads !== "number" || !Number.isInteger(numThreads)) {
             throw new Error("Connection constructor requires a database object and optional numThreads integer as argument(s)");
         }
         this.#database = database;
         this.#connection = new kuzu.NodeConnection(database.database, numThreads);
+        this.#initPromise = this.#connection.getConnection();
+        this.#initialized = false;
     }
 
-    execute(query, opts = {}) {
+    async getConnection() {
+        if (this.#initialized) {
+            return this.#connection;
+        }
+        const promiseResult = await this.#initPromise;
+        if (promiseResult) {
+            this.#connection.transferConnection();
+            this.#initialized = true;
+        } else {
+            throw new Error("GetConnection Failed");
+        }
+        return this.#connection;
+    }
+
+    async execute(query, opts = {}) {
+        const connection = await this.getConnection();
         const optsKeys = Object.keys(opts);
         if (typeof opts !== "object") {
             throw new Error("optional opts in execute must be an object");
@@ -40,13 +59,15 @@ class Connection {
             if (typeof callback !== "function" || callback.length !== 2) {
                 throw new Error("if execute is given a callback, it must take 2 arguments: (err, result)");
             }
-            this.#connection.execute(query, err => {
+            connection.execute(query, err => {
                 callback(err, queryResult);
             }, nodeQueryResult, params);
         } else {
-            return new Promise ((resolve, reject) => {
-                this.#connection.execute(query, err => {
-                    if (err) { return reject(err); }
+            return new Promise((resolve, reject) => {
+                connection.execute(query, err => {
+                    if (err) {
+                        return reject(err);
+                    }
                     return resolve(queryResult);
                 }, nodeQueryResult, params);
             })

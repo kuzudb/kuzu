@@ -12,6 +12,8 @@ Napi::Object NodeConnection::Init(Napi::Env env, Napi::Object exports) {
   Napi::HandleScope scope(env);
 
   Napi::Function t = DefineClass(env, "NodeConnection", {
+      InstanceMethod("getConnection", &NodeConnection::GetConnection),
+      InstanceMethod("transferConnection", &NodeConnection::TransferConnection),
       InstanceMethod("execute", &NodeConnection::Execute),
       InstanceMethod("setMaxNumThreadForExec", &NodeConnection::SetMaxNumThreadForExec),
       InstanceMethod("getNodePropertyNames", &NodeConnection::GetNodePropertyNames),
@@ -21,22 +23,80 @@ Napi::Object NodeConnection::Init(Napi::Env env, Napi::Object exports) {
   return exports;
 }
 
-
 NodeConnection::NodeConnection(const Napi::CallbackInfo& info) : Napi::ObjectWrap<NodeConnection>(info)  {
   Napi::Env env = info.Env();
   Napi::HandleScope scope(env);
 
   NodeDatabase * nodeDatabase = Napi::ObjectWrap<NodeDatabase>::Unwrap(info[0].As<Napi::Object>());
-  uint64_t numThreads = info[1].As<Napi::Number>().DoubleValue();
+  database = nodeDatabase->database;
+  numThreads = info[1].As<Napi::Number>().DoubleValue();
+}
 
+// The thread entry point. This takes as its arguments the specific
+// threadsafe-function context created inside the main thread.
+void NodeConnection::threadEntry(ThreadSafeConnectionContext * context) {
   try {
-      this->connection = make_unique<kuzu::main::Connection>(nodeDatabase->database.get());
-      if (numThreads > 0) {
-          this->connection->setMaxNumThreadForExec(numThreads);
+      context->connection = make_shared<kuzu::main::Connection>(context->database.get());
+      if (context->numThreads > 0) {
+          context->connection->setMaxNumThreadForExec(context->numThreads);
       }
   } catch(const std::exception &exc){
-      Napi::Error::New(env, "Unsuccessful Connection Initialization: " + std::string(exc.what())).ThrowAsJavaScriptException();
+      context->passed = false;
   }
+
+  // Release the thread-safe function. This decrements the internal thread
+  // count, and will perform finalization since the count will reach 0.
+  context->tsfn.Release();
+}
+
+void NodeConnection::FinalizerCallback(Napi::Env env, void* finalizeData, ThreadSafeConnectionContext * context) {
+  // Join the thread
+  context->nativeThread.join();
+
+  // Resolve the Promise previously returned to JS via the CreateTSFN method.
+  context->deferred.Resolve(Napi::Boolean::New(env, context->passed));
+//  delete context;
+}
+
+Napi::Value Fn(const Napi::CallbackInfo& info) {
+  Napi::Env env = info.Env();
+  Napi::HandleScope scope(env);
+
+  return Napi::String::New(env, "Hello World");
+}
+
+
+Napi::Value NodeConnection::GetConnection(const Napi::CallbackInfo& info) {
+  Napi::Env env = info.Env();
+  Napi::HandleScope scope(env);
+  // Construct context data
+  context = new ThreadSafeConnectionContext(env, connection, database, numThreads);
+
+  // Create a new ThreadSafeFunction.
+  context->tsfn = Napi::ThreadSafeFunction::New(
+      env,                           // Environment
+      Napi::Function::New<Fn>(env),  // JS function from caller
+      "ThreadSafeConnectionContext", // Resource name
+      0,                             // Max queue size (0 = unlimited).
+      1,                             // Initial thread count
+      context,                       // Context,
+      FinalizerCallback,             // Finalizer
+      (void*)nullptr                 // Finalizer data
+  );
+  context->nativeThread = std::thread(threadEntry, context);
+
+  // Return the deferred's Promise. This Promise is resolved in the thread-safe
+  // function's finalizer callback.
+  return context->deferred.Promise();
+}
+
+Napi::Value NodeConnection::TransferConnection(const Napi::CallbackInfo& info) {
+  Napi::Env env = info.Env();
+  Napi::HandleScope scope(env);
+
+  connection = std::move(context->connection);
+  delete context;
+  return info.Env().Undefined();
 }
 
 Napi::Value NodeConnection::Execute(const Napi::CallbackInfo& info) {
