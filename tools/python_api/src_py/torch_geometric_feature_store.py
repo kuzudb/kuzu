@@ -76,10 +76,8 @@ class KuzuFeatureStore(FeatureStore):
         if attr_info["dimension"] > 0:
             for i in range(attr_info["dimension"]):
                 flat_dim *= attr_info["shape"][i]
-
         scan_result = self.connection.database._scan_node_table(
             table_name, attr_name, attr_info["type"], flat_dim, indices, self.num_threads)
-
 
         if attr_info['dimension'] > 0 and "shape" in attr_info:
             result_shape = (len(indices),) + attr_info["shape"]
@@ -160,7 +158,7 @@ class KuzuFeatureStore(FeatureStore):
         return attr_info
 
     def get_all_tensor_attrs(self) -> List[TensorAttr]:
-        retult_list = []
+        result_list = []
         self.__get_connection()
         for table_name in self.connection._get_node_table_names():
             if table_name not in self.node_properties_cache:
@@ -174,5 +172,5 @@ class KuzuFeatureStore(FeatureStore):
                     self.node_properties_cache[table_name][attr_name]["dimension"] == 0
                     or "shape" in self.node_properties_cache[table_name][attr_name]
                 ):
-                    retult_list.append(TensorAttr(table_name, attr_name))
-        return retult_list
+                    result_list.append(TensorAttr(table_name, attr_name))
+        return result_list

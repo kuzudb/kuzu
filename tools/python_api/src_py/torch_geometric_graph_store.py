@@ -55,16 +55,18 @@ class KuzuGraphStore(GraphStore):
                                   edge_index)
 
     def _get_edge_index(self, edge_attr: EdgeAttr) -> Optional[EdgeTensorType]:
+        if edge_attr.layout.value == EdgeLayout.COO.value:
+            # We always return a sorted COO edge index, if the request is
+            # for an unsorted COO edge index, we change the is_sorted flag
+            # to True and return the sorted COO edge index.
+            if edge_attr.is_sorted == False:
+                edge_attr.is_sorted = True
         key = self.key(edge_attr)
-        if key[1] == None:
-            key[1] = EdgeLayout.COO.value
-        if key[2] == None:
-            key[2] = False
         if key in self.store:
             rel = self.store[self.key(edge_attr)]
             if not rel.materialized:
                 if rel.layout != EdgeLayout.COO.value:
-                    return None
+                    raise ValueError("Only COO layout is supported")
             if rel.layout == EdgeLayout.COO.value:
                 self.__get_edge_coo_from_database(self.key(edge_attr))
             return rel.edge_index
@@ -86,9 +88,11 @@ class KuzuGraphStore(GraphStore):
         rel = self.store[key]
         if rel.layout != EdgeLayout.COO.value:
             raise ValueError("Only COO layout is supported")
+        if rel.materialized:
+            return
         edge_type = rel.edge_type
         num_edges = self.connection._connection.get_num_rels(edge_type[1])
-        result = np.zeros(2 * num_edges, dtype=np.int64)
+        result = np.empty(2 * num_edges, dtype=np.int64)
         self.connection._connection.get_all_edges_for_torch_geometric(
             result, edge_type[0], edge_type[1], edge_type[2], REL_BATCH_SIZE)
         edge_list = torch.from_numpy(result)
@@ -104,18 +108,12 @@ class KuzuGraphStore(GraphStore):
             edge_type = (rel_table['src'], rel_table['name'], rel_table['dst'])
             size = self.__get_size(edge_type)
             rel = Rel(edge_type, EdgeLayout.COO.value,
-                      False, size, None)
+                      True, size, False, None)
             self.store[self.key(
-                EdgeAttr(edge_type, EdgeLayout.COO, False))] = rel
+                EdgeAttr(edge_type, EdgeLayout.COO, True))] = rel
 
     def __get_size(self, edge_type):
-        src_count = self.connection.execute(
-            "MATCH (a:%s) RETURN COUNT(*)" % edge_type[0]).get_next()[0]
-        dst_count = self.connection.execute(
-            "MATCH (a:%s) RETURN COUNT(*)" % edge_type[-1]).get_next()[0]
+        src_count = self.connection._connection.get_num_nodes(edge_type[0])
+        dst_count = self.connection._connection.get_num_nodes(edge_type[-1])
         size = (src_count, dst_count)
         return size
-
-    def __get_edges_count(self, edge_type):
-        query = "MATCH (a:%s)-[%s]->(b:%s) RETURN COUNT(*)" % edge_type
-        return self.connection.execute(query).get_next()[0]

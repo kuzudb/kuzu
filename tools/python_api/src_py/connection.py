@@ -182,9 +182,3 @@ class Connection:
 
         self._connection.set_query_timeout(timeout_in_ms)
 
-    def get_all_edges_for_torch_geometric(self, src_table_name, rel_table_name, dst_table_name, batch_size):
-        num_edges = self._connection.get_num_rels(rel_table_name)
-        result = np.zeros(2 * num_edges, dtype=np.int64)
-        self._connection.get_all_edges_for_torch_geometric(result, src_table_name, rel_table_name, dst_table_name,
-                                                           batch_size)
-        return result
