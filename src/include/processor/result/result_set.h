@@ -9,7 +9,6 @@ namespace kuzu {
 namespace processor {
 
 class ResultSet {
-
 public:
     explicit ResultSet(uint32_t numDataChunks) : multiplicity{1}, dataChunks(numDataChunks) {}
 

@@ -65,7 +65,7 @@ We take `tinysnb` as an example graph, which is under `dataset/demo-db/csv` in o
 ### CLI
 #### Start CLI
 ```
-./build/release/tools/shell/kuzu_shell -i "./testdb"
+./build/release/tools/shell/kuzu_shell "./testdb"
 ```
 #### Schema Definition
 ```cypher

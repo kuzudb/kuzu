@@ -212,8 +212,8 @@ TEST_F(TinySnbExceptionTest, Overflow) {
 
 TEST_F(TinySnbExceptionTest, Int32PrimaryKey) {
     auto result = conn->query("CREATE NODE TABLE play(a INT32, PRIMARY KEY (a))");
-    ASSERT_STREQ(
-        result->getErrorMessage().c_str(), "Binder exception: Invalid primary key type: INT32.");
+    ASSERT_STREQ(result->getErrorMessage().c_str(),
+        "Binder exception: Invalid primary key type: INT32. Expected STRING or INT64.");
 }
 
 TEST_F(TinySnbExceptionTest, MultiLabelUpdate) {
