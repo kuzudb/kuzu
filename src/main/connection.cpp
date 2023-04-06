@@ -229,7 +229,7 @@ std::string Connection::getNodePropertyNames(const std::string& tableName) {
     lock_t lck{mtx};
     auto catalog = database->catalog.get();
     if (!catalog->getReadOnlyVersion()->containNodeTable(tableName)) {
-        throw Exception("Cannot find node table " + tableName);
+        throw RuntimeException("Cannot find node table " + tableName);
     }
     std::string result = tableName + " properties: \n";
     auto tableID = catalog->getReadOnlyVersion()->getTableID(tableName);
@@ -246,7 +246,7 @@ std::string Connection::getRelPropertyNames(const std::string& relTableName) {
     lock_t lck{mtx};
     auto catalog = database->catalog.get();
     if (!catalog->getReadOnlyVersion()->containRelTable(relTableName)) {
-        throw Exception("Cannot find rel table " + relTableName);
+        throw RuntimeException("Cannot find rel table " + relTableName);
     }
     auto relTableID = catalog->getReadOnlyVersion()->getTableID(relTableName);
     auto srcTableID =

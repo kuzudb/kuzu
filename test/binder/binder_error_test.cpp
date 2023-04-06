@@ -296,7 +296,7 @@ TEST_F(BinderErrorTest, CreateNodeTableDuplicatedColumnName) {
 }
 
 TEST_F(BinderErrorTest, CopyCSVInvalidParsingOption) {
-    std::string expectedException = "Binder exception: Unrecognized parsing csv option: pk.";
+    std::string expectedException = "Binder exception: Unrecognized parsing csv option: PK.";
     auto input = R"(COPY person FROM "person_0_0.csv" (pk=","))";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
