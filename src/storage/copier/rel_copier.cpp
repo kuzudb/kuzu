@@ -1,5 +1,6 @@
 #include "storage/copier/rel_copier.h"
 
+#include "common/string_utils.h"
 #include "spdlog/spdlog.h"
 #include "storage/copier/copy_task.h"
 

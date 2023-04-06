@@ -15,14 +15,7 @@ struct StorageVersionInfo {
         return {{"0.0.3", 1}};
     }
 
-    static storage_version_t getStorageVersion() {
-        auto storageVersionInfo = getStorageVersionInfo();
-        if (!storageVersionInfo.contains(KUZU_STORAGE_VERSION)) {
-            throw common::RuntimeException(common::StringUtils::string_format(
-                "Invalid storage version name: {}", KUZU_STORAGE_VERSION));
-        }
-        return storageVersionInfo.at(KUZU_STORAGE_VERSION);
-    }
+    static storage_version_t getStorageVersion();
 
     static constexpr const char* MAGIC_BYTES = "KUZU";
 };

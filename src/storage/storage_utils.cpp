@@ -1,5 +1,6 @@
 #include "storage/storage_utils.h"
 
+#include "common/string_utils.h"
 #include "storage/in_mem_storage_structure/in_mem_column.h"
 #include "storage/in_mem_storage_structure/in_mem_lists.h"
 #include "storage/storage_manager.h"
@@ -9,6 +10,60 @@ using namespace kuzu::common;
 
 namespace kuzu {
 namespace storage {
+
+std::string StorageUtils::getNodeIndexFName(const std::string& directory,
+    const common::table_id_t& tableID, common::DBFileType dbFileType) {
+    auto fName = StringUtils::string_format("n-{}", tableID);
+    return appendWALFileSuffixIfNecessary(
+        common::FileUtils::joinPath(directory, fName + common::StorageConstants::INDEX_FILE_SUFFIX),
+        dbFileType);
+}
+
+std::string StorageUtils::getNodePropertyColumnFName(const std::string& directory,
+    const common::table_id_t& tableID, uint32_t propertyID, common::DBFileType dbFileType) {
+    auto fName = common::StringUtils::string_format("n-{}-{}", tableID, propertyID);
+    return appendWALFileSuffixIfNecessary(common::FileUtils::joinPath(directory,
+                                              fName + common::StorageConstants::COLUMN_FILE_SUFFIX),
+        dbFileType);
+}
+
+std::string StorageUtils::getAdjListsFName(const std::string& directory,
+    const common::table_id_t& relTableID, const common::RelDirection& relDirection,
+    common::DBFileType dbFileType) {
+    auto fName = common::StringUtils::string_format("r-{}-{}", relTableID, relDirection);
+    return appendWALFileSuffixIfNecessary(
+        common::FileUtils::joinPath(directory, fName + common::StorageConstants::LISTS_FILE_SUFFIX),
+        dbFileType);
+}
+
+std::string StorageUtils::getRelPropertyColumnFName(const std::string& directory,
+    const common::table_id_t& relTableID, const common::RelDirection& relDirection,
+    const uint32_t propertyID, common::DBFileType dbFileType) {
+    auto fName =
+        common::StringUtils::string_format("r-{}-{}-{}", relTableID, relDirection, propertyID);
+    return appendWALFileSuffixIfNecessary(common::FileUtils::joinPath(directory,
+                                              fName + common::StorageConstants::COLUMN_FILE_SUFFIX),
+        dbFileType);
+}
+
+std::string StorageUtils::getRelPropertyListsFName(const std::string& directory,
+    const common::table_id_t& relTableID, const common::RelDirection& relDirection,
+    const uint32_t propertyID, common::DBFileType dbFileType) {
+    auto fName =
+        common::StringUtils::string_format("r-{}-{}-{}", relTableID, relDirection, propertyID);
+    return appendWALFileSuffixIfNecessary(
+        common::FileUtils::joinPath(directory, fName + common::StorageConstants::LISTS_FILE_SUFFIX),
+        dbFileType);
+}
+
+std::string StorageUtils::getAdjColumnFName(const std::string& directory,
+    const common::table_id_t& relTableID, const common::RelDirection& relDirection,
+    common::DBFileType dbFileType) {
+    auto fName = common::StringUtils::string_format("r-{}-{}", relTableID, relDirection);
+    return appendWALFileSuffixIfNecessary(common::FileUtils::joinPath(directory,
+                                              fName + common::StorageConstants::COLUMN_FILE_SUFFIX),
+        dbFileType);
+}
 
 std::unique_ptr<FileInfo> StorageUtils::getFileInfoForReadWrite(
     const std::string& directory, StorageStructureID storageStructureID) {

@@ -1,6 +1,7 @@
 #include "include/py_connection.h"
 
 #include "binder/bound_statement_result.h"
+#include "common/string_utils.h"
 #include "datetime.h" // from Python
 #include "json.hpp"
 #include "main/connection.h"

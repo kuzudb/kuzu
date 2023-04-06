@@ -1,5 +1,6 @@
 #include "storage/copier/npy_node_copier.h"
 
+#include "common/string_utils.h"
 #include "storage/copier/copy_task.h"
 #include "storage/storage_structure/in_mem_file.h"
 

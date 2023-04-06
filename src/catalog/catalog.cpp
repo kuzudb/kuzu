@@ -1,5 +1,6 @@
 #include "catalog/catalog.h"
 
+#include "common/string_utils.h"
 #include "spdlog/spdlog.h"
 #include "storage/storage_utils.h"
 

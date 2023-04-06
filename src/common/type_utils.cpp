@@ -1,7 +1,7 @@
 #include "common/type_utils.h"
 
 #include "common/exception.h"
-#include "common/utils.h"
+#include "common/string_utils.h"
 
 namespace kuzu {
 namespace common {

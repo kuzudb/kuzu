@@ -1,5 +1,6 @@
 #include "storage/storage_structure/disk_array.h"
 
+#include "common/string_utils.h"
 #include "common/utils.h"
 #include "storage/index/hash_index_header.h"
 #include "storage/index/hash_index_slot.h"

@@ -1,6 +1,7 @@
 #include <iostream>
 #include <string>
 
+#include "common/string_utils.h"
 #include "graph_test/graph_test.h"
 #include "json.hpp"
 #include "storage/storage_manager.h"

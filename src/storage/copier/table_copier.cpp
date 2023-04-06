@@ -1,6 +1,7 @@
 #include "storage/copier/table_copier.h"
 
 #include "common/constants.h"
+#include "common/string_utils.h"
 #include "storage/storage_structure/lists/lists.h"
 
 using namespace kuzu::catalog;

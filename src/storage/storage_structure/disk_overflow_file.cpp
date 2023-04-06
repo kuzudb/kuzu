@@ -1,6 +1,7 @@
 #include "storage/storage_structure/disk_overflow_file.h"
 
 #include "common/in_mem_overflow_buffer_utils.h"
+#include "common/string_utils.h"
 #include "common/type_utils.h"
 
 using lock_t = std::unique_lock<std::mutex>;

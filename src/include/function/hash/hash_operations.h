@@ -23,8 +23,8 @@ inline common::hash_t combineHashScalar(common::hash_t a, common::hash_t b) {
 struct Hash {
     template<class T>
     static inline void operation(const T& key, common::hash_t& result) {
-        throw common::RuntimeException(common::StringUtils::string_format(
-            "Hash type: {} is not supported.", typeid(T).name()));
+        throw common::RuntimeException(
+            "Hash type: " + std::string(typeid(T).name()) + " is not supported.");
     }
 
     template<class T>

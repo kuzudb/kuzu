@@ -2,6 +2,7 @@
 #include "binder/expression/function_expression.h"
 #include "binder/expression/literal_expression.h"
 #include "binder/expression_binder.h"
+#include "common/string_utils.h"
 #include "function/schema/vector_label_operations.h"
 #include "parser/expression/parsed_function_expression.h"
 

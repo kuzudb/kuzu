@@ -17,7 +17,8 @@ add_library(kuzu_common
         null_mask.cpp
         profiler.cpp
         type_utils.cpp
-        utils.cpp)
+        utils.cpp
+        string_utils.cpp)
 
 set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_common>

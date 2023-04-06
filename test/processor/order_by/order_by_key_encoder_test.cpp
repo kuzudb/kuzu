@@ -2,6 +2,7 @@
 
 #include "common/constants.h"
 #include "common/data_chunk/data_chunk.h"
+#include "common/string_utils.h"
 #include "gtest/gtest.h"
 #include "processor/operator/order_by/order_by_key_encoder.h"
 

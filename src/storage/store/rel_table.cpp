@@ -1,5 +1,6 @@
 #include "storage/store/rel_table.h"
 
+#include "common/string_utils.h"
 #include "spdlog/spdlog.h"
 #include "storage/storage_structure/lists/lists_update_iterator.h"
 

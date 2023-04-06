@@ -1,5 +1,7 @@
 #include "common/types/value.h"
 
+#include "common/string_utils.h"
+
 namespace kuzu {
 namespace common {
 
