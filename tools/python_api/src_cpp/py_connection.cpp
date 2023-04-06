@@ -1,7 +1,5 @@
 #include "include/py_connection.h"
 
-#include <iostream>
-
 #include "binder/bound_statement_result.h"
 #include "datetime.h" // from Python
 #include "json.hpp"
@@ -97,38 +95,38 @@ uint64_t PyConnection::getNumRels(const std::string& relName) {
 void PyConnection::getAllEdgesForTorchGeometric(py::array_t<int64_t>& npArray,
     const std::string& srcTableName, const std::string& relName, const std::string& dstTableName,
     size_t queryBatchSize) {
-    // Get the number of nodes in the src table for batching.
-    auto numSrcNodes = getNumNodes(srcTableName);
-    int64_t batches = numSrcNodes / queryBatchSize;
-    if (numSrcNodes % queryBatchSize != 0) {
+    // Get the number of nodes in the dst table for batching.
+    auto numDstNodes = getNumNodes(dstTableName);
+    int64_t batches = numDstNodes / queryBatchSize;
+    if (numDstNodes % queryBatchSize != 0) {
         batches += 1;
     }
     auto numRels = getNumRels(relName);
 
-    auto buffer_info = npArray.request();
-    auto buffer = (int64_t*)buffer_info.ptr;
-    std::cout << "Done getting buffer for result numpy arrays." << std::endl;
+    auto bufferInfo = npArray.request();
+    auto buffer = (int64_t*)bufferInfo.ptr;
 
+    // Set the number of threads to 1 for fetching edges to ensure ordering.
+    auto numThreadsForExec = conn->getMaxNumThreadForExec();
+    conn->setMaxNumThreadForExec(1);
     // Run queries in batch to fetch edges.
-    auto queryString = "MATCH (a:{})-[:{}]->(b:{}) WHERE offset(id(a)) >= $s AND offset(id(a)) < "
+    auto queryString = "MATCH (a:{})-[:{}]->(b:{}) WHERE offset(id(b)) >= $s AND offset(id(b)) < "
                        "$e RETURN offset(id(a)), offset(id(b))";
     auto query = StringUtils::string_format(queryString, srcTableName, relName, dstTableName);
     auto preparedStatement = conn->prepare(query);
+    auto srcBuffer = buffer;
+    auto dstBuffer = buffer + numRels;
     for (int64_t batch = 0; batch < batches; ++batch) {
         int64_t start = batch * queryBatchSize;
         int64_t end = (batch + 1) * queryBatchSize;
-        end = end > numSrcNodes ? numSrcNodes : end;
+        end = end > numDstNodes ? numDstNodes : end;
         std::unordered_map<std::string, std::shared_ptr<Value>> parameters;
         parameters["s"] = std::make_shared<Value>(start);
         parameters["e"] = std::make_shared<Value>(end);
-        std::cout << "Batch " << batch << " from " << start << " to " << end << std::endl;
         auto result = conn->executeWithParams(preparedStatement.get(), parameters);
         if (!result->isSuccess()) {
             throw std::runtime_error(result->getErrorMessage());
         }
-        auto srcBuffer = buffer;
-        auto dstBuffer = buffer + numRels;
-
         auto table = result->getTable();
         auto tableSchema = table->getTableSchema();
         if (tableSchema->getColumn(0)->isFlat() && !tableSchema->getColumn(1)->isFlat()) {
@@ -163,7 +161,7 @@ void PyConnection::getAllEdgesForTorchGeometric(py::array_t<int64_t>& npArray,
             throw std::runtime_error("Wrong result table schema.");
         }
     }
-    std::cout << "Done fetching edges." << std::endl;
+    conn->setMaxNumThreadForExec(numThreadsForExec);
 }
 
 std::unordered_map<std::string, std::shared_ptr<Value>> PyConnection::transformPythonParameters(
@@ -196,7 +194,6 @@ Value PyConnection::transformPythonValue(py::handle val) {
     auto datetime_mod = py::module::import("datetime");
     auto datetime_datetime = datetime_mod.attr("datetime");
     auto time_delta = datetime_mod.attr("timedelta");
-    auto datetime_time = datetime_mod.attr("time");
     auto datetime_date = datetime_mod.attr("date");
     if (py::isinstance<py::bool_>(val)) {
         return Value::createValue<bool>(val.cast<bool>());

@@ -112,23 +112,23 @@ class Database:
 
         result = None
         if prop_type == Type.INT64.value:
-            result = np.zeros(len(indices) * dim, dtype=np.int64)
+            result = np.empty(len(indices) * dim, dtype=np.int64)
             self._database.scan_node_table_as_int64(
                 table_name, prop_name, indices_cast, result, num_threads)
         if prop_type == Type.INT32.value:
-            result = np.zeros(len(indices) * dim, dtype=np.int32)
+            result = np.empty(len(indices) * dim, dtype=np.int32)
             self._database.scan_node_table_as_int32(
                 table_name, prop_name, indices_cast, result, num_threads)
         if prop_type == Type.INT16.value:
-            result = np.zeros(len(indices) * dim, dtype=np.int16)
+            result = np.empty(len(indices) * dim, dtype=np.int16)
             self._database.scan_node_table_as_int16(
                 table_name, prop_name, indices_cast, result, num_threads)
         if prop_type == Type.DOUBLE.value:
-            result = np.zeros(len(indices) * dim, dtype=np.float64)
+            result = np.empty(len(indices) * dim, dtype=np.float64)
             self._database.scan_node_table_as_double(
                 table_name, prop_name, indices_cast, result, num_threads)
         if prop_type == Type.FLOAT.value:
-            result = np.zeros(len(indices) * dim, dtype=np.float32)
+            result = np.empty(len(indices) * dim, dtype=np.float32)
             self._database.scan_node_table_as_float(
                 table_name, prop_name, indices_cast, result, num_threads)
         if result is not None:
