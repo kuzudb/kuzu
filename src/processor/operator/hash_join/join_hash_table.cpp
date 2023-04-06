@@ -84,7 +84,8 @@ void JoinHashTable::buildHashSlots() {
     }
 }
 
-void JoinHashTable::probe(const std::vector<ValueVector*>& keyVectors, uint8_t** probedTuples) {
+void JoinHashTable::probe(const std::vector<ValueVector*>& keyVectors,
+    common::ValueVector* hashVector, common::ValueVector* tmpHashVector, uint8_t** probedTuples) {
     assert(keyVectors.size() == numKeyColumns);
     if (getNumTuples() == 0) {
         return;
@@ -92,14 +93,10 @@ void JoinHashTable::probe(const std::vector<ValueVector*>& keyVectors, uint8_t**
     if (!discardNullFromKeys(keyVectors, numKeyColumns)) {
         return;
     }
-    auto hashVector = std::make_unique<ValueVector>(INT64, &memoryManager);
-    std::unique_ptr<ValueVector> tmpHashVector =
-        keyVectors.size() == 1 ? nullptr : std::make_unique<ValueVector>(INT64, &memoryManager);
-    function::VectorHashOperations::computeHash(keyVectors[0], hashVector.get());
+    function::VectorHashOperations::computeHash(keyVectors[0], hashVector);
     for (auto i = 1u; i < numKeyColumns; i++) {
-        function::VectorHashOperations::computeHash(keyVectors[i], tmpHashVector.get());
-        function::VectorHashOperations::combineHash(
-            hashVector.get(), tmpHashVector.get(), hashVector.get());
+        function::VectorHashOperations::computeHash(keyVectors[i], tmpHashVector);
+        function::VectorHashOperations::combineHash(hashVector, tmpHashVector, hashVector);
     }
     for (auto i = 0u; i < hashVector->state->selVector->selectedSize; i++) {
         auto pos = hashVector->state->selVector->selectedPositions[i];

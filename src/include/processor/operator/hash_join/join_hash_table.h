@@ -18,7 +18,9 @@ public:
     virtual void append(const std::vector<common::ValueVector*>& vectorsToAppend);
     void allocateHashSlots(uint64_t numTuples);
     void buildHashSlots();
-    void probe(const std::vector<common::ValueVector*>& keyVectors, uint8_t** probedTuples);
+
+    void probe(const std::vector<common::ValueVector*>& keyVectors, common::ValueVector* hashVector,
+        common::ValueVector* tmpHashVector, uint8_t** probedTuples);
 
     inline void lookup(std::vector<common::ValueVector*>& vectors,
         std::vector<uint32_t>& colIdxesToScan, uint8_t** tuplesToRead, uint64_t startPos,

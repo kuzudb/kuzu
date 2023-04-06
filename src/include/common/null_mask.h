@@ -85,6 +85,9 @@ public:
     }
 
     inline void setAllNonNull() {
+        if (!mayContainNulls) {
+            return;
+        }
         std::fill(data, data + numNullEntries, NO_NULL_ENTRY);
         mayContainNulls = false;
     }

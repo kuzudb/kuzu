@@ -94,6 +94,9 @@ private:
     std::vector<common::ValueVector*> keyVectors;
     std::shared_ptr<common::ValueVector> markVector;
     std::unique_ptr<ProbeState> probeState;
+
+    std::unique_ptr<common::ValueVector> hashVector;
+    std::unique_ptr<common::ValueVector> tmpHashVector;
 };
 
 } // namespace processor

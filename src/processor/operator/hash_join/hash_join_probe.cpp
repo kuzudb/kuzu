@@ -26,6 +26,11 @@ void HashJoinProbe::initLocalStateInternal(ResultSet* resultSet, ExecutionContex
     columnIdxsToReadFrom.resize(probeDataInfo.getNumPayloads());
     iota(
         columnIdxsToReadFrom.begin(), columnIdxsToReadFrom.end(), probeDataInfo.keysDataPos.size());
+    hashVector = std::make_unique<common::ValueVector>(common::INT64, context->memoryManager);
+    if (keyVectors.size() > 1) {
+        tmpHashVector =
+            std::make_unique<common::ValueVector>(common::INT64, context->memoryManager);
+    }
 }
 
 bool HashJoinProbe::hasMoreLeft() {
@@ -45,7 +50,8 @@ bool HashJoinProbe::getNextBatchOfMatchedTuples(ExecutionContext* context) {
             return false;
         }
         saveSelVector(keyVectors[0]->state->selVector);
-        sharedState->getHashTable()->probe(keyVectors, probeState->probedTuples.get());
+        sharedState->getHashTable()->probe(
+            keyVectors, hashVector.get(), tmpHashVector.get(), probeState->probedTuples.get());
     }
     auto numMatchedTuples = 0;
     auto keyState = keyVectors[0]->state.get();
