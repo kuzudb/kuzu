@@ -49,7 +49,7 @@ After build, our CLI binary `kuzu_shell` is available under the directory `build
 
 ## Installation
 ### Precompiled binary
-Precompiled binary of our latest release can be downloaded [here](https://github.com/kuzudb/kuzu/releases/tag/0.0.1).  
+Precompiled binary of our latest release can be downloaded [here](https://github.com/kuzudb/kuzu/releases/latest).  
 ### Python package
 Our Python package can be directly install through pip.
 ```
