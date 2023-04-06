@@ -15,6 +15,18 @@ with open(os.path.join(base_dir, 'kuzu-source', 'tools', 'python_api', 'requirem
     requirements = f.read().splitlines()
 
 
+def _get_kuzu_version():
+    cmake_file = os.path.join(base_dir, 'kuzu-source', 'CMakeLists.txt')
+    with open(cmake_file) as f:
+        for line in f:
+            if line.startswith('project(Kuzu VERSION'):
+                return line.split(' ')[2].strip()
+
+
+kuzu_version = os.environ['PYTHON_PACKAGE_VERSION'] if 'PYTHON_PACKAGE_VERSION' in os.environ else _get_kuzu_version()
+print("The version of this build is %s" % kuzu_version)
+
+
 class CMakeExtension(Extension):
     def __init__(self, name: str, sourcedir: str = "") -> None:
         super().__init__(name, sources=[])
@@ -55,9 +67,8 @@ class CMakeBuild(build_ext):
                               deploy_target)
                 env_vars['CMAKE_OSX_DEPLOYMENT_TARGET'] = deploy_target
 
-
         build_dir = os.path.join(ext.sourcedir, 'kuzu-source')
-       
+
         # Clean the build directory.
         subprocess.run(['make', 'clean'], check=True, cwd=build_dir)
 
@@ -81,7 +92,7 @@ class BuildExtFirst(_build_py):
 
 
 setup(name='kuzu',
-      version=os.environ['PYTHON_PACKAGE_VERSION'] if 'PYTHON_PACKAGE_VERSION' in os.environ else '0.0.1',
+      version=kuzu_version,
       install_requires=[],
       ext_modules=[CMakeExtension(
           name="kuzu", sourcedir=base_dir)],
