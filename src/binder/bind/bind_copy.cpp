@@ -76,6 +76,7 @@ CSVReaderConfig Binder::bindParsingOptions(
     CSVReaderConfig csvReaderConfig;
     for (auto& parsingOption : *parsingOptions) {
         auto copyOptionName = parsingOption.first;
+        StringUtils::toUpper(copyOptionName);
         bool isValidStringParsingOption = validateStringParsingOptionName(copyOptionName);
         auto copyOptionExpression = parsingOption.second.get();
         auto boundCopyOptionExpression = expressionBinder.bindExpression(*copyOptionExpression);
