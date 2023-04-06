@@ -1,6 +1,4 @@
 from . import _kuzu
-from .torch_geometric_feature_store import KuzuFeatureStore
-from .torch_geometric_graph_store import KuzuGraphStore
 from .types import Type
 
 
@@ -83,6 +81,8 @@ class Database:
         self._database.set_logging_level(level)
 
     def get_torch_geometric_remote_backend(self, num_threads=None):
+        from .torch_geometric_feature_store import KuzuFeatureStore
+        from .torch_geometric_graph_store import KuzuGraphStore
         """
         Get the torch_geometric remote backend.
 
