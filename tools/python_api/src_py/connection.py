@@ -1,7 +1,6 @@
 from .query_result import QueryResult
 from .prepared_statement import PreparedStatement
 from . import _kuzu
-import numpy as np
 
 
 class Connection:
@@ -101,7 +100,7 @@ class Connection:
             table_name)
         results = {}
         for (i, line) in enumerate(result_str.splitlines()):
-            #ignore first line
+            # ignore first line
             if i == 0:
                 continue
             line = line.strip()
@@ -181,4 +180,3 @@ class Connection:
         """
 
         self._connection.set_query_timeout(timeout_in_ms)
-
