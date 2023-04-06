@@ -1,5 +1,5 @@
 #include "benchmark_runner.h"
-#include "common/utils.h"
+#include "common/string_utils.h"
 #include "spdlog/spdlog.h"
 
 using namespace kuzu::benchmark;

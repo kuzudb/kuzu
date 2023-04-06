@@ -1,6 +1,7 @@
 #include "binder/binder.h"
 #include "binder/copy/bound_copy.h"
 #include "binder/expression/literal_expression.h"
+#include "common/string_utils.h"
 #include "parser/copy_csv/copy_csv.h"
 
 using namespace kuzu::common;

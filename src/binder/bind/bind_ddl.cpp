@@ -6,6 +6,7 @@
 #include "binder/ddl/bound_drop_table.h"
 #include "binder/ddl/bound_rename_property.h"
 #include "binder/ddl/bound_rename_table.h"
+#include "common/string_utils.h"
 #include "parser/ddl/add_property.h"
 #include "parser/ddl/create_node_clause.h"
 #include "parser/ddl/create_rel_clause.h"

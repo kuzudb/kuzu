@@ -1,5 +1,7 @@
 #include "processor/operator/copy/copy.h"
 
+#include "common/string_utils.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {

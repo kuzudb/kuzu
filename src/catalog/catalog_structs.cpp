@@ -1,7 +1,7 @@
 #include "catalog/catalog_structs.h"
 
 #include "common/exception.h"
-#include "common/utils.h"
+#include "common/string_utils.h"
 
 using namespace kuzu::common;
 

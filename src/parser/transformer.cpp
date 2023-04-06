@@ -2,7 +2,7 @@
 
 #include "common/copier_config/copier_config.h"
 #include "common/exception.h"
-#include "common/utils.h"
+#include "common/string_utils.h"
 #include "parser/copy_csv/copy_csv.h"
 #include "parser/ddl/add_property.h"
 #include "parser/ddl/create_node_clause.h"
@@ -22,6 +22,7 @@
 #include "parser/query/updating_clause/create_clause.h"
 #include "parser/query/updating_clause/delete_clause.h"
 #include "parser/query/updating_clause/set_clause.h"
+
 namespace kuzu {
 namespace parser {
 

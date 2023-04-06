@@ -1,5 +1,7 @@
 #include "processor/operator/ddl/drop_table.h"
 
+#include "common/string_utils.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {
