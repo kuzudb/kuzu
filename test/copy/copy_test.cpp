@@ -116,9 +116,9 @@ TEST_F(CopyNodePropertyTest, NodeStructuredStringPropertyTest) {
     auto graph = getStorageManager(*database);
     auto catalog = getCatalog(*database);
     auto tableID = catalog->getReadOnlyVersion()->getTableID("person");
-    auto propertyIdx = catalog->getReadOnlyVersion()->getNodeProperty(tableID, "randomString");
+    auto property = catalog->getReadOnlyVersion()->getNodeProperty(tableID, "randomString");
     auto column = reinterpret_cast<StringPropertyColumn*>(
-        graph->getNodesStore().getNodePropertyColumn(tableID, propertyIdx.propertyID));
+        graph->getNodesStore().getNodePropertyColumn(tableID, property.propertyID));
     std::string fName =
         TestHelper::appendKuzuRootPath("dataset/copy-node-property-test/vPerson.csv");
     std::ifstream f(fName);
@@ -247,9 +247,8 @@ TEST_F(CopySpecialCharTest, CopySpecialChars) {
     auto storageManager = getStorageManager(*database);
     auto catalog = getCatalog(*database);
     auto tableID = catalog->getReadOnlyVersion()->getTableID("person");
-    auto propertyIdx = catalog->getReadOnlyVersion()->getNodeProperty(tableID, "randomString");
-    auto col =
-        storageManager->getNodesStore().getNodePropertyColumn(tableID, propertyIdx.propertyID);
+    auto property = catalog->getReadOnlyVersion()->getNodeProperty(tableID, "randomString");
+    auto col = storageManager->getNodesStore().getNodePropertyColumn(tableID, property.propertyID);
 
     EXPECT_EQ("this is |the first line", col->readValueForTestingOnly(0).strVal);
     EXPECT_EQ("the \" should be ignored", col->readValueForTestingOnly(1).strVal);
@@ -261,8 +260,8 @@ TEST_F(CopySpecialCharTest, CopySpecialChars) {
     EXPECT_EQ("NA", col->readValueForTestingOnly(7).strVal);
 
     tableID = catalog->getReadOnlyVersion()->getTableID("organisation");
-    propertyIdx = catalog->getReadOnlyVersion()->getNodeProperty(tableID, "name");
-    col = storageManager->getNodesStore().getNodePropertyColumn(tableID, propertyIdx.propertyID);
+    property = catalog->getReadOnlyVersion()->getNodeProperty(tableID, "name");
+    col = storageManager->getNodesStore().getNodePropertyColumn(tableID, property.propertyID);
     EXPECT_EQ("ABFsUni", col->readValueForTestingOnly(0).strVal);
     EXPECT_EQ("CsW,ork", col->readValueForTestingOnly(1).strVal);
     EXPECT_EQ("DEsW#ork", col->readValueForTestingOnly(2).strVal);
@@ -272,9 +271,9 @@ TEST_F(CopyLongStringTest, LongStringError) {
     auto storageManager = getStorageManager(*database);
     auto catalog = getCatalog(*database);
     auto tableID = catalog->getReadOnlyVersion()->getTableID("person");
-    auto propertyIdx = catalog->getReadOnlyVersion()->getNodeProperty(tableID, "fName");
+    auto propertyID = catalog->getReadOnlyVersion()->getNodeProperty(tableID, "fName");
     auto col =
-        storageManager->getNodesStore().getNodePropertyColumn(tableID, propertyIdx.propertyID);
+        storageManager->getNodesStore().getNodePropertyColumn(tableID, propertyID.propertyID);
 
     EXPECT_EQ(4096, col->readValueForTestingOnly(0).strVal.length());
     std::string expectedResultName = "Alice";
@@ -286,8 +285,8 @@ TEST_F(CopyLongStringTest, LongStringError) {
     EXPECT_EQ(os.str().substr(0, 4096), col->readValueForTestingOnly(0).strVal);
     EXPECT_EQ("Bob", col->readValueForTestingOnly(1).strVal);
 
-    propertyIdx = catalog->getReadOnlyVersion()->getNodeProperty(tableID, "gender");
-    col = storageManager->getNodesStore().getNodePropertyColumn(tableID, propertyIdx.propertyID);
+    propertyID = catalog->getReadOnlyVersion()->getNodeProperty(tableID, "gender");
+    col = storageManager->getNodesStore().getNodePropertyColumn(tableID, propertyID.propertyID);
     EXPECT_EQ(1, col->readValueForTestingOnly(0).val.int64Val);
     EXPECT_EQ(2, col->readValueForTestingOnly(1).val.int64Val);
 }

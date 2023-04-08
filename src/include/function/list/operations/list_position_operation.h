@@ -15,14 +15,14 @@ struct ListPosition {
     template<typename T>
     static inline void operation(common::ku_list_t& list, T& pos, int64_t& result,
         const common::DataType& leftDataType, const common::DataType& rightDataType) {
-        if (*leftDataType.childType != rightDataType) {
+        if (*leftDataType.getChildType() != rightDataType) {
             result = 0;
             return;
         }
         auto values = reinterpret_cast<T*>(list.overflowPtr);
         for (auto i = 0u; i < list.size; i++) {
             if (common::TypeUtils::isValueEqual(
-                    values[i], pos, *leftDataType.childType, rightDataType)) {
+                    values[i], pos, *leftDataType.getChildType(), rightDataType)) {
                 result = i + 1;
                 return;
             }

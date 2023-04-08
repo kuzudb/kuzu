@@ -49,12 +49,14 @@ void NpyNodeCopier::validateNpyReaders() {
             }
             continue;
         } else if (property.dataType.typeID == common::DataTypeID::FIXED_LIST) {
-            if (npyReader->getType() != property.dataType.childType->typeID) {
+            if (npyReader->getType() != property.dataType.getChildType()->typeID) {
                 throw Exception(StringUtils::string_format("The type of npy file {} does not "
                                                            "match the type defined in table {}.",
                     npyReader->getFileName(), tableSchema->tableName));
             }
-            if (npyReader->getNumElementsPerRow() != property.dataType.fixedNumElementsInList) {
+            auto fixedListInfo =
+                reinterpret_cast<FixedListTypeInfo*>(property.dataType.getExtraTypeInfo());
+            if (npyReader->getNumElementsPerRow() != fixedListInfo->getFixedNumElementsInList()) {
                 throw Exception(
                     StringUtils::string_format("The shape of {} does not match the length of the "
                                                "fixed list property in table "
@@ -90,14 +92,14 @@ void NpyNodeCopier::populateColumnsAndLists() {
 }
 
 void NpyNodeCopier::populateColumnsFromNpy(std::unique_ptr<HashIndexBuilder<int64_t>>& pkIndex) {
-    for (auto& [propertyIdx, _] : columns) {
-        assignCopyNpyTasks(propertyIdx, pkIndex);
+    for (auto& [propertyID, _] : columns) {
+        assignCopyNpyTasks(propertyID, pkIndex);
     }
 }
 
 void NpyNodeCopier::assignCopyNpyTasks(
-    common::property_id_t propertyIdx, std::unique_ptr<HashIndexBuilder<int64_t>>& pkIndex) {
-    auto& npyReader = npyReaderMap[propertyIdx];
+    common::property_id_t propertyID, std::unique_ptr<HashIndexBuilder<int64_t>>& pkIndex) {
+    auto& npyReader = npyReaderMap[propertyID];
     offset_t currRowIdx = 0;
     size_t blockIdx;
     while (currRowIdx < npyReader->getLength()) {
@@ -113,7 +115,7 @@ void NpyNodeCopier::assignCopyNpyTasks(
                 reinterpret_cast<NodeTableSchema*>(tableSchema)->getPrimaryKey().propertyID;
             taskScheduler.scheduleTask(
                 CopyTaskFactory::createCopyTask(batchPopulateColumnsTask, primaryKeyId, blockIdx,
-                    currRowIdx, numLinesInCurBlock, pkIndex.get(), this, propertyIdx));
+                    currRowIdx, numLinesInCurBlock, pkIndex.get(), this, propertyID));
             currRowIdx += numLinesInCurBlock;
             blockIdx += 1;
         }
@@ -123,15 +125,15 @@ void NpyNodeCopier::assignCopyNpyTasks(
     taskScheduler.waitAllTasksToCompleteOrError();
 }
 
-void NpyNodeCopier::batchPopulateColumnsTask(common::property_id_t primaryKeyPropertyIdx,
+void NpyNodeCopier::batchPopulateColumnsTask(common::property_id_t primaryKeypropertyID,
     uint64_t blockIdx, offset_t startNodeOffset, uint64_t numLinesInCurBlock,
-    HashIndexBuilder<int64_t>* pkIndex, NpyNodeCopier* copier, common::property_id_t propertyIdx) {
-    auto& npyReader = copier->npyReaderMap[propertyIdx];
+    HashIndexBuilder<int64_t>* pkIndex, NpyNodeCopier* copier, common::property_id_t propertyID) {
+    auto& npyReader = copier->npyReaderMap[propertyID];
     copier->logger->trace("Start: path={0} blkIdx={1}", npyReader->getFileName(), blockIdx);
 
     // Create a column chunk for tuples within the [StartOffset, endOffset] range.
     auto endNodeOffset = startNodeOffset + numLinesInCurBlock - 1;
-    auto& column = copier->columns[propertyIdx];
+    auto& column = copier->columns[propertyID];
     std::unique_ptr<InMemColumnChunk> columnChunk =
         std::make_unique<InMemColumnChunk>(startNodeOffset, endNodeOffset,
             column->getNumBytesForElement(), column->getNumElementsInAPage());
@@ -141,8 +143,8 @@ void NpyNodeCopier::batchPopulateColumnsTask(common::property_id_t primaryKeyPro
     }
     column->flushChunk(columnChunk.get(), startNodeOffset, endNodeOffset);
 
-    if (propertyIdx == primaryKeyPropertyIdx) {
-        auto pkColumn = copier->columns.at(primaryKeyPropertyIdx).get();
+    if (propertyID == primaryKeypropertyID) {
+        auto pkColumn = copier->columns.at(primaryKeypropertyID).get();
         populatePKIndex(columnChunk.get(), pkColumn->getInMemOverflowFile(),
             pkColumn->getNullMask(), pkIndex, startNodeOffset, numLinesInCurBlock);
     }

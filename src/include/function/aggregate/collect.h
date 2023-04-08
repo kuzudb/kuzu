@@ -21,7 +21,7 @@ struct CollectFunction {
                 reinterpret_cast<uint64_t>(outputVector->getOverflowBuffer().allocateSpace(
                     factorizedTable->getNumTuples() * numBytesPerElement));
             outputVector->setValue<common::ku_list_t>(pos, dstKUList);
-            switch (outputVector->dataType.childType->typeID) {
+            switch (outputVector->dataType.getChildType()->typeID) {
             case common::STRING: {
                 for (auto i = 0u; i < dstKUList.size; i++) {
                     common::InMemOverflowBufferUtils::copyString(
@@ -35,7 +35,7 @@ struct CollectFunction {
                     common::InMemOverflowBufferUtils::copyListRecursiveIfNested(
                         *reinterpret_cast<common::ku_list_t*>(factorizedTable->getTuple(i)),
                         reinterpret_cast<common::ku_list_t*>(dstKUList.overflowPtr)[i],
-                        *outputVector->dataType.childType, outputVector->getOverflowBuffer());
+                        *outputVector->dataType.getChildType(), outputVector->getOverflowBuffer());
                 }
             } break;
             default: {

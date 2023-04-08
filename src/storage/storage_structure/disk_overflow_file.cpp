@@ -95,17 +95,17 @@ void DiskOverflowFile::readListToVector(TransactionType trxType, ku_list_t& kuLi
         InMemOverflowBufferUtils::copyListNonRecursive(
             frame + cursor.offsetInPage, kuList, dataType, inMemOverflowBuffer);
     });
-    if (dataType.childType->typeID == STRING) {
+    if (dataType.getChildType()->typeID == STRING) {
         auto kuStrings = (ku_string_t*)(kuList.overflowPtr);
         OverflowPageCache overflowPageCache;
         for (auto i = 0u; i < kuList.size; i++) {
             lookupString(trxType, kuStrings[i], inMemOverflowBuffer, overflowPageCache);
         }
         unpinOverflowPageCache(overflowPageCache);
-    } else if (dataType.childType->typeID == VAR_LIST) {
+    } else if (dataType.getChildType()->typeID == VAR_LIST) {
         auto kuLists = (ku_list_t*)(kuList.overflowPtr);
         for (auto i = 0u; i < kuList.size; i++) {
-            readListToVector(trxType, kuLists[i], *dataType.childType, inMemOverflowBuffer);
+            readListToVector(trxType, kuLists[i], *dataType.getChildType(), inMemOverflowBuffer);
         }
     }
 }
@@ -134,7 +134,7 @@ std::vector<std::unique_ptr<Value>> DiskOverflowFile::readList(
     auto [fileHandleToPin, pageIdxToPin] =
         StorageStructureUtils::getFileHandleAndPhysicalPageIdxToPin(
             *fileHandle, cursor.pageIdx, *wal, trxType);
-    auto numBytesOfSingleValue = Types::getDataTypeSize(*dataType.childType);
+    auto numBytesOfSingleValue = Types::getDataTypeSize(*dataType.getChildType());
     auto numValuesInList = listVal.size;
     std::vector<std::unique_ptr<Value>> retValues;
     bufferManager.optimisticRead(*fileHandleToPin, pageIdxToPin, [&](uint8_t* frame) -> void {
@@ -148,23 +148,23 @@ void DiskOverflowFile::readValuesInList(transaction::TransactionType trxType,
     const common::DataType& dataType, std::vector<std::unique_ptr<common::Value>>& retValues,
     uint32_t numBytesOfSingleValue, uint64_t numValuesInList, PageByteCursor& cursor,
     uint8_t* frame) {
-    if (dataType.childType->typeID == STRING) {
+    if (dataType.getChildType()->typeID == STRING) {
         for (auto i = 0u; i < numValuesInList; i++) {
             auto kuListVal = *(ku_string_t*)(frame + cursor.offsetInPage);
             retValues.push_back(make_unique<Value>(readString(trxType, kuListVal)));
             cursor.offsetInPage += numBytesOfSingleValue;
         }
-    } else if (dataType.childType->typeID == VAR_LIST) {
+    } else if (dataType.getChildType()->typeID == VAR_LIST) {
         for (auto i = 0u; i < numValuesInList; i++) {
             auto kuListVal = *(ku_list_t*)(frame + cursor.offsetInPage);
             retValues.push_back(make_unique<Value>(
-                *dataType.childType, readList(trxType, kuListVal, *dataType.childType)));
+                *dataType.getChildType(), readList(trxType, kuListVal, *dataType.getChildType())));
             cursor.offsetInPage += numBytesOfSingleValue;
         }
     } else {
         for (auto i = 0u; i < numValuesInList; i++) {
             retValues.push_back(
-                std::make_unique<Value>(*dataType.childType, frame + cursor.offsetInPage));
+                std::make_unique<Value>(*dataType.getChildType(), frame + cursor.offsetInPage));
             cursor.offsetInPage += numBytesOfSingleValue;
         }
     }
@@ -231,7 +231,7 @@ void DiskOverflowFile::writeStringOverflowAndUpdateOverflowPtr(
 
 void DiskOverflowFile::setListRecursiveIfNestedWithoutLock(
     const ku_list_t& inMemSrcList, ku_list_t& diskDstList, const DataType& dataType) {
-    auto elementSize = Types::getDataTypeSize(*dataType.childType);
+    auto elementSize = Types::getDataTypeSize(*dataType.getChildType());
     if (inMemSrcList.size * elementSize > BufferPoolConstants::PAGE_4KB_SIZE) {
         throw RuntimeException(StringUtils::string_format(
             "Maximum num bytes of a LIST is %d. Input list's num bytes is %d.",
@@ -249,7 +249,7 @@ void DiskOverflowFile::setListRecursiveIfNestedWithoutLock(
         updatedPageInfoAndWALPageFrame.originalPageIdx, updatedPageInfoAndWALPageFrame.posInPage);
     StorageStructureUtils::unpinWALPageAndReleaseOriginalPageLock(
         updatedPageInfoAndWALPageFrame, *fileHandle, bufferManager, *wal);
-    if (dataType.childType->typeID == STRING) {
+    if (dataType.getChildType()->typeID == STRING) {
         // Copy overflow for string elements in the list.
         auto dstListElements = (ku_string_t*)(updatedPageInfoAndWALPageFrame.frame +
                                               updatedPageInfoAndWALPageFrame.posInPage);
@@ -258,13 +258,13 @@ void DiskOverflowFile::setListRecursiveIfNestedWithoutLock(
             setStringOverflowWithoutLock(
                 (const char*)kuString.overflowPtr, kuString.len, dstListElements[i]);
         }
-    } else if (dataType.childType->typeID == VAR_LIST) {
+    } else if (dataType.getChildType()->typeID == VAR_LIST) {
         // Recursively copy overflow for list elements in the list.
         auto dstListElements = (ku_list_t*)(updatedPageInfoAndWALPageFrame.frame +
                                             updatedPageInfoAndWALPageFrame.posInPage);
         for (auto i = 0u; i < diskDstList.size; i++) {
-            setListRecursiveIfNestedWithoutLock(
-                ((ku_list_t*)inMemSrcList.overflowPtr)[i], dstListElements[i], *dataType.childType);
+            setListRecursiveIfNestedWithoutLock(((ku_list_t*)inMemSrcList.overflowPtr)[i],
+                dstListElements[i], *dataType.getChildType());
         }
     }
 }

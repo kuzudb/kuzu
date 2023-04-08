@@ -49,7 +49,7 @@ void InMemColumn::fillInMemColumnWithListValFunc(InMemColumn* inMemColumn, uint8
     PageByteCursor& pageByteCursor, offset_t nodeOffset, const DataType& dataType) {
     auto listVal = *reinterpret_cast<ku_list_t*>(defaultVal);
     inMemColumn->getInMemOverflowFile()->copyListOverflowToFile(
-        pageByteCursor, &listVal, dataType.childType.get());
+        pageByteCursor, &listVal, dataType.getChildType());
     inMemColumn->setElement(nodeOffset, reinterpret_cast<uint8_t*>(&listVal));
 }
 

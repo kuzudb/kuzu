@@ -135,7 +135,7 @@ struct NodeTableSchema : TableSchema {
 
 struct RelTableSchema : TableSchema {
 public:
-    static constexpr uint64_t INTERNAL_REL_ID_PROPERTY_IDX = 0;
+    static constexpr uint64_t INTERNAL_REL_ID_PROPERTY_ID = 0;
 
     RelTableSchema()
         : TableSchema{"", common::INVALID_TABLE_ID, false /* isNodeTable */, {} /* properties */},

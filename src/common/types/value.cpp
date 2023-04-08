@@ -318,9 +318,10 @@ void Value::validateType(const DataType& type) const {
 
 std::vector<std::unique_ptr<Value>> Value::convertKUVarListToVector(ku_list_t& list) const {
     std::vector<std::unique_ptr<Value>> listResultValue;
-    auto numBytesPerElement = Types::getDataTypeSize(*dataType.childType);
+    auto numBytesPerElement = Types::getDataTypeSize(*dataType.getChildType());
     for (auto i = 0; i < list.size; i++) {
-        auto childValue = std::make_unique<Value>(Value::createDefaultValue(*dataType.childType));
+        auto childValue =
+            std::make_unique<Value>(Value::createDefaultValue(*dataType.getChildType()));
         childValue->copyValueFrom(
             reinterpret_cast<uint8_t*>(list.overflowPtr + i * numBytesPerElement));
         listResultValue.emplace_back(std::move(childValue));
@@ -330,9 +331,11 @@ std::vector<std::unique_ptr<Value>> Value::convertKUVarListToVector(ku_list_t& l
 
 std::vector<std::unique_ptr<Value>> Value::convertKUFixedListToVector(
     const uint8_t* fixedList) const {
-    std::vector<std::unique_ptr<Value>> fixedListResultVal{dataType.fixedNumElementsInList};
-    auto numBytesPerElement = Types::getDataTypeSize(*dataType.childType);
-    switch (dataType.childType->typeID) {
+    auto fixedListTypeInfo = reinterpret_cast<FixedListTypeInfo*>(dataType.getExtraTypeInfo());
+    std::vector<std::unique_ptr<Value>> fixedListResultVal{
+        fixedListTypeInfo->getFixedNumElementsInList()};
+    auto numBytesPerElement = Types::getDataTypeSize(*dataType.getChildType());
+    switch (dataType.getChildType()->typeID) {
     case common::DataTypeID::INT64: {
         putValuesIntoVector<int64_t>(fixedListResultVal, fixedList, numBytesPerElement);
     } break;

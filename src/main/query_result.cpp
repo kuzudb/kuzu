@@ -26,7 +26,7 @@ std::unique_ptr<DataTypeInfo> DataTypeInfo::getInfoForDataType(
     } break;
     case common::VAR_LIST: {
         auto parentTypeInfo = columnTypeInfo.get();
-        auto childType = type.childType.get();
+        auto childType = type.getChildType();
         parentTypeInfo->childrenTypesInfo.push_back(getInfoForDataType(*childType, ""));
     } break;
     default: {

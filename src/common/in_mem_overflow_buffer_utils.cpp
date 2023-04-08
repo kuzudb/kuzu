@@ -15,18 +15,18 @@ void InMemOverflowBufferUtils::copyString(
     dest.set(src);
 }
 
-void InMemOverflowBufferUtils::copyListNonRecursive(const uint8_t* srcValues, ku_list_t& dest,
+void InMemOverflowBufferUtils::copyListNonRecursive(const uint8_t* srcValues, ku_list_t& dst,
     const DataType& dataType, InMemOverflowBuffer& inMemOverflowBuffer) {
     InMemOverflowBufferUtils::allocateSpaceForList(
-        dest, dest.size * Types::getDataTypeSize(*dataType.childType), inMemOverflowBuffer);
-    dest.set(srcValues, dataType);
+        dst, dst.size * Types::getDataTypeSize(*dataType.getChildType()), inMemOverflowBuffer);
+    dst.set(srcValues, dataType);
 }
 
-void InMemOverflowBufferUtils::copyListRecursiveIfNested(const ku_list_t& src, ku_list_t& dest,
+void InMemOverflowBufferUtils::copyListRecursiveIfNested(const ku_list_t& src, ku_list_t& dst,
     const DataType& dataType, InMemOverflowBuffer& inMemOverflowBuffer, uint32_t srcStartIdx,
     uint32_t srcEndIdx) {
     if (src.size == 0) {
-        dest.size = 0;
+        dst.size = 0;
         return;
     }
     if (srcEndIdx == UINT32_MAX) {
@@ -34,23 +34,23 @@ void InMemOverflowBufferUtils::copyListRecursiveIfNested(const ku_list_t& src, k
     }
     assert(srcEndIdx < src.size);
     auto numElements = srcEndIdx - srcStartIdx + 1;
-    auto elementSize = Types::getDataTypeSize(*dataType.childType);
+    auto elementSize = Types::getDataTypeSize(*dataType.getChildType());
     InMemOverflowBufferUtils::allocateSpaceForList(
-        dest, numElements * elementSize, inMemOverflowBuffer);
-    memcpy((uint8_t*)dest.overflowPtr, (uint8_t*)src.overflowPtr + srcStartIdx * elementSize,
+        dst, numElements * elementSize, inMemOverflowBuffer);
+    memcpy((uint8_t*)dst.overflowPtr, (uint8_t*)src.overflowPtr + srcStartIdx * elementSize,
         numElements * elementSize);
-    dest.size = numElements;
-    if (dataType.childType->typeID == STRING) {
-        for (auto i = 0u; i < dest.size; i++) {
+    dst.size = numElements;
+    if (dataType.getChildType()->typeID == STRING) {
+        for (auto i = 0u; i < dst.size; i++) {
             InMemOverflowBufferUtils::copyString(((ku_string_t*)src.overflowPtr)[i + srcStartIdx],
-                ((ku_string_t*)dest.overflowPtr)[i], inMemOverflowBuffer);
+                ((ku_string_t*)dst.overflowPtr)[i], inMemOverflowBuffer);
         }
     }
-    if (dataType.childType->typeID == VAR_LIST) {
-        for (auto i = 0u; i < dest.size; i++) {
+    if (dataType.getChildType()->typeID == VAR_LIST) {
+        for (auto i = 0u; i < dst.size; i++) {
             InMemOverflowBufferUtils::copyListRecursiveIfNested(
-                ((ku_list_t*)src.overflowPtr)[i + srcStartIdx], ((ku_list_t*)dest.overflowPtr)[i],
-                *dataType.childType, inMemOverflowBuffer);
+                ((ku_list_t*)src.overflowPtr)[i + srcStartIdx], ((ku_list_t*)dst.overflowPtr)[i],
+                *dataType.getChildType(), inMemOverflowBuffer);
         }
     }
 }

@@ -20,8 +20,8 @@ TEST_F(TinySnbCopyIntervalTest, NodePropertyColumnWithInterval) {
     auto graph = getStorageManager(*database);
     auto catalog = getCatalog(*database);
     auto tableID = catalog->getReadOnlyVersion()->getTableID("person");
-    auto propertyIdx = catalog->getReadOnlyVersion()->getNodeProperty(tableID, "lastJobDuration");
-    auto col = graph->getNodesStore().getNodePropertyColumn(tableID, propertyIdx.propertyID);
+    auto propertyID = catalog->getReadOnlyVersion()->getNodeProperty(tableID, "lastJobDuration");
+    auto col = graph->getNodesStore().getNodePropertyColumn(tableID, propertyID.propertyID);
     EXPECT_EQ(Interval::FromCString(
                   "3 years 2 days 13 hours 2 minutes", strlen("3 years 2 days 13 hours 2 minutes")),
         col->readValueForTestingOnly(0).val.intervalVal);

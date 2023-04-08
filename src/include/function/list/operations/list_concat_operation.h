@@ -14,7 +14,7 @@ public:
     static inline void operation(common::ku_list_t& left, common::ku_list_t& right,
         common::ku_list_t& result, common::ValueVector& resultValueVector) {
         auto elementSize =
-            common::Types::getDataTypeSize(resultValueVector.dataType.childType->typeID);
+            common::Types::getDataTypeSize(resultValueVector.dataType.getChildType()->typeID);
         result.overflowPtr =
             reinterpret_cast<uint64_t>(resultValueVector.getOverflowBuffer().allocateSpace(
                 (left.size + right.size) * elementSize));

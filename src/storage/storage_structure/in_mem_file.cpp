@@ -129,7 +129,7 @@ void InMemOverflowFile::copyVarSizedValuesInList(ku_list_t& resultKUList, const 
 ku_list_t InMemOverflowFile::copyList(const Value& listValue, PageByteCursor& overflowCursor) {
     assert(listValue.dataType.typeID == VAR_LIST);
     ku_list_t resultKUList;
-    auto numBytesOfListElement = Types::getDataTypeSize(*listValue.dataType.childType);
+    auto numBytesOfListElement = Types::getDataTypeSize(*listValue.dataType.getChildType());
     resultKUList.size = listValue.listVal.size();
     // Allocate a new page if necessary.
     if (overflowCursor.offsetInPage + (resultKUList.size * numBytesOfListElement) >=
@@ -140,7 +140,7 @@ ku_list_t InMemOverflowFile::copyList(const Value& listValue, PageByteCursor& ov
     }
     TypeUtils::encodeOverflowPtr(
         resultKUList.overflowPtr, overflowCursor.pageIdx, overflowCursor.offsetInPage);
-    switch (listValue.dataType.childType->typeID) {
+    switch (listValue.dataType.getChildType()->typeID) {
     case INT64:
     case DOUBLE:
     case BOOL:
@@ -204,7 +204,7 @@ void InMemOverflowFile::copyListOverflowFromFile(InMemOverflowFile* srcInMemOver
             TypeUtils::decodeOverflowPtr(
                 elementsInList[i].overflowPtr, elementCursor.pageIdx, elementCursor.offsetInPage);
             copyListOverflowFromFile(srcInMemOverflowFile, elementCursor, dstOverflowCursor,
-                &elementsInList[i], listChildDataType->childType.get());
+                &elementsInList[i], listChildDataType->getChildType());
         }
     } else if (listChildDataType->typeID == STRING) {
         auto elementsInList = (ku_string_t*)dataToCopyFrom;
@@ -274,7 +274,7 @@ void InMemOverflowFile::resetElementsOverflowPtrIfNecessary(PageByteCursor& page
     if (elementType->typeID == VAR_LIST) {
         auto kuListPtr = reinterpret_cast<ku_list_t*>(elementsToReset);
         for (auto i = 0u; i < numElementsToReset; i++) {
-            copyListOverflowToFile(pageByteCursor, kuListPtr, elementType->childType.get());
+            copyListOverflowToFile(pageByteCursor, kuListPtr, elementType->getChildType());
             kuListPtr++;
         }
     } else if (elementType->typeID == STRING) {

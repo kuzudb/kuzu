@@ -196,7 +196,7 @@ std::unique_ptr<Value> TableCopier::getArrowVarList(const std::string& l, int64_
     assert(dataType.typeID == common::VAR_LIST || dataType.typeID == common::FIXED_LIST);
     auto split = getListElementPos(l, from, to, copyDescription);
     std::vector<std::unique_ptr<Value>> values;
-    auto childDataType = *dataType.childType;
+    auto childDataType = *dataType.getChildType();
     for (auto pair : split) {
         std::string element = l.substr(pair.first, pair.second);
         if (element.empty()) {
@@ -233,11 +233,11 @@ std::unique_ptr<Value> TableCopier::getArrowVarList(const std::string& l, int64_
         } break;
         case VAR_LIST: {
             value = getArrowVarList(l, pair.first + 1, pair.second + pair.first - 1,
-                *dataType.childType, copyDescription);
+                *dataType.getChildType(), copyDescription);
         } break;
         default:
             throw ReaderException("Unsupported data type " +
-                                  Types::dataTypeToString(dataType.childType->typeID) +
+                                  Types::dataTypeToString(dataType.getChildType()->typeID) +
                                   " inside LIST");
         }
         values.push_back(std::move(value));
@@ -257,7 +257,7 @@ std::unique_ptr<uint8_t[]> TableCopier::getArrowFixedList(const std::string& l, 
     assert(dataType.typeID == common::FIXED_LIST);
     auto split = getListElementPos(l, from, to, copyDescription);
     auto listVal = std::make_unique<uint8_t[]>(Types::getDataTypeSize(dataType));
-    auto childDataType = *dataType.childType;
+    auto childDataType = *dataType.getChildType();
     uint64_t numElementsRead = 0;
     for (auto pair : split) {
         std::string element = l.substr(pair.first, pair.second);
@@ -292,15 +292,16 @@ std::unique_ptr<uint8_t[]> TableCopier::getArrowFixedList(const std::string& l, 
         } break;
         default: {
             throw ReaderException("Unsupported data type " +
-                                  Types::dataTypeToString(dataType.childType->typeID) +
+                                  Types::dataTypeToString(dataType.getChildType()->typeID) +
                                   " inside FIXED_LIST");
         }
         }
     }
-    if (numElementsRead != dataType.fixedNumElementsInList) {
+    auto extraTypeInfo = reinterpret_cast<FixedListTypeInfo*>(dataType.getExtraTypeInfo());
+    if (numElementsRead != extraTypeInfo->getFixedNumElementsInList()) {
         throw ReaderException(StringUtils::string_format(
             "Each fixed list should have fixed number of elements. Expected: {}, Actual: {}.",
-            dataType.fixedNumElementsInList, numElementsRead));
+            extraTypeInfo->getFixedNumElementsInList(), numElementsRead));
     }
     return listVal;
 }

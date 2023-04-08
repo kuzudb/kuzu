@@ -489,3 +489,16 @@ TEST_F(BinderErrorTest, InvalidFixedListSize) {
     auto input = "create node table test1(ID INT64, marks INT64[512], PRIMARY KEY(ID))";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
+
+TEST_F(BinderErrorTest, MissingStructFieldType) {
+    std::string expectedException = "Cannot parse dataTypeID: INT35";
+    auto input = "create node table test1(ID INT64, description STRUCT(name INT64, age INT35), "
+                 "PRIMARY KEY(ID))";
+    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
+}
+
+TEST_F(BinderErrorTest, MissingStructFields) {
+    std::string expectedException = "Cannot parse struct type: STRUCT";
+    auto input = "create node table test1(ID INT64, description STRUCT, PRIMARY KEY(ID))";
+    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
+}

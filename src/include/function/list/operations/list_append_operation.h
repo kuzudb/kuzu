@@ -15,7 +15,8 @@ struct ListAppend {
     template<typename T>
     static inline void operation(common::ku_list_t& list, T& element, common::ku_list_t& result,
         common::ValueVector& resultValueVector) {
-        auto elementSize = common::Types::getDataTypeSize(*resultValueVector.dataType.childType);
+        auto elementSize =
+            common::Types::getDataTypeSize(*resultValueVector.dataType.getChildType());
         result.overflowPtr = reinterpret_cast<uint64_t>(
             resultValueVector.getOverflowBuffer().allocateSpace((list.size + 1) * elementSize));
         result.size = list.size + 1;
