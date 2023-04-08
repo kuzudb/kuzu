@@ -279,6 +279,7 @@ void EmbeddedShell::setNumThreads(const std::string& numThreadsString) {
     } catch (std::exception& e) {
         printf(
             "Cannot parse '%s' as number of threads. Expect integer.\n", numThreadsString.c_str());
+        return;
     }
     try {
         conn->setMaxNumThreadForExec(numThreads);
