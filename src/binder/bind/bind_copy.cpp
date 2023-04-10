@@ -63,13 +63,13 @@ std::unordered_map<common::property_id_t, std::string> Binder::bindPropertyToNpy
             "Number of npy files is not equal to number of properties in table {}.",
             tableSchema->tableName));
     }
-    std::unordered_map<common::property_id_t, std::string> propertyIdxToNpyMap;
+    std::unordered_map<common::property_id_t, std::string> propertyIDToNpyMap;
     for (int i = 0; i < filePaths.size(); i++) {
         auto& filePath = filePaths[i];
         auto& propertyID = tableSchema->properties[i].propertyID;
-        propertyIdxToNpyMap[propertyID] = filePath;
+        propertyIDToNpyMap[propertyID] = filePath;
     }
-    return propertyIdxToNpyMap;
+    return propertyIDToNpyMap;
 }
 
 CSVReaderConfig Binder::bindParsingOptions(

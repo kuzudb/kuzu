@@ -79,7 +79,7 @@ public:
     // direction, otherwise it returns UINT64_MAX.
     inline list_offset_t getListOffset(common::nodeID_t nodeID, int64_t relID) {
         return adjLists != nullptr ? ((RelIDList*)getPropertyLists(
-                                          catalog::RelTableSchema::INTERNAL_REL_ID_PROPERTY_IDX))
+                                          catalog::RelTableSchema::INTERNAL_REL_ID_PROPERTY_ID))
                                          ->getListOffset(nodeID.offset, relID) :
                                      UINT64_MAX;
     }

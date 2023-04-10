@@ -76,7 +76,7 @@ TEST_F(CatalogTest, AddTablesTest) {
     // Test property definition
     // primary key of person table is a column name ID, which is at idx 0 in the predefined
     // properties
-    ASSERT_EQ(0 /* pkPropertyIdx */,
+    ASSERT_EQ(0 /* pkpropertyID */,
         ((NodeTableSchema*)catalog->getReadOnlyVersion()->getTableSchema(PERSON_TABLE_ID))
             ->primaryKeyPropertyID);
 
@@ -103,7 +103,8 @@ TEST_F(CatalogTest, AddTablesTest) {
         VAR_LIST);
     ASSERT_EQ(catalog->getReadOnlyVersion()
                   ->getNodeProperty(PERSON_TABLE_ID, "workedHours")
-                  .dataType.childType->typeID,
+                  .dataType.getChildType()
+                  ->typeID,
         INT64);
     ASSERT_EQ(catalog->getReadOnlyVersion()
                   ->getNodeProperty(PERSON_TABLE_ID, "usedNames")
@@ -111,7 +112,8 @@ TEST_F(CatalogTest, AddTablesTest) {
         VAR_LIST);
     ASSERT_EQ(catalog->getReadOnlyVersion()
                   ->getNodeProperty(PERSON_TABLE_ID, "usedNames")
-                  .dataType.childType->typeID,
+                  .dataType.getChildType()
+                  ->typeID,
         STRING);
     ASSERT_EQ(catalog->getReadOnlyVersion()
                   ->getNodeProperty(PERSON_TABLE_ID, "courseScoresPerTerm")
@@ -120,11 +122,14 @@ TEST_F(CatalogTest, AddTablesTest) {
 
     ASSERT_EQ(catalog->getReadOnlyVersion()
                   ->getNodeProperty(PERSON_TABLE_ID, "courseScoresPerTerm")
-                  .dataType.childType->typeID,
+                  .dataType.getChildType()
+                  ->typeID,
         VAR_LIST);
     ASSERT_EQ(catalog->getReadOnlyVersion()
                   ->getNodeProperty(PERSON_TABLE_ID, "courseScoresPerTerm")
-                  .dataType.childType->childType->typeID,
+                  .dataType.getChildType()
+                  ->getChildType()
+                  ->typeID,
         INT64);
     ASSERT_EQ(catalog->getReadOnlyVersion()->getRelProperty(KNOWS_TABLE_ID, "date").dataType.typeID,
         DATE);
@@ -143,7 +148,7 @@ TEST_F(CatalogTest, SaveAndReadTest) {
     newCatalog->getReadOnlyVersion()->readFromFile(CATALOG_TEMP_DIRECTORY, DBFileType::ORIGINAL);
     /* primary key of person table is a column name ID, which is at idx 0 in the predefined
      * properties */
-    ASSERT_EQ(0 /* pkPropertyIdx */,
+    ASSERT_EQ(0 /* pkpropertyID */,
         ((NodeTableSchema*)newCatalog->getReadOnlyVersion()->getTableSchema(PERSON_TABLE_ID))
             ->primaryKeyPropertyID);
     // Test getting table id from string

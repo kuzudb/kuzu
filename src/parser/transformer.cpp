@@ -987,11 +987,7 @@ std::vector<std::pair<std::string, std::string>> Transformer::transformPropertyD
 }
 
 std::string Transformer::transformDataType(CypherParser::KU_DataTypeContext& ctx) {
-    auto dataType = transformSymbolicName(*ctx.oC_SymbolicName());
-    if (ctx.kU_ListIdentifiers()) {
-        dataType += transformListIdentifiers(*ctx.kU_ListIdentifiers());
-    }
-    return dataType;
+    return ctx.getText();
 }
 
 std::string Transformer::transformListIdentifiers(CypherParser::KU_ListIdentifiersContext& ctx) {

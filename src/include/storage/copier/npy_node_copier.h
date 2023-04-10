@@ -38,7 +38,7 @@ private:
     void populateColumnsFromNpy(std::unique_ptr<HashIndexBuilder<int64_t>>& pkIndex);
 
     void assignCopyNpyTasks(
-        common::property_id_t propertyIdx, std::unique_ptr<HashIndexBuilder<int64_t>>& pkIndex);
+        common::property_id_t propertyID, std::unique_ptr<HashIndexBuilder<int64_t>>& pkIndex);
 
     static void batchPopulateColumnsTask(common::property_id_t primaryKeyPropertyIdx,
         uint64_t blockIdx, offset_t startOffset, uint64_t numLinesInCurBlock,

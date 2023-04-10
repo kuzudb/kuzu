@@ -52,7 +52,7 @@ std::unique_ptr<BoundReadingClause> Binder::bindUnwindClause(const ReadingClause
     auto boundExpression = expressionBinder.bindExpression(*unwindClause.getExpression());
     boundExpression = ExpressionBinder::implicitCastIfNecessary(boundExpression, VAR_LIST);
     auto aliasExpression =
-        createVariable(unwindClause.getAlias(), *boundExpression->dataType.childType);
+        createVariable(unwindClause.getAlias(), *boundExpression->dataType.getChildType());
     return make_unique<BoundUnwindClause>(std::move(boundExpression), std::move(aliasExpression));
 }
 

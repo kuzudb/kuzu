@@ -185,18 +185,19 @@ DataType Binder::bindDataType(const std::string& dataType) {
     auto boundType = Types::dataTypeFromString(dataType);
     if (boundType.typeID == common::FIXED_LIST) {
         auto validNumericTypes = common::DataType::getNumericalTypeIDs();
-        if (find(validNumericTypes.begin(), validNumericTypes.end(), boundType.childType->typeID) ==
-            validNumericTypes.end()) {
+        auto fixedListTypeInfo = reinterpret_cast<FixedListTypeInfo*>(boundType.getExtraTypeInfo());
+        if (find(validNumericTypes.begin(), validNumericTypes.end(),
+                boundType.getChildType()->typeID) == validNumericTypes.end()) {
             throw common::BinderException(
                 "The child type of a fixed list must be a numeric type. Given: " +
-                common::Types::dataTypeToString(*boundType.childType) + ".");
+                common::Types::dataTypeToString(*boundType.getChildType()) + ".");
         }
-        if (boundType.fixedNumElementsInList == 0) {
+        if (fixedListTypeInfo->getFixedNumElementsInList() == 0) {
             // Note: the parser already guarantees that the number of elements is a non-negative
             // number. However, we still need to check whether the number of elements is 0.
             throw common::BinderException(
                 "The number of elements in a fixed list must be greater than 0. Given: " +
-                std::to_string(boundType.fixedNumElementsInList) + ".");
+                std::to_string(fixedListTypeInfo->getFixedNumElementsInList()) + ".");
         }
         auto numElementsPerPage = storage::PageUtils::getNumElementsInAPage(
             Types::getDataTypeSize(boundType), true /* hasNull */);

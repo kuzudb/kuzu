@@ -17,7 +17,7 @@ struct ListSlice {
         int64_t startIdx = (begin == 0) ? 1 : begin;
         int64_t endIdx = (end == 0) ? list.size : end;
         auto elementSize =
-            common::Types::getDataTypeSize(resultValueVector.dataType.childType->typeID);
+            common::Types::getDataTypeSize(resultValueVector.dataType.getChildType()->typeID);
         result.size = endIdx - startIdx;
         result.overflowPtr = reinterpret_cast<uint64_t>(
             resultValueVector.getOverflowBuffer().allocateSpace(result.size * elementSize));

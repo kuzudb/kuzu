@@ -289,7 +289,7 @@ void ListsUpdatesStore::initInsertedRelsAndListsUpdates() {
         false /* isUnflat */, 0 /* dataChunkPos */, sizeof(nodeID_t)));
     for (auto& relProperty : relTableSchema.properties) {
         auto numBytesForProperty =
-            relProperty.propertyID == RelTableSchema::INTERNAL_REL_ID_PROPERTY_IDX ?
+            relProperty.propertyID == RelTableSchema::INTERNAL_REL_ID_PROPERTY_ID ?
                 sizeof(offset_t) :
                 Types::getDataTypeSize(relProperty.dataType);
         propertyIDToColIdxMap.emplace(

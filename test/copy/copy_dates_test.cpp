@@ -18,10 +18,10 @@ class TinySnbCopyDateTest : public DBTest {
 TEST_F(TinySnbCopyDateTest, NodePropertyColumnWithDate) {
     auto catalog = getCatalog(*database);
     auto tableID = catalog->getReadOnlyVersion()->getTableID("person");
-    auto propertyIdx = catalog->getReadOnlyVersion()->getNodeProperty(tableID, "birthdate");
+    auto propertyID = catalog->getReadOnlyVersion()->getNodeProperty(tableID, "birthdate");
     auto storageManager = getStorageManager(*database);
     auto col =
-        storageManager->getNodesStore().getNodePropertyColumn(tableID, propertyIdx.propertyID);
+        storageManager->getNodesStore().getNodePropertyColumn(tableID, propertyID.propertyID);
     auto dummyReadOnlyTrx = Transaction::getDummyReadOnlyTrx();
     ASSERT_FALSE(col->isNull(0, dummyReadOnlyTrx.get()));
     EXPECT_EQ(Date::FromDate(1900, 1, 1).days, col->readValueForTestingOnly(0).val.dateVal.days);

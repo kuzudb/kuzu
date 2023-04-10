@@ -81,9 +81,9 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> ListLenVectorOperation::
 
 void ListExtractVectorOperation::listExtractBindFunc(const std::vector<DataType>& argumentTypes,
     FunctionDefinition* definition, DataType& returnType) {
-    definition->returnTypeID = argumentTypes[0].childType->typeID;
+    definition->returnTypeID = argumentTypes[0].getChildType()->typeID;
     auto vectorOperationDefinition = reinterpret_cast<VectorOperationDefinition*>(definition);
-    returnType = *argumentTypes[0].childType;
+    returnType = *argumentTypes[0].getChildType();
     switch (definition->returnTypeID) {
     case BOOL: {
         vectorOperationDefinition->execFunc =
@@ -157,7 +157,7 @@ ListConcatVectorOperation::getDefinitions() {
 
 void ListAppendVectorOperation::listAppendBindFunc(const std::vector<DataType>& argumentTypes,
     FunctionDefinition* definition, DataType& returnType) {
-    if (*argumentTypes[0].childType != argumentTypes[1]) {
+    if (*argumentTypes[0].getChildType() != argumentTypes[1]) {
         throw BinderException(getListFunctionIncompatibleChildrenTypeErrorMsg(
             LIST_APPEND_FUNC_NAME, argumentTypes[0], argumentTypes[1]));
     }
@@ -214,7 +214,7 @@ ListAppendVectorOperation::getDefinitions() {
 
 void ListPrependVectorOperation::listPrependBindFunc(const std::vector<DataType>& argumentTypes,
     FunctionDefinition* definition, DataType& returnType) {
-    if (argumentTypes[0] != *argumentTypes[1].childType) {
+    if (argumentTypes[0] != *argumentTypes[1].getChildType()) {
         throw BinderException(getListFunctionIncompatibleChildrenTypeErrorMsg(
             LIST_APPEND_FUNC_NAME, argumentTypes[0], argumentTypes[1]));
     }

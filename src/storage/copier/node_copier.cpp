@@ -116,8 +116,8 @@ void NodeCopier::populatePKIndex(InMemColumnChunk* chunk, InMemOverflowFile* ove
 }
 
 template<typename T1, typename T2>
-arrow::Status NodeCopier::batchPopulateColumnsTask(uint64_t primaryKeyPropertyIdx,
-    uint64_t blockIdx, uint64_t startOffset, HashIndexBuilder<T1>* pkIndex, NodeCopier* copier,
+arrow::Status NodeCopier::batchPopulateColumnsTask(uint64_t primaryKeypropertyID, uint64_t blockIdx,
+    uint64_t startOffset, HashIndexBuilder<T1>* pkIndex, NodeCopier* copier,
     const std::vector<std::shared_ptr<T2>>& batchArrays, std::string filePath) {
     copier->logger->trace("Start: path={0} blkIdx={1}", filePath, blockIdx);
     auto numLinesInCurBlock = copier->fileBlockInfos.at(filePath).numLinesPerBlock[blockIdx];
@@ -125,23 +125,23 @@ arrow::Status NodeCopier::batchPopulateColumnsTask(uint64_t primaryKeyPropertyId
     // Create a column chunk for tuples within the [StartOffset, endOffset] range.
     auto endOffset = startOffset + numLinesInCurBlock - 1;
     std::unordered_map<uint64_t, std::unique_ptr<InMemColumnChunk>> chunks;
-    for (auto& [propertyIdx, column] : copier->columns) {
-        chunks[propertyIdx] = std::make_unique<InMemColumnChunk>(startOffset, endOffset,
+    for (auto& [propertyID, column] : copier->columns) {
+        chunks[propertyID] = std::make_unique<InMemColumnChunk>(startOffset, endOffset,
             column->getNumBytesForElement(), column->getNumElementsInAPage());
     }
     std::vector<PageByteCursor> overflowCursors(copier->tableSchema->getNumProperties());
-    for (auto& [propertyIdx, column] : copier->columns) {
-        putPropsOfLinesIntoColumns(chunks.at(propertyIdx).get(), column.get(),
-            batchArrays[propertyIdx], startOffset, numLinesInCurBlock, copier->copyDescription,
-            overflowCursors[propertyIdx]);
+    for (auto& [propertyID, column] : copier->columns) {
+        putPropsOfLinesIntoColumns(chunks.at(propertyID).get(), column.get(),
+            batchArrays[propertyID], startOffset, numLinesInCurBlock, copier->copyDescription,
+            overflowCursors[propertyID]);
     }
     // Flush each page within the [StartOffset, endOffset] range.
-    for (auto& [propertyIdx, column] : copier->columns) {
-        column->flushChunk(chunks[propertyIdx].get(), startOffset, endOffset);
+    for (auto& [propertyID, column] : copier->columns) {
+        column->flushChunk(chunks[propertyID].get(), startOffset, endOffset);
     }
 
-    auto pkColumn = copier->columns.at(primaryKeyPropertyIdx).get();
-    populatePKIndex(chunks[primaryKeyPropertyIdx].get(), pkColumn->getInMemOverflowFile(),
+    auto pkColumn = copier->columns.at(primaryKeypropertyID).get();
+    populatePKIndex(chunks[primaryKeypropertyID].get(), pkColumn->getInMemOverflowFile(),
         pkColumn->getNullMask(), pkIndex, startOffset, numLinesInCurBlock);
 
     copier->logger->trace("End: path={0} blkIdx={1}", filePath, blockIdx);

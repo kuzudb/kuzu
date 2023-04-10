@@ -58,12 +58,12 @@ std::string TypeUtils::elementToString(
 std::string TypeUtils::toString(const ku_list_t& val, const DataType& dataType) {
     std::string result = "[";
     for (auto i = 0u; i < val.size - 1; ++i) {
-        result +=
-            elementToString(*dataType.childType, reinterpret_cast<uint8_t*>(val.overflowPtr), i) +
-            ",";
+        result += elementToString(
+                      *dataType.getChildType(), reinterpret_cast<uint8_t*>(val.overflowPtr), i) +
+                  ",";
     }
-    result += elementToString(
-                  *dataType.childType, reinterpret_cast<uint8_t*>(val.overflowPtr), val.size - 1) +
+    result += elementToString(*dataType.getChildType(), reinterpret_cast<uint8_t*>(val.overflowPtr),
+                  val.size - 1) +
               "]";
     return result;
 }

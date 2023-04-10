@@ -69,6 +69,59 @@ KUZU_API enum DataTypeID : uint8_t {
     // variable size types
     STRING = 50,
     VAR_LIST = 52,
+    STRUCT = 53,
+};
+
+class DataType;
+
+class ExtraTypeInfo {
+public:
+    virtual std::unique_ptr<ExtraTypeInfo> copy() const = 0;
+    virtual ~ExtraTypeInfo() = default;
+};
+
+class VarListTypeInfo : public ExtraTypeInfo {
+    friend class SerDeser;
+
+public:
+    explicit VarListTypeInfo(std::unique_ptr<DataType> childType)
+        : childType{std::move(childType)} {}
+    VarListTypeInfo() = default;
+    inline DataType* getChildType() const { return childType.get(); }
+    bool operator==(const VarListTypeInfo& other) const;
+    std::unique_ptr<ExtraTypeInfo> copy() const override;
+
+protected:
+    std::unique_ptr<DataType> childType;
+};
+
+class FixedListTypeInfo : public VarListTypeInfo {
+    friend class SerDeser;
+
+public:
+    explicit FixedListTypeInfo(std::unique_ptr<DataType> childType, uint64_t fixedNumElementsInList)
+        : VarListTypeInfo{std::move(childType)}, fixedNumElementsInList{fixedNumElementsInList} {}
+    FixedListTypeInfo() = default;
+    inline uint64_t getFixedNumElementsInList() const { return fixedNumElementsInList; }
+    bool operator==(const FixedListTypeInfo& other) const;
+    std::unique_ptr<ExtraTypeInfo> copy() const override;
+
+private:
+    uint64_t fixedNumElementsInList;
+};
+
+class StructTypeInfo : public ExtraTypeInfo {
+    friend class SerDeser;
+
+public:
+    explicit StructTypeInfo(std::vector<std::unique_ptr<DataType>> childrenTypes)
+        : childrenTypes{std::move(childrenTypes)} {}
+    StructTypeInfo() = default;
+    std::unique_ptr<ExtraTypeInfo> copy() const override;
+    std::vector<DataType*> getChildrenTypes() const;
+
+private:
+    std::vector<std::unique_ptr<DataType>> childrenTypes;
 };
 
 class DataType {
@@ -78,6 +131,7 @@ public:
     KUZU_API DataType(DataTypeID typeID, std::unique_ptr<DataType> childType);
     KUZU_API DataType(
         DataTypeID typeID, std::unique_ptr<DataType> childType, uint64_t fixedNumElementsInList);
+    KUZU_API DataType(DataTypeID typeID, std::vector<std::unique_ptr<DataType>> childrenTypes);
     KUZU_API DataType(const DataType& other);
     KUZU_API DataType(DataType&& other) noexcept;
 
@@ -94,16 +148,16 @@ public:
     KUZU_API DataType& operator=(DataType&& other) noexcept;
 
     KUZU_API DataTypeID getTypeID() const;
-    KUZU_API DataType* getChildType() const;
+
+    DataType* getChildType() const;
+
+    std::unique_ptr<DataType> copy();
+
+    ExtraTypeInfo* getExtraTypeInfo() const;
 
 public:
     DataTypeID typeID;
-    // The following fields are only used by LIST DataType.
-    std::unique_ptr<DataType> childType;
-    uint64_t fixedNumElementsInList = UINT64_MAX;
-
-private:
-    std::unique_ptr<DataType> copy();
+    std::unique_ptr<ExtraTypeInfo> extraTypeInfo;
 };
 
 class Types {

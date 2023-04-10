@@ -18,8 +18,8 @@ TEST_F(TinySnbTimestampTest, NodePropertyColumnWithTimestamp) {
     auto graph = getStorageManager(*database);
     auto& catalog = *getCatalog(*database);
     auto table = catalog.getReadOnlyVersion()->getTableID("person");
-    auto propertyIdx = catalog.getReadOnlyVersion()->getNodeProperty(table, "registerTime");
-    auto col = graph->getNodesStore().getNodePropertyColumn(table, propertyIdx.propertyID);
+    auto propertyID = catalog.getReadOnlyVersion()->getNodeProperty(table, "registerTime");
+    auto col = graph->getNodesStore().getNodePropertyColumn(table, propertyID.propertyID);
     EXPECT_EQ(Timestamp::FromDatetime(Date::FromDate(2011, 8, 20), Time::FromTime(11, 25, 30)),
         col->readValueForTestingOnly(0).val.timestampVal);
     EXPECT_EQ(

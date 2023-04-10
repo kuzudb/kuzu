@@ -379,8 +379,8 @@ void RelCopier::putPropsOfLineIntoColumns(RelCopier* copier,
     auto& properties = copier->tableSchema->properties;
     auto& directionTablePropertyColumns = copier->propertyColumnsPerDirection;
     auto& inMemOverflowFilePerPropertyID = copier->overflowFilePerPropertyID;
-    for (auto propertyIdx = RelTableSchema::INTERNAL_REL_ID_PROPERTY_IDX + 1;
-         propertyIdx < properties.size(); propertyIdx++) {
+    for (auto propertyID = RelTableSchema::INTERNAL_REL_ID_PROPERTY_ID + 1;
+         propertyID < properties.size(); propertyID++) {
         if (colIndex >= batchColumns.size()) {
             throw CopyException("Number of columns mismatch.");
         }
@@ -392,70 +392,70 @@ void RelCopier::putPropsOfLineIntoColumns(RelCopier* copier,
         auto stringToken =
             currentToken->get()->ToString().substr(0, BufferPoolConstants::PAGE_4KB_SIZE);
         const char* data = stringToken.c_str();
-        switch (properties[propertyIdx].dataType.typeID) {
+        switch (properties[propertyID].dataType.typeID) {
         case INT64: {
             auto val = TypeUtils::convertStringToNumber<int64_t>(data);
-            putValueIntoColumns(propertyIdx, directionTablePropertyColumns, nodeIDs,
+            putValueIntoColumns(propertyID, directionTablePropertyColumns, nodeIDs,
                 reinterpret_cast<uint8_t*>(&val));
         } break;
         case INT32: {
             auto val = TypeUtils::convertStringToNumber<int32_t>(data);
-            putValueIntoColumns(propertyIdx, directionTablePropertyColumns, nodeIDs,
+            putValueIntoColumns(propertyID, directionTablePropertyColumns, nodeIDs,
                 reinterpret_cast<uint8_t*>(&val));
         } break;
         case INT16: {
             auto val = TypeUtils::convertStringToNumber<int16_t>(data);
-            putValueIntoColumns(propertyIdx, directionTablePropertyColumns, nodeIDs,
+            putValueIntoColumns(propertyID, directionTablePropertyColumns, nodeIDs,
                 reinterpret_cast<uint8_t*>(&val));
         } break;
         case DOUBLE: {
             auto val = TypeUtils::convertStringToNumber<double_t>(data);
-            putValueIntoColumns(propertyIdx, directionTablePropertyColumns, nodeIDs,
+            putValueIntoColumns(propertyID, directionTablePropertyColumns, nodeIDs,
                 reinterpret_cast<uint8_t*>(&val));
         } break;
         case BOOL: {
             auto val = TypeUtils::convertToBoolean(data);
-            putValueIntoColumns(propertyIdx, directionTablePropertyColumns, nodeIDs,
+            putValueIntoColumns(propertyID, directionTablePropertyColumns, nodeIDs,
                 reinterpret_cast<uint8_t*>(&val));
         } break;
         case DATE: {
             auto val = Date::FromCString(data, stringToken.length());
-            putValueIntoColumns(propertyIdx, directionTablePropertyColumns, nodeIDs,
+            putValueIntoColumns(propertyID, directionTablePropertyColumns, nodeIDs,
                 reinterpret_cast<uint8_t*>(&val));
         } break;
         case TIMESTAMP: {
             auto val = Timestamp::FromCString(data, stringToken.length());
-            putValueIntoColumns(propertyIdx, directionTablePropertyColumns, nodeIDs,
+            putValueIntoColumns(propertyID, directionTablePropertyColumns, nodeIDs,
                 reinterpret_cast<uint8_t*>(&val));
         } break;
         case INTERVAL: {
             auto val = Interval::FromCString(data, stringToken.length());
-            putValueIntoColumns(propertyIdx, directionTablePropertyColumns, nodeIDs,
+            putValueIntoColumns(propertyID, directionTablePropertyColumns, nodeIDs,
                 reinterpret_cast<uint8_t*>(&val));
         } break;
         case STRING: {
-            auto kuStr = inMemOverflowFilePerPropertyID[propertyIdx]->copyString(
-                data, inMemOverflowFileCursors[propertyIdx]);
-            putValueIntoColumns(propertyIdx, directionTablePropertyColumns, nodeIDs,
+            auto kuStr = inMemOverflowFilePerPropertyID[propertyID]->copyString(
+                data, inMemOverflowFileCursors[propertyID]);
+            putValueIntoColumns(propertyID, directionTablePropertyColumns, nodeIDs,
                 reinterpret_cast<uint8_t*>(&kuStr));
         } break;
         case VAR_LIST: {
             auto varListVal = getArrowVarList(stringToken, 1, stringToken.length() - 2,
-                properties[propertyIdx].dataType, copier->copyDescription);
-            auto kuList = inMemOverflowFilePerPropertyID[propertyIdx]->copyList(
-                *varListVal, inMemOverflowFileCursors[propertyIdx]);
-            putValueIntoColumns(propertyIdx, directionTablePropertyColumns, nodeIDs,
+                properties[propertyID].dataType, copier->copyDescription);
+            auto kuList = inMemOverflowFilePerPropertyID[propertyID]->copyList(
+                *varListVal, inMemOverflowFileCursors[propertyID]);
+            putValueIntoColumns(propertyID, directionTablePropertyColumns, nodeIDs,
                 reinterpret_cast<uint8_t*>(&kuList));
         } break;
         case FIXED_LIST: {
             auto fixedListVal = getArrowFixedList(stringToken, 1, stringToken.length() - 2,
-                properties[propertyIdx].dataType, copier->copyDescription);
+                properties[propertyID].dataType, copier->copyDescription);
             putValueIntoColumns(
-                propertyIdx, directionTablePropertyColumns, nodeIDs, fixedListVal.get());
+                propertyID, directionTablePropertyColumns, nodeIDs, fixedListVal.get());
         } break;
         case FLOAT: {
             auto val = TypeUtils::convertStringToNumber<float_t>(data);
-            putValueIntoColumns(propertyIdx, directionTablePropertyColumns, nodeIDs,
+            putValueIntoColumns(propertyID, directionTablePropertyColumns, nodeIDs,
                 reinterpret_cast<uint8_t*>(&val));
         } break;
         default:
@@ -475,8 +475,8 @@ void RelCopier::putPropsOfLineIntoLists(RelCopier* copier,
     auto& directionTablePropertyLists = copier->propertyListsPerDirection;
     auto& directionTableAdjLists = copier->adjListsPerDirection;
     auto& inMemOverflowFilesPerProperty = copier->overflowFilePerPropertyID;
-    for (auto propertyIdx = RelTableSchema::INTERNAL_REL_ID_PROPERTY_IDX + 1;
-         propertyIdx < properties.size(); propertyIdx++) {
+    for (auto propertyID = RelTableSchema::INTERNAL_REL_ID_PROPERTY_ID + 1;
+         propertyID < properties.size(); propertyID++) {
         if (colIndex >= batchColumns.size()) {
             throw CopyException("Number of columns mismatch.");
         }
@@ -488,70 +488,70 @@ void RelCopier::putPropsOfLineIntoLists(RelCopier* copier,
         auto stringToken =
             currentToken->get()->ToString().substr(0, BufferPoolConstants::PAGE_4KB_SIZE);
         const char* data = stringToken.c_str();
-        switch (properties[propertyIdx].dataType.typeID) {
+        switch (properties[propertyID].dataType.typeID) {
         case INT64: {
             auto val = TypeUtils::convertStringToNumber<int64_t>(data);
-            putValueIntoLists(propertyIdx, directionTablePropertyLists, directionTableAdjLists,
+            putValueIntoLists(propertyID, directionTablePropertyLists, directionTableAdjLists,
                 nodeIDs, reversePos, reinterpret_cast<uint8_t*>(&val));
         } break;
         case INT32: {
             auto val = TypeUtils::convertStringToNumber<int64_t>(data);
-            putValueIntoLists(propertyIdx, directionTablePropertyLists, directionTableAdjLists,
+            putValueIntoLists(propertyID, directionTablePropertyLists, directionTableAdjLists,
                 nodeIDs, reversePos, reinterpret_cast<uint8_t*>(&val));
         } break;
         case INT16: {
             auto val = TypeUtils::convertStringToNumber<int64_t>(data);
-            putValueIntoLists(propertyIdx, directionTablePropertyLists, directionTableAdjLists,
+            putValueIntoLists(propertyID, directionTablePropertyLists, directionTableAdjLists,
                 nodeIDs, reversePos, reinterpret_cast<uint8_t*>(&val));
         } break;
         case DOUBLE: {
             auto val = TypeUtils::convertStringToNumber<double_t>(data);
-            putValueIntoLists(propertyIdx, directionTablePropertyLists, directionTableAdjLists,
+            putValueIntoLists(propertyID, directionTablePropertyLists, directionTableAdjLists,
                 nodeIDs, reversePos, reinterpret_cast<uint8_t*>(&val));
         } break;
         case BOOL: {
             auto val = TypeUtils::convertToBoolean(data);
-            putValueIntoLists(propertyIdx, directionTablePropertyLists, directionTableAdjLists,
+            putValueIntoLists(propertyID, directionTablePropertyLists, directionTableAdjLists,
                 nodeIDs, reversePos, reinterpret_cast<uint8_t*>(&val));
         } break;
         case DATE: {
             auto val = Date::FromCString(data, stringToken.length());
-            putValueIntoLists(propertyIdx, directionTablePropertyLists, directionTableAdjLists,
+            putValueIntoLists(propertyID, directionTablePropertyLists, directionTableAdjLists,
                 nodeIDs, reversePos, reinterpret_cast<uint8_t*>(&val));
         } break;
         case TIMESTAMP: {
             auto val = Timestamp::FromCString(data, stringToken.length());
-            putValueIntoLists(propertyIdx, directionTablePropertyLists, directionTableAdjLists,
+            putValueIntoLists(propertyID, directionTablePropertyLists, directionTableAdjLists,
                 nodeIDs, reversePos, reinterpret_cast<uint8_t*>(&val));
         } break;
         case INTERVAL: {
             auto val = Interval::FromCString(data, stringToken.length());
-            putValueIntoLists(propertyIdx, directionTablePropertyLists, directionTableAdjLists,
+            putValueIntoLists(propertyID, directionTablePropertyLists, directionTableAdjLists,
                 nodeIDs, reversePos, reinterpret_cast<uint8_t*>(&val));
         } break;
         case STRING: {
-            auto kuStr = inMemOverflowFilesPerProperty[propertyIdx]->copyString(
-                data, inMemOverflowFileCursors[propertyIdx]);
-            putValueIntoLists(propertyIdx, directionTablePropertyLists, directionTableAdjLists,
+            auto kuStr = inMemOverflowFilesPerProperty[propertyID]->copyString(
+                data, inMemOverflowFileCursors[propertyID]);
+            putValueIntoLists(propertyID, directionTablePropertyLists, directionTableAdjLists,
                 nodeIDs, reversePos, reinterpret_cast<uint8_t*>(&kuStr));
         } break;
         case VAR_LIST: {
             auto varListVal = getArrowVarList(stringToken, 1, stringToken.length() - 2,
-                properties[propertyIdx].dataType, copyDescription);
-            auto kuList = inMemOverflowFilesPerProperty[propertyIdx]->copyList(
-                *varListVal, inMemOverflowFileCursors[propertyIdx]);
-            putValueIntoLists(propertyIdx, directionTablePropertyLists, directionTableAdjLists,
+                properties[propertyID].dataType, copyDescription);
+            auto kuList = inMemOverflowFilesPerProperty[propertyID]->copyList(
+                *varListVal, inMemOverflowFileCursors[propertyID]);
+            putValueIntoLists(propertyID, directionTablePropertyLists, directionTableAdjLists,
                 nodeIDs, reversePos, reinterpret_cast<uint8_t*>(&kuList));
         } break;
         case FIXED_LIST: {
             auto fixedListVal = getArrowFixedList(stringToken, 1, stringToken.length() - 2,
-                properties[propertyIdx].dataType, copyDescription);
-            putValueIntoLists(propertyIdx, directionTablePropertyLists, directionTableAdjLists,
+                properties[propertyID].dataType, copyDescription);
+            putValueIntoLists(propertyID, directionTablePropertyLists, directionTableAdjLists,
                 nodeIDs, reversePos, fixedListVal.get());
         } break;
         case FLOAT: {
             auto val = TypeUtils::convertStringToNumber<float_t>(data);
-            putValueIntoLists(propertyIdx, directionTablePropertyLists, directionTableAdjLists,
+            putValueIntoLists(propertyID, directionTablePropertyLists, directionTableAdjLists,
                 nodeIDs, reversePos, reinterpret_cast<uint8_t*>(&val));
         } break;
         default:
@@ -581,7 +581,7 @@ void RelCopier::copyListOverflowFromUnorderedToOrderedPages(ku_list_t* kuList,
     TypeUtils::decodeOverflowPtr(
         kuList->overflowPtr, unorderedOverflowCursor.pageIdx, unorderedOverflowCursor.offsetInPage);
     orderedOverflowFile->copyListOverflowFromFile(unorderedOverflowFile, unorderedOverflowCursor,
-        orderedOverflowCursor, kuList, dataType.childType.get());
+        orderedOverflowCursor, kuList, dataType.getChildType());
 }
 
 template<typename T>
@@ -739,7 +739,7 @@ void RelCopier::sortOverflowValuesOfPropertyListsTask(const DataType& dataType,
     }
 }
 
-void RelCopier::putValueIntoColumns(uint64_t propertyIdx,
+void RelCopier::putValueIntoColumns(uint64_t propertyID,
     std::vector<std::unordered_map<property_id_t, std::unique_ptr<InMemColumn>>>&
         directionTablePropertyColumns,
     const std::vector<common::nodeID_t>& nodeIDs, uint8_t* val) {
@@ -747,13 +747,13 @@ void RelCopier::putValueIntoColumns(uint64_t propertyIdx,
         if (directionTablePropertyColumns[relDirection].empty()) {
             continue;
         }
-        auto propertyColumn = directionTablePropertyColumns[relDirection][propertyIdx].get();
+        auto propertyColumn = directionTablePropertyColumns[relDirection][propertyID].get();
         auto nodeOffset = nodeIDs[relDirection].offset;
         propertyColumn->setElement(nodeOffset, val);
     }
 }
 
-void RelCopier::putValueIntoLists(uint64_t propertyIdx,
+void RelCopier::putValueIntoLists(uint64_t propertyID,
     std::vector<std::unordered_map<common::property_id_t, std::unique_ptr<InMemLists>>>&
         directionTablePropertyLists,
     std::vector<std::unique_ptr<InMemAdjLists>>& directionTableAdjLists,
@@ -762,7 +762,7 @@ void RelCopier::putValueIntoLists(uint64_t propertyIdx,
         if (directionTableAdjLists[relDirection] == nullptr) {
             continue;
         }
-        auto propertyList = directionTablePropertyLists[relDirection][propertyIdx].get();
+        auto propertyList = directionTablePropertyLists[relDirection][propertyID].get();
         auto nodeOffset = nodeIDs[relDirection].offset;
         auto header =
             directionTableAdjLists[relDirection]->getListHeadersBuilder()->getHeader(nodeOffset);

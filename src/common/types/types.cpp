@@ -1,63 +1,163 @@
 #include "common/types/types.h"
 
+#include <sstream>
 #include <stdexcept>
 
 #include "common/exception.h"
+#include "common/ser_deser.h"
 #include "common/types/types_include.h"
 
 namespace kuzu {
 namespace common {
 
-DataType::DataType() : typeID{ANY}, childType{nullptr} {}
-
-DataType::DataType(DataTypeID typeID) : typeID{typeID}, childType{nullptr} {
-    assert(typeID != VAR_LIST && typeID != FIXED_LIST);
+template<>
+uint64_t SerDeser::serializeValue(
+    const VarListTypeInfo& value, FileInfo* fileInfo, uint64_t offset) {
+    return SerDeser::serializeValue(*value.getChildType(), fileInfo, offset);
 }
 
+template<>
+uint64_t SerDeser::deserializeValue(VarListTypeInfo& value, FileInfo* fileInfo, uint64_t offset) {
+    value.childType = std::make_unique<DataType>();
+    offset = SerDeser::deserializeValue(*value.getChildType(), fileInfo, offset);
+    return offset;
+}
+
+template<>
+uint64_t SerDeser::serializeValue(
+    const FixedListTypeInfo& value, FileInfo* fileInfo, uint64_t offset) {
+    offset = SerDeser::serializeValue(*value.getChildType(), fileInfo, offset);
+    return SerDeser::serializeValue(value.getFixedNumElementsInList(), fileInfo, offset);
+}
+
+template<>
+uint64_t SerDeser::deserializeValue(FixedListTypeInfo& value, FileInfo* fileInfo, uint64_t offset) {
+    value.childType = std::make_unique<DataType>();
+    offset = SerDeser::deserializeValue(*value.getChildType(), fileInfo, offset);
+    offset = SerDeser::deserializeValue(value.fixedNumElementsInList, fileInfo, offset);
+    return offset;
+}
+
+template<>
+uint64_t SerDeser::serializeValue(
+    const StructTypeInfo& value, FileInfo* fileInfo, uint64_t offset) {
+    auto childrenTypesToReturn = value.getChildrenTypes();
+    return serializeVector(childrenTypesToReturn, fileInfo, offset);
+}
+
+template<>
+uint64_t SerDeser::deserializeValue(StructTypeInfo& value, FileInfo* fileInfo, uint64_t offset) {
+    return deserializeVector(value.childrenTypes, fileInfo, offset);
+}
+
+template<>
+uint64_t SerDeser::serializeValue(const DataType& value, FileInfo* fileInfo, uint64_t offset) {
+    offset = SerDeser::serializeValue(value.typeID, fileInfo, offset);
+    switch (value.getTypeID()) {
+    case VAR_LIST: {
+        auto varListTypeInfo = reinterpret_cast<VarListTypeInfo*>(value.getExtraTypeInfo());
+        offset = serializeValue(*varListTypeInfo, fileInfo, offset);
+    } break;
+    case FIXED_LIST: {
+        auto fixedListTypeInfo = reinterpret_cast<FixedListTypeInfo*>(value.getExtraTypeInfo());
+        offset = serializeValue(*fixedListTypeInfo, fileInfo, offset);
+    } break;
+    case STRUCT: {
+        auto structTypeInfo = reinterpret_cast<StructTypeInfo*>(value.getExtraTypeInfo());
+        offset = serializeValue(*structTypeInfo, fileInfo, offset);
+    } break;
+    default:
+        break;
+    }
+    return offset;
+}
+
+template<>
+uint64_t SerDeser::deserializeValue(DataType& value, FileInfo* fileInfo, uint64_t offset) {
+    offset = SerDeser::deserializeValue(value.typeID, fileInfo, offset);
+    switch (value.getTypeID()) {
+    case VAR_LIST: {
+        value.extraTypeInfo = std::make_unique<VarListTypeInfo>();
+        offset = deserializeValue(
+            *reinterpret_cast<VarListTypeInfo*>(value.getExtraTypeInfo()), fileInfo, offset);
+
+    } break;
+    case FIXED_LIST: {
+        value.extraTypeInfo = std::make_unique<FixedListTypeInfo>();
+        offset = deserializeValue(
+            *reinterpret_cast<FixedListTypeInfo*>(value.getExtraTypeInfo()), fileInfo, offset);
+    } break;
+    case STRUCT: {
+        value.extraTypeInfo = std::make_unique<StructTypeInfo>();
+        offset = deserializeValue(
+            *reinterpret_cast<StructTypeInfo*>(value.getExtraTypeInfo()), fileInfo, offset);
+    } break;
+    default:
+        break;
+    }
+    return offset;
+}
+
+bool VarListTypeInfo::operator==(const kuzu::common::VarListTypeInfo& other) const {
+    return *childType == *other.childType;
+}
+
+std::unique_ptr<ExtraTypeInfo> VarListTypeInfo::copy() const {
+    return std::make_unique<VarListTypeInfo>(childType->copy());
+}
+
+bool FixedListTypeInfo::operator==(const kuzu::common::FixedListTypeInfo& other) const {
+    return *childType == *other.childType && fixedNumElementsInList == other.fixedNumElementsInList;
+}
+
+std::unique_ptr<ExtraTypeInfo> FixedListTypeInfo::copy() const {
+    return std::make_unique<FixedListTypeInfo>(childType->copy(), fixedNumElementsInList);
+}
+
+std::unique_ptr<ExtraTypeInfo> StructTypeInfo::copy() const {
+    std::vector<std::unique_ptr<DataType>> structChildrenTypes;
+    for (auto& childType : childrenTypes) {
+        structChildrenTypes.emplace_back(childType->copy());
+    }
+    return std::make_unique<StructTypeInfo>(std::move(structChildrenTypes));
+}
+
+std::vector<DataType*> StructTypeInfo::getChildrenTypes() const {
+    std::vector<DataType*> childrenTypesToReturn;
+    for (auto& childType : childrenTypes) {
+        childrenTypesToReturn.push_back(childType.get());
+    }
+    return childrenTypesToReturn;
+}
+
+DataType::DataType() : typeID{ANY}, extraTypeInfo{nullptr} {}
+
+DataType::DataType(DataTypeID typeID) : typeID{typeID}, extraTypeInfo{nullptr} {}
+
 DataType::DataType(DataTypeID typeID, std::unique_ptr<DataType> childType)
-    : typeID{typeID}, childType{std::move(childType)} {
+    : typeID{VAR_LIST}, extraTypeInfo{std::make_unique<VarListTypeInfo>(std::move(childType))} {
     assert(typeID == VAR_LIST);
 }
 
 DataType::DataType(
     DataTypeID typeID, std::unique_ptr<DataType> childType, uint64_t fixedNumElementsInList)
-    : typeID{typeID}, childType{std::move(childType)}, fixedNumElementsInList{
-                                                           fixedNumElementsInList} {
+    : typeID{FIXED_LIST}, extraTypeInfo{std::make_unique<FixedListTypeInfo>(
+                              std::move(childType), fixedNumElementsInList)} {
     assert(typeID == FIXED_LIST);
 }
 
+DataType::DataType(DataTypeID typeID, std::vector<std::unique_ptr<DataType>> childrenTypes)
+    : typeID{STRUCT}, extraTypeInfo{std::make_unique<StructTypeInfo>(std::move(childrenTypes))} {}
+
 DataType::DataType(const DataType& other) {
-    switch (other.typeID) {
-    case FIXED_LIST:
-    case VAR_LIST: {
-        typeID = other.typeID;
-        childType = other.childType->copy();
-        fixedNumElementsInList = other.fixedNumElementsInList;
-    } break;
-    case ANY:
-    case NODE:
-    case REL:
-    case INTERNAL_ID:
-    case BOOL:
-    case INT64:
-    case INT32:
-    case INT16:
-    case DOUBLE:
-    case FLOAT:
-    case DATE:
-    case TIMESTAMP:
-    case INTERVAL:
-    case STRING: {
-        typeID = other.typeID;
-    } break;
-    default:
-        throw InternalException("Unsupported DataType: " + Types::dataTypeToString(other) + ".");
+    typeID = other.typeID;
+    if (other.getExtraTypeInfo() != nullptr) {
+        extraTypeInfo = other.getExtraTypeInfo()->copy();
     }
 }
 
 DataType::DataType(DataType&& other) noexcept
-    : typeID{other.typeID}, childType{std::move(other.childType)},
-      fixedNumElementsInList{other.fixedNumElementsInList} {}
+    : typeID{other.typeID}, extraTypeInfo{std::move(other.extraTypeInfo)} {}
 
 std::vector<DataTypeID> DataType::getNumericalTypeIDs() {
     return std::vector<DataTypeID>{INT64, INT32, INT16, DOUBLE, FLOAT};
@@ -75,61 +175,28 @@ std::vector<DataTypeID> DataType::getAllValidTypeIDs() {
 }
 
 DataType& DataType::operator=(const DataType& other) {
-    switch (other.typeID) {
-    case FIXED_LIST:
-    case VAR_LIST: {
-        typeID = other.typeID;
-        childType = other.childType->copy();
-        fixedNumElementsInList = other.fixedNumElementsInList;
-    } break;
-    case ANY:
-    case NODE:
-    case REL:
-    case INTERNAL_ID:
-    case BOOL:
-    case INT64:
-    case INT32:
-    case INT16:
-    case DOUBLE:
-    case FLOAT:
-    case DATE:
-    case TIMESTAMP:
-    case INTERVAL:
-    case STRING: {
-        typeID = other.typeID;
-    } break;
-    default:
-        throw InternalException("Unsupported DataType: " + Types::dataTypeToString(other) + ".");
+    typeID = other.typeID;
+    if (other.extraTypeInfo != nullptr) {
+        extraTypeInfo = other.extraTypeInfo->copy();
     }
     return *this;
 }
 
 bool DataType::operator==(const DataType& other) const {
+    if (typeID != other.typeID) {
+        return false;
+    }
     switch (other.typeID) {
-    case FIXED_LIST: {
-        return typeID == other.typeID && *childType == *other.childType &&
-               fixedNumElementsInList == other.fixedNumElementsInList;
-    }
-    case VAR_LIST: {
-        return typeID == other.typeID && *childType == *other.childType;
-    }
-    case ANY:
-    case NODE:
-    case REL:
-    case INTERNAL_ID:
-    case BOOL:
-    case INT64:
-    case INT32:
-    case INT16:
-    case DOUBLE:
-    case FLOAT:
-    case DATE:
-    case TIMESTAMP:
-    case INTERVAL:
-    case STRING:
-        return typeID == other.typeID;
+    case VAR_LIST:
+        return *reinterpret_cast<VarListTypeInfo*>(extraTypeInfo.get()) ==
+               *reinterpret_cast<VarListTypeInfo*>(other.extraTypeInfo.get());
+    case FIXED_LIST:
+        return *reinterpret_cast<FixedListTypeInfo*>(extraTypeInfo.get()) ==
+               *reinterpret_cast<FixedListTypeInfo*>(other.extraTypeInfo.get());
+    case STRUCT:
+        assert(false);
     default:
-        throw InternalException("Unsupported DataType: " + Types::dataTypeToString(other) + ".");
+        return true;
     }
 }
 
@@ -139,37 +206,21 @@ bool DataType::operator!=(const DataType& other) const {
 
 DataType& DataType::operator=(DataType&& other) noexcept {
     typeID = other.typeID;
-    childType = std::move(other.childType);
-    fixedNumElementsInList = other.fixedNumElementsInList;
+    extraTypeInfo = std::move(other.extraTypeInfo);
     return *this;
 }
 
 std::unique_ptr<DataType> DataType::copy() {
-    switch (typeID) {
-    case FIXED_LIST: {
-        return make_unique<DataType>(typeID, childType->copy(), fixedNumElementsInList);
+    auto dataType = std::make_unique<DataType>(typeID);
+    if (extraTypeInfo != nullptr) {
+        dataType->extraTypeInfo = extraTypeInfo->copy();
     }
-    case VAR_LIST: {
-        return make_unique<DataType>(typeID, childType->copy());
-    }
-    case ANY:
-    case NODE:
-    case REL:
-    case INTERNAL_ID:
-    case BOOL:
-    case INT64:
-    case INT32:
-    case INT16:
-    case DOUBLE:
-    case FLOAT:
-    case DATE:
-    case TIMESTAMP:
-    case INTERVAL:
-    case STRING:
-        return std::make_unique<DataType>(typeID);
-    default:
-        throw InternalException("Unsupported DataType: " + Types::dataTypeToString(typeID) + ".");
-    }
+    return dataType;
+}
+
+ExtraTypeInfo* DataType::getExtraTypeInfo() const {
+    assert(typeID == VAR_LIST || typeID == FIXED_LIST || typeID == STRUCT);
+    return extraTypeInfo.get();
 }
 
 DataTypeID DataType::getTypeID() const {
@@ -177,24 +228,47 @@ DataTypeID DataType::getTypeID() const {
 }
 
 DataType* DataType::getChildType() const {
-    return childType.get();
+    assert(typeID == FIXED_LIST || typeID == VAR_LIST);
+    return reinterpret_cast<VarListTypeInfo*>(extraTypeInfo.get())->getChildType();
 }
 
 DataType Types::dataTypeFromString(const std::string& dataTypeString) {
     DataType dataType;
     if (dataTypeString.ends_with("[]")) {
         dataType.typeID = VAR_LIST;
-        dataType.childType = std::make_unique<DataType>(
-            dataTypeFromString(dataTypeString.substr(0, dataTypeString.size() - 2)));
+        dataType.extraTypeInfo = std::make_unique<VarListTypeInfo>(std::make_unique<DataType>(
+            dataTypeFromString(dataTypeString.substr(0, dataTypeString.size() - 2))));
     } else if (dataTypeString.ends_with("]")) {
         dataType.typeID = FIXED_LIST;
         auto leftBracketPos = dataTypeString.find('[');
         auto rightBracketPos = dataTypeString.find(']');
-        dataType.childType = std::make_unique<DataType>(
+        auto childType = std::make_unique<DataType>(
             dataTypeFromString(dataTypeString.substr(0, leftBracketPos)));
-        dataType.fixedNumElementsInList = std::strtoll(
+        auto fixedNumElementsInList = std::strtoll(
             dataTypeString.substr(leftBracketPos + 1, rightBracketPos - leftBracketPos - 1).c_str(),
             nullptr, 0 /* base */);
+        dataType.extraTypeInfo =
+            std::make_unique<FixedListTypeInfo>(std::move(childType), fixedNumElementsInList);
+    } else if (dataTypeString.starts_with("STRUCT")) {
+        dataType.typeID = STRUCT;
+        auto leftBracketPos = dataTypeString.find('(');
+        auto rightBracketPos = dataTypeString.find(')');
+        if (leftBracketPos == std::string::npos || rightBracketPos == std::string::npos) {
+            throw Exception("Cannot parse struct type: " + dataTypeString);
+        }
+        std::istringstream iss{
+            dataTypeString.substr(leftBracketPos, rightBracketPos - leftBracketPos)};
+        std::vector<std::unique_ptr<DataType>> childrenTypes;
+        std::string field, fieldType;
+        while (getline(iss, field, ',')) {
+            std::istringstream fieldStream{field};
+            // The first word is the field name.
+            fieldStream >> fieldType;
+            // The second word is the field type.
+            fieldStream >> fieldType;
+            childrenTypes.push_back(std::make_unique<DataType>(dataTypeFromString(fieldType)));
+        }
+        dataType.extraTypeInfo = std::make_unique<StructTypeInfo>(std::move(childrenTypes));
     } else {
         dataType.typeID = dataTypeIDFromString(dataTypeString);
     }
@@ -234,13 +308,22 @@ DataTypeID Types::dataTypeIDFromString(const std::string& dataTypeIDString) {
 std::string Types::dataTypeToString(const DataType& dataType) {
     switch (dataType.typeID) {
     case VAR_LIST: {
-        assert(dataType.childType);
-        return dataTypeToString(*dataType.childType) + "[]";
+        auto varListTypeInfo = reinterpret_cast<VarListTypeInfo*>(dataType.extraTypeInfo.get());
+        return dataTypeToString(*varListTypeInfo->getChildType()) + "[]";
     }
     case FIXED_LIST: {
-        assert(dataType.childType);
-        return dataTypeToString(*dataType.childType) + "[" +
-               std::to_string(dataType.fixedNumElementsInList) + "]";
+        auto fixedListTypeInfo = reinterpret_cast<FixedListTypeInfo*>(dataType.extraTypeInfo.get());
+        return dataTypeToString(*fixedListTypeInfo->getChildType()) + "[" +
+               std::to_string(fixedListTypeInfo->getFixedNumElementsInList()) + "]";
+    }
+    case STRUCT: {
+        auto structTypeInfo = reinterpret_cast<StructTypeInfo*>(dataType.extraTypeInfo.get());
+        std::string dataTypeStr = dataTypeToString(dataType.typeID) + "(";
+        for (auto& childType : structTypeInfo->getChildrenTypes()) {
+            dataTypeStr += dataTypeToString(*childType);
+            dataTypeStr += ",";
+        }
+        return dataTypeStr + ")";
     }
     case ANY:
     case NODE:
@@ -296,6 +379,8 @@ std::string Types::dataTypeToString(DataTypeID dataTypeID) {
         return "VAR_LIST";
     case FIXED_LIST:
         return "FIXED_LIST";
+    case STRUCT:
+        return "STRUCT";
     default:
         throw InternalException(
             "Unsupported DataType: " + Types::dataTypeToString(dataTypeID) + ".");
@@ -356,8 +441,19 @@ uint32_t Types::getDataTypeSize(DataTypeID dataTypeID) {
 
 uint32_t Types::getDataTypeSize(const DataType& dataType) {
     switch (dataType.typeID) {
-    case FIXED_LIST:
-        return getDataTypeSize(*dataType.childType) * dataType.fixedNumElementsInList;
+    case FIXED_LIST: {
+        auto fixedListTypeInfo = reinterpret_cast<FixedListTypeInfo*>(dataType.extraTypeInfo.get());
+        return getDataTypeSize(*fixedListTypeInfo->getChildType()) *
+               fixedListTypeInfo->getFixedNumElementsInList();
+    }
+    case STRUCT: {
+        auto structTypeInfo = reinterpret_cast<StructTypeInfo*>(dataType.extraTypeInfo.get());
+        uint32_t size = 0;
+        for (auto& childType : structTypeInfo->getChildrenTypes()) {
+            size += getDataTypeSize(*childType);
+        }
+        return size;
+    }
     case INTERNAL_ID:
     case BOOL:
     case INT64:
@@ -369,11 +465,13 @@ uint32_t Types::getDataTypeSize(const DataType& dataType) {
     case TIMESTAMP:
     case INTERVAL:
     case STRING:
-    case VAR_LIST:
+    case VAR_LIST: {
         return getDataTypeSize(dataType.typeID);
-    default:
+    }
+    default: {
         throw InternalException(
             "Cannot infer the size of dataTypeID: " + dataTypeToString(dataType.typeID) + ".");
+    }
     }
 }
 

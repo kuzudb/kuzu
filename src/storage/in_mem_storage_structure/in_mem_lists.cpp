@@ -155,7 +155,7 @@ void InMemLists::fillInMemListsWithListValFunc(InMemLists* inMemLists, uint8_t* 
     const DataType& dataType) {
     auto listVal = *reinterpret_cast<ku_list_t*>(defaultVal);
     inMemLists->getInMemOverflowFile()->copyListOverflowToFile(
-        pageByteCursor, &listVal, dataType.childType.get());
+        pageByteCursor, &listVal, dataType.getChildType());
     inMemLists->setElement(header, nodeOffset, posInList, reinterpret_cast<uint8_t*>(&listVal));
 }
 

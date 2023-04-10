@@ -114,7 +114,7 @@ void ValueVector::copyValue(uint8_t* dest, const Value& value) {
     case VAR_LIST: {
         auto& entry = *(ku_list_t*)dest;
         auto numElements = value.listVal.size();
-        auto elementSize = Types::getDataTypeSize(*dataType.childType);
+        auto elementSize = Types::getDataTypeSize(*dataType.getChildType());
         InMemOverflowBufferUtils::allocateSpaceForList(
             entry, numElements * elementSize, getOverflowBuffer());
         entry.size = numElements;
