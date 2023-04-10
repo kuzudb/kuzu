@@ -4,6 +4,7 @@
 #include <cstring>
 #include <sstream>
 #include <string>
+#include <vector>
 
 #include "spdlog/fmt/fmt.h"
 
