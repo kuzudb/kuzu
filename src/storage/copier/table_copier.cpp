@@ -36,36 +36,33 @@ void TableCopier::populateInMemoryStructures(processor::ExecutionContext* execut
 }
 
 void TableCopier::countNumLines(const std::vector<std::string>& filePaths) {
-    arrow::Status status;
     switch (copyDescription.fileType) {
     case CopyDescription::FileType::CSV: {
-        status = countNumLinesCSV(filePaths);
+        countNumLinesCSV(filePaths);
     } break;
     case CopyDescription::FileType::PARQUET: {
-        status = countNumLinesParquet(filePaths);
+        countNumLinesParquet(filePaths);
     } break;
     default: {
         throw CopyException{StringUtils::string_format("Unrecognized file type: {}.",
             CopyDescription::getFileTypeName(copyDescription.fileType))};
     }
     }
-    throwCopyExceptionIfNotOK(status);
 }
 
-arrow::Status TableCopier::countNumLinesCSV(const std::vector<std::string>& filePaths) {
+void TableCopier::countNumLinesCSV(const std::vector<std::string>& filePaths) {
     numRows = 0;
-    arrow::Status status;
     for (auto& filePath : filePaths) {
-        std::shared_ptr<arrow::csv::StreamingReader> csv_streaming_reader;
-        status = initCSVReaderAndCheckStatus(csv_streaming_reader, filePath);
-        throwCopyExceptionIfNotOK(status);
+        auto csvStreamingReader = initCSVReader(filePath);
         std::shared_ptr<arrow::RecordBatch> currBatch;
         uint64_t numBlocks = 0;
         std::vector<uint64_t> numLinesPerBlock;
-        auto endIt = csv_streaming_reader->end();
         auto startNodeOffset = numRows;
-        for (auto it = csv_streaming_reader->begin(); it != endIt; ++it) {
-            ARROW_ASSIGN_OR_RAISE(currBatch, *it);
+        while (true) {
+            throwCopyExceptionIfNotOK(csvStreamingReader->ReadNext(&currBatch));
+            if (currBatch == NULL) {
+                break;
+            }
             ++numBlocks;
             auto currNumRows = currBatch->num_rows();
             numLinesPerBlock.push_back(currNumRows);
@@ -74,84 +71,82 @@ arrow::Status TableCopier::countNumLinesCSV(const std::vector<std::string>& file
         fileBlockInfos.emplace(
             filePath, FileBlockInfo{startNodeOffset, numBlocks, numLinesPerBlock});
     }
-    return status;
 }
 
-arrow::Status TableCopier::countNumLinesParquet(const std::vector<std::string>& filePaths) {
+void TableCopier::countNumLinesParquet(const std::vector<std::string>& filePaths) {
     numRows = 0;
-    arrow::Status status;
     for (auto& filePath : filePaths) {
-        std::unique_ptr<parquet::arrow::FileReader> reader;
-        status = initParquetReaderAndCheckStatus(reader, filePath);
-        throwCopyExceptionIfNotOK(status);
+        std::unique_ptr<parquet::arrow::FileReader> reader = initParquetReader(filePath);
         uint64_t numBlocks = reader->num_row_groups();
         std::vector<uint64_t> numLinesPerBlock;
         std::shared_ptr<arrow::Table> table;
         auto startNodeOffset = numRows;
         for (auto blockIdx = 0; blockIdx < numBlocks; ++blockIdx) {
-            ARROW_RETURN_NOT_OK(reader->RowGroup(blockIdx)->ReadTable(&table));
+            throwCopyExceptionIfNotOK(reader->RowGroup(blockIdx)->ReadTable(&table));
             numLinesPerBlock.push_back(table->num_rows());
             numRows += table->num_rows();
         }
         fileBlockInfos.emplace(
             filePath, FileBlockInfo{startNodeOffset, numBlocks, numLinesPerBlock});
     }
-    return status;
 }
 
-arrow::Status TableCopier::initCSVReaderAndCheckStatus(
-    std::shared_ptr<arrow::csv::StreamingReader>& csv_streaming_reader,
-    const std::string& filePath) {
-    auto status = initCSVReader(csv_streaming_reader, filePath);
-    throwCopyExceptionIfNotOK(status);
-    return status;
-}
-
-arrow::Status TableCopier::initCSVReader(
-    std::shared_ptr<arrow::csv::StreamingReader>& csv_streaming_reader,
-    const std::string& filePath) {
-    std::shared_ptr<arrow::io::InputStream> arrow_input_stream;
-    ARROW_ASSIGN_OR_RAISE(arrow_input_stream, arrow::io::ReadableFile::Open(filePath));
-    auto arrowRead = arrow::csv::ReadOptions::Defaults();
-    arrowRead.block_size = CopyConstants::CSV_READING_BLOCK_SIZE;
-    if (!copyDescription.csvReaderConfig->hasHeader) {
-        arrowRead.autogenerate_column_names = true;
+std::shared_ptr<arrow::csv::StreamingReader> TableCopier::initCSVReader(
+    const std::string& filePath) const {
+    std::shared_ptr<arrow::io::InputStream> inputStream;
+    throwCopyExceptionIfNotOK(arrow::io::ReadableFile::Open(filePath).Value(&inputStream));
+    auto csvReadOptions = arrow::csv::ReadOptions::Defaults();
+    csvReadOptions.block_size = CopyConstants::CSV_READING_BLOCK_SIZE;
+    if (!tableSchema->isNodeTable) {
+        csvReadOptions.column_names.emplace_back("_FROM");
+        csvReadOptions.column_names.emplace_back("_TO");
+    }
+    for (auto& property : tableSchema->properties) {
+        if (!TableSchema::isReservedPropertyName(property.name)) {
+            csvReadOptions.column_names.push_back(property.name);
+        }
+    }
+    if (copyDescription.csvReaderConfig->hasHeader) {
+        csvReadOptions.skip_rows = 1;
     }
 
-    auto arrowConvert = arrow::csv::ConvertOptions::Defaults();
-    arrowConvert.strings_can_be_null = true;
+    auto csvParseOptions = arrow::csv::ParseOptions::Defaults();
+    csvParseOptions.delimiter = copyDescription.csvReaderConfig->delimiter;
+    csvParseOptions.escape_char = copyDescription.csvReaderConfig->escapeChar;
+    csvParseOptions.quote_char = copyDescription.csvReaderConfig->quoteChar;
+    csvParseOptions.ignore_empty_lines = false;
+    csvParseOptions.escaping = true;
+
+    auto csvConvertOptions = arrow::csv::ConvertOptions::Defaults();
+    csvConvertOptions.strings_can_be_null = true;
     // Only the empty string is treated as NULL.
-    arrowConvert.null_values = {""};
-    arrowConvert.quoted_strings_can_be_null = false;
+    csvConvertOptions.null_values = {""};
+    csvConvertOptions.quoted_strings_can_be_null = false;
+    for (auto& property : tableSchema->properties) {
+        if (property.name == "_FROM" || property.name == "_TO") {
+            csvConvertOptions.column_types[property.name] = arrow::int64();
+            continue;
+        }
+        if (!TableSchema::isReservedPropertyName(property.name)) {
+            csvConvertOptions.column_types[property.name] = toArrowDataType(property.dataType);
+        }
+    }
 
-    auto arrowParse = arrow::csv::ParseOptions::Defaults();
-    arrowParse.delimiter = copyDescription.csvReaderConfig->delimiter;
-    arrowParse.escape_char = copyDescription.csvReaderConfig->escapeChar;
-    arrowParse.quote_char = copyDescription.csvReaderConfig->quoteChar;
-    arrowParse.ignore_empty_lines = false;
-    arrowParse.escaping = true;
-
-    ARROW_ASSIGN_OR_RAISE(
-        csv_streaming_reader, arrow::csv::StreamingReader::Make(arrow::io::default_io_context(),
-                                  arrow_input_stream, arrowRead, arrowParse, arrowConvert));
-    return arrow::Status::OK();
+    std::shared_ptr<arrow::csv::StreamingReader> csvStreamingReader;
+    throwCopyExceptionIfNotOK(arrow::csv::StreamingReader::Make(arrow::io::default_io_context(),
+        inputStream, csvReadOptions, csvParseOptions, csvConvertOptions)
+                                  .Value(&csvStreamingReader));
+    return csvStreamingReader;
 }
 
-arrow::Status TableCopier::initParquetReaderAndCheckStatus(
-    std::unique_ptr<parquet::arrow::FileReader>& reader, const std::string& filePath) {
-    auto status = initParquetReader(reader, filePath);
-    throwCopyExceptionIfNotOK(status);
-    return status;
-}
-
-arrow::Status TableCopier::initParquetReader(
-    std::unique_ptr<parquet::arrow::FileReader>& reader, const std::string& filePath) {
+std::unique_ptr<parquet::arrow::FileReader> TableCopier::initParquetReader(
+    const std::string& filePath) {
     std::shared_ptr<arrow::io::ReadableFile> infile;
-    ARROW_ASSIGN_OR_RAISE(
-        infile, arrow::io::ReadableFile::Open(filePath, arrow::default_memory_pool()));
-
-    ARROW_RETURN_NOT_OK(parquet::arrow::OpenFile(infile, arrow::default_memory_pool(), &reader));
-    return arrow::Status::OK();
+    throwCopyExceptionIfNotOK(arrow::io::ReadableFile::Open(filePath).Value(&infile));
+    std::unique_ptr<parquet::arrow::FileReader> reader;
+    throwCopyExceptionIfNotOK(
+        parquet::arrow::OpenFile(infile, arrow::default_memory_pool(), &reader));
+    return reader;
 }
 
 std::vector<std::pair<int64_t, int64_t>> TableCopier::getListElementPos(
@@ -291,6 +286,41 @@ std::unique_ptr<uint8_t[]> TableCopier::getArrowFixedList(const std::string& l, 
 void TableCopier::throwCopyExceptionIfNotOK(const arrow::Status& status) {
     if (!status.ok()) {
         throw CopyException(status.ToString());
+    }
+}
+
+std::shared_ptr<arrow::DataType> TableCopier::toArrowDataType(const common::DataType& dataType) {
+    switch (dataType.typeID) {
+    case common::BOOL: {
+        return arrow::boolean();
+    }
+    case common::INT64: {
+        return arrow::int64();
+    }
+    case common::INT32: {
+        return arrow::int32();
+    }
+    case common::INT16: {
+        return arrow::int16();
+    }
+    case common::DOUBLE: {
+        return arrow::float64();
+    }
+    case common::FLOAT: {
+        return arrow::float32();
+    }
+    case common::TIMESTAMP:
+    case common::DATE:
+    case common::FIXED_LIST:
+    case common::VAR_LIST:
+    case common::STRING:
+    case common::INTERVAL: {
+        return arrow::utf8();
+    }
+    default: {
+        throw CopyException(
+            "Unsupported data type for CSV " + Types::dataTypeToString(dataType.typeID));
+    }
     }
 }
 

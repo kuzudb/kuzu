@@ -8,8 +8,6 @@
 namespace kuzu {
 namespace storage {
 
-using lock_t = std::unique_lock<std::mutex>;
-
 using set_element_func_t = std::function<void(NodeInMemColumn* column,
     InMemColumnChunk* columnChunk, common::offset_t nodeOffset, const std::string& data)>;
 
@@ -39,7 +37,7 @@ class CSVNodeCopyMorsel : public NodeCopyMorsel<arrow::Array> {
 public:
     CSVNodeCopyMorsel(std::shared_ptr<arrow::RecordBatch> recordBatch, common::offset_t startOffset,
         common::block_idx_t blockIdx)
-        : NodeCopyMorsel{startOffset, blockIdx}, recordBatch{recordBatch} {};
+        : NodeCopyMorsel{startOffset, blockIdx}, recordBatch{std::move(recordBatch)} {};
 
     const std::vector<std::shared_ptr<arrow::Array>>& getArrowColumns() override {
         return recordBatch->columns();
@@ -54,7 +52,7 @@ class ParquetNodeCopyMorsel : public NodeCopyMorsel<arrow::ChunkedArray> {
 public:
     ParquetNodeCopyMorsel(std::shared_ptr<arrow::Table> currTable, common::offset_t startOffset,
         common::block_idx_t blockIdx)
-        : NodeCopyMorsel{startOffset, blockIdx}, currTable{currTable} {};
+        : NodeCopyMorsel{startOffset, blockIdx}, currTable{std::move(currTable)} {};
 
     const std::vector<std::shared_ptr<arrow::ChunkedArray>>& getArrowColumns() override {
         return currTable->columns();
@@ -64,21 +62,21 @@ private:
     std::shared_ptr<arrow::Table> currTable;
 };
 
-template<typename T1, typename T2>
+template<typename HASH_INDEX_T, typename MORSEL_T>
 class NodeCopySharedState {
 
 public:
     NodeCopySharedState(
-        std::string filePath, HashIndexBuilder<T1>* pkIndex, common::offset_t startOffset)
-        : filePath{filePath}, pkIndex{pkIndex}, startOffset{startOffset}, blockIdx{0} {};
+        std::string filePath, HashIndexBuilder<HASH_INDEX_T>* pkIndex, common::offset_t startOffset)
+        : filePath{std::move(filePath)}, pkIndex{pkIndex}, startOffset{startOffset}, blockIdx{0} {};
 
     virtual ~NodeCopySharedState() = default;
 
-    virtual std::unique_ptr<NodeCopyMorsel<T2>> getMorsel() = 0;
+    virtual std::unique_ptr<NodeCopyMorsel<MORSEL_T>> getMorsel() = 0;
 
 public:
     std::string filePath;
-    HashIndexBuilder<T1>* pkIndex;
+    HashIndexBuilder<HASH_INDEX_T>* pkIndex;
     common::offset_t startOffset;
 
 protected:
@@ -86,29 +84,29 @@ protected:
     std::mutex mtx;
 };
 
-template<typename T>
-class CSVNodeCopySharedState : public NodeCopySharedState<T, arrow::Array> {
+template<typename HASH_INDEX_T>
+class CSVNodeCopySharedState : public NodeCopySharedState<HASH_INDEX_T, arrow::Array> {
 
 public:
-    CSVNodeCopySharedState(std::string filePath, HashIndexBuilder<T>* pkIndex,
+    CSVNodeCopySharedState(std::string filePath, HashIndexBuilder<HASH_INDEX_T>* pkIndex,
         common::offset_t startOffset,
         std::shared_ptr<arrow::csv::StreamingReader> csvStreamingReader)
-        : NodeCopySharedState<T, arrow::Array>{filePath, pkIndex, startOffset},
-          csvStreamingReader{move(csvStreamingReader)} {};
+        : NodeCopySharedState<HASH_INDEX_T, arrow::Array>{filePath, pkIndex, startOffset},
+          csvStreamingReader{std::move(csvStreamingReader)} {};
     std::unique_ptr<NodeCopyMorsel<arrow::Array>> getMorsel() override;
 
 private:
     std::shared_ptr<arrow::csv::StreamingReader> csvStreamingReader;
 };
 
-template<typename T>
-class ParquetNodeCopySharedState : public NodeCopySharedState<T, arrow::ChunkedArray> {
+template<typename HASH_INDEX_T>
+class ParquetNodeCopySharedState : public NodeCopySharedState<HASH_INDEX_T, arrow::ChunkedArray> {
 
 public:
-    ParquetNodeCopySharedState(std::string filePath, HashIndexBuilder<T>* pkIndex,
+    ParquetNodeCopySharedState(std::string filePath, HashIndexBuilder<HASH_INDEX_T>* pkIndex,
         common::offset_t startOffset, uint64_t numBlocks,
         std::unique_ptr<parquet::arrow::FileReader> parquetReader)
-        : NodeCopySharedState<T, arrow::ChunkedArray>{filePath, pkIndex, startOffset},
+        : NodeCopySharedState<HASH_INDEX_T, arrow::ChunkedArray>{filePath, pkIndex, startOffset},
           numBlocks{numBlocks}, parquetReader{std::move(parquetReader)} {};
     std::unique_ptr<NodeCopyMorsel<arrow::ChunkedArray>> getMorsel() override;
 
@@ -135,39 +133,39 @@ protected:
 
     void saveToFile() override;
 
-    template<typename T>
+    template<typename HASH_INDEX_T>
     static void populatePKIndex(InMemColumnChunk* chunk, InMemOverflowFile* overflowFile,
-        common::NullMask* nullMask, HashIndexBuilder<T>* pkIndex, common::offset_t startOffset,
-        uint64_t numValues);
+        common::NullMask* nullMask, HashIndexBuilder<HASH_INDEX_T>* pkIndex,
+        common::offset_t startOffset, uint64_t numValues);
 
     std::unordered_map<common::property_id_t, std::unique_ptr<NodeInMemColumn>> columns;
 
 private:
-    template<typename T>
-    arrow::Status populateColumns(processor::ExecutionContext* executionContext);
+    template<typename HASH_INDEX_T>
+    void populateColumns(processor::ExecutionContext* executionContext);
 
-    template<typename T>
-    arrow::Status populateColumnsFromCSV(processor::ExecutionContext* executionContext,
-        std::unique_ptr<HashIndexBuilder<T>>& pkIndex);
+    template<typename HASH_INDEX_T>
+    void populateColumnsFromCSV(processor::ExecutionContext* executionContext,
+        std::unique_ptr<HashIndexBuilder<HASH_INDEX_T>>& pkIndex);
 
-    template<typename T>
-    arrow::Status populateColumnsFromParquet(processor::ExecutionContext* executionContext,
-        std::unique_ptr<HashIndexBuilder<T>>& pkIndex);
+    template<typename HASH_INDEX_T>
+    void populateColumnsFromParquet(processor::ExecutionContext* executionContext,
+        std::unique_ptr<HashIndexBuilder<HASH_INDEX_T>>& pkIndex);
 
-    template<typename T>
+    template<typename MORSEL_T>
     static void putPropsOfLinesIntoColumns(InMemColumnChunk* columnChunk, NodeInMemColumn* column,
-        std::shared_ptr<T> arrowArray, common::offset_t startNodeOffset,
+        std::shared_ptr<MORSEL_T> arrowArray, common::offset_t startNodeOffset,
         uint64_t numLinesInCurBlock, common::CopyDescription& copyDescription,
         PageByteCursor& overflowCursor);
 
     // Concurrent tasks.
-    template<typename T1, typename T2>
-    static void batchPopulateColumnsTask(NodeCopySharedState<T1, T2>* sharedState,
+    template<typename HASH_INDEX_T, typename MORSEL_T>
+    static void batchPopulateColumnsTask(NodeCopySharedState<HASH_INDEX_T, MORSEL_T>* sharedState,
         NodeCopier* copier, processor::ExecutionContext* executionContext);
 
-    template<typename T>
+    template<typename HASH_INDEX_T>
     static void appendPKIndex(InMemColumnChunk* chunk, InMemOverflowFile* overflowFile,
-        common::offset_t offset, HashIndexBuilder<T>* pkIndex) {
+        common::offset_t offset, HashIndexBuilder<HASH_INDEX_T>* pkIndex) {
         assert(false);
     }
 

@@ -178,20 +178,22 @@ void RelCopier::initializePkIndexes(table_id_t nodeTableID, BufferManager& buffe
     pkIndexes.emplace(nodeTableID, nodesStore.getPKIndex(nodeTableID));
 }
 
-arrow::Status RelCopier::executePopulateTask(PopulateTaskType populateTaskType) {
-    arrow::Status status;
+void RelCopier::executePopulateTask(PopulateTaskType populateTaskType) {
     switch (copyDescription.fileType) {
     case CopyDescription::FileType::CSV: {
-        status = populateFromCSV(populateTaskType);
+        populateFromCSV(populateTaskType);
     } break;
     case CopyDescription::FileType::PARQUET: {
-        status = populateFromParquet(populateTaskType);
+        populateFromParquet(populateTaskType);
     } break;
+    default: {
+        throw CopyException(StringUtils::string_format("Unsupported file type {}.",
+            CopyDescription::getFileTypeName(copyDescription.fileType)));
     }
-    return status;
+    }
 }
 
-arrow::Status RelCopier::populateFromCSV(PopulateTaskType populateTaskType) {
+void RelCopier::populateFromCSV(PopulateTaskType populateTaskType) {
     auto populateTask = populateAdjColumnsAndCountRelsInAdjListsTask<arrow::Array>;
     if (populateTaskType == PopulateTaskType::populateListsTask) {
         populateTask = populateListsTask<arrow::Array>;
@@ -200,33 +202,33 @@ arrow::Status RelCopier::populateFromCSV(PopulateTaskType populateTaskType) {
 
     for (auto& filePath : copyDescription.filePaths) {
         offset_t startOffset = fileBlockInfos.at(filePath).startOffset;
-        std::shared_ptr<arrow::csv::StreamingReader> csv_streaming_reader;
-        auto status = initCSVReaderAndCheckStatus(csv_streaming_reader, filePath);
+        auto reader = initCSVReader(filePath);
         std::shared_ptr<arrow::RecordBatch> currBatch;
         int blockIdx = 0;
-        auto it = csv_streaming_reader->begin();
-        auto endIt = csv_streaming_reader->end();
-        while (it != endIt) {
-            for (int i = 0; i < CopyConstants::NUM_COPIER_TASKS_TO_SCHEDULE_PER_BATCH; ++i) {
-                if (it == endIt) {
+        while (true) {
+            for (auto i = 0u; i < CopyConstants::NUM_COPIER_TASKS_TO_SCHEDULE_PER_BATCH; i++) {
+                throwCopyExceptionIfNotOK(reader->ReadNext(&currBatch));
+                if (currBatch == nullptr) {
+                    // No more batches left, thus, no more tasks to be scheduled.
                     break;
                 }
-                ARROW_ASSIGN_OR_RAISE(currBatch, *it);
                 taskScheduler.scheduleTask(CopyTaskFactory::createCopyTask(
                     populateTask, blockIdx, startOffset, this, currBatch->columns(), filePath));
                 startOffset += currBatch->num_rows();
                 ++blockIdx;
-                ++it;
+            }
+            if (currBatch == nullptr) {
+                // No more batches left, thus, no more tasks to be scheduled.
+                break;
             }
             taskScheduler.waitUntilEnoughTasksFinish(
                 CopyConstants::MINIMUM_NUM_COPIER_TASKS_TO_SCHEDULE_MORE);
         }
         taskScheduler.waitAllTasksToCompleteOrError();
     }
-    return arrow::Status::OK();
 }
 
-arrow::Status RelCopier::populateFromParquet(PopulateTaskType populateTaskType) {
+void RelCopier::populateFromParquet(PopulateTaskType populateTaskType) {
     auto populateTask = populateAdjColumnsAndCountRelsInAdjListsTask<arrow::ChunkedArray>;
     if (populateTaskType == PopulateTaskType::populateListsTask) {
         populateTask = populateListsTask<arrow::ChunkedArray>;
@@ -234,8 +236,7 @@ arrow::Status RelCopier::populateFromParquet(PopulateTaskType populateTaskType) 
     logger->debug("Assigning task {0}", getTaskTypeName(populateTaskType));
 
     for (auto& filePath : copyDescription.filePaths) {
-        std::unique_ptr<parquet::arrow::FileReader> reader;
-        auto status = initParquetReaderAndCheckStatus(reader, filePath);
+        auto reader = initParquetReader(filePath);
         std::shared_ptr<arrow::Table> currTable;
         int blockIdx = 0;
         offset_t startOffset = 0;
@@ -245,7 +246,7 @@ arrow::Status RelCopier::populateFromParquet(PopulateTaskType populateTaskType) 
                 if (blockIdx == numBlocks) {
                     break;
                 }
-                ARROW_RETURN_NOT_OK(reader->RowGroup(blockIdx)->ReadTable(&currTable));
+                throwCopyExceptionIfNotOK(reader->RowGroup(blockIdx)->ReadTable(&currTable));
                 taskScheduler.scheduleTask(CopyTaskFactory::createCopyTask(
                     populateTask, blockIdx, startOffset, this, currTable->columns(), filePath));
                 startOffset += currTable->num_rows();
@@ -257,23 +258,19 @@ arrow::Status RelCopier::populateFromParquet(PopulateTaskType populateTaskType) 
 
         taskScheduler.waitAllTasksToCompleteOrError();
     }
-    return arrow::Status::OK();
 }
 
 void RelCopier::populateAdjColumnsAndCountRelsInAdjLists() {
     logger->info(
         "Populating adj columns and rel property columns for rel {}.", tableSchema->tableName);
-    auto status =
-        executePopulateTask(PopulateTaskType::populateAdjColumnsAndCountRelsInAdjListsTask);
-    throwCopyExceptionIfNotOK(status);
+    executePopulateTask(PopulateTaskType::populateAdjColumnsAndCountRelsInAdjListsTask);
     logger->info(
         "Done populating adj columns and rel property columns for rel {}.", tableSchema->tableName);
 }
 
 void RelCopier::populateLists() {
     logger->debug("Populating adjLists and rel property lists for rel {}.", tableSchema->tableName);
-    auto status = executePopulateTask(PopulateTaskType::populateListsTask);
-    throwCopyExceptionIfNotOK(status);
+    executePopulateTask(PopulateTaskType::populateListsTask);
     logger->debug(
         "Done populating adjLists and rel property lists for rel {}.", tableSchema->tableName);
 }

@@ -39,11 +39,11 @@ private:
 
     void initializePkIndexes(common::table_id_t nodeTableID, BufferManager& bufferManager);
 
-    arrow::Status executePopulateTask(PopulateTaskType populateTaskType);
+    void executePopulateTask(PopulateTaskType populateTaskType);
 
-    arrow::Status populateFromCSV(PopulateTaskType populateTaskType);
+    void populateFromCSV(PopulateTaskType populateTaskType);
 
-    arrow::Status populateFromParquet(PopulateTaskType populateTaskType);
+    void populateFromParquet(PopulateTaskType populateTaskType);
 
     void populateAdjColumnsAndCountRelsInAdjLists();
 

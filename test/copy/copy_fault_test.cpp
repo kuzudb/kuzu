@@ -56,17 +56,16 @@ TEST_F(CopyDuplicateIDTest, DuplicateIDsError) {
 }
 
 TEST_F(CopyNodeUnmatchedColumnTypeTest, UnMatchedColumnTypeError) {
-    conn->query(
-        "create node table person (ID INT64, fName INT64, gender INT64, isStudent BOOLEAN, "
-        "isWorker BOOLEAN, "
-        "age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration "
-        "INTERVAL, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], "
-        "PRIMARY "
-        "KEY (fName))");
+    conn->query("create node table person (ID INT64, fName INT64, gender INT64, isStudent BOOLEAN, "
+                "isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE, registerTime "
+                "TIMESTAMP, lastJobDuration "
+                "INTERVAL, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], "
+                "grades INT64[4], height float, PRIMARY KEY (fName))");
     auto result =
         conn->query("COPY person FROM \"" +
                     TestHelper::appendKuzuRootPath("dataset/tinysnb/vPerson.csv\" (HEADER=true)"));
-    ASSERT_EQ(result->getErrorMessage(), "Invalid number: Alice.");
+    ASSERT_EQ(result->getErrorMessage(), "Copy exception: Invalid: In CSV column #1: CSV "
+                                         "conversion error to int64: invalid value 'Alice'");
 }
 
 TEST_F(CopyWrongHeaderTest, HeaderError) {
@@ -151,14 +150,16 @@ TEST_F(CopyInvalidNumberTest, INT32OverflowError) {
     validateCopyException(
         "COPY person FROM \"" +
             TestHelper::appendKuzuRootPath("dataset/copy-fault-tests/invalid-number/vPerson.csv\""),
-        "Invalid number: 2147483650.");
+        "Copy exception: Invalid: In CSV column #1: CSV conversion error to int32: invalid value "
+        "'2147483650'");
 }
 
 TEST_F(CopyInvalidNumberTest, InvalidNumberError) {
     validateCopyException(
         "COPY person FROM \"" +
             TestHelper::appendKuzuRootPath("dataset/copy-fault-tests/invalid-number/vMovie.csv\""),
-        "Invalid number: 312abc.");
+        "Copy exception: Invalid: In CSV column #1: CSV conversion error to int32: invalid value "
+        "'312abc'");
 }
 
 TEST_F(CopyNullPKTest, NullPKErrpr) {

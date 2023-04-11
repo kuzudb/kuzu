@@ -47,6 +47,8 @@ def test_to_networkx_node(establish_connection):
                                 [[7, 4], [8, 8], [9]], [
                                     [6], [7], [8]], [[8]], [[10]],
                                 [[7], [10], [6, 7]]],
+        'grades': [[96, 54, 86, 92], [98, 42, 93, 88], [91, 75, 21, 95], [76, 88, 99, 89], [96, 59, 65, 88],
+                   [80, 78, 34, 83], [43, 83, 67, 43], [77, 64, 100, 54]],
         '_label': ['person', 'person', 'person', 'person', 'person', 'person',
                    'person', 'person'],
     }
@@ -106,6 +108,8 @@ def test_networkx_undirected(establish_connection):
                                 [[7, 4], [8, 8], [9]], [
                                     [6], [7], [8]], [[8]], [[10]],
                                 [[7], [10], [6, 7]]],
+        'grades': [[96, 54, 86, 92], [98, 42, 93, 88], [91, 75, 21, 95], [76, 88, 99, 89], [96, 59, 65, 88],
+                   [80, 78, 34, 83], [43, 83, 67, 43], [77, 64, 100, 54]],
         '_label': ['person', 'person', 'person', 'person', 'person', 'person',
                    'person', 'person'],
     }
@@ -162,6 +166,7 @@ def test_networkx_directed(establish_connection):
         'workedHours': [[4, 5], [1, 9], [2]],
         'usedNames': [["Carmen", "Fred"], ['Wolfeschlegelstein', 'Daniel'], ['Ein']],
         'courseScoresPerTerm': [[[8, 10]], [[7, 4], [8, 8], [9]], [[6], [7], [8]]],
+        'grades': [[91, 75, 21, 95], [76, 88, 99, 89], [96, 59, 65, 88]],
         '_label': ['person', 'person', 'person'],
     }
 
