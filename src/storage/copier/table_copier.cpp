@@ -19,20 +19,20 @@ TableCopier::TableCopier(CopyDescription& copyDescription, std::string outputDir
       tableSchema{catalog.getReadOnlyVersion()->getTableSchema(tableID)}, tablesStatistics{
                                                                               tablesStatistics} {}
 
-uint64_t TableCopier::copy() {
+uint64_t TableCopier::copy(processor::ExecutionContext* executionContext) {
     logger->info(StringUtils::string_format("Copying {} file to table {}.",
         CopyDescription::getFileTypeName(copyDescription.fileType), tableSchema->tableName));
-    populateInMemoryStructures();
+    populateInMemoryStructures(executionContext);
     updateTableStatistics();
     saveToFile();
     logger->info("Done copying file to table {}.", tableSchema->tableName);
     return numRows;
 }
 
-void TableCopier::populateInMemoryStructures() {
+void TableCopier::populateInMemoryStructures(processor::ExecutionContext* executionContext) {
     countNumLines(copyDescription.filePaths);
     initializeColumnsAndLists();
-    populateColumnsAndLists();
+    populateColumnsAndLists(executionContext);
 }
 
 void TableCopier::countNumLines(const std::vector<std::string>& filePaths) {
@@ -134,24 +134,6 @@ arrow::Status TableCopier::initCSVReader(
     ARROW_ASSIGN_OR_RAISE(
         csv_streaming_reader, arrow::csv::StreamingReader::Make(arrow::io::default_io_context(),
                                   arrow_input_stream, arrowRead, arrowParse, arrowConvert));
-    return arrow::Status::OK();
-}
-
-arrow::Status TableCopier::initArrowReaderAndCheckStatus(
-    std::shared_ptr<arrow::ipc::RecordBatchFileReader>& ipc_reader, const std::string& filePath) {
-    auto status = initArrowReader(ipc_reader, filePath);
-    throwCopyExceptionIfNotOK(status);
-    return status;
-}
-
-arrow::Status TableCopier::initArrowReader(
-    std::shared_ptr<arrow::ipc::RecordBatchFileReader>& ipc_reader, const std::string& filePath) {
-    std::shared_ptr<arrow::io::ReadableFile> infile;
-
-    ARROW_ASSIGN_OR_RAISE(
-        infile, arrow::io::ReadableFile::Open(filePath, arrow::default_memory_pool()));
-
-    ARROW_ASSIGN_OR_RAISE(ipc_reader, arrow::ipc::RecordBatchFileReader::Open(infile));
     return arrow::Status::OK();
 }
 

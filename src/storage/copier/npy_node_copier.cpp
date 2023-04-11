@@ -10,11 +10,11 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-void NpyNodeCopier::populateInMemoryStructures() {
+void NpyNodeCopier::populateInMemoryStructures(processor::ExecutionContext* executionContext) {
     initializeNpyReaders();
     initializeColumnsAndLists();
     validateNpyReaders();
-    populateColumnsAndLists();
+    populateColumnsAndLists(executionContext);
 }
 
 void NpyNodeCopier::initializeNpyReaders() {
@@ -72,7 +72,7 @@ void NpyNodeCopier::validateNpyReaders() {
     }
 }
 
-void NpyNodeCopier::populateColumnsAndLists() {
+void NpyNodeCopier::populateColumnsAndLists(processor::ExecutionContext* executionContext) {
     logger->info("Populating properties");
     auto primaryKey = reinterpret_cast<NodeTableSchema*>(tableSchema)->getPrimaryKey();
     if (primaryKey.dataType.typeID != INT64) {

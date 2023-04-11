@@ -15,11 +15,11 @@ uint64_t CopyNode::executeInternal(
     if (copyDescription.fileType == common::CopyDescription::FileType::NPY) {
         auto nodeCopier = std::make_unique<NpyNodeCopier>(copyDescription, wal->getDirectory(),
             *taskScheduler, *catalog, tableID, nodesStatistics);
-        numNodesCopied = nodeCopier->copy();
+        numNodesCopied = nodeCopier->copy(executionContext);
     } else {
         auto nodeCopier = std::make_unique<NodeCopier>(copyDescription, wal->getDirectory(),
             *taskScheduler, *catalog, tableID, nodesStatistics);
-        numNodesCopied = nodeCopier->copy();
+        numNodesCopied = nodeCopier->copy(executionContext);
     }
     for (auto& relTableSchema : catalog->getAllRelTableSchemasContainBoundTable(tableID)) {
         relsStore.getRelTable(relTableSchema->tableID)
