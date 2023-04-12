@@ -27,6 +27,10 @@ public:
 
     void insert(uint32_t pos, std::shared_ptr<ValueVector> valueVector);
 
+    inline void addValueVector(std::shared_ptr<ValueVector> valueVector) {
+        valueVectors.push_back(valueVector);
+    }
+
     inline uint32_t getNumValueVectors() const { return valueVectors.size(); }
 
     inline std::shared_ptr<ValueVector> getValueVector(uint64_t valueVectorPos) {

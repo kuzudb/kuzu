@@ -439,6 +439,7 @@ oC_Literal
         | oC_BooleanLiteral
         | NULL_
         | oC_ListLiteral
+        | kU_StructLiteral
         ;
 
 oC_BooleanLiteral
@@ -452,6 +453,12 @@ FALSE : ( 'F' | 'f' ) ( 'A' | 'a' ) ( 'L' | 'l' ) ( 'S' | 's' ) ( 'E' | 'e' ) ;
 
 oC_ListLiteral
     :  '[' SP? ( oC_Expression SP? ( ',' SP? oC_Expression SP? )* )? ']' ;
+
+kU_StructLiteral
+    :  '{' SP? kU_StructField SP? ( ',' SP? kU_StructField SP? )* '}' ;
+
+kU_StructField
+    :   oC_SymbolicName SP? ':' SP? oC_Expression ;
 
 oC_ParenthesizedExpression
     : '(' SP? oC_Expression SP? ')' ;

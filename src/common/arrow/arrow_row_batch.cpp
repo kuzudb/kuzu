@@ -183,7 +183,7 @@ void ArrowRowBatch::templateCopyNonNullValue<VAR_LIST>(
     ArrowVector* vector, const main::DataTypeInfo& typeInfo, Value* value, std::int64_t pos) {
     vector->data.resize((pos + 2) * sizeof(std::uint32_t));
     auto offsets = (std::uint32_t*)vector->data.data();
-    auto numElements = value->listVal.size();
+    auto numElements = value->nestedTypeVal.size();
     offsets[pos + 1] = offsets[pos] + numElements;
     auto numChildElements = offsets[pos + 1] + 1;
     auto currentNumBytesForChildValidity = vector->childData[0]->validity.size();
@@ -198,8 +198,8 @@ void ArrowRowBatch::templateCopyNonNullValue<VAR_LIST>(
             numChildElements * Types::getDataTypeSize(typeInfo.childrenTypesInfo[0]->typeID));
     }
     for (auto i = 0u; i < numElements; i++) {
-        appendValue(
-            vector->childData[0].get(), *typeInfo.childrenTypesInfo[0], value->listVal[i].get());
+        appendValue(vector->childData[0].get(), *typeInfo.childrenTypesInfo[0],
+            value->nestedTypeVal[i].get());
     }
 }
 

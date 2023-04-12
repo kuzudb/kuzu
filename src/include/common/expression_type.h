@@ -56,6 +56,9 @@ const std::string ARRAY_HAS_FUNC_NAME = "ARRAY_HAS";
 const std::string LIST_SLICE_FUNC_NAME = "LIST_SLICE";
 const std::string ARRAY_SLICE_FUNC_NAME = "ARRAY_SLICE";
 
+// struct
+const std::string STRUCT_PACK_FUNC_NAME = "STRUCT_PACK";
+
 // comparison
 const std::string EQUALS_FUNC_NAME = "EQUALS";
 const std::string NOT_EQUALS_FUNC_NAME = "NOT_EQUALS";

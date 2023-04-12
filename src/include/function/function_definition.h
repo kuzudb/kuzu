@@ -1,5 +1,6 @@
 #pragma once
 
+#include "binder/expression/expression.h"
 #include "common/expression_type.h"
 
 namespace kuzu {
@@ -8,8 +9,8 @@ namespace function {
 // Forward declaration of FunctionDefinition.
 struct FunctionDefinition;
 
-using scalar_bind_func = std::function<void(
-    const std::vector<common::DataType>&, FunctionDefinition*, common::DataType&)>;
+using scalar_bind_func =
+    std::function<void(const binder::expression_vector&, FunctionDefinition*, common::DataType&)>;
 
 struct FunctionDefinition {
 

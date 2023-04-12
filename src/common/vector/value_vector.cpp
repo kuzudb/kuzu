@@ -113,13 +113,13 @@ void ValueVector::copyValue(uint8_t* dest, const Value& value) {
     } break;
     case VAR_LIST: {
         auto& entry = *(ku_list_t*)dest;
-        auto numElements = value.listVal.size();
+        auto numElements = value.nestedTypeVal.size();
         auto elementSize = Types::getDataTypeSize(*dataType.getChildType());
         InMemOverflowBufferUtils::allocateSpaceForList(
             entry, numElements * elementSize, getOverflowBuffer());
         entry.size = numElements;
         for (auto i = 0u; i < numElements; ++i) {
-            copyValue((uint8_t*)entry.overflowPtr + i * elementSize, *value.listVal[i]);
+            copyValue((uint8_t*)entry.overflowPtr + i * elementSize, *value.nestedTypeVal[i]);
         }
     } break;
     default:
