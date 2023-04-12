@@ -40,8 +40,6 @@ public:
 
     inline bool isTimeOutEnabled() const { return timeoutInMS != 0; }
 
-    inline uint64_t getTimeOutMS() const { return timeoutInMS; }
-
     void startTimingIfEnabled();
 
 private:

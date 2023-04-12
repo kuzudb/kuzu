@@ -27,9 +27,9 @@ public:
     ~NpyNodeCopier() override = default;
 
 private:
-    void populateColumnsAndLists() override;
+    void populateColumnsAndLists(processor::ExecutionContext* executionContext) override;
 
-    void populateInMemoryStructures() override;
+    void populateInMemoryStructures(processor::ExecutionContext* executionContext) override;
 
     void initializeNpyReaders();
 

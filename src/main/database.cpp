@@ -27,6 +27,7 @@ SystemConfig::SystemConfig(uint64_t bufferPoolSize_) {
                                      (double_t)std::min(systemMemSize, (std::uint64_t)UINTPTR_MAX));
     }
     bufferPoolSize = bufferPoolSize_;
+    auto maxConcurrency = std::thread::hardware_concurrency();
     maxNumThreads = std::thread::hardware_concurrency();
 }
 

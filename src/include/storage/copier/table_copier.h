@@ -41,16 +41,16 @@ public:
 
     virtual ~TableCopier() = default;
 
-    uint64_t copy();
+    uint64_t copy(processor::ExecutionContext* executionContext);
 
 protected:
     virtual void initializeColumnsAndLists() = 0;
 
-    virtual void populateColumnsAndLists() = 0;
+    virtual void populateColumnsAndLists(processor::ExecutionContext* executionContext) = 0;
 
     virtual void saveToFile() = 0;
 
-    virtual void populateInMemoryStructures();
+    virtual void populateInMemoryStructures(processor::ExecutionContext* executionContext);
 
     inline void updateTableStatistics() {
         tablesStatistics->setNumTuplesForTable(tableSchema->tableID, numRows);
@@ -65,13 +65,8 @@ protected:
     arrow::Status initCSVReaderAndCheckStatus(
         std::shared_ptr<arrow::csv::StreamingReader>& csv_streaming_reader,
         const std::string& filePath);
-    arrow::Status initCSVReader(std::shared_ptr<arrow::csv::StreamingReader>& csv_streaming_reader,
-        const std::string& filePath);
 
-    arrow::Status initArrowReaderAndCheckStatus(
-        std::shared_ptr<arrow::ipc::RecordBatchFileReader>& ipc_reader,
-        const std::string& filePath);
-    arrow::Status initArrowReader(std::shared_ptr<arrow::ipc::RecordBatchFileReader>& ipc_reader,
+    arrow::Status initCSVReader(std::shared_ptr<arrow::csv::StreamingReader>& csv_streaming_reader,
         const std::string& filePath);
 
     arrow::Status initParquetReaderAndCheckStatus(

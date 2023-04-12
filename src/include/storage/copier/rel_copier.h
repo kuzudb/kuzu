@@ -25,7 +25,7 @@ private:
 
     void initializeColumnsAndLists() override;
 
-    void populateColumnsAndLists() override;
+    void populateColumnsAndLists(processor::ExecutionContext* executionContext) override;
 
     void saveToFile() override;
 

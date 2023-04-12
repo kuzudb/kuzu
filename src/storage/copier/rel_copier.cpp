@@ -56,7 +56,7 @@ void RelCopier::initializeColumnsAndLists() {
     }
 }
 
-void RelCopier::populateColumnsAndLists() {
+void RelCopier::populateColumnsAndLists(processor::ExecutionContext* executionContext) {
     populateAdjColumnsAndCountRelsInAdjLists();
     if (adjListsPerDirection[FWD] != nullptr || adjListsPerDirection[BWD] != nullptr) {
         initAdjListsHeaders();
@@ -126,6 +126,7 @@ void RelCopier::initializeLists(RelDirection relDirection) {
 }
 
 void RelCopier::initAdjListsHeaders() {
+    // TODO(Semih): Schedule one at a time and wait.
     logger->debug("Initializing AdjListHeaders for rel {}.", tableSchema->tableName);
     for (auto relDirection : REL_DIRECTIONS) {
         if (!reinterpret_cast<RelTableSchema*>(tableSchema)
@@ -143,6 +144,7 @@ void RelCopier::initAdjListsHeaders() {
 }
 
 void RelCopier::initListsMetadata() {
+    // TODO(Semih): Schedule one at a time and wait.
     logger->debug(
         "Initializing adjLists and propertyLists metadata for rel {}.", tableSchema->tableName);
     for (auto relDirection : REL_DIRECTIONS) {
@@ -315,6 +317,7 @@ void RelCopier::sortAndCopyOverflowValues() {
                 1;
             auto numBuckets = numNodes / 256;
             numBuckets += (numNodes % 256 != 0);
+            // TODO(Semih): Schedule one at a time.
             for (auto& property : tableSchema->properties) {
                 if (property.dataType.typeID == STRING || property.dataType.typeID == VAR_LIST) {
                     offset_t offsetStart = 0, offsetEnd = 0;
