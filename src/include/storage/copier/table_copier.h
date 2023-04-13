@@ -14,7 +14,6 @@
 #include <arrow/pretty_print.h>
 #include <arrow/result.h>
 #include <arrow/scalar.h>
-#include <arrow/status.h>
 #include <arrow/table.h>
 #include <parquet/arrow/reader.h>
 #include <parquet/arrow/writer.h>
@@ -52,28 +51,15 @@ protected:
 
     virtual void populateInMemoryStructures(processor::ExecutionContext* executionContext);
 
-    inline void updateTableStatistics() {
-        tablesStatistics->setNumTuplesForTable(tableSchema->tableID, numRows);
-    }
+    void countNumLines(const std::vector<std::string>& filePaths);
 
-    void countNumLines(const std::vector<std::string>& filePath);
+    void countNumLinesCSV(const std::vector<std::string>& filePaths);
 
-    arrow::Status countNumLinesCSV(const std::vector<std::string>& filePaths);
+    void countNumLinesParquet(const std::vector<std::string>& filePaths);
 
-    arrow::Status countNumLinesParquet(const std::vector<std::string>& filePaths);
+    std::shared_ptr<arrow::csv::StreamingReader> initCSVReader(const std::string& filePath) const;
 
-    arrow::Status initCSVReaderAndCheckStatus(
-        std::shared_ptr<arrow::csv::StreamingReader>& csv_streaming_reader,
-        const std::string& filePath);
-
-    arrow::Status initCSVReader(std::shared_ptr<arrow::csv::StreamingReader>& csv_streaming_reader,
-        const std::string& filePath);
-
-    arrow::Status initParquetReaderAndCheckStatus(
-        std::unique_ptr<parquet::arrow::FileReader>& reader, const std::string& filePath);
-
-    arrow::Status initParquetReader(
-        std::unique_ptr<parquet::arrow::FileReader>& reader, const std::string& filePath);
+    std::unique_ptr<parquet::arrow::FileReader> initParquetReader(const std::string& filePath);
 
     static std::vector<std::pair<int64_t, int64_t>> getListElementPos(
         const std::string& l, int64_t from, int64_t to, common::CopyDescription& copyDescription);
@@ -86,13 +72,18 @@ protected:
 
     static void throwCopyExceptionIfNotOK(const arrow::Status& status);
 
-    uint64_t getNumBlocks() const {
+    inline void updateTableStatistics() {
+        tablesStatistics->setNumTuplesForTable(tableSchema->tableID, numRows);
+    }
+    inline uint64_t getNumBlocks() const {
         uint64_t numBlocks = 0;
         for (auto& [_, info] : fileBlockInfos) {
             numBlocks += info.numBlocks;
         }
         return numBlocks;
     }
+
+    static std::shared_ptr<arrow::DataType> toArrowDataType(const common::DataType& dataType);
 
 protected:
     std::shared_ptr<spdlog::logger> logger;

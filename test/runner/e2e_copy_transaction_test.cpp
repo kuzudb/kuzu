@@ -194,7 +194,8 @@ public:
         "CREATE NODE TABLE person (ID INT64, fName STRING, gender INT64, isStudent BOOLEAN, "
         "isWorker BOOLEAN, "
         "age INT64, eyeSight DOUBLE, birthdate DATE, registerTime TIMESTAMP, lastJobDuration "
-        "INTERVAL, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], "
+        "INTERVAL, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], grades "
+        "INT64[4], height float, "
         "PRIMARY KEY (ID))";
     std::string copyPersonTableCMD =
         "COPY person FROM \"" +

@@ -139,7 +139,8 @@ public:
 
     RelTableSchema()
         : TableSchema{"", common::INVALID_TABLE_ID, false /* isNodeTable */, {} /* properties */},
-          relMultiplicity{MANY_MANY} {}
+          relMultiplicity{MANY_MANY}, srcTableID{common::INVALID_TABLE_ID},
+          dstTableID{common::INVALID_TABLE_ID} {}
     RelTableSchema(std::string tableName, common::table_id_t tableID,
         RelMultiplicity relMultiplicity, std::vector<Property> properties,
         common::table_id_t srcTableID, common::table_id_t dstTableID)
