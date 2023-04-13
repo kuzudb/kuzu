@@ -59,7 +59,6 @@ public:
             joinNodeIDs, joinType, mark, children[0]->copy(), children[1]->copy());
     }
 
-private:
     // Flat probe side key group in either of the following two cases:
     // 1. there are multiple join nodes;
     // 2. if the build side contains more than one group or the build side has projected out data
@@ -69,6 +68,7 @@ private:
     // flattening probe key, instead duplicating keys as in vectorized processing if necessary.
     bool requireFlatProbeKeys();
 
+private:
     bool isJoinKeyUniqueOnBuildSide(const binder::Expression& joinNodeID);
 
 private:

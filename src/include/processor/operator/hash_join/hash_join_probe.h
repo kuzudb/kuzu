@@ -47,46 +47,60 @@ public:
 };
 
 // Probe side on left, i.e. children[0] and build side on right, i.e. children[1]
-class HashJoinProbe : public PhysicalOperator, SelVectorOverWriter {
+class HashJoinProbe : public PhysicalOperator, public SelVectorOverWriter {
 public:
     HashJoinProbe(std::shared_ptr<HashJoinSharedState> sharedState, common::JoinType joinType,
-        const ProbeDataInfo& probeDataInfo, std::unique_ptr<PhysicalOperator> probeChild,
-        std::unique_ptr<PhysicalOperator> buildChild, uint32_t id, const std::string& paramsString)
+        bool flatProbe, const ProbeDataInfo& probeDataInfo,
+        std::unique_ptr<PhysicalOperator> probeChild, std::unique_ptr<PhysicalOperator> buildChild,
+        uint32_t id, const std::string& paramsString)
         : PhysicalOperator{PhysicalOperatorType::HASH_JOIN_PROBE, std::move(probeChild),
               std::move(buildChild), id, paramsString},
-          sharedState{std::move(sharedState)}, joinType{joinType}, probeDataInfo{probeDataInfo} {}
+          sharedState{std::move(sharedState)}, joinType{joinType}, flatProbe{flatProbe},
+          probeDataInfo{probeDataInfo} {}
 
     // This constructor is used for cloning only.
     // HashJoinProbe do not need to clone hashJoinBuild which is on a different pipeline.
     HashJoinProbe(std::shared_ptr<HashJoinSharedState> sharedState, common::JoinType joinType,
-        const ProbeDataInfo& probeDataInfo, std::unique_ptr<PhysicalOperator> probeChild,
-        uint32_t id, const std::string& paramsString)
+        bool flatProbe, const ProbeDataInfo& probeDataInfo,
+        std::unique_ptr<PhysicalOperator> probeChild, uint32_t id, const std::string& paramsString)
         : PhysicalOperator{PhysicalOperatorType::HASH_JOIN_PROBE, std::move(probeChild), id,
               paramsString},
-          sharedState{std::move(sharedState)}, joinType{joinType}, probeDataInfo{probeDataInfo} {}
+          sharedState{std::move(sharedState)}, joinType{joinType}, flatProbe{flatProbe},
+          probeDataInfo{probeDataInfo} {}
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
     inline std::unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<HashJoinProbe>(
-            sharedState, joinType, probeDataInfo, children[0]->clone(), id, paramsString);
+        return make_unique<HashJoinProbe>(sharedState, joinType, flatProbe, probeDataInfo,
+            children[0]->clone(), id, paramsString);
     }
 
 private:
-    bool hasMoreLeft();
-    bool getNextBatchOfMatchedTuples(ExecutionContext* context);
-    uint64_t getNextInnerJoinResult();
-    uint64_t getNextLeftJoinResult();
-    uint64_t getNextMarkJoinResult();
-    void setVectorsToNull();
+    inline bool getMatchedTuples(ExecutionContext* context) {
+        return flatProbe ? getMatchedTuplesForFlatKey(context) :
+                           getMatchedTuplesForUnFlatKey(context);
+    }
+    bool getMatchedTuplesForFlatKey(ExecutionContext* context);
+    // We can probe a batch of input tuples if we know they have at most one match.
+    bool getMatchedTuplesForUnFlatKey(ExecutionContext* context);
 
-    uint64_t getNextJoinResult();
+    inline uint64_t getInnerJoinResult() {
+        return flatProbe ? getInnerJoinResultForFlatKey() : getInnerJoinResultForUnFlatKey();
+    }
+    uint64_t getInnerJoinResultForFlatKey();
+    uint64_t getInnerJoinResultForUnFlatKey();
+    uint64_t getLeftJoinResult();
+    uint64_t getMarkJoinResult();
+    uint64_t getJoinResult();
+
+    void setVectorsToNull();
 
 private:
     std::shared_ptr<HashJoinSharedState> sharedState;
     common::JoinType joinType;
+    bool flatProbe;
 
     ProbeDataInfo probeDataInfo;
     std::vector<common::ValueVector*> vectorsToReadInto;
