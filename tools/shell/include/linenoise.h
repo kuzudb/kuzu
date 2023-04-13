@@ -39,6 +39,7 @@
 #ifndef __LINENOISE_H
 #define __LINENOISE_H
 
+#include <cstdint>
 #include <string>
 
 #ifdef __cplusplus
