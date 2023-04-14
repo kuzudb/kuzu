@@ -42,6 +42,14 @@ public:
 
     uint64_t copy(processor::ExecutionContext* executionContext);
 
+    static void throwCopyExceptionIfNotOK(const arrow::Status& status);
+
+    static std::unique_ptr<common::Value> getArrowVarList(const std::string& l, int64_t from,
+        int64_t to, const common::DataType& dataType, common::CopyDescription& copyDescription);
+
+    static std::unique_ptr<uint8_t[]> getArrowFixedList(const std::string& l, int64_t from,
+        int64_t to, const common::DataType& dataType, common::CopyDescription& copyDescription);
+
 protected:
     virtual void initializeColumnsAndLists() = 0;
 
@@ -64,23 +72,8 @@ protected:
     static std::vector<std::pair<int64_t, int64_t>> getListElementPos(
         const std::string& l, int64_t from, int64_t to, common::CopyDescription& copyDescription);
 
-    static std::unique_ptr<common::Value> getArrowVarList(const std::string& l, int64_t from,
-        int64_t to, const common::DataType& dataType, common::CopyDescription& copyDescription);
-
-    static std::unique_ptr<uint8_t[]> getArrowFixedList(const std::string& l, int64_t from,
-        int64_t to, const common::DataType& dataType, common::CopyDescription& copyDescription);
-
-    static void throwCopyExceptionIfNotOK(const arrow::Status& status);
-
     inline void updateTableStatistics() {
         tablesStatistics->setNumTuplesForTable(tableSchema->tableID, numRows);
-    }
-    inline uint64_t getNumBlocks() const {
-        uint64_t numBlocks = 0;
-        for (auto& [_, info] : fileBlockInfos) {
-            numBlocks += info.numBlocks;
-        }
-        return numBlocks;
     }
 
     static std::shared_ptr<arrow::DataType> toArrowDataType(const common::DataType& dataType);

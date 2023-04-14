@@ -1,4 +1,4 @@
-#include "storage/in_mem_storage_structure/node_in_mem_column.h"
+#include "storage/in_mem_storage_structure/in_mem_node_column.h"
 
 #include "common/constants.h"
 #include "common/file_utils.h"
@@ -7,8 +7,8 @@
 namespace kuzu {
 namespace storage {
 
-NodeInMemColumn::NodeInMemColumn(std::string filePath, common::DataType dataType,
-    uint16_t numBytesForElement, uint64_t numElements, uint64_t numBlocks)
+InMemNodeColumn::InMemNodeColumn(std::string filePath, common::DataType dataType,
+    uint16_t numBytesForElement, uint64_t numElements)
     : filePath{std::move(filePath)}, dataType{std::move(dataType)},
       numBytesForElement{numBytesForElement}, numElements{numElements} {
     numElementsInAPage = PageUtils::getNumElementsInAPage(numBytesForElement, true /* hasNull */);
@@ -23,7 +23,7 @@ NodeInMemColumn::NodeInMemColumn(std::string filePath, common::DataType dataType
     fileHandle = std::make_unique<FileHandle>(this->filePath, O_WRONLY);
 }
 
-void NodeInMemColumn::flushChunk(
+void InMemNodeColumn::flushChunk(
     InMemColumnChunk* chunk, common::offset_t startOffset, common::offset_t endOffset) {
     auto firstPageIdx = CursorUtils::getPageIdx(startOffset, numElementsInAPage);
     auto firstPageOffset = (startOffset % numElementsInAPage) * numBytesForElement;
@@ -51,15 +51,16 @@ void NodeInMemColumn::flushChunk(
     }
 }
 
-void NodeInMemColumn::setElementInChunk(
+void InMemNodeColumn::setElementInChunk(
     InMemColumnChunk* chunk, common::offset_t offset, const uint8_t* val) {
-    chunk->copyValue(offset, val);
+    auto pageCursor = PageUtils::getPageElementCursorForPos(offset, numElementsInAPage);
+    chunk->copyValue(pageCursor.pageIdx, pageCursor.elemPosInPage, val);
     if (nullMask != nullptr) {
         nullMask->setNull(offset, false);
     }
 }
 
-std::unique_ptr<uint64_t[]> NodeInMemColumn::encodeNullBits(common::page_idx_t pageIdx) {
+std::unique_ptr<uint64_t[]> InMemNodeColumn::encodeNullBits(common::page_idx_t pageIdx) {
     auto startElemOffset = pageIdx * numElementsInAPage;
     auto nullEntries = std::make_unique<uint64_t[]>(numNullEntriesPerPage);
     std::fill(nullEntries.get(), nullEntries.get() + numNullEntriesPerPage,
@@ -74,7 +75,7 @@ std::unique_ptr<uint64_t[]> NodeInMemColumn::encodeNullBits(common::page_idx_t p
     return nullEntries;
 }
 
-void NodeInMemColumn::flushNullBits() {
+void InMemNodeColumn::flushNullBits() {
     auto maxPageIdx = numPages - 1;
     for (auto pageIdx = 0u; pageIdx < maxPageIdx; pageIdx++) {
         auto startElemOffset = pageIdx * numElementsInAPage;

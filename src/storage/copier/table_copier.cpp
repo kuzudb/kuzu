@@ -311,10 +311,10 @@ std::shared_ptr<arrow::DataType> TableCopier::toArrowDataType(const common::Data
     }
     case common::TIMESTAMP:
     case common::DATE:
+    case common::INTERVAL:
     case common::FIXED_LIST:
     case common::VAR_LIST:
-    case common::STRING:
-    case common::INTERVAL: {
+    case common::STRING: {
         return arrow::utf8();
     }
     default: {

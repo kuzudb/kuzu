@@ -435,7 +435,7 @@ void RelCopier::putPropsOfLineIntoColumns(RelCopier* copier,
         } break;
         case STRING: {
             auto kuStr = inMemOverflowFilePerPropertyID[propertyID]->copyString(
-                data, inMemOverflowFileCursors[propertyID]);
+                data, strlen(data), inMemOverflowFileCursors[propertyID]);
             putValueIntoColumns(propertyID, directionTablePropertyColumns, nodeIDs,
                 reinterpret_cast<uint8_t*>(&kuStr));
         } break;
@@ -531,7 +531,7 @@ void RelCopier::putPropsOfLineIntoLists(RelCopier* copier,
         } break;
         case STRING: {
             auto kuStr = inMemOverflowFilesPerProperty[propertyID]->copyString(
-                data, inMemOverflowFileCursors[propertyID]);
+                data, strlen(data), inMemOverflowFileCursors[propertyID]);
             putValueIntoLists(propertyID, directionTablePropertyLists, directionTableAdjLists,
                 nodeIDs, reversePos, reinterpret_cast<uint8_t*>(&kuStr));
         } break;

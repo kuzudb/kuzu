@@ -70,9 +70,10 @@ ku_string_t InMemOverflowFile::appendString(const char* rawString) {
     return result;
 }
 
-ku_string_t InMemOverflowFile::copyString(const char* rawString, PageByteCursor& overflowCursor) {
+ku_string_t InMemOverflowFile::copyString(
+    const char* rawString, common::page_offset_t length, PageByteCursor& overflowCursor) {
     ku_string_t kuString;
-    kuString.len = strlen(rawString);
+    kuString.len = length;
     std::memcpy(kuString.prefix, rawString,
         kuString.len <= ku_string_t::SHORT_STR_LENGTH ? kuString.len : ku_string_t::PREFIX_LENGTH);
     if (kuString.len > ku_string_t::SHORT_STR_LENGTH) {
@@ -102,7 +103,8 @@ void InMemOverflowFile::copyVarSizedValuesInList(ku_list_t& resultKUList, const 
         std::vector<ku_string_t> kuStrings(listVal.listVal.size());
         for (auto i = 0u; i < listVal.listVal.size(); i++) {
             assert(listVal.listVal[i]->dataType.typeID == STRING);
-            kuStrings[i] = copyString(listVal.listVal[i]->strVal.c_str(), overflowCursor);
+            kuStrings[i] = copyString(listVal.listVal[i]->strVal.c_str(),
+                listVal.listVal[i]->strVal.length(), overflowCursor);
         }
         std::shared_lock lck(lock);
         for (auto i = 0u; i < listVal.listVal.size(); i++) {
