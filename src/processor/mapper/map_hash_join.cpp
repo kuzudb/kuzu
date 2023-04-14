@@ -77,8 +77,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalHashJoinToPhysical(
         probeDataInfo.markDataPos = markOutputPos;
     }
     auto hashJoinProbe = make_unique<HashJoinProbe>(sharedState, hashJoin->getJoinType(),
-        probeDataInfo, std::move(probeSidePrevOperator), std::move(hashJoinBuild), getOperatorID(),
-        paramsString);
+        hashJoin->requireFlatProbeKeys(), probeDataInfo, std::move(probeSidePrevOperator),
+        std::move(hashJoinBuild), getOperatorID(), paramsString);
     if (hashJoin->getSIP() == planner::SidewaysInfoPassing::PROBE_TO_BUILD) {
         mapAccHashJoin(hashJoinProbe.get());
     }
