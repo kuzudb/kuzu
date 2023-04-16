@@ -193,6 +193,7 @@ public:
     inline common::frame_group_idx_t addNewFrameGroup(common::PageSizeClass pageSizeClass) {
         return vmRegions[pageSizeClass]->addNewFrameGroup();
     }
+    inline void clearEvictionQueue() { evictionQueue = std::make_unique<EvictionQueue>(0); }
 
 private:
     bool claimAFrame(
