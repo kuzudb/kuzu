@@ -6,6 +6,7 @@
 #include "planner/logical_plan/logical_operator/logical_ftable_scan.h"
 #include "planner/logical_plan/logical_operator/logical_hash_join.h"
 #include "planner/logical_plan/logical_operator/logical_intersect.h"
+#include "planner/logical_plan/logical_operator/logical_recursive_extend.h"
 #include "planner/logical_plan/logical_operator/logical_scan_node.h"
 #include "planner/projection_planner.h"
 #include "planner/query_planner.h"
@@ -174,9 +175,21 @@ void JoinOrderEnumerator::planRelScan(uint32_t relPos) {
 
 void JoinOrderEnumerator::appendExtendAndFilter(std::shared_ptr<RelExpression> rel,
     common::RelDirection direction, const expression_vector& predicates, LogicalPlan& plan) {
-    auto [boundNode, dstNode] = getBoundAndNbrNodes(*rel, direction);
-    auto properties = queryPlanner->getPropertiesForRel(*rel);
-    appendExtend(boundNode, dstNode, rel, direction, properties, plan);
+    auto [boundNode, nbrNode] = getBoundAndNbrNodes(*rel, direction);
+    switch (rel->getRelType()) {
+    case common::QueryRelType::NON_RECURSIVE: {
+        auto properties = queryPlanner->getPropertiesForRel(*rel);
+        appendNonRecursiveExtend(boundNode, nbrNode, rel, direction, properties, plan);
+    } break;
+    case common::QueryRelType::VARIABLE_LENGTH: {
+        appendVariableLengthExtend(boundNode, nbrNode, rel, direction, plan);
+    } break;
+    case common::QueryRelType::SHORTEST: {
+        appendShortestPathExtend(boundNode, nbrNode, rel, direction, plan);
+    } break;
+    default:
+        throw common::NotImplementedException("appendExtendAndFilter()");
+    }
     queryPlanner->appendFilters(predicates, plan);
 }
 
@@ -438,36 +451,70 @@ void JoinOrderEnumerator::appendScanNodeID(
     plan.setLastOperator(std::move(scan));
 }
 
-// When extend might increase cardinality (i.e. n * m), we extend to a new factorization group.
-bool JoinOrderEnumerator::needExtendToNewGroup(
-    RelExpression& rel, NodeExpression& boundNode, RelDirection direction) {
-    auto extendToNewGroup = false;
-    extendToNewGroup |= boundNode.isMultiLabeled();
-    extendToNewGroup |= rel.isMultiLabeled();
-    if (!rel.isMultiLabeled()) {
-        auto relTableID = rel.getSingleTableID();
-        extendToNewGroup |=
-            !catalog.getReadOnlyVersion()->isSingleMultiplicityInDirection(relTableID, direction);
+static bool extendHasAtMostOneNbrGuarantee(RelExpression& rel, NodeExpression& boundNode,
+    RelDirection direction, const catalog::Catalog& catalog) {
+    if (boundNode.isMultiLabeled()) {
+        return false;
     }
-    return extendToNewGroup;
+    if (rel.isMultiLabeled()) {
+        return false;
+    }
+    return catalog.getReadOnlyVersion()->isSingleMultiplicityInDirection(
+        rel.getSingleTableID(), direction);
 }
 
-void JoinOrderEnumerator::appendExtend(std::shared_ptr<NodeExpression> boundNode,
+void JoinOrderEnumerator::appendNonRecursiveExtend(std::shared_ptr<NodeExpression> boundNode,
     std::shared_ptr<NodeExpression> nbrNode, std::shared_ptr<RelExpression> rel,
     RelDirection direction, const expression_vector& properties, LogicalPlan& plan) {
-    auto extendToNewGroup = needExtendToNewGroup(*rel, *boundNode, direction);
+    auto hasAtMostOneNbr = extendHasAtMostOneNbrGuarantee(*rel, *boundNode, direction, catalog);
     auto extend = make_shared<LogicalExtend>(
-        boundNode, nbrNode, rel, direction, properties, extendToNewGroup, plan.getLastOperator());
+        boundNode, nbrNode, rel, direction, properties, hasAtMostOneNbr, plan.getLastOperator());
     queryPlanner->appendFlattens(extend->getGroupsPosToFlatten(), plan);
     extend->setChild(0, plan.getLastOperator());
     extend->computeFactorizedSchema();
     // update cost
     plan.setCost(CostModel::computeExtendCost(plan));
     // update cardinality. Note that extend does not change cardinality.
-    if (extendToNewGroup) {
+    if (!hasAtMostOneNbr) {
+        auto extensionRate = queryPlanner->cardinalityEstimator->getExtensionRate(*rel, *boundNode);
         auto group = extend->getSchema()->getGroup(nbrNode->getInternalIDProperty());
-        group->setMultiplier(
-            queryPlanner->cardinalityEstimator->getExtensionRate(*rel, *boundNode));
+        group->setMultiplier(extensionRate);
+    }
+    plan.setLastOperator(std::move(extend));
+}
+
+void JoinOrderEnumerator::appendVariableLengthExtend(std::shared_ptr<NodeExpression> boundNode,
+    std::shared_ptr<NodeExpression> nbrNode, std::shared_ptr<RelExpression> rel,
+    common::RelDirection direction, kuzu::planner::LogicalPlan& plan) {
+    auto hasAtMostOneNbr = extendHasAtMostOneNbrGuarantee(*rel, *boundNode, direction, catalog);
+    auto extend = make_shared<LogicalVariableLengthExtend>(
+        boundNode, nbrNode, rel, direction, hasAtMostOneNbr, plan.getLastOperator());
+    queryPlanner->appendFlattens(extend->getGroupsPosToFlatten(), plan);
+    extend->setChild(0, plan.getLastOperator());
+    extend->computeFactorizedSchema();
+    auto extensionRate = queryPlanner->cardinalityEstimator->getExtensionRate(*rel, *boundNode);
+    plan.setCost(CostModel::computeRecursiveExtendCost(rel->getUpperBound(), extensionRate, plan));
+    if (!hasAtMostOneNbr) {
+        auto group = extend->getSchema()->getGroup(nbrNode->getInternalIDProperty());
+        group->setMultiplier(extensionRate);
+    }
+    plan.setLastOperator(std::move(extend));
+}
+
+void JoinOrderEnumerator::appendShortestPathExtend(std::shared_ptr<NodeExpression> boundNode,
+    std::shared_ptr<NodeExpression> nbrNode, std::shared_ptr<RelExpression> rel,
+    common::RelDirection direction, kuzu::planner::LogicalPlan& plan) {
+    auto hasAtMostOneNbr = extendHasAtMostOneNbrGuarantee(*rel, *boundNode, direction, catalog);
+    auto extend = std::make_shared<LogicalShortestPathExtend>(
+        boundNode, nbrNode, rel, direction, plan.getLastOperator());
+    queryPlanner->appendFlattens(extend->getGroupsPosToFlatten(), plan);
+    extend->setChild(0, plan.getLastOperator());
+    extend->computeFactorizedSchema();
+    auto extensionRate = queryPlanner->cardinalityEstimator->getExtensionRate(*rel, *boundNode);
+    plan.setCost(CostModel::computeRecursiveExtendCost(rel->getUpperBound(), extensionRate, plan));
+    if (!hasAtMostOneNbr) {
+        auto group = extend->getSchema()->getGroup(nbrNode->getInternalIDProperty());
+        group->setMultiplier(extensionRate);
     }
     plan.setLastOperator(std::move(extend));
 }

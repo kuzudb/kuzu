@@ -25,15 +25,15 @@ public:
     UNION = 65, ALL = 66, OPTIONAL = 67, MATCH = 68, UNWIND = 69, CREATE = 70, 
     SET = 71, DELETE = 72, WITH = 73, RETURN = 74, DISTINCT = 75, STAR = 76, 
     AS = 77, ORDER = 78, BY = 79, L_SKIP = 80, LIMIT = 81, ASCENDING = 82, 
-    ASC = 83, DESCENDING = 84, DESC = 85, WHERE = 86, OR = 87, XOR = 88, 
-    AND = 89, NOT = 90, INVALID_NOT_EQUAL = 91, MINUS = 92, FACTORIAL = 93, 
-    STARTS = 94, ENDS = 95, CONTAINS = 96, IS = 97, NULL_ = 98, TRUE = 99, 
-    FALSE = 100, EXISTS = 101, CASE = 102, ELSE = 103, END = 104, WHEN = 105, 
-    THEN = 106, StringLiteral = 107, EscapedChar = 108, DecimalInteger = 109, 
-    HexLetter = 110, HexDigit = 111, Digit = 112, NonZeroDigit = 113, NonZeroOctDigit = 114, 
-    ZeroDigit = 115, RegularDecimalReal = 116, UnescapedSymbolicName = 117, 
-    IdentifierStart = 118, IdentifierPart = 119, EscapedSymbolicName = 120, 
-    SP = 121, WHITESPACE = 122, Comment = 123, Unknown = 124
+    ASC = 83, DESCENDING = 84, DESC = 85, WHERE = 86, SHORTEST = 87, OR = 88, 
+    XOR = 89, AND = 90, NOT = 91, INVALID_NOT_EQUAL = 92, MINUS = 93, FACTORIAL = 94, 
+    STARTS = 95, ENDS = 96, CONTAINS = 97, IS = 98, NULL_ = 99, TRUE = 100, 
+    FALSE = 101, EXISTS = 102, CASE = 103, ELSE = 104, END = 105, WHEN = 106, 
+    THEN = 107, StringLiteral = 108, EscapedChar = 109, DecimalInteger = 110, 
+    HexLetter = 111, HexDigit = 112, Digit = 113, NonZeroDigit = 114, NonZeroOctDigit = 115, 
+    ZeroDigit = 116, RegularDecimalReal = 117, UnescapedSymbolicName = 118, 
+    IdentifierStart = 119, IdentifierPart = 120, EscapedSymbolicName = 121, 
+    SP = 122, WHITESPACE = 123, Comment = 124, Unknown = 125
   };
 
   enum {
@@ -1125,6 +1125,7 @@ public:
     OC_IntegerLiteralContext* oC_IntegerLiteral(size_t i);
     std::vector<antlr4::tree::TerminalNode *> SP();
     antlr4::tree::TerminalNode* SP(size_t i);
+    antlr4::tree::TerminalNode *SHORTEST();
 
    
   };

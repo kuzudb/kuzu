@@ -10,6 +10,7 @@ enum class ClauseType : uint8_t {
     SET = 0,
     DELETE = 1,
     CREATE = 2,
+    // reading clause
     MATCH = 3,
     UNWIND = 4
 };

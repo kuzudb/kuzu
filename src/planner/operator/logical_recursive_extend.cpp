@@ -1,15 +1,12 @@
-#include "planner/logical_plan/logical_operator/logical_extend.h"
+#include "planner/logical_plan/logical_operator/logical_recursive_extend.h"
 
-#include "planner/logical_plan/logical_operator/flatten_resolver.h"
+#include "planner/logical_plan/logical_operator/sink_util.h"
 
 namespace kuzu {
 namespace planner {
 
-f_group_pos_set LogicalExtend::getGroupsPosToFlatten() {
+f_group_pos_set LogicalRecursiveExtend::getGroupsPosToFlatten() {
     f_group_pos_set result;
-    if (hasAtMostOneNbr) { // Column extend. No need to flatten input bound node.
-        return result;
-    }
     auto inSchema = children[0]->getSchema();
     auto boundNodeGroupPos = inSchema->getGroupPos(*boundNode->getInternalIDProperty());
     if (!inSchema->getGroup(boundNodeGroupPos)->isFlat()) {
@@ -18,7 +15,12 @@ f_group_pos_set LogicalExtend::getGroupsPosToFlatten() {
     return result;
 }
 
-void LogicalExtend::computeFactorizedSchema() {
+void LogicalRecursiveExtend::computeFlatSchema() {
+    copyChildSchema(0);
+    schema->insertToGroupAndScope(nbrNode->getInternalIDProperty(), 0);
+}
+
+void LogicalVariableLengthExtend::computeFactorizedSchema() {
     copyChildSchema(0);
     auto boundGroupPos = schema->getGroupPos(boundNode->getInternalIDPropertyName());
     uint32_t nbrGroupPos = 0u;
@@ -29,17 +31,14 @@ void LogicalExtend::computeFactorizedSchema() {
         nbrGroupPos = schema->createGroup();
     }
     schema->insertToGroupAndScope(nbrNode->getInternalIDProperty(), nbrGroupPos);
-    for (auto& property : properties) {
-        schema->insertToGroupAndScope(property, nbrGroupPos);
-    }
 }
 
-void LogicalExtend::computeFlatSchema() {
-    copyChildSchema(0);
-    schema->insertToGroupAndScope(nbrNode->getInternalIDProperty(), 0);
-    for (auto& property : properties) {
-        schema->insertToGroupAndScope(property, 0);
-    }
+void LogicalShortestPathExtend::computeFactorizedSchema() {
+    createEmptySchema();
+    auto childSchema = children[0]->getSchema();
+    SinkOperatorUtil::recomputeSchema(*childSchema, childSchema->getExpressionsInScope(), *schema);
+    auto nbrGroupPos = schema->createGroup();
+    schema->insertToGroupAndScope(nbrNode->getInternalIDProperty(), nbrGroupPos);
 }
 
 } // namespace planner

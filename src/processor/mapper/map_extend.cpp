@@ -1,4 +1,5 @@
 #include "planner/logical_plan/logical_operator/logical_extend.h"
+#include "planner/logical_plan/logical_operator/logical_recursive_extend.h"
 #include "processor/mapper/plan_mapper.h"
 #include "processor/operator/scan/generic_scan_rel_tables.h"
 #include "processor/operator/scan/scan_rel_table_columns.h"
@@ -74,31 +75,19 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExtendToPhysical(
         auto relTableID = rel->getSingleTableID();
         if (relsStore.isSingleMultiplicityInDirection(direction, relTableID)) {
             auto adjColumn = relsStore.getAdjColumn(direction, relTableID);
-            if (rel->isVariableLength()) {
-                return make_unique<VarLengthColumnExtend>(inNodeIDVectorPos, outNodeIDVectorPos,
-                    adjColumn, rel->getLowerBound(), rel->getUpperBound(), std::move(prevOperator),
-                    getOperatorID(), extend->getExpressionsForPrinting());
-            } else {
-                auto propertyIds = populatePropertyIds(relTableID, extend->getProperties());
-                return make_unique<ScanRelTableColumns>(
-                    relsStore.getRelTable(relTableID)->getDirectedTableData(direction),
-                    std::move(propertyIds), inNodeIDVectorPos, std::move(outputVectorsPos),
-                    std::move(prevOperator), getOperatorID(), extend->getExpressionsForPrinting());
-            }
+            auto propertyIds = populatePropertyIds(relTableID, extend->getProperties());
+            return make_unique<ScanRelTableColumns>(
+                relsStore.getRelTable(relTableID)->getDirectedTableData(direction),
+                std::move(propertyIds), inNodeIDVectorPos, std::move(outputVectorsPos),
+                std::move(prevOperator), getOperatorID(), extend->getExpressionsForPrinting());
         } else {
             assert(!relsStore.isSingleMultiplicityInDirection(direction, relTableID));
             auto adjList = relsStore.getAdjLists(direction, relTableID);
-            if (rel->isVariableLength()) {
-                return make_unique<VarLengthAdjListExtend>(inNodeIDVectorPos, outNodeIDVectorPos,
-                    adjList, rel->getLowerBound(), rel->getUpperBound(), std::move(prevOperator),
-                    getOperatorID(), extend->getExpressionsForPrinting());
-            } else {
-                auto propertyIds = populatePropertyIds(relTableID, extend->getProperties());
-                return make_unique<ScanRelTableLists>(
-                    relsStore.getRelTable(relTableID)->getDirectedTableData(direction),
-                    std::move(propertyIds), inNodeIDVectorPos, std::move(outputVectorsPos),
-                    std::move(prevOperator), getOperatorID(), extend->getExpressionsForPrinting());
-            }
+            auto propertyIds = populatePropertyIds(relTableID, extend->getProperties());
+            return make_unique<ScanRelTableLists>(
+                relsStore.getRelTable(relTableID)->getDirectedTableData(direction),
+                std::move(propertyIds), inNodeIDVectorPos, std::move(outputVectorsPos),
+                std::move(prevOperator), getOperatorID(), extend->getExpressionsForPrinting());
         }
     } else { // map to generic extend
         std::unordered_map<table_id_t, std::unique_ptr<RelTableCollection>>
@@ -113,6 +102,39 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExtendToPhysical(
         }
         return std::make_unique<GenericScanRelTables>(inNodeIDVectorPos, outputVectorsPos,
             std::move(relTableCollectionPerNodeTable), std::move(prevOperator), getOperatorID(),
+            extend->getExpressionsForPrinting());
+    }
+}
+
+std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalRecursiveExtendToPhysical(
+    planner::LogicalOperator* logicalOperator) {
+    auto extend = (LogicalRecursiveExtend*)logicalOperator;
+    auto outSchema = extend->getSchema();
+    auto inSchema = extend->getChild(0)->getSchema();
+    auto boundNode = extend->getBoundNode();
+    auto nbrNode = extend->getNbrNode();
+    auto rel = extend->getRel();
+    auto direction = extend->getDirection();
+    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0));
+    auto inNodeIDVectorPos =
+        DataPos(inSchema->getExpressionPos(*boundNode->getInternalIDProperty()));
+    auto outNodeIDVectorPos =
+        DataPos(outSchema->getExpressionPos(*nbrNode->getInternalIDProperty()));
+    std::vector<DataPos> outputVectorsPos;
+    outputVectorsPos.push_back(outNodeIDVectorPos);
+    auto& relsStore = storageManager.getRelsStore();
+    auto relTableID = rel->getSingleTableID();
+    assert(rel->getRelType() == common::QueryRelType::VARIABLE_LENGTH);
+    if (relsStore.isSingleMultiplicityInDirection(direction, relTableID)) {
+        auto adjColumn = relsStore.getAdjColumn(direction, relTableID);
+        return make_unique<VarLengthColumnExtend>(inNodeIDVectorPos, outNodeIDVectorPos, adjColumn,
+            rel->getLowerBound(), rel->getUpperBound(), std::move(prevOperator), getOperatorID(),
+            extend->getExpressionsForPrinting());
+
+    } else {
+        auto adjList = relsStore.getAdjLists(direction, relTableID);
+        return make_unique<VarLengthAdjListExtend>(inNodeIDVectorPos, outNodeIDVectorPos, adjList,
+            rel->getLowerBound(), rel->getUpperBound(), std::move(prevOperator), getOperatorID(),
             extend->getExpressionsForPrinting());
     }
 }

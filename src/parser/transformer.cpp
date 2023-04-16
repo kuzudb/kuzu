@@ -287,18 +287,21 @@ std::unique_ptr<RelPattern> Transformer::transformRelationshipPattern(
     auto relTypes = relDetail->oC_RelationshipTypes() ?
                         transformRelTypes(*relDetail->oC_RelationshipTypes()) :
                         std::vector<std::string>{};
+    auto relType = common::QueryRelType::NON_RECURSIVE;
     std::string lowerBound = "1";
     std::string upperBound = "1";
     if (relDetail->oC_RangeLiteral()) {
         lowerBound = relDetail->oC_RangeLiteral()->oC_IntegerLiteral()[0]->getText();
         upperBound = relDetail->oC_RangeLiteral()->oC_IntegerLiteral()[1]->getText();
+        relType = relDetail->oC_RangeLiteral()->SHORTEST() ? common::QueryRelType::SHORTEST :
+                                                             common::QueryRelType::VARIABLE_LENGTH;
     }
     auto arrowHead = ctx.oC_LeftArrowHead() ? ArrowDirection::LEFT : ArrowDirection::RIGHT;
     auto properties = relDetail->kU_Properties() ?
                           transformProperties(*relDetail->kU_Properties()) :
                           std::vector<std::pair<std::string, std::unique_ptr<ParsedExpression>>>{};
     return std::make_unique<RelPattern>(
-        variable, relTypes, lowerBound, upperBound, arrowHead, std::move(properties));
+        variable, relTypes, relType, lowerBound, upperBound, arrowHead, std::move(properties));
 }
 
 std::vector<std::pair<std::string, std::unique_ptr<ParsedExpression>>>

@@ -121,7 +121,25 @@ double CardinalityEstimator::getExtensionRate(
     const binder::RelExpression& rel, const binder::NodeExpression& boundNode) {
     auto numBoundNodes = (double)getNumNodes(boundNode);
     auto numRels = (double)getNumRels(rel);
-    return numRels / numBoundNodes;
+    auto oneHopExtensionRate = numRels / numBoundNodes;
+    switch (rel.getRelType()) {
+    case common::QueryRelType::NON_RECURSIVE: {
+        return oneHopExtensionRate;
+    }
+    case common::QueryRelType::VARIABLE_LENGTH:
+    case common::QueryRelType::SHORTEST: {
+        auto extensionRate = oneHopExtensionRate;
+        for (auto i = 0u; i < rel.getUpperBound(); ++i) {
+            extensionRate *= oneHopExtensionRate;
+            if (extensionRate > numRels) { // extension rate in bounded by numRels under BFS.
+                return numRels;
+            }
+        }
+        return extensionRate;
+    }
+    default:
+        throw common::NotImplementedException("getExtensionRate()");
+    }
 }
 
 } // namespace planner

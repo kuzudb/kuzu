@@ -37,6 +37,8 @@ private:
         planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapLogicalExtendToPhysical(
         planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapLogicalRecursiveExtendToPhysical(
+        planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapLogicalFlattenToPhysical(
         planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapLogicalFilterToPhysical(

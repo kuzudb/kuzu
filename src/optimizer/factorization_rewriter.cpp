@@ -13,6 +13,7 @@
 #include "planner/logical_plan/logical_operator/logical_limit.h"
 #include "planner/logical_plan/logical_operator/logical_order_by.h"
 #include "planner/logical_plan/logical_operator/logical_projection.h"
+#include "planner/logical_plan/logical_operator/logical_recursive_extend.h"
 #include "planner/logical_plan/logical_operator/logical_set.h"
 #include "planner/logical_plan/logical_operator/logical_skip.h"
 #include "planner/logical_plan/logical_operator/logical_union.h"
@@ -38,6 +39,12 @@ void FactorizationRewriter::visitOperator(planner::LogicalOperator* op) {
 
 void FactorizationRewriter::visitExtend(planner::LogicalOperator* op) {
     auto extend = (LogicalExtend*)op;
+    auto groupsPosToFlatten = extend->getGroupsPosToFlatten();
+    extend->setChild(0, appendFlattens(extend->getChild(0), groupsPosToFlatten));
+}
+
+void FactorizationRewriter::visitRecursiveExtend(planner::LogicalOperator* op) {
+    auto extend = (LogicalRecursiveExtend*)op;
     auto groupsPosToFlatten = extend->getGroupsPosToFlatten();
     extend->setChild(0, appendFlattens(extend->getChild(0), groupsPosToFlatten));
 }

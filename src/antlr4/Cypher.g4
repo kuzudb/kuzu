@@ -314,7 +314,9 @@ oC_NodeLabel
     : ':' SP? oC_LabelName ;
 
 oC_RangeLiteral
-    :  '*' SP? oC_IntegerLiteral SP? '..' SP? oC_IntegerLiteral ;
+    :  '*' SP? SHORTEST? SP? oC_IntegerLiteral SP? '..' SP? oC_IntegerLiteral ;
+
+SHORTEST : ( 'S' | 's' ) ( 'H' | 'h' ) ( 'O' | 'o' ) ( 'R' | 'r' ) ( 'T' | 't' ) ( 'E' | 'e' ) ( 'S' | 's' ) ( 'T' | 't' ) ;
 
 oC_LabelName
     : oC_SchemaName ;
