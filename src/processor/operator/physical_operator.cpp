@@ -89,6 +89,9 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
     case PhysicalOperatorType::PROJECTION: {
         return "PROJECTION";
     }
+    case PhysicalOperatorType::RECURSIVE_JOIN: {
+        return "RECURSIVE_JOIN";
+    }
     case PhysicalOperatorType::RENAME_PROPERTY: {
         return "RENAME_PROPERTY";
     }
@@ -97,6 +100,9 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
     }
     case PhysicalOperatorType::RESULT_COLLECTOR: {
         return "RESULT_COLLECTOR";
+    }
+    case PhysicalOperatorType::SCAN_BFS_LEVEL: {
+        return "SCAN_BFS_LEVEL";
     }
     case PhysicalOperatorType::SCAN_NODE_ID: {
         return "SCAN_NODE_ID";
@@ -112,9 +118,6 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
     }
     case PhysicalOperatorType::SCAN_REL_TABLE_LISTS: {
         return "SCAN_REL_TABLE_LISTS";
-    }
-    case PhysicalOperatorType::SCAN_BFS_LEVEL: {
-        return "SCAN_BFS_LEVEL";
     }
     case PhysicalOperatorType::SEMI_MASKER: {
         return "SEMI_MASKER";

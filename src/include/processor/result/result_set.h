@@ -17,7 +17,7 @@ public:
         dataChunks[pos] = std::move(dataChunk);
     }
 
-    inline std::shared_ptr<common::ValueVector> getValueVector(DataPos& dataPos) {
+    inline std::shared_ptr<common::ValueVector> getValueVector(const DataPos& dataPos) {
         return dataChunks[dataPos.dataChunkPos]->valueVectors[dataPos.valueVectorPos];
     }
 
