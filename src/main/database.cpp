@@ -56,6 +56,7 @@ Database::Database(const char* databasePath, SystemConfig systemConfig)
 
 Database::~Database() {
     dropLoggers();
+    bufferManager->clearEvictionQueue();
 }
 
 void Database::initDBDirAndCoreFilesIfNecessary() const {
