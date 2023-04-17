@@ -135,7 +135,7 @@ void NpyNodeCopier::batchPopulateColumnsTask(common::property_id_t primaryKeypro
     auto endNodeOffset = startNodeOffset + numLinesInCurBlock - 1;
     auto& column = copier->columns[propertyID];
     std::unique_ptr<InMemColumnChunk> columnChunk =
-        std::make_unique<InMemColumnChunk>(startNodeOffset, endNodeOffset,
+        std::make_unique<InMemColumnChunk>(column->getDataType(), startNodeOffset, endNodeOffset,
             column->getNumBytesForElement(), column->getNumElementsInAPage());
     for (auto i = startNodeOffset; i < startNodeOffset + numLinesInCurBlock; ++i) {
         void* data = npyReader->getPointerToRow(i);
@@ -145,7 +145,7 @@ void NpyNodeCopier::batchPopulateColumnsTask(common::property_id_t primaryKeypro
 
     if (propertyID == primaryKeypropertyID) {
         auto pkColumn = copier->columns.at(primaryKeypropertyID).get();
-        populatePKIndex(columnChunk.get(), pkColumn->getInMemOverflowFile(),
+        populatePKIndex<int64_t>(columnChunk.get(), pkColumn->getInMemOverflowFile(),
             pkColumn->getNullMask(), pkIndex, startNodeOffset, numLinesInCurBlock);
     }
 

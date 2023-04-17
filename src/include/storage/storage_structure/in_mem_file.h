@@ -63,7 +63,8 @@ public:
     // These two functions copies a string/list value to the file according to the cursor. Multiple
     // threads coordinate by that each thread takes the full control of a single page at a time.
     // When the page is not exhausted, each thread can write without an exclusive lock.
-    common::ku_string_t copyString(const char* rawString, PageByteCursor& overflowCursor);
+    common::ku_string_t copyString(
+        const char* rawString, common::page_offset_t length, PageByteCursor& overflowCursor);
     common::ku_list_t copyList(const common::Value& listValue, PageByteCursor& overflowCursor);
 
     // Copy overflow data at srcOverflow into dstKUString.

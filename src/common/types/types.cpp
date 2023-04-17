@@ -219,7 +219,6 @@ std::unique_ptr<DataType> DataType::copy() {
 }
 
 ExtraTypeInfo* DataType::getExtraTypeInfo() const {
-    assert(typeID == VAR_LIST || typeID == FIXED_LIST || typeID == STRUCT);
     return extraTypeInfo.get();
 }
 
