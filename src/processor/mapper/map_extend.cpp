@@ -71,6 +71,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExtendToPhysical(
         outputVectorsPos.emplace_back(outSchema->getExpressionPos(*expression));
     }
     auto& relsStore = storageManager.getRelsStore();
+    sw
+
     if (!rel->isMultiLabeled() && !boundNode->isMultiLabeled()) {
         auto relTableID = rel->getSingleTableID();
         if (relsStore.isSingleMultiplicityInDirection(direction, relTableID)) {
