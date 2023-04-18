@@ -82,12 +82,16 @@ private:
 
     void appendScanNodeID(std::shared_ptr<NodeExpression>& node, LogicalPlan& plan);
 
-    bool needExtendToNewGroup(
-        RelExpression& rel, NodeExpression& boundNode, common::RelDirection direction);
-    void appendExtend(std::shared_ptr<NodeExpression> boundNode,
+    void appendNonRecursiveExtend(std::shared_ptr<NodeExpression> boundNode,
         std::shared_ptr<NodeExpression> nbrNode, std::shared_ptr<RelExpression> rel,
         common::RelDirection direction, const binder::expression_vector& properties,
         LogicalPlan& plan);
+    void appendVariableLengthExtend(std::shared_ptr<NodeExpression> boundNode,
+        std::shared_ptr<NodeExpression> nbrNode, std::shared_ptr<RelExpression> rel,
+        common::RelDirection direction, LogicalPlan& plan);
+    void appendShortestPathExtend(std::shared_ptr<NodeExpression> boundNode,
+        std::shared_ptr<NodeExpression> nbrNode, std::shared_ptr<RelExpression> rel,
+        common::RelDirection direction, LogicalPlan& plan);
 
     void planJoin(const binder::expression_vector& joinNodeIDs, common::JoinType joinType,
         std::shared_ptr<Expression> mark, LogicalPlan& probePlan, LogicalPlan& buildPlan);

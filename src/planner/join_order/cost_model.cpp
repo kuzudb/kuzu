@@ -9,6 +9,12 @@ uint64_t CostModel::computeExtendCost(const LogicalPlan& childPlan) {
     return childPlan.estCardinality;
 }
 
+uint64_t CostModel::computeRecursiveExtendCost(
+    uint8_t upperBound, double extensionRate, const LogicalPlan& childPlan) {
+    return common::PlannerKnobs::BUILD_PENALTY * childPlan.estCardinality *
+           (uint64_t)extensionRate * upperBound;
+}
+
 uint64_t CostModel::computeHashJoinCost(const binder::expression_vector& joinNodeIDs,
     const LogicalPlan& probe, const LogicalPlan& build) {
     auto cost = 0u;

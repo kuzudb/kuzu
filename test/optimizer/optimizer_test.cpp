@@ -86,5 +86,11 @@ TEST_F(OptimizerTest, JoinOrderTest3) {
     ASSERT_STREQ(encodedPlan.c_str(), "I(c._id){HJ(b._id){E(b)S(a)}{S(b)}}{E(c)S(a)}{E(c)S(b)}");
 }
 
+TEST_F(OptimizerTest, RecursiveJoinTest) {
+    auto encodedPlan = getEncodedPlan(
+        "MATCH (a:person)-[:knows* SHORTEST 1..5]->(b:person) WHERE b.ID < 0 RETURN a.fName;");
+    ASSERT_STREQ(encodedPlan.c_str(), "HJ(a._id){S(a)}{RE(a)S(b)}");
+}
+
 } // namespace testing
 } // namespace kuzu

@@ -82,6 +82,9 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
     case LogicalOperatorType::PROJECTION: {
         return "PROJECTION";
     }
+    case LogicalOperatorType::RECURSIVE_EXTEND: {
+        return "RECURSIVE_EXTEND";
+    }
     case LogicalOperatorType::RENAME_TABLE: {
         return "RENAME_TABLE";
     }

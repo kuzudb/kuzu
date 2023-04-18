@@ -131,15 +131,15 @@ void Binder::bindQueryRel(const RelPattern& relPattern,
     // bind variable length
     auto [lowerBound, upperBound] = bindVariableLengthRelBound(relPattern);
     auto queryRel = make_shared<RelExpression>(getUniqueExpressionName(parsedName), parsedName,
-        tableIDs, srcNode, dstNode, lowerBound, upperBound);
+        tableIDs, srcNode, dstNode, relPattern.getRelType(), lowerBound, upperBound);
     queryRel->setAlias(parsedName);
     // resolve properties associate with rel table
     std::vector<RelTableSchema*> relTableSchemas;
     for (auto tableID : tableIDs) {
         relTableSchemas.push_back(catalog.getReadOnlyVersion()->getRelTableSchema(tableID));
     }
-    // we don't support reading property for variable length rel yet.
-    if (!queryRel->isVariableLength()) {
+    // we don't support reading property for VARIABLE_LENGTH or SHORTEST rel.
+    if (queryRel->getRelType() == common::QueryRelType::NON_RECURSIVE) {
         for (auto& [propertyName, propertySchemas] :
             getRelPropertyNameAndPropertiesPairs(relTableSchemas)) {
             auto propertyExpression = expressionBinder.createPropertyExpression(

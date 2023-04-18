@@ -19,6 +19,9 @@ void LogicalOperatorVisitor::visitOperatorSwitch(planner::LogicalOperator* op) {
     case LogicalOperatorType::EXTEND: {
         visitExtend(op);
     } break;
+    case LogicalOperatorType::RECURSIVE_EXTEND: {
+        visitRecursiveExtend(op);
+    } break;
     case LogicalOperatorType::HASH_JOIN: {
         visitHashJoin(op);
     } break;
@@ -92,6 +95,9 @@ std::shared_ptr<planner::LogicalOperator> LogicalOperatorVisitor::visitOperatorR
     }
     case LogicalOperatorType::EXTEND: {
         return visitExtendReplace(op);
+    }
+    case LogicalOperatorType::RECURSIVE_EXTEND: {
+        return visitRecursiveExtendReplace(op);
     }
     case LogicalOperatorType::HASH_JOIN: {
         return visitHashJoinReplace(op);

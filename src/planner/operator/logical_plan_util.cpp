@@ -3,6 +3,7 @@
 #include "planner/logical_plan/logical_operator/logical_extend.h"
 #include "planner/logical_plan/logical_operator/logical_hash_join.h"
 #include "planner/logical_plan/logical_operator/logical_intersect.h"
+#include "planner/logical_plan/logical_operator/logical_recursive_extend.h"
 #include "planner/logical_plan/logical_operator/logical_scan_node.h"
 
 using namespace kuzu::binder;
@@ -41,6 +42,10 @@ void LogicalPlanUtil::encodeJoinRecursive(
         encodeExtend(logicalOperator, encodeString);
         encodeJoinRecursive(logicalOperator->getChild(0).get(), encodeString);
     } break;
+    case LogicalOperatorType::RECURSIVE_EXTEND: {
+        encodeRecursiveExtend(logicalOperator, encodeString);
+        encodeJoinRecursive(logicalOperator->getChild(0).get(), encodeString);
+    } break;
     case LogicalOperatorType::SCAN_NODE: {
         encodeScanNodeID(logicalOperator, encodeString);
     } break;
@@ -70,6 +75,12 @@ void LogicalPlanUtil::encodeHashJoin(LogicalOperator* logicalOperator, std::stri
 void LogicalPlanUtil::encodeExtend(LogicalOperator* logicalOperator, std::string& encodeString) {
     auto logicalExtend = (LogicalExtend*)logicalOperator;
     encodeString += "E(" + logicalExtend->getNbrNode()->toString() + ")";
+}
+
+void LogicalPlanUtil::encodeRecursiveExtend(
+    LogicalOperator* logicalOperator, std::string& encodeString) {
+    auto logicalExtend = (LogicalRecursiveExtend*)logicalOperator;
+    encodeString += "RE(" + logicalExtend->getNbrNode()->toString() + ")";
 }
 
 void LogicalPlanUtil::encodeScanNodeID(

@@ -61,9 +61,13 @@ static std::unordered_map<table_id_t, property_id_t> populatePropertyIDPerTable(
 std::shared_ptr<Expression> ExpressionBinder::bindRelPropertyExpression(
     const Expression& expression, const std::string& propertyName) {
     auto& rel = (RelExpression&)expression;
-    if (rel.isVariableLength()) {
+    switch (rel.getRelType()) {
+    case common::QueryRelType::VARIABLE_LENGTH:
+    case common::QueryRelType::SHORTEST:
         throw BinderException(
             "Cannot read property of variable length rel " + rel.toString() + ".");
+    default:
+        break;
     }
     if (!rel.hasPropertyExpression(propertyName)) {
         throw BinderException(
