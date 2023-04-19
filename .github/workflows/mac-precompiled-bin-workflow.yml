@@ -32,8 +32,9 @@ jobs:
           name: libkuzu-${{ github.event.inputs.packageVersion }}-osx-arm64
           path: |
             ./scripts/pre-compiled-bins/kuzu.h
+            ./scripts/pre-compiled-bins/kuzu.hpp
             ./scripts/pre-compiled-bins/libkuzu.dylib
-      
+
       - uses: actions/upload-artifact@v3
         with:
           name: kuzu_cli-${{ github.event.inputs.packageVersion }}-osx-arm64
@@ -51,12 +52,13 @@ jobs:
           name: libkuzu-${{ github.event.inputs.packageVersion }}-osx-x86_64
           path: |
             ./scripts/pre-compiled-bins/kuzu.h
+            ./scripts/pre-compiled-bins/kuzu.hpp
             ./scripts/pre-compiled-bins/libkuzu.dylib
-            
+
       - uses: actions/upload-artifact@v3
         with:
           name: kuzu_cli-${{ github.event.inputs.packageVersion }}-osx-x86_64
           path: ./scripts/pre-compiled-bins/kuzu
 
       - name: Clean up
-        run: rm -rf ./scripts/pre-compiled-bins/kuzu ./scripts/pre-compiled-bins/headers ./scripts/pre-compiled-bins/libkuzu.dylib ./scripts/pre-compiled-bins/kuzu.h
+        run: rm -rf ./scripts/pre-compiled-bins/kuzu ./scripts/pre-compiled-bins/headers ./scripts/pre-compiled-bins/libkuzu.dylib ./scripts/pre-compiled-bins/kuzu.h ./scripts/pre-compiled-bins/kuzu.hpp

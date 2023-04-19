@@ -48,12 +48,6 @@ Database::Database(std::string databasePath, SystemConfig systemConfig)
     transactionManager = std::make_unique<transaction::TransactionManager>(*wal);
 }
 
-Database::Database(const char* databasePath)
-    : Database{std::string{databasePath}, SystemConfig()} {}
-
-Database::Database(const char* databasePath, SystemConfig systemConfig)
-    : Database{std::string{databasePath}, systemConfig} {}
-
 Database::~Database() {
     dropLoggers();
     bufferManager->clearEvictionQueue();
