@@ -16,8 +16,8 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
     case LogicalOperatorType::AGGREGATE: {
         return "AGGREGATE";
     }
-    case LogicalOperatorType::COPY_CSV: {
-        return "COPY_CSV";
+    case LogicalOperatorType::COPY: {
+        return "COPY";
     }
     case LogicalOperatorType::CREATE_NODE: {
         return "CREATE_NODE";

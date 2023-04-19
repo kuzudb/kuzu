@@ -26,7 +26,7 @@ protected:
         common::TaskScheduler* taskScheduler, ExecutionContext* executionContext) override;
 
 private:
-    inline bool allowCopyCSV() override {
+    inline bool isCopyAllowed() override {
         return relsStatistics->getRelStatistics(tableID)->getNextRelOffset() == 0;
     }
 

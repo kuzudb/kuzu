@@ -5,7 +5,7 @@
 #include "arrow/array/array_primitive.h"
 #include "arrow/scalar.h"
 #include "common/types/types.h"
-#include "storage/copier/table_copier.h"
+#include "storage/copier/table_copy_executor.h"
 #include "storage/storage_structure/in_mem_file.h"
 
 namespace kuzu {

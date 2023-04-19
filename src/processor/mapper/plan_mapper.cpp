@@ -119,7 +119,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
     case LogicalOperatorType::CREATE_REL_TABLE: {
         physicalOperator = mapLogicalCreateRelTableToPhysical(logicalOperator.get());
     } break;
-    case LogicalOperatorType::COPY_CSV: {
+    case LogicalOperatorType::COPY: {
         physicalOperator = mapLogicalCopyToPhysical(logicalOperator.get());
     } break;
     case LogicalOperatorType::DROP_TABLE: {

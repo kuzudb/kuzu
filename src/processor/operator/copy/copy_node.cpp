@@ -1,7 +1,6 @@
 #include "processor/operator/copy/copy_node.h"
 
-#include "storage/copier/node_copier.h"
-#include "storage/copier/npy_node_copier.h"
+#include "storage/copier/node_copy_executor.h"
 
 using namespace kuzu::storage;
 
@@ -10,17 +9,9 @@ namespace processor {
 
 uint64_t CopyNode::executeInternal(
     common::TaskScheduler* taskScheduler, ExecutionContext* executionContext) {
-    size_t numNodesCopied;
-
-    if (copyDescription.fileType == common::CopyDescription::FileType::NPY) {
-        auto nodeCopier = std::make_unique<NpyNodeCopier>(copyDescription, wal->getDirectory(),
-            *taskScheduler, *catalog, tableID, nodesStatistics);
-        numNodesCopied = nodeCopier->copy(executionContext);
-    } else {
-        auto nodeCopier = std::make_unique<NodeCopier>(copyDescription, wal->getDirectory(),
-            *taskScheduler, *catalog, tableID, nodesStatistics);
-        numNodesCopied = nodeCopier->copy(executionContext);
-    }
+    auto nodeCopier = std::make_unique<NodeCopyExecutor>(
+        copyDescription, wal->getDirectory(), *taskScheduler, *catalog, tableID, nodesStatistics);
+    auto numNodesCopied = nodeCopier->copy(executionContext);
     for (auto& relTableSchema : catalog->getAllRelTableSchemasContainBoundTable(tableID)) {
         relsStore.getRelTable(relTableSchema->tableID)
             ->batchInitEmptyRelsForNewNodes(relTableSchema, numNodesCopied);

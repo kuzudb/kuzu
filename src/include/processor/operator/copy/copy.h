@@ -31,7 +31,7 @@ protected:
     virtual uint64_t executeInternal(
         common::TaskScheduler* taskScheduler, ExecutionContext* executionContext) = 0;
 
-    virtual bool allowCopyCSV() = 0;
+    virtual bool isCopyAllowed() = 0;
 
 protected:
     catalog::Catalog* catalog;

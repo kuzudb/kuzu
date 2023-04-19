@@ -9,7 +9,7 @@ enum class StatementType : uint8_t {
     QUERY = 0,
     CREATE_NODE_CLAUSE = 1,
     CREATE_REL_CLAUSE = 2,
-    COPY_CSV = 3,
+    COPY = 3,
     DROP_TABLE = 4,
     RENAME_TABLE = 5,
     ADD_PROPERTY = 6,
@@ -27,7 +27,7 @@ public:
     }
 
     static bool isCopyCSV(StatementType statementType) {
-        return statementType == StatementType::COPY_CSV;
+        return statementType == StatementType::COPY;
     }
 
     static bool isDDLOrCopyCSV(StatementType statementType) {

@@ -1,7 +1,8 @@
-#include "storage/copier/table_copier.h"
+#include "storage/copier/table_copy_executor.h"
 
 #include "common/constants.h"
 #include "common/string_utils.h"
+#include "storage/copier/npy_reader.h"
 #include "storage/storage_structure/lists/lists.h"
 
 using namespace kuzu::catalog;
@@ -10,7 +11,7 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-TableCopier::TableCopier(CopyDescription& copyDescription, std::string outputDirectory,
+TableCopyExecutor::TableCopyExecutor(CopyDescription& copyDescription, std::string outputDirectory,
     TaskScheduler& taskScheduler, Catalog& catalog, common::table_id_t tableID,
     TablesStatistics* tablesStatistics)
     : logger{LoggerUtils::getLogger(LoggerConstants::LoggerEnum::LOADER)},
@@ -19,7 +20,7 @@ TableCopier::TableCopier(CopyDescription& copyDescription, std::string outputDir
       tableSchema{catalog.getReadOnlyVersion()->getTableSchema(tableID)}, tablesStatistics{
                                                                               tablesStatistics} {}
 
-uint64_t TableCopier::copy(processor::ExecutionContext* executionContext) {
+uint64_t TableCopyExecutor::copy(processor::ExecutionContext* executionContext) {
     logger->info(StringUtils::string_format("Copying {} file to table {}.",
         CopyDescription::getFileTypeName(copyDescription.fileType), tableSchema->tableName));
     populateInMemoryStructures(executionContext);
@@ -29,19 +30,22 @@ uint64_t TableCopier::copy(processor::ExecutionContext* executionContext) {
     return numRows;
 }
 
-void TableCopier::populateInMemoryStructures(processor::ExecutionContext* executionContext) {
+void TableCopyExecutor::populateInMemoryStructures(processor::ExecutionContext* executionContext) {
     countNumLines(copyDescription.filePaths);
     initializeColumnsAndLists();
     populateColumnsAndLists(executionContext);
 }
 
-void TableCopier::countNumLines(const std::vector<std::string>& filePaths) {
+void TableCopyExecutor::countNumLines(const std::vector<std::string>& filePaths) {
     switch (copyDescription.fileType) {
     case CopyDescription::FileType::CSV: {
         countNumLinesCSV(filePaths);
     } break;
     case CopyDescription::FileType::PARQUET: {
         countNumLinesParquet(filePaths);
+    } break;
+    case CopyDescription::FileType::NPY: {
+        countNumLinesNpy(filePaths);
     } break;
     default: {
         throw CopyException{StringUtils::string_format("Unrecognized file type: {}.",
@@ -50,10 +54,11 @@ void TableCopier::countNumLines(const std::vector<std::string>& filePaths) {
     }
 }
 
-void TableCopier::countNumLinesCSV(const std::vector<std::string>& filePaths) {
+void TableCopyExecutor::countNumLinesCSV(const std::vector<std::string>& filePaths) {
     numRows = 0;
     for (auto& filePath : filePaths) {
-        auto csvStreamingReader = initCSVReader(filePath);
+        auto csvStreamingReader =
+            createCSVReader(filePath, copyDescription.csvReaderConfig.get(), tableSchema);
         std::shared_ptr<arrow::RecordBatch> currBatch;
         uint64_t numBlocks = 0;
         std::vector<uint64_t> numLinesPerBlock;
@@ -73,10 +78,10 @@ void TableCopier::countNumLinesCSV(const std::vector<std::string>& filePaths) {
     }
 }
 
-void TableCopier::countNumLinesParquet(const std::vector<std::string>& filePaths) {
+void TableCopyExecutor::countNumLinesParquet(const std::vector<std::string>& filePaths) {
     numRows = 0;
     for (auto& filePath : filePaths) {
-        std::unique_ptr<parquet::arrow::FileReader> reader = initParquetReader(filePath);
+        std::unique_ptr<parquet::arrow::FileReader> reader = createParquetReader(filePath);
         uint64_t numBlocks = reader->num_row_groups();
         std::vector<uint64_t> numLinesPerBlock;
         std::shared_ptr<arrow::Table> table;
@@ -91,8 +96,33 @@ void TableCopier::countNumLinesParquet(const std::vector<std::string>& filePaths
     }
 }
 
-std::shared_ptr<arrow::csv::StreamingReader> TableCopier::initCSVReader(
-    const std::string& filePath) const {
+void TableCopyExecutor::countNumLinesNpy(const std::vector<std::string>& filePaths) {
+    numRows = 0;
+    for (auto i = 0u; i < filePaths.size(); i++) {
+        auto filePath = filePaths[i];
+        auto property = tableSchema->properties[i];
+        auto reader = std::make_unique<NpyReader>(filePath);
+        auto numNodesInFile = reader->getNumRows();
+        if (i == 0) {
+            numRows = numNodesInFile;
+        }
+        reader->validate(property.dataType, numRows, tableSchema->tableName);
+        auto numBlocks = (numNodesInFile + CopyConstants::NUM_ROWS_PER_BLOCK_FOR_NPY - 1) /
+                         CopyConstants::NUM_ROWS_PER_BLOCK_FOR_NPY;
+        std::vector<uint64_t> numLinesPerBlock(numBlocks);
+        for (auto blockIdx = 0; blockIdx < numBlocks; ++blockIdx) {
+            auto numLines = std::min(CopyConstants::NUM_ROWS_PER_BLOCK_FOR_NPY,
+                numNodesInFile - blockIdx * CopyConstants::NUM_ROWS_PER_BLOCK_FOR_NPY);
+            numLinesPerBlock[blockIdx] = numLines;
+        }
+        fileBlockInfos.emplace(
+            filePath, FileBlockInfo{0 /* start node offset */, numBlocks, numLinesPerBlock});
+    }
+}
+
+std::shared_ptr<arrow::csv::StreamingReader> TableCopyExecutor::createCSVReader(
+    const std::string& filePath, common::CSVReaderConfig* csvReaderConfig,
+    catalog::TableSchema* tableSchema) {
     std::shared_ptr<arrow::io::InputStream> inputStream;
     throwCopyExceptionIfNotOK(arrow::io::ReadableFile::Open(filePath).Value(&inputStream));
     auto csvReadOptions = arrow::csv::ReadOptions::Defaults();
@@ -106,14 +136,14 @@ std::shared_ptr<arrow::csv::StreamingReader> TableCopier::initCSVReader(
             csvReadOptions.column_names.push_back(property.name);
         }
     }
-    if (copyDescription.csvReaderConfig->hasHeader) {
+    if (csvReaderConfig->hasHeader) {
         csvReadOptions.skip_rows = 1;
     }
 
     auto csvParseOptions = arrow::csv::ParseOptions::Defaults();
-    csvParseOptions.delimiter = copyDescription.csvReaderConfig->delimiter;
-    csvParseOptions.escape_char = copyDescription.csvReaderConfig->escapeChar;
-    csvParseOptions.quote_char = copyDescription.csvReaderConfig->quoteChar;
+    csvParseOptions.delimiter = csvReaderConfig->delimiter;
+    csvParseOptions.escape_char = csvReaderConfig->escapeChar;
+    csvParseOptions.quote_char = csvReaderConfig->quoteChar;
     csvParseOptions.ignore_empty_lines = false;
     csvParseOptions.escaping = true;
 
@@ -139,7 +169,7 @@ std::shared_ptr<arrow::csv::StreamingReader> TableCopier::initCSVReader(
     return csvStreamingReader;
 }
 
-std::unique_ptr<parquet::arrow::FileReader> TableCopier::initParquetReader(
+std::unique_ptr<parquet::arrow::FileReader> TableCopyExecutor::createParquetReader(
     const std::string& filePath) {
     std::shared_ptr<arrow::io::ReadableFile> infile;
     throwCopyExceptionIfNotOK(arrow::io::ReadableFile::Open(filePath).Value(&infile));
@@ -149,7 +179,7 @@ std::unique_ptr<parquet::arrow::FileReader> TableCopier::initParquetReader(
     return reader;
 }
 
-std::vector<std::pair<int64_t, int64_t>> TableCopier::getListElementPos(
+std::vector<std::pair<int64_t, int64_t>> TableCopyExecutor::getListElementPos(
     const std::string& l, int64_t from, int64_t to, CopyDescription& copyDescription) {
     std::vector<std::pair<int64_t, int64_t>> split;
     int bracket = 0;
@@ -168,8 +198,8 @@ std::vector<std::pair<int64_t, int64_t>> TableCopier::getListElementPos(
     return split;
 }
 
-std::unique_ptr<Value> TableCopier::getArrowVarList(const std::string& l, int64_t from, int64_t to,
-    const DataType& dataType, CopyDescription& copyDescription) {
+std::unique_ptr<Value> TableCopyExecutor::getArrowVarList(const std::string& l, int64_t from,
+    int64_t to, const DataType& dataType, CopyDescription& copyDescription) {
     assert(dataType.typeID == common::VAR_LIST || dataType.typeID == common::FIXED_LIST);
     auto split = getListElementPos(l, from, to, copyDescription);
     std::vector<std::unique_ptr<Value>> values;
@@ -229,7 +259,7 @@ std::unique_ptr<Value> TableCopier::getArrowVarList(const std::string& l, int64_
         DataType(VAR_LIST, std::make_unique<DataType>(childDataType)), std::move(values));
 }
 
-std::unique_ptr<uint8_t[]> TableCopier::getArrowFixedList(const std::string& l, int64_t from,
+std::unique_ptr<uint8_t[]> TableCopyExecutor::getArrowFixedList(const std::string& l, int64_t from,
     int64_t to, const DataType& dataType, CopyDescription& copyDescription) {
     assert(dataType.typeID == common::FIXED_LIST);
     auto split = getListElementPos(l, from, to, copyDescription);
@@ -283,13 +313,14 @@ std::unique_ptr<uint8_t[]> TableCopier::getArrowFixedList(const std::string& l, 
     return listVal;
 }
 
-void TableCopier::throwCopyExceptionIfNotOK(const arrow::Status& status) {
+void TableCopyExecutor::throwCopyExceptionIfNotOK(const arrow::Status& status) {
     if (!status.ok()) {
         throw CopyException(status.ToString());
     }
 }
 
-std::shared_ptr<arrow::DataType> TableCopier::toArrowDataType(const common::DataType& dataType) {
+std::shared_ptr<arrow::DataType> TableCopyExecutor::toArrowDataType(
+    const common::DataType& dataType) {
     switch (dataType.typeID) {
     case common::BOOL: {
         return arrow::boolean();

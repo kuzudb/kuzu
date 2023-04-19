@@ -10,7 +10,7 @@ namespace processor {
 std::string Copy::execute(TaskScheduler* taskScheduler, ExecutionContext* executionContext) {
     registerProfilingMetrics(executionContext->profiler);
     metrics->executionTime.start();
-    if (!allowCopyCSV()) {
+    if (!isCopyAllowed()) {
         throw CopyException("COPY commands can only be executed once on a table.");
     }
     auto numTuplesCopied = executeInternal(taskScheduler, executionContext);

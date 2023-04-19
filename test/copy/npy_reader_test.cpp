@@ -22,7 +22,7 @@ public:
 TEST_F(NpyReaderTest, ReadNpyOneDimensionalInt64) {
     auto npyReader =
         std::make_unique<NpyReader>(getInputDirForOneDimensional() + "one_dim_int64.npy");
-    ASSERT_EQ(npyReader->getLength(), 3);
+    ASSERT_EQ(npyReader->getNumRows(), 3);
     ASSERT_EQ(npyReader->getNumElementsPerRow(), 1);
     ASSERT_EQ(npyReader->getType(), DataTypeID::INT64);
     ASSERT_EQ(npyReader->getNumDimensions(), 1);
@@ -44,7 +44,7 @@ TEST_F(NpyReaderTest, ReadNpyOneDimensionalInt64) {
 TEST_F(NpyReaderTest, ReadNpyTwoDimensionalInt64) {
     auto npyReader =
         std::make_unique<NpyReader>(getInputDirForTwoDimensional() + "two_dim_int64.npy");
-    ASSERT_EQ(npyReader->getLength(), 3);
+    ASSERT_EQ(npyReader->getNumRows(), 3);
     ASSERT_EQ(npyReader->getNumElementsPerRow(), 3);
     ASSERT_EQ(npyReader->getType(), DataTypeID::INT64);
     ASSERT_EQ(npyReader->getNumDimensions(), 2);
@@ -70,7 +70,7 @@ TEST_F(NpyReaderTest, ReadNpyTwoDimensionalInt64) {
 TEST_F(NpyReaderTest, ReadNpyThreeDimensionalInt64) {
     auto npyReader =
         std::make_unique<NpyReader>(getInputDirForThreeDimensional() + "three_dim_int64.npy");
-    ASSERT_EQ(npyReader->getLength(), 2);
+    ASSERT_EQ(npyReader->getNumRows(), 2);
     ASSERT_EQ(npyReader->getNumElementsPerRow(), 12);
     ASSERT_EQ(npyReader->getType(), DataTypeID::INT64);
     ASSERT_EQ(npyReader->getNumDimensions(), 3);
@@ -110,7 +110,7 @@ TEST_F(NpyReaderTest, ReadNpyThreeDimensionalInt64) {
 TEST_F(NpyReaderTest, ReadNpyOneDimensionalInt32) {
     auto npyReader =
         std::make_unique<NpyReader>(getInputDirForOneDimensional() + "one_dim_int32.npy");
-    ASSERT_EQ(npyReader->getLength(), 3);
+    ASSERT_EQ(npyReader->getNumRows(), 3);
     ASSERT_EQ(npyReader->getNumElementsPerRow(), 1);
     ASSERT_EQ(npyReader->getType(), DataTypeID::INT32);
     ASSERT_EQ(npyReader->getNumDimensions(), 1);
@@ -132,7 +132,7 @@ TEST_F(NpyReaderTest, ReadNpyOneDimensionalInt32) {
 TEST_F(NpyReaderTest, ReadNpyTwoDimensionalInt32) {
     auto npyReader =
         std::make_unique<NpyReader>(getInputDirForTwoDimensional() + "two_dim_int32.npy");
-    ASSERT_EQ(npyReader->getLength(), 3);
+    ASSERT_EQ(npyReader->getNumRows(), 3);
     ASSERT_EQ(npyReader->getNumElementsPerRow(), 3);
     ASSERT_EQ(npyReader->getType(), DataTypeID::INT32);
     ASSERT_EQ(npyReader->getNumDimensions(), 2);
@@ -158,7 +158,7 @@ TEST_F(NpyReaderTest, ReadNpyTwoDimensionalInt32) {
 TEST_F(NpyReaderTest, ReadNpyOneDimensionalInt16) {
     auto npyReader =
         std::make_unique<NpyReader>(getInputDirForOneDimensional() + "one_dim_int16.npy");
-    ASSERT_EQ(npyReader->getLength(), 3);
+    ASSERT_EQ(npyReader->getNumRows(), 3);
     ASSERT_EQ(npyReader->getNumElementsPerRow(), 1);
     ASSERT_EQ(npyReader->getType(), DataTypeID::INT16);
     ASSERT_EQ(npyReader->getNumDimensions(), 1);
@@ -180,7 +180,7 @@ TEST_F(NpyReaderTest, ReadNpyOneDimensionalInt16) {
 TEST_F(NpyReaderTest, ReadNpyTwoDimensionalInt16) {
     auto npyReader =
         std::make_unique<NpyReader>(getInputDirForTwoDimensional() + "two_dim_int16.npy");
-    ASSERT_EQ(npyReader->getLength(), 3);
+    ASSERT_EQ(npyReader->getNumRows(), 3);
     ASSERT_EQ(npyReader->getNumElementsPerRow(), 3);
     ASSERT_EQ(npyReader->getType(), DataTypeID::INT16);
     ASSERT_EQ(npyReader->getNumDimensions(), 2);
@@ -206,7 +206,7 @@ TEST_F(NpyReaderTest, ReadNpyTwoDimensionalInt16) {
 TEST_F(NpyReaderTest, ReadNpyOneDimensionalDouble) {
     auto npyReader =
         std::make_unique<NpyReader>(getInputDirForOneDimensional() + "one_dim_double.npy");
-    ASSERT_EQ(npyReader->getLength(), 3);
+    ASSERT_EQ(npyReader->getNumRows(), 3);
     ASSERT_EQ(npyReader->getNumElementsPerRow(), 1);
     ASSERT_EQ(npyReader->getType(), DataTypeID::DOUBLE);
     ASSERT_EQ(npyReader->getNumDimensions(), 1);
@@ -228,7 +228,7 @@ TEST_F(NpyReaderTest, ReadNpyOneDimensionalDouble) {
 TEST_F(NpyReaderTest, ReadNpyTwoDimensionalDouble) {
     auto npyReader =
         std::make_unique<NpyReader>(getInputDirForTwoDimensional() + "two_dim_double.npy");
-    ASSERT_EQ(npyReader->getLength(), 3);
+    ASSERT_EQ(npyReader->getNumRows(), 3);
     ASSERT_EQ(npyReader->getNumElementsPerRow(), 3);
     ASSERT_EQ(npyReader->getType(), DataTypeID::DOUBLE);
     ASSERT_EQ(npyReader->getNumDimensions(), 2);
@@ -254,7 +254,7 @@ TEST_F(NpyReaderTest, ReadNpyTwoDimensionalDouble) {
 TEST_F(NpyReaderTest, ReadNpyOneDimensionalFloat) {
     auto npyReader =
         std::make_unique<NpyReader>(getInputDirForOneDimensional() + "one_dim_float.npy");
-    ASSERT_EQ(npyReader->getLength(), 3);
+    ASSERT_EQ(npyReader->getNumRows(), 3);
     ASSERT_EQ(npyReader->getNumElementsPerRow(), 1);
     ASSERT_EQ(npyReader->getType(), DataTypeID::FLOAT);
     ASSERT_EQ(npyReader->getNumDimensions(), 1);
@@ -276,7 +276,7 @@ TEST_F(NpyReaderTest, ReadNpyOneDimensionalFloat) {
 TEST_F(NpyReaderTest, ReadNpyTwoDimensionalFloat) {
     auto npyReader =
         std::make_unique<NpyReader>(getInputDirForTwoDimensional() + "two_dim_float.npy");
-    ASSERT_EQ(npyReader->getLength(), 3);
+    ASSERT_EQ(npyReader->getNumRows(), 3);
     ASSERT_EQ(npyReader->getNumElementsPerRow(), 3);
     ASSERT_EQ(npyReader->getType(), DataTypeID::FLOAT);
     ASSERT_EQ(npyReader->getNumDimensions(), 2);
@@ -310,7 +310,7 @@ TEST_F(NpyReaderTest, FileOpenError) {
     try {
         auto npyReader = std::make_unique<NpyReader>("does_not_exist.npy");
         FAIL();
-    } catch (Exception e) { ASSERT_STREQ(e.what(), "Failed to open NPY file."); }
+    } catch (Exception e) { ASSERT_STREQ(e.what(), "Copy exception: Failed to open NPY file."); }
 }
 
 TEST_F(NpyReaderTest, FortranOrderError) {
@@ -319,6 +319,7 @@ TEST_F(NpyReaderTest, FortranOrderError) {
             std::make_unique<NpyReader>(getInputDirForOneDimensional() + "fortran_order.npy");
         FAIL();
     } catch (Exception e) {
-        ASSERT_STREQ(e.what(), "Fortran-order NPY files are not currently supported.");
+        ASSERT_STREQ(
+            e.what(), "Copy exception: Fortran-order NPY files are not currently supported.");
     }
 }

@@ -1,9 +1,9 @@
 add_library(kuzu_storage_in_mem_csv_copier
         OBJECT
+        node_copy_executor.cpp
         node_copier.cpp
-        npy_node_copier.cpp
-        rel_copier.cpp
-        table_copier.cpp
+        rel_copy_executor.cpp
+        table_copy_executor.cpp
         npy_reader.cpp)
 
 set(ALL_OBJECT_FILES
