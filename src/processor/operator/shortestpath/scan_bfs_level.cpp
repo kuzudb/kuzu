@@ -14,7 +14,7 @@ BFSLevelMorsel SSSPMorsel::getBFSLevelMorsel() {
         return BFSLevelMorsel(bfsMorselNextStartIdx, 0 /* bfsLevelMorsel size */);
     }
     auto bfsLevelMorselSize = std::min(
-        DEFAULT_VECTOR_CAPACITY, curBFSLevel->bfsLevelNodes.size() - bfsMorselNextStartIdx);
+        (size_t)DEFAULT_VECTOR_CAPACITY, curBFSLevel->bfsLevelNodes.size() - bfsMorselNextStartIdx);
     bfsMorselNextStartIdx += bfsLevelMorselSize;
     return BFSLevelMorsel(bfsMorselNextStartIdx - bfsLevelMorselSize, bfsLevelMorselSize);
 }
