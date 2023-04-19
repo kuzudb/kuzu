@@ -28,7 +28,6 @@ public:
 private:
     std::unique_ptr<PhysicalOperator> mapLogicalOperatorToPhysical(
         const std::shared_ptr<planner::LogicalOperator>& logicalOperator);
-
     std::unique_ptr<PhysicalOperator> mapLogicalScanNodeToPhysical(
         planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapLogicalIndexScanNodeToPhysical(
@@ -103,7 +102,6 @@ private:
         planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapLogicalRenamePropertyToPhysical(
         planner::LogicalOperator* logicalOperator);
-
     std::unique_ptr<ResultCollector> appendResultCollector(
         const binder::expression_vector& expressionsToCollect, const planner::Schema& schema,
         std::unique_ptr<PhysicalOperator> prevOperator);

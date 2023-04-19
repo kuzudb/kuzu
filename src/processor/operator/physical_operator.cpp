@@ -113,6 +113,9 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
     case PhysicalOperatorType::SCAN_REL_TABLE_LISTS: {
         return "SCAN_REL_TABLE_LISTS";
     }
+    case PhysicalOperatorType::SCAN_BFS_LEVEL: {
+        return "SCAN_BFS_LEVEL";
+    }
     case PhysicalOperatorType::SEMI_MASKER: {
         return "SEMI_MASKER";
     }
@@ -121,6 +124,9 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
     }
     case PhysicalOperatorType::SET_REL_PROPERTY: {
         return "SET_REL_PROPERTY";
+    }
+    case PhysicalOperatorType::SIMPLE_RECURSIVE_JOIN: {
+        return "SIMPLE_RECURSIVE_JOIN";
     }
     case PhysicalOperatorType::SKIP: {
         return "SKIP";

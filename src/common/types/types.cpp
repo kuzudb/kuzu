@@ -151,7 +151,7 @@ DataType::DataType(DataTypeID typeID, std::vector<std::unique_ptr<DataType>> chi
 
 DataType::DataType(const DataType& other) {
     typeID = other.typeID;
-    if (other.getExtraTypeInfo() != nullptr) {
+    if (other.extraTypeInfo != nullptr) {
         extraTypeInfo = other.getExtraTypeInfo()->copy();
     }
 }
