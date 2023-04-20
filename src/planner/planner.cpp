@@ -38,7 +38,7 @@ std::unique_ptr<LogicalPlan> Planner::getBestPlan(const Catalog& catalog,
     case StatementType::CREATE_REL_CLAUSE: {
         plan = planCreateRelTable(statement);
     } break;
-    case StatementType::COPY_CSV: {
+    case StatementType::COPY: {
         plan = planCopy(statement);
     } break;
     case StatementType::DROP_TABLE: {
@@ -67,7 +67,7 @@ std::vector<std::unique_ptr<LogicalPlan>> Planner::getAllPlans(const Catalog& ca
     const NodesStatisticsAndDeletedIDs& nodesStatistics, const RelsStatistics& relsStatistics,
     const BoundStatement& statement) {
     // We enumerate all plans for our testing framework. This API should only be used for QUERY
-    // but not DDL or COPY_CSV.
+    // but not DDL or COPY.
     assert(statement.getStatementType() == StatementType::QUERY);
     auto planner = QueryPlanner(catalog, nodesStatistics, relsStatistics);
     std::vector<std::unique_ptr<LogicalPlan>> plans;

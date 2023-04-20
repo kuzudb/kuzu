@@ -124,7 +124,7 @@ void TestHelper::executeScript(const std::string& cypherScript, Connection& conn
     }
     std::string line;
     while (getline(file, line)) {
-        // If this is a COPY_CSV statement, we need to append the KUZU_ROOT_DIRECTORY to the csv
+        // If this is a COPY statement, we need to append the KUZU_ROOT_DIRECTORY to the csv
         // file path. There maybe multiple csv files in the line, so we need to find all of them.
         std::vector<std::string> csvFilePaths;
         size_t index = 0;

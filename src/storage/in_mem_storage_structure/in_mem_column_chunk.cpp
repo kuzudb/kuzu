@@ -90,7 +90,7 @@ void InMemColumnChunk::setValueFromString<uint8_t*, common::CopyDescription&>(co
     uint64_t length, common::page_idx_t pageIdx, uint64_t posInPage,
     common::CopyDescription& copyDescription) {
     auto fixedListVal =
-        TableCopier::getArrowFixedList(value, 1, length - 2, dataType, copyDescription);
+        TableCopyExecutor::getArrowFixedList(value, 1, length - 2, dataType, copyDescription);
     copyValue(pageIdx, posInPage, fixedListVal.get());
 }
 
@@ -100,7 +100,8 @@ void InMemColumnChunk::setValueFromString<common::ku_list_t, InMemOverflowFile*,
     common::CopyDescription&>(const char* value, uint64_t length, common::page_idx_t pageIdx,
     uint64_t posInPage, InMemOverflowFile* overflowFile, PageByteCursor& overflowCursor,
     common::CopyDescription& copyDescription) {
-    auto varListVal = TableCopier::getArrowVarList(value, 1, length - 2, dataType, copyDescription);
+    auto varListVal =
+        TableCopyExecutor::getArrowVarList(value, 1, length - 2, dataType, copyDescription);
     auto val = overflowFile->copyList(*varListVal, overflowCursor);
     copyValue(pageIdx, posInPage, (uint8_t*)&val);
 }

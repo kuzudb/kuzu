@@ -15,7 +15,7 @@ class BoundCopy : public BoundStatement {
 public:
     BoundCopy(
         common::CopyDescription copyDescription, common::table_id_t tableID, std::string tableName)
-        : BoundStatement{common::StatementType::COPY_CSV,
+        : BoundStatement{common::StatementType::COPY,
               BoundStatementResult::createSingleStringColumnResult()},
           copyDescription{std::move(copyDescription)}, tableID{tableID}, tableName{std::move(
                                                                              tableName)} {}

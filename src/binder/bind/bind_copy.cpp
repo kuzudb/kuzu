@@ -2,7 +2,7 @@
 #include "binder/copy/bound_copy.h"
 #include "binder/expression/literal_expression.h"
 #include "common/string_utils.h"
-#include "parser/copy_csv/copy_csv.h"
+#include "parser/copy.h"
 
 using namespace kuzu::common;
 using namespace kuzu::parser;
@@ -11,7 +11,7 @@ namespace kuzu {
 namespace binder {
 
 std::unique_ptr<BoundStatement> Binder::bindCopy(const Statement& statement) {
-    auto& copyCSV = (CopyCSV&)statement;
+    auto& copyCSV = (Copy&)statement;
     auto catalogContent = catalog.getReadOnlyVersion();
     auto tableName = copyCSV.getTableName();
     validateTableExist(catalog, tableName);
@@ -20,7 +20,6 @@ std::unique_ptr<BoundStatement> Binder::bindCopy(const Statement& statement) {
     auto boundFilePaths = bindFilePaths(copyCSV.getFilePaths());
     auto actualFileType = bindFileType(boundFilePaths);
     auto expectedFileType = copyCSV.getFileType();
-    std::unordered_map<common::property_id_t, std::string> propertyToNpyMap;
     if (expectedFileType == common::CopyDescription::FileType::UNKNOWN &&
         actualFileType == common::CopyDescription::FileType::NPY) {
         throw BinderException("Please use COPY FROM BY COLUMN statement for copying npy files.");
@@ -30,11 +29,15 @@ std::unique_ptr<BoundStatement> Binder::bindCopy(const Statement& statement) {
         throw BinderException("Please use COPY FROM statement for copying csv and parquet files.");
     }
     if (actualFileType == CopyDescription::FileType::NPY) {
-        propertyToNpyMap = bindPropertyToNpyMap(tableID, boundFilePaths);
+        auto tableSchema = catalogContent->getTableSchema(tableID);
+        if (tableSchema->properties.size() != boundFilePaths.size()) {
+            throw BinderException(StringUtils::string_format(
+                "Number of npy files is not equal to number of properties in table {}.",
+                tableSchema->tableName));
+        }
     }
     return make_unique<BoundCopy>(
-        CopyDescription(boundFilePaths, propertyToNpyMap, csvReaderConfig, actualFileType), tableID,
-        tableName);
+        CopyDescription(boundFilePaths, csvReaderConfig, actualFileType), tableID, tableName);
 }
 
 std::vector<std::string> Binder::bindFilePaths(const std::vector<std::string>& filePaths) {

@@ -166,5 +166,5 @@ TEST_F(CopyNullPKTest, NullPKErrpr) {
     validateCopyException(
         "COPY person FROM \"" +
             TestHelper::appendKuzuRootPath("dataset/copy-fault-tests/null-pk/vPerson.csv\""),
-        "Reader exception: Primary key cannot be null.");
+        "Copy exception: Primary key cannot be null.");
 }

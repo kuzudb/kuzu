@@ -12,7 +12,7 @@ class LogicalCopy : public LogicalOperator {
 public:
     LogicalCopy(const common::CopyDescription& copyDescription, common::table_id_t tableID,
         std::string tableName)
-        : LogicalOperator{LogicalOperatorType::COPY_CSV},
+        : LogicalOperator{LogicalOperatorType::COPY},
           copyDescription{copyDescription}, tableID{tableID}, tableName{std::move(tableName)} {}
 
     inline void computeFactorizedSchema() override { createEmptySchema(); }

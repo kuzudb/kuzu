@@ -2,6 +2,7 @@
 
 #include "common/constants.h"
 #include "common/file_utils.h"
+#include "storage/file_handle.h"
 #include "storage/storage_utils.h"
 
 namespace kuzu {

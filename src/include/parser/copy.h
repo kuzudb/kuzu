@@ -9,12 +9,12 @@
 namespace kuzu {
 namespace parser {
 
-class CopyCSV : public Statement {
+class Copy : public Statement {
 public:
-    explicit CopyCSV(std::vector<std::string> filePaths, std::string tableName,
+    explicit Copy(std::vector<std::string> filePaths, std::string tableName,
         std::unordered_map<std::string, std::unique_ptr<ParsedExpression>> parsingOptions,
         common::CopyDescription::FileType fileType)
-        : Statement{common::StatementType::COPY_CSV}, filePaths{std::move(filePaths)},
+        : Statement{common::StatementType::COPY}, filePaths{std::move(filePaths)},
           tableName{std::move(tableName)},
           parsingOptions{std::move(parsingOptions)}, fileType{fileType} {}
 

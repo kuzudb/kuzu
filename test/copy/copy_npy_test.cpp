@@ -255,7 +255,8 @@ TEST_F(CopyNpyFaultTest, CopyNpyRedundantProperties) {
     validateCopyException("copy npytable from (\"" +
                               TestHelper::appendKuzuRootPath("dataset/npy-20k/id_int64.npy") +
                               "\", \"" + f32Path + "\") BY COLUMN;",
-        "The type of npy file " + f32Path + " does not match the type defined in table npytable.");
+        "Copy exception: The type of npy file " + f32Path +
+            " does not match the type defined in table npytable.");
 }
 
 TEST_F(CopyNpyFaultTest, CopyNpyVectorIntoScaler) {
@@ -264,7 +265,7 @@ TEST_F(CopyNpyFaultTest, CopyNpyVectorIntoScaler) {
     validateCopyException("copy npytable from (\"" +
                               TestHelper::appendKuzuRootPath("dataset/npy-20k/id_int64.npy") +
                               "\", \"" + f32Path + "\") by column;",
-        "Cannot copy a vector property in npy file " + f32Path +
+        "Copy exception: Cannot copy a vector property in npy file " + f32Path +
             " to a scalar property in table npytable.");
 }
 
@@ -274,7 +275,8 @@ TEST_F(CopyNpyFaultTest, CopyNpyWithMismatchedTypeOneDimensionTest) {
     validateCopyException("copy npytable from ( \"" +
                               TestHelper::appendKuzuRootPath("dataset/npy-1d/one_dim_int64.npy") +
                               "\", \"" + f32Path + "\") by column;",
-        "The type of npy file " + f32Path + " does not match the type defined in table npytable.");
+        "Copy exception: The type of npy file " + f32Path +
+            " does not match the type defined in table npytable.");
 }
 
 TEST_F(CopyNpyFaultTest, CopyNpyWithMismatchedTypeTwoDimensionTest) {
@@ -283,7 +285,8 @@ TEST_F(CopyNpyFaultTest, CopyNpyWithMismatchedTypeTwoDimensionTest) {
     validateCopyException("copy npytable from (\"" +
                               TestHelper::appendKuzuRootPath("dataset/npy-20k/id_int64.npy") +
                               "\", \"" + f32Path + "\") by column;",
-        "The type of npy file " + f32Path + " does not match the type defined in table npytable.");
+        "Copy exception: The type of npy file " + f32Path +
+            " does not match the type defined in table npytable.");
 }
 
 TEST_F(CopyNpyFaultTest, CopyNpyWithMismatchedDimensionTest) {
@@ -292,7 +295,7 @@ TEST_F(CopyNpyFaultTest, CopyNpyWithMismatchedDimensionTest) {
     validateCopyException("copy npytable from (\"" +
                               TestHelper::appendKuzuRootPath("dataset/npy-20k/id_int64.npy") +
                               "\", \"" + twoDimFloatNpyPath + "\") by column;",
-        "The shape of " + twoDimFloatNpyPath +
+        "Copy exception: The shape of " + twoDimFloatNpyPath +
             " does not match the length of the fixed list property in table npytable.");
 }
 
@@ -302,7 +305,7 @@ TEST_F(CopyNpyFaultTest, CopyNpyWithMismatchedLengthTest) {
         "copy npytable from (\"" + TestHelper::appendKuzuRootPath("dataset/npy-20k/id_int64.npy") +
             "\", \"" + TestHelper::appendKuzuRootPath("dataset/npy-3d/three_dim_int64.npy") +
             "\") by column;",
-        "Number of rows in npy files is not equal to each other.");
+        "Copy exception: Number of rows in npy files is not equal to each other.");
 }
 
 } // namespace testing

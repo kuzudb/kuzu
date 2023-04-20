@@ -288,8 +288,8 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
                     wal->getDirectory());
             }
         } else {
-            // Since COPY_CSV statements are single statements that are auto committed, it is
-            // impossible for users to roll back a COPY_CSV statement.
+            // Since COPY statements are single statements that are auto committed, it is
+            // impossible for users to roll back a COPY statement.
         }
     } break;
     case WALRecordType::COPY_REL_RECORD: {

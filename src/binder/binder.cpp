@@ -18,7 +18,7 @@ std::unique_ptr<BoundStatement> Binder::bind(const Statement& statement) {
     case StatementType::CREATE_REL_CLAUSE: {
         return bindCreateRelClause(statement);
     }
-    case StatementType::COPY_CSV: {
+    case StatementType::COPY: {
         return bindCopy(statement);
     }
     case StatementType::DROP_TABLE: {

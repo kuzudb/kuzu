@@ -7,18 +7,16 @@ using namespace kuzu::utf8proc;
 
 namespace kuzu {
 namespace common {
-CopyDescription::CopyDescription(const std::vector<std::string>& filePaths,
-    std::unordered_map<common::property_id_t, std::string> propertyToNpyMap,
-    CSVReaderConfig csvReaderConfig, FileType fileType)
-    : filePaths{filePaths}, propertyIDToNpyMap{std::move(propertyToNpyMap)},
-      csvReaderConfig{nullptr}, fileType{fileType} {
+CopyDescription::CopyDescription(
+    const std::vector<std::string>& filePaths, CSVReaderConfig csvReaderConfig, FileType fileType)
+    : filePaths{filePaths}, csvReaderConfig{nullptr}, fileType{fileType} {
     if (fileType == FileType::CSV) {
         this->csvReaderConfig = std::make_unique<CSVReaderConfig>(csvReaderConfig);
     }
 }
 
 CopyDescription::CopyDescription(const CopyDescription& copyDescription)
-    : filePaths{copyDescription.filePaths}, propertyIDToNpyMap{copyDescription.propertyIDToNpyMap},
+    : filePaths{copyDescription.filePaths},
       csvReaderConfig{nullptr}, fileType{copyDescription.fileType} {
     if (fileType == FileType::CSV) {
         this->csvReaderConfig = std::make_unique<CSVReaderConfig>(*copyDescription.csvReaderConfig);

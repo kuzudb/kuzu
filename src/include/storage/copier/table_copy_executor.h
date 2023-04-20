@@ -22,7 +22,8 @@
 namespace kuzu {
 namespace storage {
 
-class TableCopier {
+class TableCopyExecutor {
+public:
     struct FileBlockInfo {
         FileBlockInfo(common::offset_t startOffset, uint64_t numBlocks,
             std::vector<uint64_t> numLinesPerBlock)
@@ -34,11 +35,11 @@ class TableCopier {
     };
 
 public:
-    TableCopier(common::CopyDescription& copyDescription, std::string outputDirectory,
+    TableCopyExecutor(common::CopyDescription& copyDescription, std::string outputDirectory,
         common::TaskScheduler& taskScheduler, catalog::Catalog& catalog, common::table_id_t tableID,
         TablesStatistics* tableStatisticsAndDeletedIDs);
 
-    virtual ~TableCopier() = default;
+    virtual ~TableCopyExecutor() = default;
 
     uint64_t copy(processor::ExecutionContext* executionContext);
 
@@ -46,9 +47,13 @@ public:
 
     static std::unique_ptr<common::Value> getArrowVarList(const std::string& l, int64_t from,
         int64_t to, const common::DataType& dataType, common::CopyDescription& copyDescription);
-
     static std::unique_ptr<uint8_t[]> getArrowFixedList(const std::string& l, int64_t from,
         int64_t to, const common::DataType& dataType, common::CopyDescription& copyDescription);
+
+    static std::shared_ptr<arrow::csv::StreamingReader> createCSVReader(const std::string& filePath,
+        common::CSVReaderConfig* csvReaderConfig, catalog::TableSchema* tableSchema);
+    static std::unique_ptr<parquet::arrow::FileReader> createParquetReader(
+        const std::string& filePath);
 
 protected:
     virtual void initializeColumnsAndLists() = 0;
@@ -65,9 +70,7 @@ protected:
 
     void countNumLinesParquet(const std::vector<std::string>& filePaths);
 
-    std::shared_ptr<arrow::csv::StreamingReader> initCSVReader(const std::string& filePath) const;
-
-    std::unique_ptr<parquet::arrow::FileReader> initParquetReader(const std::string& filePath);
+    void countNumLinesNpy(const std::vector<std::string>& filePaths);
 
     static std::vector<std::pair<int64_t, int64_t>> getListElementPos(
         const std::string& l, int64_t from, int64_t to, common::CopyDescription& copyDescription);

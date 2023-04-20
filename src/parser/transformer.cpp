@@ -3,7 +3,7 @@
 #include "common/copier_config/copier_config.h"
 #include "common/exception.h"
 #include "common/string_utils.h"
-#include "parser/copy_csv/copy_csv.h"
+#include "parser/copy.h"
 #include "parser/ddl/add_property.h"
 #include "parser/ddl/create_node_clause.h"
 #include "parser/ddl/create_rel_clause.h"
@@ -1011,7 +1011,7 @@ std::unique_ptr<Statement> Transformer::transformCopyCSV(CypherParser::KU_CopyCS
     auto parsingOptions = ctx.kU_ParsingOptions() ?
                               transformParsingOptions(*ctx.kU_ParsingOptions()) :
                               std::unordered_map<std::string, std::unique_ptr<ParsedExpression>>();
-    return std::make_unique<CopyCSV>(std::move(filePaths), std::move(tableName),
+    return std::make_unique<Copy>(std::move(filePaths), std::move(tableName),
         std::move(parsingOptions), common::CopyDescription::FileType::UNKNOWN);
 }
 
@@ -1019,7 +1019,7 @@ std::unique_ptr<Statement> Transformer::transformCopyNPY(CypherParser::KU_CopyNP
     auto filePaths = transformFilePaths(ctx.StringLiteral());
     auto tableName = transformSchemaName(*ctx.oC_SchemaName());
     auto parsingOptions = std::unordered_map<std::string, std::unique_ptr<ParsedExpression>>();
-    return std::make_unique<CopyCSV>(std::move(filePaths), std::move(tableName),
+    return std::make_unique<Copy>(std::move(filePaths), std::move(tableName),
         std::move(parsingOptions), common::CopyDescription::FileType::NPY);
 }
 

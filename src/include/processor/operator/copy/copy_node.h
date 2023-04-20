@@ -26,7 +26,7 @@ protected:
         common::TaskScheduler* taskScheduler, ExecutionContext* executionContext) override;
 
 private:
-    inline bool allowCopyCSV() override {
+    inline bool isCopyAllowed() override {
         return nodesStatistics->getNodeStatisticsAndDeletedIDs(tableID)->getNumTuples() == 0;
     }
 
