@@ -198,6 +198,7 @@ private:
 
     std::vector<std::unique_ptr<Value>> convertKUVarListToVector(ku_list_t& list) const;
     std::vector<std::unique_ptr<Value>> convertKUFixedListToVector(const uint8_t* fixedList) const;
+    std::vector<std::unique_ptr<Value>> convertKUStructToVector(const uint8_t* kuStruct) const;
 
 public:
     DataType dataType;
@@ -217,7 +218,7 @@ public:
         internalID_t internalIDVal;
     } val;
     std::string strVal;
-    std::vector<std::unique_ptr<Value>> listVal;
+    std::vector<std::unique_ptr<Value>> nestedTypeVal;
     std::unique_ptr<NodeVal> nodeVal;
     std::unique_ptr<RelVal> relVal;
 };

@@ -92,7 +92,7 @@ struct VectorListOperations : public VectorOperations {
 
 struct ListCreationVectorOperation : public VectorListOperations {
     static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
-    static void listCreationBindFunc(const std::vector<common::DataType>& argumentTypes,
+    static void listCreationBindFunc(const binder::expression_vector& argumentTypes,
         FunctionDefinition* definition, common::DataType& actualReturnType);
 };
 
@@ -102,7 +102,7 @@ struct ListLenVectorOperation : public VectorListOperations {
 
 struct ListExtractVectorOperation : public VectorListOperations {
     static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
-    static void listExtractBindFunc(const std::vector<common::DataType>& argumentTypes,
+    static void listExtractBindFunc(const binder::expression_vector& argumentTypes,
         FunctionDefinition* definition, common::DataType& returnType);
 };
 
@@ -111,13 +111,13 @@ struct ListConcatVectorOperation : public VectorListOperations {
 };
 
 struct ListAppendVectorOperation : public VectorListOperations {
-    static void listAppendBindFunc(const std::vector<common::DataType>& argumentTypes,
+    static void listAppendBindFunc(const binder::expression_vector& argumentTypes,
         FunctionDefinition* definition, common::DataType& returnType);
     static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
 };
 
 struct ListPrependVectorOperation : public VectorListOperations {
-    static void listPrependBindFunc(const std::vector<common::DataType>& argumentTypes,
+    static void listPrependBindFunc(const binder::expression_vector& argumentTypes,
         FunctionDefinition* definition, common::DataType& returnType);
     static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
 };

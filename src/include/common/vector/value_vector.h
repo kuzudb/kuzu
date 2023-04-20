@@ -68,6 +68,14 @@ public:
         }
     }
 
+    inline void addChildVector(std::shared_ptr<ValueVector> valueVector) {
+        childrenVectors.emplace_back(valueVector);
+    }
+
+    inline std::vector<std::shared_ptr<ValueVector>> getChildrenVectors() const {
+        return childrenVectors;
+    }
+
 private:
     inline bool needOverflowBuffer() const {
         return dataType.typeID == STRING || dataType.typeID == VAR_LIST;
@@ -86,6 +94,7 @@ private:
     std::unique_ptr<InMemOverflowBuffer> inMemOverflowBuffer;
     std::unique_ptr<uint8_t[]> valueBuffer;
     std::unique_ptr<NullMask> nullMask;
+    std::vector<std::shared_ptr<ValueVector>> childrenVectors;
     uint32_t numBytesPerValue;
 };
 

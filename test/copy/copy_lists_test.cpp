@@ -13,11 +13,11 @@ public:
         if (listVal.dataType.typeID != VAR_LIST) {
             return false;
         }
-        if (expected.size() != listVal.listVal.size()) {
+        if (expected.size() != listVal.nestedTypeVal.size()) {
             return false;
         }
         for (auto i = 0u; i < expected.size(); i++) {
-            if (expected[i] != listVal.listVal[i]->toString()) {
+            if (expected[i] != listVal.nestedTypeVal[i]->toString()) {
                 return false;
             }
         }

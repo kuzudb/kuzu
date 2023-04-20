@@ -55,7 +55,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
     }
     DataType returnType;
     if (function->bindFunc) {
-        function->bindFunc(childrenTypes, function, returnType);
+        function->bindFunc(childrenAfterCast, function, returnType);
     } else {
         returnType = DataType(function->returnTypeID);
     }
@@ -89,7 +89,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindAggregateFunctionExpression(
     }
     DataType returnType;
     if (function->bindFunc) {
-        function->bindFunc(childrenTypes, function, returnType);
+        function->bindFunc(children, function, returnType);
     } else {
         returnType = DataType(function->returnTypeID);
     }

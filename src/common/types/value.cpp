@@ -64,6 +64,7 @@ Value Value::createDefaultValue(const DataType& dataType) {
         return Value((float_t)0);
     case VAR_LIST:
     case FIXED_LIST:
+    case STRUCT:
         return Value(dataType, std::vector<std::unique_ptr<Value>>{});
     default:
         throw RuntimeException("Data type " + Types::dataTypeToString(dataType) +
@@ -121,7 +122,7 @@ Value::Value(const std::string& val_) : dataType{STRING}, isNull_{false} {
 
 Value::Value(DataType dataType, std::vector<std::unique_ptr<Value>> vals)
     : dataType{std::move(dataType)}, isNull_{false} {
-    listVal = std::move(vals);
+    nestedTypeVal = std::move(vals);
 }
 
 Value::Value(std::unique_ptr<NodeVal> val_) : dataType{NODE}, isNull_{false} {
@@ -177,10 +178,13 @@ void Value::copyValueFrom(const uint8_t* value) {
         strVal = ((ku_string_t*)value)->getAsString();
     } break;
     case VAR_LIST: {
-        listVal = convertKUVarListToVector(*(ku_list_t*)value);
+        nestedTypeVal = convertKUVarListToVector(*(ku_list_t*)value);
     } break;
     case FIXED_LIST: {
-        listVal = convertKUFixedListToVector(value);
+        nestedTypeVal = convertKUFixedListToVector(value);
+    } break;
+    case STRUCT: {
+        nestedTypeVal = convertKUStructToVector(value);
     } break;
     default:
         throw RuntimeException(
@@ -230,9 +234,10 @@ void Value::copyValueFrom(const Value& other) {
         strVal = other.strVal;
     } break;
     case VAR_LIST:
-    case FIXED_LIST: {
-        for (auto& value : other.listVal) {
-            listVal.push_back(value->copy());
+    case FIXED_LIST:
+    case STRUCT: {
+        for (auto& value : other.nestedTypeVal) {
+            nestedTypeVal.push_back(value->copy());
         }
     } break;
     case NODE: {
@@ -248,7 +253,7 @@ void Value::copyValueFrom(const Value& other) {
 }
 
 const std::vector<std::unique_ptr<Value>>& Value::getListValReference() const {
-    return listVal;
+    return nestedTypeVal;
 }
 
 std::string Value::toString() const {
@@ -281,13 +286,28 @@ std::string Value::toString() const {
     case VAR_LIST:
     case FIXED_LIST: {
         std::string result = "[";
-        for (auto i = 0u; i < listVal.size(); ++i) {
-            result += listVal[i]->toString();
-            if (i != listVal.size() - 1) {
+        for (auto i = 0u; i < nestedTypeVal.size(); ++i) {
+            result += nestedTypeVal[i]->toString();
+            if (i != nestedTypeVal.size() - 1) {
                 result += ",";
             }
         }
         result += "]";
+        return result;
+    }
+    case STRUCT: {
+        std::string result = "{";
+        auto structTypeInfo = reinterpret_cast<StructTypeInfo*>(dataType.getExtraTypeInfo());
+        auto childrenNames = structTypeInfo->getChildrenNames();
+        for (auto i = 0u; i < nestedTypeVal.size(); ++i) {
+            result += childrenNames[i];
+            result += ": ";
+            result += nestedTypeVal[i]->toString();
+            if (i != nestedTypeVal.size() - 1) {
+                result += ", ";
+            }
+        }
+        result += "}";
         return result;
     }
     case NODE:
@@ -355,6 +375,20 @@ std::vector<std::unique_ptr<Value>> Value::convertKUFixedListToVector(
         assert(false);
     }
     return fixedListResultVal;
+}
+
+std::vector<std::unique_ptr<Value>> Value::convertKUStructToVector(const uint8_t* kuStruct) const {
+    auto structTypeInfo = reinterpret_cast<StructTypeInfo*>(dataType.getExtraTypeInfo());
+    std::vector<std::unique_ptr<Value>> structVal;
+    auto childrenTypes = structTypeInfo->getChildrenTypes();
+    auto numFields = childrenTypes.size();
+    for (auto i = 0; i < numFields; i++) {
+        auto childValue = std::make_unique<Value>(Value::createDefaultValue(*childrenTypes[i]));
+        childValue->copyValueFrom(kuStruct);
+        structVal.emplace_back(std::move(childValue));
+        kuStruct += Types::getDataTypeSize(*childrenTypes[i]);
+    }
+    return structVal;
 }
 
 static std::string propertiesToString(

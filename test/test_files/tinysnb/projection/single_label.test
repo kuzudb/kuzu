@@ -422,3 +422,8 @@ Dan|Carol
 9
 11
 13
+
+-NAME ReturnStructLiteral
+-QUERY RETURN {weight: 1.8, age: 42, name: "Mark", grades: [1,2,3]}
+---- 1
+{weight: 1.800000, age: 42, name: Mark, grades: [1,2,3]}

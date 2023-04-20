@@ -12,7 +12,7 @@ using storage_version_t = uint64_t;
 
 struct StorageVersionInfo {
     static std::unordered_map<std::string, storage_version_t> getStorageVersionInfo() {
-        return {{"0.0.3.1", 2}, {"0.0.3", 1}};
+        return {{"0.0.3.2", 3}, {"0.0.3.1", 2}, {"0.0.3", 1}};
     }
 
     static storage_version_t getStorageVersion();

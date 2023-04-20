@@ -46,20 +46,27 @@ void VectorListOperations::ListCreation(
     }
 }
 
-void ListCreationVectorOperation::listCreationBindFunc(const std::vector<DataType>& argumentTypes,
-    FunctionDefinition* definition, DataType& actualReturnType) {
+void ListCreationVectorOperation::listCreationBindFunc(
+    const binder::expression_vector& argumentTypes, FunctionDefinition* definition,
+    DataType& actualReturnType) {
     if (argumentTypes.empty()) {
         throw BinderException(
             "Cannot resolve child data type for " + LIST_CREATION_FUNC_NAME + ".");
     }
+    // TODO(Ziyi): Support list of structs.
+    if (argumentTypes[0]->getDataType().getTypeID() == common::STRUCT) {
+        throw BinderException("Cannot create a list of structs.");
+    }
     for (auto i = 1u; i < argumentTypes.size(); i++) {
-        if (argumentTypes[i] != argumentTypes[0]) {
-            throw BinderException(getListFunctionIncompatibleChildrenTypeErrorMsg(
-                LIST_CREATION_FUNC_NAME, argumentTypes[0], argumentTypes[i]));
+        if (argumentTypes[i]->getDataType() != argumentTypes[0]->getDataType()) {
+            throw BinderException(
+                getListFunctionIncompatibleChildrenTypeErrorMsg(LIST_CREATION_FUNC_NAME,
+                    argumentTypes[0]->getDataType(), argumentTypes[i]->getDataType()));
         }
     }
     definition->returnTypeID = VAR_LIST;
-    actualReturnType = DataType(VAR_LIST, std::make_unique<DataType>(argumentTypes[0]));
+    actualReturnType =
+        DataType(VAR_LIST, std::make_unique<DataType>(argumentTypes[0]->getDataType()));
 }
 
 std::vector<std::unique_ptr<VectorOperationDefinition>>
@@ -67,7 +74,7 @@ ListCreationVectorOperation::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
     result.push_back(std::make_unique<VectorOperationDefinition>(LIST_CREATION_FUNC_NAME,
         std::vector<DataTypeID>{ANY}, VAR_LIST, ListCreation, nullptr, listCreationBindFunc,
-        true /* isVarlength*/));
+        true /*  isVarLength */));
     return result;
 }
 
@@ -79,11 +86,11 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> ListLenVectorOperation::
     return result;
 }
 
-void ListExtractVectorOperation::listExtractBindFunc(const std::vector<DataType>& argumentTypes,
+void ListExtractVectorOperation::listExtractBindFunc(const binder::expression_vector& argumentTypes,
     FunctionDefinition* definition, DataType& returnType) {
-    definition->returnTypeID = argumentTypes[0].getChildType()->typeID;
+    definition->returnTypeID = argumentTypes[0]->getDataType().getChildType()->typeID;
     auto vectorOperationDefinition = reinterpret_cast<VectorOperationDefinition*>(definition);
-    returnType = *argumentTypes[0].getChildType();
+    returnType = *argumentTypes[0]->getDataType().getChildType();
     switch (definition->returnTypeID) {
     case BOOL: {
         vectorOperationDefinition->execFunc =
@@ -140,14 +147,15 @@ std::vector<std::unique_ptr<VectorOperationDefinition>>
 ListConcatVectorOperation::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
     auto execFunc = BinaryListExecFunction<ku_list_t, ku_list_t, ku_list_t, operation::ListConcat>;
-    auto bindFunc = [](const std::vector<DataType>& argumentTypes, FunctionDefinition* definition,
-                        DataType& actualReturnType) {
-        if (argumentTypes[0] != argumentTypes[1]) {
-            throw BinderException(getListFunctionIncompatibleChildrenTypeErrorMsg(
-                LIST_CONCAT_FUNC_NAME, argumentTypes[0], argumentTypes[1]));
+    auto bindFunc = [](const binder::expression_vector& argumentTypes,
+                        FunctionDefinition* definition, DataType& actualReturnType) {
+        if (argumentTypes[0]->getDataType() != argumentTypes[1]->getDataType()) {
+            throw BinderException(
+                getListFunctionIncompatibleChildrenTypeErrorMsg(LIST_CONCAT_FUNC_NAME,
+                    argumentTypes[0]->getDataType(), argumentTypes[1]->getDataType()));
         }
-        definition->returnTypeID = argumentTypes[0].typeID;
-        actualReturnType = argumentTypes[0];
+        definition->returnTypeID = argumentTypes[0]->getDataType().getTypeID();
+        actualReturnType = argumentTypes[0]->getDataType();
     };
     result.push_back(std::make_unique<VectorOperationDefinition>(LIST_CONCAT_FUNC_NAME,
         std::vector<DataTypeID>{VAR_LIST, VAR_LIST}, VAR_LIST, execFunc, nullptr, bindFunc,
@@ -155,16 +163,16 @@ ListConcatVectorOperation::getDefinitions() {
     return result;
 }
 
-void ListAppendVectorOperation::listAppendBindFunc(const std::vector<DataType>& argumentTypes,
+void ListAppendVectorOperation::listAppendBindFunc(const binder::expression_vector& argumentTypes,
     FunctionDefinition* definition, DataType& returnType) {
-    if (*argumentTypes[0].getChildType() != argumentTypes[1]) {
-        throw BinderException(getListFunctionIncompatibleChildrenTypeErrorMsg(
-            LIST_APPEND_FUNC_NAME, argumentTypes[0], argumentTypes[1]));
+    if (*argumentTypes[0]->getDataType().getChildType() != argumentTypes[1]->getDataType()) {
+        throw BinderException(getListFunctionIncompatibleChildrenTypeErrorMsg(LIST_APPEND_FUNC_NAME,
+            argumentTypes[0]->getDataType(), argumentTypes[1]->getDataType()));
     }
     auto vectorOperationDefinition = reinterpret_cast<VectorOperationDefinition*>(definition);
-    definition->returnTypeID = argumentTypes[0].typeID;
-    returnType = argumentTypes[0];
-    switch (argumentTypes[1].typeID) {
+    definition->returnTypeID = argumentTypes[0]->getDataType().typeID;
+    returnType = argumentTypes[0]->getDataType();
+    switch (argumentTypes[1]->getDataType().typeID) {
     case INT64: {
         vectorOperationDefinition->execFunc =
             BinaryListExecFunction<ku_list_t, int64_t, ku_list_t, operation::ListAppend>;
@@ -212,16 +220,16 @@ ListAppendVectorOperation::getDefinitions() {
     return result;
 }
 
-void ListPrependVectorOperation::listPrependBindFunc(const std::vector<DataType>& argumentTypes,
+void ListPrependVectorOperation::listPrependBindFunc(const binder::expression_vector& argumentTypes,
     FunctionDefinition* definition, DataType& returnType) {
-    if (argumentTypes[0] != *argumentTypes[1].getChildType()) {
-        throw BinderException(getListFunctionIncompatibleChildrenTypeErrorMsg(
-            LIST_APPEND_FUNC_NAME, argumentTypes[0], argumentTypes[1]));
+    if (argumentTypes[0]->dataType != *argumentTypes[1]->dataType.getChildType()) {
+        throw BinderException(getListFunctionIncompatibleChildrenTypeErrorMsg(LIST_APPEND_FUNC_NAME,
+            argumentTypes[0]->getDataType(), argumentTypes[1]->getDataType()));
     }
     auto vectorOperationDefinition = reinterpret_cast<VectorOperationDefinition*>(definition);
-    definition->returnTypeID = argumentTypes[1].typeID;
-    returnType = argumentTypes[1];
-    switch (argumentTypes[0].typeID) {
+    definition->returnTypeID = argumentTypes[1]->getDataType().typeID;
+    returnType = argumentTypes[1]->getDataType();
+    switch (argumentTypes[0]->getDataType().getTypeID()) {
     case INT64: {
         vectorOperationDefinition->execFunc =
             BinaryListExecFunction<int64_t, ku_list_t, ku_list_t, operation::ListPrepend>;
@@ -283,10 +291,10 @@ ListContainsVectorOperation::getDefinitions() {
 
 std::vector<std::unique_ptr<VectorOperationDefinition>> ListSliceVectorOperation::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
-    auto bindFunc = [](const std::vector<DataType>& argumentTypes, FunctionDefinition* definition,
-                        DataType& actualReturnType) {
-        definition->returnTypeID = argumentTypes[0].typeID;
-        actualReturnType = argumentTypes[0];
+    auto bindFunc = [](const binder::expression_vector& argumentTypes,
+                        FunctionDefinition* definition, DataType& actualReturnType) {
+        definition->returnTypeID = argumentTypes[0]->getDataType().typeID;
+        actualReturnType = argumentTypes[0]->getDataType();
     };
     result.push_back(std::make_unique<VectorOperationDefinition>(LIST_SLICE_FUNC_NAME,
         std::vector<DataTypeID>{VAR_LIST, INT64, INT64}, VAR_LIST,

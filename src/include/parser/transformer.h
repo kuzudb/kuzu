@@ -167,6 +167,9 @@ private:
     std::unique_ptr<ParsedExpression> transformListLiteral(
         CypherParser::OC_ListLiteralContext& ctx);
 
+    std::unique_ptr<ParsedExpression> transformStructLiteral(
+        CypherParser::KU_StructLiteralContext& ctx);
+
     std::unique_ptr<ParsedExpression> transformParameterExpression(
         CypherParser::OC_ParameterContext& ctx);
 

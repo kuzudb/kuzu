@@ -8,6 +8,7 @@
 #include "function/list/vector_list_operations.h"
 #include "function/schema/vector_offset_operations.h"
 #include "function/string/vector_string_operations.h"
+#include "function/struct/vector_struct_operations.h"
 #include "function/timestamp/vector_timestamp_operations.h"
 
 using namespace kuzu::common;
@@ -25,6 +26,7 @@ void BuiltInVectorOperations::registerVectorOperations() {
     registerCastOperations();
     registerListOperations();
     registerInternalIDOperation();
+    registerStructOperation();
     // register internal offset operation
     vectorOperations.insert({OFFSET_FUNC_NAME, OffsetVectorOperation::getDefinitions()});
 }
@@ -442,6 +444,14 @@ void BuiltInVectorOperations::registerInternalIDOperation() {
     definitions.push_back(make_unique<VectorOperationDefinition>(
         ID_FUNC_NAME, std::vector<DataTypeID>{REL}, INTERNAL_ID, nullptr));
     vectorOperations.insert({ID_FUNC_NAME, std::move(definitions)});
+}
+
+void BuiltInVectorOperations::registerStructOperation() {
+    std::vector<std::unique_ptr<VectorOperationDefinition>> definitions;
+    definitions.push_back(make_unique<VectorOperationDefinition>(STRUCT_PACK_FUNC_NAME,
+        std::vector<DataTypeID>{ANY}, STRUCT, VectorStructOperations::StructPack, nullptr,
+        StructPackVectorOperations::structPackBindFunc, true /* isVarLength */));
+    vectorOperations.insert({STRUCT_PACK_FUNC_NAME, std::move(definitions)});
 }
 
 } // namespace function

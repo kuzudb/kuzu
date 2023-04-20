@@ -731,6 +731,8 @@ std::unique_ptr<ParsedExpression> Transformer::transformLiteral(
     } else if (ctx.NULL_()) {
         return std::make_unique<ParsedLiteralExpression>(
             std::make_unique<common::Value>(common::Value::createNullValue()), ctx.getText());
+    } else if (ctx.kU_StructLiteral()) {
+        return transformStructLiteral(*ctx.kU_StructLiteral());
     } else {
         assert(ctx.oC_ListLiteral());
         return transformListLiteral(*ctx.oC_ListLiteral());
@@ -757,6 +759,18 @@ std::unique_ptr<ParsedExpression> Transformer::transformListLiteral(
         listCreation->addChild(transformExpression(*childExpr));
     }
     return listCreation;
+}
+
+std::unique_ptr<ParsedExpression> Transformer::transformStructLiteral(
+    CypherParser::KU_StructLiteralContext& ctx) {
+    auto structPack =
+        std::make_unique<ParsedFunctionExpression>(common::STRUCT_PACK_FUNC_NAME, ctx.getText());
+    for (auto& structField : ctx.kU_StructField()) {
+        auto structExpr = transformExpression(*structField->oC_Expression());
+        structExpr->setAlias(transformSymbolicName(*structField->oC_SymbolicName()));
+        structPack->addChild(std::move(structExpr));
+    }
+    return structPack;
 }
 
 std::unique_ptr<ParsedExpression> Transformer::transformParameterExpression(
