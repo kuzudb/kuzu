@@ -9,7 +9,7 @@ HEADER_PATH = os.path.realpath(
     os.path.join(os.path.dirname(__file__), 'headers')
 )
 OUTPUT_PATH = os.path.realpath(
-    os.path.join(os.path.dirname(__file__), 'kuzu.h')
+    os.path.join(os.path.dirname(__file__), 'kuzu.hpp')
 )
 
 logging.debug('HEADER_PATH: %s', HEADER_PATH)

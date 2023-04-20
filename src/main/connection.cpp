@@ -267,10 +267,6 @@ std::string Connection::getRelPropertyNames(const std::string& relTableName) {
     return result;
 }
 
-std::unique_ptr<QueryResult> Connection::kuzu_query(const char* queryString) {
-    return query(queryString);
-}
-
 void Connection::interrupt() {
     clientContext->activeQuery->interrupted = true;
 }

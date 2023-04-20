@@ -127,10 +127,6 @@ public:
      */
     KUZU_API std::string getRelPropertyNames(const std::string& relTableName);
 
-    // Temporary patching for C-style APIs.
-    // TODO(Change): move this to C-header once we have C-APIs.
-    KUZU_API std::unique_ptr<QueryResult> kuzu_query(const char* queryString);
-
     /**
      * @brief interrupts all queries currently executed within this connection.
      */

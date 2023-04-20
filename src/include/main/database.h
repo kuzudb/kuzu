@@ -61,11 +61,6 @@ public:
      */
     static void setLoggingLevel(std::string loggingLevel);
 
-    // Temporary patching for C-style APIs.
-    // TODO(Change): move this to C-header once we have C-APIs.
-    KUZU_API explicit Database(const char* databasePath);
-    KUZU_API Database(const char* databasePath, SystemConfig systemConfig);
-
 private:
     // Commits and checkpoints a write transaction or rolls that transaction back. This involves
     // either replaying the WAL and either redoing or undoing and in either case at the end WAL is

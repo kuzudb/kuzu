@@ -1,4 +1,5 @@
 add_subdirectory(binder)
+add_subdirectory(c_api)
 add_subdirectory(catalog)
 add_subdirectory(common)
 add_subdirectory(expression_evaluator)

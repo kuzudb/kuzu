@@ -27,7 +27,7 @@ def cleanup():
         subprocess.run(['make', 'clean-all'], cwd=workspace_root,
                        check=True, env=env_vars)
         shutil.rmtree(os.path.join(base_dir, "headers"), ignore_errors=True)
-        for f in ["kuzu", "kuzu.h", "libkuzu.so", "libkuzu.dylib"]:
+        for f in ["kuzu", "kuzu.hpp", "kuzu.h", "libkuzu.so", "libkuzu.dylib"]:
             try:
                 os.remove(os.path.join(base_dir, f))
             except OSError:
@@ -91,10 +91,17 @@ def collect_and_merge_headers():
 
 def collect_binaries():
     logging.info("Collecting binaries...")
+    c_header_path = os.path.join(workspace_root, "src", "include", "c_api",
+                                 "kuzu.h")
     so_path = os.path.join(workspace_root, "build",
                            "release", "src", "libkuzu.so")
     dylib_path = os.path.join(workspace_root, "build",
                               "release", "src", "libkuzu.dylib")
+    if not os.path.exists(c_header_path):
+        logging.error("No C header file found")
+        sys.exit(1)
+    shutil.copy(c_header_path, os.path.join(base_dir, "kuzu.h"))
+    logging.info("Copied kuzu.h")
     so_exists = os.path.exists(so_path)
     dylib_exists = os.path.exists(dylib_path)
     if not so_exists and not dylib_exists:
