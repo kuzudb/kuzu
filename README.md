@@ -96,10 +96,10 @@ conn.execute('COPY User FROM "user.csv"')
 conn.execute('COPY Follows FROM "follows.csv"')
 # Run a query.
 results = conn.execute('MATCH (u:User) RETURN COUNT(*);')
-while results.hasNext():
-  print(results.getNext())
+while results.has_next():
+  print(results.get_next())
 # Run a query and get results as a pandas dataframe.
-results = conn.execute('MATCH (a:User)-[f:Follows]->(b:User) RETURN a.name, f.since, b.name;').getAsDF()
+results = conn.execute('MATCH (a:User)-[f:Follows]->(b:User) RETURN a.name, f.since, b.name;').get_as_df()
 print(results)
 # Run a query and get results as an arrow table.
 results = conn.execute('MATCH (u:User) RETURN u.name, u.age;').get_as_arrow(chunk_size=100)
