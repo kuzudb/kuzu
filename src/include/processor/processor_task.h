@@ -18,10 +18,6 @@ private:
     static std::unique_ptr<ResultSet> populateResultSet(
         Sink* op, storage::MemoryManager* memoryManager);
 
-    // TODO(Xiyang): Move this function to front end.
-    static void addStructFieldsVectors(common::ValueVector* structVector,
-        common::DataChunk* dataChunk, storage::MemoryManager* memoryManager);
-
 private:
     Sink* sink;
     ExecutionContext* executionContext;

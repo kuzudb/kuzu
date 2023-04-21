@@ -69,11 +69,13 @@ public:
     }
 
     inline void addChildVector(std::shared_ptr<ValueVector> valueVector) {
-        childrenVectors.emplace_back(valueVector);
+        childrenVectors.emplace_back(std::move(valueVector));
     }
-
-    inline std::vector<std::shared_ptr<ValueVector>> getChildrenVectors() const {
+    inline const std::vector<std::shared_ptr<ValueVector>>& getChildrenVectors() const {
         return childrenVectors;
+    }
+    inline std::shared_ptr<ValueVector> getChildVector(vector_idx_t idx) const {
+        return childrenVectors[idx];
     }
 
 private:

@@ -122,13 +122,14 @@ struct CollectFunction {
 
     static void finalize(uint8_t* state_) {}
 
-    static void bindFunc(const binder::expression_vector& argumentTypes,
-        FunctionDefinition* definition, common::DataType& returnType) {
-        assert(argumentTypes.size() == 1);
+    static std::unique_ptr<FunctionBindData> bindFunc(
+        const binder::expression_vector& arguments, FunctionDefinition* definition) {
+        assert(arguments.size() == 1);
         auto aggFuncDefinition = reinterpret_cast<AggregateFunctionDefinition*>(definition);
-        aggFuncDefinition->aggregateFunction->setInputDataType(argumentTypes[0]->dataType);
-        returnType = common::DataType(
-            common::VAR_LIST, std::make_unique<common::DataType>(argumentTypes[0]->dataType));
+        aggFuncDefinition->aggregateFunction->setInputDataType(arguments[0]->dataType);
+        auto returnType = common::DataType(
+            common::VAR_LIST, std::make_unique<common::DataType>(arguments[0]->dataType));
+        return std::make_unique<FunctionBindData>(returnType);
     }
 };
 

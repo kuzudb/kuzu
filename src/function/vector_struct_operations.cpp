@@ -1,26 +1,57 @@
 #include "function/struct/vector_struct_operations.h"
 
+#include "binder/expression/literal_expression.h"
+#include "function/function_definition.h"
+
 namespace kuzu {
 namespace function {
 
-void VectorStructOperations::StructPack(
-    const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
-    common::ValueVector& result) {
-    assert(!parameters.empty() && result.dataType.typeID == common::STRUCT);
-    for (auto& parameter : parameters) {
-        result.addChildVector(parameter);
-    }
+std::vector<std::unique_ptr<VectorOperationDefinition>>
+StructPackVectorOperations::getDefinitions() {
+    std::vector<std::unique_ptr<VectorOperationDefinition>> definitions;
+    definitions.push_back(make_unique<VectorOperationDefinition>(common::STRUCT_PACK_FUNC_NAME,
+        std::vector<common::DataTypeID>{common::ANY}, common::STRUCT, execFunc, nullptr, bindFunc,
+        true /* isVarLength */));
+    return definitions;
 }
 
-void StructPackVectorOperations::structPackBindFunc(const binder::expression_vector& arguments,
-    kuzu::function::FunctionDefinition* definition, common::DataType& actualReturnType) {
-    actualReturnType.extraTypeInfo = std::make_unique<common::StructTypeInfo>();
-    actualReturnType.typeID = common::STRUCT;
+std::unique_ptr<FunctionBindData> StructPackVectorOperations::bindFunc(
+    const binder::expression_vector& arguments, kuzu::function::FunctionDefinition* definition) {
+    std::vector<std::unique_ptr<common::StructField>> fields;
     for (auto& argument : arguments) {
-        reinterpret_cast<common::StructTypeInfo*>(actualReturnType.getExtraTypeInfo())
-            ->addChildType(argument->getAlias(), argument->getDataType());
+        fields.emplace_back(std::make_unique<common::StructField>(
+            argument->getAlias(), argument->getDataType().copy()));
     }
-    definition->returnTypeID = common::STRUCT;
+    auto resultType = common::DataType(common::STRUCT, std::move(fields));
+    return std::make_unique<FunctionBindData>(resultType);
+}
+
+std::vector<std::unique_ptr<VectorOperationDefinition>>
+StructExtractVectorOperations::getDefinitions() {
+    std::vector<std::unique_ptr<VectorOperationDefinition>> definitions;
+    definitions.push_back(make_unique<VectorOperationDefinition>(common::STRUCT_EXTRACT_FUNC_NAME,
+        std::vector<common::DataTypeID>{common::STRUCT, common::STRING}, common::ANY, execFunc,
+        nullptr, bindFunc, false /* isVarLength */));
+    return definitions;
+}
+
+std::unique_ptr<FunctionBindData> StructExtractVectorOperations::bindFunc(
+    const binder::expression_vector& arguments, kuzu::function::FunctionDefinition* definition) {
+    auto structType = arguments[0]->getDataType();
+    auto typeInfo = reinterpret_cast<common::StructTypeInfo*>(structType.getExtraTypeInfo());
+    if (arguments[1]->expressionType != common::LITERAL) {
+        throw common::BinderException("Key name for struct_extract must be STRING literal.");
+    }
+    auto key = ((binder::LiteralExpression&)*arguments[1]).getValue()->getValue<std::string>();
+    assert(definition->returnTypeID == common::ANY);
+    auto childrenTypes = typeInfo->getChildrenTypes();
+    auto childrenNames = typeInfo->getChildrenNames();
+    for (auto i = 0u; i < childrenNames.size(); ++i) {
+        if (childrenNames[i] == key) {
+            return std::make_unique<StructExtractBindData>(*childrenTypes[i], i);
+        }
+    }
+    throw common::BinderException("Cannot find key " + key + " for struct_extract.");
 }
 
 } // namespace function

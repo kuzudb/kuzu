@@ -46,12 +46,14 @@ private:
         const parser::ParsedExpression& parsedExpression);
     std::shared_ptr<Expression> bindScalarFunctionExpression(
         const parser::ParsedExpression& parsedExpression, const std::string& functionName);
+    std::shared_ptr<Expression> bindScalarFunctionExpression(
+        const expression_vector& children, const std::string& functionName);
     std::shared_ptr<Expression> bindAggregateFunctionExpression(
         const parser::ParsedExpression& parsedExpression, const std::string& functionName,
         bool isDistinct);
 
-    std::shared_ptr<Expression> staticEvaluate(const std::string& functionName,
-        const parser::ParsedExpression& parsedExpression, const expression_vector& children);
+    std::shared_ptr<Expression> staticEvaluate(
+        const std::string& functionName, const expression_vector& children);
 
     std::shared_ptr<Expression> bindInternalIDExpression(
         const parser::ParsedExpression& parsedExpression);

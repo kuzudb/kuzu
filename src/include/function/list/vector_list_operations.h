@@ -34,9 +34,6 @@ struct VectorListOperations : public VectorOperations {
             *params[0], *params[1], result);
     }
 
-    static void ListCreation(const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
-        common::ValueVector& result);
-
     template<typename OPERATION, typename RESULT_TYPE>
     static std::vector<std::unique_ptr<VectorOperationDefinition>>
     getBinaryListOperationDefinitions(std::string funcName, common::DataTypeID resultTypeID) {
@@ -92,8 +89,10 @@ struct VectorListOperations : public VectorOperations {
 
 struct ListCreationVectorOperation : public VectorListOperations {
     static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
-    static void listCreationBindFunc(const binder::expression_vector& argumentTypes,
-        FunctionDefinition* definition, common::DataType& actualReturnType);
+    static std::unique_ptr<FunctionBindData> bindFunc(
+        const binder::expression_vector& arguments, FunctionDefinition* definition);
+    static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
+        common::ValueVector& result);
 };
 
 struct ListLenVectorOperation : public VectorListOperations {
@@ -102,24 +101,26 @@ struct ListLenVectorOperation : public VectorListOperations {
 
 struct ListExtractVectorOperation : public VectorListOperations {
     static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
-    static void listExtractBindFunc(const binder::expression_vector& argumentTypes,
-        FunctionDefinition* definition, common::DataType& returnType);
+    static std::unique_ptr<FunctionBindData> bindFunc(
+        const binder::expression_vector& arguments, FunctionDefinition* definition);
 };
 
 struct ListConcatVectorOperation : public VectorListOperations {
     static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static std::unique_ptr<FunctionBindData> bindFunc(
+        const binder::expression_vector& arguments, FunctionDefinition* definition);
 };
 
 struct ListAppendVectorOperation : public VectorListOperations {
-    static void listAppendBindFunc(const binder::expression_vector& argumentTypes,
-        FunctionDefinition* definition, common::DataType& returnType);
     static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static std::unique_ptr<FunctionBindData> bindFunc(
+        const binder::expression_vector& arguments, FunctionDefinition* definition);
 };
 
 struct ListPrependVectorOperation : public VectorListOperations {
-    static void listPrependBindFunc(const binder::expression_vector& argumentTypes,
-        FunctionDefinition* definition, common::DataType& returnType);
     static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static std::unique_ptr<FunctionBindData> bindFunc(
+        const binder::expression_vector& arguments, FunctionDefinition* definition);
 };
 
 struct ListPositionVectorOperation : public VectorListOperations {
@@ -132,6 +133,8 @@ struct ListContainsVectorOperation : public VectorListOperations {
 
 struct ListSliceVectorOperation : public VectorListOperations {
     static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static std::unique_ptr<FunctionBindData> bindFunc(
+        const binder::expression_vector& arguments, FunctionDefinition* definition);
 };
 
 } // namespace function

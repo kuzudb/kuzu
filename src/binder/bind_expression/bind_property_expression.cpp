@@ -1,3 +1,4 @@
+#include "binder/expression/literal_expression.h"
 #include "binder/expression/rel_expression.h"
 #include "binder/expression_binder.h"
 #include "parser/expression/parsed_property_expression.h"
@@ -20,12 +21,17 @@ std::shared_ptr<Expression> ExpressionBinder::bindPropertyExpression(
             propertyName + " is reserved for system usage. External access is not allowed.");
     }
     auto child = bindExpression(*parsedExpression.getChild(0));
-    validateExpectedDataType(*child, std::unordered_set<DataTypeID>{NODE, REL});
+    validateExpectedDataType(*child, std::unordered_set<DataTypeID>{NODE, REL, STRUCT});
     if (NODE == child->dataType.typeID) {
         return bindNodePropertyExpression(*child, propertyName);
-    } else {
-        assert(REL == child->dataType.typeID);
+    } else if (common::REL == child->dataType.typeID) {
         return bindRelPropertyExpression(*child, propertyName);
+    } else {
+        assert(common::STRUCT == child->dataType.typeID);
+        auto stringValue = std::make_unique<Value>(propertyName);
+        return bindScalarFunctionExpression(
+            expression_vector{child, createLiteralExpression(std::move(stringValue))},
+            STRUCT_EXTRACT_FUNC_NAME);
     }
 }
 

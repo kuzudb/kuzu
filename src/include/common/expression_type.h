@@ -58,6 +58,7 @@ const std::string ARRAY_SLICE_FUNC_NAME = "ARRAY_SLICE";
 
 // struct
 const std::string STRUCT_PACK_FUNC_NAME = "STRUCT_PACK";
+const std::string STRUCT_EXTRACT_FUNC_NAME = "STRUCT_EXTRACT";
 
 // comparison
 const std::string EQUALS_FUNC_NAME = "EQUALS";

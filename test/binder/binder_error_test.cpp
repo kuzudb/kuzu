@@ -76,7 +76,7 @@ TEST_F(BinderErrorTest, BindVariableNotInScope2) {
 
 TEST_F(BinderErrorTest, BindPropertyLookUpOnExpression) {
     std::string expectedException =
-        "Binder exception: +(a.age,2) has data type INT64. (REL,NODE) was expected.";
+        "Binder exception: +(a.age,2) has data type INT64. (STRUCT,REL,NODE) was expected.";
     auto input = "MATCH (a:person)-[e1:knows]->(b:person) RETURN (a.age + 2).age;";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
@@ -90,6 +90,12 @@ TEST_F(BinderErrorTest, BindPropertyNotExist) {
 TEST_F(BinderErrorTest, BindPropertyNotExist2) {
     std::string expectedException = "Binder exception: Cannot find property foo for a.";
     auto input = "Create (a:person {foo:'x'});";
+    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
+}
+
+TEST_F(BinderErrorTest, BindPropertyNotExist3) {
+    std::string expectedException = "Binder exception: Cannot find key b for struct_extract.";
+    auto input = "WITH {a: 1} AS s RETURN s.b;";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
 
