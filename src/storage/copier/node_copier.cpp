@@ -215,8 +215,6 @@ void ParquetNodeCopier<T>::executeInternal(std::unique_ptr<NodeCopyMorsel> morse
     TableCopyExecutor::throwCopyExceptionIfNotOK(
         reader->RowGroup(morsel->blockIdx)->ReadTable(&table));
     arrow::TableBatchReader batchReader(*table);
-    // TODO(GUODONG): We assume here each time the table only contains one record batch. Needs to
-    // verify if this always holds true.
     std::shared_ptr<arrow::RecordBatch> recordBatch;
     TableCopyExecutor::throwCopyExceptionIfNotOK(batchReader.ReadNext(&recordBatch));
     std::vector<std::unique_ptr<InMemColumnChunk>> columnChunks(this->columns.size());

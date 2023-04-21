@@ -82,17 +82,16 @@ void TableCopyExecutor::countNumLinesParquet(const std::vector<std::string>& fil
     numRows = 0;
     for (auto& filePath : filePaths) {
         std::unique_ptr<parquet::arrow::FileReader> reader = createParquetReader(filePath);
-        uint64_t numBlocks = reader->num_row_groups();
-        std::vector<uint64_t> numLinesPerBlock;
-        std::shared_ptr<arrow::Table> table;
+        auto metadata = reader->parquet_reader()->metadata();
+        uint64_t numBlocks = metadata->num_row_groups();
+        std::vector<uint64_t> numLinesPerBlock(numBlocks);
         auto startNodeOffset = numRows;
         for (auto blockIdx = 0; blockIdx < numBlocks; ++blockIdx) {
-            throwCopyExceptionIfNotOK(reader->RowGroup(blockIdx)->ReadTable(&table));
-            numLinesPerBlock.push_back(table->num_rows());
-            numRows += table->num_rows();
+            numLinesPerBlock[blockIdx] = metadata->RowGroup(blockIdx)->num_rows();
         }
         fileBlockInfos.emplace(
             filePath, FileBlockInfo{startNodeOffset, numBlocks, numLinesPerBlock});
+        numRows += metadata->num_rows();
     }
 }
 
