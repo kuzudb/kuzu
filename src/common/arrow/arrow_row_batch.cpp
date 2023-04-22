@@ -513,7 +513,6 @@ ArrowArray ArrowRowBatch::append(main::QueryResult& queryResult, std::int64_t ch
             break;
         }
         auto tuple = queryResult.getNext();
-        std::vector<std::uint32_t> colWidths(numColumns, 10);
         for (auto i = 0u; i < numColumns; i++) {
             appendValue(vectors[i].get(), *typesInfo[i], tuple->getValue(i));
         }
