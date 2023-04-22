@@ -447,11 +447,9 @@ void BuiltInVectorOperations::registerInternalIDOperation() {
 }
 
 void BuiltInVectorOperations::registerStructOperation() {
-    std::vector<std::unique_ptr<VectorOperationDefinition>> definitions;
-    definitions.push_back(make_unique<VectorOperationDefinition>(STRUCT_PACK_FUNC_NAME,
-        std::vector<DataTypeID>{ANY}, STRUCT, VectorStructOperations::StructPack, nullptr,
-        StructPackVectorOperations::structPackBindFunc, true /* isVarLength */));
-    vectorOperations.insert({STRUCT_PACK_FUNC_NAME, std::move(definitions)});
+    vectorOperations.insert({STRUCT_PACK_FUNC_NAME, StructPackVectorOperations::getDefinitions()});
+    vectorOperations.insert(
+        {STRUCT_EXTRACT_FUNC_NAME, StructExtractVectorOperations::getDefinitions()});
 }
 
 } // namespace function

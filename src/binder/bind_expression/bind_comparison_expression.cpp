@@ -31,11 +31,13 @@ std::shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
         childrenAfterCast.push_back(
             implicitCastIfNecessary(children[i], function->parameterTypeIDs[i]));
     }
+    auto bindData =
+        std::make_unique<function::FunctionBindData>(common::DataType(function->returnTypeID));
     auto uniqueExpressionName =
         ScalarFunctionExpression::getUniqueName(function->name, childrenAfterCast);
-    return make_shared<ScalarFunctionExpression>(functionName, expressionType,
-        common::DataType(function->returnTypeID), std::move(childrenAfterCast), function->execFunc,
-        function->selectFunc, uniqueExpressionName);
+    return make_shared<ScalarFunctionExpression>(functionName, expressionType, std::move(bindData),
+        std::move(childrenAfterCast), function->execFunc, function->selectFunc,
+        uniqueExpressionName);
 }
 
 } // namespace binder

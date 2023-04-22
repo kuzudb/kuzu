@@ -6,14 +6,18 @@
 namespace kuzu {
 namespace function {
 
-// Forward declaration of FunctionDefinition.
+struct FunctionBindData {
+    common::DataType resultType;
+
+    explicit FunctionBindData(common::DataType dataType) : resultType{std::move(dataType)} {}
+};
+
 struct FunctionDefinition;
 
-using scalar_bind_func =
-    std::function<void(const binder::expression_vector&, FunctionDefinition*, common::DataType&)>;
+using scalar_bind_func = std::function<std::unique_ptr<FunctionBindData>(
+    const binder::expression_vector&, FunctionDefinition* definition)>;
 
 struct FunctionDefinition {
-
     FunctionDefinition(std::string name, std::vector<common::DataTypeID> parameterTypeIDs,
         common::DataTypeID returnTypeID)
         : name{std::move(name)}, parameterTypeIDs{std::move(parameterTypeIDs)}, returnTypeID{

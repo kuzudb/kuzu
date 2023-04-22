@@ -85,9 +85,10 @@ std::shared_ptr<Expression> ExpressionBinder::implicitCast(
     if (VectorCastOperations::hasImplicitCast(expression->dataType, targetType)) {
         auto functionName = VectorCastOperations::bindImplicitCastFuncName(targetType);
         auto children = expression_vector{expression};
+        auto bindData = std::make_unique<FunctionBindData>(targetType);
         auto uniqueName = ScalarFunctionExpression::getUniqueName(functionName, children);
         return std::make_shared<ScalarFunctionExpression>(functionName, FUNCTION,
-            DataType{targetType.typeID}, std::move(children),
+            std::move(bindData), std::move(children),
             VectorCastOperations::bindImplicitCastFunc(
                 expression->dataType.typeID, targetType.typeID),
             nullptr /* selectFunc */, std::move(uniqueName));

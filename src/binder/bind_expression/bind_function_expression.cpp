@@ -35,17 +35,24 @@ std::shared_ptr<Expression> ExpressionBinder::bindFunctionExpression(
 
 std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
     const ParsedExpression& parsedExpression, const std::string& functionName) {
-    auto builtInFunctions = binder->catalog.getBuiltInScalarFunctions();
-    std::vector<DataType> childrenTypes;
     expression_vector children;
     for (auto i = 0u; i < parsedExpression.getNumChildren(); ++i) {
         auto child = bindExpression(*parsedExpression.getChild(i));
-        childrenTypes.push_back(child->dataType);
         children.push_back(std::move(child));
+    }
+    return bindScalarFunctionExpression(children, functionName);
+}
+
+std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
+    const expression_vector& children, const std::string& functionName) {
+    auto builtInFunctions = binder->catalog.getBuiltInScalarFunctions();
+    std::vector<DataType> childrenTypes;
+    for (auto& child : children) {
+        childrenTypes.push_back(child->dataType);
     }
     auto function = builtInFunctions->matchFunction(functionName, childrenTypes);
     if (builtInFunctions->canApplyStaticEvaluation(functionName, children)) {
-        return staticEvaluate(functionName, parsedExpression, children);
+        return staticEvaluate(functionName, children);
     }
     expression_vector childrenAfterCast;
     for (auto i = 0u; i < children.size(); ++i) {
@@ -53,15 +60,15 @@ std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
             function->isVarLength ? function->parameterTypeIDs[0] : function->parameterTypeIDs[i];
         childrenAfterCast.push_back(implicitCastIfNecessary(children[i], targetType));
     }
-    DataType returnType;
+    std::unique_ptr<function::FunctionBindData> bindData;
     if (function->bindFunc) {
-        function->bindFunc(childrenAfterCast, function, returnType);
+        bindData = function->bindFunc(childrenAfterCast, function);
     } else {
-        returnType = DataType(function->returnTypeID);
+        bindData = std::make_unique<function::FunctionBindData>(DataType(function->returnTypeID));
     }
     auto uniqueExpressionName =
         ScalarFunctionExpression::getUniqueName(function->name, childrenAfterCast);
-    return make_shared<ScalarFunctionExpression>(functionName, FUNCTION, returnType,
+    return make_shared<ScalarFunctionExpression>(functionName, FUNCTION, std::move(bindData),
         std::move(childrenAfterCast), function->execFunc, function->selectFunc,
         uniqueExpressionName);
 }
@@ -87,18 +94,18 @@ std::shared_ptr<Expression> ExpressionBinder::bindAggregateFunctionExpression(
     if (children.empty()) {
         uniqueExpressionName = binder->getUniqueExpressionName(uniqueExpressionName);
     }
-    DataType returnType;
+    std::unique_ptr<function::FunctionBindData> bindData;
     if (function->bindFunc) {
-        function->bindFunc(children, function, returnType);
+        bindData = function->bindFunc(children, function);
     } else {
-        returnType = DataType(function->returnTypeID);
+        bindData = std::make_unique<function::FunctionBindData>(DataType(function->returnTypeID));
     }
-    return make_shared<AggregateFunctionExpression>(functionName, returnType, std::move(children),
-        function->aggregateFunction->clone(), uniqueExpressionName);
+    return make_shared<AggregateFunctionExpression>(functionName, std::move(bindData),
+        std::move(children), function->aggregateFunction->clone(), uniqueExpressionName);
 }
 
-std::shared_ptr<Expression> ExpressionBinder::staticEvaluate(const std::string& functionName,
-    const ParsedExpression& parsedExpression, const expression_vector& children) {
+std::shared_ptr<Expression> ExpressionBinder::staticEvaluate(
+    const std::string& functionName, const expression_vector& children) {
     assert(children[0]->expressionType == common::LITERAL);
     auto strVal = ((LiteralExpression*)children[0].get())->getValue()->getValue<std::string>();
     std::unique_ptr<Value> value;
@@ -187,8 +194,9 @@ std::shared_ptr<Expression> ExpressionBinder::bindNodeLabelFunction(const Expres
             populateLabelValues(nodeTableIDs, *catalogContent));
     children.push_back(createLiteralExpression(std::move(labelsValue)));
     auto execFunc = function::LabelVectorOperation::execFunction;
+    auto bindData = std::make_unique<function::FunctionBindData>(DataType(STRING));
     auto uniqueExpressionName = ScalarFunctionExpression::getUniqueName(LABEL_FUNC_NAME, children);
-    return make_shared<ScalarFunctionExpression>(LABEL_FUNC_NAME, FUNCTION, DataType(STRING),
+    return make_shared<ScalarFunctionExpression>(LABEL_FUNC_NAME, FUNCTION, std::move(bindData),
         std::move(children), execFunc, nullptr, uniqueExpressionName);
 }
 
@@ -207,8 +215,9 @@ std::shared_ptr<Expression> ExpressionBinder::bindRelLabelFunction(const Express
             populateLabelValues(relTableIDs, *catalogContent));
     children.push_back(createLiteralExpression(std::move(labelsValue)));
     auto execFunc = function::LabelVectorOperation::execFunction;
+    auto bindData = std::make_unique<function::FunctionBindData>(DataType(STRING));
     auto uniqueExpressionName = ScalarFunctionExpression::getUniqueName(LABEL_FUNC_NAME, children);
-    return make_shared<ScalarFunctionExpression>(LABEL_FUNC_NAME, FUNCTION, DataType(STRING),
+    return make_shared<ScalarFunctionExpression>(LABEL_FUNC_NAME, FUNCTION, std::move(bindData),
         std::move(children), execFunc, nullptr, uniqueExpressionName);
 }
 

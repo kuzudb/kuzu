@@ -17,10 +17,10 @@ std::shared_ptr<Expression> ExpressionBinder::bindNullOperatorExpression(
     auto functionName = expressionTypeToString(expressionType);
     auto execFunc = function::VectorNullOperations::bindExecFunction(expressionType, children);
     auto selectFunc = function::VectorNullOperations::bindSelectFunction(expressionType, children);
+    auto bindData = std::make_unique<function::FunctionBindData>(common::DataType(common::BOOL));
     auto uniqueExpressionName = ScalarFunctionExpression::getUniqueName(functionName, children);
-    return make_shared<ScalarFunctionExpression>(functionName, expressionType,
-        common::DataType(common::BOOL), std::move(children), std::move(execFunc),
-        std::move(selectFunc), uniqueExpressionName);
+    return make_shared<ScalarFunctionExpression>(functionName, expressionType, std::move(bindData),
+        std::move(children), std::move(execFunc), std::move(selectFunc), uniqueExpressionName);
 }
 
 } // namespace binder

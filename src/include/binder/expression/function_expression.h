@@ -8,39 +8,44 @@ namespace kuzu {
 namespace binder {
 
 class FunctionExpression : public Expression {
-protected:
+public:
     FunctionExpression(std::string functionName, common::ExpressionType expressionType,
-        common::DataType dataType, const std::string& uniqueName)
-        : Expression{expressionType, std::move(dataType), uniqueName}, functionName{std::move(
-                                                                           functionName)} {}
+        std::unique_ptr<function::FunctionBindData> bindData, const std::string& uniqueName)
+        : Expression{expressionType, bindData->resultType, uniqueName},
+          functionName{std::move(functionName)}, bindData{std::move(bindData)} {}
 
     FunctionExpression(std::string functionName, common::ExpressionType expressionType,
-        common::DataType dataType, const std::shared_ptr<Expression>& child,
+        std::unique_ptr<function::FunctionBindData> bindData,
+        const std::shared_ptr<Expression>& child, const std::string& uniqueName)
+        : Expression{expressionType, bindData->resultType, child, uniqueName},
+          functionName{std::move(functionName)}, bindData{std::move(bindData)} {}
+
+    FunctionExpression(std::string functionName, common::ExpressionType expressionType,
+        std::unique_ptr<function::FunctionBindData> bindData, expression_vector children,
         const std::string& uniqueName)
-        : Expression{expressionType, std::move(dataType), child, uniqueName},
-          functionName{std::move(functionName)} {}
-
-    FunctionExpression(std::string functionName, common::ExpressionType expressionType,
-        common::DataType dataType, expression_vector children, const std::string& uniqueName)
-        : Expression{expressionType, std::move(dataType), std::move(children), uniqueName},
-          functionName{std::move(functionName)} {}
+        : Expression{expressionType, bindData->resultType, std::move(children), uniqueName},
+          functionName{std::move(functionName)}, bindData{std::move(bindData)} {}
 
     virtual ~FunctionExpression() = default;
+
+    inline std::string getFunctionName() const { return functionName; }
+    inline function::FunctionBindData* getBindData() const { return bindData.get(); }
 
     std::string toString() const override = 0;
 
 protected:
     std::string functionName;
+    std::unique_ptr<function::FunctionBindData> bindData;
 };
 
 class ScalarFunctionExpression : public FunctionExpression {
 public:
     ScalarFunctionExpression(std::string functionName, common::ExpressionType expressionType,
-        const common::DataType& dataType, expression_vector children,
+        std::unique_ptr<function::FunctionBindData> bindData, expression_vector children,
         function::scalar_exec_func execFunc, function::scalar_select_func selectFunc,
         const std::string& uniqueName)
-        : FunctionExpression{std::move(functionName), expressionType, dataType, std::move(children),
-              uniqueName},
+        : FunctionExpression{std::move(functionName), expressionType, std::move(bindData),
+              std::move(children), uniqueName},
           execFunc{std::move(execFunc)}, selectFunc{std::move(selectFunc)} {}
 
     static std::string getUniqueName(const std::string& functionName, expression_vector& children);
@@ -54,17 +59,19 @@ public:
 
 class AggregateFunctionExpression : public FunctionExpression {
 public:
-    AggregateFunctionExpression(std::string functionName, const common::DataType& dataType,
+    AggregateFunctionExpression(std::string functionName,
+        std::unique_ptr<function::FunctionBindData> bindData,
         std::unique_ptr<function::AggregateFunction> aggregateFunction,
         const std::string& uniqueName)
-        : AggregateFunctionExpression{std::move(functionName), dataType, expression_vector{},
-              std::move(aggregateFunction), uniqueName} {}
+        : AggregateFunctionExpression{std::move(functionName), std::move(bindData),
+              expression_vector{}, std::move(aggregateFunction), uniqueName} {}
 
-    AggregateFunctionExpression(std::string functionName, const common::DataType& dataType,
-        expression_vector children, std::unique_ptr<function::AggregateFunction> aggregateFunction,
+    AggregateFunctionExpression(std::string functionName,
+        std::unique_ptr<function::FunctionBindData> bindData, expression_vector children,
+        std::unique_ptr<function::AggregateFunction> aggregateFunction,
         const std::string& uniqueName)
-        : FunctionExpression{std::move(functionName), common::AGGREGATE_FUNCTION, dataType,
-              std::move(children), uniqueName},
+        : FunctionExpression{std::move(functionName), common::AGGREGATE_FUNCTION,
+              std::move(bindData), std::move(children), uniqueName},
           aggregateFunction{std::move(aggregateFunction)} {}
 
     static std::string getUniqueName(

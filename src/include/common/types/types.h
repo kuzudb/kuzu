@@ -136,13 +136,15 @@ public:
     explicit StructTypeInfo(std::vector<std::unique_ptr<StructField>> fields)
         : fields{std::move(fields)} {}
     StructTypeInfo() = default;
+
     inline void addChildType(const std::string& name, const DataType& type) {
         fields.emplace_back(std::make_unique<StructField>(name, std::make_unique<DataType>(type)));
     }
-    bool operator==(const kuzu::common::StructTypeInfo& other) const;
-    std::unique_ptr<ExtraTypeInfo> copy() const override;
     std::vector<DataType*> getChildrenTypes() const;
     std::vector<std::string> getChildrenNames() const;
+
+    bool operator==(const kuzu::common::StructTypeInfo& other) const;
+    std::unique_ptr<ExtraTypeInfo> copy() const override;
 
 private:
     std::vector<std::unique_ptr<StructField>> fields;

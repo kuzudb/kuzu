@@ -1,6 +1,7 @@
 #include "expression_evaluator/function_evaluator.h"
 
 #include "binder/expression/function_expression.h"
+#include "function/struct/vector_struct_operations.h"
 
 using namespace kuzu::common;
 using namespace kuzu::processor;
@@ -59,7 +60,18 @@ std::unique_ptr<BaseExpressionEvaluator> FunctionExpressionEvaluator::clone() {
 
 void FunctionExpressionEvaluator::resolveResultVector(
     const ResultSet& resultSet, MemoryManager* memoryManager) {
-    resultVector = std::make_shared<ValueVector>(expression->dataType, memoryManager);
+    auto& functionExpression = (binder::ScalarFunctionExpression&)*expression;
+    if (functionExpression.getFunctionName() == STRUCT_PACK_FUNC_NAME) {
+        resultVector = std::make_shared<ValueVector>(expression->dataType, memoryManager);
+        for (auto& child : children) {
+            resultVector->addChildVector(child->resultVector);
+        }
+    } else if (functionExpression.getFunctionName() == STRUCT_EXTRACT_FUNC_NAME) {
+        auto& bindData = (function::StructExtractBindData&)*functionExpression.getBindData();
+        resultVector = children[0]->resultVector->getChildVector(bindData.childIdx);
+    } else {
+        resultVector = std::make_shared<ValueVector>(expression->dataType, memoryManager);
+    }
     std::vector<BaseExpressionEvaluator*> inputEvaluators;
     for (auto& child : children) {
         inputEvaluators.push_back(child.get());
