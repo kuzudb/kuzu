@@ -217,13 +217,13 @@ CastToInt16VectorOperation::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
     // down cast
     result.push_back(bindVectorOperation<int32_t, int16_t, operation::CastToInt16>(
-        CAST_TO_INT32_FUNC_NAME, INT32, INT16));
+        CAST_TO_INT16_FUNC_NAME, INT32, INT16));
     result.push_back(bindVectorOperation<int64_t, int16_t, operation::CastToInt16>(
-        CAST_TO_INT32_FUNC_NAME, INT64, INT16));
+        CAST_TO_INT16_FUNC_NAME, INT64, INT16));
     result.push_back(bindVectorOperation<float_t, int16_t, operation::CastToInt16>(
-        CAST_TO_INT32_FUNC_NAME, FLOAT, INT16));
+        CAST_TO_INT16_FUNC_NAME, FLOAT, INT16));
     result.push_back(bindVectorOperation<double_t, int16_t, operation::CastToInt16>(
-        CAST_TO_INT32_FUNC_NAME, DOUBLE, INT16));
+        CAST_TO_INT16_FUNC_NAME, DOUBLE, INT16));
     return result;
 }
 
