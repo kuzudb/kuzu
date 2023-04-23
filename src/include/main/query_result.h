@@ -78,6 +78,8 @@ public:
      * @return next flat tuple in the query result.
      */
     KUZU_API std::shared_ptr<processor::FlatTuple> getNext();
+
+    std::string toString();
     /**
      * @brief writes the query result to a csv file.
      * @param fileName name of the csv file.

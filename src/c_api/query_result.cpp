@@ -79,6 +79,13 @@ kuzu_flat_tuple* kuzu_query_result_get_next(kuzu_query_result* query_result) {
     return flat_tuple_c;
 }
 
+char* kuzu_query_result_to_string(kuzu_query_result* query_result) {
+    auto string = static_cast<QueryResult*>(query_result->_query_result)->toString();
+    char* string_c = (char*)malloc(string.size() + 1);
+    strcpy(string_c, string.c_str());
+    return string_c;
+}
+
 void kuzu_query_result_write_to_csv(kuzu_query_result* query_result, const char* file_path,
     char delimiter, char escape_char, char new_line) {
     static_cast<QueryResult*>(query_result->_query_result)
