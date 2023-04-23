@@ -25,6 +25,18 @@ common::Value* FlatTuple::getValue(uint32_t idx) {
     return values[idx].get();
 }
 
+std::string FlatTuple::toString() {
+    std::string result;
+    for (auto i = 0ul; i < values.size(); i++) {
+        if (i != 0) {
+            result += "|";
+        }
+        result += values[i]->toString();
+    }
+    result += "\n";
+    return result;
+}
+
 std::string FlatTuple::toString(
     const std::vector<uint32_t>& colsWidth, const std::string& delimiter, const uint32_t maxWidth) {
     std::ostringstream result;

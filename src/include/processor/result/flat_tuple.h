@@ -24,6 +24,8 @@ public:
      */
     KUZU_API common::Value* getValue(uint32_t idx);
 
+    std::string toString();
+
     /**
      * @param colsWidth The length of each column
      * @param delimiter The delimiter to separate each value.

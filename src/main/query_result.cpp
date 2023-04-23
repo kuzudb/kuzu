@@ -195,6 +195,24 @@ std::shared_ptr<FlatTuple> QueryResult::getNext() {
     return tuple;
 }
 
+std::string QueryResult::toString() {
+    std::string result;
+    // print header
+    for (auto i = 0u; i < columnNames.size(); ++i) {
+        if (i != 0) {
+            result += "|";
+        }
+        result += columnNames[i];
+    }
+    result += "\n";
+    resetIterator();
+    while (hasNext()) {
+        getNext();
+        result += tuple->toString();
+    }
+    return result;
+}
+
 void QueryResult::writeToCSV(
     const std::string& fileName, char delimiter, char escapeCharacter, char newline) {
     std::ofstream file;

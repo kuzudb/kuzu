@@ -32,14 +32,9 @@ kuzu_value* kuzu_flat_tuple_get_value(kuzu_flat_tuple* flat_tuple, uint64_t inde
     return value;
 }
 
-char* kuzu_flat_tuple_to_string(kuzu_flat_tuple* flat_tuple, const uint32_t* columns_width,
-    uint64_t columns_width_length, const char* delimiter, uint32_t max_width) {
+char* kuzu_flat_tuple_to_string(kuzu_flat_tuple* flat_tuple) {
     auto flat_tuple_shared_ptr = static_cast<std::shared_ptr<FlatTuple>*>(flat_tuple->_flat_tuple);
-    std::vector<uint32_t> columns_width_vector;
-    for (uint64_t i = 0; i < columns_width_length; i++) {
-        columns_width_vector.push_back(columns_width[i]);
-    }
-    auto string = (*flat_tuple_shared_ptr)->toString(columns_width_vector, delimiter, max_width);
+    auto string = (*flat_tuple_shared_ptr)->toString();
     char* string_c = (char*)malloc(string.size() + 1);
     strcpy(string_c, string.c_str());
     return string_c;

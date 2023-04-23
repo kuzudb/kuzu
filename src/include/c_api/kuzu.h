@@ -154,6 +154,7 @@ KUZU_C_API uint64_t kuzu_query_result_get_num_tuples(kuzu_query_result* query_re
 KUZU_C_API kuzu_query_summary* kuzu_query_result_get_query_summary(kuzu_query_result* query_result);
 KUZU_C_API bool kuzu_query_result_has_next(kuzu_query_result* query_result);
 KUZU_C_API kuzu_flat_tuple* kuzu_query_result_get_next(kuzu_query_result* query_result);
+KUZU_C_API char* kuzu_query_result_to_string(kuzu_query_result* query_result);
 KUZU_C_API void kuzu_query_result_write_to_csv(kuzu_query_result* query_result,
     const char* file_path, char delimiter, char escape_char, char new_line);
 KUZU_C_API void kuzu_query_result_reset_iterator(kuzu_query_result* query_result);
@@ -161,9 +162,7 @@ KUZU_C_API void kuzu_query_result_reset_iterator(kuzu_query_result* query_result
 // FlatTuple
 KUZU_C_API void kuzu_flat_tuple_destroy(kuzu_flat_tuple* flat_tuple);
 KUZU_C_API kuzu_value* kuzu_flat_tuple_get_value(kuzu_flat_tuple* flat_tuple, uint64_t index);
-KUZU_C_API char* kuzu_flat_tuple_to_string(kuzu_flat_tuple* flat_tuple,
-    const uint32_t* columns_width, uint64_t columns_width_length, const char* delimiter,
-    uint32_t max_width);
+KUZU_C_API char* kuzu_flat_tuple_to_string(kuzu_flat_tuple* flat_tuple);
 
 // DataType
 KUZU_C_API kuzu_data_type* kuzu_data_type_create(
