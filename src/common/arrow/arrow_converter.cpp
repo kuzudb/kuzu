@@ -64,6 +64,12 @@ void ArrowConverter::setArrowFormat(
     case DataTypeID::INT64: {
         child.format = "l";
     } break;
+    case DataTypeID::INT32: {
+        child.format = "i";
+    } break;
+    case DataTypeID::INT16: {
+        child.format = "s";
+    } break;
     case DataTypeID::DOUBLE: {
         child.format = "g";
     } break;
