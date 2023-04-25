@@ -8,8 +8,8 @@ namespace kuzu {
 namespace processor {
 
 void CreateRelTable::executeDDLInternal() {
-    auto newRelTableID = catalog->addRelTableSchema(
-        tableName, relMultiplicity, propertyNameDataTypes, srcTableID, dstTableID);
+    auto newRelTableID =
+        catalog->addRelTableSchema(tableName, relMultiplicity, properties, srcTableID, dstTableID);
     relsStatistics->addTableStatistic(catalog->getWriteVersion()->getRelTableSchema(newRelTableID));
 }
 

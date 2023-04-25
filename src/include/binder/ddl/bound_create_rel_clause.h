@@ -7,12 +7,11 @@ namespace binder {
 
 class BoundCreateRelClause : public BoundCreateTable {
 public:
-    BoundCreateRelClause(std::string tableName,
-        std::vector<catalog::PropertyNameDataType> propertyNameDataTypes,
+    BoundCreateRelClause(std::string tableName, std::vector<catalog::Property> properties,
         catalog::RelMultiplicity relMultiplicity, common::table_id_t srcTableID,
         common::table_id_t dstTableID)
         : BoundCreateTable{common::StatementType::CREATE_REL_CLAUSE, std::move(tableName),
-              std::move(propertyNameDataTypes)},
+              std::move(properties)},
           relMultiplicity{relMultiplicity}, srcTableID{srcTableID}, dstTableID{dstTableID} {}
 
     inline catalog::RelMultiplicity getRelMultiplicity() const { return relMultiplicity; }

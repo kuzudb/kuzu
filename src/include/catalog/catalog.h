@@ -36,10 +36,10 @@ public:
      * Node and Rel table functions.
      */
     common::table_id_t addNodeTableSchema(std::string tableName, common::property_id_t primaryKeyId,
-        std::vector<PropertyNameDataType> propertyDefinitions);
+        std::vector<Property> properties);
 
     common::table_id_t addRelTableSchema(std::string tableName, RelMultiplicity relMultiplicity,
-        const std::vector<PropertyNameDataType>& propertyDefinitions, common::table_id_t srcTableID,
+        std::vector<Property> properties, common::table_id_t srcTableID,
         common::table_id_t dstTableID);
 
     inline bool containNodeTable(common::table_id_t tableID) const {
@@ -193,10 +193,10 @@ public:
     common::ExpressionType getFunctionType(const std::string& name) const;
 
     common::table_id_t addNodeTableSchema(std::string tableName, common::property_id_t primaryKeyId,
-        std::vector<PropertyNameDataType> propertyDefinitions);
+        std::vector<Property> propertyDefinitions);
 
     common::table_id_t addRelTableSchema(std::string tableName, RelMultiplicity relMultiplicity,
-        const std::vector<PropertyNameDataType>& propertyDefinitions, common::table_id_t srcTableID,
+        const std::vector<Property>& propertyDefinitions, common::table_id_t srcTableID,
         common::table_id_t dstTableID);
 
     void dropTableSchema(common::table_id_t tableID);
@@ -209,10 +209,10 @@ public:
     void dropProperty(common::table_id_t tableID, common::property_id_t propertyID);
 
     void renameProperty(
-        common::table_id_t tableID, common::property_id_t propertyID, std::string newName);
+        common::table_id_t tableID, common::property_id_t propertyID, const std::string& newName);
 
     std::unordered_set<RelTableSchema*> getAllRelTableSchemasContainBoundTable(
-        common::table_id_t boundTableID);
+        common::table_id_t boundTableID) const;
 
 protected:
     std::unique_ptr<function::BuiltInVectorOperations> builtInVectorOperations;

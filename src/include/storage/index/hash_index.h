@@ -146,9 +146,6 @@ public:
 
 class PrimaryKeyIndex {
 
-    friend class HashIndexInt64Test;
-    friend class HashIndexStringTest;
-
 public:
     PrimaryKeyIndex(const StorageStructureIDAndFName& storageStructureIDAndFName,
         const common::DataType& keyDataType, BufferManager& bufferManager, WAL* wal)
