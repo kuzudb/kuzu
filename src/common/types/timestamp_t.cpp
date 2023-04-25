@@ -1,6 +1,7 @@
 #include "common/types/timestamp_t.h"
 
 #include "common/exception.h"
+#include "common/string_utils.h"
 
 namespace kuzu {
 namespace common {
@@ -120,10 +121,13 @@ timestamp_t Timestamp::FromCString(const char* str, uint64_t len) {
 
     // Find the string len for date
     uint32_t dateStrLen = 0;
+    // Skip leading spaces.
+    while (common::StringUtils::CharacterIsSpace(str[dateStrLen])) {
+        dateStrLen++;
+    }
     while (dateStrLen < len && str[dateStrLen] != ' ' && str[dateStrLen] != 'T') {
         dateStrLen++;
     }
-
     if (!Date::TryConvertDate(str, dateStrLen, pos, date)) {
         throw ConversionException(getTimestampConversionExceptionMsg(str, len));
     }

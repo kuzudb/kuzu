@@ -13,8 +13,12 @@ namespace storage {
 
 class InMemColumnChunk {
 public:
+    InMemColumnChunk() = default;
+
     InMemColumnChunk(common::DataType dataType, common::offset_t startOffset,
         common::offset_t endOffset, uint16_t numBytesForElement, uint64_t numElementsInAPage);
+
+    virtual ~InMemColumnChunk() = default;
 
     inline uint8_t* getPage(common::page_idx_t pageIdx) {
         assert(pageIdx <= endPageIdx && pageIdx >= startPageIdx);
@@ -32,6 +36,8 @@ public:
         return getPage(cursor.pageIdx) + elemPosInPageInBytes;
     }
     inline common::DataType getDataType() const { return dataType; }
+
+    inline uint64_t getNumElementsInAPage() const { return numElementsInAPage; }
 
     template<typename T, typename... Args>
     void templateCopyValuesToPage(const PageElementCursor& pageCursor, arrow::Array& array,
@@ -79,18 +85,55 @@ public:
     template<typename T, typename... Args>
     void setValueFromString(const char* value, uint64_t length, common::page_idx_t pageIdx,
         uint64_t posInPage, Args... args) {
-        throw common::CopyException("Unsupported type to set element for " +
-                                    std::string(value, length) + " at pos " +
-                                    std::to_string(posInPage));
+        auto num = common::TypeUtils::convertStringToNumber<T>(value);
+        copyValue(pageIdx, posInPage, (uint8_t*)&num);
     }
 
-private:
+    virtual void copyStructValueToFields(arrow::Array& array, uint64_t posInArray,
+        const common::CopyDescription& copyDescription, common::offset_t nodeOffset,
+        uint64_t numValues) {
+        assert(false);
+    }
+
+protected:
     common::DataType dataType;
     uint16_t numBytesForElement;
-    uint64_t numElementsInAPage;
     common::page_idx_t startPageIdx;
     common::page_idx_t endPageIdx;
     std::unique_ptr<uint8_t[]> pages;
+    uint64_t numElementsInAPage;
+};
+
+class InMemStructColumnChunk : public InMemColumnChunk {
+public:
+    InMemStructColumnChunk(
+        common::DataType dataType, common::offset_t startOffset, common::offset_t endOffset);
+
+    void copyStructValueToFields(arrow::Array& array, uint64_t posInArray,
+        const common::CopyDescription& copyDescription, common::offset_t nodeOffset,
+        uint64_t numValues) override;
+
+    std::vector<InMemColumnChunk*> getInMemColumnChunksForFields();
+
+    uint64_t getMinNumValuesLeftOnPage(common::offset_t nodeOffset);
+
+private:
+    static common::field_idx_t getStructFieldIdx(
+        std::vector<std::string> structFieldNames, std::string structFieldName);
+
+    void copyValueToStructColumnField(common::offset_t nodeOffset,
+        common::field_idx_t structFieldIdx, const std::string& structFieldValue,
+        const common::DataType& dataType);
+
+private:
+    std::vector<std::unique_ptr<InMemColumnChunk>> inMemColumnChunksForFields;
+};
+
+class InMemColumnChunkFactory {
+public:
+    static std::unique_ptr<InMemColumnChunk> getInMemColumnChunk(common::DataType dataType,
+        common::offset_t startOffset, common::offset_t endOffset, uint16_t numBytesForElement,
+        uint64_t numElementsInAPage);
 };
 
 template<>
@@ -112,7 +155,14 @@ void InMemColumnChunk::templateCopyValuesToPage<std::string, InMemOverflowFile*,
     common::CopyDescription&>(const PageElementCursor& pageCursor, arrow::Array& array,
     uint64_t posInArray, uint64_t numValues, InMemOverflowFile* overflowFile,
     PageByteCursor& overflowCursor, common::CopyDescription& copyDesc);
+template<>
+void InMemColumnChunk::templateCopyValuesToPage<std::string, common::CopyDescription&,
+    common::offset_t>(const PageElementCursor& pageCursor, arrow::Array& array, uint64_t posInArray,
+    uint64_t numValues, common::CopyDescription& copyDesc, common::offset_t nodeOffset);
 
+template<>
+void InMemColumnChunk::setValueFromString<bool>(
+    const char* value, uint64_t length, common::page_idx_t pageIdx, uint64_t posInPage);
 template<>
 void InMemColumnChunk::setValueFromString<common::ku_string_t, InMemOverflowFile*, PageByteCursor&>(
     const char* value, uint64_t length, common::page_idx_t pageIdx, uint64_t posInPage,

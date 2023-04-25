@@ -127,8 +127,8 @@ struct CollectFunction {
         assert(arguments.size() == 1);
         auto aggFuncDefinition = reinterpret_cast<AggregateFunctionDefinition*>(definition);
         aggFuncDefinition->aggregateFunction->setInputDataType(arguments[0]->dataType);
-        auto returnType = common::DataType(
-            common::VAR_LIST, std::make_unique<common::DataType>(arguments[0]->dataType));
+        auto returnType =
+            common::DataType(std::make_unique<common::DataType>(arguments[0]->dataType));
         return std::make_unique<FunctionBindData>(returnType);
     }
 };

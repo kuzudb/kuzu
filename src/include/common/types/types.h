@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "common/api.h"
+#include "common/string_utils.h"
 
 namespace kuzu {
 namespace common {
@@ -29,6 +30,7 @@ constexpr column_id_t INVALID_COLUMN_ID = INVALID_PROPERTY_ID;
 using vector_idx_t = uint32_t;
 constexpr vector_idx_t INVALID_VECTOR_IDX = UINT32_MAX;
 using block_idx_t = uint64_t;
+using field_idx_t = uint64_t;
 
 // System representation for a variable-sized overflow value.
 struct overflow_value_t {
@@ -116,8 +118,12 @@ class StructField {
     friend class SerDeser;
 
 public:
+    StructField() : type{std::make_unique<DataType>()} {}
     StructField(std::string name, std::unique_ptr<DataType> type)
-        : name{std::move(name)}, type{std::move(type)} {}
+        : name{std::move(name)}, type{std::move(type)} {
+        // Note: struct field name is case-insensitive.
+        StringUtils::toUpper(this->name);
+    }
     inline bool operator!=(const StructField& other) const { return !(*this == other); }
     inline std::string getName() const { return name; }
     inline DataType* getType() const { return type.get(); }
@@ -133,15 +139,13 @@ class StructTypeInfo : public ExtraTypeInfo {
     friend class SerDeser;
 
 public:
+    StructTypeInfo() = default;
     explicit StructTypeInfo(std::vector<std::unique_ptr<StructField>> fields)
         : fields{std::move(fields)} {}
-    StructTypeInfo() = default;
 
-    inline void addChildType(const std::string& name, const DataType& type) {
-        fields.emplace_back(std::make_unique<StructField>(name, std::make_unique<DataType>(type)));
-    }
     std::vector<DataType*> getChildrenTypes() const;
     std::vector<std::string> getChildrenNames() const;
+    std::vector<StructField*> getStructFields() const;
 
     bool operator==(const kuzu::common::StructTypeInfo& other) const;
     std::unique_ptr<ExtraTypeInfo> copy() const override;
@@ -152,12 +156,17 @@ private:
 
 class DataType {
 public:
-    KUZU_API DataType();
-    KUZU_API explicit DataType(DataTypeID typeID);
-    KUZU_API DataType(DataTypeID typeID, std::unique_ptr<DataType> childType);
-    KUZU_API DataType(
-        DataTypeID typeID, std::unique_ptr<DataType> childType, uint64_t fixedNumElementsInList);
-    KUZU_API DataType(DataTypeID typeID, std::vector<std::unique_ptr<StructField>> childrenTypes);
+    KUZU_API DataType() : typeID{ANY}, extraTypeInfo{nullptr} {};
+    KUZU_API explicit DataType(DataTypeID typeID) : typeID{typeID}, extraTypeInfo{nullptr} {};
+    KUZU_API DataType(std::unique_ptr<DataType> childType)
+        : typeID{VAR_LIST}, extraTypeInfo{std::make_unique<VarListTypeInfo>(std::move(childType))} {
+    }
+    KUZU_API DataType(std::unique_ptr<DataType> childType, uint64_t fixedNumElementsInList)
+        : typeID{FIXED_LIST}, extraTypeInfo{std::make_unique<FixedListTypeInfo>(
+                                  std::move(childType), fixedNumElementsInList)} {}
+    KUZU_API DataType(std::vector<std::unique_ptr<StructField>> childrenTypes)
+        : typeID{STRUCT}, extraTypeInfo{
+                              std::make_unique<StructTypeInfo>(std::move(childrenTypes))} {};
     KUZU_API DataType(const DataType& other);
     KUZU_API DataType(DataType&& other) noexcept;
 

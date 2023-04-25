@@ -15,11 +15,9 @@ kuzu_data_type* kuzu_data_type_create(
     } else {
         auto child_type_pty =
             std::make_unique<DataType>(*static_cast<DataType*>(child_type->_data_type));
-        data_type =
-            fixed_num_elements_in_list > 0 ?
-                new DataType(static_cast<DataTypeID>(data_type_id_u8), std::move(child_type_pty),
-                    fixed_num_elements_in_list) :
-                new DataType(static_cast<DataTypeID>(data_type_id_u8), std::move(child_type_pty));
+        data_type = fixed_num_elements_in_list > 0 ?
+                        new DataType(std::move(child_type_pty), fixed_num_elements_in_list) :
+                        new DataType(std::move(child_type_pty));
     }
     c_data_type->_data_type = data_type;
     return c_data_type;

@@ -16,12 +16,12 @@ static inline bool isInRange(uint64_t val, uint64_t start, uint64_t end) {
 void StorageStructure::addNewPageToFileHandle() {
     auto pageIdxInOriginalFile = fileHandle->addNewPage();
     auto pageIdxInWAL = wal->logPageInsertRecord(storageStructureID, pageIdxInOriginalFile);
-    bufferManager.pin(
+    bufferManager->pin(
         *wal->fileHandle, pageIdxInWAL, BufferManager::PageReadPolicy::DONT_READ_PAGE);
     fileHandle->addWALPageIdxGroupIfNecessary(pageIdxInOriginalFile);
     fileHandle->setWALPageIdx(pageIdxInOriginalFile, pageIdxInWAL);
     wal->fileHandle->setLockedPageDirty(pageIdxInWAL);
-    bufferManager.unpin(*wal->fileHandle, pageIdxInWAL);
+    bufferManager->unpin(*wal->fileHandle, pageIdxInWAL);
 }
 
 WALPageIdxPosInPageAndFrame StorageStructure::createWALVersionOfPageIfNecessaryForElement(
@@ -36,12 +36,12 @@ WALPageIdxPosInPageAndFrame StorageStructure::createWALVersionOfPageIfNecessaryF
     }
     auto walPageIdxAndFrame =
         StorageStructureUtils::createWALVersionIfNecessaryAndPinPage(originalPageCursor.pageIdx,
-            insertingNewPage, *fileHandle, storageStructureID, bufferManager, *wal);
+            insertingNewPage, *fileHandle, storageStructureID, *bufferManager, *wal);
     return {walPageIdxAndFrame, originalPageCursor.elemPosInPage};
 }
 
 BaseColumnOrList::BaseColumnOrList(const StorageStructureIDAndFName& storageStructureIDAndFName,
-    DataType dataType, const size_t& elementSize, BufferManager& bufferManager, bool hasNULLBytes,
+    DataType dataType, const size_t& elementSize, BufferManager* bufferManager, bool hasNULLBytes,
     WAL* wal)
     : StorageStructure(storageStructureIDAndFName, bufferManager, wal),
       dataType{std::move(dataType)}, elementSize{elementSize} {
@@ -88,7 +88,7 @@ void BaseColumnOrList::readInternalIDsFromAPageBySequentialCopy(Transaction* tra
     auto [fileHandleToPin, pageIdxToPin] =
         StorageStructureUtils::getFileHandleAndPhysicalPageIdxToPin(
             *fileHandle, physicalPageIdx, *wal, transaction->getType());
-    bufferManager.optimisticRead(*fileHandleToPin, pageIdxToPin, [&](uint8_t* frame) {
+    bufferManager->optimisticRead(*fileHandleToPin, pageIdxToPin, [&](uint8_t* frame) {
         if (hasNoNullGuarantee) {
             vector->setRangeNonNull(vectorStartPos, numValuesToRead);
         } else {
@@ -176,7 +176,7 @@ void BaseColumnOrList::readAPageBySequentialCopy(Transaction* transaction, Value
             *fileHandle, physicalPageIdx, *wal, transaction->getType());
     auto vectorBytesOffset = getElemByteOffset(vectorStartPos);
     auto frameBytesOffset = getElemByteOffset(pagePosOfFirstElement);
-    bufferManager.optimisticRead(*fileHandleToPin, pageIdxToPin, [&](uint8_t* frame) {
+    bufferManager->optimisticRead(*fileHandleToPin, pageIdxToPin, [&](uint8_t* frame) {
         memcpy(vector->getData() + vectorBytesOffset, frame + frameBytesOffset,
             numValuesToRead * elementSize);
         readNullBitsFromAPage(

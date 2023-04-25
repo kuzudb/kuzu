@@ -18,7 +18,7 @@ class DiskOverflowFile : public StorageStructure {
 
 public:
     DiskOverflowFile(const StorageStructureIDAndFName& storageStructureIDAndFNameOfMainDBFile,
-        BufferManager& bufferManager, WAL* wal)
+        BufferManager* bufferManager, WAL* wal)
         : StorageStructure(
               constructOverflowStorageStructureIDAndFName(storageStructureIDAndFNameOfMainDBFile),
               bufferManager, wal),

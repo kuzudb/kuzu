@@ -17,7 +17,7 @@ void NodeTable::initializeData(NodeTableSchema* nodeTableSchema) {
     for (auto& property : nodeTableSchema->getAllNodeProperties()) {
         propertyColumns[property.propertyID] = ColumnFactory::getColumn(
             StorageUtils::getNodePropertyColumnStructureIDAndFName(wal->getDirectory(), property),
-            property.dataType, bufferManager, wal);
+            property.dataType, &bufferManager, wal);
     }
     pkIndex = std::make_unique<PrimaryKeyIndex>(
         StorageUtils::getNodeIndexIDAndFName(wal->getDirectory(), tableID),

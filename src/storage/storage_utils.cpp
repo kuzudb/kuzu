@@ -27,6 +27,13 @@ std::string StorageUtils::getNodePropertyColumnFName(const std::string& director
         dbFileType);
 }
 
+std::string StorageUtils::appendStructFieldName(std::string filePath, std::string structFieldName) {
+    // Naming rules for a struct field column is: n-[tableID]-[propertyID]-[fieldName].col.
+    auto posToInsertFieldName = filePath.find('.');
+    filePath.insert(posToInsertFieldName - 1, "-" + structFieldName);
+    return filePath;
+}
+
 std::string StorageUtils::getAdjListsFName(const std::string& directory,
     const common::table_id_t& relTableID, const common::RelDirection& relDirection,
     common::DBFileType dbFileType) {

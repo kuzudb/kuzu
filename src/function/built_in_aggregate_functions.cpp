@@ -85,8 +85,8 @@ void BuiltInAggregateFunctions::registerCountStar() {
 void BuiltInAggregateFunctions::registerCount() {
     std::vector<std::unique_ptr<AggregateFunctionDefinition>> definitions;
     for (auto& typeID : DataType::getAllValidTypeIDs()) {
-        auto inputType = (typeID == VAR_LIST ? DataType(VAR_LIST, std::make_unique<DataType>(ANY)) :
-                                               DataType(typeID));
+        auto inputType =
+            (typeID == VAR_LIST ? DataType(std::make_unique<DataType>(ANY)) : DataType(typeID));
         for (auto isDistinct : std::vector<bool>{true, false}) {
             definitions.push_back(std::make_unique<AggregateFunctionDefinition>(COUNT_FUNC_NAME,
                 std::vector<DataTypeID>{typeID}, INT64,

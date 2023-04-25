@@ -96,6 +96,25 @@ void InMemAdjColumn::setElement(offset_t offset, const uint8_t* val) {
         ->writeNodeID(node, cursor.elemPosInPage * numBytesForElement, cursor.elemPosInPage);
 }
 
+InMemStructColumn::InMemStructColumn(
+    std::string fName, common::DataType dataType, uint64_t numElements)
+    : InMemColumn{} {
+    assert(dataType.typeID == common::STRUCT);
+    auto structFields =
+        (reinterpret_cast<common::StructTypeInfo*>(dataType.getExtraTypeInfo()))->getStructFields();
+    for (auto& structField : structFields) {
+        auto structFileName = StorageUtils::appendStructFieldName(fName, structField->getName());
+        structFieldsColumns.push_back(InMemColumnFactory::getInMemPropertyColumn(
+            structFileName, *structField->getType(), numElements));
+    }
+}
+
+void InMemStructColumn::saveToFile() {
+    for (auto& structFieldColumn : structFieldsColumns) {
+        structFieldColumn->saveToFile();
+    }
+}
+
 std::unique_ptr<InMemColumn> InMemColumnFactory::getInMemPropertyColumn(
     const std::string& fName, const DataType& dataType, uint64_t numElements) {
     switch (dataType.typeID) {
@@ -117,6 +136,8 @@ std::unique_ptr<InMemColumn> InMemColumnFactory::getInMemPropertyColumn(
         return make_unique<InMemListColumn>(fName, dataType, numElements);
     case INTERNAL_ID:
         return make_unique<InMemRelIDColumn>(fName, numElements);
+    case STRUCT:
+        return make_unique<InMemStructColumn>(fName, dataType, numElements);
     default:
         throw CopyException("Invalid type for property column creation.");
     }
