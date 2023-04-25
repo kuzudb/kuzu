@@ -18,7 +18,9 @@ f_group_pos_set LogicalRecursiveExtend::getGroupsPosToFlatten() {
 void LogicalRecursiveExtend::computeFlatSchema() {
     copyChildSchema(0);
     schema->insertToGroupAndScope(nbrNode->getInternalIDProperty(), 0);
-    schema->insertToGroupAndScope(rel->getInternalLengthProperty(), 0);
+    if (rel->getRelType() == common::QueryRelType::SHORTEST) {
+        schema->insertToGroupAndScope(rel->getInternalLengthProperty(), 0);
+    }
 }
 
 void LogicalVariableLengthExtend::computeFactorizedSchema() {

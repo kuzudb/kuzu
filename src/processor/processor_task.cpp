@@ -1,22 +1,7 @@
 #include "processor/processor_task.h"
 
-#include "processor/operator/var_length_extend/recursive_join.h"
-#include "processor/operator/var_length_extend/scan_bfs_level.h"
-#include "processor/operator/scan/scan_rel_table.h"
-
 namespace kuzu {
 namespace processor {
-
-// TODO(Xiyang):
-static void initThreadLocalSharedStateForRecursiveJoin(PhysicalOperator& op) {
-//    auto threadLocalSharedState = std::make_shared<SSPThreadLocalSharedState>();
-//    auto& recursiveJoin = (RecursiveJoin&)op;
-//    recursiveJoin.setThreadLocalSharedState(threadLocalSharedState);
-//    auto& scanRelTable = (ScanRelTable&)*recursiveJoin.getChild(0);
-//    scanRelTable.setThreadLocalSharedState(*threadLocalSharedState);
-//    auto& scanBFSLevel = (ScanBFSLevel&)*scanRelTable.getChild(0);
-//    scanBFSLevel.setThreadLocalSharedState(threadLocalSharedState);
-}
 
 void ProcessorTask::run() {
     // We need the lock when cloning because multiple threads can be accessing to clone,
@@ -25,9 +10,6 @@ void ProcessorTask::run() {
     auto clonedPipelineRoot = sink->clone();
     lck.unlock();
     auto currentSink = (Sink*)clonedPipelineRoot.get();
-    if (currentSink->getOperatorType() == PhysicalOperatorType::RECURSIVE_JOIN) {
-        initThreadLocalSharedStateForRecursiveJoin(*currentSink);
-    }
     auto resultSet = populateResultSet(currentSink, executionContext->memoryManager);
     currentSink->execute(resultSet.get(), executionContext);
 }

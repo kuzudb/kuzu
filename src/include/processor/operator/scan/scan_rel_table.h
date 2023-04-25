@@ -15,11 +15,6 @@ public:
         : PhysicalOperator{operatorType, std::move(child), id, paramsString},
           inNodeIDVectorPos{inNodeIDVectorPos}, outputVectorsPos{std::move(outputVectorsPos)} {}
 
-    void setThreadLocalSharedState(SSPThreadLocalSharedState& state) {
-        inNodeIDVector = state.tmpSrcNodeIDVector.get();
-        outputVectors.push_back(state.tmpDstNodeIDVector.get());
-    }
-
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
 protected:

@@ -17,7 +17,7 @@ uint64_t CostModel::computeRecursiveExtendCost(
 
 uint64_t CostModel::computeHashJoinCost(const binder::expression_vector& joinNodeIDs,
     const LogicalPlan& probe, const LogicalPlan& build) {
-    auto cost = 0u;
+    auto cost = 0ul;
     cost += probe.getCost();
     cost += build.getCost();
     cost += probe.getCardinality();
