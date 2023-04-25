@@ -41,22 +41,22 @@ private:
     /*** bind DDL ***/
     std::unique_ptr<BoundStatement> bindCreateNodeClause(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindCreateRelClause(const parser::Statement& statement);
-    std::unique_ptr<BoundStatement> bindDropTable(const parser::Statement& statement);
-    std::unique_ptr<BoundStatement> bindRenameTable(const parser::Statement& statement);
-    std::unique_ptr<BoundStatement> bindAddProperty(const parser::Statement& statement);
-    std::unique_ptr<BoundStatement> bindDropProperty(const parser::Statement& statement);
-    std::unique_ptr<BoundStatement> bindRenameProperty(const parser::Statement& statement);
+    std::unique_ptr<BoundStatement> bindDropTableClause(const parser::Statement& statement);
+    std::unique_ptr<BoundStatement> bindRenameTableClause(const parser::Statement& statement);
+    std::unique_ptr<BoundStatement> bindAddPropertyClause(const parser::Statement& statement);
+    std::unique_ptr<BoundStatement> bindDropPropertyClause(const parser::Statement& statement);
+    std::unique_ptr<BoundStatement> bindRenamePropertyClause(const parser::Statement& statement);
 
-    std::vector<catalog::PropertyNameDataType> bindPropertyNameDataTypes(
+    std::vector<catalog::Property> bindProperties(
         std::vector<std::pair<std::string, std::string>> propertyNameDataTypes);
-    uint32_t bindPrimaryKey(std::string pkColName,
+    uint32_t bindPrimaryKey(const std::string& pkColName,
         std::vector<std::pair<std::string, std::string>> propertyNameDataTypes);
     common::property_id_t bindPropertyName(
         catalog::NodeTableSchema::TableSchema* tableSchema, const std::string& propertyName);
     common::DataType bindDataType(const std::string& dataType);
 
     /*** bind copy csv ***/
-    std::unique_ptr<BoundStatement> bindCopy(const parser::Statement& statement);
+    std::unique_ptr<BoundStatement> bindCopyClause(const parser::Statement& statement);
 
     std::vector<std::string> bindFilePaths(const std::vector<std::string>& filePaths);
 

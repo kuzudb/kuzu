@@ -10,7 +10,7 @@ using namespace kuzu::parser;
 namespace kuzu {
 namespace binder {
 
-std::unique_ptr<BoundStatement> Binder::bindCopy(const Statement& statement) {
+std::unique_ptr<BoundStatement> Binder::bindCopyClause(const Statement& statement) {
     auto& copyCSV = (Copy&)statement;
     auto catalogContent = catalog.getReadOnlyVersion();
     auto tableName = copyCSV.getTableName();

@@ -28,12 +28,10 @@ std::unique_ptr<BoundStatement> Binder::bindCreateNodeClause(const Statement& st
     if (catalog.getReadOnlyVersion()->containTable(tableName)) {
         throw BinderException("Node " + tableName + " already exists.");
     }
-    auto boundPropertyNameDataTypes =
-        bindPropertyNameDataTypes(createNodeClause.getPropertyNameDataTypes());
+    auto boundProperties = bindProperties(createNodeClause.getPropertyNameDataTypes());
     auto primaryKeyIdx = bindPrimaryKey(
         createNodeClause.getPKColName(), createNodeClause.getPropertyNameDataTypes());
-    return make_unique<BoundCreateNodeClause>(
-        tableName, std::move(boundPropertyNameDataTypes), primaryKeyIdx);
+    return make_unique<BoundCreateNodeClause>(tableName, std::move(boundProperties), primaryKeyIdx);
 }
 
 std::unique_ptr<BoundStatement> Binder::bindCreateRelClause(const Statement& statement) {
@@ -42,15 +40,14 @@ std::unique_ptr<BoundStatement> Binder::bindCreateRelClause(const Statement& sta
     if (catalog.getReadOnlyVersion()->containTable(tableName)) {
         throw BinderException("Rel " + tableName + " already exists.");
     }
-    auto propertyNameDataTypes =
-        bindPropertyNameDataTypes(createRelClause.getPropertyNameDataTypes());
+    auto boundProperties = bindProperties(createRelClause.getPropertyNameDataTypes());
     auto relMultiplicity = getRelMultiplicityFromString(createRelClause.getRelMultiplicity());
-    return make_unique<BoundCreateRelClause>(tableName, std::move(propertyNameDataTypes),
-        relMultiplicity, bindNodeTableID(createRelClause.getSrcTableName()),
+    return make_unique<BoundCreateRelClause>(tableName, std::move(boundProperties), relMultiplicity,
+        bindNodeTableID(createRelClause.getSrcTableName()),
         bindNodeTableID(createRelClause.getDstTableName()));
 }
 
-std::unique_ptr<BoundStatement> Binder::bindDropTable(const Statement& statement) {
+std::unique_ptr<BoundStatement> Binder::bindDropTableClause(const parser::Statement& statement) {
     auto& dropTable = (DropTable&)statement;
     auto tableName = dropTable.getTableName();
     validateTableExist(catalog, tableName);
@@ -62,7 +59,7 @@ std::unique_ptr<BoundStatement> Binder::bindDropTable(const Statement& statement
     return make_unique<BoundDropTable>(tableID, tableName);
 }
 
-std::unique_ptr<BoundStatement> Binder::bindRenameTable(const Statement& statement) {
+std::unique_ptr<BoundStatement> Binder::bindRenameTableClause(const parser::Statement& statement) {
     auto renameTable = (RenameTable&)statement;
     auto tableName = renameTable.getTableName();
     auto catalogContent = catalog.getReadOnlyVersion();
@@ -74,7 +71,7 @@ std::unique_ptr<BoundStatement> Binder::bindRenameTable(const Statement& stateme
         catalogContent->getTableID(tableName), tableName, renameTable.getNewName());
 }
 
-std::unique_ptr<BoundStatement> Binder::bindAddProperty(const Statement& statement) {
+std::unique_ptr<BoundStatement> Binder::bindAddPropertyClause(const parser::Statement& statement) {
     auto& addProperty = (AddProperty&)statement;
     auto tableName = addProperty.getTableName();
     validateTableExist(catalog, tableName);
@@ -90,7 +87,7 @@ std::unique_ptr<BoundStatement> Binder::bindAddProperty(const Statement& stateme
         tableID, addProperty.getPropertyName(), dataType, defaultVal, tableName);
 }
 
-std::unique_ptr<BoundStatement> Binder::bindDropProperty(const Statement& statement) {
+std::unique_ptr<BoundStatement> Binder::bindDropPropertyClause(const parser::Statement& statement) {
     auto& dropProperty = (DropProperty&)statement;
     auto tableName = dropProperty.getTableName();
     validateTableExist(catalog, tableName);
@@ -107,7 +104,8 @@ std::unique_ptr<BoundStatement> Binder::bindDropProperty(const Statement& statem
     return make_unique<BoundDropProperty>(tableID, propertyID, tableName);
 }
 
-std::unique_ptr<BoundStatement> Binder::bindRenameProperty(const Statement& statement) {
+std::unique_ptr<BoundStatement> Binder::bindRenamePropertyClause(
+    const parser::Statement& statement) {
     auto& renameProperty = (RenameProperty&)statement;
     auto tableName = renameProperty.getTableName();
     validateTableExist(catalog, tableName);
@@ -123,9 +121,9 @@ std::unique_ptr<BoundStatement> Binder::bindRenameProperty(const Statement& stat
         tableID, tableName, propertyID, renameProperty.getNewName());
 }
 
-std::vector<PropertyNameDataType> Binder::bindPropertyNameDataTypes(
+std::vector<Property> Binder::bindProperties(
     std::vector<std::pair<std::string, std::string>> propertyNameDataTypes) {
-    std::vector<PropertyNameDataType> boundPropertyNameDataTypes;
+    std::vector<Property> boundPropertyNameDataTypes;
     std::unordered_set<std::string> boundPropertyNames;
     for (auto& propertyNameDataType : propertyNameDataTypes) {
         if (boundPropertyNames.contains(propertyNameDataType.first)) {
@@ -145,8 +143,8 @@ std::vector<PropertyNameDataType> Binder::bindPropertyNameDataTypes(
     return boundPropertyNameDataTypes;
 }
 
-uint32_t Binder::bindPrimaryKey(
-    std::string pkColName, std::vector<std::pair<std::string, std::string>> propertyNameDataTypes) {
+uint32_t Binder::bindPrimaryKey(const std::string& pkColName,
+    std::vector<std::pair<std::string, std::string>> propertyNameDataTypes) {
     uint32_t primaryKeyIdx = UINT32_MAX;
     for (auto i = 0u; i < propertyNameDataTypes.size(); i++) {
         if (propertyNameDataTypes[i].first == pkColName) {

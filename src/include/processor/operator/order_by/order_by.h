@@ -35,7 +35,7 @@ public:
         if (factorizedTableIdx >= factorizedTables.size()) {
             factorizedTables.resize(factorizedTableIdx + 1);
         }
-        factorizedTables[factorizedTableIdx] = move(factorizedTable);
+        factorizedTables[factorizedTableIdx] = std::move(factorizedTable);
     }
 
     void appendSortedKeyBlock(std::shared_ptr<MergedKeyBlocks> mergedDataBlocks) {

@@ -19,22 +19,22 @@ std::unique_ptr<BoundStatement> Binder::bind(const Statement& statement) {
         return bindCreateRelClause(statement);
     }
     case StatementType::COPY: {
-        return bindCopy(statement);
+        return bindCopyClause(statement);
     }
     case StatementType::DROP_TABLE: {
-        return bindDropTable(statement);
+        return bindDropTableClause(statement);
     }
     case StatementType::RENAME_TABLE: {
-        return bindRenameTable(statement);
+        return bindRenameTableClause(statement);
     }
     case StatementType::ADD_PROPERTY: {
-        return bindAddProperty(statement);
+        return bindAddPropertyClause(statement);
     }
     case StatementType::DROP_PROPERTY: {
-        return bindDropProperty(statement);
+        return bindDropPropertyClause(statement);
     }
     case StatementType::RENAME_PROPERTY: {
-        return bindRenameProperty(statement);
+        return bindRenamePropertyClause(statement);
     }
     case StatementType::QUERY: {
         return bindQuery((const RegularQuery&)statement);

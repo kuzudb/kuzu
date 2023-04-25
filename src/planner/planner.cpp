@@ -82,7 +82,7 @@ std::unique_ptr<LogicalPlan> Planner::planCreateNodeTable(const BoundStatement& 
     auto& createNodeClause = (BoundCreateNodeClause&)statement;
     auto plan = std::make_unique<LogicalPlan>();
     auto createNodeTable = make_shared<LogicalCreateNodeTable>(createNodeClause.getTableName(),
-        createNodeClause.getPropertyNameDataTypes(), createNodeClause.getPrimaryKeyIdx(),
+        createNodeClause.getProperties(), createNodeClause.getPrimaryKeyIdx(),
         statement.getStatementResult()->getSingleExpressionToCollect());
     plan->setLastOperator(std::move(createNodeTable));
     return plan;
@@ -92,7 +92,7 @@ std::unique_ptr<LogicalPlan> Planner::planCreateRelTable(const BoundStatement& s
     auto& createRelClause = (BoundCreateRelClause&)statement;
     auto plan = std::make_unique<LogicalPlan>();
     auto createRelTable = make_shared<LogicalCreateRelTable>(createRelClause.getTableName(),
-        createRelClause.getPropertyNameDataTypes(), createRelClause.getRelMultiplicity(),
+        createRelClause.getProperties(), createRelClause.getRelMultiplicity(),
         createRelClause.getSrcTableID(), createRelClause.getDstTableID(),
         statement.getStatementResult()->getSingleExpressionToCollect());
     plan->setLastOperator(std::move(createRelTable));

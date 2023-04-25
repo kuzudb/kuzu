@@ -189,13 +189,12 @@ CatalogContent::CatalogContent(const CatalogContent& other) {
     nextTableID = other.nextTableID;
 }
 
-table_id_t CatalogContent::addNodeTableSchema(std::string tableName, property_id_t primaryKeyId,
-    std::vector<PropertyNameDataType> propertyDefinitions) {
+table_id_t CatalogContent::addNodeTableSchema(
+    std::string tableName, property_id_t primaryKeyId, std::vector<Property> properties) {
     table_id_t tableID = assignNextTableID();
-    std::vector<Property> properties;
-    for (auto i = 0u; i < propertyDefinitions.size(); ++i) {
-        auto& propertyDefinition = propertyDefinitions[i];
-        properties.push_back(Property::constructNodeProperty(propertyDefinition, i, tableID));
+    for (auto i = 0u; i < properties.size(); ++i) {
+        properties[i].propertyID = i;
+        properties[i].tableID = tableID;
     }
     auto nodeTableSchema = std::make_unique<NodeTableSchema>(
         std::move(tableName), tableID, primaryKeyId, std::move(properties));
@@ -205,19 +204,15 @@ table_id_t CatalogContent::addNodeTableSchema(std::string tableName, property_id
 }
 
 table_id_t CatalogContent::addRelTableSchema(std::string tableName, RelMultiplicity relMultiplicity,
-    const std::vector<PropertyNameDataType>& propertyDefinitions, table_id_t srcTableID,
-    table_id_t dstTableID) {
+    std::vector<Property> properties, table_id_t srcTableID, table_id_t dstTableID) {
     table_id_t tableID = assignNextTableID();
     nodeTableSchemas[srcTableID]->addFwdRelTableID(tableID);
     nodeTableSchemas[dstTableID]->addBwdRelTableID(tableID);
-    std::vector<Property> properties;
-    auto propertyID = 0;
-    auto propertyNameDataType = PropertyNameDataType(INTERNAL_ID_SUFFIX, INTERNAL_ID);
-    properties.push_back(
-        Property::constructRelProperty(propertyNameDataType, propertyID++, tableID));
-    for (auto& propertyDefinition : propertyDefinitions) {
-        properties.push_back(
-            Property::constructRelProperty(propertyDefinition, propertyID++, tableID));
+    auto relInternalIDProperty = Property(INTERNAL_ID_SUFFIX, DataType{INTERNAL_ID});
+    properties.insert(properties.begin(), relInternalIDProperty);
+    for (auto i = 0u; i < properties.size(); ++i) {
+        properties[i].propertyID = i;
+        properties[i].tableID = tableID;
     }
     auto relTableSchema = std::make_unique<RelTableSchema>(std::move(tableName), tableID,
         relMultiplicity, std::move(properties), srcTableID, dstTableID);
@@ -385,8 +380,8 @@ ExpressionType Catalog::getFunctionType(const std::string& name) const {
     }
 }
 
-table_id_t Catalog::addNodeTableSchema(std::string tableName, property_id_t primaryKeyId,
-    std::vector<PropertyNameDataType> propertyDefinitions) {
+table_id_t Catalog::addNodeTableSchema(
+    std::string tableName, property_id_t primaryKeyId, std::vector<Property> propertyDefinitions) {
     initCatalogContentForWriteTrxIfNecessary();
     auto tableID = catalogContentForWriteTrx->addNodeTableSchema(
         std::move(tableName), primaryKeyId, std::move(propertyDefinitions));
@@ -395,7 +390,7 @@ table_id_t Catalog::addNodeTableSchema(std::string tableName, property_id_t prim
 }
 
 table_id_t Catalog::addRelTableSchema(std::string tableName, RelMultiplicity relMultiplicity,
-    const std::vector<PropertyNameDataType>& propertyDefinitions, table_id_t srcTableID,
+    const std::vector<Property>& propertyDefinitions, table_id_t srcTableID,
     table_id_t dstTableID) {
     initCatalogContentForWriteTrxIfNecessary();
     auto tableID = catalogContentForWriteTrx->addRelTableSchema(
@@ -412,7 +407,7 @@ void Catalog::dropTableSchema(table_id_t tableID) {
 
 void Catalog::renameTable(table_id_t tableID, std::string newName) {
     initCatalogContentForWriteTrxIfNecessary();
-    catalogContentForWriteTrx->renameTable(tableID, newName);
+    catalogContentForWriteTrx->renameTable(tableID, std::move(newName));
 }
 
 void Catalog::addProperty(table_id_t tableID, std::string propertyName, DataType dataType) {
@@ -429,13 +424,14 @@ void Catalog::dropProperty(table_id_t tableID, property_id_t propertyID) {
     wal->logDropPropertyRecord(tableID, propertyID);
 }
 
-void Catalog::renameProperty(table_id_t tableID, property_id_t propertyID, std::string newName) {
+void Catalog::renameProperty(
+    table_id_t tableID, property_id_t propertyID, const std::string& newName) {
     initCatalogContentForWriteTrxIfNecessary();
     catalogContentForWriteTrx->getTableSchema(tableID)->renameProperty(propertyID, newName);
 }
 
 std::unordered_set<RelTableSchema*> Catalog::getAllRelTableSchemasContainBoundTable(
-    table_id_t boundTableID) {
+    table_id_t boundTableID) const {
     std::unordered_set<RelTableSchema*> relTableSchemas;
     auto nodeTableSchema = getReadOnlyVersion()->getNodeTableSchema(boundTableID);
     for (auto& fwdRelTableID : nodeTableSchema->fwdRelTableIDSet) {

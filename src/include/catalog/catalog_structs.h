@@ -15,42 +15,20 @@ enum RelMultiplicity : uint8_t { MANY_MANY, MANY_ONE, ONE_MANY, ONE_ONE };
 RelMultiplicity getRelMultiplicityFromString(const std::string& relMultiplicityString);
 std::string getRelMultiplicityAsString(RelMultiplicity relMultiplicity);
 
-// A PropertyNameDataType consists of its name, id, and dataType.
-struct PropertyNameDataType {
+struct Property {
+public:
     // This constructor is needed for ser/deser functions
-    PropertyNameDataType(){};
-    PropertyNameDataType(std::string name, common::DataTypeID dataTypeID)
-        : PropertyNameDataType{std::move(name), common::DataType(dataTypeID)} {
-        assert(dataTypeID != common::VAR_LIST);
-    }
-    PropertyNameDataType(std::string name, common::DataType dataType)
-        : name{std::move(name)}, dataType{std::move(dataType)} {};
-    virtual ~PropertyNameDataType() = default;
+    Property() : Property{"", common::DataType{}} {};
+    Property(std::string name, common::DataType dataType)
+        : Property{std::move(name), std::move(dataType), common::INVALID_PROPERTY_ID,
+              common::INVALID_TABLE_ID} {}
+    Property(std::string name, common::DataType dataType, common::property_id_t propertyID,
+        common::table_id_t tableID)
+        : name{std::move(name)}, dataType{std::move(dataType)},
+          propertyID{propertyID}, tableID{tableID} {}
 
     std::string name;
     common::DataType dataType;
-};
-
-struct Property : PropertyNameDataType {
-public:
-    // This constructor is needed for ser/deser functions
-    Property() = default;
-
-    Property(std::string name, common::DataType dataType, common::property_id_t propertyID,
-        common::table_id_t tableID)
-        : PropertyNameDataType{std::move(name), std::move(dataType)},
-          propertyID{propertyID}, tableID{tableID} {}
-
-    static Property constructNodeProperty(const PropertyNameDataType& nameDataType,
-        common::property_id_t propertyID, common::table_id_t tableID) {
-        return {nameDataType.name, nameDataType.dataType, propertyID, tableID};
-    }
-
-    static inline Property constructRelProperty(const PropertyNameDataType& nameDataType,
-        common::property_id_t propertyID, common::table_id_t tableID) {
-        return {nameDataType.name, nameDataType.dataType, propertyID, tableID};
-    }
-
     common::property_id_t propertyID;
     common::table_id_t tableID;
 };
