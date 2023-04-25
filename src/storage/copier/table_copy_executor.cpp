@@ -242,15 +242,15 @@ std::unique_ptr<Value> TableCopyExecutor::getArrowVarList(const std::string& l, 
                 *dataType.getChildType(), copyDescription);
         } break;
         default:
-            throw ReaderException("Unsupported data type " +
-                                  Types::dataTypeToString(dataType.getChildType()->typeID) +
-                                  " inside LIST");
+            throw CopyException("Unsupported data type " +
+                                Types::dataTypeToString(dataType.getChildType()->typeID) +
+                                " inside LIST");
         }
         values.push_back(std::move(value));
     }
     auto numBytesOfOverflow = values.size() * Types::getDataTypeSize(childDataType.typeID);
     if (numBytesOfOverflow >= BufferPoolConstants::PAGE_4KB_SIZE) {
-        throw ReaderException(StringUtils::string_format(
+        throw CopyException(StringUtils::string_format(
             "Maximum num bytes of a LIST is {}. Input list's num bytes is {}.",
             BufferPoolConstants::PAGE_4KB_SIZE, numBytesOfOverflow));
     }
@@ -297,15 +297,15 @@ std::unique_ptr<uint8_t[]> TableCopyExecutor::getArrowFixedList(const std::strin
             numElementsRead++;
         } break;
         default: {
-            throw ReaderException("Unsupported data type " +
-                                  Types::dataTypeToString(dataType.getChildType()->typeID) +
-                                  " inside FIXED_LIST");
+            throw CopyException("Unsupported data type " +
+                                Types::dataTypeToString(dataType.getChildType()->typeID) +
+                                " inside FIXED_LIST");
         }
         }
     }
     auto extraTypeInfo = reinterpret_cast<FixedListTypeInfo*>(dataType.getExtraTypeInfo());
     if (numElementsRead != extraTypeInfo->getFixedNumElementsInList()) {
-        throw ReaderException(StringUtils::string_format(
+        throw CopyException(StringUtils::string_format(
             "Each fixed list should have fixed number of elements. Expected: {}, Actual: {}.",
             extraTypeInfo->getFixedNumElementsInList(), numElementsRead));
     }

@@ -22,14 +22,13 @@ protected:
 
     void populateColumnsAndLists(processor::ExecutionContext* executionContext) override;
 
-    // todo: do we need this? should go to finalize.
+    // TODO(Guodong): do we need this? should go to finalize.
     void saveToFile() override;
 
     std::unordered_map<common::property_id_t, common::column_id_t> propertyIDToColumnIDMap;
     std::vector<std::unique_ptr<InMemNodeColumn>> columns;
 
 private:
-    template<typename T>
     void populateColumns(processor::ExecutionContext* executionContext);
 };
 

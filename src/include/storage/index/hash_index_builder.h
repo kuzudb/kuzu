@@ -131,5 +131,66 @@ private:
     std::atomic<uint64_t> numEntries;
 };
 
+class PrimaryKeyIndexBuilder {
+public:
+    PrimaryKeyIndexBuilder(const std::string& fName, const common::DataType& keyDataType)
+        : keyDataTypeID{keyDataType.typeID} {
+        switch (keyDataTypeID) {
+        case common::INT64: {
+            hashIndexBuilderForInt64 =
+                std::make_unique<HashIndexBuilder<int64_t>>(fName, keyDataType);
+        } break;
+        case common::STRING: {
+            hashIndexBuilderForString =
+                std::make_unique<HashIndexBuilder<common::ku_string_t>>(fName, keyDataType);
+        } break;
+        default: {
+            throw common::Exception(
+                "Unsupported data type for primary key index: " + std::to_string(keyDataTypeID));
+        }
+        }
+    }
+
+    inline void bulkReserve(uint32_t numEntries) {
+        keyDataTypeID == common::INT64 ? hashIndexBuilderForInt64->bulkReserve(numEntries) :
+                                         hashIndexBuilderForString->bulkReserve(numEntries);
+    }
+    // Note: append assumes that bulkRserve has been called before it and the index has reserved
+    // enough space already.
+    inline void append(int64_t key, common::offset_t value) {
+        auto retVal = keyDataTypeID == common::INT64 ?
+                          hashIndexBuilderForInt64->append(key, value) :
+                          hashIndexBuilderForString->append(key, value);
+        if (!retVal) {
+            throw common::HashIndexException(
+                common::Exception::getExistedPKExceptionMsg(std::to_string(key)));
+        }
+    }
+    inline void append(const char* key, common::offset_t value) {
+        auto retVal = keyDataTypeID == common::INT64 ?
+                          hashIndexBuilderForInt64->append(key, value) :
+                          hashIndexBuilderForString->append(key, value);
+        if (!retVal) {
+            throw common::HashIndexException(
+                common::Exception::getExistedPKExceptionMsg(std::string(key)));
+        }
+    }
+    inline bool lookup(int64_t key, common::offset_t& result) {
+        return keyDataTypeID == common::INT64 ? hashIndexBuilderForInt64->lookup(key, result) :
+                                                hashIndexBuilderForString->lookup(key, result);
+    }
+
+    // Non-thread safe. This should only be called in the copyCSV and never be called in parallel.
+    inline void flush() {
+        keyDataTypeID == common::INT64 ? hashIndexBuilderForInt64->flush() :
+                                         hashIndexBuilderForString->flush();
+    }
+
+private:
+    common::DataTypeID keyDataTypeID;
+    std::unique_ptr<HashIndexBuilder<int64_t>> hashIndexBuilderForInt64;
+    std::unique_ptr<HashIndexBuilder<common::ku_string_t>> hashIndexBuilderForString;
+};
+
 } // namespace storage
 } // namespace kuzu

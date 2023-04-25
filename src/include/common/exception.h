@@ -40,11 +40,6 @@ public:
     explicit ConversionException(const std::string& msg) : Exception(msg){};
 };
 
-class ReaderException : public Exception {
-public:
-    explicit ReaderException(const std::string& msg) : Exception("Reader exception: " + msg){};
-};
-
 class CopyException : public Exception {
 public:
     explicit CopyException(const std::string& msg) : Exception("Copy exception: " + msg){};
@@ -53,6 +48,12 @@ public:
 class CatalogException : public Exception {
 public:
     explicit CatalogException(const std::string& msg) : Exception("Catalog exception: " + msg){};
+};
+
+class HashIndexException : public Exception {
+public:
+    explicit HashIndexException(const std::string& msg)
+        : Exception("HashIndex exception: " + msg){};
 };
 
 class StorageException : public Exception {
