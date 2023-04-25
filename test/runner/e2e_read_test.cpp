@@ -130,7 +130,7 @@ public:
 
 TEST_F(SingleSourceShortestPathTest, BFS_SSSP) {
     runTest(TestHelper::appendKuzuRootPath("test/test_files/shortest_path/bfs_sssp.test"));
-//    runTest(TestHelper::appendKuzuRootPath("test/test_files/shortest_path/bfs_sssp_large.test"));
+    runTest(TestHelper::appendKuzuRootPath("test/test_files/shortest_path/bfs_sssp_large.test"));
 }
 
 TEST_F(SingleSourceShortestPathTest, SSSP_ExceptionTests) {

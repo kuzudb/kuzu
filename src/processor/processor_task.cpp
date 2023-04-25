@@ -9,13 +9,13 @@ namespace processor {
 
 // TODO(Xiyang):
 static void initThreadLocalSharedStateForRecursiveJoin(PhysicalOperator& op) {
-    auto threadLocalSharedState = std::make_shared<SSPThreadLocalSharedState>();
-    auto& recursiveJoin = (RecursiveJoin&)op;
-    recursiveJoin.setThreadLocalSharedState(threadLocalSharedState);
-    auto& scanRelTable = (ScanRelTable&)*recursiveJoin.getChild(0);
-    scanRelTable.setThreadLocalSharedState(*threadLocalSharedState);
-    auto& scanBFSLevel = (ScanBFSLevel&)*scanRelTable.getChild(0);
-    scanBFSLevel.setThreadLocalSharedState(threadLocalSharedState);
+//    auto threadLocalSharedState = std::make_shared<SSPThreadLocalSharedState>();
+//    auto& recursiveJoin = (RecursiveJoin&)op;
+//    recursiveJoin.setThreadLocalSharedState(threadLocalSharedState);
+//    auto& scanRelTable = (ScanRelTable&)*recursiveJoin.getChild(0);
+//    scanRelTable.setThreadLocalSharedState(*threadLocalSharedState);
+//    auto& scanBFSLevel = (ScanBFSLevel&)*scanRelTable.getChild(0);
+//    scanBFSLevel.setThreadLocalSharedState(threadLocalSharedState);
 }
 
 void ProcessorTask::run() {

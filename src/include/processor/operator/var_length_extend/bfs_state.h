@@ -69,6 +69,7 @@ struct SSPMorsel {
         distance[offset] = 0;
         numVisitedNodes++;
         currentBFSLevel->nodeOffsets.push_back(offset);
+        startOffset = offset;
     }
 
     void markOnVisit(common::offset_t offset) {
@@ -88,10 +89,6 @@ struct SSPMorsel {
     void moveNextLevelAsCurrentLevel(uint8_t upperBound) {
         currentBFSLevel = std::move(nextBFSLevel);
         currentLevel++;
-        if (currentLevel == upperBound) {
-            // No need to initialize next level because BFS will be terminated.
-            return;
-        }
         currentLevelNodeIdx = 0;
         std::sort(currentBFSLevel->nodeOffsets.begin(), currentBFSLevel->nodeOffsets.end());
         nextBFSLevel = std::make_unique<BFSLevel>();

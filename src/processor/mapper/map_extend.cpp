@@ -138,50 +138,35 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalRecursiveExtendToPhysica
         }
     } else {
         assert(rel->getRelType() == common::QueryRelType::SHORTEST);
-        auto globalState = std::make_shared<FTableSharedState>();
+
         auto upperBound = rel->getUpperBound();
         auto& nodeStore = storageManager.getNodesStore();
         auto nodeTable = nodeStore.getNodeTable(boundNode->getSingleTableID());
         auto distanceVectorPos =
             DataPos{outSchema->getExpressionPos(*rel->getInternalLengthProperty())};
-        std::vector<PayloadInfo> payloadInfos;
-        auto expressions = outSchema->getExpressionsInScope();
-        for (auto& expression : expressions) {
-            auto dataPos = DataPos(outSchema->getExpressionPos(*expression));
-            auto isFlat = outSchema->getGroup(dataPos.dataChunkPos)->isFlat();
-            payloadInfos.emplace_back(dataPos, expression->dataType, isFlat);
-        }
-        auto scanBFSLevel = std::make_unique<ScanBFSLevel>(upperBound, nodeTable, inNodeIDVectorPos,
-            outNodeIDVectorPos, distanceVectorPos, std::move(payloadInfos), globalState,
-            std::move(prevOperator), getOperatorID(), extend->getExpressionsForPrinting());
+
+
+
+        auto dummyScan = std::make_unique<DummyScan>(DataPos{0,0}, getOperatorID(), "");
         std::unique_ptr<PhysicalOperator> scanRelTable;
         std::vector<property_id_t> emptyPropertyIDs;
-        DataPos dummyDataPos{common::INVALID_VECTOR_IDX, common::INVALID_VECTOR_IDX};
+        DataPos srcNodePos{0, 0};
+        DataPos dstNodePos{1, 0};
         if (relsStore.isSingleMultiplicityInDirection(direction, relTableID)) {
             scanRelTable = make_unique<ScanRelTableColumns>(
                 relsStore.getRelTable(relTableID)->getDirectedTableData(direction),
-                emptyPropertyIDs, dummyDataPos, std::vector<DataPos>{dummyDataPos},
-                std::move(scanBFSLevel), getOperatorID(), "");
+                emptyPropertyIDs, srcNodePos, std::vector<DataPos>{dstNodePos},
+                std::move(dummyScan), getOperatorID(), "");
         } else {
             scanRelTable = make_unique<ScanRelTableLists>(
                 relsStore.getRelTable(relTableID)->getDirectedTableData(direction),
-                emptyPropertyIDs, dummyDataPos, std::vector<DataPos>{dummyDataPos},
-                std::move(scanBFSLevel), getOperatorID(), "");
+                emptyPropertyIDs, srcNodePos, std::vector<DataPos>{dstNodePos},
+                std::move(dummyScan), getOperatorID(), "");
         }
-        auto recursiveJoin =
-            std::make_unique<RecursiveJoin>(std::make_unique<ResultSetDescriptor>(*outSchema),
-                globalState, std::move(scanRelTable), getOperatorID(), "");
-        std::vector<DataPos> outDataPoses;
-        std::vector<uint32_t> colIndicesToScan;
-        for (auto i = 0u; i < expressions.size(); ++i) {
-            auto expression = expressions[i];
-            outDataPoses.emplace_back(outSchema->getExpressionPos(*expression));
-            colIndicesToScan.push_back(i);
-        }
-        auto tableScan = std::make_unique<FactorizedTableScan>(std::move(outDataPoses),
-            std::move(colIndicesToScan), globalState, std::move(recursiveJoin), getOperatorID(),
-            "");
-        return tableScan;
+        auto scanBFSLevel = std::make_unique<ScanBFSLevel>(upperBound, nodeTable, inNodeIDVectorPos,
+            outNodeIDVectorPos, distanceVectorPos, std::move(prevOperator), getOperatorID(),
+            extend->getExpressionsForPrinting(), std::move(scanRelTable));
+        return scanBFSLevel;
     }
 }
 
