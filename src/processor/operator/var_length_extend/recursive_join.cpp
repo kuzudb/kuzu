@@ -1,4 +1,4 @@
-#include "processor/operator/var_length_extend/scan_bfs_level.h"
+#include "processor/operator/var_length_extend/recursive_join.h"
 
 namespace kuzu {
 namespace processor {

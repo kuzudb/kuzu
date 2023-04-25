@@ -4,7 +4,7 @@
 #include "processor/operator/scan/generic_scan_rel_tables.h"
 #include "processor/operator/scan/scan_rel_table_columns.h"
 #include "processor/operator/scan/scan_rel_table_lists.h"
-#include "processor/operator/var_length_extend/scan_bfs_level.h"
+#include "processor/operator/var_length_extend/recursive_join.h"
 #include "processor/operator/var_length_extend/var_length_adj_list_extend.h"
 #include "processor/operator/var_length_extend/var_length_column_extend.h"
 

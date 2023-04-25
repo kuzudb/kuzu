@@ -166,7 +166,7 @@ void JoinOrderEnumerator::planRelScan(uint32_t relPos) {
         context->getEmptySubqueryGraph(), newSubgraph, context->getWhereExpressions());
     for (auto direction : REL_DIRECTIONS) {
         auto plan = std::make_unique<LogicalPlan>();
-        auto [boundNode, nbr] = getBoundAndNbrNodes(*rel, direction);
+        auto [boundNode, _] = getBoundAndNbrNodes(*rel, direction);
         appendScanNodeID(boundNode, *plan);
         appendExtendAndFilter(rel, direction, predicates, *plan);
         context->addPlan(newSubgraph, std::move(plan));

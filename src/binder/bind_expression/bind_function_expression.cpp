@@ -150,7 +150,6 @@ std::unique_ptr<Expression> ExpressionBinder::createInternalNodeIDExpression(
     return result;
 }
 
-// TODO: refactor with internal node ID
 std::shared_ptr<Expression> ExpressionBinder::createInternalLengthExpression(
     const Expression& expression) {
     auto& rel = (RelExpression&)expression;

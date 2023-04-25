@@ -1,14 +1,13 @@
 #pragma once
 
 #include "processor/operator/physical_operator.h"
-#include "processor/operator/var_length_extend/bfs_state.h"
 #include "storage/store/rel_table.h"
 
 namespace kuzu {
 namespace processor {
 
 class ScanRelTable : public PhysicalOperator {
-public:
+protected:
     ScanRelTable(const DataPos& inNodeIDVectorPos, std::vector<DataPos> outputVectorsPos,
         PhysicalOperatorType operatorType, std::unique_ptr<PhysicalOperator> child, uint32_t id,
         const std::string& paramsString)

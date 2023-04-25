@@ -1,7 +1,7 @@
 add_library(kuzu_processor_operator_ver_length_extend
         OBJECT
         bfs_state.cpp
-        scan_bfs_level.cpp
+        recursive_join.cpp
         var_length_adj_list_extend.cpp
         var_length_column_extend.cpp
         var_length_extend.cpp)
