@@ -32,7 +32,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExpressionsScanToPhysica
         vectors.push_back(expressionEvaluator->resultVector);
         vectorsToAppend.push_back(expressionEvaluator->resultVector.get());
     }
-    sharedState->initTableIfNecessary(memoryManager, std::move(tableSchema));
+    sharedState->initTable(memoryManager, std::move(tableSchema));
     auto table = sharedState->getTable();
     table->append(vectorsToAppend);
     // map factorized table scan

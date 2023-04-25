@@ -150,6 +150,19 @@ std::unique_ptr<Expression> ExpressionBinder::createInternalNodeIDExpression(
     return result;
 }
 
+// TODO: refactor with internal node ID
+std::shared_ptr<Expression> ExpressionBinder::createInternalLengthExpression(
+    const Expression& expression) {
+    auto& rel = (RelExpression&)expression;
+    std::unordered_map<table_id_t, property_id_t> propertyIDPerTable;
+    for (auto tableID : rel.getTableIDs()) {
+        propertyIDPerTable.insert({tableID, INVALID_PROPERTY_ID});
+    }
+    auto result = std::make_unique<PropertyExpression>(DataType(common::INT64),
+        INTERNAL_LENGTH_SUFFIX, rel, std::move(propertyIDPerTable), false /* isPrimaryKey */);
+    return result;
+}
+
 std::shared_ptr<Expression> ExpressionBinder::bindLabelFunction(
     const ParsedExpression& parsedExpression) {
     // bind child node

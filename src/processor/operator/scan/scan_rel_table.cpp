@@ -4,6 +4,9 @@ namespace kuzu {
 namespace processor {
 
 void ScanRelTable::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
+    if (inNodeIDVectorPos.dataChunkPos == common::INVALID_VECTOR_IDX) {
+        return;
+    }
     inNodeIDVector = resultSet->getValueVector(inNodeIDVectorPos).get();
     for (auto& dataPos : outputVectorsPos) {
         auto vector = resultSet->getValueVector(dataPos);

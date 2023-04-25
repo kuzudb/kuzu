@@ -59,6 +59,7 @@ private:
         const parser::ParsedExpression& parsedExpression);
     std::shared_ptr<Expression> bindInternalIDExpression(const Expression& expression);
     std::unique_ptr<Expression> createInternalNodeIDExpression(const Expression& node);
+    std::shared_ptr<Expression> createInternalLengthExpression(const Expression& rel);
     std::shared_ptr<Expression> bindLabelFunction(const parser::ParsedExpression& parsedExpression);
     std::shared_ptr<Expression> bindNodeLabelFunction(const Expression& expression);
     std::shared_ptr<Expression> bindRelLabelFunction(const Expression& expression);

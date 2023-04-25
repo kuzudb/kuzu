@@ -3,85 +3,95 @@
 namespace kuzu {
 namespace processor {
 
-BFSMorsel::BFSMorsel(common::offset_t maxOffset_) {
-    currentBFSLevel = std::make_unique<BFSLevel>();
-    nextBFSLevel = std::make_unique<BFSLevel>();
-    maxOffset = maxOffset_;
-    visitedNodesBuffer = std::make_unique<uint8_t[]>(maxOffset + 1 * sizeof(uint8_t));
-}
-
-void BFSMorsel::resetState() {
-    std::unique_lock lck{mtx};
-    currentLevel = 0;
-    currentLevelStartIdx = 0;
-    currentBFSLevel->resetState();
-    nextBFSLevel->resetState();
-    std::fill(visitedNodes, visitedNodes + maxOffset + 1, (uint8_t)VisitedState::NOT_VISITED);
-}
-
-bool BFSMorsel::isComplete() {
-    if (currentBFSLevel->size() == 0) {
-        return true;
-    }
-    if (currentLevel == upperBound) {
-        return true;
-    }
-    return false;
-}
-
-std::unique_ptr<BFSLevelMorsel> BFSMorsel::getBFSLevelMorsel() {
-    std::unique_lock lck{mtx};
-    if (currentLevelStartIdx == currentBFSLevel->size()) {
-        return std::make_unique<BFSLevelMorsel>(currentLevelStartIdx, 0);
-    }
-    auto size =
-        std::min(common::DEFAULT_VECTOR_CAPACITY, currentBFSLevel->size() - currentLevelStartIdx);
-    auto morsel = std::make_unique<BFSLevelMorsel>(currentLevelStartIdx, size);
-    currentLevelStartIdx += size;
-    return morsel;
-}
-
-void BFSMorsel::moveNextLevelAsCurrentLevel() {
-    currentBFSLevel = std::move(nextBFSLevel);
-    currentLevelStartIdx = 0;
-    std::sort(currentBFSLevel->nodeOffsets.begin(), currentBFSLevel->nodeOffsets.end());
-    nextBFSLevel = std::make_unique<BFSLevel>();
+void ScanBFSLevel::initGlobalStateInternal(ExecutionContext* context) {
+    globalSharedState->initTable(context->memoryManager, populateTableSchema());
 }
 
 void ScanBFSLevel::initLocalStateInternal(ResultSet* resultSet_, ExecutionContext* context) {
-    tmpSrcNodeIDs->state->selVector->resetSelectorToUnselected();
-    // TODO: init node offset
-    bfsMorsel = std::make_unique<BFSMorsel>(nodeTable->getMaxNodeOffset(transaction));
+    maxNodeOffset = nodeTable->getMaxNodeOffset(transaction);
+    srcNodeIDVector = resultSet->getValueVector(srcNodeIDVectorPos);
+    dstNodeIDVector = resultSet->getValueVector(dstNodeIDVectorPos);
+    distanceVector = resultSet->getValueVector(distanceVectorPos);
+    for (auto& payload : payloadInfos) {
+        vectorsToCollect.push_back(resultSet->getValueVector(payload.dataPos).get());
+    }
+    threadLocalSharedState->sspMorsel = std::make_unique<SSPMorsel>(maxNodeOffset);
+    threadLocalSharedState->fTable =
+        std::make_unique<FactorizedTable>(context->memoryManager, populateTableSchema());
 }
 
 bool ScanBFSLevel::getNextTuplesInternal(ExecutionContext* context) {
-    std::unique_ptr<BFSLevelMorsel> bfsLevelMorsel;
+    auto sspMorsel = threadLocalSharedState->sspMorsel.get();
     while (true) {
-        if (bfsMorsel->isComplete()) {
+        if (sspMorsel->isComplete(upperBound, maxNodeOffset)) {
+            writeDstNodeIDsAndDstToFTable();
             if (!children[0]->getNextTuple(context)) {
                 return false;
             }
-            bfsMorsel->resetState();
-            assert(srcNodeIDs->state->isFlat());
-            auto nodeID = srcNodeIDs->getValue<common::nodeID_t>(
-                srcNodeIDs->state->selVector->selectedPositions[0]);
-            bfsMorsel->currentBFSLevel->nodeOffsets.push_back(nodeID.offset);
+            sspMorsel->resetState(maxNodeOffset);
+            assert(srcNodeIDVector->state->isFlat());
+            auto nodeID = srcNodeIDVector->getValue<common::nodeID_t>(
+                srcNodeIDVector->state->selVector->selectedPositions[0]);
+            sspMorsel->markSrc(nodeID.offset);
         }
-        bfsLevelMorsel = bfsMorsel->getBFSLevelMorsel();
-        if (!bfsLevelMorsel->empty()) { // Found a BFS level morsel.
+        auto nodeOffset = sspMorsel->getNextNodeOffset();
+        if (nodeOffset != common::INVALID_NODE_OFFSET) {
+            // Found a starting node from current BFS level.
+            threadLocalSharedState->tmpSrcNodeIDVector->setValue(
+                0, common::nodeID_t{nodeOffset, nodeTable->getTableID()});
             break;
-        } else { // Otherwise
-            bfsMorsel->moveNextLevelAsCurrentLevel();
+        } else {
+            // Otherwise move to the next BFS level.
+            sspMorsel->moveNextLevelAsCurrentLevel(upperBound);
         }
     }
-    writeBFSLevelMorselToTmpSrcNodeIDsVector(
-        bfsLevelMorsel.get(), bfsMorsel->currentBFSLevel.get());
     return true;
 }
 
-void ScanBFSLevel::writeBFSLevelMorselToTmpSrcNodeIDsVector(
-    BFSLevelMorsel* bfsLevelMorsel, BFSLevel* bfsLevel) {
-    for (auto i = 0; i < bfsLevelMorsel->size; ++i) {}
+void ScanBFSLevel::writeDstNodeIDsAndDstToFTable() {
+    auto sspMorsel = threadLocalSharedState->sspMorsel.get();
+    if (sspMorsel->numVisitedNodes == 0) {
+        return;
+    }
+    // Skip
+    sspMorsel->visitedNodes[sspMorsel->startOffset] = NOT_VISITED;
+    sspMorsel->numVisitedNodes--;
+    auto numDstWritten = 0u;
+    common::offset_t currentOffset = 0u;
+    while (numDstWritten != sspMorsel->numVisitedNodes) {
+        auto sizeToWrite = std::min<uint64_t>(
+            common::DEFAULT_VECTOR_CAPACITY, sspMorsel->numVisitedNodes - numDstWritten);
+        writeDstNodeIDsAndDstToVector(currentOffset, sizeToWrite);
+        numDstWritten += sizeToWrite;
+        threadLocalSharedState->fTable->append(vectorsToCollect);
+    }
+}
+
+void ScanBFSLevel::writeDstNodeIDsAndDstToVector(common::offset_t& currentOffset, size_t size) {
+    auto sspMorsel = threadLocalSharedState->sspMorsel.get();
+    auto sizeWritten = 0u;
+    while (sizeWritten != size) {
+        if (sspMorsel->visitedNodes[currentOffset] == NOT_VISITED) {
+            currentOffset++;
+            continue;
+        }
+        dstNodeIDVector->setValue<common::nodeID_t>(
+            sizeWritten, common::nodeID_t{currentOffset, nodeTable->getTableID()});
+        distanceVector->setValue<int64_t>(sizeWritten, sspMorsel->distance[currentOffset]);
+        sizeWritten++;
+        currentOffset++;
+    }
+    dstNodeIDVector->state->initOriginalAndSelectedSize(sizeWritten);
+}
+
+std::unique_ptr<FactorizedTableSchema> ScanBFSLevel::populateTableSchema() {
+    auto tableSchema = std::make_unique<FactorizedTableSchema>();
+    for (auto& payloadInfo : payloadInfos) {
+        auto columnSchema = std::make_unique<ColumnSchema>(!payloadInfo.isFlat,
+            payloadInfo.dataPos.dataChunkPos, common::Types::getDataTypeSize(payloadInfo.dataType));
+        tableSchema->appendColumn(std::move(columnSchema));
+    }
+    return tableSchema;
 }
 
 } // namespace processor
