@@ -136,6 +136,16 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalRecursiveExtendToPhysica
         }
     } else {
         assert(rel->getRelType() == common::QueryRelType::SHORTEST);
+        auto expressions = inSchema->getExpressionsInScope();
+        auto resultCollector =
+            appendResultCollector(expressions, *inSchema, std::move(prevOperator));
+        auto sharedInputFTable = resultCollector->getSharedState();
+        std::vector<DataPos> outDataPoses;
+        std::vector<uint32_t> colIndicesToScan;
+        for (auto i = 0u; i < expressions.size(); ++i) {
+            outDataPoses.emplace_back(outSchema->getExpressionPos(*expressions[i]));
+            colIndicesToScan.push_back(i);
+        }
         auto upperBound = rel->getUpperBound();
         auto& nodeStore = storageManager.getNodesStore();
         auto nodeTable = nodeStore.getNodeTable(boundNode->getSingleTableID());
@@ -161,8 +171,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalRecursiveExtendToPhysica
                 emptyPropertyIDs, tmpSrcNodePos, std::vector<DataPos>{tmpDstNodePos},
                 std::move(scanBFSLevel), getOperatorID(), emptyParamString);
         }
-        return std::make_unique<RecursiveJoin>(upperBound, nodeTable, inNodeIDVectorPos,
-            outNodeIDVectorPos, distanceVectorPos, std::move(prevOperator), getOperatorID(),
+        return std::make_unique<RecursiveJoin>(upperBound, nodeTable, sharedInputFTable,
+            outDataPoses, colIndicesToScan, inNodeIDVectorPos, outNodeIDVectorPos,
+            distanceVectorPos, std::move(resultCollector), getOperatorID(),
             extend->getExpressionsForPrinting(), std::move(scanRelTable));
     }
 }

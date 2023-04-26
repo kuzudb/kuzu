@@ -13,6 +13,9 @@ bool ScanBFSLevel::getNextTuplesInternal(ExecutionContext* context) {
 
 void RecursiveJoin::initLocalStateInternal(ResultSet* resultSet_, ExecutionContext* context) {
     maxNodeOffset = nodeTable->getMaxNodeOffset(transaction);
+    for (auto& dataPos : vectorsToScanPos) {
+        vectorsToScan.push_back(resultSet->getValueVector(dataPos).get());
+    }
     srcNodeIDVector = resultSet->getValueVector(srcNodeIDVectorPos);
     dstNodeIDVector = resultSet->getValueVector(dstNodeIDVectorPos);
     distanceVector = resultSet->getValueVector(distanceVectorPos);
@@ -39,11 +42,14 @@ bool RecursiveJoin::getNextTuplesInternal(ExecutionContext* context) {
 }
 
 bool RecursiveJoin::computeBFS(ExecutionContext* context) {
-    if (!children[0]->getNextTuple(context)) {
+    auto inputFTableMorsel = inputFTableSharedState->getMorsel(1);
+    if (inputFTableMorsel->numTuples == 0) {
         return false;
     }
+    inputFTableSharedState->getTable()->scan(vectorsToScan, inputFTableMorsel->startTupleIdx,
+        inputFTableMorsel->numTuples, colIndicesToScan);
+
     sspMorsel->resetState();
-    assert(srcNodeIDVector->state->isFlat());
     auto nodeID = srcNodeIDVector->getValue<common::nodeID_t>(
         srcNodeIDVector->state->selVector->selectedPositions[0]);
     sspMorsel->markSrc(nodeID.offset);
