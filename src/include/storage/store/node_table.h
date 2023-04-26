@@ -43,7 +43,7 @@ public:
     inline void removeProperty(common::property_id_t propertyID) {
         propertyColumns.erase(propertyID);
     }
-    inline void addProperty(catalog::Property property) {
+    inline void addProperty(const catalog::Property& property) {
         propertyColumns.emplace(property.propertyID,
             ColumnFactory::getColumn(StorageUtils::getNodePropertyColumnStructureIDAndFName(
                                          wal->getDirectory(), property),

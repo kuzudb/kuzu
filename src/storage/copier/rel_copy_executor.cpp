@@ -21,8 +21,8 @@ RelCopyExecutor::RelCopyExecutor(CopyDescription& copyDescription, std::string o
           nodesStore.getNodesStatisticsAndDeletedIDs().getMaxNodeOffsetPerTable()} {
     dummyReadOnlyTrx = Transaction::getDummyReadOnlyTrx();
     auto relTableSchema = reinterpret_cast<RelTableSchema*>(tableSchema);
-    initializePkIndexes(relTableSchema->srcTableID, *bufferManager);
-    initializePkIndexes(relTableSchema->dstTableID, *bufferManager);
+    initializePkIndexes(relTableSchema->srcTableID);
+    initializePkIndexes(relTableSchema->dstTableID);
 }
 
 std::string RelCopyExecutor::getTaskTypeName(PopulateTaskType populateTaskType) {
@@ -174,7 +174,7 @@ void RelCopyExecutor::initListsMetadata() {
         tableSchema->tableName);
 }
 
-void RelCopyExecutor::initializePkIndexes(table_id_t nodeTableID, BufferManager& bufferManager) {
+void RelCopyExecutor::initializePkIndexes(table_id_t nodeTableID) {
     pkIndexes.emplace(nodeTableID, nodesStore.getPKIndex(nodeTableID));
 }
 
@@ -350,6 +350,10 @@ void RelCopyExecutor::inferTableIDsAndOffsets(const std::vector<std::shared_ptr<
         auto keyStr = keyToken.c_str();
         ++colIndex;
         switch (nodeIDTypes[relDirection].typeID) {
+        case SERIAL: {
+            auto key = TypeUtils::convertStringToNumber<int64_t>(keyStr);
+            nodeIDs[relDirection].offset = key;
+        } break;
         case INT64: {
             auto key = TypeUtils::convertStringToNumber<int64_t>(keyStr);
             if (!pkIndexes.at(nodeIDs[relDirection].tableID)

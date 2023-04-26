@@ -56,7 +56,7 @@ uint64_t StorageDriver::getNumRels(const std::string& relName) {
 
 void StorageDriver::scanColumn(
     storage::Column* column, common::offset_t* offsets, size_t size, uint8_t* result) {
-    column->scan(offsets, size, result);
+    column->batchLookup(offsets, size, result);
 }
 
 } // namespace main

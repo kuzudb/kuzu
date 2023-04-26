@@ -99,7 +99,11 @@ public:
 
     void execute(processor::ExecutionContext* executionContext);
 
-    inline virtual void finalize() { pkIndex->flush(); }
+    inline virtual void finalize() {
+        if (pkIndex) {
+            pkIndex->flush();
+        }
+    }
 
     virtual std::unique_ptr<NodeCopier> clone() const {
         return std::make_unique<NodeCopier>(sharedState, pkIndex, copyDesc, columns, pkColumnID);
@@ -189,12 +193,6 @@ public:
     inline std::unique_ptr<NodeCopier> clone() const override {
         return std::make_unique<NPYNodeCopier>(
             this->sharedState, this->pkIndex, this->copyDesc, this->columns, this->pkColumnID);
-    }
-
-    inline void finalize() override {
-        if (this->pkColumnID != common::INVALID_COLUMN_ID) {
-            this->pkIndex->flush();
-        }
     }
 
 protected:

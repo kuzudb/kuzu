@@ -119,6 +119,10 @@ void TableCopyExecutor::countNumLinesNpy(const std::vector<std::string>& filePat
     }
 }
 
+static bool skipCopyForProperty(const Property& property) {
+    return TableSchema::isReservedPropertyName(property.name) || property.dataType.typeID == SERIAL;
+}
+
 std::shared_ptr<arrow::csv::StreamingReader> TableCopyExecutor::createCSVReader(
     const std::string& filePath, common::CSVReaderConfig* csvReaderConfig,
     catalog::TableSchema* tableSchema) {
@@ -127,13 +131,14 @@ std::shared_ptr<arrow::csv::StreamingReader> TableCopyExecutor::createCSVReader(
     auto csvReadOptions = arrow::csv::ReadOptions::Defaults();
     csvReadOptions.block_size = CopyConstants::CSV_READING_BLOCK_SIZE;
     if (!tableSchema->isNodeTable) {
-        csvReadOptions.column_names.emplace_back("_FROM");
-        csvReadOptions.column_names.emplace_back("_TO");
+        csvReadOptions.column_names.emplace_back(Property::REL_FROM_PROPERTY_NAME);
+        csvReadOptions.column_names.emplace_back(Property::REL_TO_PROPERTY_NAME);
     }
     for (auto& property : tableSchema->properties) {
-        if (!TableSchema::isReservedPropertyName(property.name)) {
-            csvReadOptions.column_names.push_back(property.name);
+        if (skipCopyForProperty(property)) {
+            continue;
         }
+        csvReadOptions.column_names.push_back(property.name);
     }
     if (csvReaderConfig->hasHeader) {
         csvReadOptions.skip_rows = 1;
@@ -152,13 +157,15 @@ std::shared_ptr<arrow::csv::StreamingReader> TableCopyExecutor::createCSVReader(
     csvConvertOptions.null_values = {""};
     csvConvertOptions.quoted_strings_can_be_null = false;
     for (auto& property : tableSchema->properties) {
-        if (property.name == "_FROM" || property.name == "_TO") {
+        if (property.name == Property::REL_FROM_PROPERTY_NAME ||
+            property.name == Property::REL_TO_PROPERTY_NAME) {
             csvConvertOptions.column_types[property.name] = arrow::int64();
             continue;
         }
-        if (!TableSchema::isReservedPropertyName(property.name)) {
-            csvConvertOptions.column_types[property.name] = toArrowDataType(property.dataType);
+        if (skipCopyForProperty(property)) {
+            continue;
         }
+        csvConvertOptions.column_types[property.name] = toArrowDataType(property.dataType);
     }
 
     std::shared_ptr<arrow::csv::StreamingReader> csvStreamingReader;

@@ -37,7 +37,7 @@ private:
 
     void initListsMetadata();
 
-    void initializePkIndexes(common::table_id_t nodeTableID, BufferManager& bufferManager);
+    void initializePkIndexes(common::table_id_t nodeTableID);
 
     void executePopulateTask(PopulateTaskType populateTaskType);
 

@@ -54,6 +54,12 @@ public:
     }
 };
 
+class CopySerialPKTest : public DBTest {
+    std::string getInputDir() override {
+        return TestHelper::appendKuzuRootPath("dataset/tinysnb-serial/");
+    }
+};
+
 class CopyMultipleFilesTest : public DBTest {
 
 public:
@@ -190,40 +196,6 @@ void verifyP0ToP5999(KnowsTablePTablePKnowsLists& knowsTablePTablePKnowsLists) {
     }
 }
 
-void verifya0Andp6000(KnowsTablePTablePKnowsLists& knowsTablePTablePKnowsLists,
-    const Catalog& catalog, StorageManager* storageManager) {
-    auto aTableAKnowsLists = getATableAKnowsLists(catalog, storageManager);
-    // a0 has 1 fwd edge to p6000, and no backward edges.
-    offset_t a0NodeOffset = 0;
-    offset_t p6000NodeOffset = 6000;
-    auto a0FwdList = aTableAKnowsLists.fwdAKnowsLists->readAdjacencyListOfNode(a0NodeOffset);
-    EXPECT_EQ(1, a0FwdList->size());
-    nodeID_t p6000NodeID(p6000NodeOffset, knowsTablePTablePKnowsLists.pNodeTableID);
-    EXPECT_EQ(p6000NodeID, a0FwdList->at(0));
-    auto a0BwdList = aTableAKnowsLists.bwdAKnowsLists->readAdjacencyListOfNode(a0NodeOffset);
-    EXPECT_TRUE(aTableAKnowsLists.bwdAKnowsLists->readAdjacencyListOfNode(a0NodeOffset)->empty());
-
-    // p6000 has no fwd edges and 1 bwd edge from a0
-    EXPECT_TRUE(knowsTablePTablePKnowsLists.fwdPKnowsLists->readAdjacencyListOfNode(p6000NodeOffset)
-                    ->empty());
-    auto p6000BwdList =
-        knowsTablePTablePKnowsLists.bwdPKnowsLists->readAdjacencyListOfNode(p6000NodeOffset);
-    nodeID_t a0NodeID(a0NodeOffset, aTableAKnowsLists.aNodeTableID);
-    EXPECT_EQ(1, p6000BwdList->size());
-    EXPECT_EQ(a0NodeID, p6000BwdList->at(0));
-}
-
-void verifyP6001ToP65999(KnowsTablePTablePKnowsLists& knowsTablePTablePKnowsLists) {
-    for (offset_t node_offset_t = 6001; node_offset_t < 66000; ++node_offset_t) {
-        EXPECT_TRUE(
-            knowsTablePTablePKnowsLists.fwdPKnowsLists->readAdjacencyListOfNode(node_offset_t)
-                ->empty());
-        EXPECT_TRUE(
-            knowsTablePTablePKnowsLists.bwdPKnowsLists->readAdjacencyListOfNode(node_offset_t)
-                ->empty());
-    }
-}
-
 TEST_F(CopyLargeListTest, ReadLargeListTest) {
     auto knowsTablePTablePKnowsLists =
         getKnowsTablePTablePKnowsLists(*getCatalog(*database), getStorageManager(*database));
@@ -351,4 +323,11 @@ TEST_F(CopyMultipleFilesTest, CopyFilesWithWrongPath) {
     ASSERT_FALSE(result->isSuccess());
     ASSERT_EQ(result->getErrorMessage(),
         "Binder exception: No file found that matches the pattern: 1.csv.");
+}
+
+TEST_F(CopySerialPKTest, CopySerialPKTest) {
+    auto result = conn->query("MATCH (:person)-[e:knows]->(:person) RETURN COUNT(*);");
+    ASSERT_TRUE(result->isSuccess());
+    ASSERT_EQ(1, result->getNumTuples());
+    ASSERT_EQ(14, result->getNext()->getValue(0)->val.int64Val);
 }

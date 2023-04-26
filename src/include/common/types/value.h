@@ -184,9 +184,6 @@ private:
     Value();
     explicit Value(DataType dataType);
 
-    void validateType(DataTypeID typeID) const;
-    void validateType(const DataType& type) const;
-
     template<typename T>
     static inline void putValuesIntoVector(std::vector<std::unique_ptr<Value>>& fixedListResultVal,
         const uint8_t* fixedList, uint64_t numBytesPerElement) {

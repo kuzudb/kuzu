@@ -19,9 +19,11 @@ void NodeTable::initializeData(NodeTableSchema* nodeTableSchema) {
             StorageUtils::getNodePropertyColumnStructureIDAndFName(wal->getDirectory(), property),
             property.dataType, &bufferManager, wal);
     }
-    pkIndex = std::make_unique<PrimaryKeyIndex>(
-        StorageUtils::getNodeIndexIDAndFName(wal->getDirectory(), tableID),
-        nodeTableSchema->getPrimaryKey().dataType, bufferManager, wal);
+    if (nodeTableSchema->getPrimaryKey().dataType.typeID != SERIAL) {
+        pkIndex = std::make_unique<PrimaryKeyIndex>(
+            StorageUtils::getNodeIndexIDAndFName(wal->getDirectory(), tableID),
+            nodeTableSchema->getPrimaryKey().dataType, bufferManager, wal);
+    }
 }
 
 void NodeTable::scan(transaction::Transaction* transaction, ValueVector* inputIDVector,
@@ -43,6 +45,7 @@ offset_t NodeTable::addNodeAndResetProperties(ValueVector* primaryKeyVector) {
     if (primaryKeyVector->isNull(pkValPos)) {
         throw RuntimeException("Null is not allowed as a primary key value.");
     }
+    // TODO(Guodong): Handle SERIAL.
     if (!pkIndex->insert(primaryKeyVector, pkValPos, nodeOffset)) {
         std::string pkStr = primaryKeyVector->dataType.typeID == INT64 ?
                                 std::to_string(primaryKeyVector->getValue<int64_t>(pkValPos)) :
@@ -70,12 +73,16 @@ void NodeTable::deleteNodes(ValueVector* nodeIDVector, ValueVector* primaryKeyVe
 }
 
 void NodeTable::prepareCommitOrRollbackIfNecessary(bool isCommit) {
-    pkIndex->prepareCommitOrRollbackIfNecessary(isCommit);
+    if (pkIndex) {
+        pkIndex->prepareCommitOrRollbackIfNecessary(isCommit);
+    }
 }
 
 void NodeTable::deleteNode(offset_t nodeOffset, ValueVector* primaryKeyVector, uint32_t pos) const {
     nodesStatisticsAndDeletedIDs->deleteNode(tableID, nodeOffset);
-    pkIndex->deleteKey(primaryKeyVector, pos);
+    if (pkIndex) {
+        pkIndex->deleteKey(primaryKeyVector, pos);
+    }
 }
 
 } // namespace storage

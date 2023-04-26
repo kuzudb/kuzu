@@ -514,3 +514,24 @@ TEST_F(BinderErrorTest, ListCreationOfStruct) {
     auto input = "RETURN [{a: 5, b: 3}]";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
+
+TEST_F(BinderErrorTest, NonPKSerialType) {
+    std::string expectedException =
+        "Binder exception: Serial property in node table must be the primary key.";
+    auto input = "CREATE NODE TABLE test(ID INT64, seq SERIAL, PRIMARY KEY(ID))";
+    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
+}
+
+TEST_F(BinderErrorTest, AddSerialProperty) {
+    std::string expectedException =
+        "Binder exception: Serial property in node table must be the primary key.";
+    auto input = "ALTER TABLE person ADD seq SERIAL";
+    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
+}
+
+TEST_F(BinderErrorTest, SerialInRelTable) {
+    std::string expectedException =
+        "Binder exception: Serial property is not supported in rel table.";
+    auto input = "CREATE REL TABLE test(FROM person TO person, seq SERIAL)";
+    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
+}

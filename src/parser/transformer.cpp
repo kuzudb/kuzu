@@ -939,7 +939,7 @@ std::unique_ptr<Statement> Transformer::transformCreateNodeClause(
     auto propertyDefinitions = transformPropertyDefinitions(*ctx.kU_PropertyDefinitions());
     auto pkColName =
         ctx.kU_CreateNodeConstraint() ? transformPrimaryKey(*ctx.kU_CreateNodeConstraint()) : "";
-    return std::make_unique<CreateNodeClause>(
+    return std::make_unique<CreateNodeTableClause>(
         std::move(schemaName), std::move(propertyDefinitions), pkColName);
 }
 

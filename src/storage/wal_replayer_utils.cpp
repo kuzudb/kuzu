@@ -39,25 +39,37 @@ void WALReplayerUtils::createEmptyDBFilesForNewRelTable(RelTableSchema* relTable
 void WALReplayerUtils::createEmptyDBFilesForNewNodeTable(
     NodeTableSchema* nodeTableSchema, const std::string& directory) {
     for (auto& property : nodeTableSchema->properties) {
+        if (property.dataType.typeID == SERIAL) {
+            continue;
+        }
         auto fName = StorageUtils::getNodePropertyColumnFName(
             directory, nodeTableSchema->tableID, property.propertyID, DBFileType::ORIGINAL);
         InMemColumnFactory::getInMemPropertyColumn(fName, property.dataType, 0 /* numNodes */)
             ->saveToFile();
     }
-    if (nodeTableSchema->getPrimaryKey().dataType.typeID == INT64) {
+    switch (nodeTableSchema->getPrimaryKey().dataType.typeID) {
+    case INT64: {
         auto pkIndex = make_unique<HashIndexBuilder<int64_t>>(
             StorageUtils::getNodeIndexFName(
                 directory, nodeTableSchema->tableID, DBFileType::ORIGINAL),
             nodeTableSchema->getPrimaryKey().dataType);
         pkIndex->bulkReserve(0 /* numNodes */);
         pkIndex->flush();
-    } else {
+    } break;
+    case STRING: {
         auto pkIndex = make_unique<HashIndexBuilder<ku_string_t>>(
             StorageUtils::getNodeIndexFName(
                 directory, nodeTableSchema->tableID, DBFileType::ORIGINAL),
             nodeTableSchema->getPrimaryKey().dataType);
         pkIndex->bulkReserve(0 /* numNodes */);
         pkIndex->flush();
+    } break;
+    case SERIAL: {
+        // DO NOTHING.
+    } break;
+    default: {
+        throw NotImplementedException("Only INT64 and STRING primary keys are supported");
+    }
     }
 }
 

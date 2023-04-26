@@ -39,8 +39,8 @@ private:
         const std::string& name, const common::DataType& dataType);
 
     /*** bind DDL ***/
-    std::unique_ptr<BoundStatement> bindCreateNodeClause(const parser::Statement& statement);
-    std::unique_ptr<BoundStatement> bindCreateRelClause(const parser::Statement& statement);
+    std::unique_ptr<BoundStatement> bindCreateNodeTableClause(const parser::Statement& statement);
+    std::unique_ptr<BoundStatement> bindCreateRelTableClause(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindDropTableClause(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindRenameTableClause(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindAddPropertyClause(const parser::Statement& statement);

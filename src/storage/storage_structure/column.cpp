@@ -9,7 +9,7 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-void Column::scan(const common::offset_t* nodeOffsets, size_t size, uint8_t* result) {
+void Column::batchLookup(const common::offset_t* nodeOffsets, size_t size, uint8_t* result) {
     for (auto i = 0u; i < size; ++i) {
         auto nodeOffset = nodeOffsets[i];
         auto cursor = PageUtils::getPageElementCursorForPos(nodeOffset, numElementsPerPage);
@@ -249,7 +249,7 @@ Value ListPropertyColumn::readValueForTestingOnly(offset_t offset) {
 
 StructPropertyColumn::StructPropertyColumn(const StorageStructureIDAndFName& structureIDAndFName,
     const common::DataType& dataType, BufferManager* bufferManager, WAL* wal)
-    : Column{} {
+    : Column{dataType} {
     auto structFields =
         reinterpret_cast<StructTypeInfo*>(dataType.getExtraTypeInfo())->getStructFields();
     for (auto structField : structFields) {
@@ -268,6 +268,15 @@ void StructPropertyColumn::read(Transaction* transaction, common::ValueVector* n
     for (auto i = 0u; i < structFieldColumns.size(); i++) {
         structFieldColumns[i]->read(
             transaction, nodeIDVector, resultVector->getChildVector(i).get());
+    }
+}
+
+void SerialColumn::read(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
+    common::ValueVector* resultVector) {
+    for (auto i = 0ul; i < nodeIDVector->state->selVector->selectedSize; i++) {
+        auto pos = nodeIDVector->state->selVector->selectedPositions[i];
+        auto offset = nodeIDVector->readNodeOffset(pos);
+        resultVector->setValue<offset_t>(pos, offset);
     }
 }
 

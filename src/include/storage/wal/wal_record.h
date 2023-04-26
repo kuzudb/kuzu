@@ -147,9 +147,9 @@ struct ColumnFileID {
 
     ColumnFileID() = default;
 
-    explicit ColumnFileID(NodePropertyColumnID nodePropertyColumnID)
-        : columnType{ColumnType::NODE_PROPERTY_COLUMN}, nodePropertyColumnID{nodePropertyColumnID} {
-    }
+    explicit ColumnFileID(NodePropertyColumnID nodePropertyColumnID,
+        ColumnType columnType = ColumnType::NODE_PROPERTY_COLUMN)
+        : columnType{columnType}, nodePropertyColumnID{nodePropertyColumnID} {}
 
     explicit ColumnFileID(AdjColumnID adjColumnID)
         : columnType{ColumnType::ADJ_COLUMN}, adjColumnID{adjColumnID} {}
