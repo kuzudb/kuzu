@@ -21,14 +21,6 @@ class KuzuFeatureStore(FeatureStore):
             num_threads = multiprocessing.cpu_count()
         self.num_threads = num_threads
 
-    def __getstate__(self):
-        state = {
-            "connection": None,
-            "node_properties_cache": self.node_properties_cache,
-            "db": self.db.__getstate__()
-        }
-        return state
-
     def __get_connection(self):
         if not self.connection:
             self.connection = Connection(self.db, self.num_threads)

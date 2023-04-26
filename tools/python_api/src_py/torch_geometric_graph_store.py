@@ -31,14 +31,6 @@ class KuzuGraphStore(GraphStore):
         self.num_threads = num_threads
         self.__populate_edge_attrs()
 
-    def __getstate__(self):
-        state = {
-            "connection": None,
-            "store": self.store,
-            "db": self.db.__getstate__()
-        }
-        return state
-
     @staticmethod
     def key(attr: EdgeAttr) -> Tuple:
         return (attr.edge_type, attr.layout.value, attr.is_sorted)

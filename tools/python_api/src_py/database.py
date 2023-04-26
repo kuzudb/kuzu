@@ -44,7 +44,7 @@ class Database:
         state = {
             "database_path": self.database_path,
             "buffer_pool_size": self.buffer_pool_size,
-            "database": None
+            "_database": None
         }
         return state
 

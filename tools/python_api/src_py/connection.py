@@ -33,8 +33,23 @@ class Connection:
         """
 
         self.database = database
-        database.init_database()
-        self._connection = _kuzu.Connection(database._database, num_threads)
+        self.num_threads = num_threads
+        self._connection = None
+        self.init_connection()
+
+    def __getstate__(self):
+        state = {
+            "database": self.database,
+            "num_threads": self.num_threads,
+            "_connection": None
+        }
+        return state
+
+    def init_connection(self):
+        self.database.init_database()
+        if self._connection is None:
+            self._connection = _kuzu.Connection(
+                self.database._database, self.num_threads)
 
     def set_max_threads_for_exec(self, num_threads):
         """
@@ -45,7 +60,7 @@ class Connection:
         num_threads : int
             Maximum number of threads to use for executing queries.
         """
-
+        self.init_connection()
         self._connection.set_max_threads_for_exec(num_threads)
 
     def execute(self, query, parameters=[]):
@@ -66,7 +81,7 @@ class Connection:
         QueryResult
             Query result.
         """
-
+        self.init_connection()
         prepared_statement = self.prepare(
             query) if type(query) == str else query
         return QueryResult(self,
@@ -96,6 +111,7 @@ class Connection:
         PRIMARY_KEY_SYMBOL = "(PRIMARY KEY)"
         LIST_START_SYMBOL = "["
         LIST_END_SYMBOL = "]"
+        self.init_connection()
         result_str = self._connection.get_node_property_names(
             table_name)
         results = {}
@@ -136,6 +152,7 @@ class Connection:
 
     def _get_node_table_names(self):
         results = []
+        self.init_connection()
         result_str = self._connection.get_node_table_names()
         for (i, line) in enumerate(result_str.splitlines()):
             # ignore first line
@@ -149,6 +166,7 @@ class Connection:
 
     def _get_rel_table_names(self):
         results = []
+        self.init_connection()
         result_str = self._connection.get_rel_table_names()
         for i, line in enumerate(result_str.splitlines()):
             if i == 0:
@@ -178,5 +196,5 @@ class Connection:
         timeout_in_ms : int
             query timeout value in ms for executing queries.
         """
-
+        self.init_connection()
         self._connection.set_query_timeout(timeout_in_ms)
