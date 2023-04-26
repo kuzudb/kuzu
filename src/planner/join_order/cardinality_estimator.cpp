@@ -128,14 +128,7 @@ double CardinalityEstimator::getExtensionRate(
     }
     case common::QueryRelType::VARIABLE_LENGTH:
     case common::QueryRelType::SHORTEST: {
-        auto extensionRate = oneHopExtensionRate;
-        for (auto i = 0u; i < rel.getUpperBound(); ++i) {
-            extensionRate *= oneHopExtensionRate;
-            if (extensionRate > numRels) { // extension rate in bounded by numRels under BFS.
-                return numRels;
-            }
-        }
-        return extensionRate;
+        return oneHopExtensionRate * 2 /*magic number*/;
     }
     default:
         throw common::NotImplementedException("getExtensionRate()");

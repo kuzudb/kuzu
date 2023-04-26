@@ -49,13 +49,18 @@ struct BFSScanState {
 class RecursiveJoin : public PhysicalOperator {
 public:
     RecursiveJoin(uint8_t upperBound, storage::NodeTable* nodeTable,
+        std::shared_ptr<FTableSharedState> inputFTableSharedState,
+        std::vector<DataPos> vectorsToScanPos, std::vector<ft_col_idx_t> colIndicesToScan,
         const DataPos& srcNodeIDVectorPos, const DataPos& dstNodeIDVectorPos,
         const DataPos& distanceVectorPos, std::unique_ptr<PhysicalOperator> child, uint32_t id,
         const std::string& paramsString, std::unique_ptr<PhysicalOperator> root)
         : PhysicalOperator{PhysicalOperatorType::SCAN_BFS_LEVEL, std::move(child), id,
               paramsString},
-          upperBound{upperBound}, nodeTable{nodeTable}, srcNodeIDVectorPos{srcNodeIDVectorPos},
-          dstNodeIDVectorPos{dstNodeIDVectorPos},
+          upperBound{upperBound}, nodeTable{nodeTable}, inputFTableSharedState{std::move(
+                                                            inputFTableSharedState)},
+          vectorsToScanPos{std::move(vectorsToScanPos)}, colIndicesToScan{std::move(
+                                                             colIndicesToScan)},
+          srcNodeIDVectorPos{srcNodeIDVectorPos}, dstNodeIDVectorPos{dstNodeIDVectorPos},
           distanceVectorPos{distanceVectorPos}, root{std::move(root)}, bfsScanState{} {}
 
     static inline DataPos getTmpSrcNodeVectorPos() { return DataPos{0, 0}; }
@@ -66,9 +71,9 @@ public:
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
     std::unique_ptr<PhysicalOperator> clone() override {
-        return std::make_unique<RecursiveJoin>(upperBound, nodeTable, srcNodeIDVectorPos,
-            dstNodeIDVectorPos, distanceVectorPos, children[0]->clone(), id, paramsString,
-            root->clone());
+        return std::make_unique<RecursiveJoin>(upperBound, nodeTable, inputFTableSharedState,
+            vectorsToScanPos, colIndicesToScan, srcNodeIDVectorPos, dstNodeIDVectorPos,
+            distanceVectorPos, children[0]->clone(), id, paramsString, root->clone());
     }
 
 private:
@@ -85,6 +90,9 @@ private:
 private:
     uint8_t upperBound;
     storage::NodeTable* nodeTable;
+    std::shared_ptr<FTableSharedState> inputFTableSharedState;
+    std::vector<DataPos> vectorsToScanPos;
+    std::vector<ft_col_idx_t> colIndicesToScan;
     DataPos srcNodeIDVectorPos;
     DataPos dstNodeIDVectorPos;
     DataPos distanceVectorPos;
@@ -97,6 +105,7 @@ private:
     std::unique_ptr<BFSMorsel> bfsMorsel;
 
     common::offset_t maxNodeOffset;
+    std::vector<common::ValueVector*> vectorsToScan;
     std::shared_ptr<common::ValueVector> srcNodeIDVector;
     std::shared_ptr<common::ValueVector> dstNodeIDVector;
     std::shared_ptr<common::ValueVector> distanceVector;
