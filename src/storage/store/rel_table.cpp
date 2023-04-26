@@ -54,12 +54,12 @@ void DirectedRelTableData::initializeColumns(
     adjColumn =
         std::make_unique<AdjColumn>(StorageUtils::getAdjColumnStructureIDAndFName(
                                         wal->getDirectory(), tableSchema->tableID, direction),
-            tableSchema->getNbrTableID(direction), bufferManager, wal);
+            tableSchema->getNbrTableID(direction), &bufferManager, wal);
     for (auto& property : tableSchema->properties) {
         propertyColumns[property.propertyID] = ColumnFactory::getColumn(
             StorageUtils::getRelPropertyColumnStructureIDAndFName(
                 wal->getDirectory(), tableSchema->tableID, direction, property.propertyID),
-            property.dataType, bufferManager, wal);
+            property.dataType, &bufferManager, wal);
     }
 }
 
@@ -67,12 +67,12 @@ void DirectedRelTableData::initializeLists(
     RelTableSchema* tableSchema, BufferManager& bufferManager, WAL* wal) {
     adjLists = std::make_unique<AdjLists>(StorageUtils::getAdjListsStructureIDAndFName(
                                               wal->getDirectory(), tableSchema->tableID, direction),
-        tableSchema->getNbrTableID(direction), bufferManager, wal, listsUpdatesStore);
+        tableSchema->getNbrTableID(direction), &bufferManager, wal, listsUpdatesStore);
     for (auto& property : tableSchema->properties) {
         propertyLists[property.propertyID] = ListsFactory::getLists(
             StorageUtils::getRelPropertyListsStructureIDAndFName(
                 wal->getDirectory(), tableSchema->tableID, direction, property),
-            property.dataType, adjLists->getHeaders(), bufferManager, wal, listsUpdatesStore);
+            property.dataType, adjLists->getHeaders(), &bufferManager, wal, listsUpdatesStore);
     }
 }
 
@@ -367,12 +367,12 @@ void DirectedRelTableData::addProperty(Property& property, WAL* wal) {
             ColumnFactory::getColumn(
                 StorageUtils::getRelPropertyColumnStructureIDAndFName(
                     wal->getDirectory(), tableID, direction, property.propertyID),
-                property.dataType, bufferManager, wal));
+                property.dataType, &bufferManager, wal));
     } else {
         propertyLists.emplace(property.propertyID,
             ListsFactory::getLists(StorageUtils::getRelPropertyListsStructureIDAndFName(
                                        wal->getDirectory(), tableID, direction, property),
-                property.dataType, adjLists->getHeaders(), bufferManager, wal, listsUpdatesStore));
+                property.dataType, adjLists->getHeaders(), &bufferManager, wal, listsUpdatesStore));
     }
 }
 

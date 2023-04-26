@@ -62,7 +62,7 @@ std::unique_ptr<FunctionBindData> ListCreationVectorOperation::bindFunc(
                 LIST_CREATION_FUNC_NAME, arguments[0]->getDataType(), arguments[i]->getDataType()));
         }
     }
-    auto resultType = DataType(VAR_LIST, std::make_unique<DataType>(arguments[0]->getDataType()));
+    auto resultType = DataType(std::make_unique<DataType>(arguments[0]->getDataType()));
     return std::make_unique<FunctionBindData>(resultType);
 }
 

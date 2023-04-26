@@ -47,7 +47,7 @@ public:
         propertyColumns.emplace(property.propertyID,
             ColumnFactory::getColumn(StorageUtils::getNodePropertyColumnStructureIDAndFName(
                                          wal->getDirectory(), property),
-                property.dataType, bufferManager, wal));
+                property.dataType, &bufferManager, wal));
     }
 
     common::offset_t addNodeAndResetProperties(common::ValueVector* primaryKeyVector);

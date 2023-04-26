@@ -188,8 +188,20 @@ void WALReplayerUtils::fileOperationOnNodeFiles(NodeTableSchema* nodeTableSchema
     const std::string& directory, std::function<void(std::string fileName)> columnFileOperation,
     std::function<void(std::string fileName)> listFileOperation) {
     for (auto& property : nodeTableSchema->properties) {
-        columnFileOperation(StorageUtils::getNodePropertyColumnFName(
-            directory, nodeTableSchema->tableID, property.propertyID, DBFileType::ORIGINAL));
+        if (property.dataType.typeID == common::STRUCT) {
+            auto structFields =
+                reinterpret_cast<StructTypeInfo*>(property.dataType.getExtraTypeInfo())
+                    ->getStructFields();
+            auto structColumnFName = StorageUtils::getNodePropertyColumnFName(
+                directory, nodeTableSchema->tableID, property.propertyID, DBFileType::ORIGINAL);
+            for (auto& structField : structFields) {
+                columnFileOperation(
+                    StorageUtils::appendStructFieldName(structColumnFName, structField->getName()));
+            }
+        } else {
+            columnFileOperation(StorageUtils::getNodePropertyColumnFName(
+                directory, nodeTableSchema->tableID, property.propertyID, DBFileType::ORIGINAL));
+        }
     }
     columnFileOperation(
         StorageUtils::getNodeIndexFName(directory, nodeTableSchema->tableID, DBFileType::ORIGINAL));

@@ -14,6 +14,7 @@ __pycache__/
 *$py.class
 cmake-build-debug/
 test/unittest_temp/
+tools/python_api/test/test_PYTHON_CSV.csv
 
 # antlr4 jar
 scripts/antlr4/antlr4.jar

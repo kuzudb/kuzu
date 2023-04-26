@@ -144,7 +144,7 @@ HashIndex<T>::HashIndex(const StorageStructureIDAndFName& storageStructureIDAndF
     keyEqualsFunc = HashIndexUtils::initializeEqualsFunc(indexHeader->keyDataTypeID);
     localStorage = std::make_unique<HashIndexLocalStorage>(keyDataType);
     if (keyDataType.typeID == STRING) {
-        diskOverflowFile = std::make_unique<DiskOverflowFile>(storageStructureIDAndFName, bm, wal);
+        diskOverflowFile = std::make_unique<DiskOverflowFile>(storageStructureIDAndFName, &bm, wal);
     }
 }
 

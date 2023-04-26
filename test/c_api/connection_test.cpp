@@ -171,7 +171,8 @@ TEST_F(CApiConnectionTest, GetNodePropertyNames) {
     ASSERT_EQ(resultString, "movies properties: \n"
                             "\tname STRING(PRIMARY KEY)\n"
                             "\tlength INT32\n"
-                            "\tnote STRING\n");
+                            "\tnote STRING\n"
+                            "\tdescription STRUCT(DOUBLE,INT64,TIMESTAMP,DATE)\n");
     free(result);
 }
 

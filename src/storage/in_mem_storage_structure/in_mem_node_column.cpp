@@ -8,10 +8,11 @@
 namespace kuzu {
 namespace storage {
 
-InMemNodeColumn::InMemNodeColumn(std::string filePath, common::DataType dataType,
-    uint16_t numBytesForElement, uint64_t numElements)
+InMemNodeColumn::InMemNodeColumn(
+    std::string filePath, common::DataType dataType, uint64_t numElements)
     : filePath{std::move(filePath)}, dataType{std::move(dataType)},
-      numBytesForElement{numBytesForElement}, numElements{numElements} {
+      numBytesForElement{(uint16_t)common::Types::getDataTypeSize(dataType)}, numElements{
+                                                                                  numElements} {
     numElementsInAPage = PageUtils::getNumElementsInAPage(numBytesForElement, true /* hasNull */);
     nullEntriesOffset = numElementsInAPage * numBytesForElement;
     numNullEntriesPerPage = (numElementsInAPage + common::NullMask::NUM_BITS_PER_NULL_ENTRY - 1) /
@@ -98,6 +99,34 @@ void InMemNodeColumn::flushNullBits() {
     common::FileUtils::writeToFile(fileHandle->getFileInfo(), (uint8_t*)nullEntries.get(),
         numNullEntriesPerPage * common::NullMask::NUM_BYTES_PER_NULL_ENTRY,
         maxPageIdx * common::BufferPoolConstants::PAGE_4KB_SIZE + nullEntriesOffset);
+}
+
+NodeInMemStructColumn::NodeInMemStructColumn(
+    std::string filePath, common::DataType dataType, uint64_t numElements)
+    : InMemNodeColumn{} {
+    this->dataType = std::move(dataType);
+    auto structFields = reinterpret_cast<common::StructTypeInfo*>(this->dataType.getExtraTypeInfo())
+                            ->getStructFields();
+    for (auto& structField : structFields) {
+        auto fieldPath = StorageUtils::appendStructFieldName(filePath, structField->getName());
+        fields.push_back(NodeInMemColumnFactory::getNodeInMemColumn(
+            fieldPath, *structField->getType(), numElements));
+    }
+}
+
+void NodeInMemStructColumn::saveToFile() {
+    for (auto& field : fields) {
+        field->saveToFile();
+    }
+}
+
+void NodeInMemStructColumn::flushChunk(kuzu::storage::InMemColumnChunk* chunk,
+    common::offset_t startOffset, common::offset_t endOffset) {
+    auto inMemStructColumnChunk = reinterpret_cast<InMemStructColumnChunk*>(chunk);
+    auto inMemColumnChunksForFields = inMemStructColumnChunk->getInMemColumnChunksForFields();
+    for (auto i = 0u; i < fields.size(); i++) {
+        fields[i]->flushChunk(inMemColumnChunksForFields[i], startOffset, endOffset);
+    }
 }
 
 } // namespace storage

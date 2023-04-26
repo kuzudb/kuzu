@@ -11,13 +11,15 @@ namespace storage {
 class Column : public BaseColumnOrList {
 
 public:
+    Column() = default;
+
     Column(const StorageStructureIDAndFName& structureIDAndFName, const common::DataType& dataType,
-        size_t elementSize, BufferManager& bufferManager, WAL* wal)
+        size_t elementSize, BufferManager* bufferManager, WAL* wal)
         : BaseColumnOrList{structureIDAndFName, dataType, elementSize, bufferManager,
               true /*hasNULLBytes*/, wal} {};
 
     Column(const StorageStructureIDAndFName& structureIDAndFName, const common::DataType& dataType,
-        BufferManager& bufferManager, WAL* wal)
+        BufferManager* bufferManager, WAL* wal)
         : Column(structureIDAndFName, dataType, common::Types::getDataTypeSize(dataType),
               bufferManager, wal){};
 
@@ -82,7 +84,7 @@ protected:
 class PropertyColumnWithOverflow : public Column {
 public:
     PropertyColumnWithOverflow(const StorageStructureIDAndFName& structureIDAndFNameOfMainColumn,
-        const common::DataType& dataType, BufferManager& bufferManager, WAL* wal)
+        const common::DataType& dataType, BufferManager* bufferManager, WAL* wal)
         : Column{structureIDAndFNameOfMainColumn, dataType, bufferManager, wal},
           diskOverflowFile{structureIDAndFNameOfMainColumn, bufferManager, wal} {}
 
@@ -103,7 +105,7 @@ class StringPropertyColumn : public PropertyColumnWithOverflow {
 
 public:
     StringPropertyColumn(const StorageStructureIDAndFName& structureIDAndFNameOfMainColumn,
-        const common::DataType& dataType, BufferManager& bufferManager, WAL* wal)
+        const common::DataType& dataType, BufferManager* bufferManager, WAL* wal)
         : PropertyColumnWithOverflow{
               structureIDAndFNameOfMainColumn, dataType, bufferManager, wal} {};
 
@@ -138,7 +140,7 @@ class ListPropertyColumn : public PropertyColumnWithOverflow {
 
 public:
     ListPropertyColumn(const StorageStructureIDAndFName& structureIDAndFNameOfMainColumn,
-        const common::DataType& dataType, BufferManager& bufferManager, WAL* wal)
+        const common::DataType& dataType, BufferManager* bufferManager, WAL* wal)
         : PropertyColumnWithOverflow{
               structureIDAndFNameOfMainColumn, dataType, bufferManager, wal} {};
 
@@ -168,10 +170,22 @@ private:
     }
 };
 
+class StructPropertyColumn : public Column {
+public:
+    StructPropertyColumn(const StorageStructureIDAndFName& structureIDAndFName,
+        const common::DataType& dataType, BufferManager* bufferManager, WAL* wal);
+
+    void read(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
+        common::ValueVector* resultVector) override;
+
+private:
+    std::vector<std::unique_ptr<Column>> structFieldColumns;
+};
+
 class RelIDColumn : public Column {
 
 public:
-    RelIDColumn(const StorageStructureIDAndFName& structureIDAndFName, BufferManager& bufferManager,
+    RelIDColumn(const StorageStructureIDAndFName& structureIDAndFName, BufferManager* bufferManager,
         WAL* wal)
         : Column{structureIDAndFName, common::DataType(common::INTERNAL_ID),
               sizeof(common::offset_t), bufferManager, wal},
@@ -215,7 +229,7 @@ class AdjColumn : public Column {
 
 public:
     AdjColumn(const StorageStructureIDAndFName& structureIDAndFName, common::table_id_t nbrTableID,
-        BufferManager& bufferManager, WAL* wal)
+        BufferManager* bufferManager, WAL* wal)
         : Column{structureIDAndFName, common::DataType(common::INTERNAL_ID),
               sizeof(common::offset_t), bufferManager, wal},
           nbrTableID{nbrTableID} {};
@@ -251,7 +265,7 @@ class ColumnFactory {
 
 public:
     static std::unique_ptr<Column> getColumn(const StorageStructureIDAndFName& structureIDAndFName,
-        const common::DataType& dataType, BufferManager& bufferManager, WAL* wal) {
+        const common::DataType& dataType, BufferManager* bufferManager, WAL* wal) {
         switch (dataType.typeID) {
         case common::INT64:
         case common::INT32:
@@ -276,6 +290,9 @@ public:
             assert(structureIDAndFName.storageStructureID.columnFileID.columnType ==
                    ColumnType::REL_PROPERTY_COLUMN);
             return std::make_unique<RelIDColumn>(structureIDAndFName, bufferManager, wal);
+        case common::STRUCT:
+            return std::make_unique<StructPropertyColumn>(
+                structureIDAndFName, dataType, bufferManager, wal);
         default:
             throw common::StorageException("Invalid type for property column creation.");
         }

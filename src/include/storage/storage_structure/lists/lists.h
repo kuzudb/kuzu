@@ -46,7 +46,7 @@ class Lists : public BaseColumnOrList {
 public:
     Lists(const StorageStructureIDAndFName& storageStructureIDAndFName,
         const common::DataType& dataType, const size_t& elementSize,
-        std::shared_ptr<ListHeaders> headers, BufferManager& bufferManager, WAL* wal,
+        std::shared_ptr<ListHeaders> headers, BufferManager* bufferManager, WAL* wal,
         ListsUpdatesStore* listsUpdatesStore)
         : Lists{storageStructureIDAndFName, dataType, elementSize, std::move(headers),
               bufferManager, true /*hasNULLBytes*/, wal, listsUpdatesStore} {};
@@ -108,12 +108,12 @@ protected:
     virtual inline DiskOverflowFile* getDiskOverflowFileIfExists() { return nullptr; }
     Lists(const StorageStructureIDAndFName& storageStructureIDAndFName,
         const common::DataType& dataType, const size_t& elementSize,
-        std::shared_ptr<ListHeaders> headers, BufferManager& bufferManager, bool hasNULLBytes,
+        std::shared_ptr<ListHeaders> headers, BufferManager* bufferManager, bool hasNULLBytes,
         WAL* wal, ListsUpdatesStore* listsUpdatesStore)
         : BaseColumnOrList{storageStructureIDAndFName, dataType, elementSize, bufferManager,
               hasNULLBytes, wal},
           storageStructureIDAndFName{storageStructureIDAndFName},
-          metadata{storageStructureIDAndFName, &bufferManager, wal}, headers{std::move(headers)},
+          metadata{storageStructureIDAndFName, bufferManager, wal}, headers{std::move(headers)},
           listsUpdatesStore{listsUpdatesStore} {};
 
 private:
@@ -138,7 +138,7 @@ class PropertyListsWithOverflow : public Lists {
 public:
     PropertyListsWithOverflow(const StorageStructureIDAndFName& storageStructureIDAndFName,
         const common::DataType& dataType, std::shared_ptr<ListHeaders> headers,
-        BufferManager& bufferManager, WAL* wal, ListsUpdatesStore* listsUpdatesStore)
+        BufferManager* bufferManager, WAL* wal, ListsUpdatesStore* listsUpdatesStore)
         : Lists{storageStructureIDAndFName, dataType, common::Types::getDataTypeSize(dataType),
               std::move(headers), bufferManager, wal, listsUpdatesStore},
           diskOverflowFile{storageStructureIDAndFName, bufferManager, wal} {}
@@ -154,7 +154,7 @@ class StringPropertyLists : public PropertyListsWithOverflow {
 
 public:
     StringPropertyLists(const StorageStructureIDAndFName& storageStructureIDAndFName,
-        const std::shared_ptr<ListHeaders>& headers, BufferManager& bufferManager, WAL* wal,
+        const std::shared_ptr<ListHeaders>& headers, BufferManager* bufferManager, WAL* wal,
         ListsUpdatesStore* listsUpdatesStore)
         : PropertyListsWithOverflow{storageStructureIDAndFName, common::DataType{common::STRING},
               headers, bufferManager, wal, listsUpdatesStore} {};
@@ -169,7 +169,7 @@ class ListPropertyLists : public PropertyListsWithOverflow {
 public:
     ListPropertyLists(const StorageStructureIDAndFName& storageStructureIDAndFName,
         const common::DataType& dataType, const std::shared_ptr<ListHeaders>& headers,
-        BufferManager& bufferManager, WAL* wal, ListsUpdatesStore* listsUpdatesStore)
+        BufferManager* bufferManager, WAL* wal, ListsUpdatesStore* listsUpdatesStore)
         : PropertyListsWithOverflow{storageStructureIDAndFName, dataType, headers, bufferManager,
               wal, listsUpdatesStore} {};
 
@@ -182,11 +182,11 @@ class AdjLists : public Lists {
 
 public:
     AdjLists(const StorageStructureIDAndFName& storageStructureIDAndFName,
-        common::table_id_t nbrTableID, BufferManager& bufferManager, WAL* wal,
+        common::table_id_t nbrTableID, BufferManager* bufferManager, WAL* wal,
         ListsUpdatesStore* listsUpdatesStore)
         : Lists{storageStructureIDAndFName, common::DataType(common::INTERNAL_ID),
               sizeof(common::offset_t),
-              std::make_shared<ListHeaders>(storageStructureIDAndFName, &bufferManager, wal),
+              std::make_shared<ListHeaders>(storageStructureIDAndFName, bufferManager, wal),
               bufferManager, false /* hasNullBytes */, wal, listsUpdatesStore},
           nbrTableID{nbrTableID} {};
 
@@ -223,7 +223,7 @@ class RelIDList : public Lists {
 
 public:
     RelIDList(const StorageStructureIDAndFName& storageStructureIDAndFName,
-        std::shared_ptr<ListHeaders> headers, BufferManager& bufferManager, WAL* wal,
+        std::shared_ptr<ListHeaders> headers, BufferManager* bufferManager, WAL* wal,
         ListsUpdatesStore* listsUpdatesStore)
         : Lists{storageStructureIDAndFName, common::DataType{common::INTERNAL_ID},
               sizeof(common::offset_t), std::move(headers), bufferManager, wal, listsUpdatesStore} {
@@ -255,7 +255,7 @@ class ListsFactory {
 public:
     static std::unique_ptr<Lists> getLists(const StorageStructureIDAndFName& structureIDAndFName,
         const common::DataType& dataType, const std::shared_ptr<ListHeaders>& adjListsHeaders,
-        BufferManager& bufferManager, WAL* wal, ListsUpdatesStore* listsUpdatesStore) {
+        BufferManager* bufferManager, WAL* wal, ListsUpdatesStore* listsUpdatesStore) {
         assert(listsUpdatesStore != nullptr);
         switch (dataType.typeID) {
         case common::INT64:

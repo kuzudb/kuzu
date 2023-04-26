@@ -189,9 +189,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindNodeLabelFunction(const Expres
     auto nodeTableIDs = catalogContent->getNodeTableIDs();
     expression_vector children;
     children.push_back(node.getInternalIDProperty());
-    auto labelsValue =
-        std::make_unique<Value>(DataType(VAR_LIST, std::make_unique<DataType>(STRING)),
-            populateLabelValues(nodeTableIDs, *catalogContent));
+    auto labelsValue = std::make_unique<Value>(DataType(std::make_unique<DataType>(STRING)),
+        populateLabelValues(nodeTableIDs, *catalogContent));
     children.push_back(createLiteralExpression(std::move(labelsValue)));
     auto execFunc = function::LabelVectorOperation::execFunction;
     auto bindData = std::make_unique<function::FunctionBindData>(DataType(STRING));
@@ -210,9 +209,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindRelLabelFunction(const Express
     auto relTableIDs = catalogContent->getRelTableIDs();
     expression_vector children;
     children.push_back(rel.getInternalIDProperty());
-    auto labelsValue =
-        std::make_unique<Value>(DataType(VAR_LIST, std::make_unique<DataType>(STRING)),
-            populateLabelValues(relTableIDs, *catalogContent));
+    auto labelsValue = std::make_unique<Value>(DataType(std::make_unique<DataType>(STRING)),
+        populateLabelValues(relTableIDs, *catalogContent));
     children.push_back(createLiteralExpression(std::move(labelsValue)));
     auto execFunc = function::LabelVectorOperation::execFunction;
     auto bindData = std::make_unique<function::FunctionBindData>(DataType(STRING));

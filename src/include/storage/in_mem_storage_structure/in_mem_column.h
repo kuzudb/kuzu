@@ -16,6 +16,8 @@ using fill_in_mem_column_function_t = std::function<void(InMemColumn* inMemColum
 class InMemColumn {
 
 public:
+    InMemColumn() = default;
+
     // For property columns.
     InMemColumn(std::string fName, common::DataType dataType, uint64_t numBytesForElement,
         uint64_t numElements);
@@ -124,6 +126,17 @@ public:
         : InMemColumnWithOverflow{std::move(fName), std::move(dataType), numElements} {
         assert(this->dataType.typeID == common::VAR_LIST);
     };
+};
+
+class InMemStructColumn : public InMemColumn {
+
+public:
+    InMemStructColumn(std::string fName, common::DataType dataType, uint64_t numElements);
+
+    void saveToFile() override;
+
+private:
+    std::vector<std::unique_ptr<InMemColumn>> structFieldsColumns;
 };
 
 class InMemColumnFactory {

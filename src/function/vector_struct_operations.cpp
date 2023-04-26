@@ -22,7 +22,7 @@ std::unique_ptr<FunctionBindData> StructPackVectorOperations::bindFunc(
         fields.emplace_back(std::make_unique<common::StructField>(
             argument->getAlias(), argument->getDataType().copy()));
     }
-    auto resultType = common::DataType(common::STRUCT, std::move(fields));
+    auto resultType = common::DataType(std::move(fields));
     return std::make_unique<FunctionBindData>(resultType);
 }
 
@@ -43,6 +43,7 @@ std::unique_ptr<FunctionBindData> StructExtractVectorOperations::bindFunc(
         throw common::BinderException("Key name for struct_extract must be STRING literal.");
     }
     auto key = ((binder::LiteralExpression&)*arguments[1]).getValue()->getValue<std::string>();
+    common::StringUtils::toUpper(key);
     assert(definition->returnTypeID == common::ANY);
     auto childrenTypes = typeInfo->getChildrenTypes();
     auto childrenNames = typeInfo->getChildrenNames();

@@ -24,6 +24,7 @@ static void addStructFieldsVectors(common::ValueVector* structVector, common::Da
         reinterpret_cast<common::StructTypeInfo*>(structVector->dataType.getExtraTypeInfo());
     for (auto& childType : structTypeInfo->getChildrenTypes()) {
         auto childVector = std::make_shared<common::ValueVector>(*childType, memoryManager);
+        childVector->state = dataChunk->state;
         structVector->addChildVector(childVector);
     }
 }

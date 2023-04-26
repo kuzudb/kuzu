@@ -124,12 +124,23 @@ void NodeCopier::copyArrayIntoColumnChunk(InMemColumnChunk* columnChunk,
     auto& overflowCursor = overflowCursors[columnID];
     while (numValuesLeftToCopy > 0) {
         auto posInArray = arrowArray.length() - numValuesLeftToCopy;
-        auto pageCursor = CursorUtils::getPageElementCursor(
-            startNodeOffset + posInArray, column->getNumElementsInAPage());
+        auto offset = startNodeOffset + posInArray;
+        if (column->getDataType().typeID == common::STRUCT) {
+            auto numValuesToCopy =
+                std::min(numValuesLeftToCopy, reinterpret_cast<InMemStructColumnChunk*>(columnChunk)
+                                                  ->getMinNumValuesLeftOnPage(offset));
+            columnChunk->templateCopyValuesToPage<std::string, CopyDescription&, common::offset_t>(
+                PageElementCursor{}, arrowArray, posInArray, numValuesToCopy, copyDescription,
+                offset);
+            numValuesLeftToCopy -= numValuesToCopy;
+            continue;
+        }
+        auto pageCursor =
+            CursorUtils::getPageElementCursor(offset, column->getNumElementsInAPage());
         auto numValuesToCopy = std::min(
             numValuesLeftToCopy, column->getNumElementsInAPage() - pageCursor.elemPosInPage);
         for (auto i = 0u; i < numValuesToCopy; i++) {
-            column->getNullMask()->setNull(startNodeOffset + posInArray + i,
+            column->setNull(startNodeOffset + posInArray + i,
                 arrowArray.IsNull(static_cast<int64_t>(posInArray + i)));
         }
         switch (arrowArray.type_id()) {
@@ -203,9 +214,9 @@ void CSVNodeCopier::executeInternal(std::unique_ptr<NodeCopyMorsel> morsel) {
     std::vector<std::unique_ptr<InMemColumnChunk>> columnChunks(this->columns.size());
     for (auto i = 0; i < this->columns.size(); i++) {
         auto column = this->columns[i];
-        columnChunks[i] =
-            std::make_unique<InMemColumnChunk>(column->getDataType(), csvMorsel->nodeOffset,
-                endOffset, column->getNumBytesForElement(), column->getNumElementsInAPage());
+        columnChunks[i] = InMemColumnChunkFactory::getInMemColumnChunk(column->getDataType(),
+            csvMorsel->nodeOffset, endOffset, column->getNumBytesForElement(),
+            column->getNumElementsInAPage());
         copyArrayIntoColumnChunk(columnChunks[i].get(), i, *csvMorsel->recordBatch->column(i),
             csvMorsel->nodeOffset, this->copyDesc);
     }

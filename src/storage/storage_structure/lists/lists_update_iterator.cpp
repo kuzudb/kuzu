@@ -315,7 +315,7 @@ void ListsUpdateIterator::writeAtOffset(InMemList& inMemList, page_idx_t pageLis
         uint64_t numElementsToWriteToCurrentPage = std::min(
             remainingNumElementsToWrite, lists->numElementsPerPage - elementOffsetInListPage);
         StorageStructureUtils::updatePage(*(lists->getFileHandle()), lists->storageStructureID,
-            listPageIdx, insertingNewPage, lists->bufferManager, *(lists->wal),
+            listPageIdx, insertingNewPage, *lists->bufferManager, *(lists->wal),
             [&inMemList, &elementOffsetInListPage, &numElementsToWriteToCurrentPage, &elementSize,
                 &numUpdatedElements, this](uint8_t* frame) -> void {
                 auto dataToFill = inMemList.getListData() + numUpdatedElements * elementSize;

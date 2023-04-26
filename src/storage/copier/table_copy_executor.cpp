@@ -179,7 +179,7 @@ std::unique_ptr<parquet::arrow::FileReader> TableCopyExecutor::createParquetRead
 }
 
 std::vector<std::pair<int64_t, int64_t>> TableCopyExecutor::getListElementPos(
-    const std::string& l, int64_t from, int64_t to, CopyDescription& copyDescription) {
+    const std::string& l, int64_t from, int64_t to, const CopyDescription& copyDescription) {
     std::vector<std::pair<int64_t, int64_t>> split;
     int bracket = 0;
     int64_t last = from;
@@ -198,7 +198,7 @@ std::vector<std::pair<int64_t, int64_t>> TableCopyExecutor::getListElementPos(
 }
 
 std::unique_ptr<Value> TableCopyExecutor::getArrowVarList(const std::string& l, int64_t from,
-    int64_t to, const DataType& dataType, CopyDescription& copyDescription) {
+    int64_t to, const DataType& dataType, const CopyDescription& copyDescription) {
     assert(dataType.typeID == common::VAR_LIST || dataType.typeID == common::FIXED_LIST);
     auto split = getListElementPos(l, from, to, copyDescription);
     std::vector<std::unique_ptr<Value>> values;
@@ -208,44 +208,7 @@ std::unique_ptr<Value> TableCopyExecutor::getArrowVarList(const std::string& l, 
         if (element.empty()) {
             continue;
         }
-        std::unique_ptr<Value> value;
-        switch (childDataType.typeID) {
-        case INT64: {
-            value = std::make_unique<Value>((int64_t)stoll(element));
-        } break;
-        case DOUBLE: {
-            value = std::make_unique<Value>(stod(element));
-        } break;
-        case BOOL: {
-            transform(element.begin(), element.end(), element.begin(), ::tolower);
-            std::istringstream is(element);
-            bool b;
-            is >> std::boolalpha >> b;
-            value = std::make_unique<Value>(b);
-        } break;
-        case STRING: {
-            value = make_unique<Value>(element);
-        } break;
-        case DATE: {
-            value = std::make_unique<Value>(Date::FromCString(element.c_str(), element.length()));
-        } break;
-        case TIMESTAMP: {
-            value =
-                std::make_unique<Value>(Timestamp::FromCString(element.c_str(), element.length()));
-        } break;
-        case INTERVAL: {
-            value =
-                std::make_unique<Value>(Interval::FromCString(element.c_str(), element.length()));
-        } break;
-        case VAR_LIST: {
-            value = getArrowVarList(l, pair.first + 1, pair.second + pair.first - 1,
-                *dataType.getChildType(), copyDescription);
-        } break;
-        default:
-            throw CopyException("Unsupported data type " +
-                                Types::dataTypeToString(dataType.getChildType()->typeID) +
-                                " inside LIST");
-        }
+        auto value = convertStringToValue(element, *dataType.getChildType(), copyDescription);
         values.push_back(std::move(value));
     }
     auto numBytesOfOverflow = values.size() * Types::getDataTypeSize(childDataType.typeID);
@@ -255,11 +218,11 @@ std::unique_ptr<Value> TableCopyExecutor::getArrowVarList(const std::string& l, 
             BufferPoolConstants::PAGE_4KB_SIZE, numBytesOfOverflow));
     }
     return make_unique<Value>(
-        DataType(VAR_LIST, std::make_unique<DataType>(childDataType)), std::move(values));
+        DataType(std::make_unique<DataType>(childDataType)), std::move(values));
 }
 
 std::unique_ptr<uint8_t[]> TableCopyExecutor::getArrowFixedList(const std::string& l, int64_t from,
-    int64_t to, const DataType& dataType, CopyDescription& copyDescription) {
+    int64_t to, const DataType& dataType, const CopyDescription& copyDescription) {
     assert(dataType.typeID == common::FIXED_LIST);
     auto split = getListElementPos(l, from, to, copyDescription);
     auto listVal = std::make_unique<uint8_t[]>(Types::getDataTypeSize(dataType));
@@ -344,7 +307,8 @@ std::shared_ptr<arrow::DataType> TableCopyExecutor::toArrowDataType(
     case common::INTERVAL:
     case common::FIXED_LIST:
     case common::VAR_LIST:
-    case common::STRING: {
+    case common::STRING:
+    case common::STRUCT: {
         return arrow::utf8();
     }
     default: {
@@ -352,6 +316,55 @@ std::shared_ptr<arrow::DataType> TableCopyExecutor::toArrowDataType(
             "Unsupported data type for CSV " + Types::dataTypeToString(dataType.typeID));
     }
     }
+}
+
+std::unique_ptr<Value> TableCopyExecutor::convertStringToValue(
+    std::string element, const DataType& type, const CopyDescription& copyDescription) {
+    std::unique_ptr<Value> value;
+    switch (type.typeID) {
+    case INT64: {
+        value = std::make_unique<Value>(TypeUtils::convertStringToNumber<int64_t>(element.c_str()));
+    } break;
+    case INT32: {
+        value = std::make_unique<Value>(TypeUtils::convertStringToNumber<int32_t>(element.c_str()));
+    } break;
+    case INT16: {
+        value = std::make_unique<Value>(TypeUtils::convertStringToNumber<int16_t>(element.c_str()));
+    } break;
+    case FLOAT: {
+        value = std::make_unique<Value>(TypeUtils::convertStringToNumber<float_t>(element.c_str()));
+    } break;
+    case DOUBLE: {
+        value =
+            std::make_unique<Value>(TypeUtils::convertStringToNumber<double_t>(element.c_str()));
+    } break;
+    case BOOL: {
+        transform(element.begin(), element.end(), element.begin(), ::tolower);
+        std::istringstream is(element);
+        bool b;
+        is >> std::boolalpha >> b;
+        value = std::make_unique<Value>(b);
+    } break;
+    case STRING: {
+        value = make_unique<Value>(element);
+    } break;
+    case DATE: {
+        value = std::make_unique<Value>(Date::FromCString(element.c_str(), element.length()));
+    } break;
+    case TIMESTAMP: {
+        value = std::make_unique<Value>(Timestamp::FromCString(element.c_str(), element.length()));
+    } break;
+    case INTERVAL: {
+        value = std::make_unique<Value>(Interval::FromCString(element.c_str(), element.length()));
+    } break;
+    case VAR_LIST: {
+        value = getArrowVarList(element, 1, element.length() - 2, type, copyDescription);
+    } break;
+    default:
+        throw CopyException(
+            "Unsupported data type " + Types::dataTypeToString(type.typeID) + " inside LIST");
+    }
+    return value;
 }
 
 } // namespace storage

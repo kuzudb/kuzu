@@ -23,9 +23,9 @@
 -NAME MultiLabelReturnStar
 -QUERY MATCH (a:movies:organisation) RETURN *
 ---- 6
-(label:organisation, 1:0, {ID:1, name:ABFsUni, orgCode:325, mark:3.700000, score:-2, history:10 years 5 months 13 hours 24 us, licenseValidInterval:3 years 5 days, rating:1.000000, length:, note:})
-(label:organisation, 1:1, {ID:4, name:CsWork, orgCode:934, mark:4.100000, score:-100, history:2 years 4 days 10 hours, licenseValidInterval:26 years 52 days 48:00:00, rating:0.780000, length:, note:})
-(label:organisation, 1:2, {ID:6, name:DEsWork, orgCode:824, mark:4.100000, score:7, history:2 years 4 hours 22 us 34 minutes, licenseValidInterval:82:00:00.1, rating:0.520000, length:, note:})
-(label:movies, 2:0, {ID:, name:Sóló cón tu párejâ, orgCode:, mark:, score:, history:, licenseValidInterval:, rating:, length:126, note: this is a very very good movie})
-(label:movies, 2:1, {ID:, name:The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie, orgCode:, mark:, score:, history:, licenseValidInterval:, rating:, length:2544, note: the movie is very very good})
-(label:movies, 2:2, {ID:, name:Roma, orgCode:, mark:, score:, history:, licenseValidInterval:, rating:, length:298, note:the movie is very interesting and funny})
+(label:movies, 2:0, {ID:, name:Sóló cón tu párejâ, orgCode:, mark:, score:, history:, licenseValidInterval:, rating:, length:126, note: this is a very very good movie, description:{RATING: 5.300000, VIEWS: 152, RELEASE: 2011-08-20 11:25:30, FILM: 2012-05-11}})
+(label:movies, 2:1, {ID:, name:The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie, orgCode:, mark:, score:, history:, licenseValidInterval:, rating:, length:2544, note: the movie is very very good, description:{RATING: 7.000000, VIEWS: 982, RELEASE: 2018-11-13 13:33:11, FILM: 2014-09-12}})
+(label:movies, 2:2, {ID:, name:Roma, orgCode:, mark:, score:, history:, licenseValidInterval:, rating:, length:298, note:the movie is very interesting and funny, description:{RATING: 1223.000000, VIEWS: 10003, RELEASE: 2011-02-11 16:44:22, FILM: 2013-02-22}})
+(label:organisation, 1:0, {ID:1, name:ABFsUni, orgCode:325, mark:3.700000, score:-2, history:10 years 5 months 13 hours 24 us, licenseValidInterval:3 years 5 days, rating:1.000000, length:, note:, description:})
+(label:organisation, 1:1, {ID:4, name:CsWork, orgCode:934, mark:4.100000, score:-100, history:2 years 4 days 10 hours, licenseValidInterval:26 years 52 days 48:00:00, rating:0.780000, length:, note:, description:})
+(label:organisation, 1:2, {ID:6, name:DEsWork, orgCode:824, mark:4.100000, score:7, history:2 years 4 hours 22 us 34 minutes, licenseValidInterval:82:00:00.1, rating:0.520000, length:, note:, description:})

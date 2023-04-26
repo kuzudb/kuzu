@@ -26,7 +26,8 @@ def init_tiny_snb(tmp_path):
     conn.execute("create node table organisation (ID INT64, name STRING, orgCode INT64, mark DOUBLE, score INT64, "
                  "history STRING, licenseValidInterval INTERVAL, rating DOUBLE, PRIMARY KEY (ID))")
     conn.execute('COPY organisation FROM "../../../dataset/tinysnb/vOrganisation.csv"')
-    conn.execute('CREATE NODE TABLE movies (name STRING, length INT32, note STRING, PRIMARY KEY (name))')
+    conn.execute('CREATE NODE TABLE movies (name STRING, length INT32, note STRING, description STRUCT(rating DOUBLE, '
+                 'views INT64, release TIMESTAMP, film DATE), PRIMARY KEY (name))')
     conn.execute('COPY movies FROM "../../../dataset/tinysnb/vMovies.csv"')
     conn.execute('create rel table workAt (FROM person TO organisation, year INT64, grading DOUBLE[2], rating float,'
                  ' MANY_ONE)')

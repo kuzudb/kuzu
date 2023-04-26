@@ -94,7 +94,7 @@ TEST_F(BinderErrorTest, BindPropertyNotExist2) {
 }
 
 TEST_F(BinderErrorTest, BindPropertyNotExist3) {
-    std::string expectedException = "Binder exception: Cannot find key b for struct_extract.";
+    std::string expectedException = "Binder exception: Cannot find key B for struct_extract.";
     auto input = "WITH {a: 1} AS s RETURN s.b;";
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
