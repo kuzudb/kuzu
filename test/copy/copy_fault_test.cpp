@@ -52,7 +52,7 @@ TEST_F(CopyDuplicateIDTest, DuplicateIDsError) {
     validateCopyException(
         "COPY person FROM \"" +
             TestHelper::appendKuzuRootPath("dataset/copy-fault-tests/duplicate-ids/vPerson.csv\""),
-        "Copy exception: " + Exception::getExistedPKExceptionMsg("10"));
+        "HashIndex exception: " + Exception::getExistedPKExceptionMsg("10"));
 }
 
 TEST_F(CopyNodeUnmatchedColumnTypeTest, UnMatchedColumnTypeError) {

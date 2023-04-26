@@ -31,6 +31,7 @@ public:
         auto elemPosInPageInBytes = cursor.elemPosInPage * numBytesForElement;
         return getPage(cursor.pageIdx) + elemPosInPageInBytes;
     }
+    inline common::DataType getDataType() const { return dataType; }
 
     template<typename T, typename... Args>
     void templateCopyValuesToPage(const PageElementCursor& pageCursor, arrow::Array& array,
