@@ -22,25 +22,37 @@ using namespace kuzu::catalog;
 namespace kuzu {
 namespace binder {
 
-std::unique_ptr<BoundStatement> Binder::bindCreateNodeClause(const Statement& statement) {
-    auto& createNodeClause = (parser::CreateNodeClause&)statement;
-    auto tableName = createNodeClause.getTableName();
+std::unique_ptr<BoundStatement> Binder::bindCreateNodeTableClause(
+    const parser::Statement& statement) {
+    auto& createNodeTableClause = (parser::CreateNodeTableClause&)statement;
+    auto tableName = createNodeTableClause.getTableName();
     if (catalog.getReadOnlyVersion()->containTable(tableName)) {
         throw BinderException("Node " + tableName + " already exists.");
     }
-    auto boundProperties = bindProperties(createNodeClause.getPropertyNameDataTypes());
+    auto boundProperties = bindProperties(createNodeTableClause.getPropertyNameDataTypes());
     auto primaryKeyIdx = bindPrimaryKey(
-        createNodeClause.getPKColName(), createNodeClause.getPropertyNameDataTypes());
+        createNodeTableClause.getPKColName(), createNodeTableClause.getPropertyNameDataTypes());
+    for (auto i = 0u; i < boundProperties.size(); ++i) {
+        if (boundProperties[i].dataType.typeID == SERIAL && primaryKeyIdx != i) {
+            throw BinderException("Serial property in node table must be the primary key.");
+        }
+    }
     return make_unique<BoundCreateNodeClause>(tableName, std::move(boundProperties), primaryKeyIdx);
 }
 
-std::unique_ptr<BoundStatement> Binder::bindCreateRelClause(const Statement& statement) {
+std::unique_ptr<BoundStatement> Binder::bindCreateRelTableClause(
+    const parser::Statement& statement) {
     auto& createRelClause = (CreateRelClause&)statement;
     auto tableName = createRelClause.getTableName();
     if (catalog.getReadOnlyVersion()->containTable(tableName)) {
         throw BinderException("Rel " + tableName + " already exists.");
     }
     auto boundProperties = bindProperties(createRelClause.getPropertyNameDataTypes());
+    for (auto& boundProperty : boundProperties) {
+        if (boundProperty.dataType.typeID == SERIAL) {
+            throw BinderException("Serial property is not supported in rel table.");
+        }
+    }
     auto relMultiplicity = getRelMultiplicityFromString(createRelClause.getRelMultiplicity());
     return make_unique<BoundCreateRelClause>(tableName, std::move(boundProperties), relMultiplicity,
         bindNodeTableID(createRelClause.getSrcTableName()),
@@ -80,6 +92,9 @@ std::unique_ptr<BoundStatement> Binder::bindAddPropertyClause(const parser::Stat
     auto dataType = bindDataType(addProperty.getDataType());
     if (catalogContent->getTableSchema(tableID)->containProperty(addProperty.getPropertyName())) {
         throw BinderException("Property: " + addProperty.getPropertyName() + " already exists.");
+    }
+    if (dataType.typeID == SERIAL) {
+        throw BinderException("Serial property in node table must be the primary key.");
     }
     auto defaultVal = ExpressionBinder::implicitCastIfNecessary(
         expressionBinder.bindExpression(*addProperty.getDefaultValue()), dataType);
@@ -157,10 +172,11 @@ uint32_t Binder::bindPrimaryKey(const std::string& pkColName,
     }
     auto primaryKey = propertyNameDataTypes[primaryKeyIdx];
     StringUtils::toUpper(primaryKey.second);
-    // We only support INT64, and STRING column as the primary key.
+    // We only support INT64, STRING and SERIAL column as the primary key.
     switch (Types::dataTypeFromString(primaryKey.second).typeID) {
     case common::INT64:
     case common::STRING:
+    case common::SERIAL:
         break;
     default:
         throw BinderException(

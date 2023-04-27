@@ -17,6 +17,9 @@ std::string getRelMultiplicityAsString(RelMultiplicity relMultiplicity);
 
 struct Property {
 public:
+    static constexpr std::string_view REL_FROM_PROPERTY_NAME = "_FROM_";
+    static constexpr std::string_view REL_TO_PROPERTY_NAME = "_TO_";
+
     // This constructor is needed for ser/deser functions
     Property() : Property{"", common::DataType{}} {};
     Property(std::string name, common::DataType dataType)

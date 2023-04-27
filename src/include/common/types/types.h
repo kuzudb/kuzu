@@ -53,6 +53,9 @@ KUZU_API enum DataTypeID : uint8_t {
     ANY = 0,
     NODE = 10,
     REL = 11,
+    // SERIAL is a special data type that is used to represent a sequence of INT64 values that are
+    // incremented by 1 starting from 0.
+    SERIAL = 12,
 
     // physical types
 

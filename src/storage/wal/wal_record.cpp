@@ -27,8 +27,7 @@ StorageStructureID StorageStructureID::newNodePropertyColumnID(
     StorageStructureID retVal;
     retVal.storageStructureType = StorageStructureType::COLUMN;
     retVal.isOverflow = false;
-    retVal.columnFileID =
-        ColumnFileID(NodePropertyColumnID(NodePropertyColumnID(tableID, propertyID)));
+    retVal.columnFileID = ColumnFileID(NodePropertyColumnID(tableID, propertyID));
     return retVal;
 }
 

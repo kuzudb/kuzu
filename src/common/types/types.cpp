@@ -332,6 +332,8 @@ DataTypeID Types::dataTypeIDFromString(const std::string& dataTypeIDString) {
         return TIMESTAMP;
     } else if ("INTERVAL" == dataTypeIDString) {
         return INTERVAL;
+    } else if ("SERIAL" == dataTypeIDString) {
+        return SERIAL;
     } else {
         throw InternalException("Cannot parse dataTypeID: " + dataTypeIDString);
     }
@@ -415,6 +417,8 @@ std::string Types::dataTypeToString(DataTypeID dataTypeID) {
         return "FIXED_LIST";
     case STRUCT:
         return "STRUCT";
+    case SERIAL:
+        return "SERIAL";
     default:
         throw InternalException(
             "Unsupported DataType: " + Types::dataTypeToString(dataTypeID) + ".");
@@ -447,6 +451,7 @@ uint32_t Types::getDataTypeSize(DataTypeID dataTypeID) {
         return sizeof(internalID_t);
     case BOOL:
         return sizeof(uint8_t);
+    case SERIAL:
     case INT64:
         return sizeof(int64_t);
     case INT32:
@@ -490,6 +495,7 @@ uint32_t Types::getDataTypeSize(const DataType& dataType) {
     }
     case INTERNAL_ID:
     case BOOL:
+    case SERIAL:
     case INT64:
     case INT32:
     case INT16:

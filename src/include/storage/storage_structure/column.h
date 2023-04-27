@@ -11,7 +11,7 @@ namespace storage {
 class Column : public BaseColumnOrList {
 
 public:
-    Column() = default;
+    Column(const common::DataType& dataType) : BaseColumnOrList{dataType} {};
 
     Column(const StorageStructureIDAndFName& structureIDAndFName, const common::DataType& dataType,
         size_t elementSize, BufferManager* bufferManager, WAL* wal)
@@ -24,7 +24,7 @@ public:
               bufferManager, wal){};
 
     // Expose for feature store
-    void scan(const common::offset_t* nodeOffsets, size_t size, uint8_t* result);
+    virtual void batchLookup(const common::offset_t* nodeOffsets, size_t size, uint8_t* result);
 
     virtual void read(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
         common::ValueVector* resultVector);
@@ -261,6 +261,14 @@ private:
     common::table_id_t nbrTableID;
 };
 
+class SerialColumn : public Column {
+public:
+    SerialColumn() : Column{common::DataType{common::SERIAL}} {}
+
+    void read(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
+        common::ValueVector* resultVector) override;
+};
+
 class ColumnFactory {
 
 public:
@@ -286,13 +294,15 @@ public:
                 structureIDAndFName, dataType, bufferManager, wal);
         case common::INTERNAL_ID:
             assert(structureIDAndFName.storageStructureID.storageStructureType ==
-                   StorageStructureType::COLUMN);
-            assert(structureIDAndFName.storageStructureID.columnFileID.columnType ==
-                   ColumnType::REL_PROPERTY_COLUMN);
+                       StorageStructureType::COLUMN &&
+                   structureIDAndFName.storageStructureID.columnFileID.columnType ==
+                       ColumnType::REL_PROPERTY_COLUMN);
             return std::make_unique<RelIDColumn>(structureIDAndFName, bufferManager, wal);
         case common::STRUCT:
             return std::make_unique<StructPropertyColumn>(
                 structureIDAndFName, dataType, bufferManager, wal);
+        case common::SERIAL:
+            return std::make_unique<SerialColumn>();
         default:
             throw common::StorageException("Invalid type for property column creation.");
         }

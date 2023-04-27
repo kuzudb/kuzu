@@ -15,6 +15,9 @@ void NodeCopyExecutor::initializeColumnsAndLists() {
     for (auto& property : tableSchema->properties) {
         auto fName = StorageUtils::getNodePropertyColumnFName(
             outputDirectory, tableSchema->tableID, property.propertyID, DBFileType::WAL_VERSION);
+        if (property.dataType.typeID == SERIAL) {
+            continue;
+        }
         columns.push_back(
             NodeInMemColumnFactory::getNodeInMemColumn(fName, property.dataType, numRows));
         propertyIDToColumnIDMap[property.propertyID] = columns.size() - 1;
@@ -29,35 +32,35 @@ void NodeCopyExecutor::populateColumnsAndLists(processor::ExecutionContext* exec
 void NodeCopyExecutor::populateColumns(processor::ExecutionContext* executionContext) {
     logger->info("Populating properties");
     auto primaryKey = reinterpret_cast<NodeTableSchema*>(tableSchema)->getPrimaryKey();
-    auto pkIndex = std::make_unique<PrimaryKeyIndexBuilder>(
-        StorageUtils::getNodeIndexFName(
-            this->outputDirectory, tableSchema->tableID, common::DBFileType::WAL_VERSION),
-        primaryKey.dataType);
-    pkIndex->bulkReserve(numRows);
-
+    std::unique_ptr<PrimaryKeyIndexBuilder> pkIndex;
+    if (primaryKey.dataType.typeID != common::SERIAL) {
+        pkIndex = std::make_unique<PrimaryKeyIndexBuilder>(
+            StorageUtils::getNodeIndexFName(
+                this->outputDirectory, tableSchema->tableID, common::DBFileType::WAL_VERSION),
+            primaryKey.dataType);
+        pkIndex->bulkReserve(numRows);
+    }
     std::vector<std::shared_ptr<common::Task>> tasks;
-
     switch (copyDescription.fileType) {
-    case common::CopyDescription::FileType::CSV: {
-        auto sharedState = std::make_shared<CSVNodeCopySharedState>(copyDescription.filePaths,
-            fileBlockInfos, copyDescription.csvReaderConfig.get(), tableSchema);
-        std::vector<InMemNodeColumn*> columnsToCopy(columns.size());
-        for (auto i = 0u; i < columns.size(); i++) {
-            columnsToCopy[i] = columns[i].get();
-        }
-        auto nodeCopier = std::make_unique<CSVNodeCopier>(std::move(sharedState), pkIndex.get(),
-            copyDescription, columnsToCopy, propertyIDToColumnIDMap[primaryKey.propertyID]);
-        tasks.push_back(std::make_shared<NodeCopyTask>(std::move(nodeCopier), executionContext));
-    } break;
+    case common::CopyDescription::FileType::CSV:
     case common::CopyDescription::FileType::PARQUET: {
-        auto sharedState =
-            std::make_shared<NodeCopySharedState>(copyDescription.filePaths, fileBlockInfos);
         std::vector<InMemNodeColumn*> columnsToCopy(columns.size());
         for (auto i = 0u; i < columns.size(); i++) {
             columnsToCopy[i] = columns[i].get();
         }
-        auto nodeCopier = std::make_unique<ParquetNodeCopier>(std::move(sharedState), pkIndex.get(),
-            copyDescription, columnsToCopy, propertyIDToColumnIDMap[primaryKey.propertyID]);
+        auto pkColumnID = propertyIDToColumnIDMap[primaryKey.propertyID];
+        std::unique_ptr<NodeCopier> nodeCopier;
+        if (copyDescription.fileType == common::CopyDescription::FileType::CSV) {
+            auto sharedState = std::make_shared<CSVNodeCopySharedState>(copyDescription.filePaths,
+                fileBlockInfos, copyDescription.csvReaderConfig.get(), tableSchema);
+            nodeCopier = std::make_unique<CSVNodeCopier>(
+                std::move(sharedState), pkIndex.get(), copyDescription, columnsToCopy, pkColumnID);
+        } else {
+            auto sharedState =
+                std::make_shared<NodeCopySharedState>(copyDescription.filePaths, fileBlockInfos);
+            nodeCopier = std::make_unique<ParquetNodeCopier>(
+                std::move(sharedState), pkIndex.get(), copyDescription, columnsToCopy, pkColumnID);
+        }
         tasks.push_back(std::make_shared<NodeCopyTask>(std::move(nodeCopier), executionContext));
     } break;
     case common::CopyDescription::FileType::NPY: {
@@ -66,9 +69,9 @@ void NodeCopyExecutor::populateColumns(processor::ExecutionContext* executionCon
             auto sharedState = std::make_shared<NodeCopySharedState>(filePaths, fileBlockInfos);
             // For NPY files, we can only read one column at a time.
             std::vector<InMemNodeColumn*> columnsToCopy = {columns[i].get()};
-            auto nodeCopier = std::make_unique<NPYNodeCopier>(std::move(sharedState), pkIndex.get(),
-                copyDescription, columnsToCopy,
-                i == propertyIDToColumnIDMap[primaryKey.propertyID] ? 0 : INVALID_COLUMN_ID);
+            auto nodeCopier = std::make_unique<NPYNodeCopier>(std::move(sharedState),
+                i == propertyIDToColumnIDMap[primaryKey.propertyID] ? pkIndex.get() : nullptr,
+                copyDescription, columnsToCopy, 0 /* pkColumnID */);
             tasks.push_back(
                 std::make_shared<NodeCopyTask>(std::move(nodeCopier), executionContext));
         }

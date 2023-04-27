@@ -28,6 +28,7 @@ public:
         : logger{common::LoggerUtils::getLogger(common::LoggerConstants::LoggerEnum::STORAGE)},
           storageStructureID{storageStructureIDAndFName.storageStructureID},
           bufferManager{bufferManager}, wal{wal} {
+        assert(!storageStructureIDAndFName.fName.empty());
         fileHandle = bufferManager->getBMFileHandle(storageStructureIDAndFName.fName,
             FileHandle::O_PERSISTENT_FILE_NO_CREATE,
             BMFileHandle::FileVersionedType::VERSIONED_FILE);
@@ -64,7 +65,7 @@ protected:
 class BaseColumnOrList : public StorageStructure {
 
 public:
-    BaseColumnOrList() = default;
+    BaseColumnOrList(const common::DataType& dataType) : dataType{dataType} {}
 
     // Maps the position of element in page to its byte offset in page.
     // TODO(Everyone): we should slowly get rid of this function.

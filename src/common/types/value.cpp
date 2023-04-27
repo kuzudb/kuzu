@@ -324,18 +324,6 @@ Value::Value() : dataType{ANY}, isNull_{true} {}
 
 Value::Value(DataType dataType) : dataType{std::move(dataType)}, isNull_{true} {}
 
-void Value::validateType(DataTypeID typeID) const {
-    validateType(DataType(typeID));
-}
-
-void Value::validateType(const DataType& type) const {
-    if (type != dataType) {
-        throw RuntimeException(
-            StringUtils::string_format("Cannot get {} value from the {} result value.",
-                Types::dataTypeToString(type), Types::dataTypeToString(dataType)));
-    }
-}
-
 std::vector<std::unique_ptr<Value>> Value::convertKUVarListToVector(ku_list_t& list) const {
     std::vector<std::unique_ptr<Value>> listResultValue;
     auto numBytesPerElement = Types::getDataTypeSize(*dataType.getChildType());

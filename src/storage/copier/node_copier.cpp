@@ -198,7 +198,7 @@ void NodeCopier::flushChunksAndPopulatePKIndex(
         column->flushChunk(columnChunks[i].get(), startNodeOffset, endNodeOffset);
     }
     // Populate the primary key index.
-    if (this->pkColumnID == INVALID_COLUMN_ID) {
+    if (!this->pkIndex) {
         return;
     }
     auto pkColumn = this->columns[this->pkColumnID];

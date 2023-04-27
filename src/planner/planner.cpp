@@ -32,10 +32,10 @@ std::unique_ptr<LogicalPlan> Planner::getBestPlan(const Catalog& catalog,
     case StatementType::QUERY: {
         plan = QueryPlanner(catalog, nodesStatistics, relsStatistics).getBestPlan(statement);
     } break;
-    case StatementType::CREATE_NODE_CLAUSE: {
+    case StatementType::CREATE_NODE_TABLE_CLAUSE: {
         plan = planCreateNodeTable(statement);
     } break;
-    case StatementType::CREATE_REL_CLAUSE: {
+    case StatementType::CREATE_REL_TABLE_CLAUSE: {
         plan = planCreateRelTable(statement);
     } break;
     case StatementType::COPY: {
