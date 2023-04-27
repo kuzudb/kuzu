@@ -6,7 +6,7 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace processor {
 
-void FTableSharedState::initTableIfNecessary(
+void FTableSharedState::initTable(
     MemoryManager* memoryManager, std::unique_ptr<FactorizedTableSchema> tableSchema) {
     assert(table == nullptr);
     nextTupleIdxToScan = 0u;
@@ -45,7 +45,7 @@ void ResultCollector::executeInternal(ExecutionContext* context) {
 }
 
 void ResultCollector::initGlobalStateInternal(ExecutionContext* context) {
-    sharedState->initTableIfNecessary(context->memoryManager, populateTableSchema());
+    sharedState->initTable(context->memoryManager, populateTableSchema());
 }
 
 std::unique_ptr<FactorizedTableSchema> ResultCollector::populateTableSchema() {

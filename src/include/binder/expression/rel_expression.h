@@ -38,12 +38,20 @@ public:
         return getPropertyExpression(common::INTERNAL_ID_SUFFIX);
     }
 
+    inline void setInternalLengthProperty(std::shared_ptr<Expression> expression) {
+        internalLengthExpression = std::move(expression);
+    }
+    inline std::shared_ptr<Expression> getInternalLengthProperty() {
+        return internalLengthExpression;
+    }
+
 private:
     std::shared_ptr<NodeExpression> srcNode;
     std::shared_ptr<NodeExpression> dstNode;
     common::QueryRelType relType;
     uint64_t lowerBound;
     uint64_t upperBound;
+    std::shared_ptr<Expression> internalLengthExpression;
 };
 
 } // namespace binder
