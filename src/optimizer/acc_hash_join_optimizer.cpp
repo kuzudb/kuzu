@@ -4,6 +4,7 @@
 #include "planner/logical_plan/logical_operator/logical_accumulate.h"
 #include "planner/logical_plan/logical_operator/logical_hash_join.h"
 #include "planner/logical_plan/logical_operator/logical_intersect.h"
+#include "planner/logical_plan/logical_operator/logical_recursive_extend.h"
 #include "planner/logical_plan/logical_operator/logical_scan_node.h"
 #include "planner/logical_plan/logical_operator/logical_semi_masker.h"
 
@@ -12,11 +13,11 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace optimizer {
 
-void AccHashJoinOptimizer::rewrite(planner::LogicalPlan* plan) {
+void HashJoinSIPOptimizer::rewrite(planner::LogicalPlan* plan) {
     visitOperator(plan->getLastOperator().get());
 }
 
-void AccHashJoinOptimizer::visitOperator(planner::LogicalOperator* op) {
+void HashJoinSIPOptimizer::visitOperator(planner::LogicalOperator* op) {
     // bottom up traversal
     for (auto i = 0u; i < op->getNumChildren(); ++i) {
         visitOperator(op->getChild(i).get());
@@ -24,14 +25,14 @@ void AccHashJoinOptimizer::visitOperator(planner::LogicalOperator* op) {
     visitOperatorSwitch(op);
 }
 
-void AccHashJoinOptimizer::visitHashJoin(planner::LogicalOperator* op) {
-    if (tryProbeToBuildHJSIP(op)) { // Try probe to build SIP first.
+void HashJoinSIPOptimizer::visitHashJoin(planner::LogicalOperator* op) {
+    if (tryBuildToProbeHJSIP(op)) { // Try build to probe SIP first.
         return;
     }
-    tryBuildToProbeHJSIP(op);
+    tryProbeToBuildHJSIP(op);
 }
 
-bool AccHashJoinOptimizer::tryProbeToBuildHJSIP(planner::LogicalOperator* op) {
+bool HashJoinSIPOptimizer::tryProbeToBuildHJSIP(planner::LogicalOperator* op) {
     auto hashJoin = (LogicalHashJoin*)op;
     if (hashJoin->getSIP() == planner::SidewaysInfoPassing::PROHIBIT_PROBE_TO_BUILD) {
         return false;
@@ -39,15 +40,21 @@ bool AccHashJoinOptimizer::tryProbeToBuildHJSIP(planner::LogicalOperator* op) {
     if (!isProbeSideQualified(op->getChild(0).get())) {
         return false;
     }
-    std::vector<LogicalOperator*> buildRoots;
-    buildRoots.push_back(hashJoin->getChild(1).get());
-    auto scanNodes = resolveScanNodesToApplySemiMask(hashJoin->getJoinNodeIDs(), buildRoots);
-    if (scanNodes.empty()) {
+    auto probeRoot = hashJoin->getChild(0);
+    auto buildRoot = hashJoin->getChild(1);
+    auto hasSemiMaskApplied = false;
+    for (auto& nodeID : hashJoin->getJoinNodeIDs()) {
+        auto ops = resolveOperatorsToApplySemiMask(*nodeID, buildRoot.get());
+        if (!ops.empty()) {
+            probeRoot = appendSemiMask(nodeID, ops, probeRoot);
+            hasSemiMaskApplied = true;
+        }
+    }
+    if (!hasSemiMaskApplied) {
         return false;
     }
-    // apply accumulated hash join
     hashJoin->setSIP(SidewaysInfoPassing::PROBE_TO_BUILD);
-    applyAccHashJoin(scanNodes, op);
+    hashJoin->setChild(0, appendAccumulate(probeRoot));
     return true;
 }
 
@@ -62,7 +69,7 @@ static bool subPlanContainsFilter(LogicalOperator* root) {
     return true;
 }
 
-bool AccHashJoinOptimizer::tryBuildToProbeHJSIP(planner::LogicalOperator* op) {
+bool HashJoinSIPOptimizer::tryBuildToProbeHJSIP(planner::LogicalOperator* op) {
     auto hashJoin = (LogicalHashJoin*)op;
     if (hashJoin->getSIP() == planner::SidewaysInfoPassing::PROHIBIT_BUILD_TO_PROBE) {
         return false;
@@ -73,18 +80,20 @@ bool AccHashJoinOptimizer::tryBuildToProbeHJSIP(planner::LogicalOperator* op) {
     if (!subPlanContainsFilter(hashJoin->getChild(1).get())) {
         return false;
     }
-    std::vector<LogicalOperator*> roots;
-    roots.push_back(hashJoin->getChild(0).get());
-    auto scanNodes = resolveScanNodesToApplySemiMask(hashJoin->getJoinNodeIDs(), roots);
-    if (scanNodes.empty()) {
-        return false;
+    auto probeRoot = hashJoin->getChild(0);
+    auto buildRoot = hashJoin->getChild(1);
+    for (auto& nodeID : hashJoin->getJoinNodeIDs()) {
+        auto ops = resolveOperatorsToApplySemiMask(*nodeID, probeRoot.get());
+        if (!ops.empty()) {
+            buildRoot = appendSemiMask(nodeID, ops, buildRoot);
+        }
     }
     hashJoin->setSIP(planner::SidewaysInfoPassing::BUILD_TO_PROBE);
-    hashJoin->setChild(1, applySemiMasks(scanNodes, op->getChild(1)));
+    hashJoin->setChild(1, buildRoot);
     return true;
 }
 
-void AccHashJoinOptimizer::visitIntersect(planner::LogicalOperator* op) {
+void HashJoinSIPOptimizer::visitIntersect(planner::LogicalOperator* op) {
     auto intersect = (LogicalIntersect*)op;
     if (intersect->getSIP() == planner::SidewaysInfoPassing::PROHIBIT_PROBE_TO_BUILD) {
         return;
@@ -92,20 +101,30 @@ void AccHashJoinOptimizer::visitIntersect(planner::LogicalOperator* op) {
     if (!isProbeSideQualified(op->getChild(0).get())) {
         return;
     }
-    std::vector<LogicalOperator*> buildRoots;
-    for (auto i = 1; i < intersect->getNumChildren(); ++i) {
-        buildRoots.push_back(intersect->getChild(i).get());
+    auto probeRoot = intersect->getChild(0);
+    auto hasSemiMaskApplied = false;
+    for (auto& nodeID : intersect->getKeyNodeIDs()) {
+        std::vector<planner::LogicalOperator*> ops;
+        for (auto i = 1; i < intersect->getNumChildren(); ++i) {
+            auto buildRoot = intersect->getChild(1);
+            for (auto& op_ : resolveOperatorsToApplySemiMask(*nodeID, buildRoot.get())) {
+                ops.push_back(op_);
+            }
+        }
+        if (!ops.empty()) {
+            probeRoot = appendSemiMask(nodeID, ops, probeRoot);
+            hasSemiMaskApplied = true;
+        }
     }
-    auto scanNodes = resolveScanNodesToApplySemiMask(intersect->getKeyNodeIDs(), buildRoots);
-    if (scanNodes.empty()) {
+    if (!hasSemiMaskApplied) {
         return;
     }
     intersect->setSIP(SidewaysInfoPassing::PROBE_TO_BUILD);
-    applyAccHashJoin(scanNodes, op);
+    intersect->setChild(0, appendAccumulate(probeRoot));
 }
 
 // Probe side is qualified if it is selective.
-bool AccHashJoinOptimizer::isProbeSideQualified(planner::LogicalOperator* probeRoot) {
+bool HashJoinSIPOptimizer::isProbeSideQualified(planner::LogicalOperator* probeRoot) {
     if (probeRoot->getOperatorType() == LogicalOperatorType::ACCUMULATE) {
         // No Acc hash join if probe side has already been accumulated. This can be solved.
         return false;
@@ -114,54 +133,80 @@ bool AccHashJoinOptimizer::isProbeSideQualified(planner::LogicalOperator* probeR
     return subPlanContainsFilter(probeRoot);
 }
 
-binder::expression_map<std::vector<planner::LogicalOperator*>>
-AccHashJoinOptimizer::resolveScanNodesToApplySemiMask(
-    const binder::expression_vector& nodeIDCandidates,
-    const std::vector<planner::LogicalOperator*>& roots) {
-    binder::expression_map<std::vector<LogicalOperator*>> nodeIDToScanOperatorsMap;
-    for (auto& root : roots) {
-        auto scanNodesCollector = LogicalScanNodeCollector();
-        scanNodesCollector.collect(root);
-        for (auto& op : scanNodesCollector.getOperators()) {
-            auto scanNode = (LogicalScanNode*)op;
-            auto nodeID = scanNode->getNode()->getInternalIDProperty();
-            if (!nodeIDToScanOperatorsMap.contains(nodeID)) {
-                nodeIDToScanOperatorsMap.insert({nodeID, std::vector<LogicalOperator*>{}});
-            }
-            nodeIDToScanOperatorsMap.at(nodeID).push_back(op);
-        }
+std::vector<planner::LogicalOperator*> HashJoinSIPOptimizer::resolveOperatorsToApplySemiMask(
+    const binder::Expression& nodeID, planner::LogicalOperator* root) {
+    std::vector<planner::LogicalOperator*> result;
+    for (auto& op : resolveScanNodeIDsToApplySemiMask(nodeID, root)) {
+        result.push_back(op);
     }
-    // Match node ID candidate with scanNode operators.
-    binder::expression_map<std::vector<planner::LogicalOperator*>> result;
-    for (auto& nodeID : nodeIDCandidates) {
-        if (!nodeIDToScanOperatorsMap.contains(nodeID)) {
-            // No scan on the build side to push semi mask to.
-            continue;
-        }
-        result.insert({nodeID, nodeIDToScanOperatorsMap.at(nodeID)});
+    for (auto& op : resolveShortestPathExtendToApplySemiMask(nodeID, root)) {
+        result.push_back(op);
     }
     return result;
 }
 
-std::shared_ptr<planner::LogicalOperator> AccHashJoinOptimizer::applySemiMasks(
-    const binder::expression_map<std::vector<planner::LogicalOperator*>>& nodeIDToScanNodes,
-    std::shared_ptr<planner::LogicalOperator> root) {
-    auto currentRoot = root;
-    for (auto& [nodeID, scanNodes] : nodeIDToScanNodes) {
-        auto semiMasker = std::make_shared<LogicalSemiMasker>(nodeID, scanNodes, currentRoot);
-        semiMasker->computeFlatSchema();
-        currentRoot = semiMasker;
+std::vector<planner::LogicalOperator*> HashJoinSIPOptimizer::resolveScanNodeIDsToApplySemiMask(
+    const binder::Expression& nodeID, planner::LogicalOperator* root) {
+    std::vector<planner::LogicalOperator*> result;
+    auto scanNodesCollector = LogicalScanNodeCollector();
+    scanNodesCollector.collect(root);
+    for (auto& op : scanNodesCollector.getOperators()) {
+        auto scanNode = (LogicalScanNode*)op;
+        auto node = scanNode->getNode();
+        if (nodeID.getUniqueName() == node->getInternalIDProperty()->getUniqueName()) {
+            result.push_back(op);
+        }
     }
-    return currentRoot;
+    return result;
 }
 
-void AccHashJoinOptimizer::applyAccHashJoin(
-    const binder::expression_map<std::vector<planner::LogicalOperator*>>& nodeIDToScanNodes,
-    planner::LogicalOperator* op) {
-    auto currentRoot = applySemiMasks(nodeIDToScanNodes, op->getChild(0));
-    auto accumulate = std::make_shared<LogicalAccumulate>(std::move(currentRoot));
+std::vector<planner::LogicalOperator*>
+HashJoinSIPOptimizer::resolveShortestPathExtendToApplySemiMask(
+    const binder::Expression& nodeID, planner::LogicalOperator* root) {
+    std::vector<planner::LogicalOperator*> result;
+    auto recursiveJoinCollector = LogicalRecursiveExtendCollector();
+    recursiveJoinCollector.collect(root);
+    for (auto& op : recursiveJoinCollector.getOperators()) {
+        auto recursiveJoin = (LogicalRecursiveExtend*)op;
+        if (recursiveJoin->getRel()->getRelType() == common::QueryRelType::SHORTEST) {
+            auto node = recursiveJoin->getNbrNode();
+            if (nodeID.getUniqueName() == node->getInternalIDProperty()->getUniqueName()) {
+                result.push_back(op);
+                return result;
+            }
+        }
+    }
+    return result;
+}
+
+std::shared_ptr<planner::LogicalOperator> HashJoinSIPOptimizer::appendSemiMask(
+    std::shared_ptr<binder::Expression> nodeID, std::vector<planner::LogicalOperator*> ops,
+    std::shared_ptr<planner::LogicalOperator> child) {
+    assert(!ops.empty());
+    auto op = ops[0];
+    std::shared_ptr<binder::NodeExpression> node;
+    switch (op->getOperatorType()) {
+    case LogicalOperatorType::SCAN_NODE: {
+        auto scanNode = (LogicalScanNode*)op;
+        node = scanNode->getNode();
+    } break;
+    case LogicalOperatorType::RECURSIVE_EXTEND: {
+        auto recursiveExtend = (LogicalRecursiveExtend*)op;
+        node = recursiveExtend->getNbrNode();
+    } break;
+    default:
+        throw common::NotImplementedException("HashJoinSIPOptimizer::appendSemiMask");
+    }
+    auto semiMasker = std::make_shared<LogicalSemiMasker>(node, ops, child);
+    semiMasker->computeFlatSchema();
+    return semiMasker;
+}
+
+std::shared_ptr<planner::LogicalOperator> HashJoinSIPOptimizer::appendAccumulate(
+    std::shared_ptr<planner::LogicalOperator> child) {
+    auto accumulate = std::make_shared<LogicalAccumulate>(std::move(child));
     accumulate->computeFlatSchema();
-    op->setChild(0, std::move(accumulate));
+    return accumulate;
 }
 
 } // namespace optimizer

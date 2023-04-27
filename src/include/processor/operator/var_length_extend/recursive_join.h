@@ -2,6 +2,7 @@
 
 #include "bfs_state.h"
 #include "processor/operator/physical_operator.h"
+#include "processor/operator/result_collector.h"
 #include "storage/store/node_table.h"
 
 namespace kuzu {
@@ -46,18 +47,41 @@ struct BFSScanState {
     }
 };
 
+struct RecursiveJoinSharedState {
+    std::shared_ptr<FTableSharedState> inputFTableSharedState;
+    std::unique_ptr<NodeOffsetSemiMask> semiMask;
+
+    RecursiveJoinSharedState(
+        std::shared_ptr<FTableSharedState> inputFTableSharedState, storage::NodeTable* nodeTable)
+        : inputFTableSharedState{std::move(inputFTableSharedState)} {
+        semiMask = std::make_unique<NodeOffsetSemiMask>(nodeTable);
+    }
+};
+
 class RecursiveJoin : public PhysicalOperator {
 public:
     RecursiveJoin(uint8_t upperBound, storage::NodeTable* nodeTable,
-        std::shared_ptr<FTableSharedState> inputFTableSharedState,
+        std::shared_ptr<RecursiveJoinSharedState> sharedState,
         std::vector<DataPos> vectorsToScanPos, std::vector<ft_col_idx_t> colIndicesToScan,
         const DataPos& srcNodeIDVectorPos, const DataPos& dstNodeIDVectorPos,
         const DataPos& distanceVectorPos, std::unique_ptr<PhysicalOperator> child, uint32_t id,
         const std::string& paramsString, std::unique_ptr<PhysicalOperator> root)
-        : PhysicalOperator{PhysicalOperatorType::SCAN_BFS_LEVEL, std::move(child), id,
+        : PhysicalOperator{PhysicalOperatorType::RECURSIVE_JOIN, std::move(child), id,
               paramsString},
-          upperBound{upperBound}, nodeTable{nodeTable}, inputFTableSharedState{std::move(
-                                                            inputFTableSharedState)},
+          upperBound{upperBound}, nodeTable{nodeTable}, sharedState{std::move(sharedState)},
+          vectorsToScanPos{std::move(vectorsToScanPos)}, colIndicesToScan{std::move(
+                                                             colIndicesToScan)},
+          srcNodeIDVectorPos{srcNodeIDVectorPos}, dstNodeIDVectorPos{dstNodeIDVectorPos},
+          distanceVectorPos{distanceVectorPos}, root{std::move(root)}, bfsScanState{} {}
+
+    RecursiveJoin(uint8_t upperBound, storage::NodeTable* nodeTable,
+        std::shared_ptr<RecursiveJoinSharedState> sharedState,
+        std::vector<DataPos> vectorsToScanPos, std::vector<ft_col_idx_t> colIndicesToScan,
+        const DataPos& srcNodeIDVectorPos, const DataPos& dstNodeIDVectorPos,
+        const DataPos& distanceVectorPos, uint32_t id, const std::string& paramsString,
+        std::unique_ptr<PhysicalOperator> root)
+        : PhysicalOperator{PhysicalOperatorType::RECURSIVE_JOIN, id, paramsString},
+          upperBound{upperBound}, nodeTable{nodeTable}, sharedState{std::move(sharedState)},
           vectorsToScanPos{std::move(vectorsToScanPos)}, colIndicesToScan{std::move(
                                                              colIndicesToScan)},
           srcNodeIDVectorPos{srcNodeIDVectorPos}, dstNodeIDVectorPos{dstNodeIDVectorPos},
@@ -66,14 +90,16 @@ public:
     static inline DataPos getTmpSrcNodeVectorPos() { return DataPos{0, 0}; }
     static inline DataPos getTmpDstNodeVectorPos() { return DataPos{1, 0}; }
 
+    inline NodeSemiMask* getSemiMask() const { return sharedState->semiMask.get(); }
+
     void initLocalStateInternal(ResultSet* resultSet_, ExecutionContext* context) override;
 
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
     std::unique_ptr<PhysicalOperator> clone() override {
-        return std::make_unique<RecursiveJoin>(upperBound, nodeTable, inputFTableSharedState,
-            vectorsToScanPos, colIndicesToScan, srcNodeIDVectorPos, dstNodeIDVectorPos,
-            distanceVectorPos, children[0]->clone(), id, paramsString, root->clone());
+        return std::make_unique<RecursiveJoin>(upperBound, nodeTable, sharedState, vectorsToScanPos,
+            colIndicesToScan, srcNodeIDVectorPos, dstNodeIDVectorPos, distanceVectorPos, id,
+            paramsString, root->clone());
     }
 
 private:
@@ -89,8 +115,9 @@ private:
 
 private:
     uint8_t upperBound;
+    // TODO:remove
     storage::NodeTable* nodeTable;
-    std::shared_ptr<FTableSharedState> inputFTableSharedState;
+    std::shared_ptr<RecursiveJoinSharedState> sharedState;
     std::vector<DataPos> vectorsToScanPos;
     std::vector<ft_col_idx_t> colIndicesToScan;
     DataPos srcNodeIDVectorPos;

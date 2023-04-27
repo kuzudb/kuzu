@@ -1,13 +1,15 @@
 #pragma once
 
-#include "processor/operator/result_collector.h"
+#include "processor/operator/mask.h"
 
 namespace kuzu {
 namespace processor {
 
 enum VisitedState : uint8_t {
-    NOT_VISITED = 0,
-    VISITED = 1,
+    NOT_VISITED_DST = 0,
+    VISITED_DST = 1,
+    NOT_VISITED = 2,
+    VISITED = 3,
 };
 
 struct Frontier {
@@ -25,7 +27,8 @@ struct BFSMorsel {
     std::unique_ptr<Frontier> nextFrontier;
 
     // Visited state
-    uint64_t numVisitedNodes;
+    uint64_t numDstNodes;
+    uint64_t numVisitedDstNodes;
     uint8_t* visitedNodes;
     uint8_t* distance;
 
@@ -38,7 +41,7 @@ struct BFSMorsel {
     BFSMorsel(common::offset_t maxOffset_, uint8_t upperBound_);
 
     // Reset state for a new src node.
-    void resetState();
+    void resetState(NodeOffsetSemiMask* semiMask);
     // If BFS has completed.
     bool isComplete();
     // Mark src as visited.
@@ -46,6 +49,8 @@ struct BFSMorsel {
     // UnMark src as NOT visited to avoid outputting src which has length 0 path and thus should be
     // omitted.
     void unmarkSrc();
+    // Mark node as a dst visited.
+    void markVisitedDst(common::offset_t offset);
     // Mark node as visited.
     void markVisited(common::offset_t offset);
 

@@ -22,8 +22,8 @@ void Optimizer::optimize(planner::LogicalPlan* plan) {
     filterPushDownOptimizer.rewrite(plan);
 
     // ASP optimizer should be applied after optimizers that manipulate hash join.
-    auto accHashJoinOptimizer = AccHashJoinOptimizer();
-    accHashJoinOptimizer.rewrite(plan);
+    auto hashJoinSIPOptimizer = HashJoinSIPOptimizer();
+    hashJoinSIPOptimizer.rewrite(plan);
 
     auto projectionPushDownOptimizer = ProjectionPushDownOptimizer();
     projectionPushDownOptimizer.rewrite(plan);

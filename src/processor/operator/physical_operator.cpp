@@ -101,8 +101,8 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
     case PhysicalOperatorType::RESULT_COLLECTOR: {
         return "RESULT_COLLECTOR";
     }
-    case PhysicalOperatorType::SCAN_BFS_LEVEL: {
-        return "SCAN_BFS_LEVEL";
+    case PhysicalOperatorType::SCAN_FRONTIER: {
+        return "SCAN_FRONTIER";
     }
     case PhysicalOperatorType::SCAN_NODE_ID: {
         return "SCAN_NODE_ID";
