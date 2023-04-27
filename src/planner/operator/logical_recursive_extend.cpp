@@ -37,7 +37,9 @@ void LogicalVariableLengthExtend::computeFactorizedSchema() {
 }
 
 void LogicalShortestPathExtend::computeFactorizedSchema() {
-    copyChildSchema(0);
+    createEmptySchema();
+    auto childSchema = children[0]->getSchema();
+    SinkOperatorUtil::recomputeSchema(*childSchema, childSchema->getExpressionsInScope(), *schema);
     auto nbrGroupPos = schema->createGroup();
     schema->insertToGroupAndScope(nbrNode->getInternalIDProperty(), nbrGroupPos);
     schema->insertToGroupAndScope(rel->getInternalLengthProperty(), nbrGroupPos);
