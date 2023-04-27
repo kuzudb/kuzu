@@ -89,7 +89,7 @@ TEST_F(OptimizerTest, JoinOrderTest3) {
 TEST_F(OptimizerTest, RecursiveJoinTest) {
     auto encodedPlan = getEncodedPlan(
         "MATCH (a:person)-[:knows* SHORTEST 1..5]->(b:person) WHERE b.ID < 0 RETURN a.fName;");
-    ASSERT_STREQ(encodedPlan.c_str(), "HJ(a._id){S(a)}{RE(a)S(b)}");
+    ASSERT_STREQ(encodedPlan.c_str(), "HJ(a._id){RE(a)S(b)}{S(a)}");
 }
 
 } // namespace testing

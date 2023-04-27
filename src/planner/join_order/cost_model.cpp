@@ -1,6 +1,7 @@
 #include "planner/join_order/cost_model.h"
 
 #include "common/constants.h"
+#include "planner/join_order/join_order_util.h"
 
 namespace kuzu {
 namespace planner {
@@ -17,11 +18,12 @@ uint64_t CostModel::computeRecursiveExtendCost(
 
 uint64_t CostModel::computeHashJoinCost(const binder::expression_vector& joinNodeIDs,
     const LogicalPlan& probe, const LogicalPlan& build) {
-    auto cost = 0u;
+    auto cost = 0ul;
     cost += probe.getCost();
     cost += build.getCost();
     cost += probe.getCardinality();
-    cost += common::PlannerKnobs::BUILD_PENALTY * build.getCardinality();
+    cost += common::PlannerKnobs::BUILD_PENALTY *
+            JoinOrderUtil::getJoinKeysFlatCardinality(joinNodeIDs, build);
     return cost;
 }
 
@@ -32,7 +34,7 @@ uint64_t CostModel::computeMarkJoinCost(const binder::expression_vector& joinNod
 
 uint64_t CostModel::computeIntersectCost(const kuzu::planner::LogicalPlan& probePlan,
     const std::vector<std::unique_ptr<LogicalPlan>>& buildPlans) {
-    auto cost = 0u;
+    auto cost = 0ul;
     cost += probePlan.getCost();
     // TODO(Xiyang): think of how to calculate intersect cost such that it will be picked in worst
     // case.
