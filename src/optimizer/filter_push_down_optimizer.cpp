@@ -141,9 +141,6 @@ std::shared_ptr<planner::LogicalOperator> FilterPushDownOptimizer::visitScanNode
         }
         properties.push_back(property);
     }
-    if (properties.empty()) {
-        return currentRoot;
-    }
     return appendScanNodeProperty(node, properties, currentRoot);
 }
 
@@ -184,6 +181,9 @@ std::shared_ptr<planner::LogicalOperator> FilterPushDownOptimizer::finishPushDow
 std::shared_ptr<planner::LogicalOperator> FilterPushDownOptimizer::appendScanNodeProperty(
     std::shared_ptr<binder::NodeExpression> node, binder::expression_vector properties,
     std::shared_ptr<planner::LogicalOperator> child) {
+    if (properties.empty()) {
+        return child;
+    }
     auto scanNodeProperty = std::make_shared<LogicalScanNodeProperty>(
         std::move(node), std::move(properties), std::move(child));
     scanNodeProperty->computeFlatSchema();

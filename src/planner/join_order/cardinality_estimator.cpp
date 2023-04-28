@@ -1,5 +1,6 @@
 #include "planner/join_order/cardinality_estimator.h"
 
+#include "planner/join_order/join_order_util.h"
 #include "planner/logical_plan/logical_operator/logical_extend.h"
 #include "planner/logical_plan/logical_operator/logical_scan_node.h"
 
@@ -20,25 +21,6 @@ uint64_t CardinalityEstimator::estimateScanNode(LogicalOperator* op) {
     return atLeastOne(getNodeIDDom(scanNode->getNode()->getInternalIDPropertyName()));
 }
 
-// Although we may not flatten join key in Build operator computation. We do need to calculate join
-// cardinality based on flat join key cardinality.
-static uint64_t getJoinKeysFlatCardinality(
-    const binder::expression_vector& joinNodeIDs, const LogicalPlan& buildPlan) {
-    auto schema = buildPlan.getSchema();
-    f_group_pos_set unFlatGroupsPos;
-    for (auto& joinID : joinNodeIDs) {
-        auto groupPos = schema->getGroupPos(*joinID);
-        if (!schema->getGroup(groupPos)->isFlat()) {
-            unFlatGroupsPos.insert(groupPos);
-        }
-    }
-    auto cardinality = buildPlan.getCardinality();
-    for (auto groupPos : unFlatGroupsPos) {
-        cardinality *= schema->getGroup(groupPos)->getMultiplier();
-    }
-    return cardinality;
-}
-
 uint64_t CardinalityEstimator::estimateHashJoin(const binder::expression_vector& joinNodeIDs,
     const LogicalPlan& probePlan, const LogicalPlan& buildPlan) {
     auto denominator = 1u;
@@ -46,7 +28,8 @@ uint64_t CardinalityEstimator::estimateHashJoin(const binder::expression_vector&
         denominator *= getNodeIDDom(joinNodeID->getUniqueName());
     }
     return atLeastOne(probePlan.estCardinality *
-                      getJoinKeysFlatCardinality(joinNodeIDs, buildPlan) / denominator);
+                      JoinOrderUtil::getJoinKeysFlatCardinality(joinNodeIDs, buildPlan) /
+                      denominator);
 }
 
 uint64_t CardinalityEstimator::estimateCrossProduct(
@@ -128,7 +111,7 @@ double CardinalityEstimator::getExtensionRate(
     }
     case common::QueryRelType::VARIABLE_LENGTH:
     case common::QueryRelType::SHORTEST: {
-        return oneHopExtensionRate * 2 /*magic number*/;
+        return std::min<double>(oneHopExtensionRate * rel.getUpperBound(), numRels);
     }
     default:
         throw common::NotImplementedException("getExtensionRate()");
