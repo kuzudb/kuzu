@@ -22,6 +22,12 @@ scripts/antlr4/antlr4.jar
 # macOS
 .DS_Store
 
+### Node.js
+tools/nodejs_api/node_modules/
+tools/nodejs_api/cmake_install.cmake
+tools/nodejs_api/package-lock.json
+tools/nodejs_api/testDb/
+
 # Archive files
 *.zip
 *.tar.gz
