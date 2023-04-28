@@ -1,0 +1,28 @@
+{
+  "name": "kuzu",
+  "version": "0.0.1",
+  "description": "Node.js API for Kùzu graph database management system",
+  "main": "index.js",
+  "homepage": "https://kuzudb.com/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kuzudb/kuzu.git"
+  },
+  "scripts": {
+    "build": "(cd ../..; make release) && cmake-js compile && npm run js",
+    "clean": "cmake-js clean && rm -rf cmake_install.cmake Makefile",
+    "js": "cp src_nodejs/* build/kuzu/",
+    "all": "npm run clean && npm run build && node sample.js",
+    "test": "mocha",
+    "buildtest": "npm run build && mocha"
+  },
+  "author": "Kùzu Team",
+  "license": "MIT",
+  "dependencies": {
+    "chai": "^4.3.7",
+    "cmake-js": "^7.1.1",
+    "mocha": "^10.2.0",
+    "node-addon-api": "^6.0.0",
+    "tmp": "^0.2.1"
+  }
+}
