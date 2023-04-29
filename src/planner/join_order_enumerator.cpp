@@ -181,11 +181,9 @@ void JoinOrderEnumerator::appendExtendAndFilter(std::shared_ptr<RelExpression> r
         auto properties = queryPlanner->getPropertiesForRel(*rel);
         appendNonRecursiveExtend(boundNode, nbrNode, rel, direction, properties, plan);
     } break;
-    case common::QueryRelType::VARIABLE_LENGTH: {
-        appendVariableLengthExtend(boundNode, nbrNode, rel, direction, plan);
-    } break;
+    case common::QueryRelType::VARIABLE_LENGTH:
     case common::QueryRelType::SHORTEST: {
-        appendShortestPathExtend(boundNode, nbrNode, rel, direction, plan);
+        appendRecursiveExtend(boundNode, nbrNode, rel, direction, plan);
     } break;
     default:
         throw common::NotImplementedException("appendExtendAndFilter()");
@@ -483,29 +481,11 @@ void JoinOrderEnumerator::appendNonRecursiveExtend(std::shared_ptr<NodeExpressio
     plan.setLastOperator(std::move(extend));
 }
 
-void JoinOrderEnumerator::appendVariableLengthExtend(std::shared_ptr<NodeExpression> boundNode,
+void JoinOrderEnumerator::appendRecursiveExtend(std::shared_ptr<NodeExpression> boundNode,
     std::shared_ptr<NodeExpression> nbrNode, std::shared_ptr<RelExpression> rel,
-    common::RelDirection direction, kuzu::planner::LogicalPlan& plan) {
+    common::RelDirection direction, LogicalPlan& plan) {
     auto hasAtMostOneNbr = extendHasAtMostOneNbrGuarantee(*rel, *boundNode, direction, catalog);
-    auto extend = make_shared<LogicalVariableLengthExtend>(
-        boundNode, nbrNode, rel, direction, hasAtMostOneNbr, plan.getLastOperator());
-    queryPlanner->appendFlattens(extend->getGroupsPosToFlatten(), plan);
-    extend->setChild(0, plan.getLastOperator());
-    extend->computeFactorizedSchema();
-    auto extensionRate = queryPlanner->cardinalityEstimator->getExtensionRate(*rel, *boundNode);
-    plan.setCost(CostModel::computeRecursiveExtendCost(rel->getUpperBound(), extensionRate, plan));
-    if (!hasAtMostOneNbr) {
-        auto group = extend->getSchema()->getGroup(nbrNode->getInternalIDProperty());
-        group->setMultiplier(extensionRate);
-    }
-    plan.setLastOperator(std::move(extend));
-}
-
-void JoinOrderEnumerator::appendShortestPathExtend(std::shared_ptr<NodeExpression> boundNode,
-    std::shared_ptr<NodeExpression> nbrNode, std::shared_ptr<RelExpression> rel,
-    common::RelDirection direction, kuzu::planner::LogicalPlan& plan) {
-    auto hasAtMostOneNbr = extendHasAtMostOneNbrGuarantee(*rel, *boundNode, direction, catalog);
-    auto extend = std::make_shared<LogicalShortestPathExtend>(
+    auto extend = std::make_shared<LogicalRecursiveExtend>(
         boundNode, nbrNode, rel, direction, plan.getLastOperator());
     queryPlanner->appendFlattens(extend->getGroupsPosToFlatten(), plan);
     extend->setChild(0, plan.getLastOperator());

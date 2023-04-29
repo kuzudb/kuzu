@@ -1,12 +1,11 @@
 #include "planner/logical_plan/logical_operator/logical_extend.h"
 #include "planner/logical_plan/logical_operator/logical_recursive_extend.h"
 #include "processor/mapper/plan_mapper.h"
+#include "processor/operator/recursive_extend/shortest_path_recursive_join.h"
+#include "processor/operator/recursive_extend/variable_length_recursive_join.h"
 #include "processor/operator/scan/generic_scan_rel_tables.h"
 #include "processor/operator/scan/scan_rel_table_columns.h"
 #include "processor/operator/scan/scan_rel_table_lists.h"
-#include "processor/operator/var_length_extend/recursive_join.h"
-#include "processor/operator/var_length_extend/var_length_adj_list_extend.h"
-#include "processor/operator/var_length_extend/var_length_column_extend.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;
@@ -121,61 +120,59 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalRecursiveExtendToPhysica
         DataPos(outSchema->getExpressionPos(*nbrNode->getInternalIDProperty()));
     auto& relsStore = storageManager.getRelsStore();
     auto relTableID = rel->getSingleTableID();
-    if (rel->getRelType() == common::QueryRelType::VARIABLE_LENGTH) {
-        if (relsStore.isSingleMultiplicityInDirection(direction, relTableID)) {
-            auto adjColumn = relsStore.getAdjColumn(direction, relTableID);
-            return make_unique<VarLengthColumnExtend>(inNodeIDVectorPos, outNodeIDVectorPos,
-                adjColumn, rel->getLowerBound(), rel->getUpperBound(), std::move(prevOperator),
-                getOperatorID(), extend->getExpressionsForPrinting());
 
-        } else {
-            auto adjList = relsStore.getAdjLists(direction, relTableID);
-            return make_unique<VarLengthAdjListExtend>(inNodeIDVectorPos, outNodeIDVectorPos,
-                adjList, rel->getLowerBound(), rel->getUpperBound(), std::move(prevOperator),
-                getOperatorID(), extend->getExpressionsForPrinting());
-        }
+    auto expressions = inSchema->getExpressionsInScope();
+    auto resultCollector = appendResultCollector(expressions, *inSchema, std::move(prevOperator));
+    auto sharedInputFTable = resultCollector->getSharedState();
+    std::vector<DataPos> outDataPoses;
+    std::vector<uint32_t> colIndicesToScan;
+    for (auto i = 0u; i < expressions.size(); ++i) {
+        outDataPoses.emplace_back(outSchema->getExpressionPos(*expressions[i]));
+        colIndicesToScan.push_back(i);
+    }
+    auto& nodeStore = storageManager.getNodesStore();
+    auto nodeTable = nodeStore.getNodeTable(boundNode->getSingleTableID());
+    std::string emptyParamString;
+    // TODO(Xiyang): this hard code is fine as long as we use just 2 vectors as the intermediate
+    // state for recursive join. Though ideally we should construct them from schema.
+    auto tmpSrcNodePos = BaseRecursiveJoin::getTmpSrcNodeVectorPos();
+    auto scanFrontier =
+        std::make_unique<ScanFrontier>(tmpSrcNodePos, getOperatorID(), emptyParamString);
+    std::unique_ptr<PhysicalOperator> scanRelTable;
+    std::vector<property_id_t> emptyPropertyIDs;
+    DataPos tmpDstNodePos{0, 0};
+    if (relsStore.isSingleMultiplicityInDirection(direction, relTableID)) {
+        tmpDstNodePos = DataPos{0, 1};
+        scanRelTable = make_unique<ScanRelTableColumns>(
+            relsStore.getRelTable(relTableID)->getDirectedTableData(direction), emptyPropertyIDs,
+            tmpSrcNodePos, std::vector<DataPos>{tmpDstNodePos}, std::move(scanFrontier),
+            getOperatorID(), emptyParamString);
     } else {
-        assert(rel->getRelType() == common::QueryRelType::SHORTEST);
-        auto expressions = inSchema->getExpressionsInScope();
-        auto resultCollector =
-            appendResultCollector(expressions, *inSchema, std::move(prevOperator));
-        auto sharedInputFTable = resultCollector->getSharedState();
-        std::vector<DataPos> outDataPoses;
-        std::vector<uint32_t> colIndicesToScan;
-        for (auto i = 0u; i < expressions.size(); ++i) {
-            outDataPoses.emplace_back(outSchema->getExpressionPos(*expressions[i]));
-            colIndicesToScan.push_back(i);
-        }
-        auto upperBound = rel->getUpperBound();
-        auto& nodeStore = storageManager.getNodesStore();
-        auto nodeTable = nodeStore.getNodeTable(boundNode->getSingleTableID());
+        tmpDstNodePos = DataPos{0, 1};
+        scanRelTable = make_unique<ScanRelTableLists>(
+            relsStore.getRelTable(relTableID)->getDirectedTableData(direction), emptyPropertyIDs,
+            tmpSrcNodePos, std::vector<DataPos>{tmpDstNodePos}, std::move(scanFrontier),
+            getOperatorID(), emptyParamString);
+    }
+    auto sharedState = std::make_shared<RecursiveJoinSharedState>(sharedInputFTable, nodeTable);
+    switch (rel->getRelType()) {
+    case common::QueryRelType::SHORTEST: {
         auto distanceVectorPos =
             DataPos{outSchema->getExpressionPos(*rel->getInternalLengthProperty())};
-        std::string emptyParamString;
-        // TODO(Xiyang): this hard code is fine as long as we use just 2 vectors as the intermediate
-        // state for recursive join. Though ideally we should construct them from schema.
-        auto tmpSrcNodePos = RecursiveJoin::getTmpSrcNodeVectorPos();
-        auto tmpDstNodePos = RecursiveJoin::getTmpDstNodeVectorPos();
-        auto scanFrontier =
-            std::make_unique<ScanFrontier>(tmpSrcNodePos, getOperatorID(), emptyParamString);
-        std::unique_ptr<PhysicalOperator> scanRelTable;
-        std::vector<property_id_t> emptyPropertyIDs;
-        if (relsStore.isSingleMultiplicityInDirection(direction, relTableID)) {
-            scanRelTable = make_unique<ScanRelTableColumns>(
-                relsStore.getRelTable(relTableID)->getDirectedTableData(direction),
-                emptyPropertyIDs, tmpSrcNodePos, std::vector<DataPos>{tmpDstNodePos},
-                std::move(scanFrontier), getOperatorID(), emptyParamString);
-        } else {
-            scanRelTable = make_unique<ScanRelTableLists>(
-                relsStore.getRelTable(relTableID)->getDirectedTableData(direction),
-                emptyPropertyIDs, tmpSrcNodePos, std::vector<DataPos>{tmpDstNodePos},
-                std::move(scanFrontier), getOperatorID(), emptyParamString);
-        }
-        auto sharedState = std::make_shared<RecursiveJoinSharedState>(sharedInputFTable, nodeTable);
-        return std::make_unique<RecursiveJoin>(upperBound, nodeTable, sharedState, outDataPoses,
-            colIndicesToScan, inNodeIDVectorPos, outNodeIDVectorPos, distanceVectorPos,
+        return std::make_unique<ShortestPathRecursiveJoin>(rel->getLowerBound(),
+            rel->getUpperBound(), nodeTable, sharedState, outDataPoses, colIndicesToScan,
+            inNodeIDVectorPos, outNodeIDVectorPos, distanceVectorPos, tmpDstNodePos,
             std::move(resultCollector), getOperatorID(), extend->getExpressionsForPrinting(),
             std::move(scanRelTable));
+    }
+    case common::QueryRelType::VARIABLE_LENGTH: {
+        return std::make_unique<VariableLengthRecursiveJoin>(rel->getLowerBound(),
+            rel->getUpperBound(), nodeTable, sharedState, outDataPoses, colIndicesToScan,
+            inNodeIDVectorPos, outNodeIDVectorPos, tmpDstNodePos, std::move(resultCollector),
+            getOperatorID(), extend->getExpressionsForPrinting(), std::move(scanRelTable));
+    }
+    default:
+        throw common::NotImplementedException("PlanMapper::mapLogicalRecursiveExtendToPhysical");
     }
 }
 
