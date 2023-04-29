@@ -39,7 +39,7 @@ enum class PhysicalOperatorType : uint8_t {
     RENAME_PROPERTY,
     RENAME_TABLE,
     RESULT_COLLECTOR,
-    SCAN_BFS_LEVEL,
+    SCAN_FRONTIER,
     SCAN_NODE_ID,
     SCAN_NODE_PROPERTY,
     SCAN_REL_PROPERTY,

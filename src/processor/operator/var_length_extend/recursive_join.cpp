@@ -20,6 +20,7 @@ void RecursiveJoin::initLocalStateInternal(ResultSet* resultSet_, ExecutionConte
     dstNodeIDVector = resultSet->getValueVector(dstNodeIDVectorPos);
     distanceVector = resultSet->getValueVector(distanceVectorPos);
     bfsMorsel = std::make_unique<BFSMorsel>(maxNodeOffset, upperBound);
+    bfsMorsel->resetState(sharedState->semiMask.get());
     initLocalRecursivePlan(context);
     bfsScanState.resetState();
 }
@@ -37,9 +38,9 @@ void RecursiveJoin::initLocalStateInternal(ResultSet* resultSet_, ExecutionConte
 // vector to output and returns true. Otherwise, we compute a new BFS.
 bool RecursiveJoin::getNextTuplesInternal(ExecutionContext* context) {
     while (true) {
-        if (bfsScanState.numScanned < bfsMorsel->numVisitedNodes) { // Phase 2
+        if (bfsScanState.numScanned < bfsMorsel->numVisitedDstNodes) { // Phase 2
             auto numToScan = std::min<uint64_t>(common::DEFAULT_VECTOR_CAPACITY,
-                bfsMorsel->numVisitedNodes - bfsScanState.numScanned);
+                bfsMorsel->numVisitedDstNodes - bfsScanState.numScanned);
             scanDstNodes(numToScan);
             bfsScanState.numScanned += numToScan;
             return true;
@@ -51,13 +52,13 @@ bool RecursiveJoin::getNextTuplesInternal(ExecutionContext* context) {
 }
 
 bool RecursiveJoin::computeBFS(ExecutionContext* context) {
-    auto inputFTableMorsel = inputFTableSharedState->getMorsel(1);
+    auto inputFTableMorsel = sharedState->inputFTableSharedState->getMorsel(1);
     if (inputFTableMorsel->numTuples == 0) {
         return false;
     }
-    inputFTableSharedState->getTable()->scan(vectorsToScan, inputFTableMorsel->startTupleIdx,
-        inputFTableMorsel->numTuples, colIndicesToScan);
-    bfsMorsel->resetState();
+    sharedState->inputFTableSharedState->getTable()->scan(vectorsToScan,
+        inputFTableMorsel->startTupleIdx, inputFTableMorsel->numTuples, colIndicesToScan);
+    bfsMorsel->resetState(sharedState->semiMask.get());
     auto nodeID = srcNodeIDVector->getValue<common::nodeID_t>(
         srcNodeIDVector->state->selVector->selectedPositions[0]);
     bfsMorsel->markSrc(nodeID.offset);
@@ -84,7 +85,9 @@ void RecursiveJoin::updateVisitedState() {
     for (auto i = 0u; i < tmpDstNodeIDVector->state->selVector->selectedSize; ++i) {
         auto pos = tmpDstNodeIDVector->state->selVector->selectedPositions[i];
         auto nodeID = tmpDstNodeIDVector->getValue<common::nodeID_t>(pos);
-        if (visitedNodes[nodeID.offset] == VisitedState::NOT_VISITED) {
+        if (visitedNodes[nodeID.offset] == VisitedState::NOT_VISITED_DST) {
+            bfsMorsel->markVisitedDst(nodeID.offset);
+        } else if (visitedNodes[nodeID.offset] == VisitedState::NOT_VISITED) {
             bfsMorsel->markVisited(nodeID.offset);
         }
     }
@@ -121,7 +124,7 @@ void RecursiveJoin::initLocalRecursivePlan(ExecutionContext* context) {
 void RecursiveJoin::scanDstNodes(size_t sizeToScan) {
     auto size = 0;
     while (sizeToScan != size) {
-        if (bfsMorsel->visitedNodes[bfsScanState.currentOffset] == NOT_VISITED) {
+        if (bfsMorsel->visitedNodes[bfsScanState.currentOffset] != VISITED_DST) {
             bfsScanState.currentOffset++;
             continue;
         }

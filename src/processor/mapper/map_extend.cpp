@@ -171,10 +171,11 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalRecursiveExtendToPhysica
                 emptyPropertyIDs, tmpSrcNodePos, std::vector<DataPos>{tmpDstNodePos},
                 std::move(scanFrontier), getOperatorID(), emptyParamString);
         }
-        return std::make_unique<RecursiveJoin>(upperBound, nodeTable, sharedInputFTable,
-            outDataPoses, colIndicesToScan, inNodeIDVectorPos, outNodeIDVectorPos,
-            distanceVectorPos, std::move(resultCollector), getOperatorID(),
-            extend->getExpressionsForPrinting(), std::move(scanRelTable));
+        auto sharedState = std::make_shared<RecursiveJoinSharedState>(sharedInputFTable, nodeTable);
+        return std::make_unique<RecursiveJoin>(upperBound, nodeTable, sharedState, outDataPoses,
+            colIndicesToScan, inNodeIDVectorPos, outNodeIDVectorPos, distanceVectorPos,
+            std::move(resultCollector), getOperatorID(), extend->getExpressionsForPrinting(),
+            std::move(scanRelTable));
     }
 }
 

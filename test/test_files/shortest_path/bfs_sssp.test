@@ -1,16 +1,3 @@
--NAME SSPWithExtend
--QUERY MATCH (c:person)<-[:knows* SHORTEST 1..30]-(a:person)-[r:knows* SHORTEST 1..30]->(b:person), (b)-[:knows]->(c) WHERE a.fName = 'Alice' AND b.ID < 6 AND c.ID > 5 RETURN a.fName, b.fName, c.fName
----- 1
-Alice|Bob|Elizabeth
-
--NAME MultiPart
--QUERY MATCH (c:person)<-[:knows]-(a:person) WHERE a.fName = 'Alice' WITH a MATCH (a)-[r:knows* SHORTEST 1..30]->(b:person) WHERE b.ID > 6 RETURN b.fName, r._length, COUNT(*)
----- 4
-Elizabeth|2|3
-Farooq|3|3
-Greg|3|3
-Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|3|3
-
 -NAME SingleSourceAllDestinationsSSP
 -QUERY MATCH (a:person)-[r:knows* SHORTEST 1..30]->(b:person) WHERE a.fName = 'Alice' RETURN a.fName, b.fName, r._length
 ---- 7
@@ -79,3 +66,15 @@ Farooq|Dan|2
 Farooq|Elizabeth|1
 Farooq|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|1
 
+-NAME SSPWithExtend
+-QUERY MATCH (c:person)<-[:knows* SHORTEST 1..30]-(a:person)-[r:knows* SHORTEST 1..30]->(b:person), (b)-[:knows]->(c) WHERE a.fName = 'Alice' AND b.ID < 6 AND c.ID > 5 RETURN a.fName, b.fName, c.fName
+---- 1
+Alice|Bob|Elizabeth
+
+-NAME MultiPart
+-QUERY MATCH (c:person)<-[:knows]-(a:person) WHERE a.fName = 'Alice' WITH a MATCH (a)-[r:knows* SHORTEST 1..30]->(b:person) WHERE b.ID > 6 RETURN b.fName, r._length, COUNT(*)
+---- 4
+Elizabeth|2|3
+Farooq|3|3
+Greg|3|3
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|3|3
