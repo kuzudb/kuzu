@@ -37,7 +37,7 @@ private:
     std::unique_ptr<evaluator::BaseExpressionEvaluator> expressionEvaluator;
     std::shared_ptr<common::ValueVector> outValueVector;
     uint32_t startIndex;
-    common::ku_list_t inputList;
+    common::list_entry_t listEntry;
 };
 
 } // namespace processor

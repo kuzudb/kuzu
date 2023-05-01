@@ -18,7 +18,7 @@ struct VectorStringOperations : public VectorOperations {
         const std::vector<std::shared_ptr<common::ValueVector>>& params,
         common::ValueVector& result) {
         assert(params.size() == 3);
-        TernaryOperationExecutor::executeStringAndList<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC>(
+        TernaryOperationExecutor::executeString<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC>(
             *params[0], *params[1], *params[2], result);
     }
 
@@ -27,7 +27,7 @@ struct VectorStringOperations : public VectorOperations {
         const std::vector<std::shared_ptr<common::ValueVector>>& params,
         common::ValueVector& result) {
         assert(params.size() == 2);
-        BinaryOperationExecutor::executeStringAndList<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC>(
+        BinaryOperationExecutor::executeString<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC>(
             *params[0], *params[1], result);
     }
 

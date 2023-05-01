@@ -176,6 +176,8 @@ public:
 private:
     void readFromLargeList(common::ValueVector* valueVector, ListHandle& listHandle) override;
     void readFromSmallList(common::ValueVector* valueVector, ListHandle& listHandle) override;
+    void readListFromPages(
+        common::ValueVector* valueVector, ListHandle& listHandle, PageElementCursor& pageCursor);
 };
 
 class AdjLists : public Lists {

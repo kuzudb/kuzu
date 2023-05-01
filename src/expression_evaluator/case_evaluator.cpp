@@ -1,5 +1,7 @@
 #include "expression_evaluator/case_evaluator.h"
 
+#include "common/vector/value_vector_utils.h"
+
 using namespace kuzu::common;
 using namespace kuzu::processor;
 using namespace kuzu::storage;
@@ -90,8 +92,16 @@ void CaseExpressionEvaluator::fillEntry(sel_t resultPos, const ValueVector& then
     if (thenVector.isNull(thenPos)) {
         resultVector->setNull(resultPos, true);
     } else {
-        auto val = thenVector.getValue<T>(thenPos);
-        resultVector->setValue<T>(resultPos, val);
+        if (thenVector.dataType.typeID == common::VAR_LIST) {
+            auto srcListEntry = thenVector.getValue<list_entry_t>(thenPos);
+            list_entry_t resultEntry = ListVector::addList(resultVector.get(), srcListEntry.size);
+            common::ValueVectorUtils::copyValue(reinterpret_cast<uint8_t*>(&resultEntry),
+                *resultVector, reinterpret_cast<uint8_t*>(&srcListEntry), thenVector);
+            resultVector->setValue(resultPos, resultEntry);
+        } else {
+            auto val = thenVector.getValue<T>(thenPos);
+            resultVector->setValue<T>(resultPos, val);
+        }
     }
 }
 
@@ -120,7 +130,7 @@ void CaseExpressionEvaluator::fillAllSwitch(const ValueVector& thenVector) {
         fillAll<ku_string_t>(thenVector);
     } break;
     case VAR_LIST: {
-        fillAll<ku_list_t>(thenVector);
+        fillAll<list_entry_t>(thenVector);
     } break;
     default:
         throw NotImplementedException(
@@ -154,7 +164,7 @@ void CaseExpressionEvaluator::fillSelectedSwitch(
         fillSelected<ku_string_t>(selVector, thenVector);
     } break;
     case VAR_LIST: {
-        fillSelected<ku_list_t>(selVector, thenVector);
+        fillSelected<list_entry_t>(selVector, thenVector);
     } break;
     default:
         throw NotImplementedException(

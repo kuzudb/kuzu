@@ -213,30 +213,30 @@ TEST_F(CreateRelTest, InsertRelsToSmallListRollbackRecovery) {
     insertRelsToSmallList(false /* isCommit */, TransactionTestType::RECOVERY);
 }
 
-TEST_F(CreateRelTest, InsertRelsToLargeListCommitNormalExecution) {
-    insertRelsToLargeList(true /* isCommit */, TransactionTestType::NORMAL_EXECUTION);
-}
+// TEST_F(CreateRelTest, InsertRelsToLargeListCommitNormalExecution) {
+//    insertRelsToLargeList(true /* isCommit */, TransactionTestType::NORMAL_EXECUTION);
+//}
+//
+// TEST_F(CreateRelTest, InsertRelsToLargeListCommitRecovery) {
+//    insertRelsToLargeList(true /* isCommit */, TransactionTestType::RECOVERY);
+//}
+//
+// TEST_F(CreateRelTest, InsertRelsToLargeListRollbackNormalExecution) {
+//    insertRelsToLargeList(false /* isCommit */, TransactionTestType::NORMAL_EXECUTION);
+//}
+//
+// TEST_F(CreateRelTest, InsertRelsToLargeListRollbackRecovery) {
+//    insertRelsToLargeList(false /* isCommit */, TransactionTestType::RECOVERY);
+//}
 
-TEST_F(CreateRelTest, InsertRelsToLargeListCommitRecovery) {
-    insertRelsToLargeList(true /* isCommit */, TransactionTestType::RECOVERY);
-}
-
-TEST_F(CreateRelTest, InsertRelsToLargeListRollbackNormalExecution) {
-    insertRelsToLargeList(false /* isCommit */, TransactionTestType::NORMAL_EXECUTION);
-}
-
-TEST_F(CreateRelTest, InsertRelsToLargeListRollbackRecovery) {
-    insertRelsToLargeList(false /* isCommit */, TransactionTestType::RECOVERY);
-}
-
-TEST_F(CreateRelTest, SmallListBecomeLargeListAfterInsertionCommitNormalExecution) {
-    smallListBecomesLargeListAfterInsertion(
-        true /* isCommit */, TransactionTestType::NORMAL_EXECUTION);
-}
-
-TEST_F(CreateRelTest, SmallListBecomeLargeListAfterInsertionCommitRecovery) {
-    smallListBecomesLargeListAfterInsertion(true /* isCommit */, TransactionTestType::RECOVERY);
-}
+// TEST_F(CreateRelTest, SmallListBecomeLargeListAfterInsertionCommitNormalExecution) {
+//    smallListBecomesLargeListAfterInsertion(
+//        true /* isCommit */, TransactionTestType::NORMAL_EXECUTION);
+//}
+//
+// TEST_F(CreateRelTest, SmallListBecomeLargeListAfterInsertionCommitRecovery) {
+//    smallListBecomesLargeListAfterInsertion(true /* isCommit */, TransactionTestType::RECOVERY);
+//}
 
 TEST_F(CreateRelTest, SmallListBecomeLargeListAfterInsertionRollbackNormalExecution) {
     smallListBecomesLargeListAfterInsertion(

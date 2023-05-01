@@ -10,6 +10,8 @@ struct FunctionBindData {
     common::DataType resultType;
 
     explicit FunctionBindData(common::DataType dataType) : resultType{std::move(dataType)} {}
+
+    virtual ~FunctionBindData() = default;
 };
 
 struct FunctionDefinition;

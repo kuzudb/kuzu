@@ -14,7 +14,7 @@ typedef internalID_t relID_t;
 typedef uint64_t table_id_t;
 typedef uint64_t offset_t;
 constexpr table_id_t INVALID_TABLE_ID = UINT64_MAX;
-constexpr offset_t INVALID_NODE_OFFSET = UINT64_MAX;
+constexpr offset_t INVALID_OFFSET = UINT64_MAX;
 
 // System representation for internalID.
 KUZU_API struct internalID_t {

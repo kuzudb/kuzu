@@ -149,7 +149,7 @@ CastToStringVectorOperation::getDefinitions() {
         UnaryCastExecFunction<ku_string_t, ku_string_t, operation::CastToString>));
     result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_STRING_FUNC_NAME,
         std::vector<DataTypeID>{VAR_LIST}, STRING,
-        UnaryCastExecFunction<ku_list_t, ku_string_t, operation::CastToString>));
+        UnaryCastExecFunction<list_entry_t, ku_string_t, operation::CastToString>));
     return result;
 }
 

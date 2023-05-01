@@ -34,7 +34,7 @@ void DiskOverflowFile::scanStrings(TransactionType trxType, ValueVector& valueVe
             continue;
         }
         lookupString(trxType, ((ku_string_t*)valueVector.getData())[pos],
-            valueVector.getOverflowBuffer(), overflowPageCache);
+            *common::StringVector::getInMemOverflowBuffer(&valueVector), overflowPageCache);
     }
     unpinOverflowPageCache(overflowPageCache);
 }
@@ -73,39 +73,37 @@ void DiskOverflowFile::lookupString(TransactionType trxType, ku_string_t& kuStr,
         kuStr.len, kuStr, inMemOverflowBuffer);
 }
 
-void DiskOverflowFile::readListsToVector(TransactionType trxType, ValueVector& valueVector) {
-    assert(!valueVector.state->isFlat());
-    for (auto i = 0u; i < valueVector.state->selVector->selectedSize; i++) {
-        auto pos = valueVector.state->selVector->selectedPositions[i];
-        if (!valueVector.isNull(pos)) {
-            readListToVector(trxType, ((ku_list_t*)valueVector.getData())[pos],
-                valueVector.dataType, valueVector.getOverflowBuffer());
-        }
-    }
-}
-
-void DiskOverflowFile::readListToVector(TransactionType trxType, ku_list_t& kuList,
-    const DataType& dataType, InMemOverflowBuffer& inMemOverflowBuffer) {
+void DiskOverflowFile::readListToVector(
+    TransactionType trxType, ku_list_t& kuList, ValueVector* vector, uint64_t pos) {
+    auto dataVector = common::ListVector::getDataVector(vector);
     PageByteCursor cursor;
     TypeUtils::decodeOverflowPtr(kuList.overflowPtr, cursor.pageIdx, cursor.offsetInPage);
     auto [fileHandleToPin, pageIdxToPin] =
         StorageStructureUtils::getFileHandleAndPhysicalPageIdxToPin(
             *fileHandle, cursor.pageIdx, *wal, trxType);
-    bufferManager->optimisticRead(*fileHandleToPin, pageIdxToPin, [&](uint8_t* frame) {
-        InMemOverflowBufferUtils::copyListNonRecursive(
-            frame + cursor.offsetInPage, kuList, dataType, inMemOverflowBuffer);
-    });
-    if (dataType.getChildType()->typeID == STRING) {
-        auto kuStrings = (ku_string_t*)(kuList.overflowPtr);
-        OverflowPageCache overflowPageCache;
-        for (auto i = 0u; i < kuList.size; i++) {
-            lookupString(trxType, kuStrings[i], inMemOverflowBuffer, overflowPageCache);
-        }
-        unpinOverflowPageCache(overflowPageCache);
-    } else if (dataType.getChildType()->typeID == VAR_LIST) {
-        auto kuLists = (ku_list_t*)(kuList.overflowPtr);
-        for (auto i = 0u; i < kuList.size; i++) {
-            readListToVector(trxType, kuLists[i], *dataType.getChildType(), inMemOverflowBuffer);
+    auto listEntry = common::ListVector::addList(vector, kuList.size);
+    vector->setValue(pos, listEntry);
+    if (vector->dataType.getChildType()->typeID == common::VAR_LIST) {
+        bufferManager->optimisticRead(*fileHandleToPin, pageIdxToPin, [&](uint8_t* frame) {
+            for (auto i = 0u; i < kuList.size; i++) {
+                readListToVector(trxType, ((ku_list_t*)(frame + cursor.offsetInPage))[i],
+                    dataVector, listEntry.offset + i);
+            }
+        });
+    } else {
+        auto bufferToCopy = common::ListVector::getListValues(vector, listEntry);
+        bufferManager->optimisticRead(*fileHandleToPin, pageIdxToPin, [&](uint8_t* frame) {
+            memcpy(bufferToCopy, frame + cursor.offsetInPage,
+                dataVector->getNumBytesPerValue() * kuList.size);
+        });
+        if (dataVector->dataType.typeID == STRING) {
+            auto kuStrings = (ku_string_t*)bufferToCopy;
+            OverflowPageCache overflowPageCache;
+            for (auto i = 0u; i < kuList.size; i++) {
+                lookupString(trxType, kuStrings[i],
+                    *common::StringVector::getInMemOverflowBuffer(dataVector), overflowPageCache);
+            }
+            unpinOverflowPageCache(overflowPageCache);
         }
     }
 }
@@ -270,10 +268,10 @@ void DiskOverflowFile::setListRecursiveIfNestedWithoutLock(
 }
 
 void DiskOverflowFile::writeListOverflowAndUpdateOverflowPtr(
-    const ku_list_t& listToWriteFrom, ku_list_t& listToWriteTo, const DataType& dataType) {
+    const ku_list_t& listToWriteFrom, ku_list_t& listToWriteTo, const DataType& valueType) {
     lock_t lck{mtx};
     logNewOverflowFileNextBytePosRecordIfNecessaryWithoutLock();
-    setListRecursiveIfNestedWithoutLock(listToWriteFrom, listToWriteTo, dataType);
+    setListRecursiveIfNestedWithoutLock(listToWriteFrom, listToWriteTo, valueType);
 }
 
 void DiskOverflowFile::logNewOverflowFileNextBytePosRecordIfNecessaryWithoutLock() {

@@ -3,9 +3,9 @@
 #include <cassert>
 
 #include "common/data_chunk/data_chunk_state.h"
-#include "common/in_mem_overflow_buffer.h"
 #include "common/null_mask.h"
 #include "common/types/value.h"
+#include "common/vector/auxiliary_buffer.h"
 
 namespace kuzu {
 namespace common {
@@ -13,6 +13,10 @@ namespace common {
 //! A Vector represents values of the same data type.
 //! The capacity of a ValueVector is either 1 (sequence) or DEFAULT_VECTOR_CAPACITY.
 class ValueVector {
+    friend class ListVector;
+    friend class ListAuxiliaryBuffer;
+    friend class StructVector;
+    friend class StringVector;
 
 public:
     explicit ValueVector(DataType dataType, storage::MemoryManager* memoryManager = nullptr);
@@ -49,8 +53,6 @@ public:
     template<typename T>
     void setValue(uint32_t pos, T val);
 
-    void addValue(uint32_t pos, const Value& value);
-
     inline uint8_t* getData() const { return valueBuffer.get(); }
 
     inline offset_t readNodeOffset(uint32_t pos) const {
@@ -61,43 +63,86 @@ public:
     inline void setSequential() { _isSequential = true; }
     inline bool isSequential() const { return _isSequential; }
 
-    inline InMemOverflowBuffer& getOverflowBuffer() const { return *inMemOverflowBuffer; }
-    inline void resetOverflowBuffer() const {
-        if (inMemOverflowBuffer) {
-            inMemOverflowBuffer->resetBuffer();
-        }
-    }
-
-    inline void addChildVector(std::shared_ptr<ValueVector> valueVector) {
-        childrenVectors.emplace_back(std::move(valueVector));
-    }
-    inline const std::vector<std::shared_ptr<ValueVector>>& getChildrenVectors() const {
-        return childrenVectors;
-    }
-    inline std::shared_ptr<ValueVector> getChildVector(vector_idx_t idx) const {
-        return childrenVectors[idx];
-    }
-
-private:
-    inline bool needOverflowBuffer() const {
-        return dataType.typeID == STRING || dataType.typeID == VAR_LIST;
-    }
-
-    void addString(uint32_t pos, char* value, uint64_t len) const;
-
-    void copyValue(uint8_t* dest, const Value& value);
-
 public:
     DataType dataType;
     std::shared_ptr<DataChunkState> state;
 
 private:
     bool _isSequential = false;
-    std::unique_ptr<InMemOverflowBuffer> inMemOverflowBuffer;
     std::unique_ptr<uint8_t[]> valueBuffer;
     std::unique_ptr<NullMask> nullMask;
-    std::vector<std::shared_ptr<ValueVector>> childrenVectors;
     uint32_t numBytesPerValue;
+    std::unique_ptr<AuxiliaryBuffer> auxiliaryBuffer;
+};
+
+class StringVector {
+public:
+    static inline InMemOverflowBuffer* getInMemOverflowBuffer(ValueVector* vector) {
+        return vector->dataType.typeID == STRING ?
+                   reinterpret_cast<StringAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())
+                       ->getOverflowBuffer() :
+                   nullptr;
+    }
+
+    static inline void resetOverflowBuffer(ValueVector* vector) {
+        if (vector->dataType.typeID == STRING) {
+            reinterpret_cast<StringAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())
+                ->resetOverflowBuffer();
+        }
+    }
+
+    static inline void addString(
+        common::ValueVector* vector, uint32_t pos, char* value, uint64_t len) {
+        reinterpret_cast<StringAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())
+            ->addString(vector, pos, value, len);
+    }
+};
+
+class ListVector {
+public:
+    static inline ValueVector* getDataVector(const ValueVector* vector) {
+        assert(vector->dataType.typeID == VAR_LIST);
+        return reinterpret_cast<ListAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())
+            ->getDataVector();
+    }
+    static inline uint8_t* getListValues(const ValueVector* vector, const list_entry_t& listEntry) {
+        assert(vector->dataType.typeID == VAR_LIST);
+        auto dataVector = getDataVector(vector);
+        return dataVector->getData() + dataVector->getNumBytesPerValue() * listEntry.offset;
+    }
+    static inline uint8_t* getListValuesWithOffset(const ValueVector* vector,
+        const list_entry_t& listEntry, common::offset_t elementOffsetInList) {
+        assert(vector->dataType.typeID == VAR_LIST);
+        return getListValues(vector, listEntry) +
+               elementOffsetInList * getDataVector(vector)->getNumBytesPerValue();
+    }
+    static inline list_entry_t addList(ValueVector* vector, uint64_t listSize) {
+        assert(vector->dataType.typeID == VAR_LIST);
+        return reinterpret_cast<ListAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())
+            ->addList(listSize);
+    }
+};
+
+class StructVector {
+public:
+    static inline void addChildVector(
+        ValueVector* vector, std::shared_ptr<ValueVector> valueVector) {
+        auto auxiliaryBuffer =
+            reinterpret_cast<StructAuxiliaryBuffer*>(vector->auxiliaryBuffer.get());
+        auxiliaryBuffer->addChildVector(valueVector);
+    }
+
+    static inline const std::vector<std::shared_ptr<ValueVector>>& getChildrenVectors(
+        const ValueVector* vector) {
+        return reinterpret_cast<StructAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())
+            ->getChildrenVectors();
+    }
+
+    static inline std::shared_ptr<ValueVector> getChildVector(
+        ValueVector* vector, vector_idx_t idx) {
+        return reinterpret_cast<StructAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())
+            ->getChildrenVectors()[idx];
+    }
 };
 
 class NodeIDVector {

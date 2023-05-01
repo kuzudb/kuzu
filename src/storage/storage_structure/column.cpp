@@ -247,6 +247,83 @@ Value ListPropertyColumn::readValueForTestingOnly(offset_t offset) {
     return Value(dataType, diskOverflowFile.readList(TransactionType::READ_ONLY, kuList, dataType));
 }
 
+void ListPropertyColumn::readListsToVector(PageElementCursor& cursor,
+    const std::function<common::page_idx_t(common::page_idx_t)>& logicalToPhysicalPageMapper,
+    transaction::Transaction* transaction, common::ValueVector* resultVector, uint64_t vectorPos,
+    uint64_t numValuesToRead) {
+    auto [fileHandleToPin, pageIdxToPin] =
+        StorageStructureUtils::getFileHandleAndPhysicalPageIdxToPin(
+            *fileHandle, logicalToPhysicalPageMapper(cursor.pageIdx), *wal, transaction->getType());
+    auto frameBytesOffset = getElemByteOffset(cursor.elemPosInPage);
+    bufferManager->optimisticRead(*fileHandleToPin, pageIdxToPin, [&](uint8_t* frame) {
+        auto kuListsToRead = reinterpret_cast<common::ku_list_t*>(frame + frameBytesOffset);
+        readNullBitsFromAPage(
+            resultVector, frame, cursor.elemPosInPage, vectorPos, numValuesToRead);
+        for (auto i = 0u; i < numValuesToRead; i++) {
+            if (!resultVector->isNull(vectorPos)) {
+                diskOverflowFile.readListToVector(
+                    transaction->getType(), kuListsToRead[i], resultVector, vectorPos);
+            }
+            vectorPos++;
+        }
+    });
+}
+
+void ListPropertyColumn::lookup(transaction::Transaction* transaction,
+    common::ValueVector* resultVector, uint32_t vectorPos, PageElementCursor& cursor) {
+    auto [fileHandleToPin, pageIdxToPin] =
+        StorageStructureUtils::getFileHandleAndPhysicalPageIdxToPin(
+            *fileHandle, cursor.pageIdx, *wal, transaction->getType());
+    bufferManager->optimisticRead(*fileHandleToPin, pageIdxToPin, [&](uint8_t* frame) -> void {
+        readSingleNullBit(resultVector, frame, cursor.elemPosInPage, vectorPos);
+        if (!resultVector->isNull(vectorPos)) {
+            auto frameBytesOffset = getElemByteOffset(cursor.elemPosInPage);
+            diskOverflowFile.readListToVector(transaction->getType(),
+                *(common::ku_list_t*)(frame + frameBytesOffset), resultVector, vectorPos);
+        }
+    });
+}
+
+void ListPropertyColumn::scan(transaction::Transaction* transaction,
+    common::ValueVector* resultVector, PageElementCursor& cursor) {
+    uint64_t numValuesToRead = resultVector->state->originalSize;
+    uint64_t numValuesRead = 0;
+    while (numValuesRead != numValuesToRead) {
+        uint64_t numValuesInPage = numElementsPerPage - cursor.elemPosInPage;
+        uint64_t numValuesToReadInPage = std::min(numValuesInPage, numValuesToRead - numValuesRead);
+        readListsToVector(cursor, identityMapper, transaction, resultVector, numValuesRead,
+            numValuesToReadInPage);
+        numValuesRead += numValuesToReadInPage;
+        cursor.nextPage();
+    }
+}
+
+void ListPropertyColumn::scanWithSelState(transaction::Transaction* transaction,
+    common::ValueVector* resultVector, PageElementCursor& cursor) {
+    auto selectedState = resultVector->state;
+    auto numValuesToRead = resultVector->state->originalSize;
+    uint64_t selectedStatePos = 0;
+    uint64_t vectorPos = 0;
+    while (true) {
+        uint64_t numValuesInPage = numElementsPerPage - cursor.elemPosInPage;
+        uint64_t numValuesToReadInPage = std::min(numValuesInPage, numValuesToRead - vectorPos);
+        if (StorageStructure::isInRange(
+                selectedState->selVector->selectedPositions[selectedStatePos], vectorPos,
+                vectorPos + numValuesToReadInPage)) {
+            readListsToVector(cursor, identityMapper, transaction, resultVector, vectorPos,
+                numValuesToReadInPage);
+        }
+        vectorPos += numValuesToReadInPage;
+        while (selectedState->selVector->selectedPositions[selectedStatePos] < vectorPos) {
+            selectedStatePos++;
+            if (selectedStatePos == selectedState->selVector->selectedSize) {
+                return;
+            }
+        }
+        cursor.nextPage();
+    }
+}
+
 StructPropertyColumn::StructPropertyColumn(const StorageStructureIDAndFName& structureIDAndFName,
     const common::DataType& dataType, BufferManager* bufferManager, WAL* wal)
     : Column{dataType} {
@@ -267,7 +344,7 @@ void StructPropertyColumn::read(Transaction* transaction, common::ValueVector* n
     resultVector->setAllNonNull();
     for (auto i = 0u; i < structFieldColumns.size(); i++) {
         structFieldColumns[i]->read(
-            transaction, nodeIDVector, resultVector->getChildVector(i).get());
+            transaction, nodeIDVector, common::StructVector::getChildVector(resultVector, i).get());
     }
 }
 

@@ -133,7 +133,7 @@ void WALReplayerUtils::createEmptyDBFilesForColumns(
     const std::map<table_id_t, uint64_t>& maxNodeOffsetsPerTable, RelDirection relDirection,
     const std::string& directory, RelTableSchema* relTableSchema) {
     auto boundTableID = relTableSchema->getBoundTableID(relDirection);
-    auto numNodes = maxNodeOffsetsPerTable.at(boundTableID) == INVALID_NODE_OFFSET ?
+    auto numNodes = maxNodeOffsetsPerTable.at(boundTableID) == INVALID_OFFSET ?
                         0 :
                         maxNodeOffsetsPerTable.at(boundTableID) + 1;
     make_unique<InMemAdjColumn>(StorageUtils::getAdjColumnFName(directory, relTableSchema->tableID,
@@ -148,7 +148,7 @@ void WALReplayerUtils::createEmptyDBFilesForLists(
     const std::map<table_id_t, uint64_t>& maxNodeOffsetsPerTable, RelDirection relDirection,
     const std::string& directory, RelTableSchema* relTableSchema) {
     auto boundTableID = relTableSchema->getBoundTableID(relDirection);
-    auto numNodes = maxNodeOffsetsPerTable.at(boundTableID) == INVALID_NODE_OFFSET ?
+    auto numNodes = maxNodeOffsetsPerTable.at(boundTableID) == INVALID_OFFSET ?
                         0 :
                         maxNodeOffsetsPerTable.at(boundTableID) + 1;
     auto adjLists =

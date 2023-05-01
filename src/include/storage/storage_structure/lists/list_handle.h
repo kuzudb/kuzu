@@ -29,7 +29,7 @@ public:
     explicit ListSyncState() { resetState(); };
 
     inline bool isBoundNodeOffsetInValid() const {
-        return boundNodeOffset == common::INVALID_NODE_OFFSET;
+        return boundNodeOffset == common::INVALID_OFFSET;
     }
 
     bool hasMoreAndSwitchSourceIfNecessary();

@@ -1,21 +1,19 @@
 #pragma once
 
 #include "common/type_utils.h"
+#include "function/list/operations/list_extract_operation.h"
 
 namespace kuzu {
 namespace function {
 namespace operation {
 
 struct Label {
-    static inline void operation(common::internalID_t& left, common::ku_list_t& right,
-        common::ku_string_t& result, common::ValueVector& resultVector) {
+    static inline void operation(common::internalID_t& left, common::list_entry_t& right,
+        common::ku_string_t& result, common::ValueVector& leftVector,
+        common::ValueVector& rightVector, common::ValueVector& resultVector) {
         assert(left.tableID < right.size);
-        auto& value = ((common::ku_string_t*)right.overflowPtr)[left.tableID];
-        if (!common::ku_string_t::isShortString(value.len)) {
-            result.overflowPtr =
-                (uint64_t)resultVector.getOverflowBuffer().allocateSpace(value.len);
-        }
-        result.set(value);
+        ListExtract::operation(right, left.tableID + 1 /* listExtract requires 1-based index */,
+            result, rightVector, leftVector, resultVector);
     }
 };
 

@@ -25,7 +25,7 @@ static void addStructFieldsVectors(common::ValueVector* structVector, common::Da
     for (auto& childType : structTypeInfo->getChildrenTypes()) {
         auto childVector = std::make_shared<common::ValueVector>(*childType, memoryManager);
         childVector->state = dataChunk->state;
-        structVector->addChildVector(childVector);
+        common::StructVector::addChildVector(structVector, childVector);
     }
 }
 

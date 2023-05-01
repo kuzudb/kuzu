@@ -11,20 +11,24 @@ namespace operation {
 
 struct ListPrepend {
     template<typename T>
-    static inline void operation(T& list, common::ku_list_t& element, common::ku_list_t& result,
-        common::ValueVector& resultValueVector) {
-        auto elementSize =
-            common::Types::getDataTypeSize(resultValueVector.dataType.getChildType()->typeID);
-        result.overflowPtr = reinterpret_cast<uint64_t>(
-            resultValueVector.getOverflowBuffer().allocateSpace((element.size + 1) * elementSize));
-        result.size = element.size + 1;
-        common::ku_list_t tmpList;
-        common::InMemOverflowBufferUtils::copyListRecursiveIfNested(
-            element, tmpList, resultValueVector.dataType, resultValueVector.getOverflowBuffer());
-        memcpy(reinterpret_cast<uint8_t*>(result.overflowPtr) + elementSize,
-            reinterpret_cast<uint8_t*>(tmpList.overflowPtr), element.size * elementSize);
-        common::InMemOverflowBufferUtils::setListElement(result, 0 /* elementPos */, list,
-            resultValueVector.dataType, resultValueVector.getOverflowBuffer());
+    static inline void operation(T& value, common::list_entry_t& listEntry,
+        common::list_entry_t& result, common::ValueVector& valueVector,
+        common::ValueVector& listVector, common::ValueVector& resultVector) {
+        result = common::ListVector::addList(&resultVector, listEntry.size + 1);
+        auto listValues = common::ListVector::getListValues(&listVector, listEntry);
+        auto listDataVector = common::ListVector::getDataVector(&listVector);
+        auto resultValues = common::ListVector::getListValues(&resultVector, result);
+        auto resultDataVector = common::ListVector::getDataVector(&resultVector);
+        auto numBytesPerValue = resultDataVector->getNumBytesPerValue();
+        common::ValueVectorUtils::copyValue(
+            resultValues, *resultDataVector, reinterpret_cast<uint8_t*>(&value), valueVector);
+        resultValues += numBytesPerValue;
+        for (auto i = 0u; i < listEntry.size; i++) {
+            common::ValueVectorUtils::copyValue(
+                resultValues, *resultDataVector, listValues, *listDataVector);
+            listValues += numBytesPerValue;
+            resultValues += numBytesPerValue;
+        }
     }
 };
 

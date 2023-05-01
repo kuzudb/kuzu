@@ -19,7 +19,8 @@ public:
             result.len = strOperation((char*)result.prefix, input.len);
         } else {
             result.overflowPtr = reinterpret_cast<uint64_t>(
-                resultValueVector.getOverflowBuffer().allocateSpace(input.len));
+                common::StringVector::getInMemOverflowBuffer(&resultValueVector)
+                    ->allocateSpace(input.len));
             auto buffer = reinterpret_cast<char*>(result.overflowPtr);
             memcpy(buffer, input.getData(), input.len);
             result.len = strOperation(buffer, input.len);

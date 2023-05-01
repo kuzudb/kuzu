@@ -25,6 +25,10 @@ protected:
         const processor::ResultSet& resultSet, storage::MemoryManager* memoryManager) override;
 
 private:
+    static void copyValueToVector(
+        uint8_t* dstValue, common::ValueVector* dstVector, const common::Value* srcValue);
+
+private:
     std::shared_ptr<common::Value> value;
 };
 

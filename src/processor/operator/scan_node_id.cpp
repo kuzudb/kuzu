@@ -7,7 +7,7 @@ namespace processor {
 
 std::pair<offset_t, offset_t> NodeTableScanState::getNextRangeToRead() {
     // Note: we use maxNodeOffset=UINT64_MAX to represent an empty table.
-    if (currentNodeOffset > maxNodeOffset || maxNodeOffset == INVALID_NODE_OFFSET) {
+    if (currentNodeOffset > maxNodeOffset || maxNodeOffset == INVALID_OFFSET) {
         return std::make_pair(currentNodeOffset, currentNodeOffset);
     }
     if (isSemiMaskEnabled()) {
@@ -27,13 +27,13 @@ std::pair<offset_t, offset_t> NodeTableScanState::getNextRangeToRead() {
 std::tuple<NodeTableScanState*, offset_t, offset_t> ScanNodeIDSharedState::getNextRangeToRead() {
     std::unique_lock lck{mtx};
     if (currentStateIdx == tableStates.size()) {
-        return std::make_tuple(nullptr, INVALID_NODE_OFFSET, INVALID_NODE_OFFSET);
+        return std::make_tuple(nullptr, INVALID_OFFSET, INVALID_OFFSET);
     }
     auto [startOffset, endOffset] = tableStates[currentStateIdx]->getNextRangeToRead();
     while (startOffset >= endOffset) {
         currentStateIdx++;
         if (currentStateIdx == tableStates.size()) {
-            return std::make_tuple(nullptr, INVALID_NODE_OFFSET, INVALID_NODE_OFFSET);
+            return std::make_tuple(nullptr, INVALID_OFFSET, INVALID_OFFSET);
         }
         auto [_startOffset, _endOffset] = tableStates[currentStateIdx]->getNextRangeToRead();
         startOffset = _startOffset;

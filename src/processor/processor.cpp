@@ -95,7 +95,8 @@ std::shared_ptr<FactorizedTable> QueryProcessor::getFactorizedTableForOutputMsg(
     outputMsgChunk->insert(0 /* pos */, outputMsgVector);
     ku_string_t outputKUStr = ku_string_t();
     outputKUStr.overflowPtr = reinterpret_cast<uint64_t>(
-        outputMsgVector->getOverflowBuffer().allocateSpace(outputMsg.length()));
+        common::StringVector::getInMemOverflowBuffer(outputMsgVector.get())
+            ->allocateSpace(outputMsg.length()));
     outputKUStr.set(outputMsg);
     outputMsgVector->setValue(0, outputKUStr);
     outputMsgVector->state->currIdx = 0;

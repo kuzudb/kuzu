@@ -23,9 +23,6 @@ public:
     static void copyString(
         const ku_string_t& src, ku_string_t& dest, InMemOverflowBuffer& inMemOverflowBuffer);
 
-    static void copyListNonRecursive(const uint8_t* srcValues, ku_list_t& dst,
-        const DataType& dataType, InMemOverflowBuffer& inMemOverflowBuffer);
-
     static void copyListRecursiveIfNested(const ku_list_t& src, ku_list_t& dst,
         const DataType& dataType, InMemOverflowBuffer& inMemOverflowBuffer,
         uint32_t srcStartIdx = 0, uint32_t srcEndIdx = UINT32_MAX);

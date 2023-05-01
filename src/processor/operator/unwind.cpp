@@ -11,20 +11,25 @@ void Unwind::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* cont
 }
 
 bool Unwind::hasMoreToRead() const {
-    return inputList.size > startIndex;
+    return listEntry.offset != INVALID_OFFSET && listEntry.size > startIndex;
 }
 
 void Unwind::copyTuplesToOutVector(uint64_t startPos, uint64_t endPos) const {
-    auto numOfBytes = Types::getDataTypeSize(outDataType.typeID);
+    auto listValues = common::ListVector::getListValuesWithOffset(
+        expressionEvaluator->resultVector.get(), listEntry, startPos);
+    auto listDataVector =
+        common::ListVector::getDataVector(expressionEvaluator->resultVector.get());
     for (auto pos = startPos; pos < endPos; pos++) {
-        ValueVectorUtils::copyNonNullDataWithSameTypeIntoPos(*outValueVector, pos - startPos,
-            reinterpret_cast<uint8_t*>(inputList.overflowPtr) + pos * numOfBytes);
+        common::ValueVectorUtils::copyValue(
+            outValueVector->getData() + outValueVector->getNumBytesPerValue() * (pos - startPos),
+            *outValueVector, listValues, *listDataVector);
+        listValues += listDataVector->getNumBytesPerValue();
     }
 }
 
 bool Unwind::getNextTuplesInternal(ExecutionContext* context) {
     if (hasMoreToRead()) {
-        auto totalElementsCopy = std::min(DEFAULT_VECTOR_CAPACITY, inputList.size - startIndex);
+        auto totalElementsCopy = std::min(DEFAULT_VECTOR_CAPACITY, listEntry.size - startIndex);
         copyTuplesToOutVector(startIndex, (totalElementsCopy + startIndex));
         startIndex += totalElementsCopy;
         outValueVector->state->initOriginalAndSelectedSize(totalElementsCopy);
@@ -40,9 +45,9 @@ bool Unwind::getNextTuplesInternal(ExecutionContext* context) {
             outValueVector->state->selVector->selectedSize = 0;
             continue;
         }
-        inputList = expressionEvaluator->resultVector->getValue<ku_list_t>(pos);
+        listEntry = expressionEvaluator->resultVector->getValue<common::list_entry_t>(pos);
         startIndex = 0;
-        auto totalElementsCopy = std::min(DEFAULT_VECTOR_CAPACITY, inputList.size);
+        auto totalElementsCopy = std::min(DEFAULT_VECTOR_CAPACITY, listEntry.size);
         copyTuplesToOutVector(0, totalElementsCopy);
         startIndex += totalElementsCopy;
         outValueVector->state->initOriginalAndSelectedSize(startIndex);

@@ -213,27 +213,57 @@ void Lists::readPropertyUpdatesToInMemListIfExists(InMemList& inMemList,
 }
 
 void StringPropertyLists::readFromLargeList(ValueVector* valueVector, ListHandle& listHandle) {
-    valueVector->resetOverflowBuffer();
+    common::StringVector::resetOverflowBuffer(valueVector);
     Lists::readFromLargeList(valueVector, listHandle);
     diskOverflowFile.scanStrings(TransactionType::READ_ONLY, *valueVector);
 }
 
 void StringPropertyLists::readFromSmallList(ValueVector* valueVector, ListHandle& listHandle) {
-    valueVector->resetOverflowBuffer();
+    common::StringVector::resetOverflowBuffer(valueVector);
     Lists::readFromSmallList(valueVector, listHandle);
     diskOverflowFile.scanStrings(TransactionType::READ_ONLY, *valueVector);
 }
 
 void ListPropertyLists::readFromLargeList(ValueVector* valueVector, ListHandle& listHandle) {
-    valueVector->resetOverflowBuffer();
-    Lists::readFromLargeList(valueVector, listHandle);
-    diskOverflowFile.readListsToVector(TransactionType::READ_ONLY, *valueVector);
+    common::StringVector::resetOverflowBuffer(valueVector);
+    auto pageCursor =
+        PageUtils::getPageElementCursorForPos(listHandle.getStartElemOffset(), numElementsPerPage);
+    readListFromPages(valueVector, listHandle, pageCursor);
 }
 
 void ListPropertyLists::readFromSmallList(ValueVector* valueVector, ListHandle& listHandle) {
-    valueVector->resetOverflowBuffer();
-    Lists::readFromSmallList(valueVector, listHandle);
-    diskOverflowFile.readListsToVector(TransactionType::READ_ONLY, *valueVector);
+    common::StringVector::resetOverflowBuffer(valueVector);
+    auto pageCursor = PageUtils::getPageElementCursorForPos(
+        ListHeaders::getSmallListCSROffset(listHandle.getListHeader()), numElementsPerPage);
+    readListFromPages(valueVector, listHandle, pageCursor);
+}
+
+void ListPropertyLists::readListFromPages(
+    ValueVector* valueVector, ListHandle& listHandle, PageElementCursor& pageCursor) {
+    uint64_t numValuesToRead = valueVector->state->originalSize;
+    uint64_t vectorPos = 0;
+    while (vectorPos != numValuesToRead) {
+        uint64_t numValuesInPage = numElementsPerPage - pageCursor.elemPosInPage;
+        uint64_t numValuesToReadInPage = std::min(numValuesInPage, numValuesToRead - vectorPos);
+        auto physicalPageIdx = listHandle.mapper(pageCursor.pageIdx);
+        auto [fileHandleToPin, pageIdxToPin] =
+            StorageStructureUtils::getFileHandleAndPhysicalPageIdxToPin(
+                *fileHandle, physicalPageIdx, *wal, TransactionType::READ_ONLY);
+        auto frameBytesOffset = getElemByteOffset(pageCursor.elemPosInPage);
+        bufferManager->optimisticRead(*fileHandleToPin, pageIdxToPin, [&](uint8_t* frame) {
+            auto kuListsToRead = reinterpret_cast<common::ku_list_t*>(frame + frameBytesOffset);
+            readNullBitsFromAPage(
+                valueVector, frame, pageCursor.elemPosInPage, vectorPos, numValuesToReadInPage);
+            for (auto i = 0u; i < numValuesToReadInPage; i++) {
+                if (!valueVector->isNull(vectorPos)) {
+                    diskOverflowFile.readListToVector(
+                        TransactionType::READ_ONLY, kuListsToRead[i], valueVector, vectorPos);
+                }
+                vectorPos++;
+            }
+        });
+        pageCursor.nextPage();
+    }
 }
 
 void AdjLists::readValues(
@@ -248,8 +278,8 @@ void AdjLists::readValues(
 
 std::unique_ptr<std::vector<nodeID_t>> AdjLists::readAdjacencyListOfNode(
     // We read the adjacency list of a node in 2 steps: i) we read all the bytes from the pages
-    // that hold the list into a buffer; and (ii) we interpret the bytes in the buffer based on the
-    // nodeIDCompressionScheme into a std::vector of nodeID_t.
+    // that hold the list into a buffer; and (ii) we interpret the bytes in the buffer based on
+    // the nodeIDCompressionScheme into a std::vector of nodeID_t.
     offset_t nodeOffset) {
     auto header = headers->getHeader(nodeOffset);
     auto pageMapper = ListHandle::getPageMapper(metadata, header, nodeOffset);
@@ -294,10 +324,10 @@ void AdjLists::readFromLargeList(ValueVector* valueVector, ListHandle& listHandl
     auto pageCursor =
         PageUtils::getPageElementCursorForPos(nextPartBeginElemOffset, numElementsPerPage);
     // The number of edges to read is the minimum of: (i) how may edges are left to read
-    // (info.listLen - nextPartBeginElemOffset); and (ii) how many elements are left in the current
-    // page that's being read (nextPartBeginElemOffset above should be set to the beginning of the
-    // next page. Note that because of case (ii), this computation guarantees that what we read fits
-    // into a single page. That's why we can call copyFromAPage.
+    // (info.listLen - nextPartBeginElemOffset); and (ii) how many elements are left in the
+    // current page that's being read (nextPartBeginElemOffset above should be set to the
+    // beginning of the next page. Note that because of case (ii), this computation guarantees
+    // that what we read fits into a single page. That's why we can call copyFromAPage.
     auto numValuesToCopy = std::min(listHandle.getNumValuesInList() - nextPartBeginElemOffset,
         (uint32_t)DEFAULT_VECTOR_CAPACITY);
     valueVector->state->initOriginalAndSelectedSize(numValuesToCopy);
@@ -316,27 +346,27 @@ void AdjLists::readFromSmallList(ValueVector* valueVector, ListHandle& listHandl
     valueVector->state->initOriginalAndSelectedSize(listHandle.getNumValuesInList());
     // We store the updates for adjLists in listsUpdatesStore, however we store the
     // updates for adjColumn in the WAL version of the page. The adjColumn needs to pass a
-    // transaction to readNodeIDsBySequentialCopy, so readNodeIDsBySequentialCopy can know whether
-    // to read the wal version or the original version of the page. AdjLists never reads the wal
-    // version of the page(since its updates are stored in listsUpdatesStore), so we
+    // transaction to readNodeIDsBySequentialCopy, so readNodeIDsBySequentialCopy can know
+    // whether to read the wal version or the original version of the page. AdjLists never reads
+    // the wal version of the page(since its updates are stored in listsUpdatesStore), so we
     // simply pass a dummy read-only transaction to readNodeIDsBySequentialCopy.
     auto dummyReadOnlyTrx = Transaction::getDummyReadOnlyTrx();
     auto pageCursor = PageUtils::getPageElementCursorForPos(
         ListHeaders::getSmallListCSROffset(listHandle.getListHeader()), numElementsPerPage);
     readInternalIDsBySequentialCopy(dummyReadOnlyTrx.get(), valueVector, pageCursor,
         listHandle.mapper, nbrTableID, true /* hasNoNullGuarantee */);
-    // We set the startIdx + numValuesToRead == numValuesInList in listSyncState to indicate to the
-    // callers (e.g., the adj_list_extend or var_len_extend) that we have read the small list
-    // already. This allows the callers to know when to switch to reading from the update store if
-    // there is any updates.
+    // We set the startIdx + numValuesToRead == numValuesInList in listSyncState to indicate to
+    // the callers (e.g., the adj_list_extend or var_len_extend) that we have read the small
+    // list already. This allows the callers to know when to switch to reading from the update
+    // store if there is any updates.
     listHandle.setRangeToRead(0, listHandle.getNumValuesInList());
 }
 
 void AdjLists::readFromListsUpdatesStore(ListHandle& listHandle, ValueVector* valueVector) {
     if (!listHandle.hasValidRangeToRead()) {
-        // We have read all values from persistent store or the persistent store is empty, we should
-        // reset listSyncState to indicate ranges in listsUpdatesStore and start
-        // reading from it.
+        // We have read all values from persistent store or the persistent store is empty, we
+        // should reset listSyncState to indicate ranges in listsUpdatesStore and start reading
+        // from it.
         listHandle.setRangeToRead(
             0, std::min(DEFAULT_VECTOR_CAPACITY, (uint64_t)listHandle.getNumValuesInList()));
     } else {
@@ -440,8 +470,8 @@ list_offset_t RelIDList::getListOffset(offset_t nodeOffset, offset_t relOffset) 
         });
         pageCursor.nextPage();
     }
-    // If we don't find the associated listOffset for the given relID in persistent store list, it
-    // means that this rel is stored in update store, and we return UINT64_MAX for this case.
+    // If we don't find the associated listOffset for the given relID in persistent store list,
+    // it means that this rel is stored in update store, and we return UINT64_MAX for this case.
     return retVal;
 }
 

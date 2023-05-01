@@ -11,23 +11,29 @@ namespace operation {
 
 struct ListConcat {
 public:
-    static inline void operation(common::ku_list_t& left, common::ku_list_t& right,
-        common::ku_list_t& result, common::ValueVector& resultValueVector) {
-        auto elementSize =
-            common::Types::getDataTypeSize(resultValueVector.dataType.getChildType()->typeID);
-        result.overflowPtr =
-            reinterpret_cast<uint64_t>(resultValueVector.getOverflowBuffer().allocateSpace(
-                (left.size + right.size) * elementSize));
-        common::ku_list_t tmpList1, tmpList2;
-        common::InMemOverflowBufferUtils::copyListRecursiveIfNested(
-            left, tmpList1, resultValueVector.dataType, resultValueVector.getOverflowBuffer());
-        common::InMemOverflowBufferUtils::copyListRecursiveIfNested(
-            right, tmpList2, resultValueVector.dataType, resultValueVector.getOverflowBuffer());
-        memcpy(reinterpret_cast<uint8_t*>(result.overflowPtr),
-            reinterpret_cast<uint8_t*>(tmpList1.overflowPtr), left.size * elementSize);
-        memcpy(reinterpret_cast<uint8_t*>(result.overflowPtr) + left.size * elementSize,
-            reinterpret_cast<uint8_t*>(tmpList2.overflowPtr), right.size * elementSize);
-        result.size = left.size + right.size;
+    static inline void operation(common::list_entry_t& left, common::list_entry_t& right,
+        common::list_entry_t& result, common::ValueVector& leftVector,
+        common::ValueVector& rightVector, common::ValueVector& resultVector) {
+        result = common::ListVector::addList(&resultVector, left.size + right.size);
+        auto leftValues = common::ListVector::getListValues(&leftVector, left);
+        auto leftDataVector = common::ListVector::getDataVector(&leftVector);
+        auto resultValues = common::ListVector::getListValues(&resultVector, result);
+        auto resultDataVector = common::ListVector::getDataVector(&resultVector);
+        auto numBytesPerValue = resultDataVector->getNumBytesPerValue();
+        for (auto i = 0u; i < left.size; i++) {
+            common::ValueVectorUtils::copyValue(
+                resultValues, *resultDataVector, leftValues, *leftDataVector);
+            resultValues += numBytesPerValue;
+            leftValues += numBytesPerValue;
+        }
+        auto rightValues = common::ListVector::getListValues(&rightVector, right);
+        auto rightDataVector = common::ListVector::getDataVector(&rightVector);
+        for (auto i = 0u; i < right.size; i++) {
+            common::ValueVectorUtils::copyValue(
+                resultValues, *resultDataVector, rightValues, *rightDataVector);
+            resultValues += numBytesPerValue;
+            rightValues += numBytesPerValue;
+        }
     }
 };
 

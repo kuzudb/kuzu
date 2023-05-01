@@ -10,6 +10,7 @@
 
 #include "common/api.h"
 #include "common/string_utils.h"
+#include "common/types/internal_id_t.h"
 
 namespace kuzu {
 namespace common {
@@ -38,6 +39,14 @@ struct overflow_value_t {
     // numElements * sizeof(Element) + nullMap(4 bytes alignment)
     uint64_t numElements = 0;
     uint8_t* value = nullptr;
+};
+
+struct list_entry_t {
+    common::offset_t offset;
+    uint64_t size;
+
+    list_entry_t() : offset{INVALID_OFFSET}, size{UINT64_MAX} {}
+    list_entry_t(common::offset_t offset, uint64_t size) : offset{offset}, size{size} {}
 };
 
 KUZU_API enum DataTypeID : uint8_t {

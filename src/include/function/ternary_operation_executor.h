@@ -10,17 +10,26 @@ namespace function {
 
 struct TernaryOperationWrapper {
     template<typename A_TYPE, typename B_TYPE, typename C_TYPE, typename RESULT_TYPE, typename OP>
-    static inline void operation(
-        A_TYPE& a, B_TYPE& b, C_TYPE& c, RESULT_TYPE& result, void* dataptr) {
+    static inline void operation(A_TYPE& a, B_TYPE& b, C_TYPE& c, RESULT_TYPE& result,
+        void* aValueVector, void* resultValueVector) {
         OP::operation(a, b, c, result);
     }
 };
 
-struct TernaryStringAndListOperationWrapper {
+struct TernaryStringOperationWrapper {
     template<typename A_TYPE, typename B_TYPE, typename C_TYPE, typename RESULT_TYPE, typename OP>
-    static inline void operation(
-        A_TYPE& a, B_TYPE& b, C_TYPE& c, RESULT_TYPE& result, void* dataptr) {
-        OP::operation(a, b, c, result, *(common::ValueVector*)dataptr);
+    static inline void operation(A_TYPE& a, B_TYPE& b, C_TYPE& c, RESULT_TYPE& result,
+        void* aValueVector, void* resultValueVector) {
+        OP::operation(a, b, c, result, *(common::ValueVector*)resultValueVector);
+    }
+};
+
+struct TernaryListOperationWrapper {
+    template<typename A_TYPE, typename B_TYPE, typename C_TYPE, typename RESULT_TYPE, typename OP>
+    static inline void operation(A_TYPE& a, B_TYPE& b, C_TYPE& c, RESULT_TYPE& result,
+        void* aValueVector, void* resultValueVector) {
+        OP::operation(a, b, c, result, *(common::ValueVector*)aValueVector,
+            *(common::ValueVector*)resultValueVector);
     }
 };
 
@@ -33,7 +42,7 @@ struct TernaryOperationExecutor {
         auto resValues = (RESULT_TYPE*)result.getData();
         OP_WRAPPER::template operation<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC>(
             ((A_TYPE*)a.getData())[aPos], ((B_TYPE*)b.getData())[bPos],
-            ((C_TYPE*)c.getData())[cPos], resValues[resPos], (void*)&result);
+            ((C_TYPE*)c.getData())[cPos], resValues[resPos], (void*)&a, (void*)&result);
     }
 
     template<typename A_TYPE, typename B_TYPE, typename C_TYPE, typename RESULT_TYPE, typename FUNC,
@@ -353,7 +362,7 @@ struct TernaryOperationExecutor {
         typename OP_WRAPPER>
     static void executeSwitch(common::ValueVector& a, common::ValueVector& b,
         common::ValueVector& c, common::ValueVector& result) {
-        result.resetOverflowBuffer();
+        common::StringVector::resetOverflowBuffer(&result);
         if (a.state->isFlat() && b.state->isFlat() && c.state->isFlat()) {
             executeAllFlat<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(a, b, c, result);
         } else if (a.state->isFlat() && b.state->isFlat() && !c.state->isFlat()) {
@@ -390,10 +399,17 @@ struct TernaryOperationExecutor {
     }
 
     template<typename A_TYPE, typename B_TYPE, typename C_TYPE, typename RESULT_TYPE, typename FUNC>
-    static void executeStringAndList(common::ValueVector& a, common::ValueVector& b,
+    static void executeString(common::ValueVector& a, common::ValueVector& b,
         common::ValueVector& c, common::ValueVector& result) {
-        executeSwitch<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC,
-            TernaryStringAndListOperationWrapper>(a, b, c, result);
+        executeSwitch<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC, TernaryStringOperationWrapper>(
+            a, b, c, result);
+    }
+
+    template<typename A_TYPE, typename B_TYPE, typename C_TYPE, typename RESULT_TYPE, typename FUNC>
+    static void executeList(common::ValueVector& a, common::ValueVector& b, common::ValueVector& c,
+        common::ValueVector& result) {
+        executeSwitch<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC, TernaryListOperationWrapper>(
+            a, b, c, result);
     }
 };
 

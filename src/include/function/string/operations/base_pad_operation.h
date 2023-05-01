@@ -30,7 +30,8 @@ public:
             memcpy(result.prefix, paddedResult.data(), result.len);
         } else {
             result.overflowPtr = reinterpret_cast<uint64_t>(
-                resultValueVector.getOverflowBuffer().allocateSpace(result.len));
+                common::StringVector::getInMemOverflowBuffer(&resultValueVector)
+                    ->allocateSpace(result.len));
             auto buffer = reinterpret_cast<char*>(result.overflowPtr);
             memcpy(buffer, paddedResult.data(), result.len);
             memcpy(result.prefix, buffer, common::ku_string_t::PREFIX_LENGTH);

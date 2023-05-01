@@ -12,10 +12,11 @@ namespace operation {
 
 struct ListContains {
     template<typename T>
-    static inline void operation(common::ku_list_t& list, T& element, uint8_t& result,
-        const common::DataType& leftDataType, const common::DataType& rightDataType) {
+    static inline void operation(common::list_entry_t& list, T& element, uint8_t& result,
+        common::ValueVector& listVector, common::ValueVector& elementVector,
+        common::ValueVector& resultVector) {
         int64_t pos;
-        ListPosition::operation(list, element, pos, leftDataType, rightDataType);
+        ListPosition::operation(list, element, pos, listVector, elementVector, resultVector);
         result = (pos != 0);
     }
 };

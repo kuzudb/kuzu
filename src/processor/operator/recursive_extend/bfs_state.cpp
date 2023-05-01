@@ -5,7 +5,7 @@ namespace processor {
 
 common::offset_t BaseBFSMorsel::getNextNodeOffset() {
     if (nextNodeIdxToExtend == currentFrontier->nodeOffsets.size()) {
-        return common::INVALID_NODE_OFFSET;
+        return common::INVALID_OFFSET;
     }
     return currentFrontier->nodeOffsets[nextNodeIdxToExtend++];
 }

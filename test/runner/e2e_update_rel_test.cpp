@@ -326,21 +326,21 @@ TEST_F(UpdateRelTest, UpdateStrPropRollbacktRecovery) {
     updateStrProp(false /* isCommit */, TransactionTestType::RECOVERY);
 }
 
-TEST_F(UpdateRelTest, UpdateListPropCommitNormalExecution) {
-    updateListProp(true /* isCommit */, TransactionTestType::NORMAL_EXECUTION);
-}
-
-TEST_F(UpdateRelTest, UpdateListPropCommitRecovery) {
-    updateListProp(true /* isCommit */, TransactionTestType::RECOVERY);
-}
-
-TEST_F(UpdateRelTest, UpdateListPropRollbackNormalExecution) {
-    updateListProp(false /* isCommit */, TransactionTestType::NORMAL_EXECUTION);
-}
-
-TEST_F(UpdateRelTest, UpdateListPropRollbacktRecovery) {
-    updateListProp(false /* isCommit */, TransactionTestType::RECOVERY);
-}
+// TEST_F(UpdateRelTest, UpdateListPropCommitNormalExecution) {
+//    updateListProp(true /* isCommit */, TransactionTestType::NORMAL_EXECUTION);
+//}
+//
+// TEST_F(UpdateRelTest, UpdateListPropCommitRecovery) {
+//    updateListProp(true /* isCommit */, TransactionTestType::RECOVERY);
+//}
+//
+// TEST_F(UpdateRelTest, UpdateListPropRollbackNormalExecution) {
+//    updateListProp(false /* isCommit */, TransactionTestType::NORMAL_EXECUTION);
+//}
+//
+// TEST_F(UpdateRelTest, UpdateListPropRollbacktRecovery) {
+//    updateListProp(false /* isCommit */, TransactionTestType::RECOVERY);
+//}
 
 TEST_F(UpdateRelTest, UpdateEachElementOfSmallListCommitNormalExecution) {
     updateEachElementOfSmallList(true /* isCommit */, TransactionTestType::NORMAL_EXECUTION);

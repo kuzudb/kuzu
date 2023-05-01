@@ -3,8 +3,8 @@
 #include <cassert>
 #include <cstring>
 
-#include "common/types/ku_list.h"
 #include "common/types/ku_string.h"
+#include "common/vector/value_vector_utils.h"
 #include "function/string/operations/array_extract_operation.h"
 
 namespace kuzu {
@@ -18,19 +18,22 @@ public:
         dest = src;
     }
 
-    // Note: this function takes in a 1-based position (The index of the first element in the list
+    // Note: this function takes in a 1-based position (The index of the first value in the list
     // is 1).
     template<typename T>
-    static inline void operation(
-        common::ku_list_t& list, int64_t pos, T& result, common::ValueVector& resultValueVector) {
+    static inline void operation(common::list_entry_t& listEntry, int64_t pos, T& result,
+        common::ValueVector& listVector, common::ValueVector& posVector,
+        common::ValueVector& resultVector) {
         auto uint64Pos = (uint64_t)pos;
-        if (list.size < uint64Pos) {
+        if (listEntry.size < uint64Pos) {
             throw common::RuntimeException("list_extract(list, index): index=" +
                                            common::TypeUtils::toString(pos) + " is out of range.");
         }
-        auto values = reinterpret_cast<T*>(list.overflowPtr);
-        result = values[uint64Pos - 1];
-        setValue(values[uint64Pos - 1], result, resultValueVector);
+        auto listDataVector = common::ListVector::getDataVector(&listVector);
+        auto listValues =
+            common::ListVector::getListValuesWithOffset(&listVector, listEntry, pos - 1);
+        common::ValueVectorUtils::copyValue(
+            (uint8_t*)(&result), resultVector, listValues, *listDataVector);
     }
 
     static inline void operation(
@@ -48,16 +51,10 @@ inline void ListExtract::setValue(
     common::ku_string_t& src, common::ku_string_t& dest, common::ValueVector& resultValueVector) {
     if (!common::ku_string_t::isShortString(src.len)) {
         dest.overflowPtr = reinterpret_cast<uint64_t>(
-            resultValueVector.getOverflowBuffer().allocateSpace(src.len));
+            common::StringVector::getInMemOverflowBuffer(&resultValueVector)
+                ->allocateSpace(src.len));
     }
     dest.set(src);
-}
-
-template<>
-inline void ListExtract::setValue(
-    common::ku_list_t& src, common::ku_list_t& dest, common::ValueVector& resultValueVector) {
-    common::InMemOverflowBufferUtils::copyListRecursiveIfNested(
-        src, dest, resultValueVector.dataType, resultValueVector.getOverflowBuffer());
 }
 
 } // namespace operation

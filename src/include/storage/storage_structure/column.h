@@ -90,7 +90,7 @@ public:
 
     inline void read(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
         common::ValueVector* resultVector) override {
-        resultVector->resetOverflowBuffer();
+        common::StringVector::resetOverflowBuffer(resultVector);
         Column::read(transaction, nodeIDVector, resultVector);
     }
     inline DiskOverflowFile* getDiskOverflowFile() { return &diskOverflowFile; }
@@ -150,24 +150,20 @@ public:
     common::Value readValueForTestingOnly(common::offset_t offset) override;
 
 private:
-    inline void lookup(transaction::Transaction* transaction, common::ValueVector* resultVector,
-        uint32_t vectorPos, PageElementCursor& cursor) override {
-        Column::lookup(transaction, resultVector, vectorPos, cursor);
-        if (!resultVector->isNull(vectorPos)) {
-            diskOverflowFile.scanSingleListOverflow(
-                transaction->getType(), *resultVector, vectorPos);
-        }
-    }
-    inline void scan(transaction::Transaction* transaction, common::ValueVector* resultVector,
-        PageElementCursor& cursor) override {
-        Column::scan(transaction, resultVector, cursor);
-        diskOverflowFile.readListsToVector(transaction->getType(), *resultVector);
-    }
-    inline void scanWithSelState(transaction::Transaction* transaction,
-        common::ValueVector* resultVector, PageElementCursor& cursor) override {
-        Column::scanWithSelState(transaction, resultVector, cursor);
-        diskOverflowFile.readListsToVector(transaction->getType(), *resultVector);
-    }
+    // TODO(Ziyi): remove these function once we have changed the storage structure for lists.
+    void readListsToVector(PageElementCursor& cursor,
+        const std::function<common::page_idx_t(common::page_idx_t)>& logicalToPhysicalPageMapper,
+        transaction::Transaction* transaction, common::ValueVector* resultVector,
+        uint64_t vectorPos, uint64_t numValuesToRead);
+
+    void lookup(transaction::Transaction* transaction, common::ValueVector* resultVector,
+        uint32_t vectorPos, PageElementCursor& cursor) override;
+
+    void scan(transaction::Transaction* transaction, common::ValueVector* resultVector,
+        PageElementCursor& cursor) override;
+
+    void scanWithSelState(transaction::Transaction* transaction, common::ValueVector* resultVector,
+        PageElementCursor& cursor) override;
 };
 
 class StructPropertyColumn : public Column {
