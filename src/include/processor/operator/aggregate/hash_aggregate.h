@@ -36,11 +36,12 @@ public:
         std::shared_ptr<HashAggregateSharedState> sharedState,
         std::vector<DataPos> inputGroupByHashKeyVectorsPos,
         std::vector<DataPos> inputGroupByNonHashKeyVectorsPos,
-        std::vector<bool> isInputGroupByHashKeyVectorFlat, std::vector<DataPos> aggregateVectorsPos,
+        std::vector<bool> isInputGroupByHashKeyVectorFlat,
         std::vector<std::unique_ptr<function::AggregateFunction>> aggregateFunctions,
+        std::vector<std::unique_ptr<AggregateInputInfo>> aggregateInputInfos,
         std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
-        : BaseAggregate{std::move(resultSetDescriptor), std::move(aggregateVectorsPos),
-              std::move(aggregateFunctions), std::move(child), id, paramsString},
+        : BaseAggregate{std::move(resultSetDescriptor), std::move(aggregateFunctions),
+              std::move(aggregateInputInfos), std::move(child), id, paramsString},
           groupByHashKeyVectorsPos{std::move(inputGroupByHashKeyVectorsPos)},
           groupByNonHashKeyVectorsPos{std::move(inputGroupByNonHashKeyVectorsPos)},
           isGroupByHashKeyVectorFlat{std::move(isInputGroupByHashKeyVectorFlat)},
@@ -52,7 +53,11 @@ public:
 
     void finalize(ExecutionContext* context) override;
 
-    std::unique_ptr<PhysicalOperator> clone() override;
+    inline std::unique_ptr<PhysicalOperator> clone() override {
+        return make_unique<HashAggregate>(resultSetDescriptor->copy(), sharedState,
+            groupByHashKeyVectorsPos, groupByNonHashKeyVectorsPos, isGroupByHashKeyVectorFlat,
+            cloneAggFunctions(), cloneAggInputInfos(), children[0]->clone(), id, paramsString);
+    }
 
 private:
     std::vector<DataPos> groupByHashKeyVectorsPos;

@@ -9,12 +9,12 @@ namespace processor {
 
 void HashAggregateSharedState::appendAggregateHashTable(
     std::unique_ptr<AggregateHashTable> aggregateHashTable) {
-    auto lck = acquireLock();
+    std::unique_lock lck{mtx};
     localAggregateHashTables.push_back(std::move(aggregateHashTable));
 }
 
 void HashAggregateSharedState::combineAggregateHashTable(MemoryManager& memoryManager) {
-    auto lck = acquireLock();
+    std::unique_lock lck{mtx};
     if (localAggregateHashTables.size() == 1) {
         globalAggregateHashTable = std::move(localAggregateHashTables[0]);
     } else {
@@ -31,12 +31,12 @@ void HashAggregateSharedState::combineAggregateHashTable(MemoryManager& memoryMa
 }
 
 void HashAggregateSharedState::finalizeAggregateHashTable() {
-    auto lck = acquireLock();
+    std::unique_lock lck{mtx};
     globalAggregateHashTable->finalizeAggregateStates();
 }
 
 std::pair<uint64_t, uint64_t> HashAggregateSharedState::getNextRangeToRead() {
-    auto lck = acquireLock();
+    std::unique_lock lck{mtx};
     if (currentOffset >= globalAggregateHashTable->getNumEntries()) {
         return std::make_pair(currentOffset, currentOffset);
     }
@@ -72,7 +72,7 @@ void HashAggregate::initLocalStateInternal(ResultSet* resultSet, ExecutionContex
 void HashAggregate::executeInternal(ExecutionContext* context) {
     while (children[0]->getNextTuple(context)) {
         localAggregateHashTable->append(groupByFlatHashKeyVectors, groupByUnflatHashKeyVectors,
-            groupByNonHashKeyVectors, aggregateVectors, resultSet->multiplicity);
+            groupByNonHashKeyVectors, aggregateInputs, resultSet->multiplicity);
     }
     sharedState->appendAggregateHashTable(std::move(localAggregateHashTable));
 }
@@ -80,17 +80,6 @@ void HashAggregate::executeInternal(ExecutionContext* context) {
 void HashAggregate::finalize(ExecutionContext* context) {
     sharedState->combineAggregateHashTable(*context->memoryManager);
     sharedState->finalizeAggregateHashTable();
-}
-
-std::unique_ptr<PhysicalOperator> HashAggregate::clone() {
-    std::vector<std::unique_ptr<AggregateFunction>> clonedAggregateFunctions;
-    for (auto& aggregateFunction : aggregateFunctions) {
-        clonedAggregateFunctions.push_back(aggregateFunction->clone());
-    }
-    return make_unique<HashAggregate>(resultSetDescriptor->copy(), sharedState,
-        groupByHashKeyVectorsPos, groupByNonHashKeyVectorsPos, isGroupByHashKeyVectorFlat,
-        aggregateVectorsPos, std::move(clonedAggregateFunctions), children[0]->clone(), id,
-        paramsString);
 }
 
 } // namespace processor

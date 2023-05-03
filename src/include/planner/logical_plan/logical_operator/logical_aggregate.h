@@ -25,10 +25,14 @@ public:
     inline binder::expression_vector getExpressionsToGroupBy() const {
         return expressionsToGroupBy;
     }
+    inline size_t getNumAggregateExpressions() const { return expressionsToAggregate.size(); }
+    inline std::shared_ptr<binder::Expression> getAggregateExpression(
+        common::vector_idx_t idx) const {
+        return expressionsToAggregate[idx];
+    }
     inline binder::expression_vector getExpressionsToAggregate() const {
         return expressionsToAggregate;
     }
-    inline Schema* getSchemaBeforeAggregate() const { return children[0]->getSchema(); }
 
     inline std::unique_ptr<LogicalOperator> copy() override {
         return make_unique<LogicalAggregate>(

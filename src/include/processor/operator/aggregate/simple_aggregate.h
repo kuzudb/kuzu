@@ -7,7 +7,6 @@ namespace kuzu {
 namespace processor {
 
 class SimpleAggregateSharedState : public BaseAggregateSharedState {
-
 public:
     explicit SimpleAggregateSharedState(
         const std::vector<std::unique_ptr<function::AggregateFunction>>& aggregateFunctions);
@@ -32,11 +31,11 @@ class SimpleAggregate : public BaseAggregate {
 public:
     SimpleAggregate(std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
         std::shared_ptr<SimpleAggregateSharedState> sharedState,
-        std::vector<DataPos> aggregateVectorsPos,
         std::vector<std::unique_ptr<function::AggregateFunction>> aggregateFunctions,
+        std::vector<std::unique_ptr<AggregateInputInfo>> aggregateInputInfos,
         std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
-        : BaseAggregate{std::move(resultSetDescriptor), std::move(aggregateVectorsPos),
-              std::move(aggregateFunctions), std::move(child), id, paramsString},
+        : BaseAggregate{std::move(resultSetDescriptor), std::move(aggregateFunctions),
+              std::move(aggregateInputInfos), std::move(child), id, paramsString},
           sharedState{std::move(sharedState)} {}
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
@@ -47,7 +46,17 @@ public:
         sharedState->finalizeAggregateStates();
     }
 
-    std::unique_ptr<PhysicalOperator> clone() override;
+    inline std::unique_ptr<PhysicalOperator> clone() override {
+        return make_unique<SimpleAggregate>(resultSetDescriptor->copy(), sharedState,
+            cloneAggFunctions(), cloneAggInputInfos(), children[0]->clone(), id, paramsString);
+    }
+
+private:
+    void computeDistinctAggregate(AggregateHashTable* distinctHT,
+        function::AggregateFunction* function, AggregateInput* input,
+        function::AggregateState* state, storage::MemoryManager* memoryManager);
+    void computeAggregate(function::AggregateFunction* function, AggregateInput* input,
+        function::AggregateState* state, storage::MemoryManager* memoryManager);
 
 private:
     std::shared_ptr<SimpleAggregateSharedState> sharedState;

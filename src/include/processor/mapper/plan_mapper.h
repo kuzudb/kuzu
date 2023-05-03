@@ -13,6 +13,7 @@ namespace kuzu {
 namespace processor {
 
 struct BuildDataInfo;
+struct AggregateInputInfo;
 
 class PlanMapper {
 public:
@@ -110,18 +111,16 @@ private:
 
     std::unique_ptr<PhysicalOperator> createHashAggregate(
         std::vector<std::unique_ptr<function::AggregateFunction>> aggregateFunctions,
-        std::vector<DataPos> inputAggVectorsPos, std::vector<DataPos> outputAggVectorsPos,
-        std::vector<common::DataType> outputAggVectorsDataType,
+        std::vector<std::unique_ptr<AggregateInputInfo>> inputAggregateInfo,
+        std::vector<DataPos> outputAggVectorsPos,
         const binder::expression_vector& groupByExpressions,
         std::unique_ptr<PhysicalOperator> prevOperator, const planner::Schema& inSchema,
         const planner::Schema& outSchema, const std::string& paramsString);
 
     void appendGroupByExpressions(const binder::expression_vector& groupByExpressions,
         std::vector<DataPos>& inputGroupByHashKeyVectorsPos,
-        std::vector<DataPos>& outputGroupByKeyVectorsPos,
-        std::vector<common::DataType>& outputGroupByKeyVectorsDataTypes,
-        const planner::Schema& inSchema, const planner::Schema& outSchema,
-        std::vector<bool>& isInputGroupByHashKeyVectorFlat);
+        std::vector<DataPos>& outputGroupByKeyVectorsPos, const planner::Schema& inSchema,
+        const planner::Schema& outSchema, std::vector<bool>& isInputGroupByHashKeyVectorFlat);
 
     BuildDataInfo generateBuildDataInfo(const planner::Schema& buildSideSchema,
         const binder::expression_vector& keys, const binder::expression_vector& payloads);
