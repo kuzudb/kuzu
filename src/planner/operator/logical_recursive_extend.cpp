@@ -23,26 +23,15 @@ void LogicalRecursiveExtend::computeFlatSchema() {
     }
 }
 
-void LogicalVariableLengthExtend::computeFactorizedSchema() {
-    copyChildSchema(0);
-    auto boundGroupPos = schema->getGroupPos(boundNode->getInternalIDPropertyName());
-    uint32_t nbrGroupPos = 0u;
-    if (hasAtMostOneNbr) {
-        nbrGroupPos = boundGroupPos;
-    } else {
-        assert(schema->getGroup(boundGroupPos)->isFlat());
-        nbrGroupPos = schema->createGroup();
-    }
-    schema->insertToGroupAndScope(nbrNode->getInternalIDProperty(), nbrGroupPos);
-}
-
-void LogicalShortestPathExtend::computeFactorizedSchema() {
+void LogicalRecursiveExtend::computeFactorizedSchema() {
     createEmptySchema();
     auto childSchema = children[0]->getSchema();
     SinkOperatorUtil::recomputeSchema(*childSchema, childSchema->getExpressionsInScope(), *schema);
     auto nbrGroupPos = schema->createGroup();
     schema->insertToGroupAndScope(nbrNode->getInternalIDProperty(), nbrGroupPos);
-    schema->insertToGroupAndScope(rel->getInternalLengthProperty(), nbrGroupPos);
+    if (rel->getRelType() == common::QueryRelType::SHORTEST) {
+        schema->insertToGroupAndScope(rel->getInternalLengthProperty(), nbrGroupPos);
+    }
 }
 
 } // namespace planner

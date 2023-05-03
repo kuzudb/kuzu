@@ -37,16 +37,6 @@ private:
     bool hasExecuted;
 };
 
-struct BFSScanState {
-    common::offset_t currentOffset;
-    size_t numScanned;
-
-    inline void resetState() {
-        currentOffset = 0;
-        numScanned = 0;
-    }
-};
-
 struct RecursiveJoinSharedState {
     std::shared_ptr<FTableSharedState> inputFTableSharedState;
     std::unique_ptr<NodeOffsetSemiMask> semiMask;
@@ -58,37 +48,38 @@ struct RecursiveJoinSharedState {
     }
 };
 
-class RecursiveJoin : public PhysicalOperator {
+class BaseRecursiveJoin : public PhysicalOperator {
 public:
-    RecursiveJoin(uint8_t upperBound, storage::NodeTable* nodeTable,
+    BaseRecursiveJoin(uint8_t lowerBound, uint8_t upperBound, storage::NodeTable* nodeTable,
         std::shared_ptr<RecursiveJoinSharedState> sharedState,
         std::vector<DataPos> vectorsToScanPos, std::vector<ft_col_idx_t> colIndicesToScan,
         const DataPos& srcNodeIDVectorPos, const DataPos& dstNodeIDVectorPos,
-        const DataPos& distanceVectorPos, std::unique_ptr<PhysicalOperator> child, uint32_t id,
-        const std::string& paramsString, std::unique_ptr<PhysicalOperator> root)
+        const DataPos& tmpDstNodeIDVectorPos, std::unique_ptr<PhysicalOperator> child, uint32_t id,
+        const std::string& paramsString, std::unique_ptr<PhysicalOperator> recursiveRoot)
         : PhysicalOperator{PhysicalOperatorType::RECURSIVE_JOIN, std::move(child), id,
               paramsString},
-          upperBound{upperBound}, nodeTable{nodeTable}, sharedState{std::move(sharedState)},
-          vectorsToScanPos{std::move(vectorsToScanPos)}, colIndicesToScan{std::move(
-                                                             colIndicesToScan)},
-          srcNodeIDVectorPos{srcNodeIDVectorPos}, dstNodeIDVectorPos{dstNodeIDVectorPos},
-          distanceVectorPos{distanceVectorPos}, root{std::move(root)}, bfsScanState{} {}
+          lowerBound{lowerBound}, upperBound{upperBound}, nodeTable{nodeTable},
+          sharedState{std::move(sharedState)}, vectorsToScanPos{std::move(vectorsToScanPos)},
+          colIndicesToScan{std::move(colIndicesToScan)}, srcNodeIDVectorPos{srcNodeIDVectorPos},
+          dstNodeIDVectorPos{dstNodeIDVectorPos}, tmpDstNodeIDVectorPos{tmpDstNodeIDVectorPos},
+          recursiveRoot{std::move(recursiveRoot)}, outputCursor{0} {}
 
-    RecursiveJoin(uint8_t upperBound, storage::NodeTable* nodeTable,
+    BaseRecursiveJoin(uint8_t lowerBound, uint8_t upperBound, storage::NodeTable* nodeTable,
         std::shared_ptr<RecursiveJoinSharedState> sharedState,
         std::vector<DataPos> vectorsToScanPos, std::vector<ft_col_idx_t> colIndicesToScan,
         const DataPos& srcNodeIDVectorPos, const DataPos& dstNodeIDVectorPos,
-        const DataPos& distanceVectorPos, uint32_t id, const std::string& paramsString,
-        std::unique_ptr<PhysicalOperator> root)
+        const DataPos& tmpDstNodeIDVectorPos, uint32_t id, const std::string& paramsString,
+        std::unique_ptr<PhysicalOperator> recursiveRoot)
         : PhysicalOperator{PhysicalOperatorType::RECURSIVE_JOIN, id, paramsString},
-          upperBound{upperBound}, nodeTable{nodeTable}, sharedState{std::move(sharedState)},
-          vectorsToScanPos{std::move(vectorsToScanPos)}, colIndicesToScan{std::move(
-                                                             colIndicesToScan)},
-          srcNodeIDVectorPos{srcNodeIDVectorPos}, dstNodeIDVectorPos{dstNodeIDVectorPos},
-          distanceVectorPos{distanceVectorPos}, root{std::move(root)}, bfsScanState{} {}
+          lowerBound{lowerBound}, upperBound{upperBound}, nodeTable{nodeTable},
+          sharedState{std::move(sharedState)}, vectorsToScanPos{std::move(vectorsToScanPos)},
+          colIndicesToScan{std::move(colIndicesToScan)}, srcNodeIDVectorPos{srcNodeIDVectorPos},
+          dstNodeIDVectorPos{dstNodeIDVectorPos}, tmpDstNodeIDVectorPos{tmpDstNodeIDVectorPos},
+          recursiveRoot{std::move(recursiveRoot)}, outputCursor{0} {}
+
+    virtual ~BaseRecursiveJoin() = default;
 
     static inline DataPos getTmpSrcNodeVectorPos() { return DataPos{0, 0}; }
-    static inline DataPos getTmpDstNodeVectorPos() { return DataPos{1, 0}; }
 
     inline NodeSemiMask* getSemiMask() const { return sharedState->semiMask.get(); }
 
@@ -96,50 +87,44 @@ public:
 
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
-    std::unique_ptr<PhysicalOperator> clone() override {
-        return std::make_unique<RecursiveJoin>(upperBound, nodeTable, sharedState, vectorsToScanPos,
-            colIndicesToScan, srcNodeIDVectorPos, dstNodeIDVectorPos, distanceVectorPos, id,
-            paramsString, root->clone());
-    }
+    std::unique_ptr<PhysicalOperator> clone() override = 0;
 
 private:
-    static std::unique_ptr<ResultSet> getLocalResultSet();
+    std::unique_ptr<ResultSet> getLocalResultSet();
 
     void initLocalRecursivePlan(ExecutionContext* context);
+
+    virtual bool scanOutput() = 0;
+
     // Compute BFS for a given src node.
-    bool computeBFS(ExecutionContext* context);
-    // Mark un-visited node as visited.
-    void updateVisitedState();
+    void computeBFS(ExecutionContext* context);
 
-    void scanDstNodes(size_t sizeToScan);
+    void updateVisitedNodes(uint64_t multiplicity);
 
-private:
+protected:
+    uint8_t lowerBound;
     uint8_t upperBound;
-    // TODO:remove
     storage::NodeTable* nodeTable;
     std::shared_ptr<RecursiveJoinSharedState> sharedState;
     std::vector<DataPos> vectorsToScanPos;
     std::vector<ft_col_idx_t> colIndicesToScan;
     DataPos srcNodeIDVectorPos;
     DataPos dstNodeIDVectorPos;
-    DataPos distanceVectorPos;
+    DataPos tmpDstNodeIDVectorPos;
 
     // Local recursive plan
     std::unique_ptr<ResultSet> localResultSet;
-    std::unique_ptr<PhysicalOperator> root;
+    std::unique_ptr<PhysicalOperator> recursiveRoot;
     ScanFrontier* scanBFSLevel;
 
-    std::unique_ptr<BFSMorsel> bfsMorsel;
-
-    common::offset_t maxNodeOffset;
+    // Vectors
     std::vector<common::ValueVector*> vectorsToScan;
     std::shared_ptr<common::ValueVector> srcNodeIDVector;
     std::shared_ptr<common::ValueVector> dstNodeIDVector;
-    std::shared_ptr<common::ValueVector> distanceVector;
-    // vector for temporary recursive join result.
-    std::shared_ptr<common::ValueVector> tmpDstNodeIDVector;
+    std::shared_ptr<common::ValueVector> tmpDstNodeIDVector; // temporary recursive join result.
 
-    BFSScanState bfsScanState;
+    std::unique_ptr<BaseBFSMorsel> bfsMorsel;
+    size_t outputCursor;
 };
 
 } // namespace processor

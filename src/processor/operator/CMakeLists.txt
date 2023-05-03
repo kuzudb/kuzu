@@ -7,7 +7,7 @@ add_subdirectory(order_by)
 add_subdirectory(scan)
 add_subdirectory(table_scan)
 add_subdirectory(update)
-add_subdirectory(var_length_extend)
+add_subdirectory(recursive_extend)
 
 add_library(kuzu_processor_operator
         OBJECT

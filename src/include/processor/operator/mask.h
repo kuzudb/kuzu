@@ -36,6 +36,7 @@ public:
     MaskCollection() : numMasks{0} {}
 
     inline void init(common::offset_t maxOffset) {
+        std::unique_lock lck{mtx};
         if (maskData != nullptr) { // MaskCollection might be initialized repeatedly.
             return;
         }
@@ -55,6 +56,7 @@ public:
     inline void incrementNumMasks() { numMasks++; }
 
 private:
+    std::mutex mtx;
     std::unique_ptr<MaskData> maskData;
     uint8_t numMasks;
 };

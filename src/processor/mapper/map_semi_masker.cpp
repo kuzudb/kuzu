@@ -1,8 +1,8 @@
 #include "planner/logical_plan/logical_operator/logical_semi_masker.h"
 #include "processor/mapper/plan_mapper.h"
+#include "processor/operator/recursive_extend/recursive_join.h"
 #include "processor/operator/scan_node_id.h"
 #include "processor/operator/semi_masker.h"
-#include "processor/operator/var_length_extend/recursive_join.h"
 
 using namespace kuzu::planner;
 
@@ -32,7 +32,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalSemiMaskerToPhysical(
             }
         } break;
         case PhysicalOperatorType::RECURSIVE_JOIN: {
-            auto recursiveJoin = (RecursiveJoin*)physicalOp;
+            auto recursiveJoin = (BaseRecursiveJoin*)physicalOp;
             assert(!node->isMultiLabeled());
             auto tableID = node->getSingleTableID();
             masksPerTable.at(tableID).emplace_back(recursiveJoin->getSemiMask(), 0);

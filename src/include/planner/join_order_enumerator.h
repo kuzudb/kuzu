@@ -86,10 +86,7 @@ private:
         std::shared_ptr<NodeExpression> nbrNode, std::shared_ptr<RelExpression> rel,
         common::RelDirection direction, const binder::expression_vector& properties,
         LogicalPlan& plan);
-    void appendVariableLengthExtend(std::shared_ptr<NodeExpression> boundNode,
-        std::shared_ptr<NodeExpression> nbrNode, std::shared_ptr<RelExpression> rel,
-        common::RelDirection direction, LogicalPlan& plan);
-    void appendShortestPathExtend(std::shared_ptr<NodeExpression> boundNode,
+    void appendRecursiveExtend(std::shared_ptr<NodeExpression> boundNode,
         std::shared_ptr<NodeExpression> nbrNode, std::shared_ptr<RelExpression> rel,
         common::RelDirection direction, LogicalPlan& plan);
 
