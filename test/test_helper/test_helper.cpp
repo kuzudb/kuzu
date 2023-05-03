@@ -145,5 +145,23 @@ std::unique_ptr<planner::LogicalPlan> TestHelper::getLogicalPlan(
     return std::move(conn.prepare(query)->logicalPlans[0]);
 }
 
+std::string TestHelper::convertSnakeCaseToCamelCase(const std::string& snakeCase) {
+    std::string camelCase;
+    bool toUpper = true;
+    for (auto c : snakeCase) {
+        if (c == '_') {
+            toUpper = true;
+        } else {
+            if (toUpper) {
+                camelCase += std::toupper(c);
+                toUpper = false;
+            } else {
+                camelCase += c;
+            }
+        }
+    }
+    return camelCase;
+}
+
 } // namespace testing
 } // namespace kuzu

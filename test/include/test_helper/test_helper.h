@@ -49,6 +49,8 @@ public:
     static std::unique_ptr<planner::LogicalPlan> getLogicalPlan(
         const std::string& query, Connection& conn);
 
+    static std::string convertSnakeCaseToCamelCase(const std::string& snakeCase);
+
 private:
     static void initializeConnection(TestQueryConfig* config, Connection& conn);
     static bool testQuery(TestQueryConfig* config, Connection& conn);
