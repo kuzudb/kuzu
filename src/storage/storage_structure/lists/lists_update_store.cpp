@@ -330,7 +330,7 @@ ListsUpdatesForNodeOffset* ListsUpdatesStore::getOrCreateListsUpdatesForNodeOffs
         listsUpdatesPerDirection[relDirection][StorageUtils::getListChunkIdx(nodeOffset)];
     if (!listsUpdatesPerNodeOffset.count(nodeOffset) > 0) {
         listsUpdatesPerNodeOffset.emplace(
-            nodeOffset, std::make_unique<ListsUpdatesForNodeOffset>(relTableSchema));
+            nodeOffset, std::make_shared<ListsUpdatesForNodeOffset>(relTableSchema));
     }
     return listsUpdatesPerNodeOffset.at(nodeOffset).get();
 }
