@@ -15,7 +15,7 @@ void BaseBFSMorsel::moveNextLevelAsCurrentLevel() {
     currentLevel++;
     nextNodeIdxToExtend = 0;
     nextFrontier = createFrontier();
-    if (currentLevel == upperBound) { // No need to sort if we are not extending further.
+    if (currentLevel < upperBound) { // No need to sort if we are not extending further.
         std::sort(currentFrontier->nodeOffsets.begin(), currentFrontier->nodeOffsets.end());
     }
 }
