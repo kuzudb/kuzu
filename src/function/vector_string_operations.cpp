@@ -7,7 +7,11 @@
 #include "function/string/operations/left_operation.h"
 #include "function/string/operations/length_operation.h"
 #include "function/string/operations/lpad_operation.h"
-#include "function/string/operations/reg_expr_operation.h"
+#include "function/string/operations/regexp_extract_all_operation.h"
+#include "function/string/operations/regexp_extract_operation.h"
+#include "function/string/operations/regexp_full_match_operation.h"
+#include "function/string/operations/regexp_matches_operation.h"
+#include "function/string/operations/regexp_replace_operation.h"
 #include "function/string/operations/repeat_operation.h"
 #include "function/string/operations/right_operation.h"
 #include "function/string/operations/rpad_operation.h"
@@ -54,16 +58,6 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> EndsWithVectorOperation:
         std::vector<DataTypeID>{STRING, STRING}, BOOL,
         BinaryExecFunction<ku_string_t, ku_string_t, uint8_t, operation::EndsWith>,
         BinarySelectFunction<ku_string_t, ku_string_t, operation::EndsWith>,
-        false /* isVarLength */));
-    return definitions;
-}
-
-std::vector<std::unique_ptr<VectorOperationDefinition>> REMatchVectorOperation::getDefinitions() {
-    std::vector<std::unique_ptr<VectorOperationDefinition>> definitions;
-    definitions.emplace_back(make_unique<VectorOperationDefinition>(RE_MATCH_FUNC_NAME,
-        std::vector<DataTypeID>{STRING, STRING}, BOOL,
-        BinaryExecFunction<ku_string_t, ku_string_t, uint8_t, operation::REMatch>,
-        BinarySelectFunction<ku_string_t, ku_string_t, operation::REMatch>,
         false /* isVarLength */));
     return definitions;
 }
@@ -139,6 +133,74 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> SubStrVectorOperation::g
         TernaryStringExecFunction<ku_string_t, int64_t, int64_t, ku_string_t, operation::SubStr>,
         false /* isVarLength */));
     return definitions;
+}
+
+std::vector<std::unique_ptr<VectorOperationDefinition>>
+RegexpFullMatchVectorOperation::getDefinitions() {
+    std::vector<std::unique_ptr<VectorOperationDefinition>> definitions;
+    definitions.emplace_back(make_unique<VectorOperationDefinition>(REGEXP_FULL_MATCH_FUNC_NAME,
+        std::vector<DataTypeID>{STRING, STRING}, BOOL,
+        BinaryExecFunction<ku_string_t, ku_string_t, uint8_t, operation::RegexpFullMatch>,
+        BinarySelectFunction<ku_string_t, ku_string_t, operation::RegexpFullMatch>,
+        false /* isVarLength */));
+    return definitions;
+}
+
+std::vector<std::unique_ptr<VectorOperationDefinition>> RegexpMatchesOperation::getDefinitions() {
+    std::vector<std::unique_ptr<VectorOperationDefinition>> definitions;
+    definitions.emplace_back(make_unique<VectorOperationDefinition>(REGEXP_MATCHES_FUNC_NAME,
+        std::vector<DataTypeID>{STRING, STRING}, BOOL,
+        BinaryExecFunction<ku_string_t, ku_string_t, uint8_t, operation::RegexpMatches>,
+        BinarySelectFunction<ku_string_t, ku_string_t, operation::RegexpMatches>,
+        false /* isVarLength */));
+    return definitions;
+}
+
+std::vector<std::unique_ptr<VectorOperationDefinition>> RegexpReplaceOperation::getDefinitions() {
+    std::vector<std::unique_ptr<VectorOperationDefinition>> definitions;
+    // Todo: Implement a function with modifiers
+    //  regexp_replace(string, regex, replacement, modifiers)
+    definitions.emplace_back(make_unique<VectorOperationDefinition>(REGEXP_REPLACE_FUNC_NAME,
+        std::vector<DataTypeID>{STRING, STRING, STRING}, STRING,
+        TernaryStringExecFunction<ku_string_t, ku_string_t, ku_string_t, ku_string_t,
+            operation::RegexpReplace>,
+        false /* isVarLength */));
+    return definitions;
+}
+
+std::vector<std::unique_ptr<VectorOperationDefinition>> RegexpExtractOperation::getDefinitions() {
+    std::vector<std::unique_ptr<VectorOperationDefinition>> definitions;
+    definitions.emplace_back(make_unique<VectorOperationDefinition>(REGEXP_EXTRACT_FUNC_NAME,
+        std::vector<DataTypeID>{STRING, STRING}, STRING,
+        BinaryStringExecFunction<ku_string_t, ku_string_t, ku_string_t, operation::RegexpExtract>,
+        false /* isVarLength */));
+    definitions.emplace_back(make_unique<VectorOperationDefinition>(REGEXP_EXTRACT_FUNC_NAME,
+        std::vector<DataTypeID>{STRING, STRING, INT64}, STRING,
+        TernaryStringExecFunction<ku_string_t, ku_string_t, int64_t, ku_string_t,
+            operation::RegexpExtract>,
+        false /* isVarLength */));
+    return definitions;
+}
+
+std::vector<std::unique_ptr<VectorOperationDefinition>>
+RegexpExtractAllOperation::getDefinitions() {
+    std::vector<std::unique_ptr<VectorOperationDefinition>> definitions;
+    definitions.emplace_back(make_unique<VectorOperationDefinition>(REGEXP_EXTRACT_FUNC_NAME,
+        std::vector<DataTypeID>{STRING, STRING}, VAR_LIST,
+        BinaryStringExecFunction<ku_string_t, ku_string_t, list_entry_t,
+            operation::RegexpExtractAll>,
+        nullptr, bindFunc, false /* isVarLength */));
+    definitions.emplace_back(make_unique<VectorOperationDefinition>(REGEXP_EXTRACT_FUNC_NAME,
+        std::vector<DataTypeID>{STRING, STRING, INT64}, VAR_LIST,
+        TernaryStringExecFunction<ku_string_t, ku_string_t, int64_t, list_entry_t,
+            operation::RegexpExtractAll>,
+        nullptr, bindFunc, false /* isVarLength */));
+    return definitions;
+}
+
+std::unique_ptr<FunctionBindData> RegexpExtractAllOperation::bindFunc(
+    const binder::expression_vector& arguments, FunctionDefinition* definition) {
+    return std::make_unique<FunctionBindData>(DataType(std::make_unique<DataType>(STRING)));
 }
 
 } // namespace function

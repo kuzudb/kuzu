@@ -117,7 +117,6 @@ const std::string ARRAY_EXTRACT_FUNC_NAME = "ARRAY_EXTRACT";
 const std::string CONCAT_FUNC_NAME = "CONCAT";
 const std::string CONTAINS_FUNC_NAME = "CONTAINS";
 const std::string ENDS_WITH_FUNC_NAME = "ENDS_WITH";
-const std::string RE_MATCH_FUNC_NAME = "RE_MATCH";
 const std::string LCASE_FUNC_NAME = "LCASE";
 const std::string LEFT_FUNC_NAME = "LEFT";
 const std::string LENGTH_FUNC_NAME = "LENGTH";
@@ -137,6 +136,11 @@ const std::string SUFFIX_FUNC_NAME = "SUFFIX";
 const std::string TRIM_FUNC_NAME = "TRIM";
 const std::string UCASE_FUNC_NAME = "UCASE";
 const std::string UPPER_FUNC_NAME = "UPPER";
+const std::string REGEXP_FULL_MATCH_FUNC_NAME = "REGEXP_FULL_MATCH";
+const std::string REGEXP_MATCHES_FUNC_NAME = "REGEXP_MATCHES";
+const std::string REGEXP_REPLACE_FUNC_NAME = "REGEXP_REPLACE";
+const std::string REGEXP_EXTRACT_FUNC_NAME = "REGEXP_EXTRACT";
+const std::string REGEXP_EXTRACT_ALL_FUNC_NAME = "REGEXP_EXTRACT_ALL";
 
 // Date functions.
 const std::string DATE_PART_FUNC_NAME = "DATE_PART";
