@@ -162,5 +162,14 @@ std::unique_ptr<ResultCollector> PlanMapper::appendResultCollector(
         binder::ExpressionUtil::toString(expressionsToCollect));
 }
 
+std::vector<DataPos> PlanMapper::getExpressionsDataPos(
+    const binder::expression_vector& expressions, const planner::Schema& schema) {
+    std::vector<DataPos> result;
+    for (auto& expression : expressions) {
+        result.emplace_back(schema.getExpressionPos(*expression));
+    }
+    return result;
+}
+
 } // namespace processor
 } // namespace kuzu

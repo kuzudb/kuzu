@@ -33,19 +33,15 @@ private:
 class HashAggregate : public BaseAggregate {
 public:
     HashAggregate(std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
-        std::shared_ptr<HashAggregateSharedState> sharedState,
-        std::vector<DataPos> inputGroupByHashKeyVectorsPos,
-        std::vector<DataPos> inputGroupByNonHashKeyVectorsPos,
-        std::vector<bool> isInputGroupByHashKeyVectorFlat,
+        std::shared_ptr<HashAggregateSharedState> sharedState, std::vector<DataPos> flatKeysPos,
+        std::vector<DataPos> unFlatKeysPos, std::vector<DataPos> dependentKeysPos,
         std::vector<std::unique_ptr<function::AggregateFunction>> aggregateFunctions,
         std::vector<std::unique_ptr<AggregateInputInfo>> aggregateInputInfos,
         std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
         : BaseAggregate{std::move(resultSetDescriptor), std::move(aggregateFunctions),
               std::move(aggregateInputInfos), std::move(child), id, paramsString},
-          groupByHashKeyVectorsPos{std::move(inputGroupByHashKeyVectorsPos)},
-          groupByNonHashKeyVectorsPos{std::move(inputGroupByNonHashKeyVectorsPos)},
-          isGroupByHashKeyVectorFlat{std::move(isInputGroupByHashKeyVectorFlat)},
-          sharedState{std::move(sharedState)} {}
+          flatKeysPos{std::move(flatKeysPos)}, unFlatKeysPos{std::move(unFlatKeysPos)},
+          dependentKeysPos{std::move(dependentKeysPos)}, sharedState{std::move(sharedState)} {}
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
@@ -54,18 +50,19 @@ public:
     void finalize(ExecutionContext* context) override;
 
     inline std::unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<HashAggregate>(resultSetDescriptor->copy(), sharedState,
-            groupByHashKeyVectorsPos, groupByNonHashKeyVectorsPos, isGroupByHashKeyVectorFlat,
-            cloneAggFunctions(), cloneAggInputInfos(), children[0]->clone(), id, paramsString);
+        return make_unique<HashAggregate>(resultSetDescriptor->copy(), sharedState, flatKeysPos,
+            unFlatKeysPos, dependentKeysPos, cloneAggFunctions(), cloneAggInputInfos(),
+            children[0]->clone(), id, paramsString);
     }
 
 private:
-    std::vector<DataPos> groupByHashKeyVectorsPos;
-    std::vector<DataPos> groupByNonHashKeyVectorsPos;
-    std::vector<bool> isGroupByHashKeyVectorFlat;
-    std::vector<common::ValueVector*> groupByFlatHashKeyVectors;
-    std::vector<common::ValueVector*> groupByUnflatHashKeyVectors;
-    std::vector<common::ValueVector*> groupByNonHashKeyVectors;
+    std::vector<DataPos> flatKeysPos;
+    std::vector<DataPos> unFlatKeysPos;
+    std::vector<DataPos> dependentKeysPos;
+
+    std::vector<common::ValueVector*> flatKeyVectors;
+    std::vector<common::ValueVector*> unFlatKeyVectors;
+    std::vector<common::ValueVector*> dependentKeyVectors;
 
     std::shared_ptr<HashAggregateSharedState> sharedState;
     std::unique_ptr<AggregateHashTable> localAggregateHashTable;

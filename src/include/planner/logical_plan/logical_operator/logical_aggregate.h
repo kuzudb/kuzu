@@ -7,11 +7,18 @@ namespace planner {
 
 class LogicalAggregate : public LogicalOperator {
 public:
-    LogicalAggregate(binder::expression_vector expressionsToGroupBy,
-        binder::expression_vector expressionsToAggregate, std::shared_ptr<LogicalOperator> child)
+    LogicalAggregate(binder::expression_vector keyExpressions,
+        binder::expression_vector aggregateExpressions, std::shared_ptr<LogicalOperator> child)
         : LogicalOperator{LogicalOperatorType::AGGREGATE, std::move(child)},
-          expressionsToGroupBy{std::move(expressionsToGroupBy)}, expressionsToAggregate{std::move(
-                                                                     expressionsToAggregate)} {}
+          keyExpressions{std::move(keyExpressions)}, aggregateExpressions{
+                                                         std::move(aggregateExpressions)} {}
+    LogicalAggregate(binder::expression_vector keyExpressions,
+        binder::expression_vector dependentKeyExpressions,
+        binder::expression_vector aggregateExpressions, std::shared_ptr<LogicalOperator> child)
+        : LogicalOperator{LogicalOperatorType::AGGREGATE, std::move(child)},
+          keyExpressions{std::move(keyExpressions)}, dependentKeyExpressions{std::move(
+                                                         dependentKeyExpressions)},
+          aggregateExpressions{std::move(aggregateExpressions)} {}
 
     void computeFactorizedSchema() override;
     void computeFlatSchema() override;
@@ -21,30 +28,42 @@ public:
 
     std::string getExpressionsForPrinting() const override;
 
-    inline bool hasExpressionsToGroupBy() const { return !expressionsToGroupBy.empty(); }
-    inline binder::expression_vector getExpressionsToGroupBy() const {
-        return expressionsToGroupBy;
+    inline bool hasKeyExpressions() const { return !keyExpressions.empty(); }
+    inline binder::expression_vector getKeyExpressions() const { return keyExpressions; }
+    inline void setKeyExpressions(binder::expression_vector expressions) {
+        keyExpressions = std::move(expressions);
     }
-    inline size_t getNumAggregateExpressions() const { return expressionsToAggregate.size(); }
-    inline std::shared_ptr<binder::Expression> getAggregateExpression(
-        common::vector_idx_t idx) const {
-        return expressionsToAggregate[idx];
+    inline binder::expression_vector getDependentKeyExpressions() const {
+        return dependentKeyExpressions;
     }
-    inline binder::expression_vector getExpressionsToAggregate() const {
-        return expressionsToAggregate;
+    inline void setDependentKeyExpressions(binder::expression_vector expressions) {
+        dependentKeyExpressions = std::move(expressions);
+    }
+    inline binder::expression_vector getAllKeyExpressions() const {
+        binder::expression_vector result;
+        result.insert(result.end(), keyExpressions.begin(), keyExpressions.end());
+        result.insert(result.end(), dependentKeyExpressions.begin(), dependentKeyExpressions.end());
+        return result;
+    }
+    inline binder::expression_vector getAggregateExpressions() const {
+        return aggregateExpressions;
     }
 
     inline std::unique_ptr<LogicalOperator> copy() override {
         return make_unique<LogicalAggregate>(
-            expressionsToGroupBy, expressionsToAggregate, children[0]->copy());
+            keyExpressions, dependentKeyExpressions, aggregateExpressions, children[0]->copy());
     }
 
 private:
     bool hasDistinctAggregate();
+    void insertAllExpressionsToGroupAndScope(f_group_pos groupPos);
 
 private:
-    binder::expression_vector expressionsToGroupBy;
-    binder::expression_vector expressionsToAggregate;
+    binder::expression_vector keyExpressions;
+    // A dependentKeyExpression depend on a keyExpression (e.g. a.age depends on a.ID) and will not
+    // be treated as a hash key during hash aggregation.
+    binder::expression_vector dependentKeyExpressions;
+    binder::expression_vector aggregateExpressions;
 };
 
 } // namespace planner

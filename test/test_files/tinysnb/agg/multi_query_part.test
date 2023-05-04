@@ -38,3 +38,9 @@ True
 3|5|3
 7|8|2
 7|9|2
+
+-NAME GroupByMultiQueryTest3
+-QUERY MATCH (a:person) WHERE a.ID > 4 WITH a, a.age AS foo MATCH (a)-[:knows]->(b:person) RETURN a.ID, foo, COUNT(*)
+---- 2
+5|20|3
+7|20|2

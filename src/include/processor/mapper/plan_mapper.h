@@ -109,23 +109,22 @@ private:
 
     inline uint32_t getOperatorID() { return physicalOperatorID++; }
 
-    std::unique_ptr<PhysicalOperator> createHashAggregate(
-        std::vector<std::unique_ptr<function::AggregateFunction>> aggregateFunctions,
-        std::vector<std::unique_ptr<AggregateInputInfo>> inputAggregateInfo,
-        std::vector<DataPos> outputAggVectorsPos,
-        const binder::expression_vector& groupByExpressions,
-        std::unique_ptr<PhysicalOperator> prevOperator, const planner::Schema& inSchema,
-        const planner::Schema& outSchema, const std::string& paramsString);
-
-    void appendGroupByExpressions(const binder::expression_vector& groupByExpressions,
-        std::vector<DataPos>& inputGroupByHashKeyVectorsPos,
-        std::vector<DataPos>& outputGroupByKeyVectorsPos, const planner::Schema& inSchema,
-        const planner::Schema& outSchema, std::vector<bool>& isInputGroupByHashKeyVectorFlat);
-
     BuildDataInfo generateBuildDataInfo(const planner::Schema& buildSideSchema,
         const binder::expression_vector& keys, const binder::expression_vector& payloads);
 
-    void mapAccHashJoin(PhysicalOperator* probe);
+    std::unique_ptr<PhysicalOperator> createHashAggregate(
+        const binder::expression_vector& keyExpressions,
+        const binder::expression_vector& dependentKeyExpressions,
+        std::vector<std::unique_ptr<function::AggregateFunction>> aggregateFunctions,
+        std::vector<std::unique_ptr<AggregateInputInfo>> aggregateInputInfos,
+        std::vector<DataPos> aggregatesOutputPos, const planner::Schema& inSchema,
+        const planner::Schema& outSchema, std::unique_ptr<PhysicalOperator> prevOperator,
+        const std::string& paramsString);
+
+    static void mapAccHashJoin(PhysicalOperator* probe);
+
+    static std::vector<DataPos> getExpressionsDataPos(
+        const binder::expression_vector& expressions, const planner::Schema& schema);
 
 public:
     storage::StorageManager& storageManager;
