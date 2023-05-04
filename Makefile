@@ -34,7 +34,7 @@ endif
 arrow:
 ifeq ($(OS),Windows_NT)
 	cd external\ && \
-	if not exist build\ mkdir build\ && \
+	(if not exist build\ mkdir build\) && \
 	cd build\ && \
 	cmake $(FORCE_COLOR) $(SANITIZER_FLAG) $(GENERATOR) .. && \
 	cmake --build . -- -j $(NUM_THREADS)
@@ -48,9 +48,9 @@ endif
 
 release: arrow
 ifeq ($(OS),Windows_NT)
-	if not exist build\ mkdir build\ && \
+	(if not exist build\ mkdir build\) && \
 	cd build\ && \
-	if not exist release\ mkdir release\ && \
+	(if not exist release\ mkdir release\) && \
 	cd release\ &&\
 	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) -DCMAKE_BUILD_TYPE=Release ..\.. && \
 	cmake --build . --config Release -- -j $(NUM_THREADS)
