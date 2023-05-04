@@ -1,5 +1,6 @@
 #pragma once
 
+#include "aggregate_input.h"
 #include "function/aggregate/aggregate_function.h"
 #include "function/comparison/comparison_operations.h"
 #include "processor/operator/base_hash_table.h"
@@ -40,7 +41,7 @@ using update_agg_function_t =
 class AggregateHashTable : public BaseHashTable {
 public:
     // Used by distinct aggregate hash table only.
-    inline AggregateHashTable(storage::MemoryManager& memoryManager,
+    AggregateHashTable(storage::MemoryManager& memoryManager,
         const std::vector<common::DataType>& groupByHashKeysDataTypes,
         const std::vector<std::unique_ptr<function::AggregateFunction>>& aggregateFunctions,
         uint64_t numEntriesToAllocate)
@@ -61,16 +62,18 @@ public:
 
     inline void append(const std::vector<common::ValueVector*>& groupByFlatKeyVectors,
         const std::vector<common::ValueVector*>& groupByUnFlatHashKeyVectors,
-        const std::vector<common::ValueVector*>& aggregateVectors, uint64_t multiplicity) {
+        const std::vector<std::unique_ptr<AggregateInput>>& aggregateInputs,
+        uint64_t resultSetMultiplicity) {
         append(groupByFlatKeyVectors, groupByUnFlatHashKeyVectors,
-            std::vector<common::ValueVector*>(), aggregateVectors, multiplicity);
+            std::vector<common::ValueVector*>(), aggregateInputs, resultSetMultiplicity);
     }
 
     //! update aggregate states for an input
     void append(const std::vector<common::ValueVector*>& groupByFlatKeyVectors,
         const std::vector<common::ValueVector*>& groupByUnFlatHashKeyVectors,
         const std::vector<common::ValueVector*>& groupByNonHashKeyVectors,
-        const std::vector<common::ValueVector*>& aggregateVectors, uint64_t multiplicity);
+        const std::vector<std::unique_ptr<AggregateInput>>& aggregateInputs,
+        uint64_t resultSetMultiplicity);
 
     bool isAggregateValueDistinctForGroupByKeys(
         const std::vector<common::ValueVector*>& groupByKeyVectors,
@@ -139,7 +142,8 @@ private:
 
     void updateAggStates(const std::vector<common::ValueVector*>& groupByFlatHashKeyVectors,
         const std::vector<common::ValueVector*>& groupByUnFlatHashKeyVectors,
-        const std::vector<common::ValueVector*>& aggregateVectors, uint64_t multiplicity);
+        const std::vector<std::unique_ptr<AggregateInput>>& aggregateInputs,
+        uint64_t resultSetMultiplicity);
 
     // ! This function will only be used by distinct aggregate, which assumes that all keyVectors
     // are flat.

@@ -30,14 +30,15 @@ AggregateHashTable::AggregateHashTable(MemoryManager& memoryManager,
 void AggregateHashTable::append(const std::vector<ValueVector*>& groupByFlatHashKeyVectors,
     const std::vector<ValueVector*>& groupByUnFlatHashKeyVectors,
     const std::vector<ValueVector*>& groupByNonHashKeyVectors,
-    const std::vector<ValueVector*>& aggregateVectors, uint64_t multiplicity) {
+    const std::vector<std::unique_ptr<AggregateInput>>& aggregateInputs,
+    uint64_t resultSetMultiplicity) {
     resizeHashTableIfNecessary(groupByUnFlatHashKeyVectors.empty() ?
                                    1 :
                                    groupByUnFlatHashKeyVectors[0]->state->selVector->selectedSize);
     computeVectorHashes(groupByFlatHashKeyVectors, groupByUnFlatHashKeyVectors);
     findHashSlots(groupByFlatHashKeyVectors, groupByUnFlatHashKeyVectors, groupByNonHashKeyVectors);
-    updateAggStates(
-        groupByFlatHashKeyVectors, groupByUnFlatHashKeyVectors, aggregateVectors, multiplicity);
+    updateAggStates(groupByFlatHashKeyVectors, groupByUnFlatHashKeyVectors, aggregateInputs,
+        resultSetMultiplicity);
 }
 
 bool AggregateHashTable::isAggregateValueDistinctForGroupByKeys(
@@ -474,11 +475,17 @@ void AggregateHashTable::updateAggState(const std::vector<ValueVector*>& groupBy
 
 void AggregateHashTable::updateAggStates(const std::vector<ValueVector*>& groupByFlatHashKeyVectors,
     const std::vector<ValueVector*>& groupByUnFlatHashKeyVectors,
-    const std::vector<ValueVector*>& aggregateVectors, uint64_t multiplicity) {
+    const std::vector<std::unique_ptr<AggregateInput>>& aggregateInputs,
+    uint64_t resultSetMultiplicity) {
     auto aggregateStateOffset = aggStateColOffsetInFT;
     for (auto i = 0u; i < aggregateFunctions.size(); i++) {
+        auto multiplicity = resultSetMultiplicity;
+        for (auto& dataChunk : aggregateInputs[i]->multiplicityChunks) {
+            multiplicity *= dataChunk->state->selVector->selectedSize;
+        }
         updateAggFuncs[i](this, groupByFlatHashKeyVectors, groupByUnFlatHashKeyVectors,
-            aggregateFunctions[i], aggregateVectors[i], multiplicity, i, aggregateStateOffset);
+            aggregateFunctions[i], aggregateInputs[i]->aggregateVector, multiplicity, i,
+            aggregateStateOffset);
         aggregateStateOffset += aggregateFunctions[i]->getAggregateStateSize();
     }
 }

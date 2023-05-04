@@ -46,7 +46,7 @@ f_group_pos_set LogicalAggregate::getGroupsPosToFlattenForGroupBy() {
 }
 
 f_group_pos_set LogicalAggregate::getGroupsPosToFlattenForAggregate() {
-    if (hasDistinctAggregate() || expressionsToAggregate.size() > 1) {
+    if (hasDistinctAggregate()) {
         f_group_pos_set dependentGroupsPos;
         for (auto& expression : expressionsToAggregate) {
             for (auto groupPos : children[0]->getSchema()->getDependentGroupsPos(expression)) {
