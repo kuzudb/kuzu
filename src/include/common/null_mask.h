@@ -120,6 +120,8 @@ public:
     static bool copyNullMask(const uint64_t* srcNullEntries, uint64_t srcOffset,
         uint64_t* dstNullEntries, uint64_t dstOffset, uint64_t numBitsToCopy);
 
+    void resize(uint64_t capacity);
+
 private:
     static inline std::pair<uint64_t, uint64_t> getNullEntryAndBitPos(uint64_t pos) {
         auto nullEntryPos = pos >> NUM_BITS_PER_NULL_ENTRY_LOG2;

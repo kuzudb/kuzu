@@ -38,6 +38,11 @@ public:
 
     inline BMFileHandle* getFileHandle() { return fileHandle.get(); }
 
+    // check if val is in range [start, end)
+    static inline bool isInRange(uint64_t val, uint64_t start, uint64_t end) {
+        return val >= start && val < end;
+    }
+
 protected:
     void addNewPageToFileHandle();
 
@@ -114,13 +119,13 @@ protected:
 
     void setNullBitOfAPosInFrame(const uint8_t* frame, uint16_t elementPos, bool isNull) const;
 
+    void readNullBitsFromAPage(common::ValueVector* valueVector, const uint8_t* frame,
+        uint64_t posInPage, uint64_t posInVector, uint64_t numBitsToRead) const;
+
 private:
     void readAPageBySequentialCopy(transaction::Transaction* transaction,
         common::ValueVector* vector, uint64_t vectorStartPos, common::page_idx_t physicalPageIdx,
         uint16_t pagePosOfFirstElement, uint64_t numValuesToRead);
-
-    void readNullBitsFromAPage(common::ValueVector* valueVector, const uint8_t* frame,
-        uint64_t posInPage, uint64_t posInVector, uint64_t numBitsToRead) const;
 
 public:
     common::DataType dataType;

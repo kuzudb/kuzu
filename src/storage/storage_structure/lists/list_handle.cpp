@@ -19,7 +19,7 @@ bool ListSyncState::hasMoreAndSwitchSourceIfNecessary() {
 }
 
 void ListSyncState::resetState() {
-    boundNodeOffset = INVALID_NODE_OFFSET;
+    boundNodeOffset = INVALID_OFFSET;
     startElemOffset = UINT32_MAX;
     numValuesToRead = UINT32_MAX;
     numValuesInUpdateStore = 0;

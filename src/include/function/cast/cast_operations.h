@@ -31,17 +31,19 @@ struct CastStringToInterval {
 
 struct CastToString {
     template<typename T>
-    static inline std::string castToStringWithDataType(T& input, const common::DataType& dataType) {
+    static inline std::string castToStringWithDataType(
+        T& input, const common::ValueVector& inputVector) {
         return common::TypeUtils::toString(input);
     }
 
     template<typename T>
     static inline void operation(T& input, common::ku_string_t& result,
-        common::ValueVector& resultVector, const common::DataType& dataType) {
-        std::string resultStr = castToStringWithDataType(input, dataType);
+        common::ValueVector& inputVector, common::ValueVector& resultVector) {
+        std::string resultStr = castToStringWithDataType(input, inputVector);
         if (resultStr.length() > common::ku_string_t::SHORT_STR_LENGTH) {
             result.overflowPtr = reinterpret_cast<uint64_t>(
-                resultVector.getOverflowBuffer().allocateSpace(resultStr.length()));
+                common::StringVector::getInMemOverflowBuffer(&resultVector)
+                    ->allocateSpace(resultStr.length()));
         }
         result.set(resultStr);
     }
@@ -49,8 +51,8 @@ struct CastToString {
 
 template<>
 inline std::string CastToString::castToStringWithDataType(
-    common::ku_list_t& input, const common::DataType& dataType) {
-    return common::TypeUtils::toString(input, dataType);
+    common::list_entry_t& input, const common::ValueVector& inputVector) {
+    return common::TypeUtils::toString(input, (void*)&inputVector);
 }
 
 template<typename SRC, typename DST>

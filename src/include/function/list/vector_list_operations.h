@@ -12,17 +12,8 @@ struct VectorListOperations : public VectorOperations {
         const std::vector<std::shared_ptr<common::ValueVector>>& params,
         common::ValueVector& result) {
         assert(params.size() == 3);
-        TernaryOperationExecutor::executeStringAndList<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC>(
+        TernaryOperationExecutor::executeList<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC>(
             *params[0], *params[1], *params[2], result);
-    }
-
-    template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC>
-    static void BinaryListPosAndContainsExecFunction(
-        const std::vector<std::shared_ptr<common::ValueVector>>& params,
-        common::ValueVector& result) {
-        assert(params.size() == 2);
-        BinaryOperationExecutor::executeListPosAndContains<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE,
-            FUNC>(*params[0], *params[1], result);
     }
 
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC>
@@ -30,7 +21,7 @@ struct VectorListOperations : public VectorOperations {
         const std::vector<std::shared_ptr<common::ValueVector>>& params,
         common::ValueVector& result) {
         assert(params.size() == 2);
-        BinaryOperationExecutor::executeStringAndList<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC>(
+        BinaryOperationExecutor::executeList<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC>(
             *params[0], *params[1], result);
     }
 
@@ -44,36 +35,36 @@ struct VectorListOperations : public VectorOperations {
                  common::VAR_LIST}) {
             switch (rightTypeID) {
             case common::BOOL: {
-                execFunc = BinaryListPosAndContainsExecFunction<common::ku_list_t, uint8_t,
-                    RESULT_TYPE, OPERATION>;
+                execFunc =
+                    BinaryListExecFunction<common::list_entry_t, uint8_t, RESULT_TYPE, OPERATION>;
             } break;
             case common::INT64: {
-                execFunc = BinaryListPosAndContainsExecFunction<common::ku_list_t, int64_t,
-                    RESULT_TYPE, OPERATION>;
+                execFunc =
+                    BinaryListExecFunction<common::list_entry_t, int64_t, RESULT_TYPE, OPERATION>;
             } break;
             case common::DOUBLE: {
-                execFunc = BinaryListPosAndContainsExecFunction<common::ku_list_t, double_t,
-                    RESULT_TYPE, OPERATION>;
+                execFunc =
+                    BinaryListExecFunction<common::list_entry_t, double_t, RESULT_TYPE, OPERATION>;
             } break;
             case common::STRING: {
-                execFunc = BinaryListPosAndContainsExecFunction<common::ku_list_t,
-                    common::ku_string_t, RESULT_TYPE, OPERATION>;
-            } break;
-            case common::DATE: {
-                execFunc = BinaryListPosAndContainsExecFunction<common::ku_list_t, common::date_t,
+                execFunc = BinaryListExecFunction<common::list_entry_t, common::ku_string_t,
                     RESULT_TYPE, OPERATION>;
             } break;
+            case common::DATE: {
+                execFunc = BinaryListExecFunction<common::list_entry_t, common::date_t, RESULT_TYPE,
+                    OPERATION>;
+            } break;
             case common::TIMESTAMP: {
-                execFunc = BinaryListPosAndContainsExecFunction<common::ku_list_t,
-                    common::timestamp_t, RESULT_TYPE, OPERATION>;
+                execFunc = BinaryListExecFunction<common::list_entry_t, common::timestamp_t,
+                    RESULT_TYPE, OPERATION>;
             } break;
             case common::INTERVAL: {
-                execFunc = BinaryListPosAndContainsExecFunction<common::ku_list_t,
-                    common::interval_t, RESULT_TYPE, OPERATION>;
+                execFunc = BinaryListExecFunction<common::list_entry_t, common::interval_t,
+                    RESULT_TYPE, OPERATION>;
             } break;
             case common::VAR_LIST: {
-                execFunc = BinaryListPosAndContainsExecFunction<common::ku_list_t,
-                    common::ku_list_t, RESULT_TYPE, OPERATION>;
+                execFunc = BinaryListExecFunction<common::list_entry_t, common::list_entry_t,
+                    RESULT_TYPE, OPERATION>;
             } break;
             default: {
                 assert(false);

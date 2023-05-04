@@ -10,7 +10,7 @@ namespace processor {
 class NodeTableScanState {
 public:
     explicit NodeTableScanState(storage::NodeTable* table)
-        : table{table}, maxNodeOffset{common::INVALID_NODE_OFFSET}, maxMorselIdx{UINT64_MAX},
+        : table{table}, maxNodeOffset{common::INVALID_OFFSET}, maxMorselIdx{UINT64_MAX},
           currentNodeOffset{0}, semiMask{std::make_unique<NodeOffsetAndMorselSemiMask>(table)} {}
 
     inline storage::NodeTable* getTable() { return table; }

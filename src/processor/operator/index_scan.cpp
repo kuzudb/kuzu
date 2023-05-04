@@ -25,7 +25,7 @@ bool IndexScan::getNextTuplesInternal(ExecutionContext* context) {
         for (auto i = 0; i < indexVector->state->selVector->selectedSize; ++i) {
             auto pos = indexVector->state->selVector->selectedPositions[i];
             outVector->state->selVector->getSelectedPositionsBuffer()[numSelectedValues] = pos;
-            offset_t nodeOffset = INVALID_NODE_OFFSET;
+            offset_t nodeOffset = INVALID_OFFSET;
             numSelectedValues += pkIndex->lookup(transaction, indexVector.get(), pos, nodeOffset);
             nodeID_t nodeID{nodeOffset, tableID};
             outVector->setValue<nodeID_t>(pos, nodeID);

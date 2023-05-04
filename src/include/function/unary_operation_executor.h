@@ -14,25 +14,26 @@ namespace function {
 
 struct UnaryOperationWrapper {
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
-    static inline void operation(OPERAND_TYPE& input, RESULT_TYPE& result, void* dataptr,
-        const common::DataType& inputType) {
+    static inline void operation(
+        OPERAND_TYPE& input, RESULT_TYPE& result, void* inputVector, void* resultVector) {
         FUNC::operation(input, result);
     }
 };
 
 struct UnaryStringOperationWrapper {
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
-    static void operation(OPERAND_TYPE& input, RESULT_TYPE& result, void* dataptr,
-        const common::DataType& inputType) {
-        FUNC::operation(input, result, *(common::ValueVector*)dataptr);
+    static void operation(
+        OPERAND_TYPE& input, RESULT_TYPE& result, void* inputVector, void* resultVector) {
+        FUNC::operation(input, result, *(common::ValueVector*)resultVector);
     }
 };
 
 struct UnaryCastOperationWrapper {
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
-    static void operation(OPERAND_TYPE& input, RESULT_TYPE& result, void* dataptr,
-        const common::DataType& inputType) {
-        FUNC::operation(input, result, *(common::ValueVector*)dataptr, inputType);
+    static void operation(
+        OPERAND_TYPE& input, RESULT_TYPE& result, void* inputVector, void* resultVector) {
+        FUNC::operation(
+            input, result, *(common::ValueVector*)inputVector, *(common::ValueVector*)resultVector);
     }
 };
 
@@ -41,13 +42,13 @@ struct UnaryOperationExecutor {
     static void executeOnValue(common::ValueVector& operand, uint64_t operandPos,
         RESULT_TYPE& resultValue, common::ValueVector& resultValueVector) {
         OP_WRAPPER::template operation<OPERAND_TYPE, RESULT_TYPE, FUNC>(
-            ((OPERAND_TYPE*)operand.getData())[operandPos], resultValue, (void*)&resultValueVector,
-            operand.dataType);
+            ((OPERAND_TYPE*)operand.getData())[operandPos], resultValue, (void*)&operand,
+            (void*)&resultValueVector);
     }
 
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC, typename OP_WRAPPER>
     static void executeSwitch(common::ValueVector& operand, common::ValueVector& result) {
-        result.resetOverflowBuffer();
+        common::StringVector::resetOverflowBuffer(&result);
         auto resultValues = (RESULT_TYPE*)result.getData();
         if (operand.state->isFlat()) {
             auto inputPos = operand.state->selVector->selectedPositions[0];

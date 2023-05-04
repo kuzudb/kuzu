@@ -11,7 +11,9 @@ namespace operation {
 
 struct ListLen {
 public:
-    static inline void operation(common::ku_list_t& input, int64_t& result) { result = input.size; }
+    static inline void operation(common::list_entry_t& input, int64_t& result) {
+        result = input.size;
+    }
 };
 
 } // namespace operation

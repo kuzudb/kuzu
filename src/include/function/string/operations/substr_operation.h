@@ -55,7 +55,8 @@ public:
         result.len = std::min(len, src.len - start + 1);
         if (!common::ku_string_t::isShortString(result.len)) {
             result.overflowPtr = reinterpret_cast<uint64_t>(
-                resultValueVector.getOverflowBuffer().allocateSpace(result.len));
+                common::StringVector::getInMemOverflowBuffer(&resultValueVector)
+                    ->allocateSpace(result.len));
         }
         if (isAscii) {
             // For normal ASCII char case, we get to the proper byte position to copy from by doing

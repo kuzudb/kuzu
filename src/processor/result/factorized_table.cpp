@@ -134,7 +134,7 @@ void FactorizedTable::scan(std::vector<ValueVector*>& vectors, ft_tuple_idx_t tu
     for (auto i = 0u; i < numTuplesToScan; i++) {
         tuplesToRead[i] = getTuple(tupleIdx + i);
     }
-    return lookup(vectors, colIdxesToScan, tuplesToRead.get(), 0 /* startPos */, numTuplesToScan);
+    lookup(vectors, colIdxesToScan, tuplesToRead.get(), 0 /* startPos */, numTuplesToScan);
 }
 
 void FactorizedTable::lookup(std::vector<ValueVector*>& vectors,

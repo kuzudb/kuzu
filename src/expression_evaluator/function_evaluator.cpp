@@ -64,11 +64,12 @@ void FunctionExpressionEvaluator::resolveResultVector(
     if (functionExpression.getFunctionName() == STRUCT_PACK_FUNC_NAME) {
         resultVector = std::make_shared<ValueVector>(expression->dataType, memoryManager);
         for (auto& child : children) {
-            resultVector->addChildVector(child->resultVector);
+            StructVector::addChildVector(resultVector.get(), child->resultVector);
         }
     } else if (functionExpression.getFunctionName() == STRUCT_EXTRACT_FUNC_NAME) {
         auto& bindData = (function::StructExtractBindData&)*functionExpression.getBindData();
-        resultVector = children[0]->resultVector->getChildVector(bindData.childIdx);
+        resultVector =
+            StructVector::getChildVector(children[0]->resultVector.get(), bindData.childIdx);
     } else {
         resultVector = std::make_shared<ValueVector>(expression->dataType, memoryManager);
     }

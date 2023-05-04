@@ -1,7 +1,8 @@
 #include "common/null_mask.h"
 
-namespace kuzu {
+#include <cstring>
 
+namespace kuzu {
 namespace common {
 
 void NullMask::setNull(uint32_t pos, bool isNull) {
@@ -76,6 +77,14 @@ bool NullMask::copyNullMask(const uint64_t* srcNullEntries, uint64_t srcOffset,
         }
     }
     return hasNullInSrcNullMask;
+}
+
+void NullMask::resize(uint64_t capacity) {
+    auto resizedBuffer = std::make_unique<uint64_t[]>(capacity);
+    memcpy(resizedBuffer.get(), buffer.get(), numNullEntries);
+    buffer = std::move(resizedBuffer);
+    data = buffer.get();
+    numNullEntries = capacity;
 }
 
 } // namespace common

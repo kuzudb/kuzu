@@ -21,7 +21,8 @@ struct BaseLowerUpperOperation {
             convertCase((char*)result.prefix, input.len, (char*)input.getData(), isUpper);
         } else {
             result.overflowPtr = reinterpret_cast<uint64_t>(
-                resultValueVector.getOverflowBuffer().allocateSpace(result.len));
+                common::StringVector::getInMemOverflowBuffer(&resultValueVector)
+                    ->allocateSpace(result.len));
             auto buffer = reinterpret_cast<char*>(result.overflowPtr);
             convertCase(buffer, input.len, (char*)input.getData(), isUpper);
             memcpy(result.prefix, buffer, common::ku_string_t::PREFIX_LENGTH);

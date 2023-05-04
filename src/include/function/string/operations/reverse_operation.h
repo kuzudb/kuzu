@@ -28,7 +28,8 @@ public:
             result.len = input.len;
             if (result.len > common::ku_string_t::SHORT_STR_LENGTH) {
                 result.overflowPtr = reinterpret_cast<uint64_t>(
-                    resultValueVector.getOverflowBuffer().allocateSpace(input.len));
+                    common::StringVector::getInMemOverflowBuffer(&resultValueVector)
+                        ->allocateSpace(input.len));
             }
             auto resultBuffer = result.len <= common::ku_string_t::SHORT_STR_LENGTH ?
                                     reinterpret_cast<char*>(result.prefix) :

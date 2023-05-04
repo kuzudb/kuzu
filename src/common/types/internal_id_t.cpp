@@ -3,7 +3,7 @@
 namespace kuzu {
 namespace common {
 
-internalID_t::internalID_t() : offset{INVALID_NODE_OFFSET}, tableID{INVALID_TABLE_ID} {}
+internalID_t::internalID_t() : offset{INVALID_OFFSET}, tableID{INVALID_TABLE_ID} {}
 
 internalID_t::internalID_t(offset_t offset, table_id_t tableID)
     : offset(offset), tableID(tableID) {}

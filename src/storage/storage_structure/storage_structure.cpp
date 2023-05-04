@@ -8,11 +8,6 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-// check if val is in range [start, end)
-static inline bool isInRange(uint64_t val, uint64_t start, uint64_t end) {
-    return val >= start && val < end;
-}
-
 void StorageStructure::addNewPageToFileHandle() {
     auto pageIdxInOriginalFile = fileHandle->addNewPage();
     auto pageIdxInWAL = wal->logPageInsertRecord(storageStructureID, pageIdxInOriginalFile);
@@ -168,6 +163,15 @@ void BaseColumnOrList::readSingleNullBit(ValueVector* valueVector, const uint8_t
     valueVector->setNull(offsetInVector, isNull);
 }
 
+void BaseColumnOrList::readNullBitsFromAPage(ValueVector* valueVector, const uint8_t* frame,
+    uint64_t posInPage, uint64_t posInVector, uint64_t numBitsToRead) const {
+    auto hasNullInSrcNullMask = NullMask::copyNullMask((uint64_t*)getNullBufferInPage(frame),
+        posInPage, valueVector->getNullMaskData(), posInVector, numBitsToRead);
+    if (hasNullInSrcNullMask) {
+        valueVector->setMayContainNulls();
+    }
+}
+
 void BaseColumnOrList::readAPageBySequentialCopy(Transaction* transaction, ValueVector* vector,
     uint64_t vectorStartPos, page_idx_t physicalPageIdx, uint16_t pagePosOfFirstElement,
     uint64_t numValuesToRead) {
@@ -182,15 +186,6 @@ void BaseColumnOrList::readAPageBySequentialCopy(Transaction* transaction, Value
         readNullBitsFromAPage(
             vector, frame, pagePosOfFirstElement, vectorStartPos, numValuesToRead);
     });
-}
-
-void BaseColumnOrList::readNullBitsFromAPage(ValueVector* valueVector, const uint8_t* frame,
-    uint64_t posInPage, uint64_t posInVector, uint64_t numBitsToRead) const {
-    auto hasNullInSrcNullMask = NullMask::copyNullMask((uint64_t*)getNullBufferInPage(frame),
-        posInPage, valueVector->getNullMaskData(), posInVector, numBitsToRead);
-    if (hasNullInSrcNullMask) {
-        valueVector->setMayContainNulls();
-    }
 }
 
 void BaseColumnOrList::setNullBitOfAPosInFrame(

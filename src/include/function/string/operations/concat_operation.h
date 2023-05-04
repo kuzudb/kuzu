@@ -24,7 +24,8 @@ struct Concat {
             memcpy(result.prefix + leftLen, right, rightLen);
         } else {
             result.overflowPtr = reinterpret_cast<uint64_t>(
-                resultValueVector.getOverflowBuffer().allocateSpace(len));
+                common::StringVector::getInMemOverflowBuffer(&resultValueVector)
+                    ->allocateSpace(len));
             auto buffer = reinterpret_cast<char*>(result.overflowPtr);
             memcpy(buffer, left, leftLen);
             memcpy(buffer + leftLen, right, rightLen);

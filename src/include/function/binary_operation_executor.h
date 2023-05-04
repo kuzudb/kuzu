@@ -21,7 +21,16 @@ struct BinaryOperationWrapper {
     }
 };
 
-struct BinaryStringAndListOperationWrapper {
+struct BinaryListOperationWrapper {
+    template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename OP>
+    static inline void operation(LEFT_TYPE& left, RIGHT_TYPE& right, RESULT_TYPE& result,
+        void* leftValueVector, void* rightValueVector, void* resultValueVector) {
+        OP::operation(left, right, result, *(common::ValueVector*)leftValueVector,
+            *(common::ValueVector*)rightValueVector, *(common::ValueVector*)resultValueVector);
+    }
+};
+
+struct BinaryStringOperationWrapper {
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename OP>
     static inline void operation(LEFT_TYPE& left, RIGHT_TYPE& right, RESULT_TYPE& result,
         void* leftValueVector, void* rightValueVector, void* resultValueVector) {
@@ -191,7 +200,7 @@ struct BinaryOperationExecutor {
         typename OP_WRAPPER>
     static void executeSwitch(
         common::ValueVector& left, common::ValueVector& right, common::ValueVector& result) {
-        result.resetOverflowBuffer();
+        common::StringVector::resetOverflowBuffer(&result);
         if (left.state->isFlat() && right.state->isFlat()) {
             executeBothFlat<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(
                 left, right, result);
@@ -217,17 +226,17 @@ struct BinaryOperationExecutor {
     }
 
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC>
-    static void executeStringAndList(
+    static void executeString(
         common::ValueVector& left, common::ValueVector& right, common::ValueVector& result) {
-        executeSwitch<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC,
-            BinaryStringAndListOperationWrapper>(left, right, result);
+        executeSwitch<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, BinaryStringOperationWrapper>(
+            left, right, result);
     }
 
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC>
-    static void executeListPosAndContains(
+    static void executeList(
         common::ValueVector& left, common::ValueVector& right, common::ValueVector& result) {
-        executeSwitch<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC,
-            BinaryListPosAndContainsOperationWrapper>(left, right, result);
+        executeSwitch<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, BinaryListOperationWrapper>(
+            left, right, result);
     }
 
     template<class LEFT_TYPE, class RIGHT_TYPE, class FUNC>

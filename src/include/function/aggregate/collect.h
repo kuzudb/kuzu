@@ -13,38 +13,13 @@ struct CollectFunction {
         CollectState() : factorizedTable{nullptr} {}
         inline uint32_t getStateSize() const override { return sizeof(*this); }
         void moveResultToVector(common::ValueVector* outputVector, uint64_t pos) override {
-            auto dstKUList = outputVector->getValue<common::ku_list_t>(pos);
-            auto numBytesPerElement =
-                factorizedTable->getTableSchema()->getColumn(0)->getNumBytes();
-            dstKUList.size = factorizedTable->getNumTuples();
-            dstKUList.overflowPtr =
-                reinterpret_cast<uint64_t>(outputVector->getOverflowBuffer().allocateSpace(
-                    factorizedTable->getNumTuples() * numBytesPerElement));
-            outputVector->setValue<common::ku_list_t>(pos, dstKUList);
-            switch (outputVector->dataType.getChildType()->typeID) {
-            case common::STRING: {
-                for (auto i = 0u; i < dstKUList.size; i++) {
-                    common::InMemOverflowBufferUtils::copyString(
-                        *reinterpret_cast<common::ku_string_t*>(factorizedTable->getTuple(i)),
-                        reinterpret_cast<common::ku_string_t*>(dstKUList.overflowPtr)[i],
-                        outputVector->getOverflowBuffer());
-                }
-            } break;
-            case common::VAR_LIST: {
-                for (auto i = 0u; i < dstKUList.size; i++) {
-                    common::InMemOverflowBufferUtils::copyListRecursiveIfNested(
-                        *reinterpret_cast<common::ku_list_t*>(factorizedTable->getTuple(i)),
-                        reinterpret_cast<common::ku_list_t*>(dstKUList.overflowPtr)[i],
-                        *outputVector->dataType.getChildType(), outputVector->getOverflowBuffer());
-                }
-            } break;
-            default: {
-                for (auto i = 0u; i < dstKUList.size; i++) {
-                    memcpy(
-                        reinterpret_cast<uint8_t*>(dstKUList.overflowPtr) + i * numBytesPerElement,
-                        factorizedTable->getTuple(i), numBytesPerElement);
-                }
-            }
+            auto listEntry =
+                common::ListVector::addList(outputVector, factorizedTable->getNumTuples());
+            outputVector->setValue<common::list_entry_t>(pos, listEntry);
+            auto outputDataVector = common::ListVector::getDataVector(outputVector);
+            for (auto i = 0u; i < listEntry.size; i++) {
+                common::ValueVectorUtils::copyNonNullDataWithSameTypeIntoPos(
+                    *outputDataVector, listEntry.offset + i, factorizedTable->getTuple(i));
             }
             // CollectStates are stored in factorizedTable entries. When the factorizedTable is
             // destructed, the destructor of CollectStates won't be called. Therefore, we need to
