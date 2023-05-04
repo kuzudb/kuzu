@@ -61,7 +61,8 @@ public:
     list_offset_t bwdListOffset;
 };
 
-using ListsUpdatesPerNode = std::map<common::offset_t, std::unique_ptr<ListsUpdatesForNodeOffset>>;
+// Shouldn't need to be shared, except that MSVC doesn't allow maps inside vectors to have non-copyable values.
+using ListsUpdatesPerNode = std::map<common::offset_t, std::shared_ptr<ListsUpdatesForNodeOffset>>;
 using ListsUpdatesPerChunk = std::map<chunk_idx_t, ListsUpdatesPerNode>;
 
 struct InMemList;
