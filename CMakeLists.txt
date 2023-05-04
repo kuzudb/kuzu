@@ -50,6 +50,7 @@ option(ENABLE_UBSAN "Enable undefined behavior sanitizer." FALSE)
 if(MSVC)
     # Required for M_PI on Windows
     add_compile_definitions(_USE_MATH_DEFINES)
+    add_compile_definitions(ARROW_STATIC PARQUET_STATIC)
 endif()
 if(CMAKE_BUILD_TYPE MATCHES Release)
     if(MSVC)
