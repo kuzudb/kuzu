@@ -1,0 +1,4 @@
+-GROUP OneDimNpyReadTest
+-TEST Match
+-DATASET npy-1d
+-READ_ONLY TRUE

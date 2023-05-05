@@ -20,13 +20,6 @@ enum class TransactionTestType : uint8_t {
     RECOVERY = 1,
 };
 
-struct TestConfig {
-    std::string testSuiteName;
-    std::string testName;
-    std::string dataset;
-    std::vector<std::string> files;
-};
-
 class BaseGraphTest : public Test {
 public:
     void SetUp() override {

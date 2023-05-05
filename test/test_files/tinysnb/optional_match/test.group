@@ -1,0 +1,4 @@
+-GROUP TinySnbReadTest
+-TEST OptionalMatch
+-DATASET tinysnb
+-READ_ONLY TRUE

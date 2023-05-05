@@ -12,6 +12,30 @@ using namespace kuzu::main;
 namespace kuzu {
 namespace testing {
 
+TestConfig TestHelper::parseGroupFile(const std::string& path) {
+    TestConfig result;
+    if (!FileUtils::fileOrPathExists(path)) {
+        return result;
+    }
+    std::ifstream ifs(path);
+    std::string line;
+    while (getline(ifs, line)) {
+        if (line.starts_with("-GROUP")) {
+            result.testGroup = line.substr(7, line.length());
+        }
+        if (line.starts_with("-TEST")) {
+            result.testName = line.substr(6, line.length());
+        }
+        if (line.starts_with("-DATASET")) {
+            result.dataset = line.substr(9, line.length());
+        }
+        if (line.starts_with("-CHECK_ORDER")) {
+            result.checkOrder = (line.substr(13, line.length()) == "TRUE");
+        }
+    }
+    return result;
+}
+
 std::vector<std::unique_ptr<TestQueryConfig>> TestHelper::parseTestFile(
     const std::string& path, bool checkOutputOrder) {
     std::vector<std::unique_ptr<TestQueryConfig>> result;
@@ -143,24 +167,6 @@ bool TestHelper::testQuery(TestQueryConfig* config, Connection& conn) {
 std::unique_ptr<planner::LogicalPlan> TestHelper::getLogicalPlan(
     const std::string& query, kuzu::main::Connection& conn) {
     return std::move(conn.prepare(query)->logicalPlans[0]);
-}
-
-std::string TestHelper::convertSnakeCaseToCamelCase(const std::string& snakeCase) {
-    std::string camelCase;
-    bool toUpper = true;
-    for (auto c : snakeCase) {
-        if (c == '_') {
-            toUpper = true;
-        } else {
-            if (toUpper) {
-                camelCase += std::toupper(c);
-                toUpper = false;
-            } else {
-                camelCase += c;
-            }
-        }
-    }
-    return camelCase;
 }
 
 } // namespace testing

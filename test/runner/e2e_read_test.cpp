@@ -2,70 +2,65 @@
 
 using ::testing::Test;
 using namespace kuzu::testing;
+using namespace kuzu::common;
 
-class RunDynamicTest : public DBTest {
+class EndToEndReadTest : public DBTest {
 public:
-    std::string getInputDir() override { return TestHelper::appendKuzuRootPath(dataset_); }
-
-    explicit RunDynamicTest(std::vector<std::string> testFiles, std::string dataset)
-        : testFiles_(testFiles), dataset_(dataset) {}
-
+    std::string getInputDir() override {
+        return TestHelper::appendKuzuRootPath("dataset/" + testConfig.dataset + "/");
+    }
+    EndToEndReadTest(TestConfig testConfig) : testConfig(std::move(testConfig)) {}
     void TestBody() override {
-        for (auto& file : testFiles_) {
-            runTest(file);
+        for (auto& file : testConfig.files) {
+            if (testConfig.checkOrder) {
+                runTestAndCheckOrder(file);
+            } else {
+                runTest(file);
+            }
         }
     }
 
 private:
-    std::vector<std::string> testFiles_;
-    std::string dataset_;
+    TestConfig testConfig;
 };
 
-void RegisterE2ETests(const std::vector<TestConfig> testConfig) {
+void registerTests(const std::vector<TestConfig> testConfig) {
     for (auto testItem : testConfig) {
-        testing::RegisterTest(testItem.testSuiteName.c_str(), testItem.testName.c_str(), nullptr,
-            testItem.testName.c_str(), __FILE__, __LINE__,
-            [=]() -> DBTest* { return new RunDynamicTest(testItem.files, testItem.dataset); });
+        testing::RegisterTest(testItem.testGroup.c_str(), testItem.testName.c_str(), nullptr,
+            nullptr, __FILE__, __LINE__,
+            [=]() -> DBTest* { return new EndToEndReadTest(testItem); });
     }
 }
 
-std::vector<TestConfig> scanEndToEndTestFiles(const std::string& path) {
+std::vector<TestConfig> scanTestFiles(const std::string& path) {
     TestConfig testConfig;
     std::vector<TestConfig> tests;
-
-    for (const auto& entry : std::filesystem::directory_iterator(path)) {
-        std::string dirName = entry.path().filename().string();
-        testConfig.testSuiteName = TestHelper::convertSnakeCaseToCamelCase(dirName + "Test");
-        std::replace(dirName.begin(), dirName.end(), '_', '-');
-        testConfig.dataset = "dataset/" + dirName + "/";
-
-        for (const auto& subEntry :
-            std::filesystem::directory_iterator(path + "/" + entry.path().filename().string())) {
-            testConfig.files.clear();
-            if (subEntry.is_directory()) {
-                testConfig.testName =
-                    TestHelper::convertSnakeCaseToCamelCase(subEntry.path().filename().string());
-                for (const auto& file : std::filesystem::directory_iterator(subEntry.path())) {
-                    if (file.is_regular_file()) {
-                        testConfig.files.push_back(file.path().string());
-                    }
-                }
-            } else {
-                testConfig.testName = testConfig.testSuiteName;
-                testConfig.files.push_back(subEntry.path().string());
-            }
-            tests.push_back(testConfig);
+    std::string previousDirectory;
+    for (const auto& entry : std::filesystem::recursive_directory_iterator(path)) {
+        if (!entry.is_regular_file())
+            continue;
+        std::string testGroupFile = FileUtils::getParentPath(entry) + "/test.group";
+        if (!FileUtils::fileOrPathExists(testGroupFile))
+            continue;
+        if (FileUtils::getParentPathStem(entry) != previousDirectory) {
+            if (testConfig.isValid())
+                tests.push_back(testConfig);
+            testConfig = TestHelper::parseGroupFile(testGroupFile);
         }
+        if (FileUtils::getFileExtension(entry) == ".test") {
+            testConfig.files.push_back(entry.path().string());
+        }
+        previousDirectory = FileUtils::getParentPathStem(entry);
     }
-
+    if (testConfig.isValid())
+        tests.push_back(testConfig);
     return tests;
 }
 
 int main(int argc, char** argv) {
     testing::InitGoogleTest(&argc, argv);
     std::vector<TestConfig> tests =
-        scanEndToEndTestFiles(TestHelper::appendKuzuRootPath("test/test_files/e2e"));
-
-    RegisterE2ETests(tests);
+        scanTestFiles(TestHelper::appendKuzuRootPath("test/test_files"));
+    registerTests(tests);
     return RUN_ALL_TESTS();
 }
