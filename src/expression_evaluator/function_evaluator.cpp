@@ -78,15 +78,11 @@ void FunctionExpressionEvaluator::resolveResultVector(
         // If the resultVector and inputVector are in different dataChunks, we should create a new
         // child valueVector, which shares the state with the resultVector, instead of reusing the
         // inputVector.
-        for (auto& inputEvaluator : inputEvaluators) {
-            if (inputEvaluator->resultVector->state != resultVector->state) {
-                auto structFieldVector = std::make_shared<common::ValueVector>(
-                    inputEvaluator->resultVector->dataType, memoryManager);
-                structFieldVector->state = resultVector->state;
-                common::StructVector::addChildVector(resultVector.get(), structFieldVector);
-            } else {
-                common::StructVector::addChildVector(
-                    resultVector.get(), inputEvaluator->resultVector);
+        for (auto i = 0u; i < inputEvaluators.size(); i++) {
+            auto inputEvaluator = inputEvaluators[i];
+            if (inputEvaluator->resultVector->state == resultVector->state) {
+                common::StructVector::referenceVector(
+                    resultVector.get(), i, inputEvaluator->resultVector);
             }
         }
     }

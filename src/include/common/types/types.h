@@ -32,6 +32,7 @@ using vector_idx_t = uint32_t;
 constexpr vector_idx_t INVALID_VECTOR_IDX = UINT32_MAX;
 using block_idx_t = uint64_t;
 using field_idx_t = uint64_t;
+using struct_entry_t = int64_t;
 
 // System representation for a variable-sized overflow value.
 struct overflow_value_t {

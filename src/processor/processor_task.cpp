@@ -18,17 +18,6 @@ void ProcessorTask::finalizeIfNecessary() {
     sink->finalize(executionContext);
 }
 
-static void addStructFieldsVectors(common::ValueVector* structVector, common::DataChunk* dataChunk,
-    storage::MemoryManager* memoryManager) {
-    auto structTypeInfo =
-        reinterpret_cast<common::StructTypeInfo*>(structVector->dataType.getExtraTypeInfo());
-    for (auto& childType : structTypeInfo->getChildrenTypes()) {
-        auto childVector = std::make_shared<common::ValueVector>(*childType, memoryManager);
-        childVector->state = dataChunk->state;
-        common::StructVector::addChildVector(structVector, childVector);
-    }
-}
-
 std::unique_ptr<ResultSet> ProcessorTask::populateResultSet(
     Sink* op, storage::MemoryManager* memoryManager) {
     auto resultSetDescriptor = op->getResultSetDescriptor();
@@ -49,9 +38,6 @@ std::unique_ptr<ResultSet> ProcessorTask::populateResultSet(
             auto expression = dataChunkDescriptor->getExpression(j);
             auto vector =
                 std::make_shared<common::ValueVector>(expression->dataType, memoryManager);
-            if (vector->dataType.getTypeID() == common::STRUCT) {
-                addStructFieldsVectors(vector.get(), dataChunk.get(), memoryManager);
-            }
             dataChunk->insert(j, std::move(vector));
         }
         resultSet->insert(i, std::move(dataChunk));

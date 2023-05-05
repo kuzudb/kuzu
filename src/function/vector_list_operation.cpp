@@ -51,10 +51,6 @@ std::unique_ptr<FunctionBindData> ListCreationVectorOperation::bindFunc(
         throw BinderException(
             "Cannot resolve child data type for " + LIST_CREATION_FUNC_NAME + ".");
     }
-    // TODO(Ziyi): Support list of structs.
-    if (arguments[0]->getDataType().getTypeID() == common::STRUCT) {
-        throw BinderException("Cannot create a list of structs.");
-    }
     for (auto i = 1u; i < arguments.size(); i++) {
         if (arguments[i]->getDataType() != arguments[0]->getDataType()) {
             throw BinderException(getListFunctionIncompatibleChildrenTypeErrorMsg(

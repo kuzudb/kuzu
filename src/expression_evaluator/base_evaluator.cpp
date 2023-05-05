@@ -16,13 +16,13 @@ void BaseExpressionEvaluator::resolveResultStateFromChildren(
     for (auto& input : inputEvaluators) {
         if (!input->isResultFlat()) {
             isResultFlat_ = false;
-            resultVector->state = input->resultVector->state;
+            resultVector->setState(input->resultVector->state);
             return;
         }
     }
     // All children are flat.
     isResultFlat_ = true;
-    resultVector->state = common::DataChunkState::getSingleValueDataChunkState();
+    resultVector->setState(common::DataChunkState::getSingleValueDataChunkState());
 }
 
 } // namespace evaluator

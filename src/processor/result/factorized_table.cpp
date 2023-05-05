@@ -508,7 +508,8 @@ overflow_value_t FactorizedTable::appendVectorToUnflatTupleBlocks(
     const ValueVector& vector, ft_col_idx_t colIdx) {
     assert(!vector.state->isFlat());
     auto numFlatTuplesInVector = vector.state->selVector->selectedSize;
-    auto numBytesForData = vector.getNumBytesPerValue() * numFlatTuplesInVector;
+    auto numBytesPerValue = Types::getDataTypeSize(vector.dataType);
+    auto numBytesForData = numBytesPerValue * numFlatTuplesInVector;
     auto overflowBlockBuffer = allocateUnflatTupleBlock(
         numBytesForData + FactorizedTableSchema::getNumBytesForNullBuffer(numFlatTuplesInVector));
     if (vector.state->selVector->isUnfiltered()) {
@@ -517,7 +518,7 @@ overflow_value_t FactorizedTable::appendVectorToUnflatTupleBlocks(
             for (auto i = 0u; i < numFlatTuplesInVector; i++) {
                 ValueVectorUtils::copyNonNullDataWithSameTypeOutFromPos(
                     vector, i, dstDataBuffer, *inMemOverflowBuffer);
-                dstDataBuffer += vector.getNumBytesPerValue();
+                dstDataBuffer += numBytesPerValue;
             }
         } else {
             auto dstDataBuffer = overflowBlockBuffer;
@@ -528,7 +529,7 @@ overflow_value_t FactorizedTable::appendVectorToUnflatTupleBlocks(
                     ValueVectorUtils::copyNonNullDataWithSameTypeOutFromPos(
                         vector, i, dstDataBuffer, *inMemOverflowBuffer);
                 }
-                dstDataBuffer += vector.getNumBytesPerValue();
+                dstDataBuffer += numBytesPerValue;
             }
         }
     } else {
@@ -538,7 +539,7 @@ overflow_value_t FactorizedTable::appendVectorToUnflatTupleBlocks(
                 ValueVectorUtils::copyNonNullDataWithSameTypeOutFromPos(vector,
                     vector.state->selVector->selectedPositions[i], dstDataBuffer,
                     *inMemOverflowBuffer);
-                dstDataBuffer += vector.getNumBytesPerValue();
+                dstDataBuffer += numBytesPerValue;
             }
         } else {
             auto dstDataBuffer = overflowBlockBuffer;
@@ -550,7 +551,7 @@ overflow_value_t FactorizedTable::appendVectorToUnflatTupleBlocks(
                     ValueVectorUtils::copyNonNullDataWithSameTypeOutFromPos(
                         vector, pos, dstDataBuffer, *inMemOverflowBuffer);
                 }
-                dstDataBuffer += vector.getNumBytesPerValue();
+                dstDataBuffer += numBytesPerValue;
             }
         }
     }
