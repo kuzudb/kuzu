@@ -61,12 +61,7 @@ std::unique_ptr<BaseExpressionEvaluator> FunctionExpressionEvaluator::clone() {
 void FunctionExpressionEvaluator::resolveResultVector(
     const ResultSet& resultSet, MemoryManager* memoryManager) {
     auto& functionExpression = (binder::ScalarFunctionExpression&)*expression;
-    if (functionExpression.getFunctionName() == STRUCT_PACK_FUNC_NAME) {
-        resultVector = std::make_shared<ValueVector>(expression->dataType, memoryManager);
-        for (auto& child : children) {
-            StructVector::addChildVector(resultVector.get(), child->resultVector);
-        }
-    } else if (functionExpression.getFunctionName() == STRUCT_EXTRACT_FUNC_NAME) {
+    if (functionExpression.getFunctionName() == STRUCT_EXTRACT_FUNC_NAME) {
         auto& bindData = (function::StructExtractBindData&)*functionExpression.getBindData();
         resultVector =
             StructVector::getChildVector(children[0]->resultVector.get(), bindData.childIdx);
@@ -78,6 +73,23 @@ void FunctionExpressionEvaluator::resolveResultVector(
         inputEvaluators.push_back(child.get());
     }
     resolveResultStateFromChildren(inputEvaluators);
+    if (functionExpression.getFunctionName() == STRUCT_PACK_FUNC_NAME) {
+        // Our goal is to make the state of the resultVector consistent with its children vectors.
+        // If the resultVector and inputVector are in different dataChunks, we should create a new
+        // child valueVector, which shares the state with the resultVector, instead of reusing the
+        // inputVector.
+        for (auto& inputEvaluator : inputEvaluators) {
+            if (inputEvaluator->resultVector->state != resultVector->state) {
+                auto structFieldVector = std::make_shared<common::ValueVector>(
+                    inputEvaluator->resultVector->dataType, memoryManager);
+                structFieldVector->state = resultVector->state;
+                common::StructVector::addChildVector(resultVector.get(), structFieldVector);
+            } else {
+                common::StructVector::addChildVector(
+                    resultVector.get(), inputEvaluator->resultVector);
+            }
+        }
+    }
 }
 
 } // namespace evaluator

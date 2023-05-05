@@ -439,3 +439,33 @@ Dan|Carol
 {RATING: 1223.000000, VIEWS: 10003, RELEASE: 2011-02-11 16:44:22, FILM: 2013-02-22}
 {RATING: 5.300000, VIEWS: 152, RELEASE: 2011-08-20 11:25:30, FILM: 2012-05-11}
 {RATING: 7.000000, VIEWS: 982, RELEASE: 2018-11-13 13:33:11, FILM: 2014-09-12}
+
+-NAME ReturnStructLiteralWithUnflatFlatChildren
+-QUERY MATCH (p:person)-[e:knows]->(p1:person) return {name: p.fName, id: p1.ID, date: e.date}
+---- 14
+{NAME: Alice, ID: 2, DATE: 2021-06-30}
+{NAME: Alice, ID: 3, DATE: 2021-06-30}
+{NAME: Alice, ID: 5, DATE: 2021-06-30}
+{NAME: Bob, ID: 0, DATE: 2021-06-30}
+{NAME: Bob, ID: 3, DATE: 1950-05-14}
+{NAME: Bob, ID: 5, DATE: 1950-05-14}
+{NAME: Carol, ID: 0, DATE: 2021-06-30}
+{NAME: Carol, ID: 2, DATE: 1950-05-14}
+{NAME: Carol, ID: 5, DATE: 2000-01-01}
+{NAME: Dan, ID: 0, DATE: 2021-06-30}
+{NAME: Dan, ID: 2, DATE: 1950-05-14}
+{NAME: Dan, ID: 3, DATE: 2000-01-01}
+{NAME: Elizabeth, ID: 8, DATE: 1905-12-12}
+{NAME: Elizabeth, ID: 9, DATE: 1905-12-12}
+
+-NAME ReturnNestedStructLiteral
+-QUERY MATCH (p:person) return {description: {gender: p.gender, age: p.age}, name: p.fName}
+---- 8
+{DESCRIPTION: {GENDER: 1, AGE: 20}, NAME: Elizabeth}
+{DESCRIPTION: {GENDER: 1, AGE: 35}, NAME: Alice}
+{DESCRIPTION: {GENDER: 1, AGE: 45}, NAME: Carol}
+{DESCRIPTION: {GENDER: 2, AGE: 20}, NAME: Dan}
+{DESCRIPTION: {GENDER: 2, AGE: 25}, NAME: Farooq}
+{DESCRIPTION: {GENDER: 2, AGE: 30}, NAME: Bob}
+{DESCRIPTION: {GENDER: 2, AGE: 40}, NAME: Greg}
+{DESCRIPTION: {GENDER: 2, AGE: 83}, NAME: Hubert Blaine Wolfeschlegelsteinhausenbergerdorff}
