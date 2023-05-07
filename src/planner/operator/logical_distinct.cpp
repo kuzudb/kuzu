@@ -8,7 +8,7 @@ namespace planner {
 void LogicalDistinct::computeFactorizedSchema() {
     createEmptySchema();
     auto groupPos = schema->createGroup();
-    for (auto& expression : expressionsToDistinct) {
+    for (auto& expression : getAllDistinctExpressions()) {
         schema->insertToGroupAndScope(expression, groupPos);
     }
 }
@@ -16,7 +16,7 @@ void LogicalDistinct::computeFactorizedSchema() {
 void LogicalDistinct::computeFlatSchema() {
     createEmptySchema();
     schema->createGroup();
-    for (auto& expression : expressionsToDistinct) {
+    for (auto& expression : getAllDistinctExpressions()) {
         schema->insertToGroupAndScope(expression, 0);
     }
 }
@@ -24,7 +24,7 @@ void LogicalDistinct::computeFlatSchema() {
 f_group_pos_set LogicalDistinct::getGroupsPosToFlatten() {
     f_group_pos_set dependentGroupsPos;
     auto childSchema = children[0]->getSchema();
-    for (auto& expression : expressionsToDistinct) {
+    for (auto& expression : getAllDistinctExpressions()) {
         for (auto groupPos : childSchema->getDependentGroupsPos(expression)) {
             dependentGroupsPos.insert(groupPos);
         }
@@ -34,7 +34,7 @@ f_group_pos_set LogicalDistinct::getGroupsPosToFlatten() {
 
 std::string LogicalDistinct::getExpressionsForPrinting() const {
     std::string result;
-    for (auto& expression : expressionsToDistinct) {
+    for (auto& expression : getAllDistinctExpressions()) {
         result += expression->getUniqueName() + ", ";
     }
     return result;

@@ -1,6 +1,7 @@
 #include "optimizer/optimizer.h"
 
 #include "optimizer/acc_hash_join_optimizer.h"
+#include "optimizer/agg_key_dependency_optimizer.h"
 #include "optimizer/factorization_rewriter.h"
 #include "optimizer/filter_push_down_optimizer.h"
 #include "optimizer/projection_push_down_optimizer.h"
@@ -21,7 +22,7 @@ void Optimizer::optimize(planner::LogicalPlan* plan) {
     auto filterPushDownOptimizer = FilterPushDownOptimizer();
     filterPushDownOptimizer.rewrite(plan);
 
-    // ASP optimizer should be applied after optimizers that manipulate hash join.
+    // HashJoinSIPOptimizer should be applied after optimizers that manipulate hash join.
     auto hashJoinSIPOptimizer = HashJoinSIPOptimizer();
     hashJoinSIPOptimizer.rewrite(plan);
 
@@ -30,6 +31,11 @@ void Optimizer::optimize(planner::LogicalPlan* plan) {
 
     auto factorizationRewriter = FactorizationRewriter();
     factorizationRewriter.rewrite(plan);
+
+    // AggKeyDependencyOptimizer doesn't change factorization structure and thus can be put after
+    // FactorizationRewriter.
+    auto aggKeyDependencyOptimizer = AggKeyDependencyOptimizer();
+    aggKeyDependencyOptimizer.rewrite(plan);
 }
 
 } // namespace optimizer

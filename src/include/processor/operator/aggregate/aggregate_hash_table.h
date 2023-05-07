@@ -42,15 +42,15 @@ class AggregateHashTable : public BaseHashTable {
 public:
     // Used by distinct aggregate hash table only.
     AggregateHashTable(storage::MemoryManager& memoryManager,
-        const std::vector<common::DataType>& groupByHashKeysDataTypes,
+        const std::vector<common::DataType>& keysDataTypes,
         const std::vector<std::unique_ptr<function::AggregateFunction>>& aggregateFunctions,
         uint64_t numEntriesToAllocate)
-        : AggregateHashTable(memoryManager, groupByHashKeysDataTypes,
-              std::vector<common::DataType>(), aggregateFunctions, numEntriesToAllocate) {}
+        : AggregateHashTable(memoryManager, keysDataTypes, std::vector<common::DataType>(),
+              aggregateFunctions, numEntriesToAllocate) {}
 
     AggregateHashTable(storage::MemoryManager& memoryManager,
-        std::vector<common::DataType> groupByHashKeysDataTypes,
-        std::vector<common::DataType> groupByNonHashKeysDataTypes,
+        std::vector<common::DataType> keysDataTypes,
+        std::vector<common::DataType> payloadsDataTypes,
         const std::vector<std::unique_ptr<function::AggregateFunction>>& aggregateFunctions,
         uint64_t numEntriesToAllocate);
 
@@ -61,17 +61,17 @@ public:
     inline uint64_t getNumEntries() const { return factorizedTable->getNumTuples(); }
 
     inline void append(const std::vector<common::ValueVector*>& groupByFlatKeyVectors,
-        const std::vector<common::ValueVector*>& groupByUnFlatHashKeyVectors,
+        const std::vector<common::ValueVector*>& groupByUnFlatKeyVectors,
         const std::vector<std::unique_ptr<AggregateInput>>& aggregateInputs,
         uint64_t resultSetMultiplicity) {
-        append(groupByFlatKeyVectors, groupByUnFlatHashKeyVectors,
-            std::vector<common::ValueVector*>(), aggregateInputs, resultSetMultiplicity);
+        append(groupByFlatKeyVectors, groupByUnFlatKeyVectors, std::vector<common::ValueVector*>(),
+            aggregateInputs, resultSetMultiplicity);
     }
 
     //! update aggregate states for an input
     void append(const std::vector<common::ValueVector*>& groupByFlatKeyVectors,
-        const std::vector<common::ValueVector*>& groupByUnFlatHashKeyVectors,
-        const std::vector<common::ValueVector*>& groupByNonHashKeyVectors,
+        const std::vector<common::ValueVector*>& groupByUnFlatKeyVectors,
+        const std::vector<common::ValueVector*>& groupByDependentKeyVectors,
         const std::vector<std::unique_ptr<AggregateInput>>& aggregateInputs,
         uint64_t resultSetMultiplicity);
 
@@ -107,7 +107,7 @@ private:
 
     void initializeFTEntries(const std::vector<common::ValueVector*>& groupByFlatHashKeyVectors,
         const std::vector<common::ValueVector*>& groupByUnflatHashKeyVectors,
-        const std::vector<common::ValueVector*>& groupByNonHashKeyVectors,
+        const std::vector<common::ValueVector*>& groupByDependentKeyVectors,
         uint64_t numFTEntriesToInitialize);
 
     uint8_t* createEntryInDistinctHT(
@@ -121,7 +121,7 @@ private:
 
     void findHashSlots(const std::vector<common::ValueVector*>& groupByFlatHashKeyVectors,
         const std::vector<common::ValueVector*>& groupByUnflatHashKeyVectors,
-        const std::vector<common::ValueVector*>& groupByNonHashKeyVectors);
+        const std::vector<common::ValueVector*>& groupByDependentKeyVectors);
 
     void computeAndCombineVecHash(
         const std::vector<common::ValueVector*>& groupByUnflatHashKeyVectors, uint32_t startVecIdx);
@@ -157,8 +157,7 @@ private:
 
     uint64_t matchFTEntries(const std::vector<common::ValueVector*>& groupByFlatHashKeyVectors,
         const std::vector<common::ValueVector*>& groupByUnflatHashKeyVectors,
-        const std::vector<common::ValueVector*>& groupByNonHashKeyVectors, uint64_t numMayMatches,
-        uint64_t numNoMatches);
+        uint64_t numMayMatches, uint64_t numNoMatches);
 
     void fillEntryWithInitialNullAggregateState(uint8_t* entry);
 
@@ -219,8 +218,8 @@ private:
         common::ValueVector* aggVector, uint64_t multiplicity, uint32_t aggStateOffset);
 
 private:
-    std::vector<common::DataType> groupByHashKeysDataTypes;
-    std::vector<common::DataType> groupByNonHashKeysDataTypes;
+    std::vector<common::DataType> keyDataTypes;
+    std::vector<common::DataType> dependentKeyDataTypes;
     std::vector<std::unique_ptr<function::AggregateFunction>> aggregateFunctions;
 
     //! special handling of distinct aggregate
@@ -229,8 +228,8 @@ private:
     uint32_t hashColOffsetInFT;
     uint32_t aggStateColOffsetInFT;
     uint32_t aggStateColIdxInFT;
-    uint32_t numBytesForGroupByHashKeys = 0;
-    uint32_t numBytesForGroupByNonHashKeys = 0;
+    uint32_t numBytesForKeys = 0;
+    uint32_t numBytesForDependentKeys = 0;
     std::vector<compare_function_t> compareFuncs;
     std::vector<update_agg_function_t> updateAggFuncs;
     bool hasStrCol = false;

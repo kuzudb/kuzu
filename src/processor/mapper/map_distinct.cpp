@@ -12,15 +12,15 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalDistinctToPhysical(
     LogicalOperator* logicalOperator) {
     auto& logicalDistinct = (const LogicalDistinct&)*logicalOperator;
     auto outSchema = logicalDistinct.getSchema();
-    auto inSchema = logicalDistinct.getSchemaBeforeDistinct();
+    auto inSchema = logicalDistinct.getChild(0)->getSchema();
     auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0));
-    std::vector<std::unique_ptr<function::AggregateFunction>> emptyAggregateFunctions;
+    std::vector<std::unique_ptr<function::AggregateFunction>> emptyAggFunctions;
     std::vector<std::unique_ptr<AggregateInputInfo>> emptyAggInputInfos;
-    std::vector<DataPos> emptyOutputAggVectorsPos;
-    return createHashAggregate(std::move(emptyAggregateFunctions), std::move(emptyAggInputInfos),
-        emptyOutputAggVectorsPos, logicalDistinct.getExpressionsToDistinct(),
-        std::move(prevOperator), *inSchema, *outSchema,
-        logicalDistinct.getExpressionsForPrinting());
+    std::vector<DataPos> emptyAggregatesOutputPos;
+    return createHashAggregate(logicalDistinct.getKeyExpressions(),
+        logicalDistinct.getDependentKeyExpressions(), std::move(emptyAggFunctions),
+        std::move(emptyAggInputInfos), std::move(emptyAggregatesOutputPos), *inSchema, *outSchema,
+        std::move(prevOperator), logicalDistinct.getExpressionsForPrinting());
 }
 
 } // namespace processor

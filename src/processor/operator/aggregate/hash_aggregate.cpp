@@ -49,30 +49,31 @@ std::pair<uint64_t, uint64_t> HashAggregateSharedState::getNextRangeToRead() {
 
 void HashAggregate::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     BaseAggregate::initLocalStateInternal(resultSet, context);
-    std::vector<DataType> groupByHashKeysDataTypes;
-    for (auto i = 0u; i < groupByHashKeyVectorsPos.size(); i++) {
-        auto vector = resultSet->getValueVector(groupByHashKeyVectorsPos[i]).get();
-        if (isGroupByHashKeyVectorFlat[i]) {
-            groupByFlatHashKeyVectors.push_back(vector);
-        } else {
-            groupByUnflatHashKeyVectors.push_back(vector);
-        }
-        groupByHashKeysDataTypes.push_back(vector->dataType);
+    std::vector<DataType> keyDataTypes;
+    for (auto& pos : flatKeysPos) {
+        auto vector = resultSet->getValueVector(pos).get();
+        flatKeyVectors.push_back(vector);
+        keyDataTypes.push_back(vector->dataType);
     }
-    std::vector<DataType> groupByNonHashKeysDataTypes;
-    for (auto& dataPos : groupByNonHashKeyVectorsPos) {
-        auto vector = resultSet->getValueVector(dataPos).get();
-        groupByNonHashKeyVectors.push_back(vector);
-        groupByNonHashKeysDataTypes.push_back(vector->dataType);
+    for (auto& pos : unFlatKeysPos) {
+        auto vector = resultSet->getValueVector(pos).get();
+        unFlatKeyVectors.push_back(vector);
+        keyDataTypes.push_back(vector->dataType);
     }
-    localAggregateHashTable = make_unique<AggregateHashTable>(*context->memoryManager,
-        groupByHashKeysDataTypes, groupByNonHashKeysDataTypes, aggregateFunctions, 0);
+    std::vector<DataType> payloadDataTypes;
+    for (auto& pos : dependentKeysPos) {
+        auto vector = resultSet->getValueVector(pos).get();
+        dependentKeyVectors.push_back(vector);
+        payloadDataTypes.push_back(vector->dataType);
+    }
+    localAggregateHashTable = make_unique<AggregateHashTable>(
+        *context->memoryManager, keyDataTypes, payloadDataTypes, aggregateFunctions, 0);
 }
 
 void HashAggregate::executeInternal(ExecutionContext* context) {
     while (children[0]->getNextTuple(context)) {
-        localAggregateHashTable->append(groupByFlatHashKeyVectors, groupByUnflatHashKeyVectors,
-            groupByNonHashKeyVectors, aggregateInputs, resultSet->multiplicity);
+        localAggregateHashTable->append(flatKeyVectors, unFlatKeyVectors, dependentKeyVectors,
+            aggregateInputs, resultSet->multiplicity);
     }
     sharedState->appendAggregateHashTable(std::move(localAggregateHashTable));
 }
