@@ -20,20 +20,35 @@ TestConfig TestHelper::parseGroupFile(const std::string& path) {
     std::ifstream ifs(path);
     std::string line;
     while (getline(ifs, line)) {
-        if (line.starts_with("-GROUP")) {
-            result.testGroup = line.substr(7, line.length());
-        }
-        if (line.starts_with("-TEST")) {
-            result.testName = line.substr(6, line.length());
-        }
-        if (line.starts_with("-DATASET")) {
-            result.dataset = line.substr(9, line.length());
-        }
-        if (line.starts_with("-CHECK_ORDER")) {
-            result.checkOrder = (line.substr(13, line.length()) == "TRUE");
-        }
+        setConfigValue(line, result.testGroup, "-GROUP");
+        setConfigValue(line, result.testName, "-TEST");
+        setConfigValue(line, result.dataset, "-DATASET");
+        setConfigValue(line, result.checkOrder, "-CHECK_ORDER");
     }
     return result;
+}
+
+void TestHelper::setConfigValue(
+    const std::string& line, std::string& configItem, const std::string& configKey) {
+    std::string value = extractConfigValue(line, configKey);
+    if (!value.empty())
+        configItem = value;
+}
+
+void TestHelper::setConfigValue(
+    const std::string& line, bool& configItem, const std::string& configKey) {
+    std::string value = extractConfigValue(line, configKey);
+    if (!value.empty())
+        configItem = (value == "TRUE");
+}
+
+std::string TestHelper::extractConfigValue(const std::string& line, const std::string& configKey) {
+    std::string value;
+    if (line.starts_with(configKey)) {
+        value = line.substr(configKey.length() + 1, line.length());
+        value.erase(remove_if(value.begin(), value.end(), isspace), value.end());
+    }
+    return value;
 }
 
 std::vector<std::unique_ptr<TestQueryConfig>> TestHelper::parseTestFile(

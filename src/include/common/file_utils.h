@@ -65,6 +65,8 @@ public:
 
     static std::vector<std::string> globFilePath(const std::string& path);
 
+    static std::vector<std::string> findAllDirectories(const std::string& path);
+
     static inline std::string getParentPath(const std::filesystem::path& path) {
         return path.parent_path().string();
     }

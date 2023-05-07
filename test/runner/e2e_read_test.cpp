@@ -6,10 +6,10 @@ using namespace kuzu::common;
 
 class EndToEndReadTest : public DBTest {
 public:
+    EndToEndReadTest(TestConfig testConfig) : testConfig(std::move(testConfig)) {}
     std::string getInputDir() override {
         return TestHelper::appendKuzuRootPath("dataset/" + testConfig.dataset + "/");
     }
-    EndToEndReadTest(TestConfig testConfig) : testConfig(std::move(testConfig)) {}
     void TestBody() override {
         for (auto& file : testConfig.files) {
             if (testConfig.checkOrder) {
@@ -32,35 +32,29 @@ void registerTests(const std::vector<TestConfig> testConfig) {
     }
 }
 
-std::vector<TestConfig> scanTestFiles(const std::string& path) {
-    TestConfig testConfig;
-    std::vector<TestConfig> tests;
-    std::string previousDirectory;
-    for (const auto& entry : std::filesystem::recursive_directory_iterator(path)) {
-        if (!entry.is_regular_file())
-            continue;
-        std::string testGroupFile = FileUtils::getParentPath(entry) + "/test.group";
-        if (!FileUtils::fileOrPathExists(testGroupFile))
-            continue;
-        if (FileUtils::getParentPathStem(entry) != previousDirectory) {
-            if (testConfig.isValid())
-                tests.push_back(testConfig);
-            testConfig = TestHelper::parseGroupFile(testGroupFile);
-        }
-        if (FileUtils::getFileExtension(entry) == ".test") {
+TestConfig parseTestGroup(const std::string& path) {
+    auto testConfig = TestHelper::parseGroupFile(path + "/test.group");
+    for (const auto& entry : std::filesystem::directory_iterator(path)) {
+        if (entry.is_regular_file() && FileUtils::getFileExtension(entry) == ".test") {
             testConfig.files.push_back(entry.path().string());
         }
-        previousDirectory = FileUtils::getParentPathStem(entry);
     }
-    if (testConfig.isValid())
-        tests.push_back(testConfig);
-    return tests;
+    return testConfig;
+}
+
+void scanTestFiles(const std::string& path, std::vector<TestConfig>& configs) {
+    for (const auto& directory : FileUtils::findAllDirectories(path)) {
+        if (FileUtils::fileOrPathExists(directory + "/test.group")) {
+            TestConfig config = parseTestGroup(directory);
+            configs.push_back(config);
+        }
+    }
 }
 
 int main(int argc, char** argv) {
     testing::InitGoogleTest(&argc, argv);
-    std::vector<TestConfig> tests =
-        scanTestFiles(TestHelper::appendKuzuRootPath("test/test_files"));
-    registerTests(tests);
+    std::vector<TestConfig> configs;
+    scanTestFiles(TestHelper::appendKuzuRootPath("test/test_files"), configs);
+    registerTests(configs);
     return RUN_ALL_TESTS();
 }
