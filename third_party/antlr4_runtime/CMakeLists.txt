@@ -323,7 +323,7 @@ if (WIN32)
 endif()
 
 
-if ("${CMAKE_BUILD_TYPE}" STREQUAL "DEBUG")
+if ("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
     if(MSVC)
         target_compile_options(${ANTLR4_RUNTIME} PRIVATE
             /W4 /Od
