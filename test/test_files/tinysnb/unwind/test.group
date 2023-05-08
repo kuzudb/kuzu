@@ -1,0 +1,4 @@
+-GROUP TinySnbReadTest
+-TEST Unwind
+-DATASET tinysnb
+-READ_ONLY TRUE

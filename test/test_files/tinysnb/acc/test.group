@@ -1,0 +1,4 @@
+-GROUP TinySnbReadTest
+-TEST Acc
+-DATASET tinysnb
+-READ_ONLY TRUE

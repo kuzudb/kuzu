@@ -1,0 +1,4 @@
+-GROUP TinySnbReadTest
+-TEST VarLengthExtendTests
+-DATASET tinysnb
+-READ_ONLY TRUE

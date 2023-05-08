@@ -12,6 +12,45 @@ using namespace kuzu::main;
 namespace kuzu {
 namespace testing {
 
+TestConfig TestHelper::parseGroupFile(const std::string& path) {
+    TestConfig result;
+    if (!FileUtils::fileOrPathExists(path)) {
+        return result;
+    }
+    std::ifstream ifs(path);
+    std::string line;
+    while (getline(ifs, line)) {
+        setConfigValue(line, result.testGroup, "-GROUP");
+        setConfigValue(line, result.testName, "-TEST");
+        setConfigValue(line, result.dataset, "-DATASET");
+        setConfigValue(line, result.checkOrder, "-CHECK_ORDER");
+    }
+    return result;
+}
+
+void TestHelper::setConfigValue(
+    const std::string& line, std::string& configItem, const std::string& configKey) {
+    std::string value = extractConfigValue(line, configKey);
+    if (!value.empty())
+        configItem = value;
+}
+
+void TestHelper::setConfigValue(
+    const std::string& line, bool& configItem, const std::string& configKey) {
+    std::string value = extractConfigValue(line, configKey);
+    if (!value.empty())
+        configItem = (value == "TRUE");
+}
+
+std::string TestHelper::extractConfigValue(const std::string& line, const std::string& configKey) {
+    std::string value;
+    if (line.starts_with(configKey)) {
+        value = line.substr(configKey.length() + 1, line.length());
+        value.erase(remove_if(value.begin(), value.end(), isspace), value.end());
+    }
+    return value;
+}
+
 std::vector<std::unique_ptr<TestQueryConfig>> TestHelper::parseTestFile(
     const std::string& path, bool checkOutputOrder) {
     std::vector<std::unique_ptr<TestQueryConfig>> result;
