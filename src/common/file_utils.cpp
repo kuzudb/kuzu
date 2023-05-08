@@ -8,7 +8,11 @@ namespace kuzu {
 namespace common {
 
 std::unique_ptr<FileInfo> FileUtils::openFile(const std::string& path, int flags) {
+    #if defined(_WIN32)
+    int fd = open(path.c_str(), flags | _O_BINARY, _S_IREAD | _S_IWRITE);
+    #else
     int fd = open(path.c_str(), flags, 0644);
+    #endif
     if (fd == -1) {
         throw Exception("Cannot open file: " + path);
     }
