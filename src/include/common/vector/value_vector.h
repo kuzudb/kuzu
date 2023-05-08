@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cassert>
+#include <numeric>
 
 #include "common/data_chunk/data_chunk_state.h"
 #include "common/null_mask.h"
@@ -27,7 +28,7 @@ public:
 
     ~ValueVector() = default;
 
-    inline void setState(std::shared_ptr<DataChunkState> state_) { state = std::move(state_); }
+    void setState(std::shared_ptr<DataChunkState> state_);
 
     inline void setAllNull() { nullMask->setAllNull(); }
     inline void setAllNonNull() { nullMask->setAllNonNull(); }
@@ -62,6 +63,10 @@ public:
 
     inline void setSequential() { _isSequential = true; }
     inline bool isSequential() const { return _isSequential; }
+
+private:
+    void setNumBytesPerValue();
+    void initializeValueBuffer();
 
 public:
     DataType dataType;
@@ -125,13 +130,6 @@ public:
 
 class StructVector {
 public:
-    static inline void addChildVector(
-        ValueVector* vector, std::shared_ptr<ValueVector> valueVector) {
-        auto auxiliaryBuffer =
-            reinterpret_cast<StructAuxiliaryBuffer*>(vector->auxiliaryBuffer.get());
-        auxiliaryBuffer->addChildVector(valueVector);
-    }
-
     static inline const std::vector<std::shared_ptr<ValueVector>>& getChildrenVectors(
         const ValueVector* vector) {
         return reinterpret_cast<StructAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())
@@ -139,9 +137,22 @@ public:
     }
 
     static inline std::shared_ptr<ValueVector> getChildVector(
-        ValueVector* vector, vector_idx_t idx) {
+        const ValueVector* vector, vector_idx_t idx) {
         return reinterpret_cast<StructAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())
             ->getChildrenVectors()[idx];
+    }
+
+    static inline void referenceVector(
+        ValueVector* vector, vector_idx_t idx, std::shared_ptr<ValueVector> vectorToReference) {
+        reinterpret_cast<StructAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())
+            ->referenceChildVector(idx, vectorToReference);
+    }
+
+    static inline void initializeEntries(ValueVector* vector) {
+        std::iota((struct_entry_t*)vector->getData(),
+            (struct_entry_t*)(vector->getData() +
+                              vector->getNumBytesPerValue() * DEFAULT_VECTOR_CAPACITY),
+            0);
     }
 };
 

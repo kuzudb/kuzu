@@ -509,12 +509,6 @@ TEST_F(BinderErrorTest, MissingStructFields) {
     ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
 }
 
-TEST_F(BinderErrorTest, ListCreationOfStruct) {
-    std::string expectedException = "Binder exception: Cannot create a list of structs.";
-    auto input = "RETURN [{a: 5, b: 3}]";
-    ASSERT_STREQ(expectedException.c_str(), getBindingError(input).c_str());
-}
-
 TEST_F(BinderErrorTest, NonPKSerialType) {
     std::string expectedException =
         "Binder exception: Serial property in node table must be the primary key.";

@@ -1,20 +1,26 @@
 #include "common/vector/value_vector.h"
 
-#include "common/in_mem_overflow_buffer_utils.h"
 #include "common/vector/auxiliary_buffer.h"
-#include "common/vector/value_vector_utils.h"
 
 namespace kuzu {
 namespace common {
 
 ValueVector::ValueVector(DataType dataType, storage::MemoryManager* memoryManager)
     : dataType{std::move(dataType)} {
-    // TODO(Ziyi): remove this if/else statement once we removed the ku_list.
-    numBytesPerValue = this->dataType.typeID == VAR_LIST ? sizeof(common::list_entry_t) :
-                                                           Types::getDataTypeSize(this->dataType);
-    valueBuffer = std::make_unique<uint8_t[]>(numBytesPerValue * DEFAULT_VECTOR_CAPACITY);
+    setNumBytesPerValue();
+    initializeValueBuffer();
     nullMask = std::make_unique<NullMask>();
     auxiliaryBuffer = AuxiliaryBufferFactory::getAuxiliaryBuffer(this->dataType, memoryManager);
+}
+
+void ValueVector::setState(std::shared_ptr<DataChunkState> state) {
+    this->state = state;
+    if (dataType.typeID == STRUCT) {
+        auto childrenVectors = StructVector::getChildrenVectors(this);
+        for (auto childVector : childrenVectors) {
+            childVector->setState(state);
+        }
+    }
 }
 
 bool NodeIDVector::discardNull(ValueVector& vector) {
@@ -46,13 +52,31 @@ void ValueVector::setValue(uint32_t pos, T val) {
 }
 
 template<>
-void ValueVector::setValue(uint32_t pos, common::list_entry_t val) {
-    ((list_entry_t*)valueBuffer.get())[pos] = val;
-}
-
-template<>
 void ValueVector::setValue(uint32_t pos, std::string val) {
     StringVector::addString(this, pos, val.data(), val.length());
+}
+
+void ValueVector::setNumBytesPerValue() {
+    switch (dataType.typeID) {
+    case STRUCT: {
+        numBytesPerValue = sizeof(struct_entry_t);
+    } break;
+    case VAR_LIST: {
+        numBytesPerValue = sizeof(list_entry_t);
+    } break;
+    default: {
+        numBytesPerValue = Types::getDataTypeSize(dataType);
+    }
+    }
+}
+
+void ValueVector::initializeValueBuffer() {
+    valueBuffer = std::make_unique<uint8_t[]>(numBytesPerValue * DEFAULT_VECTOR_CAPACITY);
+    if (dataType.typeID == STRUCT) {
+        // For struct valueVectors, each struct_entry_t stores its current position in the
+        // valueVector.
+        StructVector::initializeEntries(this);
+    }
 }
 
 template void ValueVector::setValue<nodeID_t>(uint32_t pos, nodeID_t val);
@@ -64,7 +88,7 @@ template void ValueVector::setValue<date_t>(uint32_t pos, date_t val);
 template void ValueVector::setValue<timestamp_t>(uint32_t pos, timestamp_t val);
 template void ValueVector::setValue<interval_t>(uint32_t pos, interval_t val);
 template void ValueVector::setValue<ku_string_t>(uint32_t pos, ku_string_t val);
-template void ValueVector::setValue<ku_list_t>(uint32_t pos, ku_list_t val);
+template void ValueVector::setValue<list_entry_t>(uint32_t pos, list_entry_t val);
 
 } // namespace common
 } // namespace kuzu

@@ -469,3 +469,33 @@ Dan|Carol
 {DESCRIPTION: {GENDER: 2, AGE: 30}, NAME: Bob}
 {DESCRIPTION: {GENDER: 2, AGE: 40}, NAME: Greg}
 {DESCRIPTION: {GENDER: 2, AGE: 83}, NAME: Hubert Blaine Wolfeschlegelsteinhausenbergerdorff}
+
+-NAME ReturnNestedListOfStructLiteral
+-QUERY MATCH (p:person) return [{description: {propA: p.gender, propB: [p.age, 10]}, name: p.fName}, {description: {propA: p.ID, propB: [p.gender, 20]}, name: p.fName}]
+---- 8
+[{DESCRIPTION: {PROPA: 1, PROPB: [35,10]}, NAME: Alice},{DESCRIPTION: {PROPA: 0, PROPB: [1,20]}, NAME: Alice}]
+[{DESCRIPTION: {PROPA: 2, PROPB: [30,10]}, NAME: Bob},{DESCRIPTION: {PROPA: 2, PROPB: [2,20]}, NAME: Bob}]
+[{DESCRIPTION: {PROPA: 1, PROPB: [45,10]}, NAME: Carol},{DESCRIPTION: {PROPA: 3, PROPB: [1,20]}, NAME: Carol}]
+[{DESCRIPTION: {PROPA: 2, PROPB: [20,10]}, NAME: Dan},{DESCRIPTION: {PROPA: 5, PROPB: [2,20]}, NAME: Dan}]
+[{DESCRIPTION: {PROPA: 1, PROPB: [20,10]}, NAME: Elizabeth},{DESCRIPTION: {PROPA: 7, PROPB: [1,20]}, NAME: Elizabeth}]
+[{DESCRIPTION: {PROPA: 2, PROPB: [25,10]}, NAME: Farooq},{DESCRIPTION: {PROPA: 8, PROPB: [2,20]}, NAME: Farooq}]
+[{DESCRIPTION: {PROPA: 2, PROPB: [40,10]}, NAME: Greg},{DESCRIPTION: {PROPA: 9, PROPB: [2,20]}, NAME: Greg}]
+[{DESCRIPTION: {PROPA: 2, PROPB: [83,10]}, NAME: Hubert Blaine Wolfeschlegelsteinhausenbergerdorff},{DESCRIPTION: {PROPA: 10, PROPB: [2,20]}, NAME: Hubert Blaine Wolfeschlegelsteinhausenbergerdorff}]
+
+-NAME ReturnNestedListOfStructWithUnflatFlatChildren
+-QUERY MATCH (p1:person)-[e:knows]->(p2:person) return [{description: {propA: [p1.gender, p2.gender], propB: e.date}, name: p1.fName}, {description: {propA: [p1.ID, p2.ID], propB: p1.birthdate}, name: p2.fName}]
+---- 14
+[{DESCRIPTION: {PROPA: [1,2], PROPB: 2021-06-30}, NAME: Alice},{DESCRIPTION: {PROPA: [0,2], PROPB: 1900-01-01}, NAME: Bob}]
+[{DESCRIPTION: {PROPA: [1,1], PROPB: 2021-06-30}, NAME: Alice},{DESCRIPTION: {PROPA: [0,3], PROPB: 1900-01-01}, NAME: Carol}]
+[{DESCRIPTION: {PROPA: [1,2], PROPB: 2021-06-30}, NAME: Alice},{DESCRIPTION: {PROPA: [0,5], PROPB: 1900-01-01}, NAME: Dan}]
+[{DESCRIPTION: {PROPA: [2,1], PROPB: 2021-06-30}, NAME: Bob},{DESCRIPTION: {PROPA: [2,0], PROPB: 1900-01-01}, NAME: Alice}]
+[{DESCRIPTION: {PROPA: [2,1], PROPB: 1950-05-14}, NAME: Bob},{DESCRIPTION: {PROPA: [2,3], PROPB: 1900-01-01}, NAME: Carol}]
+[{DESCRIPTION: {PROPA: [2,2], PROPB: 1950-05-14}, NAME: Bob},{DESCRIPTION: {PROPA: [2,5], PROPB: 1900-01-01}, NAME: Dan}]
+[{DESCRIPTION: {PROPA: [1,1], PROPB: 2021-06-30}, NAME: Carol},{DESCRIPTION: {PROPA: [3,0], PROPB: 1940-06-22}, NAME: Alice}]
+[{DESCRIPTION: {PROPA: [1,2], PROPB: 1950-05-14}, NAME: Carol},{DESCRIPTION: {PROPA: [3,2], PROPB: 1940-06-22}, NAME: Bob}]
+[{DESCRIPTION: {PROPA: [1,2], PROPB: 2000-01-01}, NAME: Carol},{DESCRIPTION: {PROPA: [3,5], PROPB: 1940-06-22}, NAME: Dan}]
+[{DESCRIPTION: {PROPA: [2,1], PROPB: 2021-06-30}, NAME: Dan},{DESCRIPTION: {PROPA: [5,0], PROPB: 1950-07-23}, NAME: Alice}]
+[{DESCRIPTION: {PROPA: [2,2], PROPB: 1950-05-14}, NAME: Dan},{DESCRIPTION: {PROPA: [5,2], PROPB: 1950-07-23}, NAME: Bob}]
+[{DESCRIPTION: {PROPA: [2,1], PROPB: 2000-01-01}, NAME: Dan},{DESCRIPTION: {PROPA: [5,3], PROPB: 1950-07-23}, NAME: Carol}]
+[{DESCRIPTION: {PROPA: [1,2], PROPB: 1905-12-12}, NAME: Elizabeth},{DESCRIPTION: {PROPA: [7,8], PROPB: 1980-10-26}, NAME: Farooq}]
+[{DESCRIPTION: {PROPA: [1,2], PROPB: 1905-12-12}, NAME: Elizabeth},{DESCRIPTION: {PROPA: [7,9], PROPB: 1980-10-26}, NAME: Greg}]

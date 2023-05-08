@@ -13,8 +13,17 @@ void StringAuxiliaryBuffer::addString(
     InMemOverflowBufferUtils::copyString(value, len, entry, *inMemOverflowBuffer);
 }
 
+StructAuxiliaryBuffer::StructAuxiliaryBuffer(
+    const DataType& type, storage::MemoryManager* memoryManager) {
+    auto structTypeInfo = reinterpret_cast<StructTypeInfo*>(type.getExtraTypeInfo());
+    childrenVectors.reserve(structTypeInfo->getChildrenTypes().size());
+    for (auto structFieldType : structTypeInfo->getChildrenTypes()) {
+        childrenVectors.push_back(std::make_shared<ValueVector>(*structFieldType, memoryManager));
+    }
+}
+
 ListAuxiliaryBuffer::ListAuxiliaryBuffer(
-    kuzu::common::DataType& dataVectorType, storage::MemoryManager* memoryManager)
+    const DataType& dataVectorType, storage::MemoryManager* memoryManager)
     : capacity{common::DEFAULT_VECTOR_CAPACITY}, size{0}, dataVector{std::make_unique<ValueVector>(
                                                               dataVectorType, memoryManager)} {}
 
@@ -41,7 +50,7 @@ std::unique_ptr<AuxiliaryBuffer> AuxiliaryBufferFactory::getAuxiliaryBuffer(
     case STRING:
         return std::make_unique<StringAuxiliaryBuffer>(memoryManager);
     case STRUCT:
-        return std::make_unique<StructAuxiliaryBuffer>();
+        return std::make_unique<StructAuxiliaryBuffer>(type, memoryManager);
     case VAR_LIST:
         return std::make_unique<ListAuxiliaryBuffer>(*type.getChildType(), memoryManager);
     default:

@@ -19,9 +19,6 @@ public:
 private:
     static void copyNonNullDataWithSameType(const DataType& dataType, const uint8_t* srcData,
         uint8_t* dstData, InMemOverflowBuffer& inMemOverflowBuffer);
-    static ku_list_t convertListEntryToKuList(
-        const ValueVector& srcVector, uint64_t pos, InMemOverflowBuffer& dstOverflowBuffer);
-    static void copyKuListToVector(ValueVector& dstVector, uint64_t pos, const ku_list_t& srcList);
 };
 
 } // namespace common
