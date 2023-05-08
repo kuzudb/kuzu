@@ -209,8 +209,6 @@ public:
 private:
     inline void addToUpdatedRelTables() { wal->addToUpdatedRelTables(tableID); }
     inline void clearListsUpdatesStore() { listsUpdatesStore->clear(); }
-    static void appendInMemListToLargeListOP(ListsUpdateIterator* listsUpdateIterator,
-        common::offset_t nodeOffset, InMemList& inMemList);
     static void updateListOP(ListsUpdateIterator* listsUpdateIterator, common::offset_t nodeOffset,
         InMemList& inMemList);
     void performOpOnListsWithUpdates(const std::function<void(Lists*)>& opOnListsWithUpdates,

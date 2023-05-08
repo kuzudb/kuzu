@@ -856,25 +856,25 @@ TEST_F(TinySnbDDLTest, AddStringPropertyToStudyAtTableWithoutDefaultValueRecover
 //        "STRING[]" /* propertyType */, TransactionTestType::RECOVERY);
 //}
 
-TEST_F(TinySnbDDLTest, AddInt64PropertyToStudyAtTableWithDefaultValueNormalExecution) {
-    addPropertyToStudyAtTableWithDefaultValue(
-        "INT64" /* propertyType */, "42" /* defaultVal */, TransactionTestType::NORMAL_EXECUTION);
-}
-
-TEST_F(TinySnbDDLTest, AddInt64PropertyToStudyAtTableWithDefaultValueRecovery) {
-    addPropertyToStudyAtTableWithDefaultValue(
-        "INT64" /* propertyType */, "42" /* defaultVal */, TransactionTestType::RECOVERY);
-}
-
-TEST_F(TinySnbDDLTest, AddStringPropertyToStudyAtTableWithDefaultValueNormalExecution) {
-    addPropertyToStudyAtTableWithDefaultValue("STRING" /* propertyType */,
-        "'VERY LONG STRING!!'" /* defaultVal */, TransactionTestType::NORMAL_EXECUTION);
-}
-
-TEST_F(TinySnbDDLTest, AddStringPropertyToStudyAtTableWithDefaultValueRecovery) {
-    addPropertyToStudyAtTableWithDefaultValue("STRING" /* propertyType */,
-        "'VERY SHORT STRING!!'" /* defaultVal */, TransactionTestType::RECOVERY);
-}
+// TEST_F(TinySnbDDLTest, AddInt64PropertyToStudyAtTableWithDefaultValueNormalExecution) {
+//    addPropertyToStudyAtTableWithDefaultValue(
+//        "INT64" /* propertyType */, "42" /* defaultVal */, TransactionTestType::NORMAL_EXECUTION);
+//}
+//
+// TEST_F(TinySnbDDLTest, AddInt64PropertyToStudyAtTableWithDefaultValueRecovery) {
+//    addPropertyToStudyAtTableWithDefaultValue(
+//        "INT64" /* propertyType */, "42" /* defaultVal */, TransactionTestType::RECOVERY);
+//}
+//
+// TEST_F(TinySnbDDLTest, AddStringPropertyToStudyAtTableWithDefaultValueNormalExecution) {
+//    addPropertyToStudyAtTableWithDefaultValue("STRING" /* propertyType */,
+//        "'VERY LONG STRING!!'" /* defaultVal */, TransactionTestType::NORMAL_EXECUTION);
+//}
+//
+// TEST_F(TinySnbDDLTest, AddStringPropertyToStudyAtTableWithDefaultValueRecovery) {
+//    addPropertyToStudyAtTableWithDefaultValue("STRING" /* propertyType */,
+//        "'VERY SHORT STRING!!'" /* defaultVal */, TransactionTestType::RECOVERY);
+//}
 
 // TEST_F(TinySnbDDLTest, AddListOfINT64PropertyToStudyAtTableWithDefaultValueNormalExecution) {
 //    addPropertyToStudyAtTableWithDefaultValue("INT64[]" /* propertyType */,

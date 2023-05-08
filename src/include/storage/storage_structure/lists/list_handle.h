@@ -38,7 +38,7 @@ public:
 
 private:
     inline bool hasValidRangeToRead() const { return UINT32_MAX != startElemOffset; }
-    inline uint32_t getNumValuesInList() {
+    inline csr_offset_t getNumValuesInList() {
         return sourceStore == ListSourceStore::PERSISTENT_STORE ? numValuesInPersistentStore :
                                                                   numValuesInUpdateStore;
     }
@@ -52,7 +52,6 @@ private:
 
 private:
     common::offset_t boundNodeOffset;
-    common::list_header_t listHeader;
     uint32_t numValuesInUpdateStore;
     uint32_t numValuesInPersistentStore;
     uint32_t startElemOffset;
@@ -63,36 +62,21 @@ private:
 struct ListHandle {
     explicit ListHandle(ListSyncState& listSyncState) : listSyncState{listSyncState} {}
 
-    static inline std::function<uint32_t(uint32_t)> getPageMapper(ListsMetadata& listMetadata,
-        common::list_header_t listHeader, common::offset_t nodeOffset) {
-        return ListHeaders::isALargeList(listHeader) ?
-                   listMetadata.getPageMapperForLargeListIdx(
-                       ListHeaders::getLargeListIdx(listHeader)) :
-                   listMetadata.getPageMapperForChunkIdx(StorageUtils::getListChunkIdx(nodeOffset));
+    static inline std::function<uint32_t(uint32_t)> getPageMapper(
+        ListsMetadata& listMetadata, common::offset_t nodeOffset) {
+        return listMetadata.getPageMapperForChunkIdx(StorageUtils::getListChunkIdx(nodeOffset));
     }
-    static inline PageElementCursor getPageCursor(
-        common::list_header_t listHeader, uint64_t numElementsPerPage) {
-        return ListHeaders::isALargeList(listHeader) ?
-                   PageUtils::getPageElementCursorForPos(0, numElementsPerPage) :
-                   PageUtils::getPageElementCursorForPos(
-                       ListHeaders::getSmallListCSROffset(listHeader), numElementsPerPage);
-    }
-
     inline void setMapper(ListsMetadata& listMetadata) {
-        mapper =
-            getPageMapper(listMetadata, listSyncState.listHeader, listSyncState.boundNodeOffset);
+        mapper = getPageMapper(listMetadata, listSyncState.boundNodeOffset);
     }
     inline void resetSyncState() { listSyncState.resetState(); }
-    inline void initSyncState(common::offset_t boundNodeOffset, common::list_header_t listHeader,
-        uint64_t numValuesInUpdateStore, uint64_t numValuesInPersistentStore,
-        ListSourceStore sourceStore) {
+    inline void initSyncState(common::offset_t boundNodeOffset, uint64_t numValuesInUpdateStore,
+        uint64_t numValuesInPersistentStore, ListSourceStore sourceStore) {
         listSyncState.boundNodeOffset = boundNodeOffset;
-        listSyncState.listHeader = listHeader;
         listSyncState.numValuesInUpdateStore = numValuesInUpdateStore;
         listSyncState.numValuesInPersistentStore = numValuesInPersistentStore;
         listSyncState.sourceStore = sourceStore;
     }
-    inline common::list_header_t getListHeader() const { return listSyncState.listHeader; }
     inline common::offset_t getBoundNodeOffset() const { return listSyncState.boundNodeOffset; }
     inline ListSourceStore getListSourceStore() { return listSyncState.sourceStore; }
     inline uint32_t getStartElemOffset() const { return listSyncState.startElemOffset; }

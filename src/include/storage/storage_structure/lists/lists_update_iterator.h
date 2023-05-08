@@ -39,35 +39,27 @@ class ListsUpdateIterator {
 public:
     explicit ListsUpdateIterator(Lists* lists)
         : lists{lists}, curChunkIdx{UINT64_MAX}, curUnprocessedNodeOffset{UINT64_MAX},
-          curCSROffset{UINT64_MAX}, finishCalled{false} {}
+          curCSROffset{UINT32_MAX}, finishCalled{false} {}
 
     virtual ~ListsUpdateIterator() { assert(finishCalled); }
 
     void updateList(common::offset_t nodeOffset, InMemList& inMemList);
 
-    void appendToLargeList(common::offset_t nodeOffset, InMemList& inMemList);
-
     void doneUpdating();
 
 protected:
-    virtual inline void updateLargeListHeaderIfNecessary(uint32_t largeListIdx) = 0;
-    virtual inline void updateSmallListHeaderIfNecessary(
-        common::list_header_t oldHeader, common::list_header_t newHeader) = 0;
-    virtual inline bool isLargeListAfterInsertion(
-        common::list_header_t oldHeader, uint64_t numElementsAfterInsertion) = 0;
+    virtual inline void updateListHeaderIfNecessary(
+        csr_offset_t oldCSROffset, csr_offset_t newCSROffset) = 0;
 
     void seekToBeginningOfChunkIdx(uint64_t chunkIdx);
 
     void slideListsIfNecessary(uint64_t endNodeOffsetInclusive);
 
-    void seekToNodeOffsetAndSlideListsIfNecessary(common::offset_t nodeOffsetToSeekTo);
+    bool seekToNodeOffsetAndSlideListsIfNecessary(common::offset_t nodeOffsetToSeekTo);
 
-    void writeInMemListToListPages(
-        InMemList& inMemList, common::page_idx_t pageListHeadIdx, bool isSmallList);
+    void writeInMemListToListPages(InMemList& inMemList, common::page_idx_t pageListHeadIdx);
 
-    void updateLargeList(common::list_header_t oldHeader, InMemList& inMemList);
-
-    void updateSmallListAndCurCSROffset(common::list_header_t oldHeader, InMemList& inMemList);
+    void updateListAndCurCSROffset(csr_offset_t oldCSROffset, InMemList& inMemList);
 
     std::pair<common::page_idx_t, bool> findListPageIdxAndInsertListPageToPageListIfNecessary(
         common::page_idx_t idxInPageList, uint32_t pageListHeadIdx);
@@ -79,8 +71,7 @@ private:
     // largeListIdx == UINT32_MAX indicates that this page group is inserted as part of small list
     // update, so if beginIdxOfCurrentPageGroup == UINT32_MAX, the chunkToPageListHeadIdxMap will be
     // updated; otherwise largeListIdxToPageListHeadIdxMap will be updated.
-    common::page_idx_t insertNewPageGroupAndSetHeadIdxMap(
-        uint32_t beginIdxOfCurrentPageGroup, uint32_t largeListIdx = UINT32_MAX);
+    common::page_idx_t insertNewPageGroupAndSetHeadIdxMap(uint32_t beginIdxOfCurrentPageGroup);
 
     void writeAtOffset(InMemList& inMemList, common::page_idx_t pageListHeadIdx,
         uint64_t idxInPageList, uint64_t elementOffsetInListPage);
@@ -89,7 +80,7 @@ protected:
     Lists* lists;
     uint64_t curChunkIdx;
     uint64_t curUnprocessedNodeOffset;
-    uint64_t curCSROffset;
+    csr_offset_t curCSROffset;
     bool finishCalled;
 };
 
@@ -98,21 +89,11 @@ public:
     explicit AdjListsUpdateIterator(Lists* lists) : ListsUpdateIterator{lists} {}
 
 private:
-    inline void updateLargeListHeaderIfNecessary(uint32_t largeListIdx) override {
-        common::list_header_t newHeader = ListHeaders::getLargeListHeader(largeListIdx);
-        lists->getHeaders()->headersDiskArray->update(curUnprocessedNodeOffset, newHeader);
-    }
-    inline void updateSmallListHeaderIfNecessary(
-        common::list_header_t oldHeader, common::list_header_t newHeader) override {
-        if (newHeader != oldHeader) {
-            lists->getHeaders()->headersDiskArray->update(curUnprocessedNodeOffset, newHeader);
+    inline void updateListHeaderIfNecessary(
+        csr_offset_t oldCSROffset, csr_offset_t newCSROffset) override {
+        if (newCSROffset != oldCSROffset) {
+            lists->getHeaders()->update(curUnprocessedNodeOffset, newCSROffset);
         }
-    }
-    inline bool isLargeListAfterInsertion(
-        common::list_header_t oldHeader, uint64_t numElementsAfterInsertion) override {
-        return ListHeaders::isALargeList(oldHeader) ||
-               numElementsAfterInsertion * lists->elementSize >
-                   common::BufferPoolConstants::PAGE_4KB_SIZE;
     }
 };
 
@@ -121,15 +102,9 @@ public:
     explicit RelPropertyListsUpdateIterator(Lists* lists) : ListsUpdateIterator{lists} {}
 
 private:
-    // Only adjListUpdateIterator need to update small or large list header.
-    inline void updateLargeListHeaderIfNecessary(uint32_t largeListIdx) override {}
-    inline void updateSmallListHeaderIfNecessary(
-        common::list_header_t oldHeader, common::list_header_t newHeader) override {}
-    inline bool isLargeListAfterInsertion(
-        common::list_header_t oldHeader, uint64_t numElementsAfterInsertion) override {
-        return ListHeaders::isALargeList(lists->getHeaders()->headersDiskArray->get(
-            curUnprocessedNodeOffset, transaction::TransactionType::WRITE));
-    }
+    // Only adjListUpdateIterator need to update list header.
+    inline void updateListHeaderIfNecessary(
+        csr_offset_t oldCSROffset, csr_offset_t newCSROffset) override {}
 };
 
 class ListsUpdateIteratorFactory {

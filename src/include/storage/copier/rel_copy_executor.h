@@ -17,7 +17,7 @@ class RelCopyExecutor : public TableCopyExecutor {
 public:
     RelCopyExecutor(common::CopyDescription& copyDescription, std::string outputDirectory,
         common::TaskScheduler& taskScheduler, catalog::Catalog& catalog,
-        storage::NodesStore& nodesStore, BufferManager* bufferManager, common::table_id_t tableID,
+        storage::NodesStore& nodesStore, common::table_id_t tableID,
         RelsStatistics* relsStatistics);
 
 private:
@@ -37,7 +37,9 @@ private:
 
     void initListsMetadata();
 
-    void initializePkIndexes(common::table_id_t nodeTableID);
+    inline void initializePkIndexes(common::table_id_t nodeTableID) {
+        pkIndexes.emplace(nodeTableID, nodesStore.getPKIndex(nodeTableID));
+    }
 
     void executePopulateTask(PopulateTaskType populateTaskType);
 
@@ -128,9 +130,8 @@ private:
     // Initializes (in listHeadersBuilder) the header of each list in a Lists structure, from the
     // listSizes. ListSizes is used to determine if the list is small or large, based on which,
     // information is encoded in the 4 byte header.
-    static void calculateListHeadersTask(common::offset_t numNodes, uint32_t elementSize,
-        atomic_uint64_vec_t* listSizes, ListHeadersBuilder* listHeadersBuilder,
-        const std::shared_ptr<spdlog::logger>& logger);
+    static void calculateListHeadersTask(common::offset_t numNodes, atomic_uint64_vec_t* listSizes,
+        ListHeadersBuilder* listHeadersBuilder, const std::shared_ptr<spdlog::logger>& logger);
 
     // Initializes Metadata information of a Lists structure, that is chunksPagesMap and
     // largeListsPagesMap, using listSizes and listHeadersBuilder.

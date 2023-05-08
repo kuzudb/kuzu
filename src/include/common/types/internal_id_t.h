@@ -8,11 +8,11 @@ namespace kuzu {
 namespace common {
 
 struct internalID_t;
-typedef internalID_t nodeID_t;
-typedef internalID_t relID_t;
+using nodeID_t = internalID_t;
+using relID_t = internalID_t;
 
-typedef uint64_t table_id_t;
-typedef uint64_t offset_t;
+using table_id_t = uint64_t;
+using offset_t = uint64_t;
 constexpr table_id_t INVALID_TABLE_ID = UINT64_MAX;
 constexpr offset_t INVALID_OFFSET = UINT64_MAX;
 

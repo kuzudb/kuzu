@@ -52,12 +52,8 @@ public:
               bufferManager, true /*hasNULLBytes*/, wal, listsUpdatesStore} {};
     inline ListsMetadata& getListsMetadata() { return metadata; };
     inline std::shared_ptr<ListHeaders> getHeaders() const { return headers; };
-    // TODO(Guodong): change the input to header.
     inline uint64_t getNumElementsFromListHeader(common::offset_t nodeOffset) const {
-        auto header = headers->getHeader(nodeOffset);
-        return ListHeaders::isALargeList(header) ?
-                   metadata.getNumElementsInLargeLists(ListHeaders::getLargeListIdx(header)) :
-                   ListHeaders::getSmallListLen(header);
+        return headers->getListSize(nodeOffset);
     }
     inline uint64_t getNumElementsInListsUpdatesStore(common::offset_t nodeOffset) {
         return listsUpdatesStore->getNumInsertedRelsForNodeOffset(
@@ -84,9 +80,7 @@ public:
     }
     virtual void readValues(transaction::Transaction* transaction, common::ValueVector* valueVector,
         ListHandle& listHandle);
-    virtual void readFromSmallList(common::ValueVector* valueVector, ListHandle& listHandle);
-    virtual void readFromLargeList(common::ValueVector* valueVector, ListHandle& listHandle);
-    void readFromList(common::ValueVector* valueVector, ListHandle& listHandle);
+    virtual void readFromList(common::ValueVector* valueVector, ListHandle& listHandle);
     uint64_t getNumElementsInPersistentStore(
         transaction::TransactionType transactionType, common::offset_t nodeOffset);
     void initListReadingState(common::offset_t nodeOffset, ListHandle& listHandle,
@@ -160,8 +154,7 @@ public:
               headers, bufferManager, wal, listsUpdatesStore} {};
 
 private:
-    void readFromLargeList(common::ValueVector* valueVector, ListHandle& listHandle) override;
-    void readFromSmallList(common::ValueVector* valueVector, ListHandle& listHandle) override;
+    void readFromList(common::ValueVector* valueVector, ListHandle& listHandle) override;
 };
 
 class ListPropertyLists : public PropertyListsWithOverflow {
@@ -174,10 +167,9 @@ public:
               wal, listsUpdatesStore} {};
 
 private:
-    void readFromLargeList(common::ValueVector* valueVector, ListHandle& listHandle) override;
-    void readFromSmallList(common::ValueVector* valueVector, ListHandle& listHandle) override;
     void readListFromPages(
         common::ValueVector* valueVector, ListHandle& listHandle, PageElementCursor& pageCursor);
+    void readFromList(common::ValueVector* valueVector, ListHandle& listHandle) override;
 };
 
 class AdjLists : public Lists {
@@ -212,8 +204,7 @@ public:
     }
 
 private:
-    void readFromLargeList(common::ValueVector* valueVector, ListHandle& listHandle) override;
-    void readFromSmallList(common::ValueVector* valueVector, ListHandle& listHandle) override;
+    void readFromList(common::ValueVector* valueVector, ListHandle& listHandle) override;
     void readFromListsUpdatesStore(ListHandle& listHandle, common::ValueVector* valueVector);
     void readFromPersistentStore(ListHandle& listHandle, common::ValueVector* valueVector);
 
@@ -239,9 +230,7 @@ public:
 
     list_offset_t getListOffset(common::offset_t nodeOffset, common::offset_t relOffset);
 
-    void readFromSmallList(common::ValueVector* valueVector, ListHandle& listHandle) override;
-
-    void readFromLargeList(common::ValueVector* valueVector, ListHandle& listHandle) override;
+    void readFromList(common::ValueVector* valueVector, ListHandle& listHandle) override;
 
 private:
     inline bool mayContainNulls() const override { return false; }
