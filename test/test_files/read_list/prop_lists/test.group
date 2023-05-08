@@ -1,0 +1,4 @@
+-GROUP EndToEndReadLargeListsTest
+-TEST PropLists4BytesPerEdgeTest
+-DATASET read-list-tests/large-list
+-READ_ONLY TRUE
