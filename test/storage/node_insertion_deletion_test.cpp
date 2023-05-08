@@ -49,7 +49,7 @@ public:
         dataChunk->state->currIdx = 0;
         auto nodeIDVector = std::make_shared<ValueVector>(INTERNAL_ID, getMemoryManager(*database));
         dataChunk->insert(0, nodeIDVector);
-        auto idVector = std::make_shared<ValueVector>(INT64, getMemoryManager(*database));
+        auto idVector = std::make_shared<ValueVector>(DataTypeID::INT64, getMemoryManager(*database));
         dataChunk->insert(1, idVector);
         ((nodeID_t*)nodeIDVector->getData())[0].offset = nodeOffset;
         idVector->setNull(0, true /* is null */);
