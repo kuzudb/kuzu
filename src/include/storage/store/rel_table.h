@@ -118,6 +118,20 @@ public:
     void batchInitEmptyRelsForNewNodes(const catalog::RelTableSchema* relTableSchema,
         uint64_t numNodesInTable, const std::string& directory);
 
+void destroyData(catalog::RelTableSchema* tableSchema, WAL* wal) {
+    if (isSingleMultiplicity()) {
+        adjColumn.reset();
+        for (auto& property : tableSchema->properties) {
+            propertyColumns[property.propertyID].reset();
+        }
+    } else {
+        adjLists.reset();
+        for (auto& property : tableSchema->properties) {
+            propertyLists[property.propertyID].reset();
+        }
+    }
+}
+
 private:
     void scanColumns(transaction::Transaction* transaction, RelTableScanState& scanState,
         common::ValueVector* inNodeIDVector,
@@ -146,6 +160,11 @@ class RelTable {
 public:
     RelTable(const catalog::Catalog& catalog, common::table_id_t tableID,
         MemoryManager& memoryManager, WAL* wal);
+
+void destroyData(catalog::RelTableSchema* tableSchema) {
+    fwdRelTableData->destroyData(tableSchema, wal);
+    bwdRelTableData->destroyData(tableSchema, wal);
+}
 
     void initializeData(catalog::RelTableSchema* tableSchema);
 
