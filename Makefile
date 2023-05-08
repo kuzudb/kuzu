@@ -4,7 +4,7 @@ GENERATOR=
 FORCE_COLOR=
 NUM_THREADS=
 SANITIZER_FLAG=
-ROOT_DIR=$(PWD)
+ROOT_DIR=$(CURDIR)
 
 ifndef $(NUM_THREADS)
 	NUM_THREADS=1
@@ -86,12 +86,23 @@ benchmark: arrow
 	cmake --build . --config Release -- -j $(NUM_THREADS)
 
 test: arrow
+ifeq ($(OS),Windows_NT)
+	(if not exist build\ mkdir build\) && \
+	cd build\ && \
+	(if not exist release\ mkdir release\) && \
+	cd release\ &&\
+	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=TRUE ..\.. && \
+	cmake --build . --config Release -- -j $(NUM_THREADS)
+	cd $(ROOT_DIR)/build/release/test && \
+	ctest
+else
 	mkdir -p build/release && \
 	cd build/release && \
 	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=TRUE ../.. && \
 	cmake --build . --config Release -- -j $(NUM_THREADS)
 	cd $(ROOT_DIR)/build/release/test && \
 	ctest
+endif
 
 lcov: arrow
 	mkdir -p build/release && \

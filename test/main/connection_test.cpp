@@ -16,7 +16,7 @@ static void parallel_query(Connection* conn) {
 }
 
 TEST_F(ApiTest, ParallelQuerySingleConnect) {
-    auto numThreads = 20u;
+    const auto numThreads = 20u;
     std::thread threads[numThreads];
     for (auto i = 0u; i < numThreads; ++i) {
         threads[i] = std::thread(parallel_query, conn.get());
@@ -32,7 +32,7 @@ static void parallel_connect(Database* database) {
 }
 
 TEST_F(ApiTest, ParallelConnect) {
-    auto numThreads = 5u;
+    const auto numThreads = 5u;
     std::thread threads[numThreads];
     for (auto i = 0u; i < numThreads; ++i) {
         threads[i] = std::thread(parallel_connect, database.get());

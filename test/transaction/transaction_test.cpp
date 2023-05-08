@@ -46,10 +46,10 @@ public:
         ((nodeID_t*)nodeVector->getData())[1].offset = 1;
 
         agePropertyVectorToReadDataInto =
-            std::make_shared<ValueVector>(INT64, getMemoryManager(*database));
+            std::make_shared<ValueVector>(DataTypeID::INT64, getMemoryManager(*database));
         dataChunk->insert(1, agePropertyVectorToReadDataInto);
         eyeSightVectorToReadDataInto =
-            std::make_shared<ValueVector>(DOUBLE, getMemoryManager(*database));
+            std::make_shared<ValueVector>(DataTypeID::DOUBLE, getMemoryManager(*database));
         dataChunk->insert(2, eyeSightVectorToReadDataInto);
 
         personAgeColumn = getStorageManager(*database)->getNodesStore().getNodePropertyColumn(
@@ -94,7 +94,7 @@ public:
         dataChunk->state->selVector->resetSelectorToValuePosBuffer();
         dataChunk->state->selVector->selectedPositions[0] = nodeOffset;
         auto propertyVectorToWriteDataTo =
-            std::make_shared<ValueVector>(INT64, getMemoryManager(*database));
+            std::make_shared<ValueVector>(DataTypeID::INT64, getMemoryManager(*database));
         propertyVectorToWriteDataTo->state = dataChunk->state;
         if (isNull) {
             propertyVectorToWriteDataTo->setNull(dataChunk->state->currIdx, true /* is null */);
