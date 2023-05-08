@@ -144,37 +144,6 @@ False
 ---- 1
 Carol
 
--NAME RegExprMatchString
--QUERY MATCH (a:person) WHERE a.fName =~ 'Ali.*' RETURN a.ID
----- 1
-0
-
--NAME RegExprAnchorMatchString
--QUERY MATCH (a:person) UNWIND a.usedNames as x WITH x AS name WHERE name =~ '^A.*$' RETURN name
----- 2
-Ad
-Aida
-
--NAME RegExprUTF8MatchString
--QUERY MATCH (m:movies) WHERE m.name =~ '.*â.*' RETURN m.name
----- 1
-Sóló cón tu párejâ
-
--NAME RegExprEscapeSeq1
--QUERY Return RE_MATCH("peter_n@example.com", ".*\\.com");
----- 1
-True
-
--NAME RegExprEscapeSeq2
--QUERY Return RE_MATCH("Alice.*^Alice", ".*\\.\\*.*");
----- 1
-True
-
--NAME RegExprEscapeSeq3
--QUERY Return RE_MATCH("peter_n@examplecom", ".*\\.com");
----- 1
-False
-
 -NAME LowerStructuredStr
 -QUERY MATCH (o:organisation) RETURN lower(o.name)
 ---- 3
@@ -529,3 +498,84 @@ True
 -QUERY MATCH (p:person) WHERE suffix(p.fName, "l") RETURN p.fName
 ---- 1
 Carol
+
+-NAME RegexpFullMatchString
+-QUERY MATCH (a:person) WHERE a.fName =~ 'Ali.*' RETURN a.ID
+---- 1
+0
+
+-NAME RegexpFullMatchAnchorString
+-QUERY MATCH (a:person) UNWIND a.usedNames as x WITH x AS name WHERE name =~ '^A.*$' RETURN name
+---- 2
+Ad
+Aida
+
+-NAME RegexpFullMatchUTF8String
+-QUERY MATCH (m:movies) WHERE m.name =~ '.*â.*' RETURN m.name
+---- 1
+Sóló cón tu párejâ
+
+-NAME RegexpFullMatchEscapeSeq1
+-QUERY Return REGEXP_FULL_MATCH("peter_n@example.com", ".*\\.com");
+---- 1
+True
+
+-NAME RegexpFullMatchEscapeSeq2
+-QUERY Return REGEXP_FULL_MATCH("Alice.*^Alice", ".*\\.\\*.*");
+---- 1
+True
+
+-NAME RegexpFullMatchEscapeSeq3
+-QUERY Return REGEXP_FULL_MATCH("peter_n@examplecom", ".*\\.com");
+---- 1
+False
+
+-NAME RegexpMatchesString
+-QUERY MATCH (a:person) WHERE REGEXP_MATCHES(a.fName, 'Ali.*') = true RETURN a.ID
+---- 1
+0
+
+-NAME RegexpMatchesSeq1
+-QUERY Return REGEXP_MATCHES('anabanana', '(an)*');
+---- 1
+True
+
+-NAME RegexpReplaceSeq1
+-QUERY Return REGEXP_REPLACE('hello', '[lo]', '-');
+---- 1
+he-lo
+
+-NAME RegexpExtractWithoutGroup
+-QUERY Return regexp_extract('hello_world', '([a-z ]+)_?');
+---- 1
+hello_
+
+-NAME RegexpExtractWithGroup
+-QUERY Return regexp_extract('hello_world', '([a-z ]+)_?', 1);
+---- 1
+hello
+
+-NAME RegexpExtractAllLongString
+-QUERY Return regexp_extract('hellolongstringtest_worldlongstringtest', '([a-z ]+)_?', 1);
+---- 1
+hellolongstringtest
+
+-NAME RegexpExtractAllWithoutGroup
+-QUERY Return regexp_extract_all('hello_world', '([a-z ]+)_?');
+---- 1
+[hello_,world]
+
+-NAME RegexpExtractAllWithGroup
+-QUERY Return regexp_extract_all('hello_world', '([a-z ]+)_?', 1);
+---- 1
+[hello,world]
+
+-NAME RegexpExtractAllLongString
+-QUERY Return regexp_extract_all('hellolongstringtest_worldlongstringtest', '([a-z ]+)_?', 1);
+---- 1
+[hellolongstringtest,worldlongstringtest]
+
+-NAME RegexpExtractAllEmptyMatch
+-QUERY Return regexp_extract_all('hello', '()', 1);
+---- 1
+[,,,,,]

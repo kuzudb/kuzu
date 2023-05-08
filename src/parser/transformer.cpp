@@ -606,7 +606,7 @@ std::unique_ptr<ParsedExpression> Transformer::transformStringOperatorExpression
             std::move(propertyExpression), std::move(right), rawExpression);
     } else {
         assert(ctx.oC_RegularExpression());
-        return std::make_unique<ParsedFunctionExpression>(common::RE_MATCH_FUNC_NAME,
+        return std::make_unique<ParsedFunctionExpression>(common::REGEXP_FULL_MATCH_FUNC_NAME,
             std::move(propertyExpression), std::move(right), rawExpression);
     }
 }

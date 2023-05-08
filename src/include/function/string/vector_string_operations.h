@@ -67,10 +67,6 @@ struct EndsWithVectorOperation : public VectorStringOperations {
     static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
 };
 
-struct REMatchVectorOperation : public VectorStringOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
-};
-
 struct LeftVectorOperation : public VectorStringOperations {
     static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
 };
@@ -137,6 +133,28 @@ struct UpperVectorOperation : public VectorStringOperations {
     static inline std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions() {
         return getUnaryStrFunctionDefintion<operation::Upper>(common::UPPER_FUNC_NAME);
     }
+};
+
+struct RegexpFullMatchVectorOperation : public VectorStringOperations {
+    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
+struct RegexpMatchesOperation : public VectorStringOperations {
+    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
+struct RegexpReplaceOperation : public VectorStringOperations {
+    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
+struct RegexpExtractOperation : public VectorStringOperations {
+    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+};
+
+struct RegexpExtractAllOperation : public VectorStringOperations {
+    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static std::unique_ptr<FunctionBindData> bindFunc(
+        const binder::expression_vector& arguments, FunctionDefinition* definition);
 };
 
 } // namespace function
