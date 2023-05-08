@@ -260,6 +260,7 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
                 // renaming has already happened, so we do not have to do anything, which is the
                 // behavior of replaceNodeWithVersionFromWALIfExists, i.e., if the WAL version
                 // of the file does not exist, it will not do anything.
+                storageManager->getNodesStore().getNodeTable(tableID)->destroyData(nodeTableSchema);
                 WALReplayerUtils::replaceNodeFilesWithVersionFromWALIfExists(
                     nodeTableSchema, wal->getDirectory());
                 auto relTableSchemas = catalog->getAllRelTableSchemasContainBoundTable(tableID);
@@ -296,6 +297,8 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
         if (isCheckpoint) {
             auto tableID = walRecord.copyRelRecord.tableID;
             if (!isRecovering) {
+                storageManager->getRelsStore().getRelTable(tableID)->destroyData(
+                    catalog->getReadOnlyVersion()->getRelTableSchema(tableID));
                 // See comments for COPY_NODE_RECORD.
                 WALReplayerUtils::replaceRelPropertyFilesWithVersionFromWALIfExists(
                     catalog->getReadOnlyVersion()->getRelTableSchema(tableID), wal->getDirectory());

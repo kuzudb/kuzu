@@ -26,6 +26,13 @@ public:
         nodesStatisticsAndDeletedIDs->setDeletedNodeOffsetsForMorsel(trx, vector, tableID);
     }
 
+    void destroyData(catalog::NodeTableSchema* nodeTableSchema) {
+        for (auto& property : nodeTableSchema->getAllNodeProperties()) {
+            propertyColumns[property.propertyID].reset();
+        }
+        //pkIndex.reset();
+    }
+
     void scan(transaction::Transaction* transaction, common::ValueVector* inputIDVector,
         const std::vector<uint32_t>& columnIdxes, std::vector<common::ValueVector*> outputVectors);
 
