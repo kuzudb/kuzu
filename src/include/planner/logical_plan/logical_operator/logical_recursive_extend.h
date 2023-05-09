@@ -9,7 +9,7 @@ class LogicalRecursiveExtend : public BaseLogicalExtend {
 public:
     LogicalRecursiveExtend(std::shared_ptr<binder::NodeExpression> boundNode,
         std::shared_ptr<binder::NodeExpression> nbrNode, std::shared_ptr<binder::RelExpression> rel,
-        common::RelDirection direction, std::shared_ptr<LogicalOperator> child)
+        common::ExtendDirection direction, std::shared_ptr<LogicalOperator> child)
         : BaseLogicalExtend{LogicalOperatorType::RECURSIVE_EXTEND, std::move(boundNode),
               std::move(nbrNode), std::move(rel), direction, std::move(child)} {}
 

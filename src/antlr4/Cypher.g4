@@ -293,6 +293,7 @@ oC_PatternElementChain
 oC_RelationshipPattern
     : ( oC_LeftArrowHead SP? oC_Dash SP? oC_RelationshipDetail? SP? oC_Dash )
         | ( oC_Dash SP? oC_RelationshipDetail? SP? oC_Dash SP? oC_RightArrowHead )
+        | ( oC_Dash SP? oC_RelationshipDetail? SP? oC_Dash )
         ;
 
 oC_RelationshipDetail

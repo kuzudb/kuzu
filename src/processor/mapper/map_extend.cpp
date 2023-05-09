@@ -15,6 +15,11 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace processor {
 
+static RelDataDirection getRelDataDirection(ExtendDirection extendDirection) {
+    assert(extendDirection != ExtendDirection::BOTH);
+    return extendDirection == ExtendDirection::BWD ? BWD : FWD;
+}
+
 static std::vector<property_id_t> populatePropertyIds(
     table_id_t relID, const expression_vector& properties) {
     std::vector<property_id_t> outputColumns;
@@ -26,7 +31,7 @@ static std::vector<property_id_t> populatePropertyIds(
 }
 
 static std::unique_ptr<RelTableCollection> populateRelTableCollection(table_id_t boundNodeTableID,
-    const RelExpression& rel, RelDirection direction, const expression_vector& properties,
+    const RelExpression& rel, RelDataDirection direction, const expression_vector& properties,
     const RelsStore& relsStore, const catalog::Catalog& catalog) {
     std::vector<DirectedRelTableData*> tables;
     std::vector<std::unique_ptr<RelTableScanState>> tableScanStates;
@@ -59,7 +64,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExtendToPhysical(
     auto boundNode = extend->getBoundNode();
     auto nbrNode = extend->getNbrNode();
     auto rel = extend->getRel();
-    auto direction = extend->getDirection();
+    auto direction = getRelDataDirection(extend->getDirection());
     auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0));
     auto inNodeIDVectorPos =
         DataPos(inSchema->getExpressionPos(*boundNode->getInternalIDProperty()));
@@ -112,7 +117,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalRecursiveExtendToPhysica
     auto boundNode = extend->getBoundNode();
     auto nbrNode = extend->getNbrNode();
     auto rel = extend->getRel();
-    auto direction = extend->getDirection();
+    auto direction = getRelDataDirection(extend->getDirection());
     auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0));
     auto inNodeIDVectorPos =
         DataPos(inSchema->getExpressionPos(*boundNode->getInternalIDProperty()));

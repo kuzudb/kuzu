@@ -152,9 +152,9 @@ void JoinOrderEnumerator::planNodeScan(uint32_t nodePos) {
 }
 
 static std::pair<std::shared_ptr<NodeExpression>, std::shared_ptr<NodeExpression>>
-getBoundAndNbrNodes(const RelExpression& rel, RelDirection direction) {
-    auto boundNode = direction == FWD ? rel.getSrcNode() : rel.getDstNode();
-    auto dstNode = direction == FWD ? rel.getDstNode() : rel.getSrcNode();
+getBoundAndNbrNodes(const RelExpression& rel, ExtendDirection direction) {
+    auto boundNode = direction == ExtendDirection::FWD ? rel.getSrcNode() : rel.getDstNode();
+    auto dstNode = direction == ExtendDirection::FWD ? rel.getDstNode() : rel.getSrcNode();
     return make_pair(boundNode, dstNode);
 }
 
@@ -164,9 +164,12 @@ void JoinOrderEnumerator::planRelScan(uint32_t relPos) {
     newSubgraph.addQueryRel(relPos);
     auto predicates = getNewlyMatchedExpressions(
         context->getEmptySubqueryGraph(), newSubgraph, context->getWhereExpressions());
-    for (auto direction : REL_DIRECTIONS) {
+    // Regardless of whether rel is directed or not,
+    // we always enumerate two plans, one from src to dst, and the other from dst to src.
+    for (auto direction : {ExtendDirection::FWD, ExtendDirection::BWD}) {
         auto plan = std::make_unique<LogicalPlan>();
         auto [boundNode, _] = getBoundAndNbrNodes(*rel, direction);
+        auto extendDirection = rel->isDirected() ? direction : ExtendDirection::BOTH;
         appendScanNodeID(boundNode, *plan);
         appendExtendAndFilter(rel, direction, predicates, *plan);
         context->addPlan(newSubgraph, std::move(plan));
@@ -174,7 +177,7 @@ void JoinOrderEnumerator::planRelScan(uint32_t relPos) {
 }
 
 void JoinOrderEnumerator::appendExtendAndFilter(std::shared_ptr<RelExpression> rel,
-    common::RelDirection direction, const expression_vector& predicates, LogicalPlan& plan) {
+    common::ExtendDirection direction, const expression_vector& predicates, LogicalPlan& plan) {
     auto [boundNode, nbrNode] = getBoundAndNbrNodes(*rel, direction);
     switch (rel->getRelType()) {
     case common::QueryRelType::NON_RECURSIVE: {
@@ -383,7 +386,8 @@ bool JoinOrderEnumerator::tryPlanINLJoin(const SubqueryGraph& subgraph,
     assert(relPos != UINT32_MAX);
     auto rel = context->queryGraph->getQueryRel(relPos);
     auto boundNode = joinNodes[0];
-    auto direction = boundNode->getUniqueName() == rel->getSrcNodeName() ? FWD : BWD;
+    auto direction = boundNode->getUniqueName() == rel->getSrcNodeName() ? ExtendDirection::FWD :
+                                                                           ExtendDirection::BWD;
     auto newSubgraph = subgraph;
     newSubgraph.addQueryRel(relPos);
     auto predicates =
@@ -450,20 +454,21 @@ void JoinOrderEnumerator::appendScanNodeID(
 }
 
 static bool extendHasAtMostOneNbrGuarantee(RelExpression& rel, NodeExpression& boundNode,
-    RelDirection direction, const catalog::Catalog& catalog) {
+    ExtendDirection direction, const catalog::Catalog& catalog) {
     if (boundNode.isMultiLabeled()) {
         return false;
     }
     if (rel.isMultiLabeled()) {
         return false;
     }
+    auto relDirection = direction == ExtendDirection::BWD ? BWD : FWD;
     return catalog.getReadOnlyVersion()->isSingleMultiplicityInDirection(
-        rel.getSingleTableID(), direction);
+        rel.getSingleTableID(), relDirection);
 }
 
 void JoinOrderEnumerator::appendNonRecursiveExtend(std::shared_ptr<NodeExpression> boundNode,
     std::shared_ptr<NodeExpression> nbrNode, std::shared_ptr<RelExpression> rel,
-    RelDirection direction, const expression_vector& properties, LogicalPlan& plan) {
+    ExtendDirection direction, const expression_vector& properties, LogicalPlan& plan) {
     auto hasAtMostOneNbr = extendHasAtMostOneNbrGuarantee(*rel, *boundNode, direction, catalog);
     auto extend = make_shared<LogicalExtend>(
         boundNode, nbrNode, rel, direction, properties, hasAtMostOneNbr, plan.getLastOperator());
@@ -483,8 +488,9 @@ void JoinOrderEnumerator::appendNonRecursiveExtend(std::shared_ptr<NodeExpressio
 
 void JoinOrderEnumerator::appendRecursiveExtend(std::shared_ptr<NodeExpression> boundNode,
     std::shared_ptr<NodeExpression> nbrNode, std::shared_ptr<RelExpression> rel,
-    common::RelDirection direction, LogicalPlan& plan) {
+    common::ExtendDirection direction, LogicalPlan& plan) {
     auto hasAtMostOneNbr = extendHasAtMostOneNbrGuarantee(*rel, *boundNode, direction, catalog);
+    assert(rel->isDirected());
     auto extend = std::make_shared<LogicalRecursiveExtend>(
         boundNode, nbrNode, rel, direction, plan.getLastOperator());
     queryPlanner->appendFlattens(extend->getGroupsPosToFlatten(), plan);

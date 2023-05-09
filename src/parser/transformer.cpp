@@ -296,12 +296,19 @@ std::unique_ptr<RelPattern> Transformer::transformRelationshipPattern(
         relType = relDetail->oC_RangeLiteral()->SHORTEST() ? common::QueryRelType::SHORTEST :
                                                              common::QueryRelType::VARIABLE_LENGTH;
     }
-    auto arrowHead = ctx.oC_LeftArrowHead() ? ArrowDirection::LEFT : ArrowDirection::RIGHT;
+    ArrowDirection arrowDirection;
+    if (ctx.oC_LeftArrowHead()) {
+        arrowDirection = ArrowDirection::LEFT;
+    } else if (ctx.oC_RightArrowHead()) {
+        arrowDirection = ArrowDirection::RIGHT;
+    } else {
+        arrowDirection = ArrowDirection::BOTH;
+    }
     auto properties = relDetail->kU_Properties() ?
                           transformProperties(*relDetail->kU_Properties()) :
                           std::vector<std::pair<std::string, std::unique_ptr<ParsedExpression>>>{};
     return std::make_unique<RelPattern>(
-        variable, relTypes, relType, lowerBound, upperBound, arrowHead, std::move(properties));
+        variable, relTypes, relType, lowerBound, upperBound, arrowDirection, std::move(properties));
 }
 
 std::vector<std::pair<std::string, std::unique_ptr<ParsedExpression>>>

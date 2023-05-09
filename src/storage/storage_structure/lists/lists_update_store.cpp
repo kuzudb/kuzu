@@ -122,7 +122,7 @@ void ListsUpdatesStore::deleteRelIfNecessary(common::ValueVector* srcNodeIDVecto
         // its tupleIdx from the insertedRelsTupleIdxInFT of listsUpdatesStore in FWD and BWD
         // direction. Note: we don't reuse the space for inserted rel tuple in factorizedTable.
         for (auto direction : REL_DIRECTIONS) {
-            auto boundNodeID = direction == RelDirection::FWD ? srcNodeID : dstNodeID;
+            auto boundNodeID = direction == RelDataDirection::FWD ? srcNodeID : dstNodeID;
             if (!relTableSchema.isSingleMultiplicityInDirection(direction)) {
                 auto& insertedRelsTupleIdxInFT =
                     listsUpdatesPerDirection[direction]
@@ -138,7 +138,7 @@ void ListsUpdatesStore::deleteRelIfNecessary(common::ValueVector* srcNodeIDVecto
         }
     } else {
         for (auto direction : REL_DIRECTIONS) {
-            auto boundNodeID = direction == RelDirection::FWD ? srcNodeID : dstNodeID;
+            auto boundNodeID = direction == RelDataDirection::FWD ? srcNodeID : dstNodeID;
             if (!relTableSchema.isSingleMultiplicityInDirection(direction)) {
                 getOrCreateListsUpdatesForNodeOffset(direction, boundNodeID)
                     ->deletedRelOffsets.insert(relID.offset);
@@ -324,7 +324,7 @@ void ListsUpdatesStore::initListsUpdatesPerTablePerDirection() {
 }
 
 ListsUpdatesForNodeOffset* ListsUpdatesStore::getOrCreateListsUpdatesForNodeOffset(
-    RelDirection relDirection, nodeID_t nodeID) {
+    RelDataDirection relDirection, nodeID_t nodeID) {
     auto nodeOffset = nodeID.offset;
     auto& listsUpdatesPerNodeOffset =
         listsUpdatesPerDirection[relDirection][StorageUtils::getListChunkIdx(nodeOffset)];

@@ -131,7 +131,7 @@ protected:
 
 private:
     void validateRelPropertyFiles(catalog::RelTableSchema* relTableSchema,
-        common::RelDirection relDirection, bool isColumnProperty, common::DBFileType dbFileType,
+        common::RelDataDirection relDirection, bool isColumnProperty, common::DBFileType dbFileType,
         bool existence);
 
 public:

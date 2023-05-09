@@ -70,7 +70,7 @@ public:
 private:
     static inline void removeColumnFilesForPropertyIfExists(const std::string& directory,
         common::table_id_t relTableID, common::table_id_t boundTableID,
-        common::RelDirection relDirection, common::property_id_t propertyID,
+        common::RelDataDirection relDirection, common::property_id_t propertyID,
         common::DBFileType dbFileType) {
         removeColumnFilesIfExists(StorageUtils::getRelPropertyColumnFName(
             directory, relTableID, relDirection, propertyID, common::DBFileType::ORIGINAL));
@@ -78,7 +78,7 @@ private:
 
     static inline void removeListFilesForPropertyIfExists(const std::string& directory,
         common::table_id_t relTableID, common::table_id_t boundTableID,
-        common::RelDirection relDirection, common::property_id_t propertyID,
+        common::RelDataDirection relDirection, common::property_id_t propertyID,
         common::DBFileType dbFileType) {
         removeListFilesIfExists(StorageUtils::getRelPropertyListsFName(
             directory, relTableID, relDirection, propertyID, common::DBFileType::ORIGINAL));
@@ -87,17 +87,17 @@ private:
     static void initLargeListPageListsAndSaveToFile(InMemLists* inMemLists);
 
     static void createEmptyDBFilesForRelProperties(catalog::RelTableSchema* relTableSchema,
-        const std::string& directory, common::RelDirection relDireciton, uint32_t numNodes,
+        const std::string& directory, common::RelDataDirection relDireciton, uint32_t numNodes,
         bool isForRelPropertyColumn);
 
     static void createEmptyDBFilesForColumns(
         const std::map<common::table_id_t, uint64_t>& maxNodeOffsetsPerTable,
-        common::RelDirection relDirection, const std::string& directory,
+        common::RelDataDirection relDirection, const std::string& directory,
         catalog::RelTableSchema* relTableSchema);
 
     static void createEmptyDBFilesForLists(
         const std::map<common::table_id_t, uint64_t>& maxNodeOffsetsPerTable,
-        common::RelDirection relDirection, const std::string& directory,
+        common::RelDataDirection relDirection, const std::string& directory,
         catalog::RelTableSchema* relTableSchema);
 
     static void replaceOriginalColumnFilesWithWALVersionIfExists(
@@ -120,7 +120,7 @@ private:
 
     static void fileOperationOnRelPropertyFiles(catalog::RelTableSchema* tableSchema,
         common::table_id_t nodeTableID, const std::string& directory,
-        common::RelDirection relDirection, bool isColumnProperty,
+        common::RelDataDirection relDirection, bool isColumnProperty,
         std::function<void(std::string fileName)> columnFileOperation,
         std::function<void(std::string fileName)> listFileOperation);
 };

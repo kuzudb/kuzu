@@ -138,9 +138,10 @@ public:
         throw common::InternalException("Cannot find internal rel ID definition.");
     }
 
-    inline bool isSingleMultiplicityInDirection(common::RelDirection direction) const {
+    inline bool isSingleMultiplicityInDirection(common::RelDataDirection direction) const {
         return relMultiplicity == ONE_ONE ||
-               relMultiplicity == (direction == common::RelDirection::FWD ? MANY_ONE : ONE_MANY);
+               relMultiplicity ==
+                   (direction == common::RelDataDirection::FWD ? MANY_ONE : ONE_MANY);
     }
 
     inline uint32_t getNumUserDefinedProperties() const {
@@ -152,12 +153,12 @@ public:
         return srcTableID == tableID || dstTableID == tableID;
     }
 
-    inline common::table_id_t getBoundTableID(common::RelDirection relDirection) const {
-        return relDirection == common::RelDirection::FWD ? srcTableID : dstTableID;
+    inline common::table_id_t getBoundTableID(common::RelDataDirection relDirection) const {
+        return relDirection == common::RelDataDirection::FWD ? srcTableID : dstTableID;
     }
 
-    inline common::table_id_t getNbrTableID(common::RelDirection relDirection) const {
-        return relDirection == common::RelDirection::FWD ? dstTableID : srcTableID;
+    inline common::table_id_t getNbrTableID(common::RelDataDirection relDirection) const {
+        return relDirection == common::RelDataDirection::FWD ? dstTableID : srcTableID;
     }
 
     RelMultiplicity relMultiplicity;

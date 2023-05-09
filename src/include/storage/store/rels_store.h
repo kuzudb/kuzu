@@ -14,20 +14,20 @@ class RelsStore {
 public:
     RelsStore(const catalog::Catalog& catalog, MemoryManager& memoryManager, WAL* wal);
 
-    inline Column* getRelPropertyColumn(common::RelDirection relDirection,
+    inline Column* getRelPropertyColumn(common::RelDataDirection relDirection,
         common::table_id_t relTableID, uint64_t propertyIdx) const {
         return relTables.at(relTableID)->getPropertyColumn(relDirection, propertyIdx);
     }
-    inline Lists* getRelPropertyLists(common::RelDirection relDirection,
+    inline Lists* getRelPropertyLists(common::RelDataDirection relDirection,
         common::table_id_t relTableID, uint64_t propertyIdx) const {
         return relTables.at(relTableID)->getPropertyLists(relDirection, propertyIdx);
     }
     inline AdjColumn* getAdjColumn(
-        common::RelDirection relDirection, common::table_id_t relTableID) const {
+        common::RelDataDirection relDirection, common::table_id_t relTableID) const {
         return relTables.at(relTableID)->getAdjColumn(relDirection);
     }
     inline AdjLists* getAdjLists(
-        common::RelDirection relDirection, common::table_id_t relTableID) const {
+        common::RelDataDirection relDirection, common::table_id_t relTableID) const {
         return relTables.at(relTableID)->getAdjLists(relDirection);
     }
 
@@ -62,7 +62,7 @@ public:
     }
 
     inline bool isSingleMultiplicityInDirection(
-        common::RelDirection relDirection, common::table_id_t relTableID) const {
+        common::RelDataDirection relDirection, common::table_id_t relTableID) const {
         return relTables.at(relTableID)->isSingleMultiplicityInDirection(relDirection);
     }
 

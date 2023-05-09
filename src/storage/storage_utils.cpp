@@ -35,7 +35,7 @@ std::string StorageUtils::appendStructFieldName(std::string filePath, std::strin
 }
 
 std::string StorageUtils::getAdjListsFName(const std::string& directory,
-    const common::table_id_t& relTableID, const common::RelDirection& relDirection,
+    const common::table_id_t& relTableID, const common::RelDataDirection& relDirection,
     common::DBFileType dbFileType) {
     auto fName = common::StringUtils::string_format("r-{}-{}", relTableID, relDirection);
     return appendWALFileSuffixIfNecessary(
@@ -44,7 +44,7 @@ std::string StorageUtils::getAdjListsFName(const std::string& directory,
 }
 
 std::string StorageUtils::getRelPropertyColumnFName(const std::string& directory,
-    const common::table_id_t& relTableID, const common::RelDirection& relDirection,
+    const common::table_id_t& relTableID, const common::RelDataDirection& relDirection,
     const uint32_t propertyID, common::DBFileType dbFileType) {
     auto fName =
         common::StringUtils::string_format("r-{}-{}-{}", relTableID, relDirection, propertyID);
@@ -54,7 +54,7 @@ std::string StorageUtils::getRelPropertyColumnFName(const std::string& directory
 }
 
 std::string StorageUtils::getRelPropertyListsFName(const std::string& directory,
-    const common::table_id_t& relTableID, const common::RelDirection& relDirection,
+    const common::table_id_t& relTableID, const common::RelDataDirection& relDirection,
     const uint32_t propertyID, common::DBFileType dbFileType) {
     auto fName =
         common::StringUtils::string_format("r-{}-{}-{}", relTableID, relDirection, propertyID);
@@ -64,7 +64,7 @@ std::string StorageUtils::getRelPropertyListsFName(const std::string& directory,
 }
 
 std::string StorageUtils::getAdjColumnFName(const std::string& directory,
-    const common::table_id_t& relTableID, const common::RelDirection& relDirection,
+    const common::table_id_t& relTableID, const common::RelDataDirection& relDirection,
     common::DBFileType dbFileType) {
     auto fName = common::StringUtils::string_format("r-{}-{}", relTableID, relDirection);
     return appendWALFileSuffixIfNecessary(common::FileUtils::joinPath(directory,
@@ -194,7 +194,7 @@ void StorageUtils::createFileForRelPropertyWithDefaultVal(RelTableSchema* tableS
 }
 
 void StorageUtils::createFileForRelColumnPropertyWithDefaultVal(table_id_t relTableID,
-    table_id_t boundTableID, RelDirection direction, const catalog::Property& property,
+    table_id_t boundTableID, RelDataDirection direction, const catalog::Property& property,
     uint8_t* defaultVal, bool isDefaultValNull, StorageManager& storageManager) {
     auto inMemColumn = InMemColumnFactory::getInMemPropertyColumn(
         StorageUtils::getRelPropertyColumnFName(storageManager.getDirectory(), relTableID,
@@ -211,7 +211,7 @@ void StorageUtils::createFileForRelColumnPropertyWithDefaultVal(table_id_t relTa
 }
 
 void StorageUtils::createFileForRelListsPropertyWithDefaultVal(table_id_t relTableID,
-    table_id_t boundTableID, RelDirection direction, const catalog::Property& property,
+    table_id_t boundTableID, RelDataDirection direction, const catalog::Property& property,
     uint8_t* defaultVal, bool isDefaultValNull, StorageManager& storageManager) {
     auto inMemList = InMemListsFactory::getInMemPropertyLists(
         StorageUtils::getRelPropertyListsFName(storageManager.getDirectory(), relTableID, direction,
@@ -257,7 +257,7 @@ uint32_t PageUtils::getNumElementsInAPage(uint32_t elementSize, bool hasNull) {
 }
 
 void StorageUtils::initializeListsHeaders(const RelTableSchema* relTableSchema,
-    uint64_t numNodesInTable, const std::string& directory, RelDirection relDirection) {
+    uint64_t numNodesInTable, const std::string& directory, RelDataDirection relDirection) {
     auto listHeadersBuilder = make_unique<ListHeadersBuilder>(
         StorageUtils::getAdjListsFName(
             directory, relTableSchema->tableID, relDirection, DBFileType::WAL_VERSION),

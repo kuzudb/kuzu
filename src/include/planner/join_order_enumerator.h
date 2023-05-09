@@ -59,8 +59,8 @@ private:
     void planBaseTableScan();
     void planNodeScan(uint32_t nodePos);
     void planRelScan(uint32_t relPos);
-    void appendExtendAndFilter(std::shared_ptr<RelExpression> rel, common::RelDirection direction,
-        const expression_vector& predicates, LogicalPlan& plan);
+    void appendExtendAndFilter(std::shared_ptr<RelExpression> rel,
+        common::ExtendDirection direction, const expression_vector& predicates, LogicalPlan& plan);
 
     void planLevel(uint32_t level);
     void planLevelExactly(uint32_t level);
@@ -84,11 +84,11 @@ private:
 
     void appendNonRecursiveExtend(std::shared_ptr<NodeExpression> boundNode,
         std::shared_ptr<NodeExpression> nbrNode, std::shared_ptr<RelExpression> rel,
-        common::RelDirection direction, const binder::expression_vector& properties,
+        common::ExtendDirection direction, const binder::expression_vector& properties,
         LogicalPlan& plan);
     void appendRecursiveExtend(std::shared_ptr<NodeExpression> boundNode,
         std::shared_ptr<NodeExpression> nbrNode, std::shared_ptr<RelExpression> rel,
-        common::RelDirection direction, LogicalPlan& plan);
+        common::ExtendDirection direction, LogicalPlan& plan);
 
     void planJoin(const binder::expression_vector& joinNodeIDs, common::JoinType joinType,
         std::shared_ptr<Expression> mark, LogicalPlan& probePlan, LogicalPlan& buildPlan);

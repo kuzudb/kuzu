@@ -94,7 +94,7 @@ void BaseGraphTest::commitOrRollbackConnectionAndInitDBIfNecessary(
 }
 
 void BaseGraphTest::validateRelPropertyFiles(catalog::RelTableSchema* relTableSchema,
-    RelDirection relDirection, bool isColumnProperty, DBFileType dbFileType, bool existence) {
+    RelDataDirection relDirection, bool isColumnProperty, DBFileType dbFileType, bool existence) {
     for (auto& property : relTableSchema->properties) {
         auto hasOverflow = containsOverflowFile(property.dataType.typeID);
         if (isColumnProperty) {
