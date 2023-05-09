@@ -34,6 +34,9 @@ jobs:
       - name: Node.js test
         run: CC=gcc CXX=g++ make nodejstest NUM_THREADS=32
 
+      - name: Rust test
+        run: CC=gcc CXX=g++ make rusttest NUM_THREADS=32
+
       - name: Generate coverage report
         run: |
           lcov -c -d ./ --no-external -o cover.info &&\
@@ -130,6 +133,16 @@ jobs:
 
       - name: Check test format
         run: python3 scripts/run-clang-format.py --clang-format-executable /usr/bin/clang-format-11 -r test/
+
+  rustfmt-check:
+    name: rustfmt check
+    runs-on: kuzu-self-hosted-testing
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Check api format
+        working-directory: tools/rust_api
+        run: cargo fmt --check
 
   benchmark:
     name: benchmark

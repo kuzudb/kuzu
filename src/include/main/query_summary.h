@@ -26,11 +26,11 @@ class QuerySummary {
 
 public:
     /**
-     * @return query compiling time.
+     * @return query compiling time in milliseconds.
      */
     KUZU_API double getCompilingTime() const;
     /**
-     * @return query execution time.
+     * @return query execution time in milliseconds.
      */
     KUZU_API double getExecutionTime() const;
     bool getIsExplain() const;

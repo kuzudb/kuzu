@@ -107,6 +107,16 @@ nodejstest: arrow
 	cd $(ROOT_DIR)/tools/nodejs_api/ && \
 	npm test
 
+rusttest:
+ifeq ($(OS),Windows_NT)
+	cd $(ROOT_DIR)/tools/rust_api && \
+	set KUZU_TESTING=1 && \
+	cargo test -- --test-threads=1
+else
+	cd $(ROOT_DIR)/tools/rust_api && \
+	KUZU_TESTING=1 cargo test -- --test-threads=1
+endif
+
 clean-python-api:
 ifeq ($(OS),Windows_NT)
 	if exist tools\python_api\build rmdir /s /q tools\python_api\build
