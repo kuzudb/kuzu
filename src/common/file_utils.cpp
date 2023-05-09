@@ -127,7 +127,7 @@ std::vector<std::string> FileUtils::globFilePath(const std::string& path) {
     return result;
 }
 
-std::vector<std::string> FileUtils::findAllDirectories(const std::string& path) {
+/*std::vector<std::string> FileUtils::findAllDirectories(const std::string& path) {
     std::vector<std::string> directories;
     directories.push_back(path);
     for (const auto& entry : std::filesystem::recursive_directory_iterator(path)) {
@@ -136,7 +136,7 @@ std::vector<std::string> FileUtils::findAllDirectories(const std::string& path) 
         }
     }
     return directories;
-}
+}*/
 
 } // namespace common
 } // namespace kuzu

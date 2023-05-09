@@ -9,6 +9,7 @@
 #include "planner/logical_plan/logical_plan_util.h"
 #include "planner/planner.h"
 #include "test_helper/test_helper.h"
+#include "test_helper/test_runner.h"
 
 using ::testing::Test;
 
@@ -155,6 +156,11 @@ public:
         initGraph();
     }
 
+    inline void runTest(const std::vector<std::unique_ptr<TestCommand>>& commands) {
+        TestRunner::runTest(commands, *conn);
+    }
+
+    // Depreacated 
     inline void runTest(const std::string& queryFile) {
         auto queryConfigs = TestHelper::parseTestFile(queryFile);
         ASSERT_TRUE(TestHelper::testQueries(queryConfigs, *conn));

@@ -7,6 +7,13 @@
 # ResultCollector:
 # FactorizedTable: 2 pages (store results)
 # In total: we need 23 pages for this test case
+
+-GROUP OrderByTests
+-TEST OrderByLargeDatasetTest
+-DATASET order-by-tests
+-CHECK_ORDER TRUE
+
+
 -NAME OrderByWithLimitTest
 -QUERY MATCH (p:person) RETURN p.balance ORDER BY p.balance limit 25
 -PARALLELISM 6

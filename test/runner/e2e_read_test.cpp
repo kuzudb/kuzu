@@ -6,54 +6,54 @@ using namespace kuzu::common;
 
 class EndToEndReadTest : public DBTest {
 public:
-    EndToEndReadTest(TestConfig testConfig) : testConfig(std::move(testConfig)) {}
+    EndToEndReadTest(std::string dataset, std::vector<TestCommand> commands) : testCase(dataset, commands) {}
+
     std::string getInputDir() override {
-        return TestHelper::appendKuzuRootPath("dataset/" + testConfig.dataset + "/");
+        std::cout << "dataset: " << testCase->dataset << std::endl;
+        return TestHelper::appendKuzuRootPath("dataset/" + testCase->dataset + "/");
     }
     void TestBody() override {
-        for (auto& file : testConfig.files) {
-            if (testConfig.checkOrder) {
-                runTestAndCheckOrder(file);
-            } else {
-                runTest(file);
-            }
-        }
+        runTest(testCase->commands);
     }
 
 private:
-    TestConfig testConfig;
+    std::unique_ptr<TestCase> testCase;
+    std::string dataset;
+    std::vector<TestCommand> commands;
 };
 
-void registerTests(const std::vector<TestConfig> testConfig) {
-    for (auto testItem : testConfig) {
-        testing::RegisterTest(testItem.testGroup.c_str(), testItem.testName.c_str(), nullptr,
-            nullptr, __FILE__, __LINE__,
-            [=]() -> DBTest* { return new EndToEndReadTest(testItem); });
-    }
-}
+void scanTestFiles(const std::string& path) {
+    // TODO: check if it is a single file or directory
+    for (const auto& entry : std::filesystem::recursive_directory_iterator(path)) {
+        if (!entry.is_regular_file() || FileUtils::getFileExtension(entry) != ".test") 
+            continue;
 
-TestConfig parseTestGroup(const std::string& path) {
-    auto testConfig = TestHelper::parseGroupFile(path + "/test.group");
-    for (const auto& entry : std::filesystem::directory_iterator(path)) {
-        if (entry.is_regular_file() && FileUtils::getFileExtension(entry) == ".test") {
-            testConfig.files.push_back(entry.path().string());
-        }
-    }
-    return testConfig;
-}
+        auto testCase = std::make_unique<TestCase>();
+        testCase->parseTestFile(entry.path().string());
 
-void scanTestFiles(const std::string& path, std::vector<TestConfig>& configs) {
-    for (const auto& directory : FileUtils::findAllDirectories(path)) {
-        if (FileUtils::fileOrPathExists(directory + "/test.group")) {
-            TestConfig config = parseTestGroup(directory);
-            configs.push_back(config);
+        if (testCase->isValid()) {
+            for (auto& command : testCase->commands) {
+                std::cout << command->name << " : " << command->query << " | "  << command->expectedNumTuples << std::endl;
+//                for(auto& result : command->expectedTuples) {
+//                    std::cout << result << std::endl;
+//                }
+            }
+
+            std::cout << "DATASET::" << testCase->dataset << std::endl;
+
+            testing::RegisterTest(testCase->group.c_str(), testCase->name.c_str(), nullptr,
+                    nullptr, __FILE__, __LINE__,
+                        [testCase = std::move(testCase)]() -> DBTest* { return new EndToEndReadTest(std::move(testCase)) });
+       //               [&]() -> DBTest* { return new EndToEndReadTest(std::move(testCase)); });
+
+
         }
+
     }
 }
 
 int main(int argc, char** argv) {
     testing::InitGoogleTest(&argc, argv);
-    std::vector<TestConfig> configs;
     std::string path = "test/test_files";
     if (argc > 1) {
         path = argv[1];
@@ -62,7 +62,6 @@ int main(int argc, char** argv) {
     if (!FileUtils::fileOrPathExists(path)) {
         throw Exception("Test directory not exists! [" + path + "].");
     }
-    scanTestFiles(path, configs);
-    registerTests(configs);
+    scanTestFiles(path);
     return RUN_ALL_TESTS();
 }

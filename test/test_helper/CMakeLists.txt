@@ -2,6 +2,9 @@ add_library(
         test_helper
         OBJECT
         test_helper.cpp
+        test_parser.cpp
+        test_case.cpp
+        test_runner.cpp
 )
 
 target_include_directories(
