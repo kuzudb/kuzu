@@ -1,6 +1,7 @@
 #include "processor/result/factorized_table.h"
 
 #include "common/exception.h"
+#include "common/null_bytes.h"
 #include "common/vector/value_vector_utils.h"
 
 using namespace kuzu::common;
@@ -27,7 +28,7 @@ void FactorizedTableSchema::appendColumn(std::unique_ptr<ColumnSchema> column) {
     columns.push_back(std::move(column));
     colOffsets.push_back(
         colOffsets.empty() ? 0 : colOffsets.back() + getColumn(columns.size() - 2)->getNumBytes());
-    numBytesForNullMapPerTuple = getNumBytesForNullBuffer(getNumColumns());
+    numBytesForNullMapPerTuple = NullBuffer::getNumBytesForNullValues(getNumColumns());
     numBytesPerTuple = numBytesForDataPerTuple + numBytesForNullMapPerTuple;
 }
 
@@ -262,7 +263,7 @@ bool FactorizedTable::isOverflowColNull(
     if (tableSchema->getColumn(colIdx)->hasNoNullGuarantee()) {
         return false;
     }
-    return isNull(nullBuffer, tupleIdx);
+    return NullBuffer::isNull(nullBuffer, tupleIdx);
 }
 
 bool FactorizedTable::isNonOverflowColNull(const uint8_t* nullBuffer, ft_col_idx_t colIdx) const {
@@ -270,11 +271,11 @@ bool FactorizedTable::isNonOverflowColNull(const uint8_t* nullBuffer, ft_col_idx
     if (tableSchema->getColumn(colIdx)->hasNoNullGuarantee()) {
         return false;
     }
-    return isNull(nullBuffer, colIdx);
+    return NullBuffer::isNull(nullBuffer, colIdx);
 }
 
 void FactorizedTable::setNonOverflowColNull(uint8_t* nullBuffer, ft_col_idx_t colIdx) {
-    setNull(nullBuffer, colIdx);
+    NullBuffer::setNull(nullBuffer, colIdx);
     tableSchema->setMayContainsNullsToTrue(colIdx);
 }
 
@@ -337,21 +338,9 @@ void FactorizedTable::clear() {
     inMemOverflowBuffer->resetBuffer();
 }
 
-bool FactorizedTable::isNull(const uint8_t* nullMapBuffer, ft_col_idx_t idx) {
-    uint32_t nullMapIdx = idx >> 3;
-    uint8_t nullMapMask = 0x1 << (idx & 7); // note: &7 is the same as %8
-    return nullMapBuffer[nullMapIdx] & nullMapMask;
-}
-
-void FactorizedTable::setNull(uint8_t* nullBuffer, ft_col_idx_t idx) {
-    uint64_t nullMapIdx = idx >> 3;
-    uint8_t nullMapMask = 0x1 << (idx & 7); // note: &7 is the same as %8
-    nullBuffer[nullMapIdx] |= nullMapMask;
-}
-
 void FactorizedTable::setOverflowColNull(
     uint8_t* nullBuffer, ft_col_idx_t colIdx, ft_tuple_idx_t tupleIdx) {
-    setNull(nullBuffer, tupleIdx);
+    NullBuffer::setNull(nullBuffer, tupleIdx);
     tableSchema->setMayContainsNullsToTrue(colIdx);
 }
 
@@ -511,7 +500,7 @@ overflow_value_t FactorizedTable::appendVectorToUnflatTupleBlocks(
     auto numBytesPerValue = Types::getDataTypeSize(vector.dataType);
     auto numBytesForData = numBytesPerValue * numFlatTuplesInVector;
     auto overflowBlockBuffer = allocateUnflatTupleBlock(
-        numBytesForData + FactorizedTableSchema::getNumBytesForNullBuffer(numFlatTuplesInVector));
+        numBytesForData + NullBuffer::getNumBytesForNullValues(numFlatTuplesInVector));
     if (vector.state->selVector->isUnfiltered()) {
         if (vector.hasNoNullsGuarantee()) {
             auto dstDataBuffer = overflowBlockBuffer;

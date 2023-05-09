@@ -1,3 +1,4 @@
+#include "binder/expression_binder.h"
 #include "common/types/ku_list.h"
 #include "common/vector/value_vector_utils.h"
 #include "function/list/operations/list_append_operation.h"
@@ -24,7 +25,7 @@ static std::string getListFunctionIncompatibleChildrenTypeErrorMsg(
 
 void ListCreationVectorOperation::execFunc(
     const std::vector<std::shared_ptr<ValueVector>>& parameters, ValueVector& result) {
-    assert(!parameters.empty() && result.dataType.typeID == VAR_LIST);
+    assert(result.dataType.typeID == VAR_LIST);
     common::StringVector::resetOverflowBuffer(&result);
     for (auto selectedPos = 0u; selectedPos < result.state->selVector->selectedSize;
          ++selectedPos) {
@@ -34,12 +35,17 @@ void ListCreationVectorOperation::execFunc(
         auto resultValues = common::ListVector::getListValues(&result, resultEntry);
         auto resultDataVector = common::ListVector::getDataVector(&result);
         auto numBytesPerValue = resultDataVector->getNumBytesPerValue();
-        for (auto& parameter : parameters) {
+        for (auto i = 0u; i < parameters.size(); i++) {
+            auto parameter = parameters[i];
             auto paramPos = parameter->state->isFlat() ?
                                 parameter->state->selVector->selectedPositions[0] :
                                 pos;
-            common::ValueVectorUtils::copyValue(resultValues, *resultDataVector,
-                parameter->getData() + parameter->getNumBytesPerValue() * paramPos, *parameter);
+            if (parameter->isNull(paramPos)) {
+                resultDataVector->setNull(resultEntry.offset + i, true);
+            } else {
+                common::ValueVectorUtils::copyValue(resultValues, *resultDataVector,
+                    parameter->getData() + parameter->getNumBytesPerValue() * paramPos, *parameter);
+            }
             resultValues += numBytesPerValue;
         }
     }
@@ -47,17 +53,30 @@ void ListCreationVectorOperation::execFunc(
 
 std::unique_ptr<FunctionBindData> ListCreationVectorOperation::bindFunc(
     const binder::expression_vector& arguments, FunctionDefinition* definition) {
-    if (arguments.empty()) {
-        throw BinderException(
-            "Cannot resolve child data type for " + LIST_CREATION_FUNC_NAME + ".");
-    }
-    for (auto i = 1u; i < arguments.size(); i++) {
-        if (arguments[i]->getDataType() != arguments[0]->getDataType()) {
-            throw BinderException(getListFunctionIncompatibleChildrenTypeErrorMsg(
-                LIST_CREATION_FUNC_NAME, arguments[0]->getDataType(), arguments[i]->getDataType()));
+    // ListCreation requires all parameters to have the same type or be ANY type. The result type of
+    // listCreation can be determined by the first non-ANY type parameter. If all parameters have
+    // dataType ANY, then the resultType will be INT64[] (default type).
+    auto resultType = DataType{std::make_unique<DataType>(INT64)};
+    for (auto i = 0u; i < arguments.size(); i++) {
+        if (arguments[i]->getDataType().typeID != common::ANY) {
+            resultType = DataType{std::make_unique<DataType>(arguments[i]->getDataType())};
+            break;
         }
     }
-    auto resultType = DataType(std::make_unique<DataType>(arguments[0]->getDataType()));
+    // Cast parameters with ANY dataType to resultChildType.
+    for (auto i = 0u; i < arguments.size(); i++) {
+        auto parameterType = arguments[i]->getDataType();
+        if (parameterType != *resultType.getChildType()) {
+            if (parameterType.typeID == common::ANY) {
+                binder::ExpressionBinder::resolveAnyDataType(
+                    *arguments[i], *resultType.getChildType());
+            } else {
+                throw BinderException(
+                    getListFunctionIncompatibleChildrenTypeErrorMsg(LIST_CREATION_FUNC_NAME,
+                        arguments[0]->getDataType(), arguments[i]->getDataType()));
+            }
+        }
+    }
     return std::make_unique<FunctionBindData>(resultType);
 }
 

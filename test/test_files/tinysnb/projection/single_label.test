@@ -132,6 +132,26 @@ False
 [[10]]
 [[7],[10],[6,7]]
 
+-NAME ListWithNullValues
+-QUERY RETURN [5, null, 100, null, null]
+---- 1
+[5,,100,,]
+
+-NAME NestedListWithNullValues
+-QUERY RETURN [[78, null, 100, null, null], null, [null, 5, null, 100, null]]
+---- 1
+[[78,,100,,],,[,5,,100,]]
+
+-NAME EmptyList
+-QUERY RETURN []
+---- 1
+[]
+
+-NAME NestedEmptyList
+-QUERY RETURN [[],[]]
+---- 1
+[[],[]]
+
 -NAME CrossProductReturn
 -QUERY MATCH (a:organisation), (b:organisation) RETURN a.orgCode = b.orgCode
 ---- 9

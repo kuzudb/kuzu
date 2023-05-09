@@ -1,5 +1,6 @@
 #include "common/types/value.h"
 
+#include "common/null_bytes.h"
 #include "common/string_utils.h"
 
 namespace kuzu {
@@ -327,12 +328,19 @@ Value::Value(DataType dataType) : dataType{std::move(dataType)}, isNull_{true} {
 std::vector<std::unique_ptr<Value>> Value::convertKUVarListToVector(ku_list_t& list) const {
     std::vector<std::unique_ptr<Value>> listResultValue;
     auto numBytesPerElement = Types::getDataTypeSize(*dataType.getChildType());
+    auto listNullBytes = reinterpret_cast<uint8_t*>(list.overflowPtr);
+    auto numBytesForNullValues = NullBuffer::getNumBytesForNullValues(list.size);
+    auto listValues = listNullBytes + numBytesForNullValues;
     for (auto i = 0; i < list.size; i++) {
         auto childValue =
             std::make_unique<Value>(Value::createDefaultValue(*dataType.getChildType()));
-        childValue->copyValueFrom(
-            reinterpret_cast<uint8_t*>(list.overflowPtr + i * numBytesPerElement));
-        listResultValue.emplace_back(std::move(childValue));
+        if (NullBuffer::isNull(listNullBytes, i)) {
+            childValue->setNull();
+        } else {
+            childValue->copyValueFrom(listValues);
+        }
+        listResultValue.push_back(std::move(childValue));
+        listValues += numBytesPerElement;
     }
     return listResultValue;
 }
