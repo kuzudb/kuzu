@@ -19,6 +19,8 @@ public:
 
     std::shared_ptr<Expression> bindExpression(const parser::ParsedExpression& parsedExpression);
 
+    static void resolveAnyDataType(Expression& expression, const common::DataType& targetType);
+
 private:
     std::shared_ptr<Expression> bindBooleanExpression(
         const parser::ParsedExpression& parsedExpression);
@@ -91,7 +93,6 @@ private:
         const std::shared_ptr<Expression>& expression, const common::DataType& targetType);
     static std::shared_ptr<Expression> implicitCastIfNecessary(
         const std::shared_ptr<Expression>& expression, common::DataTypeID targetTypeID);
-    static void resolveAnyDataType(Expression& expression, const common::DataType& targetType);
     static std::shared_ptr<Expression> implicitCast(
         const std::shared_ptr<Expression>& expression, const common::DataType& targetType);
 

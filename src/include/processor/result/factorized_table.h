@@ -149,10 +149,6 @@ public:
         columns[idx]->setMayContainsNullsToTrue();
     }
 
-    static inline uint32_t getNumBytesForNullBuffer(uint32_t numColumns) {
-        return (numColumns >> 3) + ((numColumns & 7) != 0); // &7 is the same as %8;
-    }
-
     inline bool isEmpty() const { return columns.empty(); }
 
     bool operator==(const FactorizedTableSchema& other) const;
@@ -264,8 +260,6 @@ public:
     int64_t findValueInFlatColumn(ft_col_idx_t colIdx, int64_t value) const;
 
 private:
-    static bool isNull(const uint8_t* nullMapBuffer, ft_col_idx_t idx);
-    void setNull(uint8_t* nullBuffer, ft_col_idx_t idx);
     void setOverflowColNull(uint8_t* nullBuffer, ft_col_idx_t colIdx, ft_tuple_idx_t tupleIdx);
 
     uint64_t computeNumTuplesToAppend(

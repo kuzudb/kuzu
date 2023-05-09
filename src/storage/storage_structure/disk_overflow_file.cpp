@@ -1,6 +1,7 @@
 #include "storage/storage_structure/disk_overflow_file.h"
 
 #include "common/in_mem_overflow_buffer_utils.h"
+#include "common/null_bytes.h"
 #include "common/string_utils.h"
 #include "common/type_utils.h"
 
@@ -240,8 +241,12 @@ void DiskOverflowFile::setListRecursiveIfNestedWithoutLock(
         nextBytePosToWriteTo, BufferPoolConstants::PAGE_4KB_SIZE);
     diskDstList.size = inMemSrcList.size;
     // Copy non-overflow part for elements in the list.
+    // TODO(Ziyi): Current storage design doesn't support nulls within a list, so we can't read the
+    // nullBits from factorizedTable to InMemLists.
+    auto listValues = reinterpret_cast<uint8_t*>(inMemSrcList.overflowPtr) +
+                      NullBuffer::getNumBytesForNullValues(inMemSrcList.size);
     memcpy(updatedPageInfoAndWALPageFrame.frame + updatedPageInfoAndWALPageFrame.posInPage,
-        (uint8_t*)inMemSrcList.overflowPtr, inMemSrcList.size * elementSize);
+        listValues, inMemSrcList.size * elementSize);
     nextBytePosToWriteTo += inMemSrcList.size * elementSize;
     TypeUtils::encodeOverflowPtr(diskDstList.overflowPtr,
         updatedPageInfoAndWALPageFrame.originalPageIdx, updatedPageInfoAndWALPageFrame.posInPage);
@@ -249,19 +254,19 @@ void DiskOverflowFile::setListRecursiveIfNestedWithoutLock(
         updatedPageInfoAndWALPageFrame, *fileHandle, *bufferManager, *wal);
     if (dataType.getChildType()->typeID == STRING) {
         // Copy overflow for string elements in the list.
-        auto dstListElements = (ku_string_t*)(updatedPageInfoAndWALPageFrame.frame +
-                                              updatedPageInfoAndWALPageFrame.posInPage);
+        auto dstListElements = reinterpret_cast<ku_string_t*>(
+            updatedPageInfoAndWALPageFrame.frame + updatedPageInfoAndWALPageFrame.posInPage);
         for (auto i = 0u; i < diskDstList.size; i++) {
-            auto kuString = ((ku_string_t*)inMemSrcList.overflowPtr)[i];
+            auto kuString = ((ku_string_t*)listValues)[i];
             setStringOverflowWithoutLock(
                 (const char*)kuString.overflowPtr, kuString.len, dstListElements[i]);
         }
     } else if (dataType.getChildType()->typeID == VAR_LIST) {
         // Recursively copy overflow for list elements in the list.
-        auto dstListElements = (ku_list_t*)(updatedPageInfoAndWALPageFrame.frame +
-                                            updatedPageInfoAndWALPageFrame.posInPage);
+        auto dstListElements = reinterpret_cast<ku_list_t*>(
+            updatedPageInfoAndWALPageFrame.frame + updatedPageInfoAndWALPageFrame.posInPage);
         for (auto i = 0u; i < diskDstList.size; i++) {
-            setListRecursiveIfNestedWithoutLock(((ku_list_t*)inMemSrcList.overflowPtr)[i],
+            setListRecursiveIfNestedWithoutLock((reinterpret_cast<ku_list_t*>(listValues))[i],
                 dstListElements[i], *dataType.getChildType());
         }
     }

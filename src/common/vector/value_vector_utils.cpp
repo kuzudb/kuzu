@@ -1,6 +1,7 @@
 #include "common/vector/value_vector_utils.h"
 
 #include "common/in_mem_overflow_buffer_utils.h"
+#include "common/null_bytes.h"
 
 using namespace kuzu;
 using namespace common;
@@ -16,13 +17,19 @@ void ValueVectorUtils::copyNonNullDataWithSameTypeIntoPos(
     } break;
     case VAR_LIST: {
         auto srcKuList = *(ku_list_t*)srcData;
-        auto srcListValues = reinterpret_cast<uint8_t*>(srcKuList.overflowPtr);
+        auto srcNullBytes = reinterpret_cast<uint8_t*>(srcKuList.overflowPtr);
+        auto srcListValues = srcNullBytes + NullBuffer::getNumBytesForNullValues(srcKuList.size);
         auto dstListEntry = ListVector::addList(&resultVector, srcKuList.size);
         resultVector.setValue<list_entry_t>(pos, dstListEntry);
         auto resultDataVector = common::ListVector::getDataVector(&resultVector);
         for (auto i = 0u; i < srcKuList.size; i++) {
-            copyNonNullDataWithSameTypeIntoPos(
-                *resultDataVector, dstListEntry.offset + i, srcListValues);
+            auto dstListValuePos = dstListEntry.offset + i;
+            if (NullBuffer::isNull(srcNullBytes, i)) {
+                resultDataVector->setNull(dstListValuePos, true);
+            } else {
+                copyNonNullDataWithSameTypeIntoPos(
+                    *resultDataVector, dstListValuePos, srcListValues);
+            }
             srcListValues += Types::getDataTypeSize(resultDataVector->dataType);
         }
     } break;
@@ -49,12 +56,20 @@ void ValueVectorUtils::copyNonNullDataWithSameTypeOutFromPos(const ValueVector& 
         ku_list_t dstList;
         dstList.size = srcListEntry.size;
         InMemOverflowBufferUtils::allocateSpaceForList(dstList,
-            Types::getDataTypeSize(srcListDataVector->dataType) * dstList.size, dstOverflowBuffer);
+            Types::getDataTypeSize(srcListDataVector->dataType) * dstList.size +
+                NullBuffer::getNumBytesForNullValues(dstList.size),
+            dstOverflowBuffer);
+        auto dstListNullBytes = reinterpret_cast<uint8_t*>(dstList.overflowPtr);
+        NullBuffer::initNullBytes(dstListNullBytes, dstList.size);
+        auto dstListValues = dstListNullBytes + NullBuffer::getNumBytesForNullValues(dstList.size);
         for (auto i = 0u; i < srcListEntry.size; i++) {
-            copyNonNullDataWithSameTypeOutFromPos(*srcListDataVector, srcListEntry.offset + i,
-                reinterpret_cast<uint8_t*>(dstList.overflowPtr) +
-                    i * Types::getDataTypeSize(srcListDataVector->dataType),
-                dstOverflowBuffer);
+            if (srcListDataVector->isNull(srcListEntry.offset + i)) {
+                NullBuffer::setNull(dstListNullBytes, i);
+            } else {
+                copyNonNullDataWithSameTypeOutFromPos(
+                    *srcListDataVector, srcListEntry.offset + i, dstListValues, dstOverflowBuffer);
+            }
+            dstListValues += Types::getDataTypeSize(srcListDataVector->dataType);
         }
         memcpy(dstData, &dstList, sizeof(dstList));
     } break;
@@ -74,11 +89,16 @@ void ValueVectorUtils::copyValue(uint8_t* dstValue, common::ValueVector& dstVect
         auto dstList = reinterpret_cast<common::list_entry_t*>(dstValue);
         *dstList = ListVector::addList(&dstVector, srcList->size);
         auto srcValues = ListVector::getListValues(&srcVector, *srcList);
+        auto srcDataVector = ListVector::getDataVector(&srcVector);
         auto dstValues = ListVector::getListValues(&dstVector, *dstList);
-        auto numBytesPerValue = ListVector::getDataVector(&srcVector)->getNumBytesPerValue();
+        auto dstDataVector = ListVector::getDataVector(&dstVector);
+        auto numBytesPerValue = srcDataVector->getNumBytesPerValue();
         for (auto i = 0u; i < srcList->size; i++) {
-            copyValue(dstValues, *ListVector::getDataVector(&dstVector), srcValues,
-                *ListVector::getDataVector(&srcVector));
+            if (srcDataVector->isNull(srcList->offset + i)) {
+                dstDataVector->setNull(dstList->offset + i, true);
+            } else {
+                copyValue(dstValues, *dstDataVector, srcValues, *srcDataVector);
+            }
             srcValues += numBytesPerValue;
             dstValues += numBytesPerValue;
         }
