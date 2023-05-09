@@ -320,11 +320,6 @@ void RelTable::addProperty(Property property, RelTableSchema& relTableSchema) {
     listsUpdatesStore->updateSchema(relTableSchema);
 }
 
-void RelTable::appendInMemListToLargeListOP(
-    ListsUpdateIterator* listsUpdateIterator, offset_t nodeOffset, InMemList& inMemList) {
-    listsUpdateIterator->appendToLargeList(nodeOffset, inMemList);
-}
-
 void RelTable::updateListOP(
     ListsUpdateIterator* listsUpdateIterator, offset_t nodeOffset, InMemList& inMemList) {
     listsUpdateIterator->updateList(nodeOffset, inMemList);
@@ -404,20 +399,6 @@ void RelTable::prepareCommitForDirection(RelDirection relDirection) {
                 prepareCommitForListWithUpdateStoreDataOnly(adjLists, nodeOffset,
                     listsUpdatesForNodeOffset.get(), relDirection,
                     listsUpdateIteratorsForDirection.get(), updateListOP);
-                // TODO(Guodong): Do we need to access the header in this way?
-            } else if (ListHeaders::isALargeList(adjLists->getHeaders()->headersDiskArray->get(
-                           nodeOffset, transaction::TransactionType::READ_ONLY)) &&
-                       listsUpdatesForNodeOffset->deletedRelOffsets.empty() &&
-                       !listsUpdatesForNodeOffset->hasUpdates()) {
-                // We do an optimization for relPropertyList and adjList : If the initial list
-                // is a largeList and we didn't delete or update any rel from the
-                // persistentStore, we can simply append the newly inserted rels from the
-                // listsUpdatesStore to largeList. In this case, we can skip reading the data
-                // from persistentStore to InMemList and only need to read the data from
-                // listsUpdatesStore to InMemList.
-                prepareCommitForListWithUpdateStoreDataOnly(adjLists, nodeOffset,
-                    listsUpdatesForNodeOffset.get(), relDirection,
-                    listsUpdateIteratorsForDirection.get(), appendInMemListToLargeListOP);
             } else {
                 prepareCommitForList(adjLists, nodeOffset, listsUpdatesForNodeOffset.get(),
                     relDirection, listsUpdateIteratorsForDirection.get());

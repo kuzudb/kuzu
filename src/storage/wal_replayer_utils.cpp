@@ -89,7 +89,7 @@ void WALReplayerUtils::renameDBFilesForRelProperty(const std::string& directory,
 }
 
 void WALReplayerUtils::replaceListsHeadersFilesWithVersionFromWALIfExists(
-    std::unordered_set<RelTableSchema*> relTableSchemas, table_id_t boundTableID,
+    const std::unordered_set<RelTableSchema*>& relTableSchemas, table_id_t boundTableID,
     const std::string& directory) {
     for (auto relTableSchema : relTableSchemas) {
         for (auto direction : REL_DIRECTIONS) {
@@ -105,11 +105,6 @@ void WALReplayerUtils::replaceListsHeadersFilesWithVersionFromWALIfExists(
     }
 }
 
-void WALReplayerUtils::initLargeListPageListsAndSaveToFile(InMemLists* inMemLists) {
-    inMemLists->getListsMetadataBuilder()->initLargeListPageLists(0 /* largeListIdx */);
-    inMemLists->saveToFile();
-}
-
 void WALReplayerUtils::createEmptyDBFilesForRelProperties(RelTableSchema* relTableSchema,
     const std::string& directory, RelDirection relDirection, uint32_t numNodes,
     bool isForRelPropertyColumn) {
@@ -122,9 +117,8 @@ void WALReplayerUtils::createEmptyDBFilesForRelProperties(RelTableSchema* relTab
         } else {
             auto fName = StorageUtils::getRelPropertyListsFName(directory, relTableSchema->tableID,
                 relDirection, property.propertyID, DBFileType::ORIGINAL);
-            auto inMemPropertyList =
-                InMemListsFactory::getInMemPropertyLists(fName, property.dataType, numNodes);
-            initLargeListPageListsAndSaveToFile(inMemPropertyList.get());
+            InMemListsFactory::getInMemPropertyLists(fName, property.dataType, numNodes)
+                ->saveToFile();
         }
     }
 }
@@ -155,7 +149,7 @@ void WALReplayerUtils::createEmptyDBFilesForLists(
         make_unique<InMemAdjLists>(StorageUtils::getAdjListsFName(directory,
                                        relTableSchema->tableID, relDirection, DBFileType::ORIGINAL),
             numNodes);
-    initLargeListPageListsAndSaveToFile(adjLists.get());
+    adjLists->saveToFile();
     createEmptyDBFilesForRelProperties(
         relTableSchema, directory, relDirection, numNodes, false /* isForRelPropertyColumn */);
 }

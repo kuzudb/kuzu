@@ -13,7 +13,7 @@ namespace storage {
 
 RelCopyExecutor::RelCopyExecutor(CopyDescription& copyDescription, std::string outputDirectory,
     TaskScheduler& taskScheduler, Catalog& catalog, storage::NodesStore& nodesStore,
-    BufferManager* bufferManager, table_id_t tableID, RelsStatistics* relsStatistics)
+    table_id_t tableID, RelsStatistics* relsStatistics)
     : TableCopyExecutor{copyDescription, std::move(outputDirectory), taskScheduler, catalog,
           tableID, relsStatistics},
       nodesStore{nodesStore},
@@ -119,8 +119,9 @@ void RelCopyExecutor::initializeLists(RelDirection relDirection) {
         auto propertyDataType = tableSchema->properties[i].dataType;
         auto fName = StorageUtils::getRelPropertyListsFName(outputDirectory, tableSchema->tableID,
             relDirection, propertyID, DBFileType::WAL_VERSION);
-        propertyLists.emplace(propertyID,
-            InMemListsFactory::getInMemPropertyLists(fName, propertyDataType, numNodes));
+        propertyLists.emplace(
+            propertyID, InMemListsFactory::getInMemPropertyLists(fName, propertyDataType, numNodes,
+                            adjListsPerDirection[relDirection]->getListHeadersBuilder()));
     }
     propertyListsPerDirection[relDirection] = std::move(propertyLists);
 }
@@ -134,9 +135,9 @@ void RelCopyExecutor::initAdjListsHeaders() {
             auto boundTableID =
                 reinterpret_cast<RelTableSchema*>(tableSchema)->getBoundTableID(relDirection);
             taskScheduler.scheduleTask(CopyTaskFactory::createCopyTask(calculateListHeadersTask,
-                maxNodeOffsetsPerTable.at(boundTableID) + 1, sizeof(offset_t),
+                maxNodeOffsetsPerTable.at(boundTableID) + 1,
                 listSizesPerDirection[relDirection].get(),
-                adjListsPerDirection[relDirection]->getListHeadersBuilder(), logger));
+                adjListsPerDirection[relDirection]->getListHeadersBuilder().get(), logger));
         }
     }
     taskScheduler.waitAllTasksToCompleteOrError();
@@ -157,13 +158,13 @@ void RelCopyExecutor::initListsMetadata() {
             auto listSizes = listSizesPerDirection[relDirection].get();
             taskScheduler.scheduleTask(
                 CopyTaskFactory::createCopyTask(calculateListsMetadataAndAllocateInMemListPagesTask,
-                    numNodes, sizeof(offset_t), listSizes, adjLists->getListHeadersBuilder(),
+                    numNodes, sizeof(offset_t), listSizes, adjLists->getListHeadersBuilder().get(),
                     adjLists, false /*hasNULLBytes*/, logger));
             for (auto& property : tableSchema->properties) {
                 taskScheduler.scheduleTask(CopyTaskFactory::createCopyTask(
                     calculateListsMetadataAndAllocateInMemListPagesTask, numNodes,
                     Types::getDataTypeSize(property.dataType), listSizes,
-                    adjLists->getListHeadersBuilder(),
+                    adjLists->getListHeadersBuilder().get(),
                     propertyListsPerDirection[relDirection][property.propertyID].get(),
                     true /*hasNULLBytes*/, logger));
             }
@@ -172,10 +173,6 @@ void RelCopyExecutor::initListsMetadata() {
     taskScheduler.waitAllTasksToCompleteOrError();
     logger->debug("Done initializing adjLists and propertyLists metadata for rel {}.",
         tableSchema->tableName);
-}
-
-void RelCopyExecutor::initializePkIndexes(table_id_t nodeTableID) {
-    pkIndexes.emplace(nodeTableID, nodesStore.getPKIndex(nodeTableID));
 }
 
 void RelCopyExecutor::executePopulateTask(PopulateTaskType populateTaskType) {
@@ -675,7 +672,7 @@ void RelCopyExecutor::populateListsTask(uint64_t blockId, uint64_t blockStartRel
                 auto adjLists = copier->adjListsPerDirection[relDirection].get();
                 reversePos[relDirection] = InMemListsUtils::decrementListSize(
                     *copier->listSizesPerDirection[relDirection], nodeIDs[relDirection].offset, 1);
-                adjLists->setElement(adjLists->getListHeadersBuilder()->getHeader(nodeOffset),
+                adjLists->setElement(
                     nodeOffset, reversePos[relDirection], (uint8_t*)(&nodeIDs[!relDirection]));
             }
         }
@@ -716,16 +713,10 @@ void RelCopyExecutor::sortOverflowValuesOfPropertyListsTask(const DataType& data
     PageByteCursor unorderedOverflowCursor, orderedOverflowCursor;
     PageElementCursor propertyListCursor;
     for (; offsetStart < offsetEnd; offsetStart++) {
-        auto header = adjLists->getListHeadersBuilder()->getHeader(offsetStart);
-        uint32_t listsLen =
-            ListHeaders::isALargeList(header) ?
-                propertyLists->getListsMetadataBuilder()->getNumElementsInLargeLists(
-                    ListHeaders::getLargeListIdx(header)) :
-                ListHeaders::getSmallListLen(header);
+        csr_offset_t listsLen = adjLists->getListSize(offsetStart);
         for (auto pos = listsLen; pos > 0; pos--) {
-            propertyListCursor = InMemListsUtils::calcPageElementCursor(header, pos,
-                Types::getDataTypeSize(dataType), offsetStart,
-                *propertyLists->getListsMetadataBuilder(), true /*hasNULLBytes*/);
+            propertyListCursor = propertyLists->calcPageElementCursor(
+                pos, Types::getDataTypeSize(dataType), offsetStart, true /*hasNULLBytes*/);
             if (dataType.typeID == STRING) {
                 auto kuStr = reinterpret_cast<ku_string_t*>(propertyLists->getMemPtrToLoc(
                     propertyListCursor.pageIdx, propertyListCursor.elemPosInPage));
@@ -769,37 +760,28 @@ void RelCopyExecutor::putValueIntoLists(uint64_t propertyID,
         }
         auto propertyList = directionTablePropertyLists[relDirection][propertyID].get();
         auto nodeOffset = nodeIDs[relDirection].offset;
-        auto header =
-            directionTableAdjLists[relDirection]->getListHeadersBuilder()->getHeader(nodeOffset);
-        propertyList->setElement(header, nodeOffset, reversePos[relDirection], val);
+        propertyList->setElement(nodeOffset, reversePos[relDirection], val);
     }
 }
 
 // Lists headers are created for only AdjLists, which store data in the page without NULL bits.
-void RelCopyExecutor::calculateListHeadersTask(offset_t numNodes, uint32_t elementSize,
-    atomic_uint64_vec_t* listSizes, ListHeadersBuilder* listHeadersBuilder,
-    const std::shared_ptr<spdlog::logger>& logger) {
+void RelCopyExecutor::calculateListHeadersTask(offset_t numNodes, atomic_uint64_vec_t* listSizes,
+    ListHeadersBuilder* listHeadersBuilder, const std::shared_ptr<spdlog::logger>& logger) {
     logger->trace("Start: ListHeadersBuilder={0:p}", (void*)listHeadersBuilder);
-    auto numElementsPerPage = PageUtils::getNumElementsInAPage(elementSize, false /* hasNull */);
     auto numChunks = StorageUtils::getNumChunks(numNodes);
     offset_t nodeOffset = 0;
-    uint64_t lAdjListsIdx = 0u;
     for (auto chunkId = 0u; chunkId < numChunks; chunkId++) {
-        auto csrOffset = 0u;
-        auto lastNodeOffsetInChunk =
-            std::min(nodeOffset + ListsMetadataConstants::LISTS_CHUNK_SIZE, numNodes);
-        for (auto i = nodeOffset; i < lastNodeOffsetInChunk; i++) {
-            auto numElementsInList = (*listSizes)[nodeOffset].load(std::memory_order_relaxed);
-            uint32_t header;
-            if (numElementsInList >= numElementsPerPage) {
-                header = ListHeaders::getLargeListHeader(lAdjListsIdx++);
-            } else {
-                header = ListHeaders::getSmallListHeader(csrOffset, numElementsInList);
-                csrOffset += numElementsInList;
-            }
-            listHeadersBuilder->setHeader(nodeOffset, header);
-            nodeOffset++;
+        offset_t chunkNodeOffset = nodeOffset;
+        auto numNodesInChunk =
+            std::min((offset_t)ListsMetadataConstants::LISTS_CHUNK_SIZE, numNodes - nodeOffset);
+        csr_offset_t csrOffset = (*listSizes)[chunkNodeOffset].load(std::memory_order_relaxed);
+        for (auto i = 1u; i <= numNodesInChunk; i++) {
+            auto currNodeOffset = chunkNodeOffset + i;
+            auto numElementsInList = (*listSizes)[currNodeOffset].load(std::memory_order_relaxed);
+            listHeadersBuilder->setCSROffset(currNodeOffset, csrOffset);
+            csrOffset += numElementsInList;
         }
+        nodeOffset += numNodesInChunk;
     }
     logger->trace("End: adjListHeadersBuilder={0:p}", (void*)listHeadersBuilder);
 }
@@ -811,20 +793,6 @@ void RelCopyExecutor::calculateListsMetadataAndAllocateInMemListPagesTask(uint64
         (void*)inMemList->getListsMetadataBuilder(), (void*)listHeadersBuilder);
     auto numChunks = StorageUtils::getNumChunks(numNodes);
     offset_t nodeOffset = 0;
-    auto largeListIdx = 0u;
-    for (auto chunkIdx = 0u; chunkIdx < numChunks; chunkIdx++) {
-        auto lastNodeOffsetInChunk =
-            std::min(nodeOffset + ListsMetadataConstants::LISTS_CHUNK_SIZE, numNodes);
-        for (auto i = nodeOffset; i < lastNodeOffsetInChunk; i++) {
-            if (ListHeaders::isALargeList(listHeadersBuilder->getHeader(nodeOffset))) {
-                largeListIdx++;
-            }
-            nodeOffset++;
-        }
-    }
-    inMemList->getListsMetadataBuilder()->initLargeListPageLists(largeListIdx);
-    nodeOffset = 0;
-    largeListIdx = 0u;
     auto numPerPage = PageUtils::getNumElementsInAPage(elementSize, hasNULLBytes);
     for (auto chunkId = 0u; chunkId < numChunks; chunkId++) {
         auto numPages = 0u, offsetInPage = 0u;
@@ -832,24 +800,12 @@ void RelCopyExecutor::calculateListsMetadataAndAllocateInMemListPagesTask(uint64
             std::min(nodeOffset + ListsMetadataConstants::LISTS_CHUNK_SIZE, numNodes);
         while (nodeOffset < lastNodeOffsetInChunk) {
             auto numElementsInList = (*listSizes)[nodeOffset].load(std::memory_order_relaxed);
-            if (ListHeaders::isALargeList(listHeadersBuilder->getHeader(nodeOffset))) {
-                auto numPagesForLargeList = numElementsInList / numPerPage;
-                if (0 != numElementsInList % numPerPage) {
-                    numPagesForLargeList++;
-                }
-                inMemList->getListsMetadataBuilder()->populateLargeListPageList(largeListIdx,
-                    numPagesForLargeList, numElementsInList,
-                    inMemList->inMemFile->getNumPages() /* start idx of pages in .lists file */);
-                inMemList->inMemFile->addNewPages(numPagesForLargeList);
-                largeListIdx++;
-            } else {
-                while (numElementsInList + offsetInPage > numPerPage) {
-                    numElementsInList -= (numPerPage - offsetInPage);
-                    numPages++;
-                    offsetInPage = 0;
-                }
-                offsetInPage += numElementsInList;
+            while (numElementsInList + offsetInPage > numPerPage) {
+                numElementsInList -= (numPerPage - offsetInPage);
+                numPages++;
+                offsetInPage = 0;
             }
+            offsetInPage += numElementsInList;
             nodeOffset++;
         }
         if (0 != offsetInPage) {

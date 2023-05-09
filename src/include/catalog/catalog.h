@@ -159,8 +159,8 @@ public:
 
     virtual ~Catalog() = default;
 
+    // TODO(Guodong): Get rid of these two functions.
     inline CatalogContent* getReadOnlyVersion() const { return catalogContentForReadOnlyTrx.get(); }
-
     inline CatalogContent* getWriteVersion() const { return catalogContentForWriteTrx.get(); }
 
     inline function::BuiltInVectorOperations* getBuiltInScalarFunctions() const {

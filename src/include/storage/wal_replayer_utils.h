@@ -64,7 +64,7 @@ public:
         catalog::RelTableSchema* relTableSchema, common::property_id_t propertyID);
 
     static void replaceListsHeadersFilesWithVersionFromWALIfExists(
-        std::unordered_set<catalog::RelTableSchema*> relTableSchemas,
+        const std::unordered_set<catalog::RelTableSchema*>& relTableSchemas,
         common::table_id_t boundTableID, const std::string& directory);
 
 private:
@@ -83,8 +83,6 @@ private:
         removeListFilesIfExists(StorageUtils::getRelPropertyListsFName(
             directory, relTableID, relDirection, propertyID, common::DBFileType::ORIGINAL));
     }
-
-    static void initLargeListPageListsAndSaveToFile(InMemLists* inMemLists);
 
     static void createEmptyDBFilesForRelProperties(catalog::RelTableSchema* relTableSchema,
         const std::string& directory, common::RelDirection relDireciton, uint32_t numNodes,

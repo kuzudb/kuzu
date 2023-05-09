@@ -1,30 +1,20 @@
 #include "storage/in_mem_storage_structure/in_mem_lists.h"
 
-#include "storage/storage_structure/lists/lists.h"
-
 using namespace kuzu::common;
 
 namespace kuzu {
 namespace storage {
 
-PageElementCursor InMemListsUtils::calcPageElementCursor(uint32_t header, uint64_t reversePos,
-    uint8_t numBytesPerElement, offset_t nodeOffset, ListsMetadataBuilder& metadataBuilder,
-    bool hasNULLBytes) {
+PageElementCursor InMemLists::calcPageElementCursor(
+    uint64_t reversePos, uint8_t numBytesPerElement, offset_t nodeOffset, bool hasNULLBytes) {
     PageElementCursor cursor;
     auto numElementsInAPage = PageUtils::getNumElementsInAPage(numBytesPerElement, hasNULLBytes);
-    if (ListHeaders::isALargeList(header)) {
-        auto lAdjListIdx = ListHeaders::getLargeListIdx(header);
-        auto pos = metadataBuilder.getNumElementsInLargeLists(lAdjListIdx) - reversePos;
-        cursor = PageUtils::getPageElementCursorForPos(pos, numElementsInAPage);
-        cursor.pageIdx = metadataBuilder.getPageMapperForLargeListIdx(lAdjListIdx)(cursor.pageIdx);
-    } else {
-        auto chunkId = StorageUtils::getListChunkIdx(nodeOffset);
-        auto [listLen, csrOffset] = ListHeaders::getSmallListLenAndCSROffset(header);
-        auto pos = listLen - reversePos;
-        cursor = PageUtils::getPageElementCursorForPos(csrOffset + pos, numElementsInAPage);
-        cursor.pageIdx = metadataBuilder.getPageMapperForChunkIdx(chunkId)(
-            (csrOffset + pos) / numElementsInAPage);
-    }
+    auto listSize = listHeadersBuilder->getListSize(nodeOffset);
+    auto csrOffset = listHeadersBuilder->getCSROffset(nodeOffset);
+    auto pos = listSize - reversePos;
+    cursor = PageUtils::getPageElementCursorForPos(csrOffset + pos, numElementsInAPage);
+    cursor.pageIdx = listsMetadataBuilder->getPageMapperForChunkIdx(
+        StorageUtils::getListChunkIdx(nodeOffset))((csrOffset + pos) / numElementsInAPage);
     return cursor;
 }
 
@@ -43,15 +33,14 @@ InMemLists::InMemLists(
 }
 
 void InMemLists::fillWithDefaultVal(
-    uint8_t* defaultVal, uint64_t numNodes, AdjLists* adjList, const DataType& dataType) {
+    uint8_t* defaultVal, uint64_t numNodes, ListHeaders* listHeaders) {
     PageByteCursor pageByteCursor{};
     auto fillInMemListsFunc = getFillInMemListsFunc(dataType);
     for (auto i = 0; i < numNodes; i++) {
-        auto header = adjList->getHeaders()->getHeader(i);
-        auto numElementsInList = adjList->getNumElementsFromListHeader(i);
+        auto numElementsInList = listHeaders->getListSize(i);
         for (auto j = 0u; j < numElementsInList; j++) {
             fillInMemListsFunc(
-                this, defaultVal, pageByteCursor, i, header, numElementsInList - j, dataType);
+                this, defaultVal, pageByteCursor, i, numElementsInList - j, dataType);
         }
     }
 }
@@ -61,17 +50,17 @@ void InMemLists::saveToFile() {
     inMemFile->flush();
 }
 
-void InMemLists::setElement(uint32_t header, offset_t nodeOffset, uint64_t pos, uint8_t* val) {
-    auto cursor = InMemListsUtils::calcPageElementCursor(header, pos, numBytesForElement,
-        nodeOffset, *listsMetadataBuilder, true /* hasNULLBytes */);
+void InMemLists::setElement(offset_t nodeOffset, uint64_t pos, uint8_t* val) {
+    auto cursor =
+        calcPageElementCursor(pos, numBytesForElement, nodeOffset, true /* hasNULLBytes */);
     inMemFile->getPage(cursor.pageIdx)
         ->write(cursor.elemPosInPage * numBytesForElement, cursor.elemPosInPage, val,
             numBytesForElement);
 }
 
-void InMemAdjLists::setElement(uint32_t header, offset_t nodeOffset, uint64_t pos, uint8_t* val) {
-    auto cursor = InMemListsUtils::calcPageElementCursor(header, pos, numBytesForElement,
-        nodeOffset, *listsMetadataBuilder, false /* hasNULLBytes */);
+void InMemAdjLists::setElement(offset_t nodeOffset, uint64_t pos, uint8_t* val) {
+    auto cursor =
+        calcPageElementCursor(pos, numBytesForElement, nodeOffset, false /* hasNULLBytes */);
     auto node = (nodeID_t*)val;
     inMemFile->getPage(cursor.pageIdx)
         ->writeNodeID(node, cursor.elemPosInPage * numBytesForElement, cursor.elemPosInPage);
@@ -79,7 +68,6 @@ void InMemAdjLists::setElement(uint32_t header, offset_t nodeOffset, uint64_t po
 
 void InMemLists::initListsMetadataAndAllocatePages(
     uint64_t numNodes, ListHeaders* listHeaders, ListsMetadata* listsMetadata) {
-    initLargeListPageLists(numNodes, listHeaders);
     offset_t nodeOffset = 0u;
     auto largeListIdx = 0u;
     auto numElementsPerPage =
@@ -90,17 +78,8 @@ void InMemLists::initListsMetadataAndAllocatePages(
         auto lastNodeOffsetInChunk =
             std::min(nodeOffset + ListsMetadataConstants::LISTS_CHUNK_SIZE, numNodes);
         while (nodeOffset < lastNodeOffsetInChunk) {
-            auto header = listHeaders->getHeader(nodeOffset);
-            auto numElementsInList = ListHeaders::isALargeList(header) ?
-                                         listsMetadata->getNumElementsInLargeLists(
-                                             ListHeaders::getLargeListIdx(header)) :
-                                         ListHeaders::getSmallListLen(header);
-            if (ListHeaders::isALargeList(header)) {
-                allocatePagesForLargeList(numElementsInList, numElementsPerPage, largeListIdx);
-            } else {
-                calculatePagesForSmallList(
-                    numPages, offsetInPage, numElementsInList, numElementsPerPage);
-            }
+            auto numElementsInList = listHeaders->getListSize(nodeOffset);
+            calculatePagesForList(numPages, offsetInPage, numElementsInList, numElementsPerPage);
             nodeOffset++;
         }
         if (offsetInPage != 0) {
@@ -111,27 +90,7 @@ void InMemLists::initListsMetadataAndAllocatePages(
     }
 }
 
-void InMemLists::initLargeListPageLists(uint64_t numNodes, ListHeaders* listHeaders) {
-    auto largeListIdx = 0u;
-    for (offset_t nodeOffset = 0; nodeOffset < numNodes; nodeOffset++) {
-        if (ListHeaders::isALargeList(listHeaders->getHeader(nodeOffset))) {
-            largeListIdx++;
-        }
-    }
-    listsMetadataBuilder->initLargeListPageLists(largeListIdx);
-}
-
-void InMemLists::allocatePagesForLargeList(
-    uint64_t numElementsInList, uint64_t numElementsPerPage, uint32_t& largeListIdx) {
-    auto numPagesForLargeList =
-        numElementsInList / numElementsPerPage + (numElementsInList % numElementsPerPage ? 1 : 0);
-    listsMetadataBuilder->populateLargeListPageList(
-        largeListIdx, numPagesForLargeList, numElementsInList, inMemFile->getNumPages());
-    inMemFile->addNewPages(numPagesForLargeList);
-    largeListIdx++;
-}
-
-void InMemLists::calculatePagesForSmallList(uint64_t& numPages, uint64_t& offsetInPage,
+void InMemLists::calculatePagesForList(uint64_t& numPages, uint64_t& offsetInPage,
     uint64_t numElementsInList, uint64_t numElementsPerPage) {
     while (numElementsInList + offsetInPage > numElementsPerPage) {
         numElementsInList -= (numElementsPerPage - offsetInPage);
@@ -142,21 +101,21 @@ void InMemLists::calculatePagesForSmallList(uint64_t& numPages, uint64_t& offset
 }
 
 void InMemLists::fillInMemListsWithStrValFunc(InMemLists* inMemLists, uint8_t* defaultVal,
-    PageByteCursor& pageByteCursor, offset_t nodeOffset, list_header_t header, uint64_t posInList,
+    PageByteCursor& pageByteCursor, offset_t nodeOffset, uint64_t posInList,
     const DataType& dataType) {
     auto strVal = *(ku_string_t*)defaultVal;
     inMemLists->getInMemOverflowFile()->copyStringOverflow(
         pageByteCursor, reinterpret_cast<uint8_t*>(strVal.overflowPtr), &strVal);
-    inMemLists->setElement(header, nodeOffset, posInList, reinterpret_cast<uint8_t*>(&strVal));
+    inMemLists->setElement(nodeOffset, posInList, reinterpret_cast<uint8_t*>(&strVal));
 }
 
 void InMemLists::fillInMemListsWithListValFunc(InMemLists* inMemLists, uint8_t* defaultVal,
-    PageByteCursor& pageByteCursor, offset_t nodeOffset, list_header_t header, uint64_t posInList,
+    PageByteCursor& pageByteCursor, offset_t nodeOffset, uint64_t posInList,
     const DataType& dataType) {
     auto listVal = *reinterpret_cast<ku_list_t*>(defaultVal);
     inMemLists->getInMemOverflowFile()->copyListOverflowToFile(
         pageByteCursor, &listVal, dataType.getChildType());
-    inMemLists->setElement(header, nodeOffset, posInList, reinterpret_cast<uint8_t*>(&listVal));
+    inMemLists->setElement(nodeOffset, posInList, reinterpret_cast<uint8_t*>(&listVal));
 }
 
 fill_in_mem_lists_function_t InMemLists::getFillInMemListsFunc(const DataType& dataType) {
@@ -187,13 +146,14 @@ void InMemAdjLists::saveToFile() {
     InMemLists::saveToFile();
 }
 
-InMemListsWithOverflow::InMemListsWithOverflow(
-    std::string fName, DataType dataType, uint64_t numNodes)
+InMemListsWithOverflow::InMemListsWithOverflow(std::string fName, DataType dataType,
+    uint64_t numNodes, std::shared_ptr<ListHeadersBuilder> listHeadersBuilder)
     : InMemLists{
           std::move(fName), std::move(dataType), Types::getDataTypeSize(dataType), numNodes} {
     assert(this->dataType.typeID == STRING || this->dataType.typeID == VAR_LIST);
     overflowInMemFile =
         make_unique<InMemOverflowFile>(StorageUtils::getOverflowFileName(this->fName));
+    this->listHeadersBuilder = std::move(listHeadersBuilder);
 }
 
 void InMemListsWithOverflow::saveToFile() {
@@ -201,8 +161,9 @@ void InMemListsWithOverflow::saveToFile() {
     overflowInMemFile->flush();
 }
 
-std::unique_ptr<InMemLists> InMemListsFactory::getInMemPropertyLists(
-    const std::string& fName, const DataType& dataType, uint64_t numNodes) {
+std::unique_ptr<InMemLists> InMemListsFactory::getInMemPropertyLists(const std::string& fName,
+    const DataType& dataType, uint64_t numNodes,
+    std::shared_ptr<ListHeadersBuilder> listHeadersBuilder) {
     switch (dataType.typeID) {
     case INT64:
     case INT32:
@@ -214,13 +175,15 @@ std::unique_ptr<InMemLists> InMemListsFactory::getInMemPropertyLists(
     case TIMESTAMP:
     case INTERVAL:
     case FIXED_LIST:
-        return make_unique<InMemLists>(fName, dataType, Types::getDataTypeSize(dataType), numNodes);
+        return make_unique<InMemLists>(fName, dataType, Types::getDataTypeSize(dataType), numNodes,
+            std::move(listHeadersBuilder));
     case STRING:
-        return make_unique<InMemStringLists>(fName, numNodes);
+        return make_unique<InMemStringLists>(fName, numNodes, std::move(listHeadersBuilder));
     case VAR_LIST:
-        return make_unique<InMemListLists>(fName, dataType, numNodes);
+        return make_unique<InMemListLists>(
+            fName, dataType, numNodes, std::move(listHeadersBuilder));
     case INTERNAL_ID:
-        return make_unique<InMemRelIDLists>(fName, numNodes);
+        return make_unique<InMemRelIDLists>(fName, numNodes, std::move(listHeadersBuilder));
     default:
         throw CopyException("Invalid type for property list creation.");
     }

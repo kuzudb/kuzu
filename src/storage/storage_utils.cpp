@@ -213,15 +213,15 @@ void StorageUtils::createFileForRelColumnPropertyWithDefaultVal(table_id_t relTa
 void StorageUtils::createFileForRelListsPropertyWithDefaultVal(table_id_t relTableID,
     table_id_t boundTableID, RelDirection direction, const catalog::Property& property,
     uint8_t* defaultVal, bool isDefaultValNull, StorageManager& storageManager) {
+    // Note: we need the listMetadata to get the num of elements in a large list, and headers to
+    // get the num of elements in a small list as well as determine whether a list is large or
+    // small. All property lists share the same listHeader which is stored in the adjList.
+    auto adjLists = storageManager.getRelsStore().getAdjLists(direction, relTableID);
     auto inMemList = InMemListsFactory::getInMemPropertyLists(
         StorageUtils::getRelPropertyListsFName(storageManager.getDirectory(), relTableID, direction,
             property.propertyID, DBFileType::WAL_VERSION),
         property.dataType,
         storageManager.getRelsStore().getRelsStatistics().getNumTuplesForTable(relTableID));
-    // Note: we need the listMetadata to get the num of elements in a large list, and headers to
-    // get the num of elements in a small list as well as determine whether a list is large or
-    // small. All property lists share the same listHeader which is stored in the adjList.
-    auto adjLists = storageManager.getRelsStore().getAdjLists(direction, relTableID);
     auto numNodesInBoundTable =
         storageManager.getNodesStore().getNodesStatisticsAndDeletedIDs().getNumTuplesForTable(
             boundTableID);
@@ -229,7 +229,7 @@ void StorageUtils::createFileForRelListsPropertyWithDefaultVal(table_id_t relTab
         numNodesInBoundTable, adjLists->getHeaders().get(), &adjLists->getListsMetadata());
     if (!isDefaultValNull) {
         inMemList->fillWithDefaultVal(
-            defaultVal, numNodesInBoundTable, adjLists, property.dataType);
+            defaultVal, numNodesInBoundTable, adjLists->getHeaders().get());
     }
     inMemList->saveToFile();
 }
