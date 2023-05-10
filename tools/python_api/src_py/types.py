@@ -17,3 +17,4 @@ class Type(Enum):
     NODE = "NODE"
     REL = "REL"
     NODE_ID = "NODE_ID"
+    STRUCT = "STRUCT"
