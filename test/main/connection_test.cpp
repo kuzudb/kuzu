@@ -1,5 +1,9 @@
 #include <thread>
 
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
 #include "main_test_helper/main_test_helper.h"
 
 using namespace kuzu::common;
@@ -140,7 +144,11 @@ TEST_F(ApiTest, Profile) {
 
 TEST_F(ApiTest, Interrupt) {
     std::thread longRunningQueryThread(executeLongRunningQuery, conn.get());
+    #ifdef _WIN32
+    Sleep(1000);
+    #else
     sleep(1 /* sleep 1 second before interrupt the query */);
+    #endif
     conn->interrupt();
     longRunningQueryThread.join();
 }
