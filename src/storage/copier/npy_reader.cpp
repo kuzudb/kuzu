@@ -1,9 +1,19 @@
 #include "storage/copier/npy_reader.h"
 
 #include <fcntl.h>
-#include <sys/mman.h>
 #include <sys/stat.h>
+
+#ifdef _WIN32
+// FIXME: should be set by cmake
+// Ninja doesn't seem to support CMAKE_GENERATOR_PLATFORM=x64
+#define _AMD64_
+#include <memoryapi.h>
+#include <handleapi.h>
+#include <errhandlingapi.h>
+#else
+#include <sys/mman.h>
 #include <unistd.h>
+#endif
 
 #include "common/exception.h"
 #include "common/string_utils.h"
@@ -23,15 +33,41 @@ NpyReader::NpyReader(const std::string& filePath) : filePath{filePath} {
     struct stat fileStatus {};
     fstat(fd, &fileStatus);
     fileSize = fileStatus.st_size;
+
+    #ifdef _WIN32
+    DWORD low = (DWORD)(fileSize & 0xFFFFFFFFL);
+    DWORD high = (DWORD)((fileSize >> 32) & 0xFFFFFFFFL);
+    auto handle = CreateFileMappingW((HANDLE)_get_osfhandle(fd), NULL, PAGE_READONLY, high, low, NULL);
+    if (handle == NULL) {
+        throw BufferManagerException(StringUtils::string_format(
+            "CreateFileMapping for size {} failed with error code {}: {}.", fileSize, GetLastError(),
+            std::system_category().message(GetLastError())
+        ));
+    }
+
+    mmapRegion = MapViewOfFile(handle, FILE_MAP_READ, 0, 0, fileSize);
+    CloseHandle(handle);
+    if (mmapRegion == NULL) {
+        throw BufferManagerException(StringUtils::string_format(
+            "MapViewOfFile for size {} failed with error code {}: {}.", fileSize, GetLastError(),
+            std::system_category().message(GetLastError())
+        ));
+    }
+    #else
     mmapRegion = mmap(nullptr, fileSize, PROT_READ, MAP_SHARED, fd, 0);
     if (mmapRegion == MAP_FAILED) {
         throw common::Exception("Failed to mmap NPY file.");
     }
+    #endif
     parseHeader();
 }
 
 NpyReader::~NpyReader() {
+    #ifdef _WIN32
+    UnmapViewOfFile(mmapRegion);
+    #else
     munmap(mmapRegion, fileSize);
+    #endif
     close(fd);
 }
 
