@@ -122,6 +122,18 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value) {
         }
         return std::move(list);
     }
+    case STRUCT: {
+        auto structTypeInfo = reinterpret_cast<StructTypeInfo*>(dataType.getExtraTypeInfo());
+        auto childrenNames = structTypeInfo->getChildrenNames();
+        py::dict dict;
+        auto& structVals = value.getListValReference();
+        for (auto i = 0u; i < structVals.size(); ++i) {
+            auto key = py::str(childrenNames[i]);
+            auto val = convertValueToPyObject(*structVals[i]);
+            dict[key] = val;
+        }
+        return dict;
+    }
     case NODE: {
         auto nodeVal = value.getValue<NodeVal>();
         auto dict = PyQueryResult::getPyDictFromProperties(nodeVal.getProperties());

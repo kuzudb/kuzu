@@ -115,3 +115,21 @@ def test_rel(establish_connection):
     assert (r['_dst'] == o['_id'])
     assert not result.has_next()
     result.close()
+
+
+def test_struct(establish_connection):
+    conn, db = establish_connection
+    result = conn.execute(
+        'MATCH (m:movies) WHERE m.name="Roma" RETURN m.description')
+    assert result.has_next()
+    n = result.get_next()
+    assert (len(n) == 1)
+    description = n[0]
+    print(description)
+    assert (description['RATING'] == 1223)
+    assert (description['VIEWS'] == 10003)
+    assert (description['RELEASE'] ==
+            datetime.datetime(2011, 2, 11, 16, 44, 22))
+    assert (description['FILM'] == datetime.date(2013, 2, 22))
+    assert not result.has_next()
+    result.close()
