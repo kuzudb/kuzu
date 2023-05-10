@@ -119,15 +119,15 @@ void NpyReader::parseType(std::string descr) {
         descr = descr.substr(1);
     }
     if (descr == "f8") {
-        type = DOUBLE;
+        type = DataTypeID::DOUBLE;
     } else if (descr == "f4") {
-        type = FLOAT;
+        type = DataTypeID::FLOAT;
     } else if (descr == "i8") {
-        type = INT64;
+        type = DataTypeID::INT64;
     } else if (descr == "i4") {
-        type = INT32;
+        type = DataTypeID::INT32;
     } else if (descr == "i2") {
-        type = INT16;
+        type = DataTypeID::INT16;
     } else {
         throw CopyException("Unsupported data type: " + descr);
     }
