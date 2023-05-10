@@ -36,8 +36,8 @@ ifeq ($(OS),Windows_NT)
 	cd external\ && \
 	(if not exist build\ mkdir build\) && \
 	cd build\ && \
-	cmake $(FORCE_COLOR) $(SANITIZER_FLAG) $(GENERATOR) .. && \
-	cmake --build . -- -j $(NUM_THREADS)
+	cmake $(FORCE_COLOR) $(SANITIZER_FLAG) $(GENERATOR) -DCMAKE_BUILD_TYPE=Release .. && \
+	cmake --build . --config Release -- -j $(NUM_THREADS)
 else
 	cd external && \
 	mkdir -p build && \
@@ -52,7 +52,7 @@ ifeq ($(OS),Windows_NT)
 	cd build\ && \
 	(if not exist release\ mkdir release\) && \
 	cd release\ &&\
-	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) -DCMAKE_BUILD_TYPE=Debug ..\.. && \
+	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) -DCMAKE_BUILD_TYPE=Release ..\.. && \
 	cmake --build . --config Release -- -j $(NUM_THREADS)
 else
 	mkdir -p build/release && \
@@ -67,7 +67,7 @@ ifeq ($(OS),Windows_NT)
 	cd build\ && \
 	(if not exist debug\ mkdir debug\) && \
 	cd release\ &&\
-	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) -DCMAKE_BUILD_TYPE=Debug ..\.. && \
+	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) -DCMAKE_BUILD_TYPE=RelWithDebInfo ..\.. && \
 	cmake --build . --config Debug -- -j $(NUM_THREADS)
 else
 	mkdir -p build/debug && \
