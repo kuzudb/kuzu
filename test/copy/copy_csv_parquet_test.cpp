@@ -4,26 +4,6 @@ using namespace kuzu::common;
 using namespace kuzu::storage;
 using namespace kuzu::testing;
 
-class CopyNodeFromCSVTest : public DBTest {
-    std::string getInputDir() override {
-        return TestHelper::appendKuzuRootPath("dataset/copy-test/node/csv/");
-    }
-};
-
-TEST_F(CopyNodeFromCSVTest, CopyNodeTest) {
-    runTest(TestHelper::appendKuzuRootPath("test/test_files/copy/copy_node.test"));
-}
-
-class CopyNodeFromParquetTest : public DBTest {
-    std::string getInputDir() override {
-        return TestHelper::appendKuzuRootPath("dataset/copy-test/node/parquet/");
-    }
-};
-
-TEST_F(CopyNodeFromParquetTest, CopyNodeTest) {
-    runTest(TestHelper::appendKuzuRootPath("test/test_files/copy/copy_node.test"));
-}
-
 class CopyNodeWrongPathTest : public BaseGraphTest {
 public:
     void SetUp() override {

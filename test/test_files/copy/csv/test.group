@@ -1,0 +1,4 @@
+-GROUP CopyNodeFromCSVTest
+-TEST CopyNodeTest
+-DATASET copy-test/node/csv
+-READ_ONLY TRUE

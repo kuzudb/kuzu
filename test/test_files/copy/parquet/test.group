@@ -1,0 +1,4 @@
+-GROUP CopyNodeFromParquetTest
+-TEST CopyNodeTest
+-DATASET copy-test/node/parquet
+-READ_ONLY TRUE
