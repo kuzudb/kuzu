@@ -241,27 +241,27 @@ std::unique_ptr<uint8_t[]> TableCopyExecutor::getArrowFixedList(const std::strin
             continue;
         }
         switch (childDataType.typeID) {
-        case INT64: {
+            case DataTypeID::INT64: {
             auto val = TypeUtils::convertStringToNumber<int64_t>(element.c_str());
             memcpy(listVal.get() + numElementsRead * sizeof(int64_t), &val, sizeof(int64_t));
             numElementsRead++;
         } break;
-        case INT32: {
+        case DataTypeID::INT32: {
             auto val = TypeUtils::convertStringToNumber<int32_t>(element.c_str());
             memcpy(listVal.get() + numElementsRead * sizeof(int32_t), &val, sizeof(int32_t));
             numElementsRead++;
         } break;
-        case INT16: {
+        case DataTypeID::INT16: {
             auto val = TypeUtils::convertStringToNumber<int16_t>(element.c_str());
             memcpy(listVal.get() + numElementsRead * sizeof(int16_t), &val, sizeof(int16_t));
             numElementsRead++;
         } break;
-        case DOUBLE: {
+        case DataTypeID::DOUBLE: {
             auto val = TypeUtils::convertStringToNumber<double_t>(element.c_str());
             memcpy(listVal.get() + numElementsRead * sizeof(double_t), &val, sizeof(double_t));
             numElementsRead++;
         } break;
-        case FLOAT: {
+        case DataTypeID::FLOAT: {
             auto val = TypeUtils::convertStringToNumber<float_t>(element.c_str());
             memcpy(listVal.get() + numElementsRead * sizeof(float_t), &val, sizeof(float_t));
             numElementsRead++;
@@ -329,42 +329,42 @@ std::unique_ptr<Value> TableCopyExecutor::convertStringToValue(
     std::string element, const DataType& type, const CopyDescription& copyDescription) {
     std::unique_ptr<Value> value;
     switch (type.typeID) {
-    case INT64: {
+    case DataTypeID::INT64: {
         value = std::make_unique<Value>(TypeUtils::convertStringToNumber<int64_t>(element.c_str()));
     } break;
-    case INT32: {
+    case DataTypeID::INT32: {
         value = std::make_unique<Value>(TypeUtils::convertStringToNumber<int32_t>(element.c_str()));
     } break;
-    case INT16: {
+    case DataTypeID::INT16: {
         value = std::make_unique<Value>(TypeUtils::convertStringToNumber<int16_t>(element.c_str()));
     } break;
-    case FLOAT: {
+    case DataTypeID::FLOAT: {
         value = std::make_unique<Value>(TypeUtils::convertStringToNumber<float_t>(element.c_str()));
     } break;
-    case DOUBLE: {
+    case DataTypeID::DOUBLE: {
         value =
             std::make_unique<Value>(TypeUtils::convertStringToNumber<double_t>(element.c_str()));
     } break;
-    case BOOL: {
+    case DataTypeID::BOOL: {
         transform(element.begin(), element.end(), element.begin(), ::tolower);
         std::istringstream is(element);
         bool b;
         is >> std::boolalpha >> b;
         value = std::make_unique<Value>(b);
     } break;
-    case STRING: {
+    case DataTypeID::STRING: {
         value = make_unique<Value>(element);
     } break;
-    case DATE: {
+    case DataTypeID::DATE: {
         value = std::make_unique<Value>(Date::FromCString(element.c_str(), element.length()));
     } break;
-    case TIMESTAMP: {
+    case DataTypeID::TIMESTAMP: {
         value = std::make_unique<Value>(Timestamp::FromCString(element.c_str(), element.length()));
     } break;
-    case INTERVAL: {
+    case DataTypeID::INTERVAL: {
         value = std::make_unique<Value>(Interval::FromCString(element.c_str(), element.length()));
     } break;
-    case VAR_LIST: {
+    case DataTypeID::VAR_LIST: {
         value = getArrowVarList(element, 1, element.length() - 2, type, copyDescription);
     } break;
     default:

@@ -81,7 +81,7 @@ void NodeCopier::populatePKIndex(InMemColumnChunk* chunk, InMemOverflowFile* ove
     }
     // No nulls, so we can populate the index with actual values.
     switch (chunk->getDataType().typeID) {
-    case INT64: {
+    case DataTypeID::INT64: {
         appendToPKIndex<int64_t>(chunk, startOffset, numValues);
     } break;
     case STRING: {
