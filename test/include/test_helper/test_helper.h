@@ -67,9 +67,9 @@ private:
     static void initializeConnection(TestQueryConfig* config, Connection& conn);
     static bool testQuery(TestQueryConfig* config, Connection& conn);
     static void setConfigValue(
-        const std::string& line, std::string& configValue, const std::string& configKey);
+        const std::string& line, std::string& configItem, const std::string& configKey);
     static void setConfigValue(
-        const std::string& line, bool& configValue, const std::string& configKey);
+        const std::string& line, bool& configItem, const std::string& configKey);
     static std::string extractConfigValue(const std::string& line, const std::string& configKey);
 };
 
