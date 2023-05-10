@@ -34,3 +34,10 @@ tools/nodejs_api/testDb/
 scripts/pre-compiled-bins/headers
 scripts/pre-compiled-bins/lib*
 scripts/pre-compiled-bins/kuzu*
+
+
+tools/java_api/CMakeFiles/
+tools/java_api/Testing/
+testdb/
+tools/java_api/testdb/
+tools/java_api_falied/
