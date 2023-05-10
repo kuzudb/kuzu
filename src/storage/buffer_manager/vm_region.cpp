@@ -27,23 +27,10 @@ VMRegion::VMRegion(PageSizeClass pageSizeClass, uint64_t maxRegionSize) : numFra
     auto numBytesForFrameGroup = frameSize * StorageConstants::PAGE_GROUP_SIZE;
     maxNumFrameGroups = (maxRegionSize + numBytesForFrameGroup - 1) / numBytesForFrameGroup;
     #ifdef _WIN32
-    DWORD low = (DWORD)(getMaxRegionSize() & 0xFFFFFFFFL);
-    DWORD high = (DWORD)((getMaxRegionSize() >> 32) & 0xFFFFFFFFL);
-    // SEC_RESERVE lets the virtual memory addresses be reserved without memory or page file space being comitted
-    // Unlike with mmap, it's necessary to call VirtualAlloc to commit memory in this address space before it can be used.
-    auto handle = CreateFileMappingW(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE | SEC_RESERVE, high, low, NULL);
-    if (handle == NULL) {
-        throw BufferManagerException(StringUtils::string_format(
-            "CreateFileMapping for size {} failed with error code {}: {}.", getMaxRegionSize(), GetLastError(),
-            std::system_category().message(GetLastError())
-        ));
-    }
-
-    region = (uint8_t *)MapViewOfFile(handle, FILE_MAP_READ | FILE_MAP_WRITE, 0, 0, getMaxRegionSize());
-    CloseHandle(handle);
+    region = (uint8_t*)VirtualAlloc(NULL, getMaxRegionSize(), MEM_RESERVE, PAGE_READWRITE);
     if (region == NULL) {
         throw BufferManagerException(StringUtils::string_format(
-            "MapViewOfFile for size {} failed with error code {}: {}.", getMaxRegionSize(), GetLastError(),
+            "VirtualAlloc for size {} failed with error code {}: {}.", getMaxRegionSize(), GetLastError(),
             std::system_category().message(GetLastError())
         ));
     }
@@ -61,14 +48,20 @@ VMRegion::VMRegion(PageSizeClass pageSizeClass, uint64_t maxRegionSize) : numFra
 
 #ifdef _WIN32
 uint8_t* VMRegion::getFrame(common::frame_idx_t frameIdx) {
-    VirtualAlloc(region + ((std::uint64_t)frameIdx * frameSize), frameSize, MEM_COMMIT, PAGE_READWRITE);
+    auto result = VirtualAlloc(region + ((std::uint64_t)frameIdx * frameSize), frameSize, MEM_COMMIT, PAGE_READWRITE);
+    if (result == NULL) {
+        throw BufferManagerException(StringUtils::string_format(
+            "VirtualAlloc MEM_COMMIT failed with error code {}: {}.", getMaxRegionSize(), GetLastError(),
+            std::system_category().message(GetLastError())
+        ));
+    }
     return region + ((std::uint64_t)frameIdx * frameSize);
 }
 #endif
 
 VMRegion::~VMRegion() {
     #ifdef _WIN32
-    UnmapViewOfFile(region);
+    VirtualFree(region, 0, MEM_RELEASE);
     #else
     munmap(region, getMaxRegionSize());
     #endif
@@ -76,17 +69,24 @@ VMRegion::~VMRegion() {
 
 void VMRegion::releaseFrame(common::frame_idx_t frameIdx) {
 #ifdef _WIN32
-    // TODO: There's also DiscardVirtualMemory (windows 8+).
+    // TODO: VirtualAlloc(..., MEM_RESET, ...) may be faster
+    // See https://arvid.io/2018/04/02/memory-mapping-on-windows/#1
     // Not sure what the differences are
-    int error = VirtualUnlock(getFrame(frameIdx), frameSize);
+    if (!VirtualFree(getFrame(frameIdx), frameSize, MEM_DECOMMIT)) {
+        throw BufferManagerException(StringUtils::string_format(
+            "Releasing physical memory associated with a frame failed with error code {}: {}.",
+            GetLastError(), std::system_category().message(GetLastError())
+        ));
+    }
+
 #else
     int error = madvise(getFrame(frameIdx), frameSize, MADV_DONTNEED);
-#endif
     if (error != 0) {
         throw BufferManagerException(
             "Releasing physical memory associated with a frame failed with error code " +
             std::to_string(error) + ": " + std::string(std::strerror(errno)));
     }
+#endif
 }
 
 frame_group_idx_t VMRegion::addNewFrameGroup() {
