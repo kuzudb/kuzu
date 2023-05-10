@@ -19,7 +19,7 @@ TEST_F(CApiValueTest, CreateNull) {
 }
 
 TEST_F(CApiValueTest, CreateNullWithDatatype) {
-    auto type = kuzu_data_type_create(kuzu_data_type_id::INT64, nullptr, 0);
+    auto type = kuzu_data_type_create(kuzu_data_type_id::KUZU_INT64, nullptr, 0);
     kuzu_value* value = kuzu_value_create_null_with_data_type(type);
     ASSERT_FALSE(value->_is_owned_by_cpp);
     kuzu_data_type_destroy(type);
@@ -51,7 +51,7 @@ TEST_F(CApiValueTest, SetNull) {
 }
 
 TEST_F(CApiValueTest, CreateDefault) {
-    auto type = kuzu_data_type_create(kuzu_data_type_id::INT64, nullptr, 0);
+    auto type = kuzu_data_type_create(kuzu_data_type_id::KUZU_INT64, nullptr, 0);
     kuzu_value* value = kuzu_value_create_default(type);
     ASSERT_FALSE(value->_is_owned_by_cpp);
     kuzu_data_type_destroy(type);
@@ -61,7 +61,7 @@ TEST_F(CApiValueTest, CreateDefault) {
     ASSERT_EQ(cppValue->getValue<int64_t>(), 0);
     kuzu_value_destroy(value);
 
-    type = kuzu_data_type_create(kuzu_data_type_id::STRING, nullptr, 0);
+    type = kuzu_data_type_create(kuzu_data_type_id::KUZU_STRING, nullptr, 0);
     value = kuzu_value_create_default(type);
     ASSERT_FALSE(value->_is_owned_by_cpp);
     kuzu_data_type_destroy(type);
