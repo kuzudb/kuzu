@@ -109,8 +109,10 @@ NodeInMemStructColumn::NodeInMemStructColumn(
                             ->getStructFields();
     for (auto& structField : structFields) {
         auto fieldPath = StorageUtils::appendStructFieldName(filePath, structField->getName());
-        fields.push_back(NodeInMemColumnFactory::getNodeInMemColumn(
-            fieldPath, *structField->getType(), numElements));
+        auto fieldColumn = NodeInMemColumnFactory::getNodeInMemColumn(
+            fieldPath, *structField->getType(), numElements);
+        fieldColumn->getNullMask()->setAllNonNull();
+        fields.push_back(std::move(fieldColumn));
     }
 }
 

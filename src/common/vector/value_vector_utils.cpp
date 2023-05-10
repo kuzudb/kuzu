@@ -1,7 +1,7 @@
 #include "common/vector/value_vector_utils.h"
 
 #include "common/in_mem_overflow_buffer_utils.h"
-#include "common/null_bytes.h"
+#include "common/null_buffer.h"
 
 using namespace kuzu;
 using namespace common;
@@ -10,9 +10,18 @@ void ValueVectorUtils::copyNonNullDataWithSameTypeIntoPos(
     ValueVector& resultVector, uint64_t pos, const uint8_t* srcData) {
     switch (resultVector.dataType.typeID) {
     case STRUCT: {
-        for (auto& childVector : StructVector::getChildrenVectors(&resultVector)) {
-            copyNonNullDataWithSameTypeIntoPos(*childVector, pos, srcData);
-            srcData += Types::getDataTypeSize(childVector->dataType);
+        auto structFields = StructVector::getChildrenVectors(&resultVector);
+        auto structNullBytes = srcData;
+        auto structValues =
+            structNullBytes + NullBuffer::getNumBytesForNullValues(structFields.size());
+        for (auto i = 0u; i < structFields.size(); i++) {
+            auto structField = structFields[i];
+            if (NullBuffer::isNull(structNullBytes, i)) {
+                structField->setNull(pos, true /* isNull */);
+            } else {
+                copyNonNullDataWithSameTypeIntoPos(*structField, pos, structValues);
+            }
+            structValues += Types::getDataTypeSize(structField->dataType);
         }
     } break;
     case VAR_LIST: {
@@ -45,9 +54,22 @@ void ValueVectorUtils::copyNonNullDataWithSameTypeOutFromPos(const ValueVector& 
     uint64_t pos, uint8_t* dstData, InMemOverflowBuffer& dstOverflowBuffer) {
     switch (srcVector.dataType.typeID) {
     case STRUCT: {
-        for (auto& childVector : StructVector::getChildrenVectors(&srcVector)) {
-            copyNonNullDataWithSameTypeOutFromPos(*childVector, pos, dstData, dstOverflowBuffer);
-            dstData += Types::getDataTypeSize(childVector->dataType);
+        // The storage structure of STRUCT type in factorizedTable is:
+        // [NULLBYTES, FIELD1, FIELD2, ...]
+        auto structFields = StructVector::getChildrenVectors(&srcVector);
+        NullBuffer::initNullBytes(dstData, structFields.size());
+        auto structNullBytes = dstData;
+        auto structValues =
+            structNullBytes + NullBuffer::getNumBytesForNullValues(structFields.size());
+        for (auto i = 0u; i < structFields.size(); i++) {
+            auto structField = structFields[i];
+            if (structField->isNull(pos)) {
+                NullBuffer::setNull(structNullBytes, i);
+            } else {
+                copyNonNullDataWithSameTypeOutFromPos(
+                    *structField, pos, structValues, dstOverflowBuffer);
+            }
+            structValues += Types::getDataTypeSize(structField->dataType);
         }
     } break;
     case VAR_LIST: {
@@ -111,8 +133,12 @@ void ValueVectorUtils::copyValue(uint8_t* dstValue, common::ValueVector& dstVect
         for (auto i = 0u; i < srcFields.size(); i++) {
             auto srcField = srcFields[i];
             auto dstField = dstFields[i];
-            copyValue(dstField->getData() + dstField->getNumBytesPerValue() * dstPos, *dstField,
-                srcField->getData() + srcField->getNumBytesPerValue() * srcPos, *srcField);
+            if (srcField->isNull(srcPos)) {
+                dstField->setNull(dstPos, true /* isNull */);
+            } else {
+                copyValue(dstField->getData() + dstField->getNumBytesPerValue() * dstPos, *dstField,
+                    srcField->getData() + srcField->getNumBytesPerValue() * srcPos, *srcField);
+            }
         }
     } break;
     case STRING: {

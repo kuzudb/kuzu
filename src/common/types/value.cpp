@@ -1,6 +1,6 @@
 #include "common/types/value.h"
 
-#include "common/null_bytes.h"
+#include "common/null_buffer.h"
 #include "common/string_utils.h"
 
 namespace kuzu {
@@ -378,11 +378,17 @@ std::vector<std::unique_ptr<Value>> Value::convertKUStructToVector(const uint8_t
     std::vector<std::unique_ptr<Value>> structVal;
     auto childrenTypes = structTypeInfo->getChildrenTypes();
     auto numFields = childrenTypes.size();
+    auto structNullValues = kuStruct;
+    auto structValues = structNullValues + NullBuffer::getNumBytesForNullValues(numFields);
     for (auto i = 0; i < numFields; i++) {
         auto childValue = std::make_unique<Value>(Value::createDefaultValue(*childrenTypes[i]));
-        childValue->copyValueFrom(kuStruct);
+        if (NullBuffer::isNull(structNullValues, i)) {
+            childValue->setNull(true);
+        } else {
+            childValue->copyValueFrom(structValues);
+        }
         structVal.emplace_back(std::move(childValue));
-        kuStruct += Types::getDataTypeSize(*childrenTypes[i]);
+        structValues += Types::getDataTypeSize(*childrenTypes[i]);
     }
     return structVal;
 }
