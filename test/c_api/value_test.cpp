@@ -298,6 +298,94 @@ TEST_F(CApiValueTest, GetListElement) {
     kuzu_query_result_destroy(result);
 }
 
+TEST_F(CApiValueTest, GetStructNumFields) {
+    auto connection = getConnection();
+    auto result = kuzu_connection_query(
+        connection, (char*)"MATCH (m:movies) WHERE m.name=\"Roma\" RETURN m.description");
+    ASSERT_TRUE(kuzu_query_result_is_success(result));
+    ASSERT_TRUE(kuzu_query_result_has_next(result));
+    auto flatTuple = kuzu_query_result_get_next(result);
+    auto value = kuzu_flat_tuple_get_value(flatTuple, 0);
+    ASSERT_EQ(kuzu_value_get_struct_num_fields(value), 4);
+
+    kuzu_value_destroy(value);
+    kuzu_flat_tuple_destroy(flatTuple);
+    kuzu_query_result_destroy(result);
+}
+
+TEST_F(CApiValueTest, GetStructFieldName) {
+    auto connection = getConnection();
+    auto result = kuzu_connection_query(
+        connection, (char*)"MATCH (m:movies) WHERE m.name=\"Roma\" RETURN m.description");
+    ASSERT_TRUE(kuzu_query_result_is_success(result));
+    ASSERT_TRUE(kuzu_query_result_has_next(result));
+    auto flatTuple = kuzu_query_result_get_next(result);
+    auto value = kuzu_flat_tuple_get_value(flatTuple, 0);
+    auto fieldName = kuzu_value_get_struct_field_name(value, 0);
+    ASSERT_STREQ(fieldName, "RATING");
+    free(fieldName);
+
+    fieldName = kuzu_value_get_struct_field_name(value, 1);
+    ASSERT_STREQ(fieldName, "VIEWS");
+    free(fieldName);
+
+    fieldName = kuzu_value_get_struct_field_name(value, 2);
+    ASSERT_STREQ(fieldName, "RELEASE");
+    free(fieldName);
+
+    fieldName = kuzu_value_get_struct_field_name(value, 3);
+    ASSERT_STREQ(fieldName, "FILM");
+    free(fieldName);
+
+    kuzu_value_destroy(value);
+    kuzu_flat_tuple_destroy(flatTuple);
+    kuzu_query_result_destroy(result);
+}
+
+TEST_F(CApiValueTest, GetStructFieldValue) {
+    auto connection = getConnection();
+    auto result = kuzu_connection_query(
+        connection, (char*)"MATCH (m:movies) WHERE m.name=\"Roma\" RETURN m.description");
+    ASSERT_TRUE(kuzu_query_result_is_success(result));
+    ASSERT_TRUE(kuzu_query_result_has_next(result));
+    auto flatTuple = kuzu_query_result_get_next(result);
+    auto value = kuzu_flat_tuple_get_value(flatTuple, 0);
+
+    auto fieldValue = kuzu_value_get_struct_field_value(value, 0);
+    auto fieldType = kuzu_value_get_data_type(fieldValue);
+    ASSERT_EQ(kuzu_data_type_get_id(fieldType), DataTypeID::DOUBLE);
+    ASSERT_DOUBLE_EQ(kuzu_value_get_double(fieldValue), 1223);
+    kuzu_data_type_destroy(fieldType);
+    kuzu_value_destroy(fieldValue);
+
+    fieldValue = kuzu_value_get_struct_field_value(value, 1);
+    fieldType = kuzu_value_get_data_type(fieldValue);
+    ASSERT_EQ(kuzu_data_type_get_id(fieldType), DataTypeID::INT64);
+    ASSERT_EQ(kuzu_value_get_int64(fieldValue), 10003);
+    kuzu_data_type_destroy(fieldType);
+    kuzu_value_destroy(fieldValue);
+
+    fieldValue = kuzu_value_get_struct_field_value(value, 2);
+    fieldType = kuzu_value_get_data_type(fieldValue);
+    ASSERT_EQ(kuzu_data_type_get_id(fieldType), DataTypeID::TIMESTAMP);
+    auto timestamp = kuzu_value_get_timestamp(fieldValue);
+    ASSERT_EQ(timestamp.value, 1297442662000000);
+    kuzu_data_type_destroy(fieldType);
+    kuzu_value_destroy(fieldValue);
+
+    fieldValue = kuzu_value_get_struct_field_value(value, 3);
+    fieldType = kuzu_value_get_data_type(fieldValue);
+    ASSERT_EQ(kuzu_data_type_get_id(fieldType), DataTypeID::DATE);
+    auto date = kuzu_value_get_date(fieldValue);
+    ASSERT_EQ(date.days, 15758);
+    kuzu_data_type_destroy(fieldType);
+    kuzu_value_destroy(fieldValue);
+
+    kuzu_value_destroy(value);
+    kuzu_flat_tuple_destroy(flatTuple);
+    kuzu_query_result_destroy(result);
+}
+
 TEST_F(CApiValueTest, GetDataType) {
     auto connection = getConnection();
     auto result = kuzu_connection_query(

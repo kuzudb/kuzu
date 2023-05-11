@@ -80,6 +80,7 @@ KUZU_C_API typedef enum {
     INTERNAL_ID = 40,
     STRING = 50,
     VAR_LIST = 52,
+    STRUCT = 53,
 } kuzu_data_type_id;
 
 // Database
@@ -198,6 +199,9 @@ KUZU_C_API void kuzu_value_copy(kuzu_value* value, kuzu_value* other);
 KUZU_C_API void kuzu_value_destroy(kuzu_value* value);
 KUZU_C_API uint64_t kuzu_value_get_list_size(kuzu_value* value);
 KUZU_C_API kuzu_value* kuzu_value_get_list_element(kuzu_value* value, uint64_t index);
+KUZU_C_API uint64_t kuzu_value_get_struct_num_fields(kuzu_value* value);
+KUZU_C_API char* kuzu_value_get_struct_field_name(kuzu_value* value, uint64_t index);
+KUZU_C_API kuzu_value* kuzu_value_get_struct_field_value(kuzu_value* value, uint64_t index);
 KUZU_C_API kuzu_data_type* kuzu_value_get_data_type(kuzu_value* value);
 KUZU_C_API bool kuzu_value_get_bool(kuzu_value* value);
 KUZU_C_API int16_t kuzu_value_get_int16(kuzu_value* value);
