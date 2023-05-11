@@ -158,6 +158,27 @@ kuzu_value* kuzu_value_get_list_element(kuzu_value* value, uint64_t index) {
     return c_value;
 }
 
+uint64_t kuzu_value_get_struct_num_fields(kuzu_value* value) {
+    auto val = static_cast<Value*>(value->_value);
+    auto data_type = val->getDataType();
+    auto struct_type_info = reinterpret_cast<StructTypeInfo*>(data_type.getExtraTypeInfo());
+    return struct_type_info->getStructFields().size();
+}
+
+char* kuzu_value_get_struct_field_name(kuzu_value* value, uint64_t index) {
+    auto val = static_cast<Value*>(value->_value);
+    auto data_type = val->getDataType();
+    auto struct_type_info = reinterpret_cast<StructTypeInfo*>(data_type.getExtraTypeInfo());
+    auto struct_field_name = struct_type_info->getStructFields()[index]->getName();
+    auto* c_struct_field_name = (char*)malloc(sizeof(char) * (struct_field_name.size() + 1));
+    strcpy(c_struct_field_name, struct_field_name.c_str());
+    return c_struct_field_name;
+}
+
+kuzu_value* kuzu_value_get_struct_field_value(kuzu_value* value, uint64_t index) {
+    return kuzu_value_get_list_element(value, index);
+}
+
 kuzu_data_type* kuzu_value_get_data_type(kuzu_value* value) {
     auto* c_data_type = (kuzu_data_type*)malloc(sizeof(kuzu_data_type));
     c_data_type->_data_type = new DataType(static_cast<Value*>(value->_value)->getDataType());
