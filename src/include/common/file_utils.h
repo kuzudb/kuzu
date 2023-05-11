@@ -1,7 +1,6 @@
 #pragma once
 
 #include <fcntl.h>
-#include <glob.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
