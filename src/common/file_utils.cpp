@@ -3,9 +3,7 @@
 #include "common/exception.h"
 #include "common/string_utils.h"
 #include "common/utils.h"
-#ifndef _WIN32
-#include <glob.h>
-#endif
+#include <glob/glob.h>
 
 namespace kuzu {
 namespace common {
@@ -144,19 +142,9 @@ void FileUtils::removeFileIfExists(const std::string& path) {
 
 std::vector<std::string> FileUtils::globFilePath(const std::string& path) {
     std::vector<std::string> result;
-    // TODO: Windows globbing
-#ifdef _WIN32
-    if (std::filesystem::exists(std::filesystem::path(path))) {
-        result.push_back(path);
+    for (auto &resultPath: glob::glob(path)) {
+        result.emplace_back(resultPath.string());
     }
-#else
-    glob_t globResult;
-    glob(path.c_str(), GLOB_TILDE, nullptr, &globResult);
-    for (auto i = 0u; i < globResult.gl_pathc; ++i) {
-        result.emplace_back(globResult.gl_pathv[i]);
-    }
-    globfree(&globResult);
-#endif
     return result;
 }
 
