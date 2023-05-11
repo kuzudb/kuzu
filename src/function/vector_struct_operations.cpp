@@ -96,14 +96,13 @@ std::unique_ptr<FunctionBindData> StructExtractVectorOperations::bindFunc(
     auto key = ((binder::LiteralExpression&)*arguments[1]).getValue()->getValue<std::string>();
     common::StringUtils::toUpper(key);
     assert(definition->returnTypeID == common::ANY);
-    auto childrenTypes = typeInfo->getChildrenTypes();
-    auto childrenNames = typeInfo->getChildrenNames();
-    for (auto i = 0u; i < childrenNames.size(); ++i) {
-        if (childrenNames[i] == key) {
-            return std::make_unique<StructExtractBindData>(*childrenTypes[i], i);
-        }
+    auto childIdx = typeInfo->getStructFieldIdx(key);
+    if (childIdx == common::INVALID_STRUCT_FIELD_IDX) {
+        throw common::BinderException(
+            common::StringUtils::string_format("Invalid struct field name: {}.", key));
     }
-    throw common::BinderException("Cannot find key " + key + " for struct_extract.");
+    return std::make_unique<StructExtractBindData>(
+        *typeInfo->getChildrenTypes()[childIdx], childIdx);
 }
 
 } // namespace function

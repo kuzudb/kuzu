@@ -118,9 +118,6 @@ public:
     uint64_t getMinNumValuesLeftOnPage(common::offset_t nodeOffset);
 
 private:
-    static common::field_idx_t getStructFieldIdx(
-        std::vector<std::string> structFieldNames, std::string structFieldName);
-
     void copyValueToStructColumnField(common::offset_t nodeOffset,
         common::field_idx_t structFieldIdx, const std::string& structFieldValue,
         const common::DataType& dataType);
