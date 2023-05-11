@@ -53,13 +53,6 @@ public:
 
     virtual ~Expression() = default;
 
-protected:
-    Expression(common::ExpressionType expressionType, common::DataTypeID dataTypeID,
-        std::string uniqueName)
-        : Expression{expressionType, common::DataType(dataTypeID), std::move(uniqueName)} {
-        assert(dataTypeID != common::VAR_LIST);
-    }
-
 public:
     inline void setAlias(const std::string& name) { alias = name; }
 
@@ -80,7 +73,7 @@ public:
         return children[idx];
     }
     inline void setChild(common::vector_idx_t idx, std::shared_ptr<Expression> child) {
-        children[idx] = child;
+        children[idx] = std::move(child);
     }
 
     inline virtual expression_vector getChildren() const { return children; }

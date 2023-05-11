@@ -67,9 +67,6 @@ static std::unordered_map<table_id_t, property_id_t> populatePropertyIDPerTable(
 std::shared_ptr<Expression> ExpressionBinder::bindRelPropertyExpression(
     const Expression& expression, const std::string& propertyName) {
     auto& rel = (RelExpression&)expression;
-    if (propertyName == INTERNAL_LENGTH_SUFFIX) {
-        return rel.getInternalLengthProperty();
-    }
     switch (rel.getRelType()) {
     case common::QueryRelType::VARIABLE_LENGTH:
     case common::QueryRelType::SHORTEST:

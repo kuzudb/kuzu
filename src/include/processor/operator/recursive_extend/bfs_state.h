@@ -14,40 +14,24 @@ enum VisitedState : uint8_t {
 
 struct Frontier {
     std::vector<common::offset_t> nodeOffsets;
+    std::unordered_map<common::offset_t, std::vector<common::offset_t>> bwdEdges;
 
     Frontier() = default;
-    virtual ~Frontier() = default;
-    inline virtual void resetState() { nodeOffsets.clear(); }
-    inline virtual uint64_t getMultiplicity(common::offset_t offset) { return 1; }
-};
-
-struct FrontierWithMultiplicity : public Frontier {
-    // Multiplicity stands for number of paths that can reach an offset.
-    std::unordered_map<common::offset_t, uint64_t> offsetToMultiplicity;
-
-    FrontierWithMultiplicity() : Frontier() {}
-    inline void resetState() override {
-        Frontier::resetState();
-        offsetToMultiplicity.clear();
+    inline virtual void resetState() {
+        nodeOffsets.clear();
+        bwdEdges.clear();
     }
-    inline uint64_t getMultiplicity(common::offset_t offset) override {
-        assert(offsetToMultiplicity.contains(offset));
-        return offsetToMultiplicity.at(offset);
-    }
-    inline void addOffset(common::offset_t offset, uint64_t multiplicity) {
-        if (offsetToMultiplicity.contains(offset)) {
-            offsetToMultiplicity.at(offset) += multiplicity;
-        } else {
-            offsetToMultiplicity.insert({offset, multiplicity});
-            nodeOffsets.push_back(offset);
+    inline void addEdge(common::offset_t boundOffset, common::offset_t nbrOffset) {
+        if (!bwdEdges.contains(nbrOffset)) {
+            nodeOffsets.push_back(nbrOffset);
+            bwdEdges.insert({nbrOffset, std::vector<common::offset_t>{}});
         }
-    }
-    inline bool contains(common::offset_t offset) const {
-        return offsetToMultiplicity.contains(offset);
+        bwdEdges.at(nbrOffset).push_back(boundOffset);
     }
 };
 
 struct BaseBFSMorsel {
+    friend struct FixedLengthPathScanner;
     // Static information
     common::offset_t maxOffset;
     uint8_t lowerBound;
@@ -55,23 +39,25 @@ struct BaseBFSMorsel {
     // Level state
     uint8_t currentLevel;
     uint64_t nextNodeIdxToExtend; // next node to extend from current frontier.
-    std::unique_ptr<Frontier> currentFrontier;
-    std::unique_ptr<Frontier> nextFrontier;
+    Frontier* currentFrontier;
+    Frontier* nextFrontier;
+    std::vector<std::unique_ptr<Frontier>> frontiers;
+
     // Target information.
     // Target dst nodes are populated from semi mask and is expected to have small size.
     // TargetDstNodeOffsets is empty if no semi mask available. Note that at the end of BFS, we may
     // not visit all target dst nodes because they may simply not connect to src.
     uint64_t numTargetDstNodes;
-    std::vector<common::offset_t> targetDstNodeOffsets;
+    std::unordered_set<common::offset_t> targetDstNodeOffsets;
 
     explicit BaseBFSMorsel(common::offset_t maxOffset, uint8_t lowerBound, uint8_t upperBound,
         NodeOffsetSemiMask* semiMask)
         : maxOffset{maxOffset}, lowerBound{lowerBound}, upperBound{upperBound}, currentLevel{0},
           nextNodeIdxToExtend{0}, numTargetDstNodes{0} {
         if (semiMask->isEnabled()) {
-            for (auto offset = 0u; offset < maxOffset + 1; ++offset) {
+            for (auto offset = 0u; offset < getNumNodes(); ++offset) {
                 if (semiMask->isNodeMasked(offset)) {
-                    targetDstNodeOffsets.push_back(offset);
+                    targetDstNodeOffsets.insert(offset);
                 }
             }
         }
@@ -84,31 +70,35 @@ struct BaseBFSMorsel {
     virtual void resetState();
     virtual bool isComplete() = 0;
     virtual void markSrc(common::offset_t offset) = 0;
-    virtual void markVisited(common::offset_t offset, uint64_t multiplicity) = 0;
-    virtual void finalizeCurrentLevel() = 0;
+    virtual void markVisited(common::offset_t boundOffset, common::offset_t nbrOffset) = 0;
+    inline void finalizeCurrentLevel() { moveNextLevelAsCurrentLevel(); }
 
 protected:
+    inline uint64_t getNumNodes() const { return maxOffset + 1; }
+    inline bool isAllDstTarget() const { return targetDstNodeOffsets.empty(); }
     inline bool isCurrentFrontierEmpty() const { return currentFrontier->nodeOffsets.empty(); }
     inline bool isUpperBoundReached() const { return currentLevel == upperBound; }
-    inline bool isAllDstTarget() const { return targetDstNodeOffsets.empty(); }
+    inline void initStartFrontier() {
+        assert(frontiers.empty());
+        frontiers.push_back(std::make_unique<Frontier>());
+        currentFrontier = frontiers[frontiers.size() - 1].get();
+    }
+    inline void addNextFrontier() {
+        frontiers.push_back(std::make_unique<Frontier>());
+        nextFrontier = frontiers[frontiers.size() - 1].get();
+    }
     void moveNextLevelAsCurrentLevel();
-    virtual std::unique_ptr<Frontier> createFrontier() = 0;
 };
 
 struct ShortestPathBFSMorsel : public BaseBFSMorsel {
     // Visited state
     uint64_t numVisitedDstNodes;
     uint8_t* visitedNodes;
-    // Results
-    std::vector<common::offset_t> dstNodeOffsets;
-    std::unordered_map<common::offset_t, uint64_t> dstNodeOffset2PathLength;
 
     ShortestPathBFSMorsel(common::offset_t maxOffset, uint8_t lowerBound, uint8_t upperBound,
         NodeOffsetSemiMask* semiMask)
         : BaseBFSMorsel{maxOffset, lowerBound, upperBound, semiMask}, numVisitedDstNodes{0} {
-        currentFrontier = std::make_unique<Frontier>();
-        nextFrontier = std::make_unique<Frontier>();
-        visitedNodesBuffer = std::make_unique<uint8_t[]>(maxOffset + 1 * sizeof(uint8_t));
+        visitedNodesBuffer = std::make_unique<uint8_t[]>(getNumNodes() * sizeof(uint8_t));
         visitedNodes = visitedNodesBuffer.get();
     }
 
@@ -120,65 +110,31 @@ struct ShortestPathBFSMorsel : public BaseBFSMorsel {
         resetVisitedState();
     }
     void markSrc(common::offset_t offset) override;
-    void markVisited(common::offset_t offset, uint64_t multiplicity) override;
-    inline void finalizeCurrentLevel() override { moveNextLevelAsCurrentLevel(); }
+    void markVisited(common::offset_t boundOffset, common::offset_t nbrOffset) override;
 
 private:
     inline bool isAllDstReached() const { return numVisitedDstNodes == numTargetDstNodes; }
     void resetVisitedState();
-    inline std::unique_ptr<Frontier> createFrontier() override {
-        return std::make_unique<Frontier>();
-    }
 
 private:
     std::unique_ptr<uint8_t[]> visitedNodesBuffer;
 };
 
 struct VariableLengthBFSMorsel : public BaseBFSMorsel {
-    // Results
-    std::vector<common::offset_t> dstNodeOffsets;
-    std::unordered_map<common::offset_t, uint64_t> dstNodeOffset2NumPath;
-
     explicit VariableLengthBFSMorsel(common::offset_t maxOffset, uint8_t lowerBound,
         uint8_t upperBound, NodeOffsetSemiMask* semiMask)
-        : BaseBFSMorsel{maxOffset, lowerBound, upperBound, semiMask} {
-        currentFrontier = std::make_unique<FrontierWithMultiplicity>();
-        nextFrontier = std::make_unique<FrontierWithMultiplicity>();
-    }
+        : BaseBFSMorsel{maxOffset, lowerBound, upperBound, semiMask} {}
 
     inline void resetState() override {
         BaseBFSMorsel::resetState();
-        resetNumPath();
+        numTargetDstNodes = isAllDstTarget() ? getNumNodes() : targetDstNodeOffsets.size();
     }
     inline bool isComplete() override { return isCurrentFrontierEmpty() || isUpperBoundReached(); }
     inline void markSrc(common::offset_t offset) override {
-        ((FrontierWithMultiplicity&)*currentFrontier).addOffset(offset, 1);
+        currentFrontier->nodeOffsets.push_back(offset);
     }
-    inline void markVisited(common::offset_t offset, uint64_t multiplicity) override {
-        ((FrontierWithMultiplicity&)*nextFrontier).addOffset(offset, multiplicity);
-    }
-    inline void finalizeCurrentLevel() override {
-        moveNextLevelAsCurrentLevel();
-        updateNumPathFromCurrentFrontier();
-    }
-
-private:
-    inline void resetNumPath() {
-        dstNodeOffsets.clear();
-        dstNodeOffset2NumPath.clear();
-        numTargetDstNodes = isAllDstTarget() ? maxOffset + 1 : targetDstNodeOffsets.size();
-    }
-    inline void updateNumPath(common::offset_t offset, uint64_t numPath) {
-        if (!dstNodeOffset2NumPath.contains(offset)) {
-            dstNodeOffsets.push_back(offset);
-            dstNodeOffset2NumPath.insert({offset, numPath});
-        } else {
-            dstNodeOffset2NumPath.at(offset) += numPath;
-        }
-    }
-    void updateNumPathFromCurrentFrontier();
-    inline std::unique_ptr<Frontier> createFrontier() override {
-        return std::make_unique<FrontierWithMultiplicity>();
+    inline void markVisited(common::offset_t boundOffset, common::offset_t nbrOffset) override {
+        nextFrontier->addEdge(boundOffset, nbrOffset);
     }
 };
 

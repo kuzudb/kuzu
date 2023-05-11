@@ -6,27 +6,19 @@
 # adjacent nodes. # In level 3, Node 0,2,3,5 extends to each other so we have 3 * 3 * 3 * Node 0,2,3,5 = 108 nodes.
 # In general the formula is this: nth level will have 4 * (3 ^ n) number of nodes (n > 1), and the first level has
 # 14 nodes.
--NAME KnowsOneToTwoHopTest
--QUERY MATCH (a:person)-[:knows*1..2]->(b:person) RETURN COUNT(*)
--PARALLELISM 3
----- 1
-50
-
 -NAME KnowsThreeHopMinLenEqualsMaxLen
--QUERY MATCH (a:person)-[:knows*3..3]->(b:person) RETURN COUNT(*)
--PARALLELISM 2
+-QUERY MATCH (a:person)-[e:knows*3..3]->(b:person) RETURN COUNT(*)
 ---- 1
 108
 
 -NAME KnowsKnows2To4HopTest
 -QUERY MATCH (a:person)-[:knows]->(b:person)-[:knows*2..4]->(c:person) RETURN COUNT(*)
--PARALLELISM 2
 ---- 1
 1404
 
 -NAME KnowsLongPathTest
 -QUERY MATCH (a:person)-[:knows*8..11]->(b:person) RETURN COUNT(*)
--PARALLELISM 8
+-PARALLELISM 1
 ---- 1
 1049760
 
@@ -36,10 +28,23 @@
 Farooq
 Greg
 
-# Based on the above formula, the VAR_LENGTH_EXTEND will generate 144 tuples. However, if no matches are found on a
-# particular node, the optional match will fill null for the missing part of the pattern (b in this case). Thus, the
-# optional match will fill null for Node 7,8,9,10 that don't have matching pattern.
-# -NAME KnowsWithOptionalMatch
-# -QUERY MATCH (a:person) OPTIONAL MATCH (a)-[:knows*2..3]->(b:person) RETURN COUNT(*)
-# ---- 1
-# 148
+-NAME KnowsWithOptionalMatch
+-QUERY MATCH (a:person) OPTIONAL MATCH (a)-[:knows*2..3]->(b:person) RETURN COUNT(*)
+---- 1
+148
+
+-NAME KnowsOneToTwoHopTest
+-QUERY MATCH (a:person)-[e:knows*1..2]->(b:person) WHERE a.fName='Alice' RETURN e
+---- 12
+[0:0,0:1,0:0]
+[0:0,0:1,0:2]
+[0:0,0:1,0:3]
+[0:0,0:1]
+[0:0,0:2,0:0]
+[0:0,0:2,0:1]
+[0:0,0:2,0:3]
+[0:0,0:2]
+[0:0,0:3,0:0]
+[0:0,0:3,0:1]
+[0:0,0:3,0:2]
+[0:0,0:3]

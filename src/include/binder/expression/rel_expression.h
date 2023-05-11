@@ -9,11 +9,11 @@ namespace binder {
 
 class RelExpression : public NodeOrRelExpression {
 public:
-    RelExpression(std::string uniqueName, std::string variableName,
+    RelExpression(common::DataType dataType, std::string uniqueName, std::string variableName,
         std::vector<common::table_id_t> tableIDs, std::shared_ptr<NodeExpression> srcNode,
         std::shared_ptr<NodeExpression> dstNode, bool directed, common::QueryRelType relType,
         uint64_t lowerBound, uint64_t upperBound)
-        : NodeOrRelExpression{common::REL, std::move(uniqueName), std::move(variableName),
+        : NodeOrRelExpression{dataType, std::move(uniqueName), std::move(variableName),
               std::move(tableIDs)},
           srcNode{std::move(srcNode)}, dstNode{std::move(dstNode)}, directed{directed},
           relType{relType}, lowerBound{lowerBound}, upperBound{upperBound} {}
@@ -40,13 +40,6 @@ public:
         return getPropertyExpression(common::INTERNAL_ID_SUFFIX);
     }
 
-    inline void setInternalLengthProperty(std::shared_ptr<Expression> expression) {
-        internalLengthExpression = std::move(expression);
-    }
-    inline std::shared_ptr<Expression> getInternalLengthProperty() {
-        return internalLengthExpression;
-    }
-
 private:
     std::shared_ptr<NodeExpression> srcNode;
     std::shared_ptr<NodeExpression> dstNode;
@@ -54,7 +47,6 @@ private:
     common::QueryRelType relType;
     uint64_t lowerBound;
     uint64_t upperBound;
-    std::shared_ptr<Expression> internalLengthExpression;
 };
 
 } // namespace binder

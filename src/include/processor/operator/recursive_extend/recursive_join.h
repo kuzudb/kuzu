@@ -1,6 +1,7 @@
 #pragma once
 
 #include "bfs_state.h"
+#include "path_scanner.h"
 #include "processor/operator/physical_operator.h"
 #include "processor/operator/result_collector.h"
 #include "storage/store/node_table.h"
@@ -53,29 +54,30 @@ public:
     BaseRecursiveJoin(uint8_t lowerBound, uint8_t upperBound, storage::NodeTable* nodeTable,
         std::shared_ptr<RecursiveJoinSharedState> sharedState,
         std::vector<DataPos> vectorsToScanPos, std::vector<ft_col_idx_t> colIndicesToScan,
-        const DataPos& srcNodeIDVectorPos, const DataPos& dstNodeIDVectorPos,
-        const DataPos& tmpDstNodeIDVectorPos, std::unique_ptr<PhysicalOperator> child, uint32_t id,
-        const std::string& paramsString, std::unique_ptr<PhysicalOperator> recursiveRoot)
+        const DataPos& srcNodeIDVectorPos, const DataPos& pathVectorPos,
+        const DataPos& dstNodeIDVectorPos, const DataPos& tmpDstNodeIDVectorPos,
+        std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString,
+        std::unique_ptr<PhysicalOperator> recursiveRoot)
         : PhysicalOperator{PhysicalOperatorType::RECURSIVE_JOIN, std::move(child), id,
               paramsString},
           lowerBound{lowerBound}, upperBound{upperBound}, nodeTable{nodeTable},
           sharedState{std::move(sharedState)}, vectorsToScanPos{std::move(vectorsToScanPos)},
           colIndicesToScan{std::move(colIndicesToScan)}, srcNodeIDVectorPos{srcNodeIDVectorPos},
-          dstNodeIDVectorPos{dstNodeIDVectorPos}, tmpDstNodeIDVectorPos{tmpDstNodeIDVectorPos},
-          recursiveRoot{std::move(recursiveRoot)}, outputCursor{0} {}
+          pathVectorPos{pathVectorPos}, dstNodeIDVectorPos{dstNodeIDVectorPos},
+          tmpDstNodeIDVectorPos{tmpDstNodeIDVectorPos}, recursiveRoot{std::move(recursiveRoot)} {}
 
     BaseRecursiveJoin(uint8_t lowerBound, uint8_t upperBound, storage::NodeTable* nodeTable,
         std::shared_ptr<RecursiveJoinSharedState> sharedState,
         std::vector<DataPos> vectorsToScanPos, std::vector<ft_col_idx_t> colIndicesToScan,
-        const DataPos& srcNodeIDVectorPos, const DataPos& dstNodeIDVectorPos,
-        const DataPos& tmpDstNodeIDVectorPos, uint32_t id, const std::string& paramsString,
-        std::unique_ptr<PhysicalOperator> recursiveRoot)
+        const DataPos& srcNodeIDVectorPos, const DataPos& pathVectorPos,
+        const DataPos& dstNodeIDVectorPos, const DataPos& tmpDstNodeIDVectorPos, uint32_t id,
+        const std::string& paramsString, std::unique_ptr<PhysicalOperator> recursiveRoot)
         : PhysicalOperator{PhysicalOperatorType::RECURSIVE_JOIN, id, paramsString},
           lowerBound{lowerBound}, upperBound{upperBound}, nodeTable{nodeTable},
           sharedState{std::move(sharedState)}, vectorsToScanPos{std::move(vectorsToScanPos)},
           colIndicesToScan{std::move(colIndicesToScan)}, srcNodeIDVectorPos{srcNodeIDVectorPos},
-          dstNodeIDVectorPos{dstNodeIDVectorPos}, tmpDstNodeIDVectorPos{tmpDstNodeIDVectorPos},
-          recursiveRoot{std::move(recursiveRoot)}, outputCursor{0} {}
+          pathVectorPos{pathVectorPos}, dstNodeIDVectorPos{dstNodeIDVectorPos},
+          tmpDstNodeIDVectorPos{tmpDstNodeIDVectorPos}, recursiveRoot{std::move(recursiveRoot)} {}
 
     virtual ~BaseRecursiveJoin() = default;
 
@@ -94,12 +96,12 @@ private:
 
     void initLocalRecursivePlan(ExecutionContext* context);
 
-    virtual bool scanOutput() = 0;
+    bool scanOutput();
 
     // Compute BFS for a given src node.
     void computeBFS(ExecutionContext* context);
 
-    void updateVisitedNodes(uint64_t multiplicity);
+    void updateVisitedNodes(common::offset_t boundNodeOffset);
 
 protected:
     uint8_t lowerBound;
@@ -109,6 +111,7 @@ protected:
     std::vector<DataPos> vectorsToScanPos;
     std::vector<ft_col_idx_t> colIndicesToScan;
     DataPos srcNodeIDVectorPos;
+    DataPos pathVectorPos;
     DataPos dstNodeIDVectorPos;
     DataPos tmpDstNodeIDVectorPos;
 
@@ -120,11 +123,12 @@ protected:
     // Vectors
     std::vector<common::ValueVector*> vectorsToScan;
     std::shared_ptr<common::ValueVector> srcNodeIDVector;
+    std::shared_ptr<common::ValueVector> pathVector;
     std::shared_ptr<common::ValueVector> dstNodeIDVector;
     std::shared_ptr<common::ValueVector> tmpDstNodeIDVector; // temporary recursive join result.
 
     std::unique_ptr<BaseBFSMorsel> bfsMorsel;
-    size_t outputCursor;
+    std::unique_ptr<PathScanner> pathScanner;
 };
 
 } // namespace processor

@@ -121,6 +121,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalRecursiveExtendToPhysica
     auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0));
     auto inNodeIDVectorPos =
         DataPos(inSchema->getExpressionPos(*boundNode->getInternalIDProperty()));
+    auto pathVectorPos = DataPos(outSchema->getExpressionPos(*rel));
     auto outNodeIDVectorPos =
         DataPos(outSchema->getExpressionPos(*nbrNode->getInternalIDProperty()));
     auto& relsStore = storageManager.getRelsStore();
@@ -162,19 +163,18 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalRecursiveExtendToPhysica
     auto sharedState = std::make_shared<RecursiveJoinSharedState>(sharedInputFTable, nodeTable);
     switch (rel->getRelType()) {
     case common::QueryRelType::SHORTEST: {
-        auto distanceVectorPos =
-            DataPos{outSchema->getExpressionPos(*rel->getInternalLengthProperty())};
         return std::make_unique<ShortestPathRecursiveJoin>(rel->getLowerBound(),
             rel->getUpperBound(), nodeTable, sharedState, outDataPoses, colIndicesToScan,
-            inNodeIDVectorPos, outNodeIDVectorPos, distanceVectorPos, tmpDstNodePos,
+            inNodeIDVectorPos, pathVectorPos, outNodeIDVectorPos, tmpDstNodePos,
             std::move(resultCollector), getOperatorID(), extend->getExpressionsForPrinting(),
             std::move(scanRelTable));
     }
     case common::QueryRelType::VARIABLE_LENGTH: {
         return std::make_unique<VariableLengthRecursiveJoin>(rel->getLowerBound(),
             rel->getUpperBound(), nodeTable, sharedState, outDataPoses, colIndicesToScan,
-            inNodeIDVectorPos, outNodeIDVectorPos, tmpDstNodePos, std::move(resultCollector),
-            getOperatorID(), extend->getExpressionsForPrinting(), std::move(scanRelTable));
+            inNodeIDVectorPos, pathVectorPos, outNodeIDVectorPos, tmpDstNodePos,
+            std::move(resultCollector), getOperatorID(), extend->getExpressionsForPrinting(),
+            std::move(scanRelTable));
     }
     default:
         throw common::NotImplementedException("PlanMapper::mapLogicalRecursiveExtendToPhysical");

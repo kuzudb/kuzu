@@ -18,9 +18,7 @@ f_group_pos_set LogicalRecursiveExtend::getGroupsPosToFlatten() {
 void LogicalRecursiveExtend::computeFlatSchema() {
     copyChildSchema(0);
     schema->insertToGroupAndScope(nbrNode->getInternalIDProperty(), 0);
-    if (rel->getRelType() == common::QueryRelType::SHORTEST) {
-        schema->insertToGroupAndScope(rel->getInternalLengthProperty(), 0);
-    }
+    schema->insertToGroupAndScope(rel, 0);
 }
 
 void LogicalRecursiveExtend::computeFactorizedSchema() {
@@ -29,9 +27,7 @@ void LogicalRecursiveExtend::computeFactorizedSchema() {
     SinkOperatorUtil::recomputeSchema(*childSchema, childSchema->getExpressionsInScope(), *schema);
     auto nbrGroupPos = schema->createGroup();
     schema->insertToGroupAndScope(nbrNode->getInternalIDProperty(), nbrGroupPos);
-    if (rel->getRelType() == common::QueryRelType::SHORTEST) {
-        schema->insertToGroupAndScope(rel->getInternalLengthProperty(), nbrGroupPos);
-    }
+    schema->insertToGroupAndScope(rel, nbrGroupPos);
 }
 
 } // namespace planner
