@@ -235,5 +235,99 @@ encode_function_t OrderByKeyEncoder::getEncodingFunction(DataTypeID typeId) {
     }
 }
 
+template<>
+void OrderByKeyEncoder::encodeData(int16_t data, uint8_t* resultPtr, bool swapBytes) {
+    if (swapBytes) {
+        data = BSWAP16(data);
+    }
+    memcpy(resultPtr, (void*)&data, sizeof(data));
+    resultPtr[0] = flipSign(resultPtr[0]);
+}
+
+template<>
+void OrderByKeyEncoder::encodeData(int32_t data, uint8_t* resultPtr, bool swapBytes) {
+    if (swapBytes) {
+        data = BSWAP32(data);
+    }
+    memcpy(resultPtr, (void*)&data, sizeof(data));
+    resultPtr[0] = flipSign(resultPtr[0]);
+}
+
+template<>
+void OrderByKeyEncoder::encodeData(int64_t data, uint8_t* resultPtr, bool swapBytes) {
+    if (swapBytes) {
+        data = BSWAP64(data);
+    }
+    memcpy(resultPtr, (void*)&data, sizeof(data));
+    resultPtr[0] = flipSign(resultPtr[0]);
+}
+
+template<>
+void OrderByKeyEncoder::encodeData(bool data, uint8_t* resultPtr, bool swapBytes) {
+    uint8_t val = data ? 1 : 0;
+    memcpy(resultPtr, (void*)&val, sizeof(data));
+}
+
+template<>
+void OrderByKeyEncoder::encodeData(double_t data, uint8_t* resultPtr, bool swapBytes) {
+    memcpy(resultPtr, &data, sizeof(data));
+    uint64_t* dataBytes = (uint64_t*)resultPtr;
+    if (swapBytes) {
+        *dataBytes = BSWAP64(*dataBytes);
+    }
+    if (data < (double)0) {
+        *dataBytes = ~*dataBytes;
+    } else {
+        resultPtr[0] = flipSign(resultPtr[0]);
+    }
+}
+
+template<>
+void OrderByKeyEncoder::encodeData(date_t data, uint8_t* resultPtr, bool swapBytes) {
+    encodeData(data.days, resultPtr, swapBytes);
+}
+
+template<>
+void OrderByKeyEncoder::encodeData(timestamp_t data, uint8_t* resultPtr, bool swapBytes) {
+    encodeData(data.value, resultPtr, swapBytes);
+}
+
+template<>
+void OrderByKeyEncoder::encodeData(interval_t data, uint8_t* resultPtr, bool swapBytes) {
+    int64_t months, days, micros;
+    Interval::NormalizeIntervalEntries(data, months, days, micros);
+    encodeData((int32_t)months, resultPtr, swapBytes);
+    resultPtr += sizeof(data.months);
+    encodeData((int32_t)days, resultPtr, swapBytes);
+    resultPtr += sizeof(data.days);
+    encodeData(micros, resultPtr, swapBytes);
+}
+
+template<>
+void OrderByKeyEncoder::encodeData(ku_string_t data, uint8_t* resultPtr, bool swapBytes) {
+    // Only encode the prefix of ku_string.
+    memcpy(resultPtr, (void*)data.getAsString().c_str(),
+        std::min((uint32_t)ku_string_t::SHORT_STR_LENGTH, data.len));
+    if (ku_string_t::isShortString(data.len)) {
+        memset(resultPtr + data.len, '\0', ku_string_t::SHORT_STR_LENGTH + 1 - data.len);
+    } else {
+        resultPtr[12] = UINT8_MAX;
+    }
+}
+
+template<>
+void OrderByKeyEncoder::encodeData(float_t data, uint8_t* resultPtr, bool swapBytes) {
+    memcpy(resultPtr, &data, sizeof(data));
+    uint32_t* dataBytes = (uint32_t*)resultPtr;
+    if (swapBytes) {
+        *dataBytes = BSWAP32(*dataBytes);
+    }
+    if (data < (float)0) {
+        *dataBytes = ~*dataBytes;
+    } else {
+        resultPtr[0] = flipSign(resultPtr[0]);
+    }
+}
+
 } // namespace processor
 } // namespace kuzu
