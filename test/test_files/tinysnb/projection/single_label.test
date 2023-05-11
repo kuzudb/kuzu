@@ -453,6 +453,16 @@ Dan|Carol
 ---- 1
 1|10|[4,5]
 
+-NAME ReturnStructLiteralWithNull
+-QUERY RETURN {info: {name: "AliceBobCarolDan", gender: "female", hobby: null}, height: 1.8, age: null}
+---- 1
+{INFO: {NAME: AliceBobCarolDan, GENDER: female, HOBBY: }, HEIGHT: 1.800000, AGE: }
+
+-NAME ReturnStructListLiteralWithNull
+-QUERY RETURN {info: {name: "smith", gender: null, hobby: [null, "footBall"]}, height: 1.8, age: null}
+---- 1
+{INFO: {NAME: smith, GENDER: , HOBBY: [,footBall]}, HEIGHT: 1.800000, AGE: }
+
 -NAME ReturnStruct
 -QUERY MATCH (m:movies) RETURN m.description
 ---- 3

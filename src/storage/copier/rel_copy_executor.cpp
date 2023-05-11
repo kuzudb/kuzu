@@ -775,12 +775,13 @@ void RelCopyExecutor::calculateListHeadersTask(offset_t numNodes, atomic_uint64_
         auto numNodesInChunk =
             std::min((offset_t)ListsMetadataConstants::LISTS_CHUNK_SIZE, numNodes - nodeOffset);
         csr_offset_t csrOffset = (*listSizes)[chunkNodeOffset].load(std::memory_order_relaxed);
-        for (auto i = 1u; i <= numNodesInChunk; i++) {
+        for (auto i = 1u; i < numNodesInChunk; i++) {
             auto currNodeOffset = chunkNodeOffset + i;
             auto numElementsInList = (*listSizes)[currNodeOffset].load(std::memory_order_relaxed);
             listHeadersBuilder->setCSROffset(currNodeOffset, csrOffset);
             csrOffset += numElementsInList;
         }
+        listHeadersBuilder->setCSROffset(chunkNodeOffset + numNodesInChunk, csrOffset);
         nodeOffset += numNodesInChunk;
     }
     logger->trace("End: adjListHeadersBuilder={0:p}", (void*)listHeadersBuilder);

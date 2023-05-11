@@ -4,6 +4,7 @@
 #include <stdexcept>
 
 #include "common/exception.h"
+#include "common/null_buffer.h"
 #include "common/ser_deser.h"
 #include "common/types/types_include.h"
 
@@ -478,6 +479,8 @@ uint32_t Types::getDataTypeSize(DataTypeID dataTypeID) {
     }
 }
 
+// This function returns the size of the dataType when stored in a row layout. (e.g.
+// factorizedTable).
 uint32_t Types::getDataTypeSize(const DataType& dataType) {
     switch (dataType.typeID) {
     case FIXED_LIST: {
@@ -491,6 +494,7 @@ uint32_t Types::getDataTypeSize(const DataType& dataType) {
         for (auto& childType : structTypeInfo->getChildrenTypes()) {
             size += getDataTypeSize(*childType);
         }
+        size += NullBuffer::getNumBytesForNullValues(structTypeInfo->getChildrenNames().size());
         return size;
     }
     case INTERNAL_ID:

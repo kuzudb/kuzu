@@ -1,7 +1,7 @@
 #include "processor/result/factorized_table.h"
 
 #include "common/exception.h"
-#include "common/null_bytes.h"
+#include "common/null_buffer.h"
 #include "common/vector/value_vector_utils.h"
 
 using namespace kuzu::common;

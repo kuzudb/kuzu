@@ -1,7 +1,7 @@
 #include "storage/storage_structure/disk_overflow_file.h"
 
 #include "common/in_mem_overflow_buffer_utils.h"
-#include "common/null_bytes.h"
+#include "common/null_buffer.h"
 #include "common/string_utils.h"
 #include "common/type_utils.h"
 
