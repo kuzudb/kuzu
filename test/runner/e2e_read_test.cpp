@@ -54,7 +54,15 @@ void scanTestFiles(const std::string& path, std::vector<TestConfig>& configs) {
 int main(int argc, char** argv) {
     testing::InitGoogleTest(&argc, argv);
     std::vector<TestConfig> configs;
-    scanTestFiles(TestHelper::appendKuzuRootPath("test/test_files"), configs);
+    std::string path = "test/test_files";
+    if (argc > 1) {
+        path = argv[1];
+    }
+    path = TestHelper::appendKuzuRootPath(path);
+    if (!FileUtils::fileOrPathExists(path)) {
+        throw Exception("Test directory not exists! [" + path + "].");
+    }
+    scanTestFiles(path, configs);
     registerTests(configs);
     return RUN_ALL_TESTS();
 }
