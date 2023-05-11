@@ -76,6 +76,14 @@ struct VectorListOperations : public VectorOperations {
         }
         return result;
     }
+
+    template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
+    static void UnaryListExecFunction(
+        const std::vector<std::shared_ptr<common::ValueVector>>& params,
+        common::ValueVector& result) {
+        assert(params.size() == 1);
+        UnaryOperationExecutor::executeList<OPERAND_TYPE, RESULT_TYPE, FUNC>(*params[0], result);
+    }
 };
 
 struct ListCreationVectorOperation : public VectorListOperations {
@@ -123,6 +131,20 @@ struct ListContainsVectorOperation : public VectorListOperations {
 };
 
 struct ListSliceVectorOperation : public VectorListOperations {
+    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static std::unique_ptr<FunctionBindData> bindFunc(
+        const binder::expression_vector& arguments, FunctionDefinition* definition);
+};
+
+struct ListSortVectorOperation : public VectorListOperations {
+    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static std::unique_ptr<FunctionBindData> bindFunc(
+        const binder::expression_vector& arguments, FunctionDefinition* definition);
+    template<typename T>
+    static scalar_exec_func getExecFunction(const binder::expression_vector& arguments);
+};
+
+struct ListSumVectorOperation : public VectorListOperations {
     static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
     static std::unique_ptr<FunctionBindData> bindFunc(
         const binder::expression_vector& arguments, FunctionDefinition* definition);
