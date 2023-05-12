@@ -9,6 +9,8 @@
 #include "function/list/operations/list_position_operation.h"
 #include "function/list/operations/list_prepend_operation.h"
 #include "function/list/operations/list_slice_operation.h"
+#include "function/list/operations/list_sort_operation.h"
+#include "function/list/operations/list_sum_operation.h"
 #include "function/list/vector_list_operations.h"
 
 using namespace kuzu::common;
@@ -318,6 +320,96 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> ListSliceVectorOperation
 std::unique_ptr<FunctionBindData> ListSliceVectorOperation::bindFunc(
     const binder::expression_vector& arguments, FunctionDefinition* definition) {
     return std::make_unique<FunctionBindData>(arguments[0]->getDataType());
+}
+
+std::vector<std::unique_ptr<VectorOperationDefinition>> ListSortVectorOperation::getDefinitions() {
+    std::vector<std::unique_ptr<VectorOperationDefinition>> result;
+    result.push_back(std::make_unique<VectorOperationDefinition>(LIST_SORT_FUNC_NAME,
+        std::vector<DataTypeID>{VAR_LIST}, VAR_LIST, nullptr, nullptr, bindFunc,
+        false /* isVarlength*/));
+    result.push_back(std::make_unique<VectorOperationDefinition>(LIST_SORT_FUNC_NAME,
+        std::vector<DataTypeID>{VAR_LIST, STRING}, VAR_LIST, nullptr, nullptr, bindFunc,
+        false /* isVarlength*/));
+    result.push_back(std::make_unique<VectorOperationDefinition>(LIST_SORT_FUNC_NAME,
+        std::vector<DataTypeID>{VAR_LIST, STRING, STRING}, VAR_LIST, nullptr, nullptr, bindFunc,
+        false /* isVarlength*/));
+    return result;
+}
+
+std::unique_ptr<FunctionBindData> ListSortVectorOperation::bindFunc(
+    const binder::expression_vector& arguments, FunctionDefinition* definition) {
+    auto vectorOperationDefinition = reinterpret_cast<VectorOperationDefinition*>(definition);
+    switch (arguments[0]->dataType.getChildType()->getTypeID()) {
+    case INT64: {
+        vectorOperationDefinition->execFunc = getExecFunction<int64_t>(arguments);
+    } break;
+    case DOUBLE: {
+        vectorOperationDefinition->execFunc = getExecFunction<double_t>(arguments);
+    } break;
+    case BOOL: {
+        vectorOperationDefinition->execFunc = getExecFunction<uint8_t>(arguments);
+    } break;
+    case STRING: {
+        vectorOperationDefinition->execFunc = getExecFunction<ku_string_t>(arguments);
+    } break;
+    case DATE: {
+        vectorOperationDefinition->execFunc = getExecFunction<date_t>(arguments);
+    } break;
+    case TIMESTAMP: {
+        vectorOperationDefinition->execFunc = getExecFunction<timestamp_t>(arguments);
+    } break;
+    case INTERVAL: {
+        vectorOperationDefinition->execFunc = getExecFunction<interval_t>(arguments);
+    } break;
+    default: {
+        throw common::NotImplementedException("ListSortVectorOperation::bindFunc");
+    }
+    }
+    return std::make_unique<FunctionBindData>(arguments[0]->getDataType());
+}
+
+template<typename T>
+scalar_exec_func ListSortVectorOperation::getExecFunction(
+    const binder::expression_vector& arguments) {
+    if (arguments.size() == 1) {
+        return UnaryListExecFunction<list_entry_t, list_entry_t, operation::ListSort<T>>;
+    } else if (arguments.size() == 2) {
+        return BinaryListExecFunction<list_entry_t, ku_string_t, list_entry_t,
+            operation::ListSort<T>>;
+    } else if (arguments.size() == 3) {
+        return TernaryListExecFunction<list_entry_t, ku_string_t, ku_string_t, list_entry_t,
+            operation::ListSort<T>>;
+    } else {
+        throw common::RuntimeException("Invalid number of arguments");
+    }
+}
+
+std::vector<std::unique_ptr<VectorOperationDefinition>> ListSumVectorOperation::getDefinitions() {
+    std::vector<std::unique_ptr<VectorOperationDefinition>> result;
+    result.push_back(std::make_unique<VectorOperationDefinition>(LIST_SUM_FUNC_NAME,
+        std::vector<DataTypeID>{VAR_LIST}, INT64, nullptr, nullptr, bindFunc,
+        false /* isVarlength*/));
+    return result;
+}
+
+std::unique_ptr<FunctionBindData> ListSumVectorOperation::bindFunc(
+    const binder::expression_vector& arguments, FunctionDefinition* definition) {
+    auto vectorOperationDefinition = reinterpret_cast<VectorOperationDefinition*>(definition);
+    auto resultType = *arguments[0]->getDataType().getChildType();
+    switch (resultType.getTypeID()) {
+    case INT64: {
+        vectorOperationDefinition->execFunc =
+            UnaryListExecFunction<list_entry_t, int64_t, operation::ListSum>;
+    } break;
+    case DOUBLE: {
+        vectorOperationDefinition->execFunc =
+            UnaryListExecFunction<list_entry_t, double_t, operation::ListSum>;
+    } break;
+    default: {
+        throw common::NotImplementedException("ListSumVectorOperation::bindFunc");
+    }
+    }
+    return std::make_unique<FunctionBindData>(resultType);
 }
 
 } // namespace function

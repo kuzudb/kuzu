@@ -55,6 +55,8 @@ const std::string ARRAY_CONTAINS_FUNC_NAME = "ARRAY_CONTAINS";
 const std::string ARRAY_HAS_FUNC_NAME = "ARRAY_HAS";
 const std::string LIST_SLICE_FUNC_NAME = "LIST_SLICE";
 const std::string ARRAY_SLICE_FUNC_NAME = "ARRAY_SLICE";
+const std::string LIST_SUM_FUNC_NAME = "LIST_SUM";
+const std::string LIST_SORT_FUNC_NAME = "LIST_SORT";
 
 // struct
 const std::string STRUCT_PACK_FUNC_NAME = "STRUCT_PACK";

@@ -717,3 +717,113 @@ ert
 -QUERY RETURN array_contains([[100,200],[200,300],[300,400]], [100,200])
 ---- 1
 True
+
+-NAME ListSumSeq1
+-QUERY Return list_sum([1, 2, 3, NULL]);
+---- 1
+6
+
+-NAME ListSumSeq2
+-QUERY Return list_sum([1.1, 2.2, 3.3, NULL]);
+---- 1
+6.600000
+
+-NAME ListSortIntAsc
+-QUERY Return list_sort([2, 3, 1, NULL, NULL]);
+---- 1
+[,,1,2,3]
+
+-NAME ListSortIntDesc
+-QUERY Return list_sort([2, 3, 1, 5, NULL], 'DESC');
+---- 1
+[,5,3,2,1]
+
+-NAME ListSortIntDescWithNullsLast
+-QUERY Return list_sort([2, 3, 1, NULL], 'DESC', 'NULLS LAST');
+---- 1
+[3,2,1,]
+
+-NAME ListSortStringDesc
+-QUERY Return list_sort(['sss', 'sssss', 'abs', NULL], 'DESC');
+---- 1
+[,sssss,sss,abs]
+
+-NAME ListSortStringAscWithNullsLast
+-QUERY Return list_sort(['sss', 'sssss', 'abs', NULL], 'ASC', 'NULLS LAST');
+---- 1
+[abs,sss,sssss,]
+
+-NAME ListSortDoubleAscWithNullsLast
+-QUERY Return list_sort([1.1, 2.3, 4.5, NULL], 'ASC', 'NULLS LAST');
+---- 1
+[1.100000,2.300000,4.500000,]
+
+-NAME ListSortDateSeq1
+-QUERY Return list_sort([date('1992-05-03'), date('1993-05-03'), date('1994-05-03'), NULL]);
+---- 1
+[,1992-05-03,1993-05-03,1994-05-03]
+
+-NAME ListSortDateSeq2
+-QUERY Return list_sort([date('1992-05-03'), date('1993-05-03'), date('1994-05-03'), NULL], 'DESC');
+---- 1
+[,1994-05-03,1993-05-03,1992-05-03]
+
+-NAME ListSortDateSeq3
+-QUERY Return list_sort([date('1992-05-03'), date('1993-05-03'), date('1994-05-03'), NULL], 'DESC', 'NULLS LAST');
+---- 1
+[1994-05-03,1993-05-03,1992-05-03,]
+
+-NAME ListSortTimestampSeq1
+-QUERY Return list_sort([timestamp('1992-05-03 11:13:25'), timestamp('1993-05-03 11:13:25'), timestamp('1994-05-03 11:13:25'), NULL]);
+---- 1
+[,1992-05-03 11:13:25,1993-05-03 11:13:25,1994-05-03 11:13:25]
+
+-NAME ListSortTimestampSeq2
+-QUERY Return list_sort([timestamp('1992-05-03 11:13:25'), timestamp('1993-05-03 11:13:25'), timestamp('1994-05-03 11:13:25'), NULL], 'DESC');
+---- 1
+[,1994-05-03 11:13:25,1993-05-03 11:13:25,1992-05-03 11:13:25]
+
+-NAME ListSortTimestampSeq3
+-QUERY Return list_sort([timestamp('1992-05-03 11:13:25'), timestamp('1993-05-03 11:13:25'), timestamp('1994-05-03 11:13:25'), NULL], 'DESC', 'NULLS LAST');
+---- 1
+[1994-05-03 11:13:25,1993-05-03 11:13:25,1992-05-03 11:13:25,]
+
+-NAME ListSortIntervalSeq1
+-QUERY Return list_sort([interval('2 hours 3 days 20 minutes'), interval('3 hours 3 days 20 minutes'), interval('4 hours 3 days 20 minutes'), NULL]);
+---- 1
+[,3 days 02:20:00,3 days 03:20:00,3 days 04:20:00]
+
+-NAME ListSortIntervalSeq2
+-QUERY Return list_sort([interval('2 hours 3 days 20 minutes'), interval('3 hours 3 days 20 minutes'), interval('4 hours 3 days 20 minutes'), NULL], 'DESC');
+---- 1
+[,3 days 04:20:00,3 days 03:20:00,3 days 02:20:00]
+
+-NAME ListSortIntervalSeq3
+-QUERY Return list_sort([interval('2 hours 3 days 20 minutes'), interval('3 hours 3 days 20 minutes'), interval('4 hours 3 days 20 minutes'), NULL], 'DESC', 'NULLS LAST');
+---- 1
+[3 days 04:20:00,3 days 03:20:00,3 days 02:20:00,]
+
+-NAME ListSortBooleanSeq1
+-QUERY Return list_sort([true, true, false, NULL]);
+---- 1
+[,False,True,True]
+
+-NAME ListSortBooleanSeq2
+-QUERY Return list_sort([true, true, false, NULL], 'DESC');
+---- 1
+[,True,True,False]
+
+-NAME ListSortBooleanSeq3
+-QUERY Return list_sort([true, true, false, NULL], 'DESC', 'NULLS LAST');
+---- 1
+[True,True,False,]
+
+-NAME ListSumInt
+-QUERY Return list_sum([1, 2, 3, NULL]);
+---- 1
+6
+
+-NAME ListSumDouble
+-QUERY Return list_sum([1.1, 2.2, 3.3, NULL]);
+---- 1
+6.600000
