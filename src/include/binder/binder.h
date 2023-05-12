@@ -31,9 +31,7 @@ public:
     inline std::shared_ptr<Expression> getExpression(const std::string& varName) const {
         return expressions[varNameToIdx.at(varName)];
     }
-    inline expression_vector getExpressions() const {
-        return expressions;
-    }
+    inline expression_vector getExpressions() const { return expressions; }
     inline void addExpression(const std::string& varName, std::shared_ptr<Expression> expression) {
         varNameToIdx.insert({varName, expressions.size()});
         expressions.push_back(std::move(expression));
