@@ -32,7 +32,7 @@ SystemConfig::SystemConfig(uint64_t bufferPoolSize_) {
         GlobalMemoryStatusEx(&status);
         auto systemMemSize = (std::uint64_t)status.ullTotalPhys;
         bufferPoolSize = (uint64_t)(BufferPoolConstants::DEFAULT_PHY_MEM_SIZE_RATIO_FOR_BM *
-                                    (double_t)min(systemMemSize, (std::uint64_t)UINTPTR_MAX));
+                                    (double_t)std::min(systemMemSize, (std::uint64_t)UINTPTR_MAX));
         #else
         auto systemMemSize =
             (std::uint64_t)sysconf(_SC_PHYS_PAGES) * (std::uint64_t)sysconf(_SC_PAGESIZE);

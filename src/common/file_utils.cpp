@@ -5,6 +5,10 @@
 #include "common/utils.h"
 #include <glob/glob.h>
 
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
 namespace kuzu {
 namespace common {
 
@@ -40,20 +44,26 @@ void FileUtils::writeToFile(
         uint64_t numBytesToWrite = std::min(remainingNumBytesToWrite, maxBytesToWriteAtOnce);
 
         #if defined(_WIN32)
-        std::lock_guard guard{mtx};
-        if (lseek(fileInfo->fd, offset, SEEK_SET) == -1) {
+        auto handle = (HANDLE)_get_osfhandle(fileInfo->fd);
+        DWORD numBytesWritten;
+        OVERLAPPED overlapped{0,0,0.0};
+        overlapped.Offset = offset & 0xffffffff;
+        overlapped.OffsetHigh = offset >> 32;
+        if (!WriteFile(handle, buffer + bufferOffset, numBytesToWrite, &numBytesWritten, &overlapped)) {
+            auto error = GetLastError();
             throw Exception(StringUtils::string_format(
-                "Cannot seek to offset {} in file {}. fileDescriptor: {}",
-                offset, fileInfo->path, fileInfo->fd));
+                "Cannot write to file. path: {} fileDescriptor: {} offsetToWrite: {} "
+                "numBytesToWrite: {} numBytesWritten: {}. Error {}: {}.",
+                fileInfo->path, fileInfo->fd, offset, numBytesToWrite, numBytesWritten,
+                error, std::system_category().message(error)));
         }
-        uint64_t numBytesWritten = write(fileInfo->fd, buffer + bufferOffset, remainingNumBytesToWrite);
         #else
         uint64_t numBytesWritten =
             pwrite(fileInfo->fd, buffer + bufferOffset, numBytesToWrite, offset);
         if (numBytesWritten != numBytesToWrite) {
             throw Exception(StringUtils::string_format(
                 "Cannot write to file. path: {} fileDescriptor: {} offsetToWrite: {} "
-                "numBytesToWrite: {} numBytesWritten: {}",
+                "numBytesToWrite: {} numBytesWritten: {}.",
                 fileInfo->path, fileInfo->fd, offset, numBytesToWrite, numBytesWritten));
         }
         #endif
@@ -77,13 +87,19 @@ void FileUtils::overwriteFile(const std::string& from, const std::string& to) {
 void FileUtils::readFromFile(
     FileInfo* fileInfo, void* buffer, uint64_t numBytes, uint64_t position) {
     #if defined(_WIN32)
-    std::lock_guard guard{mtx};
-    if (lseek(fileInfo->fd, position, SEEK_SET) == -1) {
-        throw Exception(StringUtils::string_format(
-            "Cannot seek to offset {} in file {}. fileDescriptor: {}",
-            position, fileInfo->path, fileInfo->fd));
+    auto handle = (HANDLE)_get_osfhandle(fileInfo->fd);
+    DWORD numBytesRead;
+    OVERLAPPED overlapped{0,0,0.0};
+    overlapped.Offset = position & 0xffffffff;
+    overlapped.OffsetHigh = position >> 32;
+    if (!ReadFile(handle, buffer, numBytes, &numBytesRead, &overlapped)) {
+        auto error = GetLastError();
+        throw Exception(
+            StringUtils::string_format("Cannot read from file: {} fileDescriptor: {} "
+                                       "numBytesRead: {} numBytesToRead: {} position: {}. Error {}: {}",
+            fileInfo->path, fileInfo->fd, numBytesRead, numBytes, position,
+            error, std::system_category().message(error)));
     }
-    auto numBytesRead = read(fileInfo->fd, buffer, numBytes);
     #else
     auto numBytesRead = pread(fileInfo->fd, buffer, numBytes, position);
     #endif
@@ -163,12 +179,7 @@ std::vector<std::string> FileUtils::findAllDirectories(const std::string& path) 
 
 void FileUtils::truncateFileToSize(FileInfo* fileInfo, uint64_t size) {
     #if defined(_WIN32)
-    std::lock_guard guard{mtx};
-    if (lseek(fileInfo->fd, size, SEEK_SET) == -1) {
-        throw Exception(StringUtils::string_format(
-            "Cannot seek to offset 0 in file {}. fileDescriptor: {}", fileInfo->path, fileInfo->fd));
-    }
-    write(fileInfo->fd, "", size);
+    _chsize_s(fileInfo->fd, size);
     #else
     ftruncate(fileInfo->fd, size);
     #endif

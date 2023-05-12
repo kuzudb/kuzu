@@ -15,8 +15,6 @@
 namespace kuzu {
 namespace common {
 
-static std::mutex mtx;
-
 struct FileInfo {
     FileInfo(std::string path, const int fd) : path{std::move(path)}, fd{fd} {}
 
