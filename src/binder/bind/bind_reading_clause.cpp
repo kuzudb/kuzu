@@ -23,7 +23,6 @@ std::unique_ptr<BoundReadingClause> Binder::bindReadingClause(const ReadingClaus
 
 std::unique_ptr<BoundReadingClause> Binder::bindMatchClause(const ReadingClause& readingClause) {
     auto& matchClause = (MatchClause&)readingClause;
-    auto prevVariablesInScope = variablesInScope;
     auto [queryGraphCollection, propertyCollection] =
         bindGraphPattern(matchClause.getPatternElements());
     auto boundMatchClause =
