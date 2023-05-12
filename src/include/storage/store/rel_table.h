@@ -68,7 +68,7 @@ public:
 class DirectedRelTableData {
 public:
     DirectedRelTableData(common::table_id_t tableID, common::table_id_t boundTableID,
-        common::RelDirection direction, ListsUpdatesStore* listsUpdatesStore,
+        common::RelDataDirection direction, ListsUpdatesStore* listsUpdatesStore,
         BufferManager& bufferManager, bool isSingleMultiplicityInDirection)
         : tableID{tableID}, boundTableID{boundTableID}, direction{direction},
           listsUpdatesStore{listsUpdatesStore}, bufferManager{bufferManager},
@@ -134,7 +134,7 @@ private:
     std::unique_ptr<AdjLists> adjLists;
     common::table_id_t tableID;
     common::table_id_t boundTableID;
-    common::RelDirection direction;
+    common::RelDataDirection direction;
     ListsUpdatesStore* listsUpdatesStore;
     BufferManager& bufferManager;
     // TODO(Guodong): remove this variable when removing the distinction between AdjColumn and
@@ -150,31 +150,32 @@ public:
     void initializeData(catalog::RelTableSchema* tableSchema);
 
     inline Column* getPropertyColumn(
-        common::RelDirection relDirection, common::property_id_t propertyId) {
-        return relDirection == common::RelDirection::FWD ?
+        common::RelDataDirection relDirection, common::property_id_t propertyId) {
+        return relDirection == common::RelDataDirection::FWD ?
                    fwdRelTableData->getPropertyColumn(propertyId) :
                    bwdRelTableData->getPropertyColumn(propertyId);
     }
     inline Lists* getPropertyLists(
-        common::RelDirection relDirection, common::property_id_t propertyId) {
-        return relDirection == common::RelDirection::FWD ?
+        common::RelDataDirection relDirection, common::property_id_t propertyId) {
+        return relDirection == common::RelDataDirection::FWD ?
                    fwdRelTableData->getPropertyLists(propertyId) :
                    bwdRelTableData->getPropertyLists(propertyId);
     }
-    inline uint32_t getNumPropertyLists(common::RelDirection relDirection) {
-        return relDirection == common::RelDirection::FWD ? fwdRelTableData->getNumPropertyLists() :
-                                                           bwdRelTableData->getNumPropertyLists();
+    inline uint32_t getNumPropertyLists(common::RelDataDirection relDirection) {
+        return relDirection == common::RelDataDirection::FWD ?
+                   fwdRelTableData->getNumPropertyLists() :
+                   bwdRelTableData->getNumPropertyLists();
     }
-    inline AdjColumn* getAdjColumn(common::RelDirection relDirection) {
-        return relDirection == common::RelDirection::FWD ? fwdRelTableData->getAdjColumn() :
-                                                           bwdRelTableData->getAdjColumn();
+    inline AdjColumn* getAdjColumn(common::RelDataDirection relDirection) {
+        return relDirection == common::RelDataDirection::FWD ? fwdRelTableData->getAdjColumn() :
+                                                               bwdRelTableData->getAdjColumn();
     }
-    inline AdjLists* getAdjLists(common::RelDirection relDirection) {
-        return relDirection == common::RelDirection::FWD ? fwdRelTableData->getAdjLists() :
-                                                           bwdRelTableData->getAdjLists();
+    inline AdjLists* getAdjLists(common::RelDataDirection relDirection) {
+        return relDirection == common::RelDataDirection::FWD ? fwdRelTableData->getAdjLists() :
+                                                               bwdRelTableData->getAdjLists();
     }
     inline common::table_id_t getRelTableID() const { return tableID; }
-    inline DirectedRelTableData* getDirectedTableData(common::RelDirection relDirection) {
+    inline DirectedRelTableData* getDirectedTableData(common::RelDataDirection relDirection) {
         return relDirection == common::FWD ? fwdRelTableData.get() : bwdRelTableData.get();
     }
     inline void removeProperty(
@@ -183,9 +184,10 @@ public:
         bwdRelTableData->removeProperty(propertyID);
         listsUpdatesStore->updateSchema(relTableSchema);
     }
-    inline bool isSingleMultiplicityInDirection(common::RelDirection relDirection) {
-        return relDirection == common::RelDirection::FWD ? fwdRelTableData->isSingleMultiplicity() :
-                                                           bwdRelTableData->isSingleMultiplicity();
+    inline bool isSingleMultiplicityInDirection(common::RelDataDirection relDirection) {
+        return relDirection == common::RelDataDirection::FWD ?
+                   fwdRelTableData->isSingleMultiplicity() :
+                   bwdRelTableData->isSingleMultiplicity();
     }
 
     std::vector<AdjLists*> getAllAdjLists(common::table_id_t boundTableID);
@@ -214,16 +216,16 @@ private:
     void performOpOnListsWithUpdates(const std::function<void(Lists*)>& opOnListsWithUpdates,
         const std::function<void()>& opIfHasUpdates);
     std::unique_ptr<ListsUpdateIteratorsForDirection> getListsUpdateIteratorsForDirection(
-        common::RelDirection relDirection) const;
-    void prepareCommitForDirection(common::RelDirection relDirection);
+        common::RelDataDirection relDirection) const;
+    void prepareCommitForDirection(common::RelDataDirection relDirection);
     void prepareCommitForListWithUpdateStoreDataOnly(AdjLists* adjLists,
         common::offset_t nodeOffset, ListsUpdatesForNodeOffset* listsUpdatesForNodeOffset,
-        common::RelDirection relDirection,
+        common::RelDataDirection relDirection,
         ListsUpdateIteratorsForDirection* listsUpdateIteratorsForDirection,
         const std::function<void(ListsUpdateIterator* listsUpdateIterator, common::offset_t,
             InMemList& inMemList)>& opOnListsUpdateIterators);
     void prepareCommitForList(AdjLists* adjLists, common::offset_t nodeOffset,
-        ListsUpdatesForNodeOffset* listsUpdatesForNodeOffset, common::RelDirection relDirection,
+        ListsUpdatesForNodeOffset* listsUpdatesForNodeOffset, common::RelDataDirection relDirection,
         ListsUpdateIteratorsForDirection* listsUpdateIteratorsForDirection);
 
 private:

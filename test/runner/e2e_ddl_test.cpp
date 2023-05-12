@@ -311,9 +311,9 @@ public:
         // Note: studyAt is a MANY-ONE rel table. Properties are stored as columns in the fwd
         // direction and stored as lists in the bwd direction.
         auto propertyFWDColumnFileName = StorageUtils::getRelPropertyColumnFName(databasePath,
-            studyAtTableID, RelDirection::FWD, propertyToDrop.propertyID, DBFileType::ORIGINAL);
+            studyAtTableID, RelDataDirection::FWD, propertyToDrop.propertyID, DBFileType::ORIGINAL);
         auto propertyBWDListFileName = StorageUtils::getRelPropertyListsFName(databasePath,
-            studyAtTableID, RelDirection::BWD, propertyToDrop.propertyID, DBFileType::ORIGINAL);
+            studyAtTableID, RelDataDirection::BWD, propertyToDrop.propertyID, DBFileType::ORIGINAL);
         bool hasOverflowFile = containsOverflowFile(propertyToDrop.dataType.typeID);
         executeQueryWithoutCommit("ALTER TABLE studyAt DROP places");
         validateColumnFilesExistence(
@@ -455,13 +455,13 @@ public:
         auto hasOverflow =
             containsOverflowFile(tableSchema->getProperty(propertyID).dataType.typeID);
         auto fwdColumnOriginalVersionFileName = StorageUtils::getRelPropertyColumnFName(
-            databasePath, studyAtTableID, RelDirection::FWD, propertyID, DBFileType::ORIGINAL);
-        auto fwdColumnWALVersionFileName = StorageUtils::getRelPropertyColumnFName(
-            databasePath, studyAtTableID, RelDirection::FWD, propertyID, DBFileType::WAL_VERSION);
+            databasePath, studyAtTableID, RelDataDirection::FWD, propertyID, DBFileType::ORIGINAL);
+        auto fwdColumnWALVersionFileName = StorageUtils::getRelPropertyColumnFName(databasePath,
+            studyAtTableID, RelDataDirection::FWD, propertyID, DBFileType::WAL_VERSION);
         auto bwdListOriginalVersionFileName = StorageUtils::getRelPropertyListsFName(
-            databasePath, studyAtTableID, RelDirection::BWD, propertyID, DBFileType::ORIGINAL);
-        auto bwdListWALVersionFileName = StorageUtils::getRelPropertyListsFName(
-            databasePath, studyAtTableID, RelDirection::BWD, propertyID, DBFileType::WAL_VERSION);
+            databasePath, studyAtTableID, RelDataDirection::BWD, propertyID, DBFileType::ORIGINAL);
+        auto bwdListWALVersionFileName = StorageUtils::getRelPropertyListsFName(databasePath,
+            studyAtTableID, RelDataDirection::BWD, propertyID, DBFileType::WAL_VERSION);
         validateDatabaseFileBeforeCheckpointAddProperty(
             fwdColumnOriginalVersionFileName, fwdColumnWALVersionFileName, hasOverflow);
         validateDatabaseFileBeforeCheckpointAddProperty(
@@ -496,13 +496,13 @@ public:
         auto hasOverflow =
             containsOverflowFile(relTableSchema->getProperty(propertyID).dataType.typeID);
         auto fwdColumnOriginalVersionFileName = StorageUtils::getRelPropertyColumnFName(
-            databasePath, studyAtTableID, RelDirection::FWD, propertyID, DBFileType::ORIGINAL);
-        auto fwdColumnWALVersionFileName = StorageUtils::getRelPropertyColumnFName(
-            databasePath, studyAtTableID, RelDirection::FWD, propertyID, DBFileType::WAL_VERSION);
+            databasePath, studyAtTableID, RelDataDirection::FWD, propertyID, DBFileType::ORIGINAL);
+        auto fwdColumnWALVersionFileName = StorageUtils::getRelPropertyColumnFName(databasePath,
+            studyAtTableID, RelDataDirection::FWD, propertyID, DBFileType::WAL_VERSION);
         auto bwdListOriginalVersionFileName = StorageUtils::getRelPropertyListsFName(
-            databasePath, studyAtTableID, RelDirection::BWD, propertyID, DBFileType::ORIGINAL);
-        auto bwdListWALVersionFileName = StorageUtils::getRelPropertyListsFName(
-            databasePath, studyAtTableID, RelDirection::BWD, propertyID, DBFileType::WAL_VERSION);
+            databasePath, studyAtTableID, RelDataDirection::BWD, propertyID, DBFileType::ORIGINAL);
+        auto bwdListWALVersionFileName = StorageUtils::getRelPropertyListsFName(databasePath,
+            studyAtTableID, RelDataDirection::BWD, propertyID, DBFileType::WAL_VERSION);
         validateDatabaseFileBeforeCheckpointAddProperty(
             fwdColumnOriginalVersionFileName, fwdColumnWALVersionFileName, hasOverflow);
         validateDatabaseFileBeforeCheckpointAddProperty(

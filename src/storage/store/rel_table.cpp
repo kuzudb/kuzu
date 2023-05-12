@@ -141,7 +141,7 @@ void DirectedRelTableData::insertRel(common::ValueVector* boundVector,
                 nodeOffset,
                 boundVector->getValue<nodeID_t>(boundVector->state->selVector->selectedPositions[0])
                     .tableID,
-                tableID, getRelDirectionAsString(direction)));
+                tableID, getRelDataDirectionAsString(direction)));
     }
     adjColumn->writeValues(boundVector, nbrVector);
     for (auto i = 0u; i < relPropertyVectors.size(); i++) {
@@ -335,7 +335,7 @@ void RelTable::performOpOnListsWithUpdates(const std::function<void(Lists*)>& op
 }
 
 std::unique_ptr<ListsUpdateIteratorsForDirection> RelTable::getListsUpdateIteratorsForDirection(
-    RelDirection relDirection) const {
+    RelDataDirection relDirection) const {
     return relDirection == FWD ? fwdRelTableData->getListsUpdateIteratorsForDirection() :
                                  bwdRelTableData->getListsUpdateIteratorsForDirection();
 }
@@ -378,7 +378,7 @@ void DirectedRelTableData::batchInitEmptyRelsForNewNodes(
     }
 }
 
-void RelTable::prepareCommitForDirection(RelDirection relDirection) {
+void RelTable::prepareCommitForDirection(RelDataDirection relDirection) {
     auto& listsUpdatesPerChunk = listsUpdatesStore->getListsUpdatesPerChunk(relDirection);
     if (isSingleMultiplicityInDirection(relDirection) || listsUpdatesPerChunk.empty()) {
         return;
@@ -409,7 +409,7 @@ void RelTable::prepareCommitForDirection(RelDirection relDirection) {
 }
 
 void RelTable::prepareCommitForListWithUpdateStoreDataOnly(AdjLists* adjLists, offset_t nodeOffset,
-    ListsUpdatesForNodeOffset* listsUpdatesForNodeOffset, RelDirection relDirection,
+    ListsUpdatesForNodeOffset* listsUpdatesForNodeOffset, RelDataDirection relDirection,
     ListsUpdateIteratorsForDirection* listsUpdateIteratorsForDirection,
     const std::function<void(ListsUpdateIterator* listsUpdateIterator, offset_t,
         InMemList& inMemList)>& opOnListsUpdateIterators) {
@@ -428,7 +428,7 @@ void RelTable::prepareCommitForListWithUpdateStoreDataOnly(AdjLists* adjLists, o
 }
 
 void RelTable::prepareCommitForList(AdjLists* adjLists, offset_t nodeOffset,
-    ListsUpdatesForNodeOffset* listsUpdatesForNodeOffset, RelDirection relDirection,
+    ListsUpdatesForNodeOffset* listsUpdatesForNodeOffset, RelDataDirection relDirection,
     ListsUpdateIteratorsForDirection* listsUpdateIteratorsForDirection) {
     auto relIDLists =
         (RelIDList*)getPropertyLists(relDirection, RelTableSchema::INTERNAL_REL_ID_PROPERTY_ID);

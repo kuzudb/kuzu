@@ -131,7 +131,8 @@ void Binder::bindQueryRel(const RelPattern& relPattern,
     // bind variable length
     auto [lowerBound, upperBound] = bindVariableLengthRelBound(relPattern);
     auto queryRel = make_shared<RelExpression>(getUniqueExpressionName(parsedName), parsedName,
-        tableIDs, srcNode, dstNode, relPattern.getRelType(), lowerBound, upperBound);
+        tableIDs, srcNode, dstNode, relPattern.getDirection() != BOTH, relPattern.getRelType(),
+        lowerBound, upperBound);
     queryRel->setAlias(parsedName);
     // resolve properties associate with rel table
     std::vector<RelTableSchema*> relTableSchemas;

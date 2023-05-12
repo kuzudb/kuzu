@@ -106,7 +106,7 @@ void WALReplayerUtils::replaceListsHeadersFilesWithVersionFromWALIfExists(
 }
 
 void WALReplayerUtils::createEmptyDBFilesForRelProperties(RelTableSchema* relTableSchema,
-    const std::string& directory, RelDirection relDirection, uint32_t numNodes,
+    const std::string& directory, RelDataDirection relDirection, uint32_t numNodes,
     bool isForRelPropertyColumn) {
     for (auto& property : relTableSchema->properties) {
         if (isForRelPropertyColumn) {
@@ -124,7 +124,7 @@ void WALReplayerUtils::createEmptyDBFilesForRelProperties(RelTableSchema* relTab
 }
 
 void WALReplayerUtils::createEmptyDBFilesForColumns(
-    const std::map<table_id_t, uint64_t>& maxNodeOffsetsPerTable, RelDirection relDirection,
+    const std::map<table_id_t, uint64_t>& maxNodeOffsetsPerTable, RelDataDirection relDirection,
     const std::string& directory, RelTableSchema* relTableSchema) {
     auto boundTableID = relTableSchema->getBoundTableID(relDirection);
     auto numNodes = maxNodeOffsetsPerTable.at(boundTableID) == INVALID_OFFSET ?
@@ -139,7 +139,7 @@ void WALReplayerUtils::createEmptyDBFilesForColumns(
 }
 
 void WALReplayerUtils::createEmptyDBFilesForLists(
-    const std::map<table_id_t, uint64_t>& maxNodeOffsetsPerTable, RelDirection relDirection,
+    const std::map<table_id_t, uint64_t>& maxNodeOffsetsPerTable, RelDataDirection relDirection,
     const std::string& directory, RelTableSchema* relTableSchema) {
     auto boundTableID = relTableSchema->getBoundTableID(relDirection);
     auto numNodes = maxNodeOffsetsPerTable.at(boundTableID) == INVALID_OFFSET ?
@@ -235,7 +235,7 @@ void WALReplayerUtils::fileOperationOnRelFiles(RelTableSchema* relTableSchema,
 }
 
 void WALReplayerUtils::fileOperationOnRelPropertyFiles(RelTableSchema* tableSchema,
-    table_id_t nodeTableID, const std::string& directory, RelDirection relDirection,
+    table_id_t nodeTableID, const std::string& directory, RelDataDirection relDirection,
     bool isColumnProperty, std::function<void(std::string fileName)> columnFileOperation,
     std::function<void(std::string fileName)> listFileOperation) {
     for (auto& property : tableSchema->properties) {

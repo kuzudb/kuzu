@@ -532,11 +532,11 @@ bool Types::isNumerical(const kuzu::common::DataType& dataType) {
     }
 }
 
-RelDirection operator!(RelDirection& direction) {
+RelDataDirection operator!(RelDataDirection& direction) {
     return (FWD == direction) ? BWD : FWD;
 }
 
-std::string getRelDirectionAsString(RelDirection direction) {
+std::string getRelDataDirectionAsString(RelDataDirection direction) {
     return (FWD == direction) ? "forward" : "backward";
 }
 

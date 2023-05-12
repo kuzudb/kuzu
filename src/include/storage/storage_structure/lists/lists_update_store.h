@@ -78,7 +78,7 @@ public:
         }
         initListsUpdatesPerTablePerDirection();
     }
-    inline ListsUpdatesPerChunk& getListsUpdatesPerChunk(common::RelDirection relDirection) {
+    inline ListsUpdatesPerChunk& getListsUpdatesPerChunk(common::RelDataDirection relDirection) {
         return listsUpdatesPerDirection[relDirection];
     }
 
@@ -148,7 +148,7 @@ private:
     void initListsUpdatesPerTablePerDirection();
 
     ListsUpdatesForNodeOffset* getOrCreateListsUpdatesForNodeOffset(
-        common::RelDirection relDirection, common::nodeID_t nodeID);
+        common::RelDataDirection relDirection, common::nodeID_t nodeID);
 
     ListsUpdatesForNodeOffset* getListsUpdatesForNodeOffsetIfExists(
         ListFileID& listFileID, common::offset_t nodeOffset) const;

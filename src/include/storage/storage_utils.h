@@ -101,7 +101,7 @@ public:
     // Returns the StorageStructureIDAndFName for the "base" lists structure/file. Callers need to
     // modify it to obtain versions for METADATA and HEADERS structures/files.
     static inline StorageStructureIDAndFName getAdjListsStructureIDAndFName(
-        const std::string& directory, common::table_id_t relTableID, common::RelDirection dir) {
+        const std::string& directory, common::table_id_t relTableID, common::RelDataDirection dir) {
         auto fName = getAdjListsFName(directory, relTableID, dir, common::DBFileType::ORIGINAL);
         return StorageStructureIDAndFName(
             StorageStructureID::newAdjListsID(relTableID, dir, ListFileType::BASE_LISTS), fName);
@@ -110,7 +110,7 @@ public:
     // Returns the StorageStructureIDAndFName for the "base" lists structure/file. Callers need to
     // modify it to obtain versions for METADATA and HEADERS structures/files.
     static inline StorageStructureIDAndFName getRelPropertyListsStructureIDAndFName(
-        const std::string& directory, common::table_id_t relTableID, common::RelDirection dir,
+        const std::string& directory, common::table_id_t relTableID, common::RelDataDirection dir,
         const catalog::Property& property) {
         auto fName = getRelPropertyListsFName(
             directory, relTableID, dir, property.propertyID, common::DBFileType::ORIGINAL);
@@ -120,12 +120,12 @@ public:
     }
 
     static std::string getAdjColumnFName(const std::string& directory,
-        const common::table_id_t& relTableID, const common::RelDirection& relDirection,
+        const common::table_id_t& relTableID, const common::RelDataDirection& relDirection,
         common::DBFileType dbFileType);
 
     static inline StorageStructureIDAndFName getAdjColumnStructureIDAndFName(
         const std::string& directory, const common::table_id_t& relTableID,
-        const common::RelDirection& relDirection) {
+        const common::RelDataDirection& relDirection) {
         auto fName =
             getAdjColumnFName(directory, relTableID, relDirection, common::DBFileType::ORIGINAL);
         return StorageStructureIDAndFName(
@@ -133,16 +133,16 @@ public:
     }
 
     static std::string getAdjListsFName(const std::string& directory,
-        const common::table_id_t& relTableID, const common::RelDirection& relDirection,
+        const common::table_id_t& relTableID, const common::RelDataDirection& relDirection,
         common::DBFileType dbFileType);
 
     static std::string getRelPropertyColumnFName(const std::string& directory,
-        const common::table_id_t& relTableID, const common::RelDirection& relDirection,
+        const common::table_id_t& relTableID, const common::RelDataDirection& relDirection,
         uint32_t propertyID, common::DBFileType dbFileType);
 
     static inline StorageStructureIDAndFName getRelPropertyColumnStructureIDAndFName(
         const std::string& directory, const common::table_id_t& relTableID,
-        const common::RelDirection& relDirection, uint32_t propertyID) {
+        const common::RelDataDirection& relDirection, uint32_t propertyID) {
         auto fName = getRelPropertyColumnFName(
             directory, relTableID, relDirection, propertyID, common::DBFileType::ORIGINAL);
         return StorageStructureIDAndFName(
@@ -151,7 +151,7 @@ public:
     }
 
     static std::string getRelPropertyListsFName(const std::string& directory,
-        const common::table_id_t& relTableID, const common::RelDirection& relDirection,
+        const common::table_id_t& relTableID, const common::RelDataDirection& relDirection,
         uint32_t propertyID, common::DBFileType dbFileType);
 
     static inline std::string getListHeadersFName(std::string baseListFName) {
@@ -273,19 +273,20 @@ public:
         StorageManager& storageManager);
 
     static void initializeListsHeaders(const catalog::RelTableSchema* relTableSchema,
-        uint64_t numNodesInTable, const std::string& directory, common::RelDirection relDirection);
+        uint64_t numNodesInTable, const std::string& directory,
+        common::RelDataDirection relDirection);
 
 private:
     static std::string appendSuffixOrInsertBeforeWALSuffix(
         std::string fileName, std::string suffix);
 
     static void createFileForRelColumnPropertyWithDefaultVal(common::table_id_t relTableID,
-        common::table_id_t boundTableID, common::RelDirection direction,
+        common::table_id_t boundTableID, common::RelDataDirection direction,
         const catalog::Property& property, uint8_t* defaultVal, bool isDefaultValNull,
         StorageManager& storageManager);
 
     static void createFileForRelListsPropertyWithDefaultVal(common::table_id_t relTableID,
-        common::table_id_t boundTableID, common::RelDirection direction,
+        common::table_id_t boundTableID, common::RelDataDirection direction,
         const catalog::Property& property, uint8_t* defaultVal, bool isDefaultValNull,
         StorageManager& storageManager);
 };

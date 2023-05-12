@@ -29,9 +29,9 @@ private:
 
     void saveToFile() override;
 
-    void initializeColumns(common::RelDirection relDirection);
+    void initializeColumns(common::RelDataDirection relDirection);
 
-    void initializeLists(common::RelDirection relDirection);
+    void initializeLists(common::RelDataDirection relDirection);
 
     void initAdjListsHeaders();
 

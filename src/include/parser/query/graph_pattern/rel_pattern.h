@@ -6,7 +6,7 @@
 namespace kuzu {
 namespace parser {
 
-enum ArrowDirection : uint8_t { LEFT = 0, RIGHT = 1 };
+enum ArrowDirection : uint8_t { LEFT = 0, RIGHT = 1, BOTH = 2 };
 
 /**
  * RelationshipPattern represents "-[relName:RelTableName+]-"

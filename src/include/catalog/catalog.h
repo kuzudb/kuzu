@@ -83,7 +83,7 @@ public:
                                                           relTableNameToIDMap.at(tableName);
     }
     inline bool isSingleMultiplicityInDirection(
-        common::table_id_t tableID, common::RelDirection direction) const {
+        common::table_id_t tableID, common::RelDataDirection direction) const {
         return relTableSchemas.at(tableID)->isSingleMultiplicityInDirection(direction);
     }
 

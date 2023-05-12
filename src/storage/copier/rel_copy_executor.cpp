@@ -85,7 +85,7 @@ void RelCopyExecutor::saveToFile() {
     logger->debug("Done writing columns and lists to disk for rel {}.", tableSchema->tableName);
 }
 
-void RelCopyExecutor::initializeColumns(RelDirection relDirection) {
+void RelCopyExecutor::initializeColumns(RelDataDirection relDirection) {
     auto boundTableID =
         reinterpret_cast<RelTableSchema*>(tableSchema)->getBoundTableID(relDirection);
     auto numNodes = maxNodeOffsetsPerTable.at(boundTableID) + 1;
@@ -105,7 +105,7 @@ void RelCopyExecutor::initializeColumns(RelDirection relDirection) {
     propertyColumnsPerDirection[relDirection] = std::move(propertyColumns);
 }
 
-void RelCopyExecutor::initializeLists(RelDirection relDirection) {
+void RelCopyExecutor::initializeLists(RelDataDirection relDirection) {
     auto boundTableID =
         reinterpret_cast<RelTableSchema*>(tableSchema)->getBoundTableID(relDirection);
     auto numNodes = maxNodeOffsetsPerTable.at(boundTableID) + 1;
@@ -620,7 +620,7 @@ void RelCopyExecutor::populateAdjColumnsAndCountRelsInAdjListsTask(uint64_t bloc
                         relTableSchema->tableName,
                         getRelMultiplicityAsString(relTableSchema->relMultiplicity), nodeOffset,
                         copier->catalog.getReadOnlyVersion()->getTableName(tableID),
-                        getRelDirectionAsString(relDirection)));
+                        getRelDataDirectionAsString(relDirection)));
                 }
                 copier->adjColumnsPerDirection[relDirection]->setElement(
                     nodeOffset, (uint8_t*)&nodeIDs[!relDirection]);

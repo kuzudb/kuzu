@@ -11,12 +11,12 @@ class RelExpression : public NodeOrRelExpression {
 public:
     RelExpression(std::string uniqueName, std::string variableName,
         std::vector<common::table_id_t> tableIDs, std::shared_ptr<NodeExpression> srcNode,
-        std::shared_ptr<NodeExpression> dstNode, common::QueryRelType relType, uint64_t lowerBound,
-        uint64_t upperBound)
+        std::shared_ptr<NodeExpression> dstNode, bool directed, common::QueryRelType relType,
+        uint64_t lowerBound, uint64_t upperBound)
         : NodeOrRelExpression{common::REL, std::move(uniqueName), std::move(variableName),
               std::move(tableIDs)},
-          srcNode{std::move(srcNode)}, dstNode{std::move(dstNode)}, relType{relType},
-          lowerBound{lowerBound}, upperBound{upperBound} {}
+          srcNode{std::move(srcNode)}, dstNode{std::move(dstNode)}, directed{directed},
+          relType{relType}, lowerBound{lowerBound}, upperBound{upperBound} {}
 
     inline bool isBoundByMultiLabeledNode() const {
         return srcNode->isMultiLabeled() || dstNode->isMultiLabeled();
@@ -30,6 +30,8 @@ public:
     inline common::QueryRelType getRelType() const { return relType; }
     inline uint64_t getLowerBound() const { return lowerBound; }
     inline uint64_t getUpperBound() const { return upperBound; }
+
+    inline bool isDirected() const { return directed; }
 
     inline bool hasInternalIDProperty() const {
         return hasPropertyExpression(common::INTERNAL_ID_SUFFIX);
@@ -48,6 +50,7 @@ public:
 private:
     std::shared_ptr<NodeExpression> srcNode;
     std::shared_ptr<NodeExpression> dstNode;
+    bool directed;
     common::QueryRelType relType;
     uint64_t lowerBound;
     uint64_t upperBound;
