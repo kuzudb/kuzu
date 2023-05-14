@@ -89,8 +89,8 @@ std::shared_ptr<Expression> ExpressionBinder::implicitCast(
         auto uniqueName = ScalarFunctionExpression::getUniqueName(functionName, children);
         return std::make_shared<ScalarFunctionExpression>(functionName, FUNCTION,
             std::move(bindData), std::move(children),
-            VectorCastOperations::bindImplicitCastFunc(
-                expression->dataType.typeID, targetType.typeID),
+            VectorCastOperations::bindImplicitCastFunc(expression->dataType.typeID,
+                targetType.typeID),
             nullptr /* selectFunc */, std::move(uniqueName));
     } else {
         throw common::BinderException("Expression " + expression->toString() + " has data type " +
@@ -103,17 +103,19 @@ std::shared_ptr<Expression> ExpressionBinder::implicitCast(
 void ExpressionBinder::resolveAnyDataType(Expression& expression, const DataType& targetType) {
     if (expression.expressionType == PARAMETER) { // expression is parameter
         ((ParameterExpression&)expression).setDataType(targetType);
-    } else { // expression is null literal
+    } else {                                      // expression is null literal
         assert(expression.expressionType == LITERAL);
         ((LiteralExpression&)expression).setDataType(targetType);
     }
 }
 
-void ExpressionBinder::validateExpectedDataType(
-    const Expression& expression, const std::unordered_set<DataTypeID>& targets) {
+void ExpressionBinder::validateExpectedDataType(const Expression& expression,
+    const std::unordered_set<DataTypeID>& targets) {
     auto dataType = expression.dataType;
     if (!targets.contains(dataType.typeID)) {
         std::vector<DataTypeID> targetsVec{targets.begin(), targets.end()};
+        auto dataTypeStrings = Types::dataTypesToString(targetsVec);
+        std::sort(dataTypeStrings.begin(), dataTypeStrings.end());
         throw BinderException(expression.toString() + " has data type " +
                               Types::dataTypeToString(dataType.typeID) + ". " +
                               Types::dataTypesToString(targetsVec) + " was expected.");

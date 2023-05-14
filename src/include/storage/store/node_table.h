@@ -17,20 +17,15 @@ public:
 
     void initializeData(catalog::NodeTableSchema* nodeTableSchema);
 
+    void resetColumns(catalog::NodeTableSchema* nodeTableSchema);
+
     inline common::offset_t getMaxNodeOffset(transaction::Transaction* trx) const {
         return nodesStatisticsAndDeletedIDs->getMaxNodeOffset(trx, tableID);
     }
-    inline void setSelVectorForDeletedOffsets(
-        transaction::Transaction* trx, std::shared_ptr<common::ValueVector>& vector) const {
+    inline void setSelVectorForDeletedOffsets(transaction::Transaction* trx,
+        std::shared_ptr<common::ValueVector>& vector) const {
         assert(vector->isSequential());
         nodesStatisticsAndDeletedIDs->setDeletedNodeOffsetsForMorsel(trx, vector, tableID);
-    }
-
-    void destroyData(catalog::NodeTableSchema* nodeTableSchema) {
-        for (auto& property : nodeTableSchema->getAllNodeProperties()) {
-            propertyColumns[property.propertyID].reset();
-        }
-        //pkIndex.reset();
     }
 
     void scan(transaction::Transaction* transaction, common::ValueVector* inputIDVector,
@@ -63,8 +58,8 @@ public:
     void prepareCommitOrRollbackIfNecessary(bool isCommit);
 
 private:
-    void deleteNode(
-        common::offset_t nodeOffset, common::ValueVector* primaryKeyVector, uint32_t pos) const;
+    void deleteNode(common::offset_t nodeOffset, common::ValueVector* primaryKeyVector,
+        uint32_t pos) const;
 
 private:
     NodesStatisticsAndDeletedIDs* nodesStatisticsAndDeletedIDs;

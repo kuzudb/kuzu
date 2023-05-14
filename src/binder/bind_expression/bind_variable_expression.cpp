@@ -11,8 +11,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindVariableExpression(
     const ParsedExpression& parsedExpression) {
     auto& variableExpression = (ParsedVariableExpression&)parsedExpression;
     auto variableName = variableExpression.getVariableName();
-    if (binder->variablesInScope.contains(variableName)) {
-        return binder->variablesInScope.at(variableName);
+    if (binder->variableScope->contains(variableName)) {
+        return binder->variableScope->getExpression(variableName);
     }
     throw common::BinderException(
         "Variable " + parsedExpression.getRawName() + " is not in scope.");

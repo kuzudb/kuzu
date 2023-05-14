@@ -11,7 +11,7 @@ namespace binder {
 std::shared_ptr<Expression> ExpressionBinder::bindExistentialSubqueryExpression(
     const ParsedExpression& parsedExpression) {
     auto& subqueryExpression = (ParsedSubqueryExpression&)parsedExpression;
-    auto prevVariablesInScope = binder->enterSubquery();
+    auto prevVariableScope = binder->enterSubquery();
     auto [queryGraph, _] = binder->bindGraphPattern(subqueryExpression.getPatternElements());
     auto rawName = parsedExpression.getRawName();
     auto uniqueName = binder->getUniqueExpressionName(rawName);
@@ -21,7 +21,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindExistentialSubqueryExpression(
         boundSubqueryExpression->setWhereExpression(
             binder->bindWhereExpression(*subqueryExpression.getWhereClause()));
     }
-    binder->exitSubquery(std::move(prevVariablesInScope));
+    binder->exitSubquery(std::move(prevVariableScope));
     return boundSubqueryExpression;
 }
 

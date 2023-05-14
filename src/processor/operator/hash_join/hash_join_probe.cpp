@@ -168,6 +168,7 @@ uint64_t HashJoinProbe::getMarkJoinResult() {
             markValues[probeState->matchedSelVector->selectedPositions[i]] = true;
         }
     }
+    probeState->probedTuples[0] = nullptr;
     probeState->nextMatchedTupleIdx = probeState->matchedSelVector->selectedSize;
     return 1;
 }

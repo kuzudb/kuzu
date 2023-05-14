@@ -114,10 +114,10 @@ Noura|
 -NAME Return2
 -QUERY MATCH (a:User)-[:Follows]->(b:User) RETURN *;
 ---- 4
-(label:User, 0:1, {name:Karissa, age:40})|(label:User, 0:0, {name:Adam, age:30})
-(label:User, 0:2, {name:Zhang, age:50})|(label:User, 0:0, {name:Adam, age:30})
-(label:User, 0:2, {name:Zhang, age:50})|(label:User, 0:1, {name:Karissa, age:40})
-(label:User, 0:3, {name:Noura, age:25})|(label:User, 0:2, {name:Zhang, age:50})
+(label:User, 0:0, {name:Adam, age:30})|(label:User, 0:1, {name:Karissa, age:40})
+(label:User, 0:0, {name:Adam, age:30})|(label:User, 0:2, {name:Zhang, age:50})
+(label:User, 0:1, {name:Karissa, age:40})|(label:User, 0:2, {name:Zhang, age:50})
+(label:User, 0:2, {name:Zhang, age:50})|(label:User, 0:3, {name:Noura, age:25})
 
 -NAME Return3
 -QUERY MATCH (a:User)-[e:Follows]->(b:User) RETURN a.name, a.age, e.since;
@@ -215,10 +215,10 @@ Adam|30
 -NAME With1
 -QUERY MATCH (a:User) WITH avg(a.age) as avgAge MATCH (b:User) WHERE b.age > avgAge RETURN *;
 ---- 2
-(label:User, 0:1, {name:Karissa, age:40})|36.250000
-(label:User, 0:2, {name:Zhang, age:50})|36.250000
+36.250000|(label:User, 0:1, {name:Karissa, age:40})
+36.250000|(label:User, 0:2, {name:Zhang, age:50})
 
 -NAME With2
 -QUERY MATCH (a:User) WITH a ORDER BY a.age DESC LIMIT 1 MATCH (a)-[:Follows]->(b:User) RETURN *;
 ---- 1
-(label:User, 0:3, {name:Noura, age:25})|(label:User, 0:2, {name:Zhang, age:50})
+(label:User, 0:2, {name:Zhang, age:50})|(label:User, 0:3, {name:Noura, age:25})
