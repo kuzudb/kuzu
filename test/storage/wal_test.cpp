@@ -4,10 +4,11 @@ using namespace kuzu::common;
 using namespace kuzu::testing;
 using namespace kuzu::storage;
 
-class WALTests : public Test {
+class WALTests : public EmptyDBTest {
 
 protected:
     void SetUp() override {
+        EmptyDBTest::SetUp();
         FileUtils::createDir(TestHelper::getTmpTestDir());
         LoggerUtils::createLogger(LoggerConstants::LoggerEnum::BUFFER_MANAGER);
         LoggerUtils::createLogger(LoggerConstants::LoggerEnum::WAL);
@@ -18,7 +19,7 @@ protected:
     }
 
     void TearDown() override {
-        FileUtils::removeDir(TestHelper::getTmpTestDir());
+        EmptyDBTest::TearDown();
         LoggerUtils::dropLogger(LoggerConstants::LoggerEnum::BUFFER_MANAGER);
         LoggerUtils::dropLogger(LoggerConstants::LoggerEnum::WAL);
         LoggerUtils::dropLogger(LoggerConstants::LoggerEnum::STORAGE);

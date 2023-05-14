@@ -92,6 +92,7 @@ public:
         catalog::RelTableSchema* tableSchema, BufferManager& bufferManager, WAL* wal);
     void initializeLists(
         catalog::RelTableSchema* tableSchema, BufferManager& bufferManager, WAL* wal);
+    void resetColumnsAndLists(catalog::RelTableSchema* tableSchema, WAL* wal);
     Column* getPropertyColumn(common::property_id_t propertyID);
     Lists* getPropertyLists(common::property_id_t propertyID);
 
@@ -117,20 +118,6 @@ public:
     void addProperty(catalog::Property& property, WAL* wal);
     void batchInitEmptyRelsForNewNodes(const catalog::RelTableSchema* relTableSchema,
         uint64_t numNodesInTable, const std::string& directory);
-
-void destroyData(catalog::RelTableSchema* tableSchema, WAL* wal) {
-    if (isSingleMultiplicity()) {
-        adjColumn.reset();
-        for (auto& property : tableSchema->properties) {
-            propertyColumns[property.propertyID].reset();
-        }
-    } else {
-        adjLists.reset();
-        for (auto& property : tableSchema->properties) {
-            propertyLists[property.propertyID].reset();
-        }
-    }
-}
 
 private:
     void scanColumns(transaction::Transaction* transaction, RelTableScanState& scanState,
@@ -161,12 +148,12 @@ public:
     RelTable(const catalog::Catalog& catalog, common::table_id_t tableID,
         MemoryManager& memoryManager, WAL* wal);
 
-void destroyData(catalog::RelTableSchema* tableSchema) {
-    fwdRelTableData->destroyData(tableSchema, wal);
-    bwdRelTableData->destroyData(tableSchema, wal);
-}
-
     void initializeData(catalog::RelTableSchema* tableSchema);
+
+    inline void resetColumnsAndLists(catalog::RelTableSchema* tableSchema) {
+        fwdRelTableData->resetColumnsAndLists(tableSchema, wal);
+        bwdRelTableData->resetColumnsAndLists(tableSchema, wal);
+    }
 
     inline Column* getPropertyColumn(
         common::RelDataDirection relDirection, common::property_id_t propertyId) {

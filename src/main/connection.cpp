@@ -210,8 +210,13 @@ std::unique_ptr<PreparedStatement> Connection::prepareNoLock(
 std::string Connection::getNodeTableNames() {
     lock_t lck{mtx};
     std::string result = "Node tables: \n";
+    std::vector<std::string> nodeTableNames;
     for (auto& tableIDSchema : database->catalog->getReadOnlyVersion()->getNodeTableSchemas()) {
-        result += "\t" + tableIDSchema.second->tableName + "\n";
+        nodeTableNames.push_back(tableIDSchema.second->tableName);
+    }
+    std::sort(nodeTableNames.begin(), nodeTableNames.end());
+    for (auto& nodeTableName : nodeTableNames) {
+        result += "\t" + nodeTableName + "\n";
     }
     return result;
 }
@@ -219,8 +224,13 @@ std::string Connection::getNodeTableNames() {
 std::string Connection::getRelTableNames() {
     lock_t lck{mtx};
     std::string result = "Rel tables: \n";
+    std::vector<std::string> relTableNames;
     for (auto& tableIDSchema : database->catalog->getReadOnlyVersion()->getRelTableSchemas()) {
-        result += "\t" + tableIDSchema.second->tableName + "\n";
+        relTableNames.push_back(tableIDSchema.second->tableName);
+    }
+    std::sort(relTableNames.begin(), relTableNames.end());
+    for (auto& relTableName : relTableNames) {
+        result += "\t" + relTableName + "\n";
     }
     return result;
 }

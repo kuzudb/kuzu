@@ -17,8 +17,8 @@ WALReplayer::WALReplayer(WAL* wal) : isRecovering{true}, isCheckpoint{true}, wal
 WALReplayer::WALReplayer(WAL* wal, StorageManager* storageManager, MemoryManager* memoryManager,
     Catalog* catalog, bool isCheckpoint)
     : isRecovering{false}, isCheckpoint{isCheckpoint}, storageManager{storageManager},
-      bufferManager{memoryManager->getBufferManager()},
-      memoryManager{memoryManager}, wal{wal}, catalog{catalog} {
+      bufferManager{memoryManager->getBufferManager()}, memoryManager{memoryManager}, wal{wal},
+      catalog{catalog} {
     init();
 }
 
@@ -78,8 +78,8 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
         std::unique_ptr<FileInfo> fileInfoOfStorageStructure =
             StorageUtils::getFileInfoForReadWrite(wal->getDirectory(), storageStructureID);
         if (isCheckpoint) {
-            walFileHandle->readPage(
-                pageBuffer.get(), walRecord.pageInsertOrUpdateRecord.pageIdxInWAL);
+            walFileHandle->readPage(pageBuffer.get(),
+                walRecord.pageInsertOrUpdateRecord.pageIdxInWAL);
             FileUtils::writeToFile(fileInfoOfStorageStructure.get(), pageBuffer.get(),
                 BufferPoolConstants::PAGE_4KB_SIZE,
                 walRecord.pageInsertOrUpdateRecord.pageIdxInOriginalFile *
@@ -260,10 +260,16 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
                 // renaming has already happened, so we do not have to do anything, which is the
                 // behavior of replaceNodeWithVersionFromWALIfExists, i.e., if the WAL version
                 // of the file does not exist, it will not do anything.
-                storageManager->getNodesStore().getNodeTable(tableID)->destroyData(nodeTableSchema);
-                WALReplayerUtils::replaceNodeFilesWithVersionFromWALIfExists(
-                    nodeTableSchema, wal->getDirectory());
+                storageManager->getNodesStore().getNodeTable(tableID)->resetColumns(
+                    nodeTableSchema);
+                WALReplayerUtils::replaceNodeFilesWithVersionFromWALIfExists(nodeTableSchema,
+                    wal->getDirectory());
                 auto relTableSchemas = catalog->getAllRelTableSchemasContainBoundTable(tableID);
+                for (auto relTableSchema : relTableSchemas) {
+                    storageManager->getRelsStore()
+                        .getRelTable(relTableSchema->tableID)
+                        ->resetColumnsAndLists(relTableSchema);
+                }
                 WALReplayerUtils::replaceListsHeadersFilesWithVersionFromWALIfExists(
                     relTableSchemas, tableID, wal->getDirectory());
                 // If we are not recovering, i.e., we are checkpointing during normal execution,
@@ -297,7 +303,7 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
         if (isCheckpoint) {
             auto tableID = walRecord.copyRelRecord.tableID;
             if (!isRecovering) {
-                storageManager->getRelsStore().getRelTable(tableID)->destroyData(
+                storageManager->getRelsStore().getRelTable(tableID)->resetColumnsAndLists(
                     catalog->getReadOnlyVersion()->getRelTableSchema(tableID));
                 // See comments for COPY_NODE_RECORD.
                 WALReplayerUtils::replaceRelPropertyFilesWithVersionFromWALIfExists(
@@ -356,21 +362,21 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
             auto propertyID = walRecord.dropPropertyRecord.propertyID;
             if (!isRecovering) {
                 if (catalog->getReadOnlyVersion()->containNodeTable(tableID)) {
-                    WALReplayerUtils::removeDBFilesForNodeProperty(
-                        wal->getDirectory(), tableID, propertyID);
                     storageManager->getNodesStore().getNodeTable(tableID)->removeProperty(
                         propertyID);
+                    WALReplayerUtils::removeDBFilesForNodeProperty(wal->getDirectory(), tableID,
+                        propertyID);
                 } else {
+                    storageManager->getRelsStore().getRelTable(tableID)->removeProperty(propertyID,
+                        *catalog->getReadOnlyVersion()->getRelTableSchema(tableID));
                     WALReplayerUtils::removeDBFilesForRelProperty(wal->getDirectory(),
                         catalog->getReadOnlyVersion()->getRelTableSchema(tableID), propertyID);
-                    storageManager->getRelsStore().getRelTable(tableID)->removeProperty(
-                        propertyID, *catalog->getReadOnlyVersion()->getRelTableSchema(tableID));
                 }
             } else {
                 auto catalogForRecovery = getCatalogForRecovery(DBFileType::WAL_VERSION);
                 if (catalogForRecovery->getReadOnlyVersion()->containNodeTable(tableID)) {
-                    WALReplayerUtils::removeDBFilesForNodeProperty(
-                        wal->getDirectory(), tableID, propertyID);
+                    WALReplayerUtils::removeDBFilesForNodeProperty(wal->getDirectory(), tableID,
+                        propertyID);
                 } else {
                     WALReplayerUtils::removeDBFilesForRelProperty(wal->getDirectory(),
                         catalogForRecovery->getReadOnlyVersion()->getRelTableSchema(tableID),
@@ -389,14 +395,14 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
                 auto tableSchema = catalog->getWriteVersion()->getTableSchema(tableID);
                 auto property = tableSchema->getProperty(propertyID);
                 if (catalog->getReadOnlyVersion()->containNodeTable(tableID)) {
-                    WALReplayerUtils::renameDBFilesForNodeProperty(
-                        wal->getDirectory(), tableID, propertyID);
+                    WALReplayerUtils::renameDBFilesForNodeProperty(wal->getDirectory(), tableID,
+                        propertyID);
                     storageManager->getNodesStore().getNodeTable(tableID)->addProperty(property);
                 } else {
                     WALReplayerUtils::renameDBFilesForRelProperty(wal->getDirectory(),
                         reinterpret_cast<RelTableSchema*>(tableSchema), propertyID);
-                    storageManager->getRelsStore().getRelTable(tableID)->addProperty(
-                        property, *reinterpret_cast<RelTableSchema*>(tableSchema));
+                    storageManager->getRelsStore().getRelTable(tableID)->addProperty(property,
+                        *reinterpret_cast<RelTableSchema*>(tableSchema));
                 }
             } else {
                 auto catalogForRecovery = getCatalogForRecovery(DBFileType::WAL_VERSION);
@@ -404,8 +410,8 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
                     catalogForRecovery->getReadOnlyVersion()->getTableSchema(tableID);
                 auto property = tableSchema->getProperty(propertyID);
                 if (catalogForRecovery->getReadOnlyVersion()->containNodeTable(tableID)) {
-                    WALReplayerUtils::renameDBFilesForNodeProperty(
-                        wal->getDirectory(), tableID, propertyID);
+                    WALReplayerUtils::renameDBFilesForNodeProperty(wal->getDirectory(), tableID,
+                        propertyID);
                 } else {
                     WALReplayerUtils::renameDBFilesForRelProperty(wal->getDirectory(),
                         reinterpret_cast<RelTableSchema*>(tableSchema), propertyID);
@@ -422,8 +428,8 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
     }
 }
 
-void WALReplayer::truncateFileIfInsertion(
-    BMFileHandle* fileHandle, const PageUpdateOrInsertRecord& pageInsertOrUpdateRecord) {
+void WALReplayer::truncateFileIfInsertion(BMFileHandle* fileHandle,
+    const PageUpdateOrInsertRecord& pageInsertOrUpdateRecord) {
     if (pageInsertOrUpdateRecord.isInsert) {
         // If we are rolling back and this is a page insertion we truncate the fileHandle's
         // data structures that hold locks for pageIdxs.
@@ -477,8 +483,8 @@ BMFileHandle* WALReplayer::getVersionedFileHandleIfWALVersionAndBMShouldBeCleare
         case ColumnType::ADJ_COLUMN: {
             auto& relNodeTableAndDir =
                 storageStructureID.columnFileID.adjColumnID.relNodeTableAndDir;
-            Column* column = storageManager->getRelsStore().getAdjColumn(
-                relNodeTableAndDir.dir, relNodeTableAndDir.relTableID);
+            Column* column = storageManager->getRelsStore().getAdjColumn(relNodeTableAndDir.dir,
+                relNodeTableAndDir.relTableID);
             return column->getFileHandle();
         }
         case ColumnType::REL_PROPERTY_COLUMN: {
@@ -501,8 +507,8 @@ BMFileHandle* WALReplayer::getVersionedFileHandleIfWALVersionAndBMShouldBeCleare
         switch (storageStructureID.listFileID.listType) {
         case ListType::ADJ_LISTS: {
             auto& relNodeTableAndDir = storageStructureID.listFileID.adjListsID.relNodeTableAndDir;
-            auto adjLists = storageManager->getRelsStore().getAdjLists(
-                relNodeTableAndDir.dir, relNodeTableAndDir.relTableID);
+            auto adjLists = storageManager->getRelsStore().getAdjLists(relNodeTableAndDir.dir,
+                relNodeTableAndDir.relTableID);
             switch (storageStructureID.listFileID.listFileType) {
             case ListFileType::BASE_LISTS: {
                 return adjLists->getFileHandle();

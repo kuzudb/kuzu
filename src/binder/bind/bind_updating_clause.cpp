@@ -32,7 +32,7 @@ std::unique_ptr<BoundUpdatingClause> Binder::bindUpdatingClause(
 std::unique_ptr<BoundUpdatingClause> Binder::bindCreateClause(
     const UpdatingClause& updatingClause) {
     auto& createClause = (CreateClause&)updatingClause;
-    auto prevVariablesInScope = variablesInScope;
+    auto prevVariableScope = variableScope->copy();
     auto [queryGraphCollection, propertyCollection] =
         bindGraphPattern(createClause.getPatternElements());
     auto boundCreateClause = std::make_unique<BoundCreateClause>();
@@ -40,13 +40,13 @@ std::unique_ptr<BoundUpdatingClause> Binder::bindCreateClause(
         auto queryGraph = queryGraphCollection->getQueryGraph(i);
         for (auto j = 0u; j < queryGraph->getNumQueryNodes(); ++j) {
             auto node = queryGraph->getQueryNode(j);
-            if (!prevVariablesInScope.contains(node->toString())) {
+            if (!prevVariableScope->contains(node->toString())) {
                 boundCreateClause->addCreateNode(bindCreateNode(node, *propertyCollection));
             }
         }
         for (auto j = 0u; j < queryGraph->getNumQueryRels(); ++j) {
             auto rel = queryGraph->getQueryRel(j);
-            if (!prevVariablesInScope.contains(rel->toString())) {
+            if (!prevVariableScope->contains(rel->toString())) {
                 boundCreateClause->addCreateRel(bindCreateRel(rel, *propertyCollection));
             }
         }

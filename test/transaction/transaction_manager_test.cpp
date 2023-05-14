@@ -8,10 +8,11 @@ using namespace kuzu::transaction;
 using namespace kuzu::storage;
 using ::testing::Test;
 
-class TransactionManagerTest : public Test {
+class TransactionManagerTest : public EmptyDBTest {
 
 protected:
     void SetUp() override {
+        EmptyDBTest::SetUp();
         FileUtils::createDir(TestHelper::getTmpTestDir());
         LoggerUtils::createLogger(LoggerConstants::LoggerEnum::BUFFER_MANAGER);
         LoggerUtils::createLogger(LoggerConstants::LoggerEnum::WAL);
@@ -24,7 +25,7 @@ protected:
     }
 
     void TearDown() override {
-        FileUtils::removeDir(TestHelper::getTmpTestDir());
+        EmptyDBTest::TearDown();
         LoggerUtils::dropLogger(LoggerConstants::LoggerEnum::BUFFER_MANAGER);
         LoggerUtils::dropLogger(LoggerConstants::LoggerEnum::WAL);
         LoggerUtils::dropLogger(LoggerConstants::LoggerEnum::TRANSACTION_MANAGER);

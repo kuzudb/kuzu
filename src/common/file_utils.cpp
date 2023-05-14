@@ -40,6 +40,7 @@ void FileUtils::writeToFile(
         uint64_t numBytesToWrite = std::min(remainingNumBytesToWrite, maxBytesToWriteAtOnce);
 
         #if defined(_WIN32)
+        std::lock_guard guard{mtx};
         if (lseek(fileInfo->fd, offset, SEEK_SET) == -1) {
             throw Exception(StringUtils::string_format(
                 "Cannot seek to offset {} in file {}. fileDescriptor: {}",
@@ -76,6 +77,7 @@ void FileUtils::overwriteFile(const std::string& from, const std::string& to) {
 void FileUtils::readFromFile(
     FileInfo* fileInfo, void* buffer, uint64_t numBytes, uint64_t position) {
     #if defined(_WIN32)
+    std::lock_guard guard{mtx};
     if (lseek(fileInfo->fd, position, SEEK_SET) == -1) {
         throw Exception(StringUtils::string_format(
             "Cannot seek to offset {} in file {}. fileDescriptor: {}",
@@ -161,6 +163,7 @@ std::vector<std::string> FileUtils::findAllDirectories(const std::string& path) 
 
 void FileUtils::truncateFileToSize(FileInfo* fileInfo, uint64_t size) {
     #if defined(_WIN32)
+    std::lock_guard guard{mtx};
     if (lseek(fileInfo->fd, size, SEEK_SET) == -1) {
         throw Exception(StringUtils::string_format(
             "Cannot seek to offset 0 in file {}. fileDescriptor: {}", fileInfo->path, fileInfo->fd));

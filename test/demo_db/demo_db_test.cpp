@@ -97,15 +97,6 @@ TEST_F(DemoDBTest, DeleteRelTest) {
     ASSERT_EQ(TestHelper::convertResultToString(*result), groundTruth);
 }
 
-TEST_F(DemoDBTest, DeleteWithExceptionTest) {
-    auto result = conn->query("MATCH (u:User) WHERE u.name = 'Adam' DELETE u;");
-    ASSERT_FALSE(result->isSuccess());
-    ASSERT_EQ(result->getErrorMessage(),
-        "Runtime exception: Currently deleting a node with edges is not supported. node table 0 "
-        "nodeOffset 0 has 1 (one-to-many or many-to-many) edges for edge file: " +
-            TestHelper::appendKuzuRootPath("test/unittest_temp/r-3-0.lists."));
-}
-
 TEST_F(DemoDBTest, SetNodeTest) {
     ASSERT_TRUE(conn->query("MATCH (u:User) WHERE u.name = 'Adam' SET u.age = 50")->isSuccess());
     auto result = conn->query("MATCH (u:User) WHERE u.name='Adam' RETURN u.age");

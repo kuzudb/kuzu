@@ -26,6 +26,13 @@ void NodeTable::initializeData(NodeTableSchema* nodeTableSchema) {
     }
 }
 
+void NodeTable::resetColumns(catalog::NodeTableSchema* nodeTableSchema) {
+    for (auto& property : nodeTableSchema->getAllNodeProperties()) {
+        propertyColumns[property.propertyID].reset();
+    }
+    pkIndex.reset();
+}
+
 void NodeTable::scan(transaction::Transaction* transaction, ValueVector* inputIDVector,
     const std::vector<uint32_t>& columnIds, std::vector<ValueVector*> outputVectors) {
     assert(columnIds.size() == outputVectors.size());

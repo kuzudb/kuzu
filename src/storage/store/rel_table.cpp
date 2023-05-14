@@ -76,6 +76,20 @@ void DirectedRelTableData::initializeLists(
     }
 }
 
+void DirectedRelTableData::resetColumnsAndLists(catalog::RelTableSchema* tableSchema, kuzu::storage::WAL* wal) {
+    if (isSingleMultiplicity()) {
+        adjColumn.reset();
+        for (auto& property : tableSchema->properties) {
+            propertyColumns[property.propertyID].reset();
+        }
+    } else {
+        adjLists.reset();
+        for (auto& property : tableSchema->properties) {
+            propertyLists[property.propertyID].reset();
+        }
+    }
+}
+
 void DirectedRelTableData::scanColumns(transaction::Transaction* transaction,
     RelTableScanState& scanState, common::ValueVector* inNodeIDVector,
     const std::vector<common::ValueVector*>& outputVectors) {

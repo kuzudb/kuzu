@@ -228,7 +228,7 @@ TEST_F(CopyLargeNpyTest, CopyLargeNpyTest) {
     auto tableID = catalog->getReadOnlyVersion()->getTableID("npytable");
     auto property = catalog->getReadOnlyVersion()->getNodeProperty(tableID, "id");
     auto col = storageManager->getNodesStore().getNodePropertyColumn(tableID, property.propertyID);
-    for (size_t i = 0; i < 20000; ++i) {
+    for (auto i = 0u; i < 20000; ++i) {
         ASSERT_EQ(col->readValueForTestingOnly(i).val.int64Val, i);
     }
     property = catalog->getReadOnlyVersion()->getNodeProperty(tableID, "f32");
