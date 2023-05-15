@@ -100,11 +100,11 @@ jobs:
       - name: Build
         shell: pwsh
         run: |
-          make release NUM_THREADS=2
+          make release NUM_THREADS=24
       
       - name: Test
         shell: pwsh
-        run: make test NUM_THREADS=2
+        run: make test NUM_THREADS=24
 
   clang-formatting-check:
     name: clang-format check
