@@ -18,7 +18,7 @@ bool SetNodeProperty::getNextTuplesInternal(ExecutionContext* context) {
     for (auto i = 0u; i < infos.size(); ++i) {
         auto info = infos[i].get();
         info->evaluator->evaluate();
-        info->column->writeValues(nodeIDVectors[i], info->evaluator->resultVector.get());
+        info->column->write(nodeIDVectors[i], info->evaluator->resultVector.get());
     }
     return true;
 }

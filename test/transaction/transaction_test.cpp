@@ -104,7 +104,7 @@ public:
             propertyVectorToWriteDataTo->setValue(
                 dataChunk->state->currIdx, (uint64_t)expectedValue);
         }
-        personAgeColumn->writeValues(nodeVector.get(), propertyVectorToWriteDataTo.get());
+        personAgeColumn->write(nodeVector.get(), propertyVectorToWriteDataTo.get());
     }
 
     void writeToEyeSightPropertyNode(uint64_t nodeOffset, double expectedValue, bool isNull) {
@@ -122,7 +122,7 @@ public:
             propertyVectorToWriteDataTo->setValue(
                 dataChunk->state->currIdx, (double_t)expectedValue);
         }
-        personEyeSightColumn->writeValues(nodeVector.get(), propertyVectorToWriteDataTo.get());
+        personEyeSightColumn->write(nodeVector.get(), propertyVectorToWriteDataTo.get());
     }
 
     void assertOriginalAgeAndEyeSightPropertiesForNodes0And1(Transaction* transaction) {

@@ -53,7 +53,7 @@ public:
         dataChunk->insert(1, idVector);
         ((nodeID_t*)nodeIDVector->getData())[0].offset = nodeOffset;
         idVector->setNull(0, true /* is null */);
-        idColumn->writeValues(nodeIDVector.get(), idVector.get());
+        idColumn->write(nodeIDVector.get(), idVector.get());
         return nodeOffset;
     }
 
