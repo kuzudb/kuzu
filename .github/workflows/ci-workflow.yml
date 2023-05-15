@@ -102,7 +102,6 @@ jobs:
         run: choco install -y ninja make
       
       - name: Build
-        shell: pwsh
         run: make release NUM_THREADS=2
       
       - name: Test
