@@ -92,6 +92,8 @@ jobs:
     name: msvc build & test
 #     needs: [clang-formatting-check]
     runs-on: windows-2019
+    env:
+      SHELL: pwsh
     steps:
       - uses: actions/checkout@v3
       
@@ -100,13 +102,6 @@ jobs:
       - name: Install dependencies
         shell: pwsh
         run: choco install -y ninja make
-      
-      - name: Clean sh.exe
-        run: |
-          where sh
-          rm 'C:\Program Files\Git\usr\bin\sh.exe'
-          rm 'C:\Program Files\Git\bin\sh.exe'
-        shell: bash
       
       - name: Build
         shell: pwsh
