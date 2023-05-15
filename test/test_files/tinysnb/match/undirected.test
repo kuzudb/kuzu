@@ -1,0 +1,21 @@
+-NAME UndirKnows1
+-QUERY MATCH (a:person)-[:knows]-(b:person) WHERE b.fName = "Bob" RETURN a.fName;
+---- 6
+Alice
+Carol
+Dan
+Alice
+Carol
+Dan
+
+-NAME UndirKnows2
+-QUERY MATCH (a:person)-[:knows]-(b:person)-[:knows]-(c:person) WHERE a.gender = 1 AND b.gender = 2 AND c.fName = "Bob" RETURN a.fName, b.fName;
+---- 8
+Alice|Dan
+Carol|Dan
+Alice|Dan
+Carol|Dan
+Alice|Dan
+Carol|Dan
+Alice|Dan
+Carol|Dan
