@@ -179,7 +179,11 @@ void InMemStructColumnChunk::copyStructValueToFields(arrow::Array& array, uint64
             auto delimPos = structField.find(':');
             auto structFieldName =
                 std::regex_replace(structField.substr(0, delimPos), whiteSpacePattern, "");
-            auto structFieldIdx = getStructFieldIdx(structFieldNames, structFieldName);
+            auto structFieldIdx = structTypeInfo->getStructFieldIdx(structFieldName);
+            if (structFieldIdx == common::INVALID_STRUCT_FIELD_IDX) {
+                throw common::ParserException(common::StringUtils::string_format(
+                    "Invalid struct field name: {}.", structFieldName));
+            }
             auto structFieldValue = structField.substr(delimPos + 1);
             copyValueToStructColumnField(i + startOffset, structFieldIdx, structFieldValue,
                 *structFieldTypes[structFieldIdx]);
@@ -204,18 +208,6 @@ uint64_t InMemStructColumnChunk::getMinNumValuesLeftOnPage(common::offset_t node
             inMemColumnChunkForField->getNumElementsInAPage() - fieldPageCursor.elemPosInPage);
     }
     return minNumValuesLeftOnPage;
-}
-
-common::field_idx_t InMemStructColumnChunk::getStructFieldIdx(
-    std::vector<std::string> structFieldNames, std::string structFieldName) {
-    common::StringUtils::toUpper(structFieldName);
-    auto it = std::find_if(structFieldNames.begin(), structFieldNames.end(),
-        [structFieldName](const std::string& name) { return name == structFieldName; });
-    if (it == structFieldNames.end()) {
-        throw common::ConversionException{
-            common::StringUtils::string_format("Invalid struct field name: {}.", structFieldName)};
-    }
-    return std::distance(structFieldNames.begin(), it);
 }
 
 void InMemStructColumnChunk::copyValueToStructColumnField(common::offset_t nodeOffset,

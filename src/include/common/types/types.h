@@ -6,6 +6,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include "common/api.h"
@@ -26,12 +27,13 @@ using frame_group_idx_t = page_group_idx_t;
 using property_id_t = uint32_t;
 constexpr property_id_t INVALID_PROPERTY_ID = UINT32_MAX;
 using column_id_t = property_id_t;
-constexpr column_id_t INVALID_COLUMN_ID = INVALID_PROPERTY_ID;
 using vector_idx_t = uint32_t;
 constexpr vector_idx_t INVALID_VECTOR_IDX = UINT32_MAX;
 using block_idx_t = uint64_t;
 using field_idx_t = uint64_t;
 using struct_entry_t = int64_t;
+using struct_field_idx_t = uint64_t;
+constexpr struct_field_idx_t INVALID_STRUCT_FIELD_IDX = UINT64_MAX;
 
 // System representation for a variable-sized overflow value.
 struct overflow_value_t {
@@ -100,9 +102,9 @@ class VarListTypeInfo : public ExtraTypeInfo {
     friend class SerDeser;
 
 public:
+    VarListTypeInfo() = default;
     explicit VarListTypeInfo(std::unique_ptr<DataType> childType)
         : childType{std::move(childType)} {}
-    VarListTypeInfo() = default;
     inline DataType* getChildType() const { return childType.get(); }
     bool operator==(const VarListTypeInfo& other) const;
     std::unique_ptr<ExtraTypeInfo> copy() const override;
@@ -115,9 +117,9 @@ class FixedListTypeInfo : public VarListTypeInfo {
     friend class SerDeser;
 
 public:
+    FixedListTypeInfo() = default;
     explicit FixedListTypeInfo(std::unique_ptr<DataType> childType, uint64_t fixedNumElementsInList)
         : VarListTypeInfo{std::move(childType)}, fixedNumElementsInList{fixedNumElementsInList} {}
-    FixedListTypeInfo() = default;
     inline uint64_t getFixedNumElementsInList() const { return fixedNumElementsInList; }
     bool operator==(const FixedListTypeInfo& other) const;
     std::unique_ptr<ExtraTypeInfo> copy() const override;
@@ -152,18 +154,20 @@ class StructTypeInfo : public ExtraTypeInfo {
 
 public:
     StructTypeInfo() = default;
-    explicit StructTypeInfo(std::vector<std::unique_ptr<StructField>> fields)
-        : fields{std::move(fields)} {}
+    explicit StructTypeInfo(std::vector<std::unique_ptr<StructField>> fields);
 
+    struct_field_idx_t getStructFieldIdx(std::string fieldName) const;
     std::vector<DataType*> getChildrenTypes() const;
     std::vector<std::string> getChildrenNames() const;
     std::vector<StructField*> getStructFields() const;
 
     bool operator==(const kuzu::common::StructTypeInfo& other) const;
+
     std::unique_ptr<ExtraTypeInfo> copy() const override;
 
 private:
     std::vector<std::unique_ptr<StructField>> fields;
+    std::unordered_map<std::string, struct_field_idx_t> fieldNameToIdxMap;
 };
 
 class DataType {

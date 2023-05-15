@@ -133,28 +133,23 @@ bool StructField::operator==(const kuzu::common::StructField& other) const {
     return name == other.name && *type == *other.type;
 }
 
-bool StructTypeInfo::operator==(const kuzu::common::StructTypeInfo& other) const {
-    if (fields.size() != other.fields.size()) {
-        return false;
-    }
-    for (auto i = 0u; i < fields.size(); ++i) {
-        if (*fields[i] != *other.fields[i]) {
-            return false;
-        }
-    }
-    return true;
-}
-
 std::unique_ptr<StructField> StructField::copy() const {
     return std::make_unique<StructField>(name, type->copy());
 }
 
-std::unique_ptr<ExtraTypeInfo> StructTypeInfo::copy() const {
-    std::vector<std::unique_ptr<StructField>> structFields{fields.size()};
-    for (auto i = 0u; i < fields.size(); i++) {
-        structFields[i] = fields[i]->copy();
+StructTypeInfo::StructTypeInfo(std::vector<std::unique_ptr<StructField>> fields)
+    : fields{std::move(fields)} {
+    for (auto i = 0u; i < this->fields.size(); i++) {
+        fieldNameToIdxMap.emplace(this->fields[i]->getName(), i);
     }
-    return std::make_unique<StructTypeInfo>(std::move(structFields));
+}
+
+struct_field_idx_t StructTypeInfo::getStructFieldIdx(std::string fieldName) const {
+    StringUtils::toUpper(fieldName);
+    if (fieldNameToIdxMap.contains(fieldName)) {
+        return fieldNameToIdxMap.at(fieldName);
+    }
+    return INVALID_STRUCT_FIELD_IDX;
 }
 
 std::vector<DataType*> StructTypeInfo::getChildrenTypes() const {
@@ -179,6 +174,26 @@ std::vector<StructField*> StructTypeInfo::getStructFields() const {
         structFields[i] = fields[i].get();
     }
     return structFields;
+}
+
+bool StructTypeInfo::operator==(const kuzu::common::StructTypeInfo& other) const {
+    if (fields.size() != other.fields.size()) {
+        return false;
+    }
+    for (auto i = 0u; i < fields.size(); ++i) {
+        if (*fields[i] != *other.fields[i]) {
+            return false;
+        }
+    }
+    return true;
+}
+
+std::unique_ptr<ExtraTypeInfo> StructTypeInfo::copy() const {
+    std::vector<std::unique_ptr<StructField>> structFields{fields.size()};
+    for (auto i = 0u; i < fields.size(); i++) {
+        structFields[i] = fields[i]->copy();
+    }
+    return std::make_unique<StructTypeInfo>(std::move(structFields));
 }
 
 DataType::DataType(const DataType& other) {
