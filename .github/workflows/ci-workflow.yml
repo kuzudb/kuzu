@@ -99,7 +99,7 @@ jobs:
       
       - name: Install dependencies
         shell: pwsh
-        run: choco install -y ninja
+        run: choco install -y ninja make
       
       - name: Build
         shell: pwsh
