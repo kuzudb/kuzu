@@ -87,13 +87,33 @@ jobs:
 
       - name: Python test
         run: CC=clang-14 CXX=clang++-14 make pytest NUM_THREADS=32
+  
+  msvc-build-test:
+    name: msvc build & test
+    needs: [clang-formatting-check]
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v3
+      
+      - uses: ilammy/msvc-dev-cmd@v1
+      
+      - name: Install dependencies
+        shell: pwsh
+        run: choco install -y ninja
+      
+      - name: Build
+        shell: pwsh
+        run: make release NUM_THREADS=2
+      
+      - name: Test
+        run: make test NUM_THREADS=2
 
   clang-formatting-check:
     name: clang-format check
     runs-on: kuzu-self-hosted-testing
     steps:
       - uses: actions/checkout@v3
-
+      
       - name: Check source format
         run: python3 scripts/run-clang-format.py --clang-format-executable /usr/bin/clang-format-11 -r src/
 
