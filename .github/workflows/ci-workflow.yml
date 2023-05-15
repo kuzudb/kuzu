@@ -115,7 +115,7 @@ jobs:
     runs-on: kuzu-self-hosted-testing
     steps:
       - uses: actions/checkout@v3
-      
+   
       - name: Check source format
         run: python3 scripts/run-clang-format.py --clang-format-executable /usr/bin/clang-format-11 -r src/
 
