@@ -14,6 +14,8 @@ ifeq ($(OS),Windows_NT)
 	ifndef $(GEN)
 		GEN=ninja
 	endif
+	SHELL := cmd.exe
+	.SHELLFLAGS := /c
 endif
 
 ifeq ($(GEN),ninja)
