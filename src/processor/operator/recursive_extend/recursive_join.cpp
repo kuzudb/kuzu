@@ -12,12 +12,16 @@ bool ScanFrontier::getNextTuplesInternal(ExecutionContext* context) {
 }
 
 void BaseRecursiveJoin::initLocalStateInternal(ResultSet* resultSet_, ExecutionContext* context) {
-    for (auto& dataPos : vectorsToScanPos) {
+    for (auto& dataPos : dataInfo->vectorsToScanPos) {
         vectorsToScan.push_back(resultSet->getValueVector(dataPos).get());
     }
-    srcNodeIDVector = resultSet->getValueVector(srcNodeIDVectorPos);
-    pathVector = resultSet->getValueVector(pathVectorPos);
-    dstNodeIDVector = resultSet->getValueVector(dstNodeIDVectorPos);
+    srcNodeIDVector = resultSet->getValueVector(dataInfo->srcNodePos).get();
+    dstNodeIDVector = resultSet->getValueVector(dataInfo->dstNodePos).get();
+    if (dataInfo->trackPath) {
+        pathVector = resultSet->getValueVector(dataInfo->pathPos).get();
+    } else {
+        pathVector = nullptr;
+    }
     initLocalRecursivePlan(context);
 }
 
@@ -42,23 +46,26 @@ bool BaseRecursiveJoin::getNextTuplesInternal(ExecutionContext* context) {
             return false;
         }
         sharedState->inputFTableSharedState->getTable()->scan(vectorsToScan,
-            inputFTableMorsel->startTupleIdx, inputFTableMorsel->numTuples, colIndicesToScan);
+            inputFTableMorsel->startTupleIdx, inputFTableMorsel->numTuples,
+            dataInfo->colIndicesToScan);
         bfsMorsel->resetState();
         computeBFS(context); // Phase 1
-        pathScanner->resetState();
+        frontiersScanner->resetState(*bfsMorsel);
     }
 }
 
 bool BaseRecursiveJoin::scanOutput() {
-    auto pathDataVector = common::ListVector::getDataVector(pathVector.get());
     common::sel_t offsetVectorSize = 0u;
     common::sel_t dataVectorSize = 0u;
-    pathScanner->scanPaths(nodeTable->getTableID(), pathVector.get(), pathDataVector,
-        dstNodeIDVector.get(), offsetVectorSize, dataVectorSize);
+    if (pathVector != nullptr) {
+        common::ListVector::resetListAuxiliaryBuffer(pathVector);
+    }
+    frontiersScanner->scan(
+        nodeTable->getTableID(), pathVector, dstNodeIDVector, offsetVectorSize, dataVectorSize);
     if (offsetVectorSize == 0) {
         return false;
     }
-    pathVector->state->initOriginalAndSelectedSize(offsetVectorSize);
+    dstNodeIDVector->state->initOriginalAndSelectedSize(offsetVectorSize);
     return true;
 }
 
@@ -82,10 +89,11 @@ void BaseRecursiveJoin::computeBFS(ExecutionContext* context) {
 }
 
 void BaseRecursiveJoin::updateVisitedNodes(common::offset_t boundNodeOffset) {
+    auto boundNodeMultiplicity = bfsMorsel->currentFrontier->getMultiplicity(boundNodeOffset);
     for (auto i = 0u; i < tmpDstNodeIDVector->state->selVector->selectedSize; ++i) {
         auto pos = tmpDstNodeIDVector->state->selVector->selectedPositions[i];
         auto nodeID = tmpDstNodeIDVector->getValue<common::nodeID_t>(pos);
-        bfsMorsel->markVisited(boundNodeOffset, nodeID.offset);
+        bfsMorsel->markVisited(boundNodeOffset, nodeID.offset, boundNodeMultiplicity);
     }
 }
 
@@ -114,11 +122,11 @@ static std::unique_ptr<ResultSet> populateResultSetWithOneDataChunk() {
 }
 
 std::unique_ptr<ResultSet> BaseRecursiveJoin::getLocalResultSet() {
-    auto numDataChunks = tmpDstNodeIDVectorPos.dataChunkPos + 1;
+    auto numDataChunks = dataInfo->tmpDstNodePos.dataChunkPos + 1;
     if (numDataChunks == 2) {
         return populateResultSetWithTwoDataChunks();
     } else {
-        assert(tmpDstNodeIDVectorPos.dataChunkPos == 0);
+        assert(dataInfo->tmpDstNodePos.dataChunkPos == 0);
         return populateResultSetWithOneDataChunk();
     }
 }
@@ -131,7 +139,7 @@ void BaseRecursiveJoin::initLocalRecursivePlan(ExecutionContext* context) {
     }
     scanBFSLevel = (ScanFrontier*)op;
     localResultSet = getLocalResultSet();
-    tmpDstNodeIDVector = localResultSet->getValueVector(tmpDstNodeIDVectorPos);
+    tmpDstNodeIDVector = localResultSet->getValueVector(dataInfo->tmpDstNodePos).get();
     recursiveRoot->initLocalState(localResultSet.get(), context);
 }
 

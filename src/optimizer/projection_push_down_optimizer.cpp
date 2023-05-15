@@ -8,6 +8,7 @@
 #include "planner/logical_plan/logical_operator/logical_intersect.h"
 #include "planner/logical_plan/logical_operator/logical_order_by.h"
 #include "planner/logical_plan/logical_operator/logical_projection.h"
+#include "planner/logical_plan/logical_operator/logical_recursive_extend.h"
 #include "planner/logical_plan/logical_operator/logical_set.h"
 #include "planner/logical_plan/logical_operator/logical_unwind.h"
 
@@ -35,6 +36,14 @@ void ProjectionPushDownOptimizer::visitOperator(LogicalOperator* op) {
     op->computeFlatSchema();
 }
 
+void ProjectionPushDownOptimizer::visitRecursiveExtend(LogicalOperator* op) {
+    auto recursiveExtend = (LogicalRecursiveExtend*)op;
+    auto rel = recursiveExtend->getRel();
+    if (!variablesInUse.contains(rel)) {
+        recursiveExtend->disableTrackPath();
+    }
+}
+
 void ProjectionPushDownOptimizer::visitAccumulate(planner::LogicalOperator* op) {
     auto accumulate = (LogicalAccumulate*)op;
     auto expressionsBeforePruning = accumulate->getExpressions();
@@ -47,13 +56,13 @@ void ProjectionPushDownOptimizer::visitAccumulate(planner::LogicalOperator* op) 
 
 void ProjectionPushDownOptimizer::visitFilter(planner::LogicalOperator* op) {
     auto filter = (LogicalFilter*)op;
-    collectPropertiesInUse(filter->getPredicate());
+    collectExpressionsInUse(filter->getPredicate());
 }
 
 void ProjectionPushDownOptimizer::visitHashJoin(planner::LogicalOperator* op) {
     auto hashJoin = (LogicalHashJoin*)op;
     for (auto& joinNodeID : hashJoin->getJoinNodeIDs()) {
-        collectPropertiesInUse(joinNodeID);
+        collectExpressionsInUse(joinNodeID);
     }
     if (hashJoin->getJoinType() == JoinType::MARK) { // no need to perform push down for mark join.
         return;
@@ -69,11 +78,11 @@ void ProjectionPushDownOptimizer::visitHashJoin(planner::LogicalOperator* op) {
 
 void ProjectionPushDownOptimizer::visitIntersect(planner::LogicalOperator* op) {
     auto intersect = (LogicalIntersect*)op;
-    collectPropertiesInUse(intersect->getIntersectNodeID());
+    collectExpressionsInUse(intersect->getIntersectNodeID());
     for (auto i = 0u; i < intersect->getNumBuilds(); ++i) {
         auto childIdx = i + 1; // skip probe
         auto keyNodeID = intersect->getKeyNodeID(i);
-        collectPropertiesInUse(keyNodeID);
+        collectExpressionsInUse(keyNodeID);
         // Note: we have a potential bug under intersect.cpp. The following code ensures build key
         // and intersect key always appear as the first and second column. Should be removed once
         // the bug is fixed.
@@ -106,7 +115,7 @@ void ProjectionPushDownOptimizer::visitProjection(LogicalOperator* op) {
     ProjectionPushDownOptimizer optimizer;
     auto projection = (LogicalProjection*)op;
     for (auto& expression : projection->getExpressionsToProject()) {
-        optimizer.collectPropertiesInUse(expression);
+        optimizer.collectExpressionsInUse(expression);
     }
     optimizer.visitOperator(op->getChild(0).get());
 }
@@ -114,7 +123,7 @@ void ProjectionPushDownOptimizer::visitProjection(LogicalOperator* op) {
 void ProjectionPushDownOptimizer::visitOrderBy(planner::LogicalOperator* op) {
     auto orderBy = (LogicalOrderBy*)op;
     for (auto& expression : orderBy->getExpressionsToOrderBy()) {
-        collectPropertiesInUse(expression);
+        collectExpressionsInUse(expression);
     }
     auto expressionsBeforePruning = orderBy->getExpressionsToMaterialize();
     auto expressionsAfterPruning = pruneExpressions(expressionsBeforePruning);
@@ -126,13 +135,13 @@ void ProjectionPushDownOptimizer::visitOrderBy(planner::LogicalOperator* op) {
 
 void ProjectionPushDownOptimizer::visitUnwind(planner::LogicalOperator* op) {
     auto unwind = (LogicalUnwind*)op;
-    collectPropertiesInUse(unwind->getExpression());
+    collectExpressionsInUse(unwind->getExpression());
 }
 
 void ProjectionPushDownOptimizer::visitCreateNode(planner::LogicalOperator* op) {
     auto createNode = (LogicalCreateNode*)op;
     for (auto i = 0u; i < createNode->getNumNodes(); ++i) {
-        collectPropertiesInUse(createNode->getPrimaryKey(i));
+        collectExpressionsInUse(createNode->getPrimaryKey(i));
     }
 }
 
@@ -140,11 +149,11 @@ void ProjectionPushDownOptimizer::visitCreateRel(planner::LogicalOperator* op) {
     auto createRel = (LogicalCreateRel*)op;
     for (auto i = 0; i < createRel->getNumRels(); ++i) {
         auto rel = createRel->getRel(i);
-        collectPropertiesInUse(rel->getSrcNode()->getInternalIDProperty());
-        collectPropertiesInUse(rel->getDstNode()->getInternalIDProperty());
-        collectPropertiesInUse(rel->getInternalIDProperty());
+        collectExpressionsInUse(rel->getSrcNode()->getInternalIDProperty());
+        collectExpressionsInUse(rel->getDstNode()->getInternalIDProperty());
+        collectExpressionsInUse(rel->getInternalIDProperty());
         for (auto& setItem : createRel->getSetItems(i)) {
-            collectPropertiesInUse(setItem.second);
+            collectExpressionsInUse(setItem.second);
         }
     }
 }
@@ -152,8 +161,8 @@ void ProjectionPushDownOptimizer::visitCreateRel(planner::LogicalOperator* op) {
 void ProjectionPushDownOptimizer::visitDeleteNode(planner::LogicalOperator* op) {
     auto deleteNode = (LogicalDeleteNode*)op;
     for (auto i = 0u; i < deleteNode->getNumNodes(); ++i) {
-        collectPropertiesInUse(deleteNode->getNode(i)->getInternalIDProperty());
-        collectPropertiesInUse(deleteNode->getPrimaryKey(i));
+        collectExpressionsInUse(deleteNode->getNode(i)->getInternalIDProperty());
+        collectExpressionsInUse(deleteNode->getPrimaryKey(i));
     }
 }
 
@@ -161,17 +170,17 @@ void ProjectionPushDownOptimizer::visitDeleteRel(planner::LogicalOperator* op) {
     auto deleteRel = (LogicalDeleteRel*)op;
     for (auto i = 0; i < deleteRel->getNumRels(); ++i) {
         auto rel = deleteRel->getRel(i);
-        collectPropertiesInUse(rel->getSrcNode()->getInternalIDProperty());
-        collectPropertiesInUse(rel->getDstNode()->getInternalIDProperty());
-        collectPropertiesInUse(rel->getInternalIDProperty());
+        collectExpressionsInUse(rel->getSrcNode()->getInternalIDProperty());
+        collectExpressionsInUse(rel->getDstNode()->getInternalIDProperty());
+        collectExpressionsInUse(rel->getInternalIDProperty());
     }
 }
 
 void ProjectionPushDownOptimizer::visitSetNodeProperty(planner::LogicalOperator* op) {
     auto setNodeProperty = (LogicalSetNodeProperty*)op;
     for (auto i = 0u; i < setNodeProperty->getNumNodes(); ++i) {
-        collectPropertiesInUse(setNodeProperty->getNode(i)->getInternalIDProperty());
-        collectPropertiesInUse(setNodeProperty->getSetItem(i).second);
+        collectExpressionsInUse(setNodeProperty->getNode(i)->getInternalIDProperty());
+        collectExpressionsInUse(setNodeProperty->getSetItem(i).second);
     }
 }
 
@@ -179,21 +188,25 @@ void ProjectionPushDownOptimizer::visitSetRelProperty(planner::LogicalOperator* 
     auto setRelProperty = (LogicalSetRelProperty*)op;
     for (auto i = 0; i < setRelProperty->getNumRels(); ++i) {
         auto rel = setRelProperty->getRel(i);
-        collectPropertiesInUse(rel->getSrcNode()->getInternalIDProperty());
-        collectPropertiesInUse(rel->getDstNode()->getInternalIDProperty());
-        collectPropertiesInUse(rel->getInternalIDProperty());
-        collectPropertiesInUse(setRelProperty->getSetItem(i).second);
+        collectExpressionsInUse(rel->getSrcNode()->getInternalIDProperty());
+        collectExpressionsInUse(rel->getDstNode()->getInternalIDProperty());
+        collectExpressionsInUse(rel->getInternalIDProperty());
+        collectExpressionsInUse(setRelProperty->getSetItem(i).second);
     }
 }
 
-void ProjectionPushDownOptimizer::collectPropertiesInUse(
+void ProjectionPushDownOptimizer::collectExpressionsInUse(
     std::shared_ptr<binder::Expression> expression) {
+    if (expression->expressionType == common::VARIABLE) {
+        variablesInUse.insert(std::move(expression));
+        return;
+    }
     if (expression->expressionType == common::PROPERTY) {
         propertiesInUse.insert(std::move(expression));
         return;
     }
     for (auto& child : expression->getChildren()) {
-        collectPropertiesInUse(child);
+        collectExpressionsInUse(child);
     }
 }
 

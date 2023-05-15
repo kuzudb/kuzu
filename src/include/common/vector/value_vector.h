@@ -126,6 +126,10 @@ public:
         return reinterpret_cast<ListAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())
             ->addList(listSize);
     }
+    static inline void resetListAuxiliaryBuffer(ValueVector* vector) {
+        assert(vector->dataType.typeID == VAR_LIST);
+        reinterpret_cast<ListAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())->resetSize();
+    }
 };
 
 class StructVector {
