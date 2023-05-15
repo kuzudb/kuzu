@@ -94,8 +94,6 @@ jobs:
     runs-on: self-hosted-windows
     steps:
       - uses: actions/checkout@v3
-      
-      - uses: ilammy/msvc-dev-cmd@v1
 
       - name: Build and test
         shell: cmd
