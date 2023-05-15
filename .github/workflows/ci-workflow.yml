@@ -106,6 +106,7 @@ jobs:
         run: make release NUM_THREADS=2
       
       - name: Test
+        shell: pwsh
         run: make test NUM_THREADS=2
 
   clang-formatting-check:
