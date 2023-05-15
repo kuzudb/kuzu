@@ -91,7 +91,7 @@ jobs:
   msvc-build-test:
     name: msvc build & test
 #     needs: [clang-formatting-check]
-    runs-on: windows-2022
+    runs-on: windows-2019
     steps:
       - uses: actions/checkout@v3
       
