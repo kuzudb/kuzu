@@ -101,10 +101,16 @@ jobs:
         shell: pwsh
         run: choco install -y ninja make
       
+      - name: Clean sh.exe
+        run: |
+          where sh
+          rm 'C:\Program Files\Git\usr\bin\sh.exe'
+          rm 'C:\Program Files\Git\bin\sh.exe'
+        shell: bash
+      
       - name: Build
         shell: pwsh
         run: |
-          make info
           make release NUM_THREADS=2
       
       - name: Test
