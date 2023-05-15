@@ -53,7 +53,7 @@ offset_t NodeTable::addNodeAndResetProperties(ValueVector* primaryKeyVector) {
         throw RuntimeException(Exception::getExistedPKExceptionMsg(pkStr));
     }
     for (auto& [_, column] : propertyColumns) {
-        column->setNodeOffsetToNull(nodeOffset);
+        column->setNull(nodeOffset);
     }
     return nodeOffset;
 }

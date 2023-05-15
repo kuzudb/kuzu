@@ -156,9 +156,9 @@ void DirectedRelTableData::deleteRel(ValueVector* boundVector) {
     }
     auto nodeOffset =
         boundVector->readNodeOffset(boundVector->state->selVector->selectedPositions[0]);
-    adjColumn->setNodeOffsetToNull(nodeOffset);
+    adjColumn->setNull(nodeOffset);
     for (auto& [_, propertyColumn] : propertyColumns) {
-        propertyColumn->setNodeOffsetToNull(nodeOffset);
+        propertyColumn->setNull(nodeOffset);
     }
 }
 
@@ -298,10 +298,10 @@ void RelTable::updateRel(common::ValueVector* srcNodeIDVector, common::ValueVect
 
 void RelTable::initEmptyRelsForNewNode(nodeID_t& nodeID) {
     if (fwdRelTableData->isSingleMultiplicity() && fwdRelTableData->isBoundTable(nodeID.tableID)) {
-        fwdRelTableData->getAdjColumn()->setNodeOffsetToNull(nodeID.offset);
+        fwdRelTableData->getAdjColumn()->setNull(nodeID.offset);
     }
     if (bwdRelTableData->isSingleMultiplicity() && bwdRelTableData->isBoundTable(nodeID.tableID)) {
-        bwdRelTableData->getAdjColumn()->setNodeOffsetToNull(nodeID.offset);
+        bwdRelTableData->getAdjColumn()->setNull(nodeID.offset);
     }
     listsUpdatesStore->initNewlyAddedNodes(nodeID);
 }

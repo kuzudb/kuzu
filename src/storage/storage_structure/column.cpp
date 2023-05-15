@@ -13,10 +13,8 @@ void Column::batchLookup(const common::offset_t* nodeOffsets, size_t size, uint8
     for (auto i = 0u; i < size; ++i) {
         auto nodeOffset = nodeOffsets[i];
         auto cursor = PageUtils::getPageElementCursorForPos(nodeOffset, numElementsPerPage);
-        auto [fileHandleToPin, pageIdxToPin] =
-            StorageStructureUtils::getFileHandleAndPhysicalPageIdxToPin(
-                *fileHandle, cursor.pageIdx, *wal, TransactionType::READ_ONLY);
-        bufferManager->optimisticRead(*fileHandleToPin, pageIdxToPin, [&](uint8_t* frame) -> void {
+        auto dummyReadOnlyTransaction = Transaction::getDummyReadOnlyTrx();
+        readFromPage(dummyReadOnlyTransaction.get(), cursor.pageIdx, [&](uint8_t* frame) -> void {
             auto frameBytesOffset = getElemByteOffset(cursor.elemPosInPage);
             memcpy(result + i * elementSize, frame + frameBytesOffset, elementSize);
         });
@@ -29,14 +27,7 @@ void Column::read(Transaction* transaction, common::ValueVector* nodeIDVector,
         auto pos = nodeIDVector->state->selVector->selectedPositions[0];
         lookup(transaction, nodeIDVector, resultVector, pos);
     } else if (nodeIDVector->isSequential()) {
-        // In sequential read, we fetch start offset regardless of selected position.
-        auto startOffset = nodeIDVector->readNodeOffset(0);
-        auto pageCursor = PageUtils::getPageElementCursorForPos(startOffset, numElementsPerPage);
-        if (nodeIDVector->state->selVector->isUnfiltered()) {
-            scan(transaction, resultVector, pageCursor);
-        } else {
-            scanWithSelState(transaction, resultVector, pageCursor);
-        }
+        scan(transaction, nodeIDVector, resultVector);
     } else {
         for (auto i = 0ul; i < nodeIDVector->state->selVector->selectedSize; i++) {
             auto pos = nodeIDVector->state->selVector->selectedPositions[i];
@@ -73,15 +64,6 @@ void Column::writeValues(
     }
 }
 
-Value Column::readValueForTestingOnly(offset_t offset) {
-    auto cursor = PageUtils::getPageElementCursorForPos(offset, numElementsPerPage);
-    Value retVal = Value::createDefaultValue(dataType);
-    bufferManager->optimisticRead(*fileHandle, cursor.pageIdx, [&](uint8_t* frame) {
-        retVal.copyValueFrom(frame + mapElementPosToByteOffset(cursor.elemPosInPage));
-    });
-    return retVal;
-}
-
 bool Column::isNull(offset_t nodeOffset, Transaction* transaction) {
     auto cursor = PageUtils::getPageElementCursorForPos(nodeOffset, numElementsPerPage);
     auto originalPageIdx = cursor.pageIdx;
@@ -115,11 +97,21 @@ bool Column::isNull(offset_t nodeOffset, Transaction* transaction) {
     return isNull;
 }
 
-void Column::setNodeOffsetToNull(offset_t nodeOffset) {
+void Column::setNull(common::offset_t nodeOffset) {
     auto updatedPageInfoAndWALPageFrame =
         beginUpdatingPageAndWriteOnlyNullBit(nodeOffset, true /* isNull */);
     StorageStructureUtils::unpinWALPageAndReleaseOriginalPageLock(
         updatedPageInfoAndWALPageFrame, *fileHandle, *bufferManager, *wal);
+}
+
+Value Column::readValueForTestingOnly(offset_t offset) {
+    auto cursor = PageUtils::getPageElementCursorForPos(offset, numElementsPerPage);
+    Value retVal = Value::createDefaultValue(dataType);
+    auto dummyReadOnlyTransaction = Transaction::getDummyReadOnlyTrx();
+    readFromPage(dummyReadOnlyTransaction.get(), cursor.pageIdx, [&](uint8_t* frame) {
+        retVal.copyValueFrom(frame + mapElementPosToByteOffset(cursor.elemPosInPage));
+    });
+    return retVal;
 }
 
 void Column::lookup(Transaction* transaction, common::ValueVector* nodeIDVector,
@@ -129,21 +121,66 @@ void Column::lookup(Transaction* transaction, common::ValueVector* nodeIDVector,
         return;
     }
     auto nodeOffset = nodeIDVector->readNodeOffset(vectorPos);
-    auto pageCursor = PageUtils::getPageElementCursorForPos(nodeOffset, numElementsPerPage);
-    lookup(transaction, resultVector, vectorPos, pageCursor);
+    lookup(transaction, nodeOffset, resultVector, vectorPos);
 }
 
-void Column::lookup(Transaction* transaction, common::ValueVector* resultVector, uint32_t vectorPos,
-    PageElementCursor& cursor) {
-    auto [fileHandleToPin, pageIdxToPin] =
-        StorageStructureUtils::getFileHandleAndPhysicalPageIdxToPin(
-            *fileHandle, cursor.pageIdx, *wal, transaction->getType());
-    bufferManager->optimisticRead(*fileHandleToPin, pageIdxToPin, [&](uint8_t* frame) -> void {
-        auto vectorBytesOffset = getElemByteOffset(vectorPos);
-        auto frameBytesOffset = getElemByteOffset(cursor.elemPosInPage);
-        memcpy(resultVector->getData() + vectorBytesOffset, frame + frameBytesOffset, elementSize);
-        readSingleNullBit(resultVector, frame, cursor.elemPosInPage, vectorPos);
+void Column::lookup(Transaction* transaction, common::offset_t nodeOffset,
+    common::ValueVector* resultVector, uint32_t vectorPos) {
+    auto pageCursor = PageUtils::getPageElementCursorForPos(nodeOffset, numElementsPerPage);
+    readFromPage(transaction, pageCursor.pageIdx, [&](uint8_t* frame) {
+        lookupDataFunc(transaction, frame, pageCursor, resultVector, vectorPos, numElementsPerPage,
+            tableID, diskOverflowFile.get());
     });
+}
+
+void Column::scan(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
+    common::ValueVector* resultVector) {
+    // In sequential read, we fetch start offset regardless of selected position.
+    auto startOffset = nodeIDVector->readNodeOffset(0);
+    uint64_t numValuesToRead = nodeIDVector->state->originalSize;
+    auto pageCursor = PageUtils::getPageElementCursorForPos(startOffset, numElementsPerPage);
+    auto numValuesRead = 0u;
+    auto posInSelVector = 0u;
+    if (nodeIDVector->state->selVector->isUnfiltered()) {
+        while (numValuesRead < numValuesToRead) {
+            uint64_t numValuesToReadInPage =
+                std::min((uint64_t)numElementsPerPage - pageCursor.elemPosInPage,
+                    numValuesToRead - numValuesRead);
+            readFromPage(transaction, pageCursor.pageIdx, [&](uint8_t* frame) -> void {
+                scanDataFunc(transaction, frame, pageCursor, resultVector, numValuesRead,
+                    numElementsPerPage, numValuesToReadInPage, tableID, diskOverflowFile.get());
+            });
+            numValuesRead += numValuesToReadInPage;
+            pageCursor.nextPage();
+        }
+    } else {
+        while (numValuesRead < numValuesToRead) {
+            uint64_t numValuesToReadInPage =
+                std::min((uint64_t)numElementsPerPage - pageCursor.elemPosInPage,
+                    numValuesToRead - numValuesRead);
+            if (isInRange(nodeIDVector->state->selVector->selectedPositions[posInSelVector],
+                    numValuesRead, numValuesRead + numValuesToReadInPage)) {
+                readFromPage(transaction, pageCursor.pageIdx, [&](uint8_t* frame) -> void {
+                    scanDataFunc(transaction, frame, pageCursor, resultVector, numValuesRead,
+                        numElementsPerPage, numValuesToReadInPage, tableID, diskOverflowFile.get());
+                });
+            }
+            numValuesRead += numValuesToReadInPage;
+            pageCursor.nextPage();
+            while (
+                posInSelVector < nodeIDVector->state->selVector->selectedSize &&
+                nodeIDVector->state->selVector->selectedPositions[posInSelVector] < numValuesRead) {
+                posInSelVector++;
+            }
+        }
+    }
+}
+void Column::writeValueForSingleNodeIDPosition(
+    offset_t nodeOffset, common::ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom) {
+    auto updatedPageInfoAndWALPageFrame =
+        beginUpdatingPage(nodeOffset, vectorToWriteFrom, posInVectorToWriteFrom);
+    StorageStructureUtils::unpinWALPageAndReleaseOriginalPageLock(
+        updatedPageInfoAndWALPageFrame, *fileHandle, *bufferManager, *wal);
 }
 
 WALPageIdxPosInPageAndFrame Column::beginUpdatingPage(
@@ -156,6 +193,14 @@ WALPageIdxPosInPageAndFrame Column::beginUpdatingPage(
     return walPageInfo;
 }
 
+void Column::readFromPage(transaction::Transaction* transaction, common::page_idx_t pageIdx,
+    const std::function<void(uint8_t*)>& func) {
+    auto [fileHandleToPin, pageIdxToPin] =
+        StorageStructureUtils::getFileHandleAndPhysicalPageIdxToPin(
+            *fileHandle, pageIdx, *wal, transaction->getType());
+    bufferManager->optimisticRead(*fileHandleToPin, pageIdxToPin, func);
+}
+
 WALPageIdxPosInPageAndFrame Column::beginUpdatingPageAndWriteOnlyNullBit(
     offset_t nodeOffset, bool isNull) {
     auto walPageInfo = createWALVersionOfPageIfNecessaryForElement(nodeOffset, numElementsPerPage);
@@ -163,12 +208,32 @@ WALPageIdxPosInPageAndFrame Column::beginUpdatingPageAndWriteOnlyNullBit(
     return walPageInfo;
 }
 
-void Column::writeValueForSingleNodeIDPosition(
-    offset_t nodeOffset, common::ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom) {
-    auto updatedPageInfoAndWALPageFrame =
-        beginUpdatingPage(nodeOffset, vectorToWriteFrom, posInVectorToWriteFrom);
-    StorageStructureUtils::unpinWALPageAndReleaseOriginalPageLock(
-        updatedPageInfoAndWALPageFrame, *fileHandle, *bufferManager, *wal);
+void Column::scanValuesFromPage(transaction::Transaction* transaction, uint8_t* frame,
+    PageElementCursor& pageCursor, common::ValueVector* resultVector, uint32_t posInVector,
+    uint32_t numElementsPerPage, uint32_t numValuesToRead, common::table_id_t commonTableID,
+    DiskOverflowFile* diskOverflowFile) {
+    auto numBytesPerValue = resultVector->getNumBytesPerValue();
+    memcpy(resultVector->getData() + posInVector * numBytesPerValue,
+        frame + pageCursor.elemPosInPage * numBytesPerValue, numValuesToRead * numBytesPerValue);
+    auto hasNull = NullMask::copyNullMask(
+        (uint64_t*)(frame + (numElementsPerPage * numBytesPerValue)), pageCursor.elemPosInPage,
+        resultVector->getNullMaskData(), posInVector, numValuesToRead);
+    if (hasNull) {
+        resultVector->setMayContainNulls();
+    }
+}
+
+void Column::lookupValueFromPage(transaction::Transaction* transaction, uint8_t* frame,
+    kuzu::storage::PageElementCursor& pageCursor, common::ValueVector* resultVector,
+    uint32_t posInVector, uint32_t numElementsPerPage, common::table_id_t commonTableID,
+    DiskOverflowFile* diskOverflowFile) {
+    auto numBytesPerValue = resultVector->getNumBytesPerValue();
+    auto frameBytesOffset = pageCursor.elemPosInPage * numBytesPerValue;
+    memcpy(resultVector->getData() + posInVector * numBytesPerValue, frame + frameBytesOffset,
+        numBytesPerValue);
+    auto isNull = NullMask::isNull(
+        (uint64_t*)(frame + (numElementsPerPage * numBytesPerValue)), pageCursor.elemPosInPage);
+    resultVector->setNull(posInVector, isNull);
 }
 
 void StringPropertyColumn::writeValueForSingleNodeIDPosition(
@@ -184,7 +249,7 @@ void StringPropertyColumn::writeValueForSingleNodeIDPosition(
         // the overflow buffer of vectorToWriteFrom. We need to move it to storage.
         if (!ku_string_t::isShortString(stringToWriteFrom.len)) {
             try {
-                diskOverflowFile.writeStringOverflowAndUpdateOverflowPtr(
+                diskOverflowFile->writeStringOverflowAndUpdateOverflowPtr(
                     stringToWriteFrom, *stringToWriteTo);
             } catch (RuntimeException& e) {
                 // Note: The try catch block is to make sure that we correctly unpin the WAL page
@@ -202,13 +267,14 @@ void StringPropertyColumn::writeValueForSingleNodeIDPosition(
 }
 
 Value StringPropertyColumn::readValueForTestingOnly(offset_t offset) {
-    auto cursor = PageUtils::getPageElementCursorForPos(offset, numElementsPerPage);
     ku_string_t kuString;
-    bufferManager->optimisticRead(*fileHandle, cursor.pageIdx, [&](uint8_t* frame) -> void {
+    auto cursor = PageUtils::getPageElementCursorForPos(offset, numElementsPerPage);
+    auto dummyReadOnlyTransaction = Transaction::getDummyReadOnlyTrx();
+    readFromPage(dummyReadOnlyTransaction.get(), cursor.pageIdx, [&](uint8_t* frame) -> void {
         memcpy(&kuString, frame + mapElementPosToByteOffset(cursor.elemPosInPage),
             sizeof(ku_string_t));
     });
-    return Value(diskOverflowFile.readString(TransactionType::READ_ONLY, kuString));
+    return Value(diskOverflowFile->readString(TransactionType::READ_ONLY, kuString));
 }
 
 void ListPropertyColumn::writeValueForSingleNodeIDPosition(
@@ -222,7 +288,7 @@ void ListPropertyColumn::writeValueForSingleNodeIDPosition(
                           mapElementPosToByteOffset(updatedPageInfoAndWALPageFrame.posInPage)));
         auto kuListToWriteFrom = vectorToWriteFrom->getValue<ku_list_t>(posInVectorToWriteFrom);
         try {
-            diskOverflowFile.writeListOverflowAndUpdateOverflowPtr(
+            diskOverflowFile->writeListOverflowAndUpdateOverflowPtr(
                 kuListToWriteFrom, *kuListToWriteTo, vectorToWriteFrom->dataType);
         } catch (RuntimeException& e) {
             // Note: The try catch block is to make sure that we correctly unpin the WAL page
@@ -239,88 +305,47 @@ void ListPropertyColumn::writeValueForSingleNodeIDPosition(
 }
 
 Value ListPropertyColumn::readValueForTestingOnly(offset_t offset) {
-    auto cursor = PageUtils::getPageElementCursorForPos(offset, numElementsPerPage);
     ku_list_t kuList;
-    bufferManager->optimisticRead(*fileHandle, cursor.pageIdx, [&](uint8_t* frame) -> void {
+    auto cursor = PageUtils::getPageElementCursorForPos(offset, numElementsPerPage);
+    auto dummyReadOnlyTransaction = Transaction::getDummyReadOnlyTrx();
+    readFromPage(dummyReadOnlyTransaction.get(), cursor.pageIdx, [&](uint8_t* frame) -> void {
         memcpy(&kuList, frame + mapElementPosToByteOffset(cursor.elemPosInPage), sizeof(ku_list_t));
     });
-    return Value(dataType, diskOverflowFile.readList(TransactionType::READ_ONLY, kuList, dataType));
+    return Value(
+        dataType, diskOverflowFile->readList(TransactionType::READ_ONLY, kuList, dataType));
 }
 
-void ListPropertyColumn::readListsToVector(PageElementCursor& cursor,
-    const std::function<common::page_idx_t(common::page_idx_t)>& logicalToPhysicalPageMapper,
-    transaction::Transaction* transaction, common::ValueVector* resultVector, uint64_t vectorPos,
-    uint64_t numValuesToRead) {
-    auto [fileHandleToPin, pageIdxToPin] =
-        StorageStructureUtils::getFileHandleAndPhysicalPageIdxToPin(
-            *fileHandle, logicalToPhysicalPageMapper(cursor.pageIdx), *wal, transaction->getType());
-    auto frameBytesOffset = getElemByteOffset(cursor.elemPosInPage);
-    bufferManager->optimisticRead(*fileHandleToPin, pageIdxToPin, [&](uint8_t* frame) {
-        auto kuListsToRead = reinterpret_cast<common::ku_list_t*>(frame + frameBytesOffset);
-        readNullBitsFromAPage(
-            resultVector, frame, cursor.elemPosInPage, vectorPos, numValuesToRead);
-        for (auto i = 0u; i < numValuesToRead; i++) {
-            if (!resultVector->isNull(vectorPos)) {
-                diskOverflowFile.readListToVector(
-                    transaction->getType(), kuListsToRead[i], resultVector, vectorPos);
-            }
-            vectorPos++;
+void ListPropertyColumn::scanListsFromPage(transaction::Transaction* transaction, uint8_t* frame,
+    kuzu::storage::PageElementCursor& pageCursor, common::ValueVector* resultVector,
+    uint32_t posInVector, uint32_t numElementsPerPage, uint32_t numValuesToRead,
+    common::table_id_t commonTableID, DiskOverflowFile* diskOverflowFile) {
+    auto frameBytesOffset = pageCursor.elemPosInPage * sizeof(ku_list_t);
+    auto kuListsToRead = reinterpret_cast<common::ku_list_t*>(frame + frameBytesOffset);
+    auto hasNull = NullMask::copyNullMask(
+        (uint64_t*)(frame + (numElementsPerPage * sizeof(ku_list_t))), pageCursor.elemPosInPage,
+        resultVector->getNullMaskData(), posInVector, numValuesToRead);
+    if (hasNull) {
+        resultVector->setMayContainNulls();
+    }
+    for (auto i = 0u; i < numValuesToRead; i++) {
+        if (!resultVector->isNull(posInVector + i)) {
+            diskOverflowFile->readListToVector(
+                transaction->getType(), kuListsToRead[i], resultVector, posInVector + i);
         }
-    });
-}
-
-void ListPropertyColumn::lookup(transaction::Transaction* transaction,
-    common::ValueVector* resultVector, uint32_t vectorPos, PageElementCursor& cursor) {
-    auto [fileHandleToPin, pageIdxToPin] =
-        StorageStructureUtils::getFileHandleAndPhysicalPageIdxToPin(
-            *fileHandle, cursor.pageIdx, *wal, transaction->getType());
-    bufferManager->optimisticRead(*fileHandleToPin, pageIdxToPin, [&](uint8_t* frame) -> void {
-        readSingleNullBit(resultVector, frame, cursor.elemPosInPage, vectorPos);
-        if (!resultVector->isNull(vectorPos)) {
-            auto frameBytesOffset = getElemByteOffset(cursor.elemPosInPage);
-            diskOverflowFile.readListToVector(transaction->getType(),
-                *(common::ku_list_t*)(frame + frameBytesOffset), resultVector, vectorPos);
-        }
-    });
-}
-
-void ListPropertyColumn::scan(transaction::Transaction* transaction,
-    common::ValueVector* resultVector, PageElementCursor& cursor) {
-    uint64_t numValuesToRead = resultVector->state->originalSize;
-    uint64_t numValuesRead = 0;
-    while (numValuesRead != numValuesToRead) {
-        uint64_t numValuesInPage = numElementsPerPage - cursor.elemPosInPage;
-        uint64_t numValuesToReadInPage = std::min(numValuesInPage, numValuesToRead - numValuesRead);
-        readListsToVector(cursor, identityMapper, transaction, resultVector, numValuesRead,
-            numValuesToReadInPage);
-        numValuesRead += numValuesToReadInPage;
-        cursor.nextPage();
     }
 }
 
-void ListPropertyColumn::scanWithSelState(transaction::Transaction* transaction,
-    common::ValueVector* resultVector, PageElementCursor& cursor) {
-    auto selectedState = resultVector->state;
-    auto numValuesToRead = resultVector->state->originalSize;
-    uint64_t selectedStatePos = 0;
-    uint64_t vectorPos = 0;
-    while (true) {
-        uint64_t numValuesInPage = numElementsPerPage - cursor.elemPosInPage;
-        uint64_t numValuesToReadInPage = std::min(numValuesInPage, numValuesToRead - vectorPos);
-        if (StorageStructure::isInRange(
-                selectedState->selVector->selectedPositions[selectedStatePos], vectorPos,
-                vectorPos + numValuesToReadInPage)) {
-            readListsToVector(cursor, identityMapper, transaction, resultVector, vectorPos,
-                numValuesToReadInPage);
-        }
-        vectorPos += numValuesToReadInPage;
-        while (selectedState->selVector->selectedPositions[selectedStatePos] < vectorPos) {
-            selectedStatePos++;
-            if (selectedStatePos == selectedState->selVector->selectedSize) {
-                return;
-            }
-        }
-        cursor.nextPage();
+void ListPropertyColumn::lookupListFromPage(transaction::Transaction* transaction, uint8_t* frame,
+    kuzu::storage::PageElementCursor& pageCursor, common::ValueVector* resultVector,
+    uint32_t posInVector, uint32_t numElementsPerPage, common::table_id_t commonTableID,
+    DiskOverflowFile* diskOverflowFile) {
+    auto isNull = NullMask::isNull(
+        (uint64_t*)(frame + (numElementsPerPage * sizeof(ku_list_t))), pageCursor.elemPosInPage);
+    resultVector->setNull(posInVector, isNull);
+    if (!resultVector->isNull(posInVector)) {
+        auto frameBytesOffset = pageCursor.elemPosInPage * sizeof(ku_list_t);
+        diskOverflowFile->readListToVector(transaction->getType(),
+            *(common::ku_list_t*)(frame + frameBytesOffset), resultVector, posInVector);
     }
 }
 
@@ -340,7 +365,7 @@ StructPropertyColumn::StructPropertyColumn(const StorageStructureIDAndFName& str
 
 void StructPropertyColumn::read(Transaction* transaction, common::ValueVector* nodeIDVector,
     common::ValueVector* resultVector) {
-    // We currently do not support null struct value.
+    // TODO(Guodong/Ziyi): We currently do not support null struct value.
     resultVector->setAllNonNull();
     for (auto i = 0u; i < structFieldColumns.size(); i++) {
         structFieldColumns[i]->read(
@@ -348,8 +373,42 @@ void StructPropertyColumn::read(Transaction* transaction, common::ValueVector* n
     }
 }
 
+void InternalIDColumn::scanInternalIDsFromPage(transaction::Transaction* transaction,
+    uint8_t* frame, PageElementCursor& pageCursor, common::ValueVector* resultVector,
+    uint32_t posInVector, uint32_t numElementsPerPage, uint32_t numValuesToRead,
+    table_id_t commonTableID, DiskOverflowFile* diskOverflowFile) {
+    auto numBytesPerValue = sizeof(offset_t);
+    auto resultData = (internalID_t*)resultVector->getData();
+    for (auto i = 0u; i < numValuesToRead; i++) {
+        auto posInFrame = pageCursor.elemPosInPage + i;
+        resultData[posInVector + i].offset = *(offset_t*)(frame + (posInFrame * numBytesPerValue));
+        resultData[posInVector + i].tableID = commonTableID;
+    }
+    auto hasNull = NullMask::copyNullMask(
+        (uint64_t*)(frame + (numElementsPerPage * numBytesPerValue)), pageCursor.elemPosInPage,
+        resultVector->getNullMaskData(), posInVector, numValuesToRead);
+    if (hasNull) {
+        resultVector->setMayContainNulls();
+    }
+}
+
+void InternalIDColumn::lookupInternalIDFromPage(transaction::Transaction* transaction,
+    uint8_t* frame, kuzu::storage::PageElementCursor& pageCursor, common::ValueVector* resultVector,
+    uint32_t posInVector, uint32_t numElementsPerPage, common::table_id_t commonTableID,
+    DiskOverflowFile* diskOverflowFile) {
+    auto numBytesPerValue = sizeof(offset_t);
+    auto resultData = (internalID_t*)resultVector->getData();
+    resultData[posInVector].offset =
+        *(offset_t*)(frame + (pageCursor.elemPosInPage * numBytesPerValue));
+    resultData[posInVector].tableID = commonTableID;
+    auto isNull = NullMask::isNull(
+        (uint64_t*)(frame + (numElementsPerPage * numBytesPerValue)), pageCursor.elemPosInPage);
+    resultVector->setNull(posInVector, isNull);
+}
+
 void SerialColumn::read(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
     common::ValueVector* resultVector) {
+    // Serial column cannot contain null values.
     for (auto i = 0ul; i < nodeIDVector->state->selVector->selectedSize; i++) {
         auto pos = nodeIDVector->state->selVector->selectedPositions[i];
         auto offset = nodeIDVector->readNodeOffset(pos);
