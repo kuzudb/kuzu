@@ -16,6 +16,9 @@ using lookup_data_func_t = std::function<void(transaction::Transaction* transact
     PageElementCursor& pageCursor, common::ValueVector* resultVector, uint32_t posInVector,
     uint32_t numElementsPerPage, common::table_id_t commonTableID,
     DiskOverflowFile* diskOverflowFile)>;
+using write_data_func_t =
+    std::function<void(uint8_t* frame, uint16_t posInFrame, common::ValueVector* vector,
+        common::table_id_t commonTableID, DiskOverflowFile* diskOverflowFile)>;
 
 class Column : public BaseColumnOrList {
 public:
@@ -42,6 +45,7 @@ public:
           tableID{tableID} {
         scanDataFunc = Column::scanValuesFromPage;
         lookupDataFunc = Column::lookupValueFromPage;
+        writeDataFunc = Column::writeValueToPage;
     }
 
     // Expose for feature store
@@ -50,7 +54,7 @@ public:
     virtual void read(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
         common::ValueVector* resultVector);
 
-    void writeValues(common::ValueVector* nodeIDVector, common::ValueVector* vectorToWriteFrom);
+    void write(common::ValueVector* nodeIDVector, common::ValueVector* vectorToWriteFrom);
 
     bool isNull(common::offset_t nodeOffset, transaction::Transaction* transaction);
     void setNull(common::offset_t nodeOffset);
@@ -67,32 +71,13 @@ protected:
         common::ValueVector* resultVector, uint32_t vectorPos);
     virtual void scan(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
         common::ValueVector* resultVector);
-    virtual void writeValueForSingleNodeIDPosition(common::offset_t nodeOffset,
-        common::ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom);
-    WALPageIdxPosInPageAndFrame beginUpdatingPage(common::offset_t nodeOffset,
-        common::ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom);
+    virtual void write(common::offset_t nodeOffset, common::ValueVector* vectorToWriteFrom,
+        uint32_t posInVectorToWriteFrom);
 
     void readFromPage(transaction::Transaction* transaction, common::page_idx_t pageIdx,
         const std::function<void(uint8_t*)>& func);
 
 private:
-    // The reason why we make this function virtual is: we can't simply do memcpy on nodeIDs if
-    // the adjColumn has tableIDCompression, in this case we only store the nodeOffset in
-    // persistent store of adjColumn.
-    virtual inline void writeToPage(WALPageIdxPosInPageAndFrame& walPageInfo,
-        common::ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom) {
-        memcpy(walPageInfo.frame + mapElementPosToByteOffset(walPageInfo.posInPage),
-            vectorToWriteFrom->getData() + getElemByteOffset(posInVectorToWriteFrom), elementSize);
-    }
-    // If necessary creates a second version (backed by the WAL) of a page that contains the fixed
-    // length part of the value that will be written to.
-    // Obtains *and does not release* the lock original page. Pins and updates the WAL version of
-    // the page. Finally updates the page with the new value from vectorToWriteFrom.
-    // Note that caller must ensure to unpin and release the WAL version of the page by calling
-    // StorageStructure::unpinWALPageAndReleaseOriginalPageLock.
-    WALPageIdxPosInPageAndFrame beginUpdatingPageAndWriteOnlyNullBit(
-        common::offset_t nodeOffset, bool isNull);
-
     static void scanValuesFromPage(transaction::Transaction* transaction, uint8_t* frame,
         PageElementCursor& pageCursor, common::ValueVector* resultVector, uint32_t posInVector,
         uint32_t numElementsPerPage, uint32_t numValuesToRead, common::table_id_t commonTableID,
@@ -101,6 +86,8 @@ private:
         PageElementCursor& pageCursor, common::ValueVector* resultVector, uint32_t posInVector,
         uint32_t numElementsPerPage, common::table_id_t commonTableID,
         DiskOverflowFile* diskOverflowFile);
+    static void writeValueToPage(uint8_t* frame, uint16_t posInFrame, common::ValueVector* vector,
+        uint32_t posInVector, DiskOverflowFile* diskOverflowFile);
 
 protected:
     // no logical-physical page mapping is required for columns
@@ -110,6 +97,7 @@ protected:
 
     scan_data_func_t scanDataFunc;
     lookup_data_func_t lookupDataFunc;
+    write_data_func_t writeDataFunc;
     common::table_id_t tableID;
     std::unique_ptr<DiskOverflowFile> diskOverflowFile;
 };
@@ -124,7 +112,6 @@ public:
     }
 
     inline DiskOverflowFile* getDiskOverflowFile() { return diskOverflowFile.get(); }
-
     inline BMFileHandle* getDiskOverflowFileHandle() { return diskOverflowFile->getFileHandle(); }
 };
 
@@ -133,10 +120,9 @@ public:
     StringPropertyColumn(const StorageStructureIDAndFName& structureIDAndFNameOfMainColumn,
         const common::DataType& dataType, BufferManager* bufferManager, WAL* wal)
         : PropertyColumnWithOverflow{
-              structureIDAndFNameOfMainColumn, dataType, bufferManager, wal} {};
-
-    void writeValueForSingleNodeIDPosition(common::offset_t nodeOffset,
-        common::ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom) override;
+              structureIDAndFNameOfMainColumn, dataType, bufferManager, wal} {
+        writeDataFunc = StringPropertyColumn::writeStringToPage;
+    };
 
     // Currently, used only in CopyCSV tests.
     common::Value readValueForTestingOnly(common::offset_t offset) override;
@@ -157,6 +143,8 @@ private:
         Column::scan(transaction, nodeIDVector, resultVector);
         diskOverflowFile->scanStrings(transaction->getType(), *resultVector);
     }
+    static void writeStringToPage(uint8_t* frame, uint16_t posInFrame, common::ValueVector* vector,
+        uint32_t posInVector, DiskOverflowFile* diskOverflowFile);
 };
 
 class ListPropertyColumn : public PropertyColumnWithOverflow {
@@ -167,10 +155,8 @@ public:
               structureIDAndFNameOfMainColumn, dataType, bufferManager, wal} {
         scanDataFunc = ListPropertyColumn::scanListsFromPage;
         lookupDataFunc = ListPropertyColumn::lookupListFromPage;
+        writeDataFunc = ListPropertyColumn::writeListToPage;
     };
-
-    void writeValueForSingleNodeIDPosition(common::offset_t nodeOffset,
-        common::ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom) override;
 
     common::Value readValueForTestingOnly(common::offset_t offset) override;
 
@@ -183,6 +169,8 @@ private:
         PageElementCursor& pageCursor, common::ValueVector* resultVector, uint32_t posInVector,
         uint32_t numElementsPerPage, common::table_id_t commonTableID,
         DiskOverflowFile* diskOverflowFile);
+    static void writeListToPage(uint8_t* frame, uint16_t posInFrame, common::ValueVector* vector,
+        uint32_t posInVector, DiskOverflowFile* diskOverflowFile);
 };
 
 class StructPropertyColumn : public Column {
@@ -205,16 +193,10 @@ public:
               sizeof(common::offset_t), bufferManager, wal, tableID} {
         scanDataFunc = InternalIDColumn::scanInternalIDsFromPage;
         lookupDataFunc = InternalIDColumn::lookupInternalIDFromPage;
+        writeDataFunc = InternalIDColumn::writeInternalIDToPage;
     }
 
 private:
-    inline void writeToPage(WALPageIdxPosInPageAndFrame& walPageInfo,
-        common::ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom) override {
-        auto relID = vectorToWriteFrom->getValue<common::relID_t>(posInVectorToWriteFrom);
-        memcpy(walPageInfo.frame + mapElementPosToByteOffset(walPageInfo.posInPage), &relID.offset,
-            sizeof(relID.offset));
-    }
-
     static void scanInternalIDsFromPage(transaction::Transaction* transaction, uint8_t* frame,
         PageElementCursor& pageCursor, common::ValueVector* resultVector, uint32_t posInVector,
         uint32_t numElementsPerPage, uint32_t numValuesToRead, common::table_id_t commonTableID,
@@ -223,6 +205,8 @@ private:
         PageElementCursor& pageCursor, common::ValueVector* resultVector, uint32_t posInVector,
         uint32_t numElementsPerPage, common::table_id_t commonTableID,
         DiskOverflowFile* diskOverflowFile);
+    static void writeInternalIDToPage(uint8_t* frame, uint16_t posInFrame,
+        common::ValueVector* vector, uint32_t posInVector, DiskOverflowFile* diskOverflowFile);
 };
 
 class AdjColumn : public InternalIDColumn {

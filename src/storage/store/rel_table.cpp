@@ -143,10 +143,10 @@ void DirectedRelTableData::insertRel(common::ValueVector* boundVector,
                     .tableID,
                 tableID, getRelDataDirectionAsString(direction)));
     }
-    adjColumn->writeValues(boundVector, nbrVector);
+    adjColumn->write(boundVector, nbrVector);
     for (auto i = 0u; i < relPropertyVectors.size(); i++) {
         auto propertyColumn = getPropertyColumn(i);
-        propertyColumn->writeValues(boundVector, relPropertyVectors[i]);
+        propertyColumn->write(boundVector, relPropertyVectors[i]);
     }
 }
 
@@ -167,7 +167,7 @@ void DirectedRelTableData::updateRel(
     if (!isSingleMultiplicity()) {
         return;
     }
-    propertyColumns.at(propertyID)->writeValues(boundVector, propertyVector);
+    propertyColumns.at(propertyID)->write(boundVector, propertyVector);
 }
 
 void DirectedRelTableData::performOpOnListsWithUpdates(

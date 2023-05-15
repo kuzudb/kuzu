@@ -68,7 +68,7 @@ void WALReplayerUtils::createEmptyDBFilesForNewNodeTable(
         // DO NOTHING.
     } break;
     default: {
-        throw NotImplementedException("Only INT64 and STRING primary keys are supported");
+        throw NotImplementedException("Only INT64, STRING and SERIAL primary keys are supported");
     }
     }
 }
