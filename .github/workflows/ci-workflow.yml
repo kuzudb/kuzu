@@ -97,14 +97,11 @@ jobs:
       
       - uses: ilammy/msvc-dev-cmd@v1
 
-      - name: Build
-        shell: pwsh
+      - name: Build and test
+        shell: cmd
         run: |
-          make release NUM_THREADS=24
-      
-      - name: Test
-        shell: pwsh
-        run: make test NUM_THREADS=24
+          call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
+          make test NUM_THREADS=24
 
   clang-formatting-check:
     name: clang-format check
