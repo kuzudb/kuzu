@@ -144,7 +144,33 @@ struct ListSortVectorOperation : public VectorListOperations {
     static scalar_exec_func getExecFunction(const binder::expression_vector& arguments);
 };
 
+struct ListReverseSortVectorOperation : public VectorListOperations {
+    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static std::unique_ptr<FunctionBindData> bindFunc(
+        const binder::expression_vector& arguments, FunctionDefinition* definition);
+    template<typename T>
+    static scalar_exec_func getExecFunction(const binder::expression_vector& arguments);
+};
+
 struct ListSumVectorOperation : public VectorListOperations {
+    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static std::unique_ptr<FunctionBindData> bindFunc(
+        const binder::expression_vector& arguments, FunctionDefinition* definition);
+};
+
+struct ListDistinctVectorOperation : public VectorListOperations {
+    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static std::unique_ptr<FunctionBindData> bindFunc(
+        const binder::expression_vector& arguments, FunctionDefinition* definition);
+};
+
+struct ListUniqueVectorOperation : public VectorListOperations {
+    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static std::unique_ptr<FunctionBindData> bindFunc(
+        const binder::expression_vector& arguments, FunctionDefinition* definition);
+};
+
+struct ListAnyValueVectorOperation : public VectorListOperations {
     static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
     static std::unique_ptr<FunctionBindData> bindFunc(
         const binder::expression_vector& arguments, FunctionDefinition* definition);

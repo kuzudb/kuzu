@@ -57,6 +57,10 @@ const std::string LIST_SLICE_FUNC_NAME = "LIST_SLICE";
 const std::string ARRAY_SLICE_FUNC_NAME = "ARRAY_SLICE";
 const std::string LIST_SUM_FUNC_NAME = "LIST_SUM";
 const std::string LIST_SORT_FUNC_NAME = "LIST_SORT";
+const std::string LIST_REVERSE_SORT_FUNC_NAME = "LIST_REVERSE_SORT";
+const std::string LIST_DISTINCT_FUNC_NAME = "LIST_DISTINCT";
+const std::string LIST_UNIQUE_FUNC_NAME = "LIST_UNIQUE";
+const std::string LIST_ANY_VALUE_FUNC_NAME = "LIST_ANY_VALUE";
 
 // struct
 const std::string STRUCT_PACK_FUNC_NAME = "STRUCT_PACK";

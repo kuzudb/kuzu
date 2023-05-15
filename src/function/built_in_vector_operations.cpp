@@ -442,7 +442,14 @@ void BuiltInVectorOperations::registerListOperations() {
     vectorOperations.insert({LIST_SLICE_FUNC_NAME, ListSliceVectorOperation::getDefinitions()});
     vectorOperations.insert({ARRAY_SLICE_FUNC_NAME, ListSliceVectorOperation::getDefinitions()});
     vectorOperations.insert({LIST_SORT_FUNC_NAME, ListSortVectorOperation::getDefinitions()});
+    vectorOperations.insert(
+        {LIST_REVERSE_SORT_FUNC_NAME, ListReverseSortVectorOperation::getDefinitions()});
     vectorOperations.insert({LIST_SUM_FUNC_NAME, ListSumVectorOperation::getDefinitions()});
+    vectorOperations.insert(
+        {LIST_DISTINCT_FUNC_NAME, ListDistinctVectorOperation::getDefinitions()});
+    vectorOperations.insert({LIST_UNIQUE_FUNC_NAME, ListUniqueVectorOperation::getDefinitions()});
+    vectorOperations.insert(
+        {LIST_ANY_VALUE_FUNC_NAME, ListAnyValueVectorOperation::getDefinitions()});
 }
 
 void BuiltInVectorOperations::registerInternalIDOperation() {
