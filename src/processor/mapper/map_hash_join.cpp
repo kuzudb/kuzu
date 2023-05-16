@@ -11,14 +11,15 @@ namespace processor {
 
 BuildDataInfo PlanMapper::generateBuildDataInfo(const Schema& buildSideSchema,
     const expression_vector& keys, const expression_vector& payloads) {
-    std::vector<std::pair<DataPos, common::DataType>> buildKeysPosAndType, buildPayloadsPosAndTypes;
+    std::vector<std::pair<DataPos, common::LogicalType>> buildKeysPosAndType,
+        buildPayloadsPosAndTypes;
     std::vector<bool> isBuildPayloadsFlat, isBuildPayloadsInKeyChunk;
     std::vector<bool> isBuildDataChunkContainKeys(buildSideSchema.getNumGroups(), false);
     std::unordered_set<std::string> joinKeyNames;
     for (auto& key : keys) {
         auto buildSideKeyPos = DataPos(buildSideSchema.getExpressionPos(*key));
         isBuildDataChunkContainKeys[buildSideKeyPos.dataChunkPos] = true;
-        buildKeysPosAndType.emplace_back(buildSideKeyPos, common::INTERNAL_ID);
+        buildKeysPosAndType.emplace_back(buildSideKeyPos, common::LogicalTypeID::INTERNAL_ID);
         joinKeyNames.insert(key->getUniqueName());
     }
     for (auto& payload : payloads) {

@@ -36,7 +36,7 @@ WALPageIdxPosInPageAndFrame StorageStructure::createWALVersionOfPageIfNecessaryF
 }
 
 BaseColumnOrList::BaseColumnOrList(const StorageStructureIDAndFName& storageStructureIDAndFName,
-    DataType dataType, const size_t& elementSize, BufferManager* bufferManager,
+    LogicalType dataType, const size_t& elementSize, BufferManager* bufferManager,
     bool hasInlineNullBytes, WAL* wal)
     : StorageStructure(storageStructureIDAndFName, bufferManager, wal),
       dataType{std::move(dataType)}, elementSize{elementSize} {

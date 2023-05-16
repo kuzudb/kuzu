@@ -78,7 +78,8 @@ bool ListsUpdatesStore::hasUpdates() const {
 // Note: This function also resets the overflowptr of each string in inMemList if necessary.
 void ListsUpdatesStore::readInsertedRelsToList(ListFileID& listFileID,
     std::vector<ft_tuple_idx_t> tupleIdxes, InMemList& inMemList,
-    uint64_t numElementsInPersistentStore, DiskOverflowFile* diskOverflowFile, DataType dataType) {
+    uint64_t numElementsInPersistentStore, DiskOverflowFile* diskOverflowFile,
+    LogicalType dataType) {
     ftOfInsertedRels->copyToInMemList(getColIdxInFT(listFileID), tupleIdxes,
         inMemList.getListData(), inMemList.nullMask.get(), numElementsInPersistentStore,
         diskOverflowFile, dataType);
@@ -254,7 +255,7 @@ void ListsUpdatesStore::readUpdatesToPropertyVectorIfExists(ListFileID& listFile
 
 void ListsUpdatesStore::readPropertyUpdateToInMemList(ListFileID& listFileID,
     ft_tuple_idx_t ftTupleIdx, InMemList& inMemList, uint64_t posToWriteToInMemList,
-    const DataType& dataType, DiskOverflowFile* overflowFileOfInMemList) {
+    const LogicalType& dataType, DiskOverflowFile* overflowFileOfInMemList) {
     assert(listFileID.listType == ListType::REL_PROPERTY_LISTS);
     auto propertyID = listFileID.relPropertyListID.propertyID;
     auto tupleIdxesToRead = std::vector<ft_tuple_idx_t>{ftTupleIdx};
@@ -291,7 +292,7 @@ void ListsUpdatesStore::initInsertedRelsAndListsUpdates() {
         auto numBytesForProperty =
             relProperty.propertyID == RelTableSchema::INTERNAL_REL_ID_PROPERTY_ID ?
                 sizeof(offset_t) :
-                Types::getDataTypeSize(relProperty.dataType);
+                storage::StorageUtils::getDataTypeSize(relProperty.dataType);
         propertyIDToColIdxMap.emplace(
             relProperty.propertyID, factorizedTableSchema->getNumColumns());
         factorizedTableSchema->appendColumn(std::make_unique<ColumnSchema>(

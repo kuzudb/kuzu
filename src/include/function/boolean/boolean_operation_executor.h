@@ -130,8 +130,9 @@ struct BinaryBooleanOperationExecutor {
     template<typename FUNC>
     static void execute(
         common::ValueVector& left, common::ValueVector& right, common::ValueVector& result) {
-        assert(left.dataType.typeID == common::BOOL && right.dataType.typeID == common::BOOL &&
-               result.dataType.typeID == common::BOOL);
+        assert(left.dataType.getLogicalTypeID() == common::LogicalTypeID::BOOL &&
+               right.dataType.getLogicalTypeID() == common::LogicalTypeID::BOOL &&
+               result.dataType.getLogicalTypeID() == common::LogicalTypeID::BOOL);
         if (left.state->isFlat() && right.state->isFlat()) {
             executeBothFlat<FUNC>(left, right, result);
         } else if (left.state->isFlat() && !right.state->isFlat()) {
@@ -232,7 +233,8 @@ struct BinaryBooleanOperationExecutor {
     template<typename FUNC>
     static bool select(
         common::ValueVector& left, common::ValueVector& right, common::SelectionVector& selVector) {
-        assert(left.dataType.typeID == common::BOOL && right.dataType.typeID == common::BOOL);
+        assert(left.dataType.getLogicalTypeID() == common::LogicalTypeID::BOOL &&
+               right.dataType.getLogicalTypeID() == common::LogicalTypeID::BOOL);
         if (left.state->isFlat() && right.state->isFlat()) {
             return selectBothFlat<FUNC>(left, right);
         } else if (left.state->isFlat() && !right.state->isFlat()) {

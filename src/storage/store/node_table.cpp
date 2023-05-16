@@ -19,7 +19,7 @@ void NodeTable::initializeData(NodeTableSchema* nodeTableSchema) {
             StorageUtils::getNodePropertyColumnStructureIDAndFName(wal->getDirectory(), property),
             property.dataType, &bufferManager, wal);
     }
-    if (nodeTableSchema->getPrimaryKey().dataType.typeID != SERIAL) {
+    if (nodeTableSchema->getPrimaryKey().dataType.getLogicalTypeID() != LogicalTypeID::SERIAL) {
         pkIndex = std::make_unique<PrimaryKeyIndex>(
             StorageUtils::getNodeIndexIDAndFName(wal->getDirectory(), tableID),
             nodeTableSchema->getPrimaryKey().dataType, bufferManager, wal);
@@ -47,7 +47,7 @@ offset_t NodeTable::addNodeAndResetProperties(ValueVector* primaryKeyVector) {
     }
     // TODO(Guodong): Handle SERIAL.
     if (!pkIndex->insert(primaryKeyVector, pkValPos, nodeOffset)) {
-        std::string pkStr = primaryKeyVector->dataType.typeID == INT64 ?
+        std::string pkStr = primaryKeyVector->dataType.getLogicalTypeID() == LogicalTypeID::INT64 ?
                                 std::to_string(primaryKeyVector->getValue<int64_t>(pkValPos)) :
                                 primaryKeyVector->getValue<ku_string_t>(pkValPos).getAsString();
         throw RuntimeException(Exception::getExistedPKExceptionMsg(pkStr));

@@ -5,9 +5,9 @@
 namespace kuzu {
 namespace common {
 
-ValueVector::ValueVector(DataType dataType, storage::MemoryManager* memoryManager)
+ValueVector::ValueVector(LogicalType dataType, storage::MemoryManager* memoryManager)
     : dataType{std::move(dataType)} {
-    setNumBytesPerValue();
+    numBytesPerValue = getDataTypeSize(this->dataType);
     initializeValueBuffer();
     nullMask = std::make_unique<NullMask>();
     auxiliaryBuffer = AuxiliaryBufferFactory::getAuxiliaryBuffer(this->dataType, memoryManager);
@@ -15,7 +15,7 @@ ValueVector::ValueVector(DataType dataType, storage::MemoryManager* memoryManage
 
 void ValueVector::setState(std::shared_ptr<DataChunkState> state) {
     this->state = state;
-    if (dataType.typeID == STRUCT) {
+    if (dataType.getLogicalTypeID() == LogicalTypeID::STRUCT) {
         auto childrenVectors = StructVector::getChildrenVectors(this);
         for (auto childVector : childrenVectors) {
             childVector->setState(state);
@@ -56,23 +56,30 @@ void ValueVector::setValue(uint32_t pos, std::string val) {
     StringVector::addString(this, pos, val.data(), val.length());
 }
 
-void ValueVector::setNumBytesPerValue() {
-    switch (dataType.typeID) {
-    case STRUCT: {
-        numBytesPerValue = sizeof(struct_entry_t);
-    } break;
-    case VAR_LIST: {
-        numBytesPerValue = sizeof(list_entry_t);
-    } break;
+uint32_t ValueVector::getDataTypeSize(const LogicalType& type) {
+    switch (type.getLogicalTypeID()) {
+    case common::LogicalTypeID::STRING: {
+        return sizeof(common::ku_string_t);
+    }
+    case common::LogicalTypeID::FIXED_LIST: {
+        return getDataTypeSize(*common::FixedListType::getChildType(&type)) *
+               common::FixedListType::getNumElementsInList(&type);
+    }
+    case LogicalTypeID::STRUCT: {
+        return sizeof(struct_entry_t);
+    }
+    case LogicalTypeID::VAR_LIST: {
+        return sizeof(list_entry_t);
+    }
     default: {
-        numBytesPerValue = Types::getDataTypeSize(dataType);
+        return LogicalTypeUtils::getFixedTypeSize(type.getPhysicalType());
     }
     }
 }
 
 void ValueVector::initializeValueBuffer() {
     valueBuffer = std::make_unique<uint8_t[]>(numBytesPerValue * DEFAULT_VECTOR_CAPACITY);
-    if (dataType.typeID == STRUCT) {
+    if (dataType.getLogicalTypeID() == LogicalTypeID::STRUCT) {
         // For struct valueVectors, each struct_entry_t stores its current position in the
         // valueVector.
         StructVector::initializeEntries(this);

@@ -86,11 +86,12 @@ void QueryProcessor::decomposePlanIntoTasks(
 std::shared_ptr<FactorizedTable> QueryProcessor::getFactorizedTableForOutputMsg(
     std::string& outputMsg, MemoryManager* memoryManager) {
     auto ftTableSchema = std::make_unique<FactorizedTableSchema>();
-    ftTableSchema->appendColumn(std::make_unique<ColumnSchema>(
-        false /* flat */, 0 /* dataChunkPos */, Types::getDataTypeSize(STRING)));
+    ftTableSchema->appendColumn(
+        std::make_unique<ColumnSchema>(false /* flat */, 0 /* dataChunkPos */,
+            FactorizedTable::getDataTypeSize(LogicalType{LogicalTypeID::STRING})));
     auto factorizedTable =
         std::make_shared<FactorizedTable>(memoryManager, std::move(ftTableSchema));
-    auto outputMsgVector = std::make_shared<ValueVector>(STRING, memoryManager);
+    auto outputMsgVector = std::make_shared<ValueVector>(LogicalTypeID::STRING, memoryManager);
     auto outputMsgChunk = std::make_shared<DataChunk>(1 /* numValueVectors */);
     outputMsgChunk->insert(0 /* pos */, outputMsgVector);
     ku_string_t outputKUStr = ku_string_t();

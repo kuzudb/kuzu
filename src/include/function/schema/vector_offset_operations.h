@@ -17,8 +17,8 @@ struct OffsetVectorOperation : public VectorOperations {
     static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions() {
         std::vector<std::unique_ptr<VectorOperationDefinition>> definitions;
         definitions.push_back(make_unique<VectorOperationDefinition>(common::OFFSET_FUNC_NAME,
-            std::vector<common::DataTypeID>{common::INTERNAL_ID}, common::INT64,
-            OffsetVectorOperation::execFunction));
+            std::vector<common::LogicalTypeID>{common::LogicalTypeID::INTERNAL_ID},
+            common::LogicalTypeID::INT64, OffsetVectorOperation::execFunction));
         return definitions;
     }
 };

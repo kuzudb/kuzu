@@ -46,7 +46,7 @@ std::unique_ptr<BoundStatement> Binder::bind(const Statement& statement) {
 
 std::shared_ptr<Expression> Binder::bindWhereExpression(const ParsedExpression& parsedExpression) {
     auto whereExpression = expressionBinder.bindExpression(parsedExpression);
-    ExpressionBinder::implicitCastIfNecessary(whereExpression, BOOL);
+    ExpressionBinder::implicitCastIfNecessary(whereExpression, LogicalTypeID::BOOL);
     return whereExpression;
 }
 
@@ -65,7 +65,7 @@ table_id_t Binder::bindNodeTableID(const std::string& tableName) const {
 }
 
 std::shared_ptr<Expression> Binder::createVariable(
-    const std::string& name, const DataType& dataType) {
+    const std::string& name, const LogicalType& dataType) {
     if (variablesInScope.contains(name)) {
         throw BinderException("Variable " + name + " already exists.");
     }
@@ -124,8 +124,8 @@ void Binder::validateUnionColumnsOfTheSameType(
         // Check whether the dataTypes in union expressions are exactly the same in each single
         // query.
         for (auto j = 0u; j < expressionsToProject.size(); j++) {
-            ExpressionBinder::validateExpectedDataType(
-                *expressionsToProjectToCheck[j], expressionsToProject[j]->dataType.typeID);
+            ExpressionBinder::validateExpectedDataType(*expressionsToProjectToCheck[j],
+                expressionsToProject[j]->dataType.getLogicalTypeID());
         }
     }
 }

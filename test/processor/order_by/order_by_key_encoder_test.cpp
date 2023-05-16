@@ -44,8 +44,8 @@ public:
     // 0xFF(null flag) + 0xFF...FF(padding)
     // if the col is in desc order, the encoding string is:
     // 0x00(null flag) + 0x00...00(padding)
-    inline void checkNullVal(uint8_t*& keyBlockPtr, DataTypeID dataTypeID, bool isAsc) {
-        for (auto i = 0u; i < OrderByKeyEncoder::getEncodingSize(DataType(dataTypeID)); i++) {
+    inline void checkNullVal(uint8_t*& keyBlockPtr, LogicalTypeID dataTypeID, bool isAsc) {
+        for (auto i = 0u; i < OrderByKeyEncoder::getEncodingSize(LogicalType(dataTypeID)); i++) {
             ASSERT_EQ(*(keyBlockPtr++), isAsc ? 0xFF : 0x00);
         }
     }
@@ -58,7 +58,7 @@ public:
         std::vector<ValueVector*> valueVectors;
         for (auto i = 0u; i < numOfOrderByCols; i++) {
             std::shared_ptr<ValueVector> valueVector =
-                std::make_shared<ValueVector>(INT64, memoryManager.get());
+                std::make_shared<ValueVector>(LogicalTypeID::INT64, memoryManager.get());
             for (auto j = 0u; j < numOfElementsPerCol; j++) {
                 valueVector->setValue(j, (int64_t)5);
             }
@@ -138,7 +138,8 @@ public:
 TEST_F(OrderByKeyEncoderTest, singleOrderByColInt64UnflatTest) {
     std::shared_ptr<DataChunk> dataChunk = std::make_shared<DataChunk>(1);
     dataChunk->state->selVector->selectedSize = 6;
-    auto int64ValueVector = std::make_shared<ValueVector>(INT64, memoryManager.get());
+    auto int64ValueVector =
+        std::make_shared<ValueVector>(LogicalTypeID::INT64, memoryManager.get());
     int64ValueVector->setValue(0, (int64_t)73); // positive number
     int64ValueVector->setNull(1, true);
     int64ValueVector->setValue(2, (int64_t)-132);  // negative 1 byte number
@@ -163,7 +164,7 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColInt64UnflatTest) {
     ASSERT_EQ(*(keyBlockPtr++), 0x49);
     checkTupleIdxAndFactorizedTableIdx(0, keyBlockPtr);
 
-    checkNullVal(keyBlockPtr, INT64, isAscOrder[0]);
+    checkNullVal(keyBlockPtr, LogicalTypeID::INT64, isAscOrder[0]);
     checkTupleIdxAndFactorizedTableIdx(1, keyBlockPtr);
 
     // Check encoding for: NULL FLAG(0x00) + -132=0x7FFFFFFFFFFFFF7C(big endian).
@@ -205,7 +206,7 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColInt64UnflatWithFilterTest) {
     // valueVector.
     std::shared_ptr<DataChunk> dataChunk = std::make_shared<DataChunk>(1);
     std::shared_ptr<ValueVector> int64ValueVector =
-        std::make_shared<ValueVector>(INT64, memoryManager.get());
+        std::make_shared<ValueVector>(LogicalTypeID::INT64, memoryManager.get());
     int64ValueVector->setValue(0, (int64_t)73);
     int64ValueVector->setValue(1, (int64_t)-52);
     int64ValueVector->setValue(2, (int64_t)-132);
@@ -247,7 +248,7 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColBoolUnflatTest) {
     std::shared_ptr<DataChunk> dataChunk = std::make_shared<DataChunk>(1);
     dataChunk->state->selVector->selectedSize = 3;
     std::shared_ptr<ValueVector> boolValueVector =
-        std::make_shared<ValueVector>(BOOL, memoryManager.get());
+        std::make_shared<ValueVector>(LogicalTypeID::BOOL, memoryManager.get());
     boolValueVector->setValue(0, true);
     boolValueVector->setValue(1, false);
     boolValueVector->setNull(2, true);
@@ -270,7 +271,7 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColBoolUnflatTest) {
     ASSERT_EQ(*(keyBlockPtr++), 0xFF);
     checkTupleIdxAndFactorizedTableIdx(1, keyBlockPtr);
 
-    checkNullVal(keyBlockPtr, BOOL, isAscOrder[0]);
+    checkNullVal(keyBlockPtr, LogicalTypeID::BOOL, isAscOrder[0]);
     checkTupleIdxAndFactorizedTableIdx(2, keyBlockPtr);
 }
 
@@ -278,7 +279,7 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColDateUnflatTest) {
     std::shared_ptr<DataChunk> dataChunk = std::make_shared<DataChunk>(1);
     dataChunk->state->selVector->selectedSize = 3;
     std::shared_ptr<ValueVector> dateValueVector =
-        std::make_shared<ValueVector>(DATE, memoryManager.get());
+        std::make_shared<ValueVector>(LogicalTypeID::DATE, memoryManager.get());
     dateValueVector->setValue(
         0, Date::FromCString("2035-07-04", strlen("2035-07-04"))); // date after 1970-01-01
     dateValueVector->setNull(1, true);
@@ -301,7 +302,7 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColDateUnflatTest) {
     ASSERT_EQ(*(keyBlockPtr++), 0x75);
     checkTupleIdxAndFactorizedTableIdx(0, keyBlockPtr);
 
-    checkNullVal(keyBlockPtr, DATE, isAscOrder[0]);
+    checkNullVal(keyBlockPtr, LogicalTypeID::DATE, isAscOrder[0]);
     checkTupleIdxAndFactorizedTableIdx(1, keyBlockPtr);
 
     // Check encoding for: NULL FLAG(0x00) + "1949-10-01"=0x7FFFE31B(-7397 days in big endian).
@@ -317,7 +318,7 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColTimestampUnflatTest) {
     std::shared_ptr<DataChunk> dataChunk = std::make_shared<DataChunk>(1);
     dataChunk->state->selVector->selectedSize = 3;
     std::shared_ptr<ValueVector> timestampValueVector =
-        std::make_shared<ValueVector>(TIMESTAMP, memoryManager.get());
+        std::make_shared<ValueVector>(LogicalTypeID::TIMESTAMP, memoryManager.get());
     // timestamp before 1970-01-01
     timestampValueVector->setValue(
         0, Timestamp::FromCString("1962-04-07 11:12:35.123", strlen("1962-04-07 11:12:35.123")));
@@ -347,7 +348,7 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColTimestampUnflatTest) {
     ASSERT_EQ(*(keyBlockPtr++), 0x38);
     checkTupleIdxAndFactorizedTableIdx(0, keyBlockPtr);
 
-    checkNullVal(keyBlockPtr, TIMESTAMP, isAscOrder[0]);
+    checkNullVal(keyBlockPtr, LogicalTypeID::TIMESTAMP, isAscOrder[0]);
     checkTupleIdxAndFactorizedTableIdx(1, keyBlockPtr);
 
     // Check encoding for: NULL FLAG(0x00) + "2035-07-01 11:14:33"=0x800757D5F429B840
@@ -368,7 +369,7 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColIntervalUnflatTest) {
     std::shared_ptr<DataChunk> dataChunk = std::make_shared<DataChunk>(1);
     dataChunk->state->selVector->selectedSize = 2;
     std::shared_ptr<ValueVector> intervalValueVector =
-        std::make_shared<ValueVector>(INTERVAL, memoryManager.get());
+        std::make_shared<ValueVector>(LogicalTypeID::INTERVAL, memoryManager.get());
     intervalValueVector->setValue(
         0, Interval::FromCString("18 hours 55 days 13 years 8 milliseconds 3 months",
                strlen("18 hours 55 days 13 years 8 milliseconds 3 months")));
@@ -407,7 +408,7 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColIntervalUnflatTest) {
     ASSERT_EQ(*(keyBlockPtr++), 0x40);
     checkTupleIdxAndFactorizedTableIdx(0, keyBlockPtr);
 
-    checkNullVal(keyBlockPtr, INTERVAL, isAscOrder[0]);
+    checkNullVal(keyBlockPtr, LogicalTypeID::INTERVAL, isAscOrder[0]);
     checkTupleIdxAndFactorizedTableIdx(1, keyBlockPtr);
 }
 
@@ -415,7 +416,7 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColStringUnflatTest) {
     std::shared_ptr<DataChunk> dataChunk = std::make_shared<DataChunk>(1);
     dataChunk->state->selVector->selectedSize = 4;
     std::shared_ptr<ValueVector> stringValueVector =
-        std::make_shared<ValueVector>(STRING, memoryManager.get());
+        std::make_shared<ValueVector>(LogicalTypeID::STRING, memoryManager.get());
     stringValueVector->setValue<std::string>(0, "short str"); // short std::string
     stringValueVector->setNull(1, true);
     stringValueVector->setValue<std::string>(
@@ -448,7 +449,7 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColStringUnflatTest) {
     checkLongStrFlag(keyBlockPtr, isAscOrder[0], false /* isLongStr */);
     checkTupleIdxAndFactorizedTableIdx(0, keyBlockPtr);
 
-    checkNullVal(keyBlockPtr, STRING, isAscOrder[0]);
+    checkNullVal(keyBlockPtr, LogicalTypeID::STRING, isAscOrder[0]);
     checkTupleIdxAndFactorizedTableIdx(1, keyBlockPtr);
 
     // Check encoding for: NULL FLAG(0x00) + "commonprefix string1".
@@ -490,7 +491,7 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColDoubleUnflatTest) {
     std::shared_ptr<DataChunk> dataChunk = std::make_shared<DataChunk>(1);
     dataChunk->state->selVector->selectedSize = 6;
     std::shared_ptr<ValueVector> doubleValueVector =
-        std::make_shared<ValueVector>(DOUBLE, memoryManager.get());
+        std::make_shared<ValueVector>(LogicalTypeID::DOUBLE, memoryManager.get());
     doubleValueVector->setValue(0, (double_t)3.452); // small positive number
     doubleValueVector->setNull(1, true);
     doubleValueVector->setValue(2, (double_t)-0.00031213);     // very small negative number
@@ -518,7 +519,7 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColDoubleUnflatTest) {
     ASSERT_EQ(*(keyBlockPtr++), 0x04);
     checkTupleIdxAndFactorizedTableIdx(0, keyBlockPtr);
 
-    checkNullVal(keyBlockPtr, INT64, isAscOrder[0]);
+    checkNullVal(keyBlockPtr, LogicalTypeID::INT64, isAscOrder[0]);
     checkTupleIdxAndFactorizedTableIdx(1, keyBlockPtr);
 
     // Check encoding for: NULL FLAG(0x00) + -0.00031213=0x40CB8B53DB9F4D8D(big endian).
@@ -621,11 +622,16 @@ TEST_F(OrderByKeyEncoderTest, singleOrderByColMultiBlockFlatTest) {
 
 TEST_F(OrderByKeyEncoderTest, multipleOrderByColSingleBlockTest) {
     std::vector<bool> isAscOrder = {true, false, true, true, true};
-    auto intFlatValueVector = std::make_shared<ValueVector>(INT64, memoryManager.get());
-    auto doubleFlatValueVector = std::make_shared<ValueVector>(DOUBLE, memoryManager.get());
-    auto stringFlatValueVector = std::make_shared<ValueVector>(STRING, memoryManager.get());
-    auto timestampFlatValueVector = std::make_shared<ValueVector>(TIMESTAMP, memoryManager.get());
-    auto dateFlatValueVector = std::make_shared<ValueVector>(DATE, memoryManager.get());
+    auto intFlatValueVector =
+        std::make_shared<ValueVector>(LogicalTypeID::INT64, memoryManager.get());
+    auto doubleFlatValueVector =
+        std::make_shared<ValueVector>(LogicalTypeID::DOUBLE, memoryManager.get());
+    auto stringFlatValueVector =
+        std::make_shared<ValueVector>(LogicalTypeID::STRING, memoryManager.get());
+    auto timestampFlatValueVector =
+        std::make_shared<ValueVector>(LogicalTypeID::TIMESTAMP, memoryManager.get());
+    auto dateFlatValueVector =
+        std::make_shared<ValueVector>(LogicalTypeID::DATE, memoryManager.get());
 
     auto mockDataChunk = std::make_shared<DataChunk>(5);
     mockDataChunk->insert(0, intFlatValueVector);
@@ -696,7 +702,7 @@ TEST_F(OrderByKeyEncoderTest, multipleOrderByColSingleBlockTest) {
     ASSERT_EQ(*(keyBlockPtr++), 0x31);
     ASSERT_EQ(*(keyBlockPtr++), 0x26);
 
-    checkNullVal(keyBlockPtr, STRING, isAscOrder[2]);
+    checkNullVal(keyBlockPtr, LogicalTypeID::STRING, isAscOrder[2]);
 
     // Check encoding for: NULL FLAG(0x00) + "2008-08-08 20:20:20"=0x800453F888DCA900
     // (1218226820000000 micros in big endian).
@@ -785,7 +791,7 @@ TEST_F(OrderByKeyEncoderTest, multipleOrderByColSingleBlockTest) {
     ASSERT_EQ(*(keyBlockPtr++), 0xB5);
     ASSERT_EQ(*(keyBlockPtr++), 0x02);
 
-    checkNullVal(keyBlockPtr, DOUBLE, isAscOrder[1]);
+    checkNullVal(keyBlockPtr, LogicalTypeID::DOUBLE, isAscOrder[1]);
 
     // Check encoding for: "short str".
     checkNonNullFlag(keyBlockPtr, isAscOrder[2]);
@@ -803,9 +809,9 @@ TEST_F(OrderByKeyEncoderTest, multipleOrderByColSingleBlockTest) {
     ASSERT_EQ(*(keyBlockPtr++), '\0');
     checkLongStrFlag(keyBlockPtr, isAscOrder[2], false /* isLongStr */);
 
-    checkNullVal(keyBlockPtr, TIMESTAMP, isAscOrder[3]);
+    checkNullVal(keyBlockPtr, LogicalTypeID::TIMESTAMP, isAscOrder[3]);
 
-    checkNullVal(keyBlockPtr, DATE, isAscOrder[4]);
+    checkNullVal(keyBlockPtr, LogicalTypeID::DATE, isAscOrder[4]);
 
     checkTupleIdxAndFactorizedTableIdx(2, keyBlockPtr);
 }

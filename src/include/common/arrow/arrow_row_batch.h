@@ -69,15 +69,15 @@ private:
         ArrowVector* vector, const main::DataTypeInfo& typeInfo, Value* value, std::int64_t pos);
     static void copyNullValue(ArrowVector* vector, Value* value, std::int64_t pos);
 
-    template<DataTypeID DT>
+    template<LogicalTypeID DT>
     static void templateInitializeVector(
         ArrowVector* vector, const main::DataTypeInfo& typeInfo, std::int64_t capacity);
-    template<DataTypeID DT>
+    template<LogicalTypeID DT>
     static void templateCopyNonNullValue(
         ArrowVector* vector, const main::DataTypeInfo& typeInfo, Value* value, std::int64_t pos);
-    template<DataTypeID DT>
+    template<LogicalTypeID DT>
     static void templateCopyNullValue(ArrowVector* vector, std::int64_t pos);
-    template<DataTypeID DT>
+    template<LogicalTypeID DT>
     static ArrowArray* templateCreateArray(ArrowVector& vector, const main::DataTypeInfo& typeInfo);
 
     ArrowArray toArray();

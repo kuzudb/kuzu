@@ -40,7 +40,8 @@ public:
 
     inline void scanSingleStringOverflow(
         transaction::TransactionType trxType, common::ValueVector& vector, uint64_t vectorPos) {
-        assert(vector.dataType.typeID == common::STRING && !vector.isNull(vectorPos));
+        assert(vector.dataType.getLogicalTypeID() == common::LogicalTypeID::STRING &&
+               !vector.isNull(vectorPos));
         auto& kuString = ((common::ku_string_t*)vector.getData())[vectorPos];
         lookupString(trxType, kuString, *common::StringVector::getInMemOverflowBuffer(&vector));
     }
@@ -49,13 +50,13 @@ public:
         common::ValueVector* vector, uint64_t pos);
     std::string readString(transaction::TransactionType trxType, const common::ku_string_t& str);
     std::vector<std::unique_ptr<common::Value>> readList(transaction::TransactionType trxType,
-        const common::ku_list_t& listVal, const common::DataType& dataType);
+        const common::ku_list_t& listVal, const common::LogicalType& dataType);
 
     common::ku_string_t writeString(const char* rawString);
     void writeStringOverflowAndUpdateOverflowPtr(
         const common::ku_string_t& strToWriteFrom, common::ku_string_t& strToWriteTo);
     void writeListOverflowAndUpdateOverflowPtr(const common::ku_list_t& listToWriteFrom,
-        common::ku_list_t& listToWriteTo, const common::DataType& valueType);
+        common::ku_list_t& listToWriteTo, const common::LogicalType& valueType);
 
     inline void resetNextBytePosToWriteTo(uint64_t nextBytePosToWriteTo_) {
         nextBytePosToWriteTo = nextBytePosToWriteTo_;
@@ -79,9 +80,9 @@ private:
     void setStringOverflowWithoutLock(
         const char* inMemSrcStr, uint64_t len, common::ku_string_t& diskDstString);
     void setListRecursiveIfNestedWithoutLock(const common::ku_list_t& inMemSrcList,
-        common::ku_list_t& diskDstList, const common::DataType& dataType);
+        common::ku_list_t& diskDstList, const common::LogicalType& dataType);
     void logNewOverflowFileNextBytePosRecordIfNecessaryWithoutLock();
-    void readValuesInList(transaction::TransactionType trxType, const common::DataType& dataType,
+    void readValuesInList(transaction::TransactionType trxType, const common::LogicalType& dataType,
         std::vector<std::unique_ptr<common::Value>>& retValues, uint32_t numBytesOfSingleValue,
         uint64_t numValuesInList, PageByteCursor& cursor, uint8_t* frame);
     void pinOverflowPageCache(BMFileHandle* bmFileHandleToPin, common::page_idx_t pageIdxToPin,

@@ -16,7 +16,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalUnwindToPhysical(
     auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0));
     auto dataPos = DataPos(outSchema->getExpressionPos(*unwind->getAliasExpression()));
     auto expressionEvaluator = expressionMapper.mapExpression(unwind->getExpression(), *inSchema);
-    return std::make_unique<Unwind>(*unwind->getExpression()->getDataType().getChildType(), dataPos,
+    return std::make_unique<Unwind>(
+        *common::VarListType::getChildType(&unwind->getExpression()->dataType), dataPos,
         std::move(expressionEvaluator), std::move(prevOperator), getOperatorID(),
         unwind->getExpressionsForPrinting());
 }

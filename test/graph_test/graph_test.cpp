@@ -44,11 +44,12 @@ void BaseGraphTest::validateNodeColumnFilesExistence(
     for (auto& property : nodeTableSchema->properties) {
         validateColumnFilesExistence(StorageUtils::getNodePropertyColumnFName(databasePath,
                                          nodeTableSchema->tableID, property.propertyID, dbFileType),
-            existence, containsOverflowFile(property.dataType.typeID));
+            existence, containsOverflowFile(property.dataType.getLogicalTypeID()));
     }
     validateColumnFilesExistence(
         StorageUtils::getNodeIndexFName(databasePath, nodeTableSchema->tableID, dbFileType),
-        existence, containsOverflowFile(nodeTableSchema->getPrimaryKey().dataType.typeID));
+        existence,
+        containsOverflowFile(nodeTableSchema->getPrimaryKey().dataType.getLogicalTypeID()));
 }
 
 void BaseGraphTest::validateRelColumnAndListFilesExistence(
@@ -96,7 +97,7 @@ void BaseGraphTest::commitOrRollbackConnectionAndInitDBIfNecessary(
 void BaseGraphTest::validateRelPropertyFiles(catalog::RelTableSchema* relTableSchema,
     RelDataDirection relDirection, bool isColumnProperty, DBFileType dbFileType, bool existence) {
     for (auto& property : relTableSchema->properties) {
-        auto hasOverflow = containsOverflowFile(property.dataType.typeID);
+        auto hasOverflow = containsOverflowFile(property.dataType.getLogicalTypeID());
         if (isColumnProperty) {
             validateColumnFilesExistence(
                 StorageUtils::getRelPropertyColumnFName(databasePath, relTableSchema->tableID,

@@ -7,7 +7,8 @@ namespace binder {
 
 class VariableExpression : public Expression {
 public:
-    VariableExpression(common::DataType dataType, std::string uniqueName, std::string variableName)
+    VariableExpression(
+        common::LogicalType dataType, std::string uniqueName, std::string variableName)
         : Expression{common::VARIABLE, dataType, std::move(uniqueName)}, variableName{std::move(
                                                                              variableName)} {}
 

@@ -13,7 +13,7 @@ TEST_F(CApiValueTest, CreateNull) {
     kuzu_value* value = kuzu_value_create_null();
     ASSERT_FALSE(value->_is_owned_by_cpp);
     auto cppValue = static_cast<Value*>(value->_value);
-    ASSERT_EQ(cppValue->getDataType().getTypeID(), DataTypeID::ANY);
+    ASSERT_EQ(cppValue->getDataType().getLogicalTypeID(), LogicalTypeID::ANY);
     ASSERT_EQ(cppValue->isNull(), true);
     kuzu_value_destroy(value);
 }
@@ -24,7 +24,7 @@ TEST_F(CApiValueTest, CreateNullWithDatatype) {
     ASSERT_FALSE(value->_is_owned_by_cpp);
     kuzu_data_type_destroy(type);
     auto cppValue = static_cast<Value*>(value->_value);
-    ASSERT_EQ(cppValue->getDataType().getTypeID(), DataTypeID::INT64);
+    ASSERT_EQ(cppValue->getDataType().getLogicalTypeID(), LogicalTypeID::INT64);
     ASSERT_EQ(cppValue->isNull(), true);
     kuzu_value_destroy(value);
 }
@@ -57,7 +57,7 @@ TEST_F(CApiValueTest, CreateDefault) {
     kuzu_data_type_destroy(type);
     auto cppValue = static_cast<Value*>(value->_value);
     ASSERT_FALSE(kuzu_value_is_null(value));
-    ASSERT_EQ(cppValue->getDataType().getTypeID(), DataTypeID::INT64);
+    ASSERT_EQ(cppValue->getDataType().getLogicalTypeID(), LogicalTypeID::INT64);
     ASSERT_EQ(cppValue->getValue<int64_t>(), 0);
     kuzu_value_destroy(value);
 
@@ -67,7 +67,7 @@ TEST_F(CApiValueTest, CreateDefault) {
     kuzu_data_type_destroy(type);
     cppValue = static_cast<Value*>(value->_value);
     ASSERT_FALSE(kuzu_value_is_null(value));
-    ASSERT_EQ(cppValue->getDataType().getTypeID(), DataTypeID::STRING);
+    ASSERT_EQ(cppValue->getDataType().getLogicalTypeID(), LogicalTypeID::STRING);
     ASSERT_EQ(cppValue->getValue<std::string>(), "");
     kuzu_value_destroy(value);
 }
@@ -76,14 +76,14 @@ TEST_F(CApiValueTest, CreateBool) {
     kuzu_value* value = kuzu_value_create_bool(true);
     ASSERT_FALSE(value->_is_owned_by_cpp);
     auto cppValue = static_cast<Value*>(value->_value);
-    ASSERT_EQ(cppValue->getDataType().getTypeID(), DataTypeID::BOOL);
+    ASSERT_EQ(cppValue->getDataType().getLogicalTypeID(), LogicalTypeID::BOOL);
     ASSERT_EQ(cppValue->getValue<bool>(), true);
     kuzu_value_destroy(value);
 
     value = kuzu_value_create_bool(false);
     ASSERT_FALSE(value->_is_owned_by_cpp);
     cppValue = static_cast<Value*>(value->_value);
-    ASSERT_EQ(cppValue->getDataType().getTypeID(), DataTypeID::BOOL);
+    ASSERT_EQ(cppValue->getDataType().getLogicalTypeID(), LogicalTypeID::BOOL);
     ASSERT_EQ(cppValue->getValue<bool>(), false);
     kuzu_value_destroy(value);
 }
@@ -92,7 +92,7 @@ TEST_F(CApiValueTest, CreateInt16) {
     kuzu_value* value = kuzu_value_create_int16(123);
     ASSERT_FALSE(value->_is_owned_by_cpp);
     auto cppValue = static_cast<Value*>(value->_value);
-    ASSERT_EQ(cppValue->getDataType().getTypeID(), DataTypeID::INT16);
+    ASSERT_EQ(cppValue->getDataType().getLogicalTypeID(), LogicalTypeID::INT16);
     ASSERT_EQ(cppValue->getValue<int16_t>(), 123);
     kuzu_value_destroy(value);
 }
@@ -101,7 +101,7 @@ TEST_F(CApiValueTest, CreateInt32) {
     kuzu_value* value = kuzu_value_create_int32(123);
     ASSERT_FALSE(value->_is_owned_by_cpp);
     auto cppValue = static_cast<Value*>(value->_value);
-    ASSERT_EQ(cppValue->getDataType().getTypeID(), DataTypeID::INT32);
+    ASSERT_EQ(cppValue->getDataType().getLogicalTypeID(), LogicalTypeID::INT32);
     ASSERT_EQ(cppValue->getValue<int32_t>(), 123);
     kuzu_value_destroy(value);
 }
@@ -110,7 +110,7 @@ TEST_F(CApiValueTest, CreateInt64) {
     kuzu_value* value = kuzu_value_create_int64(123);
     ASSERT_FALSE(value->_is_owned_by_cpp);
     auto cppValue = static_cast<Value*>(value->_value);
-    ASSERT_EQ(cppValue->getDataType().getTypeID(), DataTypeID::INT64);
+    ASSERT_EQ(cppValue->getDataType().getLogicalTypeID(), LogicalTypeID::INT64);
     ASSERT_EQ(cppValue->getValue<int64_t>(), 123);
     kuzu_value_destroy(value);
 }
@@ -119,7 +119,7 @@ TEST_F(CApiValueTest, CreateFloat) {
     kuzu_value* value = kuzu_value_create_float(123.456);
     ASSERT_FALSE(value->_is_owned_by_cpp);
     auto cppValue = static_cast<Value*>(value->_value);
-    ASSERT_EQ(cppValue->getDataType().getTypeID(), DataTypeID::FLOAT);
+    ASSERT_EQ(cppValue->getDataType().getLogicalTypeID(), LogicalTypeID::FLOAT);
     ASSERT_FLOAT_EQ(cppValue->getValue<float>(), 123.456);
     kuzu_value_destroy(value);
 }
@@ -128,7 +128,7 @@ TEST_F(CApiValueTest, CreateDouble) {
     kuzu_value* value = kuzu_value_create_double(123.456);
     ASSERT_FALSE(value->_is_owned_by_cpp);
     auto cppValue = static_cast<Value*>(value->_value);
-    ASSERT_EQ(cppValue->getDataType().getTypeID(), DataTypeID::DOUBLE);
+    ASSERT_EQ(cppValue->getDataType().getLogicalTypeID(), LogicalTypeID::DOUBLE);
     ASSERT_DOUBLE_EQ(cppValue->getValue<double>(), 123.456);
     kuzu_value_destroy(value);
 }
@@ -138,7 +138,7 @@ TEST_F(CApiValueTest, CreateInternalID) {
     kuzu_value* value = kuzu_value_create_internal_id(internalID);
     ASSERT_FALSE(value->_is_owned_by_cpp);
     auto cppValue = static_cast<Value*>(value->_value);
-    ASSERT_EQ(cppValue->getDataType().getTypeID(), DataTypeID::INTERNAL_ID);
+    ASSERT_EQ(cppValue->getDataType().getLogicalTypeID(), LogicalTypeID::INTERNAL_ID);
     auto internalIDCpp = cppValue->getValue<internalID_t>();
     ASSERT_EQ(internalIDCpp.tableID, 1);
     ASSERT_EQ(internalIDCpp.offset, 123);
@@ -151,7 +151,7 @@ TEST_F(CApiValueTest, CreateNodeVal) {
     auto value = kuzu_value_create_node_val(nodeVal);
     ASSERT_FALSE(value->_is_owned_by_cpp);
     auto cppValue = static_cast<Value*>(value->_value);
-    ASSERT_EQ(cppValue->getDataType().getTypeID(), DataTypeID::NODE);
+    ASSERT_EQ(cppValue->getDataType().getLogicalTypeID(), LogicalTypeID::NODE);
     auto nodeValCpp = cppValue->getValue<NodeVal>();
     ASSERT_EQ(nodeValCpp.getNodeID().tableID, 1);
     ASSERT_EQ(nodeValCpp.getNodeID().offset, 123);
@@ -168,7 +168,7 @@ TEST_F(CApiValueTest, CreateRelVal) {
     auto value = kuzu_value_create_rel_val(relVal);
     ASSERT_FALSE(value->_is_owned_by_cpp);
     auto cppValue = static_cast<Value*>(value->_value);
-    ASSERT_EQ(cppValue->getDataType().getTypeID(), DataTypeID::REL);
+    ASSERT_EQ(cppValue->getDataType().getLogicalTypeID(), LogicalTypeID::REL);
     auto relValCpp = cppValue->getValue<RelVal>();
     ASSERT_EQ(relValCpp.getSrcNodeID().tableID, 1);
     ASSERT_EQ(relValCpp.getSrcNodeID().offset, 123);
@@ -184,7 +184,7 @@ TEST_F(CApiValueTest, CreateDate) {
     kuzu_value* value = kuzu_value_create_date(kuzu_date_t{123});
     ASSERT_FALSE(value->_is_owned_by_cpp);
     auto cppValue = static_cast<Value*>(value->_value);
-    ASSERT_EQ(cppValue->getDataType().getTypeID(), DataTypeID::DATE);
+    ASSERT_EQ(cppValue->getDataType().getLogicalTypeID(), LogicalTypeID::DATE);
     auto cppDate = cppValue->getValue<date_t>();
     ASSERT_EQ(cppDate.days, 123);
     kuzu_value_destroy(value);
@@ -194,7 +194,7 @@ TEST_F(CApiValueTest, CreateTimeStamp) {
     kuzu_value* value = kuzu_value_create_timestamp(kuzu_timestamp_t{123});
     ASSERT_FALSE(value->_is_owned_by_cpp);
     auto cppValue = static_cast<Value*>(value->_value);
-    ASSERT_EQ(cppValue->getDataType().getTypeID(), DataTypeID::TIMESTAMP);
+    ASSERT_EQ(cppValue->getDataType().getLogicalTypeID(), LogicalTypeID::TIMESTAMP);
     auto cppTimeStamp = cppValue->getValue<timestamp_t>();
     ASSERT_EQ(cppTimeStamp.value, 123);
     kuzu_value_destroy(value);
@@ -204,7 +204,7 @@ TEST_F(CApiValueTest, CreateInterval) {
     kuzu_value* value = kuzu_value_create_interval(kuzu_interval_t{12, 3, 300});
     ASSERT_FALSE(value->_is_owned_by_cpp);
     auto cppValue = static_cast<Value*>(value->_value);
-    ASSERT_EQ(cppValue->getDataType().getTypeID(), DataTypeID::INTERVAL);
+    ASSERT_EQ(cppValue->getDataType().getLogicalTypeID(), LogicalTypeID::INTERVAL);
     auto cppTimeStamp = cppValue->getValue<interval_t>();
     ASSERT_EQ(cppTimeStamp.months, 12);
     ASSERT_EQ(cppTimeStamp.days, 3);
@@ -216,7 +216,7 @@ TEST_F(CApiValueTest, CreateString) {
     kuzu_value* value = kuzu_value_create_string((char*)"abcdefg");
     ASSERT_FALSE(value->_is_owned_by_cpp);
     auto cppValue = static_cast<Value*>(value->_value);
-    ASSERT_EQ(cppValue->getDataType().getTypeID(), DataTypeID::STRING);
+    ASSERT_EQ(cppValue->getDataType().getLogicalTypeID(), LogicalTypeID::STRING);
     ASSERT_EQ(cppValue->getValue<std::string>(), "abcdefg");
     kuzu_value_destroy(value);
 }
@@ -225,7 +225,7 @@ TEST_F(CApiValueTest, Clone) {
     kuzu_value* value = kuzu_value_create_string((char*)"abcdefg");
     ASSERT_FALSE(value->_is_owned_by_cpp);
     auto cppValue = static_cast<Value*>(value->_value);
-    ASSERT_EQ(cppValue->getDataType().getTypeID(), DataTypeID::STRING);
+    ASSERT_EQ(cppValue->getDataType().getLogicalTypeID(), LogicalTypeID::STRING);
     ASSERT_EQ(cppValue->getValue<std::string>(), "abcdefg");
 
     kuzu_value* clone = kuzu_value_clone(value);
@@ -233,7 +233,7 @@ TEST_F(CApiValueTest, Clone) {
 
     ASSERT_FALSE(clone->_is_owned_by_cpp);
     auto cppClone = static_cast<Value*>(clone->_value);
-    ASSERT_EQ(cppClone->getDataType().getTypeID(), DataTypeID::STRING);
+    ASSERT_EQ(cppClone->getDataType().getLogicalTypeID(), LogicalTypeID::STRING);
     ASSERT_EQ(cppClone->getValue<std::string>(), "abcdefg");
     kuzu_value_destroy(clone);
 }
@@ -247,7 +247,7 @@ TEST_F(CApiValueTest, Copy) {
 
     ASSERT_FALSE(kuzu_value_is_null(value));
     auto cppValue = static_cast<Value*>(value->_value);
-    ASSERT_EQ(cppValue->getDataType().getTypeID(), DataTypeID::STRING);
+    ASSERT_EQ(cppValue->getDataType().getLogicalTypeID(), LogicalTypeID::STRING);
     ASSERT_EQ(cppValue->getValue<std::string>(), "abcdefg");
     kuzu_value_destroy(value);
 }
@@ -353,21 +353,21 @@ TEST_F(CApiValueTest, GetStructFieldValue) {
 
     auto fieldValue = kuzu_value_get_struct_field_value(value, 0);
     auto fieldType = kuzu_value_get_data_type(fieldValue);
-    ASSERT_EQ(kuzu_data_type_get_id(fieldType), DataTypeID::DOUBLE);
+    ASSERT_EQ(kuzu_data_type_get_id(fieldType), DOUBLE);
     ASSERT_DOUBLE_EQ(kuzu_value_get_double(fieldValue), 1223);
     kuzu_data_type_destroy(fieldType);
     kuzu_value_destroy(fieldValue);
 
     fieldValue = kuzu_value_get_struct_field_value(value, 1);
     fieldType = kuzu_value_get_data_type(fieldValue);
-    ASSERT_EQ(kuzu_data_type_get_id(fieldType), DataTypeID::INT64);
+    ASSERT_EQ(kuzu_data_type_get_id(fieldType), INT64);
     ASSERT_EQ(kuzu_value_get_int64(fieldValue), 10003);
     kuzu_data_type_destroy(fieldType);
     kuzu_value_destroy(fieldValue);
 
     fieldValue = kuzu_value_get_struct_field_value(value, 2);
     fieldType = kuzu_value_get_data_type(fieldValue);
-    ASSERT_EQ(kuzu_data_type_get_id(fieldType), DataTypeID::TIMESTAMP);
+    ASSERT_EQ(kuzu_data_type_get_id(fieldType), TIMESTAMP);
     auto timestamp = kuzu_value_get_timestamp(fieldValue);
     ASSERT_EQ(timestamp.value, 1297442662000000);
     kuzu_data_type_destroy(fieldType);
@@ -375,7 +375,7 @@ TEST_F(CApiValueTest, GetStructFieldValue) {
 
     fieldValue = kuzu_value_get_struct_field_value(value, 3);
     fieldType = kuzu_value_get_data_type(fieldValue);
-    ASSERT_EQ(kuzu_data_type_get_id(fieldType), DataTypeID::DATE);
+    ASSERT_EQ(kuzu_data_type_get_id(fieldType), DATE);
     auto date = kuzu_value_get_date(fieldValue);
     ASSERT_EQ(date.days, 15758);
     kuzu_data_type_destroy(fieldType);
@@ -395,22 +395,19 @@ TEST_F(CApiValueTest, GetDataType) {
     auto flatTuple = kuzu_query_result_get_next(result);
     auto value = kuzu_flat_tuple_get_value(flatTuple, 0);
     auto dataType = kuzu_value_get_data_type(value);
-    ASSERT_EQ(kuzu_data_type_get_id(dataType), DataTypeID::STRING);
+    ASSERT_EQ(kuzu_data_type_get_id(dataType), STRING);
     kuzu_data_type_destroy(dataType);
     kuzu_value_destroy(value);
 
     value = kuzu_flat_tuple_get_value(flatTuple, 1);
     dataType = kuzu_value_get_data_type(value);
-    ASSERT_EQ(kuzu_data_type_get_id(dataType), DataTypeID::BOOL);
+    ASSERT_EQ(kuzu_data_type_get_id(dataType), BOOL);
     kuzu_data_type_destroy(dataType);
     kuzu_value_destroy(value);
 
     value = kuzu_flat_tuple_get_value(flatTuple, 2);
     dataType = kuzu_value_get_data_type(value);
-    ASSERT_EQ(kuzu_data_type_get_id(dataType), DataTypeID::VAR_LIST);
-    auto childDataType = kuzu_data_type_get_child_type(dataType);
-    ASSERT_EQ(kuzu_data_type_get_id(childDataType), DataTypeID::INT64);
-    kuzu_data_type_destroy(childDataType);
+    ASSERT_EQ(kuzu_data_type_get_id(dataType), VAR_LIST);
     kuzu_data_type_destroy(dataType);
     kuzu_value_destroy(value);
 

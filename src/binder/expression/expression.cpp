@@ -80,9 +80,9 @@ bool Expression::hasSubExpressionOfType(
 }
 
 bool ExpressionUtil::allExpressionsHaveDataType(
-    expression_vector& expressions, DataTypeID dataTypeID) {
+    expression_vector& expressions, LogicalTypeID dataTypeID) {
     for (auto& expression : expressions) {
-        if (expression->dataType.typeID != dataTypeID) {
+        if (expression->dataType.getLogicalTypeID() != dataTypeID) {
             return false;
         }
     }

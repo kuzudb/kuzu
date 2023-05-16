@@ -1,6 +1,7 @@
 #include "common/arrow/arrow_row_batch.h"
 
 #include "common/types/value.h"
+#include "storage/storage_utils.h"
 
 namespace kuzu {
 namespace common {
@@ -15,22 +16,23 @@ ArrowRowBatch::ArrowRowBatch(
     }
 }
 
-template<DataTypeID DT>
+// TODO(Ziyi): use physical type instead of logical type here.
+template<LogicalTypeID DT>
 void ArrowRowBatch::templateInitializeVector(
     ArrowVector* vector, const main::DataTypeInfo& typeInfo, std::int64_t capacity) {
     initializeNullBits(vector->validity, capacity);
-    vector->data.reserve(Types::getDataTypeSize(DT) * capacity);
+    vector->data.reserve(storage::StorageUtils::getDataTypeSize(LogicalType{DT}) * capacity);
 }
 
 template<>
-void ArrowRowBatch::templateInitializeVector<BOOL>(
+void ArrowRowBatch::templateInitializeVector<LogicalTypeID::BOOL>(
     ArrowVector* vector, const main::DataTypeInfo& typeInfo, std::int64_t capacity) {
     initializeNullBits(vector->validity, capacity);
     vector->data.reserve(getNumBytesForBits(capacity));
 }
 
 template<>
-void ArrowRowBatch::templateInitializeVector<STRING>(
+void ArrowRowBatch::templateInitializeVector<LogicalTypeID::STRING>(
     ArrowVector* vector, const main::DataTypeInfo& typeInfo, std::int64_t capacity) {
     initializeNullBits(vector->validity, capacity);
     // Initialize offsets and string values buffer.
@@ -40,7 +42,7 @@ void ArrowRowBatch::templateInitializeVector<STRING>(
 }
 
 template<>
-void ArrowRowBatch::templateInitializeVector<VAR_LIST>(
+void ArrowRowBatch::templateInitializeVector<LogicalTypeID::VAR_LIST>(
     ArrowVector* vector, const main::DataTypeInfo& typeInfo, std::int64_t capacity) {
     initializeNullBits(vector->validity, capacity);
     assert(typeInfo.childrenTypesInfo.size() == 1);
@@ -62,19 +64,19 @@ void ArrowRowBatch::initializeStructVector(
 }
 
 template<>
-void ArrowRowBatch::templateInitializeVector<INTERNAL_ID>(
+void ArrowRowBatch::templateInitializeVector<LogicalTypeID::INTERNAL_ID>(
     ArrowVector* vector, const main::DataTypeInfo& typeInfo, std::int64_t capacity) {
     initializeStructVector(vector, typeInfo, capacity);
 }
 
 template<>
-void ArrowRowBatch::templateInitializeVector<NODE>(
+void ArrowRowBatch::templateInitializeVector<LogicalTypeID::NODE>(
     ArrowVector* vector, const main::DataTypeInfo& typeInfo, std::int64_t capacity) {
     initializeStructVector(vector, typeInfo, capacity);
 }
 
 template<>
-void ArrowRowBatch::templateInitializeVector<REL>(
+void ArrowRowBatch::templateInitializeVector<LogicalTypeID::REL>(
     ArrowVector* vector, const main::DataTypeInfo& typeInfo, std::int64_t capacity) {
     initializeStructVector(vector, typeInfo, capacity);
 }
@@ -83,48 +85,49 @@ std::unique_ptr<ArrowVector> ArrowRowBatch::createVector(
     const main::DataTypeInfo& typeInfo, std::int64_t capacity) {
     auto result = std::make_unique<ArrowVector>();
     switch (typeInfo.typeID) {
-    case BOOL: {
-        templateInitializeVector<BOOL>(result.get(), typeInfo, capacity);
+    case LogicalTypeID::BOOL: {
+        templateInitializeVector<LogicalTypeID::BOOL>(result.get(), typeInfo, capacity);
     } break;
-    case INT64: {
-        templateInitializeVector<INT64>(result.get(), typeInfo, capacity);
+    case LogicalTypeID::INT64: {
+        templateInitializeVector<LogicalTypeID::INT64>(result.get(), typeInfo, capacity);
     } break;
-    case INT32: {
-        templateInitializeVector<INT32>(result.get(), typeInfo, capacity);
+    case LogicalTypeID::INT32: {
+        templateInitializeVector<LogicalTypeID::INT32>(result.get(), typeInfo, capacity);
     } break;
-    case INT16: {
-        templateInitializeVector<INT16>(result.get(), typeInfo, capacity);
+    case LogicalTypeID::INT16: {
+        templateInitializeVector<LogicalTypeID::INT16>(result.get(), typeInfo, capacity);
     } break;
-    case DOUBLE: {
-        templateInitializeVector<DOUBLE>(result.get(), typeInfo, capacity);
+    case LogicalTypeID::DOUBLE: {
+        templateInitializeVector<LogicalTypeID::DOUBLE>(result.get(), typeInfo, capacity);
     } break;
-    case DATE: {
-        templateInitializeVector<DATE>(result.get(), typeInfo, capacity);
+    case LogicalTypeID::DATE: {
+        templateInitializeVector<LogicalTypeID::DATE>(result.get(), typeInfo, capacity);
     } break;
-    case TIMESTAMP: {
-        templateInitializeVector<TIMESTAMP>(result.get(), typeInfo, capacity);
+    case LogicalTypeID::TIMESTAMP: {
+        templateInitializeVector<LogicalTypeID::TIMESTAMP>(result.get(), typeInfo, capacity);
     } break;
-    case INTERVAL: {
-        templateInitializeVector<INTERVAL>(result.get(), typeInfo, capacity);
+    case LogicalTypeID::INTERVAL: {
+        templateInitializeVector<LogicalTypeID::INTERVAL>(result.get(), typeInfo, capacity);
     } break;
-    case STRING: {
-        templateInitializeVector<STRING>(result.get(), typeInfo, capacity);
+    case LogicalTypeID::STRING: {
+        templateInitializeVector<LogicalTypeID::STRING>(result.get(), typeInfo, capacity);
     } break;
-    case VAR_LIST: {
-        templateInitializeVector<VAR_LIST>(result.get(), typeInfo, capacity);
+    case LogicalTypeID::VAR_LIST: {
+        templateInitializeVector<LogicalTypeID::VAR_LIST>(result.get(), typeInfo, capacity);
     } break;
-    case INTERNAL_ID: {
-        templateInitializeVector<INTERNAL_ID>(result.get(), typeInfo, capacity);
+    case LogicalTypeID::INTERNAL_ID: {
+        templateInitializeVector<LogicalTypeID::INTERNAL_ID>(result.get(), typeInfo, capacity);
     } break;
-    case NODE: {
-        templateInitializeVector<NODE>(result.get(), typeInfo, capacity);
+    case LogicalTypeID::NODE: {
+        templateInitializeVector<LogicalTypeID::NODE>(result.get(), typeInfo, capacity);
     } break;
-    case REL: {
-        templateInitializeVector<REL>(result.get(), typeInfo, capacity);
+    case LogicalTypeID::REL: {
+        templateInitializeVector<LogicalTypeID::REL>(result.get(), typeInfo, capacity);
     } break;
     default: {
-        throw RuntimeException(
-            "Invalid data type " + Types::dataTypeToString(typeInfo.typeID) + " for arrow export.");
+        throw RuntimeException("Invalid data type " +
+                               LogicalTypeUtils::dataTypeToString(typeInfo.typeID) +
+                               " for arrow export.");
     }
     }
     return std::move(result);
@@ -157,15 +160,15 @@ void ArrowRowBatch::appendValue(
     vector->numValues++;
 }
 
-template<DataTypeID DT>
+template<LogicalTypeID DT>
 void ArrowRowBatch::templateCopyNonNullValue(
     ArrowVector* vector, const main::DataTypeInfo& typeInfo, Value* value, std::int64_t pos) {
-    auto valSize = Types::getDataTypeSize(DT);
+    auto valSize = storage::StorageUtils::getDataTypeSize(LogicalType{DT});
     std::memcpy(vector->data.data() + pos * valSize, &value->val, valSize);
 }
 
 template<>
-void ArrowRowBatch::templateCopyNonNullValue<BOOL>(
+void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::BOOL>(
     ArrowVector* vector, const main::DataTypeInfo& typeInfo, Value* value, std::int64_t pos) {
     if (value->val.booleanVal) {
         setBitToOne(vector->data.data(), pos);
@@ -175,7 +178,7 @@ void ArrowRowBatch::templateCopyNonNullValue<BOOL>(
 }
 
 template<>
-void ArrowRowBatch::templateCopyNonNullValue<STRING>(
+void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::STRING>(
     ArrowVector* vector, const main::DataTypeInfo& typeInfo, Value* value, std::int64_t pos) {
     auto offsets = (std::uint32_t*)vector->data.data();
     auto strLength = value->strVal.length();
@@ -185,7 +188,7 @@ void ArrowRowBatch::templateCopyNonNullValue<STRING>(
 }
 
 template<>
-void ArrowRowBatch::templateCopyNonNullValue<VAR_LIST>(
+void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::VAR_LIST>(
     ArrowVector* vector, const main::DataTypeInfo& typeInfo, Value* value, std::int64_t pos) {
     vector->data.resize((pos + 2) * sizeof(std::uint32_t));
     auto offsets = (std::uint32_t*)vector->data.data();
@@ -199,9 +202,10 @@ void ArrowRowBatch::templateCopyNonNullValue<VAR_LIST>(
     for (auto i = currentNumBytesForChildValidity; i < numBytesForChildValidity; i++) {
         vector->childData[0]->validity.data()[i] = 0xFF; // Init each value to be valid (as 1).
     }
-    if (typeInfo.childrenTypesInfo[0]->typeID != VAR_LIST) {
+    if (typeInfo.childrenTypesInfo[0]->typeID != LogicalTypeID::VAR_LIST) {
         vector->childData[0]->data.resize(
-            numChildElements * Types::getDataTypeSize(typeInfo.childrenTypesInfo[0]->typeID));
+            numChildElements * storage::StorageUtils::getDataTypeSize(
+                                   LogicalType{typeInfo.childrenTypesInfo[0]->typeID}));
     }
     for (auto i = 0u; i < numElements; i++) {
         appendValue(vector->childData[0].get(), *typeInfo.childrenTypesInfo[0],
@@ -210,7 +214,7 @@ void ArrowRowBatch::templateCopyNonNullValue<VAR_LIST>(
 }
 
 template<>
-void ArrowRowBatch::templateCopyNonNullValue<INTERNAL_ID>(
+void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::INTERNAL_ID>(
     ArrowVector* vector, const main::DataTypeInfo& typeInfo, Value* value, std::int64_t pos) {
     auto nodeID = value->getValue<nodeID_t>();
     Value offsetVal((std::int64_t)nodeID.offset);
@@ -220,7 +224,7 @@ void ArrowRowBatch::templateCopyNonNullValue<INTERNAL_ID>(
 }
 
 template<>
-void ArrowRowBatch::templateCopyNonNullValue<NODE>(
+void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::NODE>(
     ArrowVector* vector, const main::DataTypeInfo& typeInfo, Value* value, std::int64_t pos) {
     appendValue(
         vector->childData[0].get(), *typeInfo.childrenTypesInfo[0], value->nodeVal->getNodeIDVal());
@@ -235,7 +239,7 @@ void ArrowRowBatch::templateCopyNonNullValue<NODE>(
 }
 
 template<>
-void ArrowRowBatch::templateCopyNonNullValue<REL>(
+void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::REL>(
     ArrowVector* vector, const main::DataTypeInfo& typeInfo, Value* value, std::int64_t pos) {
     appendValue(vector->childData[0].get(), *typeInfo.childrenTypesInfo[0],
         value->relVal->getSrcNodeIDVal());
@@ -252,53 +256,54 @@ void ArrowRowBatch::templateCopyNonNullValue<REL>(
 void ArrowRowBatch::copyNonNullValue(
     ArrowVector* vector, const main::DataTypeInfo& typeInfo, Value* value, std::int64_t pos) {
     switch (typeInfo.typeID) {
-    case BOOL: {
-        templateCopyNonNullValue<BOOL>(vector, typeInfo, value, pos);
+    case LogicalTypeID::BOOL: {
+        templateCopyNonNullValue<LogicalTypeID::BOOL>(vector, typeInfo, value, pos);
     } break;
-    case INT64: {
-        templateCopyNonNullValue<INT64>(vector, typeInfo, value, pos);
+    case LogicalTypeID::INT64: {
+        templateCopyNonNullValue<LogicalTypeID::INT64>(vector, typeInfo, value, pos);
     } break;
-    case INT32: {
-        templateCopyNonNullValue<INT32>(vector, typeInfo, value, pos);
+    case LogicalTypeID::INT32: {
+        templateCopyNonNullValue<LogicalTypeID::INT32>(vector, typeInfo, value, pos);
     } break;
-    case INT16: {
-        templateCopyNonNullValue<INT16>(vector, typeInfo, value, pos);
+    case LogicalTypeID::INT16: {
+        templateCopyNonNullValue<LogicalTypeID::INT16>(vector, typeInfo, value, pos);
     } break;
-    case DOUBLE: {
-        templateCopyNonNullValue<DOUBLE>(vector, typeInfo, value, pos);
+    case LogicalTypeID::DOUBLE: {
+        templateCopyNonNullValue<LogicalTypeID::DOUBLE>(vector, typeInfo, value, pos);
     } break;
-    case DATE: {
-        templateCopyNonNullValue<DATE>(vector, typeInfo, value, pos);
+    case LogicalTypeID::DATE: {
+        templateCopyNonNullValue<LogicalTypeID::DATE>(vector, typeInfo, value, pos);
     } break;
-    case TIMESTAMP: {
-        templateCopyNonNullValue<TIMESTAMP>(vector, typeInfo, value, pos);
+    case LogicalTypeID::TIMESTAMP: {
+        templateCopyNonNullValue<LogicalTypeID::TIMESTAMP>(vector, typeInfo, value, pos);
     } break;
-    case INTERVAL: {
-        templateCopyNonNullValue<INTERVAL>(vector, typeInfo, value, pos);
+    case LogicalTypeID::INTERVAL: {
+        templateCopyNonNullValue<LogicalTypeID::INTERVAL>(vector, typeInfo, value, pos);
     } break;
-    case STRING: {
-        templateCopyNonNullValue<STRING>(vector, typeInfo, value, pos);
+    case LogicalTypeID::STRING: {
+        templateCopyNonNullValue<LogicalTypeID::STRING>(vector, typeInfo, value, pos);
     } break;
-    case VAR_LIST: {
-        templateCopyNonNullValue<VAR_LIST>(vector, typeInfo, value, pos);
+    case LogicalTypeID::VAR_LIST: {
+        templateCopyNonNullValue<LogicalTypeID::VAR_LIST>(vector, typeInfo, value, pos);
     } break;
-    case INTERNAL_ID: {
-        templateCopyNonNullValue<INTERNAL_ID>(vector, typeInfo, value, pos);
+    case LogicalTypeID::INTERNAL_ID: {
+        templateCopyNonNullValue<LogicalTypeID::INTERNAL_ID>(vector, typeInfo, value, pos);
     } break;
-    case NODE: {
-        templateCopyNonNullValue<NODE>(vector, typeInfo, value, pos);
+    case LogicalTypeID::NODE: {
+        templateCopyNonNullValue<LogicalTypeID::NODE>(vector, typeInfo, value, pos);
     } break;
-    case REL: {
-        templateCopyNonNullValue<REL>(vector, typeInfo, value, pos);
+    case LogicalTypeID::REL: {
+        templateCopyNonNullValue<LogicalTypeID::REL>(vector, typeInfo, value, pos);
     } break;
     default: {
-        throw RuntimeException(
-            "Invalid data type " + Types::dataTypeToString(value->dataType) + " for arrow export.");
+        throw RuntimeException("Invalid data type " +
+                               LogicalTypeUtils::dataTypeToString(value->dataType) +
+                               " for arrow export.");
     }
     }
 }
 
-template<DataTypeID DT>
+template<LogicalTypeID DT>
 void ArrowRowBatch::templateCopyNullValue(ArrowVector* vector, std::int64_t pos) {
     // TODO(Guodong): make this as a function.
     setBitToZero(vector->validity.data(), pos);
@@ -306,7 +311,8 @@ void ArrowRowBatch::templateCopyNullValue(ArrowVector* vector, std::int64_t pos)
 }
 
 template<>
-void ArrowRowBatch::templateCopyNullValue<STRING>(ArrowVector* vector, std::int64_t pos) {
+void ArrowRowBatch::templateCopyNullValue<LogicalTypeID::STRING>(
+    ArrowVector* vector, std::int64_t pos) {
     auto offsets = (std::uint32_t*)vector->data.data();
     offsets[pos + 1] = offsets[pos];
     setBitToZero(vector->validity.data(), pos);
@@ -314,7 +320,8 @@ void ArrowRowBatch::templateCopyNullValue<STRING>(ArrowVector* vector, std::int6
 }
 
 template<>
-void ArrowRowBatch::templateCopyNullValue<VAR_LIST>(ArrowVector* vector, std::int64_t pos) {
+void ArrowRowBatch::templateCopyNullValue<LogicalTypeID::VAR_LIST>(
+    ArrowVector* vector, std::int64_t pos) {
     auto offsets = (std::uint32_t*)vector->data.data();
     offsets[pos + 1] = offsets[pos];
     setBitToZero(vector->validity.data(), pos);
@@ -322,49 +329,50 @@ void ArrowRowBatch::templateCopyNullValue<VAR_LIST>(ArrowVector* vector, std::in
 }
 
 void ArrowRowBatch::copyNullValue(ArrowVector* vector, Value* value, std::int64_t pos) {
-    switch (value->dataType.typeID) {
-    case BOOL: {
-        templateCopyNullValue<BOOL>(vector, pos);
+    switch (value->dataType.getLogicalTypeID()) {
+    case LogicalTypeID::BOOL: {
+        templateCopyNullValue<LogicalTypeID::BOOL>(vector, pos);
     } break;
-    case INT64: {
-        templateCopyNullValue<INT64>(vector, pos);
+    case LogicalTypeID::INT64: {
+        templateCopyNullValue<LogicalTypeID::INT64>(vector, pos);
     } break;
-    case INT32: {
-        templateCopyNullValue<INT32>(vector, pos);
+    case LogicalTypeID::INT32: {
+        templateCopyNullValue<LogicalTypeID::INT32>(vector, pos);
     } break;
-    case INT16: {
-        templateCopyNullValue<INT16>(vector, pos);
+    case LogicalTypeID::INT16: {
+        templateCopyNullValue<LogicalTypeID::INT16>(vector, pos);
     } break;
-    case DOUBLE: {
-        templateCopyNullValue<DOUBLE>(vector, pos);
+    case LogicalTypeID::DOUBLE: {
+        templateCopyNullValue<LogicalTypeID::DOUBLE>(vector, pos);
     } break;
-    case DATE: {
-        templateCopyNullValue<DATE>(vector, pos);
+    case LogicalTypeID::DATE: {
+        templateCopyNullValue<LogicalTypeID::DATE>(vector, pos);
     } break;
-    case TIMESTAMP: {
-        templateCopyNullValue<TIMESTAMP>(vector, pos);
+    case LogicalTypeID::TIMESTAMP: {
+        templateCopyNullValue<LogicalTypeID::TIMESTAMP>(vector, pos);
     } break;
-    case INTERVAL: {
-        templateCopyNullValue<INTERVAL>(vector, pos);
+    case LogicalTypeID::INTERVAL: {
+        templateCopyNullValue<LogicalTypeID::INTERVAL>(vector, pos);
     } break;
-    case STRING: {
-        templateCopyNullValue<STRING>(vector, pos);
+    case LogicalTypeID::STRING: {
+        templateCopyNullValue<LogicalTypeID::STRING>(vector, pos);
     } break;
-    case VAR_LIST: {
-        templateCopyNullValue<VAR_LIST>(vector, pos);
+    case LogicalTypeID::VAR_LIST: {
+        templateCopyNullValue<LogicalTypeID::VAR_LIST>(vector, pos);
     } break;
-    case INTERNAL_ID: {
-        templateCopyNullValue<INTERNAL_ID>(vector, pos);
+    case LogicalTypeID::INTERNAL_ID: {
+        templateCopyNullValue<LogicalTypeID::INTERNAL_ID>(vector, pos);
     } break;
-    case NODE: {
-        templateCopyNullValue<NODE>(vector, pos);
+    case LogicalTypeID::NODE: {
+        templateCopyNullValue<LogicalTypeID::NODE>(vector, pos);
     } break;
-    case REL: {
-        templateCopyNullValue<REL>(vector, pos);
+    case LogicalTypeID::REL: {
+        templateCopyNullValue<LogicalTypeID::REL>(vector, pos);
     } break;
     default: {
-        throw RuntimeException(
-            "Invalid data type " + Types::dataTypeToString(value->dataType) + " for arrow export.");
+        throw RuntimeException("Invalid data type " +
+                               LogicalTypeUtils::dataTypeToString(value->dataType) +
+                               " for arrow export.");
     }
     }
 }
@@ -394,7 +402,7 @@ static std::unique_ptr<ArrowArray> createArrayFromVector(ArrowVector& vector) {
     return std::move(result);
 }
 
-template<DataTypeID DT>
+template<LogicalTypeID DT>
 ArrowArray* ArrowRowBatch::templateCreateArray(
     ArrowVector& vector, const main::DataTypeInfo& typeInfo) {
     auto result = createArrayFromVector(vector);
@@ -403,7 +411,7 @@ ArrowArray* ArrowRowBatch::templateCreateArray(
 }
 
 template<>
-ArrowArray* ArrowRowBatch::templateCreateArray<STRING>(
+ArrowArray* ArrowRowBatch::templateCreateArray<LogicalTypeID::STRING>(
     ArrowVector& vector, const main::DataTypeInfo& typeInfo) {
     auto result = createArrayFromVector(vector);
     result->n_buffers = 3;
@@ -413,7 +421,7 @@ ArrowArray* ArrowRowBatch::templateCreateArray<STRING>(
 }
 
 template<>
-ArrowArray* ArrowRowBatch::templateCreateArray<VAR_LIST>(
+ArrowArray* ArrowRowBatch::templateCreateArray<LogicalTypeID::VAR_LIST>(
     ArrowVector& vector, const main::DataTypeInfo& typeInfo) {
     auto result = createArrayFromVector(vector);
     vector.childPointers.resize(1);
@@ -441,19 +449,19 @@ ArrowArray* ArrowRowBatch::convertStructVectorToArray(
 }
 
 template<>
-ArrowArray* ArrowRowBatch::templateCreateArray<INTERNAL_ID>(
+ArrowArray* ArrowRowBatch::templateCreateArray<LogicalTypeID::INTERNAL_ID>(
     ArrowVector& vector, const main::DataTypeInfo& typeInfo) {
     return convertStructVectorToArray(vector, typeInfo);
 }
 
 template<>
-ArrowArray* ArrowRowBatch::templateCreateArray<NODE>(
+ArrowArray* ArrowRowBatch::templateCreateArray<LogicalTypeID::NODE>(
     ArrowVector& vector, const main::DataTypeInfo& typeInfo) {
     return convertStructVectorToArray(vector, typeInfo);
 }
 
 template<>
-ArrowArray* ArrowRowBatch::templateCreateArray<REL>(
+ArrowArray* ArrowRowBatch::templateCreateArray<LogicalTypeID::REL>(
     ArrowVector& vector, const main::DataTypeInfo& typeInfo) {
     return convertStructVectorToArray(vector, typeInfo);
 }
@@ -461,48 +469,49 @@ ArrowArray* ArrowRowBatch::templateCreateArray<REL>(
 ArrowArray* ArrowRowBatch::convertVectorToArray(
     ArrowVector& vector, const main::DataTypeInfo& typeInfo) {
     switch (typeInfo.typeID) {
-    case BOOL: {
-        return templateCreateArray<BOOL>(vector, typeInfo);
+    case LogicalTypeID::BOOL: {
+        return templateCreateArray<LogicalTypeID::BOOL>(vector, typeInfo);
     }
-    case INT64: {
-        return templateCreateArray<INT64>(vector, typeInfo);
+    case LogicalTypeID::INT64: {
+        return templateCreateArray<LogicalTypeID::INT64>(vector, typeInfo);
     }
-    case INT32: {
-        return templateCreateArray<INT32>(vector, typeInfo);
+    case LogicalTypeID::INT32: {
+        return templateCreateArray<LogicalTypeID::INT32>(vector, typeInfo);
     }
-    case INT16: {
-        return templateCreateArray<INT16>(vector, typeInfo);
+    case LogicalTypeID::INT16: {
+        return templateCreateArray<LogicalTypeID::INT16>(vector, typeInfo);
     }
-    case DOUBLE: {
-        return templateCreateArray<DOUBLE>(vector, typeInfo);
+    case LogicalTypeID::DOUBLE: {
+        return templateCreateArray<LogicalTypeID::DOUBLE>(vector, typeInfo);
     }
-    case DATE: {
-        return templateCreateArray<DATE>(vector, typeInfo);
+    case LogicalTypeID::DATE: {
+        return templateCreateArray<LogicalTypeID::DATE>(vector, typeInfo);
     }
-    case TIMESTAMP: {
-        return templateCreateArray<TIMESTAMP>(vector, typeInfo);
+    case LogicalTypeID::TIMESTAMP: {
+        return templateCreateArray<LogicalTypeID::TIMESTAMP>(vector, typeInfo);
     }
-    case INTERVAL: {
-        return templateCreateArray<INTERVAL>(vector, typeInfo);
+    case LogicalTypeID::INTERVAL: {
+        return templateCreateArray<LogicalTypeID::INTERVAL>(vector, typeInfo);
     }
-    case STRING: {
-        return templateCreateArray<STRING>(vector, typeInfo);
+    case LogicalTypeID::STRING: {
+        return templateCreateArray<LogicalTypeID::STRING>(vector, typeInfo);
     }
-    case VAR_LIST: {
-        return templateCreateArray<VAR_LIST>(vector, typeInfo);
+    case LogicalTypeID::VAR_LIST: {
+        return templateCreateArray<LogicalTypeID::VAR_LIST>(vector, typeInfo);
     }
-    case INTERNAL_ID: {
-        return templateCreateArray<INTERNAL_ID>(vector, typeInfo);
+    case LogicalTypeID::INTERNAL_ID: {
+        return templateCreateArray<LogicalTypeID::INTERNAL_ID>(vector, typeInfo);
     }
-    case NODE: {
-        return templateCreateArray<NODE>(vector, typeInfo);
+    case LogicalTypeID::NODE: {
+        return templateCreateArray<LogicalTypeID::NODE>(vector, typeInfo);
     }
-    case REL: {
-        return templateCreateArray<REL>(vector, typeInfo);
+    case LogicalTypeID::REL: {
+        return templateCreateArray<LogicalTypeID::REL>(vector, typeInfo);
     }
     default: {
-        throw RuntimeException(
-            "Invalid data type " + Types::dataTypeToString(typeInfo.typeID) + " for arrow export.");
+        throw RuntimeException("Invalid data type " +
+                               LogicalTypeUtils::dataTypeToString(typeInfo.typeID) +
+                               " for arrow export.");
     }
     }
 }

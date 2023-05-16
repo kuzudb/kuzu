@@ -2,7 +2,6 @@
 
 #include "common/exception.h"
 #include "common/string_utils.h"
-#include "common/utils.h"
 
 namespace kuzu {
 namespace common {
@@ -61,6 +60,7 @@ void FileUtils::overwriteFile(const std::string& from, const std::string& to) {
 void FileUtils::readFromFile(
     FileInfo* fileInfo, void* buffer, uint64_t numBytes, uint64_t position) {
     auto numBytesRead = pread(fileInfo->fd, buffer, numBytes, position);
+
     if (numBytesRead != numBytes && getFileSize(fileInfo->fd) != position + numBytesRead) {
         throw Exception(
             StringUtils::string_format("Cannot read from file: {} fileDescriptor: {} "

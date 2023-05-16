@@ -269,6 +269,8 @@ public:
         uint64_t numNodesInTable, const std::string& directory,
         common::RelDataDirection relDirection);
 
+    static uint32_t getDataTypeSize(const common::LogicalType& type);
+
 private:
     static std::string appendSuffixOrInsertBeforeWALSuffix(
         std::string fileName, std::string suffix);

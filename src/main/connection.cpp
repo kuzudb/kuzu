@@ -236,7 +236,8 @@ std::string Connection::getNodePropertyNames(const std::string& tableName) {
     auto primaryKeyPropertyID =
         catalog->getReadOnlyVersion()->getNodeTableSchema(tableID)->getPrimaryKey().propertyID;
     for (auto& property : catalog->getReadOnlyVersion()->getAllNodeProperties(tableID)) {
-        result += "\t" + property.name + " " + Types::dataTypeToString(property.dataType);
+        result +=
+            "\t" + property.name + " " + LogicalTypeUtils::dataTypeToString(property.dataType);
         result += property.propertyID == primaryKeyPropertyID ? "(PRIMARY KEY)\n" : "\n";
     }
     return result;
@@ -262,7 +263,8 @@ std::string Connection::getRelPropertyNames(const std::string& relTableName) {
         if (catalog::TableSchema::isReservedPropertyName(property.name)) {
             continue;
         }
-        result += "\t" + property.name + " " + Types::dataTypeToString(property.dataType) + "\n";
+        result += "\t" + property.name + " " +
+                  LogicalTypeUtils::dataTypeToString(property.dataType) + "\n";
     }
     return result;
 }
@@ -301,8 +303,9 @@ void Connection::bindParametersNoLock(PreparedStatement* preparedStatement,
         auto expectParam = parameterMap.at(name);
         if (expectParam->dataType != value->getDataType()) {
             throw Exception("Parameter " + name + " has data type " +
-                            Types::dataTypeToString(value->getDataType()) + " but expect " +
-                            Types::dataTypeToString(expectParam->dataType) + ".");
+                            LogicalTypeUtils::dataTypeToString(value->getDataType()) +
+                            " but expect " +
+                            LogicalTypeUtils::dataTypeToString(expectParam->dataType) + ".");
         }
         parameterMap.at(name)->copyValueFrom(*value);
     }

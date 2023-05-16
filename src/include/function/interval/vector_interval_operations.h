@@ -13,7 +13,8 @@ public:
     getUnaryIntervalFunctionDefintion(std::string funcName) {
         std::vector<std::unique_ptr<VectorOperationDefinition>> result;
         result.push_back(std::make_unique<VectorOperationDefinition>(funcName,
-            std::vector<common::DataTypeID>{common::INT64}, common::INTERVAL,
+            std::vector<common::LogicalTypeID>{common::LogicalTypeID::INT64},
+            common::LogicalTypeID::INTERVAL,
             UnaryExecFunction<int64_t, common::interval_t, OPERATION>));
         return result;
     }

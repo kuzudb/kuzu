@@ -14,7 +14,7 @@ class AdjLists;
 
 using fill_in_mem_lists_function_t =
     std::function<void(InMemLists* inMemLists, uint8_t* defaultVal, PageByteCursor& pageByteCursor,
-        common::offset_t nodeOffset, uint64_t posInList, const common::DataType& dataType)>;
+        common::offset_t nodeOffset, uint64_t posInList, const common::LogicalType& dataType)>;
 
 class InMemListsUtils {
 public:
@@ -32,7 +32,7 @@ public:
 
 class InMemLists {
 public:
-    InMemLists(std::string fName, common::DataType dataType, uint64_t numBytesForElement,
+    InMemLists(std::string fName, common::LogicalType dataType, uint64_t numBytesForElement,
         uint64_t numNodes, std::shared_ptr<ListHeadersBuilder> listHeadersBuilder)
         : InMemLists{std::move(fName), std::move(dataType), numBytesForElement, numNodes} {
         this->listHeadersBuilder = std::move(listHeadersBuilder);
@@ -57,7 +57,7 @@ public:
         common::offset_t nodeOffset, bool hasNULLBytes);
 
 protected:
-    InMemLists(std::string fName, common::DataType dataType, uint64_t numBytesForElement,
+    InMemLists(std::string fName, common::LogicalType dataType, uint64_t numBytesForElement,
         uint64_t numNodes);
 
 private:
@@ -66,23 +66,23 @@ private:
 
     static inline void fillInMemListsWithNonOverflowValFunc(InMemLists* inMemLists,
         uint8_t* defaultVal, PageByteCursor& pageByteCursor, common::offset_t nodeOffset,
-        uint64_t posInList, const common::DataType& dataType) {
+        uint64_t posInList, const common::LogicalType& dataType) {
         inMemLists->setElement(nodeOffset, posInList, defaultVal);
     }
     static void fillInMemListsWithStrValFunc(InMemLists* inMemLists, uint8_t* defaultVal,
         PageByteCursor& pageByteCursor, common::offset_t nodeOffset, uint64_t posInList,
-        const common::DataType& dataType);
+        const common::LogicalType& dataType);
     static void fillInMemListsWithListValFunc(InMemLists* inMemLists, uint8_t* defaultVal,
         PageByteCursor& pageByteCursor, common::offset_t nodeOffset, uint64_t posInList,
-        const common::DataType& dataType);
-    static fill_in_mem_lists_function_t getFillInMemListsFunc(const common::DataType& dataType);
+        const common::LogicalType& dataType);
+    static fill_in_mem_lists_function_t getFillInMemListsFunc(const common::LogicalType& dataType);
 
 public:
     std::unique_ptr<InMemFile> inMemFile;
 
 protected:
     std::string fName;
-    common::DataType dataType;
+    common::LogicalType dataType;
     uint64_t numBytesForElement;
     std::unique_ptr<ListsMetadataBuilder> listsMetadataBuilder;
     std::shared_ptr<ListHeadersBuilder> listHeadersBuilder;
@@ -92,13 +92,13 @@ class InMemRelIDLists : public InMemLists {
 public:
     InMemRelIDLists(std::string fName, uint64_t numNodes,
         std::shared_ptr<ListHeadersBuilder> listHeadersBuilder)
-        : InMemLists{std::move(fName), common::DataType{common::INTERNAL_ID},
+        : InMemLists{std::move(fName), common::LogicalType{common::LogicalTypeID::INTERNAL_ID},
               sizeof(common::offset_t), numNodes, std::move(listHeadersBuilder)} {}
 };
 
 class InMemListsWithOverflow : public InMemLists {
 protected:
-    InMemListsWithOverflow(std::string fName, common::DataType dataType, uint64_t numNodes,
+    InMemListsWithOverflow(std::string fName, common::LogicalType dataType, uint64_t numNodes,
         std::shared_ptr<ListHeadersBuilder> listHeadersBuilder);
 
     InMemOverflowFile* getInMemOverflowFile() override { return overflowInMemFile.get(); }
@@ -111,7 +111,7 @@ protected:
 class InMemAdjLists : public InMemLists {
 public:
     InMemAdjLists(std::string fName, uint64_t numNodes)
-        : InMemLists{std::move(fName), common::DataType(common::INTERNAL_ID),
+        : InMemLists{std::move(fName), common::LogicalType(common::LogicalTypeID::INTERNAL_ID),
               sizeof(common::offset_t), numNodes} {
         listHeadersBuilder = make_shared<ListHeadersBuilder>(this->fName, numNodes);
     };
@@ -132,13 +132,14 @@ class InMemStringLists : public InMemListsWithOverflow {
 public:
     InMemStringLists(std::string fName, uint64_t numNodes,
         std::shared_ptr<ListHeadersBuilder> listHeadersBuilder)
-        : InMemListsWithOverflow{std::move(fName), common::DataType(common::STRING), numNodes,
+        : InMemListsWithOverflow{std::move(fName),
+              common::LogicalType(common::LogicalTypeID::STRING), numNodes,
               std::move(listHeadersBuilder)} {};
 };
 
 class InMemListLists : public InMemListsWithOverflow {
 public:
-    InMemListLists(std::string fName, common::DataType dataType, uint64_t numNodes,
+    InMemListLists(std::string fName, common::LogicalType dataType, uint64_t numNodes,
         std::shared_ptr<ListHeadersBuilder> listHeadersBuilder)
         : InMemListsWithOverflow{
               std::move(fName), std::move(dataType), numNodes, std::move(listHeadersBuilder)} {};
@@ -147,7 +148,7 @@ public:
 class InMemListsFactory {
 public:
     static std::unique_ptr<InMemLists> getInMemPropertyLists(const std::string& fName,
-        const common::DataType& dataType, uint64_t numNodes,
+        const common::LogicalType& dataType, uint64_t numNodes,
         std::shared_ptr<ListHeadersBuilder> listHeadersBuilder = nullptr);
 };
 

@@ -9,16 +9,15 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-InMemColumn::InMemColumn(std::string filePath, DataType dataType, bool requireNullBits)
-    : filePath{std::move(filePath)},
-      numBytesForValue{(uint16_t)common::Types::getDataTypeSize(dataType)}, dataType{std::move(
-                                                                                dataType)} {
+InMemColumn::InMemColumn(std::string filePath, LogicalType dataType, bool requireNullBits)
+    : filePath{std::move(filePath)}, numBytesForValue{(
+                                         uint16_t)storage::StorageUtils::getDataTypeSize(dataType)},
+      dataType{std::move(dataType)} {
     // TODO(Guodong): Separate this as a function.
-    switch (this->dataType.typeID) {
-    case STRUCT: {
-        auto structTypeInfo = reinterpret_cast<StructTypeInfo*>(this->dataType.getExtraTypeInfo());
-        auto childTypes = structTypeInfo->getChildrenTypes();
-        auto childNames = structTypeInfo->getChildrenNames();
+    switch (this->dataType.getLogicalTypeID()) {
+    case LogicalTypeID::STRUCT: {
+        auto childTypes = common::StructType::getStructFieldTypes(&this->dataType);
+        auto childNames = common::StructType::getStructFieldNames(&this->dataType);
         childColumns.resize(childTypes.size());
         for (auto i = 0u; i < childTypes.size(); i++) {
             childColumns[i] = std::make_unique<InMemColumn>(
@@ -26,8 +25,8 @@ InMemColumn::InMemColumn(std::string filePath, DataType dataType, bool requireNu
                 true /* hasNull */);
         }
     } break;
-    case STRING:
-    case VAR_LIST: {
+    case LogicalTypeID::STRING:
+    case LogicalTypeID::VAR_LIST: {
         inMemOverflowFile =
             std::make_unique<InMemOverflowFile>(StorageUtils::getOverflowFileName(this->filePath));
         fileHandle = std::make_unique<FileHandle>(
@@ -41,7 +40,7 @@ InMemColumn::InMemColumn(std::string filePath, DataType dataType, bool requireNu
     if (requireNullBits) {
         nullColumn =
             std::make_unique<InMemColumn>(StorageUtils::getPropertyNullFName(this->filePath),
-                DataType(BOOL), false /* hasNull */);
+                LogicalType(LogicalTypeID::BOOL), false /* hasNull */);
     }
 }
 

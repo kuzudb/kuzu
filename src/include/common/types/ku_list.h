@@ -11,12 +11,12 @@ public:
     ku_list_t() : size{0}, overflowPtr{0} {}
     ku_list_t(uint64_t size, uint64_t overflowPtr) : size{size}, overflowPtr{overflowPtr} {}
 
-    void set(const uint8_t* values, const DataType& dataType) const;
+    void set(const uint8_t* values, const LogicalType& dataType) const;
 
 private:
     friend class InMemOverflowBufferUtils;
 
-    void set(const std::vector<uint8_t*>& parameters, DataTypeID childTypeId);
+    void set(const std::vector<uint8_t*>& parameters, LogicalTypeID childTypeId);
 
 public:
     uint64_t size;

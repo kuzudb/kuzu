@@ -10,20 +10,19 @@ namespace kuzu {
 namespace storage {
 
 InMemColumnChunk::InMemColumnChunk(
-    DataType dataType, offset_t startNodeOffset, offset_t endNodeOffset, bool requireNullBits)
+    LogicalType dataType, offset_t startNodeOffset, offset_t endNodeOffset, bool requireNullBits)
     : dataType{std::move(dataType)}, startNodeOffset{startNodeOffset} {
     numBytesPerValue = getDataTypeSizeInColumn(this->dataType);
     numBytes = numBytesPerValue * (endNodeOffset - startNodeOffset + 1);
     buffer = std::make_unique<uint8_t[]>(numBytes);
     if (requireNullBits) {
         nullChunk = std::make_unique<InMemColumnChunk>(
-            DataType{BOOL}, startNodeOffset, endNodeOffset, false /* hasNull */);
+            LogicalType{LogicalTypeID::BOOL}, startNodeOffset, endNodeOffset, false /* hasNull */);
         memset(nullChunk->getData(), UINT8_MAX, nullChunk->getNumBytes());
     }
     // TODO(Guodong): Consider shifting to a hierarchy structure for STRING/LIST/STRUCT.
-    if (this->dataType.typeID == STRUCT) {
-        auto structDataInfo = reinterpret_cast<StructTypeInfo*>(this->dataType.extraTypeInfo.get());
-        auto childTypes = structDataInfo->getChildrenTypes();
+    if (this->dataType.getLogicalTypeID() == LogicalTypeID::STRUCT) {
+        auto childTypes = common::StructType::getStructFieldTypes(&this->dataType);
         childChunks.resize(childTypes.size());
         for (auto i = 0u; i < childTypes.size(); i++) {
             childChunks[i] =
@@ -44,16 +43,16 @@ void InMemColumnChunk::flush(FileInfo* walFileInfo) {
     }
 }
 
-uint32_t InMemColumnChunk::getDataTypeSizeInColumn(common::DataType& dataType) {
-    switch (dataType.typeID) {
-    case STRUCT: {
+uint32_t InMemColumnChunk::getDataTypeSizeInColumn(common::LogicalType& dataType) {
+    switch (dataType.getLogicalTypeID()) {
+    case LogicalTypeID::STRUCT: {
         return 0;
     }
-    case INTERNAL_ID: {
+    case LogicalTypeID::INTERNAL_ID: {
         return sizeof(offset_t);
     }
     default: {
-        return Types::getDataTypeSize(dataType);
+        return storage::StorageUtils::getDataTypeSize(dataType);
     }
     }
 }
@@ -83,29 +82,29 @@ template<>
 void InMemColumnChunk::templateCopyValuesToPage<std::string, InMemOverflowFile*, PageByteCursor&,
     CopyDescription&>(arrow::Array& array, InMemOverflowFile* overflowFile,
     PageByteCursor& overflowCursor, CopyDescription& copyDesc) {
-    switch (dataType.typeID) {
-    case DATE: {
+    switch (dataType.getLogicalTypeID()) {
+    case LogicalTypeID::DATE: {
         templateCopyValuesAsStringToPage<date_t>(array);
     } break;
-    case TIMESTAMP: {
+    case LogicalTypeID::TIMESTAMP: {
         templateCopyValuesAsStringToPage<timestamp_t>(array);
     } break;
-    case INTERVAL: {
+    case LogicalTypeID::INTERVAL: {
         templateCopyValuesAsStringToPage<interval_t>(array);
     } break;
-    case FIXED_LIST: {
+    case LogicalTypeID::FIXED_LIST: {
         // Fixed list is a fixed-sized blob.
         templateCopyValuesAsStringToPage<uint8_t*, CopyDescription&>(array, copyDesc);
     } break;
-    case VAR_LIST: {
+    case LogicalTypeID::VAR_LIST: {
         templateCopyValuesAsStringToPage<ku_list_t, InMemOverflowFile*, PageByteCursor&,
             CopyDescription&>(array, overflowFile, overflowCursor, copyDesc);
     } break;
-    case STRING: {
+    case LogicalTypeID::STRING: {
         templateCopyValuesAsStringToPage<ku_string_t, InMemOverflowFile*, PageByteCursor&>(
             array, overflowFile, overflowCursor);
     } break;
-    case STRUCT: {
+    case LogicalTypeID::STRUCT: {
         templateCopyValuesAsStringToPage<struct_entry_t, InMemOverflowFile*, PageByteCursor&,
             CopyDescription&>(array, overflowFile, overflowCursor, copyDesc);
     } break;
@@ -144,8 +143,8 @@ void InMemColumnChunk::setValueFromString<uint8_t*, CopyDescription&>(
     auto fixedListVal =
         TableCopyExecutor::getArrowFixedList(value, 1, length - 2, dataType, copyDescription);
     // TODO(Guodong): Keep value size as a class field.
-    memcpy(buffer.get() + pos * Types::getDataTypeSize(dataType), fixedListVal.get(),
-        Types::getDataTypeSize(dataType));
+    memcpy(buffer.get() + pos * storage::StorageUtils::getDataTypeSize(dataType),
+        fixedListVal.get(), storage::StorageUtils::getDataTypeSize(dataType));
 }
 
 // Var list
@@ -190,9 +189,8 @@ void InMemColumnChunk::setValueFromString<struct_entry_t, InMemOverflowFile*, Pa
     CopyDescription&>(const char* value, uint64_t length, uint64_t pos,
     InMemOverflowFile* overflowFile, PageByteCursor& overflowCursor,
     CopyDescription& copyDescription) {
-    auto structTypeInfo = reinterpret_cast<StructTypeInfo*>(dataType.getExtraTypeInfo());
-    auto structFieldTypes = structTypeInfo->getChildrenTypes();
-    auto structFieldNames = structTypeInfo->getChildrenNames();
+    auto structFieldTypes = StructType::getStructFieldTypes(&dataType);
+    auto structFieldNames = StructType::getStructFieldNames(&dataType);
     std::regex whiteSpacePattern{"\\s"};
     // Removes the leading and trailing '{', '}';
     auto structString = std::string(value, length).substr(1, length - 2);
@@ -223,45 +221,45 @@ field_idx_t InMemStructColumnChunk::getStructFieldIdx(
 }
 
 void InMemStructColumnChunk::setValueToStructColumnField(InMemColumnChunk* chunk, offset_t pos,
-    field_idx_t structFieldIdx, const std::string& structFieldValue, const DataType& dataType) {
-    switch (dataType.typeID) {
-    case INT64: {
+    field_idx_t structFieldIdx, const std::string& structFieldValue, const LogicalType& dataType) {
+    switch (dataType.getLogicalTypeID()) {
+    case LogicalTypeID::INT64: {
         chunk->setValueFromString<int64_t>(
             structFieldValue.c_str(), structFieldValue.length(), pos);
     } break;
-    case INT32: {
+    case LogicalTypeID::INT32: {
         chunk->setValueFromString<int32_t>(
             structFieldValue.c_str(), structFieldValue.length(), pos);
     } break;
-    case INT16: {
+    case LogicalTypeID::INT16: {
         chunk->setValueFromString<int16_t>(
             structFieldValue.c_str(), structFieldValue.length(), pos);
     } break;
-    case DOUBLE: {
+    case LogicalTypeID::DOUBLE: {
         chunk->setValueFromString<double_t>(
             structFieldValue.c_str(), structFieldValue.length(), pos);
     } break;
-    case FLOAT: {
+    case LogicalTypeID::FLOAT: {
         chunk->setValueFromString<float_t>(
             structFieldValue.c_str(), structFieldValue.length(), pos);
     } break;
-    case BOOL: {
+    case LogicalTypeID::BOOL: {
         chunk->setValueFromString<bool>(structFieldValue.c_str(), structFieldValue.length(), pos);
     } break;
-    case DATE: {
+    case LogicalTypeID::DATE: {
         chunk->setValueFromString<date_t>(structFieldValue.c_str(), structFieldValue.length(), pos);
     } break;
-    case TIMESTAMP: {
+    case LogicalTypeID::TIMESTAMP: {
         chunk->setValueFromString<timestamp_t>(
             structFieldValue.c_str(), structFieldValue.length(), pos);
     } break;
-    case INTERVAL: {
+    case LogicalTypeID::INTERVAL: {
         chunk->setValueFromString<interval_t>(
             structFieldValue.c_str(), structFieldValue.length(), pos);
     } break;
     default: {
         throw NotImplementedException{StringUtils::string_format(
-            "Unsupported data type: {}.", Types::dataTypeToString(dataType))};
+            "Unsupported data type: {}.", LogicalTypeUtils::dataTypeToString(dataType))};
     }
     }
 }

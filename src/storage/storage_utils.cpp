@@ -1,5 +1,6 @@
 #include "storage/storage_utils.h"
 
+#include "common/null_buffer.h"
 #include "common/string_utils.h"
 #include "storage/in_mem_storage_structure/in_mem_column.h"
 #include "storage/in_mem_storage_structure/in_mem_lists.h"
@@ -251,6 +252,33 @@ void StorageUtils::createFileForRelListsPropertyWithDefaultVal(table_id_t relTab
             defaultVal, numNodesInBoundTable, adjLists->getHeaders().get());
     }
     inMemList->saveToFile();
+}
+
+uint32_t StorageUtils::getDataTypeSize(const common::LogicalType& type) {
+    switch (type.getLogicalTypeID()) {
+    case common::LogicalTypeID::STRING: {
+        return sizeof(common::ku_string_t);
+    }
+    case common::LogicalTypeID::FIXED_LIST: {
+        return getDataTypeSize(*common::FixedListType::getChildType(&type)) *
+               common::FixedListType::getNumElementsInList(&type);
+    }
+    case common::LogicalTypeID::VAR_LIST: {
+        return sizeof(common::ku_list_t);
+    }
+    case common::LogicalTypeID::STRUCT: {
+        uint32_t size = 0;
+        auto structFieldsTypes = common::StructType::getStructFieldTypes(&type);
+        for (auto structFieldType : structFieldsTypes) {
+            size += getDataTypeSize(*structFieldType);
+        }
+        size += NullBuffer::getNumBytesForNullValues(structFieldsTypes.size());
+        return size;
+    }
+    default: {
+        return common::LogicalTypeUtils::getFixedTypeSize(type.getPhysicalType());
+    }
+    }
 }
 
 std::string StorageUtils::appendSuffixOrInsertBeforeWALSuffix(

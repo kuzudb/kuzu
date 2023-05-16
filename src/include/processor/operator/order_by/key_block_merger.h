@@ -17,7 +17,8 @@ struct StrKeyColInfo {
           isAscOrder{isAscOrder} {}
 
     inline uint32_t getEncodingSize() const {
-        return OrderByKeyEncoder::getEncodingSize(common::DataType(common::STRING));
+        return OrderByKeyEncoder::getEncodingSize(
+            common::LogicalType(common::LogicalTypeID::STRING));
     }
 
     uint32_t colOffsetInFT;

@@ -147,7 +147,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
 std::unique_ptr<ResultCollector> PlanMapper::appendResultCollector(
     const binder::expression_vector& expressionsToCollect, const Schema& schema,
     std::unique_ptr<PhysicalOperator> prevOperator) {
-    std::vector<std::pair<DataPos, DataType>> payloadsPosAndType;
+    std::vector<std::pair<DataPos, LogicalType>> payloadsPosAndType;
     std::vector<bool> isPayloadFlat;
     for (auto& expression : expressionsToCollect) {
         auto expressionName = expression->getUniqueName();

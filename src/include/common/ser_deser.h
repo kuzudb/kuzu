@@ -101,12 +101,12 @@ public:
 };
 
 template<>
-uint64_t SerDeser::serializeValue(const DataType& value, FileInfo* fileInfo, uint64_t offset);
+uint64_t SerDeser::serializeValue(const LogicalType& value, FileInfo* fileInfo, uint64_t offset);
 template<>
 uint64_t SerDeser::serializeValue(const std::string& value, FileInfo* fileInfo, uint64_t offset);
 
 template<>
-uint64_t SerDeser::deserializeValue(DataType& value, FileInfo* fileInfo, uint64_t offset);
+uint64_t SerDeser::deserializeValue(LogicalType& value, FileInfo* fileInfo, uint64_t offset);
 template<>
 uint64_t SerDeser::deserializeValue(std::string& value, FileInfo* fileInfo, uint64_t offset);
 

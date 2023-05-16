@@ -100,16 +100,6 @@ inline void Hash::operation(const common::ku_string_t& key, common::hash_t& resu
 }
 
 template<>
-inline void Hash::operation(const common::date_t& key, common::hash_t& result) {
-    result = murmurhash64(key.days);
-}
-
-template<>
-inline void Hash::operation(const common::timestamp_t& key, common::hash_t& result) {
-    result = murmurhash64(key.value);
-}
-
-template<>
 inline void Hash::operation(const common::interval_t& key, common::hash_t& result) {
     result = combineHashScalar(murmurhash64(key.months),
         combineHashScalar(murmurhash64(key.days), murmurhash64(key.micros)));

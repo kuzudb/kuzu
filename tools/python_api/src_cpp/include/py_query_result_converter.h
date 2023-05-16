@@ -6,18 +6,18 @@
 struct NPArrayWrapper {
 
 public:
-    NPArrayWrapper(const kuzu::common::DataType& type, uint64_t numFlatTuple);
+    NPArrayWrapper(const kuzu::common::LogicalType& type, uint64_t numFlatTuple);
 
     void appendElement(kuzu::common::Value* value);
 
 private:
-    py::dtype convertToArrayType(const kuzu::common::DataType& type);
+    py::dtype convertToArrayType(const kuzu::common::LogicalType& type);
 
 public:
     py::array data;
     uint8_t* dataBuffer;
     py::array mask;
-    kuzu::common::DataType type;
+    kuzu::common::LogicalType type;
     uint64_t numElements;
 };
 

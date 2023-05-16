@@ -13,10 +13,10 @@ namespace storage {
 
 class InMemColumnChunk {
 public:
-    InMemColumnChunk(common::DataType dataType, common::offset_t startNodeOffset,
+    InMemColumnChunk(common::LogicalType dataType, common::offset_t startNodeOffset,
         common::offset_t endNodeOffset, bool requireNullBits = true);
 
-    inline common::DataType getDataType() const { return dataType; }
+    inline common::LogicalType getDataType() const { return dataType; }
 
     template<typename T>
     inline T getValue(common::offset_t pos) const {
@@ -94,10 +94,10 @@ private:
         ((T*)buffer.get())[pos] = val;
     }
 
-    static uint32_t getDataTypeSizeInColumn(common::DataType& dataType);
+    static uint32_t getDataTypeSizeInColumn(common::LogicalType& dataType);
 
 private:
-    common::DataType dataType;
+    common::LogicalType dataType;
     common::offset_t startNodeOffset;
     std::uint64_t numBytesPerValue;
     std::uint64_t numBytes;
@@ -113,7 +113,7 @@ public:
 
     static void setValueToStructColumnField(InMemColumnChunk* chunk, common::offset_t pos,
         common::field_idx_t structFieldIdx, const std::string& structFieldValue,
-        const common::DataType& dataType);
+        const common::LogicalType& dataType);
 };
 
 template<>

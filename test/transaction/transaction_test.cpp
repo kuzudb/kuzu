@@ -40,16 +40,17 @@ public:
                                           .propertyID;
 
         dataChunk = std::make_shared<DataChunk>(3);
-        nodeVector = std::make_shared<ValueVector>(INTERNAL_ID, getMemoryManager(*database));
+        nodeVector =
+            std::make_shared<ValueVector>(LogicalTypeID::INTERNAL_ID, getMemoryManager(*database));
         dataChunk->insert(0, nodeVector);
         ((nodeID_t*)nodeVector->getData())[0].offset = 0;
         ((nodeID_t*)nodeVector->getData())[1].offset = 1;
 
         agePropertyVectorToReadDataInto =
-            std::make_shared<ValueVector>(INT64, getMemoryManager(*database));
+            std::make_shared<ValueVector>(LogicalTypeID::INT64, getMemoryManager(*database));
         dataChunk->insert(1, agePropertyVectorToReadDataInto);
         eyeSightVectorToReadDataInto =
-            std::make_shared<ValueVector>(DOUBLE, getMemoryManager(*database));
+            std::make_shared<ValueVector>(LogicalTypeID::DOUBLE, getMemoryManager(*database));
         dataChunk->insert(2, eyeSightVectorToReadDataInto);
 
         personAgeColumn = getStorageManager(*database)->getNodesStore().getNodePropertyColumn(
@@ -94,7 +95,7 @@ public:
         dataChunk->state->selVector->resetSelectorToValuePosBuffer();
         dataChunk->state->selVector->selectedPositions[0] = nodeOffset;
         auto propertyVectorToWriteDataTo =
-            std::make_shared<ValueVector>(INT64, getMemoryManager(*database));
+            std::make_shared<ValueVector>(LogicalTypeID::INT64, getMemoryManager(*database));
         propertyVectorToWriteDataTo->state = dataChunk->state;
         if (isNull) {
             propertyVectorToWriteDataTo->setNull(dataChunk->state->currIdx, true /* is null */);
@@ -112,7 +113,7 @@ public:
         dataChunk->state->selVector->resetSelectorToValuePosBuffer();
         dataChunk->state->selVector->selectedPositions[0] = nodeOffset;
         auto propertyVectorToWriteDataTo =
-            std::make_shared<ValueVector>(DOUBLE, getMemoryManager(*database));
+            std::make_shared<ValueVector>(LogicalTypeID::DOUBLE, getMemoryManager(*database));
         propertyVectorToWriteDataTo->state = dataChunk->state;
         if (isNull) {
             propertyVectorToWriteDataTo->setNull(dataChunk->state->currIdx, true /* is null */);

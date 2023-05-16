@@ -29,7 +29,7 @@ private:
 
 class StructAuxiliaryBuffer : public AuxiliaryBuffer {
 public:
-    StructAuxiliaryBuffer(const DataType& type, storage::MemoryManager* memoryManager);
+    StructAuxiliaryBuffer(const LogicalType& type, storage::MemoryManager* memoryManager);
 
     inline void referenceChildVector(
         vector_idx_t idx, std::shared_ptr<ValueVector> vectorToReference) {
@@ -52,7 +52,7 @@ private:
 // contiguous subsequence of elements in this vector.
 class ListAuxiliaryBuffer : public AuxiliaryBuffer {
 public:
-    ListAuxiliaryBuffer(const DataType& dataVectorType, storage::MemoryManager* memoryManager);
+    ListAuxiliaryBuffer(const LogicalType& dataVectorType, storage::MemoryManager* memoryManager);
 
     inline ValueVector* getDataVector() const { return dataVector.get(); }
 
@@ -69,7 +69,7 @@ private:
 class AuxiliaryBufferFactory {
 public:
     static std::unique_ptr<AuxiliaryBuffer> getAuxiliaryBuffer(
-        DataType& type, storage::MemoryManager* memoryManager);
+        LogicalType& type, storage::MemoryManager* memoryManager);
 };
 
 } // namespace common

@@ -44,7 +44,7 @@ private:
 class ResultCollector : public Sink {
 public:
     ResultCollector(std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
-        std::vector<std::pair<DataPos, common::DataType>> payloadsPosAndType,
+        std::vector<std::pair<DataPos, common::LogicalType>> payloadsPosAndType,
         std::vector<bool> isPayloadFlat, std::shared_ptr<FTableSharedState> sharedState,
         std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
         : Sink{std::move(resultSetDescriptor), PhysicalOperatorType::RESULT_COLLECTOR,
@@ -72,7 +72,7 @@ private:
     std::unique_ptr<FactorizedTableSchema> populateTableSchema();
 
 private:
-    std::vector<std::pair<DataPos, common::DataType>> payloadsPosAndType;
+    std::vector<std::pair<DataPos, common::LogicalType>> payloadsPosAndType;
     std::vector<bool> isPayloadFlat;
     std::vector<common::ValueVector*> vectorsToCollect;
     std::shared_ptr<FTableSharedState> sharedState;

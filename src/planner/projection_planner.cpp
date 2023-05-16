@@ -188,7 +188,8 @@ expression_vector ProjectionPlanner::rewriteExpressionsToProject(
     const expression_vector& expressionsToProject, const Schema& schema) {
     expression_vector result;
     for (auto& expression : expressionsToProject) {
-        if (expression->dataType.typeID == NODE || expression->dataType.typeID == REL) {
+        if (expression->dataType.getLogicalTypeID() == LogicalTypeID::NODE ||
+            expression->dataType.getLogicalTypeID() == LogicalTypeID::REL) {
             for (auto& property : rewriteVariableAsAllPropertiesInScope(*expression, schema)) {
                 result.push_back(property);
             }

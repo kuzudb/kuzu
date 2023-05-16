@@ -43,10 +43,10 @@ public:
 
     static void throwCopyExceptionIfNotOK(const arrow::Status& status);
     static std::unique_ptr<common::Value> getArrowVarList(const std::string& l, int64_t from,
-        int64_t to, const common::DataType& dataType,
+        int64_t to, const common::LogicalType& dataType,
         const common::CopyDescription& copyDescription);
     static std::unique_ptr<uint8_t[]> getArrowFixedList(const std::string& l, int64_t from,
-        int64_t to, const common::DataType& dataType,
+        int64_t to, const common::LogicalType& dataType,
         const common::CopyDescription& copyDescription);
     static std::shared_ptr<arrow::csv::StreamingReader> createCSVReader(const std::string& filePath,
         common::CSVReaderConfig* csvReaderConfig, catalog::TableSchema* tableSchema);
@@ -77,11 +77,11 @@ protected:
         tablesStatistics->setNumTuplesForTable(tableSchema->tableID, numRows);
     }
 
-    static std::shared_ptr<arrow::DataType> toArrowDataType(const common::DataType& dataType);
+    static std::shared_ptr<arrow::DataType> toArrowDataType(const common::LogicalType& dataType);
 
 private:
     static std::unique_ptr<common::Value> convertStringToValue(std::string element,
-        const common::DataType& type, const common::CopyDescription& copyDescription);
+        const common::LogicalType& type, const common::CopyDescription& copyDescription);
 
 protected:
     std::shared_ptr<spdlog::logger> logger;

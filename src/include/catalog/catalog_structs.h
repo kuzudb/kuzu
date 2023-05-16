@@ -21,17 +21,17 @@ public:
     static constexpr std::string_view REL_TO_PROPERTY_NAME = "_TO_";
 
     // This constructor is needed for ser/deser functions
-    Property() : Property{"", common::DataType{}} {};
-    Property(std::string name, common::DataType dataType)
+    Property() : Property{"", common::LogicalType{}} {};
+    Property(std::string name, common::LogicalType dataType)
         : Property{std::move(name), std::move(dataType), common::INVALID_PROPERTY_ID,
               common::INVALID_TABLE_ID} {}
-    Property(std::string name, common::DataType dataType, common::property_id_t propertyID,
+    Property(std::string name, common::LogicalType dataType, common::property_id_t propertyID,
         common::table_id_t tableID)
         : name{std::move(name)}, dataType{std::move(dataType)},
           propertyID{propertyID}, tableID{tableID} {}
 
     std::string name;
-    common::DataType dataType;
+    common::LogicalType dataType;
     common::property_id_t propertyID;
     common::table_id_t tableID;
 };
@@ -65,7 +65,7 @@ public:
             [&propertyName](const Property& property) { return property.name == propertyName; });
     }
 
-    inline void addProperty(std::string propertyName, common::DataType dataType) {
+    inline void addProperty(std::string propertyName, common::LogicalType dataType) {
         properties.emplace_back(
             std::move(propertyName), std::move(dataType), increaseNextPropertyID(), tableID);
     }

@@ -24,7 +24,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExpressionsScanToPhysica
     for (auto& expression : expressions) {
         tableSchema->appendColumn(
             std::make_unique<ColumnSchema>(false, 0 /* all expressions are in the same datachunk */,
-                Types::getDataTypeSize(expression->dataType)));
+                FactorizedTable::getDataTypeSize(expression->dataType)));
         auto expressionEvaluator = expressionMapper.mapExpression(expression, *inSchema);
         // expression can be evaluated statically and does not require an actual resultset to init
         expressionEvaluator->init(ResultSet(0) /* dummy resultset */, memoryManager);

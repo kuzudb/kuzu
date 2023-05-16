@@ -84,7 +84,7 @@ public:
     static uint32_t getNumBytesPerTuple(
         const std::vector<std::shared_ptr<common::ValueVector>>& keyVectors);
 
-    static uint32_t getEncodingSize(const common::DataType& dataType);
+    static uint32_t getEncodingSize(const common::LogicalType& dataType);
 
     void encodeKeys();
 
@@ -101,8 +101,8 @@ private:
         assert(false);
     }
 
-    void flipBytesIfNecessary(
-        uint32_t keyColIdx, uint8_t* tuplePtr, uint32_t numEntriesToEncode, common::DataType& type);
+    void flipBytesIfNecessary(uint32_t keyColIdx, uint8_t* tuplePtr, uint32_t numEntriesToEncode,
+        common::LogicalType& type);
 
     void encodeFlatVector(common::ValueVector* vector, uint8_t* tuplePtr, uint32_t keyColIdx);
 
@@ -116,7 +116,7 @@ private:
 
     void allocateMemoryIfFull();
 
-    static encode_function_t getEncodingFunction(common::DataTypeID typeId);
+    static encode_function_t getEncodingFunction(common::PhysicalTypeID physicalType);
 
 private:
     storage::MemoryManager* memoryManager;

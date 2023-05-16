@@ -6,7 +6,7 @@ namespace kuzu {
 namespace evaluator {
 
 inline static bool isTrue(ValueVector& vector, uint64_t pos) {
-    assert(vector.dataType.typeID == BOOL);
+    assert(vector.dataType.getLogicalTypeID() == LogicalTypeID::BOOL);
     return !vector.isNull(pos) && vector.getValue<bool>(pos);
 }
 

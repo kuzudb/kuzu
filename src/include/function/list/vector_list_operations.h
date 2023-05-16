@@ -27,42 +27,44 @@ struct VectorListOperations : public VectorOperations {
 
     template<typename OPERATION, typename RESULT_TYPE>
     static std::vector<std::unique_ptr<VectorOperationDefinition>>
-    getBinaryListOperationDefinitions(std::string funcName, common::DataTypeID resultTypeID) {
+    getBinaryListOperationDefinitions(std::string funcName, common::LogicalTypeID resultTypeID) {
         std::vector<std::unique_ptr<VectorOperationDefinition>> result;
         scalar_exec_func execFunc;
-        for (auto& rightTypeID : std::vector<common::DataTypeID>{common::BOOL, common::INT64,
-                 common::DOUBLE, common::STRING, common::DATE, common::TIMESTAMP, common::INTERVAL,
-                 common::VAR_LIST}) {
+        for (auto& rightTypeID : std::vector<common::LogicalTypeID>{common::LogicalTypeID::BOOL,
+                 common::LogicalTypeID::INT64, common::LogicalTypeID::DOUBLE,
+                 common::LogicalTypeID::STRING, common::LogicalTypeID::DATE,
+                 common::LogicalTypeID::TIMESTAMP, common::LogicalTypeID::INTERVAL,
+                 common::LogicalTypeID::VAR_LIST}) {
             switch (rightTypeID) {
-            case common::BOOL: {
+            case common::LogicalTypeID::BOOL: {
                 execFunc =
                     BinaryListExecFunction<common::list_entry_t, uint8_t, RESULT_TYPE, OPERATION>;
             } break;
-            case common::INT64: {
+            case common::LogicalTypeID::INT64: {
                 execFunc =
                     BinaryListExecFunction<common::list_entry_t, int64_t, RESULT_TYPE, OPERATION>;
             } break;
-            case common::DOUBLE: {
+            case common::LogicalTypeID::DOUBLE: {
                 execFunc =
                     BinaryListExecFunction<common::list_entry_t, double_t, RESULT_TYPE, OPERATION>;
             } break;
-            case common::STRING: {
+            case common::LogicalTypeID::STRING: {
                 execFunc = BinaryListExecFunction<common::list_entry_t, common::ku_string_t,
                     RESULT_TYPE, OPERATION>;
             } break;
-            case common::DATE: {
+            case common::LogicalTypeID::DATE: {
                 execFunc = BinaryListExecFunction<common::list_entry_t, common::date_t, RESULT_TYPE,
                     OPERATION>;
             } break;
-            case common::TIMESTAMP: {
+            case common::LogicalTypeID::TIMESTAMP: {
                 execFunc = BinaryListExecFunction<common::list_entry_t, common::timestamp_t,
                     RESULT_TYPE, OPERATION>;
             } break;
-            case common::INTERVAL: {
+            case common::LogicalTypeID::INTERVAL: {
                 execFunc = BinaryListExecFunction<common::list_entry_t, common::interval_t,
                     RESULT_TYPE, OPERATION>;
             } break;
-            case common::VAR_LIST: {
+            case common::LogicalTypeID::VAR_LIST: {
                 execFunc = BinaryListExecFunction<common::list_entry_t, common::list_entry_t,
                     RESULT_TYPE, OPERATION>;
             } break;
@@ -71,8 +73,8 @@ struct VectorListOperations : public VectorOperations {
             }
             }
             result.push_back(make_unique<VectorOperationDefinition>(funcName,
-                std::vector<common::DataTypeID>{common::VAR_LIST, rightTypeID}, resultTypeID,
-                execFunc, nullptr, false /* isVarlength*/));
+                std::vector<common::LogicalTypeID>{common::LogicalTypeID::VAR_LIST, rightTypeID},
+                resultTypeID, execFunc, nullptr, false /* isVarlength*/));
         }
         return result;
     }

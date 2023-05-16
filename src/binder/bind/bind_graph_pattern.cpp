@@ -110,7 +110,7 @@ void Binder::bindQueryRel(const RelPattern& relPattern,
     auto parsedName = relPattern.getVariableName();
     if (variablesInScope.contains(parsedName)) {
         auto prevVariable = variablesInScope.at(parsedName);
-        ExpressionBinder::validateExpectedDataType(*prevVariable, REL);
+        ExpressionBinder::validateExpectedDataType(*prevVariable, LogicalTypeID::REL);
         throw BinderException("Bind relationship " + parsedName +
                               " to relationship with same name is not supported.");
     }
@@ -131,8 +131,11 @@ void Binder::bindQueryRel(const RelPattern& relPattern,
     // bind variable length
     auto [lowerBound, upperBound] = bindVariableLengthRelBound(relPattern);
     auto isVariableLength = !(lowerBound == 1 && upperBound == 1);
-    auto dataType = isVariableLength ? common::DataType(std::make_unique<DataType>(INTERNAL_ID)) :
-                                       common::DataType(common::REL);
+    auto dataType = isVariableLength ?
+                        common::LogicalType(LogicalTypeID::VAR_LIST,
+                            std::make_unique<VarListTypeInfo>(
+                                std::make_unique<LogicalType>(LogicalTypeID::INTERNAL_ID))) :
+                        common::LogicalType(common::LogicalTypeID::REL);
     auto queryRel = make_shared<RelExpression>(std::move(dataType),
         getUniqueExpressionName(parsedName), parsedName, tableIDs, srcNode, dstNode,
         relPattern.getDirection() != BOTH, relPattern.getRelType(), lowerBound, upperBound);
@@ -186,7 +189,7 @@ std::shared_ptr<NodeExpression> Binder::bindQueryNode(
     std::shared_ptr<NodeExpression> queryNode;
     if (variablesInScope.contains(parsedName)) { // bind to node in scope
         auto prevVariable = variablesInScope.at(parsedName);
-        ExpressionBinder::validateExpectedDataType(*prevVariable, NODE);
+        ExpressionBinder::validateExpectedDataType(*prevVariable, LogicalTypeID::NODE);
         queryNode = static_pointer_cast<NodeExpression>(prevVariable);
         // E.g. MATCH (a:person) MATCH (a:organisation)
         // We bind to single node a with both labels
@@ -236,10 +239,10 @@ std::shared_ptr<NodeExpression> Binder::createQueryNode(const NodePattern& nodeP
 }
 
 std::vector<table_id_t> Binder::bindTableIDs(
-    const std::vector<std::string>& tableNames, DataTypeID nodeOrRelType) {
+    const std::vector<std::string>& tableNames, LogicalTypeID nodeOrRelType) {
     std::unordered_set<table_id_t> tableIDs;
     switch (nodeOrRelType) {
-    case NODE: {
+    case LogicalTypeID::NODE: {
         if (tableNames.empty()) {
             for (auto tableID : catalog.getReadOnlyVersion()->getNodeTableIDs()) {
                 tableIDs.insert(tableID);
@@ -251,7 +254,7 @@ std::vector<table_id_t> Binder::bindTableIDs(
         }
 
     } break;
-    case REL: {
+    case LogicalTypeID::REL: {
         if (tableNames.empty()) {
             for (auto tableID : catalog.getReadOnlyVersion()->getRelTableIDs()) {
                 tableIDs.insert(tableID);
@@ -263,7 +266,7 @@ std::vector<table_id_t> Binder::bindTableIDs(
     } break;
     default:
         throw NotImplementedException(
-            "bindTableIDs(" + Types::dataTypeToString(nodeOrRelType) + ").");
+            "bindTableIDs(" + LogicalTypeUtils::dataTypeToString(nodeOrRelType) + ").");
     }
     auto result = std::vector<table_id_t>{tableIDs.begin(), tableIDs.end()};
     std::sort(result.begin(), result.end());

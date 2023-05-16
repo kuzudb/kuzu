@@ -19,15 +19,16 @@ class NullColumn;
 class Column : public BaseColumnOrList {
 public:
     // Currently extended by SERIAL column.
-    explicit Column(const common::DataType& dataType) : BaseColumnOrList{dataType} {};
+    explicit Column(const common::LogicalType& dataType) : BaseColumnOrList{dataType} {};
 
-    Column(const StorageStructureIDAndFName& structureIDAndFName, const common::DataType& dataType,
-        BufferManager* bufferManager, WAL* wal)
-        : Column(structureIDAndFName, dataType, common::Types::getDataTypeSize(dataType),
+    Column(const StorageStructureIDAndFName& structureIDAndFName,
+        const common::LogicalType& dataType, BufferManager* bufferManager, WAL* wal)
+        : Column(structureIDAndFName, dataType, storage::StorageUtils::getDataTypeSize(dataType),
               bufferManager, wal){};
 
-    Column(const StorageStructureIDAndFName& structureIDAndFName, const common::DataType& dataType,
-        size_t elementSize, BufferManager* bufferManager, WAL* wal, bool requireNullBits = true);
+    Column(const StorageStructureIDAndFName& structureIDAndFName,
+        const common::LogicalType& dataType, size_t elementSize, BufferManager* bufferManager,
+        WAL* wal, bool requireNullBits = true);
 
     // Expose for feature store
     virtual void batchLookup(const common::offset_t* nodeOffsets, size_t size, uint8_t* result);
@@ -83,8 +84,8 @@ class NullColumn : public Column {
 public:
     NullColumn(const StorageStructureIDAndFName& structureIDAndFName, BufferManager* bufferManager,
         WAL* wal)
-        : Column{structureIDAndFName, common::DataType(common::BOOL), sizeof(bool), bufferManager,
-              wal, false /* requireNullBits */} {
+        : Column{structureIDAndFName, common::LogicalType(common::LogicalTypeID::BOOL),
+              sizeof(bool), bufferManager, wal, false /* requireNullBits */} {
         readDataFunc = NullColumn::readNullsFromPage;
     }
 
@@ -103,7 +104,7 @@ private:
 class PropertyColumnWithOverflow : public Column {
 public:
     PropertyColumnWithOverflow(const StorageStructureIDAndFName& structureIDAndFNameOfMainColumn,
-        const common::DataType& dataType, BufferManager* bufferManager, WAL* wal)
+        const common::LogicalType& dataType, BufferManager* bufferManager, WAL* wal)
         : Column{structureIDAndFNameOfMainColumn, dataType, bufferManager, wal} {
         diskOverflowFile =
             std::make_unique<DiskOverflowFile>(structureIDAndFNameOfMainColumn, bufferManager, wal);
@@ -116,7 +117,7 @@ public:
 class StringPropertyColumn : public PropertyColumnWithOverflow {
 public:
     StringPropertyColumn(const StorageStructureIDAndFName& structureIDAndFNameOfMainColumn,
-        const common::DataType& dataType, BufferManager* bufferManager, WAL* wal)
+        const common::LogicalType& dataType, BufferManager* bufferManager, WAL* wal)
         : PropertyColumnWithOverflow{
               structureIDAndFNameOfMainColumn, dataType, bufferManager, wal} {
         writeDataFunc = StringPropertyColumn::writeStringToPage;
@@ -149,7 +150,7 @@ private:
 class ListPropertyColumn : public PropertyColumnWithOverflow {
 public:
     ListPropertyColumn(const StorageStructureIDAndFName& structureIDAndFNameOfMainColumn,
-        const common::DataType& dataType, BufferManager* bufferManager, WAL* wal)
+        const common::LogicalType& dataType, BufferManager* bufferManager, WAL* wal)
         : PropertyColumnWithOverflow{
               structureIDAndFNameOfMainColumn, dataType, bufferManager, wal} {
         readDataFunc = ListPropertyColumn::readListsFromPage;
@@ -169,7 +170,7 @@ private:
 class StructPropertyColumn : public Column {
 public:
     StructPropertyColumn(const StorageStructureIDAndFName& structureIDAndFName,
-        const common::DataType& dataType, BufferManager* bufferManager, WAL* wal);
+        const common::LogicalType& dataType, BufferManager* bufferManager, WAL* wal);
 
     void read(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
         common::ValueVector* resultVector) final;
@@ -182,7 +183,7 @@ class InternalIDColumn : public Column {
 public:
     InternalIDColumn(const StorageStructureIDAndFName& structureIDAndFName,
         BufferManager* bufferManager, WAL* wal)
-        : Column{structureIDAndFName, common::DataType(common::INTERNAL_ID),
+        : Column{structureIDAndFName, common::LogicalType(common::LogicalTypeID::INTERNAL_ID),
               sizeof(common::offset_t), bufferManager, wal, true /* requireNullBits */} {
         readDataFunc = InternalIDColumn::readInternalIDsFromPage;
         writeDataFunc = InternalIDColumn::writeInternalIDToPage;
@@ -198,7 +199,7 @@ private:
 
 class SerialColumn : public Column {
 public:
-    SerialColumn() : Column{common::DataType{common::SERIAL}} {}
+    SerialColumn() : Column{common::LogicalType{common::LogicalTypeID::SERIAL}} {}
 
     void read(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
         common::ValueVector* resultVector) final;
@@ -207,31 +208,31 @@ public:
 class ColumnFactory {
 public:
     static std::unique_ptr<Column> getColumn(const StorageStructureIDAndFName& structureIDAndFName,
-        const common::DataType& dataType, BufferManager* bufferManager, WAL* wal) {
-        switch (dataType.typeID) {
-        case common::INT64:
-        case common::INT32:
-        case common::INT16:
-        case common::DOUBLE:
-        case common::FLOAT:
-        case common::BOOL:
-        case common::DATE:
-        case common::TIMESTAMP:
-        case common::INTERVAL:
-        case common::FIXED_LIST:
-            return std::make_unique<Column>(structureIDAndFName, dataType, bufferManager, wal);
-        case common::STRING:
+        const common::LogicalType& logicalType, BufferManager* bufferManager, WAL* wal) {
+        switch (logicalType.getLogicalTypeID()) {
+        case common::LogicalTypeID::INT64:
+        case common::LogicalTypeID::INT32:
+        case common::LogicalTypeID::INT16:
+        case common::LogicalTypeID::DOUBLE:
+        case common::LogicalTypeID::FLOAT:
+        case common::LogicalTypeID::BOOL:
+        case common::LogicalTypeID::DATE:
+        case common::LogicalTypeID::TIMESTAMP:
+        case common::LogicalTypeID::INTERVAL:
+        case common::LogicalTypeID::FIXED_LIST:
+            return std::make_unique<Column>(structureIDAndFName, logicalType, bufferManager, wal);
+        case common::LogicalTypeID::STRING:
             return std::make_unique<StringPropertyColumn>(
-                structureIDAndFName, dataType, bufferManager, wal);
-        case common::VAR_LIST:
+                structureIDAndFName, logicalType, bufferManager, wal);
+        case common::LogicalTypeID::VAR_LIST:
             return std::make_unique<ListPropertyColumn>(
-                structureIDAndFName, dataType, bufferManager, wal);
-        case common::INTERNAL_ID:
+                structureIDAndFName, logicalType, bufferManager, wal);
+        case common::LogicalTypeID::INTERNAL_ID:
             return std::make_unique<InternalIDColumn>(structureIDAndFName, bufferManager, wal);
-        case common::STRUCT:
+        case common::LogicalTypeID::STRUCT:
             return std::make_unique<StructPropertyColumn>(
-                structureIDAndFName, dataType, bufferManager, wal);
-        case common::SERIAL:
+                structureIDAndFName, logicalType, bufferManager, wal);
+        case common::LogicalTypeID::SERIAL:
             return std::make_unique<SerialColumn>();
         default:
             throw common::StorageException("Invalid type for property column creation.");

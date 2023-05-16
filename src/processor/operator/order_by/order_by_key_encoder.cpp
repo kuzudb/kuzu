@@ -32,7 +32,7 @@ OrderByKeyEncoder::OrderByKeyEncoder(std::vector<ValueVector*>& orderByVectors,
     }
     encodeFunctions.resize(orderByVectors.size());
     for (auto i = 0u; i < orderByVectors.size(); i++) {
-        encodeFunctions[i] = getEncodingFunction(orderByVectors[i]->dataType.typeID);
+        encodeFunctions[i] = getEncodingFunction(orderByVectors[i]->dataType.getPhysicalType());
     }
 }
 
@@ -67,19 +67,19 @@ uint32_t OrderByKeyEncoder::getNumBytesPerTuple(const std::vector<ValueVector*>&
     return result;
 }
 
-uint32_t OrderByKeyEncoder::getEncodingSize(const DataType& dataType) {
+uint32_t OrderByKeyEncoder::getEncodingSize(const LogicalType& dataType) {
     // Add one more byte for null flag.
-    switch (dataType.typeID) {
-    case STRING:
+    switch (dataType.getPhysicalType()) {
+    case PhysicalTypeID::STRING:
         // 1 byte for null flag + 1 byte to indicate long/short string + 12 bytes for string prefix
         return 2 + ku_string_t::SHORT_STR_LENGTH;
     default:
-        return 1 + Types::getDataTypeSize(dataType);
+        return 1 + storage::StorageUtils::getDataTypeSize(dataType);
     }
 }
 
 void OrderByKeyEncoder::flipBytesIfNecessary(
-    uint32_t keyColIdx, uint8_t* tuplePtr, uint32_t numEntriesToEncode, DataType& type) {
+    uint32_t keyColIdx, uint8_t* tuplePtr, uint32_t numEntriesToEncode, LogicalType& type) {
     if (!isAscOrder[keyColIdx]) {
         auto encodingSize = getEncodingSize(type);
         // If the current column is in desc order, flip all bytes.
@@ -197,40 +197,35 @@ void OrderByKeyEncoder::allocateMemoryIfFull() {
     }
 }
 
-encode_function_t OrderByKeyEncoder::getEncodingFunction(DataTypeID typeId) {
-    switch (typeId) {
-    case BOOL: {
+encode_function_t OrderByKeyEncoder::getEncodingFunction(PhysicalTypeID physicalType) {
+    switch (physicalType) {
+    case PhysicalTypeID::BOOL: {
         return encodeTemplate<bool>;
     }
-    case INT64: {
+    case PhysicalTypeID::INT64: {
         return encodeTemplate<int64_t>;
     }
-    case INT32: {
+    case PhysicalTypeID::INT32: {
         return encodeTemplate<int32_t>;
     }
-    case INT16: {
+    case PhysicalTypeID::INT16: {
         return encodeTemplate<int16_t>;
     }
-    case DOUBLE: {
+    case PhysicalTypeID::DOUBLE: {
         return encodeTemplate<double_t>;
     }
-    case FLOAT: {
+    case PhysicalTypeID::FLOAT: {
         return encodeTemplate<float_t>;
     }
-    case STRING: {
+    case PhysicalTypeID::STRING: {
         return encodeTemplate<ku_string_t>;
     }
-    case DATE: {
-        return encodeTemplate<date_t>;
-    }
-    case TIMESTAMP: {
-        return encodeTemplate<timestamp_t>;
-    }
-    case INTERVAL: {
+    case PhysicalTypeID::INTERVAL: {
         return encodeTemplate<interval_t>;
     }
     default: {
-        throw RuntimeException("Cannot encode data type " + Types::dataTypeToString(typeId));
+        throw RuntimeException("Cannot encode data with physical type: " +
+                               common::PhysicalTypeUtils::physicalTypeToString(physicalType));
     }
     }
 }

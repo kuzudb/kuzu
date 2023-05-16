@@ -15,18 +15,18 @@ namespace kuzu {
 namespace main {
 
 std::unique_ptr<DataTypeInfo> DataTypeInfo::getInfoForDataType(
-    const DataType& type, const std::string& name) {
-    auto columnTypeInfo = std::make_unique<DataTypeInfo>(type.typeID, name);
-    switch (type.typeID) {
-    case common::INTERNAL_ID: {
+    const LogicalType& type, const std::string& name) {
+    auto columnTypeInfo = std::make_unique<DataTypeInfo>(type.getLogicalTypeID(), name);
+    switch (type.getLogicalTypeID()) {
+    case common::LogicalTypeID::INTERNAL_ID: {
         columnTypeInfo->childrenTypesInfo.push_back(
-            std::make_unique<DataTypeInfo>(common::INT64, "offset"));
+            std::make_unique<DataTypeInfo>(common::LogicalTypeID::INT64, "offset"));
         columnTypeInfo->childrenTypesInfo.push_back(
-            std::make_unique<DataTypeInfo>(common::INT64, "tableID"));
+            std::make_unique<DataTypeInfo>(common::LogicalTypeID::INT64, "tableID"));
     } break;
-    case common::VAR_LIST: {
+    case common::LogicalTypeID::VAR_LIST: {
         auto parentTypeInfo = columnTypeInfo.get();
-        auto childType = type.getChildType();
+        auto childType = VarListType::getChildType(&type);
         parentTypeInfo->childrenTypesInfo.push_back(getInfoForDataType(*childType, ""));
     } break;
     default: {
@@ -61,7 +61,7 @@ std::vector<std::string> QueryResult::getColumnNames() {
     return columnNames;
 }
 
-std::vector<common::DataType> QueryResult::getColumnDataTypes() {
+std::vector<common::LogicalType> QueryResult::getColumnDataTypes() {
     return columnDataTypes;
 }
 
@@ -81,22 +81,22 @@ std::vector<std::unique_ptr<DataTypeInfo>> QueryResult::getColumnTypesInfo() {
     std::vector<std::unique_ptr<DataTypeInfo>> result;
     for (auto i = 0u; i < columnDataTypes.size(); i++) {
         auto columnTypeInfo = DataTypeInfo::getInfoForDataType(columnDataTypes[i], columnNames[i]);
-        if (columnTypeInfo->typeID == common::NODE) {
+        if (columnTypeInfo->typeID == common::LogicalTypeID::NODE) {
             auto value = tuple->getValue(i)->nodeVal.get();
-            columnTypeInfo->childrenTypesInfo.push_back(
-                DataTypeInfo::getInfoForDataType(DataType(common::INTERNAL_ID), "_id"));
-            columnTypeInfo->childrenTypesInfo.push_back(
-                DataTypeInfo::getInfoForDataType(DataType(common::STRING), "_label"));
+            columnTypeInfo->childrenTypesInfo.push_back(DataTypeInfo::getInfoForDataType(
+                LogicalType(common::LogicalTypeID::INTERNAL_ID), "_id"));
+            columnTypeInfo->childrenTypesInfo.push_back(DataTypeInfo::getInfoForDataType(
+                LogicalType(common::LogicalTypeID::STRING), "_label"));
             for (auto& [name, val] : value->getProperties()) {
                 columnTypeInfo->childrenTypesInfo.push_back(
                     DataTypeInfo::getInfoForDataType(val->dataType, name));
             }
-        } else if (columnTypeInfo->typeID == common::REL) {
+        } else if (columnTypeInfo->typeID == common::LogicalTypeID::REL) {
             auto value = tuple->getValue(i)->relVal.get();
-            columnTypeInfo->childrenTypesInfo.push_back(
-                DataTypeInfo::getInfoForDataType(DataType(common::INTERNAL_ID), "_src"));
-            columnTypeInfo->childrenTypesInfo.push_back(
-                DataTypeInfo::getInfoForDataType(DataType(common::INTERNAL_ID), "_dst"));
+            columnTypeInfo->childrenTypesInfo.push_back(DataTypeInfo::getInfoForDataType(
+                LogicalType(common::LogicalTypeID::INTERNAL_ID), "_src"));
+            columnTypeInfo->childrenTypesInfo.push_back(DataTypeInfo::getInfoForDataType(
+                LogicalType(common::LogicalTypeID::INTERNAL_ID), "_dst"));
             for (auto& [name, val] : value->getProperties()) {
                 columnTypeInfo->childrenTypesInfo.push_back(
                     DataTypeInfo::getInfoForDataType(val->dataType, name));
@@ -122,16 +122,18 @@ void QueryResult::initResultTableAndIterator(
         columnNames.push_back(columnName);
         auto expressionsToCollect = expressionToCollectPerColumn[i];
         std::unique_ptr<Value> value;
-        if (columnType.typeID == common::NODE) {
+        if (columnType.getLogicalTypeID() == common::LogicalTypeID::NODE) {
             // first expression is node ID.
-            assert(expressionsToCollect[0]->dataType.typeID == common::INTERNAL_ID);
-            auto nodeIDVal =
-                std::make_unique<Value>(Value::createDefaultValue(DataType(INTERNAL_ID)));
+            assert(expressionsToCollect[0]->dataType.getLogicalTypeID() ==
+                   common::LogicalTypeID::INTERNAL_ID);
+            auto nodeIDVal = std::make_unique<Value>(
+                Value::createDefaultValue(LogicalType(LogicalTypeID::INTERNAL_ID)));
             valuesToCollect.push_back(nodeIDVal.get());
             // second expression is node label function.
-            assert(expressionsToCollect[1]->dataType.typeID == common::STRING);
-            auto labelNameVal =
-                std::make_unique<Value>(Value::createDefaultValue(DataType(STRING)));
+            assert(expressionsToCollect[1]->dataType.getLogicalTypeID() ==
+                   common::LogicalTypeID::STRING);
+            auto labelNameVal = std::make_unique<Value>(
+                Value::createDefaultValue(LogicalType(LogicalTypeID::STRING)));
             valuesToCollect.push_back(labelNameVal.get());
             auto nodeVal = std::make_unique<NodeVal>(std::move(nodeIDVal), std::move(labelNameVal));
             for (auto j = 2u; j < expressionsToCollect.size(); ++j) {
@@ -143,20 +145,22 @@ void QueryResult::initResultTableAndIterator(
                 nodeVal->addProperty(property->getPropertyName(), std::move(propertyValue));
             }
             value = std::make_unique<Value>(std::move(nodeVal));
-        } else if (columnType.typeID == common::REL) {
+        } else if (columnType.getLogicalTypeID() == common::LogicalTypeID::REL) {
             // first expression is src node ID.
-            assert(expressionsToCollect[0]->dataType.typeID == common::INTERNAL_ID);
-            auto srcNodeIDVal =
-                std::make_unique<Value>(Value::createDefaultValue(DataType(INTERNAL_ID)));
+            assert(expressionsToCollect[0]->dataType.getLogicalTypeID() ==
+                   common::LogicalTypeID::INTERNAL_ID);
+            auto srcNodeIDVal = std::make_unique<Value>(
+                Value::createDefaultValue(LogicalType(LogicalTypeID::INTERNAL_ID)));
             valuesToCollect.push_back(srcNodeIDVal.get());
             // second expression is dst node ID.
-            assert(expressionsToCollect[1]->dataType.typeID == common::INTERNAL_ID);
-            auto dstNodeIDVal =
-                std::make_unique<Value>(Value::createDefaultValue(DataType(INTERNAL_ID)));
+            assert(expressionsToCollect[1]->dataType.getLogicalTypeID() ==
+                   common::LogicalTypeID::INTERNAL_ID);
+            auto dstNodeIDVal = std::make_unique<Value>(
+                Value::createDefaultValue(LogicalType(LogicalTypeID::INTERNAL_ID)));
             valuesToCollect.push_back(dstNodeIDVal.get());
             // third expression is rel label function.
-            auto labelNameVal =
-                std::make_unique<Value>(Value::createDefaultValue(DataType(STRING)));
+            auto labelNameVal = std::make_unique<Value>(
+                Value::createDefaultValue(LogicalType(LogicalTypeID::STRING)));
             valuesToCollect.push_back(labelNameVal.get());
             auto relVal = std::make_unique<RelVal>(
                 std::move(srcNodeIDVal), std::move(dstNodeIDVal), std::move(labelNameVal));
@@ -229,7 +233,8 @@ void QueryResult::writeToCSV(
         for (auto idx = 0ul; idx < nextTuple->len(); idx++) {
             std::string resultVal = nextTuple->getValue(idx)->toString();
             bool isStringList = false;
-            if (Types::dataTypeToString(nextTuple->getValue(idx)->getDataType()) == "STRING[]") {
+            if (LogicalTypeUtils::dataTypeToString(nextTuple->getValue(idx)->getDataType()) ==
+                "STRING[]") {
                 isStringList = true;
             }
             bool surroundQuotes = false;

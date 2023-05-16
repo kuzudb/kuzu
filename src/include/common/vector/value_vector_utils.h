@@ -17,7 +17,7 @@ public:
         const uint8_t* srcValue, const common::ValueVector& srcVector);
 
 private:
-    static void copyNonNullDataWithSameType(const DataType& dataType, const uint8_t* srcData,
+    static void copyNonNullDataWithSameType(const LogicalType& dataType, const uint8_t* srcData,
         uint8_t* dstData, InMemOverflowBuffer& inMemOverflowBuffer);
 };
 

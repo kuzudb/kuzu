@@ -102,9 +102,11 @@ static std::unique_ptr<ResultSet> populateResultSetWithTwoDataChunks() {
     auto resultSet = std::make_unique<ResultSet>(2);
     auto dataChunk0 = std::make_shared<common::DataChunk>(1);
     dataChunk0->state = common::DataChunkState::getSingleValueDataChunkState();
-    dataChunk0->insert(0, std::make_shared<common::ValueVector>(common::INTERNAL_ID, nullptr));
+    dataChunk0->insert(
+        0, std::make_shared<common::ValueVector>(common::LogicalTypeID::INTERNAL_ID, nullptr));
     auto dataChunk1 = std::make_shared<common::DataChunk>(1);
-    dataChunk1->insert(0, std::make_shared<common::ValueVector>(common::INTERNAL_ID, nullptr));
+    dataChunk1->insert(
+        0, std::make_shared<common::ValueVector>(common::LogicalTypeID::INTERNAL_ID, nullptr));
     resultSet->insert(0, std::move(dataChunk0));
     resultSet->insert(1, std::move(dataChunk1));
     return resultSet;
@@ -115,8 +117,10 @@ static std::unique_ptr<ResultSet> populateResultSetWithOneDataChunk() {
     auto resultSet = std::make_unique<ResultSet>(1);
     auto dataChunk0 = std::make_shared<common::DataChunk>(2);
     dataChunk0->state = common::DataChunkState::getSingleValueDataChunkState();
-    dataChunk0->insert(0, std::make_shared<common::ValueVector>(common::INTERNAL_ID, nullptr));
-    dataChunk0->insert(1, std::make_shared<common::ValueVector>(common::INTERNAL_ID, nullptr));
+    dataChunk0->insert(
+        0, std::make_shared<common::ValueVector>(common::LogicalTypeID::INTERNAL_ID, nullptr));
+    dataChunk0->insert(
+        1, std::make_shared<common::ValueVector>(common::LogicalTypeID::INTERNAL_ID, nullptr));
     resultSet->insert(0, std::move(dataChunk0));
     return resultSet;
 }

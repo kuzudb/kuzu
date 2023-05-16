@@ -53,7 +53,7 @@ kuzu_data_type* kuzu_query_result_get_column_data_type(
     }
     auto column_data_type = column_data_types[index];
     auto* column_data_type_c = (kuzu_data_type*)malloc(sizeof(kuzu_data_type));
-    column_data_type_c->_data_type = new DataType(column_data_type);
+    column_data_type_c->_data_type = new LogicalType(column_data_type);
     return column_data_type_c;
 }
 

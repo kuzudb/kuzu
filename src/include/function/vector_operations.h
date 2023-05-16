@@ -20,21 +20,21 @@ using scalar_select_func = std::function<bool(
 
 struct VectorOperationDefinition : public FunctionDefinition {
 
-    VectorOperationDefinition(std::string name, std::vector<common::DataTypeID> parameterTypeIDs,
-        common::DataTypeID returnTypeID, scalar_exec_func execFunc, bool isVarLength = false)
+    VectorOperationDefinition(std::string name, std::vector<common::LogicalTypeID> parameterTypeIDs,
+        common::LogicalTypeID returnTypeID, scalar_exec_func execFunc, bool isVarLength = false)
         : VectorOperationDefinition{std::move(name), std::move(parameterTypeIDs), returnTypeID,
               std::move(execFunc), nullptr, isVarLength} {}
 
-    VectorOperationDefinition(std::string name, std::vector<common::DataTypeID> parameterTypeIDs,
-        common::DataTypeID returnTypeID, scalar_exec_func execFunc, scalar_select_func selectFunc,
-        bool isVarLength = false)
+    VectorOperationDefinition(std::string name, std::vector<common::LogicalTypeID> parameterTypeIDs,
+        common::LogicalTypeID returnTypeID, scalar_exec_func execFunc,
+        scalar_select_func selectFunc, bool isVarLength = false)
         : FunctionDefinition{std::move(name), std::move(parameterTypeIDs), returnTypeID},
           execFunc{std::move(execFunc)},
           selectFunc(std::move(selectFunc)), isVarLength{isVarLength} {}
 
-    VectorOperationDefinition(std::string name, std::vector<common::DataTypeID> parameterTypeIDs,
-        common::DataTypeID returnTypeID, scalar_exec_func execFunc, scalar_select_func selectFunc,
-        scalar_bind_func bindFunc, bool isVarLength = false)
+    VectorOperationDefinition(std::string name, std::vector<common::LogicalTypeID> parameterTypeIDs,
+        common::LogicalTypeID returnTypeID, scalar_exec_func execFunc,
+        scalar_select_func selectFunc, scalar_bind_func bindFunc, bool isVarLength = false)
         : FunctionDefinition{std::move(name), std::move(parameterTypeIDs), returnTypeID,
               std::move(bindFunc)},
           execFunc{std::move(execFunc)},

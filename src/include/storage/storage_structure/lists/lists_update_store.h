@@ -96,7 +96,7 @@ public:
     void readInsertedRelsToList(ListFileID& listFileID,
         std::vector<processor::ft_tuple_idx_t> tupleIdxes, InMemList& inMemList,
         uint64_t numElementsInPersistentStore, DiskOverflowFile* diskOverflowFile,
-        common::DataType dataType);
+        common::LogicalType dataType);
 
     // If this is a one-to-one relTable, all properties are stored in columns.
     // In this case, the listsUpdatesStore should not store the insert rels in FT.
@@ -126,7 +126,7 @@ public:
         common::ValueVector* propertyVector, list_offset_t startListOffset);
 
     void readPropertyUpdateToInMemList(ListFileID& listFileID, processor::ft_tuple_idx_t ftTupleIdx,
-        InMemList& inMemList, uint64_t posToWriteToInMemList, const common::DataType& dataType,
+        InMemList& inMemList, uint64_t posToWriteToInMemList, const common::LogicalType& dataType,
         DiskOverflowFile* overflowFileOfInMemList);
 
     void initNewlyAddedNodes(common::nodeID_t& nodeID);

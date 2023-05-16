@@ -15,8 +15,10 @@ using hash_function_t = std::function<common::hash_t(const uint8_t*)>;
 using equals_function_t = std::function<bool(
     transaction::TransactionType trxType, const uint8_t*, const uint8_t*, DiskOverflowFile*)>;
 
-static const uint32_t NUM_BYTES_FOR_INT64_KEY = common::Types::getDataTypeSize(common::INT64);
-static const uint32_t NUM_BYTES_FOR_STRING_KEY = common::Types::getDataTypeSize(common::STRING);
+static const uint32_t NUM_BYTES_FOR_INT64_KEY =
+    storage::StorageUtils::getDataTypeSize(common::LogicalType{common::LogicalTypeID::INT64});
+static const uint32_t NUM_BYTES_FOR_STRING_KEY =
+    storage::StorageUtils::getDataTypeSize(common::LogicalType{common::LogicalTypeID::STRING});
 
 using in_mem_insert_function_t =
     std::function<void(const uint8_t*, common::offset_t, uint8_t*, InMemOverflowFile*)>;
@@ -25,8 +27,8 @@ using in_mem_equals_function_t =
 
 class InMemHashIndexUtils {
 public:
-    static in_mem_equals_function_t initializeEqualsFunc(common::DataTypeID dataTypeID);
-    static in_mem_insert_function_t initializeInsertFunc(common::DataTypeID dataTypeID);
+    static in_mem_equals_function_t initializeEqualsFunc(common::LogicalTypeID dataTypeID);
+    static in_mem_insert_function_t initializeInsertFunc(common::LogicalTypeID dataTypeID);
 
 private:
     // InsertFunc
@@ -64,7 +66,7 @@ public:
         memcpy(entry, &kuString, NUM_BYTES_FOR_STRING_KEY);
         memcpy(entry + NUM_BYTES_FOR_STRING_KEY, &offset, sizeof(common::offset_t));
     }
-    static insert_function_t initializeInsertFunc(common::DataTypeID dataTypeID);
+    static insert_function_t initializeInsertFunc(common::LogicalTypeID dataTypeID);
 
     // HashFunc
     inline static common::hash_t hashFuncForInt64(const uint8_t* key) {
@@ -77,7 +79,7 @@ public:
         function::operation::Hash::operation(std::string((char*)key), hash);
         return hash;
     }
-    static hash_function_t initializeHashFunc(common::DataTypeID dataTypeID);
+    static hash_function_t initializeHashFunc(common::LogicalTypeID dataTypeID);
 
     // EqualsFunc
     static bool isStringPrefixAndLenEquals(
@@ -88,7 +90,7 @@ public:
     }
     static bool equalsFuncForString(transaction::TransactionType trxType,
         const uint8_t* keyToLookup, const uint8_t* keyInEntry, DiskOverflowFile* diskOverflowFile);
-    static equals_function_t initializeEqualsFunc(common::DataTypeID dataTypeID);
+    static equals_function_t initializeEqualsFunc(common::LogicalTypeID dataTypeID);
 };
 } // namespace storage
 } // namespace kuzu

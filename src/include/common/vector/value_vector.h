@@ -20,10 +20,10 @@ class ValueVector {
     friend class StringVector;
 
 public:
-    explicit ValueVector(DataType dataType, storage::MemoryManager* memoryManager = nullptr);
-    explicit ValueVector(DataTypeID dataTypeID, storage::MemoryManager* memoryManager = nullptr)
-        : ValueVector(DataType(dataTypeID), memoryManager) {
-        assert(dataTypeID != VAR_LIST);
+    explicit ValueVector(LogicalType dataType, storage::MemoryManager* memoryManager = nullptr);
+    explicit ValueVector(LogicalTypeID dataTypeID, storage::MemoryManager* memoryManager = nullptr)
+        : ValueVector(LogicalType(dataTypeID), memoryManager) {
+        assert(dataTypeID != LogicalTypeID::VAR_LIST);
     }
 
     ~ValueVector() = default;
@@ -57,7 +57,7 @@ public:
     inline uint8_t* getData() const { return valueBuffer.get(); }
 
     inline offset_t readNodeOffset(uint32_t pos) const {
-        assert(dataType.typeID == INTERNAL_ID);
+        assert(dataType.getLogicalTypeID() == LogicalTypeID::INTERNAL_ID);
         return getValue<nodeID_t>(pos).offset;
     }
 
@@ -65,11 +65,11 @@ public:
     inline bool isSequential() const { return _isSequential; }
 
 private:
-    void setNumBytesPerValue();
+    uint32_t getDataTypeSize(const LogicalType& type);
     void initializeValueBuffer();
 
 public:
-    DataType dataType;
+    LogicalType dataType;
     std::shared_ptr<DataChunkState> state;
 
 private:
@@ -83,14 +83,14 @@ private:
 class StringVector {
 public:
     static inline InMemOverflowBuffer* getInMemOverflowBuffer(ValueVector* vector) {
-        return vector->dataType.typeID == STRING ?
+        return vector->dataType.getLogicalTypeID() == LogicalTypeID::STRING ?
                    reinterpret_cast<StringAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())
                        ->getOverflowBuffer() :
                    nullptr;
     }
 
     static inline void resetOverflowBuffer(ValueVector* vector) {
-        if (vector->dataType.typeID == STRING) {
+        if (vector->dataType.getLogicalTypeID() == LogicalTypeID::STRING) {
             reinterpret_cast<StringAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())
                 ->resetOverflowBuffer();
         }
@@ -106,28 +106,28 @@ public:
 class ListVector {
 public:
     static inline ValueVector* getDataVector(const ValueVector* vector) {
-        assert(vector->dataType.typeID == VAR_LIST);
+        assert(vector->dataType.getLogicalTypeID() == LogicalTypeID::VAR_LIST);
         return reinterpret_cast<ListAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())
             ->getDataVector();
     }
     static inline uint8_t* getListValues(const ValueVector* vector, const list_entry_t& listEntry) {
-        assert(vector->dataType.typeID == VAR_LIST);
+        assert(vector->dataType.getLogicalTypeID() == LogicalTypeID::VAR_LIST);
         auto dataVector = getDataVector(vector);
         return dataVector->getData() + dataVector->getNumBytesPerValue() * listEntry.offset;
     }
     static inline uint8_t* getListValuesWithOffset(const ValueVector* vector,
         const list_entry_t& listEntry, common::offset_t elementOffsetInList) {
-        assert(vector->dataType.typeID == VAR_LIST);
+        assert(vector->dataType.getLogicalTypeID() == LogicalTypeID::VAR_LIST);
         return getListValues(vector, listEntry) +
                elementOffsetInList * getDataVector(vector)->getNumBytesPerValue();
     }
     static inline list_entry_t addList(ValueVector* vector, uint64_t listSize) {
-        assert(vector->dataType.typeID == VAR_LIST);
+        assert(vector->dataType.getLogicalTypeID() == LogicalTypeID::VAR_LIST);
         return reinterpret_cast<ListAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())
             ->addList(listSize);
     }
     static inline void resetListAuxiliaryBuffer(ValueVector* vector) {
-        assert(vector->dataType.typeID == VAR_LIST);
+        assert(vector->dataType.getLogicalTypeID() == LogicalTypeID::VAR_LIST);
         reinterpret_cast<ListAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())->resetSize();
     }
 };
@@ -153,9 +153,9 @@ public:
     }
 
     static inline void initializeEntries(ValueVector* vector) {
-        std::iota((struct_entry_t*)vector->getData(),
-            (struct_entry_t*)(vector->getData() +
-                              vector->getNumBytesPerValue() * DEFAULT_VECTOR_CAPACITY),
+        std::iota(reinterpret_cast<struct_entry_t*>(vector->getData()),
+            reinterpret_cast<struct_entry_t*>(
+                vector->getData() + vector->getNumBytesPerValue() * DEFAULT_VECTOR_CAPACITY),
             0);
     }
 };

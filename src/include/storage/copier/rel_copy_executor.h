@@ -70,7 +70,7 @@ private:
 
     template<typename T>
     static void inferTableIDsAndOffsets(const std::vector<std::shared_ptr<T>>& batchColumns,
-        std::vector<common::nodeID_t>& nodeIDs, std::vector<common::DataType>& nodeIDTypes,
+        std::vector<common::nodeID_t>& nodeIDs, std::vector<common::LogicalType>& nodeIDTypes,
         const std::map<common::table_id_t, PrimaryKeyIndex*>& pkIndexes,
         transaction::Transaction* transaction, int64_t blockOffset, int64_t& colIndex);
 
@@ -92,7 +92,7 @@ private:
         InMemOverflowFile* unorderedOverflowFile, InMemOverflowFile* orderedOverflowFile);
 
     static void copyListOverflowFromUnorderedToOrderedPages(common::ku_list_t* kuList,
-        const common::DataType& dataType, PageByteCursor& unorderedOverflowCursor,
+        const common::LogicalType& dataType, PageByteCursor& unorderedOverflowCursor,
         PageByteCursor& orderedOverflowCursor, InMemOverflowFile* unorderedOverflowFile,
         InMemOverflowFile* orderedOverflowFile);
 
@@ -107,11 +107,11 @@ private:
         RelCopyExecutor* copier, const std::vector<std::shared_ptr<T>>& batchColumns,
         const std::string& filePath);
 
-    static void sortOverflowValuesOfPropertyColumnTask(const common::DataType& dataType,
+    static void sortOverflowValuesOfPropertyColumnTask(const common::LogicalType& dataType,
         common::offset_t offsetStart, common::offset_t offsetEnd, InMemColumnChunk* propertyColumn,
         InMemOverflowFile* unorderedInMemOverflowFile, InMemOverflowFile* orderedInMemOverflowFile);
 
-    static void sortOverflowValuesOfPropertyListsTask(const common::DataType& dataType,
+    static void sortOverflowValuesOfPropertyListsTask(const common::LogicalType& dataType,
         common::offset_t offsetStart, common::offset_t offsetEnd, InMemAdjLists* adjLists,
         InMemLists* propertyLists, InMemOverflowFile* unorderedInMemOverflowFile,
         InMemOverflowFile* orderedInMemOverflowFile);

@@ -58,34 +58,34 @@ void ArrowConverter::setArrowFormatForStruct(
 void ArrowConverter::setArrowFormat(
     ArrowSchemaHolder& rootHolder, ArrowSchema& child, const main::DataTypeInfo& typeInfo) {
     switch (typeInfo.typeID) {
-    case DataTypeID::BOOL: {
+    case LogicalTypeID::BOOL: {
         child.format = "b";
     } break;
-    case DataTypeID::INT64: {
+    case LogicalTypeID::INT64: {
         child.format = "l";
     } break;
-    case DataTypeID::INT32: {
+    case LogicalTypeID::INT32: {
         child.format = "i";
     } break;
-    case DataTypeID::INT16: {
+    case LogicalTypeID::INT16: {
         child.format = "s";
     } break;
-    case DataTypeID::DOUBLE: {
+    case LogicalTypeID::DOUBLE: {
         child.format = "g";
     } break;
-    case DataTypeID::DATE: {
+    case LogicalTypeID::DATE: {
         child.format = "tdD";
     } break;
-    case DataTypeID::TIMESTAMP: {
+    case LogicalTypeID::TIMESTAMP: {
         child.format = "tsu:";
     } break;
-    case DataTypeID::INTERVAL: {
+    case LogicalTypeID::INTERVAL: {
         child.format = "tDm";
     } break;
-    case DataTypeID::STRING: {
+    case LogicalTypeID::STRING: {
         child.format = "u";
     } break;
-    case VAR_LIST: {
+    case LogicalTypeID::VAR_LIST: {
         child.format = "+l";
         child.n_children = 1;
         rootHolder.nestedChildren.emplace_back();
@@ -97,14 +97,14 @@ void ArrowConverter::setArrowFormat(
         child.children[0]->name = "l";
         setArrowFormat(rootHolder, **child.children, *typeInfo.childrenTypesInfo[0]);
     } break;
-    case DataTypeID::INTERNAL_ID:
-    case DataTypeID::NODE:
-    case DataTypeID::REL: {
+    case LogicalTypeID::INTERNAL_ID:
+    case LogicalTypeID::NODE:
+    case LogicalTypeID::REL: {
         setArrowFormatForStruct(rootHolder, child, typeInfo);
     } break;
     default:
         throw InternalException(
-            "Unsupported Arrow type " + Types::dataTypeToString(typeInfo.typeID));
+            "Unsupported Arrow type " + LogicalTypeUtils::dataTypeToString(typeInfo.typeID));
     }
 }
 

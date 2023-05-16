@@ -73,8 +73,8 @@ public:
 
 struct OrderByDataInfo {
 public:
-    OrderByDataInfo(std::vector<std::pair<DataPos, common::DataType>> keysPosAndType,
-        std::vector<std::pair<DataPos, common::DataType>> payloadsPosAndType,
+    OrderByDataInfo(std::vector<std::pair<DataPos, common::LogicalType>> keysPosAndType,
+        std::vector<std::pair<DataPos, common::LogicalType>> payloadsPosAndType,
         std::vector<bool> isPayloadFlat, std::vector<bool> isAscOrder, bool mayContainUnflatKey)
         : keysPosAndType{std::move(keysPosAndType)}, payloadsPosAndType{std::move(
                                                          payloadsPosAndType)},
@@ -86,8 +86,8 @@ public:
               other.isAscOrder, other.mayContainUnflatKey} {}
 
 public:
-    std::vector<std::pair<DataPos, common::DataType>> keysPosAndType;
-    std::vector<std::pair<DataPos, common::DataType>> payloadsPosAndType;
+    std::vector<std::pair<DataPos, common::LogicalType>> keysPosAndType;
+    std::vector<std::pair<DataPos, common::LogicalType>> payloadsPosAndType;
     std::vector<bool> isPayloadFlat;
     std::vector<bool> isAscOrder;
     // TODO(Ziyi): We should figure out unflat keys in a more general way.

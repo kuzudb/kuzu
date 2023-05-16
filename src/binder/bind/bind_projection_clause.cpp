@@ -32,7 +32,8 @@ std::unique_ptr<BoundReturnClause> Binder::bindReturnClause(const ReturnClause& 
     auto statementResult = std::make_unique<BoundStatementResult>();
     for (auto& expression : boundProjectionExpressions) {
         auto dataType = expression->getDataType();
-        if (dataType.typeID == common::NODE || dataType.typeID == common::REL) {
+        if (dataType.getLogicalTypeID() == common::LogicalTypeID::NODE ||
+            dataType.getLogicalTypeID() == common::LogicalTypeID::REL) {
             statementResult->addColumn(expression, rewriteNodeOrRelExpression(*expression));
         } else {
             statementResult->addColumn(expression, expression_vector{expression});
@@ -67,10 +68,10 @@ expression_vector Binder::bindProjectionExpressions(
 }
 
 expression_vector Binder::rewriteNodeOrRelExpression(const Expression& expression) {
-    if (expression.dataType.typeID == common::NODE) {
+    if (expression.dataType.getLogicalTypeID() == common::LogicalTypeID::NODE) {
         return rewriteNodeExpression(expression);
     } else {
-        assert(expression.dataType.typeID == common::REL);
+        assert(expression.dataType.getLogicalTypeID() == common::LogicalTypeID::REL);
         return rewriteRelExpression(expression);
     }
 }
@@ -138,7 +139,8 @@ expression_vector Binder::bindOrderByExpressions(
     expression_vector boundOrderByExpressions;
     for (auto& expression : orderByExpressions) {
         auto boundExpression = expressionBinder.bindExpression(*expression);
-        if (boundExpression->dataType.typeID == NODE || boundExpression->dataType.typeID == REL) {
+        if (boundExpression->dataType.getLogicalTypeID() == LogicalTypeID::NODE ||
+            boundExpression->dataType.getLogicalTypeID() == LogicalTypeID::REL) {
             throw BinderException("Cannot order by " + boundExpression->toString() +
                                   ". Order by node or rel is not supported.");
         }
@@ -153,7 +155,8 @@ uint64_t Binder::bindSkipLimitExpression(const ParsedExpression& expression) {
     // We currently do not support the number of rows to skip/limit written as an expression (eg.
     // SKIP 3 + 2 is not supported).
     if (expression.getExpressionType() != LITERAL ||
-        ((LiteralExpression&)(*boundExpression)).getDataType().typeID != INT64) {
+        ((LiteralExpression&)(*boundExpression)).getDataType().getLogicalTypeID() !=
+            LogicalTypeID::INT64) {
         throw BinderException("The number of rows to skip/limit must be a non-negative integer.");
     }
     return ((LiteralExpression&)(*boundExpression)).value->getValue<int64_t>();
@@ -169,8 +172,8 @@ void Binder::addExpressionsToScope(const expression_vector& projectionExpression
 
 void Binder::resolveAnyDataTypeWithDefaultType(const expression_vector& expressions) {
     for (auto& expression : expressions) {
-        if (expression->dataType.typeID == ANY) {
-            ExpressionBinder::implicitCastIfNecessary(expression, STRING);
+        if (expression->dataType.getLogicalTypeID() == LogicalTypeID::ANY) {
+            ExpressionBinder::implicitCastIfNecessary(expression, LogicalTypeID::STRING);
         }
     }
 }

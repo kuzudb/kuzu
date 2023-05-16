@@ -58,12 +58,12 @@ struct CollectFunction {
     }
 
     static void initCollectStateIfNecessary(
-        CollectState* state, storage::MemoryManager* memoryManager, common::DataType& dataType) {
+        CollectState* state, storage::MemoryManager* memoryManager, common::LogicalType& dataType) {
         if (state->factorizedTable == nullptr) {
             auto tableSchema = std::make_unique<processor::FactorizedTableSchema>();
             tableSchema->appendColumn(
                 std::make_unique<processor::ColumnSchema>(false /* isUnflat */,
-                    0 /* dataChunkPos */, common::Types::getDataTypeSize(dataType)));
+                    0 /* dataChunkPos */, storage::StorageUtils::getDataTypeSize(dataType)));
             state->factorizedTable =
                 std::make_unique<processor::FactorizedTable>(memoryManager, std::move(tableSchema));
         }
@@ -102,8 +102,10 @@ struct CollectFunction {
         assert(arguments.size() == 1);
         auto aggFuncDefinition = reinterpret_cast<AggregateFunctionDefinition*>(definition);
         aggFuncDefinition->aggregateFunction->setInputDataType(arguments[0]->dataType);
+        auto varListTypeInfo = std::make_unique<common::VarListTypeInfo>(
+            std::make_unique<common::LogicalType>(arguments[0]->dataType));
         auto returnType =
-            common::DataType(std::make_unique<common::DataType>(arguments[0]->dataType));
+            common::LogicalType(common::LogicalTypeID::VAR_LIST, std::move(varListTypeInfo));
         return std::make_unique<FunctionBindData>(returnType);
     }
 };

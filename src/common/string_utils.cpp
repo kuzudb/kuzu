@@ -6,12 +6,15 @@ namespace kuzu {
 namespace common {
 
 std::vector<std::string> StringUtils::split(
-    const std::string& input, const std::string& delimiter) {
+    const std::string& input, const std::string& delimiter, bool ignoreEmptyStringParts) {
     auto result = std::vector<std::string>();
     auto prevPos = 0u;
     auto currentPos = input.find(delimiter, prevPos);
     while (currentPos != std::string::npos) {
-        result.push_back(input.substr(prevPos, currentPos - prevPos));
+        auto stringPart = input.substr(prevPos, currentPos - prevPos);
+        if (!ignoreEmptyStringParts || !stringPart.empty()) {
+            result.push_back(input.substr(prevPos, currentPos - prevPos));
+        }
         prevPos = currentPos + 1;
         currentPos = input.find(delimiter, prevPos);
     }
