@@ -372,12 +372,12 @@ template<typename T>
 scalar_exec_func ListSortVectorOperation::getExecFunction(
     const binder::expression_vector& arguments) {
     if (arguments.size() == 1) {
-        return UnaryListExecFunction<list_entry_t, list_entry_t, operation::ListSort<T>>;
+        return &UnaryListExecFunction<list_entry_t, list_entry_t, operation::ListSort<T>>;
     } else if (arguments.size() == 2) {
-        return BinaryListExecFunction<list_entry_t, ku_string_t, list_entry_t,
+        return &BinaryListExecFunction<list_entry_t, ku_string_t, list_entry_t,
             operation::ListSort<T>>;
     } else if (arguments.size() == 3) {
-        return TernaryListExecFunction<list_entry_t, ku_string_t, ku_string_t, list_entry_t,
+        return &TernaryListExecFunction<list_entry_t, ku_string_t, ku_string_t, list_entry_t,
             operation::ListSort<T>>;
     } else {
         throw common::RuntimeException("Invalid number of arguments");
