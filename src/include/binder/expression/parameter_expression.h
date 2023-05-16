@@ -10,7 +10,8 @@ class ParameterExpression : public Expression {
 public:
     explicit ParameterExpression(
         const std::string& parameterName, std::shared_ptr<common::Value> value)
-        : Expression{common::PARAMETER, common::ANY, createUniqueName(parameterName)},
+        : Expression{common::PARAMETER, common::DataType(common::ANY),
+              createUniqueName(parameterName)},
           parameterName(parameterName), value{std::move(value)} {}
 
     inline void setDataType(const common::DataType& targetType) {

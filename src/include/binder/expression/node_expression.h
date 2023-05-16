@@ -10,8 +10,8 @@ class NodeExpression : public NodeOrRelExpression {
 public:
     NodeExpression(
         std::string uniqueName, std::string variableName, std::vector<common::table_id_t> tableIDs)
-        : NodeOrRelExpression{
-              common::NODE, std::move(uniqueName), std::move(variableName), std::move(tableIDs)} {}
+        : NodeOrRelExpression{common::DataType(common::NODE), std::move(uniqueName),
+              std::move(variableName), std::move(tableIDs)} {}
 
     inline void setInternalIDProperty(std::unique_ptr<Expression> expression) {
         internalIDExpression = std::move(expression);

@@ -16,9 +16,9 @@ void BaseRecursiveJoin::initLocalStateInternal(ResultSet* resultSet_, ExecutionC
         vectorsToScan.push_back(resultSet->getValueVector(dataPos).get());
     }
     srcNodeIDVector = resultSet->getValueVector(srcNodeIDVectorPos);
+    pathVector = resultSet->getValueVector(pathVectorPos);
     dstNodeIDVector = resultSet->getValueVector(dstNodeIDVectorPos);
     initLocalRecursivePlan(context);
-    outputCursor = 0;
 }
 
 bool BaseRecursiveJoin::getNextTuplesInternal(ExecutionContext* context) {
@@ -45,8 +45,21 @@ bool BaseRecursiveJoin::getNextTuplesInternal(ExecutionContext* context) {
             inputFTableMorsel->startTupleIdx, inputFTableMorsel->numTuples, colIndicesToScan);
         bfsMorsel->resetState();
         computeBFS(context); // Phase 1
-        outputCursor = 0;    // Reset cursor for result scanning.
+        pathScanner->resetState();
     }
+}
+
+bool BaseRecursiveJoin::scanOutput() {
+    auto pathDataVector = common::ListVector::getDataVector(pathVector.get());
+    common::sel_t offsetVectorSize = 0u;
+    common::sel_t dataVectorSize = 0u;
+    pathScanner->scanPaths(nodeTable->getTableID(), pathVector.get(), pathDataVector,
+        dstNodeIDVector.get(), offsetVectorSize, dataVectorSize);
+    if (offsetVectorSize == 0) {
+        return false;
+    }
+    pathVector->state->initOriginalAndSelectedSize(offsetVectorSize);
+    return true;
 }
 
 void BaseRecursiveJoin::computeBFS(ExecutionContext* context) {
@@ -54,13 +67,12 @@ void BaseRecursiveJoin::computeBFS(ExecutionContext* context) {
         srcNodeIDVector->state->selVector->selectedPositions[0]);
     bfsMorsel->markSrc(nodeID.offset);
     while (!bfsMorsel->isComplete()) {
-        auto nodeOffset = bfsMorsel->getNextNodeOffset();
-        if (nodeOffset != common::INVALID_OFFSET) {
-            auto multiplicity = bfsMorsel->currentFrontier->getMultiplicity(nodeOffset);
+        auto boundNodeOffset = bfsMorsel->getNextNodeOffset();
+        if (boundNodeOffset != common::INVALID_OFFSET) {
             // Found a starting node from current frontier.
-            scanBFSLevel->setNodeID(common::nodeID_t{nodeOffset, nodeTable->getTableID()});
+            scanBFSLevel->setNodeID(common::nodeID_t{boundNodeOffset, nodeTable->getTableID()});
             while (recursiveRoot->getNextTuple(context)) { // Exhaust recursive plan.
-                updateVisitedNodes(multiplicity);
+                updateVisitedNodes(boundNodeOffset);
             }
         } else {
             // Otherwise move to the next frontier.
@@ -69,11 +81,11 @@ void BaseRecursiveJoin::computeBFS(ExecutionContext* context) {
     }
 }
 
-void BaseRecursiveJoin::updateVisitedNodes(uint64_t multiplicity) {
+void BaseRecursiveJoin::updateVisitedNodes(common::offset_t boundNodeOffset) {
     for (auto i = 0u; i < tmpDstNodeIDVector->state->selVector->selectedSize; ++i) {
         auto pos = tmpDstNodeIDVector->state->selVector->selectedPositions[i];
         auto nodeID = tmpDstNodeIDVector->getValue<common::nodeID_t>(pos);
-        bfsMorsel->markVisited(nodeID.offset, multiplicity);
+        bfsMorsel->markVisited(boundNodeOffset, nodeID.offset);
     }
 }
 

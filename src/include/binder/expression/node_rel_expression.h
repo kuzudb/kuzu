@@ -9,9 +9,9 @@ namespace binder {
 
 class NodeOrRelExpression : public Expression {
 public:
-    NodeOrRelExpression(common::DataTypeID dataTypeID, std::string uniqueName,
-        std::string variableName, std::vector<common::table_id_t> tableIDs)
-        : Expression{common::VARIABLE, dataTypeID, std::move(uniqueName)},
+    NodeOrRelExpression(common::DataType dataType, std::string uniqueName, std::string variableName,
+        std::vector<common::table_id_t> tableIDs)
+        : Expression{common::VARIABLE, std::move(dataType), std::move(uniqueName)},
           variableName(std::move(variableName)), tableIDs{std::move(tableIDs)} {}
     virtual ~NodeOrRelExpression() override = default;
 

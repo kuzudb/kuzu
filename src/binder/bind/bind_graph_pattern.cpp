@@ -130,9 +130,12 @@ void Binder::bindQueryRel(const RelPattern& relPattern,
     }
     // bind variable length
     auto [lowerBound, upperBound] = bindVariableLengthRelBound(relPattern);
-    auto queryRel = make_shared<RelExpression>(getUniqueExpressionName(parsedName), parsedName,
-        tableIDs, srcNode, dstNode, relPattern.getDirection() != BOTH, relPattern.getRelType(),
-        lowerBound, upperBound);
+    auto isVariableLength = !(lowerBound == 1 && upperBound == 1);
+    auto dataType = isVariableLength ? common::DataType(std::make_unique<DataType>(INTERNAL_ID)) :
+                                       common::DataType(common::REL);
+    auto queryRel = make_shared<RelExpression>(std::move(dataType),
+        getUniqueExpressionName(parsedName), parsedName, tableIDs, srcNode, dstNode,
+        relPattern.getDirection() != BOTH, relPattern.getRelType(), lowerBound, upperBound);
     queryRel->setAlias(parsedName);
     // resolve properties associate with rel table
     std::vector<RelTableSchema*> relTableSchemas;
@@ -147,9 +150,6 @@ void Binder::bindQueryRel(const RelPattern& relPattern,
                 *queryRel, propertySchemas, false /* isPrimaryKey */);
             queryRel->addPropertyExpression(propertyName, std::move(propertyExpression));
         }
-    } else if (queryRel->getRelType() == common::QueryRelType::SHORTEST) {
-        queryRel->setInternalLengthProperty(
-            expressionBinder.createInternalLengthExpression(*queryRel));
     }
     if (!parsedName.empty()) {
         variablesInScope.insert({parsedName, queryRel});

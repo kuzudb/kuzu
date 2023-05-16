@@ -9,13 +9,11 @@
 
 -NAME meetsOneToTwoHopTest
 -QUERY MATCH (a:person)-[:meets*1..2]->(b:person) RETURN COUNT(*)
--PARALLELISM 2
 ---- 1
 13
 
 -NAME meetsThreeHopMinLenEqualsMaxLen
 -QUERY MATCH (a:person)-[:meets*3..3]->(b:person) RETURN COUNT(*)
--PARALLELISM 2
 ---- 1
 4
 
@@ -26,13 +24,11 @@
 # 3), which generates another 4 paths (2 paths of length 2 and 2 paths of length 3). In total, there are 15 paths.
 -NAME varLenAdjListJoinWithVarLenColumnJoinTwoToFourHopTest
 -QUERY MATCH (a:person)-[:knows]->(b:person)-[:meets*2..3]->(c:person) RETURN COUNT(*)
--PARALLELISM 8
 ---- 1
 13
 
 -NAME meetsLongPathTest
 -QUERY MATCH (a:person)-[:meets*8..11]->(b:person) RETURN COUNT(*)
--PARALLELISM 8
 ---- 1
 16
 
@@ -45,7 +41,7 @@ Elizabeth
 # Node 3,7,8,9 can extend 3,4 levels and generate 8 paths (by using the above formulas). Node 0,2,5,10 don't have
 # such paths, the optional match will put 'null' in the b valueVector for Node 0,2,5,10. In total, we have 12 output
 # tuples.
-# -NAME KnowsWithOptionalMatch
-# -QUERY MATCH (a:person) OPTIONAL MATCH (a)-[:meets*3..4]->(b:person) RETURN COUNT(*)
-# ---- 1
-# 12
+-NAME KnowsWithOptionalMatch
+-QUERY MATCH (a:person) OPTIONAL MATCH (a)-[:meets*3..4]->(b:person) RETURN COUNT(*)
+---- 1
+12
