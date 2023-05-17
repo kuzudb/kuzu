@@ -43,12 +43,12 @@ size_t NpyReader::getNumElementsPerRow() const {
     return numElements;
 }
 
-void* NpyReader::getPointerToRow(size_t row) const {
+uint8_t* NpyReader::getPointerToRow(size_t row) const {
     if (row >= getNumRows()) {
         return nullptr;
     }
-    return (void*)((char*)mmapRegion + dataOffset +
-                   row * getNumElementsPerRow() * common::Types::getDataTypeSize(type));
+    return (uint8_t*)((char*)mmapRegion + dataOffset +
+                      row * getNumElementsPerRow() * common::Types::getDataTypeSize(type));
 }
 
 void NpyReader::parseHeader() {

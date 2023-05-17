@@ -33,7 +33,6 @@ struct PageByteCursor {
 };
 
 struct PageElementCursor {
-
     PageElementCursor(common::page_idx_t pageIdx, uint16_t posInPage)
         : pageIdx{pageIdx}, elemPosInPage{posInPage} {};
     PageElementCursor() : PageElementCursor{UINT32_MAX, UINT16_MAX} {};
@@ -47,20 +46,7 @@ struct PageElementCursor {
     uint16_t elemPosInPage;
 };
 
-struct CursorUtils {
-    inline static common::page_idx_t getPageIdx(common::offset_t offset, uint64_t numBytesInAPage) {
-        return (common::page_idx_t)(offset / numBytesInAPage);
-    }
-
-    inline static PageElementCursor getPageElementCursor(
-        common::offset_t offset, uint64_t numElementsInAPage) {
-        return PageElementCursor{
-            getPageIdx(offset, numElementsInAPage), (uint16_t)(offset % numElementsInAPage)};
-    }
-};
-
 struct PageUtils {
-
     static uint32_t getNumElementsInAPage(uint32_t elementSize, bool hasNull);
 
     // This function returns the page pageIdx of the page where element will be found and the pos of
@@ -74,7 +60,6 @@ struct PageUtils {
 };
 
 class StorageUtils {
-
 public:
     static std::string getNodeIndexFName(const std::string& directory,
         const common::table_id_t& tableID, common::DBFileType dbFileType);
@@ -83,6 +68,7 @@ public:
         const common::table_id_t& tableID, uint32_t propertyID, common::DBFileType dbFileType);
 
     static std::string appendStructFieldName(std::string filePath, std::string structFieldName);
+    static std::string getPropertyNullFName(const std::string& filePath);
 
     static inline StorageStructureIDAndFName getNodePropertyColumnStructureIDAndFName(
         const std::string& directory, const catalog::Property& property) {
@@ -90,6 +76,15 @@ public:
             directory, property.tableID, property.propertyID, common::DBFileType::ORIGINAL);
         return {StorageStructureID::newNodePropertyColumnID(property.tableID, property.propertyID),
             fName};
+    }
+
+    static inline StorageStructureIDAndFName getNodeNullColumnStructureIDAndFName(
+        StorageStructureIDAndFName propertyColumnIDAndFName) {
+        auto nullColumnStructureIDAndFName = propertyColumnIDAndFName;
+        nullColumnStructureIDAndFName.fName =
+            StorageUtils::getPropertyNullFName(propertyColumnIDAndFName.fName);
+        nullColumnStructureIDAndFName.storageStructureID.isNullBits = true;
+        return nullColumnStructureIDAndFName;
     }
 
     static inline StorageStructureIDAndFName getNodeIndexIDAndFName(
@@ -103,8 +98,8 @@ public:
     static inline StorageStructureIDAndFName getAdjListsStructureIDAndFName(
         const std::string& directory, common::table_id_t relTableID, common::RelDataDirection dir) {
         auto fName = getAdjListsFName(directory, relTableID, dir, common::DBFileType::ORIGINAL);
-        return StorageStructureIDAndFName(
-            StorageStructureID::newAdjListsID(relTableID, dir, ListFileType::BASE_LISTS), fName);
+        return {
+            StorageStructureID::newAdjListsID(relTableID, dir, ListFileType::BASE_LISTS), fName};
     }
 
     // Returns the StorageStructureIDAndFName for the "base" lists structure/file. Callers need to
@@ -114,9 +109,9 @@ public:
         const catalog::Property& property) {
         auto fName = getRelPropertyListsFName(
             directory, relTableID, dir, property.propertyID, common::DBFileType::ORIGINAL);
-        return StorageStructureIDAndFName(StorageStructureID::newRelPropertyListsID(relTableID, dir,
-                                              property.propertyID, ListFileType::BASE_LISTS),
-            fName);
+        return {StorageStructureID::newRelPropertyListsID(
+                    relTableID, dir, property.propertyID, ListFileType::BASE_LISTS),
+            fName};
     }
 
     static std::string getAdjColumnFName(const std::string& directory,
@@ -128,8 +123,7 @@ public:
         const common::RelDataDirection& relDirection) {
         auto fName =
             getAdjColumnFName(directory, relTableID, relDirection, common::DBFileType::ORIGINAL);
-        return StorageStructureIDAndFName(
-            StorageStructureID::newAdjColumnID(relTableID, relDirection), fName);
+        return {StorageStructureID::newAdjColumnID(relTableID, relDirection), fName};
     }
 
     static std::string getAdjListsFName(const std::string& directory,
@@ -145,9 +139,8 @@ public:
         const common::RelDataDirection& relDirection, uint32_t propertyID) {
         auto fName = getRelPropertyColumnFName(
             directory, relTableID, relDirection, propertyID, common::DBFileType::ORIGINAL);
-        return StorageStructureIDAndFName(
-            StorageStructureID::newRelPropertyColumnID(relTableID, relDirection, propertyID),
-            fName);
+        return {StorageStructureID::newRelPropertyColumnID(relTableID, relDirection, propertyID),
+            fName};
     }
 
     static std::string getRelPropertyListsFName(const std::string& directory,

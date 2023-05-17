@@ -36,11 +36,11 @@ WALPageIdxPosInPageAndFrame StorageStructure::createWALVersionOfPageIfNecessaryF
 }
 
 BaseColumnOrList::BaseColumnOrList(const StorageStructureIDAndFName& storageStructureIDAndFName,
-    DataType dataType, const size_t& elementSize, BufferManager* bufferManager, bool hasNULLBytes,
-    WAL* wal)
+    DataType dataType, const size_t& elementSize, BufferManager* bufferManager,
+    bool hasInlineNullBytes, WAL* wal)
     : StorageStructure(storageStructureIDAndFName, bufferManager, wal),
       dataType{std::move(dataType)}, elementSize{elementSize} {
-    numElementsPerPage = PageUtils::getNumElementsInAPage(elementSize, hasNULLBytes);
+    numElementsPerPage = PageUtils::getNumElementsInAPage(elementSize, hasInlineNullBytes);
 }
 
 void BaseColumnOrList::readBySequentialCopy(Transaction* transaction, common::ValueVector* vector,

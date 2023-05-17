@@ -466,16 +466,24 @@ BMFileHandle* WALReplayer::getVersionedFileHandleIfWALVersionAndBMShouldBeCleare
             Column* column = storageManager->getNodesStore().getNodePropertyColumn(
                 storageStructureID.columnFileID.nodePropertyColumnID.tableID,
                 storageStructureID.columnFileID.nodePropertyColumnID.propertyID);
-            return storageStructureID.isOverflow ?
-                       reinterpret_cast<PropertyColumnWithOverflow*>(column)
-                           ->getDiskOverflowFileHandle() :
-                       column->getFileHandle();
+            if (storageStructureID.isOverflow) {
+                return reinterpret_cast<PropertyColumnWithOverflow*>(column)
+                    ->getDiskOverflowFileHandle();
+            } else if (storageStructureID.isNullBits) {
+                return column->getNullColumn()->getFileHandle();
+            } else {
+                return column->getFileHandle();
+            }
         }
         case ColumnType::ADJ_COLUMN: {
             auto& relNodeTableAndDir =
                 storageStructureID.columnFileID.adjColumnID.relNodeTableAndDir;
             Column* column = storageManager->getRelsStore().getAdjColumn(
                 relNodeTableAndDir.dir, relNodeTableAndDir.relTableID);
+            assert(storageStructureID.isOverflow == false);
+            if (storageStructureID.isNullBits) {
+                return column->getNullColumn()->getFileHandle();
+            }
             return column->getFileHandle();
         }
         case ColumnType::REL_PROPERTY_COLUMN: {
@@ -484,10 +492,14 @@ BMFileHandle* WALReplayer::getVersionedFileHandleIfWALVersionAndBMShouldBeCleare
             Column* column = storageManager->getRelsStore().getRelPropertyColumn(
                 relNodeTableAndDir.dir, relNodeTableAndDir.relTableID,
                 storageStructureID.columnFileID.relPropertyColumnID.propertyID);
-            return storageStructureID.isOverflow ?
-                       reinterpret_cast<PropertyColumnWithOverflow*>(column)
-                           ->getDiskOverflowFileHandle() :
-                       column->getFileHandle();
+            if (storageStructureID.isOverflow) {
+                return reinterpret_cast<PropertyColumnWithOverflow*>(column)
+                    ->getDiskOverflowFileHandle();
+            } else if (storageStructureID.isNullBits) {
+                return column->getNullColumn()->getFileHandle();
+            } else {
+                return column->getFileHandle();
+            }
         }
         default: {
             assert(false);

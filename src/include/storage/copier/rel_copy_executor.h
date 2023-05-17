@@ -1,9 +1,11 @@
 #pragma once
 
+#include "storage/copier/table_copy_executor.h"
+#include "storage/in_mem_storage_structure/in_mem_column.h"
+#include "storage/in_mem_storage_structure/in_mem_lists.h"
 #include "storage/index/hash_index.h"
 #include "storage/store/nodes_store.h"
 #include "storage/store/rels_statistics.h"
-#include "table_copy_executor.h"
 
 namespace kuzu {
 namespace storage {
@@ -17,8 +19,7 @@ class RelCopyExecutor : public TableCopyExecutor {
 public:
     RelCopyExecutor(common::CopyDescription& copyDescription, std::string outputDirectory,
         common::TaskScheduler& taskScheduler, catalog::Catalog& catalog,
-        storage::NodesStore& nodesStore, common::table_id_t tableID,
-        RelsStatistics* relsStatistics);
+        storage::NodesStore& nodesStore, storage::RelTable* table, RelsStatistics* relsStatistics);
 
 private:
     static std::string getTaskTypeName(PopulateTaskType populateTaskType);
@@ -107,7 +108,7 @@ private:
         const std::string& filePath);
 
     static void sortOverflowValuesOfPropertyColumnTask(const common::DataType& dataType,
-        common::offset_t offsetStart, common::offset_t offsetEnd, InMemColumn* propertyColumn,
+        common::offset_t offsetStart, common::offset_t offsetEnd, InMemColumnChunk* propertyColumn,
         InMemOverflowFile* unorderedInMemOverflowFile, InMemOverflowFile* orderedInMemOverflowFile);
 
     static void sortOverflowValuesOfPropertyListsTask(const common::DataType& dataType,
@@ -116,7 +117,7 @@ private:
         InMemOverflowFile* orderedInMemOverflowFile);
 
     static void putValueIntoColumns(uint64_t propertyIdx,
-        std::vector<std::unordered_map<common::property_id_t, std::unique_ptr<InMemColumn>>>&
+        std::vector<std::unordered_map<common::property_id_t, std::unique_ptr<InMemColumnChunk>>>&
             directionTablePropertyColumns,
         const std::vector<common::nodeID_t>& nodeIDs, uint8_t* val);
 
@@ -144,12 +145,16 @@ private:
 
 private:
     storage::NodesStore& nodesStore;
+    storage::RelTable* table;
     const std::map<common::table_id_t, common::offset_t> maxNodeOffsetsPerTable;
     std::unique_ptr<transaction::Transaction> dummyReadOnlyTrx;
     std::map<common::table_id_t, PrimaryKeyIndex*> pkIndexes;
     std::atomic<uint64_t> numRels = 0;
     std::vector<std::unique_ptr<atomic_uint64_vec_t>> listSizesPerDirection{2};
-    std::vector<std::unique_ptr<InMemAdjColumn>> adjColumnsPerDirection{2};
+    std::vector<std::unique_ptr<InMemColumnChunk>> adjColumnChunksPerDirection{2};
+    std::vector<std::unique_ptr<InMemColumn>> adjColumnsPerDirection{2};
+    std::vector<std::unordered_map<common::property_id_t, std::unique_ptr<InMemColumnChunk>>>
+        propertyColumnChunksPerDirection{2};
     std::vector<std::unordered_map<common::property_id_t, std::unique_ptr<InMemColumn>>>
         propertyColumnsPerDirection{2};
     std::vector<std::unique_ptr<InMemAdjLists>> adjListsPerDirection{2};

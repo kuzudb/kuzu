@@ -10,23 +10,20 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-void NodeCopyExecutor::initializeColumnsAndLists() {
-    logger->info("Initializing in memory columns.");
-    for (auto& property : tableSchema->properties) {
-        auto fName = StorageUtils::getNodePropertyColumnFName(
-            outputDirectory, tableSchema->tableID, property.propertyID, DBFileType::WAL_VERSION);
-        if (property.dataType.typeID == SERIAL) {
-            continue;
-        }
-        columns.push_back(
-            NodeInMemColumnFactory::getNodeInMemColumn(fName, property.dataType, numRows));
-        propertyIDToColumnIDMap[property.propertyID] = columns.size() - 1;
-    }
-    logger->info("Done initializing in memory columns.");
-}
-
 void NodeCopyExecutor::populateColumnsAndLists(processor::ExecutionContext* executionContext) {
     populateColumns(executionContext);
+}
+
+static column_id_t getPKColumnID(
+    const std::vector<Property>& properties, property_id_t pkPropertyID) {
+    column_id_t pkColumnID = 0;
+    for (auto& property : properties) {
+        if (property.propertyID == pkPropertyID) {
+            break;
+        }
+        pkColumnID++;
+    }
+    return pkColumnID;
 }
 
 void NodeCopyExecutor::populateColumns(processor::ExecutionContext* executionContext) {
@@ -40,38 +37,37 @@ void NodeCopyExecutor::populateColumns(processor::ExecutionContext* executionCon
             primaryKey.dataType);
         pkIndex->bulkReserve(numRows);
     }
+    auto pkColumnID = getPKColumnID(tableSchema->properties, primaryKey.propertyID);
     std::vector<std::shared_ptr<common::Task>> tasks;
     switch (copyDescription.fileType) {
     case common::CopyDescription::FileType::CSV:
     case common::CopyDescription::FileType::PARQUET: {
-        std::vector<InMemNodeColumn*> columnsToCopy(columns.size());
-        for (auto i = 0u; i < columns.size(); i++) {
-            columnsToCopy[i] = columns[i].get();
-        }
-        auto pkColumnID = propertyIDToColumnIDMap[primaryKey.propertyID];
         std::unique_ptr<NodeCopier> nodeCopier;
         if (copyDescription.fileType == common::CopyDescription::FileType::CSV) {
             auto sharedState = std::make_shared<CSVNodeCopySharedState>(copyDescription.filePaths,
                 fileBlockInfos, copyDescription.csvReaderConfig.get(), tableSchema);
-            nodeCopier = std::make_unique<CSVNodeCopier>(
-                std::move(sharedState), pkIndex.get(), copyDescription, columnsToCopy, pkColumnID);
+            nodeCopier = std::make_unique<CSVNodeCopier>(outputDirectory, std::move(sharedState),
+                pkIndex.get(), copyDescription, tableSchema, table, pkColumnID);
         } else {
             auto sharedState =
                 std::make_shared<NodeCopySharedState>(copyDescription.filePaths, fileBlockInfos);
-            nodeCopier = std::make_unique<ParquetNodeCopier>(
-                std::move(sharedState), pkIndex.get(), copyDescription, columnsToCopy, pkColumnID);
+            nodeCopier =
+                std::make_unique<ParquetNodeCopier>(outputDirectory, std::move(sharedState),
+                    pkIndex.get(), copyDescription, tableSchema, table, pkColumnID);
         }
         tasks.push_back(std::make_shared<NodeCopyTask>(std::move(nodeCopier), executionContext));
     } break;
     case common::CopyDescription::FileType::NPY: {
+        assert(copyDescription.filePaths.size() == tableSchema->properties.size());
         for (auto i = 0u; i < copyDescription.filePaths.size(); i++) {
             auto filePaths = {copyDescription.filePaths[i]};
+            auto propertyID = tableSchema->properties[i].propertyID;
             auto sharedState = std::make_shared<NodeCopySharedState>(filePaths, fileBlockInfos);
             // For NPY files, we can only read one column at a time.
-            std::vector<InMemNodeColumn*> columnsToCopy = {columns[i].get()};
-            auto nodeCopier = std::make_unique<NPYNodeCopier>(std::move(sharedState),
-                i == propertyIDToColumnIDMap[primaryKey.propertyID] ? pkIndex.get() : nullptr,
-                copyDescription, columnsToCopy, 0 /* pkColumnID */);
+            auto nodeCopier =
+                std::make_unique<NPYNodeCopier>(outputDirectory, std::move(sharedState),
+                    propertyID == primaryKey.propertyID ? pkIndex.get() : nullptr, copyDescription,
+                    tableSchema, table, 0 /* pkColumnID */, i);
             tasks.push_back(
                 std::make_shared<NodeCopyTask>(std::move(nodeCopier), executionContext));
         }
@@ -85,17 +81,6 @@ void NodeCopyExecutor::populateColumns(processor::ExecutionContext* executionCon
         taskScheduler.scheduleTaskAndWaitOrError(task, executionContext);
     }
     logger->info("Done populating properties, constructing the pk index.");
-}
-
-void NodeCopyExecutor::saveToFile() {
-    logger->debug("Writing node columns to disk.");
-    assert(!columns.empty());
-    for (auto& column : columns) {
-        taskScheduler.scheduleTask(CopyTaskFactory::createCopyTask(
-            [&](InMemNodeColumn* x) { x->saveToFile(); }, column.get()));
-    }
-    taskScheduler.waitAllTasksToCompleteOrError();
-    logger->debug("Done writing node columns to disk.");
 }
 
 } // namespace storage

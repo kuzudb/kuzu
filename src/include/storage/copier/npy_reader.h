@@ -19,7 +19,7 @@ public:
 
     size_t getNumElementsPerRow() const;
 
-    void* getPointerToRow(size_t row) const;
+    uint8_t* getPointerToRow(size_t row) const;
 
     inline std::string getFilePath() const { return filePath; }
 

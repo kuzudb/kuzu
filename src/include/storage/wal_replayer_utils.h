@@ -85,7 +85,7 @@ private:
     }
 
     static void createEmptyDBFilesForRelProperties(catalog::RelTableSchema* relTableSchema,
-        const std::string& directory, common::RelDataDirection relDireciton, uint32_t numNodes,
+        const std::string& directory, common::RelDataDirection relDirection, uint32_t numNodes,
         bool isForRelPropertyColumn);
 
     static void createEmptyDBFilesForColumns(

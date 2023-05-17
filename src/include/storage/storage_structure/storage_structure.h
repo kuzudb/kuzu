@@ -90,7 +90,7 @@ protected:
 
     BaseColumnOrList(const StorageStructureIDAndFName& storageStructureIDAndFName,
         common::DataType dataType, const size_t& elementSize, BufferManager* bufferManager,
-        bool hasNULLBytes, WAL* wal);
+        bool hasInlineNullBytes, WAL* wal);
 
     void readBySequentialCopy(transaction::Transaction* transaction, common::ValueVector* vector,
         PageElementCursor& cursor,

@@ -202,6 +202,7 @@ std::string storageStructureTypeToString(StorageStructureType storageStructureTy
 struct StorageStructureID {
     StorageStructureType storageStructureType;
     bool isOverflow;
+    bool isNullBits;
     union {
         ColumnFileID columnFileID;
         ListFileID listFileID;
