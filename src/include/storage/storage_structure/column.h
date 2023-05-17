@@ -10,22 +10,17 @@ namespace storage {
 
 using scan_data_func_t = std::function<void(transaction::Transaction* transaction, uint8_t* frame,
     PageElementCursor& pageCursor, common::ValueVector* resultVector, uint32_t posInVector,
-    uint32_t numElementsPerPage, uint32_t numValuesToRead, common::table_id_t commonTableID,
-    DiskOverflowFile* diskOverflowFile)>;
+    uint32_t numElementsPerPage, uint32_t numValuesToRead, DiskOverflowFile* diskOverflowFile)>;
 using lookup_data_func_t = std::function<void(transaction::Transaction* transaction, uint8_t* frame,
     PageElementCursor& pageCursor, common::ValueVector* resultVector, uint32_t posInVector,
-    uint32_t numElementsPerPage, common::table_id_t commonTableID,
-    DiskOverflowFile* diskOverflowFile)>;
-using write_data_func_t =
-    std::function<void(uint8_t* frame, uint16_t posInFrame, common::ValueVector* vector,
-        common::table_id_t commonTableID, DiskOverflowFile* diskOverflowFile)>;
+    uint32_t numElementsPerPage, DiskOverflowFile* diskOverflowFile)>;
+using write_data_func_t = std::function<void(uint8_t* frame, uint16_t posInFrame,
+    common::ValueVector* vector, uint32_t posInVector, DiskOverflowFile* diskOverflowFile)>;
 
 class Column : public BaseColumnOrList {
 public:
-    // TODO(Guodong): Clean up column constructors.
     // Currently extended by SERIAL column.
-    explicit Column(const common::DataType& dataType)
-        : BaseColumnOrList{dataType}, tableID{common::INVALID_TABLE_ID} {};
+    explicit Column(const common::DataType& dataType) : BaseColumnOrList{dataType} {};
 
     Column(const StorageStructureIDAndFName& structureIDAndFName, const common::DataType& dataType,
         BufferManager* bufferManager, WAL* wal)
@@ -34,15 +29,8 @@ public:
 
     Column(const StorageStructureIDAndFName& structureIDAndFName, const common::DataType& dataType,
         size_t elementSize, BufferManager* bufferManager, WAL* wal)
-        : Column{structureIDAndFName, dataType, elementSize, bufferManager, wal,
-              common::INVALID_TABLE_ID} {};
-
-    // Extended by INTERNAL_ID column.
-    Column(const StorageStructureIDAndFName& structureIDAndFName, const common::DataType& dataType,
-        size_t elementSize, BufferManager* bufferManager, WAL* wal, common::table_id_t tableID)
         : BaseColumnOrList{structureIDAndFName, dataType, elementSize, bufferManager,
-              true /*hasNULLBytes*/, wal},
-          tableID{tableID} {
+              true /*hasNULLBytes*/, wal} {
         scanDataFunc = Column::scanValuesFromPage;
         lookupDataFunc = Column::lookupValueFromPage;
         writeDataFunc = Column::writeValueToPage;
@@ -80,12 +68,10 @@ protected:
 private:
     static void scanValuesFromPage(transaction::Transaction* transaction, uint8_t* frame,
         PageElementCursor& pageCursor, common::ValueVector* resultVector, uint32_t posInVector,
-        uint32_t numElementsPerPage, uint32_t numValuesToRead, common::table_id_t commonTableID,
-        DiskOverflowFile* diskOverflowFile);
+        uint32_t numElementsPerPage, uint32_t numValuesToRead, DiskOverflowFile* diskOverflowFile);
     static void lookupValueFromPage(transaction::Transaction* transaction, uint8_t* frame,
         PageElementCursor& pageCursor, common::ValueVector* resultVector, uint32_t posInVector,
-        uint32_t numElementsPerPage, common::table_id_t commonTableID,
-        DiskOverflowFile* diskOverflowFile);
+        uint32_t numElementsPerPage, DiskOverflowFile* diskOverflowFile);
     static void writeValueToPage(uint8_t* frame, uint16_t posInFrame, common::ValueVector* vector,
         uint32_t posInVector, DiskOverflowFile* diskOverflowFile);
 
@@ -98,7 +84,6 @@ protected:
     scan_data_func_t scanDataFunc;
     lookup_data_func_t lookupDataFunc;
     write_data_func_t writeDataFunc;
-    common::table_id_t tableID;
     std::unique_ptr<DiskOverflowFile> diskOverflowFile;
 };
 
@@ -163,12 +148,10 @@ public:
 private:
     static void scanListsFromPage(transaction::Transaction* transaction, uint8_t* frame,
         PageElementCursor& pageCursor, common::ValueVector* resultVector, uint32_t posInVector,
-        uint32_t numElementsPerPage, uint32_t numValuesToRead, common::table_id_t commonTableID,
-        DiskOverflowFile* diskOverflowFile);
+        uint32_t numElementsPerPage, uint32_t numValuesToRead, DiskOverflowFile* diskOverflowFile);
     static void lookupListFromPage(transaction::Transaction* transaction, uint8_t* frame,
         PageElementCursor& pageCursor, common::ValueVector* resultVector, uint32_t posInVector,
-        uint32_t numElementsPerPage, common::table_id_t commonTableID,
-        DiskOverflowFile* diskOverflowFile);
+        uint32_t numElementsPerPage, DiskOverflowFile* diskOverflowFile);
     static void writeListToPage(uint8_t* frame, uint16_t posInFrame, common::ValueVector* vector,
         uint32_t posInVector, DiskOverflowFile* diskOverflowFile);
 };
@@ -188,9 +171,9 @@ private:
 class InternalIDColumn : public Column {
 public:
     InternalIDColumn(const StorageStructureIDAndFName& structureIDAndFName,
-        BufferManager* bufferManager, WAL* wal, common::table_id_t tableID)
+        BufferManager* bufferManager, WAL* wal)
         : Column{structureIDAndFName, common::DataType(common::INTERNAL_ID),
-              sizeof(common::offset_t), bufferManager, wal, tableID} {
+              sizeof(common::offset_t), bufferManager, wal} {
         scanDataFunc = InternalIDColumn::scanInternalIDsFromPage;
         lookupDataFunc = InternalIDColumn::lookupInternalIDFromPage;
         writeDataFunc = InternalIDColumn::writeInternalIDToPage;
@@ -199,21 +182,12 @@ public:
 private:
     static void scanInternalIDsFromPage(transaction::Transaction* transaction, uint8_t* frame,
         PageElementCursor& pageCursor, common::ValueVector* resultVector, uint32_t posInVector,
-        uint32_t numElementsPerPage, uint32_t numValuesToRead, common::table_id_t commonTableID,
-        DiskOverflowFile* diskOverflowFile);
+        uint32_t numElementsPerPage, uint32_t numValuesToRead, DiskOverflowFile* diskOverflowFile);
     static void lookupInternalIDFromPage(transaction::Transaction* transaction, uint8_t* frame,
         PageElementCursor& pageCursor, common::ValueVector* resultVector, uint32_t posInVector,
-        uint32_t numElementsPerPage, common::table_id_t commonTableID,
-        DiskOverflowFile* diskOverflowFile);
+        uint32_t numElementsPerPage, DiskOverflowFile* diskOverflowFile);
     static void writeInternalIDToPage(uint8_t* frame, uint16_t posInFrame,
         common::ValueVector* vector, uint32_t posInVector, DiskOverflowFile* diskOverflowFile);
-};
-
-class AdjColumn : public InternalIDColumn {
-public:
-    AdjColumn(const StorageStructureIDAndFName& structureIDAndFName, common::table_id_t nbrTableID,
-        BufferManager* bufferManager, WAL* wal)
-        : InternalIDColumn{structureIDAndFName, bufferManager, wal, nbrTableID} {}
 };
 
 class SerialColumn : public Column {
@@ -247,14 +221,7 @@ public:
             return std::make_unique<ListPropertyColumn>(
                 structureIDAndFName, dataType, bufferManager, wal);
         case common::INTERNAL_ID:
-            // RelID column in rel tables.
-            assert(structureIDAndFName.storageStructureID.storageStructureType ==
-                       StorageStructureType::COLUMN &&
-                   structureIDAndFName.storageStructureID.columnFileID.columnType ==
-                       ColumnType::REL_PROPERTY_COLUMN);
-            return std::make_unique<InternalIDColumn>(structureIDAndFName, bufferManager, wal,
-                structureIDAndFName.storageStructureID.columnFileID.relPropertyColumnID
-                    .relNodeTableAndDir.relTableID);
+            return std::make_unique<InternalIDColumn>(structureIDAndFName, bufferManager, wal);
         case common::STRUCT:
             return std::make_unique<StructPropertyColumn>(
                 structureIDAndFName, dataType, bufferManager, wal);

@@ -43,18 +43,16 @@ Lists* DirectedRelTableData::getPropertyLists(property_id_t propertyID) {
 
 void DirectedRelTableData::initializeData(RelTableSchema* tableSchema, WAL* wal) {
     if (isSingleMultiplicity()) {
-        initializeColumns(tableSchema, bufferManager, wal);
+        initializeColumns(tableSchema, wal);
     } else {
-        initializeLists(tableSchema, bufferManager, wal);
+        initializeLists(tableSchema, wal);
     }
 }
 
-void DirectedRelTableData::initializeColumns(
-    RelTableSchema* tableSchema, BufferManager& bufferManager, WAL* wal) {
-    adjColumn =
-        std::make_unique<AdjColumn>(StorageUtils::getAdjColumnStructureIDAndFName(
-                                        wal->getDirectory(), tableSchema->tableID, direction),
-            tableSchema->getNbrTableID(direction), &bufferManager, wal);
+void DirectedRelTableData::initializeColumns(RelTableSchema* tableSchema, WAL* wal) {
+    adjColumn = ColumnFactory::getColumn(StorageUtils::getAdjColumnStructureIDAndFName(
+                                             wal->getDirectory(), tableSchema->tableID, direction),
+        DataType(INTERNAL_ID), &bufferManager, wal);
     for (auto& property : tableSchema->properties) {
         propertyColumns[property.propertyID] = ColumnFactory::getColumn(
             StorageUtils::getRelPropertyColumnStructureIDAndFName(
@@ -63,8 +61,7 @@ void DirectedRelTableData::initializeColumns(
     }
 }
 
-void DirectedRelTableData::initializeLists(
-    RelTableSchema* tableSchema, BufferManager& bufferManager, WAL* wal) {
+void DirectedRelTableData::initializeLists(RelTableSchema* tableSchema, WAL* wal) {
     adjLists = std::make_unique<AdjLists>(StorageUtils::getAdjListsStructureIDAndFName(
                                               wal->getDirectory(), tableSchema->tableID, direction),
         tableSchema->getNbrTableID(direction), &bufferManager, wal, listsUpdatesStore);
@@ -81,10 +78,10 @@ void DirectedRelTableData::scanColumns(transaction::Transaction* transaction,
     const std::vector<common::ValueVector*>& outputVectors) {
     // Note: The scan operator should guarantee that the first property in the output is adj column.
     adjColumn->read(transaction, inNodeIDVector, outputVectors[0]);
-    NodeIDVector::discardNull(*outputVectors[0]);
-    if (outputVectors[0]->state->selVector->selectedSize == 0) {
+    if (!NodeIDVector::discardNull(*outputVectors[0])) {
         return;
     }
+    fillNbrTableIDs(outputVectors[0]);
     for (auto i = 0u; i < scanState.propertyIds.size(); i++) {
         auto propertyId = scanState.propertyIds[i];
         auto outputVectorId = i + 1;
@@ -94,6 +91,9 @@ void DirectedRelTableData::scanColumns(transaction::Transaction* transaction,
         }
         auto propertyColumn = getPropertyColumn(propertyId);
         propertyColumn->read(transaction, inNodeIDVector, outputVectors[outputVectorId]);
+        if (propertyId == RelTableSchema::INTERNAL_REL_ID_PROPERTY_ID) {
+            fillRelTableIDs(outputVectors[outputVectorId]);
+        }
     }
 }
 
@@ -123,6 +123,25 @@ void DirectedRelTableData::scanLists(transaction::Transaction* transaction,
             transaction, outputVectors[outputVectorId], *scanState.listHandles[outputVectorId]);
         propertyList->setDeletedRelsIfNecessary(
             transaction, *scanState.listHandles[outputVectorId], outputVectors[outputVectorId]);
+    }
+}
+
+// Fill nbr table IDs for the vector scanned from an adj column.
+void DirectedRelTableData::fillNbrTableIDs(common::ValueVector* vector) {
+    assert(vector->dataType.typeID == INTERNAL_ID);
+    auto nodeIDs = (internalID_t*)vector->getData();
+    for (auto i = 0u; i < vector->state->selVector->selectedSize; i++) {
+        auto pos = vector->state->selVector->selectedPositions[i];
+        nodeIDs[pos].tableID = nbrTableID;
+    }
+}
+
+// Fill rel table IDs for the vector scanned from a RelID column.
+void DirectedRelTableData::fillRelTableIDs(common::ValueVector* vector) {
+    auto internalRelIDs = (internalID_t*)vector->getData();
+    for (auto i = 0u; i < vector->state->selVector->selectedSize; i++) {
+        auto pos = vector->state->selVector->selectedPositions[i];
+        internalRelIDs[pos].tableID = tableID;
     }
 }
 
@@ -199,12 +218,14 @@ RelTable::RelTable(
     : tableID{tableID}, wal{wal} {
     auto tableSchema = catalog.getReadOnlyVersion()->getRelTableSchema(tableID);
     listsUpdatesStore = std::make_unique<ListsUpdatesStore>(memoryManager, *tableSchema);
-    fwdRelTableData = std::make_unique<DirectedRelTableData>(tableID,
-        tableSchema->getBoundTableID(FWD), FWD, listsUpdatesStore.get(),
-        *memoryManager.getBufferManager(), tableSchema->isSingleMultiplicityInDirection(FWD));
-    bwdRelTableData = std::make_unique<DirectedRelTableData>(tableID,
-        tableSchema->getBoundTableID(BWD), BWD, listsUpdatesStore.get(),
-        *memoryManager.getBufferManager(), tableSchema->isSingleMultiplicityInDirection(BWD));
+    fwdRelTableData =
+        std::make_unique<DirectedRelTableData>(tableID, tableSchema->getBoundTableID(FWD),
+            tableSchema->getNbrTableID(FWD), FWD, listsUpdatesStore.get(),
+            *memoryManager.getBufferManager(), tableSchema->isSingleMultiplicityInDirection(FWD));
+    bwdRelTableData =
+        std::make_unique<DirectedRelTableData>(tableID, tableSchema->getBoundTableID(BWD),
+            tableSchema->getNbrTableID(BWD), BWD, listsUpdatesStore.get(),
+            *memoryManager.getBufferManager(), tableSchema->isSingleMultiplicityInDirection(BWD));
     initializeData(tableSchema);
 }
 
@@ -224,8 +245,8 @@ std::vector<AdjLists*> RelTable::getAllAdjLists(table_id_t boundTableID) {
     return retVal;
 }
 
-std::vector<AdjColumn*> RelTable::getAllAdjColumns(table_id_t boundTableID) {
-    std::vector<AdjColumn*> retVal;
+std::vector<Column*> RelTable::getAllAdjColumns(table_id_t boundTableID) {
+    std::vector<Column*> retVal;
     if (fwdRelTableData->isSingleMultiplicity() && fwdRelTableData->isBoundTable(boundTableID)) {
         retVal.push_back(fwdRelTableData->getAdjColumn());
     }

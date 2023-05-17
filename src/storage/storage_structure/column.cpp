@@ -128,7 +128,7 @@ void Column::lookup(Transaction* transaction, common::offset_t nodeOffset,
     auto pageCursor = PageUtils::getPageElementCursorForPos(nodeOffset, numElementsPerPage);
     readFromPage(transaction, pageCursor.pageIdx, [&](uint8_t* frame) {
         lookupDataFunc(transaction, frame, pageCursor, resultVector, vectorPos, numElementsPerPage,
-            tableID, diskOverflowFile.get());
+            diskOverflowFile.get());
     });
 }
 
@@ -147,7 +147,7 @@ void Column::scan(transaction::Transaction* transaction, common::ValueVector* no
                     numValuesToRead - numValuesRead);
             readFromPage(transaction, pageCursor.pageIdx, [&](uint8_t* frame) -> void {
                 scanDataFunc(transaction, frame, pageCursor, resultVector, numValuesRead,
-                    numElementsPerPage, numValuesToReadInPage, tableID, diskOverflowFile.get());
+                    numElementsPerPage, numValuesToReadInPage, diskOverflowFile.get());
             });
             numValuesRead += numValuesToReadInPage;
             pageCursor.nextPage();
@@ -161,7 +161,7 @@ void Column::scan(transaction::Transaction* transaction, common::ValueVector* no
                     numValuesRead, numValuesRead + numValuesToReadInPage)) {
                 readFromPage(transaction, pageCursor.pageIdx, [&](uint8_t* frame) -> void {
                     scanDataFunc(transaction, frame, pageCursor, resultVector, numValuesRead,
-                        numElementsPerPage, numValuesToReadInPage, tableID, diskOverflowFile.get());
+                        numElementsPerPage, numValuesToReadInPage, diskOverflowFile.get());
                 });
             }
             numValuesRead += numValuesToReadInPage;
@@ -203,8 +203,7 @@ void Column::readFromPage(transaction::Transaction* transaction, common::page_id
 
 void Column::scanValuesFromPage(transaction::Transaction* transaction, uint8_t* frame,
     PageElementCursor& pageCursor, common::ValueVector* resultVector, uint32_t posInVector,
-    uint32_t numElementsPerPage, uint32_t numValuesToRead, common::table_id_t commonTableID,
-    DiskOverflowFile* diskOverflowFile) {
+    uint32_t numElementsPerPage, uint32_t numValuesToRead, DiskOverflowFile* diskOverflowFile) {
     auto numBytesPerValue = resultVector->getNumBytesPerValue();
     memcpy(resultVector->getData() + posInVector * numBytesPerValue,
         frame + pageCursor.elemPosInPage * numBytesPerValue, numValuesToRead * numBytesPerValue);
@@ -218,8 +217,7 @@ void Column::scanValuesFromPage(transaction::Transaction* transaction, uint8_t* 
 
 void Column::lookupValueFromPage(transaction::Transaction* transaction, uint8_t* frame,
     kuzu::storage::PageElementCursor& pageCursor, common::ValueVector* resultVector,
-    uint32_t posInVector, uint32_t numElementsPerPage, common::table_id_t commonTableID,
-    DiskOverflowFile* diskOverflowFile) {
+    uint32_t posInVector, uint32_t numElementsPerPage, DiskOverflowFile* diskOverflowFile) {
     auto numBytesPerValue = resultVector->getNumBytesPerValue();
     auto frameBytesOffset = pageCursor.elemPosInPage * numBytesPerValue;
     memcpy(resultVector->getData() + posInVector * numBytesPerValue, frame + frameBytesOffset,
@@ -275,7 +273,7 @@ Value ListPropertyColumn::readValueForTestingOnly(offset_t offset) {
 void ListPropertyColumn::scanListsFromPage(transaction::Transaction* transaction, uint8_t* frame,
     kuzu::storage::PageElementCursor& pageCursor, common::ValueVector* resultVector,
     uint32_t posInVector, uint32_t numElementsPerPage, uint32_t numValuesToRead,
-    common::table_id_t commonTableID, DiskOverflowFile* diskOverflowFile) {
+    DiskOverflowFile* diskOverflowFile) {
     auto frameBytesOffset = pageCursor.elemPosInPage * sizeof(ku_list_t);
     auto kuListsToRead = reinterpret_cast<common::ku_list_t*>(frame + frameBytesOffset);
     auto hasNull = NullMask::copyNullMask(
@@ -294,8 +292,7 @@ void ListPropertyColumn::scanListsFromPage(transaction::Transaction* transaction
 
 void ListPropertyColumn::lookupListFromPage(transaction::Transaction* transaction, uint8_t* frame,
     kuzu::storage::PageElementCursor& pageCursor, common::ValueVector* resultVector,
-    uint32_t posInVector, uint32_t numElementsPerPage, common::table_id_t commonTableID,
-    DiskOverflowFile* diskOverflowFile) {
+    uint32_t posInVector, uint32_t numElementsPerPage, DiskOverflowFile* diskOverflowFile) {
     auto isNull = NullMask::isNull(
         (uint64_t*)(frame + (numElementsPerPage * sizeof(ku_list_t))), pageCursor.elemPosInPage);
     resultVector->setNull(posInVector, isNull);
@@ -343,13 +340,12 @@ void StructPropertyColumn::read(Transaction* transaction, common::ValueVector* n
 void InternalIDColumn::scanInternalIDsFromPage(transaction::Transaction* transaction,
     uint8_t* frame, PageElementCursor& pageCursor, common::ValueVector* resultVector,
     uint32_t posInVector, uint32_t numElementsPerPage, uint32_t numValuesToRead,
-    table_id_t commonTableID, DiskOverflowFile* diskOverflowFile) {
+    DiskOverflowFile* diskOverflowFile) {
     auto numBytesPerValue = sizeof(offset_t);
     auto resultData = (internalID_t*)resultVector->getData();
     for (auto i = 0u; i < numValuesToRead; i++) {
         auto posInFrame = pageCursor.elemPosInPage + i;
         resultData[posInVector + i].offset = *(offset_t*)(frame + (posInFrame * numBytesPerValue));
-        resultData[posInVector + i].tableID = commonTableID;
     }
     auto hasNull = NullMask::copyNullMask(
         (uint64_t*)(frame + (numElementsPerPage * numBytesPerValue)), pageCursor.elemPosInPage,
@@ -361,13 +357,11 @@ void InternalIDColumn::scanInternalIDsFromPage(transaction::Transaction* transac
 
 void InternalIDColumn::lookupInternalIDFromPage(transaction::Transaction* transaction,
     uint8_t* frame, kuzu::storage::PageElementCursor& pageCursor, common::ValueVector* resultVector,
-    uint32_t posInVector, uint32_t numElementsPerPage, common::table_id_t commonTableID,
-    DiskOverflowFile* diskOverflowFile) {
+    uint32_t posInVector, uint32_t numElementsPerPage, DiskOverflowFile* diskOverflowFile) {
     auto numBytesPerValue = sizeof(offset_t);
     auto resultData = (internalID_t*)resultVector->getData();
     resultData[posInVector].offset =
         *(offset_t*)(frame + (pageCursor.elemPosInPage * numBytesPerValue));
-    resultData[posInVector].tableID = commonTableID;
     auto isNull = NullMask::isNull(
         (uint64_t*)(frame + (numElementsPerPage * numBytesPerValue)), pageCursor.elemPosInPage);
     resultVector->setNull(posInVector, isNull);

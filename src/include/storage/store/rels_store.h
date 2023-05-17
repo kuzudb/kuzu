@@ -22,7 +22,7 @@ public:
         common::table_id_t relTableID, uint64_t propertyIdx) const {
         return relTables.at(relTableID)->getPropertyLists(relDirection, propertyIdx);
     }
-    inline AdjColumn* getAdjColumn(
+    inline Column* getAdjColumn(
         common::RelDataDirection relDirection, common::table_id_t relTableID) const {
         return relTables.at(relTableID)->getAdjColumn(relDirection);
     }
@@ -66,7 +66,7 @@ public:
         return relTables.at(relTableID)->isSingleMultiplicityInDirection(relDirection);
     }
 
-    std::pair<std::vector<AdjLists*>, std::vector<AdjColumn*>> getAdjListsAndColumns(
+    std::pair<std::vector<AdjLists*>, std::vector<Column*>> getAdjListsAndColumns(
         common::table_id_t boundTableID) const;
 
 private:
