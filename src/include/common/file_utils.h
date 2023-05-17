@@ -16,16 +16,22 @@ namespace kuzu {
 namespace common {
 
 struct FileInfo {
+#ifdef _WIN32
+    FileInfo(std::string path, const void* handle) : path{std::move(path)}, handle{handle} {}
+#else
     FileInfo(std::string path, const int fd) : path{std::move(path)}, fd{fd} {}
+#endif
 
-    ~FileInfo() {
-        if (fd != -1) {
-            close(fd);
-        }
-    }
+    ~FileInfo();
+
+    int64_t getFileSize();
 
     const std::string path;
+#ifdef _WIN32
+    const void* handle;
+#else
     const int fd;
+#endif
 };
 
 class FileUtils {
@@ -55,14 +61,6 @@ public:
 
     static inline bool fileOrPathExists(const std::string& path) {
         return std::filesystem::exists(path);
-    }
-
-    static inline int64_t getFileSize(int fd) {
-        struct stat s;
-        if (fstat(fd, &s) == -1) {
-            return -1;
-        }
-        return s.st_size;
     }
 
     static std::vector<std::string> globFilePath(const std::string& path);
