@@ -222,3 +222,15 @@ Adam|30
 -QUERY MATCH (a:User) WITH a ORDER BY a.age DESC LIMIT 1 MATCH (a)-[:Follows]->(b:User) RETURN *;
 ---- 1
 (label:User, 0:3, {name:Noura, age:25})|(label:User, 0:2, {name:Zhang, age:50})
+
+-NAME Undir1
+-QUERY MATCH (a:User)-[:Follows]-(b:User) RETURN a.name, b.age;
+---- 8
+Adam|40
+Adam|50
+Karissa|50
+Zhang|25
+Karissa|30
+Zhang|30
+Zhang|40
+Noura|50

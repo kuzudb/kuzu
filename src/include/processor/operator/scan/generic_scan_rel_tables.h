@@ -7,22 +7,22 @@
 namespace kuzu {
 namespace processor {
 
-class RelTableCollection {
+class RelTableDataCollection {
 public:
-    RelTableCollection(std::vector<storage::DirectedRelTableData*> tables,
+    RelTableDataCollection(std::vector<storage::DirectedRelTableData*> relTableDatas,
         std::vector<std::unique_ptr<storage::RelTableScanState>> tableScanStates)
-        : tables{std::move(tables)}, tableScanStates{std::move(tableScanStates)} {}
+        : relTableDatas{std::move(relTableDatas)}, tableScanStates{std::move(tableScanStates)} {}
 
     void resetState();
-    inline uint32_t getNumTablesInCollection() { return tables.size(); }
+    inline uint32_t getNumTablesInCollection() { return relTableDatas.size(); }
 
     bool scan(common::ValueVector* inVector, const std::vector<common::ValueVector*>& outputVectors,
         transaction::Transaction* transaction);
 
-    std::unique_ptr<RelTableCollection> clone() const;
+    std::unique_ptr<RelTableDataCollection> clone() const;
 
 private:
-    std::vector<storage::DirectedRelTableData*> tables;
+    std::vector<storage::DirectedRelTableData*> relTableDatas;
     std::vector<std::unique_ptr<storage::RelTableScanState>> tableScanStates;
 
     uint32_t currentRelTableIdxToScan = UINT32_MAX;
@@ -32,7 +32,7 @@ private:
 class GenericScanRelTables : public ScanRelTable {
 public:
     GenericScanRelTables(const DataPos& inNodeIDVectorPos, std::vector<DataPos> outputVectorsPos,
-        std::unordered_map<common::table_id_t, std::unique_ptr<RelTableCollection>>
+        std::unordered_map<common::table_id_t, std::unique_ptr<RelTableDataCollection>>
             relTableCollectionPerNodeTable,
         std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
         : ScanRelTable{inNodeIDVectorPos, std::move(outputVectorsPos),
@@ -44,7 +44,7 @@ public:
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
     std::unique_ptr<PhysicalOperator> clone() override {
-        std::unordered_map<common::table_id_t, std::unique_ptr<RelTableCollection>>
+        std::unordered_map<common::table_id_t, std::unique_ptr<RelTableDataCollection>>
             clonedCollections;
         for (auto& [tableID, propertyCollection] : relTableCollectionPerNodeTable) {
             clonedCollections.insert({tableID, propertyCollection->clone()});
@@ -54,13 +54,13 @@ public:
     }
 
 private:
-    bool scanCurrentRelTableCollection();
-    void initCurrentRelTableCollection(const common::nodeID_t& nodeID);
+    bool scanCurrentRelTableDataCollection();
+    void initCurrentRelTableDataCollection(const common::nodeID_t& nodeID);
 
 private:
-    std::unordered_map<common::table_id_t, std::unique_ptr<RelTableCollection>>
+    std::unordered_map<common::table_id_t, std::unique_ptr<RelTableDataCollection>>
         relTableCollectionPerNodeTable;
-    RelTableCollection* currentRelTableCollection = nullptr;
+    RelTableDataCollection* currentRelTableDataCollection = nullptr;
 };
 
 } // namespace processor

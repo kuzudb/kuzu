@@ -7,18 +7,18 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace processor {
 
-void RelTableCollection::resetState() {
+void RelTableDataCollection::resetState() {
     currentRelTableIdxToScan = 0;
     nextRelTableIdxToScan = 0;
 }
 
-bool RelTableCollection::scan(ValueVector* inVector, const std::vector<ValueVector*>& outputVectors,
-    Transaction* transaction) {
+bool RelTableDataCollection::scan(ValueVector* inVector,
+    const std::vector<ValueVector*>& outputVectors, Transaction* transaction) {
     do {
         if (tableScanStates[currentRelTableIdxToScan]->hasMoreAndSwitchSourceIfNecessary()) {
             assert(tableScanStates[currentRelTableIdxToScan]->relTableDataType ==
                    storage::RelTableDataType::LISTS);
-            tables[currentRelTableIdxToScan]->scan(
+            relTableDatas[currentRelTableIdxToScan]->scan(
                 transaction, *tableScanStates[currentRelTableIdxToScan], inVector, outputVectors);
         } else {
             currentRelTableIdxToScan = nextRelTableIdxToScan;
@@ -33,7 +33,7 @@ bool RelTableCollection::scan(ValueVector* inVector, const std::vector<ValueVect
             } else {
                 tableScanStates[currentRelTableIdxToScan]->syncState->resetState();
             }
-            tables[currentRelTableIdxToScan]->scan(
+            relTableDatas[currentRelTableIdxToScan]->scan(
                 transaction, *tableScanStates[currentRelTableIdxToScan], inVector, outputVectors);
             nextRelTableIdxToScan++;
         }
@@ -41,23 +41,23 @@ bool RelTableCollection::scan(ValueVector* inVector, const std::vector<ValueVect
     return true;
 }
 
-std::unique_ptr<RelTableCollection> RelTableCollection::clone() const {
+std::unique_ptr<RelTableDataCollection> RelTableDataCollection::clone() const {
     std::vector<std::unique_ptr<RelTableScanState>> clonedScanStates;
     for (auto& scanState : tableScanStates) {
         clonedScanStates.push_back(
             make_unique<RelTableScanState>(scanState->propertyIds, scanState->relTableDataType));
     }
-    return make_unique<RelTableCollection>(tables, std::move(clonedScanStates));
+    return make_unique<RelTableDataCollection>(relTableDatas, std::move(clonedScanStates));
 }
 
 void GenericScanRelTables::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     ScanRelTable::initLocalStateInternal(resultSet, context);
-    currentRelTableCollection = nullptr;
+    currentRelTableDataCollection = nullptr;
 }
 
 bool GenericScanRelTables::getNextTuplesInternal(ExecutionContext* context) {
     while (true) {
-        if (scanCurrentRelTableCollection()) {
+        if (scanCurrentRelTableDataCollection()) {
             metrics->numOutputTuple.increase(outputVectors[0]->state->selVector->selectedSize);
             return true;
         }
@@ -70,23 +70,23 @@ bool GenericScanRelTables::getNextTuplesInternal(ExecutionContext* context) {
             continue;
         }
         auto nodeID = inNodeIDVector->getValue<nodeID_t>(currentIdx);
-        initCurrentRelTableCollection(nodeID);
+        initCurrentRelTableDataCollection(nodeID);
     }
 }
 
-bool GenericScanRelTables::scanCurrentRelTableCollection() {
-    if (currentRelTableCollection == nullptr) {
+bool GenericScanRelTables::scanCurrentRelTableDataCollection() {
+    if (currentRelTableDataCollection == nullptr) {
         return false;
     }
-    return currentRelTableCollection->scan(inNodeIDVector, outputVectors, transaction);
+    return currentRelTableDataCollection->scan(inNodeIDVector, outputVectors, transaction);
 }
 
-void GenericScanRelTables::initCurrentRelTableCollection(const nodeID_t& nodeID) {
+void GenericScanRelTables::initCurrentRelTableDataCollection(const nodeID_t& nodeID) {
     if (relTableCollectionPerNodeTable.contains(nodeID.tableID)) {
-        currentRelTableCollection = relTableCollectionPerNodeTable.at(nodeID.tableID).get();
-        currentRelTableCollection->resetState();
+        currentRelTableDataCollection = relTableCollectionPerNodeTable.at(nodeID.tableID).get();
+        currentRelTableDataCollection->resetState();
     } else {
-        currentRelTableCollection = nullptr;
+        currentRelTableDataCollection = nullptr;
     }
 }
 
