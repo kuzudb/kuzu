@@ -6,55 +6,49 @@ using namespace kuzu::common;
 
 class EndToEndReadTest : public DBTest {
 public:
-    EndToEndReadTest(std::string dataset, std::vector<TestCommand> commands) : testCase(dataset, commands) {}
+    explicit EndToEndReadTest(
+        std::string dataset, std::vector<std::unique_ptr<TestStatement>> statements)
+        : dataset{std::move(dataset)}, statements{std::move(statements)} {}
 
     std::string getInputDir() override {
-        std::cout << "dataset: " << testCase->dataset << std::endl;
-        return TestHelper::appendKuzuRootPath("dataset/" + testCase->dataset + "/");
+        std::cout << "dataset: " << dataset << std::endl;
+        return TestHelper::appendKuzuRootPath("dataset/" + dataset + "/");
     }
-    void TestBody() override {
-        runTest(testCase->commands);
-    }
+    void TestBody() override { runTest(statements); }
 
 private:
-    std::unique_ptr<TestCase> testCase;
     std::string dataset;
-    std::vector<TestCommand> commands;
+    std::vector<std::unique_ptr<TestStatement>> statements;
 };
 
+void parseAndRegisterTestCase(const std::string& path) {
+    auto testCase = std::make_unique<TestCase>();
+    testCase->parseTestFile(path);
+    if (testCase->isValid()) {
+        auto dataset = testCase->dataset;
+        auto statements = std::move(testCase->statements);
+        testing::RegisterTest(testCase->group.c_str(), testCase->name.c_str(), nullptr, nullptr,
+            __FILE__, __LINE__,
+            [dataset = std::move(dataset), statements = std::move(statements)]() mutable
+            -> DBTest* { return new EndToEndReadTest(std::move(dataset), std::move(statements)); });
+    }
+}
+
 void scanTestFiles(const std::string& path) {
-    // TODO: check if it is a single file or directory
+    if (std::filesystem::is_regular_file(path)) {
+        parseAndRegisterTestCase(path);
+        return;
+    }
     for (const auto& entry : std::filesystem::recursive_directory_iterator(path)) {
-        if (!entry.is_regular_file() || FileUtils::getFileExtension(entry) != ".test") 
+        if (!entry.is_regular_file() || FileUtils::getFileExtension(entry) != ".test")
             continue;
-
-        auto testCase = std::make_unique<TestCase>();
-        testCase->parseTestFile(entry.path().string());
-
-        if (testCase->isValid()) {
-            for (auto& command : testCase->commands) {
-                std::cout << command->name << " : " << command->query << " | "  << command->expectedNumTuples << std::endl;
-//                for(auto& result : command->expectedTuples) {
-//                    std::cout << result << std::endl;
-//                }
-            }
-
-            std::cout << "DATASET::" << testCase->dataset << std::endl;
-
-            testing::RegisterTest(testCase->group.c_str(), testCase->name.c_str(), nullptr,
-                    nullptr, __FILE__, __LINE__,
-                        [testCase = std::move(testCase)]() -> DBTest* { return new EndToEndReadTest(std::move(testCase)) });
-       //               [&]() -> DBTest* { return new EndToEndReadTest(std::move(testCase)); });
-
-
-        }
-
+        parseAndRegisterTestCase(entry.path().string());
     }
 }
 
 int main(int argc, char** argv) {
     testing::InitGoogleTest(&argc, argv);
-    std::string path = "test/test_files";
+    std::string path = "test/test_files/order_by";
     if (argc > 1) {
         path = argv[1];
     }

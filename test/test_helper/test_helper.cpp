@@ -1,5 +1,4 @@
 #include "test_helper/test_helper.h"
-#include "test_helper/test_parser.h"
 
 #include <fstream>
 
@@ -13,123 +12,22 @@ using namespace kuzu::main;
 namespace kuzu {
 namespace testing {
 
-// TODO: REMOVE ME
-TestConfig TestHelper::parseGroupFile(const std::string& path) {
-    TestConfig result;
-    if (!FileUtils::fileOrPathExists(path)) {
-        return result;
-    }
-    std::ifstream ifs(path);
-    std::string line;
-    while (getline(ifs, line)) {
-        setConfigValue(line, result.testGroup, "-GROUP");
-        setConfigValue(line, result.testName, "-TEST");
-        setConfigValue(line, result.dataset, "-DATASET");
-        setConfigValue(line, result.checkOrder, "-CHECK_ORDER");
-    }
-    return result;
-}
-
-// TODO: REMOVE ME
-void TestHelper::setConfigValue(
-    const std::string& line, std::string& configItem, const std::string& configKey) {
-    std::string value = extractConfigValue(line, configKey);
-    if (!value.empty())
-        configItem = value;
-}
-
-// TODO: REMOVE ME
-void TestHelper::setConfigValue(
-    const std::string& line, bool& configItem, const std::string& configKey) {
-    std::string value = extractConfigValue(line, configKey);
-    if (!value.empty())
-        configItem = (value == "TRUE");
-}
-
-// TODO: REMOVE ME
-std::string TestHelper::extractConfigValue(const std::string& line, const std::string& configKey) {
-    std::string value;
-    if (line.starts_with(configKey)) {
-        value = line.substr(configKey.length() + 1, line.length());
-        value.erase(remove_if(value.begin(), value.end(), isspace), value.end());
-    }
-    return value;
-}
-
-
-/* runTest (graph_test) : call this function to generate the vector of TestQueryConfig
- * testQueries (TestHelper) : go over each TestQueryConfig and check
- * 
- * [] Multi-statement:
- * DEFINE STATEMENT_BLOCK: vector of TestQueryConfig. Delay the execution
- * STATEMENT_BLOCK : find the statement block and execute. Throw
- *                   exception if not found
- *
- * [] indicator ok/error
- * change uint64_t numTuples to auto/template?
- *
- * [] csv check
- * add a expectedTupleOutput (text/csv file)?
- *
- * [] shell command
- * -COMMAND statement
- *  interpret and call the associated function (example
- *  connection->setTimeOut)
- *
- */
-
-
-// Parse the entire test file -> add to a sequential vector of TestCommands -> Run testCommands sequentially
+// Deprecated
 std::vector<std::unique_ptr<TestQueryConfig>> TestHelper::parseTestFile(
     const std::string& path, bool checkOutputOrder) {
     std::vector<std::unique_ptr<TestQueryConfig>> result;
+    if (access(path.c_str(), 0) != 0) {
+        throw Exception("Test file not exists! [" + path + "].");
+    }
+    struct stat status {};
+    stat(path.c_str(), &status);
+    if (status.st_mode & S_IFDIR) {
+        throw Exception("Test file is a directory. [" + path + "].");
+    }
+    std::ifstream ifs(path);
+    std::string line;
     TestQueryConfig* currentConfig;
-    TestParser parser;
-    parser.openFile(path);
-
-    while (parser.nextLine()) {
-        parser.tokenize();
-
-        if (parser.currentToken.type == TokenType::NAME) {
-            continue;
-        } else if (parser.currentToken.type == TokenType::STATEMENT) {
-            // parse statement and store it 
-            // add to testCommands
-            continue;
-        } else if (parser.currentToken.type == TokenType::PARALLELISM) {
-            // check the number of parameters, error if wrong
-            currentConfig->numThreads = stoi(parser.currentToken.params[1]);
-            continue;
-        } else if (parser.currentToken.type == TokenType::DEFINE_STATEMENT_BLOCK) {
-/*
-- DEFINE STATEMENT_BLOCK create_rel_set [
-    - STATEMENT MATCH (a:person), (b:person) WHERE a.ID=10 AND b.ID=20 CREATE (a)-[e:knows]->(b);
-    ---- ok
-    - STATEMENT MATCH (a:person), (b:person) WHERE a.ID=1 AND b.ID=2 CREATE (a)-[e:knows]->(b);
-    ---- ok
-    - STATEMENT MATCH (a:person), (b:person) WHERE a.ID=1 AND b.ID=20 CREATE (a)-[e:knows]->(b);
-    ---- error
-    "Exception: Duplicate primary key"
-]
-*/
-
-            // Extract the content inside [] 
-            // Add to statementVariableMap (name, vector of TestQueryConfig) 
-            continue;
-        } else if (parser.currentToken.type == TokenType::STATEMENT_BLOCK) {
-            // - STATEMENT_BLOCK create_rel_set
-            // name = params[1] = create_rel_set
-            // push all statements to result
-        } else if (parser.currentToken.type == TokenType::LOOP) {
-            // extract params:
-            // begin = params[1]
-            // end = params[2]
-        } else if (parser.currentToken.type == TokenType::FOREACH) {
-        }
-
-
-
-/*
+    while (getline(ifs, line)) {
         if (line.starts_with("-NAME")) {
             auto config = std::make_unique<TestQueryConfig>();
             currentConfig = config.get();
@@ -147,27 +45,17 @@ std::vector<std::unique_ptr<TestQueryConfig>> TestHelper::parseTestFile(
             uint64_t numTuples = stoi(line.substr(5, line.length()));
             currentConfig->expectedNumTuples = numTuples;
             for (auto i = 0u; i < numTuples; i++) {
-                parser.nextLine();
-                line = parser.line;
+                getline(ifs, line);
                 currentConfig->expectedTuples.push_back(line);
             }
             if (!checkOutputOrder) { // order is not important for result
                 sort(currentConfig->expectedTuples.begin(), currentConfig->expectedTuples.end());
             }
         }
-*/
-
-
     }
     return result;
 }
 
-/*
- * 
- *
- *
- *
- */
 bool TestHelper::testQueries(
     std::vector<std::unique_ptr<TestQueryConfig>>& configs, Connection& conn) {
     spdlog::set_level(spdlog::level::info);

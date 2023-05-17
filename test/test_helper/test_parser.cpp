@@ -1,7 +1,9 @@
 #include "test_helper/test_parser.h"
 
 #include <fstream>
-#include <iostream> // REMOVE ME
+#include <numeric>
+
+#include "common/string_utils.h"
 
 using namespace kuzu::common;
 
@@ -17,8 +19,7 @@ TokenType getTokenType(const std::string& input) {
     }
 }
 
-
-void TestParser::openFile(const std::string &path) { 
+void TestParser::openFile(const std::string& path) {
     if (access(path.c_str(), 0) != 0) {
         throw Exception("Test file not exists! [" + path + "].");
     }
@@ -30,32 +31,20 @@ void TestParser::openFile(const std::string &path) {
     fileStream.open(path);
 }
 
-// TODO: improve
 void TestParser::tokenize() {
-    if (line.empty()) {
-        currentToken.type = TokenType::SKIP;
-    }
-    currentToken.params = splitString(line);
+    currentToken.params = StringUtils::splitByAnySpace(line);
     if (currentToken.params.size() == 0) {
-        currentToken.type = TokenType::SKIP;
+        currentToken.type = TokenType::EMPTY;
     } else {
         currentToken.type = getTokenType(currentToken.params[0]);
     }
 }
 
-bool TestParser::nextLine() {
-    return static_cast<bool>(getline(fileStream, line));
+std::string TestParser::paramsToString() {
+    return std::accumulate(std::next(currentToken.params.begin()), currentToken.params.end(),
+        std::string(),
+        [](const std::string& a, const std::string& b) { return a + (a.empty() ? "" : " ") + b; });
 }
-
-// TODO: move to test_utils
-std::vector<std::string> TestParser::splitString(const std::string& input) {
-    std::istringstream iss(input);
-    std::vector<std::string> result;
-    std::string token;
-    while (iss >> token) result.push_back(token);
-    return result;
-}
-
 
 } // namespace testing
 } // namespace kuzu

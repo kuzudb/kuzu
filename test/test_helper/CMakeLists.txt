@@ -14,4 +14,4 @@ target_include_directories(
         ../../src/include
 )
 
-target_link_libraries(test_helper PUBLIC kuzu)
+target_link_libraries(test_helper PUBLIC GTest::GTest kuzu)

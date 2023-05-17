@@ -22,6 +22,8 @@ public:
     static std::vector<std::string> split(
         const std::string& input, const std::string& delimiter, bool ignoreEmptyStringParts = true);
 
+    static std::vector<std::string> splitByAnySpace(const std::string& input);
+
     static void toUpper(std::string& input) {
         std::transform(input.begin(), input.end(), input.begin(), ::toupper);
     }
@@ -40,6 +42,13 @@ public:
         const char* strToInsert, uint64_t maxAllowedStrSize) {
         return string_format("Maximum length of strings is {}. Input string's length is {}.",
             maxAllowedStrSize, strlen(strToInsert), strToInsert);
+    }
+
+    static inline std::string ltrim(const std::string& input) {
+        auto s = input;
+        s.erase(
+            s.begin(), find_if(s.begin(), s.end(), [](unsigned char ch) { return !isspace(ch); }));
+        return s;
     }
 };
 

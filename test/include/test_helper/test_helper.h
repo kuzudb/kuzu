@@ -13,18 +13,6 @@ using namespace kuzu::main;
 namespace kuzu {
 namespace testing {
 
-struct TestConfig {
-    std::string testGroup;
-    std::string testName;
-    std::string dataset;
-    bool checkOrder = false;
-    std::vector<std::string> files;
-
-    bool isValid() const {
-        return !testGroup.empty() && !testName.empty() && !dataset.empty() && !files.empty();
-    }
-};
-
 struct TestQueryConfig {
     std::string name;
     std::string query;
@@ -38,8 +26,6 @@ struct TestQueryConfig {
 
 class TestHelper {
 public:
-    static TestConfig parseGroupFile(const std::string& path);
-
     static std::vector<std::unique_ptr<TestQueryConfig>> parseTestFile(
         const std::string& path, bool checkOutputOrder = false);
 

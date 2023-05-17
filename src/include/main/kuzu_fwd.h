@@ -6,6 +6,7 @@ namespace testing {
 class ApiTest;
 class BaseGraphTest;
 class TestHelper;
+class TestRunner;
 class TinySnbDDLTest;
 class TinySnbCopyCSVTransactionTest;
 } // namespace testing

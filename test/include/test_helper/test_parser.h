@@ -10,42 +10,38 @@ namespace testing {
 
 enum class TokenType {
     GROUP,
+    DATASET,
     TEST,
     CASE,
-    NAME,
-    DATASET,
     CHECK_ORDER,
+    DEFINE_STATEMENT_BLOCK,
+    EMPTY,
+    END_OF_STATEMENT_BLOCK,
+    ENUMERATE,
+    FOREACH,
+    LOOP,
+    NAME,
+    PARALLELISM,
+    QUERY,
     READ_ONLY,
+    RESULT,
+    SEPARATOR,
     SKIP,
     STATEMENT,
-    STATEMENT_BLOCK,
-    DEFINE_STATEMENT_BLOCK,
-    QUERY,
-    LOOP,
-    FOREACH,
-    PARALLELISM,
-    RESULT
+    STATEMENT_BLOCK
 };
 
-const std::unordered_map<std::string, TokenType> tokenMap = {
-    {"#", TokenType::SKIP},
-    {"-GROUP", TokenType::GROUP},
-    {"-TEST", TokenType::TEST},
-    {"-CASE", TokenType::CASE},
-    {"-NAME", TokenType::NAME},
-    {"-DATASET", TokenType::DATASET},
+const std::unordered_map<std::string, TokenType> tokenMap = {{"-GROUP", TokenType::GROUP},
+    {"-TEST", TokenType::TEST}, {"-DATASET", TokenType::DATASET}, {"-CASE", TokenType::CASE},
     {"-CHECK_ORDER", TokenType::CHECK_ORDER},
-    {"-READ_ONLY", TokenType::READ_ONLY},
-    {"-SKIP", TokenType::SKIP},
-    {"-STATEMENT", TokenType::STATEMENT},
-    {"-STATEMENT_BLOCK", TokenType::STATEMENT_BLOCK},
     {"-DEFINE_STATEMENT_BLOCK", TokenType::DEFINE_STATEMENT_BLOCK},
-    {"-QUERY", TokenType::QUERY},
-    {"-LOOP", TokenType::LOOP},
-    {"-FOREACH", TokenType::FOREACH},
-    {"-PARALLELISM", TokenType::PARALLELISM},
-    {"----", TokenType::RESULT}
-};
+    {"-ENUMERATE", TokenType::ENUMERATE}, {"-FOREACH", TokenType::FOREACH},
+    {"-LOOP", TokenType::LOOP}, {"-NAME", TokenType::NAME},
+    {"-PARALLELISM", TokenType::PARALLELISM}, {"-QUERY", TokenType::QUERY},
+    {"-READ_ONLY", TokenType::READ_ONLY}, {"-SKIP", TokenType::SKIP},
+    {"-STATEMENT", TokenType::STATEMENT}, {"-STATEMENT_BLOCK", TokenType::STATEMENT_BLOCK},
+    {"]", TokenType::END_OF_STATEMENT_BLOCK}, {"----", TokenType::RESULT},
+    {"--", TokenType::SEPARATOR}, {"#", TokenType::EMPTY}};
 
 class LogicToken {
 public:
@@ -59,15 +55,23 @@ public:
     void tokenize();
     std::vector<std::string> splitString(const std::string& input);
     LogicToken currentToken;
-    void openFile(const std::string &path);
-    bool nextLine();
+    void openFile(const std::string& path);
+    std::string paramsToString();
 
+    inline std::string getParam(int param) {
+        return currentToken.params[param];
+        if (param > currentToken.params.size()) {
+            return "";
+        }
+    }
+
+    inline bool endOfFile() { return fileStream.eof(); }
+
+    inline bool nextLine() { return static_cast<bool>(getline(fileStream, line)); }
 
 private:
     std::ifstream fileStream;
 };
-
-
 
 } // namespace testing
 } // namespace kuzu

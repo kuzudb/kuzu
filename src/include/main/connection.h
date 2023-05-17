@@ -16,6 +16,7 @@ class Connection {
     friend class kuzu::testing::ApiTest;
     friend class kuzu::testing::BaseGraphTest;
     friend class kuzu::testing::TestHelper;
+    friend class kuzu::testing::TestRunner;
     friend class kuzu::benchmark::Benchmark;
 
 public:

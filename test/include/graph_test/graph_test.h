@@ -156,11 +156,11 @@ public:
         initGraph();
     }
 
-    inline void runTest(const std::vector<std::unique_ptr<TestCommand>>& commands) {
-        TestRunner::runTest(commands, *conn);
+    inline void runTest(const std::vector<std::unique_ptr<TestStatement>>& statements) {
+        TestRunner::runTest(statements, *conn);
     }
 
-    // Depreacated 
+    // Deprecated
     inline void runTest(const std::string& queryFile) {
         auto queryConfigs = TestHelper::parseTestFile(queryFile);
         ASSERT_TRUE(TestHelper::testQueries(queryConfigs, *conn));

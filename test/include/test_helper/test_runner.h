@@ -1,16 +1,33 @@
+#include "common/file_utils.h"
+#include "gtest/gtest.h"
 #include "main/kuzu.h"
-#include "test_helper/test_case.h" // CHECK
+#include "parser/parser.h"
+#include "planner/logical_plan/logical_plan_util.h"
+#include "planner/planner.h"
+#include "test_helper/test_case.h"
+#include "test_helper/test_helper.h"
 
 using namespace kuzu::main;
+using namespace kuzu::common;
+using namespace kuzu::planner;
 
 namespace kuzu {
 namespace testing {
 
 class TestRunner {
 public:
-    static void runTest(const std::vector<std::unique_ptr<TestCommand>>& commands, Connection& conn);
+    static void runTest(
+        const std::vector<std::unique_ptr<TestStatement>>& commands, Connection& conn);
+
+    static std::unique_ptr<planner::LogicalPlan> getLogicalPlan(
+        const std::string& query, Connection& conn);
+
+private:
+    static void initializeConnection(TestStatement* statement, Connection& conn);
+    static bool testStatement(TestStatement* statement, Connection& conn);
+    static std::vector<std::string> convertResultToString(
+        QueryResult& queryResult, bool checkOutputOrder = false);
 };
-     
 
 } // namespace testing
 } // namespace kuzu
