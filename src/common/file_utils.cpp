@@ -89,9 +89,12 @@ void FileUtils::readFromFile(
     #if defined(_WIN32)
     auto handle = (HANDLE)_get_osfhandle(fileInfo->fd);
     DWORD numBytesRead;
-    OVERLAPPED overlapped{0,0,0.0};
+    OVERLAPPED overlapped{0,0,0};
     overlapped.Offset = position & 0xffffffff;
     overlapped.OffsetHigh = position >> 32;
+    if (GetFileSize(handle, nullptr) == 0) {
+        return;
+    }
     if (!ReadFile(handle, buffer, numBytes, &numBytesRead, &overlapped)) {
         auto error = GetLastError();
         throw Exception(
