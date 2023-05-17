@@ -90,7 +90,7 @@ void FileUtils::writeToFile(
 
         #if defined(_WIN32)
         DWORD numBytesWritten;
-        OVERLAPPED overlapped{0,0,0.0};
+        OVERLAPPED overlapped{0,0,0,0};
         overlapped.Offset = offset & 0xffffffff;
         overlapped.OffsetHigh = offset >> 32;
         if (!WriteFile((HANDLE)fileInfo->handle, buffer + bufferOffset, numBytesToWrite, &numBytesWritten, &overlapped)) {
@@ -132,7 +132,7 @@ void FileUtils::readFromFile(
     FileInfo* fileInfo, void* buffer, uint64_t numBytes, uint64_t position) {
     #if defined(_WIN32)
     DWORD numBytesRead;
-    OVERLAPPED overlapped{0,0,0};
+    OVERLAPPED overlapped{0,0,0,0};
     overlapped.Offset = position & 0xffffffff;
     overlapped.OffsetHigh = position >> 32;
     if (fileInfo->getFileSize() == 0)
