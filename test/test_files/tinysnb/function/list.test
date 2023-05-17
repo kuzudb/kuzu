@@ -728,20 +728,65 @@ True
 ---- 1
 6.600000
 
--NAME ListSortIntAsc
+-NAME ListSortInt16Asc
+-QUERY Return list_sort([to_int16(2), to_int16(3), to_int16(1), NULL, NULL]);
+---- 1
+[,,1,2,3]
+
+-NAME ListSortInt16Desc
+-QUERY Return list_sort([to_int16(2), to_int16(3), to_int16(1), to_int16(5), NULL], 'DESC');
+---- 1
+[,5,3,2,1]
+
+-NAME ListSortInt16DescWithNullsLast
+-QUERY Return list_sort([to_int16(2), to_int16(3), to_int16(1), NULL], 'DESC', 'NULLS LAST');
+---- 1
+[3,2,1,]
+
+-NAME ListSortInt32Asc
+-QUERY Return list_sort([to_int32(2), to_int32(3), to_int32(1), NULL, NULL]);
+---- 1
+[,,1,2,3]
+
+-NAME ListSortInt32Desc
+-QUERY Return list_sort([to_int32(2), to_int32(3), to_int32(1), to_int32(5), NULL], 'DESC');
+---- 1
+[,5,3,2,1]
+
+-NAME ListSortInt32DescWithNullsLast
+-QUERY Return list_sort([to_int32(2), to_int32(3), to_int32(1), NULL], 'DESC', 'NULLS LAST');
+---- 1
+[3,2,1,]
+
+-NAME ListSortInt64Asc
 -QUERY Return list_sort([2, 3, 1, NULL, NULL]);
 ---- 1
 [,,1,2,3]
 
--NAME ListSortIntDesc
+-NAME ListSortInt64Desc
 -QUERY Return list_sort([2, 3, 1, 5, NULL], 'DESC');
 ---- 1
 [,5,3,2,1]
 
--NAME ListSortIntDescWithNullsLast
+-NAME ListSortInt64DescWithNullsLast
 -QUERY Return list_sort([2, 3, 1, NULL], 'DESC', 'NULLS LAST');
 ---- 1
 [3,2,1,]
+
+-NAME ListSortFloatAsc
+-QUERY Return list_sort([to_float(1.1), to_float(2.3), to_float(4.5), NULL]);
+---- 1
+[,1.100000,2.300000,4.500000]
+
+-NAME ListSortFloatDesc
+-QUERY Return list_sort([to_float(2.1), to_float(3.2), to_float(1.33), to_float(5.44), NULL], 'DESC');
+---- 1
+[,5.440000,3.200000,2.100000,1.330000]
+
+-NAME ListSortFloatDescWithNullsLast
+-QUERY Return list_sort([to_float(2.1), to_float(3.2), to_float(1.11), NULL], 'DESC', 'NULLS LAST');
+---- 1
+[3.200000,2.100000,1.110000,]
 
 -NAME ListSortStringDesc
 -QUERY Return list_sort(['sss', 'sssss', 'abs', NULL], 'DESC');
@@ -827,3 +872,306 @@ True
 -QUERY Return list_sum([1.1, 2.2, 3.3, NULL]);
 ---- 1
 6.600000
+
+-NAME ListReverseSortInt16
+-QUERY Return list_reverse_sort([to_int16(1), to_int16(1), NULL, to_int16(-3), to_int16(1), to_int16(5)]);
+---- 1
+[,5,1,1,1,-3]
+
+-NAME ListReverseSortInt16WithNullsLast
+-QUERY Return list_reverse_sort([to_int16(1), to_int16(1), NULL, to_int16(-3), to_int16(1), to_int16(5)], 'NULLS LAST');
+---- 1
+[5,1,1,1,-3,]
+
+-NAME ListReverseSortInt32
+-QUERY Return list_reverse_sort([to_int32(1), to_int32(1), NULL, to_int32(-3), to_int32(1), to_int32(5)]);
+---- 1
+[,5,1,1,1,-3]
+
+-NAME ListReverseSortInt32WithNullsLast
+-QUERY Return list_reverse_sort([to_int32(1), to_int32(1), NULL, to_int32(-3), to_int32(1), to_int32(5)], 'NULLS LAST');
+---- 1
+[5,1,1,1,-3,]
+
+-NAME ListReverseSortInt64
+-QUERY Return list_reverse_sort([2, 3, 1, 5, NULL]);
+---- 1
+[,5,3,2,1]
+
+-NAME ListReverseSortInt64WithNullsLast
+-QUERY Return list_reverse_sort([2, 3, 1, 5, NULL], 'NULLS LAST');
+---- 1
+[5,3,2,1,]
+
+-NAME ListDistinctWithFloat
+-QUERY Return list_reverse_sort([to_float(1.1), to_float(1.1), NULL, to_float(3.4), to_float(1.2), to_float(5.1)]);
+---- 1
+[,5.100000,3.400000,1.200000,1.100000,1.100000]
+
+-NAME ListDistinctWithFloat
+-QUERY Return list_reverse_sort([to_float(1.1), to_float(1.1), NULL, to_float(3.4), to_float(1.2), to_float(5.1)], 'NULLS LAST');
+---- 1
+[5.100000,3.400000,1.200000,1.100000,1.100000,]
+
+-NAME ListReverseSortDouble
+-QUERY Return list_reverse_sort([1.1, 2.3, 4.5, NULL]);
+---- 1
+[,4.500000,2.300000,1.100000]
+
+-NAME ListReverseSortDoubleWithNullsLast
+-QUERY Return list_reverse_sort([1.1, 2.3, 4.5, NULL], 'NULLS LAST');
+---- 1
+[4.500000,2.300000,1.100000,]
+
+-NAME ListReverseSortStringSeq1
+-QUERY Return list_reverse_sort(['this is a long string', 'this is yet another long string', 'abs', NULL]);
+---- 1
+[,this is yet another long string,this is a long string,abs]
+
+-NAME ListReverseSortWithStringSeq2
+-QUERY  MATCH (a:person) RETURN list_reverse_sort([NULL, a.usedNames[1], 'Some val', NULL])
+---- 8
+[,,Some val,Ad]
+[,,Some val,Aida]
+[,,Some val,Bobby]
+[,,Some val,Carmen]
+[,,Some val,Ein]
+[,,Some val,Fesdwe]
+[,,Some val,Grad]
+[,,Wolfeschlegelstein,Some val]
+
+-NAME ListReverseSortStringWithNullsLast
+-QUERY Return list_reverse_sort(['sss', 'sssss', 'abs', NULL], 'NULLS LAST');
+---- 1
+[sssss,sss,abs,]
+
+-NAME ListReverseSortDateSeq1
+-QUERY Return list_reverse_sort([date('1992-05-03'), date('1993-05-03'), date('1994-05-03'), NULL]);
+---- 1
+[,1994-05-03,1993-05-03,1992-05-03]
+
+-NAME ListReverseSortDateSeq2
+-QUERY Return list_reverse_sort([date('1992-05-03'), date('1993-05-03'), date('1994-05-03'), NULL], 'NULLS LAST');
+---- 1
+[1994-05-03,1993-05-03,1992-05-03,]
+
+-NAME ListReverseSortTimestampSeq1
+-QUERY Return list_reverse_sort([timestamp('1992-05-03 11:13:25'), timestamp('1993-05-03 11:13:25'), timestamp('1994-05-03 11:13:25'), NULL]);
+---- 1
+[,1994-05-03 11:13:25,1993-05-03 11:13:25,1992-05-03 11:13:25]
+
+-NAME ListReverseSortTimestampSeq2
+-QUERY Return list_reverse_sort([timestamp('1992-05-03 11:13:25'), timestamp('1993-05-03 11:13:25'), timestamp('1994-05-03 11:13:25'), NULL], 'NULLS LAST');
+---- 1
+[1994-05-03 11:13:25,1993-05-03 11:13:25,1992-05-03 11:13:25,]
+
+-NAME ListReverseSortIntervalSeq1
+-QUERY Return list_reverse_sort([interval('2 hours 3 days 20 minutes'), interval('3 hours 3 days 20 minutes'), interval('4 hours 3 days 20 minutes'), NULL]);
+---- 1
+[,3 days 04:20:00,3 days 03:20:00,3 days 02:20:00]
+
+-NAME ListReverseSortIntervalSeq2
+-QUERY Return list_reverse_sort([interval('2 hours 3 days 20 minutes'), interval('3 hours 3 days 20 minutes'), interval('4 hours 3 days 20 minutes'), NULL], 'NULLS LAST');
+---- 1
+[3 days 04:20:00,3 days 03:20:00,3 days 02:20:00,]
+
+-NAME ListReverseSortBooleanSeq1
+-QUERY Return list_reverse_sort([true, true, false, NULL]);
+---- 1
+[,True,True,False]
+
+-NAME ListReverseSortBooleanSeq2
+-QUERY Return list_reverse_sort([true, true, false, NULL], 'NULLS LAST');
+---- 1
+[True,True,False,]
+
+-NAME ListDistinctWithInt16
+-QUERY Return list_distinct([to_int16(1), to_int16(1), NULL, to_int16(-3), to_int16(1), to_int16(5)]);
+---- 1
+[-3,1,5]
+
+-NAME ListDistinctWithInt32
+-QUERY Return list_distinct([to_int32(1), to_int32(1), NULL, to_int32(-3), to_int32(1), to_int32(5)]);
+---- 1
+[-3,1,5]
+
+-NAME ListDistinctWithInt64
+-QUERY Return list_distinct([1, 1, NULL, -3, 1, 5]);
+---- 1
+[-3,1,5]
+
+-NAME ListDistinctWithFloat
+-QUERY Return list_distinct([to_float(1.1), to_float(1.1), NULL, to_float(3.4), to_float(1.2), to_float(5.1)]);
+---- 1
+[1.100000,1.200000,3.400000,5.100000]
+
+-NAME ListDistinctWithDouble
+-QUERY Return list_distinct([1.1, 1.1, NULL, -3.4, 1.2, 5.1]);
+---- 1
+[-3.400000,1.100000,1.200000,5.100000]
+
+-NAME ListDistinctBoolean
+-QUERY Return list_distinct([true, true, NULL, false, false]);
+---- 1
+[False,True]
+
+-NAME ListDistinctWithStringSeq1
+-QUERY Return list_distinct(['this is a long string', 'this is a long string', NULL, 'bbb', 'ccc', 'ccc']);
+---- 1
+[bbb,ccc,this is a long string]
+
+-NAME ListDistinctWithStringSeq2
+-QUERY  MATCH (a:person) RETURN list_distinct([NULL, a.usedNames[1], a.usedNames[1], NULL])
+---- 8
+[Ad]
+[Aida]
+[Bobby]
+[Carmen]
+[Ein]
+[Fesdwe]
+[Grad]
+[Wolfeschlegelstein]
+
+-NAME ListDistinctWithDate
+-QUERY Return list_distinct([date('1992-05-03'), date('1993-05-03'), date('1993-05-03'), date('1994-05-03'), date('1993-05-03'), NULL]);
+---- 1
+[1992-05-03,1993-05-03,1994-05-03]
+
+-NAME ListDistinctWithTimestamp
+-QUERY Return list_distinct([timestamp('1992-05-03 11:13:25'), timestamp('1994-05-03 11:13:25'), timestamp('1993-05-03 11:13:25'), timestamp('1994-05-03 11:13:25'), NULL]);
+---- 1
+[1992-05-03 11:13:25,1993-05-03 11:13:25,1994-05-03 11:13:25]
+
+-NAME ListDistinctWithInterval
+-QUERY Return list_distinct([interval('2 hours 3 days 20 minutes'), interval('2 hours 3 days 20 minutes'), interval('3 hours 3 days 20 minutes'), interval('4 hours 3 days 20 minutes'), NULL]);
+---- 1
+[3 days 02:20:00,3 days 03:20:00,3 days 04:20:00]
+
+-NAME ListUniqueWithInt16
+-QUERY MATCH (m:movies) WHERE m.name='Roma' RETURN list_unique([NULL, to_int16(m.length), to_int16(m.length), to_int16(1)])
+---- 1
+2
+
+-NAME ListUniqueWithInt32
+-QUERY MATCH (m:movies) WHERE m.name='Roma' RETURN list_unique([NULL, to_int32(m.length), to_int32(m.length), to_int32(3)])
+---- 1
+2
+
+-NAME ListUniqueWithInt64
+-QUERY Return list_unique([1, 1, NULL, -3, 1, 5]);
+---- 1
+3
+
+-NAME ListUniqueWithFloat
+-QUERY MATCH (p:person) WHERE p.ID=0 RETURN list_unique([NULL, to_float(p.gender), to_float(p.gender), to_float(4.5)])
+---- 1
+2
+
+-NAME ListUniqueWithDouble
+-QUERY Return list_unique([1.1, 1.1, NULL, -3.4, 1.2, 5.1]);
+---- 1
+4
+
+-NAME ListUniqueBoolean
+-QUERY Return list_unique([true, true, NULL, false, false]);
+---- 1
+2
+
+-NAME ListUniqueWithStringSeq1
+-QUERY Return list_unique(['this is long string', 'this is long string', NULL, 'bbb', 'ccc', 'aaa']);
+---- 1
+4
+
+-NAME ListUniqueWithStringSeq2
+-QUERY MATCH (a:person) RETURN list_unique([NULL, a.usedNames[1], 'sss', NULL])
+---- 8
+2
+2
+2
+2
+2
+2
+2
+2
+
+-NAME ListUniqueWithDate
+-QUERY Return list_unique([date('1992-05-03'), date('1993-05-03'), date('1993-05-03'), date('1994-05-03'), date('1993-05-03'), NULL]);
+---- 1
+3
+
+-NAME ListUniqueWithTimestamp
+-QUERY Return list_unique([timestamp('1992-05-03 11:13:25'), timestamp('1994-05-03 11:13:25'), timestamp('1993-05-03 11:13:25'), timestamp('1994-05-03 11:13:25'), NULL]);
+---- 1
+3
+
+-NAME ListUniqueWithInterval
+-QUERY Return list_unique([interval('2 hours 3 days 20 minutes'), interval('2 hours 3 days 20 minutes'), interval('3 hours 3 days 20 minutes'), interval('4 hours 3 days 20 minutes'), NULL]);
+---- 1
+3
+
+-NAME ListAnyValueWithInt16
+-QUERY MATCH (m:movies) WHERE m.name='Roma' RETURN list_any_value([NULL, to_int16(m.length), to_int16(m.length)])
+---- 1
+298
+
+-NAME ListAnyValueWithInt32
+-QUERY MATCH (m:movies) WHERE m.name='Roma' RETURN list_any_value([NULL, to_int32(m.length), to_int32(m.length)])
+---- 1
+298
+
+-NAME ListAnyValueWithInt64
+-QUERY Return list_any_value([NULL, 1, 1, NULL, -3, 1, 5]);
+---- 1
+1
+
+-NAME ListAnyValueWithFloat
+-QUERY MATCH (p:person) WHERE p.ID=0 RETURN list_any_value([NULL, to_float(p.gender), to_float(p.gender), to_float(2.3)])
+---- 1
+1.000000
+
+-NAME ListAnyValueWithDouble
+-QUERY Return list_any_value([NULL, 1.1, 1.1, NULL, -3.4, 1.2, 5.1]);
+---- 1
+1.100000
+
+-NAME ListAnyValueBoolean
+-QUERY Return list_any_value([NULL, true, true, NULL, false]);
+---- 1
+True
+
+-NAME ListAnyValueWithStringSeq1
+-QUERY Return list_any_value([NULL, NULL, 'this is long string', 'this is long string', NULL, 'this is long string', 'ccc', 'aaa']);
+---- 1
+this is long string
+
+-NAME ListAnyValueWithStringSeq2
+-QUERY MATCH (a:person) RETURN list_any_value([NULL, a.usedNames[1], 'sss'])
+---- 8
+Aida
+Bobby
+Carmen
+Wolfeschlegelstein
+Ein
+Fesdwe
+Grad
+Ad
+
+-NAME ListAnyValueWithDate
+-QUERY Return list_any_value([NULL, date('1992-05-03'), date('1993-05-03'), date('1993-05-03'), date('1994-05-03'), date('1993-05-03'), NULL]);
+---- 1
+1992-05-03
+
+-NAME ListAnyValueWithTimestamp
+-QUERY Return list_any_value([NULL, timestamp('1992-05-03 11:13:25'), timestamp('1994-05-03 11:13:25'), timestamp('1993-05-03 11:13:25'), timestamp('1994-05-03 11:13:25'), NULL]);
+---- 1
+1992-05-03 11:13:25
+
+-NAME ListAnyValueWithInterval
+-QUERY Return list_any_value([NULL, interval('2 hours 3 days 20 minutes'), interval('2 hours 3 days 20 minutes'), interval('3 hours 3 days 20 minutes'), interval('4 hours 3 days 20 minutes'), NULL]);
+---- 1
+3 days 02:20:00
+
+-NAME ListAnyValueWithList
+-QUERY Return list_any_value([NULL, [1,2,3], [3,4,5]]);
+---- 1
+[1,2,3]
