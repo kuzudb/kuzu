@@ -14,14 +14,14 @@ RelsStore::RelsStore(const Catalog& catalog, MemoryManager& memoryManager, WAL* 
     }
 }
 
-std::pair<std::vector<AdjLists*>, std::vector<AdjColumn*>> RelsStore::getAdjListsAndColumns(
+std::pair<std::vector<AdjLists*>, std::vector<Column*>> RelsStore::getAdjListsAndColumns(
     const table_id_t boundTableID) const {
     std::vector<AdjLists*> adjListsRetVal;
     for (auto& [_, relTable] : relTables) {
         auto adjListsForRel = relTable->getAllAdjLists(boundTableID);
         adjListsRetVal.insert(adjListsRetVal.end(), adjListsForRel.begin(), adjListsForRel.end());
     }
-    std::vector<AdjColumn*> adjColumnsRetVal;
+    std::vector<Column*> adjColumnsRetVal;
     for (auto& [_, relTable] : relTables) {
         auto adjColumnsForRel = relTable->getAllAdjColumns(boundTableID);
         adjColumnsRetVal.insert(

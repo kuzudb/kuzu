@@ -135,7 +135,7 @@ void NodeStatisticsAndDeletedIDs::errorIfNodeHasEdges(offset_t nodeOffset) {
                 adjList->getFileHandle()->getFileInfo()->path.c_str()));
         }
     }
-    for (AdjColumn* adjColumn : adjListsAndColumns.second) {
+    for (Column* adjColumn : adjListsAndColumns.second) {
         if (!adjColumn->isNull(nodeOffset, transaction::Transaction::getDummyWriteTrx().get())) {
             throw RuntimeException(StringUtils::string_format(
                 "Currently deleting a node with edges is not supported. node table {} nodeOffset "

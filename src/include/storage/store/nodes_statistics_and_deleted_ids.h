@@ -30,7 +30,7 @@ public:
     }
 
     inline void setAdjListsAndColumns(
-        std::pair<std::vector<AdjLists*>, std::vector<AdjColumn*>> adjListsAndColumns_) {
+        std::pair<std::vector<AdjLists*>, std::vector<Column*>> adjListsAndColumns_) {
         adjListsAndColumns = std::move(adjListsAndColumns_);
     }
 
@@ -66,7 +66,7 @@ private:
     common::table_id_t tableID;
     // Note: This is initialized explicitly through a call to setAdjListsAndColumns after
     // construction.
-    std::pair<std::vector<AdjLists*>, std::vector<AdjColumn*>> adjListsAndColumns;
+    std::pair<std::vector<AdjLists*>, std::vector<Column*>> adjListsAndColumns;
     std::vector<bool> hasDeletedNodesPerMorsel;
     std::map<uint64_t, std::set<common::offset_t>> deletedNodeOffsetsPerMorsel;
 };
