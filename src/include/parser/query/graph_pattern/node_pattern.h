@@ -30,6 +30,10 @@ public:
             propertyKeyValPairs[idx].first, propertyKeyValPairs[idx].second.get());
     }
 
+    void setTableNames(std::vector<std::string> otherTableNames) {
+        tableNames = std::move(otherTableNames);
+    }
+
 protected:
     std::string variableName;
     std::vector<std::string> tableNames;
