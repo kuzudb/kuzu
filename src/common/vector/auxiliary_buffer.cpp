@@ -36,7 +36,7 @@ list_entry_t ListAuxiliaryBuffer::addList(uint64_t listSize) {
     auto numBytesPerElement = dataVector->getNumBytesPerValue();
     if (needResizeDataVector) {
         auto buffer = std::make_unique<uint8_t[]>(capacity * numBytesPerElement);
-        memcpy(dataVector->valueBuffer.get(), buffer.get(), size * numBytesPerElement);
+        memcpy(buffer.get(), dataVector->valueBuffer.get(), size * numBytesPerElement);
         dataVector->valueBuffer = std::move(buffer);
         dataVector->nullMask->resize(capacity);
     }

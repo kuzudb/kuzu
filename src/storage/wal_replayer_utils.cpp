@@ -1,5 +1,6 @@
 #include "storage/wal_replayer_utils.h"
 
+#include "storage/in_mem_storage_structure/in_mem_column.h"
 #include "storage/index/hash_index_builder.h"
 
 using namespace kuzu::catalog;
@@ -25,7 +26,6 @@ void WALReplayerUtils::removeDBFilesForRelProperty(
 void WALReplayerUtils::createEmptyDBFilesForNewRelTable(RelTableSchema* relTableSchema,
     const std::string& directory, const std::map<table_id_t, uint64_t>& maxNodeOffsetsPerTable) {
     for (auto relDirection : REL_DIRECTIONS) {
-        auto boundTableID = relTableSchema->getBoundTableID(relDirection);
         if (relTableSchema->isSingleMultiplicityInDirection(relDirection)) {
             createEmptyDBFilesForColumns(
                 maxNodeOffsetsPerTable, relDirection, directory, relTableSchema);
@@ -44,8 +44,7 @@ void WALReplayerUtils::createEmptyDBFilesForNewNodeTable(
         }
         auto fName = StorageUtils::getNodePropertyColumnFName(
             directory, nodeTableSchema->tableID, property.propertyID, DBFileType::ORIGINAL);
-        InMemColumnFactory::getInMemPropertyColumn(fName, property.dataType, 0 /* numNodes */)
-            ->saveToFile();
+        std::make_unique<InMemColumn>(fName, property.dataType)->saveToFile();
     }
     switch (nodeTableSchema->getPrimaryKey().dataType.typeID) {
     case INT64: {
@@ -112,8 +111,7 @@ void WALReplayerUtils::createEmptyDBFilesForRelProperties(RelTableSchema* relTab
         if (isForRelPropertyColumn) {
             auto fName = StorageUtils::getRelPropertyColumnFName(directory, relTableSchema->tableID,
                 relDirection, property.propertyID, DBFileType::ORIGINAL);
-            InMemColumnFactory::getInMemPropertyColumn(fName, property.dataType, numNodes)
-                ->saveToFile();
+            std::make_unique<InMemColumn>(fName, property.dataType)->saveToFile();
         } else {
             auto fName = StorageUtils::getRelPropertyListsFName(directory, relTableSchema->tableID,
                 relDirection, property.propertyID, DBFileType::ORIGINAL);
@@ -130,9 +128,9 @@ void WALReplayerUtils::createEmptyDBFilesForColumns(
     auto numNodes = maxNodeOffsetsPerTable.at(boundTableID) == INVALID_OFFSET ?
                         0 :
                         maxNodeOffsetsPerTable.at(boundTableID) + 1;
-    make_unique<InMemAdjColumn>(StorageUtils::getAdjColumnFName(directory, relTableSchema->tableID,
-                                    relDirection, DBFileType::ORIGINAL),
-        numNodes)
+    make_unique<InMemColumn>(StorageUtils::getAdjColumnFName(directory, relTableSchema->tableID,
+                                 relDirection, DBFileType::ORIGINAL),
+        DataType(INTERNAL_ID))
         ->saveToFile();
     createEmptyDBFilesForRelProperties(
         relTableSchema, directory, relDirection, numNodes, true /* isForRelPropertyColumn */);
@@ -162,6 +160,8 @@ void WALReplayerUtils::replaceOriginalColumnFilesWithWALVersionIfExists(
     // replace the original version.
     FileUtils::renameFileIfExists(StorageUtils::getOverflowFileName(walColFileName),
         StorageUtils::getOverflowFileName(originalColFileName));
+    FileUtils::renameFileIfExists(StorageUtils::getPropertyNullFName(walColFileName),
+        StorageUtils::getPropertyNullFName(originalColFileName));
 }
 
 void WALReplayerUtils::replaceOriginalListFilesWithWALVersionIfExists(

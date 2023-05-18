@@ -56,11 +56,13 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCopyToPhysical(
     auto nodesStatistics = &storageManager.getNodesStore().getNodesStatisticsAndDeletedIDs();
     auto relsStatistics = &storageManager.getRelsStore().getRelsStatistics();
     if (catalog->getReadOnlyVersion()->containNodeTable(tableName)) {
-        return std::make_unique<CopyNode>(catalog, copy->getCopyDescription(), copy->getTableID(),
+        auto table = storageManager.getNodesStore().getNodeTable(copy->getTableID());
+        return std::make_unique<CopyNode>(catalog, copy->getCopyDescription(), table,
             storageManager.getWAL(), nodesStatistics, storageManager.getRelsStore(),
             getOperatorID(), copy->getExpressionsForPrinting());
     } else {
-        return std::make_unique<CopyRel>(catalog, copy->getCopyDescription(), copy->getTableID(),
+        auto table = storageManager.getRelsStore().getRelTable(copy->getTableID());
+        return std::make_unique<CopyRel>(catalog, copy->getCopyDescription(), table,
             storageManager.getWAL(), relsStatistics, storageManager.getNodesStore(),
             getOperatorID(), copy->getExpressionsForPrinting());
     }

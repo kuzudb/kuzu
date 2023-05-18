@@ -8,14 +8,13 @@
 namespace kuzu {
 namespace storage {
 
-using scan_data_func_t = std::function<void(transaction::Transaction* transaction, uint8_t* frame,
+using read_data_func_t = std::function<void(transaction::Transaction* transaction, uint8_t* frame,
     PageElementCursor& pageCursor, common::ValueVector* resultVector, uint32_t posInVector,
-    uint32_t numElementsPerPage, uint32_t numValuesToRead, DiskOverflowFile* diskOverflowFile)>;
-using lookup_data_func_t = std::function<void(transaction::Transaction* transaction, uint8_t* frame,
-    PageElementCursor& pageCursor, common::ValueVector* resultVector, uint32_t posInVector,
-    uint32_t numElementsPerPage, DiskOverflowFile* diskOverflowFile)>;
+    uint32_t numValuesToRead, DiskOverflowFile* diskOverflowFile)>;
 using write_data_func_t = std::function<void(uint8_t* frame, uint16_t posInFrame,
     common::ValueVector* vector, uint32_t posInVector, DiskOverflowFile* diskOverflowFile)>;
+
+class NullColumn;
 
 class Column : public BaseColumnOrList {
 public:
@@ -28,13 +27,7 @@ public:
               bufferManager, wal){};
 
     Column(const StorageStructureIDAndFName& structureIDAndFName, const common::DataType& dataType,
-        size_t elementSize, BufferManager* bufferManager, WAL* wal)
-        : BaseColumnOrList{structureIDAndFName, dataType, elementSize, bufferManager,
-              true /*hasNULLBytes*/, wal} {
-        scanDataFunc = Column::scanValuesFromPage;
-        lookupDataFunc = Column::lookupValueFromPage;
-        writeDataFunc = Column::writeValueToPage;
-    }
+        size_t elementSize, BufferManager* bufferManager, WAL* wal, bool requireNullBits = true);
 
     // Expose for feature store
     virtual void batchLookup(const common::offset_t* nodeOffsets, size_t size, uint8_t* result);
@@ -46,6 +39,8 @@ public:
 
     bool isNull(common::offset_t nodeOffset, transaction::Transaction* transaction);
     void setNull(common::offset_t nodeOffset);
+
+    inline NullColumn* getNullColumn() { return nullColumn.get(); }
 
     // Currently, used only in CopyCSV tests.
     // TODO(Guodong): Remove this function. Use `read` instead.
@@ -66,12 +61,9 @@ protected:
         const std::function<void(uint8_t*)>& func);
 
 private:
-    static void scanValuesFromPage(transaction::Transaction* transaction, uint8_t* frame,
+    static void readValuesFromPage(transaction::Transaction* transaction, uint8_t* frame,
         PageElementCursor& pageCursor, common::ValueVector* resultVector, uint32_t posInVector,
-        uint32_t numElementsPerPage, uint32_t numValuesToRead, DiskOverflowFile* diskOverflowFile);
-    static void lookupValueFromPage(transaction::Transaction* transaction, uint8_t* frame,
-        PageElementCursor& pageCursor, common::ValueVector* resultVector, uint32_t posInVector,
-        uint32_t numElementsPerPage, DiskOverflowFile* diskOverflowFile);
+        uint32_t numValuesToRead, DiskOverflowFile* diskOverflowFile);
     static void writeValueToPage(uint8_t* frame, uint16_t posInFrame, common::ValueVector* vector,
         uint32_t posInVector, DiskOverflowFile* diskOverflowFile);
 
@@ -81,10 +73,31 @@ protected:
         return i;
     };
 
-    scan_data_func_t scanDataFunc;
-    lookup_data_func_t lookupDataFunc;
+    read_data_func_t readDataFunc;
     write_data_func_t writeDataFunc;
     std::unique_ptr<DiskOverflowFile> diskOverflowFile;
+    std::unique_ptr<NullColumn> nullColumn;
+};
+
+class NullColumn : public Column {
+public:
+    NullColumn(const StorageStructureIDAndFName& structureIDAndFName, BufferManager* bufferManager,
+        WAL* wal)
+        : Column{structureIDAndFName, common::DataType(common::BOOL), sizeof(bool), bufferManager,
+              wal, false /* requireNullBits */} {
+        readDataFunc = NullColumn::readNullsFromPage;
+    }
+
+    void write(common::offset_t nodeOffset, common::ValueVector* vectorToWriteFrom,
+        uint32_t posInVectorToWriteFrom) final;
+
+    bool readValue(common::offset_t nodeOffset, transaction::Transaction* transaction);
+    void setValue(common::offset_t nodeOffset, bool isNull = true);
+
+private:
+    static void readNullsFromPage(transaction::Transaction* transaction, uint8_t* frame,
+        PageElementCursor& pageCursor, common::ValueVector* resultVector, uint32_t posInVector,
+        uint32_t numValuesToRead, DiskOverflowFile* diskOverflowFile);
 };
 
 class PropertyColumnWithOverflow : public Column {
@@ -110,11 +123,11 @@ public:
     };
 
     // Currently, used only in CopyCSV tests.
-    common::Value readValueForTestingOnly(common::offset_t offset) override;
+    common::Value readValueForTestingOnly(common::offset_t offset) final;
 
 private:
     inline void lookup(transaction::Transaction* transaction, common::offset_t nodeOffset,
-        common::ValueVector* resultVector, uint32_t vectorPos) override {
+        common::ValueVector* resultVector, uint32_t vectorPos) final {
         common::StringVector::resetOverflowBuffer(resultVector);
         Column::lookup(transaction, nodeOffset, resultVector, vectorPos);
         if (!resultVector->isNull(vectorPos)) {
@@ -123,11 +136,12 @@ private:
         }
     }
     inline void scan(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
-        common::ValueVector* resultVector) override {
+        common::ValueVector* resultVector) final {
         common::StringVector::resetOverflowBuffer(resultVector);
         Column::scan(transaction, nodeIDVector, resultVector);
         diskOverflowFile->scanStrings(transaction->getType(), *resultVector);
     }
+
     static void writeStringToPage(uint8_t* frame, uint16_t posInFrame, common::ValueVector* vector,
         uint32_t posInVector, DiskOverflowFile* diskOverflowFile);
 };
@@ -138,20 +152,16 @@ public:
         const common::DataType& dataType, BufferManager* bufferManager, WAL* wal)
         : PropertyColumnWithOverflow{
               structureIDAndFNameOfMainColumn, dataType, bufferManager, wal} {
-        scanDataFunc = ListPropertyColumn::scanListsFromPage;
-        lookupDataFunc = ListPropertyColumn::lookupListFromPage;
+        readDataFunc = ListPropertyColumn::readListsFromPage;
         writeDataFunc = ListPropertyColumn::writeListToPage;
     };
 
-    common::Value readValueForTestingOnly(common::offset_t offset) override;
+    common::Value readValueForTestingOnly(common::offset_t offset) final;
 
 private:
-    static void scanListsFromPage(transaction::Transaction* transaction, uint8_t* frame,
+    static void readListsFromPage(transaction::Transaction* transaction, uint8_t* frame,
         PageElementCursor& pageCursor, common::ValueVector* resultVector, uint32_t posInVector,
-        uint32_t numElementsPerPage, uint32_t numValuesToRead, DiskOverflowFile* diskOverflowFile);
-    static void lookupListFromPage(transaction::Transaction* transaction, uint8_t* frame,
-        PageElementCursor& pageCursor, common::ValueVector* resultVector, uint32_t posInVector,
-        uint32_t numElementsPerPage, DiskOverflowFile* diskOverflowFile);
+        uint32_t numValuesToRead, DiskOverflowFile* diskOverflowFile);
     static void writeListToPage(uint8_t* frame, uint16_t posInFrame, common::ValueVector* vector,
         uint32_t posInVector, DiskOverflowFile* diskOverflowFile);
 };
@@ -162,7 +172,7 @@ public:
         const common::DataType& dataType, BufferManager* bufferManager, WAL* wal);
 
     void read(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
-        common::ValueVector* resultVector) override;
+        common::ValueVector* resultVector) final;
 
 private:
     std::vector<std::unique_ptr<Column>> structFieldColumns;
@@ -173,19 +183,15 @@ public:
     InternalIDColumn(const StorageStructureIDAndFName& structureIDAndFName,
         BufferManager* bufferManager, WAL* wal)
         : Column{structureIDAndFName, common::DataType(common::INTERNAL_ID),
-              sizeof(common::offset_t), bufferManager, wal} {
-        scanDataFunc = InternalIDColumn::scanInternalIDsFromPage;
-        lookupDataFunc = InternalIDColumn::lookupInternalIDFromPage;
+              sizeof(common::offset_t), bufferManager, wal, true /* requireNullBits */} {
+        readDataFunc = InternalIDColumn::readInternalIDsFromPage;
         writeDataFunc = InternalIDColumn::writeInternalIDToPage;
     }
 
 private:
-    static void scanInternalIDsFromPage(transaction::Transaction* transaction, uint8_t* frame,
+    static void readInternalIDsFromPage(transaction::Transaction* transaction, uint8_t* frame,
         PageElementCursor& pageCursor, common::ValueVector* resultVector, uint32_t posInVector,
-        uint32_t numElementsPerPage, uint32_t numValuesToRead, DiskOverflowFile* diskOverflowFile);
-    static void lookupInternalIDFromPage(transaction::Transaction* transaction, uint8_t* frame,
-        PageElementCursor& pageCursor, common::ValueVector* resultVector, uint32_t posInVector,
-        uint32_t numElementsPerPage, DiskOverflowFile* diskOverflowFile);
+        uint32_t numValuesToRead, DiskOverflowFile* diskOverflowFile);
     static void writeInternalIDToPage(uint8_t* frame, uint16_t posInFrame,
         common::ValueVector* vector, uint32_t posInVector, DiskOverflowFile* diskOverflowFile);
 };
@@ -195,7 +201,7 @@ public:
     SerialColumn() : Column{common::DataType{common::SERIAL}} {}
 
     void read(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
-        common::ValueVector* resultVector) override;
+        common::ValueVector* resultVector) final;
 };
 
 class ColumnFactory {

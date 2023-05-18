@@ -4,8 +4,6 @@
 #include "common/copier_config/copier_config.h"
 #include "common/logging_level_utils.h"
 #include "common/task_system/task_scheduler.h"
-#include "storage/in_mem_storage_structure/in_mem_column.h"
-#include "storage/in_mem_storage_structure/in_mem_lists.h"
 #include "storage/store/table_statistics.h"
 #include <arrow/api.h>
 #include <arrow/csv/api.h>

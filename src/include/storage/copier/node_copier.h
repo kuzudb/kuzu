@@ -2,8 +2,9 @@
 
 #include "storage/copier/npy_reader.h"
 #include "storage/copier/table_copy_executor.h"
-#include "storage/in_mem_storage_structure/in_mem_node_column.h"
+#include "storage/in_mem_storage_structure/in_mem_column.h"
 #include "storage/index/hash_index_builder.h"
+#include "storage/store/node_table.h"
 #include <arrow/api.h>
 #include <arrow/csv/api.h>
 #include <arrow/io/api.h>
@@ -88,13 +89,20 @@ private:
 
 class NodeCopier {
 public:
+    NodeCopier(const std::string& directory, std::shared_ptr<NodeCopySharedState> sharedState,
+        PrimaryKeyIndexBuilder* pkIndex, const common::CopyDescription& copyDesc,
+        catalog::TableSchema* schema, NodeTable* table, common::column_id_t pkColumnID);
+
+    // For clone.
     NodeCopier(std::shared_ptr<NodeCopySharedState> sharedState, PrimaryKeyIndexBuilder* pkIndex,
-        const common::CopyDescription& copyDesc, std::vector<InMemNodeColumn*> columns,
-        common::column_id_t pkColumnID)
-        : sharedState{std::move(sharedState)}, pkIndex{pkIndex}, copyDesc{copyDesc},
-          columns{std::move(columns)}, pkColumnID{pkColumnID} {
-        overflowCursors.resize(this->columns.size());
+        const common::CopyDescription& copyDesc, NodeTable* table, common::property_id_t pkColumnID,
+        std::vector<std::shared_ptr<InMemColumn>> columns,
+        std::vector<catalog::Property> properties)
+        : sharedState{std::move(sharedState)}, pkIndex{pkIndex}, copyDesc{copyDesc}, table{table},
+          pkColumnID{pkColumnID}, columns{std::move(columns)}, properties{std::move(properties)} {
+        overflowCursors.resize(this->properties.size());
     }
+
     virtual ~NodeCopier() = default;
 
     void execute(processor::ExecutionContext* executionContext);
@@ -103,10 +111,14 @@ public:
         if (pkIndex) {
             pkIndex->flush();
         }
+        for (auto& column : columns) {
+            column->saveToFile();
+        }
     }
 
     virtual std::unique_ptr<NodeCopier> clone() const {
-        return std::make_unique<NodeCopier>(sharedState, pkIndex, copyDesc, columns, pkColumnID);
+        return std::make_unique<NodeCopier>(
+            sharedState, pkIndex, copyDesc, table, pkColumnID, columns, properties);
     }
 
 protected:
@@ -115,14 +127,14 @@ protected:
     }
 
     void copyArrayIntoColumnChunk(InMemColumnChunk* columnChunk, common::column_id_t columnID,
-        arrow::Array& arrowArray, common::offset_t startNodeOffset,
-        common::CopyDescription& copyDescription);
+        arrow::Array& arrowArray, common::CopyDescription& copyDescription);
     void populatePKIndex(InMemColumnChunk* chunk, InMemOverflowFile* overflowFile,
-        common::NullMask* nullMask, common::offset_t startOffset, uint64_t numValues);
+        common::offset_t startOffset, uint64_t numValues);
 
     void flushChunksAndPopulatePKIndex(
         const std::vector<std::unique_ptr<InMemColumnChunk>>& columnChunks,
-        common::offset_t startNodeOffset, common::offset_t endNodeOffset);
+        common::offset_t startNodeOffset, common::offset_t endNodeOffset,
+        common::column_id_t columnToFlush = common::INVALID_COLUMN_ID);
 
     template<typename T, typename... Args>
     void appendToPKIndex(
@@ -134,9 +146,12 @@ protected:
     std::shared_ptr<NodeCopySharedState> sharedState;
     PrimaryKeyIndexBuilder* pkIndex;
     common::CopyDescription copyDesc;
-    std::vector<InMemNodeColumn*> columns;
-    common::column_id_t pkColumnID;
+    NodeTable* table;
+    // The properties to be copied into. Each property corresponds to a column.
+    std::vector<catalog::Property> properties;
+    std::vector<std::shared_ptr<InMemColumn>> columns;
     std::vector<PageByteCursor> overflowCursors;
+    common::column_id_t pkColumnID;
 };
 
 template<>
@@ -149,14 +164,23 @@ void NodeCopier::appendToPKIndex<common::ku_string_t, storage::InMemOverflowFile
 
 class CSVNodeCopier : public NodeCopier {
 public:
+    CSVNodeCopier(const std::string& directory, std::shared_ptr<NodeCopySharedState> sharedState,
+        PrimaryKeyIndexBuilder* pkIndex, const common::CopyDescription& copyDesc,
+        catalog::TableSchema* schema, NodeTable* table, common::property_id_t pkColumnID)
+        : NodeCopier{
+              directory, std::move(sharedState), pkIndex, copyDesc, schema, table, pkColumnID} {}
+
+    // For clone.
     CSVNodeCopier(std::shared_ptr<NodeCopySharedState> sharedState, PrimaryKeyIndexBuilder* pkIndex,
-        const common::CopyDescription& copyDesc, std::vector<InMemNodeColumn*> columns,
-        common::column_id_t pkColumnID)
-        : NodeCopier{std::move(sharedState), pkIndex, copyDesc, std::move(columns), pkColumnID} {}
+        const common::CopyDescription& copyDesc, NodeTable* table, common::column_id_t pkColumnID,
+        std::vector<std::shared_ptr<InMemColumn>> columns,
+        std::vector<catalog::Property> properties)
+        : NodeCopier{std::move(sharedState), pkIndex, copyDesc, table, pkColumnID,
+              std::move(columns), std::move(properties)} {}
 
     inline std::unique_ptr<NodeCopier> clone() const override {
         return std::make_unique<CSVNodeCopier>(
-            this->sharedState, this->pkIndex, this->copyDesc, this->columns, this->pkColumnID);
+            sharedState, pkIndex, copyDesc, table, pkColumnID, columns, properties);
     }
 
 protected:
@@ -165,14 +189,24 @@ protected:
 
 class ParquetNodeCopier : public NodeCopier {
 public:
+    ParquetNodeCopier(const std::string& directory,
+        std::shared_ptr<NodeCopySharedState> sharedState, PrimaryKeyIndexBuilder* pkIndex,
+        const common::CopyDescription& copyDesc, catalog::TableSchema* schema, NodeTable* table,
+        common::column_id_t pkColumnID)
+        : NodeCopier{
+              directory, std::move(sharedState), pkIndex, copyDesc, schema, table, pkColumnID} {}
+
+    // Clone.
     ParquetNodeCopier(std::shared_ptr<NodeCopySharedState> sharedState,
-        PrimaryKeyIndexBuilder* pkIndex, const common::CopyDescription& copyDesc,
-        std::vector<InMemNodeColumn*> columns, common::column_id_t pkColumnID)
-        : NodeCopier{std::move(sharedState), pkIndex, copyDesc, std::move(columns), pkColumnID} {}
+        PrimaryKeyIndexBuilder* pkIndex, const common::CopyDescription& copyDesc, NodeTable* table,
+        common::column_id_t pkColumnID, std::vector<std::shared_ptr<InMemColumn>> columns,
+        std::vector<catalog::Property> properties)
+        : NodeCopier{std::move(sharedState), pkIndex, copyDesc, table, pkColumnID,
+              std::move(columns), std::move(properties)} {}
 
     inline std::unique_ptr<NodeCopier> clone() const override {
         return std::make_unique<ParquetNodeCopier>(
-            this->sharedState, this->pkIndex, this->copyDesc, this->columns, this->pkColumnID);
+            sharedState, pkIndex, copyDesc, table, pkColumnID, columns, properties);
     }
 
 protected:
@@ -185,20 +219,33 @@ private:
 
 class NPYNodeCopier : public NodeCopier {
 public:
+    NPYNodeCopier(const std::string& directory, std::shared_ptr<NodeCopySharedState> sharedState,
+        PrimaryKeyIndexBuilder* pkIndex, const common::CopyDescription& copyDesc,
+        catalog::TableSchema* schema, NodeTable* table, common::column_id_t pkColumnID,
+        common::column_id_t columnToCopy)
+        : NodeCopier{directory, std::move(sharedState), pkIndex, copyDesc, schema, table,
+              pkColumnID},
+          columnToCopy{columnToCopy} {}
+
+    // Clone.
     NPYNodeCopier(std::shared_ptr<NodeCopySharedState> sharedState, PrimaryKeyIndexBuilder* pkIndex,
-        const common::CopyDescription& copyDesc, std::vector<InMemNodeColumn*> columns,
-        common::column_id_t pkColumnID)
-        : NodeCopier{std::move(sharedState), pkIndex, copyDesc, std::move(columns), pkColumnID} {}
+        const common::CopyDescription& copyDesc, NodeTable* table, common::column_id_t pkColumnID,
+        common::column_id_t columnToCopy, std::vector<std::shared_ptr<InMemColumn>> columns,
+        std::vector<catalog::Property> properties)
+        : NodeCopier{std::move(sharedState), pkIndex, copyDesc, table, pkColumnID,
+              std::move(columns), std::move(properties)},
+          columnToCopy{columnToCopy} {}
 
     inline std::unique_ptr<NodeCopier> clone() const override {
         return std::make_unique<NPYNodeCopier>(
-            this->sharedState, this->pkIndex, this->copyDesc, this->columns, this->pkColumnID);
+            sharedState, pkIndex, copyDesc, table, pkColumnID, columnToCopy, columns, properties);
     }
 
 protected:
     void executeInternal(std::unique_ptr<NodeCopyMorsel> morsel) override;
 
 private:
+    common::column_id_t columnToCopy;
     std::unique_ptr<NpyReader> reader;
 };
 

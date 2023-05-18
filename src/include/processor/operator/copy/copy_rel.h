@@ -9,16 +9,16 @@ namespace processor {
 
 class CopyRel : public Copy {
 public:
-    CopyRel(catalog::Catalog* catalog, common::CopyDescription copyDescription,
-        common::table_id_t tableID, storage::WAL* wal, storage::RelsStatistics* relsStatistics,
+    CopyRel(catalog::Catalog* catalog, const common::CopyDescription& copyDescription,
+        storage::RelTable* table, storage::WAL* wal, storage::RelsStatistics* relsStatistics,
         storage::NodesStore& nodesStore, uint32_t id, const std::string& paramsString)
-        : Copy{PhysicalOperatorType::COPY_REL, catalog, std::move(copyDescription), tableID, wal,
-              id, paramsString},
-          relsStatistics{relsStatistics}, nodesStore{nodesStore} {}
+        : Copy{PhysicalOperatorType::COPY_REL, catalog, copyDescription, table->getRelTableID(),
+              wal, id, paramsString},
+          table{table}, relsStatistics{relsStatistics}, nodesStore{nodesStore} {}
 
     std::unique_ptr<PhysicalOperator> clone() override {
         return make_unique<CopyRel>(
-            catalog, copyDescription, tableID, wal, relsStatistics, nodesStore, id, paramsString);
+            catalog, copyDescription, table, wal, relsStatistics, nodesStore, id, paramsString);
     }
 
 protected:
@@ -31,6 +31,7 @@ private:
     }
 
 private:
+    storage::RelTable* table;
     storage::RelsStatistics* relsStatistics;
     storage::NodesStore& nodesStore;
 };

@@ -13,175 +13,161 @@ namespace storage {
 
 class InMemColumnChunk {
 public:
-    InMemColumnChunk() = default;
+    InMemColumnChunk(common::DataType dataType, common::offset_t startNodeOffset,
+        common::offset_t endNodeOffset, bool requireNullBits = true);
 
-    InMemColumnChunk(common::DataType dataType, common::offset_t startOffset,
-        common::offset_t endOffset, uint16_t numBytesForElement, uint64_t numElementsInAPage);
-
-    virtual ~InMemColumnChunk() = default;
-
-    inline uint8_t* getPage(common::page_idx_t pageIdx) {
-        assert(pageIdx <= endPageIdx && pageIdx >= startPageIdx);
-        auto pageIdxInSet = pageIdx - startPageIdx;
-        return pages.get() + (pageIdxInSet * common::BufferPoolConstants::PAGE_4KB_SIZE);
-    }
-    inline void copyValue(
-        common::page_idx_t pageIdx, common::offset_t posInPage, const uint8_t* val) {
-        auto elemPosInPageInBytes = posInPage * numBytesForElement;
-        memcpy(getPage(pageIdx) + elemPosInPageInBytes, val, numBytesForElement);
-    }
-    inline uint8_t* getValue(common::offset_t nodeOffset) {
-        auto cursor = CursorUtils::getPageElementCursor(nodeOffset, numElementsInAPage);
-        auto elemPosInPageInBytes = cursor.elemPosInPage * numBytesForElement;
-        return getPage(cursor.pageIdx) + elemPosInPageInBytes;
-    }
     inline common::DataType getDataType() const { return dataType; }
 
-    inline uint64_t getNumElementsInAPage() const { return numElementsInAPage; }
+    template<typename T>
+    inline T getValue(common::offset_t pos) const {
+        return ((T*)buffer.get())[pos];
+    }
+
+    void setValue(uint8_t* val, common::offset_t pos);
+
+    inline bool isNull(common::offset_t pos) const {
+        assert(nullChunk);
+        return nullChunk->getValue<bool>(pos);
+    }
+    inline uint8_t* getData() const { return buffer.get(); }
+    inline uint64_t getNumBytesPerValue() const { return numBytesPerValue; }
+    inline uint64_t getNumBytes() const { return numBytes; }
+    inline InMemColumnChunk* getChildChunk(common::vector_idx_t childIdx) {
+        return childChunks[childIdx].get();
+    }
+    inline InMemColumnChunk* getNullChunk() { return nullChunk.get(); }
+    void flush(common::FileInfo* walFileInfo);
 
     template<typename T, typename... Args>
-    void templateCopyValuesToPage(const PageElementCursor& pageCursor, arrow::Array& array,
-        uint64_t posInArray, uint64_t numValues, Args... args) {
-        const auto& data = array.data();
-        auto valuesInArray = data->GetValues<T>(1);
-        auto valuesInPage = (T*)(getPage(pageCursor.pageIdx));
-        if (data->MayHaveNulls()) {
-            for (auto i = 0u; i < numValues; i++) {
-                if (data->IsNull(i + posInArray)) {
+    void templateCopyValuesToPage(arrow::Array& array, Args... args) {
+        const auto& arrayData = array.data();
+        auto valuesInArray = arrayData->GetValues<T>(1 /* value buffer */);
+        auto valuesInChunk = (T*)(buffer.get());
+        if (arrayData->MayHaveNulls()) {
+            for (auto i = 0u; i < array.length(); i++) {
+                if (arrayData->IsNull(i)) {
                     continue;
                 }
-                valuesInPage[i + pageCursor.elemPosInPage] = valuesInArray[i + posInArray];
+                valuesInChunk[i] = valuesInArray[i];
+                nullChunk->setValue<bool>(false, i);
             }
         } else {
-            for (auto i = 0u; i < numValues; i++) {
-                valuesInPage[i + pageCursor.elemPosInPage] = valuesInArray[i + posInArray];
+            for (auto i = 0u; i < array.length(); i++) {
+                valuesInChunk[i] = valuesInArray[i];
+                nullChunk->setValue<bool>(false, i);
             }
         }
     }
 
     template<typename T, typename... Args>
-    void templateCopyValuesAsStringToPage(const PageElementCursor& pageCursor, arrow::Array& array,
-        uint64_t posInArray, uint64_t numValues, Args... args) {
+    void templateCopyValuesAsStringToPage(arrow::Array& array, Args... args) {
         auto& stringArray = (arrow::StringArray&)array;
-        auto data = stringArray.data();
-        if (data->MayHaveNulls()) {
-            for (auto i = 0u; i < numValues; i++) {
-                if (data->IsNull(i + posInArray)) {
+        auto arrayData = stringArray.data();
+        if (arrayData->MayHaveNulls()) {
+            for (auto i = 0u; i < stringArray.length(); i++) {
+                if (arrayData->IsNull(i)) {
                     continue;
                 }
-                auto value = stringArray.GetView(i + posInArray);
-                setValueFromString<T, Args...>(value.data(), value.length(), pageCursor.pageIdx,
-                    i + pageCursor.elemPosInPage, args...);
+                auto value = stringArray.GetView(i);
+                setValueFromString<T, Args...>(value.data(), value.length(), i, args...);
+                nullChunk->setValue<bool>(false, i);
             }
         } else {
-            for (auto i = 0u; i < numValues; i++) {
-                auto value = stringArray.GetView(i + posInArray);
-                setValueFromString<T, Args...>(value.data(), value.length(), pageCursor.pageIdx,
-                    i + pageCursor.elemPosInPage, args...);
+            for (auto i = 0u; i < stringArray.length(); i++) {
+                auto value = stringArray.GetView(i);
+                setValueFromString<T, Args...>(value.data(), value.length(), i, args...);
+                nullChunk->setValue<bool>(false, i);
             }
         }
     }
 
     template<typename T, typename... Args>
-    void setValueFromString(const char* value, uint64_t length, common::page_idx_t pageIdx,
-        uint64_t posInPage, Args... args) {
-        auto num = common::TypeUtils::convertStringToNumber<T>(value);
-        copyValue(pageIdx, posInPage, (uint8_t*)&num);
+    void setValueFromString(
+        const char* value, uint64_t length, common::offset_t pos, Args... args) {
+        auto val = common::TypeUtils::convertStringToNumber<T>(value);
+        setValue(val, pos);
     }
-
-    virtual void copyStructValueToFields(arrow::Array& array, uint64_t posInArray,
-        const common::CopyDescription& copyDescription, common::offset_t nodeOffset,
-        uint64_t numValues) {
-        assert(false);
-    }
-
-protected:
-    common::DataType dataType;
-    uint16_t numBytesForElement;
-    common::page_idx_t startPageIdx;
-    common::page_idx_t endPageIdx;
-    std::unique_ptr<uint8_t[]> pages;
-    uint64_t numElementsInAPage;
-};
-
-class InMemStructColumnChunk : public InMemColumnChunk {
-public:
-    InMemStructColumnChunk(
-        common::DataType dataType, common::offset_t startOffset, common::offset_t endOffset);
-
-    void copyStructValueToFields(arrow::Array& array, uint64_t posInArray,
-        const common::CopyDescription& copyDescription, common::offset_t nodeOffset,
-        uint64_t numValues) override;
-
-    std::vector<InMemColumnChunk*> getInMemColumnChunksForFields();
-
-    uint64_t getMinNumValuesLeftOnPage(common::offset_t nodeOffset);
 
 private:
-    void copyValueToStructColumnField(common::offset_t nodeOffset,
+    template<typename T>
+    inline void setValue(T val, common::offset_t pos) {
+        ((T*)buffer.get())[pos] = val;
+    }
+
+    static uint32_t getDataTypeSizeInColumn(common::DataType& dataType);
+
+private:
+    common::DataType dataType;
+    common::offset_t startNodeOffset;
+    std::uint64_t numBytesPerValue;
+    std::uint64_t numBytes;
+    std::unique_ptr<uint8_t[]> buffer;
+    std::unique_ptr<InMemColumnChunk> nullChunk;
+    std::vector<std::unique_ptr<InMemColumnChunk>> childChunks;
+};
+
+class InMemStructColumnChunk {
+public:
+    static common::field_idx_t getStructFieldIdx(
+        std::vector<std::string> structFieldNames, std::string structFieldName);
+
+    static void setValueToStructColumnField(InMemColumnChunk* chunk, common::offset_t pos,
         common::field_idx_t structFieldIdx, const std::string& structFieldValue,
         const common::DataType& dataType);
-
-private:
-    std::vector<std::unique_ptr<InMemColumnChunk>> inMemColumnChunksForFields;
-};
-
-class InMemColumnChunkFactory {
-public:
-    static std::unique_ptr<InMemColumnChunk> getInMemColumnChunk(common::DataType dataType,
-        common::offset_t startOffset, common::offset_t endOffset, uint16_t numBytesForElement,
-        uint64_t numElementsInAPage);
 };
 
 template<>
-void InMemColumnChunk::templateCopyValuesToPage<bool>(const PageElementCursor& pageCursor,
-    arrow::Array& array, uint64_t posInArray, uint64_t numValues);
+void InMemColumnChunk::templateCopyValuesToPage<bool>(arrow::Array& array);
 template<>
-void InMemColumnChunk::templateCopyValuesToPage<common::interval_t>(
-    const PageElementCursor& pageCursor, arrow::Array& array, uint64_t posInArray,
-    uint64_t numValues);
+void InMemColumnChunk::templateCopyValuesToPage<common::interval_t>(arrow::Array& array);
 template<>
-void InMemColumnChunk::templateCopyValuesToPage<common::ku_list_t>(
-    const PageElementCursor& pageCursor, arrow::Array& array, uint64_t posInArray,
-    uint64_t numValues);
+void InMemColumnChunk::templateCopyValuesToPage<common::ku_list_t>(arrow::Array& array);
+
 // Specialized optimization for copy string values from arrow to pages.
 // The optimization is to use string_view to avoid creation of std::string.
-// Possible switches: date, timestamp, interval, fixed/var list, string
+// Possible switches: date, timestamp, interval, fixed/var list, string, struct
 template<>
 void InMemColumnChunk::templateCopyValuesToPage<std::string, InMemOverflowFile*, PageByteCursor&,
-    common::CopyDescription&>(const PageElementCursor& pageCursor, arrow::Array& array,
-    uint64_t posInArray, uint64_t numValues, InMemOverflowFile* overflowFile,
+    common::CopyDescription&>(arrow::Array& array, InMemOverflowFile* overflowFile,
     PageByteCursor& overflowCursor, common::CopyDescription& copyDesc);
-template<>
-void InMemColumnChunk::templateCopyValuesToPage<std::string, common::CopyDescription&,
-    common::offset_t>(const PageElementCursor& pageCursor, arrow::Array& array, uint64_t posInArray,
-    uint64_t numValues, common::CopyDescription& copyDesc, common::offset_t nodeOffset);
 
+// BOOL
 template<>
 void InMemColumnChunk::setValueFromString<bool>(
-    const char* value, uint64_t length, common::page_idx_t pageIdx, uint64_t posInPage);
+    const char* value, uint64_t length, common::offset_t pos);
+// STRING
 template<>
 void InMemColumnChunk::setValueFromString<common::ku_string_t, InMemOverflowFile*, PageByteCursor&>(
-    const char* value, uint64_t length, common::page_idx_t pageIdx, uint64_t posInPage,
-    InMemOverflowFile* overflowFile, PageByteCursor& overflowCursor);
+    const char* value, uint64_t length, uint64_t pos, InMemOverflowFile* overflowFile,
+    PageByteCursor& overflowCursor);
+// FIXED_LIST
 template<>
-void InMemColumnChunk::setValueFromString<uint8_t*, common::CopyDescription&>(const char* value,
-    uint64_t length, common::page_idx_t pageIdx, uint64_t posInPage,
-    common::CopyDescription& copyDescription);
+void InMemColumnChunk::setValueFromString<uint8_t*, common::CopyDescription&>(
+    const char* value, uint64_t length, uint64_t pos, common::CopyDescription& copyDescription);
+// VAR_LIST
 template<>
 void InMemColumnChunk::setValueFromString<common::ku_list_t, InMemOverflowFile*, PageByteCursor&,
-    common::CopyDescription&>(const char* value, uint64_t length, common::page_idx_t pageIdx,
-    uint64_t posInPage, InMemOverflowFile* overflowFile, PageByteCursor& overflowCursor,
+    common::CopyDescription&>(const char* value, uint64_t length, uint64_t pos,
+    InMemOverflowFile* overflowFile, PageByteCursor& overflowCursor,
     common::CopyDescription& copyDescription);
+// STRUCT
+template<>
+void InMemColumnChunk::setValueFromString<common::struct_entry_t, InMemOverflowFile*,
+    PageByteCursor&, common::CopyDescription&>(const char* value, uint64_t length, uint64_t pos,
+    InMemOverflowFile* overflowFile, PageByteCursor& overflowCursor,
+    common::CopyDescription& copyDescription);
+// INTERVAL
 template<>
 void InMemColumnChunk::setValueFromString<common::interval_t>(
-    const char* value, uint64_t length, common::page_idx_t pageIdx, uint64_t posInPage);
+    const char* value, uint64_t length, uint64_t pos);
+// DATE
 template<>
 void InMemColumnChunk::setValueFromString<common::date_t>(
-    const char* value, uint64_t length, common::page_idx_t pageIdx, uint64_t posInPage);
+    const char* value, uint64_t length, uint64_t pos);
+// TIMESTAMP
 template<>
 void InMemColumnChunk::setValueFromString<common::timestamp_t>(
-    const char* value, uint64_t length, common::page_idx_t pageIdx, uint64_t posInPage);
+    const char* value, uint64_t length, uint64_t pos);
 
 } // namespace storage
 } // namespace kuzu

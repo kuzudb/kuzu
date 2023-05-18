@@ -197,18 +197,22 @@ std::shared_ptr<FlatTuple> QueryResult::getNext() {
 
 std::string QueryResult::toString() {
     std::string result;
-    // print header
-    for (auto i = 0u; i < columnNames.size(); ++i) {
-        if (i != 0) {
-            result += "|";
+    if (isSuccess()) {
+        // print header
+        for (auto i = 0u; i < columnNames.size(); ++i) {
+            if (i != 0) {
+                result += "|";
+            }
+            result += columnNames[i];
         }
-        result += columnNames[i];
-    }
-    result += "\n";
-    resetIterator();
-    while (hasNext()) {
-        getNext();
-        result += tuple->toString();
+        result += "\n";
+        resetIterator();
+        while (hasNext()) {
+            getNext();
+            result += tuple->toString();
+        }
+    } else {
+        result = errMsg;
     }
     return result;
 }

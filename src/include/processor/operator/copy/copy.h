@@ -11,10 +11,10 @@ namespace processor {
 class Copy : public PhysicalOperator {
 public:
     Copy(PhysicalOperatorType operatorType, catalog::Catalog* catalog,
-        common::CopyDescription copyDescription, common::table_id_t tableID, storage::WAL* wal,
-        uint32_t id, const std::string& paramsString)
+        const common::CopyDescription& copyDescription, common::table_id_t tableID,
+        storage::WAL* wal, uint32_t id, const std::string& paramsString)
         : PhysicalOperator{operatorType, id, paramsString}, catalog{catalog},
-          copyDescription{std::move(copyDescription)}, tableID{tableID}, wal{wal} {}
+          copyDescription{copyDescription}, tableID{tableID}, wal{wal} {}
 
     inline bool isSource() const override { return true; }
 

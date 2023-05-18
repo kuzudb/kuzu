@@ -8,17 +8,17 @@ namespace processor {
 
 class CopyNode : public Copy {
 public:
-    CopyNode(catalog::Catalog* catalog, common::CopyDescription copyDescription,
-        common::table_id_t tableID, storage::WAL* wal,
+    CopyNode(catalog::Catalog* catalog, const common::CopyDescription& copyDescription,
+        storage::NodeTable* table, storage::WAL* wal,
         storage::NodesStatisticsAndDeletedIDs* nodesStatistics, storage::RelsStore& relsStore,
         uint32_t id, const std::string& paramsString)
-        : Copy{PhysicalOperatorType::COPY_NODE, catalog, std::move(copyDescription), tableID, wal,
+        : Copy{PhysicalOperatorType::COPY_NODE, catalog, copyDescription, table->getTableID(), wal,
               id, paramsString},
-          nodesStatistics{nodesStatistics}, relsStore{relsStore} {}
+          table{table}, nodesStatistics{nodesStatistics}, relsStore{relsStore} {}
 
     std::unique_ptr<PhysicalOperator> clone() override {
         return std::make_unique<CopyNode>(
-            catalog, copyDescription, tableID, wal, nodesStatistics, relsStore, id, paramsString);
+            catalog, copyDescription, table, wal, nodesStatistics, relsStore, id, paramsString);
     }
 
 protected:
@@ -31,6 +31,7 @@ private:
     }
 
 private:
+    storage::NodeTable* table;
     storage::NodesStatisticsAndDeletedIDs* nodesStatistics;
     storage::RelsStore& relsStore;
 };

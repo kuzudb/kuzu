@@ -8,7 +8,7 @@ namespace kuzu {
 namespace storage {
 
 std::unique_ptr<NodeCopyMorsel> NodeCopySharedState::getMorsel() {
-    std::unique_lock lck{this->mtx};
+    std::unique_lock lck{mtx};
     while (true) {
         if (fileIdx >= filePaths.size()) {
             // No more files to read.
@@ -31,7 +31,7 @@ std::unique_ptr<NodeCopyMorsel> NodeCopySharedState::getMorsel() {
 }
 
 std::unique_ptr<NodeCopyMorsel> CSVNodeCopySharedState::getMorsel() {
-    std::unique_lock lck{this->mtx};
+    std::unique_lock lck{mtx};
     while (true) {
         if (fileIdx >= filePaths.size()) {
             // No more files to read.
@@ -43,7 +43,7 @@ std::unique_ptr<NodeCopyMorsel> CSVNodeCopySharedState::getMorsel() {
         }
         std::shared_ptr<arrow::RecordBatch> recordBatch;
         TableCopyExecutor::throwCopyExceptionIfNotOK(reader->ReadNext(&recordBatch));
-        if (recordBatch == NULL) {
+        if (recordBatch == nullptr) {
             // No more blocks to read in this file.
             fileIdx++;
             reader.reset();
@@ -54,6 +54,27 @@ std::unique_ptr<NodeCopyMorsel> CSVNodeCopySharedState::getMorsel() {
         return std::make_unique<CSVNodeCopyMorsel>(
             morselNodeOffset, filePath, std::move(recordBatch));
     }
+}
+
+NodeCopier::NodeCopier(const std::string& directory,
+    std::shared_ptr<NodeCopySharedState> sharedState,
+    kuzu::storage::PrimaryKeyIndexBuilder* pkIndex, const common::CopyDescription& copyDesc,
+    catalog::TableSchema* schema, kuzu::storage::NodeTable* table, common::column_id_t pkColumnID)
+    : sharedState{std::move(sharedState)}, pkIndex{pkIndex}, copyDesc{copyDesc}, pkColumnID{
+                                                                                     pkColumnID} {
+    for (auto i = 0u; i < schema->properties.size(); i++) {
+        auto property = schema->properties[i];
+        if (property.dataType.typeID == common::SERIAL) {
+            // Skip SERIAL, as it is not physically stored.
+            continue;
+        }
+        properties.push_back(property);
+        auto fPath = StorageUtils::getNodePropertyColumnFName(
+            directory, schema->tableID, property.propertyID, common::DBFileType::WAL_VERSION);
+        columns.push_back(std::make_shared<InMemColumn>(fPath, property.dataType));
+    }
+    // Each property corresponds to a column.
+    assert(properties.size() == columns.size());
 }
 
 void NodeCopier::execute(processor::ExecutionContext* executionContext) {
@@ -71,11 +92,10 @@ void NodeCopier::execute(processor::ExecutionContext* executionContext) {
 }
 
 void NodeCopier::populatePKIndex(InMemColumnChunk* chunk, InMemOverflowFile* overflowFile,
-    NullMask* nullMask, offset_t startOffset, uint64_t numValues) {
+    offset_t startOffset, uint64_t numValues) {
     // First, check if there is any nulls.
-    for (auto i = 0u; i < numValues; i++) {
-        auto offset = i + startOffset;
-        if (nullMask->isNull(offset)) {
+    for (auto posInChunk = 0u; posInChunk < numValues; posInChunk++) {
+        if (chunk->isNull(posInChunk)) {
             throw CopyException("Primary key cannot be null.");
         }
     }
@@ -89,121 +109,87 @@ void NodeCopier::populatePKIndex(InMemColumnChunk* chunk, InMemOverflowFile* ove
             chunk, startOffset, numValues, overflowFile);
     } break;
     default: {
-        throw CopyException("Primary key must be either INT64 or STRING.");
+        throw CopyException("Primary key must be either INT64, STRING or SERIAL.");
     }
     }
 }
 
 template<>
 void NodeCopier::appendToPKIndex<int64_t>(
-    kuzu::storage::InMemColumnChunk* chunk, common::offset_t startOffset, uint64_t numValues) {
+    InMemColumnChunk* chunk, common::offset_t startOffset, uint64_t numValues) {
     for (auto i = 0u; i < numValues; i++) {
         auto offset = i + startOffset;
-        auto value = *(int64_t*)chunk->getValue(offset);
+        auto value = chunk->getValue<int64_t>(i);
         pkIndex->append(value, offset);
     }
 }
 
 template<>
-void NodeCopier::appendToPKIndex<ku_string_t, InMemOverflowFile*>(
-    kuzu::storage::InMemColumnChunk* chunk, common::offset_t startOffset, uint64_t numValues,
-    kuzu::storage::InMemOverflowFile* overflowFile) {
+void NodeCopier::appendToPKIndex<ku_string_t, InMemOverflowFile*>(InMemColumnChunk* chunk,
+    common::offset_t startOffset, uint64_t numValues, InMemOverflowFile* overflowFile) {
     for (auto i = 0u; i < numValues; i++) {
         auto offset = i + startOffset;
-        auto value = *(ku_string_t*)chunk->getValue(offset);
+        auto value = chunk->getValue<ku_string_t>(offset);
         auto key = overflowFile->readString(&value);
         pkIndex->append(key.c_str(), offset);
     }
 }
 
 void NodeCopier::copyArrayIntoColumnChunk(InMemColumnChunk* columnChunk,
-    common::column_id_t columnID, arrow::Array& arrowArray, offset_t startNodeOffset,
-    CopyDescription& copyDescription) {
-    uint64_t numValuesLeftToCopy = arrowArray.length();
-    auto column = columns[columnID];
-    auto& overflowCursor = overflowCursors[columnID];
-    while (numValuesLeftToCopy > 0) {
-        auto posInArray = arrowArray.length() - numValuesLeftToCopy;
-        auto offset = startNodeOffset + posInArray;
-        if (column->getDataType().typeID == common::STRUCT) {
-            auto numValuesToCopy =
-                std::min(numValuesLeftToCopy, reinterpret_cast<InMemStructColumnChunk*>(columnChunk)
-                                                  ->getMinNumValuesLeftOnPage(offset));
-            columnChunk->templateCopyValuesToPage<std::string, CopyDescription&, common::offset_t>(
-                PageElementCursor{}, arrowArray, posInArray, numValuesToCopy, copyDescription,
-                offset);
-            numValuesLeftToCopy -= numValuesToCopy;
-            continue;
-        }
-        auto pageCursor =
-            CursorUtils::getPageElementCursor(offset, column->getNumElementsInAPage());
-        auto numValuesToCopy = std::min(
-            numValuesLeftToCopy, column->getNumElementsInAPage() - pageCursor.elemPosInPage);
-        for (auto i = 0u; i < numValuesToCopy; i++) {
-            column->setNull(startNodeOffset + posInArray + i,
-                arrowArray.IsNull(static_cast<int64_t>(posInArray + i)));
-        }
-        switch (arrowArray.type_id()) {
-        case arrow::Type::BOOL: {
-            columnChunk->templateCopyValuesToPage<bool>(
-                pageCursor, arrowArray, posInArray, numValuesToCopy);
-        } break;
-        case arrow::Type::INT16: {
-            columnChunk->templateCopyValuesToPage<int16_t>(
-                pageCursor, arrowArray, posInArray, numValuesToCopy);
-        } break;
-        case arrow::Type::INT32: {
-            columnChunk->templateCopyValuesToPage<int32_t>(
-                pageCursor, arrowArray, posInArray, numValuesToCopy);
-        } break;
-        case arrow::Type::INT64: {
-            columnChunk->templateCopyValuesToPage<int64_t>(
-                pageCursor, arrowArray, posInArray, numValuesToCopy);
-        } break;
-        case arrow::Type::DOUBLE: {
-            columnChunk->templateCopyValuesToPage<double_t>(
-                pageCursor, arrowArray, posInArray, numValuesToCopy);
-        } break;
-        case arrow::Type::FLOAT: {
-            columnChunk->templateCopyValuesToPage<float_t>(
-                pageCursor, arrowArray, posInArray, numValuesToCopy);
-        } break;
-        case arrow::Type::DATE32: {
-            columnChunk->templateCopyValuesToPage<date_t>(
-                pageCursor, arrowArray, posInArray, numValuesToCopy);
-        } break;
-        case arrow::Type::TIMESTAMP: {
-            columnChunk->templateCopyValuesToPage<timestamp_t>(
-                pageCursor, arrowArray, posInArray, numValuesToCopy);
-        } break;
-        case arrow::Type::STRING: {
-            columnChunk->templateCopyValuesToPage<std::string, InMemOverflowFile*, PageByteCursor&,
-                CopyDescription&>(pageCursor, arrowArray, posInArray, numValuesToCopy,
-                column->getInMemOverflowFile(), overflowCursor, copyDescription);
-        } break;
-        default: {
-            throw CopyException("Unsupported data type " + arrowArray.type()->ToString());
-        }
-        }
-        numValuesLeftToCopy -= numValuesToCopy;
+    common::column_id_t columnID, arrow::Array& arrowArray, CopyDescription& copyDescription) {
+    switch (arrowArray.type_id()) {
+    case arrow::Type::BOOL: {
+        columnChunk->templateCopyValuesToPage<bool>(arrowArray);
+    } break;
+    case arrow::Type::INT16: {
+        columnChunk->templateCopyValuesToPage<int16_t>(arrowArray);
+    } break;
+    case arrow::Type::INT32: {
+        columnChunk->templateCopyValuesToPage<int32_t>(arrowArray);
+    } break;
+    case arrow::Type::INT64: {
+        columnChunk->templateCopyValuesToPage<int64_t>(arrowArray);
+    } break;
+    case arrow::Type::DOUBLE: {
+        columnChunk->templateCopyValuesToPage<double_t>(arrowArray);
+    } break;
+    case arrow::Type::FLOAT: {
+        columnChunk->templateCopyValuesToPage<float_t>(arrowArray);
+    } break;
+    case arrow::Type::DATE32: {
+        columnChunk->templateCopyValuesToPage<date_t>(arrowArray);
+    } break;
+    case arrow::Type::TIMESTAMP: {
+        columnChunk->templateCopyValuesToPage<timestamp_t>(arrowArray);
+    } break;
+    case arrow::Type::STRING: {
+        columnChunk->templateCopyValuesToPage<std::string, InMemOverflowFile*, PageByteCursor&,
+            CopyDescription&>(arrowArray, columns[columnID]->getInMemOverflowFile(),
+            overflowCursors[columnID], copyDescription);
+    } break;
+    default: {
+        throw CopyException("Unsupported data type " + arrowArray.type()->ToString());
+    }
     }
 }
 
 void NodeCopier::flushChunksAndPopulatePKIndex(
     const std::vector<std::unique_ptr<InMemColumnChunk>>& columnChunks,
-    common::offset_t startNodeOffset, common::offset_t endNodeOffset) {
+    common::offset_t startNodeOffset, common::offset_t endNodeOffset,
+    common::column_id_t columnToFlush) {
     // Flush each page within the [StartOffset, endOffset] range.
-    for (auto i = 0u; i < this->columns.size(); i++) {
-        auto column = this->columns[i];
-        column->flushChunk(columnChunks[i].get(), startNodeOffset, endNodeOffset);
+    if (columnToFlush == INVALID_COLUMN_ID) {
+        for (auto i = 0u; i < properties.size(); i++) {
+            columns[i]->flushChunk(columnChunks[i].get());
+        }
+    } else {
+        columns[columnToFlush]->flushChunk(columnChunks[0].get());
     }
-    // Populate the primary key index.
-    if (!this->pkIndex) {
-        return;
+    if (pkIndex) {
+        // Populate the primary key index.
+        populatePKIndex(columnChunks[pkColumnID].get(), columns[pkColumnID]->getInMemOverflowFile(),
+            startNodeOffset, (endNodeOffset - startNodeOffset + 1));
     }
-    auto pkColumn = this->columns[this->pkColumnID];
-    populatePKIndex(columnChunks[this->pkColumnID].get(), pkColumn->getInMemOverflowFile(),
-        pkColumn->getNullMask(), startNodeOffset, (endNodeOffset - startNodeOffset + 1));
 }
 
 void CSVNodeCopier::executeInternal(std::unique_ptr<NodeCopyMorsel> morsel) {
@@ -211,14 +197,13 @@ void CSVNodeCopier::executeInternal(std::unique_ptr<NodeCopyMorsel> morsel) {
     auto numLinesInCurBlock = csvMorsel->recordBatch->num_rows();
     // Create a column chunk for tuples within the [StartOffset, endOffset] range.
     auto endOffset = csvMorsel->nodeOffset + numLinesInCurBlock - 1;
-    std::vector<std::unique_ptr<InMemColumnChunk>> columnChunks(this->columns.size());
-    for (auto i = 0; i < this->columns.size(); i++) {
-        auto column = this->columns[i];
-        columnChunks[i] = InMemColumnChunkFactory::getInMemColumnChunk(column->getDataType(),
-            csvMorsel->nodeOffset, endOffset, column->getNumBytesForElement(),
-            column->getNumElementsInAPage());
-        copyArrayIntoColumnChunk(columnChunks[i].get(), i, *csvMorsel->recordBatch->column(i),
-            csvMorsel->nodeOffset, this->copyDesc);
+    std::vector<std::unique_ptr<InMemColumnChunk>> columnChunks(properties.size());
+    for (auto i = 0; i < properties.size(); i++) {
+        auto property = properties[i];
+        columnChunks[i] =
+            std::make_unique<InMemColumnChunk>(property.dataType, csvMorsel->nodeOffset, endOffset);
+        copyArrayIntoColumnChunk(
+            columnChunks[i].get(), i, *csvMorsel->recordBatch->column(i), copyDesc);
     }
     flushChunksAndPopulatePKIndex(columnChunks, csvMorsel->nodeOffset, endOffset);
 }
@@ -234,16 +219,15 @@ void ParquetNodeCopier::executeInternal(std::unique_ptr<NodeCopyMorsel> morsel) 
     arrow::TableBatchReader batchReader(*table);
     std::shared_ptr<arrow::RecordBatch> recordBatch;
     TableCopyExecutor::throwCopyExceptionIfNotOK(batchReader.ReadNext(&recordBatch));
-    std::vector<std::unique_ptr<InMemColumnChunk>> columnChunks(this->columns.size());
+    std::vector<std::unique_ptr<InMemColumnChunk>> columnChunks(properties.size());
     auto numLinesInCurBlock = recordBatch->num_rows();
     auto endOffset = morsel->nodeOffset + numLinesInCurBlock - 1;
-    for (auto i = 0; i < this->columns.size(); i++) {
-        auto column = this->columns[i];
+    for (auto i = 0; i < properties.size(); i++) {
+        auto property = properties[i];
         columnChunks[i] =
-            std::make_unique<InMemColumnChunk>(column->getDataType(), morsel->nodeOffset, endOffset,
-                column->getNumBytesForElement(), column->getNumElementsInAPage());
+            std::make_unique<InMemColumnChunk>(property.dataType, morsel->nodeOffset, endOffset);
         NodeCopier::copyArrayIntoColumnChunk(
-            columnChunks[i].get(), i, *recordBatch->column(i), morsel->nodeOffset, this->copyDesc);
+            columnChunks[i].get(), i, *recordBatch->column(i), copyDesc);
     }
     flushChunksAndPopulatePKIndex(columnChunks, morsel->nodeOffset, endOffset);
 }
@@ -254,16 +238,13 @@ void NPYNodeCopier::executeInternal(std::unique_ptr<NodeCopyMorsel> morsel) {
     }
     auto endNodeOffset = morsel->nodeOffset + morsel->numNodes - 1;
     // For NPY files, we can only read one column at a time.
-    assert(this->columns.size() == 1);
-    auto column = this->columns[0];
     std::vector<std::unique_ptr<InMemColumnChunk>> columnChunks(1);
-    columnChunks[0] = std::make_unique<InMemColumnChunk>(column->getDataType(), morsel->nodeOffset,
-        endNodeOffset, column->getNumBytesForElement(), column->getNumElementsInAPage());
-    for (auto i = morsel->nodeOffset; i <= endNodeOffset; ++i) {
-        void* data = reader->getPointerToRow(i);
-        column->setElementInChunk(columnChunks[0].get(), i, (uint8_t*)data);
+    columnChunks[0] = std::make_unique<InMemColumnChunk>(
+        properties[columnToCopy].dataType, morsel->nodeOffset, endNodeOffset);
+    for (auto i = 0u; i < morsel->numNodes; i++) {
+        columnChunks[0]->setValue(reader->getPointerToRow(morsel->nodeOffset + i), i);
     }
-    flushChunksAndPopulatePKIndex(columnChunks, morsel->nodeOffset, endNodeOffset);
+    flushChunksAndPopulatePKIndex(columnChunks, morsel->nodeOffset, endNodeOffset, columnToCopy);
 }
 
 } // namespace storage

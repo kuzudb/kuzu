@@ -29,9 +29,14 @@ std::string StorageUtils::getNodePropertyColumnFName(const std::string& director
 
 std::string StorageUtils::appendStructFieldName(std::string filePath, std::string structFieldName) {
     // Naming rules for a struct field column is: n-[tableID]-[propertyID]-[fieldName].col.
+    // TODO(Ziyi): Use `.` as separator is not safe.
     auto posToInsertFieldName = filePath.find('.');
     filePath.insert(posToInsertFieldName - 1, "-" + structFieldName);
     return filePath;
+}
+
+std::string StorageUtils::getPropertyNullFName(const std::string& filePath) {
+    return appendSuffixOrInsertBeforeWALSuffix(filePath, ".null");
 }
 
 std::string StorageUtils::getAdjListsFName(const std::string& directory,
@@ -108,12 +113,17 @@ std::string StorageUtils::getColumnFName(
             storageStructureID.columnFileID.nodePropertyColumnID.propertyID, DBFileType::ORIGINAL);
         if (storageStructureID.isOverflow) {
             fName = getOverflowFileName(fName);
+        } else if (storageStructureID.isNullBits) {
+            fName = getPropertyNullFName(fName);
         }
     } break;
     case ColumnType::ADJ_COLUMN: {
         auto& relNodeTableAndDir = columnFileID.adjColumnID.relNodeTableAndDir;
         fName = getAdjColumnFName(
             directory, relNodeTableAndDir.relTableID, relNodeTableAndDir.dir, DBFileType::ORIGINAL);
+        if (storageStructureID.isNullBits) {
+            fName = getPropertyNullFName(fName);
+        }
     } break;
     case ColumnType::REL_PROPERTY_COLUMN: {
         auto& relNodeTableAndDir = columnFileID.relPropertyColumnID.relNodeTableAndDir;
@@ -122,6 +132,8 @@ std::string StorageUtils::getColumnFName(
             DBFileType::ORIGINAL);
         if (storageStructureID.isOverflow) {
             fName = getOverflowFileName(fName);
+        } else if (storageStructureID.isNullBits) {
+            fName = getPropertyNullFName(fName);
         }
     } break;
     default: {
@@ -171,13 +183,16 @@ std::string StorageUtils::getListFName(
 void StorageUtils::createFileForNodePropertyWithDefaultVal(table_id_t tableID,
     const std::string& directory, const catalog::Property& property, uint8_t* defaultVal,
     bool isDefaultValNull, uint64_t numNodes) {
-    auto inMemColumn = InMemColumnFactory::getInMemPropertyColumn(
-        StorageUtils::getNodePropertyColumnFName(
-            directory, tableID, property.propertyID, DBFileType::WAL_VERSION),
-        property.dataType, numNodes);
+    auto inMemColumn =
+        std::make_unique<InMemColumn>(StorageUtils::getNodePropertyColumnFName(directory, tableID,
+                                          property.propertyID, DBFileType::WAL_VERSION),
+            property.dataType);
+    auto inMemColumnChunk = std::make_unique<InMemColumnChunk>(property.dataType, 0, numNodes - 1);
     if (!isDefaultValNull) {
-        inMemColumn->fillWithDefaultVal(defaultVal, numNodes, property.dataType);
+        // TODO(Guodong): Rework this.
+        // inMemColumn->fillWithDefaultVal(defaultVal, numNodes, property.dataType);
     }
+    inMemColumn->flushChunk(inMemColumnChunk.get());
     inMemColumn->saveToFile();
 }
 
@@ -196,17 +211,21 @@ void StorageUtils::createFileForRelPropertyWithDefaultVal(RelTableSchema* tableS
 void StorageUtils::createFileForRelColumnPropertyWithDefaultVal(table_id_t relTableID,
     table_id_t boundTableID, RelDataDirection direction, const catalog::Property& property,
     uint8_t* defaultVal, bool isDefaultValNull, StorageManager& storageManager) {
-    auto inMemColumn = InMemColumnFactory::getInMemPropertyColumn(
+    auto inMemColumn = std::make_unique<InMemColumn>(
         StorageUtils::getRelPropertyColumnFName(storageManager.getDirectory(), relTableID,
             direction, property.propertyID, DBFileType::WAL_VERSION),
-        property.dataType,
-        storageManager.getRelsStore().getRelsStatistics().getNumTuplesForTable(relTableID));
+        property.dataType);
+    auto numTuples =
+        storageManager.getRelsStore().getRelsStatistics().getNumTuplesForTable(relTableID);
+    auto inMemColumnChunk = std::make_unique<InMemColumnChunk>(property.dataType, 0, numTuples - 1);
     if (!isDefaultValNull) {
-        inMemColumn->fillWithDefaultVal(defaultVal,
-            storageManager.getNodesStore().getNodesStatisticsAndDeletedIDs().getNumTuplesForTable(
-                boundTableID),
-            property.dataType);
+        // TODO(Guodong): Rework this.
+        //        inMemColumn->fillWithDefaultVal(defaultVal,
+        //            storageManager.getNodesStore().getNodesStatisticsAndDeletedIDs().getNumTuplesForTable(
+        //                boundTableID),
+        //            property.dataType);
     }
+    inMemColumn->flushChunk(inMemColumnChunk.get());
     inMemColumn->saveToFile();
 }
 

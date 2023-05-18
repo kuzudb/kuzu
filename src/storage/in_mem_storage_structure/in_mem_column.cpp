@@ -1,145 +1,66 @@
 #include "storage/in_mem_storage_structure/in_mem_column.h"
 
+#include "common/constants.h"
+#include "storage/file_handle.h"
+#include "storage/storage_utils.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {
 namespace storage {
 
-InMemColumn::InMemColumn(
-    std::string fName, DataType dataType, uint64_t numBytesForElement, uint64_t numElements)
-    : fName{std::move(fName)}, dataType{std::move(dataType)}, numBytesForElement{
-                                                                  numBytesForElement} {
-    numElementsInAPage = PageUtils::getNumElementsInAPage(numBytesForElement, true /* hasNull */);
-    auto numPages = ceil((double)numElements / (double)numElementsInAPage);
-    inMemFile =
-        make_unique<InMemFile>(this->fName, numBytesForElement, true /* hasNULLBytes */, numPages);
+InMemColumn::InMemColumn(std::string filePath, DataType dataType, bool requireNullBits)
+    : filePath{std::move(filePath)},
+      numBytesForValue{(uint16_t)common::Types::getDataTypeSize(dataType)}, dataType{std::move(
+                                                                                dataType)} {
+    // TODO(Guodong): Separate this as a function.
+    switch (this->dataType.typeID) {
+    case STRUCT: {
+        auto structTypeInfo = reinterpret_cast<StructTypeInfo*>(this->dataType.getExtraTypeInfo());
+        auto childTypes = structTypeInfo->getChildrenTypes();
+        auto childNames = structTypeInfo->getChildrenNames();
+        childColumns.resize(childTypes.size());
+        for (auto i = 0u; i < childTypes.size(); i++) {
+            childColumns[i] = std::make_unique<InMemColumn>(
+                StorageUtils::appendStructFieldName(this->filePath, childNames[i]), *childTypes[i],
+                true /* hasNull */);
+        }
+    } break;
+    case STRING:
+    case VAR_LIST: {
+        inMemOverflowFile =
+            std::make_unique<InMemOverflowFile>(StorageUtils::getOverflowFileName(this->filePath));
+        fileHandle = std::make_unique<FileHandle>(
+            this->filePath, FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS);
+    } break;
+    default: {
+        fileHandle = std::make_unique<FileHandle>(
+            this->filePath, FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS);
+    }
+    }
+    if (requireNullBits) {
+        nullColumn =
+            std::make_unique<InMemColumn>(StorageUtils::getPropertyNullFName(this->filePath),
+                DataType(BOOL), false /* hasNull */);
+    }
 }
 
-void InMemColumn::fillWithDefaultVal(
-    uint8_t* defaultVal, uint64_t numNodes, const DataType& dataType_) {
-    PageByteCursor pageByteCursor{};
-    auto fillInMemColumnFunc = getFillInMemColumnFunc(dataType_);
-    for (auto i = 0; i < numNodes; i++) {
-        fillInMemColumnFunc(this, defaultVal, pageByteCursor, i, dataType_);
+void InMemColumn::flushChunk(InMemColumnChunk* chunk) {
+    if (fileHandle) {
+        auto fileInfo = fileHandle->getFileInfo();
+        chunk->flush(fileInfo);
+    }
+    for (auto i = 0u; i < childColumns.size(); i++) {
+        childColumns[i]->flushChunk(chunk->getChildChunk(i));
+    }
+    if (nullColumn) {
+        nullColumn->flushChunk(chunk->getNullChunk());
     }
 }
 
 void InMemColumn::saveToFile() {
-    inMemFile->flush();
-}
-
-void InMemColumn::setElement(offset_t offset, const uint8_t* val) {
-    auto cursor = getPageElementCursorForOffset(offset);
-    inMemFile->getPage(cursor.pageIdx)
-        ->write(cursor.elemPosInPage * numBytesForElement, cursor.elemPosInPage, val,
-            numBytesForElement);
-}
-
-void InMemColumn::fillInMemColumnWithStrValFunc(InMemColumn* inMemColumn, uint8_t* defaultVal,
-    PageByteCursor& pageByteCursor, offset_t nodeOffset, const DataType& dataType) {
-    auto strVal = *reinterpret_cast<ku_string_t*>(defaultVal);
-    if (strVal.len > ku_string_t::SHORT_STR_LENGTH) {
-        inMemColumn->getInMemOverflowFile()->copyStringOverflow(
-            pageByteCursor, reinterpret_cast<uint8_t*>(strVal.overflowPtr), &strVal);
-    }
-    inMemColumn->setElement(nodeOffset, reinterpret_cast<uint8_t*>(&strVal));
-}
-
-void InMemColumn::fillInMemColumnWithListValFunc(InMemColumn* inMemColumn, uint8_t* defaultVal,
-    PageByteCursor& pageByteCursor, offset_t nodeOffset, const DataType& dataType) {
-    auto listVal = *reinterpret_cast<ku_list_t*>(defaultVal);
-    inMemColumn->getInMemOverflowFile()->copyListOverflowToFile(
-        pageByteCursor, &listVal, dataType.getChildType());
-    inMemColumn->setElement(nodeOffset, reinterpret_cast<uint8_t*>(&listVal));
-}
-
-fill_in_mem_column_function_t InMemColumn::getFillInMemColumnFunc(const DataType& dataType) {
-    switch (dataType.typeID) {
-    case INT64:
-    case DOUBLE:
-    case BOOL:
-    case DATE:
-    case TIMESTAMP:
-    case INTERVAL: {
-        return fillInMemColumnWithNonOverflowValFunc;
-    }
-    case STRING: {
-        return fillInMemColumnWithStrValFunc;
-    }
-    case VAR_LIST: {
-        return fillInMemColumnWithListValFunc;
-    }
-    default: {
-        assert(false);
-    }
-    }
-}
-
-InMemColumnWithOverflow::InMemColumnWithOverflow(
-    std::string fName, DataType dataType, uint64_t numElements)
-    : InMemColumn{
-          std::move(fName), std::move(dataType), Types::getDataTypeSize(dataType), numElements} {
-    assert(this->dataType.typeID == STRING || this->dataType.typeID == VAR_LIST);
-    inMemOverflowFile =
-        make_unique<InMemOverflowFile>(StorageUtils::getOverflowFileName(this->fName));
-}
-
-void InMemColumnWithOverflow::saveToFile() {
-    inMemOverflowFile->flush();
-    InMemColumn::saveToFile();
-}
-
-void InMemAdjColumn::setElement(offset_t offset, const uint8_t* val) {
-    auto node = (nodeID_t*)val;
-    auto cursor = getPageElementCursorForOffset(offset);
-    inMemFile->getPage(cursor.pageIdx)
-        ->writeNodeID(node, cursor.elemPosInPage * numBytesForElement, cursor.elemPosInPage);
-}
-
-InMemStructColumn::InMemStructColumn(
-    std::string fName, common::DataType dataType, uint64_t numElements)
-    : InMemColumn{} {
-    assert(dataType.typeID == common::STRUCT);
-    auto structFields =
-        (reinterpret_cast<common::StructTypeInfo*>(dataType.getExtraTypeInfo()))->getStructFields();
-    for (auto& structField : structFields) {
-        auto structFileName = StorageUtils::appendStructFieldName(fName, structField->getName());
-        structFieldsColumns.push_back(InMemColumnFactory::getInMemPropertyColumn(
-            structFileName, *structField->getType(), numElements));
-    }
-}
-
-void InMemStructColumn::saveToFile() {
-    for (auto& structFieldColumn : structFieldsColumns) {
-        structFieldColumn->saveToFile();
-    }
-}
-
-std::unique_ptr<InMemColumn> InMemColumnFactory::getInMemPropertyColumn(
-    const std::string& fName, const DataType& dataType, uint64_t numElements) {
-    switch (dataType.typeID) {
-    case INT64:
-    case INT32:
-    case INT16:
-    case DOUBLE:
-    case FLOAT:
-    case BOOL:
-    case DATE:
-    case TIMESTAMP:
-    case INTERVAL:
-    case FIXED_LIST:
-        return make_unique<InMemColumn>(
-            fName, dataType, Types::getDataTypeSize(dataType), numElements);
-    case STRING:
-        return make_unique<InMemStringColumn>(fName, numElements);
-    case VAR_LIST:
-        return make_unique<InMemListColumn>(fName, dataType, numElements);
-    case INTERNAL_ID:
-        return make_unique<InMemRelIDColumn>(fName, numElements);
-    case STRUCT:
-        return make_unique<InMemStructColumn>(fName, dataType, numElements);
-    default:
-        throw CopyException("Invalid type for property column creation.");
+    if (inMemOverflowFile) {
+        inMemOverflowFile->flush();
     }
 }
 
