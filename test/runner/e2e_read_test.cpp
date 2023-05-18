@@ -1,4 +1,5 @@
 #include "graph_test/graph_test.h"
+#include "test_helper/test_parser.h"
 
 using ::testing::Test;
 using namespace kuzu::testing;
@@ -22,8 +23,8 @@ private:
 };
 
 void parseAndRegisterTestCase(const std::string& path) {
-    auto testCase = std::make_unique<TestCase>();
-    testCase->parseTestFile(path);
+    auto testParser = std::make_unique<TestParser>();
+    auto testCase = std::move(testParser->parseTestFile(path));
     if (testCase->isValid()) {
         auto dataset = testCase->dataset;
         auto statements = std::move(testCase->statements);

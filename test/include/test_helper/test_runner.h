@@ -25,6 +25,8 @@ public:
 private:
     static void initializeConnection(TestStatement* statement, Connection& conn);
     static bool testStatement(TestStatement* statement, Connection& conn);
+    static bool checkLogicalPlans(std::unique_ptr<PreparedStatement>& preparedStatement,
+        TestStatement* statement, Connection& conn);
     static std::vector<std::string> convertResultToString(
         QueryResult& queryResult, bool checkOutputOrder = false);
 };

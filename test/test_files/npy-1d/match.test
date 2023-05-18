@@ -1,3 +1,9 @@
+-GROUP OneDimNpyReadTest
+-TEST Match
+-DATASET npy-1d
+
+--
+
 -NAME count
 -QUERY MATCH (n:npytable) RETURN COUNT(*)
 ---- 1

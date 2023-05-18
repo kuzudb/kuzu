@@ -1,5 +1,6 @@
+#pragma once
+
 #include "main/kuzu.h"
-#include "test_helper/test_parser.h"
 
 using namespace kuzu::main;
 
@@ -22,8 +23,7 @@ struct TestStatement {
     bool isVariableStatement = false;
 };
 
-class TestCase {
-public:
+struct TestCase {
     std::string group;
     std::string name;
     std::string dataset;
@@ -32,21 +32,9 @@ public:
 
     bool skipTest = false;
 
-    bool isHeaderValid() const { return !group.empty() && !name.empty() && !dataset.empty(); }
+    bool isValid() const { return !group.empty() && !name.empty() && !dataset.empty(); }
 
-    bool isValid() const { return isHeaderValid() && !statements.empty(); }
-
-    void parseTestFile(const std::string& path);
-
-private:
-    void parseHeader(TestParser& parser);
-    void parseBody(TestParser& parser);
-    void extractExpectedResult(TestParser& parser, TestStatement* currentStatement);
-    void extractStatementBlock(TestParser& parser);
-    TestStatement* extractStatement(TestParser& parser, TestStatement* currentStatement);
-    TestStatement* addNewStatement(std::vector<std::unique_ptr<TestStatement>>& statements);
-    std::string paramsToString(const std::vector<std::string>& params);
-    void checkMinimumParams(TestParser& parser, int minimumParams);
+    bool hasStatements() const { return !statements.empty(); }
 };
 
 } // namespace testing

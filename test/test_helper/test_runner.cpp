@@ -29,13 +29,11 @@ bool TestRunner::testStatement(TestStatement* statement, Connection& conn) {
     if (statement->encodedJoin.empty()) {
         preparedStatement = conn.prepareNoLock(statement->query, statement->enumerate);
     } else {
-        preparedStatement =
-            conn.prepareNoLock(statement->query, true, statement->encodedJoin); // enumerate
+        preparedStatement = conn.prepareNoLock(statement->query, true, statement->encodedJoin);
     }
     if (statement->expectedOk) {
         return preparedStatement->isSuccess();
     }
-
     if (statement->expectedError) {
 
         std::cout << "A LA TUNGA: " << preparedStatement->getErrorMessage() << std::endl;
@@ -43,6 +41,15 @@ bool TestRunner::testStatement(TestStatement* statement, Connection& conn) {
 
         return (statement->errorMessage == preparedStatement->getErrorMessage());
     }
+    if (!preparedStatement->isSuccess()) {
+        spdlog::error(preparedStatement->getErrorMessage());
+        return false;
+    }
+    return checkLogicalPlans(preparedStatement, statement, conn);
+}
+
+bool TestRunner::checkLogicalPlans(std::unique_ptr<PreparedStatement>& preparedStatement,
+    TestStatement* statement, Connection& conn) {
     auto numPlans = preparedStatement->logicalPlans.size();
     auto numPassedPlans = 0u;
     for (auto i = 0u; i < numPlans; ++i) {

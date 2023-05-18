@@ -1,4 +1,0 @@
--GROUP LongStringPKTest
--TEST LongStringPKTest
--DATASET long-string-pk-tests
--READ_ONLY TRUE

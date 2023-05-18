@@ -2,6 +2,7 @@
 
 #include "common/file_utils.h"
 #include "main/kuzu.h"
+#include "test_helper/test_case.h"
 
 using namespace kuzu::main;
 
@@ -51,26 +52,43 @@ public:
 
 class TestParser {
 public:
+    TestParser() : testCase(std::make_unique<TestCase>()) {}
+
+    std::unique_ptr<TestCase> parseTestFile(const std::string& path);
+
+private:
+    std::ifstream fileStream;
     std::string line;
-    void tokenize();
-    std::vector<std::string> splitString(const std::string& input);
     LogicToken currentToken;
-    void openFile(const std::string& path);
+    std::unique_ptr<TestCase> testCase;
+
     std::string paramsToString();
 
-    inline std::string getParam(int param) {
-        return currentToken.params[param];
-        if (param > currentToken.params.size()) {
-            return "";
-        }
-    }
+    void openFile(const std::string& path);
+
+    void tokenize();
+
+    void parseHeader();
+
+    void parseBody();
+
+    void extractExpectedResult(TestStatement* currentStatement);
+
+    void extractStatementBlock();
 
     inline bool endOfFile() { return fileStream.eof(); }
 
     inline bool nextLine() { return static_cast<bool>(getline(fileStream, line)); }
 
-private:
-    std::ifstream fileStream;
+    inline void checkMinimumParams(int minimumParams) {
+        if (currentToken.params.size() < minimumParams) {
+            throw common::Exception("Invalid number of parameters for statement [" + line + "]");
+        }
+    }
+
+    TestStatement* extractStatement(TestStatement* currentStatement);
+
+    TestStatement* addNewStatement(std::vector<std::unique_ptr<TestStatement>>& statements);
 };
 
 } // namespace testing

@@ -14,21 +14,6 @@
 
 --
 
-
--DEFINE_STATEMENT_BLOCK create_rel_set [
-    -STATEMENT MATCH (a:person), (b:person) WHERE a.ID=10 AND b.ID=20 CREATE (a)-[e:knows]->(b);
-    ---- error
-    Binder exception: Rel table knows does not exist.
-    -STATEMENT MATCH (a:person), (b:person) WHERE a.ID=1 AND b.ID=2 CREATE (a)-[e:knows]->(b);
-    ---- error
-    Binder exception: Rel table knows does not exist.
-    -STATEMENT MATCH (a:person), (b:person) WHERE a.ID=1 AND b.ID=20 CREATE (a)-[e:knows]->(b);
-    ---- error
-    Binder exception: Rel table knows does not exist.
-]
-
--STATEMENT_BLOCK create_rel_set
-
 -NAME OrderByWithLimitTest
 -QUERY MATCH (p:person) RETURN p.balance ORDER BY p.balance limit 25
 -PARALLELISM 6

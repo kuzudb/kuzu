@@ -3,7 +3,6 @@ add_library(
         OBJECT
         test_helper.cpp
         test_parser.cpp
-        test_case.cpp
         test_runner.cpp
 )
 

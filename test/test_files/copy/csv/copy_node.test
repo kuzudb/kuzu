@@ -1,3 +1,9 @@
+-GROUP CopyNodeFromCSVTest
+-TEST CopyNodeTest
+-DATASET copy-test/node/csv
+
+--
+
 -NAME SubsetTest
 -QUERY MATCH (row:tableOfTypes) WHERE row.id >= 20 AND row.id <= 24 RETURN *;
 ---- 5
