@@ -19,6 +19,7 @@ public:
 private:
     void visitOperator(planner::LogicalOperator* op);
 
+    void visitRecursiveExtend(planner::LogicalOperator* op) override;
     void visitAccumulate(planner::LogicalOperator* op) override;
     void visitFilter(planner::LogicalOperator* op) override;
     void visitHashJoin(planner::LogicalOperator* op) override;
@@ -33,7 +34,7 @@ private:
     void visitDeleteNode(planner::LogicalOperator* op) override;
     void visitDeleteRel(planner::LogicalOperator* op) override;
 
-    void collectPropertiesInUse(std::shared_ptr<binder::Expression> expression);
+    void collectExpressionsInUse(std::shared_ptr<binder::Expression> expression);
 
     binder::expression_vector pruneExpressions(const binder::expression_vector& expressions);
 
@@ -42,6 +43,7 @@ private:
 
 private:
     binder::expression_set propertiesInUse;
+    binder::expression_set variablesInUse;
 };
 
 } // namespace optimizer

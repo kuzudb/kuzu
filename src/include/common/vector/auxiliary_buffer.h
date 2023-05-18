@@ -58,6 +58,8 @@ public:
 
     list_entry_t addList(uint64_t listSize);
 
+    inline void resetSize() { size = 0; }
+
 private:
     uint64_t capacity;
     uint64_t size;

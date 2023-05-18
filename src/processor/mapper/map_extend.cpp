@@ -169,7 +169,6 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalRecursiveExtendToPhysica
     auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0));
     auto inNodeIDVectorPos =
         DataPos(inSchema->getExpressionPos(*boundNode->getInternalIDProperty()));
-    auto pathVectorPos = DataPos(outSchema->getExpressionPos(*rel));
     auto outNodeIDVectorPos =
         DataPos(outSchema->getExpressionPos(*nbrNode->getInternalIDProperty()));
     auto& relsStore = storageManager.getRelsStore();
@@ -208,19 +207,27 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalRecursiveExtendToPhysica
             tmpSrcNodePos, std::vector<DataPos>{tmpDstNodePos}, std::move(scanFrontier),
             getOperatorID(), emptyParamString);
     }
+    std::unique_ptr<RecursiveJoinDataInfo> dataInfo;
+    if (extend->trackPath()) {
+        auto pathVectorPos = DataPos(outSchema->getExpressionPos(*rel));
+        dataInfo = std::make_unique<RecursiveJoinDataInfo>(outDataPoses, colIndicesToScan,
+            inNodeIDVectorPos, outNodeIDVectorPos, tmpDstNodePos, true /* trackPath */,
+            pathVectorPos);
+    } else {
+        dataInfo = std::make_unique<RecursiveJoinDataInfo>(outDataPoses, colIndicesToScan,
+            inNodeIDVectorPos, outNodeIDVectorPos, tmpDstNodePos, false /* trackPath */);
+    }
     auto sharedState = std::make_shared<RecursiveJoinSharedState>(sharedInputFTable, nodeTable);
     switch (rel->getRelType()) {
     case common::QueryRelType::SHORTEST: {
         return std::make_unique<ShortestPathRecursiveJoin>(rel->getLowerBound(),
-            rel->getUpperBound(), nodeTable, sharedState, outDataPoses, colIndicesToScan,
-            inNodeIDVectorPos, pathVectorPos, outNodeIDVectorPos, tmpDstNodePos,
+            rel->getUpperBound(), nodeTable, sharedState, std::move(dataInfo),
             std::move(resultCollector), getOperatorID(), extend->getExpressionsForPrinting(),
             std::move(scanRelTable));
     }
     case common::QueryRelType::VARIABLE_LENGTH: {
         return std::make_unique<VariableLengthRecursiveJoin>(rel->getLowerBound(),
-            rel->getUpperBound(), nodeTable, sharedState, outDataPoses, colIndicesToScan,
-            inNodeIDVectorPos, pathVectorPos, outNodeIDVectorPos, tmpDstNodePos,
+            rel->getUpperBound(), nodeTable, sharedState, std::move(dataInfo),
             std::move(resultCollector), getOperatorID(), extend->getExpressionsForPrinting(),
             std::move(scanRelTable));
     }
