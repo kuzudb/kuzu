@@ -135,18 +135,16 @@ void FileUtils::readFromFile(
     OVERLAPPED overlapped{0,0,0,0};
     overlapped.Offset = position & 0xffffffff;
     overlapped.OffsetHigh = position >> 32;
-    if (fileInfo->getFileSize() == 0)
-        return;
     if (!ReadFile((HANDLE)fileInfo->handle, buffer, numBytes, &numBytesRead, &overlapped)) {
         auto error = GetLastError();
-        throw Exception(
+        throw common::StorageException(
             StringUtils::string_format("Cannot read from file: {} handle: {} "
                                        "numBytesRead: {} numBytesToRead: {} position: {}. Error {}: {}",
             fileInfo->path, (intptr_t)fileInfo->handle, numBytesRead, numBytes, position,
             error, std::system_category().message(error)));
     }
     if (numBytesRead != numBytes && fileInfo->getFileSize() != position + numBytesRead) {
-        throw Exception(
+        throw common::StorageException(
             StringUtils::string_format("Cannot read from file: {} handle: {} "
                                        "numBytesRead: {} numBytesToRead: {} position: {}",
                 fileInfo->path, (intptr_t)fileInfo->handle, numBytesRead, numBytes, position));

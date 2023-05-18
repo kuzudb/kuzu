@@ -42,11 +42,14 @@ void WALReplayer::replay() {
         throw StorageException("System should not try to rollback when the last logged record is "
                                "not a commit record.");
     }
-    auto walIterator = wal->getIterator();
-    WALRecord walRecord;
-    while (walIterator->hasNextRecord()) {
-        walIterator->getNextRecord(walRecord);
-        replayWALRecord(walRecord);
+
+    if (!wal->isEmptyWAL()) {
+        auto walIterator = wal->getIterator();
+        WALRecord walRecord;
+        while (walIterator->hasNextRecord()) {
+            walIterator->getNextRecord(walRecord);
+            replayWALRecord(walRecord);
+        }
     }
 
     // We next perform an in-memory checkpointing or rolling back of nodeTables.
