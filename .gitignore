@@ -41,3 +41,9 @@ tools/java_api/Testing/
 testdb/
 tools/java_api/testdb/
 tools/java_api_falied/
+tools/test_java_api/
+tools/java_api/cmake_install.cmake
+tools/java_api/Notes.txt
+history.txt
+tools/java_api/CMakeCache.txt
+tools/java_api/CTestTestfile.cmake

@@ -127,54 +127,54 @@ depend:
 .PHONY : depend
 
 #=============================================================================
-# Target rules for targets named HelloWorldJNI
+# Target rules for targets named kuzu_java
 
 # Build rule for target.
-HelloWorldJNI: cmake_check_build_system
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 HelloWorldJNI
-.PHONY : HelloWorldJNI
+kuzu_java: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 kuzu_java
+.PHONY : kuzu_java
 
 # fast build rule for target.
-HelloWorldJNI/fast:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/HelloWorldJNI.dir/build.make CMakeFiles/HelloWorldJNI.dir/build
-.PHONY : HelloWorldJNI/fast
+kuzu_java/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/kuzu_java.dir/build.make CMakeFiles/kuzu_java.dir/build
+.PHONY : kuzu_java/fast
 
 #=============================================================================
-# Target rules for targets named native
+# Target rules for targets named kuzu_java_native
 
 # Build rule for target.
-native: cmake_check_build_system
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 native
-.PHONY : native
+kuzu_java_native: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 kuzu_java_native
+.PHONY : kuzu_java_native
 
 # fast build rule for target.
-native/fast:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/native.dir/build.make CMakeFiles/native.dir/build
-.PHONY : native/fast
+kuzu_java_native/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/kuzu_java_native.dir/build.make CMakeFiles/kuzu_java_native.dir/build
+.PHONY : kuzu_java_native/fast
 
-HelloWorldJNI.o: HelloWorldJNI.cpp.o
-.PHONY : HelloWorldJNI.o
+kuzu_java.o: kuzu_java.cpp.o
+.PHONY : kuzu_java.o
 
 # target to build an object file
-HelloWorldJNI.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/native.dir/build.make CMakeFiles/native.dir/HelloWorldJNI.cpp.o
-.PHONY : HelloWorldJNI.cpp.o
+kuzu_java.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/kuzu_java_native.dir/build.make CMakeFiles/kuzu_java_native.dir/kuzu_java.cpp.o
+.PHONY : kuzu_java.cpp.o
 
-HelloWorldJNI.i: HelloWorldJNI.cpp.i
-.PHONY : HelloWorldJNI.i
+kuzu_java.i: kuzu_java.cpp.i
+.PHONY : kuzu_java.i
 
 # target to preprocess a source file
-HelloWorldJNI.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/native.dir/build.make CMakeFiles/native.dir/HelloWorldJNI.cpp.i
-.PHONY : HelloWorldJNI.cpp.i
+kuzu_java.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/kuzu_java_native.dir/build.make CMakeFiles/kuzu_java_native.dir/kuzu_java.cpp.i
+.PHONY : kuzu_java.cpp.i
 
-HelloWorldJNI.s: HelloWorldJNI.cpp.s
-.PHONY : HelloWorldJNI.s
+kuzu_java.s: kuzu_java.cpp.s
+.PHONY : kuzu_java.s
 
 # target to generate assembly for a file
-HelloWorldJNI.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/native.dir/build.make CMakeFiles/native.dir/HelloWorldJNI.cpp.s
-.PHONY : HelloWorldJNI.cpp.s
+kuzu_java.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/kuzu_java_native.dir/build.make CMakeFiles/kuzu_java_native.dir/kuzu_java.cpp.s
+.PHONY : kuzu_java.cpp.s
 
 # Help Target
 help:
@@ -185,11 +185,11 @@ help:
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
 	@echo "... test"
-	@echo "... HelloWorldJNI"
-	@echo "... native"
-	@echo "... HelloWorldJNI.o"
-	@echo "... HelloWorldJNI.i"
-	@echo "... HelloWorldJNI.s"
+	@echo "... kuzu_java"
+	@echo "... kuzu_java_native"
+	@echo "... kuzu_java.o"
+	@echo "... kuzu_java.i"
+	@echo "... kuzu_java.s"
 .PHONY : help
 
 
