@@ -80,7 +80,7 @@ expression_vector Binder::rewriteNodeExpression(const kuzu::binder::Expression& 
     expression_vector result;
     auto& node = (NodeExpression&)expression;
     result.push_back(node.getInternalIDProperty());
-    result.push_back(expressionBinder.bindNodeLabelFunction(node));
+    result.push_back(expressionBinder.bindLabelFunction(node));
     for (auto& property : node.getPropertyExpressions()) {
         result.push_back(property->copy());
     }
@@ -92,7 +92,7 @@ expression_vector Binder::rewriteRelExpression(const Expression& expression) {
     auto& rel = (RelExpression&)expression;
     result.push_back(rel.getSrcNode()->getInternalIDProperty());
     result.push_back(rel.getDstNode()->getInternalIDProperty());
-    result.push_back(expressionBinder.bindRelLabelFunction(rel));
+    result.push_back(expressionBinder.bindLabelFunction(rel));
     for (auto& property : rel.getPropertyExpressions()) {
         result.push_back(property->copy());
     }

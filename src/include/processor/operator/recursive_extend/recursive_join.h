@@ -2,6 +2,7 @@
 
 #include "bfs_state.h"
 #include "path_scanner.h"
+#include "planner/logical_plan/logical_operator/recursive_join_type.h"
 #include "processor/operator/physical_operator.h"
 #include "processor/operator/result_collector.h"
 #include "storage/store/node_table.h"
@@ -57,31 +58,31 @@ struct RecursiveJoinDataInfo {
     DataPos srcNodePos;
     // Join output info.
     DataPos dstNodePos;
+    DataPos pathLengthPos;
     // Recursive join info.
     DataPos tmpDstNodePos;
     // Path info
-    bool trackPath;
+    planner::RecursiveJoinType joinType;
     DataPos pathPos;
 
     RecursiveJoinDataInfo(std::vector<DataPos> vectorsToScanPos,
         std::vector<ft_col_idx_t> colIndicesToScan, const DataPos& srcNodePos,
-        const DataPos& dstNodePos, const DataPos& tmpDstNodePos, bool trackPath)
+        const DataPos& dstNodePos, const DataPos& pathLengthPos, const DataPos& tmpDstNodePos,
+        planner::RecursiveJoinType joinType)
         : RecursiveJoinDataInfo{std::move(vectorsToScanPos), std::move(colIndicesToScan),
-              srcNodePos, dstNodePos, tmpDstNodePos, trackPath, DataPos()} {
-        assert(trackPath == false);
-    }
+              srcNodePos, dstNodePos, pathLengthPos, tmpDstNodePos, joinType, DataPos()} {}
     RecursiveJoinDataInfo(std::vector<DataPos> vectorsToScanPos,
         std::vector<ft_col_idx_t> colIndicesToScan, const DataPos& srcNodePos,
-        const DataPos& dstNodePos, const DataPos& tmpDstNodePos, bool trackPath,
-        const DataPos& pathPos)
+        const DataPos& dstNodePos, const DataPos& pathLengthPos, const DataPos& tmpDstNodePos,
+        planner::RecursiveJoinType joinType, const DataPos& pathPos)
         : vectorsToScanPos{std::move(vectorsToScanPos)}, colIndicesToScan{std::move(
                                                              colIndicesToScan)},
-          srcNodePos{srcNodePos}, dstNodePos{dstNodePos},
-          tmpDstNodePos{tmpDstNodePos}, trackPath{trackPath}, pathPos{pathPos} {}
+          srcNodePos{srcNodePos}, dstNodePos{dstNodePos}, pathLengthPos{pathLengthPos},
+          tmpDstNodePos{tmpDstNodePos}, joinType{joinType}, pathPos{pathPos} {}
 
     inline std::unique_ptr<RecursiveJoinDataInfo> copy() {
         return std::make_unique<RecursiveJoinDataInfo>(vectorsToScanPos, colIndicesToScan,
-            srcNodePos, dstNodePos, tmpDstNodePos, trackPath, pathPos);
+            srcNodePos, dstNodePos, pathLengthPos, tmpDstNodePos, joinType, pathPos);
     }
 };
 
@@ -147,6 +148,7 @@ protected:
     std::vector<common::ValueVector*> vectorsToScan;
     common::ValueVector* srcNodeIDVector;
     common::ValueVector* dstNodeIDVector;
+    common::ValueVector* pathLengthVector;
     common::ValueVector* pathVector;
 
     common::ValueVector* tmpDstNodeIDVector; // temporary recursive join result.

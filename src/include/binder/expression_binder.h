@@ -46,6 +46,7 @@ private:
 
     std::shared_ptr<Expression> bindFunctionExpression(
         const parser::ParsedExpression& parsedExpression);
+
     std::shared_ptr<Expression> bindScalarFunctionExpression(
         const parser::ParsedExpression& parsedExpression, const std::string& functionName);
     std::shared_ptr<Expression> bindScalarFunctionExpression(
@@ -53,17 +54,16 @@ private:
     std::shared_ptr<Expression> bindAggregateFunctionExpression(
         const parser::ParsedExpression& parsedExpression, const std::string& functionName,
         bool isDistinct);
-
     std::shared_ptr<Expression> staticEvaluate(
         const std::string& functionName, const expression_vector& children);
 
-    std::shared_ptr<Expression> bindInternalIDExpression(
-        const parser::ParsedExpression& parsedExpression);
-    std::shared_ptr<Expression> bindInternalIDExpression(const Expression& expression);
+    std::shared_ptr<Expression> rewriteFunctionExpression(
+        const parser::ParsedExpression& parsedExpression, const std::string& functionName);
     std::unique_ptr<Expression> createInternalNodeIDExpression(const Expression& node);
-    std::shared_ptr<Expression> bindLabelFunction(const parser::ParsedExpression& parsedExpression);
-    std::shared_ptr<Expression> bindNodeLabelFunction(const Expression& expression);
-    std::shared_ptr<Expression> bindRelLabelFunction(const Expression& expression);
+    std::shared_ptr<Expression> bindInternalIDExpression(const Expression& expression);
+    std::shared_ptr<Expression> bindLabelFunction(const Expression& expression);
+    std::unique_ptr<Expression> createInternalLengthExpression(const Expression& expression);
+    std::shared_ptr<Expression> bindRecursiveJoinLengthFunction(const Expression& expression);
 
     std::shared_ptr<Expression> bindParameterExpression(
         const parser::ParsedExpression& parsedExpression);

@@ -4,7 +4,7 @@
 # This pattern is continued till Alice2500. Distance between Alice11 and Alice22 is 2, and so on.
 # Distance between Alice11 and Alice100 is 9 because 11 -> 11,20,30,40,50,60,70,80,90,100
 -NAME SingleSrcAllDstQueryLarge
--QUERY MATCH (a:person)-[r:knows* SHORTEST 1..30]->(b:person) WHERE a.fName = 'Alice11' RETURN a.fName, b.fName, len(r) - 1
+-QUERY MATCH (a:person)-[r:knows* SHORTEST 1..30]->(b:person) WHERE a.fName = 'Alice11' RETURN a.fName, b.fName, length(r)
 ---- 300
 Alice11|Alice100|9
 Alice11|Alice101|9
@@ -308,7 +308,7 @@ Alice11|Alice98|9
 Alice11|Alice99|9
 
 -NAME MultipleSrcAllDstQueryLarge
--QUERY MATCH (a:person)-[r:knows* SHORTEST 1..30]->(b:person) WHERE a.fName = 'Alice11' OR a.fName = 'Alice' RETURN a.fName, b.fName, len(r) - 1
+-QUERY MATCH (a:person)-[r:knows* SHORTEST 1..30]->(b:person) WHERE a.fName = 'Alice11' OR a.fName = 'Alice' RETURN a.fName, b.fName, length(r)
 ---- 307
 Alice11|Alice100|9
 Alice11|Alice101|9

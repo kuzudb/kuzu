@@ -67,8 +67,6 @@ private:
     void registerStringOperations();
     void registerCastOperations();
     void registerListOperations();
-    void registerInternalIDOperation();
-    void registerInternalOffsetOperation();
     void registerStructOperation();
 
 private:

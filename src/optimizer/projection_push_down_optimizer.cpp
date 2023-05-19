@@ -40,7 +40,7 @@ void ProjectionPushDownOptimizer::visitRecursiveExtend(LogicalOperator* op) {
     auto recursiveExtend = (LogicalRecursiveExtend*)op;
     auto rel = recursiveExtend->getRel();
     if (!variablesInUse.contains(rel)) {
-        recursiveExtend->disableTrackPath();
+        recursiveExtend->setJoinType(planner::RecursiveJoinType::TRACK_NONE);
     }
 }
 
@@ -195,6 +195,7 @@ void ProjectionPushDownOptimizer::visitSetRelProperty(planner::LogicalOperator* 
     }
 }
 
+// See comments above this class for how to collect expressions in use.
 void ProjectionPushDownOptimizer::collectExpressionsInUse(
     std::shared_ptr<binder::Expression> expression) {
     if (expression->expressionType == common::VARIABLE) {
@@ -214,8 +215,18 @@ binder::expression_vector ProjectionPushDownOptimizer::pruneExpressions(
     const binder::expression_vector& expressions) {
     expression_set expressionsAfterPruning;
     for (auto& expression : expressions) {
-        if (expression->expressionType != common::PROPERTY ||
-            propertiesInUse.contains(expression)) {
+        switch (expression->expressionType) {
+        case common::VARIABLE: {
+            if (variablesInUse.contains(expression)) {
+                expressionsAfterPruning.insert(expression);
+            }
+        } break;
+        case common::PROPERTY: {
+            if (propertiesInUse.contains(expression)) {
+                expressionsAfterPruning.insert(expression);
+            }
+        } break;
+        default: // We don't track other expression types so always assume they will be in use.
             expressionsAfterPruning.insert(expression);
         }
     }

@@ -171,6 +171,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalRecursiveExtendToPhysica
         DataPos(inSchema->getExpressionPos(*boundNode->getInternalIDProperty()));
     auto outNodeIDVectorPos =
         DataPos(outSchema->getExpressionPos(*nbrNode->getInternalIDProperty()));
+    auto lengthVectorPos =
+        DataPos(outSchema->getExpressionPos(*rel->getInternalLengthExpression()));
     auto& relsStore = storageManager.getRelsStore();
     auto relTableID = rel->getSingleTableID();
 
@@ -208,14 +210,20 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalRecursiveExtendToPhysica
             getOperatorID(), emptyParamString);
     }
     std::unique_ptr<RecursiveJoinDataInfo> dataInfo;
-    if (extend->trackPath()) {
+    switch (extend->getJoinType()) {
+    case planner::RecursiveJoinType::TRACK_PATH: {
         auto pathVectorPos = DataPos(outSchema->getExpressionPos(*rel));
         dataInfo = std::make_unique<RecursiveJoinDataInfo>(outDataPoses, colIndicesToScan,
-            inNodeIDVectorPos, outNodeIDVectorPos, tmpDstNodePos, true /* trackPath */,
-            pathVectorPos);
-    } else {
+            inNodeIDVectorPos, outNodeIDVectorPos, lengthVectorPos, tmpDstNodePos,
+            extend->getJoinType(), pathVectorPos);
+    } break;
+    case planner::RecursiveJoinType::TRACK_NONE: {
         dataInfo = std::make_unique<RecursiveJoinDataInfo>(outDataPoses, colIndicesToScan,
-            inNodeIDVectorPos, outNodeIDVectorPos, tmpDstNodePos, false /* trackPath */);
+            inNodeIDVectorPos, outNodeIDVectorPos, lengthVectorPos, tmpDstNodePos,
+            extend->getJoinType());
+    } break;
+    default:
+        throw common::NotImplementedException("PlanMapper::mapLogicalRecursiveExtendToPhysical");
     }
     auto sharedState = std::make_shared<RecursiveJoinSharedState>(sharedInputFTable, nodeTable);
     switch (rel->getRelType()) {
