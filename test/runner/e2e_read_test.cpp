@@ -12,7 +12,6 @@ public:
         : dataset{std::move(dataset)}, statements{std::move(statements)} {}
 
     std::string getInputDir() override {
-        std::cout << "dataset: " << dataset << std::endl;
         return TestHelper::appendKuzuRootPath("dataset/" + dataset + "/");
     }
     void TestBody() override { runTest(statements); }
@@ -25,7 +24,7 @@ private:
 void parseAndRegisterTestCase(const std::string& path) {
     auto testParser = std::make_unique<TestParser>();
     auto testCase = std::move(testParser->parseTestFile(path));
-    if (testCase->isValid()) {
+    if (testCase->isValid() && testCase->hasStatements()) {
         auto dataset = testCase->dataset;
         auto statements = std::move(testCase->statements);
         testing::RegisterTest(testCase->group.c_str(), testCase->name.c_str(), nullptr, nullptr,

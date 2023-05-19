@@ -89,6 +89,7 @@ TestStatement* TestParser::extractStatement(TestStatement* statement) {
     switch (currentToken.type) {
     case TokenType::STATEMENT:
     case TokenType::QUERY: {
+        checkMinimumParams(1);
         statement->query = paramsToString();
         break;
     }

@@ -53,7 +53,6 @@ bool TestRunner::checkLogicalPlans(std::unique_ptr<PreparedStatement>& preparedS
         assert(result->isSuccess());
         std::vector<std::string> resultTuples =
             TestRunner::convertResultToString(*result, statement->checkOutputOrder);
-        // statement->expectedTuplesFile is not empty: read expectedTuples from file
         if (resultTuples.size() == result->getNumTuples() &&
             resultTuples == statement->expectedTuples) {
             spdlog::info(

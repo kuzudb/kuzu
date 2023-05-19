@@ -16,7 +16,7 @@ namespace testing {
 class TestRunner {
 public:
     static void runTest(
-        const std::vector<std::unique_ptr<TestStatement>>& commands, Connection& conn);
+        const std::vector<std::unique_ptr<TestStatement>>& statements, Connection& conn);
 
     static std::unique_ptr<planner::LogicalPlan> getLogicalPlan(
         const std::string& query, Connection& conn);

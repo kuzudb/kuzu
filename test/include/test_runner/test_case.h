@@ -20,7 +20,6 @@ struct TestStatement {
     std::string errorMessage;
     bool enumerate = false;
     bool checkOutputOrder = false;
-    bool isVariableStatement = false;
 };
 
 struct TestCase {
