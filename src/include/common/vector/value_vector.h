@@ -106,28 +106,33 @@ public:
 class ListVector {
 public:
     static inline ValueVector* getDataVector(const ValueVector* vector) {
-        assert(vector->dataType.getLogicalTypeID() == LogicalTypeID::VAR_LIST);
+        assert(vector->dataType.getLogicalTypeID() == LogicalTypeID::VAR_LIST ||
+               vector->dataType.getLogicalTypeID() == LogicalTypeID::RECURSIVE_REL);
         return reinterpret_cast<ListAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())
             ->getDataVector();
     }
     static inline uint8_t* getListValues(const ValueVector* vector, const list_entry_t& listEntry) {
-        assert(vector->dataType.getLogicalTypeID() == LogicalTypeID::VAR_LIST);
+        assert(vector->dataType.getLogicalTypeID() == LogicalTypeID::VAR_LIST ||
+               vector->dataType.getLogicalTypeID() == LogicalTypeID::RECURSIVE_REL);
         auto dataVector = getDataVector(vector);
         return dataVector->getData() + dataVector->getNumBytesPerValue() * listEntry.offset;
     }
     static inline uint8_t* getListValuesWithOffset(const ValueVector* vector,
         const list_entry_t& listEntry, common::offset_t elementOffsetInList) {
-        assert(vector->dataType.getLogicalTypeID() == LogicalTypeID::VAR_LIST);
+        assert(vector->dataType.getLogicalTypeID() == LogicalTypeID::VAR_LIST ||
+               vector->dataType.getLogicalTypeID() == LogicalTypeID::RECURSIVE_REL);
         return getListValues(vector, listEntry) +
                elementOffsetInList * getDataVector(vector)->getNumBytesPerValue();
     }
     static inline list_entry_t addList(ValueVector* vector, uint64_t listSize) {
-        assert(vector->dataType.getLogicalTypeID() == LogicalTypeID::VAR_LIST);
+        assert(vector->dataType.getLogicalTypeID() == LogicalTypeID::VAR_LIST ||
+               vector->dataType.getLogicalTypeID() == LogicalTypeID::RECURSIVE_REL);
         return reinterpret_cast<ListAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())
             ->addList(listSize);
     }
     static inline void resetListAuxiliaryBuffer(ValueVector* vector) {
-        assert(vector->dataType.getLogicalTypeID() == LogicalTypeID::VAR_LIST);
+        assert(vector->dataType.getLogicalTypeID() == LogicalTypeID::VAR_LIST ||
+               vector->dataType.getLogicalTypeID() == LogicalTypeID::RECURSIVE_REL);
         reinterpret_cast<ListAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())->resetSize();
     }
 };

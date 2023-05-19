@@ -105,6 +105,9 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> ListLenVectorOperation::
     result.push_back(std::make_unique<VectorOperationDefinition>(LIST_LEN_FUNC_NAME,
         std::vector<LogicalTypeID>{LogicalTypeID::VAR_LIST}, LogicalTypeID::INT64, execFunc,
         true /* isVarlength*/));
+    result.push_back(std::make_unique<VectorOperationDefinition>(LIST_LEN_FUNC_NAME,
+        std::vector<LogicalTypeID>{LogicalTypeID::RECURSIVE_REL}, LogicalTypeID::INT64, execFunc,
+        true /* isVarlength*/));
     return result;
 }
 

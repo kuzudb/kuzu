@@ -340,6 +340,7 @@ uint32_t FactorizedTable::getDataTypeSize(const common::LogicalType& type) {
         return getDataTypeSize(*FixedListType::getChildType(&type)) *
                FixedListType::getNumElementsInList(&type);
     }
+    case LogicalTypeID::RECURSIVE_REL:
     case LogicalTypeID::VAR_LIST: {
         return sizeof(ku_list_t);
     }
@@ -682,6 +683,7 @@ void FactorizedTable::copyOverflowIfNecessary(
                 *stringToWriteFrom, *(ku_string_t*)dst);
         }
     } break;
+    case LogicalTypeID::RECURSIVE_REL:
     case LogicalTypeID::VAR_LIST: {
         diskOverflowFile->writeListOverflowAndUpdateOverflowPtr(
             *(ku_list_t*)src, *(ku_list_t*)dst, type);

@@ -68,6 +68,7 @@ uint32_t ValueVector::getDataTypeSize(const LogicalType& type) {
     case LogicalTypeID::STRUCT: {
         return sizeof(struct_entry_t);
     }
+    case LogicalTypeID::RECURSIVE_REL:
     case LogicalTypeID::VAR_LIST: {
         return sizeof(list_entry_t);
     }

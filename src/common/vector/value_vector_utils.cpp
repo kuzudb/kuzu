@@ -25,6 +25,7 @@ void ValueVectorUtils::copyNonNullDataWithSameTypeIntoPos(
             structValues += processor::FactorizedTable::getDataTypeSize(structField->dataType);
         }
     } break;
+    case LogicalTypeID::RECURSIVE_REL:
     case LogicalTypeID::VAR_LIST: {
         auto srcKuList = *(ku_list_t*)srcData;
         auto srcNullBytes = reinterpret_cast<uint8_t*>(srcKuList.overflowPtr);
@@ -76,6 +77,7 @@ void ValueVectorUtils::copyNonNullDataWithSameTypeOutFromPos(const ValueVector& 
             structValues += processor::FactorizedTable::getDataTypeSize(structField->dataType);
         }
     } break;
+    case LogicalTypeID::RECURSIVE_REL:
     case LogicalTypeID::VAR_LIST: {
         auto srcListEntry = srcVector.getValue<list_entry_t>(pos);
         auto srcListDataVector = common::ListVector::getDataVector(&srcVector);
@@ -114,6 +116,7 @@ void ValueVectorUtils::copyNonNullDataWithSameTypeOutFromPos(const ValueVector& 
 void ValueVectorUtils::copyValue(uint8_t* dstValue, common::ValueVector& dstVector,
     const uint8_t* srcValue, const common::ValueVector& srcVector) {
     switch (srcVector.dataType.getLogicalTypeID()) {
+    case LogicalTypeID::RECURSIVE_REL:
     case LogicalTypeID::VAR_LIST: {
         auto srcList = reinterpret_cast<const common::list_entry_t*>(srcValue);
         auto dstList = reinterpret_cast<common::list_entry_t*>(dstValue);
