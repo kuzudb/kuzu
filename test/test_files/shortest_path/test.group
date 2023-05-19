@@ -1,4 +1,0 @@
--GROUP SingleSourceShortestPathTest
--TEST BFS_SSSP
--DATASET shortest-path-tests
--READ_ONLY TRUE

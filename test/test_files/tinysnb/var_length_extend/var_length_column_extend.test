@@ -7,6 +7,12 @@
 # In general the formula is this: nth level will have 4 nodes (n > 2), and the first level has 7 nodes, second level
 # has 6 nodes.
 
+-GROUP TinySnbReadTest
+-TEST VarLengthExtendTests
+-DATASET tinysnb
+
+--
+
 -NAME meetsOneToTwoHopTest
 -QUERY MATCH (a:person)-[:meets*1..2]->(b:person) RETURN COUNT(*)
 ---- 1

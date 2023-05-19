@@ -1,3 +1,9 @@
+-GROUP TinySnbReadTest
+-TEST Match
+-DATASET tinysnb
+
+--
+
 -NAME node1
 -QUERY MATCH (a:person /* returns all person */) RETURN COUNT(*)
 ---- 1

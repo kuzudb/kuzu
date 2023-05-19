@@ -1,3 +1,9 @@
+-GROUP TinySnbReadTest
+-TEST Agg
+-DATASET tinysnb
+
+--
+
 -NAME MultiLabelAggTest1
 -QUERY MATCH (a:person)<-[e1:marries|studyAt]-(b:person)-[e2:knows]->(c:person) WHERE b.ID = 7 RETURN ID(e1), COUNT(*), MIN(e2.date)
 ---- 1

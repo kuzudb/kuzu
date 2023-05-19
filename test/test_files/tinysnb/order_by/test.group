@@ -1,5 +1,0 @@
--GROUP TinySnbReadTest
--TEST OrderBy
--DATASET tinysnb
--READ_ONLY TRUE
--CHECK_ORDER TRUE

@@ -1,5 +1,0 @@
--GROUP OrderByTests
--TEST OrderByLargeDatasetTest
--DATASET order-by-tests
--CHECK_ORDER TRUE
--READ_ONLY TRUE

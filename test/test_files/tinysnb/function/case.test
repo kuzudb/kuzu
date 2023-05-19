@@ -1,3 +1,9 @@
+-GROUP TinySnbReadTest
+-TEST Function
+-DATASET tinysnb
+
+--
+
 -NAME CaseIntTest
 -QUERY MATCH (a:person) WHERE a.ID < 6 RETURN CASE a.age WHEN 35 THEN a.age + 1 ELSE 0 END
 ---- 4

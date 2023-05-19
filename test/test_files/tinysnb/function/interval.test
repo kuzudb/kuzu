@@ -1,3 +1,9 @@
+-GROUP TinySnbReadTest
+-TEST Function
+-DATASET tinysnb
+
+--
+
 -NAME IntervalFunctionOnCol
 -QUERY MATCH (o:organisation) RETURN interval(o.history) + interval('31 months 20 days 10 hours 100us')
 ---- 3

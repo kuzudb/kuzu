@@ -1,3 +1,9 @@
+-GROUP EndToEndReadListsSubQueryTest
+-TEST LargeListSubQueryTest
+-DATASET read-list-tests/large-list-sub-query-tests
+
+--
+
 -NAME KnowsVeryLargeAdjListSubQueryTest
 -QUERY MATCH (a:person) WHERE EXISTS { MATCH (a)-[:knows]->(b:person)-[:knows]->(c:person) } RETURN count(*)
 -PARALLELISM 1

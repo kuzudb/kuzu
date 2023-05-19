@@ -1,3 +1,9 @@
+-GROUP TinySnbReadTest
+-TEST Projection
+-DATASET tinysnb
+
+--
+
 -NAME MultiLabelReturn
 -QUERY MATCH (a:person:organisation) RETURN a.ID, label(a), a.fName, a.orgCode
 ---- 11

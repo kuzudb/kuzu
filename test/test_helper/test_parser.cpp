@@ -13,11 +13,11 @@ namespace testing {
 std::unique_ptr<TestCase> TestParser::parseTestFile(const std::string& path) {
     openFile(path);
     parseHeader();
-    if (!testCase->isValid()) {
-        throw Exception("Invalid test header");
-    }
     if (testCase->skipTest) {
         return std::move(testCase);
+    }
+    if (!testCase->isValid()) {
+        throw Exception("Invalid test header");
     }
     parseBody();
     return std::move(testCase);
@@ -47,7 +47,7 @@ void TestParser::parseHeader() {
         }
         case TokenType::SKIP: {
             testCase->skipTest = true;
-            break;
+            return;
         }
         case TokenType::SEPARATOR: {
             return;
@@ -87,11 +87,6 @@ TestStatement* TestParser::extractStatement(TestStatement* statement) {
     }
     tokenize();
     switch (currentToken.type) {
-    case TokenType::CASE:
-    case TokenType::NAME: {
-        statement->name = currentToken.params[1];
-        break;
-    }
     case TokenType::STATEMENT:
     case TokenType::QUERY: {
         statement->query = paramsToString();
@@ -113,6 +108,10 @@ TestStatement* TestParser::extractStatement(TestStatement* statement) {
     case TokenType::PARALLELISM: {
         checkMinimumParams(1);
         statement->numThreads = stoi(currentToken.params[1]);
+        break;
+    }
+    case TokenType::ENCODED_JOIN: {
+        statement->encodedJoin = paramsToString();
         break;
     }
     case TokenType::EMPTY: {
@@ -144,6 +143,12 @@ void TestParser::parseBody() {
     while (nextLine()) {
         tokenize();
         switch (currentToken.type) {
+        case TokenType::CASE:
+        case TokenType::NAME: {
+            checkMinimumParams(1);
+            name = currentToken.params[1];
+            break;
+        }
         case TokenType::DEFINE_STATEMENT_BLOCK: {
             checkMinimumParams(2);
             extractStatementBlock();
@@ -153,27 +158,10 @@ void TestParser::parseBody() {
             checkMinimumParams(1);
             for (auto& statement : testCase->variableStatements) {
                 if (statement->blockName == currentToken.params[1]) {
-                    testCase->statements.push_back(std::move(statement));
+                    statement->name = name;
+                    testCase->statements.push_back(std::make_unique<TestStatement>(*statement));
                 }
             }
-            break;
-        }
-        case TokenType::LOOP: {
-            //  FOR 0 100
-            // for (i=0 to 100) {
-            //   tokenReplacement = [$i, number]
-            //   addNewStatement
-            //   extractStatement(parser, statement, tokenReplacement)
-            // }
-            break;
-        }
-        case TokenType::FOREACH: {
-            // -FOREACH cat_breeds siamese coon burmese persian
-            // for (auto& items : parser.currentToken.params) {
-            //   tokenReplacement = [$cat_breeds, coon]
-            //   addNewStatement
-            //   extractStatement(parser, statement, tokenReplacement)
-            // }
             break;
         }
         case TokenType::EMPTY: {
@@ -182,13 +170,13 @@ void TestParser::parseBody() {
         default: {
             // if its not special case, then it has to be a statement
             TestStatement* statement = addNewStatement(testCase->statements);
+            statement->name = name;
             extractStatement(statement);
         }
         }
     }
 }
 
-// TODO: better naming?
 TestStatement* TestParser::addNewStatement(
     std::vector<std::unique_ptr<TestStatement>>& statementsVector) {
     TestStatement* currentStatement;
@@ -221,7 +209,7 @@ void TestParser::openFile(const std::string& path) {
 
 void TestParser::tokenize() {
     currentToken.params = StringUtils::splitByAnySpace(line);
-    if (currentToken.params.size() == 0) {
+    if ((currentToken.params.size() == 0) || (currentToken.params[0][0] == '#')) {
         currentToken.type = TokenType::EMPTY;
     } else {
         currentToken.type = getTokenType(currentToken.params[0]);

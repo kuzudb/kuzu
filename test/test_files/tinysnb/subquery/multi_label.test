@@ -1,3 +1,9 @@
+-GROUP TinySnbReadTest
+-TEST Subquery
+-DATASET tinysnb
+
+--
+
 -NAME MultiLabelSubqueryTest
 -QUERY MATCH (a:person:organisation) WHERE EXISTS { MATCH (a)-[:knows|:studyAt]->(b:organisation:person) } RETURN COUNT(*)
 ---- 1

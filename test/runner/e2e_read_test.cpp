@@ -49,7 +49,7 @@ void scanTestFiles(const std::string& path) {
 
 int main(int argc, char** argv) {
     testing::InitGoogleTest(&argc, argv);
-    std::string path = "test/test_files/order_by";
+    std::string path = "test/test_files";
     if (argc > 1) {
         path = argv[1];
     }

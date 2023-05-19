@@ -11,8 +11,6 @@ namespace testing {
 void TestRunner::runTest(
     const std::vector<std::unique_ptr<TestStatement>>& statements, Connection& conn) {
     for (auto& statement : statements) {
-        // execute shell commands
-        // ...
         ASSERT_TRUE(testStatement(statement.get(), conn));
     }
 }
@@ -76,7 +74,6 @@ bool TestRunner::checkLogicalPlans(std::unique_ptr<PreparedStatement>& preparedS
     return numPassedPlans == numPlans;
 }
 
-// TODO: TestHelper use the same function. Is it possible to re-use?
 std::unique_ptr<planner::LogicalPlan> TestRunner::getLogicalPlan(
     const std::string& query, kuzu::main::Connection& conn) {
     return std::move(conn.prepare(query)->logicalPlans[0]);

@@ -6,6 +6,13 @@
 # adjacent nodes. # In level 3, Node 0,2,3,5 extends to each other so we have 3 * 3 * 3 * Node 0,2,3,5 = 108 nodes.
 # In general the formula is this: nth level will have 4 * (3 ^ n) number of nodes (n > 1), and the first level has
 # 14 nodes.
+
+-GROUP TinySnbReadTest
+-TEST VarLengthExtendTests
+-DATASET tinysnb
+
+--
+
 -NAME KnowsThreeHopMinLenEqualsMaxLen
 -QUERY MATCH (a:person)-[e:knows*3..3]->(b:person) RETURN COUNT(*)
 ---- 1

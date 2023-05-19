@@ -1,3 +1,9 @@
+-GROUP TinySnbReadTest
+-TEST OptionalMatch
+-DATASET tinysnb
+
+--
+
 -NAME MultiLabelTest1
 -QUERY MATCH (a:organisation) OPTIONAL MATCH (a)<-[:knows|:studyAt]-(b:person) RETURN COUNT(*)
 ---- 1

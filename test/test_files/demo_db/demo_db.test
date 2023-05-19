@@ -1,3 +1,7 @@
+# skip the new framework of executing until we convert this test
+# the test will still run through the current implementation
+-SKIP
+
 -NAME Limit1
 -QUERY MATCH (u:User) RETURN u.name ORDER BY u.age DESC LIMIT 3;
 ---- 3

@@ -17,10 +17,9 @@ enum class TokenType {
     CHECK_ORDER,
     DEFINE_STATEMENT_BLOCK,
     EMPTY,
+    ENCODED_JOIN,
     END_OF_STATEMENT_BLOCK,
     ENUMERATE,
-    FOREACH,
-    LOOP,
     NAME,
     PARALLELISM,
     QUERY,
@@ -34,10 +33,9 @@ enum class TokenType {
 
 const std::unordered_map<std::string, TokenType> tokenMap = {{"-GROUP", TokenType::GROUP},
     {"-TEST", TokenType::TEST}, {"-DATASET", TokenType::DATASET}, {"-CASE", TokenType::CASE},
-    {"-CHECK_ORDER", TokenType::CHECK_ORDER},
+    {"-CHECK_ORDER", TokenType::CHECK_ORDER}, {"-ENCODED_JOIN", TokenType::ENCODED_JOIN},
     {"-DEFINE_STATEMENT_BLOCK", TokenType::DEFINE_STATEMENT_BLOCK},
-    {"-ENUMERATE", TokenType::ENUMERATE}, {"-FOREACH", TokenType::FOREACH},
-    {"-LOOP", TokenType::LOOP}, {"-NAME", TokenType::NAME},
+    {"-ENUMERATE", TokenType::ENUMERATE}, {"-NAME", TokenType::NAME},
     {"-PARALLELISM", TokenType::PARALLELISM}, {"-QUERY", TokenType::QUERY},
     {"-READ_ONLY", TokenType::READ_ONLY}, {"-SKIP", TokenType::SKIP},
     {"-STATEMENT", TokenType::STATEMENT}, {"-STATEMENT_BLOCK", TokenType::STATEMENT_BLOCK},
@@ -59,6 +57,7 @@ public:
 private:
     std::ifstream fileStream;
     std::string line;
+    std::string name;
     LogicToken currentToken;
     std::unique_ptr<TestCase> testCase;
 

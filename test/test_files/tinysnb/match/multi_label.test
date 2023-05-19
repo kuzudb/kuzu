@@ -1,3 +1,9 @@
+-GROUP TinySnbReadTest
+-TEST Match
+-DATASET tinysnb
+
+--
+
 -NAME UnLabelTest
 -QUERY MATCH () RETURN COUNT(*)
 ---- 1

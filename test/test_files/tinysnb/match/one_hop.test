@@ -1,3 +1,9 @@
+-GROUP TinySnbReadTest
+-TEST Match
+-DATASET tinysnb
+
+--
+
 -NAME OneHopKnowsTest
 -QUERY MATCH (a:person)-[e:knows]->(b:person) RETURN COUNT(*)
 -ENUMERATE
