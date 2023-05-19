@@ -224,13 +224,13 @@ void ListPropertyLists::readListFromPages(
 }
 
 void StringPropertyLists::readFromList(ValueVector* valueVector, ListHandle& listHandle) {
-    StringVector::resetOverflowBuffer(valueVector);
+    valueVector->resetAuxiliaryBuffer();
     Lists::readFromList(valueVector, listHandle);
     diskOverflowFile.scanStrings(TransactionType::READ_ONLY, *valueVector);
 }
 
 void ListPropertyLists::readFromList(ValueVector* valueVector, ListHandle& listHandle) {
-    StringVector::resetOverflowBuffer(valueVector);
+    valueVector->resetAuxiliaryBuffer();
     auto pageCursor = PageUtils::getPageElementCursorForPos(
         headers->getCSROffset(listHandle.getBoundNodeOffset()) + listHandle.getStartElemOffset(),
         numElementsPerPage);

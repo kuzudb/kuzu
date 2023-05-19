@@ -32,7 +32,7 @@ static std::string getListFunctionIncompatibleChildrenTypeErrorMsg(
 void ListCreationVectorOperation::execFunc(
     const std::vector<std::shared_ptr<ValueVector>>& parameters, ValueVector& result) {
     assert(result.dataType.getLogicalTypeID() == LogicalTypeID::VAR_LIST);
-    common::StringVector::resetOverflowBuffer(&result);
+    result.resetAuxiliaryBuffer();
     for (auto selectedPos = 0u; selectedPos < result.state->selVector->selectedSize;
          ++selectedPos) {
         auto pos = result.state->selVector->selectedPositions[selectedPos];
