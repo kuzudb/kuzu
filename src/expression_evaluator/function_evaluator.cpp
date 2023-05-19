@@ -13,7 +13,7 @@ namespace evaluator {
 void FunctionExpressionEvaluator::init(const ResultSet& resultSet, MemoryManager* memoryManager) {
     BaseExpressionEvaluator::init(resultSet, memoryManager);
     execFunc = ((binder::ScalarFunctionExpression&)*expression).execFunc;
-    if (expression->dataType.typeID == BOOL) {
+    if (expression->dataType.getLogicalTypeID() == LogicalTypeID::BOOL) {
         selectFunc = ((binder::ScalarFunctionExpression&)*expression).selectFunc;
     }
     for (auto& child : children) {
@@ -35,7 +35,7 @@ bool FunctionExpressionEvaluator::select(SelectionVector& selVector) {
     // Temporary code path for function whose return type is BOOL but select interface is not
     // implemented (e.g. list_contains). We should remove this if statement eventually.
     if (selectFunc == nullptr) {
-        assert(resultVector->dataType.typeID == BOOL);
+        assert(resultVector->dataType.getLogicalTypeID() == LogicalTypeID::BOOL);
         execFunc(parameters, *resultVector);
         auto numSelectedValues = 0u;
         for (auto i = 0u; i < resultVector->state->selVector->selectedSize; ++i) {

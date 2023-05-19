@@ -22,40 +22,41 @@ public:
         const std::string& functionName, const binder::expression_vector& children);
 
     VectorOperationDefinition* matchFunction(
-        const std::string& name, const std::vector<common::DataType>& inputTypes);
+        const std::string& name, const std::vector<common::LogicalType>& inputTypes);
 
     std::vector<std::string> getFunctionNames();
 
-    static uint32_t getCastCost(common::DataTypeID inputTypeID, common::DataTypeID targetTypeID);
+    static uint32_t getCastCost(
+        common::LogicalTypeID inputTypeID, common::LogicalTypeID targetTypeID);
 
     static uint32_t getCastCost(
-        const common::DataType& inputType, const common::DataType& targetType);
+        const common::LogicalType& inputType, const common::LogicalType& targetType);
 
 private:
-    static uint32_t getTargetTypeCost(common::DataTypeID typeID);
+    static uint32_t getTargetTypeCost(common::LogicalTypeID typeID);
 
-    static uint32_t castInt64(common::DataTypeID targetTypeID);
+    static uint32_t castInt64(common::LogicalTypeID targetTypeID);
 
-    static uint32_t castInt32(common::DataTypeID targetTypeID);
+    static uint32_t castInt32(common::LogicalTypeID targetTypeID);
 
-    static uint32_t castInt16(common::DataTypeID targetTypeID);
+    static uint32_t castInt16(common::LogicalTypeID targetTypeID);
 
-    static uint32_t castDouble(common::DataTypeID targetTypeID);
+    static uint32_t castDouble(common::LogicalTypeID targetTypeID);
 
-    static uint32_t castFloat(common::DataTypeID targetTypeID);
+    static uint32_t castFloat(common::LogicalTypeID targetTypeID);
 
     VectorOperationDefinition* getBestMatch(std::vector<VectorOperationDefinition*>& functions);
 
-    uint32_t getFunctionCost(const std::vector<common::DataType>& inputTypes,
+    uint32_t getFunctionCost(const std::vector<common::LogicalType>& inputTypes,
         VectorOperationDefinition* function, bool isOverload);
-    uint32_t matchParameters(const std::vector<common::DataType>& inputTypes,
-        const std::vector<common::DataTypeID>& targetTypeIDs, bool isOverload);
-    uint32_t matchVarLengthParameters(const std::vector<common::DataType>& inputTypes,
-        common::DataTypeID targetTypeID, bool isOverload);
+    uint32_t matchParameters(const std::vector<common::LogicalType>& inputTypes,
+        const std::vector<common::LogicalTypeID>& targetTypeIDs, bool isOverload);
+    uint32_t matchVarLengthParameters(const std::vector<common::LogicalType>& inputTypes,
+        common::LogicalTypeID targetTypeID, bool isOverload);
 
     void validateNonEmptyCandidateFunctions(
         std::vector<VectorOperationDefinition*>& candidateFunctions, const std::string& name,
-        const std::vector<common::DataType>& inputTypes);
+        const std::vector<common::LogicalType>& inputTypes);
 
     void registerVectorOperations();
     void registerComparisonOperations();

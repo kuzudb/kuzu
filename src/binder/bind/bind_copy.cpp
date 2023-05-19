@@ -86,15 +86,16 @@ CSVReaderConfig Binder::bindParsingOptions(
         auto boundCopyOptionExpression = expressionBinder.bindExpression(*copyOptionExpression);
         assert(boundCopyOptionExpression->expressionType = LITERAL);
         if (copyOptionName == "HEADER") {
-            if (boundCopyOptionExpression->dataType.typeID != BOOL) {
+            if (boundCopyOptionExpression->dataType.getLogicalTypeID() != LogicalTypeID::BOOL) {
                 throw BinderException(
                     "The value type of parsing csv option " + copyOptionName + " must be boolean.");
             }
             csvReaderConfig.hasHeader =
                 ((LiteralExpression&)(*boundCopyOptionExpression)).value->getValue<bool>();
-        } else if (boundCopyOptionExpression->dataType.typeID == STRING &&
+        } else if (boundCopyOptionExpression->dataType.getLogicalTypeID() ==
+                       LogicalTypeID::STRING &&
                    isValidStringParsingOption) {
-            if (boundCopyOptionExpression->dataType.typeID != STRING) {
+            if (boundCopyOptionExpression->dataType.getLogicalTypeID() != LogicalTypeID::STRING) {
                 throw BinderException(
                     "The value type of parsing csv option " + copyOptionName + " must be string.");
             }

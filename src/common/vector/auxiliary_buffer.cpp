@@ -8,22 +8,22 @@ namespace common {
 
 void StringAuxiliaryBuffer::addString(
     common::ValueVector* vector, uint32_t pos, char* value, uint64_t len) const {
-    assert(vector->dataType.typeID == STRING);
+    assert(vector->dataType.getLogicalTypeID() == LogicalTypeID::STRING);
     auto& entry = ((ku_string_t*)vector->getData())[pos];
     InMemOverflowBufferUtils::copyString(value, len, entry, *inMemOverflowBuffer);
 }
 
 StructAuxiliaryBuffer::StructAuxiliaryBuffer(
-    const DataType& type, storage::MemoryManager* memoryManager) {
-    auto structTypeInfo = reinterpret_cast<StructTypeInfo*>(type.getExtraTypeInfo());
-    childrenVectors.reserve(structTypeInfo->getChildrenTypes().size());
-    for (auto structFieldType : structTypeInfo->getChildrenTypes()) {
+    const LogicalType& type, storage::MemoryManager* memoryManager) {
+    auto structFieldTypes = StructType::getStructFieldTypes(&type);
+    childrenVectors.reserve(structFieldTypes.size());
+    for (auto structFieldType : structFieldTypes) {
         childrenVectors.push_back(std::make_shared<ValueVector>(*structFieldType, memoryManager));
     }
 }
 
 ListAuxiliaryBuffer::ListAuxiliaryBuffer(
-    const DataType& dataVectorType, storage::MemoryManager* memoryManager)
+    const LogicalType& dataVectorType, storage::MemoryManager* memoryManager)
     : capacity{common::DEFAULT_VECTOR_CAPACITY}, size{0}, dataVector{std::make_unique<ValueVector>(
                                                               dataVectorType, memoryManager)} {}
 
@@ -45,14 +45,15 @@ list_entry_t ListAuxiliaryBuffer::addList(uint64_t listSize) {
 }
 
 std::unique_ptr<AuxiliaryBuffer> AuxiliaryBufferFactory::getAuxiliaryBuffer(
-    DataType& type, storage::MemoryManager* memoryManager) {
-    switch (type.typeID) {
-    case STRING:
+    LogicalType& type, storage::MemoryManager* memoryManager) {
+    switch (type.getLogicalTypeID()) {
+    case LogicalTypeID::STRING:
         return std::make_unique<StringAuxiliaryBuffer>(memoryManager);
-    case STRUCT:
+    case LogicalTypeID::STRUCT:
         return std::make_unique<StructAuxiliaryBuffer>(type, memoryManager);
-    case VAR_LIST:
-        return std::make_unique<ListAuxiliaryBuffer>(*type.getChildType(), memoryManager);
+    case LogicalTypeID::VAR_LIST:
+        return std::make_unique<ListAuxiliaryBuffer>(
+            *VarListType::getChildType(&type), memoryManager);
     default:
         return nullptr;
     }

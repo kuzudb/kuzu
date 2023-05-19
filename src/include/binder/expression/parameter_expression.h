@@ -10,12 +10,12 @@ class ParameterExpression : public Expression {
 public:
     explicit ParameterExpression(
         const std::string& parameterName, std::shared_ptr<common::Value> value)
-        : Expression{common::PARAMETER, common::DataType(common::ANY),
+        : Expression{common::PARAMETER, common::LogicalType(common::LogicalTypeID::ANY),
               createUniqueName(parameterName)},
           parameterName(parameterName), value{std::move(value)} {}
 
-    inline void setDataType(const common::DataType& targetType) {
-        assert(dataType.typeID == common::ANY);
+    inline void setDataType(const common::LogicalType& targetType) {
+        assert(dataType.getLogicalTypeID() == common::LogicalTypeID::ANY);
         dataType = targetType;
         value->setDataType(targetType);
     }

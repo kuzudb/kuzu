@@ -14,7 +14,7 @@ namespace kuzu {
 namespace processor {
 
 AggregateHashTable::AggregateHashTable(MemoryManager& memoryManager,
-    std::vector<DataType> keyDataTypes, std::vector<DataType> dependentKeyDataTypes,
+    std::vector<LogicalType> keyDataTypes, std::vector<LogicalType> dependentKeyDataTypes,
     const std::vector<std::unique_ptr<AggregateFunction>>& aggregateFunctions,
     uint64_t numEntriesToAllocate)
     : BaseHashTable{memoryManager}, keyDataTypes{std::move(keyDataTypes)},
@@ -53,8 +53,10 @@ bool AggregateHashTable::isAggregateValueDistinctForGroupByKeys(
     } else {
         VectorHashOperations::computeHash(groupByFlatKeyVectors[0], hashVector.get());
         computeAndCombineVecHash(groupByFlatKeyVectors, 1 /* startVecIdx */);
-        auto tmpHashResultVector = std::make_unique<ValueVector>(INT64, &memoryManager);
-        auto tmpHashCombineResultVector = std::make_unique<ValueVector>(INT64, &memoryManager);
+        auto tmpHashResultVector =
+            std::make_unique<ValueVector>(LogicalTypeID::INT64, &memoryManager);
+        auto tmpHashCombineResultVector =
+            std::make_unique<ValueVector>(LogicalTypeID::INT64, &memoryManager);
         VectorHashOperations::computeHash(aggregateVector, tmpHashResultVector.get());
         VectorHashOperations::combineHash(
             hashVector.get(), tmpHashResultVector.get(), tmpHashCombineResultVector.get());
@@ -139,18 +141,18 @@ void AggregateHashTable::initializeFT(
     compareFuncs.resize(aggStateColIdxInFT);
     auto colIdx = 0u;
     for (auto& dataType : keyDataTypes) {
-        auto size = Types::getDataTypeSize(dataType);
+        auto size = FactorizedTable::getDataTypeSize(dataType);
         tableSchema->appendColumn(std::make_unique<ColumnSchema>(isUnflat, dataChunkPos, size));
-        hasStrCol = hasStrCol || dataType.typeID == STRING;
-        compareFuncs[colIdx] = getCompareEntryWithKeysFunc(dataType.typeID);
+        hasStrCol = hasStrCol || dataType.getLogicalTypeID() == LogicalTypeID::STRING;
+        compareFuncs[colIdx] = getCompareEntryWithKeysFunc(dataType.getLogicalTypeID());
         numBytesForKeys += size;
         colIdx++;
     }
     for (auto& dataType : dependentKeyDataTypes) {
-        auto size = Types::getDataTypeSize(dataType);
+        auto size = FactorizedTable::getDataTypeSize(dataType);
         tableSchema->appendColumn(std::make_unique<ColumnSchema>(isUnflat, dataChunkPos, size));
-        hasStrCol = hasStrCol || dataType.typeID == STRING;
-        compareFuncs[colIdx] = getCompareEntryWithKeysFunc(dataType.typeID);
+        hasStrCol = hasStrCol || dataType.getLogicalTypeID() == LogicalTypeID::STRING;
+        compareFuncs[colIdx] = getCompareEntryWithKeysFunc(dataType.getLogicalTypeID());
         numBytesForDependentKeys += size;
         colIdx++;
     }
@@ -192,7 +194,7 @@ void AggregateHashTable::initializeHashTable(uint64_t numEntriesToAllocate) {
 void AggregateHashTable::initializeTmpVectors() {
     hashState = std::make_shared<DataChunkState>();
     hashState->currIdx = 0;
-    hashVector = std::make_unique<ValueVector>(INT64, &memoryManager);
+    hashVector = std::make_unique<ValueVector>(LogicalTypeID::INT64, &memoryManager);
     hashVector->state = hashState;
     hashSlotsToUpdateAggState = std::make_unique<HashSlot*[]>(DEFAULT_VECTOR_CAPACITY);
     tmpValueIdxes = std::make_unique<uint64_t[]>(DEFAULT_VECTOR_CAPACITY);
@@ -395,8 +397,10 @@ void AggregateHashTable::computeAndCombineVecHash(
     const std::vector<ValueVector*>& groupByHashKeyVectors, uint32_t startVecIdx) {
     for (; startVecIdx < groupByHashKeyVectors.size(); startVecIdx++) {
         auto keyVector = groupByHashKeyVectors[startVecIdx];
-        auto tmpHashResultVector = std::make_unique<ValueVector>(INT64, &memoryManager);
-        auto tmpHashCombineResultVector = std::make_unique<ValueVector>(INT64, &memoryManager);
+        auto tmpHashResultVector =
+            std::make_unique<ValueVector>(LogicalTypeID::INT64, &memoryManager);
+        auto tmpHashCombineResultVector =
+            std::make_unique<ValueVector>(LogicalTypeID::INT64, &memoryManager);
         VectorHashOperations::computeHash(keyVector, tmpHashResultVector.get());
         VectorHashOperations::combineHash(
             hashVector.get(), tmpHashResultVector.get(), tmpHashCombineResultVector.get());
@@ -668,43 +672,44 @@ bool AggregateHashTable::compareEntryWithKeys(const uint8_t* keyValue, const uin
     return result != 0;
 }
 
-compare_function_t AggregateHashTable::getCompareEntryWithKeysFunc(DataTypeID typeId) {
+compare_function_t AggregateHashTable::getCompareEntryWithKeysFunc(LogicalTypeID typeId) {
     switch (typeId) {
-    case INTERNAL_ID: {
+    case LogicalTypeID::INTERNAL_ID: {
         return compareEntryWithKeys<nodeID_t>;
     }
-    case BOOL: {
+    case LogicalTypeID::BOOL: {
         return compareEntryWithKeys<bool>;
     }
-    case INT64: {
+    case LogicalTypeID::INT64: {
         return compareEntryWithKeys<int64_t>;
     }
-    case INT32: {
+    case LogicalTypeID::INT32: {
         return compareEntryWithKeys<int32_t>;
     }
-    case INT16: {
+    case LogicalTypeID::INT16: {
         return compareEntryWithKeys<int16_t>;
     }
-    case DOUBLE: {
+    case LogicalTypeID::DOUBLE: {
         return compareEntryWithKeys<double_t>;
     }
-    case FLOAT: {
+    case LogicalTypeID::FLOAT: {
         return compareEntryWithKeys<float_t>;
     }
-    case STRING: {
+    case LogicalTypeID::STRING: {
         return compareEntryWithKeys<ku_string_t>;
     }
-    case DATE: {
+    case LogicalTypeID::DATE: {
         return compareEntryWithKeys<date_t>;
     }
-    case TIMESTAMP: {
+    case LogicalTypeID::TIMESTAMP: {
         return compareEntryWithKeys<timestamp_t>;
     }
-    case INTERVAL: {
+    case LogicalTypeID::INTERVAL: {
         return compareEntryWithKeys<interval_t>;
     }
     default: {
-        throw RuntimeException("Cannot compare data type " + Types::dataTypeToString(typeId));
+        throw RuntimeException(
+            "Cannot compare data type " + LogicalTypeUtils::dataTypeToString(typeId));
     }
     }
 }
@@ -881,12 +886,12 @@ void AggregateHashTable::updateBothUnflatDifferentDCAggVectorState(
 }
 
 std::vector<std::unique_ptr<AggregateHashTable>> AggregateHashTableUtils::createDistinctHashTables(
-    MemoryManager& memoryManager, const std::vector<DataType>& groupByKeyDataTypes,
+    MemoryManager& memoryManager, const std::vector<LogicalType>& groupByKeyDataTypes,
     const std::vector<std::unique_ptr<AggregateFunction>>& aggregateFunctions) {
     std::vector<std::unique_ptr<AggregateHashTable>> distinctHTs;
     for (auto& aggregateFunction : aggregateFunctions) {
         if (aggregateFunction->isFunctionDistinct()) {
-            std::vector<DataType> distinctKeysDataTypes(groupByKeyDataTypes.size() + 1);
+            std::vector<LogicalType> distinctKeysDataTypes(groupByKeyDataTypes.size() + 1);
             for (auto i = 0u; i < groupByKeyDataTypes.size(); i++) {
                 distinctKeysDataTypes[i] = groupByKeyDataTypes[i];
             }

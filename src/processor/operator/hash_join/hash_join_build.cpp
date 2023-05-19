@@ -35,25 +35,25 @@ std::unique_ptr<FactorizedTableSchema> HashJoinBuild::populateTableSchema() {
     std::unique_ptr<FactorizedTableSchema> tableSchema = std::make_unique<FactorizedTableSchema>();
     for (auto& [pos, dataType] : buildDataInfo.keysPosAndType) {
         tableSchema->appendColumn(std::make_unique<ColumnSchema>(
-            false /* is flat */, pos.dataChunkPos, Types::getDataTypeSize(dataType)));
+            false /* is flat */, pos.dataChunkPos, FactorizedTable::getDataTypeSize(dataType)));
     }
     for (auto i = 0u; i < buildDataInfo.payloadsPosAndType.size(); ++i) {
         auto [pos, dataType] = buildDataInfo.payloadsPosAndType[i];
         if (buildDataInfo.isPayloadsInKeyChunk[i]) {
             tableSchema->appendColumn(std::make_unique<ColumnSchema>(
-                false /* is flat */, pos.dataChunkPos, Types::getDataTypeSize(dataType)));
+                false /* is flat */, pos.dataChunkPos, FactorizedTable::getDataTypeSize(dataType)));
         } else {
             auto isVectorFlat = buildDataInfo.isPayloadsFlat[i];
             tableSchema->appendColumn(
                 std::make_unique<ColumnSchema>(!isVectorFlat, pos.dataChunkPos,
-                    isVectorFlat ? Types::getDataTypeSize(dataType) :
+                    isVectorFlat ? FactorizedTable::getDataTypeSize(dataType) :
                                    (uint32_t)sizeof(overflow_value_t)));
         }
     }
     // The prev pointer column.
     tableSchema->appendColumn(std::make_unique<ColumnSchema>(false /* is flat */,
         UINT32_MAX /* For now, we just put UINT32_MAX for prev pointer */,
-        Types::getDataTypeSize(INT64)));
+        FactorizedTable::getDataTypeSize(LogicalType{LogicalTypeID::INT64})));
     return tableSchema;
 }
 

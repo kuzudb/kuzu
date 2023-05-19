@@ -21,7 +21,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
     common::ExpressionType expressionType, const expression_vector& children) {
     auto builtInFunctions = binder->catalog.getBuiltInScalarFunctions();
     auto functionName = expressionTypeToString(expressionType);
-    std::vector<common::DataType> childrenTypes;
+    std::vector<common::LogicalType> childrenTypes;
     for (auto& child : children) {
         childrenTypes.push_back(child->dataType);
     }
@@ -32,7 +32,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
             implicitCastIfNecessary(children[i], function->parameterTypeIDs[i]));
     }
     auto bindData =
-        std::make_unique<function::FunctionBindData>(common::DataType(function->returnTypeID));
+        std::make_unique<function::FunctionBindData>(common::LogicalType(function->returnTypeID));
     auto uniqueExpressionName =
         ScalarFunctionExpression::getUniqueName(function->name, childrenAfterCast);
     return make_shared<ScalarFunctionExpression>(functionName, expressionType, std::move(bindData),

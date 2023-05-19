@@ -10,7 +10,7 @@ class TinySnbListTest : public DBTest {
 
 public:
     static bool CheckEquals(const std::vector<std::string>& expected, const Value& listVal) {
-        if (listVal.dataType.typeID != VAR_LIST) {
+        if (listVal.dataType.getLogicalTypeID() != LogicalTypeID::VAR_LIST) {
             return false;
         }
         if (expected.size() != listVal.nestedTypeVal.size()) {
@@ -68,7 +68,6 @@ TEST_F(TinySnbListTest, RelPropertyColumnWithList) {
     auto graph = getStorageManager(*database);
     auto catalog = getCatalog(*database);
     auto tableID = catalog->getReadOnlyVersion()->getTableID("studyAt");
-    auto nodeTablesForAdjColumnAndProperties = catalog->getReadOnlyVersion()->getTableID("person");
     auto& property = catalog->getReadOnlyVersion()->getRelProperty(tableID, "places");
     auto col = graph->getRelsStore().getRelPropertyColumn(
         RelDataDirection::FWD, tableID, property.propertyID);

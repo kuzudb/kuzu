@@ -53,7 +53,7 @@ public:
 
     template<typename T>
     OrderByKeyEncoder prepareSingleOrderByColEncoder(const std::vector<T>& sortingData,
-        const std::vector<bool>& nullMasks, DataTypeID dataTypeID, bool isAsc,
+        const std::vector<bool>& nullMasks, LogicalTypeID dataTypeID, bool isAsc,
         uint16_t factorizedTableIdx, bool hasPayLoadCol,
         std::vector<std::shared_ptr<FactorizedTable>>& factorizedTables,
         std::shared_ptr<DataChunk>& dataChunk) {
@@ -76,11 +76,12 @@ public:
 
         std::unique_ptr<FactorizedTableSchema> tableSchema =
             std::make_unique<FactorizedTableSchema>();
-        tableSchema->appendColumn(std::make_unique<ColumnSchema>(
-            false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(dataTypeID)));
+        tableSchema->appendColumn(std::make_unique<ColumnSchema>(false /* isUnflat */,
+            0 /* dataChunkPos */, FactorizedTable::getDataTypeSize(LogicalType{dataTypeID})));
 
         if (hasPayLoadCol) {
-            auto payloadValueVector = std::make_shared<ValueVector>(STRING, memoryManager.get());
+            auto payloadValueVector =
+                std::make_shared<ValueVector>(LogicalTypeID::STRING, memoryManager.get());
             for (auto i = 0u; i < dataChunk->state->selVector->selectedSize; i++) {
                 payloadValueVector->setValue(i, std::to_string(i));
             }
@@ -88,8 +89,8 @@ public:
             // To test whether the orderByCol -> factorizedTableColIdx works properly, we put the
             // payload column at index 0, and the orderByCol at index 1.
             allVectors.insert(allVectors.begin(), payloadValueVector.get());
-            tableSchema->appendColumn(std::make_unique<ColumnSchema>(
-                false, 0 /* dataChunkPos */, Types::getDataTypeSize(dataTypeID)));
+            tableSchema->appendColumn(std::make_unique<ColumnSchema>(false, 0 /* dataChunkPos */,
+                FactorizedTable::getDataTypeSize(LogicalType{dataTypeID})));
         }
 
         auto factorizedTable =
@@ -111,8 +112,8 @@ public:
         const std::vector<bool>& leftNullMasks, const std::vector<T>& rightSortingData,
         const std::vector<bool>& rightNullMasks,
         const std::vector<uint64_t>& expectedBlockOffsetOrder,
-        const std::vector<uint64_t>& expectedFactorizedTableIdxOrder, const DataTypeID dataTypeID,
-        const bool isAsc, bool hasPayLoadCol) {
+        const std::vector<uint64_t>& expectedFactorizedTableIdxOrder,
+        const LogicalTypeID dataTypeID, const bool isAsc, bool hasPayLoadCol) {
         std::vector<std::shared_ptr<FactorizedTable>> factorizedTables;
         auto dataChunk0 = std::make_shared<DataChunk>(hasPayLoadCol ? 2 : 1);
         auto dataChunk1 = std::make_shared<DataChunk>(hasPayLoadCol ? 2 : 1);
@@ -191,9 +192,12 @@ public:
         dataChunk->state->initOriginalAndSelectedSize(int64Values.size());
         dataChunk->state->currIdx = 0;
 
-        auto int64ValueVector = std::make_shared<ValueVector>(INT64, memoryManager.get());
-        auto doubleValueVector = std::make_shared<ValueVector>(DOUBLE, memoryManager.get());
-        auto timestampValueVector = std::make_shared<ValueVector>(TIMESTAMP, memoryManager.get());
+        auto int64ValueVector =
+            std::make_shared<ValueVector>(LogicalTypeID::INT64, memoryManager.get());
+        auto doubleValueVector =
+            std::make_shared<ValueVector>(LogicalTypeID::DOUBLE, memoryManager.get());
+        auto timestampValueVector =
+            std::make_shared<ValueVector>(LogicalTypeID::TIMESTAMP, memoryManager.get());
 
         dataChunk->insert(0, int64ValueVector);
         dataChunk->insert(1, doubleValueVector);
@@ -230,18 +234,24 @@ public:
 
         std::unique_ptr<FactorizedTableSchema> tableSchema =
             std::make_unique<FactorizedTableSchema>();
-        tableSchema->appendColumn(std::make_unique<ColumnSchema>(
-            false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(INT64)));
-        tableSchema->appendColumn(std::make_unique<ColumnSchema>(
-            false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(DOUBLE)));
-        tableSchema->appendColumn(std::make_unique<ColumnSchema>(
-            false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(TIMESTAMP)));
+        tableSchema->appendColumn(
+            std::make_unique<ColumnSchema>(false /* isUnflat */, 0 /* dataChunkPos */,
+                FactorizedTable::getDataTypeSize(LogicalType{LogicalTypeID::INT64})));
+        tableSchema->appendColumn(
+            std::make_unique<ColumnSchema>(false /* isUnflat */, 0 /* dataChunkPos */,
+                FactorizedTable::getDataTypeSize(LogicalType{LogicalTypeID::DOUBLE})));
+        tableSchema->appendColumn(
+            std::make_unique<ColumnSchema>(false /* isUnflat */, 0 /* dataChunkPos */,
+                FactorizedTable::getDataTypeSize(LogicalType{LogicalTypeID::TIMESTAMP})));
 
         if (hasStrCol) {
-            tableSchema->appendColumn(std::make_unique<ColumnSchema>(
-                false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(STRING)));
-            auto stringValueVector1 = std::make_shared<ValueVector>(STRING, memoryManager.get());
-            auto stringValueVector2 = std::make_shared<ValueVector>(STRING, memoryManager.get());
+            tableSchema->appendColumn(
+                std::make_unique<ColumnSchema>(false /* isUnflat */, 0 /* dataChunkPos */,
+                    FactorizedTable::getDataTypeSize(LogicalType{LogicalTypeID::STRING})));
+            auto stringValueVector1 =
+                std::make_shared<ValueVector>(LogicalTypeID::STRING, memoryManager.get());
+            auto stringValueVector2 =
+                std::make_shared<ValueVector>(LogicalTypeID::STRING, memoryManager.get());
             dataChunk1->insert(3, stringValueVector1);
             dataChunk2->insert(3, stringValueVector2);
 
@@ -272,8 +282,9 @@ public:
         if (hasStrCol) {
             strKeyColsInfo.emplace_back(
                 StrKeyColInfo(tableSchema->getColOffset(3 /* colIdx */) /* colOffsetInFT */,
-                    Types::getDataTypeSize(INT64) + Types::getDataTypeSize(DOUBLE) +
-                        Types::getDataTypeSize(TIMESTAMP) + 3,
+                    FactorizedTable::getDataTypeSize(LogicalType{LogicalTypeID::INT64}) +
+                        FactorizedTable::getDataTypeSize(LogicalType{LogicalTypeID::DOUBLE}) +
+                        FactorizedTable::getDataTypeSize(LogicalType{LogicalTypeID::TIMESTAMP}) + 3,
                     true /* isAscOrder */));
             expectedBlockOffsetOrder = {0, 0, 1, 1, 2, 2, 3};
             expectedFactorizedTableIdxOrder = {4, 5, 4, 5, 4, 5, 4};
@@ -306,7 +317,8 @@ public:
         dataChunk->state->currIdx = 0;
         dataChunk->state->initOriginalAndSelectedSize(strValues[0].size());
         for (auto i = 0u; i < strValues.size(); i++) {
-            auto strValueVector = std::make_shared<ValueVector>(STRING, memoryManager.get());
+            auto strValueVector =
+                std::make_shared<ValueVector>(LogicalTypeID::STRING, memoryManager.get());
             dataChunk->insert(i, strValueVector);
             for (auto j = 0u; j < strValues[i].size(); j++) {
                 strValueVector->setValue(j, strValues[i][j]);
@@ -323,14 +335,16 @@ public:
 
         std::unique_ptr<FactorizedTableSchema> tableSchema =
             std::make_unique<FactorizedTableSchema>();
+        auto stringColumnSize =
+            FactorizedTable::getDataTypeSize(LogicalType{LogicalTypeID::STRING});
         tableSchema->appendColumn(std::make_unique<ColumnSchema>(
-            false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(STRING)));
+            false /* isUnflat */, 0 /* dataChunkPos */, stringColumnSize));
         tableSchema->appendColumn(std::make_unique<ColumnSchema>(
-            false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(STRING)));
+            false /* isUnflat */, 0 /* dataChunkPos */, stringColumnSize));
         tableSchema->appendColumn(std::make_unique<ColumnSchema>(
-            false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(STRING)));
+            false /* isUnflat */, 0 /* dataChunkPos */, stringColumnSize));
         tableSchema->appendColumn(std::make_unique<ColumnSchema>(
-            false /* isUnflat */, 0 /* dataChunkPos */, Types::getDataTypeSize(STRING)));
+            false /* isUnflat */, 0 /* dataChunkPos */, stringColumnSize));
         auto factorizedTable =
             std::make_unique<FactorizedTable>(memoryManager.get(), std::move(tableSchema));
 
@@ -363,8 +377,8 @@ TEST_F(KeyBlockMergerTest, singleOrderByColInt64Test) {
     std::vector<uint64_t> expectedFactorizedTableIdxOrder = {
         0, 1, 0, 1, 0, 1, 0, 0, 1, 1, 1, 0, 0, 1};
     singleOrderByColMergeTest(leftSortingData, leftNullMasks, rightSortingData, rightNullMasks,
-        expectedBlockOffsetOrder, expectedFactorizedTableIdxOrder, INT64, true /* isAsc */,
-        false /* hasPayLoadCol */);
+        expectedBlockOffsetOrder, expectedFactorizedTableIdxOrder, LogicalTypeID::INT64,
+        true /* isAsc */, false /* hasPayLoadCol */);
 }
 
 TEST_F(KeyBlockMergerTest, singleOrderByColInt64NoNullTest) {
@@ -375,8 +389,8 @@ TEST_F(KeyBlockMergerTest, singleOrderByColInt64NoNullTest) {
     std::vector<uint64_t> expectedBlockOffsetOrder = {0, 0, 1, 1, 2, 3, 2, 4, 3};
     std::vector<uint64_t> expectedFactorizedTableIdxOrder = {0, 1, 1, 0, 0, 0, 1, 0, 1};
     singleOrderByColMergeTest(leftSortingData, leftNullMasks, rightSortingData, rightNullMasks,
-        expectedBlockOffsetOrder, expectedFactorizedTableIdxOrder, INT64, true /* isAsc */,
-        false /* hasPayLoadCol */);
+        expectedBlockOffsetOrder, expectedFactorizedTableIdxOrder, LogicalTypeID::INT64,
+        true /* isAsc */, false /* hasPayLoadCol */);
 }
 
 TEST_F(KeyBlockMergerTest, singleOrderByColInt64SameValueTest) {
@@ -388,8 +402,8 @@ TEST_F(KeyBlockMergerTest, singleOrderByColInt64SameValueTest) {
     std::vector<uint64_t> expectedFactorizedTableIdxOrder = {
         0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1};
     singleOrderByColMergeTest(leftSortingData, leftNullMasks, rightSortingData, rightNullMasks,
-        expectedBlockOffsetOrder, expectedFactorizedTableIdxOrder, INT64, false /* isAsc */,
-        false /* hasPayLoadCol */);
+        expectedBlockOffsetOrder, expectedFactorizedTableIdxOrder, LogicalTypeID::INT64,
+        false /* isAsc */, false /* hasPayLoadCol */);
 }
 
 TEST_F(KeyBlockMergerTest, singleOrderByColInt64LargeNumTuplesTest) {
@@ -415,8 +429,8 @@ TEST_F(KeyBlockMergerTest, singleOrderByColInt64LargeNumTuplesTest) {
     std::vector<bool> leftNullMasks(leftSortingData.size(), false);
     std::vector<bool> rightNullMasks(rightSortingData.size(), false);
     singleOrderByColMergeTest(leftSortingData, leftNullMasks, rightSortingData, rightNullMasks,
-        expectedBlockOffsetOrder, expectedFactorizedTableIdxOrder, INT64, true /* isAsc */,
-        false /* hasPayLoadCol */);
+        expectedBlockOffsetOrder, expectedFactorizedTableIdxOrder, LogicalTypeID::INT64,
+        true /* isAsc */, false /* hasPayLoadCol */);
 }
 
 TEST_F(KeyBlockMergerTest, singleOrderByColStringTest) {
@@ -430,8 +444,8 @@ TEST_F(KeyBlockMergerTest, singleOrderByColStringTest) {
     std::vector<uint64_t> expectedBlockOffsetOrder = {0, 0, 1, 2, 1, 2, 3, 3, 4, 4, 5, 6};
     std::vector<uint64_t> expectedFactorizedTableIdxOrder = {0, 1, 1, 1, 0, 0, 1, 0, 1, 0, 1, 1};
     singleOrderByColMergeTest(leftSortingData, leftNullMasks, rightSortingData, rightNullMasks,
-        expectedBlockOffsetOrder, expectedFactorizedTableIdxOrder, STRING, false /* isAsc */,
-        false /* hasPayLoadCol */);
+        expectedBlockOffsetOrder, expectedFactorizedTableIdxOrder, LogicalTypeID::STRING,
+        false /* isAsc */, false /* hasPayLoadCol */);
 }
 
 TEST_F(KeyBlockMergerTest, singleOrderByColStringNoNullTest) {
@@ -444,8 +458,8 @@ TEST_F(KeyBlockMergerTest, singleOrderByColStringNoNullTest) {
     std::vector<uint64_t> expectedBlockOffsetOrder = {0, 0, 1, 1, 2, 2, 3, 4, 3, 4};
     std::vector<uint64_t> expectedFactorizedTableIdxOrder = {0, 1, 0, 1, 0, 1, 0, 0, 1, 1};
     singleOrderByColMergeTest(leftSortingData, leftNullMasks, rightSortingData, rightNullMasks,
-        expectedBlockOffsetOrder, expectedFactorizedTableIdxOrder, STRING, true /* isAsc */,
-        false /* hasPayLoadCol */);
+        expectedBlockOffsetOrder, expectedFactorizedTableIdxOrder, LogicalTypeID::STRING,
+        true /* isAsc */, false /* hasPayLoadCol */);
 }
 
 TEST_F(KeyBlockMergerTest, singleOrderByColStringWithPayLoadTest) {
@@ -458,8 +472,8 @@ TEST_F(KeyBlockMergerTest, singleOrderByColStringWithPayLoadTest) {
     std::vector<uint64_t> expectedBlockOffsetOrder = {0, 1, 0, 2, 3, 4, 1, 2, 3, 4};
     std::vector<uint64_t> expectedFactorizedTableIdxOrder = {0, 0, 1, 0, 0, 0, 1, 1, 1, 1};
     singleOrderByColMergeTest(leftSortingData, leftNullMasks, rightSortingData, rightNullMasks,
-        expectedBlockOffsetOrder, expectedFactorizedTableIdxOrder, STRING, true /* isAsc */,
-        true /* hasPayLoadCol */);
+        expectedBlockOffsetOrder, expectedFactorizedTableIdxOrder, LogicalTypeID::STRING,
+        true /* isAsc */, true /* hasPayLoadCol */);
 }
 
 TEST_F(KeyBlockMergerTest, multiple0rderByColNoStrTest) {
@@ -501,9 +515,11 @@ TEST_F(KeyBlockMergerTest, multipleStrKeyColsTest) {
         StrKeyColInfo(factorizedTables[0]->getTableSchema()->getColOffset(0 /* colIdx */),
             0 /* colOffsetInEncodedKeyBlock */, true /* isAscOrder */),
         StrKeyColInfo(factorizedTables[0]->getTableSchema()->getColOffset(1 /* colIdx */),
-            orderByKeyEncoder1.getEncodingSize(DataType(STRING)), true /* isAscOrder */),
+            orderByKeyEncoder1.getEncodingSize(LogicalType(LogicalTypeID::STRING)),
+            true /* isAscOrder */),
         StrKeyColInfo(factorizedTables[0]->getTableSchema()->getColOffset(3 /* colIdx */),
-            orderByKeyEncoder1.getEncodingSize(DataType(STRING)) * 2, true /* isAscOrder */)};
+            orderByKeyEncoder1.getEncodingSize(LogicalType(LogicalTypeID::STRING)) * 2,
+            true /* isAscOrder */)};
 
     KeyBlockMerger keyBlockMerger =
         KeyBlockMerger(factorizedTables, strKeyColsInfo, orderByKeyEncoder1.getNumBytesPerTuple());

@@ -9,6 +9,7 @@
 #include "common/string_utils.h"
 #include "common/utils.h"
 #include "pyparse.h"
+#include "storage/storage_utils.h"
 
 using namespace kuzu::common;
 
@@ -47,8 +48,9 @@ uint8_t* NpyReader::getPointerToRow(size_t row) const {
     if (row >= getNumRows()) {
         return nullptr;
     }
-    return (uint8_t*)((char*)mmapRegion + dataOffset +
-                      row * getNumElementsPerRow() * common::Types::getDataTypeSize(type));
+    return (
+        uint8_t*)((char*)mmapRegion + dataOffset +
+                  row * getNumElementsPerRow() * StorageUtils::getDataTypeSize(LogicalType{type}));
 }
 
 void NpyReader::parseHeader() {
@@ -119,21 +121,21 @@ void NpyReader::parseType(std::string descr) {
         descr = descr.substr(1);
     }
     if (descr == "f8") {
-        type = DOUBLE;
+        type = LogicalTypeID::DOUBLE;
     } else if (descr == "f4") {
-        type = FLOAT;
+        type = LogicalTypeID::FLOAT;
     } else if (descr == "i8") {
-        type = INT64;
+        type = LogicalTypeID::INT64;
     } else if (descr == "i4") {
-        type = INT32;
+        type = LogicalTypeID::INT32;
     } else if (descr == "i2") {
-        type = INT16;
+        type = LogicalTypeID::INT16;
     } else {
         throw CopyException("Unsupported data type: " + descr);
     }
 }
 
-void NpyReader::validate(DataType& type_, offset_t numRows, const std::string& tableName) {
+void NpyReader::validate(LogicalType& type_, offset_t numRows, const std::string& tableName) {
     auto numNodesInFile = getNumRows();
     if (numNodesInFile == 0) {
         throw CopyException(
@@ -143,7 +145,7 @@ void NpyReader::validate(DataType& type_, offset_t numRows, const std::string& t
         throw CopyException("Number of rows in npy files is not equal to each other.");
     }
     // TODO(Guodong): Set npy reader data type to FIXED_LIST, so we can simplify checks here.
-    if (type_.typeID == this->type) {
+    if (type_.getLogicalTypeID() == this->type) {
         if (getNumElementsPerRow() != 1) {
             throw CopyException(
                 StringUtils::string_format("Cannot copy a vector property in npy file {} to a "
@@ -151,14 +153,13 @@ void NpyReader::validate(DataType& type_, offset_t numRows, const std::string& t
                     filePath, tableName));
         }
         return;
-    } else if (type_.typeID == DataTypeID::FIXED_LIST) {
-        if (this->type != type_.getChildType()->typeID) {
+    } else if (type_.getLogicalTypeID() == LogicalTypeID::FIXED_LIST) {
+        if (this->type != FixedListType::getChildType(&type_)->getLogicalTypeID()) {
             throw CopyException(StringUtils::string_format("The type of npy file {} does not "
                                                            "match the type defined in table {}.",
                 filePath, tableName));
         }
-        auto fixedListInfo = reinterpret_cast<FixedListTypeInfo*>(type_.getExtraTypeInfo());
-        if (getNumElementsPerRow() != fixedListInfo->getFixedNumElementsInList()) {
+        if (getNumElementsPerRow() != FixedListType::getNumElementsInList(&type_)) {
             throw CopyException(
                 StringUtils::string_format("The shape of {} does not match the length of the "
                                            "fixed list property in table "

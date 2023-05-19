@@ -21,13 +21,15 @@ std::shared_ptr<Expression> ExpressionBinder::bindPropertyExpression(
             propertyName + " is reserved for system usage. External access is not allowed.");
     }
     auto child = bindExpression(*parsedExpression.getChild(0));
-    validateExpectedDataType(*child, std::unordered_set<DataTypeID>{NODE, REL, STRUCT});
-    if (NODE == child->dataType.typeID) {
+    validateExpectedDataType(*child, std::unordered_set<LogicalTypeID>{LogicalTypeID::NODE,
+                                         LogicalTypeID::REL, LogicalTypeID::STRUCT});
+    auto childTypeID = child->dataType.getLogicalTypeID();
+    if (LogicalTypeID::NODE == childTypeID) {
         return bindNodePropertyExpression(*child, propertyName);
-    } else if (common::REL == child->dataType.typeID) {
+    } else if (LogicalTypeID::REL == childTypeID) {
         return bindRelPropertyExpression(*child, propertyName);
     } else {
-        assert(common::STRUCT == child->dataType.typeID);
+        assert(LogicalTypeID::STRUCT == childTypeID);
         auto stringValue = std::make_unique<Value>(propertyName);
         return bindScalarFunctionExpression(
             expression_vector{child, createLiteralExpression(std::move(stringValue))},
@@ -46,7 +48,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindNodePropertyExpression(
 }
 
 static void validatePropertiesWithSameDataType(const std::vector<Property>& properties,
-    const DataType& dataType, const std::string& propertyName, const std::string& variableName) {
+    const LogicalType& dataType, const std::string& propertyName, const std::string& variableName) {
     for (auto& property : properties) {
         if (property.dataType != dataType) {
             throw BinderException(

@@ -16,11 +16,11 @@ slot_id_t BaseHashIndex::getPrimarySlotIdForKey(
 }
 
 template<typename T>
-HashIndexBuilder<T>::HashIndexBuilder(const std::string& fName, const DataType& keyDataType)
+HashIndexBuilder<T>::HashIndexBuilder(const std::string& fName, const LogicalType& keyDataType)
     : BaseHashIndex{keyDataType}, numEntries{0} {
     fileHandle =
         std::make_unique<FileHandle>(fName, FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS);
-    indexHeader = std::make_unique<HashIndexHeader>(keyDataType.typeID);
+    indexHeader = std::make_unique<HashIndexHeader>(keyDataType.getLogicalTypeID());
     fileHandle->addNewPage(); // INDEX_HEADER_ARRAY_HEADER_PAGE
     fileHandle->addNewPage(); // P_SLOTS_HEADER_PAGE
     fileHandle->addNewPage(); // O_SLOTS_HEADER_PAGE
@@ -32,7 +32,7 @@ HashIndexBuilder<T>::HashIndexBuilder(const std::string& fName, const DataType& 
     oSlots = std::make_unique<InMemDiskArrayBuilder<Slot<T>>>(
         *fileHandle, O_SLOTS_HEADER_PAGE_IDX, 1 /* numElements */);
     allocatePSlots(2);
-    if (keyDataType.typeID == STRING) {
+    if (keyDataType.getLogicalTypeID() == LogicalTypeID::STRING) {
         inMemOverflowFile =
             std::make_unique<InMemOverflowFile>(StorageUtils::getOverflowFileName(fName));
     }
@@ -178,7 +178,7 @@ void HashIndexBuilder<T>::flush() {
     headerArray->saveToDisk();
     pSlots->saveToDisk();
     oSlots->saveToDisk();
-    if (indexHeader->keyDataTypeID == STRING) {
+    if (indexHeader->keyDataTypeID == LogicalTypeID::STRING) {
         inMemOverflowFile->flush();
     }
 }

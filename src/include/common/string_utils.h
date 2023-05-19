@@ -19,7 +19,8 @@ public:
         return fmt::format(fmt::runtime(format), args...);
     }
 
-    static std::vector<std::string> split(const std::string& input, const std::string& delimiter);
+    static std::vector<std::string> split(
+        const std::string& input, const std::string& delimiter, bool ignoreEmptyStringParts = true);
 
     static void toUpper(std::string& input) {
         std::transform(input.begin(), input.end(), input.begin(), ::toupper);

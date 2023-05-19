@@ -10,7 +10,7 @@ namespace kuzu {
 namespace storage {
 
 Column::Column(const kuzu::storage::StorageStructureIDAndFName& structureIDAndFName,
-    const common::DataType& dataType, size_t elementSize,
+    const common::LogicalType& dataType, size_t elementSize,
     kuzu::storage::BufferManager* bufferManager, kuzu::storage::WAL* wal, bool requireNullBits)
     : BaseColumnOrList{
           structureIDAndFName, dataType, elementSize, bufferManager, false /*hasNULLBytes*/, wal} {
@@ -300,10 +300,9 @@ void ListPropertyColumn::writeListToPage(uint8_t* frame, uint16_t posInFrame,
 }
 
 StructPropertyColumn::StructPropertyColumn(const StorageStructureIDAndFName& structureIDAndFName,
-    const common::DataType& dataType, BufferManager* bufferManager, WAL* wal)
+    const common::LogicalType& dataType, BufferManager* bufferManager, WAL* wal)
     : Column{dataType} {
-    auto structFields =
-        reinterpret_cast<StructTypeInfo*>(dataType.getExtraTypeInfo())->getStructFields();
+    auto structFields = common::StructType::getStructFields(&dataType);
     for (auto structField : structFields) {
         auto fieldStructureIDAndFName = structureIDAndFName;
         fieldStructureIDAndFName.fName = StorageUtils::appendStructFieldName(

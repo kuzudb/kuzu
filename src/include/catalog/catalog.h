@@ -204,7 +204,7 @@ public:
     void renameTable(common::table_id_t tableID, std::string newName);
 
     void addProperty(
-        common::table_id_t tableID, std::string propertyName, common::DataType dataType);
+        common::table_id_t tableID, std::string propertyName, common::LogicalType dataType);
 
     void dropProperty(common::table_id_t tableID, common::property_id_t propertyID);
 

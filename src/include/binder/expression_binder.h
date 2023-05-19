@@ -19,7 +19,7 @@ public:
 
     std::shared_ptr<Expression> bindExpression(const parser::ParsedExpression& parsedExpression);
 
-    static void resolveAnyDataType(Expression& expression, const common::DataType& targetType);
+    static void resolveAnyDataType(Expression& expression, const common::LogicalType& targetType);
 
 private:
     std::shared_ptr<Expression> bindBooleanExpression(
@@ -89,18 +89,19 @@ private:
     // not specify its child type.
     // For the rest, i.e. set clause binding, we cast with data type. For example, a.list = $1.
     static std::shared_ptr<Expression> implicitCastIfNecessary(
-        const std::shared_ptr<Expression>& expression, const common::DataType& targetType);
+        const std::shared_ptr<Expression>& expression, const common::LogicalType& targetType);
     static std::shared_ptr<Expression> implicitCastIfNecessary(
-        const std::shared_ptr<Expression>& expression, common::DataTypeID targetTypeID);
+        const std::shared_ptr<Expression>& expression, common::LogicalTypeID targetTypeID);
     static std::shared_ptr<Expression> implicitCast(
-        const std::shared_ptr<Expression>& expression, const common::DataType& targetType);
+        const std::shared_ptr<Expression>& expression, const common::LogicalType& targetType);
 
     /****** validation *****/
-    static void validateExpectedDataType(const Expression& expression, common::DataTypeID target) {
-        validateExpectedDataType(expression, std::unordered_set<common::DataTypeID>{target});
+    static void validateExpectedDataType(
+        const Expression& expression, common::LogicalTypeID target) {
+        validateExpectedDataType(expression, std::unordered_set<common::LogicalTypeID>{target});
     }
     static void validateExpectedDataType(
-        const Expression& expression, const std::unordered_set<common::DataTypeID>& targets);
+        const Expression& expression, const std::unordered_set<common::LogicalTypeID>& targets);
     // E.g. SUM(SUM(a.age)) is not allowed
     static void validateAggregationExpressionIsNotNested(const Expression& expression);
 

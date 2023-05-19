@@ -36,7 +36,7 @@ private:
     common::table_id_t bindNodeTableID(const std::string& tableName) const;
 
     std::shared_ptr<Expression> createVariable(
-        const std::string& name, const common::DataType& dataType);
+        const std::string& name, const common::LogicalType& dataType);
 
     /*** bind DDL ***/
     std::unique_ptr<BoundStatement> bindCreateNodeTableClause(const parser::Statement& statement);
@@ -53,7 +53,7 @@ private:
         std::vector<std::pair<std::string, std::string>> propertyNameDataTypes);
     common::property_id_t bindPropertyName(
         catalog::NodeTableSchema::TableSchema* tableSchema, const std::string& propertyName);
-    common::DataType bindDataType(const std::string& dataType);
+    common::LogicalType bindDataType(const std::string& dataType);
 
     /*** bind copy csv ***/
     std::unique_ptr<BoundStatement> bindCopyClause(const parser::Statement& statement);
@@ -144,14 +144,14 @@ private:
     std::shared_ptr<NodeExpression> createQueryNode(const parser::NodePattern& nodePattern);
     inline std::vector<common::table_id_t> bindNodeTableIDs(
         const std::vector<std::string>& tableNames) {
-        return bindTableIDs(tableNames, common::NODE);
+        return bindTableIDs(tableNames, common::LogicalTypeID::NODE);
     }
     inline std::vector<common::table_id_t> bindRelTableIDs(
         const std::vector<std::string>& tableNames) {
-        return bindTableIDs(tableNames, common::REL);
+        return bindTableIDs(tableNames, common::LogicalTypeID::REL);
     }
     std::vector<common::table_id_t> bindTableIDs(
-        const std::vector<std::string>& tableNames, common::DataTypeID nodeOrRelType);
+        const std::vector<std::string>& tableNames, common::LogicalTypeID nodeOrRelType);
 
     /*** validations ***/
     // E.g. Optional MATCH (a) RETURN a.age

@@ -33,7 +33,8 @@ std::unique_ptr<BoundStatement> Binder::bindCreateNodeTableClause(
     auto primaryKeyIdx = bindPrimaryKey(
         createNodeTableClause.getPKColName(), createNodeTableClause.getPropertyNameDataTypes());
     for (auto i = 0u; i < boundProperties.size(); ++i) {
-        if (boundProperties[i].dataType.typeID == SERIAL && primaryKeyIdx != i) {
+        if (boundProperties[i].dataType.getLogicalTypeID() == LogicalTypeID::SERIAL &&
+            primaryKeyIdx != i) {
             throw BinderException("Serial property in node table must be the primary key.");
         }
     }
@@ -49,7 +50,7 @@ std::unique_ptr<BoundStatement> Binder::bindCreateRelTableClause(
     }
     auto boundProperties = bindProperties(createRelClause.getPropertyNameDataTypes());
     for (auto& boundProperty : boundProperties) {
-        if (boundProperty.dataType.typeID == SERIAL) {
+        if (boundProperty.dataType.getLogicalTypeID() == LogicalTypeID::SERIAL) {
             throw BinderException("Serial property is not supported in rel table.");
         }
     }
@@ -93,7 +94,7 @@ std::unique_ptr<BoundStatement> Binder::bindAddPropertyClause(const parser::Stat
     if (catalogContent->getTableSchema(tableID)->containProperty(addProperty.getPropertyName())) {
         throw BinderException("Property: " + addProperty.getPropertyName() + " already exists.");
     }
-    if (dataType.typeID == SERIAL) {
+    if (dataType.getLogicalTypeID() == LogicalTypeID::SERIAL) {
         throw BinderException("Serial property in node table must be the primary key.");
     }
     auto defaultVal = ExpressionBinder::implicitCastIfNecessary(
@@ -173,10 +174,10 @@ uint32_t Binder::bindPrimaryKey(const std::string& pkColName,
     auto primaryKey = propertyNameDataTypes[primaryKeyIdx];
     StringUtils::toUpper(primaryKey.second);
     // We only support INT64, STRING and SERIAL column as the primary key.
-    switch (Types::dataTypeFromString(primaryKey.second).typeID) {
-    case common::INT64:
-    case common::STRING:
-    case common::SERIAL:
+    switch (LogicalTypeUtils::dataTypeFromString(primaryKey.second).getLogicalTypeID()) {
+    case common::LogicalTypeID::INT64:
+    case common::LogicalTypeID::STRING:
+    case common::LogicalTypeID::SERIAL:
         break;
     default:
         throw BinderException(
@@ -195,30 +196,31 @@ property_id_t Binder::bindPropertyName(TableSchema* tableSchema, const std::stri
         tableSchema->tableName + " table doesn't have property: " + propertyName + ".");
 }
 
-DataType Binder::bindDataType(const std::string& dataType) {
-    auto boundType = Types::dataTypeFromString(dataType);
-    if (boundType.typeID == common::FIXED_LIST) {
-        auto validNumericTypes = common::DataType::getNumericalTypeIDs();
-        auto fixedListTypeInfo = reinterpret_cast<FixedListTypeInfo*>(boundType.getExtraTypeInfo());
+LogicalType Binder::bindDataType(const std::string& dataType) {
+    auto boundType = LogicalTypeUtils::dataTypeFromString(dataType);
+    if (boundType.getLogicalTypeID() == common::LogicalTypeID::FIXED_LIST) {
+        auto validNumericTypes = common::LogicalType::getNumericalLogicalTypeIDs();
+        auto childType = common::FixedListType::getChildType(&boundType);
+        auto numElementsInList = common::FixedListType::getNumElementsInList(&boundType);
         if (find(validNumericTypes.begin(), validNumericTypes.end(),
-                boundType.getChildType()->typeID) == validNumericTypes.end()) {
+                childType->getLogicalTypeID()) == validNumericTypes.end()) {
             throw common::BinderException(
                 "The child type of a fixed list must be a numeric type. Given: " +
-                common::Types::dataTypeToString(*boundType.getChildType()) + ".");
+                common::LogicalTypeUtils::dataTypeToString(*childType) + ".");
         }
-        if (fixedListTypeInfo->getFixedNumElementsInList() == 0) {
+        if (numElementsInList == 0) {
             // Note: the parser already guarantees that the number of elements is a non-negative
             // number. However, we still need to check whether the number of elements is 0.
             throw common::BinderException(
                 "The number of elements in a fixed list must be greater than 0. Given: " +
-                std::to_string(fixedListTypeInfo->getFixedNumElementsInList()) + ".");
+                std::to_string(numElementsInList) + ".");
         }
         auto numElementsPerPage = storage::PageUtils::getNumElementsInAPage(
-            Types::getDataTypeSize(boundType), true /* hasNull */);
+            storage::StorageUtils::getDataTypeSize(boundType), true /* hasNull */);
         if (numElementsPerPage == 0) {
             throw common::BinderException(
                 StringUtils::string_format("Cannot store a fixed list of size {} in a page.",
-                    Types::getDataTypeSize(boundType)));
+                    storage::StorageUtils::getDataTypeSize(boundType)));
         }
     }
     return boundType;

@@ -27,27 +27,27 @@ using expression_map =
 
 class Expression : public std::enable_shared_from_this<Expression> {
 public:
-    Expression(common::ExpressionType expressionType, common::DataType dataType,
+    Expression(common::ExpressionType expressionType, common::LogicalType dataType,
         expression_vector children, std::string uniqueName)
         : expressionType{expressionType}, dataType{std::move(dataType)},
           uniqueName{std::move(uniqueName)}, children{std::move(children)} {}
 
     // Create binary expression.
-    Expression(common::ExpressionType expressionType, common::DataType dataType,
+    Expression(common::ExpressionType expressionType, common::LogicalType dataType,
         const std::shared_ptr<Expression>& left, const std::shared_ptr<Expression>& right,
         std::string uniqueName)
         : Expression{expressionType, std::move(dataType), expression_vector{left, right},
               std::move(uniqueName)} {}
 
     // Create unary expression.
-    Expression(common::ExpressionType expressionType, common::DataType dataType,
+    Expression(common::ExpressionType expressionType, common::LogicalType dataType,
         const std::shared_ptr<Expression>& child, std::string uniqueName)
         : Expression{expressionType, std::move(dataType), expression_vector{child},
               std::move(uniqueName)} {}
 
     // Create leaf expression
     Expression(
-        common::ExpressionType expressionType, common::DataType dataType, std::string uniqueName)
+        common::ExpressionType expressionType, common::LogicalType dataType, std::string uniqueName)
         : Expression{
               expressionType, std::move(dataType), expression_vector{}, std::move(uniqueName)} {}
 
@@ -61,7 +61,7 @@ public:
         return uniqueName;
     }
 
-    inline common::DataType getDataType() const { return dataType; }
+    inline common::LogicalType getDataType() const { return dataType; }
 
     inline bool hasAlias() const { return !alias.empty(); }
 
@@ -106,7 +106,7 @@ protected:
 
 public:
     common::ExpressionType expressionType;
-    common::DataType dataType;
+    common::LogicalType dataType;
 
 protected:
     // Name that serves as the unique identifier.
@@ -131,7 +131,7 @@ struct ExpressionEquality {
 class ExpressionUtil {
 public:
     static bool allExpressionsHaveDataType(
-        expression_vector& expressions, common::DataTypeID dataTypeID);
+        expression_vector& expressions, common::LogicalTypeID dataTypeID);
 
     static uint32_t find(Expression* target, expression_vector expressions);
 

@@ -36,8 +36,8 @@ protected:
 
 struct BuildDataInfo {
 public:
-    BuildDataInfo(std::vector<std::pair<DataPos, common::DataType>> keysPosAndType,
-        std::vector<std::pair<DataPos, common::DataType>> payloadsPosAndType,
+    BuildDataInfo(std::vector<std::pair<DataPos, common::LogicalType>> keysPosAndType,
+        std::vector<std::pair<DataPos, common::LogicalType>> payloadsPosAndType,
         std::vector<bool> isPayloadsFlat, std::vector<bool> isPayloadsInKeyChunk)
         : keysPosAndType{std::move(keysPosAndType)}, payloadsPosAndType{std::move(
                                                          payloadsPosAndType)},
@@ -51,8 +51,8 @@ public:
     inline uint32_t getNumKeys() const { return keysPosAndType.size(); }
 
 public:
-    std::vector<std::pair<DataPos, common::DataType>> keysPosAndType;
-    std::vector<std::pair<DataPos, common::DataType>> payloadsPosAndType;
+    std::vector<std::pair<DataPos, common::LogicalType>> keysPosAndType;
+    std::vector<std::pair<DataPos, common::LogicalType>> payloadsPosAndType;
     std::vector<bool> isPayloadsFlat;
     std::vector<bool> isPayloadsInKeyChunk;
 };

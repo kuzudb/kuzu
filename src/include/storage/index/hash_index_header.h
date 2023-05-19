@@ -2,21 +2,24 @@
 
 #include "common/types/types.h"
 #include "hash_index_slot.h"
+#include "storage/storage_utils.h"
 
 namespace kuzu {
 namespace storage {
 
 class HashIndexHeader {
 public:
-    explicit HashIndexHeader(common::DataTypeID keyDataTypeID)
+    explicit HashIndexHeader(common::LogicalTypeID keyDataTypeID)
         : currentLevel{1}, levelHashMask{1}, higherLevelHashMask{3}, nextSplitSlotId{0},
-          numEntries{0}, numBytesPerKey{common::Types::getDataTypeSize(keyDataTypeID)},
-          numBytesPerEntry{
-              (uint32_t)(common::Types::getDataTypeSize(keyDataTypeID) + sizeof(common::offset_t))},
+          numEntries{0}, numBytesPerKey{storage::StorageUtils::getDataTypeSize(
+                             common::LogicalType{keyDataTypeID})},
+          numBytesPerEntry{(uint32_t)(
+              storage::StorageUtils::getDataTypeSize(common::LogicalType{keyDataTypeID}) +
+              sizeof(common::offset_t))},
           keyDataTypeID{keyDataTypeID} {}
 
     // Used for element initialization in disk array only.
-    HashIndexHeader() : HashIndexHeader(common::STRING) {}
+    HashIndexHeader() : HashIndexHeader(common::LogicalTypeID::STRING) {}
 
     inline void incrementLevel() {
         currentLevel++;
@@ -40,7 +43,7 @@ public:
     uint64_t numEntries;
     uint32_t numBytesPerKey;
     uint32_t numBytesPerEntry;
-    common::DataTypeID keyDataTypeID;
+    common::LogicalTypeID keyDataTypeID;
 };
 
 } // namespace storage

@@ -8,7 +8,7 @@ namespace planner {
 class LogicalAddProperty : public LogicalDDL {
 public:
     explicit LogicalAddProperty(common::table_id_t tableID, std::string propertyName,
-        common::DataType dataType, std::shared_ptr<binder::Expression> defaultValue,
+        common::LogicalType dataType, std::shared_ptr<binder::Expression> defaultValue,
         std::string tableName, std::shared_ptr<binder::Expression> outputExpression)
         : LogicalDDL{LogicalOperatorType::ADD_PROPERTY, std::move(tableName),
               std::move(outputExpression)},
@@ -19,7 +19,7 @@ public:
 
     inline std::string getPropertyName() const { return propertyName; }
 
-    inline common::DataType getDataType() const { return dataType; }
+    inline common::LogicalType getDataType() const { return dataType; }
 
     inline std::shared_ptr<binder::Expression> getDefaultValue() const { return defaultValue; }
 
@@ -31,7 +31,7 @@ public:
 private:
     common::table_id_t tableID;
     std::string propertyName;
-    common::DataType dataType;
+    common::LogicalType dataType;
     std::shared_ptr<binder::Expression> defaultValue;
 };
 

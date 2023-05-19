@@ -277,7 +277,7 @@ public:
             catalog->getReadOnlyVersion()->getNodeProperty(personTableID, "gender");
         auto propertyFileName = StorageUtils::getNodePropertyColumnFName(
             databasePath, personTableID, propertyToDrop.propertyID, DBFileType::ORIGINAL);
-        bool hasOverflowFile = containsOverflowFile(propertyToDrop.dataType.typeID);
+        bool hasOverflowFile = containsOverflowFile(propertyToDrop.dataType.getLogicalTypeID());
         executeQueryWithoutCommit("ALTER TABLE person DROP gender");
         validateColumnFilesExistence(propertyFileName, true /* existence */, hasOverflowFile);
         ASSERT_TRUE(catalog->getReadOnlyVersion()
@@ -314,7 +314,7 @@ public:
             studyAtTableID, RelDataDirection::FWD, propertyToDrop.propertyID, DBFileType::ORIGINAL);
         auto propertyBWDListFileName = StorageUtils::getRelPropertyListsFName(databasePath,
             studyAtTableID, RelDataDirection::BWD, propertyToDrop.propertyID, DBFileType::ORIGINAL);
-        bool hasOverflowFile = containsOverflowFile(propertyToDrop.dataType.typeID);
+        bool hasOverflowFile = containsOverflowFile(propertyToDrop.dataType.getLogicalTypeID());
         executeQueryWithoutCommit("ALTER TABLE studyAt DROP places");
         validateColumnFilesExistence(
             propertyFWDColumnFileName, true /* existence */, hasOverflowFile);
@@ -389,7 +389,7 @@ public:
         auto tableSchema = catalog->getWriteVersion()->getTableSchema(personTableID);
         auto propertyID = tableSchema->getPropertyID("random");
         auto hasOverflow =
-            containsOverflowFile(tableSchema->getProperty(propertyID).dataType.typeID);
+            containsOverflowFile(tableSchema->getProperty(propertyID).dataType.getLogicalTypeID());
         auto columnOriginalVersionFileName = StorageUtils::getNodePropertyColumnFName(
             databasePath, personTableID, propertyID, DBFileType::ORIGINAL);
         auto columnWALVersionFileName = StorageUtils::getNodePropertyColumnFName(
@@ -420,7 +420,7 @@ public:
         auto tableSchema = catalog->getWriteVersion()->getTableSchema(personTableID);
         auto propertyID = tableSchema->getPropertyID("random");
         auto hasOverflow =
-            containsOverflowFile(tableSchema->getProperty(propertyID).dataType.typeID);
+            containsOverflowFile(tableSchema->getProperty(propertyID).dataType.getLogicalTypeID());
         auto columnOriginalVersionFileName = StorageUtils::getNodePropertyColumnFName(
             databasePath, personTableID, propertyID, DBFileType::ORIGINAL);
         auto columnWALVersionFileName = StorageUtils::getNodePropertyColumnFName(
@@ -453,7 +453,7 @@ public:
         auto tableSchema = catalog->getWriteVersion()->getTableSchema(studyAtTableID);
         auto propertyID = tableSchema->getPropertyID("random");
         auto hasOverflow =
-            containsOverflowFile(tableSchema->getProperty(propertyID).dataType.typeID);
+            containsOverflowFile(tableSchema->getProperty(propertyID).dataType.getLogicalTypeID());
         auto fwdColumnOriginalVersionFileName = StorageUtils::getRelPropertyColumnFName(
             databasePath, studyAtTableID, RelDataDirection::FWD, propertyID, DBFileType::ORIGINAL);
         auto fwdColumnWALVersionFileName = StorageUtils::getRelPropertyColumnFName(databasePath,
@@ -493,8 +493,8 @@ public:
             "ALTER TABLE studyAt ADD random {} DEFAULT {}", propertyType, defaultVal));
         auto relTableSchema = catalog->getWriteVersion()->getTableSchema(studyAtTableID);
         auto propertyID = relTableSchema->getPropertyID("random");
-        auto hasOverflow =
-            containsOverflowFile(relTableSchema->getProperty(propertyID).dataType.typeID);
+        auto hasOverflow = containsOverflowFile(
+            relTableSchema->getProperty(propertyID).dataType.getLogicalTypeID());
         auto fwdColumnOriginalVersionFileName = StorageUtils::getRelPropertyColumnFName(
             databasePath, studyAtTableID, RelDataDirection::FWD, propertyID, DBFileType::ORIGINAL);
         auto fwdColumnWALVersionFileName = StorageUtils::getRelPropertyColumnFName(databasePath,

@@ -18,7 +18,7 @@ void BaseSemiMasker::initGlobalStateInternal(ExecutionContext* context) {
 
 void BaseSemiMasker::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     keyValueVector = resultSet->getValueVector(keyDataPos);
-    assert(keyValueVector->dataType.typeID == INTERNAL_ID);
+    assert(keyValueVector->dataType.getLogicalTypeID() == LogicalTypeID::INTERNAL_ID);
     for (auto& [table, masks] : masksPerTable) {
         for (auto& maskWithIdx : masks) {
             maskWithIdx.first->init(transaction);

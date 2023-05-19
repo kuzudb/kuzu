@@ -11,8 +11,8 @@ std::vector<std::unique_ptr<VectorOperationDefinition>>
 StructPackVectorOperations::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> definitions;
     definitions.push_back(make_unique<VectorOperationDefinition>(common::STRUCT_PACK_FUNC_NAME,
-        std::vector<common::DataTypeID>{common::ANY}, common::STRUCT, execFunc, nullptr, bindFunc,
-        true /* isVarLength */));
+        std::vector<common::LogicalTypeID>{common::LogicalTypeID::ANY},
+        common::LogicalTypeID::STRUCT, execFunc, nullptr, bindFunc, true /* isVarLength */));
     return definitions;
 }
 
@@ -20,14 +20,15 @@ std::unique_ptr<FunctionBindData> StructPackVectorOperations::bindFunc(
     const binder::expression_vector& arguments, kuzu::function::FunctionDefinition* definition) {
     std::vector<std::unique_ptr<common::StructField>> fields;
     for (auto& argument : arguments) {
-        if (argument->getDataType().typeID == common::ANY) {
+        if (argument->getDataType().getLogicalTypeID() == common::LogicalTypeID::ANY) {
             binder::ExpressionBinder::resolveAnyDataType(
-                *argument, common::DataType{common::INT64});
+                *argument, common::LogicalType{common::LogicalTypeID::INT64});
         }
         fields.emplace_back(std::make_unique<common::StructField>(
             argument->getAlias(), argument->getDataType().copy()));
     }
-    auto resultType = common::DataType(std::move(fields));
+    auto resultType = common::LogicalType(
+        common::LogicalTypeID::STRUCT, std::make_unique<common::StructTypeInfo>(std::move(fields)));
     return std::make_unique<FunctionBindData>(resultType);
 }
 
@@ -81,28 +82,28 @@ std::vector<std::unique_ptr<VectorOperationDefinition>>
 StructExtractVectorOperations::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> definitions;
     definitions.push_back(make_unique<VectorOperationDefinition>(common::STRUCT_EXTRACT_FUNC_NAME,
-        std::vector<common::DataTypeID>{common::STRUCT, common::STRING}, common::ANY, execFunc,
-        nullptr, bindFunc, false /* isVarLength */));
+        std::vector<common::LogicalTypeID>{
+            common::LogicalTypeID::STRUCT, common::LogicalTypeID::STRING},
+        common::LogicalTypeID::ANY, execFunc, nullptr, bindFunc, false /* isVarLength */));
     return definitions;
 }
 
 std::unique_ptr<FunctionBindData> StructExtractVectorOperations::bindFunc(
     const binder::expression_vector& arguments, kuzu::function::FunctionDefinition* definition) {
     auto structType = arguments[0]->getDataType();
-    auto typeInfo = reinterpret_cast<common::StructTypeInfo*>(structType.getExtraTypeInfo());
     if (arguments[1]->expressionType != common::LITERAL) {
         throw common::BinderException("Key name for struct_extract must be STRING literal.");
     }
     auto key = ((binder::LiteralExpression&)*arguments[1]).getValue()->getValue<std::string>();
     common::StringUtils::toUpper(key);
-    assert(definition->returnTypeID == common::ANY);
-    auto childIdx = typeInfo->getStructFieldIdx(key);
+    assert(definition->returnTypeID == common::LogicalTypeID::ANY);
+    auto childIdx = common::StructType::getStructFieldIdx(&structType, key);
     if (childIdx == common::INVALID_STRUCT_FIELD_IDX) {
         throw common::BinderException(
             common::StringUtils::string_format("Invalid struct field name: {}.", key));
     }
     return std::make_unique<StructExtractBindData>(
-        *typeInfo->getChildrenTypes()[childIdx], childIdx);
+        *(common::StructType::getStructFieldTypes(&structType))[childIdx], childIdx);
 }
 
 } // namespace function

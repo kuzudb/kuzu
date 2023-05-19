@@ -11,15 +11,15 @@ namespace main {
 
 struct DataTypeInfo {
 public:
-    DataTypeInfo(common::DataTypeID typeID, std::string name)
+    DataTypeInfo(common::LogicalTypeID typeID, std::string name)
         : typeID{typeID}, name{std::move(name)} {}
 
-    common::DataTypeID typeID;
+    common::LogicalTypeID typeID;
     std::string name;
     std::vector<std::unique_ptr<DataTypeInfo>> childrenTypesInfo;
 
     static std::unique_ptr<DataTypeInfo> getInfoForDataType(
-        const common::DataType& type, const std::string& name);
+        const common::LogicalType& type, const std::string& name);
 };
 
 /**
@@ -58,7 +58,7 @@ public:
     /**
      * @return dataType of each column in query result.
      */
-    KUZU_API std::vector<common::DataType> getColumnDataTypes();
+    KUZU_API std::vector<common::LogicalType> getColumnDataTypes();
     /**
      * @return num of tuples in query result.
      */
@@ -110,7 +110,7 @@ private:
 
     // header information
     std::vector<std::string> columnNames;
-    std::vector<common::DataType> columnDataTypes;
+    std::vector<common::LogicalType> columnDataTypes;
     // data
     std::shared_ptr<processor::FactorizedTable> factorizedTable;
     std::unique_ptr<processor::FlatTupleIterator> iterator;

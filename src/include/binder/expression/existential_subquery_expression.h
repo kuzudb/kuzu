@@ -10,7 +10,7 @@ class ExistentialSubqueryExpression : public Expression {
 public:
     ExistentialSubqueryExpression(std::unique_ptr<QueryGraphCollection> queryGraphCollection,
         std::string uniqueName, std::string rawName)
-        : Expression{common::EXISTENTIAL_SUBQUERY, common::DataType(common::BOOL),
+        : Expression{common::EXISTENTIAL_SUBQUERY, common::LogicalType(common::LogicalTypeID::BOOL),
               std::move(uniqueName)},
           queryGraphCollection{std::move(queryGraphCollection)}, rawName{std::move(rawName)} {}
 

@@ -1,116 +1,43 @@
 #include "common/types/types.h"
 
-#include <sstream>
 #include <stdexcept>
 
 #include "common/exception.h"
-#include "common/null_buffer.h"
 #include "common/ser_deser.h"
 #include "common/types/types_include.h"
 
 namespace kuzu {
 namespace common {
 
-template<>
-uint64_t SerDeser::serializeValue(
-    const VarListTypeInfo& value, FileInfo* fileInfo, uint64_t offset) {
-    return SerDeser::serializeValue(*value.getChildType(), fileInfo, offset);
-}
-
-template<>
-uint64_t SerDeser::deserializeValue(VarListTypeInfo& value, FileInfo* fileInfo, uint64_t offset) {
-    value.childType = std::make_unique<DataType>();
-    offset = SerDeser::deserializeValue(*value.getChildType(), fileInfo, offset);
-    return offset;
-}
-
-template<>
-uint64_t SerDeser::serializeValue(
-    const FixedListTypeInfo& value, FileInfo* fileInfo, uint64_t offset) {
-    offset = SerDeser::serializeValue(*value.getChildType(), fileInfo, offset);
-    return SerDeser::serializeValue(value.getFixedNumElementsInList(), fileInfo, offset);
-}
-
-template<>
-uint64_t SerDeser::deserializeValue(FixedListTypeInfo& value, FileInfo* fileInfo, uint64_t offset) {
-    value.childType = std::make_unique<DataType>();
-    offset = SerDeser::deserializeValue(*value.getChildType(), fileInfo, offset);
-    offset = SerDeser::deserializeValue(value.fixedNumElementsInList, fileInfo, offset);
-    return offset;
-}
-
-template<>
-uint64_t SerDeser::serializeValue(
-    const StructTypeInfo& value, FileInfo* fileInfo, uint64_t offset) {
-    return serializeVector(value.fields, fileInfo, offset);
-}
-
-template<>
-uint64_t SerDeser::deserializeValue(StructTypeInfo& value, FileInfo* fileInfo, uint64_t offset) {
-    return deserializeVector(value.fields, fileInfo, offset);
-}
-
-template<>
-uint64_t SerDeser::serializeValue(
-    const std::unique_ptr<StructField>& value, FileInfo* fileInfo, uint64_t offset) {
-    offset = serializeValue<std::string>(value->name, fileInfo, offset);
-    return serializeValue(*value->getType(), fileInfo, offset);
-}
-
-template<>
-uint64_t SerDeser::deserializeValue(
-    std::unique_ptr<StructField>& value, FileInfo* fileInfo, uint64_t offset) {
-    value = std::make_unique<StructField>();
-    offset = deserializeValue<std::string>(value->name, fileInfo, offset);
-    return deserializeValue(*value->type, fileInfo, offset);
-}
-
-template<>
-uint64_t SerDeser::serializeValue(const DataType& value, FileInfo* fileInfo, uint64_t offset) {
-    offset = SerDeser::serializeValue(value.typeID, fileInfo, offset);
-    switch (value.getTypeID()) {
-    case VAR_LIST: {
-        auto varListTypeInfo = reinterpret_cast<VarListTypeInfo*>(value.getExtraTypeInfo());
-        offset = serializeValue(*varListTypeInfo, fileInfo, offset);
-    } break;
-    case FIXED_LIST: {
-        auto fixedListTypeInfo = reinterpret_cast<FixedListTypeInfo*>(value.getExtraTypeInfo());
-        offset = serializeValue(*fixedListTypeInfo, fileInfo, offset);
-    } break;
-    case STRUCT: {
-        auto structTypeInfo = reinterpret_cast<StructTypeInfo*>(value.getExtraTypeInfo());
-        offset = serializeValue(*structTypeInfo, fileInfo, offset);
-    } break;
+std::string PhysicalTypeUtils::physicalTypeToString(PhysicalTypeID physicalType) {
+    switch (physicalType) {
+    case PhysicalTypeID::BOOL:
+        return "BOOL";
+    case PhysicalTypeID::INT64:
+        return "INT64";
+    case PhysicalTypeID::INT32:
+        return "INT32";
+    case PhysicalTypeID::INT16:
+        return "INT16";
+    case PhysicalTypeID::DOUBLE:
+        return "DOUBLE";
+    case PhysicalTypeID::FLOAT:
+        return "FLOAT";
+    case PhysicalTypeID::INTERVAL:
+        return "INTERVAL";
+    case PhysicalTypeID::FIXED_LIST:
+        return "FIXED_LIST";
+    case PhysicalTypeID::INTERNAL_ID:
+        return "INTERNAL_ID";
+    case PhysicalTypeID::STRING:
+        return "STRING";
+    case PhysicalTypeID::STRUCT:
+        return "STRUCT";
+    case PhysicalTypeID::VAR_LIST:
+        return "VAR_LIST";
     default:
-        break;
+        throw common::NotImplementedException{"Unrecognized physicalType."};
     }
-    return offset;
-}
-
-template<>
-uint64_t SerDeser::deserializeValue(DataType& value, FileInfo* fileInfo, uint64_t offset) {
-    offset = SerDeser::deserializeValue(value.typeID, fileInfo, offset);
-    switch (value.getTypeID()) {
-    case VAR_LIST: {
-        value.extraTypeInfo = std::make_unique<VarListTypeInfo>();
-        offset = deserializeValue(
-            *reinterpret_cast<VarListTypeInfo*>(value.getExtraTypeInfo()), fileInfo, offset);
-
-    } break;
-    case FIXED_LIST: {
-        value.extraTypeInfo = std::make_unique<FixedListTypeInfo>();
-        offset = deserializeValue(
-            *reinterpret_cast<FixedListTypeInfo*>(value.getExtraTypeInfo()), fileInfo, offset);
-    } break;
-    case STRUCT: {
-        value.extraTypeInfo = std::make_unique<StructTypeInfo>();
-        offset = deserializeValue(
-            *reinterpret_cast<StructTypeInfo*>(value.getExtraTypeInfo()), fileInfo, offset);
-    } break;
-    default:
-        break;
-    }
-    return offset;
 }
 
 bool VarListTypeInfo::operator==(const kuzu::common::VarListTypeInfo& other) const {
@@ -152,8 +79,8 @@ struct_field_idx_t StructTypeInfo::getStructFieldIdx(std::string fieldName) cons
     return INVALID_STRUCT_FIELD_IDX;
 }
 
-std::vector<DataType*> StructTypeInfo::getChildrenTypes() const {
-    std::vector<DataType*> childrenTypesToReturn{fields.size()};
+std::vector<LogicalType*> StructTypeInfo::getChildrenTypes() const {
+    std::vector<LogicalType*> childrenTypesToReturn{fields.size()};
     for (auto i = 0u; i < fields.size(); i++) {
         childrenTypesToReturn[i] = fields[i]->getType();
     }
@@ -196,51 +123,59 @@ std::unique_ptr<ExtraTypeInfo> StructTypeInfo::copy() const {
     return std::make_unique<StructTypeInfo>(std::move(structFields));
 }
 
-DataType::DataType(const DataType& other) {
+LogicalType::LogicalType(const LogicalType& other) {
     typeID = other.typeID;
+    physicalType = other.physicalType;
     if (other.extraTypeInfo != nullptr) {
-        extraTypeInfo = other.getExtraTypeInfo()->copy();
+        extraTypeInfo = other.extraTypeInfo->copy();
     }
 }
 
-DataType::DataType(DataType&& other) noexcept
-    : typeID{other.typeID}, extraTypeInfo{std::move(other.extraTypeInfo)} {}
+LogicalType::LogicalType(LogicalType&& other) noexcept
+    : typeID{other.typeID}, physicalType{other.physicalType}, extraTypeInfo{
+                                                                  std::move(other.extraTypeInfo)} {}
 
-std::vector<DataTypeID> DataType::getNumericalTypeIDs() {
-    return std::vector<DataTypeID>{INT64, INT32, INT16, DOUBLE, FLOAT};
+std::vector<LogicalTypeID> LogicalType::getNumericalLogicalTypeIDs() {
+    return std::vector<LogicalTypeID>{LogicalTypeID::INT64, LogicalTypeID::INT32,
+        LogicalTypeID::INT16, LogicalTypeID::DOUBLE, LogicalTypeID::FLOAT};
 }
 
-std::vector<DataTypeID> DataType::getAllValidComparableTypes() {
-    return std::vector<DataTypeID>{
-        BOOL, INT64, INT32, INT16, DOUBLE, FLOAT, DATE, TIMESTAMP, INTERVAL, STRING};
+std::vector<LogicalTypeID> LogicalType::getAllValidComparableLogicalTypes() {
+    return std::vector<LogicalTypeID>{LogicalTypeID::BOOL, LogicalTypeID::INT64,
+        LogicalTypeID::INT32, LogicalTypeID::INT16, LogicalTypeID::DOUBLE, LogicalTypeID::FLOAT,
+        LogicalTypeID::DATE, LogicalTypeID::TIMESTAMP, LogicalTypeID::INTERVAL,
+        LogicalTypeID::STRING};
 }
 
-std::vector<DataTypeID> DataType::getAllValidTypeIDs() {
+std::vector<LogicalTypeID> LogicalType::getAllValidLogicTypeIDs() {
     // TODO(Ziyi): Add FIX_LIST type to allValidTypeID when we support functions on VAR_LIST.
-    return std::vector<DataTypeID>{INTERNAL_ID, BOOL, INT64, INT32, INT16, DOUBLE, STRING, DATE,
-        TIMESTAMP, INTERVAL, VAR_LIST, FLOAT};
+    return std::vector<LogicalTypeID>{LogicalTypeID::INTERNAL_ID, LogicalTypeID::BOOL,
+        LogicalTypeID::INT64, LogicalTypeID::INT32, LogicalTypeID::INT16, LogicalTypeID::DOUBLE,
+        LogicalTypeID::STRING, LogicalTypeID::DATE, LogicalTypeID::TIMESTAMP,
+        LogicalTypeID::INTERVAL, LogicalTypeID::VAR_LIST, LogicalTypeID::FLOAT};
 }
 
-DataType& DataType::operator=(const DataType& other) {
+LogicalType& LogicalType::operator=(const LogicalType& other) {
     typeID = other.typeID;
+    physicalType = other.physicalType;
     if (other.extraTypeInfo != nullptr) {
         extraTypeInfo = other.extraTypeInfo->copy();
     }
     return *this;
 }
 
-bool DataType::operator==(const DataType& other) const {
+bool LogicalType::operator==(const LogicalType& other) const {
     if (typeID != other.typeID) {
         return false;
     }
     switch (other.typeID) {
-    case VAR_LIST:
+    case LogicalTypeID::VAR_LIST:
         return *reinterpret_cast<VarListTypeInfo*>(extraTypeInfo.get()) ==
                *reinterpret_cast<VarListTypeInfo*>(other.extraTypeInfo.get());
-    case FIXED_LIST:
+    case LogicalTypeID::FIXED_LIST:
         return *reinterpret_cast<FixedListTypeInfo*>(extraTypeInfo.get()) ==
                *reinterpret_cast<FixedListTypeInfo*>(other.extraTypeInfo.get());
-    case STRUCT:
+    case LogicalTypeID::STRUCT:
         return *reinterpret_cast<StructTypeInfo*>(extraTypeInfo.get()) ==
                *reinterpret_cast<StructTypeInfo*>(other.extraTypeInfo.get());
     default:
@@ -248,48 +183,36 @@ bool DataType::operator==(const DataType& other) const {
     }
 }
 
-bool DataType::operator!=(const DataType& other) const {
+bool LogicalType::operator!=(const LogicalType& other) const {
     return !((*this) == other);
 }
 
-DataType& DataType::operator=(DataType&& other) noexcept {
+LogicalType& LogicalType::operator=(LogicalType&& other) noexcept {
     typeID = other.typeID;
+    physicalType = other.physicalType;
     extraTypeInfo = std::move(other.extraTypeInfo);
     return *this;
 }
 
-std::unique_ptr<DataType> DataType::copy() {
-    auto dataType = std::make_unique<DataType>(typeID);
+std::unique_ptr<LogicalType> LogicalType::copy() {
+    auto dataType = std::make_unique<LogicalType>(typeID);
     if (extraTypeInfo != nullptr) {
         dataType->extraTypeInfo = extraTypeInfo->copy();
     }
     return dataType;
 }
 
-ExtraTypeInfo* DataType::getExtraTypeInfo() const {
-    return extraTypeInfo.get();
-}
-
-DataTypeID DataType::getTypeID() const {
-    return typeID;
-}
-
-DataType* DataType::getChildType() const {
-    assert(typeID == FIXED_LIST || typeID == VAR_LIST);
-    return reinterpret_cast<VarListTypeInfo*>(extraTypeInfo.get())->getChildType();
-}
-
-DataType Types::dataTypeFromString(const std::string& dataTypeString) {
-    DataType dataType;
+LogicalType LogicalTypeUtils::dataTypeFromString(const std::string& dataTypeString) {
+    LogicalType dataType;
     if (dataTypeString.ends_with("[]")) {
-        dataType.typeID = VAR_LIST;
-        dataType.extraTypeInfo = std::make_unique<VarListTypeInfo>(std::make_unique<DataType>(
+        dataType.typeID = LogicalTypeID::VAR_LIST;
+        dataType.extraTypeInfo = std::make_unique<VarListTypeInfo>(std::make_unique<LogicalType>(
             dataTypeFromString(dataTypeString.substr(0, dataTypeString.size() - 2))));
     } else if (dataTypeString.ends_with("]")) {
-        dataType.typeID = FIXED_LIST;
+        dataType.typeID = LogicalTypeID::FIXED_LIST;
         auto leftBracketPos = dataTypeString.find('[');
         auto rightBracketPos = dataTypeString.find(']');
-        auto childType = std::make_unique<DataType>(
+        auto childType = std::make_unique<LogicalType>(
             dataTypeFromString(dataTypeString.substr(0, leftBracketPos)));
         auto fixedNumElementsInList = std::strtoll(
             dataTypeString.substr(leftBracketPos + 1, rightBracketPos - leftBracketPos - 1).c_str(),
@@ -297,76 +220,77 @@ DataType Types::dataTypeFromString(const std::string& dataTypeString) {
         dataType.extraTypeInfo =
             std::make_unique<FixedListTypeInfo>(std::move(childType), fixedNumElementsInList);
     } else if (dataTypeString.starts_with("STRUCT")) {
-        dataType.typeID = STRUCT;
+        dataType.typeID = LogicalTypeID::STRUCT;
         auto leftBracketPos = dataTypeString.find('(');
         auto rightBracketPos = dataTypeString.find(')');
         if (leftBracketPos == std::string::npos || rightBracketPos == std::string::npos) {
             throw Exception("Cannot parse struct type: " + dataTypeString);
         }
-        std::istringstream iss{
-            dataTypeString.substr(leftBracketPos + 1, rightBracketPos - leftBracketPos - 1)};
-        std::vector<std::unique_ptr<StructField>> childrenTypes;
-        std::string field, fieldName, fieldType;
-        while (getline(iss, field, ',')) {
-            std::istringstream fieldStream{field};
-            // The first word is the field name.
-            fieldStream >> fieldName;
-            // The second word is the field type.
-            fieldStream >> fieldType;
-            childrenTypes.emplace_back(std::make_unique<StructField>(
-                fieldName, std::make_unique<DataType>(dataTypeFromString(fieldType))));
+        // Remove the leading and trailing brackets.
+        auto structTypeStr =
+            dataTypeString.substr(leftBracketPos + 1, rightBracketPos - leftBracketPos - 1);
+        auto structFieldsStr = common::StringUtils::split(structTypeStr, ",");
+        std::vector<std::unique_ptr<StructField>> structFields;
+        for (auto& structField : structFieldsStr) {
+            auto structFieldParts = common::StringUtils::split(structField, " ");
+            if (structFieldParts.size() != 2) {
+                throw RuntimeException("Cannot parse struct type: " + dataTypeString);
+            }
+            structFields.emplace_back(std::make_unique<StructField>(structFieldParts[0],
+                std::make_unique<LogicalType>(dataTypeFromString(structFieldParts[1]))));
         }
-        dataType.extraTypeInfo = std::make_unique<StructTypeInfo>(std::move(childrenTypes));
+        dataType.extraTypeInfo = std::make_unique<StructTypeInfo>(std::move(structFields));
     } else {
         dataType.typeID = dataTypeIDFromString(dataTypeString);
     }
+    dataType.setPhysicalType();
     return dataType;
 }
 
-DataTypeID Types::dataTypeIDFromString(const std::string& dataTypeIDString) {
+LogicalTypeID LogicalTypeUtils::dataTypeIDFromString(const std::string& dataTypeIDString) {
     if ("INTERNAL_ID" == dataTypeIDString) {
-        return INTERNAL_ID;
+        return LogicalTypeID::INTERNAL_ID;
     } else if ("INT64" == dataTypeIDString) {
-        return INT64;
+        return LogicalTypeID::INT64;
     } else if ("INT32" == dataTypeIDString) {
-        return INT32;
+        return LogicalTypeID::INT32;
     } else if ("INT16" == dataTypeIDString) {
-        return INT16;
+        return LogicalTypeID::INT16;
     } else if ("INT" == dataTypeIDString) {
-        return INT32;
+        return LogicalTypeID::INT32;
     } else if ("DOUBLE" == dataTypeIDString) {
-        return DOUBLE;
+        return LogicalTypeID::DOUBLE;
     } else if ("FLOAT" == dataTypeIDString) {
-        return FLOAT;
+        return LogicalTypeID::FLOAT;
     } else if ("BOOLEAN" == dataTypeIDString) {
-        return BOOL;
+        return LogicalTypeID::BOOL;
     } else if ("STRING" == dataTypeIDString) {
-        return STRING;
+        return LogicalTypeID::STRING;
     } else if ("DATE" == dataTypeIDString) {
-        return DATE;
+        return LogicalTypeID::DATE;
     } else if ("TIMESTAMP" == dataTypeIDString) {
-        return TIMESTAMP;
+        return LogicalTypeID::TIMESTAMP;
     } else if ("INTERVAL" == dataTypeIDString) {
-        return INTERVAL;
+        return LogicalTypeID::INTERVAL;
     } else if ("SERIAL" == dataTypeIDString) {
-        return SERIAL;
+        return LogicalTypeID::SERIAL;
     } else {
-        throw InternalException("Cannot parse dataTypeID: " + dataTypeIDString);
+        throw NotImplementedException("Cannot parse dataTypeID: " + dataTypeIDString);
     }
 }
 
-std::string Types::dataTypeToString(const DataType& dataType) {
+std::string LogicalTypeUtils::dataTypeToString(const LogicalType& dataType) {
     switch (dataType.typeID) {
-    case VAR_LIST: {
+    case LogicalTypeID::VAR_LIST: {
         auto varListTypeInfo = reinterpret_cast<VarListTypeInfo*>(dataType.extraTypeInfo.get());
         return dataTypeToString(*varListTypeInfo->getChildType()) + "[]";
     }
-    case FIXED_LIST: {
+    case LogicalTypeID::FIXED_LIST: {
         auto fixedListTypeInfo = reinterpret_cast<FixedListTypeInfo*>(dataType.extraTypeInfo.get());
         return dataTypeToString(*fixedListTypeInfo->getChildType()) + "[" +
-               std::to_string(fixedListTypeInfo->getFixedNumElementsInList()) + "]";
+               std::to_string(fixedListTypeInfo->getNumElementsInList()) + "]";
     }
-    case STRUCT: {
+    case LogicalTypeID::STRUCT: {
         auto structTypeInfo = reinterpret_cast<StructTypeInfo*>(dataType.extraTypeInfo.get());
         std::string dataTypeStr = dataTypeToString(dataType.typeID) + "(";
         auto numFields = structTypeInfo->getChildrenTypes().size();
@@ -377,173 +301,176 @@ std::string Types::dataTypeToString(const DataType& dataType) {
         dataTypeStr += dataTypeToString(*structTypeInfo->getChildrenTypes()[numFields - 1]);
         return dataTypeStr + ")";
     }
-    case ANY:
-    case NODE:
-    case REL:
-    case INTERNAL_ID:
-    case BOOL:
-    case INT64:
-    case INT32:
-    case INT16:
-    case DOUBLE:
-    case FLOAT:
-    case DATE:
-    case TIMESTAMP:
-    case INTERVAL:
-    case STRING:
+    case LogicalTypeID::ANY:
+    case LogicalTypeID::NODE:
+    case LogicalTypeID::REL:
+    case LogicalTypeID::INTERNAL_ID:
+    case LogicalTypeID::BOOL:
+    case LogicalTypeID::INT64:
+    case LogicalTypeID::INT32:
+    case LogicalTypeID::INT16:
+    case LogicalTypeID::DOUBLE:
+    case LogicalTypeID::FLOAT:
+    case LogicalTypeID::DATE:
+    case LogicalTypeID::TIMESTAMP:
+    case LogicalTypeID::INTERVAL:
+    case LogicalTypeID::STRING:
         return dataTypeToString(dataType.typeID);
     default:
-        throw InternalException("Unsupported DataType: " + Types::dataTypeToString(dataType) + ".");
+        throw NotImplementedException(
+            "Unsupported DataType: " + LogicalTypeUtils::dataTypeToString(dataType) + ".");
     }
 }
 
-std::string Types::dataTypeToString(DataTypeID dataTypeID) {
+std::string LogicalTypeUtils::dataTypeToString(LogicalTypeID dataTypeID) {
     switch (dataTypeID) {
-    case ANY:
+    case LogicalTypeID::ANY:
         return "ANY";
-    case NODE:
+    case LogicalTypeID::NODE:
         return "NODE";
-    case REL:
+    case LogicalTypeID::REL:
         return "REL";
-    case INTERNAL_ID:
+    case LogicalTypeID::INTERNAL_ID:
         return "INTERNAL_ID";
-    case BOOL:
+    case LogicalTypeID::BOOL:
         return "BOOL";
-    case INT64:
+    case LogicalTypeID::INT64:
         return "INT64";
-    case INT32:
+    case LogicalTypeID::INT32:
         return "INT32";
-    case INT16:
+    case LogicalTypeID::INT16:
         return "INT16";
-    case DOUBLE:
+    case LogicalTypeID::DOUBLE:
         return "DOUBLE";
-    case FLOAT:
+    case LogicalTypeID::FLOAT:
         return "FLOAT";
-    case DATE:
+    case LogicalTypeID::DATE:
         return "DATE";
-    case TIMESTAMP:
+    case LogicalTypeID::TIMESTAMP:
         return "TIMESTAMP";
-    case INTERVAL:
+    case LogicalTypeID::INTERVAL:
         return "INTERVAL";
-    case STRING:
+    case LogicalTypeID::STRING:
         return "STRING";
-    case VAR_LIST:
+    case LogicalTypeID::VAR_LIST:
         return "VAR_LIST";
-    case FIXED_LIST:
+    case LogicalTypeID::FIXED_LIST:
         return "FIXED_LIST";
-    case STRUCT:
+    case LogicalTypeID::STRUCT:
         return "STRUCT";
-    case SERIAL:
+    case LogicalTypeID::SERIAL:
         return "SERIAL";
     default:
-        throw InternalException(
-            "Unsupported DataType: " + Types::dataTypeToString(dataTypeID) + ".");
+        throw NotImplementedException(
+            "Unsupported DataType: " + LogicalTypeUtils::dataTypeToString(dataTypeID) + ".");
     }
 }
 
-std::string Types::dataTypesToString(const std::vector<DataType>& dataTypes) {
-    std::vector<DataTypeID> dataTypeIDs;
+std::string LogicalTypeUtils::dataTypesToString(const std::vector<LogicalType>& dataTypes) {
+    std::vector<LogicalTypeID> dataTypeIDs;
     for (auto& dataType : dataTypes) {
         dataTypeIDs.push_back(dataType.typeID);
     }
     return dataTypesToString(dataTypeIDs);
 }
 
-std::string Types::dataTypesToString(const std::vector<DataTypeID>& dataTypeIDs) {
+std::string LogicalTypeUtils::dataTypesToString(const std::vector<LogicalTypeID>& dataTypeIDs) {
     if (dataTypeIDs.empty()) {
         return {""};
     }
-    std::string result = "(" + Types::dataTypeToString(dataTypeIDs[0]);
+    std::string result = "(" + LogicalTypeUtils::dataTypeToString(dataTypeIDs[0]);
     for (auto i = 1u; i < dataTypeIDs.size(); ++i) {
-        result += "," + Types::dataTypeToString(dataTypeIDs[i]);
+        result += "," + LogicalTypeUtils::dataTypeToString(dataTypeIDs[i]);
     }
     result += ")";
     return result;
 }
 
-uint32_t Types::getDataTypeSize(DataTypeID dataTypeID) {
-    switch (dataTypeID) {
-    case INTERNAL_ID:
-        return sizeof(internalID_t);
-    case BOOL:
-        return sizeof(uint8_t);
-    case SERIAL:
-    case INT64:
+uint32_t LogicalTypeUtils::getFixedTypeSize(kuzu::common::PhysicalTypeID physicalType) {
+    switch (physicalType) {
+    case PhysicalTypeID::BOOL:
+        return sizeof(bool);
+    case PhysicalTypeID::INT64:
         return sizeof(int64_t);
-    case INT32:
+    case PhysicalTypeID::INT32:
         return sizeof(int32_t);
-    case INT16:
+    case PhysicalTypeID::INT16:
         return sizeof(int16_t);
-    case DOUBLE:
+    case PhysicalTypeID::DOUBLE:
         return sizeof(double_t);
-    case FLOAT:
+    case PhysicalTypeID::FLOAT:
         return sizeof(float_t);
-    case DATE:
-        return sizeof(date_t);
-    case TIMESTAMP:
-        return sizeof(timestamp_t);
-    case INTERVAL:
+    case PhysicalTypeID::INTERVAL:
         return sizeof(interval_t);
-    case STRING:
-        return sizeof(ku_string_t);
-    case VAR_LIST:
-        return sizeof(ku_list_t);
+    case PhysicalTypeID::INTERNAL_ID:
+        return sizeof(internalID_t);
     default:
-        throw InternalException(
-            "Cannot infer the size of dataTypeID: " + dataTypeToString(dataTypeID) + ".");
+        throw NotImplementedException{"Cannot infer the size of a variable dataType."};
     }
 }
 
-// This function returns the size of the dataType when stored in a row layout. (e.g.
-// factorizedTable).
-uint32_t Types::getDataTypeSize(const DataType& dataType) {
+bool LogicalTypeUtils::isNumerical(const kuzu::common::LogicalType& dataType) {
     switch (dataType.typeID) {
-    case FIXED_LIST: {
-        auto fixedListTypeInfo = reinterpret_cast<FixedListTypeInfo*>(dataType.extraTypeInfo.get());
-        return getDataTypeSize(*fixedListTypeInfo->getChildType()) *
-               fixedListTypeInfo->getFixedNumElementsInList();
-    }
-    case STRUCT: {
-        auto structTypeInfo = reinterpret_cast<StructTypeInfo*>(dataType.extraTypeInfo.get());
-        uint32_t size = 0;
-        for (auto& childType : structTypeInfo->getChildrenTypes()) {
-            size += getDataTypeSize(*childType);
-        }
-        size += NullBuffer::getNumBytesForNullValues(structTypeInfo->getChildrenNames().size());
-        return size;
-    }
-    case INTERNAL_ID:
-    case BOOL:
-    case SERIAL:
-    case INT64:
-    case INT32:
-    case INT16:
-    case DOUBLE:
-    case FLOAT:
-    case DATE:
-    case TIMESTAMP:
-    case INTERVAL:
-    case STRING:
-    case VAR_LIST: {
-        return getDataTypeSize(dataType.typeID);
-    }
-    default: {
-        throw InternalException(
-            "Cannot infer the size of dataTypeID: " + dataTypeToString(dataType.typeID) + ".");
-    }
-    }
-}
-
-bool Types::isNumerical(const kuzu::common::DataType& dataType) {
-    switch (dataType.typeID) {
-    case INT64:
-    case INT32:
-    case INT16:
-    case DOUBLE:
-    case FLOAT:
+    case LogicalTypeID::INT64:
+    case LogicalTypeID::INT32:
+    case LogicalTypeID::INT16:
+    case LogicalTypeID::DOUBLE:
+    case LogicalTypeID::FLOAT:
         return true;
     default:
         return false;
+    }
+}
+
+void LogicalType::setPhysicalType() {
+    switch (typeID) {
+    case LogicalTypeID::ANY: {
+        physicalType = PhysicalTypeID::ANY;
+    } break;
+    case LogicalTypeID::BOOL: {
+        physicalType = PhysicalTypeID::BOOL;
+    } break;
+    case LogicalTypeID::TIMESTAMP:
+    case LogicalTypeID::SERIAL:
+    case LogicalTypeID::INT64: {
+        physicalType = PhysicalTypeID::INT64;
+    } break;
+    case LogicalTypeID::DATE:
+    case LogicalTypeID::INT32: {
+        physicalType = PhysicalTypeID::INT32;
+    } break;
+    case LogicalTypeID::INT16: {
+        physicalType = PhysicalTypeID::INT16;
+    } break;
+    case LogicalTypeID::DOUBLE: {
+        physicalType = PhysicalTypeID::DOUBLE;
+    } break;
+    case LogicalTypeID::FLOAT: {
+        physicalType = PhysicalTypeID::FLOAT;
+    } break;
+    case LogicalTypeID::INTERVAL: {
+        physicalType = PhysicalTypeID::INTERVAL;
+    } break;
+    case LogicalTypeID::FIXED_LIST: {
+        physicalType = PhysicalTypeID::FIXED_LIST;
+    } break;
+    case LogicalTypeID::INTERNAL_ID: {
+        physicalType = PhysicalTypeID::INTERNAL_ID;
+    } break;
+    case LogicalTypeID::STRING: {
+        physicalType = PhysicalTypeID::STRING;
+    } break;
+    case LogicalTypeID::VAR_LIST: {
+        physicalType = PhysicalTypeID::VAR_LIST;
+    } break;
+    case LogicalTypeID::NODE:
+    case LogicalTypeID::REL:
+    case LogicalTypeID::STRUCT: {
+        physicalType = PhysicalTypeID::STRUCT;
+    } break;
+    default:
+        throw NotImplementedException{
+            "Unsupported LogicalType: " + LogicalTypeUtils::dataTypeToString(typeID) + "."};
     }
 }
 
@@ -553,6 +480,110 @@ RelDataDirection operator!(RelDataDirection& direction) {
 
 std::string getRelDataDirectionAsString(RelDataDirection direction) {
     return (FWD == direction) ? "forward" : "backward";
+}
+
+// Specialized Ser/Deser functions for logical dataTypes.
+template<>
+uint64_t SerDeser::serializeValue(
+    const VarListTypeInfo& value, FileInfo* fileInfo, uint64_t offset) {
+    return SerDeser::serializeValue(*value.getChildType(), fileInfo, offset);
+}
+
+template<>
+uint64_t SerDeser::deserializeValue(VarListTypeInfo& value, FileInfo* fileInfo, uint64_t offset) {
+    value.childType = std::make_unique<LogicalType>();
+    offset = SerDeser::deserializeValue(*value.getChildType(), fileInfo, offset);
+    return offset;
+}
+
+template<>
+uint64_t SerDeser::serializeValue(
+    const FixedListTypeInfo& value, FileInfo* fileInfo, uint64_t offset) {
+    offset = SerDeser::serializeValue(*value.getChildType(), fileInfo, offset);
+    return SerDeser::serializeValue(value.getNumElementsInList(), fileInfo, offset);
+}
+
+template<>
+uint64_t SerDeser::deserializeValue(FixedListTypeInfo& value, FileInfo* fileInfo, uint64_t offset) {
+    value.childType = std::make_unique<LogicalType>();
+    offset = SerDeser::deserializeValue(*value.getChildType(), fileInfo, offset);
+    offset = SerDeser::deserializeValue(value.fixedNumElementsInList, fileInfo, offset);
+    return offset;
+}
+
+template<>
+uint64_t SerDeser::serializeValue(
+    const StructTypeInfo& value, FileInfo* fileInfo, uint64_t offset) {
+    return serializeVector(value.fields, fileInfo, offset);
+}
+
+template<>
+uint64_t SerDeser::deserializeValue(StructTypeInfo& value, FileInfo* fileInfo, uint64_t offset) {
+    return deserializeVector(value.fields, fileInfo, offset);
+}
+
+template<>
+uint64_t SerDeser::serializeValue(
+    const std::unique_ptr<StructField>& value, FileInfo* fileInfo, uint64_t offset) {
+    offset = serializeValue<std::string>(value->name, fileInfo, offset);
+    return serializeValue(*value->getType(), fileInfo, offset);
+}
+
+template<>
+uint64_t SerDeser::deserializeValue(
+    std::unique_ptr<StructField>& value, FileInfo* fileInfo, uint64_t offset) {
+    value = std::make_unique<StructField>();
+    offset = deserializeValue<std::string>(value->name, fileInfo, offset);
+    return deserializeValue(*value->type, fileInfo, offset);
+}
+
+template<>
+uint64_t SerDeser::serializeValue(const LogicalType& value, FileInfo* fileInfo, uint64_t offset) {
+    offset = SerDeser::serializeValue(value.getLogicalTypeID(), fileInfo, offset);
+    switch (value.getLogicalTypeID()) {
+    case LogicalTypeID::VAR_LIST: {
+        auto varListTypeInfo = reinterpret_cast<VarListTypeInfo*>(value.extraTypeInfo.get());
+        offset = serializeValue(*varListTypeInfo, fileInfo, offset);
+    } break;
+    case LogicalTypeID::FIXED_LIST: {
+        auto fixedListTypeInfo = reinterpret_cast<FixedListTypeInfo*>(value.extraTypeInfo.get());
+        offset = serializeValue(*fixedListTypeInfo, fileInfo, offset);
+    } break;
+    case LogicalTypeID::STRUCT: {
+        auto structTypeInfo = reinterpret_cast<StructTypeInfo*>(value.extraTypeInfo.get());
+        offset = serializeValue(*structTypeInfo, fileInfo, offset);
+    } break;
+    default:
+        break;
+    }
+    return offset;
+}
+
+template<>
+uint64_t SerDeser::deserializeValue(LogicalType& value, FileInfo* fileInfo, uint64_t offset) {
+    offset = SerDeser::deserializeValue(value.typeID, fileInfo, offset);
+    value.setPhysicalType();
+    switch (value.getLogicalTypeID()) {
+    case LogicalTypeID::VAR_LIST: {
+        value.extraTypeInfo = std::make_unique<VarListTypeInfo>();
+        offset = deserializeValue(
+            *reinterpret_cast<VarListTypeInfo*>(value.extraTypeInfo.get()), fileInfo, offset);
+
+    } break;
+    case LogicalTypeID::FIXED_LIST: {
+        value.extraTypeInfo = std::make_unique<FixedListTypeInfo>();
+        offset = deserializeValue(
+            *reinterpret_cast<FixedListTypeInfo*>(value.extraTypeInfo.get()), fileInfo, offset);
+    } break;
+    case LogicalTypeID::STRUCT: {
+        value.extraTypeInfo = std::make_unique<StructTypeInfo>();
+        offset = deserializeValue(
+            *reinterpret_cast<StructTypeInfo*>(value.extraTypeInfo.get()), fileInfo, offset);
+    } break;
+    default:
+        break;
+    }
+    return offset;
 }
 
 } // namespace common

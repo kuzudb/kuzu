@@ -19,7 +19,7 @@ struct StructPackVectorOperations : public VectorOperations {
 struct StructExtractBindData : public FunctionBindData {
     common::vector_idx_t childIdx;
 
-    StructExtractBindData(common::DataType dataType, common::vector_idx_t childIdx)
+    StructExtractBindData(common::LogicalType dataType, common::vector_idx_t childIdx)
         : FunctionBindData{std::move(dataType)}, childIdx{childIdx} {}
 };
 

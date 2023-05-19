@@ -19,7 +19,7 @@ PageElementCursor InMemLists::calcPageElementCursor(
 }
 
 InMemLists::InMemLists(
-    std::string fName, DataType dataType, uint64_t numBytesForElement, uint64_t numNodes)
+    std::string fName, LogicalType dataType, uint64_t numBytesForElement, uint64_t numNodes)
     : fName{std::move(fName)}, dataType{std::move(dataType)}, numBytesForElement{
                                                                   numBytesForElement} {
     listsMetadataBuilder = make_unique<ListsMetadataBuilder>(this->fName);
@@ -28,8 +28,8 @@ InMemLists::InMemLists(
         numChunks++;
     }
     listsMetadataBuilder->initChunkPageLists(numChunks);
-    inMemFile = make_unique<InMemFile>(
-        this->fName, numBytesForElement, this->dataType.typeID != INTERNAL_ID);
+    inMemFile = make_unique<InMemFile>(this->fName, numBytesForElement,
+        this->dataType.getLogicalTypeID() != LogicalTypeID::INTERNAL_ID);
 }
 
 void InMemLists::fillWithDefaultVal(
@@ -102,7 +102,7 @@ void InMemLists::calculatePagesForList(uint64_t& numPages, uint64_t& offsetInPag
 
 void InMemLists::fillInMemListsWithStrValFunc(InMemLists* inMemLists, uint8_t* defaultVal,
     PageByteCursor& pageByteCursor, offset_t nodeOffset, uint64_t posInList,
-    const DataType& dataType) {
+    const LogicalType& dataType) {
     auto strVal = *(ku_string_t*)defaultVal;
     inMemLists->getInMemOverflowFile()->copyStringOverflow(
         pageByteCursor, reinterpret_cast<uint8_t*>(strVal.overflowPtr), &strVal);
@@ -111,28 +111,28 @@ void InMemLists::fillInMemListsWithStrValFunc(InMemLists* inMemLists, uint8_t* d
 
 void InMemLists::fillInMemListsWithListValFunc(InMemLists* inMemLists, uint8_t* defaultVal,
     PageByteCursor& pageByteCursor, offset_t nodeOffset, uint64_t posInList,
-    const DataType& dataType) {
+    const LogicalType& dataType) {
     auto listVal = *reinterpret_cast<ku_list_t*>(defaultVal);
     inMemLists->getInMemOverflowFile()->copyListOverflowToFile(
-        pageByteCursor, &listVal, dataType.getChildType());
+        pageByteCursor, &listVal, VarListType::getChildType(&dataType));
     inMemLists->setElement(nodeOffset, posInList, reinterpret_cast<uint8_t*>(&listVal));
 }
 
-fill_in_mem_lists_function_t InMemLists::getFillInMemListsFunc(const DataType& dataType) {
-    switch (dataType.typeID) {
-    case INT64:
-    case DOUBLE:
-    case BOOL:
-    case DATE:
-    case TIMESTAMP:
-    case INTERVAL:
-    case FIXED_LIST: {
+fill_in_mem_lists_function_t InMemLists::getFillInMemListsFunc(const LogicalType& dataType) {
+    switch (dataType.getLogicalTypeID()) {
+    case LogicalTypeID::INT64:
+    case LogicalTypeID::DOUBLE:
+    case LogicalTypeID::BOOL:
+    case LogicalTypeID::DATE:
+    case LogicalTypeID::TIMESTAMP:
+    case LogicalTypeID::INTERVAL:
+    case LogicalTypeID::FIXED_LIST: {
         return fillInMemListsWithNonOverflowValFunc;
     }
-    case STRING: {
+    case LogicalTypeID::STRING: {
         return fillInMemListsWithStrValFunc;
     }
-    case VAR_LIST: {
+    case LogicalTypeID::VAR_LIST: {
         return fillInMemListsWithListValFunc;
     }
     default: {
@@ -146,11 +146,12 @@ void InMemAdjLists::saveToFile() {
     InMemLists::saveToFile();
 }
 
-InMemListsWithOverflow::InMemListsWithOverflow(std::string fName, DataType dataType,
+InMemListsWithOverflow::InMemListsWithOverflow(std::string fName, LogicalType dataType,
     uint64_t numNodes, std::shared_ptr<ListHeadersBuilder> listHeadersBuilder)
-    : InMemLists{
-          std::move(fName), std::move(dataType), Types::getDataTypeSize(dataType), numNodes} {
-    assert(this->dataType.typeID == STRING || this->dataType.typeID == VAR_LIST);
+    : InMemLists{std::move(fName), std::move(dataType),
+          storage::StorageUtils::getDataTypeSize(dataType), numNodes} {
+    assert(this->dataType.getLogicalTypeID() == LogicalTypeID::STRING ||
+           this->dataType.getLogicalTypeID() == LogicalTypeID::VAR_LIST);
     overflowInMemFile =
         make_unique<InMemOverflowFile>(StorageUtils::getOverflowFileName(this->fName));
     this->listHeadersBuilder = std::move(listHeadersBuilder);
@@ -162,27 +163,28 @@ void InMemListsWithOverflow::saveToFile() {
 }
 
 std::unique_ptr<InMemLists> InMemListsFactory::getInMemPropertyLists(const std::string& fName,
-    const DataType& dataType, uint64_t numNodes,
+    const LogicalType& dataType, uint64_t numNodes,
     std::shared_ptr<ListHeadersBuilder> listHeadersBuilder) {
-    switch (dataType.typeID) {
-    case INT64:
-    case INT32:
-    case INT16:
-    case DOUBLE:
-    case FLOAT:
-    case BOOL:
-    case DATE:
-    case TIMESTAMP:
-    case INTERVAL:
-    case FIXED_LIST:
-        return make_unique<InMemLists>(fName, dataType, Types::getDataTypeSize(dataType), numNodes,
+    switch (dataType.getLogicalTypeID()) {
+    case LogicalTypeID::INT64:
+    case LogicalTypeID::INT32:
+    case LogicalTypeID::INT16:
+    case LogicalTypeID::DOUBLE:
+    case LogicalTypeID::FLOAT:
+    case LogicalTypeID::BOOL:
+    case LogicalTypeID::DATE:
+    case LogicalTypeID::TIMESTAMP:
+    case LogicalTypeID::INTERVAL:
+    case LogicalTypeID::FIXED_LIST:
+        return make_unique<InMemLists>(fName, dataType,
+            storage::StorageUtils::getDataTypeSize(dataType), numNodes,
             std::move(listHeadersBuilder));
-    case STRING:
+    case LogicalTypeID::STRING:
         return make_unique<InMemStringLists>(fName, numNodes, std::move(listHeadersBuilder));
-    case VAR_LIST:
+    case LogicalTypeID::VAR_LIST:
         return make_unique<InMemListLists>(
             fName, dataType, numNodes, std::move(listHeadersBuilder));
-    case INTERNAL_ID:
+    case LogicalTypeID::INTERNAL_ID:
         return make_unique<InMemRelIDLists>(fName, numNodes, std::move(listHeadersBuilder));
     default:
         throw CopyException("Invalid type for property list creation.");

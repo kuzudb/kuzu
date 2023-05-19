@@ -2,16 +2,17 @@
 
 #include "common/null_buffer.h"
 #include "common/string_utils.h"
+#include "storage/storage_utils.h"
 
 namespace kuzu {
 namespace common {
 
-void Value::setDataType(const DataType& dataType_) {
-    assert(dataType.typeID == ANY);
+void Value::setDataType(const LogicalType& dataType_) {
+    assert(dataType.getLogicalTypeID() == LogicalTypeID::ANY);
     dataType = dataType_;
 }
 
-DataType Value::getDataType() const {
+LogicalType Value::getDataType() const {
     return dataType;
 }
 
@@ -35,106 +36,107 @@ Value Value::createNullValue() {
     return {};
 }
 
-Value Value::createNullValue(DataType dataType) {
+Value Value::createNullValue(LogicalType dataType) {
     return Value(std::move(dataType));
 }
 
-Value Value::createDefaultValue(const DataType& dataType) {
-    switch (dataType.typeID) {
-    case INT64:
+Value Value::createDefaultValue(const LogicalType& dataType) {
+    switch (dataType.getLogicalTypeID()) {
+    case LogicalTypeID::INT64:
         return Value((int64_t)0);
-    case INT32:
+    case LogicalTypeID::INT32:
         return Value((int32_t)0);
-    case INT16:
+    case LogicalTypeID::INT16:
         return Value((int16_t)0);
-    case BOOL:
+    case LogicalTypeID::BOOL:
         return Value(true);
-    case DOUBLE:
+    case LogicalTypeID::DOUBLE:
         return Value((double_t)0);
-    case DATE:
+    case LogicalTypeID::DATE:
         return Value(date_t());
-    case TIMESTAMP:
+    case LogicalTypeID::TIMESTAMP:
         return Value(timestamp_t());
-    case INTERVAL:
+    case LogicalTypeID::INTERVAL:
         return Value(interval_t());
-    case INTERNAL_ID:
+    case LogicalTypeID::INTERNAL_ID:
         return Value(nodeID_t());
-    case STRING:
+    case LogicalTypeID::STRING:
         return Value(std::string(""));
-    case FLOAT:
+    case LogicalTypeID::FLOAT:
         return Value((float_t)0);
-    case VAR_LIST:
-    case FIXED_LIST:
-    case STRUCT:
+    case LogicalTypeID::VAR_LIST:
+    case LogicalTypeID::FIXED_LIST:
+    case LogicalTypeID::STRUCT:
         return Value(dataType, std::vector<std::unique_ptr<Value>>{});
     default:
-        throw RuntimeException("Data type " + Types::dataTypeToString(dataType) +
+        throw RuntimeException("Data type " + LogicalTypeUtils::dataTypeToString(dataType) +
                                " is not supported for Value::createDefaultValue");
     }
 }
 
-Value::Value(bool val_) : dataType{BOOL}, isNull_{false} {
+Value::Value(bool val_) : dataType{LogicalTypeID::BOOL}, isNull_{false} {
     val.booleanVal = val_;
 }
 
-Value::Value(int16_t val_) : dataType{INT16}, isNull_{false} {
+Value::Value(int16_t val_) : dataType{LogicalTypeID::INT16}, isNull_{false} {
     val.int16Val = val_;
 }
 
-Value::Value(int32_t val_) : dataType{INT32}, isNull_{false} {
+Value::Value(int32_t val_) : dataType{LogicalTypeID::INT32}, isNull_{false} {
     val.int32Val = val_;
 }
 
-Value::Value(int64_t val_) : dataType{INT64}, isNull_{false} {
+Value::Value(int64_t val_) : dataType{LogicalTypeID::INT64}, isNull_{false} {
     val.int64Val = val_;
 }
 
-Value::Value(float_t val_) : dataType{FLOAT}, isNull_{false} {
+Value::Value(float_t val_) : dataType{LogicalTypeID::FLOAT}, isNull_{false} {
     val.floatVal = val_;
 }
 
-Value::Value(double val_) : dataType{DOUBLE}, isNull_{false} {
+Value::Value(double val_) : dataType{LogicalTypeID::DOUBLE}, isNull_{false} {
     val.doubleVal = val_;
 }
 
-Value::Value(date_t val_) : dataType{DATE}, isNull_{false} {
+Value::Value(date_t val_) : dataType{LogicalTypeID::DATE}, isNull_{false} {
     val.dateVal = val_;
 }
 
-Value::Value(kuzu::common::timestamp_t val_) : dataType{TIMESTAMP}, isNull_{false} {
+Value::Value(kuzu::common::timestamp_t val_) : dataType{LogicalTypeID::TIMESTAMP}, isNull_{false} {
     val.timestampVal = val_;
 }
 
-Value::Value(kuzu::common::interval_t val_) : dataType{INTERVAL}, isNull_{false} {
+Value::Value(kuzu::common::interval_t val_) : dataType{LogicalTypeID::INTERVAL}, isNull_{false} {
     val.intervalVal = val_;
 }
 
-Value::Value(kuzu::common::internalID_t val_) : dataType{INTERNAL_ID}, isNull_{false} {
+Value::Value(kuzu::common::internalID_t val_)
+    : dataType{LogicalTypeID::INTERNAL_ID}, isNull_{false} {
     val.internalIDVal = val_;
 }
 
-Value::Value(const char* val_) : dataType{STRING}, isNull_{false} {
+Value::Value(const char* val_) : dataType{LogicalTypeID::STRING}, isNull_{false} {
     strVal = std::string(val_);
 }
 
-Value::Value(const std::string& val_) : dataType{STRING}, isNull_{false} {
+Value::Value(const std::string& val_) : dataType{LogicalTypeID::STRING}, isNull_{false} {
     strVal = val_;
 }
 
-Value::Value(DataType dataType, std::vector<std::unique_ptr<Value>> vals)
+Value::Value(LogicalType dataType, std::vector<std::unique_ptr<Value>> vals)
     : dataType{std::move(dataType)}, isNull_{false} {
     nestedTypeVal = std::move(vals);
 }
 
-Value::Value(std::unique_ptr<NodeVal> val_) : dataType{NODE}, isNull_{false} {
+Value::Value(std::unique_ptr<NodeVal> val_) : dataType{LogicalTypeID::NODE}, isNull_{false} {
     nodeVal = std::move(val_);
 }
 
-Value::Value(std::unique_ptr<RelVal> val_) : dataType{REL}, isNull_{false} {
+Value::Value(std::unique_ptr<RelVal> val_) : dataType{LogicalTypeID::REL}, isNull_{false} {
     relVal = std::move(val_);
 }
 
-Value::Value(DataType dataType, const uint8_t* val_)
+Value::Value(LogicalType dataType, const uint8_t* val_)
     : dataType{std::move(dataType)}, isNull_{false} {
     copyValueFrom(val_);
 }
@@ -144,52 +146,52 @@ Value::Value(const Value& other) : dataType{other.dataType}, isNull_{other.isNul
 }
 
 void Value::copyValueFrom(const uint8_t* value) {
-    switch (dataType.typeID) {
-    case INT64: {
+    switch (dataType.getLogicalTypeID()) {
+    case LogicalTypeID::INT64: {
         val.int64Val = *((int64_t*)value);
     } break;
-    case INT32: {
+    case LogicalTypeID::INT32: {
         val.int32Val = *((int32_t*)value);
     } break;
-    case INT16: {
+    case LogicalTypeID::INT16: {
         val.int16Val = *((int16_t*)value);
     } break;
-    case BOOL: {
+    case LogicalTypeID::BOOL: {
         val.booleanVal = *((bool*)value);
     } break;
-    case DOUBLE: {
+    case LogicalTypeID::DOUBLE: {
         val.doubleVal = *((double*)value);
     } break;
-    case FLOAT: {
+    case LogicalTypeID::FLOAT: {
         val.floatVal = *((float_t*)value);
     } break;
-    case DATE: {
+    case LogicalTypeID::DATE: {
         val.dateVal = *((date_t*)value);
     } break;
-    case TIMESTAMP: {
+    case LogicalTypeID::TIMESTAMP: {
         val.timestampVal = *((timestamp_t*)value);
     } break;
-    case INTERVAL: {
+    case LogicalTypeID::INTERVAL: {
         val.intervalVal = *((interval_t*)value);
     } break;
-    case INTERNAL_ID: {
+    case LogicalTypeID::INTERNAL_ID: {
         val.internalIDVal = *((nodeID_t*)value);
     } break;
-    case STRING: {
+    case LogicalTypeID::STRING: {
         strVal = ((ku_string_t*)value)->getAsString();
     } break;
-    case VAR_LIST: {
+    case LogicalTypeID::VAR_LIST: {
         nestedTypeVal = convertKUVarListToVector(*(ku_list_t*)value);
     } break;
-    case FIXED_LIST: {
+    case LogicalTypeID::FIXED_LIST: {
         nestedTypeVal = convertKUFixedListToVector(value);
     } break;
-    case STRUCT: {
+    case LogicalTypeID::STRUCT: {
         nestedTypeVal = convertKUStructToVector(value);
     } break;
     default:
-        throw RuntimeException(
-            "Data type " + Types::dataTypeToString(dataType) + " is not supported for Value::set");
+        throw RuntimeException("Data type " + LogicalTypeUtils::dataTypeToString(dataType) +
+                               " is not supported for Value::set");
     }
 }
 
@@ -200,56 +202,57 @@ void Value::copyValueFrom(const Value& other) {
     }
     isNull_ = false;
     assert(dataType == other.dataType);
-    switch (dataType.typeID) {
-    case BOOL: {
+    switch (dataType.getLogicalTypeID()) {
+    case LogicalTypeID::BOOL: {
         val.booleanVal = other.val.booleanVal;
     } break;
-    case INT64: {
+    case LogicalTypeID::INT64: {
         val.int64Val = other.val.int64Val;
     } break;
-    case INT32: {
+    case LogicalTypeID::INT32: {
         val.int32Val = other.val.int32Val;
     } break;
-    case INT16: {
+    case LogicalTypeID::INT16: {
         val.int16Val = other.val.int16Val;
     } break;
-    case DOUBLE: {
+    case LogicalTypeID::DOUBLE: {
         val.doubleVal = other.val.doubleVal;
     } break;
-    case FLOAT: {
+    case LogicalTypeID::FLOAT: {
         val.floatVal = other.val.floatVal;
     } break;
-    case DATE: {
+    case LogicalTypeID::DATE: {
         val.dateVal = other.val.dateVal;
     } break;
-    case TIMESTAMP: {
+    case LogicalTypeID::TIMESTAMP: {
         val.timestampVal = other.val.timestampVal;
     } break;
-    case INTERVAL: {
+    case LogicalTypeID::INTERVAL: {
         val.intervalVal = other.val.intervalVal;
     } break;
-    case INTERNAL_ID: {
+    case LogicalTypeID::INTERNAL_ID: {
         val.internalIDVal = other.val.internalIDVal;
     } break;
-    case STRING: {
+    case LogicalTypeID::STRING: {
         strVal = other.strVal;
     } break;
-    case VAR_LIST:
-    case FIXED_LIST:
-    case STRUCT: {
+    case LogicalTypeID::VAR_LIST:
+    case LogicalTypeID::FIXED_LIST:
+    case LogicalTypeID::STRUCT: {
         for (auto& value : other.nestedTypeVal) {
             nestedTypeVal.push_back(value->copy());
         }
     } break;
-    case NODE: {
+    case LogicalTypeID::NODE: {
         nodeVal = other.nodeVal->copy();
     } break;
-    case REL: {
+    case LogicalTypeID::REL: {
         relVal = other.relVal->copy();
     } break;
     default:
         throw NotImplementedException("Value::Value(const Value&) for type " +
-                                      Types::dataTypeToString(dataType) + " is not implemented.");
+                                      LogicalTypeUtils::dataTypeToString(dataType) +
+                                      " is not implemented.");
     }
 }
 
@@ -261,31 +264,31 @@ std::string Value::toString() const {
     if (isNull_) {
         return "";
     }
-    switch (dataType.typeID) {
-    case BOOL:
+    switch (dataType.getLogicalTypeID()) {
+    case LogicalTypeID::BOOL:
         return TypeUtils::toString(val.booleanVal);
-    case INT64:
+    case LogicalTypeID::INT64:
         return TypeUtils::toString(val.int64Val);
-    case INT32:
+    case LogicalTypeID::INT32:
         return TypeUtils::toString(val.int32Val);
-    case INT16:
+    case LogicalTypeID::INT16:
         return TypeUtils::toString(val.int16Val);
-    case DOUBLE:
+    case LogicalTypeID::DOUBLE:
         return TypeUtils::toString(val.doubleVal);
-    case FLOAT:
+    case LogicalTypeID::FLOAT:
         return TypeUtils::toString(val.floatVal);
-    case DATE:
+    case LogicalTypeID::DATE:
         return TypeUtils::toString(val.dateVal);
-    case TIMESTAMP:
+    case LogicalTypeID::TIMESTAMP:
         return TypeUtils::toString(val.timestampVal);
-    case INTERVAL:
+    case LogicalTypeID::INTERVAL:
         return TypeUtils::toString(val.intervalVal);
-    case INTERNAL_ID:
+    case LogicalTypeID::INTERNAL_ID:
         return TypeUtils::toString(val.internalIDVal);
-    case STRING:
+    case LogicalTypeID::STRING:
         return strVal;
-    case VAR_LIST:
-    case FIXED_LIST: {
+    case LogicalTypeID::VAR_LIST:
+    case LogicalTypeID::FIXED_LIST: {
         std::string result = "[";
         for (auto i = 0u; i < nestedTypeVal.size(); ++i) {
             result += nestedTypeVal[i]->toString();
@@ -296,10 +299,9 @@ std::string Value::toString() const {
         result += "]";
         return result;
     }
-    case STRUCT: {
+    case LogicalTypeID::STRUCT: {
         std::string result = "{";
-        auto structTypeInfo = reinterpret_cast<StructTypeInfo*>(dataType.getExtraTypeInfo());
-        auto childrenNames = structTypeInfo->getChildrenNames();
+        auto childrenNames = common::StructType::getStructFieldNames(&dataType);
         for (auto i = 0u; i < nestedTypeVal.size(); ++i) {
             result += childrenNames[i];
             result += ": ";
@@ -311,29 +313,30 @@ std::string Value::toString() const {
         result += "}";
         return result;
     }
-    case NODE:
+    case LogicalTypeID::NODE:
         return nodeVal->toString();
-    case REL:
+    case LogicalTypeID::REL:
         return relVal->toString();
     default:
         throw NotImplementedException("Value::toString for type " +
-                                      Types::dataTypeToString(dataType) + " is not implemented.");
+                                      LogicalTypeUtils::dataTypeToString(dataType) +
+                                      " is not implemented.");
     }
 }
 
-Value::Value() : dataType{ANY}, isNull_{true} {}
+Value::Value() : dataType{LogicalTypeID::ANY}, isNull_{true} {}
 
-Value::Value(DataType dataType) : dataType{std::move(dataType)}, isNull_{true} {}
+Value::Value(LogicalType dataType) : dataType{std::move(dataType)}, isNull_{true} {}
 
 std::vector<std::unique_ptr<Value>> Value::convertKUVarListToVector(ku_list_t& list) const {
     std::vector<std::unique_ptr<Value>> listResultValue;
-    auto numBytesPerElement = Types::getDataTypeSize(*dataType.getChildType());
+    auto childType = VarListType::getChildType(&dataType);
+    auto numBytesPerElement = storage::StorageUtils::getDataTypeSize(*childType);
     auto listNullBytes = reinterpret_cast<uint8_t*>(list.overflowPtr);
     auto numBytesForNullValues = NullBuffer::getNumBytesForNullValues(list.size);
     auto listValues = listNullBytes + numBytesForNullValues;
     for (auto i = 0; i < list.size; i++) {
-        auto childValue =
-            std::make_unique<Value>(Value::createDefaultValue(*dataType.getChildType()));
+        auto childValue = std::make_unique<Value>(Value::createDefaultValue(*childType));
         if (NullBuffer::isNull(listNullBytes, i)) {
             childValue->setNull();
         } else {
@@ -347,24 +350,24 @@ std::vector<std::unique_ptr<Value>> Value::convertKUVarListToVector(ku_list_t& l
 
 std::vector<std::unique_ptr<Value>> Value::convertKUFixedListToVector(
     const uint8_t* fixedList) const {
-    auto fixedListTypeInfo = reinterpret_cast<FixedListTypeInfo*>(dataType.getExtraTypeInfo());
-    std::vector<std::unique_ptr<Value>> fixedListResultVal{
-        fixedListTypeInfo->getFixedNumElementsInList()};
-    auto numBytesPerElement = Types::getDataTypeSize(*dataType.getChildType());
-    switch (dataType.getChildType()->typeID) {
-    case common::DataTypeID::INT64: {
+    auto numElementsInList = FixedListType::getNumElementsInList(&dataType);
+    std::vector<std::unique_ptr<Value>> fixedListResultVal{numElementsInList};
+    auto childType = FixedListType::getChildType(&dataType);
+    auto numBytesPerElement = storage::StorageUtils::getDataTypeSize(*childType);
+    switch (childType->getLogicalTypeID()) {
+    case common::LogicalTypeID::INT64: {
         putValuesIntoVector<int64_t>(fixedListResultVal, fixedList, numBytesPerElement);
     } break;
-    case common::DataTypeID::INT32: {
+    case common::LogicalTypeID::INT32: {
         putValuesIntoVector<int32_t>(fixedListResultVal, fixedList, numBytesPerElement);
     } break;
-    case common::DataTypeID::INT16: {
+    case common::LogicalTypeID::INT16: {
         putValuesIntoVector<int16_t>(fixedListResultVal, fixedList, numBytesPerElement);
     } break;
-    case common::DataTypeID::DOUBLE: {
+    case common::LogicalTypeID::DOUBLE: {
         putValuesIntoVector<double_t>(fixedListResultVal, fixedList, numBytesPerElement);
     } break;
-    case common::DataTypeID::FLOAT: {
+    case common::LogicalTypeID::FLOAT: {
         putValuesIntoVector<float_t>(fixedListResultVal, fixedList, numBytesPerElement);
     } break;
     default:
@@ -374,9 +377,8 @@ std::vector<std::unique_ptr<Value>> Value::convertKUFixedListToVector(
 }
 
 std::vector<std::unique_ptr<Value>> Value::convertKUStructToVector(const uint8_t* kuStruct) const {
-    auto structTypeInfo = reinterpret_cast<StructTypeInfo*>(dataType.getExtraTypeInfo());
     std::vector<std::unique_ptr<Value>> structVal;
-    auto childrenTypes = structTypeInfo->getChildrenTypes();
+    auto childrenTypes = StructType::getStructFieldTypes(&dataType);
     auto numFields = childrenTypes.size();
     auto structNullValues = kuStruct;
     auto structValues = structNullValues + NullBuffer::getNumBytesForNullValues(numFields);
@@ -388,7 +390,7 @@ std::vector<std::unique_ptr<Value>> Value::convertKUStructToVector(const uint8_t
             childValue->copyValueFrom(structValues);
         }
         structVal.emplace_back(std::move(childValue));
-        structValues += Types::getDataTypeSize(*childrenTypes[i]);
+        structValues += storage::StorageUtils::getDataTypeSize(*childrenTypes[i]);
     }
     return structVal;
 }

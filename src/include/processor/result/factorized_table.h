@@ -255,9 +255,10 @@ public:
     // inside overflowFileOfInMemList.
     void copyToInMemList(ft_col_idx_t colIdx, std::vector<ft_tuple_idx_t>& tupleIdxesToRead,
         uint8_t* data, common::NullMask* nullMask, uint64_t startElemPosInList,
-        storage::DiskOverflowFile* overflowFileOfInMemList, const common::DataType& type) const;
+        storage::DiskOverflowFile* overflowFileOfInMemList, const common::LogicalType& type) const;
     void clear();
     int64_t findValueInFlatColumn(ft_col_idx_t colIdx, int64_t value) const;
+    static uint32_t getDataTypeSize(const common::LogicalType& type);
 
 private:
     void setOverflowColNull(uint8_t* nullBuffer, ft_col_idx_t colIdx, ft_tuple_idx_t tupleIdx);
@@ -310,7 +311,7 @@ private:
             readFlatColToFlatVector(tuplesToRead, colIdx, vector) :
             readFlatColToUnflatVector(tuplesToRead, colIdx, vector, numTuplesToRead);
     }
-    static void copyOverflowIfNecessary(uint8_t* dst, uint8_t* src, const common::DataType& type,
+    static void copyOverflowIfNecessary(uint8_t* dst, uint8_t* src, const common::LogicalType& type,
         storage::DiskOverflowFile* diskOverflowFile);
 
 private:

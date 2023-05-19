@@ -52,7 +52,7 @@ void DirectedRelTableData::initializeData(RelTableSchema* tableSchema, WAL* wal)
 void DirectedRelTableData::initializeColumns(RelTableSchema* tableSchema, WAL* wal) {
     adjColumn = ColumnFactory::getColumn(StorageUtils::getAdjColumnStructureIDAndFName(
                                              wal->getDirectory(), tableSchema->tableID, direction),
-        DataType(INTERNAL_ID), &bufferManager, wal);
+        LogicalType(LogicalTypeID::INTERNAL_ID), &bufferManager, wal);
     for (auto& property : tableSchema->properties) {
         propertyColumns[property.propertyID] = ColumnFactory::getColumn(
             StorageUtils::getRelPropertyColumnStructureIDAndFName(
@@ -128,7 +128,7 @@ void DirectedRelTableData::scanLists(transaction::Transaction* transaction,
 
 // Fill nbr table IDs for the vector scanned from an adj column.
 void DirectedRelTableData::fillNbrTableIDs(common::ValueVector* vector) {
-    assert(vector->dataType.typeID == INTERNAL_ID);
+    assert(vector->dataType.getLogicalTypeID() == LogicalTypeID::INTERNAL_ID);
     auto nodeIDs = (internalID_t*)vector->getData();
     for (auto i = 0u; i < vector->state->selVector->selectedSize; i++) {
         auto pos = vector->state->selVector->selectedPositions[i];

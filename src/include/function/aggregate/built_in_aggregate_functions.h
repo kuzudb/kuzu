@@ -14,18 +14,18 @@ public:
         return aggregateFunctions.contains(name);
     }
 
-    AggregateFunctionDefinition* matchFunction(
-        const std::string& name, const std::vector<common::DataType>& inputTypes, bool isDistinct);
+    AggregateFunctionDefinition* matchFunction(const std::string& name,
+        const std::vector<common::LogicalType>& inputTypes, bool isDistinct);
 
     std::vector<std::string> getFunctionNames();
 
 private:
-    uint32_t getFunctionCost(const std::vector<common::DataType>& inputTypes, bool isDistinct,
+    uint32_t getFunctionCost(const std::vector<common::LogicalType>& inputTypes, bool isDistinct,
         AggregateFunctionDefinition* function);
 
     void validateNonEmptyCandidateFunctions(
         std::vector<AggregateFunctionDefinition*>& candidateFunctions, const std::string& name,
-        const std::vector<common::DataType>& inputTypes, bool isDistinct);
+        const std::vector<common::LogicalType>& inputTypes, bool isDistinct);
 
     void registerAggregateFunctions();
     void registerCountStar();

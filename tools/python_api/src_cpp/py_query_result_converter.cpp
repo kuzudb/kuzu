@@ -2,11 +2,10 @@
 
 #include "common/types/value.h"
 #include "include/py_query_result.h"
-#include "processor/result/flat_tuple.h"
 
 using namespace kuzu::common;
 
-NPArrayWrapper::NPArrayWrapper(const DataType& type, uint64_t numFlatTuple)
+NPArrayWrapper::NPArrayWrapper(const LogicalType& type, uint64_t numFlatTuple)
     : type{type}, numElements{0} {
     data = py::array(convertToArrayType(type), numFlatTuple);
     dataBuffer = (uint8_t*)data.mutable_data();
@@ -16,35 +15,35 @@ NPArrayWrapper::NPArrayWrapper(const DataType& type, uint64_t numFlatTuple)
 void NPArrayWrapper::appendElement(Value* value) {
     ((uint8_t*)mask.mutable_data())[numElements] = value->isNull();
     if (!value->isNull()) {
-        switch (type.typeID) {
-        case BOOL: {
+        switch (type.getLogicalTypeID()) {
+        case LogicalTypeID::BOOL: {
             ((uint8_t*)dataBuffer)[numElements] = value->getValue<bool>();
             break;
         }
-        case INT64: {
+        case LogicalTypeID::INT64: {
             ((int64_t*)dataBuffer)[numElements] = value->getValue<int64_t>();
             break;
         }
-        case DOUBLE: {
+        case LogicalTypeID::DOUBLE: {
             ((double_t*)dataBuffer)[numElements] = value->getValue<double>();
             break;
         }
-        case DATE: {
+        case LogicalTypeID::DATE: {
             ((int64_t*)dataBuffer)[numElements] =
                 Date::getEpochNanoSeconds(value->getValue<date_t>());
             break;
         }
-        case TIMESTAMP: {
+        case LogicalTypeID::TIMESTAMP: {
             ((int64_t*)dataBuffer)[numElements] =
                 Timestamp::getEpochNanoSeconds(value->getValue<timestamp_t>());
             break;
         }
-        case INTERVAL: {
+        case LogicalTypeID::INTERVAL: {
             ((int64_t*)dataBuffer)[numElements] =
                 Interval::getNanoseconds(value->getValue<interval_t>());
             break;
         }
-        case STRING: {
+        case LogicalTypeID::STRING: {
             auto val = value->getValue<std::string>();
             auto result = PyUnicode_New(val.length(), 127);
             auto target_data = PyUnicode_DATA(result);
@@ -52,12 +51,12 @@ void NPArrayWrapper::appendElement(Value* value) {
             ((PyObject**)dataBuffer)[numElements] = result;
             break;
         }
-        case NODE:
-        case REL: {
+        case LogicalTypeID::NODE:
+        case LogicalTypeID::REL: {
             ((py::dict*)dataBuffer)[numElements] = PyQueryResult::convertValueToPyObject(*value);
             break;
         }
-        case VAR_LIST: {
+        case LogicalTypeID::VAR_LIST: {
             ((py::list*)dataBuffer)[numElements] = PyQueryResult::convertValueToPyObject(*value);
             break;
         }
@@ -69,34 +68,34 @@ void NPArrayWrapper::appendElement(Value* value) {
     numElements++;
 }
 
-py::dtype NPArrayWrapper::convertToArrayType(const DataType& type) {
+py::dtype NPArrayWrapper::convertToArrayType(const LogicalType& type) {
     std::string dtype;
-    switch (type.typeID) {
-    case INT64: {
+    switch (type.getLogicalTypeID()) {
+    case LogicalTypeID::INT64: {
         dtype = "int64";
         break;
     }
-    case DOUBLE: {
+    case LogicalTypeID::DOUBLE: {
         dtype = "float64";
         break;
     }
-    case BOOL: {
+    case LogicalTypeID::BOOL: {
         dtype = "bool";
         break;
     }
-    case NODE:
-    case REL:
-    case VAR_LIST:
-    case STRING: {
+    case LogicalTypeID::NODE:
+    case LogicalTypeID::REL:
+    case LogicalTypeID::VAR_LIST:
+    case LogicalTypeID::STRING: {
         dtype = "object";
         break;
     }
-    case DATE:
-    case TIMESTAMP: {
+    case LogicalTypeID::DATE:
+    case LogicalTypeID::TIMESTAMP: {
         dtype = "datetime64[ns]";
         break;
     }
-    case INTERVAL: {
+    case LogicalTypeID::INTERVAL: {
         dtype = "timedelta64[ns]";
         break;
     }

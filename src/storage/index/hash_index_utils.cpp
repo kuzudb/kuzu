@@ -6,12 +6,12 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-in_mem_insert_function_t InMemHashIndexUtils::initializeInsertFunc(DataTypeID dataTypeID) {
+in_mem_insert_function_t InMemHashIndexUtils::initializeInsertFunc(LogicalTypeID dataTypeID) {
     switch (dataTypeID) {
-    case INT64: {
+    case LogicalTypeID::INT64: {
         return insertFuncForInt64;
     }
-    case STRING: {
+    case LogicalTypeID::STRING: {
         return insertFuncForString;
     }
     default: {
@@ -46,12 +46,12 @@ bool InMemHashIndexUtils::equalsFuncForString(const uint8_t* keyToLookup, const 
     }
 }
 
-in_mem_equals_function_t InMemHashIndexUtils::initializeEqualsFunc(DataTypeID dataTypeID) {
+in_mem_equals_function_t InMemHashIndexUtils::initializeEqualsFunc(LogicalTypeID dataTypeID) {
     switch (dataTypeID) {
-    case INT64: {
+    case LogicalTypeID::INT64: {
         return equalsFuncForInt64;
     }
-    case STRING: {
+    case LogicalTypeID::STRING: {
         return equalsFuncForString;
     }
     default: {
@@ -61,30 +61,32 @@ in_mem_equals_function_t InMemHashIndexUtils::initializeEqualsFunc(DataTypeID da
     }
 }
 
-insert_function_t HashIndexUtils::initializeInsertFunc(DataTypeID dataTypeID) {
+insert_function_t HashIndexUtils::initializeInsertFunc(LogicalTypeID dataTypeID) {
     switch (dataTypeID) {
-    case INT64: {
+    case LogicalTypeID::INT64: {
         return insertFuncForInt64;
     }
-    case STRING: {
+    case LogicalTypeID::STRING: {
         return insertFuncForString;
     }
     default: {
-        throw StorageException("Type " + Types::dataTypeToString(dataTypeID) + " not supported.");
+        throw StorageException(
+            "Type " + LogicalTypeUtils::dataTypeToString(dataTypeID) + " not supported.");
     }
     }
 }
 
-hash_function_t HashIndexUtils::initializeHashFunc(DataTypeID dataTypeID) {
+hash_function_t HashIndexUtils::initializeHashFunc(LogicalTypeID dataTypeID) {
     switch (dataTypeID) {
-    case INT64: {
+    case LogicalTypeID::INT64: {
         return hashFuncForInt64;
     }
-    case STRING: {
+    case LogicalTypeID::STRING: {
         return hashFuncForString;
     }
     default: {
-        throw StorageException("Type " + Types::dataTypeToString(dataTypeID) + " not supported.");
+        throw StorageException(
+            "Type " + LogicalTypeUtils::dataTypeToString(dataTypeID) + " not supported.");
     }
     }
 }
@@ -107,12 +109,12 @@ bool HashIndexUtils::equalsFuncForString(TransactionType trxType, const uint8_t*
     return false;
 }
 
-equals_function_t HashIndexUtils::initializeEqualsFunc(DataTypeID dataTypeID) {
+equals_function_t HashIndexUtils::initializeEqualsFunc(LogicalTypeID dataTypeID) {
     switch (dataTypeID) {
-    case INT64: {
+    case LogicalTypeID::INT64: {
         return equalsFuncForInt64;
     }
-    case STRING: {
+    case LogicalTypeID::STRING: {
         return equalsFuncForString;
     }
     default: {

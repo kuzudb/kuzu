@@ -65,7 +65,7 @@ void TableCopyExecutor::countNumLinesCSV(const std::vector<std::string>& filePat
         auto startNodeOffset = numRows;
         while (true) {
             throwCopyExceptionIfNotOK(csvStreamingReader->ReadNext(&currBatch));
-            if (currBatch == NULL) {
+            if (currBatch == nullptr) {
                 break;
             }
             ++numBlocks;
@@ -120,7 +120,8 @@ void TableCopyExecutor::countNumLinesNpy(const std::vector<std::string>& filePat
 }
 
 static bool skipCopyForProperty(const Property& property) {
-    return TableSchema::isReservedPropertyName(property.name) || property.dataType.typeID == SERIAL;
+    return TableSchema::isReservedPropertyName(property.name) ||
+           property.dataType.getLogicalTypeID() == LogicalTypeID::SERIAL;
 }
 
 std::shared_ptr<arrow::csv::StreamingReader> TableCopyExecutor::createCSVReader(
@@ -205,79 +206,83 @@ std::vector<std::pair<int64_t, int64_t>> TableCopyExecutor::getListElementPos(
 }
 
 std::unique_ptr<Value> TableCopyExecutor::getArrowVarList(const std::string& l, int64_t from,
-    int64_t to, const DataType& dataType, const CopyDescription& copyDescription) {
-    assert(dataType.typeID == common::VAR_LIST || dataType.typeID == common::FIXED_LIST);
+    int64_t to, const LogicalType& dataType, const CopyDescription& copyDescription) {
+    assert(dataType.getLogicalTypeID() == common::LogicalTypeID::VAR_LIST);
     auto split = getListElementPos(l, from, to, copyDescription);
     std::vector<std::unique_ptr<Value>> values;
-    auto childDataType = *dataType.getChildType();
+    auto childDataType = VarListType::getChildType(&dataType);
     for (auto pair : split) {
         std::string element = l.substr(pair.first, pair.second);
         if (element.empty()) {
             continue;
         }
-        auto value = convertStringToValue(element, *dataType.getChildType(), copyDescription);
+        auto value = convertStringToValue(element, *childDataType, copyDescription);
         values.push_back(std::move(value));
     }
-    auto numBytesOfOverflow = values.size() * Types::getDataTypeSize(childDataType.typeID);
+    auto numBytesOfOverflow =
+        values.size() * storage::StorageUtils::getDataTypeSize(*childDataType);
     if (numBytesOfOverflow >= BufferPoolConstants::PAGE_4KB_SIZE) {
         throw CopyException(StringUtils::string_format(
             "Maximum num bytes of a LIST is {}. Input list's num bytes is {}.",
             BufferPoolConstants::PAGE_4KB_SIZE, numBytesOfOverflow));
     }
     return make_unique<Value>(
-        DataType(std::make_unique<DataType>(childDataType)), std::move(values));
+        LogicalType(common::LogicalTypeID::VAR_LIST,
+            std::make_unique<VarListTypeInfo>(std::make_unique<LogicalType>(*childDataType))),
+        std::move(values));
 }
 
 std::unique_ptr<uint8_t[]> TableCopyExecutor::getArrowFixedList(const std::string& l, int64_t from,
-    int64_t to, const DataType& dataType, const CopyDescription& copyDescription) {
-    assert(dataType.typeID == common::FIXED_LIST);
+    int64_t to, const LogicalType& dataType, const CopyDescription& copyDescription) {
+    assert(dataType.getLogicalTypeID() == common::LogicalTypeID::FIXED_LIST);
     auto split = getListElementPos(l, from, to, copyDescription);
-    auto listVal = std::make_unique<uint8_t[]>(Types::getDataTypeSize(dataType));
-    auto childDataType = *dataType.getChildType();
+    auto listVal = std::make_unique<uint8_t[]>(storage::StorageUtils::getDataTypeSize(dataType));
+    auto childDataType = FixedListType::getChildType(&dataType);
     uint64_t numElementsRead = 0;
     for (auto pair : split) {
         std::string element = l.substr(pair.first, pair.second);
         if (element.empty()) {
             continue;
         }
-        switch (childDataType.typeID) {
-        case INT64: {
+        switch (childDataType->getLogicalTypeID()) {
+        case LogicalTypeID::INT64: {
             auto val = TypeUtils::convertStringToNumber<int64_t>(element.c_str());
             memcpy(listVal.get() + numElementsRead * sizeof(int64_t), &val, sizeof(int64_t));
             numElementsRead++;
         } break;
-        case INT32: {
+        case LogicalTypeID::INT32: {
             auto val = TypeUtils::convertStringToNumber<int32_t>(element.c_str());
             memcpy(listVal.get() + numElementsRead * sizeof(int32_t), &val, sizeof(int32_t));
             numElementsRead++;
         } break;
-        case INT16: {
+        case LogicalTypeID::INT16: {
             auto val = TypeUtils::convertStringToNumber<int16_t>(element.c_str());
             memcpy(listVal.get() + numElementsRead * sizeof(int16_t), &val, sizeof(int16_t));
             numElementsRead++;
         } break;
-        case DOUBLE: {
+        case LogicalTypeID::DOUBLE: {
             auto val = TypeUtils::convertStringToNumber<double_t>(element.c_str());
             memcpy(listVal.get() + numElementsRead * sizeof(double_t), &val, sizeof(double_t));
             numElementsRead++;
         } break;
-        case FLOAT: {
+        case LogicalTypeID::FLOAT: {
             auto val = TypeUtils::convertStringToNumber<float_t>(element.c_str());
             memcpy(listVal.get() + numElementsRead * sizeof(float_t), &val, sizeof(float_t));
             numElementsRead++;
         } break;
         default: {
-            throw CopyException("Unsupported data type " +
-                                Types::dataTypeToString(dataType.getChildType()->typeID) +
-                                " inside FIXED_LIST");
+            throw CopyException(
+                "Unsupported data type " +
+                LogicalTypeUtils::dataTypeToString(*VarListType::getChildType(&dataType)) +
+                " inside FIXED_LIST");
         }
         }
     }
-    auto extraTypeInfo = reinterpret_cast<FixedListTypeInfo*>(dataType.getExtraTypeInfo());
-    if (numElementsRead != extraTypeInfo->getFixedNumElementsInList()) {
+    auto numElementsInList = FixedListType::getNumElementsInList(&dataType);
+    if (numElementsRead != numElementsInList) {
         throw CopyException(StringUtils::string_format(
             "Each fixed list should have fixed number of elements. Expected: {}, Actual: {}.",
-            extraTypeInfo->getFixedNumElementsInList(), numElementsRead));
+            numElementsInList, numElementsRead));
     }
     return listVal;
 }
@@ -289,87 +294,87 @@ void TableCopyExecutor::throwCopyExceptionIfNotOK(const arrow::Status& status) {
 }
 
 std::shared_ptr<arrow::DataType> TableCopyExecutor::toArrowDataType(
-    const common::DataType& dataType) {
-    switch (dataType.typeID) {
-    case common::BOOL: {
+    const common::LogicalType& dataType) {
+    switch (dataType.getLogicalTypeID()) {
+    case common::LogicalTypeID::BOOL: {
         return arrow::boolean();
     }
-    case common::INT64: {
+    case common::LogicalTypeID::INT64: {
         return arrow::int64();
     }
-    case common::INT32: {
+    case common::LogicalTypeID::INT32: {
         return arrow::int32();
     }
-    case common::INT16: {
+    case common::LogicalTypeID::INT16: {
         return arrow::int16();
     }
-    case common::DOUBLE: {
+    case common::LogicalTypeID::DOUBLE: {
         return arrow::float64();
     }
-    case common::FLOAT: {
+    case common::LogicalTypeID::FLOAT: {
         return arrow::float32();
     }
-    case common::TIMESTAMP:
-    case common::DATE:
-    case common::INTERVAL:
-    case common::FIXED_LIST:
-    case common::VAR_LIST:
-    case common::STRING:
-    case common::STRUCT: {
+    case common::LogicalTypeID::TIMESTAMP:
+    case common::LogicalTypeID::DATE:
+    case common::LogicalTypeID::INTERVAL:
+    case common::LogicalTypeID::FIXED_LIST:
+    case common::LogicalTypeID::VAR_LIST:
+    case common::LogicalTypeID::STRING:
+    case common::LogicalTypeID::STRUCT: {
         return arrow::utf8();
     }
     default: {
-        throw CopyException(
-            "Unsupported data type for CSV " + Types::dataTypeToString(dataType.typeID));
+        throw CopyException("Unsupported data type for CSV " +
+                            LogicalTypeUtils::dataTypeToString(dataType.getLogicalTypeID()));
     }
     }
 }
 
 std::unique_ptr<Value> TableCopyExecutor::convertStringToValue(
-    std::string element, const DataType& type, const CopyDescription& copyDescription) {
+    std::string element, const LogicalType& type, const CopyDescription& copyDescription) {
     std::unique_ptr<Value> value;
-    switch (type.typeID) {
-    case INT64: {
+    switch (type.getLogicalTypeID()) {
+    case LogicalTypeID::INT64: {
         value = std::make_unique<Value>(TypeUtils::convertStringToNumber<int64_t>(element.c_str()));
     } break;
-    case INT32: {
+    case LogicalTypeID::INT32: {
         value = std::make_unique<Value>(TypeUtils::convertStringToNumber<int32_t>(element.c_str()));
     } break;
-    case INT16: {
+    case LogicalTypeID::INT16: {
         value = std::make_unique<Value>(TypeUtils::convertStringToNumber<int16_t>(element.c_str()));
     } break;
-    case FLOAT: {
+    case LogicalTypeID::FLOAT: {
         value = std::make_unique<Value>(TypeUtils::convertStringToNumber<float_t>(element.c_str()));
     } break;
-    case DOUBLE: {
+    case LogicalTypeID::DOUBLE: {
         value =
             std::make_unique<Value>(TypeUtils::convertStringToNumber<double_t>(element.c_str()));
     } break;
-    case BOOL: {
+    case LogicalTypeID::BOOL: {
         transform(element.begin(), element.end(), element.begin(), ::tolower);
         std::istringstream is(element);
         bool b;
         is >> std::boolalpha >> b;
         value = std::make_unique<Value>(b);
     } break;
-    case STRING: {
+    case LogicalTypeID::STRING: {
         value = make_unique<Value>(element);
     } break;
-    case DATE: {
+    case LogicalTypeID::DATE: {
         value = std::make_unique<Value>(Date::FromCString(element.c_str(), element.length()));
     } break;
-    case TIMESTAMP: {
+    case LogicalTypeID::TIMESTAMP: {
         value = std::make_unique<Value>(Timestamp::FromCString(element.c_str(), element.length()));
     } break;
-    case INTERVAL: {
+    case LogicalTypeID::INTERVAL: {
         value = std::make_unique<Value>(Interval::FromCString(element.c_str(), element.length()));
     } break;
-    case VAR_LIST: {
+    case LogicalTypeID::VAR_LIST: {
         value = getArrowVarList(element, 1, element.length() - 2, type, copyDescription);
     } break;
     default:
         throw CopyException(
-            "Unsupported data type " + Types::dataTypeToString(type.typeID) + " inside LIST");
+            "Unsupported data type " + LogicalTypeUtils::dataTypeToString(type) + " inside LIST");
     }
     return value;
 }

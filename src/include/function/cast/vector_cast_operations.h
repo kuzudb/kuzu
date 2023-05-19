@@ -15,17 +15,18 @@ class VectorCastOperations : public VectorOperations {
 public:
     // This function is only used by expression binder when implicit cast is needed.
     // The expression binder should consider reusing the existing matchFunction() API.
-    static bool hasImplicitCast(const common::DataType& srcType, const common::DataType& dstType);
-    static std::string bindImplicitCastFuncName(const common::DataType& dstType);
+    static bool hasImplicitCast(
+        const common::LogicalType& srcType, const common::LogicalType& dstType);
+    static std::string bindImplicitCastFuncName(const common::LogicalType& dstType);
     static scalar_exec_func bindImplicitCastFunc(
-        common::DataTypeID sourceTypeID, common::DataTypeID targetTypeID);
+        common::LogicalTypeID sourceTypeID, common::LogicalTypeID targetTypeID);
 
     template<typename SOURCE_TYPE, typename TARGET_TYPE, typename FUNC>
     inline static std::unique_ptr<VectorOperationDefinition> bindVectorOperation(
-        const std::string& funcName, common::DataTypeID sourceTypeID,
-        common::DataTypeID targetTypeID) {
+        const std::string& funcName, common::LogicalTypeID sourceTypeID,
+        common::LogicalTypeID targetTypeID) {
         return std::make_unique<VectorOperationDefinition>(funcName,
-            std::vector<common::DataTypeID>{sourceTypeID}, targetTypeID,
+            std::vector<common::LogicalTypeID>{sourceTypeID}, targetTypeID,
             VectorOperations::UnaryExecFunction<SOURCE_TYPE, TARGET_TYPE, FUNC>);
     }
 
@@ -39,44 +40,44 @@ public:
 
 private:
     template<typename DST_TYPE, typename OP>
-    static scalar_exec_func bindImplicitNumericalCastFunc(common::DataTypeID srcTypeID) {
+    static scalar_exec_func bindImplicitNumericalCastFunc(common::LogicalTypeID srcTypeID) {
         switch (srcTypeID) {
-        case common::INT16:
+        case common::LogicalTypeID::INT16:
             return VectorOperations::UnaryExecFunction<int16_t, DST_TYPE, OP>;
-        case common::INT32:
+        case common::LogicalTypeID::INT32:
             return VectorOperations::UnaryExecFunction<int32_t, DST_TYPE, OP>;
-        case common::INT64:
+        case common::LogicalTypeID::INT64:
             return VectorOperations::UnaryExecFunction<int64_t, DST_TYPE, OP>;
-        case common::FLOAT:
+        case common::LogicalTypeID::FLOAT:
             return VectorOperations::UnaryExecFunction<float_t, DST_TYPE, OP>;
-        case common::DOUBLE:
+        case common::LogicalTypeID::DOUBLE:
             return VectorOperations::UnaryExecFunction<double_t, DST_TYPE, OP>;
         default:
-            throw common::NotImplementedException("Unimplemented casting operation from " +
-                                                  common::Types::dataTypeToString(srcTypeID) +
-                                                  " to numeric.");
+            throw common::NotImplementedException(
+                "Unimplemented casting operation from " +
+                common::LogicalTypeUtils::dataTypeToString(srcTypeID) + " to numeric.");
         }
     }
 
     template<typename DST_TYPE, typename OP>
-    static scalar_exec_func bindImplicitStringCastFunc(common::DataTypeID srcTypeID) {
+    static scalar_exec_func bindImplicitStringCastFunc(common::LogicalTypeID srcTypeID) {
         switch (srcTypeID) {
-        case common::INT64:
+        case common::LogicalTypeID::INT64:
             return UnaryCastExecFunction<int64_t, DST_TYPE, OP>;
-        case common::DOUBLE:
+        case common::LogicalTypeID::DOUBLE:
             return UnaryCastExecFunction<double_t, DST_TYPE, OP>;
-        case common::DATE:
+        case common::LogicalTypeID::DATE:
             return UnaryCastExecFunction<common::date_t, DST_TYPE, OP>;
-        case common::TIMESTAMP:
+        case common::LogicalTypeID::TIMESTAMP:
             return UnaryCastExecFunction<common::timestamp_t, DST_TYPE, OP>;
-        case common::INTERVAL:
+        case common::LogicalTypeID::INTERVAL:
             return UnaryCastExecFunction<common::interval_t, DST_TYPE, OP>;
-        case common::VAR_LIST:
+        case common::LogicalTypeID::VAR_LIST:
             return UnaryCastExecFunction<common::ku_list_t, DST_TYPE, OP>;
         default:
-            throw common::NotImplementedException("Unimplemented casting operation from " +
-                                                  common::Types::dataTypeToString(srcTypeID) +
-                                                  " to string.");
+            throw common::NotImplementedException(
+                "Unimplemented casting operation from " +
+                common::LogicalTypeUtils::dataTypeToString(srcTypeID) + " to string.");
         }
     }
 };

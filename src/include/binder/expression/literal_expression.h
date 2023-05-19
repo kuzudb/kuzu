@@ -13,8 +13,8 @@ public:
 
     inline bool isNull() const { return value->isNull(); }
 
-    inline void setDataType(const common::DataType& targetType) {
-        assert(dataType.typeID == common::ANY && isNull());
+    inline void setDataType(const common::LogicalType& targetType) {
+        assert(dataType.getLogicalTypeID() == common::LogicalTypeID::ANY && isNull());
         dataType = targetType;
         value->setDataType(targetType);
     }

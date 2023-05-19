@@ -16,11 +16,11 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOrderByToPhysical(
     auto inSchema = logicalOrderBy.getChild(0)->getSchema();
     auto prevOperator = mapLogicalOperatorToPhysical(logicalOrderBy.getChild(0));
     auto paramsString = logicalOrderBy.getExpressionsForPrinting();
-    std::vector<std::pair<DataPos, common::DataType>> keysPosAndType;
+    std::vector<std::pair<DataPos, common::LogicalType>> keysPosAndType;
     for (auto& expression : logicalOrderBy.getExpressionsToOrderBy()) {
         keysPosAndType.emplace_back(inSchema->getExpressionPos(*expression), expression->dataType);
     }
-    std::vector<std::pair<DataPos, common::DataType>> payloadsPosAndType;
+    std::vector<std::pair<DataPos, common::LogicalType>> payloadsPosAndType;
     std::vector<bool> isPayloadFlat;
     std::vector<DataPos> outVectorPos;
     for (auto& expression : logicalOrderBy.getExpressionsToMaterialize()) {

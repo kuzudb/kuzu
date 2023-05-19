@@ -49,7 +49,7 @@ std::pair<uint64_t, uint64_t> HashAggregateSharedState::getNextRangeToRead() {
 
 void HashAggregate::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     BaseAggregate::initLocalStateInternal(resultSet, context);
-    std::vector<DataType> keyDataTypes;
+    std::vector<LogicalType> keyDataTypes;
     for (auto& pos : flatKeysPos) {
         auto vector = resultSet->getValueVector(pos).get();
         flatKeyVectors.push_back(vector);
@@ -60,7 +60,7 @@ void HashAggregate::initLocalStateInternal(ResultSet* resultSet, ExecutionContex
         unFlatKeyVectors.push_back(vector);
         keyDataTypes.push_back(vector->dataType);
     }
-    std::vector<DataType> payloadDataTypes;
+    std::vector<LogicalType> payloadDataTypes;
     for (auto& pos : dependentKeysPos) {
         auto vector = resultSet->getValueVector(pos).get();
         dependentKeyVectors.push_back(vector);

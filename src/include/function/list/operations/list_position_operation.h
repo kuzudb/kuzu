@@ -16,7 +16,7 @@ struct ListPosition {
     static inline void operation(common::list_entry_t& list, T& element, int64_t& result,
         common::ValueVector& listVector, common::ValueVector& elementVector,
         common::ValueVector& resultVector) {
-        if (*listVector.dataType.getChildType() != elementVector.dataType) {
+        if (*common::VarListType::getChildType(&listVector.dataType) != elementVector.dataType) {
             result = 0;
             return;
         }
@@ -37,7 +37,7 @@ template<>
 void ListPosition::operation(common::list_entry_t& list, common::list_entry_t& element,
     int64_t& result, common::ValueVector& listVector, common::ValueVector& elementVector,
     common::ValueVector& resultVector) {
-    if (*listVector.dataType.getChildType() != elementVector.dataType) {
+    if (*common::VarListType::getChildType(&listVector.dataType) != elementVector.dataType) {
         result = 0;
         return;
     }

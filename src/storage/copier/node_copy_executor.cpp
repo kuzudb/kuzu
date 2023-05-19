@@ -30,7 +30,7 @@ void NodeCopyExecutor::populateColumns(processor::ExecutionContext* executionCon
     logger->info("Populating properties");
     auto primaryKey = reinterpret_cast<NodeTableSchema*>(tableSchema)->getPrimaryKey();
     std::unique_ptr<PrimaryKeyIndexBuilder> pkIndex;
-    if (primaryKey.dataType.typeID != common::SERIAL) {
+    if (primaryKey.dataType.getLogicalTypeID() != common::LogicalTypeID::SERIAL) {
         pkIndex = std::make_unique<PrimaryKeyIndexBuilder>(
             StorageUtils::getNodeIndexFName(
                 this->outputDirectory, tableSchema->tableID, common::DBFileType::WAL_VERSION),

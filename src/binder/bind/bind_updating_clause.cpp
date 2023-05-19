@@ -113,12 +113,12 @@ std::unique_ptr<BoundUpdatingClause> Binder::bindSetClause(const UpdatingClause&
     for (auto i = 0u; i < setClause.getNumSetItems(); ++i) {
         auto setItem = setClause.getSetItem(i);
         auto nodeOrRel = expressionBinder.bindExpression(*setItem.first->getChild(0));
-        switch (nodeOrRel->dataType.typeID) {
-        case DataTypeID::NODE: {
+        switch (nodeOrRel->dataType.getLogicalTypeID()) {
+        case LogicalTypeID::NODE: {
             auto node = static_pointer_cast<NodeExpression>(nodeOrRel);
             boundSetClause->addSetNodeProperty(bindSetNodeProperty(node, setItem));
         } break;
-        case DataTypeID::REL: {
+        case LogicalTypeID::REL: {
             auto rel = static_pointer_cast<RelExpression>(nodeOrRel);
             boundSetClause->addSetRelProperty(bindSetRelProperty(rel, setItem));
         } break;
@@ -162,12 +162,12 @@ std::unique_ptr<BoundUpdatingClause> Binder::bindDeleteClause(
     auto boundDeleteClause = std::make_unique<BoundDeleteClause>();
     for (auto i = 0u; i < deleteClause.getNumExpressions(); ++i) {
         auto nodeOrRel = expressionBinder.bindExpression(*deleteClause.getExpression(i));
-        switch (nodeOrRel->dataType.typeID) {
-        case DataTypeID::NODE: {
+        switch (nodeOrRel->dataType.getLogicalTypeID()) {
+        case LogicalTypeID::NODE: {
             auto deleteNode = bindDeleteNode(static_pointer_cast<NodeExpression>(nodeOrRel));
             boundDeleteClause->addDeleteNode(std::move(deleteNode));
         } break;
-        case DataTypeID::REL: {
+        case LogicalTypeID::REL: {
             auto deleteRel = bindDeleteRel(static_pointer_cast<RelExpression>(nodeOrRel));
             boundDeleteClause->addDeleteRel(std::move(deleteRel));
         } break;

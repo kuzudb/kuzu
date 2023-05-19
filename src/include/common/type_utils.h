@@ -27,7 +27,7 @@ public:
     static inline std::string toString(const interval_t& val) { return Interval::toString(val); }
     static inline std::string toString(const ku_string_t& val) { return val.getAsString(); }
     static inline std::string toString(const std::string& val) { return val; }
-    static std::string toString(const ku_list_t& val, const DataType& dataType);
+    static std::string toString(const ku_list_t& val, const LogicalType& dataType);
     static std::string toString(const list_entry_t& val, void* valVector);
 
     static inline void encodeOverflowPtr(
@@ -63,9 +63,9 @@ public:
 
 private:
     static std::string listValueToString(
-        const DataType& dataType, uint8_t* listValues, uint64_t pos);
+        const LogicalType& dataType, uint8_t* listValues, uint64_t pos);
 
-    static std::string prefixConversionExceptionMessage(const char* data, DataTypeID dataTypeID);
+    static std::string prefixConversionExceptionMessage(const char* data, LogicalTypeID dataTypeID);
 };
 
 template<>

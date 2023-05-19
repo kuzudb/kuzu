@@ -282,11 +282,12 @@ void FactorizedTable::setNonOverflowColNull(uint8_t* nullBuffer, ft_col_idx_t co
 void FactorizedTable::copyToInMemList(ft_col_idx_t colIdx,
     std::vector<ft_tuple_idx_t>& tupleIdxesToRead, uint8_t* data, NullMask* nullMask,
     uint64_t startElemPosInList, DiskOverflowFile* overflowFileOfInMemList,
-    const DataType& type) const {
+    const LogicalType& type) const {
     auto column = tableSchema->getColumn(colIdx);
     assert(column->isFlat() == true);
-    auto numBytesPerValue =
-        type.typeID == INTERNAL_ID ? sizeof(offset_t) : Types::getDataTypeSize(type);
+    auto numBytesPerValue = type.getLogicalTypeID() == LogicalTypeID::INTERNAL_ID ?
+                                sizeof(offset_t) :
+                                getDataTypeSize(type);
     auto colOffset = tableSchema->getColOffset(colIdx);
     auto listToFill = data + startElemPosInList * numBytesPerValue;
     for (auto i = 0u; i < tupleIdxesToRead.size(); i++) {
@@ -330,6 +331,33 @@ int64_t FactorizedTable::findValueInFlatColumn(ft_col_idx_t colIdx, int64_t valu
     return -1;
 }
 
+uint32_t FactorizedTable::getDataTypeSize(const common::LogicalType& type) {
+    switch (type.getLogicalTypeID()) {
+    case LogicalTypeID::STRING: {
+        return sizeof(ku_string_t);
+    }
+    case LogicalTypeID::FIXED_LIST: {
+        return getDataTypeSize(*FixedListType::getChildType(&type)) *
+               FixedListType::getNumElementsInList(&type);
+    }
+    case LogicalTypeID::VAR_LIST: {
+        return sizeof(ku_list_t);
+    }
+    case LogicalTypeID::STRUCT: {
+        uint32_t size = 0;
+        auto structFieldsTypes = StructType::getStructFieldTypes(&type);
+        for (auto structFieldType : structFieldsTypes) {
+            size += getDataTypeSize(*structFieldType);
+        }
+        size += NullBuffer::getNumBytesForNullValues(structFieldsTypes.size());
+        return size;
+    }
+    default: {
+        return LogicalTypeUtils::getFixedTypeSize(type.getPhysicalType());
+    }
+    }
+}
+
 void FactorizedTable::clear() {
     numTuples = 0;
     flatTupleBlockCollection = std::make_unique<DataBlockCollection>(
@@ -350,11 +378,11 @@ uint64_t FactorizedTable::computeNumTuplesToAppend(
     auto unflatDataChunkPos = -1ul;
     auto numTuplesToAppend = 1ul;
     for (auto i = 0u; i < vectorsToAppend.size(); i++) {
-        // If the caller tries to append an unflat vector to a flat column in the factorizedTable,
-        // the factorizedTable needs to flatten that vector.
+        // If the caller tries to append an unflat vector to a flat column in the
+        // factorizedTable, the factorizedTable needs to flatten that vector.
         if (tableSchema->getColumn(i)->isFlat() && !vectorsToAppend[i]->state->isFlat()) {
-            // The caller is not allowed to append multiple unflat columns from different datachunks
-            // to multiple flat columns in the factorizedTable.
+            // The caller is not allowed to append multiple unflat columns from different
+            // datachunks to multiple flat columns in the factorizedTable.
             if (unflatDataChunkPos != -1 &&
                 tableSchema->getColumn(i)->getDataChunkPos() != unflatDataChunkPos) {
                 assert(false);
@@ -497,7 +525,7 @@ overflow_value_t FactorizedTable::appendVectorToUnflatTupleBlocks(
     const ValueVector& vector, ft_col_idx_t colIdx) {
     assert(!vector.state->isFlat());
     auto numFlatTuplesInVector = vector.state->selVector->selectedSize;
-    auto numBytesPerValue = Types::getDataTypeSize(vector.dataType);
+    auto numBytesPerValue = getDataTypeSize(vector.dataType);
     auto numBytesForData = numBytesPerValue * numFlatTuplesInVector;
     auto overflowBlockBuffer = allocateUnflatTupleBlock(
         numBytesForData + NullBuffer::getNumBytesForNullValues(numFlatTuplesInVector));
@@ -645,16 +673,16 @@ void FactorizedTable::readFlatColToUnflatVector(uint8_t** tuplesToRead, ft_col_i
 }
 
 void FactorizedTable::copyOverflowIfNecessary(
-    uint8_t* dst, uint8_t* src, const DataType& type, DiskOverflowFile* diskOverflowFile) {
-    switch (type.typeID) {
-    case STRING: {
+    uint8_t* dst, uint8_t* src, const LogicalType& type, DiskOverflowFile* diskOverflowFile) {
+    switch (type.getLogicalTypeID()) {
+    case LogicalTypeID::STRING: {
         ku_string_t* stringToWriteFrom = (ku_string_t*)src;
         if (!ku_string_t::isShortString(stringToWriteFrom->len)) {
             diskOverflowFile->writeStringOverflowAndUpdateOverflowPtr(
                 *stringToWriteFrom, *(ku_string_t*)dst);
         }
     } break;
-    case VAR_LIST: {
+    case LogicalTypeID::VAR_LIST: {
         diskOverflowFile->writeListOverflowAndUpdateOverflowPtr(
             *(ku_list_t*)src, *(ku_list_t*)dst, type);
     } break;
@@ -707,7 +735,8 @@ void FlatTupleIterator::readUnflatColToFlatTuple(ft_col_idx_t colIdx, uint8_t* v
     auto overflowValue =
         (overflow_value_t*)(valueBuffer + factorizedTable.getTableSchema()->getColOffset(colIdx));
     auto columnInFactorizedTable = factorizedTable.getTableSchema()->getColumn(colIdx);
-    auto tupleSizeInOverflowBuffer = Types::getDataTypeSize(values[colIdx]->getDataType());
+    auto tupleSizeInOverflowBuffer =
+        FactorizedTable::getDataTypeSize(values[colIdx]->getDataType());
     valueBuffer =
         overflowValue->value +
         tupleSizeInOverflowBuffer *

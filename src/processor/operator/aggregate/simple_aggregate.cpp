@@ -48,7 +48,7 @@ void SimpleAggregate::initLocalStateInternal(ResultSet* resultSet, ExecutionCont
         localAggregateStates.push_back(aggregateFunction->createInitialNullAggregateState());
     }
     distinctHashTables = AggregateHashTableUtils::createDistinctHashTables(
-        *context->memoryManager, std::vector<DataType>{}, this->aggregateFunctions);
+        *context->memoryManager, std::vector<LogicalType>{}, this->aggregateFunctions);
 }
 
 void SimpleAggregate::executeInternal(ExecutionContext* context) {

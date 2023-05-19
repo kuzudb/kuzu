@@ -14,15 +14,16 @@ class AggregateFunction;
 
 struct AggregateFunctionDefinition : public FunctionDefinition {
 
-    AggregateFunctionDefinition(std::string name, std::vector<common::DataTypeID> parameterTypeIDs,
-        common::DataTypeID returnTypeID, std::unique_ptr<AggregateFunction> aggregateFunction,
-        bool isDistinct)
+    AggregateFunctionDefinition(std::string name,
+        std::vector<common::LogicalTypeID> parameterTypeIDs, common::LogicalTypeID returnTypeID,
+        std::unique_ptr<AggregateFunction> aggregateFunction, bool isDistinct)
         : FunctionDefinition{std::move(name), std::move(parameterTypeIDs), returnTypeID},
           aggregateFunction{std::move(aggregateFunction)}, isDistinct{isDistinct} {}
 
-    AggregateFunctionDefinition(std::string name, std::vector<common::DataTypeID> parameterTypeIDs,
-        common::DataTypeID returnTypeID, std::unique_ptr<AggregateFunction> aggregateFunction,
-        bool isDistinct, scalar_bind_func bindFunc)
+    AggregateFunctionDefinition(std::string name,
+        std::vector<common::LogicalTypeID> parameterTypeIDs, common::LogicalTypeID returnTypeID,
+        std::unique_ptr<AggregateFunction> aggregateFunction, bool isDistinct,
+        scalar_bind_func bindFunc)
         : FunctionDefinition{std::move(name), std::move(parameterTypeIDs), returnTypeID,
               std::move(bindFunc)},
           aggregateFunction{std::move(aggregateFunction)}, isDistinct{isDistinct} {}
@@ -54,7 +55,7 @@ public:
     AggregateFunction(aggr_initialize_function_t initializeFunc,
         aggr_update_all_function_t updateAllFunc, aggr_update_pos_function_t updatePosFunc,
         aggr_combine_function_t combineFunc, aggr_finalize_function_t finalizeFunc,
-        common::DataType inputDataType, bool isDistinct = false)
+        common::LogicalType inputDataType, bool isDistinct = false)
         : initializeFunc{std::move(initializeFunc)}, updateAllFunc{std::move(updateAllFunc)},
           updatePosFunc{std::move(updatePosFunc)}, combineFunc{std::move(combineFunc)},
           finalizeFunc{std::move(finalizeFunc)}, inputDataType{std::move(inputDataType)},
@@ -89,9 +90,11 @@ public:
 
     inline void finalizeState(uint8_t* state) { return finalizeFunc(state); }
 
-    inline common::DataType getInputDataType() const { return inputDataType; }
+    inline common::LogicalType getInputDataType() const { return inputDataType; }
 
-    inline void setInputDataType(common::DataType dataType) { inputDataType = std::move(dataType); }
+    inline void setInputDataType(common::LogicalType dataType) {
+        inputDataType = std::move(dataType);
+    }
 
     inline bool isFunctionDistinct() const { return isDistinct; }
 
@@ -107,7 +110,7 @@ private:
     aggr_combine_function_t combineFunc;
     aggr_finalize_function_t finalizeFunc;
 
-    common::DataType inputDataType;
+    common::LogicalType inputDataType;
     bool isDistinct;
 
     std::unique_ptr<AggregateState> initialNullAggregateState;
@@ -118,22 +121,22 @@ class AggregateFunctionUtil {
 public:
     static std::unique_ptr<AggregateFunction> getCountStarFunction();
     static std::unique_ptr<AggregateFunction> getCountFunction(
-        const common::DataType& inputType, bool isDistinct);
+        const common::LogicalType& inputType, bool isDistinct);
     static std::unique_ptr<AggregateFunction> getAvgFunction(
-        const common::DataType& inputType, bool isDistinct);
+        const common::LogicalType& inputType, bool isDistinct);
     static std::unique_ptr<AggregateFunction> getSumFunction(
-        const common::DataType& inputType, bool isDistinct);
+        const common::LogicalType& inputType, bool isDistinct);
     static std::unique_ptr<AggregateFunction> getMinFunction(
-        const common::DataType& inputType, bool isDistinct);
+        const common::LogicalType& inputType, bool isDistinct);
     static std::unique_ptr<AggregateFunction> getMaxFunction(
-        const common::DataType& inputType, bool isDistinct);
+        const common::LogicalType& inputType, bool isDistinct);
     static std::unique_ptr<AggregateFunction> getCollectFunction(
-        const common::DataType& inputType, bool isDistinct);
+        const common::LogicalType& inputType, bool isDistinct);
 
 private:
     template<typename FUNC>
     static std::unique_ptr<AggregateFunction> getMinMaxFunction(
-        const common::DataType& inputType, bool isDistinct);
+        const common::LogicalType& inputType, bool isDistinct);
 };
 
 } // namespace function

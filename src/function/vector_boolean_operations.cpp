@@ -32,7 +32,8 @@ scalar_exec_func VectorBooleanOperations::bindBinaryExecFunction(
     assert(children.size() == 2);
     auto leftType = children[0]->dataType;
     auto rightType = children[1]->dataType;
-    assert(leftType.typeID == BOOL && rightType.typeID == BOOL);
+    assert(leftType.getLogicalTypeID() == LogicalTypeID::BOOL &&
+           rightType.getLogicalTypeID() == LogicalTypeID::BOOL);
     switch (expressionType) {
     case AND: {
         return BinaryBooleanExecFunction<operation::And>;
@@ -54,7 +55,8 @@ scalar_select_func VectorBooleanOperations::bindBinarySelectFunction(
     assert(children.size() == 2);
     auto leftType = children[0]->dataType;
     auto rightType = children[1]->dataType;
-    assert(leftType.typeID == BOOL && rightType.typeID == BOOL);
+    assert(leftType.getLogicalTypeID() == LogicalTypeID::BOOL &&
+           rightType.getLogicalTypeID() == LogicalTypeID::BOOL);
     switch (expressionType) {
     case AND: {
         return BinaryBooleanSelectFunction<operation::And>;
@@ -73,7 +75,7 @@ scalar_select_func VectorBooleanOperations::bindBinarySelectFunction(
 
 scalar_exec_func VectorBooleanOperations::bindUnaryExecFunction(
     ExpressionType expressionType, const binder::expression_vector& children) {
-    assert(children.size() == 1 && children[0]->dataType.typeID == BOOL);
+    assert(children.size() == 1 && children[0]->dataType.getLogicalTypeID() == LogicalTypeID::BOOL);
     switch (expressionType) {
     case NOT: {
         return UnaryBooleanExecFunction<operation::Not>;
@@ -86,7 +88,7 @@ scalar_exec_func VectorBooleanOperations::bindUnaryExecFunction(
 
 scalar_select_func VectorBooleanOperations::bindUnarySelectFunction(
     ExpressionType expressionType, const binder::expression_vector& children) {
-    assert(children.size() == 1 && children[0]->dataType.typeID == BOOL);
+    assert(children.size() == 1 && children[0]->dataType.getLogicalTypeID() == LogicalTypeID::BOOL);
     switch (expressionType) {
     case NOT: {
         return UnaryBooleanSelectFunction<operation::Not>;

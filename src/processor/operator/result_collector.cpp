@@ -54,7 +54,7 @@ std::unique_ptr<FactorizedTableSchema> ResultCollector::populateTableSchema() {
         auto [dataPos, dataType] = payloadsPosAndType[i];
         tableSchema->appendColumn(
             std::make_unique<ColumnSchema>(!isPayloadFlat[i], dataPos.dataChunkPos,
-                isPayloadFlat[i] ? Types::getDataTypeSize(dataType) :
+                isPayloadFlat[i] ? FactorizedTable::getDataTypeSize(dataType) :
                                    (uint32_t)sizeof(overflow_value_t)));
     }
     return tableSchema;

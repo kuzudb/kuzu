@@ -39,15 +39,15 @@ void WALReplayerUtils::createEmptyDBFilesForNewRelTable(RelTableSchema* relTable
 void WALReplayerUtils::createEmptyDBFilesForNewNodeTable(
     NodeTableSchema* nodeTableSchema, const std::string& directory) {
     for (auto& property : nodeTableSchema->properties) {
-        if (property.dataType.typeID == SERIAL) {
+        if (property.dataType.getLogicalTypeID() == LogicalTypeID::SERIAL) {
             continue;
         }
         auto fName = StorageUtils::getNodePropertyColumnFName(
             directory, nodeTableSchema->tableID, property.propertyID, DBFileType::ORIGINAL);
         std::make_unique<InMemColumn>(fName, property.dataType)->saveToFile();
     }
-    switch (nodeTableSchema->getPrimaryKey().dataType.typeID) {
-    case INT64: {
+    switch (nodeTableSchema->getPrimaryKey().dataType.getLogicalTypeID()) {
+    case LogicalTypeID::INT64: {
         auto pkIndex = make_unique<HashIndexBuilder<int64_t>>(
             StorageUtils::getNodeIndexFName(
                 directory, nodeTableSchema->tableID, DBFileType::ORIGINAL),
@@ -55,7 +55,7 @@ void WALReplayerUtils::createEmptyDBFilesForNewNodeTable(
         pkIndex->bulkReserve(0 /* numNodes */);
         pkIndex->flush();
     } break;
-    case STRING: {
+    case LogicalTypeID::STRING: {
         auto pkIndex = make_unique<HashIndexBuilder<ku_string_t>>(
             StorageUtils::getNodeIndexFName(
                 directory, nodeTableSchema->tableID, DBFileType::ORIGINAL),
@@ -63,7 +63,7 @@ void WALReplayerUtils::createEmptyDBFilesForNewNodeTable(
         pkIndex->bulkReserve(0 /* numNodes */);
         pkIndex->flush();
     } break;
-    case SERIAL: {
+    case LogicalTypeID::SERIAL: {
         // DO NOTHING.
     } break;
     default: {
@@ -130,7 +130,7 @@ void WALReplayerUtils::createEmptyDBFilesForColumns(
                         maxNodeOffsetsPerTable.at(boundTableID) + 1;
     make_unique<InMemColumn>(StorageUtils::getAdjColumnFName(directory, relTableSchema->tableID,
                                  relDirection, DBFileType::ORIGINAL),
-        DataType(INTERNAL_ID))
+        LogicalType(LogicalTypeID::INTERNAL_ID))
         ->saveToFile();
     createEmptyDBFilesForRelProperties(
         relTableSchema, directory, relDirection, numNodes, true /* isForRelPropertyColumn */);
@@ -194,10 +194,8 @@ void WALReplayerUtils::fileOperationOnNodeFiles(NodeTableSchema* nodeTableSchema
     const std::string& directory, std::function<void(std::string fileName)> columnFileOperation,
     std::function<void(std::string fileName)> listFileOperation) {
     for (auto& property : nodeTableSchema->properties) {
-        if (property.dataType.typeID == common::STRUCT) {
-            auto structFields =
-                reinterpret_cast<StructTypeInfo*>(property.dataType.getExtraTypeInfo())
-                    ->getStructFields();
+        if (property.dataType.getLogicalTypeID() == common::LogicalTypeID::STRUCT) {
+            auto structFields = StructType::getStructFields(&property.dataType);
             auto structColumnFName = StorageUtils::getNodePropertyColumnFName(
                 directory, nodeTableSchema->tableID, property.propertyID, DBFileType::ORIGINAL);
             for (auto& structField : structFields) {

@@ -64,7 +64,7 @@ NodeCopier::NodeCopier(const std::string& directory,
                                                                                      pkColumnID} {
     for (auto i = 0u; i < schema->properties.size(); i++) {
         auto property = schema->properties[i];
-        if (property.dataType.typeID == common::SERIAL) {
+        if (property.dataType.getLogicalTypeID() == common::LogicalTypeID::SERIAL) {
             // Skip SERIAL, as it is not physically stored.
             continue;
         }
@@ -100,11 +100,11 @@ void NodeCopier::populatePKIndex(InMemColumnChunk* chunk, InMemOverflowFile* ove
         }
     }
     // No nulls, so we can populate the index with actual values.
-    switch (chunk->getDataType().typeID) {
-    case INT64: {
+    switch (chunk->getDataType().getLogicalTypeID()) {
+    case LogicalTypeID::INT64: {
         appendToPKIndex<int64_t>(chunk, startOffset, numValues);
     } break;
-    case STRING: {
+    case LogicalTypeID::STRING: {
         appendToPKIndex<ku_string_t, InMemOverflowFile*>(
             chunk, startOffset, numValues, overflowFile);
     } break;

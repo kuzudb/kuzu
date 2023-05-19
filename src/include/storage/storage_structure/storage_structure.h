@@ -71,7 +71,7 @@ protected:
 class BaseColumnOrList : public StorageStructure {
 
 public:
-    explicit BaseColumnOrList(common::DataType dataType) : dataType{std::move(dataType)} {}
+    explicit BaseColumnOrList(common::LogicalType dataType) : dataType{std::move(dataType)} {}
 
     // Maps the position of element in page to its byte offset in page.
     // TODO(Everyone): we should slowly get rid of this function.
@@ -89,7 +89,7 @@ protected:
     }
 
     BaseColumnOrList(const StorageStructureIDAndFName& storageStructureIDAndFName,
-        common::DataType dataType, const size_t& elementSize, BufferManager* bufferManager,
+        common::LogicalType dataType, const size_t& elementSize, BufferManager* bufferManager,
         bool hasInlineNullBytes, WAL* wal);
 
     void readBySequentialCopy(transaction::Transaction* transaction, common::ValueVector* vector,
@@ -117,7 +117,7 @@ private:
         uint16_t pagePosOfFirstElement, uint64_t numValuesToRead);
 
 public:
-    common::DataType dataType;
+    common::LogicalType dataType;
     size_t elementSize;
     uint32_t numElementsPerPage;
 };

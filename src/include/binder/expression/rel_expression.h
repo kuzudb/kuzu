@@ -9,11 +9,11 @@ namespace binder {
 
 class RelExpression : public NodeOrRelExpression {
 public:
-    RelExpression(common::DataType dataType, std::string uniqueName, std::string variableName,
+    RelExpression(common::LogicalType dataType, std::string uniqueName, std::string variableName,
         std::vector<common::table_id_t> tableIDs, std::shared_ptr<NodeExpression> srcNode,
         std::shared_ptr<NodeExpression> dstNode, bool directed, common::QueryRelType relType,
         uint64_t lowerBound, uint64_t upperBound)
-        : NodeOrRelExpression{dataType, std::move(uniqueName), std::move(variableName),
+        : NodeOrRelExpression{std::move(dataType), std::move(uniqueName), std::move(variableName),
               std::move(tableIDs)},
           srcNode{std::move(srcNode)}, dstNode{std::move(dstNode)}, directed{directed},
           relType{relType}, lowerBound{lowerBound}, upperBound{upperBound} {}

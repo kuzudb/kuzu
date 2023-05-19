@@ -172,7 +172,6 @@ KUZU_C_API kuzu_data_type* kuzu_data_type_clone(kuzu_data_type* data_type);
 KUZU_C_API void kuzu_data_type_destroy(kuzu_data_type* data_type);
 KUZU_C_API bool kuzu_data_type_equals(kuzu_data_type* data_type1, kuzu_data_type* data_type2);
 KUZU_C_API kuzu_data_type_id kuzu_data_type_get_id(kuzu_data_type* data_type);
-KUZU_C_API kuzu_data_type* kuzu_data_type_get_child_type(kuzu_data_type* data_type);
 KUZU_C_API uint64_t kuzu_data_type_get_fixed_num_elements_in_list(kuzu_data_type* data_type);
 
 // Value

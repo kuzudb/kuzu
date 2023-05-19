@@ -39,7 +39,7 @@ template<>
 uint64_t SerDeser::serializeValue<Property>(
     const Property& value, FileInfo* fileInfo, uint64_t offset) {
     offset = SerDeser::serializeValue<std::string>(value.name, fileInfo, offset);
-    offset = SerDeser::serializeValue<DataType>(value.dataType, fileInfo, offset);
+    offset = SerDeser::serializeValue<LogicalType>(value.dataType, fileInfo, offset);
     offset = SerDeser::serializeValue<property_id_t>(value.propertyID, fileInfo, offset);
     return SerDeser::serializeValue<table_id_t>(value.tableID, fileInfo, offset);
 }
@@ -48,7 +48,7 @@ template<>
 uint64_t SerDeser::deserializeValue<Property>(
     Property& value, FileInfo* fileInfo, uint64_t offset) {
     offset = SerDeser::deserializeValue<std::string>(value.name, fileInfo, offset);
-    offset = SerDeser::deserializeValue<DataType>(value.dataType, fileInfo, offset);
+    offset = SerDeser::deserializeValue<LogicalType>(value.dataType, fileInfo, offset);
     offset = SerDeser::deserializeValue<property_id_t>(value.propertyID, fileInfo, offset);
     return SerDeser::deserializeValue<table_id_t>(value.tableID, fileInfo, offset);
 }
@@ -208,7 +208,8 @@ table_id_t CatalogContent::addRelTableSchema(std::string tableName, RelMultiplic
     table_id_t tableID = assignNextTableID();
     nodeTableSchemas[srcTableID]->addFwdRelTableID(tableID);
     nodeTableSchemas[dstTableID]->addBwdRelTableID(tableID);
-    auto relInternalIDProperty = Property(INTERNAL_ID_SUFFIX, DataType{INTERNAL_ID});
+    auto relInternalIDProperty =
+        Property(INTERNAL_ID_SUFFIX, LogicalType{LogicalTypeID::INTERNAL_ID});
     properties.insert(properties.begin(), relInternalIDProperty);
     for (auto i = 0u; i < properties.size(); ++i) {
         properties[i].propertyID = i;
@@ -410,7 +411,7 @@ void Catalog::renameTable(table_id_t tableID, std::string newName) {
     catalogContentForWriteTrx->renameTable(tableID, std::move(newName));
 }
 
-void Catalog::addProperty(table_id_t tableID, std::string propertyName, DataType dataType) {
+void Catalog::addProperty(table_id_t tableID, std::string propertyName, LogicalType dataType) {
     initCatalogContentForWriteTrxIfNecessary();
     catalogContentForWriteTrx->getTableSchema(tableID)->addProperty(
         propertyName, std::move(dataType));
