@@ -2,7 +2,7 @@
 
 #include "common/file_utils.h"
 #include "main/kuzu.h"
-#include "test_helper/test_case.h"
+#include "test_runner/test_case.h"
 
 using namespace kuzu::main;
 

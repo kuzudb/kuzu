@@ -1,5 +1,5 @@
 #include "graph_test/graph_test.h"
-#include "test_helper/test_parser.h"
+#include "test_runner/test_parser.h"
 
 using ::testing::Test;
 using namespace kuzu::testing;

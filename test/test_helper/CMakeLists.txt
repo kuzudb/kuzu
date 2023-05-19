@@ -2,8 +2,6 @@ add_library(
         test_helper
         OBJECT
         test_helper.cpp
-        test_parser.cpp
-        test_runner.cpp
 )
 
 target_include_directories(
@@ -13,4 +11,4 @@ target_include_directories(
         ../../src/include
 )
 
-target_link_libraries(test_helper PUBLIC GTest::GTest kuzu)
+target_link_libraries(test_helper PUBLIC kuzu)

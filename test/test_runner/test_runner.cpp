@@ -1,9 +1,5 @@
-#include "test_helper/test_runner.h"
-
-#include <iostream>
-
+#include "test_runner/test_runner.h"
 #include "spdlog/spdlog.h"
-#include "test_helper/test_helper.h"
 
 namespace kuzu {
 namespace testing {
@@ -55,7 +51,7 @@ bool TestRunner::checkLogicalPlans(std::unique_ptr<PreparedStatement>& preparedS
         auto result = conn.executeAndAutoCommitIfNecessaryNoLock(preparedStatement.get(), i);
         assert(result->isSuccess());
         std::vector<std::string> resultTuples =
-            TestHelper::convertResultToString(*result, statement->checkOutputOrder);
+            TestRunner::convertResultToString(*result, statement->checkOutputOrder);
         // statement->expectedTuplesFile is not empty: read expectedTuples from file
         if (resultTuples.size() == result->getNumTuples() &&
             resultTuples == statement->expectedTuples) {
@@ -72,6 +68,19 @@ bool TestRunner::checkLogicalPlans(std::unique_ptr<PreparedStatement>& preparedS
         }
     }
     return numPassedPlans == numPlans;
+}
+
+std::vector<std::string> TestRunner::convertResultToString(
+    QueryResult& queryResult, bool checkOutputOrder) {
+    std::vector<std::string> actualOutput;
+    while (queryResult.hasNext()) {
+        auto tuple = queryResult.getNext();
+        actualOutput.push_back(tuple->toString(std::vector<uint32_t>(tuple->len(), 0)));
+    }
+    if (!checkOutputOrder) {
+        sort(actualOutput.begin(), actualOutput.end());
+    }
+    return actualOutput;
 }
 
 std::unique_ptr<planner::LogicalPlan> TestRunner::getLogicalPlan(

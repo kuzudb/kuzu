@@ -9,7 +9,7 @@
 #include "planner/logical_plan/logical_plan_util.h"
 #include "planner/planner.h"
 #include "test_helper/test_helper.h"
-#include "test_helper/test_runner.h"
+#include "test_runner/test_runner.h"
 
 using ::testing::Test;
 

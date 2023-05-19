@@ -4,8 +4,7 @@
 #include "parser/parser.h"
 #include "planner/logical_plan/logical_plan_util.h"
 #include "planner/planner.h"
-#include "test_helper/test_case.h"
-#include "test_helper/test_helper.h"
+#include "test_runner/test_case.h"
 
 using namespace kuzu::main;
 using namespace kuzu::common;
