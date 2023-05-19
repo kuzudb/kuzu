@@ -65,14 +65,6 @@ public:
 
     static std::vector<std::string> globFilePath(const std::string& path);
 
-    static inline std::string getParentPath(const std::filesystem::path& path) {
-        return path.parent_path().string();
-    }
-
-    static inline std::string getParentPathStem(const std::filesystem::path& path) {
-        return path.parent_path().stem().string();
-    }
-
     static inline std::string getFileExtension(const std::filesystem::path& path) {
         return path.extension().string();
     }
