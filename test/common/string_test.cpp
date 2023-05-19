@@ -6,13 +6,13 @@
 using namespace kuzu::common;
 
 TEST(StringTest, splitByAnySpace) {
-  std::string str = " a b  c\td ";
-  std::vector<std::string> result = StringUtils::splitByAnySpace(str);
-  EXPECT_EQ(result.size(), 4);
-  EXPECT_EQ(result[0], "a");
-  EXPECT_EQ(result[1], "b");
-  EXPECT_EQ(result[2], "c");
-  EXPECT_EQ(result[3], "d");
+    std::string str = " a b  c\td ";
+    std::vector<std::string> result = StringUtils::splitByAnySpace(str);
+    EXPECT_EQ(result.size(), 4);
+    EXPECT_EQ(result[0], "a");
+    EXPECT_EQ(result[1], "b");
+    EXPECT_EQ(result[2], "c");
+    EXPECT_EQ(result[3], "d");
 }
 
 TEST(StringTest, leftTrim) {

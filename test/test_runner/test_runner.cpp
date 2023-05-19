@@ -1,4 +1,5 @@
 #include "test_runner/test_runner.h"
+
 #include "spdlog/spdlog.h"
 
 namespace kuzu {
