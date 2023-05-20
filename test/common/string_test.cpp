@@ -5,9 +5,9 @@
 
 using namespace kuzu::common;
 
-TEST(StringTest, splitByAnySpace) {
+TEST(StringTest, splitBySpace) {
     std::string str = " a b  c\td ";
-    std::vector<std::string> result = StringUtils::splitByAnySpace(str);
+    std::vector<std::string> result = StringUtils::splitBySpace(str);
     EXPECT_EQ(result.size(), 4);
     EXPECT_EQ(result[0], "a");
     EXPECT_EQ(result[1], "b");

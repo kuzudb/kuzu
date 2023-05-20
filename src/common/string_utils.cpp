@@ -22,7 +22,7 @@ std::vector<std::string> StringUtils::split(
     return result;
 }
 
-std::vector<std::string> StringUtils::splitByAnySpace(const std::string& input) {
+std::vector<std::string> StringUtils::splitBySpace(const std::string& input) {
     std::istringstream iss(input);
     std::vector<std::string> result;
     std::string token;

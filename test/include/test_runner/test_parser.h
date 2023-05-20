@@ -1,10 +1,7 @@
 #include <cstring>
 
 #include "common/file_utils.h"
-#include "main/kuzu.h"
 #include "test_runner/test_case.h"
-
-using namespace kuzu::main;
 
 namespace kuzu {
 namespace testing {
@@ -75,6 +72,8 @@ private:
 
     void extractStatementBlock();
 
+    void addStatementBlock(const std::string& blockName);
+
     inline bool endOfFile() { return fileStream.eof(); }
 
     inline bool nextLine() { return static_cast<bool>(getline(fileStream, line)); }
@@ -87,7 +86,7 @@ private:
 
     TestStatement* extractStatement(TestStatement* currentStatement);
 
-    TestStatement* addNewStatement(std::vector<std::unique_ptr<TestStatement>>& statements);
+    TestStatement* addNewStatement();
 };
 
 } // namespace testing

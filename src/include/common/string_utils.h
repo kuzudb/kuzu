@@ -22,7 +22,7 @@ public:
     static std::vector<std::string> split(
         const std::string& input, const std::string& delimiter, bool ignoreEmptyStringParts = true);
 
-    static std::vector<std::string> splitByAnySpace(const std::string& input);
+    static std::vector<std::string> splitBySpace(const std::string& input);
 
     static void toUpper(std::string& input) {
         std::transform(input.begin(), input.end(), input.begin(), ::toupper);

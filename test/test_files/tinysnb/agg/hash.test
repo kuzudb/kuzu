@@ -1,5 +1,5 @@
 -GROUP TinySnbReadTest
--TEST Agg
+-TEST AggHash
 -DATASET tinysnb
 
 --

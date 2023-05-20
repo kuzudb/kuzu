@@ -51,7 +51,6 @@ void TestParser::parseHeader() {
         }
         case TokenType::SEPARATOR: {
             return;
-            break;
         }
         default: {
             throw Exception("Invalid statement in test header");
@@ -96,7 +95,6 @@ TestStatement* TestParser::extractStatement(TestStatement* statement) {
     case TokenType::RESULT: {
         extractExpectedResult(statement);
         return statement;
-        break;
     }
     case TokenType::CHECK_ORDER: {
         statement->checkOutputOrder = true;
@@ -133,9 +131,9 @@ void TestParser::extractStatementBlock() {
         if (currentToken.type == TokenType::END_OF_STATEMENT_BLOCK) {
             break;
         } else {
-            TestStatement* statement = addNewStatement(testCase->variableStatements);
-            statement->blockName = blockName;
-            extractStatement(statement);
+            auto statement = std::make_unique<TestStatement>();
+            extractStatement(statement.get());
+            testCase->variableStatements[blockName].push_back(std::move(statement));
         }
     }
 }
@@ -157,20 +155,15 @@ void TestParser::parseBody() {
         }
         case TokenType::STATEMENT_BLOCK: {
             checkMinimumParams(1);
-            for (auto& statement : testCase->variableStatements) {
-                if (statement->blockName == currentToken.params[1]) {
-                    statement->name = name;
-                    testCase->statements.push_back(std::make_unique<TestStatement>(*statement));
-                }
-            }
+            addStatementBlock(currentToken.params[1]);
             break;
         }
         case TokenType::EMPTY: {
             break;
         }
         default: {
-            // if its not special case, then it has to be a statement
-            TestStatement* statement = addNewStatement(testCase->statements);
+            // if its not a special case, then it has to be a statement
+            TestStatement* statement = addNewStatement();
             statement->name = name;
             extractStatement(statement);
         }
@@ -178,12 +171,20 @@ void TestParser::parseBody() {
     }
 }
 
-TestStatement* TestParser::addNewStatement(
-    std::vector<std::unique_ptr<TestStatement>>& statementsVector) {
-    TestStatement* currentStatement;
+void TestParser::addStatementBlock(const std::string& blockName) {
+    if (testCase->variableStatements.find(blockName) != testCase->variableStatements.end()) {
+        for (const auto& statementPtr : testCase->variableStatements[blockName]) {
+            testCase->statements.push_back(std::make_unique<TestStatement>(*statementPtr));
+        }
+    } else {
+        throw Exception("Statement block not found [" + blockName + "]");
+    }
+}
+
+TestStatement* TestParser::addNewStatement() {
     auto statement = std::make_unique<TestStatement>();
-    currentStatement = statement.get();
-    statementsVector.push_back(std::move(statement));
+    TestStatement* currentStatement = statement.get();
+    testCase->statements.push_back(std::move(statement));
     return currentStatement;
 }
 
@@ -209,7 +210,7 @@ void TestParser::openFile(const std::string& path) {
 }
 
 void TestParser::tokenize() {
-    currentToken.params = StringUtils::splitByAnySpace(line);
+    currentToken.params = StringUtils::splitBySpace(line);
     if ((currentToken.params.size() == 0) || (currentToken.params[0][0] == '#')) {
         currentToken.type = TokenType::EMPTY;
     } else {

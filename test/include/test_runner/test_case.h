@@ -10,7 +10,6 @@ namespace testing {
 struct TestStatement {
     std::string name;
     std::string query;
-    std::string blockName;
     uint64_t numThreads = 4;
     std::string encodedJoin;
     uint64_t expectedNumTuples = 0;
@@ -27,7 +26,7 @@ struct TestCase {
     std::string name;
     std::string dataset;
     std::vector<std::unique_ptr<TestStatement>> statements;
-    std::vector<std::unique_ptr<TestStatement>> variableStatements;
+    std::unordered_map<std::string, std::vector<std::unique_ptr<TestStatement>>> variableStatements;
 
     bool skipTest = false;
 
