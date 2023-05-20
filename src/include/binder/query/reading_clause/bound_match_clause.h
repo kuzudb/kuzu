@@ -39,21 +39,6 @@ public:
 
     inline bool getIsOptional() const { return isOptional; }
 
-    inline expression_vector getSubPropertyExpressions() const override {
-        expression_vector expressions;
-        for (auto& rel : queryGraphCollection->getQueryRels()) {
-            if (rel->hasInternalIDProperty()) {
-                expressions.push_back(rel->getInternalIDProperty());
-            }
-        }
-        if (this->hasWhereExpression()) {
-            for (auto& property : this->getWhereExpression()->getSubPropertyExpressions()) {
-                expressions.push_back(property);
-            }
-        }
-        return expressions;
-    }
-
     inline std::unique_ptr<BoundReadingClause> copy() override {
         return std::make_unique<BoundMatchClause>(*this);
     }

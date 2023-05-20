@@ -26,8 +26,6 @@ public:
     inline uint32_t getNumQueryParts() const { return queryParts.size(); }
     inline NormalizedQueryPart* getQueryPart(uint32_t idx) const { return queryParts[idx].get(); }
 
-    expression_vector getPropertiesToRead() const;
-
 private:
     std::vector<std::unique_ptr<NormalizedQueryPart>> queryParts;
 };

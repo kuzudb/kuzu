@@ -45,8 +45,6 @@ public:
         projectionBodyPredicate = predicate;
     }
 
-    expression_vector getPropertiesToRead() const;
-
 private:
     std::vector<std::unique_ptr<BoundReadingClause>> readingClauses;
     std::vector<std::unique_ptr<BoundUpdatingClause>> updatingClauses;

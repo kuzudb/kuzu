@@ -1,6 +1,7 @@
 #include "planner/query_planner.h"
 
 #include "binder/query/bound_regular_query.h"
+#include "binder/visitor/property_collector.h"
 #include "planner/logical_plan/logical_operator/logical_accumulate.h"
 #include "planner/logical_plan/logical_operator/logical_distinct.h"
 #include "planner/logical_plan/logical_operator/logical_expressions_scan.h"
@@ -53,16 +54,9 @@ std::unique_ptr<LogicalPlan> QueryPlanner::getBestPlan(
 // enumerate regular query level.
 std::vector<std::unique_ptr<LogicalPlan>> QueryPlanner::planSingleQuery(
     const NormalizedSingleQuery& singleQuery) {
-    // populate properties to scan
-    propertiesToScan.clear();
-    std::unordered_set<std::string> populatedProperties; // remove duplication
-    for (auto& expression : singleQuery.getPropertiesToRead()) {
-        assert(expression->expressionType == PROPERTY);
-        if (!populatedProperties.contains(expression->getUniqueName())) {
-            propertiesToScan.push_back(expression);
-            populatedProperties.insert(expression->getUniqueName());
-        }
-    }
+    auto propertyCollector = binder::PropertyCollector();
+    propertyCollector.visitSingleQuery(singleQuery);
+    propertiesToScan = propertyCollector.getProperties();
     joinOrderEnumerator.resetState();
     auto plans = getInitialEmptyPlans();
     for (auto i = 0u; i < singleQuery.getNumQueryParts(); ++i) {

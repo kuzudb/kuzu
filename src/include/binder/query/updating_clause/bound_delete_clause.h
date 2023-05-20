@@ -50,8 +50,6 @@ public:
     }
     inline std::vector<std::shared_ptr<RelExpression>> getDeleteRels() const { return deleteRels; }
 
-    expression_vector getPropertiesToRead() const override;
-
     std::unique_ptr<BoundUpdatingClause> copy() override;
 
 private:

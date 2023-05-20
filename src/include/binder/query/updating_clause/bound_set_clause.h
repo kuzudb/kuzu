@@ -42,7 +42,7 @@ private:
 
 class BoundSetClause : public BoundUpdatingClause {
 public:
-    BoundSetClause() : BoundUpdatingClause{common::ClauseType::SET} {};
+    BoundSetClause() : BoundUpdatingClause{common::ClauseType::SET} {}
 
     inline void addSetNodeProperty(std::unique_ptr<BoundSetNodeProperty> setNodeProperty) {
         setNodeProperties.push_back(std::move(setNodeProperty));
@@ -59,8 +59,6 @@ public:
     inline const std::vector<std::unique_ptr<BoundSetRelProperty>>& getSetRelProperties() const {
         return setRelProperties;
     }
-
-    expression_vector getPropertiesToRead() const override;
 
     std::unique_ptr<BoundUpdatingClause> copy() override;
 
