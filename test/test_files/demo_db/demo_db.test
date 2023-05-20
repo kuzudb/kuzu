@@ -234,3 +234,20 @@ Karissa|30
 Zhang|30
 Zhang|40
 Noura|50
+
+-NAME Undir2
+-QUERY MATCH (a:User)-[:LivesIn]-(c:City) RETURN a.name, c.name;
+---- 8
+Adam|Waterloo
+Karissa|Waterloo
+Zhang|Kitchener
+Noura|Guelph
+Waterloo|Karissa
+Waterloo|Adam
+Kitchener|Zhang
+Guelph|Noura
+
+-NAME Undir3
+-QUERY MATCH ()-[]-() RETURN COUNT(*);
+---- 1
+16
