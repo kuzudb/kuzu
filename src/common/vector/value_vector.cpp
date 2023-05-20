@@ -56,6 +56,21 @@ void ValueVector::setValue(uint32_t pos, std::string val) {
     StringVector::addString(this, pos, val.data(), val.length());
 }
 
+void ValueVector::resetAuxiliaryBuffer() {
+    switch (dataType.getLogicalTypeID()) {
+    case LogicalTypeID::STRING: {
+        reinterpret_cast<StringAuxiliaryBuffer*>(auxiliaryBuffer.get())->resetOverflowBuffer();
+        return;
+    }
+    case LogicalTypeID::VAR_LIST: {
+        reinterpret_cast<ListAuxiliaryBuffer*>(auxiliaryBuffer.get())->resetSize();
+        return;
+    }
+    default:
+        return;
+    }
+}
+
 uint32_t ValueVector::getDataTypeSize(const LogicalType& type) {
     switch (type.getLogicalTypeID()) {
     case common::LogicalTypeID::STRING: {

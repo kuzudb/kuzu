@@ -64,6 +64,8 @@ public:
     inline void setSequential() { _isSequential = true; }
     inline bool isSequential() const { return _isSequential; }
 
+    void resetAuxiliaryBuffer();
+
 private:
     uint32_t getDataTypeSize(const LogicalType& type);
     void initializeValueBuffer();
@@ -87,13 +89,6 @@ public:
                    reinterpret_cast<StringAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())
                        ->getOverflowBuffer() :
                    nullptr;
-    }
-
-    static inline void resetOverflowBuffer(ValueVector* vector) {
-        if (vector->dataType.getLogicalTypeID() == LogicalTypeID::STRING) {
-            reinterpret_cast<StringAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())
-                ->resetOverflowBuffer();
-        }
     }
 
     static inline void addString(
@@ -129,11 +124,6 @@ public:
                vector->dataType.getLogicalTypeID() == LogicalTypeID::RECURSIVE_REL);
         return reinterpret_cast<ListAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())
             ->addList(listSize);
-    }
-    static inline void resetListAuxiliaryBuffer(ValueVector* vector) {
-        assert(vector->dataType.getLogicalTypeID() == LogicalTypeID::VAR_LIST ||
-               vector->dataType.getLogicalTypeID() == LogicalTypeID::RECURSIVE_REL);
-        reinterpret_cast<ListAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())->resetSize();
     }
 };
 

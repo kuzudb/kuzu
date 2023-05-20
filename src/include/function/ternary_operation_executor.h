@@ -362,7 +362,7 @@ struct TernaryOperationExecutor {
         typename OP_WRAPPER>
     static void executeSwitch(common::ValueVector& a, common::ValueVector& b,
         common::ValueVector& c, common::ValueVector& result) {
-        common::StringVector::resetOverflowBuffer(&result);
+        result.resetAuxiliaryBuffer();
         if (a.state->isFlat() && b.state->isFlat() && c.state->isFlat()) {
             executeAllFlat<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(a, b, c, result);
         } else if (a.state->isFlat() && b.state->isFlat() && !c.state->isFlat()) {

@@ -129,7 +129,7 @@ public:
 private:
     inline void lookup(transaction::Transaction* transaction, common::offset_t nodeOffset,
         common::ValueVector* resultVector, uint32_t vectorPos) final {
-        common::StringVector::resetOverflowBuffer(resultVector);
+        resultVector->resetAuxiliaryBuffer();
         Column::lookup(transaction, nodeOffset, resultVector, vectorPos);
         if (!resultVector->isNull(vectorPos)) {
             diskOverflowFile->scanSingleStringOverflow(
@@ -138,7 +138,7 @@ private:
     }
     inline void scan(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
         common::ValueVector* resultVector) final {
-        common::StringVector::resetOverflowBuffer(resultVector);
+        resultVector->resetAuxiliaryBuffer();
         Column::scan(transaction, nodeIDVector, resultVector);
         diskOverflowFile->scanStrings(transaction->getType(), *resultVector);
     }

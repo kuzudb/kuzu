@@ -200,7 +200,7 @@ struct BinaryOperationExecutor {
         typename OP_WRAPPER>
     static void executeSwitch(
         common::ValueVector& left, common::ValueVector& right, common::ValueVector& result) {
-        common::StringVector::resetOverflowBuffer(&result);
+        result.resetAuxiliaryBuffer();
         if (left.state->isFlat() && right.state->isFlat()) {
             executeBothFlat<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, OP_WRAPPER>(
                 left, right, result);

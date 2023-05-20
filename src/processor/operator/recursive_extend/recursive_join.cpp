@@ -58,7 +58,7 @@ bool BaseRecursiveJoin::scanOutput() {
     common::sel_t offsetVectorSize = 0u;
     common::sel_t dataVectorSize = 0u;
     if (pathVector != nullptr) {
-        common::ListVector::resetListAuxiliaryBuffer(pathVector);
+        pathVector->resetAuxiliaryBuffer();
     }
     frontiersScanner->scan(
         nodeTable->getTableID(), pathVector, dstNodeIDVector, offsetVectorSize, dataVectorSize);

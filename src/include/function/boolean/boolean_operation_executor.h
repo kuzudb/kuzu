@@ -260,7 +260,7 @@ struct UnaryBooleanOperationExecutor {
 
     template<typename FUNC>
     static void executeSwitch(common::ValueVector& operand, common::ValueVector& result) {
-        common::StringVector::resetOverflowBuffer(&result);
+        result.resetAuxiliaryBuffer();
         if (operand.state->isFlat()) {
             auto pos = operand.state->selVector->selectedPositions[0];
             executeOnValue<FUNC>(operand, pos, result);
