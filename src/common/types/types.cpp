@@ -304,6 +304,7 @@ std::string LogicalTypeUtils::dataTypeToString(const LogicalType& dataType) {
     case LogicalTypeID::ANY:
     case LogicalTypeID::NODE:
     case LogicalTypeID::REL:
+    case LogicalTypeID::RECURSIVE_REL:
     case LogicalTypeID::INTERNAL_ID:
     case LogicalTypeID::BOOL:
     case LogicalTypeID::INT64:
@@ -317,8 +318,7 @@ std::string LogicalTypeUtils::dataTypeToString(const LogicalType& dataType) {
     case LogicalTypeID::STRING:
         return dataTypeToString(dataType.typeID);
     default:
-        throw NotImplementedException(
-            "Unsupported DataType: " + LogicalTypeUtils::dataTypeToString(dataType) + ".");
+        throw NotImplementedException("LogicalTypeUtils::dataTypeToString.");
     }
 }
 
@@ -330,6 +330,8 @@ std::string LogicalTypeUtils::dataTypeToString(LogicalTypeID dataTypeID) {
         return "NODE";
     case LogicalTypeID::REL:
         return "REL";
+    case LogicalTypeID::RECURSIVE_REL:
+        return "RECURSIVE_REL";
     case LogicalTypeID::INTERNAL_ID:
         return "INTERNAL_ID";
     case LogicalTypeID::BOOL:
@@ -361,8 +363,7 @@ std::string LogicalTypeUtils::dataTypeToString(LogicalTypeID dataTypeID) {
     case LogicalTypeID::SERIAL:
         return "SERIAL";
     default:
-        throw NotImplementedException(
-            "Unsupported DataType: " + LogicalTypeUtils::dataTypeToString(dataTypeID) + ".");
+        throw NotImplementedException("LogicalTypeUtils::dataTypeToString.");
     }
 }
 
@@ -460,6 +461,7 @@ void LogicalType::setPhysicalType() {
     case LogicalTypeID::STRING: {
         physicalType = PhysicalTypeID::STRING;
     } break;
+    case LogicalTypeID::RECURSIVE_REL:
     case LogicalTypeID::VAR_LIST: {
         physicalType = PhysicalTypeID::VAR_LIST;
     } break;

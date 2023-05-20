@@ -64,6 +64,7 @@ Value Value::createDefaultValue(const LogicalType& dataType) {
         return Value(std::string(""));
     case LogicalTypeID::FLOAT:
         return Value((float_t)0);
+    case LogicalTypeID::RECURSIVE_REL:
     case LogicalTypeID::VAR_LIST:
     case LogicalTypeID::FIXED_LIST:
     case LogicalTypeID::STRUCT:
@@ -180,8 +181,13 @@ void Value::copyValueFrom(const uint8_t* value) {
     case LogicalTypeID::STRING: {
         strVal = ((ku_string_t*)value)->getAsString();
     } break;
+    case LogicalTypeID::RECURSIVE_REL: {
+        nestedTypeVal =
+            convertKUVarListToVector(*(ku_list_t*)value, LogicalType(LogicalTypeID::INTERNAL_ID));
+    } break;
     case LogicalTypeID::VAR_LIST: {
-        nestedTypeVal = convertKUVarListToVector(*(ku_list_t*)value);
+        nestedTypeVal =
+            convertKUVarListToVector(*(ku_list_t*)value, *VarListType::getChildType(&dataType));
     } break;
     case LogicalTypeID::FIXED_LIST: {
         nestedTypeVal = convertKUFixedListToVector(value);
@@ -236,6 +242,7 @@ void Value::copyValueFrom(const Value& other) {
     case LogicalTypeID::STRING: {
         strVal = other.strVal;
     } break;
+    case LogicalTypeID::RECURSIVE_REL:
     case LogicalTypeID::VAR_LIST:
     case LogicalTypeID::FIXED_LIST:
     case LogicalTypeID::STRUCT: {
@@ -287,6 +294,7 @@ std::string Value::toString() const {
         return TypeUtils::toString(val.internalIDVal);
     case LogicalTypeID::STRING:
         return strVal;
+    case LogicalTypeID::RECURSIVE_REL:
     case LogicalTypeID::VAR_LIST:
     case LogicalTypeID::FIXED_LIST: {
         std::string result = "[";
@@ -328,15 +336,15 @@ Value::Value() : dataType{LogicalTypeID::ANY}, isNull_{true} {}
 
 Value::Value(LogicalType dataType) : dataType{std::move(dataType)}, isNull_{true} {}
 
-std::vector<std::unique_ptr<Value>> Value::convertKUVarListToVector(ku_list_t& list) const {
+std::vector<std::unique_ptr<Value>> Value::convertKUVarListToVector(
+    ku_list_t& list, const LogicalType& childType) const {
     std::vector<std::unique_ptr<Value>> listResultValue;
-    auto childType = VarListType::getChildType(&dataType);
-    auto numBytesPerElement = storage::StorageUtils::getDataTypeSize(*childType);
+    auto numBytesPerElement = storage::StorageUtils::getDataTypeSize(childType);
     auto listNullBytes = reinterpret_cast<uint8_t*>(list.overflowPtr);
     auto numBytesForNullValues = NullBuffer::getNumBytesForNullValues(list.size);
     auto listValues = listNullBytes + numBytesForNullValues;
     for (auto i = 0; i < list.size; i++) {
-        auto childValue = std::make_unique<Value>(Value::createDefaultValue(*childType));
+        auto childValue = std::make_unique<Value>(Value::createDefaultValue(childType));
         if (NullBuffer::isNull(listNullBytes, i)) {
             childValue->setNull();
         } else {

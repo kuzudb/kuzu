@@ -51,6 +51,9 @@ std::unique_ptr<AuxiliaryBuffer> AuxiliaryBufferFactory::getAuxiliaryBuffer(
         return std::make_unique<StringAuxiliaryBuffer>(memoryManager);
     case LogicalTypeID::STRUCT:
         return std::make_unique<StructAuxiliaryBuffer>(type, memoryManager);
+    case LogicalTypeID::RECURSIVE_REL:
+        return std::make_unique<ListAuxiliaryBuffer>(
+            common::LogicalType(common::LogicalTypeID::INTERNAL_ID), memoryManager);
     case LogicalTypeID::VAR_LIST:
         return std::make_unique<ListAuxiliaryBuffer>(
             *VarListType::getChildType(&type), memoryManager);

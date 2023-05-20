@@ -157,11 +157,8 @@ void Binder::bindQueryRel(const RelPattern& relPattern,
     // bind variable length
     auto [lowerBound, upperBound] = bindVariableLengthRelBound(relPattern);
     auto isVariableLength = !(lowerBound == 1 && upperBound == 1);
-    auto dataType = isVariableLength ?
-                        common::LogicalType(LogicalTypeID::VAR_LIST,
-                            std::make_unique<VarListTypeInfo>(
-                                std::make_unique<LogicalType>(LogicalTypeID::INTERNAL_ID))) :
-                        common::LogicalType(common::LogicalTypeID::REL);
+    auto dataType = isVariableLength ? common::LogicalType(common::LogicalTypeID::RECURSIVE_REL) :
+                                       common::LogicalType(common::LogicalTypeID::REL);
     auto queryRel = make_shared<RelExpression>(std::move(dataType),
         getUniqueExpressionName(parsedName), parsedName, tableIDs, srcNode, dstNode,
         relPattern.getDirection() != BOTH, relPattern.getRelType(), lowerBound, upperBound);

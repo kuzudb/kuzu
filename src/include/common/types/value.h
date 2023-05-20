@@ -193,7 +193,8 @@ private:
         }
     }
 
-    std::vector<std::unique_ptr<Value>> convertKUVarListToVector(ku_list_t& list) const;
+    std::vector<std::unique_ptr<Value>> convertKUVarListToVector(
+        ku_list_t& list, const LogicalType& childType) const;
     std::vector<std::unique_ptr<Value>> convertKUFixedListToVector(const uint8_t* fixedList) const;
     std::vector<std::unique_ptr<Value>> convertKUStructToVector(const uint8_t* kuStruct) const;
 

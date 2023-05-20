@@ -56,9 +56,10 @@ KUZU_API enum class LogicalTypeID : uint8_t {
     ANY = 0,
     NODE = 10,
     REL = 11,
+    RECURSIVE_REL = 12,
     // SERIAL is a special data type that is used to represent a sequence of INT64 values that are
     // incremented by 1 starting from 0.
-    SERIAL = 12,
+    SERIAL = 13,
 
     // fixed size types
     BOOL = 22,
@@ -232,7 +233,8 @@ private:
 
 struct VarListType {
     static inline LogicalType* getChildType(const LogicalType* type) {
-        assert(type->getLogicalTypeID() == LogicalTypeID::VAR_LIST);
+        assert(type->getLogicalTypeID() == LogicalTypeID::VAR_LIST ||
+               type->getLogicalTypeID() == LogicalTypeID::RECURSIVE_REL);
         auto varListTypeInfo = reinterpret_cast<VarListTypeInfo*>(type->extraTypeInfo.get());
         return varListTypeInfo->getChildType();
     }
