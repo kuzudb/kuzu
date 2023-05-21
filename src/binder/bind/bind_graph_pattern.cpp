@@ -141,10 +141,31 @@ void Binder::bindQueryRel(const RelPattern& relPattern,
                               " to relationship with same name is not supported.");
     }
     auto tableIDs = bindRelTableIDs(relPattern.getTableNames());
-    // bind node to rel
-    auto isLeftNodeSrc = RIGHT == relPattern.getDirection();
-    auto srcNode = isLeftNodeSrc ? leftNode : rightNode;
-    auto dstNode = isLeftNodeSrc ? rightNode : leftNode;
+    // bind src & dst node
+    RelDirectionType directionType;
+    std::shared_ptr<NodeExpression> srcNode;
+    std::shared_ptr<NodeExpression> dstNode;
+    switch (relPattern.getDirection()) {
+    case ArrowDirection::LEFT: {
+        srcNode = rightNode;
+        dstNode = leftNode;
+        directionType = RelDirectionType::SINGLE;
+    } break;
+    case ArrowDirection::RIGHT: {
+        srcNode = leftNode;
+        dstNode = rightNode;
+        directionType = RelDirectionType::SINGLE;
+    } break;
+    case ArrowDirection::BOTH: {
+        // For both direction, left and right will be written with the same label set. So either one
+        // being src will be correct.
+        srcNode = leftNode;
+        dstNode = rightNode;
+        directionType = RelDirectionType::BOTH;
+    } break;
+    default:
+        throw common::NotImplementedException("Binder::bindQueryRel");
+    }
     if (srcNode->getUniqueName() == dstNode->getUniqueName()) {
         throw BinderException("Self-loop rel " + parsedName + " is not supported.");
     }
@@ -160,8 +181,8 @@ void Binder::bindQueryRel(const RelPattern& relPattern,
     auto dataType = isVariableLength ? common::LogicalType(common::LogicalTypeID::RECURSIVE_REL) :
                                        common::LogicalType(common::LogicalTypeID::REL);
     auto queryRel = make_shared<RelExpression>(std::move(dataType),
-        getUniqueExpressionName(parsedName), parsedName, tableIDs, srcNode, dstNode,
-        relPattern.getDirection() != BOTH, relPattern.getRelType(), lowerBound, upperBound);
+        getUniqueExpressionName(parsedName), parsedName, tableIDs, srcNode, dstNode, directionType,
+        relPattern.getRelType(), lowerBound, upperBound);
     queryRel->setAlias(parsedName);
     if (isVariableLength) {
         queryRel->setInternalLengthExpression(

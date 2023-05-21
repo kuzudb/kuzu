@@ -54,7 +54,7 @@ void BaseGraphTest::validateNodeColumnFilesExistence(
 
 void BaseGraphTest::validateRelColumnAndListFilesExistence(
     RelTableSchema* relTableSchema, DBFileType dbFileType, bool existence) {
-    for (auto relDirection : REL_DIRECTIONS) {
+    for (auto relDirection : RelDataDirectionUtils::getRelDataDirections()) {
         if (relTableSchema->relMultiplicity) {
             validateColumnFilesExistence(StorageUtils::getAdjColumnFName(databasePath,
                                              relTableSchema->tableID, relDirection, dbFileType),

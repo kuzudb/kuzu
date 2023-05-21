@@ -21,18 +21,24 @@ static std::string relToString(const binder::RelExpression& rel) {
 
 std::string BaseLogicalExtend::getExpressionsForPrinting() const {
     auto result = boundNode->toString();
-    if (!rel->isDirected()) {
-        result += "<-";
-        result += relToString(*rel);
-        result += "->";
-    } else if (direction == common::ExtendDirection::FWD) {
+    switch (direction) {
+    case ExtendDirection::FWD: {
         result += "-";
         result += relToString(*rel);
         result += "->";
-    } else {
+    } break;
+    case ExtendDirection::BWD: {
         result += "<-";
         result += relToString(*rel);
         result += "-";
+    } break;
+    case ExtendDirection::BOTH: {
+        result += "<-";
+        result += relToString(*rel);
+        result += "->";
+    } break;
+    default:
+        throw common::NotImplementedException("BaseLogicalExtend::getExpressionsForPrinting");
     }
     result += nbrNode->toString();
     return result;

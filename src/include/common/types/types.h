@@ -299,14 +299,6 @@ private:
     static LogicalTypeID dataTypeIDFromString(const std::string& dataTypeIDString);
 };
 
-// RelDataDirection
-enum RelDataDirection : uint8_t { FWD = 0, BWD = 1 };
-const std::vector<RelDataDirection> REL_DIRECTIONS = {FWD, BWD};
-RelDataDirection operator!(RelDataDirection& direction);
-std::string getRelDataDirectionAsString(RelDataDirection relDirection);
-
-enum class ExtendDirection : uint8_t { FWD = 0, BWD = 1, BOTH = 2 };
-
 enum class DBFileType : uint8_t { ORIGINAL = 0, WAL_VERSION = 1 };
 
 } // namespace common

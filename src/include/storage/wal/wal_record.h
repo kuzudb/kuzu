@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/rel_direction.h"
 #include "common/types/types_include.h"
 #include "common/utils.h"
 

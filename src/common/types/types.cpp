@@ -475,14 +475,6 @@ void LogicalType::setPhysicalType() {
     }
 }
 
-RelDataDirection operator!(RelDataDirection& direction) {
-    return (FWD == direction) ? BWD : FWD;
-}
-
-std::string getRelDataDirectionAsString(RelDataDirection direction) {
-    return (FWD == direction) ? "forward" : "backward";
-}
-
 // Specialized Ser/Deser functions for logical dataTypes.
 template<>
 uint64_t SerDeser::serializeValue(

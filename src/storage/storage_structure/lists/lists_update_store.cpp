@@ -63,7 +63,7 @@ bool ListsUpdatesStore::isRelDeletedInPersistentStore(
 }
 
 bool ListsUpdatesStore::hasUpdates() const {
-    for (auto relDirection : REL_DIRECTIONS) {
+    for (auto relDirection : RelDataDirectionUtils::getRelDataDirections()) {
         for (auto& [_, listsUpdatesPerNode] : listsUpdatesPerDirection[relDirection]) {
             for (auto& [_, listsUpdatesForNodeOffset] : listsUpdatesPerNode) {
                 if (listsUpdatesForNodeOffset->hasUpdates()) {
@@ -96,7 +96,7 @@ void ListsUpdatesStore::insertRelIfNecessary(const ValueVector* srcNodeIDVector,
         std::vector<ValueVector*>{(ValueVector*)srcNodeIDVector, (ValueVector*)dstNodeIDVector};
     vectorsToAppendToFT.insert(
         vectorsToAppendToFT.end(), relPropertyVectors.begin(), relPropertyVectors.end());
-    for (auto direction : REL_DIRECTIONS) {
+    for (auto direction : RelDataDirectionUtils::getRelDataDirections()) {
         auto boundNodeID = direction == FWD ? srcNodeID : dstNodeID;
         if (!relTableSchema.isSingleMultiplicityInDirection(direction)) {
             if (!hasInsertedToFT) {
@@ -122,7 +122,7 @@ void ListsUpdatesStore::deleteRelIfNecessary(common::ValueVector* srcNodeIDVecto
         // If the rel that we are going to delete is a newly inserted rel, we need to delete
         // its tupleIdx from the insertedRelsTupleIdxInFT of listsUpdatesStore in FWD and BWD
         // direction. Note: we don't reuse the space for inserted rel tuple in factorizedTable.
-        for (auto direction : REL_DIRECTIONS) {
+        for (auto direction : RelDataDirectionUtils::getRelDataDirections()) {
             auto boundNodeID = direction == RelDataDirection::FWD ? srcNodeID : dstNodeID;
             if (!relTableSchema.isSingleMultiplicityInDirection(direction)) {
                 auto& insertedRelsTupleIdxInFT =
@@ -138,7 +138,7 @@ void ListsUpdatesStore::deleteRelIfNecessary(common::ValueVector* srcNodeIDVecto
             }
         }
     } else {
-        for (auto direction : REL_DIRECTIONS) {
+        for (auto direction : RelDataDirectionUtils::getRelDataDirections()) {
             auto boundNodeID = direction == RelDataDirection::FWD ? srcNodeID : dstNodeID;
             if (!relTableSchema.isSingleMultiplicityInDirection(direction)) {
                 getOrCreateListsUpdatesForNodeOffset(direction, boundNodeID)
@@ -192,7 +192,7 @@ void ListsUpdatesStore::updateRelIfNecessary(ValueVector* srcNodeIDVector,
     auto dstNodeID = dstNodeIDVector->getValue<nodeID_t>(
         dstNodeIDVector->state->selVector->selectedPositions[0]);
     bool insertUpdatedRel = true;
-    for (auto direction : REL_DIRECTIONS) {
+    for (auto direction : RelDataDirectionUtils::getRelDataDirections()) {
         auto boundNodeID = direction == FWD ? srcNodeID : dstNodeID;
         // We should only store the property update if the property is stored as a list in the
         // current direction. (E.g. We update a rel property of a MANY-ONE rel table which stores
@@ -267,7 +267,7 @@ void ListsUpdatesStore::readPropertyUpdateToInMemList(ListFileID& listFileID,
 }
 
 void ListsUpdatesStore::initNewlyAddedNodes(nodeID_t& nodeID) {
-    for (auto direction : REL_DIRECTIONS) {
+    for (auto direction : RelDataDirectionUtils::getRelDataDirections()) {
         if (!relTableSchema.isSingleMultiplicityInDirection(direction) &&
             nodeID.tableID == relTableSchema.getBoundTableID(direction)) {
             auto& listsUpdatesPerNode =
@@ -319,7 +319,7 @@ ft_col_idx_t ListsUpdatesStore::getColIdxInFT(ListFileID& listFileID) const {
 
 void ListsUpdatesStore::initListsUpdatesPerTablePerDirection() {
     listsUpdatesPerDirection.clear();
-    for (auto direction : REL_DIRECTIONS) {
+    for (auto direction : RelDataDirectionUtils::getRelDataDirections()) {
         listsUpdatesPerDirection.emplace_back();
     }
 }

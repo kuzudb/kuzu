@@ -160,7 +160,7 @@ void DirectedRelTableData::insertRel(common::ValueVector* boundVector,
                 nodeOffset,
                 boundVector->getValue<nodeID_t>(boundVector->state->selVector->selectedPositions[0])
                     .tableID,
-                tableID, getRelDataDirectionAsString(direction)));
+                tableID, RelDataDirectionUtils::relDataDirectionToString(direction)));
     }
     adjColumn->write(boundVector, nbrVector);
     for (auto i = 0u; i < relPropertyVectors.size(); i++) {
