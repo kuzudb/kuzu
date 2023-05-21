@@ -2,8 +2,6 @@
 
 #include "main/kuzu.h"
 
-using namespace kuzu::main;
-
 namespace kuzu {
 namespace testing {
 

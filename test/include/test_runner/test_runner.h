@@ -5,26 +5,24 @@
 #include "planner/planner.h"
 #include "test_runner/test_case.h"
 
-using namespace kuzu::planner;
-
 namespace kuzu {
 namespace testing {
 
 class TestRunner {
 public:
     static void runTest(
-        const std::vector<std::unique_ptr<TestStatement>>& statements, Connection& conn);
+        const std::vector<std::unique_ptr<TestStatement>>& statements, main::Connection& conn);
 
     static std::unique_ptr<planner::LogicalPlan> getLogicalPlan(
-        const std::string& query, Connection& conn);
+        const std::string& query, main::Connection& conn);
 
 private:
-    static void initializeConnection(TestStatement* statement, Connection& conn);
-    static bool testStatement(TestStatement* statement, Connection& conn);
-    static bool checkLogicalPlans(std::unique_ptr<PreparedStatement>& preparedStatement,
-        TestStatement* statement, Connection& conn);
+    static void initializeConnection(TestStatement* statement, main::Connection& conn);
+    static bool testStatement(TestStatement* statement, main::Connection& conn);
+    static bool checkLogicalPlans(std::unique_ptr<main::PreparedStatement>& preparedStatement,
+        TestStatement* statement, main::Connection& conn);
     static std::vector<std::string> convertResultToString(
-        QueryResult& queryResult, bool checkOutputOrder = false);
+        main::QueryResult& queryResult, bool checkOutputOrder = false);
 };
 
 } // namespace testing
