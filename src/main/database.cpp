@@ -1,7 +1,5 @@
 #include "main/database.h"
 
-#include <utility>
-
 #include "common/logging_level_utils.h"
 #include "processor/processor.h"
 #include "spdlog/spdlog.h"
@@ -27,7 +25,6 @@ SystemConfig::SystemConfig(uint64_t bufferPoolSize_) {
                                      (double_t)std::min(systemMemSize, (std::uint64_t)UINTPTR_MAX));
     }
     bufferPoolSize = bufferPoolSize_;
-    auto maxConcurrency = std::thread::hardware_concurrency();
     maxNumThreads = std::thread::hardware_concurrency();
 }
 
@@ -36,13 +33,13 @@ Database::Database(std::string databasePath) : Database{std::move(databasePath),
 Database::Database(std::string databasePath, SystemConfig systemConfig)
     : databasePath{std::move(databasePath)}, systemConfig{systemConfig} {
     initLoggers();
-    initDBDirAndCoreFilesIfNecessary();
     logger = LoggerUtils::getLogger(LoggerConstants::LoggerEnum::DATABASE);
+    initDBDirAndCoreFilesIfNecessary();
     bufferManager = std::make_unique<BufferManager>(this->systemConfig.bufferPoolSize);
     memoryManager = std::make_unique<MemoryManager>(bufferManager.get());
+    queryProcessor = std::make_unique<processor::QueryProcessor>(this->systemConfig.maxNumThreads);
     wal = std::make_unique<WAL>(this->databasePath, *bufferManager);
     recoverIfNecessary();
-    queryProcessor = std::make_unique<processor::QueryProcessor>(this->systemConfig.maxNumThreads);
     catalog = std::make_unique<catalog::Catalog>(wal.get());
     storageManager = std::make_unique<storage::StorageManager>(*catalog, *memoryManager, wal.get());
     transactionManager = std::make_unique<transaction::TransactionManager>(*wal);
@@ -51,6 +48,10 @@ Database::Database(std::string databasePath, SystemConfig systemConfig)
 Database::~Database() {
     dropLoggers();
     bufferManager->clearEvictionQueue();
+}
+
+void Database::setLoggingLevel(std::string loggingLevel) {
+    spdlog::set_level(LoggingLevelUtils::convertStrToLevelEnum(std::move(loggingLevel)));
 }
 
 void Database::initDBDirAndCoreFilesIfNecessary() const {
@@ -98,115 +99,80 @@ void Database::dropLoggers() {
     LoggerUtils::dropLogger(LoggerConstants::LoggerEnum::WAL);
 }
 
-void Database::setLoggingLevel(std::string loggingLevel) {
-    spdlog::set_level(LoggingLevelUtils::convertStrToLevelEnum(std::move(loggingLevel)));
-}
-
-void Database::commitAndCheckpointOrRollback(
-    Transaction* writeTransaction, bool isCommit, bool skipCheckpointForTestingRecovery) {
-    // Irrespective of whether we are checkpointing or rolling back we add a
-    // nodesStatisticsAndDeletedIDs/relStatistics record if there has been updates to
-    // nodesStatisticsAndDeletedIDs/relStatistics. This is because we need to commit or rollback
-    // the in-memory state of NodesStatisticsAndDeletedIDs/relStatistics, which is done during
-    // wal replaying and committing/rolling back each record, so a TABLE_STATISTICS_RECORD needs
-    // to appear in the log.
-    bool nodeTableHasUpdates =
-        storageManager->getNodesStore().getNodesStatisticsAndDeletedIDs().hasUpdates();
-    bool relTableHasUpdates = storageManager->getRelsStore().getRelsStatistics().hasUpdates();
-    if (nodeTableHasUpdates || relTableHasUpdates) {
-        wal->logTableStatisticsRecord(nodeTableHasUpdates /* isNodeTable */);
-        // If we are committing, we also need to write the WAL file for
-        // NodesStatisticsAndDeletedIDs/relStatistics.
-        if (isCommit) {
-            if (nodeTableHasUpdates) {
-                storageManager->getNodesStore()
-                    .getNodesStatisticsAndDeletedIDs()
-                    .writeTablesStatisticsFileForWALRecord(databasePath);
-            } else {
-                storageManager->getRelsStore()
-                    .getRelsStatistics()
-                    .writeTablesStatisticsFileForWALRecord(databasePath);
-            }
-        }
+void Database::commit(Transaction* transaction, bool skipCheckpointForTestingRecovery) {
+    if (transaction->isReadOnly()) {
+        transactionManager->commit(transaction);
+        return;
     }
-    if (catalog->hasUpdates()) {
-        wal->logCatalogRecord();
-        // If we are committing, we also need to write the WAL file for catalog.
-        if (isCommit) {
-            catalog->writeCatalogForWALRecord(databasePath);
-        }
-    }
-    storageManager->prepareCommitOrRollbackIfNecessary(isCommit);
-
-    if (isCommit) {
-        // Note: It is enough to stop and wait transactions to leave the system instead of
-        // for example checking on the query processor's task scheduler. This is because the
-        // first and last steps that a connection performs when executing a query is to
-        // start and commit/rollback transaction. The query processor also ensures that it
-        // will only return results or error after all threads working on the tasks of a
-        // query stop working on the tasks of the query and these tasks are removed from the
-        // query.
-        transactionManager->stopNewTransactionsAndWaitUntilAllReadTransactionsLeave();
-        // Note: committing and stopping new transactions can be done in any order. This
-        // order allows us to throw exceptions if we have to wait a lot to stop.
-        transactionManager->commitButKeepActiveWriteTransaction(writeTransaction);
-        wal->flushAllPages();
-        if (skipCheckpointForTestingRecovery) {
-            transactionManager->allowReceivingNewTransactions();
-            return;
-        }
-        checkpointAndClearWAL();
-    } else {
-        if (skipCheckpointForTestingRecovery) {
-            wal->flushAllPages();
-            return;
-        }
-        rollbackAndClearWAL();
-    }
-    transactionManager->manuallyClearActiveWriteTransaction(writeTransaction);
-    if (isCommit) {
+    assert(transaction->isWriteTransaction());
+    catalog->prepareCommitOrRollback(TransactionAction::COMMIT);
+    storageManager->prepareCommit();
+    // Note: It is enough to stop and wait transactions to leave the system instead of
+    // for example checking on the query processor's task scheduler. This is because the
+    // first and last steps that a connection performs when executing a query is to
+    // start and commit/rollback transaction. The query processor also ensures that it
+    // will only return results or error after all threads working on the tasks of a
+    // query stop working on the tasks of the query and these tasks are removed from the
+    // query.
+    transactionManager->stopNewTransactionsAndWaitUntilAllReadTransactionsLeave();
+    // Note: committing and stopping new transactions can be done in any order. This
+    // order allows us to throw exceptions if we have to wait a lot to stop.
+    transactionManager->commitButKeepActiveWriteTransaction(transaction);
+    wal->flushAllPages();
+    if (skipCheckpointForTestingRecovery) {
         transactionManager->allowReceivingNewTransactions();
+        return;
     }
+    checkpointAndClearWAL(WALReplayMode::COMMIT_CHECKPOINT);
+    transactionManager->manuallyClearActiveWriteTransaction(transaction);
+    transactionManager->allowReceivingNewTransactions();
 }
 
-void Database::checkpointAndClearWAL() {
-    checkpointOrRollbackAndClearWAL(false /* is not recovering */, true /* isCheckpoint */);
+void Database::rollback(
+    transaction::Transaction* transaction, bool skipCheckpointForTestingRecovery) {
+    if (transaction->isReadOnly()) {
+        transactionManager->rollback(transaction);
+        return;
+    }
+    assert(transaction->isWriteTransaction());
+    catalog->prepareCommitOrRollback(TransactionAction::ROLLBACK);
+    storageManager->prepareRollback();
+    if (skipCheckpointForTestingRecovery) {
+        wal->flushAllPages();
+        return;
+    }
+    rollbackAndClearWAL();
+    transactionManager->manuallyClearActiveWriteTransaction(transaction);
+}
+
+void Database::checkpointAndClearWAL(WALReplayMode replayMode) {
+    assert(replayMode == WALReplayMode::COMMIT_CHECKPOINT ||
+           replayMode == WALReplayMode::RECOVERY_CHECKPOINT);
+    auto walReplayer = std::make_unique<WALReplayer>(wal.get(), storageManager.get(),
+        memoryManager.get(), bufferManager.get(), catalog.get(), replayMode);
+    walReplayer->replay();
+    wal->clearWAL();
 }
 
 void Database::rollbackAndClearWAL() {
-    checkpointOrRollbackAndClearWAL(
-        false /* is not recovering */, false /* rolling back updates */);
+    auto walReplayer = std::make_unique<WALReplayer>(wal.get(), storageManager.get(),
+        memoryManager.get(), bufferManager.get(), catalog.get(), WALReplayMode::ROLLBACK);
+    walReplayer->replay();
+    wal->clearWAL();
 }
 
 void Database::recoverIfNecessary() {
     if (!wal->isEmptyWAL()) {
         if (wal->isLastLoggedRecordCommit()) {
             logger->info("Starting up StorageManager and found a non-empty WAL with a committed "
-                         "transaction. Replaying to checkpoint.");
-            checkpointOrRollbackAndClearWAL(true /* is recovering */, true /* checkpoint */);
+                         "transaction. Replaying to checkpointInMemory.");
+            checkpointAndClearWAL(WALReplayMode::RECOVERY_CHECKPOINT);
         } else {
             logger->info("Starting up StorageManager and found a non-empty WAL but last record is "
                          "not commit. Clearing the WAL.");
             wal->clearWAL();
         }
     }
-}
-
-void Database::checkpointOrRollbackAndClearWAL(bool isRecovering, bool isCheckpoint) {
-    logger->info("Starting " +
-                 (isCheckpoint ? std::string("checkpointing") :
-                                 std::string("rolling back the wal contents")) +
-                 " in the storage manager during " +
-                 (isRecovering ? "recovery." : "normal db execution (i.e., not recovering)."));
-    WALReplayer walReplayer = isRecovering ? WALReplayer(wal.get()) :
-                                             WALReplayer(wal.get(), storageManager.get(),
-                                                 memoryManager.get(), catalog.get(), isCheckpoint);
-    walReplayer.replay();
-    logger->info("Finished " +
-                 (isCheckpoint ? std::string("checkpointing") :
-                                 std::string("rolling back the wal contents")) +
-                 " in the storage manager.");
-    wal->clearWAL();
 }
 
 } // namespace main

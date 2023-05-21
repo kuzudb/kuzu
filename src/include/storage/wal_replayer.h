@@ -14,22 +14,31 @@ namespace storage {
 
 class StorageManager;
 
+enum class WALReplayMode : uint8_t { COMMIT_CHECKPOINT, ROLLBACK, RECOVERY_CHECKPOINT };
+
 // Note: This class is not thread-safe.
 class WALReplayer {
 public:
-    // This interface is used for recovery only. We always recover the disk files before
-    // constructing the storageManager and catalog. So this specialized recovery constructor
-    // doesn't take in storageManager and bufferManager.
-    explicit WALReplayer(WAL* wal);
-
     WALReplayer(WAL* wal, StorageManager* storageManager, MemoryManager* memoryManager,
-        catalog::Catalog* catalog, bool isCheckpoint);
+        BufferManager* bufferManager, catalog::Catalog* catalog, WALReplayMode replayMode);
 
     void replay();
 
 private:
     void init();
     void replayWALRecord(WALRecord& walRecord);
+    void replayPageUpdateOrInsertRecord(const WALRecord& walRecord);
+    void replayTableStatisticsRecord(const WALRecord& walRecord);
+    void replayCatalogRecord();
+    void replayNodeTableRecord(const WALRecord& walRecord);
+    void replayRelTableRecord(const WALRecord& walRecord);
+    void replayOverflowFileNextBytePosRecord(const WALRecord& walRecord);
+    void replayCopyNodeRecord(const WALRecord& walRecord);
+    void replayCopyRelRecord(const WALRecord& walRecord);
+    void replayDropTableRecord(const WALRecord& walRecord);
+    void replayDropPropertyRecord(const WALRecord& walRecord);
+    void replayAddPropertyRecord(const WALRecord& walRecord);
+
     void checkpointOrRollbackVersionedFileHandleAndBufferManager(
         const WALRecord& walRecord, const StorageStructureID& storageStructureID);
     void truncateFileIfInsertion(
@@ -48,7 +57,6 @@ private:
     MemoryManager* memoryManager;
     std::shared_ptr<BMFileHandle> walFileHandle;
     std::unique_ptr<uint8_t[]> pageBuffer;
-    std::shared_ptr<spdlog::logger> logger;
     WAL* wal;
     catalog::Catalog* catalog;
 };

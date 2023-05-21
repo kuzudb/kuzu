@@ -62,21 +62,19 @@ public:
     static void setLoggingLevel(std::string loggingLevel);
 
 private:
-    // Commits and checkpoints a write transaction or rolls that transaction back. This involves
-    // either replaying the WAL and either redoing or undoing and in either case at the end WAL is
-    // cleared.
-    // skipCheckpointForTestingRecovery is used to simulate a failure before checkpointing in tests.
-    void commitAndCheckpointOrRollback(transaction::Transaction* writeTransaction, bool isCommit,
-        bool skipCheckpointForTestingRecovery = false);
-
     void initDBDirAndCoreFilesIfNecessary() const;
     static void initLoggers();
     static void dropLoggers();
 
-    void checkpointAndClearWAL();
+    // Commits and checkpoints a write transaction or rolls that transaction back. This involves
+    // either replaying the WAL and either redoing or undoing and in either case at the end WAL is
+    // cleared.
+    // skipCheckpointForTestingRecovery is used to simulate a failure before checkpointing in tests.
+    void commit(transaction::Transaction* transaction, bool skipCheckpointForTestingRecovery);
+    void rollback(transaction::Transaction* transaction, bool skipCheckpointForTestingRecovery);
+    void checkpointAndClearWAL(storage::WALReplayMode walReplayMode);
     void rollbackAndClearWAL();
     void recoverIfNecessary();
-    void checkpointOrRollbackAndClearWAL(bool isRecovering, bool isCheckpoint);
 
 private:
     std::string databasePath;

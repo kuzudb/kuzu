@@ -66,8 +66,11 @@ protected:
     static inline void commitAndCheckpointOrRollback(main::Database& database,
         transaction::Transaction* writeTransaction, bool isCommit,
         bool skipCheckpointForTestingRecovery = false) {
-        database.commitAndCheckpointOrRollback(
-            writeTransaction, isCommit, skipCheckpointForTestingRecovery);
+        if (isCommit) {
+            database.commit(writeTransaction, skipCheckpointForTestingRecovery);
+        } else {
+            database.rollback(writeTransaction, skipCheckpointForTestingRecovery);
+        }
     }
     static inline processor::QueryProcessor* getQueryProcessor(main::Database& database) {
         return database.queryProcessor.get();

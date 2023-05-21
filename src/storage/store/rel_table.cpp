@@ -127,7 +127,7 @@ void DirectedRelTableData::scanLists(transaction::Transaction* transaction,
 }
 
 // Fill nbr table IDs for the vector scanned from an adj column.
-void DirectedRelTableData::fillNbrTableIDs(common::ValueVector* vector) {
+void DirectedRelTableData::fillNbrTableIDs(common::ValueVector* vector) const {
     assert(vector->dataType.getLogicalTypeID() == LogicalTypeID::INTERNAL_ID);
     auto nodeIDs = (internalID_t*)vector->getData();
     for (auto i = 0u; i < vector->state->selVector->selectedSize; i++) {
@@ -137,7 +137,7 @@ void DirectedRelTableData::fillNbrTableIDs(common::ValueVector* vector) {
 }
 
 // Fill rel table IDs for the vector scanned from a RelID column.
-void DirectedRelTableData::fillRelTableIDs(common::ValueVector* vector) {
+void DirectedRelTableData::fillRelTableIDs(common::ValueVector* vector) const {
     auto internalRelIDs = (internalID_t*)vector->getData();
     for (auto i = 0u; i < vector->state->selVector->selectedSize; i++) {
         auto pos = vector->state->selVector->selectedPositions[i];
@@ -256,25 +256,27 @@ std::vector<Column*> RelTable::getAllAdjColumns(table_id_t boundTableID) {
     return retVal;
 }
 
-// Prepares all the db file changes necessary to update the "persistent" store of lists with the
-// listsUpdatesStore, which stores the updates by the write transaction locally.
-void RelTable::prepareCommitOrRollbackIfNecessary(bool isCommit) {
-    if (isCommit) {
+void RelTable::prepareCommit() {
+    if (listsUpdatesStore->hasUpdates()) {
+        wal->addToUpdatedRelTables(tableID);
         prepareCommitForDirection(FWD);
         prepareCommitForDirection(BWD);
     }
+}
+
+void RelTable::prepareRollback() {
     if (listsUpdatesStore->hasUpdates()) {
-        addToUpdatedRelTables();
+        wal->addToUpdatedRelTables(tableID);
     }
 }
 
-void RelTable::checkpointInMemoryIfNecessary() {
+void RelTable::checkpointInMemory() {
     performOpOnListsWithUpdates(
         std::bind(&Lists::checkpointInMemoryIfNecessary, std::placeholders::_1),
         std::bind(&RelTable::clearListsUpdatesStore, this));
 }
 
-void RelTable::rollbackInMemoryIfNecessary() {
+void RelTable::rollback() {
     performOpOnListsWithUpdates(
         std::bind(&Lists::rollbackInMemoryIfNecessary, std::placeholders::_1),
         std::bind(&RelTable::clearListsUpdatesStore, this));

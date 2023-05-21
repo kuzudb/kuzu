@@ -7,6 +7,7 @@
 using namespace kuzu::common;
 using namespace kuzu::catalog;
 using namespace kuzu::storage;
+using namespace kuzu::transaction;
 
 namespace kuzu {
 namespace common {
@@ -257,7 +258,7 @@ void CatalogContent::dropTableSchema(table_id_t tableID) {
     }
 }
 
-void CatalogContent::renameTable(table_id_t tableID, std::string newName) {
+void CatalogContent::renameTable(table_id_t tableID, const std::string& newName) {
     auto tableSchema = getTableSchema(tableID);
     auto& tableNameToIDMap = tableSchema->isNodeTable ? nodeTableNameToIDMap : relTableNameToIDMap;
     tableNameToIDMap.erase(tableSchema->tableName);
@@ -364,11 +365,20 @@ Catalog::Catalog(WAL* wal) : wal{wal} {
     builtInAggregateFunctions = std::make_unique<function::BuiltInAggregateFunctions>();
 }
 
-void Catalog::checkpointInMemoryIfNecessary() {
-    if (!hasUpdates()) {
-        return;
+void Catalog::prepareCommitOrRollback(TransactionAction action) {
+    if (hasUpdates()) {
+        wal->logCatalogRecord();
+        if (action == TransactionAction::COMMIT) {
+            catalogContentForWriteTrx->saveToFile(
+                wal->getDirectory(), common::DBFileType::WAL_VERSION);
+        }
     }
-    catalogContentForReadOnlyTrx = std::move(catalogContentForWriteTrx);
+}
+
+void Catalog::checkpointInMemory() {
+    if (hasUpdates()) {
+        catalogContentForReadOnlyTrx = std::move(catalogContentForWriteTrx);
+    }
 }
 
 ExpressionType Catalog::getFunctionType(const std::string& name) const {
@@ -411,12 +421,13 @@ void Catalog::renameTable(table_id_t tableID, std::string newName) {
     catalogContentForWriteTrx->renameTable(tableID, std::move(newName));
 }
 
-void Catalog::addProperty(table_id_t tableID, std::string propertyName, LogicalType dataType) {
+void Catalog::addProperty(
+    table_id_t tableID, const std::string& propertyName, LogicalType dataType) {
     initCatalogContentForWriteTrxIfNecessary();
     catalogContentForWriteTrx->getTableSchema(tableID)->addProperty(
         propertyName, std::move(dataType));
-    wal->logAddPropertyRecord(tableID,
-        catalogContentForWriteTrx->getTableSchema(tableID)->getPropertyID(std::move(propertyName)));
+    wal->logAddPropertyRecord(
+        tableID, catalogContentForWriteTrx->getTableSchema(tableID)->getPropertyID(propertyName));
 }
 
 void Catalog::dropProperty(table_id_t tableID, property_id_t propertyID) {

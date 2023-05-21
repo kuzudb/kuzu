@@ -1,7 +1,6 @@
 #pragma once
 
 #include <memory>
-#include <utility>
 
 #include "catalog_structs.h"
 #include "common/assert.h"
@@ -13,6 +12,7 @@
 #include "function/built_in_vector_operations.h"
 #include "storage/storage_info.h"
 #include "storage/wal/wal.h"
+#include "transaction/transaction.h"
 
 namespace spdlog {
 class logger;
@@ -126,7 +126,7 @@ public:
 
     void dropTableSchema(common::table_id_t tableID);
 
-    void renameTable(common::table_id_t tableID, std::string newName);
+    void renameTable(common::table_id_t tableID, const std::string& newName);
 
     void saveToFile(const std::string& directory, common::DBFileType dbFileType);
     void readFromFile(const std::string& directory, common::DBFileType dbFileType);
@@ -170,19 +170,14 @@ public:
         return builtInAggregateFunctions.get();
     }
 
-    inline bool hasUpdates() { return catalogContentForWriteTrx != nullptr; }
-
-    void checkpointInMemoryIfNecessary();
+    void prepareCommitOrRollback(transaction::TransactionAction action);
+    void checkpointInMemory();
 
     inline void initCatalogContentForWriteTrxIfNecessary() {
         if (!catalogContentForWriteTrx) {
             catalogContentForWriteTrx =
                 std::make_unique<CatalogContent>(*catalogContentForReadOnlyTrx);
         }
-    }
-
-    inline void writeCatalogForWALRecord(const std::string& directory) {
-        catalogContentForWriteTrx->saveToFile(directory, common::DBFileType::WAL_VERSION);
     }
 
     static inline void saveInitialCatalogToFile(const std::string& directory) {
@@ -204,7 +199,7 @@ public:
     void renameTable(common::table_id_t tableID, std::string newName);
 
     void addProperty(
-        common::table_id_t tableID, std::string propertyName, common::LogicalType dataType);
+        common::table_id_t tableID, const std::string& propertyName, common::LogicalType dataType);
 
     void dropProperty(common::table_id_t tableID, common::property_id_t propertyID);
 
@@ -213,6 +208,9 @@ public:
 
     std::unordered_set<RelTableSchema*> getAllRelTableSchemasContainBoundTable(
         common::table_id_t boundTableID) const;
+
+private:
+    inline bool hasUpdates() { return catalogContentForWriteTrx != nullptr; }
 
 protected:
     std::unique_ptr<function::BuiltInVectorOperations> builtInVectorOperations;

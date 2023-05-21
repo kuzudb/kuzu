@@ -38,8 +38,7 @@ public:
         return nodesStatisticsAndDeletedIDs;
     }
     inline common::table_id_t getTableID() const { return tableID; }
-    inline void checkpointInMemoryIfNecessary() { pkIndex->checkpointInMemoryIfNecessary(); }
-    inline void rollbackInMemoryIfNecessary() { pkIndex->rollbackInMemoryIfNecessary(); }
+
     inline void removeProperty(common::property_id_t propertyID) {
         propertyColumns.erase(propertyID);
     }
@@ -49,11 +48,13 @@ public:
                                          wal->getDirectory(), property),
                 property.dataType, &bufferManager, wal));
     }
-
     common::offset_t addNodeAndResetProperties(common::ValueVector* primaryKeyVector);
     void deleteNodes(common::ValueVector* nodeIDVector, common::ValueVector* primaryKeyVector);
 
-    void prepareCommitOrRollbackIfNecessary(bool isCommit);
+    void prepareCommit();
+    void prepareRollback();
+    inline void checkpointInMemory() { pkIndex->checkpointInMemory(); }
+    inline void rollback() { pkIndex->rollback(); }
 
 private:
     void deleteNode(

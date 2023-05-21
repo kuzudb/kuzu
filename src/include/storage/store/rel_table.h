@@ -125,8 +125,8 @@ private:
         common::ValueVector* inNodeIDVector,
         const std::vector<common::ValueVector*>& outputVectors);
 
-    void fillNbrTableIDs(common::ValueVector* vector);
-    void fillRelTableIDs(common::ValueVector* vector);
+    void fillNbrTableIDs(common::ValueVector* vector) const;
+    void fillRelTableIDs(common::ValueVector* vector) const;
 
 private:
     // TODO(Guodong): remove the distinction between AdjColumn and Column, also AdjLists and Lists.
@@ -196,9 +196,12 @@ public:
     std::vector<AdjLists*> getAllAdjLists(common::table_id_t boundTableID);
     std::vector<Column*> getAllAdjColumns(common::table_id_t boundTableID);
 
-    void prepareCommitOrRollbackIfNecessary(bool isCommit);
-    void checkpointInMemoryIfNecessary();
-    void rollbackInMemoryIfNecessary();
+    // Prepares all the db file changes necessary to update the "persistent" store of lists with the
+    // listsUpdatesStore, which stores the updates by the write transaction locally.
+    void prepareCommit();
+    void prepareRollback();
+    void checkpointInMemory();
+    void rollback();
 
     void insertRel(common::ValueVector* srcNodeIDVector, common::ValueVector* dstNodeIDVector,
         const std::vector<common::ValueVector*>& relPropertyVectors);
@@ -212,7 +215,6 @@ public:
     void addProperty(catalog::Property property, catalog::RelTableSchema& relTableSchema);
 
 private:
-    inline void addToUpdatedRelTables() { wal->addToUpdatedRelTables(tableID); }
     inline void clearListsUpdatesStore() { listsUpdatesStore->clear(); }
     static void updateListOP(ListsUpdateIterator* listsUpdateIterator, common::offset_t nodeOffset,
         InMemList& inMemList);

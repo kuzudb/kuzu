@@ -7,7 +7,7 @@ namespace kuzu {
 namespace storage {
 
 RelsStore::RelsStore(const Catalog& catalog, MemoryManager& memoryManager, WAL* wal)
-    : relsStatistics{wal->getDirectory()} {
+    : relsStatistics{wal->getDirectory()}, wal{wal} {
     for (auto& tableIDSchema : catalog.getReadOnlyVersion()->getRelTableSchemas()) {
         relTables[tableIDSchema.first] =
             std::make_unique<RelTable>(catalog, tableIDSchema.first, memoryManager, wal);

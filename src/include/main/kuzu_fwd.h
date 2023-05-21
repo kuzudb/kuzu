@@ -35,6 +35,7 @@ class MemoryManager;
 class BufferManager;
 class StorageManager;
 class WAL;
+enum class WALReplayMode : uint8_t;
 } // namespace storage
 
 namespace planner {
@@ -52,6 +53,7 @@ class PhysicalPlan;
 namespace transaction {
 class Transaction;
 enum class TransactionType : uint8_t;
+enum class TransactionAction : uint8_t;
 class TransactionManager;
 } // namespace transaction
 

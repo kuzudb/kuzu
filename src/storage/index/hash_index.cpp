@@ -391,27 +391,29 @@ entry_pos_t HashIndex<T>::findMatchedEntryInSlot(
 
 template<typename T>
 void HashIndex<T>::prepareCommit() {
-    localStorage->applyLocalChanges(
-        [this](const uint8_t* key) -> void { this->deleteFromPersistentIndex(key); },
-        [this](const uint8_t* key, offset_t value) -> void {
-            this->insertIntoPersistentIndex(key, value);
-        });
-}
-
-template<typename T>
-void HashIndex<T>::prepareCommitOrRollbackIfNecessary(bool isCommit) {
     std::unique_lock xlock{localStorage->localStorageSharedMutex};
-    if (!localStorage->hasUpdates()) {
-        return;
-    }
-    wal->addToUpdatedNodeTables(storageStructureIDAndFName.storageStructureID.nodeIndexID.tableID);
-    if (isCommit) {
-        prepareCommit();
+    if (localStorage->hasUpdates()) {
+        wal->addToUpdatedNodeTables(
+            storageStructureIDAndFName.storageStructureID.nodeIndexID.tableID);
+        localStorage->applyLocalChanges(
+            [this](const uint8_t* key) -> void { this->deleteFromPersistentIndex(key); },
+            [this](const uint8_t* key, offset_t value) -> void {
+                this->insertIntoPersistentIndex(key, value);
+            });
     }
 }
 
 template<typename T>
-void HashIndex<T>::checkpointInMemoryIfNecessary() {
+void HashIndex<T>::prepareRollback() {
+    std::unique_lock xlock{localStorage->localStorageSharedMutex};
+    if (localStorage->hasUpdates()) {
+        wal->addToUpdatedNodeTables(
+            storageStructureIDAndFName.storageStructureID.nodeIndexID.tableID);
+    }
+}
+
+template<typename T>
+void HashIndex<T>::checkpointInMemory() {
     if (!localStorage->hasUpdates()) {
         return;
     }
@@ -424,7 +426,7 @@ void HashIndex<T>::checkpointInMemoryIfNecessary() {
 }
 
 template<typename T>
-void HashIndex<T>::rollbackInMemoryIfNecessary() const {
+void HashIndex<T>::rollback() const {
     if (!localStorage->hasUpdates()) {
         return;
     }

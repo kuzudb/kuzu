@@ -8,6 +8,7 @@ namespace transaction {
 class TransactionManager;
 
 enum class TransactionType : uint8_t { READ_ONLY, WRITE };
+enum class TransactionAction : uint8_t { COMMIT, ROLLBACK };
 
 class Transaction {
     friend class TransactionManager;
