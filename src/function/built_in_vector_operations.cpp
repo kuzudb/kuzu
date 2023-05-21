@@ -25,7 +25,6 @@ void BuiltInVectorOperations::registerVectorOperations() {
     registerStringOperations();
     registerCastOperations();
     registerListOperations();
-    registerInternalIDOperation();
     registerStructOperation();
     // register internal offset operation
     vectorOperations.insert({OFFSET_FUNC_NAME, OffsetVectorOperation::getDefinitions()});
@@ -452,15 +451,6 @@ void BuiltInVectorOperations::registerListOperations() {
     vectorOperations.insert({LIST_UNIQUE_FUNC_NAME, ListUniqueVectorOperation::getDefinitions()});
     vectorOperations.insert(
         {LIST_ANY_VALUE_FUNC_NAME, ListAnyValueVectorOperation::getDefinitions()});
-}
-
-void BuiltInVectorOperations::registerInternalIDOperation() {
-    std::vector<std::unique_ptr<VectorOperationDefinition>> definitions;
-    definitions.push_back(make_unique<VectorOperationDefinition>(ID_FUNC_NAME,
-        std::vector<LogicalTypeID>{LogicalTypeID::NODE}, LogicalTypeID::INTERNAL_ID, nullptr));
-    definitions.push_back(make_unique<VectorOperationDefinition>(ID_FUNC_NAME,
-        std::vector<LogicalTypeID>{LogicalTypeID::REL}, LogicalTypeID::INTERNAL_ID, nullptr));
-    vectorOperations.insert({ID_FUNC_NAME, std::move(definitions)});
 }
 
 void BuiltInVectorOperations::registerStructOperation() {

@@ -163,6 +163,10 @@ void Binder::bindQueryRel(const RelPattern& relPattern,
         getUniqueExpressionName(parsedName), parsedName, tableIDs, srcNode, dstNode,
         relPattern.getDirection() != BOTH, relPattern.getRelType(), lowerBound, upperBound);
     queryRel->setAlias(parsedName);
+    if (isVariableLength) {
+        queryRel->setInternalLengthExpression(
+            expressionBinder.createInternalLengthExpression(*queryRel));
+    }
     // resolve properties associate with rel table
     std::vector<RelTableSchema*> relTableSchemas;
     for (auto tableID : tableIDs) {

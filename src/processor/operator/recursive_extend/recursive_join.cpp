@@ -17,10 +17,14 @@ void BaseRecursiveJoin::initLocalStateInternal(ResultSet* resultSet_, ExecutionC
     }
     srcNodeIDVector = resultSet->getValueVector(dataInfo->srcNodePos).get();
     dstNodeIDVector = resultSet->getValueVector(dataInfo->dstNodePos).get();
-    if (dataInfo->trackPath) {
+    pathLengthVector = resultSet->getValueVector(dataInfo->pathLengthPos).get();
+    switch (dataInfo->joinType) {
+    case planner::RecursiveJoinType::TRACK_PATH: {
         pathVector = resultSet->getValueVector(dataInfo->pathPos).get();
-    } else {
+    } break;
+    default: {
         pathVector = nullptr;
+    } break;
     }
     initLocalRecursivePlan(context);
 }
@@ -60,8 +64,8 @@ bool BaseRecursiveJoin::scanOutput() {
     if (pathVector != nullptr) {
         pathVector->resetAuxiliaryBuffer();
     }
-    frontiersScanner->scan(
-        nodeTable->getTableID(), pathVector, dstNodeIDVector, offsetVectorSize, dataVectorSize);
+    frontiersScanner->scan(nodeTable->getTableID(), pathVector, dstNodeIDVector, pathLengthVector,
+        offsetVectorSize, dataVectorSize);
     if (offsetVectorSize == 0) {
         return false;
     }

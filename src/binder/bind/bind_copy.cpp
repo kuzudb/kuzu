@@ -57,24 +57,6 @@ std::vector<std::string> Binder::bindFilePaths(const std::vector<std::string>& f
     return boundFilePaths;
 }
 
-std::unordered_map<common::property_id_t, std::string> Binder::bindPropertyToNpyMap(
-    common::table_id_t tableID, const std::vector<std::string>& filePaths) {
-    auto catalogContent = catalog.getReadOnlyVersion();
-    auto tableSchema = catalogContent->getTableSchema(tableID);
-    if (tableSchema->properties.size() != filePaths.size()) {
-        throw BinderException(StringUtils::string_format(
-            "Number of npy files is not equal to number of properties in table {}.",
-            tableSchema->tableName));
-    }
-    std::unordered_map<common::property_id_t, std::string> propertyIDToNpyMap;
-    for (int i = 0; i < filePaths.size(); i++) {
-        auto& filePath = filePaths[i];
-        auto& propertyID = tableSchema->properties[i].propertyID;
-        propertyIDToNpyMap[propertyID] = filePath;
-    }
-    return propertyIDToNpyMap;
-}
-
 CSVReaderConfig Binder::bindParsingOptions(
     const std::unordered_map<std::string, std::unique_ptr<ParsedExpression>>* parsingOptions) {
     CSVReaderConfig csvReaderConfig;

@@ -8,10 +8,10 @@ namespace optimizer {
 
 // ProjectionPushDownOptimizer implements the logic to avoid materializing unnecessary properties
 // for hash join build.
-// Note the optimization is for properties only but not for general expressions. This is because
-// it's hard to figure out what expression is in-use, e.g. COUNT(a.age) + 1, it could be either the
-// whole expression was evaluated in a WITH clause or only COUNT(a.age) was evaluated or only a.age
-// is evaluate. For simplicity, we only consider the push down for property.
+// Note the optimization is for properties & variables only but not for general expressions. This is
+// because it's hard to figure out what expression is in-use, e.g. COUNT(a.age) + 1, it could be
+// either the whole expression was evaluated in a WITH clause or only COUNT(a.age) was evaluated or
+// only a.age is evaluate. For simplicity, we only consider the push down for property.
 class ProjectionPushDownOptimizer : public LogicalOperatorVisitor {
 public:
     void rewrite(planner::LogicalPlan* plan);

@@ -20,7 +20,7 @@ Farooq|Alice|[0:0,0:7,0:5]
 Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|Alice|[0:0,0:7]
 
 -NAME SingleSourceWithAllProperties
--QUERY MATCH (a:person)-[r:knows* SHORTEST 1..30]->(b:person) WHERE a.fName = 'Alice' RETURN len(r) - 1, b, a
+-QUERY MATCH (a:person)-[r:knows* SHORTEST 1..30]->(b:person) WHERE a.fName = 'Alice' RETURN length(r), b, a
 ---- 7
 1|(label:person, 0:1, {ID:2, fName:Bob, gender:2, isStudent:True, isWorker:False, age:30, eyeSight:5.100000, birthdate:1900-01-01, registerTime:2008-11-03 15:25:30.000526, lastJobDuration:10 years 5 months 13:00:00.000024, workedHours:[12,8], usedNames:[Bobby], courseScoresPerTerm:[[8,9],[9,10]]})|(label:person, 0:0, {ID:0, fName:Alice, gender:1, isStudent:True, isWorker:False, age:35, eyeSight:5.000000, birthdate:1900-01-01, registerTime:2011-08-20 11:25:30, lastJobDuration:3 years 2 days 13:02:00, workedHours:[10,5], usedNames:[Aida], courseScoresPerTerm:[[10,8],[6,7,8]]})
 1|(label:person, 0:2, {ID:3, fName:Carol, gender:1, isStudent:False, isWorker:True, age:45, eyeSight:5.000000, birthdate:1940-06-22, registerTime:1911-08-20 02:32:21, lastJobDuration:48:24:11, workedHours:[4,5], usedNames:[Carmen,Fred], courseScoresPerTerm:[[8,10]]})|(label:person, 0:0, {ID:0, fName:Alice, gender:1, isStudent:True, isWorker:False, age:35, eyeSight:5.000000, birthdate:1900-01-01, registerTime:2011-08-20 11:25:30, lastJobDuration:3 years 2 days 13:02:00, workedHours:[10,5], usedNames:[Aida], courseScoresPerTerm:[[10,8],[6,7,8]]})
@@ -50,7 +50,7 @@ Elizabeth|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|[0:4,0:7]
 
 
 -NAME MultipleSrcMultipleDstQuery
--QUERY MATCH (a:person)-[r:knows* SHORTEST 1..10]->(b:person) WHERE a.isStudent = true AND b.isWorker = true RETURN a.fName, b.fName, len(r) - 1
+-QUERY MATCH (a:person)-[r:knows* SHORTEST 1..10]->(b:person) WHERE a.isStudent = true AND b.isWorker = true RETURN a.fName, b.fName, length(r)
 ----- 12
 Alice|Carol|1
 Alice|Dan|1
@@ -71,7 +71,7 @@ Farooq|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|1
 Alice|Bob|Elizabeth
 
 -NAME MultiPart
--QUERY MATCH (a)-[r:knows* SHORTEST 1..30]->(b:person) WHERE b.ID > 6 AND a.fName = 'Alice' WITH a, b, r MATCH (c:person)<-[:knows]-(a:person) RETURN b.fName, len(r) - 1, COUNT(*)
+-QUERY MATCH (a)-[r:knows* SHORTEST 1..30]->(b:person) WHERE b.ID > 6 AND a.fName = 'Alice' WITH a, b, r MATCH (c:person)<-[:knows]-(a:person) RETURN b.fName, length(r), COUNT(*)
 ---- 4
 Elizabeth|2|3
 Farooq|3|3

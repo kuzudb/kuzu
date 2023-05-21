@@ -4,8 +4,8 @@ namespace kuzu {
 namespace processor {
 
 size_t BaseFrontierScanner::scan(common::table_id_t tableID, common::ValueVector* pathVector,
-    common::ValueVector* dstNodeIDVector, common::sel_t& offsetVectorPos,
-    common::sel_t& dataVectorPos) {
+    common::ValueVector* dstNodeIDVector, common::ValueVector* pathLengthVector,
+    common::sel_t& offsetVectorPos, common::sel_t& dataVectorPos) {
     if (k >= frontiers.size()) {
         // BFS terminate before current depth. No need to scan.
         return 0;
@@ -14,7 +14,8 @@ size_t BaseFrontierScanner::scan(common::table_id_t tableID, common::ValueVector
     auto lastFrontier = frontiers[k];
     while (true) {
         if (currentDstOffset != common::INVALID_OFFSET) {
-            scanFromDstOffset(tableID, pathVector, dstNodeIDVector, offsetVectorPos, dataVectorPos);
+            scanFromDstOffset(tableID, pathVector, dstNodeIDVector, pathLengthVector,
+                offsetVectorPos, dataVectorPos);
         }
         if (offsetVectorPos == common::DEFAULT_VECTOR_CAPACITY) {
             break;
@@ -44,8 +45,8 @@ void BaseFrontierScanner::resetState(const BaseBFSMorsel& bfsMorsel) {
 }
 
 void PathScanner::scanFromDstOffset(common::table_id_t tableID, common::ValueVector* pathVector,
-    common::ValueVector* dstNodeIDVector, common::sel_t& offsetVectorPos,
-    common::sel_t& dataVectorPos) {
+    common::ValueVector* dstNodeIDVector, common::ValueVector* pathLengthVector,
+    common::sel_t& offsetVectorPos, common::sel_t& dataVectorPos) {
     auto level = 0;
     while (!nbrsStack.empty()) {
         auto& cursor = cursorStack.top();
@@ -54,8 +55,8 @@ void PathScanner::scanFromDstOffset(common::table_id_t tableID, common::ValueVec
             auto offset = nbrsStack.top()->at(cursor);
             path[level] = offset;
             if (level == 0) { // Found a new nbr at level 0. Found a new path.
-                writePathToVector(
-                    tableID, pathVector, dstNodeIDVector, offsetVectorPos, dataVectorPos);
+                writePathToVector(tableID, pathVector, dstNodeIDVector, pathLengthVector,
+                    offsetVectorPos, dataVectorPos);
                 if (offsetVectorPos == common::DEFAULT_VECTOR_CAPACITY) {
                     return;
                 }
@@ -86,14 +87,14 @@ void PathScanner::initDfs(common::offset_t offset, size_t currentDepth) {
 }
 
 void PathScanner::writePathToVector(common::table_id_t tableID, common::ValueVector* pathVector,
-    common::ValueVector* dstNodeIDVector, common::sel_t& offsetVectorPos,
-    common::sel_t& dataVectorPos) {
+    common::ValueVector* dstNodeIDVector, common::ValueVector* pathLengthVector,
+    common::sel_t& offsetVectorPos, common::sel_t& dataVectorPos) {
+    assert(offsetVectorPos < common::DEFAULT_VECTOR_CAPACITY);
     auto pathLength = path.size();
     auto listEntry = common::ListVector::addList(pathVector, pathLength);
     pathVector->setValue(offsetVectorPos, listEntry);
-    dstNodeIDVector->setValue<common::nodeID_t>(
-        offsetVectorPos, common::nodeID_t{path[pathLength - 1], tableID});
-    assert(offsetVectorPos < common::DEFAULT_VECTOR_CAPACITY);
+    assert(path[pathLength - 1] == currentDstOffset);
+    writeDstNodeOffsetAndLength(dstNodeIDVector, pathLengthVector, offsetVectorPos, tableID);
     offsetVectorPos++;
     auto pathDataVector = common::ListVector::getDataVector(pathVector);
     for (auto i = 0u; i < pathLength; ++i) {
@@ -104,21 +105,22 @@ void PathScanner::writePathToVector(common::table_id_t tableID, common::ValueVec
 
 void DstNodeWithMultiplicityScanner::scanFromDstOffset(common::table_id_t tableID,
     common::ValueVector* pathVector, common::ValueVector* dstNodeIDVector,
-    common::sel_t& offsetVectorPos, common::sel_t& dataVectorPos) {
+    common::ValueVector* pathLengthVector, common::sel_t& offsetVectorPos,
+    common::sel_t& dataVectorPos) {
     auto& multiplicity = frontiers[k]->offsetToMultiplicity.at(currentDstOffset);
     while (multiplicity > 0 && offsetVectorPos < common::DEFAULT_VECTOR_CAPACITY) {
-        dstNodeIDVector->setValue<common::nodeID_t>(
-            offsetVectorPos++, common::nodeID_t{currentDstOffset, tableID});
+        writeDstNodeOffsetAndLength(dstNodeIDVector, pathLengthVector, offsetVectorPos, tableID);
+        offsetVectorPos++;
         multiplicity--;
     }
 }
 
 void FrontiersScanner::scan(common::table_id_t tableID, common::ValueVector* pathVector,
-    common::ValueVector* dstNodeIDVector, common::sel_t& offsetVectorPos,
-    common::sel_t& dataVectorPos) {
+    common::ValueVector* dstNodeIDVector, common::ValueVector* pathLengthVector,
+    common::sel_t& offsetVectorPos, common::sel_t& dataVectorPos) {
     while (offsetVectorPos < common::DEFAULT_VECTOR_CAPACITY && cursor < scanners.size()) {
-        if (scanners[cursor]->scan(
-                tableID, pathVector, dstNodeIDVector, offsetVectorPos, dataVectorPos) == 0) {
+        if (scanners[cursor]->scan(tableID, pathVector, dstNodeIDVector, pathLengthVector,
+                offsetVectorPos, dataVectorPos) == 0) {
             cursor++;
         }
     }

@@ -471,8 +471,7 @@ void LogicalType::setPhysicalType() {
         physicalType = PhysicalTypeID::STRUCT;
     } break;
     default:
-        throw NotImplementedException{
-            "Unsupported LogicalType: " + LogicalTypeUtils::dataTypeToString(typeID) + "."};
+        throw NotImplementedException{"LogicalType::setPhysicalType()."};
     }
 }
 

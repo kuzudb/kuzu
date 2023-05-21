@@ -188,12 +188,19 @@ expression_vector ProjectionPlanner::rewriteExpressionsToProject(
     const expression_vector& expressionsToProject, const Schema& schema) {
     expression_vector result;
     for (auto& expression : expressionsToProject) {
-        if (expression->dataType.getLogicalTypeID() == LogicalTypeID::NODE ||
-            expression->dataType.getLogicalTypeID() == LogicalTypeID::REL) {
+        switch (expression->getDataType().getLogicalTypeID()) {
+        case LogicalTypeID::NODE:
+        case LogicalTypeID::REL: {
             for (auto& property : rewriteVariableAsAllPropertiesInScope(*expression, schema)) {
                 result.push_back(property);
             }
-        } else {
+        } break;
+        case LogicalTypeID::RECURSIVE_REL: {
+            auto& rel = (RelExpression&)*expression;
+            result.push_back(rel.getInternalLengthExpression());
+            result.push_back(expression);
+        } break;
+        default:
             result.push_back(expression);
         }
     }

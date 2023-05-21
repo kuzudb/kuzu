@@ -27,20 +27,28 @@ struct BaseFrontierScanner {
     virtual ~BaseFrontierScanner() = default;
 
     size_t scan(common::table_id_t tableID, common::ValueVector* pathVector,
-        common::ValueVector* dstNodeIDVector, common::sel_t& offsetVectorPos,
-        common::sel_t& dataVectorPos);
+        common::ValueVector* dstNodeIDVector, common::ValueVector* pathLengthVector,
+        common::sel_t& offsetVectorPos, common::sel_t& dataVectorPos);
 
     void resetState(const BaseBFSMorsel& bfsMorsel);
 
-private:
+protected:
     virtual void initScanFromDstOffset() = 0;
     virtual void scanFromDstOffset(common::table_id_t tableID, common::ValueVector* pathVector,
-        common::ValueVector* dstNodeIDVector, common::sel_t& offsetVectorPos,
-        common::sel_t& dataVectorPos) = 0;
+        common::ValueVector* dstNodeIDVector, common::ValueVector* pathLengthVector,
+        common::sel_t& offsetVectorPos, common::sel_t& dataVectorPos) = 0;
+
+    inline void writeDstNodeOffsetAndLength(common::ValueVector* dstNodeIDVector,
+        common::ValueVector* pathLengthVector, common::sel_t& offsetVectorPos,
+        common::table_id_t tableID) {
+        dstNodeIDVector->setValue<common::nodeID_t>(
+            offsetVectorPos, common::nodeID_t{currentDstOffset, tableID});
+        pathLengthVector->setValue<int64_t>(offsetVectorPos, (int64_t)k);
+    }
 };
 
 /*
- * DstNodeScanner scans dst node offset only.
+ * DstNodeScanner scans dst node offset & length of path.
  */
 struct DstNodeScanner : public BaseFrontierScanner {
     DstNodeScanner(const std::unordered_set<common::offset_t>& targetDstOffsets, size_t k)
@@ -49,19 +57,20 @@ struct DstNodeScanner : public BaseFrontierScanner {
 private:
     inline void initScanFromDstOffset() final {}
     inline void scanFromDstOffset(common::table_id_t tableID, common::ValueVector* pathVector,
-        common::ValueVector* dstNodeIDVector, common::sel_t& offsetVectorPos,
-        common::sel_t& dataVectorPos) final {
+        common::ValueVector* dstNodeIDVector, common::ValueVector* pathLengthVector,
+        common::sel_t& offsetVectorPos, common::sel_t& dataVectorPos) final {
         assert(offsetVectorPos < common::DEFAULT_VECTOR_CAPACITY);
-        dstNodeIDVector->setValue<common::nodeID_t>(
-            offsetVectorPos++, common::nodeID_t{currentDstOffset, tableID});
+        writeDstNodeOffsetAndLength(dstNodeIDVector, pathLengthVector, offsetVectorPos, tableID);
+        offsetVectorPos++;
     }
 };
 
 /*
- * PathScanner scans all paths of a fixed length k. This is done by starting
- * a backward traversals from only the destination nodes in the k'th frontier (assuming the first
- * frontier has index 0) over the backwards edges stored between the frontiers that was used to
- * store the data related to the BFS that was computed in the RecursiveJoin operator.
+ * PathScanner scans all paths of a fixed length k (also dst node offsets & length of path). This is
+ * done by starting a backward traversals from only the destination nodes in the k'th frontier
+ * (assuming the first frontier has index 0) over the backwards edges stored between the frontiers
+ * that was used to store the data related to the BFS that was computed in the RecursiveJoin
+ * operator.
  */
 struct PathScanner : public BaseFrontierScanner {
     using nbrs_t = std::vector<common::offset_t>*;
@@ -79,20 +88,20 @@ private:
     inline void initScanFromDstOffset() final { initDfs(currentDstOffset, k); }
     // Scan current stacks until exhausted or vector is filled up.
     void scanFromDstOffset(common::table_id_t tableID, common::ValueVector* pathVector,
-        common::ValueVector* dstNodeIDVector, common::sel_t& offsetVectorPos,
-        common::sel_t& dataVectorPos) final;
+        common::ValueVector* dstNodeIDVector, common::ValueVector* pathLengthVector,
+        common::sel_t& offsetVectorPos, common::sel_t& dataVectorPos) final;
 
     // Initialize stacks for given offset.
     void initDfs(common::offset_t offset, size_t currentDepth);
 
     void writePathToVector(common::table_id_t tableID, common::ValueVector* pathVector,
-        common::ValueVector* dstNodeIDVector, common::sel_t& offsetVectorPos,
-        common::sel_t& dataVectorPos);
+        common::ValueVector* dstNodeIDVector, common::ValueVector* pathLengthVector,
+        common::sel_t& offsetVectorPos, common::sel_t& dataVectorPos);
 };
 
 /*
- * DstNodeWithMultiplicityScanner scans dst node offset and repeat it for multiplicity times in
- * value vector.
+ * DstNodeWithMultiplicityScanner scans dst node offset & length of path and repeat it for
+ * multiplicity times in value vector.
  */
 struct DstNodeWithMultiplicityScanner : public BaseFrontierScanner {
     DstNodeWithMultiplicityScanner(
@@ -102,8 +111,8 @@ struct DstNodeWithMultiplicityScanner : public BaseFrontierScanner {
 private:
     inline void initScanFromDstOffset() final {}
     void scanFromDstOffset(common::table_id_t tableID, common::ValueVector* pathVector,
-        common::ValueVector* dstNodeIDVector, common::sel_t& offsetVectorPos,
-        common::sel_t& dataVectorPos) final;
+        common::ValueVector* dstNodeIDVector, common::ValueVector* pathLengthVector,
+        common::sel_t& offsetVectorPos, common::sel_t& dataVectorPos) final;
 };
 
 /*
@@ -124,8 +133,8 @@ struct FrontiersScanner {
         : scanners{std::move(scanners)}, cursor{0} {}
 
     void scan(common::table_id_t tableID, common::ValueVector* pathVector,
-        common::ValueVector* dstNodeIDVector, common::sel_t& offsetVectorPos,
-        common::sel_t& dataVectorPos);
+        common::ValueVector* dstNodeIDVector, common::ValueVector* pathLengthVector,
+        common::sel_t& offsetVectorPos, common::sel_t& dataVectorPos);
 
     inline void resetState(const BaseBFSMorsel& bfsMorsel) {
         cursor = 0;

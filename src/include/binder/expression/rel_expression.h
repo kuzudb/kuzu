@@ -39,6 +39,13 @@ public:
     inline std::shared_ptr<Expression> getInternalIDProperty() const {
         return getPropertyExpression(common::INTERNAL_ID_SUFFIX);
     }
+    inline void setInternalLengthExpression(std::unique_ptr<Expression> expression) {
+        internalLengthExpression = std::move(expression);
+    }
+    inline std::shared_ptr<Expression> getInternalLengthExpression() const {
+        assert(internalLengthExpression != nullptr);
+        return internalLengthExpression->copy();
+    }
 
 private:
     std::shared_ptr<NodeExpression> srcNode;
@@ -47,6 +54,7 @@ private:
     common::QueryRelType relType;
     uint64_t lowerBound;
     uint64_t upperBound;
+    std::unique_ptr<Expression> internalLengthExpression;
 };
 
 } // namespace binder
