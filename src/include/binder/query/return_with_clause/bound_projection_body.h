@@ -46,8 +46,6 @@ public:
 
     inline bool hasSkipOrLimit() const { return hasSkip() || hasLimit(); }
 
-    expression_vector getPropertiesToRead() const;
-
     inline std::unique_ptr<BoundProjectionBody> copy() const {
         return std::make_unique<BoundProjectionBody>(*this);
     }

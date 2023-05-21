@@ -7,21 +7,21 @@ namespace common {
 
 enum class StatementType : uint8_t {
     QUERY = 0,
-    CREATE_NODE_TABLE_CLAUSE = 1,
-    CREATE_REL_TABLE_CLAUSE = 2,
-    COPY = 3,
+    CREATE_NODE_TABLE = 1,
+    CREATE_REL_TABLE = 2,
     DROP_TABLE = 4,
     RENAME_TABLE = 5,
     ADD_PROPERTY = 6,
     DROP_PROPERTY = 7,
     RENAME_PROPERTY = 8,
+    COPY = 20,
 };
 
 class StatementTypeUtils {
 public:
     static bool isDDL(StatementType statementType) {
-        return statementType == StatementType::CREATE_NODE_TABLE_CLAUSE ||
-               statementType == StatementType::CREATE_REL_TABLE_CLAUSE ||
+        return statementType == StatementType::CREATE_NODE_TABLE ||
+               statementType == StatementType::CREATE_REL_TABLE ||
                statementType == StatementType::DROP_TABLE ||
                statementType == StatementType::DROP_PROPERTY;
     }

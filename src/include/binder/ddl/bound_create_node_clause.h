@@ -9,7 +9,7 @@ class BoundCreateNodeClause : public BoundCreateTable {
 public:
     explicit BoundCreateNodeClause(
         std::string tableName, std::vector<catalog::Property> properties, uint32_t primaryKeyIdx)
-        : BoundCreateTable{common::StatementType::CREATE_NODE_TABLE_CLAUSE, std::move(tableName),
+        : BoundCreateTable{common::StatementType::CREATE_NODE_TABLE, std::move(tableName),
               std::move(properties)},
           primaryKeyIdx{primaryKeyIdx} {}
 

@@ -12,10 +12,10 @@ namespace binder {
 
 std::unique_ptr<BoundStatement> Binder::bind(const Statement& statement) {
     switch (statement.getStatementType()) {
-    case StatementType::CREATE_NODE_TABLE_CLAUSE: {
+    case StatementType::CREATE_NODE_TABLE: {
         return bindCreateNodeTableClause(statement);
     }
-    case StatementType::CREATE_REL_TABLE_CLAUSE: {
+    case StatementType::CREATE_REL_TABLE: {
         return bindCreateRelTableClause(statement);
     }
     case StatementType::COPY: {

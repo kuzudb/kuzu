@@ -14,8 +14,6 @@ public:
 
     common::ClauseType getClauseType() const { return clauseType; }
 
-    virtual expression_vector getPropertiesToRead() const = 0;
-
     virtual std::unique_ptr<BoundUpdatingClause> copy() = 0;
 
 private:

@@ -18,16 +18,6 @@ std::vector<expression_pair> BoundCreateClause::getAllSetItems() const {
     return result;
 }
 
-expression_vector BoundCreateClause::getPropertiesToRead() const {
-    expression_vector result;
-    for (auto& setItem : getAllSetItems()) {
-        for (auto& property : setItem.second->getSubPropertyExpressions()) {
-            result.push_back(property);
-        }
-    }
-    return result;
-}
-
 std::unique_ptr<BoundUpdatingClause> BoundCreateClause::copy() {
     auto result = std::make_unique<BoundCreateClause>();
     for (auto& createNode : createNodes) {

@@ -18,9 +18,6 @@ public:
 
     inline BoundStatementResult* getStatementResult() const { return statementResult.get(); }
 
-    inline bool isDDL() const { return common::StatementTypeUtils::isDDL(statementType); }
-    inline bool isCopyCSV() const { return common::StatementTypeUtils::isCopyCSV(statementType); }
-
     virtual inline bool isReadOnly() const { return false; }
 
 private:

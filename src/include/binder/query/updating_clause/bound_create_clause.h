@@ -76,7 +76,6 @@ public:
     }
 
     std::vector<expression_pair> getAllSetItems() const;
-    expression_vector getPropertiesToRead() const override;
 
     std::unique_ptr<BoundUpdatingClause> copy() override;
 
