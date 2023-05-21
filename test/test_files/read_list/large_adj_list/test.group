@@ -1,4 +1,0 @@
--GROUP EndToEndReadLargeListsTest
--TEST LargeAdjListTest
--DATASET read-list-tests/large-list
--READ_ONLY TRUE

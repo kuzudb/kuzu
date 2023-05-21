@@ -14,6 +14,7 @@ namespace main {
 class PreparedStatement {
     friend class Connection;
     friend class testing::TestHelper;
+    friend class testing::TestRunner;
     friend class testing::TinySnbDDLTest;
     friend class testing::TinySnbCopyCSVTransactionTest;
 

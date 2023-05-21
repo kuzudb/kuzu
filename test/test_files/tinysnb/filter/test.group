@@ -1,4 +1,0 @@
--GROUP TinySnbReadTest
--TEST Filter
--DATASET tinysnb
--READ_ONLY TRUE

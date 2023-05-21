@@ -1,3 +1,9 @@
+-GROUP TinySnbReadTest
+-TEST Filter
+-DATASET tinysnb
+
+--
+
 -NAME MultiQueryOneHopKnowsFilteredTest1
 -QUERY MATCH (a:person) WHERE a.gender = 1 WITH a AS k MATCH (k)-[e:knows]->(b:person) WHERE b.gender = 2 RETURN COUNT(*)
 -ENUMERATE

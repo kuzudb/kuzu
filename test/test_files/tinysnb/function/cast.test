@@ -1,3 +1,9 @@
+-GROUP TinySnbReadTest
+-TEST Function
+-DATASET tinysnb
+
+--
+
 -NAME CastFromINT16
 -QUERY MATCH (p:person)-[e:studyAt]->(o:organisation) WHERE p.ID=0 RETURN to_int32(e.length), to_int64(e.length), to_float(e.length), to_double(e.length)
 ---- 1

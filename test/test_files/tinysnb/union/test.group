@@ -1,4 +1,0 @@
--GROUP TinySnbReadTest
--TEST Union
--DATASET tinysnb
--READ_ONLY TRUE

@@ -1,3 +1,9 @@
+-GROUP TinySnbReadTest
+-TEST Filter
+-DATASET tinysnb
+
+--
+
 -NAME TwoHopKnowsIDNotEqualTest
 -QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person) WHERE id(a) <> id(c) RETURN COUNT(*)
 ---- 1

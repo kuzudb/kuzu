@@ -1,3 +1,9 @@
+-GROUP TinySnbReadTest
+-TEST Agg
+-DATASET tinysnb
+
+--
+
 -NAME SimpleAvgWithFilterMultiQueryTest
 -QUERY MATCH (a:person) WHERE a.birthdate = date('1980-10-26') WITH AVG(a.age) AS avgAge, AVG(a.eyeSight) AS avgEyeSight RETURN avgAge > avgEyeSight
 ---- 1

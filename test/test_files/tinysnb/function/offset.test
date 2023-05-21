@@ -1,3 +1,9 @@
+-GROUP TinySnbReadTest
+-TEST Function
+-DATASET tinysnb
+
+--
+
 -NAME NodeOffsetTest1
 -QUERY MATCH (a:person) RETURN id(a), offset(id(a))
 ---- 8

@@ -1,5 +1,12 @@
+-GROUP TinySnbReadTest
+-TEST OrderBy
+-DATASET tinysnb
+
+--
+
 -NAME OrderByInt64Test
 -QUERY MATCH (p:person) RETURN p.ID, p.age ORDER BY p.age + p.ID
+-CHECK_ORDER
 -PARALLELISM 3
 ---- 8
 5|20
@@ -13,6 +20,7 @@
 
 -NAME OrderByInt32Test
 -QUERY MATCH (m:movies) RETURN m.length ORDER BY m.length
+-CHECK_ORDER
 ---- 3
 126
 298
@@ -20,6 +28,7 @@
 
 -NAME OrderByInt16Test
 -QUERY MATCH (:person)-[e:studyAt]->(:organisation) RETURN e.length ORDER BY e.length
+-CHECK_ORDER
 ---- 3
 5
 22
@@ -27,6 +36,7 @@
 
 -NAME OrderByBooleanTest
 -QUERY MATCH (p:person) RETURN p.isStudent ORDER BY p.isStudent desc
+-CHECK_ORDER
 -PARALLELISM 3
 ---- 8
 True
@@ -41,6 +51,7 @@ False
 
 -NAME OrderByDoubleTest
 -QUERY MATCH (p:person) RETURN p.eyeSight ORDER BY p.eyeSight
+-CHECK_ORDER
 -PARALLELISM 3
 ---- 8
 4.500000
@@ -54,6 +65,7 @@ False
 
 -NAME OrderByFloatTest
 -QUERY MATCH (p:person) RETURN p.height ORDER BY p.height
+-CHECK_ORDER
 -PARALLELISM 3
 ---- 8
 0.990000
@@ -67,6 +79,7 @@ False
 
 -NAME OrderByDateTest
 -QUERY MATCH (p:person) RETURN p.birthdate ORDER BY p.birthdate desc
+-CHECK_ORDER
 -PARALLELISM 3
 ---- 8
 1990-11-27
@@ -80,6 +93,7 @@ False
 
 -NAME OrderByTimestampTest
 -QUERY MATCH (p:person) RETURN p.registerTime ORDER BY p.registerTime
+-CHECK_ORDER
 -PARALLELISM 3
 ---- 8
 1911-08-20 02:32:21
@@ -93,6 +107,7 @@ False
 
 -NAME OrderByIntervalTest
 -QUERY MATCH (p:person) RETURN p.lastJobDuration ORDER BY p.lastJobDuration desc
+-CHECK_ORDER
 -PARALLELISM 2
 ---- 8
 10 years 5 months 13:00:00.000024
@@ -106,6 +121,7 @@ False
 
 -NAME OrderByStringTest
 -QUERY MATCH (p:person) RETURN p.fName ORDER BY p.fName desc
+-CHECK_ORDER
 -PARALLELISM 2
 ---- 8
 Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
@@ -119,6 +135,7 @@ Alice
 
 -NAME OrderByStrMultipleColTest
 -QUERY MATCH (p:person) RETURN p.age, p.eyeSight ORDER BY p.isWorker desc, p.age, p.eyeSight desc
+-CHECK_ORDER
 -PARALLELISM 2
 ---- 8
 20|4.800000
@@ -132,6 +149,7 @@ Alice
 
 -NAME OrderByProjectionTest
 -QUERY MATCH (a:person)-[:knows]->(b:person) with b return b.fName order by b.fName desc
+-CHECK_ORDER
 -ENUMERATE
 -PARALLELISM 7
 ---- 14
@@ -152,6 +170,7 @@ Alice
 
 -NAME OrderByThreeHopTest
 -QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person)-[e3:knows]->(d:person) RETURN a.fName order by d.age desc, c.age asc, b.age asc, a.age desc limit 10
+-CHECK_ORDER
 -ENUMERATE
 ---- 10
 Carol
@@ -169,6 +188,7 @@ Carol
 #the order by scanner can only scan one tuple from factorizedTable at a time.
 -NAME OrderByScanSingleTupleTest
 -QUERY MATCH (a:person)-[:knows]->(b:person) return a.fName order by b.fName, a.fName
+-CHECK_ORDER
 -ENUMERATE
 ---- 14
 Bob
@@ -192,6 +212,7 @@ Elizabeth
 
 -NAME OrderByAggregateTest1
 -QUERY MATCH (a:person)-[:knows]->(b:person) return a.age, COUNT(b) as c ORDER BY a.age
+-CHECK_ORDER
 -ENUMERATE
 ---- 4
 20|5
@@ -201,6 +222,7 @@ Elizabeth
 
 -NAME OrderByAggregateTest2
 -QUERY MATCH (a:person)-[:knows]->(b:person) return a.gender, COUNT(b) ORDER BY COUNT(b) DESC
+-CHECK_ORDER
 -ENUMERATE
 ---- 2
 1|8

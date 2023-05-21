@@ -1,4 +1,5 @@
 #include "graph_test/graph_test.h"
+#include "test_runner/test_parser.h"
 
 using ::testing::Test;
 using namespace kuzu::testing;
@@ -6,54 +7,47 @@ using namespace kuzu::common;
 
 class EndToEndReadTest : public DBTest {
 public:
-    EndToEndReadTest(TestConfig testConfig) : testConfig(std::move(testConfig)) {}
+    explicit EndToEndReadTest(
+        std::string dataset, std::vector<std::unique_ptr<TestStatement>> statements)
+        : dataset{std::move(dataset)}, statements{std::move(statements)} {}
+
     std::string getInputDir() override {
-        return TestHelper::appendKuzuRootPath("dataset/" + testConfig.dataset + "/");
+        return TestHelper::appendKuzuRootPath("dataset/" + dataset + "/");
     }
-    void TestBody() override {
-        for (auto& file : testConfig.files) {
-            if (testConfig.checkOrder) {
-                runTestAndCheckOrder(file);
-            } else {
-                runTest(file);
-            }
-        }
-    }
+    void TestBody() override { runTest(statements); }
 
 private:
-    TestConfig testConfig;
+    std::string dataset;
+    std::vector<std::unique_ptr<TestStatement>> statements;
 };
 
-void registerTests(const std::vector<TestConfig> testConfig) {
-    for (auto testItem : testConfig) {
-        testing::RegisterTest(testItem.testGroup.c_str(), testItem.testName.c_str(), nullptr,
-            nullptr, __FILE__, __LINE__,
-            [=]() -> DBTest* { return new EndToEndReadTest(testItem); });
+void parseAndRegisterTestCase(const std::string& path) {
+    auto testParser = std::make_unique<TestParser>();
+    auto testCase = std::move(testParser->parseTestFile(path));
+    if (testCase->isValid() && testCase->hasStatements()) {
+        auto dataset = testCase->dataset;
+        auto statements = std::move(testCase->statements);
+        testing::RegisterTest(testCase->group.c_str(), testCase->name.c_str(), nullptr, nullptr,
+            __FILE__, __LINE__,
+            [dataset = std::move(dataset), statements = std::move(statements)]() mutable
+            -> DBTest* { return new EndToEndReadTest(std::move(dataset), std::move(statements)); });
     }
 }
 
-TestConfig parseTestGroup(const std::string& path) {
-    auto testConfig = TestHelper::parseGroupFile(path + "/test.group");
-    for (const auto& entry : std::filesystem::directory_iterator(path)) {
-        if (entry.is_regular_file() && FileUtils::getFileExtension(entry) == ".test") {
-            testConfig.files.push_back(entry.path().string());
-        }
+void scanTestFiles(const std::string& path) {
+    if (std::filesystem::is_regular_file(path)) {
+        parseAndRegisterTestCase(path);
+        return;
     }
-    return testConfig;
-}
-
-void scanTestFiles(const std::string& path, std::vector<TestConfig>& configs) {
-    for (const auto& directory : FileUtils::findAllDirectories(path)) {
-        if (FileUtils::fileOrPathExists(directory + "/test.group")) {
-            TestConfig config = parseTestGroup(directory);
-            configs.push_back(config);
-        }
+    for (const auto& entry : std::filesystem::recursive_directory_iterator(path)) {
+        if (!entry.is_regular_file() || FileUtils::getFileExtension(entry) != ".test")
+            continue;
+        parseAndRegisterTestCase(entry.path().string());
     }
 }
 
 int main(int argc, char** argv) {
     testing::InitGoogleTest(&argc, argv);
-    std::vector<TestConfig> configs;
     std::string path = "test/test_files";
     if (argc > 1) {
         path = argv[1];
@@ -62,7 +56,6 @@ int main(int argc, char** argv) {
     if (!FileUtils::fileOrPathExists(path)) {
         throw Exception("Test directory not exists! [" + path + "].");
     }
-    scanTestFiles(path, configs);
-    registerTests(configs);
+    scanTestFiles(path);
     return RUN_ALL_TESTS();
 }

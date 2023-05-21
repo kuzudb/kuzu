@@ -1,4 +1,0 @@
--GROUP TinySnbReadTest
--TEST Projection
--DATASET tinysnb
--READ_ONLY TRUE

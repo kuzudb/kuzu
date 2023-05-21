@@ -1,3 +1,9 @@
+-GROUP TinySnbReadTest
+-TEST Cyclic
+-DATASET tinysnb
+
+--
+
 -NAME MultiLabelCyclicTest
 -QUERY MATCH (a:person)-[:workAt|:knows|:studyAt]->(b:organisation), (a)-[:workAt]->(b) RETURN COUNT(*)
 ---- 1

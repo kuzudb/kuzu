@@ -1,3 +1,9 @@
+-GROUP TinySnbReadTest
+-TEST Unwind
+-DATASET tinysnb
+
+--
+
 -NAME unwind1
 -QUERY UNWIND [1, 2, 3, 4] AS x RETURN x
 ---- 4

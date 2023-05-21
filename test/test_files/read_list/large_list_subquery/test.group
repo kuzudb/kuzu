@@ -1,4 +1,0 @@
--GROUP EndToEndReadListsSubQueryTest
--TEST LargeListSubQueryTest
--DATASET read-list-tests/large-list-sub-query-tests
--READ_ONLY TRUE

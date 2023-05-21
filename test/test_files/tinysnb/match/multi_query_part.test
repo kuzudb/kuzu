@@ -1,3 +1,9 @@
+-GROUP TinySnbReadTest
+-TEST Match
+-DATASET tinysnb
+
+--
+
 -NAME MultiQueryOneHopKnowsTest
 -QUERY MATCH (a:person)-[e1:knows]->(b:person) WITH b.age AS m RETURN m
 -ENUMERATE

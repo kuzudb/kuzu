@@ -1,3 +1,9 @@
+-GROUP TinySnbReadTest
+-TEST Match
+-DATASET tinysnb
+
+--
+
 -NAME UndirKnows1
 -QUERY MATCH (a:person)-[:knows]-(b:person) WHERE b.fName = "Bob" RETURN a.fName;
 ---- 6

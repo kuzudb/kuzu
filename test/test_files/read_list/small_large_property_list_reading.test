@@ -1,6 +1,11 @@
+-GROUP EndToEndReadLargeListsTest
+-TEST PropLists4BytesPerEdgeTest
+-DATASET read-list-tests/large-list
+
+--
+
 # Result is 3 and 0 is omitted because 0->0 edge's int64Prop is null.
 -NAME ReadingLargeListOneHop
--COMPARE_RESULT 1
 -QUERY MATCH (a:person)-[e1:knows]->(b:person) WHERE a.ID = 0 AND e1.int64Prop < 4  RETURN e1.int64Prop
 -ENUMERATE
 ---- 3

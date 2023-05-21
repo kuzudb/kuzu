@@ -1,3 +1,9 @@
+-GROUP TinySnbReadTest
+-TEST AggHash
+-DATASET tinysnb
+
+--
+
 -NAME SingleNodeAggTest
 -QUERY MATCH (a:person) RETURN a.age, MIN(a.ID), AVG(a.eyeSight), COUNT(*)
 ---- 7
@@ -31,7 +37,7 @@ Alice|1
 -NAME OneHopAggTest
 -QUERY MATCH (a:person)-[:knows]->(b:person) RETURN a.age, a.gender, COUNT(*)
 -ENUMERATE
---PARALLELISM 2
+-PARALLELISM 2
 ---- 5
 20|1|2
 20|2|3
@@ -41,7 +47,7 @@ Alice|1
 
 -NAME OneHopHashAggTest
 -QUERY MATCH (a:person)-[:knows]->(b:person) RETURN a.gender, COUNT(*), SUM(b.age)
---PARALLELISM 3
+-PARALLELISM 3
 -ENUMERATE
 ---- 2
 1|8|245
@@ -49,7 +55,7 @@ Alice|1
 
 -NAME TwoHopAggTest
 -QUERY MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) RETURN a.gender, COUNT(*), COUNT(DISTINCT b.age)
---PARALLELISM 5
+-PARALLELISM 5
 -ENUMERATE
 ---- 2
 1|18|4

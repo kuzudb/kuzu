@@ -1,3 +1,9 @@
+-GROUP TinySnbReadTest
+-TEST OptionalMatch
+-DATASET tinysnb
+
+--
+
 # Note: Correlated optional match test should be enabled once hash join supports generic join key data type.
 #-NAME CorrelatedOptionalMatchTest1
 #-QUERY MATCH (a:person) OPTIONAL MATCH (a)-[:knows]->(b:person) WHERE b.age > a.age RETURN COUNT(*)

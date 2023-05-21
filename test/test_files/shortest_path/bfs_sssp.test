@@ -1,3 +1,9 @@
+-GROUP SingleSourceShortestPathTest
+-TEST BFS_SSSP
+-DATASET shortest-path-tests
+
+--
+
 -NAME SingleSourceAllDestinationsSSP
 -QUERY MATCH (a:person)-[r:knows* SHORTEST 1..30]->(b:person) WHERE a.fName = 'Alice' RETURN a.fName, b.fName, r
 ---- 7
@@ -11,7 +17,7 @@ Alice|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|[0:0,0:1,0:4,0:7]
 
 -NAME AllSourcesSingleDestinationQuery
 -QUERY MATCH (a:person)-[r:knows* SHORTEST 1..30]->(b:person) WHERE b.fName = 'Alice' RETURN a.fName, b.fName, r
------ 6
+---- 6
 Bob|Alice|[0:0,0:1]
 Carol|Alice|[0:0,0:2]
 Dan|Alice|[0:0,0:3]
@@ -51,7 +57,7 @@ Elizabeth|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|[0:4,0:7]
 
 -NAME MultipleSrcMultipleDstQuery
 -QUERY MATCH (a:person)-[r:knows* SHORTEST 1..10]->(b:person) WHERE a.isStudent = true AND b.isWorker = true RETURN a.fName, b.fName, length(r)
------ 12
+---- 12
 Alice|Carol|1
 Alice|Dan|1
 Alice|Elizabeth|2

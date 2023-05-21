@@ -1,3 +1,9 @@
+-GROUP TinySnbReadTest
+-TEST Filter
+-DATASET tinysnb
+
+--
+
 -NAME FiveHopKnowsFilterTest
 -QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person)-[e3:knows]->(d:person)-[e4:knows]->(e:person)-[:knows]->(f:person) WHERE a.age = 35 AND f.age = a.age  RETURN COUNT(*)
 -ENUMERATE

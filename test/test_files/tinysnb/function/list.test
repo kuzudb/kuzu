@@ -1,3 +1,9 @@
+-GROUP TinySnbReadTest
+-TEST Function
+-DATASET tinysnb
+
+--
+
 -NAME NodeLISTStructuredPropertiesTest
 -QUERY MATCH (a:person) RETURN a.workedHours, a.usedNames, a.courseScoresPerTerm
 ---- 8

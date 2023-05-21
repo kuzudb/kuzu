@@ -1,3 +1,9 @@
+-GROUP TinySnbReadTest
+-TEST Function
+-DATASET tinysnb
+
+--
+
 -NAME moduloFunctionOnDoubleDoubleTest
 -QUERY MATCH (a:organisation) RETURN a.orgCode % a.rating
 ---- 3

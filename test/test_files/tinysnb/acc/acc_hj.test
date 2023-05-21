@@ -1,3 +1,9 @@
+-GROUP TinySnbReadTest
+-TEST Acc
+-DATASET tinysnb
+
+--
+
 -NAME AspBasic
 -QUERY MATCH (a:person)-[e1:knows]->(b:person) WHERE a.age > 35 RETURN b.fName
 -ENCODED_JOIN HJ(b._id){E(b)S(a)}{S(b)}
