@@ -11,15 +11,6 @@ public:
     NormalizedSingleQuery() = default;
     ~NormalizedSingleQuery() = default;
 
-    inline bool isReadOnly() const {
-        for (auto& queryPart : queryParts) {
-            if (queryPart->hasUpdatingClause()) {
-                return false;
-            }
-        }
-        return true;
-    }
-
     inline void appendQueryPart(std::unique_ptr<NormalizedQueryPart> queryPart) {
         queryParts.push_back(std::move(queryPart));
     }
