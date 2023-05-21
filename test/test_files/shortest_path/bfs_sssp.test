@@ -57,7 +57,7 @@ Elizabeth|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|[0:4,0:7]
 
 -NAME MultipleSrcMultipleDstQuery
 -QUERY MATCH (a:person)-[r:knows* SHORTEST 1..10]->(b:person) WHERE a.isStudent = true AND b.isWorker = true RETURN a.fName, b.fName, length(r)
------ 12
+---- 12
 Alice|Carol|1
 Alice|Dan|1
 Alice|Elizabeth|2
