@@ -356,6 +356,7 @@ struct CopyRelRecord {
 };
 
 struct TableStatisticsRecord {
+    // TODO(Guodong): Better to replace the bool with an enum.
     bool isNodeTable;
 
     TableStatisticsRecord() = default;

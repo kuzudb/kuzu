@@ -50,12 +50,12 @@ void Connection::beginWriteTransaction() {
 
 void Connection::commit() {
     std::unique_lock<std::mutex> lck{mtx};
-    commitOrRollbackNoLock(true /* isCommit */);
+    commitOrRollbackNoLock(TransactionAction::COMMIT);
 }
 
 void Connection::rollback() {
     std::unique_lock<std::mutex> lck{mtx};
-    commitOrRollbackNoLock(false /* is rollback */);
+    commitOrRollbackNoLock(TransactionAction::ROLLBACK);
 }
 
 void Connection::setMaxNumThreadForExec(uint64_t numThreads) {
@@ -109,12 +109,12 @@ void Connection::setTransactionModeNoLock(ConnectionTransactionMode newTransacti
 
 void Connection::commitButSkipCheckpointingForTestingRecovery() {
     std::unique_lock<std::mutex> lck{mtx};
-    commitOrRollbackNoLock(true /* isCommit */, true /* skip checkpointing for testing */);
+    commitOrRollbackNoLock(TransactionAction::COMMIT, true /* skip checkpointing for testing */);
 }
 
 void Connection::rollbackButSkipCheckpointingForTestingRecovery() {
     std::unique_lock<std::mutex> lck{mtx};
-    commitOrRollbackNoLock(false /* is rollback */, true /* skip checkpointing for testing */);
+    commitOrRollbackNoLock(TransactionAction::ROLLBACK, true /* skip checkpointing for testing */);
 }
 
 transaction::Transaction* Connection::getActiveTransaction() {
@@ -133,14 +133,14 @@ bool Connection::hasActiveTransaction() {
 }
 
 void Connection::commitNoLock() {
-    commitOrRollbackNoLock(true /* is commit */);
+    commitOrRollbackNoLock(TransactionAction::COMMIT);
 }
 
 void Connection::rollbackIfNecessaryNoLock() {
     // If there is no active transaction in the system (e.g., an exception occurs during
     // planning), we shouldn't roll back the transaction.
     if (activeTransaction != nullptr) {
-        commitOrRollbackNoLock(false /* is rollback */);
+        commitOrRollbackNoLock(TransactionAction::ROLLBACK);
     }
 }
 
@@ -378,14 +378,14 @@ void Connection::beginTransactionNoLock(TransactionType type) {
                             database->transactionManager->beginWriteTransaction();
 }
 
-void Connection::commitOrRollbackNoLock(bool isCommit, bool skipCheckpointForTesting) {
+void Connection::commitOrRollbackNoLock(
+    transaction::TransactionAction action, bool skipCheckpointForTesting) {
     if (activeTransaction) {
-        if (activeTransaction->isWriteTransaction()) {
-            database->commitAndCheckpointOrRollback(
-                activeTransaction.get(), isCommit, skipCheckpointForTesting);
+        if (action == TransactionAction::COMMIT) {
+            database->commit(activeTransaction.get(), skipCheckpointForTesting);
         } else {
-            isCommit ? database->transactionManager->commit(activeTransaction.get()) :
-                       database->transactionManager->rollback(activeTransaction.get());
+            assert(action == TransactionAction::ROLLBACK);
+            database->rollback(activeTransaction.get(), skipCheckpointForTesting);
         }
         activeTransaction.reset();
         transactionMode = ConnectionTransactionMode::AUTO_COMMIT;

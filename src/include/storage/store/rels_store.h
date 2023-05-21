@@ -36,8 +36,8 @@ public:
     // relStore when checkpointing and not in recovery mode. In other words, this function should
     // only be called by wal_replayer during checkpointing, during which time no other transaction
     // is running on the system, so we can directly create and insert a RelTable into relTables.
-    inline void createRelTable(common::table_id_t tableID, BufferManager* bufferManager, WAL* wal,
-        catalog::Catalog* catalog, MemoryManager* memoryManager) {
+    inline void createRelTable(
+        common::table_id_t tableID, catalog::Catalog* catalog, MemoryManager* memoryManager) {
         relTables[tableID] = std::make_unique<RelTable>(*catalog, tableID, *memoryManager, wal);
     }
 
@@ -55,9 +55,31 @@ public:
         relsStatistics.removeTableStatistic(tableID);
     }
 
-    inline void prepareCommitOrRollbackIfNecessary(bool isCommit) {
+    inline void prepareCommit() {
+        if (relsStatistics.hasUpdates()) {
+            wal->logTableStatisticsRecord(false /* isNodeTable */);
+            relsStatistics.writeTablesStatisticsFileForWALRecord(wal->getDirectory());
+        }
         for (auto& [_, relTable] : relTables) {
-            relTable->prepareCommitOrRollbackIfNecessary(isCommit);
+            relTable->prepareCommit();
+        }
+    }
+    inline void prepareRollback() {
+        if (relsStatistics.hasUpdates()) {
+            wal->logTableStatisticsRecord(false /* isNodeTable */);
+        }
+        for (auto& [_, relTable] : relTables) {
+            relTable->prepareRollback();
+        }
+    }
+    inline void checkpointInMemory(const std::unordered_set<common::table_id_t>& updatedTables) {
+        for (auto updatedTableID : updatedTables) {
+            relTables.at(updatedTableID)->checkpointInMemory();
+        }
+    }
+    inline void rollback(const std::unordered_set<common::table_id_t>& updatedTables) {
+        for (auto updatedTableID : updatedTables) {
+            relTables.at(updatedTableID)->rollback();
         }
     }
 
@@ -72,6 +94,7 @@ public:
 private:
     std::unordered_map<common::table_id_t, std::unique_ptr<RelTable>> relTables;
     RelsStatistics relsStatistics;
+    WAL* wal;
 };
 
 } // namespace storage

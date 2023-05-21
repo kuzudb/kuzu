@@ -161,7 +161,8 @@ protected:
 
     void beginTransactionNoLock(transaction::TransactionType type);
 
-    void commitOrRollbackNoLock(bool isCommit, bool skipCheckpointForTesting = false);
+    void commitOrRollbackNoLock(
+        transaction::TransactionAction action, bool skipCheckpointForTesting = false);
 
     std::unique_ptr<QueryResult> queryResultWithError(std::string& errMsg);
 

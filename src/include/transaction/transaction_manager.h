@@ -57,7 +57,7 @@ private:
         }
     }
     void commitOrRollbackNoLock(Transaction* transaction, bool isCommit);
-    void assertActiveWriteTransationIsCorrectNoLock(Transaction* transaction) const;
+    void assertActiveWriteTransactionIsCorrectNoLock(Transaction* transaction) const;
 
 private:
     std::shared_ptr<spdlog::logger> logger;

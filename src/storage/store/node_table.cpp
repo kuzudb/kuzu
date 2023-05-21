@@ -72,9 +72,15 @@ void NodeTable::deleteNodes(ValueVector* nodeIDVector, ValueVector* primaryKeyVe
     }
 }
 
-void NodeTable::prepareCommitOrRollbackIfNecessary(bool isCommit) {
+void NodeTable::prepareCommit() {
     if (pkIndex) {
-        pkIndex->prepareCommitOrRollbackIfNecessary(isCommit);
+        pkIndex->prepareCommit();
+    }
+}
+
+void NodeTable::prepareRollback() {
+    if (pkIndex) {
+        pkIndex->prepareRollback();
     }
 }
 

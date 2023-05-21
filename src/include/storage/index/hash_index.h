@@ -90,9 +90,10 @@ public:
     void deleteInternal(const uint8_t* key) const;
     bool insertInternal(const uint8_t* key, common::offset_t value);
 
-    void prepareCommitOrRollbackIfNecessary(bool isCommit);
-    void checkpointInMemoryIfNecessary();
-    void rollbackInMemoryIfNecessary() const;
+    void prepareCommit();
+    void prepareRollback();
+    void checkpointInMemory();
+    void rollback() const;
     inline BMFileHandle* getFileHandle() const { return fileHandle.get(); }
 
 private:
@@ -113,8 +114,6 @@ private:
     void rehashSlots(HashIndexHeader& header);
     std::vector<std::pair<SlotInfo, Slot<T>>> getChainedSlots(slot_id_t pSlotId);
     void copyEntryToSlot(slot_id_t slotId, uint8_t* entry);
-
-    void prepareCommit();
 
     entry_pos_t findMatchedEntryInSlot(
         transaction::TransactionType trxType, const Slot<T>& slot, const uint8_t* key) const;
@@ -180,20 +179,21 @@ public:
             transaction, reinterpret_cast<const uint8_t*>(key), result);
     }
 
-    inline void checkpointInMemoryIfNecessary() {
-        keyDataTypeID == common::LogicalTypeID::INT64 ?
-            hashIndexForInt64->checkpointInMemoryIfNecessary() :
-            hashIndexForString->checkpointInMemoryIfNecessary();
+    inline void checkpointInMemory() {
+        keyDataTypeID == common::LogicalTypeID::INT64 ? hashIndexForInt64->checkpointInMemory() :
+                                                        hashIndexForString->checkpointInMemory();
     }
-    inline void rollbackInMemoryIfNecessary() {
-        keyDataTypeID == common::LogicalTypeID::INT64 ?
-            hashIndexForInt64->rollbackInMemoryIfNecessary() :
-            hashIndexForString->rollbackInMemoryIfNecessary();
+    inline void rollback() {
+        keyDataTypeID == common::LogicalTypeID::INT64 ? hashIndexForInt64->rollback() :
+                                                        hashIndexForString->rollback();
     }
-    inline void prepareCommitOrRollbackIfNecessary(bool isCommit) {
-        return keyDataTypeID == common::LogicalTypeID::INT64 ?
-                   hashIndexForInt64->prepareCommitOrRollbackIfNecessary(isCommit) :
-                   hashIndexForString->prepareCommitOrRollbackIfNecessary(isCommit);
+    inline void prepareCommit() {
+        keyDataTypeID == common::LogicalTypeID::INT64 ? hashIndexForInt64->prepareCommit() :
+                                                        hashIndexForString->prepareCommit();
+    }
+    inline void prepareRollback() {
+        keyDataTypeID == common::LogicalTypeID::INT64 ? hashIndexForInt64->prepareRollback() :
+                                                        hashIndexForString->prepareRollback();
     }
     inline BMFileHandle* getFileHandle() {
         return keyDataTypeID == common::LogicalTypeID::INT64 ? hashIndexForInt64->getFileHandle() :

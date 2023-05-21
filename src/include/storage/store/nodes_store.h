@@ -29,8 +29,8 @@ public:
     // Since ddl statements are wrapped in a single auto-committed transaction, we don't need to
     // maintain a write-only version of nodeTables. We just need to add the actual nodeTable to
     // nodeStore when checkpointing and not in recovery mode.
-    inline void createNodeTable(common::table_id_t tableID, BufferManager* bufferManager, WAL* wal,
-        catalog::Catalog* catalog) {
+    inline void createNodeTable(
+        common::table_id_t tableID, BufferManager* bufferManager, catalog::Catalog* catalog) {
         nodeTables[tableID] = std::make_unique<NodeTable>(&nodesStatisticsAndDeletedIDs,
             *bufferManager, wal, catalog->getReadOnlyVersion()->getNodeTableSchema(tableID));
     }
@@ -38,15 +38,38 @@ public:
         nodeTables.erase(tableID);
         nodesStatisticsAndDeletedIDs.removeTableStatistic(tableID);
     }
-    inline void prepareCommitOrRollbackIfNecessary(bool isCommit) {
+    inline void prepareCommit() {
+        if (nodesStatisticsAndDeletedIDs.hasUpdates()) {
+            wal->logTableStatisticsRecord(true /* isNodeTable */);
+            nodesStatisticsAndDeletedIDs.writeTablesStatisticsFileForWALRecord(wal->getDirectory());
+        }
         for (auto& [_, nodeTable] : nodeTables) {
-            nodeTable->prepareCommitOrRollbackIfNecessary(isCommit);
+            nodeTable->prepareCommit();
+        }
+    }
+    inline void prepareRollback() {
+        if (nodesStatisticsAndDeletedIDs.hasUpdates()) {
+            wal->logTableStatisticsRecord(true /* isNodeTable */);
+        }
+        for (auto& [_, nodeTable] : nodeTables) {
+            nodeTable->prepareRollback();
+        }
+    }
+    inline void checkpointInMemory(const std::unordered_set<common::table_id_t>& updatedTables) {
+        for (auto updatedNodeTable : updatedTables) {
+            nodeTables.at(updatedNodeTable)->checkpointInMemory();
+        }
+    }
+    inline void rollback(const std::unordered_set<common::table_id_t>& updatedTables) {
+        for (auto updatedNodeTable : updatedTables) {
+            nodeTables.at(updatedNodeTable)->rollback();
         }
     }
 
 private:
     std::unordered_map<common::table_id_t, std::unique_ptr<NodeTable>> nodeTables;
     NodesStatisticsAndDeletedIDs nodesStatisticsAndDeletedIDs;
+    WAL* wal;
 };
 
 } // namespace storage
