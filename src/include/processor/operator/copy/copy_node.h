@@ -1,7 +1,6 @@
 #pragma once
 
 #include "processor/operator/sink.h"
-#include "storage/copier/node_copy_executor.h"
 #include "storage/in_mem_storage_structure/in_mem_column.h"
 #include "storage/store/node_table.h"
 
@@ -31,6 +30,7 @@ public:
     uint64_t& numRows;
     std::mutex mtx;
     std::shared_ptr<FactorizedTable> table;
+    bool hasLoggedWAL;
 };
 
 struct CopyNodeLocalState {

@@ -86,23 +86,6 @@ void WALReplayerUtils::renameDBFilesForRelProperty(const std::string& directory,
     }
 }
 
-void WALReplayerUtils::replaceListsHeadersFilesWithVersionFromWALIfExists(
-    const std::unordered_set<RelTableSchema*>& relTableSchemas, table_id_t boundTableID,
-    const std::string& directory) {
-    for (auto relTableSchema : relTableSchemas) {
-        for (auto direction : RelDataDirectionUtils::getRelDataDirections()) {
-            if (!relTableSchema->isSingleMultiplicityInDirection(direction)) {
-                auto listsHeadersFileName =
-                    StorageUtils::getListHeadersFName(StorageUtils::getAdjListsFName(
-                        directory, relTableSchema->tableID, direction, DBFileType::ORIGINAL));
-                auto walListsHeadersFileName =
-                    StorageUtils::appendWALFileSuffix(listsHeadersFileName);
-                FileUtils::renameFileIfExists(walListsHeadersFileName, listsHeadersFileName);
-            }
-        }
-    }
-}
-
 void WALReplayerUtils::createEmptyDBFilesForRelProperties(RelTableSchema* relTableSchema,
     const std::string& directory, RelDataDirection relDirection, uint32_t numNodes,
     bool isForRelPropertyColumn) {

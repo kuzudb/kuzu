@@ -8,10 +8,10 @@ using namespace kuzu::catalog;
 namespace kuzu {
 namespace storage {
 
-RelCopyExecutor::RelCopyExecutor(CopyDescription& copyDescription, std::string outputDirectory,
+RelCopyExecutor::RelCopyExecutor(CopyDescription& copyDescription, WAL* wal,
     TaskScheduler& taskScheduler, Catalog& catalog, NodesStore& nodesStore, RelTable* table,
     RelsStatistics* relsStatistics)
-    : copyDescription{copyDescription}, outputDirectory{std::move(outputDirectory)},
+    : copyDescription{copyDescription}, wal{wal}, outputDirectory{std::move(wal->getDirectory())},
       taskScheduler{taskScheduler}, catalog{catalog},
       tableSchema{catalog.getReadOnlyVersion()->getRelTableSchema(table->getRelTableID())},
       numTuples{0}, nodesStore{nodesStore}, table{table}, relsStatistics{relsStatistics} {
@@ -36,15 +36,15 @@ std::unique_ptr<DirectedInMemRelData> RelCopyExecutor::initializeDirectedInMemRe
         auto relColumns = std::make_unique<DirectedInMemRelColumns>();
         relColumns->adjColumn = std::make_unique<InMemColumn>(
             StorageUtils::getAdjColumnFName(
-                outputDirectory, tableSchema->tableID, direction, DBFileType::WAL_VERSION),
+                outputDirectory, tableSchema->tableID, direction, DBFileType::ORIGINAL),
             LogicalType(LogicalTypeID::INTERNAL_ID));
         relColumns->adjColumnChunk =
             relColumns->adjColumn->getInMemColumnChunk(0, numNodes - 1, &copyDescription);
         for (auto i = 0u; i < tableSchema->getNumProperties(); ++i) {
             auto propertyID = tableSchema->properties[i].propertyID;
             auto propertyDataType = tableSchema->properties[i].dataType;
-            auto fName = StorageUtils::getRelPropertyColumnFName(outputDirectory,
-                tableSchema->tableID, direction, propertyID, DBFileType::WAL_VERSION);
+            auto fName = StorageUtils::getRelPropertyColumnFName(
+                outputDirectory, tableSchema->tableID, direction, propertyID, DBFileType::ORIGINAL);
             relColumns->propertyColumns.emplace(
                 propertyID, std::make_unique<InMemColumn>(fName, propertyDataType));
             relColumns->propertyColumnChunks.emplace(
@@ -57,14 +57,14 @@ std::unique_ptr<DirectedInMemRelData> RelCopyExecutor::initializeDirectedInMemRe
         auto relLists = std::make_unique<DirectedInMemRelLists>();
         relLists->adjList = std::make_unique<InMemAdjLists>(
             StorageUtils::getAdjListsFName(
-                outputDirectory, tableSchema->tableID, direction, DBFileType::WAL_VERSION),
+                outputDirectory, tableSchema->tableID, direction, DBFileType::ORIGINAL),
             numNodes);
         relLists->relListsSizes = std::make_unique<atomic_uint64_vec_t>(numNodes);
         for (auto i = 0u; i < tableSchema->getNumProperties(); ++i) {
             auto propertyID = tableSchema->properties[i].propertyID;
             auto propertyDataType = tableSchema->properties[i].dataType;
-            auto fName = StorageUtils::getRelPropertyListsFName(outputDirectory,
-                tableSchema->tableID, direction, propertyID, DBFileType::WAL_VERSION);
+            auto fName = StorageUtils::getRelPropertyListsFName(
+                outputDirectory, tableSchema->tableID, direction, propertyID, DBFileType::ORIGINAL);
             relLists->propertyLists.emplace(propertyID,
                 InMemListsFactory::getInMemPropertyLists(fName, propertyDataType, numNodes,
                     &copyDescription, relLists->adjList->getListHeadersBuilder()));
@@ -75,6 +75,9 @@ std::unique_ptr<DirectedInMemRelData> RelCopyExecutor::initializeDirectedInMemRe
 }
 
 offset_t RelCopyExecutor::copy(processor::ExecutionContext* executionContext) {
+    wal->logCopyRelRecord(table->getRelTableID());
+    // We assume that COPY is a single-statement transaction, thus COPY rel is the only wal record.
+    wal->flushAllPages();
     countRelListsSizeAndPopulateColumns(executionContext);
     if (!tableSchema->isSingleMultiplicityInDirection(FWD) ||
         !tableSchema->isSingleMultiplicityInDirection(BWD)) {

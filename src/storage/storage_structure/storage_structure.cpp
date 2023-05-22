@@ -125,18 +125,5 @@ void BaseColumnOrList::readAPageBySequentialCopy(Transaction* transaction, Value
     });
 }
 
-void BaseColumnOrList::setNullBitOfAPosInFrame(
-    const uint8_t* frame, uint16_t elementPosInPage, bool isNull) const {
-    auto nullMask = (uint64_t*)getNullBufferInPage(frame);
-    auto nullEntryPos = elementPosInPage >> NullMask::NUM_BITS_PER_NULL_ENTRY_LOG2;
-    auto bitOffsetInEntry =
-        elementPosInPage - (nullEntryPos << NullMask::NUM_BITS_PER_NULL_ENTRY_LOG2);
-    if (isNull) {
-        nullMask[nullEntryPos] |= NULL_BITMASKS_WITH_SINGLE_ONE[bitOffsetInEntry];
-    } else {
-        nullMask[nullEntryPos] &= NULL_BITMASKS_WITH_SINGLE_ZERO[bitOffsetInEntry];
-    }
-}
-
 } // namespace storage
 } // namespace kuzu

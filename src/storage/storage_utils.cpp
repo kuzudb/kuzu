@@ -310,7 +310,7 @@ void StorageUtils::initializeListsHeaders(const RelTableSchema* relTableSchema,
     uint64_t numNodesInTable, const std::string& directory, RelDataDirection relDirection) {
     auto listHeadersBuilder = make_unique<ListHeadersBuilder>(
         StorageUtils::getAdjListsFName(
-            directory, relTableSchema->tableID, relDirection, DBFileType::WAL_VERSION),
+            directory, relTableSchema->tableID, relDirection, DBFileType::ORIGINAL),
         numNodesInTable);
     listHeadersBuilder->saveToDisk();
 }

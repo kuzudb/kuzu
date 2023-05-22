@@ -12,20 +12,6 @@ namespace storage {
 
 class WALReplayerUtils {
 public:
-    static inline void replaceNodeFilesWithVersionFromWALIfExists(
-        catalog::NodeTableSchema* nodeTableSchema, const std::string& directory) {
-        fileOperationOnNodeFiles(nodeTableSchema, directory,
-            replaceOriginalColumnFilesWithWALVersionIfExists,
-            replaceOriginalListFilesWithWALVersionIfExists);
-    }
-
-    static inline void replaceRelPropertyFilesWithVersionFromWALIfExists(
-        catalog::RelTableSchema* relTableSchema, const std::string& directory) {
-        fileOperationOnRelFiles(relTableSchema, directory,
-            replaceOriginalColumnFilesWithWALVersionIfExists,
-            replaceOriginalListFilesWithWALVersionIfExists);
-    }
-
     static inline void removeDBFilesForNodeTable(
         catalog::NodeTableSchema* tableSchema, const std::string& directory) {
         fileOperationOnNodeFiles(
@@ -62,10 +48,6 @@ public:
 
     static void renameDBFilesForRelProperty(const std::string& directory,
         catalog::RelTableSchema* relTableSchema, common::property_id_t propertyID);
-
-    static void replaceListsHeadersFilesWithVersionFromWALIfExists(
-        const std::unordered_set<catalog::RelTableSchema*>& relTableSchemas,
-        common::table_id_t boundTableID, const std::string& directory);
 
 private:
     static inline void removeColumnFilesForPropertyIfExists(const std::string& directory,

@@ -176,15 +176,9 @@ void Database::rollbackAndClearWAL() {
 
 void Database::recoverIfNecessary() {
     if (!wal->isEmptyWAL()) {
-        if (wal->isLastLoggedRecordCommit()) {
-            logger->info("Starting up StorageManager and found a non-empty WAL with a committed "
-                         "transaction. Replaying to checkpointInMemory.");
-            checkpointAndClearWAL(WALReplayMode::RECOVERY_CHECKPOINT);
-        } else {
-            logger->info("Starting up StorageManager and found a non-empty WAL but last record is "
-                         "not commit. Clearing the WAL.");
-            wal->clearWAL();
-        }
+        logger->info("Starting up StorageManager and found a non-empty WAL with a committed "
+                     "transaction. Replaying to checkpointInMemory.");
+        checkpointAndClearWAL(WALReplayMode::RECOVERY_CHECKPOINT);
     }
 }
 

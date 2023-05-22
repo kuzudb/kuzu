@@ -45,10 +45,6 @@ public:
     void validateDatabaseStateBeforeCheckPointCopyNode(table_id_t tableID) {
         auto nodeTableSchema =
             (NodeTableSchema*)catalog->getReadOnlyVersion()->getTableSchema(tableID);
-        // Before checkPointing, we should have two versions of node column and list files. The
-        // updates to maxNodeOffset should be invisible to read-only transactions.
-        validateNodeColumnFilesExistence(
-            nodeTableSchema, DBFileType::WAL_VERSION, true /* existence */);
         validateNodeColumnFilesExistence(
             nodeTableSchema, DBFileType::ORIGINAL, true /* existence */);
         ASSERT_EQ(std::make_unique<Connection>(database.get())
@@ -65,11 +61,6 @@ public:
     void validateDatabaseStateAfterCheckPointCopyNode(table_id_t tableID) {
         auto nodeTableSchema =
             (NodeTableSchema*)catalog->getReadOnlyVersion()->getTableSchema(tableID);
-        // After checkPointing, we should only have one version of node column and list
-        // files(original version). The updates to maxNodeOffset should be visible to read-only
-        // transaction;
-        validateNodeColumnFilesExistence(
-            nodeTableSchema, DBFileType::WAL_VERSION, false /* existence */);
         validateNodeColumnFilesExistence(
             nodeTableSchema, DBFileType::ORIGINAL, true /* existence */);
         validateTinysnbPersonAgeProperty();
@@ -132,9 +123,6 @@ public:
     void validateDatabaseStateBeforeCheckPointCopyRel(table_id_t tableID) {
         auto relTableSchema =
             (RelTableSchema*)catalog->getReadOnlyVersion()->getTableSchema(tableID);
-        // Before checkPointing, we should have two versions of rel column and list files.
-        validateRelColumnAndListFilesExistence(
-            relTableSchema, DBFileType::WAL_VERSION, true /* existence */);
         validateRelColumnAndListFilesExistence(
             relTableSchema, DBFileType::ORIGINAL, true /* existence */);
         auto dummyWriteTrx = transaction::Transaction::getDummyWriteTrx();
@@ -146,10 +134,6 @@ public:
     void validateDatabaseStateAfterCheckPointCopyRel(table_id_t knowsTableID) {
         auto relTableSchema =
             (RelTableSchema*)catalog->getReadOnlyVersion()->getTableSchema(knowsTableID);
-        // After checkPointing, we should only have one version of rel column and list
-        // files(original version).
-        validateRelColumnAndListFilesExistence(
-            relTableSchema, DBFileType::WAL_VERSION, false /* existence */);
         validateRelColumnAndListFilesExistence(
             relTableSchema, DBFileType::ORIGINAL, true /* existence */);
         validateTinysnbKnowsDateProperty();

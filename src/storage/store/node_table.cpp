@@ -13,24 +13,24 @@ NodeTable::NodeTable(NodesStatisticsAndDeletedIDs* nodesStatisticsAndDeletedIDs,
     initializeData(nodeTableSchema);
 }
 
-void NodeTable::initializeData(NodeTableSchema* nodeTableSchema) {
+std::unordered_map<common::property_id_t, std::unique_ptr<Column>> NodeTable::initializeColumns(
+    WAL* wal, kuzu::storage::BufferManager* bm, NodeTableSchema* nodeTableSchema) {
+    std::unordered_map<common::property_id_t, std::unique_ptr<Column>> propertyColumns;
     for (auto& property : nodeTableSchema->getAllNodeProperties()) {
         propertyColumns[property.propertyID] = ColumnFactory::getColumn(
             StorageUtils::getNodePropertyColumnStructureIDAndFName(wal->getDirectory(), property),
-            property.dataType, &bufferManager, wal);
+            property.dataType, bm, wal);
     }
+    return propertyColumns;
+}
+
+void NodeTable::initializeData(NodeTableSchema* nodeTableSchema) {
+    propertyColumns = initializeColumns(wal, &bufferManager, nodeTableSchema);
     if (nodeTableSchema->getPrimaryKey().dataType.getLogicalTypeID() != LogicalTypeID::SERIAL) {
         pkIndex = std::make_unique<PrimaryKeyIndex>(
             StorageUtils::getNodeIndexIDAndFName(wal->getDirectory(), tableID),
             nodeTableSchema->getPrimaryKey().dataType, bufferManager, wal);
     }
-}
-
-void NodeTable::resetColumns(catalog::NodeTableSchema* nodeTableSchema) {
-    for (auto& property : nodeTableSchema->getAllNodeProperties()) {
-        propertyColumns[property.propertyID].reset();
-    }
-    pkIndex.reset();
 }
 
 void NodeTable::scan(transaction::Transaction* transaction, ValueVector* inputIDVector,
