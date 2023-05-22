@@ -7,6 +7,7 @@
 #include "expression_evaluator/function_evaluator.h"
 #include "expression_evaluator/literal_evaluator.h"
 #include "expression_evaluator/reference_evaluator.h"
+#include "planner/logical_plan/logical_operator/schema.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::common;

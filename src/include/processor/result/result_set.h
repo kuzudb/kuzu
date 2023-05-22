@@ -4,6 +4,7 @@
 
 #include "common/data_chunk/data_chunk.h"
 #include "processor/data_pos.h"
+#include "result_set_descriptor.h"
 
 namespace kuzu {
 namespace processor {
@@ -11,6 +12,7 @@ namespace processor {
 class ResultSet {
 public:
     explicit ResultSet(uint32_t numDataChunks) : multiplicity{1}, dataChunks(numDataChunks) {}
+    ResultSet(ResultSetDescriptor* resultSetDescriptor, storage::MemoryManager* memoryManager);
 
     inline void insert(uint32_t pos, std::shared_ptr<common::DataChunk> dataChunk) {
         assert(dataChunks.size() > pos);

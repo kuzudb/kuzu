@@ -19,7 +19,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalUnionAllToPhysical(
         auto childSchema = logicalUnionAll.getSchemaBeforeUnion(i);
         auto prevOperator = mapLogicalOperatorToPhysical(child);
         auto resultCollector = appendResultCollector(
-            childSchema->getExpressionsInScope(), *childSchema, std::move(prevOperator));
+            childSchema->getExpressionsInScope(), childSchema, std::move(prevOperator));
         resultCollectorSharedStates.push_back(resultCollector->getSharedState());
         prevOperators.push_back(std::move(resultCollector));
     }

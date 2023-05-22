@@ -17,7 +17,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalAccumulateToPhysical(
     // append result collector
     auto prevOperator = mapLogicalOperatorToPhysical(logicalAccumulate->getChild(0));
     auto expressions = logicalAccumulate->getExpressions();
-    auto resultCollector = appendResultCollector(expressions, *inSchema, std::move(prevOperator));
+    auto resultCollector = appendResultCollector(expressions, inSchema, std::move(prevOperator));
     // append factorized table scan
     std::vector<DataPos> outDataPoses;
     std::vector<uint32_t> colIndicesToScan;

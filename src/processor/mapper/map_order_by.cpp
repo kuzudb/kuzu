@@ -37,7 +37,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOrderByToPhysical(
     auto orderBySharedState = std::make_shared<SharedFactorizedTablesAndSortedKeyBlocks>();
 
     auto orderBy =
-        make_unique<OrderBy>(std::make_unique<ResultSetDescriptor>(*inSchema), orderByDataInfo,
+        make_unique<OrderBy>(std::make_unique<ResultSetDescriptor>(inSchema), orderByDataInfo,
             orderBySharedState, std::move(prevOperator), getOperatorID(), paramsString);
     auto dispatcher = std::make_shared<KeyBlockMergeTaskDispatcher>();
     auto orderByMerge = make_unique<OrderByMerge>(orderBySharedState, std::move(dispatcher),

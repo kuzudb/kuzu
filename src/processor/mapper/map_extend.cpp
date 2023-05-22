@@ -172,7 +172,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalRecursiveExtendToPhysica
     auto relTableID = rel->getSingleTableID();
 
     auto expressions = inSchema->getExpressionsInScope();
-    auto resultCollector = appendResultCollector(expressions, *inSchema, std::move(prevOperator));
+    auto resultCollector = appendResultCollector(expressions, inSchema, std::move(prevOperator));
     auto sharedInputFTable = resultCollector->getSharedState();
     std::vector<DataPos> outDataPoses;
     std::vector<uint32_t> colIndicesToScan;
