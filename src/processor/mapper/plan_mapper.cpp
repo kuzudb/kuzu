@@ -26,6 +26,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
     std::unique_ptr<PhysicalOperator> physicalOperator;
     auto operatorType = logicalOperator->getOperatorType();
     switch (operatorType) {
+    case LogicalOperatorType::SCAN_FRONTIER: {
+        physicalOperator = mapLogicalScanFrontierToPhysical(logicalOperator.get());
+    } break;
     case LogicalOperatorType::SCAN_NODE: {
         physicalOperator = mapLogicalScanNodeToPhysical(logicalOperator.get());
     } break;

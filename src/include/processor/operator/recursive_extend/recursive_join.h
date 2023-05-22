@@ -60,57 +60,65 @@ struct RecursiveJoinDataInfo {
     DataPos dstNodePos;
     DataPos pathLengthPos;
     // Recursive join info.
-    DataPos tmpDstNodePos;
+    std::unique_ptr<ResultSetDescriptor> localResultSetDescriptor;
+    DataPos tmpDstNodeIDPos;
+    DataPos tmpEdgeIDPos;
     // Path info
     planner::RecursiveJoinType joinType;
     DataPos pathPos;
 
     RecursiveJoinDataInfo(std::vector<DataPos> vectorsToScanPos,
         std::vector<ft_col_idx_t> colIndicesToScan, const DataPos& srcNodePos,
-        const DataPos& dstNodePos, const DataPos& pathLengthPos, const DataPos& tmpDstNodePos,
+        const DataPos& dstNodePos, const DataPos& pathLengthPos,
+        std::unique_ptr<ResultSetDescriptor> localResultSetDescriptor,
+        const DataPos& tmpDstNodeIDPos, const DataPos& tmpEdgeIDPos,
         planner::RecursiveJoinType joinType)
         : RecursiveJoinDataInfo{std::move(vectorsToScanPos), std::move(colIndicesToScan),
-              srcNodePos, dstNodePos, pathLengthPos, tmpDstNodePos, joinType, DataPos()} {}
+              srcNodePos, dstNodePos, pathLengthPos, std::move(localResultSetDescriptor),
+              tmpDstNodeIDPos, tmpEdgeIDPos, joinType, DataPos()} {}
     RecursiveJoinDataInfo(std::vector<DataPos> vectorsToScanPos,
         std::vector<ft_col_idx_t> colIndicesToScan, const DataPos& srcNodePos,
-        const DataPos& dstNodePos, const DataPos& pathLengthPos, const DataPos& tmpDstNodePos,
+        const DataPos& dstNodePos, const DataPos& pathLengthPos,
+        std::unique_ptr<ResultSetDescriptor> localResultSetDescriptor,
+        const DataPos& tmpDstNodeIDPos, const DataPos& tmpEdgeIDPos,
         planner::RecursiveJoinType joinType, const DataPos& pathPos)
-        : vectorsToScanPos{std::move(vectorsToScanPos)}, colIndicesToScan{std::move(
-                                                             colIndicesToScan)},
-          srcNodePos{srcNodePos}, dstNodePos{dstNodePos}, pathLengthPos{pathLengthPos},
-          tmpDstNodePos{tmpDstNodePos}, joinType{joinType}, pathPos{pathPos} {}
+        : vectorsToScanPos{std::move(vectorsToScanPos)},
+          colIndicesToScan{std::move(colIndicesToScan)}, srcNodePos{srcNodePos},
+          dstNodePos{dstNodePos}, pathLengthPos{pathLengthPos}, localResultSetDescriptor{std::move(
+                                                                    localResultSetDescriptor)},
+          tmpDstNodeIDPos{tmpDstNodeIDPos},
+          tmpEdgeIDPos{tmpEdgeIDPos}, joinType{joinType}, pathPos{pathPos} {}
 
     inline std::unique_ptr<RecursiveJoinDataInfo> copy() {
         return std::make_unique<RecursiveJoinDataInfo>(vectorsToScanPos, colIndicesToScan,
-            srcNodePos, dstNodePos, pathLengthPos, tmpDstNodePos, joinType, pathPos);
+            srcNodePos, dstNodePos, pathLengthPos, localResultSetDescriptor->copy(),
+            tmpDstNodeIDPos, tmpEdgeIDPos, joinType, pathPos);
     }
 };
 
 class BaseRecursiveJoin : public PhysicalOperator {
 public:
     BaseRecursiveJoin(uint8_t lowerBound, uint8_t upperBound, storage::NodeTable* nodeTable,
-        std::shared_ptr<RecursiveJoinSharedState> sharedState,
+        storage::RelTable* relTable, std::shared_ptr<RecursiveJoinSharedState> sharedState,
         std::unique_ptr<RecursiveJoinDataInfo> dataInfo, std::unique_ptr<PhysicalOperator> child,
         uint32_t id, const std::string& paramsString,
         std::unique_ptr<PhysicalOperator> recursiveRoot)
         : PhysicalOperator{PhysicalOperatorType::RECURSIVE_JOIN, std::move(child), id,
               paramsString},
-          lowerBound{lowerBound}, upperBound{upperBound}, nodeTable{nodeTable},
+          lowerBound{lowerBound}, upperBound{upperBound}, nodeTable{nodeTable}, relTable{relTable},
           sharedState{std::move(sharedState)}, dataInfo{std::move(dataInfo)},
           recursiveRoot{std::move(recursiveRoot)} {}
 
     BaseRecursiveJoin(uint8_t lowerBound, uint8_t upperBound, storage::NodeTable* nodeTable,
-        std::shared_ptr<RecursiveJoinSharedState> sharedState,
+        storage::RelTable* relTable, std::shared_ptr<RecursiveJoinSharedState> sharedState,
         std::unique_ptr<RecursiveJoinDataInfo> dataInfo, uint32_t id,
         const std::string& paramsString, std::unique_ptr<PhysicalOperator> recursiveRoot)
         : PhysicalOperator{PhysicalOperatorType::RECURSIVE_JOIN, id, paramsString},
-          lowerBound{lowerBound}, upperBound{upperBound}, nodeTable{nodeTable},
+          lowerBound{lowerBound}, upperBound{upperBound}, nodeTable{nodeTable}, relTable{relTable},
           sharedState{std::move(sharedState)}, dataInfo{std::move(dataInfo)},
           recursiveRoot{std::move(recursiveRoot)} {}
 
     virtual ~BaseRecursiveJoin() = default;
-
-    static inline DataPos getTmpSrcNodeVectorPos() { return DataPos{0, 0}; }
 
     inline NodeSemiMask* getSemiMask() const { return sharedState->semiMask.get(); }
 
@@ -121,8 +129,6 @@ public:
     std::unique_ptr<PhysicalOperator> clone() override = 0;
 
 private:
-    std::unique_ptr<ResultSet> getLocalResultSet();
-
     void initLocalRecursivePlan(ExecutionContext* context);
 
     bool scanOutput();
@@ -136,13 +142,15 @@ protected:
     uint8_t lowerBound;
     uint8_t upperBound;
     storage::NodeTable* nodeTable;
+    storage::RelTable* relTable;
+
     std::shared_ptr<RecursiveJoinSharedState> sharedState;
     std::unique_ptr<RecursiveJoinDataInfo> dataInfo;
 
     // Local recursive plan
     std::unique_ptr<ResultSet> localResultSet;
     std::unique_ptr<PhysicalOperator> recursiveRoot;
-    ScanFrontier* scanBFSLevel;
+    ScanFrontier* scanFrontier;
 
     // Vectors
     std::vector<common::ValueVector*> vectorsToScan;
@@ -151,7 +159,9 @@ protected:
     common::ValueVector* pathLengthVector;
     common::ValueVector* pathVector;
 
-    common::ValueVector* tmpDstNodeIDVector; // temporary recursive join result.
+    // temporary recursive join result.
+    common::ValueVector* tmpEdgeIDVector;
+    common::ValueVector* tmpDstNodeIDVector;
 
     std::unique_ptr<BaseBFSMorsel> bfsMorsel;
     std::unique_ptr<FrontiersScanner> frontiersScanner;

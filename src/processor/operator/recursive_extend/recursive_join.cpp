@@ -64,8 +64,8 @@ bool BaseRecursiveJoin::scanOutput() {
     if (pathVector != nullptr) {
         pathVector->resetAuxiliaryBuffer();
     }
-    frontiersScanner->scan(nodeTable->getTableID(), pathVector, dstNodeIDVector, pathLengthVector,
-        offsetVectorSize, dataVectorSize);
+    frontiersScanner->scan(
+        pathVector, dstNodeIDVector, pathLengthVector, offsetVectorSize, dataVectorSize);
     if (offsetVectorSize == 0) {
         return false;
     }
@@ -81,7 +81,7 @@ void BaseRecursiveJoin::computeBFS(ExecutionContext* context) {
         auto boundNodeOffset = bfsMorsel->getNextNodeOffset();
         if (boundNodeOffset != common::INVALID_OFFSET) {
             // Found a starting node from current frontier.
-            scanBFSLevel->setNodeID(common::nodeID_t{boundNodeOffset, nodeTable->getTableID()});
+            scanFrontier->setNodeID(common::nodeID_t{boundNodeOffset, nodeTable->getTableID()});
             while (recursiveRoot->getNextTuple(context)) { // Exhaust recursive plan.
                 updateVisitedNodes(boundNodeOffset);
             }
@@ -97,45 +97,9 @@ void BaseRecursiveJoin::updateVisitedNodes(common::offset_t boundNodeOffset) {
     for (auto i = 0u; i < tmpDstNodeIDVector->state->selVector->selectedSize; ++i) {
         auto pos = tmpDstNodeIDVector->state->selVector->selectedPositions[i];
         auto nodeID = tmpDstNodeIDVector->getValue<common::nodeID_t>(pos);
-        bfsMorsel->markVisited(boundNodeOffset, nodeID.offset, boundNodeMultiplicity);
-    }
-}
-
-// ResultSet for list extend, i.e. 2 data chunks each with 1 vector.
-static std::unique_ptr<ResultSet> populateResultSetWithTwoDataChunks() {
-    auto resultSet = std::make_unique<ResultSet>(2);
-    auto dataChunk0 = std::make_shared<common::DataChunk>(1);
-    dataChunk0->state = common::DataChunkState::getSingleValueDataChunkState();
-    dataChunk0->insert(
-        0, std::make_shared<common::ValueVector>(common::LogicalTypeID::INTERNAL_ID, nullptr));
-    auto dataChunk1 = std::make_shared<common::DataChunk>(1);
-    dataChunk1->insert(
-        0, std::make_shared<common::ValueVector>(common::LogicalTypeID::INTERNAL_ID, nullptr));
-    resultSet->insert(0, std::move(dataChunk0));
-    resultSet->insert(1, std::move(dataChunk1));
-    return resultSet;
-}
-
-// ResultSet for column extend, i.e. 1 data chunk with 2 vectors.
-static std::unique_ptr<ResultSet> populateResultSetWithOneDataChunk() {
-    auto resultSet = std::make_unique<ResultSet>(1);
-    auto dataChunk0 = std::make_shared<common::DataChunk>(2);
-    dataChunk0->state = common::DataChunkState::getSingleValueDataChunkState();
-    dataChunk0->insert(
-        0, std::make_shared<common::ValueVector>(common::LogicalTypeID::INTERNAL_ID, nullptr));
-    dataChunk0->insert(
-        1, std::make_shared<common::ValueVector>(common::LogicalTypeID::INTERNAL_ID, nullptr));
-    resultSet->insert(0, std::move(dataChunk0));
-    return resultSet;
-}
-
-std::unique_ptr<ResultSet> BaseRecursiveJoin::getLocalResultSet() {
-    auto numDataChunks = dataInfo->tmpDstNodePos.dataChunkPos + 1;
-    if (numDataChunks == 2) {
-        return populateResultSetWithTwoDataChunks();
-    } else {
-        assert(dataInfo->tmpDstNodePos.dataChunkPos == 0);
-        return populateResultSetWithOneDataChunk();
+        auto edgeID = tmpEdgeIDVector->getValue<common::relID_t>(pos);
+        bfsMorsel->markVisited(
+            boundNodeOffset, nodeID.offset, edgeID.offset, boundNodeMultiplicity);
     }
 }
 
@@ -145,9 +109,11 @@ void BaseRecursiveJoin::initLocalRecursivePlan(ExecutionContext* context) {
         assert(op->getNumChildren() == 1);
         op = op->getChild(0);
     }
-    scanBFSLevel = (ScanFrontier*)op;
-    localResultSet = getLocalResultSet();
-    tmpDstNodeIDVector = localResultSet->getValueVector(dataInfo->tmpDstNodePos).get();
+    scanFrontier = (ScanFrontier*)op;
+    localResultSet = std::make_unique<ResultSet>(
+        dataInfo->localResultSetDescriptor.get(), context->memoryManager);
+    tmpDstNodeIDVector = localResultSet->getValueVector(dataInfo->tmpDstNodeIDPos).get();
+    tmpEdgeIDVector = localResultSet->getValueVector(dataInfo->tmpEdgeIDPos).get();
     recursiveRoot->initLocalState(localResultSet.get(), context);
 }
 

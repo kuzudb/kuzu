@@ -8,23 +8,23 @@
 -NAME SingleSourceAllDestinationsSSP
 -QUERY MATCH (a:person)-[r:knows* SHORTEST 1..30]->(b:person) WHERE a.fName = 'Alice' RETURN a.fName, b.fName, r
 ---- 7
-Alice|Bob|[0:0,0:1]
-Alice|Carol|[0:0,0:2]
-Alice|Dan|[0:0,0:3]
-Alice|Elizabeth|[0:0,0:1,0:4]
-Alice|Farooq|[0:0,0:1,0:4,0:5]
-Alice|Greg|[0:0,0:1,0:4,0:6]
-Alice|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|[0:0,0:1,0:4,0:7]
+Alice|Bob|[0:0,1:0,0:1]
+Alice|Carol|[0:0,1:1,0:2]
+Alice|Dan|[0:0,1:2,0:3]
+Alice|Elizabeth|[0:0,1:0,0:1,1:6,0:4]
+Alice|Farooq|[0:0,1:0,0:1,1:6,0:4,1:13,0:5]
+Alice|Greg|[0:0,1:0,0:1,1:6,0:4,1:14,0:6]
+Alice|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|[0:0,1:0,0:1,1:6,0:4,1:15,0:7]
 
 -NAME AllSourcesSingleDestinationQuery
 -QUERY MATCH (a:person)-[r:knows* SHORTEST 1..30]->(b:person) WHERE b.fName = 'Alice' RETURN a.fName, b.fName, r
 ---- 6
-Bob|Alice|[0:0,0:1]
-Carol|Alice|[0:0,0:2]
-Dan|Alice|[0:0,0:3]
-Elizabeth|Alice|[0:0,0:7,0:4]
-Farooq|Alice|[0:0,0:7,0:5]
-Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|Alice|[0:0,0:7]
+Bob|Alice|[0:0,1:3,0:1]
+Carol|Alice|[0:0,1:7,0:2]
+Dan|Alice|[0:0,1:10,0:3]
+Elizabeth|Alice|[0:0,1:20,0:7,1:15,0:4]
+Farooq|Alice|[0:0,1:20,0:7,1:17,0:5]
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|Alice|[0:0,1:20,0:7]
 
 -NAME SingleSourceWithAllProperties
 -QUERY MATCH (a:person)-[r:knows* SHORTEST 1..30]->(b:person) WHERE a.fName = 'Alice' RETURN length(r), b, a
@@ -45,11 +45,11 @@ Alice|Bob|1
 -NAME SingleSourceAllDestinations2
 -QUERY MATCH (a:person)-[r:knows* SHORTEST 1..2]->(b:person) WHERE a.fName = 'Elizabeth' RETURN a.fName, b.fName, r
 ---- 5
-Elizabeth|Alice|[0:4,0:7,0:0]
-Elizabeth|Dan|[0:4,0:7,0:3]
-Elizabeth|Farooq|[0:4,0:5]
-Elizabeth|Greg|[0:4,0:6]
-Elizabeth|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|[0:4,0:7]
+Elizabeth|Alice|[0:4,1:15,0:7,1:20,0:0]
+Elizabeth|Dan|[0:4,1:15,0:7,1:21,0:3]
+Elizabeth|Farooq|[0:4,1:13,0:5]
+Elizabeth|Greg|[0:4,1:14,0:6]
+Elizabeth|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|[0:4,1:15,0:7]
 
 -NAME SingleSourceUnreachableDestination
 -QUERY MATCH (a:person)-[r:knows* SHORTEST 1..30]->(b:person) WHERE a.fName = 'Alice' AND b.fName = 'Alice11' RETURN a.fName, b.fName, r

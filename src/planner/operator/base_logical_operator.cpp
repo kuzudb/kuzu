@@ -91,6 +91,9 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
     case LogicalOperatorType::RENAME_PROPERTY: {
         return "RENAME_PROPERTY";
     }
+    case LogicalOperatorType::SCAN_FRONTIER: {
+        return "SCAN_FRONTIER";
+    }
     case LogicalOperatorType::SCAN_NODE: {
         return "SCAN_NODE";
     }

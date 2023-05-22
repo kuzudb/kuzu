@@ -1,5 +1,7 @@
 #include "planner/logical_plan/logical_operator/logical_recursive_extend.h"
 
+#include "optimizer/factorization_rewriter.h"
+#include "optimizer/remove_factorization_rewriter.h"
 #include "planner/logical_plan/logical_operator/sink_util.h"
 
 namespace kuzu {
@@ -26,6 +28,8 @@ void LogicalRecursiveExtend::computeFlatSchema() {
     default:
         break;
     }
+    auto rewriter = optimizer::RemoveFactorizationRewriter();
+    rewriter.visitOperator(recursivePlanRoot);
 }
 
 void LogicalRecursiveExtend::computeFactorizedSchema() {
@@ -42,6 +46,22 @@ void LogicalRecursiveExtend::computeFactorizedSchema() {
     default:
         break;
     }
+    auto rewriter = optimizer::FactorizationRewriter();
+    rewriter.visitOperator(recursivePlanRoot.get());
+}
+
+void LogicalScanFrontier::computeFlatSchema() {
+    createEmptySchema();
+    schema->createGroup();
+    schema->setGroupAsSingleState(0);
+    schema->insertToGroupAndScope(node->getInternalIDProperty(), 0);
+}
+
+void LogicalScanFrontier::computeFactorizedSchema() {
+    createEmptySchema();
+    auto groupPos = schema->createGroup();
+    schema->setGroupAsSingleState(groupPos);
+    schema->insertToGroupAndScope(node->getInternalIDProperty(), groupPos);
 }
 
 } // namespace planner
