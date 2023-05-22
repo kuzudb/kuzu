@@ -7,15 +7,20 @@
 namespace kuzu {
 namespace binder {
 
+enum class RelDirectionType : uint8_t {
+    SINGLE = 0,
+    BOTH = 1,
+};
+
 class RelExpression : public NodeOrRelExpression {
 public:
     RelExpression(common::LogicalType dataType, std::string uniqueName, std::string variableName,
         std::vector<common::table_id_t> tableIDs, std::shared_ptr<NodeExpression> srcNode,
-        std::shared_ptr<NodeExpression> dstNode, bool directed, common::QueryRelType relType,
-        uint64_t lowerBound, uint64_t upperBound)
+        std::shared_ptr<NodeExpression> dstNode, RelDirectionType directionType,
+        common::QueryRelType relType, uint64_t lowerBound, uint64_t upperBound)
         : NodeOrRelExpression{std::move(dataType), std::move(uniqueName), std::move(variableName),
               std::move(tableIDs)},
-          srcNode{std::move(srcNode)}, dstNode{std::move(dstNode)}, directed{directed},
+          srcNode{std::move(srcNode)}, dstNode{std::move(dstNode)}, directionType{directionType},
           relType{relType}, lowerBound{lowerBound}, upperBound{upperBound} {}
 
     inline bool isBoundByMultiLabeledNode() const {
@@ -31,7 +36,7 @@ public:
     inline uint64_t getLowerBound() const { return lowerBound; }
     inline uint64_t getUpperBound() const { return upperBound; }
 
-    inline bool isDirected() const { return directed; }
+    inline RelDirectionType getDirectionType() const { return directionType; }
 
     inline bool hasInternalIDProperty() const {
         return hasPropertyExpression(common::INTERNAL_ID_SUFFIX);
@@ -50,7 +55,7 @@ public:
 private:
     std::shared_ptr<NodeExpression> srcNode;
     std::shared_ptr<NodeExpression> dstNode;
-    bool directed;
+    RelDirectionType directionType;
     common::QueryRelType relType;
     uint64_t lowerBound;
     uint64_t upperBound;

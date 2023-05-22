@@ -37,7 +37,7 @@ std::string RelCopyExecutor::getTaskTypeName(PopulateTaskType populateTaskType) 
 }
 
 void RelCopyExecutor::initializeColumnsAndLists() {
-    for (auto relDirection : REL_DIRECTIONS) {
+    for (auto relDirection : RelDataDirectionUtils::getRelDataDirections()) {
         listSizesPerDirection[relDirection] = std::make_unique<atomic_uint64_vec_t>(
             maxNodeOffsetsPerTable.at(
                 reinterpret_cast<RelTableSchema*>(tableSchema)->getBoundTableID(relDirection)) +
@@ -69,7 +69,7 @@ void RelCopyExecutor::populateColumnsAndLists(processor::ExecutionContext* execu
 
 void RelCopyExecutor::saveToFile() {
     logger->debug("Writing columns and Lists to disk for rel {}.", tableSchema->tableName);
-    for (auto relDirection : REL_DIRECTIONS) {
+    for (auto relDirection : RelDataDirectionUtils::getRelDataDirections()) {
         if (reinterpret_cast<RelTableSchema*>(tableSchema)
                 ->isSingleMultiplicityInDirection(relDirection)) {
             adjColumnsPerDirection[relDirection]->flushChunk(
@@ -139,7 +139,7 @@ void RelCopyExecutor::initializeLists(RelDataDirection relDirection) {
 void RelCopyExecutor::initAdjListsHeaders() {
     // TODO(Semih): Schedule one at a time and wait.
     logger->debug("Initializing AdjListHeaders for rel {}.", tableSchema->tableName);
-    for (auto relDirection : REL_DIRECTIONS) {
+    for (auto relDirection : RelDataDirectionUtils::getRelDataDirections()) {
         if (!reinterpret_cast<RelTableSchema*>(tableSchema)
                  ->isSingleMultiplicityInDirection(relDirection)) {
             auto boundTableID =
@@ -158,7 +158,7 @@ void RelCopyExecutor::initListsMetadata() {
     // TODO(Semih): Schedule one at a time and wait.
     logger->debug(
         "Initializing adjLists and propertyLists metadata for rel {}.", tableSchema->tableName);
-    for (auto relDirection : REL_DIRECTIONS) {
+    for (auto relDirection : RelDataDirectionUtils::getRelDataDirections()) {
         if (!reinterpret_cast<RelTableSchema*>(tableSchema)
                  ->isSingleMultiplicityInDirection(relDirection)) {
             auto boundTableID =
@@ -283,7 +283,7 @@ void RelCopyExecutor::populateLists() {
 }
 
 void RelCopyExecutor::sortAndCopyOverflowValues() {
-    for (auto relDirection : REL_DIRECTIONS) {
+    for (auto relDirection : RelDataDirectionUtils::getRelDataDirections()) {
         // Sort overflow values of property Lists.
         if (!reinterpret_cast<RelTableSchema*>(tableSchema)
                  ->isSingleMultiplicityInDirection(relDirection)) {
@@ -313,7 +313,7 @@ void RelCopyExecutor::sortAndCopyOverflowValues() {
         }
     }
     // Sort overflow values of property columns.
-    for (auto relDirection : REL_DIRECTIONS) {
+    for (auto relDirection : RelDataDirectionUtils::getRelDataDirections()) {
         if (reinterpret_cast<RelTableSchema*>(tableSchema)
                 ->isSingleMultiplicityInDirection(relDirection)) {
             auto numNodes =
@@ -354,7 +354,7 @@ void RelCopyExecutor::inferTableIDsAndOffsets(const std::vector<std::shared_ptr<
     std::vector<nodeID_t>& nodeIDs, std::vector<LogicalType>& nodeIDTypes,
     const std::map<table_id_t, PrimaryKeyIndex*>& pkIndexes, Transaction* transaction,
     int64_t blockOffset, int64_t& colIndex) {
-    for (auto& relDirection : REL_DIRECTIONS) {
+    for (auto& relDirection : RelDataDirectionUtils::getRelDataDirections()) {
         if (colIndex >= batchColumns.size()) {
             throw CopyException("Number of columns mismatch.");
         }
@@ -615,7 +615,7 @@ void RelCopyExecutor::populateAdjColumnsAndCountRelsInAdjListsTask(uint64_t bloc
     std::vector<nodeID_t> nodeIDs{2};
     std::vector<LogicalType> nodePKTypes{2};
     auto relTableSchema = reinterpret_cast<RelTableSchema*>(copier->tableSchema);
-    for (auto& relDirection : REL_DIRECTIONS) {
+    for (auto& relDirection : RelDataDirectionUtils::getRelDataDirections()) {
         auto boundTableID = relTableSchema->getBoundTableID(relDirection);
         nodeIDs[relDirection].tableID = boundTableID;
         nodePKTypes[relDirection] = copier->catalog.getReadOnlyVersion()
@@ -630,7 +630,7 @@ void RelCopyExecutor::populateAdjColumnsAndCountRelsInAdjListsTask(uint64_t bloc
         int64_t colIndex = 0;
         inferTableIDsAndOffsets(batchColumns, nodeIDs, nodePKTypes, copier->pkIndexes,
             copier->dummyReadOnlyTrx.get(), blockOffset, colIndex);
-        for (auto relDirection : REL_DIRECTIONS) {
+        for (auto relDirection : RelDataDirectionUtils::getRelDataDirections()) {
             auto tableID = nodeIDs[relDirection].tableID;
             auto nodeOffset = nodeIDs[relDirection].offset;
             if (relTableSchema->isSingleMultiplicityInDirection(relDirection)) {
@@ -641,7 +641,7 @@ void RelCopyExecutor::populateAdjColumnsAndCountRelsInAdjListsTask(uint64_t bloc
                         relTableSchema->tableName,
                         getRelMultiplicityAsString(relTableSchema->relMultiplicity), nodeOffset,
                         copier->catalog.getReadOnlyVersion()->getTableName(tableID),
-                        getRelDataDirectionAsString(relDirection)));
+                        RelDataDirectionUtils::relDataDirectionToString(relDirection)));
                 }
                 copier->adjColumnChunksPerDirection[relDirection]->setValue(
                     (uint8_t*)&nodeIDs[!relDirection].offset, nodeOffset);
@@ -671,7 +671,7 @@ void RelCopyExecutor::populateListsTask(uint64_t blockId, uint64_t blockStartRel
     std::vector<LogicalType> nodePKTypes(2);
     std::vector<uint64_t> reversePos(2);
     auto relTableSchema = reinterpret_cast<RelTableSchema*>(copier->tableSchema);
-    for (auto relDirection : REL_DIRECTIONS) {
+    for (auto relDirection : RelDataDirectionUtils::getRelDataDirections()) {
         auto boundTableID = relTableSchema->getBoundTableID(relDirection);
         nodeIDs[relDirection].tableID = boundTableID;
         nodePKTypes[relDirection] = copier->catalog.getReadOnlyVersion()
@@ -686,7 +686,7 @@ void RelCopyExecutor::populateListsTask(uint64_t blockId, uint64_t blockStartRel
         int64_t colIndex = 0;
         inferTableIDsAndOffsets(batchColumns, nodeIDs, nodePKTypes, copier->pkIndexes,
             copier->dummyReadOnlyTrx.get(), blockOffset, colIndex);
-        for (auto relDirection : REL_DIRECTIONS) {
+        for (auto relDirection : RelDataDirectionUtils::getRelDataDirections()) {
             if (!copier->catalog.getReadOnlyVersion()->isSingleMultiplicityInDirection(
                     copier->tableSchema->tableID, relDirection)) {
                 auto nodeOffset = nodeIDs[relDirection].offset;
@@ -761,7 +761,7 @@ void RelCopyExecutor::putValueIntoColumns(uint64_t propertyID,
     std::vector<std::unordered_map<property_id_t, std::unique_ptr<InMemColumnChunk>>>&
         directionTablePropertyColumnChunks,
     const std::vector<common::nodeID_t>& nodeIDs, uint8_t* val) {
-    for (auto relDirection : REL_DIRECTIONS) {
+    for (auto relDirection : RelDataDirectionUtils::getRelDataDirections()) {
         if (directionTablePropertyColumnChunks[relDirection].empty()) {
             continue;
         }
@@ -777,7 +777,7 @@ void RelCopyExecutor::putValueIntoLists(uint64_t propertyID,
         directionTablePropertyLists,
     std::vector<std::unique_ptr<InMemAdjLists>>& directionTableAdjLists,
     const std::vector<nodeID_t>& nodeIDs, const std::vector<uint64_t>& reversePos, uint8_t* val) {
-    for (auto relDirection : REL_DIRECTIONS) {
+    for (auto relDirection : RelDataDirectionUtils::getRelDataDirections()) {
         if (directionTableAdjLists[relDirection] == nullptr) {
             continue;
         }

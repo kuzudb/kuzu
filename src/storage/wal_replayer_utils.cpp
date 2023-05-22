@@ -11,7 +11,7 @@ namespace storage {
 
 void WALReplayerUtils::removeDBFilesForRelProperty(
     const std::string& directory, RelTableSchema* relTableSchema, property_id_t propertyID) {
-    for (auto relDirection : REL_DIRECTIONS) {
+    for (auto relDirection : RelDataDirectionUtils::getRelDataDirections()) {
         auto boundTableID = relTableSchema->getBoundTableID(relDirection);
         if (relTableSchema->isSingleMultiplicityInDirection(relDirection)) {
             removeColumnFilesForPropertyIfExists(directory, relTableSchema->tableID, boundTableID,
@@ -25,7 +25,7 @@ void WALReplayerUtils::removeDBFilesForRelProperty(
 
 void WALReplayerUtils::createEmptyDBFilesForNewRelTable(RelTableSchema* relTableSchema,
     const std::string& directory, const std::map<table_id_t, uint64_t>& maxNodeOffsetsPerTable) {
-    for (auto relDirection : REL_DIRECTIONS) {
+    for (auto relDirection : RelDataDirectionUtils::getRelDataDirections()) {
         if (relTableSchema->isSingleMultiplicityInDirection(relDirection)) {
             createEmptyDBFilesForColumns(
                 maxNodeOffsetsPerTable, relDirection, directory, relTableSchema);
@@ -74,7 +74,7 @@ void WALReplayerUtils::createEmptyDBFilesForNewNodeTable(
 
 void WALReplayerUtils::renameDBFilesForRelProperty(const std::string& directory,
     kuzu::catalog::RelTableSchema* relTableSchema, kuzu::common::property_id_t propertyID) {
-    for (auto direction : REL_DIRECTIONS) {
+    for (auto direction : RelDataDirectionUtils::getRelDataDirections()) {
         auto boundTableID = relTableSchema->getBoundTableID(direction);
         if (relTableSchema->isSingleMultiplicityInDirection(direction)) {
             replaceOriginalColumnFilesWithWALVersionIfExists(
@@ -91,7 +91,7 @@ void WALReplayerUtils::replaceListsHeadersFilesWithVersionFromWALIfExists(
     const std::unordered_set<RelTableSchema*>& relTableSchemas, table_id_t boundTableID,
     const std::string& directory) {
     for (auto relTableSchema : relTableSchemas) {
-        for (auto direction : REL_DIRECTIONS) {
+        for (auto direction : RelDataDirectionUtils::getRelDataDirections()) {
             if (!relTableSchema->isSingleMultiplicityInDirection(direction)) {
                 auto listsHeadersFileName =
                     StorageUtils::getListHeadersFName(StorageUtils::getAdjListsFName(
@@ -214,7 +214,7 @@ void WALReplayerUtils::fileOperationOnNodeFiles(NodeTableSchema* nodeTableSchema
 void WALReplayerUtils::fileOperationOnRelFiles(RelTableSchema* relTableSchema,
     const std::string& directory, std::function<void(std::string fileName)> columnFileOperation,
     std::function<void(std::string fileName)> listFileOperation) {
-    for (auto relDirection : REL_DIRECTIONS) {
+    for (auto relDirection : RelDataDirectionUtils::getRelDataDirections()) {
         auto boundTableID = relTableSchema->getBoundTableID(relDirection);
         auto isColumnProperty = relTableSchema->isSingleMultiplicityInDirection(relDirection);
         if (isColumnProperty) {

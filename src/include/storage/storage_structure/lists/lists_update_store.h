@@ -4,6 +4,7 @@
 
 #include "catalog/catalog_structs.h"
 #include "common/data_chunk/data_chunk.h"
+#include "common/rel_direction.h"
 #include "common/types/types.h"
 #include "processor/result/factorized_table.h"
 #include "storage/storage_structure/lists/list_handle.h"
@@ -78,8 +79,9 @@ public:
         }
         initListsUpdatesPerTablePerDirection();
     }
-    inline ListsUpdatesPerChunk& getListsUpdatesPerChunk(common::RelDataDirection relDirection) {
-        return listsUpdatesPerDirection[relDirection];
+    inline ListsUpdatesPerChunk& getListsUpdatesPerChunk(
+        common::RelDataDirection relDataDirection) {
+        return listsUpdatesPerDirection[relDataDirection];
     }
 
     void updateSchema(catalog::RelTableSchema& relTableSchema);

@@ -4,6 +4,7 @@
 #include "catalog/catalog.h"
 #include "common/join_type.h"
 #include "planner/join_order_enumerator_context.h"
+#include "planner/logical_plan/logical_operator/extend_direction.h"
 #include "storage/store/nodes_statistics_and_deleted_ids.h"
 
 namespace kuzu {
@@ -59,8 +60,9 @@ private:
     void planBaseTableScan();
     void planNodeScan(uint32_t nodePos);
     void planRelScan(uint32_t relPos);
-    void appendExtendAndFilter(std::shared_ptr<RelExpression> rel,
-        common::ExtendDirection direction, const expression_vector& predicates, LogicalPlan& plan);
+    void appendExtendAndFilter(std::shared_ptr<NodeExpression> boundNode,
+        std::shared_ptr<NodeExpression> nbrNode, std::shared_ptr<RelExpression> rel,
+        ExtendDirection direction, const expression_vector& predicates, LogicalPlan& plan);
 
     void planLevel(uint32_t level);
     void planLevelExactly(uint32_t level);
@@ -84,11 +86,10 @@ private:
 
     void appendNonRecursiveExtend(std::shared_ptr<NodeExpression> boundNode,
         std::shared_ptr<NodeExpression> nbrNode, std::shared_ptr<RelExpression> rel,
-        common::ExtendDirection direction, const binder::expression_vector& properties,
-        LogicalPlan& plan);
+        ExtendDirection direction, const binder::expression_vector& properties, LogicalPlan& plan);
     void appendRecursiveExtend(std::shared_ptr<NodeExpression> boundNode,
         std::shared_ptr<NodeExpression> nbrNode, std::shared_ptr<RelExpression> rel,
-        common::ExtendDirection direction, LogicalPlan& plan);
+        ExtendDirection direction, LogicalPlan& plan);
 
     void planJoin(const binder::expression_vector& joinNodeIDs, common::JoinType joinType,
         std::shared_ptr<Expression> mark, LogicalPlan& probePlan, LogicalPlan& buildPlan);

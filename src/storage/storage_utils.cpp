@@ -200,7 +200,7 @@ void StorageUtils::createFileForNodePropertyWithDefaultVal(table_id_t tableID,
 void StorageUtils::createFileForRelPropertyWithDefaultVal(RelTableSchema* tableSchema,
     const Property& property, uint8_t* defaultVal, bool isDefaultValNull,
     StorageManager& storageManager) {
-    for (auto direction : REL_DIRECTIONS) {
+    for (auto direction : RelDataDirectionUtils::getRelDataDirections()) {
         auto createPropertyFileFunc = tableSchema->isSingleMultiplicityInDirection(direction) ?
                                           createFileForRelColumnPropertyWithDefaultVal :
                                           createFileForRelListsPropertyWithDefaultVal;

@@ -6,6 +6,7 @@
 
 #include "common/constants.h"
 #include "common/exception.h"
+#include "common/rel_direction.h"
 #include "common/types/types_include.h"
 
 namespace kuzu {

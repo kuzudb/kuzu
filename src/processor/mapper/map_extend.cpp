@@ -15,11 +15,6 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace processor {
 
-static RelDataDirection getRelDataDirection(ExtendDirection extendDirection) {
-    assert(extendDirection != ExtendDirection::BOTH);
-    return extendDirection == ExtendDirection::BWD ? BWD : FWD;
-}
-
 static std::vector<property_id_t> populatePropertyIds(
     table_id_t relID, const expression_vector& properties) {
     std::vector<property_id_t> outputColumns;
@@ -69,8 +64,7 @@ static std::unique_ptr<RelTableDataCollection> populateRelTableDataCollection(
                 relTableDatas.push_back(relTableData);
                 tableScanStates.push_back(std::move(scanState));
             }
-            break;
-        }
+        } break;
         case ExtendDirection::BWD: {
             auto [relTableData, scanState] = getRelTableDataAndScanState(RelDataDirection::BWD,
                 relTableSchema, boundNodeTableID, relsStore, relTableID, properties);
@@ -78,8 +72,7 @@ static std::unique_ptr<RelTableDataCollection> populateRelTableDataCollection(
                 relTableDatas.push_back(relTableData);
                 tableScanStates.push_back(std::move(scanState));
             }
-            break;
-        }
+        } break;
         case ExtendDirection::BOTH: {
             auto [relTableDataFWD, scanStateFWD] =
                 getRelTableDataAndScanState(RelDataDirection::FWD, relTableSchema, boundNodeTableID,
@@ -95,8 +88,9 @@ static std::unique_ptr<RelTableDataCollection> populateRelTableDataCollection(
                 relTableDatas.push_back(relTableDataBWD);
                 tableScanStates.push_back(std::move(scanStateBWD));
             }
-            break;
-        }
+        } break;
+        default:
+            throw common::NotImplementedException("populateRelTableDataCollection");
         }
     }
     return std::make_unique<RelTableDataCollection>(
@@ -123,8 +117,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExtendToPhysical(
         outputVectorsPos.emplace_back(outSchema->getExpressionPos(*expression));
     }
     auto& relsStore = storageManager.getRelsStore();
-    if (!rel->isMultiLabeled() && !boundNode->isMultiLabeled() && rel->isDirected()) {
-        auto relDataDirection = getRelDataDirection(extendDirection);
+    if (!rel->isMultiLabeled() && !boundNode->isMultiLabeled() &&
+        extendDirection != planner::ExtendDirection::BOTH) {
+        auto relDataDirection = ExtendDirectionUtils::getRelDataDirection(extendDirection);
         auto relTableID = rel->getSingleTableID();
         if (relsStore.isSingleMultiplicityInDirection(relDataDirection, relTableID)) {
             auto propertyIds = populatePropertyIds(relTableID, extend->getProperties());
@@ -165,7 +160,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalRecursiveExtendToPhysica
     auto boundNode = extend->getBoundNode();
     auto nbrNode = extend->getNbrNode();
     auto rel = extend->getRel();
-    auto direction = getRelDataDirection(extend->getDirection());
+    auto relDataDirection = ExtendDirectionUtils::getRelDataDirection(extend->getDirection());
     auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0));
     auto inNodeIDVectorPos =
         DataPos(inSchema->getExpressionPos(*boundNode->getInternalIDProperty()));
@@ -196,18 +191,18 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalRecursiveExtendToPhysica
     std::unique_ptr<PhysicalOperator> scanRelTable;
     std::vector<property_id_t> emptyPropertyIDs;
     DataPos tmpDstNodePos{0, 0};
-    if (relsStore.isSingleMultiplicityInDirection(direction, relTableID)) {
+    if (relsStore.isSingleMultiplicityInDirection(relDataDirection, relTableID)) {
         tmpDstNodePos = DataPos{0, 1};
         scanRelTable = make_unique<ScanRelTableColumns>(
-            relsStore.getRelTable(relTableID)->getDirectedTableData(direction), emptyPropertyIDs,
-            tmpSrcNodePos, std::vector<DataPos>{tmpDstNodePos}, std::move(scanFrontier),
-            getOperatorID(), emptyParamString);
+            relsStore.getRelTable(relTableID)->getDirectedTableData(relDataDirection),
+            emptyPropertyIDs, tmpSrcNodePos, std::vector<DataPos>{tmpDstNodePos},
+            std::move(scanFrontier), getOperatorID(), emptyParamString);
     } else {
         tmpDstNodePos = DataPos{0, 1};
         scanRelTable = make_unique<ScanRelTableLists>(
-            relsStore.getRelTable(relTableID)->getDirectedTableData(direction), emptyPropertyIDs,
-            tmpSrcNodePos, std::vector<DataPos>{tmpDstNodePos}, std::move(scanFrontier),
-            getOperatorID(), emptyParamString);
+            relsStore.getRelTable(relTableID)->getDirectedTableData(relDataDirection),
+            emptyPropertyIDs, tmpSrcNodePos, std::vector<DataPos>{tmpDstNodePos},
+            std::move(scanFrontier), getOperatorID(), emptyParamString);
     }
     std::unique_ptr<RecursiveJoinDataInfo> dataInfo;
     switch (extend->getJoinType()) {
