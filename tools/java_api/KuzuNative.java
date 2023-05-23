@@ -1,7 +1,5 @@
 package tools.java_api;
 
-import java.nio.ByteBuffer;
-
 class kuzu_date_t {
     // Days since 1970-01-01 00:00:00 UTC.
     public int days;
@@ -61,6 +59,8 @@ public class KuzuNative {
     protected static native void kuzu_database_set_logging_level(String logging_level, KuzuDatabase db);
 
     // Connection
+    protected static native long kuzu_connection_init(KuzuDatabase database);
+    protected static native void kuzu_connection_destroy(KuzuConnection connection);
     protected static native void kuzu_connection_begin_read_only_transaction(KuzuConnection connection);
     protected static native void kuzu_connection_begin_write_transaction(KuzuConnection connection);
     protected static native void kuzu_connection_commit(KuzuConnection connection);

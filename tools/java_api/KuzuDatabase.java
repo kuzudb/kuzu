@@ -25,4 +25,8 @@ public class KuzuDatabase {
         assert !destoryed: "Database has been destoryed.";
         KuzuNative.kuzu_database_set_logging_level(logging_level ,db);
     }
+
+    public boolean isDestoryed() {
+        return destoryed;
+    }
 }
