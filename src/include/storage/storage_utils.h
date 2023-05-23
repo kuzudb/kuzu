@@ -67,7 +67,8 @@ public:
     static std::string getNodePropertyColumnFName(const std::string& directory,
         const common::table_id_t& tableID, uint32_t propertyID, common::DBFileType dbFileType);
 
-    static std::string appendStructFieldName(std::string filePath, std::string structFieldName);
+    static std::string appendStructFieldName(
+        std::string filePath, common::struct_field_idx_t structFieldIdx);
     static std::string getPropertyNullFName(const std::string& filePath);
 
     static inline StorageStructureIDAndFName getNodePropertyColumnStructureIDAndFName(

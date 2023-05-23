@@ -98,8 +98,9 @@ void RelCopyExecutor::initializeColumns(RelDataDirection relDirection) {
         StorageUtils::getAdjColumnFName(
             outputDirectory, tableSchema->tableID, relDirection, DBFileType::WAL_VERSION),
         LogicalType(LogicalTypeID::INTERNAL_ID));
-    adjColumnChunksPerDirection[relDirection] = std::make_unique<InMemColumnChunk>(
-        LogicalType(LogicalTypeID::INTERNAL_ID), 0, numNodes - 1);
+    adjColumnChunksPerDirection[relDirection] =
+        adjColumnsPerDirection[relDirection]->getInMemColumnChunk(
+            0, numNodes - 1, &copyDescription);
     std::unordered_map<property_id_t, std::unique_ptr<InMemColumn>> propertyColumns;
     std::unordered_map<property_id_t, std::unique_ptr<InMemColumnChunk>> propertyColumnChunks;
     for (auto i = 0u; i < tableSchema->getNumProperties(); ++i) {
@@ -109,7 +110,7 @@ void RelCopyExecutor::initializeColumns(RelDataDirection relDirection) {
             relDirection, propertyID, DBFileType::WAL_VERSION);
         propertyColumns.emplace(propertyID, std::make_unique<InMemColumn>(fName, propertyDataType));
         propertyColumnChunks.emplace(
-            propertyID, std::make_unique<InMemColumnChunk>(propertyDataType, 0, numNodes - 1));
+            propertyID, propertyColumns[i]->getInMemColumnChunk(0, numNodes - 1, &copyDescription));
     }
     propertyColumnsPerDirection[relDirection] = std::move(propertyColumns);
     propertyColumnChunksPerDirection[relDirection] = std::move(propertyColumnChunks);

@@ -302,13 +302,16 @@ void ListPropertyColumn::writeListToPage(uint8_t* frame, uint16_t posInFrame,
 StructPropertyColumn::StructPropertyColumn(const StorageStructureIDAndFName& structureIDAndFName,
     const common::LogicalType& dataType, BufferManager* bufferManager, WAL* wal)
     : Column{dataType} {
+    auto nullColumnStructureIDAndFName =
+        StorageUtils::getNodeNullColumnStructureIDAndFName(structureIDAndFName);
+    nullColumn = std::make_unique<NullColumn>(nullColumnStructureIDAndFName, bufferManager, wal);
     auto structFields = common::StructType::getStructFields(&dataType);
-    for (auto structField : structFields) {
+    for (auto i = 0u; i < structFields.size(); i++) {
         auto fieldStructureIDAndFName = structureIDAndFName;
-        fieldStructureIDAndFName.fName = StorageUtils::appendStructFieldName(
-            fieldStructureIDAndFName.fName, structField->getName());
+        fieldStructureIDAndFName.fName =
+            StorageUtils::appendStructFieldName(fieldStructureIDAndFName.fName, i);
         structFieldColumns.push_back(ColumnFactory::getColumn(
-            fieldStructureIDAndFName, *structField->getType(), bufferManager, wal));
+            fieldStructureIDAndFName, *structFields[i]->getType(), bufferManager, wal));
     }
 }
 

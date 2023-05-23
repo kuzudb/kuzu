@@ -297,6 +297,7 @@ public:
 
 private:
     static LogicalTypeID dataTypeIDFromString(const std::string& dataTypeIDString);
+    static std::vector<std::string> parseStructFields(const std::string& structTypeStr);
 };
 
 enum class DBFileType : uint8_t { ORIGINAL = 0, WAL_VERSION = 1 };

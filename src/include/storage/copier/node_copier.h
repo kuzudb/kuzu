@@ -99,9 +99,7 @@ public:
         std::vector<std::shared_ptr<InMemColumn>> columns,
         std::vector<catalog::Property> properties)
         : sharedState{std::move(sharedState)}, pkIndex{pkIndex}, copyDesc{copyDesc}, table{table},
-          pkColumnID{pkColumnID}, columns{std::move(columns)}, properties{std::move(properties)} {
-        overflowCursors.resize(this->properties.size());
-    }
+          pkColumnID{pkColumnID}, columns{std::move(columns)}, properties{std::move(properties)} {}
 
     virtual ~NodeCopier() = default;
 
@@ -126,8 +124,6 @@ protected:
         throw common::CopyException("executeInternal not implemented");
     }
 
-    void copyArrayIntoColumnChunk(InMemColumnChunk* columnChunk, common::column_id_t columnID,
-        arrow::Array& arrowArray, common::CopyDescription& copyDescription);
     void populatePKIndex(InMemColumnChunk* chunk, InMemOverflowFile* overflowFile,
         common::offset_t startOffset, uint64_t numValues);
 
@@ -150,7 +146,6 @@ protected:
     // The properties to be copied into. Each property corresponds to a column.
     std::vector<catalog::Property> properties;
     std::vector<std::shared_ptr<InMemColumn>> columns;
-    std::vector<PageByteCursor> overflowCursors;
     common::column_id_t pkColumnID;
 };
 

@@ -28,11 +28,11 @@ std::string StorageUtils::getNodePropertyColumnFName(const std::string& director
         dbFileType);
 }
 
-std::string StorageUtils::appendStructFieldName(std::string filePath, std::string structFieldName) {
-    // Naming rules for a struct field column is: n-[tableID]-[propertyID]-[fieldName].col.
-    // TODO(Ziyi): Use `.` as separator is not safe.
-    auto posToInsertFieldName = filePath.find('.');
-    filePath.insert(posToInsertFieldName - 1, "-" + structFieldName);
+std::string StorageUtils::appendStructFieldName(
+    std::string filePath, common::struct_field_idx_t structFieldIdx) {
+    // Naming rules for a struct field column is: n-[tableID]-[propertyID]-[structFieldIdx].col.
+    auto posToInsertFieldName = filePath.find(".col");
+    filePath.insert(posToInsertFieldName, "-" + std::to_string(structFieldIdx));
     return filePath;
 }
 
@@ -188,7 +188,8 @@ void StorageUtils::createFileForNodePropertyWithDefaultVal(table_id_t tableID,
         std::make_unique<InMemColumn>(StorageUtils::getNodePropertyColumnFName(directory, tableID,
                                           property.propertyID, DBFileType::WAL_VERSION),
             property.dataType);
-    auto inMemColumnChunk = std::make_unique<InMemColumnChunk>(property.dataType, 0, numNodes - 1);
+    auto inMemColumnChunk =
+        inMemColumn->getInMemColumnChunk(0, numNodes - 1, nullptr /* copyDescription */);
     if (!isDefaultValNull) {
         // TODO(Guodong): Rework this.
         // inMemColumn->fillWithDefaultVal(defaultVal, numNodes, property.dataType);
@@ -218,7 +219,8 @@ void StorageUtils::createFileForRelColumnPropertyWithDefaultVal(table_id_t relTa
         property.dataType);
     auto numTuples =
         storageManager.getRelsStore().getRelsStatistics().getNumTuplesForTable(relTableID);
-    auto inMemColumnChunk = std::make_unique<InMemColumnChunk>(property.dataType, 0, numTuples - 1);
+    auto inMemColumnChunk =
+        inMemColumn->getInMemColumnChunk(0, numTuples - 1, nullptr /* copyDescription */);
     if (!isDefaultValNull) {
         // TODO(Guodong): Rework this.
         //        inMemColumn->fillWithDefaultVal(defaultVal,

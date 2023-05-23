@@ -202,6 +202,58 @@ std::unique_ptr<LogicalType> LogicalType::copy() {
     return dataType;
 }
 
+void LogicalType::setPhysicalType() {
+    switch (typeID) {
+    case LogicalTypeID::ANY: {
+        physicalType = PhysicalTypeID::ANY;
+    } break;
+    case LogicalTypeID::BOOL: {
+        physicalType = PhysicalTypeID::BOOL;
+    } break;
+    case LogicalTypeID::TIMESTAMP:
+    case LogicalTypeID::SERIAL:
+    case LogicalTypeID::INT64: {
+        physicalType = PhysicalTypeID::INT64;
+    } break;
+    case LogicalTypeID::DATE:
+    case LogicalTypeID::INT32: {
+        physicalType = PhysicalTypeID::INT32;
+    } break;
+    case LogicalTypeID::INT16: {
+        physicalType = PhysicalTypeID::INT16;
+    } break;
+    case LogicalTypeID::DOUBLE: {
+        physicalType = PhysicalTypeID::DOUBLE;
+    } break;
+    case LogicalTypeID::FLOAT: {
+        physicalType = PhysicalTypeID::FLOAT;
+    } break;
+    case LogicalTypeID::INTERVAL: {
+        physicalType = PhysicalTypeID::INTERVAL;
+    } break;
+    case LogicalTypeID::FIXED_LIST: {
+        physicalType = PhysicalTypeID::FIXED_LIST;
+    } break;
+    case LogicalTypeID::INTERNAL_ID: {
+        physicalType = PhysicalTypeID::INTERNAL_ID;
+    } break;
+    case LogicalTypeID::STRING: {
+        physicalType = PhysicalTypeID::STRING;
+    } break;
+    case LogicalTypeID::RECURSIVE_REL:
+    case LogicalTypeID::VAR_LIST: {
+        physicalType = PhysicalTypeID::VAR_LIST;
+    } break;
+    case LogicalTypeID::NODE:
+    case LogicalTypeID::REL:
+    case LogicalTypeID::STRUCT: {
+        physicalType = PhysicalTypeID::STRUCT;
+    } break;
+    default:
+        throw NotImplementedException{"LogicalType::setPhysicalType()."};
+    }
+}
+
 LogicalType LogicalTypeUtils::dataTypeFromString(const std::string& dataTypeString) {
     LogicalType dataType;
     if (dataTypeString.ends_with("[]")) {
@@ -222,22 +274,21 @@ LogicalType LogicalTypeUtils::dataTypeFromString(const std::string& dataTypeStri
     } else if (dataTypeString.starts_with("STRUCT")) {
         dataType.typeID = LogicalTypeID::STRUCT;
         auto leftBracketPos = dataTypeString.find('(');
-        auto rightBracketPos = dataTypeString.find(')');
+        auto rightBracketPos = dataTypeString.find_last_of(')');
         if (leftBracketPos == std::string::npos || rightBracketPos == std::string::npos) {
             throw Exception("Cannot parse struct type: " + dataTypeString);
         }
         // Remove the leading and trailing brackets.
         auto structTypeStr =
             dataTypeString.substr(leftBracketPos + 1, rightBracketPos - leftBracketPos - 1);
-        auto structFieldsStr = common::StringUtils::split(structTypeStr, ",");
+        auto structFieldsStr = parseStructFields(structTypeStr);
         std::vector<std::unique_ptr<StructField>> structFields;
-        for (auto& structField : structFieldsStr) {
-            auto structFieldParts = common::StringUtils::split(structField, " ");
-            if (structFieldParts.size() != 2) {
-                throw RuntimeException("Cannot parse struct type: " + dataTypeString);
-            }
-            structFields.emplace_back(std::make_unique<StructField>(structFieldParts[0],
-                std::make_unique<LogicalType>(dataTypeFromString(structFieldParts[1]))));
+        for (auto& structFieldStr : structFieldsStr) {
+            auto pos = structFieldStr.find(' ');
+            auto fieldName = structFieldStr.substr(0, pos);
+            auto fieldTypeString = structFieldStr.substr(pos + 1);
+            structFields.emplace_back(std::make_unique<StructField>(
+                fieldName, std::make_unique<LogicalType>(dataTypeFromString(fieldTypeString))));
         }
         dataType.extraTypeInfo = std::make_unique<StructTypeInfo>(std::move(structFields));
     } else {
@@ -423,56 +474,32 @@ bool LogicalTypeUtils::isNumerical(const kuzu::common::LogicalType& dataType) {
     }
 }
 
-void LogicalType::setPhysicalType() {
-    switch (typeID) {
-    case LogicalTypeID::ANY: {
-        physicalType = PhysicalTypeID::ANY;
-    } break;
-    case LogicalTypeID::BOOL: {
-        physicalType = PhysicalTypeID::BOOL;
-    } break;
-    case LogicalTypeID::TIMESTAMP:
-    case LogicalTypeID::SERIAL:
-    case LogicalTypeID::INT64: {
-        physicalType = PhysicalTypeID::INT64;
-    } break;
-    case LogicalTypeID::DATE:
-    case LogicalTypeID::INT32: {
-        physicalType = PhysicalTypeID::INT32;
-    } break;
-    case LogicalTypeID::INT16: {
-        physicalType = PhysicalTypeID::INT16;
-    } break;
-    case LogicalTypeID::DOUBLE: {
-        physicalType = PhysicalTypeID::DOUBLE;
-    } break;
-    case LogicalTypeID::FLOAT: {
-        physicalType = PhysicalTypeID::FLOAT;
-    } break;
-    case LogicalTypeID::INTERVAL: {
-        physicalType = PhysicalTypeID::INTERVAL;
-    } break;
-    case LogicalTypeID::FIXED_LIST: {
-        physicalType = PhysicalTypeID::FIXED_LIST;
-    } break;
-    case LogicalTypeID::INTERNAL_ID: {
-        physicalType = PhysicalTypeID::INTERNAL_ID;
-    } break;
-    case LogicalTypeID::STRING: {
-        physicalType = PhysicalTypeID::STRING;
-    } break;
-    case LogicalTypeID::RECURSIVE_REL:
-    case LogicalTypeID::VAR_LIST: {
-        physicalType = PhysicalTypeID::VAR_LIST;
-    } break;
-    case LogicalTypeID::NODE:
-    case LogicalTypeID::REL:
-    case LogicalTypeID::STRUCT: {
-        physicalType = PhysicalTypeID::STRUCT;
-    } break;
-    default:
-        throw NotImplementedException{"LogicalType::setPhysicalType()."};
+std::vector<std::string> LogicalTypeUtils::parseStructFields(const std::string& structTypeStr) {
+    std::vector<std::string> structFieldsStr;
+    auto startPos = 0u;
+    auto curPos = 0u;
+    auto numOpenBrackets = 0u;
+    while (curPos < structTypeStr.length()) {
+        switch (structTypeStr[curPos]) {
+        case '(': {
+            numOpenBrackets++;
+        } break;
+        case ')': {
+            numOpenBrackets--;
+        } break;
+        case ',': {
+            if (numOpenBrackets == 0) {
+                structFieldsStr.push_back(
+                    StringUtils::ltrim(structTypeStr.substr(startPos, curPos - startPos)));
+                startPos = curPos + 1;
+            }
+        } break;
+        }
+        curPos++;
     }
+    structFieldsStr.push_back(
+        StringUtils::ltrim(structTypeStr.substr(startPos, curPos - startPos)));
+    return structFieldsStr;
 }
 
 // Specialized Ser/Deser functions for logical dataTypes.

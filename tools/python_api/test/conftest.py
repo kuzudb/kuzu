@@ -24,7 +24,8 @@ def init_tiny_snb(tmp_path):
         "comments STRING[], MANY_MANY);")
     conn.execute("COPY knows FROM \"../../../dataset/tinysnb/eKnows.csv\"")
     conn.execute("create node table organisation (ID INT64, name STRING, orgCode INT64, mark DOUBLE, score INT64, "
-                 "history STRING, licenseValidInterval INTERVAL, rating DOUBLE, PRIMARY KEY (ID))")
+                 "history STRING,licenseValidInterval INTERVAL, rating DOUBLE, state STRUCT(revenue INT16, location "
+                 "STRING[], stock STRUCT(price INT64[], volume INT64)), PRIMARY KEY (ID));")
     conn.execute('COPY organisation FROM "../../../dataset/tinysnb/vOrganisation.csv"')
     conn.execute('CREATE NODE TABLE movies (name STRING, length INT32, note STRING, description STRUCT(rating DOUBLE, '
                  'views INT64, release TIMESTAMP, film DATE), PRIMARY KEY (name))')
