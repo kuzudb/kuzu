@@ -7,7 +7,7 @@ namespace binder {
 
 std::unique_ptr<BoundStatementResult> BoundStatementResult::createSingleStringColumnResult() {
     auto result = std::make_unique<BoundStatementResult>();
-    auto columnName = std::string("outputMsg");
+    auto columnName = std::string("result");
     auto value = std::make_unique<common::Value>(columnName);
     auto stringColumn = std::make_shared<LiteralExpression>(std::move(value), columnName);
     result->addColumn(stringColumn, expression_vector{stringColumn});

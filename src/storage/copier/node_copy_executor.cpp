@@ -27,7 +27,6 @@ static column_id_t getPKColumnID(
 }
 
 void NodeCopyExecutor::populateColumns(processor::ExecutionContext* executionContext) {
-    logger->info("Populating properties");
     auto primaryKey = reinterpret_cast<NodeTableSchema*>(tableSchema)->getPrimaryKey();
     std::unique_ptr<PrimaryKeyIndexBuilder> pkIndex;
     if (primaryKey.dataType.getLogicalTypeID() != common::LogicalTypeID::SERIAL) {
@@ -80,7 +79,6 @@ void NodeCopyExecutor::populateColumns(processor::ExecutionContext* executionCon
     for (auto& task : tasks) {
         taskScheduler.scheduleTaskAndWaitOrError(task, executionContext);
     }
-    logger->info("Done populating properties, constructing the pk index.");
 }
 
 } // namespace storage

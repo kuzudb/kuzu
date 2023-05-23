@@ -100,6 +100,7 @@ void NodeCopier::populatePKIndex(InMemColumnChunk* chunk, InMemOverflowFile* ove
         }
     }
     // No nulls, so we can populate the index with actual values.
+    pkIndex->lock();
     switch (chunk->getDataType().getLogicalTypeID()) {
     case LogicalTypeID::INT64: {
         appendToPKIndex<int64_t>(chunk, startOffset, numValues);
@@ -112,6 +113,7 @@ void NodeCopier::populatePKIndex(InMemColumnChunk* chunk, InMemOverflowFile* ove
         throw CopyException("Primary key must be either INT64, STRING or SERIAL.");
     }
     }
+    pkIndex->unlock();
 }
 
 template<>
