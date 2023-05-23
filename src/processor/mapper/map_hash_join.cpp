@@ -68,7 +68,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalHashJoinToPhysical(
     auto sharedState = std::make_shared<HashJoinSharedState>();
     // create hashJoin build
     auto hashJoinBuild =
-        make_unique<HashJoinBuild>(std::make_unique<ResultSetDescriptor>(*buildSchema), sharedState,
+        make_unique<HashJoinBuild>(std::make_unique<ResultSetDescriptor>(buildSchema), sharedState,
             buildDataInfo, std::move(buildSidePrevOperator), getOperatorID(), paramsString);
     // create hashJoin probe
     ProbeDataInfo probeDataInfo(probeKeysDataPos, probePayloadsOutPos);

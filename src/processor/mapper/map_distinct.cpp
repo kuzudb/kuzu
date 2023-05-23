@@ -19,7 +19,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalDistinctToPhysical(
     std::vector<DataPos> emptyAggregatesOutputPos;
     return createHashAggregate(logicalDistinct.getKeyExpressions(),
         logicalDistinct.getDependentKeyExpressions(), std::move(emptyAggFunctions),
-        std::move(emptyAggInputInfos), std::move(emptyAggregatesOutputPos), *inSchema, *outSchema,
+        std::move(emptyAggInputInfos), std::move(emptyAggregatesOutputPos), inSchema, outSchema,
         std::move(prevOperator), logicalDistinct.getExpressionsForPrinting());
 }
 

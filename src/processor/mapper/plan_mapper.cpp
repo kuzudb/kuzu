@@ -16,7 +16,7 @@ std::unique_ptr<PhysicalPlan> PlanMapper::mapLogicalPlanToPhysical(LogicalPlan* 
     auto lastOperator = mapLogicalOperatorToPhysical(logicalPlan->getLastOperator());
     if (!StatementTypeUtils::isCopyCSV(statementType)) {
         lastOperator = appendResultCollector(
-            expressionsToCollect, *logicalPlan->getSchema(), std::move(lastOperator));
+            expressionsToCollect, logicalPlan->getSchema(), std::move(lastOperator));
     }
     return make_unique<PhysicalPlan>(std::move(lastOperator));
 }
@@ -145,14 +145,14 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
 }
 
 std::unique_ptr<ResultCollector> PlanMapper::appendResultCollector(
-    const binder::expression_vector& expressionsToCollect, const Schema& schema,
+    const binder::expression_vector& expressionsToCollect, Schema* schema,
     std::unique_ptr<PhysicalOperator> prevOperator) {
     std::vector<std::pair<DataPos, LogicalType>> payloadsPosAndType;
     std::vector<bool> isPayloadFlat;
     for (auto& expression : expressionsToCollect) {
         auto expressionName = expression->getUniqueName();
-        auto dataPos = DataPos(schema.getExpressionPos(*expression));
-        auto isFlat = schema.getGroup(expressionName)->isFlat();
+        auto dataPos = DataPos(schema->getExpressionPos(*expression));
+        auto isFlat = schema->getGroup(expressionName)->isFlat();
         payloadsPosAndType.emplace_back(dataPos, expression->dataType);
         isPayloadFlat.push_back(isFlat);
     }

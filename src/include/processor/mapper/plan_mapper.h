@@ -104,7 +104,7 @@ private:
     std::unique_ptr<PhysicalOperator> mapLogicalRenamePropertyToPhysical(
         planner::LogicalOperator* logicalOperator);
     std::unique_ptr<ResultCollector> appendResultCollector(
-        const binder::expression_vector& expressionsToCollect, const planner::Schema& schema,
+        const binder::expression_vector& expressionsToCollect, planner::Schema* schema,
         std::unique_ptr<PhysicalOperator> prevOperator);
 
     inline uint32_t getOperatorID() { return physicalOperatorID++; }
@@ -117,8 +117,8 @@ private:
         const binder::expression_vector& dependentKeyExpressions,
         std::vector<std::unique_ptr<function::AggregateFunction>> aggregateFunctions,
         std::vector<std::unique_ptr<AggregateInputInfo>> aggregateInputInfos,
-        std::vector<DataPos> aggregatesOutputPos, const planner::Schema& inSchema,
-        const planner::Schema& outSchema, std::unique_ptr<PhysicalOperator> prevOperator,
+        std::vector<DataPos> aggregatesOutputPos, planner::Schema* inSchema,
+        planner::Schema* outSchema, std::unique_ptr<PhysicalOperator> prevOperator,
         const std::string& paramsString);
 
     static void mapAccHashJoin(PhysicalOperator* probe);

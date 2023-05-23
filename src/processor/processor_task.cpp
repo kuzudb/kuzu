@@ -25,24 +25,7 @@ std::unique_ptr<ResultSet> ProcessorTask::populateResultSet(
         // Some pipeline does not need a resultSet, e.g. OrderByMerge
         return nullptr;
     }
-    auto numDataChunks = resultSetDescriptor->getNumDataChunks();
-    auto resultSet = std::make_unique<ResultSet>(numDataChunks);
-    for (auto i = 0u; i < numDataChunks; ++i) {
-        auto dataChunkDescriptor = resultSetDescriptor->getDataChunkDescriptor(i);
-        auto numValueVectors = dataChunkDescriptor->getNumValueVectors();
-        auto dataChunk = std::make_unique<common::DataChunk>(numValueVectors);
-        if (dataChunkDescriptor->isSingleState()) {
-            dataChunk->state = common::DataChunkState::getSingleValueDataChunkState();
-        }
-        for (auto j = 0u; j < dataChunkDescriptor->getNumValueVectors(); ++j) {
-            auto expression = dataChunkDescriptor->getExpression(j);
-            auto vector =
-                std::make_shared<common::ValueVector>(expression->dataType, memoryManager);
-            dataChunk->insert(j, std::move(vector));
-        }
-        resultSet->insert(i, std::move(dataChunk));
-    }
-    return resultSet;
+    return std::make_unique<ResultSet>(resultSetDescriptor, memoryManager);
 }
 
 } // namespace processor

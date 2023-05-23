@@ -81,12 +81,12 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalAggregateToPhysical(
     if (logicalAggregate.hasKeyExpressions()) {
         return createHashAggregate(logicalAggregate.getKeyExpressions(),
             logicalAggregate.getDependentKeyExpressions(), std::move(aggregateFunctions),
-            std::move(aggregateInputInfos), std::move(aggregatesOutputPos), *inSchema, *outSchema,
+            std::move(aggregateInputInfos), std::move(aggregatesOutputPos), inSchema, outSchema,
             std::move(prevOperator), paramsString);
     } else {
         auto sharedState = make_shared<SimpleAggregateSharedState>(aggregateFunctions);
         auto aggregate =
-            make_unique<SimpleAggregate>(std::make_unique<ResultSetDescriptor>(*inSchema),
+            make_unique<SimpleAggregate>(std::make_unique<ResultSetDescriptor>(inSchema),
                 sharedState, std::move(aggregateFunctions), std::move(aggregateInputInfos),
                 std::move(prevOperator), getOperatorID(), paramsString);
         return make_unique<SimpleAggregateScan>(
@@ -99,16 +99,15 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createHashAggregate(
     const binder::expression_vector& dependentKeyExpressions,
     std::vector<std::unique_ptr<function::AggregateFunction>> aggregateFunctions,
     std::vector<std::unique_ptr<AggregateInputInfo>> aggregateInputInfos,
-    std::vector<DataPos> aggregatesOutputPos, const planner::Schema& inSchema,
-    const planner::Schema& outSchema, std::unique_ptr<PhysicalOperator> prevOperator,
-    const std::string& paramsString) {
+    std::vector<DataPos> aggregatesOutputPos, planner::Schema* inSchema, planner::Schema* outSchema,
+    std::unique_ptr<PhysicalOperator> prevOperator, const std::string& paramsString) {
     auto sharedState = make_shared<HashAggregateSharedState>(aggregateFunctions);
-    auto flatKeyExpressions = getKeyExpressions(keyExpressions, inSchema, true /* isFlat */);
-    auto unFlatKeyExpressions = getKeyExpressions(keyExpressions, inSchema, false /* isFlat */);
+    auto flatKeyExpressions = getKeyExpressions(keyExpressions, *inSchema, true /* isFlat */);
+    auto unFlatKeyExpressions = getKeyExpressions(keyExpressions, *inSchema, false /* isFlat */);
     auto aggregate = make_unique<HashAggregate>(std::make_unique<ResultSetDescriptor>(inSchema),
-        sharedState, getExpressionsDataPos(flatKeyExpressions, inSchema),
-        getExpressionsDataPos(unFlatKeyExpressions, inSchema),
-        getExpressionsDataPos(dependentKeyExpressions, inSchema), std::move(aggregateFunctions),
+        sharedState, getExpressionsDataPos(flatKeyExpressions, *inSchema),
+        getExpressionsDataPos(unFlatKeyExpressions, *inSchema),
+        getExpressionsDataPos(dependentKeyExpressions, *inSchema), std::move(aggregateFunctions),
         std::move(aggregateInputInfos), std::move(prevOperator), getOperatorID(), paramsString);
     binder::expression_vector outputExpressions;
     outputExpressions.insert(
@@ -118,7 +117,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createHashAggregate(
     outputExpressions.insert(
         outputExpressions.end(), dependentKeyExpressions.begin(), dependentKeyExpressions.end());
     return std::make_unique<HashAggregateScan>(sharedState,
-        getExpressionsDataPos(outputExpressions, outSchema), std::move(aggregatesOutputPos),
+        getExpressionsDataPos(outputExpressions, *outSchema), std::move(aggregatesOutputPos),
         std::move(aggregate), getOperatorID(), paramsString);
 }
 

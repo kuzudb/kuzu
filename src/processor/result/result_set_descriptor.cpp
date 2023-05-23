@@ -1,31 +1,28 @@
 #include "processor/result/result_set_descriptor.h"
 
-using namespace kuzu::planner;
+#include "planner/logical_plan/logical_operator/schema.h"
 
 namespace kuzu {
 namespace processor {
 
-ResultSetDescriptor::ResultSetDescriptor(const Schema& schema) {
-    for (auto i = 0u; i < schema.getNumGroups(); ++i) {
-        auto group = schema.getGroup(i);
-        auto dataChunkDescriptor = std::make_unique<DataChunkDescriptor>();
-        if (group->isSingleState()) {
-            dataChunkDescriptor->setSingleState();
-        }
+ResultSetDescriptor::ResultSetDescriptor(planner::Schema* schema) {
+    for (auto i = 0u; i < schema->getNumGroups(); ++i) {
+        auto group = schema->getGroup(i);
+        auto dataChunkDescriptor = std::make_unique<DataChunkDescriptor>(group->isSingleState());
         for (auto& expression : group->getExpressions()) {
-            expressionNameToDataChunkPosMap.insert(
-                {expression->getUniqueName(), dataChunkDescriptors.size()});
-            dataChunkDescriptor->addExpression(expression);
+            dataChunkDescriptor->logicalTypes.push_back(expression->getDataType());
         }
         dataChunkDescriptors.push_back(std::move(dataChunkDescriptor));
     }
 }
 
-ResultSetDescriptor::ResultSetDescriptor(const ResultSetDescriptor& other)
-    : expressionNameToDataChunkPosMap{other.expressionNameToDataChunkPosMap} {
-    for (auto& dataChunkDescriptor : other.dataChunkDescriptors) {
-        dataChunkDescriptors.push_back(std::make_unique<DataChunkDescriptor>(*dataChunkDescriptor));
+std::unique_ptr<ResultSetDescriptor> ResultSetDescriptor::copy() const {
+    std::vector<std::unique_ptr<DataChunkDescriptor>> dataChunkDescriptorsCopy;
+    for (auto& dataChunkDescriptor : dataChunkDescriptors) {
+        dataChunkDescriptorsCopy.push_back(
+            std::make_unique<DataChunkDescriptor>(*dataChunkDescriptor));
     }
+    return std::make_unique<ResultSetDescriptor>(std::move(dataChunkDescriptorsCopy));
 }
 
 } // namespace processor
