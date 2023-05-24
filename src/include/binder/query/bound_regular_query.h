@@ -15,15 +15,6 @@ public:
 
     ~BoundRegularQuery() override = default;
 
-    inline bool isReadOnly() const override {
-        for (auto& singleQuery : singleQueries) {
-            if (!singleQuery->isReadOnly()) {
-                return false;
-            }
-        }
-        return true;
-    }
-
     inline void addSingleQuery(std::unique_ptr<NormalizedSingleQuery> singleQuery) {
         singleQueries.push_back(std::move(singleQuery));
     }

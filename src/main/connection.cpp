@@ -1,6 +1,7 @@
 #include "main/connection.h"
 
 #include "binder/binder.h"
+#include "binder/visitor/statement_read_write_analyzer.h"
 #include "json.hpp"
 #include "main/database.h"
 #include "main/plan_printer.h"
@@ -165,7 +166,8 @@ std::unique_ptr<PreparedStatement> Connection::prepareNoLock(
         auto binder = Binder(*database->catalog);
         auto boundStatement = binder.bind(*statement);
         preparedStatement->statementType = boundStatement->getStatementType();
-        preparedStatement->readOnly = boundStatement->isReadOnly();
+        preparedStatement->readOnly =
+            binder::StatementReadWriteAnalyzer().isReadOnly(*boundStatement);
         preparedStatement->parameterMap = binder.getParameterMap();
         preparedStatement->statementResult = boundStatement->getStatementResult()->copy();
         // planning

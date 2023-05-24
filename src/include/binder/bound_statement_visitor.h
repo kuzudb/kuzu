@@ -13,9 +13,9 @@ public:
 
     void visit(const BoundStatement& statement);
 
-    void visitRegularQuery(const BoundRegularQuery& regularQuery);
-    void visitSingleQuery(const NormalizedSingleQuery& singleQuery);
-    void visitQueryPart(const NormalizedQueryPart& queryPart);
+    virtual void visitRegularQuery(const BoundRegularQuery& regularQuery);
+    virtual void visitSingleQuery(const NormalizedSingleQuery& singleQuery);
+    virtual void visitQueryPart(const NormalizedQueryPart& queryPart);
 
 protected:
     virtual void visitCreateNodeTable(const BoundStatement& statement) {}

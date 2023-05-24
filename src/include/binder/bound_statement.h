@@ -18,8 +18,6 @@ public:
 
     inline BoundStatementResult* getStatementResult() const { return statementResult.get(); }
 
-    virtual inline bool isReadOnly() const { return false; }
-
 private:
     common::StatementType statementType;
     std::unique_ptr<BoundStatementResult> statementResult;
