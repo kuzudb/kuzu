@@ -60,8 +60,8 @@ jobs:
         working-directory: ./build/debug/test
         continue-on-error: true
 
-      - name: Display ASan log
-        run: cat /tmp/asan.log* || true
+      - name: Report ASan log
+        run: ls /tmp/asan.log* 1>/dev/null 2>&1 && (cat /tmp/asan.log*; exit 1) || exit 0
         shell: bash
 
       - name: Clean up ASan log

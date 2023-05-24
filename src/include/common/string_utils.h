@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cstring>
+#include <regex>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -49,6 +50,11 @@ public:
         s.erase(
             s.begin(), find_if(s.begin(), s.end(), [](unsigned char ch) { return !isspace(ch); }));
         return s;
+    }
+
+    static inline void removeWhiteSpaces(std::string& str) {
+        std::regex whiteSpacePattern{"\\s"};
+        str = std::regex_replace(str, whiteSpacePattern, "");
     }
 };
 

@@ -1,3 +1,3 @@
-1,ABFsUni,325,3.7,-2,10 years 5 months 13 hours 24 us,3 years 5 days,1
-4,CsWork,934,4.1,-100,2 years 4 days 10 hours,26 years 52 days 48 hours,0.78
-6,DEsWork,824,4.1,7,2 years 4 hours 22 us 34 minutes,82 hours 100 milliseconds,0.52
+1,ABFsUni,325,3.7,-2,10 years 5 months 13 hours 24 us,3 years 5 days,1,"{revenue: 138, location: ['toronto', 'montr,eal'], stock: {price: [96, 56], volume: 1000}}"
+4,CsWork,934,4.1,-100,2 years 4 days 10 hours,26 years 52 days 48 hours,0.78,"{revenue: 152, location: [\"vanco,uver north area\"], stock: {price: [15, 78, 671], volume: 432}}"
+6,DEsWork,824,4.1,7,2 years 4 hours 22 us 34 minutes,82 hours 100 milliseconds,0.52,"{revenue: 558, location: ['very long city name', 'new york'], stock: {price: [22], volume: 99}}"

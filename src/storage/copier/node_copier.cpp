@@ -137,44 +137,6 @@ void NodeCopier::appendToPKIndex<ku_string_t, InMemOverflowFile*>(InMemColumnChu
     }
 }
 
-void NodeCopier::copyArrayIntoColumnChunk(InMemColumnChunk* columnChunk,
-    common::column_id_t columnID, arrow::Array& arrowArray, CopyDescription& copyDescription) {
-    switch (arrowArray.type_id()) {
-    case arrow::Type::BOOL: {
-        columnChunk->templateCopyValuesToPage<bool>(arrowArray);
-    } break;
-    case arrow::Type::INT16: {
-        columnChunk->templateCopyValuesToPage<int16_t>(arrowArray);
-    } break;
-    case arrow::Type::INT32: {
-        columnChunk->templateCopyValuesToPage<int32_t>(arrowArray);
-    } break;
-    case arrow::Type::INT64: {
-        columnChunk->templateCopyValuesToPage<int64_t>(arrowArray);
-    } break;
-    case arrow::Type::DOUBLE: {
-        columnChunk->templateCopyValuesToPage<double_t>(arrowArray);
-    } break;
-    case arrow::Type::FLOAT: {
-        columnChunk->templateCopyValuesToPage<float_t>(arrowArray);
-    } break;
-    case arrow::Type::DATE32: {
-        columnChunk->templateCopyValuesToPage<date_t>(arrowArray);
-    } break;
-    case arrow::Type::TIMESTAMP: {
-        columnChunk->templateCopyValuesToPage<timestamp_t>(arrowArray);
-    } break;
-    case arrow::Type::STRING: {
-        columnChunk->templateCopyValuesToPage<std::string, InMemOverflowFile*, PageByteCursor&,
-            CopyDescription&>(arrowArray, columns[columnID]->getInMemOverflowFile(),
-            overflowCursors[columnID], copyDescription);
-    } break;
-    default: {
-        throw CopyException("Unsupported data type " + arrowArray.type()->ToString());
-    }
-    }
-}
-
 void NodeCopier::flushChunksAndPopulatePKIndex(
     const std::vector<std::unique_ptr<InMemColumnChunk>>& columnChunks,
     common::offset_t startNodeOffset, common::offset_t endNodeOffset,
@@ -203,9 +165,8 @@ void CSVNodeCopier::executeInternal(std::unique_ptr<NodeCopyMorsel> morsel) {
     for (auto i = 0; i < properties.size(); i++) {
         auto property = properties[i];
         columnChunks[i] =
-            std::make_unique<InMemColumnChunk>(property.dataType, csvMorsel->nodeOffset, endOffset);
-        copyArrayIntoColumnChunk(
-            columnChunks[i].get(), i, *csvMorsel->recordBatch->column(i), copyDesc);
+            columns[i]->getInMemColumnChunk(csvMorsel->nodeOffset, endOffset, &copyDesc);
+        columnChunks[i]->copyArrowArray(*csvMorsel->recordBatch->column(i));
     }
     flushChunksAndPopulatePKIndex(columnChunks, csvMorsel->nodeOffset, endOffset);
 }
@@ -226,10 +187,8 @@ void ParquetNodeCopier::executeInternal(std::unique_ptr<NodeCopyMorsel> morsel) 
     auto endOffset = morsel->nodeOffset + numLinesInCurBlock - 1;
     for (auto i = 0; i < properties.size(); i++) {
         auto property = properties[i];
-        columnChunks[i] =
-            std::make_unique<InMemColumnChunk>(property.dataType, morsel->nodeOffset, endOffset);
-        NodeCopier::copyArrayIntoColumnChunk(
-            columnChunks[i].get(), i, *recordBatch->column(i), copyDesc);
+        columnChunks[i] = columns[i]->getInMemColumnChunk(morsel->nodeOffset, endOffset, &copyDesc);
+        columnChunks[i]->copyArrowArray(*recordBatch->column(i));
     }
     flushChunksAndPopulatePKIndex(columnChunks, morsel->nodeOffset, endOffset);
 }
@@ -242,7 +201,7 @@ void NPYNodeCopier::executeInternal(std::unique_ptr<NodeCopyMorsel> morsel) {
     // For NPY files, we can only read one column at a time.
     std::vector<std::unique_ptr<InMemColumnChunk>> columnChunks(1);
     columnChunks[0] = std::make_unique<InMemColumnChunk>(
-        properties[columnToCopy].dataType, morsel->nodeOffset, endNodeOffset);
+        properties[columnToCopy].dataType, morsel->nodeOffset, endNodeOffset, &copyDesc);
     for (auto i = 0u; i < morsel->numNodes; i++) {
         columnChunks[0]->setValue(reader->getPointerToRow(morsel->nodeOffset + i), i);
     }

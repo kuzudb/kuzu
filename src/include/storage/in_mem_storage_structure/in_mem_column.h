@@ -4,8 +4,6 @@
 
 namespace kuzu {
 namespace storage {
-// TODO(GUODONG): Currently, we have both InMemNodeColumn and InMemColumn. This is a temporary
-// solution for now to allow gradual refactorings. Eventually, we should only have InMemColumn.
 
 class InMemColumn {
 public:
@@ -16,13 +14,35 @@ public:
 
     void flushChunk(InMemColumnChunk* chunk);
 
+    std::unique_ptr<InMemColumnChunk> getInMemColumnChunk(common::offset_t startNodeOffset,
+        common::offset_t endNodeOffset, const common::CopyDescription* copyDescription) {
+        switch (dataType.getLogicalTypeID()) {
+        case common::LogicalTypeID::STRING:
+        case common::LogicalTypeID::VAR_LIST: {
+            return std::make_unique<InMemColumnChunkWithOverflow>(
+                dataType, startNodeOffset, endNodeOffset, copyDescription, inMemOverflowFile.get());
+        }
+        case common::LogicalTypeID::STRUCT: {
+            auto inMemStructColumnChunk = std::make_unique<InMemStructColumnChunk>(
+                dataType, startNodeOffset, endNodeOffset, copyDescription);
+            for (auto& fieldColumn : childColumns) {
+                inMemStructColumnChunk->addFieldChunk(fieldColumn->getInMemColumnChunk(
+                    startNodeOffset, endNodeOffset, copyDescription));
+            }
+            return inMemStructColumnChunk;
+        }
+        default: {
+            return std::make_unique<InMemColumnChunk>(
+                dataType, startNodeOffset, endNodeOffset, copyDescription);
+        }
+        }
+    }
+
     inline common::LogicalType getDataType() { return dataType; }
     inline InMemOverflowFile* getInMemOverflowFile() { return inMemOverflowFile.get(); }
-    inline uint16_t getNumBytesForValue() const { return numBytesForValue; }
 
 protected:
     std::string filePath;
-    uint16_t numBytesForValue;
     std::unique_ptr<FileHandle> fileHandle;
     common::LogicalType dataType;
     std::unique_ptr<InMemColumn> nullColumn;

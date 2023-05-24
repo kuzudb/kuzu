@@ -10,9 +10,7 @@ namespace kuzu {
 namespace storage {
 
 InMemColumn::InMemColumn(std::string filePath, LogicalType dataType, bool requireNullBits)
-    : filePath{std::move(filePath)}, numBytesForValue{(
-                                         uint16_t)storage::StorageUtils::getDataTypeSize(dataType)},
-      dataType{std::move(dataType)} {
+    : filePath{std::move(filePath)}, dataType{std::move(dataType)} {
     // TODO(Guodong): Separate this as a function.
     switch (this->dataType.getLogicalTypeID()) {
     case LogicalTypeID::STRUCT: {
@@ -21,7 +19,7 @@ InMemColumn::InMemColumn(std::string filePath, LogicalType dataType, bool requir
         childColumns.resize(childTypes.size());
         for (auto i = 0u; i < childTypes.size(); i++) {
             childColumns[i] = std::make_unique<InMemColumn>(
-                StorageUtils::appendStructFieldName(this->filePath, childNames[i]), *childTypes[i],
+                StorageUtils::appendStructFieldName(this->filePath, i), *childTypes[i],
                 true /* hasNull */);
         }
     } break;
@@ -49,8 +47,11 @@ void InMemColumn::flushChunk(InMemColumnChunk* chunk) {
         auto fileInfo = fileHandle->getFileInfo();
         chunk->flush(fileInfo);
     }
-    for (auto i = 0u; i < childColumns.size(); i++) {
-        childColumns[i]->flushChunk(chunk->getChildChunk(i));
+    if (!childColumns.empty()) {
+        auto inMemStructColumnChunk = reinterpret_cast<InMemStructColumnChunk*>(chunk);
+        for (auto i = 0u; i < childColumns.size(); i++) {
+            childColumns[i]->flushChunk(inMemStructColumnChunk->getFieldChunk(i));
+        }
     }
     if (nullColumn) {
         nullColumn->flushChunk(chunk->getNullChunk());
@@ -60,6 +61,9 @@ void InMemColumn::flushChunk(InMemColumnChunk* chunk) {
 void InMemColumn::saveToFile() {
     if (inMemOverflowFile) {
         inMemOverflowFile->flush();
+    }
+    for (auto& column : childColumns) {
+        column->saveToFile();
     }
 }
 
