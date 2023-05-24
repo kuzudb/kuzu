@@ -1,0 +1,1 @@
+add_kuzu_test(lsqb lsqb.cpp)
