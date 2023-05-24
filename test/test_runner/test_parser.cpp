@@ -1,7 +1,6 @@
 #include "test_runner/test_parser.h"
 
 #include <fstream>
-#include <iostream>
 #include <numeric>
 
 #include "common/string_utils.h"
@@ -140,13 +139,13 @@ void TestParser::extractStatementBlock() {
 }
 
 void TestParser::parseBody() {
-    std::string testGroupName;
+    std::string testCaseName;
     while (nextLine()) {
         tokenize();
         switch (currentToken.type) {
         case TokenType::CASE: {
             checkMinimumParams(1);
-            testGroupName = currentToken.params[1];
+            testCaseName = currentToken.params[1];
             break;
         }
         case TokenType::DEFINE_STATEMENT_BLOCK: {
@@ -156,7 +155,7 @@ void TestParser::parseBody() {
         }
         case TokenType::STATEMENT_BLOCK: {
             checkMinimumParams(1);
-            addStatementBlock(currentToken.params[1], testGroupName);
+            addStatementBlock(currentToken.params[1], testCaseName);
             break;
         }
         case TokenType::EMPTY: {
@@ -164,18 +163,18 @@ void TestParser::parseBody() {
         }
         default: {
             // if its not a special case, then it has to be a statement
-            TestStatement* statement = addNewStatement(testGroupName);
+            TestStatement* statement = addNewStatement(testCaseName);
             extractStatement(statement);
         }
         }
     }
 }
 
-void TestParser::addStatementBlock(const std::string& blockName, const std::string& testGroupName) {
+void TestParser::addStatementBlock(const std::string& blockName, const std::string& testCaseName) {
     if (testGroup->testCasesStatementBlocks.find(blockName) !=
         testGroup->testCasesStatementBlocks.end()) {
         for (const auto& statementPtr : testGroup->testCasesStatementBlocks[blockName]) {
-            testGroup->testCases[testGroupName].push_back(
+            testGroup->testCases[testCaseName].push_back(
                 std::make_unique<TestStatement>(*statementPtr));
         }
     } else {

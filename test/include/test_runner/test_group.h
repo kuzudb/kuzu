@@ -19,8 +19,8 @@ struct TestStatement {
     bool checkOutputOrder = false;
 };
 
-// Test group is a collection of test cases. Each test case can
-// have multiple statements (TestStatement).
+// Test group is a collection of test cases in a single file.
+// Each test case can have multiple statements (TestStatement).
 // In GoogleTest, the behaviour would be equivalent to:
 // TEST(TestGroup.group, TestGroup.testCases[name])
 struct TestGroup {
