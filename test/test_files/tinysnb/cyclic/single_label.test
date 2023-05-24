@@ -1,8 +1,9 @@
 -GROUP TinySnbReadTest
--TEST Cyclic
 -DATASET tinysnb
 
 --
+
+-CASE CyclicSingleLabel
 
 -NAME TwoNodeCycleTest
 -QUERY MATCH (a:person)-[:knows]->(b:person), (b)-[:knows]->(a) RETURN COUNT(*)

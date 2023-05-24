@@ -1,8 +1,9 @@
 -GROUP TinySnbReadTest
--TEST Projection
 -DATASET tinysnb
 
 --
+
+-CASE ProjectionMultiQuery
 
 -NAME PersonNodesWithTest
 -QUERY MATCH (a:person) WITH a RETURN a.age

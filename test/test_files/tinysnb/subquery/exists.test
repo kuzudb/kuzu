@@ -1,8 +1,9 @@
 -GROUP TinySnbReadTest
--TEST Subquery
 -DATASET tinysnb
 
 --
+
+-CASE SubqueryExists
 
 -NAME ExistSubqueryTest
 -QUERY MATCH (a:person) WHERE EXISTS { MATCH (a)-[:knows]->(b:person) } RETURN COUNT(*)

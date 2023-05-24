@@ -8,41 +8,44 @@ using namespace kuzu::common;
 class EndToEndReadTest : public DBTest {
 public:
     explicit EndToEndReadTest(
-        std::string dataset, std::vector<std::unique_ptr<TestStatement>> statements)
-        : dataset{std::move(dataset)}, statements{std::move(statements)} {}
+        std::string dataset, std::vector<std::unique_ptr<TestStatement>> testStatements)
+        : dataset{dataset}, testStatements{std::move(testStatements)} {}
 
     std::string getInputDir() override {
         return TestHelper::appendKuzuRootPath("dataset/" + dataset + "/");
     }
-    void TestBody() override { runTest(statements); }
+    void TestBody() override { runTest(testStatements); }
 
 private:
     std::string dataset;
-    std::vector<std::unique_ptr<TestStatement>> statements;
+    std::vector<std::unique_ptr<TestStatement>> testStatements;
 };
 
-void parseAndRegisterTestCase(const std::string& path) {
+void parseAndRegisterTestGroup(const std::string& path) {
     auto testParser = std::make_unique<TestParser>();
-    auto testCase = std::move(testParser->parseTestFile(path));
-    if (testCase->isValid() && testCase->hasStatements()) {
-        auto dataset = testCase->dataset;
-        auto statements = std::move(testCase->statements);
-        testing::RegisterTest(testCase->group.c_str(), testCase->name.c_str(), nullptr, nullptr,
-            __FILE__, __LINE__,
-            [dataset = std::move(dataset), statements = std::move(statements)]() mutable
-            -> DBTest* { return new EndToEndReadTest(std::move(dataset), std::move(statements)); });
+    auto testGroup = std::move(testParser->parseTestFile(path));
+    if (testGroup->isValid() && testGroup->hasStatements()) {
+        auto dataset = testGroup->dataset;
+        auto testCases = std::move(testGroup->testCases);
+        for (auto& [testCaseName, testStatements] : testCases) {
+            testing::RegisterTest(testGroup->group.c_str(), testCaseName.c_str(), nullptr, nullptr,
+                __FILE__, __LINE__,
+                [dataset, testStatements = std::move(testStatements)]() mutable -> DBTest* {
+                    return new EndToEndReadTest(dataset, std::move(testStatements));
+                });
+        }
     }
 }
 
 void scanTestFiles(const std::string& path) {
     if (std::filesystem::is_regular_file(path)) {
-        parseAndRegisterTestCase(path);
+        parseAndRegisterTestGroup(path);
         return;
     }
     for (const auto& entry : std::filesystem::recursive_directory_iterator(path)) {
         if (!entry.is_regular_file() || FileUtils::getFileExtension(entry) != ".test")
             continue;
-        parseAndRegisterTestCase(entry.path().string());
+        parseAndRegisterTestGroup(entry.path().string());
     }
 }
 

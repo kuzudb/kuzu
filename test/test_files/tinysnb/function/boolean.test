@@ -1,8 +1,9 @@
 -GROUP TinySnbReadTest
--TEST Function
 -DATASET tinysnb
 
 --
+
+-CASE FunctionBoolean
 
 -NAME AndExecTest1
 -QUERY MATCH (a:person) RETURN a.ID, a.isStudent AND a.isWorker ORDER BY a.ID

@@ -1,8 +1,9 @@
 -GROUP TinySnbReadTest
--TEST Function
 -DATASET tinysnb
 
 --
+
+-CASE FunctionDate
 
 -NAME DateLiteralEqualityComparison
 -QUERY MATCH (a:person) WHERE a.birthdate = date('1900-1-1') RETURN COUNT(*)

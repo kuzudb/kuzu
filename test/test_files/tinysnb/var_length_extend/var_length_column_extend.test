@@ -8,10 +8,11 @@
 # has 6 nodes.
 
 -GROUP TinySnbReadTest
--TEST VarLengthExtendTests
 -DATASET tinysnb
 
 --
+
+-CASE VarLengthExtendTests
 
 -NAME meetsOneToTwoHopTest
 -QUERY MATCH (a:person)-[:meets*1..2]->(b:person) RETURN COUNT(*)

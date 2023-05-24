@@ -1,8 +1,9 @@
 -GROUP TinySnbReadTest
--TEST Agg
 -DATASET tinysnb
 
 --
+
+-CASE AggSimple
 
 -NAME OneHopSimpleAggTest
 -QUERY MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) RETURN COUNT(a.ID), MIN(a.fName), MAX(c.ID)

@@ -32,10 +32,6 @@ bool TestRunner::testStatement(TestStatement* statement, Connection& conn) {
         return preparedStatement->isSuccess();
     }
     if (statement->expectedError) {
-
-        std::cout << "A LA TUNGA: " << preparedStatement->getErrorMessage() << std::endl;
-        std::cout << "ERROR: " << statement->errorMessage << std::endl;
-
         return (statement->errorMessage == preparedStatement->getErrorMessage());
     }
     if (!preparedStatement->isSuccess()) {

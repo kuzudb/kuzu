@@ -5,10 +5,11 @@
 # Distance between Alice11 and Alice100 is 9 because 11 -> 11,20,30,40,50,60,70,80,90,100
 
 -GROUP SingleSourceShortestPathTest
--TEST BFS_SSSP
 -DATASET shortest-path-tests
 
 --
+
+-CASE BFS_SSSP
 
 -NAME SingleSrcAllDstQueryLarge
 -QUERY MATCH (a:person)-[r:knows* SHORTEST 1..30]->(b:person) WHERE a.fName = 'Alice11' RETURN a.fName, b.fName, length(r)

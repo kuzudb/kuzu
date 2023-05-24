@@ -1,8 +1,9 @@
 -GROUP TinySnbReadTest
--TEST OrderBy
 -DATASET tinysnb
 
 --
+
+-CASE OrderBySingleLabel
 
 -NAME OrderByInt64Test
 -QUERY MATCH (p:person) RETURN p.ID, p.age ORDER BY p.age + p.ID

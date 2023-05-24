@@ -1,7 +1,7 @@
 #include <cstring>
 
 #include "common/file_utils.h"
-#include "test_runner/test_case.h"
+#include "test_runner/test_group.h"
 
 namespace kuzu {
 namespace testing {
@@ -47,16 +47,16 @@ public:
 
 class TestParser {
 public:
-    TestParser() : testCase(std::make_unique<TestCase>()) {}
+    TestParser() : testGroup(std::make_unique<TestGroup>()) {}
 
-    std::unique_ptr<TestCase> parseTestFile(const std::string& path);
+    std::unique_ptr<TestGroup> parseTestFile(const std::string& path);
 
 private:
     std::ifstream fileStream;
     std::string line;
     std::string name;
     LogicToken currentToken;
-    std::unique_ptr<TestCase> testCase;
+    std::unique_ptr<TestGroup> testGroup;
 
     std::string paramsToString();
 
@@ -72,7 +72,7 @@ private:
 
     void extractStatementBlock();
 
-    void addStatementBlock(const std::string& blockName);
+    void addStatementBlock(const std::string& blockName, const std::string& testGroupName);
 
     inline bool endOfFile() { return fileStream.eof(); }
 
@@ -86,7 +86,7 @@ private:
 
     TestStatement* extractStatement(TestStatement* currentStatement);
 
-    TestStatement* addNewStatement();
+    TestStatement* addNewStatement(std::string& name);
 };
 
 } // namespace testing

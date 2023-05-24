@@ -3,7 +3,7 @@
 #include "parser/parser.h"
 #include "planner/logical_plan/logical_plan_util.h"
 #include "planner/planner.h"
-#include "test_runner/test_case.h"
+#include "test_runner/test_group.h"
 
 namespace kuzu {
 namespace testing {

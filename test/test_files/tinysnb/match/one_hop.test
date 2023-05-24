@@ -1,8 +1,9 @@
 -GROUP TinySnbReadTest
--TEST Match
 -DATASET tinysnb
 
 --
+
+-CASE MatchOneHop
 
 -NAME OneHopKnowsTest
 -QUERY MATCH (a:person)-[e:knows]->(b:person) RETURN COUNT(*)

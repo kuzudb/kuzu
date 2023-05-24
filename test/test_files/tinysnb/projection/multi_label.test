@@ -1,8 +1,9 @@
 -GROUP TinySnbReadTest
--TEST Projection
 -DATASET tinysnb
 
 --
+
+-CASE ProjectionMultiLabel
 
 -NAME MultiLabelReturn
 -QUERY MATCH (a:person:organisation) RETURN a.ID, label(a), a.fName, a.orgCode

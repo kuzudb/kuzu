@@ -1,8 +1,9 @@
 -GROUP TinySnbReadTest
--TEST Projection
 -DATASET tinysnb
 
 --
+
+-CASE ProjectionSingleLabel
 
 -NAME ReturnLiteral3
 -QUERY RETURN "abc", MIN(1)

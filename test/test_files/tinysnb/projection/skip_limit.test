@@ -1,8 +1,9 @@
 -GROUP TinySnbReadTest
--TEST Projection
 -DATASET tinysnb
 
 --
+
+-CASE ProjectionSkipLimit
 
 -NAME BasicSkipTest1
 -QUERY MATCH (a:person) RETURN a.fName Skip 5
