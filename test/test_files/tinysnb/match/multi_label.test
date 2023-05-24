@@ -1,8 +1,9 @@
 -GROUP TinySnbReadTest
--TEST Match
 -DATASET tinysnb
 
 --
+
+-CASE MatchMultiLabel
 
 -NAME UnLabelTest
 -QUERY MATCH () RETURN COUNT(*)

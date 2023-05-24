@@ -1,8 +1,9 @@
 -GROUP TinySnbReadTest
--TEST Acc
 -DATASET tinysnb
 
 --
+
+-CASE Acc
 
 -NAME AspBasic
 -QUERY MATCH (a:person)-[e1:knows]->(b:person) WHERE a.age > 35 RETURN b.fName

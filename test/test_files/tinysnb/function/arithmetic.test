@@ -1,8 +1,9 @@
 -GROUP TinySnbReadTest
--TEST Function
 -DATASET tinysnb
 
 --
+
+-CASE FunctionArithmetic
 
 -NAME moduloFunctionOnDoubleDoubleTest
 -QUERY MATCH (a:organisation) RETURN a.orgCode % a.rating

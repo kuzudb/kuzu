@@ -1,8 +1,9 @@
 -GROUP TinySnbReadTest
--TEST OptionalMatch
 -DATASET tinysnb
 
 --
+
+-CASE OptionalMatch
 
 # Note: Correlated optional match test should be enabled once hash join supports generic join key data type.
 #-NAME CorrelatedOptionalMatchTest1

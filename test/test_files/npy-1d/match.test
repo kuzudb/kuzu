@@ -1,8 +1,9 @@
 -GROUP OneDimNpyReadTest
--TEST Match
 -DATASET npy-1d
 
 --
+
+-CASE MatchNpy-1d
 
 -NAME count
 -QUERY MATCH (n:npytable) RETURN COUNT(*)

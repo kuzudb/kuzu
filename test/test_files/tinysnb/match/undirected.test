@@ -1,8 +1,9 @@
 -GROUP TinySnbReadTest
--TEST Match
 -DATASET tinysnb
 
 --
+
+-CASE MatchUndirected
 
 -NAME UndirKnows1
 -QUERY MATCH (a:person)-[:knows]-(b:person) WHERE b.fName = "Bob" RETURN a.fName;

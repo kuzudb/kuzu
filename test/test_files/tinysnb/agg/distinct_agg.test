@@ -1,8 +1,9 @@
 -GROUP TinySnbReadTest
--TEST Agg
 -DATASET tinysnb
 
 --
+
+-CASE AggDistinct
 
 -NAME SingleNodeDistinctAggTest1
 -QUERY MATCH (a:person) RETURN COUNT(DISTINCT a.gender), COUNT(DISTINCT a.age)

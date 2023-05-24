@@ -1,8 +1,9 @@
 -GROUP TinySnbReadTest
--TEST Function
 -DATASET tinysnb
 
 --
+
+-CASE FunctionString
 
 -NAME StrVarAndStrLiteralConcat
 -QUERY MATCH (a:person) WHERE concat(a.fName, 'xyz') = 'Farooqxyz' RETURN COUNT(*)

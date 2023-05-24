@@ -1,8 +1,9 @@
 -GROUP EndToEndReadLargeListsTest
--TEST PropLists4BytesPerEdgeTest
 -DATASET read-list-tests/large-list
 
 --
+
+-CASE PropLists4BytesPerEdgeTest
 
 # Result is 3 and 0 is omitted because 0->0 edge's int64Prop is null.
 -NAME ReadingLargeListOneHop

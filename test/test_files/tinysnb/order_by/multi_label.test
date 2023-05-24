@@ -1,8 +1,9 @@
 -GROUP TinySnbReadTest
--TEST OrderBy
 -DATASET tinysnb
 
 --
+
+-CASE OrderByMultiLabel
 
 -NAME MultiLabelTest
 -QUERY MATCH (a:person)-[:studyAt|:workAt]->(b:organisation) return b.orgCode order by b.ID desc

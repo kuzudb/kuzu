@@ -1,8 +1,9 @@
 -GROUP SingleSourceShortestPathTest
--TEST BFS_SSSP
 -DATASET shortest-path-tests
 
 --
+
+-CASE BFS_SSSP
 
 -NAME SingleSourceAllDestinationsSSP
 -QUERY MATCH (a:person)-[r:knows* SHORTEST 1..30]->(b:person) WHERE a.fName = 'Alice' RETURN a.fName, b.fName, r

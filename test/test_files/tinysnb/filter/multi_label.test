@@ -1,8 +1,9 @@
 -GROUP TinySnbReadTest
--TEST Filter
 -DATASET tinysnb
 
 --
+
+-CASE FilterMultiLabel
 
 -NAME MultiLabelOneHopTest1
 -QUERY MATCH (a:person)-[e:knows|:marries]->(b:person) WHERE e.date=date('2021-06-30') RETURN COUNT(*)

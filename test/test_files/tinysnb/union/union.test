@@ -1,8 +1,9 @@
 -GROUP TinySnbReadTest
--TEST Union
 -DATASET tinysnb
 
 --
+
+-CASE Union
 
 -NAME UnionAllTwoQueriesTest
 -QUERY MATCH (p:person) RETURN p.age UNION ALL MATCH (p1:person) RETURN p1.age

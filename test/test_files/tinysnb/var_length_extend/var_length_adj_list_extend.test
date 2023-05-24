@@ -8,10 +8,11 @@
 # 14 nodes.
 
 -GROUP TinySnbReadTest
--TEST VarLengthExtendTests
 -DATASET tinysnb
 
 --
+
+-CASE VarLengthExtendTests
 
 -NAME KnowsThreeHopMinLenEqualsMaxLen
 -QUERY MATCH (a:person)-[e:knows*3..3]->(b:person) RETURN COUNT(*)

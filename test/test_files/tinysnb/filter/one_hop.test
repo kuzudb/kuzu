@@ -1,8 +1,9 @@
 -GROUP TinySnbReadTest
--TEST Filter
 -DATASET tinysnb
 
 --
+
+-CASE FilterOneHop
 
 -NAME OneHopKnowsFilteredTest3
 -QUERY MATCH (a:person)-[e1:knows]->(b:person) WHERE (a.gender/2 <= 0.5) AND (b.gender*3.5 = 7.0) RETURN COUNT(*)

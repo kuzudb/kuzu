@@ -10,10 +10,11 @@
 # So the nth level will contain 5K*(n+1) + 1 many number of nodes.
 
 -GROUP EndToEndReadLargeListsTest
--TEST VarLengthExtendLargeAdjListTest
 -DATASET read-list-tests/large-list
 
 --
+
+-CASE VarLengthExtendLargeAdjListTest
 
 -NAME KnowsVeryLargeAdjListTest
 -QUERY MATCH (a:person)-[:knows*2..4]->(b:person) RETURN COUNT(*)

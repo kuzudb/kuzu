@@ -10,17 +10,17 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace testing {
 
-std::unique_ptr<TestCase> TestParser::parseTestFile(const std::string& path) {
+std::unique_ptr<TestGroup> TestParser::parseTestFile(const std::string& path) {
     openFile(path);
     parseHeader();
-    if (testCase->skipTest) {
-        return std::move(testCase);
+    if (testGroup->skipTest) {
+        return std::move(testGroup);
     }
-    if (!testCase->isValid()) {
+    if (!testGroup->isValid()) {
         throw Exception("Invalid test header");
     }
     parseBody();
-    return std::move(testCase);
+    return std::move(testGroup);
 }
 
 void TestParser::parseHeader() {
@@ -32,21 +32,16 @@ void TestParser::parseHeader() {
         }
         case TokenType::GROUP: {
             checkMinimumParams(1);
-            testCase->group = currentToken.params[1];
-            break;
-        }
-        case TokenType::TEST: {
-            checkMinimumParams(1);
-            testCase->name = currentToken.params[1];
+            testGroup->group = currentToken.params[1];
             break;
         }
         case TokenType::DATASET: {
             checkMinimumParams(1);
-            testCase->dataset = currentToken.params[1];
+            testGroup->dataset = currentToken.params[1];
             break;
         }
         case TokenType::SKIP: {
-            testCase->skipTest = true;
+            testGroup->skipTest = true;
             return;
         }
         case TokenType::SEPARATOR: {
@@ -86,6 +81,11 @@ TestStatement* TestParser::extractStatement(TestStatement* statement) {
     }
     tokenize();
     switch (currentToken.type) {
+    case TokenType::NAME: {
+        checkMinimumParams(1);
+        statement->name = currentToken.params[1];
+        break;
+    }
     case TokenType::STATEMENT:
     case TokenType::QUERY: {
         checkMinimumParams(1);
@@ -133,19 +133,19 @@ void TestParser::extractStatementBlock() {
         } else {
             auto statement = std::make_unique<TestStatement>();
             extractStatement(statement.get());
-            testCase->variableStatements[blockName].push_back(std::move(statement));
+            testGroup->testCasesStatementBlocks[blockName].push_back(std::move(statement));
         }
     }
 }
 
 void TestParser::parseBody() {
+    std::string testCaseName;
     while (nextLine()) {
         tokenize();
         switch (currentToken.type) {
-        case TokenType::CASE:
-        case TokenType::NAME: {
+        case TokenType::CASE: {
             checkMinimumParams(1);
-            name = currentToken.params[1];
+            testCaseName = currentToken.params[1];
             break;
         }
         case TokenType::DEFINE_STATEMENT_BLOCK: {
@@ -155,7 +155,7 @@ void TestParser::parseBody() {
         }
         case TokenType::STATEMENT_BLOCK: {
             checkMinimumParams(1);
-            addStatementBlock(currentToken.params[1]);
+            addStatementBlock(currentToken.params[1], testCaseName);
             break;
         }
         case TokenType::EMPTY: {
@@ -163,28 +163,29 @@ void TestParser::parseBody() {
         }
         default: {
             // if its not a special case, then it has to be a statement
-            TestStatement* statement = addNewStatement();
-            statement->name = name;
+            TestStatement* statement = addNewStatement(testCaseName);
             extractStatement(statement);
         }
         }
     }
 }
 
-void TestParser::addStatementBlock(const std::string& blockName) {
-    if (testCase->variableStatements.find(blockName) != testCase->variableStatements.end()) {
-        for (const auto& statementPtr : testCase->variableStatements[blockName]) {
-            testCase->statements.push_back(std::make_unique<TestStatement>(*statementPtr));
+void TestParser::addStatementBlock(const std::string& blockName, const std::string& testCaseName) {
+    if (testGroup->testCasesStatementBlocks.find(blockName) !=
+        testGroup->testCasesStatementBlocks.end()) {
+        for (const auto& statementPtr : testGroup->testCasesStatementBlocks[blockName]) {
+            testGroup->testCases[testCaseName].push_back(
+                std::make_unique<TestStatement>(*statementPtr));
         }
     } else {
         throw Exception("Statement block not found [" + blockName + "]");
     }
 }
 
-TestStatement* TestParser::addNewStatement() {
+TestStatement* TestParser::addNewStatement(std::string& testGroupName) {
     auto statement = std::make_unique<TestStatement>();
     TestStatement* currentStatement = statement.get();
-    testCase->statements.push_back(std::move(statement));
+    testGroup->testCases[testGroupName].push_back(std::move(statement));
     return currentStatement;
 }
 

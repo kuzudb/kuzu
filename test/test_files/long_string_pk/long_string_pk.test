@@ -1,8 +1,9 @@
 -GROUP LongStringPKTest
--TEST LongStringPKTest
 -DATASET long-string-pk-tests
 
 --
+
+-CASE LongStringPKTest
 
 -NAME LongStringPKTest
 -QUERY MATCH (a:Person)-[e:Knows]->(b:Person) WHERE a.name = "AAAAAAAAAAAAAAAAAAAA" RETURN COUNT(*)
