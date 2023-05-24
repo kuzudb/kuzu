@@ -107,17 +107,6 @@ private:
     uint32_t allocatePSlots(uint32_t numSlotsToAllocate);
     uint32_t allocateAOSlot();
 
-    inline void lockSlot(SlotInfo& slotInfo) {
-        assert(slotInfo.slotType == SlotType::PRIMARY);
-        std::shared_lock sLck{pSlotSharedMutex};
-        pSlotsMutexes[slotInfo.slotId]->lock();
-    }
-    inline void unlockSlot(const SlotInfo& slotInfo) {
-        assert(slotInfo.slotType == SlotType::PRIMARY);
-        std::shared_lock sLck{pSlotSharedMutex};
-        pSlotsMutexes[slotInfo.slotId]->unlock();
-    }
-
 private:
     std::unique_ptr<FileHandle> fileHandle;
     std::unique_ptr<InMemDiskArrayBuilder<HashIndexHeader>> headerArray;
@@ -150,6 +139,10 @@ public:
         }
         }
     }
+
+    inline void lock() { mtx.lock(); }
+
+    inline void unlock() { mtx.unlock(); }
 
     inline void bulkReserve(uint32_t numEntries) {
         keyDataTypeID == common::LogicalTypeID::INT64 ?
@@ -189,6 +182,7 @@ public:
     }
 
 private:
+    std::mutex mtx;
     common::LogicalTypeID keyDataTypeID;
     std::unique_ptr<HashIndexBuilder<int64_t>> hashIndexBuilderForInt64;
     std::unique_ptr<HashIndexBuilder<common::ku_string_t>> hashIndexBuilderForString;

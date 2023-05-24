@@ -62,12 +62,10 @@ bool HashIndexBuilder<T>::appendInternal(const uint8_t* key, offset_t value) {
     SlotInfo pSlotInfo{getPrimarySlotIdForKey(*indexHeader, key), SlotType::PRIMARY};
     auto currentSlotInfo = pSlotInfo;
     Slot<T>* currentSlot = nullptr;
-    lockSlot(pSlotInfo);
     while (currentSlotInfo.slotType == SlotType::PRIMARY || currentSlotInfo.slotId != 0) {
         currentSlot = getSlot(currentSlotInfo);
         if (lookupOrExistsInSlotWithoutLock<false /* exists */>(currentSlot, key)) {
             // Key already exists. No append is allowed.
-            unlockSlot(pSlotInfo);
             return false;
         }
         if (currentSlot->header.numEntries < HashIndexConstants::SLOT_CAPACITY) {
@@ -78,7 +76,6 @@ bool HashIndexBuilder<T>::appendInternal(const uint8_t* key, offset_t value) {
     }
     assert(currentSlot);
     insertToSlotWithoutLock(currentSlot, key, value);
-    unlockSlot(pSlotInfo);
     numEntries.fetch_add(1);
     return true;
 }
@@ -101,20 +98,14 @@ bool HashIndexBuilder<T>::lookupInternalWithoutLock(const uint8_t* key, offset_t
 
 template<typename T>
 uint32_t HashIndexBuilder<T>::allocatePSlots(uint32_t numSlotsToAllocate) {
-    std::unique_lock xLock{pSlotSharedMutex};
     auto oldNumSlots = pSlots->getNumElements();
     auto newNumSlots = oldNumSlots + numSlotsToAllocate;
     pSlots->resize(newNumSlots, true /* setToZero */);
-    pSlotsMutexes.resize(newNumSlots);
-    for (auto i = oldNumSlots; i < newNumSlots; i++) {
-        pSlotsMutexes[i] = std::make_unique<std::mutex>();
-    }
     return oldNumSlots;
 }
 
 template<typename T>
 uint32_t HashIndexBuilder<T>::allocateAOSlot() {
-    std::unique_lock xLock{oSlotsSharedMutex};
     auto oldNumSlots = oSlots->getNumElements();
     auto newNumSlots = oldNumSlots + 1;
     oSlots->resize(newNumSlots, true /* setToZero */);
@@ -124,10 +115,8 @@ uint32_t HashIndexBuilder<T>::allocateAOSlot() {
 template<typename T>
 Slot<T>* HashIndexBuilder<T>::getSlot(const SlotInfo& slotInfo) {
     if (slotInfo.slotType == SlotType::PRIMARY) {
-        std::shared_lock sLck{pSlotSharedMutex};
         return &pSlots->operator[](slotInfo.slotId);
     } else {
-        std::shared_lock sLck{oSlotsSharedMutex};
         return &oSlots->operator[](slotInfo.slotId);
     }
 }
