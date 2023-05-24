@@ -1,0 +1,496 @@
+-GROUP BinderErrorTest
+-DATASET tinysnb
+
+--
+
+-CASE NodeTableNotExist
+-QUERY MATCH (a:PERSON) RETURN COUNT(*)
+---- error
+Binder exception: Node table PERSON does not exist.
+
+
+-CASE RepeatedRelName
+-QUERY MATCH (a:person)-[e1:knows]->(b:person)<-[e1:knows]-(:person) RETURN COUNT(*)
+---- error
+Binder exception: Bind relationship e1 to relationship with same name is not supported.
+
+
+-CASE RepeatedReturnColumnName)
+-QUERY MATCH (a:person)-[e1:knows]->(b:person) RETURN *, e1
+---- error
+Binder exception: Multiple result column with the same name e1 are not supported.
+
+
+-CASE WITHExpressionAliased
+-QUERY MATCH (a:person)-[e1:knows]->(b:person) WITH a.age RETURN *
+---- error
+Binder exception: Expression in WITH must be aliased (use AS).
+
+
+-CASE BindToDifferentVariableType1
+-QUERY MATCH (a:person)-[e1:knows]->(b:person) WITH e1 AS a MATCH (a) RETURN *
+---- error
+Binder exception: e1 has data type REL. (NODE) was expected.
+
+
+-CASE BindToDifferentVariableType2
+-QUERY MATCH (a:person)-[e1:knows]->(b:person) WITH a.age + 1 AS a MATCH (a) RETURN *
+---- error
+Binder exception: +(a.age,1) has data type INT64. (NODE) was expected.
+
+
+-CASE BindEmptyStar
+-QUERY RETURN *
+---- error
+Binder exception: RETURN or WITH * is not allowed when there are no variables in scope.
+
+
+-CASE BindVariableNotInScope1
+-QUERY WITH a MATCH (a:person)-[e1:knows]->(b:person) RETURN *
+---- error
+Binder exception: Variable a is not in scope.
+
+
+-CASE BindVariableNotInScope2
+-QUERY MATCH (a:person)-[e1:knows]->(b:person) WHERE a.age > foo RETURN *
+---- error
+Binder exception: Variable foo is not in scope.
+
+
+-CASE BindPropertyLookUpOnExpression
+-QUERY MATCH (a:person)-[e1:knows]->(b:person) RETURN (a.age + 2).age
+---- error
+Binder exception: +(a.age,2) has data type INT64. (STRUCT,REL,NODE) was expected.
+
+
+-CASE BindPropertyNotExist
+-QUERY MATCH (a:person)-[e1:knows]->(b:person) RETURN a.foo
+---- error
+Binder exception: Cannot find property foo for a.
+
+
+-CASE BindPropertyNotExist2
+-QUERY Create (a:person {foo:'x'});
+---- error
+Binder exception: Cannot find property foo for a.
+
+
+-CASE BindPropertyNotExist3
+-QUERY WITH {a: 1} AS s RETURN s.b
+---- error
+Binder exception: Invalid struct field name: B.
+
+
+-CASE BindIDArithmetic
+-QUERY MATCH (a:person)-[e1:knows]->(b:person) WHERE id(a) + 1 < id(b) RETURN *
+---- error
+Binder exception: Cannot match a built-in function for given function +(INTERNAL_ID,INT64). Supported inputs are
+(INT64,INT64) -> INT64
+(INT32,INT32) -> INT32
+(INT16,INT16) -> INT16
+(DOUBLE,DOUBLE) -> DOUBLE
+(FLOAT,FLOAT) -> FLOAT
+(INTERVAL,INTERVAL) -> INTERVAL
+(DATE,INT64) -> DATE
+(INT64,DATE) -> DATE
+(DATE,INTERVAL) -> DATE
+(INTERVAL,DATE) -> DATE
+(TIMESTAMP,INTERVAL) -> TIMESTAMP
+(INTERVAL,TIMESTAMP) -> TIMESTAMP
+
+
+-CASE BindDateAddDate
+-QUERY MATCH (a:person) RETURN a.birthdate + date('2031-02-01')
+---- error
+Binder exception: Cannot match a built-in function for given function +(DATE,DATE). Supported inputs are
+(INT64,INT64) -> INT64
+(INT32,INT32) -> INT32
+(INT16,INT16) -> INT16
+(DOUBLE,DOUBLE) -> DOUBLE
+(FLOAT,FLOAT) -> FLOAT
+(INTERVAL,INTERVAL) -> INTERVAL
+(DATE,INT64) -> DATE
+(INT64,DATE) -> DATE
+(DATE,INTERVAL) -> DATE
+(INTERVAL,DATE) -> DATE
+(TIMESTAMP,INTERVAL) -> TIMESTAMP
+(INTERVAL,TIMESTAMP) -> TIMESTAMP
+
+
+-CASE BindTimestampArithmetic
+-QUERY MATCH (a:person) WHERE a.registerTime + 1 < 5 RETURN *
+---- error
+Binder exception: Cannot match a built-in function for given function +(TIMESTAMP,INT64). Supported inputs are
+(INT64,INT64) -> INT64
+(INT32,INT32) -> INT32
+(INT16,INT16) -> INT16
+(DOUBLE,DOUBLE) -> DOUBLE
+(FLOAT,FLOAT) -> FLOAT
+(INTERVAL,INTERVAL) -> INTERVAL
+(DATE,INT64) -> DATE
+(INT64,DATE) -> DATE
+(DATE,INTERVAL) -> DATE
+(INTERVAL,DATE) -> DATE
+(TIMESTAMP,INTERVAL) -> TIMESTAMP
+(INTERVAL,TIMESTAMP) -> TIMESTAMP
+
+
+-CASE BindTimestampAddTimestamp
+-QUERY MATCH (a:person) RETURN a.registerTime + timestamp('2031-02-11 01:02:03');
+---- error
+Binder exception: Cannot match a built-in function for given function +(TIMESTAMP,TIMESTAMP). Supported inputs are
+(INT64,INT64) -> INT64
+(INT32,INT32) -> INT32
+(INT16,INT16) -> INT16
+(DOUBLE,DOUBLE) -> DOUBLE
+(FLOAT,FLOAT) -> FLOAT
+(INTERVAL,INTERVAL) -> INTERVAL
+(DATE,INT64) -> DATE
+(INT64,DATE) -> DATE
+(DATE,INTERVAL) -> DATE
+(INTERVAL,DATE) -> DATE
+(TIMESTAMP,INTERVAL) -> TIMESTAMP
+(INTERVAL,TIMESTAMP) -> TIMESTAMP
+
+-CASE BindNonExistingFunction
+-QUERY MATCH (a:person) WHERE dummy() < 2 RETURN COUNT(*)
+---- error
+Catalog exception: DUMMY function does not exist.
+
+
+-CASE BindFunctionWithWrongNumParams
+-QUERY MATCH (a:person) WHERE date() < 2 RETURN COUNT(*);
+---- error
+Binder exception: Cannot match a built-in function for given function DATE. Supported inputs are
+(STRING) -> DATE
+
+
+-CASE BindFunctionWithWrongParamType
+-QUERY MATCH (a:person) WHERE date(2012) < 2 RETURN COUNT(*);
+---- error
+Binder exception: Cannot match a built-in function for given function DATE(INT64). Supported inputs are
+(STRING) -> DATE
+
+
+-CASE OrderByVariableNotInScope
+-QUERY MATCH (a:person)-[e1:knows]->(b:person) RETURN SUM(a.age) ORDER BY a.ID;
+---- error
+Binder exception: Order by expression a.ID is not in RETURN or WITH clause.
+
+
+-CASE NestedAggregation
+-QUERY MATCH (a:person) RETURN SUM(SUM(a.age));
+---- error
+Binder exception: Expression SUM(SUM(a.age)) contains nested aggregation.
+
+
+-CASE OptionalMatchAsFirstMatch
+-QUERY OPTIONAL MATCH (a:person) RETURN *;
+---- error
+Binder exception: First match clause cannot be optional match.
+
+
+-CASE OrderByWithoutSkipLimitInWithClause
+-QUERY MATCH (a:person) WITH a.age AS k ORDER BY k RETURN k
+---- error
+Binder exception: In WITH clause, ORDER BY must be followed by SKIP or LIMIT.
+
+
+-CASE UnionAllUnmatchedNumberOfExpressions
+-QUERY MATCH (p:person) RETURN p.age,p.fName UNION ALL MATCH (p1:person) RETURN p1.age
+---- error
+Binder exception: The number of columns to union/union all must be the same.
+
+
+-CASE UnionAllUnmatchedDataTypesOfExpressions
+-QUERY MATCH (p:person) RETURN p.fName UNION ALL MATCH (p1:person) RETURN p1.age
+---- error
+Binder exception: p1.age has data type INT64. (STRING) was expected.
+
+
+-CASE UnionAndUnionAllInSingleQuery
+-QUERY MATCH (p:person) RETURN p.age UNION ALL MATCH (p1:person) RETURN p1.age UNION MATCH (p1:person) RETURN p1.age
+---- error
+Binder exception: Union and union all can't be used together.
+
+
+-CASE VarLenExtendZeroLowerBound
+-QUERY MATCH (a:person)-[:knows*0..5]->(b:person) return count(*)
+---- error
+Binder exception: Lower and upper bound of a rel must be greater than 0.
+
+-CASE SetDataTypeMisMatch
+-QUERY MATCH (a:person) SET a.age = 'hh'
+---- error
+Binder exception: Expression hh has data type STRING but expect INT64. Implicit cast is not supported.
+
+
+-CASE CreateNodeDataTypeMisMatch
+-QUERY CREATE (a:person {age:'hh'})
+---- error
+Binder exception: Expression hh has data type STRING but expect INT64. Implicit cast is not supported.
+
+
+-CASE CreateRelDataTypeMisMatch
+-QUERY CREATE (a:person)-[:knows {date:12}]->(b:person)
+---- error
+Binder exception: Expression 12 has data type INT64 but expect DATE. Implicit cast is not supported.
+
+
+-CASE ReadAfterUpdate1
+-QUERY MATCH (a:person) SET a.age = 35 WITH a MATCH (a)-[:knows]->(b:person) RETURN a.age
+---- error
+Binder exception: Read after update is not supported.
+
+
+-CASE ReadAfterUpdate3
+-QUERY MATCH (a:person) SET a.age=3 RETURN a.fName
+---- error
+Binder exception: Return/With after update is not supported.
+
+
+-CASE DeleteNodeProperty
+-QUERY MATCH (a:person) DELETE a.age
+---- error
+Binder exception: Delete PROPERTY is not supported.
+
+
+-CASE CreateNodeTableUsedName
+-QUERY CREATE NODE TABLE person(NAME STRING, ID INT64, PRIMARY KEY(NAME))
+---- error
+Binder exception: Node person already exists.
+
+-CASE CreateNodeTablePKColNameNotExists
+-QUERY CREATE NODE TABLE PERSON(NAME STRING, ID INT64, birthdate date, primary key (dummyColName))
+---- error
+Binder exception: Primary key dummyColName does not match any of the predefined node properties.
+
+
+-CASE CreateNodeTableInvalidDataType
+-QUERY CREATE NODE TABLE PERSON(NAME BIGINT, PRIMARY KEY(NAME))
+---- error
+Cannot parse dataTypeID: BIGINT
+
+
+-CASE CreateNodeTableDuplicatedColumnName
+-QUERY CREATE NODE TABLE student (id INT64, eyesight double, eyesight double, PRIMARY KEY(id))
+---- error
+Binder exception: Duplicated column name: eyesight, column name must be unique.
+
+
+-CASE CopyCSVInvalidParsingOption
+-QUERY COPY person FROM "person_0_0.csv" (pk=",")
+---- error
+Binder exception: Unrecognized parsing csv option: PK.
+
+
+-CASE CopyCSVInvalidSchemaName
+-QUERY COPY university FROM "person_0_0.csv" (pk=",")
+---- error
+Binder exception: Node/Rel university does not exist.
+
+
+-CASE CopyCSVInvalidEscapeChar
+-QUERY COPY person FROM "person_0_0.csv" (ESCAPE="..")
+---- error
+Binder exception: Copy csv option value can only be a single character with an optional escape character.
+
+
+-CASE CreateRelTableUsedName
+-QUERY CREATE REL TABLE knows ( FROM person TO person)
+---- error
+Binder exception: Rel knows already exists.
+
+
+-CASE CreateRelTableInvalidNodeTableName
+-QUERY CREATE REL TABLE knows_post ( FROM person TO post)
+---- error
+Binder exception: Node table post does not exist.
+
+
+-CASE CreateRelTableInvalidRelMultiplicity
+-QUERY CREATE REL TABLE knows_post ( FROM person TO person, MANY_LOT)
+---- error
+Catalog exception: Invalid relMultiplicity string 'MANY_LOT'.
+
+
+-CASE CreateRelTableInvalidDataType
+-QUERY CREATE REL TABLE knows_post ( FROM person TO person, ID SMALLINT, MANY_MANY)
+---- error
+Cannot parse dataTypeID: SMALLINT
+
+
+-CASE CreateRelTableDuplicatedColumnName
+-QUERY CREATE REL TABLE teaches (FROM person TO person, date DATE, date TIMESTAMP)
+---- error
+Binder exception: Duplicated column name: date, column name must be unique.
+
+
+-CASE CreateRelTableReservedColumnName
+-QUERY CREATE REL TABLE teaches (FROM person TO person, _id INT64)
+---- error
+Binder exception: PropertyName: _id is an internal reserved propertyName.
+
+
+-CASE DropNotExistsTable
+-QUERY DROP TABLE person1;
+---- error
+Binder exception: Node/Rel person1 does not exist.
+
+
+-CASE SelfLoopRel
+-QUERY MATCH (a:person)-[e:knows]->(a) RETURN COUNT(*)
+---- error
+Binder exception: Self-loop rel e is not supported.
+
+
+-CASE InvalidLimitNumberType
+-QUERY MATCH (a:person) RETURN a.age LIMIT "abc"
+---- error
+Binder exception: The number of rows to skip/limit must be a non-negative integer.
+
+
+-CASE NegativeLimitNumber
+-QUERY MATCH (a:person) RETURN a.age LIMIT -1
+---- error
+Binder exception: The number of rows to skip/limit must be a non-negative integer.
+
+
+-CASE DuplicateVariableName
+-QUERY MATCH (a:person) UNWIND [1,2] AS a RETURN COUNT(*)
+---- error
+Binder exception: Variable a already exists.
+
+
+-CASE MaxNodeID
+-QUERY MATCH (a:person) RETURN MIN(a)
+---- error
+Binder exception: Cannot match a built-in function for given function MIN(INTERNAL_ID). Supported inputs are
+DISTINCT (BOOL) -> BOOL
+(BOOL) -> BOOL
+DISTINCT (INT64) -> INT64
+(INT64) -> INT64
+DISTINCT (INT32) -> INT32
+(INT32) -> INT32
+DISTINCT (INT16) -> INT16
+(INT16) -> INT16
+DISTINCT (DOUBLE) -> DOUBLE
+(DOUBLE) -> DOUBLE
+DISTINCT (FLOAT) -> FLOAT
+(FLOAT) -> FLOAT
+DISTINCT (DATE) -> DATE
+(DATE) -> DATE
+DISTINCT (TIMESTAMP) -> TIMESTAMP
+(TIMESTAMP) -> TIMESTAMP
+DISTINCT (INTERVAL) -> INTERVAL
+(INTERVAL) -> INTERVAL
+DISTINCT (STRING) -> STRING
+(STRING) -> STRING
+
+
+-CASE OrderByNodeID
+-QUERY match (p:person) with p as x order by x skip 1 return x;
+---- error
+Binder exception: Cannot order by p. Order by node or rel is not supported.
+
+
+-CASE DropColumnFromNonExistedTable
+-QUERY alter table person1 drop k
+---- error
+Binder exception: Node/Rel person1 does not exist.
+
+
+-CASE DropNonExistedColumn
+-QUERY alter table person drop random
+---- error
+Binder exception: person table doesn't have property: random.
+
+
+-CASE DropPrimaryKeyColumn
+-QUERY alter table person drop ID
+---- error
+Binder exception: Cannot drop primary key of a node table.
+
+
+-CASE AddPropertyDuplicateName
+-QUERY alter table person add fName STRING
+---- error
+Binder exception: Property: fName already exists.
+
+
+-CASE AddPropertyUnmatchedDefaultValueType
+-QUERY alter table person add intCol INT64 DEFAULT '3.2'
+---- error
+Binder exception: Expression 3.2 has data type STRING but expect INT64. Implicit cast is not supported.
+
+
+-CASE RenameNonExistedTable
+-QUERY alter table person1 rename to person2
+---- error
+Binder exception: Node/Rel person1 does not exist.
+
+
+-CASE RenameTableDuplicateName
+-QUERY alter table person rename to organisation
+---- error
+Binder exception: Table: organisation already exists.
+
+
+-CASE RenamePropertyOfNonExistedTable
+-QUERY alter table person1 rename col1 to col2
+---- error
+Binder exception: Node/Rel person1 does not exist.
+
+
+-CASE RenamePropertyDuplicateName
+-QUERY alter table person rename fName to gender
+---- error
+Binder exception: Property gender already exists in table: person.
+
+
+-CASE InvalidFixedListChildType
+-QUERY create node table test1(ID INT64, marks STRING[5], PRIMARY KEY(ID))
+---- error
+Binder exception: The child type of a fixed list must be a numeric type. Given: STRING.
+
+
+-CASE InvalidFixedListNumElements
+-QUERY create node table test1(ID INT64, marks INT64[0], PRIMARY KEY(ID))
+---- error
+Binder exception: The number of elements in a fixed list must be greater than 0. Given: 0.
+
+
+-CASE InvalidFixedListSize
+-QUERY create node table test1(ID INT64, marks INT64[512], PRIMARY KEY(ID))
+---- error
+Binder exception: Cannot store a fixed list of size 4096 in a page.
+
+
+-CASE MissingStructFieldType
+-QUERY create node table test1(ID INT64, description STRUCT(name INT64, age INT35), PRIMARY KEY(ID))
+---- error
+Cannot parse dataTypeID: INT35
+
+
+-CASE MissingStructFields
+-QUERY create node table test1(ID INT64, description STRUCT, PRIMARY KEY(ID))
+---- error
+Cannot parse struct type: STRUCT
+
+
+-CASE NonPKSerialType
+-QUERY CREATE NODE TABLE test(ID INT64, seq SERIAL, PRIMARY KEY(ID))
+---- error
+Binder exception: Serial property in node table must be the primary key.
+
+
+-CASE AddSerialProperty
+-QUERY ALTER TABLE person ADD seq SERIAL
+---- error
+Binder exception: Serial property in node table must be the primary key.
+
+
+-CASE SerialInRelTable
+-QUERY CREATE REL TABLE test(FROM person TO person, seq SERIAL)
+---- error
+Binder exception: Serial property is not supported in rel table.
