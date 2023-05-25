@@ -4,6 +4,7 @@
 #include "main/kuzu.h"
 
 using namespace kuzu::main;
+using namespace kuzu::common;
 
 JNIEXPORT jlong JNICALL Java_tools_java_1api_KuzuNative_kuzu_1database_1init 
     (JNIEnv * env, jclass, jstring database_path, jlong buffer_pool_size) {
@@ -132,6 +133,7 @@ JNIEXPORT jobject JNICALL Java_tools_java_1api_KuzuNative_kuzu_1connection_1quer
     auto query_result = conn->query(CPPQuery);
 
     uint64_t qrAddress = reinterpret_cast<uint64_t>(query_result.get());
+    query_result.release();
     jlong qr_ref = static_cast<jlong>(qrAddress);
 
     jclass qrClass = env->FindClass("tools/java_api/KuzuQueryResult");
@@ -192,4 +194,149 @@ JNIEXPORT void JNICALL Java_tools_java_1api_KuzuNative_kuzu_1connection_1set_1qu
     Connection* conn = getConnection(env, thisConn);
     uint64_t timeout = static_cast<uint64_t>(timeout_in_ms);
     conn->setQueryTimeOut(timeout);
+}
+
+// TODO: Implement prepared statement
+
+
+QueryResult* getQueryResult(JNIEnv * env, jobject thisQR) {
+    jclass javaQRClass = env->GetObjectClass(thisQR);
+    jfieldID fieldID = env->GetFieldID(javaQRClass, "qr_ref", "J");
+    jlong fieldValue = env->GetLongField(thisQR, fieldID);
+
+    uint64_t address = static_cast<uint64_t>(fieldValue);
+    QueryResult* qr = reinterpret_cast<QueryResult*>(address);
+    return qr;
+}
+
+JNIEXPORT void JNICALL Java_tools_java_1api_KuzuNative_kuzu_1query_1result_1destroy
+  (JNIEnv * env, jclass, jobject thisQR) {
+    QueryResult* qr = getQueryResult(env, thisQR);
+    free(qr);
+}
+
+JNIEXPORT jboolean JNICALL Java_tools_java_1api_KuzuNative_kuzu_1query_1result_1is_1success
+  (JNIEnv * env, jclass, jobject thisQR) {
+    QueryResult* qr = getQueryResult(env, thisQR);
+    return static_cast<jboolean>(qr->isSuccess());
+}
+
+JNIEXPORT jstring JNICALL Java_tools_java_1api_KuzuNative_kuzu_1query_1result_1get_1error_1message
+  (JNIEnv * env, jclass, jobject thisQR) {
+    QueryResult* qr = getQueryResult(env, thisQR);
+    std::string errorMessage = qr->getErrorMessage();
+    jstring msg = env->NewStringUTF(errorMessage.c_str());
+    return msg;
+}
+
+JNIEXPORT jlong JNICALL Java_tools_java_1api_KuzuNative_kuzu_1query_1result_1get_1num_1columns
+  (JNIEnv * env, jclass, jobject thisQR) {
+    QueryResult* qr = getQueryResult(env, thisQR);
+    return static_cast<jlong>(qr->getNumColumns());
+}
+
+JNIEXPORT jstring JNICALL Java_tools_java_1api_KuzuNative_kuzu_1query_1result_1get_1column_1name
+  (JNIEnv * env, jclass, jobject thisQR, jlong index) {
+    QueryResult* qr = getQueryResult(env, thisQR);
+    auto column_names = qr->getColumnNames();
+    uint64_t idx = static_cast<uint64_t>(index);
+    if (idx >= column_names.size()) {
+        return nullptr;
+    }
+    std::string column_name = column_names[idx];
+    jstring name = env->NewStringUTF(column_name.c_str());
+    return name;
+}
+
+JNIEXPORT jobject JNICALL Java_tools_java_1api_KuzuNative_kuzu_1query_1result_1get_1column_1data_1type
+  (JNIEnv * env, jclass, jobject thisQR, jlong index) {
+    QueryResult* qr = getQueryResult(env, thisQR);
+    auto column_datatypes = qr->getColumnDataTypes();
+    uint64_t idx = static_cast<uint64_t>(index);
+    if (idx >= column_datatypes.size()) {
+        return nullptr;
+    }
+    DataType column_datatype = column_datatypes[idx];
+    DataType* cdt_copy = new DataType(column_datatype);
+
+    uint64_t dtAddress = reinterpret_cast<uint64_t>(cdt_copy);
+    jlong dt_ref = static_cast<jlong>(dtAddress);
+
+    jclass dtClass = env->FindClass("tools/java_api/KuzuDataType");
+    jobject newDTObject = env->AllocObject(dtClass);
+    jfieldID refID = env->GetFieldID(dtClass , "dt_ref", "J");
+    env->SetLongField(newDTObject, refID, dt_ref);
+    return newDTObject;
+}
+
+JNIEXPORT jlong JNICALL Java_tools_java_1api_KuzuNative_kuzu_1query_1result_1get_1num_1tuples
+  (JNIEnv * env, jclass, jobject thisQR) {
+    QueryResult* qr = getQueryResult(env, thisQR);
+    return static_cast<jlong>(qr->getNumTuples());
+}
+
+JNIEXPORT jobject JNICALL Java_tools_java_1api_KuzuNative_kuzu_1query_1result_1get_1query_1summary
+  (JNIEnv * env, jclass, jobject thisQR) {
+    QueryResult* qr = getQueryResult(env, thisQR);
+    auto query_summary = qr->getQuerySummary();
+
+    uint64_t qsAddress = reinterpret_cast<uint64_t>(query_summary);
+    jlong qs_ref = static_cast<jlong>(qsAddress);
+
+    jclass qsClass = env->FindClass("tools/java_api/KuzuQuerySummary");
+    jobject newQSObject = env->AllocObject(qsClass);
+    jfieldID refID = env->GetFieldID(qsClass , "qs_ref", "J");
+    env->SetLongField(newQSObject, refID, qs_ref);
+    return newQSObject;
+}
+
+JNIEXPORT jboolean JNICALL Java_tools_java_1api_KuzuNative_kuzu_1query_1result_1has_1next
+  (JNIEnv * env, jclass, jobject thisQR) {
+    QueryResult* qr = getQueryResult(env, thisQR);
+    return static_cast<jboolean>(qr->hasNext());
+}
+
+JNIEXPORT jobject JNICALL Java_tools_java_1api_KuzuNative_kuzu_1query_1result_1get_1next
+  (JNIEnv * env, jclass, jobject thisQR) {
+    QueryResult* qr = getQueryResult(env, thisQR);
+    auto flat_tuple = qr->getNext();
+
+    uint64_t ftAddress = reinterpret_cast<uint64_t>(flat_tuple.get());
+    jlong ft_ref = static_cast<jlong>(ftAddress);
+
+    jclass ftClass = env->FindClass("tools/java_api/KuzuFlatTuple");
+    jobject newFTObject = env->AllocObject(ftClass);
+    jfieldID refID = env->GetFieldID(ftClass , "ft_ref", "J");
+    env->SetLongField(newFTObject, refID, ft_ref);
+    return newFTObject;
+}
+
+JNIEXPORT jstring JNICALL Java_tools_java_1api_KuzuNative_kuzu_1query_1result_1to_1string
+  (JNIEnv * env, jclass, jobject thisQR) {
+    QueryResult* qr = getQueryResult(env, thisQR);
+    std::string result_string = qr->toString();
+    std::cout << "result_string back" << std::endl;
+    jstring ret = env->NewStringUTF(result_string.c_str());
+    std::cout << "newstringUTF back" << std::endl;
+    return ret;
+}
+
+JNIEXPORT void JNICALL Java_tools_java_1api_KuzuNative_kuzu_1query_1result_1write_1to_1csv
+  (JNIEnv * env, jclass, jobject thisQR, jstring file_path, jchar delimiter, jchar escape_char, jchar new_line) {
+    QueryResult* qr = getQueryResult(env, thisQR);
+    std::string cpp_file_path = env->GetStringUTFChars(file_path, JNI_FALSE);
+
+    // TODO: confirm this convertion is ok to do. 
+    // jchar is 16-bit unicode character so converting to char will lose the higher oreder-bits
+    char cpp_delimiter = static_cast<char>(delimiter);
+    char cpp_escape_char = static_cast<char>(escape_char);
+    char cpp_new_line = static_cast<char>(new_line);
+
+    qr->writeToCSV(cpp_file_path, cpp_delimiter, cpp_escape_char, cpp_new_line);
+}
+
+JNIEXPORT void JNICALL Java_tools_java_1api_KuzuNative_kuzu_1query_1result_1reset_1iterator
+  (JNIEnv * env, jclass, jobject thisQR) {
+    QueryResult* qr = getQueryResult(env, thisQR);
+    qr->resetIterator();
 }

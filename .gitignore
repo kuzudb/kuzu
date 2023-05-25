@@ -47,3 +47,7 @@ tools/java_api/Notes.txt
 history.txt
 tools/java_api/CMakeCache.txt
 tools/java_api/CTestTestfile.cmake
+tools/java_api/*.log
+tools/java_api/*.jar
+tools/java_api/*.dylib
+tools/java_api/test.java
