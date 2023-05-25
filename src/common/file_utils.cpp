@@ -2,6 +2,7 @@
 
 #include "common/exception.h"
 #include "common/string_utils.h"
+#include "glob/glob.hpp"
 
 namespace kuzu {
 namespace common {
@@ -118,12 +119,9 @@ void FileUtils::removeFileIfExists(const std::string& path) {
 
 std::vector<std::string> FileUtils::globFilePath(const std::string& path) {
     std::vector<std::string> result;
-    glob_t globResult;
-    glob(path.c_str(), GLOB_TILDE, nullptr, &globResult);
-    for (auto i = 0u; i < globResult.gl_pathc; ++i) {
-        result.emplace_back(globResult.gl_pathv[i]);
+    for (auto& resultPath : glob::glob(path)) {
+        result.emplace_back(resultPath.string());
     }
-    globfree(&globResult);
     return result;
 }
 

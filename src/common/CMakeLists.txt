@@ -21,6 +21,8 @@ add_library(kuzu_common
         utils.cpp
         string_utils.cpp)
 
+target_link_libraries(kuzu_common Glob)
+
 set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_common>
         PARENT_SCOPE)
