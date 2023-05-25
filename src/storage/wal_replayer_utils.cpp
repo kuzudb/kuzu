@@ -114,7 +114,8 @@ void WALReplayerUtils::createEmptyDBFilesForRelProperties(RelTableSchema* relTab
         } else {
             auto fName = StorageUtils::getRelPropertyListsFName(directory, relTableSchema->tableID,
                 relDirection, property.propertyID, DBFileType::ORIGINAL);
-            InMemListsFactory::getInMemPropertyLists(fName, property.dataType, numNodes)
+            InMemListsFactory::getInMemPropertyLists(
+                fName, property.dataType, numNodes, nullptr /* copyDescription */)
                 ->saveToFile();
         }
     }

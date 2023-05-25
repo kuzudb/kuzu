@@ -34,6 +34,7 @@ using field_idx_t = uint64_t;
 using struct_entry_t = int64_t;
 using struct_field_idx_t = uint64_t;
 constexpr struct_field_idx_t INVALID_STRUCT_FIELD_IDX = UINT64_MAX;
+using tuple_idx_t = uint64_t;
 
 // System representation for a variable-sized overflow value.
 struct overflow_value_t {

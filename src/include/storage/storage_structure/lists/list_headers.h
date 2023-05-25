@@ -54,6 +54,7 @@ public:
                    (*headersBuilder)[offset] :
                    (*headersBuilder)[offset] - (*headersBuilder)[offset - 1];
     };
+    inline uint64_t getNumValues() { return headersBuilder->getNumElements(); }
 
     inline void setCSROffset(common::offset_t offset, csr_offset_t csrOffset) {
         (*headersBuilder)[offset - 1] = csrOffset;

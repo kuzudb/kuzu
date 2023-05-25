@@ -14,7 +14,7 @@ class Transaction {
     friend class TransactionManager;
 
 public:
-    Transaction(TransactionType transactionType, uint64_t transactionID)
+    constexpr Transaction(TransactionType transactionType, uint64_t transactionID)
         : type{transactionType}, ID{transactionID} {}
 
 public:
@@ -33,6 +33,8 @@ private:
     TransactionType type;
     uint64_t ID;
 };
+
+static Transaction DUMMY_READ_TRANSACTION = Transaction(TransactionType::READ_ONLY, UINT64_MAX);
 
 } // namespace transaction
 } // namespace kuzu

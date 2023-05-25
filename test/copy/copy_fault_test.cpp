@@ -124,8 +124,8 @@ TEST_F(CopyRelTableMultiplicityViolationTest, ManyOneMultiplicityViolationError)
         "COPY knows FROM \"" +
             TestHelper::appendKuzuRootPath(
                 "dataset/copy-fault-tests/rel-table-multiplicity-violation/eKnows.csv\""),
-        "Copy exception: RelTable knows is a MANY_ONE table, but node(nodeOffset: 0, tableName: "
-        "person) has more than one neighbour in the forward direction.");
+        "Copy exception: RelTable knows is a MANY_ONE table, but node(nodeOffset: 0) has more than "
+        "one neighbour in the forward direction.");
 }
 
 TEST_F(CopyRelTableMultiplicityViolationTest, OneManyMultiplicityViolationError) {
@@ -133,8 +133,8 @@ TEST_F(CopyRelTableMultiplicityViolationTest, OneManyMultiplicityViolationError)
         "COPY teaches FROM \"" +
             TestHelper::appendKuzuRootPath(
                 "dataset/copy-fault-tests/rel-table-multiplicity-violation/eTeaches.csv\""),
-        "Copy exception: RelTable teaches is a ONE_MANY table, but node(nodeOffset: 2, "
-        "tableName: person) has more than one neighbour in the backward direction.");
+        "Copy exception: RelTable teaches is a ONE_MANY table, but node(nodeOffset: 2) has more "
+        "than one neighbour in the backward direction.");
 }
 
 TEST_F(CopyRelTableMultiplicityViolationTest, OneOneMultiplicityViolationError) {
@@ -142,8 +142,8 @@ TEST_F(CopyRelTableMultiplicityViolationTest, OneOneMultiplicityViolationError) 
         "COPY matches FROM \"" +
             TestHelper::appendKuzuRootPath(
                 "dataset/copy-fault-tests/rel-table-multiplicity-violation/eMatches.csv\""),
-        "Copy exception: RelTable matches is a ONE_ONE table, but node(nodeOffset: 1, "
-        "tableName: person) has more than one neighbour in the forward direction.");
+        "Copy exception: RelTable matches is a ONE_ONE table, but node(nodeOffset: 1) has more "
+        "than one neighbour in the forward direction.");
 }
 
 TEST_F(CopyInvalidNumberTest, INT32OverflowError) {

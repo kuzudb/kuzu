@@ -13,6 +13,7 @@
 namespace kuzu {
 namespace processor {
 
+// TODO(Guodong/Ziyi): Move these typedef to common and unify them with the ones without `ft_`.
 typedef uint64_t ft_tuple_idx_t;
 typedef uint32_t ft_col_idx_t;
 typedef uint32_t ft_col_offset_t;

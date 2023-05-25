@@ -1,19 +1,19 @@
 #pragma once
 
-#include "arrow/array/array_base.h"
-#include "arrow/array/array_binary.h"
-#include "arrow/array/array_primitive.h"
-#include "arrow/scalar.h"
 #include "common/types/types.h"
-#include "storage/copier/table_copy_executor.h"
+#include "storage/copier/table_copy_utils.h"
 #include "storage/storage_structure/in_mem_file.h"
+#include <arrow/array/array_base.h>
+#include <arrow/array/array_binary.h>
+#include <arrow/array/array_primitive.h>
+#include <arrow/scalar.h>
 
 namespace kuzu {
 namespace storage {
 
 struct StructFieldIdxAndValue {
     StructFieldIdxAndValue(common::struct_field_idx_t fieldIdx, std::string fieldValue)
-        : fieldIdx{fieldIdx}, fieldValue{fieldValue} {}
+        : fieldIdx{fieldIdx}, fieldValue{std::move(fieldValue)} {}
 
     common::struct_field_idx_t fieldIdx;
     std::string fieldValue;
@@ -44,13 +44,13 @@ public:
     inline uint64_t getNumBytesPerValue() const { return numBytesPerValue; }
     inline uint64_t getNumBytes() const { return numBytes; }
     inline InMemColumnChunk* getNullChunk() { return nullChunk.get(); }
-    virtual void copyArrowArray(arrow::Array& arrowArray);
+    virtual void copyArrowArray(arrow::Array& arrowArray, arrow::Array* nodeOffsets = nullptr);
     virtual void flush(common::FileInfo* walFileInfo);
 
     template<typename T>
-    void templateCopyValuesToPage(arrow::Array& array);
+    void templateCopyValuesToPage(arrow::Array& array, arrow::Array* nodeOffsets);
     template<typename T>
-    void templateCopyValuesAsStringToPage(arrow::Array& array);
+    void templateCopyValuesAsStringToPage(arrow::Array& array, arrow::Array* nodeOffsets);
 
     template<typename T, typename... Args>
     void setValueFromString(
@@ -71,8 +71,6 @@ private:
 
     static uint32_t getDataTypeSizeInColumn(common::LogicalType& dataType);
 
-    void setFixedListVal(arrow::FixedSizeListArray& array, uint64_t pos);
-
 protected:
     common::LogicalType dataType;
     common::offset_t startNodeOffset;
@@ -91,12 +89,13 @@ public:
         : InMemColumnChunk{std::move(dataType), startNodeOffset, endNodeOffset, copyDescription},
           inMemOverflowFile{inMemOverflowFile} {}
 
-    void copyArrowArray(arrow::Array& array) override;
+    void copyArrowArray(arrow::Array& array, arrow::Array* nodeOffsets = nullptr) final;
 
     template<typename T>
-    void templateCopyValuesAsStringToPageWithOverflow(arrow::Array& array);
+    void templateCopyValuesAsStringToPageWithOverflow(
+        arrow::Array& array, arrow::Array* nodeOffsets);
 
-    void copyValuesToPageWithOverflow(arrow::Array& array);
+    void copyValuesToPageWithOverflow(arrow::Array& array, arrow::Array* nodeOffsets);
 
     template<typename T>
     void setValWithOverflow(const char* value, uint64_t length, uint64_t pos) {
@@ -105,6 +104,7 @@ public:
 
 private:
     storage::InMemOverflowFile* inMemOverflowFile;
+    // TODO(Ziyi/Guodong): Fix this for rel columns.
     PageByteCursor overflowCursor;
 };
 
@@ -121,7 +121,7 @@ public:
         fieldChunks.push_back(std::move(fieldChunk));
     }
 
-    void copyArrowArray(arrow::Array& array) override;
+    void copyArrowArray(arrow::Array& array, arrow::Array* nodeOffsets = nullptr) final;
 
 private:
     void setStructFields(const char* value, uint64_t length, uint64_t pos);
@@ -155,13 +155,10 @@ private:
 };
 
 template<>
-void InMemColumnChunk::templateCopyValuesToPage<bool>(arrow::Array& array);
+void InMemColumnChunk::templateCopyValuesToPage<bool>(arrow::Array& array, arrow::Array* offsets);
 template<>
-void InMemColumnChunk::templateCopyValuesToPage<uint8_t*>(arrow::Array& array);
-template<>
-void InMemColumnChunk::templateCopyValuesToPage<common::interval_t>(arrow::Array& array);
-template<>
-void InMemColumnChunk::templateCopyValuesToPage<common::ku_list_t>(arrow::Array& array);
+void InMemColumnChunk::templateCopyValuesToPage<uint8_t*>(
+    arrow::Array& array, arrow::Array* offsets);
 
 // BOOL
 template<>
