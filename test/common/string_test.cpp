@@ -20,3 +20,9 @@ TEST(StringTest, leftTrim) {
     std::string result = StringUtils::ltrim(str);
     EXPECT_EQ(result, "command ");
 }
+
+TEST(StringTest, rightTrim) {
+    std::string str = " command    ";
+    std::string result = StringUtils::rtrim(str);
+    EXPECT_EQ(result, " command");
+}

@@ -52,6 +52,13 @@ public:
         return s;
     }
 
+    static inline std::string rtrim(const std::string& input) {
+        auto s = input;
+        s.erase(find_if(s.rbegin(), s.rend(), [](unsigned char ch) { return !isspace(ch); }).base(),
+            s.end());
+        return s;
+    }
+
     static inline void removeWhiteSpaces(std::string& str) {
         std::regex whiteSpacePattern{"\\s"};
         str = std::regex_replace(str, whiteSpacePattern, "");

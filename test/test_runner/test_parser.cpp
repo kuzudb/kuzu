@@ -61,8 +61,7 @@ void TestParser::extractExpectedResult(TestStatement* statement) {
         statement->expectedOk = true;
     } else if (result == "error") {
         statement->expectedError = true;
-        nextLine();
-        statement->errorMessage = StringUtils::ltrim(line);
+        statement->errorMessage = extractTextBeforeNextStatement();
     } else {
         statement->expectedNumTuples = stoi(result);
         for (auto i = 0u; i < statement->expectedNumTuples; i++) {
@@ -73,6 +72,21 @@ void TestParser::extractExpectedResult(TestStatement* statement) {
             sort(statement->expectedTuples.begin(), statement->expectedTuples.end());
         }
     }
+}
+
+std::string TestParser::extractTextBeforeNextStatement() {
+    std::string text;
+    while (nextLine()) {
+        tokenize();
+        if ((currentToken.type == TokenType::EMPTY) || (currentToken.type != TokenType::SKIP)) {
+            break;
+        }
+        if (!text.empty()) {
+            text += "\n";
+        }
+        text += StringUtils::ltrim(line);
+    }
+    return text;
 }
 
 TestStatement* TestParser::extractStatement(TestStatement* statement) {

@@ -1,8 +1,10 @@
 #include "test_runner/test_runner.h"
 
+#include "common/string_utils.h"
 #include "spdlog/spdlog.h"
 
 using namespace kuzu::main;
+using namespace kuzu::common;
 
 namespace kuzu {
 namespace testing {
@@ -32,7 +34,8 @@ bool TestRunner::testStatement(TestStatement* statement, Connection& conn) {
         return preparedStatement->isSuccess();
     }
     if (statement->expectedError) {
-        return (statement->errorMessage == preparedStatement->getErrorMessage());
+        return (
+            statement->errorMessage == StringUtils::rtrim(preparedStatement->getErrorMessage()));
     }
     if (!preparedStatement->isSuccess()) {
         spdlog::error(preparedStatement->getErrorMessage());
