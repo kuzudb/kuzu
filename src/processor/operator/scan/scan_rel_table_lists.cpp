@@ -11,6 +11,7 @@ bool ScanRelTableLists::getNextTuplesInternal(ExecutionContext* context) {
             return true;
         }
         if (!children[0]->getNextTuple(context)) {
+            scanState->syncState->resetState();
             return false;
         }
         scanState->syncState->resetState();

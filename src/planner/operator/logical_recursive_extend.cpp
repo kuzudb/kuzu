@@ -20,7 +20,7 @@ f_group_pos_set LogicalRecursiveExtend::getGroupsPosToFlatten() {
 void LogicalRecursiveExtend::computeFlatSchema() {
     copyChildSchema(0);
     schema->insertToGroupAndScope(nbrNode->getInternalIDProperty(), 0);
-    schema->insertToGroupAndScope(rel->getInternalLengthExpression(), 0);
+    schema->insertToGroupAndScope(rel->getLengthExpression(), 0);
     switch (joinType) {
     case RecursiveJoinType::TRACK_PATH: {
         schema->insertToGroupAndScope(rel, 0);
@@ -38,7 +38,7 @@ void LogicalRecursiveExtend::computeFactorizedSchema() {
     SinkOperatorUtil::recomputeSchema(*childSchema, childSchema->getExpressionsInScope(), *schema);
     auto nbrGroupPos = schema->createGroup();
     schema->insertToGroupAndScope(nbrNode->getInternalIDProperty(), nbrGroupPos);
-    schema->insertToGroupAndScope(rel->getInternalLengthExpression(), nbrGroupPos);
+    schema->insertToGroupAndScope(rel->getLengthExpression(), nbrGroupPos);
     switch (joinType) {
     case RecursiveJoinType::TRACK_PATH: {
         schema->insertToGroupAndScope(rel, nbrGroupPos);

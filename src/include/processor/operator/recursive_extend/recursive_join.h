@@ -1,7 +1,7 @@
 #pragma once
 
 #include "bfs_state.h"
-#include "path_scanner.h"
+#include "frontier_scanner.h"
 #include "planner/logical_plan/logical_operator/recursive_join_type.h"
 #include "processor/operator/physical_operator.h"
 #include "processor/operator/result_collector.h"
@@ -41,12 +41,22 @@ private:
 
 struct RecursiveJoinSharedState {
     std::shared_ptr<FTableSharedState> inputFTableSharedState;
-    std::unique_ptr<NodeOffsetSemiMask> semiMask;
+    std::vector<std::unique_ptr<NodeOffsetSemiMask>> semiMasks;
 
-    RecursiveJoinSharedState(
-        std::shared_ptr<FTableSharedState> inputFTableSharedState, storage::NodeTable* nodeTable)
+    RecursiveJoinSharedState(std::shared_ptr<FTableSharedState> inputFTableSharedState,
+        const std::vector<storage::NodeTable*>& nodeTables)
         : inputFTableSharedState{std::move(inputFTableSharedState)} {
-        semiMask = std::make_unique<NodeOffsetSemiMask>(nodeTable);
+        for (auto nodeTable : nodeTables) {
+            semiMasks.push_back(std::make_unique<NodeOffsetSemiMask>(nodeTable));
+        }
+    }
+
+    inline std::vector<NodeOffsetSemiMask*> getSemiMasks() const {
+        std::vector<NodeOffsetSemiMask*> result;
+        for (auto& semiMask : semiMasks) {
+            result.push_back(semiMask.get());
+        }
+        return result;
     }
 };
 
@@ -98,29 +108,27 @@ struct RecursiveJoinDataInfo {
 
 class BaseRecursiveJoin : public PhysicalOperator {
 public:
-    BaseRecursiveJoin(uint8_t lowerBound, uint8_t upperBound, storage::NodeTable* nodeTable,
-        storage::RelTable* relTable, std::shared_ptr<RecursiveJoinSharedState> sharedState,
+    BaseRecursiveJoin(uint8_t lowerBound, uint8_t upperBound,
+        std::shared_ptr<RecursiveJoinSharedState> sharedState,
         std::unique_ptr<RecursiveJoinDataInfo> dataInfo, std::unique_ptr<PhysicalOperator> child,
         uint32_t id, const std::string& paramsString,
         std::unique_ptr<PhysicalOperator> recursiveRoot)
         : PhysicalOperator{PhysicalOperatorType::RECURSIVE_JOIN, std::move(child), id,
               paramsString},
-          lowerBound{lowerBound}, upperBound{upperBound}, nodeTable{nodeTable}, relTable{relTable},
-          sharedState{std::move(sharedState)}, dataInfo{std::move(dataInfo)},
-          recursiveRoot{std::move(recursiveRoot)} {}
+          lowerBound{lowerBound}, upperBound{upperBound}, sharedState{std::move(sharedState)},
+          dataInfo{std::move(dataInfo)}, recursiveRoot{std::move(recursiveRoot)} {}
 
-    BaseRecursiveJoin(uint8_t lowerBound, uint8_t upperBound, storage::NodeTable* nodeTable,
-        storage::RelTable* relTable, std::shared_ptr<RecursiveJoinSharedState> sharedState,
+    BaseRecursiveJoin(uint8_t lowerBound, uint8_t upperBound,
+        std::shared_ptr<RecursiveJoinSharedState> sharedState,
         std::unique_ptr<RecursiveJoinDataInfo> dataInfo, uint32_t id,
         const std::string& paramsString, std::unique_ptr<PhysicalOperator> recursiveRoot)
         : PhysicalOperator{PhysicalOperatorType::RECURSIVE_JOIN, id, paramsString},
-          lowerBound{lowerBound}, upperBound{upperBound}, nodeTable{nodeTable}, relTable{relTable},
-          sharedState{std::move(sharedState)}, dataInfo{std::move(dataInfo)},
-          recursiveRoot{std::move(recursiveRoot)} {}
+          lowerBound{lowerBound}, upperBound{upperBound}, sharedState{std::move(sharedState)},
+          dataInfo{std::move(dataInfo)}, recursiveRoot{std::move(recursiveRoot)} {}
 
     virtual ~BaseRecursiveJoin() = default;
 
-    inline NodeSemiMask* getSemiMask() const { return sharedState->semiMask.get(); }
+    inline RecursiveJoinSharedState* getSharedState() const { return sharedState.get(); }
 
     void initLocalStateInternal(ResultSet* resultSet_, ExecutionContext* context) override;
 
@@ -136,13 +144,11 @@ private:
     // Compute BFS for a given src node.
     void computeBFS(ExecutionContext* context);
 
-    void updateVisitedNodes(common::offset_t boundNodeOffset);
+    void updateVisitedNodes(common::nodeID_t boundNodeID);
 
 protected:
     uint8_t lowerBound;
     uint8_t upperBound;
-    storage::NodeTable* nodeTable;
-    storage::RelTable* relTable;
 
     std::shared_ptr<RecursiveJoinSharedState> sharedState;
     std::unique_ptr<RecursiveJoinDataInfo> dataInfo;
@@ -163,7 +169,7 @@ protected:
     common::ValueVector* tmpEdgeIDVector;
     common::ValueVector* tmpDstNodeIDVector;
 
-    std::unique_ptr<BaseBFSMorsel> bfsMorsel;
+    std::unique_ptr<BaseBFSState> bfsState;
     std::unique_ptr<FrontiersScanner> frontiersScanner;
 };
 

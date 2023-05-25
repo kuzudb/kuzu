@@ -236,7 +236,9 @@ std::unique_ptr<Expression> ExpressionBinder::createInternalLengthExpression(
     const Expression& expression) {
     auto& rel = (RelExpression&)expression;
     std::unordered_map<table_id_t, property_id_t> propertyIDPerTable;
-    propertyIDPerTable.insert({rel.getSingleTableID(), INVALID_PROPERTY_ID});
+    for (auto tableID : rel.getTableIDs()) {
+        propertyIDPerTable.insert({tableID, INVALID_PROPERTY_ID});
+    }
     return std::make_unique<PropertyExpression>(LogicalType(common::LogicalTypeID::INT64),
         INTERNAL_LENGTH_SUFFIX, rel, std::move(propertyIDPerTable), false /* isPrimaryKey */);
 }
@@ -246,8 +248,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindRecursiveJoinLengthFunction(
     if (expression.getDataType().getLogicalTypeID() != common::LogicalTypeID::RECURSIVE_REL) {
         return nullptr;
     }
-    auto& rel = (RelExpression&)expression;
-    return rel.getInternalLengthExpression();
+    return ((RelExpression&)expression).getLengthExpression();
 }
 
 } // namespace binder

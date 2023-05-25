@@ -13,30 +13,24 @@ namespace processor {
  * targetDstOffsets.empty() which indicates that every node is a possible destination).
  */
 struct BaseFrontierScanner {
-    common::table_id_t nodeTableID;
-    common::table_id_t relTableID;
     std::vector<Frontier*> frontiers;
-    const std::unordered_set<common::offset_t>& targetDstOffsets;
+    const frontier::node_id_set_t& targetDstNodeIDs;
     // Number of extension performed during recursive join
     size_t k;
-    size_t listEntrySize;
 
     size_t lastFrontierCursor;
-    common::offset_t currentDstOffset;
+    common::nodeID_t currentDstNodeID;
 
-    BaseFrontierScanner(common::table_id_t nodeTableID, common::table_id_t relTableID,
-        const std::unordered_set<common::offset_t>& targetDstOffsets, size_t k)
-        : nodeTableID{nodeTableID}, relTableID{relTableID}, targetDstOffsets{targetDstOffsets},
-          k{k}, lastFrontierCursor{0}, currentDstOffset{common::INVALID_OFFSET} {
-        listEntrySize = 2 * k + 1;
-    }
+    BaseFrontierScanner(const frontier::node_id_set_t& targetDstNodeIDs, size_t k)
+        : targetDstNodeIDs{targetDstNodeIDs}, k{k}, lastFrontierCursor{0},
+          currentDstNodeID{common::INVALID_OFFSET, common::INVALID_TABLE_ID} {}
     virtual ~BaseFrontierScanner() = default;
 
     size_t scan(common::ValueVector* pathVector, common::ValueVector* dstNodeIDVector,
         common::ValueVector* pathLengthVector, common::sel_t& offsetVectorPos,
         common::sel_t& dataVectorPos);
 
-    void resetState(const BaseBFSMorsel& bfsMorsel);
+    void resetState(const BaseBFSState& bfsState);
 
 protected:
     virtual void initScanFromDstOffset() = 0;
@@ -46,8 +40,7 @@ protected:
 
     inline void writeDstNodeOffsetAndLength(common::ValueVector* dstNodeIDVector,
         common::ValueVector* pathLengthVector, common::sel_t& offsetVectorPos) {
-        dstNodeIDVector->setValue<common::nodeID_t>(
-            offsetVectorPos, common::nodeID_t{currentDstOffset, nodeTableID});
+        dstNodeIDVector->setValue<common::nodeID_t>(offsetVectorPos, currentDstNodeID);
         pathLengthVector->setValue<int64_t>(offsetVectorPos, (int64_t)k);
     }
 };
@@ -56,9 +49,8 @@ protected:
  * DstNodeScanner scans dst node offset & length of path.
  */
 struct DstNodeScanner : public BaseFrontierScanner {
-    DstNodeScanner(common::table_id_t nodeTableID, common::table_id_t relTableID,
-        const std::unordered_set<common::offset_t>& targetDstOffsets, size_t k)
-        : BaseFrontierScanner{nodeTableID, relTableID, targetDstOffsets, k} {}
+    DstNodeScanner(const frontier::node_id_set_t& targetDstNodeIDs, size_t k)
+        : BaseFrontierScanner{targetDstNodeIDs, k} {}
 
 private:
     inline void initScanFromDstOffset() final {}
@@ -79,24 +71,25 @@ private:
  * operator.
  */
 struct PathScanner : public BaseFrontierScanner {
-    using nbr_t = Frontier::node_rel_offset_t;
-    using nbrs_t = Frontier::node_rel_offsets_t*;
+    using nbrs_t = std::vector<frontier::node_rel_id_t>*;
     // DFS states
-    std::vector<common::offset_t> nodeOffsets;
-    std::vector<common::offset_t> relOffsets;
+    size_t listEntrySize;
+    std::vector<common::nodeID_t> nodeIDs;
+    std::vector<common::relID_t> relIDs;
     std::stack<nbrs_t> nbrsStack;
     std::stack<int64_t> cursorStack;
 
-    PathScanner(common::table_id_t nodeTableID, common::table_id_t relTableID,
-        const std::unordered_set<common::offset_t>& targetDstOffsets, size_t k)
-        : BaseFrontierScanner{nodeTableID, relTableID, targetDstOffsets, k} {
-        nodeOffsets.resize(k + 1);
-        relOffsets.resize(k + 1);
+    PathScanner(const frontier::node_id_set_t& targetDstNodeIDs, size_t k)
+        : BaseFrontierScanner{targetDstNodeIDs, k} {
+        listEntrySize = 2 * k + 1;
+        nodeIDs.resize(k + 1);
+        relIDs.resize(k + 1);
     }
 
 private:
     inline void initScanFromDstOffset() final {
-        initDfs(std::make_pair(currentDstOffset, common::INVALID_OFFSET), k);
+        auto dummyRelID = common::relID_t{common::INVALID_OFFSET, common::INVALID_TABLE_ID};
+        initDfs(std::make_pair(currentDstNodeID, dummyRelID), k);
     }
     // Scan current stacks until exhausted or vector is filled up.
     void scanFromDstOffset(common::ValueVector* pathVector, common::ValueVector* dstNodeIDVector,
@@ -104,7 +97,7 @@ private:
         common::sel_t& dataVectorPos) final;
 
     // Initialize stacks for given offset.
-    void initDfs(const nbr_t& nbr, size_t currentDepth);
+    void initDfs(const frontier::node_rel_id_t& nodeAndRelID, size_t currentDepth);
 
     void writePathToVector(common::ValueVector* pathVector, common::ValueVector* dstNodeIDVector,
         common::ValueVector* pathLengthVector, common::sel_t& offsetVectorPos,
@@ -116,9 +109,8 @@ private:
  * multiplicity times in value vector.
  */
 struct DstNodeWithMultiplicityScanner : public BaseFrontierScanner {
-    DstNodeWithMultiplicityScanner(common::table_id_t nodeTableID, common::table_id_t relTableID,
-        const std::unordered_set<common::offset_t>& targetDstOffsets, size_t k)
-        : BaseFrontierScanner{nodeTableID, relTableID, targetDstOffsets, k} {}
+    DstNodeWithMultiplicityScanner(const frontier::node_id_set_t& targetDstNodeIDs, size_t k)
+        : BaseFrontierScanner{targetDstNodeIDs, k} {}
 
 private:
     inline void initScanFromDstOffset() final {}
@@ -148,10 +140,10 @@ struct FrontiersScanner {
         common::ValueVector* pathLengthVector, common::sel_t& offsetVectorPos,
         common::sel_t& dataVectorPos);
 
-    inline void resetState(const BaseBFSMorsel& bfsMorsel) {
+    inline void resetState(const BaseBFSState& bfsState) {
         cursor = 0;
         for (auto& scanner : scanners) {
-            scanner->resetState(bfsMorsel);
+            scanner->resetState(bfsState);
         }
     }
 };

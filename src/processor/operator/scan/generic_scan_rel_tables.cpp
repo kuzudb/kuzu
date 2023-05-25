@@ -62,6 +62,10 @@ bool GenericScanRelTables::getNextTuplesInternal(ExecutionContext* context) {
             return true;
         }
         if (!children[0]->getNextTuple(context)) {
+            currentRelTableDataCollection = nullptr;
+            for (auto& [_, relTableDataCollection] : relTableCollectionPerNodeTable) {
+                relTableDataCollection->resetState();
+            }
             return false;
         }
         auto currentIdx = inNodeIDVector->state->selVector->selectedPositions[0];

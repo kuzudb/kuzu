@@ -73,6 +73,7 @@ public:
     virtual void incrementNumMasks() = 0;
 
     inline bool isEnabled() { return getNumMasks() > 0; }
+    inline storage::NodeTable* getNodeTable() const { return nodeTable; }
 
 protected:
     storage::NodeTable* nodeTable;

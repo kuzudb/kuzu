@@ -169,25 +169,36 @@ void Binder::bindQueryRel(const RelPattern& relPattern,
     if (srcNode->getUniqueName() == dstNode->getUniqueName()) {
         throw BinderException("Self-loop rel " + parsedName + " is not supported.");
     }
-    // prune rel table IDs
-    tableIDs = pruneRelTableIDs(catalog, tableIDs, *srcNode, *dstNode);
-    if (tableIDs.empty()) {
-        throw BinderException("Nodes " + srcNode->toString() + " and " + dstNode->toString() +
-                              " are not connected through rel " + parsedName + ".");
-    }
     // bind variable length
     auto [lowerBound, upperBound] = bindVariableLengthRelBound(relPattern);
     auto isVariableLength = !(lowerBound == 1 && upperBound == 1);
+    if (!isVariableLength) {
+        tableIDs = pruneRelTableIDs(catalog, tableIDs, *srcNode, *dstNode);
+        if (tableIDs.empty()) {
+            throw BinderException("Nodes " + srcNode->toString() + " and " + dstNode->toString() +
+                                  " are not connected through rel " + parsedName + ".");
+        }
+    }
     auto dataType = isVariableLength ? common::LogicalType(common::LogicalTypeID::RECURSIVE_REL) :
                                        common::LogicalType(common::LogicalTypeID::REL);
-    auto queryRel = make_shared<RelExpression>(std::move(dataType),
-        getUniqueExpressionName(parsedName), parsedName, tableIDs, srcNode, dstNode, directionType,
-        relPattern.getRelType(), lowerBound, upperBound);
-    queryRel->setAlias(parsedName);
+    auto queryRel = make_shared<RelExpression>(dataType, getUniqueExpressionName(parsedName),
+        parsedName, tableIDs, srcNode, dstNode, directionType, relPattern.getRelType());
     if (isVariableLength) {
-        queryRel->setInternalLengthExpression(
-            expressionBinder.createInternalLengthExpression(*queryRel));
+        std::unordered_set<common::table_id_t> recursiveNodeTableIDs;
+        for (auto relTableID : tableIDs) {
+            auto relTableSchema = catalog.getReadOnlyVersion()->getRelTableSchema(relTableID);
+            recursiveNodeTableIDs.insert(relTableSchema->srcTableID);
+            recursiveNodeTableIDs.insert(relTableSchema->dstTableID);
+        }
+        auto recursiveNode =
+            createQueryNode("", std::vector<common::table_id_t>{
+                                    recursiveNodeTableIDs.begin(), recursiveNodeTableIDs.end()});
+        auto lengthExpression = expressionBinder.createInternalLengthExpression(*queryRel);
+        auto recursiveInfo = std::make_unique<RecursiveInfo>(
+            lowerBound, upperBound, std::move(recursiveNode), std::move(lengthExpression));
+        queryRel->setRecursiveInfo(std::move(recursiveInfo));
     }
+    queryRel->setAlias(parsedName);
     // resolve properties associate with rel table
     std::vector<RelTableSchema*> relTableSchemas;
     for (auto tableID : tableIDs) {
@@ -259,6 +270,11 @@ std::shared_ptr<NodeExpression> Binder::bindQueryNode(
 std::shared_ptr<NodeExpression> Binder::createQueryNode(const NodePattern& nodePattern) {
     auto parsedName = nodePattern.getVariableName();
     auto tableIDs = bindNodeTableIDs(nodePattern.getTableNames());
+    return createQueryNode(parsedName, tableIDs);
+}
+
+std::shared_ptr<NodeExpression> Binder::createQueryNode(
+    const std::string& parsedName, const std::vector<common::table_id_t>& tableIDs) {
     auto queryNode =
         make_shared<NodeExpression>(getUniqueExpressionName(parsedName), parsedName, tableIDs);
     queryNode->setAlias(parsedName);

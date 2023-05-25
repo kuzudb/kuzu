@@ -20,7 +20,9 @@ expression_vector PropertyCollector::getProperties() {
 void PropertyCollector::visitMatch(const BoundReadingClause& readingClause) {
     auto& matchClause = (BoundMatchClause&)readingClause;
     for (auto& rel : matchClause.getQueryGraphCollection()->getQueryRels()) {
-        properties.insert(rel->getInternalIDProperty());
+        if (rel->getRelType() == common::QueryRelType::NON_RECURSIVE) {
+            properties.insert(rel->getInternalIDProperty());
+        }
     }
     if (matchClause.hasWhereExpression()) {
         collectPropertyExpressions(*matchClause.getWhereExpression());

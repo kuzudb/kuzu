@@ -28,14 +28,16 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalSemiMaskerToPhysical(
             for (auto i = 0u; i < scanNodeID->getSharedState()->getNumTableStates(); ++i) {
                 auto tableState = scanNodeID->getSharedState()->getTableState(i);
                 auto tableID = tableState->getTable()->getTableID();
-                masksPerTable.at(tableID).emplace_back(tableState->getSemiMask(), 0);
+                masksPerTable.at(tableID).emplace_back(
+                    tableState->getSemiMask(), 0 /* initial mask idx */);
             }
         } break;
         case PhysicalOperatorType::RECURSIVE_JOIN: {
             auto recursiveJoin = (BaseRecursiveJoin*)physicalOp;
-            assert(!node->isMultiLabeled());
-            auto tableID = node->getSingleTableID();
-            masksPerTable.at(tableID).emplace_back(recursiveJoin->getSemiMask(), 0);
+            for (auto& semiMask : recursiveJoin->getSharedState()->semiMasks) {
+                auto tableID = semiMask->getNodeTable()->getTableID();
+                masksPerTable.at(tableID).emplace_back(semiMask.get(), 0 /* initial mask idx */);
+            }
         } break;
         default:
             throw common::NotImplementedException("PlanMapper::mapLogicalSemiMaskerToPhysical");

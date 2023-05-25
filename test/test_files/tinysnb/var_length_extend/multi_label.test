@@ -1,0 +1,52 @@
+-GROUP TinySnbReadTest
+-DATASET tinysnb
+
+--
+
+-CASE MultiLabel
+
+-NAME NodeMultiLabelTest
+-QUERY MATCH (a)-[e:knows*1..2]->(b) RETURN COUNT(*)
+---- 1
+50
+
+-NAME NodeUndirectedTest
+-QUERY MATCH (a)-[e:knows*1..2]-(b) WHERE a.fName = 'Alice' AND b.fName = 'Bob' RETURN COUNT(*)
+---- 1
+10
+
+-NAME NodeUndirectedTest2
+-QUERY MATCH (a)-[e:knows|:studyAt|:workAt*1..2]-(b) WHERE a.ID=7 RETURN e, label(b)
+---- 8
+[0:4,3:12,0:5,3:12,0:4]|person
+[0:4,3:12,0:5,4:2,1:0]|organisation
+[0:4,3:12,0:5]|person
+[0:4,3:13,0:6,3:13,0:4]|person
+[0:4,3:13,0:6]|person
+[0:4,5:2,1:2,5:1,0:3]|person
+[0:4,5:2,1:2,5:2,0:4]|person
+[0:4,5:2,1:2]|organisation
+
+-NAME RelMultiLabelTest
+-QUERY MATCH (a:person)-[e*1..2]->(b:organisation) WHERE a.fName = 'Alice' RETURN b.ID, e
+---- 6
+1|[0:0,3:0,0:1,4:1,1:0]
+1|[0:0,4:0,1:0]
+1|[0:0,6:0,0:1,4:1,1:0]
+1|[0:0,7:0,0:1,4:1,1:0]
+4|[0:0,3:1,0:2,5:0,1:1]
+6|[0:0,3:2,0:3,5:1,1:2]
+
+-NAME MixMultiLabelTest
+-QUERY MATCH (a:person)-[e:meets|:marries|:studyAt*2..2]->(b) WHERE a.fName = 'Alice' RETURN b.ID, e
+---- 4
+1|[0:0,6:0,0:1,4:1,1:0]
+1|[0:0,7:0,0:1,4:1,1:0]
+5|[0:0,6:0,0:1,6:1,0:3]
+5|[0:0,7:0,0:1,6:1,0:3]
+
+-NAME MixMultiLabelTest
+-QUERY MATCH (a:person)-[e:meets|:marries|:studyAt*2..2]->(b) WHERE a.fName = 'Alice' AND b.ID < 5 RETURN COUNT(*)
+-ENUMERATE
+---- 1
+2
