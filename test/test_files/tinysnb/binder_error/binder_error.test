@@ -15,7 +15,7 @@ Binder exception: Node table PERSON does not exist.
 Binder exception: Bind relationship e1 to relationship with same name is not supported.
 
 
--CASE RepeatedReturnColumnName)
+-CASE RepeatedReturnColumnName
 -QUERY MATCH (a:person)-[e1:knows]->(b:person) RETURN *, e1
 ---- error
 Binder exception: Multiple result column with the same name e1 are not supported.
