@@ -1002,7 +1002,6 @@ public:
 
   class  OC_NodePatternContext : public antlr4::ParserRuleContext {
   public:
-    CypherParser::OC_VariableContext *oC_VariableContext = nullptr;
     OC_NodePatternContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     std::vector<antlr4::tree::TerminalNode *> SP();

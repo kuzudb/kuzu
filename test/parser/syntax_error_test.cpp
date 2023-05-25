@@ -35,16 +35,6 @@ TEST_F(SyntaxErrorTest, QueryNotConcludeWithReturn2) {
     ASSERT_STREQ(expectedException.c_str(), getParsingError(input).c_str());
 }
 
-TEST_F(SyntaxErrorTest, QueryNodeWithOutParentheses) {
-    std::string expectedException =
-        "Parser exception: Parentheses are required to identify nodes in "
-        "patterns, i.e. (a) (line: 1, offset: 6)\n";
-    expectedException += "\"MATCH a RETURN *;\"\n";
-    expectedException += "       ^";
-    auto input = "MATCH a RETURN *;";
-    ASSERT_STREQ(expectedException.c_str(), getParsingError(input).c_str());
-}
-
 TEST_F(SyntaxErrorTest, InvalidNotEqualOperator) {
     std::string expectedException =
         "Parser exception: Unknown operation '!=' (you probably meant to use '<>', which is "
