@@ -23,8 +23,8 @@ InMemColumnChunk::InMemColumnChunk(LogicalType dataType, offset_t startNodeOffse
     }
 }
 
-void InMemColumnChunk::setValue(uint8_t* val, offset_t pos) {
-    memcpy(buffer.get() + (pos * numBytesPerValue), val, numBytesPerValue);
+void InMemColumnChunk::setValueAtPos(uint8_t* val, common::offset_t pos) {
+    memcpy(buffer.get() + getOffsetInBuffer(pos), val, numBytesPerValue);
     nullChunk->setValue(false, pos);
 }
 
@@ -390,6 +390,44 @@ std::string InMemStructColumnChunk::parseStructFieldValue(
     } else {
         throw common::ParserException{"Invalid struct string: " + structString};
     }
+}
+
+InMemFixedListColumnChunk::InMemFixedListColumnChunk(common::LogicalType dataType,
+    common::offset_t startNodeOffset, common::offset_t endNodeOffset,
+    const common::CopyDescription* copyDescription)
+    : InMemColumnChunk{std::move(dataType), startNodeOffset, endNodeOffset, copyDescription} {
+    numElementsInAPage = PageUtils::getNumElementsInAPage(numBytesPerValue, false /* hasNull */);
+    auto startNodeOffsetCursor =
+        PageUtils::getPageByteCursorForPos(startNodeOffset, numElementsInAPage, numBytesPerValue);
+    auto endNodeOffsetCursor =
+        PageUtils::getPageByteCursorForPos(endNodeOffset, numElementsInAPage, numBytesPerValue);
+    numBytes = (endNodeOffsetCursor.pageIdx - startNodeOffsetCursor.pageIdx) *
+                   common::BufferPoolConstants::PAGE_4KB_SIZE +
+               endNodeOffsetCursor.offsetInPage - startNodeOffsetCursor.offsetInPage +
+               numBytesPerValue;
+    buffer = std::make_unique<uint8_t[]>(numBytes);
+}
+
+void InMemFixedListColumnChunk::flush(common::FileInfo* walFileInfo) {
+    if (numBytes > 0) {
+        auto pageByteCursor = PageUtils::getPageByteCursorForPos(
+            startNodeOffset, numElementsInAPage, numBytesPerValue);
+        auto startFileOffset = pageByteCursor.pageIdx * common::BufferPoolConstants::PAGE_4KB_SIZE +
+                               pageByteCursor.offsetInPage;
+        common::FileUtils::writeToFile(walFileInfo, buffer.get(), numBytes, startFileOffset);
+    }
+}
+
+common::offset_t InMemFixedListColumnChunk::getOffsetInBuffer(common::offset_t pos) {
+    auto posCursor = PageUtils::getPageByteCursorForPos(
+        pos + startNodeOffset, numElementsInAPage, numBytesPerValue);
+    auto startNodeCursor =
+        PageUtils::getPageByteCursorForPos(startNodeOffset, numElementsInAPage, numBytesPerValue);
+    auto offsetInBuffer =
+        (posCursor.pageIdx - startNodeCursor.pageIdx) * common::BufferPoolConstants::PAGE_4KB_SIZE +
+        posCursor.offsetInPage - startNodeCursor.offsetInPage;
+    assert(offsetInBuffer + numBytesPerValue <= numBytes);
+    return offsetInBuffer;
 }
 
 // Bool

@@ -22,6 +22,10 @@ public:
             return std::make_unique<InMemColumnChunkWithOverflow>(
                 dataType, startNodeOffset, endNodeOffset, copyDescription, inMemOverflowFile.get());
         }
+        case common::LogicalTypeID::FIXED_LIST: {
+            return std::make_unique<InMemFixedListColumnChunk>(
+                dataType, startNodeOffset, endNodeOffset, copyDescription);
+        }
         case common::LogicalTypeID::STRUCT: {
             auto inMemStructColumnChunk = std::make_unique<InMemStructColumnChunk>(
                 dataType, startNodeOffset, endNodeOffset, copyDescription);

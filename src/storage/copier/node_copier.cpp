@@ -200,10 +200,10 @@ void NPYNodeCopier::executeInternal(std::unique_ptr<NodeCopyMorsel> morsel) {
     auto endNodeOffset = morsel->nodeOffset + morsel->numNodes - 1;
     // For NPY files, we can only read one column at a time.
     std::vector<std::unique_ptr<InMemColumnChunk>> columnChunks(1);
-    columnChunks[0] = std::make_unique<InMemColumnChunk>(
-        properties[columnToCopy].dataType, morsel->nodeOffset, endNodeOffset, &copyDesc);
+    columnChunks[0] =
+        columns[columnToCopy]->getInMemColumnChunk(morsel->nodeOffset, endNodeOffset, &copyDesc);
     for (auto i = 0u; i < morsel->numNodes; i++) {
-        columnChunks[0]->setValue(reader->getPointerToRow(morsel->nodeOffset + i), i);
+        columnChunks[0]->setValueAtPos(reader->getPointerToRow(morsel->nodeOffset + i), i);
     }
     flushChunksAndPopulatePKIndex(columnChunks, morsel->nodeOffset, endNodeOffset, columnToCopy);
 }
