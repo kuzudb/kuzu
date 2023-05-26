@@ -665,13 +665,6 @@ void AggregateHashTable::resizeHashTableIfNecessary(uint32_t maxNumDistinctHashK
     }
 }
 
-template<typename type>
-bool AggregateHashTable::compareEntryWithKeys(const uint8_t* keyValue, const uint8_t* entry) {
-    uint8_t result;
-    Equals::operation(*(type*)keyValue, *(type*)entry, result);
-    return result != 0;
-}
-
 compare_function_t AggregateHashTable::getCompareEntryWithKeysFunc(LogicalTypeID typeId) {
     switch (typeId) {
     case LogicalTypeID::INTERNAL_ID: {

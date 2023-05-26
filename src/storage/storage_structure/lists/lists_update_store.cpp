@@ -59,7 +59,7 @@ bool ListsUpdatesStore::isRelDeletedInPersistentStore(
     if (listsUpdatesForNodeOffset == nullptr) {
         return false;
     }
-    return listsUpdatesForNodeOffset->deletedRelOffsets.contains(relOffset);
+    return listsUpdatesForNodeOffset->deletedRelOffsets.count(relOffset) > 0;
 }
 
 bool ListsUpdatesStore::hasUpdates() const {
@@ -272,7 +272,7 @@ void ListsUpdatesStore::initNewlyAddedNodes(nodeID_t& nodeID) {
             nodeID.tableID == relTableSchema.getBoundTableID(direction)) {
             auto& listsUpdatesPerNode =
                 listsUpdatesPerDirection[direction][StorageUtils::getListChunkIdx(nodeID.offset)];
-            if (!listsUpdatesPerNode.contains(nodeID.offset)) {
+            if (!listsUpdatesPerNode.count(nodeID.offset) > 0) {
                 listsUpdatesPerNode.emplace(
                     nodeID.offset, std::make_unique<ListsUpdatesForNodeOffset>(relTableSchema));
             }
@@ -329,9 +329,9 @@ ListsUpdatesForNodeOffset* ListsUpdatesStore::getOrCreateListsUpdatesForNodeOffs
     auto nodeOffset = nodeID.offset;
     auto& listsUpdatesPerNodeOffset =
         listsUpdatesPerDirection[relDirection][StorageUtils::getListChunkIdx(nodeOffset)];
-    if (!listsUpdatesPerNodeOffset.contains(nodeOffset)) {
+    if (!listsUpdatesPerNodeOffset.count(nodeOffset) > 0) {
         listsUpdatesPerNodeOffset.emplace(
-            nodeOffset, std::make_unique<ListsUpdatesForNodeOffset>(relTableSchema));
+            nodeOffset, std::make_shared<ListsUpdatesForNodeOffset>(relTableSchema));
     }
     return listsUpdatesPerNodeOffset.at(nodeOffset).get();
 }
@@ -341,8 +341,8 @@ ListsUpdatesForNodeOffset* ListsUpdatesStore::getListsUpdatesForNodeOffsetIfExis
     auto relNodeTableAndDir = getRelNodeTableAndDirFromListFileID(listFileID);
     auto& listsUpdatesPerChunk = listsUpdatesPerDirection[relNodeTableAndDir.dir];
     auto chunkIdx = StorageUtils::getListChunkIdx(nodeOffset);
-    if (!listsUpdatesPerChunk.contains(chunkIdx) ||
-        !listsUpdatesPerChunk.at(chunkIdx).contains(nodeOffset)) {
+    if (!listsUpdatesPerChunk.count(chunkIdx) > 0 ||
+        !listsUpdatesPerChunk.at(chunkIdx).count(nodeOffset) > 0) {
         return nullptr;
     }
     return listsUpdatesPerChunk.at(chunkIdx).at(nodeOffset).get();

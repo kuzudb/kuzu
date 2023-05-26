@@ -66,13 +66,13 @@ table_id_t Binder::bindNodeTableID(const std::string& tableName) const {
 
 std::shared_ptr<Expression> Binder::createVariable(
     const std::string& name, const LogicalType& dataType) {
-    if (variablesInScope.contains(name)) {
+    if (variableScope->contains(name)) {
         throw BinderException("Variable " + name + " already exists.");
     }
     auto uniqueName = getUniqueExpressionName(name);
     auto variable = make_shared<VariableExpression>(dataType, uniqueName, name);
     variable->setAlias(name);
-    variablesInScope.insert({name, variable});
+    variableScope->addExpression(name, variable);
     return variable;
 }
 
@@ -191,13 +191,12 @@ std::string Binder::getUniqueExpressionName(const std::string& name) {
     return "_" + std::to_string(lastExpressionId++) + "_" + name;
 }
 
-std::unordered_map<std::string, std::shared_ptr<Expression>> Binder::enterSubquery() {
-    return variablesInScope;
+std::unique_ptr<VariableScope> Binder::enterSubquery() {
+    return variableScope->copy();
 }
 
-void Binder::exitSubquery(
-    std::unordered_map<std::string, std::shared_ptr<Expression>> prevVariablesInScope) {
-    variablesInScope = std::move(prevVariablesInScope);
+void Binder::exitSubquery(std::unique_ptr<VariableScope> prevVariableScope) {
+    variableScope = std::move(prevVariableScope);
 }
 
 } // namespace binder

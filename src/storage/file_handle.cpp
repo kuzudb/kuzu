@@ -18,7 +18,7 @@ FileHandle::FileHandle(const std::string& path, uint8_t flags) : flags{flags} {
 void FileHandle::constructExistingFileHandle(const std::string& path) {
     int openFlags = O_RDWR | ((createFileIfNotExists()) ? O_CREAT : 0x00000000);
     fileInfo = FileUtils::openFile(path, openFlags);
-    auto fileLength = FileUtils::getFileSize(fileInfo->fd);
+    auto fileLength = fileInfo->getFileSize();
     numPages = ceil((double)fileLength / (double)getPageSize());
     pageCapacity = 0;
     while (pageCapacity < numPages) {
@@ -27,7 +27,12 @@ void FileHandle::constructExistingFileHandle(const std::string& path) {
 }
 
 void FileHandle::constructNewFileHandle(const std::string& path) {
+#ifdef _WIN32
+    fileInfo = make_unique<FileInfo>(
+        path, (const void*)nullptr /* no file descriptor for a new in memory file */);
+#else
     fileInfo = make_unique<FileInfo>(path, -1 /* no file descriptor for a new in memory file */);
+#endif
     numPages = 0;
     pageCapacity = 0;
 }

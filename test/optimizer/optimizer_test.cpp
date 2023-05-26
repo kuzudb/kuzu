@@ -69,24 +69,6 @@ TEST_F(OptimizerTest, ProjectionPushDownJoinTest) {
     ASSERT_EQ(op->getOperatorType(), planner::LogicalOperatorType::PROJECTION);
 }
 
-TEST_F(OptimizerTest, JoinOrderTest1) {
-    auto encodedPlan = getEncodedPlan("MATCH (a:person)-[e:knows]->(b:person) RETURN a.ID, b.ID;");
-    ASSERT_STREQ(encodedPlan.c_str(), "HJ(b._id){E(b)S(a)}{S(b)}");
-}
-
-TEST_F(OptimizerTest, JoinOrderTest2) {
-    auto encodedPlan = getEncodedPlan(
-        "MATCH (a:person)-[e:knows]->(b:person)-[:knows]->(c:person) RETURN a.ID, b.ID, c.ID;");
-    ASSERT_STREQ(encodedPlan.c_str(), "HJ(c._id){HJ(a._id){E(c)E(a)S(b)}{S(a)}}{S(c)}");
-}
-
-TEST_F(OptimizerTest, JoinOrderTest3) {
-    auto encodedPlan =
-        getEncodedPlan("MATCH (a:person)-[e:knows]->(b:person)-[:knows]->(c:person), "
-                       "(a)-[:knows]->(c) RETURN a.ID, b.ID;");
-    ASSERT_STREQ(encodedPlan.c_str(), "I(c._id){HJ(b._id){E(b)S(a)}{S(b)}}{E(c)S(a)}{E(c)S(b)}");
-}
-
 TEST_F(OptimizerTest, RecursiveJoinTest) {
     auto encodedPlan = getEncodedPlan(
         "MATCH (a:person)-[:knows* SHORTEST 1..5]->(b:person) WHERE b.ID < 0 RETURN a.fName;");

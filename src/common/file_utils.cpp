@@ -4,15 +4,62 @@
 #include "common/string_utils.h"
 #include "glob/glob.hpp"
 
+#ifdef _WIN32
+#include <fileapi.h>
+#include <windows.h>
+#endif
+
 namespace kuzu {
 namespace common {
 
+FileInfo::~FileInfo() {
+#ifdef _WIN32
+    if (handle != nullptr) {
+        CloseHandle((HANDLE)handle);
+    }
+#else
+    if (fd != -1) {
+        close(fd);
+    }
+#endif
+}
+
+int64_t FileInfo::getFileSize() {
+#ifdef _WIN32
+    return GetFileSize((HANDLE)handle, nullptr);
+#else
+    struct stat s;
+    if (fstat(fd, &s) == -1) {
+        return -1;
+    }
+    return s.st_size;
+#endif
+}
+
 std::unique_ptr<FileInfo> FileUtils::openFile(const std::string& path, int flags) {
+#if defined(_WIN32)
+    // Not providing GENERIC_READ seems to cause problems.
+    auto dwDesiredAccess = GENERIC_READ;
+    auto dwCreationDisposition = (flags & O_CREAT) ? OPEN_ALWAYS : OPEN_EXISTING;
+    auto dwShareMode = FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE;
+    if (flags & (O_CREAT | O_WRONLY | O_RDWR)) {
+        dwDesiredAccess |= GENERIC_WRITE;
+    }
+
+    HANDLE handle = CreateFileA(path.c_str(), dwDesiredAccess, dwShareMode, nullptr,
+        dwCreationDisposition, FILE_ATTRIBUTE_NORMAL, nullptr);
+    if (handle == INVALID_HANDLE_VALUE) {
+        throw Exception(StringUtils::string_format("Cannot open file. path: {} - Error {}: {}",
+            path, GetLastError(), std::system_category().message(GetLastError())));
+    }
+    return std::make_unique<FileInfo>(path, handle);
+#else
     int fd = open(path.c_str(), flags, 0644);
     if (fd == -1) {
         throw Exception("Cannot open file: " + path);
     }
-    return make_unique<FileInfo>(path, fd);
+    return std::make_unique<FileInfo>(path, fd);
+#endif
 }
 
 void FileUtils::createFileWithSize(const std::string& path, uint64_t size) {
@@ -23,7 +70,7 @@ void FileUtils::createFileWithSize(const std::string& path, uint64_t size) {
 
 void FileUtils::writeToFile(
     FileInfo* fileInfo, uint8_t* buffer, uint64_t numBytes, uint64_t offset) {
-    auto fileSize = getFileSize(fileInfo->fd);
+    auto fileSize = fileInfo->getFileSize();
     if (fileSize == -1) {
         throw Exception(StringUtils::string_format("File {} not open.", fileInfo->path));
     }
@@ -33,14 +80,31 @@ void FileUtils::writeToFile(
     uint64_t maxBytesToWriteAtOnce = 1ull << 30; // 1ull << 30 = 1G
     while (remainingNumBytesToWrite > 0) {
         uint64_t numBytesToWrite = std::min(remainingNumBytesToWrite, maxBytesToWriteAtOnce);
+
+#if defined(_WIN32)
+        DWORD numBytesWritten;
+        OVERLAPPED overlapped{0, 0, 0, 0};
+        overlapped.Offset = offset & 0xffffffff;
+        overlapped.OffsetHigh = offset >> 32;
+        if (!WriteFile((HANDLE)fileInfo->handle, buffer + bufferOffset, numBytesToWrite,
+                &numBytesWritten, &overlapped)) {
+            auto error = GetLastError();
+            throw Exception(StringUtils::string_format(
+                "Cannot write to file. path: {} handle: {} offsetToWrite: {} "
+                "numBytesToWrite: {} numBytesWritten: {}. Error {}: {}.",
+                fileInfo->path, (intptr_t)fileInfo->handle, offset, numBytesToWrite,
+                numBytesWritten, error, std::system_category().message(error)));
+        }
+#else
         uint64_t numBytesWritten =
             pwrite(fileInfo->fd, buffer + bufferOffset, numBytesToWrite, offset);
         if (numBytesWritten != numBytesToWrite) {
             throw Exception(StringUtils::string_format(
                 "Cannot write to file. path: {} fileDescriptor: {} offsetToWrite: {} "
-                "numBytesToWrite: {} numBytesWritten: {}",
+                "numBytesToWrite: {} numBytesWritten: {}.",
                 fileInfo->path, fileInfo->fd, offset, numBytesToWrite, numBytesWritten));
         }
+#endif
         remainingNumBytesToWrite -= numBytesWritten;
         offset += numBytesWritten;
         bufferOffset += numBytesWritten;
@@ -60,14 +124,34 @@ void FileUtils::overwriteFile(const std::string& from, const std::string& to) {
 
 void FileUtils::readFromFile(
     FileInfo* fileInfo, void* buffer, uint64_t numBytes, uint64_t position) {
+#if defined(_WIN32)
+    DWORD numBytesRead;
+    OVERLAPPED overlapped{0, 0, 0, 0};
+    overlapped.Offset = position & 0xffffffff;
+    overlapped.OffsetHigh = position >> 32;
+    if (!ReadFile((HANDLE)fileInfo->handle, buffer, numBytes, &numBytesRead, &overlapped)) {
+        auto error = GetLastError();
+        throw common::StorageException(StringUtils::string_format(
+            "Cannot read from file: {} handle: {} "
+            "numBytesRead: {} numBytesToRead: {} position: {}. Error {}: {}",
+            fileInfo->path, (intptr_t)fileInfo->handle, numBytesRead, numBytes, position, error,
+            std::system_category().message(error)));
+    }
+    if (numBytesRead != numBytes && fileInfo->getFileSize() != position + numBytesRead) {
+        throw common::StorageException(
+            StringUtils::string_format("Cannot read from file: {} handle: {} "
+                                       "numBytesRead: {} numBytesToRead: {} position: {}",
+                fileInfo->path, (intptr_t)fileInfo->handle, numBytesRead, numBytes, position));
+    }
+#else
     auto numBytesRead = pread(fileInfo->fd, buffer, numBytes, position);
-
-    if (numBytesRead != numBytes && getFileSize(fileInfo->fd) != position + numBytesRead) {
+    if (numBytesRead != numBytes && fileInfo->getFileSize() != position + numBytesRead) {
         throw Exception(
             StringUtils::string_format("Cannot read from file: {} fileDescriptor: {} "
                                        "numBytesRead: {} numBytesToRead: {} position: {}",
                 fileInfo->path, fileInfo->fd, numBytesRead, numBytes, position));
     }
+#endif
 }
 
 void FileUtils::createDir(const std::string& dir) {
@@ -123,6 +207,33 @@ std::vector<std::string> FileUtils::globFilePath(const std::string& path) {
         result.emplace_back(resultPath.string());
     }
     return result;
+}
+
+void FileUtils::truncateFileToSize(FileInfo* fileInfo, uint64_t size) {
+#if defined(_WIN32)
+    auto offsetHigh = (LONG)(size >> 32);
+    LONG* offsetHighPtr = NULL;
+    if (offsetHigh > 0)
+        offsetHighPtr = &offsetHigh;
+    if (SetFilePointer((HANDLE)fileInfo->handle, size & 0xffffffff, offsetHighPtr, FILE_BEGIN) ==
+        INVALID_SET_FILE_POINTER) {
+        auto error = GetLastError();
+        throw Exception(
+            StringUtils::string_format("Cannot set file pointer for file: {} handle: {} "
+                                       "new position: {}. Error {}: {}",
+                fileInfo->path, (intptr_t)fileInfo->handle, size, error,
+                std::system_category().message(error)));
+    }
+    if (!SetEndOfFile((HANDLE)fileInfo->handle)) {
+        auto error = GetLastError();
+        throw Exception(StringUtils::string_format("Cannot truncate file: {} handle: {} "
+                                                   "size: {}. Error {}: {}",
+            fileInfo->path, (intptr_t)fileInfo->handle, size, error,
+            std::system_category().message(error)));
+    }
+#else
+    ftruncate(fileInfo->fd, size);
+#endif
 }
 
 } // namespace common

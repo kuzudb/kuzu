@@ -18,7 +18,7 @@ public:
     }
 
     inline std::unique_ptr<BoundDeleteNode> copy() {
-        return make_unique<BoundDeleteNode>(node, primaryKeyExpression);
+        return std::make_unique<BoundDeleteNode>(node, primaryKeyExpression);
     }
 
 private:
@@ -28,7 +28,7 @@ private:
 
 class BoundDeleteClause : public BoundUpdatingClause {
 public:
-    BoundDeleteClause() : BoundUpdatingClause{common::ClauseType::DELETE} {};
+    BoundDeleteClause() : BoundUpdatingClause{common::ClauseType::DELETE_} {};
 
     inline void addDeleteNode(std::unique_ptr<BoundDeleteNode> deleteNode) {
         deleteNodes.push_back(std::move(deleteNode));

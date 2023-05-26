@@ -7,7 +7,8 @@ def test_query_result_close(get_tmp_path):
         'import sys',
         'sys.path.append("../build/")',
         'import kuzu',
-        'db = kuzu.Database("' + get_tmp_path + '")',
+        # Note: Windows paths include backslashes, which need to be raw strings or escaped.
+        'db = kuzu.Database(r"' + get_tmp_path + '")',
         'conn = kuzu.Connection(db)',
         'conn.execute(\'CREATE NODE TABLE person (ID INT64, fName STRING, gender INT64,\
             isStudent BOOLEAN, isWorker BOOLEAN, age INT64, eyeSight DOUBLE,\

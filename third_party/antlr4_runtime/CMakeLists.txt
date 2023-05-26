@@ -315,15 +315,35 @@ target_include_directories(${ANTLR4_RUNTIME} PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
-if ("${CMAKE_BUILD_TYPE}" STREQUAL "DEBUG")
-    target_compile_options(${ANTLR4_RUNTIME} PRIVATE
-        -g -Wall -O0
+if (WIN32)
+    target_compile_definitions(${ANTLR4_RUNTIME} PRIVATE
+        -DANTLR4CPP_EXPORTS
+        -DANTLR4CPP_STATIC
     )
+endif()
+
+
+if ("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
+    if(MSVC)
+        target_compile_options(${ANTLR4_RUNTIME} PRIVATE
+            /W4 /Od
+        )
+    else()
+        target_compile_options(${ANTLR4_RUNTIME} PRIVATE
+            -g -Wall -O0
+        )
+    endif()
 else()
-    target_compile_options(${ANTLR4_RUNTIME} PRIVATE
-        -w -O3
-    )
-    target_compile_options(${ANTLR4_RUNTIME} PUBLIC
-        -Wno-attributes
-    )
+    if(MSVC)
+        target_compile_options(${ANTLR4_RUNTIME} PRIVATE
+            /O2
+        )
+    else()
+        target_compile_options(${ANTLR4_RUNTIME} PRIVATE
+            -w -O3
+        )
+        target_compile_options(${ANTLR4_RUNTIME} PUBLIC
+            -Wno-attributes
+        )
+    endif()
 endif()

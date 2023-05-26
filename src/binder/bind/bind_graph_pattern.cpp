@@ -134,8 +134,8 @@ void Binder::bindQueryRel(const RelPattern& relPattern,
     const std::shared_ptr<NodeExpression>& rightNode, QueryGraph& queryGraph,
     PropertyKeyValCollection& collection) {
     auto parsedName = relPattern.getVariableName();
-    if (variablesInScope.contains(parsedName)) {
-        auto prevVariable = variablesInScope.at(parsedName);
+    if (variableScope->contains(parsedName)) {
+        auto prevVariable = variableScope->getExpression(parsedName);
         ExpressionBinder::validateExpectedDataType(*prevVariable, LogicalTypeID::REL);
         throw BinderException("Bind relationship " + parsedName +
                               " to relationship with same name is not supported.");
@@ -203,7 +203,7 @@ void Binder::bindQueryRel(const RelPattern& relPattern,
         }
     }
     if (!parsedName.empty()) {
-        variablesInScope.insert({parsedName, queryRel});
+        variableScope->addExpression(parsedName, queryRel);
     }
     for (auto i = 0u; i < relPattern.getNumPropertyKeyValPairs(); ++i) {
         auto [propertyName, rhs] = relPattern.getProperty(i);
@@ -235,8 +235,8 @@ std::shared_ptr<NodeExpression> Binder::bindQueryNode(
     const NodePattern& nodePattern, QueryGraph& queryGraph, PropertyKeyValCollection& collection) {
     auto parsedName = nodePattern.getVariableName();
     std::shared_ptr<NodeExpression> queryNode;
-    if (variablesInScope.contains(parsedName)) { // bind to node in scope
-        auto prevVariable = variablesInScope.at(parsedName);
+    if (variableScope->contains(parsedName)) { // bind to node in scope
+        auto prevVariable = variableScope->getExpression(parsedName);
         ExpressionBinder::validateExpectedDataType(*prevVariable, LogicalTypeID::NODE);
         queryNode = static_pointer_cast<NodeExpression>(prevVariable);
         // E.g. MATCH (a:person) MATCH (a:organisation)
@@ -281,7 +281,7 @@ std::shared_ptr<NodeExpression> Binder::createQueryNode(const NodePattern& nodeP
         queryNode->addPropertyExpression(propertyName, std::move(propertyExpression));
     }
     if (!parsedName.empty()) {
-        variablesInScope.insert({parsedName, queryNode});
+        variableScope->addExpression(parsedName, queryNode);
     }
     return queryNode;
 }

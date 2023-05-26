@@ -75,18 +75,15 @@ scalar_exec_func VectorCastOperations::bindImplicitCastFunc(
     }
     case common::LogicalTypeID::DATE: {
         assert(sourceTypeID == common::LogicalTypeID::STRING);
-        return VectorOperations::UnaryExecFunction<ku_string_t, date_t,
-            operation::CastStringToDate>;
+        return &UnaryExecFunction<ku_string_t, date_t, operation::CastStringToDate>;
     }
     case common::LogicalTypeID::TIMESTAMP: {
         assert(sourceTypeID == common::LogicalTypeID::STRING);
-        return VectorOperations::UnaryExecFunction<ku_string_t, timestamp_t,
-            operation::CastStringToTimestamp>;
+        return &UnaryExecFunction<ku_string_t, timestamp_t, operation::CastStringToTimestamp>;
     }
     case common::LogicalTypeID::INTERVAL: {
         assert(sourceTypeID == common::LogicalTypeID::STRING);
-        return VectorOperations::UnaryExecFunction<ku_string_t, interval_t,
-            operation::CastStringToInterval>;
+        return &UnaryExecFunction<ku_string_t, interval_t, operation::CastStringToInterval>;
     }
     default:
         throw common::NotImplementedException(
@@ -108,7 +105,7 @@ CastToDateVectorOperation::getDefinitions() {
 std::vector<std::unique_ptr<VectorOperationDefinition>>
 CastToTimestampVectorOperation::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
-    result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_TIMESTAMP_FUNC_NAME,
+    result.push_back(std::make_unique<VectorOperationDefinition>(CAST_TO_TIMESTAMP_FUNC_NAME,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING}, LogicalTypeID::TIMESTAMP,
         UnaryExecFunction<ku_string_t, timestamp_t, operation::CastStringToTimestamp>));
     return result;

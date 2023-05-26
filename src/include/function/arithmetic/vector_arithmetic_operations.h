@@ -6,7 +6,7 @@
 namespace kuzu {
 namespace function {
 
-class VectorArithmeticOperations : public VectorOperations {
+class VectorArithmeticOperations {
 
 public:
     template<typename FUNC>
@@ -22,7 +22,7 @@ public:
         std::string name, common::LogicalTypeID operandTypeID, common::LogicalTypeID resultTypeID) {
         return std::make_unique<VectorOperationDefinition>(std::move(name),
             std::vector<common::LogicalTypeID>{operandTypeID}, resultTypeID,
-            VectorArithmeticOperations::UnaryExecFunction<OPERAND_TYPE, RETURN_TYPE, FUNC>);
+            UnaryExecFunction<OPERAND_TYPE, RETURN_TYPE, FUNC>);
     }
 
     template<typename FUNC>
@@ -38,8 +38,7 @@ public:
         std::string name, common::LogicalTypeID operandTypeID, common::LogicalTypeID resultTypeID) {
         return std::make_unique<VectorOperationDefinition>(std::move(name),
             std::vector<common::LogicalTypeID>{operandTypeID, operandTypeID}, resultTypeID,
-            VectorArithmeticOperations::BinaryExecFunction<OPERAND_TYPE, OPERAND_TYPE, RETURN_TYPE,
-                FUNC>);
+            BinaryExecFunction<OPERAND_TYPE, OPERAND_TYPE, RETURN_TYPE, FUNC>);
     }
 
 private:
@@ -47,19 +46,19 @@ private:
     static scalar_exec_func getUnaryExecFunc(common::LogicalTypeID operandTypeID) {
         switch (operandTypeID) {
         case common::LogicalTypeID::INT64: {
-            return VectorArithmeticOperations::UnaryExecFunction<int64_t, int64_t, FUNC>;
+            return &UnaryExecFunction<int64_t, int64_t, FUNC>;
         }
         case common::LogicalTypeID::INT32: {
-            return VectorArithmeticOperations::UnaryExecFunction<int32_t, int32_t, FUNC>;
+            return &UnaryExecFunction<int32_t, int32_t, FUNC>;
         }
         case common::LogicalTypeID::INT16: {
-            return VectorArithmeticOperations::UnaryExecFunction<int16_t, int16_t, FUNC>;
+            return &UnaryExecFunction<int16_t, int16_t, FUNC>;
         }
         case common::LogicalTypeID::DOUBLE: {
-            return VectorArithmeticOperations::UnaryExecFunction<double_t, double_t, FUNC>;
+            return &UnaryExecFunction<double_t, double_t, FUNC>;
         }
         case common::LogicalTypeID::FLOAT: {
-            return VectorArithmeticOperations::UnaryExecFunction<float_t, float_t, FUNC>;
+            return &UnaryExecFunction<float_t, float_t, FUNC>;
             ;
         }
         default:
@@ -74,20 +73,19 @@ private:
     static scalar_exec_func getBinaryExecFunc(common::LogicalTypeID operandTypeID) {
         switch (operandTypeID) {
         case common::LogicalTypeID::INT64: {
-            return VectorArithmeticOperations::BinaryExecFunction<int64_t, int64_t, int64_t, FUNC>;
+            return &BinaryExecFunction<int64_t, int64_t, int64_t, FUNC>;
         }
         case common::LogicalTypeID::INT32: {
-            return VectorArithmeticOperations::BinaryExecFunction<int32_t, int32_t, int32_t, FUNC>;
+            return &BinaryExecFunction<int32_t, int32_t, int32_t, FUNC>;
         }
         case common::LogicalTypeID::INT16: {
-            return VectorArithmeticOperations::BinaryExecFunction<int16_t, int16_t, int16_t, FUNC>;
+            return &BinaryExecFunction<int16_t, int16_t, int16_t, FUNC>;
         }
         case common::LogicalTypeID::DOUBLE: {
-            return VectorArithmeticOperations::BinaryExecFunction<double_t, double_t, double_t,
-                FUNC>;
+            return &BinaryExecFunction<double_t, double_t, double_t, FUNC>;
         }
         case common::LogicalTypeID::FLOAT: {
-            return VectorArithmeticOperations::BinaryExecFunction<float_t, float_t, float_t, FUNC>;
+            return &BinaryExecFunction<float_t, float_t, float_t, FUNC>;
         }
         default:
             throw common::RuntimeException(

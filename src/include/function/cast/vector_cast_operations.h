@@ -11,7 +11,7 @@ namespace function {
  *  Explicit casts are performed from user function calls, e.g. date(), string().
  *  Implicit casts are added internally.
  */
-class VectorCastOperations : public VectorOperations {
+class VectorCastOperations {
 public:
     // This function is only used by expression binder when implicit cast is needed.
     // The expression binder should consider reusing the existing matchFunction() API.
@@ -27,7 +27,7 @@ public:
         common::LogicalTypeID targetTypeID) {
         return std::make_unique<VectorOperationDefinition>(funcName,
             std::vector<common::LogicalTypeID>{sourceTypeID}, targetTypeID,
-            VectorOperations::UnaryExecFunction<SOURCE_TYPE, TARGET_TYPE, FUNC>);
+            &UnaryExecFunction<SOURCE_TYPE, TARGET_TYPE, FUNC>);
     }
 
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
@@ -43,15 +43,15 @@ private:
     static scalar_exec_func bindImplicitNumericalCastFunc(common::LogicalTypeID srcTypeID) {
         switch (srcTypeID) {
         case common::LogicalTypeID::INT16:
-            return VectorOperations::UnaryExecFunction<int16_t, DST_TYPE, OP>;
+            return &UnaryExecFunction<int16_t, DST_TYPE, OP>;
         case common::LogicalTypeID::INT32:
-            return VectorOperations::UnaryExecFunction<int32_t, DST_TYPE, OP>;
+            return &UnaryExecFunction<int32_t, DST_TYPE, OP>;
         case common::LogicalTypeID::INT64:
-            return VectorOperations::UnaryExecFunction<int64_t, DST_TYPE, OP>;
+            return &UnaryExecFunction<int64_t, DST_TYPE, OP>;
         case common::LogicalTypeID::FLOAT:
-            return VectorOperations::UnaryExecFunction<float_t, DST_TYPE, OP>;
+            return &UnaryExecFunction<float_t, DST_TYPE, OP>;
         case common::LogicalTypeID::DOUBLE:
-            return VectorOperations::UnaryExecFunction<double_t, DST_TYPE, OP>;
+            return &UnaryExecFunction<double_t, DST_TYPE, OP>;
         default:
             throw common::NotImplementedException(
                 "Unimplemented casting operation from " +

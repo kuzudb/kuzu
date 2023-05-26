@@ -16,5 +16,9 @@ def test_exception(establish_connection):
 
 def test_db_path_exception():
     path = '/:* /? " < > |'
-    with pytest.raises(RuntimeError, match='filesystem error'):
+    if sys.platform == "win32":
+        error_message = 'Failed to create directory'
+    else:
+        error_message = 'filesystem error'
+    with pytest.raises(RuntimeError, match=error_message):
         kuzu.Database(str(path))

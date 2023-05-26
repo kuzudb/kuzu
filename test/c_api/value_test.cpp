@@ -19,7 +19,7 @@ TEST_F(CApiValueTest, CreateNull) {
 }
 
 TEST_F(CApiValueTest, CreateNullWithDatatype) {
-    auto type = kuzu_data_type_create(kuzu_data_type_id::INT64, nullptr, 0);
+    auto type = kuzu_data_type_create(kuzu_data_type_id::KUZU_INT64, nullptr, 0);
     kuzu_value* value = kuzu_value_create_null_with_data_type(type);
     ASSERT_FALSE(value->_is_owned_by_cpp);
     kuzu_data_type_destroy(type);
@@ -51,7 +51,7 @@ TEST_F(CApiValueTest, SetNull) {
 }
 
 TEST_F(CApiValueTest, CreateDefault) {
-    auto type = kuzu_data_type_create(kuzu_data_type_id::INT64, nullptr, 0);
+    auto type = kuzu_data_type_create(kuzu_data_type_id::KUZU_INT64, nullptr, 0);
     kuzu_value* value = kuzu_value_create_default(type);
     ASSERT_FALSE(value->_is_owned_by_cpp);
     kuzu_data_type_destroy(type);
@@ -61,7 +61,7 @@ TEST_F(CApiValueTest, CreateDefault) {
     ASSERT_EQ(cppValue->getValue<int64_t>(), 0);
     kuzu_value_destroy(value);
 
-    type = kuzu_data_type_create(kuzu_data_type_id::STRING, nullptr, 0);
+    type = kuzu_data_type_create(kuzu_data_type_id::KUZU_STRING, nullptr, 0);
     value = kuzu_value_create_default(type);
     ASSERT_FALSE(value->_is_owned_by_cpp);
     kuzu_data_type_destroy(type);
@@ -353,21 +353,21 @@ TEST_F(CApiValueTest, GetStructFieldValue) {
 
     auto fieldValue = kuzu_value_get_struct_field_value(value, 0);
     auto fieldType = kuzu_value_get_data_type(fieldValue);
-    ASSERT_EQ(kuzu_data_type_get_id(fieldType), DOUBLE);
+    ASSERT_EQ(kuzu_data_type_get_id(fieldType), KUZU_DOUBLE);
     ASSERT_DOUBLE_EQ(kuzu_value_get_double(fieldValue), 1223);
     kuzu_data_type_destroy(fieldType);
     kuzu_value_destroy(fieldValue);
 
     fieldValue = kuzu_value_get_struct_field_value(value, 1);
     fieldType = kuzu_value_get_data_type(fieldValue);
-    ASSERT_EQ(kuzu_data_type_get_id(fieldType), INT64);
+    ASSERT_EQ(kuzu_data_type_get_id(fieldType), KUZU_INT64);
     ASSERT_EQ(kuzu_value_get_int64(fieldValue), 10003);
     kuzu_data_type_destroy(fieldType);
     kuzu_value_destroy(fieldValue);
 
     fieldValue = kuzu_value_get_struct_field_value(value, 2);
     fieldType = kuzu_value_get_data_type(fieldValue);
-    ASSERT_EQ(kuzu_data_type_get_id(fieldType), TIMESTAMP);
+    ASSERT_EQ(kuzu_data_type_get_id(fieldType), KUZU_TIMESTAMP);
     auto timestamp = kuzu_value_get_timestamp(fieldValue);
     ASSERT_EQ(timestamp.value, 1297442662000000);
     kuzu_data_type_destroy(fieldType);
@@ -375,7 +375,7 @@ TEST_F(CApiValueTest, GetStructFieldValue) {
 
     fieldValue = kuzu_value_get_struct_field_value(value, 3);
     fieldType = kuzu_value_get_data_type(fieldValue);
-    ASSERT_EQ(kuzu_data_type_get_id(fieldType), DATE);
+    ASSERT_EQ(kuzu_data_type_get_id(fieldType), KUZU_DATE);
     auto date = kuzu_value_get_date(fieldValue);
     ASSERT_EQ(date.days, 15758);
     kuzu_data_type_destroy(fieldType);
@@ -395,19 +395,19 @@ TEST_F(CApiValueTest, GetDataType) {
     auto flatTuple = kuzu_query_result_get_next(result);
     auto value = kuzu_flat_tuple_get_value(flatTuple, 0);
     auto dataType = kuzu_value_get_data_type(value);
-    ASSERT_EQ(kuzu_data_type_get_id(dataType), STRING);
+    ASSERT_EQ(kuzu_data_type_get_id(dataType), KUZU_STRING);
     kuzu_data_type_destroy(dataType);
     kuzu_value_destroy(value);
 
     value = kuzu_flat_tuple_get_value(flatTuple, 1);
     dataType = kuzu_value_get_data_type(value);
-    ASSERT_EQ(kuzu_data_type_get_id(dataType), BOOL);
+    ASSERT_EQ(kuzu_data_type_get_id(dataType), KUZU_BOOL);
     kuzu_data_type_destroy(dataType);
     kuzu_value_destroy(value);
 
     value = kuzu_flat_tuple_get_value(flatTuple, 2);
     dataType = kuzu_value_get_data_type(value);
-    ASSERT_EQ(kuzu_data_type_get_id(dataType), VAR_LIST);
+    ASSERT_EQ(kuzu_data_type_get_id(dataType), KUZU_VAR_LIST);
     kuzu_data_type_destroy(dataType);
     kuzu_value_destroy(value);
 

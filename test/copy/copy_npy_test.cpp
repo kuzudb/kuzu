@@ -242,7 +242,7 @@ TEST_F(CopyThreeDimensionalNpyTest, CopyThreeDimensionalNpyIntoTwoDimensionaTest
 //            ASSERT_EQ(row.nestedTypeVal[colIdx]->val.floatVal, (float)(rowIdx * 10 + colIdx));
 //        }
 //    }
-//    for (size_t i = 0; i < 200000; ++i) {
+//    for (auto i = 0u; i < 200000; ++i) {
 //        size_t rowIdx = i / 10;
 //        size_t colIdx = i % 10;
 //        if (col->readValueForTestingOnly(rowIdx).nestedTypeVal[colIdx]->val.floatVal != (float)i)

@@ -84,7 +84,7 @@ void BoundStatementVisitor::visitUpdatingClause(const BoundUpdatingClause& updat
     case common::ClauseType::SET: {
         visitSet(updatingClause);
     } break;
-    case common::ClauseType::DELETE: {
+    case common::ClauseType::DELETE_: {
         visitDelete(updatingClause);
     } break;
     case common::ClauseType::CREATE: {

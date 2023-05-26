@@ -6,7 +6,7 @@
 namespace kuzu {
 namespace function {
 
-struct LabelVectorOperation : public VectorOperations {
+struct LabelVectorOperation {
     static void execFunction(const std::vector<std::shared_ptr<common::ValueVector>>& params,
         common::ValueVector& result) {
         assert(params.size() == 2);

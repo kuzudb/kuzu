@@ -16,7 +16,7 @@ std::unique_ptr<BoundWithClause> Binder::bindWithClause(const WithClause& withCl
         projectionBody->getIsDistinct(), std::move(boundProjectionExpressions));
     bindOrderBySkipLimitIfNecessary(*boundProjectionBody, *projectionBody);
     validateOrderByFollowedBySkipOrLimitInWithClause(*boundProjectionBody);
-    variablesInScope.clear();
+    variableScope->clear();
     addExpressionsToScope(boundProjectionBody->getProjectionExpressions());
     auto boundWithClause = std::make_unique<BoundWithClause>(std::move(boundProjectionBody));
     if (withClause.hasWhereExpression()) {
@@ -54,11 +54,11 @@ expression_vector Binder::bindProjectionExpressions(
         boundProjectionExpressions.push_back(expressionBinder.bindExpression(*expression));
     }
     if (containsStar) {
-        if (variablesInScope.empty()) {
+        if (variableScope->empty()) {
             throw BinderException(
                 "RETURN or WITH * is not allowed when there are no variables in scope.");
         }
-        for (auto& [name, expression] : variablesInScope) {
+        for (auto& expression : variableScope->getExpressions()) {
             boundProjectionExpressions.push_back(expression);
         }
     }
@@ -166,7 +166,7 @@ void Binder::addExpressionsToScope(const expression_vector& projectionExpression
     for (auto& expression : projectionExpressions) {
         // In RETURN clause, if expression is not aliased, its input name will serve its alias.
         auto alias = expression->hasAlias() ? expression->getAlias() : expression->toString();
-        variablesInScope.insert({alias, expression});
+        variableScope->addExpression(alias, expression);
     }
 }
 
