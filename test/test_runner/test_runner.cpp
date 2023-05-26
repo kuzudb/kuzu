@@ -30,14 +30,8 @@ bool TestRunner::testStatement(TestStatement* statement, Connection& conn) {
     } else {
         preparedStatement = conn.prepareNoLock(statement->query, true, statement->encodedJoin);
     }
-    if (statement->expectedOk) {
-        return preparedStatement->isSuccess();
-    }
-    if (statement->expectedError) {
-        return (
-            statement->errorMessage == StringUtils::rtrim(preparedStatement->getErrorMessage()));
-    }
-    if (!preparedStatement->isSuccess()) {
+    // Check for wrong statements
+    if (!statement->expectedError && !preparedStatement->isSuccess()) {
         spdlog::error(preparedStatement->getErrorMessage());
         return false;
     }
@@ -48,27 +42,53 @@ bool TestRunner::checkLogicalPlans(std::unique_ptr<PreparedStatement>& preparedS
     TestStatement* statement, Connection& conn) {
     auto numPlans = preparedStatement->logicalPlans.size();
     auto numPassedPlans = 0u;
+    if (numPlans == 0) {
+        return checkLogicalPlan(preparedStatement, statement, 0, conn);
+    }
     for (auto i = 0u; i < numPlans; ++i) {
-        auto planStr = preparedStatement->logicalPlans[i]->toString();
-        auto result = conn.executeAndAutoCommitIfNecessaryNoLock(preparedStatement.get(), i);
-        assert(result->isSuccess());
-        std::vector<std::string> resultTuples =
-            TestRunner::convertResultToString(*result, statement->checkOutputOrder);
-        if (resultTuples.size() == result->getNumTuples() &&
-            resultTuples == statement->expectedTuples) {
-            spdlog::info(
-                "PLAN{} PASSED in {}ms.", i, result->getQuerySummary()->getExecutionTime());
+        if (checkLogicalPlan(preparedStatement, statement, i, conn)) {
             numPassedPlans++;
-        } else {
-            spdlog::error("PLAN{} NOT PASSED.", i);
-            spdlog::info("PLAN: \n{}", planStr);
-            spdlog::info("RESULT: \n");
-            for (auto& tuple : resultTuples) {
-                spdlog::info(tuple);
-            }
         }
     }
     return numPassedPlans == numPlans;
+}
+
+bool TestRunner::checkLogicalPlan(std::unique_ptr<PreparedStatement>& preparedStatement,
+    TestStatement* statement, uint32_t planIdx, Connection& conn) {
+    auto result = conn.executeAndAutoCommitIfNecessaryNoLock(preparedStatement.get(), planIdx);
+    if (statement->expectedError) {
+        if (statement->errorMessage == StringUtils::rtrim(result->getErrorMessage())) {
+            return true;
+        }
+    } else if (statement->expectedOk && result->isSuccess()) {
+        return true;
+    } else {
+        auto planStr = preparedStatement->logicalPlans[planIdx]->toString();
+        if (checkPlanResult(result, statement, planStr, planIdx)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool TestRunner::checkPlanResult(std::unique_ptr<QueryResult>& result, TestStatement* statement,
+    const std::string& planStr, uint32_t planIdx) {
+    std::vector<std::string> resultTuples =
+        TestRunner::convertResultToString(*result, statement->checkOutputOrder);
+    if (resultTuples.size() == result->getNumTuples() &&
+        resultTuples == statement->expectedTuples) {
+        spdlog::info(
+            "PLAN{} PASSED in {}ms.", planIdx, result->getQuerySummary()->getExecutionTime());
+        return true;
+    } else {
+        spdlog::error("PLAN{} NOT PASSED.", planIdx);
+        spdlog::info("PLAN: \n{}", planStr);
+        spdlog::info("RESULT: \n");
+        for (auto& tuple : resultTuples) {
+            spdlog::info(tuple);
+        }
+    }
+    return false;
 }
 
 std::vector<std::string> TestRunner::convertResultToString(

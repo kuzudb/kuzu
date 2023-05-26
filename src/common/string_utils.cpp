@@ -31,5 +31,14 @@ std::vector<std::string> StringUtils::splitBySpace(const std::string& input) {
     return result;
 }
 
+void StringUtils::replaceAll(
+    std::string& str, const std::string& search, const std::string& replacement) {
+    size_t pos = 0;
+    while ((pos = str.find(search, pos)) != std::string::npos) {
+        str.replace(pos, search.length(), replacement);
+        pos += replacement.length();
+    }
+}
+
 } // namespace common
 } // namespace kuzu

@@ -39,6 +39,9 @@ const std::unordered_map<std::string, TokenType> tokenMap = {{"-GROUP", TokenTyp
     {"]", TokenType::END_OF_STATEMENT_BLOCK}, {"----", TokenType::RESULT},
     {"--", TokenType::SEPARATOR}, {"#", TokenType::EMPTY}};
 
+const std::unordered_map<std::string, std::string> variableMap = {
+    {"${KUZU_ROOT_DIRECTORY}", KUZU_ROOT_DIRECTORY}};
+
 class LogicToken {
 public:
     TokenType type;
@@ -65,6 +68,7 @@ private:
     void extractExpectedResult(TestStatement* currentStatement);
     void extractStatementBlock();
     void addStatementBlock(const std::string& blockName, const std::string& testGroupName);
+    void replaceVariables(std::string& str);
     inline bool endOfFile() { return fileStream.eof(); }
     inline bool nextLine() { return static_cast<bool>(getline(fileStream, line)); }
     inline void checkMinimumParams(int minimumParams) {

@@ -1,0 +1,51 @@
+-GROUP DemoDBCreateTest
+-DATASET demo-db/csv
+
+--
+
+-CASE CreateNodeTest1
+-STATEMENT CREATE (u:User {name: 'Alice', age: 35})
+---- ok
+-QUERY MATCH (a:User) WHERE a.name = 'Alice' RETURN a.name, a.age
+---- 1
+Alice|35
+
+-CASE CreateNodeTest2
+-STATEMENT CREATE (u:User {name: 'Dimitri'})
+---- ok
+-QUERY MATCH (a:User) WHERE a.name = 'Dimitri' RETURN a.name, a.age
+---- 1
+Dimitri|
+
+-CASE CreateRelTest1
+-STATEMENT CREATE (u:User {name: 'Alice'})
+---- ok
+-STATEMENT MATCH (a:User) WHERE a.name = 'Adam' WITH a  MATCH (b:User) WHERE b.name = 'Alice' WITH a, b CREATE (a)-[e:Follows {since:1990}]->(b)
+---- ok
+-CHECK_ORDER
+-QUERY MATCH (a:User)-[:Follows]->(b:User) WHERE a.name = 'Adam' RETURN b.name ORDER BY b.name
+---- 3
+Alice
+Karissa
+Zhang
+
+-CASE CreateRelTest2
+-STATEMENT MATCH (a:User), (b:User) WHERE a.name='Zhang' AND b.name='Karissa' CREATE (a)-[:Follows {since:2022}]->(b)
+---- ok
+-CHECK_ORDER
+-QUERY MATCH (a:User)-[:Follows]->(b:User) WHERE a.name = 'Zhang' RETURN b.name ORDER BY b.name
+---- 2
+Karissa
+Noura
+
+-CASE CreateAvgNullTest
+-STATEMENT MATCH (a:User) WHERE a.name = 'Adam' CREATE (a)-[:Follows]->(b:User {name:'Alice'})
+---- ok
+-CHECK_ORDER
+-QUERY MATCH (a:User) WITH a, avg(a.age) AS b, SUM(a.age) AS c, COUNT(a.age) AS d, COUNT(*) AS e RETURN a, b, c,d, e ORDER BY c DESC
+---- 5
+(label:User, 0:4, {name:Alice, age:})|||0|1
+(label:User, 0:2, {name:Zhang, age:50})|50.000000|50|1|1
+(label:User, 0:1, {name:Karissa, age:40})|40.000000|40|1|1
+(label:User, 0:0, {name:Adam, age:30})|30.000000|30|1|1
+(label:User, 0:3, {name:Noura, age:25})|25.000000|25|1|1

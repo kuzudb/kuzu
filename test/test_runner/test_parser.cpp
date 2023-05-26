@@ -54,6 +54,12 @@ void TestParser::parseHeader() {
     }
 }
 
+void TestParser::replaceVariables(std::string& str) {
+    for (auto& variable : variableMap) {
+        StringUtils::replaceAll(str, variable.first, variable.second);
+    }
+}
+
 void TestParser::extractExpectedResult(TestStatement* statement) {
     checkMinimumParams(1);
     std::string result = currentToken.params[1];
@@ -62,6 +68,7 @@ void TestParser::extractExpectedResult(TestStatement* statement) {
     } else if (result == "error") {
         statement->expectedError = true;
         statement->errorMessage = extractTextBeforeNextStatement();
+        replaceVariables(statement->errorMessage);
     } else {
         statement->expectedNumTuples = stoi(result);
         for (auto i = 0u; i < statement->expectedNumTuples; i++) {
@@ -103,7 +110,9 @@ TestStatement* TestParser::extractStatement(TestStatement* statement) {
     case TokenType::STATEMENT:
     case TokenType::QUERY: {
         checkMinimumParams(1);
-        statement->query = paramsToString();
+        std::string query = paramsToString();
+        replaceVariables(query);
+        statement->query = query;
         break;
     }
     case TokenType::RESULT: {

@@ -1,0 +1,28 @@
+-GROUP DemoDBDeleteTest
+-DATASET demo-db/csv
+
+--
+
+-CASE DeleteNodeTest
+-STATEMENT CREATE (u:User {name: 'Alice', age: 35})
+---- ok
+-QUERY MATCH (u:User) RETURN COUNT(*)
+---- 1
+5
+-STATEMENT MATCH (u:User) WHERE u.name = 'Alice' DELETE u
+---- ok
+-QUERY MATCH (u:User) RETURN COUNT(*)
+---- 1
+4
+
+-CASE DeleteRelTest
+-STATEMENT MATCH (u:User)-[f:Follows]->(u1:User) WHERE u.name = 'Adam' AND u1.name = 'Karissa' DELETE f
+---- ok
+-QUERY MATCH (u:User)-[f:Follows]->(u1:User) WHERE u.name='Adam' RETURN u1.name
+---- 1
+Zhang
+
+-CASE DeleteWithExceptionTest
+-STATEMENT MATCH (u:User) WHERE u.name = 'Adam' DELETE u
+---- error
+Runtime exception: Currently deleting a node with edges is not supported. node table 0 nodeOffset 0 has 1 (one-to-many or many-to-many) edges for edge file: ${KUZU_ROOT_DIRECTORY}/test/unittest_temp/r-3-0.lists.
