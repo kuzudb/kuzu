@@ -43,10 +43,10 @@ bool TestRunner::checkLogicalPlans(std::unique_ptr<PreparedStatement>& preparedS
     auto numPlans = preparedStatement->logicalPlans.size();
     auto numPassedPlans = 0u;
     if (numPlans == 0) {
-        return checkLogicalPlan(preparedStatement, statement, 0, conn);
+        return checkLogicalPlan(preparedStatement, statement, conn, 0);
     }
     for (auto i = 0u; i < numPlans; ++i) {
-        if (checkLogicalPlan(preparedStatement, statement, i, conn)) {
+        if (checkLogicalPlan(preparedStatement, statement, conn, i)) {
             numPassedPlans++;
         }
     }
@@ -54,7 +54,7 @@ bool TestRunner::checkLogicalPlans(std::unique_ptr<PreparedStatement>& preparedS
 }
 
 bool TestRunner::checkLogicalPlan(std::unique_ptr<PreparedStatement>& preparedStatement,
-    TestStatement* statement, uint32_t planIdx, Connection& conn) {
+    TestStatement* statement, Connection& conn, uint32_t planIdx) {
     auto result = conn.executeAndAutoCommitIfNecessaryNoLock(preparedStatement.get(), planIdx);
     if (statement->expectedError) {
         if (statement->errorMessage == StringUtils::rtrim(result->getErrorMessage())) {
