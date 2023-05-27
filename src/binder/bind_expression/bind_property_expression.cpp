@@ -21,8 +21,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindPropertyExpression(
             propertyName + " is reserved for system usage. External access is not allowed.");
     }
     auto child = bindExpression(*parsedExpression.getChild(0));
-    validateExpectedDataType(*child, std::unordered_set<LogicalTypeID>{LogicalTypeID::NODE,
-                                         LogicalTypeID::REL, LogicalTypeID::STRUCT});
+    validateExpectedDataType(*child,
+        std::vector<LogicalTypeID>{LogicalTypeID::NODE, LogicalTypeID::REL, LogicalTypeID::STRUCT});
     auto childTypeID = child->dataType.getLogicalTypeID();
     if (LogicalTypeID::NODE == childTypeID) {
         return bindNodePropertyExpression(*child, propertyName);

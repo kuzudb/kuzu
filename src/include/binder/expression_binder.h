@@ -98,10 +98,10 @@ private:
     /****** validation *****/
     static void validateExpectedDataType(
         const Expression& expression, common::LogicalTypeID target) {
-        validateExpectedDataType(expression, std::unordered_set<common::LogicalTypeID>{target});
+        validateExpectedDataType(expression, std::vector<common::LogicalTypeID>{target});
     }
     static void validateExpectedDataType(
-        const Expression& expression, const std::unordered_set<common::LogicalTypeID>& targets);
+        const Expression& expression, const std::vector<common::LogicalTypeID>& targets);
     // E.g. SUM(SUM(a.age)) is not allowed
     static void validateAggregationExpressionIsNotNested(const Expression& expression);
 

@@ -38,9 +38,9 @@ Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|Alice|[0:0,0:7]
 3|(label:person, 0:7, {ID:10, fName:Hubert Blaine Wolfeschlegelsteinhausenbergerdorff, gender:2, isStudent:False, isWorker:True, age:83, eyeSight:4.900000, birthdate:1990-11-27, registerTime:2023-02-21 13:25:30, lastJobDuration:3 years 2 days 13:02:00, workedHours:[10,11,12,3,4,5,6,7], usedNames:[Ad,De,Hi,Kye,Orlan], courseScoresPerTerm:[[7],[10],[6,7]]})|(label:person, 0:0, {ID:0, fName:Alice, gender:1, isStudent:True, isWorker:False, age:35, eyeSight:5.000000, birthdate:1900-01-01, registerTime:2011-08-20 11:25:30, lastJobDuration:3 years 2 days 13:02:00, workedHours:[10,5], usedNames:[Aida], courseScoresPerTerm:[[10,8],[6,7,8]]})
 
 -NAME SingleSourceSingleDestination
--QUERY MATCH (a:person)-[r:knows* SHORTEST 1..30]->(b:person) WHERE a.fName = 'Alice' AND b.fName = 'Bob' RETURN a.fName, b.fName, r
+-QUERY MATCH (a:person)-[r:knows* SHORTEST 1..30]->(b:person) WHERE a.fName = 'Alice' AND b.fName = 'Bob' RETURN a.fName, b.fName, length(r)
 ---- 1
-Alice|Bob|[0:0,0:1]
+Alice|Bob|1
 
 -NAME SingleSourceAllDestinations2
 -QUERY MATCH (a:person)-[r:knows* SHORTEST 1..2]->(b:person) WHERE a.fName = 'Elizabeth' RETURN a.fName, b.fName, r
