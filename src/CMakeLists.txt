@@ -14,12 +14,16 @@ add_subdirectory(transaction)
 
 add_library(kuzu STATIC ${ALL_OBJECT_FILES})
 target_link_libraries(kuzu
-        PUBLIC antlr4_cypher antlr4_runtime utf8proc re2 parquet_lib arrow_lib arrow_deps Threads::Threads)
+        PUBLIC antlr4_cypher antlr4_runtime utf8proc re2 ${PARQUET_LIB} ${ARROW_LIB} Threads::Threads)
 target_include_directories(kuzu
         PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 add_library(kuzu_shared SHARED ${ALL_OBJECT_FILES})
-set_target_properties(kuzu_shared PROPERTIES OUTPUT_NAME kuzu)
+if(WIN32)
+        set_target_properties(kuzu_shared PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
+else()
+        set_target_properties(kuzu_shared PROPERTIES OUTPUT_NAME kuzu)
+endif()
 target_link_libraries(kuzu_shared
-        PUBLIC antlr4_cypher antlr4_runtime utf8proc re2 parquet_lib arrow_lib arrow_deps Threads::Threads)
+        PUBLIC antlr4_cypher antlr4_runtime utf8proc re2 ${PARQUET_LIB} ${ARROW_LIB} Threads::Threads)
 target_include_directories(kuzu_shared
         PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)

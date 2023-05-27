@@ -88,6 +88,19 @@ jobs:
       - name: Python test
         run: CC=clang-14 CXX=clang++-14 make pytest NUM_THREADS=32
 
+  msvc-build-test:
+    name: msvc build & test
+#     needs: [clang-formatting-check]
+    runs-on: self-hosted-windows
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Build and test
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
+          make test NUM_THREADS=24
+
   clang-formatting-check:
     name: clang-format check
     runs-on: kuzu-self-hosted-testing

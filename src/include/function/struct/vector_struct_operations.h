@@ -6,7 +6,7 @@
 namespace kuzu {
 namespace function {
 
-struct StructPackVectorOperations : public VectorOperations {
+struct StructPackVectorOperations {
     static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
     static std::unique_ptr<FunctionBindData> bindFunc(
         const binder::expression_vector& arguments, FunctionDefinition* definition);
@@ -23,7 +23,7 @@ struct StructExtractBindData : public FunctionBindData {
         : FunctionBindData{std::move(dataType)}, childIdx{childIdx} {}
 };
 
-struct StructExtractVectorOperations : public VectorOperations {
+struct StructExtractVectorOperations {
     static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
     static std::unique_ptr<FunctionBindData> bindFunc(
         const binder::expression_vector& arguments, FunctionDefinition* definition);

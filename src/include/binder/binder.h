@@ -15,12 +15,47 @@ class BoundSetNodeProperty;
 class BoundSetRelProperty;
 class BoundDeleteNode;
 
+// VariableScope keeps track of expressions in scope and their aliases. We maintain the order of
+// expressions in
+class VariableScope {
+public:
+    VariableScope() = default;
+    VariableScope(expression_vector expressions,
+        std::unordered_map<std::string, common::vector_idx_t> varNameToIdx)
+        : expressions{std::move(expressions)}, varNameToIdx{std::move(varNameToIdx)} {}
+
+    inline bool empty() const { return expressions.empty(); }
+    inline bool contains(const std::string& varName) const {
+        return varNameToIdx.contains(varName);
+    }
+    inline std::shared_ptr<Expression> getExpression(const std::string& varName) const {
+        return expressions[varNameToIdx.at(varName)];
+    }
+    inline expression_vector getExpressions() const { return expressions; }
+    inline void addExpression(const std::string& varName, std::shared_ptr<Expression> expression) {
+        varNameToIdx.insert({varName, expressions.size()});
+        expressions.push_back(std::move(expression));
+    }
+    inline void clear() {
+        expressions.clear();
+        varNameToIdx.clear();
+    }
+    inline std::unique_ptr<VariableScope> copy() {
+        return std::make_unique<VariableScope>(expressions, varNameToIdx);
+    }
+
+private:
+    expression_vector expressions;
+    std::unordered_map<std::string, common::vector_idx_t> varNameToIdx;
+};
+
 class Binder {
     friend class ExpressionBinder;
 
 public:
     explicit Binder(const catalog::Catalog& catalog)
-        : catalog{catalog}, lastExpressionId{0}, variablesInScope{}, expressionBinder{this} {}
+        : catalog{catalog}, lastExpressionId{0}, variableScope{std::make_unique<VariableScope>()},
+          expressionBinder{this} {}
 
     std::unique_ptr<BoundStatement> bind(const parser::Statement& statement);
 
@@ -188,14 +223,13 @@ private:
     /*** helpers ***/
     std::string getUniqueExpressionName(const std::string& name);
 
-    std::unordered_map<std::string, std::shared_ptr<Expression>> enterSubquery();
-    void exitSubquery(
-        std::unordered_map<std::string, std::shared_ptr<Expression>> prevVariablesInScope);
+    std::unique_ptr<VariableScope> enterSubquery();
+    void exitSubquery(std::unique_ptr<VariableScope> prevVariableScope);
 
 private:
     const catalog::Catalog& catalog;
     uint32_t lastExpressionId;
-    std::unordered_map<std::string, std::shared_ptr<Expression>> variablesInScope;
+    std::unique_ptr<VariableScope> variableScope;
     ExpressionBinder expressionBinder;
 };
 

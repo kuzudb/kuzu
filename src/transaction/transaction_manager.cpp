@@ -91,6 +91,7 @@ void TransactionManager::stopNewTransactionsAndWaitUntilAllReadTransactionsLeave
             numTimesWaited++;
             if (numTimesWaited * THREAD_SLEEP_TIME_WHEN_WAITING_IN_MICROS >
                 checkPointWaitTimeoutForTransactionsToLeaveInMicros) {
+                mtxForStartingNewTransactions.unlock();
                 throw TransactionManagerException(
                     "Timeout waiting for read transactions to leave the system before committing "
                     "and checkpointing a write transaction. If you have an open read transaction "

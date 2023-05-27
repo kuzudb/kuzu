@@ -89,6 +89,7 @@ U BaseDiskArray<U>::get(uint64_t idx, TransactionType trxType) {
         return retVal;
     } else {
         U retVal;
+        ((BMFileHandle&)fileHandle).acquireWALPageIdxLock(apPageIdx);
         StorageStructureUtils::readWALVersionOfPage(bmFileHandle, apPageIdx, *bufferManager, *wal,
             [&retVal, &apCursor](
                 const uint8_t* frame) -> void { retVal = *(U*)(frame + apCursor.offsetInPage); });
@@ -186,6 +187,7 @@ page_idx_t BaseDiskArray<U>::getAPPageIdxNoLock(page_idx_t apIdx, TransactionTyp
     } else {
         page_idx_t retVal;
         page_idx_t pageIdxOfUpdatedPip = getUpdatedPageIdxOfPipNoLock(pipIdx);
+        ((BMFileHandle&)fileHandle).acquireWALPageIdxLock(pageIdxOfUpdatedPip);
         StorageStructureUtils::readWALVersionOfPage((BMFileHandle&)fileHandle, pageIdxOfUpdatedPip,
             *bufferManager, *wal, [&retVal, &offsetInPIP](const uint8_t* frame) -> void {
                 retVal = ((PIP*)frame)->pageIdxs[offsetInPIP];
@@ -264,6 +266,7 @@ uint64_t BaseDiskArray<U>::readUInt64HeaderFieldNoLock(
         return readOp(&this->header);
     } else {
         uint64_t retVal;
+        ((BMFileHandle&)fileHandle).acquireWALPageIdxLock(headerPageIdx);
         StorageStructureUtils::readWALVersionOfPage((BMFileHandle&)fileHandle, headerPageIdx,
             *bufferManager, *wal, [&retVal, &readOp](uint8_t* frame) -> void {
                 retVal = readOp((DiskArrayHeader*)frame);

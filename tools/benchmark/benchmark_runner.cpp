@@ -23,7 +23,7 @@ void BenchmarkRunner::registerBenchmarks(const std::string& path) {
         registerBenchmark(path);
     } else if (std::filesystem::is_directory(path)) {
         for (auto& f : std::filesystem::directory_iterator(path)) {
-            registerBenchmark(f.path());
+            registerBenchmark(f.path().string());
         }
     }
 }
@@ -62,7 +62,7 @@ void BenchmarkRunner::runBenchmark(Benchmark* benchmark) const {
         spdlog::info("Warm up");
         benchmark->run();
     }
-    double runTimes[config->numRuns];
+    std::vector<double> runTimes(config->numRuns);
     for (auto i = 0u; i < config->numRuns; ++i) {
         auto queryResult = benchmark->run();
         benchmark->log(i + 1, *queryResult);
@@ -71,7 +71,7 @@ void BenchmarkRunner::runBenchmark(Benchmark* benchmark) const {
     spdlog::info("Time Taken (Average of Last " + std::to_string(config->numRuns) +
                  " runs) (ms): " +
                  std::to_string(computeAverageOfLastRuns(
-                     runTimes, config->numRuns, config->numRuns /* numRunsToAverage */)));
+                     &runTimes[0], config->numRuns, config->numRuns /* numRunsToAverage */)));
 }
 
 } // namespace benchmark

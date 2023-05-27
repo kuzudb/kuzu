@@ -17,6 +17,8 @@ public:
 
     void initializeData(catalog::NodeTableSchema* nodeTableSchema);
 
+    void resetColumns(catalog::NodeTableSchema* nodeTableSchema);
+
     inline common::offset_t getMaxNodeOffset(transaction::Transaction* trx) const {
         return nodesStatisticsAndDeletedIDs->getMaxNodeOffset(trx, tableID);
     }

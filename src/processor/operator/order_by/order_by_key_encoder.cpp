@@ -200,28 +200,28 @@ void OrderByKeyEncoder::allocateMemoryIfFull() {
 encode_function_t OrderByKeyEncoder::getEncodingFunction(PhysicalTypeID physicalType) {
     switch (physicalType) {
     case PhysicalTypeID::BOOL: {
-        return encodeTemplate<bool>;
+        return &encodeTemplate<bool>;
     }
     case PhysicalTypeID::INT64: {
-        return encodeTemplate<int64_t>;
+        return &encodeTemplate<int64_t>;
     }
     case PhysicalTypeID::INT32: {
-        return encodeTemplate<int32_t>;
+        return &encodeTemplate<int32_t>;
     }
     case PhysicalTypeID::INT16: {
-        return encodeTemplate<int16_t>;
+        return &encodeTemplate<int16_t>;
     }
     case PhysicalTypeID::DOUBLE: {
-        return encodeTemplate<double_t>;
+        return &encodeTemplate<double_t>;
     }
     case PhysicalTypeID::FLOAT: {
-        return encodeTemplate<float_t>;
+        return &encodeTemplate<float_t>;
     }
     case PhysicalTypeID::STRING: {
-        return encodeTemplate<ku_string_t>;
+        return &encodeTemplate<ku_string_t>;
     }
     case PhysicalTypeID::INTERVAL: {
-        return encodeTemplate<interval_t>;
+        return &encodeTemplate<interval_t>;
     }
     default: {
         throw RuntimeException("Cannot encode data with physical type: " +

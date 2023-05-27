@@ -37,11 +37,14 @@ void WALReplayer::replay() {
         throw StorageException("System should not try to rollback when the last logged record is "
                                "not a commit record.");
     }
-    auto walIterator = wal->getIterator();
-    WALRecord walRecord;
-    while (walIterator->hasNextRecord()) {
-        walIterator->getNextRecord(walRecord);
-        replayWALRecord(walRecord);
+
+    if (!wal->isEmptyWAL()) {
+        auto walIterator = wal->getIterator();
+        WALRecord walRecord;
+        while (walIterator->hasNextRecord()) {
+            walIterator->getNextRecord(walRecord);
+            replayWALRecord(walRecord);
+        }
     }
 
     // We next perform an in-memory checkpointing or rolling back of node/relTables.
@@ -284,9 +287,15 @@ void WALReplayer::replayCopyNodeRecord(const kuzu::storage::WALRecord& walRecord
             // renaming has already happened, so we do not have to do anything, which is the
             // behavior of replaceNodeWithVersionFromWALIfExists, i.e., if the WAL version
             // of the file does not exist, it will not do anything.
+            storageManager->getNodesStore().getNodeTable(tableID)->resetColumns(nodeTableSchema);
             WALReplayerUtils::replaceNodeFilesWithVersionFromWALIfExists(
                 nodeTableSchema, wal->getDirectory());
             auto relTableSchemas = catalog->getAllRelTableSchemasContainBoundTable(tableID);
+            for (auto relTableSchema : relTableSchemas) {
+                storageManager->getRelsStore()
+                    .getRelTable(relTableSchema->tableID)
+                    ->resetColumnsAndLists(relTableSchema);
+            }
             WALReplayerUtils::replaceListsHeadersFilesWithVersionFromWALIfExists(
                 relTableSchemas, tableID, wal->getDirectory());
             // If we are not recovering, i.e., we are checkpointing during normal execution,
@@ -320,6 +329,8 @@ void WALReplayer::replayCopyRelRecord(const kuzu::storage::WALRecord& walRecord)
     if (isCheckpoint) {
         auto tableID = walRecord.copyRelRecord.tableID;
         if (!isRecovering) {
+            storageManager->getRelsStore().getRelTable(tableID)->resetColumnsAndLists(
+                catalog->getReadOnlyVersion()->getRelTableSchema(tableID));
             // See comments for COPY_NODE_RECORD.
             WALReplayerUtils::replaceRelPropertyFilesWithVersionFromWALIfExists(
                 catalog->getReadOnlyVersion()->getRelTableSchema(tableID), wal->getDirectory());
@@ -377,14 +388,14 @@ void WALReplayer::replayDropPropertyRecord(const kuzu::storage::WALRecord& walRe
         auto propertyID = walRecord.dropPropertyRecord.propertyID;
         if (!isRecovering) {
             if (catalog->getReadOnlyVersion()->containNodeTable(tableID)) {
+                storageManager->getNodesStore().getNodeTable(tableID)->removeProperty(propertyID);
                 WALReplayerUtils::removeDBFilesForNodeProperty(
                     wal->getDirectory(), tableID, propertyID);
-                storageManager->getNodesStore().getNodeTable(tableID)->removeProperty(propertyID);
             } else {
-                WALReplayerUtils::removeDBFilesForRelProperty(wal->getDirectory(),
-                    catalog->getReadOnlyVersion()->getRelTableSchema(tableID), propertyID);
                 storageManager->getRelsStore().getRelTable(tableID)->removeProperty(
                     propertyID, *catalog->getReadOnlyVersion()->getRelTableSchema(tableID));
+                WALReplayerUtils::removeDBFilesForRelProperty(wal->getDirectory(),
+                    catalog->getReadOnlyVersion()->getRelTableSchema(tableID), propertyID);
             }
         } else {
             auto catalogForRecovery = getCatalogForRecovery(DBFileType::WAL_VERSION);

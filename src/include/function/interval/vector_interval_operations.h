@@ -6,7 +6,7 @@
 namespace kuzu {
 namespace function {
 
-class VectorIntervalOperations : public VectorOperations {
+class VectorIntervalOperations {
 public:
     template<class OPERATION>
     static inline std::vector<std::unique_ptr<VectorOperationDefinition>>

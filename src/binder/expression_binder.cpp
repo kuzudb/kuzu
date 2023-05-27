@@ -116,6 +116,8 @@ void ExpressionBinder::validateExpectedDataType(
     auto dataType = expression.dataType;
     if (!targets.contains(dataType.getLogicalTypeID())) {
         std::vector<LogicalTypeID> targetsVec{targets.begin(), targets.end()};
+        auto dataTypeStrings = LogicalTypeUtils::dataTypesToString(targetsVec);
+        std::sort(dataTypeStrings.begin(), dataTypeStrings.end());
         throw BinderException(expression.toString() + " has data type " +
                               LogicalTypeUtils::dataTypeToString(dataType.getLogicalTypeID()) +
                               ". " + LogicalTypeUtils::dataTypesToString(targetsVec) +

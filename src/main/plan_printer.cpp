@@ -113,7 +113,7 @@ void OpProfileTree::calculateNumRowsAndColsForOp(
 
 uint32_t OpProfileTree::fillOpProfileBoxes(PhysicalOperator* op, uint32_t rowIdx, uint32_t colIdx,
     uint32_t& maxFieldWidth, Profiler& profiler) {
-    auto opProfileBox = make_unique<OpProfileBox>(PlanPrinter::getOperatorName(op),
+    auto opProfileBox = std::make_unique<OpProfileBox>(PlanPrinter::getOperatorName(op),
         PlanPrinter::getOperatorParams(op), op->getProfilerAttributes(profiler));
     maxFieldWidth = std::max(opProfileBox->getAttributeMaxLen(), maxFieldWidth);
     insertOpProfileBox(rowIdx, colIdx, std::move(opProfileBox));

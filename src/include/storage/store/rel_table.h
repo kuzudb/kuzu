@@ -91,6 +91,7 @@ public:
     void initializeData(catalog::RelTableSchema* tableSchema, WAL* wal);
     void initializeColumns(catalog::RelTableSchema* tableSchema, WAL* wal);
     void initializeLists(catalog::RelTableSchema* tableSchema, WAL* wal);
+    void resetColumnsAndLists(catalog::RelTableSchema* tableSchema, WAL* wal);
     Column* getPropertyColumn(common::property_id_t propertyID);
     Lists* getPropertyLists(common::property_id_t propertyID);
 
@@ -151,6 +152,11 @@ public:
         MemoryManager& memoryManager, WAL* wal);
 
     void initializeData(catalog::RelTableSchema* tableSchema);
+
+    inline void resetColumnsAndLists(catalog::RelTableSchema* tableSchema) {
+        fwdRelTableData->resetColumnsAndLists(tableSchema, wal);
+        bwdRelTableData->resetColumnsAndLists(tableSchema, wal);
+    }
 
     inline Column* getPropertyColumn(
         common::RelDataDirection relDirection, common::property_id_t propertyId) {
