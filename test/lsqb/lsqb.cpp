@@ -8,7 +8,7 @@ public:
     void SetUp() override {
         BaseGraphTest::SetUp();
         systemConfig->bufferPoolSize =
-            kuzu::common::BufferPoolConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING * 8;
+            kuzu::common::BufferPoolConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING * 16;
         createDBAndConn();
         initGraph();
     }

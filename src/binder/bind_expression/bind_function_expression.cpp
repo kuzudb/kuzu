@@ -132,12 +132,12 @@ std::shared_ptr<Expression> ExpressionBinder::rewriteFunctionExpression(
     if (functionName == ID_FUNC_NAME) {
         auto child = bindExpression(*parsedExpression.getChild(0));
         validateExpectedDataType(
-            *child, std::unordered_set<LogicalTypeID>{LogicalTypeID::NODE, LogicalTypeID::REL});
+            *child, std::vector<LogicalTypeID>{LogicalTypeID::NODE, LogicalTypeID::REL});
         return bindInternalIDExpression(*child);
     } else if (functionName == LABEL_FUNC_NAME) {
         auto child = bindExpression(*parsedExpression.getChild(0));
         validateExpectedDataType(
-            *child, std::unordered_set<LogicalTypeID>{LogicalTypeID::NODE, LogicalTypeID::REL});
+            *child, std::vector<LogicalTypeID>{LogicalTypeID::NODE, LogicalTypeID::REL});
         return bindLabelFunction(*child);
     } else if (functionName == LENGTH_FUNC_NAME) {
         auto child = bindExpression(*parsedExpression.getChild(0));

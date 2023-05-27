@@ -112,15 +112,13 @@ void ExpressionBinder::resolveAnyDataType(Expression& expression, const LogicalT
 }
 
 void ExpressionBinder::validateExpectedDataType(
-    const Expression& expression, const std::unordered_set<LogicalTypeID>& targets) {
+    const Expression& expression, const std::vector<LogicalTypeID>& targets) {
     auto dataType = expression.dataType;
-    if (!targets.contains(dataType.getLogicalTypeID())) {
-        std::vector<LogicalTypeID> targetsVec{targets.begin(), targets.end()};
-        auto dataTypeStrings = LogicalTypeUtils::dataTypesToString(targetsVec);
-        std::sort(dataTypeStrings.begin(), dataTypeStrings.end());
+    auto targetsSet = std::unordered_set<LogicalTypeID>{targets.begin(), targets.end()};
+    if (!targetsSet.contains(dataType.getLogicalTypeID())) {
         throw BinderException(expression.toString() + " has data type " +
                               LogicalTypeUtils::dataTypeToString(dataType.getLogicalTypeID()) +
-                              ". " + LogicalTypeUtils::dataTypesToString(targetsVec) +
+                              ". " + LogicalTypeUtils::dataTypesToString(targets) +
                               " was expected.");
     }
 }
