@@ -90,7 +90,7 @@ jobs:
 
   msvc-build-test:
     name: msvc build & test
-#     needs: [clang-formatting-check]
+    needs: [clang-formatting-check]
     runs-on: self-hosted-windows
     steps:
       - uses: actions/checkout@v3
