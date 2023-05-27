@@ -42,6 +42,6 @@
 
 -CASE CopyRelToNonEmptyTableErrorTest
 
--QUERY COPY Follows FROM "${KUZU_ROOT_DIRECTORY}/dataset/demo-db/csv/follows.csv"
+-STATEMENT COPY Follows FROM "${KUZU_ROOT_DIRECTORY}/dataset/demo-db/csv/follows.csv"
 ---- error
 Copy exception: COPY commands can only be executed once on a table.
