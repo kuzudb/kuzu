@@ -7,8 +7,7 @@
 namespace kuzu {
 namespace function {
 
-class VectorComparisonOperations {
-
+class VectorComparisonOperations : public VectorOperations {
 protected:
     template<typename FUNC>
     static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions(
@@ -34,51 +33,60 @@ private:
     template<typename FUNC>
     static inline std::unique_ptr<VectorOperationDefinition> getDefinition(const std::string& name,
         common::LogicalTypeID leftTypeID, common::LogicalTypeID rightTypeID) {
-        auto execFunc = getExecFunc<FUNC>(leftTypeID, rightTypeID);
-        auto selectFunc = getSelectFunc<FUNC>(leftTypeID, rightTypeID);
+        scalar_exec_func execFunc;
+        getExecFunc<FUNC>(leftTypeID, rightTypeID, execFunc);
+        scalar_select_func selectFunc;
+        getSelectFunc<FUNC>(leftTypeID, rightTypeID, selectFunc);
         return std::make_unique<VectorOperationDefinition>(name,
             std::vector<common::LogicalTypeID>{leftTypeID, rightTypeID},
             common::LogicalTypeID::BOOL, execFunc, selectFunc);
     }
 
     template<typename FUNC>
-    static scalar_exec_func getExecFunc(
-        common::LogicalTypeID leftTypeID, common::LogicalTypeID rightTypeID) {
+    static void getExecFunc(common::LogicalTypeID leftTypeID, common::LogicalTypeID rightTypeID,
+        scalar_exec_func& func) {
         switch (leftTypeID) {
         case common::LogicalTypeID::INT64: {
-            return &BinaryExecFunction<int64_t, int64_t, uint8_t, FUNC>;
+            func = BinaryExecFunction<int64_t, int64_t, uint8_t, FUNC>;
+            return;
         }
         case common::LogicalTypeID::INT32: {
-            return &BinaryExecFunction<int32_t, int32_t, uint8_t, FUNC>;
+            func = BinaryExecFunction<int32_t, int32_t, uint8_t, FUNC>;
+            return;
         }
         case common::LogicalTypeID::INT16: {
-            return &BinaryExecFunction<int16_t, int16_t, uint8_t, FUNC>;
+            func = BinaryExecFunction<int16_t, int16_t, uint8_t, FUNC>;
+            return;
         }
         case common::LogicalTypeID::DOUBLE: {
-            return &BinaryExecFunction<double, double, uint8_t, FUNC>;
+            func = BinaryExecFunction<double, double, uint8_t, FUNC>;
+            return;
         }
         case common::LogicalTypeID::FLOAT: {
-            return &BinaryExecFunction<float, float, uint8_t, FUNC>;
+            func = BinaryExecFunction<float, float, uint8_t, FUNC>;
+            return;
         }
         case common::LogicalTypeID::BOOL: {
-            assert(rightTypeID == common::LogicalTypeID::BOOL);
-            return &BinaryExecFunction<uint8_t, uint8_t, uint8_t, FUNC>;
+            func = BinaryExecFunction<uint8_t, uint8_t, uint8_t, FUNC>;
+            return;
         }
         case common::LogicalTypeID::STRING: {
-            assert(rightTypeID == common::LogicalTypeID::STRING);
-            return &BinaryExecFunction<common::ku_string_t, common::ku_string_t, uint8_t, FUNC>;
+            func = BinaryExecFunction<common::ku_string_t, common::ku_string_t, uint8_t, FUNC>;
+            return;
         }
         case common::LogicalTypeID::INTERNAL_ID: {
-            assert(rightTypeID == common::LogicalTypeID::INTERNAL_ID);
-            return &BinaryExecFunction<common::nodeID_t, common::nodeID_t, uint8_t, FUNC>;
+            func = BinaryExecFunction<common::nodeID_t, common::nodeID_t, uint8_t, FUNC>;
+            return;
         }
         case common::LogicalTypeID::DATE: {
             switch (rightTypeID) {
             case common::LogicalTypeID::DATE: {
-                return &BinaryExecFunction<common::date_t, common::date_t, uint8_t, FUNC>;
+                func = BinaryExecFunction<common::date_t, common::date_t, uint8_t, FUNC>;
+                return;
             }
             case common::LogicalTypeID::TIMESTAMP: {
-                return &BinaryExecFunction<common::date_t, common::timestamp_t, uint8_t, FUNC>;
+                func = BinaryExecFunction<common::date_t, common::timestamp_t, uint8_t, FUNC>;
+                return;
             }
             default:
                 throw common::RuntimeException(
@@ -90,10 +98,12 @@ private:
         case common::LogicalTypeID::TIMESTAMP: {
             switch (rightTypeID) {
             case common::LogicalTypeID::DATE: {
-                return &BinaryExecFunction<common::timestamp_t, common::date_t, uint8_t, FUNC>;
+                func = BinaryExecFunction<common::timestamp_t, common::date_t, uint8_t, FUNC>;
+                return;
             }
             case common::LogicalTypeID::TIMESTAMP: {
-                return &BinaryExecFunction<common::timestamp_t, common::timestamp_t, uint8_t, FUNC>;
+                func = BinaryExecFunction<common::timestamp_t, common::timestamp_t, uint8_t, FUNC>;
+                return;
             }
             default:
                 throw common::RuntimeException(
@@ -103,8 +113,8 @@ private:
             }
         }
         case common::LogicalTypeID::INTERVAL: {
-            assert(rightTypeID == common::LogicalTypeID::INTERVAL);
-            return &BinaryExecFunction<common::interval_t, common::interval_t, uint8_t, FUNC>;
+            func = BinaryExecFunction<common::interval_t, common::interval_t, uint8_t, FUNC>;
+            return;
         }
         default:
             throw common::RuntimeException(
@@ -115,43 +125,50 @@ private:
     }
 
     template<typename FUNC>
-    static scalar_select_func getSelectFunc(
-        common::LogicalTypeID leftTypeID, common::LogicalTypeID rightTypeID) {
+    static void getSelectFunc(common::LogicalTypeID leftTypeID, common::LogicalTypeID rightTypeID,
+        scalar_select_func& func) {
         switch (leftTypeID) {
         case common::LogicalTypeID::INT64: {
-            return &BinarySelectFunction<int64_t, int64_t, FUNC>;
+            func = BinarySelectFunction<int64_t, int64_t, FUNC>;
+            return;
         }
         case common::LogicalTypeID::INT32: {
-            return &BinarySelectFunction<int32_t, int32_t, FUNC>;
+            func = BinarySelectFunction<int32_t, int32_t, FUNC>;
+            return;
         }
         case common::LogicalTypeID::INT16: {
-            return &BinarySelectFunction<int16_t, int16_t, FUNC>;
+            func = BinarySelectFunction<int16_t, int16_t, FUNC>;
+            return;
         }
         case common::LogicalTypeID::DOUBLE: {
-            return &BinarySelectFunction<double_t, double_t, FUNC>;
+            func = BinarySelectFunction<double_t, double_t, FUNC>;
+            return;
         }
         case common::LogicalTypeID::FLOAT: {
-            return &BinarySelectFunction<float_t, float_t, FUNC>;
+            func = BinarySelectFunction<float_t, float_t, FUNC>;
+            return;
         }
         case common::LogicalTypeID::BOOL: {
-            assert(rightTypeID == common::LogicalTypeID::BOOL);
-            return &BinarySelectFunction<uint8_t, uint8_t, FUNC>;
+            func = BinarySelectFunction<uint8_t, uint8_t, FUNC>;
+            return;
         }
         case common::LogicalTypeID::STRING: {
-            assert(rightTypeID == common::LogicalTypeID::STRING);
-            return &BinarySelectFunction<common::ku_string_t, common::ku_string_t, FUNC>;
+            func = BinarySelectFunction<common::ku_string_t, common::ku_string_t, FUNC>;
+            return;
         }
         case common::LogicalTypeID::INTERNAL_ID: {
-            assert(rightTypeID == common::LogicalTypeID::INTERNAL_ID);
-            return &BinarySelectFunction<common::nodeID_t, common::nodeID_t, FUNC>;
+            func = BinarySelectFunction<common::nodeID_t, common::nodeID_t, FUNC>;
+            return;
         }
         case common::LogicalTypeID::DATE: {
             switch (rightTypeID) {
             case common::LogicalTypeID::DATE: {
-                return &BinarySelectFunction<common::date_t, common::date_t, FUNC>;
+                func = BinarySelectFunction<common::date_t, common::date_t, FUNC>;
+                return;
             }
             case common::LogicalTypeID::TIMESTAMP: {
-                return &BinarySelectFunction<common::date_t, common::timestamp_t, FUNC>;
+                func = BinarySelectFunction<common::date_t, common::timestamp_t, FUNC>;
+                return;
             }
             default:
                 throw common::RuntimeException(
@@ -164,10 +181,12 @@ private:
         case common::LogicalTypeID::TIMESTAMP: {
             switch (rightTypeID) {
             case common::LogicalTypeID::DATE: {
-                return &BinarySelectFunction<common::timestamp_t, common::date_t, FUNC>;
+                func = BinarySelectFunction<common::timestamp_t, common::date_t, FUNC>;
+                return;
             }
             case common::LogicalTypeID::TIMESTAMP: {
-                return &BinarySelectFunction<common::timestamp_t, common::timestamp_t, FUNC>;
+                func = BinarySelectFunction<common::timestamp_t, common::timestamp_t, FUNC>;
+                return;
             }
             default:
                 throw common::RuntimeException(
@@ -178,8 +197,8 @@ private:
             }
         }
         case common::LogicalTypeID::INTERVAL: {
-            assert(rightTypeID == common::LogicalTypeID::INTERVAL);
-            return &BinarySelectFunction<common::interval_t, common::interval_t, FUNC>;
+            func = BinarySelectFunction<common::interval_t, common::interval_t, FUNC>;
+            return;
         }
         default:
             throw common::RuntimeException(

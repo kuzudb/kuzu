@@ -4,7 +4,7 @@
 
 namespace kuzu {
 namespace function {
-class VectorTimestampOperations {};
+class VectorTimestampOperations : public VectorOperations {};
 
 struct CenturyVectorOperation : public VectorTimestampOperations {
     static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();

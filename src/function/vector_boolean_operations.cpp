@@ -7,28 +7,28 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
-scalar_exec_func VectorBooleanOperations::bindExecFunction(
-    ExpressionType expressionType, const binder::expression_vector& children) {
+void VectorBooleanOperations::bindExecFunction(ExpressionType expressionType,
+    const binder::expression_vector& children, scalar_exec_func& func) {
     if (isExpressionBinary(expressionType)) {
-        return bindBinaryExecFunction(expressionType, children);
+        bindBinaryExecFunction(expressionType, children, func);
     } else {
         assert(isExpressionUnary(expressionType));
-        return bindUnaryExecFunction(expressionType, children);
+        bindUnaryExecFunction(expressionType, children, func);
     }
 }
 
-scalar_select_func VectorBooleanOperations::bindSelectFunction(
-    ExpressionType expressionType, const binder::expression_vector& children) {
+void VectorBooleanOperations::bindSelectFunction(ExpressionType expressionType,
+    const binder::expression_vector& children, scalar_select_func& func) {
     if (isExpressionBinary(expressionType)) {
-        return bindBinarySelectFunction(expressionType, children);
+        bindBinarySelectFunction(expressionType, children, func);
     } else {
         assert(isExpressionUnary(expressionType));
-        return bindUnarySelectFunction(expressionType, children);
+        bindUnarySelectFunction(expressionType, children, func);
     }
 }
 
-scalar_exec_func VectorBooleanOperations::bindBinaryExecFunction(
-    ExpressionType expressionType, const binder::expression_vector& children) {
+void VectorBooleanOperations::bindBinaryExecFunction(ExpressionType expressionType,
+    const binder::expression_vector& children, scalar_exec_func& func) {
     assert(children.size() == 2);
     auto leftType = children[0]->dataType;
     auto rightType = children[1]->dataType;
@@ -36,13 +36,16 @@ scalar_exec_func VectorBooleanOperations::bindBinaryExecFunction(
            rightType.getLogicalTypeID() == LogicalTypeID::BOOL);
     switch (expressionType) {
     case AND: {
-        return &BinaryBooleanExecFunction<operation::And>;
+        func = &BinaryBooleanExecFunction<operation::And>;
+        return;
     }
     case OR: {
-        return &BinaryBooleanExecFunction<operation::Or>;
+        func = &BinaryBooleanExecFunction<operation::Or>;
+        return;
     }
     case XOR: {
-        return &BinaryBooleanExecFunction<operation::Xor>;
+        func = &BinaryBooleanExecFunction<operation::Xor>;
+        return;
     }
     default:
         throw RuntimeException("Invalid expression type " + expressionTypeToString(expressionType) +
@@ -50,8 +53,8 @@ scalar_exec_func VectorBooleanOperations::bindBinaryExecFunction(
     }
 }
 
-scalar_select_func VectorBooleanOperations::bindBinarySelectFunction(
-    ExpressionType expressionType, const binder::expression_vector& children) {
+void VectorBooleanOperations::bindBinarySelectFunction(ExpressionType expressionType,
+    const binder::expression_vector& children, scalar_select_func& func) {
     assert(children.size() == 2);
     auto leftType = children[0]->dataType;
     auto rightType = children[1]->dataType;
@@ -59,13 +62,16 @@ scalar_select_func VectorBooleanOperations::bindBinarySelectFunction(
            rightType.getLogicalTypeID() == LogicalTypeID::BOOL);
     switch (expressionType) {
     case AND: {
-        return &BinaryBooleanSelectFunction<operation::And>;
+        func = &BinaryBooleanSelectFunction<operation::And>;
+        return;
     }
     case OR: {
-        return &BinaryBooleanSelectFunction<operation::Or>;
+        func = &BinaryBooleanSelectFunction<operation::Or>;
+        return;
     }
     case XOR: {
-        return &BinaryBooleanSelectFunction<operation::Xor>;
+        func = &BinaryBooleanSelectFunction<operation::Xor>;
+        return;
     }
     default:
         throw RuntimeException("Invalid expression type " + expressionTypeToString(expressionType) +
@@ -73,12 +79,13 @@ scalar_select_func VectorBooleanOperations::bindBinarySelectFunction(
     }
 }
 
-scalar_exec_func VectorBooleanOperations::bindUnaryExecFunction(
-    ExpressionType expressionType, const binder::expression_vector& children) {
+void VectorBooleanOperations::bindUnaryExecFunction(ExpressionType expressionType,
+    const binder::expression_vector& children, scalar_exec_func& func) {
     assert(children.size() == 1 && children[0]->dataType.getLogicalTypeID() == LogicalTypeID::BOOL);
     switch (expressionType) {
     case NOT: {
-        return &UnaryBooleanExecFunction<operation::Not>;
+        func = &UnaryBooleanExecFunction<operation::Not>;
+        return;
     }
     default:
         throw RuntimeException("Invalid expression type " + expressionTypeToString(expressionType) +
@@ -86,12 +93,13 @@ scalar_exec_func VectorBooleanOperations::bindUnaryExecFunction(
     }
 }
 
-scalar_select_func VectorBooleanOperations::bindUnarySelectFunction(
-    ExpressionType expressionType, const binder::expression_vector& children) {
+void VectorBooleanOperations::bindUnarySelectFunction(ExpressionType expressionType,
+    const binder::expression_vector& children, scalar_select_func& func) {
     assert(children.size() == 1 && children[0]->dataType.getLogicalTypeID() == LogicalTypeID::BOOL);
     switch (expressionType) {
     case NOT: {
-        return &UnaryBooleanSelectFunction<operation::Not>;
+        func = &UnaryBooleanSelectFunction<operation::Not>;
+        return;
     }
     default:
         throw RuntimeException("Invalid expression type " + expressionTypeToString(expressionType) +

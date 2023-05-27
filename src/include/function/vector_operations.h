@@ -10,7 +10,6 @@
 namespace kuzu {
 namespace function {
 
-// Forward declaration of VectorOperationDefinition.
 struct VectorOperationDefinition;
 
 using scalar_exec_func = std::function<void(
@@ -47,45 +46,46 @@ struct VectorOperationDefinition : public FunctionDefinition {
     bool isVarLength;
 };
 
-// Note: Previously part of a VectorOperations class, but MSVC is unable to resolve references to
-// the function within subclasses.
-template<typename A_TYPE, typename B_TYPE, typename C_TYPE, typename RESULT_TYPE, typename FUNC>
-static void TernaryExecFunction(
-    const std::vector<std::shared_ptr<common::ValueVector>>& params, common::ValueVector& result) {
-    assert(params.size() == 3);
-    TernaryOperationExecutor::execute<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC>(
-        *params[0], *params[1], *params[2], result);
-}
+struct VectorOperations {
+    template<typename A_TYPE, typename B_TYPE, typename C_TYPE, typename RESULT_TYPE, typename FUNC>
+    static void TernaryExecFunction(const std::vector<std::shared_ptr<common::ValueVector>>& params,
+        common::ValueVector& result) {
+        assert(params.size() == 3);
+        TernaryOperationExecutor::execute<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC>(
+            *params[0], *params[1], *params[2], result);
+    }
 
-template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC>
-static void BinaryExecFunction(
-    const std::vector<std::shared_ptr<common::ValueVector>>& params, common::ValueVector& result) {
-    assert(params.size() == 2);
-    BinaryOperationExecutor::execute<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC>(
-        *params[0], *params[1], result);
-}
+    template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC>
+    static void BinaryExecFunction(const std::vector<std::shared_ptr<common::ValueVector>>& params,
+        common::ValueVector& result) {
+        assert(params.size() == 2);
+        BinaryOperationExecutor::execute<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC>(
+            *params[0], *params[1], result);
+    }
 
-template<typename LEFT_TYPE, typename RIGHT_TYPE, typename FUNC>
-static bool BinarySelectFunction(const std::vector<std::shared_ptr<common::ValueVector>>& params,
-    common::SelectionVector& selVector) {
-    assert(params.size() == 2);
-    return BinaryOperationExecutor::select<LEFT_TYPE, RIGHT_TYPE, FUNC>(
-        *params[0], *params[1], selVector);
-}
+    template<typename LEFT_TYPE, typename RIGHT_TYPE, typename FUNC>
+    static bool BinarySelectFunction(
+        const std::vector<std::shared_ptr<common::ValueVector>>& params,
+        common::SelectionVector& selVector) {
+        assert(params.size() == 2);
+        return BinaryOperationExecutor::select<LEFT_TYPE, RIGHT_TYPE, FUNC>(
+            *params[0], *params[1], selVector);
+    }
 
-template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
-static void UnaryExecFunction(
-    const std::vector<std::shared_ptr<common::ValueVector>>& params, common::ValueVector& result) {
-    assert(params.size() == 1);
-    UnaryOperationExecutor::execute<OPERAND_TYPE, RESULT_TYPE, FUNC>(*params[0], result);
-}
+    template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
+    static void UnaryExecFunction(const std::vector<std::shared_ptr<common::ValueVector>>& params,
+        common::ValueVector& result) {
+        assert(params.size() == 1);
+        UnaryOperationExecutor::execute<OPERAND_TYPE, RESULT_TYPE, FUNC>(*params[0], result);
+    }
 
-template<typename RESULT_TYPE, typename FUNC>
-static void ConstExecFunction(
-    const std::vector<std::shared_ptr<common::ValueVector>>& params, common::ValueVector& result) {
-    assert(params.size() == 0);
-    ConstOperationExecutor::execute<RESULT_TYPE, FUNC>(result);
-}
+    template<typename RESULT_TYPE, typename FUNC>
+    static void ConstExecFunction(const std::vector<std::shared_ptr<common::ValueVector>>& params,
+        common::ValueVector& result) {
+        assert(params.size() == 0);
+        ConstOperationExecutor::execute<RESULT_TYPE, FUNC>(result);
+    }
+};
 
 } // namespace function
 } // namespace kuzu

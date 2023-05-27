@@ -55,35 +55,43 @@ std::string VectorCastOperations::bindImplicitCastFuncName(const common::Logical
     }
 }
 
-scalar_exec_func VectorCastOperations::bindImplicitCastFunc(
-    common::LogicalTypeID sourceTypeID, common::LogicalTypeID targetTypeID) {
+void VectorCastOperations::bindImplicitCastFunc(common::LogicalTypeID sourceTypeID,
+    common::LogicalTypeID targetTypeID, scalar_exec_func& func) {
     switch (targetTypeID) {
     case common::LogicalTypeID::INT16: {
-        return bindImplicitNumericalCastFunc<int16_t, operation::CastToInt16>(sourceTypeID);
+        bindImplicitNumericalCastFunc<int16_t, operation::CastToInt16>(sourceTypeID, func);
+        return;
     }
     case common::LogicalTypeID::INT32: {
-        return bindImplicitNumericalCastFunc<int32_t, operation::CastToInt32>(sourceTypeID);
+        bindImplicitNumericalCastFunc<int32_t, operation::CastToInt32>(sourceTypeID, func);
+        return;
     }
     case common::LogicalTypeID::INT64: {
-        return bindImplicitNumericalCastFunc<int64_t, operation::CastToInt64>(sourceTypeID);
+        bindImplicitNumericalCastFunc<int64_t, operation::CastToInt64>(sourceTypeID, func);
+        return;
     }
     case common::LogicalTypeID::FLOAT: {
-        return bindImplicitNumericalCastFunc<float_t, operation::CastToFloat>(sourceTypeID);
+        bindImplicitNumericalCastFunc<float_t, operation::CastToFloat>(sourceTypeID, func);
+        return;
     }
     case common::LogicalTypeID::DOUBLE: {
-        return bindImplicitNumericalCastFunc<double_t, operation::CastToDouble>(sourceTypeID);
+        bindImplicitNumericalCastFunc<double_t, operation::CastToDouble>(sourceTypeID, func);
+        return;
     }
     case common::LogicalTypeID::DATE: {
         assert(sourceTypeID == common::LogicalTypeID::STRING);
-        return &UnaryExecFunction<ku_string_t, date_t, operation::CastStringToDate>;
+        func = &UnaryExecFunction<ku_string_t, date_t, operation::CastStringToDate>;
+        return;
     }
     case common::LogicalTypeID::TIMESTAMP: {
         assert(sourceTypeID == common::LogicalTypeID::STRING);
-        return &UnaryExecFunction<ku_string_t, timestamp_t, operation::CastStringToTimestamp>;
+        func = &UnaryExecFunction<ku_string_t, timestamp_t, operation::CastStringToTimestamp>;
+        return;
     }
     case common::LogicalTypeID::INTERVAL: {
         assert(sourceTypeID == common::LogicalTypeID::STRING);
-        return &UnaryExecFunction<ku_string_t, interval_t, operation::CastStringToInterval>;
+        func = &UnaryExecFunction<ku_string_t, interval_t, operation::CastStringToInterval>;
+        return;
     }
     default:
         throw common::NotImplementedException(

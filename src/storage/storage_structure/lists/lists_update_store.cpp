@@ -272,7 +272,7 @@ void ListsUpdatesStore::initNewlyAddedNodes(nodeID_t& nodeID) {
             nodeID.tableID == relTableSchema.getBoundTableID(direction)) {
             auto& listsUpdatesPerNode =
                 listsUpdatesPerDirection[direction][StorageUtils::getListChunkIdx(nodeID.offset)];
-            if (!listsUpdatesPerNode.count(nodeID.offset) > 0) {
+            if (listsUpdatesPerNode.count(nodeID.offset) == 0) {
                 listsUpdatesPerNode.emplace(
                     nodeID.offset, std::make_unique<ListsUpdatesForNodeOffset>(relTableSchema));
             }
@@ -329,7 +329,7 @@ ListsUpdatesForNodeOffset* ListsUpdatesStore::getOrCreateListsUpdatesForNodeOffs
     auto nodeOffset = nodeID.offset;
     auto& listsUpdatesPerNodeOffset =
         listsUpdatesPerDirection[relDirection][StorageUtils::getListChunkIdx(nodeOffset)];
-    if (!listsUpdatesPerNodeOffset.count(nodeOffset) > 0) {
+    if (listsUpdatesPerNodeOffset.count(nodeOffset) == 0) {
         listsUpdatesPerNodeOffset.emplace(
             nodeOffset, std::make_shared<ListsUpdatesForNodeOffset>(relTableSchema));
     }
@@ -341,8 +341,8 @@ ListsUpdatesForNodeOffset* ListsUpdatesStore::getListsUpdatesForNodeOffsetIfExis
     auto relNodeTableAndDir = getRelNodeTableAndDirFromListFileID(listFileID);
     auto& listsUpdatesPerChunk = listsUpdatesPerDirection[relNodeTableAndDir.dir];
     auto chunkIdx = StorageUtils::getListChunkIdx(nodeOffset);
-    if (!listsUpdatesPerChunk.count(chunkIdx) > 0 ||
-        !listsUpdatesPerChunk.at(chunkIdx).count(nodeOffset) > 0) {
+    if (listsUpdatesPerChunk.count(chunkIdx) == 0 ||
+        listsUpdatesPerChunk.at(chunkIdx).count(nodeOffset) == 0) {
         return nullptr;
     }
     return listsUpdatesPerChunk.at(chunkIdx).at(nodeOffset).get();

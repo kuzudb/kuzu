@@ -9,13 +9,6 @@
 namespace kuzu {
 namespace processor {
 
-template<typename type>
-bool compareEntryWithKeys(const uint8_t* keyValue, const uint8_t* entry) {
-    uint8_t result;
-    kuzu::function::operation::Equals::operation(*(type*)keyValue, *(type*)entry, result);
-    return result != 0;
-}
-
 struct HashSlot {
     common::hash_t hash; // 8 bytes for hashVector.
     uint8_t* entry;      // pointer to the factorizedTable entry which stores [groupKey1, ...
@@ -185,7 +178,14 @@ private:
 
     void resizeHashTableIfNecessary(uint32_t maxNumDistinctHashKeys);
 
-    static compare_function_t getCompareEntryWithKeysFunc(common::LogicalTypeID typeId);
+    template<typename type>
+    static bool compareEntryWithKeys(const uint8_t* keyValue, const uint8_t* entry) {
+        uint8_t result;
+        kuzu::function::operation::Equals::operation(*(type*)keyValue, *(type*)entry, result);
+        return result != 0;
+    }
+
+    static void getCompareEntryWithKeysFunc(common::LogicalTypeID typeId, compare_function_t& func);
 
     void updateNullAggVectorState(
         const std::vector<common::ValueVector*>& groupByFlatHashKeyVectors,

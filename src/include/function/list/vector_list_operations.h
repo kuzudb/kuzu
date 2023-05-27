@@ -5,30 +5,33 @@
 namespace kuzu {
 namespace function {
 
-template<typename A_TYPE, typename B_TYPE, typename C_TYPE, typename RESULT_TYPE, typename FUNC>
-static void TernaryListExecFunction(
-    const std::vector<std::shared_ptr<common::ValueVector>>& params, common::ValueVector& result) {
-    assert(params.size() == 3);
-    TernaryOperationExecutor::executeList<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC>(
-        *params[0], *params[1], *params[2], result);
-}
+struct VectorListOperations : public VectorOperations {
+    template<typename A_TYPE, typename B_TYPE, typename C_TYPE, typename RESULT_TYPE, typename FUNC>
+    static void TernaryListExecFunction(
+        const std::vector<std::shared_ptr<common::ValueVector>>& params,
+        common::ValueVector& result) {
+        assert(params.size() == 3);
+        TernaryOperationExecutor::executeList<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC>(
+            *params[0], *params[1], *params[2], result);
+    }
 
-template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC>
-static void BinaryListExecFunction(
-    const std::vector<std::shared_ptr<common::ValueVector>>& params, common::ValueVector& result) {
-    assert(params.size() == 2);
-    BinaryOperationExecutor::executeList<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC>(
-        *params[0], *params[1], result);
-}
+    template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC>
+    static void BinaryListExecFunction(
+        const std::vector<std::shared_ptr<common::ValueVector>>& params,
+        common::ValueVector& result) {
+        assert(params.size() == 2);
+        BinaryOperationExecutor::executeList<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC>(
+            *params[0], *params[1], result);
+    }
 
-template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
-static void UnaryListExecFunction(
-    const std::vector<std::shared_ptr<common::ValueVector>>& params, common::ValueVector& result) {
-    assert(params.size() == 1);
-    UnaryOperationExecutor::executeList<OPERAND_TYPE, RESULT_TYPE, FUNC>(*params[0], result);
-}
+    template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
+    static void UnaryListExecFunction(
+        const std::vector<std::shared_ptr<common::ValueVector>>& params,
+        common::ValueVector& result) {
+        assert(params.size() == 1);
+        UnaryOperationExecutor::executeList<OPERAND_TYPE, RESULT_TYPE, FUNC>(*params[0], result);
+    }
 
-struct VectorListOperations {
     template<typename OPERATION, typename RESULT_TYPE>
     static std::vector<std::unique_ptr<VectorOperationDefinition>>
     getBinaryListOperationDefinitions(std::string funcName, common::LogicalTypeID resultTypeID) {
@@ -139,7 +142,7 @@ struct ListSortVectorOperation : public VectorListOperations {
     static std::unique_ptr<FunctionBindData> bindFunc(
         const binder::expression_vector& arguments, FunctionDefinition* definition);
     template<typename T>
-    static scalar_exec_func getExecFunction(const binder::expression_vector& arguments);
+    static void getExecFunction(const binder::expression_vector& arguments, scalar_exec_func& func);
 };
 
 struct ListReverseSortVectorOperation : public VectorListOperations {
@@ -147,7 +150,7 @@ struct ListReverseSortVectorOperation : public VectorListOperations {
     static std::unique_ptr<FunctionBindData> bindFunc(
         const binder::expression_vector& arguments, FunctionDefinition* definition);
     template<typename T>
-    static scalar_exec_func getExecFunction(const binder::expression_vector& arguments);
+    static void getExecFunction(const binder::expression_vector& arguments, scalar_exec_func& func);
 };
 
 struct ListSumVectorOperation : public VectorListOperations {

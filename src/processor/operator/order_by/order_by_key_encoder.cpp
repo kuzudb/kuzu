@@ -32,7 +32,7 @@ OrderByKeyEncoder::OrderByKeyEncoder(std::vector<ValueVector*>& orderByVectors,
     }
     encodeFunctions.resize(orderByVectors.size());
     for (auto i = 0u; i < orderByVectors.size(); i++) {
-        encodeFunctions[i] = getEncodingFunction(orderByVectors[i]->dataType.getPhysicalType());
+        getEncodingFunction(orderByVectors[i]->dataType.getPhysicalType(), encodeFunctions[i]);
     }
 }
 
@@ -197,31 +197,39 @@ void OrderByKeyEncoder::allocateMemoryIfFull() {
     }
 }
 
-encode_function_t OrderByKeyEncoder::getEncodingFunction(PhysicalTypeID physicalType) {
+void OrderByKeyEncoder::getEncodingFunction(PhysicalTypeID physicalType, encode_function_t& func) {
     switch (physicalType) {
     case PhysicalTypeID::BOOL: {
-        return &encodeTemplate<bool>;
+        func = encodeTemplate<bool>;
+        return;
     }
     case PhysicalTypeID::INT64: {
-        return &encodeTemplate<int64_t>;
+        func = encodeTemplate<int64_t>;
+        return;
     }
     case PhysicalTypeID::INT32: {
-        return &encodeTemplate<int32_t>;
+        func = encodeTemplate<int32_t>;
+        return;
     }
     case PhysicalTypeID::INT16: {
-        return &encodeTemplate<int16_t>;
+        func = encodeTemplate<int16_t>;
+        return;
     }
     case PhysicalTypeID::DOUBLE: {
-        return &encodeTemplate<double_t>;
+        func = encodeTemplate<double_t>;
+        return;
     }
     case PhysicalTypeID::FLOAT: {
-        return &encodeTemplate<float_t>;
+        func = encodeTemplate<float_t>;
+        return;
     }
     case PhysicalTypeID::STRING: {
-        return &encodeTemplate<ku_string_t>;
+        func = encodeTemplate<ku_string_t>;
+        return;
     }
     case PhysicalTypeID::INTERVAL: {
-        return &encodeTemplate<interval_t>;
+        func = encodeTemplate<interval_t>;
+        return;
     }
     default: {
         throw RuntimeException("Cannot encode data with physical type: " +

@@ -144,7 +144,7 @@ void AggregateHashTable::initializeFT(
         auto size = FactorizedTable::getDataTypeSize(dataType);
         tableSchema->appendColumn(std::make_unique<ColumnSchema>(isUnflat, dataChunkPos, size));
         hasStrCol = hasStrCol || dataType.getLogicalTypeID() == LogicalTypeID::STRING;
-        compareFuncs[colIdx] = getCompareEntryWithKeysFunc(dataType.getLogicalTypeID());
+        getCompareEntryWithKeysFunc(dataType.getLogicalTypeID(), compareFuncs[colIdx]);
         numBytesForKeys += size;
         colIdx++;
     }
@@ -152,7 +152,7 @@ void AggregateHashTable::initializeFT(
         auto size = FactorizedTable::getDataTypeSize(dataType);
         tableSchema->appendColumn(std::make_unique<ColumnSchema>(isUnflat, dataChunkPos, size));
         hasStrCol = hasStrCol || dataType.getLogicalTypeID() == LogicalTypeID::STRING;
-        compareFuncs[colIdx] = getCompareEntryWithKeysFunc(dataType.getLogicalTypeID());
+        getCompareEntryWithKeysFunc(dataType.getLogicalTypeID(), compareFuncs[colIdx]);
         numBytesForDependentKeys += size;
         colIdx++;
     }
@@ -665,40 +665,52 @@ void AggregateHashTable::resizeHashTableIfNecessary(uint32_t maxNumDistinctHashK
     }
 }
 
-compare_function_t AggregateHashTable::getCompareEntryWithKeysFunc(LogicalTypeID typeId) {
+void AggregateHashTable::getCompareEntryWithKeysFunc(
+    LogicalTypeID typeId, compare_function_t& func) {
     switch (typeId) {
     case LogicalTypeID::INTERNAL_ID: {
-        return compareEntryWithKeys<nodeID_t>;
+        func = compareEntryWithKeys<nodeID_t>;
+        return;
     }
     case LogicalTypeID::BOOL: {
-        return compareEntryWithKeys<bool>;
+        func = compareEntryWithKeys<bool>;
+        return;
     }
     case LogicalTypeID::INT64: {
-        return compareEntryWithKeys<int64_t>;
+        func = compareEntryWithKeys<int64_t>;
+        return;
     }
     case LogicalTypeID::INT32: {
-        return compareEntryWithKeys<int32_t>;
+        func = compareEntryWithKeys<int32_t>;
+        return;
     }
     case LogicalTypeID::INT16: {
-        return compareEntryWithKeys<int16_t>;
+        func = compareEntryWithKeys<int16_t>;
+        return;
     }
     case LogicalTypeID::DOUBLE: {
-        return compareEntryWithKeys<double_t>;
+        func = compareEntryWithKeys<double_t>;
+        return;
     }
     case LogicalTypeID::FLOAT: {
-        return compareEntryWithKeys<float_t>;
+        func = compareEntryWithKeys<float_t>;
+        return;
     }
     case LogicalTypeID::STRING: {
-        return compareEntryWithKeys<ku_string_t>;
+        func = compareEntryWithKeys<ku_string_t>;
+        return;
     }
     case LogicalTypeID::DATE: {
-        return compareEntryWithKeys<date_t>;
+        func = compareEntryWithKeys<date_t>;
+        return;
     }
     case LogicalTypeID::TIMESTAMP: {
-        return compareEntryWithKeys<timestamp_t>;
+        func = compareEntryWithKeys<timestamp_t>;
+        return;
     }
     case LogicalTypeID::INTERVAL: {
-        return compareEntryWithKeys<interval_t>;
+        func = compareEntryWithKeys<interval_t>;
+        return;
     }
     default: {
         throw RuntimeException(

@@ -24,10 +24,12 @@ std::shared_ptr<Expression> ExpressionBinder::bindBooleanExpression(
         childrenAfterCast.push_back(implicitCastIfNecessary(child, LogicalTypeID::BOOL));
     }
     auto functionName = expressionTypeToString(expressionType);
-    auto execFunc =
-        function::VectorBooleanOperations::bindExecFunction(expressionType, childrenAfterCast);
-    auto selectFunc =
-        function::VectorBooleanOperations::bindSelectFunction(expressionType, childrenAfterCast);
+    function::scalar_exec_func execFunc;
+    function::VectorBooleanOperations::bindExecFunction(
+        expressionType, childrenAfterCast, execFunc);
+    function::scalar_select_func selectFunc;
+    function::VectorBooleanOperations::bindSelectFunction(
+        expressionType, childrenAfterCast, selectFunc);
     auto bindData = std::make_unique<function::FunctionBindData>(LogicalType(LogicalTypeID::BOOL));
     auto uniqueExpressionName =
         ScalarFunctionExpression::getUniqueName(functionName, childrenAfterCast);
