@@ -154,6 +154,7 @@ void HashJoinProbe::setVectorsToNull() {
 uint64_t HashJoinProbe::getLeftJoinResult() {
     if (getInnerJoinResult() == 0) {
         setVectorsToNull();
+        probeState->probedTuples[0] = nullptr;
     }
     return 1;
 }
