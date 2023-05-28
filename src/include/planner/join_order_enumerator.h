@@ -90,6 +90,9 @@ private:
     void appendRecursiveExtend(std::shared_ptr<NodeExpression> boundNode,
         std::shared_ptr<NodeExpression> nbrNode, std::shared_ptr<RelExpression> rel,
         ExtendDirection direction, LogicalPlan& plan);
+    void createRecursivePlan(std::shared_ptr<NodeExpression> boundNode,
+        std::shared_ptr<NodeExpression> nbrNode, std::shared_ptr<RelExpression> rel,
+        ExtendDirection direction, LogicalPlan& plan);
 
     void planJoin(const binder::expression_vector& joinNodeIDs, common::JoinType joinType,
         std::shared_ptr<Expression> mark, LogicalPlan& probePlan, LogicalPlan& buildPlan);

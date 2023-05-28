@@ -18,8 +18,11 @@ namespace processor {
  * Var length NOT track path     |  nodeOffsets & offsetToMultiplicity
  */
 struct Frontier {
+    using node_rel_offset_t = std::pair<common::offset_t, common::offset_t>;
+    using node_rel_offsets_t = std::vector<node_rel_offset_t>;
+
     std::vector<common::offset_t> nodeOffsets;
-    std::unordered_map<common::offset_t, std::vector<common::offset_t>> bwdEdges;
+    std::unordered_map<common::offset_t, node_rel_offsets_t> bwdEdges;
     std::unordered_map<common::offset_t, uint64_t> offsetToMultiplicity;
 
     inline void resetState() {
@@ -30,12 +33,13 @@ struct Frontier {
 
     inline void addNode(common::offset_t offset) { nodeOffsets.push_back(offset); }
 
-    inline void addEdge(common::offset_t boundOffset, common::offset_t nbrOffset) {
+    inline void addEdge(
+        common::offset_t boundOffset, common::offset_t nbrOffset, common::offset_t relOffset) {
         if (!bwdEdges.contains(nbrOffset)) {
             nodeOffsets.push_back(nbrOffset);
-            bwdEdges.insert({nbrOffset, std::vector<common::offset_t>{}});
+            bwdEdges.insert({nbrOffset, node_rel_offsets_t{}});
         }
-        bwdEdges.at(nbrOffset).push_back(boundOffset);
+        bwdEdges.at(nbrOffset).emplace_back(boundOffset, relOffset);
     }
 
     inline void addNodeWithMultiplicity(common::offset_t offset, uint64_t multiplicity) {

@@ -193,14 +193,11 @@ void Binder::bindQueryRel(const RelPattern& relPattern,
     for (auto tableID : tableIDs) {
         relTableSchemas.push_back(catalog.getReadOnlyVersion()->getRelTableSchema(tableID));
     }
-    if (queryRel->getRelType() == common::QueryRelType::NON_RECURSIVE) {
-        // we don't support reading property for VARIABLE_LENGTH or SHORTEST rel.
-        for (auto& [propertyName, propertySchemas] :
-            getRelPropertyNameAndPropertiesPairs(relTableSchemas)) {
-            auto propertyExpression = expressionBinder.createPropertyExpression(
-                *queryRel, propertySchemas, false /* isPrimaryKey */);
-            queryRel->addPropertyExpression(propertyName, std::move(propertyExpression));
-        }
+    for (auto& [propertyName, propertySchemas] :
+        getRelPropertyNameAndPropertiesPairs(relTableSchemas)) {
+        auto propertyExpression = expressionBinder.createPropertyExpression(
+            *queryRel, propertySchemas, false /* isPrimaryKey */);
+        queryRel->addPropertyExpression(propertyName, std::move(propertyExpression));
     }
     if (!parsedName.empty()) {
         variableScope->addExpression(parsedName, queryRel);

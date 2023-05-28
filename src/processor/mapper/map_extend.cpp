@@ -155,12 +155,22 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExtendToPhysical(
 std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalRecursiveExtendToPhysical(
     planner::LogicalOperator* logicalOperator) {
     auto extend = (LogicalRecursiveExtend*)logicalOperator;
-    auto outSchema = extend->getSchema();
-    auto inSchema = extend->getChild(0)->getSchema();
     auto boundNode = extend->getBoundNode();
     auto nbrNode = extend->getNbrNode();
     auto rel = extend->getRel();
-    auto relDataDirection = ExtendDirectionUtils::getRelDataDirection(extend->getDirection());
+    // map recursive plan
+    auto logicalRecursiveRoot = extend->getRecursivePlanRoot();
+    auto recursiveRoot = mapLogicalOperatorToPhysical(logicalRecursiveRoot);
+    auto recursivePlanSchema = logicalRecursiveRoot->getSchema();
+    auto recursivePlanResultSetDescriptor =
+        std::make_unique<ResultSetDescriptor>(recursivePlanSchema);
+    auto tmpDstNodeIDPos =
+        DataPos(recursivePlanSchema->getExpressionPos(*nbrNode->getInternalIDProperty()));
+    auto tmpEdgeIDPos =
+        DataPos(recursivePlanSchema->getExpressionPos(*rel->getInternalIDProperty()));
+    // map child plan
+    auto outSchema = extend->getSchema();
+    auto inSchema = extend->getChild(0)->getSchema();
     auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0));
     auto inNodeIDVectorPos =
         DataPos(inSchema->getExpressionPos(*boundNode->getInternalIDProperty()));
@@ -168,9 +178,6 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalRecursiveExtendToPhysica
         DataPos(outSchema->getExpressionPos(*nbrNode->getInternalIDProperty()));
     auto lengthVectorPos =
         DataPos(outSchema->getExpressionPos(*rel->getInternalLengthExpression()));
-    auto& relsStore = storageManager.getRelsStore();
-    auto relTableID = rel->getSingleTableID();
-
     auto expressions = inSchema->getExpressionsInScope();
     auto resultCollector = appendResultCollector(expressions, inSchema, std::move(prevOperator));
     auto sharedInputFTable = resultCollector->getSharedState();
@@ -180,59 +187,41 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalRecursiveExtendToPhysica
         outDataPoses.emplace_back(outSchema->getExpressionPos(*expressions[i]));
         colIndicesToScan.push_back(i);
     }
-    auto& nodeStore = storageManager.getNodesStore();
-    auto nodeTable = nodeStore.getNodeTable(boundNode->getSingleTableID());
-    std::string emptyParamString;
-    // TODO(Xiyang): this hard code is fine as long as we use just 2 vectors as the intermediate
-    // state for recursive join. Though ideally we should construct them from schema.
-    auto tmpSrcNodePos = BaseRecursiveJoin::getTmpSrcNodeVectorPos();
-    auto scanFrontier =
-        std::make_unique<ScanFrontier>(tmpSrcNodePos, getOperatorID(), emptyParamString);
-    std::unique_ptr<PhysicalOperator> scanRelTable;
-    std::vector<property_id_t> emptyPropertyIDs;
-    DataPos tmpDstNodePos{0, 0};
-    if (relsStore.isSingleMultiplicityInDirection(relDataDirection, relTableID)) {
-        tmpDstNodePos = DataPos{0, 1};
-        scanRelTable = make_unique<ScanRelTableColumns>(
-            relsStore.getRelTable(relTableID)->getDirectedTableData(relDataDirection),
-            emptyPropertyIDs, tmpSrcNodePos, std::vector<DataPos>{tmpDstNodePos},
-            std::move(scanFrontier), getOperatorID(), emptyParamString);
-    } else {
-        tmpDstNodePos = DataPos{0, 1};
-        scanRelTable = make_unique<ScanRelTableLists>(
-            relsStore.getRelTable(relTableID)->getDirectedTableData(relDataDirection),
-            emptyPropertyIDs, tmpSrcNodePos, std::vector<DataPos>{tmpDstNodePos},
-            std::move(scanFrontier), getOperatorID(), emptyParamString);
-    }
+
+    // Generate RecursiveJoinDataInfo
     std::unique_ptr<RecursiveJoinDataInfo> dataInfo;
     switch (extend->getJoinType()) {
     case planner::RecursiveJoinType::TRACK_PATH: {
         auto pathVectorPos = DataPos(outSchema->getExpressionPos(*rel));
         dataInfo = std::make_unique<RecursiveJoinDataInfo>(outDataPoses, colIndicesToScan,
-            inNodeIDVectorPos, outNodeIDVectorPos, lengthVectorPos, tmpDstNodePos,
+            inNodeIDVectorPos, outNodeIDVectorPos, lengthVectorPos,
+            std::move(recursivePlanResultSetDescriptor), tmpDstNodeIDPos, tmpEdgeIDPos,
             extend->getJoinType(), pathVectorPos);
     } break;
     case planner::RecursiveJoinType::TRACK_NONE: {
         dataInfo = std::make_unique<RecursiveJoinDataInfo>(outDataPoses, colIndicesToScan,
-            inNodeIDVectorPos, outNodeIDVectorPos, lengthVectorPos, tmpDstNodePos,
+            inNodeIDVectorPos, outNodeIDVectorPos, lengthVectorPos,
+            std::move(recursivePlanResultSetDescriptor), tmpDstNodeIDPos, tmpEdgeIDPos,
             extend->getJoinType());
     } break;
     default:
         throw common::NotImplementedException("PlanMapper::mapLogicalRecursiveExtendToPhysical");
     }
+    auto nodeTable = storageManager.getNodesStore().getNodeTable(boundNode->getSingleTableID());
+    auto relTable = storageManager.getRelsStore().getRelTable(rel->getSingleTableID());
     auto sharedState = std::make_shared<RecursiveJoinSharedState>(sharedInputFTable, nodeTable);
     switch (rel->getRelType()) {
     case common::QueryRelType::SHORTEST: {
         return std::make_unique<ShortestPathRecursiveJoin>(rel->getLowerBound(),
-            rel->getUpperBound(), nodeTable, sharedState, std::move(dataInfo),
+            rel->getUpperBound(), nodeTable, relTable, sharedState, std::move(dataInfo),
             std::move(resultCollector), getOperatorID(), extend->getExpressionsForPrinting(),
-            std::move(scanRelTable));
+            std::move(recursiveRoot));
     }
     case common::QueryRelType::VARIABLE_LENGTH: {
         return std::make_unique<VariableLengthRecursiveJoin>(rel->getLowerBound(),
-            rel->getUpperBound(), nodeTable, sharedState, std::move(dataInfo),
+            rel->getUpperBound(), nodeTable, relTable, sharedState, std::move(dataInfo),
             std::move(resultCollector), getOperatorID(), extend->getExpressionsForPrinting(),
-            std::move(scanRelTable));
+            std::move(recursiveRoot));
     }
     default:
         throw common::NotImplementedException("PlanMapper::mapLogicalRecursiveExtendToPhysical");

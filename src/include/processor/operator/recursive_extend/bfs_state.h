@@ -46,8 +46,8 @@ struct BaseBFSMorsel {
     virtual bool isComplete() = 0;
 
     virtual void markSrc(common::offset_t offset) = 0;
-    virtual void markVisited(
-        common::offset_t boundOffset, common::offset_t nbrOffset, uint64_t multiplicity) = 0;
+    virtual void markVisited(common::offset_t boundOffset, common::offset_t nbrOffset,
+        common::offset_t relOffset, uint64_t multiplicity) = 0;
 
     inline void finalizeCurrentLevel() { moveNextLevelAsCurrentLevel(); }
 
@@ -106,20 +106,20 @@ struct ShortestPathMorsel : public BaseBFSMorsel {
         currentFrontier->addNode(offset);
     }
 
-    inline void markVisited(
-        common::offset_t boundOffset, common::offset_t nbrOffset, uint64_t multiplicity) override {
+    inline void markVisited(common::offset_t boundOffset, common::offset_t nbrOffset,
+        common::offset_t relOffset, uint64_t multiplicity) final {
         if (visitedNodes[nbrOffset] == NOT_VISITED_DST) {
             visitedNodes[nbrOffset] = VISITED_DST;
             numVisitedDstNodes++;
             if constexpr (trackPath) {
-                nextFrontier->addEdge(boundOffset, nbrOffset);
+                nextFrontier->addEdge(boundOffset, nbrOffset, relOffset);
             } else {
                 nextFrontier->addNode(nbrOffset);
             }
         } else if (visitedNodes[nbrOffset] == NOT_VISITED) {
             visitedNodes[nbrOffset] = VISITED;
             if constexpr (trackPath) {
-                nextFrontier->addEdge(boundOffset, nbrOffset);
+                nextFrontier->addEdge(boundOffset, nbrOffset, relOffset);
             } else {
                 nextFrontier->addNode(nbrOffset);
             }
@@ -165,10 +165,10 @@ struct VariableLengthMorsel : public BaseBFSMorsel {
         currentFrontier->addNodeWithMultiplicity(offset, 1 /* multiplicity */);
     }
 
-    inline void markVisited(
-        common::offset_t boundOffset, common::offset_t nbrOffset, uint64_t multiplicity) final {
+    inline void markVisited(common::offset_t boundOffset, common::offset_t nbrOffset,
+        common::offset_t relOffset, uint64_t multiplicity) final {
         if constexpr (trackPath) {
-            nextFrontier->addEdge(boundOffset, nbrOffset);
+            nextFrontier->addEdge(boundOffset, nbrOffset, relOffset);
         } else {
             nextFrontier->addNodeWithMultiplicity(nbrOffset, multiplicity);
         }

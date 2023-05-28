@@ -183,6 +183,7 @@ public:
         return relDirection == common::RelDataDirection::FWD ? fwdRelTableData->getAdjLists() :
                                                                bwdRelTableData->getAdjLists();
     }
+    // TODO: rename to getTableID()
     inline common::table_id_t getRelTableID() const { return tableID; }
     inline DirectedRelTableData* getDirectedTableData(common::RelDataDirection relDirection) {
         return relDirection == common::FWD ? fwdRelTableData.get() : bwdRelTableData.get();

@@ -20,9 +20,7 @@ expression_vector PropertyCollector::getProperties() {
 void PropertyCollector::visitMatch(const BoundReadingClause& readingClause) {
     auto& matchClause = (BoundMatchClause&)readingClause;
     for (auto& rel : matchClause.getQueryGraphCollection()->getQueryRels()) {
-        if (rel->hasInternalIDProperty()) {
-            properties.insert(rel->getInternalIDProperty());
-        }
+        properties.insert(rel->getInternalIDProperty());
     }
     if (matchClause.hasWhereExpression()) {
         collectPropertyExpressions(*matchClause.getWhereExpression());
@@ -50,9 +48,7 @@ void PropertyCollector::visitDelete(const BoundUpdatingClause& updatingClause) {
         properties.insert(deleteNode->getPrimaryKeyExpression());
     }
     for (auto& deleteRel : boundDeleteClause.getDeleteRels()) {
-        if (deleteRel->hasInternalIDProperty()) {
-            properties.insert(deleteRel->getInternalIDProperty());
-        }
+        properties.insert(deleteRel->getInternalIDProperty());
     }
 }
 

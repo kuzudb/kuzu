@@ -38,9 +38,6 @@ public:
 
     inline RelDirectionType getDirectionType() const { return directionType; }
 
-    inline bool hasInternalIDProperty() const {
-        return hasPropertyExpression(common::INTERNAL_ID_SUFFIX);
-    }
     inline std::shared_ptr<Expression> getInternalIDProperty() const {
         return getPropertyExpression(common::INTERNAL_ID_SUFFIX);
     }

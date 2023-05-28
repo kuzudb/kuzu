@@ -10,10 +10,10 @@ class RemoveFactorizationRewriter : public LogicalOperatorVisitor {
 public:
     void rewrite(planner::LogicalPlan* plan);
 
-private:
     std::shared_ptr<planner::LogicalOperator> visitOperator(
         std::shared_ptr<planner::LogicalOperator> op);
 
+private:
     std::shared_ptr<planner::LogicalOperator> visitFlattenReplace(
         std::shared_ptr<planner::LogicalOperator> op) override;
 };

@@ -29,6 +29,8 @@ public:
 private:
     std::unique_ptr<PhysicalOperator> mapLogicalOperatorToPhysical(
         const std::shared_ptr<planner::LogicalOperator>& logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapLogicalScanFrontierToPhysical(
+        planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapLogicalScanNodeToPhysical(
         planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapLogicalIndexScanNodeToPhysical(

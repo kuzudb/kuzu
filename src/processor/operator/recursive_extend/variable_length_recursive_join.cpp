@@ -13,15 +13,17 @@ void VariableLengthRecursiveJoin::initLocalStateInternal(
         bfsMorsel = std::make_unique<VariableLengthMorsel<true /* trackPath */>>(
             maxNodeOffset, lowerBound, upperBound, sharedState->semiMask.get());
         for (auto i = lowerBound; i <= upperBound; ++i) {
-            scanners.push_back(std::make_unique<PathScanner>(bfsMorsel->targetDstNodeOffsets, i));
+            scanners.push_back(std::make_unique<PathScanner>(nodeTable->getTableID(),
+                relTable->getRelTableID(), bfsMorsel->targetDstNodeOffsets, i));
         }
     } break;
     case planner::RecursiveJoinType::TRACK_NONE: {
         bfsMorsel = std::make_unique<VariableLengthMorsel<false /* trackPath */>>(
             maxNodeOffset, lowerBound, upperBound, sharedState->semiMask.get());
         for (auto i = lowerBound; i <= upperBound; ++i) {
-            scanners.push_back(std::make_unique<DstNodeWithMultiplicityScanner>(
-                bfsMorsel->targetDstNodeOffsets, i));
+            scanners.push_back(
+                std::make_unique<DstNodeWithMultiplicityScanner>(nodeTable->getTableID(),
+                    relTable->getRelTableID(), bfsMorsel->targetDstNodeOffsets, i));
         }
     } break;
     default:
