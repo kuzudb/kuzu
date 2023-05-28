@@ -10,6 +10,7 @@ enum class TokenType {
     GROUP,
     DATASET,
     TEST,
+    BUFFER_POOL_SIZE,
     CASE,
     CHECK_ORDER,
     DEFINE_STATEMENT_BLOCK,
@@ -36,8 +37,8 @@ const std::unordered_map<std::string, TokenType> tokenMap = {{"-GROUP", TokenTyp
     {"-PARALLELISM", TokenType::PARALLELISM}, {"-QUERY", TokenType::QUERY},
     {"-READ_ONLY", TokenType::READ_ONLY}, {"-SKIP", TokenType::SKIP},
     {"-STATEMENT", TokenType::STATEMENT}, {"-STATEMENT_BLOCK", TokenType::STATEMENT_BLOCK},
-    {"]", TokenType::END_OF_STATEMENT_BLOCK}, {"----", TokenType::RESULT},
-    {"--", TokenType::SEPARATOR}, {"#", TokenType::EMPTY}};
+    {"-BUFFER_POOL_SIZE", TokenType::BUFFER_POOL_SIZE}, {"]", TokenType::END_OF_STATEMENT_BLOCK},
+    {"----", TokenType::RESULT}, {"--", TokenType::SEPARATOR}, {"#", TokenType::EMPTY}};
 
 const std::unordered_map<std::string, std::string> variableMap = {
     {"${KUZU_ROOT_DIRECTORY}", KUZU_ROOT_DIRECTORY}};

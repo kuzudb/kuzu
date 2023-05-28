@@ -7,9 +7,17 @@ using namespace kuzu::common;
 
 class EndToEndReadTest : public DBTest {
 public:
-    explicit EndToEndReadTest(
-        std::string dataset, std::vector<std::unique_ptr<TestStatement>> testStatements)
-        : dataset{dataset}, testStatements{std::move(testStatements)} {}
+    explicit EndToEndReadTest(std::string dataset, uint64_t bufferPoolSize,
+        std::vector<std::unique_ptr<TestStatement>> testStatements)
+        : dataset{dataset}, bufferPoolSize{bufferPoolSize}, testStatements{
+                                                                std::move(testStatements)} {}
+
+    void SetUp() override {
+        BaseGraphTest::SetUp();
+        systemConfig->bufferPoolSize = bufferPoolSize;
+        createDBAndConn();
+        initGraph();
+    }
 
     std::string getInputDir() override {
         return TestHelper::appendKuzuRootPath("dataset/" + dataset + "/");
@@ -18,6 +26,7 @@ public:
 
 private:
     std::string dataset;
+    uint64_t bufferPoolSize;
     std::vector<std::unique_ptr<TestStatement>> testStatements;
 };
 
@@ -27,11 +36,13 @@ void parseAndRegisterTestGroup(const std::string& path) {
     if (testGroup->isValid() && testGroup->hasStatements()) {
         auto dataset = testGroup->dataset;
         auto testCases = std::move(testGroup->testCases);
+        auto bufferPoolSize = testGroup->bufferPoolSize;
         for (auto& [testCaseName, testStatements] : testCases) {
             testing::RegisterTest(testGroup->group.c_str(), testCaseName.c_str(), nullptr, nullptr,
                 __FILE__, __LINE__,
-                [dataset, testStatements = std::move(testStatements)]() mutable -> DBTest* {
-                    return new EndToEndReadTest(dataset, std::move(testStatements));
+                [dataset, bufferPoolSize,
+                    testStatements = std::move(testStatements)]() mutable -> DBTest* {
+                    return new EndToEndReadTest(dataset, bufferPoolSize, std::move(testStatements));
                 });
         }
     }

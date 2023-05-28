@@ -1,4 +1,10 @@
--SKIP
+-GROUP LSQBTest
+-DATASET sf-0.1
+-BUFFER_POOL_SIZE 1073741824
+
+--
+
+-CASE LSQBTest
 
 -NAME q1
 -QUERY MATCH (:Country)<-[:City_isPartOf_Country]-(:City)<-[:Person_isLocatedIn_City]-(:Person)<-[:Forum_hasMember_Person]-(:Forum)-[:Forum_containerOf_Post]->(:Post)<-[Comment_replyOf_Post]-(:Comment)-[:Comment_hasTag_Tag]->(:Tag)-[:Tag_hasType_TagClass]->(:TagClass) RETURN count(*) as count;

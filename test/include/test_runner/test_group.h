@@ -26,6 +26,8 @@ struct TestStatement {
 struct TestGroup {
     std::string group;
     std::string dataset;
+    uint64_t bufferPoolSize =
+        kuzu::common::BufferPoolConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING;
     std::unordered_map<std::string, std::vector<std::unique_ptr<TestStatement>>> testCases;
     std::unordered_map<std::string, std::vector<std::unique_ptr<TestStatement>>>
         testCasesStatementBlocks;
