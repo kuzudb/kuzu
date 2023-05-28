@@ -21,8 +21,12 @@ private:
     static bool testStatement(TestStatement* statement, main::Connection& conn);
     static bool checkLogicalPlans(std::unique_ptr<main::PreparedStatement>& preparedStatement,
         TestStatement* statement, main::Connection& conn);
+    static bool checkLogicalPlan(std::unique_ptr<main::PreparedStatement>& preparedStatement,
+        TestStatement* statement, main::Connection& conn, uint32_t planIdx);
     static std::vector<std::string> convertResultToString(
         main::QueryResult& queryResult, bool checkOutputOrder = false);
+    static bool checkPlanResult(std::unique_ptr<main::QueryResult>& result,
+        TestStatement* statement, const std::string& planStr, uint32_t planIndex);
 };
 
 } // namespace testing

@@ -63,6 +63,9 @@ public:
         std::regex whiteSpacePattern{"\\s"};
         str = std::regex_replace(str, whiteSpacePattern, "");
     }
+
+    static void replaceAll(
+        std::string& str, const std::string& search, const std::string& replacement);
 };
 
 } // namespace common

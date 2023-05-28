@@ -1,9 +1,9 @@
 -GROUP DemoDBTest
--DATASET demo-db/csv
+-DATASET demo-db/parquet
 
 --
 
--CASE DemoDBTest
+-CASE DemoDBTestFromParquet
 
 -NAME Limit1
 -QUERY MATCH (u:User) RETURN u.name ORDER BY u.age DESC LIMIT 3;

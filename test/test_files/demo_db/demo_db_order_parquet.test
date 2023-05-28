@@ -1,9 +1,9 @@
 -GROUP DemoDBTest
--DATASET demo-db/csv
+-DATASET demo-db/parquet
 
 --
 
--CASE DemoDBOrderedTest
+-CASE DemoDBOrderedTestFromParquet
 
 -NAME OrderBy1
 -CHECK_ORDER
