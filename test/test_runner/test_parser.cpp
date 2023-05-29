@@ -40,6 +40,11 @@ void TestParser::parseHeader() {
             testGroup->dataset = currentToken.params[1];
             break;
         }
+        case TokenType::BUFFER_POOL_SIZE: {
+            checkMinimumParams(1);
+            testGroup->bufferPoolSize = stoi(currentToken.params[1]);
+            break;
+        }
         case TokenType::SKIP: {
             testGroup->skipTest = true;
             return;
