@@ -38,12 +38,15 @@ int64_t FileInfo::getFileSize() {
 
 std::unique_ptr<FileInfo> FileUtils::openFile(const std::string& path, int flags) {
 #if defined(_WIN32)
-    // Not providing GENERIC_READ seems to cause problems.
-    auto dwDesiredAccess = GENERIC_READ;
+    auto dwDesiredAccess = 0ul;
     auto dwCreationDisposition = (flags & O_CREAT) ? OPEN_ALWAYS : OPEN_EXISTING;
     auto dwShareMode = FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE;
     if (flags & (O_CREAT | O_WRONLY | O_RDWR)) {
         dwDesiredAccess |= GENERIC_WRITE;
+    }
+    // O_RDONLY is 0 in practice, so flags & (O_RDONLY | O_RDWR) doesn't work.
+    if (!(flags & O_WRONLY)) {
+        dwDesiredAccess |= GENERIC_READ;
     }
 
     HANDLE handle = CreateFileA(path.c_str(), dwDesiredAccess, dwShareMode, nullptr,
