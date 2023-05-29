@@ -94,21 +94,21 @@ pytest: arrow
 
 clean-python-api:
 ifeq ($(OS),Windows_NT)
-	rmdir /s /q tools\python_api\build
+	if exist tools\python_api\build rmdir /s /q tools\python_api\build
 else
 	rm -rf tools/python_api/build
 endif
 
 clean-external:
 ifeq ($(OS),Windows_NT)
-	rmdir /s /q external\build
+	if exist external\build rmdir /s /q external\build
 else
 	rm -rf external/build
 endif
 
 clean: clean-python-api
 ifeq ($(OS),Windows_NT)
-	rmdir /s /q build
+	if exist build rmdir /s /q build
 else
 	rm -rf build
 endif
