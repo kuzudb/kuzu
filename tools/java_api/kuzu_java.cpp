@@ -2,9 +2,71 @@
 #include <unordered_map>
 #include "KuzuNative.h"
 #include "main/kuzu.h"
+#include "binder/bound_statement_result.h"
+#include "planner/logical_plan/logical_plan.h"
+#include "common/exception.h"
+#include "common/types/value.h"
 
 using namespace kuzu::main;
 using namespace kuzu::common;
+using namespace kuzu::processor;
+
+class PreStmtWithBound {
+    public:
+    PreparedStatement* preStatement;
+    std::unordered_map<std::string, std::shared_ptr<Value>> bound_values;
+};
+
+jobject createJavaObject (JNIEnv * env, void * memAddress, std::string classPath, std::string refFieldName) {
+    uint64_t address = reinterpret_cast<uint64_t>(memAddress);
+    jlong ref = static_cast<jlong>(address);
+
+    jclass javaClass = env->FindClass(classPath.c_str());
+    jobject newObject = env->AllocObject(javaClass);
+    jfieldID refID = env->GetFieldID(javaClass , refFieldName.c_str(), "J");
+    env->SetLongField(newObject, refID, ref);
+    return newObject;
+}
+
+Database* getDatabase (JNIEnv * env, jobject thisDB) {
+    jclass javaDBClass = env->GetObjectClass(thisDB);
+    jfieldID fieldID = env->GetFieldID(javaDBClass, "db_ref", "J");
+    jlong fieldValue = env->GetLongField(thisDB, fieldID);
+
+    uint64_t address = static_cast<uint64_t>(fieldValue);
+    Database* db = reinterpret_cast<Database*>(address);
+    return db;
+}
+
+Connection* getConnection (JNIEnv * env, jobject thisConn) {
+    jclass javaConnClass = env->GetObjectClass(thisConn);
+    jfieldID fieldID = env->GetFieldID(javaConnClass, "conn_ref", "J");
+    jlong fieldValue = env->GetLongField(thisConn, fieldID);
+
+    uint64_t address = static_cast<uint64_t>(fieldValue);
+    Connection* conn = reinterpret_cast<Connection*>(address);
+    return conn;
+}
+
+PreStmtWithBound* getPreStmtWithBound(JNIEnv * env, jobject thisPS) {
+    jclass javaPSClass = env->GetObjectClass(thisPS);
+    jfieldID fieldID = env->GetFieldID(javaPSClass, "ps_ref", "J");
+    jlong fieldValue = env->GetLongField(thisPS, fieldID);
+
+    uint64_t address = static_cast<uint64_t>(fieldValue);
+    PreStmtWithBound* ps = reinterpret_cast<PreStmtWithBound*>(address);
+    return ps;
+}
+
+Value* getValue (JNIEnv * env, jobject thisValue) {
+    jclass javaValueClass = env->GetObjectClass(thisValue);
+    jfieldID fieldID = env->GetFieldID(javaValueClass, "v_ref", "J");
+    jlong fieldValue = env->GetLongField(thisValue, fieldID);
+
+    uint64_t address = static_cast<uint64_t>(fieldValue);
+    Value* v = reinterpret_cast<Value*>(address);
+    return v;
+}
 
 JNIEXPORT jlong JNICALL Java_tools_java_1api_KuzuNative_kuzu_1database_1init 
     (JNIEnv * env, jclass, jstring database_path, jlong buffer_pool_size) {
@@ -21,42 +83,21 @@ JNIEXPORT jlong JNICALL Java_tools_java_1api_KuzuNative_kuzu_1database_1init
 
 JNIEXPORT void JNICALL Java_tools_java_1api_KuzuNative_kuzu_1database_1destroy
   (JNIEnv * env, jclass, jobject thisDB) {
-
-    jclass javaDBClass = env->GetObjectClass(thisDB);
-    jfieldID fieldID = env->GetFieldID(javaDBClass, "db_ref", "J");
-    jlong fieldValue = env->GetLongField(thisDB, fieldID);
-
-    uint64_t address = static_cast<uint64_t>(fieldValue);
-    Database* db = reinterpret_cast<Database*>(address);
-
+    Database* db = getDatabase(env, thisDB);
     free(db);
 }
 
 JNIEXPORT void JNICALL Java_tools_java_1api_KuzuNative_kuzu_1database_1set_1logging_1level
   (JNIEnv * env, jclass, jstring logging_level, jobject thisDB) {
-
-    jclass javaDBClass = env->GetObjectClass(thisDB);
-    jfieldID fieldID = env->GetFieldID(javaDBClass, "db_ref", "J");
-    jlong fieldValue = env->GetLongField(thisDB, fieldID);
-
-    uint64_t address = static_cast<uint64_t>(fieldValue);
-    Database* db = reinterpret_cast<Database*>(address);
-
+    Database* db = getDatabase(env, thisDB);
     std::string lvl = env->GetStringUTFChars(logging_level, JNI_FALSE);
     db->setLoggingLevel(lvl);
-    
 }
 
 
 JNIEXPORT jlong JNICALL Java_tools_java_1api_KuzuNative_kuzu_1connection_1init
   (JNIEnv *env , jclass, jobject db) {
-
-    jclass javaDBClass = env->GetObjectClass(db);
-    jfieldID fieldID = env->GetFieldID(javaDBClass, "db_ref", "J");
-    jlong db_ref = env->GetLongField(db, fieldID);
-
-    uint64_t address = static_cast<uint64_t>(db_ref);
-    Database* conn_db = reinterpret_cast<Database*>(address);
+    Database* conn_db = getDatabase(env, db);
 
     Connection* conn = new Connection(conn_db);
     uint64_t connAddress = reinterpret_cast<uint64_t>(conn);
@@ -66,25 +107,8 @@ JNIEXPORT jlong JNICALL Java_tools_java_1api_KuzuNative_kuzu_1connection_1init
 
 JNIEXPORT void JNICALL Java_tools_java_1api_KuzuNative_kuzu_1connection_1destroy
   (JNIEnv * env, jclass, jobject thisConn) {
-
-    jclass javaConnClass = env->GetObjectClass(thisConn);
-    jfieldID fieldID = env->GetFieldID(javaConnClass, "conn_ref", "J");
-    jlong fieldValue = env->GetLongField(thisConn, fieldID);
-
-    uint64_t address = static_cast<uint64_t>(fieldValue);
-    Connection* conn = reinterpret_cast<Connection*>(address);
-
+    Connection* conn = getConnection(env, thisConn);
     free(conn);
-}
-
-Connection* getConnection(JNIEnv * env, jobject thisConn) {
-    jclass javaConnClass = env->GetObjectClass(thisConn);
-    jfieldID fieldID = env->GetFieldID(javaConnClass, "conn_ref", "J");
-    jlong fieldValue = env->GetLongField(thisConn, fieldID);
-
-    uint64_t address = static_cast<uint64_t>(fieldValue);
-    Connection* conn = reinterpret_cast<Connection*>(address);
-    return conn;
 }
 
 JNIEXPORT void JNICALL Java_tools_java_1api_KuzuNative_kuzu_1connection_1begin_1read_1only_1transaction
@@ -144,13 +168,33 @@ JNIEXPORT jobject JNICALL Java_tools_java_1api_KuzuNative_kuzu_1connection_1quer
 }
 
 JNIEXPORT jobject JNICALL Java_tools_java_1api_KuzuNative_kuzu_1connection_1prepare
-  (JNIEnv * env, jclass, jobject, jstring query) {
-    // TODO: Implement prepared statement
+  (JNIEnv * env, jclass, jobject thisConn, jstring query) {
+    Connection* conn = getConnection(env, thisConn);
+    std::string cppquery = env->GetStringUTFChars(query, JNI_FALSE);
+
+    PreparedStatement* prepared_statement = conn->prepare(cppquery).release();
+    if (prepared_statement == nullptr) {
+        return nullptr;
+    }
+    PreStmtWithBound* ps = new PreStmtWithBound();
+    ps->preStatement = prepared_statement;
+    
+    jobject ret = createJavaObject(env, ps, "tools/java_api/KuzuPreparedStatement", "ps_ref");
+    return ret;
 }
 
 JNIEXPORT jobject JNICALL Java_tools_java_1api_KuzuNative_kuzu_1connection_1execute
-  (JNIEnv *, jclass, jobject, jobject) {
-    // TODO: Implement prepared statement
+  (JNIEnv * env, jclass, jobject thisConn, jobject preStm) {
+    Connection* conn = getConnection(env, thisConn);
+    PreStmtWithBound* ps = getPreStmtWithBound(env, preStm);
+
+    auto query_result = conn->executeWithParams(ps->preStatement, ps->bound_values).release();
+    if (query_result == nullptr) {
+        return nullptr;
+    }
+
+    jobject ret = createJavaObject(env, query_result, "tools/java_api/KuzuQueryResult", "qr_ref");
+    return ret;
 }
 
 JNIEXPORT jstring JNICALL Java_tools_java_1api_KuzuNative_kuzu_1connection_1get_1node_1table_1names
@@ -196,8 +240,156 @@ JNIEXPORT void JNICALL Java_tools_java_1api_KuzuNative_kuzu_1connection_1set_1qu
     conn->setQueryTimeOut(timeout);
 }
 
-// TODO: Implement prepared statement
+JNIEXPORT void JNICALL Java_tools_java_1api_KuzuNative_kuzu_1prepared_1statement_1destroy
+  (JNIEnv * env, jclass, jobject thisPS) {
+    PreStmtWithBound* ps = getPreStmtWithBound(env, thisPS);
+    ps->bound_values.clear();
+    free(ps);
+}
 
+JNIEXPORT jboolean JNICALL Java_tools_java_1api_KuzuNative_kuzu_1prepared_1statement_1allow_1active_1transaction
+  (JNIEnv * env, jclass, jobject thisPS) {
+    PreStmtWithBound* ps = getPreStmtWithBound(env, thisPS);
+    return static_cast<jboolean>(ps->preStatement->allowActiveTransaction());
+}
+
+JNIEXPORT jboolean JNICALL Java_tools_java_1api_KuzuNative_kuzu_1prepared_1statement_1is_1success
+  (JNIEnv * env, jclass, jobject thisPS) {
+    PreStmtWithBound* ps = getPreStmtWithBound(env, thisPS);
+    return static_cast<jboolean>(ps->preStatement->isSuccess());
+}
+
+JNIEXPORT jstring JNICALL Java_tools_java_1api_KuzuNative_kuzu_1prepared_1statement_1get_1error_1message
+  (JNIEnv * env, jclass, jobject thisPS) {
+    PreStmtWithBound* ps = getPreStmtWithBound(env, thisPS);
+    std::string errorMessage = ps->preStatement->getErrorMessage();
+    jstring msg = env->NewStringUTF(errorMessage.c_str());
+    return msg;
+}
+
+JNIEXPORT void JNICALL Java_tools_java_1api_KuzuNative_kuzu_1prepared_1statement_1bind_1bool
+  (JNIEnv * env, jclass, jobject thisPS, jstring param_name, jboolean value) {
+    PreStmtWithBound* ps = getPreStmtWithBound(env, thisPS);
+    std::string name = env->GetStringUTFChars(param_name, JNI_FALSE);
+    bool cppvalue = static_cast<bool>(value);
+    auto value_ptr = std::make_shared<Value>(cppvalue);
+    ps->bound_values.insert({name, value_ptr});
+}
+
+JNIEXPORT void JNICALL Java_tools_java_1api_KuzuNative_kuzu_1prepared_1statement_1bind_1int64
+  (JNIEnv * env, jclass, jobject thisPS, jstring param_name, jlong value) {
+    PreStmtWithBound* ps = getPreStmtWithBound(env, thisPS);
+    std::string name = env->GetStringUTFChars(param_name, JNI_FALSE);
+    int64_t cppvalue = static_cast<int64_t>(value);
+    auto value_ptr = std::make_shared<Value>(cppvalue);
+    ps->bound_values.insert({name, value_ptr});
+}
+
+JNIEXPORT void JNICALL Java_tools_java_1api_KuzuNative_kuzu_1prepared_1statement_1bind_1int32
+  (JNIEnv * env, jclass, jobject thisPS, jstring param_name, jint value) {
+    PreStmtWithBound* ps = getPreStmtWithBound(env, thisPS);
+    std::string name = env->GetStringUTFChars(param_name, JNI_FALSE);
+    int32_t cppvalue = static_cast<int32_t>(value);
+    auto value_ptr = std::make_shared<Value>(cppvalue);
+    ps->bound_values.insert({name, value_ptr});
+}
+
+JNIEXPORT void JNICALL Java_tools_java_1api_KuzuNative_kuzu_1prepared_1statement_1bind_1int16
+  (JNIEnv * env, jclass, jobject thisPS, jstring param_name, jshort value) {
+    PreStmtWithBound* ps = getPreStmtWithBound(env, thisPS);
+    std::string name = env->GetStringUTFChars(param_name, JNI_FALSE);
+    int16_t cppvalue = static_cast<int16_t>(value);
+    auto value_ptr = std::make_shared<Value>(cppvalue);
+    ps->bound_values.insert({name, value_ptr});
+}
+
+JNIEXPORT void JNICALL Java_tools_java_1api_KuzuNative_kuzu_1prepared_1statement_1bind_1double
+  (JNIEnv * env, jclass, jobject thisPS, jstring param_name, jdouble value) {
+    PreStmtWithBound* ps = getPreStmtWithBound(env, thisPS);
+    std::string name = env->GetStringUTFChars(param_name, JNI_FALSE);
+    double cppvalue = static_cast<double>(value);
+    auto value_ptr = std::make_shared<Value>(cppvalue);
+    ps->bound_values.insert({name, value_ptr});
+}
+
+JNIEXPORT void JNICALL Java_tools_java_1api_KuzuNative_kuzu_1prepared_1statement_1bind_1float
+  (JNIEnv * env, jclass, jobject thisPS, jstring param_name, jfloat value) {
+    PreStmtWithBound* ps = getPreStmtWithBound(env, thisPS);
+    std::string name = env->GetStringUTFChars(param_name, JNI_FALSE);
+    float cppvalue = static_cast<float>(value);
+    auto value_ptr = std::make_shared<Value>(cppvalue);
+    ps->bound_values.insert({name, value_ptr});
+}
+
+JNIEXPORT void JNICALL Java_tools_java_1api_KuzuNative_kuzu_1prepared_1statement_1bind_1date
+  (JNIEnv * env, jclass, jobject thisPS, jstring param_name, jobject value) {
+    PreStmtWithBound* ps = getPreStmtWithBound(env, thisPS);
+    std::string name = env->GetStringUTFChars(param_name, JNI_FALSE);
+
+    jclass javaDateClass = env->GetObjectClass(value);
+    jfieldID fieldID = env->GetFieldID(javaDateClass, "days", "I");
+    jint days = env->GetLongField(value, fieldID);
+
+    int cppdays = static_cast<int>(days);
+    auto value_ptr = std::make_shared<Value>(date_t(cppdays));
+    ps->bound_values.insert({name, value_ptr});
+}
+
+JNIEXPORT void JNICALL Java_tools_java_1api_KuzuNative_kuzu_1prepared_1statement_1bind_1timestamp
+  (JNIEnv * env, jclass, jobject thisPS, jstring param_name, jobject value) {
+    PreStmtWithBound* ps = getPreStmtWithBound(env, thisPS);
+    std::string name = env->GetStringUTFChars(param_name, JNI_FALSE);
+
+    jclass javaTimestampClass = env->GetObjectClass(value);
+    jfieldID fieldID = env->GetFieldID(javaTimestampClass, "value", "J");
+    jint time = env->GetLongField(value, fieldID);
+
+    int64_t cpptime = static_cast<int>(time);
+    auto value_ptr = std::make_shared<Value>(timestamp_t(cpptime));
+    ps->bound_values.insert({name, value_ptr});
+}
+
+JNIEXPORT void JNICALL Java_tools_java_1api_KuzuNative_kuzu_1prepared_1statement_1bind_1interval
+  (JNIEnv * env, jclass, jobject thisPS, jstring param_name, jobject value) {
+    PreStmtWithBound* ps = getPreStmtWithBound(env, thisPS);
+    std::string name = env->GetStringUTFChars(param_name, JNI_FALSE);
+
+    jclass javaIntervalClass = env->GetObjectClass(value);
+    jfieldID monthsFieldID = env->GetFieldID(javaIntervalClass, "month", "I");
+    jfieldID daysFieldID = env->GetFieldID(javaIntervalClass, "days", "I");
+    jfieldID microsFieldID = env->GetFieldID(javaIntervalClass, "micros", "J");
+
+    jint months = env->GetLongField(value, monthsFieldID);
+    jint days = env->GetLongField(value, daysFieldID);
+    jint micros = env->GetLongField(value, microsFieldID);
+
+    int32_t cppMonths = static_cast<int32_t>(months);
+    int32_t cppDays = static_cast<int32_t>(days);
+    int64_t cppMicros = static_cast<int64_t>(micros);
+
+    auto value_ptr = std::make_shared<Value>(interval_t(cppMonths, cppDays, cppMicros));
+    ps->bound_values.insert({name, value_ptr});
+}
+
+JNIEXPORT void JNICALL Java_tools_java_1api_KuzuNative_kuzu_1prepared_1statement_1bind_1string
+  (JNIEnv * env, jclass, jobject thisPS, jstring param_name, jstring value) {
+    PreStmtWithBound* ps = getPreStmtWithBound(env, thisPS);
+    std::string name = env->GetStringUTFChars(param_name, JNI_FALSE);
+    std::string cppValue = env->GetStringUTFChars(value, JNI_FALSE);
+    
+    auto value_ptr = std::make_shared<Value>(cppValue);
+    ps->bound_values.insert({name, value_ptr});
+}
+
+JNIEXPORT void JNICALL Java_tools_java_1api_KuzuNative_kuzu_1prepared_1statement_1bind_1value
+  (JNIEnv * env, jclass, jobject thisPS, jstring param_name, jobject value) {
+    PreStmtWithBound* ps = getPreStmtWithBound(env, thisPS);
+    Value* v = getValue(env, value);
+    std::string name = env->GetStringUTFChars(param_name, JNI_FALSE);
+
+    auto value_ptr = std::make_shared<Value>(v);
+    ps->bound_values.insert({name, value_ptr});
+}
 
 QueryResult* getQueryResult(JNIEnv * env, jobject thisQR) {
     jclass javaQRClass = env->GetObjectClass(thisQR);
@@ -315,9 +507,7 @@ JNIEXPORT jstring JNICALL Java_tools_java_1api_KuzuNative_kuzu_1query_1result_1t
   (JNIEnv * env, jclass, jobject thisQR) {
     QueryResult* qr = getQueryResult(env, thisQR);
     std::string result_string = qr->toString();
-    std::cout << "result_string back" << std::endl;
     jstring ret = env->NewStringUTF(result_string.c_str());
-    std::cout << "newstringUTF back" << std::endl;
     return ret;
 }
 
@@ -339,4 +529,37 @@ JNIEXPORT void JNICALL Java_tools_java_1api_KuzuNative_kuzu_1query_1result_1rese
   (JNIEnv * env, jclass, jobject thisQR) {
     QueryResult* qr = getQueryResult(env, thisQR);
     qr->resetIterator();
+}
+
+FlatTuple* getFlatTuple(JNIEnv * env, jobject thisFT) {
+    jclass javaFTClass = env->GetObjectClass(thisFT);
+    jfieldID fieldID = env->GetFieldID(javaFTClass, "ft_ref", "J");
+    jlong fieldValue = env->GetLongField(thisFT, fieldID);
+
+    uint64_t address = static_cast<uint64_t>(fieldValue);
+    FlatTuple* ft = reinterpret_cast<FlatTuple*>(address);
+    return ft;
+}
+
+JNIEXPORT void JNICALL Java_tools_java_1api_KuzuNative_kuzu_1flat_1tuple_1destroy
+  (JNIEnv * env, jclass, jobject thisFT) {
+    FlatTuple* ft = getFlatTuple(env, thisFT);
+    free(ft);
+}
+
+JNIEXPORT jobject JNICALL Java_tools_java_1api_KuzuNative_kuzu_1flat_1tuple_1get_1value
+  (JNIEnv * env, jclass, jobject thisFT, jlong index) {
+    FlatTuple* ft = getFlatTuple(env, thisFT);
+    uint32_t idx = static_cast<uint32_t>(index);
+    Value* value = ft->getValue(idx);
+
+    return createJavaObject(env, value, "tools/java_api/KuzuValue", "v_ref");
+}
+
+JNIEXPORT jstring JNICALL Java_tools_java_1api_KuzuNative_kuzu_1flat_1tuple_1to_1string
+  (JNIEnv * env, jclass, jobject thisFT) {
+    FlatTuple* ft = getFlatTuple(env, thisFT);
+    std::string result_string = ft->toString();
+    jstring ret = env->NewStringUTF(result_string.c_str());
+    return ret;
 }

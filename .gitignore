@@ -51,3 +51,6 @@ tools/java_api/*.log
 tools/java_api/*.jar
 tools/java_api/*.dylib
 tools/java_api/test.java
+*.class
+tools/java_api/KuzuNative.h
+tools/java_api/error.txt
