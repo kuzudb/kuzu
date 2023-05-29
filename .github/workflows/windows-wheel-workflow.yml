@@ -1,0 +1,54 @@
+name: Build-Windows-Wheels
+
+on:
+  workflow_dispatch:
+    inputs:
+      pythonPackageVersion:
+        description: "Version of output Python package"
+        required: true
+        default: "0.0.1"
+
+env:
+  PYTHON_PACKAGE_VERSION: ${{ github.event.inputs.pythonPackageVersion }}
+
+jobs:
+  build-wheels:
+    runs-on: self-hosted-windows
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Create source distribution
+        working-directory: ./scripts/pip-package/
+        shell: cmd
+        run: |
+          if exist wheelhouse rmdir /s /q wheelhouse
+          mkdir wheelhouse
+          python.exe package_tar.py
+
+      # Manually set up cibuildwheel instead of importing their
+      # action since there seems to be an issue with quoting
+      # --only when inputs.only is empty.
+      # See https://github.com/pypa/cibuildwheel/blob/main/action.yml
+      - uses: actions/setup-python@v4
+        id: python
+        with:
+          python-version: "3.7 - 3.11"
+          update-environment: false
+
+      - name: Build Wheels
+        env:
+          CIBW_ARCHS_WINDOWS: AMD64
+          CIBW_SKIP: pp* cp36*
+          CIBW_BUILD_VERBOSITY: 3
+        shell: cmd
+        working-directory: ./scripts/pip-package/
+        run:
+          call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
+
+          pipx run --spec cibuildwheel cibuildwheel
+                   "kuzu.tar.gz"
+                   --output-dir "wheelhouse"
+
+      - uses: actions/upload-artifact@v3
+        with:
+          path: ./scripts/pip-package/wheelhouse/*.whl
