@@ -356,34 +356,34 @@ std::unique_ptr<FunctionBindData> ListSortVectorOperation::bindFunc(
     auto vectorOperationDefinition = reinterpret_cast<VectorOperationDefinition*>(definition);
     switch (VarListType::getChildType(&arguments[0]->dataType)->getLogicalTypeID()) {
     case LogicalTypeID::INT64: {
-        vectorOperationDefinition->execFunc = getExecFunction<int64_t>(arguments);
+        getExecFunction<int64_t>(arguments, vectorOperationDefinition->execFunc);
     } break;
     case LogicalTypeID::INT32: {
-        vectorOperationDefinition->execFunc = getExecFunction<int32_t>(arguments);
+        getExecFunction<int32_t>(arguments, vectorOperationDefinition->execFunc);
     } break;
     case LogicalTypeID::INT16: {
-        vectorOperationDefinition->execFunc = getExecFunction<int16_t>(arguments);
+        getExecFunction<int16_t>(arguments, vectorOperationDefinition->execFunc);
     } break;
     case LogicalTypeID::DOUBLE: {
-        vectorOperationDefinition->execFunc = getExecFunction<double_t>(arguments);
+        getExecFunction<double_t>(arguments, vectorOperationDefinition->execFunc);
     } break;
     case LogicalTypeID::FLOAT: {
-        vectorOperationDefinition->execFunc = getExecFunction<float_t>(arguments);
+        getExecFunction<float_t>(arguments, vectorOperationDefinition->execFunc);
     } break;
     case LogicalTypeID::BOOL: {
-        vectorOperationDefinition->execFunc = getExecFunction<uint8_t>(arguments);
+        getExecFunction<uint8_t>(arguments, vectorOperationDefinition->execFunc);
     } break;
     case LogicalTypeID::STRING: {
-        vectorOperationDefinition->execFunc = getExecFunction<ku_string_t>(arguments);
+        getExecFunction<ku_string_t>(arguments, vectorOperationDefinition->execFunc);
     } break;
     case LogicalTypeID::DATE: {
-        vectorOperationDefinition->execFunc = getExecFunction<date_t>(arguments);
+        getExecFunction<date_t>(arguments, vectorOperationDefinition->execFunc);
     } break;
     case LogicalTypeID::TIMESTAMP: {
-        vectorOperationDefinition->execFunc = getExecFunction<timestamp_t>(arguments);
+        getExecFunction<timestamp_t>(arguments, vectorOperationDefinition->execFunc);
     } break;
     case LogicalTypeID::INTERVAL: {
-        vectorOperationDefinition->execFunc = getExecFunction<interval_t>(arguments);
+        getExecFunction<interval_t>(arguments, vectorOperationDefinition->execFunc);
     } break;
     default: {
         throw common::NotImplementedException("ListSortVectorOperation::bindFunc");
@@ -393,16 +393,19 @@ std::unique_ptr<FunctionBindData> ListSortVectorOperation::bindFunc(
 }
 
 template<typename T>
-scalar_exec_func ListSortVectorOperation::getExecFunction(
-    const binder::expression_vector& arguments) {
+void ListSortVectorOperation::getExecFunction(
+    const binder::expression_vector& arguments, scalar_exec_func& func) {
     if (arguments.size() == 1) {
-        return UnaryListExecFunction<list_entry_t, list_entry_t, operation::ListSort<T>>;
+        func = UnaryListExecFunction<list_entry_t, list_entry_t, operation::ListSort<T>>;
+        return;
     } else if (arguments.size() == 2) {
-        return BinaryListExecFunction<list_entry_t, ku_string_t, list_entry_t,
-            operation::ListSort<T>>;
+        func =
+            BinaryListExecFunction<list_entry_t, ku_string_t, list_entry_t, operation::ListSort<T>>;
+        return;
     } else if (arguments.size() == 3) {
-        return TernaryListExecFunction<list_entry_t, ku_string_t, ku_string_t, list_entry_t,
+        func = TernaryListExecFunction<list_entry_t, ku_string_t, ku_string_t, list_entry_t,
             operation::ListSort<T>>;
+        return;
     } else {
         throw common::RuntimeException("Invalid number of arguments");
     }
@@ -425,34 +428,34 @@ std::unique_ptr<FunctionBindData> ListReverseSortVectorOperation::bindFunc(
     auto vectorOperationDefinition = reinterpret_cast<VectorOperationDefinition*>(definition);
     switch (VarListType::getChildType(&arguments[0]->dataType)->getLogicalTypeID()) {
     case LogicalTypeID::INT64: {
-        vectorOperationDefinition->execFunc = getExecFunction<int64_t>(arguments);
+        getExecFunction<int64_t>(arguments, vectorOperationDefinition->execFunc);
     } break;
     case LogicalTypeID::INT32: {
-        vectorOperationDefinition->execFunc = getExecFunction<int32_t>(arguments);
+        getExecFunction<int32_t>(arguments, vectorOperationDefinition->execFunc);
     } break;
     case LogicalTypeID::INT16: {
-        vectorOperationDefinition->execFunc = getExecFunction<int16_t>(arguments);
+        getExecFunction<int16_t>(arguments, vectorOperationDefinition->execFunc);
     } break;
     case LogicalTypeID::DOUBLE: {
-        vectorOperationDefinition->execFunc = getExecFunction<double_t>(arguments);
+        getExecFunction<double_t>(arguments, vectorOperationDefinition->execFunc);
     } break;
     case LogicalTypeID::FLOAT: {
-        vectorOperationDefinition->execFunc = getExecFunction<float_t>(arguments);
+        getExecFunction<float_t>(arguments, vectorOperationDefinition->execFunc);
     } break;
     case LogicalTypeID::BOOL: {
-        vectorOperationDefinition->execFunc = getExecFunction<uint8_t>(arguments);
+        getExecFunction<uint8_t>(arguments, vectorOperationDefinition->execFunc);
     } break;
     case LogicalTypeID::STRING: {
-        vectorOperationDefinition->execFunc = getExecFunction<ku_string_t>(arguments);
+        getExecFunction<ku_string_t>(arguments, vectorOperationDefinition->execFunc);
     } break;
     case LogicalTypeID::DATE: {
-        vectorOperationDefinition->execFunc = getExecFunction<date_t>(arguments);
+        getExecFunction<date_t>(arguments, vectorOperationDefinition->execFunc);
     } break;
     case LogicalTypeID::TIMESTAMP: {
-        vectorOperationDefinition->execFunc = getExecFunction<timestamp_t>(arguments);
+        getExecFunction<timestamp_t>(arguments, vectorOperationDefinition->execFunc);
     } break;
     case LogicalTypeID::INTERVAL: {
-        vectorOperationDefinition->execFunc = getExecFunction<interval_t>(arguments);
+        getExecFunction<interval_t>(arguments, vectorOperationDefinition->execFunc);
     } break;
     default: {
         throw common::NotImplementedException("ListReverseSortVectorOperation::bindFunc");
@@ -462,13 +465,15 @@ std::unique_ptr<FunctionBindData> ListReverseSortVectorOperation::bindFunc(
 }
 
 template<typename T>
-scalar_exec_func ListReverseSortVectorOperation::getExecFunction(
-    const binder::expression_vector& arguments) {
+void ListReverseSortVectorOperation::getExecFunction(
+    const binder::expression_vector& arguments, scalar_exec_func& func) {
     if (arguments.size() == 1) {
-        return UnaryListExecFunction<list_entry_t, list_entry_t, operation::ListReverseSort<T>>;
+        func = UnaryListExecFunction<list_entry_t, list_entry_t, operation::ListReverseSort<T>>;
+        return;
     } else if (arguments.size() == 2) {
-        return BinaryListExecFunction<list_entry_t, ku_string_t, list_entry_t,
+        func = BinaryListExecFunction<list_entry_t, ku_string_t, list_entry_t,
             operation::ListReverseSort<T>>;
+        return;
     } else {
         throw common::RuntimeException("Invalid number of arguments");
     }

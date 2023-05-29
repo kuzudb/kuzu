@@ -11,7 +11,7 @@
 namespace kuzu {
 namespace function {
 
-struct VectorStringOperations {
+struct VectorStringOperations : public VectorOperations {
 
     template<typename A_TYPE, typename B_TYPE, typename C_TYPE, typename RESULT_TYPE, typename FUNC>
     static void TernaryStringExecFunction(
