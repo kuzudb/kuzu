@@ -1,0 +1,203 @@
+-GROUP TinySnbExceptionTest
+-DATASET tinysnb
+
+--
+
+-CASE ReadVarlengthRelPropertyTest1
+-QUERY MATCH (a:person)-[e:knows*1..3]->(b:person) RETURN e.age
+---- error
+Binder exception: e has data type RECURSIVE_REL. (NODE,REL,STRUCT) was expected.
+
+-CASE ReadVarlengthRelPropertyTest2
+-QUERY MATCH (a:person)-[e:knows*1..3]->(b:person) WHERE ID(e) = 0 RETURN COUNT(*)
+---- error
+Binder exception: e has data type RECURSIVE_REL. (NODE,REL) was expected.
+
+-CASE AccessRelInternalIDTest
+-QUERY MATCH (a:person)-[e:knows]->(b:person) WHERE e._id > 1 RETURN COUNT(*)
+---- error
+Binder exception: _id is reserved for system usage. External access is not allowed.
+
+-CASE InsertNodeWithoutPrimaryKeyTest
+-STATEMENT CREATE (a:person {isWorker:true})
+---- error
+Binder exception: Create node a expects primary key ID as input.
+
+-CASE InsertNodeWithExistedPKError1
+-STATEMENT CREATE (a:person {ID:0, fName:'Charlie'})
+---- error
+Runtime exception: A node is created with an existed primary key 0, which violates the uniqueness constraint of the primary key property.
+
+-CASE InsertNodeWithExistedPKError2
+-STATEMENT CREATE (a:person {ID:100, fName:'Charlie'})
+---- ok
+-STATEMENT CREATE (a:person {ID:100, fName:'Guodong'})
+---- error
+Runtime exception: A node is created with an existed primary key 100, which violates the uniqueness constraint of the primary key property.
+
+-CASE InsertNodeWithNullPK
+-STATEMENT CREATE (a:person {ID:NULL, fName:'Guodong'})
+---- error
+Runtime exception: Null is not allowed as a primary key value.
+
+-CASE DeleteNodeWithEdgeErrorTest
+-STATEMENT MATCH (a:person) WHERE a.ID = 0 DELETE a
+---- error
+Runtime exception: Currently deleting a node with edges is not supported. node table 0 nodeOffset 0 has 3 (one-to-many or many-to-many) edges for edge file: ${KUZU_ROOT_DIRECTORY}/test/unittest_temp/r-3-0.lists.
+
+-CASE CastStrToTimestampError
+
+-NAME MissingDay
+-QUERY MATCH (a:person) return timestamp("2112-08 08:21:23.005612")
+---- error
+Error occurred during parsing timestamp. Given: "2112-08 08:21:23.005612". Expected format: (YYYY-MM-DD hh:mm:ss[.zzzzzz][+-TT[:tt]])
+
+-NAME MissingSecond
+-QUERY MATCH (a:person) return timestamp("2112-08-04 08:23.005612")
+---- error
+Error occurred during parsing timestamp. Given: "2112-08-04 08:23.005612". Expected format: (YYYY-MM-DD hh:mm:ss[.zzzzzz][+-TT[:tt]])
+
+-NAME MissingADigitInDay
+-QUERY MATCH (a:person) return timestamp("2112-08-0")
+---- error
+Date out of range: 2112-8-0.
+
+-NAME InvalidTimezoneFormat
+-QUERY MATCH (a:person) return timestamp("1992-04-28T09:33:56-XX:DD")
+---- error
+Error occurred during parsing timestamp. Given: "1992-04-28T09:33:56-XX:DD". Expected format: (YYYY-MM-DD hh:mm:ss[.zzzzzz][+-TT[:tt]])
+
+-NAME MissingPlusMinusSign
+-QUERY MATCH (a:person) return timestamp("2112-08-21 08:21:23.005612Z02:00")
+---- error
+Error occurred during parsing timestamp. Given: "2112-08-21 08:21:23.005612Z02:00". Expected format: (YYYY-MM-DD hh:mm:ss[.zzzzzz][+-TT[:tt]])
+
+-NAME IncorrectTimezoneMinutes
+-QUERY MATCH (a:person) return timestamp("2112-08-21 08:21:23.005612Z+02:100")
+---- error
+Error occurred during parsing timestamp. Given: "2112-08-21 08:21:23.005612Z+02:100". Expected format: (YYYY-MM-DD hh:mm:ss[.zzzzzz][+-TT[:tt]])
+
+-NAME IncorrectTimezoneHours
+-QUERY MATCH (a:person) return timestamp("2112-08-21 08:21:23.005612Z+021")
+---- error
+Error occurred during parsing timestamp. Given: "2112-08-21 08:21:23.005612Z+021". Expected format: (YYYY-MM-DD hh:mm:ss[.zzzzzz][+-TT[:tt]])
+
+-CASE CastStrToIntervalError
+
+-NAME MissingTheSpecifierString
+-QUERY MATCH (a:person) return interval("3 years 2 months 45")
+---- error
+Error occurred during parsing interval. Field name is missing.
+
+-NAME MissingTheNumberBeforeTheSpecifierString
+-QUERY MATCH (a:person) return interval("20 years 30 months 20 days minutes")
+---- error
+Error occurred during parsing interval. Given: "20 years 30 months 20 days minutes".
+
+-NAME NumbersAndSpecifierStringAreNotSeparatedBySpaces
+-QUERY MATCH (a:person) return interval("2 years 30 minutes20 seconds")
+---- error
+Unrecognized interval specifier string: minutes20.
+
+-NAME UnrecognizedSpecifierStringMillseconds)
+-QUERY MATCH (a:person) return interval("10 years 2 days 48 hours 28 seconds 12 millseconds")
+---- error
+Unrecognized interval specifier string: millseconds.
+
+-NAME MultipleSpecifierStrings
+-QUERY MATCH (a:person) return interval("10 years 2 days 48 hours 28 seconds microseconds")
+---- error
+Error occurred during parsing interval. Given: "10 years 2 days 48 hours 28 seconds microseconds".
+
+-CASE SetListPropertyError
+-QUERY MATCH (a:person) SET a.workedHours=['A', 'B']
+---- error
+Binder exception: Expression LIST_CREATION(A,B) has data type STRING[] but expect INT64[]. Implicit cast is not supported.
+
+-CASE ListFunctionMatchError1
+-QUERY MATCH (a:person) RETURN array_concat(a.workedHours, a.age)
+---- error
+Binder exception: Cannot match a built-in function for given function ARRAY_CONCAT(VAR_LIST,INT64). Supported inputs are
+(VAR_LIST,VAR_LIST) -> VAR_LIST
+
+-CASE ListFunctionMatchError2
+-QUERY MATCH (a:person) RETURN array_concat(a.workedHours, ['A'])
+---- error
+Binder exception: Cannot bind LIST_CONCAT with parameter type INT64[] and STRING[].
+
+-CASE ListFunctionMatchError3
+-QUERY MATCH (a:person) RETURN [a.age, a.fName]
+---- error
+Binder exception: Cannot bind LIST_CREATION with parameter type INT64 and STRING.
+
+-CASE ListPrepareError
+-QUERY MATCH (a:person) RETURN len($1)
+---- error
+Binder exception: Cannot resolve recursive data type for expression $1.
+
+# -CASE ParsingErrorRollbackTest
+#     conn->beginWriteTransaction();
+#     conn->query("create (p:person {ID: 100})");
+#     ASSERT_EQ(TestHelper::convertResultToString(*conn->query("MATCH (:person) RETURN count(*)")),
+#         std::vector<std::string>{"9"});
+#     auto result = conn->query("RETURN make_date(2011,1,32)");
+#     ASSERT_STREQ(result->getErrorMessage().c_str(), "Date out of range: 2011-1-32.");
+#     ASSERT_EQ(TestHelper::convertResultToString(*conn->query("MATCH (:person) RETURN count(*)")),
+#         std::vector<std::string>{"8"});
+# }
+ 
+
+-CASE DivideBy0Error
+-QUERY RETURN 1 / 0
+---- error
+Runtime exception: Divide by zero.
+
+-CASE ModuloBy0Error
+-QUERY RETURN 1 % 0
+---- error
+Runtime exception: Modulo by zero.
+
+-CASE EmptyQuery
+-QUERY  
+---- error
+Connection Exception: Query is empty.
+
+-CASE ReadAfterUpdate2
+-QUERY MATCH (a:person) WHERE a.age = 35 DELETE a WITH a MATCH (a)-[:knows]->(b:person) RETURN a.age
+---- error
+Binder exception: Read after update is not supported.
+
+-CASE Overflow
+-QUERY RETURN to_int16(10000000000)
+---- error
+Runtime exception: Cast failed. 10000000000 is not in INT16 range.
+
+-CASE Int32PrimaryKey
+-STATEMENT CREATE NODE TABLE play(a INT32, PRIMARY KEY (a))
+---- error
+Binder exception: Invalid primary key type: INT32. Expected STRING or INT64.
+
+-CASE MultiLabelUpdate
+-STATEMENT CREATE (a:person:organisation {ID:0})
+---- error
+Binder exception: Create node a with multiple node labels is not supported.
+
+-STATEMENT MATCH (a:person), (b:person:organisation) CREATE (a)-[e:knows]->(b)
+---- error
+Binder exception: Create rel e with multiple rel labels or bound by multiple node labels is not supported.
+
+-STATEMENT MATCH (a:person:organisation) DELETE a
+---- error
+Binder exception: Delete node a with multiple node labels is not supported.
+
+-STATEMENT MATCH (a:person:organisation)-[e:knows]->(b:person) DELETE e
+---- error
+Binder exception: Delete rel e with multiple rel labels or bound by multiple node labels is not supported.
+
+-QUERY MATCH (a:person:organisation) SET a.age = 0
+---- error
+Binder exception: Set property of node a with multiple node labels is not supported.
+
+-STATEMENT MATCH (a:person:organisation)-[e:knows]->(b:person) SET e.date=date('2022-12-12')
+---- error
+Binder exception: Set property of rel e with multiple rel labels or bound by multiple node labels is not supported.

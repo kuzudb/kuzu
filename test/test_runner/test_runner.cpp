@@ -57,9 +57,11 @@ bool TestRunner::checkLogicalPlan(std::unique_ptr<PreparedStatement>& preparedSt
     TestStatement* statement, Connection& conn, uint32_t planIdx) {
     auto result = conn.executeAndAutoCommitIfNecessaryNoLock(preparedStatement.get(), planIdx);
     if (statement->expectedError) {
-        if (statement->errorMessage == StringUtils::rtrim(result->getErrorMessage())) {
+        std::string expectedError = StringUtils::rtrim(result->getErrorMessage());
+        if (statement->errorMessage == expectedError) {
             return true;
         }
+        spdlog::info("EXPECTED ERROR: {}", expectedError);
     } else if (statement->expectedOk && result->isSuccess()) {
         return true;
     } else {

@@ -75,6 +75,7 @@ void TestParser::extractExpectedResult(TestStatement* statement) {
         statement->errorMessage = extractTextBeforeNextStatement();
         replaceVariables(statement->errorMessage);
     } else {
+        checkMinimumParams(1);
         statement->expectedNumTuples = stoi(result);
         for (auto i = 0u; i < statement->expectedNumTuples; i++) {
             nextLine();
