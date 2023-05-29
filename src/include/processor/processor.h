@@ -21,9 +21,6 @@ private:
     void decomposePlanIntoTasks(PhysicalOperator* op, PhysicalOperator* parent,
         common::Task* parentTask, ExecutionContext* context);
 
-    static std::shared_ptr<FactorizedTable> getFactorizedTableForOutputMsg(
-        std::string& outputMsg, storage::MemoryManager* memoryManager);
-
 private:
     std::unique_ptr<common::TaskScheduler> taskScheduler;
 };

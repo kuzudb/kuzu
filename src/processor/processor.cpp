@@ -2,6 +2,7 @@
 
 #include "processor/operator/aggregate/base_aggregate.h"
 #include "processor/operator/copy/copy.h"
+#include "processor/operator/copy/copy_node.h"
 #include "processor/operator/result_collector.h"
 #include "processor/operator/sink.h"
 #include "processor/processor_task.h"
@@ -18,10 +19,11 @@ QueryProcessor::QueryProcessor(uint64_t numThreads) {
 
 std::shared_ptr<FactorizedTable> QueryProcessor::execute(
     PhysicalPlan* physicalPlan, ExecutionContext* context) {
-    if (physicalPlan->isCopy()) {
+    if (physicalPlan->isCopyRelOrNPY()) {
         auto copy = (Copy*)physicalPlan->lastOperator.get();
         auto outputMsg = copy->execute(taskScheduler.get(), context);
-        return getFactorizedTableForOutputMsg(outputMsg, context->memoryManager);
+        return FactorizedTableUtils::getFactorizedTableForOutputMsg(
+            outputMsg, context->memoryManager);
     } else {
         auto lastOperator = physicalPlan->lastOperator.get();
         // Init global state before decompose into pipelines. Otherwise, each pipeline will try to
@@ -81,28 +83,6 @@ void QueryProcessor::decomposePlanIntoTasks(
     default:
         break;
     }
-}
-
-std::shared_ptr<FactorizedTable> QueryProcessor::getFactorizedTableForOutputMsg(
-    std::string& outputMsg, MemoryManager* memoryManager) {
-    auto ftTableSchema = std::make_unique<FactorizedTableSchema>();
-    ftTableSchema->appendColumn(
-        std::make_unique<ColumnSchema>(false /* flat */, 0 /* dataChunkPos */,
-            FactorizedTable::getDataTypeSize(LogicalType{LogicalTypeID::STRING})));
-    auto factorizedTable =
-        std::make_shared<FactorizedTable>(memoryManager, std::move(ftTableSchema));
-    auto outputMsgVector = std::make_shared<ValueVector>(LogicalTypeID::STRING, memoryManager);
-    auto outputMsgChunk = std::make_shared<DataChunk>(1 /* numValueVectors */);
-    outputMsgChunk->insert(0 /* pos */, outputMsgVector);
-    ku_string_t outputKUStr = ku_string_t();
-    outputKUStr.overflowPtr = reinterpret_cast<uint64_t>(
-        common::StringVector::getInMemOverflowBuffer(outputMsgVector.get())
-            ->allocateSpace(outputMsg.length()));
-    outputKUStr.set(outputMsg);
-    outputMsgVector->setValue(0, outputKUStr);
-    outputMsgVector->state->currIdx = 0;
-    factorizedTable->append(std::vector<ValueVector*>{outputMsgVector.get()});
-    return factorizedTable;
 }
 
 } // namespace processor

@@ -57,6 +57,8 @@ std::unique_ptr<AuxiliaryBuffer> AuxiliaryBufferFactory::getAuxiliaryBuffer(
     case LogicalTypeID::VAR_LIST:
         return std::make_unique<ListAuxiliaryBuffer>(
             *VarListType::getChildType(&type), memoryManager);
+    case LogicalTypeID::ARROW_COLUMN:
+        return std::make_unique<ArrowColumnAuxiliaryBuffer>();
     default:
         return nullptr;
     }

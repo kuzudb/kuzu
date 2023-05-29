@@ -36,7 +36,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyClause(const Statement& statemen
                 tableSchema->tableName));
         }
     }
-    return make_unique<BoundCopy>(
+    return std::make_unique<BoundCopy>(
         CopyDescription(boundFilePaths, csvReaderConfig, actualFileType), tableID, tableName);
 }
 

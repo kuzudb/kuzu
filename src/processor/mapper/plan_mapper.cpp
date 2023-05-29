@@ -11,10 +11,13 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace processor {
 
-std::unique_ptr<PhysicalPlan> PlanMapper::mapLogicalPlanToPhysical(LogicalPlan* logicalPlan,
-    const binder::expression_vector& expressionsToCollect, common::StatementType statementType) {
+std::unique_ptr<PhysicalPlan> PlanMapper::mapLogicalPlanToPhysical(
+    LogicalPlan* logicalPlan, const binder::expression_vector& expressionsToCollect) {
     auto lastOperator = mapLogicalOperatorToPhysical(logicalPlan->getLastOperator());
-    if (!StatementTypeUtils::isCopyCSV(statementType)) {
+    // We have a special code path for executing copy rel and copy npy, so we don't need to append
+    // the resultCollector.
+    if (lastOperator->getOperatorType() != PhysicalOperatorType::COPY_REL &&
+        lastOperator->getOperatorType() != PhysicalOperatorType::COPY_NPY) {
         lastOperator = appendResultCollector(
             expressionsToCollect, logicalPlan->getSchema(), std::move(lastOperator));
     }

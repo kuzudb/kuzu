@@ -28,6 +28,8 @@ public:
 
     inline std::shared_ptr<FactorizedTable> getTable() { return table; }
 
+    inline void setTable(std::shared_ptr<FactorizedTable> other) { table = other; }
+
     inline uint64_t getMaxMorselSize() {
         std::lock_guard<std::mutex> lck{mtx};
         return table->hasUnflatCol() ? 1 : common::DEFAULT_VECTOR_CAPACITY;

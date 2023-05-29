@@ -1,5 +1,6 @@
 #pragma once
 
+#include "arrow/array.h"
 #include "common/in_mem_overflow_buffer.h"
 
 namespace kuzu {
@@ -41,6 +42,13 @@ public:
 
 private:
     std::vector<std::shared_ptr<ValueVector>> childrenVectors;
+};
+
+class ArrowColumnAuxiliaryBuffer : public AuxiliaryBuffer {
+    friend class ArrowColumnVector;
+
+private:
+    std::shared_ptr<arrow::Array> column;
 };
 
 // ListVector layout:

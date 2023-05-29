@@ -87,6 +87,9 @@ uint32_t ValueVector::getDataTypeSize(const LogicalType& type) {
     case LogicalTypeID::VAR_LIST: {
         return sizeof(list_entry_t);
     }
+    case LogicalTypeID::ARROW_COLUMN: {
+        return 0;
+    }
     default: {
         return LogicalTypeUtils::getFixedTypeSize(type.getPhysicalType());
     }
@@ -100,6 +103,13 @@ void ValueVector::initializeValueBuffer() {
         // valueVector.
         StructVector::initializeEntries(this);
     }
+}
+
+void ArrowColumnVector::setArrowColumn(
+    kuzu::common::ValueVector* vector, std::shared_ptr<arrow::Array> column) {
+    auto arrowColumnBuffer =
+        reinterpret_cast<ArrowColumnAuxiliaryBuffer*>(vector->auxiliaryBuffer.get());
+    arrowColumnBuffer->column = std::move(column);
 }
 
 template void ValueVector::setValue<nodeID_t>(uint32_t pos, nodeID_t val);

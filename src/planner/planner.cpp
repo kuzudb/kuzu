@@ -8,6 +8,7 @@
 #include "binder/ddl/bound_drop_table.h"
 #include "binder/ddl/bound_rename_property.h"
 #include "binder/ddl/bound_rename_table.h"
+#include "binder/expression/variable_expression.h"
 #include "planner/logical_plan/logical_operator/logical_add_property.h"
 #include "planner/logical_plan/logical_operator/logical_copy.h"
 #include "planner/logical_plan/logical_operator/logical_create_node_table.h"
@@ -39,7 +40,7 @@ std::unique_ptr<LogicalPlan> Planner::getBestPlan(const Catalog& catalog,
         plan = planCreateRelTable(statement);
     } break;
     case StatementType::COPY: {
-        plan = planCopy(statement);
+        plan = planCopy(catalog, statement);
     } break;
     case StatementType::DROP_TABLE: {
         plan = planDropTable(statement);
@@ -151,11 +152,24 @@ std::unique_ptr<LogicalPlan> Planner::planRenameProperty(const BoundStatement& s
     return plan;
 }
 
-std::unique_ptr<LogicalPlan> Planner::planCopy(const BoundStatement& statement) {
+std::unique_ptr<LogicalPlan> Planner::planCopy(
+    const catalog::Catalog& catalog, const BoundStatement& statement) {
     auto& copyCSVClause = (BoundCopy&)statement;
     auto plan = std::make_unique<LogicalPlan>();
+    expression_vector arrowColumnExpressions;
+    for (auto& property :
+        catalog.getReadOnlyVersion()->getTableSchema(copyCSVClause.getTableID())->properties) {
+        if (property.dataType.getLogicalTypeID() != common::LogicalTypeID::SERIAL) {
+            arrowColumnExpressions.push_back(std::make_shared<VariableExpression>(
+                common::LogicalType{common::LogicalTypeID::ARROW_COLUMN}, property.name,
+                property.name));
+        }
+    }
     auto copyCSV = make_shared<LogicalCopy>(copyCSVClause.getCopyDescription(),
-        copyCSVClause.getTableID(), copyCSVClause.getTableName());
+        copyCSVClause.getTableID(), copyCSVClause.getTableName(), std::move(arrowColumnExpressions),
+        std::make_shared<VariableExpression>(
+            common::LogicalType{common::LogicalTypeID::INT64}, "startOffset", "startOffset"),
+        copyCSVClause.getStatementResult()->getSingleExpressionToCollect());
     plan->setLastOperator(std::move(copyCSV));
     return plan;
 }

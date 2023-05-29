@@ -1,5 +1,6 @@
 #include "processor/result/factorized_table.h"
 
+#include "common/data_chunk/data_chunk_state.h"
 #include "common/exception.h"
 #include "common/null_buffer.h"
 #include "common/vector/value_vector_utils.h"
@@ -691,6 +692,32 @@ void FactorizedTable::copyOverflowIfNecessary(
     default:
         return;
     }
+}
+
+void FactorizedTableUtils::appendStringToTable(
+    FactorizedTable* factorizedTable, std::string& outputMsg, MemoryManager* memoryManager) {
+    auto outputMsgVector =
+        std::make_shared<common::ValueVector>(common::LogicalTypeID::STRING, memoryManager);
+    outputMsgVector->state = DataChunkState::getSingleValueDataChunkState();
+    auto outputKUStr = common::ku_string_t();
+    outputKUStr.overflowPtr = reinterpret_cast<uint64_t>(
+        common::StringVector::getInMemOverflowBuffer(outputMsgVector.get())
+            ->allocateSpace(outputMsg.length()));
+    outputKUStr.set(outputMsg);
+    outputMsgVector->setValue(0, outputKUStr);
+    factorizedTable->append(std::vector<common::ValueVector*>{outputMsgVector.get()});
+}
+
+std::shared_ptr<FactorizedTable> FactorizedTableUtils::getFactorizedTableForOutputMsg(
+    std::string& outputMsg, storage::MemoryManager* memoryManager) {
+    auto ftTableSchema = std::make_unique<FactorizedTableSchema>();
+    ftTableSchema->appendColumn(
+        std::make_unique<ColumnSchema>(false /* flat */, 0 /* dataChunkPos */,
+            FactorizedTable::getDataTypeSize(common::LogicalType{common::LogicalTypeID::STRING})));
+    auto factorizedTable =
+        std::make_shared<FactorizedTable>(memoryManager, std::move(ftTableSchema));
+    appendStringToTable(factorizedTable.get(), outputMsg, memoryManager);
+    return factorizedTable;
 }
 
 FlatTupleIterator::FlatTupleIterator(FactorizedTable& factorizedTable, std::vector<Value*> values)
