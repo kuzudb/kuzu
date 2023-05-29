@@ -3,7 +3,7 @@
 PLATFORM="manylinux2014_x86_64"
 
 chmod +x ./package_tar.sh
-rm -rf wheelhouse kuzu.tar.gz && ./package_tar.sh
+rm -rf wheelhouse kuzu.tar.gz && /opt/python/cp311-cp311/bin/python ./package_tar.py
 mkdir wheelhouse
 
 # Build wheels, excluding pypy platforms and python 3.6

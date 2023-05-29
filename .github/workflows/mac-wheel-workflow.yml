@@ -21,7 +21,7 @@ jobs:
         run: |
           rm -rf wheelhouse kuzu.tar.gz
           mkdir wheelhouse
-          bash package_tar.sh
+          python3 package_tar.py
 
       - name: Build wheels for Apple Silicon
         uses: pypa/cibuildwheel@v2.12.0
