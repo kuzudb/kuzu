@@ -45,6 +45,8 @@ void parseAndRegisterTestGroup(const std::string& path) {
                     return new EndToEndReadTest(dataset, bufferPoolSize, std::move(testStatements));
                 });
         }
+    } else {
+        throw Exception("Invalid test file");
     }
 }
 

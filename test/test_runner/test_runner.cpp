@@ -12,6 +12,11 @@ namespace testing {
 void TestRunner::runTest(
     const std::vector<std::unique_ptr<TestStatement>>& statements, Connection& conn) {
     for (auto& statement : statements) {
+        initializeConnection(statement.get(), conn);
+        if (statement->isBeginWriteTransaction) {
+            conn.beginWriteTransaction();
+            continue;
+        }
         ASSERT_TRUE(testStatement(statement.get(), conn));
     }
 }
@@ -23,7 +28,6 @@ void TestRunner::initializeConnection(TestStatement* statement, Connection& conn
 }
 
 bool TestRunner::testStatement(TestStatement* statement, Connection& conn) {
-    initializeConnection(statement, conn);
     std::unique_ptr<PreparedStatement> preparedStatement;
     if (statement->encodedJoin.empty()) {
         preparedStatement = conn.prepareNoLock(statement->query, statement->enumerate);

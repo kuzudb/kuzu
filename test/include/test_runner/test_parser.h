@@ -10,6 +10,7 @@ enum class TokenType {
     GROUP,
     DATASET,
     TEST,
+    BEGIN_WRITE_TRANSACTION,
     BUFFER_POOL_SIZE,
     CASE,
     CHECK_ORDER,
@@ -34,6 +35,7 @@ const std::unordered_map<std::string, TokenType> tokenMap = {{"-GROUP", TokenTyp
     {"-CHECK_ORDER", TokenType::CHECK_ORDER}, {"-ENCODED_JOIN", TokenType::ENCODED_JOIN},
     {"-DEFINE_STATEMENT_BLOCK", TokenType::DEFINE_STATEMENT_BLOCK},
     {"-ENUMERATE", TokenType::ENUMERATE}, {"-NAME", TokenType::NAME},
+    {"-BEGIN_WRITE_TRANSACTION", TokenType::BEGIN_WRITE_TRANSACTION},
     {"-PARALLELISM", TokenType::PARALLELISM}, {"-QUERY", TokenType::QUERY},
     {"-READ_ONLY", TokenType::READ_ONLY}, {"-SKIP", TokenType::SKIP},
     {"-STATEMENT", TokenType::STATEMENT}, {"-STATEMENT_BLOCK", TokenType::STATEMENT_BLOCK},
@@ -56,6 +58,7 @@ public:
 
 private:
     std::ifstream fileStream;
+    std::streampos previousFilePosition;
     std::string line;
     std::string name;
     std::unique_ptr<TestGroup> testGroup;
@@ -71,7 +74,11 @@ private:
     void addStatementBlock(const std::string& blockName, const std::string& testGroupName);
     void replaceVariables(std::string& str);
     inline bool endOfFile() { return fileStream.eof(); }
-    inline bool nextLine() { return static_cast<bool>(getline(fileStream, line)); }
+    inline void setCursorToPreviousLine() { fileStream.seekg(previousFilePosition); }
+    inline bool nextLine() {
+        previousFilePosition = fileStream.tellg();
+        return static_cast<bool>(getline(fileStream, line));
+    }
     inline void checkMinimumParams(int minimumParams) {
         if (currentToken.params.size() < minimumParams) {
             throw common::Exception("Invalid number of parameters for statement [" + line + "]");

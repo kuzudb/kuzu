@@ -1,0 +1,19 @@
+-GROUP TinySnbExceptionTest
+-DATASET tinysnb
+
+--
+
+-CASE ParsingErrorRollbackTest
+
+-BEGIN_WRITE_TRANSACTION
+-STATEMENT CREATE (p:person {ID: 100})
+---- ok
+-QUERY MATCH (:person) RETURN count(*)
+---- 1
+9
+-QUERY RETURN make_date(2011,1,32)
+---- error
+Date out of range: 2011-1-32.
+-QUERY MATCH (:person) RETURN count(*)
+---- 1
+8

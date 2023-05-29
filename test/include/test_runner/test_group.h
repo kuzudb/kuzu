@@ -17,6 +17,7 @@ struct TestStatement {
     std::string errorMessage;
     bool enumerate = false;
     bool checkOutputOrder = false;
+    bool isBeginWriteTransaction = false;
 };
 
 // Test group is a collection of test cases in a single file.

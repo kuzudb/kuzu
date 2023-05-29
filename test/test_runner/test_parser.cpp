@@ -91,7 +91,8 @@ std::string TestParser::extractTextBeforeNextStatement() {
     std::string text;
     while (nextLine()) {
         tokenize();
-        if ((currentToken.type == TokenType::EMPTY) || (currentToken.type != TokenType::SKIP)) {
+        if (currentToken.type != TokenType::SKIP) {
+            setCursorToPreviousLine();
             break;
         }
         if (!text.empty()) {
@@ -141,6 +142,10 @@ TestStatement* TestParser::extractStatement(TestStatement* statement) {
     case TokenType::ENCODED_JOIN: {
         statement->encodedJoin = paramsToString();
         break;
+    }
+    case TokenType::BEGIN_WRITE_TRANSACTION: {
+        statement->isBeginWriteTransaction = true;
+        return statement;
     }
     case TokenType::EMPTY: {
         break;
