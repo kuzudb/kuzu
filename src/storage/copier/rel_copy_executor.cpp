@@ -644,7 +644,7 @@ void RelCopyExecutor::populateAdjColumnsAndCountRelsInAdjListsTask(uint64_t bloc
                         copier->catalog.getReadOnlyVersion()->getTableName(tableID),
                         RelDataDirectionUtils::relDataDirectionToString(relDirection)));
                 }
-                copier->adjColumnChunksPerDirection[relDirection]->setValue(
+                copier->adjColumnChunksPerDirection[relDirection]->setValueAtPos(
                     (uint8_t*)&nodeIDs[!relDirection].offset, nodeOffset);
             } else {
                 InMemListsUtils::incrementListSize(
@@ -769,7 +769,7 @@ void RelCopyExecutor::putValueIntoColumns(uint64_t propertyID,
         auto propertyColumnChunk =
             directionTablePropertyColumnChunks[relDirection][propertyID].get();
         auto nodeOffset = nodeIDs[relDirection].offset;
-        propertyColumnChunk->setValue(val, nodeOffset);
+        propertyColumnChunk->setValueAtPos(val, nodeOffset);
     }
 }
 

@@ -34,7 +34,7 @@ public:
         return ((T*)buffer.get())[pos];
     }
 
-    void setValue(uint8_t* val, common::offset_t pos);
+    void setValueAtPos(uint8_t* val, common::offset_t pos);
 
     inline bool isNull(common::offset_t pos) const {
         assert(nullChunk);
@@ -45,7 +45,7 @@ public:
     inline uint64_t getNumBytes() const { return numBytes; }
     inline InMemColumnChunk* getNullChunk() { return nullChunk.get(); }
     virtual void copyArrowArray(arrow::Array& arrowArray);
-    void flush(common::FileInfo* walFileInfo);
+    virtual void flush(common::FileInfo* walFileInfo);
 
     template<typename T>
     void templateCopyValuesToPage(arrow::Array& array);
@@ -65,6 +65,10 @@ public:
     }
 
 private:
+    inline virtual common::offset_t getOffsetInBuffer(common::offset_t pos) {
+        return pos * numBytesPerValue;
+    }
+
     static uint32_t getDataTypeSizeInColumn(common::LogicalType& dataType);
 
 protected:
@@ -130,6 +134,20 @@ private:
 
 private:
     std::vector<std::unique_ptr<InMemColumnChunk>> fieldChunks;
+};
+
+class InMemFixedListColumnChunk : public InMemColumnChunk {
+public:
+    InMemFixedListColumnChunk(common::LogicalType dataType, common::offset_t startNodeOffset,
+        common::offset_t endNodeOffset, const common::CopyDescription* copyDescription);
+
+    void flush(common::FileInfo* walFileInfo) override;
+
+private:
+    common::offset_t getOffsetInBuffer(common::offset_t pos) override;
+
+private:
+    uint64_t numElementsInAPage;
 };
 
 template<>
