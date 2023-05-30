@@ -85,10 +85,9 @@ private:
 class StringVector {
 public:
     static inline InMemOverflowBuffer* getInMemOverflowBuffer(ValueVector* vector) {
-        return vector->dataType.getLogicalTypeID() == LogicalTypeID::STRING ?
-                   reinterpret_cast<StringAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())
-                       ->getOverflowBuffer() :
-                   nullptr;
+        assert(vector->dataType.getLogicalTypeID() == LogicalTypeID::STRING);
+        return reinterpret_cast<StringAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())
+            ->getOverflowBuffer();
     }
 
     static inline void addString(

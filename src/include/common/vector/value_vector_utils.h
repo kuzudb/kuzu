@@ -15,10 +15,6 @@ public:
         uint8_t* dstData, InMemOverflowBuffer& dstOverflowBuffer);
     static void copyValue(uint8_t* dstValue, common::ValueVector& dstVector,
         const uint8_t* srcValue, const common::ValueVector& srcVector);
-
-private:
-    static void copyNonNullDataWithSameType(const LogicalType& dataType, const uint8_t* srcData,
-        uint8_t* dstData, InMemOverflowBuffer& inMemOverflowBuffer);
 };
 
 } // namespace common
