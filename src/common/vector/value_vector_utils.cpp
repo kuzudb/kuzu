@@ -46,11 +46,15 @@ void ValueVectorUtils::copyNonNullDataWithSameTypeIntoPos(
             srcListValues += numBytesPerValue;
         }
     } break;
-    default: {
-        copyNonNullDataWithSameType(resultVector.dataType, srcData,
-            resultVector.getData() +
-                pos * processor::FactorizedTable::getDataTypeSize(resultVector.dataType),
+    case LogicalTypeID::STRING: {
+        auto dstData = resultVector.getData() +
+                       pos * processor::FactorizedTable::getDataTypeSize(resultVector.dataType);
+        InMemOverflowBufferUtils::copyString(*(ku_string_t*)srcData, *(ku_string_t*)dstData,
             *StringVector::getInMemOverflowBuffer(&resultVector));
+    } break;
+    default: {
+        auto dataTypeSize = processor::FactorizedTable::getDataTypeSize(resultVector.dataType);
+        memcpy(resultVector.getData() + pos * dataTypeSize, srcData, dataTypeSize);
     }
     }
 }
@@ -104,11 +108,15 @@ void ValueVectorUtils::copyNonNullDataWithSameTypeOutFromPos(const ValueVector& 
         }
         memcpy(dstData, &dstList, sizeof(dstList));
     } break;
+    case LogicalTypeID::STRING: {
+        auto srcData = srcVector.getData() +
+                       pos * processor::FactorizedTable::getDataTypeSize(srcVector.dataType);
+        InMemOverflowBufferUtils::copyString(
+            *(ku_string_t*)srcData, *(ku_string_t*)dstData, dstOverflowBuffer);
+    } break;
     default: {
-        copyNonNullDataWithSameType(srcVector.dataType,
-            srcVector.getData() +
-                pos * processor::FactorizedTable::getDataTypeSize(srcVector.dataType),
-            dstData, dstOverflowBuffer);
+        auto dataTypeSize = processor::FactorizedTable::getDataTypeSize(srcVector.dataType);
+        memcpy(dstData, srcVector.getData() + pos * dataTypeSize, dataTypeSize);
     }
     }
 }
@@ -159,15 +167,5 @@ void ValueVectorUtils::copyValue(uint8_t* dstValue, common::ValueVector& dstVect
     default: {
         memcpy(dstValue, srcValue, srcVector.getNumBytesPerValue());
     }
-    }
-}
-
-void ValueVectorUtils::copyNonNullDataWithSameType(const LogicalType& dataType,
-    const uint8_t* srcData, uint8_t* dstData, InMemOverflowBuffer& inMemOverflowBuffer) {
-    if (dataType.getLogicalTypeID() == LogicalTypeID::STRING) {
-        InMemOverflowBufferUtils::copyString(
-            *(ku_string_t*)srcData, *(ku_string_t*)dstData, inMemOverflowBuffer);
-    } else {
-        memcpy(dstData, srcData, processor::FactorizedTable::getDataTypeSize(dataType));
     }
 }
