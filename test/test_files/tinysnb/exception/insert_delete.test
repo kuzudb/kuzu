@@ -1,0 +1,31 @@
+-GROUP TinySnbExceptionTest
+-DATASET tinysnb
+
+--
+
+-CASE InsertNodeWithoutPrimaryKeyTest
+-STATEMENT CREATE (a:person {isWorker:true})
+---- error
+Binder exception: Create node a expects primary key ID as input.
+
+-CASE InsertNodeWithExistedPKError1
+-STATEMENT CREATE (a:person {ID:0, fName:'Charlie'})
+---- error
+Runtime exception: A node is created with an existed primary key 0, which violates the uniqueness constraint of the primary key property.
+
+-CASE InsertNodeWithExistedPKError2
+-STATEMENT CREATE (a:person {ID:100, fName:'Charlie'})
+---- ok
+-STATEMENT CREATE (a:person {ID:100, fName:'Guodong'})
+---- error
+Runtime exception: A node is created with an existed primary key 100, which violates the uniqueness constraint of the primary key property.
+
+-CASE InsertNodeWithNullPK
+-STATEMENT CREATE (a:person {ID:NULL, fName:'Guodong'})
+---- error
+Runtime exception: Null is not allowed as a primary key value.
+
+-CASE DeleteNodeWithEdgeErrorTest
+-STATEMENT MATCH (a:person) WHERE a.ID = 0 DELETE a
+---- error
+Runtime exception: Currently deleting a node with edges is not supported. node table 0 nodeOffset 0 has 3 (one-to-many or many-to-many) edges for edge file: ${KUZU_ROOT_DIRECTORY}/test/unittest_temp/r-3-0.lists.

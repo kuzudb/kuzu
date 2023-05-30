@@ -10,14 +10,14 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace testing {
 
-std::unique_ptr<TestGroup> TestParser::parseTestFile(const std::string& path) {
-    openFile(path);
+std::unique_ptr<TestGroup> TestParser::parseTestFile() {
+    openFile();
     parseHeader();
     if (testGroup->skipTest) {
         return std::move(testGroup);
     }
     if (!testGroup->isValid()) {
-        throw Exception("Invalid test header");
+        throw TestException("Invalid test header [" + path + "].");
     }
     parseBody();
     return std::move(testGroup);
@@ -53,7 +53,7 @@ void TestParser::parseHeader() {
             return;
         }
         default: {
-            throw Exception("Invalid statement in test header");
+            throw TestException("Invalid test header statement [" + path + ":" + line + "].");
         }
         }
     }
@@ -75,6 +75,7 @@ void TestParser::extractExpectedResult(TestStatement* statement) {
         statement->errorMessage = extractTextBeforeNextStatement();
         replaceVariables(statement->errorMessage);
     } else {
+        checkMinimumParams(1);
         statement->expectedNumTuples = stoi(result);
         for (auto i = 0u; i < statement->expectedNumTuples; i++) {
             nextLine();
@@ -90,7 +91,8 @@ std::string TestParser::extractTextBeforeNextStatement() {
     std::string text;
     while (nextLine()) {
         tokenize();
-        if ((currentToken.type == TokenType::EMPTY) || (currentToken.type != TokenType::SKIP)) {
+        if (currentToken.type != TokenType::SKIP) {
+            setCursorToPreviousLine();
             break;
         }
         if (!text.empty()) {
@@ -114,7 +116,6 @@ TestStatement* TestParser::extractStatement(TestStatement* statement) {
     }
     case TokenType::STATEMENT:
     case TokenType::QUERY: {
-        checkMinimumParams(1);
         std::string query = paramsToString();
         replaceVariables(query);
         statement->query = query;
@@ -141,11 +142,15 @@ TestStatement* TestParser::extractStatement(TestStatement* statement) {
         statement->encodedJoin = paramsToString();
         break;
     }
+    case TokenType::BEGIN_WRITE_TRANSACTION: {
+        statement->isBeginWriteTransaction = true;
+        return statement;
+    }
     case TokenType::EMPTY: {
         break;
     }
     default: {
-        throw Exception("Invalid statement [" + line + "] in test file");
+        throw TestException("Invalid statement [" + path + ":" + line + "].");
     }
     }
     nextLine();
@@ -206,7 +211,7 @@ void TestParser::addStatementBlock(const std::string& blockName, const std::stri
                 std::make_unique<TestStatement>(*statementPtr));
         }
     } else {
-        throw Exception("Statement block not found [" + blockName + "]");
+        throw TestException("Statement block not found [" + path + ":" + blockName + "].");
     }
 }
 
@@ -226,14 +231,9 @@ TokenType getTokenType(const std::string& input) {
     }
 }
 
-void TestParser::openFile(const std::string& path) {
+void TestParser::openFile() {
     if (access(path.c_str(), 0) != 0) {
-        throw Exception("Test file not exists! [" + path + "].");
-    }
-    struct stat status {};
-    stat(path.c_str(), &status);
-    if (status.st_mode & S_IFDIR) {
-        throw Exception("Test file is a directory. [" + path + "].");
+        throw TestException("Test file not exists [" + path + "].");
     }
     fileStream.open(path);
 }

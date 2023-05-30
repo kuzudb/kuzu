@@ -1,0 +1,34 @@
+-GROUP TinySnbExceptionTest
+-DATASET tinysnb
+
+--
+
+-CASE DivideBy0Error
+-QUERY RETURN 1 / 0
+---- error
+Runtime exception: Divide by zero.
+
+-CASE ModuloBy0Error
+-QUERY RETURN 1 % 0
+---- error
+Runtime exception: Modulo by zero.
+
+-CASE EmptyQuery
+-QUERY  
+---- error
+Connection Exception: Query is empty.
+
+-CASE ReadAfterUpdate2
+-QUERY MATCH (a:person) WHERE a.age = 35 DELETE a WITH a MATCH (a)-[:knows]->(b:person) RETURN a.age
+---- error
+Binder exception: Read after update is not supported.
+
+-CASE Overflow
+-QUERY RETURN to_int16(10000000000)
+---- error
+Runtime exception: Cast failed. 10000000000 is not in INT16 range.
+
+-CASE Int32PrimaryKey
+-STATEMENT CREATE NODE TABLE play(a INT32, PRIMARY KEY (a))
+---- error
+Binder exception: Invalid primary key type: INT32. Expected STRING or INT64.

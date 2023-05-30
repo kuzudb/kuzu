@@ -12,6 +12,11 @@ namespace testing {
 void TestRunner::runTest(
     const std::vector<std::unique_ptr<TestStatement>>& statements, Connection& conn) {
     for (auto& statement : statements) {
+        initializeConnection(statement.get(), conn);
+        if (statement->isBeginWriteTransaction) {
+            conn.beginWriteTransaction();
+            continue;
+        }
         ASSERT_TRUE(testStatement(statement.get(), conn));
     }
 }
@@ -23,7 +28,6 @@ void TestRunner::initializeConnection(TestStatement* statement, Connection& conn
 }
 
 bool TestRunner::testStatement(TestStatement* statement, Connection& conn) {
-    initializeConnection(statement, conn);
     std::unique_ptr<PreparedStatement> preparedStatement;
     if (statement->encodedJoin.empty()) {
         preparedStatement = conn.prepareNoLock(statement->query, statement->enumerate);
@@ -57,9 +61,11 @@ bool TestRunner::checkLogicalPlan(std::unique_ptr<PreparedStatement>& preparedSt
     TestStatement* statement, Connection& conn, uint32_t planIdx) {
     auto result = conn.executeAndAutoCommitIfNecessaryNoLock(preparedStatement.get(), planIdx);
     if (statement->expectedError) {
-        if (statement->errorMessage == StringUtils::rtrim(result->getErrorMessage())) {
+        std::string expectedError = StringUtils::rtrim(result->getErrorMessage());
+        if (statement->errorMessage == expectedError) {
             return true;
         }
+        spdlog::info("EXPECTED ERROR: {}", expectedError);
     } else if (statement->expectedOk && result->isSuccess()) {
         return true;
     } else {

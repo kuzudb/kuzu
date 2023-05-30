@@ -1,0 +1,41 @@
+-GROUP TinySnbExceptionTest
+-DATASET tinysnb
+
+--
+
+-CASE CastStrToTimestampError
+
+-NAME MissingDay
+-QUERY MATCH (a:person) return timestamp("2112-08 08:21:23.005612")
+---- error
+Error occurred during parsing timestamp. Given: "2112-08 08:21:23.005612". Expected format: (YYYY-MM-DD hh:mm:ss[.zzzzzz][+-TT[:tt]])
+
+-NAME MissingSecond
+-QUERY MATCH (a:person) return timestamp("2112-08-04 08:23.005612")
+---- error
+Error occurred during parsing timestamp. Given: "2112-08-04 08:23.005612". Expected format: (YYYY-MM-DD hh:mm:ss[.zzzzzz][+-TT[:tt]])
+
+-NAME MissingADigitInDay
+-QUERY MATCH (a:person) return timestamp("2112-08-0")
+---- error
+Date out of range: 2112-8-0.
+
+-NAME InvalidTimezoneFormat
+-QUERY MATCH (a:person) return timestamp("1992-04-28T09:33:56-XX:DD")
+---- error
+Error occurred during parsing timestamp. Given: "1992-04-28T09:33:56-XX:DD". Expected format: (YYYY-MM-DD hh:mm:ss[.zzzzzz][+-TT[:tt]])
+
+-NAME MissingPlusMinusSign
+-QUERY MATCH (a:person) return timestamp("2112-08-21 08:21:23.005612Z02:00")
+---- error
+Error occurred during parsing timestamp. Given: "2112-08-21 08:21:23.005612Z02:00". Expected format: (YYYY-MM-DD hh:mm:ss[.zzzzzz][+-TT[:tt]])
+
+-NAME IncorrectTimezoneMinutes
+-QUERY MATCH (a:person) return timestamp("2112-08-21 08:21:23.005612Z+02:100")
+---- error
+Error occurred during parsing timestamp. Given: "2112-08-21 08:21:23.005612Z+02:100". Expected format: (YYYY-MM-DD hh:mm:ss[.zzzzzz][+-TT[:tt]])
+
+-NAME IncorrectTimezoneHours
+-QUERY MATCH (a:person) return timestamp("2112-08-21 08:21:23.005612Z+021")
+---- error
+Error occurred during parsing timestamp. Given: "2112-08-21 08:21:23.005612Z+021". Expected format: (YYYY-MM-DD hh:mm:ss[.zzzzzz][+-TT[:tt]])
