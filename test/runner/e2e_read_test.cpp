@@ -31,8 +31,8 @@ private:
 };
 
 void parseAndRegisterTestGroup(const std::string& path) {
-    auto testParser = std::make_unique<TestParser>();
-    auto testGroup = std::move(testParser->parseTestFile(path));
+    auto testParser = std::make_unique<TestParser>(path);
+    auto testGroup = std::move(testParser->parseTestFile());
     if (testGroup->isValid() && testGroup->hasStatements()) {
         auto dataset = testGroup->dataset;
         auto testCases = std::move(testGroup->testCases);
@@ -46,7 +46,7 @@ void parseAndRegisterTestGroup(const std::string& path) {
                 });
         }
     } else {
-        throw Exception("Invalid test file");
+        throw TestException("Invalid test file [" + path + "].");
     }
 }
 
@@ -70,7 +70,7 @@ int main(int argc, char** argv) {
     }
     path = TestHelper::appendKuzuRootPath(path);
     if (!FileUtils::fileOrPathExists(path)) {
-        throw Exception("Test directory not exists! [" + path + "].");
+        throw TestException("Test path not exists [" + path + "].");
     }
     scanTestFiles(path);
     return RUN_ALL_TESTS();

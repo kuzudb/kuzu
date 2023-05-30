@@ -53,10 +53,12 @@ public:
 
 class TestParser {
 public:
-    TestParser() : testGroup(std::make_unique<TestGroup>()) {}
-    std::unique_ptr<TestGroup> parseTestFile(const std::string& path);
+    explicit TestParser(const std::string& path)
+        : testGroup{std::make_unique<TestGroup>()}, path{path} {}
+    std::unique_ptr<TestGroup> parseTestFile();
 
 private:
+    std::string path;
     std::ifstream fileStream;
     std::streampos previousFilePosition;
     std::string line;
@@ -65,7 +67,7 @@ private:
     std::string paramsToString();
     std::string extractTextBeforeNextStatement();
     LogicToken currentToken;
-    void openFile(const std::string& path);
+    void openFile();
     void tokenize();
     void parseHeader();
     void parseBody();
@@ -80,8 +82,10 @@ private:
         return static_cast<bool>(getline(fileStream, line));
     }
     inline void checkMinimumParams(int minimumParams) {
-        if (currentToken.params.size() < minimumParams) {
-            throw common::Exception("Invalid number of parameters for statement [" + line + "]");
+        if (currentToken.params.size() - 1 < minimumParams) {
+            throw common::TestException("Minimum number of parameters is " +
+                                        std::to_string(minimumParams) + ". [" + path + ":" + line +
+                                        "]");
         }
     }
     TestStatement* extractStatement(TestStatement* currentStatement);
