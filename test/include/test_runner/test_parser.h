@@ -29,7 +29,8 @@ enum class TokenType {
     RESULT,
     SEPARATOR,
     STATEMENT,
-    STATEMENT_BLOCK
+    STATEMENT_BLOCK,
+    _SKIP
 };
 
 const std::unordered_map<std::string, TokenType> tokenMap = {{"-GROUP", TokenType::GROUP},

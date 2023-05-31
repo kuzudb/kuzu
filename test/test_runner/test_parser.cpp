@@ -12,9 +12,6 @@ namespace testing {
 std::unique_ptr<TestGroup> TestParser::parseTestFile() {
     openFile();
     parseHeader();
-    if (testGroup->skipTest) {
-        return std::move(testGroup);
-    }
     if (!testGroup->isValid()) {
         throw TestException("Invalid test header [" + path + "].");
     }
@@ -45,8 +42,8 @@ void TestParser::parseHeader() {
             break;
         }
         case TokenType::SKIP: {
-            testGroup->skipTest = true;
-            return;
+            testGroup->group = "DISABLED_" + testGroup->group;
+            break;
         }
         case TokenType::SEPARATOR: {
             return;
@@ -90,7 +87,7 @@ std::string TestParser::extractTextBeforeNextStatement() {
     std::string text;
     while (nextLine()) {
         tokenize();
-        if (currentToken.type != TokenType::SKIP) {
+        if (currentToken.type != TokenType::_SKIP) {
             setCursorToPreviousLine();
             break;
         }
@@ -221,6 +218,10 @@ void TestParser::parseBody() {
             addStatementBlock(currentToken.params[1], testCaseName);
             break;
         }
+        case TokenType::SKIP: {
+            testCaseName = "DISABLED_" + testCaseName;
+            break;
+        }
         case TokenType::EMPTY: {
             break;
         }
@@ -257,7 +258,7 @@ TokenType getTokenType(const std::string& input) {
     if (iter != tokenMap.end()) {
         return iter->second;
     } else {
-        return TokenType::SKIP;
+        return TokenType::_SKIP;
     }
 }
 
