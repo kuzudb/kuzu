@@ -1,4 +1,5 @@
 #include <cstring>
+#include <numeric>
 
 #include "common/file_utils.h"
 #include "test_runner/test_group.h"
@@ -62,10 +63,10 @@ private:
     std::string line;
     std::string name;
     std::unique_ptr<TestGroup> testGroup;
-    std::string paramsToString(int startToken);
     std::string extractTextBeforeNextStatement();
     std::string parseCommand();
     LogicToken currentToken;
+
     void openFile();
     void tokenize();
     void parseHeader();
@@ -74,12 +75,15 @@ private:
     void extractStatementBlock();
     void addStatementBlock(const std::string& blockName, const std::string& testGroupName);
     void replaceVariables(std::string& str);
+
     inline bool endOfFile() { return fileStream.eof(); }
     inline void setCursorToPreviousLine() { fileStream.seekg(previousFilePosition); }
+
     inline bool nextLine() {
         previousFilePosition = fileStream.tellg();
         return static_cast<bool>(getline(fileStream, line));
     }
+
     inline void checkMinimumParams(int minimumParams) {
         if (currentToken.params.size() - 1 < minimumParams) {
             throw common::TestException("Minimum number of parameters is " +
@@ -87,6 +91,15 @@ private:
                                         "]");
         }
     }
+
+    inline std::string paramsToString(int startParamIdx) {
+        return std::accumulate(std::next(currentToken.params.begin(), startParamIdx),
+            currentToken.params.end(), std::string(),
+            [](const std::string& a, const std::string& b) {
+                return a + (a.empty() ? "" : " ") + b;
+            });
+    }
+
     TestStatement* extractStatement(TestStatement* currentStatement);
     TestStatement* addNewStatement(std::string& name);
 

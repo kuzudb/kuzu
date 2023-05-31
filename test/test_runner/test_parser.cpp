@@ -1,7 +1,6 @@
 #include "test_runner/test_parser.h"
 
 #include <fstream>
-#include <numeric>
 
 #include "common/string_utils.h"
 
@@ -271,12 +270,6 @@ void TestParser::tokenize() {
     } else {
         currentToken.type = getTokenType(currentToken.params[0]);
     }
-}
-
-std::string TestParser::paramsToString(int startToken) {
-    return std::accumulate(std::next(currentToken.params.begin(), startToken),
-        currentToken.params.end(), std::string(),
-        [](const std::string& a, const std::string& b) { return a + (a.empty() ? "" : " ") + b; });
 }
 
 } // namespace testing
