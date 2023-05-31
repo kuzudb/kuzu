@@ -1,7 +1,7 @@
 add_kuzu_test(e2e_copy_csv_transaction_test e2e_copy_transaction_test.cpp)
 add_kuzu_test(e2e_ddl_test e2e_ddl_test.cpp)
 add_kuzu_test(e2e_delete_create_transaction_test e2e_delete_create_transaction_test.cpp)
-add_kuzu_test(e2e_read_test e2e_read_test.cpp)
+add_kuzu_test(e2e_test e2e_test.cpp)
 add_kuzu_test(e2e_set_transaction_test e2e_set_transaction_test.cpp)
 add_kuzu_test(e2e_update_rel_test e2e_update_rel_test.cpp)
 add_kuzu_test(e2e_delete_rel_test e2e_delete_rel_test.cpp)

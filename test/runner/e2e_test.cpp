@@ -5,9 +5,9 @@ using ::testing::Test;
 using namespace kuzu::testing;
 using namespace kuzu::common;
 
-class EndToEndReadTest : public DBTest {
+class EndToEndTest : public DBTest {
 public:
-    explicit EndToEndReadTest(std::string dataset, uint64_t bufferPoolSize,
+    explicit EndToEndTest(std::string dataset, uint64_t bufferPoolSize,
         std::vector<std::unique_ptr<TestStatement>> testStatements)
         : dataset{dataset}, bufferPoolSize{bufferPoolSize}, testStatements{
                                                                 std::move(testStatements)} {}
@@ -42,7 +42,7 @@ void parseAndRegisterTestGroup(const std::string& path) {
                 __FILE__, __LINE__,
                 [dataset, bufferPoolSize,
                     testStatements = std::move(testStatements)]() mutable -> DBTest* {
-                    return new EndToEndReadTest(dataset, bufferPoolSize, std::move(testStatements));
+                    return new EndToEndTest(dataset, bufferPoolSize, std::move(testStatements));
                 });
         }
     } else {
@@ -66,7 +66,7 @@ int main(int argc, char** argv) {
     testing::InitGoogleTest(&argc, argv);
     std::string path = "test/test_files";
     if (argc > 1) {
-        path = argv[1];
+        path = path + "/" + argv[1];
     }
     path = TestHelper::appendKuzuRootPath(path);
     if (!FileUtils::fileOrPathExists(path)) {
