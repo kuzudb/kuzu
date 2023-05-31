@@ -26,7 +26,14 @@ FileInfo::~FileInfo() {
 
 int64_t FileInfo::getFileSize() {
 #ifdef _WIN32
-    return GetFileSize((HANDLE)handle, nullptr);
+    LARGE_INTEGER size;
+    if (!GetFileSizeEx((HANDLE)handle, &size)) {
+        auto error = GetLastError();
+        throw common::StorageException(
+            StringUtils::string_format("Cannot read size of file. path: {} - Error {}: {}", path,
+                error, std::system_category().message(error)));
+    }
+    return size.QuadPart;
 #else
     struct stat s;
     if (fstat(fd, &s) == -1) {
