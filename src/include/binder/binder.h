@@ -174,6 +174,8 @@ private:
     std::shared_ptr<NodeExpression> bindQueryNode(const parser::NodePattern& nodePattern,
         QueryGraph& queryGraph, PropertyKeyValCollection& collection);
     std::shared_ptr<NodeExpression> createQueryNode(const parser::NodePattern& nodePattern);
+    std::shared_ptr<NodeExpression> createQueryNode(
+        const std::string& parsedName, const std::vector<common::table_id_t>& tableIDs);
     inline std::vector<common::table_id_t> bindNodeTableIDs(
         const std::vector<std::string>& tableNames) {
         return bindTableIDs(tableNames, common::LogicalTypeID::NODE);

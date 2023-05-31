@@ -158,6 +158,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalRecursiveExtendToPhysica
     auto boundNode = extend->getBoundNode();
     auto nbrNode = extend->getNbrNode();
     auto rel = extend->getRel();
+    auto recursiveNode = rel->getRecursiveNode();
+    auto lengthExpression = rel->getLengthExpression();
     // map recursive plan
     auto logicalRecursiveRoot = extend->getRecursivePlanRoot();
     auto recursiveRoot = mapLogicalOperatorToPhysical(logicalRecursiveRoot);
@@ -165,7 +167,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalRecursiveExtendToPhysica
     auto recursivePlanResultSetDescriptor =
         std::make_unique<ResultSetDescriptor>(recursivePlanSchema);
     auto tmpDstNodeIDPos =
-        DataPos(recursivePlanSchema->getExpressionPos(*nbrNode->getInternalIDProperty()));
+        DataPos(recursivePlanSchema->getExpressionPos(*recursiveNode->getInternalIDProperty()));
     auto tmpEdgeIDPos =
         DataPos(recursivePlanSchema->getExpressionPos(*rel->getInternalIDProperty()));
     // map child plan
@@ -176,8 +178,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalRecursiveExtendToPhysica
         DataPos(inSchema->getExpressionPos(*boundNode->getInternalIDProperty()));
     auto outNodeIDVectorPos =
         DataPos(outSchema->getExpressionPos(*nbrNode->getInternalIDProperty()));
-    auto lengthVectorPos =
-        DataPos(outSchema->getExpressionPos(*rel->getInternalLengthExpression()));
+    auto lengthVectorPos = DataPos(outSchema->getExpressionPos(*lengthExpression));
     auto expressions = inSchema->getExpressionsInScope();
     auto resultCollector = appendResultCollector(expressions, inSchema, std::move(prevOperator));
     auto sharedInputFTable = resultCollector->getSharedState();
@@ -207,21 +208,21 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalRecursiveExtendToPhysica
     default:
         throw common::NotImplementedException("PlanMapper::mapLogicalRecursiveExtendToPhysical");
     }
-    auto nodeTable = storageManager.getNodesStore().getNodeTable(boundNode->getSingleTableID());
-    auto relTable = storageManager.getRelsStore().getRelTable(rel->getSingleTableID());
-    auto sharedState = std::make_shared<RecursiveJoinSharedState>(sharedInputFTable, nodeTable);
+    std::vector<storage::NodeTable*> nodeTables;
+    for (auto tableID : nbrNode->getTableIDs()) {
+        nodeTables.push_back(storageManager.getNodesStore().getNodeTable(tableID));
+    }
+    auto sharedState = std::make_shared<RecursiveJoinSharedState>(sharedInputFTable, nodeTables);
     switch (rel->getRelType()) {
     case common::QueryRelType::SHORTEST: {
         return std::make_unique<ShortestPathRecursiveJoin>(rel->getLowerBound(),
-            rel->getUpperBound(), nodeTable, relTable, sharedState, std::move(dataInfo),
-            std::move(resultCollector), getOperatorID(), extend->getExpressionsForPrinting(),
-            std::move(recursiveRoot));
+            rel->getUpperBound(), sharedState, std::move(dataInfo), std::move(resultCollector),
+            getOperatorID(), extend->getExpressionsForPrinting(), std::move(recursiveRoot));
     }
     case common::QueryRelType::VARIABLE_LENGTH: {
         return std::make_unique<VariableLengthRecursiveJoin>(rel->getLowerBound(),
-            rel->getUpperBound(), nodeTable, relTable, sharedState, std::move(dataInfo),
-            std::move(resultCollector), getOperatorID(), extend->getExpressionsForPrinting(),
-            std::move(recursiveRoot));
+            rel->getUpperBound(), sharedState, std::move(dataInfo), std::move(resultCollector),
+            getOperatorID(), extend->getExpressionsForPrinting(), std::move(recursiveRoot));
     }
     default:
         throw common::NotImplementedException("PlanMapper::mapLogicalRecursiveExtendToPhysical");

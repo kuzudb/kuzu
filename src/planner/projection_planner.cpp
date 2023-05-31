@@ -197,7 +197,7 @@ expression_vector ProjectionPlanner::rewriteExpressionsToProject(
         } break;
         case LogicalTypeID::RECURSIVE_REL: {
             auto& rel = (RelExpression&)*expression;
-            result.push_back(rel.getInternalLengthExpression());
+            result.push_back(rel.getLengthExpression());
             result.push_back(expression);
         } break;
         default:

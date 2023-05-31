@@ -48,9 +48,8 @@ void JoinOrderEnumerator::appendNonRecursiveExtend(std::shared_ptr<NodeExpressio
 void JoinOrderEnumerator::appendRecursiveExtend(std::shared_ptr<NodeExpression> boundNode,
     std::shared_ptr<NodeExpression> nbrNode, std::shared_ptr<RelExpression> rel,
     ExtendDirection direction, LogicalPlan& plan) {
-    assert(direction != ExtendDirection::BOTH);
     auto recursivePlan = std::make_unique<LogicalPlan>();
-    createRecursivePlan(boundNode, nbrNode, rel, direction, *recursivePlan);
+    createRecursivePlan(boundNode, rel->getRecursiveNode(), rel, direction, *recursivePlan);
     auto extend = std::make_shared<LogicalRecursiveExtend>(boundNode, nbrNode, rel, direction,
         plan.getLastOperator(), recursivePlan->getLastOperator());
     queryPlanner->appendFlattens(extend->getGroupsPosToFlatten(), plan);
@@ -67,13 +66,13 @@ void JoinOrderEnumerator::appendRecursiveExtend(std::shared_ptr<NodeExpression> 
 }
 
 void JoinOrderEnumerator::createRecursivePlan(std::shared_ptr<NodeExpression> boundNode,
-    std::shared_ptr<NodeExpression> nbrNode, std::shared_ptr<RelExpression> rel,
+    std::shared_ptr<NodeExpression> recursiveNode, std::shared_ptr<RelExpression> rel,
     ExtendDirection direction, LogicalPlan& plan) {
     auto scanFrontier = std::make_shared<LogicalScanFrontier>(boundNode);
     scanFrontier->computeFactorizedSchema();
     plan.setLastOperator(std::move(scanFrontier));
     auto properties = expression_vector{rel->getInternalIDProperty()};
-    appendNonRecursiveExtend(boundNode, nbrNode, rel, direction, properties, plan);
+    appendNonRecursiveExtend(boundNode, recursiveNode, rel, direction, properties, plan);
 }
 
 } // namespace planner

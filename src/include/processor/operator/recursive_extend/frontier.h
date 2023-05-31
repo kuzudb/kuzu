@@ -3,56 +3,68 @@
 #include <unordered_map>
 
 #include "common/types/types_include.h"
+#include "function/hash/hash_operations.h"
 
 namespace kuzu {
 namespace processor {
+
+namespace frontier {
+using node_rel_id_t = std::pair<common::nodeID_t, common::relID_t>;
+struct InternalIDHasher {
+    std::size_t operator()(const common::internalID_t& internalID) const {
+        common::hash_t result;
+        function::operation::Hash::operation<common::internalID_t>(internalID, result);
+        return result;
+    }
+};
+using node_id_set_t = std::unordered_set<common::nodeID_t, InternalIDHasher>;
+template<typename T>
+using node_id_map_t = std::unordered_map<common::nodeID_t, T, InternalIDHasher>;
+} // namespace frontier
 
 /*
  * A Frontier can stores dst node offsets, its multiplicity and its bwd edges. Note that we don't
  * need to track all information in BFS computation.
  *
  * Computation                   |  Information tracked
- * Shortest path track path      |  nodeOffsets & bwdEdges
- * Shortest path NOT track path  |  nodeOffsets
- * Var length track path         |  nodeOffsets & bwdEdges
- * Var length NOT track path     |  nodeOffsets & offsetToMultiplicity
+ * Shortest path track path      |  nodeIDs & bwdEdges
+ * Shortest path NOT track path  |  nodeIDs
+ * Var length track path         |  nodeIDs & bwdEdges
+ * Var length NOT track path     |  nodeIDs & nodeIDToMultiplicity
  */
 struct Frontier {
-    using node_rel_offset_t = std::pair<common::offset_t, common::offset_t>;
-    using node_rel_offsets_t = std::vector<node_rel_offset_t>;
-
-    std::vector<common::offset_t> nodeOffsets;
-    std::unordered_map<common::offset_t, node_rel_offsets_t> bwdEdges;
-    std::unordered_map<common::offset_t, uint64_t> offsetToMultiplicity;
+    std::vector<common::nodeID_t> nodeIDs;
+    frontier::node_id_map_t<std::vector<frontier::node_rel_id_t>> bwdEdges;
+    frontier::node_id_map_t<uint64_t> nodeIDToMultiplicity;
 
     inline void resetState() {
-        nodeOffsets.clear();
+        nodeIDs.clear();
         bwdEdges.clear();
-        offsetToMultiplicity.clear();
+        nodeIDToMultiplicity.clear();
     }
 
-    inline void addNode(common::offset_t offset) { nodeOffsets.push_back(offset); }
+    inline void addNode(common::nodeID_t nodeID) { nodeIDs.push_back(nodeID); }
 
     inline void addEdge(
-        common::offset_t boundOffset, common::offset_t nbrOffset, common::offset_t relOffset) {
-        if (!bwdEdges.contains(nbrOffset)) {
-            nodeOffsets.push_back(nbrOffset);
-            bwdEdges.insert({nbrOffset, node_rel_offsets_t{}});
+        common::nodeID_t boundNodeID, common::nodeID_t nbrNodeID, common::nodeID_t relID) {
+        if (!bwdEdges.contains(nbrNodeID)) {
+            nodeIDs.push_back(nbrNodeID);
+            bwdEdges.insert({nbrNodeID, std::vector<frontier::node_rel_id_t>{}});
         }
-        bwdEdges.at(nbrOffset).emplace_back(boundOffset, relOffset);
+        bwdEdges.at(nbrNodeID).emplace_back(boundNodeID, relID);
     }
 
-    inline void addNodeWithMultiplicity(common::offset_t offset, uint64_t multiplicity) {
-        if (offsetToMultiplicity.contains(offset)) {
-            offsetToMultiplicity.at(offset) += multiplicity;
+    inline void addNodeWithMultiplicity(common::nodeID_t nodeID, uint64_t multiplicity) {
+        if (nodeIDToMultiplicity.contains(nodeID)) {
+            nodeIDToMultiplicity.at(nodeID) += multiplicity;
         } else {
-            offsetToMultiplicity.insert({offset, multiplicity});
-            nodeOffsets.push_back(offset);
+            nodeIDToMultiplicity.insert({nodeID, multiplicity});
+            nodeIDs.push_back(nodeID);
         }
     }
 
-    inline uint64_t getMultiplicity(common::offset_t offset) const {
-        return offsetToMultiplicity.empty() ? 1 : offsetToMultiplicity.at(offset);
+    inline uint64_t getMultiplicity(common::nodeID_t nodeID) const {
+        return nodeIDToMultiplicity.empty() ? 1 : nodeIDToMultiplicity.at(nodeID);
     }
 };
 

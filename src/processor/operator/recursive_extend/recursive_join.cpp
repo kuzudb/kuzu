@@ -52,9 +52,9 @@ bool BaseRecursiveJoin::getNextTuplesInternal(ExecutionContext* context) {
         sharedState->inputFTableSharedState->getTable()->scan(vectorsToScan,
             inputFTableMorsel->startTupleIdx, inputFTableMorsel->numTuples,
             dataInfo->colIndicesToScan);
-        bfsMorsel->resetState();
+        bfsState->resetState();
         computeBFS(context); // Phase 1
-        frontiersScanner->resetState(*bfsMorsel);
+        frontiersScanner->resetState(*bfsState);
     }
 }
 
@@ -76,30 +76,29 @@ bool BaseRecursiveJoin::scanOutput() {
 void BaseRecursiveJoin::computeBFS(ExecutionContext* context) {
     auto nodeID = srcNodeIDVector->getValue<common::nodeID_t>(
         srcNodeIDVector->state->selVector->selectedPositions[0]);
-    bfsMorsel->markSrc(nodeID.offset);
-    while (!bfsMorsel->isComplete()) {
-        auto boundNodeOffset = bfsMorsel->getNextNodeOffset();
-        if (boundNodeOffset != common::INVALID_OFFSET) {
+    bfsState->markSrc(nodeID);
+    while (!bfsState->isComplete()) {
+        auto boundNodeID = bfsState->getNextNodeID();
+        if (boundNodeID.offset != common::INVALID_OFFSET) {
             // Found a starting node from current frontier.
-            scanFrontier->setNodeID(common::nodeID_t{boundNodeOffset, nodeTable->getTableID()});
+            scanFrontier->setNodeID(boundNodeID);
             while (recursiveRoot->getNextTuple(context)) { // Exhaust recursive plan.
-                updateVisitedNodes(boundNodeOffset);
+                updateVisitedNodes(boundNodeID);
             }
         } else {
             // Otherwise move to the next frontier.
-            bfsMorsel->finalizeCurrentLevel();
+            bfsState->finalizeCurrentLevel();
         }
     }
 }
 
-void BaseRecursiveJoin::updateVisitedNodes(common::offset_t boundNodeOffset) {
-    auto boundNodeMultiplicity = bfsMorsel->currentFrontier->getMultiplicity(boundNodeOffset);
+void BaseRecursiveJoin::updateVisitedNodes(common::nodeID_t boundNodeID) {
+    auto boundNodeMultiplicity = bfsState->currentFrontier->getMultiplicity(boundNodeID);
     for (auto i = 0u; i < tmpDstNodeIDVector->state->selVector->selectedSize; ++i) {
         auto pos = tmpDstNodeIDVector->state->selVector->selectedPositions[i];
-        auto nodeID = tmpDstNodeIDVector->getValue<common::nodeID_t>(pos);
+        auto nbrNodeID = tmpDstNodeIDVector->getValue<common::nodeID_t>(pos);
         auto edgeID = tmpEdgeIDVector->getValue<common::relID_t>(pos);
-        bfsMorsel->markVisited(
-            boundNodeOffset, nodeID.offset, edgeID.offset, boundNodeMultiplicity);
+        bfsState->markVisited(boundNodeID, nbrNodeID, edgeID, boundNodeMultiplicity);
     }
 }
 

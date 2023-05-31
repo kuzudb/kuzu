@@ -12,16 +12,28 @@ enum class RelDirectionType : uint8_t {
     BOTH = 1,
 };
 
+struct RecursiveInfo {
+    uint64_t lowerBound;
+    uint64_t upperBound;
+    std::shared_ptr<NodeExpression> recursiveNode;
+    std::shared_ptr<Expression> lengthExpression;
+
+    RecursiveInfo(size_t lowerBound, size_t upperBound,
+        std::shared_ptr<NodeExpression> recursiveNode, std::shared_ptr<Expression> lengthExpression)
+        : lowerBound{lowerBound}, upperBound{upperBound}, recursiveNode{std::move(recursiveNode)},
+          lengthExpression{std::move(lengthExpression)} {}
+};
+
 class RelExpression : public NodeOrRelExpression {
 public:
     RelExpression(common::LogicalType dataType, std::string uniqueName, std::string variableName,
         std::vector<common::table_id_t> tableIDs, std::shared_ptr<NodeExpression> srcNode,
         std::shared_ptr<NodeExpression> dstNode, RelDirectionType directionType,
-        common::QueryRelType relType, uint64_t lowerBound, uint64_t upperBound)
+        common::QueryRelType relType)
         : NodeOrRelExpression{std::move(dataType), std::move(uniqueName), std::move(variableName),
               std::move(tableIDs)},
-          srcNode{std::move(srcNode)}, dstNode{std::move(dstNode)}, directionType{directionType},
-          relType{relType}, lowerBound{lowerBound}, upperBound{upperBound} {}
+          srcNode{std::move(srcNode)}, dstNode{std::move(dstNode)},
+          directionType{directionType}, relType{relType} {}
 
     inline bool isBoundByMultiLabeledNode() const {
         return srcNode->isMultiLabeled() || dstNode->isMultiLabeled();
@@ -33,20 +45,24 @@ public:
     inline std::string getDstNodeName() const { return dstNode->getUniqueName(); }
 
     inline common::QueryRelType getRelType() const { return relType; }
-    inline uint64_t getLowerBound() const { return lowerBound; }
-    inline uint64_t getUpperBound() const { return upperBound; }
 
     inline RelDirectionType getDirectionType() const { return directionType; }
 
     inline std::shared_ptr<Expression> getInternalIDProperty() const {
         return getPropertyExpression(common::INTERNAL_ID_SUFFIX);
     }
-    inline void setInternalLengthExpression(std::unique_ptr<Expression> expression) {
-        internalLengthExpression = std::move(expression);
+
+    inline void setRecursiveInfo(std::unique_ptr<RecursiveInfo> recursiveInfo_) {
+        recursiveInfo = std::move(recursiveInfo_);
     }
-    inline std::shared_ptr<Expression> getInternalLengthExpression() const {
-        assert(internalLengthExpression != nullptr);
-        return internalLengthExpression->copy();
+    inline RecursiveInfo* getRecursiveInfo() const { return recursiveInfo.get(); }
+    inline size_t getLowerBound() const { return recursiveInfo->lowerBound; }
+    inline size_t getUpperBound() const { return recursiveInfo->upperBound; }
+    inline std::shared_ptr<NodeExpression> getRecursiveNode() const {
+        return recursiveInfo->recursiveNode;
+    }
+    inline std::shared_ptr<Expression> getLengthExpression() const {
+        return recursiveInfo->lengthExpression;
     }
 
 private:
@@ -54,9 +70,7 @@ private:
     std::shared_ptr<NodeExpression> dstNode;
     RelDirectionType directionType;
     common::QueryRelType relType;
-    uint64_t lowerBound;
-    uint64_t upperBound;
-    std::unique_ptr<Expression> internalLengthExpression;
+    std::unique_ptr<RecursiveInfo> recursiveInfo;
 };
 
 } // namespace binder
