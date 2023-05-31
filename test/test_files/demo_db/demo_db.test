@@ -1,5 +1,5 @@
 -GROUP DemoDBTest
--DATASET demo-db/csv
+-DATASET CSV demo-db/csv
 
 --
 

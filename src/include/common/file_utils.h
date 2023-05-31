@@ -63,6 +63,12 @@ public:
         return std::filesystem::exists(path);
     }
 
+    static inline void createDirIfNotExists(const std::string& path) {
+        if (!fileOrPathExists(path)) {
+            createDir(path);
+        }
+    }
+
     static std::vector<std::string> globFilePath(const std::string& path);
 
     static inline std::string getFileExtension(const std::filesystem::path& path) {

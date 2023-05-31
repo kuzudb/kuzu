@@ -19,6 +19,29 @@ std::unique_ptr<TestGroup> TestParser::parseTestFile() {
     return std::move(testGroup);
 }
 
+void TestParser::extractDataset() {
+    const std::string& params = paramsToString(2);
+    const std::string& datasetType = currentToken.params[1];
+    if (datasetType == "PARQUET") {
+        if (params.starts_with("CSV_TO_PARQUET(") && params.back() == ')') {
+            testGroup->datasetType = TestGroup::DatasetType::CSV_TO_PARQUET;
+            testGroup->dataset = params.substr(15, params.length() - 16);
+        } else {
+            testGroup->datasetType = TestGroup::DatasetType::PARQUET;
+            testGroup->dataset = currentToken.params[2];
+        }
+    } else if (datasetType == "CSV") {
+        testGroup->datasetType = TestGroup::DatasetType::CSV;
+        testGroup->dataset = currentToken.params[2];
+    } else if (datasetType == "NPY") {
+        testGroup->datasetType = TestGroup::DatasetType::NPY;
+        testGroup->dataset = currentToken.params[2];
+    } else {
+        throw TestException(
+            "Invalid dataset type `" + currentToken.params[1] + "` [" + path + ":" + line + "].");
+    }
+}
+
 void TestParser::parseHeader() {
     while (nextLine()) {
         tokenize();
@@ -32,8 +55,8 @@ void TestParser::parseHeader() {
             break;
         }
         case TokenType::DATASET: {
-            checkMinimumParams(1);
-            testGroup->dataset = currentToken.params[1];
+            checkMinimumParams(2);
+            extractDataset();
             break;
         }
         case TokenType::BUFFER_POOL_SIZE: {

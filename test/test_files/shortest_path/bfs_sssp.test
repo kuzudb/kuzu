@@ -1,5 +1,5 @@
 -GROUP ShortestPathTest
--DATASET shortest-path-tests
+-DATASET CSV shortest-path-tests
 
 --
 

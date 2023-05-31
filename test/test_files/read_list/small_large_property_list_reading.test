@@ -1,5 +1,5 @@
 -GROUP EndToEndReadLargeListsTest
--DATASET read-list-tests/large-list
+-DATASET CSV read-list-tests/large-list
 
 --
 

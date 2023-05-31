@@ -9,7 +9,7 @@
 # In total: we need 23 pages for this test case
 
 -GROUP OrderByTests
--DATASET CSV order-by-tests
+-DATASET PARQUET CSV_TO_PARQUET(order-by-tests)
 
 --
 

@@ -1,5 +1,5 @@
 -GROUP TinySnbUpdateTest
--DATASET tinysnb
+-DATASET CSV tinysnb
 
 --
 

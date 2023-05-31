@@ -1,6 +1,7 @@
 -GROUP LDBCTest
--DATASET CSV ldbc-sf01
+-DATASET PARQUET CSV_TO_PARQUET(ldbc-sf01)
 -BUFFER_POOL_SIZE 1073741824
+-SKIP
 
 --
 
@@ -19,20 +20,6 @@
               n.creationDate AS creationDate;
 ---- 1
 Mahinda|Perera|19891203|119.235.7.103|Firefox|1353|male|20100214153210447
-
-# IS2 should be changed to use Kleene Star relationship once that is implemented.
-# The 'Case When' statement should be supported as coalesce().
--NAME IS2
--QUERY MATCH (:Person {id: 21990232555803})<-[:Post_hasCreator_Person|:Comment_hasCreator_Person]-(message)
-       WITH message,message.id AS messageId, message.creationDate AS messageCreationDate
-       ORDER BY messageCreationDate DESC, messageId ASC LIMIT 10
-       MATCH (message)-[:Comment_replyOf_Post|:Comment_replyOf_Comment*1..2]->(post:Post), (post)-[:Post_hasCreator_Person]->(person)
-       RETURN messageId, CASE WHEN message.imageFile is NULL THEN message.content ELSE message.imageFile END AS messageContent, messageCreationDate, post.id AS postId, person.id AS personId, person.firstName AS personFirstName, person.lastName AS personLastName
-       ORDER BY messageCreationDate DESC, messageId ASC;
----- 3
-1030792343617|About H•A•M, d Kanye West, released as the first single from their collaborati|20120823142307823|1030792343610|21990232556463|Victor|Antonescu
-1030792343876|thx|20120818110412997|1030792343869|21990232555803|Carlos|Lopez
-1030792343986|fine|20120810030544084|1030792343978|21990232556837|Bing|Li
 
 -NAME IS3
 -QUERY MATCH (n:Person {id: 1129})-[r:Person_knows_Person]-(friend)
@@ -70,11 +57,17 @@ Mahinda|Perera|19891203|119.235.7.103|Firefox|1353|male|20100214153210447
 2199023256077|Ibrahim Bare|Ousmane
 
 # IS6 should be changed to use Kleene Star relationship once that is implemented
--NAME IS6
--QUERY MATCH (m:Comment {id: 962072675825 })-[:Comment_replyOf_Post|:Comment_replyOf_Comment*1..2]->(p:Post)<-[:Forum_containerOf_Post]-(f:Forum)-[:Forum_hasModerator_Person]->(mod:Person)
-       RETURN f.id AS forumId,f.title AS forumTitle,mod.id AS moderatorId,mod.firstName AS moderatorFirstName, mod.lastName AS moderatorLastName;
----- 1
-687194767491|Wall of Faisal Malik|21990232556585|Faisal|Malik
+# This query is currently commented out, but will work as soon as multilabelled recursive rels are merged to master.
+# -NAME IS6
+# -QUERY MATCH (m:Comment {id: 962072675825 })-[:Comment_replyOf_Post|:Comment_replyOf_Comment*1..2]->(p:Post)<-[:Forum_containerOf_Post]-(f:Forum)-[:Forum_hasModerator_Person]->(mod:Person)
+#       RETURN
+#           f.id AS forumId,
+#           f.title AS forumTitle,
+#           mod.id AS moderatorId,
+#           mod.firstName AS moderatorFirstName,
+#           mod.lastName AS moderatorLastName;
+# ---- 1
+# 687194767491|Wall of Faisal Malik|21990232556585|Faisal|Malik
 
 -NAME IS7
 -QUERY MATCH (m:Post:Comment {id: 962072971887})<-[:Comment_replyOf_Comment|:Comment_replyOf_Post]-(c:Comment)-[:Comment_hasCreator_Person]->(p:Person)

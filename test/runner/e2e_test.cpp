@@ -1,4 +1,7 @@
+#include <iostream>
+
 #include "graph_test/graph_test.h"
+#include "test_runner/csv_to_parquet_converter.h"
 #include "test_runner/test_parser.h"
 
 using ::testing::Test;
@@ -19,9 +22,8 @@ public:
         initGraph();
     }
 
-    std::string getInputDir() override {
-        return TestHelper::appendKuzuRootPath("dataset/" + dataset + "/");
-    }
+    std::string getInputDir() override { return dataset + "/"; }
+
     void TestBody() override { runTest(testStatements); }
 
 private:
@@ -37,6 +39,11 @@ void parseAndRegisterTestGroup(const std::string& path) {
         auto dataset = testGroup->dataset;
         auto testCases = std::move(testGroup->testCases);
         auto bufferPoolSize = testGroup->bufferPoolSize;
+        if (testGroup->datasetType == TestGroup::DatasetType::CSV_TO_PARQUET) {
+            CSVToParquetConverter::convertCSVDatasetToParquet(dataset);
+        } else {
+            dataset = TestHelper::appendKuzuRootPath("dataset/" + dataset);
+        }
         for (auto& [testCaseName, testStatements] : testCases) {
             testing::RegisterTest(testGroup->group.c_str(), testCaseName.c_str(), nullptr, nullptr,
                 __FILE__, __LINE__,
@@ -72,6 +79,11 @@ int main(int argc, char** argv) {
     if (!FileUtils::fileOrPathExists(path)) {
         throw TestException("Test path not exists [" + path + "].");
     }
+    auto parquetDatasetTempDir =
+        TestHelper::appendKuzuRootPath(TestHelper::PARQUET_TEMP_DATASET_PATH);
+    FileUtils::createDirIfNotExists(parquetDatasetTempDir);
     scanTestFiles(path);
-    return RUN_ALL_TESTS();
+    auto result = RUN_ALL_TESTS();
+    FileUtils::removeDir(parquetDatasetTempDir);
+    return result;
 }
