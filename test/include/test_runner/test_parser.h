@@ -65,6 +65,7 @@ private:
     std::unique_ptr<TestGroup> testGroup;
     std::string extractTextBeforeNextStatement();
     std::string parseCommand();
+    std::string parseCommandArange();
     LogicToken currentToken;
 
     void openFile();

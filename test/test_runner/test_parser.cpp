@@ -171,22 +171,28 @@ void TestParser::extractStatementBlock() {
 }
 
 std::string TestParser::parseCommand() {
-    std::string result;
     if (currentToken.params[2] == "ARANGE") {
         checkMinimumParams(4);
-        int start = stoi(currentToken.params[3]);
-        int end = stoi(currentToken.params[4]);
-        result = "[";
-        for (auto i = start; i <= end; i++) {
-            result += std::to_string(i);
-            if (i != end) {
-                result += ",";
-            }
-        }
-        result += "]";
-    } else {
-        result = paramsToString(2);
+        return parseCommandArange();
     }
+    auto params = paramsToString(2);
+    if (params.front() != '"' || params.back() != '"') {
+        throw TestException("Invalid DEFINE data type [" + path + ":" + line + "].");
+    }
+    return params.substr(1, params.size() - 2);
+}
+
+std::string TestParser::parseCommandArange() {
+    int start = stoi(currentToken.params[3]);
+    int end = stoi(currentToken.params[4]);
+    std::string result = "[";
+    for (auto i = start; i <= end; i++) {
+        result += std::to_string(i);
+        if (i != end) {
+            result += ",";
+        }
+    }
+    result += "]";
     return result;
 }
 
@@ -210,7 +216,6 @@ void TestParser::parseBody() {
             variableMap[currentToken.params[1]] = parseCommand();
             break;
         }
-
         case TokenType::STATEMENT_BLOCK: {
             checkMinimumParams(1);
             addStatementBlock(currentToken.params[1], testCaseName);
