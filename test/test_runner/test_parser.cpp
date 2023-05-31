@@ -61,7 +61,7 @@ void TestParser::parseHeader() {
 
 void TestParser::replaceVariables(std::string& str) {
     for (auto& variable : variableMap) {
-        StringUtils::replaceAll(str, variable.first, variable.second);
+        StringUtils::replaceAll(str, "${" + variable.first + "}", variable.second);
     }
 }
 
@@ -116,7 +116,7 @@ TestStatement* TestParser::extractStatement(TestStatement* statement) {
     }
     case TokenType::STATEMENT:
     case TokenType::QUERY: {
-        std::string query = paramsToString();
+        std::string query = paramsToString(1);
         replaceVariables(query);
         statement->query = query;
         break;
@@ -139,7 +139,7 @@ TestStatement* TestParser::extractStatement(TestStatement* statement) {
         break;
     }
     case TokenType::ENCODED_JOIN: {
-        statement->encodedJoin = paramsToString();
+        statement->encodedJoin = paramsToString(1);
         break;
     }
     case TokenType::BEGIN_WRITE_TRANSACTION: {
@@ -171,6 +171,26 @@ void TestParser::extractStatementBlock() {
     }
 }
 
+std::string TestParser::parseCommand() {
+    std::string result;
+    if (currentToken.params[2] == "ARANGE") {
+        checkMinimumParams(4);
+        int start = stoi(currentToken.params[3]);
+        int end = stoi(currentToken.params[4]);
+        result = "[";
+        for (auto i = start; i <= end; i++) {
+            result += std::to_string(i);
+            if (i != end) {
+                result += ",";
+            }
+        }
+        result += "]";
+    } else {
+        result = paramsToString(2);
+    }
+    return result;
+}
+
 void TestParser::parseBody() {
     std::string testCaseName;
     while (nextLine()) {
@@ -186,6 +206,12 @@ void TestParser::parseBody() {
             extractStatementBlock();
             break;
         }
+        case TokenType::DEFINE: {
+            checkMinimumParams(2);
+            variableMap[currentToken.params[1]] = parseCommand();
+            break;
+        }
+
         case TokenType::STATEMENT_BLOCK: {
             checkMinimumParams(1);
             addStatementBlock(currentToken.params[1], testCaseName);
@@ -247,9 +273,9 @@ void TestParser::tokenize() {
     }
 }
 
-std::string TestParser::paramsToString() {
-    return std::accumulate(std::next(currentToken.params.begin()), currentToken.params.end(),
-        std::string(),
+std::string TestParser::paramsToString(int startToken) {
+    return std::accumulate(std::next(currentToken.params.begin(), startToken),
+        currentToken.params.end(), std::string(),
         [](const std::string& a, const std::string& b) { return a + (a.empty() ? "" : " ") + b; });
 }
 

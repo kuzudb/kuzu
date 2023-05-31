@@ -1,0 +1,179 @@
+-GROUP TinySnbUpdateTest
+-DATASET tinysnb
+
+--
+
+
+-CASE SetNodeInt64PropTest
+-STATEMENT MATCH (a:person) WHERE a.ID=0 SET a.age=20 + 50
+---- ok
+-QUERY MATCH (a:person) WHERE a.ID=0 RETURN a.age
+---- 1
+70
+
+-CASE SetNodeInt32PropTest
+-STATEMENT MATCH (a:movies) WHERE a.name='Roma' SET a.length=2.2
+---- ok
+-QUERY MATCH (a:movies) WHERE a.name='Roma' RETURN a.length
+---- 1
+2
+
+-CASE SetNodeDoublePropTest
+-STATEMENT MATCH (a:person) WHERE a.ID=0 SET a.eyeSight=1.0
+---- ok
+-QUERY MATCH (a:person) WHERE a.ID=0 RETURN a.eyeSight
+---- 1
+1.000000
+
+-CASE SetNodeFloatPropTest
+-STATEMENT MATCH (a:person) WHERE a.ID=0 SET a.height=12
+---- ok
+-QUERY MATCH (a:person) WHERE a.ID=0 RETURN a.height
+---- 1
+12.000000
+
+-CASE SetNodeBoolPropTest
+-STATEMENT MATCH (a:person) WHERE a.ID=0 SET a.isStudent=false
+---- ok
+-QUERY MATCH (a:person) WHERE a.ID=0 RETURN a.isStudent
+---- 1
+False
+
+-CASE SetNodeDatePropTest
+-STATEMENT MATCH (a:person) WHERE a.ID=0 SET a.birthdate='2200-10-10'
+---- ok
+-QUERY MATCH (a:person) WHERE a.ID=0 RETURN a.birthdate
+---- 1
+2200-10-10
+
+-CASE SetNodeTimestampPropTest
+-STATEMENT MATCH (a:person) WHERE a.ID=0 SET a.registerTime='2200-10-10 12:01:01'
+---- ok
+-QUERY MATCH (a:person) WHERE a.ID=0 RETURN a.registerTime
+---- 1
+2200-10-10 12:01:01
+
+-CASE SetNodeEmptyStringPropTest
+-STATEMENT MATCH (a:person) WHERE a.ID=0 SET a.fName=''
+---- ok
+-QUERY MATCH (a:person) WHERE a.ID=0 RETURN a.fName
+---- 1
+
+# end of SetNodeEmptyStringPropTest
+
+-CASE SetNodeShortStringPropTest
+-STATEMENT MATCH (a:person) WHERE a.ID=0 SET a.fName=string(22)
+---- ok
+-QUERY MATCH (a:person) WHERE a.ID=0 RETURN a.fName
+---- 1
+22
+
+-CASE SetNodeLongStringPropTest
+-STATEMENT MATCH (a:person) WHERE a.ID=0 SET a.fName='abcdefghijklmnopqrstuvwxyz'
+---- ok
+-QUERY MATCH (a:person) WHERE a.ID=0 RETURN a.fName
+---- 1
+abcdefghijklmnopqrstuvwxyz
+
+-CASE SetVeryLongListErrorsTest
+-DEFINE STRING_EXCEEDS_OVERFLOW ARANGE 0 5990
+-BEGIN_WRITE_TRANSACTION
+-STATEMENT MATCH (a:person) WHERE a.ID=0 SET a.fName="${STRING_EXCEEDS_OVERFLOW}"
+---- error
+Runtime exception: Maximum length of strings is 4096. Input string's length is 28846.
+
+-CASE SetNodeIntervalPropTest
+-STATEMENT MATCH (a:person) WHERE a.ID=0 SET a.lastJobDuration=interval('1 years 1 days')
+---- ok
+-QUERY MATCH (a:person) WHERE a.ID=0 RETURN a.lastJobDuration
+---- 1
+1 year 1 day
+
+-CASE SetNodePropNullTest
+-STATEMENT MATCH (a:person) SET a.age=null
+---- ok
+-QUERY MATCH (a:person) RETURN a.age
+---- 8
+
+
+
+
+
+
+
+
+# end of SetNodePropNullTest. Empty lines represent the expected null values
+
+-CASE SetBothUnflatTest
+-STATEMENT MATCH (a:person) SET a.age=a.ID
+---- ok
+-QUERY MATCH (a:person) WHERE a.ID < 4 RETURN a.ID, a.age
+---- 3
+0|0
+2|2
+3|3
+
+-CASE SetFlatUnFlatTest
+-STATEMENT MATCH (a:person)-[:knows]->(b:person) WHERE a.ID=0 SET a.age=b.age
+---- ok
+-QUERY MATCH (a:person) WHERE a.ID < 4 RETURN a.ID, a.age
+---- 3
+0|20
+2|30
+3|45
+
+-CASE SetUnFlatFlatTest
+-STATEMENT MATCH (a:person)-[:knows]->(b:person) WHERE b.ID=2 AND a.ID = 0 SET b.age=a.age
+---- ok
+-QUERY MATCH (a:person) WHERE a.ID < 4 RETURN a.ID, a.age
+---- 3
+0|35
+2|35
+3|45
+
+-CASE SetTwoHopTest
+-STATEMENT MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) WHERE b.ID=0 AND c.fName = 'Bob' SET a.age=c.age
+---- ok
+-QUERY MATCH (a:person) WHERE a.ID < 6 RETURN a.ID, a.age
+---- 4
+0|35
+2|30
+3|30
+5|30
+
+-CASE SetTwoHopNullTest
+-STATEMENT MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) SET a.age=null
+---- ok
+-QUERY MATCH (a:person) RETURN a.ID, a.age
+---- 8
+0|
+10|83
+2|
+3|
+5|
+7|20
+8|25
+9|40
+
+-CASE SetIndexNestedLoopJoinTest
+-STATEMENT MATCH (a:person), (b:person) WHERE a.ID = b.ID SET a.age=b.gender
+---- ok
+-QUERY MATCH (a:person) RETURN a.ID, a.age
+---- 8
+0|1
+10|2
+2|2
+3|1
+5|2
+7|1
+8|2
+9|2
+
+-CASE SetRelInt16PropTest
+-STATEMENT MATCH (a:person)-[e:studyAt]->(b:organisation) WHERE a.ID = 0 SET e.length=99
+---- ok
+-QUERY MATCH (a:person)-[e:studyAt]->(b:organisation) RETURN e.length
+---- 3
+22
+55
+99
