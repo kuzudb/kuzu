@@ -1,0 +1,33 @@
+-GROUP TinySnbUpdateTest
+-DATASET tinysnb
+
+--
+
+-CASE DeleteNodeAfterInsertTest
+-STATEMENT CREATE (a:person {ID:100, fName:'Xiyang', age:26})
+---- ok
+-STATEMENT MATCH (a:person) WHERE a.ID = 100 DELETE a
+---- ok
+-STATEMENT CREATE (a:person {ID:101})
+---- ok
+-QUERY MATCH (a:person) WHERE a.ID = 101 RETURN a.ID, a.fName, a.age
+---- 1
+101||
+
+-CASE MixedDeleteInsertTest
+-STATEMENT CREATE (a:organisation {ID:30, mark:3.3})
+---- ok
+-QUERY MATCH (a:organisation) WHERE a.ID = 30 RETURN a.orgCode, a.mark
+---- 1
+|3.300000
+ 
+-STATEMENT MATCH (a:organisation) WHERE a.ID = 30 DELETE a
+---- ok
+-QUERY MATCH (a:organisation) WHERE a.ID = 30 RETURN a.orgCode, a.mark
+---- 0
+
+-STATEMENT CREATE (a:organisation {ID:30, orgCode:33})
+---- ok
+-QUERY MATCH (a:organisation) WHERE a.ID = 30 RETURN a.orgCode, a.mark
+---- 1
+33|

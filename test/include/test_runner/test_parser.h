@@ -1,4 +1,5 @@
 #include <cstring>
+#include <numeric>
 
 #include "common/file_utils.h"
 #include "test_runner/test_group.h"
@@ -7,13 +8,16 @@ namespace kuzu {
 namespace testing {
 
 enum class TokenType {
-    GROUP,
-    DATASET,
-    TEST,
+    /* header */
     BEGIN_WRITE_TRANSACTION,
+    DATASET,
+    GROUP,
+    SKIP,
+    /* body */
     BUFFER_POOL_SIZE,
     CASE,
     CHECK_ORDER,
+    DEFINE,
     DEFINE_STATEMENT_BLOCK,
     EMPTY,
     ENCODED_JOIN,
@@ -22,28 +26,23 @@ enum class TokenType {
     NAME,
     PARALLELISM,
     QUERY,
-    READ_ONLY,
     RESULT,
     SEPARATOR,
-    SKIP,
     STATEMENT,
     STATEMENT_BLOCK
 };
 
 const std::unordered_map<std::string, TokenType> tokenMap = {{"-GROUP", TokenType::GROUP},
-    {"-TEST", TokenType::TEST}, {"-DATASET", TokenType::DATASET}, {"-CASE", TokenType::CASE},
+    {"-DATASET", TokenType::DATASET}, {"-CASE", TokenType::CASE},
     {"-CHECK_ORDER", TokenType::CHECK_ORDER}, {"-ENCODED_JOIN", TokenType::ENCODED_JOIN},
     {"-DEFINE_STATEMENT_BLOCK", TokenType::DEFINE_STATEMENT_BLOCK},
     {"-ENUMERATE", TokenType::ENUMERATE}, {"-NAME", TokenType::NAME},
     {"-BEGIN_WRITE_TRANSACTION", TokenType::BEGIN_WRITE_TRANSACTION},
     {"-PARALLELISM", TokenType::PARALLELISM}, {"-QUERY", TokenType::QUERY},
-    {"-READ_ONLY", TokenType::READ_ONLY}, {"-SKIP", TokenType::SKIP},
+    {"-SKIP", TokenType::SKIP}, {"-DEFINE", TokenType::DEFINE},
     {"-STATEMENT", TokenType::STATEMENT}, {"-STATEMENT_BLOCK", TokenType::STATEMENT_BLOCK},
     {"-BUFFER_POOL_SIZE", TokenType::BUFFER_POOL_SIZE}, {"]", TokenType::END_OF_STATEMENT_BLOCK},
     {"----", TokenType::RESULT}, {"--", TokenType::SEPARATOR}, {"#", TokenType::EMPTY}};
-
-const std::unordered_map<std::string, std::string> variableMap = {
-    {"${KUZU_ROOT_DIRECTORY}", KUZU_ROOT_DIRECTORY}};
 
 class LogicToken {
 public:
@@ -64,9 +63,11 @@ private:
     std::string line;
     std::string name;
     std::unique_ptr<TestGroup> testGroup;
-    std::string paramsToString();
     std::string extractTextBeforeNextStatement();
+    std::string parseCommand();
+    std::string parseCommandArange();
     LogicToken currentToken;
+
     void openFile();
     void tokenize();
     void parseHeader();
@@ -75,12 +76,15 @@ private:
     void extractStatementBlock();
     void addStatementBlock(const std::string& blockName, const std::string& testGroupName);
     void replaceVariables(std::string& str);
+
     inline bool endOfFile() { return fileStream.eof(); }
     inline void setCursorToPreviousLine() { fileStream.seekg(previousFilePosition); }
+
     inline bool nextLine() {
         previousFilePosition = fileStream.tellg();
         return static_cast<bool>(getline(fileStream, line));
     }
+
     inline void checkMinimumParams(int minimumParams) {
         if (currentToken.params.size() - 1 < minimumParams) {
             throw common::TestException("Minimum number of parameters is " +
@@ -88,8 +92,24 @@ private:
                                         "]");
         }
     }
+
+    inline std::string paramsToString(int startParamIdx) {
+        return std::accumulate(std::next(currentToken.params.begin(), startParamIdx),
+            currentToken.params.end(), std::string(),
+            [](const std::string& a, const std::string& b) {
+                return a + (a.empty() ? "" : " ") + b;
+            });
+    }
+
     TestStatement* extractStatement(TestStatement* currentStatement);
     TestStatement* addNewStatement(std::string& name);
+
+    // Any value here will be replaced inside the .test files
+    // in queries/statements and expected error message.
+    // Example: ${KUZU_ROOT_DIRECTORY} will be replaced by
+    // KUZU_ROOT_DIRECTORY
+    std::unordered_map<std::string, std::string> variableMap = {
+        {"KUZU_ROOT_DIRECTORY", KUZU_ROOT_DIRECTORY}};
 };
 
 } // namespace testing

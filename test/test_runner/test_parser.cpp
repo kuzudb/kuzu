@@ -1,7 +1,6 @@
 #include "test_runner/test_parser.h"
 
 #include <fstream>
-#include <numeric>
 
 #include "common/string_utils.h"
 
@@ -61,7 +60,7 @@ void TestParser::parseHeader() {
 
 void TestParser::replaceVariables(std::string& str) {
     for (auto& variable : variableMap) {
-        StringUtils::replaceAll(str, variable.first, variable.second);
+        StringUtils::replaceAll(str, "${" + variable.first + "}", variable.second);
     }
 }
 
@@ -116,7 +115,7 @@ TestStatement* TestParser::extractStatement(TestStatement* statement) {
     }
     case TokenType::STATEMENT:
     case TokenType::QUERY: {
-        std::string query = paramsToString();
+        std::string query = paramsToString(1);
         replaceVariables(query);
         statement->query = query;
         break;
@@ -139,7 +138,7 @@ TestStatement* TestParser::extractStatement(TestStatement* statement) {
         break;
     }
     case TokenType::ENCODED_JOIN: {
-        statement->encodedJoin = paramsToString();
+        statement->encodedJoin = paramsToString(1);
         break;
     }
     case TokenType::BEGIN_WRITE_TRANSACTION: {
@@ -171,6 +170,32 @@ void TestParser::extractStatementBlock() {
     }
 }
 
+std::string TestParser::parseCommand() {
+    if (currentToken.params[2] == "ARANGE") {
+        checkMinimumParams(4);
+        return parseCommandArange();
+    }
+    auto params = paramsToString(2);
+    if (params.front() != '"' || params.back() != '"') {
+        throw TestException("Invalid DEFINE data type [" + path + ":" + line + "].");
+    }
+    return params.substr(1, params.size() - 2);
+}
+
+std::string TestParser::parseCommandArange() {
+    int start = stoi(currentToken.params[3]);
+    int end = stoi(currentToken.params[4]);
+    std::string result = "[";
+    for (auto i = start; i <= end; i++) {
+        result += std::to_string(i);
+        if (i != end) {
+            result += ",";
+        }
+    }
+    result += "]";
+    return result;
+}
+
 void TestParser::parseBody() {
     std::string testCaseName;
     while (nextLine()) {
@@ -184,6 +209,11 @@ void TestParser::parseBody() {
         case TokenType::DEFINE_STATEMENT_BLOCK: {
             checkMinimumParams(2);
             extractStatementBlock();
+            break;
+        }
+        case TokenType::DEFINE: {
+            checkMinimumParams(2);
+            variableMap[currentToken.params[1]] = parseCommand();
             break;
         }
         case TokenType::STATEMENT_BLOCK: {
@@ -245,12 +275,6 @@ void TestParser::tokenize() {
     } else {
         currentToken.type = getTokenType(currentToken.params[0]);
     }
-}
-
-std::string TestParser::paramsToString() {
-    return std::accumulate(std::next(currentToken.params.begin()), currentToken.params.end(),
-        std::string(),
-        [](const std::string& a, const std::string& b) { return a + (a.empty() ? "" : " ") + b; });
 }
 
 } // namespace testing
