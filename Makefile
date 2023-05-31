@@ -78,14 +78,14 @@ test: arrow
 	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=TRUE ../.. && \
 	cmake --build . --config Release -- -j $(NUM_THREADS)
 	cd $(ROOT_DIR)/build/release/test && \
-	ctest
+	ctest --output-on-failure
 
 lcov: arrow
 	$(call mkdirp,build/release) && cd build/release && \
 	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=TRUE -DBUILD_LCOV=TRUE ../.. && \
 	cmake --build . --config Release -- -j $(NUM_THREADS)
 	cd $(ROOT_DIR)/build/release/test && \
-	ctest
+	ctest --output-on-failure
 
 pytest: arrow
 	$(MAKE) release
