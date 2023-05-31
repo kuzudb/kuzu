@@ -86,20 +86,21 @@ void TestParser::extractExpectedResult(TestStatement* statement) {
     }
 }
 
-std::string TestParser::extractTextBeforeNextStatement() {
-    std::string text;
+std::string TestParser::extractTextBeforeNextStatement(bool ignoreLineBreak) {
+    std::string extractedText;
+    const std::string delimiter = ignoreLineBreak ? " " : "\n";
     while (nextLine()) {
         tokenize();
         if (currentToken.type != TokenType::SKIP) {
             setCursorToPreviousLine();
             break;
         }
-        if (!text.empty()) {
-            text += "\n";
+        if (!extractedText.empty()) {
+            extractedText += delimiter;
         }
-        text += StringUtils::ltrim(line);
+        extractedText += StringUtils::ltrim(line);
     }
-    return text;
+    return extractedText;
 }
 
 TestStatement* TestParser::extractStatement(TestStatement* statement) {
@@ -116,6 +117,7 @@ TestStatement* TestParser::extractStatement(TestStatement* statement) {
     case TokenType::STATEMENT:
     case TokenType::QUERY: {
         std::string query = paramsToString(1);
+        query += extractTextBeforeNextStatement(true);
         replaceVariables(query);
         statement->query = query;
         break;

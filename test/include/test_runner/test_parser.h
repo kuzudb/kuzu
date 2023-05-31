@@ -63,7 +63,7 @@ private:
     std::string line;
     std::string name;
     std::unique_ptr<TestGroup> testGroup;
-    std::string extractTextBeforeNextStatement();
+    std::string extractTextBeforeNextStatement(bool ignoreLineBreak = false);
     std::string parseCommand();
     std::string parseCommandArange();
     LogicToken currentToken;
@@ -72,7 +72,7 @@ private:
     void tokenize();
     void parseHeader();
     void parseBody();
-    void extractExpectedResult(TestStatement* currentStatement);
+    void extractExpectedResult(TestStatement* statement);
     void extractStatementBlock();
     void addStatementBlock(const std::string& blockName, const std::string& testGroupName);
     void replaceVariables(std::string& str);
