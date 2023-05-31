@@ -1,5 +1,6 @@
 package tools.java_api;
 
+import java.util.Map;
 public class KuzuNative {
     static {
         System.loadLibrary("kuzu_java_native");
@@ -24,7 +25,7 @@ public class KuzuNative {
     protected static native KuzuPreparedStatement kuzu_connection_prepare(
         KuzuConnection connection, String query);
     protected static native KuzuQueryResult kuzu_connection_execute(
-        KuzuConnection connection, KuzuPreparedStatement prepared_statement);
+        KuzuConnection connection, KuzuPreparedStatement prepared_statement, Map<String, KuzuValue> param);
     protected static native String kuzu_connection_get_node_table_names(KuzuConnection connection);
     protected static native String kuzu_connection_get_rel_table_names(KuzuConnection connection);
     protected static native String kuzu_connection_get_node_property_names(
@@ -42,6 +43,7 @@ public class KuzuNative {
     protected static native boolean kuzu_prepared_statement_is_success(KuzuPreparedStatement prepared_statement);
     protected static native String kuzu_prepared_statement_get_error_message(
         KuzuPreparedStatement prepared_statement);
+    /*
     protected static native void kuzu_prepared_statement_bind_bool(
         KuzuPreparedStatement prepared_statement, String param_name, boolean value);
     protected static native void kuzu_prepared_statement_bind_int64(
@@ -64,7 +66,7 @@ public class KuzuNative {
         KuzuPreparedStatement prepared_statement, String param_name, String value);
     protected static native void kuzu_prepared_statement_bind_value(
         KuzuPreparedStatement prepared_statement, String param_name, KuzuValue value);
-
+    */
     // QueryResult
     protected static native void kuzu_query_result_destroy(KuzuQueryResult query_result);
     protected static native boolean kuzu_query_result_is_success(KuzuQueryResult query_result);
@@ -88,7 +90,7 @@ public class KuzuNative {
     protected static native String kuzu_flat_tuple_to_string(KuzuFlatTuple flat_tuple);
 
     // DataType
-    protected static native KuzuDataType kuzu_data_type_create(
+    protected static native long kuzu_data_type_create(
         KuzuDataTypeID id, KuzuDataType child_type, long fixed_num_elements_in_list);
     protected static native KuzuDataType kuzu_data_type_clone(KuzuDataType data_type);
     protected static native void kuzu_data_type_destroy(KuzuDataType data_type);

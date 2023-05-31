@@ -8,7 +8,7 @@ public class KuzuQueryResult {
         assert !destoryed: "QueryResult has been destoryed.";
     }
 
-    public void destoryQueryResult () {
+    public void destory () {
         checkNotDestoryed();
         KuzuNative.kuzu_query_result_destroy(this);
         destoryed = true;

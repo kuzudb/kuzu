@@ -12,7 +12,7 @@ public class KuzuConnection {
         }
     }
 
-    public void destoryConnection() {
+    public void destory() {
         assert !destoryed: "Connection has been destoryed.";
         KuzuNative.kuzu_connection_destroy(this);
         destoryed = true;

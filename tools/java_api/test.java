@@ -17,5 +17,10 @@ public class test {
         System.out.println(result.getColumnName(0));
         System.out.println(result.toString());
         
+
+        KuzuDataTypeID id =  KuzuDataTypeID.DOUBLE;
+        KuzuDataType dt = new KuzuDataType(id);
+
+        System.out.println(dt.getID());
     }
 }

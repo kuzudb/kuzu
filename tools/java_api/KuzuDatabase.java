@@ -14,7 +14,7 @@ public class KuzuDatabase {
         System.out.println(db_ref);
     }
 
-    public void destoryDatabase() {
+    public void destory() {
         assert !destoryed: "Database has been destoryed.";
         KuzuNative.kuzu_database_destroy(this);
         destoryed = true;

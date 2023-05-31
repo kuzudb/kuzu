@@ -8,7 +8,7 @@ public class KuzuPreparedStatement {
         assert !destoryed: "PreparedStatement has been destoryed.";
     }
 
-    public void destoryPreparedStatement() {
+    public void destory() {
         checkNotDestoryed();
         KuzuNative.kuzu_prepared_statement_destroy(this);
         destoryed = true;
@@ -28,7 +28,7 @@ public class KuzuPreparedStatement {
         checkNotDestoryed();
         return KuzuNative.kuzu_prepared_statement_get_error_message(this);
     }
-
+/*
     public void bindBool(String param_name, boolean value) {
         checkNotDestoryed();
         KuzuNative.kuzu_prepared_statement_bind_bool(this, param_name, value);
@@ -83,5 +83,6 @@ public class KuzuPreparedStatement {
         checkNotDestoryed();
         KuzuNative.kuzu_prepared_statement_bind_value(this, param_name, value);
     }
+ */
 
 }

@@ -8,7 +8,7 @@ public class KuzuFlatTuple {
         assert !destoryed: "FlatTuple has been destoryed.";
     }
 
-    public void destroyFlatTuple () {
+    public void destroy () {
         checkNotDestoryed();
         KuzuNative.kuzu_flat_tuple_destroy(this);
         destoryed = true;
