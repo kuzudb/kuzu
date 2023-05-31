@@ -7,9 +7,8 @@ namespace processor {
 
 template<bool TRACK_PATH>
 struct VariableLengthState : public BaseBFSState {
-    VariableLengthState(uint8_t upperBound, const std::vector<NodeOffsetSemiMask*>& semiMasks,
-        transaction::Transaction* trx)
-        : BaseBFSState{upperBound, semiMasks, trx} {}
+    VariableLengthState(uint8_t upperBound, TargetDstNodes* targetDstNodes)
+        : BaseBFSState{upperBound, targetDstNodes} {}
     ~VariableLengthState() override = default;
 
     inline void resetState() final { BaseBFSState::resetState(); }

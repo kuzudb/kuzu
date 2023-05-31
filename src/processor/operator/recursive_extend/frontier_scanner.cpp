@@ -27,7 +27,7 @@ size_t BaseFrontierScanner::scan(common::ValueVector* pathVector,
         }
         currentDstNodeID = lastFrontier->nodeIDs[lastFrontierCursor++];
         // Skip nodes that is not in semi mask.
-        if (!targetDstNodeIDs.empty() && !targetDstNodeIDs.contains(currentDstNodeID)) {
+        if (!targetDstNodes->contains(currentDstNodeID)) {
             continue;
         }
         initScanFromDstOffset();
@@ -39,8 +39,8 @@ void BaseFrontierScanner::resetState(const BaseBFSState& bfsState) {
     lastFrontierCursor = 0;
     currentDstNodeID = {common::INVALID_OFFSET, common::INVALID_TABLE_ID};
     frontiers.clear();
-    for (auto& frontier : bfsState.frontiers) {
-        frontiers.push_back(frontier.get());
+    for (auto i = 0; i < bfsState.getNumFrontiers(); ++i) {
+        frontiers.push_back(bfsState.getFrontier(i));
     }
 }
 

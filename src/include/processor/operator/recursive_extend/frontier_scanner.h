@@ -12,17 +12,10 @@ namespace processor {
  * destination nodes in the k'th frontier, we use a semi mask that marks the destination nodes (or
  * targetDstOffsets.empty() which indicates that every node is a possible destination).
  */
-struct BaseFrontierScanner {
-    std::vector<Frontier*> frontiers;
-    const frontier::node_id_set_t& targetDstNodeIDs;
-    // Number of extension performed during recursive join
-    size_t k;
-
-    size_t lastFrontierCursor;
-    common::nodeID_t currentDstNodeID;
-
-    BaseFrontierScanner(const frontier::node_id_set_t& targetDstNodeIDs, size_t k)
-        : targetDstNodeIDs{targetDstNodeIDs}, k{k}, lastFrontierCursor{0},
+class BaseFrontierScanner {
+public:
+    BaseFrontierScanner(TargetDstNodes* targetDstNodes, size_t k)
+        : targetDstNodes{targetDstNodes}, k{k}, lastFrontierCursor{0},
           currentDstNodeID{common::INVALID_OFFSET, common::INVALID_TABLE_ID} {}
     virtual ~BaseFrontierScanner() = default;
 
@@ -43,14 +36,24 @@ protected:
         dstNodeIDVector->setValue<common::nodeID_t>(offsetVectorPos, currentDstNodeID);
         pathLengthVector->setValue<int64_t>(offsetVectorPos, (int64_t)k);
     }
+
+protected:
+    std::vector<Frontier*> frontiers;
+    TargetDstNodes* targetDstNodes;
+    // Number of extension performed during recursive join
+    size_t k;
+
+    size_t lastFrontierCursor;
+    common::nodeID_t currentDstNodeID;
 };
 
 /*
  * DstNodeScanner scans dst node offset & length of path.
  */
-struct DstNodeScanner : public BaseFrontierScanner {
-    DstNodeScanner(const frontier::node_id_set_t& targetDstNodeIDs, size_t k)
-        : BaseFrontierScanner{targetDstNodeIDs, k} {}
+class DstNodeScanner : public BaseFrontierScanner {
+public:
+    DstNodeScanner(TargetDstNodes* targetDstNodes, size_t k)
+        : BaseFrontierScanner{targetDstNodes, k} {}
 
 private:
     inline void initScanFromDstOffset() final {}
@@ -70,17 +73,11 @@ private:
  * that was used to store the data related to the BFS that was computed in the RecursiveJoin
  * operator.
  */
-struct PathScanner : public BaseFrontierScanner {
+class PathScanner : public BaseFrontierScanner {
     using nbrs_t = std::vector<frontier::node_rel_id_t>*;
-    // DFS states
-    size_t listEntrySize;
-    std::vector<common::nodeID_t> nodeIDs;
-    std::vector<common::relID_t> relIDs;
-    std::stack<nbrs_t> nbrsStack;
-    std::stack<int64_t> cursorStack;
 
-    PathScanner(const frontier::node_id_set_t& targetDstNodeIDs, size_t k)
-        : BaseFrontierScanner{targetDstNodeIDs, k} {
+public:
+    PathScanner(TargetDstNodes* targetDstNodes, size_t k) : BaseFrontierScanner{targetDstNodes, k} {
         listEntrySize = 2 * k + 1;
         nodeIDs.resize(k + 1);
         relIDs.resize(k + 1);
@@ -102,15 +99,24 @@ private:
     void writePathToVector(common::ValueVector* pathVector, common::ValueVector* dstNodeIDVector,
         common::ValueVector* pathLengthVector, common::sel_t& offsetVectorPos,
         common::sel_t& dataVectorPos);
+
+private:
+    // DFS states
+    size_t listEntrySize;
+    std::vector<common::nodeID_t> nodeIDs;
+    std::vector<common::relID_t> relIDs;
+    std::stack<nbrs_t> nbrsStack;
+    std::stack<int64_t> cursorStack;
 };
 
 /*
  * DstNodeWithMultiplicityScanner scans dst node offset & length of path and repeat it for
  * multiplicity times in value vector.
  */
-struct DstNodeWithMultiplicityScanner : public BaseFrontierScanner {
-    DstNodeWithMultiplicityScanner(const frontier::node_id_set_t& targetDstNodeIDs, size_t k)
-        : BaseFrontierScanner{targetDstNodeIDs, k} {}
+class DstNodeWithMultiplicityScanner : public BaseFrontierScanner {
+public:
+    DstNodeWithMultiplicityScanner(TargetDstNodes* targetDstNodes, size_t k)
+        : BaseFrontierScanner{targetDstNodes, k} {}
 
 private:
     inline void initScanFromDstOffset() final {}

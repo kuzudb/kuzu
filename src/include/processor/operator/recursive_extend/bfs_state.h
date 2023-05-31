@@ -6,41 +6,33 @@
 namespace kuzu {
 namespace processor {
 
-struct BaseBFSState {
-    // Static information
-    uint8_t upperBound;
-    // Level state
-    uint8_t currentLevel;
-    uint64_t nextNodeIdxToExtend; // next node to extend from current frontier.
-    Frontier* currentFrontier;
-    Frontier* nextFrontier;
-    std::vector<std::unique_ptr<Frontier>> frontiers;
+// Target dst nodes are populated from semi mask and is expected to have small size.
+// TargetDstNodeOffsets is empty if no semi mask available. Note that at the end of BFS, we may
+// not visit all target dst nodes because they may simply not connect to src.
+class TargetDstNodes {
+public:
+    TargetDstNodes(uint64_t numNodes, frontier::node_id_set_t nodeIDs)
+        : numNodes{numNodes}, nodeIDs{std::move(nodeIDs)} {}
 
-    // Target information.
-    // Target dst nodes are populated from semi mask and is expected to have small size.
-    // TargetDstNodeOffsets is empty if no semi mask available. Note that at the end of BFS, we may
-    // not visit all target dst nodes because they may simply not connect to src.
-    uint64_t numTargetDstNodes;
-    frontier::node_id_set_t targetDstNodeIDs;
-
-    explicit BaseBFSState(uint8_t upperBound, const std::vector<NodeOffsetSemiMask*>& semiMasks,
-        transaction::Transaction* trx)
-        : upperBound{upperBound}, currentLevel{0}, nextNodeIdxToExtend{0}, numTargetDstNodes{0} {
-        for (auto semiMask : semiMasks) {
-            auto nodeTable = semiMask->getNodeTable();
-            auto numNodes = nodeTable->getMaxNodeOffset(trx) + 1;
-            if (semiMask->isEnabled()) {
-                for (auto offset = 0u; offset < numNodes; ++offset) {
-                    if (semiMask->isNodeMasked(offset)) {
-                        targetDstNodeIDs.insert(common::nodeID_t{offset, nodeTable->getTableID()});
-                        numTargetDstNodes++;
-                    }
-                }
-            } else {
-                numTargetDstNodes += numNodes;
-            }
+    inline bool contains(common::nodeID_t nodeID) {
+        if (nodeIDs.empty()) { // All nodeIDs are targets
+            return true;
         }
+        return nodeIDs.contains(nodeID);
     }
+
+    inline uint64_t getNumNodes() const { return numNodes; }
+
+private:
+    uint64_t numNodes;
+    frontier::node_id_set_t nodeIDs;
+};
+
+class BaseBFSState {
+public:
+    explicit BaseBFSState(uint8_t upperBound, TargetDstNodes* targetDstNodes)
+        : upperBound{upperBound}, currentLevel{0}, nextNodeIdxToExtend{0}, targetDstNodes{
+                                                                               targetDstNodes} {}
     virtual ~BaseBFSState() = default;
 
     // Get next node offset to extend from current level.
@@ -63,8 +55,13 @@ struct BaseBFSState {
     virtual void markSrc(common::nodeID_t nodeID) = 0;
     virtual void markVisited(common::nodeID_t boundNodeID, common::nodeID_t nbrNodeID,
         common::relID_t relID, uint64_t multiplicity) = 0;
+    inline uint64_t getMultiplicity(common::nodeID_t nodeID) const {
+        return currentFrontier->getMultiplicity(nodeID);
+    }
 
     inline void finalizeCurrentLevel() { moveNextLevelAsCurrentLevel(); }
+    inline size_t getNumFrontiers() const { return frontiers.size(); }
+    inline Frontier* getFrontier(common::vector_idx_t idx) const { return frontiers[idx].get(); }
 
 protected:
     inline bool isCurrentFrontierEmpty() const { return currentFrontier->nodeIDs.empty(); }
@@ -87,6 +84,18 @@ protected:
             std::sort(currentFrontier->nodeIDs.begin(), currentFrontier->nodeIDs.end());
         }
     }
+
+protected:
+    // Static information
+    uint8_t upperBound;
+    // Level state
+    uint8_t currentLevel;
+    uint64_t nextNodeIdxToExtend; // next node to extend from current frontier.
+    Frontier* currentFrontier;
+    Frontier* nextFrontier;
+    std::vector<std::unique_ptr<Frontier>> frontiers;
+    // Target information.
+    TargetDstNodes* targetDstNodes;
 };
 
 } // namespace processor
