@@ -34,7 +34,7 @@ public:
         return ((T*)buffer.get())[pos];
     }
 
-    void setValueAtPos(uint8_t* val, common::offset_t pos);
+    void setValueAtPos(const uint8_t* val, common::offset_t pos);
 
     inline bool isNull(common::offset_t pos) const {
         assert(nullChunk);
@@ -71,6 +71,8 @@ private:
 
     static uint32_t getDataTypeSizeInColumn(common::LogicalType& dataType);
 
+    void setFixedListVal(arrow::FixedSizeListArray& array, uint64_t pos);
+
 protected:
     common::LogicalType dataType;
     common::offset_t startNodeOffset;
@@ -93,6 +95,8 @@ public:
 
     template<typename T>
     void templateCopyValuesAsStringToPageWithOverflow(arrow::Array& array);
+
+    void copyValuesToPageWithOverflow(arrow::Array& array);
 
     template<typename T>
     void setValWithOverflow(const char* value, uint64_t length, uint64_t pos) {
@@ -152,6 +156,8 @@ private:
 
 template<>
 void InMemColumnChunk::templateCopyValuesToPage<bool>(arrow::Array& array);
+template<>
+void InMemColumnChunk::templateCopyValuesToPage<uint8_t*>(arrow::Array& array);
 template<>
 void InMemColumnChunk::templateCopyValuesToPage<common::interval_t>(arrow::Array& array);
 template<>
