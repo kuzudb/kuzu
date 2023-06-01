@@ -12,17 +12,17 @@ void VariableLengthRecursiveJoin::initLocalStateInternal(
     switch (dataInfo->joinType) {
     case planner::RecursiveJoinType::TRACK_PATH: {
         bfsState = std::make_unique<VariableLengthState<true /* TRACK_PATH */>>(
-            upperBound, sharedState->getSemiMasks(), transaction);
+            upperBound, targetDstNodes.get());
         for (auto i = lowerBound; i <= upperBound; ++i) {
-            scanners.push_back(std::make_unique<PathScanner>(bfsState->targetDstNodeIDs, i));
+            scanners.push_back(std::make_unique<PathScanner>(targetDstNodes.get(), i));
         }
     } break;
     case planner::RecursiveJoinType::TRACK_NONE: {
         bfsState = std::make_unique<VariableLengthState<false /* TRACK_PATH */>>(
-            upperBound, sharedState->getSemiMasks(), transaction);
+            upperBound, targetDstNodes.get());
         for (auto i = lowerBound; i <= upperBound; ++i) {
             scanners.push_back(
-                std::make_unique<DstNodeWithMultiplicityScanner>(bfsState->targetDstNodeIDs, i));
+                std::make_unique<DstNodeWithMultiplicityScanner>(targetDstNodes.get(), i));
         }
     } break;
     default:

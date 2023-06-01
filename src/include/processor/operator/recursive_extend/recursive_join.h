@@ -50,14 +50,6 @@ struct RecursiveJoinSharedState {
             semiMasks.push_back(std::make_unique<NodeOffsetSemiMask>(nodeTable));
         }
     }
-
-    inline std::vector<NodeOffsetSemiMask*> getSemiMasks() const {
-        std::vector<NodeOffsetSemiMask*> result;
-        for (auto& semiMask : semiMasks) {
-            result.push_back(semiMask.get());
-        }
-        return result;
-    }
 };
 
 struct RecursiveJoinDataInfo {
@@ -139,6 +131,8 @@ public:
 private:
     void initLocalRecursivePlan(ExecutionContext* context);
 
+    void populateTargetDstNodes();
+
     bool scanOutput();
 
     // Compute BFS for a given src node.
@@ -171,6 +165,7 @@ protected:
 
     std::unique_ptr<BaseBFSState> bfsState;
     std::unique_ptr<FrontiersScanner> frontiersScanner;
+    std::unique_ptr<TargetDstNodes> targetDstNodes;
 };
 
 } // namespace processor

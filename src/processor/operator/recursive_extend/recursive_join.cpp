@@ -27,9 +27,13 @@ void BaseRecursiveJoin::initLocalStateInternal(ResultSet* resultSet_, ExecutionC
     } break;
     }
     initLocalRecursivePlan(context);
+    populateTargetDstNodes();
 }
 
 bool BaseRecursiveJoin::getNextTuplesInternal(ExecutionContext* context) {
+    if (targetDstNodes->getNumNodes() == 0) {
+        return false;
+    }
     // There are two high level steps.
     //
     // (1) BFS Computation phase: Grab a new source to do a BFS and compute an entire BFS starting
@@ -93,7 +97,7 @@ void BaseRecursiveJoin::computeBFS(ExecutionContext* context) {
 }
 
 void BaseRecursiveJoin::updateVisitedNodes(common::nodeID_t boundNodeID) {
-    auto boundNodeMultiplicity = bfsState->currentFrontier->getMultiplicity(boundNodeID);
+    auto boundNodeMultiplicity = bfsState->getMultiplicity(boundNodeID);
     for (auto i = 0u; i < tmpDstNodeIDVector->state->selVector->selectedSize; ++i) {
         auto pos = tmpDstNodeIDVector->state->selVector->selectedPositions[i];
         auto nbrNodeID = tmpDstNodeIDVector->getValue<common::nodeID_t>(pos);
@@ -114,6 +118,27 @@ void BaseRecursiveJoin::initLocalRecursivePlan(ExecutionContext* context) {
     tmpDstNodeIDVector = localResultSet->getValueVector(dataInfo->tmpDstNodeIDPos).get();
     tmpEdgeIDVector = localResultSet->getValueVector(dataInfo->tmpEdgeIDPos).get();
     recursiveRoot->initLocalState(localResultSet.get(), context);
+}
+
+void BaseRecursiveJoin::populateTargetDstNodes() {
+    frontier::node_id_set_t targetNodeIDs;
+    uint64_t numTargetNodes = 0;
+    for (auto& semiMask : sharedState->semiMasks) {
+        auto nodeTable = semiMask->getNodeTable();
+        auto numNodes = nodeTable->getMaxNodeOffset(transaction) + 1;
+        if (semiMask->isEnabled()) {
+            for (auto offset = 0u; offset < numNodes; ++offset) {
+                if (semiMask->isNodeMasked(offset)) {
+                    targetNodeIDs.insert(common::nodeID_t{offset, nodeTable->getTableID()});
+                    numTargetNodes++;
+                }
+            }
+        } else {
+            assert(targetNodeIDs.empty());
+            numTargetNodes += numNodes;
+        }
+    }
+    targetDstNodes = std::make_unique<TargetDstNodes>(numTargetNodes, std::move(targetNodeIDs));
 }
 
 } // namespace processor

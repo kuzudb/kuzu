@@ -32,11 +32,8 @@ using node_id_map_t = std::unordered_map<common::nodeID_t, T, InternalIDHasher>;
  * Var length track path         |  nodeIDs & bwdEdges
  * Var length NOT track path     |  nodeIDs & nodeIDToMultiplicity
  */
-struct Frontier {
-    std::vector<common::nodeID_t> nodeIDs;
-    frontier::node_id_map_t<std::vector<frontier::node_rel_id_t>> bwdEdges;
-    frontier::node_id_map_t<uint64_t> nodeIDToMultiplicity;
-
+class Frontier {
+public:
     inline void resetState() {
         nodeIDs.clear();
         bwdEdges.clear();
@@ -45,27 +42,18 @@ struct Frontier {
 
     inline void addNode(common::nodeID_t nodeID) { nodeIDs.push_back(nodeID); }
 
-    inline void addEdge(
-        common::nodeID_t boundNodeID, common::nodeID_t nbrNodeID, common::nodeID_t relID) {
-        if (!bwdEdges.contains(nbrNodeID)) {
-            nodeIDs.push_back(nbrNodeID);
-            bwdEdges.insert({nbrNodeID, std::vector<frontier::node_rel_id_t>{}});
-        }
-        bwdEdges.at(nbrNodeID).emplace_back(boundNodeID, relID);
-    }
+    void addEdge(common::nodeID_t boundNodeID, common::nodeID_t nbrNodeID, common::nodeID_t relID);
 
-    inline void addNodeWithMultiplicity(common::nodeID_t nodeID, uint64_t multiplicity) {
-        if (nodeIDToMultiplicity.contains(nodeID)) {
-            nodeIDToMultiplicity.at(nodeID) += multiplicity;
-        } else {
-            nodeIDToMultiplicity.insert({nodeID, multiplicity});
-            nodeIDs.push_back(nodeID);
-        }
-    }
+    void addNodeWithMultiplicity(common::nodeID_t nodeID, uint64_t multiplicity);
 
     inline uint64_t getMultiplicity(common::nodeID_t nodeID) const {
         return nodeIDToMultiplicity.empty() ? 1 : nodeIDToMultiplicity.at(nodeID);
     }
+
+public:
+    std::vector<common::nodeID_t> nodeIDs;
+    frontier::node_id_map_t<std::vector<frontier::node_rel_id_t>> bwdEdges;
+    frontier::node_id_map_t<uint64_t> nodeIDToMultiplicity;
 };
 
 } // namespace processor
