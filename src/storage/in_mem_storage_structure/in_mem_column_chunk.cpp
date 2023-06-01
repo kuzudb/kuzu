@@ -458,18 +458,20 @@ std::string InMemStructColumnChunk::parseStructFieldValue(
         } else if (curChar == copyDescription->csvReaderConfig->listEndChar) {
             numListBeginChars--;
         } else if (curChar == '"') {
-            numDoubleQuotes ^ 1;
+            numDoubleQuotes ^= 1;
         } else if (curChar == '\'') {
-            numSingleQuotes ^ 1;
+            numSingleQuotes ^= 1;
         } else if (curChar == ',') {
-            if (numListBeginChars == 0 && numStructBeginChars == 0 && numDoubleQuotes == 0) {
+            if (numListBeginChars == 0 && numStructBeginChars == 0 && numDoubleQuotes == 0 &&
+                numSingleQuotes == 0) {
                 curPos++;
                 return structString.substr(startPos, curPos - startPos - 1);
             }
         }
         curPos++;
     }
-    if (numListBeginChars == 0 && numStructBeginChars == 0 && numDoubleQuotes == 0) {
+    if (numListBeginChars == 0 && numStructBeginChars == 0 && numDoubleQuotes == 0 &&
+        numSingleQuotes == 0) {
         return structString.substr(startPos, curPos - startPos);
     } else {
         throw common::ParserException{"Invalid struct string: " + structString};

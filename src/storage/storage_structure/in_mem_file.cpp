@@ -318,7 +318,8 @@ common::ku_list_t InMemOverflowFile::appendList(common::LogicalType& type,
         for (auto offset = startOffset; offset < endOffset; offset++) {
             auto stringView = stringArray.GetView(offset);
             childStrings[offset - startOffset] = copyString(stringView.data(),
-                std::min(BufferPoolConstants::PAGE_4KB_SIZE, stringView.length()), overflowCursor);
+                std::min(BufferPoolConstants::PAGE_4KB_SIZE, (uint64_t)stringView.length()),
+                overflowCursor);
         }
         lock.lock();
         for (auto childString : childStrings) {
