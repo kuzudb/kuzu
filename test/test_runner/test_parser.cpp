@@ -87,7 +87,7 @@ std::string TestParser::extractTextBeforeNextStatement() {
     std::string text;
     while (nextLine()) {
         tokenize();
-        if (currentToken.type != TokenType::_SKIP) {
+        if (currentToken.type != TokenType::_SKIP_LINE) {
             setCursorToPreviousLine();
             break;
         }
@@ -258,7 +258,7 @@ TokenType getTokenType(const std::string& input) {
     if (iter != tokenMap.end()) {
         return iter->second;
     } else {
-        return TokenType::_SKIP;
+        return TokenType::_SKIP_LINE;
     }
 }
 
