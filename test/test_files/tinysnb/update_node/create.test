@@ -121,3 +121,20 @@
 -QUERY MATCH (a:person)-[e1:studyAt]->(b:organisation), (a)-[e2:workAt]->(b) RETURN a.ID, b.ID, ID(e1), ID(e2)
 ---- 1
 100|50|4:3|5:3
+
+-CASE InsertNodeWithListTest
+-SKIP
+-BEGIN_WRITE_TRANSACTION
+-STATEMENT CREATE (:person {ID:11, workedHours:[1,2,3], usedNames:['A', 'this is a long name']})
+---- ok
+-QUERY MATCH (a:person) WHERE a.ID > 8 RETURN a.ID, a.workedHours,a.usedNames
+---- 3
+10|[10,11,12,3,4,5,6,7]|[Ad,De,Hi,Kye,Orlan]
+11|[1,2,3]|[A,this is a long name]
+9|[1]|[Grad]
+# -COMMIT
+-QUERY MATCH (a:person) WHERE a.ID > 8 RETURN a.ID, a.workedHours,a.usedNames
+---- 3
+10|[10,11,12,3,4,5,6,7]|[Ad,De,Hi,Kye,Orlan]
+11|[1,2,3]|[A,this is a long name]
+9|[1]|[Grad]

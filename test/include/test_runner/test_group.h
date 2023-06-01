@@ -33,8 +33,6 @@ struct TestGroup {
     std::unordered_map<std::string, std::vector<std::unique_ptr<TestStatement>>>
         testCasesStatementBlocks;
 
-    bool skipTest = false;
-
     bool isValid() const { return !group.empty() && !dataset.empty(); }
 
     bool hasStatements() const { return !testCases.empty(); }
