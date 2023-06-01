@@ -14,9 +14,16 @@ public:
     TargetDstNodes(uint64_t numNodes, frontier::node_id_set_t nodeIDs)
         : numNodes{numNodes}, nodeIDs{std::move(nodeIDs)} {}
 
+    inline void setTableIDFilter(std::unordered_set<common::table_id_t> filter) {
+        tableIDFilter = std::move(filter);
+    }
+
     inline bool contains(common::nodeID_t nodeID) {
-        if (nodeIDs.empty()) { // All nodeIDs are targets
-            return true;
+        if (nodeIDs.empty()) {           // no semi mask available
+            if (tableIDFilter.empty()) { // no dst table ID filter available
+                return true;
+            }
+            return tableIDFilter.contains(nodeID.tableID);
         }
         return nodeIDs.contains(nodeID);
     }
@@ -26,6 +33,7 @@ public:
 private:
     uint64_t numNodes;
     frontier::node_id_set_t nodeIDs;
+    std::unordered_set<common::table_id_t> tableIDFilter;
 };
 
 class BaseBFSState {

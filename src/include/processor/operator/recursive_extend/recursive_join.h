@@ -60,41 +60,50 @@ struct RecursiveJoinDataInfo {
     DataPos srcNodePos;
     // Join output info.
     DataPos dstNodePos;
+    std::unordered_set<common::table_id_t> dstNodeTableIDs;
     DataPos pathLengthPos;
     // Recursive join info.
     std::unique_ptr<ResultSetDescriptor> localResultSetDescriptor;
-    DataPos tmpDstNodeIDPos;
-    DataPos tmpEdgeIDPos;
+    DataPos recursiveDstNodeIDPos;
+    std::unordered_set<common::table_id_t> recursiveDstNodeTableIDs;
+    DataPos recursiveEdgeIDPos;
     // Path info
     planner::RecursiveJoinType joinType;
     DataPos pathPos;
 
     RecursiveJoinDataInfo(std::vector<DataPos> vectorsToScanPos,
         std::vector<ft_col_idx_t> colIndicesToScan, const DataPos& srcNodePos,
-        const DataPos& dstNodePos, const DataPos& pathLengthPos,
-        std::unique_ptr<ResultSetDescriptor> localResultSetDescriptor,
-        const DataPos& tmpDstNodeIDPos, const DataPos& tmpEdgeIDPos,
-        planner::RecursiveJoinType joinType)
+        const DataPos& dstNodePos, std::unordered_set<common::table_id_t> dstNodeTableIDs,
+        const DataPos& pathLengthPos, std::unique_ptr<ResultSetDescriptor> localResultSetDescriptor,
+        const DataPos& recursiveDstNodeIDPos,
+        std::unordered_set<common::table_id_t> recursiveDstNodeTableIDs,
+        const DataPos& recursiveEdgeIDPos, planner::RecursiveJoinType joinType)
         : RecursiveJoinDataInfo{std::move(vectorsToScanPos), std::move(colIndicesToScan),
-              srcNodePos, dstNodePos, pathLengthPos, std::move(localResultSetDescriptor),
-              tmpDstNodeIDPos, tmpEdgeIDPos, joinType, DataPos()} {}
+              srcNodePos, dstNodePos, std::move(dstNodeTableIDs), pathLengthPos,
+              std::move(localResultSetDescriptor), recursiveDstNodeIDPos,
+              std::move(recursiveDstNodeTableIDs), recursiveEdgeIDPos, joinType, DataPos()} {}
     RecursiveJoinDataInfo(std::vector<DataPos> vectorsToScanPos,
         std::vector<ft_col_idx_t> colIndicesToScan, const DataPos& srcNodePos,
-        const DataPos& dstNodePos, const DataPos& pathLengthPos,
-        std::unique_ptr<ResultSetDescriptor> localResultSetDescriptor,
-        const DataPos& tmpDstNodeIDPos, const DataPos& tmpEdgeIDPos,
-        planner::RecursiveJoinType joinType, const DataPos& pathPos)
+        const DataPos& dstNodePos, std::unordered_set<common::table_id_t> dstNodeTableIDs,
+        const DataPos& pathLengthPos, std::unique_ptr<ResultSetDescriptor> localResultSetDescriptor,
+        const DataPos& recursiveDstNodeIDPos,
+        std::unordered_set<common::table_id_t> recursiveDstNodeTableIDs,
+        const DataPos& recursiveEdgeIDPos, planner::RecursiveJoinType joinType,
+        const DataPos& pathPos)
         : vectorsToScanPos{std::move(vectorsToScanPos)},
           colIndicesToScan{std::move(colIndicesToScan)}, srcNodePos{srcNodePos},
-          dstNodePos{dstNodePos}, pathLengthPos{pathLengthPos}, localResultSetDescriptor{std::move(
-                                                                    localResultSetDescriptor)},
-          tmpDstNodeIDPos{tmpDstNodeIDPos},
-          tmpEdgeIDPos{tmpEdgeIDPos}, joinType{joinType}, pathPos{pathPos} {}
+          dstNodePos{dstNodePos}, dstNodeTableIDs{std::move(dstNodeTableIDs)},
+          pathLengthPos{pathLengthPos}, localResultSetDescriptor{std::move(
+                                            localResultSetDescriptor)},
+          recursiveDstNodeIDPos{recursiveDstNodeIDPos}, recursiveDstNodeTableIDs{std::move(
+                                                            recursiveDstNodeTableIDs)},
+          recursiveEdgeIDPos{recursiveEdgeIDPos}, joinType{joinType}, pathPos{pathPos} {}
 
     inline std::unique_ptr<RecursiveJoinDataInfo> copy() {
         return std::make_unique<RecursiveJoinDataInfo>(vectorsToScanPos, colIndicesToScan,
-            srcNodePos, dstNodePos, pathLengthPos, localResultSetDescriptor->copy(),
-            tmpDstNodeIDPos, tmpEdgeIDPos, joinType, pathPos);
+            srcNodePos, dstNodePos, dstNodeTableIDs, pathLengthPos,
+            localResultSetDescriptor->copy(), recursiveDstNodeIDPos, recursiveDstNodeTableIDs,
+            recursiveEdgeIDPos, joinType, pathPos);
     }
 };
 
@@ -160,8 +169,8 @@ protected:
     common::ValueVector* pathVector;
 
     // temporary recursive join result.
-    common::ValueVector* tmpEdgeIDVector;
-    common::ValueVector* tmpDstNodeIDVector;
+    common::ValueVector* recursiveEdgeIDVector;
+    common::ValueVector* recursiveDstNodeIDVector;
 
     std::unique_ptr<BaseBFSState> bfsState;
     std::unique_ptr<FrontiersScanner> frontiersScanner;
