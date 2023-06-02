@@ -20,8 +20,9 @@ struct CreateNodeInfo {
           relTablesToInit{std::move(relTablesToInit)}, outNodeIDVectorPos{dataPos} {}
 
     inline std::unique_ptr<CreateNodeInfo> clone() {
-        return std::make_unique<CreateNodeInfo>(
-            table, primaryKeyEvaluator->clone(), relTablesToInit, outNodeIDVectorPos);
+        return std::make_unique<CreateNodeInfo>(table,
+            primaryKeyEvaluator != nullptr ? primaryKeyEvaluator->clone() : nullptr,
+            relTablesToInit, outNodeIDVectorPos);
     }
 };
 

@@ -367,6 +367,7 @@ std::string LogicalTypeUtils::dataTypeToString(const LogicalType& dataType) {
     case LogicalTypeID::TIMESTAMP:
     case LogicalTypeID::INTERVAL:
     case LogicalTypeID::STRING:
+    case LogicalTypeID::SERIAL:
         return dataTypeToString(dataType.typeID);
     default:
         throw NotImplementedException("LogicalTypeUtils::dataTypeToString.");

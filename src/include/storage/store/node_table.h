@@ -50,7 +50,8 @@ public:
                                          wal->getDirectory(), property),
                 property.dataType, &bufferManager, wal));
     }
-    common::offset_t addNodeAndResetProperties(common::ValueVector* primaryKeyVector);
+    common::offset_t addNodeAndResetProperties();
+    common::offset_t addNodeAndResetPropertiesWithPK(common::ValueVector* primaryKeyVector);
     void deleteNodes(common::ValueVector* nodeIDVector, common::ValueVector* primaryKeyVector);
 
     void prepareCommit();
