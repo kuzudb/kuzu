@@ -156,6 +156,7 @@ public:
     inline bool operator!=(const StructField& other) const { return !(*this == other); }
     inline std::string getName() const { return name; }
     inline LogicalType* getType() const { return type.get(); }
+
     bool operator==(const StructField& other) const;
     std::unique_ptr<StructField> copy() const;
 
@@ -255,13 +256,13 @@ struct FixedListType {
 };
 
 struct StructType {
-    static inline std::vector<LogicalType*> getStructFieldTypes(const LogicalType* type) {
+    static inline std::vector<LogicalType*> getFieldTypes(const LogicalType* type) {
         assert(type->getLogicalTypeID() == LogicalTypeID::STRUCT);
         auto structTypeInfo = reinterpret_cast<StructTypeInfo*>(type->extraTypeInfo.get());
         return structTypeInfo->getChildrenTypes();
     }
 
-    static inline std::vector<std::string> getStructFieldNames(const LogicalType* type) {
+    static inline std::vector<std::string> getFieldNames(const LogicalType* type) {
         assert(type->getLogicalTypeID() == LogicalTypeID::STRUCT);
         auto structTypeInfo = reinterpret_cast<StructTypeInfo*>(type->extraTypeInfo.get());
         return structTypeInfo->getChildrenNames();
@@ -269,16 +270,16 @@ struct StructType {
 
     static inline uint64_t getNumFields(const LogicalType* type) {
         assert(type->getLogicalTypeID() == LogicalTypeID::STRUCT);
-        return getStructFieldTypes(type).size();
+        return getFieldTypes(type).size();
     }
 
-    static inline std::vector<StructField*> getStructFields(const LogicalType* type) {
+    static inline std::vector<StructField*> getFields(const LogicalType* type) {
         assert(type->getLogicalTypeID() == LogicalTypeID::STRUCT);
         auto structTypeInfo = reinterpret_cast<StructTypeInfo*>(type->extraTypeInfo.get());
         return structTypeInfo->getStructFields();
     }
 
-    static inline struct_field_idx_t getStructFieldIdx(const LogicalType* type, std::string& key) {
+    static inline struct_field_idx_t getFieldIdx(const LogicalType* type, std::string& key) {
         assert(type->getLogicalTypeID() == LogicalTypeID::STRUCT);
         auto structTypeInfo = reinterpret_cast<StructTypeInfo*>(type->extraTypeInfo.get());
         return structTypeInfo->getStructFieldIdx(key);

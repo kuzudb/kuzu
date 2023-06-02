@@ -14,13 +14,12 @@ InMemColumn::InMemColumn(std::string filePath, LogicalType dataType, bool requir
     // TODO(Guodong): Separate this as a function.
     switch (this->dataType.getLogicalTypeID()) {
     case LogicalTypeID::STRUCT: {
-        auto childTypes = common::StructType::getStructFieldTypes(&this->dataType);
-        auto childNames = common::StructType::getStructFieldNames(&this->dataType);
-        childColumns.resize(childTypes.size());
-        for (auto i = 0u; i < childTypes.size(); i++) {
-            childColumns[i] = std::make_unique<InMemColumn>(
-                StorageUtils::appendStructFieldName(this->filePath, i), *childTypes[i],
-                true /* hasNull */);
+        auto fieldTypes = common::StructType::getFieldTypes(&this->dataType);
+        childColumns.reserve(fieldTypes.size());
+        for (auto i = 0u; i < fieldTypes.size(); i++) {
+            childColumns.push_back(std::make_unique<InMemColumn>(
+                StorageUtils::appendStructFieldName(this->filePath, i), *fieldTypes[i],
+                true /* hasNull */));
         }
     } break;
     case LogicalTypeID::STRING:

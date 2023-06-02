@@ -346,11 +346,11 @@ uint32_t FactorizedTable::getDataTypeSize(const common::LogicalType& type) {
     }
     case LogicalTypeID::STRUCT: {
         uint32_t size = 0;
-        auto structFieldsTypes = StructType::getStructFieldTypes(&type);
-        for (auto structFieldType : structFieldsTypes) {
-            size += getDataTypeSize(*structFieldType);
+        auto fieldsTypes = StructType::getFieldTypes(&type);
+        for (auto fieldType : fieldsTypes) {
+            size += getDataTypeSize(*fieldType);
         }
-        size += NullBuffer::getNumBytesForNullValues(structFieldsTypes.size());
+        size += NullBuffer::getNumBytesForNullValues(fieldsTypes.size());
         return size;
     }
     default: {

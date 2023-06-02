@@ -457,7 +457,7 @@ kU_StructLiteral
     :  '{' SP? kU_StructField SP? ( ',' SP? kU_StructField SP? )* '}' ;
 
 kU_StructField
-    :   oC_SymbolicName SP? ':' SP? oC_Expression ;
+    :   ( oC_SymbolicName | StringLiteral ) SP? ':' SP? oC_Expression ;
 
 oC_ParenthesizedExpression
     : '(' SP? oC_Expression SP? ')' ;

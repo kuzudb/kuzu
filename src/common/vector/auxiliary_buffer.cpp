@@ -15,10 +15,10 @@ void StringAuxiliaryBuffer::addString(
 
 StructAuxiliaryBuffer::StructAuxiliaryBuffer(
     const LogicalType& type, storage::MemoryManager* memoryManager) {
-    auto structFieldTypes = StructType::getStructFieldTypes(&type);
-    childrenVectors.reserve(structFieldTypes.size());
-    for (auto structFieldType : structFieldTypes) {
-        childrenVectors.push_back(std::make_shared<ValueVector>(*structFieldType, memoryManager));
+    auto fieldTypes = StructType::getFieldTypes(&type);
+    childrenVectors.reserve(fieldTypes.size());
+    for (auto fieldType : fieldTypes) {
+        childrenVectors.push_back(std::make_shared<ValueVector>(*fieldType, memoryManager));
     }
 }
 

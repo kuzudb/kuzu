@@ -62,7 +62,7 @@ Napi::Value Util::ConvertToNapiObject(const Value& value, Napi::Env env) {
         return napiArray;
     }
     case LogicalTypeID::STRUCT: {
-        auto childrenNames = StructType::getStructFieldNames(&dataType);
+        auto childrenNames = StructType::getFieldNames(&dataType);
         auto napiObj = Napi::Object::New(env);
         auto& structVal = value.getListValReference();
         for (auto i = 0u; i < structVal.size(); ++i) {

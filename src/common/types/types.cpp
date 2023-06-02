@@ -345,10 +345,13 @@ std::string LogicalTypeUtils::dataTypeToString(const LogicalType& dataType) {
         auto structTypeInfo = reinterpret_cast<StructTypeInfo*>(dataType.extraTypeInfo.get());
         std::string dataTypeStr = dataTypeToString(dataType.typeID) + "(";
         auto numFields = structTypeInfo->getChildrenTypes().size();
+        auto fieldNames = structTypeInfo->getChildrenNames();
         for (auto i = 0u; i < numFields - 1; i++) {
+            dataTypeStr += fieldNames[i] + ":";
             dataTypeStr += dataTypeToString(*structTypeInfo->getChildrenTypes()[i]);
-            dataTypeStr += ",";
+            dataTypeStr += ", ";
         }
+        dataTypeStr += fieldNames[numFields - 1] + ":";
         dataTypeStr += dataTypeToString(*structTypeInfo->getChildrenTypes()[numFields - 1]);
         return dataTypeStr + ")";
     }

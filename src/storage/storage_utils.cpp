@@ -270,11 +270,11 @@ uint32_t StorageUtils::getDataTypeSize(const common::LogicalType& type) {
     }
     case common::LogicalTypeID::STRUCT: {
         uint32_t size = 0;
-        auto structFieldsTypes = common::StructType::getStructFieldTypes(&type);
-        for (auto structFieldType : structFieldsTypes) {
-            size += getDataTypeSize(*structFieldType);
+        auto fieldsTypes = common::StructType::getFieldTypes(&type);
+        for (auto fieldType : fieldsTypes) {
+            size += getDataTypeSize(*fieldType);
         }
-        size += NullBuffer::getNumBytesForNullValues(structFieldsTypes.size());
+        size += NullBuffer::getNumBytesForNullValues(fieldsTypes.size());
         return size;
     }
     default: {

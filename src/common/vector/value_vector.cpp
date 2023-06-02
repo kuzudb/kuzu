@@ -17,7 +17,7 @@ void ValueVector::setState(std::shared_ptr<DataChunkState> state) {
     this->state = state;
     if (dataType.getLogicalTypeID() == LogicalTypeID::STRUCT) {
         auto childrenVectors = StructVector::getChildrenVectors(this);
-        for (auto childVector : childrenVectors) {
+        for (auto& childVector : childrenVectors) {
             childVector->setState(state);
         }
     }
