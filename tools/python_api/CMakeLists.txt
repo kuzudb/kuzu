@@ -18,6 +18,7 @@ pybind11_add_module(_kuzu
 set_target_properties(_kuzu
         PROPERTIES
         LIBRARY_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/build/kuzu"
+        RUNTIME_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/build/kuzu"
         ARCHIVE_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/build/kuzu")
 
 target_link_libraries(_kuzu
