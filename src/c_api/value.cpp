@@ -14,7 +14,7 @@ kuzu_value* kuzu_value_create_null() {
     return c_value;
 }
 
-kuzu_value* kuzu_value_create_null_with_data_type(kuzu_data_type* data_type) {
+kuzu_value* kuzu_value_create_null_with_data_type(kuzu_logical_type* data_type) {
     auto* c_value = (kuzu_value*)calloc(1, sizeof(kuzu_value));
     c_value->_value =
         new Value(Value::createNullValue(*static_cast<LogicalType*>(data_type->_data_type)));
@@ -29,7 +29,7 @@ void kuzu_value_set_null(kuzu_value* value, bool is_null) {
     static_cast<Value*>(value->_value)->setNull(is_null);
 }
 
-kuzu_value* kuzu_value_create_default(kuzu_data_type* data_type) {
+kuzu_value* kuzu_value_create_default(kuzu_logical_type* data_type) {
     auto* c_value = (kuzu_value*)calloc(1, sizeof(kuzu_value));
     c_value->_value =
         new Value(Value::createDefaultValue(*static_cast<LogicalType*>(data_type->_data_type)));
@@ -177,8 +177,8 @@ kuzu_value* kuzu_value_get_struct_field_value(kuzu_value* value, uint64_t index)
     return kuzu_value_get_list_element(value, index);
 }
 
-kuzu_data_type* kuzu_value_get_data_type(kuzu_value* value) {
-    auto* c_data_type = (kuzu_data_type*)malloc(sizeof(kuzu_data_type));
+kuzu_logical_type* kuzu_value_get_data_type(kuzu_value* value) {
+    auto* c_data_type = (kuzu_logical_type*)malloc(sizeof(kuzu_logical_type));
     c_data_type->_data_type = new LogicalType(static_cast<Value*>(value->_value)->getDataType());
     return c_data_type;
 }
@@ -341,9 +341,9 @@ kuzu_value* kuzu_node_val_get_property_value_at(kuzu_node_val* node_val, uint64_
     return c_value;
 }
 
-void kuzu_node_val_add_property(kuzu_node_val* node_val, const char* key, kuzu_value* value) {
-    auto value_ = std::make_unique<Value>(*static_cast<Value*>(value->_value));
-    static_cast<NodeVal*>(node_val->_node_val)->addProperty(std::string(key), std::move(value_));
+void kuzu_node_val_add_property(kuzu_node_val* node_val, const char* name, kuzu_value* property) {
+    auto value_ = std::make_unique<Value>(*static_cast<Value*>(property->_value));
+    static_cast<NodeVal*>(node_val->_node_val)->addProperty(std::string(name), std::move(value_));
 }
 
 char* kuzu_node_val_to_string(kuzu_node_val* node_val) {
@@ -437,9 +437,9 @@ kuzu_value* kuzu_rel_val_get_property_value_at(kuzu_rel_val* rel_val, uint64_t i
     return c_value;
 }
 
-void kuzu_rel_val_add_property(kuzu_rel_val* rel_val, char* key, kuzu_value* value) {
-    auto value_ = std::make_unique<Value>(*static_cast<Value*>(value->_value));
-    static_cast<RelVal*>(rel_val->_rel_val)->addProperty(std::string(key), std::move(value_));
+void kuzu_rel_val_add_property(kuzu_rel_val* rel_val, char* name, kuzu_value* property) {
+    auto value_ = std::make_unique<Value>(*static_cast<Value*>(property->_value));
+    static_cast<RelVal*>(rel_val->_rel_val)->addProperty(std::string(name), std::move(value_));
 }
 
 char* kuzu_rel_val_to_string(kuzu_rel_val* rel_val) {
