@@ -53,13 +53,18 @@ public:
      */
     KUZU_API explicit Value(double val_);
     /**
+     * @param val_ the float value to set.
+     * @return a Value with FLOAT type and val_ value.
+     */
+    KUZU_API explicit Value(float_t val_);
+    /**
      * @param val_ the date value to set.
      * @return a Value with DATE type and val_ value.
      */
     KUZU_API explicit Value(date_t val_);
     /**
      * @param val_ the timestamp value to set.
-     * @return a Value with timestamp type and val_ value.
+     * @return a Value with TIMESTAMP type and val_ value.
      */
     KUZU_API explicit Value(timestamp_t val_);
     /**
@@ -87,11 +92,6 @@ public:
      * @return a Value with dataType type and vals value.
      */
     KUZU_API explicit Value(LogicalType dataType, std::vector<std::unique_ptr<Value>> vals);
-    /**
-     * @param val_ the string value to set.
-     * @return a Value with STRING type and val_ value.
-     */
-    KUZU_API explicit Value(float_t val_);
     /**
      * @param val_ the node value to set.
      * @return a Value with NODE type and val_ value.
@@ -210,13 +210,12 @@ public:
         int16_t int16Val;
         double doubleVal;
         float floatVal;
-        date_t dateVal;
-        timestamp_t timestampVal;
         interval_t intervalVal;
         internalID_t internalIDVal;
     } val;
     std::string strVal;
     std::vector<std::unique_ptr<Value>> nestedTypeVal;
+    // TODO(Ziyi): remove these two fields once we implemented node/rel using struct.
     std::unique_ptr<NodeVal> nodeVal;
     std::unique_ptr<RelVal> relVal;
 };
@@ -406,7 +405,7 @@ inline double Value::getValue() const {
 KUZU_API template<>
 inline date_t Value::getValue() const {
     assert(dataType.getLogicalTypeID() == LogicalTypeID::DATE);
-    return val.dateVal;
+    return date_t{val.int32Val};
 }
 
 /**
@@ -415,7 +414,7 @@ inline date_t Value::getValue() const {
 KUZU_API template<>
 inline timestamp_t Value::getValue() const {
     assert(dataType.getLogicalTypeID() == LogicalTypeID::TIMESTAMP);
-    return val.timestampVal;
+    return timestamp_t{val.int64Val};
 }
 
 /**
@@ -523,7 +522,7 @@ inline double_t& Value::getValueReference() {
 KUZU_API template<>
 inline date_t& Value::getValueReference() {
     assert(dataType.getLogicalTypeID() == LogicalTypeID::DATE);
-    return val.dateVal;
+    return *reinterpret_cast<date_t*>(&val.int32Val);
 }
 
 /**
@@ -532,7 +531,7 @@ inline date_t& Value::getValueReference() {
 KUZU_API template<>
 inline timestamp_t& Value::getValueReference() {
     assert(dataType.getLogicalTypeID() == LogicalTypeID::TIMESTAMP);
-    return val.timestampVal;
+    return *reinterpret_cast<timestamp_t*>(&val.int64Val);
 }
 
 /**

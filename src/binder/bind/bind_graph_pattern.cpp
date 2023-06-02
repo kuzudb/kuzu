@@ -179,8 +179,11 @@ void Binder::bindQueryRel(const RelPattern& relPattern,
                                   " are not connected through rel " + parsedName + ".");
         }
     }
-    auto dataType = isVariableLength ? common::LogicalType(common::LogicalTypeID::RECURSIVE_REL) :
-                                       common::LogicalType(common::LogicalTypeID::REL);
+    auto dataType = isVariableLength ?
+                        common::LogicalType(common::LogicalTypeID::RECURSIVE_REL,
+                            std::make_unique<VarListTypeInfo>(
+                                std::make_unique<LogicalType>(LogicalTypeID::INTERNAL_ID))) :
+                        common::LogicalType(common::LogicalTypeID::REL);
     auto queryRel = make_shared<RelExpression>(dataType, getUniqueExpressionName(parsedName),
         parsedName, tableIDs, srcNode, dstNode, directionType, relPattern.getRelType());
     if (isVariableLength) {
