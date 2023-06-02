@@ -28,6 +28,7 @@ size_t BaseFrontierScanner::scan(common::ValueVector* pathVector,
         currentDstNodeID = lastFrontier->nodeIDs[lastFrontierCursor++];
         // Skip nodes that is not in semi mask.
         if (!targetDstNodes->contains(currentDstNodeID)) {
+            currentDstNodeID.offset = common::INVALID_OFFSET;
             continue;
         }
         initScanFromDstOffset();

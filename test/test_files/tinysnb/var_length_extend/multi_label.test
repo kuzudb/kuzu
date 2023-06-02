@@ -37,7 +37,7 @@
 4|[0:0,3:1,0:2,5:0,1:1]
 6|[0:0,3:2,0:3,5:1,1:2]
 
--NAME MixMultiLabelTest
+-NAME MixMultiLabelTest2
 -QUERY MATCH (a:person)-[e:meets|:marries|:studyAt*2..2]->(b) WHERE a.fName = 'Alice' RETURN b.ID, e
 ---- 4
 1|[0:0,6:0,0:1,4:1,1:0]
@@ -45,8 +45,13 @@
 5|[0:0,6:0,0:1,6:1,0:3]
 5|[0:0,7:0,0:1,6:1,0:3]
 
--NAME MixMultiLabelTest
+-NAME MixMultiLabelTest3
 -QUERY MATCH (a:person)-[e:meets|:marries|:studyAt*2..2]->(b) WHERE a.fName = 'Alice' AND b.ID < 5 RETURN COUNT(*)
 -ENUMERATE
 ---- 1
 2
+
+-NAME MixMultiLabelTest4
+-QUERY MATCH (a:person)-[e*2..2]->(b:organisation) WHERE a.fName = 'Alice' RETURN COUNT(*)
+---- 1
+5

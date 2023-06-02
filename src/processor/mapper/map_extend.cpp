@@ -166,17 +166,17 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalRecursiveExtendToPhysica
     auto recursivePlanSchema = logicalRecursiveRoot->getSchema();
     auto recursivePlanResultSetDescriptor =
         std::make_unique<ResultSetDescriptor>(recursivePlanSchema);
-    auto tmpDstNodeIDPos =
+    auto recursiveDstNodeIDPos =
         DataPos(recursivePlanSchema->getExpressionPos(*recursiveNode->getInternalIDProperty()));
-    auto tmpEdgeIDPos =
+    auto recursiveEdgeIDPos =
         DataPos(recursivePlanSchema->getExpressionPos(*rel->getInternalIDProperty()));
     // map child plan
     auto outSchema = extend->getSchema();
     auto inSchema = extend->getChild(0)->getSchema();
     auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0));
-    auto inNodeIDVectorPos =
+    auto boundNodeIDVectorPos =
         DataPos(inSchema->getExpressionPos(*boundNode->getInternalIDProperty()));
-    auto outNodeIDVectorPos =
+    auto nbrNodeIDVectorPos =
         DataPos(outSchema->getExpressionPos(*nbrNode->getInternalIDProperty()));
     auto lengthVectorPos = DataPos(outSchema->getExpressionPos(*lengthExpression));
     auto expressions = inSchema->getExpressionsInScope();
@@ -188,22 +188,22 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalRecursiveExtendToPhysica
         outDataPoses.emplace_back(outSchema->getExpressionPos(*expressions[i]));
         colIndicesToScan.push_back(i);
     }
-
     // Generate RecursiveJoinDataInfo
     std::unique_ptr<RecursiveJoinDataInfo> dataInfo;
     switch (extend->getJoinType()) {
     case planner::RecursiveJoinType::TRACK_PATH: {
         auto pathVectorPos = DataPos(outSchema->getExpressionPos(*rel));
         dataInfo = std::make_unique<RecursiveJoinDataInfo>(outDataPoses, colIndicesToScan,
-            inNodeIDVectorPos, outNodeIDVectorPos, lengthVectorPos,
-            std::move(recursivePlanResultSetDescriptor), tmpDstNodeIDPos, tmpEdgeIDPos,
-            extend->getJoinType(), pathVectorPos);
+            boundNodeIDVectorPos, nbrNodeIDVectorPos, nbrNode->getTableIDsSet(), lengthVectorPos,
+            std::move(recursivePlanResultSetDescriptor), recursiveDstNodeIDPos,
+            recursiveNode->getTableIDsSet(), recursiveEdgeIDPos, extend->getJoinType(),
+            pathVectorPos);
     } break;
     case planner::RecursiveJoinType::TRACK_NONE: {
         dataInfo = std::make_unique<RecursiveJoinDataInfo>(outDataPoses, colIndicesToScan,
-            inNodeIDVectorPos, outNodeIDVectorPos, lengthVectorPos,
-            std::move(recursivePlanResultSetDescriptor), tmpDstNodeIDPos, tmpEdgeIDPos,
-            extend->getJoinType());
+            boundNodeIDVectorPos, nbrNodeIDVectorPos, nbrNode->getTableIDsSet(), lengthVectorPos,
+            std::move(recursivePlanResultSetDescriptor), recursiveDstNodeIDPos,
+            recursiveNode->getTableIDsSet(), recursiveEdgeIDPos, extend->getJoinType());
     } break;
     default:
         throw common::NotImplementedException("PlanMapper::mapLogicalRecursiveExtendToPhysical");

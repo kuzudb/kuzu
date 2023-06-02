@@ -98,10 +98,10 @@ void BaseRecursiveJoin::computeBFS(ExecutionContext* context) {
 
 void BaseRecursiveJoin::updateVisitedNodes(common::nodeID_t boundNodeID) {
     auto boundNodeMultiplicity = bfsState->getMultiplicity(boundNodeID);
-    for (auto i = 0u; i < tmpDstNodeIDVector->state->selVector->selectedSize; ++i) {
-        auto pos = tmpDstNodeIDVector->state->selVector->selectedPositions[i];
-        auto nbrNodeID = tmpDstNodeIDVector->getValue<common::nodeID_t>(pos);
-        auto edgeID = tmpEdgeIDVector->getValue<common::relID_t>(pos);
+    for (auto i = 0u; i < recursiveDstNodeIDVector->state->selVector->selectedSize; ++i) {
+        auto pos = recursiveDstNodeIDVector->state->selVector->selectedPositions[i];
+        auto nbrNodeID = recursiveDstNodeIDVector->getValue<common::nodeID_t>(pos);
+        auto edgeID = recursiveEdgeIDVector->getValue<common::relID_t>(pos);
         bfsState->markVisited(boundNodeID, nbrNodeID, edgeID, boundNodeMultiplicity);
     }
 }
@@ -115,8 +115,9 @@ void BaseRecursiveJoin::initLocalRecursivePlan(ExecutionContext* context) {
     scanFrontier = (ScanFrontier*)op;
     localResultSet = std::make_unique<ResultSet>(
         dataInfo->localResultSetDescriptor.get(), context->memoryManager);
-    tmpDstNodeIDVector = localResultSet->getValueVector(dataInfo->tmpDstNodeIDPos).get();
-    tmpEdgeIDVector = localResultSet->getValueVector(dataInfo->tmpEdgeIDPos).get();
+    recursiveDstNodeIDVector =
+        localResultSet->getValueVector(dataInfo->recursiveDstNodeIDPos).get();
+    recursiveEdgeIDVector = localResultSet->getValueVector(dataInfo->recursiveEdgeIDPos).get();
     recursiveRoot->initLocalState(localResultSet.get(), context);
 }
 
@@ -139,6 +140,12 @@ void BaseRecursiveJoin::populateTargetDstNodes() {
         }
     }
     targetDstNodes = std::make_unique<TargetDstNodes>(numTargetNodes, std::move(targetNodeIDs));
+    for (auto tableID : dataInfo->recursiveDstNodeTableIDs) {
+        if (!dataInfo->dstNodeTableIDs.contains(tableID)) {
+            targetDstNodes->setTableIDFilter(dataInfo->dstNodeTableIDs);
+            return;
+        }
+    }
 }
 
 } // namespace processor
