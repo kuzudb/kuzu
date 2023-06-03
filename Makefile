@@ -60,17 +60,22 @@ debug: arrow
 
 all: arrow
 	$(call mkdirp,build/release) && cd build/release && \
-	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=TRUE -DBUILD_BENCHMARK=TRUE ../.. && \
+	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=TRUE -DBUILD_BENCHMARK=TRUE -DBUILD_NODEJS=TRUE ../.. && \
 	cmake --build . --config Release -- -j $(NUM_THREADS)
 
 alldebug: arrow
 	$(call mkdirp,build/debug) && cd build/debug && \
-	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=TRUE -DBUILD_BENCHMARK=TRUE ../.. && \
+	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=TRUE -DBUILD_BENCHMARK=TRUE -DBUILD_NODEJS=TRUE ../.. && \
 	cmake --build . --config Debug -- -j $(NUM_THREADS)
 
 benchmark: arrow
 	$(call mkdirp,build/release) && cd build/release && \
 	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) -DCMAKE_BUILD_TYPE=Release -DBUILD_BENCHMARK=TRUE ../.. && \
+	cmake --build . --config Release -- -j $(NUM_THREADS)
+
+nodejs: arrow
+	$(call mkdirp,build/release) && cd build/release && \
+	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) -DCMAKE_BUILD_TYPE=Release -DBUILD_NODEJS=TRUE ../.. && \
 	cmake --build . --config Release -- -j $(NUM_THREADS)
 
 test: arrow
@@ -82,7 +87,7 @@ test: arrow
 
 lcov: arrow
 	$(call mkdirp,build/release) && cd build/release && \
-	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=TRUE -DBUILD_LCOV=TRUE ../.. && \
+	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=TRUE -DBUILD_NODEJS=TRUE -DBUILD_LCOV=TRUE ../.. && \
 	cmake --build . --config Release -- -j $(NUM_THREADS)
 	cd $(ROOT_DIR)/build/release/test && \
 	ctest --output-on-failure
@@ -91,6 +96,11 @@ pytest: arrow
 	$(MAKE) release
 	cd $(ROOT_DIR)/tools/python_api/test && \
 	python3 -m pytest -v test_main.py
+
+nodejstest: arrow
+	$(MAKE) nodejs
+	cd $(ROOT_DIR)/tools/nodejs_api/ && \
+	npm test
 
 clean-python-api:
 ifeq ($(OS),Windows_NT)

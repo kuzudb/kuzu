@@ -32,8 +32,7 @@ jobs:
         run: CC=gcc CXX=g++ make pytest NUM_THREADS=32
       
       - name: Node.js test
-        run: npm test
-        working-directory: tools/nodejs_api
+        run: CC=gcc CXX=g++ make nodejstest NUM_THREADS=32
 
       - name: Generate coverage report
         run: |
@@ -105,8 +104,7 @@ jobs:
         run: CC=clang-14 CXX=clang++-14 make pytest NUM_THREADS=32
       
       - name: Node.js test
-        run: npm test
-        working-directory: tools/nodejs_api
+        run: CC=clang-14 CXX=clang++-14 make nodejstest NUM_THREADS=32
 
   msvc-build-test:
     name: msvc build & test
