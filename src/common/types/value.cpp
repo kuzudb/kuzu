@@ -100,19 +100,18 @@ Value::Value(double val_) : dataType{LogicalTypeID::DOUBLE}, isNull_{false} {
 }
 
 Value::Value(date_t val_) : dataType{LogicalTypeID::DATE}, isNull_{false} {
-    val.dateVal = val_;
+    val.int32Val = val_.days;
 }
 
-Value::Value(kuzu::common::timestamp_t val_) : dataType{LogicalTypeID::TIMESTAMP}, isNull_{false} {
-    val.timestampVal = val_;
+Value::Value(timestamp_t val_) : dataType{LogicalTypeID::TIMESTAMP}, isNull_{false} {
+    val.int64Val = val_.value;
 }
 
-Value::Value(kuzu::common::interval_t val_) : dataType{LogicalTypeID::INTERVAL}, isNull_{false} {
+Value::Value(interval_t val_) : dataType{LogicalTypeID::INTERVAL}, isNull_{false} {
     val.intervalVal = val_;
 }
 
-Value::Value(kuzu::common::internalID_t val_)
-    : dataType{LogicalTypeID::INTERNAL_ID}, isNull_{false} {
+Value::Value(internalID_t val_) : dataType{LogicalTypeID::INTERNAL_ID}, isNull_{false} {
     val.internalIDVal = val_;
 }
 
@@ -147,52 +146,42 @@ Value::Value(const Value& other) : dataType{other.dataType}, isNull_{other.isNul
 }
 
 void Value::copyValueFrom(const uint8_t* value) {
-    switch (dataType.getLogicalTypeID()) {
-    case LogicalTypeID::INT64: {
+    switch (dataType.getPhysicalType()) {
+    case PhysicalTypeID::INT64: {
         val.int64Val = *((int64_t*)value);
     } break;
-    case LogicalTypeID::INT32: {
+    case PhysicalTypeID::INT32: {
         val.int32Val = *((int32_t*)value);
     } break;
-    case LogicalTypeID::INT16: {
+    case PhysicalTypeID::INT16: {
         val.int16Val = *((int16_t*)value);
     } break;
-    case LogicalTypeID::BOOL: {
+    case PhysicalTypeID::BOOL: {
         val.booleanVal = *((bool*)value);
     } break;
-    case LogicalTypeID::DOUBLE: {
+    case PhysicalTypeID::DOUBLE: {
         val.doubleVal = *((double*)value);
     } break;
-    case LogicalTypeID::FLOAT: {
+    case PhysicalTypeID::FLOAT: {
         val.floatVal = *((float_t*)value);
     } break;
-    case LogicalTypeID::DATE: {
-        val.dateVal = *((date_t*)value);
-    } break;
-    case LogicalTypeID::TIMESTAMP: {
-        val.timestampVal = *((timestamp_t*)value);
-    } break;
-    case LogicalTypeID::INTERVAL: {
+    case PhysicalTypeID::INTERVAL: {
         val.intervalVal = *((interval_t*)value);
     } break;
-    case LogicalTypeID::INTERNAL_ID: {
+    case PhysicalTypeID::INTERNAL_ID: {
         val.internalIDVal = *((nodeID_t*)value);
     } break;
-    case LogicalTypeID::STRING: {
+    case PhysicalTypeID::STRING: {
         strVal = ((ku_string_t*)value)->getAsString();
     } break;
-    case LogicalTypeID::RECURSIVE_REL: {
-        nestedTypeVal =
-            convertKUVarListToVector(*(ku_list_t*)value, LogicalType(LogicalTypeID::INTERNAL_ID));
-    } break;
-    case LogicalTypeID::VAR_LIST: {
+    case PhysicalTypeID::VAR_LIST: {
         nestedTypeVal =
             convertKUVarListToVector(*(ku_list_t*)value, *VarListType::getChildType(&dataType));
     } break;
-    case LogicalTypeID::FIXED_LIST: {
+    case PhysicalTypeID::FIXED_LIST: {
         nestedTypeVal = convertKUFixedListToVector(value);
     } break;
-    case LogicalTypeID::STRUCT: {
+    case PhysicalTypeID::STRUCT: {
         nestedTypeVal = convertKUStructToVector(value);
     } break;
     default:
@@ -208,58 +197,56 @@ void Value::copyValueFrom(const Value& other) {
     }
     isNull_ = false;
     assert(dataType == other.dataType);
-    switch (dataType.getLogicalTypeID()) {
-    case LogicalTypeID::BOOL: {
+    switch (dataType.getPhysicalType()) {
+    case PhysicalTypeID::BOOL: {
         val.booleanVal = other.val.booleanVal;
     } break;
-    case LogicalTypeID::INT64: {
+    case PhysicalTypeID::INT64: {
         val.int64Val = other.val.int64Val;
     } break;
-    case LogicalTypeID::INT32: {
+    case PhysicalTypeID::INT32: {
         val.int32Val = other.val.int32Val;
     } break;
-    case LogicalTypeID::INT16: {
+    case PhysicalTypeID::INT16: {
         val.int16Val = other.val.int16Val;
     } break;
-    case LogicalTypeID::DOUBLE: {
+    case PhysicalTypeID::DOUBLE: {
         val.doubleVal = other.val.doubleVal;
     } break;
-    case LogicalTypeID::FLOAT: {
+    case PhysicalTypeID::FLOAT: {
         val.floatVal = other.val.floatVal;
     } break;
-    case LogicalTypeID::DATE: {
-        val.dateVal = other.val.dateVal;
-    } break;
-    case LogicalTypeID::TIMESTAMP: {
-        val.timestampVal = other.val.timestampVal;
-    } break;
-    case LogicalTypeID::INTERVAL: {
+    case PhysicalTypeID::INTERVAL: {
         val.intervalVal = other.val.intervalVal;
     } break;
-    case LogicalTypeID::INTERNAL_ID: {
+    case PhysicalTypeID::INTERNAL_ID: {
         val.internalIDVal = other.val.internalIDVal;
     } break;
-    case LogicalTypeID::STRING: {
+    case PhysicalTypeID::STRING: {
         strVal = other.strVal;
     } break;
-    case LogicalTypeID::RECURSIVE_REL:
-    case LogicalTypeID::VAR_LIST:
-    case LogicalTypeID::FIXED_LIST:
-    case LogicalTypeID::STRUCT: {
+    case PhysicalTypeID::VAR_LIST:
+    case PhysicalTypeID::FIXED_LIST:
+    case PhysicalTypeID::STRUCT: {
         for (auto& value : other.nestedTypeVal) {
             nestedTypeVal.push_back(value->copy());
         }
     } break;
-    case LogicalTypeID::NODE: {
-        nodeVal = other.nodeVal->copy();
-    } break;
-    case LogicalTypeID::REL: {
-        relVal = other.relVal->copy();
-    } break;
-    default:
-        throw NotImplementedException("Value::Value(const Value&) for type " +
-                                      LogicalTypeUtils::dataTypeToString(dataType) +
-                                      " is not implemented.");
+    default: {
+        // Remove this switch once we implemented node/rel using struct.
+        switch (dataType.getLogicalTypeID()) {
+        case LogicalTypeID::NODE: {
+            nodeVal = other.nodeVal->copy();
+        } break;
+        case LogicalTypeID::REL: {
+            relVal = other.relVal->copy();
+        } break;
+        default:
+            throw NotImplementedException("Value::Value(const Value&) for type " +
+                                          LogicalTypeUtils::dataTypeToString(dataType) +
+                                          " is not implemented.");
+        }
+    }
     }
 }
 
@@ -285,9 +272,9 @@ std::string Value::toString() const {
     case LogicalTypeID::FLOAT:
         return TypeUtils::toString(val.floatVal);
     case LogicalTypeID::DATE:
-        return TypeUtils::toString(val.dateVal);
+        return TypeUtils::toString(date_t{val.int32Val});
     case LogicalTypeID::TIMESTAMP:
-        return TypeUtils::toString(val.timestampVal);
+        return TypeUtils::toString(timestamp_t{val.int64Val});
     case LogicalTypeID::INTERVAL:
         return TypeUtils::toString(val.intervalVal);
     case LogicalTypeID::INTERNAL_ID:
@@ -309,7 +296,7 @@ std::string Value::toString() const {
     }
     case LogicalTypeID::STRUCT: {
         std::string result = "{";
-        auto childrenNames = common::StructType::getStructFieldNames(&dataType);
+        auto childrenNames = StructType::getStructFieldNames(&dataType);
         for (auto i = 0u; i < nestedTypeVal.size(); ++i) {
             result += childrenNames[i];
             result += ": ";
@@ -363,19 +350,19 @@ std::vector<std::unique_ptr<Value>> Value::convertKUFixedListToVector(
     auto childType = FixedListType::getChildType(&dataType);
     auto numBytesPerElement = storage::StorageUtils::getDataTypeSize(*childType);
     switch (childType->getLogicalTypeID()) {
-    case common::LogicalTypeID::INT64: {
+    case LogicalTypeID::INT64: {
         putValuesIntoVector<int64_t>(fixedListResultVal, fixedList, numBytesPerElement);
     } break;
-    case common::LogicalTypeID::INT32: {
+    case LogicalTypeID::INT32: {
         putValuesIntoVector<int32_t>(fixedListResultVal, fixedList, numBytesPerElement);
     } break;
-    case common::LogicalTypeID::INT16: {
+    case LogicalTypeID::INT16: {
         putValuesIntoVector<int16_t>(fixedListResultVal, fixedList, numBytesPerElement);
     } break;
-    case common::LogicalTypeID::DOUBLE: {
+    case LogicalTypeID::DOUBLE: {
         putValuesIntoVector<double_t>(fixedListResultVal, fixedList, numBytesPerElement);
     } break;
-    case common::LogicalTypeID::FLOAT: {
+    case LogicalTypeID::FLOAT: {
         putValuesIntoVector<float_t>(fixedListResultVal, fixedList, numBytesPerElement);
     } break;
     default:

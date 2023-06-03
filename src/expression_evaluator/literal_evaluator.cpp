@@ -30,40 +30,34 @@ void LiteralExpressionEvaluator::resolveResultVector(
 void LiteralExpressionEvaluator::copyValueToVector(
     uint8_t* dstValue, common::ValueVector* dstVector, const common::Value* srcValue) {
     auto numBytesPerValue = dstVector->getNumBytesPerValue();
-    switch (srcValue->getDataType().getLogicalTypeID()) {
-    case common::LogicalTypeID::INT64: {
+    switch (srcValue->getDataType().getPhysicalType()) {
+    case common::PhysicalTypeID::INT64: {
         memcpy(dstValue, &srcValue->val.int64Val, numBytesPerValue);
     } break;
-    case common::LogicalTypeID::INT32: {
+    case common::PhysicalTypeID::INT32: {
         memcpy(dstValue, &srcValue->val.int32Val, numBytesPerValue);
     } break;
-    case common::LogicalTypeID::INT16: {
+    case common::PhysicalTypeID::INT16: {
         memcpy(dstValue, &srcValue->val.int16Val, numBytesPerValue);
     } break;
-    case common::LogicalTypeID::DOUBLE: {
+    case common::PhysicalTypeID::DOUBLE: {
         memcpy(dstValue, &srcValue->val.doubleVal, numBytesPerValue);
     } break;
-    case common::LogicalTypeID::FLOAT: {
+    case common::PhysicalTypeID::FLOAT: {
         memcpy(dstValue, &srcValue->val.floatVal, numBytesPerValue);
     } break;
-    case common::LogicalTypeID::BOOL: {
+    case common::PhysicalTypeID::BOOL: {
         memcpy(dstValue, &srcValue->val.booleanVal, numBytesPerValue);
     } break;
-    case common::LogicalTypeID::DATE: {
-        memcpy(dstValue, &srcValue->val.dateVal, numBytesPerValue);
-    } break;
-    case common::LogicalTypeID::TIMESTAMP: {
-        memcpy(dstValue, &srcValue->val.timestampVal, numBytesPerValue);
-    } break;
-    case common::LogicalTypeID::INTERVAL: {
+    case common::PhysicalTypeID::INTERVAL: {
         memcpy(dstValue, &srcValue->val.intervalVal, numBytesPerValue);
     } break;
-    case common::LogicalTypeID::STRING: {
+    case common::PhysicalTypeID::STRING: {
         common::InMemOverflowBufferUtils::copyString(srcValue->strVal.data(),
             srcValue->strVal.length(), *(common::ku_string_t*)dstValue,
             *common::StringVector::getInMemOverflowBuffer(dstVector));
     } break;
-    case common::LogicalTypeID::VAR_LIST: {
+    case common::PhysicalTypeID::VAR_LIST: {
         auto listListEntry = reinterpret_cast<common::list_entry_t*>(dstValue);
         auto numValues = srcValue->nestedTypeVal.size();
         *listListEntry = common::ListVector::addList(dstVector, numValues);
