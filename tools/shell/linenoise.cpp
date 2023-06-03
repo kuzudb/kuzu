@@ -103,25 +103,87 @@
  *
  */
 
+/*
+ * Windows port adapted from
+ * https://github.com/microsoftarchive/redis/blob/3.0/deps/linenoise/linenoise.c
+ *
+ * Copyright (c) 2006-2015, Salvatore Sanfilippo
+ * Modifications copyright (c) Microsoft Open Technologies, Inc.
+ * All rights reserved.
+
+ * Redistribution and use in source and binary forms, with or without modification, are permitted
+ * provided that the following conditions are met:
+
+ * - Redistributions of source code must retain the above copyright notice, this list of conditions
+ *   and the following disclaimer.
+ * - Redistributions in binary form must reproduce the above copyright notice, this list of
+ *   conditions and the following disclaimer in the documentation and/or other materials provided
+ *   with the distribution.
+ * - Neither the name of Redis nor the names of its contributors may be used to endorse or promote
+ *   products derived from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
+ * FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY
+ * WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Windows port also adapted from https://github.com/LuaDist-testing/linenoise-windows
+ *
+ * Copyright (c) 2011-2012 Rob Hoelz <rob@hoelz.ro>
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is furnished
+ * to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+ * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+ * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+ * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 #include "linenoise.h"
 
+#ifndef _WIN32
+#include <termios.h>
+#include <unistd.h>
+
+#include <sys/ioctl.h>
+#endif
 #include <ctype.h>
 #include <errno.h>
+#ifdef _WIN32
+#include <io.h>
+#include <winsock2.h>
+#else
 #include <poll.h>
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <termios.h>
-#include <unistd.h>
 
 #include <cstddef>
 #include <string>
 
 #include "utf8proc.h"
 #include "utf8proc_wrapper.h"
-#include <sys/ioctl.h>
+
+#ifdef _WIN32
+#define REDIS_NOTUSED(V) ((void)V)
+#endif
 
 using namespace kuzu::utf8proc;
 
@@ -133,11 +195,13 @@ static linenoiseHintsCallback* hintsCallback = NULL;
 static linenoiseFreeHintsCallback* freeHintsCallback = NULL;
 static linenoiseHighlightCallback* highlightCallback = NULL;
 
+#ifndef _WIN32
 static struct termios orig_termios; /* In order to restore at exit.*/
-static int maskmode = 0;            /* Show "***" instead of input. For passwords. */
-static int rawmode = 0;             /* For atexit() function to check if restore is needed*/
-static int mlmode = 0;              /* Multi line mode. Default is single line. */
-static int atexit_registered = 0;   /* Register atexit just 1 time. */
+#endif
+static int maskmode = 0;          /* Show "***" instead of input. For passwords. */
+static int rawmode = 0;           /* For atexit() function to check if restore is needed*/
+static int mlmode = 0;            /* Multi line mode. Default is single line. */
+static int atexit_registered = 0; /* Register atexit just 1 time. */
 static int history_max_len = LINENOISE_DEFAULT_HISTORY_MAX_LEN;
 static int history_len = 0;
 static char** history = NULL;
@@ -146,19 +210,19 @@ static char** history = NULL;
  * We pass this state to functions implementing specific editing
  * functionalities. */
 struct linenoiseState {
-    int ifd;            /* Terminal stdin file descriptor. */
-    int ofd;            /* Terminal stdout file descriptor. */
-    char* buf;          /* Edited line buffer. */
-    size_t buflen;      /* Edited line buffer size. */
-    const char* prompt; /* Prompt to display. */
-    size_t plen;        /* Prompt length. */
-    size_t pos;         /* Current cursor position. */
-    size_t oldpos;      /* Previous refresh cursor position. */
-    size_t len;         /* Current edited line length. */
-    size_t totalUTF8Chars;       /* Number of utf-8 chars in buffer. */
-    size_t cols;        /* Number of columns in terminal. */
-    size_t maxrows;     /* Maximum num of rows used so far (multiline mode) */
-    int history_index;  /* The history index we are currently editing. */
+    int ifd;               /* Terminal stdin file descriptor. */
+    int ofd;               /* Terminal stdout file descriptor. */
+    char* buf;             /* Edited line buffer. */
+    size_t buflen;         /* Edited line buffer size. */
+    const char* prompt;    /* Prompt to display. */
+    size_t plen;           /* Prompt length. */
+    size_t pos;            /* Current cursor position. */
+    size_t oldpos;         /* Previous refresh cursor position. */
+    size_t len;            /* Current edited line length. */
+    size_t totalUTF8Chars; /* Number of utf-8 chars in buffer. */
+    size_t cols;           /* Number of columns in terminal. */
+    size_t maxrows;        /* Maximum num of rows used so far (multiline mode) */
+    int history_index;     /* The history index we are currently editing. */
 };
 
 enum KEY_ACTION {
@@ -208,7 +272,90 @@ FILE *lndebug_fp = NULL;
 #define lndebug(fmt, ...)
 #endif
 
+#ifdef _WIN32
+#ifndef STDIN_FILENO
+#define STDIN_FILENO (_fileno(stdin))
+#endif
+#ifndef STDOUT_FILENO
+#define STDOUT_FILENO (_fileno(stdout))
+#endif
+
+HANDLE hOut;
+HANDLE hIn;
+DWORD consolemode;
+
 /* ======================= Low level terminal handling ====================== */
+
+static int win32read(char* c) {
+
+    DWORD foo;
+    INPUT_RECORD b;
+    KEY_EVENT_RECORD e;
+
+    while (1) {
+        if (!ReadConsoleInput(hIn, &b, 1, &foo))
+            return 0;
+        if (!foo)
+            return 0;
+
+        if (b.EventType == KEY_EVENT && b.Event.KeyEvent.bKeyDown) {
+
+            e = b.Event.KeyEvent;
+            *c = b.Event.KeyEvent.uChar.AsciiChar;
+
+            switch (e.wVirtualKeyCode) {
+
+            case VK_ESCAPE: /* ignore - send ctrl-c, will return -1 */
+                *c = CTRL_C;
+                return 1;
+            case VK_RETURN: /* enter */
+                *c = ENTER;
+                return 1;
+            case VK_LEFT: /* left */
+                *c = 2;
+                return 1;
+            case VK_RIGHT: /* right */
+                *c = 6;
+                return 1;
+            case VK_UP: /* up */
+                *c = 16;
+                return 1;
+            case VK_DOWN: /* down */
+                *c = 14;
+                return 1;
+            case VK_HOME:
+                *c = 1;
+                return 1;
+            case VK_END:
+                *c = 5;
+                return 1;
+            case VK_BACK:
+                *c = 8;
+                return 1;
+            case VK_DELETE:
+                *c = BACKSPACE;
+                return 1;
+            default:
+                if (*c)
+                    return 1;
+            }
+        }
+    }
+
+    return -1; /* Makes compiler happy */
+}
+
+#ifdef __STRICT_ANSI__
+char* strdup(const char* s) {
+    size_t l = strlen(s) + 1;
+    char* p = malloc(l);
+
+    memcpy(p, s, l);
+    return p;
+}
+#endif /*   __STRICT_ANSI__   */
+
+#endif
 
 /* Enable "mask mode". When it is enabled, instead of the input that
  * the user is typing, the terminal will just display a corresponding
@@ -231,6 +378,7 @@ void linenoiseSetMultiLine(int ml) {
 /* Return true if the terminal name is in the list of terminals we know are
  * not able to understand basic escape sequences. */
 static int isUnsupportedTerm(void) {
+#ifndef _WIN32
     char* term = getenv("TERM");
     int j;
 
@@ -239,11 +387,13 @@ static int isUnsupportedTerm(void) {
     for (j = 0; unsupported_term[j]; j++)
         if (!strcasecmp(term, unsupported_term[j]))
             return 1;
+#endif
     return 0;
 }
 
 /* Raw mode: 1960 magic shit. */
 static int enableRawMode(int fd) {
+#ifndef _WIN32
     struct termios raw;
 
     if (!isatty(STDIN_FILENO))
@@ -275,6 +425,38 @@ static int enableRawMode(int fd) {
     if (tcsetattr(fd, TCSAFLUSH, &raw) < 0)
         goto fatal;
     rawmode = 1;
+#else
+    REDIS_NOTUSED(fd);
+
+    if (!atexit_registered) {
+        /* Init windows console handles only once */
+        hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+        if (hOut == INVALID_HANDLE_VALUE)
+            goto fatal;
+
+        if (!GetConsoleMode(hOut, &consolemode)) {
+            CloseHandle(hOut);
+            errno = ENOTTY;
+            return -1;
+        };
+
+        hIn = GetStdHandle(STD_INPUT_HANDLE);
+        if (hIn == INVALID_HANDLE_VALUE) {
+            CloseHandle(hOut);
+            errno = ENOTTY;
+            return -1;
+        }
+
+        GetConsoleMode(hIn, &consolemode);
+        SetConsoleMode(hIn, ENABLE_PROCESSED_INPUT);
+
+        /* Cleanup them at exit */
+        atexit(linenoiseAtExit);
+        atexit_registered = 1;
+    }
+
+    rawmode = 1;
+#endif
     return 0;
 
 fatal:
@@ -283,9 +465,14 @@ fatal:
 }
 
 static void disableRawMode(int fd) {
+#ifdef _WIN32
+    REDIS_NOTUSED(fd);
+    rawmode = 0;
+#else
     /* Don't even check the return value as it's too late. */
     if (rawmode && tcsetattr(fd, TCSAFLUSH, &orig_termios) != -1)
         rawmode = 0;
+#endif
 }
 
 /* Use the ESC [6n escape sequence to query the horizontal cursor position
@@ -321,6 +508,13 @@ static int getCursorPosition(int ifd, int ofd) {
 /* Try to get the number of columns in the current terminal, or assume 80
  * if it fails. */
 static int getColumns(int ifd, int ofd) {
+#ifdef _WIN32
+    CONSOLE_SCREEN_BUFFER_INFO b;
+
+    if (!GetConsoleScreenBufferInfo(hOut, &b))
+        return 80;
+    return b.srWindow.Right - b.srWindow.Left;
+#else
     struct winsize ws;
 
     if (ioctl(1, TIOCGWINSZ, &ws) == -1 || ws.ws_col == 0) {
@@ -354,6 +548,7 @@ static int getColumns(int ifd, int ofd) {
 
 failed:
     return 80;
+#endif
 }
 
 /* Clear the screen. Used to handle ctrl+l */
@@ -764,11 +959,18 @@ static void refreshLine(struct linenoiseState* l) {
 }
 
 bool pastedInput(int ifd) {
+#ifdef _WIN32
+    fd_set readfds;
+    FD_SET(ifd, &readfds);
+    int isPasted = select(0, &readfds, NULL, NULL, NULL);
+    return (isPasted != 0 && isPasted != SOCKET_ERROR);
+#else
     struct pollfd fd {
         ifd, POLLIN, 0
     };
     int isPasted = poll(&fd, 1, 0);
     return (isPasted != 0);
+#endif
 }
 
 /* Insert the character 'c' at cursor current position.
@@ -783,7 +985,7 @@ int linenoiseEditInsert(struct linenoiseState* l, char c) {
             l->buf[l->len] = '\0';
             if ((!mlmode && l->plen + l->len < l->cols && !hintsCallback)) {
                 /* Avoid a full update of the line in the
-				 * trivial case. */
+                 * trivial case. */
                 if (write(l->ofd, &c, 1) == -1)
                     return -1;
             } else {
@@ -912,7 +1114,7 @@ void linenoiseEditDelete(struct linenoiseState* l) {
         uint32_t charSize = newPos - l->pos;
         memmove(l->buf + l->pos, l->buf + newPos, l->len - newPos);
         l->len -= charSize;
-        if(charSize > 1) {
+        if (charSize > 1) {
             l->totalUTF8Chars--;
         }
         l->buf[l->len] = '\0';
@@ -928,7 +1130,7 @@ void linenoiseEditBackspace(struct linenoiseState* l) {
         memmove(l->buf + newPos, l->buf + l->pos, l->len - l->pos);
         l->len -= charSize;
         l->pos = newPos;
-        if(charSize > 1) {
+        if (charSize > 1) {
             l->totalUTF8Chars--;
         }
         l->buf[l->len] = '\0';
@@ -1002,7 +1204,11 @@ static int linenoiseEdit(
             }
         }
         if (!inputLeft) {
+#ifdef _WIN32
+            nread = win32read(&c);
+#else
             nread = read(l.ifd, &c, 1);
+#endif
             if (nread <= 0)
                 return l.len;
         }
@@ -1044,7 +1250,19 @@ static int linenoiseEdit(
             }
             return (int)l.len;
         case BACKSPACE: /* backspace */
-        case 8:         /* ctrl-h */
+#ifdef _WIN32
+            /* delete in _WIN32*/
+            /* win32read() will send 127 for DEL and 8 for BS and Ctrl-H */
+            if (l.pos < l.len && l.len > 0) {
+                memmove(buf + l.pos, buf + l.pos + 1, l.len - l.pos);
+                l.len--;
+                buf[l.len] = '\0';
+                refreshLine(&l);
+            }
+            break;
+
+#endif
+        case 8: /* ctrl-h */
             linenoiseEditBackspace(&l);
             break;
         case CTRL_D: /* ctrl-d, remove char at right of cursor, or if the
@@ -1342,7 +1560,13 @@ static void freeHistory(void) {
 
 /* At exit we'll try to fix the terminal to the initial conditions. */
 static void linenoiseAtExit(void) {
+#ifdef _WIN32
+    SetConsoleMode(hIn, consolemode);
+    CloseHandle(hOut);
+    CloseHandle(hIn);
+#else
     disableRawMode(STDIN_FILENO);
+#endif
     freeHistory();
 }
 
@@ -1424,15 +1648,23 @@ int linenoiseHistorySetMaxLen(int len) {
 /* Save the history in the specified file. On success 0 is returned
  * otherwise -1 is returned. */
 int linenoiseHistorySave(const char* filename) {
+#ifdef _WIN32
+    long old_umask = umask(_S_IREAD | _S_IWRITE);
+    FILE* fp = fopen(filename, "wb");
+#else
     mode_t old_umask = umask(S_IXUSR | S_IRWXG | S_IRWXO);
-    FILE* fp;
+    FILE* fp = fopen(filename, "w");
+#endif
     int j;
 
-    fp = fopen(filename, "w");
     umask(old_umask);
     if (fp == NULL)
         return -1;
+#ifdef _WIN32
+    chmod(filename, _S_IREAD | _S_IWRITE);
+#else
     chmod(filename, S_IRUSR | S_IWUSR);
+#endif
     for (j = 0; j < history_len; j++)
         fprintf(fp, "%s\n", history[j]);
     fclose(fp);

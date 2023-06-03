@@ -1,6 +1,4 @@
-if(NOT WIN32)
-    add_subdirectory(shell)
-endif()
+add_subdirectory(shell)
 if(${BUILD_NODEJS})
     add_subdirectory(nodejs_api)
 endif()

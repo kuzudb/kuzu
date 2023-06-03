@@ -7,8 +7,8 @@
 
 #include "catalog/catalog.h"
 #include "common/logging_level_utils.h"
-#include "common/type_utils.h"
 #include "common/string_utils.h"
+#include "common/type_utils.h"
 #include "json.hpp"
 #include "processor/result/factorized_table.h"
 #include "utf8proc.h"
@@ -183,6 +183,7 @@ void highlight(char* buffer, char* resultBuf, uint32_t maxLen, uint32_t cursorPo
     }
     tokenList.emplace_back(word);
     for (std::string& token : tokenList) {
+#ifndef _WIN32
         if (token.find(' ') == std::string::npos) {
             for (const std::string& keyword : keywordList) {
                 if (regex_search(
@@ -196,6 +197,7 @@ void highlight(char* buffer, char* resultBuf, uint32_t maxLen, uint32_t cursorPo
                 }
             }
         }
+#endif
         highlightBuffer << token;
     }
     strcpy(resultBuf, highlightBuffer.str().c_str());
