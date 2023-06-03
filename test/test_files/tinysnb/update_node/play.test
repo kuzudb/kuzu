@@ -4,8 +4,8 @@
 --
 
 -CASE SetPlay
--STATEMENT MATCH (a:organisation) WHERE a.ID=1 SET a.state = {revenue: to_int16(1), location: ['a', 'b'], stock: {price:[10], volume:77}}
+-STATEMENT MATCH (a:movies) WHERE a.length=126 SET a.description = {rating: 1.1, views: 3, release: timestamp("2011-11-11 11:11:11"), film: date("1999-01-01")}
 ---- ok
--QUERY MATCH (a:organisation) WHERE a.ID=1 RETURN a.age
+-QUERY MATCH (a:movies) WHERE a.length RETURN a.description
 ---- 1
 70
