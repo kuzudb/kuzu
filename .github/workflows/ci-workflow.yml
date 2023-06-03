@@ -20,12 +20,20 @@ jobs:
         run: |
           pip install torch~=1.13 --extra-index-url https://download.pytorch.org/whl/cpu &&\
           pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-1.13.0+cpu.html
+      
+      - name: Ensure Node.js dependencies
+        run: npm install --include=dev
+        working-directory: tools/nodejs_api
 
       - name: Test with coverage
         run: CC=gcc CXX=g++ make lcov NUM_THREADS=32
 
       - name: Python test
-        run: CC=clang-14 CXX=clang++-14 make pytest NUM_THREADS=32
+        run: CC=gcc CXX=g++ make pytest NUM_THREADS=32
+      
+      - name: Node.js test
+        run: npm test
+        working-directory: tools/nodejs_api
 
       - name: Generate coverage report
         run: |
@@ -48,6 +56,10 @@ jobs:
         run: |
           pip install torch~=1.13 --extra-index-url https://download.pytorch.org/whl/cpu &&\
           pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-1.13.0+cpu.html
+
+      - name: Ensure Node.js dependencies
+        run: npm install --include=dev
+        working-directory: tools/nodejs_api
 
       - name: Build debug
         run: CC=gcc CXX=g++ make alldebug NUM_THREADS=32
@@ -79,6 +91,10 @@ jobs:
           pip install torch~=1.13 --extra-index-url https://download.pytorch.org/whl/cpu &&\
           pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-1.13.0+cpu.html
 
+      - name: Ensure Node.js dependencies
+        run: npm install --include=dev
+        working-directory: tools/nodejs_api
+
       - name: Build
         run: CC=clang-14 CXX=clang++-14 make release NUM_THREADS=32
 
@@ -87,6 +103,10 @@ jobs:
 
       - name: Python test
         run: CC=clang-14 CXX=clang++-14 make pytest NUM_THREADS=32
+      
+      - name: Node.js test
+        run: npm test
+        working-directory: tools/nodejs_api
 
   msvc-build-test:
     name: msvc build & test
@@ -124,6 +144,10 @@ jobs:
         run: |
           pip install torch~=1.13 --extra-index-url https://download.pytorch.org/whl/cpu &&\
           pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-1.13.0+cpu.html
+      
+      - name: Ensure Node.js dependencies
+        run: npm install
+        working-directory: tools/nodejs_api
 
       - name: Build
         run: make benchmark NUM_THREADS=30

@@ -40,6 +40,10 @@ public:
 
     std::vector<std::shared_ptr<binder::Expression>> getExpressionsToCollect();
 
+    inline std::unordered_map<std::string, std::shared_ptr<common::Value>> getParameterMap() {
+        return parameterMap;
+    }
+
 private:
     common::StatementType statementType;
     bool success = true;

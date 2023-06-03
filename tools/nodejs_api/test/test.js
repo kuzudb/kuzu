@@ -10,8 +10,10 @@ describe("kuzu", () => {
   before(() => {
     return initTests();
   });
-  importTest("datatype", "./testDatatype.js");
-  importTest("exception", "./testException.js");
-  importTest("getHeader", "./testGetHeader.js");
-  importTest("parameter", "./testParameter.js");
+  importTest("Database", "./test_database.js");
+  importTest("Connection", "./test_connection.js");
+  importTest("Query result", "./test_query_result.js");
+  importTest("Data types", "./test_data_type.js");
+  importTest("Query parameters", "./test_parameter.js");
+  importTest("Concurrent query execution", "./test_concurrency.js");
 });
