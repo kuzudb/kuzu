@@ -1,0 +1,11 @@
+-GROUP TinySnbUpdateTest
+-DATASET tinysnb
+
+--
+
+-CASE SetPlay
+-STATEMENT MATCH (a:organisation) WHERE a.ID=1 SET a.state = {revenue: to_int16(1), location: ['a', 'b'], stock: {price:[10], volume:77}}
+---- ok
+-QUERY MATCH (a:organisation) WHERE a.ID=1 RETURN a.age
+---- 1
+70

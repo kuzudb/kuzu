@@ -37,6 +37,8 @@ public:
         common::ValueVector* resultVector);
 
     void write(common::ValueVector* nodeIDVector, common::ValueVector* vectorToWriteFrom);
+    virtual void write(common::offset_t nodeOffset, common::ValueVector* vectorToWriteFrom,
+        uint32_t posInVectorToWriteFrom);
 
     bool isNull(common::offset_t nodeOffset, transaction::Transaction* transaction);
     void setNull(common::offset_t nodeOffset);
@@ -55,8 +57,6 @@ protected:
         common::ValueVector* resultVector, uint32_t vectorPos);
     virtual void scan(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
         common::ValueVector* resultVector);
-    virtual void write(common::offset_t nodeOffset, common::ValueVector* vectorToWriteFrom,
-        uint32_t posInVectorToWriteFrom);
 
     void readFromPage(transaction::Transaction* transaction, common::page_idx_t pageIdx,
         const std::function<void(uint8_t*)>& func);
@@ -174,6 +174,9 @@ public:
 
     void read(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
         common::ValueVector* resultVector) final;
+
+    void write(common::offset_t nodeOffset, common::ValueVector* vectorToWriteFrom,
+        uint32_t posInVectorToWriteFrom) final;
 
 private:
     std::vector<std::unique_ptr<Column>> structFieldColumns;

@@ -317,11 +317,21 @@ StructPropertyColumn::StructPropertyColumn(const StorageStructureIDAndFName& str
 
 void StructPropertyColumn::read(Transaction* transaction, common::ValueVector* nodeIDVector,
     common::ValueVector* resultVector) {
+    // I thought we
     // TODO(Guodong/Ziyi): We currently do not support null struct value.
     resultVector->setAllNonNull();
     for (auto i = 0u; i < structFieldColumns.size(); i++) {
         structFieldColumns[i]->read(
             transaction, nodeIDVector, common::StructVector::getChildVector(resultVector, i).get());
+    }
+}
+
+void StructPropertyColumn::write(common::offset_t nodeOffset,
+    common::ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom) {
+    for (auto i = 0; i < structFieldColumns.size(); ++i) {
+        auto childColumn = structFieldColumns[i].get();
+        auto childVector = common::StructVector::getChildVector(vectorToWriteFrom, i).get();
+        childColumn->write(nodeOffset, childVector, posInVectorToWriteFrom);
     }
 }
 
