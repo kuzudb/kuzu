@@ -241,7 +241,7 @@ void WALReplayerUtils::fileOperationOnNodePropertyFile(const std::string& proper
     common::LogicalType& propertyType,
     std::function<void(std::string fileName)> columnFileOperation) {
     if (propertyType.getLogicalTypeID() == common::LogicalTypeID::STRUCT) {
-        auto fieldTypes = common::StructType::getStructFieldTypes(&propertyType);
+        auto fieldTypes = common::StructType::getFieldTypes(&propertyType);
         for (auto i = 0u; i < fieldTypes.size(); i++) {
             fileOperationOnNodePropertyFile(
                 StorageUtils::appendStructFieldName(propertyBaseFileName, i), *fieldTypes[i],

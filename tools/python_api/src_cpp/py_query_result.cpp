@@ -123,11 +123,11 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value) {
         return std::move(list);
     }
     case LogicalTypeID::STRUCT: {
-        auto childrenNames = StructType::getStructFieldNames(&dataType);
+        auto fieldNames = StructType::getFieldNames(&dataType);
         py::dict dict;
         auto& structVals = value.getListValReference();
         for (auto i = 0u; i < structVals.size(); ++i) {
-            auto key = py::str(childrenNames[i]);
+            auto key = py::str(fieldNames[i]);
             auto val = convertValueToPyObject(*structVals[i]);
             dict[key] = val;
         }

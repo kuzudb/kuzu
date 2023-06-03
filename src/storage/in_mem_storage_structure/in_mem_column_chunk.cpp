@@ -314,12 +314,12 @@ void InMemStructColumnChunk::copyArrowArray(arrow::Array& array) {
             throw CopyException{"Unmatched number of struct fields."};
         }
         for (auto i = 0u; i < structArray.num_fields(); i++) {
-            auto structFieldName = structArray.type()->fields()[i]->name();
-            auto structFieldIdx = common::StructType::getStructFieldIdx(&dataType, structFieldName);
-            if (structFieldIdx == INVALID_STRUCT_FIELD_IDX) {
-                throw CopyException{"Unmatched struct field name: " + structFieldName + "."};
+            auto fieldName = structArray.type()->fields()[i]->name();
+            auto fieldIdx = common::StructType::getFieldIdx(&dataType, fieldName);
+            if (fieldIdx == INVALID_STRUCT_FIELD_IDX) {
+                throw CopyException{"Unmatched struct field name: " + fieldName + "."};
             }
-            fieldChunks[structFieldIdx]->copyArrowArray(*structArray.field(i));
+            fieldChunks[fieldIdx]->copyArrowArray(*structArray.field(i));
         }
         for (auto i = 0u; i < structArray.length(); i++) {
             if (arrayData->IsNull(i)) {
@@ -410,13 +410,13 @@ std::vector<StructFieldIdxAndValue> InMemStructColumnChunk::parseStructFieldName
     std::vector<StructFieldIdxAndValue> structFieldIdxAndValueParis;
     uint64_t curPos = 0u;
     while (curPos < structString.length()) {
-        auto structFieldName = parseStructFieldName(structString, curPos);
-        auto structFieldIdx = common::StructType::getStructFieldIdx(&type, structFieldName);
-        if (structFieldIdx == INVALID_STRUCT_FIELD_IDX) {
-            throw ParserException{"Invalid struct field name: " + structFieldName};
+        auto fieldName = parseStructFieldName(structString, curPos);
+        auto fieldIdx = common::StructType::getFieldIdx(&type, fieldName);
+        if (fieldIdx == INVALID_STRUCT_FIELD_IDX) {
+            throw ParserException{"Invalid struct field name: " + fieldName};
         }
         auto structFieldValue = parseStructFieldValue(structString, curPos);
-        structFieldIdxAndValueParis.emplace_back(structFieldIdx, structFieldValue);
+        structFieldIdxAndValueParis.emplace_back(fieldIdx, structFieldValue);
     }
     return structFieldIdxAndValueParis;
 }

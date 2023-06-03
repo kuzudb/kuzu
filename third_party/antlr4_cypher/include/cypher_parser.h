@@ -1578,8 +1578,9 @@ public:
   public:
     KU_StructFieldContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
-    OC_SymbolicNameContext *oC_SymbolicName();
     OC_ExpressionContext *oC_Expression();
+    OC_SymbolicNameContext *oC_SymbolicName();
+    antlr4::tree::TerminalNode *StringLiteral();
     std::vector<antlr4::tree::TerminalNode *> SP();
     antlr4::tree::TerminalNode* SP(size_t i);
 

@@ -297,9 +297,9 @@ std::string Value::toString() const {
     }
     case LogicalTypeID::STRUCT: {
         std::string result = "{";
-        auto childrenNames = StructType::getStructFieldNames(&dataType);
+        auto fieldNames = StructType::getFieldNames(&dataType);
         for (auto i = 0u; i < nestedTypeVal.size(); ++i) {
-            result += childrenNames[i];
+            result += fieldNames[i];
             result += ": ";
             result += nestedTypeVal[i]->toString();
             if (i != nestedTypeVal.size() - 1) {
@@ -374,7 +374,7 @@ std::vector<std::unique_ptr<Value>> Value::convertKUFixedListToVector(
 
 std::vector<std::unique_ptr<Value>> Value::convertKUStructToVector(const uint8_t* kuStruct) const {
     std::vector<std::unique_ptr<Value>> structVal;
-    auto childrenTypes = StructType::getStructFieldTypes(&dataType);
+    auto childrenTypes = StructType::getFieldTypes(&dataType);
     auto numFields = childrenTypes.size();
     auto structNullValues = kuStruct;
     auto structValues = structNullValues + NullBuffer::getNumBytesForNullValues(numFields);

@@ -774,7 +774,13 @@ std::unique_ptr<ParsedExpression> Transformer::transformStructLiteral(
         std::make_unique<ParsedFunctionExpression>(common::STRUCT_PACK_FUNC_NAME, ctx.getText());
     for (auto& structField : ctx.kU_StructField()) {
         auto structExpr = transformExpression(*structField->oC_Expression());
-        structExpr->setAlias(transformSymbolicName(*structField->oC_SymbolicName()));
+        std::string alias;
+        if (structField->oC_Expression()) {
+            alias = transformSymbolicName(*structField->oC_SymbolicName());
+        } else {
+            alias = transformStringLiteral(*structField->StringLiteral());
+        }
+        structExpr->setAlias(alias);
         structPack->addChild(std::move(structExpr));
     }
     return structPack;

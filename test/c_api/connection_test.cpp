@@ -168,11 +168,12 @@ TEST_F(CApiConnectionTest, GetNodePropertyNames) {
     auto result = kuzu_connection_get_node_property_names(connection, "movies");
     ASSERT_NE(result, nullptr);
     auto resultString = std::string(result);
-    ASSERT_EQ(resultString, "movies properties: \n"
-                            "\tname STRING(PRIMARY KEY)\n"
-                            "\tlength INT32\n"
-                            "\tnote STRING\n"
-                            "\tdescription STRUCT(DOUBLE,INT64,TIMESTAMP,DATE)\n");
+    ASSERT_EQ(resultString,
+        "movies properties: \n"
+        "\tname STRING(PRIMARY KEY)\n"
+        "\tlength INT32\n"
+        "\tnote STRING\n"
+        "\tdescription STRUCT(RATING:DOUBLE, VIEWS:INT64, RELEASE:TIMESTAMP, FILM:DATE)\n");
     free(result);
 }
 

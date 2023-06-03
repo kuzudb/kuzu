@@ -305,7 +305,7 @@ StructPropertyColumn::StructPropertyColumn(const StorageStructureIDAndFName& str
     auto nullColumnStructureIDAndFName =
         StorageUtils::getNodeNullColumnStructureIDAndFName(structureIDAndFName);
     nullColumn = std::make_unique<NullColumn>(nullColumnStructureIDAndFName, bufferManager, wal);
-    auto structFields = common::StructType::getStructFields(&dataType);
+    auto structFields = common::StructType::getFields(&dataType);
     for (auto i = 0u; i < structFields.size(); i++) {
         auto fieldStructureIDAndFName = structureIDAndFName;
         fieldStructureIDAndFName.fName =
