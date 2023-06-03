@@ -7,7 +7,9 @@ namespace processor {
 
 void CreateNode::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     for (auto& createNodeInfo : createNodeInfos) {
-        createNodeInfo->primaryKeyEvaluator->init(*resultSet, context->memoryManager);
+        if (createNodeInfo->primaryKeyEvaluator != nullptr) {
+            createNodeInfo->primaryKeyEvaluator->init(*resultSet, context->memoryManager);
+        }
         auto valueVector = resultSet->getValueVector(createNodeInfo->outNodeIDVectorPos);
         outValueVectors.push_back(valueVector.get());
     }
@@ -17,12 +19,17 @@ bool CreateNode::getNextTuplesInternal(ExecutionContext* context) {
     if (!children[0]->getNextTuple(context)) {
         return false;
     }
+    offset_t nodeOffset;
     for (auto i = 0u; i < createNodeInfos.size(); ++i) {
         auto createNodeInfo = createNodeInfos[i].get();
         auto nodeTable = createNodeInfo->table;
-        createNodeInfo->primaryKeyEvaluator->evaluate();
-        auto primaryKeyVector = createNodeInfo->primaryKeyEvaluator->resultVector.get();
-        auto nodeOffset = nodeTable->addNodeAndResetProperties(primaryKeyVector);
+        if (createNodeInfo->primaryKeyEvaluator != nullptr) {
+            createNodeInfo->primaryKeyEvaluator->evaluate();
+            auto primaryKeyVector = createNodeInfo->primaryKeyEvaluator->resultVector.get();
+            nodeOffset = nodeTable->addNodeAndResetPropertiesWithPK(primaryKeyVector);
+        } else {
+            nodeOffset = nodeTable->addNodeAndResetProperties();
+        }
         auto vector = outValueVectors[i];
         nodeID_t nodeID{nodeOffset, nodeTable->getTableID()};
         vector->setValue(vector->state->selVector->selectedPositions[0], nodeID);

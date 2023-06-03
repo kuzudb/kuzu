@@ -24,7 +24,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCreateNodeToPhysical(
         auto primaryKey = logicalCreateNode->getPrimaryKey(i);
         auto nodeTableID = node->getSingleTableID();
         auto table = nodesStore.getNodeTable(nodeTableID);
-        auto primaryKeyEvaluator = expressionMapper.mapExpression(primaryKey, *inSchema);
+        auto primaryKeyEvaluator =
+            primaryKey != nullptr ? expressionMapper.mapExpression(primaryKey, *inSchema) : nullptr;
         std::vector<RelTable*> relTablesToInit;
         for (auto& [relTableID, relTableSchema] : catalogContent->getRelTableSchemas()) {
             if (relTableSchema->isSrcOrDstTable(nodeTableID)) {

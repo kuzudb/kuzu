@@ -141,7 +141,10 @@ void ProjectionPushDownOptimizer::visitUnwind(planner::LogicalOperator* op) {
 void ProjectionPushDownOptimizer::visitCreateNode(planner::LogicalOperator* op) {
     auto createNode = (LogicalCreateNode*)op;
     for (auto i = 0u; i < createNode->getNumNodes(); ++i) {
-        collectExpressionsInUse(createNode->getPrimaryKey(i));
+        auto primaryKey = createNode->getPrimaryKey(i);
+        if (primaryKey != nullptr) {
+            collectExpressionsInUse(createNode->getPrimaryKey(i));
+        }
     }
 }
 

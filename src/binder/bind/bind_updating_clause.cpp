@@ -72,7 +72,8 @@ std::unique_ptr<BoundCreateNode> Binder::bindCreateNode(
         }
         setItems.emplace_back(key, val);
     }
-    if (primaryKeyExpression == nullptr) {
+    if (nodeTableSchema->getPrimaryKey().dataType.getLogicalTypeID() != LogicalTypeID::SERIAL &&
+        primaryKeyExpression == nullptr) {
         throw BinderException("Create node " + node->toString() + " expects primary key " +
                               primaryKey.name + " as input.");
     }

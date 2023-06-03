@@ -42,6 +42,7 @@ Value Value::createNullValue(LogicalType dataType) {
 
 Value Value::createDefaultValue(const LogicalType& dataType) {
     switch (dataType.getLogicalTypeID()) {
+    case LogicalTypeID::SERIAL:
     case LogicalTypeID::INT64:
         return Value((int64_t)0);
     case LogicalTypeID::INT32:
