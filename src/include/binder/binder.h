@@ -33,7 +33,7 @@ public:
     }
     inline expression_vector getExpressions() const { return expressions; }
     inline void addExpression(const std::string& varName, std::shared_ptr<Expression> expression) {
-        varNameToIdx.insert({varName, expressions.size()});
+        varNameToIdx.insert({varName, (common::vector_idx_t)expressions.size()});
         expressions.push_back(std::move(expression));
     }
     inline void clear() {

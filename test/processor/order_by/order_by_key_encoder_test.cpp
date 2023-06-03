@@ -52,7 +52,7 @@ public:
 
     // This function generates a ValueVector of int64 tuples that are all 5.
     std::pair<std::vector<ValueVector*>, std::shared_ptr<DataChunk>> getInt64TestValueVector(
-        const uint64_t numOfElementsPerCol, const uint64_t numOfOrderByCols, bool flatCol) {
+        const uint64_t numOfElementsPerCol, const uint32_t numOfOrderByCols, bool flatCol) {
         std::shared_ptr<DataChunk> dataChunk = std::make_shared<DataChunk>(numOfOrderByCols);
         dataChunk->state->selVector->selectedSize = numOfElementsPerCol;
         std::vector<ValueVector*> valueVectors;

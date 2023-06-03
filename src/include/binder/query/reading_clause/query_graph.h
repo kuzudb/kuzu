@@ -137,8 +137,8 @@ public:
     inline std::unique_ptr<QueryGraph> copy() const { return std::make_unique<QueryGraph>(*this); }
 
 private:
-    std::unordered_map<std::string, uint32_t> queryNodeNameToPosMap;
-    std::unordered_map<std::string, uint32_t> queryRelNameToPosMap;
+    std::unordered_map<std::string, common::vector_idx_t> queryNodeNameToPosMap;
+    std::unordered_map<std::string, common::vector_idx_t> queryRelNameToPosMap;
     std::vector<std::shared_ptr<NodeExpression>> queryNodes;
     std::vector<std::shared_ptr<RelExpression>> queryRels;
 };

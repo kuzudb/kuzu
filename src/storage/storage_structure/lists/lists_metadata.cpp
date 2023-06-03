@@ -27,7 +27,7 @@ ListsMetadata::ListsMetadata(
         bufferManager, wal);
 }
 
-uint64_t BaseListsMetadata::getPageIdxFromAPageList(
+page_idx_t BaseListsMetadata::getPageIdxFromAPageList(
     BaseInMemDiskArray<page_idx_t>* pageLists, uint32_t pageListHead, uint32_t idxInPageList) {
     auto pageListGroupHeadIdx = pageListHead;
     while (ListsMetadataConstants::PAGE_LIST_GROUP_SIZE <= idxInPageList) {

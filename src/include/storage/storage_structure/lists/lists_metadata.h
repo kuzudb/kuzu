@@ -25,8 +25,9 @@ public:
         return std::bind(getPageIdxFromAPageList, pageLists, pageListsHead, std::placeholders::_1);
     }
 
-    static uint64_t getPageIdxFromAPageList(BaseInMemDiskArray<common::page_idx_t>* pageLists,
-        uint32_t pageListHead, uint32_t idxInPageList);
+    static common::page_idx_t getPageIdxFromAPageList(
+        BaseInMemDiskArray<common::page_idx_t>* pageLists, uint32_t pageListHead,
+        uint32_t idxInPageList);
 
 protected:
     std::shared_ptr<spdlog::logger> logger;

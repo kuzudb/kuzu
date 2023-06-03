@@ -10,7 +10,7 @@ namespace common {
 
 class SelectionVector {
 public:
-    explicit SelectionVector(sel_t capacity) : selectedSize{0} {
+    explicit SelectionVector(uint64_t capacity) : selectedSize{0} {
         selectedPositionsBuffer = std::make_unique<sel_t[]>(capacity);
         resetSelectorToUnselected();
     }

@@ -135,7 +135,7 @@ public:
         std::vector<uint64_t>& expectedBlockOffsetOrder,
         std::vector<std::vector<std::string>>& stringValues) {
         std::vector<ValueVector*> orderByVectors;
-        auto mockDataChunk = std::make_shared<DataChunk>(stringValues.size());
+        auto mockDataChunk = std::make_shared<DataChunk>((uint32_t)stringValues.size());
         mockDataChunk->state->currIdx = 0;
         std::unique_ptr<FactorizedTableSchema> tableSchema =
             std::make_unique<FactorizedTableSchema>();

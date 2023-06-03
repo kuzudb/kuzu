@@ -135,7 +135,7 @@ void AggregateHashTable::finalizeAggregateStates() {
 void AggregateHashTable::initializeFT(
     const std::vector<std::unique_ptr<AggregateFunction>>& aggFuncs) {
     auto isUnflat = false;
-    auto dataChunkPos = 0u;
+    uint32_t dataChunkPos = 0u;
     std::unique_ptr<FactorizedTableSchema> tableSchema = std::make_unique<FactorizedTableSchema>();
     aggStateColIdxInFT = keyDataTypes.size() + dependentKeyDataTypes.size();
     compareFuncs.resize(aggStateColIdxInFT);

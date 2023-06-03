@@ -148,13 +148,15 @@ void QueryGraph::addQueryNode(std::shared_ptr<NodeExpression> queryNode) {
     if (containsQueryNode(queryNode->getUniqueName())) {
         return;
     }
-    queryNodeNameToPosMap.insert({queryNode->getUniqueName(), queryNodes.size()});
+    queryNodeNameToPosMap.insert(
+        {queryNode->getUniqueName(), (common::vector_idx_t)queryNodes.size()});
     queryNodes.push_back(queryNode);
 }
 
 void QueryGraph::addQueryRel(std::shared_ptr<RelExpression> queryRel) {
     assert(!containsQueryRel(queryRel->getUniqueName()));
-    queryRelNameToPosMap.insert({queryRel->getUniqueName(), queryRels.size()});
+    queryRelNameToPosMap.insert(
+        {queryRel->getUniqueName(), (common::vector_idx_t)queryRels.size()});
     queryRels.push_back(queryRel);
 }
 

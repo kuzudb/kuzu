@@ -167,10 +167,10 @@ void RelCopyExecutor::initListsMetadata() {
             auto adjLists = adjListsPerDirection[relDirection].get();
             auto numNodes = maxNodeOffsetsPerTable.at(boundTableID) + 1;
             auto listSizes = listSizesPerDirection[relDirection].get();
-            taskScheduler.scheduleTask(
-                CopyTaskFactory::createCopyTask(calculateListsMetadataAndAllocateInMemListPagesTask,
-                    numNodes, sizeof(offset_t), listSizes, adjLists->getListHeadersBuilder().get(),
-                    adjLists, false /*hasNULLBytes*/, logger));
+            taskScheduler.scheduleTask(CopyTaskFactory::createCopyTask(
+                calculateListsMetadataAndAllocateInMemListPagesTask, numNodes,
+                (uint32_t)sizeof(offset_t), listSizes, adjLists->getListHeadersBuilder().get(),
+                adjLists, false /*hasNULLBytes*/, logger));
             for (auto& property : tableSchema->properties) {
                 taskScheduler.scheduleTask(CopyTaskFactory::createCopyTask(
                     calculateListsMetadataAndAllocateInMemListPagesTask, numNodes,

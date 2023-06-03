@@ -7,7 +7,7 @@
 namespace kuzu {
 namespace planner {
 
-using f_group_pos = uint32_t;
+using f_group_pos = common::vector_idx_t;
 using f_group_pos_set = std::unordered_set<f_group_pos>;
 constexpr f_group_pos INVALID_F_GROUP_POS = UINT32_MAX;
 
@@ -39,11 +39,12 @@ public:
 
     inline void insertExpression(const std::shared_ptr<binder::Expression>& expression) {
         assert(!expressionNameToPos.contains(expression->getUniqueName()));
-        expressionNameToPos.insert({expression->getUniqueName(), expressions.size()});
+        expressionNameToPos.insert(
+            {expression->getUniqueName(), (common::vector_idx_t)expressions.size()});
         expressions.push_back(expression);
     }
     inline binder::expression_vector getExpressions() const { return expressions; }
-    inline uint32_t getExpressionPos(const binder::Expression& expression) {
+    inline common::vector_idx_t getExpressionPos(const binder::Expression& expression) {
         assert(expressionNameToPos.contains(expression.getUniqueName()));
         return expressionNameToPos.at(expression.getUniqueName());
     }
@@ -53,7 +54,7 @@ private:
     bool singleState;
     double cardinalityMultiplier;
     binder::expression_vector expressions;
-    std::unordered_map<std::string, uint32_t> expressionNameToPos;
+    std::unordered_map<std::string, common::vector_idx_t> expressionNameToPos;
 };
 
 class Schema {
@@ -128,7 +129,7 @@ private:
 
 private:
     std::vector<std::unique_ptr<FactorizationGroup>> groups;
-    std::unordered_map<std::string, uint32_t> expressionNameToGroupPos;
+    std::unordered_map<std::string, common::vector_idx_t> expressionNameToGroupPos;
     // Our projection doesn't explicitly remove expressions. Instead, we keep track of what
     // expressions are in scope (i.e. being projected).
     binder::expression_vector expressionsInScope;

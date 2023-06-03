@@ -11,7 +11,7 @@ ResultSet::ResultSet(
     for (auto i = 0u; i < numDataChunks; ++i) {
         auto dataChunkDescriptor = resultSetDescriptor->dataChunkDescriptors[i].get();
         auto numValueVectors = dataChunkDescriptor->logicalTypes.size();
-        auto dataChunk = std::make_unique<common::DataChunk>(numValueVectors);
+        auto dataChunk = std::make_unique<common::DataChunk>((uint64_t)numValueVectors);
         if (dataChunkDescriptor->isSingleState) {
             dataChunk->state = common::DataChunkState::getSingleValueDataChunkState();
         }

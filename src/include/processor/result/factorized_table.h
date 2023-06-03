@@ -272,8 +272,9 @@ private:
                blockOffset * tableSchema->getNumBytesPerTuple() + colOffset;
     }
     inline std::pair<ft_block_idx_t, ft_block_offset_t> getBlockIdxAndTupleIdxInBlock(
-        uint64_t tupleIdx) const {
-        return std::make_pair(tupleIdx / numTuplesPerBlock, tupleIdx % numTuplesPerBlock);
+        ft_tuple_idx_t tupleIdx) const {
+        return std::make_pair<ft_block_idx_t, ft_block_offset_t>(
+            tupleIdx / numTuplesPerBlock, tupleIdx % numTuplesPerBlock);
     }
 
     std::vector<BlockAppendingInfo> allocateFlatTupleBlocks(uint64_t numTuplesToAppend);

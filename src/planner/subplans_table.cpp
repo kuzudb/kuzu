@@ -21,7 +21,7 @@ void SubgraphPlans::addPlan(std::unique_ptr<LogicalPlan> plan) {
     }
     auto planCode = encodePlan(*plan);
     if (!encodedPlan2PlanIdx.contains(planCode)) {
-        encodedPlan2PlanIdx.insert({planCode, plans.size()});
+        encodedPlan2PlanIdx.insert({planCode, (common::vector_idx_t)plans.size()});
         if (maxCost == UINT64_MAX || plan->getCost() > maxCost) { // update max cost
             maxCost = plan->getCost();
         }

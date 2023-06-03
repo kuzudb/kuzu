@@ -202,7 +202,7 @@ public:
     void init(storage::MemoryManager* memoryManager,
         std::shared_ptr<std::queue<std::shared_ptr<MergedKeyBlocks>>> sortedKeyBlocks,
         std::vector<std::shared_ptr<FactorizedTable>>& factorizedTables,
-        std::vector<StrKeyColInfo>& strKeyColsInfo, uint64_t numBytesPerTuple);
+        std::vector<StrKeyColInfo>& strKeyColsInfo, uint32_t numBytesPerTuple);
 
 private:
     std::mutex mtx;

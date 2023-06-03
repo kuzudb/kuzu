@@ -285,9 +285,9 @@ void ListsUpdatesStore::initInsertedRelsAndListsUpdates() {
     auto factorizedTableSchema = std::make_unique<FactorizedTableSchema>();
     // The first two columns of factorizedTable are for srcNodeID and dstNodeID.
     factorizedTableSchema->appendColumn(std::make_unique<ColumnSchema>(
-        false /* isUnflat */, 0 /* dataChunkPos */, sizeof(nodeID_t)));
+        false /* isUnflat */, 0 /* dataChunkPos */, (uint32_t)sizeof(nodeID_t)));
     factorizedTableSchema->appendColumn(std::make_unique<ColumnSchema>(
-        false /* isUnflat */, 0 /* dataChunkPos */, sizeof(nodeID_t)));
+        false /* isUnflat */, 0 /* dataChunkPos */, (uint32_t)sizeof(nodeID_t)));
     for (auto& relProperty : relTableSchema.properties) {
         auto numBytesForProperty =
             relProperty.propertyID == RelTableSchema::INTERNAL_REL_ID_PROPERTY_ID ?
