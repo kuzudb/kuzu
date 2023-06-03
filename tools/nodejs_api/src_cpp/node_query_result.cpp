@@ -1,123 +1,81 @@
 #include "include/node_query_result.h"
 
-#include "main/kuzu.h"
-#include "include/util.h"
-#include "include/tsfn_context.h"
 #include <thread>
-#include <chrono>
+
+#include "include/node_util.h"
+#include "main/kuzu.h"
 
 using namespace kuzu::main;
 
 Napi::Object NodeQueryResult::Init(Napi::Env env, Napi::Object exports) {
     Napi::HandleScope scope(env);
 
-    Napi::Function t = DefineClass(env, "NodeQueryResult", {
-       InstanceMethod("close", &NodeQueryResult::Close),
-       InstanceMethod("all", &NodeQueryResult::All),
-       InstanceMethod("each", &NodeQueryResult::Each),
-       InstanceMethod("getColumnDataTypes", &NodeQueryResult::GetColumnDataTypes),
-       InstanceMethod("getColumnNames", &NodeQueryResult::GetColumnNames),
-    });
+    Napi::Function t = DefineClass(env, "NodeQueryResult",
+        {
+            InstanceMethod("resetIterator", &NodeQueryResult::ResetIterator),
+            InstanceMethod("hasNext", &NodeQueryResult::HasNext),
+            InstanceMethod("getNextAsync", &NodeQueryResult::GetNextAsync),
+            InstanceMethod("getColumnDataTypesAsync", &NodeQueryResult::GetColumnDataTypesAsync),
+            InstanceMethod("getColumnNamesAsync", &NodeQueryResult::GetColumnNamesAsync),
+        });
 
     exports.Set("NodeQueryResult", t);
     return exports;
 }
 
-NodeQueryResult::NodeQueryResult(const Napi::CallbackInfo& info) : Napi::ObjectWrap<NodeQueryResult>(info)  {}
+NodeQueryResult::NodeQueryResult(const Napi::CallbackInfo& info)
+    : Napi::ObjectWrap<NodeQueryResult>(info) {}
 
-void NodeQueryResult::SetQueryResult(shared_ptr<kuzu::main::QueryResult> & inputQueryResult) {
-    this->queryResult = inputQueryResult;
+void NodeQueryResult::SetQueryResult(std::shared_ptr<kuzu::main::QueryResult>& queryResult) {
+    this->queryResult = queryResult;
 }
 
-void NodeQueryResult::Close(const Napi::CallbackInfo& info) {
+void NodeQueryResult::ResetIterator(const Napi::CallbackInfo& info) {
     Napi::Env env = info.Env();
     Napi::HandleScope scope(env);
-
     try {
-        this->queryResult.reset();
-    } catch(const std::exception &exc) {
-        Napi::Error::New(env, "Unsuccessful queryResult close: " + std::string(exc.what())).ThrowAsJavaScriptException();
+        this->queryResult->resetIterator();
+    } catch (const std::exception& exc) {
+        Napi::Error::New(env, std::string(exc.what())).ThrowAsJavaScriptException();
     }
-
 }
 
-// Exported JavaScript function. Creates the thread-safe function and native
-// thread. Promise is resolved in the thread-safe function's finalizer.
-Napi::Value NodeQueryResult::All(const Napi::CallbackInfo& info) {
+Napi::Value NodeQueryResult::HasNext(const Napi::CallbackInfo& info) {
     Napi::Env env = info.Env();
     Napi::HandleScope scope(env);
-
-    // Construct context data
-    auto testData = new TsfnContext(env, queryResult, TsfnContext::ALL);
-
-    // Create a new ThreadSafeFunction.
-    testData->tsfn = Napi::ThreadSafeFunction::New(
-        env,                           // Environment
-        info[0].As<Napi::Function>(),  // JS function from caller
-        "TSFN",                        // Resource name
-        0,                             // Max queue size (0 = unlimited).
-        1,                             // Initial thread count
-        testData,                      // Context,
-        TsfnContext::FinalizerCallback,// Finalizer
-        (void*)nullptr                 // Finalizer data
-    );
-    testData->nativeThread = std::thread(TsfnContext::threadEntry, testData);
-
-    // Return the deferred's Promise. This Promise is resolved in the thread-safe
-    // function's finalizer callback.
-    return testData->deferred.Promise();
-}
-
-
-// Exported JavaScript function. Creates the thread-safe function and native
-// thread. Promise is resolved in the thread-safe function's finalizer.
-Napi::Value NodeQueryResult::Each(const Napi::CallbackInfo& info) {
-    Napi::Env env = info.Env();
-    Napi::HandleScope scope(env);
-
-    // Construct context data
-    auto testData = new TsfnContext(env, queryResult, TsfnContext::TsfnContext::EACH, info[1].As<Napi::Function>());
-
-    // Create a new ThreadSafeFunction.
-    testData->tsfn = Napi::ThreadSafeFunction::New(
-        env,                           // Environment
-        info[0].As<Napi::Function>(),  // JS function from caller
-        "TSFN",                        // Resource name
-        0,                             // Max queue size (0 = unlimited).
-        1,                             // Initial thread count
-        testData,                      // Context,
-        TsfnContext::FinalizerCallback,// Finalizer
-        (void * ) nullptr  // Finalizer data
-    );
-    testData->nativeThread = std::thread(TsfnContext::threadEntry, testData);
-
-    // Return the deferred's Promise. This Promise is resolved in the thread-safe
-    // function's finalizer callback.
-    return testData->deferred.Promise();
-}
-
-Napi::Value NodeQueryResult::GetColumnDataTypes(const Napi::CallbackInfo& info) {
-    Napi::Env env = info.Env();
-    Napi::HandleScope scope(env);
-
-    auto columnDataTypes = queryResult->getColumnDataTypes();
-    Napi::Array arr = Napi::Array::New(env, columnDataTypes.size());
-
-    for (auto i = 0u; i < columnDataTypes.size(); ++i) {
-        arr.Set(i, kuzu::common::Types::dataTypeToString(columnDataTypes[i]));
+    try {
+        return Napi::Boolean::New(env, this->queryResult->hasNext());
+    } catch (const std::exception& exc) {
+        Napi::Error::New(env, std::string(exc.what())).ThrowAsJavaScriptException();
     }
-    return arr;
+    return info.Env().Undefined();
 }
 
-Napi::Value NodeQueryResult::GetColumnNames(const Napi::CallbackInfo& info) {
+Napi::Value NodeQueryResult::GetNextAsync(const Napi::CallbackInfo& info) {
     Napi::Env env = info.Env();
     Napi::HandleScope scope(env);
+    auto callback = info[0].As<Napi::Function>();
+    auto* asyncWorker = new NodeQueryResultGetNextAsyncWorker(callback, this);
+    asyncWorker->Queue();
+    return info.Env().Undefined();
+}
 
-    auto columnNames = queryResult->getColumnNames();
-    Napi::Array arr = Napi::Array::New(env, columnNames.size());
+Napi::Value NodeQueryResult::GetColumnDataTypesAsync(const Napi::CallbackInfo& info) {
+    Napi::Env env = info.Env();
+    Napi::HandleScope scope(env);
+    auto callback = info[0].As<Napi::Function>();
+    auto* asyncWorker = new NodeQueryResultGetColumnMetadataAsyncWorker(
+        callback, this, GetColumnMetadataType::DATA_TYPE);
+    asyncWorker->Queue();
+    return info.Env().Undefined();
+}
 
-    for (auto i = 0u; i < columnNames.size(); ++i) {
-        arr.Set(i, columnNames[i]);
-    }
-    return arr;
+Napi::Value NodeQueryResult::GetColumnNamesAsync(const Napi::CallbackInfo& info) {
+    Napi::Env env = info.Env();
+    Napi::HandleScope scope(env);
+    auto callback = info[0].As<Napi::Function>();
+    auto* asyncWorker = new NodeQueryResultGetColumnMetadataAsyncWorker(
+        callback, this, GetColumnMetadataType::NAME);
+    asyncWorker->Queue();
+    return info.Env().Undefined();
 }

@@ -1,5 +1,6 @@
 if(NOT WIN32)
     add_subdirectory(shell)
+    add_subdirectory(nodejs_api)
 endif()
 add_subdirectory(python_api)
 if(${BUILD_BENCHMARK})

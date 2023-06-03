@@ -1,42 +1,52 @@
-cmake_minimum_required(VERSION 3.25)
+cmake_minimum_required(VERSION 3.15)
 project (kuzujs)
 
 set(CMAKE_CXX_STANDARD 20)
 
 add_definitions(-DNAPI_VERSION=5)
+add_definitions(-DNODE_RUNTIME=node)
+add_definitions(-DBUILDING_NODE_EXTENSION)
 
-if (CMAKE_BUILD_TYPE EQUAL "DEBUG")
-    find_library(KUZU NAMES kuzu PATHS ../../build/debug/src)
-    set(THIRD_PARTY_BIN_PATH ../../build/debug/third_party)
-else()
-    find_library(KUZU NAMES kuzu PATHS ../../build/release/src)
-    set(THIRD_PARTY_BIN_PATH ../../build/release/third_party)
-endif()
+# Print CMAKE_CURRENT_SOURCE_DIR
+execute_process(
+  COMMAND npx cmake-js print-cmakejs-include 
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} 
+  OUTPUT_VARIABLE CMAKE_JS_INC
+)
+execute_process(
+  COMMAND npx cmake-js print-cmakejs-lib 
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} 
+  OUTPUT_VARIABLE CMAKE_JS_LIB
+)
+execute_process(
+  COMMAND npx cmake-js print-cmakejs-src
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} 
+  OUTPUT_VARIABLE CMAKE_JS_SRC
+)
+
+string(STRIP ${CMAKE_JS_INC} CMAKE_JS_INC)
+string(STRIP ${CMAKE_JS_LIB} CMAKE_JS_LIB)
+string(STRIP ${CMAKE_JS_SRC} CMAKE_JS_SRC)
+
+# Print CMAKE_JS variables
+message(STATUS "CMake.js configurations: LIB=${CMAKE_JS_LIB}, INC=${CMAKE_JS_INC}, SRC=${CMAKE_JS_SRC}")
 
 get_filename_component(NODE_ADDON_API_INCLUDE_PATH ./node_modules/node-addon-api ABSOLUTE)
-get_filename_component(KUZU_INCLUDE_PATH ../../src/include ABSOLUTE)
-get_filename_component(ANTLR4_CYPHER_INCLUDE_PATH ../../third_party/antlr4_cypher/include ABSOLUTE)
-get_filename_component(ANTLR4_RUNTIME_INCLUDE_PATH ../../third_party/antlr4_runtime/src ABSOLUTE)
-get_filename_component(SPDLOG_INCLUDE_PATH ../../third_party/spdlog ABSOLUTE)
-get_filename_component(NLOHMANN_JSON_INCLUDE_PATH ../../third_party/nlohmann_json ABSOLUTE)
-get_filename_component(UTF8PROC_INCLUDE_PATH ../../third_party/utf8proc/include ABSOLUTE)
-get_filename_component(CONCURRENT_QUEUE_INCLUDE_PATH ../../third_party/concurrentqueue ABSOLUTE)
-get_filename_component(THIRD_PARTY_PATH ../../third_party ABSOLUTE)
 
 include_directories(${CMAKE_JS_INC})
 include_directories(${NODE_ADDON_API_INCLUDE_PATH})
-include_directories(${KUZU_INCLUDE_PATH})
-include_directories(${ANTLR4_CYPHER_INCLUDE_PATH})
-include_directories(${ANTLR4_RUNTIME_INCLUDE_PATH})
-include_directories(${SPDLOG_INCLUDE_PATH})
-include_directories(${NLOHMANN_JSON_INCLUDE_PATH})
-include_directories(${UTF8PROC_INCLUDE_PATH})
-include_directories(${CONCURRENT_QUEUE_INCLUDE_PATH})
 
-file(GLOB SOURCE_FILES ./src_cpp/*)
-file(GLOB CMAKE_JS_SRC ./src_nodejs/*)
-file(COPY ${CMAKE_JS_SRC} DESTINATION ./kuzu)
+file(GLOB CPP_SOURCE_FILES ./src_cpp/*)
+file(GLOB JS_SOURCE_FILES ./src_js/*.js)
+file(COPY ${JS_SOURCE_FILES} ${CMAKE_JS_SRC} DESTINATION  "${CMAKE_CURRENT_SOURCE_DIR}/build")
 
-add_library(${PROJECT_NAME} SHARED ${SOURCE_FILES} ${CMAKE_JS_SRC})
+add_library(${PROJECT_NAME} SHARED ${CPP_SOURCE_FILES})
 set_target_properties(${PROJECT_NAME} PROPERTIES PREFIX "" SUFFIX ".node")
-target_link_libraries(${PROJECT_NAME} PRIVATE ${CMAKE_JS_LIB} ${KUZU})
+set_target_properties(${PROJECT_NAME} 
+  PROPERTIES
+  LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build" 
+  ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build")
+if(APPLE)
+  target_link_options(${PROJECT_NAME} PRIVATE -undefined dynamic_lookup)
+endif()
+target_link_libraries(${PROJECT_NAME} PRIVATE kuzu ${CMAKE_JS_LIB})

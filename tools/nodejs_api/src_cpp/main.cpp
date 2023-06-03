@@ -4,10 +4,11 @@
 #include <napi.h>
 
 Napi::Object InitAll(Napi::Env env, Napi::Object exports) {
-  NodeDatabase::Init(env, exports);
-  NodeConnection::Init(env, exports);
-  NodeQueryResult::Init(env, exports);
-  return exports;
+    NodeConnection::Init(env, exports);
+    NodeDatabase::Init(env, exports);
+    NodePreparedStatement::Init(env, exports);
+    NodeQueryResult::Init(env, exports);
+    return exports;
 }
 
 NODE_API_MODULE(addon, InitAll);
