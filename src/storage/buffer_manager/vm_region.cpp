@@ -1,5 +1,7 @@
 #include "storage/buffer_manager/vm_region.h"
 
+#include "common/string_utils.h"
+
 #ifdef _WIN32
 #include <errhandlingapi.h>
 #include <handleapi.h>

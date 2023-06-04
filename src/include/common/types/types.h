@@ -10,7 +10,6 @@
 #include <vector>
 
 #include "common/api.h"
-#include "common/string_utils.h"
 #include "common/types/internal_id_t.h"
 
 namespace kuzu {
@@ -148,11 +147,8 @@ class StructField {
 
 public:
     StructField() : type{std::make_unique<LogicalType>()} {}
-    StructField(std::string name, std::unique_ptr<LogicalType> type)
-        : name{std::move(name)}, type{std::move(type)} {
-        // Note: struct field name is case-insensitive.
-        StringUtils::toUpper(this->name);
-    }
+    StructField(std::string name, std::unique_ptr<LogicalType> type);
+
     inline bool operator!=(const StructField& other) const { return !(*this == other); }
     inline std::string getName() const { return name; }
     inline LogicalType* getType() const { return type.get(); }
