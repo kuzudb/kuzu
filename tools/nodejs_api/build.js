@@ -6,6 +6,7 @@ const process = require("process");
 
 // Get number of threads
 const THREADS = os.cpus().length;
+console.log(`Using ${THREADS} threads to build Kuzu.`);
 
 // Install dependencies
 console.log("Installing dependencies...");
@@ -40,11 +41,11 @@ if (process.platform === "darwin") {
     );
     env["CMAKE_OSX_DEPLOYMENT_TARGET"] = deploymentTarget;
   } else {
-    console.log("The MACOSX_DEPLOYMENT_TARGET is not set.");
+    console.log("The MACOSX_DEPLOYMENT_TARGET is not set and will be ignored.");
   }
 }
 
-childProcess.execSync("make release NUM_THREADS=" + THREADS, {
+childProcess.execSync("make nodejs NUM_THREADS=" + THREADS, {
   env,
   cwd: path.join(__dirname, "kuzu-source"),
   stdio: "inherit",
