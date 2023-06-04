@@ -27,6 +27,7 @@ scripts/antlr4/antlr4.jar
 tools/nodejs_api/node_modules/
 tools/nodejs_api/cmake_install.cmake
 tools/nodejs_api/package-lock.json
+tools/nodejs_api/prebuilt/
 
 # Archive files
 *.zip

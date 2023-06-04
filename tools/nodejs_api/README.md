@@ -1,25 +1,41 @@
-## Install dependency
+# Kùzu Node.js API
+
+## Local development
+
+### Install dependency
+
 ```
-npm i
+npm i --include=dev
 ```
 
-## Build
+### Build
+
 ```
 npm run build
 ```
 
-## Clean
+### Run test
+
 ```
-npm run clean
+npm test
 ```
 
-## Run test
+## Package
+
+We use the approach of packing all the prebuilt binaries into a single file, this approach is inspired by [prebuildify](https://github.com/prebuild/prebuildify).
+
+> All prebuilt binaries are shipped inside the package that is published to npm, which means there's no need for a separate download step like you find in [`prebuild`](https://github.com/prebuild/prebuild). The irony of this approach is that it is faster to download all prebuilt binaries for every platform when they are bundled than it is to download a single prebuilt binary as an install script.
+
+During the installation, the package will check the platform and architecture of the current machine, and extract the corresponding prebuilt binaries from the package. If no prebuilt binaries are available for the current platform and architecture, it will try to build from source code. Note that building from source code requires CMake(>=3.15), Python 3, and a compiler that supports `C++20`.
+
+We have configured our CI to build prebuilt binaries for Linux and macOS. To package the prebuilt binaries, put the prebuilt binaries under `prebuilt` directory, the name of the prebuilt binaries should be in the format of `kuzujs-${platform}-${arch}.node`, then run:
+
 ```
-npm run test
+node package
 ```
 
-## Run sample
-```
-node sample.js
-```
+If no prebuilt binaries are provided, the packaging script will still work, but it will create a source-only package, which means it will always be built from source code when installing the package.
 
+## Publish
+
+The created tarball can be published to npm. Please refer to [npm documentation](https://docs.npmjs.com/cli/v9/commands/npm-publish) for more details.

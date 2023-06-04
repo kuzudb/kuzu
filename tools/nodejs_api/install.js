@@ -2,7 +2,48 @@ const os = require("os");
 const childProcess = require("child_process");
 const path = require("path");
 const fs = require("fs");
+const fsCallback = require("fs");
 const process = require("process");
+
+// First, check if prebuilt binaries are available
+const platform = process.platform;
+const arch = process.arch;
+const prebuiltPath = path.join(
+  __dirname,
+  "prebuilt",
+  `kuzujs-${platform}-${arch}.node`
+);
+if (fsCallback.existsSync(prebuiltPath)) {
+  console.log("Prebuilt binary is available.");
+  console.log("Copying prebuilt binary to package directory...");
+  fs.copyFileSync(prebuiltPath, path.join(__dirname, "kuzujs.node"));
+  console.log(
+    `Copied ${prebuiltPath} -> ${path.join(__dirname, "kuzujs.node")}.`
+  );
+  console.log("Copying JS files to package directory...");
+  const jsSourceDir = path.join(
+    __dirname,
+    "kuzu-source",
+    "tools",
+    "nodejs_api",
+    "src_js"
+  );
+  const jsFiles = fs.readdirSync(jsSourceDir).filter((file) => {
+    return file.endsWith(".js");
+  });
+  console.log("Files to copy: ");
+  for (const file of jsFiles) {
+    console.log("  " + file);
+  }
+  for (const file of jsFiles) {
+    fs.copyFileSync(path.join(jsSourceDir, file), path.join(__dirname, file));
+  }
+  console.log("Copied JS files to package directory.");
+  console.log("Done!");
+  process.exit(0);
+} else {
+  console.log("Prebuilt binary is not available, building from source...");
+}
 
 // Get number of threads
 const THREADS = os.cpus().length;
@@ -21,9 +62,9 @@ const env = { ...process.env };
 
 if (process.platform === "darwin") {
   const archflags = process.env["ARCHFLAGS"]
-    ? archflags === "-arch arm64"
+    ? process.env["ARCHFLAGS"] === "-arch arm64"
       ? "arm64"
-      : archflags === "-arch x86_64"
+      : process.env["ARCHFLAGS"] === "-arch x86_64"
       ? "x86_64"
       : null
     : null;
@@ -72,7 +113,12 @@ for (const file of files) {
   fs.copyFileSync(path.join(BUILT_DIR, file), path.join(__dirname, file));
 }
 
-// Remove the kuzu-source directory
-console.log("Removing kuzu-source directory...");
-fs.rmSync(path.join(__dirname, "kuzu-source"), { recursive: true });
+// Clean up
+console.log("Cleaning up...");
+childProcess.execSync("npm run clean-all", {
+  cwd: path.join(__dirname, "kuzu-source", "tools", "nodejs_api"),
+});
+childProcess.execSync("make clean-all", {
+  cwd: path.join(__dirname, "kuzu-source"),
+});
 console.log("Done!");
