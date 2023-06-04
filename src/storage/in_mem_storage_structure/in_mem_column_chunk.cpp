@@ -2,6 +2,7 @@
 
 #include <regex>
 
+#include "common/string_utils.h"
 #include "common/types/types.h"
 
 using namespace kuzu::common;

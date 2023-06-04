@@ -4,6 +4,7 @@
 
 #include "common/exception.h"
 #include "common/ser_deser.h"
+#include "common/string_utils.h"
 #include "common/types/types_include.h"
 
 namespace kuzu {
@@ -54,6 +55,12 @@ bool FixedListTypeInfo::operator==(const kuzu::common::FixedListTypeInfo& other)
 
 std::unique_ptr<ExtraTypeInfo> FixedListTypeInfo::copy() const {
     return std::make_unique<FixedListTypeInfo>(childType->copy(), fixedNumElementsInList);
+}
+
+StructField::StructField(std::string name, std::unique_ptr<LogicalType> type)
+    : name{std::move(name)}, type{std::move(type)} {
+    // Note: struct field name is case-insensitive.
+    StringUtils::toUpper(this->name);
 }
 
 bool StructField::operator==(const kuzu::common::StructField& other) const {

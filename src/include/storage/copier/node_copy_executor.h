@@ -1,6 +1,5 @@
 #pragma once
 
-#include "common/string_utils.h"
 #include "storage/copier/node_copier.h"
 #include "storage/in_mem_storage_structure/in_mem_column.h"
 #include "storage/store/node_table.h"
