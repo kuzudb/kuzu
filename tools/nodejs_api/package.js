@@ -1,10 +1,12 @@
 const childProcess = require("child_process");
 const fs = require("fs/promises");
+const fsCallback = require("fs");
 const path = require("path");
 
 const KUZU_ROOT = path.resolve(path.join(__dirname, "..", ".."));
 const CURRENT_DIR = path.resolve(__dirname);
 const ARCHIVE_PATH = path.resolve(path.join(__dirname, "kuzu-source.tar"));
+const PREBUILT_DIR = path.join(CURRENT_DIR, "prebuilt");
 const ARCHIVE_DIR_PATH = path.join(CURRENT_DIR, "package");
 const KUZU_VERSION_TEXT = "Kuzu VERSION";
 
@@ -79,10 +81,10 @@ const KUZU_VERSION_TEXT = "Kuzu VERSION";
     path.join(ARCHIVE_DIR_PATH, "package.json")
   );
 
-  // Copy build.js to archive
+  // Copy install.js to archive
   await fs.copyFile(
-    path.join(CURRENT_DIR, "build.js"),
-    path.join(ARCHIVE_DIR_PATH, "build.js")
+    path.join(CURRENT_DIR, "install.js"),
+    path.join(ARCHIVE_DIR_PATH, "install.js")
   );
 
   // Copy LICENSE to archive
@@ -97,6 +99,49 @@ const KUZU_VERSION_TEXT = "Kuzu VERSION";
     path.join(ARCHIVE_DIR_PATH, "README.md")
   );
 
+  // If prebuilt directory exists, copy the entire directory to archive
+  const prebuiltDirExists = await new Promise((resolve, _) => {
+    fsCallback.access(PREBUILT_DIR, fsCallback.constants.F_OK, (err) => {
+      if (err) {
+        resolve(false);
+      } else {
+        resolve(true);
+      }
+    });
+  });
+
+  if (prebuiltDirExists) {
+    await fs.mkdir(path.join(ARCHIVE_DIR_PATH, "prebuilt"));
+    console.log("Prebuilt directory exists, copying to archive...");
+    const prebuiltFiles = await new Promise((resolve, _) => {
+      fsCallback.readdir(PREBUILT_DIR, (err, files) => {
+        if (err) {
+          return resolve([]);
+        }
+        let prebuiltFiles = [];
+        for (const file of files) {
+          if (file.endsWith(".node")) {
+            prebuiltFiles.push(file);
+          }
+        }
+        resolve(prebuiltFiles);
+      });
+    });
+    const copyPromises = [];
+    for (const file of prebuiltFiles) {
+      copyPromises.push(
+        fs.copyFile(
+          path.join(PREBUILT_DIR, file),
+          path.join(ARCHIVE_DIR_PATH, "prebuilt", file)
+        )
+      );
+    }
+    await Promise.all(copyPromises);
+    console.log(`Copied ${prebuiltFiles.length} files.`);
+  } else {
+    console.log("Prebuilt directory does not exist, skipping...");
+  }
+
   console.log("Updating package.json...");
 
   const packageJson = JSON.parse(
@@ -110,7 +155,7 @@ const KUZU_VERSION_TEXT = "Kuzu VERSION";
     { encoding: "utf-8" }
   );
 
-  // Split the CMakeLists.txt file into lines
+  // Get the version from CMakeLists.txt
   const lines = CMakeListsTxt.split("\n");
   for (const line of lines) {
     if (line.includes(KUZU_VERSION_TEXT)) {
@@ -121,7 +166,7 @@ const KUZU_VERSION_TEXT = "Kuzu VERSION";
     }
   }
 
-  packageJson.scripts.install = "node build.js";
+  packageJson.scripts.install = "node install.js";
 
   await fs.writeFile(
     path.join(ARCHIVE_DIR_PATH, "package.json"),

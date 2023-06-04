@@ -5,9 +5,14 @@ chai.should();
 chai.config.includeStack = true;
 
 process.env.NODE_ENV = "test";
-global.kuzu = process.env.TEST_INSTALLED
-  ? require("kuzu")
-  : require("../build/");
+const TEST_INSTALLED = process.env.TEST_INSTALLED || false;
+if (TEST_INSTALLED) {
+  console.log("Testing installed package...");
+  global.kuzu = require("kuzu");
+} else {
+  console.log("Testing locally built version...");
+  global.kuzu = require("../build/");
+}
 
 const tmp = require("tmp");
 const fs = require("fs/promises");

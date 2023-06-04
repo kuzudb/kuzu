@@ -11,7 +11,8 @@
   "scripts": {
     "test": "mocha test",
     "clean": "rm -rf build",
-    "build": "cd ../.. && make release NUM_THREADS=$(node -e \"console.log(require('os').cpus().length)\")"
+    "clean-all": "rm -rf build node_modules package-lock.json",
+    "build": "npm run clean && cd ../.. && make nodejs NUM_THREADS=$(node -e \"console.log(require('os').cpus().length)\")"
   },
   "author": "Kùzu Team",
   "license": "MIT",
