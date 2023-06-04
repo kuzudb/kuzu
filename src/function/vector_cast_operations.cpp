@@ -15,6 +15,14 @@ bool VectorCastOperations::hasImplicitCast(
         return true;
     }
     switch (srcType.getLogicalTypeID()) {
+    case common::LogicalTypeID::DATE: {
+        switch (dstType.getLogicalTypeID()) {
+        case common::LogicalTypeID::TIMESTAMP:
+            return true;
+        default:
+            return false;
+        }
+    }
     case common::LogicalTypeID::STRING: {
         switch (dstType.getLogicalTypeID()) {
         case common::LogicalTypeID::DATE:
@@ -66,6 +74,7 @@ void VectorCastOperations::bindImplicitCastFunc(common::LogicalTypeID sourceType
         bindImplicitNumericalCastFunc<int32_t, operation::CastToInt32>(sourceTypeID, func);
         return;
     }
+    case common::LogicalTypeID::SERIAL:
     case common::LogicalTypeID::INT64: {
         bindImplicitNumericalCastFunc<int64_t, operation::CastToInt64>(sourceTypeID, func);
         return;
@@ -84,8 +93,11 @@ void VectorCastOperations::bindImplicitCastFunc(common::LogicalTypeID sourceType
         return;
     }
     case common::LogicalTypeID::TIMESTAMP: {
-        assert(sourceTypeID == common::LogicalTypeID::STRING);
-        func = &UnaryExecFunction<ku_string_t, timestamp_t, operation::CastStringToTimestamp>;
+        assert(sourceTypeID == common::LogicalTypeID::STRING ||
+               sourceTypeID == common::LogicalTypeID::DATE);
+        func = sourceTypeID == common::LogicalTypeID::STRING ?
+                   &UnaryExecFunction<ku_string_t, timestamp_t, operation::CastStringToTimestamp> :
+                   &UnaryExecFunction<date_t, timestamp_t, operation::CastDateToTimestamp>;
         return;
     }
     case common::LogicalTypeID::INTERVAL: {
@@ -138,8 +150,17 @@ CastToStringVectorOperation::getDefinitions() {
         std::vector<LogicalTypeID>{LogicalTypeID::INT64}, LogicalTypeID::STRING,
         UnaryCastExecFunction<int64_t, ku_string_t, operation::CastToString>));
     result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_STRING_FUNC_NAME,
+        std::vector<LogicalTypeID>{LogicalTypeID::INT32}, LogicalTypeID::STRING,
+        UnaryCastExecFunction<int32_t, ku_string_t, operation::CastToString>));
+    result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_STRING_FUNC_NAME,
+        std::vector<LogicalTypeID>{LogicalTypeID::INT16}, LogicalTypeID::STRING,
+        UnaryCastExecFunction<int16_t, ku_string_t, operation::CastToString>));
+    result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_STRING_FUNC_NAME,
         std::vector<LogicalTypeID>{LogicalTypeID::DOUBLE}, LogicalTypeID::STRING,
         UnaryCastExecFunction<double_t, ku_string_t, operation::CastToString>));
+    result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_STRING_FUNC_NAME,
+        std::vector<LogicalTypeID>{LogicalTypeID::FLOAT}, LogicalTypeID::STRING,
+        UnaryCastExecFunction<float_t, ku_string_t, operation::CastToString>));
     result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_STRING_FUNC_NAME,
         std::vector<LogicalTypeID>{LogicalTypeID::DATE}, LogicalTypeID::STRING,
         UnaryCastExecFunction<date_t, ku_string_t, operation::CastToString>));
@@ -150,11 +171,17 @@ CastToStringVectorOperation::getDefinitions() {
         std::vector<LogicalTypeID>{LogicalTypeID::INTERVAL}, LogicalTypeID::STRING,
         UnaryCastExecFunction<interval_t, ku_string_t, operation::CastToString>));
     result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_STRING_FUNC_NAME,
+        std::vector<LogicalTypeID>{LogicalTypeID::INTERNAL_ID}, LogicalTypeID::STRING,
+        UnaryCastExecFunction<internalID_t, ku_string_t, operation::CastToString>));
+    result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_STRING_FUNC_NAME,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING}, LogicalTypeID::STRING,
         UnaryCastExecFunction<ku_string_t, ku_string_t, operation::CastToString>));
     result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_STRING_FUNC_NAME,
         std::vector<LogicalTypeID>{LogicalTypeID::VAR_LIST}, LogicalTypeID::STRING,
         UnaryCastExecFunction<list_entry_t, ku_string_t, operation::CastToString>));
+    result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_STRING_FUNC_NAME,
+        std::vector<LogicalTypeID>{LogicalTypeID::STRUCT}, LogicalTypeID::STRING,
+        UnaryCastExecFunction<struct_entry_t, ku_string_t, operation::CastToString>));
     return result;
 }
 

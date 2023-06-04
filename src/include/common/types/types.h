@@ -31,7 +31,6 @@ using vector_idx_t = uint32_t;
 constexpr vector_idx_t INVALID_VECTOR_IDX = UINT32_MAX;
 using block_idx_t = uint64_t;
 using field_idx_t = uint64_t;
-using struct_entry_t = int64_t;
 using struct_field_idx_t = uint64_t;
 constexpr struct_field_idx_t INVALID_STRUCT_FIELD_IDX = UINT64_MAX;
 
@@ -49,6 +48,10 @@ struct list_entry_t {
 
     list_entry_t() : offset{INVALID_OFFSET}, size{UINT64_MAX} {}
     list_entry_t(common::offset_t offset, uint64_t size) : offset{offset}, size{size} {}
+};
+
+struct struct_entry_t {
+    int64_t pos;
 };
 
 KUZU_API enum class LogicalTypeID : uint8_t {
@@ -201,10 +204,6 @@ public:
     KUZU_API LogicalType(const LogicalType& other);
     KUZU_API LogicalType(LogicalType&& other) noexcept;
 
-    static std::vector<LogicalTypeID> getNumericalLogicalTypeIDs();
-    static std::vector<LogicalTypeID> getAllValidComparableLogicalTypes();
-    static std::vector<LogicalTypeID> getAllValidLogicTypeIDs();
-
     KUZU_API LogicalType& operator=(const LogicalType& other);
 
     KUZU_API bool operator==(const LogicalType& other) const;
@@ -291,6 +290,9 @@ public:
     KUZU_API static LogicalType dataTypeFromString(const std::string& dataTypeString);
     static uint32_t getFixedTypeSize(kuzu::common::PhysicalTypeID physicalType);
     static bool isNumerical(const LogicalType& dataType);
+    static std::vector<LogicalType> getAllValidComparableLogicalTypes();
+    static std::vector<LogicalTypeID> getNumericalLogicalTypeIDs();
+    static std::vector<LogicalTypeID> getAllValidLogicTypeIDs();
 
 private:
     static LogicalTypeID dataTypeIDFromString(const std::string& dataTypeIDString);

@@ -7,7 +7,7 @@ namespace function {
 
 std::vector<std::unique_ptr<VectorOperationDefinition>> AddVectorOperation::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
-    for (auto typeID : LogicalType::getNumericalLogicalTypeIDs()) {
+    for (auto typeID : LogicalTypeUtils::getNumericalLogicalTypeIDs()) {
         result.push_back(getBinaryDefinition<operation::Add>(ADD_FUNC_NAME, typeID));
     }
     // interval + interval → interval
@@ -44,7 +44,7 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> AddVectorOperation::getD
 
 std::vector<std::unique_ptr<VectorOperationDefinition>> SubtractVectorOperation::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
-    for (auto typeID : LogicalType::getNumericalLogicalTypeIDs()) {
+    for (auto typeID : LogicalTypeUtils::getNumericalLogicalTypeIDs()) {
         result.push_back(getBinaryDefinition<operation::Subtract>(SUBTRACT_FUNC_NAME, typeID));
     }
     // date - date → int64
@@ -74,7 +74,7 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> SubtractVectorOperation:
 
 std::vector<std::unique_ptr<VectorOperationDefinition>> MultiplyVectorOperation::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
-    for (auto typeID : LogicalType::getNumericalLogicalTypeIDs()) {
+    for (auto typeID : LogicalTypeUtils::getNumericalLogicalTypeIDs()) {
         result.push_back(getBinaryDefinition<operation::Multiply>(MULTIPLY_FUNC_NAME, typeID));
     }
     return result;
@@ -82,7 +82,7 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> MultiplyVectorOperation:
 
 std::vector<std::unique_ptr<VectorOperationDefinition>> DivideVectorOperation::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
-    for (auto typeID : LogicalType::getNumericalLogicalTypeIDs()) {
+    for (auto typeID : LogicalTypeUtils::getNumericalLogicalTypeIDs()) {
         result.push_back(getBinaryDefinition<operation::Divide>(DIVIDE_FUNC_NAME, typeID));
     }
     // interval / int → interval
@@ -95,7 +95,7 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> DivideVectorOperation::g
 
 std::vector<std::unique_ptr<VectorOperationDefinition>> ModuloVectorOperation::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
-    for (auto typeID : LogicalType::getNumericalLogicalTypeIDs()) {
+    for (auto typeID : LogicalTypeUtils::getNumericalLogicalTypeIDs()) {
         result.push_back(getBinaryDefinition<operation::Modulo>(MODULO_FUNC_NAME, typeID));
     }
     return result;
@@ -111,7 +111,7 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> PowerVectorOperation::ge
 
 std::vector<std::unique_ptr<VectorOperationDefinition>> NegateVectorOperation::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
-    for (auto& typeID : LogicalType::getNumericalLogicalTypeIDs()) {
+    for (auto& typeID : LogicalTypeUtils::getNumericalLogicalTypeIDs()) {
         result.push_back(getUnaryDefinition<operation::Negate>(NEGATE_FUNC_NAME, typeID));
     }
     return result;
@@ -119,7 +119,7 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> NegateVectorOperation::g
 
 std::vector<std::unique_ptr<VectorOperationDefinition>> AbsVectorOperation::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
-    for (auto& typeID : LogicalType::getNumericalLogicalTypeIDs()) {
+    for (auto& typeID : LogicalTypeUtils::getNumericalLogicalTypeIDs()) {
         result.push_back(getUnaryDefinition<operation::Abs>(ABS_FUNC_NAME, typeID));
     }
     return result;
@@ -127,7 +127,7 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> AbsVectorOperation::getD
 
 std::vector<std::unique_ptr<VectorOperationDefinition>> FloorVectorOperation::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
-    for (auto& typeID : LogicalType::getNumericalLogicalTypeIDs()) {
+    for (auto& typeID : LogicalTypeUtils::getNumericalLogicalTypeIDs()) {
         result.push_back(getUnaryDefinition<operation::Floor>(FLOOR_FUNC_NAME, typeID));
     }
     return result;
@@ -135,7 +135,7 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> FloorVectorOperation::ge
 
 std::vector<std::unique_ptr<VectorOperationDefinition>> CeilVectorOperation::getDefinitions() {
     std::vector<std::unique_ptr<VectorOperationDefinition>> result;
-    for (auto& typeID : LogicalType::getNumericalLogicalTypeIDs()) {
+    for (auto& typeID : LogicalTypeUtils::getNumericalLogicalTypeIDs()) {
         result.push_back(getUnaryDefinition<operation::Ceil>(CEIL_FUNC_NAME, typeID));
     }
     return result;

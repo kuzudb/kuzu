@@ -47,6 +47,7 @@ private:
     template<typename FUNC>
     static void getUnaryExecFunc(common::LogicalTypeID operandTypeID, scalar_exec_func& func) {
         switch (operandTypeID) {
+        case common::LogicalTypeID::SERIAL:
         case common::LogicalTypeID::INT64: {
             func = UnaryExecFunction<int64_t, int64_t, FUNC>;
             return;
@@ -78,6 +79,7 @@ private:
     template<typename FUNC>
     static void getBinaryExecFunc(common::LogicalTypeID operandTypeID, scalar_exec_func& func) {
         switch (operandTypeID) {
+        case common::LogicalTypeID::SERIAL:
         case common::LogicalTypeID::INT64: {
             func = BinaryExecFunction<int64_t, int64_t, int64_t, FUNC>;
             return;

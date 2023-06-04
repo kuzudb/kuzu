@@ -13,198 +13,129 @@ protected:
     static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions(
         const std::string& name) {
         std::vector<std::unique_ptr<VectorOperationDefinition>> definitions;
-        for (auto& numericTypeID : common::LogicalType::getNumericalLogicalTypeIDs()) {
-            definitions.push_back(getDefinition<FUNC>(name, numericTypeID, numericTypeID));
+        for (auto& comparableType : common::LogicalTypeUtils::getAllValidComparableLogicalTypes()) {
+            definitions.push_back(getDefinition<FUNC>(name, comparableType, comparableType));
         }
-        for (auto& typeID : std::vector<common::LogicalTypeID>{common::LogicalTypeID::BOOL,
-                 common::LogicalTypeID::STRING, common::LogicalTypeID::INTERNAL_ID,
-                 common::LogicalTypeID::DATE, common::LogicalTypeID::TIMESTAMP,
-                 common::LogicalTypeID::INTERVAL}) {
-            definitions.push_back(getDefinition<FUNC>(name, typeID, typeID));
-        }
-        definitions.push_back(getDefinition<FUNC>(
-            name, common::LogicalTypeID::DATE, common::LogicalTypeID::TIMESTAMP));
-        definitions.push_back(getDefinition<FUNC>(
-            name, common::LogicalTypeID::TIMESTAMP, common::LogicalTypeID::DATE));
+        // We can only check whether two internal ids are equal or not. So INTERNAL_ID is not
+        // part of the comparable logical types.
+        definitions.push_back(
+            getDefinition<FUNC>(name, common::LogicalType{common::LogicalTypeID::INTERNAL_ID},
+                common::LogicalType{common::LogicalTypeID::INTERNAL_ID}));
         return definitions;
     }
 
 private:
     template<typename FUNC>
-    static inline std::unique_ptr<VectorOperationDefinition> getDefinition(const std::string& name,
-        common::LogicalTypeID leftTypeID, common::LogicalTypeID rightTypeID) {
+    static inline std::unique_ptr<VectorOperationDefinition> getDefinition(
+        const std::string& name, common::LogicalType leftType, common::LogicalType rightType) {
         scalar_exec_func execFunc;
-        getExecFunc<FUNC>(leftTypeID, rightTypeID, execFunc);
+        getExecFunc<FUNC>(leftType.getPhysicalType(), rightType.getPhysicalType(), execFunc);
         scalar_select_func selectFunc;
-        getSelectFunc<FUNC>(leftTypeID, rightTypeID, selectFunc);
+        getSelectFunc<FUNC>(leftType.getPhysicalType(), rightType.getPhysicalType(), selectFunc);
         return std::make_unique<VectorOperationDefinition>(name,
-            std::vector<common::LogicalTypeID>{leftTypeID, rightTypeID},
+            std::vector<common::LogicalTypeID>{
+                leftType.getLogicalTypeID(), rightType.getLogicalTypeID()},
             common::LogicalTypeID::BOOL, execFunc, selectFunc);
     }
 
+    // When comparing two values, we guarantee that they must have the same dataType. So we only
+    // need to switch the physical type to get the corresponding exec function.
     template<typename FUNC>
-    static void getExecFunc(common::LogicalTypeID leftTypeID, common::LogicalTypeID rightTypeID,
-        scalar_exec_func& func) {
-        switch (leftTypeID) {
-        case common::LogicalTypeID::INT64: {
+    static void getExecFunc(
+        common::PhysicalTypeID leftType, common::PhysicalTypeID rightType, scalar_exec_func& func) {
+        assert(leftType == rightType);
+        switch (leftType) {
+        case common::PhysicalTypeID::INT64: {
             func = BinaryExecFunction<int64_t, int64_t, uint8_t, FUNC>;
             return;
         }
-        case common::LogicalTypeID::INT32: {
+        case common::PhysicalTypeID::INT32: {
             func = BinaryExecFunction<int32_t, int32_t, uint8_t, FUNC>;
             return;
         }
-        case common::LogicalTypeID::INT16: {
+        case common::PhysicalTypeID::INT16: {
             func = BinaryExecFunction<int16_t, int16_t, uint8_t, FUNC>;
             return;
         }
-        case common::LogicalTypeID::DOUBLE: {
+        case common::PhysicalTypeID::DOUBLE: {
             func = BinaryExecFunction<double, double, uint8_t, FUNC>;
             return;
         }
-        case common::LogicalTypeID::FLOAT: {
+        case common::PhysicalTypeID::FLOAT: {
             func = BinaryExecFunction<float, float, uint8_t, FUNC>;
             return;
         }
-        case common::LogicalTypeID::BOOL: {
+        case common::PhysicalTypeID::BOOL: {
             func = BinaryExecFunction<uint8_t, uint8_t, uint8_t, FUNC>;
             return;
         }
-        case common::LogicalTypeID::STRING: {
+        case common::PhysicalTypeID::STRING: {
             func = BinaryExecFunction<common::ku_string_t, common::ku_string_t, uint8_t, FUNC>;
             return;
         }
-        case common::LogicalTypeID::INTERNAL_ID: {
+        case common::PhysicalTypeID::INTERNAL_ID: {
             func = BinaryExecFunction<common::nodeID_t, common::nodeID_t, uint8_t, FUNC>;
             return;
         }
-        case common::LogicalTypeID::DATE: {
-            switch (rightTypeID) {
-            case common::LogicalTypeID::DATE: {
-                func = BinaryExecFunction<common::date_t, common::date_t, uint8_t, FUNC>;
-                return;
-            }
-            case common::LogicalTypeID::TIMESTAMP: {
-                func = BinaryExecFunction<common::date_t, common::timestamp_t, uint8_t, FUNC>;
-                return;
-            }
-            default:
-                throw common::RuntimeException(
-                    "Invalid input data types(" +
-                    common::LogicalTypeUtils::dataTypeToString(leftTypeID) + "," +
-                    common::LogicalTypeUtils::dataTypeToString(rightTypeID) + ") for getExecFunc.");
-            }
-        }
-        case common::LogicalTypeID::TIMESTAMP: {
-            switch (rightTypeID) {
-            case common::LogicalTypeID::DATE: {
-                func = BinaryExecFunction<common::timestamp_t, common::date_t, uint8_t, FUNC>;
-                return;
-            }
-            case common::LogicalTypeID::TIMESTAMP: {
-                func = BinaryExecFunction<common::timestamp_t, common::timestamp_t, uint8_t, FUNC>;
-                return;
-            }
-            default:
-                throw common::RuntimeException(
-                    "Invalid input data types(" +
-                    common::LogicalTypeUtils::dataTypeToString(leftTypeID) + "," +
-                    common::LogicalTypeUtils::dataTypeToString(rightTypeID) + ") for getExecFunc.");
-            }
-        }
-        case common::LogicalTypeID::INTERVAL: {
+        case common::PhysicalTypeID::INTERVAL: {
             func = BinaryExecFunction<common::interval_t, common::interval_t, uint8_t, FUNC>;
             return;
         }
         default:
             throw common::RuntimeException(
                 "Invalid input data types(" +
-                common::LogicalTypeUtils::dataTypeToString(leftTypeID) + "," +
-                common::LogicalTypeUtils::dataTypeToString(rightTypeID) + ") for getExecFunc.");
+                common::PhysicalTypeUtils::physicalTypeToString(leftType) + "," +
+                common::PhysicalTypeUtils::physicalTypeToString(rightType) + ") for getExecFunc.");
         }
     }
 
     template<typename FUNC>
-    static void getSelectFunc(common::LogicalTypeID leftTypeID, common::LogicalTypeID rightTypeID,
+    static void getSelectFunc(common::PhysicalTypeID leftTypeID, common::PhysicalTypeID rightTypeID,
         scalar_select_func& func) {
+        assert(leftTypeID == rightTypeID);
         switch (leftTypeID) {
-        case common::LogicalTypeID::INT64: {
+        case common::PhysicalTypeID::INT64: {
             func = BinarySelectFunction<int64_t, int64_t, FUNC>;
             return;
         }
-        case common::LogicalTypeID::INT32: {
+        case common::PhysicalTypeID::INT32: {
             func = BinarySelectFunction<int32_t, int32_t, FUNC>;
             return;
         }
-        case common::LogicalTypeID::INT16: {
+        case common::PhysicalTypeID::INT16: {
             func = BinarySelectFunction<int16_t, int16_t, FUNC>;
             return;
         }
-        case common::LogicalTypeID::DOUBLE: {
+        case common::PhysicalTypeID::DOUBLE: {
             func = BinarySelectFunction<double_t, double_t, FUNC>;
             return;
         }
-        case common::LogicalTypeID::FLOAT: {
+        case common::PhysicalTypeID::FLOAT: {
             func = BinarySelectFunction<float_t, float_t, FUNC>;
             return;
         }
-        case common::LogicalTypeID::BOOL: {
+        case common::PhysicalTypeID::BOOL: {
             func = BinarySelectFunction<uint8_t, uint8_t, FUNC>;
             return;
         }
-        case common::LogicalTypeID::STRING: {
+        case common::PhysicalTypeID::STRING: {
             func = BinarySelectFunction<common::ku_string_t, common::ku_string_t, FUNC>;
             return;
         }
-        case common::LogicalTypeID::INTERNAL_ID: {
+        case common::PhysicalTypeID::INTERNAL_ID: {
             func = BinarySelectFunction<common::nodeID_t, common::nodeID_t, FUNC>;
             return;
         }
-        case common::LogicalTypeID::DATE: {
-            switch (rightTypeID) {
-            case common::LogicalTypeID::DATE: {
-                func = BinarySelectFunction<common::date_t, common::date_t, FUNC>;
-                return;
-            }
-            case common::LogicalTypeID::TIMESTAMP: {
-                func = BinarySelectFunction<common::date_t, common::timestamp_t, FUNC>;
-                return;
-            }
-            default:
-                throw common::RuntimeException(
-                    "Invalid input data types(" +
-                    common::LogicalTypeUtils::dataTypeToString(leftTypeID) + "," +
-                    common::LogicalTypeUtils::dataTypeToString(rightTypeID) +
-                    ") for getSelectFunc.");
-            }
-        }
-        case common::LogicalTypeID::TIMESTAMP: {
-            switch (rightTypeID) {
-            case common::LogicalTypeID::DATE: {
-                func = BinarySelectFunction<common::timestamp_t, common::date_t, FUNC>;
-                return;
-            }
-            case common::LogicalTypeID::TIMESTAMP: {
-                func = BinarySelectFunction<common::timestamp_t, common::timestamp_t, FUNC>;
-                return;
-            }
-            default:
-                throw common::RuntimeException(
-                    "Invalid input data types(" +
-                    common::LogicalTypeUtils::dataTypeToString(leftTypeID) + "," +
-                    common::LogicalTypeUtils::dataTypeToString(rightTypeID) +
-                    ") for getSelectFunc.");
-            }
-        }
-        case common::LogicalTypeID::INTERVAL: {
+        case common::PhysicalTypeID::INTERVAL: {
             func = BinarySelectFunction<common::interval_t, common::interval_t, FUNC>;
             return;
         }
         default:
             throw common::RuntimeException(
                 "Invalid input data types(" +
-                common::LogicalTypeUtils::dataTypeToString(leftTypeID) + "," +
-                common::LogicalTypeUtils::dataTypeToString(rightTypeID) + ") for getSelectFunc.");
+                common::PhysicalTypeUtils::physicalTypeToString(leftTypeID) + "," +
+                common::PhysicalTypeUtils::physicalTypeToString(rightTypeID) +
+                ") for getSelectFunc.");
         }
     }
 };

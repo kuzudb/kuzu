@@ -31,58 +31,67 @@ bool TypeUtils::convertToBoolean(const char* data) {
         ". Input is not equal to True or False (in a case-insensitive manner)");
 }
 
-std::string TypeUtils::listValueToString(
-    const LogicalType& dataType, uint8_t* listValues, uint64_t pos) {
+std::string TypeUtils::castValueToString(
+    const LogicalType& dataType, uint8_t* value, void* vector) {
+    auto valueVector = reinterpret_cast<ValueVector*>(vector);
     switch (dataType.getLogicalTypeID()) {
     case LogicalTypeID::BOOL:
-        return TypeUtils::toString(((bool*)listValues)[pos]);
+        return TypeUtils::toString(*reinterpret_cast<bool*>(value));
     case LogicalTypeID::INT64:
-        return TypeUtils::toString(((int64_t*)listValues)[pos]);
+        return TypeUtils::toString(*reinterpret_cast<int64_t*>(value));
+    case LogicalTypeID::INT32:
+        return TypeUtils::toString(*reinterpret_cast<int32_t*>(value));
+    case LogicalTypeID::INT16:
+        return TypeUtils::toString(*reinterpret_cast<int16_t*>(value));
     case LogicalTypeID::DOUBLE:
-        return TypeUtils::toString(((double_t*)listValues)[pos]);
+        return TypeUtils::toString(*reinterpret_cast<double_t*>(value));
+    case LogicalTypeID::FLOAT:
+        return TypeUtils::toString(*reinterpret_cast<float_t*>(value));
     case LogicalTypeID::DATE:
-        return TypeUtils::toString(((date_t*)listValues)[pos]);
+        return TypeUtils::toString(*reinterpret_cast<date_t*>(value));
     case LogicalTypeID::TIMESTAMP:
-        return TypeUtils::toString(((timestamp_t*)listValues)[pos]);
+        return TypeUtils::toString(*reinterpret_cast<timestamp_t*>(value));
     case LogicalTypeID::INTERVAL:
-        return TypeUtils::toString(((interval_t*)listValues)[pos]);
+        return TypeUtils::toString(*reinterpret_cast<interval_t*>(value));
     case LogicalTypeID::STRING:
-        return TypeUtils::toString(((ku_string_t*)listValues)[pos]);
+        return TypeUtils::toString(*reinterpret_cast<ku_string_t*>(value));
+    case LogicalTypeID::INTERNAL_ID:
+        return TypeUtils::toString(*reinterpret_cast<internalID_t*>(value));
     case LogicalTypeID::VAR_LIST:
-        return TypeUtils::toString(((ku_list_t*)listValues)[pos], dataType);
+        return TypeUtils::toString(*reinterpret_cast<list_entry_t*>(value), valueVector);
+    case LogicalTypeID::STRUCT:
+        return TypeUtils::toString(*reinterpret_cast<struct_entry_t*>(value), valueVector);
     default:
         throw RuntimeException("Invalid data type " + LogicalTypeUtils::dataTypeToString(dataType) +
-                               " for TypeUtils::listValueToString.");
+                               " for TypeUtils::castValueToString.");
     }
 }
 
-std::string TypeUtils::toString(const ku_list_t& val, const LogicalType& dataType) {
+std::string TypeUtils::toString(const list_entry_t& val, void* valueVector) {
+    auto listVector = (common::ValueVector*)valueVector;
     std::string result = "[";
+    auto values = ListVector::getListValues(listVector, val);
+    auto childType = VarListType::getChildType(&listVector->dataType);
+    auto dataVector = ListVector::getDataVector(listVector);
     for (auto i = 0u; i < val.size; ++i) {
-        result += listValueToString(
-            *VarListType::getChildType(&dataType), reinterpret_cast<uint8_t*>(val.overflowPtr), i);
-        result += (i == val.size - 1 ? "]" : ",");
+        result += castValueToString(*childType, values, dataVector);
+        result += (val.size - 1 == i ? "]" : ",");
+        values += ListVector::getDataVector(listVector)->getNumBytesPerValue();
     }
     return result;
 }
 
-std::string TypeUtils::toString(const list_entry_t& val, void* valVector) {
-    auto listVector = (common::ValueVector*)valVector;
-    std::string result = "[";
-    auto values = ListVector::getListValues(listVector, val);
-    auto childType = VarListType::getChildType(&listVector->dataType);
-    for (auto i = 0u; i < val.size - 1; ++i) {
-        result += (childType->getLogicalTypeID() == LogicalTypeID::VAR_LIST ?
-                          toString(reinterpret_cast<common::list_entry_t*>(values)[i],
-                              ListVector::getDataVector(listVector)) :
-                          listValueToString(*childType, values, i)) +
-                  ",";
+std::string TypeUtils::toString(const struct_entry_t& val, void* valVector) {
+    auto structVector = (common::ValueVector*)valVector;
+    std::string result = "{";
+    auto fields = StructType::getFields(&structVector->dataType);
+    for (auto i = 0u; i < fields.size(); ++i) {
+        auto field = fields[i];
+        auto fieldVector = StructVector::getChildVector(structVector, i);
+        auto value = fieldVector->getData() + fieldVector->getNumBytesPerValue() * val.pos;
+        result += castValueToString(*field->getType(), value, fieldVector.get());
+        result += (fields.size() - 1 == i ? "}" : ",");
     }
-    result += (childType->getLogicalTypeID() == LogicalTypeID::VAR_LIST ?
-                      toString(reinterpret_cast<common::list_entry_t*>(values)[val.size - 1],
-                          ListVector::getDataVector(listVector)) :
-                      listValueToString(*childType, values, val.size - 1)) +
-              "]";
     return result;
 }
 

@@ -147,8 +147,8 @@ public:
     }
 
     static inline void initializeEntries(ValueVector* vector) {
-        std::iota(reinterpret_cast<struct_entry_t*>(vector->getData()),
-            reinterpret_cast<struct_entry_t*>(
+        std::iota(reinterpret_cast<int64_t*>(vector->getData()),
+            reinterpret_cast<int64_t*>(
                 vector->getData() + vector->getNumBytesPerValue() * DEFAULT_VECTOR_CAPACITY),
             0);
     }

@@ -142,26 +142,6 @@ LogicalType::LogicalType(LogicalType&& other) noexcept
     : typeID{other.typeID}, physicalType{other.physicalType}, extraTypeInfo{
                                                                   std::move(other.extraTypeInfo)} {}
 
-std::vector<LogicalTypeID> LogicalType::getNumericalLogicalTypeIDs() {
-    return std::vector<LogicalTypeID>{LogicalTypeID::INT64, LogicalTypeID::INT32,
-        LogicalTypeID::INT16, LogicalTypeID::DOUBLE, LogicalTypeID::FLOAT};
-}
-
-std::vector<LogicalTypeID> LogicalType::getAllValidComparableLogicalTypes() {
-    return std::vector<LogicalTypeID>{LogicalTypeID::BOOL, LogicalTypeID::INT64,
-        LogicalTypeID::INT32, LogicalTypeID::INT16, LogicalTypeID::DOUBLE, LogicalTypeID::FLOAT,
-        LogicalTypeID::DATE, LogicalTypeID::TIMESTAMP, LogicalTypeID::INTERVAL,
-        LogicalTypeID::STRING};
-}
-
-std::vector<LogicalTypeID> LogicalType::getAllValidLogicTypeIDs() {
-    // TODO(Ziyi): Add FIX_LIST type to allValidTypeID when we support functions on VAR_LIST.
-    return std::vector<LogicalTypeID>{LogicalTypeID::INTERNAL_ID, LogicalTypeID::BOOL,
-        LogicalTypeID::INT64, LogicalTypeID::INT32, LogicalTypeID::INT16, LogicalTypeID::DOUBLE,
-        LogicalTypeID::STRING, LogicalTypeID::DATE, LogicalTypeID::TIMESTAMP,
-        LogicalTypeID::INTERVAL, LogicalTypeID::VAR_LIST, LogicalTypeID::FLOAT};
-}
-
 LogicalType& LogicalType::operator=(const LogicalType& other) {
     typeID = other.typeID;
     physicalType = other.physicalType;
@@ -479,10 +459,34 @@ bool LogicalTypeUtils::isNumerical(const kuzu::common::LogicalType& dataType) {
     case LogicalTypeID::INT16:
     case LogicalTypeID::DOUBLE:
     case LogicalTypeID::FLOAT:
+    case LogicalTypeID::SERIAL:
         return true;
     default:
         return false;
     }
+}
+
+std::vector<LogicalType> LogicalTypeUtils::getAllValidComparableLogicalTypes() {
+    return std::vector<LogicalType>{LogicalType{LogicalTypeID::BOOL},
+        LogicalType{LogicalTypeID::INT64}, LogicalType{LogicalTypeID::INT32},
+        LogicalType{LogicalTypeID::INT16}, LogicalType{LogicalTypeID::DOUBLE},
+        LogicalType{LogicalTypeID::FLOAT}, LogicalType{LogicalTypeID::DATE},
+        LogicalType{LogicalTypeID::TIMESTAMP}, LogicalType{LogicalTypeID::INTERVAL},
+        LogicalType{LogicalTypeID::STRING}, LogicalType{LogicalTypeID::SERIAL}};
+}
+
+std::vector<LogicalTypeID> LogicalTypeUtils::getNumericalLogicalTypeIDs() {
+    return std::vector<LogicalTypeID>{LogicalTypeID::INT64, LogicalTypeID::INT32,
+        LogicalTypeID::INT16, LogicalTypeID::DOUBLE, LogicalTypeID::FLOAT, LogicalTypeID::SERIAL};
+}
+
+std::vector<LogicalTypeID> LogicalTypeUtils::getAllValidLogicTypeIDs() {
+    // TODO(Ziyi): Add FIX_LIST,STRUCT type to allValidTypeID when we support functions on VAR_LIST.
+    return std::vector<LogicalTypeID>{LogicalTypeID::INTERNAL_ID, LogicalTypeID::BOOL,
+        LogicalTypeID::INT64, LogicalTypeID::INT32, LogicalTypeID::INT16, LogicalTypeID::DOUBLE,
+        LogicalTypeID::STRING, LogicalTypeID::DATE, LogicalTypeID::TIMESTAMP,
+        LogicalTypeID::INTERVAL, LogicalTypeID::VAR_LIST, LogicalTypeID::FLOAT,
+        LogicalTypeID::SERIAL};
 }
 
 std::vector<std::string> LogicalTypeUtils::parseStructFields(const std::string& structTypeStr) {

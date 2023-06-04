@@ -49,7 +49,7 @@
 
 
 
--NAME ListExtractStructuredListOfInts
+-NAME ListExtractListOfINT64
 -QUERY MATCH (a:person) RETURN list_extract(a.workedHours, 1)
 ---- 8
 10
@@ -61,7 +61,33 @@
 1
 10
 
--NAME ListExtractStructuredListOfStrings
+-NAME ListExtractListOfINT32
+-QUERY MATCH (m:movies) RETURN list_extract([m.length], 1)
+---- 3
+126
+2544
+298
+
+-NAME ListExtractListOfINT16
+-QUERY MATCH (:person)-[e:studyAt]->(:organisation) RETURN list_extract([e.length], 1)
+---- 3
+5
+55
+22
+
+-NAME ListExtractListOfFloat
+-QUERY MATCH (p:person) RETURN list_extract([p.height], 1)
+---- 8
+1.731000
+0.990000
+1.000000
+1.300000
+1.463000
+1.510000
+1.600000
+1.323000
+
+-NAME ListExtractListOfStrings
 -QUERY MATCH (a:person) RETURN list_extract(a.usedNames, 1)
 ---- 8
 Aida
@@ -169,6 +195,18 @@ Ad
 10
 7
 
+-NAME ListExtractInternalIDTest
+-QUERY MATCH (a:person) RETURN list_extract([id(a)], 1)
+---- 8
+0:0
+0:1
+0:2
+0:3
+0:4
+0:5
+0:6
+0:7
+
 -NAME ListExtractSliceListOfStrings
 -QUERY MATCH (a:person) RETURN a.usedNames[1][3:7]
 ---- 8
@@ -242,7 +280,7 @@ ad
 [[10],[40,40],[2]]
 [[7],[10],[6,7],[83,83],[2]]
 
--NAME ListAppendStructuredListOfInts
+-NAME ListAppendListOfINT64
 -QUERY MATCH (a:person) RETURN list_append(a.workedHours, a.age)
 ---- 8
 [10,5,35]
@@ -253,6 +291,32 @@ ad
 [3,4,5,6,7,25]
 [1,40]
 [10,11,12,3,4,5,6,7,83]
+
+-NAME ListAppendListOfINT32
+-QUERY MATCH (m:movies) RETURN list_append([m.length], m.length)
+---- 3
+[126,126]
+[2544,2544]
+[298,298]
+
+-NAME ListAppendListOfINT16
+-QUERY MATCH (:person)-[s:studyAt]->(:organisation) RETURN list_append([s.length], s.length)
+---- 3
+[5,5]
+[55,55]
+[22,22]
+
+-NAME ListAppendListOfFloat
+-QUERY MATCH (p:person) RETURN list_append([p.height], p.height)
+---- 8
+[1.731000,1.731000]
+[0.990000,0.990000]
+[1.000000,1.000000]
+[1.300000,1.300000]
+[1.463000,1.463000]
+[1.510000,1.510000]
+[1.600000,1.600000]
+[1.323000,1.323000]
 
 -NAME ListAppendStructuredListOfStrings
 -QUERY MATCH (a:person) RETURN array_append(a.usedNames, a.fName)
@@ -338,7 +402,19 @@ ad
 [10 years 5 months 13:00:00.000024,10 years 5 months 13:00:00.000024]
 [3 years 2 days 13:02:00,3 years 2 days 13:02:00]
 
--NAME ListPrependStructuredListOfInts
+-NAME ListAppendInternalID
+-QUERY MATCH (a:person) RETURN list_append([id(a)], id(a))
+---- 8
+[0:0,0:0]
+[0:1,0:1]
+[0:2,0:2]
+[0:3,0:3]
+[0:4,0:4]
+[0:5,0:5]
+[0:6,0:6]
+[0:7,0:7]
+
+-NAME ListPrependListOfINT64
 -QUERY MATCH (a:person) RETURN list_prepend(a.age, a.workedHours)
 ---- 8
 [35,10,5]
@@ -349,6 +425,32 @@ ad
 [25,3,4,5,6,7]
 [40,1]
 [83,10,11,12,3,4,5,6,7]
+
+-NAME ListPrependListOfINT32
+-QUERY MATCH (m:movies) RETURN list_prepend(m.length, [m.length])
+---- 3
+[126,126]
+[2544,2544]
+[298,298]
+
+-NAME ListPrependListOfINT16
+-QUERY MATCH (:person)-[s:studyAt]->(:organisation) RETURN list_prepend(s.length, [s.length])
+---- 3
+[5,5]
+[55,55]
+[22,22]
+
+-NAME ListPrependListOfFloat
+-QUERY MATCH (a:person) RETURN list_prepend(a.height, [a.height])
+---- 8
+[1.731000,1.731000]
+[0.990000,0.990000]
+[1.000000,1.000000]
+[1.300000,1.300000]
+[1.463000,1.463000]
+[1.510000,1.510000]
+[1.600000,1.600000]
+[1.323000,1.323000]
 
 -NAME ListPrependStructuredListOfStrings
 -QUERY MATCH (a:person) RETURN array_prepend(a.fName, a.usedNames)
@@ -433,6 +535,18 @@ ad
 [[25,25],[8]]
 [[40,40],[10]]
 [[83,83],[7],[10],[6,7]]
+
+-NAME ListPrependInternalID
+-QUERY MATCH (a:person) RETURN list_prepend(id(a), [id(a)])
+---- 8
+[0:0,0:0]
+[0:1,0:1]
+[0:2,0:2]
+[0:3,0:3]
+[0:4,0:4]
+[0:5,0:5]
+[0:6,0:6]
+[0:7,0:7]
 
 -NAME ListPositionStructuredListOfInts
 -QUERY MATCH (a:person) RETURN list_position(a.workedHours, 5)
@@ -1054,6 +1168,18 @@ True
 ---- 1
 [3 days 02:20:00,3 days 03:20:00,3 days 04:20:00]
 
+-NAME ListDistinctWithInternalID
+-QUERY MATCH (p:person) RETURN list_distinct([id(p), id(p), id(p)])
+---- 8
+[0:0]
+[0:1]
+[0:2]
+[0:3]
+[0:4]
+[0:5]
+[0:6]
+[0:7]
+
 -NAME ListUniqueWithInt16
 -QUERY MATCH (m:movies) WHERE m.name='Roma' RETURN list_unique([NULL, to_int16(m.length), to_int16(m.length), to_int16(1)])
 ---- 1
@@ -1115,6 +1241,18 @@ True
 -QUERY Return list_unique([interval('2 hours 3 days 20 minutes'), interval('2 hours 3 days 20 minutes'), interval('3 hours 3 days 20 minutes'), interval('4 hours 3 days 20 minutes'), NULL]);
 ---- 1
 3
+
+-NAME ListUniqueWithInternalID
+-QUERY MATCH (p:person) RETURN list_unique([id(p), id(p), id(p)]);
+---- 8
+1
+1
+1
+1
+1
+1
+1
+1
 
 -NAME ListAnyValueWithInt16
 -QUERY MATCH (m:movies) WHERE m.name='Roma' RETURN list_any_value([NULL, to_int16(m.length), to_int16(m.length)])
@@ -1182,3 +1320,15 @@ Ad
 -QUERY Return list_any_value([NULL, [1,2,3], [3,4,5]]);
 ---- 1
 [1,2,3]
+
+-NAME ListAnyValueWithInternalID
+-QUERY MATCH (p:person) return list_any_value([NULL, id(p), id(p), id(p)]);
+---- 8
+0:0
+0:1
+0:2
+0:3
+0:4
+0:5
+0:6
+0:7

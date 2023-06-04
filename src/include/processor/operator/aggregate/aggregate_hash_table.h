@@ -185,7 +185,8 @@ private:
         return result != 0;
     }
 
-    static void getCompareEntryWithKeysFunc(common::LogicalTypeID typeId, compare_function_t& func);
+    static void getCompareEntryWithKeysFunc(
+        common::PhysicalTypeID physicalType, compare_function_t& func);
 
     void updateNullAggVectorState(
         const std::vector<common::ValueVector*>& groupByFlatHashKeyVectors,

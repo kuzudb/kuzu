@@ -199,7 +199,7 @@ property_id_t Binder::bindPropertyName(TableSchema* tableSchema, const std::stri
 LogicalType Binder::bindDataType(const std::string& dataType) {
     auto boundType = LogicalTypeUtils::dataTypeFromString(dataType);
     if (boundType.getLogicalTypeID() == common::LogicalTypeID::FIXED_LIST) {
-        auto validNumericTypes = common::LogicalType::getNumericalLogicalTypeIDs();
+        auto validNumericTypes = common::LogicalTypeUtils::getNumericalLogicalTypeIDs();
         auto childType = common::FixedListType::getChildType(&boundType);
         auto numElementsInList = common::FixedListType::getNumElementsInList(&boundType);
         if (find(validNumericTypes.begin(), validNumericTypes.end(),

@@ -144,7 +144,7 @@ void AggregateHashTable::initializeFT(
         auto size = FactorizedTable::getDataTypeSize(dataType);
         tableSchema->appendColumn(std::make_unique<ColumnSchema>(isUnflat, dataChunkPos, size));
         hasStrCol = hasStrCol || dataType.getLogicalTypeID() == LogicalTypeID::STRING;
-        getCompareEntryWithKeysFunc(dataType.getLogicalTypeID(), compareFuncs[colIdx]);
+        getCompareEntryWithKeysFunc(dataType.getPhysicalType(), compareFuncs[colIdx]);
         numBytesForKeys += size;
         colIdx++;
     }
@@ -152,7 +152,7 @@ void AggregateHashTable::initializeFT(
         auto size = FactorizedTable::getDataTypeSize(dataType);
         tableSchema->appendColumn(std::make_unique<ColumnSchema>(isUnflat, dataChunkPos, size));
         hasStrCol = hasStrCol || dataType.getLogicalTypeID() == LogicalTypeID::STRING;
-        getCompareEntryWithKeysFunc(dataType.getLogicalTypeID(), compareFuncs[colIdx]);
+        getCompareEntryWithKeysFunc(dataType.getPhysicalType(), compareFuncs[colIdx]);
         numBytesForDependentKeys += size;
         colIdx++;
     }
@@ -666,55 +666,47 @@ void AggregateHashTable::resizeHashTableIfNecessary(uint32_t maxNumDistinctHashK
 }
 
 void AggregateHashTable::getCompareEntryWithKeysFunc(
-    LogicalTypeID typeId, compare_function_t& func) {
-    switch (typeId) {
-    case LogicalTypeID::INTERNAL_ID: {
+    PhysicalTypeID physicalType, compare_function_t& func) {
+    switch (physicalType) {
+    case PhysicalTypeID::INTERNAL_ID: {
         func = compareEntryWithKeys<nodeID_t>;
         return;
     }
-    case LogicalTypeID::BOOL: {
+    case PhysicalTypeID::BOOL: {
         func = compareEntryWithKeys<bool>;
         return;
     }
-    case LogicalTypeID::INT64: {
+    case PhysicalTypeID::INT64: {
         func = compareEntryWithKeys<int64_t>;
         return;
     }
-    case LogicalTypeID::INT32: {
+    case PhysicalTypeID::INT32: {
         func = compareEntryWithKeys<int32_t>;
         return;
     }
-    case LogicalTypeID::INT16: {
+    case PhysicalTypeID::INT16: {
         func = compareEntryWithKeys<int16_t>;
         return;
     }
-    case LogicalTypeID::DOUBLE: {
+    case PhysicalTypeID::DOUBLE: {
         func = compareEntryWithKeys<double_t>;
         return;
     }
-    case LogicalTypeID::FLOAT: {
+    case PhysicalTypeID::FLOAT: {
         func = compareEntryWithKeys<float_t>;
         return;
     }
-    case LogicalTypeID::STRING: {
+    case PhysicalTypeID::STRING: {
         func = compareEntryWithKeys<ku_string_t>;
         return;
     }
-    case LogicalTypeID::DATE: {
-        func = compareEntryWithKeys<date_t>;
-        return;
-    }
-    case LogicalTypeID::TIMESTAMP: {
-        func = compareEntryWithKeys<timestamp_t>;
-        return;
-    }
-    case LogicalTypeID::INTERVAL: {
+    case PhysicalTypeID::INTERVAL: {
         func = compareEntryWithKeys<interval_t>;
         return;
     }
     default: {
         throw RuntimeException(
-            "Cannot compare data type " + LogicalTypeUtils::dataTypeToString(typeId));
+            "Cannot compare data type " + PhysicalTypeUtils::physicalTypeToString(physicalType));
     }
     }
 }
