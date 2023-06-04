@@ -64,7 +64,7 @@ void scanTestFiles(const std::string& path) {
 
 int main(int argc, char** argv) {
     testing::InitGoogleTest(&argc, argv);
-    std::string path = "test/test_files";
+    std::string path = "test/test_files/tinysnb/function";
     if (argc > 1) {
         path = path + "/" + argv[1];
     }

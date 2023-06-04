@@ -98,6 +98,10 @@ uint32_t BuiltInVectorOperations::getCastCost(
             return castDouble(targetTypeID);
         case common::LogicalTypeID::FLOAT:
             return castFloat(targetTypeID);
+        case common::LogicalTypeID::DATE:
+            return castDate(targetTypeID);
+        case common::LogicalTypeID::SERIAL:
+            return castSerial(targetTypeID);
         default:
             return UINT32_MAX;
         }
@@ -132,6 +136,9 @@ uint32_t BuiltInVectorOperations::getTargetTypeCost(common::LogicalTypeID typeID
     }
     case common::LogicalTypeID::DOUBLE: {
         return 102;
+    }
+    case common::LogicalTypeID::TIMESTAMP: {
+        return 120;
     }
     default: {
         throw InternalException("Unsupported casting operation.");
@@ -185,6 +192,24 @@ uint32_t BuiltInVectorOperations::castFloat(common::LogicalTypeID targetTypeID) 
         return getTargetTypeCost(targetTypeID);
     default:
         return UINT32_MAX;
+    }
+}
+
+uint32_t BuiltInVectorOperations::castDate(common::LogicalTypeID targetTypeID) {
+    switch (targetTypeID) {
+    case common::LogicalTypeID::TIMESTAMP:
+        return getTargetTypeCost(targetTypeID);
+    default:
+        return UINT32_MAX;
+    }
+}
+
+uint32_t BuiltInVectorOperations::castSerial(common::LogicalTypeID targetTypeID) {
+    switch (targetTypeID) {
+    case common::LogicalTypeID::INT64:
+        return 0;
+    default:
+        return castInt64(targetTypeID);
     }
 }
 

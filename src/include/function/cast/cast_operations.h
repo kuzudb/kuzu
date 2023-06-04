@@ -31,7 +31,7 @@ struct CastStringToInterval {
 
 struct CastToString {
     template<typename T>
-    static inline std::string castToStringWithDataType(
+    static inline std::string castToStringWithVector(
         T& input, const common::ValueVector& inputVector) {
         return common::TypeUtils::toString(input);
     }
@@ -39,7 +39,7 @@ struct CastToString {
     template<typename T>
     static inline void operation(T& input, common::ku_string_t& result,
         common::ValueVector& inputVector, common::ValueVector& resultVector) {
-        std::string resultStr = castToStringWithDataType(input, inputVector);
+        std::string resultStr = castToStringWithVector(input, inputVector);
         if (resultStr.length() > common::ku_string_t::SHORT_STR_LENGTH) {
             result.overflowPtr = reinterpret_cast<uint64_t>(
                 common::StringVector::getInMemOverflowBuffer(&resultVector)
@@ -49,9 +49,21 @@ struct CastToString {
     }
 };
 
+struct CastDateToTimestamp {
+    static inline void operation(common::date_t& input, common::timestamp_t& result) {
+        result = common::Timestamp::FromDatetime(input, common::dtime_t{});
+    }
+};
+
 template<>
-inline std::string CastToString::castToStringWithDataType(
+inline std::string CastToString::castToStringWithVector(
     common::list_entry_t& input, const common::ValueVector& inputVector) {
+    return common::TypeUtils::toString(input, (void*)&inputVector);
+}
+
+template<>
+inline std::string CastToString::castToStringWithVector(
+    common::struct_entry_t& input, const common::ValueVector& inputVector) {
     return common::TypeUtils::toString(input, (void*)&inputVector);
 }
 

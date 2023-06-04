@@ -45,6 +45,10 @@ private:
 
     static uint32_t castFloat(common::LogicalTypeID targetTypeID);
 
+    static uint32_t castDate(common::LogicalTypeID targetTypeID);
+
+    static uint32_t castSerial(common::LogicalTypeID targetTypeID);
+
     VectorOperationDefinition* getBestMatch(std::vector<VectorOperationDefinition*>& functions);
 
     uint32_t getFunctionCost(const std::vector<common::LogicalType>& inputTypes,

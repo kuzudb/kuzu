@@ -54,6 +54,20 @@ False
 40
 83
 
+-NAME CastInt32ToString
+-QUERY MATCH (m:movies) RETURN string(m.length)
+---- 3
+126
+2544
+298
+
+-NAME CastInt16ToString
+-QUERY MATCH (p:person)-[s:studyAt]->(o:organisation) RETURN string(s.length)
+---- 3
+5
+55
+22
+
 -NAME CastDoubleToString
 -QUERY MATCH (p:person) RETURN string(p.eyeSight)
 ---- 8
@@ -65,6 +79,18 @@ False
 4.500000
 4.900000
 4.900000
+
+-NAME CastFloatToString
+-QUERY MATCH (p:person) RETURN string(p.height)
+---- 8
+1.731000
+0.990000
+1.000000
+1.300000
+1.463000
+1.510000
+1.600000
+1.323000
 
 -NAME CastDateToString
 -QUERY MATCH (p:person) RETURN string(p.birthdate)
@@ -138,17 +164,24 @@ Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
 [[10]]
 [[7],[10],[6,7]]
 
--NAME CastFloatToString
--QUERY MATCH (p:person) RETURN string(p.height)
+-NAME CastInternalIDToString
+-QUERY MATCH (p:person) RETURN string(id(p))
 ---- 8
-1.731000
-0.990000
-1.000000
-1.300000
-1.463000
-1.510000
-1.600000
-1.323000
+0:0
+0:1
+0:2
+0:3
+0:4
+0:5
+0:6
+0:7
+
+-NAME CastStructToString
+-QUERY MATCH (o:organisation) RETURN string(o.state)
+---- 3
+{138,['toronto', 'montr,eal'],{[96,56],1000}}
+{152,["vanco,uver north area"],{[15,78,671],432}}
+{558,['very long city name', 'new york'],{[22],99}}
 
 -NAME CastInt16ToDouble
 -QUERY MATCH (:person)-[e:studyAt]->(:organisation) RETURN to_double(e.length)

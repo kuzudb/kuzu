@@ -18,8 +18,9 @@ public:
     static inline std::string toString(int64_t val) { return std::to_string(val); }
     static inline std::string toString(int32_t val) { return std::to_string(val); }
     static inline std::string toString(int16_t val) { return std::to_string(val); }
-    static inline std::string toString(double val) { return std::to_string(val); }
-    static inline std::string toString(const nodeID_t& val) {
+    static inline std::string toString(double_t val) { return std::to_string(val); }
+    static inline std::string toString(float_t val) { return std::to_string(val); }
+    static inline std::string toString(const internalID_t& val) {
         return std::to_string(val.tableID) + ":" + std::to_string(val.offset);
     }
     static inline std::string toString(const date_t& val) { return Date::toString(val); }
@@ -27,8 +28,8 @@ public:
     static inline std::string toString(const interval_t& val) { return Interval::toString(val); }
     static inline std::string toString(const ku_string_t& val) { return val.getAsString(); }
     static inline std::string toString(const std::string& val) { return val; }
-    static std::string toString(const ku_list_t& val, const LogicalType& dataType);
-    static std::string toString(const list_entry_t& val, void* valVector);
+    static std::string toString(const list_entry_t& val, void* valueVector);
+    static std::string toString(const struct_entry_t& val, void* valueVector);
 
     static inline void encodeOverflowPtr(
         uint64_t& overflowPtr, page_idx_t pageIdx, uint16_t pageOffset) {
@@ -62,8 +63,7 @@ public:
     }
 
 private:
-    static std::string listValueToString(
-        const LogicalType& dataType, uint8_t* listValues, uint64_t pos);
+    static std::string castValueToString(const LogicalType& dataType, uint8_t* value, void* vector);
 
     static std::string prefixConversionExceptionMessage(const char* data, LogicalTypeID dataTypeID);
 };

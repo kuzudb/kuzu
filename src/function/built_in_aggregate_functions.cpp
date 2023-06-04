@@ -86,7 +86,7 @@ void BuiltInAggregateFunctions::registerCountStar() {
 void BuiltInAggregateFunctions::registerCount() {
     std::vector<std::unique_ptr<AggregateFunctionDefinition>> definitions;
     LogicalType inputType;
-    for (auto& typeID : LogicalType::getAllValidLogicTypeIDs()) {
+    for (auto& typeID : LogicalTypeUtils::getAllValidLogicTypeIDs()) {
         if (typeID == LogicalTypeID::VAR_LIST) {
             inputType = LogicalType(
                 typeID, std::make_unique<VarListTypeInfo>(std::make_unique<LogicalType>()));
@@ -104,7 +104,7 @@ void BuiltInAggregateFunctions::registerCount() {
 
 void BuiltInAggregateFunctions::registerSum() {
     std::vector<std::unique_ptr<AggregateFunctionDefinition>> definitions;
-    for (auto typeID : LogicalType::getNumericalLogicalTypeIDs()) {
+    for (auto typeID : LogicalTypeUtils::getNumericalLogicalTypeIDs()) {
         for (auto isDistinct : std::vector<bool>{true, false}) {
             definitions.push_back(std::make_unique<AggregateFunctionDefinition>(SUM_FUNC_NAME,
                 std::vector<LogicalTypeID>{typeID}, typeID,
@@ -117,7 +117,7 @@ void BuiltInAggregateFunctions::registerSum() {
 
 void BuiltInAggregateFunctions::registerAvg() {
     std::vector<std::unique_ptr<AggregateFunctionDefinition>> definitions;
-    for (auto typeID : LogicalType::getNumericalLogicalTypeIDs()) {
+    for (auto typeID : LogicalTypeUtils::getNumericalLogicalTypeIDs()) {
         for (auto isDistinct : std::vector<bool>{true, false}) {
             definitions.push_back(std::make_unique<AggregateFunctionDefinition>(AVG_FUNC_NAME,
                 std::vector<LogicalTypeID>{typeID}, LogicalTypeID::DOUBLE,
@@ -130,12 +130,11 @@ void BuiltInAggregateFunctions::registerAvg() {
 
 void BuiltInAggregateFunctions::registerMin() {
     std::vector<std::unique_ptr<AggregateFunctionDefinition>> definitions;
-    for (auto typeID : LogicalType::getAllValidComparableLogicalTypes()) {
+    for (auto& type : LogicalTypeUtils::getAllValidComparableLogicalTypes()) {
         for (auto isDistinct : std::vector<bool>{true, false}) {
             definitions.push_back(std::make_unique<AggregateFunctionDefinition>(MIN_FUNC_NAME,
-                std::vector<LogicalTypeID>{typeID}, typeID,
-                AggregateFunctionUtil::getMinFunction(LogicalType(typeID), isDistinct),
-                isDistinct));
+                std::vector<LogicalTypeID>{type.getLogicalTypeID()}, type.getLogicalTypeID(),
+                AggregateFunctionUtil::getMinFunction(type, isDistinct), isDistinct));
         }
     }
     aggregateFunctions.insert({MIN_FUNC_NAME, std::move(definitions)});
@@ -143,12 +142,11 @@ void BuiltInAggregateFunctions::registerMin() {
 
 void BuiltInAggregateFunctions::registerMax() {
     std::vector<std::unique_ptr<AggregateFunctionDefinition>> definitions;
-    for (auto typeID : LogicalType::getAllValidComparableLogicalTypes()) {
+    for (auto& type : LogicalTypeUtils::getAllValidComparableLogicalTypes()) {
         for (auto isDistinct : std::vector<bool>{true, false}) {
             definitions.push_back(std::make_unique<AggregateFunctionDefinition>(MAX_FUNC_NAME,
-                std::vector<LogicalTypeID>{typeID}, typeID,
-                AggregateFunctionUtil::getMaxFunction(LogicalType(typeID), isDistinct),
-                isDistinct));
+                std::vector<LogicalTypeID>{type.getLogicalTypeID()}, type.getLogicalTypeID(),
+                AggregateFunctionUtil::getMaxFunction(type, isDistinct), isDistinct));
         }
     }
     aggregateFunctions.insert({MAX_FUNC_NAME, std::move(definitions)});

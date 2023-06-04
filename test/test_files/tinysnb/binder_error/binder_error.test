@@ -90,6 +90,7 @@ Binder exception: Cannot match a built-in function for given function +(INTERNAL
 (INT16,INT16) -> INT16
 (DOUBLE,DOUBLE) -> DOUBLE
 (FLOAT,FLOAT) -> FLOAT
+(SERIAL,SERIAL) -> SERIAL
 (INTERVAL,INTERVAL) -> INTERVAL
 (DATE,INT64) -> DATE
 (INT64,DATE) -> DATE
@@ -108,6 +109,7 @@ Binder exception: Cannot match a built-in function for given function +(DATE,DAT
 (INT16,INT16) -> INT16
 (DOUBLE,DOUBLE) -> DOUBLE
 (FLOAT,FLOAT) -> FLOAT
+(SERIAL,SERIAL) -> SERIAL
 (INTERVAL,INTERVAL) -> INTERVAL
 (DATE,INT64) -> DATE
 (INT64,DATE) -> DATE
@@ -126,6 +128,7 @@ Binder exception: Cannot match a built-in function for given function +(TIMESTAM
 (INT16,INT16) -> INT16
 (DOUBLE,DOUBLE) -> DOUBLE
 (FLOAT,FLOAT) -> FLOAT
+(SERIAL,SERIAL) -> SERIAL
 (INTERVAL,INTERVAL) -> INTERVAL
 (DATE,INT64) -> DATE
 (INT64,DATE) -> DATE
@@ -144,6 +147,7 @@ Binder exception: Cannot match a built-in function for given function +(TIMESTAM
 (INT16,INT16) -> INT16
 (DOUBLE,DOUBLE) -> DOUBLE
 (FLOAT,FLOAT) -> FLOAT
+(SERIAL,SERIAL) -> SERIAL
 (INTERVAL,INTERVAL) -> INTERVAL
 (DATE,INT64) -> DATE
 (INT64,DATE) -> DATE
@@ -386,7 +390,8 @@ DISTINCT (INTERVAL) -> INTERVAL
 (INTERVAL) -> INTERVAL
 DISTINCT (STRING) -> STRING
 (STRING) -> STRING
-
+DISTINCT (SERIAL) -> SERIAL
+(SERIAL) -> SERIAL
 
 -CASE OrderByNodeID
 -QUERY match (p:person) with p as x order by x skip 1 return x;

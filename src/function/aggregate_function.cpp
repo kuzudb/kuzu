@@ -29,6 +29,7 @@ std::unique_ptr<AggregateFunction> AggregateFunctionUtil::getCountFunction(
 std::unique_ptr<AggregateFunction> AggregateFunctionUtil::getAvgFunction(
     const LogicalType& inputType, bool isDistinct) {
     switch (inputType.getLogicalTypeID()) {
+    case LogicalTypeID::SERIAL:
     case LogicalTypeID::INT64:
         return std::make_unique<AggregateFunction>(AvgFunction<int64_t>::initialize,
             AvgFunction<int64_t>::updateAll, AvgFunction<int64_t>::updatePos,
@@ -59,6 +60,7 @@ std::unique_ptr<AggregateFunction> AggregateFunctionUtil::getAvgFunction(
 std::unique_ptr<AggregateFunction> AggregateFunctionUtil::getSumFunction(
     const LogicalType& inputType, bool isDistinct) {
     switch (inputType.getLogicalTypeID()) {
+    case LogicalTypeID::SERIAL:
     case LogicalTypeID::INT64:
         return std::make_unique<AggregateFunction>(SumFunction<int64_t>::initialize,
             SumFunction<int64_t>::updateAll, SumFunction<int64_t>::updatePos,
@@ -105,61 +107,50 @@ std::unique_ptr<AggregateFunction> AggregateFunctionUtil::getCollectFunction(
 
 template<typename FUNC>
 std::unique_ptr<AggregateFunction> AggregateFunctionUtil::getMinMaxFunction(
-    const LogicalType& inputType, bool isDistinct) {
-    switch (inputType.getLogicalTypeID()) {
-    case LogicalTypeID::BOOL:
+    const common::LogicalType& inputType, bool isDistinct) {
+    switch (inputType.getPhysicalType()) {
+    case PhysicalTypeID::BOOL:
         return std::make_unique<AggregateFunction>(MinMaxFunction<bool>::initialize,
             MinMaxFunction<bool>::updateAll<FUNC>, MinMaxFunction<bool>::updatePos<FUNC>,
             MinMaxFunction<bool>::combine<FUNC>, MinMaxFunction<bool>::finalize, inputType,
             isDistinct);
-    case LogicalTypeID::INT64:
+    case PhysicalTypeID::INT64:
         return std::make_unique<AggregateFunction>(MinMaxFunction<int64_t>::initialize,
             MinMaxFunction<int64_t>::updateAll<FUNC>, MinMaxFunction<int64_t>::updatePos<FUNC>,
             MinMaxFunction<int64_t>::combine<FUNC>, MinMaxFunction<int64_t>::finalize, inputType,
             isDistinct);
-    case LogicalTypeID::INT32:
+    case PhysicalTypeID::INT32:
         return std::make_unique<AggregateFunction>(MinMaxFunction<int32_t>::initialize,
             MinMaxFunction<int32_t>::updateAll<FUNC>, MinMaxFunction<int32_t>::updatePos<FUNC>,
             MinMaxFunction<int32_t>::combine<FUNC>, MinMaxFunction<int32_t>::finalize, inputType,
             isDistinct);
-    case LogicalTypeID::INT16:
+    case PhysicalTypeID::INT16:
         return std::make_unique<AggregateFunction>(MinMaxFunction<int16_t>::initialize,
             MinMaxFunction<int16_t>::updateAll<FUNC>, MinMaxFunction<int16_t>::updatePos<FUNC>,
             MinMaxFunction<int16_t>::combine<FUNC>, MinMaxFunction<int16_t>::finalize, inputType,
             isDistinct);
-    case LogicalTypeID::DOUBLE:
+    case PhysicalTypeID::DOUBLE:
         return std::make_unique<AggregateFunction>(MinMaxFunction<double_t>::initialize,
             MinMaxFunction<double_t>::updateAll<FUNC>, MinMaxFunction<double_t>::updatePos<FUNC>,
             MinMaxFunction<double_t>::combine<FUNC>, MinMaxFunction<double_t>::finalize, inputType,
             isDistinct);
-    case LogicalTypeID::FLOAT:
+    case PhysicalTypeID::FLOAT:
         return std::make_unique<AggregateFunction>(MinMaxFunction<float_t>::initialize,
             MinMaxFunction<float_t>::updateAll<FUNC>, MinMaxFunction<float_t>::updatePos<FUNC>,
             MinMaxFunction<float_t>::combine<FUNC>, MinMaxFunction<float_t>::finalize, inputType,
             isDistinct);
-    case LogicalTypeID::DATE:
-        return std::make_unique<AggregateFunction>(MinMaxFunction<date_t>::initialize,
-            MinMaxFunction<date_t>::updateAll<FUNC>, MinMaxFunction<date_t>::updatePos<FUNC>,
-            MinMaxFunction<date_t>::combine<FUNC>, MinMaxFunction<date_t>::finalize, inputType,
-            isDistinct);
-    case LogicalTypeID::TIMESTAMP:
-        return std::make_unique<AggregateFunction>(MinMaxFunction<timestamp_t>::initialize,
-            MinMaxFunction<timestamp_t>::updateAll<FUNC>,
-            MinMaxFunction<timestamp_t>::updatePos<FUNC>,
-            MinMaxFunction<timestamp_t>::combine<FUNC>, MinMaxFunction<timestamp_t>::finalize,
-            inputType, isDistinct);
-    case LogicalTypeID::INTERVAL:
+    case PhysicalTypeID::INTERVAL:
         return std::make_unique<AggregateFunction>(MinMaxFunction<interval_t>::initialize,
             MinMaxFunction<interval_t>::updateAll<FUNC>,
             MinMaxFunction<interval_t>::updatePos<FUNC>, MinMaxFunction<interval_t>::combine<FUNC>,
             MinMaxFunction<interval_t>::finalize, inputType, isDistinct);
-    case LogicalTypeID::STRING:
+    case PhysicalTypeID::STRING:
         return std::make_unique<AggregateFunction>(MinMaxFunction<ku_string_t>::initialize,
             MinMaxFunction<ku_string_t>::updateAll<FUNC>,
             MinMaxFunction<ku_string_t>::updatePos<FUNC>,
             MinMaxFunction<ku_string_t>::combine<FUNC>, MinMaxFunction<ku_string_t>::finalize,
             inputType, isDistinct);
-    case LogicalTypeID::INTERNAL_ID:
+    case PhysicalTypeID::INTERNAL_ID:
         return std::make_unique<AggregateFunction>(MinMaxFunction<nodeID_t>::initialize,
             MinMaxFunction<nodeID_t>::updateAll<FUNC>, MinMaxFunction<nodeID_t>::updatePos<FUNC>,
             MinMaxFunction<nodeID_t>::combine<FUNC>, MinMaxFunction<nodeID_t>::finalize, inputType,

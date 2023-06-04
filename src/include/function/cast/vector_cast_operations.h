@@ -51,6 +51,7 @@ protected:
             func = UnaryExecFunction<int32_t, DST_TYPE, OP>;
             return;
         }
+        case common::LogicalTypeID::SERIAL:
         case common::LogicalTypeID::INT64: {
             func = UnaryExecFunction<int64_t, DST_TYPE, OP>;
             return;
