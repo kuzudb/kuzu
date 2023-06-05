@@ -33,20 +33,6 @@ Kùzu is an in-process property graph database management system (GDBMS) built f
 
 Kùzu is being actively developed at University of Waterloo as a feature-rich and usable GDBMS. Kùzu is available under a permissible license. So try it out and help us make it better! We welcome your feedback and feature requests.
 
-## Build
-To build from source code, Kùzu requires Cmake(>=3.11), Python 3, and a compiler that supports `C++20`.
-- Perform a full clean build without tests and benchmark:
-  - `make clean && make release`
-- Perform a full clean build with tests and benchmark (optional):
-  - `make clean && make all`
-- Run tests (optional):
-  - `make test && make pytest`
-
-For development, use `make debug` to build a non-optimized debug version.
-To build in parallel, pass `NUM_THREADS` as parameter, e.g., `make NUM_THREADS=8`.
-
-After build, our CLI binary `kuzu_shell` is available under the directory `build/release/tools/shell/`.
-
 ## Installation
 ### Precompiled binary
 Precompiled binary of our latest release can be downloaded [here](https://github.com/kuzudb/kuzu/releases/latest).  
@@ -55,32 +41,27 @@ Our Python package can be directly install through pip.
 ```
 pip install kuzu
 ```
+### NodeJS package
+```
+npm install kuzu
+```
 
+We also support official C++ and C bindings. For more installation and usage instructions, please refer to [our website](https://kuzudb.com/).
 
-For more installation and usage instructions, please refer to [our website](https://kuzudb.com/).
-
-## Example
+## Getting Started
 We take `tinysnb` as an example graph, which is under `dataset/demo-db/csv` in our source code, and can be downloaded [here](https://github.com/kuzudb/kuzu/tree/master/dataset/demo-db/csv).
 
 ### CLI
-#### Start CLI
-```
-./build/release/tools/shell/kuzu_shell "./testdb"
-```
-#### Schema Definition
+
+Start CLI with a database directory `./kuzu_shell ./testdb/`
 ```cypher
+# Data definition
 kuzu> CREATE NODE TABLE User(name STRING, age INT64, PRIMARY KEY (name));
 kuzu> CREATE REL TABLE Follows(FROM User TO User, since INT64);
-```
-
-#### Data Import
-```cypher
+# Data loading
 kuzu> COPY User FROM "dataset/demo-db/csv/user.csv";
 kuzu> COPY Follows FROM "dataset/demo-db/csv/follows.csv";
-```
-
-After creating node/rel tables, and importing csv files, you can now run queries!
-```cypher
+# Querying
 kuzu> MATCH (a:User)-[f:Follows]->(b:User) RETURN a.name, b.name, f.since;
 ```
 
@@ -90,8 +71,10 @@ import kuzu
 
 db = kuzu.Database('./testdb')
 conn = kuzu.Connection(db)
+# Data definition
 conn.execute("CREATE NODE TABLE User(name STRING, age INT64, PRIMARY KEY (name))")
 conn.execute("CREATE REL TABLE Follows(FROM User TO User, since INT64)")
+# Data loading
 conn.execute('COPY User FROM "user.csv"')
 conn.execute('COPY Follows FROM "follows.csv"')
 # Run a query.
@@ -106,7 +89,55 @@ results = conn.execute('MATCH (u:User) RETURN u.name, u.age;').get_as_arrow(chun
 print(results)
 ```
 
+### NodeJS
+```js
+// Import library
+const kuzu = require("kuzu");
+
+(async () => {
+  // Create an empty database and connect to it
+  const db = new kuzu.Database("./test");
+  const conn = new kuzu.Connection(db);
+
+  // Data definition
+  await conn.query(
+    "CREATE NODE TABLE User(name STRING, age INT64, PRIMARY KEY (name))"
+  );
+  await conn.query("CREATE REL TABLE Follows(FROM User TO User, since INT64)");
+
+  // Data loading
+  await conn.query('COPY User FROM "user.csv"');
+  await conn.query('COPY Follows FROM "follows.csv"');
+
+  // Run a query
+  const queryResult = await conn.query("MATCH (u:User) RETURN u.name, u.age;");
+
+  // Get all rows from the query result
+  const rows = await queryResult.getAll();
+
+  // Print the rows
+  for (const row of rows) {
+    console.log(row);
+  }
+})();
+```
+
 Refer to our [Data Import](https://kuzudb.com/docs/data-import) and [Cypher](https://kuzudb.com/docs/cypher) section for more information.
+
+## Build
+To build from source code, Kùzu requires Cmake(>=3.11), Python 3, and a compiler that supports `C++20`.
+- Perform a full clean build without tests and benchmark:
+  - `make clean && make release`
+- Perform a full clean build with tests and benchmark (optional):
+  - `make clean && make all`
+- Run tests (optional):
+  - `make test && make pytest`
+
+For development, use `make debug` to build a non-optimized debug version.
+To build in parallel, pass `NUM_THREADS` as parameter, e.g., `make NUM_THREADS=8`.
+
+After build, our CLI binary `kuzu_shell` is available under the directory `build/release/tools/shell/`.
+
 
 ## Contributing
 We welcome contributions to Kùzu. If you are interested in contributing to Kùzu, please read our [Contributing Guide](CONTRIBUTING.md).
