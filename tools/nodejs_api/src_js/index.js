@@ -1,15 +1,15 @@
-const QueryResult = require("./query_result.js");
-const Database = require("./database.js");
-const Connection = require("./connection.js");
-const LoggingLevel = require("./logging_level.js");
+"use strict";
 
-const nativeModule = require("./kuzujs.node");
-const PreparedStatement = nativeModule.PreparedStatement;
+const Connection = require("./connection.js");
+const Database = require("./database.js");
+const LoggingLevel = require("./logging_level.js");
+const PreparedStatement = require("./prepared_statement.js");
+const QueryResult = require("./query_result.js");
 
 module.exports = {
-  Database,
   Connection,
-  QueryResult,
+  Database,
   LoggingLevel,
   PreparedStatement,
+  QueryResult,
 };

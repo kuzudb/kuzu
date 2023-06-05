@@ -52,28 +52,6 @@ describe("Prepare", function () {
     }
   });
 
-  it("should return error message if the statement is not initialized", async function () {
-    const preparedStatement = new kuzu.PreparedStatement(
-      conn._connection,
-      "MATCH (a:person) WHERE a.ID = $1 RETURN COUNT(*)"
-    );
-    assert.isFalse(preparedStatement.isSuccess());
-    assert.equal(
-      preparedStatement.getErrorMessage(),
-      "Prepared statement is not initialized."
-    );
-    await new Promise((resolve, reject) => {
-      preparedStatement.initAsync((err) => {
-        if (err) {
-          return reject(err);
-        }
-        return resolve();
-      });
-    });
-    assert.isTrue(preparedStatement.isSuccess());
-    assert.equal(preparedStatement.getErrorMessage(), "");
-  });
-
   it("should throw error if the statement is not a string", async function () {
     try {
       const _ = await conn.prepare({});

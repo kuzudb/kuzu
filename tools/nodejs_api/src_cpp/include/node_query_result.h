@@ -23,6 +23,7 @@ public:
 private:
     void ResetIterator(const Napi::CallbackInfo& info);
     Napi::Value HasNext(const Napi::CallbackInfo& info);
+    Napi::Value GetNumTuples(const Napi::CallbackInfo& info);
     Napi::Value GetNextAsync(const Napi::CallbackInfo& info);
     Napi::Value GetColumnDataTypesAsync(const Napi::CallbackInfo& info);
     Napi::Value GetColumnNamesAsync(const Napi::CallbackInfo& info);
