@@ -1,7 +1,7 @@
 from pyarrow import csv
 import pyarrow.parquet as pq
 
-csv_files = ['/Users/rfdavid/Devel/waterloo/kuzu/dataset/tinysnb/vPerson.csv']
+csv_files = ['dummy.csv']
 has_header = True
 #  CSV:
 #  has header? autogenerate_column_names=False
