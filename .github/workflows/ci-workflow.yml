@@ -20,7 +20,7 @@ jobs:
         run: |
           pip install torch~=1.13 --extra-index-url https://download.pytorch.org/whl/cpu &&\
           pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-1.13.0+cpu.html
-      
+
       - name: Ensure Node.js dependencies
         run: npm install --include=dev
         working-directory: tools/nodejs_api
@@ -30,7 +30,7 @@ jobs:
 
       - name: Python test
         run: CC=gcc CXX=g++ make pytest NUM_THREADS=32
-      
+
       - name: Node.js test
         run: CC=gcc CXX=g++ make nodejstest NUM_THREADS=32
 
@@ -102,7 +102,7 @@ jobs:
 
       - name: Python test
         run: CC=clang-14 CXX=clang++-14 make pytest NUM_THREADS=32
-      
+
       - name: Node.js test
         run: CC=clang-14 CXX=clang++-14 make nodejstest NUM_THREADS=32
 
@@ -132,17 +132,18 @@ jobs:
         run: python3 scripts/run-clang-format.py --clang-format-executable /usr/bin/clang-format-11 -r test/
 
   benchmark:
+    if: "!contains(github.event.head_commit.message, '[skip-benchmark]')"
     name: benchmark
     needs: [gcc-build-test, clang-build-test]
     runs-on: kuzu-self-hosted-benchmarking
     steps:
       - uses: actions/checkout@v3
-      
+
       - name: Ensure Python dependencies
         run: |
           pip install torch~=1.13 --extra-index-url https://download.pytorch.org/whl/cpu &&\
           pip install --user -r tools/python_api/requirements_dev.txt -f https://data.pyg.org/whl/torch-1.13.0+cpu.html
-      
+
       - name: Ensure Node.js dependencies
         run: npm install
         working-directory: tools/nodejs_api
