@@ -1,7 +1,18 @@
-const kuzu = require("./kuzujs.node");
+"use strict";
+
+const KuzuNative = require("./kuzujs.node");
 const LoggingLevel = require("./logging_level.js");
 
 class Database {
+  /**
+   * Initialize a new Database object. Note that the initialization is done
+   * lazily, so the database file is not opened until the first query is
+   * executed. To initialize the database immediately, call the `init()`
+   * function on the returned object.
+   *
+   * @param {String} databasePath path to the database file.
+   * @param {Number} bufferManagerSize size of the buffer manager in bytes.
+   */
   constructor(databasePath, bufferManagerSize = 0) {
     if (typeof databasePath !== "string") {
       throw new Error("Database path must be a string.");
@@ -10,11 +21,15 @@ class Database {
       throw new Error("Buffer manager size must be a positive integer.");
     }
     bufferManagerSize = Math.floor(bufferManagerSize);
-    this._database = new kuzu.NodeDatabase(databasePath, bufferManagerSize);
+    this._database = new KuzuNative.NodeDatabase(databasePath, bufferManagerSize);
     this._isInitialized = false;
     this._initPromise = null;
   }
 
+  /**
+   * Initialize the database. Calling this function is optional, as the
+   * database is initialized automatically when the first query is executed.
+   */
   async init() {
     if (!this._isInitialized) {
       if (!this._initPromise) {
@@ -42,11 +57,18 @@ class Database {
     }
   }
 
-  async getDatabase() {
+  /**
+   * @private Internal function to get the underlying native database object.
+   * @returns {KuzuNative.NodeDatabase} the underlying native database.
+   */
+  async _getDatabase() {
     await this.init();
     return this._database;
   }
 
+  /**
+   * Set the logging level for the database.
+   */
   setLoggingLevel(loggingLevel) {
     const validLoggingLevels = Object.values(LoggingLevel);
 

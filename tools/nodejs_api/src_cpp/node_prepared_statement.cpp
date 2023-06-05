@@ -10,7 +10,7 @@ Napi::Object NodePreparedStatement::Init(Napi::Env env, Napi::Object exports) {
             InstanceMethod("getErrorMessage", &NodePreparedStatement::GetErrorMessage),
         });
 
-    exports.Set("PreparedStatement", t);
+    exports.Set("NodePreparedStatement", t);
     return exports;
 }
 

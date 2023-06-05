@@ -46,6 +46,15 @@ describe("Has next", function () {
   });
 });
 
+describe("Get number of tuples", function () {
+  it("should return the number of tuples", async function () {
+    const queryResult = await conn.query(
+      "MATCH (a:person) RETURN a.ID ORDER BY a.ID"
+    );
+    assert.equal(queryResult.getNumTuples(), 8);
+  });
+});
+
 describe("Get next", function () {
   it("should return the next tuple", async function () {
     const queryResult = await conn.query(
