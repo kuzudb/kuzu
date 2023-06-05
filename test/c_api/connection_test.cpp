@@ -211,7 +211,6 @@ TEST_F(CApiConnectionTest, Interrupt) {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
         kuzu_connection_interrupt(connection);
     });
-    t.detach();
     auto result = kuzu_connection_query(
         connection, "MATCH (a:person)-[:knows*1..28]->(b:person) RETURN COUNT(*);");
     ASSERT_NE(result, nullptr);
@@ -221,4 +220,5 @@ TEST_F(CApiConnectionTest, Interrupt) {
     ASSERT_FALSE(resultCpp->isSuccess());
     ASSERT_EQ(resultCpp->getErrorMessage(), "Interrupted.");
     kuzu_query_result_destroy(result);
+    t.join();
 }
