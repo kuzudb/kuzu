@@ -1,0 +1,19 @@
+-GROUP CatalogErrorTest
+-DATASET tinysnb
+
+--
+
+-QUERY MATCH (a:person) RETURN dummy(n)
+---- error
+Catalog exception: DUMMY function does not exist.
+
+-CASE BindNonExistingFunction
+-QUERY MATCH (a:person) WHERE dummy() < 2 RETURN COUNT(*)
+---- error
+Catalog exception: DUMMY function does not exist.
+
+-CASE CreateRelTableInvalidRelMultiplicity
+-QUERY CREATE REL TABLE knows_post ( FROM person TO person, MANY_LOT)
+---- error
+Catalog exception: Invalid relMultiplicity string 'MANY_LOT'.
+
