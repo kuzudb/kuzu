@@ -1,0 +1,43 @@
+-GROUP EndToEndReadLargeListsTest
+-DATASET PARQUET CSV_TO_PARQUET(read-list-tests/large-list)
+
+--
+
+-CASE LargeAdjListTestParquet
+
+-NAME NodeP0
+-QUERY MATCH (a:person)-[:knows]->(b:person) WHERE a.ID = 0 RETURN COUNT(*)
+-ENUMERATE
+---- 1
+5001
+
+-NAME NodeP1
+-QUERY MATCH (a:person)-[:knows]->(b:person) WHERE a.ID = 1 RETURN b.ID
+-ENUMERATE
+---- 1
+5000
+
+-NAME NodeP5500
+-QUERY MATCH (a:person)-[:knows]->(b:person) WHERE a.ID = 5500 RETURN b.ID
+-ENUMERATE
+---- 0
+
+-NAME EdgeID
+-QUERY MATCH (a:person)-[r:knows]->(b:person) WHERE a.ID = 5000 RETURN ID(r)
+-ENUMERATE
+---- 1
+1:10000
+
+-NAME CrossProduct1
+-QUERY MATCH (a:person), (b:person) RETURN COUNT(*)
+-PARALLELISM 2
+-ENUMERATE
+---- 1
+36000000
+
+-NAME CrossProduct
+-QUERY MATCH (a:person) WITH AVG(a.ID) AS s MATCH (b:person) WHERE s > b.ID RETURN COUNT(*)
+-PARALLELISM 8
+-ENUMERATE
+---- 1
+3000

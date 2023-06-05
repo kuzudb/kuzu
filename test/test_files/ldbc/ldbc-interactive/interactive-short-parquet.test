@@ -1,3 +1,4 @@
+# FIXME: this test is failing on Parquet dataset 
 -GROUP LDBCTest
 -DATASET PARQUET CSV_TO_PARQUET(ldbc-sf01)
 -BUFFER_POOL_SIZE 1073741824
@@ -5,7 +6,7 @@
 
 --
 
--CASE LDBCInteractiveShort
+-CASE LDBCInteractiveShortParquet
 
 -NAME IS1
 -QUERY MATCH (n:Person {id: 933})-[:Person_isLocatedIn_Place]->(p:Place)

@@ -59,6 +59,8 @@ public:
         return s;
     }
 
+    static std::string extractSubstring(std::string& str, char delimiter);
+
     static inline void removeWhiteSpaces(std::string& str) {
         std::regex whiteSpacePattern{"\\s"};
         str = std::regex_replace(str, whiteSpacePattern, "");

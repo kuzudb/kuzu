@@ -1,5 +1,5 @@
 -GROUP DemoDBTest
--DATASET PARQUET CSV_TO_PARQUET(demo-db/csv)
+-DATASET PARQUET demo-db/parquet
 
 --
 
