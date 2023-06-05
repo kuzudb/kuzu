@@ -37,6 +37,7 @@ public:
 
     static void executeScript(const std::string& path, Connection& conn);
 
+    static constexpr char E2E_TEST_FILES_DIRECTORY[] = "test/test_files";
     static constexpr char SCHEMA_FILE_NAME[] = "schema.cypher";
     static constexpr char COPY_FILE_NAME[] = "copy.cypher";
 

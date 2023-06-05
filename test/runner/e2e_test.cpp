@@ -64,7 +64,7 @@ void scanTestFiles(const std::string& path) {
 
 int main(int argc, char** argv) {
     testing::InitGoogleTest(&argc, argv);
-    std::string path = "test/test_files/tinysnb/function";
+    std::string path = TestHelper::E2E_TEST_FILES_DIRECTORY;
     if (argc > 1) {
         path = path + "/" + argv[1];
     }
