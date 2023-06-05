@@ -197,7 +197,7 @@ void WALReplayer::replayRelTableRecord(const kuzu::storage::WALRecord& walRecord
         if (!isRecovering) {
             // See comments for NODE_TABLE_RECORD.
             storageManager->getRelsStore().createRelTable(
-                walRecord.nodeTableRecord.tableID, catalogForCheckpointing.get(), memoryManager);
+                walRecord.relTableRecord.tableID, catalogForCheckpointing.get(), memoryManager);
             storageManager->getNodesStore().getNodesStatisticsAndDeletedIDs().setAdjListsAndColumns(
                 &storageManager->getRelsStore());
         }
