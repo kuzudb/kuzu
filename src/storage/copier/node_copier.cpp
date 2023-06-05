@@ -3,78 +3,57 @@
 #include "storage/in_mem_storage_structure/in_mem_column_chunk.h"
 
 using namespace kuzu::common;
+using namespace kuzu::catalog;
 
 namespace kuzu {
 namespace storage {
 
-std::unique_ptr<NodeCopyMorsel> NodeCopySharedState::getMorsel() {
-    std::unique_lock lck{mtx};
-    while (true) {
-        if (fileIdx >= filePaths.size()) {
-            // No more files to read.
-            return nullptr;
+static column_id_t getPKColumnID(
+    const std::vector<Property>& properties, property_id_t pkPropertyID) {
+    column_id_t pkColumnID = 0;
+    for (auto& property : properties) {
+        if (property.propertyID == pkPropertyID) {
+            break;
         }
-        auto filePath = filePaths[fileIdx];
-        auto fileBlockInfo = fileBlockInfos.at(filePath);
-        if (blockIdx >= fileBlockInfo.numBlocks) {
-            // No more blocks to read in this file.
-            fileIdx++;
-            blockIdx = 0;
-            continue;
-        }
-        auto result = std::make_unique<NodeCopyMorsel>(
-            nodeOffset, blockIdx, fileBlockInfo.numLinesPerBlock[blockIdx], filePath);
-        nodeOffset += fileBlockInfos.at(filePath).numLinesPerBlock[blockIdx];
-        blockIdx++;
-        return result;
+        pkColumnID++;
     }
+    return pkColumnID;
 }
 
-std::unique_ptr<NodeCopyMorsel> CSVNodeCopySharedState::getMorsel() {
-    std::unique_lock lck{mtx};
-    while (true) {
-        if (fileIdx >= filePaths.size()) {
-            // No more files to read.
-            return nullptr;
-        }
-        auto filePath = filePaths[fileIdx];
-        if (!reader) {
-            reader = TableCopyExecutor::createCSVReader(filePath, csvReaderConfig, tableSchema);
-        }
-        std::shared_ptr<arrow::RecordBatch> recordBatch;
-        TableCopyExecutor::throwCopyExceptionIfNotOK(reader->ReadNext(&recordBatch));
-        if (recordBatch == nullptr) {
-            // No more blocks to read in this file.
-            fileIdx++;
-            reader.reset();
-            continue;
-        }
-        auto morselNodeOffset = nodeOffset;
-        nodeOffset += recordBatch->num_rows();
-        return std::make_unique<CSVNodeCopyMorsel>(
-            morselNodeOffset, filePath, std::move(recordBatch));
-    }
-}
-
-NodeCopier::NodeCopier(const std::string& directory,
-    std::shared_ptr<NodeCopySharedState> sharedState,
-    kuzu::storage::PrimaryKeyIndexBuilder* pkIndex, const common::CopyDescription& copyDesc,
-    catalog::TableSchema* schema, kuzu::storage::NodeTable* table, common::column_id_t pkColumnID)
-    : sharedState{std::move(sharedState)}, pkIndex{pkIndex}, copyDesc{copyDesc}, pkColumnID{
-                                                                                     pkColumnID} {
+NodeCopier::NodeCopier(const std::string& directory, std::shared_ptr<CopySharedState> sharedState,
+    const CopyDescription& copyDesc, TableSchema* schema, tuple_idx_t numTuples,
+    column_id_t columnToCopy)
+    : sharedState{std::move(sharedState)}, copyDesc{copyDesc}, columnToCopy{columnToCopy},
+      pkColumnID{INVALID_COLUMN_ID} {
     for (auto i = 0u; i < schema->properties.size(); i++) {
         auto property = schema->properties[i];
-        if (property.dataType.getLogicalTypeID() == common::LogicalTypeID::SERIAL) {
+        if (property.dataType.getLogicalTypeID() == LogicalTypeID::SERIAL) {
             // Skip SERIAL, as it is not physically stored.
             continue;
         }
         properties.push_back(property);
         auto fPath = StorageUtils::getNodePropertyColumnFName(
-            directory, schema->tableID, property.propertyID, common::DBFileType::WAL_VERSION);
+            directory, schema->tableID, property.propertyID, DBFileType::WAL_VERSION);
         columns.push_back(std::make_shared<InMemColumn>(fPath, property.dataType));
     }
     // Each property corresponds to a column.
     assert(properties.size() == columns.size());
+    initializeIndex(directory, schema, numTuples);
+}
+
+void NodeCopier::initializeIndex(
+    const std::string& directory, TableSchema* schema, tuple_idx_t numTuples) {
+    auto primaryKey = reinterpret_cast<NodeTableSchema*>(schema)->getPrimaryKey();
+    if (primaryKey.dataType.getLogicalTypeID() == LogicalTypeID::SERIAL ||
+        (columnToCopy != INVALID_COLUMN_ID &&
+            primaryKey.propertyID != schema->properties[columnToCopy].propertyID)) {
+        return;
+    }
+    pkIndex = std::make_unique<PrimaryKeyIndexBuilder>(
+        StorageUtils::getNodeIndexFName(directory, schema->tableID, DBFileType::WAL_VERSION),
+        primaryKey.dataType);
+    pkIndex->bulkReserve(numTuples);
+    pkColumnID = getPKColumnID(schema->properties, primaryKey.propertyID);
 }
 
 void NodeCopier::execute(processor::ExecutionContext* executionContext) {
@@ -88,6 +67,15 @@ void NodeCopier::execute(processor::ExecutionContext* executionContext) {
             break;
         }
         executeInternal(std::move(morsel));
+    }
+}
+
+void NodeCopier::finalize() {
+    if (pkIndex) {
+        pkIndex->flush();
+    }
+    for (auto& column : columns) {
+        column->saveToFile();
     }
 }
 
@@ -118,7 +106,7 @@ void NodeCopier::populatePKIndex(InMemColumnChunk* chunk, InMemOverflowFile* ove
 
 template<>
 void NodeCopier::appendToPKIndex<int64_t>(
-    InMemColumnChunk* chunk, common::offset_t startOffset, uint64_t numValues) {
+    InMemColumnChunk* chunk, offset_t startOffset, uint64_t numValues) {
     for (auto i = 0u; i < numValues; i++) {
         auto offset = i + startOffset;
         auto value = chunk->getValue<int64_t>(i);
@@ -128,7 +116,7 @@ void NodeCopier::appendToPKIndex<int64_t>(
 
 template<>
 void NodeCopier::appendToPKIndex<ku_string_t, InMemOverflowFile*>(InMemColumnChunk* chunk,
-    common::offset_t startOffset, uint64_t numValues, InMemOverflowFile* overflowFile) {
+    offset_t startOffset, uint64_t numValues, InMemOverflowFile* overflowFile) {
     for (auto i = 0u; i < numValues; i++) {
         auto offset = i + startOffset;
         auto value = chunk->getValue<ku_string_t>(offset);
@@ -138,16 +126,15 @@ void NodeCopier::appendToPKIndex<ku_string_t, InMemOverflowFile*>(InMemColumnChu
 }
 
 void NodeCopier::flushChunksAndPopulatePKIndex(
-    const std::vector<std::unique_ptr<InMemColumnChunk>>& columnChunks,
-    common::offset_t startNodeOffset, common::offset_t endNodeOffset,
-    common::column_id_t columnToFlush) {
+    const std::vector<std::unique_ptr<InMemColumnChunk>>& columnChunks, offset_t startNodeOffset,
+    offset_t endNodeOffset) {
     // Flush each page within the [StartOffset, endOffset] range.
-    if (columnToFlush == INVALID_COLUMN_ID) {
+    if (columnToCopy == INVALID_COLUMN_ID) {
         for (auto i = 0u; i < properties.size(); i++) {
             columns[i]->flushChunk(columnChunks[i].get());
         }
     } else {
-        columns[columnToFlush]->flushChunk(columnChunks[0].get());
+        columns[columnToCopy]->flushChunk(columnChunks[0].get());
     }
     if (pkIndex) {
         // Populate the primary key index.
@@ -156,56 +143,62 @@ void NodeCopier::flushChunksAndPopulatePKIndex(
     }
 }
 
-void CSVNodeCopier::executeInternal(std::unique_ptr<NodeCopyMorsel> morsel) {
-    auto csvMorsel = dynamic_cast<CSVNodeCopyMorsel*>(morsel.get());
+void CSVNodeCopier::executeInternal(std::unique_ptr<CopyMorsel> morsel) {
+    auto csvMorsel = dynamic_cast<CSVCopyMorsel*>(morsel.get());
     auto numLinesInCurBlock = csvMorsel->recordBatch->num_rows();
     // Create a column chunk for tuples within the [StartOffset, endOffset] range.
-    auto endOffset = csvMorsel->nodeOffset + numLinesInCurBlock - 1;
+    auto endOffset = csvMorsel->tupleIdx + numLinesInCurBlock - 1;
     std::vector<std::unique_ptr<InMemColumnChunk>> columnChunks(properties.size());
     for (auto i = 0; i < properties.size(); i++) {
-        auto property = properties[i];
         columnChunks[i] =
-            columns[i]->getInMemColumnChunk(csvMorsel->nodeOffset, endOffset, &copyDesc);
+            columns[i]->getInMemColumnChunk(csvMorsel->tupleIdx, endOffset, &copyDesc);
         columnChunks[i]->copyArrowArray(*csvMorsel->recordBatch->column(i));
     }
-    flushChunksAndPopulatePKIndex(columnChunks, csvMorsel->nodeOffset, endOffset);
+    flushChunksAndPopulatePKIndex(columnChunks, csvMorsel->tupleIdx, endOffset);
 }
 
-void ParquetNodeCopier::executeInternal(std::unique_ptr<NodeCopyMorsel> morsel) {
+void ParquetNodeCopier::executeInternal(std::unique_ptr<CopyMorsel> morsel) {
     assert(!morsel->filePath.empty());
     if (!reader || filePath != morsel->filePath) {
-        reader = TableCopyExecutor::createParquetReader(morsel->filePath);
+        reader = TableCopyUtils::createParquetReader(morsel->filePath);
+        filePath = morsel->filePath;
     }
     std::shared_ptr<arrow::Table> table;
-    TableCopyExecutor::throwCopyExceptionIfNotOK(
+    TableCopyUtils::throwCopyExceptionIfNotOK(
         reader->RowGroup(static_cast<int>(morsel->blockIdx))->ReadTable(&table));
     arrow::TableBatchReader batchReader(*table);
     std::shared_ptr<arrow::RecordBatch> recordBatch;
-    TableCopyExecutor::throwCopyExceptionIfNotOK(batchReader.ReadNext(&recordBatch));
+    TableCopyUtils::throwCopyExceptionIfNotOK(batchReader.ReadNext(&recordBatch));
     std::vector<std::unique_ptr<InMemColumnChunk>> columnChunks(properties.size());
     auto numLinesInCurBlock = recordBatch->num_rows();
-    auto endOffset = morsel->nodeOffset + numLinesInCurBlock - 1;
+    auto endOffset = morsel->tupleIdx + numLinesInCurBlock - 1;
     for (auto i = 0; i < properties.size(); i++) {
-        auto property = properties[i];
-        columnChunks[i] = columns[i]->getInMemColumnChunk(morsel->nodeOffset, endOffset, &copyDesc);
+        columnChunks[i] = columns[i]->getInMemColumnChunk(morsel->tupleIdx, endOffset, &copyDesc);
         columnChunks[i]->copyArrowArray(*recordBatch->column(i));
     }
-    flushChunksAndPopulatePKIndex(columnChunks, morsel->nodeOffset, endOffset);
+    flushChunksAndPopulatePKIndex(columnChunks, morsel->tupleIdx, endOffset);
 }
 
-void NPYNodeCopier::executeInternal(std::unique_ptr<NodeCopyMorsel> morsel) {
+void NPYNodeCopier::executeInternal(std::unique_ptr<CopyMorsel> morsel) {
     if (!reader || reader->getFilePath() != morsel->filePath) {
         reader = std::make_unique<NpyReader>(morsel->filePath);
     }
-    auto endNodeOffset = morsel->nodeOffset + morsel->numNodes - 1;
+    auto endNodeOffset = morsel->tupleIdx + morsel->numTuples - 1;
     // For NPY files, we can only read one column at a time.
     std::vector<std::unique_ptr<InMemColumnChunk>> columnChunks(1);
     columnChunks[0] =
-        columns[columnToCopy]->getInMemColumnChunk(morsel->nodeOffset, endNodeOffset, &copyDesc);
-    for (auto i = 0u; i < morsel->numNodes; i++) {
-        columnChunks[0]->setValueAtPos(reader->getPointerToRow(morsel->nodeOffset + i), i);
+        columns[columnToCopy]->getInMemColumnChunk(morsel->tupleIdx, endNodeOffset, &copyDesc);
+    for (auto i = 0u; i < morsel->numTuples; i++) {
+        columnChunks[0]->setValueAtPos(reader->getPointerToRow(morsel->tupleIdx + i), i);
     }
-    flushChunksAndPopulatePKIndex(columnChunks, morsel->nodeOffset, endNodeOffset, columnToCopy);
+    flushChunksAndPopulatePKIndex(columnChunks, morsel->tupleIdx, endNodeOffset);
+}
+
+void NodeCopyTask::run() {
+    mtx.lock();
+    auto clonedNodeCopier = nodeCopier->clone();
+    mtx.unlock();
+    clonedNodeCopier->execute(executionContext);
 }
 
 } // namespace storage

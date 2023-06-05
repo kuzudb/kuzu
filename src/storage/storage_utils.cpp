@@ -243,7 +243,8 @@ void StorageUtils::createFileForRelListsPropertyWithDefaultVal(table_id_t relTab
         StorageUtils::getRelPropertyListsFName(storageManager.getDirectory(), relTableID, direction,
             property.propertyID, DBFileType::WAL_VERSION),
         property.dataType,
-        storageManager.getRelsStore().getRelsStatistics().getNumTuplesForTable(relTableID));
+        storageManager.getRelsStore().getRelsStatistics().getNumTuplesForTable(relTableID),
+        nullptr /* copyDescription */);
     auto numNodesInBoundTable =
         storageManager.getNodesStore().getNodesStatisticsAndDeletedIDs().getNumTuplesForTable(
             boundTableID);
