@@ -1,5 +1,7 @@
 "use strict";
 
+const assert = require("assert");
+
 class PreparedStatement {
   /**
    * @private Internal constructor. Use `Connection.prepare` to get a

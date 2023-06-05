@@ -1,5 +1,7 @@
 "use strict";
 
+const assert = require("assert");
+
 class QueryResult {
   /**
    * @private Internal constructor. Use `Connection.query` or `Connection.execute`
