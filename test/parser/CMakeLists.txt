@@ -1,1 +1,0 @@
-add_kuzu_test(syntax_error_test syntax_error_test.cpp)

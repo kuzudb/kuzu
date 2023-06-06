@@ -95,7 +95,7 @@ std::string TestParser::extractTextBeforeNextStatement(bool ignoreLineBreak) {
         if (!extractedText.empty()) {
             extractedText += delimiter;
         }
-        extractedText += StringUtils::ltrim(line);
+        extractedText += line;
     }
     return extractedText;
 }
