@@ -1,0 +1,36 @@
+name: Build-Windows-NodeJS-Module
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-windows-nodejs:
+    runs-on: self-hosted-windows
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Create Node.js source distribution
+        working-directory: tools/nodejs_api
+        run: |
+          node clean
+          node package
+
+      - name: Extract tarball
+        working-directory: tools/nodejs_api
+        run: tar -xvzf kuzu-source.tar.gz
+
+      - name: Build Node.js native module
+        working-directory: tools/nodejs_api/package
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
+          npm i
+
+      - name: Move Node.js native module
+        working-directory: tools/nodejs_api/package
+        run: ren kuzujs.node kuzujs-win32-x64.node
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: windows-nodejs-module
+          path: tools/nodejs_api/package/kuzujs-win32-x64.node

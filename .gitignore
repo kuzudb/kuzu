@@ -1,5 +1,6 @@
 .idea/
 .vscode
+.vs
 bazel-*
 .clwb
 .cache
