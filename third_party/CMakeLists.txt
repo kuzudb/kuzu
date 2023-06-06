@@ -1,6 +1,6 @@
 add_subdirectory(antlr4_runtime)
 add_subdirectory(antlr4_cypher)
+add_subdirectory(glob)
 add_subdirectory(utf8proc)
 add_subdirectory(pybind11)
 add_subdirectory(re2)
-add_subdirectory(glob)
