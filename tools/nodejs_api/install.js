@@ -86,16 +86,37 @@ if (process.platform === "darwin") {
   }
 }
 
-const execArgs = {
+if (process.platform === "win32") {
+  // The `rc` package conflicts with the rc command (resource compiler) on
+  // Windows. This causes the build to fail. This is a workaround which removes
+  // all the environment variables added by npm.
+  const pathEnv = process.env["Path"];
+  const pathSplit = pathEnv.split(";").filter((path) => {
+    const pathLower = path.toLowerCase();
+    return !pathLower.includes("node_modules");
+  });
+  env["Path"] = pathSplit.join(";");
+  console.log(
+    "The PATH environment variable has been modified to remove any 'node_modules' directories."
+  );
+
+  for (let key in env) {
+    if (
+      key.toLowerCase().includes("node" || key.toLowerCase().includes("npm"))
+    ) {
+      delete env[key];
+    }
+  }
+  console.log(
+    "Any environment variables containing 'node' or 'npm' have been removed."
+  );
+}
+
+childProcess.execSync("make nodejs NUM_THREADS=" + THREADS, {
+  env,
   cwd: path.join(__dirname, "kuzu-source"),
   stdio: "inherit",
-};
-
-execArgs.env = process.platform === "win32" ? process.env : env;
-
-console.log(env);
-
-childProcess.execSync("make nodejs NUM_THREADS=" + THREADS, execArgs);
+});
 
 // Copy the built files to the package directory
 const BUILT_DIR = path.join(
