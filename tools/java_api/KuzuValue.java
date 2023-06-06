@@ -3,13 +3,23 @@ package tools.java_api;
 public class KuzuValue {
     long v_ref;
     boolean destroyed = false;
+    boolean isOwnedByCPP = false;
+
+    private void checkNotdestroyed () {
+        assert !destroyed: "FlatTuple has been destroyed.";
+    }
 
     public <T> KuzuValue (T val) {
+        checkNotdestroyed();
         v_ref = KuzuNative.kuzu_value_create_value(val);
     }
+    
     public void destroy () {
-        KuzuNative.kuzu_value_destroy(this);
-        destroyed = true;
+        checkNotdestroyed();
+        if (!isOwnedByCPP) {
+            KuzuNative.kuzu_value_destroy(this);
+            destroyed = true;
+        }
     }
 
     public static KuzuValue createNull() {
@@ -25,38 +35,47 @@ public class KuzuValue {
     }
 
     public boolean isNull () {
+        checkNotdestroyed();
         return KuzuNative.kuzu_value_is_null(this);
     }
 
     public void setNull (boolean flag) {
+        checkNotdestroyed();
         KuzuNative.kuzu_value_set_null(this, flag);
     }
 
     public void copy (KuzuValue other) {
+        checkNotdestroyed();
         KuzuNative.kuzu_value_copy(this, other);
     }
 
     public KuzuValue clone () {
+        checkNotdestroyed();
         return KuzuNative.kuzu_value_clone(this);
     }
 
     public <T> T getValue (){
+        checkNotdestroyed();
         return KuzuNative.kuzu_value_get_value(this);
     }
 
     public long getListSize () {
+        checkNotdestroyed();
         return KuzuNative.kuzu_value_get_list_size(this);
     }
 
     public KuzuValue getListElement (long index) {
+        checkNotdestroyed();
         return KuzuNative.kuzu_value_get_list_element(this, index);
     }
 
     public KuzuDataType getDataType () {
+        checkNotdestroyed();
         return KuzuNative.kuzu_value_get_data_type(this);
     }
 
     public String toString () {
+        checkNotdestroyed();
         return KuzuNative.kuzu_value_to_string(this);
     }
 }

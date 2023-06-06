@@ -5,7 +5,11 @@ public class KuzuDatabase {
     long db_ref;
     String db_path;
     long buffer_size;
-    boolean destoryed = false;
+    boolean destroyed = false;
+
+    private void checkNotdestroyed () {
+        assert !destroyed: "FlatTuple has been destroyed.";
+    }
     
     public KuzuDatabase (String database_path, long buffer_pool_size) {
         this.db_path = database_path;
@@ -15,18 +19,13 @@ public class KuzuDatabase {
     }
 
     public void destory() {
-        assert !destoryed: "Database has been destoryed.";
+        checkNotdestroyed();
         KuzuNative.kuzu_database_destroy(this);
-        destoryed = true;
+        destroyed = true;
     }
 
     public void setLoggingLevel(String logging_level, KuzuDatabase db) {
-        System.out.println(destoryed);
-        assert !destoryed: "Database has been destoryed.";
+        checkNotdestroyed();
         KuzuNative.kuzu_database_set_logging_level(logging_level ,db);
-    }
-
-    public boolean isDestoryed() {
-        return destoryed;
     }
 }

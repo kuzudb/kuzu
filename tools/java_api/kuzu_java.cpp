@@ -192,7 +192,7 @@ JNIEXPORT jlong JNICALL Java_tools_java_1api_KuzuNative_kuzu_1database_1init
 JNIEXPORT void JNICALL Java_tools_java_1api_KuzuNative_kuzu_1database_1destroy
   (JNIEnv * env, jclass, jobject thisDB) {
     Database* db = getDatabase(env, thisDB);
-    free(db);
+    delete db;
 }
 
 JNIEXPORT void JNICALL Java_tools_java_1api_KuzuNative_kuzu_1database_1set_1logging_1level
@@ -219,7 +219,7 @@ JNIEXPORT jlong JNICALL Java_tools_java_1api_KuzuNative_kuzu_1connection_1init
 JNIEXPORT void JNICALL Java_tools_java_1api_KuzuNative_kuzu_1connection_1destroy
   (JNIEnv * env, jclass, jobject thisConn) {
     Connection* conn = getConnection(env, thisConn);
-    free(conn);
+    delete conn;
 }
 
 JNIEXPORT void JNICALL Java_tools_java_1api_KuzuNative_kuzu_1connection_1begin_1read_1only_1transaction
@@ -359,7 +359,7 @@ JNIEXPORT void JNICALL Java_tools_java_1api_KuzuNative_kuzu_1connection_1set_1qu
 JNIEXPORT void JNICALL Java_tools_java_1api_KuzuNative_kuzu_1prepared_1statement_1destroy
   (JNIEnv * env, jclass, jobject thisPS) {
     PreparedStatement* ps = getPreparedStatement(env, thisPS);
-    free(ps);
+    delete ps;
 }
 
 JNIEXPORT jboolean JNICALL Java_tools_java_1api_KuzuNative_kuzu_1prepared_1statement_1allow_1active_1transaction
@@ -517,7 +517,7 @@ JNIEXPORT void JNICALL Java_tools_java_1api_KuzuNative_kuzu_1prepared_1statement
 JNIEXPORT void JNICALL Java_tools_java_1api_KuzuNative_kuzu_1query_1result_1destroy
   (JNIEnv * env, jclass, jobject thisQR) {
     QueryResult* qr = getQueryResult(env, thisQR);
-    free(qr);
+    delete qr;
 }
 
 JNIEXPORT jboolean JNICALL Java_tools_java_1api_KuzuNative_kuzu_1query_1result_1is_1success
@@ -651,7 +651,7 @@ JNIEXPORT void JNICALL Java_tools_java_1api_KuzuNative_kuzu_1query_1result_1rese
 JNIEXPORT void JNICALL Java_tools_java_1api_KuzuNative_kuzu_1flat_1tuple_1destroy
   (JNIEnv * env, jclass, jobject thisFT) {
     FlatTuple* ft = getFlatTuple(env, thisFT);
-    free(ft);
+    delete ft;
 }
 
 JNIEXPORT jobject JNICALL Java_tools_java_1api_KuzuNative_kuzu_1flat_1tuple_1get_1value
@@ -708,7 +708,7 @@ JNIEXPORT jobject JNICALL Java_tools_java_1api_KuzuNative_kuzu_1data_1type_1clon
 JNIEXPORT void JNICALL Java_tools_java_1api_KuzuNative_kuzu_1data_1type_1destroy
   (JNIEnv * env, jclass, jobject thisDT) {
     DataType* dt = getDataType(env, thisDT);
-    free(dt);
+    delete dt;
 }
 
 JNIEXPORT jboolean JNICALL Java_tools_java_1api_KuzuNative_kuzu_1data_1type_1equals
@@ -889,7 +889,7 @@ JNIEXPORT void JNICALL Java_tools_java_1api_KuzuNative_kuzu_1value_1copy
 JNIEXPORT void JNICALL Java_tools_java_1api_KuzuNative_kuzu_1value_1destroy
   (JNIEnv * env, jclass, jobject thisValue) {
 	Value* v = getValue(env, thisValue);
-	free(v);
+	delete v;
 }
 
 JNIEXPORT jlong JNICALL Java_tools_java_1api_KuzuNative_kuzu_1value_1get_1list_1size
@@ -912,7 +912,11 @@ JNIEXPORT jobject JNICALL Java_tools_java_1api_KuzuNative_kuzu_1value_1get_1list
 	auto& list_element = list_val[index];
 	auto val = list_element.get();
 	
-	return createJavaObject(env, val, "tools/java_api/KuzuValue", "v_ref");
+	jobject element = createJavaObject(env, val, "tools/java_api/KuzuValue", "v_ref");
+	jclass clazz = env->GetObjectClass(element);
+	jfieldID fieldID = env->GetFieldID(clazz, "isOwnedByCPP", "Z");
+	env->SetBooleanField(element, fieldID, static_cast<jboolean>(true));
+	return element;
 }
 
 JNIEXPORT jobject JNICALL Java_tools_java_1api_KuzuNative_kuzu_1value_1get_1data_1type
@@ -1046,3 +1050,118 @@ JNIEXPORT jstring JNICALL Java_tools_java_1api_KuzuNative_kuzu_1value_1to_1strin
     jstring ret = env->NewStringUTF(result_string.c_str());
     return ret;
 }
+
+JNIEXPORT jlong JNICALL Java_tools_java_1api_KuzuNative_kuzu_1node_1val_1create
+  (JNIEnv * env, jclass, jobject id, jstring label) {
+	jclass idClass = env->FindClass("tools/java_api/KuzuInternalID");
+	jfieldID fieldID = env->GetFieldID(idClass, "table_id", "J");
+	long table_id = static_cast<long>(env->GetLongField(id, fieldID));
+	fieldID = env->GetFieldID(idClass, "offset", "J");
+	long offset = static_cast<long>(env->GetLongField(id, fieldID));
+
+	auto id_val = std::make_unique<Value>(internalID_t(offset, table_id));
+	std::string labelstr = env->GetStringUTFChars(label, JNI_FALSE);
+	auto label_val = std::make_unique<Value>(labelstr);
+
+	NodeVal* node_val = new NodeVal(std::move(id_val), std::move(label_val));
+	uint64_t address = reinterpret_cast<uint64_t>(node_val);
+    return static_cast<jlong>(address);
+}
+
+JNIEXPORT jobject JNICALL Java_tools_java_1api_KuzuNative_kuzu_1node_1val_1clone
+  (JNIEnv * env, jclass, jobject thisNV) {
+	NodeVal* nv = getNodeVal(env, thisNV);
+	NodeVal* newNV = new NodeVal(*nv);
+	return createJavaObject(env, newNV, "tools/java_api/KuzuNodeValue", "nv_ref");
+}
+
+JNIEXPORT void JNICALL Java_tools_java_1api_KuzuNative_kuzu_1node_1val_1destroy
+  (JNIEnv * env, jclass, jobject thisNV) {
+	NodeVal* nv = getNodeVal(env, thisNV);
+	delete nv;
+}
+
+JNIEXPORT jobject JNICALL Java_tools_java_1api_KuzuNative_kuzu_1node_1val_1get_1id_1val
+  (JNIEnv * env, jclass, jobject thisNV) {
+	NodeVal* nv = getNodeVal(env, thisNV);
+	auto idVal = nv->getNodeIDVal();
+
+	jobject ret = createJavaObject(env, idVal, "tools/java_api/KuzuValue", "v_ref");
+	jclass clazz = env->GetObjectClass(ret);
+	jfieldID fieldID = env->GetFieldID(clazz, "isOwnedByCPP", "Z");
+	env->SetBooleanField(ret, fieldID, static_cast<jboolean>(true));
+	return ret;
+}
+
+JNIEXPORT jobject JNICALL Java_tools_java_1api_KuzuNative_kuzu_1node_1val_1get_1label_1val
+  (JNIEnv * env, jclass, jobject thisNV) {
+	NodeVal* nv = getNodeVal(env, thisNV);
+	auto labelVal = nv->getNodeIDVal();
+
+	jobject ret = createJavaObject(env, labelVal, "tools/java_api/KuzuValue", "v_ref");
+	jclass clazz = env->GetObjectClass(ret);
+	jfieldID fieldID = env->GetFieldID(clazz, "isOwnedByCPP", "Z");
+	env->SetBooleanField(ret, fieldID, static_cast<jboolean>(true));
+	return ret;
+}
+
+JNIEXPORT jobject JNICALL Java_tools_java_1api_KuzuNative_kuzu_1node_1val_1get_1id
+  (JNIEnv * env, jclass, jobject thisNV) {
+	NodeVal* nv = getNodeVal(env, thisNV);
+	auto id = nv->getNodeID();
+
+	jclass retClass = env->FindClass("tools/java_api/KuzuInternalID");
+	jmethodID ctor = env->GetMethodID(retClass, "<init>", "(JJ)V");
+	jobject ret = env->NewObject(retClass, ctor, id.tableID, id.offset);
+	return ret;
+}
+
+JNIEXPORT jstring JNICALL Java_tools_java_1api_KuzuNative_kuzu_1node_1val_1get_1label_1name
+  (JNIEnv * env, jclass, jobject thisNV) {
+	NodeVal* nv = getNodeVal(env, thisNV);
+	return env->NewStringUTF(nv->getLabelName().c_str());
+}
+
+JNIEXPORT jlong JNICALL Java_tools_java_1api_KuzuNative_kuzu_1node_1val_1get_1property_1size
+  (JNIEnv * env, jclass, jobject thisNV) {
+	NodeVal* nv = getNodeVal(env, thisNV);
+	return static_cast<jlong>(nv->getProperties().size());
+}
+
+JNIEXPORT jstring JNICALL Java_tools_java_1api_KuzuNative_kuzu_1node_1val_1get_1property_1name_1at
+  (JNIEnv * env, jclass, jobject thisNV, jlong index) {
+	NodeVal* nv = getNodeVal(env, thisNV);
+	uint64_t idx = static_cast<uint64_t>(index);
+	return env->NewStringUTF(nv->getProperties().at(idx).first.c_str());
+}
+
+JNIEXPORT jobject JNICALL Java_tools_java_1api_KuzuNative_kuzu_1node_1val_1get_1property_1value_1at
+  (JNIEnv * env, jclass, jobject thisNV, jlong index) {
+	NodeVal* nv = getNodeVal(env, thisNV);
+	uint64_t idx = static_cast<uint64_t>(index);
+	Value* val = nv->getProperties().at(idx).second.get();
+
+	jobject ret = createJavaObject(env, val, "tools/java_api/KuzuValue", "v_ref");
+	jclass clazz = env->GetObjectClass(ret);
+	jfieldID fieldID = env->GetFieldID(clazz, "isOwnedByCPP", "Z");
+	env->SetBooleanField(ret, fieldID, static_cast<jboolean>(true));
+	return ret;
+}
+
+JNIEXPORT void JNICALL Java_tools_java_1api_KuzuNative_kuzu_1node_1val_1add_1property
+  (JNIEnv * env, jclass, jobject thisNV, jstring key, jobject value) {
+	NodeVal* nv = getNodeVal(env, thisNV);
+	std::string k = env->GetStringUTFChars(key, JNI_FALSE);
+	auto v = std::make_unique<Value>(*getValue(env, value));
+	nv->addProperty(k, std::move(v));
+}
+
+JNIEXPORT jstring JNICALL Java_tools_java_1api_KuzuNative_kuzu_1node_1val_1to_1string
+  (JNIEnv * env, jclass, jobject thisNV) {
+	NodeVal* nv = getNodeVal(env, thisNV);
+	std::string result_string = nv->toString();
+    jstring ret = env->NewStringUTF(result_string.c_str());
+    return ret;
+}
+
+

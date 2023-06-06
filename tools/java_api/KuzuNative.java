@@ -149,7 +149,7 @@ public class KuzuNative {
 
     protected static native String kuzu_value_to_string(KuzuValue value);
 
-    protected static native KuzuNodeValue kuzu_node_val_create(KuzuInternalID id, String label);
+    protected static native long kuzu_node_val_create(KuzuInternalID id, String label);
     protected static native KuzuNodeValue kuzu_node_val_clone(KuzuNodeValue node_val);
     protected static native void kuzu_node_val_destroy(KuzuNodeValue node_val);
     protected static native KuzuValue kuzu_node_val_get_id_val(KuzuNodeValue node_val);
