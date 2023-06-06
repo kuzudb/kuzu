@@ -167,6 +167,10 @@ const KUZU_VERSION_TEXT = "Kuzu VERSION";
   }
 
   packageJson.scripts.install = "node install.js";
+  // npm modifies environment variables during install, which causes build 
+  // errors on Windows. This is a workaround.
+  // packageJson.scripts.preinstall = "npm config set ignore-scripts true";
+  // packageJson.scripts.postinstall = "npm config set ignore-scripts false";
 
   await fs.writeFile(
     path.join(ARCHIVE_DIR_PATH, "package.json"),

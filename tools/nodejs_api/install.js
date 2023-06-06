@@ -86,11 +86,16 @@ if (process.platform === "darwin") {
   }
 }
 
-childProcess.execSync("make nodejs NUM_THREADS=" + THREADS, {
-  env,
+const execArgs = {
   cwd: path.join(__dirname, "kuzu-source"),
   stdio: "inherit",
-});
+};
+
+execArgs.env = process.platform === "win32" ? process.env : env;
+
+console.log(env);
+
+childProcess.execSync("make nodejs NUM_THREADS=" + THREADS, execArgs);
 
 // Copy the built files to the package directory
 const BUILT_DIR = path.join(

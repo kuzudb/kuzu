@@ -10,9 +10,9 @@
   },
   "scripts": {
     "test": "mocha test",
-    "clean": "rm -rf build",
-    "clean-all": "rm -rf build node_modules package-lock.json",
-    "build": "npm run clean && cd ../.. && make nodejs NUM_THREADS=$(node -e \"console.log(require('os').cpus().length)\")"
+    "clean": "node clean.js",
+    "clean-all": "node clean.js all",
+    "build": "node build.js"
   },
   "author": "Kùzu Team",
   "license": "MIT",
