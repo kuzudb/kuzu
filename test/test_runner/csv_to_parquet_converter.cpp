@@ -43,7 +43,7 @@ void CSVToParquetConverter::copySchema(
         FileUtils::joinPath(parquetDatasetPath, std::string(TestHelper::SCHEMA_FILE_NAME));
     FileUtils::copyFile(FileUtils::joinPath(csvDatasetPath, "schema.cypher"),
         FileUtils::joinPath(parquetDatasetPath, "schema.cypher"),
-        std::filesystem::copy_options::skip_existing);
+        std::filesystem::copy_options::overwrite_existing);
 }
 
 CSVToParquetConverter::CopyCommandInfo CSVToParquetConverter::createCopyCommandInfo(
