@@ -128,7 +128,7 @@ TEST_F(ApiTest, ParamTypeError) {
         conn->execute(preparedStatement.get(), std::make_pair(std::string("n"), (int64_t)36));
     ASSERT_FALSE(result->isSuccess());
     ASSERT_STREQ(
-        "Parameter n has data type INT64 but expect STRING.", result->getErrorMessage().c_str());
+        "Parameter n has data type INT64 but expects STRING.", result->getErrorMessage().c_str());
 }
 
 TEST_F(ApiTest, MultipleExecutionOfPreparedStatement) {

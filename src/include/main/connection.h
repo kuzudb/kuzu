@@ -129,7 +129,7 @@ public:
     KUZU_API std::string getRelPropertyNames(const std::string& relTableName);
 
     /**
-     * @brief interrupts all queries currently executed within this connection.
+     * @brief interrupts all queries currently executing within this connection.
      */
     KUZU_API void interrupt();
 
