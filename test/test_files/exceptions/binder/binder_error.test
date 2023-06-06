@@ -409,7 +409,7 @@ Binder exception: Serial property in node table must be the primary key.
 ---- error
 Binder exception: Serial property is not supported in rel table.
 
--CASE MatchBuildIn
+-CASE MatchBuiltIn
 -QUERY MATCH (a:person) RETURN a.age + 'hh'
 ---- error
 Binder exception: Cannot match a built-in function for given function +(INT64,STRING). Supported inputs are
