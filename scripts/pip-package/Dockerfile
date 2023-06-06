@@ -3,7 +3,7 @@ FROM quay.io/pypa/manylinux2014_x86_64
 # Install dependencies
 RUN yum --disablerepo=epel -y upgrade curl ca-certificates
 RUN yum update -y
-RUN yum install -y cmake nodejs npm jq git perl-Digest-SHA libicu libicu-devel
+RUN yum install -y cmake nodejs npm jq git perl-Digest-SHA libicu libicu-devel libcurl-devel openssl-devel
 
 RUN useradd --create-home runner
 USER runner
