@@ -71,7 +71,7 @@ int main(int argc, char** argv) {
     testing::InitGoogleTest(&argc, argv);
     std::string path = TestHelper::E2E_TEST_FILES_DIRECTORY;
     if (argc > 1) {
-        path = path + "/" + argv[1];
+        path = FileUtils::joinPath(path, argv[1]);
     }
     path = TestHelper::appendKuzuRootPath(path);
     if (!FileUtils::fileOrPathExists(path)) {
