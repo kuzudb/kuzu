@@ -23,8 +23,17 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
     case PhysicalOperatorType::COPY_NODE: {
         return "COPY_NODE";
     }
+    case PhysicalOperatorType::COPY_NPY: {
+        return "COPY_NPY";
+    }
     case PhysicalOperatorType::COPY_REL: {
         return "COPY_REL";
+    }
+    case PhysicalOperatorType::READ_CSV: {
+        return "READ_CSV";
+    }
+    case PhysicalOperatorType::READ_PARQUET: {
+        return "READ_PARQUET";
     }
     case PhysicalOperatorType::CREATE_NODE: {
         return "CREATE_NODE";

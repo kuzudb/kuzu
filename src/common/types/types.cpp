@@ -236,6 +236,9 @@ void LogicalType::setPhysicalType() {
     case LogicalTypeID::STRUCT: {
         physicalType = PhysicalTypeID::STRUCT;
     } break;
+    case LogicalTypeID::ARROW_COLUMN: {
+        physicalType = PhysicalTypeID::ARROW_COLUMN;
+    } break;
     default:
         throw NotImplementedException{"LogicalType::setPhysicalType()."};
     }

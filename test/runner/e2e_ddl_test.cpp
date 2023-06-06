@@ -363,9 +363,8 @@ public:
         conn->beginWriteTransaction();
         auto mapper = PlanMapper(
             *getStorageManager(*database), getMemoryManager(*database), getCatalog(*database));
-        auto physicalPlan =
-            mapper.mapLogicalPlanToPhysical(preparedStatement->logicalPlans[0].get(),
-                preparedStatement->getExpressionsToCollect(), preparedStatement->statementType);
+        auto physicalPlan = mapper.mapLogicalPlanToPhysical(
+            preparedStatement->logicalPlans[0].get(), preparedStatement->getExpressionsToCollect());
         executionContext->clientContext->activeQuery = std::make_unique<ActiveQuery>();
         getQueryProcessor(*database)->execute(physicalPlan.get(), executionContext.get());
     }

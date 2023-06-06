@@ -78,6 +78,8 @@ KUZU_API enum class LogicalTypeID : uint8_t {
 
     INTERNAL_ID = 40,
 
+    ARROW_COLUMN = 41,
+
     // variable size types
     STRING = 50,
     VAR_LIST = 52,
@@ -95,6 +97,7 @@ enum class PhysicalTypeID : uint8_t {
     FLOAT = 6,
     INTERVAL = 7,
     INTERNAL_ID = 9,
+    ARROW_COLUMN = 10,
 
     // Variable size types.
     STRING = 20,

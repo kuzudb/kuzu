@@ -20,20 +20,6 @@ offset_t NodeCopyExecutor::copy(processor::ExecutionContext* executionContext) {
 void NodeCopyExecutor::populateColumns(processor::ExecutionContext* executionContext) {
     std::vector<std::shared_ptr<common::Task>> tasks;
     switch (copyDescription.fileType) {
-    case common::CopyDescription::FileType::CSV: {
-        auto sharedState = std::make_shared<CSVCopySharedState>(copyDescription.filePaths,
-            fileBlockInfos, copyDescription.csvReaderConfig.get(), tableSchema);
-        auto nodeCopier = std::make_unique<CSVNodeCopier>(outputDirectory, std::move(sharedState),
-            copyDescription, tableSchema, numRows, INVALID_COLUMN_ID);
-        tasks.push_back(std::make_shared<NodeCopyTask>(std::move(nodeCopier), executionContext));
-    } break;
-    case common::CopyDescription::FileType::PARQUET: {
-        auto sharedState =
-            std::make_shared<CopySharedState>(copyDescription.filePaths, fileBlockInfos);
-        auto nodeCopier = std::make_unique<ParquetNodeCopier>(outputDirectory,
-            std::move(sharedState), copyDescription, tableSchema, numRows, INVALID_COLUMN_ID);
-        tasks.push_back(std::make_shared<NodeCopyTask>(std::move(nodeCopier), executionContext));
-    } break;
     case common::CopyDescription::FileType::NPY: {
         assert(copyDescription.filePaths.size() == tableSchema->properties.size());
         for (auto i = 0u; i < copyDescription.filePaths.size(); i++) {

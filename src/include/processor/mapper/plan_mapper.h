@@ -2,6 +2,7 @@
 
 #include "binder/expression/node_expression.h"
 #include "common/statement_type.h"
+#include "planner/logical_plan/logical_operator/logical_copy.h"
 #include "planner/logical_plan/logical_plan.h"
 #include "processor/mapper/expression_mapper.h"
 #include "processor/operator/result_collector.h"
@@ -23,8 +24,8 @@ public:
         : storageManager{storageManager}, memoryManager{memoryManager},
           expressionMapper{}, catalog{catalog}, physicalOperatorID{0} {}
 
-    std::unique_ptr<PhysicalPlan> mapLogicalPlanToPhysical(planner::LogicalPlan* logicalPlan,
-        const binder::expression_vector& expressionsToCollect, common::StatementType statementType);
+    std::unique_ptr<PhysicalPlan> mapLogicalPlanToPhysical(
+        planner::LogicalPlan* logicalPlan, const binder::expression_vector& expressionsToCollect);
 
 private:
     std::unique_ptr<PhysicalOperator> mapLogicalOperatorToPhysical(
@@ -95,6 +96,8 @@ private:
         planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapLogicalCopyToPhysical(
         planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapLogicalCopyNodeToPhysical(planner::LogicalCopy* copy);
+    std::unique_ptr<PhysicalOperator> mapLogicalCopyRelToPhysical(planner::LogicalCopy* copy);
     std::unique_ptr<PhysicalOperator> mapLogicalDropTableToPhysical(
         planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapLogicalRenameTableToPhysical(

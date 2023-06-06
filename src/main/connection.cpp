@@ -334,7 +334,7 @@ std::unique_ptr<QueryResult> Connection::executeAndAutoCommitIfNecessaryNoLock(
         try {
             physicalPlan =
                 mapper.mapLogicalPlanToPhysical(preparedStatement->logicalPlans[planIdx].get(),
-                    preparedStatement->getExpressionsToCollect(), preparedStatement->statementType);
+                    preparedStatement->getExpressionsToCollect());
         } catch (std::exception& exception) {
             preparedStatement->success = false;
             preparedStatement->errMsg = exception.what();

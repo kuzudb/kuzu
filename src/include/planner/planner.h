@@ -30,7 +30,8 @@ private:
 
     static std::unique_ptr<LogicalPlan> planRenameProperty(const BoundStatement& statement);
 
-    static std::unique_ptr<LogicalPlan> planCopy(const BoundStatement& statement);
+    static std::unique_ptr<LogicalPlan> planCopy(
+        const catalog::Catalog& catalog, const BoundStatement& statement);
 };
 
 } // namespace planner

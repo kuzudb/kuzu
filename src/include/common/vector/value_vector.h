@@ -18,6 +18,7 @@ class ValueVector {
     friend class ListAuxiliaryBuffer;
     friend class StructVector;
     friend class StringVector;
+    friend class ArrowColumnVector;
 
 public:
     explicit ValueVector(LogicalType dataType, storage::MemoryManager* memoryManager = nullptr);
@@ -152,6 +153,16 @@ public:
                 vector->getData() + vector->getNumBytesPerValue() * DEFAULT_VECTOR_CAPACITY),
             0);
     }
+};
+
+class ArrowColumnVector {
+public:
+    static inline std::shared_ptr<arrow::Array> getArrowColumn(ValueVector* vector) {
+        return reinterpret_cast<ArrowColumnAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())->column;
+    }
+
+    static void setArrowColumn(
+        kuzu::common::ValueVector* vector, std::shared_ptr<arrow::Array> column);
 };
 
 class NodeIDVector {

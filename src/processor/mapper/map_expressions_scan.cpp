@@ -17,7 +17,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExpressionsScanToPhysica
     auto expressions = logicalExpressionsScan.getExpressions();
     auto sharedState = std::make_shared<FTableSharedState>();
     // populate static table
-    std::unique_ptr<FactorizedTableSchema> tableSchema = std::make_unique<FactorizedTableSchema>();
+    auto tableSchema = std::make_unique<FactorizedTableSchema>();
     // TODO(Ziyi): remove vectors when we have done the refactor of dataChunk.
     std::vector<std::shared_ptr<ValueVector>> vectors;
     std::vector<ValueVector*> vectorsToAppend;

@@ -86,9 +86,8 @@ public:
         conn->beginWriteTransaction();
         auto mapper = PlanMapper(
             *getStorageManager(*database), getMemoryManager(*database), getCatalog(*database));
-        auto physicalPlan =
-            mapper.mapLogicalPlanToPhysical(preparedStatement->logicalPlans[0].get(),
-                preparedStatement->getExpressionsToCollect(), preparedStatement->statementType);
+        auto physicalPlan = mapper.mapLogicalPlanToPhysical(
+            preparedStatement->logicalPlans[0].get(), preparedStatement->getExpressionsToCollect());
         clientContext->activeQuery = std::make_unique<ActiveQuery>();
         getQueryProcessor(*database)->execute(physicalPlan.get(), executionContext.get());
         auto tableID = catalog->getReadOnlyVersion()->getTableID("person");
@@ -96,6 +95,7 @@ public:
         if (transactionTestType == TransactionTestType::RECOVERY) {
             commitButSkipCheckpointingForTestingRecovery(*conn);
             validateDatabaseStateBeforeCheckPointCopyNode(tableID);
+            physicalPlan.reset();
             initWithoutLoadingGraph();
             validateDatabaseStateAfterCheckPointCopyNode(tableID);
         } else {
@@ -171,9 +171,8 @@ public:
         conn->beginWriteTransaction();
         auto mapper = PlanMapper(
             *getStorageManager(*database), getMemoryManager(*database), getCatalog(*database));
-        auto physicalPlan =
-            mapper.mapLogicalPlanToPhysical(preparedStatement->logicalPlans[0].get(),
-                preparedStatement->getExpressionsToCollect(), preparedStatement->statementType);
+        auto physicalPlan = mapper.mapLogicalPlanToPhysical(
+            preparedStatement->logicalPlans[0].get(), preparedStatement->getExpressionsToCollect());
         clientContext->activeQuery = std::make_unique<ActiveQuery>();
         getQueryProcessor(*database)->execute(physicalPlan.get(), executionContext.get());
         auto tableID = catalog->getReadOnlyVersion()->getTableID("knows");
@@ -181,6 +180,7 @@ public:
         if (transactionTestType == TransactionTestType::RECOVERY) {
             commitButSkipCheckpointingForTestingRecovery(*conn);
             validateDatabaseStateBeforeCheckPointCopyRel(tableID);
+            physicalPlan.reset();
             initWithoutLoadingGraph();
             validateDatabaseStateAfterCheckPointCopyRel(tableID);
         } else {
