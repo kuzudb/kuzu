@@ -26,9 +26,9 @@ private:
         const std::vector<CSVToParquetConverter::CopyCommandInfo>& copyCommands);
 
     static CopyCommandInfo createCopyCommandInfo(
-        const std::string& dataset, const std::string& copyStatement);
+        const std::string& dataset, std::string copyStatement);
 
-    static arrow::Status RunCSVToParquetConversion(const std::string& inputFile,
+    static arrow::Status runCSVToParquetConversion(const std::string& inputFile,
         const std::string& outputFile, char delimiter, bool hasHeader);
 
     static void copySchema(
@@ -41,6 +41,8 @@ private:
         std::replace(dataset.begin(), dataset.end(), '/', '_');
         return dataset;
     }
+
+    static std::string extractPath(std::string& str, char delimiter);
 };
 
 } // namespace testing

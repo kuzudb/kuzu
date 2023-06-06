@@ -31,12 +31,6 @@ std::vector<std::string> StringUtils::splitBySpace(const std::string& input) {
     return result;
 }
 
-std::string StringUtils::extractSubstring(std::string& str, char delimiter) {
-    std::string::size_type posStart = str.find_first_of(delimiter);
-    std::string::size_type posEnd = str.find_last_of(delimiter);
-    return str.substr(posStart + 1, posEnd - posStart - 1);
-}
-
 void StringUtils::replaceAll(
     std::string& str, const std::string& search, const std::string& replacement) {
     size_t pos = 0;

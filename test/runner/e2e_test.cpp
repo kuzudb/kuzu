@@ -1,5 +1,3 @@
-#include <iostream>
-
 #include "graph_test/graph_test.h"
 #include "test_runner/csv_to_parquet_converter.h"
 #include "test_runner/test_parser.h"

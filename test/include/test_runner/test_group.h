@@ -30,9 +30,7 @@ struct TestGroup {
     std::unordered_map<std::string, std::vector<std::unique_ptr<TestStatement>>> testCases;
     std::unordered_map<std::string, std::vector<std::unique_ptr<TestStatement>>>
         testCasesStatementBlocks;
-
-    uint64_t bufferPoolSize =
-        kuzu::common::BufferPoolConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING;
+    uint64_t bufferPoolSize = common::BufferPoolConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING;
 
     enum class DatasetType { CSV, PARQUET, NPY, CSV_TO_PARQUET };
     DatasetType datasetType;

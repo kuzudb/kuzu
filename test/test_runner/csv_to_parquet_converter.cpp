@@ -17,7 +17,7 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace testing {
 
-arrow::Status CSVToParquetConverter::RunCSVToParquetConversion(
+arrow::Status CSVToParquetConverter::runCSVToParquetConversion(
     const std::string& inputFile, const std::string& outputFile, char delimiter, bool hasHeader) {
     std::shared_ptr<arrow::io::FileOutputStream> outFileStream;
     std::shared_ptr<arrow::io::ReadableFile> infile;
@@ -39,35 +39,34 @@ arrow::Status CSVToParquetConverter::RunCSVToParquetConversion(
 
 void CSVToParquetConverter::copySchema(
     const std::string& csvDatasetPath, const std::string& parquetDatasetPath) {
-    auto parquetSchemaFile = parquetDatasetPath + "/" + std::string(TestHelper::SCHEMA_FILE_NAME);
-    if (!FileUtils::fileOrPathExists(parquetSchemaFile)) {
-        try {
-            std::filesystem::copy(csvDatasetPath + "/schema.cypher", parquetDatasetPath);
-        } catch (std::filesystem::filesystem_error& e) {
-            throw TestException("Failed to copy schema cypher files to parquet temp dir.");
-        }
-    }
+    auto parquetSchemaFile =
+        FileUtils::joinPath(parquetDatasetPath, std::string(TestHelper::SCHEMA_FILE_NAME));
+    FileUtils::copyFile(FileUtils::joinPath(csvDatasetPath, "schema.cypher"),
+        FileUtils::joinPath(parquetDatasetPath, "schema.cypher"),
+        std::filesystem::copy_options::skip_existing);
 }
 
 CSVToParquetConverter::CopyCommandInfo CSVToParquetConverter::createCopyCommandInfo(
-    const std::string& dataset, const std::string& copyStatement) {
+    const std::string& dataset, std::string copyStatement) {
     auto tokens = StringUtils::split(copyStatement, " ");
-    auto path = std::filesystem::path(StringUtils::extractSubstring(tokens[3], '"'));
+    auto path = std::filesystem::path(extractPath(tokens[3], '"'));
     CopyCommandInfo copyCommandInfo;
     copyCommandInfo.table = tokens[1];
     copyCommandInfo.csvFilePath = TestHelper::appendKuzuRootPath(path.string());
-    copyCommandInfo.parquetFilePath = TestHelper::appendParquetDatasetTempDir(
-        replaceSlashesWithUnderscores(dataset) + "/" + path.stem().string() + ".parquet");
-    copyCommandInfo.csvHasHeader = (copyStatement.find("HEADER=true") != std::string::npos);
-    std::size_t delimPos = copyStatement.find("DELIM='");
+    copyCommandInfo.parquetFilePath = TestHelper::appendParquetDatasetTempDir(FileUtils::joinPath(
+        replaceSlashesWithUnderscores(dataset), path.stem().string() + ".parquet"));
+    std::transform(copyStatement.begin(), copyStatement.end(), copyStatement.begin(),
+        [](unsigned char c) { return std::tolower(c); });
+    copyCommandInfo.csvHasHeader = (copyStatement.find("header=true") != std::string::npos);
+    std::size_t delimPos = copyStatement.find("delim='");
     copyCommandInfo.delimiter = (delimPos != std::string::npos) ? copyStatement[delimPos + 7] : ',';
     return copyCommandInfo;
 }
 
 std::vector<CSVToParquetConverter::CopyCommandInfo>
 CSVToParquetConverter::readCopyCommandsFromCopyCypherFile(const std::string& dataset) {
-    auto copyFile =
-        TestHelper::appendKuzuRootPath("dataset/" + dataset + "/" + TestHelper::COPY_FILE_NAME);
+    auto copyFile = TestHelper::appendKuzuRootPath(
+        FileUtils::joinPath("dataset/" + dataset, TestHelper::COPY_FILE_NAME));
     std::ifstream file(copyFile);
     if (!file.is_open()) {
         throw TestException(
@@ -85,7 +84,7 @@ void CSVToParquetConverter::createCopyFile(const std::string& dataset,
     const std::vector<CSVToParquetConverter::CopyCommandInfo>& copyCommands) {
     auto parquetDatasetPath =
         TestHelper::appendParquetDatasetTempDir(replaceSlashesWithUnderscores(dataset));
-    auto targetCopyCypherFile = parquetDatasetPath + "/" + TestHelper::COPY_FILE_NAME;
+    auto targetCopyCypherFile = FileUtils::joinPath(parquetDatasetPath, TestHelper::COPY_FILE_NAME);
     std::ofstream outfile(targetCopyCypherFile);
     if (!outfile.is_open()) {
         throw TestException(StringUtils::string_format(
@@ -103,7 +102,7 @@ void CSVToParquetConverter::convertCSVFilesToParquet(
         if (!FileUtils::fileOrPathExists(copyCommand.parquetFilePath)) {
             spdlog::info(
                 "CONVERTING: {} to {}", copyCommand.csvFilePath, copyCommand.parquetFilePath);
-            RunCSVToParquetConversion(copyCommand.csvFilePath, copyCommand.parquetFilePath,
+            runCSVToParquetConversion(copyCommand.csvFilePath, copyCommand.parquetFilePath,
                 copyCommand.delimiter, copyCommand.csvHasHeader);
         }
     }
@@ -120,6 +119,12 @@ void CSVToParquetConverter::convertCSVDatasetToParquet(std::string& dataset) {
     createCopyFile(dataset, copyCommands);
     convertCSVFilesToParquet(copyCommands);
     dataset = parquetDatasetPath;
+}
+
+std::string CSVToParquetConverter::extractPath(std::string& str, char delimiter) {
+    std::string::size_type posStart = str.find_first_of(delimiter);
+    std::string::size_type posEnd = str.find_last_of(delimiter);
+    return str.substr(posStart + 1, posEnd - posStart - 1);
 }
 
 } // namespace testing
