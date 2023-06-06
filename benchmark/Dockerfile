@@ -5,7 +5,7 @@ ENV SERIALIZED_DIR /serialized
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends apt-utils curl ca-certificates apt-transport-https gnupg software-properties-common
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
-RUN apt-get update && apt-get -y install python3-dev python3-pip python-is-python3 cmake nodejs jq curl git
+RUN apt-get update && apt-get -y install python3-dev python3-pip python-is-python3 cmake nodejs jq curl git libssl-dev libcurl4-openssl-dev
 RUN pip3 install requests psutil
 
 RUN mkdir -p $CSV_DIR $SERIALIZED_DIR 
