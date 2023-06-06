@@ -75,7 +75,7 @@ FlatTuple* getFlatTuple(JNIEnv * env, jobject thisFT) {
     return ft;
 }
 
-DataType* getDatatype (JNIEnv * env, jobject thisDT) {
+DataType* getDataType (JNIEnv * env, jobject thisDT) {
     jclass javaDTClass = env->GetObjectClass(thisDT);
     jfieldID fieldID = env->GetFieldID(javaDTClass, "dt_ref", "J");
     jlong fieldValue = env->GetLongField(thisDT, fieldID);
@@ -93,6 +93,26 @@ Value* getValue (JNIEnv * env, jobject thisValue) {
     uint64_t address = static_cast<uint64_t>(fieldValue);
     Value* v = reinterpret_cast<Value*>(address);
     return v;
+}
+
+NodeVal* getNodeVal (JNIEnv * env, jobject thisNodeVal) {
+    jclass javaValueClass = env->GetObjectClass(thisNodeVal);
+    jfieldID fieldID = env->GetFieldID(javaValueClass, "nv_ref", "J");
+    jlong fieldValue = env->GetLongField(thisNodeVal, fieldID);
+
+    uint64_t address = static_cast<uint64_t>(fieldValue);
+    NodeVal* nv = reinterpret_cast<NodeVal*>(address);
+    return nv;
+}
+
+RelVal* getRelVal (JNIEnv * env, jobject thisRelVal) {
+    jclass javaValueClass = env->GetObjectClass(thisRelVal);
+    jfieldID fieldID = env->GetFieldID(javaValueClass, "rv_ref", "J");
+    jlong fieldValue = env->GetLongField(thisRelVal, fieldID);
+
+    uint64_t address = static_cast<uint64_t>(fieldValue);
+    RelVal* rv = reinterpret_cast<RelVal*>(address);
+    return rv;
 }
 
 std::string dataTypeIDToString (uint8_t id) {
@@ -666,7 +686,7 @@ JNIEXPORT jlong JNICALL Java_tools_java_1api_KuzuNative_kuzu_1data_1type_1create
     if (child_type == nullptr) {
         data_type = new DataType(static_cast<DataTypeID>(data_type_id_u8));
     } else {
-        auto child_type_pty = std::make_unique<DataType>(*getDatatype(env, child_type));
+        auto child_type_pty = std::make_unique<DataType>(*getDataType(env, child_type));
         uint64_t num = static_cast<uint64_t>(fixed_num_elements_in_list);
         data_type = num > 0 ?
                         new DataType(std::move(child_type_pty), num) :
@@ -678,7 +698,7 @@ JNIEXPORT jlong JNICALL Java_tools_java_1api_KuzuNative_kuzu_1data_1type_1create
 
 JNIEXPORT jobject JNICALL Java_tools_java_1api_KuzuNative_kuzu_1data_1type_1clone
   (JNIEnv * env, jclass, jobject thisDT) {
-    DataType* oldDT = getDatatype(env, thisDT);
+    DataType* oldDT = getDataType(env, thisDT);
     DataType* newDT = new DataType(*oldDT);
 
     jobject dt = createJavaObject(env, newDT, "tools/java_api/KuzuDataType", "dt_ref");
@@ -687,14 +707,14 @@ JNIEXPORT jobject JNICALL Java_tools_java_1api_KuzuNative_kuzu_1data_1type_1clon
 
 JNIEXPORT void JNICALL Java_tools_java_1api_KuzuNative_kuzu_1data_1type_1destroy
   (JNIEnv * env, jclass, jobject thisDT) {
-    DataType* dt = getDatatype(env, thisDT);
+    DataType* dt = getDataType(env, thisDT);
     free(dt);
 }
 
 JNIEXPORT jboolean JNICALL Java_tools_java_1api_KuzuNative_kuzu_1data_1type_1equals
   (JNIEnv * env, jclass, jobject dt1, jobject dt2) {
-    DataType* cppdt1 = getDatatype(env, dt1);
-    DataType* cppdt2 = getDatatype(env, dt2);
+    DataType* cppdt1 = getDataType(env, dt1);
+    DataType* cppdt2 = getDataType(env, dt2);
 
     return static_cast<jboolean>(*cppdt1 == *cppdt2);
 }
@@ -702,7 +722,7 @@ JNIEXPORT jboolean JNICALL Java_tools_java_1api_KuzuNative_kuzu_1data_1type_1equ
 JNIEXPORT jobject JNICALL Java_tools_java_1api_KuzuNative_kuzu_1data_1type_1get_1id
   (JNIEnv * env, jclass, jobject thisDT) {
 
-    DataType* dt = getDatatype(env, thisDT);
+    DataType* dt = getDataType(env, thisDT);
     uint8_t id_u8 = static_cast<uint8_t>(dt->getTypeID());
     std::string id_str = dataTypeIDToString(id_u8);
     jclass idClass = env->FindClass("tools/java_api/KuzuDataTypeID");
@@ -714,7 +734,7 @@ JNIEXPORT jobject JNICALL Java_tools_java_1api_KuzuNative_kuzu_1data_1type_1get_
 
 JNIEXPORT jobject JNICALL Java_tools_java_1api_KuzuNative_kuzu_1data_1type_1get_1child_1type
   (JNIEnv * env, jclass, jobject thisDT) {
-    DataType* parent_type = getDatatype(env, thisDT);
+    DataType* parent_type = getDataType(env, thisDT);
     if (parent_type->getTypeID() != DataTypeID::FIXED_LIST &&
         parent_type->getTypeID() != DataTypeID::VAR_LIST) {
         return nullptr;
@@ -731,7 +751,7 @@ JNIEXPORT jobject JNICALL Java_tools_java_1api_KuzuNative_kuzu_1data_1type_1get_
 
 JNIEXPORT jlong JNICALL Java_tools_java_1api_KuzuNative_kuzu_1data_1type_1get_1fixed_1num_1elements_1in_1list
   (JNIEnv * env, jclass, jobject thisDT) {
-    DataType* dt = getDatatype(env, thisDT);
+    DataType* dt = getDataType(env, thisDT);
     if (dt->getTypeID() != DataTypeID::FIXED_LIST) {
         return 0;
     }
@@ -741,4 +761,288 @@ JNIEXPORT jlong JNICALL Java_tools_java_1api_KuzuNative_kuzu_1data_1type_1get_1f
     }
     auto fixed_list_info = dynamic_cast<FixedListTypeInfo*>(extra_info);
     return static_cast<jlong>(fixed_list_info->getFixedNumElementsInList());
+}
+
+/**
+ * All Value native functions
+*/
+
+JNIEXPORT jobject JNICALL Java_tools_java_1api_KuzuNative_kuzu_1value_1create_1null
+  (JNIEnv * env, jclass) {
+    Value* v = new Value(Value::createNullValue());
+    jobject ret = createJavaObject(env, v, "tools/java_api/KuzuValue", "v_ref");
+    return ret;
+}
+
+JNIEXPORT jobject JNICALL Java_tools_java_1api_KuzuNative_kuzu_1value_1create_1null_1with_1data_1type
+  (JNIEnv * env, jclass, jobject data_type) {
+    DataType* dt = getDataType(env, data_type);
+    Value* v = new Value(Value::createNullValue(*dt));
+    jobject ret = createJavaObject(env, v, "tools/java_api/KuzuValue", "v_ref");
+    return ret;
+}
+
+JNIEXPORT jboolean JNICALL Java_tools_java_1api_KuzuNative_kuzu_1value_1is_1null
+  (JNIEnv * env, jclass, jobject thisV) {
+    Value* v = getValue(env, thisV);
+    return static_cast<jboolean>(v->isNull());
+}
+
+JNIEXPORT void JNICALL Java_tools_java_1api_KuzuNative_kuzu_1value_1set_1null
+  (JNIEnv * env, jclass, jobject thisV, jboolean is_null) {
+    Value* v = getValue(env, thisV);
+    v->setNull(static_cast<bool>(is_null));
+}
+
+JNIEXPORT jobject JNICALL Java_tools_java_1api_KuzuNative_kuzu_1value_1create_1default
+  (JNIEnv * env, jclass, jobject data_type) {
+    DataType* dt = getDataType(env, data_type);
+    Value* v = new Value(Value::createDefaultValue(*dt));
+    jobject ret = createJavaObject(env, v, "tools/java_api/KuzuValue", "v_ref");
+    return ret;
+}
+
+
+JNIEXPORT jlong JNICALL Java_tools_java_1api_KuzuNative_kuzu_1value_1create_1value
+  (JNIEnv * env, jclass, jobject val) {
+    Value* v;
+    jclass val_class = env->GetObjectClass(val);
+    if (env->IsInstanceOf(val, env->FindClass("java/lang/Boolean"))) {
+        jboolean value = env->CallIntMethod(val, env->GetMethodID(val_class, "booleanValue", "()Z"));
+        v = new Value(static_cast<bool>(value));
+    } else if (env->IsInstanceOf(val, env->FindClass("java/lang/Short"))) {
+        jshort value = env->CallIntMethod(val, env->GetMethodID(val_class, "shortValue", "()S"));
+        v = new Value(static_cast<int16_t>(value));
+    } else if (env->IsInstanceOf(val, env->FindClass("java/lang/Integer"))) {
+        jint value = env->CallIntMethod(val, env->GetMethodID(val_class, "intValue", "()I"));
+        v = new Value(static_cast<int32_t>(value));
+    } else if (env->IsInstanceOf(val, env->FindClass("java/lang/Long"))) {
+        jlong value = env->CallIntMethod(val, env->GetMethodID(val_class, "longValue", "()J"));
+        v = new Value(static_cast<int64_t>(value));
+    } else if (env->IsInstanceOf(val, env->FindClass("java/lang/Float"))) {
+        jfloat value = env->CallIntMethod(val, env->GetMethodID(val_class, "floatValue", "()F"));
+        v = new Value(static_cast<float>(value));
+    } else if (env->IsInstanceOf(val, env->FindClass("java/lang/Double"))) {
+        jdouble value = env->CallIntMethod(val, env->GetMethodID(val_class, "doubleValue", "()D"));
+        v = new Value(static_cast<double>(value));
+    } else if (env->IsInstanceOf(val, env->FindClass("java/lang/String"))) {
+        jstring value = static_cast<jstring>(val);
+        std::string str = env->GetStringUTFChars(value, NULL);
+        v = new Value(str);
+    } else if (env->IsInstanceOf(val, env->FindClass("tools/java_api/KuzuInternalID"))) {
+        jfieldID fieldID = env->GetFieldID(val_class, "table_id", "J");
+		long table_id = static_cast<long>(env->GetLongField(val, fieldID));
+		fieldID = env->GetFieldID(val_class, "offset", "J");
+		long offset = static_cast<long>(env->GetLongField(val, fieldID));
+		internalID_t id(offset, table_id);
+		v = new Value(id);
+    } else if (env->IsInstanceOf(val, env->FindClass("tools/java_api/KuzuNodeValue"))) {
+        auto node_val = std::make_unique<NodeVal>(*getNodeVal(env, val));
+		v = new Value(std::move(node_val));
+    } else if (env->IsInstanceOf(val, env->FindClass("tools/java_api/KuzuRelValue"))) {
+		auto rel_val = std::make_unique<RelVal>(*getRelVal(env, val));
+		v = new Value(std::move(rel_val));
+    } else if (env->IsInstanceOf(val, env->FindClass("java/time/LocalDate"))) {
+		jmethodID toEpochDay = env->GetMethodID(val_class, "toEpochDay", "()J");
+		long days = static_cast<long>(env->CallLongMethod(val, toEpochDay));
+		v = new Value(date_t(days));
+    } else if (env->IsInstanceOf(val, env->FindClass("java/time/Instant"))) {
+		// TODO: Need to review this for overflow
+		jmethodID getEpochSecond = env->GetMethodID(val_class, "getEpochSecond", "()J");
+		jmethodID getNano = env->GetMethodID(val_class, "getNano", "()I");
+		long seconds = static_cast<long>(env->CallLongMethod(val, getEpochSecond));
+		long nano = static_cast<long>(env->CallLongMethod(val, getNano));
+
+		long micro = (seconds * 1000000L) +  (nano / 1000L);
+		v = new Value(timestamp_t(micro));
+    } else if (env->IsInstanceOf(val, env->FindClass("tools/java_api/KuzuInterval"))) {
+		jfieldID monthFieldID = env->GetFieldID(val_class, "months", "I");
+    	jfieldID dayFieldID = env->GetFieldID(val_class, "days", "I");
+		jfieldID microFieldID = env->GetFieldID(val_class, "micros", "J");
+		
+		jlong months = env->GetLongField(val, monthFieldID);
+		jlong days = env->GetLongField(val, dayFieldID);
+		jlong micros = env->GetLongField(val, microFieldID);
+		v = new Value(interval_t(months, days, micros));
+    } else {
+		// Throw exception here
+		return -1;
+	}
+	uint64_t address = reinterpret_cast<uint64_t>(v);
+    return static_cast<jlong>(address);
+}
+
+JNIEXPORT jobject JNICALL Java_tools_java_1api_KuzuNative_kuzu_1value_1clone
+  (JNIEnv * env, jclass, jobject thisValue) {
+	Value* v = getValue(env, thisValue);
+	Value* copy = new Value(*v);
+	return createJavaObject(env, copy, "tools/java_api/KuzuValue", "v_ref");
+}
+
+JNIEXPORT void JNICALL Java_tools_java_1api_KuzuNative_kuzu_1value_1copy
+  (JNIEnv * env, jclass, jobject thisValue, jobject otherValue) {
+	Value* thisV = getValue(env, thisValue);
+	Value* otherV = getValue(env, otherValue);
+	thisV->copyValueFrom(*otherV);
+}
+
+JNIEXPORT void JNICALL Java_tools_java_1api_KuzuNative_kuzu_1value_1destroy
+  (JNIEnv * env, jclass, jobject thisValue) {
+	Value* v = getValue(env, thisValue);
+	free(v);
+}
+
+JNIEXPORT jlong JNICALL Java_tools_java_1api_KuzuNative_kuzu_1value_1get_1list_1size
+  (JNIEnv * env, jclass, jobject thisValue) {
+	Value* v = getValue(env, thisValue);
+	return static_cast<jlong>(v->getListValReference().size());
+}
+
+JNIEXPORT jobject JNICALL Java_tools_java_1api_KuzuNative_kuzu_1value_1get_1list_1element
+  (JNIEnv * env, jclass, jobject thisValue, jlong index) {
+	Value* v = getValue(env, thisValue);
+	uint64_t idx = static_cast<uint64_t>(index);
+
+	auto& list_val = v->getListValReference();
+
+	if (idx >= list_val.size()) {
+        return nullptr;
+    }
+
+	auto& list_element = list_val[index];
+	auto val = list_element.get();
+	
+	return createJavaObject(env, val, "tools/java_api/KuzuValue", "v_ref");
+}
+
+JNIEXPORT jobject JNICALL Java_tools_java_1api_KuzuNative_kuzu_1value_1get_1data_1type
+  (JNIEnv * env, jclass, jobject thisValue) {
+	Value* v = getValue(env, thisValue);
+	DataType* dt = new DataType(v->getDataType());
+	return createJavaObject(env, dt, "tools/java_api/KuzuDataType", "dt_ref");
+}
+
+JNIEXPORT jobject JNICALL Java_tools_java_1api_KuzuNative_kuzu_1value_1get_1value
+  (JNIEnv * env, jclass, jobject thisValue) {
+	Value* v = getValue(env, thisValue);
+	DataType dt = v->getDataType();
+	
+	switch(dt.typeID) {
+	case DataTypeID::BOOL:
+	{
+		jclass retClass = env->FindClass("java/lang/Boolean");
+		jmethodID ctor = env->GetMethodID(retClass, "<init>", "(Z)V");
+		jboolean val = static_cast<jboolean>(v->getValue<bool>());
+		jobject ret = env->NewObject(retClass, ctor, val);
+		return ret;
+	}
+	case DataTypeID::INT64:
+	{
+		jclass retClass = env->FindClass("java/lang/Long");
+		jmethodID ctor = env->GetMethodID(retClass, "<init>", "(J)V");
+		jlong val = static_cast<jlong>(v->getValue<int64_t>());
+		jobject ret = env->NewObject(retClass, ctor, val);
+		return ret;
+	}
+	case DataTypeID::INT32:
+	{
+		jclass retClass = env->FindClass("java/lang/Integer");
+		jmethodID ctor = env->GetMethodID(retClass, "<init>", "(I)V");
+		jint val = static_cast<jint>(v->getValue<int32_t>());
+		jobject ret = env->NewObject(retClass, ctor, val);
+		return ret;
+	}
+	case DataTypeID::INT16:
+	{
+		jclass retClass = env->FindClass("java/lang/Short");
+		jmethodID ctor = env->GetMethodID(retClass, "<init>", "(S)V");
+		jshort val = static_cast<jshort>(v->getValue<int16_t>());
+		jobject ret = env->NewObject(retClass, ctor, val);
+		return ret;
+	}
+	case DataTypeID::DOUBLE:
+	{
+		jclass retClass = env->FindClass("java/lang/Double");
+		jmethodID ctor = env->GetMethodID(retClass, "<init>", "(D)V");
+		jdouble val = static_cast<jdouble>(v->getValue<double>());
+		jobject ret = env->NewObject(retClass, ctor, val);
+		return ret;
+	}
+	case DataTypeID::FLOAT:
+	{
+		jclass retClass = env->FindClass("java/lang/Float");
+		jmethodID ctor = env->GetMethodID(retClass, "<init>", "(F)V");
+		jfloat val = static_cast<jfloat>(v->getValue<float>());
+		jobject ret = env->NewObject(retClass, ctor, val);
+		return ret;
+	}
+	case DataTypeID::DATE:
+	{
+		jclass retClass = env->FindClass("java/time/LocalDate");
+		date_t date = v->getValue<date_t>();
+		jclass ldClass = env->FindClass("java/time/LocalDate");
+		jmethodID ofEpochDay = env->GetStaticMethodID(ldClass, "ofEpochDay", "(J)Ljava/time/LocalDate;");
+    	jobject ret = env->CallStaticObjectMethod(ldClass, ofEpochDay, date.days);
+		return ret;
+	}
+	case DataTypeID::TIMESTAMP:
+	{
+		timestamp_t ts = v->getValue<timestamp_t>();
+		int64_t seconds = ts.value / 1000000L;
+		int64_t nano = ts.value % 1000000L * 1000L;
+		jclass retClass = env->FindClass("java/time/Instant");
+	    jmethodID ofEpochSecond = env->GetStaticMethodID(retClass, "ofEpochSecond", "(JJ)Ljava/time/Instant;");
+	    jobject ret = env->CallStaticObjectMethod(retClass, ofEpochSecond, seconds, nano);
+		return ret;
+	}
+	case DataTypeID::INTERVAL:
+	{
+		jclass retClass = env->FindClass("tools/java_api/KuzuInterval");
+		jmethodID ctor = env->GetMethodID(retClass, "<init>", "(IIJ)V");
+		interval_t in = v->getValue<interval_t>();
+		jobject ret = env->NewObject(retClass, ctor, in.months, in.days, in.micros);
+		return ret;
+	}
+	case DataTypeID::INTERNAL_ID:
+	{
+		jclass retClass = env->FindClass("tools/java_api/KuzuInternalID");
+		jmethodID ctor = env->GetMethodID(retClass, "<init>", "(JJ)V");
+		internalID_t iid = v->getValue<internalID_t>();
+		jobject ret = env->NewObject(retClass, ctor, iid.tableID, iid.offset);
+		return ret;
+	}
+	case DataTypeID::STRING:
+	{
+		std::string str = v->getValue<std::string>();
+		jstring ret = env->NewStringUTF(str.c_str());
+		return ret;
+	}
+	case DataTypeID::NODE:
+	{
+		auto node_val = v->getValue<NodeVal>();
+		NodeVal* nv = new NodeVal(node_val);
+		return createJavaObject(env, nv, "tools/java_api/KuzuNodeValue", "nv_ref");
+	}
+	case DataTypeID::REL:
+	{
+		auto rel_val = v->getValue<RelVal>();
+		RelVal* nv = new RelVal(rel_val);
+		return createJavaObject(env, nv, "tools/java_api/KuzuRelValue", "rv_ref");
+	}
+	default:
+	{	
+		//Throw exception here?
+		return nullptr;
+	}
+
+	return nullptr;
+	}
+}
+
+JNIEXPORT jstring JNICALL Java_tools_java_1api_KuzuNative_kuzu_1value_1to_1string
+  (JNIEnv * env, jclass, jobject thisValue) {
+	Value* v = getValue(env, thisValue);
+    std::string result_string = v->toString();
+    jstring ret = env->NewStringUTF(result_string.c_str());
+    return ret;
 }

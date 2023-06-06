@@ -1,6 +1,7 @@
 package tools.java_api;
 
 import java.util.Map;
+import java.time.Period;
 public class KuzuNative {
     static {
         System.loadLibrary("kuzu_java_native");
@@ -105,25 +106,32 @@ public class KuzuNative {
     protected static native boolean kuzu_value_is_null(KuzuValue value);
     protected static native void kuzu_value_set_null(KuzuValue value, boolean is_null);
     protected static native KuzuValue kuzu_value_create_default(KuzuDataType data_type);
-    protected static native KuzuValue kuzu_value_create_bool(boolean val_);
-    protected static native KuzuValue kuzu_value_create_int16(short val_);
-    protected static native KuzuValue kuzu_value_create_int32(int val_);
-    protected static native KuzuValue kuzu_value_create_int64(long val_);
-    protected static native KuzuValue kuzu_value_create_float(float val_);
-    protected static native KuzuValue kuzu_value_create_double(double val_);
-    protected static native KuzuValue kuzu_value_create_internal_id(KuzuInternalID val_);
-    protected static native KuzuValue kuzu_value_create_node_val(KuzuNodeValue val_);
-    protected static native KuzuValue kuzu_value_create_rel_val(KuzuRelValue val_);
-    protected static native KuzuValue kuzu_value_create_date(KuzuDate val_);
-    protected static native KuzuValue kuzu_value_create_timestamp(KuzuTimestamp val_);
-    protected static native KuzuValue kuzu_value_create_interval(KuzuInterval val_);
-    protected static native KuzuValue kuzu_value_create_string(String val_);
+    protected static native <T> long kuzu_value_create_value(T val);
+    /* 
+    protected static native KuzuValue kuzu_value_create(boolean val_);
+    protected static native KuzuValue kuzu_value_create(short val_);
+    protected static native KuzuValue kuzu_value_create(int val_);
+    protected static native KuzuValue kuzu_value_create(long val_);
+    protected static native KuzuValue kuzu_value_create(float val_);
+    protected static native KuzuValue kuzu_value_create(double val_);
+    protected static native KuzuValue kuzu_value_create(KuzuInternalID val_);
+    protected static native KuzuValue kuzu_value_create(KuzuNodeValue val_);
+    protected static native KuzuValue kuzu_value_create(KuzuRelValue val_);
+    protected static native KuzuValue kuzu_value_create(KuzuDate val_);
+    protected static native KuzuValue kuzu_value_create(KuzuTimestamp val_);
+    protected static native KuzuValue kuzu_value_create(KuzuInterval val_);
+    protected static native KuzuValue kuzu_value_create(String val_);
+    */
     protected static native KuzuValue kuzu_value_clone(KuzuValue value);
     protected static native void kuzu_value_copy(KuzuValue value, KuzuValue other);
     protected static native void kuzu_value_destroy(KuzuValue value);
     protected static native long kuzu_value_get_list_size(KuzuValue value);
     protected static native KuzuValue kuzu_value_get_list_element(KuzuValue value, long index);
     protected static native KuzuDataType kuzu_value_get_data_type(KuzuValue value);
+
+    protected static native <T> T kuzu_value_get_value(KuzuValue value);
+
+    /*
     protected static native boolean kuzu_value_get_bool(KuzuValue value);
     protected static native short kuzu_value_get_int16(KuzuValue value);
     protected static native int kuzu_value_get_int32(KuzuValue value);
@@ -137,6 +145,8 @@ public class KuzuNative {
     protected static native KuzuTimestamp kuzu_value_get_timestamp(KuzuValue value);
     protected static native KuzuInterval kuzu_value_get_interval(KuzuValue value);
     protected static native String kuzu_value_get_string(KuzuValue value);
+    */
+
     protected static native String kuzu_value_to_string(KuzuValue value);
 
     protected static native KuzuNodeValue kuzu_node_val_create(KuzuInternalID id, String label);

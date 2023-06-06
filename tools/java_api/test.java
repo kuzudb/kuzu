@@ -1,4 +1,5 @@
 package tools.java_api;
+import java.time.*;
 
 public class test {
     public static void main(String[] args) {
@@ -22,5 +23,11 @@ public class test {
         KuzuDataType dt = new KuzuDataType(id);
 
         System.out.println(dt.getID());
+        
+        KuzuValue v = new KuzuValue(new KuzuInterval(9, 0, 0));
+        KuzuValue t = new KuzuValue(Instant.now());
+
+        System.out.println(t);
+
     }
 }
