@@ -7,8 +7,8 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
-std::vector<std::unique_ptr<VectorOperationDefinition>> DatePartVectorOperation::getDefinitions() {
-    std::vector<std::unique_ptr<VectorOperationDefinition>> result;
+vector_operation_definitions DatePartVectorOperation::getDefinitions() {
+    vector_operation_definitions result;
     result.push_back(make_unique<VectorOperationDefinition>(DATE_PART_FUNC_NAME,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::DATE},
         LogicalTypeID::INT64,
@@ -24,8 +24,8 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> DatePartVectorOperation:
     return result;
 }
 
-std::vector<std::unique_ptr<VectorOperationDefinition>> DateTruncVectorOperation::getDefinitions() {
-    std::vector<std::unique_ptr<VectorOperationDefinition>> result;
+vector_operation_definitions DateTruncVectorOperation::getDefinitions() {
+    vector_operation_definitions result;
     result.push_back(make_unique<VectorOperationDefinition>(DATE_TRUNC_FUNC_NAME,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::DATE}, LogicalTypeID::DATE,
         BinaryExecFunction<ku_string_t, date_t, date_t, operation::DateTrunc>));
@@ -36,8 +36,8 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> DateTruncVectorOperation
     return result;
 }
 
-std::vector<std::unique_ptr<VectorOperationDefinition>> DayNameVectorOperation::getDefinitions() {
-    std::vector<std::unique_ptr<VectorOperationDefinition>> result;
+vector_operation_definitions DayNameVectorOperation::getDefinitions() {
+    vector_operation_definitions result;
     result.push_back(make_unique<VectorOperationDefinition>(DAYNAME_FUNC_NAME,
         std::vector<LogicalTypeID>{LogicalTypeID::DATE}, LogicalTypeID::STRING,
         UnaryExecFunction<date_t, ku_string_t, operation::DayName>));
@@ -47,8 +47,8 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> DayNameVectorOperation::
     return result;
 }
 
-std::vector<std::unique_ptr<VectorOperationDefinition>> GreatestVectorOperation::getDefinitions() {
-    std::vector<std::unique_ptr<VectorOperationDefinition>> result;
+vector_operation_definitions GreatestVectorOperation::getDefinitions() {
+    vector_operation_definitions result;
     result.push_back(make_unique<VectorOperationDefinition>(GREATEST_FUNC_NAME,
         std::vector<LogicalTypeID>{LogicalTypeID::DATE, LogicalTypeID::DATE}, LogicalTypeID::DATE,
         BinaryExecFunction<date_t, date_t, date_t, operation::Greatest>));
@@ -59,8 +59,8 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> GreatestVectorOperation:
     return result;
 }
 
-std::vector<std::unique_ptr<VectorOperationDefinition>> LastDayVectorOperation::getDefinitions() {
-    std::vector<std::unique_ptr<VectorOperationDefinition>> result;
+vector_operation_definitions LastDayVectorOperation::getDefinitions() {
+    vector_operation_definitions result;
     result.push_back(make_unique<VectorOperationDefinition>(LAST_DAY_FUNC_NAME,
         std::vector<LogicalTypeID>{LogicalTypeID::DATE}, LogicalTypeID::DATE,
         UnaryExecFunction<date_t, date_t, operation::LastDay>));
@@ -70,8 +70,8 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> LastDayVectorOperation::
     return result;
 }
 
-std::vector<std::unique_ptr<VectorOperationDefinition>> LeastVectorOperation::getDefinitions() {
-    std::vector<std::unique_ptr<VectorOperationDefinition>> result;
+vector_operation_definitions LeastVectorOperation::getDefinitions() {
+    vector_operation_definitions result;
     result.push_back(make_unique<VectorOperationDefinition>(LEAST_FUNC_NAME,
         std::vector<LogicalTypeID>{LogicalTypeID::DATE, LogicalTypeID::DATE}, LogicalTypeID::DATE,
         BinaryExecFunction<date_t, date_t, date_t, operation::Least>));
@@ -82,8 +82,8 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> LeastVectorOperation::ge
     return result;
 }
 
-std::vector<std::unique_ptr<VectorOperationDefinition>> MakeDateVectorOperation::getDefinitions() {
-    std::vector<std::unique_ptr<VectorOperationDefinition>> result;
+vector_operation_definitions MakeDateVectorOperation::getDefinitions() {
+    vector_operation_definitions result;
     result.push_back(make_unique<VectorOperationDefinition>(MAKE_DATE_FUNC_NAME,
         std::vector<LogicalTypeID>{
             LogicalTypeID::INT64, LogicalTypeID::INT64, LogicalTypeID::INT64},
@@ -92,8 +92,8 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> MakeDateVectorOperation:
     return result;
 }
 
-std::vector<std::unique_ptr<VectorOperationDefinition>> MonthNameVectorOperation::getDefinitions() {
-    std::vector<std::unique_ptr<VectorOperationDefinition>> result;
+vector_operation_definitions MonthNameVectorOperation::getDefinitions() {
+    vector_operation_definitions result;
     result.push_back(make_unique<VectorOperationDefinition>(MONTHNAME_FUNC_NAME,
         std::vector<LogicalTypeID>{LogicalTypeID::DATE}, LogicalTypeID::STRING,
         UnaryExecFunction<date_t, ku_string_t, operation::MonthName>));

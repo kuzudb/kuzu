@@ -1,0 +1,47 @@
+#pragma once
+
+#include <cassert>
+#include <cstring>
+
+#include "common/vector/value_vector.h"
+#include "common/vector/value_vector_utils.h"
+
+namespace kuzu {
+namespace function {
+namespace operation {
+
+struct Map {
+    static void operation(common::list_entry_t& keyEntry, common::list_entry_t& valueEntry,
+        common::list_entry_t& resultEntry, common::ValueVector& keyVector,
+        common::ValueVector& valueVector, common::ValueVector& resultVector) {
+        if (keyEntry.size != valueEntry.size) {
+            throw common::RuntimeException{"Unaligned key list and value list."};
+        }
+        resultEntry = common::ListVector::addList(&resultVector, keyEntry.size);
+        auto resultStructVector = common::ListVector::getDataVector(&resultVector);
+        copyListEntry(resultEntry,
+            common::StructVector::getChildVector(resultStructVector, 0 /* keyVector */).get(),
+            keyEntry, &keyVector);
+        copyListEntry(resultEntry,
+            common::StructVector::getChildVector(resultStructVector, 1 /* valueVector */).get(),
+            valueEntry, &valueVector);
+    }
+
+    static void copyListEntry(common::list_entry_t& resultEntry, common::ValueVector* resultVector,
+        common::list_entry_t& srcEntry, common::ValueVector* srcVector) {
+        auto resultValues =
+            resultVector->getData() + resultVector->getNumBytesPerValue() * resultEntry.offset;
+        auto srcValues = common::ListVector::getListValues(srcVector, srcEntry);
+        auto srcDataVector = common::ListVector::getDataVector(srcVector);
+        for (auto i = 0u; i < srcEntry.size; i++) {
+            common::ValueVectorUtils::copyValue(
+                resultValues, *resultVector, srcValues, *srcDataVector);
+            srcValues += srcDataVector->getNumBytesPerValue();
+            resultValues += resultVector->getNumBytesPerValue();
+        }
+    }
+};
+
+} // namespace operation
+} // namespace function
+} // namespace kuzu

@@ -8,9 +8,8 @@
 namespace kuzu {
 namespace function {
 
-std::vector<std::unique_ptr<VectorOperationDefinition>>
-StructPackVectorOperations::getDefinitions() {
-    std::vector<std::unique_ptr<VectorOperationDefinition>> definitions;
+vector_operation_definitions StructPackVectorOperations::getDefinitions() {
+    vector_operation_definitions definitions;
     definitions.push_back(make_unique<VectorOperationDefinition>(common::STRUCT_PACK_FUNC_NAME,
         std::vector<common::LogicalTypeID>{common::LogicalTypeID::ANY},
         common::LogicalTypeID::STRUCT, execFunc, nullptr, bindFunc, true /* isVarLength */));
@@ -79,9 +78,8 @@ void StructPackVectorOperations::copyParameterValueToStructFieldVector(
     }
 }
 
-std::vector<std::unique_ptr<VectorOperationDefinition>>
-StructExtractVectorOperations::getDefinitions() {
-    std::vector<std::unique_ptr<VectorOperationDefinition>> definitions;
+vector_operation_definitions StructExtractVectorOperations::getDefinitions() {
+    vector_operation_definitions definitions;
     definitions.push_back(make_unique<VectorOperationDefinition>(common::STRUCT_EXTRACT_FUNC_NAME,
         std::vector<common::LogicalTypeID>{
             common::LogicalTypeID::STRUCT, common::LogicalTypeID::STRING},

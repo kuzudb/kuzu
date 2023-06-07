@@ -6,6 +6,7 @@
 #include "function/date/vector_date_operations.h"
 #include "function/interval/vector_interval_operations.h"
 #include "function/list/vector_list_operations.h"
+#include "function/map/vector_map_operations.h"
 #include "function/schema/vector_offset_operations.h"
 #include "function/string/vector_string_operations.h"
 #include "function/struct/vector_struct_operations.h"
@@ -25,7 +26,8 @@ void BuiltInVectorOperations::registerVectorOperations() {
     registerStringOperations();
     registerCastOperations();
     registerListOperations();
-    registerStructOperation();
+    registerStructOperations();
+    registerMapOperations();
     // register internal offset operation
     vectorOperations.insert({OFFSET_FUNC_NAME, OffsetVectorOperation::getDefinitions()});
 }
@@ -478,10 +480,14 @@ void BuiltInVectorOperations::registerListOperations() {
         {LIST_ANY_VALUE_FUNC_NAME, ListAnyValueVectorOperation::getDefinitions()});
 }
 
-void BuiltInVectorOperations::registerStructOperation() {
+void BuiltInVectorOperations::registerStructOperations() {
     vectorOperations.insert({STRUCT_PACK_FUNC_NAME, StructPackVectorOperations::getDefinitions()});
     vectorOperations.insert(
         {STRUCT_EXTRACT_FUNC_NAME, StructExtractVectorOperations::getDefinitions()});
+}
+
+void BuiltInVectorOperations::registerMapOperations() {
+    vectorOperations.insert({MAP_CREATION_FUNC_NAME, MapVectorOperations::getDefinitions()});
 }
 
 } // namespace function

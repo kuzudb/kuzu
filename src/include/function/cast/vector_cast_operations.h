@@ -73,39 +73,39 @@ protected:
 };
 
 struct CastToDateVectorOperation : public VectorCastOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 struct CastToTimestampVectorOperation : public VectorCastOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 struct CastToIntervalVectorOperation : public VectorCastOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 struct CastToStringVectorOperation : public VectorCastOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 struct CastToDoubleVectorOperation : public VectorCastOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 struct CastToFloatVectorOperation : public VectorCastOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 struct CastToInt64VectorOperation : public VectorCastOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 struct CastToInt32VectorOperation : public VectorCastOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 struct CastToInt16VectorOperation : public VectorCastOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 } // namespace function

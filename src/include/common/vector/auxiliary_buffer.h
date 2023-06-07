@@ -69,6 +69,9 @@ public:
     inline void resetSize() { size = 0; }
 
 private:
+    void resizeDataVector(ValueVector* dataVector);
+
+private:
     uint64_t capacity;
     uint64_t size;
     std::unique_ptr<ValueVector> dataVector;

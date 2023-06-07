@@ -258,18 +258,18 @@ void StorageUtils::createFileForRelListsPropertyWithDefaultVal(table_id_t relTab
 }
 
 uint32_t StorageUtils::getDataTypeSize(const common::LogicalType& type) {
-    switch (type.getLogicalTypeID()) {
-    case common::LogicalTypeID::STRING: {
+    switch (type.getPhysicalType()) {
+    case common::PhysicalTypeID::STRING: {
         return sizeof(common::ku_string_t);
     }
-    case common::LogicalTypeID::FIXED_LIST: {
+    case common::PhysicalTypeID::FIXED_LIST: {
         return getDataTypeSize(*common::FixedListType::getChildType(&type)) *
                common::FixedListType::getNumElementsInList(&type);
     }
-    case common::LogicalTypeID::VAR_LIST: {
+    case common::PhysicalTypeID::VAR_LIST: {
         return sizeof(common::ku_list_t);
     }
-    case common::LogicalTypeID::STRUCT: {
+    case common::PhysicalTypeID::STRUCT: {
         uint32_t size = 0;
         auto fieldsTypes = common::StructType::getFieldTypes(&type);
         for (auto fieldType : fieldsTypes) {

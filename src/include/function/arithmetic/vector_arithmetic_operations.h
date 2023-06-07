@@ -110,151 +110,151 @@ private:
 };
 
 struct AddVectorOperation : public VectorArithmeticOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 struct SubtractVectorOperation : public VectorArithmeticOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 struct MultiplyVectorOperation : public VectorArithmeticOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 struct DivideVectorOperation : public VectorArithmeticOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 struct ModuloVectorOperation : public VectorArithmeticOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 struct PowerVectorOperation : public VectorArithmeticOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 struct AbsVectorOperation : public VectorArithmeticOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 struct AcosVectorOperation : public VectorArithmeticOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 struct AsinVectorOperation : public VectorArithmeticOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 struct AtanVectorOperation : public VectorArithmeticOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 struct Atan2VectorOperation : public VectorArithmeticOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 struct BitwiseXorVectorOperation : public VectorArithmeticOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 struct BitwiseAndVectorOperation : public VectorArithmeticOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 struct BitwiseOrVectorOperation : public VectorArithmeticOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 struct BitShiftLeftVectorOperation : public VectorArithmeticOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 struct BitShiftRightVectorOperation : public VectorArithmeticOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 struct CbrtVectorOperation : public VectorArithmeticOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 struct CeilVectorOperation : public VectorArithmeticOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 struct CosVectorOperation : public VectorArithmeticOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 struct CotVectorOperation : public VectorArithmeticOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 struct DegreesVectorOperation : public VectorArithmeticOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 struct EvenVectorOperation : public VectorArithmeticOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 struct FactorialVectorOperation : public VectorArithmeticOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 struct FloorVectorOperation : public VectorArithmeticOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 struct GammaVectorOperation : public VectorArithmeticOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 struct LgammaVectorOperation : public VectorArithmeticOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 struct LnVectorOperation : public VectorArithmeticOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 struct LogVectorOperation : public VectorArithmeticOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 struct Log2VectorOperation : public VectorArithmeticOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 struct NegateVectorOperation : public VectorArithmeticOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 struct PiVectorOperation : public VectorArithmeticOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 struct RadiansVectorOperation : public VectorArithmeticOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 struct RoundVectorOperation : public VectorArithmeticOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 struct SinVectorOperation : public VectorArithmeticOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 struct SignVectorOperation : public VectorArithmeticOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 struct SqrtVectorOperation : public VectorArithmeticOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 struct TanVectorOperation : public VectorArithmeticOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 } // namespace function

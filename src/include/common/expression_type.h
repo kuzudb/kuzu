@@ -66,6 +66,9 @@ const std::string LIST_ANY_VALUE_FUNC_NAME = "LIST_ANY_VALUE";
 const std::string STRUCT_PACK_FUNC_NAME = "STRUCT_PACK";
 const std::string STRUCT_EXTRACT_FUNC_NAME = "STRUCT_EXTRACT";
 
+// map
+const std::string MAP_CREATION_FUNC_NAME = "MAP";
+
 // comparison
 const std::string EQUALS_FUNC_NAME = "EQUALS";
 const std::string NOT_EQUALS_FUNC_NAME = "NOT_EQUALS";

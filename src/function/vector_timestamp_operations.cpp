@@ -7,25 +7,24 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
-std::vector<std::unique_ptr<VectorOperationDefinition>> CenturyVectorOperation::getDefinitions() {
-    std::vector<std::unique_ptr<VectorOperationDefinition>> result;
+vector_operation_definitions CenturyVectorOperation::getDefinitions() {
+    vector_operation_definitions result;
     result.push_back(make_unique<VectorOperationDefinition>(CENTURY_FUNC_NAME,
         std::vector<LogicalTypeID>{LogicalTypeID::TIMESTAMP}, LogicalTypeID::INT64,
         UnaryExecFunction<timestamp_t, int64_t, operation::Century>));
     return result;
 }
 
-std::vector<std::unique_ptr<VectorOperationDefinition>> EpochMsVectorOperation::getDefinitions() {
-    std::vector<std::unique_ptr<VectorOperationDefinition>> result;
+vector_operation_definitions EpochMsVectorOperation::getDefinitions() {
+    vector_operation_definitions result;
     result.push_back(make_unique<VectorOperationDefinition>(EPOCH_MS_FUNC_NAME,
         std::vector<LogicalTypeID>{LogicalTypeID::INT64}, LogicalTypeID::TIMESTAMP,
         UnaryExecFunction<int64_t, timestamp_t, operation::EpochMs>));
     return result;
 }
 
-std::vector<std::unique_ptr<VectorOperationDefinition>>
-ToTimestampVectorOperation::getDefinitions() {
-    std::vector<std::unique_ptr<VectorOperationDefinition>> result;
+vector_operation_definitions ToTimestampVectorOperation::getDefinitions() {
+    vector_operation_definitions result;
     result.push_back(make_unique<VectorOperationDefinition>(TO_TIMESTAMP_FUNC_NAME,
         std::vector<LogicalTypeID>{LogicalTypeID::INT64}, LogicalTypeID::TIMESTAMP,
         UnaryExecFunction<int64_t, timestamp_t, operation::ToTimestamp>));

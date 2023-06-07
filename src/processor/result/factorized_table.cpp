@@ -333,19 +333,18 @@ int64_t FactorizedTable::findValueInFlatColumn(ft_col_idx_t colIdx, int64_t valu
 }
 
 uint32_t FactorizedTable::getDataTypeSize(const common::LogicalType& type) {
-    switch (type.getLogicalTypeID()) {
-    case LogicalTypeID::STRING: {
+    switch (type.getPhysicalType()) {
+    case PhysicalTypeID::STRING: {
         return sizeof(ku_string_t);
     }
-    case LogicalTypeID::FIXED_LIST: {
+    case PhysicalTypeID::FIXED_LIST: {
         return getDataTypeSize(*FixedListType::getChildType(&type)) *
                FixedListType::getNumElementsInList(&type);
     }
-    case LogicalTypeID::RECURSIVE_REL:
-    case LogicalTypeID::VAR_LIST: {
+    case PhysicalTypeID::VAR_LIST: {
         return sizeof(ku_list_t);
     }
-    case LogicalTypeID::STRUCT: {
+    case PhysicalTypeID::STRUCT: {
         uint32_t size = 0;
         auto fieldsTypes = StructType::getFieldTypes(&type);
         for (auto fieldType : fieldsTypes) {
@@ -676,16 +675,15 @@ void FactorizedTable::readFlatColToUnflatVector(uint8_t** tuplesToRead, ft_col_i
 
 void FactorizedTable::copyOverflowIfNecessary(
     uint8_t* dst, uint8_t* src, const LogicalType& type, DiskOverflowFile* diskOverflowFile) {
-    switch (type.getLogicalTypeID()) {
-    case LogicalTypeID::STRING: {
+    switch (type.getPhysicalType()) {
+    case PhysicalTypeID::STRING: {
         ku_string_t* stringToWriteFrom = (ku_string_t*)src;
         if (!ku_string_t::isShortString(stringToWriteFrom->len)) {
             diskOverflowFile->writeStringOverflowAndUpdateOverflowPtr(
                 *stringToWriteFrom, *(ku_string_t*)dst);
         }
     } break;
-    case LogicalTypeID::RECURSIVE_REL:
-    case LogicalTypeID::VAR_LIST: {
+    case PhysicalTypeID::VAR_LIST: {
         diskOverflowFile->writeListOverflowAndUpdateOverflowPtr(
             *(ku_list_t*)src, *(ku_list_t*)dst, type);
     } break;

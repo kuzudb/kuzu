@@ -7,15 +7,15 @@ namespace function {
 class VectorTimestampOperations : public VectorOperations {};
 
 struct CenturyVectorOperation : public VectorTimestampOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 struct EpochMsVectorOperation : public VectorTimestampOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 struct ToTimestampVectorOperation : public VectorTimestampOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 } // namespace function

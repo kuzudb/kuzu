@@ -113,36 +113,32 @@ void VectorCastOperations::bindImplicitCastFunc(common::LogicalTypeID sourceType
     }
 }
 
-std::vector<std::unique_ptr<VectorOperationDefinition>>
-CastToDateVectorOperation::getDefinitions() {
-    std::vector<std::unique_ptr<VectorOperationDefinition>> result;
+vector_operation_definitions CastToDateVectorOperation::getDefinitions() {
+    vector_operation_definitions result;
     result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_DATE_FUNC_NAME,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING}, LogicalTypeID::DATE,
         UnaryExecFunction<ku_string_t, date_t, operation::CastStringToDate>));
     return result;
 }
 
-std::vector<std::unique_ptr<VectorOperationDefinition>>
-CastToTimestampVectorOperation::getDefinitions() {
-    std::vector<std::unique_ptr<VectorOperationDefinition>> result;
+vector_operation_definitions CastToTimestampVectorOperation::getDefinitions() {
+    vector_operation_definitions result;
     result.push_back(std::make_unique<VectorOperationDefinition>(CAST_TO_TIMESTAMP_FUNC_NAME,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING}, LogicalTypeID::TIMESTAMP,
         UnaryExecFunction<ku_string_t, timestamp_t, operation::CastStringToTimestamp>));
     return result;
 }
 
-std::vector<std::unique_ptr<VectorOperationDefinition>>
-CastToIntervalVectorOperation::getDefinitions() {
-    std::vector<std::unique_ptr<VectorOperationDefinition>> result;
+vector_operation_definitions CastToIntervalVectorOperation::getDefinitions() {
+    vector_operation_definitions result;
     result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_INTERVAL_FUNC_NAME,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING}, LogicalTypeID::INTERVAL,
         UnaryExecFunction<ku_string_t, interval_t, operation::CastStringToInterval>));
     return result;
 }
 
-std::vector<std::unique_ptr<VectorOperationDefinition>>
-CastToStringVectorOperation::getDefinitions() {
-    std::vector<std::unique_ptr<VectorOperationDefinition>> result;
+vector_operation_definitions CastToStringVectorOperation::getDefinitions() {
+    vector_operation_definitions result;
     result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_STRING_FUNC_NAME,
         std::vector<LogicalTypeID>{LogicalTypeID::BOOL}, LogicalTypeID::STRING,
         UnaryCastExecFunction<bool, ku_string_t, operation::CastToString>));
@@ -185,9 +181,8 @@ CastToStringVectorOperation::getDefinitions() {
     return result;
 }
 
-std::vector<std::unique_ptr<VectorOperationDefinition>>
-CastToDoubleVectorOperation::getDefinitions() {
-    std::vector<std::unique_ptr<VectorOperationDefinition>> result;
+vector_operation_definitions CastToDoubleVectorOperation::getDefinitions() {
+    vector_operation_definitions result;
     result.push_back(bindVectorOperation<int16_t, double_t, operation::CastToDouble>(
         CAST_TO_DOUBLE_FUNC_NAME, LogicalTypeID::INT16, LogicalTypeID::DOUBLE));
     result.push_back(bindVectorOperation<int32_t, double_t, operation::CastToDouble>(
@@ -199,9 +194,8 @@ CastToDoubleVectorOperation::getDefinitions() {
     return result;
 }
 
-std::vector<std::unique_ptr<VectorOperationDefinition>>
-CastToFloatVectorOperation::getDefinitions() {
-    std::vector<std::unique_ptr<VectorOperationDefinition>> result;
+vector_operation_definitions CastToFloatVectorOperation::getDefinitions() {
+    vector_operation_definitions result;
     result.push_back(bindVectorOperation<int16_t, float_t, operation::CastToFloat>(
         CAST_TO_FLOAT_FUNC_NAME, LogicalTypeID::INT16, LogicalTypeID::FLOAT));
     result.push_back(bindVectorOperation<int32_t, float_t, operation::CastToFloat>(
@@ -214,9 +208,8 @@ CastToFloatVectorOperation::getDefinitions() {
     return result;
 }
 
-std::vector<std::unique_ptr<VectorOperationDefinition>>
-CastToInt64VectorOperation::getDefinitions() {
-    std::vector<std::unique_ptr<VectorOperationDefinition>> result;
+vector_operation_definitions CastToInt64VectorOperation::getDefinitions() {
+    vector_operation_definitions result;
     result.push_back(bindVectorOperation<int16_t, int64_t, operation::CastToInt64>(
         CAST_TO_INT64_FUNC_NAME, LogicalTypeID::INT16, LogicalTypeID::INT64));
     result.push_back(bindVectorOperation<int32_t, int64_t, operation::CastToInt64>(
@@ -229,9 +222,8 @@ CastToInt64VectorOperation::getDefinitions() {
     return result;
 }
 
-std::vector<std::unique_ptr<VectorOperationDefinition>>
-CastToInt32VectorOperation::getDefinitions() {
-    std::vector<std::unique_ptr<VectorOperationDefinition>> result;
+vector_operation_definitions CastToInt32VectorOperation::getDefinitions() {
+    vector_operation_definitions result;
     result.push_back(bindVectorOperation<int16_t, int32_t, operation::CastToInt32>(
         CAST_TO_INT32_FUNC_NAME, LogicalTypeID::INT16, LogicalTypeID::INT32));
     // down cast
@@ -244,9 +236,8 @@ CastToInt32VectorOperation::getDefinitions() {
     return result;
 }
 
-std::vector<std::unique_ptr<VectorOperationDefinition>>
-CastToInt16VectorOperation::getDefinitions() {
-    std::vector<std::unique_ptr<VectorOperationDefinition>> result;
+vector_operation_definitions CastToInt16VectorOperation::getDefinitions() {
+    vector_operation_definitions result;
     // down cast
     result.push_back(bindVectorOperation<int32_t, int16_t, operation::CastToInt16>(
         CAST_TO_INT16_FUNC_NAME, LogicalTypeID::INT32, LogicalTypeID::INT16));

@@ -71,11 +71,11 @@ private:
     void registerStringOperations();
     void registerCastOperations();
     void registerListOperations();
-    void registerStructOperation();
+    void registerStructOperations();
+    void registerMapOperations();
 
 private:
-    std::unordered_map<std::string, std::vector<std::unique_ptr<VectorOperationDefinition>>>
-        vectorOperations;
+    std::unordered_map<std::string, vector_operation_definitions> vectorOperations;
 };
 
 } // namespace function

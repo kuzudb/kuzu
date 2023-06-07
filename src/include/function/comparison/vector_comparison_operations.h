@@ -10,9 +10,8 @@ namespace function {
 class VectorComparisonOperations : public VectorOperations {
 protected:
     template<typename FUNC>
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions(
-        const std::string& name) {
-        std::vector<std::unique_ptr<VectorOperationDefinition>> definitions;
+    static vector_operation_definitions getDefinitions(const std::string& name) {
+        vector_operation_definitions definitions;
         for (auto& comparableType : common::LogicalTypeUtils::getAllValidComparableLogicalTypes()) {
             definitions.push_back(getDefinition<FUNC>(name, comparableType, comparableType));
         }
@@ -141,42 +140,42 @@ private:
 };
 
 struct EqualsVectorOperation : public VectorComparisonOperations {
-    static inline std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions() {
+    static inline vector_operation_definitions getDefinitions() {
         return VectorComparisonOperations::getDefinitions<operation::Equals>(
             common::EQUALS_FUNC_NAME);
     }
 };
 
 struct NotEqualsVectorOperation : public VectorComparisonOperations {
-    static inline std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions() {
+    static inline vector_operation_definitions getDefinitions() {
         return VectorComparisonOperations::getDefinitions<operation::NotEquals>(
             common::NOT_EQUALS_FUNC_NAME);
     }
 };
 
 struct GreaterThanVectorOperation : public VectorComparisonOperations {
-    static inline std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions() {
+    static inline vector_operation_definitions getDefinitions() {
         return VectorComparisonOperations::getDefinitions<operation::GreaterThan>(
             common::GREATER_THAN_FUNC_NAME);
     }
 };
 
 struct GreaterThanEqualsVectorOperation : public VectorComparisonOperations {
-    static inline std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions() {
+    static inline vector_operation_definitions getDefinitions() {
         return VectorComparisonOperations::getDefinitions<operation::GreaterThanEquals>(
             common::GREATER_THAN_EQUALS_FUNC_NAME);
     }
 };
 
 struct LessThanVectorOperation : public VectorComparisonOperations {
-    static inline std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions() {
+    static inline vector_operation_definitions getDefinitions() {
         return VectorComparisonOperations::getDefinitions<operation::LessThan>(
             common::LESS_THAN_FUNC_NAME);
     }
 };
 
 struct LessThanEqualsVectorOperation : public VectorComparisonOperations {
-    static inline std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions() {
+    static inline vector_operation_definitions getDefinitions() {
         return VectorComparisonOperations::getDefinitions<operation::LessThanEquals>(
             common::LESS_THAN_EQUALS_FUNC_NAME);
     }

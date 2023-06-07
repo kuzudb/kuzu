@@ -1,7 +1,6 @@
 #include "common/types/value.h"
 
 #include "common/null_buffer.h"
-#include "common/string_utils.h"
 #include "storage/storage_utils.h"
 
 namespace kuzu {
@@ -66,6 +65,7 @@ Value Value::createDefaultValue(const LogicalType& dataType) {
     case LogicalTypeID::FLOAT:
         return Value((float_t)0);
     case LogicalTypeID::RECURSIVE_REL:
+    case LogicalTypeID::MAP:
     case LogicalTypeID::VAR_LIST:
     case LogicalTypeID::FIXED_LIST:
     case LogicalTypeID::STRUCT:
@@ -282,6 +282,17 @@ std::string Value::toString() const {
         return TypeUtils::toString(val.internalIDVal);
     case LogicalTypeID::STRING:
         return strVal;
+    case LogicalTypeID::MAP: {
+        std::string result = "{";
+        for (auto i = 0u; i < nestedTypeVal.size(); ++i) {
+            auto structVal = nestedTypeVal[i].get();
+            result += structVal->nestedTypeVal[0]->toString();
+            result += "=";
+            result += structVal->nestedTypeVal[1]->toString();
+            result += (i == nestedTypeVal.size() - 1 ? "}" : ", ");
+        }
+        return result;
+    }
     case LogicalTypeID::RECURSIVE_REL:
     case LogicalTypeID::VAR_LIST:
     case LogicalTypeID::FIXED_LIST: {

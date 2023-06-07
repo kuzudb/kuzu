@@ -7,7 +7,7 @@ namespace kuzu {
 namespace function {
 
 struct StructPackVectorOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
     static std::unique_ptr<FunctionBindData> bindFunc(
         const binder::expression_vector& arguments, FunctionDefinition* definition);
     static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
@@ -24,7 +24,7 @@ struct StructExtractBindData : public FunctionBindData {
 };
 
 struct StructExtractVectorOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
     static std::unique_ptr<FunctionBindData> bindFunc(
         const binder::expression_vector& arguments, FunctionDefinition* definition);
     static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& parameters,

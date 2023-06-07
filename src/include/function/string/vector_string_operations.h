@@ -40,9 +40,8 @@ struct VectorStringOperations : public VectorOperations {
     }
 
     template<class OPERATION>
-    static inline std::vector<std::unique_ptr<VectorOperationDefinition>>
-    getUnaryStrFunctionDefintion(std::string funcName) {
-        std::vector<std::unique_ptr<VectorOperationDefinition>> definitions;
+    static inline vector_operation_definitions getUnaryStrFunctionDefintion(std::string funcName) {
+        vector_operation_definitions definitions;
         definitions.emplace_back(std::make_unique<VectorOperationDefinition>(funcName,
             std::vector<common::LogicalTypeID>{common::LogicalTypeID::STRING},
             common::LogicalTypeID::STRING,
@@ -53,107 +52,107 @@ struct VectorStringOperations : public VectorOperations {
 };
 
 struct ArrayExtractVectorOperation : public VectorStringOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 struct ConcatVectorOperation : public VectorStringOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 struct ContainsVectorOperation : public VectorStringOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 struct EndsWithVectorOperation : public VectorStringOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 struct LeftVectorOperation : public VectorStringOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 struct LengthVectorOperation : public VectorStringOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 struct LowerVectorOperation : public VectorStringOperations {
-    static inline std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions() {
+    static inline vector_operation_definitions getDefinitions() {
         return getUnaryStrFunctionDefintion<operation::Lower>(common::LOWER_FUNC_NAME);
     }
 };
 
 struct LpadVectorOperation : public VectorStringOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 struct LtrimVectorOperation : public VectorStringOperations {
-    static inline std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions() {
+    static inline vector_operation_definitions getDefinitions() {
         return getUnaryStrFunctionDefintion<operation::Ltrim>(common::LTRIM_FUNC_NAME);
     }
 };
 
 struct RepeatVectorOperation : public VectorStringOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 struct ReverseVectorOperation : public VectorStringOperations {
-    static inline std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions() {
+    static inline vector_operation_definitions getDefinitions() {
         return getUnaryStrFunctionDefintion<operation::Reverse>(common::REVERSE_FUNC_NAME);
     }
 };
 
 struct RightVectorOperation : public VectorStringOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 struct RpadVectorOperation : public VectorStringOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 struct RtrimVectorOperation : public VectorStringOperations {
-    static inline std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions() {
+    static inline vector_operation_definitions getDefinitions() {
         return getUnaryStrFunctionDefintion<operation::Rtrim>(common::RTRIM_FUNC_NAME);
     }
 };
 
 struct StartsWithVectorOperation : public VectorStringOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 struct SubStrVectorOperation : public VectorStringOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 struct TrimVectorOperation : public VectorStringOperations {
-    static inline std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions() {
+    static inline vector_operation_definitions getDefinitions() {
         return getUnaryStrFunctionDefintion<operation::Trim>(common::TRIM_FUNC_NAME);
     }
 };
 
 struct UpperVectorOperation : public VectorStringOperations {
-    static inline std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions() {
+    static inline vector_operation_definitions getDefinitions() {
         return getUnaryStrFunctionDefintion<operation::Upper>(common::UPPER_FUNC_NAME);
     }
 };
 
 struct RegexpFullMatchVectorOperation : public VectorStringOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 struct RegexpMatchesOperation : public VectorStringOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 struct RegexpReplaceOperation : public VectorStringOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 struct RegexpExtractOperation : public VectorStringOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 struct RegexpExtractAllOperation : public VectorStringOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
     static std::unique_ptr<FunctionBindData> bindFunc(
         const binder::expression_vector& arguments, FunctionDefinition* definition);
 };
