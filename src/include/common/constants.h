@@ -161,5 +161,12 @@ struct ClientContextConstants {
     static constexpr uint64_t TIMEOUT_IN_MS = 0;
 };
 
+struct RDFConstants {
+    static constexpr char RDF_GRAPH_NODE_TABLE_SUFFIX[] = ".Resources";
+    static constexpr char RDF_GRAPH_REL_TABLE_SUFFIX[] = ".Triples";
+    static constexpr char RDF_GRAPH_IRI_PROPERTY_NAME[] = "iri";
+    static constexpr char RDF_GRAPH_PREDICATE_ID_PROPERTY_NAME[] = "predicateID";
+};
+
 } // namespace common
 } // namespace kuzu

@@ -13,6 +13,7 @@ enum class LogicalOperatorType : uint8_t {
     COPY_TO,
     CREATE_NODE,
     CREATE_REL,
+    CREATE_RDF_GRAPH,
     CREATE_MACRO,
     CREATE_NODE_TABLE,
     CREATE_REL_TABLE,

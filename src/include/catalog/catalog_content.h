@@ -1,6 +1,8 @@
 #pragma once
 
+#include "catalog/rdf_graph_schema.h"
 #include "catalog/table_schema.h"
+#include "common/constants.h"
 #include "function/aggregate/built_in_aggregate_functions.h"
 #include "function/built_in_table_functions.h"
 #include "function/built_in_vector_functions.h"
@@ -19,12 +21,16 @@ public:
     explicit CatalogContent(const std::string& directory);
 
     CatalogContent(
+        std::unordered_map<common::rdf_graph_id_t, std::unique_ptr<RDFGraphSchema>> rdfGraphSchemas,
         std::unordered_map<common::table_id_t, std::unique_ptr<TableSchema>> tableSchemas,
+        std::unordered_map<std::string, common::rdf_graph_id_t> rdfGraphNameToIDMap,
         std::unordered_map<std::string, common::table_id_t> tableNameToIDMap,
-        common::table_id_t nextTableID,
+        common::rdf_graph_id_t nextRDFGraphID, common::table_id_t nextTableID,
         std::unordered_map<std::string, std::unique_ptr<function::ScalarMacroFunction>> macros)
-        : tableSchemas{std::move(tableSchemas)}, tableNameToIDMap{std::move(tableNameToIDMap)},
-          nextTableID{nextTableID}, macros{std::move(macros)} {
+        : rdfGraphSchemas{std::move(rdfGraphSchemas)}, tableSchemas{std::move(tableSchemas)},
+          rdfGraphNameToIDMap{std::move(rdfGraphNameToIDMap)}, tableNameToIDMap{std::move(
+                                                                   tableNameToIDMap)},
+          nextRDFGraphID{nextRDFGraphID}, nextTableID{nextTableID}, macros{std::move(macros)} {
         registerBuiltInFunctions();
     }
 
@@ -54,6 +60,39 @@ public:
         common::table_id_t tableID, common::RelDataDirection direction) const {
         return getRelTableSchema(tableID)->isSingleMultiplicityInDirection(direction);
     }
+
+    /**
+     * RDF graph functions.
+     */
+    inline bool containRDFGraph(const std::string& rdfGraphName) const {
+        return rdfGraphNameToIDMap.contains(rdfGraphName) &&
+               containNodeTable(
+                   rdfGraphName + std::string(common::RDFConstants::RDF_GRAPH_NODE_TABLE_SUFFIX)) &&
+               containRelTable(
+                   rdfGraphName + std::string(common::RDFConstants::RDF_GRAPH_REL_TABLE_SUFFIX));
+    }
+    inline bool containRDFGraph(common::rdf_graph_id_t rdfGraphID) const {
+        return rdfGraphSchemas.contains(rdfGraphID);
+    }
+    inline RDFGraphSchema* getRDFGraphSchema(common::rdf_graph_id_t rdfGraphID) const {
+        assert(containRDFGraph(rdfGraphID));
+        return rdfGraphSchemas.at(rdfGraphID).get();
+    }
+    inline NodeTableSchema* getRDFGraphNodeTableSchema(common::rdf_graph_id_t rdfGraphID) const {
+        assert(containRDFGraph(rdfGraphID));
+        return getNodeTableSchema(getRDFGraphSchema(rdfGraphID)->getResourcesNodeTableID());
+    }
+    inline RelTableSchema* getRDFGraphRelTableSchema(common::rdf_graph_id_t rdfGraphID) const {
+        assert(containRDFGraph(rdfGraphID));
+        return getRelTableSchema(getRDFGraphSchema(rdfGraphID)->getTriplesRelTableID());
+    }
+    inline bool isReservedRDFGraphTable(const std::string& tableName) const {
+        return tableName.ends_with(common::RDFConstants::RDF_GRAPH_NODE_TABLE_SUFFIX) ||
+               tableName.ends_with(common::RDFConstants::RDF_GRAPH_REL_TABLE_SUFFIX);
+    }
+
+    common::rdf_graph_id_t addRDFGraphSchema(
+        std::string rdfGraphName, std::unique_ptr<Property> rdfResourceIRIProperty);
 
     /**
      * Node and Rel table functions.
@@ -112,6 +151,8 @@ public:
     std::unique_ptr<CatalogContent> copy() const;
 
 private:
+    inline common::rdf_graph_id_t assignNextRDFGraphID() { return nextRDFGraphID++; }
+
     inline common::table_id_t assignNextTableID() { return nextTableID++; }
 
     static void validateStorageVersion(storage::storage_version_t savedStorageVersion);
@@ -126,11 +167,14 @@ private:
 
 private:
     // TODO(Guodong): I don't think it's necessary to keep separate maps for node and rel tables.
+    std::unordered_map<common::rdf_graph_id_t, std::unique_ptr<RDFGraphSchema>> rdfGraphSchemas;
     std::unordered_map<common::table_id_t, std::unique_ptr<TableSchema>> tableSchemas;
     // These two maps are maintained as caches. They are not serialized to the catalog file, but
     // is re-constructed when reading from the catalog file.
+    std::unordered_map<std::string, common::rdf_graph_id_t> rdfGraphNameToIDMap;
     std::unordered_map<std::string, common::table_id_t> tableNameToIDMap;
     common::table_id_t nextTableID;
+    common::rdf_graph_id_t nextRDFGraphID;
     std::unique_ptr<function::BuiltInVectorFunctions> builtInVectorFunctions;
     std::unique_ptr<function::BuiltInAggregateFunctions> builtInAggregateFunctions;
     std::unique_ptr<function::BuiltInTableFunctions> builtInTableFunctions;

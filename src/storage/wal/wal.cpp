@@ -57,6 +57,12 @@ void WAL::logCatalogRecord() {
     addNewWALRecordNoLock(walRecord);
 }
 
+void WAL::logRDFGraphRecord(table_id_t resourcesNodeTableID, table_id_t triplesRelTableID) {
+    lock_t lck{mtx};
+    WALRecord walRecord = WALRecord::newRDFGraphRecord(resourcesNodeTableID, triplesRelTableID);
+    addNewWALRecordNoLock(walRecord);
+}
+
 void WAL::logNodeTableRecord(table_id_t tableID) {
     lock_t lck{mtx};
     WALRecord walRecord = WALRecord::newNodeTableRecord(tableID);

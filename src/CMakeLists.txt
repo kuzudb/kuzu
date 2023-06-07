@@ -12,7 +12,7 @@ add_subdirectory(processor)
 add_subdirectory(storage)
 add_subdirectory(transaction)
 
-add_library(kuzu STATIC ${ALL_OBJECT_FILES})
+add_library(kuzu STATIC ${ALL_OBJECT_FILES} include/catalog/rdf_graph_schema.h)
 target_link_libraries(kuzu
         PUBLIC antlr4_cypher antlr4_runtime utf8proc re2 ${PARQUET_LIB} ${ARROW_LIB} Threads::Threads)
 target_include_directories(kuzu

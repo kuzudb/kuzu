@@ -14,6 +14,9 @@ namespace binder {
 std::unique_ptr<BoundStatement> Binder::bind(const Statement& statement) {
     std::unique_ptr<BoundStatement> boundStatement;
     switch (statement.getStatementType()) {
+    case StatementType::CREATE_RDF_GRAPH: {
+        return bindCreateRDFGraphClause(statement);
+    }
     case StatementType::CREATE_NODE_TABLE: {
         boundStatement = bindCreateNodeTableClause(statement);
     } break;
@@ -167,6 +170,17 @@ void Binder::validateTableExist(const Catalog& _catalog, std::string& tableName)
     if (!_catalog.getReadOnlyVersion()->containNodeTable(tableName) &&
         !_catalog.getReadOnlyVersion()->containRelTable(tableName)) {
         throw BinderException("Node/Rel " + tableName + " does not exist.");
+    }
+}
+
+void Binder::validateTableNotReservedForRDFGraph(
+    const catalog::Catalog& _catalog, std::string& tableName) {
+    if (_catalog.getReadOnlyVersion()->isReservedRDFGraphTable(tableName)) {
+        throw BinderException(
+            StringUtils::string_format("You cannot use the table name: {} because it ends with {} "
+                                       "or {} which are reserved for RDFGraphs.",
+                tableName, common::RDFConstants::RDF_GRAPH_NODE_TABLE_SUFFIX,
+                common::RDFConstants::RDF_GRAPH_REL_TABLE_SUFFIX));
     }
 }
 

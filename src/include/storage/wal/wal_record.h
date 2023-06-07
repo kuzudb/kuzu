@@ -271,6 +271,7 @@ enum class WALRecordType : uint8_t {
     DROP_TABLE_RECORD = 9,
     DROP_PROPERTY_RECORD = 10,
     ADD_PROPERTY_RECORD = 11,
+    RDF_GRAPH_RECORD = 12,
 };
 
 std::string walRecordTypeToString(WALRecordType walRecordType);
@@ -326,6 +327,27 @@ struct RelTableRecord {
     explicit RelTableRecord(common::table_id_t tableID) : tableID{tableID} {}
 
     inline bool operator==(const RelTableRecord& rhs) const { return tableID == rhs.tableID; }
+};
+
+struct RDFGraphRecord {
+    // We don't have to log rdfGraphID because currently we do not need it during wal replaying.
+    // The rdfGraphID in his RDFGraphRecord is 1 minus the nextRDFGraphID field in the catalog,
+    // which will be checkpoint as part of the changes to the catalog. Therefore, there is nothing
+    // additional to do with the rdfGraphID field when replaying RDFGraphRecord.
+    NodeTableRecord resourcesNodeTableRecord;
+    RelTableRecord triplesRelTableRecord;
+
+    RDFGraphRecord() = default;
+
+    explicit RDFGraphRecord(
+        NodeTableRecord resourcesNodeTableRecord, RelTableRecord triplesRelTableRecord)
+        : resourcesNodeTableRecord{resourcesNodeTableRecord}, triplesRelTableRecord{
+                                                                  triplesRelTableRecord} {}
+
+    inline bool operator==(const RDFGraphRecord& rhs) const {
+        return resourcesNodeTableRecord == rhs.resourcesNodeTableRecord &&
+               triplesRelTableRecord == rhs.triplesRelTableRecord;
+    }
 };
 
 struct DiskOverflowFileNextBytePosRecord {
@@ -424,6 +446,7 @@ struct WALRecord {
     union {
         PageUpdateOrInsertRecord pageInsertOrUpdateRecord;
         CommitRecord commitRecord;
+        RDFGraphRecord rdfGraphRecord;
         NodeTableRecord nodeTableRecord;
         RelTableRecord relTableRecord;
         DiskOverflowFileNextBytePosRecord diskOverflowFileNextBytePosRecord;
@@ -452,6 +475,9 @@ struct WALRecord {
         case WALRecordType::CATALOG_RECORD: {
             // CatalogRecords are empty so are always equal
             return true;
+        }
+        case WALRecordType::RDF_GRAPH_RECORD: {
+            return rdfGraphRecord == rhs.rdfGraphRecord;
         }
         case WALRecordType::NODE_TABLE_RECORD: {
             return nodeTableRecord == rhs.nodeTableRecord;
@@ -491,6 +517,8 @@ struct WALRecord {
     static WALRecord newCommitRecord(uint64_t transactionID);
     static WALRecord newTableStatisticsRecord(bool isNodeTable);
     static WALRecord newCatalogRecord();
+    static WALRecord newRDFGraphRecord(
+        common::table_id_t resourcesNodeTableID, common::table_id_t triplesRelTableID);
     static WALRecord newNodeTableRecord(common::table_id_t tableID);
     static WALRecord newRelTableRecord(common::table_id_t tableID);
     static WALRecord newOverflowFileNextBytePosRecord(

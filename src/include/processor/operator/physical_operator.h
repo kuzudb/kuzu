@@ -24,6 +24,7 @@ enum class PhysicalOperatorType : uint8_t {
     READ_PARQUET,
     INSERT_NODE,
     CREATE_NODE_TABLE,
+    CREATE_RDF_GRAPH,
     INSERT_REL,
     CREATE_REL_TABLE,
     CROSS_PRODUCT,

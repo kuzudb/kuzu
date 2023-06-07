@@ -1,0 +1,17 @@
+CREATE NODE TABLE `Test.Resources` (name STRING, PRIMARY KEY (name))
+;
+CREATE REL TABLE  `Test.Triples` (FROM `Test.Resources` TO `Test.Resources`, since DATE);
+CREATE RDF GRAPH Test;
+ALTER TABLE `Test.Resources` RENAME TO Res;
+CREATE REL TABLE  `Test.Triples` (FROM `Test.Resources` TO `Test.Resources`, since DATE);
+CREATE NODE TABLE Res (name STRING, PRIMARY KEY (name));
+CREATE RDF GRAPH Test;
+CREATE NODE TABLE Res (name STRING, PRIMARY KEY (name));
+CREATE NODE TABLE Res2 (name STRING, PRIMARY KEY (name));
+CREATE NODE TABLE Res3 (name STRING, PRIMARY KEY (name));
+CREATE RDF GRAPH Test;
+CREATE NODE TABLE Res3 (name STRING, PRIMARY KEY (name));
+CREATE RDF GRAPH Test;
+CREATE NODE TABLE Res3 (name STRING, PRIMARY KEY (name));
+CREATE RDF GRAPH Test;
+CREATE RDF GRAPH Test1;

@@ -34,6 +34,7 @@ std::unique_ptr<BoundStatement> Binder::bindCopyFromClause(const Statement& stat
     auto& copyStatement = (CopyFrom&)statement;
     auto catalogContent = catalog.getReadOnlyVersion();
     auto tableName = copyStatement.getTableName();
+    validateTableNotReservedForRDFGraph(catalog, tableName);
     validateTableExist(catalog, tableName);
     auto tableID = catalogContent->getTableID(tableName);
     auto csvReaderConfig = bindParsingOptions(copyStatement.getParsingOptions());

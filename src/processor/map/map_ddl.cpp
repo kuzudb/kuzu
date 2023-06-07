@@ -1,5 +1,6 @@
 #include "planner/logical_plan/ddl/logical_add_property.h"
 #include "planner/logical_plan/ddl/logical_create_node_table.h"
+#include "planner/logical_plan/ddl/logical_create_rdf_graph.h"
 #include "planner/logical_plan/ddl/logical_create_rel_table.h"
 #include "planner/logical_plan/ddl/logical_drop_property.h"
 #include "planner/logical_plan/ddl/logical_drop_table.h"
@@ -8,6 +9,7 @@
 #include "processor/operator/ddl/add_node_property.h"
 #include "processor/operator/ddl/add_rel_property.h"
 #include "processor/operator/ddl/create_node_table.h"
+#include "processor/operator/ddl/create_rdf_graph.h"
 #include "processor/operator/ddl/create_rel_table.h"
 #include "processor/operator/ddl/drop_property.h"
 #include "processor/operator/ddl/drop_table.h"
@@ -44,6 +46,14 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateRelTable(LogicalOperator*
         createRelTable->getSrcTableID(), createRelTable->getDstTableID(),
         getOutputPos(createRelTable), getOperatorID(), createRelTable->getExpressionsForPrinting(),
         &storageManager.getRelsStore().getRelsStatistics());
+}
+
+std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateRDFGraph(LogicalOperator* logicalOperator) {
+    auto createRDFGraph = (LogicalCreateRDFGraph*)logicalOperator;
+    return std::make_unique<CreateRDFGraph>(catalog, createRDFGraph->getTableName(),
+        getOutputPos(createRDFGraph), getOperatorID(), createRDFGraph->getExpressionsForPrinting(),
+        &storageManager.getNodesStore().getNodesStatisticsAndDeletedIDs(),
+        &storageManager.getRelsStore().getRelsStatistics(), storageManager);
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapDropTable(LogicalOperator* logicalOperator) {

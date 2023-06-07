@@ -50,6 +50,9 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
     case PhysicalOperatorType::CREATE_NODE_TABLE: {
         return "CREATE_NODE_TABLE";
     }
+    case PhysicalOperatorType::CREATE_RDF_GRAPH: {
+        return "CREATE_RDF_GRAPH";
+    }
     case PhysicalOperatorType::INSERT_REL: {
         return "INSERT_REL";
     }

@@ -102,6 +102,9 @@ public:
 
     void logCatalogRecord();
 
+    void logRDFGraphRecord(
+        common::table_id_t resourcesNodeTableID, common::table_id_t triplesRelTableID);
+
     void logNodeTableRecord(common::table_id_t tableID);
 
     void logRelTableRecord(common::table_id_t tableID);

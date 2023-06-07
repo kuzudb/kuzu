@@ -112,6 +112,9 @@ std::string walRecordTypeToString(WALRecordType walRecordType) {
     case WALRecordType::CATALOG_RECORD: {
         return "CATALOG_RECORD";
     }
+    case WALRecordType::RDF_GRAPH_RECORD: {
+        return "RDF_GRAPH_RECORD";
+    }
     case WALRecordType::NODE_TABLE_RECORD: {
         return "NODE_TABLE_RECORD";
     }
@@ -177,6 +180,15 @@ WALRecord WALRecord::newTableStatisticsRecord(bool isNodeTable) {
 WALRecord WALRecord::newCatalogRecord() {
     WALRecord retVal;
     retVal.recordType = WALRecordType::CATALOG_RECORD;
+    return retVal;
+}
+
+WALRecord WALRecord::newRDFGraphRecord(
+    table_id_t resourcesNodeTableID, table_id_t triplesRelTableID) {
+    WALRecord retVal;
+    retVal.recordType = WALRecordType::RDF_GRAPH_RECORD;
+    retVal.rdfGraphRecord =
+        RDFGraphRecord(NodeTableRecord(resourcesNodeTableID), RelTableRecord(triplesRelTableID));
     return retVal;
 }
 

@@ -55,6 +55,9 @@ void BMFileHandle::addNewPageGroupWithoutLock() {
 page_group_idx_t BMFileHandle::addWALPageIdxGroupIfNecessary(page_idx_t originalPageIdx) {
     assert(fileVersionedType == FileVersionedType::VERSIONED_FILE);
     std::unique_lock xLck{fhSharedMutex};
+    if (numPages <= originalPageIdx) {
+        printf("yo");
+    }
     assert(originalPageIdx < numPages);
     // Although getPageElementCursorForPos is written to get offsets of elements
     // in pages, it simply can be used to find the group/chunk and offset/pos in group/chunk for

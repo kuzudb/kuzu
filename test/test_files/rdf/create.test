@@ -1,0 +1,63 @@
+-GROUP CreateRdfGraph
+-DATASET CSV tinysnb
+
+--
+
+-CASE CreateRDFGraphTest
+-STATEMENT CREATE RDF GRAPH Test
+---- ok
+-STATEMENT CREATE RDF GRAPH Test
+---- error
+Binder exception: RDF Graph Test already exists.
+-STATEMENT MATCH (s:`Test.Resources`) RETURN s
+---- 0
+# TODO(gaurav): We shouldn't allow users to create node using this statement. Instead, they should use the RDF triple format.
+-STATEMENT CREATE (s:`Test.Resources` {iri: 'Alice'})
+---- ok
+-STATEMENT MATCH (s:`Test.Resources`) RETURN s.iri
+---- 1
+Alice
+# TODO(gaurav): Instead of predicateID, we should return the predicate iri.
+-STATEMENT MATCH (s:`Test.Resources`)-[p:`Test.Triples`]->(o:`Test.Resources`) RETURN p
+---- 0
+-STATEMENT MATCH (s:`Test.Resources`), (o:`Test.Resources`) CREATE (s)-[:`Test.Triples` {predicateID: 2}]->(o)
+---- ok
+# TODO(gaurav): Instead of predicateID, we should return the predicate iri.
+-STATEMENT MATCH (s:`Test.Resources`)-[p:`Test.Triples`]->(o:`Test.Resources`) RETURN s.iri, p, o.iri
+---- 1
+Alice|(8:0)-{_LABEL: Test.Triples, _ID: 9:0, predicateID: 2}->(8:0)|Alice
+
+
+-CASE CreateOrAlterRDFGraphTableNotAllowed
+-STATEMENT CREATE NODE TABLE `Test.Resources` (name STRING, PRIMARY KEY (name))
+---- error
+Binder exception: You cannot use the table name: Test.Resources because it ends with .Resources or .Triples which are reserved for RDFGraphs.
+-STATEMENT CREATE REL TABLE  `Test.Triples` (FROM `Test.Resources` TO `Test.Resources`, since DATE)
+---- error
+Binder exception: You cannot use the table name: Test.Triples because it ends with .Resources or .Triples which are reserved for RDFGraphs.
+-STATEMENT CREATE RDF GRAPH Test
+---- ok
+-STATEMENT ALTER TABLE `Test.Resources` RENAME TO Res
+---- error
+Binder exception: You cannot use the table name: Test.Resources because it ends with .Resources or .Triples which are reserved for RDFGraphs.
+-STATEMENT CREATE NODE TABLE Res (name STRING, PRIMARY KEY (name))
+---- ok
+-STATEMENT ALTER TABLE Res RENAME TO `Test.Resources`
+---- error
+Binder exception: You cannot use the table name: Test.Resources because it ends with .Resources or .Triples which are reserved for RDFGraphs.
+
+-CASE AlterRDFGraphTablePropertyNotAllowed
+-STATEMENT CREATE RDF GRAPH Test
+---- ok
+-STATEMENT ALTER TABLE `Test.Resources` ADD age INT64;
+---- error
+Binder exception: You cannot use the table name: Test.Resources because it ends with .Resources or .Triples which are reserved for RDFGraphs.
+-STATEMENT ALTER TABLE `Test.Resources` DROP iri;
+---- error
+Binder exception: You cannot use the table name: Test.Resources because it ends with .Resources or .Triples which are reserved for RDFGraphs.
+-STATEMENT ALTER TABLE `Test.Triples` ADD age INT64;
+---- error
+Binder exception: You cannot use the table name: Test.Triples because it ends with .Resources or .Triples which are reserved for RDFGraphs.
+-STATEMENT ALTER TABLE `Test.Triples` DROP predicateID;
+---- error
+Binder exception: You cannot use the table name: Test.Triples because it ends with .Resources or .Triples which are reserved for RDFGraphs.

@@ -78,6 +78,7 @@ private:
         const std::string& name, const common::LogicalType& dataType);
 
     /*** bind DDL ***/
+    std::unique_ptr<BoundStatement> bindCreateRDFGraphClause(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindCreateNodeTableClause(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindCreateRelTableClause(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindDropTableClause(const parser::Statement& statement);
@@ -226,6 +227,8 @@ private:
     static void validateReadNotFollowUpdate(const NormalizedSingleQuery& singleQuery);
 
     static void validateTableExist(const catalog::Catalog& _catalog, std::string& tableName);
+    static void validateTableNotReservedForRDFGraph(
+        const catalog::Catalog& _catalog, std::string& tableName);
 
     static bool validateStringParsingOptionName(std::string& parsingOptionName);
 
