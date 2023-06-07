@@ -53,8 +53,8 @@ CSVToParquetConverter::CopyCommandInfo CSVToParquetConverter::createCopyCommandI
     CopyCommandInfo copyCommandInfo;
     copyCommandInfo.table = tokens[1];
     copyCommandInfo.csvFilePath = TestHelper::appendKuzuRootPath(path.string());
-    copyCommandInfo.parquetFilePath = TestHelper::appendParquetDatasetTempDir(FileUtils::joinPath(
-        replaceSlashesWithUnderscores(dataset), path.stem().string() + ".parquet"));
+    copyCommandInfo.parquetFilePath = TestHelper::appendParquetDatasetTempDir(
+        replaceSlashesWithUnderscores(dataset) + "/" + path.stem().string() + ".parquet");
     std::transform(copyStatement.begin(), copyStatement.end(), copyStatement.begin(),
         [](unsigned char c) { return std::tolower(c); });
     copyCommandInfo.csvHasHeader = (copyStatement.find("header=true") != std::string::npos);
