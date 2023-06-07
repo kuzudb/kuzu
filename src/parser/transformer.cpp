@@ -914,7 +914,10 @@ std::string Transformer::transformSymbolicName(CypherParser::OC_SymbolicNameCont
     if (ctx.UnescapedSymbolicName()) {
         return ctx.UnescapedSymbolicName()->getText();
     } else if (ctx.EscapedSymbolicName()) {
-        return ctx.EscapedSymbolicName()->getText();
+        std::string escapedSymbolName = ctx.EscapedSymbolicName()->getText();
+        // escapedSymbolName symbol will be of form "`Some.Value`". Therefore, we need to sanitize
+        // it such that we don't store the symbol with escape character.
+        return escapedSymbolName.substr(1, escapedSymbolName.size() - 2);
     } else {
         assert(ctx.HexLetter());
         return ctx.HexLetter()->getText();
