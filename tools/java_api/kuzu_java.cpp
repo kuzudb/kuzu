@@ -6,6 +6,8 @@
 #include "planner/logical_plan/logical_plan.h"
 #include "common/exception.h"
 #include "common/types/value.h"
+#include "main/query_summary.h"
+#include "json.hpp"
 
 using namespace kuzu::main;
 using namespace kuzu::common;
@@ -115,6 +117,25 @@ RelVal* getRelVal (JNIEnv * env, jobject thisRelVal) {
     return rv;
 }
 
+QuerySummary* getQuerySummary (JNIEnv * env, jobject thisQR) {
+    jclass javaQRClass = env->GetObjectClass(thisQR);
+    jfieldID fieldID = env->GetFieldID(javaQRClass, "qr_ref", "J");
+    jlong fieldValue = env->GetLongField(thisQR, fieldID);
+
+    uint64_t address = static_cast<uint64_t>(fieldValue);
+    QuerySummary* qr = reinterpret_cast<QuerySummary*>(address);
+    return qr;
+}
+
+internalID_t getInternalID (JNIEnv * env, jobject id) {
+	jclass javaIDClass = env->GetObjectClass(id);
+	jfieldID fieldID = env->GetFieldID(javaIDClass, "table_id", "J");
+	long table_id = static_cast<long>(env->GetLongField(id, fieldID));
+	fieldID = env->GetFieldID(javaIDClass, "offset", "J");
+	long offset = static_cast<long>(env->GetLongField(id, fieldID));
+	return internalID_t(offset, table_id);
+}
+
 std::string dataTypeIDToString (uint8_t id) {
     switch (id)
     {
@@ -159,14 +180,14 @@ void javaMapToCPPMap (JNIEnv * env, jobject javaMap, std::unordered_map<std::str
         jobject entry = env->CallObjectMethod(iter, next);
         jstring key = (jstring) env->CallObjectMethod(entry, entryGetKey);
         jobject value = env->CallObjectMethod(entry, entryGetValue);
-        std::string keyStr = env->GetStringUTFChars(key, NULL);
+        const char* keyStr = env->GetStringUTFChars(key, NULL);
         Value* v = getValue(env, value);
         auto value_ptr = std::make_shared<Value>(v);
 
         cppMap.insert({keyStr, value_ptr});
 
         env->DeleteLocalRef(entry);
-        env->ReleaseStringUTFChars(key, keyStr.c_str());
+        env->ReleaseStringUTFChars(key, keyStr);
         env->DeleteLocalRef(key);
         env->DeleteLocalRef(value);
   }
@@ -179,14 +200,15 @@ void javaMapToCPPMap (JNIEnv * env, jobject javaMap, std::unordered_map<std::str
 JNIEXPORT jlong JNICALL Java_tools_java_1api_KuzuNative_kuzu_1database_1init 
     (JNIEnv * env, jclass, jstring database_path, jlong buffer_pool_size) {
 
-    // TODO: use buffer_pool_size when creating the db
-    std::string path = env->GetStringUTFChars(database_path, JNI_FALSE);
+    const char* path = env->GetStringUTFChars(database_path, JNI_FALSE);
     uint64_t buffer = static_cast<uint64_t>(buffer_pool_size);
 
-    Database* db = new Database(path);
-    uint64_t address = reinterpret_cast<uint64_t>(db);
+	Database* db = buffer == 0 ? new Database(path) :
+								 new Database(path, SystemConfig(buffer));
+	uint64_t address = reinterpret_cast<uint64_t>(db);
 
-    return static_cast<jlong>(address);
+	env->ReleaseStringUTFChars(database_path, path);
+	return static_cast<jlong>(address);
 }
 
 JNIEXPORT void JNICALL Java_tools_java_1api_KuzuNative_kuzu_1database_1destroy
@@ -198,8 +220,9 @@ JNIEXPORT void JNICALL Java_tools_java_1api_KuzuNative_kuzu_1database_1destroy
 JNIEXPORT void JNICALL Java_tools_java_1api_KuzuNative_kuzu_1database_1set_1logging_1level
   (JNIEnv * env, jclass, jstring logging_level, jobject thisDB) {
     Database* db = getDatabase(env, thisDB);
-    std::string lvl = env->GetStringUTFChars(logging_level, JNI_FALSE);
+    const char * lvl = env->GetStringUTFChars(logging_level, JNI_FALSE);
     db->setLoggingLevel(lvl);
+	env->ReleaseStringUTFChars(logging_level, lvl);
 }
 
 /**
@@ -264,8 +287,9 @@ JNIEXPORT jlong JNICALL Java_tools_java_1api_KuzuNative_kuzu_1connection_1get_1m
 JNIEXPORT jobject JNICALL Java_tools_java_1api_KuzuNative_kuzu_1connection_1query
   (JNIEnv * env, jclass, jobject thisConn, jstring query) {
     Connection* conn = getConnection(env, thisConn);
-    std::string CPPQuery = env->GetStringUTFChars(query, JNI_FALSE);
+    const char * CPPQuery = env->GetStringUTFChars(query, JNI_FALSE);
     auto query_result = conn->query(CPPQuery);
+	env->ReleaseStringUTFChars(query, CPPQuery);
 
     uint64_t qrAddress = reinterpret_cast<uint64_t>(query_result.get());
     query_result.release();
@@ -281,9 +305,10 @@ JNIEXPORT jobject JNICALL Java_tools_java_1api_KuzuNative_kuzu_1connection_1quer
 JNIEXPORT jobject JNICALL Java_tools_java_1api_KuzuNative_kuzu_1connection_1prepare
   (JNIEnv * env, jclass, jobject thisConn, jstring query) {
     Connection* conn = getConnection(env, thisConn);
-    std::string cppquery = env->GetStringUTFChars(query, JNI_FALSE);
+    const char * cppquery = env->GetStringUTFChars(query, JNI_FALSE);
 
     PreparedStatement* prepared_statement = conn->prepare(cppquery).release();
+	env->ReleaseStringUTFChars(query, cppquery);
     if (prepared_statement == nullptr) {
         return nullptr;
     }
@@ -326,16 +351,18 @@ JNIEXPORT jstring JNICALL Java_tools_java_1api_KuzuNative_kuzu_1connection_1get_
 JNIEXPORT jstring JNICALL Java_tools_java_1api_KuzuNative_kuzu_1connection_1get_1node_1property_1names
   (JNIEnv * env, jclass, jobject thisConn, jstring table_name) {
     Connection* conn = getConnection(env, thisConn);
-    std::string name = env->GetStringUTFChars(table_name, JNI_FALSE);
+    const char * name = env->GetStringUTFChars(table_name, JNI_FALSE);
     jstring result = env->NewStringUTF(conn->getNodePropertyNames(name).c_str());
+	env->ReleaseStringUTFChars(table_name, name);
     return result;
 }   
 
 JNIEXPORT jstring JNICALL Java_tools_java_1api_KuzuNative_kuzu_1connection_1get_1rel_1property_1names
   (JNIEnv * env, jclass, jobject thisConn, jstring table_name) {
     Connection* conn = getConnection(env, thisConn);
-    std::string name = env->GetStringUTFChars(table_name, JNI_FALSE);
+    const char * name = env->GetStringUTFChars(table_name, JNI_FALSE);
     jstring result = env->NewStringUTF(conn->getRelPropertyNames(name).c_str());
+	env->ReleaseStringUTFChars(table_name, name);
     return result;
 }
 
@@ -627,7 +654,7 @@ JNIEXPORT jstring JNICALL Java_tools_java_1api_KuzuNative_kuzu_1query_1result_1t
 JNIEXPORT void JNICALL Java_tools_java_1api_KuzuNative_kuzu_1query_1result_1write_1to_1csv
   (JNIEnv * env, jclass, jobject thisQR, jstring file_path, jchar delimiter, jchar escape_char, jchar new_line) {
     QueryResult* qr = getQueryResult(env, thisQR);
-    std::string cpp_file_path = env->GetStringUTFChars(file_path, JNI_FALSE);
+    const char * cpp_file_path = env->GetStringUTFChars(file_path, JNI_FALSE);
 
     // TODO: confirm this convertion is ok to do. 
     // jchar is 16-bit unicode character so converting to char will lose the higher oreder-bits
@@ -636,6 +663,7 @@ JNIEXPORT void JNICALL Java_tools_java_1api_KuzuNative_kuzu_1query_1result_1writ
     char cpp_new_line = static_cast<char>(new_line);
 
     qr->writeToCSV(cpp_file_path, cpp_delimiter, cpp_escape_char, cpp_new_line);
+	env->ReleaseStringUTFChars(file_path, cpp_file_path);
 }
 
 JNIEXPORT void JNICALL Java_tools_java_1api_KuzuNative_kuzu_1query_1result_1reset_1iterator
@@ -827,8 +855,9 @@ JNIEXPORT jlong JNICALL Java_tools_java_1api_KuzuNative_kuzu_1value_1create_1val
         v = new Value(static_cast<double>(value));
     } else if (env->IsInstanceOf(val, env->FindClass("java/lang/String"))) {
         jstring value = static_cast<jstring>(val);
-        std::string str = env->GetStringUTFChars(value, NULL);
+        const char * str = env->GetStringUTFChars(value, NULL);
         v = new Value(str);
+		env->ReleaseStringUTFChars(value, str);
     } else if (env->IsInstanceOf(val, env->FindClass("tools/java_api/KuzuInternalID"))) {
         jfieldID fieldID = env->GetFieldID(val_class, "table_id", "J");
 		long table_id = static_cast<long>(env->GetLongField(val, fieldID));
@@ -1060,11 +1089,12 @@ JNIEXPORT jlong JNICALL Java_tools_java_1api_KuzuNative_kuzu_1node_1val_1create
 	long offset = static_cast<long>(env->GetLongField(id, fieldID));
 
 	auto id_val = std::make_unique<Value>(internalID_t(offset, table_id));
-	std::string labelstr = env->GetStringUTFChars(label, JNI_FALSE);
+	const char * labelstr = env->GetStringUTFChars(label, JNI_FALSE);
 	auto label_val = std::make_unique<Value>(labelstr);
 
 	NodeVal* node_val = new NodeVal(std::move(id_val), std::move(label_val));
 	uint64_t address = reinterpret_cast<uint64_t>(node_val);
+	env->ReleaseStringUTFChars(label, labelstr);
     return static_cast<jlong>(address);
 }
 
@@ -1151,8 +1181,9 @@ JNIEXPORT jobject JNICALL Java_tools_java_1api_KuzuNative_kuzu_1node_1val_1get_1
 JNIEXPORT void JNICALL Java_tools_java_1api_KuzuNative_kuzu_1node_1val_1add_1property
   (JNIEnv * env, jclass, jobject thisNV, jstring key, jobject value) {
 	NodeVal* nv = getNodeVal(env, thisNV);
-	std::string k = env->GetStringUTFChars(key, JNI_FALSE);
+	const char * k = env->GetStringUTFChars(key, JNI_FALSE);
 	auto v = std::make_unique<Value>(*getValue(env, value));
+	env->ReleaseStringUTFChars(key, k);
 	nv->addProperty(k, std::move(v));
 }
 
@@ -1164,4 +1195,144 @@ JNIEXPORT jstring JNICALL Java_tools_java_1api_KuzuNative_kuzu_1node_1val_1to_1s
     return ret;
 }
 
+JNIEXPORT jlong JNICALL Java_tools_java_1api_KuzuNative_kuzu_1rel_1val_1create
+  (JNIEnv * env, jclass, jobject src_id, jobject dst_id, jstring label) {
+	internalID_t cpp_src_id = getInternalID(env, src_id);
+	internalID_t cpp_dst_id = getInternalID(env, dst_id);
+    auto src_id_val = std::make_unique<Value>(internalID_t(cpp_src_id.offset, cpp_src_id.tableID));
+    auto dst_id_val = std::make_unique<Value>(internalID_t(cpp_dst_id.offset, cpp_dst_id.tableID));
+    const char * lablestr = env->GetStringUTFChars(label, JNI_FALSE);
+	auto label_val = std::make_unique<Value>(lablestr);
+    RelVal* rv = new RelVal(std::move(src_id_val), std::move(dst_id_val), std::move(label_val));
+	
+	uint64_t address = reinterpret_cast<uint64_t>(rv);
+	env->ReleaseStringUTFChars(label, lablestr);
+    return static_cast<jlong>(address); 
+}
 
+JNIEXPORT jobject JNICALL Java_tools_java_1api_KuzuNative_kuzu_1rel_1val_1clone
+  (JNIEnv * env, jclass, jobject thisRV) {
+	RelVal* rv = getRelVal(env, thisRV);
+	RelVal* newRV = new RelVal(*rv);
+	return createJavaObject(env, newRV, "tools/java_api/KuzuRelValue", "rv_ref");
+}
+
+JNIEXPORT void JNICALL Java_tools_java_1api_KuzuNative_kuzu_1rel_1val_1destroy
+  (JNIEnv * env, jclass, jobject thisRV) {
+	RelVal* rv = getRelVal(env, thisRV);
+	delete rv;
+}
+
+JNIEXPORT jobject JNICALL Java_tools_java_1api_KuzuNative_kuzu_1rel_1val_1get_1src_1id_1val
+  (JNIEnv * env, jclass, jobject thisRV) {
+	RelVal* rv = getRelVal(env, thisRV);
+	auto idVal = rv->getSrcNodeIDVal();
+
+	jobject ret = createJavaObject(env, idVal, "tools/java_api/KuzuValue", "v_ref");
+	jclass clazz = env->GetObjectClass(ret);
+	jfieldID fieldID = env->GetFieldID(clazz, "isOwnedByCPP", "Z");
+	env->SetBooleanField(ret, fieldID, static_cast<jboolean>(true));
+	return ret;
+}
+
+JNIEXPORT jobject JNICALL Java_tools_java_1api_KuzuNative_kuzu_1rel_1val_1get_1dst_1id_1val
+  (JNIEnv * env, jclass, jobject thisRV) {
+	RelVal* rv = getRelVal(env, thisRV);
+	auto idVal = rv->getDstNodeIDVal();
+
+	jobject ret = createJavaObject(env, idVal, "tools/java_api/KuzuValue", "v_ref");
+	jclass clazz = env->GetObjectClass(ret);
+	jfieldID fieldID = env->GetFieldID(clazz, "isOwnedByCPP", "Z");
+	env->SetBooleanField(ret, fieldID, static_cast<jboolean>(true));
+	return ret;
+}
+
+JNIEXPORT jobject JNICALL Java_tools_java_1api_KuzuNative_kuzu_1rel_1val_1get_1src_1id
+  (JNIEnv * env, jclass, jobject thisRV) {
+	RelVal* rv = getRelVal(env, thisRV);
+	internalID_t id = rv->getSrcNodeID();
+
+	jclass retClass = env->FindClass("tools/java_api/KuzuInternalID");
+	jmethodID ctor = env->GetMethodID(retClass, "<init>", "(JJ)V");
+	jobject ret = env->NewObject(retClass, ctor, id.tableID, id.offset);
+	return ret;
+}
+
+JNIEXPORT jobject JNICALL Java_tools_java_1api_KuzuNative_kuzu_1rel_1val_1get_1dst_1id
+  (JNIEnv * env, jclass, jobject thisRV) {
+	RelVal* rv = getRelVal(env, thisRV);
+	internalID_t id = rv->getDstNodeID();
+
+	jclass retClass = env->FindClass("tools/java_api/KuzuInternalID");
+	jmethodID ctor = env->GetMethodID(retClass, "<init>", "(JJ)V");
+	jobject ret = env->NewObject(retClass, ctor, id.tableID, id.offset);
+	return ret;
+}
+
+JNIEXPORT jstring JNICALL Java_tools_java_1api_KuzuNative_kuzu_1rel_1val_1get_1label_1name
+  (JNIEnv * env, jclass, jobject thisRV) {
+	RelVal* rv = getRelVal(env, thisRV);
+	return env->NewStringUTF(rv->getLabelName().c_str());
+}
+
+JNIEXPORT jlong JNICALL Java_tools_java_1api_KuzuNative_kuzu_1rel_1val_1get_1property_1size
+  (JNIEnv * env, jclass, jobject thisRV) {
+	RelVal* rv = getRelVal(env, thisRV);
+	return static_cast<jlong>(rv->getProperties().size());
+}
+
+JNIEXPORT jstring JNICALL Java_tools_java_1api_KuzuNative_kuzu_1rel_1val_1get_1property_1name_1at
+  (JNIEnv * env, jclass, jobject thisRV, jlong index) {
+	RelVal* rv = getRelVal(env, thisRV);
+	auto& name = rv->getProperties().at(index).first;
+    return env->NewStringUTF(name.c_str());
+}
+
+JNIEXPORT jobject JNICALL Java_tools_java_1api_KuzuNative_kuzu_1rel_1val_1get_1property_1value_1at
+  (JNIEnv * env, jclass, jobject thisRV, jlong index) {
+	RelVal* rv = getRelVal(env, thisRV);
+	uint64_t idx = static_cast<uint64_t>(index);
+	Value* val = rv->getProperties().at(idx).second.get();
+
+	jobject ret = createJavaObject(env, val, "tools/java_api/KuzuValue", "v_ref");
+	jclass clazz = env->GetObjectClass(ret);
+	jfieldID fieldID = env->GetFieldID(clazz, "isOwnedByCPP", "Z");
+	env->SetBooleanField(ret, fieldID, static_cast<jboolean>(true));
+	return ret;
+}
+
+JNIEXPORT void JNICALL Java_tools_java_1api_KuzuNative_kuzu_1rel_1val_1add_1property
+  (JNIEnv * env, jclass, jobject thisRV, jstring key, jobject value) {
+	RelVal* rv = getRelVal(env, thisRV);
+	const char * k = env->GetStringUTFChars(key, JNI_FALSE);
+	auto v = std::make_unique<Value>(*getValue(env, value));
+	rv->addProperty(k, std::move(v));
+
+	env->ReleaseStringUTFChars(key, k);
+}
+
+JNIEXPORT jstring JNICALL Java_tools_java_1api_KuzuNative_kuzu_1rel_1val_1to_1string
+  (JNIEnv * env, jclass, jobject thisRV) {
+	RelVal* rv = getRelVal(env, thisRV);
+	std::string result_string = rv->toString();
+    jstring ret = env->NewStringUTF(result_string.c_str());
+    return ret;
+}
+
+JNIEXPORT void JNICALL Java_tools_java_1api_KuzuNative_kuzu_1query_1summary_1destroy
+  (JNIEnv * env, jclass, jobject thisQR) {
+	QuerySummary* qr = getQuerySummary(env, thisQR);
+	delete qr;
+}
+
+JNIEXPORT jdouble JNICALL Java_tools_java_1api_KuzuNative_kuzu_1query_1summary_1get_1compiling_1time
+  (JNIEnv * env, jclass, jobject thisQR) {
+	QuerySummary* qr = getQuerySummary(env, thisQR);
+	return static_cast<jdouble>(qr->getCompilingTime());
+}
+
+JNIEXPORT jdouble JNICALL Java_tools_java_1api_KuzuNative_kuzu_1query_1summary_1get_1execution_1time
+  (JNIEnv * env, jclass, jobject thisQR) {
+	QuerySummary* qr = getQuerySummary(env, thisQR);
+	return static_cast<jdouble>(qr->getExecutionTime());
+}

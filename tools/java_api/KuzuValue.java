@@ -6,7 +6,7 @@ public class KuzuValue {
     boolean isOwnedByCPP = false;
 
     private void checkNotdestroyed () {
-        assert !destroyed: "FlatTuple has been destroyed.";
+        assert !destroyed: "KuzuValue has been destroyed.";
     }
 
     public <T> KuzuValue (T val) {

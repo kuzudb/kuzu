@@ -163,7 +163,7 @@ public class KuzuNative {
         KuzuNodeValue node_val, String key, KuzuValue value);
     protected static native String kuzu_node_val_to_string(KuzuNodeValue node_val);
 
-    protected static native KuzuRelValue kuzu_rel_val_create(
+    protected static native long kuzu_rel_val_create(
         KuzuInternalID src_id, KuzuInternalID dst_id, String label);
     protected static native KuzuRelValue kuzu_rel_val_clone(KuzuRelValue rel_val);
     protected static native void kuzu_rel_val_destroy(KuzuRelValue rel_val);

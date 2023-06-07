@@ -3,7 +3,7 @@ import java.time.*;
 
 public class test {
     public static void main(String[] args) {
-        KuzuDatabase db = new KuzuDatabase("./testdb/testdb.db", 20);
+        KuzuDatabase db = new KuzuDatabase("./testdb/testdb.db", 0);
         KuzuConnection connection = new KuzuConnection(db);
         
         connection.beginWriteTransaction();

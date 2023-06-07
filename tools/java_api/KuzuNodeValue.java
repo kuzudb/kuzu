@@ -3,9 +3,10 @@ package tools.java_api;
 public class KuzuNodeValue {
     long nv_ref;
     boolean destroyed = false;
+    boolean isOwnedByCPP = false;
 
     private void checkNotdestroyed() {
-        assert !destroyed: "PreparedStatement has been destoryed.";
+        assert !destroyed: "KuzuNodeValue has been destoryed.";
     }
 
     public KuzuNodeValue(KuzuInternalID id, String label) {
@@ -19,8 +20,10 @@ public class KuzuNodeValue {
 
     public void destroy() {
         checkNotdestroyed();
-        KuzuNative.kuzu_node_val_destroy(this);
-        destroyed = true;
+        if (!isOwnedByCPP) {
+            KuzuNative.kuzu_node_val_destroy(this);
+            destroyed = true;
+        }
     }
 
     public KuzuValue getIDVal() {

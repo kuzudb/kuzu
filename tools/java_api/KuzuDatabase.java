@@ -24,8 +24,8 @@ public class KuzuDatabase {
         destroyed = true;
     }
 
-    public void setLoggingLevel(String logging_level, KuzuDatabase db) {
+    public void setLoggingLevel(String logging_level) {
         checkNotdestroyed();
-        KuzuNative.kuzu_database_set_logging_level(logging_level ,db);
+        KuzuNative.kuzu_database_set_logging_level(logging_level ,this);
     }
 }
