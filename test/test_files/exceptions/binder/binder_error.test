@@ -1,5 +1,5 @@
 -GROUP BinderErrorTest
--DATASET tinysnb
+-DATASET CSV tinysnb
 
 --
 

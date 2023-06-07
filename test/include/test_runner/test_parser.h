@@ -75,6 +75,7 @@ private:
     void parseBody();
     void extractExpectedResult(TestStatement* statement);
     void extractStatementBlock();
+    void extractDataset();
     void addStatementBlock(const std::string& blockName, const std::string& testGroupName);
     void replaceVariables(std::string& str);
 

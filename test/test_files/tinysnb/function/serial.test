@@ -1,5 +1,5 @@
 -GROUP TinySnbReadTest
--DATASET tinysnb-serial
+-DATASET CSV tinysnb-serial
 
 --
 

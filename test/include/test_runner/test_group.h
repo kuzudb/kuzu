@@ -27,14 +27,15 @@ struct TestStatement {
 struct TestGroup {
     std::string group;
     std::string dataset;
-    uint64_t bufferPoolSize =
-        kuzu::common::BufferPoolConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING;
     std::unordered_map<std::string, std::vector<std::unique_ptr<TestStatement>>> testCases;
     std::unordered_map<std::string, std::vector<std::unique_ptr<TestStatement>>>
         testCasesStatementBlocks;
+    uint64_t bufferPoolSize = common::BufferPoolConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING;
+
+    enum class DatasetType { CSV, PARQUET, NPY, CSV_TO_PARQUET };
+    DatasetType datasetType;
 
     bool isValid() const { return !group.empty() && !dataset.empty(); }
-
     bool hasStatements() const { return !testCases.empty(); }
 };
 

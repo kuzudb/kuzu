@@ -1,5 +1,5 @@
 -GROUP DemoDBTest
--DATASET demo-db/parquet
+-DATASET PARQUET demo-db/parquet
 
 --
 

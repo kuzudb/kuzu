@@ -1,5 +1,5 @@
 -GROUP TinySnbExceptionTest
--DATASET tinysnb
+-DATASET CSV tinysnb
 
 --
 

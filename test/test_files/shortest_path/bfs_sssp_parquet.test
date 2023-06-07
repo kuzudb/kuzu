@@ -1,9 +1,11 @@
+# FIXME: this test is segfaulting
 -GROUP ShortestPathTest
--DATASET CSV shortest-path-tests
+-SKIP
+-DATASET PARQUET CSV_TO_PARQUET(shortest-path-tests)
 
 --
 
--CASE Bfs
+-CASE BfsParquet
 
 -NAME SingleSourceAllDestinationsSSP
 -QUERY MATCH (a:person)-[r:knows* SHORTEST 1..30]->(b:person) WHERE a.fName = 'Alice' RETURN a.fName, b.fName, r

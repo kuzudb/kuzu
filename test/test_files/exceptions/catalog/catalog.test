@@ -1,5 +1,5 @@
 -GROUP CatalogErrorTest
--DATASET tinysnb
+-DATASET CSV tinysnb
 
 --
 

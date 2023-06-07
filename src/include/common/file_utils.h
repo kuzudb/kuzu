@@ -45,7 +45,10 @@ public:
         FileInfo* fileInfo, uint8_t* buffer, uint64_t numBytes, uint64_t offset);
     // This function is a no-op if either file, from or to, does not exist.
     static void overwriteFile(const std::string& from, const std::string& to);
+    static void copyFile(const std::string& from, const std::string& to,
+        std::filesystem::copy_options options = std::filesystem::copy_options::none);
     static void createDir(const std::string& dir);
+    static void createDirIfNotExists(const std::string& path);
     static void removeDir(const std::string& dir);
 
     static inline std::string joinPath(const std::string& base, const std::string& part) {

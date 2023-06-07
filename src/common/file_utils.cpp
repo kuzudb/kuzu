@@ -121,15 +121,21 @@ void FileUtils::writeToFile(
     }
 }
 
-void FileUtils::overwriteFile(const std::string& from, const std::string& to) {
-    if (!fileOrPathExists(from) || !fileOrPathExists(to))
+void FileUtils::copyFile(
+    const std::string& from, const std::string& to, std::filesystem::copy_options options) {
+    if (!fileOrPathExists(from))
         return;
     std::error_code errorCode;
-    if (!std::filesystem::copy_file(
-            from, to, std::filesystem::copy_options::overwrite_existing, errorCode)) {
+    if (!std::filesystem::copy_file(from, to, options, errorCode)) {
         throw Exception(StringUtils::string_format(
             "Error copying file {} to {}.  ErrorMessage: {}", from, to, errorCode.message()));
     }
+}
+
+void FileUtils::overwriteFile(const std::string& from, const std::string& to) {
+    if (!fileOrPathExists(from) || !fileOrPathExists(to))
+        return;
+    copyFile(from, to, std::filesystem::copy_options::overwrite_existing);
 }
 
 void FileUtils::readFromFile(
@@ -176,6 +182,12 @@ void FileUtils::createDir(const std::string& dir) {
     } catch (std::exception& e) {
         throw Exception(
             StringUtils::string_format("Failed to create directory {} due to: {}", dir, e.what()));
+    }
+}
+
+void FileUtils::createDirIfNotExists(const std::string& path) {
+    if (!fileOrPathExists(path)) {
+        createDir(path);
     }
 }
 
