@@ -1,0 +1,9 @@
+-GROUP CopyDuplicateIDTest
+-DATASET CSV copy-fault-tests/duplicate-ids
+
+--
+
+-CASE DuplicateIDsError
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/duplicate-ids/vPerson.csv"
+---- error
+HashIndex exception: A node is created with an existed primary key 10, which violates the uniqueness constraint of the primary key property.

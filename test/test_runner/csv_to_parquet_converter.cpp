@@ -49,7 +49,7 @@ void CSVToParquetConverter::copySchema(
 CSVToParquetConverter::CopyCommandInfo CSVToParquetConverter::createCopyCommandInfo(
     const std::string& parquetDatasetPath, std::string copyStatement) {
     auto tokens = StringUtils::split(copyStatement, " ");
-    auto path = std::filesystem::path(extractPath(tokens[3], '"'));
+    auto path = std::filesystem::path(StringUtils::extractStringBetween(tokens[3], '"', '"'));
     CopyCommandInfo copyCommandInfo;
     copyCommandInfo.table = tokens[1];
     copyCommandInfo.csvFilePath = TestHelper::appendKuzuRootPath(path.string());
@@ -114,12 +114,6 @@ std::string CSVToParquetConverter::convertCSVDatasetToParquet(
     createCopyFile(parquetDatasetPath, copyCommands);
     convertCSVFilesToParquet(copyCommands);
     return parquetDatasetPath;
-}
-
-std::string CSVToParquetConverter::extractPath(std::string& str, char delimiter) {
-    std::string::size_type posStart = str.find_first_of(delimiter);
-    std::string::size_type posEnd = str.find_last_of(delimiter);
-    return str.substr(posStart + 1, posEnd - posStart - 1);
 }
 
 } // namespace testing

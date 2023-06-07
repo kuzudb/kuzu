@@ -19,7 +19,9 @@ public:
         BaseGraphTest::SetUp();
         systemConfig->bufferPoolSize = bufferPoolSize;
         createDBAndConn();
-        initGraph();
+        if (dataset != "no-dataset") {
+            initGraph();
+        }
     }
 
     void setUpDataset() {

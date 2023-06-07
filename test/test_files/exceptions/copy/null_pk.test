@@ -1,0 +1,8 @@
+-GROUP CopyNullPKTest
+-DATASET CSV copy-fault-tests/null-pk
+
+--
+
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/null-pk/vPerson.csv"
+---- error
+Copy exception: Primary key cannot be null.

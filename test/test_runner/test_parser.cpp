@@ -98,6 +98,7 @@ void TestParser::extractExpectedResult(TestStatement* statement) {
         statement->expectedNumTuples = stoi(result);
         for (auto i = 0u; i < statement->expectedNumTuples; i++) {
             nextLine();
+            replaceVariables(line);
             statement->expectedTuples.push_back(line);
         }
         if (!statement->checkOutputOrder) { // order is not important for result
@@ -193,6 +194,12 @@ void TestParser::extractStatementBlock() {
 }
 
 std::string TestParser::parseCommand() {
+    // REPEAT 3 "Alice " = "Alice Alice Alice "
+    if (currentToken.params[2] == "REPEAT") {
+        checkMinimumParams(4);
+        return parseCommandRepeat();
+    }
+    // ARANGE 0 3 = [0,1,2,3]
     if (currentToken.params[2] == "ARANGE") {
         checkMinimumParams(4);
         return parseCommandArange();
@@ -204,6 +211,15 @@ std::string TestParser::parseCommand() {
     return params.substr(1, params.size() - 2);
 }
 
+std::string TestParser::parseCommandRepeat() {
+    int times = stoi(currentToken.params[3]);
+    std::string result;
+    std::string repeatString = StringUtils::extractStringBetween(paramsToString(4), '"', '"');
+    for (auto i = 0; i < times; i++) {
+        result += repeatString;
+    }
+    return result;
+}
 std::string TestParser::parseCommandArange() {
     int start = stoi(currentToken.params[3]);
     int end = stoi(currentToken.params[4]);

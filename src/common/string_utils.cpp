@@ -40,5 +40,17 @@ void StringUtils::replaceAll(
     }
 }
 
+std::string StringUtils::extractStringBetween(
+    const std::string& input, char delimiterStart, char delimiterEnd, bool includeDelimiter) {
+    std::string::size_type posStart = input.find_first_of(delimiterStart);
+    std::string::size_type posEnd = input.find_last_of(delimiterEnd);
+    if (includeDelimiter) {
+        posEnd++;
+    } else {
+        posStart++;
+    }
+    return input.substr(posStart, posEnd - posStart);
+}
+
 } // namespace common
 } // namespace kuzu

@@ -1,0 +1,41 @@
+-GROUP CopyOneDimensionalNpyTest
+-DATASET NPY npy-1d
+
+--
+
+-CASE CopyOneDimensionalNpyTest
+
+-NAME i64
+-QUERY MATCH (n:npytable) RETURN n.i64
+---- 3
+1
+2
+3
+
+-NAME i32
+-QUERY MATCH (n:npytable) RETURN n.i32
+---- 3
+1
+2
+3
+
+-NAME i16
+-QUERY MATCH (n:npytable) RETURN n.i16
+---- 3
+1
+2
+3
+
+-NAME f64
+-QUERY MATCH (n:npytable) RETURN n.f64
+---- 3
+1.000000
+2.000000
+3.000000
+
+-NAME f32
+-QUERY MATCH (n:npytable) RETURN n.f32
+---- 3
+1.000000
+2.000000
+3.000000

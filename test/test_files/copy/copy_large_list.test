@@ -1,0 +1,10 @@
+-GROUP ReadLargeListTest
+-DATASET CSV read-list-tests/large-list
+-SKIP
+
+--
+
+# tbd
+-CASE CopyLargeList
+-QUERY MATCH (p:person)[r:knows](p1:person) RETURN p
+---- ok

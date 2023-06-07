@@ -44,6 +44,11 @@ private:
         const std::vector<CSVToParquetConverter::CopyCommandInfo>& copyCommands);
 
     static std::string extractPath(std::string& str, char delimiter);
+
+    inline static std::string replaceSlashesWithUnderscores(std::string dataset) {
+        std::replace(dataset.begin(), dataset.end(), '/', '_');
+        return dataset;
+    }
 };
 
 } // namespace testing
