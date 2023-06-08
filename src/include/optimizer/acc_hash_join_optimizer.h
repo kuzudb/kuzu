@@ -36,7 +36,7 @@ private:
         const binder::Expression& nodeID, planner::LogicalOperator* root);
 
     std::shared_ptr<planner::LogicalOperator> appendSemiMask(
-        std::shared_ptr<binder::Expression> nodeID, std::vector<planner::LogicalOperator*> ops,
+        std::vector<planner::LogicalOperator*> ops,
         std::shared_ptr<planner::LogicalOperator> child);
     std::shared_ptr<planner::LogicalOperator> appendAccumulate(
         std::shared_ptr<planner::LogicalOperator> child);

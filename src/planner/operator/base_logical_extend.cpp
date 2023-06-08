@@ -6,15 +6,19 @@ namespace planner {
 static std::string relToString(const binder::RelExpression& rel) {
     auto result = rel.toString();
     switch (rel.getRelType()) {
-    case common::QueryRelType::SHORTEST:
+    case common::QueryRelType::SHORTEST: {
         result += "SHORTEST";
-    case common::QueryRelType::VARIABLE_LENGTH: {
-        result += std::to_string(rel.getLowerBound());
-        result += "..";
-        result += std::to_string(rel.getUpperBound());
+    } break;
+    case common::QueryRelType::ALL_SHORTEST: {
+        result += "ALL SHORTEST";
     } break;
     default:
         break;
+    }
+    if (common::QueryRelTypeUtils::isRecursive(rel.getRelType())) {
+        result += std::to_string(rel.getLowerBound());
+        result += "..";
+        result += std::to_string(rel.getUpperBound());
     }
     return result;
 }

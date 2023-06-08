@@ -46,7 +46,7 @@ bool HashJoinSIPOptimizer::tryProbeToBuildHJSIP(planner::LogicalOperator* op) {
     for (auto& nodeID : hashJoin->getJoinNodeIDs()) {
         auto ops = resolveOperatorsToApplySemiMask(*nodeID, buildRoot.get());
         if (!ops.empty()) {
-            probeRoot = appendSemiMask(nodeID, ops, probeRoot);
+            probeRoot = appendSemiMask(ops, probeRoot);
             hasSemiMaskApplied = true;
         }
     }
@@ -85,7 +85,7 @@ bool HashJoinSIPOptimizer::tryBuildToProbeHJSIP(planner::LogicalOperator* op) {
     for (auto& nodeID : hashJoin->getJoinNodeIDs()) {
         auto ops = resolveOperatorsToApplySemiMask(*nodeID, probeRoot.get());
         if (!ops.empty()) {
-            buildRoot = appendSemiMask(nodeID, ops, buildRoot);
+            buildRoot = appendSemiMask(ops, buildRoot);
         }
     }
     hashJoin->setSIP(planner::SidewaysInfoPassing::BUILD_TO_PROBE);
@@ -112,7 +112,7 @@ void HashJoinSIPOptimizer::visitIntersect(planner::LogicalOperator* op) {
             }
         }
         if (!ops.empty()) {
-            probeRoot = appendSemiMask(nodeID, ops, probeRoot);
+            probeRoot = appendSemiMask(ops, probeRoot);
             hasSemiMaskApplied = true;
         }
     }
@@ -168,20 +168,17 @@ HashJoinSIPOptimizer::resolveShortestPathExtendToApplySemiMask(
     recursiveJoinCollector.collect(root);
     for (auto& op : recursiveJoinCollector.getOperators()) {
         auto recursiveJoin = (LogicalRecursiveExtend*)op;
-        if (recursiveJoin->getRel()->getRelType() == common::QueryRelType::SHORTEST) {
-            auto node = recursiveJoin->getNbrNode();
-            if (nodeID.getUniqueName() == node->getInternalIDProperty()->getUniqueName()) {
-                result.push_back(op);
-                return result;
-            }
+        auto node = recursiveJoin->getNbrNode();
+        if (nodeID.getUniqueName() == node->getInternalIDProperty()->getUniqueName()) {
+            result.push_back(op);
+            return result;
         }
     }
     return result;
 }
 
 std::shared_ptr<planner::LogicalOperator> HashJoinSIPOptimizer::appendSemiMask(
-    std::shared_ptr<binder::Expression> nodeID, std::vector<planner::LogicalOperator*> ops,
-    std::shared_ptr<planner::LogicalOperator> child) {
+    std::vector<planner::LogicalOperator*> ops, std::shared_ptr<planner::LogicalOperator> child) {
     assert(!ops.empty());
     auto op = ops[0];
     std::shared_ptr<binder::NodeExpression> node;

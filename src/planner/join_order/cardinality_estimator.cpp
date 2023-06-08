@@ -110,7 +110,8 @@ double CardinalityEstimator::getExtensionRate(
         return oneHopExtensionRate;
     }
     case common::QueryRelType::VARIABLE_LENGTH:
-    case common::QueryRelType::SHORTEST: {
+    case common::QueryRelType::SHORTEST:
+    case common::QueryRelType::ALL_SHORTEST: {
         return std::min<double>(oneHopExtensionRate * rel.getUpperBound(), numRels);
     }
     default:

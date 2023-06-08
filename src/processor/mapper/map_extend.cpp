@@ -1,8 +1,7 @@
 #include "planner/logical_plan/logical_operator/logical_extend.h"
 #include "planner/logical_plan/logical_operator/logical_recursive_extend.h"
 #include "processor/mapper/plan_mapper.h"
-#include "processor/operator/recursive_extend/shortest_path_recursive_join.h"
-#include "processor/operator/recursive_extend/variable_length_recursive_join.h"
+#include "processor/operator/recursive_extend/recursive_join.h"
 #include "processor/operator/scan/generic_scan_rel_tables.h"
 #include "processor/operator/scan/scan_rel_table_columns.h"
 #include "processor/operator/scan/scan_rel_table_lists.h"
@@ -196,14 +195,13 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalRecursiveExtendToPhysica
         dataInfo = std::make_unique<RecursiveJoinDataInfo>(outDataPoses, colIndicesToScan,
             boundNodeIDVectorPos, nbrNodeIDVectorPos, nbrNode->getTableIDsSet(), lengthVectorPos,
             std::move(recursivePlanResultSetDescriptor), recursiveDstNodeIDPos,
-            recursiveNode->getTableIDsSet(), recursiveEdgeIDPos, extend->getJoinType(),
-            pathVectorPos);
+            recursiveNode->getTableIDsSet(), recursiveEdgeIDPos, pathVectorPos);
     } break;
     case planner::RecursiveJoinType::TRACK_NONE: {
         dataInfo = std::make_unique<RecursiveJoinDataInfo>(outDataPoses, colIndicesToScan,
             boundNodeIDVectorPos, nbrNodeIDVectorPos, nbrNode->getTableIDsSet(), lengthVectorPos,
             std::move(recursivePlanResultSetDescriptor), recursiveDstNodeIDPos,
-            recursiveNode->getTableIDsSet(), recursiveEdgeIDPos, extend->getJoinType());
+            recursiveNode->getTableIDsSet(), recursiveEdgeIDPos);
     } break;
     default:
         throw common::NotImplementedException("PlanMapper::mapLogicalRecursiveExtendToPhysical");
@@ -213,20 +211,10 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalRecursiveExtendToPhysica
         nodeTables.push_back(storageManager.getNodesStore().getNodeTable(tableID));
     }
     auto sharedState = std::make_shared<RecursiveJoinSharedState>(sharedInputFTable, nodeTables);
-    switch (rel->getRelType()) {
-    case common::QueryRelType::SHORTEST: {
-        return std::make_unique<ShortestPathRecursiveJoin>(rel->getLowerBound(),
-            rel->getUpperBound(), sharedState, std::move(dataInfo), std::move(resultCollector),
-            getOperatorID(), extend->getExpressionsForPrinting(), std::move(recursiveRoot));
-    }
-    case common::QueryRelType::VARIABLE_LENGTH: {
-        return std::make_unique<VariableLengthRecursiveJoin>(rel->getLowerBound(),
-            rel->getUpperBound(), sharedState, std::move(dataInfo), std::move(resultCollector),
-            getOperatorID(), extend->getExpressionsForPrinting(), std::move(recursiveRoot));
-    }
-    default:
-        throw common::NotImplementedException("PlanMapper::mapLogicalRecursiveExtendToPhysical");
-    }
+    return std::make_unique<RecursiveJoin>(rel->getLowerBound(), rel->getUpperBound(),
+        rel->getRelType(), extend->getJoinType(), sharedState, std::move(dataInfo),
+        std::move(resultCollector), getOperatorID(), extend->getExpressionsForPrinting(),
+        std::move(recursiveRoot));
 }
 
 } // namespace processor

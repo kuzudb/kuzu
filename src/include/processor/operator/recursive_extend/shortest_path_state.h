@@ -6,11 +6,8 @@ namespace kuzu {
 namespace processor {
 
 template<bool TRACK_PATH>
-struct ShortestPathState : public BaseBFSState {
-    // Visited state
-    uint64_t numVisitedDstNodes;
-    frontier::node_id_set_t visited;
-
+class ShortestPathState : public BaseBFSState {
+public:
     ShortestPathState(uint8_t upperBound, TargetDstNodes* targetDstNodes)
         : BaseBFSState{upperBound, targetDstNodes}, numVisitedDstNodes{0} {}
     ~ShortestPathState() override = default;
@@ -20,7 +17,8 @@ struct ShortestPathState : public BaseBFSState {
     }
     inline void resetState() final {
         BaseBFSState::resetState();
-        resetVisitedState();
+        numVisitedDstNodes = 0;
+        visited.clear();
     }
 
     inline void markSrc(common::nodeID_t nodeID) final {
@@ -47,13 +45,14 @@ struct ShortestPathState : public BaseBFSState {
         }
     }
 
+private:
     inline bool isAllDstReached() const {
         return numVisitedDstNodes == targetDstNodes->getNumNodes();
     }
-    inline void resetVisitedState() {
-        numVisitedDstNodes = 0;
-        visited.clear();
-    }
+
+private:
+    uint64_t numVisitedDstNodes;
+    frontier::node_id_set_t visited;
 };
 
 } // namespace processor
