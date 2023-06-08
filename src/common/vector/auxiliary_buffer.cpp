@@ -35,29 +35,39 @@ list_entry_t ListAuxiliaryBuffer::addList(uint64_t listSize) {
     }
     auto numBytesPerElement = dataVector->getNumBytesPerValue();
     if (needResizeDataVector) {
-        auto buffer = std::make_unique<uint8_t[]>(capacity * numBytesPerElement);
-        memcpy(buffer.get(), dataVector->valueBuffer.get(), size * numBytesPerElement);
-        dataVector->valueBuffer = std::move(buffer);
-        dataVector->nullMask->resize(capacity);
+        resizeDataVector(dataVector.get());
     }
     size += listSize;
     return listEntry;
 }
 
+void ListAuxiliaryBuffer::resizeDataVector(ValueVector* dataVector) {
+    // If the dataVector is a struct vector, we need to resize its field vectors.
+    if (dataVector->dataType.getPhysicalType() == PhysicalTypeID::STRUCT) {
+        auto fieldVectors = StructVector::getFieldVectors(dataVector);
+        for (auto& fieldVector : fieldVectors) {
+            resizeDataVector(fieldVector.get());
+        }
+    } else {
+        auto buffer = std::make_unique<uint8_t[]>(capacity * dataVector->getNumBytesPerValue());
+        memcpy(
+            buffer.get(), dataVector->valueBuffer.get(), size * dataVector->getNumBytesPerValue());
+        dataVector->valueBuffer = std::move(buffer);
+        dataVector->nullMask->resize(capacity);
+    }
+}
+
 std::unique_ptr<AuxiliaryBuffer> AuxiliaryBufferFactory::getAuxiliaryBuffer(
     LogicalType& type, storage::MemoryManager* memoryManager) {
-    switch (type.getLogicalTypeID()) {
-    case LogicalTypeID::STRING:
+    switch (type.getPhysicalType()) {
+    case PhysicalTypeID::STRING:
         return std::make_unique<StringAuxiliaryBuffer>(memoryManager);
-    case LogicalTypeID::STRUCT:
+    case PhysicalTypeID::STRUCT:
         return std::make_unique<StructAuxiliaryBuffer>(type, memoryManager);
-    case LogicalTypeID::RECURSIVE_REL:
-        return std::make_unique<ListAuxiliaryBuffer>(
-            common::LogicalType(common::LogicalTypeID::INTERNAL_ID), memoryManager);
-    case LogicalTypeID::VAR_LIST:
+    case PhysicalTypeID::VAR_LIST:
         return std::make_unique<ListAuxiliaryBuffer>(
             *VarListType::getChildType(&type), memoryManager);
-    case LogicalTypeID::ARROW_COLUMN:
+    case PhysicalTypeID::ARROW_COLUMN:
         return std::make_unique<ArrowColumnAuxiliaryBuffer>();
     default:
         return nullptr;

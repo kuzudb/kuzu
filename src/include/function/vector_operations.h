@@ -16,6 +16,7 @@ using scalar_exec_func = std::function<void(
     const std::vector<std::shared_ptr<common::ValueVector>>&, common::ValueVector&)>;
 using scalar_select_func = std::function<bool(
     const std::vector<std::shared_ptr<common::ValueVector>>&, common::SelectionVector&)>;
+using vector_operation_definitions = std::vector<std::unique_ptr<VectorOperationDefinition>>;
 
 struct VectorOperationDefinition : public FunctionDefinition {
 
@@ -82,7 +83,7 @@ struct VectorOperations {
     template<typename RESULT_TYPE, typename FUNC>
     static void ConstExecFunction(const std::vector<std::shared_ptr<common::ValueVector>>& params,
         common::ValueVector& result) {
-        assert(params.size() == 0);
+        assert(params.empty());
         ConstOperationExecutor::execute<RESULT_TYPE, FUNC>(result);
     }
 };

@@ -536,3 +536,86 @@ Dan|Carol
 [{DESCRIPTION: {PROPA: [2,1], PROPB: 2000-01-01}, NAME: Dan},{DESCRIPTION: {PROPA: [5,3], PROPB: 1950-07-23}, NAME: Carol}]
 [{DESCRIPTION: {PROPA: [1,2], PROPB: 1905-12-12}, NAME: Elizabeth},{DESCRIPTION: {PROPA: [7,8], PROPB: 1980-10-26}, NAME: Farooq}]
 [{DESCRIPTION: {PROPA: [1,2], PROPB: 1905-12-12}, NAME: Elizabeth},{DESCRIPTION: {PROPA: [7,9], PROPB: 1980-10-26}, NAME: Greg}]
+
+-NAME ReturnMapLiteral
+-QUERY RETURN map(['Alice', 'Bob', 'Carol', 'Dan'], [20, 34, 50, 22]);
+---- 1
+{Alice=20, Bob=34, Carol=50, Dan=22}
+
+-NAME ReturnMapLiteralWithProp
+-QUERY MATCH (p:person) RETURN map([p.ID, p.age], [p.fName, p.fName]);
+---- 8
+{0=Alice, 35=Alice}
+{2=Bob, 30=Bob}
+{3=Carol, 45=Carol}
+{5=Dan, 20=Dan}
+{7=Elizabeth, 20=Elizabeth}
+{8=Farooq, 25=Farooq}
+{9=Greg, 40=Greg}
+{10=Hubert Blaine Wolfeschlegelsteinhausenbergerdorff, 83=Hubert Blaine Wolfeschlegelsteinhausenbergerdorff}
+
+-NAME ReturnMapLiteralWithFlatUnflatProp
+-QUERY MATCH (p:person)-[:knows]->(p1:person) RETURN map([p.fName, p1.fName], [p.age, p1.age]);
+---- 14
+{Alice=35, Bob=30}
+{Alice=35, Carol=45}
+{Alice=35, Dan=20}
+{Bob=30, Alice=35}
+{Bob=30, Carol=45}
+{Bob=30, Dan=20}
+{Carol=45, Alice=35}
+{Carol=45, Bob=30}
+{Carol=45, Dan=20}
+{Dan=20, Alice=35}
+{Dan=20, Bob=30}
+{Dan=20, Carol=45}
+{Elizabeth=20, Farooq=25}
+{Elizabeth=20, Greg=40}
+
+-NAME ReturnMapLiteralWithFlatUnflatProp1
+-QUERY MATCH (p:person)-[:knows]->(p1:person) RETURN map([p.fName], [p1.age]);
+---- 14
+{Alice=30}
+{Alice=45}
+{Alice=20}
+{Bob=35}
+{Bob=45}
+{Bob=20}
+{Carol=35}
+{Carol=30}
+{Carol=20}
+{Dan=35}
+{Dan=30}
+{Dan=45}
+{Elizabeth=25}
+{Elizabeth=40}
+
+-NAME ReturnMapLiteralWithNestedType
+-QUERY MATCH (p:person)-[:knows]->(p1:person) RETURN map([p.workedHours, p1.workedHours], [p.courseScoresPerTerm, p1.courseScoresPerTerm]);
+---- 14
+{[10,5]=[[10,8],[6,7,8]], [12,8]=[[8,9],[9,10]]}
+{[10,5]=[[10,8],[6,7,8]], [4,5]=[[8,10]]}
+{[10,5]=[[10,8],[6,7,8]], [1,9]=[[7,4],[8,8],[9]]}
+{[12,8]=[[8,9],[9,10]], [10,5]=[[10,8],[6,7,8]]}
+{[12,8]=[[8,9],[9,10]], [4,5]=[[8,10]]}
+{[12,8]=[[8,9],[9,10]], [1,9]=[[7,4],[8,8],[9]]}
+{[4,5]=[[8,10]], [10,5]=[[10,8],[6,7,8]]}
+{[4,5]=[[8,10]], [12,8]=[[8,9],[9,10]]}
+{[4,5]=[[8,10]], [1,9]=[[7,4],[8,8],[9]]}
+{[1,9]=[[7,4],[8,8],[9]], [10,5]=[[10,8],[6,7,8]]}
+{[1,9]=[[7,4],[8,8],[9]], [12,8]=[[8,9],[9,10]]}
+{[1,9]=[[7,4],[8,8],[9]], [4,5]=[[8,10]]}
+{[2]=[[6],[7],[8]], [3,4,5,6,7]=[[8]]}
+{[2]=[[6],[7],[8]], [1]=[[10]]}
+
+-NAME ReturnMapLiteralWithNestedType1
+-QUERY MATCH (p:person) RETURN map([map([p.ID], [p.fName])], [p.age]);
+---- 8
+{{0=Alice}=35}
+{{2=Bob}=30}
+{{3=Carol}=45}
+{{5=Dan}=20}
+{{7=Elizabeth}=20}
+{{8=Farooq}=25}
+{{9=Greg}=40}
+{{10=Hubert Blaine Wolfeschlegelsteinhausenbergerdorff}=83}

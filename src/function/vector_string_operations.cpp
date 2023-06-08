@@ -23,9 +23,8 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace function {
 
-std::vector<std::unique_ptr<VectorOperationDefinition>>
-ArrayExtractVectorOperation::getDefinitions() {
-    std::vector<std::unique_ptr<VectorOperationDefinition>> definitions;
+vector_operation_definitions ArrayExtractVectorOperation::getDefinitions() {
+    vector_operation_definitions definitions;
     definitions.emplace_back(make_unique<VectorOperationDefinition>(ARRAY_EXTRACT_FUNC_NAME,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::INT64},
         LogicalTypeID::STRING,
@@ -34,8 +33,8 @@ ArrayExtractVectorOperation::getDefinitions() {
     return definitions;
 }
 
-std::vector<std::unique_ptr<VectorOperationDefinition>> ConcatVectorOperation::getDefinitions() {
-    std::vector<std::unique_ptr<VectorOperationDefinition>> definitions;
+vector_operation_definitions ConcatVectorOperation::getDefinitions() {
+    vector_operation_definitions definitions;
     definitions.emplace_back(make_unique<VectorOperationDefinition>(CONCAT_FUNC_NAME,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING},
         LogicalTypeID::STRING,
@@ -44,8 +43,8 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> ConcatVectorOperation::g
     return definitions;
 }
 
-std::vector<std::unique_ptr<VectorOperationDefinition>> ContainsVectorOperation::getDefinitions() {
-    std::vector<std::unique_ptr<VectorOperationDefinition>> definitions;
+vector_operation_definitions ContainsVectorOperation::getDefinitions() {
+    vector_operation_definitions definitions;
     definitions.emplace_back(make_unique<VectorOperationDefinition>(CONTAINS_FUNC_NAME,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING},
         LogicalTypeID::BOOL,
@@ -55,8 +54,8 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> ContainsVectorOperation:
     return definitions;
 }
 
-std::vector<std::unique_ptr<VectorOperationDefinition>> EndsWithVectorOperation::getDefinitions() {
-    std::vector<std::unique_ptr<VectorOperationDefinition>> definitions;
+vector_operation_definitions EndsWithVectorOperation::getDefinitions() {
+    vector_operation_definitions definitions;
     definitions.emplace_back(make_unique<VectorOperationDefinition>(ENDS_WITH_FUNC_NAME,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING},
         LogicalTypeID::BOOL,
@@ -66,8 +65,8 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> EndsWithVectorOperation:
     return definitions;
 }
 
-std::vector<std::unique_ptr<VectorOperationDefinition>> LeftVectorOperation::getDefinitions() {
-    std::vector<std::unique_ptr<VectorOperationDefinition>> definitions;
+vector_operation_definitions LeftVectorOperation::getDefinitions() {
+    vector_operation_definitions definitions;
     definitions.emplace_back(make_unique<VectorOperationDefinition>(LEFT_FUNC_NAME,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::INT64},
         LogicalTypeID::STRING,
@@ -76,16 +75,16 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> LeftVectorOperation::get
     return definitions;
 }
 
-std::vector<std::unique_ptr<VectorOperationDefinition>> LengthVectorOperation::getDefinitions() {
-    std::vector<std::unique_ptr<VectorOperationDefinition>> definitions;
+vector_operation_definitions LengthVectorOperation::getDefinitions() {
+    vector_operation_definitions definitions;
     definitions.emplace_back(make_unique<VectorOperationDefinition>(LENGTH_FUNC_NAME,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING}, LogicalTypeID::INT64,
         UnaryExecFunction<ku_string_t, int64_t, operation::Length>, false /* isVarLength */));
     return definitions;
 }
 
-std::vector<std::unique_ptr<VectorOperationDefinition>> LpadVectorOperation::getDefinitions() {
-    std::vector<std::unique_ptr<VectorOperationDefinition>> definitions;
+vector_operation_definitions LpadVectorOperation::getDefinitions() {
+    vector_operation_definitions definitions;
     definitions.emplace_back(make_unique<VectorOperationDefinition>(LPAD_FUNC_NAME,
         std::vector<LogicalTypeID>{
             LogicalTypeID::STRING, LogicalTypeID::INT64, LogicalTypeID::STRING},
@@ -95,8 +94,8 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> LpadVectorOperation::get
     return definitions;
 }
 
-std::vector<std::unique_ptr<VectorOperationDefinition>> RepeatVectorOperation::getDefinitions() {
-    std::vector<std::unique_ptr<VectorOperationDefinition>> definitions;
+vector_operation_definitions RepeatVectorOperation::getDefinitions() {
+    vector_operation_definitions definitions;
     definitions.emplace_back(make_unique<VectorOperationDefinition>(REPEAT_FUNC_NAME,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::INT64},
         LogicalTypeID::STRING,
@@ -105,8 +104,8 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> RepeatVectorOperation::g
     return definitions;
 }
 
-std::vector<std::unique_ptr<VectorOperationDefinition>> RightVectorOperation::getDefinitions() {
-    std::vector<std::unique_ptr<VectorOperationDefinition>> definitions;
+vector_operation_definitions RightVectorOperation::getDefinitions() {
+    vector_operation_definitions definitions;
     definitions.emplace_back(make_unique<VectorOperationDefinition>(RIGHT_FUNC_NAME,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::INT64},
         LogicalTypeID::STRING,
@@ -115,8 +114,8 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> RightVectorOperation::ge
     return definitions;
 }
 
-std::vector<std::unique_ptr<VectorOperationDefinition>> RpadVectorOperation::getDefinitions() {
-    std::vector<std::unique_ptr<VectorOperationDefinition>> definitions;
+vector_operation_definitions RpadVectorOperation::getDefinitions() {
+    vector_operation_definitions definitions;
     definitions.emplace_back(make_unique<VectorOperationDefinition>(RPAD_FUNC_NAME,
         std::vector<LogicalTypeID>{
             LogicalTypeID::STRING, LogicalTypeID::INT64, LogicalTypeID::STRING},
@@ -126,9 +125,8 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> RpadVectorOperation::get
     return definitions;
 }
 
-std::vector<std::unique_ptr<VectorOperationDefinition>>
-StartsWithVectorOperation::getDefinitions() {
-    std::vector<std::unique_ptr<VectorOperationDefinition>> definitions;
+vector_operation_definitions StartsWithVectorOperation::getDefinitions() {
+    vector_operation_definitions definitions;
     definitions.emplace_back(make_unique<VectorOperationDefinition>(STARTS_WITH_FUNC_NAME,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING},
         LogicalTypeID::BOOL,
@@ -138,8 +136,8 @@ StartsWithVectorOperation::getDefinitions() {
     return definitions;
 }
 
-std::vector<std::unique_ptr<VectorOperationDefinition>> SubStrVectorOperation::getDefinitions() {
-    std::vector<std::unique_ptr<VectorOperationDefinition>> definitions;
+vector_operation_definitions SubStrVectorOperation::getDefinitions() {
+    vector_operation_definitions definitions;
     definitions.emplace_back(make_unique<VectorOperationDefinition>(SUBSTRING_FUNC_NAME,
         std::vector<LogicalTypeID>{
             LogicalTypeID::STRING, LogicalTypeID::INT64, LogicalTypeID::INT64},
@@ -149,9 +147,8 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> SubStrVectorOperation::g
     return definitions;
 }
 
-std::vector<std::unique_ptr<VectorOperationDefinition>>
-RegexpFullMatchVectorOperation::getDefinitions() {
-    std::vector<std::unique_ptr<VectorOperationDefinition>> definitions;
+vector_operation_definitions RegexpFullMatchVectorOperation::getDefinitions() {
+    vector_operation_definitions definitions;
     definitions.emplace_back(make_unique<VectorOperationDefinition>(REGEXP_FULL_MATCH_FUNC_NAME,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING},
         LogicalTypeID::BOOL,
@@ -161,8 +158,8 @@ RegexpFullMatchVectorOperation::getDefinitions() {
     return definitions;
 }
 
-std::vector<std::unique_ptr<VectorOperationDefinition>> RegexpMatchesOperation::getDefinitions() {
-    std::vector<std::unique_ptr<VectorOperationDefinition>> definitions;
+vector_operation_definitions RegexpMatchesOperation::getDefinitions() {
+    vector_operation_definitions definitions;
     definitions.emplace_back(make_unique<VectorOperationDefinition>(REGEXP_MATCHES_FUNC_NAME,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING},
         LogicalTypeID::BOOL,
@@ -172,8 +169,8 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> RegexpMatchesOperation::
     return definitions;
 }
 
-std::vector<std::unique_ptr<VectorOperationDefinition>> RegexpReplaceOperation::getDefinitions() {
-    std::vector<std::unique_ptr<VectorOperationDefinition>> definitions;
+vector_operation_definitions RegexpReplaceOperation::getDefinitions() {
+    vector_operation_definitions definitions;
     // Todo: Implement a function with modifiers
     //  regexp_replace(string, regex, replacement, modifiers)
     definitions.emplace_back(make_unique<VectorOperationDefinition>(REGEXP_REPLACE_FUNC_NAME,
@@ -186,8 +183,8 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> RegexpReplaceOperation::
     return definitions;
 }
 
-std::vector<std::unique_ptr<VectorOperationDefinition>> RegexpExtractOperation::getDefinitions() {
-    std::vector<std::unique_ptr<VectorOperationDefinition>> definitions;
+vector_operation_definitions RegexpExtractOperation::getDefinitions() {
+    vector_operation_definitions definitions;
     definitions.emplace_back(make_unique<VectorOperationDefinition>(REGEXP_EXTRACT_FUNC_NAME,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING},
         LogicalTypeID::STRING,
@@ -203,9 +200,8 @@ std::vector<std::unique_ptr<VectorOperationDefinition>> RegexpExtractOperation::
     return definitions;
 }
 
-std::vector<std::unique_ptr<VectorOperationDefinition>>
-RegexpExtractAllOperation::getDefinitions() {
-    std::vector<std::unique_ptr<VectorOperationDefinition>> definitions;
+vector_operation_definitions RegexpExtractAllOperation::getDefinitions() {
+    vector_operation_definitions definitions;
     definitions.emplace_back(make_unique<VectorOperationDefinition>(REGEXP_EXTRACT_FUNC_NAME,
         std::vector<LogicalTypeID>{LogicalTypeID::STRING, LogicalTypeID::STRING},
         LogicalTypeID::VAR_LIST,

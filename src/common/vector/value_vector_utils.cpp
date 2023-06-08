@@ -9,9 +9,9 @@ using namespace common;
 
 void ValueVectorUtils::copyNonNullDataWithSameTypeIntoPos(
     ValueVector& resultVector, uint64_t pos, const uint8_t* srcData) {
-    switch (resultVector.dataType.getLogicalTypeID()) {
-    case LogicalTypeID::STRUCT: {
-        auto structFields = StructVector::getChildrenVectors(&resultVector);
+    switch (resultVector.dataType.getPhysicalType()) {
+    case PhysicalTypeID::STRUCT: {
+        auto structFields = StructVector::getFieldVectors(&resultVector);
         auto structNullBytes = srcData;
         auto structValues =
             structNullBytes + NullBuffer::getNumBytesForNullValues(structFields.size());
@@ -25,8 +25,7 @@ void ValueVectorUtils::copyNonNullDataWithSameTypeIntoPos(
             structValues += processor::FactorizedTable::getDataTypeSize(structField->dataType);
         }
     } break;
-    case LogicalTypeID::RECURSIVE_REL:
-    case LogicalTypeID::VAR_LIST: {
+    case PhysicalTypeID::VAR_LIST: {
         auto srcKuList = *(ku_list_t*)srcData;
         auto srcNullBytes = reinterpret_cast<uint8_t*>(srcKuList.overflowPtr);
         auto srcListValues = srcNullBytes + NullBuffer::getNumBytesForNullValues(srcKuList.size);
@@ -46,7 +45,7 @@ void ValueVectorUtils::copyNonNullDataWithSameTypeIntoPos(
             srcListValues += numBytesPerValue;
         }
     } break;
-    case LogicalTypeID::STRING: {
+    case PhysicalTypeID::STRING: {
         auto dstData = resultVector.getData() +
                        pos * processor::FactorizedTable::getDataTypeSize(resultVector.dataType);
         InMemOverflowBufferUtils::copyString(*(ku_string_t*)srcData, *(ku_string_t*)dstData,
@@ -61,11 +60,11 @@ void ValueVectorUtils::copyNonNullDataWithSameTypeIntoPos(
 
 void ValueVectorUtils::copyNonNullDataWithSameTypeOutFromPos(const ValueVector& srcVector,
     uint64_t pos, uint8_t* dstData, InMemOverflowBuffer& dstOverflowBuffer) {
-    switch (srcVector.dataType.getLogicalTypeID()) {
-    case LogicalTypeID::STRUCT: {
+    switch (srcVector.dataType.getPhysicalType()) {
+    case PhysicalTypeID::STRUCT: {
         // The storage structure of STRUCT type in factorizedTable is:
         // [NULLBYTES, FIELD1, FIELD2, ...]
-        auto structFields = StructVector::getChildrenVectors(&srcVector);
+        auto structFields = StructVector::getFieldVectors(&srcVector);
         NullBuffer::initNullBytes(dstData, structFields.size());
         auto structNullBytes = dstData;
         auto structValues =
@@ -81,8 +80,7 @@ void ValueVectorUtils::copyNonNullDataWithSameTypeOutFromPos(const ValueVector& 
             structValues += processor::FactorizedTable::getDataTypeSize(structField->dataType);
         }
     } break;
-    case LogicalTypeID::RECURSIVE_REL:
-    case LogicalTypeID::VAR_LIST: {
+    case PhysicalTypeID::VAR_LIST: {
         auto srcListEntry = srcVector.getValue<list_entry_t>(pos);
         auto srcListDataVector = common::ListVector::getDataVector(&srcVector);
         ku_list_t dstList;
@@ -108,7 +106,7 @@ void ValueVectorUtils::copyNonNullDataWithSameTypeOutFromPos(const ValueVector& 
         }
         memcpy(dstData, &dstList, sizeof(dstList));
     } break;
-    case LogicalTypeID::STRING: {
+    case PhysicalTypeID::STRING: {
         auto srcData = srcVector.getData() +
                        pos * processor::FactorizedTable::getDataTypeSize(srcVector.dataType);
         InMemOverflowBufferUtils::copyString(
@@ -123,9 +121,8 @@ void ValueVectorUtils::copyNonNullDataWithSameTypeOutFromPos(const ValueVector& 
 
 void ValueVectorUtils::copyValue(uint8_t* dstValue, common::ValueVector& dstVector,
     const uint8_t* srcValue, const common::ValueVector& srcVector) {
-    switch (srcVector.dataType.getLogicalTypeID()) {
-    case LogicalTypeID::RECURSIVE_REL:
-    case LogicalTypeID::VAR_LIST: {
+    switch (srcVector.dataType.getPhysicalType()) {
+    case PhysicalTypeID::VAR_LIST: {
         auto srcList = reinterpret_cast<const common::list_entry_t*>(srcValue);
         auto dstList = reinterpret_cast<common::list_entry_t*>(dstValue);
         *dstList = ListVector::addList(&dstVector, srcList->size);
@@ -144,9 +141,9 @@ void ValueVectorUtils::copyValue(uint8_t* dstValue, common::ValueVector& dstVect
             dstValues += numBytesPerValue;
         }
     } break;
-    case LogicalTypeID::STRUCT: {
-        auto srcFields = common::StructVector::getChildrenVectors(&srcVector);
-        auto dstFields = common::StructVector::getChildrenVectors(&dstVector);
+    case PhysicalTypeID::STRUCT: {
+        auto srcFields = common::StructVector::getFieldVectors(&srcVector);
+        auto dstFields = common::StructVector::getFieldVectors(&dstVector);
         auto srcPos = *(int64_t*)srcValue;
         auto dstPos = *(int64_t*)dstValue;
         for (auto i = 0u; i < srcFields.size(); i++) {
@@ -160,7 +157,7 @@ void ValueVectorUtils::copyValue(uint8_t* dstValue, common::ValueVector& dstVect
             }
         }
     } break;
-    case LogicalTypeID::STRING: {
+    case PhysicalTypeID::STRING: {
         common::InMemOverflowBufferUtils::copyString(*(common::ku_string_t*)srcValue,
             *(common::ku_string_t*)dstValue, *StringVector::getInMemOverflowBuffer(&dstVector));
     } break;

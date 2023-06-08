@@ -7,35 +7,35 @@ namespace function {
 class VectorDateOperations : public VectorOperations {};
 
 struct DatePartVectorOperation : public VectorDateOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 struct DateTruncVectorOperation : public VectorDateOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 struct DayNameVectorOperation : public VectorDateOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 struct GreatestVectorOperation : public VectorDateOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 struct LastDayVectorOperation : public VectorDateOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 struct LeastVectorOperation : public VectorDateOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 struct MakeDateVectorOperation : public VectorDateOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 struct MonthNameVectorOperation : public VectorDateOperations {
-    static std::vector<std::unique_ptr<VectorOperationDefinition>> getDefinitions();
+    static vector_operation_definitions getDefinitions();
 };
 
 } // namespace function

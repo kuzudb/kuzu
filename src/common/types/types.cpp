@@ -155,14 +155,14 @@ bool LogicalType::operator==(const LogicalType& other) const {
     if (typeID != other.typeID) {
         return false;
     }
-    switch (other.typeID) {
-    case LogicalTypeID::VAR_LIST:
+    switch (other.getPhysicalType()) {
+    case PhysicalTypeID::VAR_LIST:
         return *reinterpret_cast<VarListTypeInfo*>(extraTypeInfo.get()) ==
                *reinterpret_cast<VarListTypeInfo*>(other.extraTypeInfo.get());
-    case LogicalTypeID::FIXED_LIST:
+    case PhysicalTypeID::FIXED_LIST:
         return *reinterpret_cast<FixedListTypeInfo*>(extraTypeInfo.get()) ==
                *reinterpret_cast<FixedListTypeInfo*>(other.extraTypeInfo.get());
-    case LogicalTypeID::STRUCT:
+    case PhysicalTypeID::STRUCT:
         return *reinterpret_cast<StructTypeInfo*>(extraTypeInfo.get()) ==
                *reinterpret_cast<StructTypeInfo*>(other.extraTypeInfo.get());
     default:
@@ -228,6 +228,7 @@ void LogicalType::setPhysicalType() {
         physicalType = PhysicalTypeID::STRING;
     } break;
     case LogicalTypeID::RECURSIVE_REL:
+    case LogicalTypeID::MAP:
     case LogicalTypeID::VAR_LIST: {
         physicalType = PhysicalTypeID::VAR_LIST;
     } break;
@@ -322,6 +323,12 @@ LogicalTypeID LogicalTypeUtils::dataTypeIDFromString(const std::string& dataType
 
 std::string LogicalTypeUtils::dataTypeToString(const LogicalType& dataType) {
     switch (dataType.typeID) {
+    case LogicalTypeID::MAP: {
+        auto structType = common::VarListType::getChildType(&dataType);
+        auto fieldTypes = common::StructType::getFieldTypes(structType);
+        return "MAP(" + dataTypeToString(*fieldTypes[0]) + ": " + dataTypeToString(*fieldTypes[1]) +
+               ")";
+    }
     case LogicalTypeID::VAR_LIST: {
         auto varListTypeInfo = reinterpret_cast<VarListTypeInfo*>(dataType.extraTypeInfo.get());
         return dataTypeToString(*varListTypeInfo->getChildType()) + "[]";
@@ -407,6 +414,8 @@ std::string LogicalTypeUtils::dataTypeToString(LogicalTypeID dataTypeID) {
         return "STRUCT";
     case LogicalTypeID::SERIAL:
         return "SERIAL";
+    case LogicalTypeID::MAP:
+        return "MAP";
     default:
         throw NotImplementedException("LogicalTypeUtils::dataTypeToString.");
     }
@@ -484,7 +493,8 @@ std::vector<LogicalTypeID> LogicalTypeUtils::getNumericalLogicalTypeIDs() {
 }
 
 std::vector<LogicalTypeID> LogicalTypeUtils::getAllValidLogicTypeIDs() {
-    // TODO(Ziyi): Add FIX_LIST,STRUCT type to allValidTypeID when we support functions on VAR_LIST.
+    // TODO(Ziyi): Add FIX_LIST,STRUCT,MAP type to allValidTypeID when we support functions on
+    // FIXED_LIST,STRUCT,MAP.
     return std::vector<LogicalTypeID>{LogicalTypeID::INTERNAL_ID, LogicalTypeID::BOOL,
         LogicalTypeID::INT64, LogicalTypeID::INT32, LogicalTypeID::INT16, LogicalTypeID::DOUBLE,
         LogicalTypeID::STRING, LogicalTypeID::DATE, LogicalTypeID::TIMESTAMP,
@@ -578,16 +588,16 @@ uint64_t SerDeser::deserializeValue(
 template<>
 uint64_t SerDeser::serializeValue(const LogicalType& value, FileInfo* fileInfo, uint64_t offset) {
     offset = SerDeser::serializeValue(value.getLogicalTypeID(), fileInfo, offset);
-    switch (value.getLogicalTypeID()) {
-    case LogicalTypeID::VAR_LIST: {
+    switch (value.getPhysicalType()) {
+    case PhysicalTypeID::VAR_LIST: {
         auto varListTypeInfo = reinterpret_cast<VarListTypeInfo*>(value.extraTypeInfo.get());
         offset = serializeValue(*varListTypeInfo, fileInfo, offset);
     } break;
-    case LogicalTypeID::FIXED_LIST: {
+    case PhysicalTypeID::FIXED_LIST: {
         auto fixedListTypeInfo = reinterpret_cast<FixedListTypeInfo*>(value.extraTypeInfo.get());
         offset = serializeValue(*fixedListTypeInfo, fileInfo, offset);
     } break;
-    case LogicalTypeID::STRUCT: {
+    case PhysicalTypeID::STRUCT: {
         auto structTypeInfo = reinterpret_cast<StructTypeInfo*>(value.extraTypeInfo.get());
         offset = serializeValue(*structTypeInfo, fileInfo, offset);
     } break;
@@ -601,19 +611,19 @@ template<>
 uint64_t SerDeser::deserializeValue(LogicalType& value, FileInfo* fileInfo, uint64_t offset) {
     offset = SerDeser::deserializeValue(value.typeID, fileInfo, offset);
     value.setPhysicalType();
-    switch (value.getLogicalTypeID()) {
-    case LogicalTypeID::VAR_LIST: {
+    switch (value.getPhysicalType()) {
+    case PhysicalTypeID::VAR_LIST: {
         value.extraTypeInfo = std::make_unique<VarListTypeInfo>();
         offset = deserializeValue(
             *reinterpret_cast<VarListTypeInfo*>(value.extraTypeInfo.get()), fileInfo, offset);
 
     } break;
-    case LogicalTypeID::FIXED_LIST: {
+    case PhysicalTypeID::FIXED_LIST: {
         value.extraTypeInfo = std::make_unique<FixedListTypeInfo>();
         offset = deserializeValue(
             *reinterpret_cast<FixedListTypeInfo*>(value.extraTypeInfo.get()), fileInfo, offset);
     } break;
-    case LogicalTypeID::STRUCT: {
+    case PhysicalTypeID::STRUCT: {
         value.extraTypeInfo = std::make_unique<StructTypeInfo>();
         offset = deserializeValue(
             *reinterpret_cast<StructTypeInfo*>(value.extraTypeInfo.get()), fileInfo, offset);

@@ -86,13 +86,14 @@ private:
 class StringVector {
 public:
     static inline InMemOverflowBuffer* getInMemOverflowBuffer(ValueVector* vector) {
-        assert(vector->dataType.getLogicalTypeID() == LogicalTypeID::STRING);
+        assert(vector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
         return reinterpret_cast<StringAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())
             ->getOverflowBuffer();
     }
 
     static inline void addString(
         common::ValueVector* vector, uint32_t pos, char* value, uint64_t len) {
+        assert(vector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
         reinterpret_cast<StringAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())
             ->addString(vector, pos, value, len);
     }
@@ -101,27 +102,23 @@ public:
 class ListVector {
 public:
     static inline ValueVector* getDataVector(const ValueVector* vector) {
-        assert(vector->dataType.getLogicalTypeID() == LogicalTypeID::VAR_LIST ||
-               vector->dataType.getLogicalTypeID() == LogicalTypeID::RECURSIVE_REL);
+        assert(vector->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST);
         return reinterpret_cast<ListAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())
             ->getDataVector();
     }
     static inline uint8_t* getListValues(const ValueVector* vector, const list_entry_t& listEntry) {
-        assert(vector->dataType.getLogicalTypeID() == LogicalTypeID::VAR_LIST ||
-               vector->dataType.getLogicalTypeID() == LogicalTypeID::RECURSIVE_REL);
+        assert(vector->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST);
         auto dataVector = getDataVector(vector);
         return dataVector->getData() + dataVector->getNumBytesPerValue() * listEntry.offset;
     }
     static inline uint8_t* getListValuesWithOffset(const ValueVector* vector,
         const list_entry_t& listEntry, common::offset_t elementOffsetInList) {
-        assert(vector->dataType.getLogicalTypeID() == LogicalTypeID::VAR_LIST ||
-               vector->dataType.getLogicalTypeID() == LogicalTypeID::RECURSIVE_REL);
+        assert(vector->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST);
         return getListValues(vector, listEntry) +
                elementOffsetInList * getDataVector(vector)->getNumBytesPerValue();
     }
     static inline list_entry_t addList(ValueVector* vector, uint64_t listSize) {
-        assert(vector->dataType.getLogicalTypeID() == LogicalTypeID::VAR_LIST ||
-               vector->dataType.getLogicalTypeID() == LogicalTypeID::RECURSIVE_REL);
+        assert(vector->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST);
         return reinterpret_cast<ListAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())
             ->addList(listSize);
     }
@@ -129,7 +126,7 @@ public:
 
 class StructVector {
 public:
-    static inline const std::vector<std::shared_ptr<ValueVector>>& getChildrenVectors(
+    static inline const std::vector<std::shared_ptr<ValueVector>>& getFieldVectors(
         const ValueVector* vector) {
         return reinterpret_cast<StructAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())
             ->getChildrenVectors();

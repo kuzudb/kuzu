@@ -32,3 +32,8 @@ Runtime exception: Cast failed. 10000000000 is not in INT16 range.
 -STATEMENT CREATE NODE TABLE play(a INT32, PRIMARY KEY (a))
 ---- error
 Binder exception: Invalid primary key type: INT32. Expected STRING or INT64.
+
+-CASE UnalignedKeyAndValueList
+-QUERY RETURN MAP([4],[3,2])
+---- error
+Runtime exception: Unaligned key list and value list.

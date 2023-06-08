@@ -16,7 +16,7 @@ ValueVector::ValueVector(LogicalType dataType, storage::MemoryManager* memoryMan
 void ValueVector::setState(std::shared_ptr<DataChunkState> state) {
     this->state = state;
     if (dataType.getLogicalTypeID() == LogicalTypeID::STRUCT) {
-        auto childrenVectors = StructVector::getChildrenVectors(this);
+        auto childrenVectors = StructVector::getFieldVectors(this);
         for (auto& childVector : childrenVectors) {
             childVector->setState(state);
         }
@@ -57,12 +57,12 @@ void ValueVector::setValue(uint32_t pos, std::string val) {
 }
 
 void ValueVector::resetAuxiliaryBuffer() {
-    switch (dataType.getLogicalTypeID()) {
-    case LogicalTypeID::STRING: {
+    switch (dataType.getPhysicalType()) {
+    case PhysicalTypeID::STRING: {
         reinterpret_cast<StringAuxiliaryBuffer*>(auxiliaryBuffer.get())->resetOverflowBuffer();
         return;
     }
-    case LogicalTypeID::VAR_LIST: {
+    case PhysicalTypeID::VAR_LIST: {
         reinterpret_cast<ListAuxiliaryBuffer*>(auxiliaryBuffer.get())->resetSize();
         return;
     }
@@ -72,22 +72,21 @@ void ValueVector::resetAuxiliaryBuffer() {
 }
 
 uint32_t ValueVector::getDataTypeSize(const LogicalType& type) {
-    switch (type.getLogicalTypeID()) {
-    case common::LogicalTypeID::STRING: {
+    switch (type.getPhysicalType()) {
+    case PhysicalTypeID::STRING: {
         return sizeof(common::ku_string_t);
     }
-    case common::LogicalTypeID::FIXED_LIST: {
+    case PhysicalTypeID::FIXED_LIST: {
         return getDataTypeSize(*common::FixedListType::getChildType(&type)) *
                common::FixedListType::getNumElementsInList(&type);
     }
-    case LogicalTypeID::STRUCT: {
+    case PhysicalTypeID::STRUCT: {
         return sizeof(struct_entry_t);
     }
-    case LogicalTypeID::RECURSIVE_REL:
-    case LogicalTypeID::VAR_LIST: {
+    case PhysicalTypeID::VAR_LIST: {
         return sizeof(list_entry_t);
     }
-    case LogicalTypeID::ARROW_COLUMN: {
+    case PhysicalTypeID::ARROW_COLUMN: {
         return 0;
     }
     default: {

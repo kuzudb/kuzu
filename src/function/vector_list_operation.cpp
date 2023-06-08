@@ -89,17 +89,16 @@ std::unique_ptr<FunctionBindData> ListCreationVectorOperation::bindFunc(
     return std::make_unique<FunctionBindData>(resultType);
 }
 
-std::vector<std::unique_ptr<VectorOperationDefinition>>
-ListCreationVectorOperation::getDefinitions() {
-    std::vector<std::unique_ptr<VectorOperationDefinition>> result;
+vector_operation_definitions ListCreationVectorOperation::getDefinitions() {
+    vector_operation_definitions result;
     result.push_back(std::make_unique<VectorOperationDefinition>(LIST_CREATION_FUNC_NAME,
         std::vector<LogicalTypeID>{LogicalTypeID::ANY}, LogicalTypeID::VAR_LIST, execFunc, nullptr,
         bindFunc, true /*  isVarLength */));
     return result;
 }
 
-std::vector<std::unique_ptr<VectorOperationDefinition>> ListLenVectorOperation::getDefinitions() {
-    std::vector<std::unique_ptr<VectorOperationDefinition>> result;
+vector_operation_definitions ListLenVectorOperation::getDefinitions() {
+    vector_operation_definitions result;
     auto execFunc = UnaryExecFunction<list_entry_t, int64_t, operation::ListLen>;
     result.push_back(std::make_unique<VectorOperationDefinition>(LIST_LEN_FUNC_NAME,
         std::vector<LogicalTypeID>{LogicalTypeID::VAR_LIST}, LogicalTypeID::INT64, execFunc,
@@ -168,9 +167,8 @@ std::unique_ptr<FunctionBindData> ListExtractVectorOperation::bindFunc(
     return std::make_unique<FunctionBindData>(*resultType);
 }
 
-std::vector<std::unique_ptr<VectorOperationDefinition>>
-ListExtractVectorOperation::getDefinitions() {
-    std::vector<std::unique_ptr<VectorOperationDefinition>> result;
+vector_operation_definitions ListExtractVectorOperation::getDefinitions() {
+    vector_operation_definitions result;
     result.push_back(std::make_unique<VectorOperationDefinition>(LIST_EXTRACT_FUNC_NAME,
         std::vector<LogicalTypeID>{LogicalTypeID::VAR_LIST, LogicalTypeID::INT64},
         LogicalTypeID::ANY, nullptr, nullptr, bindFunc, false /* isVarlength*/));
@@ -182,9 +180,8 @@ ListExtractVectorOperation::getDefinitions() {
     return result;
 }
 
-std::vector<std::unique_ptr<VectorOperationDefinition>>
-ListConcatVectorOperation::getDefinitions() {
-    std::vector<std::unique_ptr<VectorOperationDefinition>> result;
+vector_operation_definitions ListConcatVectorOperation::getDefinitions() {
+    vector_operation_definitions result;
     auto execFunc =
         BinaryListExecFunction<list_entry_t, list_entry_t, list_entry_t, operation::ListConcat>;
     result.push_back(std::make_unique<VectorOperationDefinition>(LIST_CONCAT_FUNC_NAME,
@@ -267,9 +264,8 @@ std::unique_ptr<FunctionBindData> ListAppendVectorOperation::bindFunc(
     return std::make_unique<FunctionBindData>(resultType);
 }
 
-std::vector<std::unique_ptr<VectorOperationDefinition>>
-ListAppendVectorOperation::getDefinitions() {
-    std::vector<std::unique_ptr<VectorOperationDefinition>> result;
+vector_operation_definitions ListAppendVectorOperation::getDefinitions() {
+    vector_operation_definitions result;
     result.push_back(std::make_unique<VectorOperationDefinition>(LIST_APPEND_FUNC_NAME,
         std::vector<LogicalTypeID>{LogicalTypeID::VAR_LIST, LogicalTypeID::ANY},
         LogicalTypeID::VAR_LIST, nullptr, nullptr, bindFunc, false /* isVarlength*/));
@@ -341,29 +337,26 @@ std::unique_ptr<FunctionBindData> ListPrependVectorOperation::bindFunc(
     return std::make_unique<FunctionBindData>(resultType);
 }
 
-std::vector<std::unique_ptr<VectorOperationDefinition>>
-ListPrependVectorOperation::getDefinitions() {
-    std::vector<std::unique_ptr<VectorOperationDefinition>> result;
+vector_operation_definitions ListPrependVectorOperation::getDefinitions() {
+    vector_operation_definitions result;
     result.push_back(std::make_unique<VectorOperationDefinition>(LIST_PREPEND_FUNC_NAME,
         std::vector<LogicalTypeID>{LogicalTypeID::ANY, LogicalTypeID::VAR_LIST},
         LogicalTypeID::VAR_LIST, nullptr, nullptr, bindFunc, false /* isVarlength */));
     return result;
 }
 
-std::vector<std::unique_ptr<VectorOperationDefinition>>
-ListPositionVectorOperation::getDefinitions() {
+vector_operation_definitions ListPositionVectorOperation::getDefinitions() {
     return getBinaryListOperationDefinitions<operation::ListPosition, int64_t>(
         LIST_POSITION_FUNC_NAME, LogicalTypeID::INT64);
 }
 
-std::vector<std::unique_ptr<VectorOperationDefinition>>
-ListContainsVectorOperation::getDefinitions() {
+vector_operation_definitions ListContainsVectorOperation::getDefinitions() {
     return getBinaryListOperationDefinitions<operation::ListContains, uint8_t>(
         LIST_CONTAINS_FUNC_NAME, LogicalTypeID::BOOL);
 }
 
-std::vector<std::unique_ptr<VectorOperationDefinition>> ListSliceVectorOperation::getDefinitions() {
-    std::vector<std::unique_ptr<VectorOperationDefinition>> result;
+vector_operation_definitions ListSliceVectorOperation::getDefinitions() {
+    vector_operation_definitions result;
     result.push_back(std::make_unique<VectorOperationDefinition>(LIST_SLICE_FUNC_NAME,
         std::vector<LogicalTypeID>{
             LogicalTypeID::VAR_LIST, LogicalTypeID::INT64, LogicalTypeID::INT64},
@@ -386,8 +379,8 @@ std::unique_ptr<FunctionBindData> ListSliceVectorOperation::bindFunc(
     return std::make_unique<FunctionBindData>(arguments[0]->getDataType());
 }
 
-std::vector<std::unique_ptr<VectorOperationDefinition>> ListSortVectorOperation::getDefinitions() {
-    std::vector<std::unique_ptr<VectorOperationDefinition>> result;
+vector_operation_definitions ListSortVectorOperation::getDefinitions() {
+    vector_operation_definitions result;
     result.push_back(std::make_unique<VectorOperationDefinition>(LIST_SORT_FUNC_NAME,
         std::vector<LogicalTypeID>{LogicalTypeID::VAR_LIST}, LogicalTypeID::VAR_LIST, nullptr,
         nullptr, bindFunc, false /* isVarlength*/));
@@ -462,9 +455,8 @@ void ListSortVectorOperation::getExecFunction(
     }
 }
 
-std::vector<std::unique_ptr<VectorOperationDefinition>>
-ListReverseSortVectorOperation::getDefinitions() {
-    std::vector<std::unique_ptr<VectorOperationDefinition>> result;
+vector_operation_definitions ListReverseSortVectorOperation::getDefinitions() {
+    vector_operation_definitions result;
     result.push_back(std::make_unique<VectorOperationDefinition>(LIST_REVERSE_SORT_FUNC_NAME,
         std::vector<LogicalTypeID>{LogicalTypeID::VAR_LIST}, LogicalTypeID::VAR_LIST, nullptr,
         nullptr, bindFunc, false /* isVarlength*/));
@@ -531,8 +523,8 @@ void ListReverseSortVectorOperation::getExecFunction(
     }
 }
 
-std::vector<std::unique_ptr<VectorOperationDefinition>> ListSumVectorOperation::getDefinitions() {
-    std::vector<std::unique_ptr<VectorOperationDefinition>> result;
+vector_operation_definitions ListSumVectorOperation::getDefinitions() {
+    vector_operation_definitions result;
     result.push_back(std::make_unique<VectorOperationDefinition>(LIST_SUM_FUNC_NAME,
         std::vector<LogicalTypeID>{LogicalTypeID::VAR_LIST}, LogicalTypeID::INT64, nullptr, nullptr,
         bindFunc, false /* isVarlength*/));
@@ -572,9 +564,8 @@ std::unique_ptr<FunctionBindData> ListSumVectorOperation::bindFunc(
     return std::make_unique<FunctionBindData>(*resultType);
 }
 
-std::vector<std::unique_ptr<VectorOperationDefinition>>
-ListDistinctVectorOperation::getDefinitions() {
-    std::vector<std::unique_ptr<VectorOperationDefinition>> result;
+vector_operation_definitions ListDistinctVectorOperation::getDefinitions() {
+    vector_operation_definitions result;
     result.push_back(std::make_unique<VectorOperationDefinition>(LIST_DISTINCT_FUNC_NAME,
         std::vector<LogicalTypeID>{LogicalTypeID::VAR_LIST}, LogicalTypeID::VAR_LIST, nullptr,
         nullptr, bindFunc, false /* isVarlength*/));
@@ -637,9 +628,8 @@ std::unique_ptr<FunctionBindData> ListDistinctVectorOperation::bindFunc(
     return std::make_unique<FunctionBindData>(arguments[0]->getDataType());
 }
 
-std::vector<std::unique_ptr<VectorOperationDefinition>>
-ListUniqueVectorOperation::getDefinitions() {
-    std::vector<std::unique_ptr<VectorOperationDefinition>> result;
+vector_operation_definitions ListUniqueVectorOperation::getDefinitions() {
+    vector_operation_definitions result;
     result.push_back(std::make_unique<VectorOperationDefinition>(LIST_UNIQUE_FUNC_NAME,
         std::vector<LogicalTypeID>{LogicalTypeID::VAR_LIST}, LogicalTypeID::INT64, nullptr, nullptr,
         bindFunc, false /* isVarlength*/));
@@ -702,9 +692,8 @@ std::unique_ptr<FunctionBindData> ListUniqueVectorOperation::bindFunc(
     return std::make_unique<FunctionBindData>(LogicalType(LogicalTypeID::INT64));
 }
 
-std::vector<std::unique_ptr<VectorOperationDefinition>>
-ListAnyValueVectorOperation::getDefinitions() {
-    std::vector<std::unique_ptr<VectorOperationDefinition>> result;
+vector_operation_definitions ListAnyValueVectorOperation::getDefinitions() {
+    vector_operation_definitions result;
     result.push_back(std::make_unique<VectorOperationDefinition>(LIST_ANY_VALUE_FUNC_NAME,
         std::vector<LogicalTypeID>{LogicalTypeID::VAR_LIST}, LogicalTypeID::ANY, nullptr, nullptr,
         bindFunc, false /* isVarlength*/));

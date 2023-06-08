@@ -84,6 +84,7 @@ KUZU_API enum class LogicalTypeID : uint8_t {
     STRING = 50,
     VAR_LIST = 52,
     STRUCT = 53,
+    MAP = 54,
 };
 
 enum class PhysicalTypeID : uint8_t {
@@ -233,8 +234,7 @@ private:
 
 struct VarListType {
     static inline LogicalType* getChildType(const LogicalType* type) {
-        assert(type->getLogicalTypeID() == LogicalTypeID::VAR_LIST ||
-               type->getLogicalTypeID() == LogicalTypeID::RECURSIVE_REL);
+        assert(type->getPhysicalType() == PhysicalTypeID::VAR_LIST);
         auto varListTypeInfo = reinterpret_cast<VarListTypeInfo*>(type->extraTypeInfo.get());
         return varListTypeInfo->getChildType();
     }
@@ -256,30 +256,30 @@ struct FixedListType {
 
 struct StructType {
     static inline std::vector<LogicalType*> getFieldTypes(const LogicalType* type) {
-        assert(type->getLogicalTypeID() == LogicalTypeID::STRUCT);
+        assert(type->getPhysicalType() == PhysicalTypeID::STRUCT);
         auto structTypeInfo = reinterpret_cast<StructTypeInfo*>(type->extraTypeInfo.get());
         return structTypeInfo->getChildrenTypes();
     }
 
     static inline std::vector<std::string> getFieldNames(const LogicalType* type) {
-        assert(type->getLogicalTypeID() == LogicalTypeID::STRUCT);
+        assert(type->getPhysicalType() == PhysicalTypeID::STRUCT);
         auto structTypeInfo = reinterpret_cast<StructTypeInfo*>(type->extraTypeInfo.get());
         return structTypeInfo->getChildrenNames();
     }
 
     static inline uint64_t getNumFields(const LogicalType* type) {
-        assert(type->getLogicalTypeID() == LogicalTypeID::STRUCT);
+        assert(type->getPhysicalType() == PhysicalTypeID::STRUCT);
         return getFieldTypes(type).size();
     }
 
     static inline std::vector<StructField*> getFields(const LogicalType* type) {
-        assert(type->getLogicalTypeID() == LogicalTypeID::STRUCT);
+        assert(type->getPhysicalType() == PhysicalTypeID::STRUCT);
         auto structTypeInfo = reinterpret_cast<StructTypeInfo*>(type->extraTypeInfo.get());
         return structTypeInfo->getStructFields();
     }
 
     static inline struct_field_idx_t getFieldIdx(const LogicalType* type, std::string& key) {
-        assert(type->getLogicalTypeID() == LogicalTypeID::STRUCT);
+        assert(type->getPhysicalType() == PhysicalTypeID::STRUCT);
         auto structTypeInfo = reinterpret_cast<StructTypeInfo*>(type->extraTypeInfo.get());
         return structTypeInfo->getStructFieldIdx(key);
     }
