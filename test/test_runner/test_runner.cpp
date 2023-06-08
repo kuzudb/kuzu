@@ -81,6 +81,18 @@ bool TestRunner::checkPlanResult(std::unique_ptr<QueryResult>& result, TestState
     const std::string& planStr, uint32_t planIdx) {
     std::vector<std::string> resultTuples =
         TestRunner::convertResultToString(*result, statement->checkOutputOrder);
+
+    if (!statement->expectedTuplesCSVFile.empty()) {
+        std::ifstream expectedTuplesFile(statement->expectedTuplesCSVFile);
+        if (!expectedTuplesFile.is_open()) {
+            throw TestException("Cannot open file: " + statement->expectedTuplesCSVFile);
+        }
+        std::string line;
+        while (std::getline(expectedTuplesFile, line)) {
+            statement->expectedTuples.push_back(line);
+        }
+    }
+
     if (resultTuples.size() == result->getNumTuples() &&
         resultTuples == statement->expectedTuples) {
         spdlog::info(

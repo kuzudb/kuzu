@@ -3,13 +3,14 @@
 
 --
 
-# This is pending the feature of reading the results from a txt/csv file
 -CASE CopyLargeNpyTest
--SKIP
 
 -NAME ID
 -QUERY MATCH (n:npytable) RETURN n.id
----- 2
-1
-2
+---- 20000
+<FILE>:copy_npy_large_id_output.csv
 
+-NAME f32
+-QUERY MATCH (n:npytable) RETURN n.f32
+---- 20000
+<FILE>:copy_npy_large_f32_output.csv

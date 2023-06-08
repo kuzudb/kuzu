@@ -3,6 +3,7 @@
 #include <fstream>
 
 #include "common/string_utils.h"
+#include "test_helper/test_helper.h"
 
 using namespace kuzu::common;
 
@@ -96,6 +97,13 @@ void TestParser::extractExpectedResult(TestStatement* statement) {
     } else {
         checkMinimumParams(1);
         statement->expectedNumTuples = stoi(result);
+        nextLine();
+        if (line.starts_with("<FILE>:")) {
+            statement->expectedTuplesCSVFile = TestHelper::appendKuzuRootPath(
+                FileUtils::joinPath(TestHelper::FIXTURE_PATH, line.substr(7)));
+            return;
+        }
+        setCursorToPreviousLine();
         for (auto i = 0u; i < statement->expectedNumTuples; i++) {
             nextLine();
             replaceVariables(line);
