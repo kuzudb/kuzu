@@ -26,8 +26,11 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCrossProductToPhysical(
         outVecPos.emplace_back(outSchema->getExpressionPos(*expression));
         colIndicesToScan.push_back(i);
     }
-    return make_unique<CrossProduct>(resultCollector->getSharedState(), std::move(outVecPos),
-        std::move(colIndicesToScan), std::move(probeSidePrevOperator), std::move(resultCollector),
+    auto sharedState = resultCollector->getSharedState();
+    auto localState = std::make_unique<CrossProductLocalState>(
+        sharedState->getTable(), sharedState->getMaxMorselSize());
+    return make_unique<CrossProduct>(std::move(outVecPos), std::move(colIndicesToScan),
+        std::move(localState), std::move(probeSidePrevOperator), std::move(resultCollector),
         getOperatorID(), logicalCrossProduct->getExpressionsForPrinting());
 }
 

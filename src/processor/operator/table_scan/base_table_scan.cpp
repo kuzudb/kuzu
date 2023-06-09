@@ -7,7 +7,6 @@ void BaseTableScan::initLocalStateInternal(ResultSet* resultSet, ExecutionContex
     for (auto& dataPos : outVecPositions) {
         vectorsToScan.push_back(resultSet->getValueVector(dataPos).get());
     }
-    setMaxMorselSize();
 }
 
 bool BaseTableScan::getNextTuplesInternal(ExecutionContext* context) {

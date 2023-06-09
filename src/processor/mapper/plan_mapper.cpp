@@ -153,18 +153,27 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
 std::unique_ptr<ResultCollector> PlanMapper::appendResultCollector(
     const binder::expression_vector& expressionsToCollect, Schema* schema,
     std::unique_ptr<PhysicalOperator> prevOperator) {
-    std::vector<std::pair<DataPos, LogicalType>> payloadsPosAndType;
-    std::vector<bool> isPayloadFlat;
+    bool hasUnFlatColumn = false;
+    std::vector<DataPos> payloadsPos;
+    auto tableSchema = std::make_unique<FactorizedTableSchema>();
     for (auto& expression : expressionsToCollect) {
-        auto expressionName = expression->getUniqueName();
         auto dataPos = DataPos(schema->getExpressionPos(*expression));
-        auto isFlat = schema->getGroup(expressionName)->isFlat();
-        payloadsPosAndType.emplace_back(dataPos, expression->dataType);
-        isPayloadFlat.push_back(isFlat);
+        std::unique_ptr<ColumnSchema> columnSchema;
+        if (schema->getGroup(dataPos.dataChunkPos)->isFlat()) {
+            columnSchema = std::make_unique<ColumnSchema>(false /* isUnFlat */,
+                dataPos.dataChunkPos, FactorizedTable::getDataTypeSize(expression->dataType));
+        } else {
+            columnSchema = std::make_unique<ColumnSchema>(
+                true /* isUnFlat */, dataPos.dataChunkPos, (uint32_t)sizeof(overflow_value_t));
+            hasUnFlatColumn = true;
+        }
+        tableSchema->appendColumn(std::move(columnSchema));
+        payloadsPos.push_back(dataPos);
     }
-    auto sharedState = std::make_shared<FTableSharedState>();
+    auto sharedState = std::make_shared<FTableSharedState>(
+        memoryManager, tableSchema->copy(), hasUnFlatColumn ? 1 : common::DEFAULT_VECTOR_CAPACITY);
     return make_unique<ResultCollector>(std::make_unique<ResultSetDescriptor>(schema),
-        payloadsPosAndType, isPayloadFlat, sharedState, std::move(prevOperator), getOperatorID(),
+        tableSchema->copy(), payloadsPos, sharedState, std::move(prevOperator), getOperatorID(),
         binder::ExpressionUtil::toString(expressionsToCollect));
 }
 

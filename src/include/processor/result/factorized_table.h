@@ -155,6 +155,10 @@ public:
     bool operator==(const FactorizedTableSchema& other) const;
     inline bool operator!=(const FactorizedTableSchema& other) const { return !(*this == other); }
 
+    inline std::unique_ptr<FactorizedTableSchema> copy() const {
+        return std::make_unique<FactorizedTableSchema>(*this);
+    }
+
 private:
     std::vector<std::unique_ptr<ColumnSchema>> columns;
     uint32_t numBytesForDataPerTuple = 0;

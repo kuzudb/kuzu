@@ -12,8 +12,7 @@ public:
         std::vector<std::shared_ptr<FTableSharedState>> fTableSharedStates)
         : fTableSharedStates{std::move(fTableSharedStates)}, fTableToScanIdx{0} {}
 
-    uint64_t getMaxMorselSize() const;
-    std::unique_ptr<FTableScanMorsel> getMorsel(uint64_t maxMorselSize);
+    std::unique_ptr<FTableScanMorsel> getMorsel();
 
 private:
     std::mutex mtx;
@@ -39,9 +38,8 @@ public:
               std::move(colIndicesToScan), id, paramsString},
           sharedState{std::move(sharedState)} {}
 
-    inline void setMaxMorselSize() override { maxMorselSize = sharedState->getMaxMorselSize(); }
     inline std::unique_ptr<FTableScanMorsel> getMorsel() override {
-        return sharedState->getMorsel(maxMorselSize);
+        return sharedState->getMorsel();
     }
 
     std::unique_ptr<PhysicalOperator> clone() override {

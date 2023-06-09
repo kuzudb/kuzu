@@ -10,9 +10,6 @@ namespace processor {
 
 void RecursiveJoin::initLocalStateInternal(ResultSet* resultSet_, ExecutionContext* context) {
     populateTargetDstNodes();
-    for (auto& dataPos : dataInfo->vectorsToScanPos) {
-        vectorsToScan.push_back(resultSet->getValueVector(dataPos).get());
-    }
     srcNodeIDVector = resultSet->getValueVector(dataInfo->srcNodePos).get();
     dstNodeIDVector = resultSet->getValueVector(dataInfo->dstNodePos).get();
     pathLengthVector = resultSet->getValueVector(dataInfo->pathLengthPos).get();
@@ -112,13 +109,9 @@ bool RecursiveJoin::getNextTuplesInternal(ExecutionContext* context) {
         if (scanOutput()) { // Phase 2
             return true;
         }
-        auto inputFTableMorsel = sharedState->inputFTableSharedState->getMorsel(1 /* morselSize */);
-        if (inputFTableMorsel->numTuples == 0) { // All src have been exhausted.
+        if (!children[0]->getNextTuple(context)) {
             return false;
         }
-        sharedState->inputFTableSharedState->getTable()->scan(vectorsToScan,
-            inputFTableMorsel->startTupleIdx, inputFTableMorsel->numTuples,
-            dataInfo->colIndicesToScan);
         bfsState->resetState();
         computeBFS(context); // Phase 1
         frontiersScanner->resetState(*bfsState);

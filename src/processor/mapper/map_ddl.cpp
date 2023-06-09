@@ -105,8 +105,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCopyNodeToPhysical(Logic
         // The new pipeline only contains a factorizedTableScan and a resultCollector.
         auto outputExpression = copy->getOutputExpression();
         auto outputVectorPos = DataPos(outSchema->getExpressionPos(*outputExpression));
-        auto ftSharedState = std::make_shared<FTableSharedState>();
-        ftSharedState->setTable(copyNodeSharedState->table);
+        auto ftSharedState = std::make_shared<FTableSharedState>(
+            copyNodeSharedState->table, common::DEFAULT_VECTOR_CAPACITY);
         return std::make_unique<FactorizedTableScan>(std::vector<DataPos>{outputVectorPos},
             std::vector<uint32_t>{0} /* colIndicesToScan */, ftSharedState, std::move(copyNode),
             getOperatorID(), copy->getExpressionsForPrinting());

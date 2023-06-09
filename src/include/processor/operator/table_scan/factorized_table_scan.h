@@ -29,16 +29,11 @@ public:
               std::move(colIndicesToScan), id, paramsString},
           sharedState{std::move(sharedState)} {}
 
-    inline void setSharedState(std::shared_ptr<FTableSharedState> state) {
-        sharedState = std::move(state);
-    }
-    inline void setMaxMorselSize() override { maxMorselSize = sharedState->getMaxMorselSize(); }
     inline std::unique_ptr<FTableScanMorsel> getMorsel() override {
-        return sharedState->getMorsel(maxMorselSize);
+        return sharedState->getMorsel();
     }
 
     inline std::unique_ptr<PhysicalOperator> clone() override {
-        assert(sharedState != nullptr);
         return make_unique<FactorizedTableScan>(
             outVecPositions, colIndicesToScan, sharedState, id, paramsString);
     }
