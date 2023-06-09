@@ -43,6 +43,9 @@ public:
     static constexpr char PARQUET_TEMP_DATASET_PATH[] = "dataset/parquet_temp/";
 
     static std::string getTmpTestDir() { return appendKuzuRootPath("test/unittest_temp/"); }
+    static std::string getTestListFile() {
+        return appendKuzuRootPath(std::string(E2E_TEST_FILES_DIRECTORY) + "/test_list");
+    }
 
     static std::string appendParquetDatasetTempDir(const std::string& dataset) {
         return TestHelper::appendKuzuRootPath(TestHelper::PARQUET_TEMP_DATASET_PATH + dataset);
