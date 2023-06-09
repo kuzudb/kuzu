@@ -293,8 +293,13 @@ std::unique_ptr<RelPattern> Transformer::transformRelationshipPattern(
     if (relDetail->oC_RangeLiteral()) {
         lowerBound = relDetail->oC_RangeLiteral()->oC_IntegerLiteral()[0]->getText();
         upperBound = relDetail->oC_RangeLiteral()->oC_IntegerLiteral()[1]->getText();
-        relType = relDetail->oC_RangeLiteral()->SHORTEST() ? common::QueryRelType::SHORTEST :
-                                                             common::QueryRelType::VARIABLE_LENGTH;
+        if (relDetail->oC_RangeLiteral()->ALL()) {
+            relType = common::QueryRelType::ALL_SHORTEST;
+        } else if (relDetail->oC_RangeLiteral()->SHORTEST()) {
+            relType = common::QueryRelType::SHORTEST;
+        } else {
+            relType = common::QueryRelType::VARIABLE_LENGTH;
+        }
     }
     ArrowDirection arrowDirection;
     if (ctx.oC_LeftArrowHead()) {

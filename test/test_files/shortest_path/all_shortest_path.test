@@ -1,0 +1,25 @@
+-GROUP ShortestPathTest
+-DATASET CSV shortest-path-tests
+
+--
+
+-CASE AllShortestPath
+
+# 10 -> 7 -> 9
+# 10 <- 7 -> 9
+# 10 <- 8 -> 9
+-NAME SingleSourceSingleDst
+-QUERY MATCH (a:person)-[r:knows* ALL SHORTEST 1..30]-(b:person) WHERE a.ID = 9 AND b.ID = 10 RETURN COUNT(*)
+---- 1
+3
+
+-NAME SingleSource
+-QUERY MATCH (a:person)-[r:knows* ALL SHORTEST 1..30]->(b:person) WHERE a.ID = 10 RETURN b.ID, length(r), COUNT(*)
+---- 7
+0|1|1
+2|2|2
+3|2|2
+5|1|1
+7|1|1
+8|2|1
+9|2|1

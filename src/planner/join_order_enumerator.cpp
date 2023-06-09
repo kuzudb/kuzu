@@ -184,7 +184,8 @@ void JoinOrderEnumerator::appendExtendAndFilter(std::shared_ptr<NodeExpression> 
         appendNonRecursiveExtend(boundNode, nbrNode, rel, direction, properties, plan);
     } break;
     case common::QueryRelType::VARIABLE_LENGTH:
-    case common::QueryRelType::SHORTEST: {
+    case common::QueryRelType::SHORTEST:
+    case common::QueryRelType::ALL_SHORTEST: {
         appendRecursiveExtend(boundNode, nbrNode, rel, direction, plan);
     } break;
     default:

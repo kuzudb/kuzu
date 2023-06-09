@@ -1127,6 +1127,7 @@ public:
     std::vector<antlr4::tree::TerminalNode *> SP();
     antlr4::tree::TerminalNode* SP(size_t i);
     antlr4::tree::TerminalNode *SHORTEST();
+    antlr4::tree::TerminalNode *ALL();
 
    
   };

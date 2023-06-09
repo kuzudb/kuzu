@@ -33,7 +33,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalSemiMaskerToPhysical(
             }
         } break;
         case PhysicalOperatorType::RECURSIVE_JOIN: {
-            auto recursiveJoin = (BaseRecursiveJoin*)physicalOp;
+            auto recursiveJoin = (RecursiveJoin*)physicalOp;
             for (auto& semiMask : recursiveJoin->getSharedState()->semiMasks) {
                 auto tableID = semiMask->getNodeTable()->getTableID();
                 masksPerTable.at(tableID).emplace_back(semiMask.get(), 0 /* initial mask idx */);
