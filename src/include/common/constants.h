@@ -84,7 +84,7 @@ struct ListsMetadataConstants {
     // PAGE_LIST_GROUP_SIZE + 1 each and chained together. In each piece, there are
     // PAGE_LIST_GROUP_SIZE elements of that list and the offset to the next pageListGroups in the
     // blob that contains all pageListGroups of all lists.
-    static constexpr uint32_t PAGE_LIST_GROUP_SIZE = 3;
+    static constexpr uint32_t PAGE_LIST_GROUP_SIZE = 20;
     static constexpr uint32_t PAGE_LIST_GROUP_WITH_NEXT_PTR_SIZE = PAGE_LIST_GROUP_SIZE + 1;
 };
 
