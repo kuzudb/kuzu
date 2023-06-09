@@ -37,8 +37,12 @@ public:
         } else {
             dataset = TestHelper::appendKuzuRootPath("dataset/" + dataset);
         }
+
+    void TearDown() override {
+        // FileUtils::removeDir(TestHelper::appendKuzuRootPath(TestHelper::PARQUET_TEMP_DATASET_PATH));
+        FileUtils::removeDir(databasePath);
     }
-    void TearDown() override { FileUtils::removeDir(TestHelper::getTmpTestDir()); }
+
     std::string getInputDir() override { return dataset + "/"; }
     void TestBody() override { runTest(testStatements); }
 

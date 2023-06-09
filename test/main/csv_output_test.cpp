@@ -15,8 +15,8 @@ TEST_F(CSVOutputTest, BasicCSVTest) {
     auto query = "MATCH (a:person)-[:workAt]->(o:organisation) RETURN a.fName, a.gender,"
                  "a.eyeSight, a.birthdate, a.registerTime, o.name";
     auto result = conn->query(query);
-    result->writeToCSV(TestHelper::getTmpTestDir() + "/output_CSV_BASIC.csv");
-    std::ifstream f(TestHelper::getTmpTestDir() + "/output_CSV_BASIC.csv");
+    result->writeToCSV(databasePath + "/output_CSV_BASIC.csv");
+    std::ifstream f(databasePath + "/output_CSV_BASIC.csv");
     std::ostringstream ss;
     ss << f.rdbuf();
     std::string fileString = ss.str();
@@ -37,8 +37,8 @@ TEST_F(CSVOutputTest, ListCSVTest) {
         newline;
     auto query = "MATCH (a:person) RETURN a.usedNames, a.workedHours, [a.fName, a.fName]";
     auto result = conn->query(query);
-    result->writeToCSV(TestHelper::getTmpTestDir() + "/output_CSV_LIST.csv");
-    std::ifstream f(TestHelper::getTmpTestDir() + "/output_CSV_LIST.csv");
+    result->writeToCSV(databasePath + "/output_CSV_LIST.csv");
+    std::ifstream f(databasePath + "/output_CSV_LIST.csv");
     std::ostringstream ss;
     ss << f.rdbuf();
     std::string fileString = ss.str();
@@ -49,8 +49,8 @@ TEST_F(CSVOutputTest, AlternateDelimCSVTest) {
     std::string listOutput = R"(ABFsUni	"-2"-CsWork	"-100"-DEsWork	7-)";
     auto query = "MATCH (o:organisation) RETURN o.name, o.score";
     auto result = conn->query(query);
-    result->writeToCSV(TestHelper::getTmpTestDir() + "/output_CSV_LIST.csv", '\t', '"', '-');
-    std::ifstream f(TestHelper::getTmpTestDir() + "/output_CSV_LIST.csv");
+    result->writeToCSV(databasePath + "/output_CSV_LIST.csv", '\t', '"', '-');
+    std::ifstream f(databasePath + "/output_CSV_LIST.csv");
     std::ostringstream ss;
     ss << f.rdbuf();
     std::string fileString = ss.str();
@@ -66,8 +66,8 @@ TEST_F(CSVOutputTest, AlternateEscapeCSVTest) {
         R"(`[10,11,12,3,4,5,6,7]`,Hubert Blaine Wolfeschlegelsteinhausenbergerdorff)" + newline;
     auto query = "MATCH (p:person) RETURN p.workedHours, p.fName";
     auto result = conn->query(query);
-    result->writeToCSV(TestHelper::getTmpTestDir() + "/output_CSV_LIST.csv", ',', '`');
-    std::ifstream f(TestHelper::getTmpTestDir() + "/output_CSV_LIST.csv");
+    result->writeToCSV(databasePath + "/output_CSV_LIST.csv", ',', '`');
+    std::ifstream f(databasePath + "/output_CSV_LIST.csv");
     std::ostringstream ss;
     ss << f.rdbuf();
     std::string fileString = ss.str();

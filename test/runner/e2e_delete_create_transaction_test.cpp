@@ -305,7 +305,7 @@ TEST_F(DeleteNodeWithEdgesErrorTest, DeleteNodeWithEdgesError) {
     ASSERT_EQ(result->getErrorMessage(),
         "Runtime exception: Currently deleting a node with edges is not supported. node table 0 "
         "nodeOffset 0 has 1 (one-to-many or many-to-many) edges for edge file: " +
-            TestHelper::appendKuzuRootPath("test/unittest_temp/r-1-0.lists."));
+            databasePath + "/r-1-0.lists.");
 }
 
 TEST_F(CreateDeleteInt64NodeTrxTest, MixedInsertDeleteCommitNormalExecution) {

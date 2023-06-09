@@ -9,13 +9,13 @@ class WALTests : public EmptyDBTest {
 protected:
     void SetUp() override {
         EmptyDBTest::SetUp();
-        FileUtils::createDir(TestHelper::getTmpTestDir());
+        FileUtils::createDir(databasePath);
         LoggerUtils::createLogger(LoggerConstants::LoggerEnum::BUFFER_MANAGER);
         LoggerUtils::createLogger(LoggerConstants::LoggerEnum::WAL);
         LoggerUtils::createLogger(LoggerConstants::LoggerEnum::STORAGE);
         bufferManager = std::make_unique<BufferManager>(
             BufferPoolConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING);
-        wal = make_unique<WAL>(TestHelper::getTmpTestDir(), *bufferManager);
+        wal = make_unique<WAL>(databasePath, *bufferManager);
     }
 
     void TearDown() override {
@@ -167,7 +167,7 @@ TEST_F(WALTests, TestOpeningExistingWAL) {
     addStructuredNodePropertyMainFilePageRecord(
         assignedPageIdxs, numStructuredNodePropertyMainFilePageRecords);
     wal.reset();
-    wal = make_unique<WAL>(TestHelper::getTmpTestDir(), *bufferManager);
+    wal = make_unique<WAL>(databasePath, *bufferManager);
 
     auto walIterator = wal->getIterator();
     readAndVerifyStructuredNodePropertyMainFilePageRecords(walIterator.get(), assignedPageIdxs,

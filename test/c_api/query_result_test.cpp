@@ -130,7 +130,7 @@ TEST_F(CApiQueryResultTest, WriteToCSV) {
     auto connection = getConnection();
     auto result = kuzu_connection_query(connection, query);
     ASSERT_TRUE(kuzu_query_result_is_success(result));
-    auto outputPath = TestHelper::getTmpTestDir() + "/output_CSV_CAPI.csv";
+    auto outputPath = databasePath + "/output_CSV_CAPI.csv";
     kuzu_query_result_write_to_csv(result, outputPath.c_str(), ',', '"', '\n');
     std::ifstream f(outputPath);
     std::ostringstream ss;

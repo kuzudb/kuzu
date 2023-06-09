@@ -2,11 +2,10 @@
 
 class CApiDatabaseTest : public EmptyDBTest {
 public:
-    void SetUp() override {}
+    void SetUp() override { EmptyDBTest::SetUp(); }
 };
 
 TEST_F(CApiDatabaseTest, CreationAndDestroy) {
-    auto databasePath = TestHelper::getTmpTestDir();
     auto databasePathCStr = databasePath.c_str();
     auto database = kuzu_database_init(databasePathCStr, 0);
     ASSERT_NE(database, nullptr);

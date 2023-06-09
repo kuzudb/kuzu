@@ -29,12 +29,12 @@ public:
         if (common::FileUtils::fileOrPathExists(TestHelper::getTmpTestDir())) {
             common::FileUtils::removeDir(TestHelper::getTmpTestDir());
         }
-        databasePath = TestHelper::getTmpTestDir();
+        setDatabasePath();
     }
 
     virtual std::string getInputDir() = 0;
 
-    void TearDown() override { common::FileUtils::removeDir(TestHelper::getTmpTestDir()); }
+    void TearDown() override { common::FileUtils::removeDir(databasePath); }
 
     void createDBAndConn();
 
@@ -134,6 +134,16 @@ protected:
         bool isCommit, TransactionTestType transactionTestType);
 
 private:
+    void setDatabasePath() {
+        databasePath = TestHelper::getTmpTestDir();
+        int random_number = std::rand() % 10000;
+        const ::testing::TestInfo* const test_info =
+            ::testing::UnitTest::GetInstance()->current_test_info();
+        std::string t =
+            std::string(test_info->test_case_name()) + "." + std::string(test_info->name());
+        databasePath = databasePath + "_" + t + "_" + std::to_string(random_number);
+    }
+
     void validateRelPropertyFiles(catalog::RelTableSchema* relTableSchema,
         common::RelDataDirection relDirection, bool isColumnProperty, common::DBFileType dbFileType,
         bool existence);
