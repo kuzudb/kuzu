@@ -5,6 +5,7 @@ bazel-*
 .clwb
 .cache
 .bazelrc
+test/test_files/test_list
 
 test_temp/
 build/
