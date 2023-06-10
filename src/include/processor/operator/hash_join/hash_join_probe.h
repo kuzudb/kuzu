@@ -59,7 +59,6 @@ public:
           probeDataInfo{probeDataInfo} {}
 
     // This constructor is used for cloning only.
-    // HashJoinProbe do not need to clone hashJoinBuild which is on a different pipeline.
     HashJoinProbe(std::shared_ptr<HashJoinSharedState> sharedState, common::JoinType joinType,
         bool flatProbe, const ProbeDataInfo& probeDataInfo,
         std::unique_ptr<PhysicalOperator> probeChild, uint32_t id, const std::string& paramsString)

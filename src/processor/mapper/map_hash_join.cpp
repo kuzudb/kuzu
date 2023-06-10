@@ -9,31 +9,45 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace processor {
 
-BuildDataInfo PlanMapper::generateBuildDataInfo(const Schema& buildSideSchema,
-    const expression_vector& keys, const expression_vector& payloads) {
-    std::vector<std::pair<DataPos, common::LogicalType>> buildKeysPosAndType,
-        buildPayloadsPosAndTypes;
-    std::vector<bool> isBuildPayloadsFlat, isBuildPayloadsInKeyChunk;
-    std::vector<bool> isBuildDataChunkContainKeys(buildSideSchema.getNumGroups(), false);
-    std::unordered_set<std::string> joinKeyNames;
+std::unique_ptr<HashJoinBuildInfo> PlanMapper::createHashBuildInfo(
+    const Schema& buildSchema, const expression_vector& keys, const expression_vector& payloads) {
+    planner::f_group_pos_set keyGroupPosSet;
+    std::vector<DataPos> keysPos;
+    std::vector<DataPos> payloadsPos;
+    auto tableSchema = std::make_unique<FactorizedTableSchema>();
     for (auto& key : keys) {
-        auto buildSideKeyPos = DataPos(buildSideSchema.getExpressionPos(*key));
-        isBuildDataChunkContainKeys[buildSideKeyPos.dataChunkPos] = true;
-        buildKeysPosAndType.emplace_back(buildSideKeyPos, common::LogicalTypeID::INTERNAL_ID);
-        joinKeyNames.insert(key->getUniqueName());
+        auto pos = DataPos(buildSchema.getExpressionPos(*key));
+        keyGroupPosSet.insert(pos.dataChunkPos);
+        // Keys are always stored in flat column.
+        auto columnSchema = std::make_unique<ColumnSchema>(false /* isUnFlat */, pos.dataChunkPos,
+            FactorizedTable::getDataTypeSize(key->dataType));
+        tableSchema->appendColumn(std::move(columnSchema));
+        keysPos.push_back(pos);
     }
     for (auto& payload : payloads) {
-        if (joinKeyNames.find(payload->getUniqueName()) != joinKeyNames.end()) {
-            continue;
+        auto pos = DataPos(buildSchema.getExpressionPos(*payload));
+        std::unique_ptr<ColumnSchema> columnSchema;
+        if (keyGroupPosSet.contains(pos.dataChunkPos) ||
+            buildSchema.getGroup(pos.dataChunkPos)->isFlat()) {
+            // Payloads need to be stored in flat column in 2 cases
+            // 1. payload is in the same chunk as a key. Since keys are always stored as flat,
+            // payloads must also be stored as flat.
+            // 2. payload is in flat chunk
+            columnSchema = std::make_unique<ColumnSchema>(false /* isUnFlat */, pos.dataChunkPos,
+                FactorizedTable::getDataTypeSize(payload->dataType));
+        } else {
+            columnSchema = std::make_unique<ColumnSchema>(
+                true /* isUnFlat */, pos.dataChunkPos, (uint32_t)sizeof(common::overflow_value_t));
         }
-        auto payloadPos = DataPos(buildSideSchema.getExpressionPos(*payload));
-        buildPayloadsPosAndTypes.emplace_back(payloadPos, payload->dataType);
-        auto payloadGroup = buildSideSchema.getGroup(payloadPos.dataChunkPos);
-        isBuildPayloadsFlat.push_back(payloadGroup->isFlat());
-        isBuildPayloadsInKeyChunk.push_back(isBuildDataChunkContainKeys[payloadPos.dataChunkPos]);
+        tableSchema->appendColumn(std::move(columnSchema));
+        payloadsPos.push_back(pos);
     }
-    return BuildDataInfo(buildKeysPosAndType, buildPayloadsPosAndTypes, isBuildPayloadsFlat,
-        isBuildPayloadsInKeyChunk);
+    auto pointerType = common::LogicalType(common::LogicalTypeID::INT64);
+    auto pointerColumn = std::make_unique<ColumnSchema>(false /* isUnFlat */,
+        INVALID_DATA_CHUNK_POS, FactorizedTable::getDataTypeSize(pointerType));
+    tableSchema->appendColumn(std::move(pointerColumn));
+    return std::make_unique<HashJoinBuildInfo>(
+        std::move(keysPos), std::move(payloadsPos), std::move(tableSchema));
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalHashJoinToPhysical(
@@ -51,26 +65,26 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalHashJoinToPhysical(
         buildSidePrevOperator = mapLogicalOperatorToPhysical(hashJoin->getChild(1));
         probeSidePrevOperator = mapLogicalOperatorToPhysical(hashJoin->getChild(0));
     }
-    // Populate build side and probe side std::vector positions
     auto paramsString = hashJoin->getExpressionsForPrinting();
-    auto buildDataInfo = generateBuildDataInfo(
-        *buildSchema, hashJoin->getJoinNodeIDs(), hashJoin->getExpressionsToMaterialize());
+    auto payloads = ExpressionUtil::excludeExpressions(
+        hashJoin->getExpressionsToMaterialize(), hashJoin->getJoinNodeIDs());
+    // Create build
+    auto buildInfo = createHashBuildInfo(*buildSchema, hashJoin->getJoinNodeIDs(), payloads);
+    auto globalHashTable = std::make_unique<JoinHashTable>(
+        *memoryManager, buildInfo->getNumKeys(), buildInfo->getTableSchema()->copy());
+    auto sharedState = std::make_shared<HashJoinSharedState>(std::move(globalHashTable));
+    auto hashJoinBuild =
+        make_unique<HashJoinBuild>(std::make_unique<ResultSetDescriptor>(buildSchema), sharedState,
+            std::move(buildInfo), std::move(buildSidePrevOperator), getOperatorID(), paramsString);
+    // Create probe
     std::vector<DataPos> probeKeysDataPos;
     for (auto& joinNodeID : hashJoin->getJoinNodeIDs()) {
         probeKeysDataPos.emplace_back(outSchema->getExpressionPos(*joinNodeID));
     }
     std::vector<DataPos> probePayloadsOutPos;
-    for (auto& [dataPos, _] : buildDataInfo.payloadsPosAndType) {
-        auto expression =
-            buildSchema->getGroup(dataPos.dataChunkPos)->getExpressions()[dataPos.valueVectorPos];
-        probePayloadsOutPos.emplace_back(outSchema->getExpressionPos(*expression));
+    for (auto& payload : payloads) {
+        probePayloadsOutPos.emplace_back(outSchema->getExpressionPos(*payload));
     }
-    auto sharedState = std::make_shared<HashJoinSharedState>();
-    // create hashJoin build
-    auto hashJoinBuild =
-        make_unique<HashJoinBuild>(std::make_unique<ResultSetDescriptor>(buildSchema), sharedState,
-            buildDataInfo, std::move(buildSidePrevOperator), getOperatorID(), paramsString);
-    // create hashJoin probe
     ProbeDataInfo probeDataInfo(probeKeysDataPos, probePayloadsOutPos);
     if (hashJoin->getJoinType() == common::JoinType::MARK) {
         auto mark = hashJoin->getMark();

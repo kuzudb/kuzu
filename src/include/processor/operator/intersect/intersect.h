@@ -8,6 +8,7 @@ namespace processor {
 
 struct IntersectDataInfo {
     DataPos keyDataPos;
+    // TODO(Xiyang): payload is not an accurate name for intersect.
     std::vector<DataPos> payloadsDataPos;
 };
 

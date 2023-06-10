@@ -109,5 +109,20 @@ std::string ExpressionUtil::toString(const expression_vector& expressions) {
     return result;
 }
 
+expression_vector ExpressionUtil::excludeExpressions(
+    const expression_vector& expressions, const expression_vector& expressionsToExclude) {
+    expression_set excludeSet;
+    for (auto& expression : expressionsToExclude) {
+        excludeSet.insert(expression);
+    }
+    expression_vector result;
+    for (auto& expression : expressions) {
+        if (!excludeSet.contains(expression)) {
+            result.push_back(expression);
+        }
+    }
+    return result;
+}
+
 } // namespace binder
 } // namespace kuzu

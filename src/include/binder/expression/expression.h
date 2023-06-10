@@ -128,14 +128,16 @@ struct ExpressionEquality {
     }
 };
 
-class ExpressionUtil {
-public:
+struct ExpressionUtil {
     static bool allExpressionsHaveDataType(
         expression_vector& expressions, common::LogicalTypeID dataTypeID);
 
     static uint32_t find(Expression* target, expression_vector expressions);
 
     static std::string toString(const expression_vector& expressions);
+
+    static expression_vector excludeExpressions(
+        const expression_vector& expressions, const expression_vector& expressionsToExclude);
 };
 
 } // namespace binder

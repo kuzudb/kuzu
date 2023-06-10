@@ -4,7 +4,7 @@ namespace kuzu {
 namespace processor {
 
 void CrossProduct::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
-    for (auto& pos : outVecPos) {
+    for (auto& pos : info->outVecPos) {
         vectorsToScan.push_back(resultSet->getValueVector(pos).get());
     }
     localState->init();
@@ -26,7 +26,7 @@ bool CrossProduct::getNextTuplesInternal(ExecutionContext* context) {
     // scan from right table if there is tuple left
     auto numTuplesToScan =
         std::min(localState->maxMorselSize, table->getNumTuples() - localState->startIdx);
-    table->scan(vectorsToScan, localState->startIdx, numTuplesToScan, colIndicesToScan);
+    table->scan(vectorsToScan, localState->startIdx, numTuplesToScan, info->colIndicesToScan);
     localState->startIdx += numTuplesToScan;
     metrics->numOutputTuple.increase(numTuplesToScan);
     return true;

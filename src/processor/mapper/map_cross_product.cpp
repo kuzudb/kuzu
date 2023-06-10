@@ -26,12 +26,14 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCrossProductToPhysical(
         outVecPos.emplace_back(outSchema->getExpressionPos(*expression));
         colIndicesToScan.push_back(i);
     }
+    auto info =
+        std::make_unique<CrossProductInfo>(std::move(outVecPos), std::move(colIndicesToScan));
     auto sharedState = resultCollector->getSharedState();
     auto localState = std::make_unique<CrossProductLocalState>(
         sharedState->getTable(), sharedState->getMaxMorselSize());
-    return make_unique<CrossProduct>(std::move(outVecPos), std::move(colIndicesToScan),
-        std::move(localState), std::move(probeSidePrevOperator), std::move(resultCollector),
-        getOperatorID(), logicalCrossProduct->getExpressionsForPrinting());
+    return make_unique<CrossProduct>(std::move(info), std::move(localState),
+        std::move(probeSidePrevOperator), std::move(resultCollector), getOperatorID(),
+        logicalCrossProduct->getExpressionsForPrinting());
 }
 
 } // namespace processor
