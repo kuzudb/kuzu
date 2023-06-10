@@ -106,8 +106,6 @@ protected:
         uint16_t pagePosOfFirstElement, uint64_t numValuesToRead, common::table_id_t commonTableID,
         bool hasNoNullGuarantee);
 
-    void setNullBitOfAPosInFrame(const uint8_t* frame, uint16_t elementPos, bool isNull) const;
-
     void readNullBitsFromAPage(common::ValueVector* valueVector, const uint8_t* frame,
         uint64_t posInPage, uint64_t posInVector, uint64_t numBitsToRead) const;
 

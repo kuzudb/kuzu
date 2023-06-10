@@ -6,7 +6,7 @@ namespace kuzu {
 namespace processor {
 
 CopyNodeSharedState::CopyNodeSharedState(uint64_t& numRows, storage::MemoryManager* memoryManager)
-    : numRows{numRows}, pkColumnID{0} {
+    : numRows{numRows}, pkColumnID{0}, hasLoggedWAL{false} {
     auto ftTableSchema = std::make_unique<FactorizedTableSchema>();
     ftTableSchema->appendColumn(
         std::make_unique<ColumnSchema>(false /* flat */, 0 /* dataChunkPos */,
@@ -20,7 +20,7 @@ void CopyNodeSharedState::initializePrimaryKey(
         common::LogicalTypeID::SERIAL) {
         pkIndex = std::make_unique<storage::PrimaryKeyIndexBuilder>(
             storage::StorageUtils::getNodeIndexFName(
-                directory, nodeTableSchema->tableID, common::DBFileType::WAL_VERSION),
+                directory, nodeTableSchema->tableID, common::DBFileType::ORIGINAL),
             nodeTableSchema->getPrimaryKey().dataType);
         pkIndex->bulkReserve(numRows);
     }
@@ -40,13 +40,22 @@ void CopyNodeSharedState::initializeColumns(
             // Skip SERIAL, as it is not physically stored.
             continue;
         }
-        auto fPath = storage::StorageUtils::getNodePropertyColumnFName(directory,
-            nodeTableSchema->tableID, property.propertyID, common::DBFileType::WAL_VERSION);
+        auto fPath = storage::StorageUtils::getNodePropertyColumnFName(
+            directory, nodeTableSchema->tableID, property.propertyID, common::DBFileType::ORIGINAL);
         columns.push_back(std::make_unique<storage::InMemColumn>(fPath, property.dataType));
     }
 }
 
 void CopyNode::executeInternal(kuzu::processor::ExecutionContext* context) {
+    {
+        std::unique_lock xLck{sharedState->mtx};
+        if (!sharedState->hasLoggedWAL) {
+            localState->wal->logCopyNodeRecord(localState->table->getTableID());
+            localState->wal->flushAllPages();
+            sharedState->hasLoggedWAL = true;
+        }
+    }
+    if (sharedState->hasLoggedWAL) {}
     while (children[0]->getNextTuple(context)) {
         std::vector<std::unique_ptr<storage::InMemColumnChunk>> columnChunks;
         columnChunks.reserve(sharedState->columns.size());
@@ -69,13 +78,13 @@ void CopyNode::executeInternal(kuzu::processor::ExecutionContext* context) {
 }
 
 void CopyNode::finalize(kuzu::processor::ExecutionContext* context) {
+    auto tableID = localState->table->getTableID();
     if (sharedState->pkIndex) {
         sharedState->pkIndex->flush();
     }
     for (auto& column : sharedState->columns) {
         column->saveToFile();
     }
-    auto tableID = localState->table->getTableID();
     for (auto& relTableSchema :
         localState->catalog->getAllRelTableSchemasContainBoundTable(tableID)) {
         localState->relsStore->getRelTable(relTableSchema->tableID)
@@ -83,7 +92,6 @@ void CopyNode::finalize(kuzu::processor::ExecutionContext* context) {
     }
     localState->table->getNodeStatisticsAndDeletedIDs()->setNumTuplesForTable(
         tableID, sharedState->numRows);
-    localState->wal->logCopyNodeRecord(tableID);
     auto outputMsg = common::StringUtils::string_format(
         "{} number of tuples has been copied to table: {}.", sharedState->numRows,
         localState->catalog->getReadOnlyVersion()->getTableName(tableID).c_str());

@@ -16,8 +16,8 @@ public:
         BufferManager& bufferManager, WAL* wal, catalog::NodeTableSchema* nodeTableSchema);
 
     void initializeData(catalog::NodeTableSchema* nodeTableSchema);
-
-    void resetColumns(catalog::NodeTableSchema* nodeTableSchema);
+    static std::unordered_map<common::property_id_t, std::unique_ptr<Column>> initializeColumns(
+        WAL* wal, BufferManager* bm, catalog::NodeTableSchema* nodeTableSchema);
 
     inline common::offset_t getMaxNodeOffset(transaction::Transaction* trx) const {
         return nodesStatisticsAndDeletedIDs->getMaxNodeOffset(trx, tableID);

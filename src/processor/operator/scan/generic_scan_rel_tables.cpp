@@ -44,8 +44,8 @@ bool RelTableDataCollection::scan(ValueVector* inVector,
 std::unique_ptr<RelTableDataCollection> RelTableDataCollection::clone() const {
     std::vector<std::unique_ptr<RelTableScanState>> clonedScanStates;
     for (auto& scanState : tableScanStates) {
-        clonedScanStates.push_back(
-            make_unique<RelTableScanState>(scanState->propertyIds, scanState->relTableDataType));
+        clonedScanStates.push_back(make_unique<RelTableScanState>(
+            scanState->relStats, scanState->propertyIds, scanState->relTableDataType));
     }
     return make_unique<RelTableDataCollection>(relTableDatas, std::move(clonedScanStates));
 }

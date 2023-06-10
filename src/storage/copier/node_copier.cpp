@@ -33,7 +33,7 @@ NodeCopier::NodeCopier(const std::string& directory, std::shared_ptr<CopySharedS
         }
         properties.push_back(property);
         auto fPath = StorageUtils::getNodePropertyColumnFName(
-            directory, schema->tableID, property.propertyID, DBFileType::WAL_VERSION);
+            directory, schema->tableID, property.propertyID, DBFileType::ORIGINAL);
         columns.push_back(std::make_shared<InMemColumn>(fPath, property.dataType));
     }
     // Each property corresponds to a column.
@@ -50,7 +50,7 @@ void NodeCopier::initializeIndex(
         return;
     }
     pkIndex = std::make_unique<PrimaryKeyIndexBuilder>(
-        StorageUtils::getNodeIndexFName(directory, schema->tableID, DBFileType::WAL_VERSION),
+        StorageUtils::getNodeIndexFName(directory, schema->tableID, DBFileType::ORIGINAL),
         primaryKey.dataType);
     pkIndex->bulkReserve(numTuples);
     pkColumnID = getPKColumnID(schema->properties, primaryKey.propertyID);

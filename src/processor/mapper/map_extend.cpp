@@ -24,7 +24,7 @@ static std::vector<property_id_t> populatePropertyIds(
 
 static std::pair<DirectedRelTableData*, std::unique_ptr<RelTableScanState>>
 getRelTableDataAndScanState(RelDataDirection direction, catalog::RelTableSchema* relTableSchema,
-    table_id_t boundNodeTableID, const RelsStore& relsStore, table_id_t relTableID,
+    table_id_t boundNodeTableID, RelsStore& relsStore, table_id_t relTableID,
     const expression_vector& properties) {
     if (relTableSchema->getBoundTableID(direction) != boundNodeTableID) {
         // No data stored for given direction and boundNode.
@@ -38,17 +38,17 @@ getRelTableDataAndScanState(RelDataDirection direction, catalog::RelTableSchema*
                                   propertyExpression->getPropertyID(relTableID) :
                                   INVALID_PROPERTY_ID);
     }
-    auto scanState = make_unique<RelTableScanState>(
-        std::move(propertyIds), relsStore.isSingleMultiplicityInDirection(direction, relTableID) ?
-                                    RelTableDataType::COLUMNS :
-                                    RelTableDataType::LISTS);
+    auto relStats = relsStore.getRelsStatistics().getRelStatistics(relTableID);
+    auto scanState = make_unique<RelTableScanState>(relStats, std::move(propertyIds),
+        relsStore.isSingleMultiplicityInDirection(direction, relTableID) ?
+            RelTableDataType::COLUMNS :
+            RelTableDataType::LISTS);
     return std::make_pair(relData, std::move(scanState));
 }
 
 static std::unique_ptr<RelTableDataCollection> populateRelTableDataCollection(
     table_id_t boundNodeTableID, const RelExpression& rel, ExtendDirection extendDirection,
-    const expression_vector& properties, const RelsStore& relsStore,
-    const catalog::Catalog& catalog) {
+    const expression_vector& properties, RelsStore& relsStore, const catalog::Catalog& catalog) {
     std::vector<DirectedRelTableData*> relTableDatas;
     std::vector<std::unique_ptr<RelTableScanState>> tableScanStates;
     for (auto relTableID : rel.getTableIDs()) {
@@ -118,19 +118,22 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExtendToPhysical(
         extendDirection != planner::ExtendDirection::BOTH) {
         auto relDataDirection = ExtendDirectionUtils::getRelDataDirection(extendDirection);
         auto relTableID = rel->getSingleTableID();
+        auto relTableStats = relsStore.getRelsStatistics().getRelStatistics(relTableID);
         if (relsStore.isSingleMultiplicityInDirection(relDataDirection, relTableID)) {
             auto propertyIds = populatePropertyIds(relTableID, extend->getProperties());
             return make_unique<ScanRelTableColumns>(
                 relsStore.getRelTable(relTableID)->getDirectedTableData(relDataDirection),
-                std::move(propertyIds), inNodeIDVectorPos, std::move(outputVectorsPos),
-                std::move(prevOperator), getOperatorID(), extend->getExpressionsForPrinting());
+                relTableStats, std::move(propertyIds), inNodeIDVectorPos,
+                std::move(outputVectorsPos), std::move(prevOperator), getOperatorID(),
+                extend->getExpressionsForPrinting());
         } else {
             assert(!relsStore.isSingleMultiplicityInDirection(relDataDirection, relTableID));
             auto propertyIds = populatePropertyIds(relTableID, extend->getProperties());
             return make_unique<ScanRelTableLists>(
                 relsStore.getRelTable(relTableID)->getDirectedTableData(relDataDirection),
-                std::move(propertyIds), inNodeIDVectorPos, std::move(outputVectorsPos),
-                std::move(prevOperator), getOperatorID(), extend->getExpressionsForPrinting());
+                relTableStats, std::move(propertyIds), inNodeIDVectorPos,
+                std::move(outputVectorsPos), std::move(prevOperator), getOperatorID(),
+                extend->getExpressionsForPrinting());
         }
     } else { // map to generic extend
         std::unordered_map<table_id_t, std::unique_ptr<RelTableDataCollection>>

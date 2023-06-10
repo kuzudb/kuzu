@@ -186,27 +186,27 @@ public:
               bufferManager, false /* hasNullBytes */, wal, listsUpdatesStore},
           nbrTableID{nbrTableID} {};
 
-    inline bool mayContainNulls() const override { return false; }
+    inline bool mayContainNulls() const final { return false; }
 
     void readValues(transaction::Transaction* transaction, common::ValueVector* valueVector,
-        ListHandle& listHandle) override;
+        ListHandle& listHandle) final;
 
     // Currently, used only in copyCSV tests.
     std::unique_ptr<std::vector<common::nodeID_t>> readAdjacencyListOfNode(
         common::offset_t nodeOffset);
 
-    void checkpointInMemoryIfNecessary() override {
+    inline void checkpointInMemoryIfNecessary() final {
         headers->checkpointInMemoryIfNecessary();
         Lists::checkpointInMemoryIfNecessary();
     }
 
-    void rollbackInMemoryIfNecessary() override {
+    inline void rollbackInMemoryIfNecessary() final {
         headers->rollbackInMemoryIfNecessary();
         Lists::rollbackInMemoryIfNecessary();
     }
 
 private:
-    void readFromList(common::ValueVector* valueVector, ListHandle& listHandle) override;
+    void readFromList(common::ValueVector* valueVector, ListHandle& listHandle) final;
     void readFromListsUpdatesStore(ListHandle& listHandle, common::ValueVector* valueVector);
     void readFromPersistentStore(ListHandle& listHandle, common::ValueVector* valueVector);
 

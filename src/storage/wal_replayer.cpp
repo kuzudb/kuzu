@@ -33,11 +33,6 @@ void WALReplayer::replay() {
         throw StorageException(
             "Cannot checkpointInMemory WAL because last logged record is not a commit record.");
     }
-    if (isRecovering && !wal->isLastLoggedRecordCommit()) {
-        throw StorageException("System should not try to rollback when the last logged record is "
-                               "not a commit record.");
-    }
-
     if (!wal->isEmptyWAL()) {
         auto walIterator = wal->getIterator();
         WALRecord walRecord;
@@ -108,6 +103,10 @@ void WALReplayer::replayPageUpdateOrInsertRecord(const kuzu::storage::WALRecord&
     std::unique_ptr<FileInfo> fileInfoOfStorageStructure =
         StorageUtils::getFileInfoForReadWrite(wal->getDirectory(), storageStructureID);
     if (isCheckpoint) {
+        if (!wal->isLastLoggedRecordCommit()) {
+            // Nothing to undo.
+            return;
+        }
         walFileHandle->readPage(pageBuffer.get(), walRecord.pageInsertOrUpdateRecord.pageIdxInWAL);
         FileUtils::writeToFile(fileInfoOfStorageStructure.get(), pageBuffer.get(),
             BufferPoolConstants::PAGE_4KB_SIZE,
@@ -276,33 +275,17 @@ void WALReplayer::replayOverflowFileNextBytePosRecord(const kuzu::storage::WALRe
 }
 
 void WALReplayer::replayCopyNodeRecord(const kuzu::storage::WALRecord& walRecord) {
+    auto tableID = walRecord.copyNodeRecord.tableID;
     if (isCheckpoint) {
-        auto tableID = walRecord.copyNodeRecord.tableID;
         if (!isRecovering) {
-            auto nodeTableSchema = catalog->getReadOnlyVersion()->getNodeTableSchema(tableID);
-            // If the WAL version of the file doesn't exist, we must have already replayed
-            // this WAL and successfully replaced the original DB file and deleted the WAL
-            // version but somehow WALReplayer must have failed/crashed before deleting the
-            // entire WAL (which is why the log record is still here). In that case the
-            // renaming has already happened, so we do not have to do anything, which is the
-            // behavior of replaceNodeWithVersionFromWALIfExists, i.e., if the WAL version
-            // of the file does not exist, it will not do anything.
-            storageManager->getNodesStore().getNodeTable(tableID)->resetColumns(nodeTableSchema);
-            WALReplayerUtils::replaceNodeFilesWithVersionFromWALIfExists(
-                nodeTableSchema, wal->getDirectory());
-            auto relTableSchemas = catalog->getAllRelTableSchemasContainBoundTable(tableID);
-            for (auto relTableSchema : relTableSchemas) {
-                storageManager->getRelsStore()
-                    .getRelTable(relTableSchema->tableID)
-                    ->resetColumnsAndLists(relTableSchema);
-            }
-            WALReplayerUtils::replaceListsHeadersFilesWithVersionFromWALIfExists(
-                relTableSchemas, tableID, wal->getDirectory());
+            // CHECKPOINT.
             // If we are not recovering, i.e., we are checkpointing during normal execution,
             // then we need to update the nodeTable because the actual columns and lists
             // files have been changed during checkpoint. So the in memory
             // fileHandles are obsolete and should be reconstructed (e.g. since the numPages
             // have likely changed they need to reconstruct their page locks).
+            auto nodeTableSchema = catalog->getReadOnlyVersion()->getNodeTableSchema(tableID);
+            auto relTableSchemas = catalog->getAllRelTableSchemasContainBoundTable(tableID);
             storageManager->getNodesStore().getNodeTable(tableID)->initializeData(nodeTableSchema);
             for (auto relTableSchema : relTableSchemas) {
                 storageManager->getRelsStore()
@@ -310,44 +293,56 @@ void WALReplayer::replayCopyNodeRecord(const kuzu::storage::WALRecord& walRecord
                     ->initializeData(relTableSchema);
             }
         } else {
+            // RECOVERY.
+            if (wal->isLastLoggedRecordCommit()) {
+                return;
+            }
             auto catalogForRecovery = getCatalogForRecovery(DBFileType::ORIGINAL);
-            // See comments above.
-            WALReplayerUtils::replaceNodeFilesWithVersionFromWALIfExists(
+            WALReplayerUtils::createEmptyDBFilesForNewNodeTable(
                 catalogForRecovery->getReadOnlyVersion()->getNodeTableSchema(tableID),
-                wal->getDirectory());
-            WALReplayerUtils::replaceListsHeadersFilesWithVersionFromWALIfExists(
-                catalogForRecovery->getAllRelTableSchemasContainBoundTable(tableID), tableID,
                 wal->getDirectory());
         }
     } else {
-        // Since COPY statements are single statements that are auto committed, it is
-        // impossible for users to roll back a COPY statement.
+        // ROLLBACK.
+        WALReplayerUtils::createEmptyDBFilesForNewNodeTable(
+            catalog->getReadOnlyVersion()->getNodeTableSchema(tableID), wal->getDirectory());
     }
 }
 
 void WALReplayer::replayCopyRelRecord(const kuzu::storage::WALRecord& walRecord) {
+    auto tableID = walRecord.copyRelRecord.tableID;
     if (isCheckpoint) {
-        auto tableID = walRecord.copyRelRecord.tableID;
         if (!isRecovering) {
+            // CHECKPOINT.
             storageManager->getRelsStore().getRelTable(tableID)->resetColumnsAndLists(
                 catalog->getReadOnlyVersion()->getRelTableSchema(tableID));
-            // See comments for COPY_NODE_RECORD.
-            WALReplayerUtils::replaceRelPropertyFilesWithVersionFromWALIfExists(
-                catalog->getReadOnlyVersion()->getRelTableSchema(tableID), wal->getDirectory());
             // See comments for COPY_NODE_RECORD.
             storageManager->getRelsStore().getRelTable(tableID)->initializeData(
                 catalog->getReadOnlyVersion()->getRelTableSchema(tableID));
             storageManager->getNodesStore().getNodesStatisticsAndDeletedIDs().setAdjListsAndColumns(
                 &storageManager->getRelsStore());
         } else {
+            // RECOVERY.
+            if (wal->isLastLoggedRecordCommit()) {
+                return;
+            }
+            auto nodesStatisticsAndDeletedIDsForCheckPointing =
+                std::make_unique<NodesStatisticsAndDeletedIDs>(wal->getDirectory());
+            auto maxNodeOffsetPerTable =
+                nodesStatisticsAndDeletedIDsForCheckPointing->getMaxNodeOffsetPerTable();
             auto catalogForRecovery = getCatalogForRecovery(DBFileType::ORIGINAL);
-            // See comments for COPY_NODE_RECORD.
-            WALReplayerUtils::replaceRelPropertyFilesWithVersionFromWALIfExists(
+            WALReplayerUtils::createEmptyDBFilesForNewRelTable(
                 catalogForRecovery->getReadOnlyVersion()->getRelTableSchema(tableID),
-                wal->getDirectory());
+                wal->getDirectory(), maxNodeOffsetPerTable);
         }
     } else {
-        // See comments for COPY_NODE_RECORD.
+        // ROLLBACK.
+        WALReplayerUtils::createEmptyDBFilesForNewRelTable(
+            catalog->getReadOnlyVersion()->getRelTableSchema(walRecord.relTableRecord.tableID),
+            wal->getDirectory(),
+            storageManager->getNodesStore()
+                .getNodesStatisticsAndDeletedIDs()
+                .getMaxNodeOffsetPerTable());
     }
 }
 
@@ -366,6 +361,10 @@ void WALReplayer::replayDropTableRecord(const kuzu::storage::WALRecord& walRecor
                     catalog->getReadOnlyVersion()->getRelTableSchema(tableID), wal->getDirectory());
             }
         } else {
+            if (!wal->isLastLoggedRecordCommit()) {
+                // Nothing to undo.
+                return;
+            }
             auto catalogForRecovery = getCatalogForRecovery(DBFileType::ORIGINAL);
             if (catalogForRecovery->getReadOnlyVersion()->containNodeTable(tableID)) {
                 WALReplayerUtils::removeDBFilesForNodeTable(
@@ -398,6 +397,10 @@ void WALReplayer::replayDropPropertyRecord(const kuzu::storage::WALRecord& walRe
                     catalog->getReadOnlyVersion()->getRelTableSchema(tableID), propertyID);
             }
         } else {
+            if (!wal->isLastLoggedRecordCommit()) {
+                // Nothing to undo.
+                return;
+            }
             auto catalogForRecovery = getCatalogForRecovery(DBFileType::WAL_VERSION);
             if (catalogForRecovery->getReadOnlyVersion()->containNodeTable(tableID)) {
                 WALReplayerUtils::removeDBFilesForNodeProperty(
@@ -431,6 +434,10 @@ void WALReplayer::replayAddPropertyRecord(const kuzu::storage::WALRecord& walRec
                     property, *reinterpret_cast<RelTableSchema*>(tableSchema));
             }
         } else {
+            if (!wal->isLastLoggedRecordCommit()) {
+                // Nothing to undo.
+                return;
+            }
             auto catalogForRecovery = getCatalogForRecovery(DBFileType::WAL_VERSION);
             auto tableSchema = catalogForRecovery->getReadOnlyVersion()->getTableSchema(tableID);
             if (catalogForRecovery->getReadOnlyVersion()->containNodeTable(tableID)) {

@@ -5,6 +5,7 @@
 #include "storage/storage_structure/column.h"
 #include "storage/storage_structure/lists/lists.h"
 #include "storage/storage_utils.h"
+#include "storage/store/rels_statistics.h"
 
 namespace kuzu {
 namespace storage {
@@ -40,9 +41,10 @@ private:
 
 struct RelTableScanState {
 public:
-    RelTableScanState(
+    RelTableScanState(storage::RelStatistics* relStats,
         std::vector<common::property_id_t> propertyIds, RelTableDataType relTableDataType)
-        : relTableDataType{relTableDataType}, propertyIds{std::move(propertyIds)} {
+        : relStats{relStats}, relTableDataType{relTableDataType}, propertyIds{
+                                                                      std::move(propertyIds)} {
         if (relTableDataType == RelTableDataType::LISTS) {
             syncState = std::make_unique<ListSyncState>();
             // The first listHandle is for adj lists.
@@ -58,6 +60,7 @@ public:
                syncState->hasMoreAndSwitchSourceIfNecessary();
     }
 
+    RelStatistics* relStats;
     RelTableDataType relTableDataType;
     std::vector<common::property_id_t> propertyIds;
     // sync state between adj and property lists
@@ -98,6 +101,9 @@ public:
     inline void scan(transaction::Transaction* transaction, RelTableScanState& scanState,
         common::ValueVector* inNodeIDVector,
         const std::vector<common::ValueVector*>& outputVectors) {
+        if (scanState.relStats->getNumTuples() == 0) {
+            return;
+        }
         if (scanState.relTableDataType == RelTableDataType::COLUMNS) {
             scanColumns(transaction, scanState, inNodeIDVector, outputVectors);
         } else {

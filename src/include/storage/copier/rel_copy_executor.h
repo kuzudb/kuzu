@@ -40,7 +40,7 @@ public:
 
 class RelCopyExecutor {
 public:
-    RelCopyExecutor(common::CopyDescription& copyDescription, std::string outputDirectory,
+    RelCopyExecutor(common::CopyDescription& copyDescription, WAL* wal,
         common::TaskScheduler& taskScheduler, catalog::Catalog& catalog,
         storage::NodesStore& nodesStore, storage::RelTable* table, RelsStatistics* relsStatistics);
 
@@ -58,6 +58,7 @@ private:
 
 private:
     common::CopyDescription& copyDescription;
+    WAL* wal;
     std::string outputDirectory;
     std::unordered_map<std::string, FileBlockInfo> fileBlockInfos;
     common::TaskScheduler& taskScheduler;
