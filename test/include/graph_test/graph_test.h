@@ -1,5 +1,6 @@
 #pragma once
 
+#include <chrono>
 #include <cstring>
 
 #include "common/file_utils.h"
@@ -136,12 +137,13 @@ protected:
 private:
     void setDatabasePath() {
         databasePath = TestHelper::getTmpTestDir();
-        int random_number = std::rand() % 10000;
-        const ::testing::TestInfo* const test_info =
+        uint64_t milliseconds = duration_cast<std::chrono::milliseconds>(
+            std::chrono::system_clock::now().time_since_epoch())
+                                    .count();
+        const ::testing::TestInfo* const testInfo =
             ::testing::UnitTest::GetInstance()->current_test_info();
-        std::string t =
-            std::string(test_info->test_case_name()) + "." + std::string(test_info->name());
-        databasePath = databasePath + "_" + t + "_" + std::to_string(random_number);
+        databasePath = databasePath + testInfo->test_case_name() + testInfo->name() +
+                       std::to_string(milliseconds);
     }
 
     void validateRelPropertyFiles(catalog::RelTableSchema* relTableSchema,

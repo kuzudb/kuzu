@@ -3,7 +3,7 @@
 
 --
 
--CASE ShortestPath
+-CASE AllShortestPath
 
 -NAME MultiLabel1
 -QUERY MATCH (a:person)-[e:knows|:meets|:marries* ALL SHORTEST 1..5]->(b:person) WHERE a.fName='Alice' RETURN b.fName, length(e)
