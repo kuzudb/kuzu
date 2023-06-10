@@ -7,23 +7,13 @@ using ::testing::Test;
 using namespace kuzu::testing;
 using namespace kuzu::common;
 
-class EndToEndEnvironment : public testing::Environment {
-public:
-    virtual void SetUp() {
-        FileUtils::createDirIfNotExists(
-            TestHelper::appendKuzuRootPath(TestHelper::PARQUET_TEMP_DATASET_PATH));
-    }
-    virtual void TearDown() {
-        FileUtils::removeDir(TestHelper::appendKuzuRootPath(TestHelper::PARQUET_TEMP_DATASET_PATH));
-    }
-};
-
 class EndToEndTest : public DBTest {
 public:
     explicit EndToEndTest(TestGroup::DatasetType datasetType, std::string dataset,
         uint64_t bufferPoolSize, std::vector<std::unique_ptr<TestStatement>> testStatements)
         : datasetType{datasetType}, dataset{dataset}, bufferPoolSize{bufferPoolSize},
           testStatements{std::move(testStatements)} {}
+
     void SetUp() override {
         setUpDataset();
         BaseGraphTest::SetUp();
@@ -31,24 +21,39 @@ public:
         createDBAndConn();
         initGraph();
     }
-    void setUpDataset() {
-        if (datasetType == TestGroup::DatasetType::CSV_TO_PARQUET) {
-            CSVToParquetConverter::convertCSVDatasetToParquet(dataset);
-        } else {
-            dataset = TestHelper::appendKuzuRootPath("dataset/" + dataset);
-        }
 
-    void TearDown() override {
-        // FileUtils::removeDir(TestHelper::appendKuzuRootPath(TestHelper::PARQUET_TEMP_DATASET_PATH));
-        FileUtils::removeDir(databasePath);
+    void setUpDataset() {
+
+        uint64_t ms = duration_cast<std::chrono::milliseconds>(
+            std::chrono::system_clock::now().time_since_epoch())
+                          .count();
+
+        parquetDatasetPath = TestHelper::appendKuzuRootPath(
+            TestHelper::PARQUET_TEMP_DATASET_PATH + replaceSlashesWithUnderscores(dataset) + getTestGroupAndName() + std::to_string(ms));
+
+        // TestHelper::PARQUET_TEMP_DATASET_PATH
+        // parquetDatasetPath = replaceSlashesWithUnderscores(dataset);
+
+        dataset = TestHelper::appendKuzuRootPath("dataset/" + dataset);
+        if (datasetType == TestGroup::DatasetType::CSV_TO_PARQUET) {
+            FileUtils::createDirIfNotExists(parquetTempDatasetPath);
+            dataset = CSVToParquetConverter::convertCSVDatasetToParquet(csvDatasetPath, parquetDatasetPath);
+        }
+        
     }
 
-    std::string getInputDir() override { return dataset + "/"; }
+    void TearDown() override {
+        FileUtils::removeDir(databasePath);
+        FileUtils::removeDir(parquetTempDatasetPath);
+    }
+
     void TestBody() override { runTest(testStatements); }
+    std::string getInputDir() override { return dataset + "/"; }
 
 private:
     TestGroup::DatasetType datasetType;
     std::string dataset;
+    std::string parquetTempDatasetPath;
     uint64_t bufferPoolSize;
     std::vector<std::unique_ptr<TestStatement>> testStatements;
 };
@@ -106,7 +111,7 @@ std::string findTestFile(std::string testCase) {
     return "";
 }
 
-void checkCtestParams(int argc, char** argv) {
+void checkGtestParams(int argc, char** argv) {
     if (argc > 1) {
         std::string argument = argv[1];
         if (argument == "--gtest_list_tests") {
@@ -124,9 +129,8 @@ void checkCtestParams(int argc, char** argv) {
 }
 
 int main(int argc, char** argv) {
-    checkCtestParams(argc, argv);
+    checkGtestParams(argc, argv);
     testing::InitGoogleTest(&argc, argv);
-    testing::AddGlobalTestEnvironment(new EndToEndEnvironment);
     if (argc > 1) {
         auto path = TestHelper::appendKuzuRootPath(
             FileUtils::joinPath(TestHelper::E2E_TEST_FILES_DIRECTORY, argv[1]));

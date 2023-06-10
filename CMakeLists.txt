@@ -106,13 +106,19 @@ function(link_threads LIBRARY)
     endif ()
 endfunction()
 
+
+add_test(NAME CleanupTest COMMAND touch /tmp/test/cleanup_everybody)
+add_test(NAME SetupTest COMMAND touch /tmp/test/setup_everybody)
+set_tests_properties(SetupTest PROPERTIES FIXTURES_SETUP TestSuite)
+set_tests_properties(CleanupTest PROPERTIES FIXTURES_CLEANUP TestSuite)
+
 function(add_kuzu_test TEST_NAME)
     set(SRCS ${ARGN})
     add_executable(${TEST_NAME} ${SRCS})
     target_link_libraries(${TEST_NAME} PRIVATE test_helper test_runner graph_test)
     target_include_directories(${TEST_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/test/include)
     include(GoogleTest)
-    gtest_discover_tests(${TEST_NAME})
+    gtest_discover_tests(${TEST_NAME} PROPERTIES FIXTURES_REQUIRED TestSuite)
 endfunction()
 
 add_definitions(-DKUZU_ROOT_DIRECTORY="${PROJECT_SOURCE_DIR}")

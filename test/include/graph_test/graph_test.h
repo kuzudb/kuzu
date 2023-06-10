@@ -27,15 +27,17 @@ public:
     void SetUp() override {
         systemConfig = std::make_unique<main::SystemConfig>(
             common::BufferPoolConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING);
-        if (common::FileUtils::fileOrPathExists(TestHelper::getTmpTestDir())) {
-            common::FileUtils::removeDir(TestHelper::getTmpTestDir());
-        }
         setDatabasePath();
+        if (common::FileUtils::fileOrPathExists(databasePath)) {
+            common::FileUtils::removeDir(databasePath);
+        }
     }
 
     virtual std::string getInputDir() = 0;
 
-    void TearDown() override { common::FileUtils::removeDir(databasePath); }
+    void TearDown() override { 
+        common::FileUtils::removeDir(databasePath); 
+    }
 
     void createDBAndConn();
 
@@ -134,16 +136,21 @@ protected:
     void commitOrRollbackConnectionAndInitDBIfNecessary(
         bool isCommit, TransactionTestType transactionTestType);
 
+    inline std::string getTestGroupAndName() {
+        const ::testing::TestInfo* const testInfo =
+            ::testing::UnitTest::GetInstance()->current_test_info();
+        return std::string(testInfo->test_case_name()) + "." + std::string(testInfo->name());
+    }
+
 private:
     void setDatabasePath() {
         databasePath = TestHelper::getTmpTestDir();
-        uint64_t milliseconds = duration_cast<std::chrono::milliseconds>(
+        uint64_t ms = duration_cast<std::chrono::milliseconds>(
             std::chrono::system_clock::now().time_since_epoch())
-                                    .count();
+                          .count();
         const ::testing::TestInfo* const testInfo =
             ::testing::UnitTest::GetInstance()->current_test_info();
-        databasePath = databasePath + testInfo->test_case_name() + testInfo->name() +
-                       std::to_string(milliseconds);
+        databasePath = databasePath + getTestGroupAndName() + std::to_string(ms);
     }
 
     void validateRelPropertyFiles(catalog::RelTableSchema* relTableSchema,
