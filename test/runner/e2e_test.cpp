@@ -23,23 +23,17 @@ public:
     }
 
     void setUpDataset() {
-
-        uint64_t ms = duration_cast<std::chrono::milliseconds>(
-            std::chrono::system_clock::now().time_since_epoch())
-                          .count();
-
-        parquetDatasetPath = TestHelper::appendKuzuRootPath(
-            TestHelper::PARQUET_TEMP_DATASET_PATH + replaceSlashesWithUnderscores(dataset) + getTestGroupAndName() + std::to_string(ms));
-
-        // TestHelper::PARQUET_TEMP_DATASET_PATH
-        // parquetDatasetPath = replaceSlashesWithUnderscores(dataset);
+        parquetTempDatasetPath = TestHelper::appendKuzuRootPath(
+            TestHelper::PARQUET_TEMP_DATASET_PATH +
+            CSVToParquetConverter::replaceSlashesWithUnderscores(dataset) + getTestGroupAndName() +
+            TestHelper::getMillisecondsSuffix());
 
         dataset = TestHelper::appendKuzuRootPath("dataset/" + dataset);
         if (datasetType == TestGroup::DatasetType::CSV_TO_PARQUET) {
             FileUtils::createDirIfNotExists(parquetTempDatasetPath);
-            dataset = CSVToParquetConverter::convertCSVDatasetToParquet(csvDatasetPath, parquetDatasetPath);
+            dataset =
+                CSVToParquetConverter::convertCSVDatasetToParquet(dataset, parquetTempDatasetPath);
         }
-        
     }
 
     void TearDown() override {

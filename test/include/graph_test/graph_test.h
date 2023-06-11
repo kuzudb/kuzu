@@ -1,6 +1,5 @@
 #pragma once
 
-#include <chrono>
 #include <cstring>
 
 #include "common/file_utils.h"
@@ -35,9 +34,7 @@ public:
 
     virtual std::string getInputDir() = 0;
 
-    void TearDown() override { 
-        common::FileUtils::removeDir(databasePath); 
-    }
+    void TearDown() override { common::FileUtils::removeDir(databasePath); }
 
     void createDBAndConn();
 
@@ -144,13 +141,10 @@ protected:
 
 private:
     void setDatabasePath() {
-        databasePath = TestHelper::getTmpTestDir();
-        uint64_t ms = duration_cast<std::chrono::milliseconds>(
-            std::chrono::system_clock::now().time_since_epoch())
-                          .count();
         const ::testing::TestInfo* const testInfo =
             ::testing::UnitTest::GetInstance()->current_test_info();
-        databasePath = databasePath + getTestGroupAndName() + std::to_string(ms);
+        databasePath = TestHelper::appendKuzuRootPath(
+            TestHelper::TMP_TEST_DIR + getTestGroupAndName() + TestHelper::getMillisecondsSuffix());
     }
 
     void validateRelPropertyFiles(catalog::RelTableSchema* relTableSchema,

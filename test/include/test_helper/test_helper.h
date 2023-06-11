@@ -41,16 +41,11 @@ public:
     static constexpr char SCHEMA_FILE_NAME[] = "schema.cypher";
     static constexpr char COPY_FILE_NAME[] = "copy.cypher";
     static constexpr char PARQUET_TEMP_DATASET_PATH[] = "dataset/parquet_temp";
+    static constexpr char TMP_TEST_DIR[] = "test/unittest_temp";
 
-    static std::string getTmpTestDir() { return appendKuzuRootPath("test/unittest_temp"); }
     static std::string getTestListFile() {
         return appendKuzuRootPath(std::string(E2E_TEST_FILES_DIRECTORY) + "/test_list");
     }
-
-    // FIXME: REMOVE ME
-//    static std::string appendParquetDatasetTempDir(const std::string& dataset) {
-//        return TestHelper::appendKuzuRootPath(TestHelper::PARQUET_TEMP_DATASET_PATH + dataset);
-//    }
 
     static std::string appendKuzuRootPath(const std::string& path) {
         return KUZU_ROOT_DIRECTORY + std::string("/") + path;
@@ -58,6 +53,8 @@ public:
 
     static std::unique_ptr<planner::LogicalPlan> getLogicalPlan(
         const std::string& query, Connection& conn);
+
+    static std::string getMillisecondsSuffix();
 
 private:
     static void initializeConnection(TestQueryConfig* config, Connection& conn);
