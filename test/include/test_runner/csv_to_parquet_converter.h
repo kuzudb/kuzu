@@ -31,8 +31,7 @@ private:
     static void convertCSVFilesToParquet(
         const std::vector<CSVToParquetConverter::CopyCommandInfo>& copyCommands);
 
-    static CopyCommandInfo createCopyCommandInfo(const std::string& csvDatasetPath,
-        const std::string& parquetDatasetPath, std::string copyStatement);
+    static CopyCommandInfo createCopyCommandInfo(const std::string& parquetDatasetPath, std::string copyStatement);
 
     static arrow::Status runCSVToParquetConversion(const std::string& inputFile,
         const std::string& outputFile, char delimiter, bool hasHeader);
@@ -40,7 +39,7 @@ private:
     static void copySchema(
         const std::string& csvDatasetPath, const std::string& parquetDatasetPath);
 
-    static void createCopyFile(const std::string& dataset, const std::string& parquetDatasetPath,
+    static void createCopyFile(const std::string& parquetDatasetPath,
         const std::vector<CSVToParquetConverter::CopyCommandInfo>& copyCommands);
 
     static std::string extractPath(std::string& str, char delimiter);

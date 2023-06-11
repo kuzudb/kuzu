@@ -47,7 +47,7 @@ void CSVToParquetConverter::copySchema(
 }
 
 CSVToParquetConverter::CopyCommandInfo CSVToParquetConverter::createCopyCommandInfo(
-    const std::string& dataset, const std::string& parquetDatasetPath, std::string copyStatement) {
+    const std::string& parquetDatasetPath, std::string copyStatement) {
     auto tokens = StringUtils::split(copyStatement, " ");
     auto path = std::filesystem::path(extractPath(tokens[3], '"'));
     CopyCommandInfo copyCommandInfo;
@@ -74,13 +74,12 @@ CSVToParquetConverter::readCopyCommandsFromCopyCypherFile(
     std::string line;
     std::vector<CopyCommandInfo> copyCommands;
     while (getline(file, line)) {
-        copyCommands.push_back(createCopyCommandInfo(csvDatasetPath, parquetDatasetPath, line));
+        copyCommands.push_back(createCopyCommandInfo(parquetDatasetPath, line));
     }
     return copyCommands;
 }
 
-void CSVToParquetConverter::createCopyFile(const std::string& dataset,
-    const std::string& parquetDatasetPath,
+void CSVToParquetConverter::createCopyFile(const std::string& parquetDatasetPath,
     const std::vector<CSVToParquetConverter::CopyCommandInfo>& copyCommands) {
     auto targetCopyCypherFile = FileUtils::joinPath(parquetDatasetPath, TestHelper::COPY_FILE_NAME);
     std::ofstream outfile(targetCopyCypherFile);
@@ -112,7 +111,7 @@ std::string CSVToParquetConverter::convertCSVDatasetToParquet(
     std::vector<CSVToParquetConverter::CopyCommandInfo> copyCommands =
         readCopyCommandsFromCopyCypherFile(csvDatasetPath, parquetDatasetPath);
     copySchema(csvDatasetPath, parquetDatasetPath);
-    createCopyFile(csvDatasetPath, parquetDatasetPath, copyCommands);
+    createCopyFile(parquetDatasetPath, copyCommands);
     convertCSVFilesToParquet(copyCommands);
     return parquetDatasetPath;
 }
