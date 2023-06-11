@@ -13,7 +13,7 @@
 namespace kuzu {
 namespace processor {
 
-struct BuildDataInfo;
+struct HashJoinBuildInfo;
 struct AggregateInputInfo;
 
 class PlanMapper {
@@ -114,7 +114,7 @@ private:
 
     inline uint32_t getOperatorID() { return physicalOperatorID++; }
 
-    BuildDataInfo generateBuildDataInfo(const planner::Schema& buildSideSchema,
+    std::unique_ptr<HashJoinBuildInfo> createHashBuildInfo(const planner::Schema& buildSideSchema,
         const binder::expression_vector& keys, const binder::expression_vector& payloads);
 
     std::unique_ptr<PhysicalOperator> createHashAggregate(

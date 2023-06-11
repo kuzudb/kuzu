@@ -1,7 +1,6 @@
 add_library(kuzu_processor_operator_intersect
         OBJECT
         intersect.cpp
-        intersect_build.cpp
         intersect_hash_table.cpp)
 
 set(ALL_OBJECT_FILES

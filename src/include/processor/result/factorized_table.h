@@ -5,6 +5,7 @@
 
 #include "common/in_mem_overflow_buffer.h"
 #include "common/vector/value_vector.h"
+#include "processor/data_pos.h"
 #include "processor/result/flat_tuple.h"
 #include "storage/buffer_manager/memory_manager.h"
 #include "storage/storage_structure/disk_overflow_file.h"
@@ -94,7 +95,7 @@ private:
 
 class ColumnSchema {
 public:
-    ColumnSchema(bool isUnflat, uint32_t dataChunksPos, uint32_t numBytes)
+    ColumnSchema(bool isUnflat, data_chunk_pos_t dataChunksPos, uint32_t numBytes)
         : isUnflat{isUnflat}, dataChunkPos{dataChunksPos}, numBytes{numBytes}, mayContainNulls{
                                                                                    false} {}
 
@@ -102,7 +103,7 @@ public:
 
     inline bool isFlat() const { return !isUnflat; }
 
-    inline uint32_t getDataChunkPos() const { return dataChunkPos; }
+    inline data_chunk_pos_t getDataChunkPos() const { return dataChunkPos; }
 
     inline uint32_t getNumBytes() const { return numBytes; }
 
@@ -119,7 +120,7 @@ public:
 private:
     // We need isUnflat, dataChunkPos to know the factorization structure in the factorizedTable.
     bool isUnflat;
-    uint32_t dataChunkPos;
+    data_chunk_pos_t dataChunkPos;
     uint32_t numBytes;
     bool mayContainNulls;
 };

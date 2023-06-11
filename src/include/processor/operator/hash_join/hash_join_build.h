@@ -10,6 +10,8 @@
 namespace kuzu {
 namespace processor {
 
+class HashJoinBuild;
+
 // This is a shared state between HashJoinBuild and HashJoinProbe operators.
 // Each clone of these two operators will share the same state.
 // Inside the state, we keep the materialized tuples in factorizedTable, which are merged by each
@@ -18,12 +20,10 @@ namespace processor {
 // task/pipeline, and probed by the HashJoinProbe operators.
 class HashJoinSharedState {
 public:
-    HashJoinSharedState() = default;
+    explicit HashJoinSharedState(std::unique_ptr<JoinHashTable> hashTable)
+        : hashTable{std::move(hashTable)} {};
 
     virtual ~HashJoinSharedState() = default;
-
-    virtual void initEmptyHashTable(storage::MemoryManager& memoryManager, uint64_t numKeyColumns,
-        std::unique_ptr<FactorizedTableSchema> tableSchema);
 
     void mergeLocalHashTable(JoinHashTable& localHashTable);
 
@@ -34,42 +34,45 @@ protected:
     std::unique_ptr<JoinHashTable> hashTable;
 };
 
-struct BuildDataInfo {
-public:
-    BuildDataInfo(std::vector<std::pair<DataPos, common::LogicalType>> keysPosAndType,
-        std::vector<std::pair<DataPos, common::LogicalType>> payloadsPosAndType,
-        std::vector<bool> isPayloadsFlat, std::vector<bool> isPayloadsInKeyChunk)
-        : keysPosAndType{std::move(keysPosAndType)}, payloadsPosAndType{std::move(
-                                                         payloadsPosAndType)},
-          isPayloadsFlat{std::move(isPayloadsFlat)}, isPayloadsInKeyChunk{
-                                                         std::move(isPayloadsInKeyChunk)} {}
-
-    BuildDataInfo(const BuildDataInfo& other)
-        : BuildDataInfo{other.keysPosAndType, other.payloadsPosAndType, other.isPayloadsFlat,
-              other.isPayloadsInKeyChunk} {}
-
-    inline uint32_t getNumKeys() const { return keysPosAndType.size(); }
+class HashJoinBuildInfo {
+    friend class HashJoinBuild;
 
 public:
-    std::vector<std::pair<DataPos, common::LogicalType>> keysPosAndType;
-    std::vector<std::pair<DataPos, common::LogicalType>> payloadsPosAndType;
-    std::vector<bool> isPayloadsFlat;
-    std::vector<bool> isPayloadsInKeyChunk;
+    HashJoinBuildInfo(std::vector<DataPos> keysPos, std::vector<DataPos> payloadsPos,
+        std::unique_ptr<FactorizedTableSchema> tableSchema)
+        : keysPos{std::move(keysPos)}, payloadsPos{std::move(payloadsPos)}, tableSchema{std::move(
+                                                                                tableSchema)} {}
+    HashJoinBuildInfo(const HashJoinBuildInfo& other)
+        : keysPos{other.keysPos}, payloadsPos{other.payloadsPos}, tableSchema{
+                                                                      other.tableSchema->copy()} {}
+
+    inline uint32_t getNumKeys() const { return keysPos.size(); }
+
+    inline FactorizedTableSchema* getTableSchema() const { return tableSchema.get(); }
+
+    inline std::unique_ptr<HashJoinBuildInfo> copy() const {
+        return std::make_unique<HashJoinBuildInfo>(*this);
+    }
+
+private:
+    std::vector<DataPos> keysPos;
+    std::vector<DataPos> payloadsPos;
+    std::unique_ptr<FactorizedTableSchema> tableSchema;
 };
 
 class HashJoinBuild : public Sink {
 public:
     HashJoinBuild(std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
-        std::shared_ptr<HashJoinSharedState> sharedState, const BuildDataInfo& buildDataInfo,
+        std::shared_ptr<HashJoinSharedState> sharedState, std::unique_ptr<HashJoinBuildInfo> info,
         std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
         : HashJoinBuild{std::move(resultSetDescriptor), PhysicalOperatorType::HASH_JOIN_BUILD,
-              std::move(sharedState), buildDataInfo, std::move(child), id, paramsString} {}
+              std::move(sharedState), std::move(info), std::move(child), id, paramsString} {}
     HashJoinBuild(std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
         PhysicalOperatorType operatorType, std::shared_ptr<HashJoinSharedState> sharedState,
-        const BuildDataInfo& buildDataInfo, std::unique_ptr<PhysicalOperator> child, uint32_t id,
-        const std::string& paramsString)
+        std::unique_ptr<HashJoinBuildInfo> info, std::unique_ptr<PhysicalOperator> child,
+        uint32_t id, const std::string& paramsString)
         : Sink{std::move(resultSetDescriptor), operatorType, std::move(child), id, paramsString},
-          sharedState{std::move(sharedState)}, buildDataInfo{buildDataInfo} {}
+          sharedState{std::move(sharedState)}, info{std::move(info)} {}
     ~HashJoinBuild() override = default;
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
@@ -78,24 +81,21 @@ public:
     void finalize(ExecutionContext* context) override;
 
     inline std::unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<HashJoinBuild>(resultSetDescriptor->copy(), sharedState, buildDataInfo,
+        return make_unique<HashJoinBuild>(resultSetDescriptor->copy(), sharedState, info->copy(),
             children[0]->clone(), id, paramsString);
     }
 
 protected:
-    // TODO(Guodong/Xiyang): construct schema in mapper.
-    std::unique_ptr<FactorizedTableSchema> populateTableSchema();
-    void initGlobalStateInternal(ExecutionContext* context) override;
-
-    virtual void initLocalHashTable(
-        storage::MemoryManager& memoryManager, std::unique_ptr<FactorizedTableSchema> tableSchema);
-    inline void appendVectors() { hashTable->append(vectorsToAppend); }
+    virtual void initLocalHashTable(storage::MemoryManager& memoryManager) {
+        hashTable = std::make_unique<JoinHashTable>(
+            memoryManager, info->getNumKeys(), info->tableSchema->copy());
+    }
 
 protected:
     std::shared_ptr<HashJoinSharedState> sharedState;
-    BuildDataInfo buildDataInfo;
+    std::unique_ptr<HashJoinBuildInfo> info;
     std::vector<common::ValueVector*> vectorsToAppend;
-    std::unique_ptr<JoinHashTable> hashTable;
+    std::unique_ptr<JoinHashTable> hashTable; // local state
 };
 
 } // namespace processor

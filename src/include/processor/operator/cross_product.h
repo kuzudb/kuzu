@@ -25,40 +25,53 @@ private:
     uint64_t startIdx = 0u;
 };
 
+class CrossProductInfo {
+    friend class CrossProduct;
+
+public:
+    CrossProductInfo(std::vector<DataPos> outVecPos, std::vector<ft_col_idx_t> colIndicesToScan)
+        : outVecPos{std::move(outVecPos)}, colIndicesToScan{std::move(colIndicesToScan)} {}
+    CrossProductInfo(const CrossProductInfo& other)
+        : outVecPos{other.outVecPos}, colIndicesToScan{other.colIndicesToScan} {}
+
+    inline std::unique_ptr<CrossProductInfo> copy() const {
+        return std::make_unique<CrossProductInfo>(*this);
+    }
+
+private:
+    std::vector<DataPos> outVecPos;
+    std::vector<ft_col_idx_t> colIndicesToScan;
+};
+
 class CrossProduct : public PhysicalOperator {
 public:
-    CrossProduct(std::vector<DataPos> outVecPos, std::vector<uint32_t> colIndicesToScan,
+    CrossProduct(std::unique_ptr<CrossProductInfo> info,
         std::unique_ptr<CrossProductLocalState> localState,
         std::unique_ptr<PhysicalOperator> probeChild, std::unique_ptr<PhysicalOperator> buildChild,
         uint32_t id, const std::string& paramsString)
         : PhysicalOperator{PhysicalOperatorType::CROSS_PRODUCT, std::move(probeChild),
               std::move(buildChild), id, paramsString},
-          outVecPos{std::move(outVecPos)}, colIndicesToScan{std::move(colIndicesToScan)},
-          localState{std::move(localState)} {}
+          info{std::move(info)}, localState{std::move(localState)} {}
 
     // Clone only.
-    CrossProduct(std::vector<DataPos> outVecPos, std::vector<uint32_t> colIndicesToScan,
+    CrossProduct(std::unique_ptr<CrossProductInfo> info,
         std::unique_ptr<CrossProductLocalState> localState, std::unique_ptr<PhysicalOperator> child,
         uint32_t id, const std::string& paramsString)
         : PhysicalOperator{PhysicalOperatorType::CROSS_PRODUCT, std::move(child), id, paramsString},
-          outVecPos{std::move(outVecPos)}, colIndicesToScan{std::move(colIndicesToScan)},
-          localState{std::move(localState)} {}
+          info{std::move(info)}, localState{std::move(localState)} {}
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
     std::unique_ptr<PhysicalOperator> clone() override {
-        return std::make_unique<CrossProduct>(outVecPos, colIndicesToScan, localState->copy(),
-            children[0]->clone(), id, paramsString);
+        return std::make_unique<CrossProduct>(
+            info->copy(), localState->copy(), children[0]->clone(), id, paramsString);
     }
 
 private:
-    std::vector<DataPos> outVecPos;
-    std::vector<uint32_t> colIndicesToScan;
-
+    std::unique_ptr<CrossProductInfo> info;
     std::unique_ptr<CrossProductLocalState> localState;
-
     std::vector<common::ValueVector*> vectorsToScan;
 };
 

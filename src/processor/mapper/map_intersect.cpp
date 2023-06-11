@@ -21,27 +21,25 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalIntersectToPhysical(
     for (auto i = 1u; i < logicalIntersect->getNumChildren(); i++) {
         auto keyNodeID = logicalIntersect->getKeyNodeID(i - 1);
         auto buildSchema = logicalIntersect->getChild(i)->getSchema();
-        auto buildSidePrevOperator = mapLogicalOperatorToPhysical(logicalIntersect->getChild(i));
-        std::vector<DataPos> payloadsDataPos;
-        binder::expression_vector expressionsToMaterialize;
-        expressionsToMaterialize.push_back(keyNodeID);
-        expressionsToMaterialize.push_back(intersectNodeID);
-        for (auto& expression : buildSchema->getExpressionsInScope()) {
-            if (expression->getUniqueName() == keyNodeID->getUniqueName() ||
-                expression->getUniqueName() == intersectNodeID->getUniqueName()) {
-                continue;
-            }
-            expressionsToMaterialize.push_back(expression);
-            payloadsDataPos.emplace_back(outSchema->getExpressionPos(*expression));
-        }
-        auto buildDataInfo =
-            generateBuildDataInfo(*buildSchema, {keyNodeID}, expressionsToMaterialize);
-        auto sharedState = std::make_shared<IntersectSharedState>();
+        auto buildPrevOperator = mapLogicalOperatorToPhysical(logicalIntersect->getChild(i));
+        auto payloadExpressions = binder::ExpressionUtil::excludeExpressions(
+            buildSchema->getExpressionsInScope(), {keyNodeID});
+        auto buildInfo = createHashBuildInfo(*buildSchema, {keyNodeID}, payloadExpressions);
+        auto globalHashTable = std::make_unique<IntersectHashTable>(
+            *memoryManager, buildInfo->getTableSchema()->copy());
+        auto sharedState = std::make_shared<IntersectSharedState>(std::move(globalHashTable));
         sharedStates.push_back(sharedState);
         children[i] = make_unique<IntersectBuild>(
-            std::make_unique<ResultSetDescriptor>(buildSchema), sharedState, buildDataInfo,
-            std::move(buildSidePrevOperator), getOperatorID(), keyNodeID->toString());
-        IntersectDataInfo info{DataPos(outSchema->getExpressionPos(*keyNodeID)), payloadsDataPos};
+            std::make_unique<ResultSetDescriptor>(buildSchema), sharedState, std::move(buildInfo),
+            std::move(buildPrevOperator), getOperatorID(), keyNodeID->toString());
+        // Collect intersect info
+        std::vector<DataPos> vectorsToScanPos;
+        auto expressionsToScan = binder::ExpressionUtil::excludeExpressions(
+            buildSchema->getExpressionsInScope(), {keyNodeID, intersectNodeID});
+        for (auto& expression : expressionsToScan) {
+            vectorsToScanPos.emplace_back(outSchema->getExpressionPos(*expression));
+        }
+        IntersectDataInfo info{DataPos(outSchema->getExpressionPos(*keyNodeID)), vectorsToScanPos};
         intersectDataInfos.push_back(info);
     }
     // Map probe side child.
