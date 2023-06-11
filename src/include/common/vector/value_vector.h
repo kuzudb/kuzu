@@ -49,7 +49,7 @@ public:
     inline uint32_t getNumBytesPerValue() const { return numBytesPerValue; }
 
     template<typename T>
-    inline T getValue(uint32_t pos) const {
+    inline T& getValue(uint32_t pos) const {
         return ((T*)valueBuffer.get())[pos];
     }
     template<typename T>
@@ -91,8 +91,7 @@ public:
             ->getOverflowBuffer();
     }
 
-    static inline void addString(
-        common::ValueVector* vector, uint32_t pos, char* value, uint64_t len) {
+    static inline void addString(ValueVector* vector, uint32_t pos, char* value, uint64_t len) {
         assert(vector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
         reinterpret_cast<StringAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())
             ->addString(vector, pos, value, len);
@@ -111,8 +110,8 @@ public:
         auto dataVector = getDataVector(vector);
         return dataVector->getData() + dataVector->getNumBytesPerValue() * listEntry.offset;
     }
-    static inline uint8_t* getListValuesWithOffset(const ValueVector* vector,
-        const list_entry_t& listEntry, common::offset_t elementOffsetInList) {
+    static inline uint8_t* getListValuesWithOffset(
+        const ValueVector* vector, const list_entry_t& listEntry, offset_t elementOffsetInList) {
         assert(vector->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST);
         return getListValues(vector, listEntry) +
                elementOffsetInList * getDataVector(vector)->getNumBytesPerValue();
@@ -132,7 +131,7 @@ public:
             ->getChildrenVectors();
     }
 
-    static inline std::shared_ptr<ValueVector> getChildVector(
+    static inline std::shared_ptr<ValueVector> getFieldVector(
         const ValueVector* vector, vector_idx_t idx) {
         return reinterpret_cast<StructAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())
             ->getChildrenVectors()[idx];
@@ -158,8 +157,7 @@ public:
         return reinterpret_cast<ArrowColumnAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())->column;
     }
 
-    static void setArrowColumn(
-        kuzu::common::ValueVector* vector, std::shared_ptr<arrow::Array> column);
+    static void setArrowColumn(ValueVector* vector, std::shared_ptr<arrow::Array> column);
 };
 
 class NodeIDVector {
@@ -167,6 +165,29 @@ public:
     // If there is still non-null values after discarding, return true. Otherwise, return false.
     // For an unflat vector, its selection vector is also updated to the resultSelVector.
     static bool discardNull(ValueVector& vector);
+};
+
+class MapVector {
+public:
+    static inline ValueVector* getKeyVector(const ValueVector* vector) {
+        return StructVector::getFieldVector(ListVector::getDataVector(vector), 0 /* keyVectorPos */)
+            .get();
+    }
+
+    static inline ValueVector* getValueVector(const ValueVector* vector) {
+        return StructVector::getFieldVector(ListVector::getDataVector(vector), 1 /* valVectorPos */)
+            .get();
+    }
+
+    static inline uint8_t* getMapKeys(const ValueVector* vector, const list_entry_t& listEntry) {
+        auto keyVector = getKeyVector(vector);
+        return keyVector->getData() + keyVector->getNumBytesPerValue() * listEntry.offset;
+    }
+
+    static inline uint8_t* getMapValues(const ValueVector* vector, const list_entry_t& listEntry) {
+        auto valueVector = getValueVector(vector);
+        return valueVector->getData() + valueVector->getNumBytesPerValue() * listEntry.offset;
+    }
 };
 
 } // namespace common

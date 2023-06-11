@@ -72,5 +72,9 @@ template<>
 bool TypeUtils::isValueEqual(
     list_entry_t& left, list_entry_t& right, void* leftVector, void* rightVector);
 
+template<>
+bool TypeUtils::isValueEqual(
+    struct_entry_t& left, struct_entry_t& right, void* leftVector, void* rightVector);
+
 } // namespace common
 } // namespace kuzu

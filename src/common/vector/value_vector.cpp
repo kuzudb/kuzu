@@ -74,11 +74,11 @@ void ValueVector::resetAuxiliaryBuffer() {
 uint32_t ValueVector::getDataTypeSize(const LogicalType& type) {
     switch (type.getPhysicalType()) {
     case PhysicalTypeID::STRING: {
-        return sizeof(common::ku_string_t);
+        return sizeof(ku_string_t);
     }
     case PhysicalTypeID::FIXED_LIST: {
-        return getDataTypeSize(*common::FixedListType::getChildType(&type)) *
-               common::FixedListType::getNumElementsInList(&type);
+        return getDataTypeSize(*FixedListType::getChildType(&type)) *
+               FixedListType::getNumElementsInList(&type);
     }
     case PhysicalTypeID::STRUCT: {
         return sizeof(struct_entry_t);
@@ -104,8 +104,7 @@ void ValueVector::initializeValueBuffer() {
     }
 }
 
-void ArrowColumnVector::setArrowColumn(
-    kuzu::common::ValueVector* vector, std::shared_ptr<arrow::Array> column) {
+void ArrowColumnVector::setArrowColumn(ValueVector* vector, std::shared_ptr<arrow::Array> column) {
     auto arrowColumnBuffer =
         reinterpret_cast<ArrowColumnAuxiliaryBuffer*>(vector->auxiliaryBuffer.get());
     arrowColumnBuffer->column = std::move(column);

@@ -487,7 +487,13 @@ void BuiltInVectorOperations::registerStructOperations() {
 }
 
 void BuiltInVectorOperations::registerMapOperations() {
-    vectorOperations.insert({MAP_CREATION_FUNC_NAME, MapVectorOperations::getDefinitions()});
+    vectorOperations.insert(
+        {MAP_CREATION_FUNC_NAME, MapCreationVectorOperations::getDefinitions()});
+    vectorOperations.insert({MAP_EXTRACT_FUNC_NAME, MapExtractVectorOperations::getDefinitions()});
+    vectorOperations.insert({ELEMENT_AT_FUNC_NAME, MapExtractVectorOperations::getDefinitions()});
+    vectorOperations.insert({CARDINALITY_FUNC_NAME, ListLenVectorOperation::getDefinitions()});
+    vectorOperations.insert({MAP_KEYS_FUNC_NAME, MapKeysVectorOperations::getDefinitions()});
+    vectorOperations.insert({MAP_VALUES_FUNC_NAME, MapValuesVectorOperations::getDefinitions()});
 }
 
 } // namespace function

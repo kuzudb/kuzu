@@ -103,6 +103,9 @@ vector_operation_definitions ListLenVectorOperation::getDefinitions() {
     result.push_back(std::make_unique<VectorOperationDefinition>(LIST_LEN_FUNC_NAME,
         std::vector<LogicalTypeID>{LogicalTypeID::VAR_LIST}, LogicalTypeID::INT64, execFunc,
         true /* isVarlength*/));
+    result.push_back(std::make_unique<VectorOperationDefinition>(CARDINALITY_FUNC_NAME,
+        std::vector<LogicalTypeID>{LogicalTypeID::MAP}, LogicalTypeID::INT64, execFunc,
+        true /* isVarlength*/));
     return result;
 }
 
@@ -110,53 +113,48 @@ std::unique_ptr<FunctionBindData> ListExtractVectorOperation::bindFunc(
     const binder::expression_vector& arguments, FunctionDefinition* definition) {
     auto resultType = VarListType::getChildType(&arguments[0]->dataType);
     auto vectorOperationDefinition = reinterpret_cast<VectorOperationDefinition*>(definition);
-    switch (resultType->getLogicalTypeID()) {
-    case LogicalTypeID::BOOL: {
+    switch (resultType->getPhysicalType()) {
+    case PhysicalTypeID::BOOL: {
         vectorOperationDefinition->execFunc =
             BinaryListExecFunction<common::list_entry_t, int64_t, uint8_t, operation::ListExtract>;
     } break;
-    case LogicalTypeID::SERIAL:
-    case LogicalTypeID::INT64: {
+    case PhysicalTypeID::INT64: {
         vectorOperationDefinition->execFunc =
             BinaryListExecFunction<common::list_entry_t, int64_t, int64_t, operation::ListExtract>;
     } break;
-    case LogicalTypeID::INT32: {
+    case PhysicalTypeID::INT32: {
         vectorOperationDefinition->execFunc =
             BinaryListExecFunction<common::list_entry_t, int64_t, int32_t, operation::ListExtract>;
     } break;
-    case LogicalTypeID::INT16: {
+    case PhysicalTypeID::INT16: {
         vectorOperationDefinition->execFunc =
             BinaryListExecFunction<common::list_entry_t, int64_t, int16_t, operation::ListExtract>;
     } break;
-    case LogicalTypeID::DOUBLE: {
+    case PhysicalTypeID::DOUBLE: {
         vectorOperationDefinition->execFunc =
             BinaryListExecFunction<common::list_entry_t, int64_t, double_t, operation::ListExtract>;
     } break;
-    case LogicalTypeID::FLOAT: {
+    case PhysicalTypeID::FLOAT: {
         vectorOperationDefinition->execFunc =
             BinaryListExecFunction<common::list_entry_t, int64_t, float_t, operation::ListExtract>;
     } break;
-    case LogicalTypeID::DATE: {
-        vectorOperationDefinition->execFunc =
-            BinaryListExecFunction<common::list_entry_t, int64_t, date_t, operation::ListExtract>;
-    } break;
-    case LogicalTypeID::TIMESTAMP: {
-        vectorOperationDefinition->execFunc = BinaryListExecFunction<common::list_entry_t, int64_t,
-            timestamp_t, operation::ListExtract>;
-    } break;
-    case LogicalTypeID::INTERVAL: {
+    case PhysicalTypeID::INTERVAL: {
         vectorOperationDefinition->execFunc = BinaryListExecFunction<common::list_entry_t, int64_t,
             interval_t, operation::ListExtract>;
     } break;
-    case LogicalTypeID::STRING: {
+    case PhysicalTypeID::STRING: {
         vectorOperationDefinition->execFunc = BinaryListExecFunction<common::list_entry_t, int64_t,
             ku_string_t, operation::ListExtract>;
     } break;
-    case LogicalTypeID::VAR_LIST: {
+    case PhysicalTypeID::VAR_LIST: {
         vectorOperationDefinition->execFunc = BinaryListExecFunction<common::list_entry_t, int64_t,
             list_entry_t, operation::ListExtract>;
     } break;
-    case LogicalTypeID::INTERNAL_ID: {
+    case PhysicalTypeID::STRUCT: {
+        vectorOperationDefinition->execFunc = BinaryListExecFunction<common::list_entry_t, int64_t,
+            struct_entry_t, operation::ListExtract>;
+    } break;
+    case PhysicalTypeID::INTERNAL_ID: {
         vectorOperationDefinition->execFunc = BinaryListExecFunction<common::list_entry_t, int64_t,
             internalID_t, operation::ListExtract>;
     } break;
@@ -207,60 +205,8 @@ std::unique_ptr<FunctionBindData> ListAppendVectorOperation::bindFunc(
     }
     auto resultType = arguments[0]->getDataType();
     auto vectorOperationDefinition = reinterpret_cast<VectorOperationDefinition*>(definition);
-    switch (arguments[1]->getDataType().getLogicalTypeID()) {
-    case LogicalTypeID::SERIAL:
-    case LogicalTypeID::INT64: {
-        vectorOperationDefinition->execFunc =
-            BinaryListExecFunction<list_entry_t, int64_t, list_entry_t, operation::ListAppend>;
-    } break;
-    case LogicalTypeID::INT32: {
-        vectorOperationDefinition->execFunc =
-            BinaryListExecFunction<list_entry_t, int32_t, list_entry_t, operation::ListAppend>;
-    } break;
-    case LogicalTypeID::INT16: {
-        vectorOperationDefinition->execFunc =
-            BinaryListExecFunction<list_entry_t, int16_t, list_entry_t, operation::ListAppend>;
-    } break;
-    case LogicalTypeID::DOUBLE: {
-        vectorOperationDefinition->execFunc =
-            BinaryListExecFunction<list_entry_t, double_t, list_entry_t, operation::ListAppend>;
-    } break;
-    case LogicalTypeID::FLOAT: {
-        vectorOperationDefinition->execFunc =
-            BinaryListExecFunction<list_entry_t, float_t, list_entry_t, operation::ListAppend>;
-    } break;
-    case LogicalTypeID::BOOL: {
-        vectorOperationDefinition->execFunc =
-            BinaryListExecFunction<list_entry_t, uint8_t, list_entry_t, operation::ListAppend>;
-    } break;
-    case LogicalTypeID::STRING: {
-        vectorOperationDefinition->execFunc =
-            BinaryListExecFunction<list_entry_t, ku_string_t, list_entry_t, operation::ListAppend>;
-    } break;
-    case LogicalTypeID::DATE: {
-        vectorOperationDefinition->execFunc =
-            BinaryListExecFunction<list_entry_t, date_t, list_entry_t, operation::ListAppend>;
-    } break;
-    case LogicalTypeID::TIMESTAMP: {
-        vectorOperationDefinition->execFunc =
-            BinaryListExecFunction<list_entry_t, timestamp_t, list_entry_t, operation::ListAppend>;
-    } break;
-    case LogicalTypeID::INTERVAL: {
-        vectorOperationDefinition->execFunc =
-            BinaryListExecFunction<list_entry_t, interval_t, list_entry_t, operation::ListAppend>;
-    } break;
-    case LogicalTypeID::VAR_LIST: {
-        vectorOperationDefinition->execFunc =
-            BinaryListExecFunction<list_entry_t, ku_list_t, list_entry_t, operation::ListAppend>;
-    } break;
-    case LogicalTypeID::INTERNAL_ID: {
-        vectorOperationDefinition->execFunc = BinaryListExecFunction<list_entry_t,
-            common::internalID_t, list_entry_t, operation::ListAppend>;
-    } break;
-    default: {
-        throw common::NotImplementedException("ListAppendVectorOperation::bindFunc");
-    }
-    }
+    vectorOperationDefinition->execFunc =
+        getBinaryListExecFunc<operation::ListAppend, list_entry_t>(arguments[1]->getDataType());
     return std::make_unique<FunctionBindData>(resultType);
 }
 
@@ -280,53 +226,44 @@ std::unique_ptr<FunctionBindData> ListPrependVectorOperation::bindFunc(
     }
     auto resultType = arguments[1]->getDataType();
     auto vectorOperationDefinition = reinterpret_cast<VectorOperationDefinition*>(definition);
-    switch (arguments[0]->getDataType().getLogicalTypeID()) {
-    case LogicalTypeID::SERIAL:
-    case LogicalTypeID::INT64: {
+    switch (arguments[0]->getDataType().getPhysicalType()) {
+    case PhysicalTypeID::INT64: {
         vectorOperationDefinition->execFunc =
             BinaryListExecFunction<int64_t, list_entry_t, list_entry_t, operation::ListPrepend>;
     } break;
-    case LogicalTypeID::INT32: {
+    case PhysicalTypeID::INT32: {
         vectorOperationDefinition->execFunc =
             BinaryListExecFunction<int32_t, list_entry_t, list_entry_t, operation::ListPrepend>;
     } break;
-    case LogicalTypeID::INT16: {
+    case PhysicalTypeID::INT16: {
         vectorOperationDefinition->execFunc =
             BinaryListExecFunction<int16_t, list_entry_t, list_entry_t, operation::ListPrepend>;
     } break;
-    case LogicalTypeID::DOUBLE: {
+    case PhysicalTypeID::DOUBLE: {
         vectorOperationDefinition->execFunc =
             BinaryListExecFunction<double_t, list_entry_t, list_entry_t, operation::ListPrepend>;
     } break;
-    case LogicalTypeID::FLOAT: {
+    case PhysicalTypeID::FLOAT: {
         vectorOperationDefinition->execFunc =
             BinaryListExecFunction<float_t, list_entry_t, list_entry_t, operation::ListPrepend>;
     } break;
-    case LogicalTypeID::BOOL: {
+    case PhysicalTypeID::BOOL: {
         vectorOperationDefinition->execFunc =
             BinaryListExecFunction<uint8_t, list_entry_t, list_entry_t, operation::ListPrepend>;
     } break;
-    case LogicalTypeID::STRING: {
+    case PhysicalTypeID::STRING: {
         vectorOperationDefinition->execFunc =
             BinaryListExecFunction<ku_string_t, list_entry_t, list_entry_t, operation::ListPrepend>;
     } break;
-    case LogicalTypeID::DATE: {
-        vectorOperationDefinition->execFunc =
-            BinaryListExecFunction<date_t, list_entry_t, list_entry_t, operation::ListPrepend>;
-    } break;
-    case LogicalTypeID::TIMESTAMP: {
-        vectorOperationDefinition->execFunc =
-            BinaryListExecFunction<timestamp_t, list_entry_t, list_entry_t, operation::ListPrepend>;
-    } break;
-    case LogicalTypeID::INTERVAL: {
+    case PhysicalTypeID::INTERVAL: {
         vectorOperationDefinition->execFunc =
             BinaryListExecFunction<interval_t, list_entry_t, list_entry_t, operation::ListPrepend>;
     } break;
-    case LogicalTypeID::VAR_LIST: {
+    case PhysicalTypeID::VAR_LIST: {
         vectorOperationDefinition->execFunc = BinaryListExecFunction<list_entry_t, list_entry_t,
             list_entry_t, operation::ListPrepend>;
     } break;
-    case LogicalTypeID::INTERNAL_ID: {
+    case PhysicalTypeID::INTERNAL_ID: {
         vectorOperationDefinition->execFunc = BinaryListExecFunction<internalID_t, list_entry_t,
             list_entry_t, operation::ListPrepend>;
     } break;
@@ -346,13 +283,35 @@ vector_operation_definitions ListPrependVectorOperation::getDefinitions() {
 }
 
 vector_operation_definitions ListPositionVectorOperation::getDefinitions() {
-    return getBinaryListOperationDefinitions<operation::ListPosition, int64_t>(
-        LIST_POSITION_FUNC_NAME, LogicalTypeID::INT64);
+    vector_operation_definitions result;
+    result.push_back(std::make_unique<VectorOperationDefinition>(LIST_POSITION_FUNC_NAME,
+        std::vector<LogicalTypeID>{LogicalTypeID::VAR_LIST, LogicalTypeID::ANY},
+        LogicalTypeID::INT64, nullptr, nullptr, bindFunc, false /* isVarlength */));
+    return result;
+}
+
+std::unique_ptr<FunctionBindData> ListPositionVectorOperation::bindFunc(
+    const binder::expression_vector& arguments, FunctionDefinition* definition) {
+    auto vectorOperationDefinition = reinterpret_cast<VectorOperationDefinition*>(definition);
+    vectorOperationDefinition->execFunc =
+        getBinaryListExecFunc<operation::ListPosition, int64_t>(arguments[1]->getDataType());
+    return std::make_unique<FunctionBindData>(LogicalType{common::LogicalTypeID::INT64});
 }
 
 vector_operation_definitions ListContainsVectorOperation::getDefinitions() {
-    return getBinaryListOperationDefinitions<operation::ListContains, uint8_t>(
-        LIST_CONTAINS_FUNC_NAME, LogicalTypeID::BOOL);
+    vector_operation_definitions result;
+    result.push_back(std::make_unique<VectorOperationDefinition>(LIST_CONTAINS_FUNC_NAME,
+        std::vector<LogicalTypeID>{LogicalTypeID::VAR_LIST, LogicalTypeID::ANY},
+        LogicalTypeID::BOOL, nullptr, nullptr, bindFunc, false /* isVarlength */));
+    return result;
+}
+
+std::unique_ptr<FunctionBindData> ListContainsVectorOperation::bindFunc(
+    const binder::expression_vector& arguments, FunctionDefinition* definition) {
+    auto vectorOperationDefinition = reinterpret_cast<VectorOperationDefinition*>(definition);
+    vectorOperationDefinition->execFunc =
+        getBinaryListExecFunc<operation::ListContains, uint8_t>(arguments[1]->getDataType());
+    return std::make_unique<FunctionBindData>(LogicalType{common::LogicalTypeID::BOOL});
 }
 
 vector_operation_definitions ListSliceVectorOperation::getDefinitions() {

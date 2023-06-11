@@ -224,14 +224,26 @@ std::unique_ptr<parquet::arrow::FileReader> TableCopyUtils::createParquetReader(
 std::vector<std::pair<int64_t, int64_t>> TableCopyUtils::getListElementPos(
     const std::string& l, int64_t from, int64_t to, const CopyDescription& copyDescription) {
     std::vector<std::pair<int64_t, int64_t>> split;
-    int bracket = 0;
+    auto numListBeginChars = 0u;
+    auto numStructBeginChars = 0u;
+    auto numDoubleQuotes = 0u;
+    auto numSingleQuotes = 0u;
     int64_t last = from;
     for (int64_t i = from; i <= to; i++) {
         if (l[i] == copyDescription.csvReaderConfig->listBeginChar) {
-            bracket += 1;
+            numListBeginChars++;
         } else if (l[i] == copyDescription.csvReaderConfig->listEndChar) {
-            bracket -= 1;
-        } else if (bracket == 0 && l[i] == copyDescription.csvReaderConfig->delimiter) {
+            numListBeginChars--;
+        } else if (l[i] == '{') {
+            numStructBeginChars++;
+        } else if (l[i] == '}') {
+            numStructBeginChars--;
+        } else if (l[i] == '\'') {
+            numSingleQuotes ^= 1;
+        } else if (l[i] == '"') {
+            numDoubleQuotes ^= 1;
+        } else if (numListBeginChars == 0 && numStructBeginChars == 0 && numDoubleQuotes == 0 &&
+                   numSingleQuotes == 0 && l[i] == copyDescription.csvReaderConfig->delimiter) {
             split.emplace_back(last, i - last);
             last = i + 1;
         }

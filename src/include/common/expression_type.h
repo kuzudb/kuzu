@@ -68,6 +68,11 @@ const std::string STRUCT_EXTRACT_FUNC_NAME = "STRUCT_EXTRACT";
 
 // map
 const std::string MAP_CREATION_FUNC_NAME = "MAP";
+const std::string MAP_EXTRACT_FUNC_NAME = "MAP_EXTRACT";
+const std::string ELEMENT_AT_FUNC_NAME = "ELEMENT_AT"; // alias of MAP_EXTRACT
+const std::string CARDINALITY_FUNC_NAME = "CARDINALITY";
+const std::string MAP_KEYS_FUNC_NAME = "MAP_KEYS";
+const std::string MAP_VALUES_FUNC_NAME = "MAP_VALUES";
 
 // comparison
 const std::string EQUALS_FUNC_NAME = "EQUALS";

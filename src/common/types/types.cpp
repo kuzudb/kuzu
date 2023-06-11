@@ -64,7 +64,7 @@ StructField::StructField(std::string name, std::unique_ptr<LogicalType> type)
 }
 
 bool StructField::operator==(const kuzu::common::StructField& other) const {
-    return name == other.name && *type == *other.type;
+    return *type == *other.type;
 }
 
 std::unique_ptr<StructField> StructField::copy() const {
