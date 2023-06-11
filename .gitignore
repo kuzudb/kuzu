@@ -16,7 +16,8 @@ __pycache__/
 *.py[cod]
 *$py.class
 cmake-build-debug/
-test/unittest_temp/
+test/unittest_temp_*
+dataset/parquet_temp_*
 tools/python_api/test/test_PYTHON_CSV.csv
 
 # antlr4 jar

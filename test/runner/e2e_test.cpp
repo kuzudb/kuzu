@@ -23,14 +23,9 @@ public:
     }
 
     void setUpDataset() {
-        parquetTempDatasetPath = TestHelper::appendKuzuRootPath(
-            TestHelper::PARQUET_TEMP_DATASET_PATH +
-            CSVToParquetConverter::replaceSlashesWithUnderscores(dataset) + getTestGroupAndName() +
-            TestHelper::getMillisecondsSuffix());
-
+        parquetTempDatasetPath = generateParquetTempDatasetPath();
         dataset = TestHelper::appendKuzuRootPath("dataset/" + dataset);
         if (datasetType == TestGroup::DatasetType::CSV_TO_PARQUET) {
-            FileUtils::createDirIfNotExists(parquetTempDatasetPath);
             dataset =
                 CSVToParquetConverter::convertCSVDatasetToParquet(dataset, parquetTempDatasetPath);
         }
@@ -50,6 +45,13 @@ private:
     std::string parquetTempDatasetPath;
     uint64_t bufferPoolSize;
     std::vector<std::unique_ptr<TestStatement>> testStatements;
+
+    const std::string generateParquetTempDatasetPath() {
+        return TestHelper::appendKuzuRootPath(
+            TestHelper::PARQUET_TEMP_DATASET_PATH +
+            CSVToParquetConverter::replaceSlashesWithUnderscores(dataset) + getTestGroupAndName() +
+            TestHelper::getMillisecondsSuffix());
+    }
 };
 
 void parseAndRegisterTestGroup(const std::string& path, bool generateTestList = false) {
