@@ -304,8 +304,7 @@ TEST_F(DeleteNodeWithEdgesErrorTest, DeleteNodeWithEdgesError) {
     auto result = conn->query("match (p:person) delete p");
     ASSERT_EQ(result->getErrorMessage(),
         "Runtime exception: Currently deleting a node with edges is not supported. node table 0 "
-        "nodeOffset 0 has 1 (one-to-many or many-to-many) edges for edge file: " +
-            kuzu::common::FileUtils::joinPath(databasePath, "r-1-0.lists."));
+        "nodeOffset 0 has 1 (one-to-many or many-to-many) edges.");
 }
 
 TEST_F(CreateDeleteInt64NodeTrxTest, MixedInsertDeleteCommitNormalExecution) {

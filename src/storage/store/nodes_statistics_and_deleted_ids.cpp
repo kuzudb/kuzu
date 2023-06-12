@@ -130,17 +130,16 @@ void NodeStatisticsAndDeletedIDs::errorIfNodeHasEdges(offset_t nodeOffset) {
         if (numElementsInList != 0) {
             throw RuntimeException(StringUtils::string_format(
                 "Currently deleting a node with edges is not supported. node table {} nodeOffset "
-                "{} has {} (one-to-many or many-to-many) edges for edge file: {}.",
-                tableID, nodeOffset, numElementsInList,
-                adjList->getFileHandle()->getFileInfo()->path.c_str()));
+                "{} has {} (one-to-many or many-to-many) edges.",
+                tableID, nodeOffset, numElementsInList));
         }
     }
     for (Column* adjColumn : adjListsAndColumns.second) {
         if (!adjColumn->isNull(nodeOffset, transaction::Transaction::getDummyWriteTrx().get())) {
             throw RuntimeException(StringUtils::string_format(
                 "Currently deleting a node with edges is not supported. node table {} nodeOffset "
-                "{}  has a 1-1 edge for edge file: {}.",
-                tableID, nodeOffset, adjColumn->getFileHandle()->getFileInfo()->path.c_str()));
+                "{}  has a 1-1 edge.",
+                tableID, nodeOffset));
         }
     }
 }

@@ -112,7 +112,7 @@ function(add_kuzu_test TEST_NAME)
     target_link_libraries(${TEST_NAME} PRIVATE test_helper test_runner graph_test)
     target_include_directories(${TEST_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/test/include)
     include(GoogleTest)
-    gtest_discover_tests(${TEST_NAME})
+    gtest_discover_tests(${TEST_NAME} DISCOVERY_MODE PRE_TEST)
 endfunction()
 
 add_definitions(-DKUZU_ROOT_DIRECTORY="${PROJECT_SOURCE_DIR}")
