@@ -289,7 +289,7 @@ KUZU_C_API char* kuzu_prepared_statement_get_error_message(
  * @param value The boolean value to bind.
  */
 KUZU_C_API void kuzu_prepared_statement_bind_bool(
-    kuzu_prepared_statement* prepared_statement, char* param_name, bool value);
+    kuzu_prepared_statement* prepared_statement, const char* param_name, bool value);
 /**
  * @brief Binds the given int64_t value to the given parameter name in the prepared statement.
  * @param prepared_statement The prepared statement instance to bind the value.
@@ -297,7 +297,7 @@ KUZU_C_API void kuzu_prepared_statement_bind_bool(
  * @param value The int64_t value to bind.
  */
 KUZU_C_API void kuzu_prepared_statement_bind_int64(
-    kuzu_prepared_statement* prepared_statement, char* param_name, int64_t value);
+    kuzu_prepared_statement* prepared_statement, const char* param_name, int64_t value);
 /**
  * @brief Binds the given int32_t value to the given parameter name in the prepared statement.
  * @param prepared_statement The prepared statement instance to bind the value.
@@ -305,7 +305,7 @@ KUZU_C_API void kuzu_prepared_statement_bind_int64(
  * @param value The int32_t value to bind.
  */
 KUZU_C_API void kuzu_prepared_statement_bind_int32(
-    kuzu_prepared_statement* prepared_statement, char* param_name, int32_t value);
+    kuzu_prepared_statement* prepared_statement, const char* param_name, int32_t value);
 /**
  * @brief Binds the given int16_t value to the given parameter name in the prepared statement.
  * @param prepared_statement The prepared statement instance to bind the value.
@@ -313,7 +313,7 @@ KUZU_C_API void kuzu_prepared_statement_bind_int32(
  * @param value The int16_t value to bind.
  */
 KUZU_C_API void kuzu_prepared_statement_bind_int16(
-    kuzu_prepared_statement* prepared_statement, char* param_name, int16_t value);
+    kuzu_prepared_statement* prepared_statement, const char* param_name, int16_t value);
 /**
  * @brief Binds the given double value to the given parameter name in the prepared statement.
  * @param prepared_statement The prepared statement instance to bind the value.
@@ -321,7 +321,7 @@ KUZU_C_API void kuzu_prepared_statement_bind_int16(
  * @param value The double value to bind.
  */
 KUZU_C_API void kuzu_prepared_statement_bind_double(
-    kuzu_prepared_statement* prepared_statement, char* param_name, double value);
+    kuzu_prepared_statement* prepared_statement, const char* param_name, double value);
 /**
  * @brief Binds the given float value to the given parameter name in the prepared statement.
  * @param prepared_statement The prepared statement instance to bind the value.
@@ -329,7 +329,7 @@ KUZU_C_API void kuzu_prepared_statement_bind_double(
  * @param value The float value to bind.
  */
 KUZU_C_API void kuzu_prepared_statement_bind_float(
-    kuzu_prepared_statement* prepared_statement, char* param_name, float value);
+    kuzu_prepared_statement* prepared_statement, const char* param_name, float value);
 /**
  * @brief Binds the given date value to the given parameter name in the prepared statement.
  * @param prepared_statement The prepared statement instance to bind the value.
@@ -337,7 +337,7 @@ KUZU_C_API void kuzu_prepared_statement_bind_float(
  * @param value The date value to bind.
  */
 KUZU_C_API void kuzu_prepared_statement_bind_date(
-    kuzu_prepared_statement* prepared_statement, char* param_name, kuzu_date_t value);
+    kuzu_prepared_statement* prepared_statement, const char* param_name, kuzu_date_t value);
 /**
  * @brief Binds the given timestamp value to the given parameter name in the prepared statement.
  * @param prepared_statement The prepared statement instance to bind the value.
@@ -345,7 +345,7 @@ KUZU_C_API void kuzu_prepared_statement_bind_date(
  * @param value The timestamp value to bind.
  */
 KUZU_C_API void kuzu_prepared_statement_bind_timestamp(
-    kuzu_prepared_statement* prepared_statement, char* param_name, kuzu_timestamp_t value);
+    kuzu_prepared_statement* prepared_statement, const char* param_name, kuzu_timestamp_t value);
 /**
  * @brief Binds the given interval value to the given parameter name in the prepared statement.
  * @param prepared_statement The prepared statement instance to bind the value.
@@ -353,7 +353,7 @@ KUZU_C_API void kuzu_prepared_statement_bind_timestamp(
  * @param value The interval value to bind.
  */
 KUZU_C_API void kuzu_prepared_statement_bind_interval(
-    kuzu_prepared_statement* prepared_statement, char* param_name, kuzu_interval_t value);
+    kuzu_prepared_statement* prepared_statement, const char* param_name, kuzu_interval_t value);
 /**
  * @brief Binds the given string value to the given parameter name in the prepared statement.
  * @param prepared_statement The prepared statement instance to bind the value.
@@ -361,7 +361,7 @@ KUZU_C_API void kuzu_prepared_statement_bind_interval(
  * @param value The string value to bind.
  */
 KUZU_C_API void kuzu_prepared_statement_bind_string(
-    kuzu_prepared_statement* prepared_statement, char* param_name, char* value);
+    kuzu_prepared_statement* prepared_statement, const char* param_name, const char* value);
 /**
  * @brief Binds the given kuzu value to the given parameter name in the prepared statement.
  * @param prepared_statement The prepared statement instance to bind the value.
@@ -369,7 +369,7 @@ KUZU_C_API void kuzu_prepared_statement_bind_string(
  * @param value The kuzu value to bind.
  */
 KUZU_C_API void kuzu_prepared_statement_bind_value(
-    kuzu_prepared_statement* prepared_statement, char* param_name, kuzu_value* value);
+    kuzu_prepared_statement* prepared_statement, const char* param_name, kuzu_value* value);
 
 // QueryResult
 /**
@@ -608,7 +608,7 @@ KUZU_C_API kuzu_value* kuzu_value_create_interval(kuzu_interval_t val_);
  * destroying the returned value.
  * @param val_ The string value of the value to create.
  */
-KUZU_C_API kuzu_value* kuzu_value_create_string(char* val_);
+KUZU_C_API kuzu_value* kuzu_value_create_string(const char* val_);
 /**
  * @brief Creates a new value based on the given value. Caller is responsible for destroying the
  * returned value.
@@ -738,7 +738,7 @@ KUZU_C_API char* kuzu_value_to_string(kuzu_value* value);
  * @param id The internal id of the node.
  * @param label The label of the node.
  */
-KUZU_C_API kuzu_node_val* kuzu_node_val_create(kuzu_internal_id_t id, char* label);
+KUZU_C_API kuzu_node_val* kuzu_node_val_create(kuzu_internal_id_t id, const char* label);
 /**
  * @brief Creates a new node value from the given node value.
  * @param node_val The node value to clone.
@@ -807,7 +807,7 @@ KUZU_C_API char* kuzu_node_val_to_string(kuzu_node_val* node_val);
  * @param label The label of the rel.
  */
 KUZU_C_API kuzu_rel_val* kuzu_rel_val_create(
-    kuzu_internal_id_t src_id, kuzu_internal_id_t dst_id, char* label);
+    kuzu_internal_id_t src_id, kuzu_internal_id_t dst_id, const char* label);
 /**
  * @brief Creates a new rel value from the given rel value.
  * @param rel_val The rel value to clone.
@@ -867,7 +867,8 @@ KUZU_C_API kuzu_value* kuzu_rel_val_get_property_value_at(kuzu_rel_val* rel_val,
  * @param name The name of the property.
  * @param property The property(in value format) to add.
  */
-KUZU_C_API void kuzu_rel_val_add_property(kuzu_rel_val* rel_val, char* name, kuzu_value* property);
+KUZU_C_API void kuzu_rel_val_add_property(
+    kuzu_rel_val* rel_val, const char* name, kuzu_value* property);
 /**
  * @brief Converts the given rel value to string.
  * @param rel_val The rel value to convert.

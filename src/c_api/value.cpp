@@ -114,7 +114,7 @@ kuzu_value* kuzu_value_create_interval(kuzu_interval_t val_) {
     return c_value;
 }
 
-kuzu_value* kuzu_value_create_string(char* val_) {
+kuzu_value* kuzu_value_create_string(const char* val_) {
     auto* c_value = (kuzu_value*)calloc(1, sizeof(kuzu_value));
     c_value->_value = new Value(val_);
     return c_value;
@@ -266,7 +266,7 @@ char* kuzu_value_to_string(kuzu_value* value) {
     return c_string;
 }
 
-kuzu_node_val* kuzu_node_val_create(kuzu_internal_id_t id, char* label) {
+kuzu_node_val* kuzu_node_val_create(kuzu_internal_id_t id, const char* label) {
     auto id_val = std::make_unique<Value>(internalID_t(id.offset, id.table_id));
     auto label_val = std::make_unique<Value>(label);
     auto* node_val = new NodeVal(std::move(id_val), std::move(label_val));
@@ -354,7 +354,7 @@ char* kuzu_node_val_to_string(kuzu_node_val* node_val) {
 }
 
 kuzu_rel_val* kuzu_rel_val_create(
-    kuzu_internal_id_t src_id, kuzu_internal_id_t dst_id, char* label) {
+    kuzu_internal_id_t src_id, kuzu_internal_id_t dst_id, const char* label) {
     auto src_id_val = std::make_unique<Value>(internalID_t(src_id.offset, src_id.table_id));
     auto dst_id_val = std::make_unique<Value>(internalID_t(dst_id.offset, dst_id.table_id));
     auto label_val = std::make_unique<Value>(std::string(label));
@@ -437,7 +437,7 @@ kuzu_value* kuzu_rel_val_get_property_value_at(kuzu_rel_val* rel_val, uint64_t i
     return c_value;
 }
 
-void kuzu_rel_val_add_property(kuzu_rel_val* rel_val, char* name, kuzu_value* property) {
+void kuzu_rel_val_add_property(kuzu_rel_val* rel_val, const char* name, kuzu_value* property) {
     auto value_ = std::make_unique<Value>(*static_cast<Value*>(property->_value));
     static_cast<RelVal*>(rel_val->_rel_val)->addProperty(std::string(name), std::move(value_));
 }
