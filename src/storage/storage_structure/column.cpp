@@ -321,7 +321,7 @@ void StructPropertyColumn::read(Transaction* transaction, common::ValueVector* n
     resultVector->setAllNonNull();
     for (auto i = 0u; i < structFieldColumns.size(); i++) {
         structFieldColumns[i]->read(
-            transaction, nodeIDVector, common::StructVector::getChildVector(resultVector, i).get());
+            transaction, nodeIDVector, common::StructVector::getFieldVector(resultVector, i).get());
     }
 }
 

@@ -64,7 +64,7 @@ void FunctionExpressionEvaluator::resolveResultVector(
     if (functionExpression.getFunctionName() == STRUCT_EXTRACT_FUNC_NAME) {
         auto& bindData = (function::StructExtractBindData&)*functionExpression.getBindData();
         resultVector =
-            StructVector::getChildVector(children[0]->resultVector.get(), bindData.childIdx);
+            StructVector::getFieldVector(children[0]->resultVector.get(), bindData.childIdx);
     } else {
         resultVector = std::make_shared<ValueVector>(expression->dataType, memoryManager);
     }

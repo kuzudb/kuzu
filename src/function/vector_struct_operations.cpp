@@ -43,7 +43,7 @@ void StructPackVectorOperations::execFunc(
         // If the parameter's state is inconsistent with the result's state, we need to copy the
         // parameter's value to the corresponding child vector.
         copyParameterValueToStructFieldVector(
-            parameter.get(), common::StructVector::getChildVector(&result, i).get());
+            parameter.get(), common::StructVector::getFieldVector(&result, i).get());
     }
 }
 

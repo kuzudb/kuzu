@@ -1,0 +1,95 @@
+-GROUP TinySnbReadTest
+-DATASET CSV tinysnb
+
+--
+
+-CASE FunctionMap
+
+-NAME MapExtractBool
+-QUERY RETURN map_extract(map([4,5,7], [true, false, true]), 5)
+---- 1
+[False]
+
+-NAME MapExtractInt64
+-QUERY RETURN map_extract(map(['a', 'c', 'e'], [4, 3, 1]), 'c')
+---- 1
+[3]
+
+-NAME MapExtractInt32
+-QUERY RETURN map_extract(map([[1,3], [2,4]], [to_int32(3), to_int32(5)]), [2,4])
+---- 1
+[5]
+
+-NAME MapExtractInt16
+-QUERY RETURN map_extract(map([4, 1, 3, 5], [to_int16(1), to_int16(4), to_int16(99), to_int16(11)]), 5)
+---- 1
+[11]
+
+-NAME MapExtractDouble
+-QUERY RETURN map_extract(map([{a: 3, b: [1, 2, 5]}, {a: 6, b: [1,3]}], [4.3, 5.2]), {b: 3, a: [1,2,5]})
+---- 1
+[4.300000]
+
+-NAME MapExtractFloat
+-QUERY RETURN map_extract(map([1, 88], [to_float(3.2), to_float(3.1)]), 1)
+---- 1
+[3.200000]
+
+-NAME MapExtractVarList
+-QUERY RETURN element_at(map([1, 88], [[4,5], [2,3,1]]), 1)
+---- 1
+[[4,5]]
+
+-NAME MapExtractInternalID
+-QUERY MATCH (a:person) RETURN map_extract(map([a.age], [id(a)]), 20)
+---- 8
+[]
+[]
+[]
+[0:3]
+[0:4]
+[]
+[]
+[]
+
+-NAME MapExtractString
+-QUERY MATCH (a:person) RETURN element_at(map([a.age], [a.fName]), 20)
+---- 8
+[]
+[]
+[]
+[Dan]
+[Elizabeth]
+[]
+[]
+[]
+
+-NAME MapExtractStruct
+-QUERY RETURN map_extract(map([{a: 5, b: {length: 30, age: 20, size: [20, 10]}}, {a: 7, b: {length: 22, age: 145, size: [20,15, 10]}}], [30 ,50]), {a1: 7, b2: {length1: 22, age1: 145, size: [20,15, 10]}})
+---- 1
+[50]
+
+-NAME MapCardinality
+-QUERY RETURN cardinality(map([4, 2, 100, 20], ['a', 'b', 'd', 'e']));
+---- 1
+4
+
+-NAME MapKeys
+-QUERY RETURN map_keys(map([[5], [28, 75, 32], [], [33, 11, 66, 33]], ['a', 'b', 'd', 'e']));
+---- 1
+[[5],[28,75,32],[],[33,11,66,33]]
+
+-NAME EmptyMapKeys
+-QUERY RETURN map_keys(map([], []));
+---- 1
+[]
+
+-NAME MapValues
+-QUERY RETURN map_values(map([23, 57, 1444], [{a: 5, c: [3, 4, 13]}, {d: 7, e: [1, 2, 3]}, {f: 9, g: [1, 2, 3, 4]}]));
+---- 1
+[{A: 5, C: [3,4,13]},{A: 7, C: [1,2,3]},{A: 9, C: [1,2,3,4]}]
+
+-NAME EmptyMapValues
+-QUERY RETURN map_values(map([], []));
+---- 1
+[]

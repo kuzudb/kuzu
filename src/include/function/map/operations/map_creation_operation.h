@@ -1,8 +1,5 @@
 #pragma once
 
-#include <cassert>
-#include <cstring>
-
 #include "common/vector/value_vector.h"
 #include "common/vector/value_vector_utils.h"
 
@@ -10,7 +7,7 @@ namespace kuzu {
 namespace function {
 namespace operation {
 
-struct Map {
+struct MapCreation {
     static void operation(common::list_entry_t& keyEntry, common::list_entry_t& valueEntry,
         common::list_entry_t& resultEntry, common::ValueVector& keyVector,
         common::ValueVector& valueVector, common::ValueVector& resultVector) {
@@ -20,10 +17,10 @@ struct Map {
         resultEntry = common::ListVector::addList(&resultVector, keyEntry.size);
         auto resultStructVector = common::ListVector::getDataVector(&resultVector);
         copyListEntry(resultEntry,
-            common::StructVector::getChildVector(resultStructVector, 0 /* keyVector */).get(),
+            common::StructVector::getFieldVector(resultStructVector, 0 /* keyVector */).get(),
             keyEntry, &keyVector);
         copyListEntry(resultEntry,
-            common::StructVector::getChildVector(resultStructVector, 1 /* valueVector */).get(),
+            common::StructVector::getFieldVector(resultStructVector, 1 /* valueVector */).get(),
             valueEntry, &valueVector);
     }
 

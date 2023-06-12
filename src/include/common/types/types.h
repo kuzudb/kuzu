@@ -285,6 +285,18 @@ struct StructType {
     }
 };
 
+struct MapType {
+    static inline LogicalType* getKeyType(const LogicalType* type) {
+        assert(type->getLogicalTypeID() == LogicalTypeID::MAP);
+        return common::StructType::getFieldTypes(common::VarListType::getChildType(type))[0];
+    }
+
+    static inline LogicalType* getValueType(const LogicalType* type) {
+        assert(type->getLogicalTypeID() == LogicalTypeID::MAP);
+        return common::StructType::getFieldTypes(common::VarListType::getChildType(type))[1];
+    }
+};
+
 class LogicalTypeUtils {
 public:
     KUZU_API static std::string dataTypeToString(const LogicalType& dataType);
