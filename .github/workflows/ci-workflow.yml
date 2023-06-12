@@ -64,7 +64,7 @@ jobs:
         run: CC=gcc CXX=g++ make alldebug NUM_THREADS=32
 
       - name: Run test with ASan
-        run: ctest
+        run: ctest --output-on-failure -j 10
         env:
           LD_PRELOAD: "/usr/lib/x86_64-linux-gnu/libasan.so.6"
           ASAN_OPTIONS: "detect_leaks=1:log_path=/tmp/asan.log"

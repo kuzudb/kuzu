@@ -28,4 +28,4 @@ Runtime exception: Null is not allowed as a primary key value.
 -CASE DeleteNodeWithEdgeErrorTest
 -STATEMENT MATCH (a:person) WHERE a.ID = 0 DELETE a
 ---- error
-Runtime exception: Currently deleting a node with edges is not supported. node table 0 nodeOffset 0 has 3 (one-to-many or many-to-many) edges for edge file: ${KUZU_ROOT_DIRECTORY}/test/unittest_temp/r-3-0.lists.
+Runtime exception: Currently deleting a node with edges is not supported. node table 0 nodeOffset 0 has 3 (one-to-many or many-to-many) edges.

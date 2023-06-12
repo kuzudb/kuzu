@@ -8,7 +8,13 @@ namespace testing {
 // The dataset directory must contain schema and copy files.
 class CSVToParquetConverter {
 public:
-    static void convertCSVDatasetToParquet(std::string& dataset);
+    static std::string convertCSVDatasetToParquet(
+        const std::string& csvDatasetPath, const std::string& parquetDatasetPath);
+
+    inline static std::string replaceSlashesWithUnderscores(std::string dataset) {
+        std::replace(dataset.begin(), dataset.end(), '/', '_');
+        return dataset;
+    }
 
 private:
     struct CopyCommandInfo {
@@ -20,13 +26,13 @@ private:
     };
 
     static std::vector<CopyCommandInfo> readCopyCommandsFromCopyCypherFile(
-        const std::string& dataset);
+        const std::string& csvDatasetPath, const std::string& parquetDatasetPath);
 
     static void convertCSVFilesToParquet(
         const std::vector<CSVToParquetConverter::CopyCommandInfo>& copyCommands);
 
     static CopyCommandInfo createCopyCommandInfo(
-        const std::string& dataset, std::string copyStatement);
+        const std::string& parquetDatasetPath, std::string copyStatement);
 
     static arrow::Status runCSVToParquetConversion(const std::string& inputFile,
         const std::string& outputFile, char delimiter, bool hasHeader);
@@ -34,13 +40,8 @@ private:
     static void copySchema(
         const std::string& csvDatasetPath, const std::string& parquetDatasetPath);
 
-    static void createCopyFile(const std::string& dataset,
+    static void createCopyFile(const std::string& parquetDatasetPath,
         const std::vector<CSVToParquetConverter::CopyCommandInfo>& copyCommands);
-
-    inline static std::string replaceSlashesWithUnderscores(std::string dataset) {
-        std::replace(dataset.begin(), dataset.end(), '/', '_');
-        return dataset;
-    }
 
     static std::string extractPath(std::string& str, char delimiter);
 };

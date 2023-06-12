@@ -1,5 +1,6 @@
 #include "test_helper/test_helper.h"
 
+#include <chrono>
 #include <fstream>
 
 #include "json.hpp"
@@ -139,6 +140,13 @@ bool TestHelper::testQuery(TestQueryConfig* config, Connection& conn) {
     }
     spdlog::info("{}/{} plans passed.", numPassedPlans, numPlans);
     return numPassedPlans == numPlans;
+}
+
+std::string TestHelper::getMillisecondsSuffix() {
+    uint64_t ms = duration_cast<std::chrono::milliseconds>(
+        std::chrono::system_clock::now().time_since_epoch())
+                      .count();
+    return std::to_string(ms);
 }
 
 std::unique_ptr<planner::LogicalPlan> TestHelper::getLogicalPlan(

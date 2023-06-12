@@ -26,15 +26,15 @@ public:
     void SetUp() override {
         systemConfig = std::make_unique<main::SystemConfig>(
             common::BufferPoolConstants::DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING);
-        if (common::FileUtils::fileOrPathExists(TestHelper::getTmpTestDir())) {
-            common::FileUtils::removeDir(TestHelper::getTmpTestDir());
+        setDatabasePath();
+        if (common::FileUtils::fileOrPathExists(databasePath)) {
+            common::FileUtils::removeDir(databasePath);
         }
-        databasePath = TestHelper::getTmpTestDir();
     }
 
     virtual std::string getInputDir() = 0;
 
-    void TearDown() override { common::FileUtils::removeDir(TestHelper::getTmpTestDir()); }
+    void TearDown() override { common::FileUtils::removeDir(databasePath); }
 
     void createDBAndConn();
 
@@ -133,7 +133,20 @@ protected:
     void commitOrRollbackConnectionAndInitDBIfNecessary(
         bool isCommit, TransactionTestType transactionTestType);
 
+    inline std::string getTestGroupAndName() {
+        const ::testing::TestInfo* const testInfo =
+            ::testing::UnitTest::GetInstance()->current_test_info();
+        return std::string(testInfo->test_case_name()) + "." + std::string(testInfo->name());
+    }
+
 private:
+    void setDatabasePath() {
+        const ::testing::TestInfo* const testInfo =
+            ::testing::UnitTest::GetInstance()->current_test_info();
+        databasePath = TestHelper::appendKuzuRootPath(
+            TestHelper::TMP_TEST_DIR + getTestGroupAndName() + TestHelper::getMillisecondsSuffix());
+    }
+
     void validateRelPropertyFiles(catalog::RelTableSchema* relTableSchema,
         common::RelDataDirection relDirection, bool isColumnProperty, common::DBFileType dbFileType,
         bool existence);
