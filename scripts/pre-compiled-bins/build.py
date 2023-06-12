@@ -102,23 +102,45 @@ def collect_binaries():
         sys.exit(1)
     shutil.copy(c_header_path, os.path.join(base_dir, "kuzu.h"))
     logging.info("Copied kuzu.h")
-    so_exists = os.path.exists(so_path)
-    dylib_exists = os.path.exists(dylib_path)
-    if not so_exists and not dylib_exists:
-        logging.error("No shared object file found")
-        sys.exit(1)
-    if so_exists:
-        shutil.copy(so_path, os.path.join(base_dir, "libkuzu.so"))
-        logging.info("Copied libkuzu.so")
-    if dylib_exists:
-        shutil.copy(dylib_path, os.path.join(base_dir, "libkuzu.dylib"))
-        logging.info("Copied libkuzu.so")
-    shell_path = os.path.join(workspace_root, "build",
-                              "release", "tools", "shell", "kuzu_shell")
-    if not os.path.exists(shell_path):
-        logging.error("No shell binary found")
-        sys.exit(1)
-    shutil.copy(shell_path, os.path.join(base_dir, "kuzu"))
+    if sys.platform == "win32":
+        dll_path = os.path.join(workspace_root, "build",
+                                "release", "src", "kuzu_shared.dll")
+        lib_path = os.path.join(workspace_root, "build",
+                                "release", "src", "kuzu_shared.lib")
+        if not os.path.exists(dll_path):
+            logging.error("No dll found")
+            sys.exit(1)
+        if not os.path.exists(lib_path):
+            logging.error("No import library found")
+            sys.exit(1)
+        shutil.copy(dll_path, os.path.join(base_dir, "kuzu_shared.dll"))
+        logging.info("Copied kuzu_shared.dll")
+        shutil.copy(lib_path, os.path.join(base_dir, "kuzu_shared.lib"))
+        logging.info("Copied kuzu_shared.lib")
+        shell_path = os.path.join(workspace_root, "build", "release",
+                                  "tools", "shell", "kuzu_shell.exe")
+        if not os.path.exists(shell_path):
+            logging.error("No shell binary found")
+            sys.exit(1)
+        shutil.copy(shell_path, os.path.join(base_dir, "kuzu.exe"))
+    else:
+        so_exists = os.path.exists(so_path)
+        dylib_exists = os.path.exists(dylib_path)
+        if not so_exists and not dylib_exists:
+            logging.error("No shared object file found")
+            sys.exit(1)
+        if so_exists:
+            shutil.copy(so_path, os.path.join(base_dir, "libkuzu.so"))
+            logging.info("Copied libkuzu.so")
+        if dylib_exists:
+            shutil.copy(dylib_path, os.path.join(base_dir, "libkuzu.dylib"))
+            logging.info("Copied libkuzu.so")
+        shell_path = os.path.join(workspace_root, "build",
+                                  "release", "tools", "shell", "kuzu_shell")
+        if not os.path.exists(shell_path):
+            logging.error("No shell binary found")
+            sys.exit(1)
+        shutil.copy(shell_path, os.path.join(base_dir, "kuzu"))
     logging.info("Copied kuzu")
     logging.info("Binaries collected")
 
