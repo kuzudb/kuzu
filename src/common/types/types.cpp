@@ -227,13 +227,13 @@ void LogicalType::setPhysicalType() {
     case LogicalTypeID::STRING: {
         physicalType = PhysicalTypeID::STRING;
     } break;
-    case LogicalTypeID::RECURSIVE_REL:
     case LogicalTypeID::MAP:
     case LogicalTypeID::VAR_LIST: {
         physicalType = PhysicalTypeID::VAR_LIST;
     } break;
     case LogicalTypeID::NODE:
     case LogicalTypeID::REL:
+    case LogicalTypeID::RECURSIVE_REL:
     case LogicalTypeID::STRUCT: {
         physicalType = PhysicalTypeID::STRUCT;
     } break;

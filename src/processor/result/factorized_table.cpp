@@ -144,15 +144,18 @@ void FactorizedTable::lookup(std::vector<ValueVector*>& vectors,
     uint64_t numTuplesToRead) const {
     assert(vectors.size() == colIdxesToScan.size());
     for (auto i = 0u; i < colIdxesToScan.size(); i++) {
+        auto vector = vectors[i];
+        // TODO(Xiyang/Ziyi): we should set up a rule about when to reset. Should it be in operator?
+        vector->resetAuxiliaryBuffer();
         ft_col_idx_t colIdx = colIdxesToScan[i];
         if (tableSchema->getColumn(colIdx)->isFlat()) {
-            assert(!(vectors[i]->state->isFlat() && numTuplesToRead > 1));
-            readFlatCol(tuplesToRead + startPos, colIdx, *vectors[i], numTuplesToRead);
+            assert(!(vector->state->isFlat() && numTuplesToRead > 1));
+            readFlatCol(tuplesToRead + startPos, colIdx, *vector, numTuplesToRead);
         } else {
             // If the caller wants to read an unflat column from factorizedTable, the vector
             // must be unflat and the numTuplesToScan should be 1.
-            assert(!vectors[i]->state->isFlat() && numTuplesToRead == 1);
-            readUnflatCol(tuplesToRead + startPos, colIdx, *vectors[i]);
+            assert(!vector->state->isFlat() && numTuplesToRead == 1);
+            readUnflatCol(tuplesToRead + startPos, colIdx, *vector);
         }
     }
 }
@@ -586,7 +589,7 @@ void FactorizedTable::readUnflatCol(
         auto val = vectorOverflowValue.value;
         for (auto i = 0u; i < vectorOverflowValue.numElements; i++) {
             ValueVectorUtils::copyNonNullDataWithSameTypeIntoPos(vector, i, val);
-            val += vector.getNumBytesPerValue();
+            val += getDataTypeSize(vector.dataType);
         }
     } else {
         for (auto i = 0u; i < vectorOverflowValue.numElements; i++) {

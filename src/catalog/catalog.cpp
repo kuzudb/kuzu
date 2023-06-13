@@ -210,7 +210,7 @@ table_id_t CatalogContent::addRelTableSchema(std::string tableName, RelMultiplic
     nodeTableSchemas[srcTableID]->addFwdRelTableID(tableID);
     nodeTableSchemas[dstTableID]->addBwdRelTableID(tableID);
     auto relInternalIDProperty =
-        Property(INTERNAL_ID_SUFFIX, LogicalType{LogicalTypeID::INTERNAL_ID});
+        Property(InternalKeyword::ID, LogicalType{LogicalTypeID::INTERNAL_ID});
     properties.insert(properties.begin(), relInternalIDProperty);
     for (auto i = 0u; i < properties.size(); ++i) {
         properties[i].propertyID = i;

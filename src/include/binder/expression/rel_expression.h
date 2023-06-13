@@ -49,7 +49,7 @@ public:
     inline RelDirectionType getDirectionType() const { return directionType; }
 
     inline std::shared_ptr<Expression> getInternalIDProperty() const {
-        return getPropertyExpression(common::INTERNAL_ID_SUFFIX);
+        return getPropertyExpression(common::InternalKeyword::ID);
     }
 
     inline void setRecursiveInfo(std::unique_ptr<RecursiveInfo> recursiveInfo_) {

@@ -114,10 +114,10 @@ Kitchener|2
 -NAME ReturnVarLen
 -QUERY MATCH (a:User)-[e:Follows*1..2]->(b:User) WHERE a.name = 'Adam' RETURN b.name, e;
 ---- 4
-Karissa|[0:0,2:0,0:1]
-Zhang|[0:0,2:0,0:1,2:2,0:2]
-Zhang|[0:0,2:1,0:2]
-Noura|[0:0,2:1,0:2,2:3,0:3]
+Karissa|{_NODES: [0:0,0:1], _RELS: [2:0]}
+Noura|{_NODES: [0:0,0:2,0:3], _RELS: [2:1,2:3]}
+Zhang|{_NODES: [0:0,0:1,0:2], _RELS: [2:0,2:2]}
+Zhang|{_NODES: [0:0,0:2], _RELS: [2:1]}
 
 -NAME ShortestPath
 -QUERY MATCH (a:User)-[e* SHORTEST 1..4]->(b:City) WHERE a.name = 'Adam' RETURN b.name, length(e) AS length;

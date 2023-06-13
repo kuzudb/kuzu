@@ -293,7 +293,6 @@ std::string Value::toString() const {
         }
         return result;
     }
-    case LogicalTypeID::RECURSIVE_REL:
     case LogicalTypeID::VAR_LIST:
     case LogicalTypeID::FIXED_LIST: {
         std::string result = "[";
@@ -306,6 +305,7 @@ std::string Value::toString() const {
         result += "]";
         return result;
     }
+    case LogicalTypeID::RECURSIVE_REL:
     case LogicalTypeID::STRUCT: {
         std::string result = "{";
         auto fieldNames = StructType::getFieldNames(&dataType);

@@ -66,6 +66,14 @@ void ValueVector::resetAuxiliaryBuffer() {
         reinterpret_cast<ListAuxiliaryBuffer*>(auxiliaryBuffer.get())->resetSize();
         return;
     }
+    case PhysicalTypeID::STRUCT: {
+        auto structAuxiliaryBuffer =
+            reinterpret_cast<StructAuxiliaryBuffer*>(auxiliaryBuffer.get());
+        for (auto& vector : structAuxiliaryBuffer->getChildrenVectors()) {
+            vector->resetAuxiliaryBuffer();
+        }
+        return;
+    }
     default:
         return;
     }
