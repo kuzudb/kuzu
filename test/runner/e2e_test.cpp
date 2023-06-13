@@ -111,7 +111,7 @@ void checkGtestParams(int argc, char** argv) {
         std::string argument = argv[1];
         if (argument == "--gtest_list_tests") {
             std::string testListFile = TestHelper::appendKuzuRootPath(
-                    FileUtils::joinPath(TestHelper::E2E_TEST_FILES_DIRECTORY, "test_list"));
+                FileUtils::joinPath(TestHelper::E2E_TEST_FILES_DIRECTORY, "test_list"));
             FileUtils::removeFileIfExists(testListFile);
             scanTestFiles(TestHelper::appendKuzuRootPath(TestHelper::E2E_TEST_FILES_DIRECTORY));
         }
