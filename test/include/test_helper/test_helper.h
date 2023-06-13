@@ -42,7 +42,7 @@ public:
     static constexpr char COPY_FILE_NAME[] = "copy.cypher";
     static constexpr char PARQUET_TEMP_DATASET_PATH[] = "dataset/parquet_temp_";
     static constexpr char TMP_TEST_DIR[] = "test/unittest_temp_";
-    static constexpr char FIXTURE_PATH[] = "/test/test_files/fixtures/";
+    static constexpr char FIXTURE_PATH[] = "/test/test_files/outputs/";
 
     static std::string getTestListFile() {
         return appendKuzuRootPath(std::string(E2E_TEST_FILES_DIRECTORY) + "/test_list");

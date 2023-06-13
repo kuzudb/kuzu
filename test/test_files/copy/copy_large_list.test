@@ -7,13 +7,16 @@
 
 # p0 has 5001 fwd edges to p0...p5000
 -NAME ForwardCheck
--QUERY match (p0:person)<-[r:knows]-(p1:person) RETURN p0.ID, ID(r), p1.ID
----- 10000
+-QUERY MATCH (p0:person)-[r:knows]->(p1:person) WHERE p0.ID = 0 RETURN COUNT(*)
+---- 1
+5001
+-QUERY MATCH (p0:person)-[r:knows]->(p1:person) WHERE p0.ID = 0 RETURN p0.ID, ID(r), p1.ID
+---- 5001
 <FILE>:copy_large_list_fwd_output.csv
 
 # p0 has only 1 bwd edge, which from itself
 -NAME BackwardCheck
--QUERY match (p0:person)<-[r:knows]-(p1:person) WHERE p0.ID = 0 RETURN p0.ID, ID(r), p1.ID;
+-QUERY match (p0:person)<-[r:knows]-(p1:person) WHERE p0.ID = 0 RETURN p0.ID, ID(r), p1.ID
 ---- 1
 0|1:0|0
 
@@ -21,7 +24,11 @@
 -NAME SingleForwardCheck
 -QUERY match (p0:person)-[r:knows]->(p1:person) WHERE p1.ID = 5000 RETURN p0.ID, ID(r), p1.ID;
 ---- 1
-jj
+<FILE>:copy_large_list_single_fwd_output.csv
 
-# -NAME OneBackwardEdgeCheck
-# -QUERY match (p0:person)<-[r:knows]-(p1:person) WHERE p1.ID = 0 AND p0.ID = 5000 RETURN p0.ID, ID(r), p1.ID;
+
+
+-NAME OneBackwardEdgeCheck
+-QUERY match (p0:person)<-[r:knows]-(p1:person) WHERE p1.ID = 0 AND p0.ID = 5000 RETURN p0.ID, ID(r), p1.ID;
+---- 1
+5000|1:5000|0
