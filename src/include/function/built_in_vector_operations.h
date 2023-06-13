@@ -73,6 +73,7 @@ private:
     void registerListOperations();
     void registerStructOperations();
     void registerMapOperations();
+    void registerUnionOperations();
 
 private:
     std::unordered_map<std::string, vector_operation_definitions> vectorOperations;

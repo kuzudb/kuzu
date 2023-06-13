@@ -464,10 +464,13 @@ oC_ParenthesizedExpression
 
 oC_FunctionInvocation
     : oC_FunctionName SP? '(' SP? '*' SP? ')'
-        | oC_FunctionName SP? '(' SP? ( DISTINCT SP? )? ( oC_Expression SP? ( ',' SP? oC_Expression SP? )* )? ')' ;
+        | oC_FunctionName SP? '(' SP? ( DISTINCT SP? )? ( kU_FunctionParameter SP? ( ',' SP? kU_FunctionParameter SP? )* )? ')' ;
 
 oC_FunctionName
     : oC_SymbolicName ;
+
+kU_FunctionParameter
+    : ( oC_SymbolicName SP? ':' '=' SP? )? oC_Expression ;
 
 oC_ExistentialSubquery
     :  EXISTS SP? '{' SP? MATCH SP? oC_Pattern ( SP? oC_Where )? SP? '}' ;

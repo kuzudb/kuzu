@@ -11,6 +11,7 @@
 #include "function/string/vector_string_operations.h"
 #include "function/struct/vector_struct_operations.h"
 #include "function/timestamp/vector_timestamp_operations.h"
+#include "function/union/vector_union_operations.h"
 
 using namespace kuzu::common;
 
@@ -28,6 +29,7 @@ void BuiltInVectorOperations::registerVectorOperations() {
     registerListOperations();
     registerStructOperations();
     registerMapOperations();
+    registerUnionOperations();
     // register internal offset operation
     vectorOperations.insert({OFFSET_FUNC_NAME, OffsetVectorOperation::getDefinitions()});
 }
@@ -494,6 +496,13 @@ void BuiltInVectorOperations::registerMapOperations() {
     vectorOperations.insert({CARDINALITY_FUNC_NAME, ListLenVectorOperation::getDefinitions()});
     vectorOperations.insert({MAP_KEYS_FUNC_NAME, MapKeysVectorOperations::getDefinitions()});
     vectorOperations.insert({MAP_VALUES_FUNC_NAME, MapValuesVectorOperations::getDefinitions()});
+}
+
+void BuiltInVectorOperations::registerUnionOperations() {
+    vectorOperations.insert({UNION_VALUE_FUNC_NAME, UnionValueVectorOperations::getDefinitions()});
+    vectorOperations.insert({UNION_TAG_FUNC_NAME, UnionTagVectorOperations::getDefinitions()});
+    vectorOperations.insert(
+        {UNION_EXTRACT_FUNC_NAME, UnionExtractVectorOperations::getDefinitions()});
 }
 
 } // namespace function

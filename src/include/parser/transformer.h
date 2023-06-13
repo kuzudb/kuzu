@@ -181,6 +181,9 @@ private:
 
     std::string transformFunctionName(CypherParser::OC_FunctionNameContext& ctx);
 
+    std::unique_ptr<ParsedExpression> transformFunctionParameterExpression(
+        CypherParser::OC_FunctionParameterContext& ctx);
+
     std::unique_ptr<ParsedExpression> transformExistentialSubquery(
         CypherParser::OC_ExistentialSubqueryContext& ctx);
 

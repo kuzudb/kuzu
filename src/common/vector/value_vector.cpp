@@ -69,7 +69,7 @@ void ValueVector::resetAuxiliaryBuffer() {
     case PhysicalTypeID::STRUCT: {
         auto structAuxiliaryBuffer =
             reinterpret_cast<StructAuxiliaryBuffer*>(auxiliaryBuffer.get());
-        for (auto& vector : structAuxiliaryBuffer->getChildrenVectors()) {
+        for (auto& vector : structAuxiliaryBuffer->getFieldVectors()) {
             vector->resetAuxiliaryBuffer();
         }
         return;
@@ -105,7 +105,7 @@ uint32_t ValueVector::getDataTypeSize(const LogicalType& type) {
 
 void ValueVector::initializeValueBuffer() {
     valueBuffer = std::make_unique<uint8_t[]>(numBytesPerValue * DEFAULT_VECTOR_CAPACITY);
-    if (dataType.getLogicalTypeID() == LogicalTypeID::STRUCT) {
+    if (dataType.getPhysicalType() == PhysicalTypeID::STRUCT) {
         // For struct valueVectors, each struct_entry_t stores its current position in the
         // valueVector.
         StructVector::initializeEntries(this);

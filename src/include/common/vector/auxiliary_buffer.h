@@ -36,7 +36,7 @@ public:
         vector_idx_t idx, std::shared_ptr<ValueVector> vectorToReference) {
         childrenVectors[idx] = std::move(vectorToReference);
     }
-    inline const std::vector<std::shared_ptr<ValueVector>>& getChildrenVectors() const {
+    inline const std::vector<std::shared_ptr<ValueVector>>& getFieldVectors() const {
         return childrenVectors;
     }
 

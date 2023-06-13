@@ -116,7 +116,7 @@ struct UnaryOperationExecutor {
     }
 
     template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
-    static void executeList(common::ValueVector& operand, common::ValueVector& result) {
+    static void executeListStruct(common::ValueVector& operand, common::ValueVector& result) {
         executeSwitch<OPERAND_TYPE, RESULT_TYPE, FUNC, UnaryListOperationWrapper>(operand, result);
     }
 

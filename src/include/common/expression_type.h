@@ -74,6 +74,11 @@ const std::string CARDINALITY_FUNC_NAME = "CARDINALITY";
 const std::string MAP_KEYS_FUNC_NAME = "MAP_KEYS";
 const std::string MAP_VALUES_FUNC_NAME = "MAP_VALUES";
 
+// union
+const std::string UNION_VALUE_FUNC_NAME = "UNION_VALUE";
+const std::string UNION_TAG_FUNC_NAME = "UNION_TAG";
+const std::string UNION_EXTRACT_FUNC_NAME = "UNION_EXTRACT";
+
 // comparison
 const std::string EQUALS_FUNC_NAME = "EQUALS";
 const std::string NOT_EQUALS_FUNC_NAME = "NOT_EQUALS";

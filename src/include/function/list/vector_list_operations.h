@@ -6,78 +6,52 @@ namespace kuzu {
 namespace function {
 
 struct VectorListOperations : public VectorOperations {
-    template<typename A_TYPE, typename B_TYPE, typename C_TYPE, typename RESULT_TYPE, typename FUNC>
-    static void TernaryListExecFunction(
-        const std::vector<std::shared_ptr<common::ValueVector>>& params,
-        common::ValueVector& result) {
-        assert(params.size() == 3);
-        TernaryOperationExecutor::executeList<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC>(
-            *params[0], *params[1], *params[2], result);
-    }
-
-    template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC>
-    static void BinaryListExecFunction(
-        const std::vector<std::shared_ptr<common::ValueVector>>& params,
-        common::ValueVector& result) {
-        assert(params.size() == 2);
-        BinaryOperationExecutor::executeList<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC>(
-            *params[0], *params[1], result);
-    }
-
-    template<typename OPERAND_TYPE, typename RESULT_TYPE, typename FUNC>
-    static void UnaryListExecFunction(
-        const std::vector<std::shared_ptr<common::ValueVector>>& params,
-        common::ValueVector& result) {
-        assert(params.size() == 1);
-        UnaryOperationExecutor::executeList<OPERAND_TYPE, RESULT_TYPE, FUNC>(*params[0], result);
-    }
-
     template<typename OPERATION, typename RESULT_TYPE>
     static scalar_exec_func getBinaryListExecFunc(common::LogicalType rightType) {
         scalar_exec_func execFunc;
         switch (rightType.getPhysicalType()) {
         case common::PhysicalTypeID::BOOL: {
             execFunc =
-                BinaryListExecFunction<common::list_entry_t, uint8_t, RESULT_TYPE, OPERATION>;
+                BinaryExecListStructFunction<common::list_entry_t, uint8_t, RESULT_TYPE, OPERATION>;
         } break;
         case common::PhysicalTypeID::INT64: {
             execFunc =
-                BinaryListExecFunction<common::list_entry_t, int64_t, RESULT_TYPE, OPERATION>;
+                BinaryExecListStructFunction<common::list_entry_t, int64_t, RESULT_TYPE, OPERATION>;
         } break;
         case common::PhysicalTypeID::INT32: {
             execFunc =
-                BinaryListExecFunction<common::list_entry_t, int32_t, RESULT_TYPE, OPERATION>;
+                BinaryExecListStructFunction<common::list_entry_t, int32_t, RESULT_TYPE, OPERATION>;
         } break;
         case common::PhysicalTypeID::INT16: {
             execFunc =
-                BinaryListExecFunction<common::list_entry_t, int16_t, RESULT_TYPE, OPERATION>;
+                BinaryExecListStructFunction<common::list_entry_t, int16_t, RESULT_TYPE, OPERATION>;
         } break;
         case common::PhysicalTypeID::DOUBLE: {
-            execFunc =
-                BinaryListExecFunction<common::list_entry_t, double_t, RESULT_TYPE, OPERATION>;
+            execFunc = BinaryExecListStructFunction<common::list_entry_t, double_t, RESULT_TYPE,
+                OPERATION>;
         } break;
         case common::PhysicalTypeID::FLOAT: {
             execFunc =
-                BinaryListExecFunction<common::list_entry_t, float_t, RESULT_TYPE, OPERATION>;
+                BinaryExecListStructFunction<common::list_entry_t, float_t, RESULT_TYPE, OPERATION>;
         } break;
         case common::PhysicalTypeID::STRING: {
-            execFunc = BinaryListExecFunction<common::list_entry_t, common::ku_string_t,
+            execFunc = BinaryExecListStructFunction<common::list_entry_t, common::ku_string_t,
                 RESULT_TYPE, OPERATION>;
         } break;
         case common::PhysicalTypeID::INTERVAL: {
-            execFunc = BinaryListExecFunction<common::list_entry_t, common::interval_t, RESULT_TYPE,
-                OPERATION>;
+            execFunc = BinaryExecListStructFunction<common::list_entry_t, common::interval_t,
+                RESULT_TYPE, OPERATION>;
         } break;
         case common::PhysicalTypeID::INTERNAL_ID: {
-            execFunc = BinaryListExecFunction<common::list_entry_t, common::internalID_t,
+            execFunc = BinaryExecListStructFunction<common::list_entry_t, common::internalID_t,
                 RESULT_TYPE, OPERATION>;
         } break;
         case common::PhysicalTypeID::VAR_LIST: {
-            execFunc = BinaryListExecFunction<common::list_entry_t, common::list_entry_t,
+            execFunc = BinaryExecListStructFunction<common::list_entry_t, common::list_entry_t,
                 RESULT_TYPE, OPERATION>;
         } break;
         case common::PhysicalTypeID::STRUCT: {
-            execFunc = BinaryListExecFunction<common::list_entry_t, common::struct_entry_t,
+            execFunc = BinaryExecListStructFunction<common::list_entry_t, common::struct_entry_t,
                 RESULT_TYPE, OPERATION>;
         } break;
         default: {

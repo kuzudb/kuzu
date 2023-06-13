@@ -83,7 +83,7 @@ vector_operation_definitions StructExtractVectorOperations::getDefinitions() {
     definitions.push_back(make_unique<VectorOperationDefinition>(common::STRUCT_EXTRACT_FUNC_NAME,
         std::vector<common::LogicalTypeID>{
             common::LogicalTypeID::STRUCT, common::LogicalTypeID::STRING},
-        common::LogicalTypeID::ANY, execFunc, nullptr, bindFunc, false /* isVarLength */));
+        common::LogicalTypeID::ANY, nullptr, nullptr, bindFunc, false /* isVarLength */));
     return definitions;
 }
 
@@ -91,7 +91,7 @@ std::unique_ptr<FunctionBindData> StructExtractVectorOperations::bindFunc(
     const binder::expression_vector& arguments, kuzu::function::FunctionDefinition* definition) {
     auto structType = arguments[0]->getDataType();
     if (arguments[1]->expressionType != common::LITERAL) {
-        throw common::BinderException("Key name for struct_extract must be STRING literal.");
+        throw common::BinderException("Key name for struct/union extract must be STRING literal.");
     }
     auto key = ((binder::LiteralExpression&)*arguments[1]).getValue()->getValue<std::string>();
     common::StringUtils::toUpper(key);

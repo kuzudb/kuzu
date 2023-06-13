@@ -406,8 +406,8 @@ struct TernaryOperationExecutor {
     }
 
     template<typename A_TYPE, typename B_TYPE, typename C_TYPE, typename RESULT_TYPE, typename FUNC>
-    static void executeList(common::ValueVector& a, common::ValueVector& b, common::ValueVector& c,
-        common::ValueVector& result) {
+    static void executeListStruct(common::ValueVector& a, common::ValueVector& b,
+        common::ValueVector& c, common::ValueVector& result) {
         executeSwitch<A_TYPE, B_TYPE, C_TYPE, RESULT_TYPE, FUNC, TernaryListOperationWrapper>(
             a, b, c, result);
     }

@@ -25,7 +25,10 @@ void FunctionExpressionEvaluator::evaluate() {
     for (auto& child : children) {
         child->evaluate();
     }
-    execFunc(parameters, *resultVector);
+    if (execFunc != nullptr) {
+        // Some functions are evaluated at compile time (e.g. struct_extract).
+        execFunc(parameters, *resultVector);
+    }
 }
 
 bool FunctionExpressionEvaluator::select(SelectionVector& selVector) {
@@ -61,7 +64,8 @@ std::unique_ptr<BaseExpressionEvaluator> FunctionExpressionEvaluator::clone() {
 void FunctionExpressionEvaluator::resolveResultVector(
     const ResultSet& resultSet, MemoryManager* memoryManager) {
     auto& functionExpression = (binder::ScalarFunctionExpression&)*expression;
-    if (functionExpression.getFunctionName() == STRUCT_EXTRACT_FUNC_NAME) {
+    auto functionName = functionExpression.getFunctionName();
+    if (functionName == STRUCT_EXTRACT_FUNC_NAME || functionName == UNION_EXTRACT_FUNC_NAME) {
         auto& bindData = (function::StructExtractBindData&)*functionExpression.getBindData();
         resultVector =
             StructVector::getFieldVector(children[0]->resultVector.get(), bindData.childIdx);
@@ -69,10 +73,12 @@ void FunctionExpressionEvaluator::resolveResultVector(
         resultVector = std::make_shared<ValueVector>(expression->dataType, memoryManager);
     }
     std::vector<BaseExpressionEvaluator*> inputEvaluators;
+    inputEvaluators.reserve(children.size());
     for (auto& child : children) {
         inputEvaluators.push_back(child.get());
     }
     resolveResultStateFromChildren(inputEvaluators);
+    // TODO(Ziyi): We should move result valueVector state resolution to each function.
     if (functionExpression.getFunctionName() == STRUCT_PACK_FUNC_NAME) {
         // Our goal is to make the state of the resultVector consistent with its children vectors.
         // If the resultVector and inputVector are in different dataChunks, we should create a new
@@ -85,6 +91,13 @@ void FunctionExpressionEvaluator::resolveResultVector(
                     resultVector.get(), i, inputEvaluator->resultVector);
             }
         }
+    } else if (functionExpression.getFunctionName() == UNION_VALUE_FUNC_NAME) {
+        assert(inputEvaluators.size() == 1);
+        resultVector->setState(inputEvaluators[0]->resultVector->state);
+        common::UnionVector::getTagVector(resultVector.get())
+            ->setState(inputEvaluators[0]->resultVector->state);
+        common::UnionVector::referenceVector(
+            resultVector.get(), 0 /* fieldIdx */, inputEvaluators[0]->resultVector);
     }
 }
 

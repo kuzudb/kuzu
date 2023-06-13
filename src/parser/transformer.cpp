@@ -1,7 +1,6 @@
 #include "parser/transformer.h"
 
 #include "common/copier_config/copier_config.h"
-#include "common/exception.h"
 #include "common/string_utils.h"
 #include "parser/copy.h"
 #include "parser/ddl/add_property.h"
@@ -814,14 +813,24 @@ std::unique_ptr<ParsedExpression> Transformer::transformFunctionInvocation(
     }
     auto expression = std::make_unique<ParsedFunctionExpression>(
         functionName, ctx.getText(), ctx.DISTINCT() != nullptr);
-    for (auto& childExpr : ctx.oC_Expression()) {
-        expression->addChild(transformExpression(*childExpr));
+    for (auto& functionParameter : ctx.oC_FunctionParameter()) {
+        expression->addChild(transformFunctionParameterExpression(*functionParameter));
     }
     return expression;
 }
 
 std::string Transformer::transformFunctionName(CypherParser::OC_FunctionNameContext& ctx) {
     return transformSymbolicName(*ctx.oC_SymbolicName());
+}
+
+std::unique_ptr<ParsedExpression> Transformer::transformFunctionParameterExpression(
+    CypherParser::OC_FunctionParameterContext& ctx) {
+    auto expression = transformExpression(*ctx.oC_Expression());
+    if (ctx.oC_FunctionParameterName()) {
+        expression->setAlias(
+            transformSymbolicName(*ctx.oC_FunctionParameterName()->oC_SymbolicName()));
+    }
+    return expression;
 }
 
 std::unique_ptr<ParsedExpression> Transformer::transformExistentialSubquery(

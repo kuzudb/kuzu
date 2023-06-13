@@ -13,6 +13,9 @@ void BaseExpressionEvaluator::init(
 
 void BaseExpressionEvaluator::resolveResultStateFromChildren(
     const std::vector<BaseExpressionEvaluator*>& inputEvaluators) {
+    if (resultVector->state != nullptr) {
+        return;
+    }
     for (auto& input : inputEvaluators) {
         if (!input->isResultFlat()) {
             isResultFlat_ = false;
