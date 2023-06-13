@@ -12,6 +12,7 @@ add_library(kuzu_function
         vector_hash_operations.cpp
         vector_list_operation.cpp
         vector_null_operations.cpp
+        vector_node_rel_operations.cpp
         vector_string_operations.cpp
         vector_timestamp_operations.cpp
         vector_struct_operations.cpp

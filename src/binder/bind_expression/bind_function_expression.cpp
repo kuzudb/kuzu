@@ -69,7 +69,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
         ScalarFunctionExpression::getUniqueName(function->name, childrenAfterCast);
     return make_shared<ScalarFunctionExpression>(functionName, FUNCTION, std::move(bindData),
         std::move(childrenAfterCast), function->execFunc, function->selectFunc,
-        uniqueExpressionName);
+        function->compileFunc, uniqueExpressionName);
 }
 
 std::shared_ptr<Expression> ExpressionBinder::bindAggregateFunctionExpression(

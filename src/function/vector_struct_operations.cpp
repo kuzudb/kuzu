@@ -12,12 +12,13 @@ vector_operation_definitions StructPackVectorOperations::getDefinitions() {
     vector_operation_definitions definitions;
     definitions.push_back(make_unique<VectorOperationDefinition>(common::STRUCT_PACK_FUNC_NAME,
         std::vector<common::LogicalTypeID>{common::LogicalTypeID::ANY},
-        common::LogicalTypeID::STRUCT, execFunc, nullptr, bindFunc, true /* isVarLength */));
+        common::LogicalTypeID::STRUCT, execFunc, nullptr, compileFunc, bindFunc,
+        true /* isVarLength */));
     return definitions;
 }
 
 std::unique_ptr<FunctionBindData> StructPackVectorOperations::bindFunc(
-    const binder::expression_vector& arguments, kuzu::function::FunctionDefinition* definition) {
+    const binder::expression_vector& arguments, FunctionDefinition* definition) {
     std::vector<std::unique_ptr<common::StructField>> fields;
     for (auto& argument : arguments) {
         if (argument->getDataType().getLogicalTypeID() == common::LogicalTypeID::ANY) {
@@ -44,6 +45,20 @@ void StructPackVectorOperations::execFunc(
         // parameter's value to the corresponding child vector.
         copyParameterValueToStructFieldVector(
             parameter.get(), common::StructVector::getFieldVector(&result, i).get());
+    }
+}
+
+void StructPackVectorOperations::compileFunc(FunctionBindData* bindData,
+    const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
+    std::shared_ptr<common::ValueVector>& result) {
+    // Our goal is to make the state of the resultVector consistent with its children vectors.
+    // If the resultVector and inputVector are in different dataChunks, we should create a new
+    // child valueVector, which shares the state with the resultVector, instead of reusing the
+    // inputVector.
+    for (auto i = 0u; i < parameters.size(); i++) {
+        if (parameters[i]->state == result->state) {
+            common::StructVector::referenceVector(result.get(), i, parameters[i]);
+        }
     }
 }
 
@@ -83,12 +98,13 @@ vector_operation_definitions StructExtractVectorOperations::getDefinitions() {
     definitions.push_back(make_unique<VectorOperationDefinition>(common::STRUCT_EXTRACT_FUNC_NAME,
         std::vector<common::LogicalTypeID>{
             common::LogicalTypeID::STRUCT, common::LogicalTypeID::STRING},
-        common::LogicalTypeID::ANY, nullptr, nullptr, bindFunc, false /* isVarLength */));
+        common::LogicalTypeID::ANY, nullptr, nullptr, compileFunc, bindFunc,
+        false /* isVarLength */));
     return definitions;
 }
 
 std::unique_ptr<FunctionBindData> StructExtractVectorOperations::bindFunc(
-    const binder::expression_vector& arguments, kuzu::function::FunctionDefinition* definition) {
+    const binder::expression_vector& arguments, FunctionDefinition* definition) {
     auto structType = arguments[0]->getDataType();
     if (arguments[1]->expressionType != common::LITERAL) {
         throw common::BinderException("Key name for struct/union extract must be STRING literal.");
@@ -96,13 +112,22 @@ std::unique_ptr<FunctionBindData> StructExtractVectorOperations::bindFunc(
     auto key = ((binder::LiteralExpression&)*arguments[1]).getValue()->getValue<std::string>();
     common::StringUtils::toUpper(key);
     assert(definition->returnTypeID == common::LogicalTypeID::ANY);
-    auto childIdx = common::StructType::getFieldIdx(&structType, key);
-    if (childIdx == common::INVALID_STRUCT_FIELD_IDX) {
+    auto fieldIdx = common::StructType::getFieldIdx(&structType, key);
+    if (fieldIdx == common::INVALID_STRUCT_FIELD_IDX) {
         throw common::BinderException(
             common::StringUtils::string_format("Invalid struct field name: {}.", key));
     }
     return std::make_unique<StructExtractBindData>(
-        *(common::StructType::getFieldTypes(&structType))[childIdx], childIdx);
+        *(common::StructType::getFieldTypes(&structType))[fieldIdx], fieldIdx);
+}
+
+void StructExtractVectorOperations::compileFunc(FunctionBindData* bindData,
+    const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
+    std::shared_ptr<common::ValueVector>& result) {
+    assert(parameters[0]->dataType.getPhysicalType() == common::PhysicalTypeID::STRUCT);
+    auto structBindData = reinterpret_cast<StructExtractBindData*>(bindData);
+    result = common::StructVector::getFieldVector(parameters[0].get(), structBindData->childIdx);
+    result->state = parameters[0]->state;
 }
 
 } // namespace function

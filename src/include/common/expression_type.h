@@ -192,6 +192,8 @@ const std::string TO_MICROSECONDS_FUNC_NAME = "TO_MICROSECONDS";
 const std::string ID_FUNC_NAME = "ID";
 const std::string LABEL_FUNC_NAME = "LABEL";
 const std::string OFFSET_FUNC_NAME = "OFFSET";
+const std::string NODES_FUNC_NAME = "NODES";
+const std::string RELS_FUNC_NAME = "RELS";
 
 enum ExpressionType : uint8_t {
 
