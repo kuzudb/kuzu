@@ -839,6 +839,11 @@ ert
 ---- 1
 True
 
+-NAME ListCreateFromUnion
+-QUERY RETURN [UNION_VALUE(a := 3), UNION_VALUE(b := 7), UNION_VALUE(a := 11)]
+---- 1
+[3,7,11]
+
 -NAME ListSumSeq1
 -QUERY Return list_sum([1, 2, 3, NULL]);
 ---- 1

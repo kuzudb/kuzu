@@ -234,6 +234,7 @@ void LogicalType::setPhysicalType() {
     case LogicalTypeID::NODE:
     case LogicalTypeID::REL:
     case LogicalTypeID::RECURSIVE_REL:
+    case LogicalTypeID::UNION:
     case LogicalTypeID::STRUCT: {
         physicalType = PhysicalTypeID::STRUCT;
     } break;
@@ -338,6 +339,18 @@ std::string LogicalTypeUtils::dataTypeToString(const LogicalType& dataType) {
         return dataTypeToString(*fixedListTypeInfo->getChildType()) + "[" +
                std::to_string(fixedListTypeInfo->getNumElementsInList()) + "]";
     }
+    case LogicalTypeID::UNION: {
+        auto unionTypeInfo = reinterpret_cast<StructTypeInfo*>(dataType.extraTypeInfo.get());
+        std::string dataTypeStr = dataTypeToString(dataType.typeID) + "(";
+        auto numFields = unionTypeInfo->getChildrenTypes().size();
+        auto fieldNames = unionTypeInfo->getChildrenNames();
+        for (auto i = 1u; i < numFields; i++) {
+            dataTypeStr += fieldNames[i] + ":";
+            dataTypeStr += dataTypeToString(*unionTypeInfo->getChildrenTypes()[i]);
+            dataTypeStr += (i == numFields - 1 ? ")" : ", ");
+        }
+        return dataTypeStr;
+    }
     case LogicalTypeID::STRUCT: {
         auto structTypeInfo = reinterpret_cast<StructTypeInfo*>(dataType.extraTypeInfo.get());
         std::string dataTypeStr = dataTypeToString(dataType.typeID) + "(";
@@ -416,6 +429,8 @@ std::string LogicalTypeUtils::dataTypeToString(LogicalTypeID dataTypeID) {
         return "SERIAL";
     case LogicalTypeID::MAP:
         return "MAP";
+    case LogicalTypeID::UNION:
+        return "UNION";
     default:
         throw NotImplementedException("LogicalTypeUtils::dataTypeToString.");
     }

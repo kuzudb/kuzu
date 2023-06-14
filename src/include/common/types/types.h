@@ -32,6 +32,7 @@ constexpr vector_idx_t INVALID_VECTOR_IDX = UINT32_MAX;
 using block_idx_t = uint64_t;
 using field_idx_t = uint64_t;
 using struct_field_idx_t = uint64_t;
+using union_field_idx_t = uint64_t;
 constexpr struct_field_idx_t INVALID_STRUCT_FIELD_IDX = UINT64_MAX;
 using tuple_idx_t = uint64_t;
 
@@ -54,6 +55,8 @@ struct list_entry_t {
 struct struct_entry_t {
     int64_t pos;
 };
+
+using union_entry_t = struct_entry_t;
 
 KUZU_API enum class LogicalTypeID : uint8_t {
     ANY = 0,
@@ -85,6 +88,7 @@ KUZU_API enum class LogicalTypeID : uint8_t {
     VAR_LIST = 52,
     STRUCT = 53,
     MAP = 54,
+    UNION = 55,
 };
 
 enum class PhysicalTypeID : uint8_t {
@@ -288,12 +292,21 @@ struct StructType {
 struct MapType {
     static inline LogicalType* getKeyType(const LogicalType* type) {
         assert(type->getLogicalTypeID() == LogicalTypeID::MAP);
-        return common::StructType::getFieldTypes(common::VarListType::getChildType(type))[0];
+        return StructType::getFieldTypes(VarListType::getChildType(type))[0];
     }
 
     static inline LogicalType* getValueType(const LogicalType* type) {
         assert(type->getLogicalTypeID() == LogicalTypeID::MAP);
-        return common::StructType::getFieldTypes(common::VarListType::getChildType(type))[1];
+        return StructType::getFieldTypes(VarListType::getChildType(type))[1];
+    }
+};
+
+struct UnionType {
+    static inline union_field_idx_t getInternalFieldIdx(union_field_idx_t idx) { return idx + 1; }
+
+    static inline std::string getFieldName(const LogicalType* type, union_field_idx_t idx) {
+        assert(type->getLogicalTypeID() == LogicalTypeID::UNION);
+        return StructType::getFieldNames(type)[getInternalFieldIdx(idx)];
     }
 };
 

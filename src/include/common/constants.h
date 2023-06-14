@@ -24,6 +24,7 @@ struct InternalKeyword {
     static constexpr char LENGTH[] = "_length";
     static constexpr char NODES[] = "_nodes";
     static constexpr char RELS[] = "_rels";
+    static constexpr char TAG[] = "_tag";
 };
 
 enum PageSizeClass : uint8_t {

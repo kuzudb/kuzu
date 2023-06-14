@@ -128,17 +128,17 @@ public:
     static inline const std::vector<std::shared_ptr<ValueVector>>& getFieldVectors(
         const ValueVector* vector) {
         return reinterpret_cast<StructAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())
-            ->getChildrenVectors();
+            ->getFieldVectors();
     }
 
     static inline std::shared_ptr<ValueVector> getFieldVector(
-        const ValueVector* vector, vector_idx_t idx) {
+        const ValueVector* vector, struct_field_idx_t idx) {
         return reinterpret_cast<StructAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())
-            ->getChildrenVectors()[idx];
+            ->getFieldVectors()[idx];
     }
 
-    static inline void referenceVector(
-        ValueVector* vector, vector_idx_t idx, std::shared_ptr<ValueVector> vectorToReference) {
+    static inline void referenceVector(ValueVector* vector, struct_field_idx_t idx,
+        std::shared_ptr<ValueVector> vectorToReference) {
         reinterpret_cast<StructAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())
             ->referenceChildVector(idx, vectorToReference);
     }
@@ -148,6 +148,28 @@ public:
             reinterpret_cast<int64_t*>(
                 vector->getData() + vector->getNumBytesPerValue() * DEFAULT_VECTOR_CAPACITY),
             0);
+    }
+};
+
+class UnionVector {
+public:
+    static inline ValueVector* getTagVector(const ValueVector* vector) {
+        assert(vector->dataType.getLogicalTypeID() == LogicalTypeID::UNION);
+        return StructVector::getFieldVector(vector, 0).get();
+    }
+
+    static inline void referenceVector(ValueVector* vector, union_field_idx_t fieldIdx,
+        std::shared_ptr<ValueVector> vectorToReference) {
+        StructVector::referenceVector(
+            vector, UnionType::getInternalFieldIdx(fieldIdx), vectorToReference);
+    }
+
+    static inline void setTagField(ValueVector* vector, union_field_idx_t tag) {
+        assert(vector->dataType.getLogicalTypeID() == LogicalTypeID::UNION);
+        for (auto i = 0u; i < vector->state->selVector->selectedSize; i++) {
+            vector->setValue<struct_field_idx_t>(
+                vector->state->selVector->selectedPositions[i], tag);
+        }
     }
 };
 

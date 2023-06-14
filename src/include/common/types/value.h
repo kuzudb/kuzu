@@ -197,6 +197,7 @@ private:
         ku_list_t& list, const LogicalType& childType) const;
     std::vector<std::unique_ptr<Value>> convertKUFixedListToVector(const uint8_t* fixedList) const;
     std::vector<std::unique_ptr<Value>> convertKUStructToVector(const uint8_t* kuStruct) const;
+    std::vector<std::unique_ptr<Value>> convertKUUnionToVector(const uint8_t* kuUnion) const;
 
 public:
     LogicalType dataType;

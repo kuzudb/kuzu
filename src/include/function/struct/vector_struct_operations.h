@@ -27,8 +27,6 @@ struct StructExtractVectorOperations {
     static vector_operation_definitions getDefinitions();
     static std::unique_ptr<FunctionBindData> bindFunc(
         const binder::expression_vector& arguments, FunctionDefinition* definition);
-    static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
-        common::ValueVector& result) {} // Evaluate at compile time
 };
 
 } // namespace function

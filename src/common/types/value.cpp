@@ -68,6 +68,7 @@ Value Value::createDefaultValue(const LogicalType& dataType) {
     case LogicalTypeID::MAP:
     case LogicalTypeID::VAR_LIST:
     case LogicalTypeID::FIXED_LIST:
+    case LogicalTypeID::UNION:
     case LogicalTypeID::STRUCT:
         return Value(dataType, std::vector<std::unique_ptr<Value>>{});
     default:
@@ -147,42 +148,52 @@ Value::Value(const Value& other) : dataType{other.dataType}, isNull_{other.isNul
 }
 
 void Value::copyValueFrom(const uint8_t* value) {
-    switch (dataType.getPhysicalType()) {
-    case PhysicalTypeID::INT64: {
+    switch (dataType.getLogicalTypeID()) {
+    case LogicalTypeID::SERIAL:
+    case LogicalTypeID::TIMESTAMP:
+    case LogicalTypeID::INT64: {
         val.int64Val = *((int64_t*)value);
     } break;
-    case PhysicalTypeID::INT32: {
+    case LogicalTypeID::DATE:
+    case LogicalTypeID::INT32: {
         val.int32Val = *((int32_t*)value);
     } break;
-    case PhysicalTypeID::INT16: {
+    case LogicalTypeID::INT16: {
         val.int16Val = *((int16_t*)value);
     } break;
-    case PhysicalTypeID::BOOL: {
+    case LogicalTypeID::BOOL: {
         val.booleanVal = *((bool*)value);
     } break;
-    case PhysicalTypeID::DOUBLE: {
+    case LogicalTypeID::DOUBLE: {
         val.doubleVal = *((double*)value);
     } break;
-    case PhysicalTypeID::FLOAT: {
+    case LogicalTypeID::FLOAT: {
         val.floatVal = *((float_t*)value);
     } break;
-    case PhysicalTypeID::INTERVAL: {
+    case LogicalTypeID::INTERVAL: {
         val.intervalVal = *((interval_t*)value);
     } break;
-    case PhysicalTypeID::INTERNAL_ID: {
+    case LogicalTypeID::INTERNAL_ID: {
         val.internalIDVal = *((nodeID_t*)value);
     } break;
-    case PhysicalTypeID::STRING: {
+    case LogicalTypeID::STRING: {
         strVal = ((ku_string_t*)value)->getAsString();
     } break;
-    case PhysicalTypeID::VAR_LIST: {
+    case LogicalTypeID::MAP:
+    case LogicalTypeID::VAR_LIST: {
         nestedTypeVal =
             convertKUVarListToVector(*(ku_list_t*)value, *VarListType::getChildType(&dataType));
     } break;
-    case PhysicalTypeID::FIXED_LIST: {
+    case LogicalTypeID::FIXED_LIST: {
         nestedTypeVal = convertKUFixedListToVector(value);
     } break;
-    case PhysicalTypeID::STRUCT: {
+    case LogicalTypeID::UNION: {
+        nestedTypeVal = convertKUUnionToVector(value);
+    } break;
+    case LogicalTypeID::NODE:
+    case LogicalTypeID::REL:
+    case LogicalTypeID::RECURSIVE_REL:
+    case LogicalTypeID::STRUCT: {
         nestedTypeVal = convertKUStructToVector(value);
     } break;
     default:
@@ -305,6 +316,11 @@ std::string Value::toString() const {
         result += "]";
         return result;
     }
+    case LogicalTypeID::UNION: {
+        // Only one member in the union can be active at a time and that member is always stored
+        // at index 0.
+        return nestedTypeVal[0]->toString();
+    }
     case LogicalTypeID::RECURSIVE_REL:
     case LogicalTypeID::STRUCT: {
         std::string result = "{";
@@ -400,6 +416,31 @@ std::vector<std::unique_ptr<Value>> Value::convertKUStructToVector(const uint8_t
         structValues += storage::StorageUtils::getDataTypeSize(*childrenTypes[i]);
     }
     return structVal;
+}
+
+std::vector<std::unique_ptr<Value>> Value::convertKUUnionToVector(const uint8_t* kuUnion) const {
+    std::vector<std::unique_ptr<Value>> unionVal;
+    auto childrenTypes = StructType::getFieldTypes(&dataType);
+    auto unionNullValues = kuUnion;
+    auto unionValues = unionNullValues + NullBuffer::getNumBytesForNullValues(childrenTypes.size());
+    // For union dataType, only one member can be active at a time. So we don't need to copy all
+    // union fields into value.
+    auto activeMemberIdx = UnionType::getInternalFieldIdx(*(union_field_idx_t*)unionValues);
+    auto childValue =
+        std::make_unique<Value>(Value::createDefaultValue(*childrenTypes[activeMemberIdx]));
+    auto curMemberIdx = 0u;
+    // Seek to the current active member value.
+    while (curMemberIdx < activeMemberIdx) {
+        unionValues += storage::StorageUtils::getDataTypeSize(*childrenTypes[curMemberIdx]);
+        curMemberIdx++;
+    }
+    if (NullBuffer::isNull(unionNullValues, activeMemberIdx)) {
+        childValue->setNull(true);
+    } else {
+        childValue->copyValueFrom(unionValues);
+    }
+    unionVal.emplace_back(std::move(childValue));
+    return unionVal;
 }
 
 static std::string propertiesToString(

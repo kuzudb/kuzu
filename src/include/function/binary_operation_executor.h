@@ -233,7 +233,7 @@ struct BinaryOperationExecutor {
     }
 
     template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC>
-    static void executeList(
+    static void executeListStruct(
         common::ValueVector& left, common::ValueVector& right, common::ValueVector& result) {
         executeSwitch<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC, BinaryListOperationWrapper>(
             left, right, result);
