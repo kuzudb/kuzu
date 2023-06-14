@@ -14,15 +14,13 @@ public:
         std::string tableName, binder::expression_vector arrowColumnExpressions,
         std::shared_ptr<binder::Expression> rowIdxExpression,
         std::shared_ptr<binder::Expression> filePathExpression,
-        std::shared_ptr<binder::Expression> columnIdxExpression,
         std::shared_ptr<binder::Expression> outputExpression)
-        : LogicalOperator{LogicalOperatorType::COPY}, copyDescription{copyDescription},
-          tableID{tableID}, tableName{std::move(tableName)}, arrowColumnExpressions{std::move(
-                                                                 arrowColumnExpressions)},
-          rowIdxExpression{std::move(rowIdxExpression)}, filePathExpression{std::move(
-                                                             filePathExpression)},
-          columnIdxExpression{std::move(columnIdxExpression)}, outputExpression{
-                                                                   std::move(outputExpression)} {}
+        : LogicalOperator{LogicalOperatorType::COPY},
+          copyDescription{copyDescription}, tableID{tableID}, tableName{std::move(tableName)},
+          arrowColumnExpressions{std::move(arrowColumnExpressions)}, rowIdxExpression{std::move(
+                                                                         rowIdxExpression)},
+          filePathExpression{std::move(filePathExpression)}, outputExpression{
+                                                                 std::move(outputExpression)} {}
 
     inline std::string getExpressionsForPrinting() const override { return tableName; }
 
@@ -42,10 +40,6 @@ public:
         return filePathExpression;
     }
 
-    inline std::shared_ptr<binder::Expression> getColumnIdxExpression() const {
-        return columnIdxExpression;
-    }
-
     inline std::shared_ptr<binder::Expression> getOutputExpression() const {
         return outputExpression;
     }
@@ -55,7 +49,7 @@ public:
 
     inline std::unique_ptr<LogicalOperator> copy() override {
         return make_unique<LogicalCopy>(copyDescription, tableID, tableName, arrowColumnExpressions,
-            rowIdxExpression, filePathExpression, columnIdxExpression, outputExpression);
+            rowIdxExpression, filePathExpression, outputExpression);
     }
 
 private:
@@ -66,7 +60,6 @@ private:
     binder::expression_vector arrowColumnExpressions;
     std::shared_ptr<binder::Expression> rowIdxExpression;
     std::shared_ptr<binder::Expression> filePathExpression;
-    std::shared_ptr<binder::Expression> columnIdxExpression;
     std::shared_ptr<binder::Expression> outputExpression;
 };
 

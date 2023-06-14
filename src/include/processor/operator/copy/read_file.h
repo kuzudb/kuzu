@@ -24,6 +24,7 @@ public:
 
     inline bool isSource() const override { return true; }
 
+protected:
     virtual std::shared_ptr<arrow::RecordBatch> readTuples(
         std::unique_ptr<storage::ReadFileMorsel> morsel) = 0;
 

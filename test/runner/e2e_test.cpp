@@ -1,3 +1,5 @@
+#include <utility>
+
 #include "common/string_utils.h"
 #include "graph_test/graph_test.h"
 #include "test_runner/csv_to_parquet_converter.h"
@@ -11,7 +13,7 @@ class EndToEndTest : public DBTest {
 public:
     explicit EndToEndTest(TestGroup::DatasetType datasetType, std::string dataset,
         uint64_t bufferPoolSize, std::vector<std::unique_ptr<TestStatement>> testStatements)
-        : datasetType{datasetType}, dataset{dataset}, bufferPoolSize{bufferPoolSize},
+        : datasetType{datasetType}, dataset{std::move(dataset)}, bufferPoolSize{bufferPoolSize},
           testStatements{std::move(testStatements)} {}
 
     void SetUp() override {
@@ -48,7 +50,7 @@ private:
     uint64_t bufferPoolSize;
     std::vector<std::unique_ptr<TestStatement>> testStatements;
 
-    const std::string generateParquetTempDatasetPath() {
+    std::string generateParquetTempDatasetPath() {
         return TestHelper::appendKuzuRootPath(
             TestHelper::PARQUET_TEMP_DATASET_PATH +
             CSVToParquetConverter::replaceSlashesWithUnderscores(dataset) + getTestGroupAndName() +
@@ -97,7 +99,7 @@ void scanTestFiles(const std::string& path) {
     }
 }
 
-std::string findTestFile(std::string testCase) {
+std::string findTestFile(const std::string& testCase) {
     std::ifstream infile(TestHelper::getTestListFile());
     std::string line;
     while (std::getline(infile, line)) {

@@ -16,17 +16,19 @@ bool ReadFile::getNextTuplesInternal(kuzu::processor::ExecutionContext* context)
     if (morsel == nullptr) {
         return false;
     }
-    rowIdxVector->setValue(rowIdxVector->state->selVector->selectedPositions[0], morsel->rowIdx);
+    rowIdxVector->setValue(
+        rowIdxVector->state->selVector->selectedPositions[0], morsel->rowIdxInFile);
     rowIdxVector->setValue(
         rowIdxVector->state->selVector->selectedPositions[1], morsel->rowIdxInFile);
     filePathVector->resetAuxiliaryBuffer();
     filePathVector->setValue(
         rowIdxVector->state->selVector->selectedPositions[0], morsel->filePath);
     auto recordBatch = readTuples(std::move(morsel));
-    for (auto i = 0u; i < arrowColumnVectors.size(); i++) {
+    for (auto i = 0u; i < arrowColumnPoses.size(); i++) {
         common::ArrowColumnVector::setArrowColumn(
-            arrowColumnVectors[i], recordBatch->column((int)i));
+            resultSet->getValueVector(arrowColumnPoses[i]).get(), recordBatch->column((int)i));
     }
+    resultSet->dataChunks[0]->state->currIdx = -1;
     return true;
 }
 

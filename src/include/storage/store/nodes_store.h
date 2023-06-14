@@ -10,11 +10,12 @@ namespace kuzu {
 namespace storage {
 
 class NodesStore {
-
 public:
-    NodesStore(const catalog::Catalog& catalog, BufferManager& bufferManager, WAL* wal);
+    NodesStore(BMFileHandle* nodeGroupsDataFH, BMFileHandle* nodeGroupsMetaFH,
+        const catalog::Catalog& catalog, BufferManager& bufferManager, WAL* wal);
 
-    inline Column* getNodePropertyColumn(common::table_id_t tableID, uint64_t propertyIdx) const {
+    inline NodeColumn* getNodePropertyColumn(
+        common::table_id_t tableID, uint64_t propertyIdx) const {
         return nodeTables.at(tableID)->getPropertyColumn(propertyIdx);
     }
     inline PrimaryKeyIndex* getPKIndex(common::table_id_t tableID) {
@@ -31,8 +32,9 @@ public:
     // nodeStore when checkpointing and not in recovery mode.
     inline void createNodeTable(
         common::table_id_t tableID, BufferManager* bufferManager, catalog::Catalog* catalog) {
-        nodeTables[tableID] = std::make_unique<NodeTable>(&nodesStatisticsAndDeletedIDs,
-            *bufferManager, wal, catalog->getReadOnlyVersion()->getNodeTableSchema(tableID));
+        nodeTables[tableID] = std::make_unique<NodeTable>(nodeGroupsDataFH, nodeGroupsMetaFH,
+            &nodesStatisticsAndDeletedIDs, *bufferManager, wal,
+            catalog->getReadOnlyVersion()->getNodeTableSchema(tableID));
     }
     inline void removeNodeTable(common::table_id_t tableID) {
         nodeTables.erase(tableID);
@@ -60,16 +62,21 @@ public:
             nodeTables.at(updatedNodeTable)->checkpointInMemory();
         }
     }
-    inline void rollback(const std::unordered_set<common::table_id_t>& updatedTables) {
+    inline void rollbackInMemory(const std::unordered_set<common::table_id_t>& updatedTables) {
         for (auto updatedNodeTable : updatedTables) {
-            nodeTables.at(updatedNodeTable)->rollback();
+            nodeTables.at(updatedNodeTable)->rollbackInMemory();
         }
     }
 
+    inline BMFileHandle* getNodeGroupsDataFH() const { return nodeGroupsDataFH; }
+    inline BMFileHandle* getNodeGroupsMetaFH() const { return nodeGroupsMetaFH; }
+
 private:
-    std::unordered_map<common::table_id_t, std::unique_ptr<NodeTable>> nodeTables;
+    std::map<common::table_id_t, std::unique_ptr<NodeTable>> nodeTables;
     NodesStatisticsAndDeletedIDs nodesStatisticsAndDeletedIDs;
     WAL* wal;
+    BMFileHandle* nodeGroupsDataFH;
+    BMFileHandle* nodeGroupsMetaFH;
 };
 
 } // namespace storage

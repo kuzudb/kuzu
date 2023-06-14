@@ -2,6 +2,7 @@
 
 #include "common/null_buffer.h"
 #include "common/vector/auxiliary_buffer.h"
+#include <arrow/array.h>
 
 namespace kuzu {
 namespace common {
@@ -177,6 +178,15 @@ void ArrowColumnVector::setArrowColumn(ValueVector* vector, std::shared_ptr<arro
     auto arrowColumnBuffer =
         reinterpret_cast<ArrowColumnAuxiliaryBuffer*>(vector->auxiliaryBuffer.get());
     arrowColumnBuffer->column = std::move(column);
+}
+
+void ArrowColumnVector::slice(
+    ValueVector* vectorToSlice, ValueVector* slicedVector, int64_t offset, int64_t length) {
+    auto arrowColumnBuffer =
+        reinterpret_cast<ArrowColumnAuxiliaryBuffer*>(vectorToSlice->auxiliaryBuffer.get());
+    auto arrowColumn = arrowColumnBuffer->column;
+    auto slicedColumn = arrowColumn->Slice(offset, length);
+    setArrowColumn(slicedVector, slicedColumn);
 }
 
 template void ValueVector::setValue<nodeID_t>(uint32_t pos, nodeID_t val);

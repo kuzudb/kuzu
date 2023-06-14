@@ -1,5 +1,6 @@
 #pragma once
 
+#include "catalog/catalog_structs.h"
 #include "logical_create_table.h"
 
 namespace kuzu {

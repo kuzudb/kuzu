@@ -11,15 +11,15 @@ namespace kuzu {
 namespace binder {
 
 std::unique_ptr<BoundStatement> Binder::bindCopyClause(const Statement& statement) {
-    auto& copyCSV = (Copy&)statement;
+    auto& copyStatement = (Copy&)statement;
     auto catalogContent = catalog.getReadOnlyVersion();
-    auto tableName = copyCSV.getTableName();
+    auto tableName = copyStatement.getTableName();
     validateTableExist(catalog, tableName);
     auto tableID = catalogContent->getTableID(tableName);
-    auto csvReaderConfig = bindParsingOptions(copyCSV.getParsingOptions());
-    auto boundFilePaths = bindFilePaths(copyCSV.getFilePaths());
+    auto csvReaderConfig = bindParsingOptions(copyStatement.getParsingOptions());
+    auto boundFilePaths = bindFilePaths(copyStatement.getFilePaths());
     auto actualFileType = bindFileType(boundFilePaths);
-    auto expectedFileType = copyCSV.getFileType();
+    auto expectedFileType = copyStatement.getFileType();
     if (expectedFileType == common::CopyDescription::FileType::UNKNOWN &&
         actualFileType == common::CopyDescription::FileType::NPY) {
         throw BinderException("Please use COPY FROM BY COLUMN statement for copying npy files.");

@@ -1,5 +1,5 @@
 -GROUP CopyNodeFromParquetTest
--DATASET CSV copy-test/node/parquet
+-DATASET PARQUET copy-test/node/parquet
 
 --
 

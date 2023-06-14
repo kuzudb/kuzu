@@ -2,24 +2,27 @@
 
 #include "expression_evaluator/base_evaluator.h"
 #include "processor/operator/physical_operator.h"
-#include "storage/storage_structure/column.h"
+#include "storage/store/node_table.h"
 #include "storage/store/rel_table.h"
 
 namespace kuzu {
 namespace processor {
 
-struct SetNodePropertyInfo {
-    storage::Column* column;
-    DataPos nodeIDPos;
-    std::unique_ptr<evaluator::BaseExpressionEvaluator> evaluator;
-
-    SetNodePropertyInfo(storage::Column* column, const DataPos& nodeIDPos,
-        std::unique_ptr<evaluator::BaseExpressionEvaluator> evaluator)
-        : column{column}, nodeIDPos{nodeIDPos}, evaluator{std::move(evaluator)} {}
+class SetNodePropertyInfo {
+public:
+    SetNodePropertyInfo(storage::NodeTable* table, common::property_id_t propertyID,
+        const DataPos& nodeIDPos, std::unique_ptr<evaluator::BaseExpressionEvaluator> evaluator)
+        : table{table}, propertyID{propertyID}, nodeIDPos{nodeIDPos}, evaluator{
+                                                                          std::move(evaluator)} {}
 
     inline std::unique_ptr<SetNodePropertyInfo> clone() const {
-        return make_unique<SetNodePropertyInfo>(column, nodeIDPos, evaluator->clone());
+        return make_unique<SetNodePropertyInfo>(table, propertyID, nodeIDPos, evaluator->clone());
     }
+
+    storage::NodeTable* table;
+    common::property_id_t propertyID;
+    DataPos nodeIDPos;
+    std::unique_ptr<evaluator::BaseExpressionEvaluator> evaluator;
 };
 
 class SetNodeProperty : public PhysicalOperator {

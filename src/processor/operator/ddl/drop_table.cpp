@@ -7,7 +7,7 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
-void DropTable::executeDDLInternal() {
+void DropTable::executeDDLInternal(ExecutionContext* context) {
     catalog->dropTableSchema(tableID);
 }
 

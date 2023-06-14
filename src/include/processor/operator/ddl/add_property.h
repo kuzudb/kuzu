@@ -23,7 +23,7 @@ public:
         expressionEvaluator->init(*resultSet, context->memoryManager);
     }
 
-    void executeDDLInternal() override;
+    void executeDDLInternal(ExecutionContext* context) override;
 
     std::string getOutputMsg() override { return {"Add Succeed."}; }
 

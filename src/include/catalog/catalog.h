@@ -16,10 +16,6 @@
 #include "storage/wal/wal.h"
 #include "transaction/transaction.h"
 
-namespace spdlog {
-class logger;
-}
-
 namespace kuzu {
 namespace catalog {
 
@@ -27,14 +23,11 @@ class CatalogContent {
     friend class Catalog;
 
 public:
-    // This constructor is only used for mock catalog testing only.
     CatalogContent();
 
     explicit CatalogContent(const std::string& directory);
 
     CatalogContent(const CatalogContent& other);
-
-    virtual ~CatalogContent() = default;
 
     /**
      * Node and Rel table functions.
@@ -100,10 +93,8 @@ public:
      */
     // getNodeProperty and getRelProperty should be called after checking if property exists
     // (containNodeProperty and containRelProperty).
-    const Property& getNodeProperty(
-        common::table_id_t tableID, const std::string& propertyName) const;
-    const Property& getRelProperty(
-        common::table_id_t tableID, const std::string& propertyName) const;
+    Property& getNodeProperty(common::table_id_t tableID, const std::string& propertyName) const;
+    Property& getRelProperty(common::table_id_t tableID, const std::string& propertyName) const;
 
     inline const std::vector<Property>& getNodeProperties(common::table_id_t tableID) const {
         return nodeTableSchemas.at(tableID)->getProperties();
@@ -164,7 +155,6 @@ private:
     void registerBuiltInFunctions();
 
 private:
-    std::shared_ptr<spdlog::logger> logger;
     std::unordered_map<common::table_id_t, std::unique_ptr<NodeTableSchema>> nodeTableSchemas;
     std::unordered_map<common::table_id_t, std::unique_ptr<RelTableSchema>> relTableSchemas;
     // These two maps are maintained as caches. They are not serialized to the catalog file, but
@@ -183,8 +173,6 @@ public:
     Catalog();
 
     explicit Catalog(storage::WAL* wal);
-
-    virtual ~Catalog() = default;
 
     // TODO(Guodong): Get rid of these two functions.
     inline CatalogContent* getReadOnlyVersion() const { return catalogContentForReadOnlyTrx.get(); }
@@ -227,7 +215,7 @@ public:
 
     void dropTableSchema(common::table_id_t tableID);
 
-    void renameTable(common::table_id_t tableID, std::string newName);
+    void renameTable(common::table_id_t tableID, const std::string& newName);
 
     void addProperty(
         common::table_id_t tableID, const std::string& propertyName, common::LogicalType dataType);
@@ -248,14 +236,19 @@ public:
     inline function::ScalarMacroFunction* getScalarMacroFunction(std::string name) const {
         return catalogContentForReadOnlyTrx->macros.at(name).get();
     }
+    inline storage::BMFileHandle* getNodeGroupsMetaFH() const { return nodeGroupsMetaFH.get(); }
 
 private:
     inline bool hasUpdates() { return catalogContentForWriteTrx != nullptr; }
+
+    void addMetaDAHeaderPageForProperty(
+        const common::LogicalType& dataType, MetaDiskArrayHeaderInfo& diskArrayHeaderInfo);
 
 protected:
     std::unique_ptr<CatalogContent> catalogContentForReadOnlyTrx;
     std::unique_ptr<CatalogContent> catalogContentForWriteTrx;
     storage::WAL* wal;
+    std::unique_ptr<storage::BMFileHandle> nodeGroupsMetaFH;
 };
 
 } // namespace catalog

@@ -54,5 +54,16 @@ private:
     static inline const std::string defaultFieldName = "NPY_FIELD";
 };
 
+class NpyMultiFileReader {
+public:
+    explicit NpyMultiFileReader(const std::vector<std::string>& filePaths);
+
+    std::shared_ptr<arrow::RecordBatch> readBlock(common::block_idx_t blockIdx) const;
+
+private:
+    std::vector<std::string> filePaths;
+    std::vector<std::unique_ptr<NpyReader>> fileReaders;
+};
+
 } // namespace storage
 } // namespace kuzu

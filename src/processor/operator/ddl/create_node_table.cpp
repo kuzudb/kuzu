@@ -7,7 +7,7 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
-void CreateNodeTable::executeDDLInternal() {
+void CreateNodeTable::executeDDLInternal(ExecutionContext* context) {
     auto newTableID = catalog->addNodeTableSchema(tableName, primaryKeyIdx, properties);
     nodesStatistics->addNodeStatisticsAndDeletedIDs(
         catalog->getWriteVersion()->getNodeTableSchema(newTableID));
