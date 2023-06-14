@@ -1,0 +1,53 @@
+-GROUP CopyNpyFaultTest
+-DATASET CSV empty
+
+--
+
+-CASE CopyNpyInsufficientNumberOfProperties
+-STATEMENT create node table npytable (id INT64,i64 INT64[12],PRIMARY KEY(id));
+---- ok
+-STATEMENT copy npytable from ("${KUZU_ROOT_DIRECTORY}/dataset/npy-3d/three_dim_int64.npy") by column;
+---- error
+Binder exception: Number of npy files is not equal to number of properties in table npytable.
+
+-CASE CopyNpyRedundantProperties
+-STATEMENT create node table npytable (id INT64,i32 INT32, PRIMARY KEY(id));
+---- ok
+-STATEMENT copy npytable from ("${KUZU_ROOT_DIRECTORY}/dataset/npy-20k/id_int64.npy", "${KUZU_ROOT_DIRECTORY}/dataset/npy-20k/two_dim_float.npy") BY COLUMN;
+---- error
+Copy exception: The type of npy file ${KUZU_ROOT_DIRECTORY}/dataset/npy-20k/two_dim_float.npy does not match the type defined in table npytable.
+
+-CASE CopyNpyVectorIntoScaler
+-STATEMENT create node table npytable (id INT64,f32 FLOAT, PRIMARY KEY(id));
+---- ok
+-STATEMENT copy npytable from ("${KUZU_ROOT_DIRECTORY}/dataset/npy-20k/id_int64.npy", "${KUZU_ROOT_DIRECTORY}/dataset/npy-20k/two_dim_float.npy") by column;
+---- error
+Copy exception: Cannot copy a vector property in npy file ${KUZU_ROOT_DIRECTORY}/dataset/npy-20k/two_dim_float.npy to a scalar property in table npytable.
+
+-CASE CopyNpyWithMismatchedTypeOneDimensionTest
+-STATEMENT create node table npytable (id INT64,i32 INT32, PRIMARY KEY(id));
+---- ok
+-STATEMENT copy npytable from ("${KUZU_ROOT_DIRECTORY}/dataset/npy-1d/one_dim_int64.npy", "${KUZU_ROOT_DIRECTORY}/dataset/npy-1d/one_dim_float.npy") by column;
+---- error
+Copy exception: The type of npy file ${KUZU_ROOT_DIRECTORY}/dataset/npy-1d/one_dim_float.npy does not match the type defined in table npytable.
+
+-CASE CopyNpyWithMismatchedTypeTwoDimensionTest
+-STATEMENT create node table npytable (id INT64,i32 INT32[10], PRIMARY KEY(id));
+---- ok
+-STATEMENT copy npytable from ("${KUZU_ROOT_DIRECTORY}/dataset/npy-20k/id_int64.npy", "${KUZU_ROOT_DIRECTORY}/dataset/npy-20k/two_dim_float.npy") by column;
+---- error
+Copy exception: The type of npy file ${KUZU_ROOT_DIRECTORY}/dataset/npy-20k/two_dim_float.npy does not match the type defined in table npytable.
+
+-CASE CopyNpyWithMismatchedDimensionTest
+-STATEMENT create node table npytable (id INT64,f32 FLOAT[12],PRIMARY KEY(id));
+---- ok
+-STATEMENT copy npytable from ("${KUZU_ROOT_DIRECTORY}/dataset/npy-20k/id_int64.npy", "${KUZU_ROOT_DIRECTORY}/dataset/npy-20k/two_dim_float.npy") by column;
+---- error
+Copy exception: The shape of ${KUZU_ROOT_DIRECTORY}/dataset/npy-20k/two_dim_float.npy does not match the length of the fixed list property in table npytable.
+
+-CASE CopyNpyWithMismatchedLengthTest
+-STATEMENT create node table npytable (id INT64,i64 INT64[12],PRIMARY KEY(id));
+---- ok
+-STATEMENT copy npytable from ("${KUZU_ROOT_DIRECTORY}/dataset/npy-20k/id_int64.npy", "${KUZU_ROOT_DIRECTORY}/dataset/npy-3d/three_dim_int64.npy") by column;
+---- error
+Copy exception: Number of rows in npy files is not equal to each other.

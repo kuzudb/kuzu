@@ -1,0 +1,25 @@
+-GROUP CopySpecialChar
+-DATASET CSV copy-special-char-test
+
+--
+
+-CASE CopySpecialChars
+
+-NAME RandomString
+-QUERY MATCH (p:person) RETURN p.randomString;
+---- 8
+NA
+only one # should be recognized
+the " should be ignored
+the - should be escaped
+this -is #a mixed test
+this is a #plain# string
+this is another #plain# string with \
+this is |the first line
+
+-NAME OrganisationString
+-QUERY MATCH (o:organisation) RETURN o.name;
+---- 3
+ABFsUni
+CsW,ork
+DEsW#ork

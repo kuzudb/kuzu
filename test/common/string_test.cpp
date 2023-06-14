@@ -27,3 +27,21 @@ TEST(StringTest, rightTrim) {
     std::string result = StringUtils::rtrim(str);
     EXPECT_EQ(result, " command");
 }
+
+TEST(StringTest, extractStringBetween) {
+    std::string str = "command (a b c)";
+    std::string result = StringUtils::extractStringBetween(str, '(', ')', false);
+    EXPECT_EQ(result, "a b c");
+    result = StringUtils::extractStringBetween(str, '(', ')', true);
+    EXPECT_EQ(result, "(a b c)");
+}
+
+TEST(StringTest, extractStringBetweenNoDelimiterFound) {
+    std::string str = "command (a b c)";
+    std::string result = StringUtils::extractStringBetween(str, '"', ')', false);
+    EXPECT_TRUE(result.empty());
+    result = StringUtils::extractStringBetween(str, '(', '.', true);
+    EXPECT_TRUE(result.empty());
+    result = StringUtils::extractStringBetween(str, ')', '(', true);
+    EXPECT_TRUE(result.empty());
+}

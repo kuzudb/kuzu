@@ -18,6 +18,7 @@ struct TestStatement {
     bool enumerate = false;
     bool checkOutputOrder = false;
     bool isBeginWriteTransaction = false;
+    std::string expectedTuplesCSVFile;
 };
 
 // Test group is a collection of test cases in a single file.

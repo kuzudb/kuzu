@@ -1,0 +1,19 @@
+-GROUP CopyRelTableMultiplicityViolationTest
+-DATASET CSV copy-fault-tests/rel-table-multiplicity-violation
+
+--
+
+-CASE ManyOneMultiplicityViolationError
+-STATEMENT COPY knows FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/rel-table-multiplicity-violation/eKnows.csv"
+---- error
+Copy exception: RelTable knows is a MANY_ONE table, but node(nodeOffset: 0) has more than one neighbour in the forward direction.
+
+-CASE OneManyMultiplicityViolationError
+-STATEMENT COPY teaches FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/rel-table-multiplicity-violation/eTeaches.csv"
+---- error
+Copy exception: RelTable teaches is a ONE_MANY table, but node(nodeOffset: 2) has more than one neighbour in the backward direction.
+
+-CASE OneOneMultiplicityViolationError
+-STATEMENT COPY matches FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/rel-table-multiplicity-violation/eMatches.csv"
+---- error
+Copy exception: RelTable matches is a ONE_ONE table, but node(nodeOffset: 1) has more than one neighbour in the forward direction.

@@ -67,6 +67,7 @@ private:
     std::string extractTextBeforeNextStatement(bool ignoreLineBreak = false);
     std::string parseCommand();
     std::string parseCommandArange();
+    std::string parseCommandRepeat();
     LogicToken currentToken;
 
     void openFile();

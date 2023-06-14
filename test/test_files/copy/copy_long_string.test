@@ -1,0 +1,19 @@
+-GROUP CopyLongStringTest
+-DATASET CSV copy-fault-tests/long-string
+
+--
+
+-CASE LongStringError
+-DEFINE AliceStr REPEAT 819 "Alice"
+
+-NAME LongStringAlice
+-QUERY MATCH (p:person) RETURN p.fName;
+---- 2
+${AliceStr}A
+Bob
+
+-NAME Gender
+-QUERY MATCH (p:person) RETURN p.gender
+---- 2
+1
+2

@@ -31,6 +31,7 @@ public:
     static constexpr char COPY_FILE_NAME[] = "copy.cypher";
     static constexpr char PARQUET_TEMP_DATASET_PATH[] = "dataset/parquet_temp_";
     static constexpr char TMP_TEST_DIR[] = "test/unittest_temp_";
+    static constexpr char TEST_ANSWERS_PATH[] = "/test/answers";
 
     static std::vector<std::unique_ptr<TestQueryConfig>> parseTestFile(
         const std::string& path, bool checkOutputOrder = false);

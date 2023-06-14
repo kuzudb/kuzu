@@ -3,6 +3,7 @@
 #include <fstream>
 
 #include "common/string_utils.h"
+#include "test_helper/test_helper.h"
 
 using namespace kuzu::common;
 
@@ -96,8 +97,16 @@ void TestParser::extractExpectedResult(TestStatement* statement) {
     } else {
         checkMinimumParams(1);
         statement->expectedNumTuples = stoi(result);
+        nextLine();
+        if (line.starts_with("<FILE>:")) {
+            statement->expectedTuplesCSVFile = TestHelper::appendKuzuRootPath(
+                FileUtils::joinPath(TestHelper::TEST_ANSWERS_PATH, line.substr(7)));
+            return;
+        }
+        setCursorToPreviousLine();
         for (auto i = 0u; i < statement->expectedNumTuples; i++) {
             nextLine();
+            replaceVariables(line);
             statement->expectedTuples.push_back(line);
         }
         if (!statement->checkOutputOrder) { // order is not important for result
@@ -193,6 +202,12 @@ void TestParser::extractStatementBlock() {
 }
 
 std::string TestParser::parseCommand() {
+    // REPEAT 3 "Alice " = "Alice Alice Alice "
+    if (currentToken.params[2] == "REPEAT") {
+        checkMinimumParams(4);
+        return parseCommandRepeat();
+    }
+    // ARANGE 0 3 = [0,1,2,3]
     if (currentToken.params[2] == "ARANGE") {
         checkMinimumParams(4);
         return parseCommandArange();
@@ -204,6 +219,18 @@ std::string TestParser::parseCommand() {
     return params.substr(1, params.size() - 2);
 }
 
+std::string TestParser::parseCommandRepeat() {
+    int times = stoi(currentToken.params[3]);
+    std::string result;
+    std::string repeatString = StringUtils::extractStringBetween(paramsToString(4), '"', '"');
+    if (repeatString.empty()) {
+        throw TestException("Invalid DEFINE data type [" + path + ":" + line + "].");
+    }
+    for (auto i = 0; i < times; i++) {
+        result += repeatString;
+    }
+    return result;
+}
 std::string TestParser::parseCommandArange() {
     int start = stoi(currentToken.params[3]);
     int end = stoi(currentToken.params[4]);

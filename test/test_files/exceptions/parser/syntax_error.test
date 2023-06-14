@@ -1,5 +1,5 @@
 -GROUP SyntaxErrorTest
--DATASET CSV dummy
+-DATASET CSV empty
 
 --
 
