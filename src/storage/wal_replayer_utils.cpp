@@ -38,14 +38,6 @@ void WALReplayerUtils::createEmptyDBFilesForNewRelTable(RelTableSchema* relTable
 
 void WALReplayerUtils::createEmptyDBFilesForNewNodeTable(
     NodeTableSchema* nodeTableSchema, const std::string& directory) {
-    for (auto& property : nodeTableSchema->properties) {
-        if (property.dataType.getLogicalTypeID() == LogicalTypeID::SERIAL) {
-            continue;
-        }
-        auto fName = StorageUtils::getNodePropertyColumnFName(
-            directory, nodeTableSchema->tableID, property.propertyID, DBFileType::ORIGINAL);
-        std::make_unique<InMemColumn>(fName, property.dataType)->saveToFile();
-    }
     switch (nodeTableSchema->getPrimaryKey().dataType.getLogicalTypeID()) {
     case LogicalTypeID::INT64: {
         auto pkIndex = make_unique<HashIndexBuilder<int64_t>>(
@@ -176,11 +168,11 @@ void WALReplayerUtils::removeListFilesIfExists(const std::string& fileName) {
 void WALReplayerUtils::fileOperationOnNodeFiles(NodeTableSchema* nodeTableSchema,
     const std::string& directory, std::function<void(std::string fileName)> columnFileOperation,
     std::function<void(std::string fileName)> listFileOperation) {
-    for (auto& property : nodeTableSchema->properties) {
-        auto columnFName = StorageUtils::getNodePropertyColumnFName(
-            directory, nodeTableSchema->tableID, property.propertyID, DBFileType::ORIGINAL);
-        fileOperationOnNodePropertyFile(columnFName, property.dataType, columnFileOperation);
-    }
+    //    for (auto& property : nodeTableSchema->properties) {
+    //        auto columnFName = StorageUtils::getNodePropertyColumnFName(
+    //            directory, nodeTableSchema->tableID, property.propertyID, DBFileType::ORIGINAL);
+    //        fileOperationOnNodePropertyFile(columnFName, property.dataType, columnFileOperation);
+    //    }
     columnFileOperation(
         StorageUtils::getNodeIndexFName(directory, nodeTableSchema->tableID, DBFileType::ORIGINAL));
 }

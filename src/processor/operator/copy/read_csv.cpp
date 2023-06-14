@@ -47,9 +47,7 @@ std::unique_ptr<ReadFileMorsel> ReadCSVSharedState::getMorsel() {
             reader.reset();
             continue;
         }
-        auto morselNodeOffset = nodeOffset;
-        nodeOffset += recordBatch->num_rows();
-        return std::make_unique<ReadCSVMorsel>(morselNodeOffset, filePath, std::move(recordBatch));
+        return std::make_unique<ReadCSVMorsel>(filePath, std::move(recordBatch));
     }
 }
 

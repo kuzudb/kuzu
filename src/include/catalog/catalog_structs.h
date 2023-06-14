@@ -17,6 +17,12 @@ enum RelMultiplicity : uint8_t { MANY_MANY, MANY_ONE, ONE_MANY, ONE_ONE };
 RelMultiplicity getRelMultiplicityFromString(const std::string& relMultiplicityString);
 std::string getRelMultiplicityAsString(RelMultiplicity relMultiplicity);
 
+struct MetaDiskArrayHeaderInfo {
+    common::page_idx_t mainHeaderPageIdx = common::INVALID_PAGE_IDX;
+    common::page_idx_t nullHeaderPageIdx = common::INVALID_PAGE_IDX;
+    std::vector<MetaDiskArrayHeaderInfo> childrenMetaDAHeaderInfos;
+};
+
 struct Property {
 public:
     static constexpr std::string_view REL_FROM_PROPERTY_NAME = "_FROM_";
@@ -36,6 +42,7 @@ public:
     common::LogicalType dataType;
     common::property_id_t propertyID;
     common::table_id_t tableID;
+    MetaDiskArrayHeaderInfo metaDiskArrayHeaderInfo;
 };
 
 struct TableSchema {

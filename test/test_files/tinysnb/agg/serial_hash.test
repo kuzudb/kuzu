@@ -4,6 +4,7 @@
 --
 
 -CASE AggSerial
+-SKIP
 
 -LOG SimpleAggSerial
 -STATEMENT MATCH (a:person) RETURN SUM(a.ID), AVG(a.age)

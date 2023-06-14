@@ -1,7 +1,6 @@
 #include "catalog/catalog.h"
 
 #include "common/string_utils.h"
-#include "spdlog/spdlog.h"
 #include "storage/storage_utils.h"
 
 using namespace kuzu::common;
@@ -37,11 +36,33 @@ uint64_t SerDeser::deserializeValue<std::string>(
 }
 
 template<>
+uint64_t SerDeser::serializeValue<MetaDiskArrayHeaderInfo>(
+    const MetaDiskArrayHeaderInfo& value, FileInfo* fileInfo, uint64_t offset) {
+    offset =
+        SerDeser::serializeValue<common::page_idx_t>(value.mainHeaderPageIdx, fileInfo, offset);
+    offset =
+        SerDeser::serializeValue<common::page_idx_t>(value.nullHeaderPageIdx, fileInfo, offset);
+    return SerDeser::serializeVector(value.childrenMetaDAHeaderInfos, fileInfo, offset);
+}
+
+template<>
+uint64_t SerDeser::deserializeValue(
+    MetaDiskArrayHeaderInfo& value, FileInfo* fileInfo, uint64_t offset) {
+    offset =
+        SerDeser::deserializeValue<common::page_idx_t>(value.mainHeaderPageIdx, fileInfo, offset);
+    offset =
+        SerDeser::deserializeValue<common::page_idx_t>(value.nullHeaderPageIdx, fileInfo, offset);
+    return SerDeser::deserializeVector(value.childrenMetaDAHeaderInfos, fileInfo, offset);
+}
+
+template<>
 uint64_t SerDeser::serializeValue<Property>(
     const Property& value, FileInfo* fileInfo, uint64_t offset) {
     offset = SerDeser::serializeValue<std::string>(value.name, fileInfo, offset);
     offset = SerDeser::serializeValue<LogicalType>(value.dataType, fileInfo, offset);
     offset = SerDeser::serializeValue<property_id_t>(value.propertyID, fileInfo, offset);
+    offset = SerDeser::serializeValue<MetaDiskArrayHeaderInfo>(
+        value.metaDiskArrayHeaderInfo, fileInfo, offset);
     return SerDeser::serializeValue<table_id_t>(value.tableID, fileInfo, offset);
 }
 
@@ -51,6 +72,8 @@ uint64_t SerDeser::deserializeValue<Property>(
     offset = SerDeser::deserializeValue<std::string>(value.name, fileInfo, offset);
     offset = SerDeser::deserializeValue<LogicalType>(value.dataType, fileInfo, offset);
     offset = SerDeser::deserializeValue<property_id_t>(value.propertyID, fileInfo, offset);
+    offset = SerDeser::deserializeValue<MetaDiskArrayHeaderInfo>(
+        value.metaDiskArrayHeaderInfo, fileInfo, offset);
     return SerDeser::deserializeValue<table_id_t>(value.tableID, fileInfo, offset);
 }
 
@@ -169,15 +192,11 @@ uint64_t SerDeser::deserializeValue<RelTableSchema>(
 namespace kuzu {
 namespace catalog {
 
-CatalogContent::CatalogContent() : nextTableID{0} {
-    logger = LoggerUtils::getLogger(LoggerConstants::LoggerEnum::CATALOG);
-}
+CatalogContent::CatalogContent() : nextTableID{0} {}
 
-CatalogContent::CatalogContent(const std::string& directory) {
-    logger = LoggerUtils::getLogger(LoggerConstants::LoggerEnum::CATALOG);
-    logger->info("Initializing catalog.");
+CatalogContent::CatalogContent(const std::string& directory) : nextTableID{0} {
+    assert(FileUtils::fileOrPathExists(directory));
     readFromFile(directory, DBFileType::ORIGINAL);
-    logger->info("Initializing catalog done.");
 }
 
 CatalogContent::CatalogContent(const CatalogContent& other) {
@@ -229,7 +248,7 @@ table_id_t CatalogContent::addRelTableSchema(std::string tableName, RelMultiplic
     return tableID;
 }
 
-const Property& CatalogContent::getNodeProperty(
+Property& CatalogContent::getNodeProperty(
     table_id_t tableID, const std::string& propertyName) const {
     for (auto& property : nodeTableSchemas.at(tableID)->properties) {
         if (propertyName == property.name) {
@@ -239,7 +258,7 @@ const Property& CatalogContent::getNodeProperty(
     throw CatalogException("Cannot find node property " + propertyName + ".");
 }
 
-const Property& CatalogContent::getRelProperty(
+Property& CatalogContent::getRelProperty(
     table_id_t tableID, const std::string& propertyName) const {
     for (auto& property : relTableSchemas.at(tableID)->properties) {
         if (propertyName == property.name) {
@@ -296,7 +315,6 @@ void CatalogContent::saveToFile(const std::string& directory, DBFileType dbFileT
 
 void CatalogContent::readFromFile(const std::string& directory, DBFileType dbFileType) {
     auto catalogPath = StorageUtils::getCatalogFilePath(directory, dbFileType);
-    logger->debug("Reading from {}.", catalogPath);
     auto fileInfo = FileUtils::openFile(catalogPath, O_RDONLY);
     uint64_t offset = 0;
     validateMagicBytes(fileInfo.get(), offset);
@@ -371,6 +389,10 @@ Catalog::Catalog(WAL* wal) : wal{wal} {
     builtInVectorFunctions = std::make_unique<function::BuiltInVectorFunctions>();
     builtInAggregateFunctions = std::make_unique<function::BuiltInAggregateFunctions>();
     builtInTableFunctions = std::make_unique<function::BuiltInTableFunctions>();
+    nodeGroupsMetaFH = wal->getBufferManager()->getBMFileHandle(
+        StorageUtils::getNodeGroupsMetaFName(wal->getDirectory()),
+        FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS,
+        BMFileHandle::FileVersionedType::VERSIONED_FILE);
 }
 
 void Catalog::prepareCommitOrRollback(TransactionAction action) {
@@ -402,6 +424,9 @@ ExpressionType Catalog::getFunctionType(const std::string& name) const {
 table_id_t Catalog::addNodeTableSchema(
     std::string tableName, property_id_t primaryKeyId, std::vector<Property> propertyDefinitions) {
     initCatalogContentForWriteTrxIfNecessary();
+    for (auto& property : propertyDefinitions) {
+        addMetaDAHeaderPageForProperty(property.dataType, property.metaDiskArrayHeaderInfo);
+    }
     auto tableID = catalogContentForWriteTrx->addNodeTableSchema(
         std::move(tableName), primaryKeyId, std::move(propertyDefinitions));
     wal->logNodeTableRecord(tableID);
@@ -424,9 +449,9 @@ void Catalog::dropTableSchema(table_id_t tableID) {
     wal->logDropTableRecord(tableID);
 }
 
-void Catalog::renameTable(table_id_t tableID, std::string newName) {
+void Catalog::renameTable(table_id_t tableID, const std::string& newName) {
     initCatalogContentForWriteTrxIfNecessary();
-    catalogContentForWriteTrx->renameTable(tableID, std::move(newName));
+    catalogContentForWriteTrx->renameTable(tableID, newName);
 }
 
 void Catalog::addProperty(
@@ -434,6 +459,11 @@ void Catalog::addProperty(
     initCatalogContentForWriteTrxIfNecessary();
     catalogContentForWriteTrx->getTableSchema(tableID)->addProperty(
         propertyName, std::move(dataType));
+    if (catalogContentForWriteTrx->containNodeTable(tableID)) {
+        auto& addedNodeProperty = catalogContentForWriteTrx->getNodeProperty(tableID, propertyName);
+        addMetaDAHeaderPageForProperty(
+            addedNodeProperty.dataType, addedNodeProperty.metaDiskArrayHeaderInfo);
+    }
     wal->logAddPropertyRecord(
         tableID, catalogContentForWriteTrx->getTableSchema(tableID)->getPropertyID(propertyName));
 }
@@ -461,6 +491,25 @@ std::unordered_set<RelTableSchema*> Catalog::getAllRelTableSchemasContainBoundTa
         relTableSchemas.insert(getReadOnlyVersion()->getRelTableSchema(bwdRelTableID));
     }
     return relTableSchemas;
+}
+
+void Catalog::addMetaDAHeaderPageForProperty(
+    const common::LogicalType& dataType, MetaDiskArrayHeaderInfo& diskArrayHeaderInfo) {
+    diskArrayHeaderInfo.mainHeaderPageIdx = nodeGroupsMetaFH->addNewPage();
+    diskArrayHeaderInfo.nullHeaderPageIdx = nodeGroupsMetaFH->addNewPage();
+    switch (dataType.getLogicalTypeID()) {
+    case LogicalTypeID::STRUCT: {
+        auto fields = StructType::getFields(&dataType);
+        diskArrayHeaderInfo.childrenMetaDAHeaderInfos.resize(fields.size());
+        for (auto i = 0u; i < fields.size(); i++) {
+            addMetaDAHeaderPageForProperty(
+                *fields[i]->getType(), diskArrayHeaderInfo.childrenMetaDAHeaderInfos[i]);
+        }
+    } break;
+    default: {
+        // DO NOTHING.
+    }
+    }
 }
 
 } // namespace catalog

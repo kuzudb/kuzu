@@ -36,8 +36,7 @@ std::unique_ptr<ReadFileMorsel> ReadParquetSharedState::getMorsel() {
             continue;
         }
         auto result = std::make_unique<ReadFileMorsel>(
-            nodeOffset, curBlockIdx, fileBlockInfo.numLinesPerBlock[curBlockIdx], filePath);
-        nodeOffset += fileBlockInfos.at(filePath).numLinesPerBlock[curBlockIdx];
+            curBlockIdx, fileBlockInfo.numLinesPerBlock[curBlockIdx], filePath);
         curBlockIdx++;
         return result;
     }

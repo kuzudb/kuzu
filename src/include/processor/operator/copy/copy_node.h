@@ -1,7 +1,8 @@
 #pragma once
 
+#include "common/copier_config/copier_config.h"
 #include "processor/operator/sink.h"
-#include "storage/in_mem_storage_structure/in_mem_column.h"
+#include "storage/store/node_group.h"
 #include "storage/store/node_table.h"
 
 namespace kuzu {
@@ -9,112 +10,100 @@ namespace processor {
 
 class CopyNodeSharedState {
 public:
-    CopyNodeSharedState(uint64_t& numRows, storage::MemoryManager* memoryManager);
+    CopyNodeSharedState(uint64_t& numRows, catalog::NodeTableSchema* tableSchema,
+        storage::NodeTable* table, const common::CopyDescription& copyDesc,
+        storage::MemoryManager* memoryManager);
 
-    inline void initialize(
-        catalog::NodeTableSchema* nodeTableSchema, const std::string& directory) {
-        initializePrimaryKey(nodeTableSchema, directory);
-        initializeColumns(nodeTableSchema, directory);
-    };
+    inline void initialize(const std::string& directory) { initializePrimaryKey(directory); };
+
+    inline common::offset_t getNextNodeGroupIdx() {
+        std::unique_lock<std::mutex> lck{mtx};
+        return getNextNodeGroupIdxWithoutLock();
+    }
+
+    void logCopyNodeWALRecord(storage::WAL* wal);
+
+    void appendLocalNodeGroup(std::unique_ptr<storage::NodeGroup> localNodeGroup);
 
 private:
-    void initializePrimaryKey(
-        catalog::NodeTableSchema* nodeTableSchema, const std::string& directory);
-
-    void initializeColumns(catalog::NodeTableSchema* nodeTableSchema, const std::string& directory);
+    void initializePrimaryKey(const std::string& directory);
+    inline common::offset_t getNextNodeGroupIdxWithoutLock() { return currentNodeGroupIdx++; }
 
 public:
-    common::column_id_t pkColumnID;
-    std::vector<std::unique_ptr<storage::InMemColumn>> columns;
-    std::unique_ptr<storage::PrimaryKeyIndexBuilder> pkIndex;
-    uint64_t& numRows;
     std::mutex mtx;
-    std::shared_ptr<FactorizedTable> table;
+    common::column_id_t pkColumnID;
+    std::unique_ptr<storage::PrimaryKeyIndexBuilder> pkIndex;
+    common::CopyDescription copyDesc;
+    storage::NodeTable* table;
+    catalog::NodeTableSchema* tableSchema;
+    uint64_t& numRows;
+    std::shared_ptr<FactorizedTable> fTable;
     bool hasLoggedWAL;
+    uint64_t currentNodeGroupIdx;
+    // The sharedNodeGroup is to accumulate left data within local node groups in CopyNode ops.
+    std::unique_ptr<storage::NodeGroup> sharedNodeGroup;
 };
 
 struct CopyNodeLocalState {
-    CopyNodeLocalState(const common::CopyDescription& copyDesc, storage::NodeTable* table,
-        storage::RelsStore* relsStore, catalog::Catalog* catalog, storage::WAL* wal,
-        const DataPos& offsetVectorPos, std::vector<DataPos> arrowColumnPoses)
-        : copyDesc{copyDesc}, table{table}, relsStore{relsStore}, catalog{catalog}, wal{wal},
-          offsetVectorPos{offsetVectorPos}, offsetVector{nullptr}, arrowColumnPoses{std::move(
-                                                                       arrowColumnPoses)} {}
+    std::unique_ptr<storage::NodeGroup> nodeGroup;
+};
 
-    std::pair<common::offset_t, common::offset_t> getStartAndEndOffset(
-        common::vector_idx_t columnIdx);
-
-    common::CopyDescription copyDesc;
-    storage::NodeTable* table;
-    storage::RelsStore* relsStore;
-    catalog::Catalog* catalog;
-    storage::WAL* wal;
-    DataPos offsetVectorPos;
-    common::ValueVector* offsetVector;
-    std::vector<DataPos> arrowColumnPoses;
-    std::vector<common::ValueVector*> arrowColumnVectors;
+struct CopyNodeDataInfo {
+    std::vector<DataPos> dataColumnPoses;
 };
 
 class CopyNode : public Sink {
 public:
-    CopyNode(std::unique_ptr<CopyNodeLocalState> localState,
-        std::shared_ptr<CopyNodeSharedState> sharedState,
+    CopyNode(storage::RelsStore* relsStore, storage::WAL* wal,
+        std::shared_ptr<CopyNodeSharedState> sharedState, CopyNodeDataInfo dataInfo,
         std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
         std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
         : Sink{std::move(resultSetDescriptor), PhysicalOperatorType::COPY_NODE, std::move(child),
               id, paramsString},
-          localState{std::move(localState)}, sharedState{std::move(sharedState)} {}
+          relsStore{relsStore}, wal{wal}, sharedState{std::move(sharedState)}, dataInfo{std::move(
+                                                                                   dataInfo)} {}
 
     inline void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override {
-        localState->offsetVector = resultSet->getValueVector(localState->offsetVectorPos).get();
-        for (auto& arrowColumnPos : localState->arrowColumnPoses) {
-            localState->arrowColumnVectors.push_back(
-                resultSet->getValueVector(arrowColumnPos).get());
-        }
+        localState = std::make_unique<CopyNodeLocalState>();
+        localState->nodeGroup =
+            std::make_unique<storage::NodeGroup>(sharedState->tableSchema, &sharedState->copyDesc);
     }
 
-    inline void initGlobalStateInternal(ExecutionContext* context) override {
-        if (!isCopyAllowed()) {
-            throw common::CopyException("COPY commands can only be executed once on a table.");
-        }
-        auto nodeTableSchema = localState->catalog->getReadOnlyVersion()->getNodeTableSchema(
-            localState->table->getTableID());
-        sharedState->initialize(nodeTableSchema, localState->wal->getDirectory());
-    }
+    void initGlobalStateInternal(ExecutionContext* context) override;
 
     void executeInternal(ExecutionContext* context) override;
 
     void finalize(ExecutionContext* context) override;
 
     inline std::unique_ptr<PhysicalOperator> clone() override {
-        return std::make_unique<CopyNode>(std::make_unique<CopyNodeLocalState>(*localState),
-            sharedState, resultSetDescriptor->copy(), children[0]->clone(), id, paramsString);
+        return std::make_unique<CopyNode>(relsStore, wal, sharedState, dataInfo,
+            resultSetDescriptor->copy(), children[0]->clone(), id, paramsString);
     }
 
-protected:
-    void populatePKIndex(storage::InMemColumnChunk* chunk, storage::InMemOverflowFile* overflowFile,
-        common::offset_t startOffset, uint64_t numValues);
-
-    void logCopyWALRecord();
+    static void appendNodeGroupToTableAndPopulateIndex(storage::NodeTable* table,
+        storage::NodeGroup* nodeGroup, storage::PrimaryKeyIndexBuilder* pkIndex,
+        common::column_id_t pkColumnID);
 
 private:
     inline bool isCopyAllowed() {
-        auto nodesStatistics = localState->table->getNodeStatisticsAndDeletedIDs();
-        return nodesStatistics->getNodeStatisticsAndDeletedIDs(localState->table->getTableID())
+        auto nodesStatistics = sharedState->table->getNodeStatisticsAndDeletedIDs();
+        return nodesStatistics->getNodeStatisticsAndDeletedIDs(sharedState->table->getTableID())
                    ->getNumTuples() == 0;
     }
 
-    void flushChunksAndPopulatePKIndex(
-        const std::vector<std::unique_ptr<storage::InMemColumnChunk>>& columnChunks,
-        common::offset_t startNodeOffset, common::offset_t endNodeOffset);
+    static std::shared_ptr<common::DataChunk> sliceDataVectorsInDataChunk(
+        const common::DataChunk& dataChunkToSlice, const std::vector<DataPos>& dataColumnPoses,
+        int64_t offset, int64_t length);
 
-    template<typename T, typename... Args>
-    void appendToPKIndex(storage::InMemColumnChunk* chunk, common::offset_t startOffset,
-        uint64_t numValues, Args... args) {
-        throw common::CopyException("appendToPKIndex1 not implemented");
-    }
+    static void populatePKIndex(storage::PrimaryKeyIndexBuilder* pkIndex,
+        storage::ColumnChunk* chunk, common::offset_t startNodeOffset, common::offset_t numNodes);
+    static void appendToPKIndex(storage::PrimaryKeyIndexBuilder* pkIndex,
+        storage::ColumnChunk* chunk, common::offset_t startOffset, common::offset_t numNodes);
 
-protected:
+private:
+    storage::RelsStore* relsStore;
+    storage::WAL* wal;
+    CopyNodeDataInfo dataInfo;
     std::unique_ptr<CopyNodeLocalState> localState;
     std::shared_ptr<CopyNodeSharedState> sharedState;
 };

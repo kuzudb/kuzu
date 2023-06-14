@@ -3,7 +3,7 @@
 namespace kuzu {
 namespace processor {
 
-void AddProperty::executeDDLInternal() {
+void AddProperty::executeDDLInternal(ExecutionContext* context) {
     expressionEvaluator->evaluate();
     catalog->addProperty(tableID, propertyName, dataType);
 }

@@ -18,7 +18,6 @@
 #include "planner/logical_plan/logical_operator/logical_drop_property.h"
 #include "planner/logical_plan/logical_operator/logical_drop_table.h"
 #include "planner/logical_plan/logical_operator/logical_explain.h"
-#include "planner/logical_plan/logical_operator/logical_in_query_call.h"
 #include "planner/logical_plan/logical_operator/logical_rename_property.h"
 #include "planner/logical_plan/logical_operator/logical_rename_table.h"
 #include "planner/logical_plan/logical_operator/logical_standalone_call.h"
@@ -178,8 +177,6 @@ std::unique_ptr<LogicalPlan> Planner::planCopy(
     }
     auto copy = make_shared<LogicalCopy>(copyClause.getCopyDescription(), copyClause.getTableID(),
         copyClause.getTableName(), std::move(arrowColumnExpressions),
-        std::make_shared<VariableExpression>(
-            common::LogicalType{common::LogicalTypeID::INT64}, "startOffset", "startOffset"),
         std::make_shared<VariableExpression>(
             common::LogicalType{common::LogicalTypeID::INT64}, "columnIdx", "columnIdx"),
         copyClause.getStatementResult()->getSingleExpressionToCollect());

@@ -11,7 +11,7 @@ class ReadNPYMorsel : public ReadFileMorsel {
 public:
     ReadNPYMorsel(common::offset_t nodeOffset, common::block_idx_t blockIdx, uint64_t numNodes,
         std::string filePath, common::vector_idx_t curFileIdx)
-        : ReadFileMorsel{nodeOffset, blockIdx, numNodes, std::move(filePath)}, columnIdx{
+        : ReadFileMorsel{blockIdx, numNodes, std::move(filePath)}, columnIdx{
                                                                                    curFileIdx} {}
 
     inline common::vector_idx_t getColumnIdx() const { return columnIdx; }
@@ -22,8 +22,8 @@ private:
 
 class ReadNPYSharedState : public ReadFileSharedState {
 public:
-    ReadNPYSharedState(catalog::NodeTableSchema* tableSchema, std::vector<std::string> filePaths)
-        : ReadFileSharedState{std::move(filePaths), tableSchema} {}
+    ReadNPYSharedState(std::vector<std::string> filePaths)
+        : ReadFileSharedState{std::move(filePaths)} {}
 
     std::unique_ptr<ReadFileMorsel> getMorsel() final;
 
@@ -33,10 +33,10 @@ private:
 
 class ReadNPY : public ReadFile {
 public:
-    ReadNPY(std::vector<DataPos> arrowColumnPoses, const DataPos& offsetVectorPos,
+    ReadNPY(std::vector<DataPos> arrowColumnPoses,
         const DataPos& columnIdxPos, std::shared_ptr<ReadFileSharedState> sharedState, uint32_t id,
         const std::string& paramsString)
-        : ReadFile{std::move(arrowColumnPoses), offsetVectorPos, std::move(sharedState),
+        : ReadFile{std::move(arrowColumnPoses), std::move(sharedState),
               PhysicalOperatorType::READ_NPY, id, paramsString},
           columnIdxPos{columnIdxPos}, columnIdxVector{nullptr} {}
 
@@ -48,7 +48,7 @@ public:
 
     inline std::unique_ptr<PhysicalOperator> clone() final {
         return std::make_unique<ReadNPY>(
-            arrowColumnPoses, offsetVectorPos, columnIdxPos, sharedState, id, paramsString);
+            arrowColumnPoses, columnIdxPos, sharedState, id, paramsString);
     }
 
 private:

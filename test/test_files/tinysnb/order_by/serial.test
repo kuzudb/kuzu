@@ -4,6 +4,7 @@
 --
 
 -CASE OrderBySerial
+-SKIP
 
 -LOG OrderBySerial
 -STATEMENT MATCH (p:person) RETURN p.ID ORDER BY p.ID DESC

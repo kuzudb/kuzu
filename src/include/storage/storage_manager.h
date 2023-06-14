@@ -6,10 +6,6 @@
 #include "storage/store/rels_store.h"
 #include "storage/wal/wal.h"
 
-namespace spdlog {
-class logger;
-}
-
 namespace kuzu {
 namespace storage {
 
@@ -34,19 +30,19 @@ public:
         nodesStore->checkpointInMemory(wal->updatedNodeTables);
         relsStore->checkpointInMemory(wal->updatedRelTables);
     }
-    inline void rollback() {
-        nodesStore->rollback(wal->updatedNodeTables);
-        relsStore->rollback(wal->updatedRelTables);
+    inline void rollbackInMemory() {
+        nodesStore->rollbackInMemory(wal->updatedNodeTables);
+        relsStore->rollbackInMemory(wal->updatedRelTables);
     }
     inline std::string getDirectory() const { return wal->getDirectory(); }
     inline WAL* getWAL() const { return wal; }
 
 private:
-    std::shared_ptr<spdlog::logger> logger;
-    std::unique_ptr<RelsStore> relsStore;
-    std::unique_ptr<NodesStore> nodesStore;
+    std::unique_ptr<BMFileHandle> nodeGroupsDataFH;
     catalog::Catalog& catalog;
     WAL* wal;
+    std::unique_ptr<RelsStore> relsStore;
+    std::unique_ptr<NodesStore> nodesStore;
 };
 
 } // namespace storage

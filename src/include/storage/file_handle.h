@@ -30,7 +30,8 @@ public:
 
     FileHandle(const std::string& path, uint8_t flags);
 
-    virtual common::page_idx_t addNewPage();
+    common::page_idx_t addNewPage();
+    common::page_idx_t addNewPages(common::page_idx_t numPages);
 
     inline void readPage(uint8_t* frame, common::page_idx_t pageIdx) const {
         common::FileUtils::readFromFile(

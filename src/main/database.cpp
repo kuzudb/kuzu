@@ -47,10 +47,10 @@ Database::Database(std::string databasePath, SystemConfig systemConfig)
     : databasePath{std::move(databasePath)}, systemConfig{systemConfig} {
     initLoggers();
     logger = LoggerUtils::getLogger(LoggerConstants::LoggerEnum::DATABASE);
-    initDBDirAndCoreFilesIfNecessary();
     bufferManager = std::make_unique<BufferManager>(this->systemConfig.bufferPoolSize);
     memoryManager = std::make_unique<MemoryManager>(bufferManager.get());
     queryProcessor = std::make_unique<processor::QueryProcessor>(this->systemConfig.maxNumThreads);
+    initDBDirAndCoreFilesIfNecessary();
     wal = std::make_unique<WAL>(this->databasePath, *bufferManager);
     recoverIfNecessary();
     catalog = std::make_unique<catalog::Catalog>(wal.get());

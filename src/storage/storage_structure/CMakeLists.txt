@@ -7,8 +7,11 @@ add_library(kuzu_storage_structure
         disk_overflow_file.cpp
         in_mem_file.cpp
         in_mem_page.cpp
+        node_column.cpp
         storage_structure.cpp
-        storage_structure_utils.cpp)
+        storage_structure_utils.cpp
+        struct_node_column.cpp
+        var_sized_node_column.cpp)
 
 set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_storage_structure>

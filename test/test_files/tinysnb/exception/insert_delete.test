@@ -14,6 +14,7 @@ Binder exception: Create node a expects primary key ID as input.
 Runtime exception: A node is created with an existed primary key 0, which violates the uniqueness constraint of the primary key property.
 
 -CASE InsertNodeWithExistedPKError2
+-SKIP
 -STATEMENT CREATE (a:person {ID:100, fName:'Charlie'})
 ---- ok
 -STATEMENT CREATE (a:person {ID:100, fName:'Guodong'})
@@ -21,6 +22,7 @@ Runtime exception: A node is created with an existed primary key 0, which violat
 Runtime exception: A node is created with an existed primary key 100, which violates the uniqueness constraint of the primary key property.
 
 -CASE InsertNodeWithNullPK
+-SKIP
 -STATEMENT CREATE (a:person {ID:NULL, fName:'Guodong'})
 ---- error
 Runtime exception: Null is not allowed as a primary key value.

@@ -7,7 +7,7 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
-void CreateRelTable::executeDDLInternal() {
+void CreateRelTable::executeDDLInternal(ExecutionContext* context) {
     auto srcPKDataType =
         catalog->getReadOnlyVersion()->getNodeTableSchema(srcTableID)->getPrimaryKey().dataType;
     auto dstPKDataType =

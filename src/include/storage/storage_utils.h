@@ -28,6 +28,11 @@ struct PageByteCursor {
         : pageIdx{pageIdx}, offsetInPage{offsetInPage} {};
     PageByteCursor() : PageByteCursor{UINT32_MAX, UINT16_MAX} {};
 
+    inline void resetValue() {
+        pageIdx = UINT32_MAX;
+        offsetInPage = UINT16_MAX;
+    }
+
     common::page_idx_t pageIdx;
     uint16_t offsetInPage;
 };
@@ -70,6 +75,16 @@ class StorageUtils {
 public:
     static std::string getNodeIndexFName(const std::string& directory,
         const common::table_id_t& tableID, common::DBFileType dbFileType);
+
+    static inline std::string getNodeGroupsDataFName(const std::string& directory) {
+        return common::FileUtils::joinPath(
+            directory, common::StorageConstants::NODE_GROUPS_DATA_FILE_NAME);
+    }
+
+    static inline std::string getNodeGroupsMetaFName(const std::string& directory) {
+        return common::FileUtils::joinPath(
+            directory, common::StorageConstants::NODE_GROUPS_META_FILE_NAME);
+    }
 
     static std::string getNodePropertyColumnFName(const std::string& directory,
         const common::table_id_t& tableID, uint32_t propertyID, common::DBFileType dbFileType);
@@ -265,17 +280,12 @@ public:
     static std::string getListFName(
         const std::string& directory, StorageStructureID storageStructureID);
 
-    static void createFileForNodePropertyWithDefaultVal(common::table_id_t tableID,
-        const std::string& directory, const catalog::Property& property, uint8_t* defaultVal,
-        bool isDefaultValNull, uint64_t numNodes);
-
     static void createFileForRelPropertyWithDefaultVal(catalog::RelTableSchema* tableSchema,
         const catalog::Property& property, uint8_t* defaultVal, bool isDefaultValNull,
         StorageManager& storageManager);
 
-    static void initializeListsHeaders(const catalog::RelTableSchema* relTableSchema,
-        uint64_t numNodesInTable, const std::string& directory,
-        common::RelDataDirection relDirection);
+    static void initializeListsHeaders(common::table_id_t relTableID, uint64_t numNodesInTable,
+        const std::string& directory, common::RelDataDirection relDirection);
 
     static uint32_t getDataTypeSize(const common::LogicalType& type);
 

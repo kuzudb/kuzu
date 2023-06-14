@@ -169,25 +169,25 @@ ku_list_t InMemOverflowFile::copyList(const Value& listValue, PageByteCursor& ov
 }
 
 void InMemOverflowFile::copyStringOverflow(
-    PageByteCursor& overflowCursor, uint8_t* srcOverflow, ku_string_t* dstKUString) {
+    PageByteCursor& dstOverflowCursor, uint8_t* srcOverflow, ku_string_t* dstKUString) {
     // Allocate a new page if necessary.
-    if (overflowCursor.offsetInPage + dstKUString->len >= BufferPoolConstants::PAGE_4KB_SIZE ||
-        overflowCursor.pageIdx == UINT32_MAX) {
-        overflowCursor.offsetInPage = 0;
-        overflowCursor.pageIdx = addANewOverflowPage();
+    if (dstOverflowCursor.offsetInPage + dstKUString->len >= BufferPoolConstants::PAGE_4KB_SIZE ||
+        dstOverflowCursor.pageIdx == UINT32_MAX) {
+        dstOverflowCursor.offsetInPage = 0;
+        dstOverflowCursor.pageIdx = addANewOverflowPage();
     }
     TypeUtils::encodeOverflowPtr(
-        dstKUString->overflowPtr, overflowCursor.pageIdx, overflowCursor.offsetInPage);
+        dstKUString->overflowPtr, dstOverflowCursor.pageIdx, dstOverflowCursor.offsetInPage);
     std::shared_lock lck(lock);
-    pages[overflowCursor.pageIdx]->write(
-        overflowCursor.offsetInPage, overflowCursor.offsetInPage, srcOverflow, dstKUString->len);
-    overflowCursor.offsetInPage += dstKUString->len;
+    pages[dstOverflowCursor.pageIdx]->write(dstOverflowCursor.offsetInPage,
+        dstOverflowCursor.offsetInPage, srcOverflow, dstKUString->len);
+    dstOverflowCursor.offsetInPage += dstKUString->len;
 }
 
 void InMemOverflowFile::copyListOverflowFromFile(InMemOverflowFile* srcInMemOverflowFile,
     const PageByteCursor& srcOverflowCursor, PageByteCursor& dstOverflowCursor,
     ku_list_t* dstKUList, LogicalType* listChildDataType) {
-    auto numBytesOfListElement = storage::StorageUtils::getDataTypeSize(*listChildDataType);
+    auto numBytesOfListElement = StorageUtils::getDataTypeSize(*listChildDataType);
     // Allocate a new page if necessary.
     if (dstOverflowCursor.offsetInPage + (dstKUList->size * numBytesOfListElement) >=
             BufferPoolConstants::PAGE_4KB_SIZE ||

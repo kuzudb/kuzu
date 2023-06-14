@@ -22,10 +22,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalSetNodePropertyToPhysica
         auto nodeIDPos = DataPos(inSchema->getExpressionPos(*node->getInternalIDProperty()));
         auto propertyExpression = static_pointer_cast<PropertyExpression>(lhs);
         auto nodeTableID = node->getSingleTableID();
-        auto column = nodeStore.getNodePropertyColumn(
-            nodeTableID, propertyExpression->getPropertyID(nodeTableID));
         auto evaluator = expressionMapper.mapExpression(rhs, *inSchema);
-        infos.push_back(make_unique<SetNodePropertyInfo>(column, nodeIDPos, std::move(evaluator)));
+        infos.push_back(make_unique<SetNodePropertyInfo>(nodeStore.getNodeTable(nodeTableID),
+            propertyExpression->getPropertyID(nodeTableID), nodeIDPos, std::move(evaluator)));
     }
     return std::make_unique<SetNodeProperty>(std::move(infos), std::move(prevOperator),
         getOperatorID(), logicalSetNodeProperty.getExpressionsForPrinting());

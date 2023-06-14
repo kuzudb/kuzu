@@ -14,7 +14,9 @@ public:
         : DDL{PhysicalOperatorType::DROP_PROPERTY, catalog, outputPos, id, paramsString},
           tableID{tableID}, propertyID{propertyID} {}
 
-    void executeDDLInternal() override { catalog->dropProperty(tableID, propertyID); }
+    void executeDDLInternal(ExecutionContext* context) override {
+        catalog->dropProperty(tableID, propertyID);
+    }
 
     std::string getOutputMsg() override { return {"Drop succeed."}; }
 

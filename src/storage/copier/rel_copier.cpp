@@ -49,7 +49,11 @@ void RelCopier::indexLookup(arrow::Array* pkArray, const LogicalType& pkColumnTy
     case LogicalTypeID::INT64: {
         for (auto i = 0u; i < length; i++) {
             auto val = dynamic_cast<arrow::Int64Array*>(pkArray)->Value(i);
+            auto prevNumKeysFound = numKeysFound;
             numKeysFound += pkIndex->lookup(&transaction::DUMMY_READ_TRANSACTION, val, offsets[i]);
+            if (prevNumKeysFound == numKeysFound) {
+                assert(false);
+            }
         }
     } break;
     case LogicalTypeID::STRING: {

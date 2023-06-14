@@ -5,8 +5,8 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace processor {
 
-void AddRelProperty::executeDDLInternal() {
-    AddProperty::executeDDLInternal();
+void AddRelProperty::executeDDLInternal(ExecutionContext* context) {
+    AddProperty::executeDDLInternal(context);
     auto tableSchema = catalog->getWriteVersion()->getRelTableSchema(tableID);
     auto property = tableSchema->getProperty(tableSchema->getPropertyID(propertyName));
     StorageUtils::createFileForRelPropertyWithDefaultVal(

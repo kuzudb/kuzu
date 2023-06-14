@@ -12,13 +12,11 @@ class LogicalCopy : public LogicalOperator {
 public:
     LogicalCopy(const common::CopyDescription& copyDescription, common::table_id_t tableID,
         std::string tableName, binder::expression_vector arrowColumnExpressions,
-        std::shared_ptr<binder::Expression> offsetExpression,
         std::shared_ptr<binder::Expression> columnIdxExpression,
         std::shared_ptr<binder::Expression> outputExpression)
         : LogicalOperator{LogicalOperatorType::COPY},
           copyDescription{copyDescription}, tableID{tableID}, tableName{std::move(tableName)},
-          arrowColumnExpressions{std::move(arrowColumnExpressions)}, offsetExpression{std::move(
-                                                                         offsetExpression)},
+          arrowColumnExpressions{std::move(arrowColumnExpressions)},
           columnIdxExpression{std::move(columnIdxExpression)}, outputExpression{
                                                                    std::move(outputExpression)} {}
 
@@ -30,10 +28,6 @@ public:
 
     inline std::vector<std::shared_ptr<binder::Expression>> getArrowColumnExpressions() const {
         return arrowColumnExpressions;
-    }
-
-    inline std::shared_ptr<binder::Expression> getOffsetExpression() const {
-        return offsetExpression;
     }
 
     inline std::shared_ptr<binder::Expression> getColumnIdxExpression() const {
@@ -48,8 +42,8 @@ public:
     void computeFlatSchema() override;
 
     inline std::unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalCopy>(copyDescription, tableID, tableName, arrowColumnExpressions,
-            offsetExpression, columnIdxExpression, outputExpression);
+        return make_unique<LogicalCopy>(
+            copyDescription, tableID, tableName, arrowColumnExpressions, columnIdxExpression, outputExpression);
     }
 
 private:
@@ -58,7 +52,6 @@ private:
     // Used for printing only.
     std::string tableName;
     binder::expression_vector arrowColumnExpressions;
-    std::shared_ptr<binder::Expression> offsetExpression;
     std::shared_ptr<binder::Expression> columnIdxExpression;
     std::shared_ptr<binder::Expression> outputExpression;
 };

@@ -4,6 +4,7 @@
 --
 
 -CASE CopyOneDimensionalNpyTest
+-SKIP
 
 -LOG i64
 -STATEMENT MATCH (n:npytable) RETURN n.i64

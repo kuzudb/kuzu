@@ -179,6 +179,15 @@ void ArrowColumnVector::setArrowColumn(ValueVector* vector, std::shared_ptr<arro
     arrowColumnBuffer->column = std::move(column);
 }
 
+void ArrowColumnVector::slice(
+    ValueVector* vectorToSlice, ValueVector* slicedVector, int64_t offset, int64_t length) {
+    auto arrowColumnBuffer =
+        reinterpret_cast<ArrowColumnAuxiliaryBuffer*>(vectorToSlice->auxiliaryBuffer.get());
+    auto arrowColumn = arrowColumnBuffer->column;
+    auto slicedColumn = arrowColumn->Slice(offset, length);
+    setArrowColumn(slicedVector, slicedColumn);
+}
+
 template void ValueVector::setValue<nodeID_t>(uint32_t pos, nodeID_t val);
 template void ValueVector::setValue<bool>(uint32_t pos, bool val);
 template void ValueVector::setValue<int64_t>(uint32_t pos, int64_t val);

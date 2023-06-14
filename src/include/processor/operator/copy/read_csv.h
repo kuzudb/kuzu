@@ -8,19 +8,17 @@ namespace processor {
 // For CSV file, we need to read in streaming mode, so we need to read one batch at a time.
 class ReadCSVMorsel : public ReadFileMorsel {
 public:
-    ReadCSVMorsel(common::offset_t startOffset, std::string filePath,
-        std::shared_ptr<arrow::RecordBatch> recordBatch)
-        : ReadFileMorsel{startOffset, BLOCK_IDX_INVALID, UINT64_MAX, std::move(filePath)},
-          recordBatch{std::move(recordBatch)} {}
+    ReadCSVMorsel(std::string filePath, std::shared_ptr<arrow::RecordBatch> recordBatch)
+        : ReadFileMorsel{INVALID_BLOCK_IDX, UINT64_MAX, std::move(filePath)}, recordBatch{std::move(
+                                                                                  recordBatch)} {}
 
     std::shared_ptr<arrow::RecordBatch> recordBatch;
 };
 
 class ReadCSVSharedState : public ReadFileSharedState {
 public:
-    ReadCSVSharedState(common::CSVReaderConfig csvReaderConfig, std::vector<std::string> filePaths,
-        catalog::TableSchema* tableSchema)
-        : ReadFileSharedState{std::move(filePaths), tableSchema}, csvReaderConfig{csvReaderConfig} {
+    ReadCSVSharedState(common::CSVReaderConfig csvReaderConfig, std::vector<std::string> filePaths)
+        : ReadFileSharedState{std::move(filePaths)}, csvReaderConfig{csvReaderConfig} {
     }
 
 private:
@@ -35,10 +33,9 @@ private:
 
 class ReadCSV : public ReadFile {
 public:
-    ReadCSV(std::vector<DataPos> arrowColumnPoses, const DataPos& offsetVectorPos,
-        std::shared_ptr<ReadFileSharedState> sharedState, uint32_t id,
-        const std::string& paramsString)
-        : ReadFile{std::move(arrowColumnPoses), offsetVectorPos, std::move(sharedState),
+    ReadCSV(std::vector<DataPos> arrowColumnPoses, std::shared_ptr<ReadFileSharedState> sharedState,
+        uint32_t id, const std::string& paramsString)
+        : ReadFile{std::move(arrowColumnPoses), std::move(sharedState),
               PhysicalOperatorType::READ_CSV, id, paramsString} {}
 
     inline std::shared_ptr<arrow::RecordBatch> readTuples(
@@ -48,8 +45,7 @@ public:
     }
 
     inline std::unique_ptr<PhysicalOperator> clone() override {
-        return std::make_unique<ReadCSV>(
-            arrowColumnPoses, offsetVectorPos, sharedState, id, paramsString);
+        return std::make_unique<ReadCSV>(arrowColumnPoses, sharedState, id, paramsString);
     }
 };
 

@@ -82,6 +82,12 @@ std::unique_ptr<FileInfo> StorageUtils::getFileInfoForReadWrite(
     const std::string& directory, StorageStructureID storageStructureID) {
     std::string fName;
     switch (storageStructureID.storageStructureType) {
+    case StorageStructureType::NODE_GROUPS_META: {
+        fName = getNodeGroupsMetaFName(directory);
+    } break;
+    case StorageStructureType::NODE_GROUPS_DATA: {
+        fName = getNodeGroupsDataFName(directory);
+    } break;
     case StorageStructureType::COLUMN: {
         fName = getColumnFName(directory, storageStructureID);
     } break;
@@ -179,23 +185,6 @@ std::string StorageUtils::getListFName(
     default:
         assert(false);
     }
-}
-
-void StorageUtils::createFileForNodePropertyWithDefaultVal(table_id_t tableID,
-    const std::string& directory, const catalog::Property& property, uint8_t* defaultVal,
-    bool isDefaultValNull, uint64_t numNodes) {
-    auto inMemColumn =
-        std::make_unique<InMemColumn>(StorageUtils::getNodePropertyColumnFName(directory, tableID,
-                                          property.propertyID, DBFileType::WAL_VERSION),
-            property.dataType);
-    auto inMemColumnChunk =
-        inMemColumn->getInMemColumnChunk(0, numNodes - 1, nullptr /* copyDescription */);
-    if (!isDefaultValNull) {
-        // TODO(Guodong): Rework this.
-        // inMemColumn->fillWithDefaultVal(defaultVal, numNodes, property.dataType);
-    }
-    inMemColumn->flushChunk(inMemColumnChunk.get());
-    inMemColumn->saveToFile();
 }
 
 void StorageUtils::createFileForRelPropertyWithDefaultVal(RelTableSchema* tableSchema,
@@ -306,11 +295,10 @@ uint32_t PageUtils::getNumElementsInAPage(uint32_t elementSize, bool hasNull) {
            elementSize;
 }
 
-void StorageUtils::initializeListsHeaders(const RelTableSchema* relTableSchema,
-    uint64_t numNodesInTable, const std::string& directory, RelDataDirection relDirection) {
+void StorageUtils::initializeListsHeaders(table_id_t relTableID, uint64_t numNodesInTable,
+    const std::string& directory, RelDataDirection relDirection) {
     auto listHeadersBuilder = make_unique<ListHeadersBuilder>(
-        StorageUtils::getAdjListsFName(
-            directory, relTableSchema->tableID, relDirection, DBFileType::ORIGINAL),
+        StorageUtils::getAdjListsFName(directory, relTableID, relDirection, DBFileType::ORIGINAL),
         numNodesInTable);
     listHeadersBuilder->saveToDisk();
 }

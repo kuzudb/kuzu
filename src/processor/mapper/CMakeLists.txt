@@ -1,6 +1,7 @@
 add_library(kuzu_processor_mapper
         OBJECT
         expression_mapper.cpp
+        map_acc_hash_join.cpp
         map_accumulate.cpp
         map_aggregate.cpp
         map_acc_hash_join.cpp
