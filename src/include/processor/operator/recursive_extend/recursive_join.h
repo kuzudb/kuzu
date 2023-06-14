@@ -63,6 +63,18 @@ struct RecursiveJoinDataInfo {
     }
 };
 
+struct RecursiveJoinVectors {
+    common::ValueVector* srcNodeIDVector = nullptr;
+    common::ValueVector* dstNodeIDVector = nullptr;
+    common::ValueVector* pathLengthVector = nullptr;
+    common::ValueVector* pathVector = nullptr;
+    common::ValueVector* pathNodeIDVector = nullptr;
+    common::ValueVector* pathRelIDVector = nullptr;
+
+    common::ValueVector* recursiveEdgeIDVector = nullptr;
+    common::ValueVector* recursiveDstNodeIDVector = nullptr;
+};
+
 class RecursiveJoin : public PhysicalOperator {
 public:
     RecursiveJoin(uint8_t lowerBound, uint8_t upperBound, common::QueryRelType queryRelType,
@@ -100,7 +112,7 @@ private:
 
     void updateVisitedNodes(common::nodeID_t boundNodeID);
 
-protected:
+private:
     uint8_t lowerBound;
     uint8_t upperBound;
     common::QueryRelType queryRelType;
@@ -114,17 +126,7 @@ protected:
     std::unique_ptr<PhysicalOperator> recursiveRoot;
     ScanFrontier* scanFrontier;
 
-    // Vectors
-    std::vector<common::ValueVector*> vectorsToScan;
-    common::ValueVector* srcNodeIDVector;
-    common::ValueVector* dstNodeIDVector;
-    common::ValueVector* pathLengthVector;
-    common::ValueVector* pathVector;
-
-    // temporary recursive join result.
-    common::ValueVector* recursiveEdgeIDVector;
-    common::ValueVector* recursiveDstNodeIDVector;
-
+    std::unique_ptr<RecursiveJoinVectors> vectors;
     std::unique_ptr<BaseBFSState> bfsState;
     std::unique_ptr<FrontiersScanner> frontiersScanner;
     std::unique_ptr<TargetDstNodes> targetDstNodes;

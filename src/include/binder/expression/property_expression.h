@@ -38,7 +38,7 @@ public:
         return propertyIDPerTable.at(tableID);
     }
 
-    inline bool isInternalID() const { return getPropertyName() == common::INTERNAL_ID_SUFFIX; }
+    inline bool isInternalID() const { return getPropertyName() == common::InternalKeyword::ID; }
 
     inline std::unique_ptr<Expression> copy() const override {
         return make_unique<PropertyExpression>(*this);

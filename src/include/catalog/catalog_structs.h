@@ -48,7 +48,7 @@ public:
     virtual ~TableSchema() = default;
 
     static inline bool isReservedPropertyName(const std::string& propertyName) {
-        return propertyName == common::INTERNAL_ID_SUFFIX;
+        return propertyName == common::InternalKeyword::ID;
     }
 
     inline uint32_t getNumProperties() const { return properties.size(); }
@@ -132,7 +132,7 @@ public:
 
     inline Property& getRelIDDefinition() {
         for (auto& property : properties) {
-            if (property.name == common::INTERNAL_ID_SUFFIX) {
+            if (property.name == common::InternalKeyword::ID) {
                 return property;
             }
         }

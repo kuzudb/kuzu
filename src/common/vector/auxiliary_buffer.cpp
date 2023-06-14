@@ -33,7 +33,6 @@ list_entry_t ListAuxiliaryBuffer::addList(uint64_t listSize) {
     while (size + listSize > capacity) {
         capacity *= 2;
     }
-    auto numBytesPerElement = dataVector->getNumBytesPerValue();
     if (needResizeDataVector) {
         resizeDataVector(dataVector.get());
     }

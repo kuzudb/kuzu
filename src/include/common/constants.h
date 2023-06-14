@@ -19,8 +19,12 @@ constexpr uint64_t THREAD_SLEEP_TIME_WHEN_WAITING_IN_MICROS = 500;
 
 constexpr uint64_t DEFAULT_CHECKPOINT_WAIT_TIMEOUT_FOR_TRANSACTIONS_TO_LEAVE_IN_MICROS = 5000000;
 
-const std::string INTERNAL_ID_SUFFIX = "_id";
-const std::string INTERNAL_LENGTH_SUFFIX = "_length";
+struct InternalKeyword {
+    static constexpr char ID[] = "_id";
+    static constexpr char LENGTH[] = "_length";
+    static constexpr char NODES[] = "_nodes";
+    static constexpr char RELS[] = "_rels";
+};
 
 enum PageSizeClass : uint8_t {
     PAGE_4KB = 0,

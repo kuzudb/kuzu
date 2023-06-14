@@ -278,7 +278,7 @@ struct StructType {
         return structTypeInfo->getStructFields();
     }
 
-    static inline struct_field_idx_t getFieldIdx(const LogicalType* type, std::string& key) {
+    static inline struct_field_idx_t getFieldIdx(const LogicalType* type, const std::string& key) {
         assert(type->getPhysicalType() == PhysicalTypeID::STRUCT);
         auto structTypeInfo = reinterpret_cast<StructTypeInfo*>(type->extraTypeInfo.get());
         return structTypeInfo->getStructFieldIdx(key);

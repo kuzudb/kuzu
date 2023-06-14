@@ -179,11 +179,23 @@ void Binder::bindQueryRel(const RelPattern& relPattern,
                                   " are not connected through rel " + parsedName + ".");
         }
     }
-    auto dataType = isVariableLength ?
-                        common::LogicalType(common::LogicalTypeID::RECURSIVE_REL,
-                            std::make_unique<VarListTypeInfo>(
-                                std::make_unique<LogicalType>(LogicalTypeID::INTERNAL_ID))) :
-                        common::LogicalType(common::LogicalTypeID::REL);
+    common::LogicalType dataType;
+    if (isVariableLength) {
+        std::vector<std::unique_ptr<StructField>> structFields;
+        auto varListTypeInfo = std::make_unique<common::VarListTypeInfo>(
+            std::make_unique<LogicalType>(LogicalTypeID::INTERNAL_ID));
+        auto nodeStructField = std::make_unique<StructField>(InternalKeyword::NODES,
+            std::make_unique<LogicalType>(LogicalTypeID::VAR_LIST, varListTypeInfo->copy()));
+        auto relStructField = std::make_unique<StructField>(InternalKeyword::RELS,
+            std::make_unique<LogicalType>(LogicalTypeID::VAR_LIST, varListTypeInfo->copy()));
+        structFields.push_back(std::move(nodeStructField));
+        structFields.push_back(std::move(relStructField));
+        auto structTypeInfo = std::make_unique<StructTypeInfo>(std::move(structFields));
+        dataType =
+            common::LogicalType(common::LogicalTypeID::RECURSIVE_REL, std::move(structTypeInfo));
+    } else {
+        dataType = common::LogicalType(common::LogicalTypeID::REL);
+    }
     auto queryRel = make_shared<RelExpression>(dataType, getUniqueExpressionName(parsedName),
         parsedName, tableIDs, srcNode, dstNode, directionType, relPattern.getRelType());
     if (isVariableLength) {
