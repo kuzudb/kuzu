@@ -12,7 +12,9 @@ public:
         : DDL{PhysicalOperatorType::RENAME_TABLE, catalog, outputPos, id, paramsString},
           tableID{tableID}, newName{std::move(newName)} {}
 
-    void executeDDLInternal() override { catalog->renameTable(tableID, newName); }
+    void executeDDLInternal(ExecutionContext* context) override {
+        catalog->renameTable(tableID, newName);
+    }
 
     std::string getOutputMsg() override { return "Table renamed"; }
 

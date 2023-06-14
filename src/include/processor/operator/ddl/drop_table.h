@@ -13,7 +13,7 @@ public:
         : DDL{PhysicalOperatorType::DROP_TABLE, catalog, outputPos, id, paramsString},
           tableID{tableID} {}
 
-    void executeDDLInternal() override;
+    void executeDDLInternal(ExecutionContext* context) override;
 
     std::string getOutputMsg() override;
 

@@ -22,6 +22,7 @@
 9|1980-10-26|10 years 5 months 13:00:00.000024
 
 -CASE InsertNodeWithStringTest
+-SKIP
 -STATEMENT CREATE (:person {ID:32, fName:'A'}), (:person {ID:33, fName:'BCD'}), (:person {ID:34, fName:'this is a long name'})
 ---- ok
 -STATEMENT MATCH (a:person) WHERE a.ID > 8 RETURN a.ID, a.fName

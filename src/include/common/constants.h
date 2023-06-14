@@ -79,13 +79,18 @@ struct StorageConstants {
         "nodes.statistics_and_deleted.ids.wal";
     static constexpr char RELS_METADATA_FILE_NAME[] = "rels.statistics";
     static constexpr char RELS_METADATA_FILE_NAME_FOR_WAL[] = "rels.statistics.wal";
-    static constexpr char CATALOG_FILE_NAME[] = "catalog.bin";
-    static constexpr char CATALOG_FILE_NAME_FOR_WAL[] = "catalog.bin.wal";
+    static constexpr char CATALOG_FILE_NAME[] = "catalog.kz";
+    static constexpr char CATALOG_FILE_NAME_FOR_WAL[] = "catalog.kz.wal";
+    static constexpr char NODE_GROUPS_DATA_FILE_NAME[] = "data.kz";
+    static constexpr char NODE_GROUPS_META_FILE_NAME[] = "metadata.kz";
 
     // The number of pages that we add at one time when we need to grow a file.
     static constexpr uint64_t PAGE_GROUP_SIZE_LOG2 = 10;
     static constexpr uint64_t PAGE_GROUP_SIZE = (uint64_t)1 << PAGE_GROUP_SIZE_LOG2;
     static constexpr uint64_t PAGE_IDX_IN_GROUP_MASK = ((uint64_t)1 << PAGE_GROUP_SIZE_LOG2) - 1;
+
+    static constexpr uint64_t NODE_GROUP_SIZE_LOG2 = 17; // 64 * 2048 nodes per group
+    static constexpr uint64_t NODE_GROUP_SIZE = (uint64_t)1 << NODE_GROUP_SIZE_LOG2;
 };
 
 struct ListsMetadataConstants {

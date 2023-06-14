@@ -37,7 +37,6 @@ protected:
     std::vector<DataPos> dataColumnPoses;
     common::ValueVector* rowIdxVector;
     common::ValueVector* filePathVector;
-    std::vector<common::ValueVector*> dataColumnVectors;
 };
 
 } // namespace processor

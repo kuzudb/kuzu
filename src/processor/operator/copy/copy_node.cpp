@@ -1,6 +1,7 @@
 #include "processor/operator/copy/copy_node.h"
 
 #include "common/string_utils.h"
+#include "storage/store/var_sized_column_chunk.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
@@ -9,43 +10,38 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace processor {
 
-CopyNodeSharedState::CopyNodeSharedState(uint64_t& numRows, MemoryManager* memoryManager)
-    : numRows{numRows}, pkColumnID{0}, hasLoggedWAL{false} {
+CopyNodeSharedState::CopyNodeSharedState(uint64_t& numRows, NodeTableSchema* tableSchema,
+    NodeTable* table, const common::CopyDescription& copyDesc, MemoryManager* memoryManager)
+    : numRows{numRows}, copyDesc{copyDesc}, tableSchema{tableSchema}, table{table}, pkColumnID{0},
+      hasLoggedWAL{false}, currentNodeGroupIdx{0} {
     auto ftTableSchema = std::make_unique<FactorizedTableSchema>();
     ftTableSchema->appendColumn(
         std::make_unique<ColumnSchema>(false /* flat */, 0 /* dataChunkPos */,
             LogicalTypeUtils::getRowLayoutSize(LogicalType{LogicalTypeID::STRING})));
-    table = std::make_shared<FactorizedTable>(memoryManager, std::move(ftTableSchema));
+    fTable = std::make_shared<FactorizedTable>(memoryManager, std::move(ftTableSchema));
 }
 
-void CopyNodeSharedState::initializePrimaryKey(
-    NodeTableSchema* nodeTableSchema, const std::string& directory) {
-    if (nodeTableSchema->getPrimaryKey().dataType.getLogicalTypeID() != LogicalTypeID::SERIAL) {
+void CopyNodeSharedState::initializePrimaryKey(const std::string& directory) {
+    if (tableSchema->getPrimaryKey().dataType.getLogicalTypeID() != LogicalTypeID::SERIAL) {
         pkIndex = std::make_unique<PrimaryKeyIndexBuilder>(
-            StorageUtils::getNodeIndexFName(
-                directory, nodeTableSchema->tableID, DBFileType::ORIGINAL),
-            nodeTableSchema->getPrimaryKey().dataType);
+            StorageUtils::getNodeIndexFName(directory, tableSchema->tableID, DBFileType::ORIGINAL),
+            tableSchema->getPrimaryKey().dataType);
         pkIndex->bulkReserve(numRows);
     }
-    for (auto& property : nodeTableSchema->properties) {
-        if (property.propertyID == nodeTableSchema->getPrimaryKey().propertyID) {
+    for (auto& property : tableSchema->properties) {
+        if (property.propertyID == tableSchema->getPrimaryKey().propertyID) {
             break;
         }
         pkColumnID++;
     }
 }
 
-void CopyNodeSharedState::initializeColumns(
-    NodeTableSchema* nodeTableSchema, const std::string& directory) {
-    columns.reserve(nodeTableSchema->properties.size());
-    for (auto& property : nodeTableSchema->properties) {
-        if (property.dataType.getLogicalTypeID() == LogicalTypeID::SERIAL) {
-            // Skip SERIAL, as it is not physically stored.
-            continue;
-        }
-        auto fPath = StorageUtils::getNodePropertyColumnFName(
-            directory, nodeTableSchema->tableID, property.propertyID, DBFileType::ORIGINAL);
-        columns.push_back(std::make_unique<InMemColumn>(fPath, property.dataType));
+void CopyNodeSharedState::logCopyNodeWALRecord(WAL* wal) {
+    std::unique_lock xLck{mtx};
+    if (!hasLoggedWAL) {
+        wal->logCopyNodeRecord(table->getTableID(), table->getNodeGroupsDataFH()->getNumPages());
+        wal->flushAllPages();
+        hasLoggedWAL = true;
     }
 }
 
@@ -55,15 +51,7 @@ CopyNode::CopyNode(std::shared_ptr<CopyNodeSharedState> sharedState, CopyNodeInf
     : Sink{std::move(resultSetDescriptor), PhysicalOperatorType::COPY_NODE, std::move(child), id,
           paramsString},
       sharedState{std::move(sharedState)}, copyNodeInfo{std::move(copyNodeInfo)},
-      rowIdxVector{nullptr}, filePathVector{nullptr} {
-    auto tableSchema = this->copyNodeInfo.catalog->getReadOnlyVersion()->getNodeTableSchema(
-        this->copyNodeInfo.table->getTableID());
-    copyStates.resize(tableSchema->getNumProperties());
-    for (auto i = 0u; i < tableSchema->getNumProperties(); i++) {
-        auto& property = tableSchema->properties[i];
-        copyStates[i] = std::make_unique<storage::PropertyCopyState>(property.dataType);
-    }
-}
+      rowIdxVector{nullptr}, filePathVector{nullptr} {}
 
 std::pair<row_idx_t, row_idx_t> CopyNode::getStartAndEndRowIdx(common::vector_idx_t columnIdx) {
     auto startRowIdx =
@@ -81,144 +69,162 @@ std::pair<std::string, common::row_idx_t> CopyNode::getFilePathAndRowIdxInFile()
     return {filePath.getAsString(), rowIdxInFile};
 }
 
-void CopyNode::executeInternal(kuzu::processor::ExecutionContext* context) {
-    logCopyWALRecord();
+void CopyNodeSharedState::appendLocalNodeGroup(std::unique_ptr<NodeGroup> localNodeGroup) {
+    std::unique_lock xLck{mtx};
+    if (!sharedNodeGroup) {
+        sharedNodeGroup = std::move(localNodeGroup);
+        return;
+    }
+    auto numNodesAppended =
+        sharedNodeGroup->appendNodeGroup(localNodeGroup.get(), 0 /* offsetInNodeGroup */);
+    if (sharedNodeGroup->getNumNodes() == StorageConstants::NODE_GROUP_SIZE) {
+        auto nodeGroupIdx = getNextNodeGroupIdxWithoutLock();
+        sharedNodeGroup->setNodeGroupIdx(nodeGroupIdx);
+        CopyNode::appendNodeGroupToTableAndPopulateIndex(
+            table, sharedNodeGroup.get(), pkIndex.get(), pkColumnID);
+    }
+    // append node group to table.
+    if (numNodesAppended < localNodeGroup->getNumNodes()) {
+        sharedNodeGroup->appendNodeGroup(localNodeGroup.get(), numNodesAppended);
+    }
+}
+
+void CopyNode::initGlobalStateInternal(ExecutionContext* context) {
+    if (!isCopyAllowed()) {
+        throw CopyException("COPY commands can only be executed once on a table.");
+    }
+    sharedState->initialize(copyNodeInfo.wal->getDirectory());
+}
+
+void CopyNode::executeInternal(ExecutionContext* context) {
+    // CopyNode goes through UNDO log, should be logged and flushed to WAL before making changes.
+    sharedState->logCopyNodeWALRecord(copyNodeInfo.wal);
     while (children[0]->getNextTuple(context)) {
-        std::vector<std::unique_ptr<InMemColumnChunk>> columnChunks;
-        columnChunks.reserve(sharedState->columns.size());
-        auto [startRowIdx, endRowIdx] = getStartAndEndRowIdx(0 /* columnIdx */);
-        auto [filePath, startRowIdxInFile] = getFilePathAndRowIdxInFile();
-        for (auto i = 0u; i < sharedState->columns.size(); i++) {
-            auto columnChunk = sharedState->columns[i]->createInMemColumnChunk(
-                startRowIdx, endRowIdx, &copyNodeInfo.copyDesc);
-            columnChunk->copyArrowArray(
-                *ArrowColumnVector::getArrowColumn(dataColumnVectors[i]), copyStates[i].get());
-            columnChunks.push_back(std::move(columnChunk));
-        }
-        flushChunksAndPopulatePKIndex(
-            columnChunks, startRowIdx, endRowIdx, filePath, startRowIdxInFile);
-    }
-}
-
-void CopyNode::finalize(kuzu::processor::ExecutionContext* context) {
-    auto tableID = copyNodeInfo.table->getTableID();
-    if (sharedState->pkIndex) {
-        sharedState->pkIndex->flush();
-    }
-    for (auto& column : sharedState->columns) {
-        column->saveToFile();
-    }
-    for (auto& relTableSchema :
-        copyNodeInfo.catalog->getAllRelTableSchemasContainBoundTable(tableID)) {
-        copyNodeInfo.relsStore->getRelTable(relTableSchema->tableID)
-            ->batchInitEmptyRelsForNewNodes(relTableSchema, sharedState->numRows);
-    }
-    copyNodeInfo.table->getNodeStatisticsAndDeletedIDs()->setNumTuplesForTable(
-        tableID, sharedState->numRows);
-    auto outputMsg = StringUtils::string_format("{} number of tuples has been copied to table: {}.",
-        sharedState->numRows,
-        copyNodeInfo.catalog->getReadOnlyVersion()->getTableName(tableID).c_str());
-    FactorizedTableUtils::appendStringToTable(
-        sharedState->table.get(), outputMsg, context->memoryManager);
-}
-
-void CopyNode::flushChunksAndPopulatePKIndex(
-    const std::vector<std::unique_ptr<InMemColumnChunk>>& columnChunks, offset_t startNodeOffset,
-    offset_t endNodeOffset, const std::string& filePath, row_idx_t startRowIdxInFile) {
-    // Flush each page within the [StartOffset, endOffset] range.
-    for (auto i = 0u; i < sharedState->columns.size(); i++) {
-        sharedState->columns[i]->flushChunk(columnChunks[i].get());
-    }
-    if (sharedState->pkIndex) {
-        // Populate the primary key index.
-        populatePKIndex(columnChunks[sharedState->pkColumnID].get(),
-            sharedState->columns[sharedState->pkColumnID]->getInMemOverflowFile(), startNodeOffset,
-            (endNodeOffset - startNodeOffset + 1), filePath, startRowIdxInFile);
-    }
-}
-
-template<>
-uint64_t CopyNode::appendToPKIndex<int64_t>(
-    InMemColumnChunk* chunk, offset_t startOffset, uint64_t numValues) {
-    for (auto i = 0u; i < numValues; i++) {
-        auto offset = i + startOffset;
-        auto value = chunk->getValue<int64_t>(i);
-        if (!sharedState->pkIndex->append(value, offset)) {
-            return i;
+        auto dataChunkToCopy = resultSet->getDataChunk(0);
+        // All tuples in the resultSet are in the same data chunk.
+        auto numTuplesToAppend = ArrowColumnVector::getArrowColumn(
+            resultSet->getValueVector(copyNodeInfo.dataColumnPoses[0]).get())
+                                     ->length();
+        uint64_t numAppendedTuples = 0;
+        while (numAppendedTuples < numTuplesToAppend) {
+            numAppendedTuples += localNodeGroup->append(
+                resultSet, copyNodeInfo.dataColumnPoses, numTuplesToAppend - numAppendedTuples);
+            if (localNodeGroup->getNumNodes() == StorageConstants::NODE_GROUP_SIZE) {
+                // Current node group is full, flush it and reset it to empty.
+                auto nodeGroupIdx = sharedState->getNextNodeGroupIdx();
+                localNodeGroup->setNodeGroupIdx(nodeGroupIdx);
+                appendNodeGroupToTableAndPopulateIndex(sharedState->table, localNodeGroup.get(),
+                    sharedState->pkIndex.get(), sharedState->pkColumnID);
+            }
+            if (numAppendedTuples < numTuplesToAppend) {
+                auto slicedChunk = sliceDataVectorsInDataChunk(*dataChunkToCopy,
+                    copyNodeInfo.dataColumnPoses, (int64_t)numAppendedTuples,
+                    (int64_t)(numTuplesToAppend - numAppendedTuples));
+                resultSet->dataChunks[0] = slicedChunk;
+            }
         }
     }
-    return numValues;
-}
-
-template<>
-uint64_t CopyNode::appendToPKIndex<ku_string_t, InMemOverflowFile*>(InMemColumnChunk* chunk,
-    offset_t startOffset, uint64_t numValues, InMemOverflowFile* overflowFile) {
-    for (auto i = 0u; i < numValues; i++) {
-        auto offset = i + startOffset;
-        auto value = chunk->getValue<ku_string_t>(i);
-        auto key = overflowFile->readString(&value);
-        if (!sharedState->pkIndex->append(key.c_str(), offset)) {
-            return i;
-        }
+    // Append left data in the local node group to the shared one.
+    if (localNodeGroup->getNumNodes() > 0) {
+        sharedState->appendLocalNodeGroup(std::move(localNodeGroup));
     }
-    return numValues;
 }
 
-void CopyNode::populatePKIndex(InMemColumnChunk* chunk, InMemOverflowFile* overflowFile,
-    offset_t startOffset, uint64_t numValues, const std::string& filePath,
-    common::row_idx_t startRowIdxInFile) {
+std::shared_ptr<DataChunk> CopyNode::sliceDataVectorsInDataChunk(const DataChunk& dataChunkToSlice,
+    const std::vector<DataPos>& dataColumnPoses, int64_t offset, int64_t length) {
+    auto slicedChunk =
+        std::make_shared<DataChunk>(dataChunkToSlice.getNumValueVectors(), dataChunkToSlice.state);
+    for (auto& dataPos : dataColumnPoses) {
+        slicedChunk->valueVectors[dataPos.valueVectorPos] =
+            std::make_shared<ValueVector>(LogicalTypeID::ARROW_COLUMN);
+    }
+    for (auto& dataColumnPose : dataColumnPoses) {
+        assert(dataColumnPose.dataChunkPos == 0);
+        auto vectorPos = dataColumnPose.valueVectorPos;
+        ArrowColumnVector::slice(dataChunkToSlice.valueVectors[vectorPos].get(),
+            slicedChunk->valueVectors[vectorPos].get(), offset, length);
+    }
+    return slicedChunk;
+}
+
+void CopyNode::appendNodeGroupToTableAndPopulateIndex(NodeTable* table, NodeGroup* nodeGroup,
+    PrimaryKeyIndexBuilder* pkIndex, column_id_t pkColumnID) {
+    auto numNodes = nodeGroup->getNumNodes();
+    auto startOffset = nodeGroup->getNodeGroupIdx() << StorageConstants::NODE_GROUP_SIZE_LOG2;
+    populatePKIndex(pkIndex, nodeGroup->getColumnChunk(pkColumnID), startOffset, numNodes);
+    table->appendNodeGroup(nodeGroup);
+    nodeGroup->resetToEmpty();
+}
+
+void CopyNode::populatePKIndex(
+    PrimaryKeyIndexBuilder* pkIndex, ColumnChunk* chunk, offset_t startOffset, offset_t numNodes) {
     // First, check if there is any nulls.
-    for (auto posInChunk = 0u; posInChunk < numValues; posInChunk++) {
-        if (chunk->isNull(posInChunk)) {
-            throw CopyException(
-                StringUtils::string_format("NULL found around L{} in file {} violates the non-null "
-                                           "constraint of the primary key column.",
-                    (startRowIdxInFile + posInChunk), filePath));
+    auto nullChunk = chunk->getNullChunk();
+    for (auto posInChunk = 0u; posInChunk < numNodes; posInChunk++) {
+        if (nullChunk->isNull(posInChunk)) {
+            throw CopyException("Primary key cannot be null.");
         }
     }
     // No nulls, so we can populate the index with actual values.
-    std::string errorPKValueStr;
-    row_idx_t errorPKRowIdx = INVALID_ROW_IDX;
-    sharedState->pkIndex->lock();
+    pkIndex->lock();
+    try {
+        appendToPKIndex(pkIndex, chunk, startOffset, numNodes);
+    } catch (Exception& e) {
+        pkIndex->unlock();
+        throw;
+    }
+    pkIndex->unlock();
+}
+
+void CopyNode::finalize(ExecutionContext* context) {
+    if (sharedState->sharedNodeGroup) {
+        auto nodeGroupIdx = sharedState->getNextNodeGroupIdx();
+        sharedState->sharedNodeGroup->setNodeGroupIdx(nodeGroupIdx);
+        appendNodeGroupToTableAndPopulateIndex(sharedState->table,
+            sharedState->sharedNodeGroup.get(), sharedState->pkIndex.get(),
+            sharedState->pkColumnID);
+    }
+    if (sharedState->pkIndex) {
+        sharedState->pkIndex->flush();
+    }
+    std::unordered_set<table_id_t> connectedRelTableIDs;
+    connectedRelTableIDs.insert(sharedState->tableSchema->fwdRelTableIDSet.begin(),
+        sharedState->tableSchema->fwdRelTableIDSet.end());
+    connectedRelTableIDs.insert(sharedState->tableSchema->bwdRelTableIDSet.begin(),
+        sharedState->tableSchema->bwdRelTableIDSet.end());
+    for (auto relTableID : connectedRelTableIDs) {
+        copyNodeInfo.relsStore->getRelTable(relTableID)
+            ->batchInitEmptyRelsForNewNodes(relTableID, sharedState->numRows);
+    }
+    sharedState->table->getNodeStatisticsAndDeletedIDs()->setNumTuplesForTable(
+        sharedState->table->getTableID(), sharedState->numRows);
+    auto outputMsg = StringUtils::string_format("{} number of tuples has been copied to table: {}.",
+        sharedState->numRows, sharedState->tableSchema->tableName.c_str());
+    FactorizedTableUtils::appendStringToTable(
+        sharedState->fTable.get(), outputMsg, context->memoryManager);
+}
+
+void CopyNode::appendToPKIndex(
+    PrimaryKeyIndexBuilder* pkIndex, ColumnChunk* chunk, offset_t startOffset, uint64_t numValues) {
     switch (chunk->getDataType().getLogicalTypeID()) {
     case LogicalTypeID::INT64: {
-        auto numAppended = appendToPKIndex<int64_t>(chunk, startOffset, numValues);
-        if (numAppended < numValues) {
-            errorPKValueStr = std::to_string(chunk->getValue<int64_t>(startOffset + numAppended));
-            errorPKRowIdx = startRowIdxInFile + numAppended;
+        for (auto i = 0u; i < numValues; i++) {
+            auto offset = i + startOffset;
+            auto value = chunk->getValue<int64_t>(i);
+            pkIndex->append(value, offset);
         }
     } break;
     case LogicalTypeID::STRING: {
-        auto numAppended = appendToPKIndex<ku_string_t, InMemOverflowFile*>(
-            chunk, startOffset, numValues, overflowFile);
-        if (numAppended < numValues) {
-            errorPKValueStr = chunk->getValue<ku_string_t>(startOffset + numAppended).getAsString();
-            errorPKRowIdx = startRowIdxInFile + numAppended;
+        auto varSizedChunk = (VarSizedColumnChunk*)chunk;
+        for (auto i = 0u; i < numValues; i++) {
+            auto offset = i + startOffset;
+            auto value = varSizedChunk->getValue<std::string>(i);
+            pkIndex->append(value.c_str(), offset);
         }
     } break;
     default: {
-        throw CopyException(
-            StringUtils::string_format("Invalid primary key column type {}. Primary key must be "
-                                       "either INT64, STRING or SERIAL.",
-                LogicalTypeUtils::dataTypeToString(chunk->getDataType())));
+        throw NotImplementedException("CopyNode::appendToPKIndex");
     }
-    }
-    sharedState->pkIndex->unlock();
-    if (!errorPKValueStr.empty()) {
-        assert(errorPKRowIdx != INVALID_ROW_IDX);
-        throw CopyException(StringUtils::string_format(
-            "Duplicated primary key value {} found around L{} in file {} violates the "
-            "uniqueness constraint of the primary key column.",
-            errorPKValueStr, errorPKRowIdx, filePath));
-    }
-}
-
-void CopyNode::logCopyWALRecord() {
-    std::unique_lock xLck{sharedState->mtx};
-    if (!sharedState->hasLoggedWAL) {
-        copyNodeInfo.wal->logCopyNodeRecord(copyNodeInfo.table->getTableID());
-        copyNodeInfo.wal->flushAllPages();
-        sharedState->hasLoggedWAL = true;
     }
 }
 

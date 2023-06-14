@@ -92,10 +92,8 @@ public:
      */
     // getNodeProperty and getRelProperty should be called after checking if property exists
     // (containNodeProperty and containRelProperty).
-    const Property& getNodeProperty(
-        common::table_id_t tableID, const std::string& propertyName) const;
-    const Property& getRelProperty(
-        common::table_id_t tableID, const std::string& propertyName) const;
+    Property& getNodeProperty(common::table_id_t tableID, const std::string& propertyName) const;
+    Property& getRelProperty(common::table_id_t tableID, const std::string& propertyName) const;
 
     inline const std::vector<Property>& getNodeProperties(common::table_id_t tableID) const {
         return nodeTableSchemas.at(tableID)->getProperties();
@@ -216,7 +214,7 @@ public:
 
     void dropTableSchema(common::table_id_t tableID);
 
-    void renameTable(common::table_id_t tableID, std::string newName);
+    void renameTable(common::table_id_t tableID, const std::string& newName);
 
     void addProperty(
         common::table_id_t tableID, const std::string& propertyName, common::LogicalType dataType);
@@ -238,14 +236,19 @@ public:
     inline function::ScalarMacroFunction* getScalarMacroFunction(std::string name) const {
         return catalogContentForReadOnlyTrx->macros.at(name).get();
     }
+    inline storage::BMFileHandle* getNodeGroupsMetaFH() const { return nodeGroupsMetaFH.get(); }
 
 private:
     inline bool hasUpdates() { return catalogContentForWriteTrx != nullptr; }
+
+    void addMetaDAHeaderPageForProperty(
+        const common::LogicalType& dataType, MetaDiskArrayHeaderInfo& diskArrayHeaderInfo);
 
 protected:
     std::unique_ptr<CatalogContent> catalogContentForReadOnlyTrx;
     std::unique_ptr<CatalogContent> catalogContentForWriteTrx;
     storage::WAL* wal;
+    std::unique_ptr<storage::BMFileHandle> nodeGroupsMetaFH;
 };
 
 } // namespace catalog

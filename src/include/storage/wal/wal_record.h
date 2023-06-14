@@ -193,6 +193,8 @@ enum class StorageStructureType : uint8_t {
     COLUMN = 0,
     LISTS = 1,
     NODE_INDEX = 2,
+    NODE_GROUPS_DATA = 3, // Data file for node groups.
+    NODE_GROUPS_META = 4, // Metadata file for node groups.
 };
 
 std::string storageStructureTypeToString(StorageStructureType storageStructureType);
@@ -225,10 +227,13 @@ struct StorageStructureID {
             return nodeIndexID == rhs.nodeIndexID;
         }
         default: {
-            assert(false);
+            throw common::NotImplementedException("StorageStructureID::operator==");
         }
         }
     }
+
+    static StorageStructureID newNodeGroupsDataID();
+    static StorageStructureID newNodeGroupsMetaID();
 
     static StorageStructureID newNodePropertyColumnID(
         common::table_id_t tableID, common::property_id_t propertyID);
@@ -338,12 +343,16 @@ struct DiskOverflowFileNextBytePosRecord {
 
 struct CopyNodeRecord {
     common::table_id_t tableID;
+    common::page_idx_t startPageIdx;
 
     CopyNodeRecord() = default;
 
-    explicit CopyNodeRecord(common::table_id_t tableID) : tableID{tableID} {}
+    explicit CopyNodeRecord(common::table_id_t tableID, common::page_idx_t startPageIdx)
+        : tableID{tableID}, startPageIdx{startPageIdx} {}
 
-    inline bool operator==(const CopyNodeRecord& rhs) const { return tableID == rhs.tableID; }
+    inline bool operator==(const CopyNodeRecord& rhs) const {
+        return tableID == rhs.tableID && startPageIdx == rhs.startPageIdx;
+    }
 };
 
 struct CopyRelRecord {
@@ -483,7 +492,7 @@ struct WALRecord {
     static WALRecord newRelTableRecord(common::table_id_t tableID);
     static WALRecord newOverflowFileNextBytePosRecord(
         StorageStructureID storageStructureID_, uint64_t prevNextByteToWriteTo_);
-    static WALRecord newCopyNodeRecord(common::table_id_t tableID);
+    static WALRecord newCopyNodeRecord(common::table_id_t tableID, common::page_idx_t pageIdx);
     static WALRecord newCopyRelRecord(common::table_id_t tableID);
     static WALRecord newDropTableRecord(common::table_id_t tableID);
     static WALRecord newDropPropertyRecord(

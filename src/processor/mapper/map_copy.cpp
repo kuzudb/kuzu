@@ -71,9 +71,10 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNode(
     default:
         throw common::NotImplementedException("PlanMapper::mapLogicalCopyNodeToPhysical");
     }
-    auto copyNodeSharedState =
-        std::make_shared<CopyNodeSharedState>(readFileSharedState->numRows, memoryManager);
-    std::unique_ptr<CopyNode> copyNode;
+    auto copyNodeSharedState = std::make_shared<CopyNodeSharedState>(readFileSharedState->numRows,
+        catalog->getReadOnlyVersion()->getNodeTableSchema(copy->getTableID()),
+        storageManager.getNodesStore().getNodeTable(copy->getTableID()), copy->getCopyDescription(),
+        memoryManager);
     CopyNodeInfo copyNodeDataInfo{
         rowIdxVectorPos,
         filePathVectorPos,
@@ -84,12 +85,12 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNode(
         catalog,
         storageManager.getWAL(),
     };
-    copyNode = std::make_unique<CopyNode>(copyNodeSharedState, copyNodeDataInfo,
+    auto copyNode = std::make_unique<CopyNode>(copyNodeSharedState, copyNodeDataInfo,
         std::make_unique<ResultSetDescriptor>(copy->getSchema()), std::move(readFile),
         getOperatorID(), copy->getExpressionsForPrinting());
     auto outputExpressions = binder::expression_vector{copy->getOutputExpression()};
     return createFactorizedTableScan(
-        outputExpressions, outSchema, copyNodeSharedState->table, std::move(copyNode));
+        outputExpressions, outSchema, copyNodeSharedState->fTable, std::move(copyNode));
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyRel(

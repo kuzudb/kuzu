@@ -116,6 +116,10 @@ public:
     // The return value is the idx of val in array.
     uint64_t pushBack(U val);
 
+    // Note: This function is to be used only by the WRITE trx. Currently, this function doesn't
+    // support shrink the size of the array.
+    uint64_t resize(uint64_t newNumElements);
+
     virtual inline void checkpointInMemoryIfNecessary() {
         std::unique_lock xlock{this->diskArraySharedMtx};
         checkpointOrRollbackInMemoryIfNecessaryNoLock(true /* is checkpoint */);
@@ -126,6 +130,8 @@ public:
     }
 
 protected:
+    uint64_t pushBackNoLock(U val);
+
     uint64_t getNumElementsNoLock(transaction::TransactionType trxType);
 
     uint64_t getNumAPsNoLock(transaction::TransactionType trxType);
@@ -232,10 +238,8 @@ public:
     }
     inline void rollbackInMemoryIfNecessary() override {
         std::unique_lock xlock{this->diskArraySharedMtx};
-        InMemDiskArray<T>::checkpointOrRollbackInMemoryIfNecessaryNoLock(false /* is rollback */);
+        checkpointOrRollbackInMemoryIfNecessaryNoLock(false /* is rollback */);
     }
-
-    inline FileHandle* getFileHandle() { return (FileHandle*)&this->fileHandle; }
 
 private:
     void checkpointOrRollbackInMemoryIfNecessaryNoLock(bool isCheckpoint) override;

@@ -12,7 +12,7 @@ bool DDL::getNextTuplesInternal(ExecutionContext* context) {
         return false;
     }
     hasExecuted = true;
-    executeDDLInternal();
+    executeDDLInternal(context);
     outputVector->setValue<std::string>(0, getOutputMsg());
     metrics->numOutputTuple.increase(1);
     return true;

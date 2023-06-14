@@ -5,14 +5,9 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace processor {
 
-void AddNodeProperty::executeDDLInternal() {
-    AddProperty::executeDDLInternal();
-    auto tableSchema = catalog->getWriteVersion()->getTableSchema(tableID);
-    auto property = tableSchema->getProperty(tableSchema->getPropertyID(propertyName));
-    StorageUtils::createFileForNodePropertyWithDefaultVal(tableID, storageManager.getDirectory(),
-        property, getDefaultVal(), isDefaultValueNull(),
-        storageManager.getNodesStore().getNodesStatisticsAndDeletedIDs().getNumTuplesForTable(
-            tableID));
+// TODO(Guodong): Remove this class.
+void AddNodeProperty::executeDDLInternal(ExecutionContext* context) {
+    AddProperty::executeDDLInternal(context);
 }
 
 } // namespace processor

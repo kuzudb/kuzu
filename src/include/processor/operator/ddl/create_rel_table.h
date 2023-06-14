@@ -17,7 +17,7 @@ public:
           relMultiplicity{relMultiplicity}, srcTableID{srcTableID}, dstTableID{dstTableID},
           relsStatistics{relsStatistics} {}
 
-    void executeDDLInternal() override;
+    void executeDDLInternal(ExecutionContext* context) override;
 
     std::string getOutputMsg() override;
 
