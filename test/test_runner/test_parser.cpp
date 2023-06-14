@@ -100,7 +100,7 @@ void TestParser::extractExpectedResult(TestStatement* statement) {
         nextLine();
         if (line.starts_with("<FILE>:")) {
             statement->expectedTuplesCSVFile = TestHelper::appendKuzuRootPath(
-                FileUtils::joinPath(TestHelper::OUTPUTS_PATH, line.substr(7)));
+                FileUtils::joinPath(TestHelper::TEST_ANSWERS_PATH, line.substr(7)));
             return;
         }
         setCursorToPreviousLine();
@@ -223,6 +223,9 @@ std::string TestParser::parseCommandRepeat() {
     int times = stoi(currentToken.params[3]);
     std::string result;
     std::string repeatString = StringUtils::extractStringBetween(paramsToString(4), '"', '"');
+    if (repeatString.empty()) {
+        throw TestException("Invalid DEFINE data type [" + path + ":" + line + "].");
+    }
     for (auto i = 0; i < times; i++) {
         result += repeatString;
     }

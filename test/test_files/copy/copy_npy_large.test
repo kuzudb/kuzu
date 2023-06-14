@@ -8,9 +8,9 @@
 -NAME ID
 -QUERY MATCH (n:npytable) RETURN n.id
 ---- 20000
-<FILE>:copy_npy_large_id_output.csv
+<FILE>:copy_npy_large_id_answer.csv
 
 -NAME f32
 -QUERY MATCH (n:npytable) RETURN n.f32
 ---- 20000
-<FILE>:copy_npy_large_f32_output.csv
+<FILE>:copy_npy_large_f32_answer.csv

@@ -44,6 +44,9 @@ std::string StringUtils::extractStringBetween(
     const std::string& input, char delimiterStart, char delimiterEnd, bool includeDelimiter) {
     std::string::size_type posStart = input.find_first_of(delimiterStart);
     std::string::size_type posEnd = input.find_last_of(delimiterEnd);
+    if (posStart == std::string::npos || posEnd == std::string::npos || posStart >= posEnd) {
+        return "";
+    }
     if (includeDelimiter) {
         posEnd++;
     } else {

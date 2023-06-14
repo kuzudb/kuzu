@@ -12,7 +12,7 @@
 5001
 -QUERY MATCH (p0:person)-[r:knows]->(p1:person) WHERE p0.ID = 0 RETURN p0.ID, ID(r), p1.ID
 ---- 5001
-<FILE>:copy_large_list_fwd_output.csv
+<FILE>:copy_large_list_fwd_answer.csv
 
 # p0 has only 1 bwd edge, which from itself
 -NAME BackwardCheck
@@ -24,12 +24,12 @@
 -NAME OneSingleForwardEdge
 -QUERY MATCH (p0:person)-[r:knows]->(p1:person) WHERE p0.ID > 0 AND p0.ID < 5001 AND p1.ID = 5000 RETURN p0.ID, ID(r), p1.ID
 ---- 1
-<FILE>:copy_large_list_single_fwd_output.csv
+<FILE>:copy_large_list_single_fwd_answer.csv
 
 -NAME OneBackwardEdge
 -QUERY MATCH (p0:person)<-[r:knows]-(p1:person) WHERE p0.ID > 0 AND p0.ID < 5001 AND p1.ID = 0 RETURN p0.ID, ID(r), p1.ID;
 ---- 1
-<FILE>:copy_large_list_single_bwd_output.csv
+<FILE>:copy_large_list_single_bwd_answer.csv
 
 # p5001 to p6000 are singletons
 -NAME SingletonNodeForwardCheck
