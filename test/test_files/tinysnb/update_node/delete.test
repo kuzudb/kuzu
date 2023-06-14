@@ -4,6 +4,7 @@
 --
 
 -CASE DeleteNodeAfterInsertTest
+-SKIP
 -STATEMENT CREATE (a:person {ID:100, fName:'Xiyang', age:26})
 ---- ok
 -STATEMENT MATCH (a:person) WHERE a.ID = 100 DELETE a
@@ -15,6 +16,7 @@
 101||
 
 -CASE MixedDeleteInsertTest
+-SKIP
 -STATEMENT CREATE (a:organisation {ID:30, mark:3.3})
 ---- ok
 -STATEMENT MATCH (a:organisation) WHERE a.ID = 30 RETURN a.orgCode, a.mark

@@ -28,8 +28,6 @@ protected:
     virtual std::shared_ptr<arrow::RecordBatch> readTuples(
         std::unique_ptr<storage::ReadFileMorsel> morsel) = 0;
 
-    bool getNextTuplesInternal(ExecutionContext* context) override;
-
 protected:
     std::shared_ptr<storage::ReadFileSharedState> sharedState;
     DataPos rowIdxVectorPos;

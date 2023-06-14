@@ -119,6 +119,13 @@ void CopyNode::executeInternal(ExecutionContext* context) {
     if (localNodeGroup->getNumNodes() > 0) {
         sharedState->appendLocalNodeGroup(std::move(localNodeGroup));
     }
+    for (auto& dataColumnPose : dataColumnPoses) {
+        assert(dataColumnPose.dataChunkPos == 0);
+        auto vectorPos = dataColumnPose.valueVectorPos;
+        ArrowColumnVector::slice(dataChunkToSlice.valueVectors[vectorPos].get(),
+            slicedChunk->valueVectors[vectorPos].get(), offset, length);
+    }
+    return slicedChunk;
 }
 
 std::shared_ptr<DataChunk> CopyNode::sliceDataVectorsInDataChunk(const DataChunk& dataChunkToSlice,

@@ -122,6 +122,8 @@ public:
         common::offset_t startPosInChunk, uint32_t numValuesToAppend) final;
 };
 
+=======
+>>>>>>> basic copy and scan
 struct ColumnChunkFactory {
     static std::unique_ptr<ColumnChunk> createColumnChunk(
         const common::LogicalType& dataType, common::CopyDescription* copyDescription);

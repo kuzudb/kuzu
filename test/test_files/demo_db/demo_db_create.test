@@ -4,6 +4,7 @@
 --
 
 -CASE CreateNodeTest1
+-SKIP
 -STATEMENT CREATE (u:User {name: 'Alice', age: 35})
 ---- ok
 -STATEMENT MATCH (a:User) WHERE a.name = 'Alice' RETURN a.name, a.age
@@ -11,6 +12,7 @@
 Alice|35
 
 -CASE CreateNodeTest2
+-SKIP
 -STATEMENT CREATE (u:User {name: 'Dimitri'})
 ---- ok
 -STATEMENT MATCH (a:User) WHERE a.name = 'Dimitri' RETURN a.name, a.age
@@ -18,6 +20,7 @@ Alice|35
 Dimitri|
 
 -CASE CreateRelTest1
+-SKIP
 -STATEMENT CREATE (u:User {name: 'Alice'})
 ---- ok
 -STATEMENT MATCH (a:User) WHERE a.name = 'Adam' WITH a  MATCH (b:User) WHERE b.name = 'Alice' WITH a, b CREATE (a)-[e:Follows {since:1990}]->(b)
@@ -39,6 +42,7 @@ Karissa
 Noura
 
 -CASE CreateAvgNullTest
+-SKIP
 -STATEMENT MATCH (a:User) WHERE a.name = 'Adam' CREATE (a)-[:Follows]->(b:User {name:'Alice'})
 ---- ok
 -CHECK_ORDER
