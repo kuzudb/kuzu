@@ -110,9 +110,7 @@ void checkGtestParams(int argc, char** argv) {
     if (argc > 1) {
         std::string argument = argv[1];
         if (argument == "--gtest_list_tests") {
-            std::string testListFile = TestHelper::appendKuzuRootPath(
-                FileUtils::joinPath(TestHelper::E2E_TEST_FILES_DIRECTORY, "test_list"));
-            FileUtils::removeFileIfExists(testListFile);
+            FileUtils::removeFileIfExists(TestHelper::getTestListFile());
             scanTestFiles(TestHelper::appendKuzuRootPath(TestHelper::E2E_TEST_FILES_DIRECTORY));
         }
         if (argument.starts_with("--gtest_filter=")) {

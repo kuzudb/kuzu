@@ -3,7 +3,6 @@
 
 --
 
-
 -CASE NodePropertyIntColumnWithList
 -QUERY MATCH (p:person) RETURN p.workedHours
 ---- 8

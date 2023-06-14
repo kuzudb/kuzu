@@ -100,7 +100,7 @@ void TestParser::extractExpectedResult(TestStatement* statement) {
         nextLine();
         if (line.starts_with("<FILE>:")) {
             statement->expectedTuplesCSVFile = TestHelper::appendKuzuRootPath(
-                FileUtils::joinPath(TestHelper::FIXTURE_PATH, line.substr(7)));
+                FileUtils::joinPath(TestHelper::OUTPUTS_PATH, line.substr(7)));
             return;
         }
         setCursorToPreviousLine();
