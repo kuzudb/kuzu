@@ -7,7 +7,7 @@
 #include "function/interval/vector_interval_operations.h"
 #include "function/list/vector_list_operations.h"
 #include "function/map/vector_map_operations.h"
-#include "function/schema/vector_offset_operations.h"
+#include "function/schema/vector_node_rel_operations.h"
 #include "function/string/vector_string_operations.h"
 #include "function/struct/vector_struct_operations.h"
 #include "function/timestamp/vector_timestamp_operations.h"
@@ -30,8 +30,7 @@ void BuiltInVectorOperations::registerVectorOperations() {
     registerStructOperations();
     registerMapOperations();
     registerUnionOperations();
-    // register internal offset operation
-    vectorOperations.insert({OFFSET_FUNC_NAME, OffsetVectorOperation::getDefinitions()});
+    registerNodeRelOperations();
 }
 
 bool BuiltInVectorOperations::canApplyStaticEvaluation(
@@ -503,6 +502,12 @@ void BuiltInVectorOperations::registerUnionOperations() {
     vectorOperations.insert({UNION_TAG_FUNC_NAME, UnionTagVectorOperations::getDefinitions()});
     vectorOperations.insert(
         {UNION_EXTRACT_FUNC_NAME, UnionExtractVectorOperations::getDefinitions()});
+}
+
+void BuiltInVectorOperations::registerNodeRelOperations() {
+    vectorOperations.insert({OFFSET_FUNC_NAME, OffsetVectorOperation::getDefinitions()});
+    vectorOperations.insert({NODES_FUNC_NAME, NodesVectorOperation::getDefinitions()});
+    vectorOperations.insert({RELS_FUNC_NAME, RelsVectorOperation::getDefinitions()});
 }
 
 } // namespace function

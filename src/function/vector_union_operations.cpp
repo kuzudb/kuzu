@@ -10,7 +10,8 @@ vector_operation_definitions UnionValueVectorOperations::getDefinitions() {
     vector_operation_definitions definitions;
     definitions.push_back(make_unique<VectorOperationDefinition>(common::UNION_VALUE_FUNC_NAME,
         std::vector<common::LogicalTypeID>{common::LogicalTypeID::ANY},
-        common::LogicalTypeID::UNION, execFunc, nullptr, bindFunc, false /* isVarLength */));
+        common::LogicalTypeID::UNION, execFunc, nullptr, compileFunc, bindFunc,
+        false /* isVarLength */));
     return definitions;
 }
 
@@ -34,12 +35,21 @@ void UnionValueVectorOperations::execFunc(
     common::UnionVector::setTagField(&result, 0 /* tagFieldIdx */);
 }
 
+void UnionValueVectorOperations::compileFunc(FunctionBindData* bindData,
+    const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
+    std::shared_ptr<common::ValueVector>& result) {
+    assert(parameters.size() == 1);
+    result->setState(parameters[0]->state);
+    common::UnionVector::getTagVector(result.get())->setState(parameters[0]->state);
+    common::UnionVector::referenceVector(result.get(), 0 /* fieldIdx */, parameters[0]);
+}
+
 vector_operation_definitions UnionTagVectorOperations::getDefinitions() {
     vector_operation_definitions definitions;
     definitions.push_back(make_unique<VectorOperationDefinition>(common::UNION_TAG_FUNC_NAME,
         std::vector<common::LogicalTypeID>{common::LogicalTypeID::UNION},
         common::LogicalTypeID::STRING,
-        UnaryExecListStructFunctionWithVectors<common::struct_entry_t, common::ku_string_t,
+        UnaryExecListStructFunction<common::struct_entry_t, common::ku_string_t,
             operation::UnionTag>,
         nullptr, nullptr, false /* isVarLength */));
     return definitions;
@@ -50,8 +60,8 @@ vector_operation_definitions UnionExtractVectorOperations::getDefinitions() {
     definitions.push_back(make_unique<VectorOperationDefinition>(common::UNION_EXTRACT_FUNC_NAME,
         std::vector<common::LogicalTypeID>{
             common::LogicalTypeID::UNION, common::LogicalTypeID::STRING},
-        common::LogicalTypeID::ANY, nullptr, nullptr, StructExtractVectorOperations::bindFunc,
-        false /* isVarLength */));
+        common::LogicalTypeID::ANY, nullptr, nullptr, StructExtractVectorOperations::compileFunc,
+        StructExtractVectorOperations::bindFunc, false /* isVarLength */));
     return definitions;
 }
 

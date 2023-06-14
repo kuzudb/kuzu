@@ -15,7 +15,6 @@ struct FunctionBindData {
 };
 
 struct FunctionDefinition;
-
 using scalar_bind_func = std::function<std::unique_ptr<FunctionBindData>(
     const binder::expression_vector&, FunctionDefinition* definition)>;
 

@@ -399,8 +399,7 @@ template<typename T>
 void ListSortVectorOperation::getExecFunction(
     const binder::expression_vector& arguments, scalar_exec_func& func) {
     if (arguments.size() == 1) {
-        func = UnaryExecListStructFunctionWithVectors<list_entry_t, list_entry_t,
-            operation::ListSort<T>>;
+        func = UnaryExecListStructFunction<list_entry_t, list_entry_t, operation::ListSort<T>>;
         return;
     } else if (arguments.size() == 2) {
         func = BinaryExecListStructFunction<list_entry_t, ku_string_t, list_entry_t,
@@ -472,8 +471,8 @@ template<typename T>
 void ListReverseSortVectorOperation::getExecFunction(
     const binder::expression_vector& arguments, scalar_exec_func& func) {
     if (arguments.size() == 1) {
-        func = UnaryExecListStructFunctionWithVectors<list_entry_t, list_entry_t,
-            operation::ListReverseSort<T>>;
+        func =
+            UnaryExecListStructFunction<list_entry_t, list_entry_t, operation::ListReverseSort<T>>;
         return;
     } else if (arguments.size() == 2) {
         func = BinaryExecListStructFunction<list_entry_t, ku_string_t, list_entry_t,
@@ -500,23 +499,23 @@ std::unique_ptr<FunctionBindData> ListSumVectorOperation::bindFunc(
     case LogicalTypeID::SERIAL:
     case LogicalTypeID::INT64: {
         vectorOperationDefinition->execFunc =
-            UnaryExecListStructFunctionWithVectors<list_entry_t, int64_t, operation::ListSum>;
+            UnaryExecListStructFunction<list_entry_t, int64_t, operation::ListSum>;
     } break;
     case LogicalTypeID::INT32: {
         vectorOperationDefinition->execFunc =
-            UnaryExecListStructFunctionWithVectors<list_entry_t, int32_t, operation::ListSum>;
+            UnaryExecListStructFunction<list_entry_t, int32_t, operation::ListSum>;
     } break;
     case LogicalTypeID::INT16: {
         vectorOperationDefinition->execFunc =
-            UnaryExecListStructFunctionWithVectors<list_entry_t, int16_t, operation::ListSum>;
+            UnaryExecListStructFunction<list_entry_t, int16_t, operation::ListSum>;
     } break;
     case LogicalTypeID::DOUBLE: {
         vectorOperationDefinition->execFunc =
-            UnaryExecListStructFunctionWithVectors<list_entry_t, double_t, operation::ListSum>;
+            UnaryExecListStructFunction<list_entry_t, double_t, operation::ListSum>;
     } break;
     case LogicalTypeID::FLOAT: {
         vectorOperationDefinition->execFunc =
-            UnaryExecListStructFunctionWithVectors<list_entry_t, float_t, operation::ListSum>;
+            UnaryExecListStructFunction<list_entry_t, float_t, operation::ListSum>;
     } break;
     default: {
         throw common::NotImplementedException("ListSumVectorOperation::bindFunc");
@@ -539,47 +538,47 @@ std::unique_ptr<FunctionBindData> ListDistinctVectorOperation::bindFunc(
     switch (VarListType::getChildType(&arguments[0]->dataType)->getLogicalTypeID()) {
     case LogicalTypeID::SERIAL:
     case LogicalTypeID::INT64: {
-        vectorOperationDefinition->execFunc = UnaryExecListStructFunctionWithVectors<list_entry_t,
+        vectorOperationDefinition->execFunc = UnaryExecListStructFunction<list_entry_t,
             list_entry_t, operation::ListDistinct<int64_t>>;
     } break;
     case LogicalTypeID::INT32: {
-        vectorOperationDefinition->execFunc = UnaryExecListStructFunctionWithVectors<list_entry_t,
+        vectorOperationDefinition->execFunc = UnaryExecListStructFunction<list_entry_t,
             list_entry_t, operation::ListDistinct<int32_t>>;
     } break;
     case LogicalTypeID::INT16: {
-        vectorOperationDefinition->execFunc = UnaryExecListStructFunctionWithVectors<list_entry_t,
+        vectorOperationDefinition->execFunc = UnaryExecListStructFunction<list_entry_t,
             list_entry_t, operation::ListDistinct<int16_t>>;
     } break;
     case LogicalTypeID::DOUBLE: {
-        vectorOperationDefinition->execFunc = UnaryExecListStructFunctionWithVectors<list_entry_t,
+        vectorOperationDefinition->execFunc = UnaryExecListStructFunction<list_entry_t,
             list_entry_t, operation::ListDistinct<double_t>>;
     } break;
     case LogicalTypeID::FLOAT: {
-        vectorOperationDefinition->execFunc = UnaryExecListStructFunctionWithVectors<list_entry_t,
+        vectorOperationDefinition->execFunc = UnaryExecListStructFunction<list_entry_t,
             list_entry_t, operation::ListDistinct<float_t>>;
     } break;
     case LogicalTypeID::BOOL: {
-        vectorOperationDefinition->execFunc = UnaryExecListStructFunctionWithVectors<list_entry_t,
+        vectorOperationDefinition->execFunc = UnaryExecListStructFunction<list_entry_t,
             list_entry_t, operation::ListDistinct<uint8_t>>;
     } break;
     case LogicalTypeID::STRING: {
-        vectorOperationDefinition->execFunc = UnaryExecListStructFunctionWithVectors<list_entry_t,
+        vectorOperationDefinition->execFunc = UnaryExecListStructFunction<list_entry_t,
             list_entry_t, operation::ListDistinct<ku_string_t>>;
     } break;
     case LogicalTypeID::DATE: {
-        vectorOperationDefinition->execFunc = UnaryExecListStructFunctionWithVectors<list_entry_t,
+        vectorOperationDefinition->execFunc = UnaryExecListStructFunction<list_entry_t,
             list_entry_t, operation::ListDistinct<date_t>>;
     } break;
     case LogicalTypeID::TIMESTAMP: {
-        vectorOperationDefinition->execFunc = UnaryExecListStructFunctionWithVectors<list_entry_t,
+        vectorOperationDefinition->execFunc = UnaryExecListStructFunction<list_entry_t,
             list_entry_t, operation::ListDistinct<timestamp_t>>;
     } break;
     case LogicalTypeID::INTERVAL: {
-        vectorOperationDefinition->execFunc = UnaryExecListStructFunctionWithVectors<list_entry_t,
+        vectorOperationDefinition->execFunc = UnaryExecListStructFunction<list_entry_t,
             list_entry_t, operation::ListDistinct<interval_t>>;
     } break;
     case LogicalTypeID::INTERNAL_ID: {
-        vectorOperationDefinition->execFunc = UnaryExecListStructFunctionWithVectors<list_entry_t,
+        vectorOperationDefinition->execFunc = UnaryExecListStructFunction<list_entry_t,
             list_entry_t, operation::ListDistinct<internalID_t>>;
     } break;
     default: {
@@ -603,48 +602,48 @@ std::unique_ptr<FunctionBindData> ListUniqueVectorOperation::bindFunc(
     switch (common::VarListType::getChildType(&arguments[0]->dataType)->getLogicalTypeID()) {
     case LogicalTypeID::SERIAL:
     case LogicalTypeID::INT64: {
-        vectorOperationDefinition->execFunc = UnaryExecListStructFunctionWithVectors<list_entry_t,
-            int64_t, operation::ListUnique<int64_t>>;
+        vectorOperationDefinition->execFunc =
+            UnaryExecListStructFunction<list_entry_t, int64_t, operation::ListUnique<int64_t>>;
     } break;
     case LogicalTypeID::INT32: {
-        vectorOperationDefinition->execFunc = UnaryExecListStructFunctionWithVectors<list_entry_t,
-            int64_t, operation::ListUnique<int32_t>>;
+        vectorOperationDefinition->execFunc =
+            UnaryExecListStructFunction<list_entry_t, int64_t, operation::ListUnique<int32_t>>;
     } break;
     case LogicalTypeID::INT16: {
-        vectorOperationDefinition->execFunc = UnaryExecListStructFunctionWithVectors<list_entry_t,
-            int64_t, operation::ListUnique<int16_t>>;
+        vectorOperationDefinition->execFunc =
+            UnaryExecListStructFunction<list_entry_t, int64_t, operation::ListUnique<int16_t>>;
     } break;
     case LogicalTypeID::DOUBLE: {
-        vectorOperationDefinition->execFunc = UnaryExecListStructFunctionWithVectors<list_entry_t,
-            int64_t, operation::ListUnique<double_t>>;
+        vectorOperationDefinition->execFunc =
+            UnaryExecListStructFunction<list_entry_t, int64_t, operation::ListUnique<double_t>>;
     } break;
     case LogicalTypeID::FLOAT: {
-        vectorOperationDefinition->execFunc = UnaryExecListStructFunctionWithVectors<list_entry_t,
-            int64_t, operation::ListUnique<float_t>>;
+        vectorOperationDefinition->execFunc =
+            UnaryExecListStructFunction<list_entry_t, int64_t, operation::ListUnique<float_t>>;
     } break;
     case LogicalTypeID::BOOL: {
-        vectorOperationDefinition->execFunc = UnaryExecListStructFunctionWithVectors<list_entry_t,
-            int64_t, operation::ListUnique<uint8_t>>;
+        vectorOperationDefinition->execFunc =
+            UnaryExecListStructFunction<list_entry_t, int64_t, operation::ListUnique<uint8_t>>;
     } break;
     case LogicalTypeID::STRING: {
-        vectorOperationDefinition->execFunc = UnaryExecListStructFunctionWithVectors<list_entry_t,
-            int64_t, operation::ListUnique<ku_string_t>>;
+        vectorOperationDefinition->execFunc =
+            UnaryExecListStructFunction<list_entry_t, int64_t, operation::ListUnique<ku_string_t>>;
     } break;
     case LogicalTypeID::DATE: {
-        vectorOperationDefinition->execFunc = UnaryExecListStructFunctionWithVectors<list_entry_t,
-            int64_t, operation::ListUnique<date_t>>;
+        vectorOperationDefinition->execFunc =
+            UnaryExecListStructFunction<list_entry_t, int64_t, operation::ListUnique<date_t>>;
     } break;
     case LogicalTypeID::TIMESTAMP: {
-        vectorOperationDefinition->execFunc = UnaryExecListStructFunctionWithVectors<list_entry_t,
-            int64_t, operation::ListUnique<timestamp_t>>;
+        vectorOperationDefinition->execFunc =
+            UnaryExecListStructFunction<list_entry_t, int64_t, operation::ListUnique<timestamp_t>>;
     } break;
     case LogicalTypeID::INTERVAL: {
-        vectorOperationDefinition->execFunc = UnaryExecListStructFunctionWithVectors<list_entry_t,
-            int64_t, operation::ListUnique<interval_t>>;
+        vectorOperationDefinition->execFunc =
+            UnaryExecListStructFunction<list_entry_t, int64_t, operation::ListUnique<interval_t>>;
     } break;
     case LogicalTypeID::INTERNAL_ID: {
-        vectorOperationDefinition->execFunc = UnaryExecListStructFunctionWithVectors<list_entry_t,
-            int64_t, operation::ListUnique<common::internalID_t>>;
+        vectorOperationDefinition->execFunc = UnaryExecListStructFunction<list_entry_t, int64_t,
+            operation::ListUnique<common::internalID_t>>;
     } break;
     default: {
         throw common::NotImplementedException("ListUniqueVectorOperation::bindFunc");
@@ -669,51 +668,51 @@ std::unique_ptr<FunctionBindData> ListAnyValueVectorOperation::bindFunc(
     case LogicalTypeID::SERIAL:
     case LogicalTypeID::INT64: {
         vectorOperationDefinition->execFunc =
-            UnaryExecListStructFunctionWithVectors<list_entry_t, int64_t, operation::ListAnyValue>;
+            UnaryExecListStructFunction<list_entry_t, int64_t, operation::ListAnyValue>;
     } break;
     case LogicalTypeID::INT32: {
         vectorOperationDefinition->execFunc =
-            UnaryExecListStructFunctionWithVectors<list_entry_t, int32_t, operation::ListAnyValue>;
+            UnaryExecListStructFunction<list_entry_t, int32_t, operation::ListAnyValue>;
     } break;
     case LogicalTypeID::INT16: {
         vectorOperationDefinition->execFunc =
-            UnaryExecListStructFunctionWithVectors<list_entry_t, int16_t, operation::ListAnyValue>;
+            UnaryExecListStructFunction<list_entry_t, int16_t, operation::ListAnyValue>;
     } break;
     case LogicalTypeID::DOUBLE: {
         vectorOperationDefinition->execFunc =
-            UnaryExecListStructFunctionWithVectors<list_entry_t, double_t, operation::ListAnyValue>;
+            UnaryExecListStructFunction<list_entry_t, double_t, operation::ListAnyValue>;
     } break;
     case LogicalTypeID::FLOAT: {
         vectorOperationDefinition->execFunc =
-            UnaryExecListStructFunctionWithVectors<list_entry_t, float_t, operation::ListAnyValue>;
+            UnaryExecListStructFunction<list_entry_t, float_t, operation::ListAnyValue>;
     } break;
     case LogicalTypeID::BOOL: {
         vectorOperationDefinition->execFunc =
-            UnaryExecListStructFunctionWithVectors<list_entry_t, uint8_t, operation::ListAnyValue>;
+            UnaryExecListStructFunction<list_entry_t, uint8_t, operation::ListAnyValue>;
     } break;
     case LogicalTypeID::STRING: {
-        vectorOperationDefinition->execFunc = UnaryExecListStructFunctionWithVectors<list_entry_t,
-            ku_string_t, operation::ListAnyValue>;
+        vectorOperationDefinition->execFunc =
+            UnaryExecListStructFunction<list_entry_t, ku_string_t, operation::ListAnyValue>;
     } break;
     case LogicalTypeID::DATE: {
         vectorOperationDefinition->execFunc =
-            UnaryExecListStructFunctionWithVectors<list_entry_t, date_t, operation::ListAnyValue>;
+            UnaryExecListStructFunction<list_entry_t, date_t, operation::ListAnyValue>;
     } break;
     case LogicalTypeID::TIMESTAMP: {
-        vectorOperationDefinition->execFunc = UnaryExecListStructFunctionWithVectors<list_entry_t,
-            timestamp_t, operation::ListAnyValue>;
+        vectorOperationDefinition->execFunc =
+            UnaryExecListStructFunction<list_entry_t, timestamp_t, operation::ListAnyValue>;
     } break;
     case LogicalTypeID::INTERVAL: {
-        vectorOperationDefinition->execFunc = UnaryExecListStructFunctionWithVectors<list_entry_t,
-            interval_t, operation::ListAnyValue>;
+        vectorOperationDefinition->execFunc =
+            UnaryExecListStructFunction<list_entry_t, interval_t, operation::ListAnyValue>;
     } break;
     case LogicalTypeID::VAR_LIST: {
-        vectorOperationDefinition->execFunc = UnaryExecListStructFunctionWithVectors<list_entry_t,
-            list_entry_t, operation::ListAnyValue>;
+        vectorOperationDefinition->execFunc =
+            UnaryExecListStructFunction<list_entry_t, list_entry_t, operation::ListAnyValue>;
     } break;
     case LogicalTypeID::INTERNAL_ID: {
-        vectorOperationDefinition->execFunc = UnaryExecListStructFunctionWithVectors<list_entry_t,
-            internalID_t, operation::ListAnyValue>;
+        vectorOperationDefinition->execFunc =
+            UnaryExecListStructFunction<list_entry_t, internalID_t, operation::ListAnyValue>;
     } break;
     default: {
         throw common::NotImplementedException("ListAnyValueVectorOperation::bindFunc");

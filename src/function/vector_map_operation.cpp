@@ -66,9 +66,8 @@ std::unique_ptr<FunctionBindData> MapExtractVectorOperations::bindFunc(
 }
 
 vector_operation_definitions MapKeysVectorOperations::getDefinitions() {
-    auto execFunc =
-        VectorListOperations::UnaryExecListStructFunctionWithVectors<common::list_entry_t,
-            common::list_entry_t, operation::MapKeys>;
+    auto execFunc = VectorListOperations::UnaryExecListStructFunction<common::list_entry_t,
+        common::list_entry_t, operation::MapKeys>;
     vector_operation_definitions definitions;
     definitions.push_back(make_unique<VectorOperationDefinition>(common::MAP_KEYS_FUNC_NAME,
         std::vector<common::LogicalTypeID>{common::LogicalTypeID::MAP},
@@ -86,9 +85,8 @@ std::unique_ptr<FunctionBindData> MapKeysVectorOperations::bindFunc(
 }
 
 vector_operation_definitions MapValuesVectorOperations::getDefinitions() {
-    auto execFunc =
-        VectorListOperations::UnaryExecListStructFunctionWithVectors<common::list_entry_t,
-            common::list_entry_t, operation::MapValues>;
+    auto execFunc = VectorListOperations::UnaryExecListStructFunction<common::list_entry_t,
+        common::list_entry_t, operation::MapValues>;
     vector_operation_definitions definitions;
     definitions.push_back(make_unique<VectorOperationDefinition>(common::MAP_VALUES_FUNC_NAME,
         std::vector<common::LogicalTypeID>{common::LogicalTypeID::MAP},

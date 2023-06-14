@@ -44,9 +44,18 @@ public:
         std::unique_ptr<function::FunctionBindData> bindData, expression_vector children,
         function::scalar_exec_func execFunc, function::scalar_select_func selectFunc,
         const std::string& uniqueName)
+        : ScalarFunctionExpression{std::move(functionName), expressionType, std::move(bindData),
+              std::move(children), std::move(execFunc), std::move(selectFunc), nullptr,
+              uniqueName} {}
+
+    ScalarFunctionExpression(std::string functionName, common::ExpressionType expressionType,
+        std::unique_ptr<function::FunctionBindData> bindData, expression_vector children,
+        function::scalar_exec_func execFunc, function::scalar_select_func selectFunc,
+        function::scalar_compile_func compileFunc, const std::string& uniqueName)
         : FunctionExpression{std::move(functionName), expressionType, std::move(bindData),
               std::move(children), uniqueName},
-          execFunc{std::move(execFunc)}, selectFunc{std::move(selectFunc)} {}
+          execFunc{std::move(execFunc)}, selectFunc{std::move(selectFunc)}, compileFunc{std::move(
+                                                                                compileFunc)} {}
 
     static std::string getUniqueName(const std::string& functionName, expression_vector& children);
 
@@ -55,6 +64,7 @@ public:
 public:
     function::scalar_exec_func execFunc;
     function::scalar_select_func selectFunc;
+    function::scalar_compile_func compileFunc;
 };
 
 class AggregateFunctionExpression : public FunctionExpression {
