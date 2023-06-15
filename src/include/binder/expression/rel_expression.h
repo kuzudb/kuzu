@@ -17,11 +17,14 @@ struct RecursiveInfo {
     uint64_t upperBound;
     std::shared_ptr<NodeExpression> recursiveNode;
     std::shared_ptr<Expression> lengthExpression;
+    std::shared_ptr<Expression> idPathExpression;
 
     RecursiveInfo(size_t lowerBound, size_t upperBound,
-        std::shared_ptr<NodeExpression> recursiveNode, std::shared_ptr<Expression> lengthExpression)
+        std::shared_ptr<NodeExpression> recursiveNode, std::shared_ptr<Expression> lengthExpression,
+        std::shared_ptr<Expression> idPathExpression)
         : lowerBound{lowerBound}, upperBound{upperBound}, recursiveNode{std::move(recursiveNode)},
-          lengthExpression{std::move(lengthExpression)} {}
+          lengthExpression{std::move(lengthExpression)}, idPathExpression{
+                                                             std::move(idPathExpression)} {}
 };
 
 class RelExpression : public NodeOrRelExpression {
@@ -63,6 +66,9 @@ public:
     }
     inline std::shared_ptr<Expression> getLengthExpression() const {
         return recursiveInfo->lengthExpression;
+    }
+    inline std::shared_ptr<Expression> getIDPathExpression() const {
+        return recursiveInfo->idPathExpression;
     }
 
 private:

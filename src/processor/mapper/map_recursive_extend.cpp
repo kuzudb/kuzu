@@ -27,22 +27,10 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalRecursiveExtendToPhysica
     auto recursiveEdgeIDPos =
         DataPos(recursivePlanSchema->getExpressionPos(*rel->getInternalIDProperty()));
     // map child plan
+    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0));
+    // Generate RecursiveJoinDataInfo
     auto outSchema = extend->getSchema();
     auto inSchema = extend->getChild(0)->getSchema();
-    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0));
-    auto expressions = inSchema->getExpressionsInScope();
-    auto resultCollector = appendResultCollector(expressions, inSchema, std::move(prevOperator));
-    auto sharedFTable = resultCollector->getSharedState();
-    sharedFTable->setMaxMorselSize(1);
-    std::vector<DataPos> outDataPoses;
-    std::vector<uint32_t> colIndicesToScan;
-    for (auto i = 0u; i < expressions.size(); ++i) {
-        outDataPoses.emplace_back(outSchema->getExpressionPos(*expressions[i]));
-        colIndicesToScan.push_back(i);
-    }
-    auto fTableScan = make_unique<FactorizedTableScan>(std::move(outDataPoses),
-        std::move(colIndicesToScan), sharedFTable, std::move(resultCollector), getOperatorID(), "");
-    // Generate RecursiveJoinDataInfo
     auto boundNodeIDVectorPos =
         DataPos(inSchema->getExpressionPos(*boundNode->getInternalIDProperty()));
     auto nbrNodeIDVectorPos =
@@ -73,7 +61,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalRecursiveExtendToPhysica
     auto sharedState = std::make_shared<RecursiveJoinSharedState>(std::move(semiMasks));
     return std::make_unique<RecursiveJoin>(rel->getLowerBound(), rel->getUpperBound(),
         rel->getRelType(), extend->getJoinType(), sharedState, std::move(dataInfo),
-        std::move(fTableScan), getOperatorID(), extend->getExpressionsForPrinting(),
+        std::move(prevOperator), getOperatorID(), extend->getExpressionsForPrinting(),
         std::move(recursiveRoot));
 }
 

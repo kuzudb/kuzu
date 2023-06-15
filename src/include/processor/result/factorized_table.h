@@ -174,6 +174,7 @@ class FactorizedTable {
     friend FlatTupleIterator;
     friend class JoinHashTable;
     friend class IntersectHashTable;
+    friend class RecursiveJoinPropertyProbe;
 
 public:
     FactorizedTable(
@@ -308,15 +309,11 @@ private:
     void readUnflatCol(const uint8_t* tupleToRead, const common::SelectionVector* selVector,
         ft_col_idx_t colIdx, common::ValueVector& vector) const;
     void readFlatColToFlatVector(
-        uint8_t** tuplesToRead, ft_col_idx_t colIdx, common::ValueVector& vector) const;
+        uint8_t* tupleToRead, ft_col_idx_t colIdx, common::ValueVector& vector, common::sel_t pos) const;
     void readFlatColToUnflatVector(uint8_t** tuplesToRead, ft_col_idx_t colIdx,
         common::ValueVector& vector, uint64_t numTuplesToRead) const;
-    inline void readFlatCol(uint8_t** tuplesToRead, ft_col_idx_t colIdx,
-        common::ValueVector& vector, uint64_t numTuplesToRead) const {
-        vector.state->isFlat() ?
-            readFlatColToFlatVector(tuplesToRead, colIdx, vector) :
-            readFlatColToUnflatVector(tuplesToRead, colIdx, vector, numTuplesToRead);
-    }
+    void readFlatCol(uint8_t** tuplesToRead, ft_col_idx_t colIdx,
+        common::ValueVector& vector, uint64_t numTuplesToRead) const;
     static void copyOverflowIfNecessary(uint8_t* dst, uint8_t* src, const common::LogicalType& type,
         storage::DiskOverflowFile* diskOverflowFile);
 

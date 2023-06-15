@@ -105,6 +105,12 @@ public:
         return reinterpret_cast<ListAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())
             ->getDataVector();
     }
+
+    static inline uint64_t getDataVectorSize(const ValueVector* vector) {
+        assert(vector->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST);
+        return reinterpret_cast<ListAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())->getSize();
+    }
+
     static inline uint8_t* getListValues(const ValueVector* vector, const list_entry_t& listEntry) {
         assert(vector->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST);
         auto dataVector = getDataVector(vector);

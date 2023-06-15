@@ -10,7 +10,8 @@ class LogicalRecursiveExtend : public BaseLogicalExtend {
 public:
     LogicalRecursiveExtend(std::shared_ptr<binder::NodeExpression> boundNode,
         std::shared_ptr<binder::NodeExpression> nbrNode, std::shared_ptr<binder::RelExpression> rel,
-        ExtendDirection direction, std::shared_ptr<LogicalOperator> child,
+        ExtendDirection direction, std::shared_ptr<LogicalOperator> probeChild,
+        std::shared_ptr<LogicalOperator> buildChild,
         std::shared_ptr<LogicalOperator> recursivePlanRoot)
         : LogicalRecursiveExtend{std::move(boundNode), std::move(nbrNode), std::move(rel),
               direction, RecursiveJoinType::TRACK_PATH, std::move(child),
@@ -41,7 +42,7 @@ public:
 
 private:
     RecursiveJoinType joinType;
-    std::shared_ptr<LogicalOperator> recursivePlanRoot;
+    std::shared_ptr<LogicalOperator> recursiveChild;
 };
 
 class LogicalScanFrontier : public LogicalOperator {

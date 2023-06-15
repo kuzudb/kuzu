@@ -48,8 +48,14 @@ void JoinOrderEnumerator::appendNonRecursiveExtend(std::shared_ptr<NodeExpressio
 void JoinOrderEnumerator::appendRecursiveExtend(std::shared_ptr<NodeExpression> boundNode,
     std::shared_ptr<NodeExpression> nbrNode, std::shared_ptr<RelExpression> rel,
     ExtendDirection direction, LogicalPlan& plan) {
+    queryPlanner->appendAccumulate(plan);
+    // recursive plan
     auto recursivePlan = std::make_unique<LogicalPlan>();
     createRecursivePlan(boundNode, rel->getRecursiveNode(), rel, direction, *recursivePlan);
+    // recursive node build plan
+    auto recursiveNodeBuildPlan = std::make_unique<LogicalPlan>();
+    createRecursiveNodeBuildPlan(rel->getRecursiveNode(), *recursiveNodeBuildPlan);
+
     auto extend = std::make_shared<LogicalRecursiveExtend>(boundNode, nbrNode, rel, direction,
         plan.getLastOperator(), recursivePlan->getLastOperator());
     queryPlanner->appendFlattens(extend->getGroupsPosToFlatten(), plan);
@@ -73,6 +79,16 @@ void JoinOrderEnumerator::createRecursivePlan(std::shared_ptr<NodeExpression> bo
     plan.setLastOperator(std::move(scanFrontier));
     auto properties = expression_vector{rel->getInternalIDProperty()};
     appendNonRecursiveExtend(boundNode, recursiveNode, rel, direction, properties, plan);
+}
+
+void JoinOrderEnumerator::createRecursiveNodeBuildPlan(
+    std::shared_ptr<NodeExpression> recursiveNode, LogicalPlan& plan) {
+    appendScanNodeID(recursiveNode, plan);
+    expression_vector properties;
+    for (auto& property : recursiveNode->getPropertyExpressions()) {
+        properties.push_back(property->copy());
+    }
+    queryPlanner->appendScanNodePropIfNecessary(properties, recursiveNode, plan);
 }
 
 } // namespace planner

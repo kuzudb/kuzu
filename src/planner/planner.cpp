@@ -160,6 +160,7 @@ std::unique_ptr<LogicalPlan> Planner::planCopy(
     for (auto& property :
         catalog.getReadOnlyVersion()->getTableSchema(copyCSVClause.getTableID())->properties) {
         if (property.dataType.getLogicalTypeID() != common::LogicalTypeID::SERIAL) {
+            // TODO(Xiyang): come back and change this
             arrowColumnExpressions.push_back(std::make_shared<VariableExpression>(
                 common::LogicalType{common::LogicalTypeID::ARROW_COLUMN}, property.name,
                 property.name));

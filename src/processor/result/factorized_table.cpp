@@ -638,15 +638,24 @@ void FactorizedTable::readUnflatCol(const uint8_t* tupleToRead, const SelectionV
 }
 
 void FactorizedTable::readFlatColToFlatVector(
-    uint8_t** tuplesToRead, ft_col_idx_t colIdx, ValueVector& vector) const {
+    uint8_t* tupleToRead, ft_col_idx_t colIdx, ValueVector& vector, common::sel_t pos) const {
     assert(vector.state->isFlat());
-    auto pos = vector.state->selVector->selectedPositions[0];
-    if (isNonOverflowColNull(tuplesToRead[0] + tableSchema->getNullMapOffset(), colIdx)) {
+    if (isNonOverflowColNull(tupleToRead + tableSchema->getNullMapOffset(), colIdx)) {
         vector.setNull(pos, true);
     } else {
         vector.setNull(pos, false);
         ValueVectorUtils::copyNonNullDataWithSameTypeIntoPos(
-            vector, pos, tuplesToRead[0] + tableSchema->getColOffset(colIdx));
+            vector, pos, tupleToRead + tableSchema->getColOffset(colIdx));
+    }
+}
+
+void FactorizedTable::readFlatCol(uint8_t** tuplesToRead, ft_col_idx_t colIdx,
+    common::ValueVector& vector, uint64_t numTuplesToRead) const {
+    if (vector.state->isFlat()) {
+        auto pos = vector.state->selVector->selectedPositions[0];
+        readFlatColToFlatVector(tuplesToRead[0], colIdx, vector, pos);
+    } else {
+        readFlatColToUnflatVector(tuplesToRead, colIdx, vector, numTuplesToRead);
     }
 }
 

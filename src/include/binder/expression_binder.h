@@ -75,6 +75,8 @@ private:
 
     std::shared_ptr<Expression> bindVariableExpression(
         const parser::ParsedExpression& parsedExpression);
+    std::shared_ptr<Expression> createVariableExpression(
+        common::LogicalType logicalType, std::string uniqueName, std::string name);
 
     std::shared_ptr<Expression> bindExistentialSubqueryExpression(
         const parser::ParsedExpression& parsedExpression);

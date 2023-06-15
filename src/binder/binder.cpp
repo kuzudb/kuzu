@@ -70,10 +70,10 @@ std::shared_ptr<Expression> Binder::createVariable(
         throw BinderException("Variable " + name + " already exists.");
     }
     auto uniqueName = getUniqueExpressionName(name);
-    auto variable = make_shared<VariableExpression>(dataType, uniqueName, name);
-    variable->setAlias(name);
-    variableScope->addExpression(name, variable);
-    return variable;
+    auto expression = expressionBinder.createVariableExpression(dataType, uniqueName, name);
+    expression->setAlias(name);
+    variableScope->addExpression(name, expression);
+    return expression;
 }
 
 void Binder::validateFirstMatchIsNotOptional(const SingleQuery& singleQuery) {

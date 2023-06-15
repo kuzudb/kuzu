@@ -11,6 +11,7 @@
 #include "planner/logical_plan/logical_operator/logical_recursive_extend.h"
 #include "planner/logical_plan/logical_operator/logical_set.h"
 #include "planner/logical_plan/logical_operator/logical_unwind.h"
+#include "planner/logical_plan/logical_operator/logical_extend.h"
 
 using namespace kuzu::common;
 using namespace kuzu::planner;
@@ -38,10 +39,18 @@ void ProjectionPushDownOptimizer::visitOperator(LogicalOperator* op) {
 
 void ProjectionPushDownOptimizer::visitRecursiveExtend(LogicalOperator* op) {
     auto recursiveExtend = (LogicalRecursiveExtend*)op;
+    auto boundNodeID = recursiveExtend->getBoundNode()->getInternalIDProperty();
+    collectExpressionsInUse(boundNodeID);
     auto rel = recursiveExtend->getRel();
     if (!variablesInUse.contains(rel)) {
         recursiveExtend->setJoinType(planner::RecursiveJoinType::TRACK_NONE);
     }
+}
+
+void ProjectionPushDownOptimizer::visitExtend(planner::LogicalOperator* op) {
+    auto extend = (LogicalExtend*)op;
+    auto boundNodeID = extend->getBoundNode()->getInternalIDProperty();
+    collectExpressionsInUse(boundNodeID);
 }
 
 void ProjectionPushDownOptimizer::visitAccumulate(planner::LogicalOperator* op) {

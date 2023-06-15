@@ -93,6 +93,7 @@ private:
     void createRecursivePlan(std::shared_ptr<NodeExpression> boundNode,
         std::shared_ptr<NodeExpression> recursiveNode, std::shared_ptr<RelExpression> rel,
         ExtendDirection direction, LogicalPlan& plan);
+    void createRecursiveNodeBuildPlan(std::shared_ptr<NodeExpression> recursiveNode, LogicalPlan& plan);
 
     void planJoin(const binder::expression_vector& joinNodeIDs, common::JoinType joinType,
         std::shared_ptr<Expression> mark, LogicalPlan& probePlan, LogicalPlan& buildPlan);

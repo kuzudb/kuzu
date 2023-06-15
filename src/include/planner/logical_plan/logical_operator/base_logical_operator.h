@@ -68,8 +68,6 @@ public:
 
     inline uint32_t getNumChildren() const { return children.size(); }
 
-    // Used for operators with more than two children e.g. Union
-    inline void addChild(std::shared_ptr<LogicalOperator> op) { children.push_back(std::move(op)); }
     inline std::shared_ptr<LogicalOperator> getChild(uint64_t idx) const { return children[idx]; }
     inline std::vector<std::shared_ptr<LogicalOperator>> getChildren() const { return children; }
     inline void setChild(uint64_t idx, std::shared_ptr<LogicalOperator> child) {

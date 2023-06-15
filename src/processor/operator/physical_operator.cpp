@@ -101,6 +101,9 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
     case PhysicalOperatorType::RECURSIVE_JOIN: {
         return "RECURSIVE_JOIN";
     }
+    case PhysicalOperatorType::RECURSIVE_JOIN_PROPERTY_PROBE: {
+        return "RECURSIVE_JOIN_PROPERTY_PROBE";
+    }
     case PhysicalOperatorType::RENAME_PROPERTY: {
         return "RENAME_PROPERTY";
     }
