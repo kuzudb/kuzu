@@ -548,7 +548,7 @@ nodeID_t RelVal::getDstNodeID() const {
     return dstNodeIDVal->getValue<nodeID_t>();
 }
 
-std::string RelVal::getLabelName() {
+std::string RelVal::getLabelName() const {
     return labelVal->getValue<std::string>();
 }
 

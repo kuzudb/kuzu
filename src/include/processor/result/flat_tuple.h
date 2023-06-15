@@ -16,13 +16,13 @@ public:
     /**
      * @return number of values in the FlatTuple.
      */
-    KUZU_API uint32_t len();
+    KUZU_API uint32_t len() const;
 
     /**
      * @param idx value index to get.
      * @return the value stored at idx.
      */
-    KUZU_API common::Value* getValue(uint32_t idx);
+    KUZU_API common::Value* getValue(uint32_t idx) const;
 
     std::string toString();
 
