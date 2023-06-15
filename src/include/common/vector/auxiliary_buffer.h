@@ -68,6 +68,8 @@ public:
 
     list_entry_t addList(uint64_t listSize);
 
+    inline uint64_t getSize() const { return size; }
+
     inline void resetSize() { size = 0; }
 
 private:

@@ -60,7 +60,7 @@ private:
     std::shared_ptr<Expression> rewriteFunctionExpression(
         const parser::ParsedExpression& parsedExpression, const std::string& functionName);
     std::unique_ptr<Expression> createInternalNodeIDExpression(const Expression& node);
-    std::shared_ptr<Expression> bindInternalIDExpression(const Expression& expression);
+    std::shared_ptr<Expression> bindInternalIDExpression(std::shared_ptr<Expression> expression);
     std::shared_ptr<Expression> bindLabelFunction(const Expression& expression);
     std::unique_ptr<Expression> createInternalLengthExpression(const Expression& expression);
     std::shared_ptr<Expression> bindRecursiveJoinLengthFunction(const Expression& expression);
@@ -75,6 +75,8 @@ private:
 
     std::shared_ptr<Expression> bindVariableExpression(
         const parser::ParsedExpression& parsedExpression);
+    std::shared_ptr<Expression> createVariableExpression(
+        common::LogicalType logicalType, std::string uniqueName, std::string name);
 
     std::shared_ptr<Expression> bindExistentialSubqueryExpression(
         const parser::ParsedExpression& parsedExpression);

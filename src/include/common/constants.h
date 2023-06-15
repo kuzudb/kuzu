@@ -20,6 +20,7 @@ constexpr uint64_t THREAD_SLEEP_TIME_WHEN_WAITING_IN_MICROS = 500;
 constexpr uint64_t DEFAULT_CHECKPOINT_WAIT_TIMEOUT_FOR_TRANSACTIONS_TO_LEAVE_IN_MICROS = 5000000;
 
 struct InternalKeyword {
+    static constexpr char ANONYMOUS[] = "";
     static constexpr char ID[] = "_id";
     static constexpr char LENGTH[] = "_length";
     static constexpr char NODES[] = "_nodes";

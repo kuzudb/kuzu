@@ -10,18 +10,12 @@ class LogicalRecursiveExtend : public BaseLogicalExtend {
 public:
     LogicalRecursiveExtend(std::shared_ptr<binder::NodeExpression> boundNode,
         std::shared_ptr<binder::NodeExpression> nbrNode, std::shared_ptr<binder::RelExpression> rel,
-        ExtendDirection direction, std::shared_ptr<LogicalOperator> child,
-        std::shared_ptr<LogicalOperator> recursivePlanRoot)
-        : LogicalRecursiveExtend{std::move(boundNode), std::move(nbrNode), std::move(rel),
-              direction, RecursiveJoinType::TRACK_PATH, std::move(child),
-              std::move(recursivePlanRoot)} {}
-    LogicalRecursiveExtend(std::shared_ptr<binder::NodeExpression> boundNode,
-        std::shared_ptr<binder::NodeExpression> nbrNode, std::shared_ptr<binder::RelExpression> rel,
         ExtendDirection direction, RecursiveJoinType joinType,
-        std::shared_ptr<LogicalOperator> child, std::shared_ptr<LogicalOperator> recursivePlanRoot)
+        std::vector<std::shared_ptr<LogicalOperator>> children,
+        std::shared_ptr<LogicalOperator> recursiveChild)
         : BaseLogicalExtend{LogicalOperatorType::RECURSIVE_EXTEND, std::move(boundNode),
-              std::move(nbrNode), std::move(rel), direction, std::move(child)},
-          joinType{joinType}, recursivePlanRoot{std::move(recursivePlanRoot)} {}
+              std::move(nbrNode), std::move(rel), direction, std::move(children)},
+          joinType{joinType}, recursiveChild{std::move(recursiveChild)} {}
 
     f_group_pos_set getGroupsPosToFlatten() override;
 
@@ -30,18 +24,21 @@ public:
 
     inline void setJoinType(RecursiveJoinType joinType_) { joinType = joinType_; }
     inline RecursiveJoinType getJoinType() const { return joinType; }
-    inline std::shared_ptr<LogicalOperator> getRecursivePlanRoot() const {
-        return recursivePlanRoot;
-    }
+    inline std::shared_ptr<LogicalOperator> getRecursiveChild() const { return recursiveChild; }
 
     inline std::unique_ptr<LogicalOperator> copy() override {
+        std::vector<std::shared_ptr<LogicalOperator>> copiedChildren;
+        copiedChildren.reserve(children.size());
+        for (auto& child : children) {
+            copiedChildren.push_back(child->copy());
+        }
         return std::make_unique<LogicalRecursiveExtend>(boundNode, nbrNode, rel, direction,
-            joinType, children[0]->copy(), recursivePlanRoot->copy());
+            joinType, std::move(copiedChildren), recursiveChild->copy());
     }
 
 private:
     RecursiveJoinType joinType;
-    std::shared_ptr<LogicalOperator> recursivePlanRoot;
+    std::shared_ptr<LogicalOperator> recursiveChild;
 };
 
 class LogicalScanFrontier : public LogicalOperator {

@@ -31,6 +31,11 @@ public:
 private:
     inline uint64_t atLeastOne(uint64_t x) { return x == 0 ? 1 : x; }
 
+    inline void addNodeIDDom(const binder::NodeExpression& node) {
+        if (!nodeIDName2dom.contains(node.getInternalIDPropertyName())) {
+            nodeIDName2dom.insert({node.getInternalIDPropertyName(), getNumNodes(node)});
+        }
+    }
     uint64_t getNodeIDDom(const std::string& nodeIDName) {
         assert(nodeIDName2dom.contains(nodeIDName));
         return nodeIDName2dom.at(nodeIDName);

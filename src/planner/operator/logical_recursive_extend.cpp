@@ -29,13 +29,11 @@ void LogicalRecursiveExtend::computeFlatSchema() {
         break;
     }
     auto rewriter = optimizer::RemoveFactorizationRewriter();
-    rewriter.visitOperator(recursivePlanRoot);
+    rewriter.visitOperator(recursiveChild);
 }
 
 void LogicalRecursiveExtend::computeFactorizedSchema() {
-    createEmptySchema();
-    auto childSchema = children[0]->getSchema();
-    SinkOperatorUtil::recomputeSchema(*childSchema, childSchema->getExpressionsInScope(), *schema);
+    copyChildSchema(0);
     auto nbrGroupPos = schema->createGroup();
     schema->insertToGroupAndScope(nbrNode->getInternalIDProperty(), nbrGroupPos);
     schema->insertToGroupAndScope(rel->getLengthExpression(), nbrGroupPos);
@@ -47,7 +45,7 @@ void LogicalRecursiveExtend::computeFactorizedSchema() {
         break;
     }
     auto rewriter = optimizer::FactorizationRewriter();
-    rewriter.visitOperator(recursivePlanRoot.get());
+    rewriter.visitOperator(recursiveChild.get());
 }
 
 void LogicalScanFrontier::computeFlatSchema() {
