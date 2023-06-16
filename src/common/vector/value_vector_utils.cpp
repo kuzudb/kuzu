@@ -1,6 +1,5 @@
 #include "common/vector/value_vector_utils.h"
 
-#include "common/in_mem_overflow_buffer_utils.h"
 #include "common/null_buffer.h"
 #include "processor/result/factorized_table.h"
 
@@ -46,10 +45,7 @@ void ValueVectorUtils::copyNonNullDataWithSameTypeIntoPos(
         }
     } break;
     case PhysicalTypeID::STRING: {
-        auto dstData = resultVector.getData() +
-                       pos * processor::FactorizedTable::getDataTypeSize(resultVector.dataType);
-        InMemOverflowBufferUtils::copyString(*(ku_string_t*)srcData, *(ku_string_t*)dstData,
-            *StringVector::getInMemOverflowBuffer(&resultVector));
+        StringVector::addString(&resultVector, pos, *(ku_string_t*)srcData);
     } break;
     default: {
         auto dataTypeSize = processor::FactorizedTable::getDataTypeSize(resultVector.dataType);
@@ -107,10 +103,15 @@ void ValueVectorUtils::copyNonNullDataWithSameTypeOutFromPos(const ValueVector& 
         memcpy(dstData, &dstList, sizeof(dstList));
     } break;
     case PhysicalTypeID::STRING: {
-        auto srcData = srcVector.getData() +
-                       pos * processor::FactorizedTable::getDataTypeSize(srcVector.dataType);
-        InMemOverflowBufferUtils::copyString(
-            *(ku_string_t*)srcData, *(ku_string_t*)dstData, dstOverflowBuffer);
+        auto& srcStr = srcVector.getValue<ku_string_t>(pos);
+        auto& dstStr = *(ku_string_t*)dstData;
+        if (ku_string_t::isShortString(srcStr.len)) {
+            dstStr.setShortString(srcStr);
+        } else {
+            dstStr.overflowPtr =
+                reinterpret_cast<uint64_t>(dstOverflowBuffer.allocateSpace(srcStr.len));
+            dstStr.setLongString(srcStr);
+        }
     } break;
     default: {
         auto dataTypeSize = processor::FactorizedTable::getDataTypeSize(srcVector.dataType);
@@ -158,8 +159,7 @@ void ValueVectorUtils::copyValue(uint8_t* dstValue, common::ValueVector& dstVect
         }
     } break;
     case PhysicalTypeID::STRING: {
-        common::InMemOverflowBufferUtils::copyString(*(common::ku_string_t*)srcValue,
-            *(common::ku_string_t*)dstValue, *StringVector::getInMemOverflowBuffer(&dstVector));
+        StringVector::addString(&dstVector, *(ku_string_t*)dstValue, *(ku_string_t*)srcValue);
     } break;
     default: {
         memcpy(dstValue, srcValue, srcVector.getNumBytesPerValue());

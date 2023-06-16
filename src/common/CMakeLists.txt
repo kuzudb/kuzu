@@ -12,7 +12,6 @@ add_library(kuzu_common
         expression_type.cpp
         file_utils.cpp
         in_mem_overflow_buffer.cpp
-        in_mem_overflow_buffer_utils.cpp
         logging_level_utils.cpp
         metric.cpp
         null_mask.cpp

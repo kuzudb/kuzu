@@ -1,6 +1,5 @@
 #include "storage/storage_structure/column.h"
 
-#include "common/in_mem_overflow_buffer_utils.h"
 #include "storage/storage_structure/storage_structure_utils.h"
 
 using namespace kuzu::common;

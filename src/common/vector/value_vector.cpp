@@ -51,11 +51,6 @@ void ValueVector::setValue(uint32_t pos, T val) {
     ((T*)valueBuffer.get())[pos] = val;
 }
 
-template<>
-void ValueVector::setValue(uint32_t pos, std::string val) {
-    StringVector::addString(this, pos, val.data(), val.length());
-}
-
 void ValueVector::resetAuxiliaryBuffer() {
     switch (dataType.getPhysicalType()) {
     case PhysicalTypeID::STRING: {
@@ -126,8 +121,64 @@ template void ValueVector::setValue<double_t>(uint32_t pos, double_t val);
 template void ValueVector::setValue<date_t>(uint32_t pos, date_t val);
 template void ValueVector::setValue<timestamp_t>(uint32_t pos, timestamp_t val);
 template void ValueVector::setValue<interval_t>(uint32_t pos, interval_t val);
-template void ValueVector::setValue<ku_string_t>(uint32_t pos, ku_string_t val);
 template void ValueVector::setValue<list_entry_t>(uint32_t pos, list_entry_t val);
+
+template<>
+void ValueVector::setValue(uint32_t pos, ku_string_t val) {
+    StringVector::addString(this, pos, val);
+}
+template<>
+void ValueVector::setValue(uint32_t pos, std::string val) {
+    StringVector::addString(this, pos, val.data(), val.length());
+}
+
+void StringVector::addString(ValueVector* vector, uint32_t vectorPos, ku_string_t& srcStr) {
+    assert(vector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
+    auto stringBuffer = reinterpret_cast<StringAuxiliaryBuffer*>(vector->auxiliaryBuffer.get());
+    auto& dstStr = vector->getValue<ku_string_t>(vectorPos);
+    if (ku_string_t::isShortString(srcStr.len)) {
+        dstStr.setShortString(srcStr);
+    } else {
+        dstStr.overflowPtr = reinterpret_cast<uint64_t>(stringBuffer->allocateOverflow(srcStr.len));
+        dstStr.setLongString(srcStr);
+    }
+}
+
+void StringVector::addString(
+    ValueVector* vector, uint32_t vectorPos, const char* srcStr, uint64_t length) {
+    assert(vector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
+    auto stringBuffer = reinterpret_cast<StringAuxiliaryBuffer*>(vector->auxiliaryBuffer.get());
+    auto& dstStr = vector->getValue<ku_string_t>(vectorPos);
+    if (ku_string_t::isShortString(length)) {
+        dstStr.setShortString(srcStr, length);
+    } else {
+        dstStr.overflowPtr = reinterpret_cast<uint64_t>(stringBuffer->allocateOverflow(length));
+        dstStr.setLongString(srcStr, length);
+    }
+}
+
+void StringVector::addString(ValueVector* vector, ku_string_t& dstStr, ku_string_t& srcStr) {
+    assert(vector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
+    auto stringBuffer = reinterpret_cast<StringAuxiliaryBuffer*>(vector->auxiliaryBuffer.get());
+    if (ku_string_t::isShortString(srcStr.len)) {
+        dstStr.setShortString(srcStr);
+    } else {
+        dstStr.overflowPtr = reinterpret_cast<uint64_t>(stringBuffer->allocateOverflow(srcStr.len));
+        dstStr.setLongString(srcStr);
+    }
+}
+
+void StringVector::addString(
+    ValueVector* vector, ku_string_t& dstStr, const char* srcStr, uint64_t length) {
+    assert(vector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
+    auto stringBuffer = reinterpret_cast<StringAuxiliaryBuffer*>(vector->auxiliaryBuffer.get());
+    if (ku_string_t::isShortString(length)) {
+        dstStr.setShortString(srcStr, length);
+    } else {
+        dstStr.overflowPtr = reinterpret_cast<uint64_t>(stringBuffer->allocateOverflow(length));
+        dstStr.setLongString(srcStr, length);
+    }
+}
 
 } // namespace common
 } // namespace kuzu

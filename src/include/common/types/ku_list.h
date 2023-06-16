@@ -14,8 +14,6 @@ public:
     void set(const uint8_t* values, const LogicalType& dataType) const;
 
 private:
-    friend class InMemOverflowBufferUtils;
-
     void set(const std::vector<uint8_t*>& parameters, LogicalTypeID childTypeId);
 
 public:

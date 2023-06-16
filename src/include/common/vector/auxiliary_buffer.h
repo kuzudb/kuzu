@@ -21,8 +21,10 @@ public:
     }
 
     inline InMemOverflowBuffer* getOverflowBuffer() const { return inMemOverflowBuffer.get(); }
+    inline uint8_t* allocateOverflow(uint64_t size) {
+        return inMemOverflowBuffer->allocateSpace(size);
+    }
     inline void resetOverflowBuffer() const { inMemOverflowBuffer->resetBuffer(); }
-    void addString(common::ValueVector* vector, uint32_t pos, char* value, uint64_t len) const;
 
 private:
     std::unique_ptr<InMemOverflowBuffer> inMemOverflowBuffer;
