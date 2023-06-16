@@ -3,6 +3,7 @@
 #include "planner/logical_plan/logical_operator/logical_accumulate.h"
 #include "planner/logical_plan/logical_operator/logical_create.h"
 #include "planner/logical_plan/logical_operator/logical_delete.h"
+#include "planner/logical_plan/logical_operator/logical_extend.h"
 #include "planner/logical_plan/logical_operator/logical_filter.h"
 #include "planner/logical_plan/logical_operator/logical_hash_join.h"
 #include "planner/logical_plan/logical_operator/logical_intersect.h"
@@ -11,7 +12,6 @@
 #include "planner/logical_plan/logical_operator/logical_recursive_extend.h"
 #include "planner/logical_plan/logical_operator/logical_set.h"
 #include "planner/logical_plan/logical_operator/logical_unwind.h"
-#include "planner/logical_plan/logical_operator/logical_extend.h"
 
 using namespace kuzu::common;
 using namespace kuzu::planner;
@@ -44,6 +44,9 @@ void ProjectionPushDownOptimizer::visitRecursiveExtend(LogicalOperator* op) {
     auto rel = recursiveExtend->getRel();
     if (!variablesInUse.contains(rel)) {
         recursiveExtend->setJoinType(planner::RecursiveJoinType::TRACK_NONE);
+        // Remove build size
+        recursiveExtend->setChildren(
+            std::vector<std::shared_ptr<LogicalOperator>>{recursiveExtend->getChild(0)});
     }
 }
 

@@ -5,6 +5,8 @@
 #include "processor/operator/recursive_extend/shortest_path_state.h"
 #include "processor/operator/recursive_extend/variable_length_state.h"
 
+using namespace kuzu::common;
+
 namespace kuzu {
 namespace processor {
 
@@ -85,15 +87,24 @@ void RecursiveJoin::initLocalStateInternal(ResultSet* resultSet_, ExecutionConte
         throw common::NotImplementedException("BaseRecursiveJoin::initLocalStateInternal");
     }
     if (vectors->pathVector != nullptr) {
-        assert(vectors->pathVector->dataType.getPhysicalType() == common::PhysicalTypeID::STRUCT);
-        auto nodeIDFieldIdx = common::StructType::getFieldIdx(
+        auto pathNodesFieldIdx = common::StructType::getFieldIdx(
             &vectors->pathVector->dataType, common::InternalKeyword::NODES);
-        auto relIDFieldIdx = common::StructType::getFieldIdx(
+        vectors->pathNodesVector =
+            StructVector::getFieldVector(vectors->pathVector, pathNodesFieldIdx).get();
+        auto pathNodesDataVector = ListVector::getDataVector(vectors->pathNodesVector);
+        auto pathNodesIDFieldIdx =
+            StructType::getFieldIdx(&pathNodesDataVector->dataType, InternalKeyword::ID);
+        vectors->pathNodesIDDataVector =
+            StructVector::getFieldVector(pathNodesDataVector, pathNodesIDFieldIdx).get();
+        assert(vectors->pathNodesIDDataVector->dataType.getPhysicalType() ==
+               common::PhysicalTypeID::INTERNAL_ID);
+        auto pathRelsFieldIdx = common::StructType::getFieldIdx(
             &vectors->pathVector->dataType, common::InternalKeyword::RELS);
-        vectors->pathNodeIDVector =
-            common::StructVector::getFieldVector(vectors->pathVector, nodeIDFieldIdx).get();
-        vectors->pathRelIDVector =
-            common::StructVector::getFieldVector(vectors->pathVector, relIDFieldIdx).get();
+        vectors->pathRelsVector =
+            StructVector::getFieldVector(vectors->pathVector, pathRelsFieldIdx).get();
+        vectors->pathRelsIDDataVector = ListVector::getDataVector(vectors->pathRelsVector);
+        assert(vectors->pathRelsIDDataVector->dataType.getPhysicalType() ==
+               common::PhysicalTypeID::INTERNAL_ID);
     }
     frontiersScanner = std::make_unique<FrontiersScanner>(std::move(scanners));
     initLocalRecursivePlan(context);

@@ -10,24 +10,26 @@ void RecursiveJoinPropertyProbe::initLocalStateInternal(
     ResultSet* resultSet_, ExecutionContext* context) {
     localState = std::make_unique<RecursiveJoinPropertyProbeLocalState>();
     auto pathVector = resultSet->getValueVector(pathPos);
-    auto pathNodesFieldIdx = common::StructType::getFieldIdx(
-        &pathVector->dataType, common::InternalKeyword::NODES);
-    auto pathNodesVector = StructVector::getFieldVector(pathVector.get(), pathNodesFieldIdx);
-    auto pathNodesDataVector = ListVector::getDataVector(pathNodesVector.get());
-    assert(pathNodesDataVector->dataType.getPhysicalType() == common::PhysicalTypeID::STRUCT);
-    auto pathNodesFieldTypes = StructType::getFieldIdx(&pathNodesDataVector->dataType, InternalKeyword::ID);
-//    assert()
-    auto pathNodesIDVector = StructVector::getFieldVector(pathNodesDataVector, );
-//    for (auto i = 1u; i < StructType::get)
+    auto pathNodesFieldIdx =
+        common::StructType::getFieldIdx(&pathVector->dataType, common::InternalKeyword::NODES);
+    pathNodesVector = StructVector::getFieldVector(pathVector.get(), pathNodesFieldIdx).get();
+    auto pathNodesDataVector = ListVector::getDataVector(pathNodesVector);
+    auto numFields = StructType::getNumFields(&pathNodesDataVector->dataType);
+    pathNodesIDDataVector = StructVector::getFieldVector(pathNodesDataVector, 0).get();
+    assert(
+        pathNodesIDDataVector->dataType.getPhysicalType() == common::PhysicalTypeID::INTERNAL_ID);
+    for (auto i = 1u; i < numFields; ++i) {
+        pathNodesPropertyDataVectors.push_back(
+            StructVector::getFieldVector(pathNodesDataVector, i).get());
+    }
 }
 
 bool RecursiveJoinPropertyProbe::getNextTuplesInternal(ExecutionContext* context) {
-    if (children[0]->getNextTuple(context)) {
+    if (!children[0]->getNextTuple(context)) {
         return false;
     }
     auto hashTable = sharedState->getHashTable();
-    auto dataSize = ListVector::getDataVectorSize(pathNodeIDVector);
-    auto dataVector = ListVector::getDataVector(pathNodeIDVector);
+    auto dataSize = ListVector::getDataVectorSize(pathNodesVector);
     auto sizeProbed = 0u;
     // TODO: wrap as function
     while (sizeProbed < dataSize) {
@@ -35,17 +37,19 @@ bool RecursiveJoinPropertyProbe::getNextTuplesInternal(ExecutionContext* context
         // Hash
         for (auto i = 0u; i < sizeToProbe; ++i) {
             function::operation::Hash::operation(
-                dataVector->getValue<internalID_t>(sizeProbed + i), localState->hashes[i]);
+                pathNodesIDDataVector->getValue<internalID_t>(sizeProbed + i),
+                localState->hashes[i]);
         }
         // Probe hash
         for (auto i = 0u; i < sizeToProbe; ++i) {
             localState->probedTuples[i] = hashTable->getTupleForHash(localState->hashes[i]);
         }
         // Match value
-        for (auto i = 0u; i < sizeProbed; ++i) {
+        for (auto i = 0u; i < sizeToProbe; ++i) {
             while (localState->probedTuples[i]) {
                 auto currentTuple = localState->probedTuples[i];
-                if (*(nodeID_t*)currentTuple == dataVector->getValue<nodeID_t>(sizeProbed + 1)) {
+                if (*(nodeID_t*)currentTuple ==
+                    pathNodesIDDataVector->getValue<nodeID_t>(sizeProbed + i)) {
                     localState->matchedTuples[i] = currentTuple;
                     break;
                 }
@@ -55,12 +59,13 @@ bool RecursiveJoinPropertyProbe::getNextTuplesInternal(ExecutionContext* context
         }
         // Scan table
         auto factorizedTable = hashTable->getFactorizedTable();
-        for (auto i = 0u; i < sizeProbed; ++i) {
+        for (auto i = 0u; i < sizeToProbe; ++i) {
             auto tuple = localState->matchedTuples[i];
-            for (auto j = 0u; j < propertyVectors.size(); ++j) {
-                auto propertyVector = propertyVectors[i];
+            for (auto j = 0u; j < pathNodesPropertyDataVectors.size(); ++j) {
+                auto propertyVector = pathNodesPropertyDataVectors[j];
+                auto colIdx = colIndicesToScan[j];
                 factorizedTable->readFlatColToFlatVector(
-                    tuple, j + 1, *propertyVector, sizeProbed + 1);
+                    tuple, colIdx, *propertyVector, sizeProbed + i);
             }
         }
         sizeProbed += sizeToProbe;

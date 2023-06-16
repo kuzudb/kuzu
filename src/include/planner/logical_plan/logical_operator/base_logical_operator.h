@@ -73,6 +73,9 @@ public:
     inline void setChild(uint64_t idx, std::shared_ptr<LogicalOperator> child) {
         children[idx] = std::move(child);
     }
+    inline void setChildren(std::vector<std::shared_ptr<LogicalOperator>> children_) {
+        children = std::move(children_);
+    }
 
     inline LogicalOperatorType getOperatorType() const { return operatorType; }
 

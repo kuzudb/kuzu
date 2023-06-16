@@ -15,37 +15,53 @@
 ---- 1
 10
 
+#{_NODES: [0:4,0:5,0:4], _RELS: [3:12,3:12]}|person
+#{_NODES: [0:4,0:5,1:0], _RELS: [3:12,4:2]}|organisation
+#{_NODES: [0:4,0:5], _RELS: [3:12]}|person
+#{_NODES: [0:4,0:6,0:4], _RELS: [3:13,3:13]}|person
+#{_NODES: [0:4,0:6], _RELS: [3:13]}|person
+#{_NODES: [0:4,1:2,0:3], _RELS: [5:2,5:1]}|person
+#{_NODES: [0:4,1:2,0:4], _RELS: [5:2,5:2]}|person
+#{_NODES: [0:4,1:2], _RELS: [5:2]}|organisation
 -NAME NodeUndirectedTest2
--QUERY MATCH (a)-[e:knows|:studyAt|:workAt*1..2]-(b) WHERE a.ID=7 RETURN e, label(b)
+-QUERY MATCH (a)-[e:knows|:studyAt|:workAt*1..2]-(b) WHERE a.ID=7 RETURN rels(e), (nodes(e)[2]).ID, label(b)
 ---- 8
-{_NODES: [0:4,0:5,0:4], _RELS: [3:12,3:12]}|person
-{_NODES: [0:4,0:5,1:0], _RELS: [3:12,4:2]}|organisation
-{_NODES: [0:4,0:5], _RELS: [3:12]}|person
-{_NODES: [0:4,0:6,0:4], _RELS: [3:13,3:13]}|person
-{_NODES: [0:4,0:6], _RELS: [3:13]}|person
-{_NODES: [0:4,1:2,0:3], _RELS: [5:2,5:1]}|person
-{_NODES: [0:4,1:2,0:4], _RELS: [5:2,5:2]}|person
-{_NODES: [0:4,1:2], _RELS: [5:2]}|organisation
+[3:12,3:12]|8|person
+[3:12,4:2]|8|organisation
+[3:12]|8|person
+[3:13,3:13]|9|person
+[3:13]|9|person
+[5:2,5:1]|6|person
+[5:2,5:2]|6|person
+[5:2]|6|organisation
 
-
+#1|{_NODES: [0:0,0:1,1:0], _RELS: [3:0,4:1]}
+#1|{_NODES: [0:0,0:1,1:0], _RELS: [6:0,4:1]}
+#1|{_NODES: [0:0,0:1,1:0], _RELS: [7:0,4:1]}
+#1|{_NODES: [0:0,1:0], _RELS: [4:0]}
+#4|{_NODES: [0:0,0:2,1:1], _RELS: [3:1,5:0]}
+#6|{_NODES: [0:0,0:3,1:2], _RELS: [3:2,5:1]}
 -NAME RelMultiLabelTest
--QUERY MATCH (a:person)-[e*1..2]->(b:organisation) WHERE a.fName = 'Alice' RETURN b.ID, e
+-QUERY MATCH (a:person)-[e*1..2]->(b:organisation) WHERE a.fName = 'Alice' RETURN b.ID, rels(e), (nodes(e)[2]).ID
 ---- 6
-1|{_NODES: [0:0,0:1,1:0], _RELS: [3:0,4:1]}
-1|{_NODES: [0:0,0:1,1:0], _RELS: [6:0,4:1]}
-1|{_NODES: [0:0,0:1,1:0], _RELS: [7:0,4:1]}
-1|{_NODES: [0:0,1:0], _RELS: [4:0]}
-4|{_NODES: [0:0,0:2,1:1], _RELS: [3:1,5:0]}
-6|{_NODES: [0:0,0:3,1:2], _RELS: [3:2,5:1]}
+1|[3:0,4:1]|2
+1|[4:0]|1
+1|[6:0,4:1]|2
+1|[7:0,4:1]|2
+4|[3:1,5:0]|3
+6|[3:2,5:1]|5
 
+#1|{_NODES: [0:0,0:1,1:0], _RELS: [6:0,4:1]}
+#1|{_NODES: [0:0,0:1,1:0], _RELS: [7:0,4:1]}
+#5|{_NODES: [0:0,0:1,0:3], _RELS: [6:0,6:1]}
+#5|{_NODES: [0:0,0:1,0:3], _RELS: [7:0,6:1]}
 -NAME MixMultiLabelTest2
--QUERY MATCH (a:person)-[e:meets|:marries|:studyAt*2..2]->(b) WHERE a.fName = 'Alice' RETURN b.ID, e
+-QUERY MATCH (a:person)-[e:meets|:marries|:studyAt*2..2]->(b) WHERE a.fName = 'Alice' RETURN b.ID, rels(e), (nodes(e)[3]).ID
 ---- 4
-1|{_NODES: [0:0,0:1,1:0], _RELS: [6:0,4:1]}
-1|{_NODES: [0:0,0:1,1:0], _RELS: [7:0,4:1]}
-5|{_NODES: [0:0,0:1,0:3], _RELS: [6:0,6:1]}
-5|{_NODES: [0:0,0:1,0:3], _RELS: [7:0,6:1]}
-
+1|[6:0,4:1]|1
+1|[7:0,4:1]|1
+5|[6:0,6:1]|5
+5|[7:0,6:1]|5
 
 -NAME MixMultiLabelTest3
 -QUERY MATCH (a:person)-[e:meets|:marries|:studyAt*2..2]->(b) WHERE a.fName = 'Alice' AND b.ID < 5 RETURN COUNT(*)

@@ -5,27 +5,39 @@
 
 -CASE Bfs
 
+#Alice|Bob|{_NODES: [0:0,0:1], _RELS: [1:0]}
+#Alice|Carol|{_NODES: [0:0,0:2], _RELS: [1:1]}
+#Alice|Dan|{_NODES: [0:0,0:3], _RELS: [1:2]}
+#Alice|Elizabeth|{_NODES: [0:0,0:1,0:4], _RELS: [1:0,1:6]}
+#Alice|Farooq|{_NODES: [0:0,0:1,0:4,0:5], _RELS: [1:0,1:6,1:13]}
+#Alice|Greg|{_NODES: [0:0,0:1,0:4,0:6], _RELS: [1:0,1:6,1:14]}
+#Alice|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|{_NODES: [0:0,0:1,0:4,0:7], _RELS: [1:0,1:6,1:15]}
 -NAME SingleSourceAllDestinationsSSP
--QUERY MATCH (a:person)-[r:knows* SHORTEST 1..30]->(b:person) WHERE a.fName = 'Alice' RETURN a.fName, b.fName, r
+-QUERY MATCH (a:person)-[r:knows* SHORTEST 1..30]->(b:person) WHERE a.fName = 'Alice' RETURN a.fName, b.fName, rels(r), (nodes(r)[2]).fName
 ---- 7
-Alice|Bob|{_NODES: [0:0,0:1], _RELS: [1:0]}
-Alice|Carol|{_NODES: [0:0,0:2], _RELS: [1:1]}
-Alice|Dan|{_NODES: [0:0,0:3], _RELS: [1:2]}
-Alice|Elizabeth|{_NODES: [0:0,0:1,0:4], _RELS: [1:0,1:6]}
-Alice|Farooq|{_NODES: [0:0,0:1,0:4,0:5], _RELS: [1:0,1:6,1:13]}
-Alice|Greg|{_NODES: [0:0,0:1,0:4,0:6], _RELS: [1:0,1:6,1:14]}
-Alice|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|{_NODES: [0:0,0:1,0:4,0:7], _RELS: [1:0,1:6,1:15]}
+Alice|Bob|[1:0]|Bob
+Alice|Carol|[1:1]|Carol
+Alice|Dan|[1:2]|Dan
+Alice|Elizabeth|[1:0,1:6]|Bob
+Alice|Farooq|[1:0,1:6,1:13]|Bob
+Alice|Greg|[1:0,1:6,1:14]|Bob
+Alice|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|[1:0,1:6,1:15]|Bob
 
-
+#Bob|Alice|{_NODES: [0:0,0:1], _RELS: [1:3]}
+#Carol|Alice|{_NODES: [0:0,0:2], _RELS: [1:7]}
+#Dan|Alice|{_NODES: [0:0,0:3], _RELS: [1:10]}
+#Elizabeth|Alice|{_NODES: [0:0,0:7,0:4], _RELS: [1:20,1:15]}
+#Farooq|Alice|{_NODES: [0:0,0:7,0:5], _RELS: [1:20,1:17]}
+#Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|Alice|{_NODES: [0:0,0:7], _RELS: [1:20]}
 -NAME AllSourcesSingleDestinationQuery
--QUERY MATCH (a:person)-[r:knows* SHORTEST 1..30]->(b:person) WHERE b.fName = 'Alice' RETURN a.fName, b.fName, r
+-QUERY MATCH (a:person)-[r:knows* SHORTEST 1..30]->(b:person) WHERE b.fName = 'Alice' RETURN a.fName, b.fName, rels(r), (nodes(r)[2]).fName
 ---- 6
-Bob|Alice|{_NODES: [0:0,0:1], _RELS: [1:3]}
-Carol|Alice|{_NODES: [0:0,0:2], _RELS: [1:7]}
-Dan|Alice|{_NODES: [0:0,0:3], _RELS: [1:10]}
-Elizabeth|Alice|{_NODES: [0:0,0:7,0:4], _RELS: [1:20,1:15]}
-Farooq|Alice|{_NODES: [0:0,0:7,0:5], _RELS: [1:20,1:17]}
-Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|Alice|{_NODES: [0:0,0:7], _RELS: [1:20]}
+Bob|Alice|[1:3]|Bob
+Carol|Alice|[1:7]|Carol
+Dan|Alice|[1:10]|Dan
+Elizabeth|Alice|[1:20,1:15]|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
+Farooq|Alice|[1:20,1:17]|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
+Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|Alice|[1:20]|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
 
 -NAME SingleSourceWithAllProperties
 -QUERY MATCH (a:person)-[r:knows* SHORTEST 1..30]->(b:person) WHERE a.fName = 'Alice' RETURN length(r), b, a
@@ -43,14 +55,20 @@ Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|Alice|{_NODES: [0:0,0:7], _REL
 ---- 1
 Alice|Bob|1
 
+#Elizabeth|Alice|{_NODES: [0:4,0:7,0:0], _RELS: [1:15,1:20]}
+#Elizabeth|Dan|{_NODES: [0:4,0:7,0:3], _RELS: [1:15,1:21]}
+#Elizabeth|Farooq|{_NODES: [0:4,0:5], _RELS: [1:13]}
+#Elizabeth|Greg|{_NODES: [0:4,0:6], _RELS: [1:14]}
+#Elizabeth|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|{_NODES: [0:4,0:7], _RELS: [1:15]}
 -NAME SingleSourceAllDestinations2
--QUERY MATCH (a:person)-[r:knows* SHORTEST 1..2]->(b:person) WHERE a.fName = 'Elizabeth' RETURN a.fName, b.fName, r
+-QUERY MATCH (a:person)-[r:knows* SHORTEST 1..2]->(b:person) WHERE a.fName = 'Elizabeth' RETURN a.fName, b.fName, rels(r), (nodes(r)[2]).fName
 ---- 5
-Elizabeth|Alice|{_NODES: [0:4,0:7,0:0], _RELS: [1:15,1:20]}
-Elizabeth|Dan|{_NODES: [0:4,0:7,0:3], _RELS: [1:15,1:21]}
-Elizabeth|Farooq|{_NODES: [0:4,0:5], _RELS: [1:13]}
-Elizabeth|Greg|{_NODES: [0:4,0:6], _RELS: [1:14]}
-Elizabeth|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|{_NODES: [0:4,0:7], _RELS: [1:15]}
+Elizabeth|Alice|[1:15,1:20]|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
+Elizabeth|Dan|[1:15,1:21]|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
+Elizabeth|Farooq|[1:13]|Farooq
+Elizabeth|Greg|[1:14]|Greg
+Elizabeth|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|[1:15]|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
+
 
 -NAME SingleSourceUnreachableDestination
 -QUERY MATCH (a:person)-[r:knows* SHORTEST 1..30]->(b:person) WHERE a.fName = 'Alice' AND b.fName = 'Alice11' RETURN a.fName, b.fName, r

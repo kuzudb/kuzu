@@ -39,15 +39,6 @@ struct RecursiveJoinDataInfo {
         std::unique_ptr<ResultSetDescriptor> localResultSetDescriptor,
         const DataPos& recursiveDstNodeIDPos,
         std::unordered_set<common::table_id_t> recursiveDstNodeTableIDs,
-        const DataPos& recursiveEdgeIDPos)
-        : RecursiveJoinDataInfo{srcNodePos, dstNodePos, std::move(dstNodeTableIDs), pathLengthPos,
-              std::move(localResultSetDescriptor), recursiveDstNodeIDPos,
-              std::move(recursiveDstNodeTableIDs), recursiveEdgeIDPos, DataPos()} {}
-    RecursiveJoinDataInfo(const DataPos& srcNodePos, const DataPos& dstNodePos,
-        std::unordered_set<common::table_id_t> dstNodeTableIDs, const DataPos& pathLengthPos,
-        std::unique_ptr<ResultSetDescriptor> localResultSetDescriptor,
-        const DataPos& recursiveDstNodeIDPos,
-        std::unordered_set<common::table_id_t> recursiveDstNodeTableIDs,
         const DataPos& recursiveEdgeIDPos, const DataPos& pathPos)
         : srcNodePos{srcNodePos}, dstNodePos{dstNodePos},
           dstNodeTableIDs{std::move(dstNodeTableIDs)}, pathLengthPos{pathLengthPos},
@@ -67,9 +58,11 @@ struct RecursiveJoinVectors {
     common::ValueVector* srcNodeIDVector = nullptr;
     common::ValueVector* dstNodeIDVector = nullptr;
     common::ValueVector* pathLengthVector = nullptr;
-    common::ValueVector* pathVector = nullptr;
-    common::ValueVector* pathNodeIDVector = nullptr;
-    common::ValueVector* pathRelIDVector = nullptr;
+    common::ValueVector* pathVector = nullptr;            // STRUCT(LIST(STRUCT), LIST(INTERNAL_ID))
+    common::ValueVector* pathNodesVector = nullptr;       // LIST(STRUCT)
+    common::ValueVector* pathNodesIDDataVector = nullptr; // INTERNAL_ID
+    common::ValueVector* pathRelsVector = nullptr;        // LIST(INTERNAL_ID)
+    common::ValueVector* pathRelsIDDataVector = nullptr;  // INTERNAL_ID
 
     common::ValueVector* recursiveEdgeIDVector = nullptr;
     common::ValueVector* recursiveDstNodeIDVector = nullptr;

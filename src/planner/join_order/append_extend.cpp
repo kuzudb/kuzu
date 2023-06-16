@@ -55,9 +55,9 @@ void JoinOrderEnumerator::appendRecursiveExtend(std::shared_ptr<NodeExpression> 
     // recursive node build plan
     auto recursiveNodeBuildPlan = std::make_unique<LogicalPlan>();
     createRecursiveNodeBuildPlan(rel->getRecursiveNode(), *recursiveNodeBuildPlan);
-
     auto extend = std::make_shared<LogicalRecursiveExtend>(boundNode, nbrNode, rel, direction,
-        plan.getLastOperator(), recursivePlan->getLastOperator());
+        RecursiveJoinType::TRACK_PATH, plan.getLastOperator(),
+        recursiveNodeBuildPlan->getLastOperator(), recursivePlan->getLastOperator());
     queryPlanner->appendFlattens(extend->getGroupsPosToFlatten(), plan);
     extend->setChild(0, plan.getLastOperator());
     extend->computeFactorizedSchema();

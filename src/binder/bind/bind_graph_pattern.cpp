@@ -134,7 +134,7 @@ static std::unique_ptr<LogicalType> getRecursiveRelLogicalType(
     const NodeExpression& recursiveNode) {
     std::vector<std::unique_ptr<StructField>> nodeFields;
     nodeFields.push_back(std::make_unique<StructField>(
-       common::InternalKeyword::ID, std::make_unique<LogicalType>(LogicalTypeID::INTERNAL_ID)));
+        common::InternalKeyword::ID, std::make_unique<LogicalType>(LogicalTypeID::INTERNAL_ID)));
     for (auto& expression : recursiveNode.getPropertyExpressions()) {
         auto propertyExpression = (PropertyExpression*)expression.get();
         nodeFields.push_back(std::make_unique<StructField>(
@@ -221,10 +221,8 @@ void Binder::bindQueryRel(const RelPattern& relPattern,
             getUniqueExpressionName(parsedName), parsedName, tableIDs, srcNode, dstNode,
             directionType, relPattern.getRelType());
         auto lengthExpression = expressionBinder.createInternalLengthExpression(*queryRel);
-        auto idPathExpression = expressionBinder.createVariableExpression(
-            *getIdPathLogicalType(), InternalKeyword::ID_PATH, InternalKeyword::ID_PATH);
-        auto recursiveInfo = std::make_unique<RecursiveInfo>(lowerBound, upperBound,
-            std::move(recursiveNode), std::move(lengthExpression), std::move(idPathExpression));
+        auto recursiveInfo = std::make_unique<RecursiveInfo>(
+            lowerBound, upperBound, std::move(recursiveNode), std::move(lengthExpression));
         queryRel->setRecursiveInfo(std::move(recursiveInfo));
     } else {
         queryRel = make_shared<RelExpression>(LogicalType(LogicalTypeID::REL),

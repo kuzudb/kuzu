@@ -181,6 +181,7 @@ public:
     explicit StructTypeInfo(std::vector<std::unique_ptr<StructField>> fields);
 
     struct_field_idx_t getStructFieldIdx(std::string fieldName) const;
+    StructField* getStructField(const std::string& fieldName) const;
     std::vector<LogicalType*> getChildrenTypes() const;
     std::vector<std::string> getChildrenNames() const;
     std::vector<StructField*> getStructFields() const;
@@ -280,6 +281,12 @@ struct StructType {
         assert(type->getPhysicalType() == PhysicalTypeID::STRUCT);
         auto structTypeInfo = reinterpret_cast<StructTypeInfo*>(type->extraTypeInfo.get());
         return structTypeInfo->getStructFields();
+    }
+
+    static inline StructField* getField(const LogicalType* type, const std::string& key) {
+        assert(type->getPhysicalType() == PhysicalTypeID::STRUCT);
+        auto structTypeInfo = reinterpret_cast<StructTypeInfo*>(type->extraTypeInfo.get());
+        return structTypeInfo->getStructField(key);
     }
 
     static inline struct_field_idx_t getFieldIdx(const LogicalType* type, const std::string& key) {

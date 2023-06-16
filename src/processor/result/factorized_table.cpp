@@ -639,7 +639,6 @@ void FactorizedTable::readUnflatCol(const uint8_t* tupleToRead, const SelectionV
 
 void FactorizedTable::readFlatColToFlatVector(
     uint8_t* tupleToRead, ft_col_idx_t colIdx, ValueVector& vector, common::sel_t pos) const {
-    assert(vector.state->isFlat());
     if (isNonOverflowColNull(tupleToRead + tableSchema->getNullMapOffset(), colIdx)) {
         vector.setNull(pos, true);
     } else {

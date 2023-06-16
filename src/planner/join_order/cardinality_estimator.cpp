@@ -9,9 +9,12 @@ namespace planner {
 
 void CardinalityEstimator::initNodeIDDom(binder::QueryGraph* queryGraph) {
     for (auto i = 0u; i < queryGraph->getNumQueryNodes(); ++i) {
-        auto node = queryGraph->getQueryNode(i);
-        if (!nodeIDName2dom.contains(node->getInternalIDPropertyName())) {
-            nodeIDName2dom.insert({node->getInternalIDPropertyName(), getNumNodes(*node)});
+        addNodeIDDom(*queryGraph->getQueryNode(i));
+    }
+    for (auto i = 0u; i < queryGraph->getNumQueryRels(); ++i) {
+        auto rel = queryGraph->getQueryRel(i);
+        if (common::QueryRelTypeUtils::isRecursive(rel->getRelType())) {
+            addNodeIDDom(*rel->getRecursiveNode());
         }
     }
 }
