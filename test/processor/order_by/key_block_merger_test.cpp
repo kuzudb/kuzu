@@ -77,7 +77,7 @@ public:
         std::unique_ptr<FactorizedTableSchema> tableSchema =
             std::make_unique<FactorizedTableSchema>();
         tableSchema->appendColumn(std::make_unique<ColumnSchema>(false /* isUnflat */,
-            0 /* dataChunkPos */, FactorizedTable::getDataTypeSize(LogicalType{dataTypeID})));
+            0 /* dataChunkPos */, LogicalTypeUtils::getRowLayoutSize(LogicalType{dataTypeID})));
 
         if (hasPayLoadCol) {
             auto payloadValueVector =
@@ -90,7 +90,7 @@ public:
             // payload column at index 0, and the orderByCol at index 1.
             allVectors.insert(allVectors.begin(), payloadValueVector.get());
             tableSchema->appendColumn(std::make_unique<ColumnSchema>(false, 0 /* dataChunkPos */,
-                FactorizedTable::getDataTypeSize(LogicalType{dataTypeID})));
+                LogicalTypeUtils::getRowLayoutSize(LogicalType{dataTypeID})));
         }
 
         auto factorizedTable =
@@ -236,18 +236,18 @@ public:
             std::make_unique<FactorizedTableSchema>();
         tableSchema->appendColumn(
             std::make_unique<ColumnSchema>(false /* isUnflat */, 0 /* dataChunkPos */,
-                FactorizedTable::getDataTypeSize(LogicalType{LogicalTypeID::INT64})));
+                LogicalTypeUtils::getRowLayoutSize(LogicalType{LogicalTypeID::INT64})));
         tableSchema->appendColumn(
             std::make_unique<ColumnSchema>(false /* isUnflat */, 0 /* dataChunkPos */,
-                FactorizedTable::getDataTypeSize(LogicalType{LogicalTypeID::DOUBLE})));
+                LogicalTypeUtils::getRowLayoutSize(LogicalType{LogicalTypeID::DOUBLE})));
         tableSchema->appendColumn(
             std::make_unique<ColumnSchema>(false /* isUnflat */, 0 /* dataChunkPos */,
-                FactorizedTable::getDataTypeSize(LogicalType{LogicalTypeID::TIMESTAMP})));
+                LogicalTypeUtils::getRowLayoutSize(LogicalType{LogicalTypeID::TIMESTAMP})));
 
         if (hasStrCol) {
             tableSchema->appendColumn(
                 std::make_unique<ColumnSchema>(false /* isUnflat */, 0 /* dataChunkPos */,
-                    FactorizedTable::getDataTypeSize(LogicalType{LogicalTypeID::STRING})));
+                    LogicalTypeUtils::getRowLayoutSize(LogicalType{LogicalTypeID::STRING})));
             auto stringValueVector1 =
                 std::make_shared<ValueVector>(LogicalTypeID::STRING, memoryManager.get());
             auto stringValueVector2 =
@@ -280,12 +280,12 @@ public:
 
         std::vector<StrKeyColInfo> strKeyColsInfo;
         if (hasStrCol) {
-            strKeyColsInfo.emplace_back(
-                StrKeyColInfo(tableSchema->getColOffset(3 /* colIdx */) /* colOffsetInFT */,
-                    FactorizedTable::getDataTypeSize(LogicalType{LogicalTypeID::INT64}) +
-                        FactorizedTable::getDataTypeSize(LogicalType{LogicalTypeID::DOUBLE}) +
-                        FactorizedTable::getDataTypeSize(LogicalType{LogicalTypeID::TIMESTAMP}) + 3,
-                    true /* isAscOrder */));
+            strKeyColsInfo.emplace_back(StrKeyColInfo(
+                tableSchema->getColOffset(3 /* colIdx */) /* colOffsetInFT */,
+                LogicalTypeUtils::getRowLayoutSize(LogicalType{LogicalTypeID::INT64}) +
+                    LogicalTypeUtils::getRowLayoutSize(LogicalType{LogicalTypeID::DOUBLE}) +
+                    LogicalTypeUtils::getRowLayoutSize(LogicalType{LogicalTypeID::TIMESTAMP}) + 3,
+                true /* isAscOrder */));
             expectedBlockOffsetOrder = {0, 0, 1, 1, 2, 2, 3};
             expectedFactorizedTableIdxOrder = {4, 5, 4, 5, 4, 5, 4};
         }
@@ -336,7 +336,7 @@ public:
         std::unique_ptr<FactorizedTableSchema> tableSchema =
             std::make_unique<FactorizedTableSchema>();
         auto stringColumnSize =
-            FactorizedTable::getDataTypeSize(LogicalType{LogicalTypeID::STRING});
+            LogicalTypeUtils::getRowLayoutSize(LogicalType{LogicalTypeID::STRING});
         tableSchema->appendColumn(std::make_unique<ColumnSchema>(
             false /* isUnflat */, 0 /* dataChunkPos */, stringColumnSize));
         tableSchema->appendColumn(std::make_unique<ColumnSchema>(

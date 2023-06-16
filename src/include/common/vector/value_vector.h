@@ -54,6 +54,7 @@ public:
     }
     template<typename T>
     void setValue(uint32_t pos, T val);
+    void copyFromRowData(uint32_t pos, const uint8_t* rowData);
 
     inline uint8_t* getData() const { return valueBuffer.get(); }
 
@@ -122,6 +123,8 @@ public:
         return reinterpret_cast<ListAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())
             ->addList(listSize);
     }
+
+    static void copyFromRowData(ValueVector* vector, uint32_t pos, const uint8_t* rowData);
 };
 
 class StructVector {
@@ -150,6 +153,8 @@ public:
                 vector->getData() + vector->getNumBytesPerValue() * DEFAULT_VECTOR_CAPACITY),
             0);
     }
+
+    static void copyFromRowData(ValueVector* vector, uint32_t pos, const uint8_t* rowData);
 };
 
 class UnionVector {

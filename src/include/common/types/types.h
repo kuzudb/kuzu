@@ -111,10 +111,6 @@ enum class PhysicalTypeID : uint8_t {
     STRUCT = 23,
 };
 
-struct PhysicalTypeUtils {
-    static std::string physicalTypeToString(PhysicalTypeID physicalType);
-};
-
 class LogicalType;
 
 class ExtraTypeInfo {
@@ -310,6 +306,11 @@ struct UnionType {
     }
 };
 
+struct PhysicalTypeUtils {
+    static std::string physicalTypeToString(PhysicalTypeID physicalType);
+    static uint32_t getFixedTypeSize(PhysicalTypeID physicalType);
+};
+
 class LogicalTypeUtils {
 public:
     KUZU_API static std::string dataTypeToString(const LogicalType& dataType);
@@ -317,7 +318,7 @@ public:
     static std::string dataTypesToString(const std::vector<LogicalType>& dataTypes);
     static std::string dataTypesToString(const std::vector<LogicalTypeID>& dataTypeIDs);
     KUZU_API static LogicalType dataTypeFromString(const std::string& dataTypeString);
-    static uint32_t getFixedTypeSize(kuzu::common::PhysicalTypeID physicalType);
+    static uint32_t getRowLayoutSize(const LogicalType& logicalType);
     static bool isNumerical(const LogicalType& dataType);
     static std::vector<LogicalType> getAllValidComparableLogicalTypes();
     static std::vector<LogicalTypeID> getNumericalLogicalTypeIDs();
