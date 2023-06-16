@@ -3,7 +3,6 @@
 #include <cassert>
 
 #include "common/exception.h"
-#include "common/in_mem_overflow_buffer_utils.h"
 #include "common/type_utils.h"
 #include "common/vector/value_vector.h"
 

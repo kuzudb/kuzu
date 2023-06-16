@@ -1,7 +1,5 @@
 #include "common/types/ku_string.h"
 
-#include <cstring>
-
 namespace kuzu {
 namespace common {
 
@@ -10,23 +8,18 @@ void ku_string_t::set(const std::string& value) {
 }
 
 void ku_string_t::set(const char* value, uint64_t length) {
-    this->len = length;
     if (length <= SHORT_STR_LENGTH) {
-        memcpy(prefix, value, length);
+        setShortString(value, length);
     } else {
-        memcpy(prefix, value, PREFIX_LENGTH);
-        memcpy(reinterpret_cast<char*>(overflowPtr), value, length);
+        setLongString(value, length);
     }
 }
 
 void ku_string_t::set(const ku_string_t& value) {
-    this->len = value.len;
     if (value.len <= SHORT_STR_LENGTH) {
-        memcpy(prefix, value.prefix, value.len);
+        setShortString(value);
     } else {
-        memcpy(prefix, value.prefix, PREFIX_LENGTH);
-        memcpy(reinterpret_cast<char*>(overflowPtr), reinterpret_cast<char*>(value.overflowPtr),
-            value.len);
+        setLongString(value);
     }
 }
 

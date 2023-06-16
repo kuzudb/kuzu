@@ -91,11 +91,12 @@ public:
             ->getOverflowBuffer();
     }
 
-    static inline void addString(ValueVector* vector, uint32_t pos, char* value, uint64_t len) {
-        assert(vector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
-        reinterpret_cast<StringAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())
-            ->addString(vector, pos, value, len);
-    }
+    static void addString(ValueVector* vector, uint32_t vectorPos, ku_string_t& srcStr);
+    static void addString(
+        ValueVector* vector, uint32_t vectorPos, const char* srcStr, uint64_t length);
+    static void addString(ValueVector* vector, ku_string_t& dstStr, ku_string_t& srcStr);
+    static void addString(
+        ValueVector* vector, ku_string_t& dstStr, const char* srcStr, uint64_t length);
 };
 
 class ListVector {

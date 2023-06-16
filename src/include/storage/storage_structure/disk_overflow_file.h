@@ -42,8 +42,7 @@ public:
         transaction::TransactionType trxType, common::ValueVector& vector, uint64_t vectorPos) {
         assert(vector.dataType.getLogicalTypeID() == common::LogicalTypeID::STRING &&
                !vector.isNull(vectorPos));
-        auto& kuString = ((common::ku_string_t*)vector.getData())[vectorPos];
-        lookupString(trxType, kuString, *common::StringVector::getInMemOverflowBuffer(&vector));
+        lookupString(trxType, &vector, vector.getValue<common::ku_string_t>(vectorPos));
     }
 
     void readListToVector(transaction::TransactionType trxType, common::ku_list_t& kuList,
@@ -72,10 +71,10 @@ private:
         common::page_idx_t pageIdx = UINT32_MAX;
         uint8_t* frame = nullptr;
     };
-    void lookupString(transaction::TransactionType trxType, common::ku_string_t& kuStr,
-        common::InMemOverflowBuffer& inMemOverflowBuffer);
-    void lookupString(transaction::TransactionType trxType, common::ku_string_t& kuStr,
-        common::InMemOverflowBuffer& inMemOverflowBuffer, OverflowPageCache& overflowPageCache);
+    void lookupString(transaction::TransactionType trxType, common::ValueVector* vector,
+        common::ku_string_t& dstStr);
+    void lookupString(transaction::TransactionType trxType, common::ValueVector* vector,
+        common::ku_string_t& dstStr, OverflowPageCache& overflowPageCache);
     void addNewPageIfNecessaryWithoutLock(uint32_t numBytesToAppend);
     void setStringOverflowWithoutLock(
         const char* inMemSrcStr, uint64_t len, common::ku_string_t& diskDstString);

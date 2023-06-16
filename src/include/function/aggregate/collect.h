@@ -1,6 +1,5 @@
 #pragma once
 
-#include "common/in_mem_overflow_buffer_utils.h"
 #include "common/vector/value_vector_utils.h"
 #include "processor/result/factorized_table.h"
 

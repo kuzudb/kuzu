@@ -1,17 +1,9 @@
 #include "common/vector/auxiliary_buffer.h"
 
-#include "common/in_mem_overflow_buffer_utils.h"
 #include "common/vector/value_vector.h"
 
 namespace kuzu {
 namespace common {
-
-void StringAuxiliaryBuffer::addString(
-    common::ValueVector* vector, uint32_t pos, char* value, uint64_t len) const {
-    assert(vector->dataType.getLogicalTypeID() == LogicalTypeID::STRING);
-    auto& entry = ((ku_string_t*)vector->getData())[pos];
-    InMemOverflowBufferUtils::copyString(value, len, entry, *inMemOverflowBuffer);
-}
 
 StructAuxiliaryBuffer::StructAuxiliaryBuffer(
     const LogicalType& type, storage::MemoryManager* memoryManager) {
