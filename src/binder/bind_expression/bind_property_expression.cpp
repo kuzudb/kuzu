@@ -30,7 +30,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindPropertyExpression(
         return bindRelPropertyExpression(*child, propertyName);
     } else {
         assert(LogicalTypeID::STRUCT == childTypeID);
-        auto stringValue = std::make_unique<Value>(propertyName);
+        auto stringValue =
+            std::make_unique<Value>(LogicalType{LogicalTypeID::STRING}, propertyName);
         return bindScalarFunctionExpression(
             expression_vector{child, createLiteralExpression(std::move(stringValue))},
             STRUCT_EXTRACT_FUNC_NAME);

@@ -180,6 +180,14 @@ vector_operation_definitions CastToStringVectorOperation::getDefinitions() {
     return result;
 }
 
+vector_operation_definitions CastToBlobVectorOperation::getDefinitions() {
+    vector_operation_definitions result;
+    result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_BLOB_FUNC_NAME,
+        std::vector<LogicalTypeID>{LogicalTypeID::STRING}, LogicalTypeID::BLOB,
+        UnaryCastExecFunction<ku_string_t, blob_t, operation::CastToBlob>));
+    return result;
+}
+
 vector_operation_definitions CastToDoubleVectorOperation::getDefinitions() {
     vector_operation_definitions result;
     result.push_back(bindVectorOperation<int16_t, double_t, operation::CastToDouble>(

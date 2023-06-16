@@ -85,6 +85,7 @@ KUZU_API enum class LogicalTypeID : uint8_t {
 
     // variable size types
     STRING = 50,
+    BLOB = 51,
     VAR_LIST = 52,
     STRUCT = 53,
     MAP = 54,

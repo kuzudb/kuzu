@@ -247,7 +247,8 @@ Value StringPropertyColumn::readValueForTestingOnly(offset_t offset) {
         memcpy(&kuString, frame + mapElementPosToByteOffset(cursor.elemPosInPage),
             sizeof(ku_string_t));
     });
-    return Value(diskOverflowFile->readString(TransactionType::READ_ONLY, kuString));
+    return Value(LogicalType{LogicalTypeID::STRING},
+        diskOverflowFile->readString(TransactionType::READ_ONLY, kuString));
 }
 
 void StringPropertyColumn::writeStringToPage(uint8_t* frame, uint16_t posInFrame,

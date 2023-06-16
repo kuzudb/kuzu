@@ -151,7 +151,8 @@ void DiskOverflowFile::readValuesInList(transaction::TransactionType trxType,
     if (childType->getLogicalTypeID() == LogicalTypeID::STRING) {
         for (auto i = 0u; i < numValuesInList; i++) {
             auto kuListVal = *(ku_string_t*)(frame + cursor.offsetInPage);
-            retValues.push_back(make_unique<Value>(readString(trxType, kuListVal)));
+            retValues.push_back(make_unique<Value>(
+                LogicalType{LogicalTypeID::STRING}, readString(trxType, kuListVal)));
             cursor.offsetInPage += numBytesOfSingleValue;
         }
     } else if (childType->getLogicalTypeID() == LogicalTypeID::VAR_LIST) {

@@ -60,7 +60,7 @@ UnicodeType Utf8Proc::analyze(
         int c = (int)s[i];
 
         if ((c & 0x80) == 0) {
-            return type;
+            continue;
         } else {
             int firstPosSeq = i;
 
