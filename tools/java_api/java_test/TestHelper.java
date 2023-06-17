@@ -1,14 +1,18 @@
-package tools.java_api;
-import java.time.*;
+package tools.java_api.java_test;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.File;
 
-public class test {
 
-    public static void deleteFolder(File folder) {
+import tools.java_api.*;
+
+public class TestHelper {
+    private static KuzuDatabase db;
+    private static KuzuConnection conn;
+
+    private static void deleteFolder(File folder) {
         if (folder.exists()) {
             File[] files = folder.listFiles();
             if (files != null) {
@@ -21,18 +25,26 @@ public class test {
                 }
             }
             folder.delete();
-            System.out.println("Folder deleted: " + folder.getAbsolutePath());
         }
     }
 
-    public static void main(String[] args) {
-        
+    public static void cleanup() {
         String folderPath = "java_api_test_db";
         deleteFolder(new File(folderPath));
+    }
 
+    public static KuzuDatabase getDatabase() {
+        return db;
+    }
+
+    public static KuzuConnection getConnection() {
+        return conn;
+    }
+
+    public static void loadData() {
         BufferedReader reader;
-        KuzuDatabase db = new KuzuDatabase("java_api_test_db", 0);
-        KuzuConnection conn = new KuzuConnection(db);
+        db = new KuzuDatabase("java_api_test_db", 0);
+        conn = new KuzuConnection(db);
         try {
 			reader = new BufferedReader(new FileReader("./../../dataset/tinysnb/schema.cypher"));
 			String line = reader.readLine();
@@ -56,22 +68,5 @@ public class test {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-
-        KuzuQueryResult result = conn.query("MATCH (a:person) RETURN a.fName, a.age ORDER BY a.fName");
-
-        KuzuFlatTuple row = result.getNext();
-        System.out.println(row);
-        row.destroy();
-
-        row = result.getNext();
-        row.destroy();
-
-        result.destory();
-
-
-        KuzuValue value = new KuzuValue(Duration.ofMillis(31800000003L));
-        Duration interval = value.getValue();
-        
-
     }
 }

@@ -9,6 +9,10 @@ public class KuzuValue {
         assert !destroyed: "KuzuValue has been destroyed.";
     }
 
+    public boolean isOwnedByCPP() {
+        return isOwnedByCPP;
+    }
+
     public <T> KuzuValue (T val) {
         checkNotdestroyed();
         v_ref = KuzuNative.kuzu_value_create_value(val);

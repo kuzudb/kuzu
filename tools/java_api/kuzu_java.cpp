@@ -73,8 +73,8 @@ FlatTuple* getFlatTuple(JNIEnv * env, jobject thisFT) {
     jlong fieldValue = env->GetLongField(thisFT, fieldID);
 
     uint64_t address = static_cast<uint64_t>(fieldValue);
-    FlatTuple* ft = reinterpret_cast<FlatTuple*>(address);
-    return ft;
+    auto ft = reinterpret_cast<std::shared_ptr<FlatTuple>*>(address);
+    return ft->get();
 }
 
 DataType* getDataType (JNIEnv * env, jobject thisDT) {
@@ -115,16 +115,6 @@ RelVal* getRelVal (JNIEnv * env, jobject thisRelVal) {
     uint64_t address = static_cast<uint64_t>(fieldValue);
     RelVal* rv = reinterpret_cast<RelVal*>(address);
     return rv;
-}
-
-QuerySummary* getQuerySummary (JNIEnv * env, jobject thisQR) {
-    jclass javaQRClass = env->GetObjectClass(thisQR);
-    jfieldID fieldID = env->GetFieldID(javaQRClass, "qr_ref", "J");
-    jlong fieldValue = env->GetLongField(thisQR, fieldID);
-
-    uint64_t address = static_cast<uint64_t>(fieldValue);
-    QuerySummary* qr = reinterpret_cast<QuerySummary*>(address);
-    return qr;
 }
 
 internalID_t getInternalID (JNIEnv * env, jobject id) {
@@ -182,8 +172,7 @@ void javaMapToCPPMap (JNIEnv * env, jobject javaMap, std::unordered_map<std::str
         jobject value = env->CallObjectMethod(entry, entryGetValue);
         const char* keyStr = env->GetStringUTFChars(key, NULL);
         Value* v = getValue(env, value);
-        auto value_ptr = std::make_shared<Value>(v);
-
+        std::shared_ptr<Value> value_ptr(v);
         cppMap.insert({keyStr, value_ptr});
 
         env->DeleteLocalRef(entry);
@@ -202,13 +191,18 @@ JNIEXPORT jlong JNICALL Java_tools_java_1api_KuzuNative_kuzu_1database_1init
 
     const char* path = env->GetStringUTFChars(database_path, JNI_FALSE);
     uint64_t buffer = static_cast<uint64_t>(buffer_pool_size);
+	try {
+		Database* db = buffer == 0 ? new Database(path) :
+								 	 new Database(path, SystemConfig(buffer));
+		uint64_t address = reinterpret_cast<uint64_t>(db);
 
-	Database* db = buffer == 0 ? new Database(path) :
-								 new Database(path, SystemConfig(buffer));
-	uint64_t address = reinterpret_cast<uint64_t>(db);
-
-	env->ReleaseStringUTFChars(database_path, path);
-	return static_cast<jlong>(address);
+		env->ReleaseStringUTFChars(database_path, path);
+		return static_cast<jlong>(address);
+	} catch (Exception& e) {
+        env->ReleaseStringUTFChars(database_path, path);
+        jclass Exception = env->FindClass("java/lang/Exception");
+        env->ThrowNew(Exception, e.what());
+    }
 }
 
 JNIEXPORT void JNICALL Java_tools_java_1api_KuzuNative_kuzu_1database_1destroy
@@ -218,11 +212,16 @@ JNIEXPORT void JNICALL Java_tools_java_1api_KuzuNative_kuzu_1database_1destroy
 }
 
 JNIEXPORT void JNICALL Java_tools_java_1api_KuzuNative_kuzu_1database_1set_1logging_1level
-  (JNIEnv * env, jclass, jstring logging_level, jobject thisDB) {
-    Database* db = getDatabase(env, thisDB);
+  (JNIEnv * env, jclass, jstring logging_level) {
     const char * lvl = env->GetStringUTFChars(logging_level, JNI_FALSE);
-    db->setLoggingLevel(lvl);
-	env->ReleaseStringUTFChars(logging_level, lvl);
+	try{
+		Database::setLoggingLevel(lvl);
+		env->ReleaseStringUTFChars(logging_level, lvl);
+	} catch (ConversionException e){
+		env->ReleaseStringUTFChars(logging_level, lvl);
+		jclass Exception = env->FindClass("java/lang/Exception");
+        env->ThrowNew(Exception,e.what());
+	}
 }
 
 /**
@@ -231,12 +230,18 @@ JNIEXPORT void JNICALL Java_tools_java_1api_KuzuNative_kuzu_1database_1set_1logg
 
 JNIEXPORT jlong JNICALL Java_tools_java_1api_KuzuNative_kuzu_1connection_1init
   (JNIEnv *env , jclass, jobject db) {
-    Database* conn_db = getDatabase(env, db);
 
-    Connection* conn = new Connection(conn_db);
-    uint64_t connAddress = reinterpret_cast<uint64_t>(conn);
+	try {
+		Database* conn_db = getDatabase(env, db);
 
-    return static_cast<jlong>(connAddress);
+		Connection* conn = new Connection(conn_db);
+		uint64_t connAddress = reinterpret_cast<uint64_t>(conn);
+
+		return static_cast<jlong>(connAddress);
+	} catch (Exception& e) {
+        jclass Exception = env->FindClass("java/lang/Exception");
+        env->ThrowNew(Exception, e.what());
+    }
 }
 
 JNIEXPORT void JNICALL Java_tools_java_1api_KuzuNative_kuzu_1connection_1destroy
@@ -288,11 +293,10 @@ JNIEXPORT jobject JNICALL Java_tools_java_1api_KuzuNative_kuzu_1connection_1quer
   (JNIEnv * env, jclass, jobject thisConn, jstring query) {
     Connection* conn = getConnection(env, thisConn);
     const char * CPPQuery = env->GetStringUTFChars(query, JNI_FALSE);
-    auto query_result = conn->query(CPPQuery);
+    auto query_result = conn->query(CPPQuery).release();
 	env->ReleaseStringUTFChars(query, CPPQuery);
 
-    uint64_t qrAddress = reinterpret_cast<uint64_t>(query_result.get());
-    query_result.release();
+    uint64_t qrAddress = reinterpret_cast<uint64_t>(query_result);
     jlong qr_ref = static_cast<jlong>(qrAddress);
 
     jclass qrClass = env->FindClass("tools/java_api/KuzuQueryResult");
@@ -324,6 +328,10 @@ JNIEXPORT jobject JNICALL Java_tools_java_1api_KuzuNative_kuzu_1connection_1exec
 
     std::unordered_map<std::string, std::shared_ptr<Value>> param;
     javaMapToCPPMap(env, param_map, param);
+
+	for (auto const &pair: param) {
+        std::cout << "{" << pair.first << ": " << pair.second.get()->toString() << "}\n";
+    }
 
     auto query_result = conn->executeWithParams(ps, param).release();
     if (query_result == nullptr) {
@@ -611,14 +619,13 @@ JNIEXPORT jobject JNICALL Java_tools_java_1api_KuzuNative_kuzu_1query_1result_1g
   (JNIEnv * env, jclass, jobject thisQR) {
     QueryResult* qr = getQueryResult(env, thisQR);
     auto query_summary = qr->getQuerySummary();
-
-    uint64_t qsAddress = reinterpret_cast<uint64_t>(query_summary);
-    jlong qs_ref = static_cast<jlong>(qsAddress);
+	
+	jdouble cmpTime = static_cast<jdouble>(query_summary->getCompilingTime());
+	jdouble exeTime = static_cast<jdouble>(query_summary->getExecutionTime());
 
     jclass qsClass = env->FindClass("tools/java_api/KuzuQuerySummary");
-    jobject newQSObject = env->AllocObject(qsClass);
-    jfieldID refID = env->GetFieldID(qsClass , "qs_ref", "J");
-    env->SetLongField(newQSObject, refID, qs_ref);
+	jmethodID ctor = env->GetMethodID(qsClass, "<init>", "(DD)V");
+    jobject newQSObject = env->NewObject(qsClass, ctor, cmpTime, exeTime);
     return newQSObject;
 }
 
@@ -633,7 +640,8 @@ JNIEXPORT jobject JNICALL Java_tools_java_1api_KuzuNative_kuzu_1query_1result_1g
     QueryResult* qr = getQueryResult(env, thisQR);
     auto flat_tuple = qr->getNext();
 
-    uint64_t ftAddress = reinterpret_cast<uint64_t>(flat_tuple.get());
+	auto newFT = new std::shared_ptr<FlatTuple>(flat_tuple);
+    uint64_t ftAddress = reinterpret_cast<uint64_t>(newFT);
     jlong ft_ref = static_cast<jlong>(ftAddress);
 
     jclass ftClass = env->FindClass("tools/java_api/KuzuFlatTuple");
@@ -678,17 +686,32 @@ JNIEXPORT void JNICALL Java_tools_java_1api_KuzuNative_kuzu_1query_1result_1rese
 
 JNIEXPORT void JNICALL Java_tools_java_1api_KuzuNative_kuzu_1flat_1tuple_1destroy
   (JNIEnv * env, jclass, jobject thisFT) {
-    FlatTuple* ft = getFlatTuple(env, thisFT);
-    delete ft;
+	jclass javaFTClass = env->GetObjectClass(thisFT);
+    jfieldID fieldID = env->GetFieldID(javaFTClass, "ft_ref", "J");
+    jlong fieldValue = env->GetLongField(thisFT, fieldID);
+
+    uint64_t address = static_cast<uint64_t>(fieldValue);
+    auto flat_tuple_shared_ptr = reinterpret_cast<std::shared_ptr<FlatTuple>*>(address);
+
+	flat_tuple_shared_ptr->reset();
+	delete flat_tuple_shared_ptr;
 }
 
 JNIEXPORT jobject JNICALL Java_tools_java_1api_KuzuNative_kuzu_1flat_1tuple_1get_1value
   (JNIEnv * env, jclass, jobject thisFT, jlong index) {
     FlatTuple* ft = getFlatTuple(env, thisFT);
     uint32_t idx = static_cast<uint32_t>(index);
-    Value* value = ft->getValue(idx);
+	Value* value;
+	try {
+        value = ft->getValue(index);
+    } catch (Exception& e) { return nullptr; }
 
-    return createJavaObject(env, value, "tools/java_api/KuzuValue", "v_ref");
+    jobject v = createJavaObject(env, value, "tools/java_api/KuzuValue", "v_ref");
+	jclass clazz = env->GetObjectClass(v);
+	jfieldID fieldID = env->GetFieldID(clazz, "isOwnedByCPP", "Z");
+	env->SetBooleanField(v, fieldID, static_cast<jboolean>(true));
+
+	return v;
 }
 
 JNIEXPORT jstring JNICALL Java_tools_java_1api_KuzuNative_kuzu_1flat_1tuple_1to_1string
@@ -755,7 +778,6 @@ JNIEXPORT jobject JNICALL Java_tools_java_1api_KuzuNative_kuzu_1data_1type_1get_
     std::string id_str = dataTypeIDToString(id_u8);
     jclass idClass = env->FindClass("tools/java_api/KuzuDataTypeID");
     jfieldID idField = env->GetStaticFieldID(idClass, id_str.c_str(), "Ltools/java_api/KuzuDataTypeID;");
-    std::cout << idField << std::endl;
     jobject id = env->GetStaticObjectField(idClass, idField);
     return id;
 }
@@ -836,22 +858,22 @@ JNIEXPORT jlong JNICALL Java_tools_java_1api_KuzuNative_kuzu_1value_1create_1val
     Value* v;
     jclass val_class = env->GetObjectClass(val);
     if (env->IsInstanceOf(val, env->FindClass("java/lang/Boolean"))) {
-        jboolean value = env->CallIntMethod(val, env->GetMethodID(val_class, "booleanValue", "()Z"));
+        jboolean value = env->CallBooleanMethod(val, env->GetMethodID(val_class, "booleanValue", "()Z"));
         v = new Value(static_cast<bool>(value));
     } else if (env->IsInstanceOf(val, env->FindClass("java/lang/Short"))) {
-        jshort value = env->CallIntMethod(val, env->GetMethodID(val_class, "shortValue", "()S"));
+        jshort value = env->CallShortMethod(val, env->GetMethodID(val_class, "shortValue", "()S"));
         v = new Value(static_cast<int16_t>(value));
     } else if (env->IsInstanceOf(val, env->FindClass("java/lang/Integer"))) {
         jint value = env->CallIntMethod(val, env->GetMethodID(val_class, "intValue", "()I"));
         v = new Value(static_cast<int32_t>(value));
     } else if (env->IsInstanceOf(val, env->FindClass("java/lang/Long"))) {
-        jlong value = env->CallIntMethod(val, env->GetMethodID(val_class, "longValue", "()J"));
+        jlong value = env->CallLongMethod(val, env->GetMethodID(val_class, "longValue", "()J"));
         v = new Value(static_cast<int64_t>(value));
     } else if (env->IsInstanceOf(val, env->FindClass("java/lang/Float"))) {
-        jfloat value = env->CallIntMethod(val, env->GetMethodID(val_class, "floatValue", "()F"));
+        jfloat value = env->CallFloatMethod(val, env->GetMethodID(val_class, "floatValue", "()F"));
         v = new Value(static_cast<float>(value));
     } else if (env->IsInstanceOf(val, env->FindClass("java/lang/Double"))) {
-        jdouble value = env->CallIntMethod(val, env->GetMethodID(val_class, "doubleValue", "()D"));
+        jdouble value = env->CallDoubleMethod(val, env->GetMethodID(val_class, "doubleValue", "()D"));
         v = new Value(static_cast<double>(value));
     } else if (env->IsInstanceOf(val, env->FindClass("java/lang/String"))) {
         jstring value = static_cast<jstring>(val);
@@ -884,15 +906,10 @@ JNIEXPORT jlong JNICALL Java_tools_java_1api_KuzuNative_kuzu_1value_1create_1val
 
 		long micro = (seconds * 1000000L) +  (nano / 1000L);
 		v = new Value(timestamp_t(micro));
-    } else if (env->IsInstanceOf(val, env->FindClass("tools/java_api/KuzuInterval"))) {
-		jfieldID monthFieldID = env->GetFieldID(val_class, "months", "I");
-    	jfieldID dayFieldID = env->GetFieldID(val_class, "days", "I");
-		jfieldID microFieldID = env->GetFieldID(val_class, "micros", "J");
-		
-		jlong months = env->GetLongField(val, monthFieldID);
-		jlong days = env->GetLongField(val, dayFieldID);
-		jlong micros = env->GetLongField(val, microFieldID);
-		v = new Value(interval_t(months, days, micros));
+    } else if (env->IsInstanceOf(val, env->FindClass("java/time/Duration"))) {
+		jmethodID toMillis = env->GetMethodID(val_class, "toMillis", "()J");
+		long milis = static_cast<long>(env->CallLongMethod(val, toMillis));
+		v = new Value(interval_t(0, 0, milis * 1000L));
     } else {
 		// Throw exception here
 		return -1;
@@ -1015,7 +1032,7 @@ JNIEXPORT jobject JNICALL Java_tools_java_1api_KuzuNative_kuzu_1value_1get_1valu
 		date_t date = v->getValue<date_t>();
 		jclass ldClass = env->FindClass("java/time/LocalDate");
 		jmethodID ofEpochDay = env->GetStaticMethodID(ldClass, "ofEpochDay", "(J)Ljava/time/LocalDate;");
-    	jobject ret = env->CallStaticObjectMethod(ldClass, ofEpochDay, date.days);
+    	jobject ret = env->CallStaticObjectMethod(ldClass, ofEpochDay, static_cast<jlong>(date.days));
 		return ret;
 	}
 	case DataTypeID::TIMESTAMP:
@@ -1030,10 +1047,11 @@ JNIEXPORT jobject JNICALL Java_tools_java_1api_KuzuNative_kuzu_1value_1get_1valu
 	}
 	case DataTypeID::INTERVAL:
 	{
-		jclass retClass = env->FindClass("tools/java_api/KuzuInterval");
-		jmethodID ctor = env->GetMethodID(retClass, "<init>", "(IIJ)V");
+		jclass retClass = env->FindClass("java/time/Duration");
+		jmethodID ofMillis = env->GetStaticMethodID(retClass, "ofMillis", "(J)Ljava/time/Duration;");
 		interval_t in = v->getValue<interval_t>();
-		jobject ret = env->NewObject(retClass, ctor, in.months, in.days, in.micros);
+		long millis = Interval::getMicro(in) / 1000;
+		jobject ret = env->CallStaticObjectMethod(retClass, ofMillis, millis);
 		return ret;
 	}
 	case DataTypeID::INTERNAL_ID:
@@ -1183,8 +1201,8 @@ JNIEXPORT void JNICALL Java_tools_java_1api_KuzuNative_kuzu_1node_1val_1add_1pro
 	NodeVal* nv = getNodeVal(env, thisNV);
 	const char * k = env->GetStringUTFChars(key, JNI_FALSE);
 	auto v = std::make_unique<Value>(*getValue(env, value));
-	env->ReleaseStringUTFChars(key, k);
 	nv->addProperty(k, std::move(v));
+	env->ReleaseStringUTFChars(key, k);
 }
 
 JNIEXPORT jstring JNICALL Java_tools_java_1api_KuzuNative_kuzu_1node_1val_1to_1string
@@ -1317,22 +1335,4 @@ JNIEXPORT jstring JNICALL Java_tools_java_1api_KuzuNative_kuzu_1rel_1val_1to_1st
 	std::string result_string = rv->toString();
     jstring ret = env->NewStringUTF(result_string.c_str());
     return ret;
-}
-
-JNIEXPORT void JNICALL Java_tools_java_1api_KuzuNative_kuzu_1query_1summary_1destroy
-  (JNIEnv * env, jclass, jobject thisQR) {
-	QuerySummary* qr = getQuerySummary(env, thisQR);
-	delete qr;
-}
-
-JNIEXPORT jdouble JNICALL Java_tools_java_1api_KuzuNative_kuzu_1query_1summary_1get_1compiling_1time
-  (JNIEnv * env, jclass, jobject thisQR) {
-	QuerySummary* qr = getQuerySummary(env, thisQR);
-	return static_cast<jdouble>(qr->getCompilingTime());
-}
-
-JNIEXPORT jdouble JNICALL Java_tools_java_1api_KuzuNative_kuzu_1query_1summary_1get_1execution_1time
-  (JNIEnv * env, jclass, jobject thisQR) {
-	QuerySummary* qr = getQuerySummary(env, thisQR);
-	return static_cast<jdouble>(qr->getExecutionTime());
 }

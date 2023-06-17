@@ -11,11 +11,8 @@ public class KuzuConnection {
     }
 
     public KuzuConnection(KuzuDatabase db) {
-        if (db == null){
-            // throw exception here?
-        } else {
-            conn_ref = KuzuNative.kuzu_connection_init(db);
-        }
+        assert db != null: "Cannot create connection, database is null.";
+        conn_ref = KuzuNative.kuzu_connection_init(db);
     }
 
     public void destory() {

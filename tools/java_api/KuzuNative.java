@@ -1,7 +1,6 @@
 package tools.java_api;
 
 import java.util.Map;
-import java.time.Period;
 public class KuzuNative {
     static {
         System.loadLibrary("kuzu_java_native");
@@ -10,7 +9,7 @@ public class KuzuNative {
     // Database
     protected static native long kuzu_database_init(String database_path, long buffer_pool_size);
     protected static native void kuzu_database_destroy(KuzuDatabase db);
-    protected static native void kuzu_database_set_logging_level(String logging_level, KuzuDatabase db);
+    protected static native void kuzu_database_set_logging_level(String logging_level);
 
     // Connection
     protected static native long kuzu_connection_init(KuzuDatabase database);
@@ -177,12 +176,5 @@ public class KuzuNative {
     protected static native KuzuValue kuzu_rel_val_get_property_value_at(KuzuRelValue rel_val, long index);
     protected static native void kuzu_rel_val_add_property(KuzuRelValue rel_val, String key, KuzuValue value);
     protected static native String kuzu_rel_val_to_string(KuzuRelValue rel_val);
-
-    // QuerySummary
-    protected static native void kuzu_query_summary_destroy(KuzuQuerySummary query_summary);
-    protected static native double kuzu_query_summary_get_compiling_time(KuzuQuerySummary query_summary);
-    protected static native double kuzu_query_summary_get_execution_time(KuzuQuerySummary query_summary);
-
-
 
 }
