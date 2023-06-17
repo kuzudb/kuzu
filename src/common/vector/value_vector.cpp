@@ -1,5 +1,6 @@
 #include "common/vector/value_vector.h"
 
+#include "common/null_buffer.h"
 #include "common/vector/auxiliary_buffer.h"
 
 namespace kuzu {
@@ -51,6 +52,24 @@ void ValueVector::setValue(uint32_t pos, T val) {
     ((T*)valueBuffer.get())[pos] = val;
 }
 
+void ValueVector::copyFromRowData(uint32_t pos, const uint8_t* rowData) {
+    switch (dataType.getPhysicalType()) {
+    case PhysicalTypeID::STRUCT: {
+        StructVector::copyFromRowData(this, pos, rowData);
+    } break;
+    case PhysicalTypeID::VAR_LIST: {
+        ListVector::copyFromRowData(this, pos, rowData);
+    } break;
+    case PhysicalTypeID::STRING: {
+        StringVector::addString(this, pos, *(ku_string_t*)rowData);
+    } break;
+    default: {
+        auto dataTypeSize = LogicalTypeUtils::getRowLayoutSize(dataType);
+        memcpy(getData() + pos * dataTypeSize, rowData, dataTypeSize);
+    }
+    }
+}
+
 void ValueVector::resetAuxiliaryBuffer() {
     switch (dataType.getPhysicalType()) {
     case PhysicalTypeID::STRING: {
@@ -93,7 +112,7 @@ uint32_t ValueVector::getDataTypeSize(const LogicalType& type) {
         return 0;
     }
     default: {
-        return LogicalTypeUtils::getFixedTypeSize(type.getPhysicalType());
+        return PhysicalTypeUtils::getFixedTypeSize(type.getPhysicalType());
     }
     }
 }
@@ -177,6 +196,42 @@ void StringVector::addString(
     } else {
         dstStr.overflowPtr = reinterpret_cast<uint64_t>(stringBuffer->allocateOverflow(length));
         dstStr.setLongString(srcStr, length);
+    }
+}
+
+void ListVector::copyFromRowData(ValueVector* vector, uint32_t pos, const uint8_t* rowData) {
+    assert(vector->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST);
+    auto srcKuList = *(ku_list_t*)rowData;
+    auto srcNullBytes = reinterpret_cast<uint8_t*>(srcKuList.overflowPtr);
+    auto srcListValues = srcNullBytes + NullBuffer::getNumBytesForNullValues(srcKuList.size);
+    auto dstListEntry = ListVector::addList(vector, srcKuList.size);
+    vector->setValue<list_entry_t>(pos, dstListEntry);
+    auto resultDataVector = common::ListVector::getDataVector(vector);
+    auto rowLayoutSize = LogicalTypeUtils::getRowLayoutSize(resultDataVector->dataType);
+    for (auto i = 0u; i < srcKuList.size; i++) {
+        auto dstListValuePos = dstListEntry.offset + i;
+        if (NullBuffer::isNull(srcNullBytes, i)) {
+            resultDataVector->setNull(dstListValuePos, true);
+        } else {
+            resultDataVector->copyFromRowData(dstListValuePos, srcListValues);
+        }
+        srcListValues += rowLayoutSize;
+    }
+}
+
+void StructVector::copyFromRowData(ValueVector* vector, uint32_t pos, const uint8_t* rowData) {
+    assert(vector->dataType.getPhysicalType() == PhysicalTypeID::STRUCT);
+    auto structFields = getFieldVectors(vector);
+    auto structNullBytes = rowData;
+    auto structValues = structNullBytes + NullBuffer::getNumBytesForNullValues(structFields.size());
+    for (auto i = 0u; i < structFields.size(); i++) {
+        auto structField = structFields[i];
+        if (NullBuffer::isNull(structNullBytes, i)) {
+            structField->setNull(pos, true /* isNull */);
+        } else {
+            structField->copyFromRowData(pos, structValues);
+        }
+        structValues += LogicalTypeUtils::getRowLayoutSize(structField->dataType);
     }
 }
 

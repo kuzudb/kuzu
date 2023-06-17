@@ -279,7 +279,7 @@ uint32_t StorageUtils::getDataTypeSize(const common::LogicalType& type) {
         return size;
     }
     default: {
-        return common::LogicalTypeUtils::getFixedTypeSize(type.getPhysicalType());
+        return common::PhysicalTypeUtils::getFixedTypeSize(type.getPhysicalType());
     }
     }
 }

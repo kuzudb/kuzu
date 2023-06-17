@@ -3,6 +3,7 @@
 #include <stdexcept>
 
 #include "common/exception.h"
+#include "common/null_buffer.h"
 #include "common/ser_deser.h"
 #include "common/string_utils.h"
 #include "common/types/types_include.h"
@@ -38,6 +39,29 @@ std::string PhysicalTypeUtils::physicalTypeToString(PhysicalTypeID physicalType)
         return "VAR_LIST";
     default:
         throw common::NotImplementedException{"Unrecognized physicalType."};
+    }
+}
+
+uint32_t PhysicalTypeUtils::getFixedTypeSize(PhysicalTypeID physicalType) {
+    switch (physicalType) {
+    case PhysicalTypeID::BOOL:
+        return sizeof(bool);
+    case PhysicalTypeID::INT64:
+        return sizeof(int64_t);
+    case PhysicalTypeID::INT32:
+        return sizeof(int32_t);
+    case PhysicalTypeID::INT16:
+        return sizeof(int16_t);
+    case PhysicalTypeID::DOUBLE:
+        return sizeof(double_t);
+    case PhysicalTypeID::FLOAT:
+        return sizeof(float_t);
+    case PhysicalTypeID::INTERVAL:
+        return sizeof(interval_t);
+    case PhysicalTypeID::INTERNAL_ID:
+        return sizeof(internalID_t);
+    default:
+        throw NotImplementedException{"PhysicalTypeUtils::getFixedTypeSize."};
     }
 }
 
@@ -456,26 +480,29 @@ std::string LogicalTypeUtils::dataTypesToString(const std::vector<LogicalTypeID>
     return result;
 }
 
-uint32_t LogicalTypeUtils::getFixedTypeSize(kuzu::common::PhysicalTypeID physicalType) {
-    switch (physicalType) {
-    case PhysicalTypeID::BOOL:
-        return sizeof(bool);
-    case PhysicalTypeID::INT64:
-        return sizeof(int64_t);
-    case PhysicalTypeID::INT32:
-        return sizeof(int32_t);
-    case PhysicalTypeID::INT16:
-        return sizeof(int16_t);
-    case PhysicalTypeID::DOUBLE:
-        return sizeof(double_t);
-    case PhysicalTypeID::FLOAT:
-        return sizeof(float_t);
-    case PhysicalTypeID::INTERVAL:
-        return sizeof(interval_t);
-    case PhysicalTypeID::INTERNAL_ID:
-        return sizeof(internalID_t);
+uint32_t LogicalTypeUtils::getRowLayoutSize(const LogicalType& type) {
+    switch (type.getPhysicalType()) {
+    case PhysicalTypeID::STRING: {
+        return sizeof(ku_string_t);
+    }
+    case PhysicalTypeID::FIXED_LIST: {
+        return getRowLayoutSize(*FixedListType::getChildType(&type)) *
+               FixedListType::getNumElementsInList(&type);
+    }
+    case PhysicalTypeID::VAR_LIST: {
+        return sizeof(ku_list_t);
+    }
+    case PhysicalTypeID::STRUCT: {
+        uint32_t size = 0;
+        auto fieldsTypes = StructType::getFieldTypes(&type);
+        for (auto fieldType : fieldsTypes) {
+            size += getRowLayoutSize(*fieldType);
+        }
+        size += NullBuffer::getNumBytesForNullValues(fieldsTypes.size());
+        return size;
+    }
     default:
-        throw NotImplementedException{"Cannot infer the size of a variable dataType."};
+        return PhysicalTypeUtils::getFixedTypeSize(type.getPhysicalType());
     }
 }
 

@@ -17,8 +17,8 @@ struct CollectFunction {
             outputVector->setValue<common::list_entry_t>(pos, listEntry);
             auto outputDataVector = common::ListVector::getDataVector(outputVector);
             for (auto i = 0u; i < listEntry.size; i++) {
-                common::ValueVectorUtils::copyNonNullDataWithSameTypeIntoPos(
-                    *outputDataVector, listEntry.offset + i, factorizedTable->getTuple(i));
+                outputDataVector->copyFromRowData(
+                    listEntry.offset + i, factorizedTable->getTuple(i));
             }
             // CollectStates are stored in factorizedTable entries. When the factorizedTable is
             // destructed, the destructor of CollectStates won't be called. Therefore, we need to

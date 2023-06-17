@@ -264,7 +264,6 @@ public:
         storage::DiskOverflowFile* overflowFileOfInMemList, const common::LogicalType& type) const;
     void clear();
     int64_t findValueInFlatColumn(ft_col_idx_t colIdx, int64_t value) const;
-    static uint32_t getDataTypeSize(const common::LogicalType& type);
 
 private:
     void setOverflowColNull(uint8_t* nullBuffer, ft_col_idx_t colIdx, ft_tuple_idx_t tupleIdx);

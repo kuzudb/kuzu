@@ -10,7 +10,8 @@ CopyNodeSharedState::CopyNodeSharedState(uint64_t& numRows, storage::MemoryManag
     auto ftTableSchema = std::make_unique<FactorizedTableSchema>();
     ftTableSchema->appendColumn(
         std::make_unique<ColumnSchema>(false /* flat */, 0 /* dataChunkPos */,
-            FactorizedTable::getDataTypeSize(common::LogicalType{common::LogicalTypeID::STRING})));
+            common::LogicalTypeUtils::getRowLayoutSize(
+                common::LogicalType{common::LogicalTypeID::STRING})));
     table = std::make_shared<FactorizedTable>(memoryManager, std::move(ftTableSchema));
 }
 

@@ -1,58 +1,9 @@
 #include "common/vector/value_vector_utils.h"
 
 #include "common/null_buffer.h"
-#include "processor/result/factorized_table.h"
 
 using namespace kuzu;
 using namespace common;
-
-void ValueVectorUtils::copyNonNullDataWithSameTypeIntoPos(
-    ValueVector& resultVector, uint64_t pos, const uint8_t* srcData) {
-    switch (resultVector.dataType.getPhysicalType()) {
-    case PhysicalTypeID::STRUCT: {
-        auto structFields = StructVector::getFieldVectors(&resultVector);
-        auto structNullBytes = srcData;
-        auto structValues =
-            structNullBytes + NullBuffer::getNumBytesForNullValues(structFields.size());
-        for (auto i = 0u; i < structFields.size(); i++) {
-            auto structField = structFields[i];
-            if (NullBuffer::isNull(structNullBytes, i)) {
-                structField->setNull(pos, true /* isNull */);
-            } else {
-                copyNonNullDataWithSameTypeIntoPos(*structField, pos, structValues);
-            }
-            structValues += processor::FactorizedTable::getDataTypeSize(structField->dataType);
-        }
-    } break;
-    case PhysicalTypeID::VAR_LIST: {
-        auto srcKuList = *(ku_list_t*)srcData;
-        auto srcNullBytes = reinterpret_cast<uint8_t*>(srcKuList.overflowPtr);
-        auto srcListValues = srcNullBytes + NullBuffer::getNumBytesForNullValues(srcKuList.size);
-        auto dstListEntry = ListVector::addList(&resultVector, srcKuList.size);
-        resultVector.setValue<list_entry_t>(pos, dstListEntry);
-        auto resultDataVector = common::ListVector::getDataVector(&resultVector);
-        auto numBytesPerValue =
-            processor::FactorizedTable::getDataTypeSize(resultDataVector->dataType);
-        for (auto i = 0u; i < srcKuList.size; i++) {
-            auto dstListValuePos = dstListEntry.offset + i;
-            if (NullBuffer::isNull(srcNullBytes, i)) {
-                resultDataVector->setNull(dstListValuePos, true);
-            } else {
-                copyNonNullDataWithSameTypeIntoPos(
-                    *resultDataVector, dstListValuePos, srcListValues);
-            }
-            srcListValues += numBytesPerValue;
-        }
-    } break;
-    case PhysicalTypeID::STRING: {
-        StringVector::addString(&resultVector, pos, *(ku_string_t*)srcData);
-    } break;
-    default: {
-        auto dataTypeSize = processor::FactorizedTable::getDataTypeSize(resultVector.dataType);
-        memcpy(resultVector.getData() + pos * dataTypeSize, srcData, dataTypeSize);
-    }
-    }
-}
 
 void ValueVectorUtils::copyNonNullDataWithSameTypeOutFromPos(const ValueVector& srcVector,
     uint64_t pos, uint8_t* dstData, InMemOverflowBuffer& dstOverflowBuffer) {
@@ -73,7 +24,7 @@ void ValueVectorUtils::copyNonNullDataWithSameTypeOutFromPos(const ValueVector& 
                 copyNonNullDataWithSameTypeOutFromPos(
                     *structField, pos, structValues, dstOverflowBuffer);
             }
-            structValues += processor::FactorizedTable::getDataTypeSize(structField->dataType);
+            structValues += LogicalTypeUtils::getRowLayoutSize(structField->dataType);
         }
     } break;
     case PhysicalTypeID::VAR_LIST: {
@@ -82,8 +33,7 @@ void ValueVectorUtils::copyNonNullDataWithSameTypeOutFromPos(const ValueVector& 
         ku_list_t dstList;
         dstList.size = srcListEntry.size;
         auto dstListOverflowSize =
-            processor::FactorizedTable::getDataTypeSize(srcListDataVector->dataType) *
-                dstList.size +
+            LogicalTypeUtils::getRowLayoutSize(srcListDataVector->dataType) * dstList.size +
             NullBuffer::getNumBytesForNullValues(dstList.size);
         dstList.overflowPtr =
             reinterpret_cast<uint64_t>(dstOverflowBuffer.allocateSpace(dstListOverflowSize));
@@ -97,8 +47,7 @@ void ValueVectorUtils::copyNonNullDataWithSameTypeOutFromPos(const ValueVector& 
                 copyNonNullDataWithSameTypeOutFromPos(
                     *srcListDataVector, srcListEntry.offset + i, dstListValues, dstOverflowBuffer);
             }
-            dstListValues +=
-                processor::FactorizedTable::getDataTypeSize(srcListDataVector->dataType);
+            dstListValues += LogicalTypeUtils::getRowLayoutSize(srcListDataVector->dataType);
         }
         memcpy(dstData, &dstList, sizeof(dstList));
     } break;
@@ -114,7 +63,7 @@ void ValueVectorUtils::copyNonNullDataWithSameTypeOutFromPos(const ValueVector& 
         }
     } break;
     default: {
-        auto dataTypeSize = processor::FactorizedTable::getDataTypeSize(srcVector.dataType);
+        auto dataTypeSize = LogicalTypeUtils::getRowLayoutSize(srcVector.dataType);
         memcpy(dstData, srcVector.getData() + pos * dataTypeSize, dataTypeSize);
     }
     }

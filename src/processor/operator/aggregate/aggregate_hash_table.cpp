@@ -141,7 +141,7 @@ void AggregateHashTable::initializeFT(
     compareFuncs.resize(aggStateColIdxInFT);
     auto colIdx = 0u;
     for (auto& dataType : keyDataTypes) {
-        auto size = FactorizedTable::getDataTypeSize(dataType);
+        auto size = LogicalTypeUtils::getRowLayoutSize(dataType);
         tableSchema->appendColumn(std::make_unique<ColumnSchema>(isUnflat, dataChunkPos, size));
         hasStrCol = hasStrCol || dataType.getLogicalTypeID() == LogicalTypeID::STRING;
         getCompareEntryWithKeysFunc(dataType.getPhysicalType(), compareFuncs[colIdx]);
@@ -149,7 +149,7 @@ void AggregateHashTable::initializeFT(
         colIdx++;
     }
     for (auto& dataType : dependentKeyDataTypes) {
-        auto size = FactorizedTable::getDataTypeSize(dataType);
+        auto size = LogicalTypeUtils::getRowLayoutSize(dataType);
         tableSchema->appendColumn(std::make_unique<ColumnSchema>(isUnflat, dataChunkPos, size));
         hasStrCol = hasStrCol || dataType.getLogicalTypeID() == LogicalTypeID::STRING;
         getCompareEntryWithKeysFunc(dataType.getPhysicalType(), compareFuncs[colIdx]);

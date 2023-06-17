@@ -39,7 +39,7 @@ std::unique_ptr<FactorizedTableSchema> OrderBy::populateTableSchema() {
         bool isUnflat = !orderByDataInfo.isPayloadFlat[i] && !orderByDataInfo.mayContainUnflatKey;
         tableSchema->appendColumn(std::make_unique<ColumnSchema>(isUnflat, dataPos.dataChunkPos,
             isUnflat ? (uint32_t)sizeof(overflow_value_t) :
-                       FactorizedTable::getDataTypeSize(dataType)));
+                       LogicalTypeUtils::getRowLayoutSize(dataType)));
     }
     return tableSchema;
 }

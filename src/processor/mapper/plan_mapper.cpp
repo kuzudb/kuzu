@@ -161,7 +161,7 @@ std::unique_ptr<ResultCollector> PlanMapper::appendResultCollector(
         std::unique_ptr<ColumnSchema> columnSchema;
         if (schema->getGroup(dataPos.dataChunkPos)->isFlat()) {
             columnSchema = std::make_unique<ColumnSchema>(false /* isUnFlat */,
-                dataPos.dataChunkPos, FactorizedTable::getDataTypeSize(expression->dataType));
+                dataPos.dataChunkPos, LogicalTypeUtils::getRowLayoutSize(expression->dataType));
         } else {
             columnSchema = std::make_unique<ColumnSchema>(
                 true /* isUnFlat */, dataPos.dataChunkPos, (uint32_t)sizeof(overflow_value_t));
