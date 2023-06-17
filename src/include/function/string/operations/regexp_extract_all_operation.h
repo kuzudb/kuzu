@@ -1,7 +1,7 @@
 #pragma once
 
 #include "base_regexp_operation.h"
-#include "common/vector/value_vector_utils.h"
+#include "common/vector/value_vector.h"
 #include "re2.h"
 
 namespace kuzu {

@@ -1,7 +1,6 @@
 #include "processor/operator/aggregate/aggregate_hash_table.h"
 
 #include "common/utils.h"
-#include "common/vector/value_vector_utils.h"
 #include "function/aggregate/base_count.h"
 #include "function/hash/vector_hash_operations.h"
 
@@ -249,9 +248,9 @@ void AggregateHashTable::initializeFTEntryWithFlatVec(
         for (auto i = 0u; i < numEntriesToInitialize; i++) {
             auto idx = entryIdxesToInitialize[i];
             auto entry = hashSlotsToUpdateAggState[idx]->entry;
-            ValueVectorUtils::copyNonNullDataWithSameTypeOutFromPos(*groupByFlatVector,
+            groupByFlatVector->copyToRowData(
                 groupByFlatVector->state->selVector->selectedPositions[0], entry + colOffset,
-                *factorizedTable->getInMemOverflowBuffer());
+                factorizedTable->getInMemOverflowBuffer());
         }
     }
 }
@@ -263,9 +262,9 @@ void AggregateHashTable::initializeFTEntryWithUnflatVec(
     if (groupByUnflatVector->hasNoNullsGuarantee()) {
         for (auto i = 0u; i < numEntriesToInitialize; i++) {
             auto entryIdx = entryIdxesToInitialize[i];
-            ValueVectorUtils::copyNonNullDataWithSameTypeOutFromPos(*groupByUnflatVector, entryIdx,
+            groupByUnflatVector->copyToRowData(entryIdx,
                 hashSlotsToUpdateAggState[entryIdx]->entry + colOffset,
-                *factorizedTable->getInMemOverflowBuffer());
+                factorizedTable->getInMemOverflowBuffer());
         }
     } else {
         for (auto i = 0u; i < numEntriesToInitialize; i++) {

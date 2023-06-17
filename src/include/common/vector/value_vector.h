@@ -57,6 +57,8 @@ public:
     // copyFromRowData assumes rowData is non-NULL.
     void copyFromRowData(uint32_t pos, const uint8_t* rowData);
     // copyFromVectorData assumes srcVectorData is non-NULL.
+    void copyToRowData(
+        uint32_t pos, uint8_t* rowData, InMemOverflowBuffer* rowOverflowBuffer) const;
     void copyFromVectorData(
         uint8_t* dstData, const ValueVector* srcVector, const uint8_t* srcVectorData);
 
@@ -102,6 +104,8 @@ public:
     static void addString(ValueVector* vector, ku_string_t& dstStr, ku_string_t& srcStr);
     static void addString(
         ValueVector* vector, ku_string_t& dstStr, const char* srcStr, uint64_t length);
+    static void copyToRowData(const ValueVector* vector, uint32_t pos, uint8_t* rowData,
+        InMemOverflowBuffer* rowOverflowBuffer);
 };
 
 class ListVector {
@@ -129,6 +133,8 @@ public:
     }
 
     static void copyFromRowData(ValueVector* vector, uint32_t pos, const uint8_t* rowData);
+    static void copyToRowData(const ValueVector* vector, uint32_t pos, uint8_t* rowData,
+        InMemOverflowBuffer* rowOverflowBuffer);
     static void copyFromVectorData(ValueVector* dstVector, uint8_t* dstData,
         const ValueVector* srcVector, const uint8_t* srcData);
 };
@@ -161,6 +167,8 @@ public:
     }
 
     static void copyFromRowData(ValueVector* vector, uint32_t pos, const uint8_t* rowData);
+    static void copyToRowData(const ValueVector* vector, uint32_t pos, uint8_t* rowData,
+        InMemOverflowBuffer* rowOverflowBuffer);
     static void copyFromVectorData(ValueVector* dstVector, const uint8_t* dstData,
         const ValueVector* srcVector, const uint8_t* srcData);
 };

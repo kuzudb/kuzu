@@ -1,7 +1,5 @@
 #include "expression_evaluator/literal_evaluator.h"
 
-#include "common/vector/value_vector_utils.h"
-
 using namespace kuzu::common;
 using namespace kuzu::storage;
 

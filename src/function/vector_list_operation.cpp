@@ -1,6 +1,5 @@
 #include "binder/expression_binder.h"
 #include "common/types/ku_list.h"
-#include "common/vector/value_vector_utils.h"
 #include "function/list/operations/list_any_value_operation.h"
 #include "function/list/operations/list_append_operation.h"
 #include "function/list/operations/list_concat_operation.h"

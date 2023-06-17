@@ -70,6 +70,25 @@ void ValueVector::copyFromRowData(uint32_t pos, const uint8_t* rowData) {
     }
 }
 
+void ValueVector::copyToRowData(
+    uint32_t pos, uint8_t* rowData, InMemOverflowBuffer* rowOverflowBuffer) const {
+    switch (dataType.getPhysicalType()) {
+    case PhysicalTypeID::STRUCT: {
+        StructVector::copyToRowData(this, pos, rowData, rowOverflowBuffer);
+    } break;
+    case PhysicalTypeID::VAR_LIST: {
+        ListVector::copyToRowData(this, pos, rowData, rowOverflowBuffer);
+    } break;
+    case PhysicalTypeID::STRING: {
+        StringVector::copyToRowData(this, pos, rowData, rowOverflowBuffer);
+    } break;
+    default: {
+        auto dataTypeSize = LogicalTypeUtils::getRowLayoutSize(dataType);
+        memcpy(rowData, getData() + pos * dataTypeSize, dataTypeSize);
+    }
+    }
+}
+
 void ValueVector::copyFromVectorData(
     uint8_t* dstData, const ValueVector* srcVector, const uint8_t* srcVectorData) {
     assert(srcVector->dataType.getPhysicalType() == dataType.getPhysicalType());
@@ -218,6 +237,19 @@ void StringVector::addString(
     }
 }
 
+void StringVector::copyToRowData(const ValueVector* vector, uint32_t pos, uint8_t* rowData,
+    InMemOverflowBuffer* rowOverflowBuffer) {
+    auto& srcStr = vector->getValue<ku_string_t>(pos);
+    auto& dstStr = *(ku_string_t*)rowData;
+    if (ku_string_t::isShortString(srcStr.len)) {
+        dstStr.setShortString(srcStr);
+    } else {
+        dstStr.overflowPtr =
+            reinterpret_cast<uint64_t>(rowOverflowBuffer->allocateSpace(srcStr.len));
+        dstStr.setLongString(srcStr);
+    }
+}
+
 void ListVector::copyFromRowData(ValueVector* vector, uint32_t pos, const uint8_t* rowData) {
     assert(vector->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST);
     auto& srcKuList = *(ku_list_t*)rowData;
@@ -235,6 +267,30 @@ void ListVector::copyFromRowData(ValueVector* vector, uint32_t pos, const uint8_
             resultDataVector->copyFromRowData(dstListValuePos, srcListValues);
         }
         srcListValues += rowLayoutSize;
+    }
+}
+
+void ListVector::copyToRowData(const ValueVector* vector, uint32_t pos, uint8_t* rowData,
+    InMemOverflowBuffer* rowOverflowBuffer) {
+    auto& srcListEntry = vector->getValue<list_entry_t>(pos);
+    auto srcListDataVector = common::ListVector::getDataVector(vector);
+    auto& dstListEntry = *(ku_list_t*)rowData;
+    dstListEntry.size = srcListEntry.size;
+    auto nullBytesSize = NullBuffer::getNumBytesForNullValues(dstListEntry.size);
+    auto dataRowLayoutSize = LogicalTypeUtils::getRowLayoutSize(srcListDataVector->dataType);
+    auto dstListOverflowSize = dataRowLayoutSize * dstListEntry.size + nullBytesSize;
+    auto dstListOverflow = rowOverflowBuffer->allocateSpace(dstListOverflowSize);
+    dstListEntry.overflowPtr = reinterpret_cast<uint64_t>(dstListOverflow);
+    NullBuffer::initNullBytes(dstListOverflow, dstListEntry.size);
+    auto dstListValues = dstListOverflow + nullBytesSize;
+    for (auto i = 0u; i < srcListEntry.size; i++) {
+        if (srcListDataVector->isNull(srcListEntry.offset + i)) {
+            NullBuffer::setNull(dstListOverflow, i);
+        } else {
+            srcListDataVector->copyToRowData(
+                srcListEntry.offset + i, dstListValues, rowOverflowBuffer);
+        }
+        dstListValues += dataRowLayoutSize;
     }
 }
 
@@ -270,6 +326,25 @@ void StructVector::copyFromRowData(ValueVector* vector, uint32_t pos, const uint
             structField->setNull(pos, true /* isNull */);
         } else {
             structField->copyFromRowData(pos, structValues);
+        }
+        structValues += LogicalTypeUtils::getRowLayoutSize(structField->dataType);
+    }
+}
+
+void StructVector::copyToRowData(const ValueVector* vector, uint32_t pos, uint8_t* rowData,
+    InMemOverflowBuffer* rowOverflowBuffer) {
+    // The storage structure of STRUCT type in factorizedTable is:
+    // [NULLBYTES, FIELD1, FIELD2, ...]
+    auto& structFields = StructVector::getFieldVectors(vector);
+    NullBuffer::initNullBytes(rowData, structFields.size());
+    auto structNullBytes = rowData;
+    auto structValues = structNullBytes + NullBuffer::getNumBytesForNullValues(structFields.size());
+    for (auto i = 0u; i < structFields.size(); i++) {
+        auto structField = structFields[i];
+        if (structField->isNull(pos)) {
+            NullBuffer::setNull(structNullBytes, i);
+        } else {
+            structField->copyToRowData(pos, structValues, rowOverflowBuffer);
         }
         structValues += LogicalTypeUtils::getRowLayoutSize(structField->dataType);
     }
