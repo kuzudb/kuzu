@@ -26,8 +26,7 @@ struct ListSlice {
         auto srcDataVector = common::ListVector::getDataVector(&listVector);
         auto dstDataVector = common::ListVector::getDataVector(&resultVector);
         for (auto i = startIdx; i < endIdx; i++) {
-            common::ValueVectorUtils::copyValue(
-                dstValues, *dstDataVector, srcValues, *srcDataVector);
+            dstDataVector->copyFromVectorData(dstValues, srcDataVector, srcValues);
             srcValues += numBytesPerValue;
             dstValues += numBytesPerValue;
         }

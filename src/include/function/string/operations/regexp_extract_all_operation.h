@@ -20,8 +20,8 @@ struct RegexpExtractAll : BaseRegexpOperation {
         for (const auto& match : matches) {
             common::ku_string_t kuString;
             copyToKuzuString(match, kuString, *resultDataVector);
-            common::ValueVectorUtils::copyValue(resultValues, *resultDataVector,
-                reinterpret_cast<uint8_t*>(&kuString), *resultDataVector);
+            resultDataVector->copyFromVectorData(
+                resultValues, resultDataVector, reinterpret_cast<uint8_t*>(&kuString));
             resultValues += numBytesPerValue;
         }
     }

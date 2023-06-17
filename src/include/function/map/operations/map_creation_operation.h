@@ -31,8 +31,7 @@ struct MapCreation {
         auto srcValues = common::ListVector::getListValues(srcVector, srcEntry);
         auto srcDataVector = common::ListVector::getDataVector(srcVector);
         for (auto i = 0u; i < srcEntry.size; i++) {
-            common::ValueVectorUtils::copyValue(
-                resultValues, *resultVector, srcValues, *srcDataVector);
+            resultVector->copyFromVectorData(resultValues, srcDataVector, srcValues);
             srcValues += srcDataVector->getNumBytesPerValue();
             resultValues += resultVector->getNumBytesPerValue();
         }

@@ -16,8 +16,8 @@ struct ListAnyValue {
 
         for (auto i = 0; i < input.size; i++) {
             if (!(inputDataVector->isNull(input.offset + i))) {
-                common::ValueVectorUtils::copyValue(
-                    (uint8_t*)(&result), resultVector, inputValues, *inputDataVector);
+                resultVector.copyFromVectorData(
+                    reinterpret_cast<uint8_t*>(&result), inputDataVector, inputValues);
                 break;
             }
             inputValues += numBytesPerValue;

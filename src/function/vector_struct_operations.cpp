@@ -75,9 +75,9 @@ void StructPackVectorOperations::copyParameterValueToStructFieldVector(
         if (isSrcValueNull) {
             structField->setNull(pos, true /* isNull */);
         } else {
-            common::ValueVectorUtils::copyValue(
-                structField->getData() + structField->getNumBytesPerValue() * pos, *structField,
-                srcValue, *parameter);
+            structField->copyFromVectorData(
+                structField->getData() + structField->getNumBytesPerValue() * pos, parameter,
+                srcValue);
         }
     } else {
         for (auto j = 0u; j < structField->state->selVector->selectedSize; j++) {
@@ -85,9 +85,9 @@ void StructPackVectorOperations::copyParameterValueToStructFieldVector(
             if (isSrcValueNull) {
                 structField->setNull(pos, true /* isNull */);
             } else {
-                common::ValueVectorUtils::copyValue(
-                    structField->getData() + structField->getNumBytesPerValue() * pos, *structField,
-                    srcValue, *parameter);
+                structField->copyFromVectorData(
+                    structField->getData() + structField->getNumBytesPerValue() * pos, parameter,
+                    srcValue);
             }
         }
     }

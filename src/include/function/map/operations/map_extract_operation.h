@@ -20,9 +20,10 @@ struct MapExtract {
             if (common::TypeUtils::isValueEqual(
                     *reinterpret_cast<T*>(mapKeyValues), key, mapKeyVector, &keyVector)) {
                 resultEntry = common::ListVector::addList(&resultVector, 1 /* size */);
-                common::ValueVectorUtils::copyValue(
-                    common::ListVector::getListValues(&resultVector, resultEntry),
-                    *common::ListVector::getDataVector(&resultVector), mapValValues, *mapValVector);
+                common::ListVector::getDataVector(&resultVector)
+                    ->copyFromVectorData(
+                        common::ListVector::getListValues(&resultVector, resultEntry), mapValVector,
+                        mapValValues);
                 return;
             }
             mapKeyValues += mapKeyVector->getNumBytesPerValue();

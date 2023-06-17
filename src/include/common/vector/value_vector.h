@@ -54,7 +54,11 @@ public:
     }
     template<typename T>
     void setValue(uint32_t pos, T val);
+    // copyFromRowData assumes rowData is non-NULL.
     void copyFromRowData(uint32_t pos, const uint8_t* rowData);
+    // copyFromVectorData assumes srcVectorData is non-NULL.
+    void copyFromVectorData(
+        uint8_t* dstData, const ValueVector* srcVector, const uint8_t* srcVectorData);
 
     inline uint8_t* getData() const { return valueBuffer.get(); }
 
@@ -125,6 +129,8 @@ public:
     }
 
     static void copyFromRowData(ValueVector* vector, uint32_t pos, const uint8_t* rowData);
+    static void copyFromVectorData(ValueVector* dstVector, uint8_t* dstData,
+        const ValueVector* srcVector, const uint8_t* srcData);
 };
 
 class StructVector {
@@ -155,6 +161,8 @@ public:
     }
 
     static void copyFromRowData(ValueVector* vector, uint32_t pos, const uint8_t* rowData);
+    static void copyFromVectorData(ValueVector* dstVector, const uint8_t* dstData,
+        const ValueVector* srcVector, const uint8_t* srcData);
 };
 
 class UnionVector {

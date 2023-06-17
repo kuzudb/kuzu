@@ -70,6 +70,25 @@ void ValueVector::copyFromRowData(uint32_t pos, const uint8_t* rowData) {
     }
 }
 
+void ValueVector::copyFromVectorData(
+    uint8_t* dstData, const ValueVector* srcVector, const uint8_t* srcVectorData) {
+    assert(srcVector->dataType.getPhysicalType() == dataType.getPhysicalType());
+    switch (srcVector->dataType.getPhysicalType()) {
+    case PhysicalTypeID::STRUCT: {
+        StructVector::copyFromVectorData(this, dstData, srcVector, srcVectorData);
+    } break;
+    case PhysicalTypeID::VAR_LIST: {
+        ListVector::copyFromVectorData(this, dstData, srcVector, srcVectorData);
+    } break;
+    case PhysicalTypeID::STRING: {
+        StringVector::addString(this, *(ku_string_t*)dstData, *(ku_string_t*)srcVectorData);
+    } break;
+    default: {
+        memcpy(dstData, srcVectorData, srcVector->getNumBytesPerValue());
+    }
+    }
+}
+
 void ValueVector::resetAuxiliaryBuffer() {
     switch (dataType.getPhysicalType()) {
     case PhysicalTypeID::STRING: {
@@ -201,12 +220,12 @@ void StringVector::addString(
 
 void ListVector::copyFromRowData(ValueVector* vector, uint32_t pos, const uint8_t* rowData) {
     assert(vector->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST);
-    auto srcKuList = *(ku_list_t*)rowData;
+    auto& srcKuList = *(ku_list_t*)rowData;
     auto srcNullBytes = reinterpret_cast<uint8_t*>(srcKuList.overflowPtr);
     auto srcListValues = srcNullBytes + NullBuffer::getNumBytesForNullValues(srcKuList.size);
-    auto dstListEntry = ListVector::addList(vector, srcKuList.size);
+    auto dstListEntry = addList(vector, srcKuList.size);
     vector->setValue<list_entry_t>(pos, dstListEntry);
-    auto resultDataVector = common::ListVector::getDataVector(vector);
+    auto resultDataVector = getDataVector(vector);
     auto rowLayoutSize = LogicalTypeUtils::getRowLayoutSize(resultDataVector->dataType);
     for (auto i = 0u; i < srcKuList.size; i++) {
         auto dstListValuePos = dstListEntry.offset + i;
@@ -219,9 +238,30 @@ void ListVector::copyFromRowData(ValueVector* vector, uint32_t pos, const uint8_
     }
 }
 
+void ListVector::copyFromVectorData(ValueVector* dstVector, uint8_t* dstData,
+    const ValueVector* srcVector, const uint8_t* srcData) {
+    auto& srcListEntry = *(common::list_entry_t*)(srcData);
+    auto& dstListEntry = *(common::list_entry_t*)(dstData);
+    dstListEntry = addList(dstVector, srcListEntry.size);
+    auto srcListData = getListValues(srcVector, srcListEntry);
+    auto srcDataVector = getDataVector(srcVector);
+    auto dstListData = getListValues(dstVector, dstListEntry);
+    auto dstDataVector = getDataVector(dstVector);
+    auto numBytesPerValue = srcDataVector->getNumBytesPerValue();
+    for (auto i = 0u; i < srcListEntry.size; i++) {
+        if (srcDataVector->isNull(srcListEntry.offset + i)) {
+            dstDataVector->setNull(dstListEntry.offset + i, true);
+        } else {
+            dstDataVector->copyFromVectorData(dstListData, srcDataVector, srcListData);
+        }
+        srcListData += numBytesPerValue;
+        dstListData += numBytesPerValue;
+    }
+}
+
 void StructVector::copyFromRowData(ValueVector* vector, uint32_t pos, const uint8_t* rowData) {
     assert(vector->dataType.getPhysicalType() == PhysicalTypeID::STRUCT);
-    auto structFields = getFieldVectors(vector);
+    auto& structFields = getFieldVectors(vector);
     auto structNullBytes = rowData;
     auto structValues = structNullBytes + NullBuffer::getNumBytesForNullValues(structFields.size());
     for (auto i = 0u; i < structFields.size(); i++) {
@@ -232,6 +272,28 @@ void StructVector::copyFromRowData(ValueVector* vector, uint32_t pos, const uint
             structField->copyFromRowData(pos, structValues);
         }
         structValues += LogicalTypeUtils::getRowLayoutSize(structField->dataType);
+    }
+}
+
+void StructVector::copyFromVectorData(ValueVector* dstVector, const uint8_t* dstData,
+    const ValueVector* srcVector, const uint8_t* srcData) {
+    auto& srcPos = (*(struct_entry_t*)srcData).pos;
+    auto& dstPos = (*(struct_entry_t*)dstData).pos;
+    auto& srcFieldVectors = getFieldVectors(srcVector);
+    auto& dstFieldVectors = getFieldVectors(dstVector);
+    for (auto i = 0u; i < srcFieldVectors.size(); i++) {
+        auto srcFieldVector = srcFieldVectors[i];
+        auto dstFieldVector = dstFieldVectors[i];
+        if (srcFieldVector->isNull(srcPos)) {
+            dstFieldVector->setNull(dstPos, true /* isNull */);
+        } else {
+            auto srcFieldVectorData =
+                srcFieldVector->getData() + srcFieldVector->getNumBytesPerValue() * srcPos;
+            auto dstFieldVectorData =
+                dstFieldVector->getData() + dstFieldVector->getNumBytesPerValue() * dstPos;
+            dstFieldVector->copyFromVectorData(
+                dstFieldVectorData, srcFieldVector.get(), srcFieldVectorData);
+        }
     }
 }
 

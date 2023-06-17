@@ -49,8 +49,8 @@ void ListCreationVectorOperation::execFunc(
             if (parameter->isNull(paramPos)) {
                 resultDataVector->setNull(resultEntry.offset + i, true);
             } else {
-                common::ValueVectorUtils::copyValue(resultValues, *resultDataVector,
-                    parameter->getData() + parameter->getNumBytesPerValue() * paramPos, *parameter);
+                resultDataVector->copyFromVectorData(resultValues, parameter.get(),
+                    parameter->getData() + parameter->getNumBytesPerValue() * paramPos);
             }
             resultValues += numBytesPerValue;
         }

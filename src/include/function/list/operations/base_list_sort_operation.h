@@ -70,8 +70,7 @@ public:
                 inputValues += numBytesPerValue;
                 continue;
             }
-            common::ValueVectorUtils::copyValue(
-                resultValues, *resultDataVector, inputValues, *inputDataVector);
+            resultDataVector->copyFromVectorData(resultValues, inputDataVector, inputValues);
             resultValues += numBytesPerValue;
             inputValues += numBytesPerValue;
         }
