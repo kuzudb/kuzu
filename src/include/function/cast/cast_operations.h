@@ -48,6 +48,19 @@ struct CastToString {
     }
 };
 
+struct CastToBlob {
+    static inline void operation(common::ku_string_t& input, common::blob_t& result,
+        common::ValueVector& inputVector, common::ValueVector& resultVector) {
+        result.value.len = common::Blob::getBlobSize(input);
+        if (!common::ku_string_t::isShortString(result.value.len)) {
+            result.value.overflowPtr = reinterpret_cast<int64_t>(
+                common::StringVector::getInMemOverflowBuffer(&resultVector)
+                    ->allocateSpace(result.value.len));
+        }
+        common::Blob::fromString(input, result.value.getDataWritable());
+    }
+};
+
 struct CastDateToTimestamp {
     static inline void operation(common::date_t& input, common::timestamp_t& result) {
         result = common::Timestamp::FromDatetime(input, common::dtime_t{});

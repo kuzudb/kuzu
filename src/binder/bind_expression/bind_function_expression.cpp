@@ -180,10 +180,12 @@ static std::vector<std::unique_ptr<Value>> populateLabelValues(
     labels.resize(maxTableID + 1);
     for (auto i = 0; i < labels.size(); ++i) {
         if (tableIDsSet.contains(i)) {
-            labels[i] = std::make_unique<Value>(catalogContent.getTableName(i));
+            labels[i] = std::make_unique<Value>(
+                LogicalType{LogicalTypeID::STRING}, catalogContent.getTableName(i));
         } else {
             // TODO(Xiyang/Guodong): change to null literal once we support null in LIST type.
-            labels[i] = std::make_unique<Value>(std::string(""));
+            labels[i] =
+                std::make_unique<Value>(LogicalType{LogicalTypeID::STRING}, std::string(""));
         }
     }
     return labels;
@@ -201,7 +203,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindLabelFunction(const Expression
         auto& node = (NodeExpression&)expression;
         if (!node.isMultiLabeled()) {
             auto labelName = catalogContent->getTableName(node.getSingleTableID());
-            return createLiteralExpression(std::make_unique<Value>(labelName));
+            return createLiteralExpression(
+                std::make_unique<Value>(LogicalType{LogicalTypeID::STRING}, labelName));
         }
         auto nodeTableIDs = catalogContent->getNodeTableIDs();
         children.push_back(node.getInternalIDProperty());
@@ -213,7 +216,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindLabelFunction(const Expression
         auto& rel = (RelExpression&)expression;
         if (!rel.isMultiLabeled()) {
             auto labelName = catalogContent->getTableName(rel.getSingleTableID());
-            return createLiteralExpression(std::make_unique<Value>(labelName));
+            return createLiteralExpression(
+                std::make_unique<Value>(LogicalType{LogicalTypeID::STRING}, labelName));
         }
         auto relTableIDs = catalogContent->getRelTableIDs();
         children.push_back(rel.getInternalIDProperty());

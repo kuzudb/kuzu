@@ -56,7 +56,6 @@ void CopyNode::executeInternal(kuzu::processor::ExecutionContext* context) {
             sharedState->hasLoggedWAL = true;
         }
     }
-    if (sharedState->hasLoggedWAL) {}
     while (children[0]->getNextTuple(context)) {
         std::vector<std::unique_ptr<storage::InMemColumnChunk>> columnChunks;
         columnChunks.reserve(sharedState->columns.size());

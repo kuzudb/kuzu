@@ -29,6 +29,7 @@ const std::string CAST_TO_FLOAT_FUNC_NAME = "TO_FLOAT";
 const std::string CAST_TO_INT64_FUNC_NAME = "TO_INT64";
 const std::string CAST_TO_INT32_FUNC_NAME = "TO_INT32";
 const std::string CAST_TO_INT16_FUNC_NAME = "TO_INT16";
+const std::string CAST_TO_BLOB_FUNC_NAME = "BLOB";
 
 // list
 const std::string LIST_CREATION_FUNC_NAME = "LIST_CREATION";
@@ -194,6 +195,11 @@ const std::string LABEL_FUNC_NAME = "LABEL";
 const std::string OFFSET_FUNC_NAME = "OFFSET";
 const std::string NODES_FUNC_NAME = "NODES";
 const std::string RELS_FUNC_NAME = "RELS";
+
+// Blob functions
+const std::string OCTET_LENGTH_FUNC_NAME = "OCTET_LENGTH";
+const std::string ENCODE_FUNC_NAME = "ENCODE";
+const std::string DECODE_FUNC_NAME = "DECODE";
 
 enum ExpressionType : uint8_t {
 

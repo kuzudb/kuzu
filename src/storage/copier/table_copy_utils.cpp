@@ -404,7 +404,7 @@ std::unique_ptr<Value> TableCopyUtils::convertStringToValue(
         value = std::make_unique<Value>(b);
     } break;
     case LogicalTypeID::STRING: {
-        value = make_unique<Value>(element);
+        value = make_unique<Value>(LogicalType{LogicalTypeID::STRING}, element);
     } break;
     case LogicalTypeID::DATE: {
         value = std::make_unique<Value>(Date::FromCString(element.c_str(), element.length()));

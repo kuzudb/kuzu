@@ -357,7 +357,8 @@ kuzu_rel_val* kuzu_rel_val_create(
     kuzu_internal_id_t src_id, kuzu_internal_id_t dst_id, const char* label) {
     auto src_id_val = std::make_unique<Value>(internalID_t(src_id.offset, src_id.table_id));
     auto dst_id_val = std::make_unique<Value>(internalID_t(dst_id.offset, dst_id.table_id));
-    auto label_val = std::make_unique<Value>(std::string(label));
+    auto label_val =
+        std::make_unique<Value>(LogicalType{LogicalTypeID::STRING}, std::string(label));
     auto* c_rel_val = (kuzu_rel_val*)calloc(1, sizeof(kuzu_rel_val));
     c_rel_val->_rel_val =
         new RelVal(std::move(src_id_val), std::move(dst_id_val), std::move(label_val));

@@ -174,7 +174,7 @@ Value Util::TransformNapiValue(
     }
     case LogicalTypeID::STRING: {
         std::string val = napiValue.ToString().Utf8Value();
-        return Value(val);
+        return Value(LogicalType{LogicalTypeID::STRING}, val);
     }
     case LogicalTypeID::DATE: {
         if (!napiValue.IsDate()) {

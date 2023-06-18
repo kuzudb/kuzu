@@ -88,6 +88,10 @@ struct CastToStringVectorOperation : public VectorCastOperations {
     static vector_operation_definitions getDefinitions();
 };
 
+struct CastToBlobVectorOperation : public VectorCastOperations {
+    static vector_operation_definitions getDefinitions();
+};
+
 struct CastToDoubleVectorOperation : public VectorCastOperations {
     static vector_operation_definitions getDefinitions();
 };

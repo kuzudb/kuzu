@@ -1,6 +1,7 @@
 #include "function/built_in_vector_operations.h"
 
 #include "function/arithmetic/vector_arithmetic_operations.h"
+#include "function/blob/vector_blob_operations.h"
 #include "function/cast/vector_cast_operations.h"
 #include "function/comparison/vector_comparison_operations.h"
 #include "function/date/vector_date_operations.h"
@@ -31,6 +32,7 @@ void BuiltInVectorOperations::registerVectorOperations() {
     registerMapOperations();
     registerUnionOperations();
     registerNodeRelOperations();
+    registerBlobOperations();
 }
 
 bool BuiltInVectorOperations::canApplyStaticEvaluation(
@@ -381,6 +383,13 @@ void BuiltInVectorOperations::registerIntervalOperations() {
         {TO_MICROSECONDS_FUNC_NAME, ToMicrosecondsVectorOperation::getDefinitions()});
 }
 
+void BuiltInVectorOperations::registerBlobOperations() {
+    vectorOperations.insert(
+        {OCTET_LENGTH_FUNC_NAME, OctetLengthVectorOperations::getDefinitions()});
+    vectorOperations.insert({ENCODE_FUNC_NAME, EncodeVectorOperations::getDefinitions()});
+    vectorOperations.insert({DECODE_FUNC_NAME, DecodeVectorOperations::getDefinitions()});
+}
+
 void BuiltInVectorOperations::registerStringOperations() {
     vectorOperations.insert(
         {ARRAY_EXTRACT_FUNC_NAME, ArrayExtractVectorOperation::getDefinitions()});
@@ -423,6 +432,7 @@ void BuiltInVectorOperations::registerCastOperations() {
         {CAST_TO_INTERVAL_FUNC_NAME, CastToIntervalVectorOperation::getDefinitions()});
     vectorOperations.insert(
         {CAST_TO_STRING_FUNC_NAME, CastToStringVectorOperation::getDefinitions()});
+    vectorOperations.insert({CAST_TO_BLOB_FUNC_NAME, CastToBlobVectorOperation::getDefinitions()});
     vectorOperations.insert(
         {CAST_TO_DOUBLE_FUNC_NAME, CastToDoubleVectorOperation::getDefinitions()});
     vectorOperations.insert(

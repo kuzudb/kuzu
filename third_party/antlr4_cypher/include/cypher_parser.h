@@ -70,13 +70,13 @@ public:
     RuleOC_NullOperatorExpression = 89, RuleOC_PropertyOrLabelsExpression = 90, 
     RuleOC_Atom = 91, RuleOC_Literal = 92, RuleOC_BooleanLiteral = 93, RuleOC_ListLiteral = 94, 
     RuleKU_StructLiteral = 95, RuleKU_StructField = 96, RuleOC_ParenthesizedExpression = 97, 
-    RuleOC_FunctionInvocation = 98, RuleOC_FunctionName = 99, RuleOC_FunctionParameter = 100, 
-    RuleOC_FunctionParameterName = 101, RuleOC_ExistentialSubquery = 102, 
-    RuleOC_PropertyLookup = 103, RuleOC_CaseExpression = 104, RuleOC_CaseAlternative = 105, 
-    RuleOC_Variable = 106, RuleOC_NumberLiteral = 107, RuleOC_Parameter = 108, 
-    RuleOC_PropertyExpression = 109, RuleOC_PropertyKeyName = 110, RuleOC_IntegerLiteral = 111, 
-    RuleOC_DoubleLiteral = 112, RuleOC_SchemaName = 113, RuleOC_SymbolicName = 114, 
-    RuleOC_LeftArrowHead = 115, RuleOC_RightArrowHead = 116, RuleOC_Dash = 117
+    RuleOC_FunctionInvocation = 98, RuleOC_FunctionName = 99, RuleKU_FunctionParameter = 100, 
+    RuleOC_ExistentialSubquery = 101, RuleOC_PropertyLookup = 102, RuleOC_CaseExpression = 103, 
+    RuleOC_CaseAlternative = 104, RuleOC_Variable = 105, RuleOC_NumberLiteral = 106, 
+    RuleOC_Parameter = 107, RuleOC_PropertyExpression = 108, RuleOC_PropertyKeyName = 109, 
+    RuleOC_IntegerLiteral = 110, RuleOC_DoubleLiteral = 111, RuleOC_SchemaName = 112, 
+    RuleOC_SymbolicName = 113, RuleOC_LeftArrowHead = 114, RuleOC_RightArrowHead = 115, 
+    RuleOC_Dash = 116
   };
 
   explicit CypherParser(antlr4::TokenStream *input);
@@ -189,8 +189,7 @@ public:
   class OC_ParenthesizedExpressionContext;
   class OC_FunctionInvocationContext;
   class OC_FunctionNameContext;
-  class OC_FunctionParameterContext;
-  class OC_FunctionParameterNameContext;
+  class KU_FunctionParameterContext;
   class OC_ExistentialSubqueryContext;
   class OC_PropertyLookupContext;
   class OC_CaseExpressionContext;
@@ -1615,8 +1614,8 @@ public:
     std::vector<antlr4::tree::TerminalNode *> SP();
     antlr4::tree::TerminalNode* SP(size_t i);
     antlr4::tree::TerminalNode *DISTINCT();
-    std::vector<OC_FunctionParameterContext *> oC_FunctionParameter();
-    OC_FunctionParameterContext* oC_FunctionParameter(size_t i);
+    std::vector<KU_FunctionParameterContext *> kU_FunctionParameter();
+    KU_FunctionParameterContext* kU_FunctionParameter(size_t i);
 
    
   };
@@ -1634,30 +1633,19 @@ public:
 
   OC_FunctionNameContext* oC_FunctionName();
 
-  class  OC_FunctionParameterContext : public antlr4::ParserRuleContext {
+  class  KU_FunctionParameterContext : public antlr4::ParserRuleContext {
   public:
-    OC_FunctionParameterContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    KU_FunctionParameterContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     OC_ExpressionContext *oC_Expression();
-    OC_FunctionParameterNameContext *oC_FunctionParameterName();
+    OC_SymbolicNameContext *oC_SymbolicName();
     std::vector<antlr4::tree::TerminalNode *> SP();
     antlr4::tree::TerminalNode* SP(size_t i);
 
    
   };
 
-  OC_FunctionParameterContext* oC_FunctionParameter();
-
-  class  OC_FunctionParameterNameContext : public antlr4::ParserRuleContext {
-  public:
-    OC_FunctionParameterNameContext(antlr4::ParserRuleContext *parent, size_t invokingState);
-    virtual size_t getRuleIndex() const override;
-    OC_SymbolicNameContext *oC_SymbolicName();
-
-   
-  };
-
-  OC_FunctionParameterNameContext* oC_FunctionParameterName();
+  KU_FunctionParameterContext* kU_FunctionParameter();
 
   class  OC_ExistentialSubqueryContext : public antlr4::ParserRuleContext {
   public:

@@ -248,6 +248,7 @@ void LogicalType::setPhysicalType() {
     case LogicalTypeID::INTERNAL_ID: {
         physicalType = PhysicalTypeID::INTERNAL_ID;
     } break;
+    case LogicalTypeID::BLOB:
     case LogicalTypeID::STRING: {
         physicalType = PhysicalTypeID::STRING;
     } break;
@@ -403,6 +404,7 @@ std::string LogicalTypeUtils::dataTypeToString(const LogicalType& dataType) {
     case LogicalTypeID::DATE:
     case LogicalTypeID::TIMESTAMP:
     case LogicalTypeID::INTERVAL:
+    case LogicalTypeID::BLOB:
     case LogicalTypeID::STRING:
     case LogicalTypeID::SERIAL:
         return dataTypeToString(dataType.typeID);
@@ -441,6 +443,8 @@ std::string LogicalTypeUtils::dataTypeToString(LogicalTypeID dataTypeID) {
         return "TIMESTAMP";
     case LogicalTypeID::INTERVAL:
         return "INTERVAL";
+    case LogicalTypeID::BLOB:
+        return "BLOB";
     case LogicalTypeID::STRING:
         return "STRING";
     case LogicalTypeID::VAR_LIST:

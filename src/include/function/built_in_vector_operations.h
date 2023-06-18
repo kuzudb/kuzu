@@ -68,6 +68,7 @@ private:
     void registerDateOperations();
     void registerTimestampOperations();
     void registerIntervalOperations();
+    void registerBlobOperations();
     void registerStringOperations();
     void registerCastOperations();
     void registerListOperations();
