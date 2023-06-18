@@ -2,7 +2,7 @@
 
 #include <set>
 
-#include "common/vector/value_vector_utils.h"
+#include "common/vector/value_vector.h"
 
 namespace kuzu {
 namespace function {

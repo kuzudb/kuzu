@@ -1,6 +1,5 @@
 #pragma once
 
-#include "common/vector/value_vector_utils.h"
 #include "processor/result/factorized_table.h"
 
 namespace kuzu {
@@ -74,8 +73,7 @@ struct CollectFunction {
         for (auto i = 0u; i < multiplicity; ++i) {
             auto tuple = state->factorizedTable->appendEmptyTuple();
             state->isNull = false;
-            common::ValueVectorUtils::copyNonNullDataWithSameTypeOutFromPos(
-                *input, pos, tuple, *state->factorizedTable->getInMemOverflowBuffer());
+            input->copyToRowData(pos, tuple, state->factorizedTable->getInMemOverflowBuffer());
         }
     }
 

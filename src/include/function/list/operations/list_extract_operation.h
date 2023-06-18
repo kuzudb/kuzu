@@ -4,7 +4,7 @@
 #include <cstring>
 
 #include "common/types/ku_string.h"
-#include "common/vector/value_vector_utils.h"
+#include "common/vector/value_vector.h"
 #include "function/string/operations/array_extract_operation.h"
 
 namespace kuzu {
