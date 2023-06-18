@@ -14,7 +14,7 @@ struct BaseMapExtract {
         auto dstValues = common::ListVector::getListValues(&resultVector, resultEntry);
         auto dstDataVector = common::ListVector::getDataVector(&resultVector);
         for (auto i = 0u; i < numValuesToCopy; i++) {
-            common::ValueVectorUtils::copyValue(dstValues, *dstDataVector, srcValues, *srcVector);
+            dstDataVector->copyFromVectorData(dstValues, srcVector, srcValues);
             dstValues += dstDataVector->getNumBytesPerValue();
             srcValues += srcVector->getNumBytesPerValue();
         }

@@ -32,8 +32,8 @@ public:
         auto listDataVector = common::ListVector::getDataVector(&listVector);
         auto listValues =
             common::ListVector::getListValuesWithOffset(&listVector, listEntry, pos - 1);
-        common::ValueVectorUtils::copyValue(
-            (uint8_t*)(&result), resultVector, listValues, *listDataVector);
+        resultVector.copyFromVectorData(
+            reinterpret_cast<uint8_t*>(&result), listDataVector, listValues);
     }
 
     static inline void operation(
