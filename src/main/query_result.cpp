@@ -5,6 +5,8 @@
 #include "binder/expression/node_rel_expression.h"
 #include "binder/expression/property_expression.h"
 #include "json.hpp"
+#include "main/csv_writer.h"
+#include "main/parquet_writer.h"
 #include "processor/result/factorized_table.h"
 #include "processor/result/flat_tuple.h"
 
@@ -221,64 +223,13 @@ std::string QueryResult::toString() {
     return result;
 }
 
+void QueryResult::writeToParquet(const std::string& fileName) {
+    ParquetWriter::writeToParquet(*this, fileName);
+}
+
 void QueryResult::writeToCSV(
     const std::string& fileName, char delimiter, char escapeCharacter, char newline) {
-    std::ofstream file;
-    file.open(fileName);
-    std::shared_ptr<FlatTuple> nextTuple;
-    assert(delimiter != '\0');
-    assert(newline != '\0');
-    while (hasNext()) {
-        nextTuple = getNext();
-        for (auto idx = 0ul; idx < nextTuple->len(); idx++) {
-            std::string resultVal = nextTuple->getValue(idx)->toString();
-            bool isStringList = false;
-            if (LogicalTypeUtils::dataTypeToString(nextTuple->getValue(idx)->getDataType()) ==
-                "STRING[]") {
-                isStringList = true;
-            }
-            bool surroundQuotes = false;
-            std::string csvStr;
-            for (long unsigned int j = 0; j < resultVal.length(); j++) {
-                if (!surroundQuotes) {
-                    if (resultVal[j] == escapeCharacter || resultVal[j] == newline ||
-                        resultVal[j] == delimiter) {
-                        surroundQuotes = true;
-                    }
-                }
-                if (resultVal[j] == escapeCharacter) {
-                    csvStr += escapeCharacter;
-                    csvStr += escapeCharacter;
-                } else if (resultVal[j] == ',' && isStringList) {
-                    csvStr += escapeCharacter;
-                    csvStr += escapeCharacter;
-                    csvStr += ',';
-                    csvStr += escapeCharacter;
-                    csvStr += escapeCharacter;
-                } else if (resultVal[j] == '[' && isStringList) {
-                    csvStr += "[";
-                    csvStr += escapeCharacter;
-                    csvStr += escapeCharacter;
-                } else if (resultVal[j] == ']' && isStringList) {
-                    csvStr += escapeCharacter;
-                    csvStr += escapeCharacter;
-                    csvStr += "]";
-                } else {
-                    csvStr += resultVal[j];
-                }
-            }
-            if (surroundQuotes) {
-                csvStr = escapeCharacter + csvStr + escapeCharacter;
-            }
-            file << csvStr;
-            if (idx < nextTuple->len() - 1) {
-                file << delimiter;
-            } else {
-                file << newline;
-            }
-        }
-    }
-    file.close();
+    CSVWriter::writeToCSV(*this, fileName, delimiter, escapeCharacter, newline);
 }
 
 void QueryResult::validateQuerySucceed() {

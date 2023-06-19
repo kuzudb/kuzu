@@ -4,7 +4,7 @@
 using namespace kuzu::main;
 
 int main() {
-    auto database = std::make_unique<Database>("" /* fill db path */);
+    auto database = std::make_unique<Database>("/tmp/a" /* fill db path */);
     auto connection = std::make_unique<Connection>(database.get());
 
     // Create schema.
@@ -16,5 +16,8 @@ int main() {
     // Execute a simple query.
     auto result = connection->query("MATCH (a:Person) RETURN a.name AS NAME, a.age AS AGE;");
     // Print query result.
-    std::cout << result->toString();
+//    std::cout << result->toString();
+    
+//    result->writeToCSV("result.csv");
+    result->writeToParquet("result.parquet");
 }

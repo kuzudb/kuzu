@@ -2,7 +2,9 @@ add_library(kuzu_main
         OBJECT
         client_context.cpp
         connection.cpp
+        csv_writer.cpp
         database.cpp
+        parquet_writer.cpp
         plan_printer.cpp
         prepared_statement.cpp
         query_result.cpp

@@ -90,6 +90,11 @@ public:
     KUZU_API void writeToCSV(const std::string& fileName, char delimiter = ',',
         char escapeCharacter = '"', char newline = '\n');
     /**
+     * @brief writes the query result to a parquet file.
+     * @param fileName name of the parquet file.
+     */
+    KUZU_API void writeToParquet(const std::string& fileName);
+    /**
      * @brief Resets the result tuple iterator.
      */
     KUZU_API void resetIterator();
