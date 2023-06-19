@@ -36,7 +36,7 @@ def collect_header_file_path_recurse(start_point):
         for line in f.readlines():
             if not line.startswith('#include "'):
                 continue
-            header_path = line.split('"')[1]
+            header_path = os.path.normpath(line.split('"')[1])
             header_real_path = None
             # Special case for json_fwd.hpp
             if header_path == 'json_fwd.hpp':
