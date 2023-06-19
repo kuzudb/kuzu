@@ -24,7 +24,7 @@ def build_dependency_graph():
             for line in f.readlines():
                 if not line.startswith('#include "'):
                     continue
-                contained_header_name = line.split('"')[1]
+                contained_header_name = Path(line.split('"')[1]).name
                 graph.add_edge(header_name, contained_header_name)
     return graph
 
