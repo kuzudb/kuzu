@@ -1088,7 +1088,7 @@ Transformer::transformParsingOptions(CypherParser::KU_ParsingOptionsContext& ctx
 
 std::string Transformer::transformStringLiteral(antlr4::tree::TerminalNode& stringLiteral) {
     auto str = stringLiteral.getText();
-    return str.substr(1, str.size() - 2);
+    return common::StringUtils::removeEscapedCharacters(str);
 }
 
 } // namespace parser

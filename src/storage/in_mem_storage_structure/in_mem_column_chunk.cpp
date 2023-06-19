@@ -220,6 +220,9 @@ void InMemColumnChunkWithOverflow::copyArrowArray(arrow::Array& array, arrow::Ar
         case common::LogicalTypeID::STRING: {
             templateCopyValuesAsStringToPageWithOverflow<ku_string_t>(array, nodeOffsets);
         } break;
+        case common::LogicalTypeID::BLOB: {
+            templateCopyValuesAsStringToPageWithOverflow<blob_t>(array, nodeOffsets);
+        } break;
         case common::LogicalTypeID::VAR_LIST: {
             templateCopyValuesAsStringToPageWithOverflow<ku_list_t>(array, nodeOffsets);
         } break;
@@ -301,6 +304,17 @@ void InMemColumnChunkWithOverflow::setValWithOverflow<ku_string_t>(
     }
     auto val = inMemOverflowFile->copyString(value, length, overflowCursor);
     setValue(val, pos);
+}
+
+// BLOB
+template<>
+void InMemColumnChunkWithOverflow::setValWithOverflow<blob_t>(
+    const char* value, uint64_t length, uint64_t pos) {
+    auto blobLen = Blob::fromString(
+        value, std::min(length, BufferPoolConstants::PAGE_4KB_SIZE), blobBuffer.get());
+    auto blobVal = inMemOverflowFile->copyString(
+        reinterpret_cast<const char*>(blobBuffer.get()), blobLen, overflowCursor);
+    setValue(blobVal, pos);
 }
 
 // VAR_LIST

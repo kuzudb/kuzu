@@ -39,3 +39,45 @@ decode this utf-8 char: ü
 -QUERY RETURN decode(BLOB('decode this invalid utf-8 char: \\xA1\\xBC'))
 ---- error
 Runtime exception: Failure in decode: could not convert blob to UTF8 string, the blob contained invalid UTF8 characters
+
+-NAME BlobGreaterThan
+-QUERY MATCH (m:movies) RETURN m.content > BLOB("test");
+---- 3
+True
+True
+False
+
+-NAME BlobGreaterThanOrEqualTo
+-QUERY MATCH (m:movies) RETURN m.content >= BLOB("\\xAA\\xABinteresting\\x0B");
+---- 3
+True
+True
+False
+
+-NAME BlobEqualTo
+-QUERY MATCH (m:movies) RETURN m.content = BLOB("\\xAA\\xABinteresting\\x0B");
+---- 3
+True
+False
+False
+
+-NAME BlobNotEqualTo
+-QUERY MATCH (m:movies) RETURN m.content <> BLOB("\\xAA\\xABinteresting\\x0B");
+---- 3
+False
+True
+True
+
+-NAME BlobGreaterThan
+-QUERY MATCH (m:movies) RETURN m.content < BLOB("\\xAB\\xCD");
+---- 3
+True
+False
+True
+
+-NAME BlobGreaterThanOrEqualTo
+-QUERY MATCH (m:movies) RETURN m.content <= BLOB("pure ascii characters");
+---- 3
+False
+False
+True

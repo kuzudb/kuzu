@@ -93,6 +93,11 @@ False
 ---- 1
 [5,55,22]
 
+-NAME SimpleCollectBLOBTest
+-QUERY MATCH (m:movies) RETURN collect(m.content)
+---- 1
+[\xAA\xABinteresting\x0B,\xAB\xCD,pure ascii characters]
+
 -NAME SimpleCollectSTRINGTest
 -QUERY MATCH (p:person) RETURN collect(p.fName)
 ---- 1
@@ -172,3 +177,24 @@ False
 -ENUMERATE
 ---- 1
 989.333333
+
+-NAME SimpleAggCountBlob
+-QUERY MATCH (m:movies) RETURN COUNT(m.content)
+-PARALLELISM 3
+-ENUMERATE
+---- 1
+3
+
+-NAME SimpleAggMinBlob
+-QUERY MATCH (m:movies) RETURN MIN(m.content)
+-PARALLELISM 3
+-ENUMERATE
+---- 1
+pure ascii characters
+
+-NAME SimpleAggMaxBlob
+-QUERY MATCH (m:movies) RETURN MAX(m.content)
+-PARALLELISM 3
+-ENUMERATE
+---- 1
+\xAB\xCD

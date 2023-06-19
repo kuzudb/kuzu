@@ -221,6 +221,7 @@ public:
         case common::LogicalTypeID::INTERVAL:
         case common::LogicalTypeID::FIXED_LIST:
             return std::make_unique<Column>(structureIDAndFName, logicalType, bufferManager, wal);
+        case common::LogicalTypeID::BLOB:
         case common::LogicalTypeID::STRING:
             return std::make_unique<StringPropertyColumn>(
                 structureIDAndFName, logicalType, bufferManager, wal);

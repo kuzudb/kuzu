@@ -69,6 +69,8 @@ public:
 
     static std::string extractStringBetween(const std::string& input, char delimiterStart,
         char delimiterEnd, bool includeDelimiter = false);
+
+    static std::string removeEscapedCharacters(const std::string& input);
 };
 
 } // namespace common

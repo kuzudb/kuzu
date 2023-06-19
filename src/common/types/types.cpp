@@ -332,6 +332,8 @@ LogicalTypeID LogicalTypeUtils::dataTypeIDFromString(const std::string& dataType
         return LogicalTypeID::FLOAT;
     } else if ("BOOLEAN" == dataTypeIDString) {
         return LogicalTypeID::BOOL;
+    } else if ("BYTEA" == dataTypeIDString || "BLOB" == dataTypeIDString) {
+        return LogicalTypeID::BLOB;
     } else if ("STRING" == dataTypeIDString) {
         return LogicalTypeID::STRING;
     } else if ("DATE" == dataTypeIDString) {
@@ -530,7 +532,8 @@ std::vector<LogicalType> LogicalTypeUtils::getAllValidComparableLogicalTypes() {
         LogicalType{LogicalTypeID::INT16}, LogicalType{LogicalTypeID::DOUBLE},
         LogicalType{LogicalTypeID::FLOAT}, LogicalType{LogicalTypeID::DATE},
         LogicalType{LogicalTypeID::TIMESTAMP}, LogicalType{LogicalTypeID::INTERVAL},
-        LogicalType{LogicalTypeID::STRING}, LogicalType{LogicalTypeID::SERIAL}};
+        LogicalType{LogicalTypeID::BLOB}, LogicalType{LogicalTypeID::STRING},
+        LogicalType{LogicalTypeID::SERIAL}};
 }
 
 std::vector<LogicalTypeID> LogicalTypeUtils::getNumericalLogicalTypeIDs() {
@@ -538,14 +541,17 @@ std::vector<LogicalTypeID> LogicalTypeUtils::getNumericalLogicalTypeIDs() {
         LogicalTypeID::INT16, LogicalTypeID::DOUBLE, LogicalTypeID::FLOAT, LogicalTypeID::SERIAL};
 }
 
-std::vector<LogicalTypeID> LogicalTypeUtils::getAllValidLogicTypeIDs() {
+std::vector<LogicalType> LogicalTypeUtils::getAllValidLogicTypes() {
     // TODO(Ziyi): Add FIX_LIST,STRUCT,MAP type to allValidTypeID when we support functions on
     // FIXED_LIST,STRUCT,MAP.
-    return std::vector<LogicalTypeID>{LogicalTypeID::INTERNAL_ID, LogicalTypeID::BOOL,
-        LogicalTypeID::INT64, LogicalTypeID::INT32, LogicalTypeID::INT16, LogicalTypeID::DOUBLE,
-        LogicalTypeID::STRING, LogicalTypeID::DATE, LogicalTypeID::TIMESTAMP,
-        LogicalTypeID::INTERVAL, LogicalTypeID::VAR_LIST, LogicalTypeID::FLOAT,
-        LogicalTypeID::SERIAL};
+    return std::vector<LogicalType>{LogicalType{LogicalTypeID::INTERNAL_ID},
+        LogicalType{LogicalTypeID::BOOL}, LogicalType{LogicalTypeID::INT64},
+        LogicalType{LogicalTypeID::INT32}, LogicalType{LogicalTypeID::INT16},
+        LogicalType{LogicalTypeID::DOUBLE}, LogicalType{LogicalTypeID::STRING},
+        LogicalType{LogicalTypeID::BLOB}, LogicalType{LogicalTypeID::DATE},
+        LogicalType{LogicalTypeID::TIMESTAMP}, LogicalType{LogicalTypeID::INTERVAL},
+        LogicalType{LogicalTypeID::VAR_LIST}, LogicalType{LogicalTypeID::FLOAT},
+        LogicalType{LogicalTypeID::SERIAL}};
 }
 
 std::vector<std::string> LogicalTypeUtils::parseStructFields(const std::string& structTypeStr) {

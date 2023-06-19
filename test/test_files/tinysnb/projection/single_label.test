@@ -619,3 +619,26 @@ Dan|Carol
 {{8=Farooq}=25}
 {{9=Greg}=40}
 {{10=Hubert Blaine Wolfeschlegelsteinhausenbergerdorff}=83}
+
+-NAME ReturnNodeBlobProp
+-QUERY MATCH (m:movies) RETURN m.content;
+---- 3
+\xAA\xABinteresting\x0B
+\xAB\xCD
+pure ascii characters
+
+-NAME ReturnRelBlobProp
+-QUERY MATCH (p:person)-[e:meets]->(p1:person) RETURN e.data;
+---- 7
+MIXED \x5CxAC with ASCII \x5Cx0A
+NO hex code
+NO hex code
+\x5Cx3A\x5CxA3
+\x5Cx3A\x5CxA3
+\x5CxA1\x5Cx2A
+\x5CxAA\x5CxBB\x5CxCC\x5CxDD
+
+-NAME ReturnStringLiteralWithSpecialChar
+-QUERY RETURN "hEl \'\"\\";
+---- 1
+hEl '"\

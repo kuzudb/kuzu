@@ -55,5 +55,18 @@ std::string StringUtils::extractStringBetween(
     return input.substr(posStart, posEnd - posStart);
 }
 
+std::string StringUtils::removeEscapedCharacters(const std::string& input) {
+    std::string resultStr;
+    for (auto i = 1u; i < input.length() - 1; i++) {
+        // Antlr4 already guarantees that the character followed by the escaped character is
+        // valid. So we can safely skip the escaped character.
+        if (input[i] == '\\') {
+            i++;
+        }
+        resultStr += input[i];
+    }
+    return resultStr;
+}
+
 } // namespace common
 } // namespace kuzu

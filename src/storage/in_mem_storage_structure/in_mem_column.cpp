@@ -12,8 +12,8 @@ namespace storage {
 InMemColumn::InMemColumn(std::string filePath, LogicalType dataType, bool requireNullBits)
     : filePath{std::move(filePath)}, dataType{std::move(dataType)} {
     // TODO(Guodong): Separate this as a function.
-    switch (this->dataType.getLogicalTypeID()) {
-    case LogicalTypeID::STRUCT: {
+    switch (this->dataType.getPhysicalType()) {
+    case PhysicalTypeID::STRUCT: {
         auto fieldTypes = common::StructType::getFieldTypes(&this->dataType);
         childColumns.reserve(fieldTypes.size());
         for (auto i = 0u; i < fieldTypes.size(); i++) {
@@ -22,8 +22,8 @@ InMemColumn::InMemColumn(std::string filePath, LogicalType dataType, bool requir
                 true /* hasNull */));
         }
     } break;
-    case LogicalTypeID::STRING:
-    case LogicalTypeID::VAR_LIST: {
+    case PhysicalTypeID::STRING:
+    case PhysicalTypeID::VAR_LIST: {
         inMemOverflowFile =
             std::make_unique<InMemOverflowFile>(StorageUtils::getOverflowFileName(this->filePath));
         fileHandle = std::make_unique<FileHandle>(
