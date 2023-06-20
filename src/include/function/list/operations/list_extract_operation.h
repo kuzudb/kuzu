@@ -49,12 +49,7 @@ public:
 template<>
 inline void ListExtract::setValue(
     common::ku_string_t& src, common::ku_string_t& dest, common::ValueVector& resultValueVector) {
-    if (!common::ku_string_t::isShortString(src.len)) {
-        dest.overflowPtr = reinterpret_cast<uint64_t>(
-            common::StringVector::getInMemOverflowBuffer(&resultValueVector)
-                ->allocateSpace(src.len));
-    }
-    dest.set(src);
+    common::StringVector::addString(&resultValueVector, dest, src);
 }
 
 } // namespace operation

@@ -4,6 +4,7 @@
 #include <cstring>
 
 #include "common/types/ku_string.h"
+#include "common/vector/value_vector.h"
 
 namespace kuzu {
 namespace function {
@@ -21,15 +22,9 @@ public:
             return;
         }
         assert(characterToPad.len == 1);
-        result.len = count;
-        if (!common::ku_string_t::isShortString(result.len)) {
-            result.overflowPtr = reinterpret_cast<uint64_t>(
-                resultValueVector.getOverflowBuffer().allocateSpace(result.len));
-        }
         padOperation(result, src, characterToPad);
-        if (!common::ku_string_t::isShortString(result.len)) {
-            memcpy(result.prefix, result.getData(), common::ku_string_t::PREFIX_LENGTH);
-        }
+        common::StringVector::addString(
+            &resultValueVector, result, (const char*)result.getData(), count);
     }
 };
 
