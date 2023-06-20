@@ -52,22 +52,16 @@ public:
 
     static inline void copySubstr(common::ku_string_t& src, int64_t start, int64_t len,
         common::ku_string_t& result, common::ValueVector& resultValueVector, bool isAscii) {
-        result.len = std::min(len, src.len - start + 1);
-        if (!common::ku_string_t::isShortString(result.len)) {
-            result.overflowPtr = reinterpret_cast<uint64_t>(
-                common::StringVector::getInMemOverflowBuffer(&resultValueVector)
-                    ->allocateSpace(result.len));
-        }
+        auto length = std::min(len, src.len - start + 1);
         if (isAscii) {
             // For normal ASCII char case, we get to the proper byte position to copy from by doing
             // a -1 (since it is guaranteed each char is 1 byte).
-            memcpy((uint8_t*)result.getData(), src.getData() + start - 1, result.len);
+            common::StringVector::addString(
+                &resultValueVector, result, (const char*)(src.getData() + start - 1), length);
         } else {
             // For utf8 char copy, the function gets the exact starting byte position to copy from.
-            memcpy((uint8_t*)result.getData(), src.getData() + start, result.len);
-        }
-        if (!common::ku_string_t::isShortString(result.len)) {
-            memcpy(result.prefix, result.getData(), common::ku_string_t::PREFIX_LENGTH);
+            common::StringVector::addString(
+                &resultValueVector, result, (const char*)(src.getData() + start), length);
         }
     }
 };

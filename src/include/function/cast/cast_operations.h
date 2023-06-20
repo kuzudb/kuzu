@@ -53,14 +53,15 @@ struct CastToBlob {
         common::ValueVector& inputVector, common::ValueVector& resultVector) {
         result.value.len = common::Blob::getBlobSize(input);
         if (!common::ku_string_t::isShortString(result.value.len)) {
-            result.value.overflowPtr = reinterpret_cast<int64_t>(
-                common::StringVector::getInMemOverflowBuffer(&resultVector)
-                    ->allocateSpace(result.value.len));
-        }
-        common::Blob::fromString(reinterpret_cast<const char*>(input.getData()), input.len,
-            result.value.getDataWritable());
-        if (!common::ku_string_t::isShortString(result.value.len)) {
-            memcpy(result.value.prefix, result.value.getData(), common::ku_string_t::PREFIX_LENGTH);
+            auto overflowBuffer = common::StringVector::getInMemOverflowBuffer(&resultVector);
+            auto overflowPtr = overflowBuffer->allocateSpace(result.value.len);
+            result.value.overflowPtr = reinterpret_cast<int64_t>(overflowPtr);
+            common::Blob::fromString(
+                reinterpret_cast<const char*>(input.getData()), input.len, overflowPtr);
+            memcpy(result.value.prefix, overflowPtr, common::ku_string_t::PREFIX_LENGTH);
+        } else {
+            common::Blob::fromString(
+                reinterpret_cast<const char*>(input.getData()), input.len, result.value.prefix);
         }
     }
 };
