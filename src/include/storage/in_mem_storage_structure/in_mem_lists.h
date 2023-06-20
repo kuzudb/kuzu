@@ -142,6 +142,7 @@ protected:
     std::unique_ptr<InMemOverflowFile> overflowInMemFile;
     // TODO(Guodong/Ziyi): Fix for concurrent writes.
     PageByteCursor overflowCursor;
+    std::unique_ptr<uint8_t[]> blobBuffer;
 };
 
 class InMemAdjLists : public InMemLists {

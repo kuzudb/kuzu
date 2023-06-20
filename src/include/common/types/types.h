@@ -323,7 +323,7 @@ public:
     static bool isNumerical(const LogicalType& dataType);
     static std::vector<LogicalType> getAllValidComparableLogicalTypes();
     static std::vector<LogicalTypeID> getNumericalLogicalTypeIDs();
-    static std::vector<LogicalTypeID> getAllValidLogicTypeIDs();
+    static std::vector<LogicalType> getAllValidLogicTypes();
 
 private:
     static LogicalTypeID dataTypeIDFromString(const std::string& dataTypeIDString);

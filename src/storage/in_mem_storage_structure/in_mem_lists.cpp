@@ -312,7 +312,8 @@ InMemListsWithOverflow::InMemListsWithOverflow(std::string fName, LogicalType da
     uint64_t numNodes, std::shared_ptr<ListHeadersBuilder> listHeadersBuilder,
     const common::CopyDescription* copyDescription)
     : InMemLists{std::move(fName), std::move(dataType),
-          storage::StorageUtils::getDataTypeSize(dataType), numNodes, copyDescription, true} {
+          storage::StorageUtils::getDataTypeSize(dataType), numNodes, copyDescription, true},
+      blobBuffer{std::make_unique<uint8_t[]>(BufferPoolConstants::PAGE_4KB_SIZE)} {
     assert(this->dataType.getLogicalTypeID() == LogicalTypeID::STRING ||
            this->dataType.getLogicalTypeID() == LogicalTypeID::VAR_LIST);
     overflowInMemFile =
@@ -324,6 +325,10 @@ void InMemListsWithOverflow::copyArrowArray(
     arrow::Array* boundNodeOffsets, arrow::Array* posInRelLists, arrow::Array* array) {
     assert(array->type_id() == arrow::Type::STRING);
     switch (dataType.getLogicalTypeID()) {
+    case common::LogicalTypeID::BLOB: {
+        templateCopyArrayAsStringToRelListsWithOverflow<blob_t>(
+            boundNodeOffsets, posInRelLists, array);
+    } break;
     case common::LogicalTypeID::STRING: {
         templateCopyArrayAsStringToRelListsWithOverflow<ku_string_t>(
             boundNodeOffsets, posInRelLists, array);
@@ -361,6 +366,16 @@ void InMemListsWithOverflow::setValueFromStringWithOverflow<ku_string_t>(
 }
 
 template<>
+void InMemListsWithOverflow::setValueFromStringWithOverflow<blob_t>(
+    offset_t nodeOffset, uint64_t pos, const char* val, uint64_t length) {
+    auto blobLen = Blob::fromString(
+        val, std::min(length, BufferPoolConstants::PAGE_4KB_SIZE), blobBuffer.get());
+    auto blobVal = overflowInMemFile->copyString(
+        reinterpret_cast<const char*>(blobBuffer.get()), blobLen, overflowCursor);
+    setValue(nodeOffset, pos, (uint8_t*)&blobVal);
+}
+
+template<>
 void InMemListsWithOverflow::setValueFromStringWithOverflow<ku_list_t>(
     offset_t nodeOffset, uint64_t pos, const char* val, uint64_t length) {
     auto varList = TableCopyUtils::getArrowVarList(val, 1, length - 2, dataType, *copyDescription);
@@ -390,6 +405,7 @@ std::unique_ptr<InMemLists> InMemListsFactory::getInMemPropertyLists(const std::
         return make_unique<InMemLists>(fName, dataType,
             storage::StorageUtils::getDataTypeSize(dataType), numNodes,
             std::move(listHeadersBuilder), copyDescription, true /* hasNULLBytes */);
+    case LogicalTypeID::BLOB:
     case LogicalTypeID::STRING:
         return make_unique<InMemStringLists>(fName, numNodes, std::move(listHeadersBuilder));
     case LogicalTypeID::VAR_LIST:

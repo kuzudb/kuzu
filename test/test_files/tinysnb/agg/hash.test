@@ -138,6 +138,13 @@ Alice|1
 40|[Greg]
 83|[Hubert Blaine Wolfeschlegelsteinhausenbergerdorff]
 
+-NAME HashCollectBLOBTest
+-QUERY MATCH (m:movies) RETURN m.length > 130, collect(m.content)
+---- 2
+False|[\xAA\xABinteresting\x0B]
+True|[\xAB\xCD,pure ascii characters]
+
+
 -NAME HashCollectLISTOfINT64Test
 -QUERY MATCH (p:person) RETURN p.gender, collect(p.workedHours)
 ---- 2
@@ -190,3 +197,27 @@ Elizabeth|[25,40]
 ---- 2
 2020|[55,22]
 2021|[5]
+
+-NAME HashAggCountBlob
+-QUERY MATCH (m:movies) RETURN m.length > 2542, COUNT(m.content)
+-PARALLELISM 4
+-ENUMERATE
+---- 2
+False|2
+True|1
+
+-NAME HashAggMinBlob
+-QUERY MATCH (m:movies) RETURN m.length <> 298, MIN(m.content)
+-PARALLELISM 2
+-ENUMERATE
+---- 2
+False|pure ascii characters
+True|\xAA\xABinteresting\x0B
+
+-NAME HashAggMaxBlob
+-QUERY MATCH (m:movies) RETURN m.length <> 126, MAX(m.content)
+-PARALLELISM 1
+-ENUMERATE
+---- 2
+False|\xAA\xABinteresting\x0B
+True|\xAB\xCD

@@ -57,7 +57,11 @@ struct CastToBlob {
                 common::StringVector::getInMemOverflowBuffer(&resultVector)
                     ->allocateSpace(result.value.len));
         }
-        common::Blob::fromString(input, result.value.getDataWritable());
+        common::Blob::fromString(reinterpret_cast<const char*>(input.getData()), input.len,
+            result.value.getDataWritable());
+        if (!common::ku_string_t::isShortString(result.value.len)) {
+            memcpy(result.value.prefix, result.value.getData(), common::ku_string_t::PREFIX_LENGTH);
+        }
     }
 };
 

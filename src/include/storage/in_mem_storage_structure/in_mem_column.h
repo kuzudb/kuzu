@@ -16,17 +16,17 @@ public:
 
     std::unique_ptr<InMemColumnChunk> getInMemColumnChunk(common::offset_t startNodeOffset,
         common::offset_t endNodeOffset, const common::CopyDescription* copyDescription) {
-        switch (dataType.getLogicalTypeID()) {
-        case common::LogicalTypeID::STRING:
-        case common::LogicalTypeID::VAR_LIST: {
+        switch (dataType.getPhysicalType()) {
+        case common::PhysicalTypeID::STRING:
+        case common::PhysicalTypeID::VAR_LIST: {
             return std::make_unique<InMemColumnChunkWithOverflow>(
                 dataType, startNodeOffset, endNodeOffset, copyDescription, inMemOverflowFile.get());
         }
-        case common::LogicalTypeID::FIXED_LIST: {
+        case common::PhysicalTypeID::FIXED_LIST: {
             return std::make_unique<InMemFixedListColumnChunk>(
                 dataType, startNodeOffset, endNodeOffset, copyDescription);
         }
-        case common::LogicalTypeID::STRUCT: {
+        case common::PhysicalTypeID::STRUCT: {
             auto inMemStructColumnChunk = std::make_unique<InMemStructColumnChunk>(
                 dataType, startNodeOffset, endNodeOffset, copyDescription);
             for (auto& fieldColumn : childColumns) {

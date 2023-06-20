@@ -173,7 +173,8 @@ TEST_F(CApiConnectionTest, GetNodePropertyNames) {
         "\tname STRING(PRIMARY KEY)\n"
         "\tlength INT32\n"
         "\tnote STRING\n"
-        "\tdescription STRUCT(RATING:DOUBLE, VIEWS:INT64, RELEASE:TIMESTAMP, FILM:DATE)\n");
+        "\tdescription STRUCT(RATING:DOUBLE, VIEWS:INT64, RELEASE:TIMESTAMP, FILM:DATE)\n"
+        "\tcontent BLOB\n");
     free(result);
 }
 
@@ -186,7 +187,8 @@ TEST_F(CApiConnectionTest, GetRelPropertyNames) {
                             "meets dst node: person\n"
                             "meets properties: \n"
                             "\tlocation FLOAT[2]\n"
-                            "\ttimes INT32\n");
+                            "\ttimes INT32\n"
+                            "\tdata BLOB\n");
     free(result);
 }
 

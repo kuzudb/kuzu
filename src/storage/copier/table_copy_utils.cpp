@@ -365,6 +365,7 @@ std::shared_ptr<arrow::DataType> TableCopyUtils::toArrowDataType(const LogicalTy
     case LogicalTypeID::INTERVAL:
     case LogicalTypeID::FIXED_LIST:
     case LogicalTypeID::VAR_LIST:
+    case LogicalTypeID::BLOB:
     case LogicalTypeID::STRING:
     case LogicalTypeID::STRUCT: {
         return arrow::utf8();

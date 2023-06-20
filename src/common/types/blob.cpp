@@ -43,27 +43,27 @@ uint64_t Blob::getBlobSize(const ku_string_t& blob) {
     return blobSize;
 }
 
-void Blob::fromString(ku_string_t& str, uint8_t* resultBuffer) {
+uint64_t Blob::fromString(const char* str, uint64_t length, uint8_t* resultBuffer) {
     auto resultPos = 0u;
-    auto blobData = str.getData();
-    for (auto i = 0u; i < str.len; i++) {
-        if (blobData[i] == '\\') {
-            validateHexCode(blobData, str.len, i);
+    for (auto i = 0u; i < length; i++) {
+        if (str[i] == '\\') {
+            validateHexCode(reinterpret_cast<const uint8_t*>(str), length, i);
             auto firstByte =
-                HexFormatConstants::HEX_MAP[blobData[i + HexFormatConstants::FIRST_BYTE_POS]];
+                HexFormatConstants::HEX_MAP[str[i + HexFormatConstants::FIRST_BYTE_POS]];
             auto secondByte =
-                HexFormatConstants::HEX_MAP[blobData[i + HexFormatConstants::SECOND_BYTES_POS]];
+                HexFormatConstants::HEX_MAP[str[i + HexFormatConstants::SECOND_BYTES_POS]];
             resultBuffer[resultPos++] =
                 (firstByte << HexFormatConstants::NUM_BYTES_TO_SHIFT_FOR_FIRST_BYTE) + secondByte;
             i += HexFormatConstants::LENGTH - 1;
-        } else if (blobData[i] <= 127) {
-            resultBuffer[resultPos++] = blobData[i];
+        } else if (str[i] <= 127) {
+            resultBuffer[resultPos++] = str[i];
         } else {
             throw ConversionException(
                 "Invalid byte encountered in STRING -> BLOB conversion. All non-ascii characters "
                 "must be escaped with hex codes (e.g. \\xAA)");
         }
     }
+    return resultPos;
 }
 
 std::string Blob::toString(blob_t& blob) {

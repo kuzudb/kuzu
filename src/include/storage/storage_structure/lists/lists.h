@@ -264,6 +264,7 @@ public:
             return std::make_unique<Lists>(structureIDAndFName, dataType,
                 storage::StorageUtils::getDataTypeSize(dataType), adjListsHeaders, bufferManager,
                 wal, listsUpdatesStore);
+        case common::LogicalTypeID::BLOB:
         case common::LogicalTypeID::STRING:
             return std::make_unique<StringPropertyLists>(
                 structureIDAndFName, adjListsHeaders, bufferManager, wal, listsUpdatesStore);
