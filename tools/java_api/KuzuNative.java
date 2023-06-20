@@ -43,30 +43,7 @@ public class KuzuNative {
     protected static native boolean kuzu_prepared_statement_is_success(KuzuPreparedStatement prepared_statement);
     protected static native String kuzu_prepared_statement_get_error_message(
         KuzuPreparedStatement prepared_statement);
-    /*
-    protected static native void kuzu_prepared_statement_bind_bool(
-        KuzuPreparedStatement prepared_statement, String param_name, boolean value);
-    protected static native void kuzu_prepared_statement_bind_int64(
-        KuzuPreparedStatement prepared_statement, String param_name, long value);
-    protected static native void kuzu_prepared_statement_bind_int32(
-        KuzuPreparedStatement prepared_statement, String param_name, int value);
-    protected static native void kuzu_prepared_statement_bind_int16(
-        KuzuPreparedStatement prepared_statement, String param_name, short value);
-    protected static native void kuzu_prepared_statement_bind_double(
-        KuzuPreparedStatement prepared_statement, String param_name, double value);
-    protected static native void kuzu_prepared_statement_bind_float(
-        KuzuPreparedStatement prepared_statement, String param_name, float value);
-    protected static native void kuzu_prepared_statement_bind_date(
-        KuzuPreparedStatement prepared_statement, String param_name, KuzuDate value);
-    protected static native void kuzu_prepared_statement_bind_timestamp(
-        KuzuPreparedStatement prepared_statement, String param_name, KuzuTimestamp value);
-    protected static native void kuzu_prepared_statement_bind_interval(
-        KuzuPreparedStatement prepared_statement, String param_name, KuzuInterval value);
-    protected static native void kuzu_prepared_statement_bind_string(
-        KuzuPreparedStatement prepared_statement, String param_name, String value);
-    protected static native void kuzu_prepared_statement_bind_value(
-        KuzuPreparedStatement prepared_statement, String param_name, KuzuValue value);
-    */
+    
     // QueryResult
     protected static native void kuzu_query_result_destroy(KuzuQueryResult query_result);
     protected static native boolean kuzu_query_result_is_success(KuzuQueryResult query_result);
@@ -106,21 +83,7 @@ public class KuzuNative {
     protected static native void kuzu_value_set_null(KuzuValue value, boolean is_null);
     protected static native KuzuValue kuzu_value_create_default(KuzuDataType data_type);
     protected static native <T> long kuzu_value_create_value(T val);
-    /* 
-    protected static native KuzuValue kuzu_value_create(boolean val_);
-    protected static native KuzuValue kuzu_value_create(short val_);
-    protected static native KuzuValue kuzu_value_create(int val_);
-    protected static native KuzuValue kuzu_value_create(long val_);
-    protected static native KuzuValue kuzu_value_create(float val_);
-    protected static native KuzuValue kuzu_value_create(double val_);
-    protected static native KuzuValue kuzu_value_create(KuzuInternalID val_);
-    protected static native KuzuValue kuzu_value_create(KuzuNodeValue val_);
-    protected static native KuzuValue kuzu_value_create(KuzuRelValue val_);
-    protected static native KuzuValue kuzu_value_create(KuzuDate val_);
-    protected static native KuzuValue kuzu_value_create(KuzuTimestamp val_);
-    protected static native KuzuValue kuzu_value_create(KuzuInterval val_);
-    protected static native KuzuValue kuzu_value_create(String val_);
-    */
+    
     protected static native KuzuValue kuzu_value_clone(KuzuValue value);
     protected static native void kuzu_value_copy(KuzuValue value, KuzuValue other);
     protected static native void kuzu_value_destroy(KuzuValue value);
@@ -129,22 +92,6 @@ public class KuzuNative {
     protected static native KuzuDataType kuzu_value_get_data_type(KuzuValue value);
 
     protected static native <T> T kuzu_value_get_value(KuzuValue value);
-
-    /*
-    protected static native boolean kuzu_value_get_bool(KuzuValue value);
-    protected static native short kuzu_value_get_int16(KuzuValue value);
-    protected static native int kuzu_value_get_int32(KuzuValue value);
-    protected static native long kuzu_value_get_int64(KuzuValue value);
-    protected static native float kuzu_value_get_float(KuzuValue value);
-    protected static native double kuzu_value_get_double(KuzuValue value);
-    protected static native KuzuInternalID kuzu_value_get_internal_id(KuzuValue value);
-    protected static native KuzuNodeValue kuzu_value_get_node_val(KuzuValue value);
-    protected static native KuzuRelValue kuzu_value_get_rel_val(KuzuValue value);
-    protected static native KuzuDate kuzu_value_get_date(KuzuValue value);
-    protected static native KuzuTimestamp kuzu_value_get_timestamp(KuzuValue value);
-    protected static native KuzuInterval kuzu_value_get_interval(KuzuValue value);
-    protected static native String kuzu_value_get_string(KuzuValue value);
-    */
 
     protected static native String kuzu_value_to_string(KuzuValue value);
 
