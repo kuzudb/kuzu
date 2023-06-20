@@ -20,6 +20,7 @@ private:
     void visitOperator(planner::LogicalOperator* op);
 
     void visitRecursiveExtend(planner::LogicalOperator* op) override;
+    void visitExtend(planner::LogicalOperator* op) override;
     void visitAccumulate(planner::LogicalOperator* op) override;
     void visitFilter(planner::LogicalOperator* op) override;
     void visitHashJoin(planner::LogicalOperator* op) override;

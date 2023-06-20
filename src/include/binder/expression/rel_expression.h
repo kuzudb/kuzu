@@ -12,16 +12,19 @@ enum class RelDirectionType : uint8_t {
     BOTH = 1,
 };
 
+class RelExpression;
+
 struct RecursiveInfo {
     uint64_t lowerBound;
     uint64_t upperBound;
-    std::shared_ptr<NodeExpression> recursiveNode;
+    std::shared_ptr<NodeExpression> node;
+    std::shared_ptr<RelExpression> rel;
     std::shared_ptr<Expression> lengthExpression;
 
-    RecursiveInfo(size_t lowerBound, size_t upperBound,
-        std::shared_ptr<NodeExpression> recursiveNode, std::shared_ptr<Expression> lengthExpression)
-        : lowerBound{lowerBound}, upperBound{upperBound}, recursiveNode{std::move(recursiveNode)},
-          lengthExpression{std::move(lengthExpression)} {}
+    RecursiveInfo(size_t lowerBound, size_t upperBound, std::shared_ptr<NodeExpression> node,
+        std::shared_ptr<RelExpression> rel, std::shared_ptr<Expression> lengthExpression)
+        : lowerBound{lowerBound}, upperBound{upperBound}, node{std::move(node)},
+          rel{std::move(rel)}, lengthExpression{std::move(lengthExpression)} {}
 };
 
 class RelExpression : public NodeOrRelExpression {
@@ -58,9 +61,6 @@ public:
     inline RecursiveInfo* getRecursiveInfo() const { return recursiveInfo.get(); }
     inline size_t getLowerBound() const { return recursiveInfo->lowerBound; }
     inline size_t getUpperBound() const { return recursiveInfo->upperBound; }
-    inline std::shared_ptr<NodeExpression> getRecursiveNode() const {
-        return recursiveInfo->recursiveNode;
-    }
     inline std::shared_ptr<Expression> getLengthExpression() const {
         return recursiveInfo->lengthExpression;
     }

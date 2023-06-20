@@ -114,10 +114,10 @@ Kitchener|2
 -NAME ReturnVarLen
 -QUERY MATCH (a:User)-[e:Follows*1..2]->(b:User) WHERE a.name = 'Adam' RETURN b.name, e;
 ---- 4
-Karissa|{_NODES: [0:0,0:1], _RELS: [2:0]}
-Noura|{_NODES: [0:0,0:2,0:3], _RELS: [2:1,2:3]}
-Zhang|{_NODES: [0:0,0:1,0:2], _RELS: [2:0,2:2]}
-Zhang|{_NODES: [0:0,0:2], _RELS: [2:1]}
+Karissa|{_NODES: [{_ID: 0:0, NAME: Adam, AGE: 30},{_ID: 0:1, NAME: Karissa, AGE: 40}], _RELS: [{_ID: 2:0, SINCE: 2020}]}
+Noura|{_NODES: [{_ID: 0:0, NAME: Adam, AGE: 30},{_ID: 0:2, NAME: Zhang, AGE: 50},{_ID: 0:3, NAME: Noura, AGE: 25}], _RELS: [{_ID: 2:1, SINCE: 2020},{_ID: 2:3, SINCE: 2022}]}
+Zhang|{_NODES: [{_ID: 0:0, NAME: Adam, AGE: 30},{_ID: 0:1, NAME: Karissa, AGE: 40},{_ID: 0:2, NAME: Zhang, AGE: 50}], _RELS: [{_ID: 2:0, SINCE: 2020},{_ID: 2:2, SINCE: 2021}]}
+Zhang|{_NODES: [{_ID: 0:0, NAME: Adam, AGE: 30},{_ID: 0:2, NAME: Zhang, AGE: 50}], _RELS: [{_ID: 2:1, SINCE: 2020}]}
 
 -NAME ShortestPath
 -QUERY MATCH (a:User)-[e* SHORTEST 1..4]->(b:City) WHERE a.name = 'Adam' RETURN b.name, length(e) AS length;

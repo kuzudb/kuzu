@@ -97,19 +97,18 @@ void PathScanner::initDfs(const frontier::node_rel_id_t& nodeAndRelID, size_t cu
 void PathScanner::writePathToVector(RecursiveJoinVectors* vectors, common::sel_t& vectorPos,
     common::sel_t& nodeIDDataVectorPos, common::sel_t& relIDDataVectorPos) {
     assert(vectorPos < common::DEFAULT_VECTOR_CAPACITY);
-    auto nodeIDEntry = common::ListVector::addList(vectors->pathNodeIDVector, k + 1);
-    auto relIDEntry = common::ListVector::addList(vectors->pathRelIDVector, k);
-    vectors->pathNodeIDVector->setValue(vectorPos, nodeIDEntry);
-    vectors->pathRelIDVector->setValue(vectorPos, relIDEntry);
+    auto nodeEntry = common::ListVector::addList(vectors->pathNodesVector, k + 1);
+    auto relEntry = common::ListVector::addList(vectors->pathRelsVector, k);
+    vectors->pathNodesVector->setValue(vectorPos, nodeEntry);
+    vectors->pathRelsVector->setValue(vectorPos, relEntry);
     writeDstNodeOffsetAndLength(vectors->dstNodeIDVector, vectors->pathLengthVector, vectorPos);
     vectorPos++;
-    auto nodeIDDataVector = common::ListVector::getDataVector(vectors->pathNodeIDVector);
-    auto relIDDataVector = common::ListVector::getDataVector(vectors->pathRelIDVector);
     for (auto i = 0u; i < k; ++i) {
-        nodeIDDataVector->setValue<common::nodeID_t>(nodeIDDataVectorPos++, nodeIDs[i]);
-        relIDDataVector->setValue<common::relID_t>(relIDDataVectorPos++, relIDs[i]);
+        vectors->pathNodesIDDataVector->setValue<common::nodeID_t>(
+            nodeIDDataVectorPos++, nodeIDs[i]);
+        vectors->pathRelsIDDataVector->setValue<common::relID_t>(relIDDataVectorPos++, relIDs[i]);
     }
-    nodeIDDataVector->setValue<common::nodeID_t>(nodeIDDataVectorPos++, nodeIDs[k]);
+    vectors->pathNodesIDDataVector->setValue<common::nodeID_t>(nodeIDDataVectorPos++, nodeIDs[k]);
 }
 
 void DstNodeWithMultiplicityScanner::scanFromDstOffset(RecursiveJoinVectors* vectors,

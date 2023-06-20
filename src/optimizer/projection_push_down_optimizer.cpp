@@ -3,6 +3,7 @@
 #include "planner/logical_plan/logical_operator/logical_accumulate.h"
 #include "planner/logical_plan/logical_operator/logical_create.h"
 #include "planner/logical_plan/logical_operator/logical_delete.h"
+#include "planner/logical_plan/logical_operator/logical_extend.h"
 #include "planner/logical_plan/logical_operator/logical_filter.h"
 #include "planner/logical_plan/logical_operator/logical_hash_join.h"
 #include "planner/logical_plan/logical_operator/logical_intersect.h"
@@ -38,10 +39,29 @@ void ProjectionPushDownOptimizer::visitOperator(LogicalOperator* op) {
 
 void ProjectionPushDownOptimizer::visitRecursiveExtend(LogicalOperator* op) {
     auto recursiveExtend = (LogicalRecursiveExtend*)op;
+    auto boundNodeID = recursiveExtend->getBoundNode()->getInternalIDProperty();
+    collectExpressionsInUse(boundNodeID);
     auto rel = recursiveExtend->getRel();
+    auto recursiveInfo = rel->getRecursiveInfo();
     if (!variablesInUse.contains(rel)) {
         recursiveExtend->setJoinType(planner::RecursiveJoinType::TRACK_NONE);
+        // Remove build size
+        recursiveExtend->setChildren(
+            std::vector<std::shared_ptr<LogicalOperator>>{recursiveExtend->getChild(0)});
+    } else {
+        // Pre-append projection to rel property build.
+        expression_vector properties;
+        for (auto& expression : recursiveInfo->rel->getPropertyExpressions()) {
+            properties.push_back(expression->copy());
+        }
+        preAppendProjection(op, 2, properties);
     }
+}
+
+void ProjectionPushDownOptimizer::visitExtend(planner::LogicalOperator* op) {
+    auto extend = (LogicalExtend*)op;
+    auto boundNodeID = extend->getBoundNode()->getInternalIDProperty();
+    collectExpressionsInUse(boundNodeID);
 }
 
 void ProjectionPushDownOptimizer::visitAccumulate(planner::LogicalOperator* op) {

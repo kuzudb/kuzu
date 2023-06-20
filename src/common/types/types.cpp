@@ -110,6 +110,14 @@ struct_field_idx_t StructTypeInfo::getStructFieldIdx(std::string fieldName) cons
     return INVALID_STRUCT_FIELD_IDX;
 }
 
+StructField* StructTypeInfo::getStructField(const std::string& fieldName) const {
+    auto idx = getStructFieldIdx(fieldName);
+    if (idx == INVALID_STRUCT_FIELD_IDX) {
+        throw BinderException("Cannot find field " + fieldName + " in STRUCT.");
+    }
+    return fields[idx].get();
+}
+
 std::vector<LogicalType*> StructTypeInfo::getChildrenTypes() const {
     std::vector<LogicalType*> childrenTypesToReturn{fields.size()};
     for (auto i = 0u; i < fields.size(); i++) {

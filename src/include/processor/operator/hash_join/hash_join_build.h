@@ -75,6 +75,8 @@ public:
           sharedState{std::move(sharedState)}, info{std::move(info)} {}
     ~HashJoinBuild() override = default;
 
+    inline std::shared_ptr<HashJoinSharedState> getSharedState() const { return sharedState; }
+
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
     void executeInternal(ExecutionContext* context) override;
