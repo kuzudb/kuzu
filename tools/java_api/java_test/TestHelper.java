@@ -3,7 +3,8 @@ package tools.java_api.java_test;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
-import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Files;
 
 
 import tools.java_api.*;
@@ -11,27 +12,6 @@ import tools.java_api.*;
 public class TestHelper {
     private static KuzuDatabase db;
     private static KuzuConnection conn;
-
-    private static void deleteFolder(File folder) {
-        if (folder.exists()) {
-            File[] files = folder.listFiles();
-            if (files != null) {
-                for (File file : files) {
-                    if (file.isDirectory()) {
-                        deleteFolder(file);
-                    } else {
-                        file.delete();
-                    }
-                }
-            }
-            folder.delete();
-        }
-    }
-
-    public static void cleanup() {
-        String folderPath = "java_api_test_db";
-        deleteFolder(new File(folderPath));
-    }
 
     public static KuzuDatabase getDatabase() {
         return db;
@@ -41,7 +21,10 @@ public class TestHelper {
         return conn;
     }
 
-    public static void loadData() {
+    public static void loadData() throws IOException, KuzuObjectRefDestroyedException {
+        Path tempDir = Files.createTempDirectory("java_api_test_db");
+        tempDir.toFile().deleteOnExit();
+
         BufferedReader reader;
         db = new KuzuDatabase("java_api_test_db", 0);
         conn = new KuzuConnection(db);

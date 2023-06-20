@@ -2,70 +2,46 @@ package tools.java_api.java_test;
 
 import tools.java_api.*;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.BeforeAll;
 import static org.junit.jupiter.api.Assertions.*;
-import org.junit.jupiter.api.AfterAll;
 
 import java.util.Scanner;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Files;
 
-public class QueryResultTest {
-    private static  KuzuDatabase db;
-    private static KuzuConnection conn;
-
-    @BeforeAll
-    static void getDBandConn() {
-        System.out.println("KuzuQueryResult test starting, loading data...");
-        TestHelper.loadData();
-        db = TestHelper.getDatabase();
-        conn = TestHelper.getConnection();
-        System.out.println("Test data loaded");
-    }
-
-    @AfterAll
-    static void destroyDBandConn() {
-        System.out.println("KuzuQueryResult test finished, cleaning up data...");
-        try{
-            TestHelper.cleanup();
-            db.destory();
-            conn.destory();
-        }catch(AssertionError e) {
-            fail("destroyDBandConn failed: ");
-            System.out.println(e.toString());
-        }
-        System.out.println("Data cleaned up");
-    }
+public class QueryResultTest extends TestBase {
 
     @Test
-    void QueryResultGetErrorMessage() {
+    void QueryResultGetErrorMessage() throws KuzuObjectRefDestroyedException {
         KuzuQueryResult result = conn.query("MATCH (a:person) RETURN COUNT(*)");
         assertTrue(result.isSuccess());
         String errorMessage = result.getErrorMessage();
         assertTrue(errorMessage.equals(""));
-        result.destory();
+        result.destroy();
 
         result = conn.query("MATCH (a:personnnn) RETURN COUNT(*)");
         assertFalse(result.isSuccess());
         errorMessage = result.getErrorMessage();
         assertTrue(errorMessage.equals("Binder exception: Node table personnnn does not exist."));
-        result.destory();
+        result.destroy();
 
         System.out.println("QueryResultGetErrorMessage passed");
     }
 
     @Test
-    void QueryResultGetNumColumns() {
+    void QueryResultGetNumColumns() throws KuzuObjectRefDestroyedException {
         KuzuQueryResult result = conn.query("MATCH (a:person) RETURN a.fName, a.age, a.height");
         assertTrue(result.isSuccess());
         assertEquals(result.getNumColumns(), 3);
-        result.destory();
+        result.destroy();
 
         System.out.println("QueryResultGetNumColumns passed");
     }
 
     @Test
-    void QueryResultGetColumnName() {
+    void QueryResultGetColumnName() throws KuzuObjectRefDestroyedException {
         KuzuQueryResult result = conn.query("MATCH (a:person) RETURN a.fName, a.age, a.height");
         assertTrue(result.isSuccess());
         String columnName = result.getColumnName(0);
@@ -80,25 +56,25 @@ public class QueryResultTest {
         columnName = result.getColumnName(222);
         assertNull(columnName);
 
-        result.destory();
+        result.destroy();
 
         System.out.println("QueryResultGetColumnName passed");
     }
 
     @Test
-    void QueryResultGetColumnDataType() {
+    void QueryResultGetColumnDataType() throws KuzuObjectRefDestroyedException {
         KuzuQueryResult result = conn.query("MATCH (a:person) RETURN a.fName, a.age, a.height");
         assertTrue(result.isSuccess());
         KuzuDataType type = result.getColumnDataType(0);
         assertEquals(type.getID(), KuzuDataTypeID.STRING);
-        type.destory();
+        type.destroy();
 
         type = result.getColumnDataType(1);
         assertEquals(type.getID(), KuzuDataTypeID.INT64);
-        type.destory();
+        type.destroy();
         type = result.getColumnDataType(2);
         assertEquals(type.getID(), KuzuDataTypeID.FLOAT);
-        type.destory();
+        type.destroy();
 
         type = result.getColumnDataType(222);
         assertNull(type);
@@ -107,7 +83,7 @@ public class QueryResultTest {
     }
 
     @Test
-    void QueryResultGetQuerySummary() {
+    void QueryResultGetQuerySummary() throws KuzuObjectRefDestroyedException {
         KuzuQueryResult result = conn.query("MATCH (a:person) RETURN a.fName, a.age, a.height");
         assertTrue(result.isSuccess());
         KuzuQuerySummary summary = result.getQuerySummary();
@@ -116,13 +92,13 @@ public class QueryResultTest {
         assertTrue(compilingTime > 0);
         double executionTime = summary.getExecutionTime();
         assertTrue(executionTime > 0);
-        result.destory();
+        result.destroy();
 
         System.out.println("QueryResultGetQuerySummary passed");
     }
 
     @Test
-    void QueryResultGetNext() {
+    void QueryResultGetNext() throws KuzuObjectRefDestroyedException {
         KuzuQueryResult result = conn.query("MATCH (a:person) RETURN a.fName, a.age ORDER BY a.fName");
         assertTrue(result.isSuccess());
 
@@ -140,13 +116,13 @@ public class QueryResultTest {
         assertTrue(row.getValue(1).getValue().equals(30L));
         row.destroy();
 
-        result.destory();
+        result.destroy();
 
         System.out.println("QueryResultGetNext passed");
     }
 
     @Test
-    void QueryResultWriteToCSV() {
+    void QueryResultWriteToCSV() throws IOException, KuzuObjectRefDestroyedException{
         String newline = "\n";
         String basicOutput =
             "Carol,1,5.000000,1940-06-22,1911-08-20 02:32:21,CsWork" + newline +
@@ -157,12 +133,10 @@ public class QueryResultTest {
         KuzuQueryResult result = conn.query(query);
         assertTrue(result.isSuccess());
 
-        File directory = new File("csv");
-        if (! directory.exists()){
-            directory.mkdir();
-        }
+        Path tempDir = Files.createTempFile("output_CSV_CAPI", "csv");
+        tempDir.toFile().deleteOnExit();
 
-        String outputPath = "csv/output_CSV_CAPI.csv";
+        String outputPath = "output_CSV_CAPI.csv";
         result.writeToCsv(outputPath, ',', '"', '\n');
         
         try {
@@ -178,7 +152,7 @@ public class QueryResultTest {
     }
 
     @Test
-    void QueryResultResetIterator() {
+    void QueryResultResetIterator() throws KuzuObjectRefDestroyedException {
         KuzuQueryResult result = conn.query("MATCH (a:person) RETURN a.fName, a.age ORDER BY a.fName");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
@@ -197,7 +171,7 @@ public class QueryResultTest {
         assertTrue(row.getValue(1).getValue().equals(35L));
         row.destroy();
 
-        result.destory();
+        result.destroy();
 
         System.out.println("QueryResultResetIterator passed");
     }

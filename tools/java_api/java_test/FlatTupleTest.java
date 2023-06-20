@@ -2,39 +2,12 @@ package tools.java_api.java_test;
 
 import tools.java_api.*;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.BeforeAll;
 import static org.junit.jupiter.api.Assertions.*;
-import org.junit.jupiter.api.AfterAll;
 
-public class FlatTupleTest {
-    private static  KuzuDatabase db;
-    private static KuzuConnection conn;
-
-    @BeforeAll
-    static void getDBandConn() {
-        System.out.println("KuzuFlatTuple test starting, loading data...");
-        TestHelper.loadData();
-        db = TestHelper.getDatabase();
-        conn = TestHelper.getConnection();
-        System.out.println("Test data loaded");
-    }
-
-    @AfterAll
-    static void destroyDBandConn() {
-        System.out.println("KuzuFlatTuple test finished, cleaning up data...");
-        try{
-            TestHelper.cleanup();
-            db.destory();
-            conn.destory();
-        }catch(AssertionError e) {
-            fail("destroyDBandConn failed: ");
-            System.out.println(e.toString());
-        }
-        System.out.println("Data cleaned up");
-    }
+public class FlatTupleTest extends TestBase {
 
     @Test
-    void FlatTupleGetValue() {
+    void FlatTupleGetValue() throws KuzuObjectRefDestroyedException {
         KuzuQueryResult result = conn.query("MATCH (a:person) RETURN a.fName, a.age, a.height ORDER BY a.fName LIMIT 1");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
@@ -62,12 +35,12 @@ public class FlatTupleTest {
         value = flatTuple.getValue(222);
         assertNull(value);
         
-        result.destory();
+        result.destroy();
         System.out.println("FlatTupleGetValue passed");
     }
 
     @Test
-    void FlatTupleToString() {
+    void FlatTupleToString() throws KuzuObjectRefDestroyedException {
         KuzuQueryResult result = conn.query("MATCH (a:person) RETURN a.fName, a.age, a.height ORDER BY a.fName LIMIT 1");
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
@@ -78,7 +51,7 @@ public class FlatTupleTest {
         assertTrue(str.equals("Alice|35|1.731000\n"));
 
         flatTuple.destroy();
-        result.destory();
+        result.destroy();
 
         System.out.println("FlatTupleToString passed");
     }

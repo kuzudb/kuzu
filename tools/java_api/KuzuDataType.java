@@ -2,52 +2,58 @@ package tools.java_api;
 
 public class KuzuDataType {
     long dt_ref;
-    boolean destoryed = false;
+    boolean destroyed = false;
 
-    private void checkNotDestoryed () {
-        assert !destoryed: "DataType has been destoryed.";
+    private void checkNotDestroyed () throws KuzuObjectRefDestroyedException {
+        if (destroyed)
+            throw new KuzuObjectRefDestroyedException("KuzuDatabase has been destroyed.");
     }
 
-    public void destory() {
-        checkNotDestoryed();
+    @Override  
+    protected void finalize() throws KuzuObjectRefDestroyedException {
+        destroy();
+    } 
+
+    public void destroy() throws KuzuObjectRefDestroyedException {
+        checkNotDestroyed();
         KuzuNative.kuzu_data_type_destroy(this);
-        destoryed = true;
+        destroyed = true;
     }
 
     public KuzuDataType (KuzuDataTypeID id) {
-        checkNotDestoryed();
         dt_ref = KuzuNative.kuzu_data_type_create(id, null, 0);
     }
 
     public KuzuDataType 
         (KuzuDataTypeID id, KuzuDataType child_type, long fixed_num_elements_in_list) {
-        checkNotDestoryed();
         dt_ref = KuzuNative.kuzu_data_type_create(id, child_type, fixed_num_elements_in_list);
     }
 
     public KuzuDataType clone() {
-        return KuzuNative.kuzu_data_type_clone(this);
+        if(destroyed)
+            return null;
+        else
+            return KuzuNative.kuzu_data_type_clone(this);
     }
 
-    public boolean equals (KuzuDataType other) {
-        checkNotDestoryed();
+    public boolean equals (KuzuDataType other) throws KuzuObjectRefDestroyedException {
+        checkNotDestroyed();
         return KuzuNative.kuzu_data_type_equals(this, other);
     }
 
-    public KuzuDataTypeID getID () {
-        checkNotDestoryed();
+    public KuzuDataTypeID getID () throws KuzuObjectRefDestroyedException {
+        checkNotDestroyed();
         return KuzuNative.kuzu_data_type_get_id(this);
     }
 
-    public KuzuDataType getChildType () {
-        checkNotDestoryed();
+    public KuzuDataType getChildType () throws KuzuObjectRefDestroyedException {
+        checkNotDestroyed();
         return KuzuNative.kuzu_data_type_get_child_type(this);
     }
 
-    public long getFixedNumElementsInList () {
-        checkNotDestoryed();
+    public long getFixedNumElementsInList () throws KuzuObjectRefDestroyedException {
+        checkNotDestroyed();
         return KuzuNative.kuzu_data_type_get_fixed_num_elements_in_list(this);
     }
-
 
 }

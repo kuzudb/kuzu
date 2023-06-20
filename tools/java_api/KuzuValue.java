@@ -5,21 +5,27 @@ public class KuzuValue {
     boolean destroyed = false;
     boolean isOwnedByCPP = false;
 
-    private void checkNotdestroyed () {
-        assert !destroyed: "KuzuValue has been destroyed.";
+    private void checkNotDestroyed () throws KuzuObjectRefDestroyedException {
+        if (destroyed)
+            throw new KuzuObjectRefDestroyedException("KuzuValue has been destroyed.");
     }
+
+    @Override  
+    protected void finalize() throws KuzuObjectRefDestroyedException {
+        destroy();   
+    } 
 
     public boolean isOwnedByCPP() {
         return isOwnedByCPP;
     }
 
-    public <T> KuzuValue (T val) {
-        checkNotdestroyed();
+    public <T> KuzuValue (T val) throws KuzuObjectRefDestroyedException {
+        checkNotDestroyed();
         v_ref = KuzuNative.kuzu_value_create_value(val);
     }
     
-    public void destroy () {
-        checkNotdestroyed();
+    public void destroy () throws KuzuObjectRefDestroyedException {
+        checkNotDestroyed();
         if (!isOwnedByCPP) {
             KuzuNative.kuzu_value_destroy(this);
             destroyed = true;
@@ -38,48 +44,52 @@ public class KuzuValue {
         return KuzuNative.kuzu_value_create_default(data_type);
     }
 
-    public boolean isNull () {
-        checkNotdestroyed();
+    public boolean isNull () throws KuzuObjectRefDestroyedException {
+        checkNotDestroyed();
         return KuzuNative.kuzu_value_is_null(this);
     }
 
-    public void setNull (boolean flag) {
-        checkNotdestroyed();
+    public void setNull (boolean flag) throws KuzuObjectRefDestroyedException {
+        checkNotDestroyed();
         KuzuNative.kuzu_value_set_null(this, flag);
     }
 
-    public void copy (KuzuValue other) {
-        checkNotdestroyed();
+    public void copy (KuzuValue other) throws KuzuObjectRefDestroyedException {
+        checkNotDestroyed();
         KuzuNative.kuzu_value_copy(this, other);
     }
 
     public KuzuValue clone () {
-        checkNotdestroyed();
-        return KuzuNative.kuzu_value_clone(this);
+        if (destroyed)
+            return null;
+        else 
+            return KuzuNative.kuzu_value_clone(this);
     }
 
-    public <T> T getValue (){
-        checkNotdestroyed();
+    public <T> T getValue () throws KuzuObjectRefDestroyedException{
+        checkNotDestroyed();
         return KuzuNative.kuzu_value_get_value(this);
     }
 
-    public long getListSize () {
-        checkNotdestroyed();
+    public long getListSize () throws KuzuObjectRefDestroyedException {
+        checkNotDestroyed();
         return KuzuNative.kuzu_value_get_list_size(this);
     }
 
-    public KuzuValue getListElement (long index) {
-        checkNotdestroyed();
+    public KuzuValue getListElement (long index) throws KuzuObjectRefDestroyedException {
+        checkNotDestroyed();
         return KuzuNative.kuzu_value_get_list_element(this, index);
     }
 
-    public KuzuDataType getDataType () {
-        checkNotdestroyed();
+    public KuzuDataType getDataType () throws KuzuObjectRefDestroyedException {
+        checkNotDestroyed();
         return KuzuNative.kuzu_value_get_data_type(this);
     }
 
     public String toString () {
-        checkNotdestroyed();
-        return KuzuNative.kuzu_value_to_string(this);
+        if (destroyed)
+            return "KuzuValue has been destroyed.";
+        else
+            return KuzuNative.kuzu_value_to_string(this);
     }
 }

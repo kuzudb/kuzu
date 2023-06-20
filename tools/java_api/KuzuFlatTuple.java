@@ -2,25 +2,33 @@ package tools.java_api;
 
 public class KuzuFlatTuple {
     long ft_ref;
-    boolean destoryed = false;
+    boolean destroyed = false;
 
-    private void checkNotDestoryed () {
-        assert !destoryed: "FlatTuple has been destoryed.";
+    private void checkNotDestroyed () throws KuzuObjectRefDestroyedException {
+        if (destroyed)
+            throw new KuzuObjectRefDestroyedException("KuzuFlatTuple has been destroyed.");
     }
 
-    public void destroy () {
-        checkNotDestoryed();
+    @Override  
+    protected void finalize() throws KuzuObjectRefDestroyedException {
+        destroy();   
+    } 
+
+    public void destroy () throws KuzuObjectRefDestroyedException {
+        checkNotDestroyed();
         KuzuNative.kuzu_flat_tuple_destroy(this);
-        destoryed = true;
+        destroyed = true;
     }
 
-    public KuzuValue getValue (long index) {
-        checkNotDestoryed();
+    public KuzuValue getValue (long index) throws KuzuObjectRefDestroyedException {
+        checkNotDestroyed();
         return KuzuNative.kuzu_flat_tuple_get_value(this, index);
     }
 
     public String toString () {
-        checkNotDestoryed();
-        return KuzuNative.kuzu_flat_tuple_to_string(this);
+        if (destroyed)
+            return "KuzuFlatTuple has been destroyed.";
+        else
+            return KuzuNative.kuzu_flat_tuple_to_string(this);
     }
 }

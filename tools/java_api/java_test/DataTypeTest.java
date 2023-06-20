@@ -5,10 +5,10 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 
-public class DataTypeTest {
+public class DataTypeTest extends TestBase {
 
     @Test
-    void DataTypeClone() {
+    void DataTypeClone() throws KuzuObjectRefDestroyedException {
         KuzuDataType dataType = new KuzuDataType(KuzuDataTypeID.INT64, null, 0);
         assertNotNull(dataType);
         KuzuDataType dataTypeClone = dataType.clone();
@@ -32,18 +32,18 @@ public class DataTypeTest {
 
         assertFalse(dataTypeClone2.equals(dataTypeClone3));
         
-        dataType.destory();
-        dataType2.destory();
-        dataType3.destory();
-        dataTypeClone.destory();
-        dataTypeClone2.destory();
-        dataTypeClone3.destory();
+        dataType.destroy();
+        dataType2.destroy();
+        dataType3.destroy();
+        dataTypeClone.destroy();
+        dataTypeClone2.destroy();
+        dataTypeClone3.destroy();
 
         System.out.println("DataTypeClone passed");
     }
 
     @Test
-    void DataTypeEquals() {
+    void DataTypeEquals() throws KuzuObjectRefDestroyedException {
         KuzuDataType dataType = new KuzuDataType(KuzuDataTypeID.INT64, null, 0);
         assertNotNull(dataType);
         KuzuDataType dataTypeClone = dataType.clone();
@@ -67,18 +67,18 @@ public class DataTypeTest {
         assertFalse(dataType2.equals(dataType3));
         assertFalse(dataTypeClone.equals(dataTypeClone3));
         
-        dataType.destory();
-        dataType2.destory();
-        dataType3.destory();
-        dataTypeClone.destory();
-        dataTypeClone2.destory();
-        dataTypeClone3.destory();
+        dataType.destroy();
+        dataType2.destroy();
+        dataType3.destroy();
+        dataTypeClone.destroy();
+        dataTypeClone2.destroy();
+        dataTypeClone3.destroy();
 
         System.out.println("DataTypeEquals passed");
     }
 
     @Test
-    void DataTypeGetID() {
+    void DataTypeGetID() throws KuzuObjectRefDestroyedException {
         KuzuDataType dataType = new KuzuDataType(KuzuDataTypeID.INT64, null, 0);
         assertNotNull(dataType);
         assertEquals(dataType.getID(), KuzuDataTypeID.INT64);
@@ -91,15 +91,15 @@ public class DataTypeTest {
         assertNotNull(dataType3);
         assertEquals(dataType3.getID(), KuzuDataTypeID.FIXED_LIST);
 
-        dataType.destory();
-        dataType2.destory();
-        dataType3.destory();
+        dataType.destroy();
+        dataType2.destroy();
+        dataType3.destroy();
 
         System.out.println("DataTypeGetID passed");
     }
 
     @Test
-    void DataTypeGetChildType() {
+    void DataTypeGetChildType() throws KuzuObjectRefDestroyedException {
         KuzuDataType dataType = new KuzuDataType(KuzuDataTypeID.INT64, null, 0);
         assertNotNull(dataType);
 
@@ -111,15 +111,15 @@ public class DataTypeTest {
         assertNotNull(dataType3);
         assertEquals(dataType3.getChildType().getID(), KuzuDataTypeID.INT64);
 
-        dataType.destory();
-        dataType2.destory();
-        dataType3.destory();
+        dataType.destroy();
+        dataType2.destroy();
+        dataType3.destroy();
 
         System.out.println("DataTypeGetChildType passed");
     }
 
     @Test 
-    void DataTypeGetFixedNumElementsInList() {
+    void DataTypeGetFixedNumElementsInList() throws KuzuObjectRefDestroyedException {
         KuzuDataType dataType = new KuzuDataType(KuzuDataTypeID.INT64, null, 0);
         assertNotNull(dataType);
         assertEquals(dataType.getFixedNumElementsInList(), 0);
@@ -132,9 +132,9 @@ public class DataTypeTest {
         assertNotNull(dataType3);
         assertEquals(dataType3.getFixedNumElementsInList(), 100);
 
-        dataType.destory();
-        dataType2.destory();
-        dataType3.destory();
+        dataType.destroy();
+        dataType2.destroy();
+        dataType3.destroy();
 
         System.out.println("DataTypeGetFixedNumElementsInList passed");
 

@@ -5,13 +5,13 @@ import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.Test;
 import tools.java_api.*;
 
-public class DatabaseTest {
+public class DatabaseTest extends TestBase {
     @Test
     void DBCreationAndDestroy() {
         String databasePath = System.getProperty("user.dir") + "dbtest";
         try{
             KuzuDatabase database = new KuzuDatabase(databasePath, 0);
-            database.destory();
+            database.destroy();
         }catch(Exception e) {
             fail("DBCreationAndDestroy failed: ");
             System.out.println(e.toString());
@@ -24,7 +24,7 @@ public class DatabaseTest {
     void DBInvalidPath() {
         try{
             KuzuDatabase database = new KuzuDatabase("", 0);
-            database.destory();
+            database.destroy();
             fail("DBInvalidPath did not throw exception as expected.");
         }catch(Exception e) {
             System.out.println("DBInvalidPath passed");

@@ -7,9 +7,15 @@ public class KuzuDatabase {
     long buffer_size;
     boolean destroyed = false;
 
-    private void checkNotdestroyed () {
-        assert !destroyed: "Database has been destroyed.";
+    private void checkNotDestroyed () throws KuzuObjectRefDestroyedException {
+        if (destroyed)
+            throw new KuzuObjectRefDestroyedException("KuzuDatabase has been destroyed.");
     }
+
+    @Override  
+    protected void finalize() throws KuzuObjectRefDestroyedException {
+        destroy();   
+    } 
     
     public KuzuDatabase (String database_path, long buffer_pool_size) {
         this.db_path = database_path;
@@ -17,8 +23,8 @@ public class KuzuDatabase {
         db_ref = KuzuNative.kuzu_database_init(database_path, buffer_pool_size);
     }
 
-    public void destory() {
-        checkNotdestroyed();
+    public void destroy() throws KuzuObjectRefDestroyedException {
+        checkNotDestroyed();
         KuzuNative.kuzu_database_destroy(this);
         destroyed = true;
     }

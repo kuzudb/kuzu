@@ -4,73 +4,81 @@ public class KuzuQueryResult {
     long qr_ref;
     boolean destroyed = false;
 
-    private void checkNotdestroyed () {
-        assert !destroyed: "QueryResult has been destoryed.";
+    private void checkNotDestroyed () throws KuzuObjectRefDestroyedException {
+        if (destroyed)
+            throw new KuzuObjectRefDestroyedException("KuzuQueryResult has been destroyed.");
     }
 
-    public void destory () {
-        checkNotdestroyed();
+    @Override  
+    protected void finalize() throws KuzuObjectRefDestroyedException {
+        destroy();   
+    } 
+
+    public void destroy () throws KuzuObjectRefDestroyedException {
+        checkNotDestroyed();
         KuzuNative.kuzu_query_result_destroy(this);
         destroyed = true;
     }
 
-    public boolean isSuccess () {
-        checkNotdestroyed();
+    public boolean isSuccess () throws KuzuObjectRefDestroyedException {
+        checkNotDestroyed();
         return KuzuNative.kuzu_query_result_is_success(this);
     }
 
-    public String getErrorMessage () {
-        checkNotdestroyed();
+    public String getErrorMessage () throws KuzuObjectRefDestroyedException {
+        checkNotDestroyed();
         return KuzuNative.kuzu_query_result_get_error_message(this);
     }
 
-    public long getNumColumns () {
-        checkNotdestroyed();
+    public long getNumColumns () throws KuzuObjectRefDestroyedException {
+        checkNotDestroyed();
         return KuzuNative.kuzu_query_result_get_num_columns(this);
     }
 
-    public String getColumnName (long index) {
-        checkNotdestroyed();
+    public String getColumnName (long index) throws KuzuObjectRefDestroyedException {
+        checkNotDestroyed();
         return KuzuNative.kuzu_query_result_get_column_name(this, index);
     }
 
-    public KuzuDataType getColumnDataType (long index) {
-        checkNotdestroyed();
+    public KuzuDataType getColumnDataType (long index) throws KuzuObjectRefDestroyedException {
+        checkNotDestroyed();
         return KuzuNative.kuzu_query_result_get_column_data_type(this, index);
     }
 
-    public long getNumTuples () {
-        checkNotdestroyed();
+    public long getNumTuples () throws KuzuObjectRefDestroyedException {
+        checkNotDestroyed();
         return KuzuNative.kuzu_query_result_get_num_tuples(this);
     }
 
-    public KuzuQuerySummary getQuerySummary () {
-        checkNotdestroyed();
+    public KuzuQuerySummary getQuerySummary () throws KuzuObjectRefDestroyedException {
+        checkNotDestroyed();
         return KuzuNative.kuzu_query_result_get_query_summary(this);
     }
 
-    public boolean hasNext () {
-        checkNotdestroyed();
+    public boolean hasNext () throws KuzuObjectRefDestroyedException {
+        checkNotDestroyed();
         return KuzuNative.kuzu_query_result_has_next(this);
     }
 
-    public KuzuFlatTuple getNext () {
-        checkNotdestroyed();
+    public KuzuFlatTuple getNext () throws KuzuObjectRefDestroyedException {
+        checkNotDestroyed();
         return KuzuNative.kuzu_query_result_get_next(this);
     }
 
     public String toString () {
-        checkNotdestroyed();
-        return KuzuNative.kuzu_query_result_to_string(this);
+        if (destroyed)
+            return "KuzuQueryResult has been destroyed.";
+        else
+            return KuzuNative.kuzu_query_result_to_string(this);
     }
 
-    public void writeToCsv (String file_path, char delimiter, char escape_char, char new_line) {
-        checkNotdestroyed();
+    public void writeToCsv (String file_path, char delimiter, char escape_char, char new_line) throws KuzuObjectRefDestroyedException {
+        checkNotDestroyed();
         KuzuNative.kuzu_query_result_write_to_csv(this, file_path, delimiter, escape_char, new_line);
     }
 
-    public void resetIterator () {
-        checkNotdestroyed();
+    public void resetIterator () throws KuzuObjectRefDestroyedException {
+        checkNotDestroyed();
         KuzuNative.kuzu_query_result_reset_iterator(this);
     }
 }

@@ -3,53 +3,28 @@ package tools.java_api.java_test;
 import tools.java_api.*;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
-
 import static org.junit.jupiter.api.Assertions.*;
+
 import java.util.Map;
 import java.util.HashMap;
 import java.time.LocalDate;
 import java.time.Instant;
 import java.time.Duration;
 
-import org.junit.jupiter.api.AfterAll;
-
 
 @TestMethodOrder(MethodOrderer.MethodName.class)
-public class ConnectionTest {
-    private static  KuzuDatabase db;
-    private static KuzuConnection conn;
-
-    @BeforeAll
-    static void getDBandConn() {
-        System.out.println("KuzuConnection test starting, loading data...");
-        TestHelper.loadData();
-        db = TestHelper.getDatabase();
-        conn = TestHelper.getConnection();
-        System.out.println("Test data loaded");
-    }
-
-    @AfterAll
-    static void destroyDBandConn() {
-        System.out.println("KuzuConnection test finished, cleaning up data...");
-        try{
-            TestHelper.cleanup();
-            db.destory();
-            conn.destory();
-        }catch(AssertionError e) {
-            fail("destroyDBandConn failed: ");
-            System.out.println(e.toString());
-        }
-        System.out.println("Data cleaned up");
-    }
+public class ConnectionTest extends TestBase {
 
     @Test
     void ConnCreationAndDestroy() {
         try{
             KuzuConnection conn = new KuzuConnection(db);
-            conn.destory();
+            conn.destroy();
         }catch(AssertionError e) {
+            fail("ConnCreationAndDestroy failed: ");
+            System.out.println(e.toString());
+        }catch(KuzuObjectRefDestroyedException e) {
             fail("ConnCreationAndDestroy failed: ");
             System.out.println(e.toString());
         }
@@ -60,14 +35,14 @@ public class ConnectionTest {
     void ConnInvalidDB() {
         try{
             KuzuConnection conn = new KuzuConnection(null);
-            fail("DBInvalidPath did not throw exception as expected.");
+            fail("DBInvalidPath did not throw KuzuObjectRefDestroyedException as expected.");
         }catch(AssertionError e) {
         }
         System.out.println("ConnInvalidDB passed");
     }
 
     @Test
-    void ConnQuery() {
+    void ConnQuery() throws KuzuObjectRefDestroyedException {
         String query = "MATCH (a:person) RETURN a.fName;";
         KuzuQueryResult result = conn.query(query);
         assertNotNull(result);
@@ -77,12 +52,12 @@ public class ConnectionTest {
         assertEquals(result.getNumTuples(), 8);
         assertEquals(result.getNumColumns(), 1);
         assertTrue(result.getColumnName(0).equals("a.fName"));
-        result.destory();
+        result.destroy();
         System.out.println("ConnQuery passed");
     }
 
     @Test
-    void ConnSetGetMaxNumThreadForExec() {
+    void ConnSetGetMaxNumThreadForExec() throws KuzuObjectRefDestroyedException {
         conn.setMaxNumThreadForExec(4);
         assertEquals(conn.getMaxNumThreadForExec(), 4);
         conn.setMaxNumThreadForExec(8);
@@ -91,7 +66,7 @@ public class ConnectionTest {
     }
 
     @Test
-    void ConnPrepareBool() {
+    void ConnPrepareBool() throws KuzuObjectRefDestroyedException {
         String query = "MATCH (a:person) WHERE a.isStudent = $1 RETURN COUNT(*)";
         Map<String, KuzuValue> m = new HashMap<String, KuzuValue>();
         m.put("1", new KuzuValue(true));
@@ -105,13 +80,13 @@ public class ConnectionTest {
         assertEquals(result.getNumColumns(), 1);
         KuzuFlatTuple tuple = result.getNext();
         assertEquals(((long)tuple.getValue(0).getValue()), 3);
-        statement.destory();
-        result.destory();
+        statement.destroy();
+        result.destroy();
         System.out.println("ConnPrepare passed");
     }
 
     @Test
-    void ConnPrepareInt64() {
+    void ConnPrepareInt64() throws KuzuObjectRefDestroyedException {
         String query = "MATCH (a:person) WHERE a.age > $1 RETURN COUNT(*)";
         Map<String, KuzuValue> m = new HashMap<String, KuzuValue>();
         
@@ -128,13 +103,13 @@ public class ConnectionTest {
         assertEquals(result.getNumColumns(), 1);
         KuzuFlatTuple tuple = result.getNext();
         assertEquals(((long)tuple.getValue(0).getValue()), 4);
-        statement.destory();
-        result.destory();
+        statement.destroy();
+        result.destroy();
         System.out.println("ConnPrepareInt64 passed");
     }
 
     @Test
-    void ConnPrepareInt32() {
+    void ConnPrepareInt32() throws KuzuObjectRefDestroyedException {
         String query = "MATCH (a:movies) WHERE a.length > $1 RETURN COUNT(*)";
         Map<String, KuzuValue> m = new HashMap<String, KuzuValue>();
         m.put("1", new KuzuValue((int)200));
@@ -149,13 +124,13 @@ public class ConnectionTest {
         assertEquals(result.getNumColumns(), 1);
         KuzuFlatTuple tuple = result.getNext();
         assertEquals(((long)tuple.getValue(0).getValue()), 2);
-        statement.destory();
-        result.destory();
+        statement.destroy();
+        result.destroy();
         System.out.println("ConnPrepareInt32 passed");
     }
 
     @Test
-    void ConnPrepareInt16() {
+    void ConnPrepareInt16() throws KuzuObjectRefDestroyedException {
         String query = "MATCH (a:person) -[s:studyAt]-> (b:organisation) WHERE s.length > $1 RETURN COUNT(*)";
         Map<String, KuzuValue> m = new HashMap<String, KuzuValue>();
         m.put("1", new KuzuValue((short)10));
@@ -170,13 +145,13 @@ public class ConnectionTest {
         assertEquals(result.getNumColumns(), 1);
         KuzuFlatTuple tuple = result.getNext();
         assertEquals(((long)tuple.getValue(0).getValue()), 2);
-        statement.destory();
-        result.destory();
+        statement.destroy();
+        result.destroy();
         System.out.println("ConnPrepareInt16 passed");
     }
 
     @Test
-    void ConnPrepareDouble() {
+    void ConnPrepareDouble() throws KuzuObjectRefDestroyedException {
         String query = "MATCH (a:person) WHERE a.eyeSight > $1 RETURN COUNT(*)";
         Map<String, KuzuValue> m = new HashMap<String, KuzuValue>();
         m.put("1", new KuzuValue((double)4.5));
@@ -191,13 +166,13 @@ public class ConnectionTest {
         assertEquals(result.getNumColumns(), 1);
         KuzuFlatTuple tuple = result.getNext();
         assertEquals(((long)tuple.getValue(0).getValue()), 7);
-        statement.destory();
-        result.destory();
+        statement.destroy();
+        result.destroy();
         System.out.println("ConnPrepareDouble passed");
     }
 
     @Test
-    void ConnPrepareFloat() {
+    void ConnPrepareFloat() throws KuzuObjectRefDestroyedException {
         String query = "MATCH (a:person) WHERE a.height < $1 RETURN COUNT(*)";
         Map<String, KuzuValue> m = new HashMap<String, KuzuValue>();
         m.put("1", new KuzuValue((float)1.0));
@@ -212,13 +187,13 @@ public class ConnectionTest {
         assertEquals(result.getNumColumns(), 1);
         KuzuFlatTuple tuple = result.getNext();
         assertEquals(((long)tuple.getValue(0).getValue()), 1);
-        statement.destory();
-        result.destory();
+        statement.destroy();
+        result.destroy();
         System.out.println("ConnPrepareFloat passed");
     }
 
     @Test
-    void ConnPrepareString() {
+    void ConnPrepareString() throws KuzuObjectRefDestroyedException {
         String query = "MATCH (a:person) WHERE a.fName = $1 RETURN COUNT(*)";
         Map<String, KuzuValue> m = new HashMap<String, KuzuValue>();
         m.put("1", new KuzuValue("Alice"));
@@ -233,13 +208,13 @@ public class ConnectionTest {
         assertEquals(result.getNumColumns(), 1);
         KuzuFlatTuple tuple = result.getNext();
         assertEquals(((long)tuple.getValue(0).getValue()), 1);
-        statement.destory();
-        result.destory();
+        statement.destroy();
+        result.destroy();
         System.out.println("ConnPrepareString passed");
     }
 
     @Test
-    void ConnPrepareDate() {
+    void ConnPrepareDate() throws KuzuObjectRefDestroyedException {
         String query = "MATCH (a:person) WHERE a.birthdate > $1 RETURN COUNT(*)";
         Map<String, KuzuValue> m = new HashMap<String, KuzuValue>();
         m.put("1", new KuzuValue(LocalDate.EPOCH));
@@ -254,13 +229,13 @@ public class ConnectionTest {
         assertEquals(result.getNumColumns(), 1);
         KuzuFlatTuple tuple = result.getNext();
         assertEquals(((long)tuple.getValue(0).getValue()), 4);
-        statement.destory();
-        result.destory();
+        statement.destroy();
+        result.destroy();
         System.out.println("ConnPrepareDate passed");
     }
 
     @Test
-    void ConnPrepareTimeStamp() {
+    void ConnPrepareTimeStamp() throws KuzuObjectRefDestroyedException {
         String query = "MATCH (a:person) WHERE a.registerTime > $1 RETURN COUNT(*)";
         Map<String, KuzuValue> m = new HashMap<String, KuzuValue>();
         m.put("1", new KuzuValue(Instant.EPOCH));
@@ -275,13 +250,13 @@ public class ConnectionTest {
         assertEquals(result.getNumColumns(), 1);
         KuzuFlatTuple tuple = result.getNext();
         assertEquals(((long)tuple.getValue(0).getValue()), 7);
-        statement.destory();
-        result.destory();
+        statement.destroy();
+        result.destroy();
         System.out.println("ConnPrepareTimeStamp passed");
     }
 
     @Test
-    void ConnPrepareInterval() {
+    void ConnPrepareInterval() throws KuzuObjectRefDestroyedException {
         String query = "MATCH (a:person) WHERE a.lastJobDuration > $1 RETURN COUNT(*)";
         Map<String, KuzuValue> m = new HashMap<String, KuzuValue>();
         m.put("1", new KuzuValue(Duration.ofDays(3650)));
@@ -296,13 +271,13 @@ public class ConnectionTest {
         assertEquals(result.getNumColumns(), 1);
         KuzuFlatTuple tuple = result.getNext();
         assertEquals(((long)tuple.getValue(0).getValue()), 3);
-        statement.destory();
-        result.destory();
+        statement.destroy();
+        result.destroy();
         System.out.println("ConnPrepareInterval passed");
     }
 
     @Test
-    void ConnPrepareMultiParam() {
+    void ConnPrepareMultiParam() throws KuzuObjectRefDestroyedException {
         String query = "MATCH (a:person) WHERE a.lastJobDuration > $1 AND a.fName = $2 RETURN COUNT(*)";
         Map<String, KuzuValue> m = new HashMap<String, KuzuValue>();
         m.put("1", new KuzuValue(Duration.ofDays(730)));
@@ -318,13 +293,13 @@ public class ConnectionTest {
         assertEquals(result.getNumColumns(), 1);
         KuzuFlatTuple tuple = result.getNext();
         assertEquals(((long)tuple.getValue(0).getValue()), 1);
-        statement.destory();
-        result.destory();
+        statement.destroy();
+        result.destroy();
         System.out.println("ConnPrepareMultiParam passed");
     }
     
     @Test
-    void ConnGetNodeTableNames() {
+    void ConnGetNodeTableNames() throws KuzuObjectRefDestroyedException {
         String result = conn.getNodeTableNames();
         assertNotNull(result);
         assertTrue(result.equals("Node tables: \n" + 
@@ -339,7 +314,7 @@ public class ConnectionTest {
     }
 
     @Test
-    void ConnGetRelTableNames() {
+    void ConnGetRelTableNames() throws KuzuObjectRefDestroyedException {
         String result = conn.getRelTableNames();
         assertNotNull(result);
         assertTrue(result.equals("Rel tables: \n" +
@@ -358,7 +333,7 @@ public class ConnectionTest {
     }
 
     @Test
-    void ConnGetNodePropertyNames() {
+    void ConnGetNodePropertyNames() throws KuzuObjectRefDestroyedException {
         String result = conn.getNodePropertyNames("movies");
         assertNotNull(result);
         assertTrue(result.equals("movies properties: \n" +
@@ -370,7 +345,7 @@ public class ConnectionTest {
     }
 
     @Test
-    void ConnGetRelPropertyNames() {
+    void ConnGetRelPropertyNames() throws KuzuObjectRefDestroyedException {
         String result = conn.getRelPropertyNames("meets");
         assertNotNull(result);
         assertTrue(result.equals("meets src node: person\n" + 
@@ -382,13 +357,13 @@ public class ConnectionTest {
     }
 
     @Test
-    void ConnQueryTimeout() {
+    void ConnQueryTimeout() throws KuzuObjectRefDestroyedException {
         conn.setQueryTimeout(1);
         KuzuQueryResult result = conn.query("MATCH (a:person)-[:knows*1..28]->(b:person) RETURN COUNT(*);");
         assertNotNull(result);
         assertFalse(result.isSuccess());
         assertTrue(result.getErrorMessage().equals("Interrupted."));
-        result.destory();
+        result.destroy();
         System.out.println("ConnQueryTimeout passed");
     }
 

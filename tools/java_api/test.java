@@ -25,7 +25,7 @@ public class test {
         }
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws KuzuObjectRefDestroyedException {
         
         String folderPath = "java_api_test_db";
         deleteFolder(new File(folderPath));
@@ -66,7 +66,7 @@ public class test {
         row = result.getNext();
         row.destroy();
 
-        result.destory();
+        result.destroy();
 
 
         KuzuValue value = new KuzuValue(Duration.ofMillis(31800000003L));
