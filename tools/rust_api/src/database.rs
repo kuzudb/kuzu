@@ -81,9 +81,20 @@ mod tests {
         let result: Error = Database::new("", 0)
             .expect_err("An empty string should not be a valid database path!")
             .into();
-        assert_eq!(
-            result.to_string(),
-            "Failed to create directory  due to: filesystem error: cannot create directory: No such file or directory []"
-        );
+        if cfg!(windows) {
+            assert_eq!(
+                result.to_string(),
+                "Failed to create directory  due to: create_directory: The system cannot find the path specified.: \"\""
+            );
+        } else if cfg!(linux) {
+            assert_eq!(
+                result.to_string(),
+                "Failed to create directory  due to: filesystem error: cannot create directory: No such file or directory []"
+            );
+        } else {
+            assert!(result
+                .to_string()
+                .starts_with("Failed to create directory  due to"));
+        }
     }
 }

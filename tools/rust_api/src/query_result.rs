@@ -213,7 +213,12 @@ mod tests {
             CSVOptions::default().delimiter(','),
         )?;
         let data = std::fs::read_to_string(path.join("output.csv"))?;
-        assert_eq!(data, "Alice,25\n");
+        if cfg!(windows) {
+            // Windows translates the newlines automatically in text mode
+            assert_eq!(data, "Alice,25\r\n");
+        } else {
+            assert_eq!(data, "Alice,25\n");
+        }
         temp_dir.close()?;
         Ok(())
     }

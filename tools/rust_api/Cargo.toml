@@ -22,6 +22,8 @@ time = "0.3"
 [build-dependencies]
 cxx-build = "1.0"
 num_cpus = "1.0"
+[target.'cfg(windows)'.build-dependencies]
+which = "4"
 
 [dev-dependencies]
 tempdir = "0.3"
