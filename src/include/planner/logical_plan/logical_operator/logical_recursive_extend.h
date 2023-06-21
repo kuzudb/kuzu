@@ -2,6 +2,7 @@
 
 #include "base_logical_extend.h"
 #include "recursive_join_type.h"
+#include "side_way_info_passing.h"
 
 namespace kuzu {
 namespace planner {
@@ -11,10 +12,9 @@ public:
     LogicalRecursiveExtend(std::shared_ptr<binder::NodeExpression> boundNode,
         std::shared_ptr<binder::NodeExpression> nbrNode, std::shared_ptr<binder::RelExpression> rel,
         ExtendDirection direction, RecursiveJoinType joinType,
-        std::vector<std::shared_ptr<LogicalOperator>> children,
-        std::shared_ptr<LogicalOperator> recursiveChild)
+        std::shared_ptr<LogicalOperator> child, std::shared_ptr<LogicalOperator> recursiveChild)
         : BaseLogicalExtend{LogicalOperatorType::RECURSIVE_EXTEND, std::move(boundNode),
-              std::move(nbrNode), std::move(rel), direction, std::move(children)},
+              std::move(nbrNode), std::move(rel), direction, std::move(child)},
           joinType{joinType}, recursiveChild{std::move(recursiveChild)} {}
 
     f_group_pos_set getGroupsPosToFlatten() override;
@@ -27,18 +27,42 @@ public:
     inline std::shared_ptr<LogicalOperator> getRecursiveChild() const { return recursiveChild; }
 
     inline std::unique_ptr<LogicalOperator> copy() override {
-        std::vector<std::shared_ptr<LogicalOperator>> copiedChildren;
-        copiedChildren.reserve(children.size());
-        for (auto& child : children) {
-            copiedChildren.push_back(child->copy());
-        }
         return std::make_unique<LogicalRecursiveExtend>(boundNode, nbrNode, rel, direction,
-            joinType, std::move(copiedChildren), recursiveChild->copy());
+            joinType, children[0]->copy(), recursiveChild->copy());
     }
 
 private:
     RecursiveJoinType joinType;
     std::shared_ptr<LogicalOperator> recursiveChild;
+};
+
+class LogicalPathPropertyProbe : public LogicalOperator {
+public:
+    LogicalPathPropertyProbe(std::shared_ptr<binder::RelExpression> recursiveRel,
+        std::shared_ptr<LogicalOperator> probeChild, std::shared_ptr<LogicalOperator> nodeChild,
+        std::shared_ptr<LogicalOperator> relChild)
+        : LogicalOperator{LogicalOperatorType::PATH_PROPERTY_PROBE,
+              std::vector<std::shared_ptr<LogicalOperator>>{
+                  std::move(probeChild), std::move(nodeChild), std::move(relChild)}},
+          recursiveRel{std::move(recursiveRel)}, sip{SidewaysInfoPassing::NONE} {}
+
+    void computeFactorizedSchema() override { copyChildSchema(0); }
+    void computeFlatSchema() override { copyChildSchema(0); }
+
+    std::string getExpressionsForPrinting() const override { return recursiveRel->toString(); }
+
+    inline std::shared_ptr<binder::RelExpression> getRel() const { return recursiveRel; }
+    inline void setSIP(SidewaysInfoPassing sip_) { sip = sip_; }
+    inline SidewaysInfoPassing getSIP() const { return sip; }
+
+    inline std::unique_ptr<LogicalOperator> copy() override {
+        return std::make_unique<LogicalPathPropertyProbe>(
+            recursiveRel, children[0]->copy(), children[1]->copy(), children[2]->copy());
+    }
+
+private:
+    std::shared_ptr<binder::RelExpression> recursiveRel;
+    SidewaysInfoPassing sip;
 };
 
 class LogicalScanFrontier : public LogicalOperator {

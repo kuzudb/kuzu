@@ -50,7 +50,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalIntersectToPhysical(
     auto intersect = make_unique<Intersect>(outputDataPos, intersectDataInfos, sharedStates,
         std::move(children), getOperatorID(), logicalIntersect->getExpressionsForPrinting());
     if (logicalIntersect->getSIP() == SidewaysInfoPassing::PROBE_TO_BUILD) {
-        mapAccHashJoin(intersect.get());
+        mapSIPJoin(intersect.get());
     }
     return intersect;
 }

@@ -12,8 +12,7 @@ public:
         ExtendDirection direction, binder::expression_vector properties, bool hasAtMostOneNbr,
         std::shared_ptr<LogicalOperator> child)
         : BaseLogicalExtend{LogicalOperatorType::EXTEND, std::move(boundNode), std::move(nbrNode),
-              std::move(rel), direction,
-              std::vector<std::shared_ptr<LogicalOperator>>{std::move(child)}},
+              std::move(rel), direction, std::move(child)},
           properties{std::move(properties)}, hasAtMostOneNbr{hasAtMostOneNbr} {}
 
     f_group_pos_set getGroupsPosToFlatten() override;

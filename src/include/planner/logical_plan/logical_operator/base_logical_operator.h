@@ -30,6 +30,7 @@ enum class LogicalOperatorType : uint8_t {
     LIMIT,
     MULTIPLICITY_REDUCER,
     ORDER_BY,
+    PATH_PROPERTY_PROBE,
     PROJECTION,
     RECURSIVE_EXTEND,
     RENAME_TABLE,

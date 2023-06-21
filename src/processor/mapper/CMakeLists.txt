@@ -18,6 +18,7 @@ add_library(kuzu_processor_mapper
         map_limit.cpp
         map_multiplicity_reducer.cpp
         map_order_by.cpp
+        map_path_property_probe.cpp
         map_projection.cpp
         map_recursive_extend.cpp
         map_scan_frontier.cpp

@@ -93,9 +93,9 @@ private:
     void createRecursivePlan(std::shared_ptr<NodeExpression> boundNode,
         std::shared_ptr<NodeExpression> recursiveNode, std::shared_ptr<RelExpression> recursiveRel,
         ExtendDirection direction, LogicalPlan& plan);
-    void createRecursiveNodePropertyScanPlan(
+    void createPathNodePropertyScanPlan(
         std::shared_ptr<NodeExpression> recursiveNode, LogicalPlan& plan);
-    void createRecursiveRelPropertyScanPlan(std::shared_ptr<NodeExpression> recursiveNode,
+    void createPathRelPropertyScanPlan(std::shared_ptr<NodeExpression> recursiveNode,
         std::shared_ptr<NodeExpression> nbrNode, std::shared_ptr<RelExpression> recursiveRel,
         ExtendDirection direction, LogicalPlan& plan);
 

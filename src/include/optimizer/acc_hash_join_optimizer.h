@@ -22,6 +22,8 @@ private:
 
     void visitIntersect(planner::LogicalOperator* op) override;
 
+    void visitPathPropertyProbe(planner::LogicalOperator* op) override;
+
     bool isProbeSideQualified(planner::LogicalOperator* probeRoot);
 
     std::vector<planner::LogicalOperator*> resolveOperatorsToApplySemiMask(
@@ -35,8 +37,12 @@ private:
     std::vector<planner::LogicalOperator*> resolveShortestPathExtendToApplySemiMask(
         const binder::Expression& nodeID, planner::LogicalOperator* root);
 
-    std::shared_ptr<planner::LogicalOperator> appendSemiMask(
-        std::vector<planner::LogicalOperator*> ops,
+    std::shared_ptr<planner::LogicalOperator> appendNodeSemiMasker(
+        std::vector<planner::LogicalOperator*> opsToApplySemiMask,
+        std::shared_ptr<planner::LogicalOperator> child);
+    std::shared_ptr<planner::LogicalOperator> appendPathSemiMasker(
+        std::shared_ptr<binder::Expression> pathExpression,
+        std::vector<planner::LogicalOperator*> opsToApplySemiMask,
         std::shared_ptr<planner::LogicalOperator> child);
     std::shared_ptr<planner::LogicalOperator> appendAccumulate(
         std::shared_ptr<planner::LogicalOperator> child);

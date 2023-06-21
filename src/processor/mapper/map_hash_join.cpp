@@ -96,7 +96,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalHashJoinToPhysical(
         hashJoin->requireFlatProbeKeys(), probeDataInfo, std::move(probeSidePrevOperator),
         std::move(hashJoinBuild), getOperatorID(), paramsString);
     if (hashJoin->getSIP() == planner::SidewaysInfoPassing::PROBE_TO_BUILD) {
-        mapAccHashJoin(hashJoinProbe.get());
+        mapSIPJoin(hashJoinProbe.get());
     }
     return hashJoinProbe;
 }
