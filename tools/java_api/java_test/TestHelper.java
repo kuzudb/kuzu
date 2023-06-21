@@ -21,12 +21,12 @@ public class TestHelper {
         return conn;
     }
 
-    public static void loadData() throws IOException, KuzuObjectRefDestroyedException {
+    public static void loadData(String dbPath) throws IOException, KuzuObjectRefDestroyedException {
         Path tempDir = Files.createTempDirectory("java_api_test_db");
         tempDir.toFile().deleteOnExit();
 
         BufferedReader reader;
-        db = new KuzuDatabase("java_api_test_db", 0);
+        db = new KuzuDatabase(dbPath, 0);
         conn = new KuzuConnection(db);
         try {
 			reader = new BufferedReader(new FileReader("./../../dataset/tinysnb/schema.cypher"));

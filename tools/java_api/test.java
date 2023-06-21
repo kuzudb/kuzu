@@ -26,12 +26,9 @@ public class test {
     }
 
     public static void main(String[] args) throws KuzuObjectRefDestroyedException {
-        
-        String folderPath = "java_api_test_db";
-        deleteFolder(new File(folderPath));
-
+                
         BufferedReader reader;
-        KuzuDatabase db = new KuzuDatabase("java_api_test_db", 0);
+        KuzuDatabase db = new KuzuDatabase("./nope/java_api_test_db", 0);
         KuzuConnection conn = new KuzuConnection(db);
         try {
 			reader = new BufferedReader(new FileReader("./../../dataset/tinysnb/schema.cypher"));
