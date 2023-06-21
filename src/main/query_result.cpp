@@ -57,15 +57,15 @@ size_t QueryResult::getNumColumns() const {
     return columnDataTypes.size();
 }
 
-std::vector<std::string> QueryResult::getColumnNames() {
+std::vector<std::string> QueryResult::getColumnNames() const {
     return columnNames;
 }
 
-std::vector<common::LogicalType> QueryResult::getColumnDataTypes() {
+std::vector<common::LogicalType> QueryResult::getColumnDataTypes() const {
     return columnDataTypes;
 }
 
-uint64_t QueryResult::getNumTuples() {
+uint64_t QueryResult::getNumTuples() const {
     return querySummary->getIsExplain() ? 0 : factorizedTable->getTotalNumFlatTuples();
 }
 
@@ -183,7 +183,7 @@ void QueryResult::initResultTableAndIterator(
     iterator = std::make_unique<FlatTupleIterator>(*factorizedTable, std::move(valuesToCollect));
 }
 
-bool QueryResult::hasNext() {
+bool QueryResult::hasNext() const {
     validateQuerySucceed();
     assert(querySummary->getIsExplain() == false);
     return iterator->hasNextFlatTuple();
@@ -281,7 +281,7 @@ void QueryResult::writeToCSV(
     file.close();
 }
 
-void QueryResult::validateQuerySucceed() {
+void QueryResult::validateQuerySucceed() const {
     if (!success) {
         throw Exception(errMsg);
     }

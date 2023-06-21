@@ -13,11 +13,11 @@ void FlatTuple::addValue(std::unique_ptr<common::Value> value) {
     values.push_back(std::move(value));
 }
 
-uint32_t FlatTuple::len() {
+uint32_t FlatTuple::len() const {
     return values.size();
 }
 
-common::Value* FlatTuple::getValue(uint32_t idx) {
+common::Value* FlatTuple::getValue(uint32_t idx) const {
     if (idx >= len()) {
         throw common::RuntimeException(common::StringUtils::string_format(
             "ValIdx is out of range. Number of values in flatTuple: {}, valIdx: {}.", len(), idx));

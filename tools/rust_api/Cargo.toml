@@ -1,0 +1,29 @@
+[package]
+name = "kuzu"
+version = "0.0.4"
+description = "An in-process property graph database management system built for query speed and scalability"
+# Note: 1.63 required for building tests
+rust-version = "1.51"
+readme = "../../README.md"
+homepage = "http://kuzudb.com/"
+repository = "https://github.com/kuzudb/kuzu"
+license = "MIT"
+categories = ["database"]
+
+edition = "2018"
+links = "kuzu"
+
+[dependencies]
+cxx = "1.0"
+num-derive = "0.3"
+num-traits = "0.2"
+time = "0.3"
+
+[build-dependencies]
+cxx-build = "1.0"
+num_cpus = "1.0"
+
+[dev-dependencies]
+tempdir = "0.3"
+anyhow = "1"
+time = {version="0.3", features=["macros"]}

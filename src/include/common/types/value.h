@@ -329,7 +329,7 @@ public:
     /**
      * @return the name of the RelVal.
      */
-    KUZU_API std::string getLabelName();
+    KUZU_API std::string getLabelName() const;
     /**
      * @return the value of the RelVal in string format.
      */
