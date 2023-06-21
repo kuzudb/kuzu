@@ -194,7 +194,7 @@ void RadixSort::findStringTies(TieRange& keyBlockTie, uint8_t* keyBlockPtr,
                     OrderByKeyEncoder::getEncodedFTBlockIdx(jTupleInfoPtr),
                     OrderByKeyEncoder::getEncodedFTBlockOffset(jTupleInfoPtr),
                     keyColInfo.colOffsetInFT),
-                result);
+                result, nullptr /* leftVector */, nullptr /* rightVector */);
             if (result) {
                 break;
             }

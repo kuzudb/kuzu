@@ -44,11 +44,6 @@ public:
     }
 
     template<typename T>
-    static inline bool isValueEqual(T& left, T& right, void* leftVector, void* rightVector) {
-        return left == right;
-    }
-
-    template<typename T>
     static T convertStringToNumber(const char* data) {
         std::istringstream iss{data};
         if (iss.str().empty()) {
@@ -67,14 +62,6 @@ private:
 
     static std::string prefixConversionExceptionMessage(const char* data, LogicalTypeID dataTypeID);
 };
-
-template<>
-bool TypeUtils::isValueEqual(
-    list_entry_t& left, list_entry_t& right, void* leftVector, void* rightVector);
-
-template<>
-bool TypeUtils::isValueEqual(
-    struct_entry_t& left, struct_entry_t& right, void* leftVector, void* rightVector);
 
 } // namespace common
 } // namespace kuzu
