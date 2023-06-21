@@ -40,6 +40,12 @@ public:
 
     bool isSuccess() const;
 
+    double getExecutionTime();
+
+    double getCompilingTime();
+
+    size_t getNumTuples();
+
 private:
     static py::dict getPyDictFromProperties(
         const std::vector<std::pair<std::string, std::unique_ptr<kuzu::common::Value>>>&
