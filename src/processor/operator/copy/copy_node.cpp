@@ -130,7 +130,7 @@ void CopyNode::appendToPKIndex<common::ku_string_t, storage::InMemOverflowFile*>
     storage::InMemOverflowFile* overflowFile) {
     for (auto i = 0u; i < numValues; i++) {
         auto offset = i + startOffset;
-        auto value = chunk->getValue<common::ku_string_t>(offset);
+        auto value = chunk->getValue<common::ku_string_t>(i);
         auto key = overflowFile->readString(&value);
         sharedState->pkIndex->append(key.c_str(), offset);
     }
