@@ -851,4 +851,33 @@ mod tests {
         temp_dir.close()?;
         Ok(())
     }
+
+    #[test]
+    /// Tests that passing the values through the database returns what we put in
+    fn test_serial() -> Result<()> {
+        let temp_dir = tempfile::tempdir()?;
+        let db = Database::new(temp_dir.path(), 0)?;
+        let conn = Connection::new(&db)?;
+        conn.query("CREATE NODE TABLE Person(id SERIAL, name STRING, PRIMARY KEY(id));")?;
+
+        conn.query("CREATE (:Person {name: \"Bob\"});")?;
+        conn.query("CREATE (:Person {name: \"Alice\"});")?;
+        let result = conn.query("MATCH (a:Person) RETURN a.name, a.id;")?;
+        assert_eq!(
+            result.get_column_data_types(),
+            vec![LogicalType::String, LogicalType::Serial]
+        );
+        let results: Vec<(Value, Value)> = result
+            .map(|mut x| (x.pop().unwrap(), x.pop().unwrap()))
+            .collect();
+        assert_eq!(
+            results,
+            vec![
+                (Value::Int64(0), "Bob".into()),
+                (Value::Int64(1), "Alice".into())
+            ]
+        );
+        temp_dir.close()?;
+        Ok(())
+    }
 }

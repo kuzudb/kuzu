@@ -4,12 +4,14 @@ use crate::ffi::ffi;
 ///
 /// Includes extra type information beyond what can be encoded in [Value](crate::value::Value) such as
 /// struct fields and types of lists
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum LogicalType {
     /// Special type for use with [Value::Null](crate::value::Value::Null)
     Any,
     /// Correponds to [Value::Bool](crate::value::Value::Bool)
     Bool,
+    /// Has no corresponding Value. Kuzu returns Serial values as [Int64](crate::Value::Int64).
+    Serial,
     /// Correponds to [Value::Int64](crate::value::Value::Int64)
     Int64,
     /// Correponds to [Value::Int32](crate::value::Value::Int32)
@@ -57,6 +59,7 @@ impl From<&ffi::LogicalType> for LogicalType {
         match logical_type.getLogicalTypeID() {
             LogicalTypeID::ANY => LogicalType::Any,
             LogicalTypeID::BOOL => LogicalType::Bool,
+            LogicalTypeID::SERIAL => LogicalType::Serial,
             LogicalTypeID::INT16 => LogicalType::Int16,
             LogicalTypeID::INT32 => LogicalType::Int32,
             LogicalTypeID::INT64 => LogicalType::Int64,
@@ -102,6 +105,7 @@ impl From<&LogicalType> for cxx::UniquePtr<ffi::LogicalType> {
         match typ {
             LogicalType::Any
             | LogicalType::Bool
+            | LogicalType::Serial
             | LogicalType::Int64
             | LogicalType::Int32
             | LogicalType::Int16
@@ -140,6 +144,7 @@ impl LogicalType {
         match self {
             LogicalType::Any => LogicalTypeID::ANY,
             LogicalType::Bool => LogicalTypeID::BOOL,
+            LogicalType::Serial => LogicalTypeID::SERIAL,
             LogicalType::Int16 => LogicalTypeID::INT16,
             LogicalType::Int32 => LogicalTypeID::INT32,
             LogicalType::Int64 => LogicalTypeID::INT64,
