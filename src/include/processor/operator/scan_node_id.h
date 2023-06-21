@@ -44,10 +44,12 @@ public:
     inline NodeTableScanState* getTableState(uint32_t idx) const { return tableStates[idx].get(); }
 
     inline void initialize(transaction::Transaction* transaction) {
-        auto numMask = tableStates[0]->getSemiMask()->getNumMasks();
-        for (auto& tableState : tableStates) {
-            assert(tableState->getSemiMask()->getNumMasks() == numMask);
-            tableState->initializeMaxOffset(transaction);
+        if (!tableStates.empty()) {
+            auto numMask = tableStates[0]->getSemiMask()->getNumMasks();
+            for (auto& tableState : tableStates) {
+                assert(tableState->getSemiMask()->getNumMasks() == numMask);
+                tableState->initializeMaxOffset(transaction);
+            }
         }
     }
 

@@ -257,6 +257,11 @@ Adam|30
 ---- 1
 (label:User, 0:2, {name:Zhang, age:50})|(label:User, 0:3, {name:Noura, age:25})
 
+-NAME WithNull
+-QUERY MATCH (a:User) WITH NULL as b RETURN b LIMIT 1;
+---- 1
+
+
 -NAME Undir1
 -QUERY MATCH (a:User)-[:Follows]-(b:User) RETURN a.name, b.age;
 ---- 8
