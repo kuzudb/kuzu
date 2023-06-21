@@ -188,6 +188,8 @@ void NPYNodeCopier::executeInternal(std::unique_ptr<CopyMorsel> morsel) {
     std::vector<std::unique_ptr<InMemColumnChunk>> columnChunks(1);
     columnChunks[0] =
         columns[columnToCopy]->getInMemColumnChunk(morsel->tupleIdx, endNodeOffset, &copyDesc);
+    auto batch = reader->readBlock(morsel->blockIdx);
+    columnChunks[0]->copyArrowBatch(batch);
     for (auto i = 0u; i < morsel->numTuples; i++) {
         columnChunks[0]->setValueAtPos(reader->getPointerToRow(morsel->tupleIdx + i), i);
     }
