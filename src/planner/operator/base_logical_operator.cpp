@@ -79,6 +79,9 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
     case LogicalOperatorType::ORDER_BY: {
         return "ORDER_BY";
     }
+    case LogicalOperatorType::PATH_PROPERTY_PROBE: {
+        return "PATH_PROPERTY_PROBE";
+    }
     case LogicalOperatorType::PROJECTION: {
         return "PROJECTION";
     }

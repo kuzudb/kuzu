@@ -37,17 +37,20 @@ void ProjectionPushDownOptimizer::visitOperator(LogicalOperator* op) {
     op->computeFlatSchema();
 }
 
-void ProjectionPushDownOptimizer::visitRecursiveExtend(LogicalOperator* op) {
-    auto recursiveExtend = (LogicalRecursiveExtend*)op;
+void ProjectionPushDownOptimizer::visitPathPropertyProbe(planner::LogicalOperator* op) {
+    auto pathPropertyProbe = (LogicalPathPropertyProbe*)op;
+    assert(
+        pathPropertyProbe->getChild(0)->getOperatorType() == LogicalOperatorType::RECURSIVE_EXTEND);
+    auto recursiveExtend = (LogicalRecursiveExtend*)pathPropertyProbe->getChild(0).get();
     auto boundNodeID = recursiveExtend->getBoundNode()->getInternalIDProperty();
     collectExpressionsInUse(boundNodeID);
     auto rel = recursiveExtend->getRel();
     auto recursiveInfo = rel->getRecursiveInfo();
     if (!variablesInUse.contains(rel)) {
         recursiveExtend->setJoinType(planner::RecursiveJoinType::TRACK_NONE);
-        // Remove build size
-        recursiveExtend->setChildren(
-            std::vector<std::shared_ptr<LogicalOperator>>{recursiveExtend->getChild(0)});
+        // TODO(Xiyang): we should remove pathPropertyProbe if we don't need to track path
+        pathPropertyProbe->setChildren(
+            std::vector<std::shared_ptr<LogicalOperator>>{pathPropertyProbe->getChild(0)});
     } else {
         // Pre-append projection to rel property build.
         expression_vector properties;

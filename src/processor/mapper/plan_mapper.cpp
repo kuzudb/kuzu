@@ -47,6 +47,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
     case LogicalOperatorType::RECURSIVE_EXTEND: {
         physicalOperator = mapLogicalRecursiveExtendToPhysical(logicalOperator.get());
     } break;
+    case LogicalOperatorType::PATH_PROPERTY_PROBE: {
+        physicalOperator = mapLogicalPathPropertyProbeToPhysical(logicalOperator.get());
+    } break;
     case LogicalOperatorType::FLATTEN: {
         physicalOperator = mapLogicalFlattenToPhysical(logicalOperator.get());
     } break;
