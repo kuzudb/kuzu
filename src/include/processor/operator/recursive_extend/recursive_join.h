@@ -1,6 +1,9 @@
 #pragma once
 
-#include "bfs_state.h"
+#include <utility>
+
+#include "bfs_scheduler.h"
+#include "bfs_state_temp.h"
 #include "common/query_rel_type.h"
 #include "frontier_scanner.h"
 #include "planner/logical_plan/logical_operator/recursive_join_type.h"
@@ -13,10 +16,13 @@ namespace processor {
 class ScanFrontier;
 
 struct RecursiveJoinSharedState {
+    std::shared_ptr<FTableSharedState> inputFTableSharedState;
     std::vector<std::unique_ptr<NodeOffsetSemiMask>> semiMasks;
 
-    RecursiveJoinSharedState(std::vector<std::unique_ptr<NodeOffsetSemiMask>> semiMasks)
-        : semiMasks{std::move(semiMasks)} {}
+    RecursiveJoinSharedState(std::shared_ptr<FTableSharedState> inputFTableSharedState,
+        std::vector<std::unique_ptr<NodeOffsetSemiMask>> semiMasks)
+        : inputFTableSharedState{std::move(inputFTableSharedState)}, semiMasks{
+                                                                         std::move(semiMasks)} {}
 };
 
 struct RecursiveJoinDataInfo {
@@ -79,14 +85,17 @@ class RecursiveJoin : public PhysicalOperator {
 public:
     RecursiveJoin(uint8_t lowerBound, uint8_t upperBound, common::QueryRelType queryRelType,
         planner::RecursiveJoinType joinType, std::shared_ptr<RecursiveJoinSharedState> sharedState,
-        std::unique_ptr<RecursiveJoinDataInfo> dataInfo, std::unique_ptr<PhysicalOperator> child,
+        std::unique_ptr<RecursiveJoinDataInfo> dataInfo, std::vector<DataPos>& vectorsToScanPos,
+        std::vector<ft_col_idx_t>& colIndicesToScan,
+        std::shared_ptr<MorselDispatcher> morselDispatcher, std::unique_ptr<PhysicalOperator> child,
         uint32_t id, const std::string& paramsString,
         std::unique_ptr<PhysicalOperator> recursiveRoot)
         : PhysicalOperator{PhysicalOperatorType::RECURSIVE_JOIN, std::move(child), id,
               paramsString},
           lowerBound{lowerBound}, upperBound{upperBound}, queryRelType{queryRelType},
           joinType{joinType}, sharedState{std::move(sharedState)}, dataInfo{std::move(dataInfo)},
-          recursiveRoot{std::move(recursiveRoot)} {}
+          vectorsToScanPos{vectorsToScanPos}, colIndicesToScan{colIndicesToScan},
+          morselDispatcher{std::move(morselDispatcher)}, recursiveRoot{std::move(recursiveRoot)} {}
 
     inline RecursiveJoinSharedState* getSharedState() const { return sharedState.get(); }
 
@@ -96,8 +105,8 @@ public:
 
     inline std::unique_ptr<PhysicalOperator> clone() final {
         return std::make_unique<RecursiveJoin>(lowerBound, upperBound, queryRelType, joinType,
-            sharedState, dataInfo->copy(), children[0]->clone(), id, paramsString,
-            recursiveRoot->clone());
+            sharedState, dataInfo->copy(), vectorsToScanPos, colIndicesToScan, morselDispatcher,
+            children[0]->clone(), id, paramsString, recursiveRoot->clone());
     }
 
 private:
@@ -106,6 +115,12 @@ private:
     void populateTargetDstNodes();
 
     bool scanOutput();
+
+    bool computeBFSTemp(ExecutionContext* context);
+
+    int fetchBFSMorselFromDispatcher(ExecutionContext* context);
+
+    void extend(ExecutionContext* context);
 
     // Compute BFS for a given src node.
     void computeBFS(ExecutionContext* context);
@@ -127,9 +142,17 @@ private:
     ScanFrontier* scanFrontier;
 
     std::unique_ptr<RecursiveJoinVectors> vectors;
-    std::unique_ptr<BaseBFSState> bfsState;
+    std::unique_ptr<BaseBFSMorsel> bfsState;
     std::unique_ptr<FrontiersScanner> frontiersScanner;
     std::unique_ptr<TargetDstNodes> targetDstNodes;
+
+    /// NEW MEMBERS BEING ADDED
+    uint32_t threadIdx;
+    std::vector<DataPos> vectorsToScanPos;
+    std::vector<common::ValueVector*> vectorsToScan;
+    std::vector<ft_col_idx_t> colIndicesToScan;
+    std::unique_ptr<BaseBFSMorsel> bfsMorsel;
+    std::shared_ptr<MorselDispatcher> morselDispatcher;
 };
 
 } // namespace processor

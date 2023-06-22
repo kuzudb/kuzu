@@ -1,3 +1,4 @@
+/*
 #pragma once
 
 #include "frontier.h"
@@ -108,3 +109,4 @@ protected:
 
 } // namespace processor
 } // namespace kuzu
+*/

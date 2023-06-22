@@ -1,4 +1,6 @@
+#include "common/query_rel_type.h"
 #include "planner/logical_plan/logical_operator/logical_recursive_extend.h"
+#include "planner/logical_plan/logical_operator/recursive_join_type.h"
 #include "processor/mapper/plan_mapper.h"
 #include "processor/operator/recursive_extend/recursive_join.h"
 #include "processor/operator/table_scan/factorized_table_scan.h"
@@ -40,8 +42,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalRecursiveExtendToPhysica
         outDataPoses.emplace_back(outSchema->getExpressionPos(*expressions[i]));
         colIndicesToScan.push_back(i);
     }
-    auto fTableScan = make_unique<FactorizedTableScan>(std::move(outDataPoses),
-        std::move(colIndicesToScan), sharedFTable, std::move(resultCollector), getOperatorID(), "");
+    /*auto fTableScan = make_unique<FactorizedTableScan>(std::move(outDataPoses),
+        std::move(colIndicesToScan), sharedFTable, std::move(resultCollector), getOperatorID(),
+       "");*/
     // Generate RecursiveJoinDataInfo
     auto boundNodeIDVectorPos =
         DataPos(inSchema->getExpressionPos(*boundNode->getInternalIDProperty()));
@@ -70,11 +73,25 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalRecursiveExtendToPhysica
         auto nodeTable = storageManager.getNodesStore().getNodeTable(tableID);
         semiMasks.push_back(std::make_unique<NodeOffsetSemiMask>(nodeTable));
     }
-    auto sharedState = std::make_shared<RecursiveJoinSharedState>(std::move(semiMasks));
+    auto maxNodeOffsetsPerTable =
+        storageManager.getNodesStore().getNodesStatisticsAndDeletedIDs().getMaxNodeOffsetPerTable();
+    auto maxNodeOffset = maxNodeOffsetsPerTable.at(nbrNode->getSingleTableID());
+    std::shared_ptr<MorselDispatcher> morselDispatcher;
+    if (rel->getRelType() == common::QueryRelType::SHORTEST &&
+        extend->getJoinType() == planner::RecursiveJoinType::TRACK_NONE &&
+        dataInfo->dstNodeTableIDs.size() == 1) {
+        morselDispatcher = std::make_shared<MorselDispatcher>(SchedulerType::nThreadkMorsel,
+            rel->getLowerBound(), rel->getUpperBound(), maxNodeOffset, numThreadsForExecution);
+    } else {
+        morselDispatcher = std::make_shared<MorselDispatcher>(SchedulerType::OneThreadOneMorsel,
+            rel->getLowerBound(), rel->getUpperBound(), maxNodeOffset, numThreadsForExecution);
+    }
+    auto sharedState =
+        std::make_shared<RecursiveJoinSharedState>(sharedFTable, std::move(semiMasks));
     return std::make_unique<RecursiveJoin>(rel->getLowerBound(), rel->getUpperBound(),
-        rel->getRelType(), extend->getJoinType(), sharedState, std::move(dataInfo),
-        std::move(fTableScan), getOperatorID(), extend->getExpressionsForPrinting(),
-        std::move(recursiveRoot));
+        rel->getRelType(), extend->getJoinType(), sharedState, std::move(dataInfo), outDataPoses,
+        colIndicesToScan, morselDispatcher, std::move(resultCollector), getOperatorID(),
+        extend->getExpressionsForPrinting(), std::move(recursiveRoot));
 }
 
 } // namespace processor

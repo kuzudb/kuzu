@@ -1,15 +1,16 @@
 #pragma once
 
-#include "bfs_state.h"
+#include "bfs_state_temp.h"
 
 namespace kuzu {
 namespace processor {
 
 template<bool TRACK_PATH>
-class AllShortestPathState : public BaseBFSState {
+struct AllShortestPathMorsel : public BaseBFSMorsel {
 public:
-    AllShortestPathState(uint8_t upperBound, TargetDstNodes* targetDstNodes)
-        : BaseBFSState{upperBound, targetDstNodes}, minDistance{0}, numVisitedDstNodes{0} {}
+    AllShortestPathMorsel(uint8_t upperBound, uint8_t lowerBound, TargetDstNodes* targetDstNodes)
+        : BaseBFSMorsel{targetDstNodes, upperBound, lowerBound}, minDistance{0}, numVisitedDstNodes{
+                                                                                     0} {}
 
     inline bool isComplete() final {
         return isCurrentFrontierEmpty() || isUpperBoundReached() ||
@@ -17,10 +18,14 @@ public:
     }
 
     inline void resetState() final {
-        BaseBFSState::resetState();
+        BaseBFSMorsel::resetState();
         minDistance = 0;
         numVisitedDstNodes = 0;
         visitedNodeToDistance.clear();
+    }
+
+    inline void reset(uint64_t startScanIdx_, uint64_t endScanIdx_, SSSPMorsel* ssspMorsel_) final {
+
     }
 
     inline void markSrc(common::nodeID_t nodeID) override {
@@ -52,6 +57,8 @@ public:
             }
         }
     }
+
+    inline uint64_t getNumVisitedDstNodes() final { return numVisitedDstNodes; }
 
 private:
     inline bool isAllDstReachedWithMinDistance() const {

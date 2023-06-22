@@ -1,5 +1,7 @@
 add_library(kuzu_processor_operator_ver_length_extend
         OBJECT
+        bfs_scheduler.cpp
+        bfs_state_temp.cpp
         frontier.cpp
         frontier_scanner.cpp
         recursive_join.cpp
