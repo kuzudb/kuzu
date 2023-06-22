@@ -1,7 +1,5 @@
 #pragma once
 
-#include "common/in_mem_overflow_buffer_utils.h"
-#include "common/vector/value_vector_utils.h"
 #include "processor/result/factorized_table.h"
 
 namespace kuzu {
@@ -18,8 +16,8 @@ struct CollectFunction {
             outputVector->setValue<common::list_entry_t>(pos, listEntry);
             auto outputDataVector = common::ListVector::getDataVector(outputVector);
             for (auto i = 0u; i < listEntry.size; i++) {
-                common::ValueVectorUtils::copyNonNullDataWithSameTypeIntoPos(
-                    *outputDataVector, listEntry.offset + i, factorizedTable->getTuple(i));
+                outputDataVector->copyFromRowData(
+                    listEntry.offset + i, factorizedTable->getTuple(i));
             }
             // CollectStates are stored in factorizedTable entries. When the factorizedTable is
             // destructed, the destructor of CollectStates won't be called. Therefore, we need to
@@ -75,8 +73,7 @@ struct CollectFunction {
         for (auto i = 0u; i < multiplicity; ++i) {
             auto tuple = state->factorizedTable->appendEmptyTuple();
             state->isNull = false;
-            common::ValueVectorUtils::copyNonNullDataWithSameTypeOutFromPos(
-                *input, pos, tuple, *state->factorizedTable->getInMemOverflowBuffer());
+            input->copyToRowData(pos, tuple, state->factorizedTable->getInMemOverflowBuffer());
         }
     }
 

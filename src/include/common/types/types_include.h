@@ -1,5 +1,6 @@
 #pragma once
 
+#include "blob.h"
 #include "date_t.h"
 #include "dtime_t.h"
 #include "internal_id_t.h"

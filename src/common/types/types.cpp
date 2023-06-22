@@ -3,6 +3,7 @@
 #include <stdexcept>
 
 #include "common/exception.h"
+#include "common/null_buffer.h"
 #include "common/ser_deser.h"
 #include "common/string_utils.h"
 #include "common/types/types_include.h"
@@ -38,6 +39,29 @@ std::string PhysicalTypeUtils::physicalTypeToString(PhysicalTypeID physicalType)
         return "VAR_LIST";
     default:
         throw common::NotImplementedException{"Unrecognized physicalType."};
+    }
+}
+
+uint32_t PhysicalTypeUtils::getFixedTypeSize(PhysicalTypeID physicalType) {
+    switch (physicalType) {
+    case PhysicalTypeID::BOOL:
+        return sizeof(bool);
+    case PhysicalTypeID::INT64:
+        return sizeof(int64_t);
+    case PhysicalTypeID::INT32:
+        return sizeof(int32_t);
+    case PhysicalTypeID::INT16:
+        return sizeof(int16_t);
+    case PhysicalTypeID::DOUBLE:
+        return sizeof(double_t);
+    case PhysicalTypeID::FLOAT:
+        return sizeof(float_t);
+    case PhysicalTypeID::INTERVAL:
+        return sizeof(interval_t);
+    case PhysicalTypeID::INTERNAL_ID:
+        return sizeof(internalID_t);
+    default:
+        throw NotImplementedException{"PhysicalTypeUtils::getFixedTypeSize."};
     }
 }
 
@@ -84,6 +108,14 @@ struct_field_idx_t StructTypeInfo::getStructFieldIdx(std::string fieldName) cons
         return fieldNameToIdxMap.at(fieldName);
     }
     return INVALID_STRUCT_FIELD_IDX;
+}
+
+StructField* StructTypeInfo::getStructField(const std::string& fieldName) const {
+    auto idx = getStructFieldIdx(fieldName);
+    if (idx == INVALID_STRUCT_FIELD_IDX) {
+        throw BinderException("Cannot find field " + fieldName + " in STRUCT.");
+    }
+    return fields[idx].get();
 }
 
 std::vector<LogicalType*> StructTypeInfo::getChildrenTypes() const {
@@ -224,6 +256,7 @@ void LogicalType::setPhysicalType() {
     case LogicalTypeID::INTERNAL_ID: {
         physicalType = PhysicalTypeID::INTERNAL_ID;
     } break;
+    case LogicalTypeID::BLOB:
     case LogicalTypeID::STRING: {
         physicalType = PhysicalTypeID::STRING;
     } break;
@@ -307,6 +340,8 @@ LogicalTypeID LogicalTypeUtils::dataTypeIDFromString(const std::string& dataType
         return LogicalTypeID::FLOAT;
     } else if ("BOOLEAN" == dataTypeIDString) {
         return LogicalTypeID::BOOL;
+    } else if ("BYTEA" == dataTypeIDString || "BLOB" == dataTypeIDString) {
+        return LogicalTypeID::BLOB;
     } else if ("STRING" == dataTypeIDString) {
         return LogicalTypeID::STRING;
     } else if ("DATE" == dataTypeIDString) {
@@ -379,6 +414,7 @@ std::string LogicalTypeUtils::dataTypeToString(const LogicalType& dataType) {
     case LogicalTypeID::DATE:
     case LogicalTypeID::TIMESTAMP:
     case LogicalTypeID::INTERVAL:
+    case LogicalTypeID::BLOB:
     case LogicalTypeID::STRING:
     case LogicalTypeID::SERIAL:
         return dataTypeToString(dataType.typeID);
@@ -417,6 +453,8 @@ std::string LogicalTypeUtils::dataTypeToString(LogicalTypeID dataTypeID) {
         return "TIMESTAMP";
     case LogicalTypeID::INTERVAL:
         return "INTERVAL";
+    case LogicalTypeID::BLOB:
+        return "BLOB";
     case LogicalTypeID::STRING:
         return "STRING";
     case LogicalTypeID::VAR_LIST:
@@ -456,26 +494,29 @@ std::string LogicalTypeUtils::dataTypesToString(const std::vector<LogicalTypeID>
     return result;
 }
 
-uint32_t LogicalTypeUtils::getFixedTypeSize(kuzu::common::PhysicalTypeID physicalType) {
-    switch (physicalType) {
-    case PhysicalTypeID::BOOL:
-        return sizeof(bool);
-    case PhysicalTypeID::INT64:
-        return sizeof(int64_t);
-    case PhysicalTypeID::INT32:
-        return sizeof(int32_t);
-    case PhysicalTypeID::INT16:
-        return sizeof(int16_t);
-    case PhysicalTypeID::DOUBLE:
-        return sizeof(double_t);
-    case PhysicalTypeID::FLOAT:
-        return sizeof(float_t);
-    case PhysicalTypeID::INTERVAL:
-        return sizeof(interval_t);
-    case PhysicalTypeID::INTERNAL_ID:
-        return sizeof(internalID_t);
+uint32_t LogicalTypeUtils::getRowLayoutSize(const LogicalType& type) {
+    switch (type.getPhysicalType()) {
+    case PhysicalTypeID::STRING: {
+        return sizeof(ku_string_t);
+    }
+    case PhysicalTypeID::FIXED_LIST: {
+        return getRowLayoutSize(*FixedListType::getChildType(&type)) *
+               FixedListType::getNumElementsInList(&type);
+    }
+    case PhysicalTypeID::VAR_LIST: {
+        return sizeof(ku_list_t);
+    }
+    case PhysicalTypeID::STRUCT: {
+        uint32_t size = 0;
+        auto fieldsTypes = StructType::getFieldTypes(&type);
+        for (auto fieldType : fieldsTypes) {
+            size += getRowLayoutSize(*fieldType);
+        }
+        size += NullBuffer::getNumBytesForNullValues(fieldsTypes.size());
+        return size;
+    }
     default:
-        throw NotImplementedException{"Cannot infer the size of a variable dataType."};
+        return PhysicalTypeUtils::getFixedTypeSize(type.getPhysicalType());
     }
 }
 
@@ -499,7 +540,8 @@ std::vector<LogicalType> LogicalTypeUtils::getAllValidComparableLogicalTypes() {
         LogicalType{LogicalTypeID::INT16}, LogicalType{LogicalTypeID::DOUBLE},
         LogicalType{LogicalTypeID::FLOAT}, LogicalType{LogicalTypeID::DATE},
         LogicalType{LogicalTypeID::TIMESTAMP}, LogicalType{LogicalTypeID::INTERVAL},
-        LogicalType{LogicalTypeID::STRING}, LogicalType{LogicalTypeID::SERIAL}};
+        LogicalType{LogicalTypeID::BLOB}, LogicalType{LogicalTypeID::STRING},
+        LogicalType{LogicalTypeID::SERIAL}};
 }
 
 std::vector<LogicalTypeID> LogicalTypeUtils::getNumericalLogicalTypeIDs() {
@@ -507,14 +549,17 @@ std::vector<LogicalTypeID> LogicalTypeUtils::getNumericalLogicalTypeIDs() {
         LogicalTypeID::INT16, LogicalTypeID::DOUBLE, LogicalTypeID::FLOAT, LogicalTypeID::SERIAL};
 }
 
-std::vector<LogicalTypeID> LogicalTypeUtils::getAllValidLogicTypeIDs() {
+std::vector<LogicalType> LogicalTypeUtils::getAllValidLogicTypes() {
     // TODO(Ziyi): Add FIX_LIST,STRUCT,MAP type to allValidTypeID when we support functions on
     // FIXED_LIST,STRUCT,MAP.
-    return std::vector<LogicalTypeID>{LogicalTypeID::INTERNAL_ID, LogicalTypeID::BOOL,
-        LogicalTypeID::INT64, LogicalTypeID::INT32, LogicalTypeID::INT16, LogicalTypeID::DOUBLE,
-        LogicalTypeID::STRING, LogicalTypeID::DATE, LogicalTypeID::TIMESTAMP,
-        LogicalTypeID::INTERVAL, LogicalTypeID::VAR_LIST, LogicalTypeID::FLOAT,
-        LogicalTypeID::SERIAL};
+    return std::vector<LogicalType>{LogicalType{LogicalTypeID::INTERNAL_ID},
+        LogicalType{LogicalTypeID::BOOL}, LogicalType{LogicalTypeID::INT64},
+        LogicalType{LogicalTypeID::INT32}, LogicalType{LogicalTypeID::INT16},
+        LogicalType{LogicalTypeID::DOUBLE}, LogicalType{LogicalTypeID::STRING},
+        LogicalType{LogicalTypeID::BLOB}, LogicalType{LogicalTypeID::DATE},
+        LogicalType{LogicalTypeID::TIMESTAMP}, LogicalType{LogicalTypeID::INTERVAL},
+        LogicalType{LogicalTypeID::VAR_LIST}, LogicalType{LogicalTypeID::FLOAT},
+        LogicalType{LogicalTypeID::SERIAL}};
 }
 
 std::vector<std::string> LogicalTypeUtils::parseStructFields(const std::string& structTypeStr) {

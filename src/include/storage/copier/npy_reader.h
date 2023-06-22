@@ -7,6 +7,9 @@
 #include "common/exception.h"
 #include "common/types/internal_id_t.h"
 #include "common/types/types.h"
+#include <arrow/array.h>
+#include <arrow/buffer.h>
+#include <arrow/record_batch.h>
 
 namespace kuzu {
 namespace storage {
@@ -24,6 +27,9 @@ public:
     inline std::string getFilePath() const { return filePath; }
 
     inline size_t getNumRows() const { return shape[0]; }
+
+    std::shared_ptr<arrow::DataType> getArrowType() const;
+    std::shared_ptr<arrow::RecordBatch> readBlock(common::block_idx_t blockIdx) const;
 
     // Used in tests only.
     inline common::LogicalTypeID getType() const { return type; }
@@ -45,6 +51,7 @@ private:
     size_t dataOffset;
     std::vector<size_t> shape;
     common::LogicalTypeID type;
+    static inline const std::string defaultFieldName = "NPY_FIELD";
 };
 
 } // namespace storage

@@ -22,12 +22,12 @@ void Optimizer::optimize(planner::LogicalPlan* plan) {
     auto filterPushDownOptimizer = FilterPushDownOptimizer();
     filterPushDownOptimizer.rewrite(plan);
 
+    auto projectionPushDownOptimizer = ProjectionPushDownOptimizer();
+    projectionPushDownOptimizer.rewrite(plan);
+
     // HashJoinSIPOptimizer should be applied after optimizers that manipulate hash join.
     auto hashJoinSIPOptimizer = HashJoinSIPOptimizer();
     hashJoinSIPOptimizer.rewrite(plan);
-
-    auto projectionPushDownOptimizer = ProjectionPushDownOptimizer();
-    projectionPushDownOptimizer.rewrite(plan);
 
     auto factorizationRewriter = FactorizationRewriter();
     factorizationRewriter.rewrite(plan);

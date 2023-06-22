@@ -85,18 +85,11 @@ void BuiltInAggregateFunctions::registerCountStar() {
 
 void BuiltInAggregateFunctions::registerCount() {
     std::vector<std::unique_ptr<AggregateFunctionDefinition>> definitions;
-    LogicalType inputType;
-    for (auto& typeID : LogicalTypeUtils::getAllValidLogicTypeIDs()) {
-        if (typeID == LogicalTypeID::VAR_LIST) {
-            inputType = LogicalType(
-                typeID, std::make_unique<VarListTypeInfo>(std::make_unique<LogicalType>()));
-        } else {
-            inputType = LogicalType(typeID);
-        }
+    for (auto& type : LogicalTypeUtils::getAllValidLogicTypes()) {
         for (auto isDistinct : std::vector<bool>{true, false}) {
             definitions.push_back(std::make_unique<AggregateFunctionDefinition>(COUNT_FUNC_NAME,
-                std::vector<LogicalTypeID>{typeID}, LogicalTypeID::INT64,
-                AggregateFunctionUtil::getCountFunction(inputType, isDistinct), isDistinct));
+                std::vector<LogicalTypeID>{type.getLogicalTypeID()}, LogicalTypeID::INT64,
+                AggregateFunctionUtil::getCountFunction(type, isDistinct), isDistinct));
         }
     }
     aggregateFunctions.insert({COUNT_FUNC_NAME, std::move(definitions)});

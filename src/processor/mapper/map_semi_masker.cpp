@@ -11,16 +11,16 @@ namespace processor {
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalSemiMaskerToPhysical(
     LogicalOperator* logicalOperator) {
-    auto logicalSemiMasker = (LogicalSemiMasker*)logicalOperator;
-    auto inSchema = logicalSemiMasker->getChild(0)->getSchema();
+    auto semiMasker = (LogicalSemiMasker*)logicalOperator;
+    auto inSchema = semiMasker->getChild(0)->getSchema();
     auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0));
-    auto node = logicalSemiMasker->getNode();
-    auto keyDataPos = DataPos(inSchema->getExpressionPos(*node->getInternalIDProperty()));
-    std::unordered_map<common::table_id_t, std::vector<mask_with_idx>> masksPerTable;
+    auto node = semiMasker->getNode();
+    std::unordered_map<common::table_id_t, std::vector<SemiMaskerInfo::mask_with_idx>>
+        masksPerTable;
     for (auto tableID : node->getTableIDs()) {
-        masksPerTable.insert({tableID, std::vector<mask_with_idx>{}});
+        masksPerTable.insert({tableID, std::vector<SemiMaskerInfo::mask_with_idx>{}});
     }
-    for (auto& op : logicalSemiMasker->getOperators()) {
+    for (auto& op : semiMasker->getOperators()) {
         auto physicalOp = logicalOpToPhysicalOpMap.at(op);
         switch (physicalOp->getOperatorType()) {
         case PhysicalOperatorType::SCAN_NODE_ID: {
@@ -43,14 +43,29 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalSemiMaskerToPhysical(
             throw common::NotImplementedException("PlanMapper::mapLogicalSemiMaskerToPhysical");
         }
     }
-    if (node->isMultiLabeled()) {
-        return std::make_unique<MultiTableSemiMasker>(keyDataPos, std::move(masksPerTable),
-            std::move(prevOperator), getOperatorID(),
-            logicalSemiMasker->getExpressionsForPrinting());
-    } else {
-        return std::make_unique<SingleTableSemiMasker>(keyDataPos, std::move(masksPerTable),
-            std::move(prevOperator), getOperatorID(),
-            logicalSemiMasker->getExpressionsForPrinting());
+    auto keyPos = DataPos(inSchema->getExpressionPos(*semiMasker->getKey()));
+    auto info = std::make_unique<SemiMaskerInfo>(keyPos, std::move(masksPerTable));
+    switch (semiMasker->getType()) {
+    case planner::SemiMaskType::NODE: {
+        if (node->isMultiLabeled()) {
+            return std::make_unique<MultiTableSemiMasker>(std::move(info), std::move(prevOperator),
+                getOperatorID(), semiMasker->getExpressionsForPrinting());
+        } else {
+            return std::make_unique<SingleTableSemiMasker>(std::move(info), std::move(prevOperator),
+                getOperatorID(), semiMasker->getExpressionsForPrinting());
+        }
+    }
+    case planner::SemiMaskType::PATH: {
+        if (node->isMultiLabeled()) {
+            return std::make_unique<PathMultipleTableSemiMasker>(std::move(info),
+                std::move(prevOperator), getOperatorID(), semiMasker->getExpressionsForPrinting());
+        } else {
+            return std::make_unique<PathSingleTableSemiMasker>(std::move(info),
+                std::move(prevOperator), getOperatorID(), semiMasker->getExpressionsForPrinting());
+        }
+    }
+    default:
+        throw common::NotImplementedException("PlanMapper::mapLogicalSemiMaskerToPhysical");
     }
 }
 

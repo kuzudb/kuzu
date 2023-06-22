@@ -1,6 +1,7 @@
 #include <set>
 
 #include "binder/binder.h"
+#include "binder/expression/property_expression.h"
 
 using namespace kuzu::common;
 using namespace kuzu::parser;
@@ -129,6 +130,39 @@ getNodePropertyNameAndPropertiesPairs(const std::vector<NodeTableSchema*>& nodeT
     return getPropertyNameAndSchemasPairs(propertyNames, propertyNamesToSchemas);
 }
 
+static std::unique_ptr<LogicalType> getRecursiveRelLogicalType(
+    const NodeExpression& node, const RelExpression& rel) {
+    std::vector<std::unique_ptr<StructField>> nodeFields;
+    nodeFields.push_back(std::make_unique<StructField>(
+        InternalKeyword::ID, std::make_unique<LogicalType>(LogicalTypeID::INTERNAL_ID)));
+    for (auto& expression : node.getPropertyExpressions()) {
+        auto propertyExpression = (PropertyExpression*)expression.get();
+        nodeFields.push_back(std::make_unique<StructField>(
+            propertyExpression->getPropertyName(), propertyExpression->getDataType().copy()));
+    }
+    auto nodeType = std::make_unique<LogicalType>(
+        LogicalTypeID::STRUCT, std::make_unique<StructTypeInfo>(std::move(nodeFields)));
+    auto nodesType = std::make_unique<LogicalType>(
+        LogicalTypeID::VAR_LIST, std::make_unique<VarListTypeInfo>(std::move(nodeType)));
+    std::vector<std::unique_ptr<StructField>> relFields;
+    for (auto& expression : rel.getPropertyExpressions()) {
+        auto propertyExpression = (PropertyExpression*)expression.get();
+        relFields.push_back(std::make_unique<StructField>(
+            propertyExpression->getPropertyName(), propertyExpression->getDataType().copy()));
+    }
+    auto relType = std::make_unique<LogicalType>(
+        LogicalTypeID::STRUCT, std::make_unique<StructTypeInfo>(std::move(relFields)));
+    auto relsType = std::make_unique<LogicalType>(
+        LogicalTypeID::VAR_LIST, std::make_unique<VarListTypeInfo>(std::move(relType)));
+    std::vector<std::unique_ptr<StructField>> recursiveRelFields;
+    recursiveRelFields.push_back(
+        std::make_unique<StructField>(InternalKeyword::NODES, std::move(nodesType)));
+    recursiveRelFields.push_back(
+        std::make_unique<StructField>(InternalKeyword::RELS, std::move(relsType)));
+    return std::make_unique<LogicalType>(LogicalTypeID::RECURSIVE_REL,
+        std::make_unique<StructTypeInfo>(std::move(recursiveRelFields)));
+}
+
 void Binder::bindQueryRel(const RelPattern& relPattern,
     const std::shared_ptr<NodeExpression>& leftNode,
     const std::shared_ptr<NodeExpression>& rightNode, QueryGraph& queryGraph,
@@ -170,61 +204,21 @@ void Binder::bindQueryRel(const RelPattern& relPattern,
         throw BinderException("Self-loop rel " + parsedName + " is not supported.");
     }
     // bind variable length
-    auto [lowerBound, upperBound] = bindVariableLengthRelBound(relPattern);
-    auto isVariableLength = !(lowerBound == 1 && upperBound == 1);
-    if (!isVariableLength) {
+    std::shared_ptr<RelExpression> queryRel;
+    if (QueryRelTypeUtils::isRecursive(relPattern.getRelType())) {
+        auto [lowerBound, upperBound] = bindVariableLengthRelBound(relPattern);
+        queryRel = createRecursiveQueryRel(relPattern.getVariableName(), relPattern.getRelType(),
+            lowerBound, upperBound, tableIDs, srcNode, dstNode, directionType);
+    } else {
         tableIDs = pruneRelTableIDs(catalog, tableIDs, *srcNode, *dstNode);
         if (tableIDs.empty()) {
             throw BinderException("Nodes " + srcNode->toString() + " and " + dstNode->toString() +
                                   " are not connected through rel " + parsedName + ".");
         }
-    }
-    common::LogicalType dataType;
-    if (isVariableLength) {
-        std::vector<std::unique_ptr<StructField>> structFields;
-        auto varListTypeInfo = std::make_unique<common::VarListTypeInfo>(
-            std::make_unique<LogicalType>(LogicalTypeID::INTERNAL_ID));
-        auto nodeStructField = std::make_unique<StructField>(InternalKeyword::NODES,
-            std::make_unique<LogicalType>(LogicalTypeID::VAR_LIST, varListTypeInfo->copy()));
-        auto relStructField = std::make_unique<StructField>(InternalKeyword::RELS,
-            std::make_unique<LogicalType>(LogicalTypeID::VAR_LIST, varListTypeInfo->copy()));
-        structFields.push_back(std::move(nodeStructField));
-        structFields.push_back(std::move(relStructField));
-        auto structTypeInfo = std::make_unique<StructTypeInfo>(std::move(structFields));
-        dataType =
-            common::LogicalType(common::LogicalTypeID::RECURSIVE_REL, std::move(structTypeInfo));
-    } else {
-        dataType = common::LogicalType(common::LogicalTypeID::REL);
-    }
-    auto queryRel = make_shared<RelExpression>(dataType, getUniqueExpressionName(parsedName),
-        parsedName, tableIDs, srcNode, dstNode, directionType, relPattern.getRelType());
-    if (isVariableLength) {
-        std::unordered_set<common::table_id_t> recursiveNodeTableIDs;
-        for (auto relTableID : tableIDs) {
-            auto relTableSchema = catalog.getReadOnlyVersion()->getRelTableSchema(relTableID);
-            recursiveNodeTableIDs.insert(relTableSchema->srcTableID);
-            recursiveNodeTableIDs.insert(relTableSchema->dstTableID);
-        }
-        auto recursiveNode =
-            createQueryNode("", std::vector<common::table_id_t>{
-                                    recursiveNodeTableIDs.begin(), recursiveNodeTableIDs.end()});
-        auto lengthExpression = expressionBinder.createInternalLengthExpression(*queryRel);
-        auto recursiveInfo = std::make_unique<RecursiveInfo>(
-            lowerBound, upperBound, std::move(recursiveNode), std::move(lengthExpression));
-        queryRel->setRecursiveInfo(std::move(recursiveInfo));
+        queryRel = createNonRecursiveQueryRel(
+            relPattern.getVariableName(), tableIDs, srcNode, dstNode, directionType);
     }
     queryRel->setAlias(parsedName);
-    // resolve properties associate with rel table
-    std::vector<RelTableSchema*> relTableSchemas;
-    for (auto tableID : tableIDs) {
-        relTableSchemas.push_back(catalog.getReadOnlyVersion()->getRelTableSchema(tableID));
-    }
-    for (auto& [propertyName, propertySchemas] :
-        getRelPropertyNameAndPropertiesPairs(relTableSchemas)) {
-        auto propertyExpression = expressionBinder.createPropertyExpression(
-            *queryRel, propertySchemas, false /* isPrimaryKey */);
-        queryRel->addPropertyExpression(propertyName, std::move(propertyExpression));
-    }
     if (!parsedName.empty()) {
         variableScope->addExpression(parsedName, queryRel);
     }
@@ -236,6 +230,42 @@ void Binder::bindQueryRel(const RelPattern& relPattern,
         collection.addPropertyKeyValPair(*queryRel, std::make_pair(boundLhs, boundRhs));
     }
     queryGraph.addQueryRel(queryRel);
+}
+
+std::shared_ptr<RelExpression> Binder::createNonRecursiveQueryRel(const std::string& parsedName,
+    const std::vector<common::table_id_t>& tableIDs, std::shared_ptr<NodeExpression> srcNode,
+    std::shared_ptr<NodeExpression> dstNode, RelDirectionType directionType) {
+    auto queryRel = make_shared<RelExpression>(LogicalType(LogicalTypeID::REL),
+        getUniqueExpressionName(parsedName), parsedName, tableIDs, std::move(srcNode),
+        std::move(dstNode), directionType, QueryRelType::NON_RECURSIVE);
+    bindQueryRelProperties(*queryRel);
+    return queryRel;
+}
+
+std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const std::string& parsedName,
+    common::QueryRelType relType, uint32_t lowerBound, uint32_t upperBound,
+    const std::vector<common::table_id_t>& tableIDs, std::shared_ptr<NodeExpression> srcNode,
+    std::shared_ptr<NodeExpression> dstNode, RelDirectionType directionType) {
+    std::unordered_set<common::table_id_t> recursiveNodeTableIDs;
+    for (auto relTableID : tableIDs) {
+        auto relTableSchema = catalog.getReadOnlyVersion()->getRelTableSchema(relTableID);
+        recursiveNodeTableIDs.insert(relTableSchema->srcTableID);
+        recursiveNodeTableIDs.insert(relTableSchema->dstTableID);
+    }
+    auto tmpNode = createQueryNode(
+        InternalKeyword::ANONYMOUS, std::vector<common::table_id_t>{recursiveNodeTableIDs.begin(),
+                                        recursiveNodeTableIDs.end()});
+    auto tmpRel = createNonRecursiveQueryRel(
+        InternalKeyword::ANONYMOUS, tableIDs, nullptr, nullptr, directionType);
+    auto queryRel = make_shared<RelExpression>(*getRecursiveRelLogicalType(*tmpNode, *tmpRel),
+        getUniqueExpressionName(parsedName), parsedName, tableIDs, std::move(srcNode),
+        std::move(dstNode), directionType, relType);
+    auto lengthExpression = expressionBinder.createInternalLengthExpression(*queryRel);
+    auto recursiveInfo = std::make_unique<RecursiveInfo>(
+        lowerBound, upperBound, std::move(tmpNode), std::move(tmpRel), std::move(lengthExpression));
+    queryRel->setRecursiveInfo(std::move(recursiveInfo));
+    bindQueryRelProperties(*queryRel);
+    return queryRel;
 }
 
 std::pair<uint64_t, uint64_t> Binder::bindVariableLengthRelBound(
@@ -252,6 +282,19 @@ std::pair<uint64_t, uint64_t> Binder::bindVariableLengthRelBound(
             "Lower bound of rel " + relPattern.getVariableName() + " is greater than upperBound.");
     }
     return std::make_pair(lowerBound, upperBound);
+}
+
+void Binder::bindQueryRelProperties(RelExpression& rel) {
+    std::vector<RelTableSchema*> tableSchemas;
+    for (auto tableID : rel.getTableIDs()) {
+        tableSchemas.push_back(catalog.getReadOnlyVersion()->getRelTableSchema(tableID));
+    }
+    for (auto& [propertyName, propertySchemas] :
+        getRelPropertyNameAndPropertiesPairs(tableSchemas)) {
+        auto propertyExpression = expressionBinder.createPropertyExpression(
+            rel, propertySchemas, false /* isPrimaryKey */);
+        rel.addPropertyExpression(propertyName, std::move(propertyExpression));
+    }
 }
 
 std::shared_ptr<NodeExpression> Binder::bindQueryNode(
@@ -294,24 +337,29 @@ std::shared_ptr<NodeExpression> Binder::createQueryNode(
         make_shared<NodeExpression>(getUniqueExpressionName(parsedName), parsedName, tableIDs);
     queryNode->setAlias(parsedName);
     queryNode->setInternalIDProperty(expressionBinder.createInternalNodeIDExpression(*queryNode));
-    // resolve properties associate with node table
-    std::vector<NodeTableSchema*> nodeTableSchemas;
-    for (auto tableID : tableIDs) {
-        nodeTableSchemas.push_back(catalog.getReadOnlyVersion()->getNodeTableSchema(tableID));
-    }
-    auto isSingleTable = nodeTableSchemas.size() == 1;
-    for (auto& [propertyName, propertySchemas] :
-        getNodePropertyNameAndPropertiesPairs(nodeTableSchemas)) {
-        auto isPrimaryKey = isSingleTable && nodeTableSchemas[0]->getPrimaryKey().propertyID ==
-                                                 propertySchemas[0].propertyID;
-        auto propertyExpression =
-            expressionBinder.createPropertyExpression(*queryNode, propertySchemas, isPrimaryKey);
-        queryNode->addPropertyExpression(propertyName, std::move(propertyExpression));
-    }
+    bindQueryNodeProperties(*queryNode);
     if (!parsedName.empty()) {
         variableScope->addExpression(parsedName, queryNode);
     }
     return queryNode;
+}
+
+void Binder::bindQueryNodeProperties(NodeExpression& node) {
+    std::vector<NodeTableSchema*> tableSchemas;
+    for (auto tableID : node.getTableIDs()) {
+        tableSchemas.push_back(catalog.getReadOnlyVersion()->getNodeTableSchema(tableID));
+    }
+    for (auto& [propertyName, propertySchemas] :
+        getNodePropertyNameAndPropertiesPairs(tableSchemas)) {
+        bool isPrimaryKey = false;
+        if (!node.isMultiLabeled()) {
+            isPrimaryKey =
+                tableSchemas[0]->getPrimaryKey().propertyID == propertySchemas[0].propertyID;
+        }
+        auto propertyExpression =
+            expressionBinder.createPropertyExpression(node, propertySchemas, isPrimaryKey);
+        node.addPropertyExpression(propertyName, std::move(propertyExpression));
+    }
 }
 
 std::vector<table_id_t> Binder::bindTableIDs(

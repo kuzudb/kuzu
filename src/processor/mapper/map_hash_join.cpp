@@ -5,6 +5,7 @@
 
 using namespace kuzu::binder;
 using namespace kuzu::planner;
+using namespace kuzu::common;
 
 namespace kuzu {
 namespace processor {
@@ -20,7 +21,7 @@ std::unique_ptr<HashJoinBuildInfo> PlanMapper::createHashBuildInfo(
         keyGroupPosSet.insert(pos.dataChunkPos);
         // Keys are always stored in flat column.
         auto columnSchema = std::make_unique<ColumnSchema>(false /* isUnFlat */, pos.dataChunkPos,
-            FactorizedTable::getDataTypeSize(key->dataType));
+            LogicalTypeUtils::getRowLayoutSize(key->dataType));
         tableSchema->appendColumn(std::move(columnSchema));
         keysPos.push_back(pos);
     }
@@ -34,7 +35,7 @@ std::unique_ptr<HashJoinBuildInfo> PlanMapper::createHashBuildInfo(
             // payloads must also be stored as flat.
             // 2. payload is in flat chunk
             columnSchema = std::make_unique<ColumnSchema>(false /* isUnFlat */, pos.dataChunkPos,
-                FactorizedTable::getDataTypeSize(payload->dataType));
+                LogicalTypeUtils::getRowLayoutSize(payload->dataType));
         } else {
             columnSchema = std::make_unique<ColumnSchema>(
                 true /* isUnFlat */, pos.dataChunkPos, (uint32_t)sizeof(common::overflow_value_t));
@@ -44,7 +45,7 @@ std::unique_ptr<HashJoinBuildInfo> PlanMapper::createHashBuildInfo(
     }
     auto pointerType = common::LogicalType(common::LogicalTypeID::INT64);
     auto pointerColumn = std::make_unique<ColumnSchema>(false /* isUnFlat */,
-        INVALID_DATA_CHUNK_POS, FactorizedTable::getDataTypeSize(pointerType));
+        INVALID_DATA_CHUNK_POS, LogicalTypeUtils::getRowLayoutSize(pointerType));
     tableSchema->appendColumn(std::move(pointerColumn));
     return std::make_unique<HashJoinBuildInfo>(
         std::move(keysPos), std::move(payloadsPos), std::move(tableSchema));
@@ -95,7 +96,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalHashJoinToPhysical(
         hashJoin->requireFlatProbeKeys(), probeDataInfo, std::move(probeSidePrevOperator),
         std::move(hashJoinBuild), getOperatorID(), paramsString);
     if (hashJoin->getSIP() == planner::SidewaysInfoPassing::PROBE_TO_BUILD) {
-        mapAccHashJoin(hashJoinProbe.get());
+        mapSIPJoin(hashJoinProbe.get());
     }
     return hashJoinProbe;
 }

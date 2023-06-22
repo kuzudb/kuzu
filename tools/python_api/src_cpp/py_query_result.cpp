@@ -24,7 +24,10 @@ void PyQueryResult::initialize(py::handle& m) {
         .def("getColumnNames", &PyQueryResult::getColumnNames)
         .def("getColumnDataTypes", &PyQueryResult::getColumnDataTypes)
         .def("resetIterator", &PyQueryResult::resetIterator)
-        .def("isSuccess", &PyQueryResult::isSuccess);
+        .def("isSuccess", &PyQueryResult::isSuccess)
+        .def("getCompilingTime", &PyQueryResult::getCompilingTime)
+        .def("getExecutionTime", &PyQueryResult::getExecutionTime)
+        .def("getNumTuples", &PyQueryResult::getNumTuples);
     // PyDateTime_IMPORT is a macro that must be invoked before calling any other cpython datetime
     // macros. One could also invoke this in a separate function like constructor. See
     // https://docs.python.org/3/c-api/datetime.html for details.
@@ -235,4 +238,16 @@ py::dict PyQueryResult::convertNodeIdToPyDict(const nodeID_t& nodeId) {
     idDict["offset"] = py::cast(nodeId.offset);
     idDict["table"] = py::cast(nodeId.tableID);
     return idDict;
+}
+
+double PyQueryResult::getExecutionTime() {
+    return queryResult->getQuerySummary()->getExecutionTime();
+}
+
+double PyQueryResult::getCompilingTime() {
+    return queryResult->getQuerySummary()->getCompilingTime();
+}
+
+size_t PyQueryResult::getNumTuples() {
+    return queryResult->getNumTuples();
 }

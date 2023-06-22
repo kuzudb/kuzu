@@ -134,6 +134,15 @@ Carol
 Bob
 Alice
 
+-NAME OrderByBlobTest
+-QUERY MATCH (m:movies) RETURN m.content ORDER BY m.content DESC
+-CHECK_ORDER
+-PARALLELISM 2
+---- 3
+\xAB\xCD
+\xAA\xABinteresting\x0B
+pure ascii characters
+
 -NAME OrderByStrMultipleColTest
 -QUERY MATCH (p:person) RETURN p.age, p.eyeSight ORDER BY p.isWorker desc, p.age, p.eyeSight desc
 -CHECK_ORDER

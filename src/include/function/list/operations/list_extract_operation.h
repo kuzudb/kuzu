@@ -4,7 +4,7 @@
 #include <cstring>
 
 #include "common/types/ku_string.h"
-#include "common/vector/value_vector_utils.h"
+#include "common/vector/value_vector.h"
 #include "function/string/operations/array_extract_operation.h"
 
 namespace kuzu {
@@ -32,8 +32,8 @@ public:
         auto listDataVector = common::ListVector::getDataVector(&listVector);
         auto listValues =
             common::ListVector::getListValuesWithOffset(&listVector, listEntry, pos - 1);
-        common::ValueVectorUtils::copyValue(
-            (uint8_t*)(&result), resultVector, listValues, *listDataVector);
+        resultVector.copyFromVectorData(
+            reinterpret_cast<uint8_t*>(&result), listDataVector, listValues);
     }
 
     static inline void operation(
@@ -49,12 +49,7 @@ public:
 template<>
 inline void ListExtract::setValue(
     common::ku_string_t& src, common::ku_string_t& dest, common::ValueVector& resultValueVector) {
-    if (!common::ku_string_t::isShortString(src.len)) {
-        dest.overflowPtr = reinterpret_cast<uint64_t>(
-            common::StringVector::getInMemOverflowBuffer(&resultValueVector)
-                ->allocateSpace(src.len));
-    }
-    dest.set(src);
+    common::StringVector::addString(&resultValueVector, dest, src);
 }
 
 } // namespace operation

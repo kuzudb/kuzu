@@ -242,6 +242,16 @@ Binder exception: Primary key dummyColName does not match any of the predefined 
 ---- error
 Binder exception: Duplicated column name: eyesight, column name must be unique.
 
+-CASE CopyNodeWrongPathTest
+-STATEMENT CREATE NODE TABLE User(name STRING, age INT64, PRIMARY KEY (name))
+---- ok
+-STATEMENT COPY User FROM 'wrong_path.csv'
+---- error
+Binder exception: No file found that matches the pattern: wrong_path.csv.
+-STATEMENT COPY User FROM 'wrong_path.parquet'
+---- error
+Binder exception: No file found that matches the pattern: wrong_path.parquet.
+
 -CASE CopyCSVInvalidParsingOption
 -QUERY COPY person FROM "person_0_0.csv" (pk=",")
 ---- error
@@ -324,6 +334,8 @@ DISTINCT (TIMESTAMP) -> TIMESTAMP
 (TIMESTAMP) -> TIMESTAMP
 DISTINCT (INTERVAL) -> INTERVAL
 (INTERVAL) -> INTERVAL
+DISTINCT (BLOB) -> BLOB
+(BLOB) -> BLOB
 DISTINCT (STRING) -> STRING
 (STRING) -> STRING
 DISTINCT (SERIAL) -> SERIAL

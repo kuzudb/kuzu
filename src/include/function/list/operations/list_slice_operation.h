@@ -26,8 +26,7 @@ struct ListSlice {
         auto srcDataVector = common::ListVector::getDataVector(&listVector);
         auto dstDataVector = common::ListVector::getDataVector(&resultVector);
         for (auto i = startIdx; i < endIdx; i++) {
-            common::ValueVectorUtils::copyValue(
-                dstValues, *dstDataVector, srcValues, *srcDataVector);
+            dstDataVector->copyFromVectorData(dstValues, srcDataVector, srcValues);
             srcValues += numBytesPerValue;
             dstValues += numBytesPerValue;
         }
@@ -39,16 +38,8 @@ struct ListSlice {
         int64_t startIdx = (begin == 0) ? 1 : begin;
         int64_t endIdx = (end == 0) ? str.len : end;
         result.len = std::min(endIdx - startIdx + 1, str.len - startIdx + 1);
-
-        if (!common::ku_string_t::isShortString(result.len)) {
-            result.overflowPtr = reinterpret_cast<uint64_t>(
-                common::StringVector::getInMemOverflowBuffer(&resultValueVector)
-                    ->allocateSpace(result.len));
-        }
-        memcpy((uint8_t*)result.getData(), str.getData() + startIdx - 1, result.len);
-        if (!common::ku_string_t::isShortString(result.len)) {
-            memcpy(result.prefix, result.getData(), common::ku_string_t::PREFIX_LENGTH);
-        }
+        common::StringVector::addString(
+            &resultValueVector, result, (const char*)(str.getData() + startIdx - 1), result.len);
     }
 };
 

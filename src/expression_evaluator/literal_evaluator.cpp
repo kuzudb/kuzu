@@ -1,8 +1,5 @@
 #include "expression_evaluator/literal_evaluator.h"
 
-#include "common/in_mem_overflow_buffer_utils.h"
-#include "common/vector/value_vector_utils.h"
-
 using namespace kuzu::common;
 using namespace kuzu::storage;
 
@@ -28,7 +25,7 @@ void LiteralExpressionEvaluator::resolveResultVector(
 }
 
 void LiteralExpressionEvaluator::copyValueToVector(
-    uint8_t* dstValue, common::ValueVector* dstVector, const common::Value* srcValue) {
+    uint8_t* dstValue, common::ValueVector* dstVector, const Value* srcValue) {
     auto numBytesPerValue = dstVector->getNumBytesPerValue();
     switch (srcValue->getDataType().getPhysicalType()) {
     case common::PhysicalTypeID::INT64: {
@@ -53,9 +50,8 @@ void LiteralExpressionEvaluator::copyValueToVector(
         memcpy(dstValue, &srcValue->val.intervalVal, numBytesPerValue);
     } break;
     case common::PhysicalTypeID::STRING: {
-        common::InMemOverflowBufferUtils::copyString(srcValue->strVal.data(),
-            srcValue->strVal.length(), *(common::ku_string_t*)dstValue,
-            *common::StringVector::getInMemOverflowBuffer(dstVector));
+        StringVector::addString(dstVector, *(common::ku_string_t*)dstValue, srcValue->strVal.data(),
+            srcValue->strVal.length());
     } break;
     case common::PhysicalTypeID::VAR_LIST: {
         auto listListEntry = reinterpret_cast<common::list_entry_t*>(dstValue);

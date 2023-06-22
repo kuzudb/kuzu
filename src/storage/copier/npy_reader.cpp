@@ -205,5 +205,37 @@ void NpyReader::validate(LogicalType& type_, offset_t numRows, const std::string
             filePath, tableName));
     }
 }
+
+std::shared_ptr<arrow::DataType> NpyReader::getArrowType() const {
+    auto thisType = getType();
+    if (thisType == LogicalTypeID::DOUBLE) {
+        return arrow::float64();
+    } else if (thisType == LogicalTypeID::FLOAT) {
+        return arrow::float32();
+    } else if (thisType == LogicalTypeID::INT64) {
+        return arrow::int64();
+    } else if (thisType == LogicalTypeID::INT32) {
+        return arrow::int32();
+    } else if (thisType == LogicalTypeID::INT16) {
+        return arrow::int16();
+    }
+}
+
+std::shared_ptr<arrow::RecordBatch> NpyReader::readBlock(common::block_idx_t blockIdx) const {
+    uint64_t rowNumber = CopyConstants::NUM_ROWS_PER_BLOCK_FOR_NPY * blockIdx;
+    auto rowPointer = getPointerToRow(rowNumber);
+    auto buffer =
+        std::make_shared<arrow::Buffer>(rowPointer, CopyConstants::NUM_ROWS_PER_BLOCK_FOR_NPY);
+    auto arrowType = getArrowType();
+    int64_t length = std::min(CopyConstants::NUM_ROWS_PER_BLOCK_FOR_NPY, getNumRows() - rowNumber);
+    auto arr = std::make_shared<arrow::PrimitiveArray>(arrowType, length, buffer);
+    auto field = std::make_shared<arrow::Field>(defaultFieldName, arrowType);
+    auto schema =
+        std::make_shared<arrow::Schema>(std::vector<std::shared_ptr<arrow::Field>>{field});
+    std::shared_ptr<arrow::RecordBatch> result;
+    result = arrow::RecordBatch::Make(schema, length, {arr});
+    return result;
+}
+
 } // namespace storage
 } // namespace kuzu

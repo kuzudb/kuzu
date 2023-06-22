@@ -47,6 +47,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
     case LogicalOperatorType::RECURSIVE_EXTEND: {
         physicalOperator = mapLogicalRecursiveExtendToPhysical(logicalOperator.get());
     } break;
+    case LogicalOperatorType::PATH_PROPERTY_PROBE: {
+        physicalOperator = mapLogicalPathPropertyProbeToPhysical(logicalOperator.get());
+    } break;
     case LogicalOperatorType::FLATTEN: {
         physicalOperator = mapLogicalFlattenToPhysical(logicalOperator.get());
     } break;
@@ -161,7 +164,7 @@ std::unique_ptr<ResultCollector> PlanMapper::appendResultCollector(
         std::unique_ptr<ColumnSchema> columnSchema;
         if (schema->getGroup(dataPos.dataChunkPos)->isFlat()) {
             columnSchema = std::make_unique<ColumnSchema>(false /* isUnFlat */,
-                dataPos.dataChunkPos, FactorizedTable::getDataTypeSize(expression->dataType));
+                dataPos.dataChunkPos, LogicalTypeUtils::getRowLayoutSize(expression->dataType));
         } else {
             columnSchema = std::make_unique<ColumnSchema>(
                 true /* isUnFlat */, dataPos.dataChunkPos, (uint32_t)sizeof(overflow_value_t));

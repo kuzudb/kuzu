@@ -2,7 +2,7 @@
 
 #include <set>
 
-#include "common/vector/value_vector_utils.h"
+#include "common/vector/value_vector.h"
 
 namespace kuzu {
 namespace function {
@@ -29,8 +29,8 @@ struct ListDistinct {
         auto resultDataVector = common::ListVector::getDataVector(&resultVector);
         auto numBytesPerValue = inputDataVector->getNumBytesPerValue();
         for (auto val : uniqueValues) {
-            common::ValueVectorUtils::copyValue(resultValues, *resultDataVector,
-                reinterpret_cast<uint8_t*>(&val), *inputDataVector);
+            resultDataVector->copyFromVectorData(
+                resultValues, inputDataVector, reinterpret_cast<uint8_t*>(&val));
             resultValues += numBytesPerValue;
         }
     }

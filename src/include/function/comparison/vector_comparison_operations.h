@@ -15,6 +15,12 @@ protected:
         for (auto& comparableType : common::LogicalTypeUtils::getAllValidComparableLogicalTypes()) {
             definitions.push_back(getDefinition<FUNC>(name, comparableType, comparableType));
         }
+        definitions.push_back(
+            getDefinition<FUNC>(name, common::LogicalType{common::LogicalTypeID::VAR_LIST},
+                common::LogicalType{common::LogicalTypeID::VAR_LIST}));
+        definitions.push_back(
+            getDefinition<FUNC>(name, common::LogicalType{common::LogicalTypeID::STRUCT},
+                common::LogicalType{common::LogicalTypeID::STRUCT}));
         // We can only check whether two internal ids are equal or not. So INTERNAL_ID is not
         // part of the comparable logical types.
         definitions.push_back(
@@ -24,6 +30,24 @@ protected:
     }
 
 private:
+    template<typename LEFT_TYPE, typename RIGHT_TYPE, typename RESULT_TYPE, typename FUNC>
+    static void BinaryComparisonExecFunction(
+        const std::vector<std::shared_ptr<common::ValueVector>>& params,
+        common::ValueVector& result) {
+        assert(params.size() == 2);
+        BinaryOperationExecutor::executeComparison<LEFT_TYPE, RIGHT_TYPE, RESULT_TYPE, FUNC>(
+            *params[0], *params[1], result);
+    }
+
+    template<typename LEFT_TYPE, typename RIGHT_TYPE, typename FUNC>
+    static bool BinaryComparisonSelectFunction(
+        const std::vector<std::shared_ptr<common::ValueVector>>& params,
+        common::SelectionVector& selVector) {
+        assert(params.size() == 2);
+        return BinaryOperationExecutor::selectComparison<LEFT_TYPE, RIGHT_TYPE, FUNC>(
+            *params[0], *params[1], selVector);
+    }
+
     template<typename FUNC>
     static inline std::unique_ptr<VectorOperationDefinition> getDefinition(
         const std::string& name, common::LogicalType leftType, common::LogicalType rightType) {
@@ -42,44 +66,44 @@ private:
     template<typename FUNC>
     static void getExecFunc(
         common::PhysicalTypeID leftType, common::PhysicalTypeID rightType, scalar_exec_func& func) {
-        assert(leftType == rightType);
         switch (leftType) {
         case common::PhysicalTypeID::INT64: {
-            func = BinaryExecFunction<int64_t, int64_t, uint8_t, FUNC>;
-            return;
-        }
+            func = BinaryComparisonExecFunction<int64_t, int64_t, uint8_t, FUNC>;
+        } break;
         case common::PhysicalTypeID::INT32: {
-            func = BinaryExecFunction<int32_t, int32_t, uint8_t, FUNC>;
-            return;
-        }
+            func = BinaryComparisonExecFunction<int32_t, int32_t, uint8_t, FUNC>;
+        } break;
         case common::PhysicalTypeID::INT16: {
-            func = BinaryExecFunction<int16_t, int16_t, uint8_t, FUNC>;
-            return;
-        }
+            func = BinaryComparisonExecFunction<int16_t, int16_t, uint8_t, FUNC>;
+        } break;
         case common::PhysicalTypeID::DOUBLE: {
-            func = BinaryExecFunction<double, double, uint8_t, FUNC>;
-            return;
-        }
+            func = BinaryComparisonExecFunction<double, double, uint8_t, FUNC>;
+        } break;
         case common::PhysicalTypeID::FLOAT: {
-            func = BinaryExecFunction<float, float, uint8_t, FUNC>;
-            return;
-        }
+            func = BinaryComparisonExecFunction<float, float, uint8_t, FUNC>;
+        } break;
         case common::PhysicalTypeID::BOOL: {
-            func = BinaryExecFunction<uint8_t, uint8_t, uint8_t, FUNC>;
-            return;
-        }
+            func = BinaryComparisonExecFunction<uint8_t, uint8_t, uint8_t, FUNC>;
+        } break;
         case common::PhysicalTypeID::STRING: {
-            func = BinaryExecFunction<common::ku_string_t, common::ku_string_t, uint8_t, FUNC>;
-            return;
-        }
+            func = BinaryComparisonExecFunction<common::ku_string_t, common::ku_string_t, uint8_t,
+                FUNC>;
+        } break;
         case common::PhysicalTypeID::INTERNAL_ID: {
-            func = BinaryExecFunction<common::nodeID_t, common::nodeID_t, uint8_t, FUNC>;
-            return;
-        }
+            func = BinaryComparisonExecFunction<common::nodeID_t, common::nodeID_t, uint8_t, FUNC>;
+        } break;
         case common::PhysicalTypeID::INTERVAL: {
-            func = BinaryExecFunction<common::interval_t, common::interval_t, uint8_t, FUNC>;
-            return;
-        }
+            func =
+                BinaryComparisonExecFunction<common::interval_t, common::interval_t, uint8_t, FUNC>;
+        } break;
+        case common::PhysicalTypeID::VAR_LIST: {
+            func = BinaryComparisonExecFunction<common::list_entry_t, common::list_entry_t, uint8_t,
+                FUNC>;
+        } break;
+        case common::PhysicalTypeID::STRUCT: {
+            func = BinaryComparisonExecFunction<common::struct_entry_t, common::struct_entry_t,
+                uint8_t, FUNC>;
+        } break;
         default:
             throw common::RuntimeException(
                 "Invalid input data types(" +
@@ -94,41 +118,39 @@ private:
         assert(leftTypeID == rightTypeID);
         switch (leftTypeID) {
         case common::PhysicalTypeID::INT64: {
-            func = BinarySelectFunction<int64_t, int64_t, FUNC>;
-            return;
-        }
+            func = BinaryComparisonSelectFunction<int64_t, int64_t, FUNC>;
+        } break;
         case common::PhysicalTypeID::INT32: {
-            func = BinarySelectFunction<int32_t, int32_t, FUNC>;
-            return;
-        }
+            func = BinaryComparisonSelectFunction<int32_t, int32_t, FUNC>;
+        } break;
         case common::PhysicalTypeID::INT16: {
-            func = BinarySelectFunction<int16_t, int16_t, FUNC>;
-            return;
-        }
+            func = BinaryComparisonSelectFunction<int16_t, int16_t, FUNC>;
+        } break;
         case common::PhysicalTypeID::DOUBLE: {
-            func = BinarySelectFunction<double_t, double_t, FUNC>;
-            return;
-        }
+            func = BinaryComparisonSelectFunction<double_t, double_t, FUNC>;
+        } break;
         case common::PhysicalTypeID::FLOAT: {
-            func = BinarySelectFunction<float_t, float_t, FUNC>;
-            return;
-        }
+            func = BinaryComparisonSelectFunction<float_t, float_t, FUNC>;
+        } break;
         case common::PhysicalTypeID::BOOL: {
-            func = BinarySelectFunction<uint8_t, uint8_t, FUNC>;
-            return;
-        }
+            func = BinaryComparisonSelectFunction<uint8_t, uint8_t, FUNC>;
+        } break;
         case common::PhysicalTypeID::STRING: {
-            func = BinarySelectFunction<common::ku_string_t, common::ku_string_t, FUNC>;
-            return;
-        }
+            func = BinaryComparisonSelectFunction<common::ku_string_t, common::ku_string_t, FUNC>;
+        } break;
         case common::PhysicalTypeID::INTERNAL_ID: {
-            func = BinarySelectFunction<common::nodeID_t, common::nodeID_t, FUNC>;
-            return;
-        }
+            func = BinaryComparisonSelectFunction<common::nodeID_t, common::nodeID_t, FUNC>;
+        } break;
         case common::PhysicalTypeID::INTERVAL: {
-            func = BinarySelectFunction<common::interval_t, common::interval_t, FUNC>;
-            return;
-        }
+            func = BinaryComparisonSelectFunction<common::interval_t, common::interval_t, FUNC>;
+        } break;
+        case common::PhysicalTypeID::VAR_LIST: {
+            func = BinaryComparisonSelectFunction<common::list_entry_t, common::list_entry_t, FUNC>;
+        } break;
+        case common::PhysicalTypeID::STRUCT: {
+            func = BinaryComparisonSelectFunction<common::struct_entry_t, common::struct_entry_t,
+                FUNC>;
+        } break;
         default:
             throw common::RuntimeException(
                 "Invalid input data types(" +

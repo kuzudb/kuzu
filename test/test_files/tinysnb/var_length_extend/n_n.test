@@ -42,18 +42,30 @@ Greg
 ---- 1
 148
 
+#[3:0,3:3]|Bob
+#[3:0,3:4]|Bob
+#[3:0,3:5]|Bob
+#[3:0]|Bob
+#[3:1,3:6]|Carol
+#[3:1,3:7]|Carol
+#[3:1,3:8]|Carol
+#[3:1]|Carol
+#[3:2,3:10]|Dan
+#[3:2,3:11]|Dan
+#[3:2,3:9]|Dan
+#[3:2]|Dan
 -NAME KnowsOneToTwoHopTest
--QUERY MATCH (a:person)-[e:knows*1..2]->(b:person) WHERE a.fName='Alice' RETURN e
+-QUERY MATCH (a:person)-[e:knows*1..2]->(b:person) WHERE a.fName='Alice' RETURN id(rels(e)[1]), ((nodes(e))[2]).fName
 ---- 12
-{_NODES: [0:0,0:1,0:0], _RELS: [3:0,3:3]}
-{_NODES: [0:0,0:1,0:2], _RELS: [3:0,3:4]}
-{_NODES: [0:0,0:1,0:3], _RELS: [3:0,3:5]}
-{_NODES: [0:0,0:1], _RELS: [3:0]}
-{_NODES: [0:0,0:2,0:0], _RELS: [3:1,3:6]}
-{_NODES: [0:0,0:2,0:1], _RELS: [3:1,3:7]}
-{_NODES: [0:0,0:2,0:3], _RELS: [3:1,3:8]}
-{_NODES: [0:0,0:2], _RELS: [3:1]}
-{_NODES: [0:0,0:3,0:0], _RELS: [3:2,3:9]}
-{_NODES: [0:0,0:3,0:1], _RELS: [3:2,3:10]}
-{_NODES: [0:0,0:3,0:2], _RELS: [3:2,3:11]}
-{_NODES: [0:0,0:3], _RELS: [3:2]}
+3:0|Bob
+3:0|Bob
+3:0|Bob
+3:0|Bob
+3:1|Carol
+3:1|Carol
+3:1|Carol
+3:1|Carol
+3:2|Dan
+3:2|Dan
+3:2|Dan
+3:2|Dan

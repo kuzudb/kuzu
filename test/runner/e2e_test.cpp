@@ -19,7 +19,9 @@ public:
         BaseGraphTest::SetUp();
         systemConfig->bufferPoolSize = bufferPoolSize;
         createDBAndConn();
-        initGraph();
+        if (dataset != "empty") {
+            initGraph();
+        }
     }
 
     void setUpDataset() {
@@ -81,9 +83,6 @@ void parseAndRegisterTestGroup(const std::string& path, bool generateTestList = 
 }
 
 void scanTestFiles(const std::string& path) {
-    std::string testListFile = TestHelper::appendKuzuRootPath(
-        FileUtils::joinPath(TestHelper::E2E_TEST_FILES_DIRECTORY, "test_list"));
-    FileUtils::removeFileIfExists(testListFile);
     if (std::filesystem::is_regular_file(path)) {
         parseAndRegisterTestGroup(path);
         return;
@@ -111,6 +110,7 @@ void checkGtestParams(int argc, char** argv) {
     if (argc > 1) {
         std::string argument = argv[1];
         if (argument == "--gtest_list_tests") {
+            FileUtils::removeFileIfExists(TestHelper::getTestListFile());
             scanTestFiles(TestHelper::appendKuzuRootPath(TestHelper::E2E_TEST_FILES_DIRECTORY));
         }
         if (argument.starts_with("--gtest_filter=")) {

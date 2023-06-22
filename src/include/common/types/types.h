@@ -85,6 +85,7 @@ KUZU_API enum class LogicalTypeID : uint8_t {
 
     // variable size types
     STRING = 50,
+    BLOB = 51,
     VAR_LIST = 52,
     STRUCT = 53,
     MAP = 54,
@@ -109,10 +110,6 @@ enum class PhysicalTypeID : uint8_t {
     FIXED_LIST = 21,
     VAR_LIST = 22,
     STRUCT = 23,
-};
-
-struct PhysicalTypeUtils {
-    static std::string physicalTypeToString(PhysicalTypeID physicalType);
 };
 
 class LogicalType;
@@ -181,6 +178,7 @@ public:
     explicit StructTypeInfo(std::vector<std::unique_ptr<StructField>> fields);
 
     struct_field_idx_t getStructFieldIdx(std::string fieldName) const;
+    StructField* getStructField(const std::string& fieldName) const;
     std::vector<LogicalType*> getChildrenTypes() const;
     std::vector<std::string> getChildrenNames() const;
     std::vector<StructField*> getStructFields() const;
@@ -282,6 +280,12 @@ struct StructType {
         return structTypeInfo->getStructFields();
     }
 
+    static inline StructField* getField(const LogicalType* type, const std::string& key) {
+        assert(type->getPhysicalType() == PhysicalTypeID::STRUCT);
+        auto structTypeInfo = reinterpret_cast<StructTypeInfo*>(type->extraTypeInfo.get());
+        return structTypeInfo->getStructField(key);
+    }
+
     static inline struct_field_idx_t getFieldIdx(const LogicalType* type, const std::string& key) {
         assert(type->getPhysicalType() == PhysicalTypeID::STRUCT);
         auto structTypeInfo = reinterpret_cast<StructTypeInfo*>(type->extraTypeInfo.get());
@@ -310,6 +314,11 @@ struct UnionType {
     }
 };
 
+struct PhysicalTypeUtils {
+    static std::string physicalTypeToString(PhysicalTypeID physicalType);
+    static uint32_t getFixedTypeSize(PhysicalTypeID physicalType);
+};
+
 class LogicalTypeUtils {
 public:
     KUZU_API static std::string dataTypeToString(const LogicalType& dataType);
@@ -317,11 +326,11 @@ public:
     static std::string dataTypesToString(const std::vector<LogicalType>& dataTypes);
     static std::string dataTypesToString(const std::vector<LogicalTypeID>& dataTypeIDs);
     KUZU_API static LogicalType dataTypeFromString(const std::string& dataTypeString);
-    static uint32_t getFixedTypeSize(kuzu::common::PhysicalTypeID physicalType);
+    static uint32_t getRowLayoutSize(const LogicalType& logicalType);
     static bool isNumerical(const LogicalType& dataType);
     static std::vector<LogicalType> getAllValidComparableLogicalTypes();
     static std::vector<LogicalTypeID> getNumericalLogicalTypeIDs();
-    static std::vector<LogicalTypeID> getAllValidLogicTypeIDs();
+    static std::vector<LogicalType> getAllValidLogicTypes();
 
 private:
     static LogicalTypeID dataTypeIDFromString(const std::string& dataTypeIDString);

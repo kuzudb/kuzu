@@ -42,6 +42,8 @@ private:
         planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapLogicalRecursiveExtendToPhysical(
         planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapLogicalPathPropertyProbeToPhysical(
+        planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapLogicalFlattenToPhysical(
         planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapLogicalFilterToPhysical(
@@ -126,7 +128,7 @@ private:
         planner::Schema* outSchema, std::unique_ptr<PhysicalOperator> prevOperator,
         const std::string& paramsString);
 
-    static void mapAccHashJoin(PhysicalOperator* probe);
+    static void mapSIPJoin(PhysicalOperator* probe);
 
     static std::vector<DataPos> getExpressionsDataPos(
         const binder::expression_vector& expressions, const planner::Schema& schema);

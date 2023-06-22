@@ -57,29 +57,6 @@ std::vector<std::unique_ptr<TestQueryConfig>> TestHelper::parseTestFile(
     return result;
 }
 
-bool TestHelper::testQueries(
-    std::vector<std::unique_ptr<TestQueryConfig>>& configs, Connection& conn) {
-    spdlog::set_level(spdlog::level::info);
-    auto numPassedQueries = 0u;
-    std::vector<uint64_t> failedQueries;
-    for (auto i = 0u; i < configs.size(); i++) {
-        if (testQuery(configs[i].get(), conn)) {
-            numPassedQueries++;
-        } else {
-            failedQueries.push_back(i);
-        }
-    }
-    spdlog::info("SUMMARY:");
-    if (failedQueries.empty()) {
-        spdlog::info("ALL QUERIES PASSED.");
-    } else {
-        for (auto& idx : failedQueries) {
-            spdlog::info("QUERY {} NOT PASSED.", configs[idx]->name);
-        }
-    }
-    return numPassedQueries == configs.size();
-}
-
 std::vector<std::string> TestHelper::convertResultToString(
     QueryResult& queryResult, bool checkOutputOrder) {
     std::vector<std::string> actualOutput;
@@ -97,49 +74,6 @@ void TestHelper::initializeConnection(TestQueryConfig* config, Connection& conn)
     spdlog::info("TEST: {}", config->name);
     spdlog::info("QUERY: {}", config->query);
     conn.setMaxNumThreadForExec(config->numThreads);
-}
-
-bool TestHelper::testQuery(TestQueryConfig* config, Connection& conn) {
-    initializeConnection(config, conn);
-    std::unique_ptr<PreparedStatement> preparedStatement;
-    if (config->encodedJoin.empty()) {
-        preparedStatement = conn.prepareNoLock(config->query, config->enumerate);
-    } else {
-        preparedStatement =
-            conn.prepareNoLock(config->query, true /* enumerate*/, config->encodedJoin);
-    }
-    if (!preparedStatement->isSuccess()) {
-        spdlog::error(preparedStatement->getErrorMessage());
-        return false;
-    }
-    auto numPlans = preparedStatement->logicalPlans.size();
-    if (numPlans == 0) {
-        spdlog::error("Query {} has no plans" + config->name);
-        return false;
-    }
-    auto numPassedPlans = 0u;
-    for (auto i = 0u; i < numPlans; ++i) {
-        auto planStr = preparedStatement->logicalPlans[i]->toString();
-        auto result = conn.executeAndAutoCommitIfNecessaryNoLock(preparedStatement.get(), i);
-        assert(result->isSuccess());
-        std::vector<std::string> resultTuples =
-            convertResultToString(*result, config->checkOutputOrder);
-        if (resultTuples.size() == result->getNumTuples() &&
-            resultTuples == config->expectedTuples) {
-            spdlog::info(
-                "PLAN{} PASSED in {}ms.", i, result->getQuerySummary()->getExecutionTime());
-            numPassedPlans++;
-        } else {
-            spdlog::error("PLAN{} NOT PASSED.", i);
-            spdlog::info("PLAN: \n{}", planStr);
-            spdlog::info("RESULT: \n");
-            for (auto& tuple : resultTuples) {
-                spdlog::info(tuple);
-            }
-        }
-    }
-    spdlog::info("{}/{} plans passed.", numPassedPlans, numPlans);
-    return numPassedPlans == numPlans;
 }
 
 std::string TestHelper::getMillisecondsSuffix() {

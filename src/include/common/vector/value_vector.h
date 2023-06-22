@@ -54,6 +54,13 @@ public:
     }
     template<typename T>
     void setValue(uint32_t pos, T val);
+    // copyFromRowData assumes rowData is non-NULL.
+    void copyFromRowData(uint32_t pos, const uint8_t* rowData);
+    // copyFromVectorData assumes srcVectorData is non-NULL.
+    void copyToRowData(
+        uint32_t pos, uint8_t* rowData, InMemOverflowBuffer* rowOverflowBuffer) const;
+    void copyFromVectorData(
+        uint8_t* dstData, const ValueVector* srcVector, const uint8_t* srcVectorData);
 
     inline uint8_t* getData() const { return valueBuffer.get(); }
 
@@ -91,11 +98,14 @@ public:
             ->getOverflowBuffer();
     }
 
-    static inline void addString(ValueVector* vector, uint32_t pos, char* value, uint64_t len) {
-        assert(vector->dataType.getPhysicalType() == PhysicalTypeID::STRING);
-        reinterpret_cast<StringAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())
-            ->addString(vector, pos, value, len);
-    }
+    static void addString(ValueVector* vector, uint32_t vectorPos, ku_string_t& srcStr);
+    static void addString(
+        ValueVector* vector, uint32_t vectorPos, const char* srcStr, uint64_t length);
+    static void addString(ValueVector* vector, ku_string_t& dstStr, ku_string_t& srcStr);
+    static void addString(
+        ValueVector* vector, ku_string_t& dstStr, const char* srcStr, uint64_t length);
+    static void copyToRowData(const ValueVector* vector, uint32_t pos, uint8_t* rowData,
+        InMemOverflowBuffer* rowOverflowBuffer);
 };
 
 class ListVector {
@@ -105,6 +115,12 @@ public:
         return reinterpret_cast<ListAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())
             ->getDataVector();
     }
+
+    static inline uint64_t getDataVectorSize(const ValueVector* vector) {
+        assert(vector->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST);
+        return reinterpret_cast<ListAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())->getSize();
+    }
+
     static inline uint8_t* getListValues(const ValueVector* vector, const list_entry_t& listEntry) {
         assert(vector->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST);
         auto dataVector = getDataVector(vector);
@@ -121,6 +137,12 @@ public:
         return reinterpret_cast<ListAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())
             ->addList(listSize);
     }
+
+    static void copyFromRowData(ValueVector* vector, uint32_t pos, const uint8_t* rowData);
+    static void copyToRowData(const ValueVector* vector, uint32_t pos, uint8_t* rowData,
+        InMemOverflowBuffer* rowOverflowBuffer);
+    static void copyFromVectorData(ValueVector* dstVector, uint8_t* dstData,
+        const ValueVector* srcVector, const uint8_t* srcData);
 };
 
 class StructVector {
@@ -149,6 +171,12 @@ public:
                 vector->getData() + vector->getNumBytesPerValue() * DEFAULT_VECTOR_CAPACITY),
             0);
     }
+
+    static void copyFromRowData(ValueVector* vector, uint32_t pos, const uint8_t* rowData);
+    static void copyToRowData(const ValueVector* vector, uint32_t pos, uint8_t* rowData,
+        InMemOverflowBuffer* rowOverflowBuffer);
+    static void copyFromVectorData(ValueVector* dstVector, const uint8_t* dstData,
+        const ValueVector* srcVector, const uint8_t* srcData);
 };
 
 class UnionVector {

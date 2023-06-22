@@ -91,7 +91,12 @@ private:
         std::shared_ptr<NodeExpression> nbrNode, std::shared_ptr<RelExpression> rel,
         ExtendDirection direction, LogicalPlan& plan);
     void createRecursivePlan(std::shared_ptr<NodeExpression> boundNode,
-        std::shared_ptr<NodeExpression> recursiveNode, std::shared_ptr<RelExpression> rel,
+        std::shared_ptr<NodeExpression> recursiveNode, std::shared_ptr<RelExpression> recursiveRel,
+        ExtendDirection direction, LogicalPlan& plan);
+    void createPathNodePropertyScanPlan(
+        std::shared_ptr<NodeExpression> recursiveNode, LogicalPlan& plan);
+    void createPathRelPropertyScanPlan(std::shared_ptr<NodeExpression> recursiveNode,
+        std::shared_ptr<NodeExpression> nbrNode, std::shared_ptr<RelExpression> recursiveRel,
         ExtendDirection direction, LogicalPlan& plan);
 
     void planJoin(const binder::expression_vector& joinNodeIDs, common::JoinType joinType,

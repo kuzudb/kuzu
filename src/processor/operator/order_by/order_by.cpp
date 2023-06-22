@@ -39,7 +39,7 @@ std::unique_ptr<FactorizedTableSchema> OrderBy::populateTableSchema() {
         bool isUnflat = !orderByDataInfo.isPayloadFlat[i] && !orderByDataInfo.mayContainUnflatKey;
         tableSchema->appendColumn(std::make_unique<ColumnSchema>(isUnflat, dataPos.dataChunkPos,
             isUnflat ? (uint32_t)sizeof(overflow_value_t) :
-                       FactorizedTable::getDataTypeSize(dataType)));
+                       LogicalTypeUtils::getRowLayoutSize(dataType)));
     }
     return tableSchema;
 }
@@ -50,7 +50,7 @@ void OrderBy::initGlobalStateInternal(kuzu::processor::ExecutionContext* context
     auto tableSchema = populateTableSchema();
     for (auto i = 0u; i < orderByDataInfo.keysPosAndType.size(); ++i) {
         auto [dataPos, dataType] = orderByDataInfo.keysPosAndType[i];
-        if (LogicalTypeID::STRING == dataType.getLogicalTypeID()) {
+        if (PhysicalTypeID::STRING == dataType.getPhysicalType()) {
             // If this is a string column, we need to find the factorizedTable offset for this
             // column.
             auto factorizedTableColIdx = 0ul;

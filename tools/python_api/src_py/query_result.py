@@ -44,6 +44,15 @@ class QueryResult:
     get_as_torch_geometric()
         Converts the nodes and rels in query result into a PyTorch Geometric graph representation
         torch_geometric.data.Data or torch_geometric.data.HeteroData.
+
+    get_execution_time()
+        Get the time in ms which was required for executing the query.
+
+    get_compiling_time()
+        Get the time in ms which was required for compiling the query.
+
+    def get_num_tuples(self):
+        Get the number of tuples which the query returned.
     """
 
     def __init__(self, connection, query_result):
@@ -359,3 +368,39 @@ class QueryResult:
 
         converter = TorchGeometricResultConverter(self)
         return converter.get_as_torch_geometric()
+
+    def get_execution_time(self):
+        """
+        Get the time in ms which was required for executing the query.
+
+        Returns
+        -------
+        double
+            Query execution time as double in ms.
+        """
+        self.check_for_query_result_close()
+        return self._query_result.getExecutionTime()
+
+    def get_compiling_time(self):
+        """
+        Get the time in ms which was required for compiling the query.
+
+        Returns
+        -------
+        double
+            Query compile time as double in ms.
+        """
+        self.check_for_query_result_close()
+        return self._query_result.getCompilingTime()
+
+    def get_num_tuples(self):
+        """
+        Get the number of tuples which the query returned.
+
+        Returns
+        -------
+        int
+            Number of tuples.
+        """
+        self.check_for_query_result_close()
+        return self._query_result.getNumTuples()

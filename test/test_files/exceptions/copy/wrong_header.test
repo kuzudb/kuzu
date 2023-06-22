@@ -1,0 +1,47 @@
+-GROUP CopyWrongHeaderTest
+-DATASET CSV empty
+
+--
+
+-CASE UnMatchedColumnTypeError
+-STATEMENT create node table person (ID INT64, fName INT64, gender INT64, isStudent BOOLEAN, 
+                                     isWorker BOOLEAN, age INT64, eyeSight DOUBLE, birthdate DATE,
+                                     registerTime TIMESTAMP, lastJobDuration INTERVAL, workedHours INT64[], 
+                                     usedNames STRING[], courseScoresPerTerm INT64[][], 
+                                     grades INT64[4], height float,
+                                     PRIMARY KEY (fName))
+---- ok
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" (HEADER=true)
+---- error
+Copy exception: Invalid: In CSV column #1: CSV conversion error to int64: invalid value 'Alice'
+
+
+-CASE HeaderError
+-STATEMENT create node table person (ID INT64, fName STRING, PRIMARY KEY (ID))
+---- ok
+-STATEMENT create rel table knows (FROM person TO person, prop1 INT64, prop2 STRING, MANY_MANY);
+---- ok
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/vPersonWrongColumnName.csv" (HEADER=true)
+---- ok
+-STATEMENT COPY knows FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/eKnowsWrongColumnName.csv" (HEADER=true)
+---- ok
+
+-CASE CopyToNonEmptyTableErrors
+-STATEMENT create node table person (ID INT64, fName STRING, PRIMARY KEY (ID));
+---- ok
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/vPersonWrongColumnName.csv" (HEADER=true)
+---- ok
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/vPersonWrongColumnName.csv" (HEADER=true)
+---- error
+Copy exception: COPY commands can only be executed once on a table.
+
+-CASE MissingColumnErrors
+-STATEMENT create node table person (ID INT64, fName STRING, PRIMARY KEY (ID))
+---- ok
+-STATEMENT create rel table knows (FROM person TO person, prop1 INT64, prop2 STRING, MANY_MANY)
+---- ok
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/vPerson.csv" (HEADER=true)
+---- ok
+-STATEMENT COPY knows FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/eKnowsMissingColumn.csv" (HEADER=true)
+---- error
+Copy exception: Invalid: CSV parse error: Expected 4 columns, got 3: 10,24,1

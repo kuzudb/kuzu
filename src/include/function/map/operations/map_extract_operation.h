@@ -1,7 +1,6 @@
 #pragma once
 
 #include "common/vector/value_vector.h"
-#include "common/vector/value_vector_utils.h"
 
 namespace kuzu {
 namespace function {
@@ -16,13 +15,16 @@ struct MapExtract {
         auto mapKeyValues = common::MapVector::getMapKeys(&listVector, listEntry);
         auto mapValVector = common::MapVector::getValueVector(&listVector);
         auto mapValValues = common::MapVector::getMapValues(&listVector, listEntry);
+        uint8_t comparisonResult;
         for (auto i = 0u; i < listEntry.size; i++) {
-            if (common::TypeUtils::isValueEqual(
-                    *reinterpret_cast<T*>(mapKeyValues), key, mapKeyVector, &keyVector)) {
+            Equals::operation(*reinterpret_cast<T*>(mapKeyValues), key, comparisonResult,
+                mapKeyVector, &keyVector);
+            if (comparisonResult) {
                 resultEntry = common::ListVector::addList(&resultVector, 1 /* size */);
-                common::ValueVectorUtils::copyValue(
-                    common::ListVector::getListValues(&resultVector, resultEntry),
-                    *common::ListVector::getDataVector(&resultVector), mapValValues, *mapValVector);
+                common::ListVector::getDataVector(&resultVector)
+                    ->copyFromVectorData(
+                        common::ListVector::getListValues(&resultVector, resultEntry), mapValVector,
+                        mapValValues);
                 return;
             }
             mapKeyValues += mapKeyVector->getNumBytesPerValue();

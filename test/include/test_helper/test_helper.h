@@ -26,22 +26,20 @@ struct TestQueryConfig {
 
 class TestHelper {
 public:
-    static std::vector<std::unique_ptr<TestQueryConfig>> parseTestFile(
-        const std::string& path, bool checkOutputOrder = false);
-
-    static bool testQueries(
-        std::vector<std::unique_ptr<TestQueryConfig>>& configs, Connection& conn);
-
-    static std::vector<std::string> convertResultToString(
-        QueryResult& queryResult, bool checkOutputOrder = false);
-
-    static void executeScript(const std::string& path, Connection& conn);
-
     static constexpr char E2E_TEST_FILES_DIRECTORY[] = "test/test_files";
     static constexpr char SCHEMA_FILE_NAME[] = "schema.cypher";
     static constexpr char COPY_FILE_NAME[] = "copy.cypher";
     static constexpr char PARQUET_TEMP_DATASET_PATH[] = "dataset/parquet_temp_";
     static constexpr char TMP_TEST_DIR[] = "test/unittest_temp_";
+    static constexpr char TEST_ANSWERS_PATH[] = "/test/answers";
+
+    static std::vector<std::unique_ptr<TestQueryConfig>> parseTestFile(
+        const std::string& path, bool checkOutputOrder = false);
+
+    static std::vector<std::string> convertResultToString(
+        QueryResult& queryResult, bool checkOutputOrder = false);
+
+    static void executeScript(const std::string& path, Connection& conn);
 
     static std::string getTestListFile() {
         return appendKuzuRootPath(std::string(E2E_TEST_FILES_DIRECTORY) + "/test_list");
@@ -58,7 +56,6 @@ public:
 
 private:
     static void initializeConnection(TestQueryConfig* config, Connection& conn);
-    static bool testQuery(TestQueryConfig* config, Connection& conn);
 };
 
 } // namespace testing

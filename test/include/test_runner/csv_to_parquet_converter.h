@@ -42,8 +42,6 @@ private:
 
     static void createCopyFile(const std::string& parquetDatasetPath,
         const std::vector<CSVToParquetConverter::CopyCommandInfo>& copyCommands);
-
-    static std::string extractPath(std::string& str, char delimiter);
 };
 
 } // namespace testing

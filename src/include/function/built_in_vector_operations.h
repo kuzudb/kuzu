@@ -68,12 +68,14 @@ private:
     void registerDateOperations();
     void registerTimestampOperations();
     void registerIntervalOperations();
+    void registerBlobOperations();
     void registerStringOperations();
     void registerCastOperations();
     void registerListOperations();
     void registerStructOperations();
     void registerMapOperations();
     void registerUnionOperations();
+    void registerNodeRelOperations();
 
 private:
     std::unordered_map<std::string, vector_operation_definitions> vectorOperations;

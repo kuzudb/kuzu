@@ -84,9 +84,9 @@ public:
     KUZU_API explicit Value(const char* val_);
     /**
      * @param val_ the string value to set.
-     * @return a Value with STRING type and val_ value.
+     * @return a Value with type and val_ value.
      */
-    KUZU_API explicit Value(const std::string& val_);
+    KUZU_API explicit Value(LogicalType type, const std::string& val_);
     /**
      * @param vals the list value to set.
      * @return a Value with dataType type and vals value.
@@ -329,7 +329,7 @@ public:
     /**
      * @return the name of the RelVal.
      */
-    KUZU_API std::string getLabelName();
+    KUZU_API std::string getLabelName() const;
     /**
      * @return the value of the RelVal in string format.
      */
@@ -663,20 +663,11 @@ inline Value Value::createValue(nodeID_t val) {
 
 /**
  * @param val the string value
- * @return a Value with STRING type and val value.
+ * @return a Value with type and val value.
  */
 KUZU_API template<>
 inline Value Value::createValue(std::string val) {
-    return Value(val);
-}
-
-/**
- * @param val the string value
- * @return a Value with STRING type and val value.
- */
-KUZU_API template<>
-inline Value Value::createValue(const std::string& val) {
-    return Value(val);
+    return Value(LogicalType{LogicalTypeID::STRING}, val);
 }
 
 /**
@@ -685,7 +676,7 @@ inline Value Value::createValue(const std::string& val) {
  */
 KUZU_API template<>
 inline Value Value::createValue(const char* value) {
-    return Value(std::string(value));
+    return Value(LogicalType{LogicalTypeID::STRING}, std::string(value));
 }
 
 } // namespace common

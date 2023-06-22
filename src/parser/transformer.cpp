@@ -737,7 +737,8 @@ std::unique_ptr<ParsedExpression> Transformer::transformLiteral(
         return transformBooleanLiteral(*ctx.oC_BooleanLiteral());
     } else if (ctx.StringLiteral()) {
         return std::make_unique<ParsedLiteralExpression>(
-            std::make_unique<common::Value>(transformStringLiteral(*ctx.StringLiteral())),
+            std::make_unique<common::Value>(common::LogicalType{common::LogicalTypeID::STRING},
+                transformStringLiteral(*ctx.StringLiteral())),
             ctx.getText());
     } else if (ctx.NULL_()) {
         return std::make_unique<ParsedLiteralExpression>(
@@ -813,7 +814,7 @@ std::unique_ptr<ParsedExpression> Transformer::transformFunctionInvocation(
     }
     auto expression = std::make_unique<ParsedFunctionExpression>(
         functionName, ctx.getText(), ctx.DISTINCT() != nullptr);
-    for (auto& functionParameter : ctx.oC_FunctionParameter()) {
+    for (auto& functionParameter : ctx.kU_FunctionParameter()) {
         expression->addChild(transformFunctionParameterExpression(*functionParameter));
     }
     return expression;
@@ -824,11 +825,10 @@ std::string Transformer::transformFunctionName(CypherParser::OC_FunctionNameCont
 }
 
 std::unique_ptr<ParsedExpression> Transformer::transformFunctionParameterExpression(
-    CypherParser::OC_FunctionParameterContext& ctx) {
+    CypherParser::KU_FunctionParameterContext& ctx) {
     auto expression = transformExpression(*ctx.oC_Expression());
-    if (ctx.oC_FunctionParameterName()) {
-        expression->setAlias(
-            transformSymbolicName(*ctx.oC_FunctionParameterName()->oC_SymbolicName()));
+    if (ctx.oC_SymbolicName()) {
+        expression->setAlias(transformSymbolicName(*ctx.oC_SymbolicName()));
     }
     return expression;
 }
@@ -1088,7 +1088,7 @@ Transformer::transformParsingOptions(CypherParser::KU_ParsingOptionsContext& ctx
 
 std::string Transformer::transformStringLiteral(antlr4::tree::TerminalNode& stringLiteral) {
     auto str = stringLiteral.getText();
-    return str.substr(1, str.size() - 2);
+    return common::StringUtils::removeEscapedCharacters(str);
 }
 
 } // namespace parser

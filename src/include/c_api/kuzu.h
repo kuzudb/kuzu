@@ -882,12 +882,12 @@ KUZU_C_API char* kuzu_rel_val_to_string(kuzu_rel_val* rel_val);
  */
 KUZU_C_API void kuzu_query_summary_destroy(kuzu_query_summary* query_summary);
 /**
- * @brief Returns the compilation time of the given query summary.
+ * @brief Returns the compilation time of the given query summary in milliseconds.
  * @param query_summary The query summary to get compilation time.
  */
 KUZU_C_API double kuzu_query_summary_get_compiling_time(kuzu_query_summary* query_summary);
 /**
- * @brief Returns the execution time of the given query summary.
+ * @brief Returns the execution time of the given query summary in milliseconds.
  * @param query_summary The query summary to get execution time.
  */
 KUZU_C_API double kuzu_query_summary_get_execution_time(kuzu_query_summary* query_summary);

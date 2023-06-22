@@ -1,7 +1,6 @@
 #pragma once
 
 #include "binder/expression/expression.h"
-#include "common/vector/value_vector_utils.h"
 #include "expression_evaluator/base_evaluator.h"
 #include "processor/operator/physical_operator.h"
 #include "processor/result/result_set.h"

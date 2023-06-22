@@ -1,6 +1,5 @@
 #include "storage/storage_structure/disk_overflow_file.h"
 
-#include "common/in_mem_overflow_buffer_utils.h"
 #include "common/null_buffer.h"
 #include "common/string_utils.h"
 #include "common/type_utils.h"
@@ -34,35 +33,35 @@ void DiskOverflowFile::scanStrings(TransactionType trxType, ValueVector& valueVe
         if (valueVector.isNull(pos)) {
             continue;
         }
-        lookupString(trxType, ((ku_string_t*)valueVector.getData())[pos],
-            *common::StringVector::getInMemOverflowBuffer(&valueVector), overflowPageCache);
+        lookupString(
+            trxType, &valueVector, valueVector.getValue<ku_string_t>(pos), overflowPageCache);
     }
     unpinOverflowPageCache(overflowPageCache);
 }
 
 void DiskOverflowFile::lookupString(
-    TransactionType trxType, ku_string_t& kuStr, InMemOverflowBuffer& inMemOverflowBuffer) {
-    if (ku_string_t::isShortString(kuStr.len)) {
+    TransactionType trxType, common::ValueVector* vector, common::ku_string_t& dstStr) {
+    if (ku_string_t::isShortString(dstStr.len)) {
         return;
     }
     PageByteCursor cursor;
-    TypeUtils::decodeOverflowPtr(kuStr.overflowPtr, cursor.pageIdx, cursor.offsetInPage);
+    TypeUtils::decodeOverflowPtr(dstStr.overflowPtr, cursor.pageIdx, cursor.offsetInPage);
     auto [fileHandleToPin, pageIdxToPin] =
         StorageStructureUtils::getFileHandleAndPhysicalPageIdxToPin(
             *fileHandle, cursor.pageIdx, *wal, trxType);
     bufferManager->optimisticRead(*fileHandleToPin, pageIdxToPin, [&](uint8_t* frame) {
-        InMemOverflowBufferUtils::copyString(
-            (char*)(frame + cursor.offsetInPage), kuStr.len, kuStr, inMemOverflowBuffer);
+        StringVector::addString(
+            vector, dstStr, (const char*)(frame + cursor.offsetInPage), dstStr.len);
     });
 }
 
-void DiskOverflowFile::lookupString(TransactionType trxType, ku_string_t& kuStr,
-    InMemOverflowBuffer& inMemOverflowBuffer, OverflowPageCache& overflowPageCache) {
-    if (ku_string_t::isShortString(kuStr.len)) {
+void DiskOverflowFile::lookupString(TransactionType trxType, common::ValueVector* vector,
+    common::ku_string_t& dstStr, OverflowPageCache& overflowPageCache) {
+    if (ku_string_t::isShortString(dstStr.len)) {
         return;
     }
     PageByteCursor cursor;
-    TypeUtils::decodeOverflowPtr(kuStr.overflowPtr, cursor.pageIdx, cursor.offsetInPage);
+    TypeUtils::decodeOverflowPtr(dstStr.overflowPtr, cursor.pageIdx, cursor.offsetInPage);
     auto [fileHandleToPin, pageIdxToPin] =
         StorageStructureUtils::getFileHandleAndPhysicalPageIdxToPin(
             *fileHandle, cursor.pageIdx, *wal, trxType);
@@ -70,8 +69,8 @@ void DiskOverflowFile::lookupString(TransactionType trxType, ku_string_t& kuStr,
         unpinOverflowPageCache(overflowPageCache);
         pinOverflowPageCache(fileHandleToPin, pageIdxToPin, overflowPageCache);
     }
-    InMemOverflowBufferUtils::copyString((char*)(overflowPageCache.frame + cursor.offsetInPage),
-        kuStr.len, kuStr, inMemOverflowBuffer);
+    StringVector::addString(
+        vector, dstStr, (const char*)(overflowPageCache.frame + cursor.offsetInPage), dstStr.len);
 }
 
 void DiskOverflowFile::readListToVector(
@@ -102,8 +101,7 @@ void DiskOverflowFile::readListToVector(
             auto kuStrings = (ku_string_t*)bufferToCopy;
             OverflowPageCache overflowPageCache;
             for (auto i = 0u; i < kuList.size; i++) {
-                lookupString(trxType, kuStrings[i],
-                    *common::StringVector::getInMemOverflowBuffer(dataVector), overflowPageCache);
+                lookupString(trxType, dataVector, kuStrings[i], overflowPageCache);
             }
             unpinOverflowPageCache(overflowPageCache);
         }
@@ -153,7 +151,8 @@ void DiskOverflowFile::readValuesInList(transaction::TransactionType trxType,
     if (childType->getLogicalTypeID() == LogicalTypeID::STRING) {
         for (auto i = 0u; i < numValuesInList; i++) {
             auto kuListVal = *(ku_string_t*)(frame + cursor.offsetInPage);
-            retValues.push_back(make_unique<Value>(readString(trxType, kuListVal)));
+            retValues.push_back(make_unique<Value>(
+                LogicalType{LogicalTypeID::STRING}, readString(trxType, kuListVal)));
             cursor.offsetInPage += numBytesOfSingleValue;
         }
     } else if (childType->getLogicalTypeID() == LogicalTypeID::VAR_LIST) {

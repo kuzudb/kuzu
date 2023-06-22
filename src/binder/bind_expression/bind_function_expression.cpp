@@ -69,7 +69,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
         ScalarFunctionExpression::getUniqueName(function->name, childrenAfterCast);
     return make_shared<ScalarFunctionExpression>(functionName, FUNCTION, std::move(bindData),
         std::move(childrenAfterCast), function->execFunc, function->selectFunc,
-        uniqueExpressionName);
+        function->compileFunc, uniqueExpressionName);
 }
 
 std::shared_ptr<Expression> ExpressionBinder::bindAggregateFunctionExpression(
@@ -83,7 +83,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindAggregateFunctionExpression(
         // e.g. COUNT(a) -> COUNT(a._id)
         if (child->dataType.getLogicalTypeID() == LogicalTypeID::NODE ||
             child->dataType.getLogicalTypeID() == LogicalTypeID::REL) {
-            child = bindInternalIDExpression(*child);
+            child = bindInternalIDExpression(child);
         }
         childrenTypes.push_back(child->dataType);
         children.push_back(std::move(child));
@@ -131,9 +131,9 @@ std::shared_ptr<Expression> ExpressionBinder::rewriteFunctionExpression(
     const parser::ParsedExpression& parsedExpression, const std::string& functionName) {
     if (functionName == ID_FUNC_NAME) {
         auto child = bindExpression(*parsedExpression.getChild(0));
-        validateExpectedDataType(
-            *child, std::vector<LogicalTypeID>{LogicalTypeID::NODE, LogicalTypeID::REL});
-        return bindInternalIDExpression(*child);
+        validateExpectedDataType(*child, std::vector<LogicalTypeID>{LogicalTypeID::NODE,
+                                             LogicalTypeID::REL, LogicalTypeID::STRUCT});
+        return bindInternalIDExpression(child);
     } else if (functionName == LABEL_FUNC_NAME) {
         auto child = bindExpression(*parsedExpression.getChild(0));
         validateExpectedDataType(
@@ -158,14 +158,21 @@ std::unique_ptr<Expression> ExpressionBinder::createInternalNodeIDExpression(
 }
 
 std::shared_ptr<Expression> ExpressionBinder::bindInternalIDExpression(
-    const Expression& expression) {
-    switch (expression.getDataType().getLogicalTypeID()) {
+    std::shared_ptr<Expression> expression) {
+    switch (expression->getDataType().getLogicalTypeID()) {
     case common::LogicalTypeID::NODE: {
-        auto& node = (NodeExpression&)expression;
+        auto& node = (NodeExpression&)*expression;
         return node.getInternalIDProperty();
     }
     case common::LogicalTypeID::REL: {
-        return bindRelPropertyExpression(expression, InternalKeyword::ID);
+        return bindRelPropertyExpression(*expression, InternalKeyword::ID);
+    }
+    case common::LogicalTypeID::STRUCT: {
+        auto stringValue =
+            std::make_unique<Value>(LogicalType{LogicalTypeID::STRING}, InternalKeyword::ID);
+        return bindScalarFunctionExpression(
+            expression_vector{expression, createLiteralExpression(std::move(stringValue))},
+            STRUCT_EXTRACT_FUNC_NAME);
     }
     default:
         throw NotImplementedException("ExpressionBinder::bindInternalIDExpression");
@@ -180,10 +187,12 @@ static std::vector<std::unique_ptr<Value>> populateLabelValues(
     labels.resize(maxTableID + 1);
     for (auto i = 0; i < labels.size(); ++i) {
         if (tableIDsSet.contains(i)) {
-            labels[i] = std::make_unique<Value>(catalogContent.getTableName(i));
+            labels[i] = std::make_unique<Value>(
+                LogicalType{LogicalTypeID::STRING}, catalogContent.getTableName(i));
         } else {
             // TODO(Xiyang/Guodong): change to null literal once we support null in LIST type.
-            labels[i] = std::make_unique<Value>(std::string(""));
+            labels[i] =
+                std::make_unique<Value>(LogicalType{LogicalTypeID::STRING}, std::string(""));
         }
     }
     return labels;
@@ -201,7 +210,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindLabelFunction(const Expression
         auto& node = (NodeExpression&)expression;
         if (!node.isMultiLabeled()) {
             auto labelName = catalogContent->getTableName(node.getSingleTableID());
-            return createLiteralExpression(std::make_unique<Value>(labelName));
+            return createLiteralExpression(
+                std::make_unique<Value>(LogicalType{LogicalTypeID::STRING}, labelName));
         }
         auto nodeTableIDs = catalogContent->getNodeTableIDs();
         children.push_back(node.getInternalIDProperty());
@@ -213,7 +223,8 @@ std::shared_ptr<Expression> ExpressionBinder::bindLabelFunction(const Expression
         auto& rel = (RelExpression&)expression;
         if (!rel.isMultiLabeled()) {
             auto labelName = catalogContent->getTableName(rel.getSingleTableID());
-            return createLiteralExpression(std::make_unique<Value>(labelName));
+            return createLiteralExpression(
+                std::make_unique<Value>(LogicalType{LogicalTypeID::STRING}, labelName));
         }
         auto relTableIDs = catalogContent->getRelTableIDs();
         children.push_back(rel.getInternalIDProperty());

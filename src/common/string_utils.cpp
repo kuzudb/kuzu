@@ -40,5 +40,33 @@ void StringUtils::replaceAll(
     }
 }
 
+std::string StringUtils::extractStringBetween(
+    const std::string& input, char delimiterStart, char delimiterEnd, bool includeDelimiter) {
+    std::string::size_type posStart = input.find_first_of(delimiterStart);
+    std::string::size_type posEnd = input.find_last_of(delimiterEnd);
+    if (posStart == std::string::npos || posEnd == std::string::npos || posStart >= posEnd) {
+        return "";
+    }
+    if (includeDelimiter) {
+        posEnd++;
+    } else {
+        posStart++;
+    }
+    return input.substr(posStart, posEnd - posStart);
+}
+
+std::string StringUtils::removeEscapedCharacters(const std::string& input) {
+    std::string resultStr;
+    for (auto i = 1u; i < input.length() - 1; i++) {
+        // Antlr4 already guarantees that the character followed by the escaped character is
+        // valid. So we can safely skip the escaped character.
+        if (input[i] == '\\') {
+            i++;
+        }
+        resultStr += input[i];
+    }
+    return resultStr;
+}
+
 } // namespace common
 } // namespace kuzu

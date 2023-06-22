@@ -95,6 +95,9 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
     case PhysicalOperatorType::MULTIPLICITY_REDUCER: {
         return "MULTIPLICITY_REDUCER";
     }
+    case PhysicalOperatorType::PATH_PROPERTY_PROBE: {
+        return "PATH_PROPERTY_PROBE";
+    }
     case PhysicalOperatorType::PROJECTION: {
         return "PROJECTION";
     }

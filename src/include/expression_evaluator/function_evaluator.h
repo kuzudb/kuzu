@@ -10,7 +10,8 @@ class FunctionExpressionEvaluator : public BaseExpressionEvaluator {
 public:
     FunctionExpressionEvaluator(std::shared_ptr<binder::Expression> expression,
         std::vector<std::unique_ptr<BaseExpressionEvaluator>> children)
-        : BaseExpressionEvaluator{std::move(children)}, expression{std::move(expression)} {}
+        : BaseExpressionEvaluator{std::move(children)},
+          expression{std::move(expression)}, execFunc{nullptr}, selectFunc{nullptr} {}
 
     void init(
         const processor::ResultSet& resultSet, storage::MemoryManager* memoryManager) override;

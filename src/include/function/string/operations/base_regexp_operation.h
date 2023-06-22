@@ -18,12 +18,7 @@ struct BaseRegexpOperation {
 
     static inline void copyToKuzuString(
         const std::string& value, common::ku_string_t& kuString, common::ValueVector& valueVector) {
-        if (!common::ku_string_t::isShortString(value.length())) {
-            kuString.overflowPtr = reinterpret_cast<uint64_t>(
-                common::StringVector::getInMemOverflowBuffer(&valueVector)
-                    ->allocateSpace(value.length()));
-        }
-        kuString.set(value);
+        common::StringVector::addString(&valueVector, kuString, value.data(), value.length());
     }
 };
 

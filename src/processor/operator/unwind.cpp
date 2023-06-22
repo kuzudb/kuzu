@@ -20,9 +20,9 @@ void Unwind::copyTuplesToOutVector(uint64_t startPos, uint64_t endPos) const {
     auto listDataVector =
         common::ListVector::getDataVector(expressionEvaluator->resultVector.get());
     for (auto pos = startPos; pos < endPos; pos++) {
-        common::ValueVectorUtils::copyValue(
+        outValueVector->copyFromVectorData(
             outValueVector->getData() + outValueVector->getNumBytesPerValue() * (pos - startPos),
-            *outValueVector, listValues, *listDataVector);
+            listDataVector, listValues);
         listValues += listDataVector->getNumBytesPerValue();
     }
 }

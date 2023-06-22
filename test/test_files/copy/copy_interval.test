@@ -1,0 +1,16 @@
+-GROUP TinySnbCopyIntervalTest
+-DATASET CSV tinysnb
+
+--
+
+-CASE NodePropertyColumnWithInterval
+-QUERY MATCH (p:person) RETURN p.lastJobDuration
+---- 8
+00:18:00.024
+10 years 5 months 13:00:00.000024
+10 years 5 months 13:00:00.000024
+10 years 5 months 13:00:00.000024
+3 years 2 days 13:02:00
+3 years 2 days 13:02:00
+48:24:11
+48:24:11

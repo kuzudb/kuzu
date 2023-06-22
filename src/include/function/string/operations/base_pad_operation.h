@@ -25,17 +25,8 @@ public:
         }
         std::string paddedResult;
         padOperation(src, count, characterToPad, paddedResult);
-        result.len = paddedResult.size();
-        if (common::ku_string_t::isShortString(result.len)) {
-            memcpy(result.prefix, paddedResult.data(), result.len);
-        } else {
-            result.overflowPtr = reinterpret_cast<uint64_t>(
-                common::StringVector::getInMemOverflowBuffer(&resultValueVector)
-                    ->allocateSpace(result.len));
-            auto buffer = reinterpret_cast<char*>(result.overflowPtr);
-            memcpy(buffer, paddedResult.data(), result.len);
-            memcpy(result.prefix, buffer, common::ku_string_t::PREFIX_LENGTH);
-        }
+        common::StringVector::addString(
+            &resultValueVector, result, paddedResult.data(), paddedResult.size());
     }
 
     static std::pair<uint32_t, uint32_t> padCountChars(

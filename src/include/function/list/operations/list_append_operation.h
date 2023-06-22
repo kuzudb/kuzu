@@ -3,7 +3,6 @@
 #include <cassert>
 #include <cstring>
 
-#include "common/in_mem_overflow_buffer_utils.h"
 #include "common/types/ku_list.h"
 #include "common/vector/value_vector.h"
 
@@ -23,13 +22,12 @@ struct ListAppend {
         auto resultDataVector = common::ListVector::getDataVector(&resultVector);
         auto numBytesPerValue = resultDataVector->getNumBytesPerValue();
         for (auto i = 0u; i < listEntry.size; i++) {
-            common::ValueVectorUtils::copyValue(
-                resultValues, *resultDataVector, listValues, *listDataVector);
+            resultDataVector->copyFromVectorData(resultValues, listDataVector, listValues);
             listValues += numBytesPerValue;
             resultValues += numBytesPerValue;
         }
-        common::ValueVectorUtils::copyValue(
-            resultValues, *resultDataVector, reinterpret_cast<uint8_t*>(&value), valueVector);
+        resultDataVector->copyFromVectorData(
+            resultValues, &valueVector, reinterpret_cast<uint8_t*>(&value));
     }
 };
 

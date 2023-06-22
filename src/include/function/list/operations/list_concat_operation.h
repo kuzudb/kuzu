@@ -21,16 +21,14 @@ public:
         auto resultDataVector = common::ListVector::getDataVector(&resultVector);
         auto numBytesPerValue = resultDataVector->getNumBytesPerValue();
         for (auto i = 0u; i < left.size; i++) {
-            common::ValueVectorUtils::copyValue(
-                resultValues, *resultDataVector, leftValues, *leftDataVector);
+            resultDataVector->copyFromVectorData(resultValues, leftDataVector, leftValues);
             resultValues += numBytesPerValue;
             leftValues += numBytesPerValue;
         }
         auto rightValues = common::ListVector::getListValues(&rightVector, right);
         auto rightDataVector = common::ListVector::getDataVector(&rightVector);
         for (auto i = 0u; i < right.size; i++) {
-            common::ValueVectorUtils::copyValue(
-                resultValues, *resultDataVector, rightValues, *rightDataVector);
+            resultDataVector->copyFromVectorData(resultValues, rightDataVector, rightValues);
             resultValues += numBytesPerValue;
             rightValues += numBytesPerValue;
         }

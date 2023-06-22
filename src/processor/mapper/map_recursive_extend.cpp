@@ -3,12 +3,23 @@
 #include "planner/logical_plan/logical_operator/recursive_join_type.h"
 #include "processor/mapper/plan_mapper.h"
 #include "processor/operator/recursive_extend/recursive_join.h"
-#include "processor/operator/table_scan/factorized_table_scan.h"
 
+using namespace kuzu::binder;
 using namespace kuzu::planner;
 
 namespace kuzu {
 namespace processor {
+
+static std::shared_ptr<RecursiveJoinSharedState> createSharedState(
+    const binder::NodeExpression& nbrNode, const storage::StorageManager& storageManager,
+    std::shared_ptr<FTableSharedState>& fTableSharedState) {
+    std::vector<std::unique_ptr<NodeOffsetSemiMask>> semiMasks;
+    for (auto tableID : nbrNode.getTableIDs()) {
+        auto nodeTable = storageManager.getNodesStore().getNodeTable(tableID);
+        semiMasks.push_back(std::make_unique<NodeOffsetSemiMask>(nodeTable));
+    }
+    return std::make_shared<RecursiveJoinSharedState>(fTableSharedState, std::move(semiMasks));
+}
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalRecursiveExtendToPhysical(
     planner::LogicalOperator* logicalOperator) {
@@ -16,57 +27,42 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalRecursiveExtendToPhysica
     auto boundNode = extend->getBoundNode();
     auto nbrNode = extend->getNbrNode();
     auto rel = extend->getRel();
-    auto recursiveNode = rel->getRecursiveNode();
+    auto recursiveInfo = rel->getRecursiveInfo();
     auto lengthExpression = rel->getLengthExpression();
-    // map recursive plan
-    auto logicalRecursiveRoot = extend->getRecursivePlanRoot();
+    // Map recursive plan
+    auto logicalRecursiveRoot = extend->getRecursiveChild();
     auto recursiveRoot = mapLogicalOperatorToPhysical(logicalRecursiveRoot);
     auto recursivePlanSchema = logicalRecursiveRoot->getSchema();
     auto recursivePlanResultSetDescriptor =
         std::make_unique<ResultSetDescriptor>(recursivePlanSchema);
-    auto recursiveDstNodeIDPos =
-        DataPos(recursivePlanSchema->getExpressionPos(*recursiveNode->getInternalIDProperty()));
-    auto recursiveEdgeIDPos =
-        DataPos(recursivePlanSchema->getExpressionPos(*rel->getInternalIDProperty()));
-    // map child plan
+    auto recursiveDstNodeIDPos = DataPos(
+        recursivePlanSchema->getExpressionPos(*recursiveInfo->node->getInternalIDProperty()));
+    auto recursiveEdgeIDPos = DataPos(
+        recursivePlanSchema->getExpressionPos(*recursiveInfo->rel->getInternalIDProperty()));
+    // Generate RecursiveJoin
     auto outSchema = extend->getSchema();
     auto inSchema = extend->getChild(0)->getSchema();
-    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0));
+    auto boundNodeIDPos = DataPos(inSchema->getExpressionPos(*boundNode->getInternalIDProperty()));
+    auto nbrNodeIDPos = DataPos(outSchema->getExpressionPos(*nbrNode->getInternalIDProperty()));
+    auto lengthPos = DataPos(outSchema->getExpressionPos(*lengthExpression));
     auto expressions = inSchema->getExpressionsInScope();
+    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0));
     auto resultCollector = appendResultCollector(expressions, inSchema, std::move(prevOperator));
     auto sharedFTable = resultCollector->getSharedState();
+    auto sharedState = createSharedState(*nbrNode, storageManager, sharedFTable);
+    auto pathPos = DataPos();
+    if (extend->getJoinType() == planner::RecursiveJoinType::TRACK_PATH) {
+        pathPos = DataPos(outSchema->getExpressionPos(*rel));
+    }
+    auto dataInfo = std::make_unique<RecursiveJoinDataInfo>(boundNodeIDPos, nbrNodeIDPos,
+        nbrNode->getTableIDsSet(), lengthPos, std::move(recursivePlanResultSetDescriptor),
+        recursiveDstNodeIDPos, recursiveInfo->node->getTableIDsSet(), recursiveEdgeIDPos, pathPos);
     sharedFTable->setMaxMorselSize(1);
     std::vector<DataPos> outDataPoses;
     std::vector<uint32_t> colIndicesToScan;
     for (auto i = 0u; i < expressions.size(); ++i) {
         outDataPoses.emplace_back(outSchema->getExpressionPos(*expressions[i]));
         colIndicesToScan.push_back(i);
-    }
-    /*auto fTableScan = make_unique<FactorizedTableScan>(std::move(outDataPoses),
-        std::move(colIndicesToScan), sharedFTable, std::move(resultCollector), getOperatorID(),
-       "");*/
-    // Generate RecursiveJoinDataInfo
-    auto boundNodeIDVectorPos =
-        DataPos(inSchema->getExpressionPos(*boundNode->getInternalIDProperty()));
-    auto nbrNodeIDVectorPos =
-        DataPos(outSchema->getExpressionPos(*nbrNode->getInternalIDProperty()));
-    auto lengthVectorPos = DataPos(outSchema->getExpressionPos(*lengthExpression));
-    std::unique_ptr<RecursiveJoinDataInfo> dataInfo;
-    switch (extend->getJoinType()) {
-    case planner::RecursiveJoinType::TRACK_PATH: {
-        auto pathVectorPos = DataPos(outSchema->getExpressionPos(*rel));
-        dataInfo = std::make_unique<RecursiveJoinDataInfo>(boundNodeIDVectorPos, nbrNodeIDVectorPos,
-            nbrNode->getTableIDsSet(), lengthVectorPos, std::move(recursivePlanResultSetDescriptor),
-            recursiveDstNodeIDPos, recursiveNode->getTableIDsSet(), recursiveEdgeIDPos,
-            pathVectorPos);
-    } break;
-    case planner::RecursiveJoinType::TRACK_NONE: {
-        dataInfo = std::make_unique<RecursiveJoinDataInfo>(boundNodeIDVectorPos, nbrNodeIDVectorPos,
-            nbrNode->getTableIDsSet(), lengthVectorPos, std::move(recursivePlanResultSetDescriptor),
-            recursiveDstNodeIDPos, recursiveNode->getTableIDsSet(), recursiveEdgeIDPos);
-    } break;
-    default:
-        throw common::NotImplementedException("PlanMapper::mapLogicalRecursiveExtendToPhysical");
     }
     std::vector<std::unique_ptr<NodeOffsetSemiMask>> semiMasks;
     for (auto tableID : nbrNode->getTableIDs()) {
@@ -86,8 +82,6 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalRecursiveExtendToPhysica
         morselDispatcher = std::make_shared<MorselDispatcher>(SchedulerType::OneThreadOneMorsel,
             rel->getLowerBound(), rel->getUpperBound(), maxNodeOffset, numThreadsForExecution);
     }
-    auto sharedState =
-        std::make_shared<RecursiveJoinSharedState>(sharedFTable, std::move(semiMasks));
     return std::make_unique<RecursiveJoin>(rel->getLowerBound(), rel->getUpperBound(),
         rel->getRelType(), extend->getJoinType(), sharedState, std::move(dataInfo), outDataPoses,
         colIndicesToScan, morselDispatcher, std::move(resultCollector), getOperatorID(),

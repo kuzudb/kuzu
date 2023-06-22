@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <cstring>
 #include <string>
 
 namespace kuzu {
@@ -32,6 +33,25 @@ struct ku_string_t {
     void set(const std::string& value);
     void set(const char* value, uint64_t length);
     void set(const ku_string_t& value);
+    inline void setShortString(const char* value, uint64_t length) {
+        this->len = length;
+        memcpy(prefix, value, length);
+    }
+    inline void setLongString(const char* value, uint64_t length) {
+        this->len = length;
+        memcpy(prefix, value, PREFIX_LENGTH);
+        memcpy(reinterpret_cast<char*>(overflowPtr), value, length);
+    }
+    inline void setShortString(const ku_string_t& value) {
+        this->len = value.len;
+        memcpy(prefix, value.prefix, value.len);
+    }
+    inline void setLongString(const ku_string_t& value) {
+        this->len = value.len;
+        memcpy(prefix, value.prefix, PREFIX_LENGTH);
+        memcpy(reinterpret_cast<char*>(overflowPtr), reinterpret_cast<char*>(value.overflowPtr),
+            value.len);
+    }
 
     std::string getAsShortString() const;
     std::string getAsString() const;

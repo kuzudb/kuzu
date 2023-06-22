@@ -1,0 +1,9 @@
+-GROUP CopySerialPKTest
+-DATASET CSV tinysnb-serial
+
+--
+
+-CASE CopySerialPKTest
+-QUERY MATCH (:person)-[e:knows]->(:person) RETURN COUNT(*)
+---- 1
+14

@@ -1,13 +1,14 @@
 #include "function/built_in_vector_operations.h"
 
 #include "function/arithmetic/vector_arithmetic_operations.h"
+#include "function/blob/vector_blob_operations.h"
 #include "function/cast/vector_cast_operations.h"
 #include "function/comparison/vector_comparison_operations.h"
 #include "function/date/vector_date_operations.h"
 #include "function/interval/vector_interval_operations.h"
 #include "function/list/vector_list_operations.h"
 #include "function/map/vector_map_operations.h"
-#include "function/schema/vector_offset_operations.h"
+#include "function/schema/vector_node_rel_operations.h"
 #include "function/string/vector_string_operations.h"
 #include "function/struct/vector_struct_operations.h"
 #include "function/timestamp/vector_timestamp_operations.h"
@@ -30,8 +31,8 @@ void BuiltInVectorOperations::registerVectorOperations() {
     registerStructOperations();
     registerMapOperations();
     registerUnionOperations();
-    // register internal offset operation
-    vectorOperations.insert({OFFSET_FUNC_NAME, OffsetVectorOperation::getDefinitions()});
+    registerNodeRelOperations();
+    registerBlobOperations();
 }
 
 bool BuiltInVectorOperations::canApplyStaticEvaluation(
@@ -382,6 +383,13 @@ void BuiltInVectorOperations::registerIntervalOperations() {
         {TO_MICROSECONDS_FUNC_NAME, ToMicrosecondsVectorOperation::getDefinitions()});
 }
 
+void BuiltInVectorOperations::registerBlobOperations() {
+    vectorOperations.insert(
+        {OCTET_LENGTH_FUNC_NAME, OctetLengthVectorOperations::getDefinitions()});
+    vectorOperations.insert({ENCODE_FUNC_NAME, EncodeVectorOperations::getDefinitions()});
+    vectorOperations.insert({DECODE_FUNC_NAME, DecodeVectorOperations::getDefinitions()});
+}
+
 void BuiltInVectorOperations::registerStringOperations() {
     vectorOperations.insert(
         {ARRAY_EXTRACT_FUNC_NAME, ArrayExtractVectorOperation::getDefinitions()});
@@ -424,6 +432,7 @@ void BuiltInVectorOperations::registerCastOperations() {
         {CAST_TO_INTERVAL_FUNC_NAME, CastToIntervalVectorOperation::getDefinitions()});
     vectorOperations.insert(
         {CAST_TO_STRING_FUNC_NAME, CastToStringVectorOperation::getDefinitions()});
+    vectorOperations.insert({CAST_TO_BLOB_FUNC_NAME, CastToBlobVectorOperation::getDefinitions()});
     vectorOperations.insert(
         {CAST_TO_DOUBLE_FUNC_NAME, CastToDoubleVectorOperation::getDefinitions()});
     vectorOperations.insert(
@@ -503,6 +512,12 @@ void BuiltInVectorOperations::registerUnionOperations() {
     vectorOperations.insert({UNION_TAG_FUNC_NAME, UnionTagVectorOperations::getDefinitions()});
     vectorOperations.insert(
         {UNION_EXTRACT_FUNC_NAME, UnionExtractVectorOperations::getDefinitions()});
+}
+
+void BuiltInVectorOperations::registerNodeRelOperations() {
+    vectorOperations.insert({OFFSET_FUNC_NAME, OffsetVectorOperation::getDefinitions()});
+    vectorOperations.insert({NODES_FUNC_NAME, NodesVectorOperation::getDefinitions()});
+    vectorOperations.insert({RELS_FUNC_NAME, RelsVectorOperation::getDefinitions()});
 }
 
 } // namespace function

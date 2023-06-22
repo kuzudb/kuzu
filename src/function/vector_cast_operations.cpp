@@ -1,6 +1,5 @@
 #include "function/cast/vector_cast_operations.h"
 
-#include "common/vector/value_vector_utils.h"
 #include "function/cast/cast_operations.h"
 
 using namespace kuzu::common;
@@ -178,6 +177,14 @@ vector_operation_definitions CastToStringVectorOperation::getDefinitions() {
     result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_STRING_FUNC_NAME,
         std::vector<LogicalTypeID>{LogicalTypeID::STRUCT}, LogicalTypeID::STRING,
         UnaryCastExecFunction<struct_entry_t, ku_string_t, operation::CastToString>));
+    return result;
+}
+
+vector_operation_definitions CastToBlobVectorOperation::getDefinitions() {
+    vector_operation_definitions result;
+    result.push_back(make_unique<VectorOperationDefinition>(CAST_TO_BLOB_FUNC_NAME,
+        std::vector<LogicalTypeID>{LogicalTypeID::STRING}, LogicalTypeID::BLOB,
+        UnaryCastExecFunction<ku_string_t, blob_t, operation::CastToBlob>));
     return result;
 }
 

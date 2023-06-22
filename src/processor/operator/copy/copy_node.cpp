@@ -10,7 +10,8 @@ CopyNodeSharedState::CopyNodeSharedState(uint64_t& numRows, storage::MemoryManag
     auto ftTableSchema = std::make_unique<FactorizedTableSchema>();
     ftTableSchema->appendColumn(
         std::make_unique<ColumnSchema>(false /* flat */, 0 /* dataChunkPos */,
-            FactorizedTable::getDataTypeSize(common::LogicalType{common::LogicalTypeID::STRING})));
+            common::LogicalTypeUtils::getRowLayoutSize(
+                common::LogicalType{common::LogicalTypeID::STRING})));
     table = std::make_shared<FactorizedTable>(memoryManager, std::move(ftTableSchema));
 }
 
@@ -55,7 +56,6 @@ void CopyNode::executeInternal(kuzu::processor::ExecutionContext* context) {
             sharedState->hasLoggedWAL = true;
         }
     }
-    if (sharedState->hasLoggedWAL) {}
     while (children[0]->getNextTuple(context)) {
         std::vector<std::unique_ptr<storage::InMemColumnChunk>> columnChunks;
         columnChunks.reserve(sharedState->columns.size());
@@ -130,7 +130,7 @@ void CopyNode::appendToPKIndex<common::ku_string_t, storage::InMemOverflowFile*>
     storage::InMemOverflowFile* overflowFile) {
     for (auto i = 0u; i < numValues; i++) {
         auto offset = i + startOffset;
-        auto value = chunk->getValue<common::ku_string_t>(offset);
+        auto value = chunk->getValue<common::ku_string_t>(i);
         auto key = overflowFile->readString(&value);
         sharedState->pkIndex->append(key.c_str(), offset);
     }

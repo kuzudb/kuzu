@@ -3,7 +3,6 @@
 #include <cassert>
 
 #include "common/exception.h"
-#include "common/in_mem_overflow_buffer_utils.h"
 #include "common/type_utils.h"
 #include "common/vector/value_vector.h"
 
@@ -46,6 +45,24 @@ struct CastToString {
                     ->allocateSpace(resultStr.length()));
         }
         result.set(resultStr);
+    }
+};
+
+struct CastToBlob {
+    static inline void operation(common::ku_string_t& input, common::blob_t& result,
+        common::ValueVector& inputVector, common::ValueVector& resultVector) {
+        result.value.len = common::Blob::getBlobSize(input);
+        if (!common::ku_string_t::isShortString(result.value.len)) {
+            auto overflowBuffer = common::StringVector::getInMemOverflowBuffer(&resultVector);
+            auto overflowPtr = overflowBuffer->allocateSpace(result.value.len);
+            result.value.overflowPtr = reinterpret_cast<int64_t>(overflowPtr);
+            common::Blob::fromString(
+                reinterpret_cast<const char*>(input.getData()), input.len, overflowPtr);
+            memcpy(result.value.prefix, overflowPtr, common::ku_string_t::PREFIX_LENGTH);
+        } else {
+            common::Blob::fromString(
+                reinterpret_cast<const char*>(input.getData()), input.len, result.value.prefix);
+        }
     }
 };
 

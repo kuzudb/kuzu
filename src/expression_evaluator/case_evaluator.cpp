@@ -1,7 +1,5 @@
 #include "expression_evaluator/case_evaluator.h"
 
-#include "common/vector/value_vector_utils.h"
-
 using namespace kuzu::common;
 using namespace kuzu::processor;
 using namespace kuzu::storage;
@@ -95,8 +93,8 @@ void CaseExpressionEvaluator::fillEntry(sel_t resultPos, const ValueVector& then
         if (thenVector.dataType.getLogicalTypeID() == common::LogicalTypeID::VAR_LIST) {
             auto srcListEntry = thenVector.getValue<list_entry_t>(thenPos);
             list_entry_t resultEntry = ListVector::addList(resultVector.get(), srcListEntry.size);
-            common::ValueVectorUtils::copyValue(reinterpret_cast<uint8_t*>(&resultEntry),
-                *resultVector, reinterpret_cast<uint8_t*>(&srcListEntry), thenVector);
+            resultVector->copyFromVectorData(reinterpret_cast<uint8_t*>(&resultEntry), &thenVector,
+                reinterpret_cast<uint8_t*>(&srcListEntry));
             resultVector->setValue(resultPos, resultEntry);
         } else {
             auto val = thenVector.getValue<T>(thenPos);

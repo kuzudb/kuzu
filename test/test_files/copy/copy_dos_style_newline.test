@@ -1,0 +1,13 @@
+-GROUP CopyNodeFromCSVTest
+-DATASET CSV copy-dos-style-newline
+
+--
+
+-CASE DOSStyleNewlineTest
+-QUERY MATCH (p:person) return p.ID
+---- 5
+0
+1
+2
+3
+4

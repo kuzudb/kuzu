@@ -60,8 +60,10 @@ Value Value::createDefaultValue(const LogicalType& dataType) {
         return Value(interval_t());
     case LogicalTypeID::INTERNAL_ID:
         return Value(nodeID_t());
+    case LogicalTypeID::BLOB:
+        return Value(LogicalType{LogicalTypeID::BLOB}, std::string(""));
     case LogicalTypeID::STRING:
-        return Value(std::string(""));
+        return Value(LogicalType{LogicalTypeID::STRING}, std::string(""));
     case LogicalTypeID::FLOAT:
         return Value((float_t)0);
     case LogicalTypeID::RECURSIVE_REL:
@@ -121,7 +123,8 @@ Value::Value(const char* val_) : dataType{LogicalTypeID::STRING}, isNull_{false}
     strVal = std::string(val_);
 }
 
-Value::Value(const std::string& val_) : dataType{LogicalTypeID::STRING}, isNull_{false} {
+Value::Value(LogicalType type, const std::string& val_)
+    : dataType{std::move(type)}, isNull_{false} {
     strVal = val_;
 }
 
@@ -175,6 +178,9 @@ void Value::copyValueFrom(const uint8_t* value) {
     } break;
     case LogicalTypeID::INTERNAL_ID: {
         val.internalIDVal = *((nodeID_t*)value);
+    } break;
+    case LogicalTypeID::BLOB: {
+        strVal = Blob::toString(*(blob_t*)value);
     } break;
     case LogicalTypeID::STRING: {
         strVal = ((ku_string_t*)value)->getAsString();
@@ -291,6 +297,7 @@ std::string Value::toString() const {
         return TypeUtils::toString(val.intervalVal);
     case LogicalTypeID::INTERNAL_ID:
         return TypeUtils::toString(val.internalIDVal);
+    case LogicalTypeID::BLOB:
     case LogicalTypeID::STRING:
         return strVal;
     case LogicalTypeID::MAP: {
@@ -541,7 +548,7 @@ nodeID_t RelVal::getDstNodeID() const {
     return dstNodeIDVal->getValue<nodeID_t>();
 }
 
-std::string RelVal::getLabelName() {
+std::string RelVal::getLabelName() const {
     return labelVal->getValue<std::string>();
 }
 

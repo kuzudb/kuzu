@@ -54,15 +54,15 @@ public:
     /**
      * @return name of each column in query result.
      */
-    KUZU_API std::vector<std::string> getColumnNames();
+    KUZU_API std::vector<std::string> getColumnNames() const;
     /**
      * @return dataType of each column in query result.
      */
-    KUZU_API std::vector<common::LogicalType> getColumnDataTypes();
+    KUZU_API std::vector<common::LogicalType> getColumnDataTypes() const;
     /**
      * @return num of tuples in query result.
      */
-    KUZU_API uint64_t getNumTuples();
+    KUZU_API uint64_t getNumTuples() const;
     /**
      * @return query summary which stores the execution time, compiling time, plan and query
      * options.
@@ -73,7 +73,7 @@ public:
     /**
      * @return whether there are more tuples to read.
      */
-    KUZU_API bool hasNext();
+    KUZU_API bool hasNext() const;
     /**
      * @return next flat tuple in the query result.
      */
@@ -101,7 +101,7 @@ private:
         const std::vector<std::shared_ptr<binder::Expression>>& columns,
         const std::vector<std::vector<std::shared_ptr<binder::Expression>>>&
             expressionToCollectPerColumn);
-    void validateQuerySucceed();
+    void validateQuerySucceed() const;
 
 private:
     // execution status

@@ -1,6 +1,5 @@
 #pragma once
 
-#include "common/vector/value_vector_utils.h"
 #include "function/vector_operations.h"
 
 namespace kuzu {
@@ -12,6 +11,9 @@ struct UnionValueVectorOperations : public VectorOperations {
         const binder::expression_vector& arguments, FunctionDefinition* definition);
     static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
         common::ValueVector& result);
+    static void compileFunc(FunctionBindData* bindData,
+        const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
+        std::shared_ptr<common::ValueVector>& result);
 };
 
 struct UnionTagVectorOperations : public VectorOperations {

@@ -6,6 +6,7 @@
 #include <arrow/array/array_base.h>
 #include <arrow/array/array_binary.h>
 #include <arrow/array/array_primitive.h>
+#include <arrow/record_batch.h>
 #include <arrow/scalar.h>
 
 namespace kuzu {
@@ -44,6 +45,7 @@ public:
     inline uint64_t getNumBytesPerValue() const { return numBytesPerValue; }
     inline uint64_t getNumBytes() const { return numBytes; }
     inline InMemColumnChunk* getNullChunk() { return nullChunk.get(); }
+    void copyArrowBatch(std::shared_ptr<arrow::RecordBatch> batch);
     virtual void copyArrowArray(arrow::Array& arrowArray, arrow::Array* nodeOffsets = nullptr);
     virtual void flush(common::FileInfo* walFileInfo);
 
@@ -87,7 +89,8 @@ public:
         common::offset_t endNodeOffset, const common::CopyDescription* copyDescription,
         InMemOverflowFile* inMemOverflowFile)
         : InMemColumnChunk{std::move(dataType), startNodeOffset, endNodeOffset, copyDescription},
-          inMemOverflowFile{inMemOverflowFile} {}
+          inMemOverflowFile{inMemOverflowFile}, blobBuffer{std::make_unique<uint8_t[]>(
+                                                    common::BufferPoolConstants::PAGE_4KB_SIZE)} {}
 
     void copyArrowArray(arrow::Array& array, arrow::Array* nodeOffsets = nullptr) final;
 
@@ -106,6 +109,7 @@ private:
     storage::InMemOverflowFile* inMemOverflowFile;
     // TODO(Ziyi/Guodong): Fix this for rel columns.
     PageByteCursor overflowCursor;
+    std::unique_ptr<uint8_t[]> blobBuffer;
 };
 
 class InMemStructColumnChunk : public InMemColumnChunk {
