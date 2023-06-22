@@ -8,6 +8,7 @@ from test_get_header import *
 from test_networkx import *
 from test_parameter import *
 from test_prepared_statement import *
+from test_query_result import *
 from test_query_result_close import *
 from test_timeout import *
 from test_torch_geometric import *
