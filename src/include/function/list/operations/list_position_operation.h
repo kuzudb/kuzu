@@ -22,9 +22,11 @@ struct ListPosition {
         }
         auto listElements =
             reinterpret_cast<T*>(common::ListVector::getListValues(&listVector, list));
+        uint8_t comparisonResult;
         for (auto i = 0u; i < list.size; i++) {
-            if (common::TypeUtils::isValueEqual(listElements[i], element,
-                    common::ListVector::getDataVector(&listVector), &elementVector)) {
+            Equals::operation(listElements[i], element, comparisonResult,
+                common::ListVector::getDataVector(&listVector), &elementVector);
+            if (comparisonResult) {
                 result = i + 1;
                 return;
             }

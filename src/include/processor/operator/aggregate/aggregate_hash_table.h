@@ -181,7 +181,8 @@ private:
     template<typename type>
     static bool compareEntryWithKeys(const uint8_t* keyValue, const uint8_t* entry) {
         uint8_t result;
-        kuzu::function::operation::Equals::operation(*(type*)keyValue, *(type*)entry, result);
+        kuzu::function::operation::Equals::operation(*(type*)keyValue, *(type*)entry, result,
+            nullptr /* leftVector */, nullptr /* rightVector */);
         return result != 0;
     }
 

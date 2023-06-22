@@ -40,7 +40,7 @@ public:
 
     inline void scanSingleStringOverflow(
         transaction::TransactionType trxType, common::ValueVector& vector, uint64_t vectorPos) {
-        assert(vector.dataType.getLogicalTypeID() == common::LogicalTypeID::STRING &&
+        assert(vector.dataType.getPhysicalType() == common::PhysicalTypeID::STRING &&
                !vector.isNull(vectorPos));
         lookupString(trxType, &vector, vector.getValue<common::ku_string_t>(vectorPos));
     }
