@@ -361,9 +361,8 @@ public:
     void executeQueryWithoutCommit(std::string query) {
         auto preparedStatement = conn->prepare(query);
         conn->beginWriteTransaction();
-        auto mapper = PlanMapper(
-            *getStorageManager(*database), getMemoryManager(*database), getCatalog(*database),
-            clientContext->numThreadsForExecution);
+        auto mapper = PlanMapper(*getStorageManager(*database), getMemoryManager(*database),
+            getCatalog(*database), clientContext->numThreadsForExecution);
         auto physicalPlan = mapper.mapLogicalPlanToPhysical(
             preparedStatement->logicalPlans[0].get(), preparedStatement->getExpressionsToCollect());
         executionContext->clientContext->activeQuery = std::make_unique<ActiveQuery>();
