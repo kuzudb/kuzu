@@ -1,5 +1,7 @@
 #pragma once
 
+#include <mutex>
+
 #include "client_context.h"
 #include "database.h"
 #include "prepared_statement.h"

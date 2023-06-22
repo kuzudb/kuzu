@@ -29,7 +29,7 @@
 ---- ok
 
 -LOG ProfileCopy
--STATEMENT Profile copy npytable1 from ("${KUZU_ROOT_DIRECTORY}/dataset/npy-20k/id_int64.npy", "${KUZU_ROOT_DIRECTORY}/dataset/npy-20k/two_dim_float.npy") BY COLUMN;
+-STATEMENT Profile copy npytable1 from ("${KUZU_ROOT_DIRECTORY}/dataset/npy-1d/one_dim_int64.npy", "${KUZU_ROOT_DIRECTORY}/dataset/npy-1d/one_dim_int32.npy") BY COLUMN;
 ---- ok
 
 -LOG ProfileCall

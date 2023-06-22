@@ -19,7 +19,7 @@ QueryProcessor::QueryProcessor(uint64_t numThreads) {
 
 std::shared_ptr<FactorizedTable> QueryProcessor::execute(
     PhysicalPlan* physicalPlan, ExecutionContext* context) {
-    if (physicalPlan->isCopyRelOrNPY()) {
+    if (physicalPlan->isCopyRel()) {
         auto copy = (Copy*)physicalPlan->lastOperator.get();
         auto outputMsg = copy->execute(taskScheduler.get(), context);
         return FactorizedTableUtils::getFactorizedTableForOutputMsg(
