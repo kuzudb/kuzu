@@ -39,3 +39,23 @@ tools/nodejs_api/prebuilt/
 scripts/pre-compiled-bins/headers
 scripts/pre-compiled-bins/lib*
 scripts/pre-compiled-bins/kuzu*
+
+# Java API
+tools/java_api/CMakeFiles/
+tools/java_api/Testing/
+tools/java_api/testdb/
+tools/java_api/testdb/
+tools/java_api_falied/
+tools/test_java_api/
+tools/java_api/cmake_install.cmake
+tools/java_api/Notes.txt
+tools/java_api/CMakeCache.txt
+tools/java_api/CTestTestfile.cmake
+tools/java_api/*.log
+tools/java_api/*.jar
+tools/java_api/*.dylib
+tools/java_api/test.java
+tools/java_api/*.class
+tools/java_api/KuzuNative.h
+tools/java_api/error.txt
+tools/java_api/Makefile
