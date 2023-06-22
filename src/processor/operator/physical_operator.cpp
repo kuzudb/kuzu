@@ -23,6 +23,9 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
     case PhysicalOperatorType::STANDALONE_CALL: {
         return "STANDALONE_CALL";
     }
+    case PhysicalOperatorType::COPY_TO: {
+        return "COPY_TO";
+    }
     case PhysicalOperatorType::COPY_NODE: {
         return "COPY_NODE";
     }

@@ -7,13 +7,13 @@
 namespace kuzu {
 namespace planner {
 
-class LogicalCopy : public LogicalOperator {
+class LogicalCopyFrom : public LogicalOperator {
 
 public:
-    LogicalCopy(const common::CopyDescription& copyDescription, common::table_id_t tableID,
+    LogicalCopyFrom(const common::CopyDescription& copyDescription, common::table_id_t tableID,
         std::string tableName, binder::expression_vector dataColumnExpressions,
         std::shared_ptr<binder::Expression> outputExpression)
-        : LogicalOperator{LogicalOperatorType::COPY},
+        : LogicalOperator{LogicalOperatorType::COPY_FROM},
           copyDescription{copyDescription}, tableID{tableID}, tableName{std::move(tableName)},
           dataColumnExpressions{std::move(dataColumnExpressions)}, outputExpression{std::move(
                                                                        outputExpression)} {}
@@ -36,7 +36,7 @@ public:
     void computeFlatSchema() override;
 
     inline std::unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalCopy>(
+        return make_unique<LogicalCopyFrom>(
             copyDescription, tableID, tableName, dataColumnExpressions, outputExpression);
     }
 

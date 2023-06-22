@@ -18,6 +18,7 @@ enum class PhysicalOperatorType : uint8_t {
     COPY_NODE,
     COPY_REL,
     COPY_NPY,
+    COPY_TO,
     READ_CSV,
     READ_NPY,
     READ_PARQUET,

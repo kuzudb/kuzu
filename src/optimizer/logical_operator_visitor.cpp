@@ -79,6 +79,9 @@ void LogicalOperatorVisitor::visitOperatorSwitch(planner::LogicalOperator* op) {
     case LogicalOperatorType::CREATE_REL: {
         visitCreateRel(op);
     } break;
+    case LogicalOperatorType::COPY_TO: {
+        visitCopyTo(op);
+    } break;
     default:
         return;
     }

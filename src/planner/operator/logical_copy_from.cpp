@@ -1,9 +1,9 @@
-#include "planner/logical_plan/logical_operator/logical_copy.h"
+#include "planner/logical_plan/logical_operator/logical_copy_from.h"
 
 namespace kuzu {
 namespace planner {
 
-void LogicalCopy::computeFactorizedSchema() {
+void LogicalCopyFrom::computeFactorizedSchema() {
     createEmptySchema();
     auto groupPos = schema->createGroup();
     schema->insertToGroupAndScope(dataColumnExpressions, groupPos);
@@ -11,7 +11,7 @@ void LogicalCopy::computeFactorizedSchema() {
     schema->setGroupAsSingleState(groupPos);
 }
 
-void LogicalCopy::computeFlatSchema() {
+void LogicalCopyFrom::computeFlatSchema() {
     createEmptySchema();
     schema->createGroup();
     schema->insertToGroupAndScope(dataColumnExpressions, 0);

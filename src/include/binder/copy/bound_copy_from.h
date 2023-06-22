@@ -11,11 +11,11 @@
 namespace kuzu {
 namespace binder {
 
-class BoundCopy : public BoundStatement {
+class BoundCopyFrom : public BoundStatement {
 public:
-    BoundCopy(
+    BoundCopyFrom(
         common::CopyDescription copyDescription, common::table_id_t tableID, std::string tableName)
-        : BoundStatement{common::StatementType::COPY,
+        : BoundStatement{common::StatementType::COPY_FROM,
               BoundStatementResult::createSingleStringColumnResult()},
           copyDescription{copyDescription}, tableID{tableID}, tableName{std::move(tableName)} {}
 

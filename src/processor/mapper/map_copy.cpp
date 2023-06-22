@@ -1,4 +1,5 @@
-#include "planner/logical_plan/logical_operator/logical_copy.h"
+#include "planner/logical_plan/logical_operator/logical_copy_from.h"
+#include "planner/logical_plan/logical_operator/logical_copy_to.h"
 #include "processor/mapper/plan_mapper.h"
 #include "processor/operator/copy/copy_node.h"
 #include "processor/operator/copy/copy_rel.h"
@@ -6,6 +7,7 @@
 #include "processor/operator/copy/read_file.h"
 #include "processor/operator/copy/read_npy.h"
 #include "processor/operator/copy/read_parquet.h"
+#include "processor/operator/copy_to/copy_to.h"
 #include "processor/operator/table_scan/factorized_table_scan.h"
 
 using namespace kuzu::planner;
@@ -14,8 +16,8 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace processor {
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapCopy(LogicalOperator* logicalOperator) {
-    auto copy = (LogicalCopy*)logicalOperator;
+std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyFrom(LogicalOperator* logicalOperator) {
+    auto copy = (LogicalCopyFrom*)logicalOperator;
     auto tableSchema = catalog->getReadOnlyVersion()->getTableSchema(copy->getTableID());
     switch (tableSchema->getTableType()) {
     case catalog::TableType::NODE:
@@ -27,14 +29,28 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopy(LogicalOperator* logicalOp
     }
 }
 
+std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyTo(LogicalOperator* logicalOperator) {
+    auto copy = (LogicalCopyTo*)logicalOperator;
+    auto childSchema = logicalOperator->getChild(0)->getSchema();
+    auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
+    std::vector<DataPos> vectorsToCopyPos;
+    for (auto& expression : childSchema->getExpressionsInScope()) {
+        vectorsToCopyPos.emplace_back(childSchema->getExpressionPos(*expression));
+    }
+    auto sharedState = std::make_shared<WriteCSVFileSharedState>();
+    return std::make_unique<CopyTo>(sharedState, std::move(vectorsToCopyPos),
+        copy->getCopyDescription(), getOperatorID(), copy->getExpressionsForPrinting(),
+        std::move(prevOperator));
+}
+
 std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNode(
     planner::LogicalOperator* logicalOperator) {
-    auto copy = (LogicalCopy*)logicalOperator;
+    auto copy = (LogicalCopyFrom*)logicalOperator;
     auto fileType = copy->getCopyDescription().fileType;
     if (fileType != common::CopyDescription::FileType::CSV &&
         fileType != common::CopyDescription::FileType::PARQUET &&
         fileType != common::CopyDescription::FileType::NPY) {
-        throw common::NotImplementedException{"PlanMapper::mapLogicalCopyToPhysical"};
+        throw common::NotImplementedException{"PlanMapper::mapLogicalCopyFromToPhysical"};
     }
     std::unique_ptr<ReadFile> readFile;
     std::shared_ptr<ReadFileSharedState> readFileSharedState;
@@ -93,7 +109,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNode(
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyRel(
     planner::LogicalOperator* logicalOperator) {
-    auto copy = (LogicalCopy*)logicalOperator;
+    auto copy = (LogicalCopyFrom*)logicalOperator;
     auto relsStatistics = &storageManager.getRelsStore().getRelsStatistics();
     auto table = storageManager.getRelsStore().getRelTable(copy->getTableID());
     return std::make_unique<CopyRel>(catalog, copy->getCopyDescription(), table,

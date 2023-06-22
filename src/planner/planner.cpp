@@ -2,7 +2,8 @@
 
 #include "binder/bound_explain.h"
 #include "binder/call/bound_standalone_call.h"
-#include "binder/copy/bound_copy.h"
+#include "binder/copy/bound_copy_from.h"
+#include "binder/copy/bound_copy_to.h"
 #include "binder/ddl/bound_add_property.h"
 #include "binder/ddl/bound_create_node_clause.h"
 #include "binder/ddl/bound_create_rel_clause.h"
@@ -13,7 +14,8 @@
 #include "binder/expression/variable_expression.h"
 #include "binder/macro/bound_create_macro.h"
 #include "planner/logical_plan/logical_operator/logical_add_property.h"
-#include "planner/logical_plan/logical_operator/logical_copy.h"
+#include "planner/logical_plan/logical_operator/logical_copy_from.h"
+#include "planner/logical_plan/logical_operator/logical_copy_to.h"
 #include "planner/logical_plan/logical_operator/logical_create_macro.h"
 #include "planner/logical_plan/logical_operator/logical_create_node_table.h"
 #include "planner/logical_plan/logical_operator/logical_create_rel_table.h"
@@ -45,8 +47,11 @@ std::unique_ptr<LogicalPlan> Planner::getBestPlan(const Catalog& catalog,
     case StatementType::CREATE_REL_TABLE: {
         plan = planCreateRelTable(statement);
     } break;
-    case StatementType::COPY: {
-        plan = planCopy(catalog, statement);
+    case StatementType::COPY_FROM: {
+        return planCopyFrom(catalog, statement);
+    } break;
+    case StatementType::COPY_TO: {
+        plan = planCopyTo(catalog, nodesStatistics, relsStatistics, statement);
     } break;
     case StatementType::DROP_TABLE: {
         plan = planDropTable(statement);
@@ -167,9 +172,9 @@ std::unique_ptr<LogicalPlan> Planner::planRenameProperty(const BoundStatement& s
     return plan;
 }
 
-std::unique_ptr<LogicalPlan> Planner::planCopy(
+std::unique_ptr<LogicalPlan> Planner::planCopyFrom(
     const catalog::Catalog& catalog, const BoundStatement& statement) {
-    auto& copyClause = reinterpret_cast<const BoundCopy&>(statement);
+    auto& copyClause = reinterpret_cast<const BoundCopyFrom&>(statement);
     auto plan = std::make_unique<LogicalPlan>();
     expression_vector arrowColumnExpressions;
     for (auto& property :
@@ -180,10 +185,23 @@ std::unique_ptr<LogicalPlan> Planner::planCopy(
                 property->getName()));
         }
     }
-    auto copy = make_shared<LogicalCopy>(copyClause.getCopyDescription(), copyClause.getTableID(),
-        copyClause.getTableName(), std::move(arrowColumnExpressions),
+    auto copy = make_shared<LogicalCopyFrom>(copyClause.getCopyDescription(),
+        copyClause.getTableID(), copyClause.getTableName(), std::move(arrowColumnExpressions),
         copyClause.getStatementResult()->getSingleExpressionToCollect());
     plan->setLastOperator(std::move(copy));
+    return plan;
+}
+
+std::unique_ptr<LogicalPlan> Planner::planCopyTo(const Catalog& catalog,
+    const NodesStatisticsAndDeletedIDs& nodesStatistics, const RelsStatistics& relsStatistics,
+    const BoundStatement& statement) {
+    auto& copyClause = reinterpret_cast<const BoundCopyTo&>(statement);
+    auto regularQuery = copyClause.getRegularQuery();
+    assert(regularQuery->getStatementType() == StatementType::QUERY);
+    auto plan = QueryPlanner(catalog, nodesStatistics, relsStatistics).getBestPlan(*regularQuery);
+    auto logicalCopyTo =
+        make_shared<LogicalCopyTo>(plan->getLastOperator(), copyClause.getCopyDescription());
+    plan->setLastOperator(std::move(logicalCopyTo));
     return plan;
 }
 

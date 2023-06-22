@@ -18,8 +18,11 @@ std::unique_ptr<BoundStatement> Binder::bind(const Statement& statement) {
     case StatementType::CREATE_REL_TABLE: {
         return bindCreateRelTableClause(statement);
     }
-    case StatementType::COPY: {
-        return bindCopyClause(statement);
+    case StatementType::COPY_FROM: {
+        return bindCopyFromClause(statement);
+    }
+    case StatementType::COPY_TO: {
+        return bindCopyToClause(statement);
     }
     case StatementType::DROP_TABLE: {
         return bindDropTableClause(statement);

@@ -247,9 +247,11 @@ private:
     std::vector<std::pair<std::string, std::string>> transformPropertyDefinitions(
         CypherParser::KU_PropertyDefinitionsContext& ctx);
 
-    std::unique_ptr<Statement> transformCopyCSV(CypherParser::KU_CopyCSVContext& ctx);
+    std::unique_ptr<Statement> transformCopyTo(CypherParser::KU_CopyTOContext& ctx);
 
-    std::unique_ptr<Statement> transformCopyNPY(CypherParser::KU_CopyNPYContext& ctx);
+    std::unique_ptr<Statement> transformCopyFromCSV(CypherParser::KU_CopyFromCSVContext& ctx);
+
+    std::unique_ptr<Statement> transformCopyFromNPY(CypherParser::KU_CopyFromNPYContext& ctx);
 
     std::unique_ptr<Statement> transformStandaloneCall(CypherParser::KU_StandaloneCallContext& ctx);
 

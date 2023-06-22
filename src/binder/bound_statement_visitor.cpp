@@ -33,7 +33,8 @@ void BoundStatementVisitor::visit(const kuzu::binder::BoundStatement& statement)
     case StatementType::RENAME_PROPERTY: {
         visitRenameProperty(statement);
     } break;
-    case StatementType::COPY: {
+    case StatementType::COPY_FROM:
+    case StatementType::COPY_TO: {
         visitCopy(statement);
     } break;
     case StatementType::STANDALONE_CALL: {

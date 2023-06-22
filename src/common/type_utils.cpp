@@ -69,29 +69,42 @@ std::string TypeUtils::castValueToString(
 
 std::string TypeUtils::toString(const list_entry_t& val, void* valueVector) {
     auto listVector = (common::ValueVector*)valueVector;
+    if (val.size == 0) {
+        return "[]";
+    }
     std::string result = "[";
     auto values = ListVector::getListValues(listVector, val);
     auto childType = VarListType::getChildType(&listVector->dataType);
     auto dataVector = ListVector::getDataVector(listVector);
-    for (auto i = 0u; i < val.size; ++i) {
+    for (auto i = 0u; i < val.size - 1; ++i) {
         result += castValueToString(*childType, values, dataVector);
-        result += (val.size - 1 == i ? "]" : ",");
+        result += ",";
         values += ListVector::getDataVector(listVector)->getNumBytesPerValue();
     }
+    result += castValueToString(*childType, values, dataVector);
+    result += "]";
     return result;
 }
 
 std::string TypeUtils::toString(const struct_entry_t& val, void* valVector) {
     auto structVector = (common::ValueVector*)valVector;
-    std::string result = "{";
     auto fields = StructType::getFields(&structVector->dataType);
-    for (auto i = 0u; i < fields.size(); ++i) {
-        auto field = fields[i];
-        auto fieldVector = StructVector::getFieldVector(structVector, i);
-        auto value = fieldVector->getData() + fieldVector->getNumBytesPerValue() * val.pos;
-        result += castValueToString(*field->getType(), value, fieldVector.get());
-        result += (fields.size() - 1 == i ? "}" : ",");
+    if (fields.size() == 0) {
+        return "{}";
     }
+    std::string result = "{";
+    auto i = 0u;
+    for (; i < fields.size() - 1; ++i) {
+        auto fieldVector = StructVector::getFieldVector(structVector, i);
+        result += castValueToString(*fields[i]->getType(),
+            fieldVector->getData() + fieldVector->getNumBytesPerValue() * val.pos,
+            fieldVector.get());
+        result += ",";
+    }
+    auto fieldVector = StructVector::getFieldVector(structVector, i);
+    result += castValueToString(*fields[i]->getType(),
+        fieldVector->getData() + fieldVector->getNumBytesPerValue() * val.pos, fieldVector.get());
+    result += "}";
     return result;
 }
 
