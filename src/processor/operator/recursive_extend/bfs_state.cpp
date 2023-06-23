@@ -8,7 +8,7 @@ namespace kuzu {
 namespace processor {
 
 void SSSPMorsel::reset(TargetDstNodes* targetDstNodes) {
-    ssspLocalState = MORSEL_EXTEND_IN_PROGRESS;
+    ssspLocalState = EXTEND_IN_PROGRESS;
     currentLevel = 0u;
     nextScanStartIdx = 0u;
     numVisitedNodes = 0u;
@@ -22,7 +22,7 @@ void SSSPMorsel::reset(TargetDstNodes* targetDstNodes) {
             visitedNodes[dstOffset.offset] = NOT_VISITED_DST;
         }
     }
-    std::fill(distance.begin(), distance.end(), 0u);
+    std::fill(pathLength.begin(), pathLength.end(), 0u);
     bfsLevelNodeOffsets.clear();
     srcOffset = 0u;
     numThreadsActiveOnMorsel = 0u;
@@ -34,13 +34,13 @@ void SSSPMorsel::reset(TargetDstNodes* targetDstNodes) {
 }
 
 /*
- * Returning the state here because if SSSPMorsel is complete / in distance writing stage then
+ * Returning the state here because if SSSPMorsel is complete / in pathLength writing stage then
  * depending on state we need to take next step. If MORSEL_COMPLETE then proceed to get a
- * new SSSPMorsel & if MORSEL_DISTANCE_WRITING_IN_PROGRESS then help in this task.
+ * new SSSPMorsel & if MORSEL_pathLength_WRITING_IN_PROGRESS then help in this task.
  */
 SSSPLocalState SSSPMorsel::getBFSMorsel(std::unique_ptr<BaseBFSMorsel>& bfsMorsel) {
     mutex.lock();
-    if (ssspLocalState == MORSEL_COMPLETE || ssspLocalState == MORSEL_DISTANCE_WRITE_IN_PROGRESS) {
+    if (ssspLocalState == MORSEL_COMPLETE || ssspLocalState == PATH_LENGTH_WRITE_IN_PROGRESS) {
         bfsMorsel->threadCheckSSSPState = true;
         mutex.unlock();
         return ssspLocalState;
@@ -50,7 +50,8 @@ SSSPLocalState SSSPMorsel::getBFSMorsel(std::unique_ptr<BaseBFSMorsel>& bfsMorse
         auto bfsMorselSize = std::min(
             common::DEFAULT_VECTOR_CAPACITY, bfsLevelNodeOffsets.size() - nextScanStartIdx);
         auto morselScanEndIdx = nextScanStartIdx + bfsMorselSize;
-        bfsMorsel->reset(nextScanStartIdx, morselScanEndIdx, this);
+        auto shortestPathMorsel = (reinterpret_cast<ShortestPathMorsel<false>*>(bfsMorsel.get()));
+        shortestPathMorsel->reset(nextScanStartIdx, morselScanEndIdx, this);
         nextScanStartIdx += bfsMorselSize;
         mutex.unlock();
         return ssspLocalState;
@@ -63,31 +64,22 @@ SSSPLocalState SSSPMorsel::getBFSMorsel(std::unique_ptr<BaseBFSMorsel>& bfsMorse
 bool SSSPMorsel::finishBFSMorsel(std::unique_ptr<BaseBFSMorsel>& bfsMorsel) {
     mutex.lock();
     numThreadsActiveOnMorsel--;
-    if (ssspLocalState != MORSEL_EXTEND_IN_PROGRESS) {
+    if (ssspLocalState != EXTEND_IN_PROGRESS) {
         mutex.unlock();
         return true;
     }
     // Update the destinations visited, used to check for termination condition.
-    numVisitedNodes += bfsMorsel->getNumVisitedDstNodes();
+    auto shortestPathMorsel = (reinterpret_cast<ShortestPathMorsel<false>*>(bfsMorsel.get()));
+    numVisitedNodes += shortestPathMorsel->getNumVisitedDstNodes();
     if (numThreadsActiveOnMorsel == 0 && nextScanStartIdx == bfsLevelNodeOffsets.size()) {
-        auto duration = std::chrono::system_clock::now().time_since_epoch();
-        auto millis = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
-        auto size = bfsLevelNodeOffsets.size();
         moveNextLevelAsCurrentLevel();
-        /*printf("%lu total nodes in level: %d finished in %lu ms\n", size, currentLevel - 1,
-            millis - lvlStartTimeInMillis);*/
-        lvlStartTimeInMillis = millis;
-        if (isComplete(bfsMorsel->targetDstNodes->getNumNodes())) {
-            ssspLocalState = MORSEL_DISTANCE_WRITE_IN_PROGRESS;
+        if (isComplete(shortestPathMorsel->targetDstNodes->getNumNodes())) {
+            ssspLocalState = PATH_LENGTH_WRITE_IN_PROGRESS;
             mutex.unlock();
             return true;
         }
-    } else if (isComplete(bfsMorsel->targetDstNodes->getNumNodes())) {
-        auto duration = std::chrono::system_clock::now().time_since_epoch();
-        auto millis = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
-        /*printf("%lu total nodes in level: %d | early finish in %lu ms\n",
-            bfsLevelNodeOffsets.size(), currentLevel, millis - lvlStartTimeInMillis);*/
-        ssspLocalState = MORSEL_DISTANCE_WRITE_IN_PROGRESS;
+    } else if (isComplete(shortestPathMorsel->targetDstNodes->getNumNodes())) {
+        ssspLocalState = PATH_LENGTH_WRITE_IN_PROGRESS;
         mutex.unlock();
         return true;
     }
@@ -112,7 +104,7 @@ void SSSPMorsel::markSrc(bool isSrcDestination) {
     if (isSrcDestination) {
         visitedNodes[srcOffset] = VISITED_DST;
         numVisitedNodes++;
-        distance[srcOffset] = 0;
+        pathLength[srcOffset] = 0;
     } else {
         visitedNodes[srcOffset] = VISITED;
     }
@@ -122,8 +114,6 @@ void SSSPMorsel::markSrc(bool isSrcDestination) {
 void SSSPMorsel::moveNextLevelAsCurrentLevel() {
     currentLevel++;
     nextScanStartIdx = 0u;
-    auto duration2 = std::chrono::system_clock::now().time_since_epoch();
-    auto millis2 = std::chrono::duration_cast<std::chrono::milliseconds>(duration2).count();
     bfsLevelNodeOffsets.clear();
     if (currentLevel < upperBound) { // No need to prepare this vector if we won't extend.
         for (auto i = 0u; i < visitedNodes.size(); i++) {
@@ -136,37 +126,17 @@ void SSSPMorsel::moveNextLevelAsCurrentLevel() {
             }
         }
     }
-    auto duration3 = std::chrono::system_clock::now().time_since_epoch();
-    auto millis3 = std::chrono::duration_cast<std::chrono::milliseconds>(duration3).count();
-    /*printf("Time taken to prepare: %lu nodes is: %lu\n", bfsLevelNodeOffsets.size(),
-        millis3 - millis2);*/
 }
 
-std::pair<uint64_t, int64_t> SSSPMorsel::getDstDistanceMorsel() {
+std::pair<uint64_t, int64_t> SSSPMorsel::getDstPathLengthMorsel() {
     mutex.lock();
-    if (ssspLocalState != MORSEL_DISTANCE_WRITE_IN_PROGRESS) {
+    if (ssspLocalState != PATH_LENGTH_WRITE_IN_PROGRESS) {
         mutex.unlock();
-        if (startTimeInMillis != 0) {
-            auto duration = std::chrono::system_clock::now().time_since_epoch();
-            auto millis = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
-            /*printf(
-                "SSSP with src: %lu completed in: %lu ms\n", srcOffset, millis -
-               startTimeInMillis);*/
-        }
         return {UINT64_MAX, INT64_MAX};
     } else if (nextDstScanStartIdx == visitedNodes.size()) {
-        auto duration = std::chrono::system_clock::now().time_since_epoch();
-        auto millis = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
-        /*printf("SSSP with source: %lu took: %lu ms to write distances\n", srcOffset,
-            millis - distWriteStartTimeInMillis);*/
         ssspLocalState = MORSEL_COMPLETE;
         mutex.unlock();
         return {0, -1};
-    }
-    if (nextDstScanStartIdx == 0u) {
-        auto duration = std::chrono::system_clock::now().time_since_epoch();
-        distWriteStartTimeInMillis =
-            std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
     }
     auto sizeToScan =
         std::min(common::DEFAULT_VECTOR_CAPACITY, visitedNodes.size() - nextDstScanStartIdx);
@@ -193,7 +163,7 @@ void ShortestPathMorsel<false>::addToLocalNextBFSLevel(common::ValueVector* tmpD
                 &ssspMorsel->visitedNodes[nodeID.offset], state, VISITED_DST_NEW);
 #endif
             if (casResult) {
-                ssspMorsel->distance[nodeID.offset] = ssspMorsel->currentLevel + 1;
+                ssspMorsel->pathLength[nodeID.offset] = ssspMorsel->currentLevel + 1;
                 numVisitedDstNodes++;
             }
         } else if (state == NOT_VISITED) {

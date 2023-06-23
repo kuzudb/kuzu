@@ -162,7 +162,7 @@ bool RecursiveJoin::scanOutput() {
     } else {
         while (true) {
             auto tableID = *begin(dataInfo->dstNodeTableIDs);
-            auto ret = morselDispatcher->writeDstNodeIDAndDistance(
+            auto ret = morselDispatcher->writeDstNodeIDAndPathLength(
                 sharedState->inputFTableSharedState, vectorsToScan, colIndicesToScan,
                 vectors->dstNodeIDVector, vectors->pathLengthVector, tableID, threadIdx);
             /**
@@ -204,7 +204,7 @@ bool RecursiveJoin::computeBFSTemp(kuzu::processor::ExecutionContext* context) {
     }
 }
 
-/*
+/**
  * returns -1 = exit, return false from operator, all work done
  * returns 0 = keep asking for work
  * returns 1 = SSSP extend is complete, can return to writing distances
@@ -218,7 +218,7 @@ int RecursiveJoin::fetchBFSMorselFromDispatcher(ExecutionContext* context) {
         switch (globalSSSPState) {
         case IN_PROGRESS:
         case IN_PROGRESS_ALL_SRC_SCANNED:
-            if (ssspLocalState == MORSEL_COMPLETE || ssspLocalState == MORSEL_EXTEND_IN_PROGRESS) {
+            if (ssspLocalState == MORSEL_COMPLETE || ssspLocalState == EXTEND_IN_PROGRESS) {
                 std::this_thread::sleep_for(
                     std::chrono::microseconds(common::THREAD_SLEEP_TIME_WHEN_WAITING_IN_MICROS));
                 return 0;
@@ -244,6 +244,10 @@ int RecursiveJoin::fetchBFSMorselFromDispatcher(ExecutionContext* context) {
     }
 }
 
+// Used for 1T1S scheduling policy, an offset at a time BFS extension is done, and then we check
+// if the BFS is complete or not. No lock-free CAS operation occurring on the visited vector here.
+// Work not shared between any other threads, the data structures used are unordered_set and
+// unordered_map.
 void RecursiveJoin::computeBFS(ExecutionContext* context) {
     while (!bfsMorsel->isComplete()) {
         auto boundNodeID = bfsMorsel->getNextNodeID();
@@ -270,8 +274,16 @@ void RecursiveJoin::updateVisitedNodes(common::nodeID_t boundNodeID) {
     }
 }
 
+// Used for nTkS scheduling policy, extension is done morsel at a time of size 2048. Each thread
+// is operating on its morsel. Lock-free CAS operation occurs here, visited nodes are marked with
+// the function call addToLocalNextBFSLevel on the visited vector. The path lengths are written to
+// the pathLength vector.
 void RecursiveJoin::extend(ExecutionContext* context) {
-    auto shortestPathMorsel = reinterpret_cast<ShortestPathMorsel<false>*>(bfsMorsel.get());
+    // Cast the BaseBFSMorsel to ShortestPathMorsel, the TRACK_NONE RecursiveJoin is the case it is
+    // applicable for.
+    assert(bfsMorsel->getRecursiveJoinType() == planner::RecursiveJoinType::TRACK_NONE);
+    auto shortestPathMorsel =
+        reinterpret_cast<ShortestPathMorsel<false /* TRACK_PATH */>*>(bfsMorsel.get());
     common::offset_t nodeOffset = shortestPathMorsel->getNextNodeOffset();
     while (nodeOffset != common::INVALID_OFFSET) {
         scanFrontier->setNodeID(common::nodeID_t{nodeOffset, *begin(dataInfo->dstNodeTableIDs)});

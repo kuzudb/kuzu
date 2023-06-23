@@ -6,6 +6,12 @@
 namespace kuzu {
 namespace processor {
 
+/**
+ * States used for nTkS scheduler to mark different status of node offsets.
+ * VISITED_NEW and VISITED_DST_NEW are the states when a node is initially visited and
+ * when we scan to prepare the bfsLevelNodes vector for next level extension,
+ * VISITED_NEW -> VISITED | VISITED_DST_NEW -> VISITED_DST
+ */
 enum VisitedState : uint8_t {
     NOT_VISITED_DST = 0,
     VISITED_DST = 1,
@@ -15,14 +21,35 @@ enum VisitedState : uint8_t {
     VISITED_DST_NEW = 5,
 };
 
-// SSSPMorsel States
-enum SSSPLocalState {
-    MORSEL_EXTEND_IN_PROGRESS,
-    MORSEL_DISTANCE_WRITE_IN_PROGRESS,
-    MORSEL_COMPLETE
-};
+/**
+ * The Lifecycle of an SSSPMorsel in nTkS scheduler are the 3 following states. Depending on which
+ * state an SSSPMorsel is in, the thread will held that state :-
+ *
+ * 1) EXTEND_IN_PROGRESS: thread helps in level extension, try to get a morsel if available
+ *
+ * 2) PATH_LENGTH_WRITE_IN_PROGRESS: thread helps in writing path length to vector
+ *
+ * 3) MORSEL_COMPLETE: morsel is complete, try to launch another SSSPMorsel (if available),
+ *                     else find an existing one
+ */
+enum SSSPLocalState { EXTEND_IN_PROGRESS, PATH_LENGTH_WRITE_IN_PROGRESS, MORSEL_COMPLETE };
 
-// Global States for MorselDispatcher
+/**
+ * Global states of MorselDispatcher used primarily for nTkS scheduler :-
+ *
+ * 1) IN_PROGRESS: Globally (across all threads active), there is still work available. SSSPMorsels
+ *                 are available for threads to launch.
+ *
+ * 2) IN_PROGRESS_ALL_SRC_SCANNED: All SSSPMorsel available to be launched have been launched. It
+ *                                 indicates that the inputFTable has no more tuples to be scanned.
+ *                                 The threads have to search for an active SSSPMorsel (either in
+ *                                 EXTEND_IN_PROGRESS / PATH_LENGTH_WRITE_IN_PROGRESS) to execute.
+ *
+ * 3) COMPLETE: All SSSPMorsels have been completed, there is no more work either in BFS extension
+ *              or path length writing to vector. Threads can exit completely (return false and
+ *              return to parent operator).
+ *
+ */
 enum GlobalSSSPState { IN_PROGRESS, IN_PROGRESS_ALL_SRC_SCANNED, COMPLETE };
 
 // Target dst nodes are populated from semi mask and is expected to have small size.
@@ -59,13 +86,19 @@ private:
 
 struct BaseBFSMorsel;
 
+/**
+ * An SSSPMorsel is a unit of work for the nTkS scheduling policy. It is *ONLY* used for the
+ * particular case of SHORTEST_PATH | SINGLE_LABEL | NO_PATH_TRACKING. An SSSPMorsel is *NOT*
+ * exclusive to a thread and any thread can pick up BFS extension or Writing Path Length.
+ * A shared_ptr is maintained by the BaseBFSMorsel and a morsel of work is fetched using this ptr.
+ */
 struct SSSPMorsel {
 public:
     SSSPMorsel(uint64_t upperBound_, uint64_t lowerBound_, uint64_t maxNodeOffset_)
-        : mutex{std::mutex()}, ssspLocalState{MORSEL_EXTEND_IN_PROGRESS}, currentLevel{0u},
+        : mutex{std::mutex()}, ssspLocalState{EXTEND_IN_PROGRESS}, currentLevel{0u},
           nextScanStartIdx{0u}, numVisitedNodes{0u}, visitedNodes{std::vector<uint8_t>(
                                                          maxNodeOffset_ + 1, NOT_VISITED)},
-          distance{std::vector<uint16_t>(maxNodeOffset_ + 1, 0u)},
+          pathLength{std::vector<uint8_t>(maxNodeOffset_ + 1, 0u)},
           bfsLevelNodeOffsets{std::vector<common::offset_t>()}, srcOffset{0u},
           maxOffset{maxNodeOffset_}, upperBound{upperBound_}, lowerBound{lowerBound_},
           numThreadsActiveOnMorsel{0u}, nextDstScanStartIdx{0u}, inputFTableTupleIdx{0u},
@@ -84,7 +117,7 @@ public:
 
     void moveNextLevelAsCurrentLevel();
 
-    std::pair<uint64_t, int64_t> getDstDistanceMorsel();
+    std::pair<uint64_t, int64_t> getDstPathLengthMorsel();
 
 public:
     std::mutex mutex;
@@ -95,7 +128,7 @@ public:
     // Visited state
     uint64_t numVisitedNodes;
     std::vector<uint8_t> visitedNodes;
-    std::vector<uint16_t> distance;
+    std::vector<uint8_t> pathLength;
     std::vector<common::offset_t> bfsLevelNodeOffsets;
     // Offset of src node.
     common::offset_t srcOffset;
@@ -119,6 +152,8 @@ public:
 
     virtual ~BaseBFSMorsel() = default;
 
+    virtual bool getRecursiveJoinType() = 0;
+
     // Get next node offset to extend from current level.
     common::nodeID_t getNextNodeID() {
         if (nextNodeIdxToExtend == currentFrontier->nodeIDs.size()) {
@@ -135,14 +170,11 @@ public:
         addNextFrontier();
     }
 
-    virtual void reset(uint64_t startScanIdx_, uint64_t endScanIdx_, SSSPMorsel* ssspMorsel_) = 0;
-
     virtual bool isComplete() = 0;
 
     virtual void markSrc(common::nodeID_t nodeID) = 0;
     virtual void markVisited(common::nodeID_t boundNodeID, common::nodeID_t nbrNodeID,
         common::relID_t relID, uint64_t multiplicity) = 0;
-    virtual uint64_t getNumVisitedDstNodes() = 0;
     inline uint64_t getMultiplicity(common::nodeID_t nodeID) const {
         return currentFrontier->getMultiplicity(nodeID);
     }
@@ -199,6 +231,8 @@ public:
 
     ~ShortestPathMorsel() override = default;
 
+    inline bool getRecursiveJoinType() final { return TRACK_PATH; }
+
     /// This is used for 1T1S scheduler case (multi label, path tracking)
     inline void resetState() final {
         BaseBFSMorsel::resetState();
@@ -234,10 +268,10 @@ public:
         }
     }
 
-    inline uint64_t getNumVisitedDstNodes() final { return numVisitedDstNodes; }
+    inline uint64_t getNumVisitedDstNodes() { return numVisitedDstNodes; }
 
     /// This is used for nTkSCAS scheduler case (no tracking of path + single label case)
-    inline void reset(uint64_t startScanIdx_, uint64_t endScanIdx_, SSSPMorsel* ssspMorsel_) final {
+    inline void reset(uint64_t startScanIdx_, uint64_t endScanIdx_, SSSPMorsel* ssspMorsel_) {
         startScanIdx = startScanIdx_;
         endScanIdx = endScanIdx_;
         ssspMorsel = ssspMorsel_;

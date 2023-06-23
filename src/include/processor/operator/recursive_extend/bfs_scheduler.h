@@ -35,25 +35,22 @@ public:
 
     uint32_t getThreadIdx();
 
-    // Not thread safe, called only for initialization of BFSMorsel. ThreadIdx position is fixed.
-    SSSPMorsel* getSSSPMorsel(uint32_t threadIdx);
-
     std::pair<GlobalSSSPState, SSSPLocalState> getBFSMorsel(
         const std::shared_ptr<FTableSharedState>& inputFTableSharedState,
         const std::vector<common::ValueVector*> vectorsToScan,
         const std::vector<ft_col_idx_t> colIndicesToScan, common::ValueVector* srcNodeIDVector,
         std::unique_ptr<BaseBFSMorsel>& bfsMorsel, uint32_t threadIdx);
 
-    int64_t getNextAvailableSSSPWork(uint32_t threadIdx);
+    int64_t getNextAvailableSSSPWork();
 
     std::pair<GlobalSSSPState, SSSPLocalState> findAvailableSSSPMorsel(
         std::unique_ptr<BaseBFSMorsel>& bfsMorsel, SSSPLocalState& ssspLocalState,
         uint32_t threadIdx);
 
-    int64_t writeDstNodeIDAndDistance(
+    int64_t writeDstNodeIDAndPathLength(
         const std::shared_ptr<FTableSharedState>& inputFTableSharedState,
         std::vector<common::ValueVector*> vectorsToScan, std::vector<ft_col_idx_t> colIndicesToScan,
-        common::ValueVector* dstNodeIDVector, common::ValueVector* distanceVector,
+        common::ValueVector* dstNodeIDVector, common::ValueVector* pathLengthVector,
         common::table_id_t tableID, uint32_t threadIdx);
 
     inline SchedulerType getSchedulerType() { return schedulerType; }

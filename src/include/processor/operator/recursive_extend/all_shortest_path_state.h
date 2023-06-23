@@ -12,6 +12,8 @@ public:
         : BaseBFSMorsel{targetDstNodes, upperBound, lowerBound}, minDistance{0}, numVisitedDstNodes{
                                                                                      0} {}
 
+    inline bool getRecursiveJoinType() final { return TRACK_PATH; }
+
     inline bool isComplete() final {
         return isCurrentFrontierEmpty() || isUpperBoundReached() ||
                isAllDstReachedWithMinDistance();
@@ -22,10 +24,6 @@ public:
         minDistance = 0;
         numVisitedDstNodes = 0;
         visitedNodeToDistance.clear();
-    }
-
-    inline void reset(uint64_t startScanIdx_, uint64_t endScanIdx_, SSSPMorsel* ssspMorsel_) final {
-
     }
 
     inline void markSrc(common::nodeID_t nodeID) override {
@@ -57,8 +55,6 @@ public:
             }
         }
     }
-
-    inline uint64_t getNumVisitedDstNodes() final { return numVisitedDstNodes; }
 
 private:
     inline bool isAllDstReachedWithMinDistance() const {

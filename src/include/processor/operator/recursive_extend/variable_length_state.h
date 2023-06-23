@@ -11,11 +11,9 @@ struct VariableLengthMorsel : public BaseBFSMorsel {
         : BaseBFSMorsel{targetDstNodes, upperBound, lowerBound} {}
     ~VariableLengthMorsel() override = default;
 
+    inline bool getRecursiveJoinType() final { return TRACK_PATH; }
+
     inline void resetState() final { BaseBFSMorsel::resetState(); }
-
-    inline void reset(uint64_t startScanIdx_, uint64_t endScanIdx_, SSSPMorsel* ssspMorsel_) final {
-
-    }
 
     inline bool isComplete() final { return isCurrentFrontierEmpty() || isUpperBoundReached(); }
 
@@ -31,8 +29,6 @@ struct VariableLengthMorsel : public BaseBFSMorsel {
             nextFrontier->addNodeWithMultiplicity(nbrNodeID, multiplicity);
         }
     }
-
-    inline uint64_t getNumVisitedDstNodes() final {}
 };
 
 } // namespace processor

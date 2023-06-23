@@ -5,7 +5,7 @@
 namespace kuzu {
 namespace processor {
 
-/*
+/**
  * Populate the active SSSP tracker for each thread, and return a unique thread ID.
  * activeSSSPMorsel already has size equal to total threads.
  */
@@ -15,11 +15,9 @@ uint32_t MorselDispatcher::getThreadIdx() {
     return threadIdxCounter++;
 }
 
-// Not thread safe, called only for initialization of BFSMorsel. ThreadIdx position is fixed.
-SSSPMorsel* MorselDispatcher::getSSSPMorsel(uint32_t threadIdx) {
-    return activeSSSPMorsel[threadIdx].get();
-}
-
+/**
+ *
+ */
 std::pair<GlobalSSSPState, SSSPLocalState> MorselDispatcher::getBFSMorsel(
     const std::shared_ptr<FTableSharedState>& inputFTableSharedState,
     std::vector<common::ValueVector*> vectorsToScan, std::vector<ft_col_idx_t> colIndicesToScan,
@@ -40,7 +38,7 @@ std::pair<GlobalSSSPState, SSSPLocalState> MorselDispatcher::getBFSMorsel(
             srcNodeIDVector->state->selVector->selectedPositions[0]);
         bfsMorsel->markSrc(nodeID);
         bfsMorsel->threadCheckSSSPState = false;
-        return {IN_PROGRESS, MORSEL_EXTEND_IN_PROGRESS};
+        return {IN_PROGRESS, EXTEND_IN_PROGRESS};
     }
     case SchedulerType::nThreadkMorsel: {
         switch (globalState) {
@@ -53,7 +51,7 @@ std::pair<GlobalSSSPState, SSSPLocalState> MorselDispatcher::getBFSMorsel(
             SSSPLocalState ssspLocalState;
             if (!ssspMorsel) {
                 bfsMorsel->threadCheckSSSPState = true;
-                ssspLocalState = MORSEL_EXTEND_IN_PROGRESS;
+                ssspLocalState = EXTEND_IN_PROGRESS;
             } else {
                 ssspLocalState = ssspMorsel->getBFSMorsel(bfsMorsel);
             }
@@ -62,10 +60,10 @@ std::pair<GlobalSSSPState, SSSPLocalState> MorselDispatcher::getBFSMorsel(
                     // try to get the next available SSSPMorsel for work
                     // same for both states, try to get next available SSSPMorsel for work
                 case MORSEL_COMPLETE:
-                case MORSEL_EXTEND_IN_PROGRESS: {
+                case EXTEND_IN_PROGRESS: {
                     return findAvailableSSSPMorsel(bfsMorsel, ssspLocalState, threadIdx);
                 }
-                case MORSEL_DISTANCE_WRITE_IN_PROGRESS:
+                case PATH_LENGTH_WRITE_IN_PROGRESS:
                     bfsMorsel->threadCheckSSSPState = true;
                     return {globalState, ssspLocalState};
                 default:
@@ -80,7 +78,7 @@ std::pair<GlobalSSSPState, SSSPLocalState> MorselDispatcher::getBFSMorsel(
             SSSPLocalState ssspLocalState;
             if (!ssspMorsel) {
                 bfsMorsel->threadCheckSSSPState = true;
-                ssspLocalState = MORSEL_EXTEND_IN_PROGRESS;
+                ssspLocalState = EXTEND_IN_PROGRESS;
             } else {
                 ssspLocalState = ssspMorsel->getBFSMorsel(bfsMorsel);
             }
@@ -89,7 +87,7 @@ std::pair<GlobalSSSPState, SSSPLocalState> MorselDispatcher::getBFSMorsel(
                     // try to get the next available SSSPMorsel for work
                     // same for both states, try to get next available SSSPMorsel for work
                 case MORSEL_COMPLETE:
-                case MORSEL_EXTEND_IN_PROGRESS: {
+                case EXTEND_IN_PROGRESS: {
                     if (numActiveSSSP < activeSSSPMorsel.size()) {
                         auto inputFTableMorsel = inputFTableSharedState->getMorsel();
                         if (inputFTableMorsel->numTuples == 0) {
@@ -128,7 +126,7 @@ std::pair<GlobalSSSPState, SSSPLocalState> MorselDispatcher::getBFSMorsel(
                         return findAvailableSSSPMorsel(bfsMorsel, ssspLocalState, threadIdx);
                     }
                 }
-                case MORSEL_DISTANCE_WRITE_IN_PROGRESS:
+                case PATH_LENGTH_WRITE_IN_PROGRESS:
                     bfsMorsel->threadCheckSSSPState = true;
                     return {globalState, ssspLocalState};
                 default:
@@ -147,15 +145,15 @@ std::pair<GlobalSSSPState, SSSPLocalState> MorselDispatcher::getBFSMorsel(
     }
 }
 
-int64_t MorselDispatcher::getNextAvailableSSSPWork(uint32_t threadIdx) {
+int64_t MorselDispatcher::getNextAvailableSSSPWork() {
     auto nextAvailableSSSPIdx = -1;
     for (int i = 0; i < activeSSSPMorsel.size(); i++) {
         if (activeSSSPMorsel[i]) {
             activeSSSPMorsel[i]->mutex.lock();
             if (activeSSSPMorsel[i]->nextScanStartIdx <
                     activeSSSPMorsel[i]->bfsLevelNodeOffsets.size() &&
-                (activeSSSPMorsel[i]->ssspLocalState == MORSEL_EXTEND_IN_PROGRESS ||
-                    activeSSSPMorsel[i]->ssspLocalState == MORSEL_DISTANCE_WRITE_IN_PROGRESS)) {
+                (activeSSSPMorsel[i]->ssspLocalState == EXTEND_IN_PROGRESS ||
+                    activeSSSPMorsel[i]->ssspLocalState == PATH_LENGTH_WRITE_IN_PROGRESS)) {
                 nextAvailableSSSPIdx = i;
                 activeSSSPMorsel[i]->mutex.unlock();
                 break;
@@ -166,9 +164,12 @@ int64_t MorselDispatcher::getNextAvailableSSSPWork(uint32_t threadIdx) {
     return nextAvailableSSSPIdx;
 }
 
+/**
+ *
+ */
 std::pair<GlobalSSSPState, SSSPLocalState> MorselDispatcher::findAvailableSSSPMorsel(
     std::unique_ptr<BaseBFSMorsel>& bfsMorsel, SSSPLocalState& ssspLocalState, uint32_t threadIdx) {
-    auto nextAvailableSSSPIdx = getNextAvailableSSSPWork(threadIdx);
+    auto nextAvailableSSSPIdx = getNextAvailableSSSPWork();
     if (nextAvailableSSSPIdx == -1) {
         bfsMorsel->threadCheckSSSPState = true;
         return {globalState, ssspLocalState};
@@ -189,15 +190,16 @@ std::pair<GlobalSSSPState, SSSPLocalState> MorselDispatcher::findAvailableSSSPMo
     }
 }
 
-/*
- * If return value = -1, it indicates new SSSPMorsel can be started.
- * If return value = 0, indicates no more distances to write BUT cannot start new SSSPMorsel.
- * If return value > 0, indicates distances were written to distanceVector.
+/**
+ * Return value = -1: New SSSPMorsel can be started, current morsel's path length writing is done.
+ * Return value = 0, The pathLengthMorsel received did not yield any value to write to the
+ * pathLengthVector.
+ * Return value > 0, indicates pathLengths were written to pathLengthVector.
  */
-int64_t MorselDispatcher::writeDstNodeIDAndDistance(
+int64_t MorselDispatcher::writeDstNodeIDAndPathLength(
     const std::shared_ptr<FTableSharedState>& inputFTableSharedState,
     std::vector<common::ValueVector*> vectorsToScan, std::vector<ft_col_idx_t> colIndicesToScan,
-    common::ValueVector* dstNodeIDVector, common::ValueVector* distanceVector,
+    common::ValueVector* dstNodeIDVector, common::ValueVector* pathLengthVector,
     common::table_id_t tableID, uint32_t threadIdx) {
     mutex.lock();
     auto ssspMorsel = activeSSSPMorsel[threadIdx];
@@ -205,12 +207,16 @@ int64_t MorselDispatcher::writeDstNodeIDAndDistance(
         mutex.unlock();
         return -1;
     }
-    auto startScanIdxAndSize = ssspMorsel->getDstDistanceMorsel();
+    auto startScanIdxAndSize = ssspMorsel->getDstPathLengthMorsel();
     if (startScanIdxAndSize.first == UINT64_MAX && startScanIdxAndSize.second == INT64_MAX) {
         mutex.unlock();
         return -1;
     } else if (startScanIdxAndSize.second == -1) {
         numActiveSSSP--;
+        // If all SSSP have been completed indicated by count (numActiveSSSP == 0) and no more
+        // SSSP are available to launched indicated by state IN_PROGRESS_ALL_SRC_SCANNED then
+        // global state can be successfully changed to COMPLETE to indicate completion of SSSP
+        // Computation.
         if (numActiveSSSP == 0 && globalState == IN_PROGRESS_ALL_SRC_SCANNED) {
             globalState = COMPLETE;
         }
@@ -221,17 +227,20 @@ int64_t MorselDispatcher::writeDstNodeIDAndDistance(
     auto size = 0u;
     auto endIdx = startScanIdxAndSize.first + startScanIdxAndSize.second;
     while (startScanIdxAndSize.first < endIdx) {
-        if (ssspMorsel->distance[startScanIdxAndSize.first] >= ssspMorsel->lowerBound) {
+        if (ssspMorsel->pathLength[startScanIdxAndSize.first] >= ssspMorsel->lowerBound) {
             dstNodeIDVector->setValue<common::nodeID_t>(
                 size, common::nodeID_t{startScanIdxAndSize.first, tableID});
-            distanceVector->setValue<int64_t>(
-                size, ssspMorsel->distance[startScanIdxAndSize.first]);
+            pathLengthVector->setValue<int64_t>(
+                size, ssspMorsel->pathLength[startScanIdxAndSize.first]);
             size++;
         }
         startScanIdxAndSize.first++;
     }
     if (size > 0) {
         dstNodeIDVector->state->initOriginalAndSelectedSize(size);
+        // We need to rescan the FTable to get the source for which the pathLengths were computed.
+        // This is because the thread that scanned FTable initially might not be the thread writing
+        // the pathLengths to its vector.
         inputFTableSharedState->getTable()->scan(
             vectorsToScan, ssspMorsel->inputFTableTupleIdx, 1 /* numTuples */, colIndicesToScan);
         return size;
