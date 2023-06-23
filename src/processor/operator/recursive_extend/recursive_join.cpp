@@ -280,8 +280,8 @@ void RecursiveJoin::updateVisitedNodes(common::nodeID_t boundNodeID) {
 // the pathLength vector.
 void RecursiveJoin::extend(ExecutionContext* context) {
     // Cast the BaseBFSMorsel to ShortestPathMorsel, the TRACK_NONE RecursiveJoin is the case it is
-    // applicable for.
-    assert(bfsMorsel->getRecursiveJoinType() == planner::RecursiveJoinType::TRACK_NONE);
+    // applicable for. If true, indicates TRACK_PATH is true else TRACK_PATH is false.
+    assert(bfsMorsel->getRecursiveJoinType() == false);
     auto shortestPathMorsel =
         reinterpret_cast<ShortestPathMorsel<false /* TRACK_PATH */>*>(bfsMorsel.get());
     common::offset_t nodeOffset = shortestPathMorsel->getNextNodeOffset();
