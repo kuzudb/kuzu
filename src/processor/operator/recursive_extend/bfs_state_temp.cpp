@@ -1,3 +1,7 @@
+#if defined(_MSC_VER)
+#include <Windows.h>
+#include <intrin.h>
+#endif
 #include "processor/operator/recursive_extend/bfs_state_temp.h"
 
 namespace kuzu {
@@ -179,14 +183,25 @@ void ShortestPathMorsel<false>::addToLocalNextBFSLevel(common::ValueVector* tmpD
         auto nodeID = tmpDstNodeIDVector->getValue<common::nodeID_t>(pos);
         auto state = ssspMorsel->visitedNodes[nodeID.offset];
         if (state == NOT_VISITED_DST) {
-            if (__sync_bool_compare_and_swap(
-                    &ssspMorsel->visitedNodes[nodeID.offset], state, VISITED_DST_NEW)) {
+#if defined(_MSC_VER)
+            bool casResult = _InterlockedCompareExchange64(&ssspMorsel->visitedNodes[nodeID.offset],
+                                 VISITED_DST_NEW, state) == state;
+#else
+            bool casResult = __sync_bool_compare_and_swap(
+                &ssspMorsel->visitedNodes[nodeID.offset], state, VISITED_DST_NEW);
+#endif
+            if (casResult) {
                 ssspMorsel->distance[nodeID.offset] = ssspMorsel->currentLevel + 1;
                 numVisitedDstNodes++;
             }
         } else if (state == NOT_VISITED) {
+#if defined(_MSC_VER)
+            _InterlockedCompareExchange64(
+                &ssspMorsel->visitedNodes[nodeID.offset], VISITED_NEW, state);
+#else
             __sync_bool_compare_and_swap(
                 &ssspMorsel->visitedNodes[nodeID.offset], state, VISITED_NEW);
+#endif
         }
     }
 }
