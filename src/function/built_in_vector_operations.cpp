@@ -108,7 +108,7 @@ uint32_t BuiltInVectorOperations::getCastCost(
         case common::LogicalTypeID::SERIAL:
             return castSerial(targetTypeID);
         default:
-            return UINT32_MAX;
+            return UNDEFINED_CAST_COST;
         }
     }
 }
@@ -121,7 +121,13 @@ uint32_t BuiltInVectorOperations::getCastCost(
         switch (inputType.getLogicalTypeID()) {
         case common::LogicalTypeID::FIXED_LIST:
         case common::LogicalTypeID::VAR_LIST:
-            return UINT32_MAX;
+        case common::LogicalTypeID::MAP:
+        case common::LogicalTypeID::UNION:
+        case common::LogicalTypeID::STRUCT:
+        case common::LogicalTypeID::INTERNAL_ID:
+        // TODO(Ziyi): add boolean cast operations.
+        case common::LogicalTypeID::BOOL:
+            return UNDEFINED_CAST_COST;
         default:
             return getCastCost(inputType.getLogicalTypeID(), targetType.getLogicalTypeID());
         }
@@ -157,7 +163,7 @@ uint32_t BuiltInVectorOperations::castInt64(common::LogicalTypeID targetTypeID) 
     case common::LogicalTypeID::DOUBLE:
         return getTargetTypeCost(targetTypeID);
     default:
-        return UINT32_MAX;
+        return UNDEFINED_CAST_COST;
     }
 }
 
@@ -168,7 +174,7 @@ uint32_t BuiltInVectorOperations::castInt32(common::LogicalTypeID targetTypeID) 
     case common::LogicalTypeID::DOUBLE:
         return getTargetTypeCost(targetTypeID);
     default:
-        return UINT32_MAX;
+        return UNDEFINED_CAST_COST;
     }
 }
 
@@ -180,14 +186,14 @@ uint32_t BuiltInVectorOperations::castInt16(common::LogicalTypeID targetTypeID) 
     case common::LogicalTypeID::DOUBLE:
         return getTargetTypeCost(targetTypeID);
     default:
-        return UINT32_MAX;
+        return UNDEFINED_CAST_COST;
     }
 }
 
 uint32_t BuiltInVectorOperations::castDouble(common::LogicalTypeID targetTypeID) {
     switch (targetTypeID) {
     default:
-        return UINT32_MAX;
+        return UNDEFINED_CAST_COST;
     }
 }
 
@@ -196,7 +202,7 @@ uint32_t BuiltInVectorOperations::castFloat(common::LogicalTypeID targetTypeID) 
     case common::LogicalTypeID::DOUBLE:
         return getTargetTypeCost(targetTypeID);
     default:
-        return UINT32_MAX;
+        return UNDEFINED_CAST_COST;
     }
 }
 
@@ -205,7 +211,7 @@ uint32_t BuiltInVectorOperations::castDate(common::LogicalTypeID targetTypeID) {
     case common::LogicalTypeID::TIMESTAMP:
         return getTargetTypeCost(targetTypeID);
     default:
-        return UINT32_MAX;
+        return UNDEFINED_CAST_COST;
     }
 }
 
@@ -224,7 +230,7 @@ VectorOperationDefinition* BuiltInVectorOperations::getBestMatch(
     std::vector<VectorOperationDefinition*>& functions) {
     assert(functions.size() > 1);
     VectorOperationDefinition* result = nullptr;
-    auto cost = UINT32_MAX;
+    auto cost = UNDEFINED_CAST_COST;
     for (auto& function : functions) {
         std::unordered_set<LogicalTypeID> distinctParameterTypes;
         for (auto& parameterTypeID : function->parameterTypeIDs) {
@@ -259,7 +265,7 @@ uint32_t BuiltInVectorOperations::matchParameters(const std::vector<LogicalType>
     auto cost = 0u;
     for (auto i = 0u; i < inputTypes.size(); ++i) {
         auto castCost = getCastCost(inputTypes[i].getLogicalTypeID(), targetTypeIDs[i]);
-        if (castCost == UINT32_MAX) {
+        if (castCost == UNDEFINED_CAST_COST) {
             return UINT32_MAX;
         }
         cost += castCost;
@@ -272,7 +278,7 @@ uint32_t BuiltInVectorOperations::matchVarLengthParameters(
     auto cost = 0u;
     for (auto& inputType : inputTypes) {
         auto castCost = getCastCost(inputType.getLogicalTypeID(), targetTypeID);
-        if (castCost == UINT32_MAX) {
+        if (castCost == UNDEFINED_CAST_COST) {
             return UINT32_MAX;
         }
         cost += castCost;

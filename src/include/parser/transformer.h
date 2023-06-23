@@ -16,6 +16,8 @@ public:
     std::unique_ptr<Statement> transform();
 
 private:
+    std::unique_ptr<Statement> transformOcStatement(CypherParser::OC_StatementContext& ctx);
+
     std::unique_ptr<RegularQuery> transformQuery(CypherParser::OC_QueryContext& ctx);
 
     std::unique_ptr<RegularQuery> transformRegularQuery(CypherParser::OC_RegularQueryContext& ctx);
@@ -245,6 +247,8 @@ private:
     std::unique_ptr<Statement> transformCopyCSV(CypherParser::KU_CopyCSVContext& ctx);
 
     std::unique_ptr<Statement> transformCopyNPY(CypherParser::KU_CopyNPYContext& ctx);
+
+    std::unique_ptr<Statement> transformCall(CypherParser::KU_CallContext& ctx);
 
     std::vector<std::string> transformFilePaths(
         std::vector<antlr4::tree::TerminalNode*> stringLiteral);

@@ -108,6 +108,8 @@ private:
         planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapLogicalRenamePropertyToPhysical(
         planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapLogicalCallToPhysical(
+        planner::LogicalOperator* logicalOperator);
     std::unique_ptr<ResultCollector> appendResultCollector(
         const binder::expression_vector& expressionsToCollect, planner::Schema* schema,
         std::unique_ptr<PhysicalOperator> prevOperator);

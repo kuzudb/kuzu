@@ -14,13 +14,18 @@ grammar Cypher;
 }
 
 oC_Cypher
-    : SP ? oC_AnyCypherOption? SP? ( oC_Statement | kU_DDL | kU_CopyNPY | kU_CopyCSV ) ( SP? ';' )? SP? EOF ;
+    : SP ? oC_AnyCypherOption? SP? ( oC_Statement ) ( SP? ';' )? SP? EOF ;
 
 kU_CopyCSV
     : COPY SP oC_SchemaName SP FROM SP kU_FilePaths ( SP? '(' SP? kU_ParsingOptions SP? ')' )? ;
 
 kU_CopyNPY
     : COPY SP oC_SchemaName SP FROM SP '(' SP? StringLiteral ( SP? ',' SP? StringLiteral )* ')' SP BY SP COLUMN ;
+
+kU_Call
+    : CALL SP oC_SymbolicName SP? '=' SP? oC_Literal ;
+
+CALL : ( 'C' | 'c' ) ( 'A' | 'a' ) ( 'L' | 'l' ) ( 'L' | 'l' ) ;
 
 kU_FilePaths
     : '[' SP? StringLiteral ( SP? ',' SP? StringLiteral )* ']'
@@ -131,7 +136,11 @@ oC_Profile
 PROFILE : ( 'P' | 'p' ) ( 'R' | 'r' ) ( 'O' | 'o' ) ( 'F' | 'f' ) ( 'I' | 'i' ) ( 'L' | 'l' ) ( 'E' | 'e' ) ;
 
 oC_Statement
-    : oC_Query ;
+    : oC_Query
+        | kU_DDL
+        | kU_CopyNPY
+        | kU_CopyCSV
+        | kU_Call  ;
 
 oC_Query
     : oC_RegularQuery ;

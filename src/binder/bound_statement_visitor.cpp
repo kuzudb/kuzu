@@ -34,6 +34,9 @@ void BoundStatementVisitor::visit(const kuzu::binder::BoundStatement& statement)
     case StatementType::COPY: {
         visitCopy(statement);
     } break;
+    case StatementType::CALL: {
+        visitCall(statement);
+    } break;
     default:
         throw NotImplementedException("BoundStatementVisitor::visit");
     }

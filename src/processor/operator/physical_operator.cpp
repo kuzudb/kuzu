@@ -20,6 +20,9 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
     case PhysicalOperatorType::AGGREGATE_SCAN: {
         return "AGGREGATE_SCAN";
     }
+    case PhysicalOperatorType::CALL: {
+        return "CALL";
+    }
     case PhysicalOperatorType::COPY_NODE: {
         return "COPY_NODE";
     }

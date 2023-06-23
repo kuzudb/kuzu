@@ -24,7 +24,8 @@ add_library(kuzu_processor_operator
         scan_node_id.cpp
         semi_masker.cpp
         skip.cpp
-        unwind.cpp)
+        unwind.cpp
+        call.cpp)
 
 set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_processor_operator>
