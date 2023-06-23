@@ -2,7 +2,7 @@
 #include <Windows.h>
 #include <intrin.h>
 #endif
-#include "processor/operator/recursive_extend/bfs_state_temp.h"
+#include "processor/operator/recursive_extend/bfs_state.h"
 
 namespace kuzu {
 namespace processor {

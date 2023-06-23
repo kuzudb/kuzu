@@ -1,6 +1,6 @@
 #pragma once
 
-#include "bfs_state_temp.h"
+#include "bfs_state.h"
 
 namespace kuzu {
 namespace processor {} // namespace processor

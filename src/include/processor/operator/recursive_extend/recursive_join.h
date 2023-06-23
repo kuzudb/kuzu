@@ -3,7 +3,7 @@
 #include <utility>
 
 #include "bfs_scheduler.h"
-#include "bfs_state_temp.h"
+#include "bfs_state.h"
 #include "common/query_rel_type.h"
 #include "frontier_scanner.h"
 #include "planner/logical_plan/logical_operator/recursive_join_type.h"

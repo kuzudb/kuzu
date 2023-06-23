@@ -1,7 +1,7 @@
 #pragma once
 
 #include "processor/operator/mask.h"
-#include "processor/operator/recursive_extend/bfs_state_temp.h"
+#include "processor/operator/recursive_extend/bfs_state.h"
 #include "processor/operator/result_collector.h"
 
 namespace kuzu {
