@@ -69,18 +69,22 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalRecursiveExtendToPhysica
         auto nodeTable = storageManager.getNodesStore().getNodeTable(tableID);
         semiMasks.push_back(std::make_unique<NodeOffsetSemiMask>(nodeTable));
     }
-    auto maxNodeOffsetsPerTable =
-        storageManager.getNodesStore().getNodesStatisticsAndDeletedIDs().getMaxNodeOffsetPerTable();
-    auto maxNodeOffset = maxNodeOffsetsPerTable.at(nbrNode->getSingleTableID());
     std::shared_ptr<MorselDispatcher> morselDispatcher;
+    bool checkSingleLabel = boundNode->getTableIDs().size() == 1 &&
+                            nbrNode->getTableIDs().size() == 1 &&
+                            dataInfo->recursiveDstNodeTableIDs.size() == 1;
     if (rel->getRelType() == common::QueryRelType::SHORTEST &&
-        extend->getJoinType() == planner::RecursiveJoinType::TRACK_NONE &&
-        dataInfo->dstNodeTableIDs.size() == 1) {
+        extend->getJoinType() == planner::RecursiveJoinType::TRACK_NONE && checkSingleLabel) {
+        auto maxNodeOffsetsPerTable = storageManager.getNodesStore()
+                                          .getNodesStatisticsAndDeletedIDs()
+                                          .getMaxNodeOffsetPerTable();
+        auto maxNodeOffset = maxNodeOffsetsPerTable.at(nbrNode->getSingleTableID());
         morselDispatcher = std::make_shared<MorselDispatcher>(SchedulerType::nThreadkMorsel,
             rel->getLowerBound(), rel->getUpperBound(), maxNodeOffset, numThreadsForExecution);
     } else {
         morselDispatcher = std::make_shared<MorselDispatcher>(SchedulerType::OneThreadOneMorsel,
-            rel->getLowerBound(), rel->getUpperBound(), maxNodeOffset, numThreadsForExecution);
+            rel->getLowerBound(), rel->getUpperBound(), UINT64_MAX /* maxNodeOffset */,
+            numThreadsForExecution);
     }
     return std::make_unique<RecursiveJoin>(rel->getLowerBound(), rel->getUpperBound(),
         rel->getRelType(), extend->getJoinType(), sharedState, std::move(dataInfo), outDataPoses,
