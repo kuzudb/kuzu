@@ -184,8 +184,10 @@ void ShortestPathMorsel<false>::addToLocalNextBFSLevel(common::ValueVector* tmpD
         auto state = ssspMorsel->visitedNodes[nodeID.offset];
         if (state == NOT_VISITED_DST) {
 #if defined(_MSC_VER)
-            bool casResult = _InterlockedCompareExchange64(&ssspMorsel->visitedNodes[nodeID.offset],
-                                 VISITED_DST_NEW, state) == state;
+            bool casResult =
+                _InterlockedCompareExchange64(
+                    reinterpret_cast<volatile __int64*>(&ssspMorsel->visitedNodes[nodeID.offset]),
+                    VISITED_DST_NEW, state) == state;
 #else
             bool casResult = __sync_bool_compare_and_swap(
                 &ssspMorsel->visitedNodes[nodeID.offset], state, VISITED_DST_NEW);
@@ -197,7 +199,8 @@ void ShortestPathMorsel<false>::addToLocalNextBFSLevel(common::ValueVector* tmpD
         } else if (state == NOT_VISITED) {
 #if defined(_MSC_VER)
             _InterlockedCompareExchange64(
-                &ssspMorsel->visitedNodes[nodeID.offset], VISITED_NEW, state);
+                reinterpret_cast<volatile __int64*>(&ssspMorsel->visitedNodes[nodeID.offset]),
+                VISITED_NEW, state);
 #else
             __sync_bool_compare_and_swap(
                 &ssspMorsel->visitedNodes[nodeID.offset], state, VISITED_NEW);
