@@ -139,6 +139,12 @@ public:
      */
     KUZU_API void setQueryTimeOut(uint64_t timeoutInMS);
 
+    /**
+     * @brief gets the query timeout value of the current connection. A value of zero (the default)
+     * disables the timeout.
+     */
+    KUZU_API uint64_t getQueryTimeOut();
+
 protected:
     ConnectionTransactionMode getTransactionMode();
     void setTransactionModeNoLock(ConnectionTransactionMode newTransactionMode);

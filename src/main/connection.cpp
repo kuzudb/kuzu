@@ -290,6 +290,11 @@ void Connection::setQueryTimeOut(uint64_t timeoutInMS) {
     clientContext->timeoutInMS = timeoutInMS;
 }
 
+uint64_t Connection::getQueryTimeOut() {
+    lock_t lck{mtx};
+    return clientContext->timeoutInMS;
+}
+
 std::unique_ptr<QueryResult> Connection::executeWithParams(PreparedStatement* preparedStatement,
     std::unordered_map<std::string, std::shared_ptr<Value>>& inputParams) {
     lock_t lck{mtx};

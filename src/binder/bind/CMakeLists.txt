@@ -1,6 +1,7 @@
 add_library(
         kuzu_binder_bind
         OBJECT
+        bind_call.cpp
         bind_copy.cpp
         bind_ddl.cpp
         bind_graph_pattern.cpp

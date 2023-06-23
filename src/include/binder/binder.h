@@ -108,6 +108,9 @@ private:
     std::unique_ptr<BoundSingleQuery> bindSingleQuery(const parser::SingleQuery& singleQuery);
     std::unique_ptr<BoundQueryPart> bindQueryPart(const parser::QueryPart& queryPart);
 
+    /*** bind call ***/
+    std::unique_ptr<BoundStatement> bindCallClause(const parser::Statement& statement);
+
     /*** bind reading clause ***/
     std::unique_ptr<BoundReadingClause> bindReadingClause(
         const parser::ReadingClause& readingClause);

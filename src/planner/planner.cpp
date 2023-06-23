@@ -1,5 +1,6 @@
 #include "planner/planner.h"
 
+#include "binder/call/bound_call.h"
 #include "binder/copy/bound_copy.h"
 #include "binder/ddl/bound_add_property.h"
 #include "binder/ddl/bound_create_node_clause.h"
@@ -10,6 +11,7 @@
 #include "binder/ddl/bound_rename_table.h"
 #include "binder/expression/variable_expression.h"
 #include "planner/logical_plan/logical_operator/logical_add_property.h"
+#include "planner/logical_plan/logical_operator/logical_call.h"
 #include "planner/logical_plan/logical_operator/logical_copy.h"
 #include "planner/logical_plan/logical_operator/logical_create_node_table.h"
 #include "planner/logical_plan/logical_operator/logical_create_rel_table.h"
@@ -57,6 +59,9 @@ std::unique_ptr<LogicalPlan> Planner::getBestPlan(const Catalog& catalog,
     case StatementType::RENAME_PROPERTY: {
         plan = planRenameProperty(statement);
     } break;
+    case StatementType::CALL: {
+        plan = planCall(statement);
+    } break;
     default:
         throw common::NotImplementedException("getBestPlan()");
     }
@@ -80,7 +85,7 @@ std::vector<std::unique_ptr<LogicalPlan>> Planner::getAllPlans(const Catalog& ca
 }
 
 std::unique_ptr<LogicalPlan> Planner::planCreateNodeTable(const BoundStatement& statement) {
-    auto& createNodeClause = (BoundCreateNodeClause&)statement;
+    auto& createNodeClause = reinterpret_cast<const BoundCreateNodeClause&>(statement);
     auto plan = std::make_unique<LogicalPlan>();
     auto createNodeTable = make_shared<LogicalCreateNodeTable>(createNodeClause.getTableName(),
         createNodeClause.getProperties(), createNodeClause.getPrimaryKeyIdx(),
@@ -90,7 +95,7 @@ std::unique_ptr<LogicalPlan> Planner::planCreateNodeTable(const BoundStatement& 
 }
 
 std::unique_ptr<LogicalPlan> Planner::planCreateRelTable(const BoundStatement& statement) {
-    auto& createRelClause = (BoundCreateRelClause&)statement;
+    auto& createRelClause = reinterpret_cast<const BoundCreateRelClause&>(statement);
     auto plan = std::make_unique<LogicalPlan>();
     auto createRelTable = make_shared<LogicalCreateRelTable>(createRelClause.getTableName(),
         createRelClause.getProperties(), createRelClause.getRelMultiplicity(),
@@ -101,7 +106,7 @@ std::unique_ptr<LogicalPlan> Planner::planCreateRelTable(const BoundStatement& s
 }
 
 std::unique_ptr<LogicalPlan> Planner::planDropTable(const BoundStatement& statement) {
-    auto& dropTableClause = (BoundDropTable&)statement;
+    auto& dropTableClause = reinterpret_cast<const BoundDropTable&>(statement);
     auto plan = std::make_unique<LogicalPlan>();
     auto dropTable =
         make_shared<LogicalDropTable>(dropTableClause.getTableID(), dropTableClause.getTableName(),
@@ -111,7 +116,7 @@ std::unique_ptr<LogicalPlan> Planner::planDropTable(const BoundStatement& statem
 }
 
 std::unique_ptr<LogicalPlan> Planner::planRenameTable(const BoundStatement& statement) {
-    auto& renameTableClause = (BoundRenameTable&)statement;
+    auto& renameTableClause = reinterpret_cast<const BoundRenameTable&>(statement);
     auto plan = std::make_unique<LogicalPlan>();
     auto renameTable = make_shared<LogicalRenameTable>(renameTableClause.getTableID(),
         renameTableClause.getTableName(), renameTableClause.getNewName(),
@@ -121,7 +126,7 @@ std::unique_ptr<LogicalPlan> Planner::planRenameTable(const BoundStatement& stat
 }
 
 std::unique_ptr<LogicalPlan> Planner::planAddProperty(const BoundStatement& statement) {
-    auto& addPropertyClause = (BoundAddProperty&)statement;
+    auto& addPropertyClause = reinterpret_cast<const BoundAddProperty&>(statement);
     auto plan = std::make_unique<LogicalPlan>();
     auto addProperty = make_shared<LogicalAddProperty>(addPropertyClause.getTableID(),
         addPropertyClause.getPropertyName(), addPropertyClause.getDataType(),
@@ -132,7 +137,7 @@ std::unique_ptr<LogicalPlan> Planner::planAddProperty(const BoundStatement& stat
 }
 
 std::unique_ptr<LogicalPlan> Planner::planDropProperty(const BoundStatement& statement) {
-    auto& dropPropertyClause = (BoundDropProperty&)statement;
+    auto& dropPropertyClause = reinterpret_cast<const BoundDropProperty&>(statement);
     auto plan = std::make_unique<LogicalPlan>();
     auto dropProperty = make_shared<LogicalDropProperty>(dropPropertyClause.getTableID(),
         dropPropertyClause.getPropertyID(), dropPropertyClause.getTableName(),
@@ -142,7 +147,7 @@ std::unique_ptr<LogicalPlan> Planner::planDropProperty(const BoundStatement& sta
 }
 
 std::unique_ptr<LogicalPlan> Planner::planRenameProperty(const BoundStatement& statement) {
-    auto& renamePropertyClause = (BoundRenameProperty&)statement;
+    auto& renamePropertyClause = reinterpret_cast<const BoundRenameProperty&>(statement);
     auto plan = std::make_unique<LogicalPlan>();
     auto renameProperty = make_shared<LogicalRenameProperty>(renamePropertyClause.getTableID(),
         renamePropertyClause.getTableName(), renamePropertyClause.getPropertyID(),
@@ -154,7 +159,7 @@ std::unique_ptr<LogicalPlan> Planner::planRenameProperty(const BoundStatement& s
 
 std::unique_ptr<LogicalPlan> Planner::planCopy(
     const catalog::Catalog& catalog, const BoundStatement& statement) {
-    auto& copyCSVClause = (BoundCopy&)statement;
+    auto& copyCSVClause = reinterpret_cast<const BoundCopy&>(statement);
     auto plan = std::make_unique<LogicalPlan>();
     expression_vector arrowColumnExpressions;
     for (auto& property :
@@ -171,6 +176,15 @@ std::unique_ptr<LogicalPlan> Planner::planCopy(
             common::LogicalType{common::LogicalTypeID::INT64}, "startOffset", "startOffset"),
         copyCSVClause.getStatementResult()->getSingleExpressionToCollect());
     plan->setLastOperator(std::move(copyCSV));
+    return plan;
+}
+
+std::unique_ptr<LogicalPlan> Planner::planCall(const BoundStatement& statement) {
+    auto& callClause = reinterpret_cast<const BoundCall&>(statement);
+    auto plan = std::make_unique<LogicalPlan>();
+    auto logicalCall =
+        make_shared<LogicalCall>(callClause.getOption(), callClause.getOptionValue());
+    plan->setLastOperator(std::move(logicalCall));
     return plan;
 }
 

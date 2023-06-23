@@ -4,6 +4,7 @@ add_library(kuzu_processor_mapper
         map_accumulate.cpp
         map_aggregate.cpp
         map_acc_hash_join.cpp
+        map_call.cpp
         map_create.cpp
         map_cross_product.cpp
         map_ddl.cpp

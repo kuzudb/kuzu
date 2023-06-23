@@ -32,6 +32,8 @@ private:
 
     static std::unique_ptr<LogicalPlan> planCopy(
         const catalog::Catalog& catalog, const BoundStatement& statement);
+
+    static std::unique_ptr<LogicalPlan> planCall(const BoundStatement& statement);
 };
 
 } // namespace planner

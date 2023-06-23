@@ -15,6 +15,7 @@ enum class StatementType : uint8_t {
     DROP_PROPERTY = 7,
     RENAME_PROPERTY = 8,
     COPY = 20,
+    CALL = 21,
 };
 
 class StatementTypeUtils {
