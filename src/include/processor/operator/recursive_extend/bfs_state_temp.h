@@ -243,6 +243,7 @@ public:
         ssspMorsel = ssspMorsel_;
         threadCheckSSSPState = false;
         localVisitedDstNodes = 0u;
+        numVisitedDstNodes = 0u;
     }
 
     inline uint64_t getNumDstNodeOffsets() { return targetDstNodes->getNumNodes(); }
