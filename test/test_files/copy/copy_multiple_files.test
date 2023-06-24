@@ -4,7 +4,7 @@
 --
 
 -DEFINE_STATEMENT_BLOCK VALIDATE_PERSON_TABLE_AFTER_COPYING [
--QUERY MATCH (p:person) RETURN p.ID
+-STATEMENT MATCH (p:person) RETURN p.ID
 ---- 11
 1
 12
@@ -20,7 +20,7 @@
 ]
 
 -DEFINE_STATEMENT_BLOCK VALIDATE_KNOWS_TABLE_AFTER_COPYING [
--QUERY MATCH (:person)-[e:knows]->(:person) RETURN e.weight
+-STATEMENT MATCH (:person)-[e:knows]->(:person) RETURN e.weight
 ---- 8
 22
 25

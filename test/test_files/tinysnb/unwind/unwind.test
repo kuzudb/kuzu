@@ -7,7 +7,7 @@
 -DEFINE UNWIND_LIST ARANGE 1 4001
 
 -DEBUG_LOG unwind1
--QUERY UNWIND [1, 2, 3, 4] AS x RETURN x
+-STATEMENT UNWIND [1, 2, 3, 4] AS x RETURN x
 ---- 4
 1
 2
@@ -15,7 +15,7 @@
 4
 
 -DEBUG_LOG unwind2
--QUERY UNWIND [[1, 2, 3], [2, 3, 4], [3, 4, 1], [4, 1, 2]] AS x RETURN x
+-STATEMENT UNWIND [[1, 2, 3], [2, 3, 4], [3, 4, 1], [4, 1, 2]] AS x RETURN x
 ---- 4
 [1,2,3]
 [2,3,4]
@@ -23,7 +23,7 @@
 [4,1,2]
 
 -DEBUG_LOG unwind3
--QUERY UNWIND ["adhjsdhhhhhhhhhhhhsjsjjdhsjdhdjshdjdadhjsdhhqwrtetrehhhhsjsjjdhsjdhdjshdjd", "basdfghjkjkjhkjhkjhkj", "c", "d"] AS x RETURN x
+-STATEMENT UNWIND ["adhjsdhhhhhhhhhhhhsjsjjdhsjdhdjshdjdadhjsdhhqwrtetrehhhhsjsjjdhsjdhdjshdjd", "basdfghjkjkjhkjhkjhkj", "c", "d"] AS x RETURN x
 ---- 4
 adhjsdhhhhhhhhhhhhsjsjjdhsjdhdjshdjdadhjsdhhqwrtetrehhhhsjsjjdhsjdhdjshdjd
 basdfghjkjkjhkjhkjhkj
@@ -31,7 +31,7 @@ c
 d
 
 -DEBUG_LOG unwind4
--QUERY UNWIND [1, 2, 3, 4] AS x RETURN x + 2
+-STATEMENT UNWIND [1, 2, 3, 4] AS x RETURN x + 2
 ---- 4
 3
 4
@@ -39,18 +39,18 @@ d
 6
 
 -DEBUG_LOG unwind5
--QUERY UNWIND [1,2,3,4] AS x WITH x AS b WHERE b > 2 RETURN b
+-STATEMENT UNWIND [1,2,3,4] AS x WITH x AS b WHERE b > 2 RETURN b
 ---- 2
 3
 4
 
 -DEBUG_LOG unwind6
--QUERY UNWIND ${UNWIND_LIST} AS x WITH x AS b WHERE b > 4000 RETURN b
+-STATEMENT UNWIND ${UNWIND_LIST} AS x WITH x AS b WHERE b > 4000 RETURN b
 ---- 1
 4001
 
 -DEBUG_LOG unwind7
--QUERY UNWIND [1, 2, 3] AS x UNWIND [5, 6, 7] AS y RETURN x,y
+-STATEMENT UNWIND [1, 2, 3] AS x UNWIND [5, 6, 7] AS y RETURN x,y
 ---- 9
 1|5
 1|6
@@ -63,13 +63,13 @@ d
 3|7
 
 -DEBUG_LOG unwind8
--QUERY MATCH (a:person) WHERE a.fName = 'Alice' UNWIND a.workedHours as x RETURN x,a.fName
+-STATEMENT MATCH (a:person) WHERE a.fName = 'Alice' UNWIND a.workedHours as x RETURN x,a.fName
 ---- 2
 10|Alice
 5|Alice
 
 -DEBUG_LOG unwind9
--QUERY MATCH (a:person)-[:studyAt]->(b:organisation) WHERE b.ID = 1 AND a.fName = 'Farooq' UNWIND a.workedHours as x RETURN x,a.fName
+-STATEMENT MATCH (a:person)-[:studyAt]->(b:organisation) WHERE b.ID = 1 AND a.fName = 'Farooq' UNWIND a.workedHours as x RETURN x,a.fName
 ---- 5
 3|Farooq
 4|Farooq
@@ -78,25 +78,25 @@ d
 7|Farooq
 
 -DEBUG_LOG unwind10
--QUERY MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) WHERE a.ID = 0 AND b.ID = 2 UNWIND a.usedNames as x RETURN x,a.fName,b.fName,c.fName
+-STATEMENT MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) WHERE a.ID = 0 AND b.ID = 2 UNWIND a.usedNames as x RETURN x,a.fName,b.fName,c.fName
 ---- 3
 Aida|Alice|Bob|Alice
 Aida|Alice|Bob|Carol
 Aida|Alice|Bob|Dan
 
 -DEBUG_LOG unwind11
--QUERY MATCH (a:person) UNWIND a.workedHours as x WITH x AS hour WHERE hour < 0 RETURN COUNT(*)
+-STATEMENT MATCH (a:person) UNWIND a.workedHours as x WITH x AS hour WHERE hour < 0 RETURN COUNT(*)
 ---- 1
 0
 
 -DEBUG_LOG unwind12
--QUERY UNWIND [1,2,3,4] as val WITH val ORDER BY val SKIP 2 RETURN val
+-STATEMENT UNWIND [1,2,3,4] as val WITH val ORDER BY val SKIP 2 RETURN val
 ---- 2
 3
 4
 
 -DEBUG_LOG unwind13
--QUERY WITH [1, 1, 2, 2] AS coll UNWIND coll AS x WITH DISTINCT x return x
+-STATEMENT WITH [1, 1, 2, 2] AS coll UNWIND coll AS x WITH DISTINCT x return x
 ---- 2
 1
 2

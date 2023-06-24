@@ -6,45 +6,45 @@
 -CASE ProjectionSingleLabel
 
 -DEBUG_LOG ReturnLiteral3
--QUERY RETURN "abc", MIN(1)
+-STATEMENT RETURN "abc", MIN(1)
 ---- 1
 abc|1
 
 -DEBUG_LOG ReturnLiteral1
--QUERY RETURN 3 * 2, COUNT(*), MIN(2), COUNT(5)
+-STATEMENT RETURN 3 * 2, COUNT(*), MIN(2), COUNT(5)
 ---- 1
 6|1|2|1
 
 -DEBUG_LOG ReturnLiteral2
--QUERY MATCH (a:person) RETURN 1 + 1, label(a) LIMIT 2
+-STATEMENT MATCH (a:person) RETURN 1 + 1, label(a) LIMIT 2
 ---- 2
 2|person
 2|person
 
 -DEBUG_LOG ReturnNullLiteral
--QUERY RETURN (NULL = NULL) IS NOT NULL, NULL, NULL = NULL
+-STATEMENT RETURN (NULL = NULL) IS NOT NULL, NULL, NULL = NULL
 ---- 1
 False||
 
 -DEBUG_LOG ReturnAggOnConst
--QUERY MATCH (a:person) RETURN COUNT(3)
+-STATEMENT MATCH (a:person) RETURN COUNT(3)
 ---- 1
 8
 
 -DEBUG_LOG ReturnColumnWithSameExpression
--QUERY MATCH (a:person) WHERE a.fName='Alice' RETURN a.age, a.age AS k
+-STATEMENT MATCH (a:person) WHERE a.fName='Alice' RETURN a.age, a.age AS k
 ---- 1
 35|35
 
 -DEBUG_LOG OrgNodesReturnStarTest
--QUERY MATCH (a:organisation) RETURN *
+-STATEMENT MATCH (a:organisation) RETURN *
 ---- 3
 (label:organisation, 1:0, {ID:1, name:ABFsUni, orgCode:325, mark:3.700000, score:-2, history:10 years 5 months 13 hours 24 us, licenseValidInterval:3 years 5 days, rating:1.000000, state:{REVENUE: 138, LOCATION: ['toronto', 'montr,eal'], STOCK: {PRICE: [96,56], VOLUME: 1000}}})
 (label:organisation, 1:1, {ID:4, name:CsWork, orgCode:934, mark:4.100000, score:-100, history:2 years 4 days 10 hours, licenseValidInterval:26 years 52 days 48:00:00, rating:0.780000, state:{REVENUE: 152, LOCATION: ["vanco,uver north area"], STOCK: {PRICE: [15,78,671], VOLUME: 432}}})
 (label:organisation, 1:2, {ID:6, name:DEsWork, orgCode:824, mark:4.100000, score:7, history:2 years 4 hours 22 us 34 minutes, licenseValidInterval:82:00:00.1, rating:0.520000, state:{REVENUE: 558, LOCATION: ['very long city name', 'new york'], STOCK: {PRICE: [22], VOLUME: 99}}})
 
 -DEBUG_LOG PersonNodesTestNull
--QUERY MATCH (a:person) RETURN a.ID, a.fName STARTS WITH NULL, a.isWorker, a.isWorker AND null
+-STATEMENT MATCH (a:person) RETURN a.ID, a.fName STARTS WITH NULL, a.isWorker, a.isWorker AND null
 ---- 8
 0||False|False
 10||True|
@@ -56,7 +56,7 @@ False||
 9||False|False
 
 -DEBUG_LOG PersonNodesTestString
--QUERY MATCH (a:person) RETURN a.fName
+-STATEMENT MATCH (a:person) RETURN a.fName
 ---- 8
 Alice
 Bob
@@ -68,7 +68,7 @@ Greg
 Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
 
 -DEBUG_LOG PersonNodesTestInt
--QUERY MATCH (a:person) RETURN a.age
+-STATEMENT MATCH (a:person) RETURN a.age
 ---- 8
 35
 30
@@ -80,7 +80,7 @@ Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
 83
 
 -DEBUG_LOG PersonNodesTestBoolean
--QUERY MATCH (a:person) RETURN a.isStudent
+-STATEMENT MATCH (a:person) RETURN a.isStudent
 ---- 8
 True
 True
@@ -92,7 +92,7 @@ False
 False
 
 -DEBUG_LOG PersonNodesTestDouble
--QUERY MATCH (a:person) RETURN a.eyeSight
+-STATEMENT MATCH (a:person) RETURN a.eyeSight
 ---- 8
 5.000000
 5.100000
@@ -104,7 +104,7 @@ False
 4.900000
 
 -DEBUG_LOG PersonNodesTestDate
--QUERY MATCH (a:person) RETURN a.birthdate
+-STATEMENT MATCH (a:person) RETURN a.birthdate
 ---- 8
 1900-01-01
 1900-01-01
@@ -116,7 +116,7 @@ False
 1990-11-27
 
 -DEBUG_LOG PersonNodesTestList
--QUERY MATCH (a:person) RETURN a.workedHours, a.usedNames
+-STATEMENT MATCH (a:person) RETURN a.workedHours, a.usedNames
 ---- 8
 [10,5]|[Aida]
 [12,8]|[Bobby]
@@ -128,7 +128,7 @@ False
 [10,11,12,3,4,5,6,7]|[Ad,De,Hi,Kye,Orlan]
 
 -DEBUG_LOG PersonNodesTestNestedList
--QUERY MATCH (a:person) RETURN a.courseScoresPerTerm
+-STATEMENT MATCH (a:person) RETURN a.courseScoresPerTerm
 ---- 8
 [[10,8],[6,7,8]]
 [[8,9],[9,10]]
@@ -140,27 +140,27 @@ False
 [[7],[10],[6,7]]
 
 -DEBUG_LOG ListWithNullValues
--QUERY RETURN [5, null, 100, null, null]
+-STATEMENT RETURN [5, null, 100, null, null]
 ---- 1
 [5,,100,,]
 
 -DEBUG_LOG NestedListWithNullValues
--QUERY RETURN [[78, null, 100, null, null], null, [null, 5, null, 100, null]]
+-STATEMENT RETURN [[78, null, 100, null, null], null, [null, 5, null, 100, null]]
 ---- 1
 [[78,,100,,],,[,5,,100,]]
 
 -DEBUG_LOG EmptyList
--QUERY RETURN []
+-STATEMENT RETURN []
 ---- 1
 []
 
 -DEBUG_LOG NestedEmptyList
--QUERY RETURN [[],[]]
+-STATEMENT RETURN [[],[]]
 ---- 1
 [[],[]]
 
 -DEBUG_LOG CrossProductReturn
--QUERY MATCH (a:organisation), (b:organisation) RETURN a.orgCode = b.orgCode
+-STATEMENT MATCH (a:organisation), (b:organisation) RETURN a.orgCode = b.orgCode
 ---- 9
 False
 False
@@ -173,14 +173,14 @@ True
 True
 
 -DEBUG_LOG KnowsOneHopTest1
--QUERY MATCH (a:person)-[e:knows]->(b:person) WHERE b.age=20 RETURN b.age
+-STATEMENT MATCH (a:person)-[e:knows]->(b:person) WHERE b.age=20 RETURN b.age
 ---- 3
 20
 20
 20
 
 -DEBUG_LOG KnowsTwoHopTest1
--QUERY MATCH (a:person)-[:knows]->(:person)-[:knows]->(b:person) WHERE b.age>40 RETURN b.age
+-STATEMENT MATCH (a:person)-[:knows]->(:person)-[:knows]->(b:person) WHERE b.age>40 RETURN b.age
 ---- 9
 45
 45
@@ -193,7 +193,7 @@ True
 45
 
 -DEBUG_LOG KnowsTwoHopTest2
--QUERY MATCH (a:person)-[:knows]->(:person)-[:knows]->(b:person) WHERE a.age>b.age+10 RETURN a.age, b.age
+-STATEMENT MATCH (a:person)-[:knows]->(:person)-[:knows]->(b:person) WHERE a.age>b.age+10 RETURN a.age, b.age
 ---- 6
 35|20
 35|20
@@ -203,7 +203,7 @@ True
 45|30
 
 -DEBUG_LOG KnowsRelTestDate
--QUERY MATCH (a:person)-[e:knows]->(b:person) RETURN e.date
+-STATEMENT MATCH (a:person)-[e:knows]->(b:person) RETURN e.date
 -ENUMERATE
 ---- 14
 2021-06-30
@@ -222,7 +222,7 @@ True
 1905-12-12
 
 -DEBUG_LOG KnowsOneHopTest2
--QUERY MATCH (a:person)-[e:knows]->(b:person) WHERE b.age=20 RETURN b.age * 2
+-STATEMENT MATCH (a:person)-[e:knows]->(b:person) WHERE b.age=20 RETURN b.age * 2
 -ENUMERATE
 ---- 3
 40
@@ -230,7 +230,7 @@ True
 40
 
 -DEBUG_LOG KnowsOneHopTest3
--QUERY MATCH (a:person)-[e:knows]->(b:person) WHERE a.age>20 RETURN b.fName
+-STATEMENT MATCH (a:person)-[e:knows]->(b:person) WHERE a.age>20 RETURN b.fName
 -ENUMERATE
 ---- 9
 Alice
@@ -245,7 +245,7 @@ Dan
 
 
 -DEBUG_LOG KnowsTwoHopTest3
--QUERY MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) WHERE a.age>c.age+10 RETURN a.age, b.fName, c.age
+-STATEMENT MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) WHERE a.age>c.age+10 RETURN a.age, b.fName, c.age
 -ENUMERATE
 ---- 6
 35|Bob|20
@@ -256,7 +256,7 @@ Dan
 45|Dan|30
 
 -DEBUG_LOG KnowsTwoHopTest4
--QUERY MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) RETURN a.fName, b.fName
+-STATEMENT MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) RETURN a.fName, b.fName
 -ENUMERATE
 ---- 36
 Alice|Bob
@@ -297,7 +297,7 @@ Dan|Carol
 Dan|Carol
 
 -DEBUG_LOG KnowsTwoHopTest5
--QUERY MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) WHERE a.age < 31 RETURN a.age + b.age + c.age
+-STATEMENT MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) WHERE a.age < 31 RETURN a.age + b.age + c.age
 -ENUMERATE
 ---- 18
 100
@@ -320,7 +320,7 @@ Dan|Carol
 95
 
 -DEBUG_LOG StudyAtPropertyProjectionTest
--QUERY MATCH (a:person)-[e:studyAt]->(b:organisation) RETURN e.year
+-STATEMENT MATCH (a:person)-[e:studyAt]->(b:organisation) RETURN e.year
 -ENUMERATE
 ---- 3
 2021
@@ -328,7 +328,7 @@ Dan|Carol
 2020
 
 -DEBUG_LOG RelID1
--QUERY MATCH (a:person)-[r:knows]->(b:person) RETURN id(r)
+-STATEMENT MATCH (a:person)-[r:knows]->(b:person) RETURN id(r)
 -ENUMERATE
 ---- 14
 3:0
@@ -347,7 +347,7 @@ Dan|Carol
 3:9
 
 -DEBUG_LOG RelID2
--QUERY MATCH (a:person)-[r:studyAt]->(o:organisation) RETURN id(r)
+-STATEMENT MATCH (a:person)-[r:studyAt]->(o:organisation) RETURN id(r)
 -ENUMERATE
 ---- 3
 4:0
@@ -355,7 +355,7 @@ Dan|Carol
 4:2
 
 -DEBUG_LOG RelID3
--QUERY MATCH (a:person)-[r:workAt]->(o:organisation) RETURN id(r)
+-STATEMENT MATCH (a:person)-[r:workAt]->(o:organisation) RETURN id(r)
 -ENUMERATE
 ---- 3
 5:0
@@ -363,14 +363,14 @@ Dan|Carol
 5:2
 
 -DEBUG_LOG QueryOneToOneRelTable
--QUERY MATCH (:person)-[m:marries]->(:person) RETURN m
+-STATEMENT MATCH (:person)-[m:marries]->(:person) RETURN m
 ---- 3
 (0:0)-[label:marries, {_id:7:0, usedAddress:[toronto], address:[4,5], note:}]->(0:1)
 (0:2)-[label:marries, {_id:7:1, usedAddress:, address:[2,5], note:long long long string}]->(0:3)
 (0:4)-[label:marries, {_id:7:2, usedAddress:[], address:[3,9], note:short str}]->(0:5)
 
 -DEBUG_LOG ReturnFixedListNodeProp
--QUERY MATCH (a:person) RETURN a.grades
+-STATEMENT MATCH (a:person) RETURN a.grades
 ---- 8
 [96,54,86,92]
 [98,42,93,88]
@@ -382,14 +382,14 @@ Dan|Carol
 [77,64,100,54]
 
 -DEBUG_LOG ReturnFixedListRelProp
--QUERY MATCH (a:person)-[e:workAt]->(o:organisation) RETURN e.grading
+-STATEMENT MATCH (a:person)-[e:workAt]->(o:organisation) RETURN e.grading
 ---- 3
 [2.100000,4.400000]
 [3.800000,2.500000]
 [9.200000,3.100000]
 
 -DEBUG_LOG ReturnFloatNodeProp
--QUERY MATCH (a:person) RETURN a.height
+-STATEMENT MATCH (a:person) RETURN a.height
 ---- 8
 1.731000
 0.990000
@@ -401,14 +401,14 @@ Dan|Carol
 1.323000
 
 -DEBUG_LOG ReturnFloatRelProp
--QUERY MATCH (a:person)-[e:workAt]->(o:organisation) RETURN e.rating
+-STATEMENT MATCH (a:person)-[e:workAt]->(o:organisation) RETURN e.rating
 ---- 3
 8.200000
 7.600000
 9.200000
 
 -DEBUG_LOG ReturnFixedListFloatRelProp
--QUERY MATCH (a:person)-[e:meets]->(b:person) RETURN e.location
+-STATEMENT MATCH (a:person)-[e:meets]->(b:person) RETURN e.location
 ---- 7
 [7.820000,3.540000]
 [2.870000,4.230000]
@@ -419,28 +419,28 @@ Dan|Carol
 [3.500000,1.100000]
 
 -DEBUG_LOG ReturnInt32NodeProp
--QUERY MATCH (m:movies) RETURN m.length
+-STATEMENT MATCH (m:movies) RETURN m.length
 ---- 3
 126
 2544
 298
 
 -DEBUG_LOG ReturnInt16NodeProp
--QUERY MATCH (:person)-[e:studyAt]->(:organisation) RETURN e.length
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN e.length
 ---- 3
 5
 55
 22
 
 -DEBUG_LOG ReturnFixedListInt16RelProp
--QUERY MATCH (a:person)-[e:marries]->(b:person) RETURN e.address
+-STATEMENT MATCH (a:person)-[e:marries]->(b:person) RETURN e.address
 ---- 3
 [4,5]
 [2,5]
 [3,9]
 
 -DEBUG_LOG ReturnIntRelProp
--QUERY MATCH (a:person)-[e:meets]->(b:person) RETURN e.times
+-STATEMENT MATCH (a:person)-[e:meets]->(b:person) RETURN e.times
 ---- 7
 5
 2
@@ -451,34 +451,34 @@ Dan|Carol
 13
 
 -DEBUG_LOG ReturnStructLiteral
--QUERY RETURN {weight: 1.8, age: 42, name: "Mark", grades: [1,2,3]}
+-STATEMENT RETURN {weight: 1.8, age: 42, name: "Mark", grades: [1,2,3]}
 ---- 1
 {WEIGHT: 1.800000, AGE: 42, NAME: Mark, GRADES: [1,2,3]}
 
 -DEBUG_LOG ReturnStructLiteral2
--QUERY WITH {a: '1', b: 2, c: [4,5,6]} AS st RETURN st.a, st.b * 5, (st.c)[1:3]
+-STATEMENT WITH {a: '1', b: 2, c: [4,5,6]} AS st RETURN st.a, st.b * 5, (st.c)[1:3]
 ---- 1
 1|10|[4,5]
 
 -DEBUG_LOG ReturnStructLiteralWithNull
--QUERY RETURN {info: {name: "AliceBobCarolDan", gender: "female", hobby: null}, height: 1.8, age: null}
+-STATEMENT RETURN {info: {name: "AliceBobCarolDan", gender: "female", hobby: null}, height: 1.8, age: null}
 ---- 1
 {INFO: {NAME: AliceBobCarolDan, GENDER: female, HOBBY: }, HEIGHT: 1.800000, AGE: }
 
 -DEBUG_LOG ReturnStructListLiteralWithNull
--QUERY RETURN {info: {name: "smith", gender: null, hobby: [null, "footBall"]}, height: 1.8, age: null}
+-STATEMENT RETURN {info: {name: "smith", gender: null, hobby: [null, "footBall"]}, height: 1.8, age: null}
 ---- 1
 {INFO: {NAME: smith, GENDER: , HOBBY: [,footBall]}, HEIGHT: 1.800000, AGE: }
 
 -DEBUG_LOG ReturnStruct
--QUERY MATCH (m:movies) RETURN m.description
+-STATEMENT MATCH (m:movies) RETURN m.description
 ---- 3
 {RATING: 1223.000000, VIEWS: 10003, RELEASE: 2011-02-11 16:44:22, FILM: 2013-02-22}
 {RATING: 5.300000, VIEWS: 152, RELEASE: 2011-08-20 11:25:30, FILM: 2012-05-11}
 {RATING: 7.000000, VIEWS: 982, RELEASE: 2018-11-13 13:33:11, FILM: 2014-09-12}
 
 -DEBUG_LOG ReturnStructLiteralWithUnflatFlatChildren
--QUERY MATCH (p:person)-[e:knows]->(p1:person) return {name: p.fName, id: p1.ID, date: e.date}
+-STATEMENT MATCH (p:person)-[e:knows]->(p1:person) return {name: p.fName, id: p1.ID, date: e.date}
 ---- 14
 {NAME: Alice, ID: 2, DATE: 2021-06-30}
 {NAME: Alice, ID: 3, DATE: 2021-06-30}
@@ -496,7 +496,7 @@ Dan|Carol
 {NAME: Elizabeth, ID: 9, DATE: 1905-12-12}
 
 -DEBUG_LOG ReturnNestedStructLiteral
--QUERY MATCH (p:person) return {description: {gender: p.gender, age: p.age}, name: p.fName}
+-STATEMENT MATCH (p:person) return {description: {gender: p.gender, age: p.age}, name: p.fName}
 ---- 8
 {DESCRIPTION: {GENDER: 1, AGE: 20}, NAME: Elizabeth}
 {DESCRIPTION: {GENDER: 1, AGE: 35}, NAME: Alice}
@@ -508,7 +508,7 @@ Dan|Carol
 {DESCRIPTION: {GENDER: 2, AGE: 83}, NAME: Hubert Blaine Wolfeschlegelsteinhausenbergerdorff}
 
 -DEBUG_LOG ReturnNestedListOfStructLiteral
--QUERY MATCH (p:person) return [{description: {propA: p.gender, propB: [p.age, 10]}, name: p.fName}, {description: {propA: p.ID, propB: [p.gender, 20]}, name: p.fName}]
+-STATEMENT MATCH (p:person) return [{description: {propA: p.gender, propB: [p.age, 10]}, name: p.fName}, {description: {propA: p.ID, propB: [p.gender, 20]}, name: p.fName}]
 ---- 8
 [{DESCRIPTION: {PROPA: 1, PROPB: [35,10]}, NAME: Alice},{DESCRIPTION: {PROPA: 0, PROPB: [1,20]}, NAME: Alice}]
 [{DESCRIPTION: {PROPA: 2, PROPB: [30,10]}, NAME: Bob},{DESCRIPTION: {PROPA: 2, PROPB: [2,20]}, NAME: Bob}]
@@ -520,7 +520,7 @@ Dan|Carol
 [{DESCRIPTION: {PROPA: 2, PROPB: [83,10]}, NAME: Hubert Blaine Wolfeschlegelsteinhausenbergerdorff},{DESCRIPTION: {PROPA: 10, PROPB: [2,20]}, NAME: Hubert Blaine Wolfeschlegelsteinhausenbergerdorff}]
 
 -DEBUG_LOG ReturnNestedListOfStructWithUnflatFlatChildren
--QUERY MATCH (p1:person)-[e:knows]->(p2:person) return [{description: {propA: [p1.gender, p2.gender], propB: e.date}, name: p1.fName}, {description: {propA: [p1.ID, p2.ID], propB: p1.birthdate}, name: p2.fName}]
+-STATEMENT MATCH (p1:person)-[e:knows]->(p2:person) return [{description: {propA: [p1.gender, p2.gender], propB: e.date}, name: p1.fName}, {description: {propA: [p1.ID, p2.ID], propB: p1.birthdate}, name: p2.fName}]
 ---- 14
 [{DESCRIPTION: {PROPA: [1,2], PROPB: 2021-06-30}, NAME: Alice},{DESCRIPTION: {PROPA: [0,2], PROPB: 1900-01-01}, NAME: Bob}]
 [{DESCRIPTION: {PROPA: [1,1], PROPB: 2021-06-30}, NAME: Alice},{DESCRIPTION: {PROPA: [0,3], PROPB: 1900-01-01}, NAME: Carol}]
@@ -538,12 +538,12 @@ Dan|Carol
 [{DESCRIPTION: {PROPA: [1,2], PROPB: 1905-12-12}, NAME: Elizabeth},{DESCRIPTION: {PROPA: [7,9], PROPB: 1980-10-26}, NAME: Greg}]
 
 -DEBUG_LOG ReturnMapLiteral
--QUERY RETURN map(['Alice', 'Bob', 'Carol', 'Dan'], [20, 34, 50, 22]);
+-STATEMENT RETURN map(['Alice', 'Bob', 'Carol', 'Dan'], [20, 34, 50, 22]);
 ---- 1
 {Alice=20, Bob=34, Carol=50, Dan=22}
 
 -DEBUG_LOG ReturnMapLiteralWithProp
--QUERY MATCH (p:person) RETURN map([p.ID, p.age], [p.fName, p.fName]);
+-STATEMENT MATCH (p:person) RETURN map([p.ID, p.age], [p.fName, p.fName]);
 ---- 8
 {0=Alice, 35=Alice}
 {2=Bob, 30=Bob}
@@ -555,7 +555,7 @@ Dan|Carol
 {10=Hubert Blaine Wolfeschlegelsteinhausenbergerdorff, 83=Hubert Blaine Wolfeschlegelsteinhausenbergerdorff}
 
 -DEBUG_LOG ReturnMapLiteralWithFlatUnflatProp
--QUERY MATCH (p:person)-[:knows]->(p1:person) RETURN map([p.fName, p1.fName], [p.age, p1.age]);
+-STATEMENT MATCH (p:person)-[:knows]->(p1:person) RETURN map([p.fName, p1.fName], [p.age, p1.age]);
 ---- 14
 {Alice=35, Bob=30}
 {Alice=35, Carol=45}
@@ -573,7 +573,7 @@ Dan|Carol
 {Elizabeth=20, Greg=40}
 
 -DEBUG_LOG ReturnMapLiteralWithFlatUnflatProp1
--QUERY MATCH (p:person)-[:knows]->(p1:person) RETURN map([p.fName], [p1.age]);
+-STATEMENT MATCH (p:person)-[:knows]->(p1:person) RETURN map([p.fName], [p1.age]);
 ---- 14
 {Alice=30}
 {Alice=45}
@@ -591,7 +591,7 @@ Dan|Carol
 {Elizabeth=40}
 
 -DEBUG_LOG ReturnMapLiteralWithNestedType
--QUERY MATCH (p:person)-[:knows]->(p1:person) RETURN map([p.workedHours, p1.workedHours], [p.courseScoresPerTerm, p1.courseScoresPerTerm]);
+-STATEMENT MATCH (p:person)-[:knows]->(p1:person) RETURN map([p.workedHours, p1.workedHours], [p.courseScoresPerTerm, p1.courseScoresPerTerm]);
 ---- 14
 {[10,5]=[[10,8],[6,7,8]], [12,8]=[[8,9],[9,10]]}
 {[10,5]=[[10,8],[6,7,8]], [4,5]=[[8,10]]}
@@ -609,7 +609,7 @@ Dan|Carol
 {[2]=[[6],[7],[8]], [1]=[[10]]}
 
 -DEBUG_LOG ReturnMapLiteralWithNestedType1
--QUERY MATCH (p:person) RETURN map([map([p.ID], [p.fName])], [p.age]);
+-STATEMENT MATCH (p:person) RETURN map([map([p.ID], [p.fName])], [p.age]);
 ---- 8
 {{0=Alice}=35}
 {{2=Bob}=30}
@@ -621,14 +621,14 @@ Dan|Carol
 {{10=Hubert Blaine Wolfeschlegelsteinhausenbergerdorff}=83}
 
 -DEBUG_LOG ReturnNodeBlobProp
--QUERY MATCH (m:movies) RETURN m.content;
+-STATEMENT MATCH (m:movies) RETURN m.content;
 ---- 3
 \xAA\xABinteresting\x0B
 \xAB\xCD
 pure ascii characters
 
 -DEBUG_LOG ReturnRelBlobProp
--QUERY MATCH (p:person)-[e:meets]->(p1:person) RETURN e.data;
+-STATEMENT MATCH (p:person)-[e:meets]->(p1:person) RETURN e.data;
 ---- 7
 MIXED \x5CxAC with ASCII \x5Cx0A
 NO hex code
@@ -639,6 +639,6 @@ NO hex code
 \x5CxAA\x5CxBB\x5CxCC\x5CxDD
 
 -DEBUG_LOG ReturnStringLiteralWithSpecialChar
--QUERY RETURN "hEl \'\"\\";
+-STATEMENT RETURN "hEl \'\"\\";
 ---- 1
 hEl '"\

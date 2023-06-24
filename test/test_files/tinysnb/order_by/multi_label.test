@@ -6,7 +6,7 @@
 -CASE OrderByMultiLabel
 
 -DEBUG_LOG MultiLabelTest
--QUERY MATCH (a:person)-[:studyAt|:workAt]->(b:organisation) return b.orgCode order by b.ID desc
+-STATEMENT MATCH (a:person)-[:studyAt|:workAt]->(b:organisation) return b.orgCode order by b.ID desc
 -CHECK_ORDER
 -ENUMERATE
 ---- 6
@@ -18,7 +18,7 @@
 325
 
 #-DEBUG_LOG MultiLabelTest2
-#-QUERY MATCH (a:person)-[e:marries|:workAt]->(b:person) return a.ID, b.ID order by ID(e) desc LIMIT 4
+#-STATEMENT MATCH (a:person)-[e:marries|:workAt]->(b:person) return a.ID, b.ID order by ID(e) desc LIMIT 4
 #-ENUMERATE
 #---- 4
 #7|8

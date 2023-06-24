@@ -6,7 +6,7 @@
 -CASE OrderBySingleLabel
 
 -DEBUG_LOG OrderByInt64Test
--QUERY MATCH (p:person) RETURN p.ID, p.age ORDER BY p.age + p.ID
+-STATEMENT MATCH (p:person) RETURN p.ID, p.age ORDER BY p.age + p.ID
 -CHECK_ORDER
 -PARALLELISM 3
 ---- 8
@@ -20,7 +20,7 @@
 10|83
 
 -DEBUG_LOG OrderByInt32Test
--QUERY MATCH (m:movies) RETURN m.length ORDER BY m.length
+-STATEMENT MATCH (m:movies) RETURN m.length ORDER BY m.length
 -CHECK_ORDER
 ---- 3
 126
@@ -28,7 +28,7 @@
 2544
 
 -DEBUG_LOG OrderByInt16Test
--QUERY MATCH (:person)-[e:studyAt]->(:organisation) RETURN e.length ORDER BY e.length
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN e.length ORDER BY e.length
 -CHECK_ORDER
 ---- 3
 5
@@ -36,7 +36,7 @@
 55
 
 -DEBUG_LOG OrderByBooleanTest
--QUERY MATCH (p:person) RETURN p.isStudent ORDER BY p.isStudent desc
+-STATEMENT MATCH (p:person) RETURN p.isStudent ORDER BY p.isStudent desc
 -CHECK_ORDER
 -PARALLELISM 3
 ---- 8
@@ -51,7 +51,7 @@ False
 
 
 -DEBUG_LOG OrderByDoubleTest
--QUERY MATCH (p:person) RETURN p.eyeSight ORDER BY p.eyeSight
+-STATEMENT MATCH (p:person) RETURN p.eyeSight ORDER BY p.eyeSight
 -CHECK_ORDER
 -PARALLELISM 3
 ---- 8
@@ -65,7 +65,7 @@ False
 5.100000
 
 -DEBUG_LOG OrderByFloatTest
--QUERY MATCH (p:person) RETURN p.height ORDER BY p.height
+-STATEMENT MATCH (p:person) RETURN p.height ORDER BY p.height
 -CHECK_ORDER
 -PARALLELISM 3
 ---- 8
@@ -79,7 +79,7 @@ False
 1.731000
 
 -DEBUG_LOG OrderByDateTest
--QUERY MATCH (p:person) RETURN p.birthdate ORDER BY p.birthdate desc
+-STATEMENT MATCH (p:person) RETURN p.birthdate ORDER BY p.birthdate desc
 -CHECK_ORDER
 -PARALLELISM 3
 ---- 8
@@ -93,7 +93,7 @@ False
 1900-01-01
 
 -DEBUG_LOG OrderByTimestampTest
--QUERY MATCH (p:person) RETURN p.registerTime ORDER BY p.registerTime
+-STATEMENT MATCH (p:person) RETURN p.registerTime ORDER BY p.registerTime
 -CHECK_ORDER
 -PARALLELISM 3
 ---- 8
@@ -107,7 +107,7 @@ False
 2031-11-30 12:25:30
 
 -DEBUG_LOG OrderByIntervalTest
--QUERY MATCH (p:person) RETURN p.lastJobDuration ORDER BY p.lastJobDuration desc
+-STATEMENT MATCH (p:person) RETURN p.lastJobDuration ORDER BY p.lastJobDuration desc
 -CHECK_ORDER
 -PARALLELISM 2
 ---- 8
@@ -121,7 +121,7 @@ False
 00:18:00.024
 
 -DEBUG_LOG OrderByStringTest
--QUERY MATCH (p:person) RETURN p.fName ORDER BY p.fName desc
+-STATEMENT MATCH (p:person) RETURN p.fName ORDER BY p.fName desc
 -CHECK_ORDER
 -PARALLELISM 2
 ---- 8
@@ -135,7 +135,7 @@ Bob
 Alice
 
 -DEBUG_LOG OrderByBlobTest
--QUERY MATCH (m:movies) RETURN m.content ORDER BY m.content DESC
+-STATEMENT MATCH (m:movies) RETURN m.content ORDER BY m.content DESC
 -CHECK_ORDER
 -PARALLELISM 2
 ---- 3
@@ -144,7 +144,7 @@ Alice
 pure ascii characters
 
 -DEBUG_LOG OrderByStrMultipleColTest
--QUERY MATCH (p:person) RETURN p.age, p.eyeSight ORDER BY p.isWorker desc, p.age, p.eyeSight desc
+-STATEMENT MATCH (p:person) RETURN p.age, p.eyeSight ORDER BY p.isWorker desc, p.age, p.eyeSight desc
 -CHECK_ORDER
 -PARALLELISM 2
 ---- 8
@@ -158,7 +158,7 @@ pure ascii characters
 40|4.900000
 
 -DEBUG_LOG OrderByProjectionTest
--QUERY MATCH (a:person)-[:knows]->(b:person) with b return b.fName order by b.fName desc
+-STATEMENT MATCH (a:person)-[:knows]->(b:person) with b return b.fName order by b.fName desc
 -CHECK_ORDER
 -ENUMERATE
 -PARALLELISM 7
@@ -179,7 +179,7 @@ Alice
 Alice
 
 -DEBUG_LOG OrderByThreeHopTest
--QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person)-[e3:knows]->(d:person) RETURN a.fName order by d.age desc, c.age asc, b.age asc, a.age desc limit 10
+-STATEMENT MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person)-[e3:knows]->(d:person) RETURN a.fName order by d.age desc, c.age asc, b.age asc, a.age desc limit 10
 -CHECK_ORDER
 -ENUMERATE
 ---- 10
@@ -197,7 +197,7 @@ Carol
 #If the payload column and the orderBy key column are in different dataChunks and one of them is unflat,                                                                                        \
 #the order by scanner can only scan one tuple from factorizedTable at a time.
 -DEBUG_LOG OrderByScanSingleTupleTest
--QUERY MATCH (a:person)-[:knows]->(b:person) return a.fName order by b.fName, a.fName
+-STATEMENT MATCH (a:person)-[:knows]->(b:person) return a.fName order by b.fName, a.fName
 -CHECK_ORDER
 -ENUMERATE
 ---- 14
@@ -217,11 +217,11 @@ Elizabeth
 Elizabeth
 
 -DEBUG_LOG OrderByEmptyResult
--QUERY MATCH (p:person) WHERE p.age > 100 RETURN p.age ORDER BY p.age 
+-STATEMENT MATCH (p:person) WHERE p.age > 100 RETURN p.age ORDER BY p.age 
 ---- 0
 
 -DEBUG_LOG OrderByAggregateTest1
--QUERY MATCH (a:person)-[:knows]->(b:person) return a.age, COUNT(b) as c ORDER BY a.age
+-STATEMENT MATCH (a:person)-[:knows]->(b:person) return a.age, COUNT(b) as c ORDER BY a.age
 -CHECK_ORDER
 -ENUMERATE
 ---- 4
@@ -231,7 +231,7 @@ Elizabeth
 45|3
 
 -DEBUG_LOG OrderByAggregateTest2
--QUERY MATCH (a:person)-[:knows]->(b:person) return a.gender, COUNT(b) ORDER BY COUNT(b) DESC
+-STATEMENT MATCH (a:person)-[:knows]->(b:person) return a.gender, COUNT(b) ORDER BY COUNT(b) DESC
 -CHECK_ORDER
 -ENUMERATE
 ---- 2

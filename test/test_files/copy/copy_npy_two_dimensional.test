@@ -6,42 +6,42 @@
 -CASE CopyTwoDimensionalNpyTest
 
 -DEBUG_LOG ID
--QUERY MATCH (n:npytable) RETURN n.id
+-STATEMENT MATCH (n:npytable) RETURN n.id
 ---- 3
 1
 2
 3
 
 -DEBUG_LOG i64
--QUERY MATCH (n:npytable) RETURN n.i64
+-STATEMENT MATCH (n:npytable) RETURN n.i64
 ---- 3
 [1,2,3]
 [4,5,6]
 [7,8,9]
 
 -DEBUG_LOG i32
--QUERY MATCH (n:npytable) RETURN n.i32
+-STATEMENT MATCH (n:npytable) RETURN n.i32
 ---- 3
 [1,2,3]
 [4,5,6]
 [7,8,9]
 
 -DEBUG_LOG i16
--QUERY MATCH (n:npytable) RETURN n.i16
+-STATEMENT MATCH (n:npytable) RETURN n.i16
 ---- 3
 [1,2,3]
 [4,5,6]
 [7,8,9]
 
 -DEBUG_LOG f64
--QUERY MATCH (n:npytable) RETURN n.f64
+-STATEMENT MATCH (n:npytable) RETURN n.f64
 ---- 3
 [1.000000,2.000000,3.000000]
 [4.000000,5.000000,6.000000]
 [7.000000,8.000000,9.000000]
 
 -DEBUG_LOG f32
--QUERY MATCH (n:npytable) RETURN n.f32
+-STATEMENT MATCH (n:npytable) RETURN n.f32
 ---- 3
 [1.000000,2.000000,3.000000]
 [4.000000,5.000000,6.000000]

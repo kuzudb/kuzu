@@ -6,18 +6,18 @@
 -CASE AggDistinct
 
 -DEBUG_LOG SingleNodeDistinctAggTest1
--QUERY MATCH (a:person) RETURN COUNT(DISTINCT a.gender), COUNT(DISTINCT a.age)
+-STATEMENT MATCH (a:person) RETURN COUNT(DISTINCT a.gender), COUNT(DISTINCT a.age)
 ---- 1
 2|7
 
 -DEBUG_LOG SingleNodeDistinctAggTest2
--QUERY MATCH (a:person) RETURN a.gender, COUNT(DISTINCT a.isStudent)
+-STATEMENT MATCH (a:person) RETURN a.gender, COUNT(DISTINCT a.isStudent)
 ---- 2
 1|2
 2|2
 
 -DEBUG_LOG TwoHopDistinctAggTest
--QUERY MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) RETURN a.ID, SUM(DISTINCT a.age), SUM(DISTINCT c.age)
+-STATEMENT MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) RETURN a.ID, SUM(DISTINCT a.age), SUM(DISTINCT c.age)
 -ENUMERATE
 ---- 4
 0|35|130
@@ -26,18 +26,18 @@
 5|20|130
 
 -DEBUG_LOG OneHopDistinctAggTest
--QUERY MATCH (p:person)-[:knows]->(:person) RETURN count(distinct p.ID)
+-STATEMENT MATCH (p:person)-[:knows]->(:person) RETURN count(distinct p.ID)
 -ENUMERATE
 ---- 1
 5
 
 -DEBUG_LOG SimpleDistinctCollectINT64Test
--QUERY MATCH (p:person) RETURN collect(distinct p.age)
+-STATEMENT MATCH (p:person) RETURN collect(distinct p.age)
 ---- 1
 [35,30,45,20,25,40,83]
 
 -DEBUG_LOG HashDistinctCollectDoubleTest
--QUERY MATCH (p:person) RETURN p.gender, collect(distinct p.isStudent)
+-STATEMENT MATCH (p:person) RETURN p.gender, collect(distinct p.isStudent)
 ---- 2
 1|[True,False]
 2|[True,False]

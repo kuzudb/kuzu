@@ -6,7 +6,7 @@
 -CASE FunctionBoolean
 
 -DEBUG_LOG AndExecTest1
--QUERY MATCH (a:person) RETURN a.ID, a.isStudent AND a.isWorker ORDER BY a.ID
+-STATEMENT MATCH (a:person) RETURN a.ID, a.isStudent AND a.isWorker ORDER BY a.ID
 ---- 8
 0|False
 10|False
@@ -18,7 +18,7 @@
 9|False
 
 -DEBUG_LOG OrExecTest1
--QUERY MATCH (a:person) RETURN a.ID, a.isStudent OR a.isWorker ORDER BY a.ID
+-STATEMENT MATCH (a:person) RETURN a.ID, a.isStudent OR a.isWorker ORDER BY a.ID
 ---- 8
 0|True
 10|True
@@ -30,7 +30,7 @@
 9|False
 
 -DEBUG_LOG XorExecTest1
--QUERY MATCH (a:person) RETURN a.ID, a.isStudent XOR a.isWorker ORDER BY a.ID
+-STATEMENT MATCH (a:person) RETURN a.ID, a.isStudent XOR a.isWorker ORDER BY a.ID
 ---- 8
 0|True
 10|True
@@ -42,40 +42,40 @@
 9|False
 
 -DEBUG_LOG BoolEqualTest
--QUERY MATCH (a:person) WHERE a.isStudent = a.isWorker RETURN a.fName
+-STATEMENT MATCH (a:person) WHERE a.isStudent = a.isWorker RETURN a.fName
 ---- 1
 Greg
 
 -DEBUG_LOG BoolNotEqualTest
--QUERY MATCH (a:person) WHERE a.isStudent <> a.isWorker RETURN count(a.fName)
+-STATEMENT MATCH (a:person) WHERE a.isStudent <> a.isWorker RETURN count(a.fName)
 ---- 1
 7
 
 -DEBUG_LOG BoolExecTest4
--QUERY MATCH (a:person) WHERE a.fName = 'Alice' RETURN a.isStudent and a.isWorker
+-STATEMENT MATCH (a:person) WHERE a.fName = 'Alice' RETURN a.isStudent and a.isWorker
 ---- 1
 False
 
 -DEBUG_LOG BoolExecTest5
--QUERY MATCH (a:person) WHERE a.isWorker and (a.fName='Elizabeth' OR a.fName='Hubert Blaine Wolfeschlegelsteinhausenbergerdorff') RETURN a.fName
+-STATEMENT MATCH (a:person) WHERE a.isWorker and (a.fName='Elizabeth' OR a.fName='Hubert Blaine Wolfeschlegelsteinhausenbergerdorff') RETURN a.fName
 ---- 2
 Elizabeth
 Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
 
 -DEBUG_LOG BoolExecTest6
--QUERY MATCH (a:person)-[:knows]->(b:person) WHERE a.isWorker and (b.fName='Elizabeth' OR a.fName='Elizabeth') RETURN a.fName
+-STATEMENT MATCH (a:person)-[:knows]->(b:person) WHERE a.isWorker and (b.fName='Elizabeth' OR a.fName='Elizabeth') RETURN a.fName
 ---- 2
 Elizabeth
 Elizabeth
 
 -DEBUG_LOG BoolExecTest7
--QUERY MATCH (a:person)-[:knows]->(b:person) WHERE a.isWorker and (a.fName='Elizabeth' OR b.fName='Elizabeth') RETURN a.fName
+-STATEMENT MATCH (a:person)-[:knows]->(b:person) WHERE a.isWorker and (a.fName='Elizabeth' OR b.fName='Elizabeth') RETURN a.fName
 ---- 2
 Elizabeth
 Elizabeth
 
 -DEBUG_LOG BoolExecTest1
--QUERY MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) WHERE a.fName = 'Alice' RETURN a.fName, a.isStudent, b.fName, b.isStudent, c.fName, c.isStudent,  a.isStudent AND b.isStudent AND c.isStudent
+-STATEMENT MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) WHERE a.fName = 'Alice' RETURN a.fName, a.isStudent, b.fName, b.isStudent, c.fName, c.isStudent,  a.isStudent AND b.isStudent AND c.isStudent
 ---- 9
 Alice|True|Bob|True|Alice|True|True
 Alice|True|Bob|True|Carol|False|False
@@ -88,7 +88,7 @@ Alice|True|Dan|False|Bob|True|False
 Alice|True|Dan|False|Carol|False|False
 
 -DEBUG_LOG BoolExecTest2
--QUERY MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) WHERE a.fName = 'Alice' RETURN a.fName, a.isStudent, b.fName, b.isStudent, c.fName, c.isStudent, (a.isStudent AND b.isStudent) OR c.isStudent
+-STATEMENT MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) WHERE a.fName = 'Alice' RETURN a.fName, a.isStudent, b.fName, b.isStudent, c.fName, c.isStudent, (a.isStudent AND b.isStudent) OR c.isStudent
 -ENUMERATE
 ---- 9
 Alice|True|Bob|True|Alice|True|True
@@ -102,7 +102,7 @@ Alice|True|Dan|False|Bob|True|True
 Alice|True|Dan|False|Carol|False|False
 
 -DEBUG_LOG BoolExecTest3
--QUERY MATCH (a:person)-[:knows]->(b:person) WHERE b.fName <> 'Elizabeth' RETURN a.isStudent and b.isWorker
+-STATEMENT MATCH (a:person)-[:knows]->(b:person) WHERE b.fName <> 'Elizabeth' RETURN a.isStudent and b.isWorker
 -ENUMERATE
 ---- 14
 False

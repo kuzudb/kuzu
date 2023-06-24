@@ -6,7 +6,7 @@
 -CASE SerialAdd
 
 -DEBUG_LOG SerialAddINT64
--QUERY MATCH (a:person) RETURN a.ID + a.age
+-STATEMENT MATCH (a:person) RETURN a.ID + a.age
 ---- 8
 35
 31
@@ -18,7 +18,7 @@
 90
 
 -DEBUG_LOG SerialAddDate
--QUERY MATCH (a:person) RETURN a.ID + a.birthdate
+-STATEMENT MATCH (a:person) RETURN a.ID + a.birthdate
 ---- 8
 1900-01-01
 1900-01-02
@@ -30,7 +30,7 @@
 1990-12-04
 
 -DEBUG_LOG SerialCastToInt32
--QUERY MATCH (a:person) RETURN to_int32(a.ID)
+-STATEMENT MATCH (a:person) RETURN to_int32(a.ID)
 ---- 8
 0
 1
@@ -42,7 +42,7 @@
 7
 
 -DEBUG_LOG SerialCastToInt16
--QUERY MATCH (a:person) RETURN to_int16(a.ID)
+-STATEMENT MATCH (a:person) RETURN to_int16(a.ID)
 ---- 8
 0
 1
@@ -54,7 +54,7 @@
 7
 
 -DEBUG_LOG SerialCastToDouble
--QUERY MATCH (a:person) RETURN to_double(a.ID)
+-STATEMENT MATCH (a:person) RETURN to_double(a.ID)
 ---- 8
 0.000000
 1.000000
@@ -66,7 +66,7 @@
 7.000000
 
 -DEBUG_LOG SerialCastToFloat
--QUERY MATCH (a:person) RETURN to_float(a.ID)
+-STATEMENT MATCH (a:person) RETURN to_float(a.ID)
 ---- 8
 0.000000
 1.000000
@@ -78,7 +78,7 @@
 7.000000
 
 -DEBUG_LOG ListCreationWithSerial
--QUERY MATCH (a:person) RETURN list_creation(a.ID, a.ID)
+-STATEMENT MATCH (a:person) RETURN list_creation(a.ID, a.ID)
 ---- 8
 [0,0]
 [1,1]
@@ -90,7 +90,7 @@
 [7,7]
 
 -DEBUG_LOG StructCreationWithSerial
--QUERY MATCH (a:person) RETURN {ID1: a.ID, ID2: id(a)}
+-STATEMENT MATCH (a:person) RETURN {ID1: a.ID, ID2: id(a)}
 ---- 8
 {ID1: 0, ID2: 0:0}
 {ID1: 1, ID2: 0:1}
@@ -102,7 +102,7 @@
 {ID1: 7, ID2: 0:7}
 
 -DEBUG_LOG ListExtractSerial
--QUERY MATCH (a:person) RETURN list_extract([a.ID], 1)
+-STATEMENT MATCH (a:person) RETURN list_extract([a.ID], 1)
 ---- 8
 0
 1
@@ -114,7 +114,7 @@
 7
 
 -DEBUG_LOG ListAppendSerial
--QUERY MATCH (a:person) RETURN list_append([a.ID], a.ID)
+-STATEMENT MATCH (a:person) RETURN list_append([a.ID], a.ID)
 ---- 8
 [0,0]
 [1,1]
@@ -126,7 +126,7 @@
 [7,7]
 
 -DEBUG_LOG ListPrependSerial
--QUERY MATCH (a:person) RETURN list_prepend(a.ID, [a.ID])
+-STATEMENT MATCH (a:person) RETURN list_prepend(a.ID, [a.ID])
 ---- 8
 [0,0]
 [1,1]
@@ -138,7 +138,7 @@
 [7,7]
 
 -DEBUG_LOG ListSortSerial
--QUERY MATCH (a:person)-[:knows]->(b:person) RETURN list_sort([b.ID, a.ID])
+-STATEMENT MATCH (a:person)-[:knows]->(b:person) RETURN list_sort([b.ID, a.ID])
 ---- 14
 [0,1]
 [0,1]
@@ -156,7 +156,7 @@
 [4,6]
 
 -DEBUG_LOG ListReverseSortSerial
--QUERY MATCH (a:person)-[:knows]->(b:person) RETURN list_reverse_sort([b.ID, a.ID])
+-STATEMENT MATCH (a:person)-[:knows]->(b:person) RETURN list_reverse_sort([b.ID, a.ID])
 ---- 14
 [1,0]
 [1,0]
@@ -174,7 +174,7 @@
 [6,4]
 
 -DEBUG_LOG ListSumSerial
--QUERY MATCH (a:person)-[:knows]->(b:person) RETURN list_sum([b.ID, a.ID])
+-STATEMENT MATCH (a:person)-[:knows]->(b:person) RETURN list_sum([b.ID, a.ID])
 ---- 14
 1
 1
@@ -192,7 +192,7 @@
 10
 
 -DEBUG_LOG ListDistinctSerial
--QUERY MATCH (a:person) RETURN list_distinct([a.ID, a.ID])
+-STATEMENT MATCH (a:person) RETURN list_distinct([a.ID, a.ID])
 ---- 8
 [0]
 [1]
@@ -204,7 +204,7 @@
 [7]
 
 -DEBUG_LOG ListUniqueSerial
--QUERY MATCH (a:person) RETURN list_unique([a.ID, a.ID])
+-STATEMENT MATCH (a:person) RETURN list_unique([a.ID, a.ID])
 ---- 8
 1
 1
@@ -216,7 +216,7 @@
 1
 
 -DEBUG_LOG ListAnyValueSerial
--QUERY MATCH (a:person) RETURN list_any_value([a.ID, a.ID])
+-STATEMENT MATCH (a:person) RETURN list_any_value([a.ID, a.ID])
 ---- 8
 0
 1

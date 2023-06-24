@@ -14,12 +14,12 @@
 -CASE VarLengthExtendN1Tests
 
 -DEBUG_LOG meetsOneToTwoHopTest
--QUERY MATCH (a:person)-[:meets*1..2]->(b:person) RETURN COUNT(*)
+-STATEMENT MATCH (a:person)-[:meets*1..2]->(b:person) RETURN COUNT(*)
 ---- 1
 13
 
 -DEBUG_LOG meetsThreeHopMinLenEqualsMaxLen
--QUERY MATCH (a:person)-[:meets*3..3]->(b:person) RETURN COUNT(*)
+-STATEMENT MATCH (a:person)-[:meets*3..3]->(b:person) RETURN COUNT(*)
 ---- 1
 4
 
@@ -29,17 +29,17 @@
 # 3). Node 5 doesn't have any adjacent nodes. Node 8,9 can extend 2 or 3 levels (Node 8 9 -> Node 3 -> Node 7 -> Node
 # 3), which generates another 4 paths (2 paths of length 2 and 2 paths of length 3). In total, there are 15 paths.
 -DEBUG_LOG varLenAdjListJoinWithVarLenColumnJoinTwoToFourHopTest
--QUERY MATCH (a:person)-[:knows]->(b:person)-[:meets*2..3]->(c:person) RETURN COUNT(*)
+-STATEMENT MATCH (a:person)-[:knows]->(b:person)-[:meets*2..3]->(c:person) RETURN COUNT(*)
 ---- 1
 13
 
 -DEBUG_LOG meetsLongPathTest
--QUERY MATCH (a:person)-[:meets*8..11]->(b:person) RETURN COUNT(*)
+-STATEMENT MATCH (a:person)-[:meets*8..11]->(b:person) RETURN COUNT(*)
 ---- 1
 16
 
 -DEBUG_LOG meetsOneToTwoHopWithFilterTest
--QUERY MATCH (a:person)-[:meets*1..2]->(b:person) WHERE a.ID = 3 RETURN b.fName
+-STATEMENT MATCH (a:person)-[:meets*1..2]->(b:person) WHERE a.ID = 3 RETURN b.fName
 ---- 2
 Carol
 Elizabeth
@@ -48,6 +48,6 @@ Elizabeth
 # such paths, the optional match will put 'null' in the b valueVector for Node 0,2,5,10. In total, we have 12 output
 # tuples.
 -DEBUG_LOG KnowsWithOptionalMatch
--QUERY MATCH (a:person) OPTIONAL MATCH (a)-[:meets*3..4]->(b:person) RETURN COUNT(*)
+-STATEMENT MATCH (a:person) OPTIONAL MATCH (a)-[:meets*3..4]->(b:person) RETURN COUNT(*)
 ---- 1
 12

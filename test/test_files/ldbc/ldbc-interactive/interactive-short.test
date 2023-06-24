@@ -7,7 +7,7 @@
 -CASE LDBCInteractiveShort
 
 -DEBUG_LOG IS1
--QUERY MATCH (n:Person {id: 933})-[:Person_isLocatedIn_Place]->(p:Place)
+-STATEMENT MATCH (n:Person {id: 933})-[:Person_isLocatedIn_Place]->(p:Place)
        WHERE p.label = "City"
        RETURN n.firstName AS firstName,
               n.lastName AS lastName,
@@ -23,7 +23,7 @@ Mahinda|Perera|19891203|119.235.7.103|Firefox|1353|male|20100214153210447
 # IS2 should be changed to use Kleene Star relationship once that is implemented.
 # The 'Case When' statement should be supported as coalesce().
 -DEBUG_LOG IS2
--QUERY MATCH (:Person {id: 21990232555803})<-[:Post_hasCreator_Person|:Comment_hasCreator_Person]-(message)
+-STATEMENT MATCH (:Person {id: 21990232555803})<-[:Post_hasCreator_Person|:Comment_hasCreator_Person]-(message)
        WITH message,message.id AS messageId, message.creationDate AS messageCreationDate
        ORDER BY messageCreationDate DESC, messageId ASC LIMIT 10
        MATCH (message)-[:Comment_replyOf_Post|:Comment_replyOf_Comment*1..2]->(post:Post), (post)-[:Post_hasCreator_Person]->(person)
@@ -35,7 +35,7 @@ Mahinda|Perera|19891203|119.235.7.103|Firefox|1353|male|20100214153210447
 1030792343986|fine|20120810030544084|1030792343978|21990232556837|Bing|Li
 
 -DEBUG_LOG IS3
--QUERY MATCH (n:Person {id: 1129})-[r:Person_knows_Person]-(friend)
+-STATEMENT MATCH (n:Person {id: 1129})-[r:Person_knows_Person]-(friend)
        RETURN friend.id AS personId,
               friend.firstName AS firstName,
               friend.lastName AS lastName,
@@ -52,7 +52,7 @@ Mahinda|Perera|19891203|119.235.7.103|Firefox|1353|male|20100214153210447
 
 # The 'Case When' statement in query IS4 should be supported as coalesce()
 -DEBUG_LOG IS4
--QUERY MATCH (m:Post:Comment {id: 481036337190})
+-STATEMENT MATCH (m:Post:Comment {id: 481036337190})
        RETURN m.creationDate as messageCreationDate,
        CASE WHEN m.content is NULL
             THEN m.imageFile
@@ -62,7 +62,7 @@ Mahinda|Perera|19891203|119.235.7.103|Firefox|1353|male|20100214153210447
 20110407210642051|photo481036337190.jpg
 
 -DEBUG_LOG IS5
--QUERY MATCH (m:Post:Comment {id: 1030792151050})-[:Post_hasCreator_Person|:Comment_hasCreator_Person]->(p:Person)
+-STATEMENT MATCH (m:Post:Comment {id: 1030792151050})-[:Post_hasCreator_Person|:Comment_hasCreator_Person]->(p:Person)
        RETURN p.id AS personId,
               p.firstName AS firstName,
               p.lastName AS lastName;
@@ -71,13 +71,13 @@ Mahinda|Perera|19891203|119.235.7.103|Firefox|1353|male|20100214153210447
 
 # IS6 should be changed to use Kleene Star relationship once that is implemented
 -DEBUG_LOG IS6
--QUERY MATCH (m:Comment {id: 962072675825 })-[:Comment_replyOf_Post|:Comment_replyOf_Comment*1..2]->(p:Post)<-[:Forum_containerOf_Post]-(f:Forum)-[:Forum_hasModerator_Person]->(mod:Person)
+-STATEMENT MATCH (m:Comment {id: 962072675825 })-[:Comment_replyOf_Post|:Comment_replyOf_Comment*1..2]->(p:Post)<-[:Forum_containerOf_Post]-(f:Forum)-[:Forum_hasModerator_Person]->(mod:Person)
        RETURN f.id AS forumId,f.title AS forumTitle,mod.id AS moderatorId,mod.firstName AS moderatorFirstName, mod.lastName AS moderatorLastName;
 ---- 1
 687194767491|Wall of Faisal Malik|21990232556585|Faisal|Malik
 
 -DEBUG_LOG IS7
--QUERY MATCH (m:Post:Comment {id: 962072971887})<-[:Comment_replyOf_Comment|:Comment_replyOf_Post]-(c:Comment)-[:Comment_hasCreator_Person]->(p:Person)
+-STATEMENT MATCH (m:Post:Comment {id: 962072971887})<-[:Comment_replyOf_Comment|:Comment_replyOf_Post]-(c:Comment)-[:Comment_hasCreator_Person]->(p:Person)
              OPTIONAL MATCH (m)-[:Comment_hasCreator_Person|:Post_hasCreator_Person]->(a:Person)-[r:Person_knows_Person]-(p)
              RETURN c.id AS commentId,
                     c.content AS commentContent,

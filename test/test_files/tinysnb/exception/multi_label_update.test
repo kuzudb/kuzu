@@ -20,7 +20,7 @@ Binder exception: Delete node a with multiple node labels is not supported.
 ---- error
 Binder exception: Delete rel e with multiple rel labels or bound by multiple node labels is not supported.
 
--QUERY MATCH (a:person:organisation) SET a.age = 0
+-STATEMENT MATCH (a:person:organisation) SET a.age = 0
 ---- error
 Binder exception: Set property of node a with multiple node labels is not supported.
 

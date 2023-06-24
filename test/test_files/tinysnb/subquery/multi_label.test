@@ -6,6 +6,6 @@
 -CASE SubqueryMultiLabel
 
 -DEBUG_LOG MultiLabelSubqueryTest
--QUERY MATCH (a:person:organisation) WHERE EXISTS { MATCH (a)-[:knows|:studyAt]->(b:organisation:person) } RETURN COUNT(*)
+-STATEMENT MATCH (a:person:organisation) WHERE EXISTS { MATCH (a)-[:knows|:studyAt]->(b:organisation:person) } RETURN COUNT(*)
 ---- 1
 6

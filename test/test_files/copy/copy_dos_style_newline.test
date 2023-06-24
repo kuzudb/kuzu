@@ -4,7 +4,7 @@
 --
 
 -CASE DOSStyleNewlineTest
--QUERY MATCH (p:person) return p.ID
+-STATEMENT MATCH (p:person) return p.ID
 ---- 5
 0
 1

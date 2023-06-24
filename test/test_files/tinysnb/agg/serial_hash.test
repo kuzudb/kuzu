@@ -6,12 +6,12 @@
 -CASE AggSerial
 
 -DEBUG_LOG SimpleAggSerial
--QUERY MATCH (a:person) RETURN SUM(a.ID), AVG(a.age)
+-STATEMENT MATCH (a:person) RETURN SUM(a.ID), AVG(a.age)
 ---- 1
 28|37.250000
 
 -DEBUG_LOG HashAggSerial
--QUERY MATCH (a:person) RETURN a.ID, SUM(a.age)
+-STATEMENT MATCH (a:person) RETURN a.ID, SUM(a.age)
 ---- 8
 0|35
 1|30

@@ -6,7 +6,7 @@
 -CASE ProjectionMultiLabel
 
 -DEBUG_LOG MultiLabelReturn
--QUERY MATCH (a:person:organisation) RETURN a.ID, label(a), a.fName, a.orgCode
+-STATEMENT MATCH (a:person:organisation) RETURN a.ID, label(a), a.fName, a.orgCode
 ---- 11
 0|person|Alice|
 1|organisation||325
@@ -21,14 +21,14 @@
 10|person|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|
 
 -DEBUG_LOG MultiLabelFilter
--QUERY MATCH (a) WHERE label(a)='organisation' RETURN a.orgCode
+-STATEMENT MATCH (a) WHERE label(a)='organisation' RETURN a.orgCode
 ---- 3
 325
 934
 824
 
 -DEBUG_LOG MultiLabelReturnStar
--QUERY MATCH (a:movies:organisation) RETURN *
+-STATEMENT MATCH (a:movies:organisation) RETURN *
 ---- 6
 (label:movies, 2:0, {ID:, name:Sóló cón tu párejâ, orgCode:, mark:, score:, history:, licenseValidInterval:, rating:, state:, length:126, note: this is a very very good movie, description:{RATING: 5.300000, VIEWS: 152, RELEASE: 2011-08-20 11:25:30, FILM: 2012-05-11}, content:\xAA\xABinteresting\x0B})
 (label:movies, 2:1, {ID:, name:The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie, orgCode:, mark:, score:, history:, licenseValidInterval:, rating:, state:, length:2544, note: the movie is very very good, description:{RATING: 7.000000, VIEWS: 982, RELEASE: 2018-11-13 13:33:11, FILM: 2014-09-12}, content:\xAB\xCD})

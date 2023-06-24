@@ -6,35 +6,35 @@
 -CASE CopyOneDimensionalNpyTest
 
 -DEBUG_LOG i64
--QUERY MATCH (n:npytable) RETURN n.i64
+-STATEMENT MATCH (n:npytable) RETURN n.i64
 ---- 3
 1
 2
 3
 
 -DEBUG_LOG i32
--QUERY MATCH (n:npytable) RETURN n.i32
+-STATEMENT MATCH (n:npytable) RETURN n.i32
 ---- 3
 1
 2
 3
 
 -DEBUG_LOG i16
--QUERY MATCH (n:npytable) RETURN n.i16
+-STATEMENT MATCH (n:npytable) RETURN n.i16
 ---- 3
 1
 2
 3
 
 -DEBUG_LOG f64
--QUERY MATCH (n:npytable) RETURN n.f64
+-STATEMENT MATCH (n:npytable) RETURN n.f64
 ---- 3
 1.000000
 2.000000
 3.000000
 
 -DEBUG_LOG f32
--QUERY MATCH (n:npytable) RETURN n.f32
+-STATEMENT MATCH (n:npytable) RETURN n.f32
 ---- 3
 1.000000
 2.000000

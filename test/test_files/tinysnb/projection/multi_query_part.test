@@ -6,7 +6,7 @@
 -CASE ProjectionMultiQuery
 
 -DEBUG_LOG PersonNodesWithTest
--QUERY MATCH (a:person) WITH a RETURN a.age
+-STATEMENT MATCH (a:person) WITH a RETURN a.age
 ---- 8
 35
 30
@@ -18,7 +18,7 @@
 83
 
 -DEBUG_LOG KnowsOneHopWithTest1
--QUERY MATCH (a:person) WHERE a.age>20 WITH a MATCH (a)-[e:knows]->(b:person) RETURN b.fName
+-STATEMENT MATCH (a:person) WHERE a.age>20 WITH a MATCH (a)-[e:knows]->(b:person) RETURN b.fName
 -ENUMERATE
 ---- 9
 Alice
@@ -32,7 +32,7 @@ Dan
 Dan
 
 -DEBUG_LOG  CrossProductTest
--QUERY MATCH (a:person) WITH a.age AS s, a.fName as n MATCH (b:person) WHERE s=b.age RETURN n,b.fName,s
+-STATEMENT MATCH (a:person) WITH a.age AS s, a.fName as n MATCH (b:person) WHERE s=b.age RETURN n,b.fName,s
 -ENUMERATE
 ---- 10
 Alice|Alice|35

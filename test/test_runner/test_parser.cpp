@@ -143,8 +143,7 @@ TestStatement* TestParser::extractStatement(TestStatement* statement) {
         statement->debugLogMessage = paramsToString(1);
         break;
     }
-    case TokenType::STATEMENT:
-    case TokenType::QUERY: {
+    case TokenType::STATEMENT: {
         std::string query = paramsToString(1);
         query += extractTextBeforeNextStatement(true);
         replaceVariables(query);

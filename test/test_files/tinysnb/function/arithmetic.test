@@ -6,14 +6,14 @@
 -CASE FunctionArithmetic
 
 -DEBUG_LOG moduloFunctionOnDoubleDoubleTest
--QUERY MATCH (a:organisation) RETURN a.orgCode % a.rating
+-STATEMENT MATCH (a:organisation) RETURN a.orgCode % a.rating
 ---- 3
 0.000000
 0.340000
 0.320000
 
 -DEBUG_LOG moduloFunctionOnDoubleFloatTest
--QUERY MATCH (a:person) RETURN a.eyeSight % a.height
+-STATEMENT MATCH (a:person) RETURN a.eyeSight % a.height
 ---- 8
 1.538000
 0.150000
@@ -25,35 +25,35 @@
 0.931000
 
 -DEBUG_LOG moduloFunctionOnINT64INT16Test
--QUERY MATCH (:person)-[e:studyAt]->(:organisation) RETURN e.year % e.length
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN e.year % e.length
 ---- 3
 1
 40
 18
 
 -DEBUG_LOG moduloFunctionOnINT32INT32Test
--QUERY MATCH (m:movies) RETURN m.length % m.length
+-STATEMENT MATCH (m:movies) RETURN m.length % m.length
 ---- 3
 0
 0
 0
 
 -DEBUG_LOG sinFunctionOnDoubleTest
--QUERY MATCH (a:organisation) WHERE a.name <> 'abc' RETURN sin(a.mark)
+-STATEMENT MATCH (a:organisation) WHERE a.name <> 'abc' RETURN sin(a.mark)
 ---- 3
 -0.529836
 -0.818277
 -0.818277
 
 -DEBUG_LOG sinFunctionOnInt64Test
--QUERY MATCH (a:organisation) RETURN sin(a.orgCode)
+-STATEMENT MATCH (a:organisation) RETURN sin(a.orgCode)
 ---- 3
 -0.988036
 -0.811656
 0.785018
 
 -DEBUG_LOG sinFunctionOnFloatTest
--QUERY MATCH (a:person) RETURN sin(a.height)
+-STATEMENT MATCH (a:person) RETURN sin(a.height)
 ---- 8
 0.987195
 0.836026
@@ -65,112 +65,112 @@
 0.969455
 
 -DEBUG_LOG cosFunctionOnDoubleTest
--QUERY MATCH (a:organisation) RETURN cos(a.mark)
+-STATEMENT MATCH (a:organisation) RETURN cos(a.mark)
 ---- 3
 -0.848100
 -0.574824
 -0.574824
 
 -DEBUG_LOG cosFunctionOnInt64Test
--QUERY MATCH (a:organisation) RETURN cos(a.orgCode)
+-STATEMENT MATCH (a:organisation) RETURN cos(a.orgCode)
 ---- 3
 -0.154222
 -0.584135
 0.619473
 
 -DEBUG_LOG cosFunctionOnInt32Test
--QUERY MATCH (m:movies) RETURN cos(m.length)
+-STATEMENT MATCH (m:movies) RETURN cos(m.length)
 ---- 3
 0.943984
 0.771215
 -0.899880
 
 -DEBUG_LOG tanFunctionOnDoubleTest
--QUERY MATCH (a:organisation) RETURN tan(a.mark)
+-STATEMENT MATCH (a:organisation) RETURN tan(a.mark)
 ---- 3
 0.624733
 1.423526
 1.423526
 
 -DEBUG_LOG tanFunctionOnInt64Test
--QUERY MATCH (a:organisation) RETURN tan(a.orgCode)
+-STATEMENT MATCH (a:organisation) RETURN tan(a.orgCode)
 ---- 3
 6.406598
 1.389500
 1.267234
 
 -DEBUG_LOG cotFunctionOnDoubleTest
--QUERY MATCH (a:organisation) RETURN cot(a.mark)
+-STATEMENT MATCH (a:organisation) RETURN cot(a.mark)
 ---- 3
 1.600684
 0.702481
 0.702481
 
 -DEBUG_LOG cotFunctionOnInt16Test
--QUERY MATCH (:person)-[s:studyAt]->(:organisation) RETURN cot(s.length)
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN cot(s.length)
 ---- 3
 -0.295813
 -0.022132
 112.973210
 
 -DEBUG_LOG cotFunctionOnInt64Test
--QUERY MATCH (a:organisation) RETURN cot(a.orgCode)
+-STATEMENT MATCH (a:organisation) RETURN cot(a.orgCode)
 ---- 3
 0.156089
 0.719683
 0.789120
 
 -DEBUG_LOG asinFunctionOnDoubleTest
--QUERY MATCH (a:organisation) RETURN asin(a.rating)
+-STATEMENT MATCH (a:organisation) RETURN asin(a.rating)
 ---- 3
 1.570796
 0.894666
 0.546851
 
 -DEBUG_LOG asinFunctionOnInt64Test
--QUERY MATCH (a:organisation) RETURN asin(a.orgCode % 2 - 1)
+-STATEMENT MATCH (a:organisation) RETURN asin(a.orgCode % 2 - 1)
 ---- 3
 0.000000
 -1.570796
 -1.570796
 
 -DEBUG_LOG acosFunctionOnDoubleTest
--QUERY MATCH (a:organisation) RETURN acos(a.rating)
+-STATEMENT MATCH (a:organisation) RETURN acos(a.rating)
 ---- 3
 0.000000
 0.676131
 1.023945
 
 -DEBUG_LOG acosFunctionOnInt64Test
--QUERY MATCH (a:organisation) RETURN acos(a.orgCode % 2 - 1)
+-STATEMENT MATCH (a:organisation) RETURN acos(a.orgCode % 2 - 1)
 ---- 3
 1.570796
 3.141593
 3.141593
 
 -DEBUG_LOG atanFunctionOnDoubleTest
--QUERY MATCH (a:organisation) RETURN atan(a.rating)
+-STATEMENT MATCH (a:organisation) RETURN atan(a.rating)
 ---- 3
 0.785398
 0.662426
 0.479519
 
 -DEBUG_LOG atanFunctionOnInt64Test
--QUERY MATCH (a:organisation) RETURN atan(a.orgCode % 2 - 1)
+-STATEMENT MATCH (a:organisation) RETURN atan(a.orgCode % 2 - 1)
 ---- 3
 0.000000
 -0.785398
 -0.785398
 
 -DEBUG_LOG evenFunctionOnDoubleTest
--QUERY MATCH (a:organisation) RETURN even(a.mark)
+-STATEMENT MATCH (a:organisation) RETURN even(a.mark)
 ---- 3
 4.000000
 6.000000
 6.000000
 
 -DEBUG_LOG evenFunctionOnFloatTest
--QUERY MATCH (a:person) RETURN even(a.height)
+-STATEMENT MATCH (a:person) RETURN even(a.height)
 ---- 8
 2.000000
 2.000000
@@ -182,196 +182,196 @@
 2.000000
 
 -DEBUG_LOG evenFunctionOnInt64Test
--QUERY MATCH (a:organisation) RETURN even(a.orgCode)
+-STATEMENT MATCH (a:organisation) RETURN even(a.orgCode)
 ---- 3
 326.000000
 934.000000
 824.000000
 
 -DEBUG_LOG factorialFunctionOnInt64Test
--QUERY MATCH (a:organisation) RETURN factorial(a.orgCode % 20)
+-STATEMENT MATCH (a:organisation) RETURN factorial(a.orgCode % 20)
 ---- 3
 120
 24
 87178291200
 
 -DEBUG_LOG factorialFunctionSyntaxInt64Test
--QUERY MATCH (a:organisation) RETURN (a.orgCode % 20)!
+-STATEMENT MATCH (a:organisation) RETURN (a.orgCode % 20)!
 ---- 3
 120
 24
 87178291200
 
 -DEBUG_LOG signFunctionOnDoubleTest
--QUERY MATCH (a:organisation) RETURN sign(a.mark)
+-STATEMENT MATCH (a:organisation) RETURN sign(a.mark)
 ---- 3
 1
 1
 1
 
 -DEBUG_LOG signFunctionOnInt64Test
--QUERY MATCH (a:organisation) RETURN sign(a.orgCode)
+-STATEMENT MATCH (a:organisation) RETURN sign(a.orgCode)
 ---- 3
 1
 1
 1
 
 -DEBUG_LOG sqrtFunctionOnDoubleTest
--QUERY MATCH (a:organisation) RETURN sqrt(a.mark)
+-STATEMENT MATCH (a:organisation) RETURN sqrt(a.mark)
 ---- 3
 1.923538
 2.024846
 2.024846
 
 -DEBUG_LOG sqrtFunctionOnInt64Test
--QUERY MATCH (a:organisation) RETURN sqrt(a.orgCode)
+-STATEMENT MATCH (a:organisation) RETURN sqrt(a.orgCode)
 ---- 3
 18.027756
 30.561414
 28.705400
 
 -DEBUG_LOG cbrtFunctionOnDoubleTest
--QUERY MATCH (a:organisation) RETURN cbrt(a.mark)
+-STATEMENT MATCH (a:organisation) RETURN cbrt(a.mark)
 ---- 3
 1.546680
 1.600521
 1.600521
 
 -DEBUG_LOG cbrtFunctionOnInt64Test
--QUERY MATCH (a:organisation) RETURN cbrt(a.orgCode)
+-STATEMENT MATCH (a:organisation) RETURN cbrt(a.orgCode)
 ---- 3
 6.875344
 9.774974
 9.375096
 
 -DEBUG_LOG gammaFunctionOnDoubleTest
--QUERY MATCH (a:organisation) RETURN gamma(a.mark)
+-STATEMENT MATCH (a:organisation) RETURN gamma(a.mark)
 ---- 3
 4.170652
 6.812623
 6.812623
 
 -DEBUG_LOG gammaFunctionOnInt64Test
--QUERY MATCH (a:organisation) RETURN gamma(a.orgCode % 10)
+-STATEMENT MATCH (a:organisation) RETURN gamma(a.orgCode % 10)
 ---- 3
 24.000000
 6.000000
 6.000000
 
 -DEBUG_LOG lgammaFunctionOnDoubleTest
--QUERY MATCH (a:organisation) RETURN lgamma(a.mark)
+-STATEMENT MATCH (a:organisation) RETURN lgamma(a.mark)
 ---- 3
 1.428072
 1.918777
 1.918777
 
 -DEBUG_LOG lgammaFunctionOnInt64Test
--QUERY MATCH (a:organisation) RETURN lgamma(a.orgCode)
+-STATEMENT MATCH (a:organisation) RETURN lgamma(a.orgCode)
 ---- 3
 1552.770467
 5451.570283
 4706.038471
 
 -DEBUG_LOG lnFunctionOnDoubleTest
--QUERY MATCH (a:organisation) RETURN ln(a.mark)
+-STATEMENT MATCH (a:organisation) RETURN ln(a.mark)
 ---- 3
 1.308333
 1.410987
 1.410987
 
 -DEBUG_LOG lnFunctionOnInt64Test
--QUERY MATCH (a:organisation) RETURN ln(a.orgCode)
+-STATEMENT MATCH (a:organisation) RETURN ln(a.orgCode)
 ---- 3
 5.783825
 6.839476
 6.714171
 
 -DEBUG_LOG logFunctionOnDoubleTest
--QUERY MATCH (a:organisation) RETURN log(a.mark)
+-STATEMENT MATCH (a:organisation) RETURN log(a.mark)
 ---- 3
 0.568202
 0.612784
 0.612784
 
 -DEBUG_LOG logFunctionOnInt64Test
--QUERY MATCH (a:organisation) RETURN log(a.orgCode)
+-STATEMENT MATCH (a:organisation) RETURN log(a.orgCode)
 ---- 3
 2.511883
 2.970347
 2.915927
 
 -DEBUG_LOG log2FunctionOnDoubleTest
--QUERY MATCH (a:organisation) RETURN log2(a.mark)
+-STATEMENT MATCH (a:organisation) RETURN log2(a.mark)
 ---- 3
 1.887525
 2.035624
 2.035624
 
 -DEBUG_LOG log2FunctionOnInt64Test
--QUERY MATCH (a:organisation) RETURN log2(a.orgCode)
+-STATEMENT MATCH (a:organisation) RETURN log2(a.orgCode)
 ---- 3
 8.344296
 9.867279
 9.686501
 
 -DEBUG_LOG degreesFunctionOnDoubleTest
--QUERY MATCH (a:organisation) RETURN degrees(a.mark)
+-STATEMENT MATCH (a:organisation) RETURN degrees(a.mark)
 ---- 3
 211.994384
 234.912696
 234.912696
 
 -DEBUG_LOG degreesFunctionOnInt64Test
--QUERY MATCH (a:organisation) RETURN degrees(a.orgCode)
+-STATEMENT MATCH (a:organisation) RETURN degrees(a.orgCode)
 ---- 3
 18621.128342
 53514.258065
 47211.722319
 
 -DEBUG_LOG radiansFunctionOnDoubleTest
--QUERY MATCH (a:organisation) RETURN radians(a.mark)
+-STATEMENT MATCH (a:organisation) RETURN radians(a.mark)
 ---- 3
 0.064577
 0.071558
 0.071558
 
 -DEBUG_LOG radiansFunctionOnInt64Test
--QUERY MATCH (a:organisation) RETURN radians(a.orgCode)
+-STATEMENT MATCH (a:organisation) RETURN radians(a.orgCode)
 ---- 3
 5.672320
 16.301375
 14.381513
 
 -DEBUG_LOG atan2FunctionOnDoubleDoubleTest
--QUERY MATCH (a:organisation) RETURN atan2(a.mark, a.mark)
+-STATEMENT MATCH (a:organisation) RETURN atan2(a.mark, a.mark)
 ---- 3
 0.785398
 0.785398
 0.785398
 
 -DEBUG_LOG atan2FunctionOnDoubleInt64Test
--QUERY MATCH (a:organisation) RETURN atan2(a.mark, a.orgCode)
+-STATEMENT MATCH (a:organisation) RETURN atan2(a.mark, a.orgCode)
 ---- 3
 0.011384
 0.004390
 0.004976
 
 -DEBUG_LOG atan2FunctionOnInt64Int64Test
--QUERY MATCH (a:organisation) RETURN atan2(a.orgCode, a.orgCode)
+-STATEMENT MATCH (a:organisation) RETURN atan2(a.orgCode, a.orgCode)
 ---- 3
 0.785398
 0.785398
 0.785398
 
 -DEBUG_LOG atan2FunctionOnInt64DoubleTest
--QUERY MATCH (a:organisation) RETURN atan2(a.orgCode, a.mark)
+-STATEMENT MATCH (a:organisation) RETURN atan2(a.orgCode, a.mark)
 ---- 3
 1.559412
 1.566407
 1.565821
 
 -DEBUG_LOG atan2FunctionOnFloatDoubleTest
--QUERY MATCH (a:person) RETURN atan2(a.height, a.eyeSight)
+-STATEMENT MATCH (a:person) RETURN atan2(a.height, a.eyeSight)
 ---- 8
 0.191733
 0.197396
@@ -383,49 +383,49 @@
 0.333286
 
 -DEBUG_LOG roundFunctionOnDoubleTest
--QUERY MATCH (a:organisation) WHERE a.ID <> 2 RETURN round(a.rating, 1)
+-STATEMENT MATCH (a:organisation) WHERE a.ID <> 2 RETURN round(a.rating, 1)
 ---- 3
 0.800000
 0.500000
 1.000000
 
 -DEBUG_LOG roundFunctionOnInt64Test
--QUERY MATCH (a:organisation) RETURN round(a.orgCode, 2)
+-STATEMENT MATCH (a:organisation) RETURN round(a.orgCode, 2)
 ---- 3
 325.000000
 824.000000
 934.000000
 
 -DEBUG_LOG piFunctionAddStrIntTest
--QUERY MATCH (a:organisation) RETURN a.orgCode + pi()
+-STATEMENT MATCH (a:organisation) RETURN a.orgCode + pi()
 ---- 3
 328.141593
 937.141593
 827.141593
 
 -DEBUG_LOG AbsFunctionStrInt
--QUERY MATCH (a:organisation) RETURN abs(a.score)
+-STATEMENT MATCH (a:organisation) RETURN abs(a.score)
 ---- 3
 100
 2
 7
 
 -DEBUG_LOG FloorFunctionStrInt
--QUERY MATCH (a:organisation) RETURN floor(a.score)
+-STATEMENT MATCH (a:organisation) RETURN floor(a.score)
 ---- 3
 -2
 -100
 7
 
 -DEBUG_LOG CeilFunctionStrInt
--QUERY MATCH (a:organisation) RETURN ceil(a.score)
+-STATEMENT MATCH (a:organisation) RETURN ceil(a.score)
 ---- 3
 -2
 -100
 7
 
 -DEBUG_LOG BitwiseAndFunctionTest
--QUERY MATCH (p:person) RETURN p.age & 21
+-STATEMENT MATCH (p:person) RETURN p.age & 21
 ---- 8
 1
 20
@@ -437,14 +437,14 @@
 17
 
 -DEBUG_LOG BitwiseOrFunctionTest
--QUERY MATCH (o:organisation) RETURN o.score | 35
+-STATEMENT MATCH (o:organisation) RETURN o.score | 35
 ---- 3
 -1
 -65
 39
 
 -DEBUG_LOG BitshiftLeftFunctionTest
--QUERY MATCH (p:person) RETURN p.age << 2
+-STATEMENT MATCH (p:person) RETURN p.age << 2
 ---- 8
 140
 120
@@ -456,28 +456,28 @@
 332
 
 -DEBUG_LOG BitshiftRightFunctionTest
--QUERY MATCH (o:organisation) RETURN o.orgCode >> 3
+-STATEMENT MATCH (o:organisation) RETURN o.orgCode >> 3
 ---- 3
 40
 116
 103
 
 -DEBUG_LOG BitwiseOperatorPrecedenceTest
--QUERY MATCH (o:organisation) RETURN o.orgCode >> 2 | o.score & 2 << 1
+-STATEMENT MATCH (o:organisation) RETURN o.orgCode >> 2 | o.score & 2 << 1
 ---- 3
 85
 237
 206
 
 -DEBUG_LOG NumericalOperatorPrecedenceTest1
--QUERY MATCH (o:organisation) RETURN 3 & (o.score + 50)
+-STATEMENT MATCH (o:organisation) RETURN 3 & (o.score + 50)
 ---- 3
 0
 2
 1
 
 -DEBUG_LOG NumericalOperatorPrecedenceTest2
--QUERY MATCH (o:organisation) RETURN 2 + 3 << 5 + 2 & 1 + o.orgCode
+-STATEMENT MATCH (o:organisation) RETURN 2 + 3 << 5 + 2 & 1 + o.orgCode
 ---- 3
 0
 640

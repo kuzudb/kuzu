@@ -6,7 +6,7 @@
 -CASE Union
 
 -DEBUG_LOG UnionAllTwoQueriesTest
--QUERY MATCH (p:person) RETURN p.age UNION ALL MATCH (p1:person) RETURN p1.age
+-STATEMENT MATCH (p:person) RETURN p.age UNION ALL MATCH (p1:person) RETURN p1.age
 -PARALLELISM 8
 ---- 16
 20
@@ -27,7 +27,7 @@
 83
 
 -DEBUG_LOG UnionAllMultipleQueriesTest
--QUERY MATCH (p:person) RETURN p.age UNION ALL MATCH (p1:person) RETURN p1.age UNION ALL MATCH (p2:person) RETURN p2.age
+-STATEMENT MATCH (p:person) RETURN p.age UNION ALL MATCH (p1:person) RETURN p1.age UNION ALL MATCH (p2:person) RETURN p2.age
 -PARALLELISM 2
 ---- 24
 20
@@ -56,7 +56,7 @@
 83
 
 -DEBUG_LOG UnionAllMultipleColumnsTest
--QUERY MATCH (p:person) RETURN p.age, p.eyeSight UNION ALL MATCH (p1:person) RETURN p1.age, p1.eyeSight
+-STATEMENT MATCH (p:person) RETURN p.age, p.eyeSight UNION ALL MATCH (p1:person) RETURN p1.age, p1.eyeSight
 -PARALLELISM 3
 ---- 16
 20|4.700000
@@ -77,7 +77,7 @@
 83|4.900000
 
 -DEBUG_LOG UnionTwoQueriesTest
--QUERY MATCH (a:person) RETURN a.age UNION MATCH (p:person) RETURN p.age
+-STATEMENT MATCH (a:person) RETURN a.age UNION MATCH (p:person) RETURN p.age
 ---- 7
 20
 25
@@ -90,7 +90,7 @@
 # If an expression to union has different flat/unflat state in different single queries, we need to flatten that
 # expression in all the single queries.
 -DEBUG_LOG UnionAllFlatAndUnFlatColTest
--QUERY MATCH (a:person)-[e:knows]->(b:person) RETURN a.age UNION ALL MATCH (a:person)-[e:knows]->(b:person) RETURN a.age UNION ALL MATCH (a:person)-[e:knows]->(b:person) RETURN a.age
+-STATEMENT MATCH (a:person)-[e:knows]->(b:person) RETURN a.age UNION ALL MATCH (a:person)-[e:knows]->(b:person) RETURN a.age UNION ALL MATCH (a:person)-[e:knows]->(b:person) RETURN a.age
 -ENUMERATE
 ---- 42
 20
@@ -137,7 +137,7 @@
 45
 
 -DEBUG_LOG UnionAllWithTest
--QUERY MATCH (a:person)-[:knows]->(b:person) with b return b.age + 3 UNION ALL MATCH (a:person)-[e:knows]->(b:person) with a RETURN a.age
+-STATEMENT MATCH (a:person)-[:knows]->(b:person) with b return b.age + 3 UNION ALL MATCH (a:person)-[e:knows]->(b:person) with a RETURN a.age
 -ENUMERATE
 ---- 28
 20
@@ -170,7 +170,7 @@
 48
 
 -DEBUG_LOG UnionAllThreeHopsTest
--QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person)-[e3:knows]->(d:person) RETURN a.fName order by d.age desc, c.age asc, b.age asc, a.age desc limit 10 UNION ALL MATCH (p:person) RETURN p.fName
+-STATEMENT MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person)-[e3:knows]->(d:person) RETURN a.fName order by d.age desc, c.age asc, b.age asc, a.age desc limit 10 UNION ALL MATCH (p:person) RETURN p.fName
 -ENUMERATE
 ---- 18
 Alice

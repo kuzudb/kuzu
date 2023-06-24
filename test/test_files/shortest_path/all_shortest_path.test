@@ -9,12 +9,12 @@
 # 10 <- 7 -> 9
 # 10 <- 8 -> 9
 -DEBUG_LOG SingleSourceSingleDst
--QUERY MATCH (a:person)-[r:knows* ALL SHORTEST 1..30]-(b:person) WHERE a.ID = 9 AND b.ID = 10 RETURN COUNT(*)
+-STATEMENT MATCH (a:person)-[r:knows* ALL SHORTEST 1..30]-(b:person) WHERE a.ID = 9 AND b.ID = 10 RETURN COUNT(*)
 ---- 1
 3
 
 -DEBUG_LOG SingleSource
--QUERY MATCH (a:person)-[r:knows* ALL SHORTEST 1..30]->(b:person) WHERE a.ID = 10 RETURN b.ID, length(r), COUNT(*)
+-STATEMENT MATCH (a:person)-[r:knows* ALL SHORTEST 1..30]->(b:person) WHERE a.ID = 10 RETURN b.ID, length(r), COUNT(*)
 ---- 7
 0|1|1
 2|2|2
