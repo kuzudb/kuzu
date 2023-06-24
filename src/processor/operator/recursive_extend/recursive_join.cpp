@@ -137,13 +137,17 @@ bool RecursiveJoin::getNextTuplesInternal(ExecutionContext* context) {
         if (scanOutput()) { // Phase 2
             return true;
         }
-        if (!computeBFSTemp(context)) {
+        if (!computeBFS(context)) {
             return false;
         }
         frontiersScanner->resetState(*bfsMorsel);
     }
 }
 
+/**
+ *
+ * @return
+ */
 bool RecursiveJoin::scanOutput() {
     if (morselDispatcher->getSchedulerType() == SchedulerType::OneThreadOneMorsel) {
         common::sel_t offsetVectorSize = 0u;
@@ -167,8 +171,9 @@ bool RecursiveJoin::scanOutput() {
                 vectors->dstNodeIDVector, vectors->pathLengthVector, tableID, threadIdx);
             /**
              * ret > 0: non-zero path lengths were written to vector, return to parent op
-             * ret < 0: path length writing is complete, proceed to computeBFS for another morsel
-             * ret = 0: the distance morsel received was empty, go back to get another morsel
+             * ret < 0: path length writing is complete, proceed to computeBFSOneThreadOneMorsel for
+             * another morsel ret = 0: the distance morsel received was empty, go back to get
+             * another morsel
              */
             if (ret > 0) {
                 return true;
@@ -181,19 +186,28 @@ bool RecursiveJoin::scanOutput() {
     }
 }
 
-bool RecursiveJoin::computeBFSTemp(kuzu::processor::ExecutionContext* context) {
+/**
+ * The main computeBFS to be called for both 1T1S and nTkS scheduling policies. Initially for both
+ * cases, the SSSPMorsel ptr will be null. For nTkS policy, this will be eventually filled with a
+ * pointer to the main SSSPMorsel from which work will be fetched. This SSSPMorsel will
+ * not be bound to a specific thread and can change.
+ * For 1T1S policy, there is no SSSPMorsel involved and a thread works on its own work, not shared
+ * with any other thread.
+ *
+ */
+bool RecursiveJoin::computeBFS(kuzu::processor::ExecutionContext* context) {
     while (true) {
         if (bfsMorsel->ssspMorsel) {
             bfsMorsel->ssspMorsel->getBFSMorsel(bfsMorsel);
             if (!bfsMorsel->threadCheckSSSPState) {
-                extend(context);
+                computeBFSnThreadkMorsel(context);
                 if (bfsMorsel->ssspMorsel->finishBFSMorsel(bfsMorsel)) {
                     return true;
                 }
                 continue;
             }
         }
-        auto status = fetchBFSMorselFromDispatcher(context);
+        auto status = fetchMorselFromDispatcher(context);
         if (status == -1) {
             return false;
         } else if (status == 0) {
@@ -209,11 +223,15 @@ bool RecursiveJoin::computeBFSTemp(kuzu::processor::ExecutionContext* context) {
  * returns 0 = keep asking for work
  * returns 1 = SSSP extend is complete, can return to writing distances
  */
-int RecursiveJoin::fetchBFSMorselFromDispatcher(ExecutionContext* context) {
+int RecursiveJoin::fetchMorselFromDispatcher(ExecutionContext* context) {
     auto bfsComputationState = morselDispatcher->getBFSMorsel(sharedState->inputFTableSharedState,
         vectorsToScan, colIndicesToScan, vectors->srcNodeIDVector, bfsMorsel, threadIdx);
     auto globalSSSPState = bfsComputationState.first;
     auto ssspLocalState = bfsComputationState.second;
+    // If the threadCheckSSSPState was set as TRUE within morselDispatcher, it indicates no work
+    // was found even from other morsels. For 1T1S this means exiting immediately, because threads
+    // don't share work. For nTkS it indicates to exit ONLY if state is COMPLETE. Else the thread
+    // will sleep for some time before going back to ask for work from the morselDispatcher.
     if (bfsMorsel->threadCheckSSSPState) {
         switch (globalSSSPState) {
         case IN_PROGRESS:
@@ -232,10 +250,10 @@ int RecursiveJoin::fetchBFSMorselFromDispatcher(ExecutionContext* context) {
         }
     }
     if (morselDispatcher->getSchedulerType() == OneThreadOneMorsel) {
-        computeBFS(context);
+        computeBFSOneThreadOneMorsel(context);
         return 1;
     } else {
-        extend(context);
+        computeBFSnThreadkMorsel(context);
         if (bfsMorsel->ssspMorsel->finishBFSMorsel(bfsMorsel)) {
             return 1;
         } else {
@@ -248,7 +266,7 @@ int RecursiveJoin::fetchBFSMorselFromDispatcher(ExecutionContext* context) {
 // if the BFS is complete or not. No lock-free CAS operation occurring on the visited vector here.
 // Work not shared between any other threads, the data structures used are unordered_set and
 // unordered_map.
-void RecursiveJoin::computeBFS(ExecutionContext* context) {
+void RecursiveJoin::computeBFSOneThreadOneMorsel(ExecutionContext* context) {
     while (!bfsMorsel->isComplete()) {
         auto boundNodeID = bfsMorsel->getNextNodeID();
         if (boundNodeID.offset != common::INVALID_OFFSET) {
@@ -278,7 +296,7 @@ void RecursiveJoin::updateVisitedNodes(common::nodeID_t boundNodeID) {
 // is operating on its morsel. Lock-free CAS operation occurs here, visited nodes are marked with
 // the function call addToLocalNextBFSLevel on the visited vector. The path lengths are written to
 // the pathLength vector.
-void RecursiveJoin::extend(ExecutionContext* context) {
+void RecursiveJoin::computeBFSnThreadkMorsel(ExecutionContext* context) {
     // Cast the BaseBFSMorsel to ShortestPathMorsel, the TRACK_NONE RecursiveJoin is the case it is
     // applicable for. If true, indicates TRACK_PATH is true else TRACK_PATH is false.
     assert(bfsMorsel->getRecursiveJoinType() == false);

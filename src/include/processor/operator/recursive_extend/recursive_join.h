@@ -109,14 +109,14 @@ private:
 
     bool scanOutput();
 
-    bool computeBFSTemp(ExecutionContext* context);
+    bool computeBFS(ExecutionContext* context);
 
-    int fetchBFSMorselFromDispatcher(ExecutionContext* context);
+    int fetchMorselFromDispatcher(ExecutionContext* context);
 
-    void extend(ExecutionContext* context);
+    void computeBFSnThreadkMorsel(ExecutionContext* context);
 
     // Compute BFS for a given src node.
-    void computeBFS(ExecutionContext* context);
+    void computeBFSOneThreadOneMorsel(ExecutionContext* context);
 
     void updateVisitedNodes(common::nodeID_t boundNodeID);
 

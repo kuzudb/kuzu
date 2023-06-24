@@ -28,9 +28,6 @@ void SSSPMorsel::reset(TargetDstNodes* targetDstNodes) {
     numThreadsActiveOnMorsel = 0u;
     nextDstScanStartIdx = 0u;
     inputFTableTupleIdx = 0u;
-    lvlStartTimeInMillis = 0u;
-    startTimeInMillis = 0u;
-    distWriteStartTimeInMillis = 0u;
 }
 
 /*
@@ -59,6 +56,17 @@ SSSPLocalState SSSPMorsel::getBFSMorsel(std::unique_ptr<BaseBFSMorsel>& bfsMorse
     bfsMorsel->threadCheckSSSPState = true;
     mutex.unlock();
     return ssspLocalState;
+}
+
+bool SSSPMorsel::hasWork() const {
+    if (ssspLocalState == EXTEND_IN_PROGRESS && nextScanStartIdx < bfsLevelNodeOffsets.size()) {
+        return true;
+    } else if (ssspLocalState == PATH_LENGTH_WRITE_IN_PROGRESS &&
+               nextDstScanStartIdx < pathLength.size()) {
+        return true;
+    } else {
+        return false;
+    }
 }
 
 bool SSSPMorsel::finishBFSMorsel(std::unique_ptr<BaseBFSMorsel>& bfsMorsel) {

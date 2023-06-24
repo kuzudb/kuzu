@@ -99,15 +99,10 @@ std::pair<GlobalSSSPState, SSSPLocalState> MorselDispatcher::getBFSMorsel(
                         numActiveSSSP++;
                         auto newSSSPMorsel =
                             std::make_shared<SSSPMorsel>(upperBound, lowerBound, maxOffset);
-                        auto duration = std::chrono::system_clock::now().time_since_epoch();
-                        auto millis =
-                            std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
                         inputFTableSharedState->getTable()->scan(vectorsToScan,
                             inputFTableMorsel->startTupleIdx, inputFTableMorsel->numTuples,
                             colIndicesToScan);
                         newSSSPMorsel->reset(bfsMorsel->targetDstNodes);
-                        newSSSPMorsel->startTimeInMillis = millis;
-                        newSSSPMorsel->lvlStartTimeInMillis = millis;
                         newSSSPMorsel->inputFTableTupleIdx = inputFTableMorsel->startTupleIdx;
                         auto nodeID = srcNodeIDVector->getValue<common::nodeID_t>(
                             srcNodeIDVector->state->selVector->selectedPositions[0]);
@@ -129,43 +124,43 @@ std::pair<GlobalSSSPState, SSSPLocalState> MorselDispatcher::getBFSMorsel(
                 case PATH_LENGTH_WRITE_IN_PROGRESS:
                     bfsMorsel->threadCheckSSSPState = true;
                     return {globalState, ssspLocalState};
-                default:
-                    assert(false);
                 }
             } else {
                 return {globalState, ssspLocalState};
             }
         }
-        default:
-            assert(false);
         }
     }
-    default:
-        assert(false);
     }
 }
 
+/**
+ * Iterate over list of ALL currently active SSSPMorsels and check if there is any work available.
+ * NOTE: There can be different policies to decide which SSSPMorsel to help finish. Right now the
+ * most basic policy has been implemented. The 1st SSSPMorsel we find that is unfinished is chosen
+ * for helping work on.
+ */
 int64_t MorselDispatcher::getNextAvailableSSSPWork() {
-    auto nextAvailableSSSPIdx = -1;
     for (int i = 0; i < activeSSSPMorsel.size(); i++) {
         if (activeSSSPMorsel[i]) {
             activeSSSPMorsel[i]->mutex.lock();
-            if (activeSSSPMorsel[i]->nextScanStartIdx <
-                    activeSSSPMorsel[i]->bfsLevelNodeOffsets.size() &&
-                (activeSSSPMorsel[i]->ssspLocalState == EXTEND_IN_PROGRESS ||
-                    activeSSSPMorsel[i]->ssspLocalState == PATH_LENGTH_WRITE_IN_PROGRESS)) {
-                nextAvailableSSSPIdx = i;
+            if (activeSSSPMorsel[i]->hasWork()) {
                 activeSSSPMorsel[i]->mutex.unlock();
-                break;
+                return i;
             }
             activeSSSPMorsel[i]->mutex.unlock();
         }
     }
-    return nextAvailableSSSPIdx;
+    return -1;
 }
 
 /**
- *
+ * Try to find an available SSSPMorsel for work and then try to get a morsel. If the work is
+ * writing path lengths then at Line 165 - ssspLocalState will be PATH_LENGTH_WRITE_IN_PROGRESS.
+ * This is why we mark threadCheckSSSPState as true and exit. If the work is bfs extension, the
+ * threadCheckSSSPState will be marked as false since the thread will have received a morsel
+ * successfully. We update the activeSSSPMorsel vector for the thread's index with the new
+ * SSSPMorsel to indicate the morsel the thread will now be working on.
  */
 std::pair<GlobalSSSPState, SSSPLocalState> MorselDispatcher::findAvailableSSSPMorsel(
     std::unique_ptr<BaseBFSMorsel>& bfsMorsel, SSSPLocalState& ssspLocalState, uint32_t threadIdx) {
@@ -201,17 +196,21 @@ int64_t MorselDispatcher::writeDstNodeIDAndPathLength(
     std::vector<common::ValueVector*> vectorsToScan, std::vector<ft_col_idx_t> colIndicesToScan,
     common::ValueVector* dstNodeIDVector, common::ValueVector* pathLengthVector,
     common::table_id_t tableID, uint32_t threadIdx) {
-    mutex.lock();
     auto ssspMorsel = activeSSSPMorsel[threadIdx];
     if (!ssspMorsel) {
-        mutex.unlock();
         return -1;
     }
     auto startScanIdxAndSize = ssspMorsel->getDstPathLengthMorsel();
+    /**
+     * [startScanIdx, Size] = [UINT64_MAX, INT64_MAX] = no work in this morsel, exit & return -1
+     * [startScanIdx, Size] = [0, -1] = this SSSPMorsel was just completed (marked MORSEL_COMPLETE)
+     * Else a pathLengthMorsel has been allotted to the thread and it can proceed to write the
+     * path lengths to the pathLengthVector.
+     */
     if (startScanIdxAndSize.first == UINT64_MAX && startScanIdxAndSize.second == INT64_MAX) {
-        mutex.unlock();
         return -1;
     } else if (startScanIdxAndSize.second == -1) {
+        mutex.lock();
         numActiveSSSP--;
         // If all SSSP have been completed indicated by count (numActiveSSSP == 0) and no more
         // SSSP are available to launched indicated by state IN_PROGRESS_ALL_SRC_SCANNED then
@@ -223,7 +222,6 @@ int64_t MorselDispatcher::writeDstNodeIDAndPathLength(
         mutex.unlock();
         return -1;
     }
-    mutex.unlock();
     auto size = 0u;
     auto endIdx = startScanIdxAndSize.first + startScanIdxAndSize.second;
     while (startScanIdxAndSize.first < endIdx) {
