@@ -48,7 +48,6 @@ enum SSSPLocalState { EXTEND_IN_PROGRESS, PATH_LENGTH_WRITE_IN_PROGRESS, MORSEL_
  * 3) COMPLETE: All SSSPMorsels have been completed, there is no more work either in BFS extension
  *              or path length writing to vector. Threads can exit completely (return false and
  *              return to parent operator).
- *
  */
 enum GlobalSSSPState { IN_PROGRESS, IN_PROGRESS_ALL_SRC_SCANNED, COMPLETE };
 
@@ -101,12 +100,13 @@ public:
           pathLength{std::vector<uint8_t>(maxNodeOffset_ + 1, 0u)},
           bfsLevelNodeOffsets{std::vector<common::offset_t>()}, srcOffset{0u},
           maxOffset{maxNodeOffset_}, upperBound{upperBound_}, lowerBound{lowerBound_},
-          numThreadsActiveOnMorsel{0u}, nextDstScanStartIdx{0u}, inputFTableTupleIdx{0u},
-          lvlStartTimeInMillis{0u}, startTimeInMillis{0u}, distWriteStartTimeInMillis{0u} {}
+          numThreadsActiveOnMorsel{0u}, nextDstScanStartIdx{0u}, inputFTableTupleIdx{0u} {}
 
     void reset(TargetDstNodes* targetDstNodes);
 
     SSSPLocalState getBFSMorsel(std::unique_ptr<BaseBFSMorsel>& bfsMorsel);
+
+    bool hasWork() const;
 
     bool finishBFSMorsel(std::unique_ptr<BaseBFSMorsel>& bfsMorsel);
 
@@ -139,9 +139,6 @@ public:
     uint32_t numThreadsActiveOnMorsel;
     uint64_t nextDstScanStartIdx;
     uint64_t inputFTableTupleIdx;
-    uint64_t lvlStartTimeInMillis;
-    uint64_t startTimeInMillis;
-    uint64_t distWriteStartTimeInMillis;
 };
 
 struct BaseBFSMorsel {
@@ -294,15 +291,10 @@ private:
     }
 
 public:
-    /// These will be used for:
-    /// 1) Single Label, Track Path
-    /// 2) Multi Label,  Track None
-    /// 3) Multi Label,  Track Path
     uint64_t numVisitedDstNodes;
     frontier::node_id_set_t visited;
 
-    /// These will be used for:
-    /// 1) Single Label, Track None
+    /// These will be used for [Single Label, Track None] to track starting, ending index of morsel.
     uint64_t startScanIdx;
     uint64_t endScanIdx;
 };
