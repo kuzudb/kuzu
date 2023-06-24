@@ -5,7 +5,7 @@
 
 -CASE Acc
 
--NAME AspBasic
+-DEBUG_LOG AspBasic
 -QUERY MATCH (a:person)-[e1:knows]->(b:person) WHERE a.age > 35 RETURN b.fName
 -ENCODED_JOIN HJ(b._id){E(b)S(a)}{S(b)}
 ---- 3
@@ -13,7 +13,7 @@ Alice
 Bob
 Dan
 
--NAME AspMultiLabel
+-DEBUG_LOG AspMultiLabel
 -QUERY MATCH (a:person)-[e1:knows|:studyAt|:workAt]->(b:person:organisation) WHERE a.age > 35 RETURN b.fName, b.name
 -ENCODED_JOIN HJ(b._id){E(b)S(a)}{S(b)}
 ---- 4
@@ -22,7 +22,7 @@ Bob|
 Dan|
 |CsWork
 
--NAME AspMultiKey
+-DEBUG_LOG AspMultiKey
 -QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person), (a)-[e3:knows]->(c) WHERE a.fName='Alice' RETURN b.fName, c.fName
 #-ENCODED_JOIN HJ(c._id,b._id){E(b)E(c)S(a)}{HJ(b._id){S(b)}{E(b)S(c)}}
 -ENUMERATE
@@ -34,7 +34,7 @@ Carol|Dan
 Dan|Bob
 Dan|Carol
 
--NAME AspMultiMaskToOneScan
+-DEBUG_LOG AspMultiMaskToOneScan
 -QUERY MATCH (a:person)<-[e1:knows]-(b:person)-[e2:knows]->(c:person) WHERE a.fName='Alice' AND c.fName='Bob' RETURN b.fName
 #-ENCODED_JOIN HJ(b._id){E(b)S(a)}{HJ(b._id){E(b)S(c)}{S(b)}}
 -ENUMERATE
@@ -42,14 +42,14 @@ Dan|Carol
 Carol
 Dan
 
--NAME AspOneMaskToMultiScan
+-DEBUG_LOG AspOneMaskToMultiScan
 -QUERY MATCH (a:person)-[e1:knows]->(b:person), (a)-[e2:knows]->(b), (a)-[e3:knows]->(c:person)-[e4:knows]->(d:person) WHERE e1.date=date('1950-05-14') AND a.ID>0 AND c.fName='Bob' AND d.fName='Carol' RETURN a.fName, b.fName
 -ENUMERATE
 ---- 2
 Carol|Bob
 Dan|Bob
 
--NAME AspIntersect
+-DEBUG_LOG AspIntersect
 -QUERY MATCH (a:person)<-[e1:knows]-(b:person)-[e2:knows]->(c:person), (a)-[e3:knows]->(c) WHERE b.fName='Bob' AND a.fName='Alice' RETURN COUNT(*)
 -ENUMERATE
 ---- 1

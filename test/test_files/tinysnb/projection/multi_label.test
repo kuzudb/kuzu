@@ -5,7 +5,7 @@
 
 -CASE ProjectionMultiLabel
 
--NAME MultiLabelReturn
+-DEBUG_LOG MultiLabelReturn
 -QUERY MATCH (a:person:organisation) RETURN a.ID, label(a), a.fName, a.orgCode
 ---- 11
 0|person|Alice|
@@ -20,14 +20,14 @@
 9|person|Greg|
 10|person|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|
 
--NAME MultiLabelFilter
+-DEBUG_LOG MultiLabelFilter
 -QUERY MATCH (a) WHERE label(a)='organisation' RETURN a.orgCode
 ---- 3
 325
 934
 824
 
--NAME MultiLabelReturnStar
+-DEBUG_LOG MultiLabelReturnStar
 -QUERY MATCH (a:movies:organisation) RETURN *
 ---- 6
 (label:movies, 2:0, {ID:, name:Sóló cón tu párejâ, orgCode:, mark:, score:, history:, licenseValidInterval:, rating:, state:, length:126, note: this is a very very good movie, description:{RATING: 5.300000, VIEWS: 152, RELEASE: 2011-08-20 11:25:30, FILM: 2012-05-11}, content:\xAA\xABinteresting\x0B})

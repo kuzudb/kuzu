@@ -138,9 +138,9 @@ TestStatement* TestParser::extractStatement(TestStatement* statement) {
     }
     tokenize();
     switch (currentToken.type) {
-    case TokenType::NAME: {
+    case TokenType::DEBUG_LOG: {
         checkMinimumParams(1);
-        statement->name = currentToken.params[1];
+        statement->debugLogMessage = paramsToString(1);
         break;
     }
     case TokenType::STATEMENT:
@@ -265,7 +265,7 @@ void TestParser::parseBody() {
             variableMap[currentToken.params[1]] = parseCommand();
             break;
         }
-        case TokenType::STATEMENT_BLOCK: {
+        case TokenType::INSERT_STATEMENT_BLOCK: {
             checkMinimumParams(1);
             addStatementBlock(currentToken.params[1], testCaseName);
             break;

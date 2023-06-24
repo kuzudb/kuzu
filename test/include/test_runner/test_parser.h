@@ -17,31 +17,33 @@ enum class TokenType {
     BUFFER_POOL_SIZE,
     CASE,
     CHECK_ORDER,
+    DEBUG_LOG,
     DEFINE,
     DEFINE_STATEMENT_BLOCK,
     EMPTY,
     ENCODED_JOIN,
     END_OF_STATEMENT_BLOCK,
     ENUMERATE,
-    NAME,
+    INSERT_STATEMENT_BLOCK,
     PARALLELISM,
     QUERY,
     RESULT,
     SEPARATOR,
     STATEMENT,
-    STATEMENT_BLOCK,
     _SKIP_LINE
 };
 
 const std::unordered_map<std::string, TokenType> tokenMap = {{"-GROUP", TokenType::GROUP},
     {"-DATASET", TokenType::DATASET}, {"-CASE", TokenType::CASE},
     {"-CHECK_ORDER", TokenType::CHECK_ORDER}, {"-ENCODED_JOIN", TokenType::ENCODED_JOIN},
+    {"-DEBUG_LOG", TokenType::DEBUG_LOG},
     {"-DEFINE_STATEMENT_BLOCK", TokenType::DEFINE_STATEMENT_BLOCK},
-    {"-ENUMERATE", TokenType::ENUMERATE}, {"-NAME", TokenType::NAME},
+    {"-ENUMERATE", TokenType::ENUMERATE},
     {"-BEGIN_WRITE_TRANSACTION", TokenType::BEGIN_WRITE_TRANSACTION},
     {"-PARALLELISM", TokenType::PARALLELISM}, {"-QUERY", TokenType::QUERY},
     {"-SKIP", TokenType::SKIP}, {"-DEFINE", TokenType::DEFINE},
-    {"-STATEMENT", TokenType::STATEMENT}, {"-STATEMENT_BLOCK", TokenType::STATEMENT_BLOCK},
+    {"-STATEMENT", TokenType::STATEMENT},
+    {"-INSERT_STATEMENT_BLOCK", TokenType::INSERT_STATEMENT_BLOCK},
     {"-BUFFER_POOL_SIZE", TokenType::BUFFER_POOL_SIZE}, {"]", TokenType::END_OF_STATEMENT_BLOCK},
     {"----", TokenType::RESULT}, {"--", TokenType::SEPARATOR}, {"#", TokenType::EMPTY}};
 
@@ -62,7 +64,7 @@ private:
     std::ifstream fileStream;
     std::streampos previousFilePosition;
     std::string line;
-    std::string name;
+    std::string debugLogMessage;
     std::unique_ptr<TestGroup> testGroup;
     std::string extractTextBeforeNextStatement(bool ignoreLineBreak = false);
     std::string parseCommand();

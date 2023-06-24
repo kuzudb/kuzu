@@ -5,7 +5,7 @@
 
 -CASE OrderBySerial
 
--NAME OrderBySerial
+-DEBUG_LOG OrderBySerial
 -QUERY MATCH (p:person) RETURN p.ID ORDER BY p.ID DESC
 ---- 8
 7

@@ -5,7 +5,7 @@
 
 -CASE FunctionOffset
 
--NAME NodeOffsetTest1
+-DEBUG_LOG NodeOffsetTest1
 -QUERY MATCH (a:person) RETURN id(a), offset(id(a))
 ---- 8
 0:0|0
@@ -17,19 +17,19 @@
 0:6|6
 0:7|7
 
--NAME NodeOffsetTest2
+-DEBUG_LOG NodeOffsetTest2
 -QUERY MATCH (a:organisation) RETURN id(a), offset(id(a))
 ---- 3
 1:0|0
 1:1|1
 1:2|2
 
--NAME NodeOffsetTest3
+-DEBUG_LOG NodeOffsetTest3
 -QUERY MATCH (a:person) WHERE  offset(id(a))=0 RETURN a.fName
 ---- 1
 Alice
 
--NAME RelOffsetTest2
+-DEBUG_LOG RelOffsetTest2
 -QUERY MATCH (:person)-[e:studyAt]->(:organisation) RETURN id(e), offset(id(e))
 ---- 3
 4:0|0

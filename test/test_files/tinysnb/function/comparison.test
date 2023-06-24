@@ -5,12 +5,12 @@
 
 -CASE FunctionComparison
 
--NAME INT64Equal
+-DEBUG_LOG INT64Equal
 -QUERY MATCH (p:person) WHERE p.ID = 5 RETURN p.fName;
 ---- 1
 Dan
 
--NAME INT64NotEqual
+-DEBUG_LOG INT64NotEqual
 -QUERY MATCH (p:person) WHERE p.ID <> 2 RETURN p.ID;
 ---- 7
 0
@@ -21,7 +21,7 @@ Dan
 9
 10
 
--NAME INT64Greater
+-DEBUG_LOG INT64Greater
 -QUERY MATCH (p:person) WHERE p.ID > 5 RETURN p.fName;
 ---- 4
 Elizabeth
@@ -29,7 +29,7 @@ Farooq
 Greg
 Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
 
--NAME INT64GreaterEqual
+-DEBUG_LOG INT64GreaterEqual
 -QUERY MATCH (p:person) WHERE p.ID >= 5 RETURN p.fName;
 ---- 5
 Dan
@@ -38,14 +38,14 @@ Farooq
 Greg
 Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
 
--NAME INT64Less
+-DEBUG_LOG INT64Less
 -QUERY MATCH (p:person) WHERE p.ID < 5 RETURN p.fName;
 ---- 3
 Alice
 Bob
 Carol
 
--NAME INT64LessEqual
+-DEBUG_LOG INT64LessEqual
 -QUERY MATCH (p:person) WHERE p.ID <= 5 RETURN p.fName;
 ---- 4
 Alice
@@ -53,12 +53,12 @@ Bob
 Carol
 Dan
 
--NAME StringEqual
+-DEBUG_LOG StringEqual
 -QUERY MATCH (p:person) WHERE p.fName = 'Alice' RETURN p.ID;
 ---- 1
 0
 
--NAME StringNotEqual
+-DEBUG_LOG StringNotEqual
 -QUERY MATCH (p:person) WHERE p.fName <> 'Alice' RETURN p.ID;
 ---- 7
 2
@@ -69,7 +69,7 @@ Dan
 9
 10
 
--NAME StringGreater
+-DEBUG_LOG StringGreater
 -QUERY MATCH (p:person) WHERE p.fName > 'Dan' RETURN p.fName;
 ---- 4
 Elizabeth
@@ -77,7 +77,7 @@ Farooq
 Greg
 Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
 
--NAME StringGreaterEqual
+-DEBUG_LOG StringGreaterEqual
 -QUERY MATCH (p:person) WHERE p.fName >= 'Dan' RETURN p.fName;
 ---- 5
 Dan
@@ -86,14 +86,14 @@ Farooq
 Greg
 Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
 
--NAME StringLess
+-DEBUG_LOG StringLess
 -QUERY MATCH (p:person) WHERE p.fName < 'Dan' RETURN p.fName;
 ---- 3
 Alice
 Bob
 Carol
 
--NAME StringLessEqual
+-DEBUG_LOG StringLessEqual
 -QUERY MATCH (p:person) WHERE p.fName <= 'Dan' RETURN p.fName;
 ---- 4
 Alice
@@ -101,12 +101,12 @@ Bob
 Carol
 Dan
 
--NAME ListOfInt64Equal
+-DEBUG_LOG ListOfInt64Equal
 -QUERY MATCH (p:person) WHERE p.workedHours = [12, 8] RETURN p.ID;
 ---- 1
 2
 
--NAME ListOfInt64NotEqual
+-DEBUG_LOG ListOfInt64NotEqual
 -QUERY MATCH (p:person) WHERE p.workedHours <> [12, 8] RETURN p.ID;
 ---- 7
 0
@@ -117,7 +117,7 @@ Dan
 9
 10
 
--NAME ListOfInt64Greater
+-DEBUG_LOG ListOfInt64Greater
 -QUERY MATCH (p:person) WHERE p.workedHours > [2] RETURN p.fName;
 ---- 5
 Alice
@@ -126,7 +126,7 @@ Carol
 Farooq
 Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
 
--NAME ListOfInt64GreaterEqual
+-DEBUG_LOG ListOfInt64GreaterEqual
 -QUERY MATCH (p:person) WHERE p.workedHours >= [4,5] RETURN p.fName;
 ---- 4
 Alice
@@ -134,14 +134,14 @@ Bob
 Carol
 Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
 
--NAME ListOfInt64Less
+-DEBUG_LOG ListOfInt64Less
 -QUERY MATCH (p:person) WHERE p.workedHours < [3,4,5] RETURN p.fName;
 ---- 3
 Dan
 Elizabeth
 Greg
 
--NAME ListOfInt64LessEqual
+-DEBUG_LOG ListOfInt64LessEqual
 -QUERY MATCH (p:person) WHERE p.workedHours <= [8] RETURN p.fName;
 ---- 5
 Carol
@@ -150,12 +150,12 @@ Elizabeth
 Farooq
 Greg
 
--NAME ListOfListOfInt64Equal
+-DEBUG_LOG ListOfListOfInt64Equal
 -QUERY MATCH (p:person) WHERE p.courseScoresPerTerm = [[8,9],[9,10]] RETURN p.ID;
 ---- 1
 2
 
--NAME ListOfListOfInt64NotEqual
+-DEBUG_LOG ListOfListOfInt64NotEqual
 -QUERY MATCH (p:person) WHERE p.courseScoresPerTerm <> [[8,9],[9,10]] RETURN p.ID;
 ---- 7
 0
@@ -166,7 +166,7 @@ Greg
 9
 10
 
--NAME ListOfListOfInt64Greater
+-DEBUG_LOG ListOfListOfInt64Greater
 -QUERY MATCH (p:person) WHERE p.courseScoresPerTerm > [[8,9],[6,4]] RETURN p.fName;
 ---- 4
 Alice
@@ -174,12 +174,12 @@ Bob
 Carol
 Greg
 
--NAME ListOfListOfInt64GreaterEqual
+-DEBUG_LOG ListOfListOfInt64GreaterEqual
 -QUERY MATCH (p:person) WHERE p.courseScoresPerTerm >= [[10,8],[6,7,8]] RETURN p.fName;
 ---- 1
 Alice
 
--NAME ListOfListOfInt64Less
+-DEBUG_LOG ListOfListOfInt64Less
 -QUERY MATCH (p:person) WHERE p.courseScoresPerTerm < [[8,9,2]] RETURN p.fName;
 ---- 5
 Bob
@@ -188,7 +188,7 @@ Elizabeth
 Farooq
 Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
 
--NAME ListOfListOfInt64LessEqual
+-DEBUG_LOG ListOfListOfInt64LessEqual
 -QUERY MATCH (p:person) WHERE p.courseScoresPerTerm <= [[8]] RETURN p.fName;
 ---- 4
 Dan
@@ -196,69 +196,69 @@ Elizabeth
 Farooq
 Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
 
--NAME ListGreaterWithNull
+-DEBUG_LOG ListGreaterWithNull
 -QUERY RETURN [3,4] > [3,NULL]
 ---- 1
 False
 
--NAME ListGreaterWithNull
+-DEBUG_LOG ListGreaterWithNull
 -QUERY RETURN [3, NULL, 2] > [3,NULL]
 ---- 1
 True
 
--NAME ListNotEqualWithNull
+-DEBUG_LOG ListNotEqualWithNull
 -QUERY RETURN [NULL, 2] <> [NULL]
 ---- 1
 True
 
--NAME StructEqual
+-DEBUG_LOG StructEqual
 -QUERY MATCH (m:movies) WHERE m.description = {a: 7.0, b: 982, c: timestamp('2018-11-13 13:33:11'), d: date('2014-09-12')} RETURN m.name;
 ---- 1
 The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie
 
--NAME StructNotEqual
+-DEBUG_LOG StructNotEqual
 -QUERY MATCH (m:movies) WHERE m.description <> {rating: 1223.0, views: 10003, release: timestamp('2011-02-11 16:44:22'), film: date('2013-02-22')} RETURN m.name;
 ---- 2
 Sóló cón tu párejâ
 The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie
 
--NAME StructGreater
+-DEBUG_LOG StructGreater
 -QUERY MATCH (m:movies) WHERE m.description > {rating: 5.3, views: 152, release: timestamp('2011-08-20 11:25:30'), film: date('2012-05-11')} RETURN m.name;
 ---- 2
 The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie
 Roma
 
--NAME StructGreaterEqual
+-DEBUG_LOG StructGreaterEqual
 -QUERY MATCH (m:movies) WHERE m.description >= {rating: 5.3, views: 152, release: timestamp('2011-08-20 11:25:30'), film: date('2012-05-11')} RETURN m.name;
 ---- 3
 Sóló cón tu párejâ
 The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie
 Roma
 
--NAME StructLess
+-DEBUG_LOG StructLess
 -QUERY MATCH (m:movies) WHERE m.description < {rating: 7.0, views: 1000, release: timestamp('2018-11-13 13:33:11'), film: date('2014-09-12')} RETURN m.name;
 ---- 2
 Sóló cón tu párejâ
 The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie
 
--NAME StructLessEqual
+-DEBUG_LOG StructLessEqual
 -QUERY MATCH (m:movies) WHERE m.description <= {rating: 1223.0, views: 10004, release: timestamp('2011-02-11 16:44:22'), film: date('2013-02-22')} RETURN m.name;
 ---- 3
 Sóló cón tu párejâ
 The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie
 Roma
 
--NAME StructGreaterWithNull
+-DEBUG_LOG StructGreaterWithNull
 -QUERY RETURN {a: 2, b: null} > {a: 2, b: 3}
 ---- 1
 True
 
--NAME StructGreaterWithNull
+-DEBUG_LOG StructGreaterWithNull
 -QUERY RETURN {a: 2, b: null} > {a: 2, b: null}
 ---- 1
 False
 
--NAME StructNotEqualWithNull
+-DEBUG_LOG StructNotEqualWithNull
 -QUERY RETURN {a: 2, b: null} <> {a: 2, b: null}
 ---- 1
 False

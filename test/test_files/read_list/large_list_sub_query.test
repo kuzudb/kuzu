@@ -5,14 +5,14 @@
 
 -CASE LargeListSubQueryTest
 
--NAME KnowsVeryLargeAdjListSubQueryTest
+-DEBUG_LOG KnowsVeryLargeAdjListSubQueryTest
 -QUERY MATCH (a:person) WHERE EXISTS { MATCH (a)-[:knows]->(b:person)-[:knows]->(c:person) } RETURN count(*)
 -PARALLELISM 1
 -ENUMERATE
 ---- 1
 1
 
--NAME KnowsVeryLargeAdjListVarLenWithSubQueryTest
+-DEBUG_LOG KnowsVeryLargeAdjListVarLenWithSubQueryTest
 -QUERY MATCH (a:person) WHERE EXISTS { MATCH (a)-[:knows*2..2]->(b:person) } RETURN count(*)
 -PARALLELISM 1
 -ENUMERATE

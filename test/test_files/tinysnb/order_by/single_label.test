@@ -5,7 +5,7 @@
 
 -CASE OrderBySingleLabel
 
--NAME OrderByInt64Test
+-DEBUG_LOG OrderByInt64Test
 -QUERY MATCH (p:person) RETURN p.ID, p.age ORDER BY p.age + p.ID
 -CHECK_ORDER
 -PARALLELISM 3
@@ -19,7 +19,7 @@
 9|40
 10|83
 
--NAME OrderByInt32Test
+-DEBUG_LOG OrderByInt32Test
 -QUERY MATCH (m:movies) RETURN m.length ORDER BY m.length
 -CHECK_ORDER
 ---- 3
@@ -27,7 +27,7 @@
 298
 2544
 
--NAME OrderByInt16Test
+-DEBUG_LOG OrderByInt16Test
 -QUERY MATCH (:person)-[e:studyAt]->(:organisation) RETURN e.length ORDER BY e.length
 -CHECK_ORDER
 ---- 3
@@ -35,7 +35,7 @@
 22
 55
 
--NAME OrderByBooleanTest
+-DEBUG_LOG OrderByBooleanTest
 -QUERY MATCH (p:person) RETURN p.isStudent ORDER BY p.isStudent desc
 -CHECK_ORDER
 -PARALLELISM 3
@@ -50,7 +50,7 @@ False
 False
 
 
--NAME OrderByDoubleTest
+-DEBUG_LOG OrderByDoubleTest
 -QUERY MATCH (p:person) RETURN p.eyeSight ORDER BY p.eyeSight
 -CHECK_ORDER
 -PARALLELISM 3
@@ -64,7 +64,7 @@ False
 5.000000
 5.100000
 
--NAME OrderByFloatTest
+-DEBUG_LOG OrderByFloatTest
 -QUERY MATCH (p:person) RETURN p.height ORDER BY p.height
 -CHECK_ORDER
 -PARALLELISM 3
@@ -78,7 +78,7 @@ False
 1.600000
 1.731000
 
--NAME OrderByDateTest
+-DEBUG_LOG OrderByDateTest
 -QUERY MATCH (p:person) RETURN p.birthdate ORDER BY p.birthdate desc
 -CHECK_ORDER
 -PARALLELISM 3
@@ -92,7 +92,7 @@ False
 1900-01-01
 1900-01-01
 
--NAME OrderByTimestampTest
+-DEBUG_LOG OrderByTimestampTest
 -QUERY MATCH (p:person) RETURN p.registerTime ORDER BY p.registerTime
 -CHECK_ORDER
 -PARALLELISM 3
@@ -106,7 +106,7 @@ False
 2023-02-21 13:25:30
 2031-11-30 12:25:30
 
--NAME OrderByIntervalTest
+-DEBUG_LOG OrderByIntervalTest
 -QUERY MATCH (p:person) RETURN p.lastJobDuration ORDER BY p.lastJobDuration desc
 -CHECK_ORDER
 -PARALLELISM 2
@@ -120,7 +120,7 @@ False
 48:24:11
 00:18:00.024
 
--NAME OrderByStringTest
+-DEBUG_LOG OrderByStringTest
 -QUERY MATCH (p:person) RETURN p.fName ORDER BY p.fName desc
 -CHECK_ORDER
 -PARALLELISM 2
@@ -134,7 +134,7 @@ Carol
 Bob
 Alice
 
--NAME OrderByBlobTest
+-DEBUG_LOG OrderByBlobTest
 -QUERY MATCH (m:movies) RETURN m.content ORDER BY m.content DESC
 -CHECK_ORDER
 -PARALLELISM 2
@@ -143,7 +143,7 @@ Alice
 \xAA\xABinteresting\x0B
 pure ascii characters
 
--NAME OrderByStrMultipleColTest
+-DEBUG_LOG OrderByStrMultipleColTest
 -QUERY MATCH (p:person) RETURN p.age, p.eyeSight ORDER BY p.isWorker desc, p.age, p.eyeSight desc
 -CHECK_ORDER
 -PARALLELISM 2
@@ -157,7 +157,7 @@ pure ascii characters
 35|5.000000
 40|4.900000
 
--NAME OrderByProjectionTest
+-DEBUG_LOG OrderByProjectionTest
 -QUERY MATCH (a:person)-[:knows]->(b:person) with b return b.fName order by b.fName desc
 -CHECK_ORDER
 -ENUMERATE
@@ -178,7 +178,7 @@ Alice
 Alice
 Alice
 
--NAME OrderByThreeHopTest
+-DEBUG_LOG OrderByThreeHopTest
 -QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person)-[e3:knows]->(d:person) RETURN a.fName order by d.age desc, c.age asc, b.age asc, a.age desc limit 10
 -CHECK_ORDER
 -ENUMERATE
@@ -196,7 +196,7 @@ Carol
 
 #If the payload column and the orderBy key column are in different dataChunks and one of them is unflat,                                                                                        \
 #the order by scanner can only scan one tuple from factorizedTable at a time.
--NAME OrderByScanSingleTupleTest
+-DEBUG_LOG OrderByScanSingleTupleTest
 -QUERY MATCH (a:person)-[:knows]->(b:person) return a.fName order by b.fName, a.fName
 -CHECK_ORDER
 -ENUMERATE
@@ -216,11 +216,11 @@ Carol
 Elizabeth
 Elizabeth
 
--NAME OrderByEmptyResult
+-DEBUG_LOG OrderByEmptyResult
 -QUERY MATCH (p:person) WHERE p.age > 100 RETURN p.age ORDER BY p.age 
 ---- 0
 
--NAME OrderByAggregateTest1
+-DEBUG_LOG OrderByAggregateTest1
 -QUERY MATCH (a:person)-[:knows]->(b:person) return a.age, COUNT(b) as c ORDER BY a.age
 -CHECK_ORDER
 -ENUMERATE
@@ -230,7 +230,7 @@ Elizabeth
 35|3
 45|3
 
--NAME OrderByAggregateTest2
+-DEBUG_LOG OrderByAggregateTest2
 -QUERY MATCH (a:person)-[:knows]->(b:person) return a.gender, COUNT(b) ORDER BY COUNT(b) DESC
 -CHECK_ORDER
 -ENUMERATE

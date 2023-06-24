@@ -38,22 +38,22 @@
                              "${KUZU_ROOT_DIRECTORY}/dataset/copy-multiple-files-test/vPerson2.csv",
                              "${KUZU_ROOT_DIRECTORY}/dataset/copy-multiple-files-test/vPerson3.csv"]
 ---- ok
--STATEMENT_BLOCK VALIDATE_PERSON_TABLE_AFTER_COPYING
+-INSERT_STATEMENT_BLOCK VALIDATE_PERSON_TABLE_AFTER_COPYING
 
 -STATEMENT COPY knows FROM ["${KUZU_ROOT_DIRECTORY}/dataset/copy-multiple-files-test/eKnows1.csv", 
                             "${KUZU_ROOT_DIRECTORY}/dataset/copy-multiple-files-test/eKnows2.csv"]
 ---- ok
--STATEMENT_BLOCK VALIDATE_KNOWS_TABLE_AFTER_COPYING
+-INSERT_STATEMENT_BLOCK VALIDATE_KNOWS_TABLE_AFTER_COPYING
 
 
 -CASE CopyFilesWithWildcardPattern
 
 -STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-multiple-files-test/vPerson?.csv"
 ---- ok
--STATEMENT_BLOCK VALIDATE_PERSON_TABLE_AFTER_COPYING
+-INSERT_STATEMENT_BLOCK VALIDATE_PERSON_TABLE_AFTER_COPYING
 -STATEMENT COPY knows FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-multiple-files-test/eK*"
 ---- ok
--STATEMENT_BLOCK VALIDATE_KNOWS_TABLE_AFTER_COPYING
+-INSERT_STATEMENT_BLOCK VALIDATE_KNOWS_TABLE_AFTER_COPYING
 
 -CASE CopyFilesWithWrongPath
 -STATEMENT COPY person FROM ["1.csv", "${KUZU_ROOT_DIRECTORY}/dataset/copy-multiple-files-test/vPerson?.csv"]

@@ -5,7 +5,7 @@
 
 -CASE MatchUndirected
 
--NAME UndirKnows1
+-DEBUG_LOG UndirKnows1
 -QUERY MATCH (a:person)-[:knows]-(b:person) WHERE b.fName = "Bob" RETURN a.fName;
 -ENUMERATE
 ---- 6
@@ -16,7 +16,7 @@ Alice
 Carol
 Dan
 
--NAME UndirKnows2
+-DEBUG_LOG UndirKnows2
 -QUERY MATCH (a:person)-[:knows]-(b:person)-[:knows]-(c:person) WHERE a.gender = 1 AND b.gender = 2 AND c.fName = "Bob" RETURN a.fName, b.fName;
 -ENUMERATE
 ---- 8
@@ -29,19 +29,19 @@ Carol|Dan
 Alice|Dan
 Carol|Dan
 
--NAME UndirMultiLabel1
+-DEBUG_LOG UndirMultiLabel1
 -QUERY MATCH (a:person:organisation)-[:meets|:marries|:workAt]-(b:person:organisation) RETURN COUNT(*);
 -ENUMERATE
 ---- 1
 26
 
--NAME UndirMultiLabel2
+-DEBUG_LOG UndirMultiLabel2
 -QUERY MATCH (a:person)-[:studyAt|:meets]-(b:person:organisation) RETURN COUNT(*);
 -ENUMERATE
 ---- 1
 20
 
--NAME UndirMultiLabel3
+-DEBUG_LOG UndirMultiLabel3
 -QUERY MATCH (a:person)-[:meets|:marries|:knows]-(b:person)-[:knows|:meets]-(c:person) WHERE c.fName = "Farooq" AND a.fName <> "Farooq" RETURN a.fName, b.fName;
 -ENUMERATE
 ---- 13
@@ -59,13 +59,13 @@ Dan|Carol
 Elizabeth|Carol
 Dan|Carol
 
--NAME UndirUnlabelled
+-DEBUG_LOG UndirUnlabelled
 -QUERY MATCH (a:person)-[]-() RETURN COUNT(*);
 -ENUMERATE
 ---- 1
 60
 
--NAME UndirPattern
+-DEBUG_LOG UndirPattern
 -QUERY MATCH ()-[:studyAt]-(a)-[:meets]-()-[:workAt]-() RETURN a.fName;
 -ENUMERATE
 ---- 2

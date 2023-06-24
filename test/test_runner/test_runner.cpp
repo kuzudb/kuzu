@@ -22,7 +22,7 @@ void TestRunner::runTest(
 }
 
 void TestRunner::initializeConnection(TestStatement* statement, Connection& conn) {
-    spdlog::info("TEST: {}", statement->name);
+    spdlog::info("DEBUG LOG: {}", statement->debugLogMessage);
     spdlog::info("QUERY: {}", statement->query);
     conn.setMaxNumThreadForExec(statement->numThreads);
 }

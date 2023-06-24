@@ -5,56 +5,56 @@
 
 -CASE MatchTwoHop
 
--NAME TwoHopKnowsStudyAtTest
+-DEBUG_LOG TwoHopKnowsStudyAtTest
 -QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:studyAt]->(c:organisation) RETURN COUNT(*)
 ---- 1
 7
 
--NAME TwoHopKnowsWorkAtTest
+-DEBUG_LOG TwoHopKnowsWorkAtTest
 -QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:workAt]->(c:organisation) RETURN COUNT(*)
 ---- 1
 6
 
--NAME OpenWedgeKnowsTest1
+-DEBUG_LOG OpenWedgeKnowsTest1
 -QUERY MATCH (b:person)<-[e1:knows]-(a:person)-[e2:knows]->(c:person) RETURN COUNT(*)
 ---- 1
 40
 
--NAME OpenWedgeWorkAtTest1
+-DEBUG_LOG OpenWedgeWorkAtTest1
 -QUERY MATCH (b:organisation)<-[e1:workAt]-(a:person)-[e2:workAt]->(c:organisation) RETURN COUNT(*)
 ---- 1
 3
 
--NAME OpenWedgeStudyAtTest
+-DEBUG_LOG OpenWedgeStudyAtTest
 -QUERY MATCH (b:organisation)<-[e1:studyAt]-(a:person)-[e2:studyAt]->(c:organisation) RETURN COUNT(*)
 ---- 1
 3
 
--NAME TwoHopKnowsTest
+-DEBUG_LOG TwoHopKnowsTest
 -QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person) RETURN COUNT(*)
 -ENUMERATE
 ---- 1
 36
 
--NAME OpenWedgeKnowsStudyAtTest
+-DEBUG_LOG OpenWedgeKnowsStudyAtTest
 -QUERY MATCH (b:person)<-[e1:knows]-(a:person)-[e2:studyAt]->(c:organisation) RETURN COUNT(*)
 -ENUMERATE
 ---- 1
 6
 
--NAME OpenWedgeKnowsWorkAtTest
+-DEBUG_LOG OpenWedgeKnowsWorkAtTest
 -QUERY MATCH (b:person)<-[e1:knows]-(a:person)-[e2:workAt]->(c:organisation) RETURN COUNT(*)
 -ENUMERATE
 ---- 1
 8
 
--NAME OpenWedgeKnowsTest2
+-DEBUG_LOG OpenWedgeKnowsTest2
 -QUERY MATCH (b:person)-[e1:knows]->(a:person)<-[e2:knows]-(c:person) RETURN COUNT(*)
 -ENUMERATE
 ---- 1
 38
 
--NAME OpenWedgeWorkAtTest2
+-DEBUG_LOG OpenWedgeWorkAtTest2
 -QUERY MATCH (b:organisation)<-[e1:workAt]-(a:person)-[e2:studyAt]->(c:organisation) RETURN COUNT(*)
 -ENUMERATE
 ---- 1

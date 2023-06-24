@@ -5,19 +5,19 @@
 
 -CASE FunctionInterval
 
--NAME IntervalFunctionOnCol
+-DEBUG_LOG IntervalFunctionOnCol
 -QUERY MATCH (o:organisation) RETURN interval(o.history) + interval('31 months 20 days 10 hours 100us')
 ---- 3
 13 years 20 days 23:00:00.000124
 4 years 7 months 20 days 14:34:00.000122
 4 years 7 months 24 days 20:00:00.0001
 
--NAME IntervalFunctionEqualityComparison
+-DEBUG_LOG IntervalFunctionEqualityComparison
 -QUERY MATCH (a:person) WHERE a.lastJobDuration = interval('3 years 2 days 13 hours 2 minutes') RETURN COUNT(*)
 ---- 1
 2
 
--NAME StructuredIntervalAdd
+-DEBUG_LOG StructuredIntervalAdd
 -QUERY MATCH (a:person) RETURN a.lastJobDuration + interval('47 hours 30 minutes 30 seconds')
 ---- 8
 10 years 5 months 60:30:30.000024
@@ -29,7 +29,7 @@
 95:54:41
 95:54:41
 
--NAME StructuredIntervalAddStructuredDate
+-DEBUG_LOG StructuredIntervalAddStructuredDate
 -QUERY MATCH (a:person) WHERE a.birthdate <> date('1900-01-01') RETURN interval('47 hours 60 minutes') + a.birthdate
 ---- 6
 1940-06-24
@@ -39,7 +39,7 @@
 1980-10-28
 1990-11-29
 
--NAME StructuredIntervalAddStructuredTimestamp
+-DEBUG_LOG StructuredIntervalAddStructuredTimestamp
 -QUERY MATCH (a:person) RETURN interval('2 years 3 days 34 h 28 minutes 300 milliseconds 20 us') + a.registerTime
 ---- 8
 1913-08-24 13:00:21.30002
@@ -51,7 +51,7 @@
 2025-02-25 23:53:30.30002
 2033-12-04 22:53:30.30002
 
--NAME StructuredIntervalSubtract
+-DEBUG_LOG StructuredIntervalSubtract
 -QUERY MATCH (a:person) RETURN a.lastJobDuration - interval('52 days 42 hours 31 seconds 22 milliseconds')
 ---- 8
 -52 days -41:42:30.998
@@ -63,7 +63,7 @@
 3 years -50 days -28:58:31.022
 3 years -50 days -28:58:31.022
 
--NAME StructuredIntervalMixedArithmeticOperations
+-DEBUG_LOG StructuredIntervalMixedArithmeticOperations
 -QUERY MATCH (a:person) RETURN a.lastJobDuration + interval('2 hours 48 minutes 1000 seconds') - interval('188 days 48 hours') + interval('5 years 100 microseconds')
 ---- 8
 15 years 5 months -188 days -31:55:19.999876
@@ -75,14 +75,14 @@
 8 years -186 days -31:53:19.9999
 8 years -186 days -31:53:19.9999
 
--NAME StructuredIntervalConcatenateString
+-DEBUG_LOG StructuredIntervalConcatenateString
 -QUERY MATCH (o:organisation) RETURN concat(concat('The license is valid until ', string(o.licenseValidInterval)), ' test')
 ---- 3
 The license is valid until 26 years 52 days 48:00:00 test
 The license is valid until 3 years 5 days test
 The license is valid until 82:00:00.1 test
 
--NAME StructuredIntervalDivideInt
+-DEBUG_LOG StructuredIntervalDivideInt
 -QUERY MATCH (p:person) RETURN p.lastJobDuration / 3
 ---- 8
 00:06:00.008
@@ -94,7 +94,7 @@ The license is valid until 82:00:00.1 test
 3 years 5 months 20 days 04:20:00.000008
 3 years 5 months 20 days 04:20:00.000008
 
--NAME StructuredIntervalDivideTwoInts
+-DEBUG_LOG StructuredIntervalDivideTwoInts
 -QUERY MATCH (p:person) RETURN p.lastJobDuration / 3 / 6
 ---- 8
 00:01:00.001333
@@ -106,7 +106,7 @@ The license is valid until 82:00:00.1 test
 6 months 28 days 08:43:20.000001
 6 months 28 days 08:43:20.000001
 
--NAME EdgeIntervalDivideInt
+-DEBUG_LOG EdgeIntervalDivideInt
 -QUERY MATCH (a:person)-[e1:knows]->(b:person) RETURN e1.validInterval / 5
 ---- 14
 00:00:00.000096
@@ -124,7 +124,7 @@ The license is valid until 82:00:00.1 test
 4 years 6 days 09:36:00
 8 days 06:00:00
 
--NAME StructuredIntervalExtractYearFuncTest
+-DEBUG_LOG StructuredIntervalExtractYearFuncTest
 -QUERY MATCH (p:person) RETURN date_part("yeAr", p.lastJobDuration)
 ---- 8
 3
@@ -136,7 +136,7 @@ The license is valid until 82:00:00.1 test
 10
 3
 
--NAME StructuredIntervalExtractMonthFuncTest
+-DEBUG_LOG StructuredIntervalExtractMonthFuncTest
 -QUERY MATCH (p:person) RETURN date_part("month", p.lastJobDuration)
 ---- 8
 0
@@ -148,7 +148,7 @@ The license is valid until 82:00:00.1 test
 5
 0
 
--NAME StructuredIntervalExtractDayFuncTest
+-DEBUG_LOG StructuredIntervalExtractDayFuncTest
 -QUERY MATCH (p:person) RETURN date_part("day", p.lastJobDuration)
 ---- 8
 2
@@ -160,7 +160,7 @@ The license is valid until 82:00:00.1 test
 0
 2
 
--NAME StructuredIntervalExtractDecadeFuncTest
+-DEBUG_LOG StructuredIntervalExtractDecadeFuncTest
 -QUERY MATCH (p:person) RETURN date_part("Decade", p.lastJobDuration)
 ---- 8
 0
@@ -172,7 +172,7 @@ The license is valid until 82:00:00.1 test
 1
 0
 
--NAME StructuredIntervalExtractCenturyFuncTest
+-DEBUG_LOG StructuredIntervalExtractCenturyFuncTest
 -QUERY MATCH (p:person) RETURN date_part("century", p.lastJobDuration)
 ---- 8
 0
@@ -184,7 +184,7 @@ The license is valid until 82:00:00.1 test
 0
 0
 
--NAME StructuredIntervalExtractMillenniumFuncTest
+-DEBUG_LOG StructuredIntervalExtractMillenniumFuncTest
 -QUERY MATCH (p:person) RETURN date_part("MILLENNIUM", p.lastJobDuration)
 ---- 8
 0
@@ -196,7 +196,7 @@ The license is valid until 82:00:00.1 test
 0
 0
 
--NAME StructuredIntervalExtractQuarterFuncTest
+-DEBUG_LOG StructuredIntervalExtractQuarterFuncTest
 -QUERY MATCH (p:person) RETURN date_part("QUARTER", p.lastJobDuration)
 ---- 8
 1
@@ -208,7 +208,7 @@ The license is valid until 82:00:00.1 test
 2
 1
 
--NAME StructuredIntervalExtractMicrosecondFuncTest
+-DEBUG_LOG StructuredIntervalExtractMicrosecondFuncTest
 -QUERY MATCH (p:person) RETURN date_part("MICROSECOND", p.lastJobDuration)
 ---- 8
 0
@@ -220,7 +220,7 @@ The license is valid until 82:00:00.1 test
 24
 0
 
--NAME StructuredIntervalExtractMillisecondFuncTest
+-DEBUG_LOG StructuredIntervalExtractMillisecondFuncTest
 -QUERY MATCH (p:person) RETURN date_part("MILLISECOND", p.lastJobDuration)
 ---- 8
 0
@@ -232,7 +232,7 @@ The license is valid until 82:00:00.1 test
 0
 0
 
--NAME StructuredIntervalExtractSecondFuncTest
+-DEBUG_LOG StructuredIntervalExtractSecondFuncTest
 -QUERY MATCH (p:person) RETURN date_part("second", p.lastJobDuration)
 ---- 8
 0
@@ -245,7 +245,7 @@ The license is valid until 82:00:00.1 test
 0
 
 
--NAME StructuredIntervalExtractMinuteFuncTest
+-DEBUG_LOG StructuredIntervalExtractMinuteFuncTest
 -QUERY MATCH (p:person) RETURN date_part("minutes", p.lastJobDuration)
 ---- 8
 2
@@ -257,7 +257,7 @@ The license is valid until 82:00:00.1 test
 0
 2
 
--NAME StructuredIntervalExtractHourFuncTest
+-DEBUG_LOG StructuredIntervalExtractHourFuncTest
 -QUERY MATCH (p:person) RETURN date_part("hours", p.lastJobDuration)
 ---- 8
 13
@@ -269,7 +269,7 @@ The license is valid until 82:00:00.1 test
 13
 13
 
--NAME StructuredInt64ToYearFuncTest
+-DEBUG_LOG StructuredInt64ToYearFuncTest
 -QUERY MATCH (p:person) RETURN to_years(p.age)
 ---- 8
 35 years
@@ -281,7 +281,7 @@ The license is valid until 82:00:00.1 test
 40 years
 83 years
 
--NAME StructuredInt64ToMonthsFuncTest
+-DEBUG_LOG StructuredInt64ToMonthsFuncTest
 -QUERY MATCH (p:person) RETURN to_months(p.age)
 ---- 8
 2 years 11 months
@@ -293,7 +293,7 @@ The license is valid until 82:00:00.1 test
 3 years 4 months
 6 years 11 months
 
--NAME StructuredInt64ToDaysFuncTest
+-DEBUG_LOG StructuredInt64ToDaysFuncTest
 -QUERY MATCH (p:person) RETURN to_days(p.age)
 ---- 8
 35 days
@@ -305,7 +305,7 @@ The license is valid until 82:00:00.1 test
 40 days
 83 days
 
--NAME StructuredInt64ToHoursFuncTest
+-DEBUG_LOG StructuredInt64ToHoursFuncTest
 -QUERY MATCH (p:person) RETURN to_hours(p.age)
 ---- 8
 35:00:00
@@ -317,7 +317,7 @@ The license is valid until 82:00:00.1 test
 40:00:00
 83:00:00
 
--NAME StructuredInt64ToMinutesFuncTest
+-DEBUG_LOG StructuredInt64ToMinutesFuncTest
 -QUERY MATCH (p:person) RETURN to_minutes(p.age)
 ---- 8
 00:35:00
@@ -329,7 +329,7 @@ The license is valid until 82:00:00.1 test
 00:40:00
 01:23:00
 
--NAME StructuredInt64ToSecondsFuncTest
+-DEBUG_LOG StructuredInt64ToSecondsFuncTest
 -QUERY MATCH (p:person) RETURN to_seconds(p.age)
 ---- 8
 00:00:35
@@ -341,7 +341,7 @@ The license is valid until 82:00:00.1 test
 00:00:40
 00:01:23
 
--NAME StructuredInt64ToMillisecondsFuncTest
+-DEBUG_LOG StructuredInt64ToMillisecondsFuncTest
 -QUERY MATCH (p:person) RETURN to_milliseconds(p.age)
 ---- 8
 00:00:00.035
@@ -353,7 +353,7 @@ The license is valid until 82:00:00.1 test
 00:00:00.04
 00:00:00.083
 
--NAME StructuredInt64ToMicrosecondsFuncTest
+-DEBUG_LOG StructuredInt64ToMicrosecondsFuncTest
 -QUERY MATCH (p:person) RETURN to_microseconds(p.age)
 ---- 8
 00:00:00.000035
@@ -365,57 +365,57 @@ The license is valid until 82:00:00.1 test
 00:00:00.00004
 00:00:00.000083
 
--NAME StructuredIntervalComparisonAcrossNodesNonEquality
+-DEBUG_LOG StructuredIntervalComparisonAcrossNodesNonEquality
 -QUERY MATCH (a:person)-[e1:knows]->(b:person) WHERE a.lastJobDuration <> b.lastJobDuration RETURN COUNT(*)
 ---- 1
 12
 
--NAME StructuredIntervalComparisonAcrossNodesLessThan
+-DEBUG_LOG StructuredIntervalComparisonAcrossNodesLessThan
 -QUERY MATCH (a:person)-[e1:knows]->(b:person) WHERE a.lastJobDuration < b.lastJobDuration RETURN COUNT(*)
 ---- 1
 6
 
--NAME StructuredIntervalComparisonAcrossNodesLessThanOrEqualTo
+-DEBUG_LOG StructuredIntervalComparisonAcrossNodesLessThanOrEqualTo
 -QUERY MATCH (a:person)-[e1:knows]->(b:person) WHERE a.lastJobDuration <= b.lastJobDuration RETURN COUNT(*)
 ---- 1
 8
 
--NAME StructuredIntervalComparisonAcrossNodesGreaterThan
+-DEBUG_LOG StructuredIntervalComparisonAcrossNodesGreaterThan
 -QUERY MATCH (a:person)-[e1:knows]->(b:person) WHERE a.lastJobDuration > b.lastJobDuration RETURN COUNT(*)
 ---- 1
 6
 
--NAME IntervalGreaterThanComparison
+-DEBUG_LOG IntervalGreaterThanComparison
 -QUERY MATCH (a:person)-[e1:knows]->(b:person) WHERE b.lastJobDuration > interval('2 years 18 months 3 days') RETURN COUNT(*)
 -ENUMERATE
 ---- 1
 7
 
--NAME IntervalLessThanComparison
+-DEBUG_LOG IntervalLessThanComparison
 -QUERY MATCH (a:person)-[e1:knows]->(b:person) WHERE e1.validInterval < interval('3 years 5 months') RETURN COUNT(*)
 -ENUMERATE
 ---- 1
 10
 
--NAME StructuredIntervalComparisonAcrossNodesEquality
+-DEBUG_LOG StructuredIntervalComparisonAcrossNodesEquality
 -QUERY MATCH (a:person)-[e1:knows]->(b:person) WHERE a.lastJobDuration = b.lastJobDuration RETURN COUNT(*)
 -ENUMERATE
 ---- 1
 2
 
--NAME StructuredIntervalComparisonAcrossNodesGreaterThanOrEqualTo
+-DEBUG_LOG StructuredIntervalComparisonAcrossNodesGreaterThanOrEqualTo
 -QUERY MATCH (a:person)-[e1:knows]->(b:person) WHERE a.lastJobDuration >= b.lastJobDuration RETURN COUNT(*)
 -ENUMERATE
 ---- 1
 8
 
--NAME StructuredIntervalComparisonAcrossEdges
+-DEBUG_LOG StructuredIntervalComparisonAcrossEdges
 -QUERY MATCH (a:person)<-[e1:knows]-(b:person)-[e2:knows]->(c:person) WHERE e1.validInterval = e2.validInterval AND id(a) <> id(c) RETURN COUNT(*)
 -ENUMERATE
 ---- 1
 2
 
--NAME StructuredIntervalComparisonAcrossEdgeAndNode
+-DEBUG_LOG StructuredIntervalComparisonAcrossEdgeAndNode
 -QUERY MATCH (a:person)-[e1:knows]->(b:person) WHERE a.lastJobDuration > e1.validInterval  RETURN COUNT(*)
 -ENUMERATE
 ---- 1

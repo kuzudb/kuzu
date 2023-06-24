@@ -5,12 +5,12 @@
 
 -CASE CyclicMultiLabel
 
--NAME MultiLabelCyclicTest
+-DEBUG_LOG MultiLabelCyclicTest
 -QUERY MATCH (a:person)-[:workAt|:knows|:studyAt]->(b:organisation), (a)-[:workAt]->(b) RETURN COUNT(*)
 ---- 1
 3
 
--NAME MultiLabelTriangleTest
+-DEBUG_LOG MultiLabelTriangleTest
 -QUERY MATCH (a:person)-[:knows]->(b:person)-[:studyAt|:meets]->(c:organisation:person), (a)-[:studyAt|:meets]->(c) RETURN COUNT(*)
 -ENUMERATE
 ---- 1

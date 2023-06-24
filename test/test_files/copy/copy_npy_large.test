@@ -5,12 +5,12 @@
 
 -CASE CopyLargeNpyTest
 
--NAME ID
+-DEBUG_LOG ID
 -QUERY MATCH (n:npytable) RETURN n.id
 ---- 20000
-<FILE>:copy_npy_large_id_answer.csv
+<FILE>:copy_npy_large_id_answer.txt
 
--NAME f32
+-DEBUG_LOG f32
 -QUERY MATCH (n:npytable) RETURN n.f32
 ---- 20000
-<FILE>:copy_npy_large_f32_answer.csv
+<FILE>:copy_npy_large_f32_answer.txt

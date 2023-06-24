@@ -5,26 +5,26 @@
 
 -CASE MatchNpy-1d
 
--NAME count
+-DEBUG_LOG count
 -QUERY MATCH (n:npytable) RETURN COUNT(*)
 ---- 1
 3
 
--NAME i64
+-DEBUG_LOG i64
 -QUERY MATCH (n:npytable) RETURN n.i64 ORDER BY n.i64
 ---- 3
 1
 2
 3
 
--NAME i32
+-DEBUG_LOG i32
 -QUERY MATCH (n:npytable) RETURN n.i32 ORDER BY n.i32
 ---- 3
 1
 2
 3
 
--NAME i16
+-DEBUG_LOG i16
 -QUERY MATCH (n:npytable) RETURN n.i16 ORDER BY n.i16
 ---- 3
 1
@@ -33,7 +33,7 @@
 
 # TODO: Foreach support
 # -FOREACH $size i64 i32 i16
-# -NAME $size
+# -DEBUG_LOG $size
 # -QUERY MATCH (n:npytable) RETURN $size ORDER BY $size
 # ---- 3
 # 1

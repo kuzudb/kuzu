@@ -5,12 +5,12 @@
 
 -CASE MatchNode
 
--NAME node1
+-DEBUG_LOG node1
 -QUERY MATCH (a:person /* returns all person */) RETURN COUNT(*)
 ---- 1
 8
 
--NAME node2
+-DEBUG_LOG node2
 -QUERY MATCH (a:organisation) RETURN COUNT(*) --Returns the total number of nodes in organisation
 ---- 1
 3

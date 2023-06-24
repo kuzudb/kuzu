@@ -14,30 +14,30 @@
 
 -CASE VarLengthExtendNNTests
 
--NAME KnowsThreeHopMinLenEqualsMaxLen
+-DEBUG_LOG KnowsThreeHopMinLenEqualsMaxLen
 -QUERY MATCH (a:person)-[e:knows*3..3]->(b:person) RETURN COUNT(*)
 -PARALLELISM 1
 ---- 1
 108
 
--NAME KnowsKnows2To4HopTest
+-DEBUG_LOG KnowsKnows2To4HopTest
 -QUERY MATCH (a:person)-[:knows]->(b:person)-[:knows*2..4]->(c:person) RETURN COUNT(*)
 ---- 1
 1404
 
--NAME KnowsLongPathTest
+-DEBUG_LOG KnowsLongPathTest
 -QUERY MATCH (a:person)-[:knows*8..11]->(b:person) RETURN COUNT(*)
 -PARALLELISM 1
 ---- 1
 1049760
 
--NAME KnowsOneToTwoHopWithFilterTest
+-DEBUG_LOG KnowsOneToTwoHopWithFilterTest
 -QUERY MATCH (a:person)-[:knows*1..2]->(b:person) WHERE a.ID = 7 RETURN b.fName
 ---- 2
 Farooq
 Greg
 
--NAME KnowsWithOptionalMatch
+-DEBUG_LOG KnowsWithOptionalMatch
 -QUERY MATCH (a:person) OPTIONAL MATCH (a)-[:knows*2..3]->(b:person) RETURN COUNT(*)
 ---- 1
 148
@@ -54,7 +54,7 @@ Greg
 #[3:2,3:11]|Dan
 #[3:2,3:9]|Dan
 #[3:2]|Dan
--NAME KnowsOneToTwoHopTest
+-DEBUG_LOG KnowsOneToTwoHopTest
 -QUERY MATCH (a:person)-[e:knows*1..2]->(b:person) WHERE a.fName='Alice' RETURN id(rels(e)[1]), ((nodes(e))[2]).fName
 ---- 12
 3:0|Bob

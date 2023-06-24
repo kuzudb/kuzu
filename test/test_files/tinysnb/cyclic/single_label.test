@@ -5,13 +5,13 @@
 
 -CASE CyclicSingleLabel
 
--NAME TwoNodeCycleTest
+-DEBUG_LOG TwoNodeCycleTest
 -QUERY MATCH (a:person)-[:knows]->(b:person), (b)-[:knows]->(a) RETURN COUNT(*)
 -ENUMERATE
 ---- 1
 12
 
--NAME TwoNodeCycleWithProjectionTest
+-DEBUG_LOG TwoNodeCycleWithProjectionTest
 -QUERY MATCH (a:person)-[:knows]->(b:person), (b)-[:knows]->(a) RETURN a.fName, b.fName
 -ENUMERATE
 ---- 12
@@ -28,13 +28,13 @@ Dan|Alice
 Dan|Bob
 Dan|Carol
 
--NAME TriangleTest
+-DEBUG_LOG TriangleTest
 -QUERY MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person), (a)-[:knows]->(c) RETURN COUNT(*)
 -ENUMERATE
 ---- 1
 24
 
--NAME TriangleTestWithEdgeFilter
+-DEBUG_LOG TriangleTestWithEdgeFilter
 -QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person), (a)-[e3:knows]->(c) WHERE e1.date=DATE('1950-05-14') RETURN a.fName, e1.date, b.fName, e2.date, c.fName, e3.date
 -ENUMERATE
 ---- 8
@@ -47,45 +47,45 @@ Carol|1950-05-14|Bob|1950-05-14|Dan|2000-01-01
 Dan|1950-05-14|Bob|2021-06-30|Alice|2021-06-30
 Dan|1950-05-14|Bob|1950-05-14|Carol|2000-01-01
 
--NAME TriangleTest3
+-DEBUG_LOG TriangleTest3
 -QUERY MATCH (a:person)-[:knows]->(b:person)-[:studyAt]->(c:organisation), (a)-[:studyAt]->(c) RETURN COUNT(*)
 -ENUMERATE
 ---- 1
 2
 
--NAME TriangleTest4
+-DEBUG_LOG TriangleTest4
 -QUERY MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person), (a)-[:knows]->(c) WHERE a.ID = b.ID + c.ID  RETURN a.ID,b.ID,c.ID
 -ENUMERATE
 ---- 2
 5|3|2
 5|2|3
 
--NAME TriangleTest5
+-DEBUG_LOG TriangleTest5
 -QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person), (a)-[e3:knows]->(c) WHERE e1.date = e2.date AND e2.date = e3.date  RETURN a.ID, b.ID, c.ID
 -ENUMERATE
 ---- 0
 
--NAME TriangleTest6
+-DEBUG_LOG TriangleTest6
 -QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person), (a)-[e3:knows]->(c) WHERE a.fName='Alice' AND e1.meetTime=timestamp('1986-10-21 21:08:31.521') RETURN b.fName, c.fName
 -ENUMERATE
 ---- 2
 Bob|Carol
 Bob|Dan
 
--NAME TriangleWithProjectionTest
+-DEBUG_LOG TriangleWithProjectionTest
 -QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:studyAt]->(c:organisation), (a)-[e3:studyAt]->(c) RETURN a.fName, e1.date, b.fName, e2.year, c.name, e3.year
 -ENUMERATE
 ---- 2
 Alice|2021-06-30|Bob|2020|ABFsUni|2021
 Bob|2021-06-30|Alice|2021|ABFsUni|2020
 
--NAME TriangleFilterTest2
+-DEBUG_LOG TriangleFilterTest2
 -QUERY MATCH (a:person)-[:knows]->(b:person)-[:studyAt]->(c:organisation), (a)-[e:studyAt]->(c) WHERE a.fName='Alice' RETURN COUNT(*)
 -ENUMERATE
 ---- 1
 1
 
--NAME TriangleFilterWithProjectionTest
+-DEBUG_LOG TriangleFilterWithProjectionTest
 -QUERY MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person), (a)-[:knows]->(c) WHERE a.ID<b.ID and b.ID<c.ID RETURN a.fName, b.fName, c.fName
 -ENUMERATE
 ---- 4
@@ -94,25 +94,25 @@ Alice|Bob|Dan
 Alice|Carol|Dan
 Bob|Carol|Dan
 
--NAME TriangleFilterWithProjectionTest2
+-DEBUG_LOG TriangleFilterWithProjectionTest2
 -QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:studyAt]->(c:organisation), (a)-[e3:studyAt]->(c) WHERE a.fName='Bob' RETURN a.fName, e1.date, b.fName, e2.year, c.name, e3.year
 -ENUMERATE
 ---- 1
 Bob|2021-06-30|Alice|2021|ABFsUni|2020
 
--NAME SquareTest
+-DEBUG_LOG SquareTest
 -QUERY MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person)-[:knows]->(d:person), (a)-[:knows]->(d) RETURN COUNT(*)
 -ENUMERATE
 ---- 1
 84
 
--NAME SquareTest2
+-DEBUG_LOG SquareTest2
 -QUERY MATCH (a:person)<-[:knows]-(b:person)-[:knows]->(c:person)-[:studyAt]->(d:organisation), (a)-[:studyAt]->(d) RETURN COUNT(*)
 -ENUMERATE
 ---- 1
 11
 
--NAME SquareFilterWithProjectionTest
+-DEBUG_LOG SquareFilterWithProjectionTest
 -QUERY MATCH (a:person)<-[:knows]-(b:person)-[:knows]->(c:person)-[:studyAt]->(d:organisation), (a)-[:studyAt]->(d) WHERE a.fName='Bob' RETURN a.fName, b.fName, c.fName, d.name
 -ENUMERATE
 ---- 5
@@ -122,7 +122,7 @@ Bob|Carol|Bob|ABFsUni
 Bob|Dan|Alice|ABFsUni
 Bob|Dan|Bob|ABFsUni
 
--NAME SquareFilterTest2
+-DEBUG_LOG SquareFilterTest2
 -QUERY MATCH (a:person)<-[:knows]-(b:person)-[:knows]->(c:person)-[:studyAt]->(d:organisation), (a)-[:studyAt]->(d) WHERE b.fName='Elizabeth' RETURN COUNT(*)
 -ENUMERATE
 ---- 1

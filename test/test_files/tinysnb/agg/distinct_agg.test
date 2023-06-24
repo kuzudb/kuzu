@@ -5,18 +5,18 @@
 
 -CASE AggDistinct
 
--NAME SingleNodeDistinctAggTest1
+-DEBUG_LOG SingleNodeDistinctAggTest1
 -QUERY MATCH (a:person) RETURN COUNT(DISTINCT a.gender), COUNT(DISTINCT a.age)
 ---- 1
 2|7
 
--NAME SingleNodeDistinctAggTest2
+-DEBUG_LOG SingleNodeDistinctAggTest2
 -QUERY MATCH (a:person) RETURN a.gender, COUNT(DISTINCT a.isStudent)
 ---- 2
 1|2
 2|2
 
--NAME TwoHopDistinctAggTest
+-DEBUG_LOG TwoHopDistinctAggTest
 -QUERY MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) RETURN a.ID, SUM(DISTINCT a.age), SUM(DISTINCT c.age)
 -ENUMERATE
 ---- 4
@@ -25,18 +25,18 @@
 3|45|130
 5|20|130
 
--NAME OneHopDistinctAggTest
+-DEBUG_LOG OneHopDistinctAggTest
 -QUERY MATCH (p:person)-[:knows]->(:person) RETURN count(distinct p.ID)
 -ENUMERATE
 ---- 1
 5
 
--NAME SimpleDistinctCollectINT64Test
+-DEBUG_LOG SimpleDistinctCollectINT64Test
 -QUERY MATCH (p:person) RETURN collect(distinct p.age)
 ---- 1
 [35,30,45,20,25,40,83]
 
--NAME HashDistinctCollectDoubleTest
+-DEBUG_LOG HashDistinctCollectDoubleTest
 -QUERY MATCH (p:person) RETURN p.gender, collect(distinct p.isStudent)
 ---- 2
 1|[True,False]
