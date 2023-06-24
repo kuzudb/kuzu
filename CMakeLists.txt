@@ -193,7 +193,13 @@ else()
     set_target_properties(arrow_lib PROPERTIES IMPORTED_LOCATION ${ARROW_PATH})
     include_directories(${ARROW_INSTALL}/include)
 
-    set(ARROW_LIB arrow_lib arrow_deps)
+    find_package(OpenSSL)
+    find_package(CURL)
+    if (${CURL_FOUND})
+        set(curllib curl crypto dl)
+    endif()
+
+    set(ARROW_LIB arrow_lib arrow_deps ${curllib})
     set(PARQUET_LIB parquet_lib)
 endif()
 

@@ -1,10 +1,13 @@
 #pragma once
-
 #include "binder/query/bound_regular_query.h"
 #include "common/copier_config/copier_config.h"
 #include "expression_binder.h"
 #include "parser/query/regular_query.h"
 #include "query_normalizer.h"
+
+namespace arrow {
+class Status;
+}
 
 namespace kuzu {
 namespace main {
@@ -238,6 +241,7 @@ private:
 
     std::unique_ptr<BinderScope> saveScope();
     void restoreScope(std::unique_ptr<BinderScope> prevVariableScope);
+    static void throwExceptionIfNotOK(const arrow::Status& status);
 
 private:
     const catalog::Catalog& catalog;

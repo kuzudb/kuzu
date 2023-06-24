@@ -8,6 +8,21 @@ else()
         set(ARROW_BUILD_TYPE Release)
 endif()
 
+# Arrow requires system Curl, build it internally might trip over S3's copy.
+find_package(OpenSSL)
+find_package(CURL)
+if (${ENABLE_REMOTE_FS})
+        find_package(OpenSSL REQUIRED)
+        find_package(CURL REQUIRED)              
+elseif(NOT ${ENABLE_REMOTE_FS})
+        set(FILE_SYSTEM_ARGS -DARROW_GCS=OFF -DARROW_S3=OFF)
+elseif((NOT ${OPENSSL_FOUND}) OR (NOT ${CURL_FOUND}))
+        message(WARNNING ": Could not find openssl or curllib. AWS S3 and Google Cloud Storage are turned off.")
+        set(FILE_SYSTEM_ARGS -DARROW_GCS=OFF -DARROW_S3=OFF)
+else()
+        set(FILE_SYSTEM_ARGS -DARROW_GCS=ON -DARROW_S3=ON -Dgoogle_cloud_cpp_storage_SOURCE=BUNDLED -DAWSSDK_SOURCE=BUNDLED)
+endif()
+
 ExternalProject_Add(apache_arrow
         GIT_REPOSITORY "https://github.com/apache/arrow"
         GIT_TAG apache-arrow-12.0.1
@@ -26,6 +41,7 @@ ExternalProject_Add(apache_arrow
         -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE} -DARROW_ALTIVEC=OFF
         -DARROW_USE_CCACHE=ON -DARROW_BOOST_USE_SHARED=OFF -DARROW_BUILD_SHARED=OFF
         -DARROW_BUILD_STATIC=ON -DARROW_COMPUTE=OFF -DARROW_CSV=ON -DARROW_IPC=ON -DARROW_JEMALLOC=OFF -DARROW_JSON=OFF
+        -DARROW_FILESYSTEM=ON ${FILE_SYSTEM_ARGS}
         -DARROW_PARQUET=ON -DARROW_SIMD_LEVEL=NONE -DARROW_RUNTIME_SIMD_LEVEL=NONE -DARROW_WITH_BROTLI=OFF
         -DARROW_WITH_LZ4=ON -Dlz4_SOURCE=BUNDLED -DARROW_WITH_PROTOBUF=OFF -DARROW_WITH_RAPIDJSON=OFF
         -DARROW_WITH_SNAPPY=ON -DSnappy_SOURCE=BUNDLED -DARROW_WITH_ZLIB=ON -DZLIB_SOURCE=BUNDLED
@@ -34,3 +50,11 @@ ExternalProject_Add(apache_arrow
         -DARROW_BUILD_UTILITIES=OFF -DARROW_BUILD_TESTS=OFF -DARROW_ENABLE_TIMING_TESTS=OFF -DARROW_FUZZING=OFF
         <SOURCE_DIR>/cpp
         UPDATE_COMMAND "")
+
+if(NOT ${OPENSSL_FOUND})
+        message(WARNNING ": AWS S3 and Google Cloud Storage are turned off. To enable it, install system openssl and rebuild.")
+endif()
+
+if(NOT ${CURL_FOUND})
+        message(WARNNING ": AWS S3 and Google Cloud Storage are turned off. To enable it, install system curllib and rebuild.")
+endif()

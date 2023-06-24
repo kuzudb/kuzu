@@ -6,6 +6,7 @@ NUM_THREADS=
 TEST_JOBS=
 SANITIZER_FLAG=
 ROOT_DIR=$(CURDIR)
+ENABLE_REMOTE_FS=
 
 ifndef $(NUM_THREADS)
 	NUM_THREADS=1
@@ -51,7 +52,7 @@ endif
 
 release:
 	$(call mkdirp,build/release) && cd build/release && \
-	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) -DCMAKE_BUILD_TYPE=Release ../.. && \
+	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) -DCMAKE_BUILD_TYPE=Release -DENABLE_REMOTE_FS=$(ENABLE_REMOTE_FS) ../.. && \
 	cmake --build . --config Release
 
 debug:

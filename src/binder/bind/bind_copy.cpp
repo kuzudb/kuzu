@@ -3,6 +3,8 @@
 #include "binder/expression/literal_expression.h"
 #include "common/string_utils.h"
 #include "parser/copy.h"
+#include <arrow/api.h>
+#include <arrow/filesystem/api.h>
 
 using namespace kuzu::common;
 using namespace kuzu::parser;
@@ -40,21 +42,59 @@ std::unique_ptr<BoundStatement> Binder::bindCopyClause(const Statement& statemen
         CopyDescription(boundFilePaths, csvReaderConfig, actualFileType), tableID, tableName);
 }
 
-std::vector<std::string> Binder::bindFilePaths(const std::vector<std::string>& filePaths) {
+std::vector<std::string> Binder::bindFilePaths(const std::vector<std::string>& fileUriOrPaths) {
     std::vector<std::string> boundFilePaths;
-    for (auto& filePath : filePaths) {
-        auto globbedFilePaths = FileUtils::globFilePath(filePath);
-        if (globbedFilePaths.empty()) {
-            throw BinderException{StringUtils::string_format(
-                "No file found that matches the pattern: {}.", filePath)};
+    for (auto& fileUriOrPath : fileUriOrPaths) {
+        std::shared_ptr<arrow::fs::FileSystem> fs;
+        std::string filePath;
+
+        auto status = arrow::fs::FileSystemFromUriOrPath(fileUriOrPath, &filePath).Value(&fs);
+        // if not recognized, it is considered as a local relative path
+        if (!status.ok()) {
+            filePath = fileUriOrPath;
+            fs = std::make_shared<arrow::fs::LocalFileSystem>();
         }
-        boundFilePaths.insert(
-            boundFilePaths.end(), globbedFilePaths.begin(), globbedFilePaths.end());
+        if (dynamic_cast<arrow::fs::LocalFileSystem*>(fs.get()) != nullptr) {
+            // local file system
+            auto globbedFilePaths = FileUtils::globFilePath(filePath);
+            if (globbedFilePaths.empty()) {
+                throw BinderException{StringUtils::string_format(
+                    "No file found that matches the pattern: {}.", filePath)};
+            }
+            boundFilePaths.insert(
+                boundFilePaths.end(), globbedFilePaths.begin(), globbedFilePaths.end());
+        } else {
+            // remote uri
+            arrow::fs::FileInfo finfo;
+            throwExceptionIfNotOK(fs->GetFileInfo(filePath).Value(&finfo));
+            if (finfo.IsFile())
+                boundFilePaths.push_back(fileUriOrPath);
+            else if (finfo.IsDirectory()) {
+                arrow::fs::FileSelector selector;
+                selector.base_dir = finfo.path();
+                selector.recursive = true;
+                arrow::fs::FileInfoVector subfiles;
+                throwExceptionIfNotOK(fs->GetFileInfo(selector).Value(&subfiles));
+                std::string scheme = fileUriOrPath.substr(0, fileUriOrPath.find(":"));
+                for (auto it = subfiles.begin(); it != subfiles.end(); it++) {
+                    if (!it->IsFile())
+                        continue;
+                    boundFilePaths.push_back(scheme + "://" + it->path());
+                }
+            }
+        }
     }
     if (boundFilePaths.empty()) {
-        throw BinderException{StringUtils::string_format("Invalid file path: {}.", filePaths[0])};
+        throw BinderException{
+            StringUtils::string_format("Invalid file path: {}.", fileUriOrPaths[0])};
     }
     return boundFilePaths;
+}
+
+void Binder::throwExceptionIfNotOK(const arrow::Status& status) {
+    if (!status.ok()) {
+        throw BinderException(status.ToString());
+    }
 }
 
 CSVReaderConfig Binder::bindParsingOptions(
@@ -119,26 +159,13 @@ CopyDescription::FileType Binder::bindFileType(std::vector<std::string> filePath
     // We currently only support loading from files with the same type. Loading files with different
     // types is not supported.
     auto fileName = filePaths[0];
-    auto csvSuffix = CopyDescription::getFileTypeSuffix(CopyDescription::FileType::CSV);
-    auto parquetSuffix = CopyDescription::getFileTypeSuffix(CopyDescription::FileType::PARQUET);
-    auto npySuffix = CopyDescription::getFileTypeSuffix(CopyDescription::FileType::NPY);
-    CopyDescription::FileType fileType;
-    std::string expectedSuffix;
-    if (fileName.ends_with(csvSuffix)) {
-        fileType = CopyDescription::FileType::CSV;
-        expectedSuffix = csvSuffix;
-    } else if (fileName.ends_with(parquetSuffix)) {
-        fileType = CopyDescription::FileType::PARQUET;
-        expectedSuffix = parquetSuffix;
-    } else if (fileName.ends_with(npySuffix)) {
-        fileType = CopyDescription::FileType::NPY;
-        expectedSuffix = npySuffix;
-    } else {
-        throw CopyException("Unsupported file type: " + fileName);
+    CopyDescription::FileType fileType = CopyDescription::getFileType(fileName);
+    if (fileType == CopyDescription::FileType::UNKNOWN) {
+        throw BinderException("Unsupported file type: " + fileName);
     }
     for (auto& path : filePaths) {
-        if (!path.ends_with(expectedSuffix)) {
-            throw CopyException("Loading files with different types is not currently supported.");
+        if (fileType != CopyDescription::getFileType(path)) {
+            throw BinderException("Loading files with different types is not currently supported.");
         }
     }
     return fileType;

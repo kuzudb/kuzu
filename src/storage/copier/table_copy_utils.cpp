@@ -161,10 +161,38 @@ static bool skipCopyForProperty(const Property& property) {
 }
 
 std::shared_ptr<arrow::csv::StreamingReader> TableCopyUtils::createCSVReader(
-    const std::string& filePath, CSVReaderConfig* csvReaderConfig,
+    const std::string& fileUriOrPath, common::CSVReaderConfig* csvReaderConfig,
     catalog::TableSchema* tableSchema) {
     std::shared_ptr<arrow::io::InputStream> inputStream;
-    throwCopyExceptionIfNotOK(arrow::io::ReadableFile::Open(filePath).Value(&inputStream));
+    std::shared_ptr<arrow::fs::FileSystem> fs;
+    std::string filePath;
+    auto status = arrow::fs::FileSystemFromUriOrPath(fileUriOrPath, &filePath).Value(&fs);
+    // if not recognized, it is considered as a local relative path
+    if (!status.ok()) {
+        filePath = fileUriOrPath;
+        fs = std::make_shared<arrow::fs::LocalFileSystem>();
+    }
+    throwCopyExceptionIfNotOK(fs->OpenInputFile(filePath).Value(&inputStream));
+
+    // handle compressed CSV
+    arrow::Compression::type compression;
+    std::string extension = fileUriOrPath.substr(fileUriOrPath.rfind('.') + 1);
+    std::unique_ptr<parquet::Codec> codec;
+    if (extension == "gz") {
+        throwCopyExceptionIfNotOK(
+            arrow::util::Codec::Create(arrow::Compression::GZIP).Value(&codec));
+        throwCopyExceptionIfNotOK(
+            arrow::io::CompressedInputStream::Make(codec.get(), std::move(inputStream))
+                .Value(&inputStream));
+    } else if (extension != "csv") {
+        throwCopyExceptionIfNotOK(
+            arrow::util::Codec::GetCompressionType(extension).Value(&compression));
+        throwCopyExceptionIfNotOK(arrow::util::Codec::Create(compression).Value(&codec));
+        throwCopyExceptionIfNotOK(
+            arrow::io::CompressedInputStream::Make(codec.get(), std::move(inputStream))
+                .Value(&inputStream));
+    }
+
     auto csvReadOptions = arrow::csv::ReadOptions::Defaults();
     csvReadOptions.block_size = CopyConstants::CSV_READING_BLOCK_SIZE;
     for (auto& columnName : getColumnNamesToRead(tableSchema)) {
@@ -212,9 +240,13 @@ std::shared_ptr<arrow::csv::StreamingReader> TableCopyUtils::createCSVReader(
 }
 
 std::unique_ptr<parquet::arrow::FileReader> TableCopyUtils::createParquetReader(
-    const std::string& filePath, TableSchema* tableSchema) {
-    std::shared_ptr<arrow::io::ReadableFile> infile;
-    throwCopyExceptionIfNotOK(arrow::io::ReadableFile::Open(filePath).Value(&infile));
+    const std::string& fileUriOrPath, TableSchema* tableSchema) {
+    std::shared_ptr<arrow::io::RandomAccessFile> infile;
+    std::shared_ptr<arrow::fs::FileSystem> fs;
+    std::string filePath;
+    throwCopyExceptionIfNotOK(
+        arrow::fs::FileSystemFromUriOrPath(fileUriOrPath, &filePath).Value(&fs));
+    throwCopyExceptionIfNotOK(fs->OpenInputFile(filePath).Value(&infile));
     std::unique_ptr<parquet::arrow::FileReader> reader;
     throwCopyExceptionIfNotOK(
         parquet::arrow::OpenFile(infile, arrow::default_memory_pool(), &reader));

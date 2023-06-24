@@ -7,6 +7,7 @@
 #include "storage/store/table_statistics.h"
 #include <arrow/api.h>
 #include <arrow/csv/api.h>
+#include <arrow/filesystem/api.h>
 #include <arrow/io/api.h>
 #include <arrow/ipc/reader.h>
 #include <arrow/pretty_print.h>

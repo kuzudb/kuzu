@@ -38,9 +38,7 @@ struct CopyDescription {
 
     CopyDescription(const CopyDescription& copyDescription);
 
-    inline static std::string getFileTypeSuffix(FileType fileType) {
-        return "." + getFileTypeName(fileType);
-    }
+    static FileType getFileType(std::string& fileName);
 
     static std::string getFileTypeName(FileType fileType);
 
