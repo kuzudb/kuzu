@@ -40,7 +40,8 @@ public:
 
     common::table_id_t addRelTableSchema(std::string tableName, RelMultiplicity relMultiplicity,
         std::vector<Property> properties, common::table_id_t srcTableID,
-        common::table_id_t dstTableID);
+        common::table_id_t dstTableID, common::LogicalType srcPKDataType,
+        common::LogicalType dstPKDataType);
 
     inline bool containNodeTable(common::table_id_t tableID) const {
         return nodeTableSchemas.contains(tableID);
@@ -192,7 +193,8 @@ public:
 
     common::table_id_t addRelTableSchema(std::string tableName, RelMultiplicity relMultiplicity,
         const std::vector<Property>& propertyDefinitions, common::table_id_t srcTableID,
-        common::table_id_t dstTableID);
+        common::table_id_t dstTableID, common::LogicalType srcPKDataType,
+        common::LogicalType dstPKDataType);
 
     void dropTableSchema(common::table_id_t tableID);
 

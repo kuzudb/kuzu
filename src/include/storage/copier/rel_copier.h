@@ -15,11 +15,9 @@ class RelCopier {
 public:
     RelCopier(std::shared_ptr<CopySharedState> sharedState, const common::CopyDescription& copyDesc,
         catalog::RelTableSchema* schema, DirectedInMemRelData* fwdRelData,
-        DirectedInMemRelData* bwdRelData, std::vector<common::LogicalType> pkColumnTypes,
-        std::vector<PrimaryKeyIndex*> pkIndexes)
+        DirectedInMemRelData* bwdRelData, std::vector<PrimaryKeyIndex*> pkIndexes)
         : sharedState{std::move(sharedState)}, copyDesc{copyDesc}, schema{schema},
-          fwdRelData{fwdRelData}, bwdRelData{bwdRelData},
-          pkColumnTypes{std::move(pkColumnTypes)}, pkIndexes{std::move(pkIndexes)} {}
+          fwdRelData{fwdRelData}, bwdRelData{bwdRelData}, pkIndexes{std::move(pkIndexes)} {}
     virtual ~RelCopier() = default;
 
     void execute(processor::ExecutionContext* executionContext);
@@ -61,20 +59,18 @@ protected:
     catalog::RelTableSchema* schema;
     DirectedInMemRelData* fwdRelData;
     DirectedInMemRelData* bwdRelData;
-    std::vector<common::LogicalType> pkColumnTypes; // src and dst node pk columns.
     std::vector<PrimaryKeyIndex*> pkIndexes;
 };
 
 class RelListsCounterAndColumnCopier : public RelCopier {
-public:
+protected:
     RelListsCounterAndColumnCopier(std::shared_ptr<CopySharedState> sharedState,
         const common::CopyDescription& copyDesc, catalog::RelTableSchema* schema,
         DirectedInMemRelData* fwdRelData, DirectedInMemRelData* bwdRelData,
-        std::vector<common::LogicalType> pkColumnTypes, std::vector<PrimaryKeyIndex*> pkIndexes)
+        std::vector<PrimaryKeyIndex*> pkIndexes)
         : RelCopier{std::move(sharedState), copyDesc, schema, fwdRelData, bwdRelData,
-              std::move(pkColumnTypes), std::move(pkIndexes)} {}
+              std::move(pkIndexes)} {}
 
-protected:
     void finalize() override;
 
     static void buildRelListsHeaders(
@@ -89,13 +85,13 @@ public:
     ParquetRelListsCounterAndColumnsCopier(std::shared_ptr<CopySharedState> sharedState,
         const common::CopyDescription& copyDesc, catalog::RelTableSchema* schema,
         DirectedInMemRelData* fwdRelData, DirectedInMemRelData* bwdRelData,
-        std::vector<common::LogicalType> pkColumnTypes, std::vector<PrimaryKeyIndex*> pkIndexes)
+        std::vector<PrimaryKeyIndex*> pkIndexes)
         : RelListsCounterAndColumnCopier{std::move(sharedState), copyDesc, schema, fwdRelData,
-              bwdRelData, std::move(pkColumnTypes), std::move(pkIndexes)} {}
+              bwdRelData, std::move(pkIndexes)} {}
 
     std::unique_ptr<RelCopier> clone() const final {
         return std::make_unique<ParquetRelListsCounterAndColumnsCopier>(
-            sharedState, copyDesc, schema, fwdRelData, bwdRelData, pkColumnTypes, pkIndexes);
+            sharedState, copyDesc, schema, fwdRelData, bwdRelData, pkIndexes);
     }
 
 private:
@@ -111,13 +107,13 @@ public:
     CSVRelListsCounterAndColumnsCopier(std::shared_ptr<CopySharedState> sharedState,
         const common::CopyDescription& copyDesc, catalog::RelTableSchema* schema,
         DirectedInMemRelData* fwdRelData, DirectedInMemRelData* bwdRelData,
-        std::vector<common::LogicalType> pkColumnTypes, std::vector<PrimaryKeyIndex*> pkIndexes)
+        std::vector<PrimaryKeyIndex*> pkIndexes)
         : RelListsCounterAndColumnCopier{std::move(sharedState), copyDesc, schema, fwdRelData,
-              bwdRelData, std::move(pkColumnTypes), std::move(pkIndexes)} {}
+              bwdRelData, std::move(pkIndexes)} {}
 
     std::unique_ptr<RelCopier> clone() const final {
         return std::make_unique<CSVRelListsCounterAndColumnsCopier>(
-            sharedState, copyDesc, schema, fwdRelData, bwdRelData, pkColumnTypes, pkIndexes);
+            sharedState, copyDesc, schema, fwdRelData, bwdRelData, pkIndexes);
     }
 
 private:
@@ -125,13 +121,13 @@ private:
 };
 
 class RelListsCopier : public RelCopier {
-public:
+protected:
     RelListsCopier(std::shared_ptr<CopySharedState> sharedState,
         const common::CopyDescription& copyDesc, catalog::RelTableSchema* schema,
         DirectedInMemRelData* fwdRelData, DirectedInMemRelData* bwdRelData,
-        std::vector<common::LogicalType> pkColumnTypes, std::vector<PrimaryKeyIndex*> pkIndexes)
+        std::vector<PrimaryKeyIndex*> pkIndexes)
         : RelCopier{std::move(sharedState), copyDesc, schema, fwdRelData, bwdRelData,
-              std::move(pkColumnTypes), std::move(pkIndexes)} {}
+              std::move(pkIndexes)} {}
 
 private:
     void finalize() final;
@@ -142,13 +138,13 @@ public:
     ParquetRelListsCopier(std::shared_ptr<CopySharedState> sharedState,
         const common::CopyDescription& copyDesc, catalog::RelTableSchema* schema,
         DirectedInMemRelData* fwdRelData, DirectedInMemRelData* bwdRelData,
-        std::vector<common::LogicalType> pkColumnTypes, std::vector<PrimaryKeyIndex*> pkIndexes)
+        std::vector<PrimaryKeyIndex*> pkIndexes)
         : RelListsCopier{std::move(sharedState), copyDesc, schema, fwdRelData, bwdRelData,
-              std::move(pkColumnTypes), std::move(pkIndexes)} {}
+              std::move(pkIndexes)} {}
 
     std::unique_ptr<RelCopier> clone() const final {
         return std::make_unique<ParquetRelListsCopier>(
-            sharedState, copyDesc, schema, fwdRelData, bwdRelData, pkColumnTypes, pkIndexes);
+            sharedState, copyDesc, schema, fwdRelData, bwdRelData, pkIndexes);
     }
 
 private:
@@ -164,13 +160,13 @@ public:
     CSVRelListsCopier(std::shared_ptr<CopySharedState> sharedState,
         const common::CopyDescription& copyDesc, catalog::RelTableSchema* schema,
         DirectedInMemRelData* fwdRelData, DirectedInMemRelData* bwdRelData,
-        std::vector<common::LogicalType> pkColumnTypes, std::vector<PrimaryKeyIndex*> pkIndexes)
+        std::vector<PrimaryKeyIndex*> pkIndexes)
         : RelListsCopier{std::move(sharedState), copyDesc, schema, fwdRelData, bwdRelData,
-              std::move(pkColumnTypes), std::move(pkIndexes)} {}
+              std::move(pkIndexes)} {}
 
     std::unique_ptr<RelCopier> clone() const final {
         return std::make_unique<CSVRelListsCopier>(
-            sharedState, copyDesc, schema, fwdRelData, bwdRelData, pkColumnTypes, pkIndexes);
+            sharedState, copyDesc, schema, fwdRelData, bwdRelData, pkIndexes);
     }
 
 private:

@@ -9,8 +9,9 @@ namespace processor {
 
 uint64_t CopyRel::executeInternal(
     kuzu::common::TaskScheduler* taskScheduler, ExecutionContext* executionContext) {
+    auto tableSchema = catalog->getReadOnlyVersion()->getRelTableSchema(tableID);
     auto relCopier = std::make_unique<RelCopyExecutor>(
-        copyDescription, wal, *taskScheduler, *catalog, nodesStore, table, relsStatistics);
+        copyDescription, wal, *taskScheduler, nodesStore, table, tableSchema, relsStatistics);
     auto numRelsCopied = relCopier->copy(executionContext);
     return numRelsCopied;
 }

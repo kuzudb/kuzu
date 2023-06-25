@@ -122,32 +122,22 @@ public:
     RelTableSchema()
         : TableSchema{"", common::INVALID_TABLE_ID, false /* isNodeTable */, {} /* properties */},
           relMultiplicity{MANY_MANY}, srcTableID{common::INVALID_TABLE_ID},
-          dstTableID{common::INVALID_TABLE_ID} {}
+          dstTableID{common::INVALID_TABLE_ID}, srcPKDataType{common::LogicalType{
+                                                    common::LogicalTypeID::ANY}},
+          dstPKDataType{common::LogicalType{common::LogicalTypeID::ANY}} {}
     RelTableSchema(std::string tableName, common::table_id_t tableID,
         RelMultiplicity relMultiplicity, std::vector<Property> properties,
-        common::table_id_t srcTableID, common::table_id_t dstTableID)
+        common::table_id_t srcTableID, common::table_id_t dstTableID,
+        common::LogicalType srcPKDataType, common::LogicalType dstPKDataType)
         : TableSchema{std::move(tableName), tableID, false /* isNodeTable */,
               std::move(properties)},
-          relMultiplicity{relMultiplicity}, srcTableID{srcTableID}, dstTableID{dstTableID} {}
-
-    inline Property& getRelIDDefinition() {
-        for (auto& property : properties) {
-            if (property.name == common::InternalKeyword::ID) {
-                return property;
-            }
-        }
-        throw common::InternalException("Cannot find internal rel ID definition.");
-    }
+          relMultiplicity{relMultiplicity}, srcTableID{srcTableID}, dstTableID{dstTableID},
+          srcPKDataType{std::move(srcPKDataType)}, dstPKDataType{std::move(dstPKDataType)} {}
 
     inline bool isSingleMultiplicityInDirection(common::RelDataDirection direction) const {
         return relMultiplicity == ONE_ONE ||
                relMultiplicity ==
                    (direction == common::RelDataDirection::FWD ? MANY_ONE : ONE_MANY);
-    }
-
-    inline uint32_t getNumUserDefinedProperties() const {
-        // Note: the first column stores the relID property.
-        return properties.size() - 1;
     }
 
     inline bool isSrcOrDstTable(common::table_id_t tableID) const {
@@ -165,6 +155,8 @@ public:
     RelMultiplicity relMultiplicity;
     common::table_id_t srcTableID;
     common::table_id_t dstTableID;
+    common::LogicalType srcPKDataType;
+    common::LogicalType dstPKDataType;
 };
 
 } // namespace catalog

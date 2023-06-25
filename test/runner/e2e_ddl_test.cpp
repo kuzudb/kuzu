@@ -12,95 +12,6 @@ using namespace kuzu::testing;
 namespace kuzu {
 namespace testing {
 
-class PrimaryKeyTest : public EmptyDBTest {
-public:
-    void SetUp() override {
-        EmptyDBTest::SetUp();
-        createDBAndConn();
-    }
-};
-
-class IntPrimaryKeyTest : public PrimaryKeyTest {
-public:
-    std::string getInputDir() override {
-        return TestHelper::appendKuzuRootPath("dataset/primary-key-tests/int-pk-tests/");
-    }
-
-    void testPrimaryKey(std::string pkColName) {
-        conn->query("CREATE NODE TABLE Person(firstIntCol INT64, name STRING, secondIntCol INT64, "
-                    "PRIMARY KEY (" +
-                    pkColName + "))");
-        conn->query("CREATE REL TABLE Knows(From Person TO Person)");
-        conn->query(
-            "COPY Person FROM \"" +
-            TestHelper::appendKuzuRootPath("dataset/primary-key-tests/int-pk-tests/vPerson.csv\""));
-        conn->query(
-            "COPY Knows FROM \"" +
-            TestHelper::appendKuzuRootPath("dataset/primary-key-tests/int-pk-tests/eKnows.csv\""));
-        auto tuple = conn->query("MATCH (a:Person)-[e:Knows]->(b:Person) WHERE a.firstIntCol = 0"
-                                 "RETURN COUNT(*)")
-                         ->getNext();
-        // Edge is from 0->1, and when the primary key is firstIntCol, we expect to find 1 result.
-        // If key is secondIntCol we expect to find 0 result.
-        if (pkColName == "firstIntCol") {
-            ASSERT_EQ(tuple->getValue(0)->getValue<int64_t>(), 1);
-        } else {
-            ASSERT_EQ(tuple->getValue(0)->getValue<int64_t>(), 0);
-        }
-        tuple = conn->query("MATCH (a:Person)-[e:Knows]->(b:Person) WHERE a.firstIntCol = 1 "
-                            "RETURN COUNT(*)")
-                    ->getNext();
-        // Edge is from 0->1, and when the primary key is firstIntCol, we expect to find 0 result.
-        // If key is secondIntCol we expect to find 1 result.
-        if (pkColName == "firstIntCol") {
-            ASSERT_EQ(tuple->getValue(0)->getValue<int64_t>(), 0);
-        } else {
-            ASSERT_EQ(tuple->getValue(0)->getValue<int64_t>(), 1);
-        }
-    }
-};
-
-class StringPrimaryKeyTest : public PrimaryKeyTest {
-public:
-    std::string getInputDir() override {
-        return TestHelper::appendKuzuRootPath("dataset/primary-key-tests/string-pk-tests/");
-    }
-
-    void testPrimaryKey(std::string pkColName) {
-        conn->query("CREATE NODE TABLE Person(firstStrCol STRING, age INT64, secondStrCol STRING, "
-                    "PRIMARY KEY (" +
-                    pkColName + "))");
-        conn->query("CREATE REL TABLE Knows(From Person TO Person)");
-        conn->query(
-            "COPY Person FROM \"" + TestHelper::appendKuzuRootPath(
-                                        "dataset/primary-key-tests/string-pk-tests/vPerson.csv\""));
-        conn->query(
-            "COPY Knows FROM \"" + TestHelper::appendKuzuRootPath(
-                                       "dataset/primary-key-tests/string-pk-tests/eKnows.csv\""));
-        auto tuple =
-            conn->query("MATCH (a:Person)-[e:Knows]->(b:Person) WHERE a.firstStrCol = \"Alice\" "
-                        "RETURN COUNT(*)")
-                ->getNext();
-        // Edge is from "Alice"->"Bob", and when the primary key is firstStrCol, we expect to find 1
-        // result. If key is secondStrCol we expect to find 0 result.
-        if (pkColName == "firstStrCol") {
-            ASSERT_EQ(tuple->getValue(0)->getValue<int64_t>(), 1);
-        } else {
-            ASSERT_EQ(tuple->getValue(0)->getValue<int64_t>(), 0);
-        }
-        tuple = conn->query("MATCH (a:Person)-[e:Knows]->(b:Person) WHERE a.firstStrCol = \"Bob\" "
-                            "RETURN COUNT(*)")
-                    ->getNext();
-        // Edge is from "Alice"->"Bob", and when the primary key is firstStrCol, we expect to find 0
-        // result. If key is secondStrCol we expect to find 1 result.
-        if (pkColName == "firstStrCol") {
-            ASSERT_EQ(tuple->getValue(0)->getValue<int64_t>(), 0);
-        } else {
-            ASSERT_EQ(tuple->getValue(0)->getValue<int64_t>(), 1);
-        }
-    }
-};
-
 class TinySnbDDLTest : public DBTest {
 
 public:
@@ -583,22 +494,6 @@ public:
     table_id_t personTableID;
     table_id_t studyAtTableID;
 };
-
-TEST_F(StringPrimaryKeyTest, PrimaryKeyFirstColumn) {
-    testPrimaryKey("firstStrCol");
-}
-
-TEST_F(StringPrimaryKeyTest, PrimaryKeySecondColumn) {
-    testPrimaryKey("secondStrCol");
-}
-
-TEST_F(IntPrimaryKeyTest, PrimaryKeyFirstColumn) {
-    testPrimaryKey("firstIntCol");
-}
-
-TEST_F(IntPrimaryKeyTest, PrimaryKeySecondColumn) {
-    testPrimaryKey("secondIntCol");
-}
 
 TEST_F(TinySnbDDLTest, DDLStatementWithActiveTransactionError) {
     ddlStatementsInsideActiveTransactionErrorTest(

@@ -3,7 +3,7 @@
 
 --
 
--CASE CopySerialPKTest
+-CASE CopySerialPK
 -STATEMENT MATCH (:person)-[e:knows]->(:person) RETURN COUNT(*)
 ---- 1
 14

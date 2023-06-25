@@ -9,12 +9,11 @@ namespace kuzu {
 namespace storage {
 
 RelCopyExecutor::RelCopyExecutor(CopyDescription& copyDescription, WAL* wal,
-    TaskScheduler& taskScheduler, Catalog& catalog, NodesStore& nodesStore, RelTable* table,
-    RelsStatistics* relsStatistics)
+    TaskScheduler& taskScheduler, NodesStore& nodesStore, RelTable* table,
+    RelTableSchema* tableSchema, RelsStatistics* relsStatistics)
     : copyDescription{copyDescription}, wal{wal}, outputDirectory{std::move(wal->getDirectory())},
-      taskScheduler{taskScheduler}, catalog{catalog},
-      tableSchema{catalog.getReadOnlyVersion()->getRelTableSchema(table->getRelTableID())},
-      numTuples{0}, nodesStore{nodesStore}, table{table}, relsStatistics{relsStatistics} {
+      taskScheduler{taskScheduler}, tableSchema{tableSchema}, numTuples{0},
+      nodesStore{nodesStore}, table{table}, relsStatistics{relsStatistics} {
     // Initialize rel data.
     fwdRelData = initializeDirectedInMemRelData(FWD);
     bwdRelData = initializeDirectedInMemRelData(BWD);
@@ -105,33 +104,19 @@ void RelCopyExecutor::populateRelLists(processor::ExecutionContext* executionCon
 std::unique_ptr<RelCopier> RelCopyExecutor::createRelCopier(RelCopierType relCopierType) {
     std::shared_ptr<CopySharedState> sharedState;
     std::unique_ptr<RelCopier> relCopier;
-    std::vector<LogicalType> pkColumnTypes{2};
-    pkColumnTypes[0] = catalog.getReadOnlyVersion()
-                           ->getNodeTableSchema(tableSchema->getBoundTableID(FWD))
-                           ->getPrimaryKey()
-                           .dataType;
-    pkColumnTypes[1] = catalog.getReadOnlyVersion()
-                           ->getNodeTableSchema(tableSchema->getBoundTableID(BWD))
-                           ->getPrimaryKey()
-                           .dataType;
     switch (copyDescription.fileType) {
     case CopyDescription::FileType::CSV: {
         sharedState = std::make_shared<CSVCopySharedState>(copyDescription.filePaths,
             fileBlockInfos, copyDescription.csvReaderConfig.get(), tableSchema);
         switch (relCopierType) {
         case RelCopierType::REL_COLUMN_COPIER_AND_LIST_COUNTER: {
-            relCopier =
-                std::make_unique<CSVRelListsCounterAndColumnsCopier>(sharedState, copyDescription,
-                    tableSchema, fwdRelData.get(), bwdRelData.get(), pkColumnTypes, pkIndexes);
+            relCopier = std::make_unique<CSVRelListsCounterAndColumnsCopier>(sharedState,
+                copyDescription, tableSchema, fwdRelData.get(), bwdRelData.get(), pkIndexes);
         } break;
         case RelCopierType::REL_LIST_COPIER: {
             relCopier = std::make_unique<CSVRelListsCopier>(std::move(sharedState), copyDescription,
-                tableSchema, fwdRelData.get(), bwdRelData.get(), pkColumnTypes, pkIndexes);
+                tableSchema, fwdRelData.get(), bwdRelData.get(), pkIndexes);
         } break;
-        default: {
-            throw NotImplementedException(
-                "Unsupported RelCopierType in RelCopyExecutor::createRelCopier.");
-        }
         }
     } break;
     case CopyDescription::FileType::PARQUET: {
@@ -140,18 +125,12 @@ std::unique_ptr<RelCopier> RelCopyExecutor::createRelCopier(RelCopierType relCop
         switch (relCopierType) {
         case RelCopierType::REL_COLUMN_COPIER_AND_LIST_COUNTER: {
             relCopier = std::make_unique<ParquetRelListsCounterAndColumnsCopier>(sharedState,
-                copyDescription, tableSchema, fwdRelData.get(), bwdRelData.get(), pkColumnTypes,
-                pkIndexes);
+                copyDescription, tableSchema, fwdRelData.get(), bwdRelData.get(), pkIndexes);
         } break;
         case RelCopierType::REL_LIST_COPIER: {
-            relCopier =
-                std::make_unique<ParquetRelListsCopier>(std::move(sharedState), copyDescription,
-                    tableSchema, fwdRelData.get(), bwdRelData.get(), pkColumnTypes, pkIndexes);
+            relCopier = std::make_unique<ParquetRelListsCopier>(std::move(sharedState),
+                copyDescription, tableSchema, fwdRelData.get(), bwdRelData.get(), pkIndexes);
         } break;
-        default: {
-            throw NotImplementedException(
-                "Unsupported RelCopierType in RelCopyExecutor::createRelCopier.");
-        }
         }
     } break;
     default: {
