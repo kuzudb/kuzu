@@ -2,7 +2,6 @@
 
 #include "processor/operator/recursive_extend/all_shortest_path_state.h"
 #include "processor/operator/recursive_extend/scan_frontier.h"
-#include "processor/operator/recursive_extend/shortest_path_state.h"
 #include "processor/operator/recursive_extend/variable_length_state.h"
 
 using namespace kuzu::common;

@@ -5,19 +5,12 @@
 namespace kuzu {
 namespace processor {
 
-/**
- * Populate the active SSSP tracker for each thread, and return a unique thread ID.
- * activeSSSPMorsel already has size equal to total threads.
- */
 uint32_t MorselDispatcher::getThreadIdx() {
     std::unique_lock lck{mutex};
     activeSSSPMorsel[threadIdxCounter] = nullptr;
     return threadIdxCounter++;
 }
 
-/**
- *
- */
 std::pair<GlobalSSSPState, SSSPLocalState> MorselDispatcher::getBFSMorsel(
     const std::shared_ptr<FTableSharedState>& inputFTableSharedState,
     std::vector<common::ValueVector*> vectorsToScan, std::vector<ft_col_idx_t> colIndicesToScan,
