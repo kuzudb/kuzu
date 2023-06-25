@@ -5,51 +5,51 @@
 
 -CASE FilterTwoHop
 
--DEBUG_LOG TwoHopKnowsIDNotEqualTest
+-LOG TwoHopKnowsIDNotEqualTest
 -STATEMENT MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person) WHERE id(a) <> id(c) RETURN COUNT(*)
 ---- 1
 24
 
--DEBUG_LOG TwoHopKnowsIDGreaterThanEqualsTest
+-LOG TwoHopKnowsIDGreaterThanEqualsTest
 -STATEMENT MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person) WHERE id(a) >= id(c) RETURN COUNT(*)
 ---- 1
 24
 
--DEBUG_LOG TwoHopKnowsIDLessThanEqualsTest
+-LOG TwoHopKnowsIDLessThanEqualsTest
 -STATEMENT MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person) WHERE id(a) <= id(c) RETURN COUNT(*)
 ---- 1
 24
 
--DEBUG_LOG RelIDComparison2
+-LOG RelIDComparison2
 -STATEMENT MATCH (a:person)<-[r1:knows]-(b:person)-[r2:knows]->(c:person) WHERE id(r1) <> id(r2) RETURN COUNT(*)
 ---- 1
 26
 
--DEBUG_LOG TwoHopKnowsFilteredTest
+-LOG TwoHopKnowsFilteredTest
 -STATEMENT MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person {age:a.age}) WHERE a.age = c.age RETURN COUNT(*)
 -ENUMERATE
 ---- 1
 12
 
--DEBUG_LOG TwoHopKnowsIDEqualTest
+-LOG TwoHopKnowsIDEqualTest
 -STATEMENT MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person) WHERE id(a) = id(c) RETURN COUNT(*)
 -ENUMERATE
 ---- 1
 12
 
--DEBUG_LOG TwoHopKnowsFilteredTest2
+-LOG TwoHopKnowsFilteredTest2
 -STATEMENT MATCH (a:person)-[e1:knows]->(b:person), (a:person)-[e2:knows {date:e1.date}]->(c:person) WHERE e1.date = e2.date RETURN COUNT(*)
 -ENUMERATE
 ---- 1
 24
 
--DEBUG_LOG SymmetricTwoHop
+-LOG SymmetricTwoHop
 -STATEMENT MATCH (a:person)<-[e1:knows]-(b:person)-[e2:knows]->(c:person) WHERE b.fName = 'Bob' AND e1.date = e2.date AND id(a) <> id(c) RETURN COUNT(*)
 -ENUMERATE
 ---- 1
 2
 
--DEBUG_LOG RelIDComparison1
+-LOG RelIDComparison1
 -STATEMENT MATCH (a:person)<-[r1:knows]-(b:person)-[r2:knows]->(c:person) WHERE ID(r1) = ID(r2) RETURN COUNT(*)
 -ENUMERATE
 ---- 1

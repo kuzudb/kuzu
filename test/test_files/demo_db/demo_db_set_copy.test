@@ -5,37 +5,37 @@
 
 -CASE SetNodeTest
 
--DEBUG_LOG SetAge
+-LOG SetAge
 -STATEMENT MATCH (u:User) WHERE u.name = 'Adam' SET u.age = 50
 ---- ok
 
--DEBUG_LOG ReturnAge
+-LOG ReturnAge
 -STATEMENT MATCH (u:User) WHERE u.name='Adam' RETURN u.age
 ---- 1
 50
 
--DEBUG_LOG SetAgeNull
+-LOG SetAgeNull
 -STATEMENT MATCH (u:User) WHERE u.name = 'Adam' SET u.age = NULL
 ---- ok
 
--DEBUG_LOG ReturnNullAge 
+-LOG ReturnNullAge 
 -STATEMENT MATCH (u:User) WHERE u.name='Adam' RETURN u.age
 ---- 1
 
 
 -CASE SetRelTest
 
--DEBUG_LOG SetRelSince
+-LOG SetRelSince
 -STATEMENT MATCH (u:User)-[f:Follows]->(u1:User) WHERE u.name = 'Adam' AND u1.name = 'Karissa' SET f.since=2012
 ---- ok
 
--DEBUG_LOG CheckRelSince
+-LOG CheckRelSince
 -STATEMENT MATCH (u:User)-[f:Follows]->(u1:User) WHERE u.name='Adam' RETURN f.since, u1.name
 ---- 2
 2012|Karissa
 2020|Zhang
 
--DEBUG_LOG CopyRelToNonEmptyTableErrorTest
+-LOG CopyRelToNonEmptyTableErrorTest
 -STATEMENT MATCH (:User)-[f:Follows]->(:User) DELETE f
 ---- ok
 

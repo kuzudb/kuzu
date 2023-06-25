@@ -5,37 +5,37 @@
 
 -CASE LargeAdjListTestParquet
 
--DEBUG_LOG NodeP0
+-LOG NodeP0
 -STATEMENT MATCH (a:person)-[:knows]->(b:person) WHERE a.ID = 0 RETURN COUNT(*)
 -ENUMERATE
 ---- 1
 5001
 
--DEBUG_LOG NodeP1
+-LOG NodeP1
 -STATEMENT MATCH (a:person)-[:knows]->(b:person) WHERE a.ID = 1 RETURN b.ID
 -ENUMERATE
 ---- 1
 5000
 
--DEBUG_LOG NodeP5500
+-LOG NodeP5500
 -STATEMENT MATCH (a:person)-[:knows]->(b:person) WHERE a.ID = 5500 RETURN b.ID
 -ENUMERATE
 ---- 0
 
--DEBUG_LOG EdgeID
+-LOG EdgeID
 -STATEMENT MATCH (a:person)-[r:knows]->(b:person) WHERE a.ID = 5000 RETURN ID(r)
 -ENUMERATE
 ---- 1
 1:10000
 
--DEBUG_LOG CrossProduct1
+-LOG CrossProduct1
 -STATEMENT MATCH (a:person), (b:person) RETURN COUNT(*)
 -PARALLELISM 2
 -ENUMERATE
 ---- 1
 36000000
 
--DEBUG_LOG CrossProduct
+-LOG CrossProduct
 -STATEMENT MATCH (a:person) WITH AVG(a.ID) AS s MATCH (b:person) WHERE s > b.ID RETURN COUNT(*)
 -PARALLELISM 8
 -ENUMERATE

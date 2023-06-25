@@ -13,12 +13,12 @@
 
 -CASE VarLengthExtendN1Tests
 
--DEBUG_LOG meetsOneToTwoHopTest
+-LOG meetsOneToTwoHopTest
 -STATEMENT MATCH (a:person)-[:meets*1..2]->(b:person) RETURN COUNT(*)
 ---- 1
 13
 
--DEBUG_LOG meetsThreeHopMinLenEqualsMaxLen
+-LOG meetsThreeHopMinLenEqualsMaxLen
 -STATEMENT MATCH (a:person)-[:meets*3..3]->(b:person) RETURN COUNT(*)
 ---- 1
 4
@@ -28,17 +28,17 @@
 # 3 levels (Node 3 -> Node 7 -> Node 3 -> Node 7), which generates 6 paths (3 paths of length 2 and 3 paths of length
 # 3). Node 5 doesn't have any adjacent nodes. Node 8,9 can extend 2 or 3 levels (Node 8 9 -> Node 3 -> Node 7 -> Node
 # 3), which generates another 4 paths (2 paths of length 2 and 2 paths of length 3). In total, there are 15 paths.
--DEBUG_LOG varLenAdjListJoinWithVarLenColumnJoinTwoToFourHopTest
+-LOG varLenAdjListJoinWithVarLenColumnJoinTwoToFourHopTest
 -STATEMENT MATCH (a:person)-[:knows]->(b:person)-[:meets*2..3]->(c:person) RETURN COUNT(*)
 ---- 1
 13
 
--DEBUG_LOG meetsLongPathTest
+-LOG meetsLongPathTest
 -STATEMENT MATCH (a:person)-[:meets*8..11]->(b:person) RETURN COUNT(*)
 ---- 1
 16
 
--DEBUG_LOG meetsOneToTwoHopWithFilterTest
+-LOG meetsOneToTwoHopWithFilterTest
 -STATEMENT MATCH (a:person)-[:meets*1..2]->(b:person) WHERE a.ID = 3 RETURN b.fName
 ---- 2
 Carol
@@ -47,7 +47,7 @@ Elizabeth
 # Node 3,7,8,9 can extend 3,4 levels and generate 8 paths (by using the above formulas). Node 0,2,5,10 don't have
 # such paths, the optional match will put 'null' in the b valueVector for Node 0,2,5,10. In total, we have 12 output
 # tuples.
--DEBUG_LOG KnowsWithOptionalMatch
+-LOG KnowsWithOptionalMatch
 -STATEMENT MATCH (a:person) OPTIONAL MATCH (a)-[:meets*3..4]->(b:person) RETURN COUNT(*)
 ---- 1
 12

@@ -5,7 +5,7 @@
 
 -CASE CopyNodeTest
 
--DEBUG_LOG SubsetTest
+-LOG SubsetTest
 -STATEMENT MATCH (row:tableOfTypes) WHERE row.id >= 20 AND row.id <= 24 RETURN row.id, row.int64Column, row.doubleColumn, row.booleanColumn, row.dateColumn, row.timestampColumn, row.stringColumn, row.listOfInt64, row.listOfString, row.listOfListOfInt64, row.fixedSizeList, row.listOfFixedSizeList, row.structColumn;
 ---- 5
 20|0|57.579280|True|2094-08-19|1731-09-26 03:30:08|OdM|[85,11,98,6]|[wl7evae,lLtQIMJI,vNvYnjt27]|[[131,129]]|[297,283,26]|[[36,165,199],[182,108,165],[17,120,181],[193,171,93]]|{ID: 717, NAME: 3oOf}
@@ -14,42 +14,42 @@
 23|58|42.774957|False|2043-08-19|1181-10-16 18:19:43|ISImRVpUjynGMFRQyYmeIUVjM|[16,38,98,61,2]|[EzPWolZ2iCsga46o,lbhcKq7DDPeiX,yaxsyrbzolAyVWlxj,5Rlse62CKuIitVf4,yKOx0P]|[[95,209,75,7],[197],[69,244],[164,160,153,125]]|[55,59,114]|[[80,52,187],[64,175,142],[148,141,185],[90,51,49]]|{ID: 682, NAME: 06SBnT}
 24|75|53.813224|False|1971-12-05|1942-10-24 09:30:16|naDlQ|[94,17,22]|[gVYovI30hQyC,b6OpP]|[[81,66],[255,44],[37]]|[262,288,66]|[[34,178,128]]|{ID: 185, NAME: 7xymBThq}
 
--DEBUG_LOG CheckNumLinesTest
+-LOG CheckNumLinesTest
 -STATEMENT MATCH (row:tableOfTypes) RETURN count(*)
 ---- 1
 49999
 
--DEBUG_LOG CountTrueTest
+-LOG CountTrueTest
 -STATEMENT MATCH (row:tableOfTypes) WHERE row.booleanColumn = True RETURN count(*)
 ---- 1
 24997
 
--DEBUG_LOG CountFalseTest
+-LOG CountFalseTest
 -STATEMENT MATCH (row:tableOfTypes) WHERE row.booleanColumn = False RETURN count(*)
 ---- 1
 25002
 
--DEBUG_LOG CheckSumTest
+-LOG CheckSumTest
 -STATEMENT MATCH (row:tableOfTypes) RETURN sum(row.id), sum(row.int64Column), sum(row.doubleColumn)
 ---- 1
 1249925001|2500180|2504542.349696
 
--DEBUG_LOG EmptyStringTest
+-LOG EmptyStringTest
 -STATEMENT MATCH (row:tableOfTypes) WHERE row.id = 49992 RETURN row.id, row.int64Column, row.doubleColumn, row.booleanColumn, row.dateColumn, row.timestampColumn, row.stringColumn;
 ---- 1
 49992|50|31.582059|False|2056-05-02|1551-07-19 16:28:31|
 
--DEBUG_LOG FloatTest
+-LOG FloatTest
 -STATEMENT MATCH (row:tableOfTypes) WHERE row.doubleColumn = 68.73718401556897 RETURN row.dateColumn;
 ---- 1
 2055-08-09
 
--DEBUG_LOG DateTest
+-LOG DateTest
 -STATEMENT MATCH (row:tableOfTypes) WHERE row.id = 25531 RETURN row.id, row.int64Column, row.doubleColumn, row.booleanColumn, row.dateColumn, row.timestampColumn, row.stringColumn;
 ---- 1
 25531|77|28.417543|False|2040-07-09|1895-03-13 04:31:22|XB
 
--DEBUG_LOG IntervalTest
+-LOG IntervalTest
 -STATEMENT MATCH (row:tableOfTypes) WHERE 0 <= row.doubleColumn AND row.doubleColumn <= 10 AND 0 <= row.int64Column AND row.int64Column <= 10 RETURN count(*);
 ---- 1
 546

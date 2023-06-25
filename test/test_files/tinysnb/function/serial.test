@@ -5,7 +5,7 @@
 
 -CASE SerialAdd
 
--DEBUG_LOG SerialAddINT64
+-LOG SerialAddINT64
 -STATEMENT MATCH (a:person) RETURN a.ID + a.age
 ---- 8
 35
@@ -17,7 +17,7 @@
 46
 90
 
--DEBUG_LOG SerialAddDate
+-LOG SerialAddDate
 -STATEMENT MATCH (a:person) RETURN a.ID + a.birthdate
 ---- 8
 1900-01-01
@@ -29,7 +29,7 @@
 1980-11-01
 1990-12-04
 
--DEBUG_LOG SerialCastToInt32
+-LOG SerialCastToInt32
 -STATEMENT MATCH (a:person) RETURN to_int32(a.ID)
 ---- 8
 0
@@ -41,7 +41,7 @@
 6
 7
 
--DEBUG_LOG SerialCastToInt16
+-LOG SerialCastToInt16
 -STATEMENT MATCH (a:person) RETURN to_int16(a.ID)
 ---- 8
 0
@@ -53,7 +53,7 @@
 6
 7
 
--DEBUG_LOG SerialCastToDouble
+-LOG SerialCastToDouble
 -STATEMENT MATCH (a:person) RETURN to_double(a.ID)
 ---- 8
 0.000000
@@ -65,7 +65,7 @@
 6.000000
 7.000000
 
--DEBUG_LOG SerialCastToFloat
+-LOG SerialCastToFloat
 -STATEMENT MATCH (a:person) RETURN to_float(a.ID)
 ---- 8
 0.000000
@@ -77,7 +77,7 @@
 6.000000
 7.000000
 
--DEBUG_LOG ListCreationWithSerial
+-LOG ListCreationWithSerial
 -STATEMENT MATCH (a:person) RETURN list_creation(a.ID, a.ID)
 ---- 8
 [0,0]
@@ -89,7 +89,7 @@
 [6,6]
 [7,7]
 
--DEBUG_LOG StructCreationWithSerial
+-LOG StructCreationWithSerial
 -STATEMENT MATCH (a:person) RETURN {ID1: a.ID, ID2: id(a)}
 ---- 8
 {ID1: 0, ID2: 0:0}
@@ -101,7 +101,7 @@
 {ID1: 6, ID2: 0:6}
 {ID1: 7, ID2: 0:7}
 
--DEBUG_LOG ListExtractSerial
+-LOG ListExtractSerial
 -STATEMENT MATCH (a:person) RETURN list_extract([a.ID], 1)
 ---- 8
 0
@@ -113,7 +113,7 @@
 6
 7
 
--DEBUG_LOG ListAppendSerial
+-LOG ListAppendSerial
 -STATEMENT MATCH (a:person) RETURN list_append([a.ID], a.ID)
 ---- 8
 [0,0]
@@ -125,7 +125,7 @@
 [6,6]
 [7,7]
 
--DEBUG_LOG ListPrependSerial
+-LOG ListPrependSerial
 -STATEMENT MATCH (a:person) RETURN list_prepend(a.ID, [a.ID])
 ---- 8
 [0,0]
@@ -137,7 +137,7 @@
 [6,6]
 [7,7]
 
--DEBUG_LOG ListSortSerial
+-LOG ListSortSerial
 -STATEMENT MATCH (a:person)-[:knows]->(b:person) RETURN list_sort([b.ID, a.ID])
 ---- 14
 [0,1]
@@ -155,7 +155,7 @@
 [4,5]
 [4,6]
 
--DEBUG_LOG ListReverseSortSerial
+-LOG ListReverseSortSerial
 -STATEMENT MATCH (a:person)-[:knows]->(b:person) RETURN list_reverse_sort([b.ID, a.ID])
 ---- 14
 [1,0]
@@ -173,7 +173,7 @@
 [5,4]
 [6,4]
 
--DEBUG_LOG ListSumSerial
+-LOG ListSumSerial
 -STATEMENT MATCH (a:person)-[:knows]->(b:person) RETURN list_sum([b.ID, a.ID])
 ---- 14
 1
@@ -191,7 +191,7 @@
 9
 10
 
--DEBUG_LOG ListDistinctSerial
+-LOG ListDistinctSerial
 -STATEMENT MATCH (a:person) RETURN list_distinct([a.ID, a.ID])
 ---- 8
 [0]
@@ -203,7 +203,7 @@
 [6]
 [7]
 
--DEBUG_LOG ListUniqueSerial
+-LOG ListUniqueSerial
 -STATEMENT MATCH (a:person) RETURN list_unique([a.ID, a.ID])
 ---- 8
 1
@@ -215,7 +215,7 @@
 1
 1
 
--DEBUG_LOG ListAnyValueSerial
+-LOG ListAnyValueSerial
 -STATEMENT MATCH (a:person) RETURN list_any_value([a.ID, a.ID])
 ---- 8
 0

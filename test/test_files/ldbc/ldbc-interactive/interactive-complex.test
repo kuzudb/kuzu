@@ -6,7 +6,7 @@
 
 -CASE LDBCInteractiveComplex
 
--DEBUG_LOG IC2
+-LOG IC2
 -STATEMENT MATCH (:Person {id: 32985348834100 })-[:Person_knows_Person]-(friend:Person)<-[:Post_hasCreator_Person|:Comment_hasCreator_Person]-(message:Comment:Post)
        WHERE message.creationDate < 20120710024241920
        RETURN friend.id AS personId, friend.firstName AS personFirstName, friend.lastName AS personLastName, message.id AS postOrCommentId, CASE WHEN message.content is NULL THEN message.imageFile ELSE message.content END AS postOrCommentContent, message.creationDate AS postOrCommentCreationDate
@@ -34,7 +34,7 @@
 19791209300507|Chaim Azriel|Epstein|962073022942|no way!|20120707012146963
 2199023256816|K.|Bose|962072894276|great|20120706195440195
 
--DEBUG_LOG IC3
+-LOG IC3
 -STATEMENT MATCH (countryX:Place {name: "Tunisia" }), (countryY:Place {name: "Peru" }), (person:Person {id: 17592186045813 })
        WITH person, countryX, countryY
        LIMIT 1
@@ -60,7 +60,7 @@
 6597069767398|Vichara|Sihanouk|1|1|2
 24189255811663|Chris|Hall|1|1|2
 
--DEBUG_LOG IC4
+-LOG IC4
 -STATEMENT MATCH (person:Person {id: 24189255812446 })-[:Person_knows_Person]-(friend:Person), (friend)<-[:Post_hasCreator_Person]-(post:Post)-[:Post_hasTag_Tag]->(tag)
        WITH DISTINCT tag, post
        WITH tag, CASE WHEN 20120710024241920 > post.creationDate AND post.creationDate >= 20100710024241920 THEN 1 ELSE 0 END AS valid, CASE WHEN 20100710024241920 > post.creationDate THEN 1 ELSE 0 END AS inValid
@@ -81,7 +81,7 @@ Zine_El_Abidine_Ben_Ali|23
 Franz_Kafka|11
 Bobby_Hull|9
 
--DEBUG_LOG IC6
+-LOG IC6
 -STATEMENT MATCH (knownTag:Tag { name: "Carl_Gustaf_Emil_Mannerheim" })
        WITH knownTag.id as knownTagId
        MATCH (person:Person { id: 28587302322524 })-[:Person_knows_Person*1..2]-(friend)
@@ -106,7 +106,7 @@ Edgar_Allan_Poe|1
 Elvis_Costello|1
 Euripides|1
 
--DEBUG_LOG IC8
+-LOG IC8
 -STATEMENT MATCH (start:Person {id: 15393162789560})<-[:Post_hasCreator_Person|:Comment_hasCreator_Person]-(:Post:Comment)<-[:Comment_replyOf_Comment|:Comment_replyOf_Post]-(comment:Comment)-[:Comment_hasCreator_Person]->(person:Person)
        RETURN person.id AS personId, person.firstName AS personFirstName, person.lastName AS personLastName, comment.creationDate AS commentCreationDate, comment.id AS commentId, comment.content AS commentContent
        ORDER BY commentCreationDate DESC, commentId ASC
@@ -133,7 +133,7 @@ Euripides|1
 13194139533535|Shweta|Singh|20120623001733081|962072693421|thx
 26388279067551|Anand|Rao|20120622142721062|962072693418|thanks
 
--DEBUG_LOG IC11
+-LOG IC11
 -STATEMENT MATCH (person:Person {id: 13194139534668 })-[:Person_knows_Person*1..2]-(friend:Person)
        WHERE NOT person.id=friend.id
        WITH DISTINCT friend
@@ -163,7 +163,7 @@ Euripides|1
 28587302323430|János|Mészáros|Malév_Hungarian_Airlines|2008
 
 # IC12 should be changed to use Kleene Star relationship once that is implemented
--DEBUG_LOG IC12
+-LOG IC12
 -CHECK_ORDER
 -PARALLELISM 1
 -STATEMENT MATCH (tag:Tag)-[:Tag_hasType_TagClass|:TagClass_isSubclassOf_TagClass*1..20]->(baseTagClass:TagClass)
@@ -187,7 +187,7 @@ Euripides|1
 # (i) Unbounded shortest path
 # (ii) Return 0 if person1 and person2 are the same, and
 # (iii) Return -1 if a shortest path doesn't exist.
--DEBUG_LOG IC13
+-LOG IC13
 -STATEMENT MATCH (person1 {id: 768})-[path:Person_knows_Person* SHORTEST 1..20]-(person2 {id: 32985348833975})
        RETURN length(path) AS shortestPathLength;
 ---- 1

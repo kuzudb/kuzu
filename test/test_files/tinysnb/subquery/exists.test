@@ -5,79 +5,79 @@
 
 -CASE SubqueryExists
 
--DEBUG_LOG ExistSubqueryTest
+-LOG ExistSubqueryTest
 -STATEMENT MATCH (a:person) WHERE EXISTS { MATCH (a)-[:knows]->(b:person) } RETURN COUNT(*)
 -ENUMERATE
 ---- 1
 5
 
--DEBUG_LOG ExistSubqueryTest2
+-LOG ExistSubqueryTest2
 -STATEMENT MATCH (a:person) WHERE EXISTS { MATCH (a)-[:knows]->(b:person) WHERE b.fName='Farooq' } RETURN COUNT(*)
 -ENUMERATE
 ---- 1
 1
 
--DEBUG_LOG ExistSubqueryTest3
+-LOG ExistSubqueryTest3
 -STATEMENT MATCH (a:person)-[:knows]->(b:person) WHERE EXISTS { MATCH (a)-[:studyAt]->(c:organisation) } OR b.fName='Greg'  RETURN COUNT(*)
 -ENUMERATE
 ---- 1
 7
 
-#-DEBUG_LOG ExistSubqueryTest4
+#-LOG ExistSubqueryTest4
 #-STATEMENT MATCH (a:person) WHERE EXISTS { MATCH (a)-[:knows]->(b:person) WHERE a.fName='Alice' } RETURN COUNT(*)
 #-ENUMERATE
 #---- 1
 #1
 
--DEBUG_LOG ExistSubqueryTest5
+-LOG ExistSubqueryTest5
 -STATEMENT MATCH (a:person) WHERE EXISTS { MATCH (a)-[:knows]->(b:person)-[:knows]->(c:person), (a)-[:knows]->(d:person) } RETURN COUNT(*)
 -ENUMERATE
 ---- 1
 4
 
--DEBUG_LOG NotExistSubqueryTest
+-LOG NotExistSubqueryTest
 -STATEMENT MATCH (a:person) WHERE NOT EXISTS { MATCH (a)-[:knows]->(b:person) } RETURN COUNT(*)
 -ENUMERATE
 ---- 1
 3
 
--DEBUG_LOG ExistSubqueryMultiPartCyclicTest
+-LOG ExistSubqueryMultiPartCyclicTest
 -STATEMENT MATCH (a:person) WHERE EXISTS { MATCH (a)-[:knows]->(b:person), (b)-[:knows]->(a) } RETURN COUNT(*)
 -ENUMERATE
 ---- 1
 4
 
--DEBUG_LOG ExistsSubqueryColExtendTest
+-LOG ExistsSubqueryColExtendTest
 -STATEMENT MATCH (a:person) WHERE EXISTS { MATCH (a)-[:studyAt]->(b:organisation) } RETURN COUNT(*)
 -ENUMERATE
 ---- 1
 3
 
--DEBUG_LOG ExistsSubqueryORTest
+-LOG ExistsSubqueryORTest
 -STATEMENT MATCH (a:person) WHERE EXISTS { MATCH (a)-[:studyAt]->(b:organisation) } OR EXISTS { MATCH (a)-[:workAt]->(c:organisation) } RETURN COUNT(*)
 -ENUMERATE
 ---- 1
 6
 
--DEBUG_LOG NestedSubqueryTest
+-LOG NestedSubqueryTest
 -STATEMENT MATCH (a:person) WHERE EXISTS { MATCH (a)-[:knows]->(b:person) WHERE EXISTS { MATCH (b)-[:workAt]->(c:organisation) } } RETURN COUNT(*)
 -ENUMERATE
 ---- 1
 4
 
-#-DEBUG_LOG ExistSubqueryAliasTest1
+#-LOG ExistSubqueryAliasTest1
 #-STATEMENT MATCH (a:person) WITH a, a.fName AS newName WHERE EXISTS { MATCH (a)-[:knows]->(b:person) WHERE newName='Alice' } RETURN COUNT(*)
 #-ENUMERATE
 #---- 1
 #1
 
--DEBUG_LOG ExistSubqueryAliasTest2
+-LOG ExistSubqueryAliasTest2
 -STATEMENT MATCH (a:person) WITH a AS k MATCH (k)-[:knows]->(b:person) WHERE EXISTS { MATCH (k)-[:studyAt]->(c:organisation) } OR b.fName='Greg'  RETURN COUNT(*)
 -ENUMERATE
 ---- 1
 7
 
--DEBUG_LOG ExistSubqueryReturnTest
+-LOG ExistSubqueryReturnTest
 -STATEMENT MATCH (a:person) WHERE EXISTS { MATCH (a)-[:knows]->(b:person) } RETURN a.fName
 -ENUMERATE
 ---- 5

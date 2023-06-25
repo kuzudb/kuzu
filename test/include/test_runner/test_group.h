@@ -6,7 +6,7 @@ namespace kuzu {
 namespace testing {
 
 struct TestStatement {
-    std::string debugLogMessage;
+    std::string logMessage;
     std::string query;
     uint64_t numThreads = 4;
     std::string encodedJoin;

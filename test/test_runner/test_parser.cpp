@@ -138,9 +138,9 @@ TestStatement* TestParser::extractStatement(TestStatement* statement) {
     }
     tokenize();
     switch (currentToken.type) {
-    case TokenType::DEBUG_LOG: {
+    case TokenType::LOG: {
         checkMinimumParams(1);
-        statement->debugLogMessage = paramsToString(1);
+        statement->logMessage = paramsToString(1);
         break;
     }
     case TokenType::STATEMENT: {

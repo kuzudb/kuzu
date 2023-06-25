@@ -17,7 +17,6 @@ enum class TokenType {
     BUFFER_POOL_SIZE,
     CASE,
     CHECK_ORDER,
-    DEBUG_LOG,
     DEFINE,
     DEFINE_STATEMENT_BLOCK,
     EMPTY,
@@ -25,6 +24,7 @@ enum class TokenType {
     END_OF_STATEMENT_BLOCK,
     ENUMERATE,
     INSERT_STATEMENT_BLOCK,
+    LOG,
     PARALLELISM,
     RESULT,
     SEPARATOR,
@@ -35,8 +35,7 @@ enum class TokenType {
 const std::unordered_map<std::string, TokenType> tokenMap = {{"-GROUP", TokenType::GROUP},
     {"-DATASET", TokenType::DATASET}, {"-CASE", TokenType::CASE},
     {"-CHECK_ORDER", TokenType::CHECK_ORDER}, {"-ENCODED_JOIN", TokenType::ENCODED_JOIN},
-    {"-DEBUG_LOG", TokenType::DEBUG_LOG},
-    {"-DEFINE_STATEMENT_BLOCK", TokenType::DEFINE_STATEMENT_BLOCK},
+    {"-LOG", TokenType::LOG}, {"-DEFINE_STATEMENT_BLOCK", TokenType::DEFINE_STATEMENT_BLOCK},
     {"-ENUMERATE", TokenType::ENUMERATE},
     {"-BEGIN_WRITE_TRANSACTION", TokenType::BEGIN_WRITE_TRANSACTION},
     {"-PARALLELISM", TokenType::PARALLELISM}, {"-SKIP", TokenType::SKIP},
@@ -62,7 +61,7 @@ private:
     std::ifstream fileStream;
     std::streampos previousFilePosition;
     std::string line;
-    std::string debugLogMessage;
+    std::string logMessage;
     std::unique_ptr<TestGroup> testGroup;
     std::string extractTextBeforeNextStatement(bool ignoreLineBreak = false);
     std::string parseCommand();

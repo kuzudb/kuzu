@@ -6,7 +6,7 @@
 -CASE Unwind
 -DEFINE UNWIND_LIST ARANGE 1 4001
 
--DEBUG_LOG unwind1
+-LOG unwind1
 -STATEMENT UNWIND [1, 2, 3, 4] AS x RETURN x
 ---- 4
 1
@@ -14,7 +14,7 @@
 3
 4
 
--DEBUG_LOG unwind2
+-LOG unwind2
 -STATEMENT UNWIND [[1, 2, 3], [2, 3, 4], [3, 4, 1], [4, 1, 2]] AS x RETURN x
 ---- 4
 [1,2,3]
@@ -22,7 +22,7 @@
 [3,4,1]
 [4,1,2]
 
--DEBUG_LOG unwind3
+-LOG unwind3
 -STATEMENT UNWIND ["adhjsdhhhhhhhhhhhhsjsjjdhsjdhdjshdjdadhjsdhhqwrtetrehhhhsjsjjdhsjdhdjshdjd", "basdfghjkjkjhkjhkjhkj", "c", "d"] AS x RETURN x
 ---- 4
 adhjsdhhhhhhhhhhhhsjsjjdhsjdhdjshdjdadhjsdhhqwrtetrehhhhsjsjjdhsjdhdjshdjd
@@ -30,7 +30,7 @@ basdfghjkjkjhkjhkjhkj
 c
 d
 
--DEBUG_LOG unwind4
+-LOG unwind4
 -STATEMENT UNWIND [1, 2, 3, 4] AS x RETURN x + 2
 ---- 4
 3
@@ -38,18 +38,18 @@ d
 5
 6
 
--DEBUG_LOG unwind5
+-LOG unwind5
 -STATEMENT UNWIND [1,2,3,4] AS x WITH x AS b WHERE b > 2 RETURN b
 ---- 2
 3
 4
 
--DEBUG_LOG unwind6
+-LOG unwind6
 -STATEMENT UNWIND ${UNWIND_LIST} AS x WITH x AS b WHERE b > 4000 RETURN b
 ---- 1
 4001
 
--DEBUG_LOG unwind7
+-LOG unwind7
 -STATEMENT UNWIND [1, 2, 3] AS x UNWIND [5, 6, 7] AS y RETURN x,y
 ---- 9
 1|5
@@ -62,13 +62,13 @@ d
 3|6
 3|7
 
--DEBUG_LOG unwind8
+-LOG unwind8
 -STATEMENT MATCH (a:person) WHERE a.fName = 'Alice' UNWIND a.workedHours as x RETURN x,a.fName
 ---- 2
 10|Alice
 5|Alice
 
--DEBUG_LOG unwind9
+-LOG unwind9
 -STATEMENT MATCH (a:person)-[:studyAt]->(b:organisation) WHERE b.ID = 1 AND a.fName = 'Farooq' UNWIND a.workedHours as x RETURN x,a.fName
 ---- 5
 3|Farooq
@@ -77,25 +77,25 @@ d
 6|Farooq
 7|Farooq
 
--DEBUG_LOG unwind10
+-LOG unwind10
 -STATEMENT MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) WHERE a.ID = 0 AND b.ID = 2 UNWIND a.usedNames as x RETURN x,a.fName,b.fName,c.fName
 ---- 3
 Aida|Alice|Bob|Alice
 Aida|Alice|Bob|Carol
 Aida|Alice|Bob|Dan
 
--DEBUG_LOG unwind11
+-LOG unwind11
 -STATEMENT MATCH (a:person) UNWIND a.workedHours as x WITH x AS hour WHERE hour < 0 RETURN COUNT(*)
 ---- 1
 0
 
--DEBUG_LOG unwind12
+-LOG unwind12
 -STATEMENT UNWIND [1,2,3,4] as val WITH val ORDER BY val SKIP 2 RETURN val
 ---- 2
 3
 4
 
--DEBUG_LOG unwind13
+-LOG unwind13
 -STATEMENT WITH [1, 1, 2, 2] AS coll UNWIND coll AS x WITH DISTINCT x return x
 ---- 2
 1

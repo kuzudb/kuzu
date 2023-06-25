@@ -5,14 +5,14 @@
 
 -CASE DemoDBTestFromParquet
 
--DEBUG_LOG Limit1
+-LOG Limit1
 -STATEMENT MATCH (u:User) RETURN u.name ORDER BY u.age DESC LIMIT 3;
 ---- 3
 Zhang
 Karissa
 Adam
 
--DEBUG_LOG MatchSingleNodeLabel
+-LOG MatchSingleNodeLabel
 -STATEMENT MATCH (a:User) RETURN a;
 ---- 4
 (label:User, 0:0, {name:Adam, age:30})
@@ -20,7 +20,7 @@ Adam
 (label:User, 0:2, {name:Zhang, age:50})
 (label:User, 0:3, {name:Noura, age:25})
 
--DEBUG_LOG MatchMultipleNodeLabels
+-LOG MatchMultipleNodeLabels
 -STATEMENT MATCH (a:User:City) RETURN a;
 ---- 7
 (label:City, 1:0, {name:Waterloo, age:, population:150000})
@@ -31,7 +31,7 @@ Adam
 (label:User, 0:2, {name:Zhang, age:50, population:})
 (label:User, 0:3, {name:Noura, age:25, population:})
 
--DEBUG_LOG MatchAnyNodeLabel
+-LOG MatchAnyNodeLabel
 -STATEMENT MATCH (a) RETURN a;
 ---- 7
 (label:City, 1:0, {name:Waterloo, age:, population:150000})
@@ -42,7 +42,7 @@ Adam
 (label:User, 0:2, {name:Zhang, age:50, population:})
 (label:User, 0:3, {name:Noura, age:25, population:})
 
--DEBUG_LOG MatchSingleRelLabel
+-LOG MatchSingleRelLabel
 -STATEMENT MATCH (a:User)-[e:Follows]->(b:User) RETURN a.name, e, b.name;
 ---- 4
 Adam|(0:0)-[label:Follows, {_id:2:0, since:2020}]->(0:1)|Karissa
@@ -50,7 +50,7 @@ Adam|(0:0)-[label:Follows, {_id:2:1, since:2020}]->(0:2)|Zhang
 Karissa|(0:1)-[label:Follows, {_id:2:2, since:2021}]->(0:2)|Zhang
 Zhang|(0:2)-[label:Follows, {_id:2:3, since:2022}]->(0:3)|Noura
 
--DEBUG_LOG MatchMultipleRelLabels
+-LOG MatchMultipleRelLabels
 -STATEMENT MATCH (a:User)-[e:Follows|:LivesIn]->(b:User:City) RETURN a.name, e, b.name;
 ---- 8
 Adam|(0:0)-[label:Follows, {_id:2:0, since:2020}]->(0:1)|Karissa
@@ -62,7 +62,7 @@ Noura|(0:3)-[label:LivesIn, {_id:3:3, since:}]->(1:2)|Guelph
 Zhang|(0:2)-[label:Follows, {_id:2:3, since:2022}]->(0:3)|Noura
 Zhang|(0:2)-[label:LivesIn, {_id:3:2, since:}]->(1:1)|Kitchener
 
--DEBUG_LOG MatchAnyRelLabel
+-LOG MatchAnyRelLabel
 -STATEMENT MATCH ()-[e]->() RETURN e;
 ---- 8
 (0:0)-[label:Follows, {_id:2:0, since:2020}]->(0:1)
@@ -74,23 +74,23 @@ Zhang|(0:2)-[label:LivesIn, {_id:3:2, since:}]->(1:1)|Kitchener
 (0:2)-[label:LivesIn, {_id:3:2, since:}]->(1:1)
 (0:3)-[label:LivesIn, {_id:3:3, since:}]->(1:2)
 
--DEBUG_LOG MatchTwoHop
+-LOG MatchTwoHop
 -STATEMENT MATCH (a:User)-[:Follows]->(:User)-[:LivesIn]->(c:City) WHERE a.name = "Adam" RETURN a, c.name, c.population;
 ---- 2
 (label:User, 0:0, {name:Adam, age:30})|Kitchener|200000
 (label:User, 0:0, {name:Adam, age:30})|Waterloo|150000
 
--DEBUG_LOG MatchCyclic
+-LOG MatchCyclic
 -STATEMENT MATCH (a:User)-[:Follows]->(b:User)-[:Follows]->(c:User), (a)-[:Follows]->(c) RETURN a.name, b.name, c.name;
 ---- 1
 Adam|Karissa|Zhang
 
--DEBUG_LOG MatchFilter
+-LOG MatchFilter
 -STATEMENT MATCH (a:User)-[e:Follows {since: 2020}]->(b:User {name: "Zhang"}) RETURN a, e.since, b.name;
 ---- 1
 (label:User, 0:0, {name:Adam, age:30})|2020|Zhang
 
--DEBUG_LOG MatchVarLen
+-LOG MatchVarLen
 -STATEMENT MATCH (a:User)-[:Follows*1..2]->(b:User) RETURN a, b;
 ---- 7
 (label:User, 0:0, {name:Adam, age:30})|(label:User, 0:1, {name:Karissa, age:40})
@@ -101,7 +101,7 @@ Adam|Karissa|Zhang
 (label:User, 0:1, {name:Karissa, age:40})|(label:User, 0:3, {name:Noura, age:25})
 (label:User, 0:2, {name:Zhang, age:50})|(label:User, 0:3, {name:Noura, age:25})
 
--DEBUG_LOG OptionalMatch1
+-LOG OptionalMatch1
 -STATEMENT MATCH (u:User) OPTIONAL MATCH (u)-[:Follows]->(u1:User) RETURN u.name, u1.name;
 ---- 5
 Adam|Karissa
@@ -110,7 +110,7 @@ Karissa|Zhang
 Zhang|Noura
 Noura|
 
--DEBUG_LOG Return1
+-LOG Return1
 -STATEMENT MATCH (a:User)-[e:Follows]->(b:User) RETURN a, e;
 ---- 4
 (label:User, 0:0, {name:Adam, age:30})|(0:0)-[label:Follows, {_id:2:0, since:2020}]->(0:1)
@@ -118,7 +118,7 @@ Noura|
 (label:User, 0:1, {name:Karissa, age:40})|(0:1)-[label:Follows, {_id:2:2, since:2021}]->(0:2)
 (label:User, 0:2, {name:Zhang, age:50})|(0:2)-[label:Follows, {_id:2:3, since:2022}]->(0:3)
 
--DEBUG_LOG Return2
+-LOG Return2
 -STATEMENT MATCH (a:User)-[:Follows]->(b:User) RETURN *;
 ---- 4
 (label:User, 0:0, {name:Adam, age:30})|(label:User, 0:1, {name:Karissa, age:40})
@@ -126,7 +126,7 @@ Noura|
 (label:User, 0:1, {name:Karissa, age:40})|(label:User, 0:2, {name:Zhang, age:50})
 (label:User, 0:2, {name:Zhang, age:50})|(label:User, 0:3, {name:Noura, age:25})
 
--DEBUG_LOG Return3
+-LOG Return3
 -STATEMENT MATCH (a:User)-[e:Follows]->(b:User) RETURN a.name, a.age, e.since;
 ---- 4
 Adam|30|2020
@@ -134,103 +134,103 @@ Adam|30|2020
 Karissa|40|2021
 Zhang|50|2022
 
--DEBUG_LOG ReturnDistinct
+-LOG ReturnDistinct
 -STATEMENT MATCH (a:User)-[e:Follows]->(b:User) RETURN DISTINCT a.name, a.age, e.since;
 ---- 3
 Adam|30|2020
 Karissa|40|2021
 Zhang|50|2022
 
--DEBUG_LOG ReturnGroupByAgg
+-LOG ReturnGroupByAgg
 -STATEMENT MATCH (a:User)-[e:Follows]->(b:User) RETURN a, avg(b.age) as avgFriendAge;
 ---- 3
 (label:User, 0:0, {name:Adam, age:30})|45.000000
 (label:User, 0:1, {name:Karissa, age:40})|50.000000
 (label:User, 0:2, {name:Zhang, age:50})|25.000000
 
--DEBUG_LOG ReturnGroupByAgg2
+-LOG ReturnGroupByAgg2
 -STATEMENT MATCH (u:User)-[:LivesIn]->(c:City) RETURN c.name, COUNT(*);
 ---- 3
 Guelph|1
 Kitchener|1
 Waterloo|2
 
--DEBUG_LOG Skip1
+-LOG Skip1
 -STATEMENT MATCH (u:User) RETURN u.name ORDER BY u.age SKIP 2;
 ---- 2
 Karissa
 Zhang
 
--DEBUG_LOG Union1
+-LOG Union1
 -STATEMENT MATCH (u1:User)-[:LivesIn]->(c1:City) WHERE c1.name = "Waterloo" RETURN u1.name UNION ALL MATCH (u2:User)-[:LivesIn]->(c2:City) WHERE c2.name = "Kitchener" RETURN u2.name;
 ---- 3
 Karissa
 Adam
 Zhang
 
--DEBUG_LOG Union2
+-LOG Union2
 -STATEMENT MATCH (u1:User)-[:Follows]->(u2:User) WHERE u2.name = 'Zhang' RETURN u1.age UNION ALL MATCH (u3:User)-[:Follows]->(u4:User) WHERE u4.name = 'Karissa' RETURN u3.age;
 ---- 3
 30
 40
 30
 
--DEBUG_LOG Union3
+-LOG Union3
 -STATEMENT MATCH (u1:User)-[:Follows]->(u2:User) WHERE u2.name = 'Zhang' RETURN u1.age UNION MATCH (u3:User)-[:Follows]->(u4:User) WHERE u4.name = 'Karissa' RETURN u3.age;
 ---- 2
 30
 40
 
--DEBUG_LOG Unwind1
+-LOG Unwind1
 -STATEMENT UNWIND ["Amy", "Bob", "Carol"] AS x RETURN 'name' as name, x;
 ---- 3
 name|Amy
 name|Bob
 name|Carol
 
--DEBUG_LOG Unwind2
+-LOG Unwind2
 -STATEMENT UNWIND [["Amy"], ["Bob", "Carol"]] AS x RETURN x;
 ---- 2
 [Amy]
 [Bob,Carol]
 
--DEBUG_LOG Where1
+-LOG Where1
 -STATEMENT MATCH (a:User) WHERE a.age > 45 OR starts_with(a.name, "Kar") RETURN *;
 ---- 2
 (label:User, 0:1, {name:Karissa, age:40})
 (label:User, 0:2, {name:Zhang, age:50})
 
--DEBUG_LOG Where2
+-LOG Where2
 -STATEMENT MATCH (a:User) WHERE a.age IS NOT NULL AND starts_with(a.name, "Kar") RETURN *;
 ---- 1
 (label:User, 0:1, {name:Karissa, age:40})
 
--DEBUG_LOG WhereExists1
+-LOG WhereExists1
 -STATEMENT MATCH (a:User) WHERE a.age < 100 AND EXISTS { MATCH (a)-[:Follows*3..3]->(b:User)} RETURN a.name, a.age;
 ---- 1
 Adam|30
 
--DEBUG_LOG WhereExists2
+-LOG WhereExists2
 -STATEMENT MATCH (a:User) WHERE a.age < 100 AND EXISTS { MATCH (a)-[:Follows*3..3]->(b:User) WHERE EXISTS {MATCH (b)-[:Follows]->(c:User)} } RETURN a.name, a.age;
 ---- 0
 
--DEBUG_LOG WhereExists3
+-LOG WhereExists3
 -STATEMENT MATCH (a:User) WHERE a.age < 100 AND EXISTS { MATCH (a)-[:Follows*3..3]->(b:User) WHERE EXISTS {MATCH (b)<-[:Follows]-(c:User)} } RETURN a.name, a.age;
 ---- 1
 Adam|30
 
--DEBUG_LOG With1
+-LOG With1
 -STATEMENT MATCH (a:User) WITH avg(a.age) as avgAge MATCH (b:User) WHERE b.age > avgAge RETURN *;
 ---- 2
 36.250000|(label:User, 0:1, {name:Karissa, age:40})
 36.250000|(label:User, 0:2, {name:Zhang, age:50})
 
--DEBUG_LOG With2
+-LOG With2
 -STATEMENT MATCH (a:User) WITH a ORDER BY a.age DESC LIMIT 1 MATCH (a)-[:Follows]->(b:User) RETURN *;
 ---- 1
 (label:User, 0:2, {name:Zhang, age:50})|(label:User, 0:3, {name:Noura, age:25})
 
--DEBUG_LOG Undir1
+-LOG Undir1
 -STATEMENT MATCH (a:User)-[:Follows]-(b:User) RETURN a.name, b.age;
 ---- 8
 Adam|40
@@ -242,7 +242,7 @@ Zhang|30
 Zhang|40
 Noura|50
 
--DEBUG_LOG Undir2
+-LOG Undir2
 -STATEMENT MATCH (a:User)-[:LivesIn]-(c:City) RETURN a.name, c.name;
 ---- 8
 Adam|Waterloo
@@ -254,7 +254,7 @@ Waterloo|Adam
 Kitchener|Zhang
 Guelph|Noura
 
--DEBUG_LOG Undir3
+-LOG Undir3
 -STATEMENT MATCH ()-[]-() RETURN COUNT(*);
 ---- 1
 16

@@ -6,7 +6,7 @@
 -CASE CopyLargeList
 
 # p0 has 5001 fwd edges to p0...p5000
--DEBUG_LOG ForwardCheck
+-LOG ForwardCheck
 -STATEMENT MATCH (p0:person)-[r:knows]->(p1:person) WHERE p0.ID = 0 RETURN COUNT(*)
 ---- 1
 5001
@@ -15,29 +15,29 @@
 <FILE>:copy_large_list_fwd_answer.txt
 
 # p0 has only 1 bwd edge, which from itself
--DEBUG_LOG BackwardCheck
+-LOG BackwardCheck
 -STATEMENT match (p0:person)<-[r:knows]-(p1:person) WHERE p0.ID = 0 RETURN p0.ID, ID(r), p1.ID
 ---- 1
 0|1:0|0
 
 # p1,p2,...,p5000 have a single fwd edge to p5000 and 1 bwd edge from node p0
--DEBUG_LOG OneSingleForwardEdge
+-LOG OneSingleForwardEdge
 -STATEMENT MATCH (p0:person)-[r:knows]->(p1:person) WHERE p0.ID > 0 AND p0.ID < 5001 AND p1.ID = 5000 RETURN p0.ID, ID(r), p1.ID
 ---- 1
 <FILE>:copy_large_list_single_fwd_answer.txt
 
--DEBUG_LOG OneBackwardEdge
+-LOG OneBackwardEdge
 -STATEMENT MATCH (p0:person)<-[r:knows]-(p1:person) WHERE p0.ID > 0 AND p0.ID < 5001 AND p1.ID = 0 RETURN p0.ID, ID(r), p1.ID;
 ---- 1
 <FILE>:copy_large_list_single_bwd_answer.txt
 
 # p5001 to p6000 are singletons
--DEBUG_LOG SingletonNodeForwardCheck
+-LOG SingletonNodeForwardCheck
 -STATEMENT MATCH (p0:person)-[r:knows]->(p1:person) WHERE p0.ID > 5000 and p0.ID < 6000 RETURN COUNT(*)
 ---- 1
 0
 
--DEBUG_LOG SingletonNodeBackwardCheck
+-LOG SingletonNodeBackwardCheck
 -STATEMENT MATCH (p0:person)<-[r:knows]-(p1:person) WHERE p0.ID > 5000 and p0.ID < 6000 RETURN COUNT(*)
 ---- 1
 0

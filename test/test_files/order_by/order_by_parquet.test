@@ -15,7 +15,7 @@
 
 -CASE OrderByLargeDatasetTestParquet
 
--DEBUG_LOG OrderByWithLimitTest
+-LOG OrderByWithLimitTest
 -STATEMENT MATCH (p:person) RETURN p.balance ORDER BY p.balance limit 25
 -PARALLELISM 6
 -CHECK_ORDER
@@ -47,7 +47,7 @@
 -492829
 -492721
 
--DEBUG_LOG OrderByInt64Test
+-LOG OrderByInt64Test
 -STATEMENT MATCH (p:person) RETURN p.studentID ORDER BY p.studentID
 -PARALLELISM 2
 -CHECK_ORDER

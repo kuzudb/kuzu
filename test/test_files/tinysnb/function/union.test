@@ -5,12 +5,12 @@
 
 -CASE FunctionUnion
 
--DEBUG_LOG UnionValueOnLiteral
+-LOG UnionValueOnLiteral
 -STATEMENT RETURN union_value(age := 36)
 ---- 1
 36
 
--DEBUG_LOG UnionValueOnExpr
+-LOG UnionValueOnExpr
 -STATEMENT MATCH (p:person)-[:knows]->(p1:person) return union_value(age := p.age), union_value(age := p1.age)
 ---- 14
 35|30
@@ -28,7 +28,7 @@
 20|25
 20|40
 
--DEBUG_LOG UnionValueOnList
+-LOG UnionValueOnList
 -STATEMENT MATCH (p:person) RETURN union_value(workedHours := p.workedHours)
 ---- 8
 [10,5]
@@ -40,17 +40,17 @@
 [1]
 [10,11,12,3,4,5,6,7]
 
--DEBUG_LOG UnionTagOnLiteral
+-LOG UnionTagOnLiteral
 -STATEMENT RETURN union_tag(union_value(numTuples := 100))
 ---- 1
 NUMTUPLES
 
--DEBUG_LOG UnionTagOnLongString
+-LOG UnionTagOnLongString
 -STATEMENT RETURN union_tag(union_value(longStringField := "This is a long string"))
 ---- 1
 LONGSTRINGFIELD
 
--DEBUG_LOG UnionTagOnExpr
+-LOG UnionTagOnExpr
 -STATEMENT MATCH (p:person)-[:knows]->(p1:person) return union_tag(union_value(age := p.age)), union_tag(union_value(PERSON_id := p1.ID))
 ---- 14
 AGE|PERSON_ID
@@ -68,12 +68,12 @@ AGE|PERSON_ID
 AGE|PERSON_ID
 AGE|PERSON_ID
 
--DEBUG_LOG UnionExtractOnLiteral
+-LOG UnionExtractOnLiteral
 -STATEMENT RETURN union_extract(union_value(numTuples := 100), 'numTuples')
 ---- 1
 100
 
--DEBUG_LOG UnionExtractOnFlatUnflatExpr
+-LOG UnionExtractOnFlatUnflatExpr
 -STATEMENT MATCH (p:person)-[:knows]->(p1:person) return union_extract(union_value(age := p.age), 'age'), union_extract(union_value(age := p1.age), 'age')
 ---- 14
 35|30

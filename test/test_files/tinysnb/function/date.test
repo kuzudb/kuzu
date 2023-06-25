@@ -5,12 +5,12 @@
 
 -CASE FunctionDate
 
--DEBUG_LOG DateLiteralEqualityComparison
+-LOG DateLiteralEqualityComparison
 -STATEMENT MATCH (a:person) WHERE a.birthdate = date('1900-1-1') RETURN COUNT(*)
 ---- 1
 2
 
--DEBUG_LOG StructuredDateArithmeticAddInt
+-LOG StructuredDateArithmeticAddInt
 -STATEMENT MATCH (a:person) RETURN a.birthdate + 32
 ---- 8
 1900-02-02
@@ -22,7 +22,7 @@
 1980-11-27
 1990-12-29
 
--DEBUG_LOG IntArithmeticAddStructuredDate
+-LOG IntArithmeticAddStructuredDate
 -STATEMENT MATCH (a:person) RETURN 32 + a.birthdate
 ---- 8
 1900-02-02
@@ -34,7 +34,7 @@
 1980-11-27
 1990-12-29
 
--DEBUG_LOG StructuredDateArithmeticAddInterval1
+-LOG StructuredDateArithmeticAddInterval1
 -STATEMENT MATCH (a:person) WHERE a.birthdate <> date('1900-01-01') RETURN a.birthdate + interval('2 years 3 months 4 days')
 ---- 6
 1942-09-26
@@ -44,7 +44,7 @@
 1983-01-30
 1993-03-03
 
--DEBUG_LOG StructuredDateArithmeticAddInterval2
+-LOG StructuredDateArithmeticAddInterval2
 -STATEMENT MATCH (a:person) WHERE a.birthdate <> date('1900-01-01') RETURN a.birthdate + interval('47 hours 60 minutes')
 ---- 6
 1940-06-24
@@ -54,7 +54,7 @@
 1980-10-28
 1990-11-29
 
--DEBUG_LOG structuredDateArithmeticSubtractInt
+-LOG structuredDateArithmeticSubtractInt
 -STATEMENT MATCH (a:person) WHERE a.birthdate <> date('1900-01-01') RETURN a.birthdate - 25
 ---- 6
 1940-05-28
@@ -64,7 +64,7 @@
 1980-10-01
 1990-11-02
 
--DEBUG_LOG StructuredDateArithmeticSubtractInterval
+-LOG StructuredDateArithmeticSubtractInterval
 -STATEMENT MATCH (a:person) WHERE a.birthdate <> date('1900-01-01') RETURN a.birthdate - interval('4 years 11 months 31 days 100 seconds')
 ---- 6
 1935-06-21
@@ -74,7 +74,7 @@
 1975-10-26
 1985-11-26
 
--DEBUG_LOG StructuredDateArithmeticSubtractDate
+-LOG StructuredDateArithmeticSubtractDate
 -STATEMENT MATCH (a:person) RETURN a.birthdate - date('1920-03-21')
 ---- 8
 -7384
@@ -86,7 +86,7 @@
 25818
 7398
 
--DEBUG_LOG StructuredDateMixedArithmeticOperations
+-LOG StructuredDateMixedArithmeticOperations
 -STATEMENT MATCH (a:person) RETURN a.birthdate + 10 - interval('4 years 2 months 3 days') - 20 - date('1912-04-12');
 ---- 8
 -6019
@@ -98,7 +98,7 @@
 23499
 27183
 
--DEBUG_LOG StructuredDateConcatenateString
+-LOG StructuredDateConcatenateString
 -STATEMENT MATCH (a:person) RETURN concat(concat('Birthdate: ', string(a.birthdate)), ' test')
 ---- 8
 Birthdate: 1900-01-01 test
@@ -110,7 +110,7 @@ Birthdate: 1980-10-26 test
 Birthdate: 1980-10-26 test
 Birthdate: 1990-11-27 test
 
--DEBUG_LOG StructuredDateDayNameFuncTest
+-LOG StructuredDateDayNameFuncTest
 -STATEMENT MATCH (p:person) RETURN dayname(p.birthdate)
 ---- 8
 Monday
@@ -122,7 +122,7 @@ Sunday
 Sunday
 Tuesday
 
--DEBUG_LOG StructuredDateMonthNameFuncTest
+-LOG StructuredDateMonthNameFuncTest
 -STATEMENT MATCH (p:person) RETURN monthname(p.birthdate)
 ---- 8
 January
@@ -134,7 +134,7 @@ October
 October
 November
 
--DEBUG_LOG StructuredDateLastDayFuncTest
+-LOG StructuredDateLastDayFuncTest
 -STATEMENT MATCH (p:person) RETURN last_day(p.birthdate)
 ---- 8
 1900-01-31
@@ -146,7 +146,7 @@ November
 1980-10-31
 1990-11-30
 
--DEBUG_LOG StructuredDateExtractYearFuncTest
+-LOG StructuredDateExtractYearFuncTest
 -STATEMENT MATCH (p:person) RETURN date_part("year", p.birthdate)
 ---- 8
 1900
@@ -158,7 +158,7 @@ November
 1980
 1990
 
--DEBUG_LOG StructuredDateExtractMonthFuncTest
+-LOG StructuredDateExtractMonthFuncTest
 -STATEMENT MATCH (p:person) RETURN date_part("month", p.birthdate)
 ---- 8
 1
@@ -170,7 +170,7 @@ November
 10
 11
 
--DEBUG_LOG StructuredDateExtractDayFuncTest
+-LOG StructuredDateExtractDayFuncTest
 -STATEMENT MATCH (p:person) RETURN date_part("Day", p.birthdate)
 ---- 8
 1
@@ -182,7 +182,7 @@ November
 26
 27
 
--DEBUG_LOG StructuredDateExtractDecadeFuncTest
+-LOG StructuredDateExtractDecadeFuncTest
 -STATEMENT MATCH (p:person) RETURN date_part("decadE", p.birthdate)
 ---- 8
 190
@@ -194,7 +194,7 @@ November
 198
 199
 
--DEBUG_LOG StructuredDateExtractCenturyFuncTest
+-LOG StructuredDateExtractCenturyFuncTest
 -STATEMENT MATCH (p:person) RETURN date_part("cenTury", p.birthdate)
 ---- 8
 19
@@ -206,7 +206,7 @@ November
 20
 20
 
--DEBUG_LOG StructuredDateExtractMillenniumFuncTest
+-LOG StructuredDateExtractMillenniumFuncTest
 -STATEMENT MATCH (p:person) RETURN date_part("millenniuM", p.birthdate)
 ---- 8
 2
@@ -218,7 +218,7 @@ November
 2
 2
 
--DEBUG_LOG StructuredDateExtractQuarterFuncTest
+-LOG StructuredDateExtractQuarterFuncTest
 -STATEMENT MATCH (p:person) RETURN date_part("quarTer", p.birthdate)
 ---- 8
 1
@@ -230,7 +230,7 @@ November
 4
 4
 
--DEBUG_LOG StructuredDateExtractMicroSecondsFuncTest
+-LOG StructuredDateExtractMicroSecondsFuncTest
 -STATEMENT MATCH (p:person) RETURN date_part("microseconds", p.birthdate)
 ---- 8
 0
@@ -242,7 +242,7 @@ November
 0
 0
 
--DEBUG_LOG StructuredDateTruncYearFuncTest
+-LOG StructuredDateTruncYearFuncTest
 -STATEMENT MATCH (p:person) RETURN date_trunc("year", p.birthdate)
 ---- 8
 1900-01-01
@@ -254,7 +254,7 @@ November
 1980-01-01
 1990-01-01
 
--DEBUG_LOG StructuredDateTruncMonthFuncTest
+-LOG StructuredDateTruncMonthFuncTest
 -STATEMENT MATCH (p:person) RETURN date_trunc("month", p.birthdate)
 ---- 8
 1900-01-01
@@ -266,7 +266,7 @@ November
 1980-10-01
 1990-11-01
 
--DEBUG_LOG StructuredDateTruncDayFuncTest
+-LOG StructuredDateTruncDayFuncTest
 -STATEMENT MATCH (p:person) RETURN date_trunc("Day", p.birthdate)
 ---- 8
 1900-01-01
@@ -278,7 +278,7 @@ November
 1980-10-26
 1990-11-27
 
--DEBUG_LOG StructuredDateTruncDecadeFuncTest
+-LOG StructuredDateTruncDecadeFuncTest
 -STATEMENT MATCH (p:person) RETURN date_trunc("decadE", p.birthdate)
 ---- 8
 1900-01-01
@@ -290,7 +290,7 @@ November
 1980-01-01
 1990-01-01
 
--DEBUG_LOG StructuredDateTruncCenturyFuncTest
+-LOG StructuredDateTruncCenturyFuncTest
 -STATEMENT MATCH (p:person) RETURN date_trunc("cenTury", p.birthdate)
 ---- 8
 1900-01-01
@@ -302,7 +302,7 @@ November
 1900-01-01
 1900-01-01
 
--DEBUG_LOG StructuredDateTruncMillenniumFuncTest
+-LOG StructuredDateTruncMillenniumFuncTest
 -STATEMENT MATCH (p:person) RETURN date_trunc("millenniuM", p.birthdate)
 ---- 8
 1000-01-01
@@ -314,7 +314,7 @@ November
 1000-01-01
 1000-01-01
 
--DEBUG_LOG StructuredDateTruncQuarterFuncTest
+-LOG StructuredDateTruncQuarterFuncTest
 -STATEMENT MATCH (p:person) RETURN date_trunc("quarTer", p.birthdate)
 ---- 8
 1900-01-01
@@ -326,7 +326,7 @@ November
 1980-10-01
 1990-10-01
 
--DEBUG_LOG StructuredDateTruncSecondFuncTest
+-LOG StructuredDateTruncSecondFuncTest
 -STATEMENT MATCH (p:person) RETURN date_trunc("second", p.birthdate)
 ---- 8
 1900-01-01
@@ -338,7 +338,7 @@ November
 1980-10-26
 1990-11-27
 
--DEBUG_LOG StructuredDateGreatestFuncTest
+-LOG StructuredDateGreatestFuncTest
 -STATEMENT MATCH (p:person) RETURN greatest(p.birthdate, date("1980-10-02"))
 ---- 8
 1980-10-02
@@ -350,7 +350,7 @@ November
 1980-10-26
 1990-11-27
 
--DEBUG_LOG StructuredDateLeastFuncTest
+-LOG StructuredDateLeastFuncTest
 -STATEMENT MATCH (p:person) RETURN least(p.birthdate, date("1980-10-02"))
 ---- 8
 1900-01-01
@@ -362,58 +362,58 @@ November
 1980-10-02
 1980-10-02
 
--DEBUG_LOG StructuredIntMakeDateTest
+-LOG StructuredIntMakeDateTest
 -STATEMENT MATCH (o:organisation) RETURN make_date(o.orgCode * 3, o.ID, 20)
 ---- 3
 0975-01-20
 2802-04-20
 2472-06-20
 
--DEBUG_LOG StructuredDateComparisonAcrossNodesNonEquality
+-LOG StructuredDateComparisonAcrossNodesNonEquality
 -STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WHERE a.birthdate <> b.birthdate RETURN COUNT(*)
 ---- 1
 10
 
--DEBUG_LOG StructuredDateComparisonAcrossNodesLessThan
+-LOG StructuredDateComparisonAcrossNodesLessThan
 -STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WHERE a.birthdate < b.birthdate RETURN COUNT(*)
 ---- 1
 5
 
--DEBUG_LOG StructuredDateComparisonAcrossNodesLessThanOrEqualTo
+-LOG StructuredDateComparisonAcrossNodesLessThanOrEqualTo
 -STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WHERE a.birthdate <= b.birthdate RETURN COUNT(*)
 ---- 1
 9
 
--DEBUG_LOG StructuredDateComparisonAcrossNodesGreaterThan
+-LOG StructuredDateComparisonAcrossNodesGreaterThan
 -STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WHERE a.birthdate > b.birthdate RETURN COUNT(*)
 ---- 1
 5
 
--DEBUG_LOG DateLiteralGreaterThanComparison
+-LOG DateLiteralGreaterThanComparison
 -STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WHERE b.birthdate > date('1970-09-11') RETURN COUNT(*)
 -ENUMERATE
 ---- 1
 2
 
--DEBUG_LOG DateLiteralLessThanComparison
+-LOG DateLiteralLessThanComparison
 -STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WHERE e1.date < date('1960-09-11') RETURN COUNT(*)
 -ENUMERATE
 ---- 1
 6
 
--DEBUG_LOG StructuredDateComparisonAcrossNodesEquality
+-LOG StructuredDateComparisonAcrossNodesEquality
 -STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WHERE a.birthdate = b.birthdate RETURN COUNT(*)
 -ENUMERATE
 ---- 1
 4
 
--DEBUG_LOG StructuredDateComparisonAcrossNodesGreaterThanOrEqualTo
+-LOG StructuredDateComparisonAcrossNodesGreaterThanOrEqualTo
 -STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WHERE a.birthdate >= b.birthdate RETURN COUNT(*)
 -ENUMERATE
 ---- 1
 9
 
--DEBUG_LOG StructuredDateComparisonAcrossEdges
+-LOG StructuredDateComparisonAcrossEdges
 -STATEMENT MATCH (a:person)<-[e1:knows]-(b:person)-[e2:knows]->(c:person) WHERE e1.date = e2.date AND id(a) <> id(c) RETURN COUNT(*)
 -ENUMERATE
 ---- 1
@@ -421,7 +421,7 @@ November
 
 #  For the below query, these are the 3 edges that should pass the filter: (1) 5, 2,1950-05-14 (5's birthday is 1950-7-23)
 #  (2-3) 7,8,1905-12-12 and 7,9,1905-12-12 (7's birthday is 1980-10-26)
--DEBUG_LOG StructuredDateComparisonAcrossEdgeAndNode
+-LOG StructuredDateComparisonAcrossEdgeAndNode
 -STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WHERE a.birthdate > e1.date  RETURN COUNT(*)
 -ENUMERATE
 ---- 1

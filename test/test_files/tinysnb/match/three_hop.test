@@ -5,29 +5,29 @@
 
 -CASE MatchThreeHop
 
--DEBUG_LOG ThreeHopTwoKnowsOneWorkAtTest
+-LOG ThreeHopTwoKnowsOneWorkAtTest
 -STATEMENT MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person)-[e3:workAt]->(d:organisation) RETURN COUNT(*)
 ---- 1
 18
 
--DEBUG_LOG OpenWedgeKnowsTest3
+-LOG OpenWedgeKnowsTest3
 -STATEMENT MATCH (b:person)<-[e1:knows]-(a:person)-[e2:knows]->(c:person),(a)-[e3:knows]->(d:person) RETURN COUNT(*)
 ---- 1
 116
 
--DEBUG_LOG ThreeHopKnowsTest
+-LOG ThreeHopKnowsTest
 -STATEMENT MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person)-[e3:knows]->(d:person) RETURN COUNT(*)
 -ENUMERATE
 ---- 1
 108
 
--DEBUG_LOG ThreeHopTwoKnowsOneStudyAtTest
+-LOG ThreeHopTwoKnowsOneStudyAtTest
 -STATEMENT MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person)-[e3:studyAt]->(d:organisation) RETURN COUNT(*)
 -ENUMERATE
 ---- 1
 18
 
--DEBUG_LOG OpenWedgeKnowsTest4
+-LOG OpenWedgeKnowsTest4
 -STATEMENT MATCH (b:person)-[e1:knows]->(a:person)<-[e2:knows]-(c:person),(a)<-[e3:knows]-(d:person) RETURN COUNT(*)
 -ENUMERATE
 ---- 1

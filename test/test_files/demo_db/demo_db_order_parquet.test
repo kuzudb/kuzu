@@ -5,7 +5,7 @@
 
 -CASE DemoDBOrderedTestFromParquet
 
--DEBUG_LOG OrderBy1
+-LOG OrderBy1
 -CHECK_ORDER
 -STATEMENT MATCH (u:User) RETURN u.name, u.age ORDER BY u.age;
 ---- 4
@@ -14,14 +14,14 @@ Adam|30
 Karissa|40
 Zhang|50
 
--DEBUG_LOG OrderBy2
+-LOG OrderBy2
 -CHECK_ORDER
 -STATEMENT MATCH (u:User)-[:LivesIn]->(c:City) WHERE c.name = "Waterloo" RETURN u.name, u.age ORDER BY u.age DESC;
 ---- 2
 Karissa|40
 Adam|30
 
--DEBUG_LOG OrderBy3
+-LOG OrderBy3
 -CHECK_ORDER
 -STATEMENT MATCH (a:User)-[:Follows]->(b:User) RETURN b.age, a.name ORDER BY b.age DESC, a.name DESC;
 ---- 4

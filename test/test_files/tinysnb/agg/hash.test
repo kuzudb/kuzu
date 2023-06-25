@@ -5,7 +5,7 @@
 
 -CASE AggHash
 
--DEBUG_LOG SingleNodeAggTest
+-LOG SingleNodeAggTest
 -STATEMENT MATCH (a:person) RETURN a.age, MIN(a.ID), AVG(a.eyeSight), COUNT(*)
 ---- 7
 20|5|4.750000|2
@@ -16,7 +16,7 @@
 45|3|5.000000|1
 83|10|4.900000|1
 
--DEBUG_LOG InMemOverflowBufferTest
+-LOG InMemOverflowBufferTest
 -STATEMENT MATCH (a:person) RETURN a.fName as name, COUNT(*) order by name desc
 -PARALLELISM 1
 ---- 8
@@ -29,13 +29,13 @@ Carol|1
 Bob|1
 Alice|1
 
--DEBUG_LOG SingleNodeDistinctTest
+-LOG SingleNodeDistinctTest
 -STATEMENT MATCH (a:person) RETURN DISTINCT a.gender
 ---- 2
 1
 2
 
--DEBUG_LOG OneHopAggTest
+-LOG OneHopAggTest
 -STATEMENT MATCH (a:person)-[:knows]->(b:person) RETURN a.age, a.gender, COUNT(*)
 -ENUMERATE
 -PARALLELISM 2
@@ -46,7 +46,7 @@ Alice|1
 35|1|3
 45|1|3
 
--DEBUG_LOG OneHopHashAggTest
+-LOG OneHopHashAggTest
 -STATEMENT MATCH (a:person)-[:knows]->(b:person) RETURN a.gender, COUNT(*), SUM(b.age)
 -PARALLELISM 3
 -ENUMERATE
@@ -54,7 +54,7 @@ Alice|1
 1|8|245
 2|6|210
 
--DEBUG_LOG TwoHopAggTest
+-LOG TwoHopAggTest
 -STATEMENT MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) RETURN a.gender, COUNT(*), COUNT(DISTINCT b.age)
 -PARALLELISM 5
 -ENUMERATE
@@ -62,7 +62,7 @@ Alice|1
 1|18|4
 2|18|4
 
--DEBUG_LOG OneHopAggFlatUnflatVecTest
+-LOG OneHopAggFlatUnflatVecTest
 -STATEMENT MATCH (a:person)-[:knows]->(b:person) RETURN a.ID, b.gender, sum(b.age)
 -PARALLELISM 6
 -ENUMERATE
@@ -77,7 +77,7 @@ Alice|1
 5|2|30
 7|2|65
 
--DEBUG_LOG OneHopAggFlatUnflatVecWithNonHashKeyTest
+-LOG OneHopAggFlatUnflatVecWithNonHashKeyTest
 -STATEMENT MATCH (a:person)-[:knows]->(b:person) RETURN a.ID, a.gender, b.gender, sum(b.age)
 -ENUMERATE
 ---- 9
@@ -91,7 +91,7 @@ Alice|1
 5|2|2|30
 7|1|2|65
 
--DEBUG_LOG OneHopDistinctTest
+-LOG OneHopDistinctTest
 -STATEMENT MATCH (a:person)-[:knows]->(b:person) RETURN DISTINCT a.gender, b.isStudent
 -ENUMERATE
 ---- 4
@@ -100,7 +100,7 @@ Alice|1
 2|False
 2|True
 
--DEBUG_LOG TwoHopDistinctTest
+-LOG TwoHopDistinctTest
 -STATEMENT MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) RETURN DISTINCT a.ID + 1
 -ENUMERATE
 ---- 4
@@ -109,13 +109,13 @@ Alice|1
 4
 6
 
--DEBUG_LOG HashCollectINT64Test
+-LOG HashCollectINT64Test
 -STATEMENT MATCH (p:person) RETURN p.gender, collect(p.age)
 ---- 2
 1|[35,45,20]
 2|[30,20,25,40,83]
 
--DEBUG_LOG HashCollectFloatTest
+-LOG HashCollectFloatTest
 -STATEMENT MATCH (p:person) RETURN p.height, collect(p.eyeSight)
 ---- 8
 1.731000|[5.000000]
@@ -127,7 +127,7 @@ Alice|1
 1.600000|[4.900000]
 1.323000|[4.900000]
 
--DEBUG_LOG HashCollectSTRINGTest
+-LOG HashCollectSTRINGTest
 -STATEMENT MATCH (p:person) RETURN p.age, collect(p.fName)
 ---- 7
 35|[Alice]
@@ -138,26 +138,26 @@ Alice|1
 40|[Greg]
 83|[Hubert Blaine Wolfeschlegelsteinhausenbergerdorff]
 
--DEBUG_LOG HashCollectBLOBTest
+-LOG HashCollectBLOBTest
 -STATEMENT MATCH (m:movies) RETURN m.length > 130, collect(m.content)
 ---- 2
 False|[\xAA\xABinteresting\x0B]
 True|[\xAB\xCD,pure ascii characters]
 
 
--DEBUG_LOG HashCollectLISTOfINT64Test
+-LOG HashCollectLISTOfINT64Test
 -STATEMENT MATCH (p:person) RETURN p.gender, collect(p.workedHours)
 ---- 2
 1|[[10,5],[4,5],[2]]
 2|[[12,8],[1,9],[3,4,5,6,7],[1],[10,11,12,3,4,5,6,7]]
 
--DEBUG_LOG HashCollectLISTOfSTRINGTest
+-LOG HashCollectLISTOfSTRINGTest
 -STATEMENT MATCH (p:person) RETURN p.isStudent, collect(p.usedNames)
 ---- 2
 True|[[Aida],[Bobby],[Fesdwe]]
 False|[[Carmen,Fred],[Wolfeschlegelstein,Daniel],[Ein],[Grad],[Ad,De,Hi,Kye,Orlan]]
 
--DEBUG_LOG HashCollectLISTOfLISTOfINT64Test
+-LOG HashCollectLISTOfLISTOfINT64Test
 -STATEMENT MATCH (p:person) RETURN p.ID, collect(p.courseScoresPerTerm)
 ---- 8
 0|[[[10,8],[6,7,8]]]
@@ -169,14 +169,14 @@ False|[[Carmen,Fred],[Wolfeschlegelstein,Daniel],[Ein],[Grad],[Ad,De,Hi,Kye,Orla
 9|[[[10]]]
 10|[[[7],[10],[6,7]]]
 
--DEBUG_LOG HashCollectLISTOfSTRINGMultiThreadTest
+-LOG HashCollectLISTOfSTRINGMultiThreadTest
 -STATEMENT MATCH (p:person) RETURN p.isStudent, collect(p.usedNames)
 -PARALLELISM 4
 ---- 2
 True|[[Aida],[Bobby],[Fesdwe]]
 False|[[Carmen,Fred],[Wolfeschlegelstein,Daniel],[Ein],[Grad],[Ad,De,Hi,Kye,Orlan]]
 
--DEBUG_LOG HashCollectOneHopTest
+-LOG HashCollectOneHopTest
 -STATEMENT MATCH (a:person)-[:knows]->(b:person) RETURN a.fName, collect(b.age)
 ---- 5
 Alice|[30,45,20]
@@ -185,20 +185,20 @@ Carol|[35,30,20]
 Dan|[35,30,45]
 Elizabeth|[25,40]
 
--DEBUG_LOG HashCollectOnInt32Test
+-LOG HashCollectOnInt32Test
 -STATEMENT MATCH (m:movies) RETURN m.length, collect(m.name)
 ---- 3
 126|[Sóló cón tu párejâ]
 2544|[The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie]
 298|[Roma]
 
--DEBUG_LOG HashCollectOnInt16Test
+-LOG HashCollectOnInt16Test
 -STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN s.year, collect(s.length)
 ---- 2
 2020|[55,22]
 2021|[5]
 
--DEBUG_LOG HashAggCountBlob
+-LOG HashAggCountBlob
 -STATEMENT MATCH (m:movies) RETURN m.length > 2542, COUNT(m.content)
 -PARALLELISM 4
 -ENUMERATE
@@ -206,7 +206,7 @@ Elizabeth|[25,40]
 False|2
 True|1
 
--DEBUG_LOG HashAggMinBlob
+-LOG HashAggMinBlob
 -STATEMENT MATCH (m:movies) RETURN m.length <> 298, MIN(m.content)
 -PARALLELISM 2
 -ENUMERATE
@@ -214,7 +214,7 @@ True|1
 False|pure ascii characters
 True|\xAA\xABinteresting\x0B
 
--DEBUG_LOG HashAggMaxBlob
+-LOG HashAggMaxBlob
 -STATEMENT MATCH (m:movies) RETURN m.length <> 126, MAX(m.content)
 -PARALLELISM 1
 -ENUMERATE

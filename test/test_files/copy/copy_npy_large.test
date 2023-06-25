@@ -5,12 +5,12 @@
 
 -CASE CopyLargeNpyTest
 
--DEBUG_LOG ID
+-LOG ID
 -STATEMENT MATCH (n:npytable) RETURN n.id
 ---- 20000
 <FILE>:copy_npy_large_id_answer.txt
 
--DEBUG_LOG f32
+-LOG f32
 -STATEMENT MATCH (n:npytable) RETURN n.f32
 ---- 20000
 <FILE>:copy_npy_large_f32_answer.txt
