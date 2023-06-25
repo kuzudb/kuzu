@@ -227,58 +227,51 @@ std::unique_ptr<QueryGraphCollection> QueryGraphCollection::copy() const {
     return result;
 }
 
-void PropertyKeyValCollection::addPropertyKeyValPair(
-    const Expression& variable, expression_pair propertyKeyValPair) {
-    auto varName = variable.getUniqueName();
-    if (!varNameToPropertyKeyValPairs.contains(varName)) {
-        varNameToPropertyKeyValPairs.insert(
-            {varName, std::unordered_map<std::string, expression_pair>{}});
+void PropertyKeyValCollection::addKeyVal(
+    std::shared_ptr<Expression> variable, const std::string& propertyName, expression_pair keyVal) {
+    if (!propertyKeyValMap.contains(variable)) {
+        propertyKeyValMap.insert({variable, std::unordered_map<std::string, expression_pair>{}});
     }
-    auto property = (PropertyExpression*)propertyKeyValPair.first.get();
-    assert(!varNameToPropertyKeyValPairs.at(varName).contains(property->getPropertyName()));
-    varNameToPropertyKeyValPairs.at(varName).insert(
-        {property->getPropertyName(), std::move(propertyKeyValPair)});
+    propertyKeyValMap.at(variable).insert({propertyName, std::move(keyVal)});
 }
 
-std::vector<expression_pair> PropertyKeyValCollection::getPropertyKeyValPairs(
-    const kuzu::binder::Expression& variable) const {
-    auto varName = variable.getUniqueName();
-    if (!varNameToPropertyKeyValPairs.contains(varName)) {
-        return std::vector<expression_pair>{};
-    }
+std::vector<expression_pair> PropertyKeyValCollection::getKeyVals() const {
     std::vector<expression_pair> result;
-    for (auto& [_, setItem] : varNameToPropertyKeyValPairs.at(varName)) {
-        result.push_back(setItem);
-    }
-    return result;
-}
-
-std::vector<expression_pair> PropertyKeyValCollection::getAllPropertyKeyValPairs() const {
-    std::vector<expression_pair> result;
-    for (auto& [varName, keyValPairsMap] : varNameToPropertyKeyValPairs) {
-        for (auto& [propertyName, keyValPairs] : keyValPairsMap) {
-            result.push_back(keyValPairs);
+    for (auto& [_, keyVals] : propertyKeyValMap) {
+        for (auto& [_, keyVal] : keyVals) {
+            result.push_back(keyVal);
         }
     }
     return result;
 }
 
-bool PropertyKeyValCollection::hasPropertyKeyValPair(
-    const Expression& variable, const std::string& propertyName) const {
-    auto varName = variable.getUniqueName();
-    if (!varNameToPropertyKeyValPairs.contains(varName)) {
+std::vector<expression_pair> PropertyKeyValCollection::getKeyVals(
+    std::shared_ptr<Expression> variable) const {
+    std::vector<expression_pair> result;
+    if (!propertyKeyValMap.contains(variable)) {
+        return result;
+    }
+    for (auto& [_, keyVal] : propertyKeyValMap.at(variable)) {
+        result.push_back(keyVal);
+    }
+    return result;
+}
+
+bool PropertyKeyValCollection::hasKeyVal(
+    std::shared_ptr<Expression> variable, const std::string& propertyName) const {
+    if (!propertyKeyValMap.contains(variable)) {
         return false;
     }
-    if (!varNameToPropertyKeyValPairs.at(varName).contains(propertyName)) {
+    if (!propertyKeyValMap.at(variable).contains(propertyName)) {
         return false;
     }
     return true;
 }
 
-expression_pair PropertyKeyValCollection::getPropertyKeyValPair(
-    const Expression& variable, const std::string& propertyName) const {
-    assert(hasPropertyKeyValPair(variable, propertyName));
-    return varNameToPropertyKeyValPairs.at(variable.getUniqueName()).at(propertyName);
+expression_pair PropertyKeyValCollection::getKeyVal(
+    std::shared_ptr<Expression> variable, const std::string& propertyName) const {
+    assert(hasKeyVal(variable, propertyName));
+    return propertyKeyValMap.at(variable).at(propertyName);
 }
 
 } // namespace binder

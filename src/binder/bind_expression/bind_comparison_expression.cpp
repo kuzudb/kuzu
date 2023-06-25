@@ -40,5 +40,11 @@ std::shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
         uniqueExpressionName);
 }
 
+std::shared_ptr<Expression> ExpressionBinder::createEqualityComparisonExpression(
+    std::shared_ptr<Expression> left, std::shared_ptr<Expression> right) {
+    return bindComparisonExpression(
+        common::EQUALS, expression_vector{std::move(left), std::move(right)});
+}
+
 } // namespace binder
 } // namespace kuzu

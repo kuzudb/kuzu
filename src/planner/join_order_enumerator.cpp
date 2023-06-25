@@ -12,7 +12,7 @@ namespace kuzu {
 namespace planner {
 
 std::vector<std::unique_ptr<LogicalPlan>> JoinOrderEnumerator::enumerate(
-    const QueryGraphCollection& queryGraphCollection, expression_vector& predicates) {
+    const QueryGraphCollection& queryGraphCollection, const expression_vector& predicates) {
     assert(queryGraphCollection.getNumQueryGraphs() > 0);
     // project predicates on each query graph
     std::vector<expression_vector> predicatesToPushDownPerGraph;

@@ -26,11 +26,15 @@ private:
         const parser::ParsedExpression& parsedExpression);
     std::shared_ptr<Expression> bindBooleanExpression(
         common::ExpressionType expressionType, const expression_vector& children);
+    std::shared_ptr<Expression> combineConjunctiveExpressions(
+        std::shared_ptr<Expression> left, std::shared_ptr<Expression> right);
 
     std::shared_ptr<Expression> bindComparisonExpression(
         const parser::ParsedExpression& parsedExpression);
     std::shared_ptr<Expression> bindComparisonExpression(
         common::ExpressionType expressionType, const expression_vector& children);
+    std::shared_ptr<Expression> createEqualityComparisonExpression(
+        std::shared_ptr<Expression> left, std::shared_ptr<Expression> right);
 
     std::shared_ptr<Expression> bindNullOperatorExpression(
         const parser::ParsedExpression& parsedExpression);

@@ -20,11 +20,14 @@ struct RecursiveInfo {
     std::shared_ptr<NodeExpression> node;
     std::shared_ptr<RelExpression> rel;
     std::shared_ptr<Expression> lengthExpression;
+    expression_vector predicates;
 
-    RecursiveInfo(size_t lowerBound, size_t upperBound, std::shared_ptr<NodeExpression> node,
-        std::shared_ptr<RelExpression> rel, std::shared_ptr<Expression> lengthExpression)
-        : lowerBound{lowerBound}, upperBound{upperBound}, node{std::move(node)},
-          rel{std::move(rel)}, lengthExpression{std::move(lengthExpression)} {}
+    RecursiveInfo(uint64_t lowerBound, uint64_t upperBound, std::shared_ptr<NodeExpression> node,
+        std::shared_ptr<RelExpression> rel, std::shared_ptr<Expression> lengthExpression,
+        expression_vector predicates)
+        : lowerBound{lowerBound}, upperBound{upperBound}, node{std::move(node)}, rel{std::move(
+                                                                                     rel)},
+          lengthExpression{std::move(lengthExpression)}, predicates{std::move(predicates)} {}
 };
 
 class RelExpression : public NodeOrRelExpression {

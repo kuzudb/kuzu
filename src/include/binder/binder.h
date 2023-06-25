@@ -176,8 +176,7 @@ private:
     std::shared_ptr<RelExpression> createNonRecursiveQueryRel(const std::string& parsedName,
         const std::vector<common::table_id_t>& tableIDs, std::shared_ptr<NodeExpression> srcNode,
         std::shared_ptr<NodeExpression> dstNode, RelDirectionType directionType);
-    std::shared_ptr<RelExpression> createRecursiveQueryRel(const std::string& parsedName,
-        common::QueryRelType relType, uint32_t lowerBound, uint32_t upperBound,
+    std::shared_ptr<RelExpression> createRecursiveQueryRel(const parser::RelPattern& relPattern,
         const std::vector<common::table_id_t>& tableIDs, std::shared_ptr<NodeExpression> srcNode,
         std::shared_ptr<NodeExpression> dstNode, RelDirectionType directionType);
     std::pair<uint64_t, uint64_t> bindVariableLengthRelBound(const parser::RelPattern& relPattern);
@@ -189,6 +188,7 @@ private:
     std::shared_ptr<NodeExpression> createQueryNode(
         const std::string& parsedName, const std::vector<common::table_id_t>& tableIDs);
     void bindQueryNodeProperties(NodeExpression& node);
+
     inline std::vector<common::table_id_t> bindNodeTableIDs(
         const std::vector<std::string>& tableNames) {
         return bindTableIDs(tableNames, common::LogicalTypeID::NODE);

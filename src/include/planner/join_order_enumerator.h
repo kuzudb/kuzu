@@ -25,7 +25,8 @@ public:
           queryPlanner{queryPlanner}, context{std::make_unique<JoinOrderEnumeratorContext>()} {};
 
     std::vector<std::unique_ptr<LogicalPlan>> enumerate(
-        const QueryGraphCollection& queryGraphCollection, binder::expression_vector& predicates);
+        const QueryGraphCollection& queryGraphCollection,
+        const binder::expression_vector& predicates);
 
     inline void resetState() { context->resetState(); }
 
@@ -92,7 +93,7 @@ private:
         ExtendDirection direction, LogicalPlan& plan);
     void createRecursivePlan(std::shared_ptr<NodeExpression> boundNode,
         std::shared_ptr<NodeExpression> recursiveNode, std::shared_ptr<RelExpression> recursiveRel,
-        ExtendDirection direction, LogicalPlan& plan);
+        ExtendDirection direction, const expression_vector& predicates, LogicalPlan& plan);
     void createPathNodePropertyScanPlan(
         std::shared_ptr<NodeExpression> recursiveNode, LogicalPlan& plan);
     void createPathRelPropertyScanPlan(std::shared_ptr<NodeExpression> recursiveNode,

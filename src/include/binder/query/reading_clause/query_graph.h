@@ -166,25 +166,24 @@ class PropertyKeyValCollection {
 public:
     PropertyKeyValCollection() = default;
     PropertyKeyValCollection(const PropertyKeyValCollection& other)
-        : varNameToPropertyKeyValPairs{other.varNameToPropertyKeyValPairs} {}
+        : propertyKeyValMap{other.propertyKeyValMap} {}
 
-    void addPropertyKeyValPair(const Expression& variable, expression_pair propertyKeyValPair);
-    std::vector<expression_pair> getPropertyKeyValPairs(const Expression& variable) const;
-    std::vector<expression_pair> getAllPropertyKeyValPairs() const;
-
-    bool hasPropertyKeyValPair(const Expression& variable, const std::string& propertyName) const;
-    expression_pair getPropertyKeyValPair(
-        const Expression& variable, const std::string& propertyName) const;
+    void addKeyVal(std::shared_ptr<Expression> variable, const std::string& propertyName,
+        expression_pair keyVal);
+    std::vector<expression_pair> getKeyVals() const;
+    std::vector<expression_pair> getKeyVals(std::shared_ptr<Expression> variable) const;
+    bool hasKeyVal(std::shared_ptr<Expression> variable, const std::string& propertyName) const;
+    expression_pair getKeyVal(
+        std::shared_ptr<Expression> variable, const std::string& propertyName) const;
 
     inline std::unique_ptr<PropertyKeyValCollection> copy() const {
         return std::make_unique<PropertyKeyValCollection>(*this);
     }
 
 private:
-    // First indexed on variable name, then indexed on property name.
+    // First indexed on variable, then indexed on property name.
     // a -> { age -> pair<a.age,12>, name -> pair<name,'Alice'>}
-    std::unordered_map<std::string, std::unordered_map<std::string, expression_pair>>
-        varNameToPropertyKeyValPairs;
+    expression_map<std::unordered_map<std::string, expression_pair>> propertyKeyValMap;
 };
 
 } // namespace binder

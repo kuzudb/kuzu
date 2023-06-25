@@ -32,10 +32,11 @@ public:
     inline void setWhereExpression(std::shared_ptr<Expression> expression) {
         whereExpression = std::move(expression);
     }
-
     inline bool hasWhereExpression() const { return whereExpression != nullptr; }
-
     inline std::shared_ptr<Expression> getWhereExpression() const { return whereExpression; }
+    inline expression_vector getPredicatesSplitOnAnd() const {
+        return hasWhereExpression() ? whereExpression->splitOnAND() : expression_vector{};
+    }
 
     inline bool getIsOptional() const { return isOptional; }
 
