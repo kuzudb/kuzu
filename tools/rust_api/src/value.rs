@@ -657,7 +657,7 @@ mod tests {
             #[test]
             /// Tests that passing the values through the database returns what we put in
             fn $name() -> Result<()> {
-                let temp_dir = tempdir::TempDir::new("example")?;
+                let temp_dir = tempfile::tempdir()?;
                 let db = Database::new(temp_dir.path(), 0)?;
                 let conn = Connection::new(&db)?;
                 conn.query(&format!(
@@ -775,7 +775,7 @@ mod tests {
     #[test]
     /// Tests that the list value is correctly constructed
     fn test_var_list_get() -> Result<()> {
-        let temp_dir = tempdir::TempDir::new("example")?;
+        let temp_dir = tempfile::tempdir()?;
         let db = Database::new(temp_dir.path(), 0)?;
         let conn = Connection::new(&db)?;
         for result in conn.query("RETURN [\"Alice\", \"Bob\"] AS l;")? {
@@ -792,7 +792,7 @@ mod tests {
     #[test]
     /// Test that the timestamp round-trips through kuzu's internal timestamp
     fn test_timestamp() -> Result<()> {
-        let temp_dir = tempdir::TempDir::new("example")?;
+        let temp_dir = tempfile::tempdir()?;
         let db = Database::new(temp_dir.path(), 0)?;
         let conn = Connection::new(&db)?;
         conn.query(
@@ -839,7 +839,7 @@ mod tests {
 
     #[test]
     fn test_node() -> Result<()> {
-        let temp_dir = tempdir::TempDir::new("example")?;
+        let temp_dir = tempfile::tempdir()?;
         let db = Database::new(temp_dir.path(), 0)?;
         let conn = Connection::new(&db)?;
         conn.query("CREATE NODE TABLE Person(name STRING, age INT64, PRIMARY KEY(name));")?;
@@ -866,7 +866,7 @@ mod tests {
     #[test]
     /// Test that null values are read correctly by the API
     fn test_null() -> Result<()> {
-        let temp_dir = tempdir::TempDir::new("example")?;
+        let temp_dir = tempfile::tempdir()?;
         let db = Database::new(temp_dir.path(), 0)?;
         let conn = Connection::new(&db)?;
         let result = conn.query("RETURN null")?.next();

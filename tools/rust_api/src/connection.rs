@@ -32,7 +32,7 @@ pub struct PreparedStatement {
 /// ```
 /// # use kuzu::{Connection, Database, Value, Error};
 /// # fn main() -> anyhow::Result<()> {
-/// # let temp_dir = tempdir::TempDir::new("example3")?;
+/// # let temp_dir = tempfile::tempdir()?;
 /// # let db = Database::new(temp_dir.path(), 0)?;
 /// let conn = Connection::new(&db)?;
 /// conn.query("CREATE NODE TABLE Person(name STRING, age INT32, PRIMARY KEY(name));")?;
@@ -82,7 +82,7 @@ pub struct PreparedStatement {
 /// use kuzu::{Database, Connection};
 /// # use anyhow::Error;
 /// # fn main() -> Result<(), Error> {
-/// # let temp_dir = tempdir::TempDir::new("example")?;
+/// # let temp_dir = tempfile::tempdir()?;
 /// # let path = temp_dir.path();
 /// let db = Database::new(path, 0)?;
 /// let conn = Connection::new(&db)?;
@@ -105,7 +105,7 @@ pub struct PreparedStatement {
 /// use kuzu::{Database, Connection};
 /// # use anyhow::Error;
 /// # fn main() -> Result<(), Error> {
-/// # let temp_dir = tempdir::TempDir::new("example")?;
+/// # let temp_dir = tempfile::tempdir()?;
 /// # let path = temp_dir.path();
 /// let db = Database::new(path, 0)?;
 /// let conn = Connection::new(&db)?;
@@ -300,7 +300,7 @@ mod tests {
 
     #[test]
     fn test_connection_threads() -> Result<()> {
-        let temp_dir = tempdir::TempDir::new("example1")?;
+        let temp_dir = tempfile::tempdir()?;
         let db = Database::new(temp_dir.path(), 0)?;
         let mut conn = Connection::new(&db)?;
         conn.set_max_num_threads_for_exec(5);
@@ -311,7 +311,7 @@ mod tests {
 
     #[test]
     fn test_invalid_query() -> Result<()> {
-        let temp_dir = tempdir::TempDir::new("example2")?;
+        let temp_dir = tempfile::tempdir()?;
         let db = Database::new(temp_dir.path(), 0)?;
         let conn = Connection::new(&db)?;
         conn.query("CREATE NODE TABLE Person(name STRING, age INT64, PRIMARY KEY(name));")?;
@@ -334,7 +334,7 @@ Invalid input <MATCH (a:Person RETURN>: expected rule oC_SingleQuery (line: 1, o
 
     #[test]
     fn test_query_result() -> Result<()> {
-        let temp_dir = tempdir::TempDir::new("example3")?;
+        let temp_dir = tempfile::tempdir()?;
         let db = Database::new(temp_dir.path(), 0)?;
         let conn = Connection::new(&db)?;
         conn.query("CREATE NODE TABLE Person(name STRING, age INT16, PRIMARY KEY(name));")?;
@@ -351,7 +351,7 @@ Invalid input <MATCH (a:Person RETURN>: expected rule oC_SingleQuery (line: 1, o
 
     #[test]
     fn test_params() -> Result<()> {
-        let temp_dir = tempdir::TempDir::new("example3")?;
+        let temp_dir = tempfile::tempdir()?;
         let db = Database::new(temp_dir.path(), 0)?;
         let conn = Connection::new(&db)?;
         conn.query("CREATE NODE TABLE Person(name STRING, age INT16, PRIMARY KEY(name));")?;
@@ -369,7 +369,7 @@ Invalid input <MATCH (a:Person RETURN>: expected rule oC_SingleQuery (line: 1, o
 
     #[test]
     fn test_params_invalid_type() -> Result<()> {
-        let temp_dir = tempdir::TempDir::new("example3")?;
+        let temp_dir = tempfile::tempdir()?;
         let db = Database::new(temp_dir.path(), 0)?;
         let conn = Connection::new(&db)?;
         conn.query("CREATE NODE TABLE Person(name STRING, age INT16, PRIMARY KEY(name));")?;
@@ -394,7 +394,7 @@ Invalid input <MATCH (a:Person RETURN>: expected rule oC_SingleQuery (line: 1, o
 
     #[test]
     fn test_multithreaded_single_conn() -> Result<()> {
-        let temp_dir = tempdir::TempDir::new("example3")?;
+        let temp_dir = tempfile::tempdir()?;
         let db = Database::new(temp_dir.path(), 0)?;
 
         let conn = Connection::new(&db)?;
@@ -426,7 +426,7 @@ Invalid input <MATCH (a:Person RETURN>: expected rule oC_SingleQuery (line: 1, o
 
     #[test]
     fn test_multithreaded_multiple_conn() -> Result<()> {
-        let temp_dir = tempdir::TempDir::new("example3")?;
+        let temp_dir = tempfile::tempdir()?;
         let db = Database::new(temp_dir.path(), 0)?;
 
         let conn = Connection::new(&db)?;
@@ -460,7 +460,7 @@ Invalid input <MATCH (a:Person RETURN>: expected rule oC_SingleQuery (line: 1, o
 
     #[test]
     fn test_table_names() -> Result<()> {
-        let temp_dir = tempdir::TempDir::new("example3")?;
+        let temp_dir = tempfile::tempdir()?;
         let db = Database::new(temp_dir.path(), 0)?;
         let conn = Connection::new(&db)?;
         conn.query("CREATE NODE TABLE Person(name STRING, age INT16, PRIMARY KEY(name));")?;

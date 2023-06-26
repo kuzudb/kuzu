@@ -112,6 +112,8 @@ if(${ENABLE_UBSAN})
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined -fno-common -fpermissive")
     endif()
 endif()
+option(BUILD_PYTHON_API "Build Python API." TRUE)
+option(BUILD_SHELL "Build Interactive Shell" TRUE)
 option(BUILD_TESTS "Build C++ and Python tests." FALSE)
 option(BUILD_BENCHMARK "Build benchmarks." FALSE)
 
