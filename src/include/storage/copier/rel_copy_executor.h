@@ -41,8 +41,9 @@ public:
 class RelCopyExecutor {
 public:
     RelCopyExecutor(common::CopyDescription& copyDescription, WAL* wal,
-        common::TaskScheduler& taskScheduler, catalog::Catalog& catalog,
-        storage::NodesStore& nodesStore, storage::RelTable* table, RelsStatistics* relsStatistics);
+        common::TaskScheduler& taskScheduler, storage::NodesStore& nodesStore,
+        storage::RelTable* table, catalog::RelTableSchema* tableSchema,
+        RelsStatistics* relsStatistics);
 
     common::offset_t copy(processor::ExecutionContext* executionContext);
 
@@ -62,7 +63,6 @@ private:
     std::string outputDirectory;
     std::unordered_map<std::string, FileBlockInfo> fileBlockInfos;
     common::TaskScheduler& taskScheduler;
-    catalog::Catalog& catalog;
     catalog::RelTableSchema* tableSchema;
     uint64_t numTuples;
     RelsStatistics* relsStatistics;

@@ -192,6 +192,13 @@ std::shared_ptr<arrow::csv::StreamingReader> TableCopyUtils::createCSVReader(
     // Only the empty string is treated as NULL.
     csvConvertOptions.null_values = {""};
     csvConvertOptions.quoted_strings_can_be_null = false;
+    if (!tableSchema->isNodeTable) {
+        auto relTableSchema = (RelTableSchema*)tableSchema;
+        csvConvertOptions.column_types[std::string(Property::REL_FROM_PROPERTY_NAME)] =
+            toArrowDataType(relTableSchema->srcPKDataType);
+        csvConvertOptions.column_types[std::string(Property::REL_TO_PROPERTY_NAME)] =
+            toArrowDataType(relTableSchema->dstPKDataType);
+    }
     for (auto& property : tableSchema->properties) {
         if (property.name == Property::REL_FROM_PROPERTY_NAME ||
             property.name == Property::REL_TO_PROPERTY_NAME) {
@@ -345,6 +352,7 @@ std::shared_ptr<arrow::DataType> TableCopyUtils::toArrowDataType(const LogicalTy
     case LogicalTypeID::BOOL: {
         return arrow::boolean();
     }
+    case LogicalTypeID::SERIAL:
     case LogicalTypeID::INT64: {
         return arrow::int64();
     }
