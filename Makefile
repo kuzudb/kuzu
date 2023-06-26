@@ -53,12 +53,23 @@ arrow:
 	cmake $(FORCE_COLOR) $(SANITIZER_FLAG) $(GENERATOR) -DCMAKE_BUILD_TYPE=Release .. && \
 	cmake --build . --config Release -- -j $(NUM_THREADS)
 
+arrow-debug:
+ifeq ($(OS),Windows_NT)
+	$(call mkdirp,external/build) && cd external/build && \
+	cmake $(FORCE_COLOR) $(SANITIZER_FLAG) $(GENERATOR) -DCMAKE_BUILD_TYPE=Debug .. && \
+	cmake --build . --config Debug -- -j $(NUM_THREADS)
+else
+	$(call mkdirp,external/build) && cd external/build && \
+	cmake $(FORCE_COLOR) $(SANITIZER_FLAG) $(GENERATOR) -DCMAKE_BUILD_TYPE=Release .. && \
+	cmake --build . --config Release -- -j $(NUM_THREADS)
+endif
+
 release: arrow
 	$(call mkdirp,build/release) && cd build/release && \
 	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) -DCMAKE_BUILD_TYPE=Release ../.. && \
 	cmake --build . --config Release -- -j $(NUM_THREADS)
 
-debug: arrow
+debug: arrow-debug
 	$(call mkdirp,build/debug) && cd build/debug && \
 	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) -DCMAKE_BUILD_TYPE=Debug ../.. && \
 	cmake --build . --config Debug -- -j $(NUM_THREADS)
@@ -111,6 +122,8 @@ rusttest:
 ifeq ($(OS),Windows_NT)
 	cd $(ROOT_DIR)/tools/rust_api && \
 	set KUZU_TESTING=1 && \
+	set CFLAGS=/MDd && \
+	set CXXFLAGS=/MDd /std:c++20 && \
 	cargo test -- --test-threads=1
 else
 	cd $(ROOT_DIR)/tools/rust_api && \

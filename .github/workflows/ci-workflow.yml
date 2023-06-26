@@ -123,6 +123,13 @@ jobs:
           call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
           make test NUM_THREADS=18
 
+      - name: Rust test
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
+          set OPENSSL_DIR=C:\Program Files\OpenSSL-Win64
+          make rusttest NUM_THREADS=18
+
   clang-formatting-check:
     name: clang-format check
     runs-on: kuzu-self-hosted-testing
