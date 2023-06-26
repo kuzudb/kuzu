@@ -194,11 +194,11 @@ std::string Binder::getUniqueExpressionName(const std::string& name) {
     return "_" + std::to_string(lastExpressionId++) + "_" + name;
 }
 
-std::unique_ptr<VariableScope> Binder::enterSubquery() {
+std::unique_ptr<VariableScope> Binder::saveScope() {
     return variableScope->copy();
 }
 
-void Binder::exitSubquery(std::unique_ptr<VariableScope> prevVariableScope) {
+void Binder::restoreScope(std::unique_ptr<VariableScope> prevVariableScope) {
     variableScope = std::move(prevVariableScope);
 }
 

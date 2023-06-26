@@ -268,12 +268,18 @@ std::unique_ptr<PatternElement> Transformer::transformPatternElement(
 
 std::unique_ptr<NodePattern> Transformer::transformNodePattern(
     CypherParser::OC_NodePatternContext& ctx) {
-    auto variable = ctx.oC_Variable() ? transformVariable(*ctx.oC_Variable()) : std::string();
-    auto nodeLabels = ctx.oC_NodeLabels() ? transformNodeLabels(*ctx.oC_NodeLabels()) :
-                                            std::vector<std::string>{};
-    auto properties = ctx.kU_Properties() ?
-                          transformProperties(*ctx.kU_Properties()) :
-                          std::vector<std::pair<std::string, std::unique_ptr<ParsedExpression>>>{};
+    auto variable = std::string();
+    if (ctx.oC_Variable()) {
+        variable = transformVariable(*ctx.oC_Variable());
+    }
+    auto nodeLabels = std::vector<std::string>{};
+    if (ctx.oC_NodeLabels()) {
+        nodeLabels = transformNodeLabels(*ctx.oC_NodeLabels());
+    }
+    auto properties = std::vector<std::pair<std::string, std::unique_ptr<ParsedExpression>>>{};
+    if (ctx.kU_Properties()) {
+        properties = transformProperties(*ctx.kU_Properties());
+    }
     return std::make_unique<NodePattern>(
         std::move(variable), std::move(nodeLabels), std::move(properties));
 }
@@ -288,24 +294,17 @@ std::unique_ptr<PatternElementChain> Transformer::transformPatternElementChain(
 std::unique_ptr<RelPattern> Transformer::transformRelationshipPattern(
     CypherParser::OC_RelationshipPatternContext& ctx) {
     auto relDetail = ctx.oC_RelationshipDetail();
-    auto variable =
-        relDetail->oC_Variable() ? transformVariable(*relDetail->oC_Variable()) : std::string();
-    auto relTypes = relDetail->oC_RelationshipTypes() ?
-                        transformRelTypes(*relDetail->oC_RelationshipTypes()) :
-                        std::vector<std::string>{};
-    auto relType = common::QueryRelType::NON_RECURSIVE;
-    std::string lowerBound = "1";
-    std::string upperBound = "1";
-    if (relDetail->oC_RangeLiteral()) {
-        lowerBound = relDetail->oC_RangeLiteral()->oC_IntegerLiteral()[0]->getText();
-        upperBound = relDetail->oC_RangeLiteral()->oC_IntegerLiteral()[1]->getText();
-        if (relDetail->oC_RangeLiteral()->ALL()) {
-            relType = common::QueryRelType::ALL_SHORTEST;
-        } else if (relDetail->oC_RangeLiteral()->SHORTEST()) {
-            relType = common::QueryRelType::SHORTEST;
-        } else {
-            relType = common::QueryRelType::VARIABLE_LENGTH;
-        }
+    auto variable = std::string();
+    if (relDetail->oC_Variable()) {
+        variable = transformVariable(*relDetail->oC_Variable());
+    }
+    auto relTypes = std::vector<std::string>{};
+    if (relDetail->oC_RelationshipTypes()) {
+        relTypes = transformRelTypes(*relDetail->oC_RelationshipTypes());
+    }
+    auto properties = std::vector<std::pair<std::string, std::unique_ptr<ParsedExpression>>>{};
+    if (relDetail->kU_Properties()) {
+        properties = transformProperties(*relDetail->kU_Properties());
     }
     ArrowDirection arrowDirection;
     if (ctx.oC_LeftArrowHead()) {
@@ -315,11 +314,30 @@ std::unique_ptr<RelPattern> Transformer::transformRelationshipPattern(
     } else {
         arrowDirection = ArrowDirection::BOTH;
     }
-    auto properties = relDetail->kU_Properties() ?
-                          transformProperties(*relDetail->kU_Properties()) :
-                          std::vector<std::pair<std::string, std::unique_ptr<ParsedExpression>>>{};
-    return std::make_unique<RelPattern>(
-        variable, relTypes, relType, lowerBound, upperBound, arrowDirection, std::move(properties));
+    auto relType = common::QueryRelType::NON_RECURSIVE;
+    std::unique_ptr<RecursiveRelPatternInfo> recursiveInfo;
+    if (relDetail->oC_RangeLiteral()) {
+        if (relDetail->oC_RangeLiteral()->ALL()) {
+            relType = common::QueryRelType::ALL_SHORTEST;
+        } else if (relDetail->oC_RangeLiteral()->SHORTEST()) {
+            relType = common::QueryRelType::SHORTEST;
+        } else {
+            relType = common::QueryRelType::VARIABLE_LENGTH;
+        }
+        auto range = relDetail->oC_RangeLiteral();
+        auto lowerBound = range->oC_IntegerLiteral()[0]->getText();
+        auto upperBound = range->oC_IntegerLiteral()[1]->getText();
+        auto recursiveRelName = std::string();
+        std::unique_ptr<ParsedExpression> whereExpression = nullptr;
+        if (range->oC_Where()) {
+            recursiveRelName = transformVariable(*range->oC_Variable());
+            whereExpression = transformWhere(*range->oC_Where());
+        }
+        recursiveInfo = std::make_unique<RecursiveRelPatternInfo>(
+            lowerBound, upperBound, recursiveRelName, std::move(whereExpression));
+    }
+    return std::make_unique<RelPattern>(variable, relTypes, relType, arrowDirection,
+        std::move(properties), std::move(recursiveInfo));
 }
 
 std::vector<std::pair<std::string, std::unique_ptr<ParsedExpression>>>

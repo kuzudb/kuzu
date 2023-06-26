@@ -238,8 +238,8 @@ private:
     /*** helpers ***/
     std::string getUniqueExpressionName(const std::string& name);
 
-    std::unique_ptr<VariableScope> enterSubquery();
-    void exitSubquery(std::unique_ptr<VariableScope> prevVariableScope);
+    std::unique_ptr<VariableScope> saveScope();
+    void restoreScope(std::unique_ptr<VariableScope> prevVariableScope);
 
 private:
     const catalog::Catalog& catalog;
