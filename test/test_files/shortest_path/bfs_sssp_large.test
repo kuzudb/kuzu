@@ -11,8 +11,8 @@
 
 -CASE BfsLarge
 
--NAME SingleSrcAllDstQueryLarge
--QUERY MATCH (a:person)-[r:knows* SHORTEST 1..30]->(b:person) WHERE a.fName = 'Alice11' RETURN a.fName, b.fName, length(r)
+-LOG SingleSrcAllDstQueryLarge
+-STATEMENT MATCH (a:person)-[r:knows* SHORTEST 1..30]->(b:person) WHERE a.fName = 'Alice11' RETURN a.fName, b.fName, length(r)
 ---- 300
 Alice11|Alice100|9
 Alice11|Alice101|9
@@ -315,8 +315,8 @@ Alice11|Alice97|9
 Alice11|Alice98|9
 Alice11|Alice99|9
 
--NAME MultipleSrcAllDstQueryLarge
--QUERY MATCH (a:person)-[r:knows* SHORTEST 1..30]->(b:person) WHERE a.fName = 'Alice11' OR a.fName = 'Alice' RETURN a.fName, b.fName, length(r)
+-LOG MultipleSrcAllDstQueryLarge
+-STATEMENT MATCH (a:person)-[r:knows* SHORTEST 1..30]->(b:person) WHERE a.fName = 'Alice11' OR a.fName = 'Alice' RETURN a.fName, b.fName, length(r)
 ---- 307
 Alice11|Alice100|9
 Alice11|Alice101|9

@@ -5,29 +5,29 @@
 
 -CASE AggMultiQueryPart
 
--NAME SimpleAvgWithFilterMultiQueryTest
--QUERY MATCH (a:person) WHERE a.birthdate = date('1980-10-26') WITH AVG(a.age) AS avgAge, AVG(a.eyeSight) AS avgEyeSight RETURN avgAge > avgEyeSight
+-LOG SimpleAvgWithFilterMultiQueryTest
+-STATEMENT MATCH (a:person) WHERE a.birthdate = date('1980-10-26') WITH AVG(a.age) AS avgAge, AVG(a.eyeSight) AS avgEyeSight RETURN avgAge > avgEyeSight
 ---- 1
 True
 
--NAME SimpleCountMultiQueryTest2
--QUERY MATCH (p:person) WITH p AS f RETURN COUNT(f);
+-LOG SimpleCountMultiQueryTest2
+-STATEMENT MATCH (p:person) WITH p AS f RETURN COUNT(f);
 ---- 1
 8
 
--NAME SimpleCountMultiQueryTest3
--QUERY MATCH (a:person) WITH COUNT(*) AS s MATCH (c:person) WHERE c.ID > s RETURN c.ID
+-LOG SimpleCountMultiQueryTest3
+-STATEMENT MATCH (a:person) WITH COUNT(*) AS s MATCH (c:person) WHERE c.ID > s RETURN c.ID
 ---- 2
 10
 9
 
--NAME SimpleCountMultiQueryTest4
--QUERY MATCH (a:person) WITH COUNT(*) AS s MATCH (b:person) WHERE b.ID < s RETURN COUNT(*)
+-LOG SimpleCountMultiQueryTest4
+-STATEMENT MATCH (a:person) WITH COUNT(*) AS s MATCH (b:person) WHERE b.ID < s RETURN COUNT(*)
 ---- 1
 5
 
--NAME GroupByMultiQueryTest
--QUERY MATCH (a:person)-[:knows]->(b:person) WITH a.gender AS k, SUM(b.age) AS s MATCH (d:person)-[:workAt]->(c:organisation) WHERE c.orgCode > s RETURN d.ID, c.orgCode, s
+-LOG GroupByMultiQueryTest
+-STATEMENT MATCH (a:person)-[:knows]->(b:person) WITH a.gender AS k, SUM(b.age) AS s MATCH (d:person)-[:workAt]->(c:organisation) WHERE c.orgCode > s RETURN d.ID, c.orgCode, s
 -ENUMERATE
 ---- 6
 3|934|210
@@ -37,8 +37,8 @@ True
 7|824|210
 7|824|245
 
--NAME GroupByMultiQueryTest2
--QUERY MATCH (a:person)-[:knows]->(b:person) WITH a, COUNT(*) AS s MATCH (a)-[:knows]->(c:person) WHERE c.ID > s RETURN a.ID, c.ID, s
+-LOG GroupByMultiQueryTest2
+-STATEMENT MATCH (a:person)-[:knows]->(b:person) WITH a, COUNT(*) AS s MATCH (a)-[:knows]->(c:person) WHERE c.ID > s RETURN a.ID, c.ID, s
 ---- 5
 0|5|3
 2|5|3
@@ -46,8 +46,8 @@ True
 7|8|2
 7|9|2
 
--NAME GroupByMultiQueryTest3
--QUERY MATCH (a:person) WHERE a.ID > 4 WITH a, a.age AS foo MATCH (a)-[:knows]->(b:person) RETURN a.ID, foo, COUNT(*)
+-LOG GroupByMultiQueryTest3
+-STATEMENT MATCH (a:person) WHERE a.ID > 4 WITH a, a.age AS foo MATCH (a)-[:knows]->(b:person) RETURN a.ID, foo, COUNT(*)
 ---- 2
 5|20|3
 7|20|2

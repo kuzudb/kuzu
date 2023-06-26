@@ -5,8 +5,8 @@
 
 -CASE MatchMultiQuery
 
--NAME MultiQueryOneHopKnowsTest
--QUERY MATCH (a:person)-[e1:knows]->(b:person) WITH b.age AS m RETURN m
+-LOG MultiQueryOneHopKnowsTest
+-STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WITH b.age AS m RETURN m
 -ENUMERATE
 ---- 14
 20
@@ -24,26 +24,26 @@
 45
 45
 
--NAME MultiQueryTwoHopKnowsTest
--QUERY MATCH (a:person)-[:knows]->(b:person) WITH b AS m WITH m AS n MATCH (n)-[e2:knows]->(c:person) RETURN COUNT(*)
+-LOG MultiQueryTwoHopKnowsTest
+-STATEMENT MATCH (a:person)-[:knows]->(b:person) WITH b AS m WITH m AS n MATCH (n)-[e2:knows]->(c:person) RETURN COUNT(*)
 -ENUMERATE
 ---- 1
 36
 
--NAME MultiQueryThreeHopTwoKnowsOneWorkAtTest
--QUERY MATCH (a:person)-[e1:knows]->(b:person) WITH * MATCH (b)-[e2:knows]->(c:person)-[e3:workAt]->(d:organisation) RETURN COUNT(*)
+-LOG MultiQueryThreeHopTwoKnowsOneWorkAtTest
+-STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WITH * MATCH (b)-[e2:knows]->(c:person)-[e3:workAt]->(d:organisation) RETURN COUNT(*)
 -ENUMERATE
 ---- 1
 18
 
--NAME OpenWedgeKnowsTest3
--QUERY MATCH (b:person)<-[e1:knows]-(a:person) WITH a AS k MATCH (k)-[e2:knows]->(c:person),(k)-[e3:knows]->(d:person) RETURN COUNT(*)
+-LOG OpenWedgeKnowsTest3
+-STATEMENT MATCH (b:person)<-[e1:knows]-(a:person) WITH a AS k MATCH (k)-[e2:knows]->(c:person),(k)-[e3:knows]->(d:person) RETURN COUNT(*)
 -ENUMERATE
 ---- 1
 116
 
--NAME MultiQueryFourHopKnowsTest
+-LOG MultiQueryFourHopKnowsTest
 -ENUMERATE
--QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person) WITH c MATCH (c)-[e3:knows]->(d:person)-[e4:knows]->(e:person) RETURN COUNT(*)
+-STATEMENT MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person) WITH c MATCH (c)-[e3:knows]->(d:person)-[e4:knows]->(e:person) RETURN COUNT(*)
 ---- 1
 324

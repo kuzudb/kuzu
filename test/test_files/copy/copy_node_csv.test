@@ -5,8 +5,8 @@
 
 -CASE CopyNodeTest
 
--NAME SubsetTest
--QUERY MATCH (row:tableOfTypes) WHERE row.id >= 20 AND row.id <= 24 RETURN *;
+-LOG SubsetTest
+-STATEMENT MATCH (row:tableOfTypes) WHERE row.id >= 20 AND row.id <= 24 RETURN *;
 ---- 5
 (label:tableOfTypes, 0:20, {id:20, int64Column:0, doubleColumn:57.579280, booleanColumn:True, dateColumn:1731-09-26, timestampColumn:1731-09-26 03:30:08, stringColumn:OdM})
 (label:tableOfTypes, 0:21, {id:21, int64Column:7, doubleColumn:64.630960, booleanColumn:False, dateColumn:1307-01-26, timestampColumn:1307-01-26 03:31:08, stringColumn:AjbxHQThEtDDlOjbzMjCQSXlvGQEjcFLykESrnFHwPKX})
@@ -14,42 +14,42 @@
 (label:tableOfTypes, 0:23, {id:23, int64Column:58, doubleColumn:42.774957, booleanColumn:False, dateColumn:1181-10-16, timestampColumn:1181-10-16 18:19:43, stringColumn:ISImRVpUjynGMFRQyYmeIUVjM})
 (label:tableOfTypes, 0:24, {id:24, int64Column:75, doubleColumn:53.813224, booleanColumn:False, dateColumn:1942-10-24, timestampColumn:1942-10-24 09:30:16, stringColumn:naDlQ})
 
--NAME CheckNumLinesTest
--QUERY MATCH (row:tableOfTypes) RETURN count(*)
+-LOG CheckNumLinesTest
+-STATEMENT MATCH (row:tableOfTypes) RETURN count(*)
 ---- 1
 49999
 
--NAME CountTrueTest
--QUERY MATCH (row:tableOfTypes) WHERE row.booleanColumn = True RETURN count(*)
+-LOG CountTrueTest
+-STATEMENT MATCH (row:tableOfTypes) WHERE row.booleanColumn = True RETURN count(*)
 ---- 1
 24997
 
--NAME CountFalseTest
--QUERY MATCH (row:tableOfTypes) WHERE row.booleanColumn = False RETURN count(*)
+-LOG CountFalseTest
+-STATEMENT MATCH (row:tableOfTypes) WHERE row.booleanColumn = False RETURN count(*)
 ---- 1
 25002
 
--NAME CheckSumTest
--QUERY MATCH (row:tableOfTypes) RETURN sum(row.id), sum(row.int64Column), sum(row.doubleColumn)
+-LOG CheckSumTest
+-STATEMENT MATCH (row:tableOfTypes) RETURN sum(row.id), sum(row.int64Column), sum(row.doubleColumn)
 ---- 1
 1249925001|2500180|2504542.349696
 
--NAME EmptyStringTest
--QUERY MATCH (row:tableOfTypes) WHERE row.id = 49992 RETURN *;
+-LOG EmptyStringTest
+-STATEMENT MATCH (row:tableOfTypes) WHERE row.id = 49992 RETURN *;
 ---- 1
 (label:tableOfTypes, 0:49992, {id:49992, int64Column:50, doubleColumn:31.582059, booleanColumn:False, dateColumn:1551-07-19, timestampColumn:1551-07-19 16:28:31, stringColumn:})
 
--NAME FloatTest
--QUERY MATCH (row:tableOfTypes) WHERE row.doubleColumn = 68.73718401556897 RETURN row.dateColumn;
+-LOG FloatTest
+-STATEMENT MATCH (row:tableOfTypes) WHERE row.doubleColumn = 68.73718401556897 RETURN row.dateColumn;
 ---- 1
 1042-06-05
 
--NAME DateTest
--QUERY MATCH (row:tableOfTypes) WHERE row.id = 25531 RETURN *;
+-LOG DateTest
+-STATEMENT MATCH (row:tableOfTypes) WHERE row.id = 25531 RETURN *;
 ---- 1
 (label:tableOfTypes, 0:25531, {id:25531, int64Column:77, doubleColumn:28.417543, booleanColumn:False, dateColumn:1895-03-13, timestampColumn:1895-03-13 04:31:22, stringColumn:XB})
 
--NAME IntervalTest
--QUERY MATCH (row:tableOfTypes) WHERE 0 <= row.doubleColumn AND row.doubleColumn <= 10 AND 0 <= row.int64Column AND row.int64Column <= 10 RETURN count(*);
+-LOG IntervalTest
+-STATEMENT MATCH (row:tableOfTypes) WHERE 0 <= row.doubleColumn AND row.doubleColumn <= 10 AND 0 <= row.int64Column AND row.int64Column <= 10 RETURN count(*);
 ---- 1
 546

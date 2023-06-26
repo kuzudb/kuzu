@@ -24,5 +24,5 @@
 ---- ok
 -STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/tinysnb/vPerson.csv" (HEADER=true);
 ---- ok
--QUERY MATCH (:person)-[:knows]->(:person) return count(*)
+-STATEMENT MATCH (:person)-[:knows]->(:person) return count(*)
 ---- ok

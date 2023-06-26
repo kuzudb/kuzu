@@ -5,37 +5,37 @@
 
 -CASE SetNodeTest
 
--NAME SetAge
--QUERY MATCH (u:User) WHERE u.name = 'Adam' SET u.age = 50
+-LOG SetAge
+-STATEMENT MATCH (u:User) WHERE u.name = 'Adam' SET u.age = 50
 ---- ok
 
--NAME ReturnAge
--QUERY MATCH (u:User) WHERE u.name='Adam' RETURN u.age
+-LOG ReturnAge
+-STATEMENT MATCH (u:User) WHERE u.name='Adam' RETURN u.age
 ---- 1
 50
 
--NAME SetAgeNull
--QUERY MATCH (u:User) WHERE u.name = 'Adam' SET u.age = NULL
+-LOG SetAgeNull
+-STATEMENT MATCH (u:User) WHERE u.name = 'Adam' SET u.age = NULL
 ---- ok
 
--NAME ReturnNullAge 
--QUERY MATCH (u:User) WHERE u.name='Adam' RETURN u.age
+-LOG ReturnNullAge 
+-STATEMENT MATCH (u:User) WHERE u.name='Adam' RETURN u.age
 ---- 1
 
 
 -CASE SetRelTest
 
--NAME SetRelSince
--QUERY MATCH (u:User)-[f:Follows]->(u1:User) WHERE u.name = 'Adam' AND u1.name = 'Karissa' SET f.since=2012
+-LOG SetRelSince
+-STATEMENT MATCH (u:User)-[f:Follows]->(u1:User) WHERE u.name = 'Adam' AND u1.name = 'Karissa' SET f.since=2012
 ---- ok
 
--NAME CheckRelSince
--QUERY MATCH (u:User)-[f:Follows]->(u1:User) WHERE u.name='Adam' RETURN f.since, u1.name
+-LOG CheckRelSince
+-STATEMENT MATCH (u:User)-[f:Follows]->(u1:User) WHERE u.name='Adam' RETURN f.since, u1.name
 ---- 2
 2012|Karissa
 2020|Zhang
 
--NAME CopyRelToNonEmptyTableErrorTest
+-LOG CopyRelToNonEmptyTableErrorTest
 -STATEMENT MATCH (:User)-[f:Follows]->(:User) DELETE f
 ---- ok
 

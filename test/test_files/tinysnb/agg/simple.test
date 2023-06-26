@@ -5,195 +5,195 @@
 
 -CASE AggSimple
 
--NAME OneHopSimpleAggTest
--QUERY MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) RETURN COUNT(a.ID), MIN(a.fName), MAX(c.ID)
+-LOG OneHopSimpleAggTest
+-STATEMENT MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) RETURN COUNT(a.ID), MIN(a.fName), MAX(c.ID)
 -PARALLELISM 8
 -ENUMERATE
 ---- 1
 36|Alice|5
 
--NAME SimpleAvgTest
--QUERY MATCH (a:person) RETURN AVG(a.age), AVG(a.eyeSight)
+-LOG SimpleAvgTest
+-STATEMENT MATCH (a:person) RETURN AVG(a.age), AVG(a.eyeSight)
 ---- 1
 37.250000|4.862500
 
--NAME SimpleAvgFloatTest
--QUERY MATCH (a:person) RETURN AVG(a.height) + 5
+-LOG SimpleAvgFloatTest
+-STATEMENT MATCH (a:person) RETURN AVG(a.height) + 5
 ---- 1
 6.364625
 
--NAME SimpleCountTest
--QUERY MATCH (a:person) RETURN COUNT(a.age) + 1
+-LOG SimpleCountTest
+-STATEMENT MATCH (a:person) RETURN COUNT(a.age) + 1
 ---- 1
 9
 
--NAME SimpleCountTest2
--QUERY MATCH (a:person)-[e1:knows]->(:person) RETURN COUNT(e1)
+-LOG SimpleCountTest2
+-STATEMENT MATCH (a:person)-[e1:knows]->(:person) RETURN COUNT(e1)
 ---- 1
 14
 
--NAME SimpleSumTest
--QUERY MATCH (a:person) RETURN SUM(a.age), SUM(a.eyeSight)
+-LOG SimpleSumTest
+-STATEMENT MATCH (a:person) RETURN SUM(a.age), SUM(a.eyeSight)
 ---- 1
 298|38.900000
 
--NAME SimpleSumTest2
--QUERY MATCH (a:person) WHERE a.birthdate = date('1980-10-26') RETURN SUM(a.age+10), SUM(a.age*2)
+-LOG SimpleSumTest2
+-STATEMENT MATCH (a:person) WHERE a.birthdate = date('1980-10-26') RETURN SUM(a.age+10), SUM(a.age*2)
 ---- 1
 115|170
 
--NAME SimpleSumTest3
--QUERY MATCH (a:person) WHERE a.birthdate = date('1980-10-26') RETURN SUM(a.age+10) > SUM(a.age*2)
+-LOG SimpleSumTest3
+-STATEMENT MATCH (a:person) WHERE a.birthdate = date('1980-10-26') RETURN SUM(a.age+10) > SUM(a.age*2)
 ---- 1
 False
 
--NAME SimpleSumTest4
--QUERY MATCH (a:person) RETURN sum(a.height) + 2.2
+-LOG SimpleSumTest4
+-STATEMENT MATCH (a:person) RETURN sum(a.height) + 2.2
 ---- 1
 13.117001
 
--NAME SimpleAvgTest
--QUERY MATCH (a:person) RETURN AVG(a.age), AVG(a.eyeSight)
+-LOG SimpleAvgTest
+-STATEMENT MATCH (a:person) RETURN AVG(a.age), AVG(a.eyeSight)
 ---- 1
 37.250000|4.862500
 
--NAME SimpleAvgTest2
--QUERY MATCH (a:person) WHERE a.birthdate = date('1980-10-26') RETURN AVG(a.age), AVG(a.eyeSight)
+-LOG SimpleAvgTest2
+-STATEMENT MATCH (a:person) WHERE a.birthdate = date('1980-10-26') RETURN AVG(a.age), AVG(a.eyeSight)
 ---- 1
 28.333333|4.700000
 
--NAME SimpleMinMaxTest
--QUERY MATCH (a:person) RETURN MIN(a.age), MAX(a.age), MIN(a.isStudent), MAX(a.isStudent), MIN(a.eyeSight), MAX(a.eyeSight), MIN(a.birthdate), MAX(a.birthdate)
+-LOG SimpleMinMaxTest
+-STATEMENT MATCH (a:person) RETURN MIN(a.age), MAX(a.age), MIN(a.isStudent), MAX(a.isStudent), MIN(a.eyeSight), MAX(a.eyeSight), MIN(a.birthdate), MAX(a.birthdate)
 ---- 1
 20|83|False|True|4.500000|5.100000|1900-01-01|1990-11-27
 
--NAME SimpleMinTest
--QUERY MATCH (m:movies) RETURN MIN(m.note)
+-LOG SimpleMinTest
+-STATEMENT MATCH (m:movies) RETURN MIN(m.note)
 ---- 1
  the movie is very very good
 
--NAME TwoHopTest
--QUERY MATCH (a:person)-[:knows]->(b:person) RETURN SUM(b.age), MIN(b.ID), AVG(b.eyeSight)
+-LOG TwoHopTest
+-STATEMENT MATCH (a:person)-[:knows]->(b:person) RETURN SUM(b.age), MIN(b.ID), AVG(b.eyeSight)
 -ENUMERATE
 ---- 1
 455|0|4.935714
 
--NAME SimpleCollectINT64Test
--QUERY MATCH (p:person) RETURN collect(p.age)
+-LOG SimpleCollectINT64Test
+-STATEMENT MATCH (p:person) RETURN collect(p.age)
 ---- 1
 [35,30,45,20,20,25,40,83]
 
--NAME SimpleCollectINT32Test
--QUERY MATCH (m:movies) RETURN collect(m.length)
+-LOG SimpleCollectINT32Test
+-STATEMENT MATCH (m:movies) RETURN collect(m.length)
 ---- 1
 [126,2544,298]
 
--NAME SimpleCollectINT16Test
--QUERY MATCH (:person)-[e:studyAt]->(:organisation) RETURN collect(e.length)
+-LOG SimpleCollectINT16Test
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN collect(e.length)
 ---- 1
 [5,55,22]
 
--NAME SimpleCollectBLOBTest
--QUERY MATCH (m:movies) RETURN collect(m.content)
+-LOG SimpleCollectBLOBTest
+-STATEMENT MATCH (m:movies) RETURN collect(m.content)
 ---- 1
 [\xAA\xABinteresting\x0B,\xAB\xCD,pure ascii characters]
 
--NAME SimpleCollectSTRINGTest
--QUERY MATCH (p:person) RETURN collect(p.fName)
+-LOG SimpleCollectSTRINGTest
+-STATEMENT MATCH (p:person) RETURN collect(p.fName)
 ---- 1
 [Alice,Bob,Carol,Dan,Elizabeth,Farooq,Greg,Hubert Blaine Wolfeschlegelsteinhausenbergerdorff]
 
--NAME SimpleCollectFLOATTest
--QUERY MATCH (p:person) RETURN collect(p.height)
+-LOG SimpleCollectFLOATTest
+-STATEMENT MATCH (p:person) RETURN collect(p.height)
 ---- 1
 [1.731000,0.990000,1.000000,1.300000,1.463000,1.510000,1.600000,1.323000]
 
--NAME SimpleCollectLISTOfINT64Test
--QUERY MATCH (p:person) RETURN collect(p.workedHours)
+-LOG SimpleCollectLISTOfINT64Test
+-STATEMENT MATCH (p:person) RETURN collect(p.workedHours)
 ---- 1
 [[10,5],[12,8],[4,5],[1,9],[2],[3,4,5,6,7],[1],[10,11,12,3,4,5,6,7]]
 
--NAME SimpleCollectLISTOfSTRINGTest
--QUERY MATCH (p:person) RETURN collect(p.usedNames)
+-LOG SimpleCollectLISTOfSTRINGTest
+-STATEMENT MATCH (p:person) RETURN collect(p.usedNames)
 ---- 1
 [[Aida],[Bobby],[Carmen,Fred],[Wolfeschlegelstein,Daniel],[Ein],[Fesdwe],[Grad],[Ad,De,Hi,Kye,Orlan]]
 
--NAME SimpleCollectLISTOfLISTOfINT64Test
--QUERY MATCH (p:person) RETURN collect(p.courseScoresPerTerm)
+-LOG SimpleCollectLISTOfLISTOfINT64Test
+-STATEMENT MATCH (p:person) RETURN collect(p.courseScoresPerTerm)
 ---- 1
 [[[10,8],[6,7,8]],[[8,9],[9,10]],[[8,10]],[[7,4],[8,8],[9]],[[6],[7],[8]],[[8]],[[10]],[[7],[10],[6,7]]]
 
--NAME SimpleCollectLISTOfINT64MultiThreadTest
--QUERY MATCH (p:person) RETURN collect(p.workedHours)
+-LOG SimpleCollectLISTOfINT64MultiThreadTest
+-STATEMENT MATCH (p:person) RETURN collect(p.workedHours)
 -PARALLELISM 8
 ---- 1
 [[10,5],[12,8],[4,5],[1,9],[2],[3,4,5,6,7],[1],[10,11,12,3,4,5,6,7]]
 
--NAME SimpleAggMinTimestampTest
--QUERY MATCH (a:person) RETURN MIN(a.registerTime)
+-LOG SimpleAggMinTimestampTest
+-STATEMENT MATCH (a:person) RETURN MIN(a.registerTime)
 -PARALLELISM 8
 -ENUMERATE
 ---- 1
 1911-08-20 02:32:21
 
--NAME SimpleAggMinDateTest
--QUERY MATCH (a:person) RETURN MIN(a.birthdate)
+-LOG SimpleAggMinDateTest
+-STATEMENT MATCH (a:person) RETURN MIN(a.birthdate)
 -PARALLELISM 7
 -ENUMERATE
 ---- 1
 1900-01-01
 
--NAME SimpleAggMinIntervalTest
--QUERY MATCH (a:person) RETURN MIN(a.lastJobDuration)
+-LOG SimpleAggMinIntervalTest
+-STATEMENT MATCH (a:person) RETURN MIN(a.lastJobDuration)
 -PARALLELISM 4
 -ENUMERATE
 ---- 1
 00:18:00.024
 
--NAME SimpleAggMaxFloatTest
--QUERY MATCH (:person)-[w:workAt]->(:organisation) RETURN MAX(w.rating)
+-LOG SimpleAggMaxFloatTest
+-STATEMENT MATCH (:person)-[w:workAt]->(:organisation) RETURN MAX(w.rating)
 -PARALLELISM 3
 -ENUMERATE
 ---- 1
 9.200000
 
--NAME SimpleAggMaxInt16Test
--QUERY MATCH (:person)-[s:studyAt]->(:organisation) RETURN MAX(s.length)
+-LOG SimpleAggMaxInt16Test
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN MAX(s.length)
 -PARALLELISM 4
 -ENUMERATE
 ---- 1
 55
 
--NAME SimpleAggSumInt16Test
--QUERY MATCH (:person)-[s:studyAt]->(:organisation) RETURN SUM(s.length)
+-LOG SimpleAggSumInt16Test
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN SUM(s.length)
 -PARALLELISM 2
 -ENUMERATE
 ---- 1
 82
 
--NAME SimpleAggAvgInt16Test
--QUERY MATCH (m:movies) RETURN AVG(m.length)
+-LOG SimpleAggAvgInt16Test
+-STATEMENT MATCH (m:movies) RETURN AVG(m.length)
 -PARALLELISM 7
 -ENUMERATE
 ---- 1
 989.333333
 
--NAME SimpleAggCountBlob
--QUERY MATCH (m:movies) RETURN COUNT(m.content)
+-LOG SimpleAggCountBlob
+-STATEMENT MATCH (m:movies) RETURN COUNT(m.content)
 -PARALLELISM 3
 -ENUMERATE
 ---- 1
 3
 
--NAME SimpleAggMinBlob
--QUERY MATCH (m:movies) RETURN MIN(m.content)
+-LOG SimpleAggMinBlob
+-STATEMENT MATCH (m:movies) RETURN MIN(m.content)
 -PARALLELISM 3
 -ENUMERATE
 ---- 1
 pure ascii characters
 
--NAME SimpleAggMaxBlob
--QUERY MATCH (m:movies) RETURN MAX(m.content)
+-LOG SimpleAggMaxBlob
+-STATEMENT MATCH (m:movies) RETURN MAX(m.content)
 -PARALLELISM 3
 -ENUMERATE
 ---- 1

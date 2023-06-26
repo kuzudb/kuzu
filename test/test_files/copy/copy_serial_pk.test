@@ -4,6 +4,6 @@
 --
 
 -CASE CopySerialPKTest
--QUERY MATCH (:person)-[e:knows]->(:person) RETURN COUNT(*)
+-STATEMENT MATCH (:person)-[e:knows]->(:person) RETURN COUNT(*)
 ---- 1
 14

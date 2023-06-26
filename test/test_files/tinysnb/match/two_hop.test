@@ -5,57 +5,57 @@
 
 -CASE MatchTwoHop
 
--NAME TwoHopKnowsStudyAtTest
--QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:studyAt]->(c:organisation) RETURN COUNT(*)
+-LOG TwoHopKnowsStudyAtTest
+-STATEMENT MATCH (a:person)-[e1:knows]->(b:person)-[e2:studyAt]->(c:organisation) RETURN COUNT(*)
 ---- 1
 7
 
--NAME TwoHopKnowsWorkAtTest
--QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:workAt]->(c:organisation) RETURN COUNT(*)
+-LOG TwoHopKnowsWorkAtTest
+-STATEMENT MATCH (a:person)-[e1:knows]->(b:person)-[e2:workAt]->(c:organisation) RETURN COUNT(*)
 ---- 1
 6
 
--NAME OpenWedgeKnowsTest1
--QUERY MATCH (b:person)<-[e1:knows]-(a:person)-[e2:knows]->(c:person) RETURN COUNT(*)
+-LOG OpenWedgeKnowsTest1
+-STATEMENT MATCH (b:person)<-[e1:knows]-(a:person)-[e2:knows]->(c:person) RETURN COUNT(*)
 ---- 1
 40
 
--NAME OpenWedgeWorkAtTest1
--QUERY MATCH (b:organisation)<-[e1:workAt]-(a:person)-[e2:workAt]->(c:organisation) RETURN COUNT(*)
+-LOG OpenWedgeWorkAtTest1
+-STATEMENT MATCH (b:organisation)<-[e1:workAt]-(a:person)-[e2:workAt]->(c:organisation) RETURN COUNT(*)
 ---- 1
 3
 
--NAME OpenWedgeStudyAtTest
--QUERY MATCH (b:organisation)<-[e1:studyAt]-(a:person)-[e2:studyAt]->(c:organisation) RETURN COUNT(*)
+-LOG OpenWedgeStudyAtTest
+-STATEMENT MATCH (b:organisation)<-[e1:studyAt]-(a:person)-[e2:studyAt]->(c:organisation) RETURN COUNT(*)
 ---- 1
 3
 
--NAME TwoHopKnowsTest
--QUERY MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person) RETURN COUNT(*)
+-LOG TwoHopKnowsTest
+-STATEMENT MATCH (a:person)-[e1:knows]->(b:person)-[e2:knows]->(c:person) RETURN COUNT(*)
 -ENUMERATE
 ---- 1
 36
 
--NAME OpenWedgeKnowsStudyAtTest
--QUERY MATCH (b:person)<-[e1:knows]-(a:person)-[e2:studyAt]->(c:organisation) RETURN COUNT(*)
+-LOG OpenWedgeKnowsStudyAtTest
+-STATEMENT MATCH (b:person)<-[e1:knows]-(a:person)-[e2:studyAt]->(c:organisation) RETURN COUNT(*)
 -ENUMERATE
 ---- 1
 6
 
--NAME OpenWedgeKnowsWorkAtTest
--QUERY MATCH (b:person)<-[e1:knows]-(a:person)-[e2:workAt]->(c:organisation) RETURN COUNT(*)
+-LOG OpenWedgeKnowsWorkAtTest
+-STATEMENT MATCH (b:person)<-[e1:knows]-(a:person)-[e2:workAt]->(c:organisation) RETURN COUNT(*)
 -ENUMERATE
 ---- 1
 8
 
--NAME OpenWedgeKnowsTest2
--QUERY MATCH (b:person)-[e1:knows]->(a:person)<-[e2:knows]-(c:person) RETURN COUNT(*)
+-LOG OpenWedgeKnowsTest2
+-STATEMENT MATCH (b:person)-[e1:knows]->(a:person)<-[e2:knows]-(c:person) RETURN COUNT(*)
 -ENUMERATE
 ---- 1
 38
 
--NAME OpenWedgeWorkAtTest2
--QUERY MATCH (b:organisation)<-[e1:workAt]-(a:person)-[e2:studyAt]->(c:organisation) RETURN COUNT(*)
+-LOG OpenWedgeWorkAtTest2
+-STATEMENT MATCH (b:organisation)<-[e1:workAt]-(a:person)-[e2:studyAt]->(c:organisation) RETURN COUNT(*)
 -ENUMERATE
 ---- 1
 0

@@ -4,7 +4,7 @@
 --
 
 -CASE NodePropertyColumnWithTimestamp
--QUERY MATCH (p:person) RETURN p.registerTime
+-STATEMENT MATCH (p:person) RETURN p.registerTime
 ---- 8
 1911-08-20 02:32:21
 1972-07-31 13:22:30.678559

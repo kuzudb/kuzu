@@ -5,50 +5,50 @@
 
 -CASE MatchMultiLabel
 
--NAME UnLabelTest
--QUERY MATCH () RETURN COUNT(*)
+-LOG UnLabelTest
+-STATEMENT MATCH () RETURN COUNT(*)
 ---- 1
 14
 
--NAME MultiLabelNodeTest
--QUERY MATCH (a:organisation:person) RETURN COUNT(*)
+-LOG MultiLabelNodeTest
+-STATEMENT MATCH (a:organisation:person) RETURN COUNT(*)
 ---- 1
 11
 
--NAME MultiLabelNodeTest
--QUERY MATCH (a:organisation:person) MATCH (a:movies) RETURN COUNT(*)
+-LOG MultiLabelNodeTest
+-STATEMENT MATCH (a:organisation:person) MATCH (a:movies) RETURN COUNT(*)
 ---- 1
 14
 
--NAME MultiLabelCrossProductTest
--QUERY MATCH (a:person), (b:person), (c:person:movies) RETURN COUNT(*)
+-LOG MultiLabelCrossProductTest
+-STATEMENT MATCH (a:person), (b:person), (c:person:movies) RETURN COUNT(*)
 -ENUMERATE
 ---- 1
 704
 
--NAME UnLabelOneHopTest
--QUERY MATCH ()-[]->() RETURN COUNT(*)
+-LOG UnLabelOneHopTest
+-STATEMENT MATCH ()-[]->() RETURN COUNT(*)
 ---- 1
 30
 
--NAME MultiLabelOneHopTest1
--QUERY MATCH (a:person)-[e:knows|:marries]->(b:person) RETURN COUNT(*)
+-LOG MultiLabelOneHopTest1
+-STATEMENT MATCH (a:person)-[e:knows|:marries]->(b:person) RETURN COUNT(*)
 ---- 1
 17
 
--NAME MultiLabelOneHopTest2
--QUERY MATCH (a:person)-[e:knows|:marries|:studyAt|:workAt|:meets]->(b:person) RETURN COUNT(*)
+-LOG MultiLabelOneHopTest2
+-STATEMENT MATCH (a:person)-[e:knows|:marries|:studyAt|:workAt|:meets]->(b:person) RETURN COUNT(*)
 ---- 1
 24
 
--NAME MultiLabelOneHopTest3
--QUERY MATCH (a:person)-[e:knows|:marries|:studyAt|:workAt|:meets]->(b:organisation) RETURN COUNT(*)
+-LOG MultiLabelOneHopTest3
+-STATEMENT MATCH (a:person)-[e:knows|:marries|:studyAt|:workAt|:meets]->(b:organisation) RETURN COUNT(*)
 -ENUMERATE
 ---- 1
 6
 
--NAME MultiLabelOneHopTest4
--QUERY MATCH (a:person)-[:studyAt|:knows]->(b:person:organisation) RETURN COUNT(*)
+-LOG MultiLabelOneHopTest4
+-STATEMENT MATCH (a:person)-[:studyAt|:knows]->(b:person:organisation) RETURN COUNT(*)
 -ENUMERATE
 ---- 1
 17

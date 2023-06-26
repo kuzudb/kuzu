@@ -5,8 +5,8 @@
 
 -CASE AllShortestPath
 
--NAME MultiLabel1
--QUERY MATCH (a:person)-[e:knows|:meets|:marries* ALL SHORTEST 1..5]->(b:person) WHERE a.fName='Alice' RETURN b.fName, length(e)
+-LOG MultiLabel1
+-STATEMENT MATCH (a:person)-[e:knows|:meets|:marries* ALL SHORTEST 1..5]->(b:person) WHERE a.fName='Alice' RETURN b.fName, length(e)
 ---- 9
 Bob|1
 Bob|1
@@ -18,8 +18,8 @@ Farooq|3
 Farooq|3
 Greg|3
 
--NAME MultiLabel2
--QUERY MATCH (a:person)-[e* ALL SHORTEST 1..5]->(b:organisation) WHERE a.fName='Bob' RETURN b.ID, length(e)
+-LOG MultiLabel2
+-STATEMENT MATCH (a:person)-[e* ALL SHORTEST 1..5]->(b:organisation) WHERE a.fName='Bob' RETURN b.ID, length(e)
 ---- 4
 1|1
 4|2

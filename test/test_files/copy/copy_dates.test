@@ -4,7 +4,7 @@
 --
 
 -CASE NodePropertyColumnWithDate
--QUERY MATCH (p:person) RETURN p.birthdate
+-STATEMENT MATCH (p:person) RETURN p.birthdate
 ---- 8
 1900-01-01
 1900-01-01
