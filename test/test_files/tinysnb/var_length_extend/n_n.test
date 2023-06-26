@@ -69,3 +69,13 @@ Greg
 3:2|Dan
 3:2|Dan
 3:2|Dan
+
+-LOG KnowsOneToTwoHopFilterTest
+-STATEMENT MATCH (a:person)-[e:knows*1..2 {date: date("2021-06-30")}]->(b:person) WHERE a.fName='Alice' RETURN id(rels(e)[1]), id((nodes(e))[2]), length(e)
+---- 6
+3:0|0:1|1
+3:0|0:1|2
+3:1|0:2|1
+3:1|0:2|2
+3:2|0:3|1
+3:2|0:3|2

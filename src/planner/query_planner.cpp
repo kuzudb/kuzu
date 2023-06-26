@@ -106,9 +106,7 @@ void QueryPlanner::planMatchClause(
     BoundReadingClause* boundReadingClause, std::vector<std::unique_ptr<LogicalPlan>>& plans) {
     auto boundMatchClause = (BoundMatchClause*)boundReadingClause;
     auto queryGraphCollection = boundMatchClause->getQueryGraphCollection();
-    auto predicates = boundMatchClause->hasWhereExpression() ?
-                          boundMatchClause->getWhereExpression()->splitOnAND() :
-                          expression_vector{};
+    auto predicates = boundMatchClause->getPredicatesSplitOnAnd();
     // TODO(Xiyang): when we plan a set of LogicalPlans with a (OPTIONAL)MATCH we shouldn't only
     // take the best plan from (OPTIONAL)MATCH instead we should take all plans and do cartesian
     // product with the set of LogicalPlans.
@@ -233,9 +231,7 @@ void QueryPlanner::planExistsSubquery(
         auto joinNodeIDs = getJoinNodeIDs(correlatedExpressions);
         // Unnest as mark join. See planOptionalMatch for unnesting logic.
         auto prevContext = joinOrderEnumerator.enterSubquery(joinNodeIDs);
-        auto predicates = subquery->hasWhereExpression() ?
-                              subquery->getWhereExpression()->splitOnAND() :
-                              expression_vector{};
+        auto predicates = subquery->getPredicatesSplitOnAnd();
         auto bestInnerPlan = getBestPlan(
             joinOrderEnumerator.enumerate(*subquery->getQueryGraphCollection(), predicates));
         joinOrderEnumerator.exitSubquery(std::move(prevContext));

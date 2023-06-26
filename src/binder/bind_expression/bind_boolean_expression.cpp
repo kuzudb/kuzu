@@ -38,5 +38,16 @@ std::shared_ptr<Expression> ExpressionBinder::bindBooleanExpression(
         uniqueExpressionName);
 }
 
+std::shared_ptr<Expression> ExpressionBinder::combineConjunctiveExpressions(
+    std::shared_ptr<Expression> left, std::shared_ptr<Expression> right) {
+    if (left == nullptr) {
+        return right;
+    } else if (right == nullptr) {
+        return left;
+    } else {
+        return bindBooleanExpression(AND, expression_vector{std::move(left), std::move(right)});
+    }
+}
+
 } // namespace binder
 } // namespace kuzu

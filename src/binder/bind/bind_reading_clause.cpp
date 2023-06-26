@@ -32,15 +32,10 @@ std::unique_ptr<BoundReadingClause> Binder::bindMatchClause(const ReadingClause&
         whereExpression = bindWhereExpression(*matchClause.getWhereClause());
     }
     // Rewrite key value pairs in MATCH clause as predicate
-    for (auto& keyValPairs : propertyCollection->getAllPropertyKeyValPairs()) {
-        auto predicate = expressionBinder.bindComparisonExpression(
-            EQUALS, expression_vector{keyValPairs.first, keyValPairs.second});
-        if (whereExpression != nullptr) {
-            whereExpression = expressionBinder.bindBooleanExpression(
-                AND, expression_vector{whereExpression, predicate});
-        } else {
-            whereExpression = predicate;
-        }
+    for (auto& [key, val] : propertyCollection->getKeyVals()) {
+        auto predicate = expressionBinder.createEqualityComparisonExpression(key, val);
+        whereExpression =
+            expressionBinder.combineConjunctiveExpressions(predicate, whereExpression);
     }
     boundMatchClause->setWhereExpression(std::move(whereExpression));
     return boundMatchClause;

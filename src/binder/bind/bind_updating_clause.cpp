@@ -65,7 +65,7 @@ std::unique_ptr<BoundCreateNode> Binder::bindCreateNode(
     auto primaryKey = nodeTableSchema->getPrimaryKey();
     std::shared_ptr<Expression> primaryKeyExpression;
     std::vector<expression_pair> setItems;
-    for (auto& [key, val] : collection.getPropertyKeyValPairs(*node)) {
+    for (auto& [key, val] : collection.getKeyVals(node)) {
         auto propertyExpression = static_pointer_cast<PropertyExpression>(key);
         if (propertyExpression->getPropertyID(nodeTableID) == primaryKey.propertyID) {
             primaryKeyExpression = val;
@@ -94,8 +94,8 @@ std::unique_ptr<BoundCreateRel> Binder::bindCreateRel(
     // null if user does not specify a property in the query.
     std::vector<expression_pair> setItems;
     for (auto& property : catalogContent->getRelProperties(relTableID)) {
-        if (collection.hasPropertyKeyValPair(*rel, property.name)) {
-            setItems.push_back(collection.getPropertyKeyValPair(*rel, property.name));
+        if (collection.hasKeyVal(rel, property.name)) {
+            setItems.push_back(collection.getKeyVal(rel, property.name));
         } else {
             auto propertyExpression =
                 expressionBinder.bindRelPropertyExpression(*rel, property.name);
