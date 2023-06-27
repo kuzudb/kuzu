@@ -7,14 +7,11 @@ namespace parser {
 
 class ProjectionBody {
 public:
-    ProjectionBody(bool isDistinct, bool containsStar_,
-        std::vector<std::unique_ptr<ParsedExpression>> projectionExpressions)
-        : isDistinct{isDistinct}, containsStar_{containsStar_}, projectionExpressions{std::move(
-                                                                    projectionExpressions)} {}
+    ProjectionBody(
+        bool isDistinct, std::vector<std::unique_ptr<ParsedExpression>> projectionExpressions)
+        : isDistinct{isDistinct}, projectionExpressions{std::move(projectionExpressions)} {}
 
     inline bool getIsDistinct() const { return isDistinct; }
-
-    inline bool containsStar() const { return containsStar_; }
 
     inline const std::vector<std::unique_ptr<ParsedExpression>>& getProjectionExpressions() const {
         return projectionExpressions;
@@ -47,7 +44,6 @@ public:
 
 private:
     bool isDistinct;
-    bool containsStar_;
     std::vector<std::unique_ptr<ParsedExpression>> projectionExpressions;
     std::vector<std::unique_ptr<ParsedExpression>> orderByExpressions;
     std::vector<bool> isAscOrders;

@@ -492,7 +492,7 @@ oC_ExistentialSubquery
 EXISTS : ( 'E' | 'e' ) ( 'X' | 'x' ) ( 'I' | 'i' ) ( 'S' | 's' ) ( 'T' | 't' ) ( 'S' | 's' ) ;
 
 oC_PropertyLookup
-    : '.' SP? ( oC_PropertyKeyName ) ;
+    : '.' SP? ( oC_PropertyKeyName | STAR ) ;
 
 oC_CaseExpression
     :  ( ( CASE ( SP? oC_CaseAlternative )+ ) | ( CASE SP? oC_Expression ( SP? oC_CaseAlternative )+ ) ) ( SP? ELSE SP? oC_Expression )? SP? END ;

@@ -4,6 +4,7 @@
 #include "parser/expression/parsed_literal_expression.h"
 
 using namespace kuzu::parser;
+using namespace kuzu::common;
 
 namespace kuzu {
 namespace binder {
@@ -22,6 +23,12 @@ std::shared_ptr<Expression> ExpressionBinder::createLiteralExpression(
     std::unique_ptr<common::Value> value) {
     auto uniqueName = binder->getUniqueExpressionName(value->toString());
     return std::make_unique<LiteralExpression>(std::move(value), uniqueName);
+}
+
+std::shared_ptr<Expression> ExpressionBinder::createStringLiteralExpression(
+    const std::string& strVal) {
+    auto value = std::make_unique<Value>(LogicalType{LogicalTypeID::STRING}, strVal);
+    return createLiteralExpression(std::move(value));
 }
 
 std::shared_ptr<Expression> ExpressionBinder::createNullLiteralExpression() {

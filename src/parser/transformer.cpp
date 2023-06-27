@@ -198,9 +198,8 @@ std::unique_ptr<ReturnClause> Transformer::transformReturn(CypherParser::OC_Retu
 
 std::unique_ptr<ProjectionBody> Transformer::transformProjectionBody(
     CypherParser::OC_ProjectionBodyContext& ctx) {
-    auto projectionBody = std::make_unique<ProjectionBody>(nullptr != ctx.DISTINCT(),
-        nullptr != ctx.oC_ProjectionItems()->STAR(),
-        transformProjectionItems(*ctx.oC_ProjectionItems()));
+    auto projectionBody = std::make_unique<ProjectionBody>(
+        nullptr != ctx.DISTINCT(), transformProjectionItems(*ctx.oC_ProjectionItems()));
     if (ctx.oC_Order()) {
         std::vector<std::unique_ptr<ParsedExpression>> orderByExpressions;
         std::vector<bool> isAscOrders;
@@ -223,6 +222,10 @@ std::unique_ptr<ProjectionBody> Transformer::transformProjectionBody(
 std::vector<std::unique_ptr<ParsedExpression>> Transformer::transformProjectionItems(
     CypherParser::OC_ProjectionItemsContext& ctx) {
     std::vector<std::unique_ptr<ParsedExpression>> projectionExpressions;
+    if (ctx.STAR()) {
+        projectionExpressions.push_back(std::make_unique<ParsedExpression>(
+            common::ExpressionType::STAR, ctx.STAR()->getText()));
+    }
     for (auto& projectionItem : ctx.oC_ProjectionItem()) {
         projectionExpressions.push_back(transformProjectionItem(*projectionItem));
     }
@@ -746,12 +749,10 @@ std::unique_ptr<ParsedExpression> Transformer::transformPropertyOrLabelsExpressi
     auto raw = ctx.oC_Atom()->getText();
     if (!ctx.oC_PropertyLookup().empty()) {
         auto lookUpCtx = ctx.oC_PropertyLookup(0);
-        auto result = std::make_unique<ParsedPropertyExpression>(
-            transformPropertyLookup(*lookUpCtx), std::move(atom), raw + lookUpCtx->getText());
+        auto result = createPropertyExpression(*lookUpCtx, std::move(atom));
         for (auto i = 1u; i < ctx.oC_PropertyLookup().size(); ++i) {
             lookUpCtx = ctx.oC_PropertyLookup(i);
-            result = std::make_unique<ParsedPropertyExpression>(
-                transformPropertyLookup(*lookUpCtx), std::move(result), raw + lookUpCtx->getText());
+            result = createPropertyExpression(*lookUpCtx, std::move(result));
         }
         return result;
     }
@@ -892,8 +893,12 @@ std::unique_ptr<ParsedExpression> Transformer::transformExistentialSubquery(
     return existsSubquery;
 }
 
-std::string Transformer::transformPropertyLookup(CypherParser::OC_PropertyLookupContext& ctx) {
-    return transformPropertyKeyName(*ctx.oC_PropertyKeyName());
+std::unique_ptr<ParsedExpression> Transformer::createPropertyExpression(
+    CypherParser::OC_PropertyLookupContext& ctx, std::unique_ptr<ParsedExpression> child) {
+    auto key = ctx.STAR() ? common::InternalKeyword::STAR :
+                            transformPropertyKeyName(*ctx.oC_PropertyKeyName());
+    return std::make_unique<ParsedPropertyExpression>(
+        key, std::move(child), child->toString() + ctx.getText());
 }
 
 std::unique_ptr<ParsedExpression> Transformer::transformCaseExpression(
@@ -946,9 +951,8 @@ std::unique_ptr<ParsedExpression> Transformer::transformNumberLiteral(
 
 std::unique_ptr<ParsedExpression> Transformer::transformProperty(
     CypherParser::OC_PropertyExpressionContext& ctx) {
-    return std::make_unique<ParsedPropertyExpression>(
-        transformPropertyLookup(*ctx.oC_PropertyLookup()), transformAtom(*ctx.oC_Atom()),
-        ctx.getText());
+    auto child = transformAtom(*ctx.oC_Atom());
+    return createPropertyExpression(*ctx.oC_PropertyLookup(), std::move(child));
 }
 
 std::string Transformer::transformPropertyKeyName(CypherParser::OC_PropertyKeyNameContext& ctx) {
@@ -1084,14 +1088,6 @@ std::vector<std::pair<std::string, std::string>> Transformer::transformPropertyD
 
 std::string Transformer::transformDataType(CypherParser::KU_DataTypeContext& ctx) {
     return ctx.getText();
-}
-
-std::string Transformer::transformListIdentifiers(CypherParser::KU_ListIdentifiersContext& ctx) {
-    std::string listIdentifiers;
-    for (auto& listIdentifier : ctx.kU_ListIdentifier()) {
-        listIdentifiers += listIdentifier->getText();
-    }
-    return listIdentifiers;
 }
 
 std::string Transformer::transformPrimaryKey(CypherParser::KU_CreateNodeConstraintContext& ctx) {
