@@ -145,8 +145,6 @@ void planEnumerator(const string& query) {
     }
 }
 
-// Q1. Plan: 3 HJ(b){E(b)S(a)}{S(b)}. Count: 1938516
-// Q2. Plan: 47 HJ(c){HJ(a){E(c)E(a)S(b)}{S(a)}}{S(c)}. Count: 149008866
 int main(int argv, char* argc[]) {
     if (argv != 5) {
         cout << "HELP: EXEC <serializedPath> <queryPath> <encodedJoin> <numThreads>" << endl;

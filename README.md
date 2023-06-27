@@ -5,7 +5,7 @@
 ### Bazel configuration
 
 - Create bazel configuration file with `touch .bazelrc`
-- Add bazel configuration `echo build --cxxopt="-std=c++2a" --cxxopt='-fopenmp' --linkopt='-lgomp' > .bazelrc`
+- Add bazel configuration `echo build --cxxopt="-std=c++2a" --cxxopt='-O3' --cxxopt='-fopenmp' --linkopt='-lgomp' > .bazelrc`
 
 ### Bazel build
 
@@ -58,8 +58,19 @@
   :bm_debug_info debug information about the buffer manager
   :system_debug_info debug information about the system
 
-## Benchmark runner
+## Benchmark
+### Reproducing CIDR results
+Please use `main` under `examples` to reproduce the results in CIDR paper. The following command will run all the queries in the paper.
+```shell
+./bazel-bin/examples/main <serializedPath> <queryPath> <encodedJoin> <numThreads>
+```
 
+For example, to run IS1 with 8 threads, use the following command.
+```shell
+./bazel-bin/examples/main serialized/ examples/queries/IS01.cypher is01 8
+```
+
+### Benchmark runner
 Benchmark runner is designed to be used in graphflowdb-benchmark. Deirectly using benchmark runner is not recommended.
 
 - benchmark file should have the following format
@@ -85,8 +96,3 @@ expectedNumOutput 8
 
 Current python driver is under development. See `tools/python_api/test/example.py` for example usage. To run this
 example `bazel run //tools/python_api:example`.
-
-## Design Docs
-
-[Design documents](https://drive.google.com/drive/folders/1Z5tYGGq9ivWWDyl8s5dbUs9eKNgi1baS?usp=sharing) for some of our
-features and components.
