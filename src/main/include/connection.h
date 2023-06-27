@@ -132,6 +132,7 @@ public:
     unique_ptr<planner::LogicalPlan> getIS01Plan(const std::string& query);
     unique_ptr<planner::LogicalPlan> getIS02Plan(const std::string& query);
     unique_ptr<planner::LogicalPlan> getIS03Plan(const std::string& query);
+    unique_ptr<planner::LogicalPlan> getIS04Plan(const std::string& query);
     unique_ptr<planner::LogicalPlan> getIS05Plan(const std::string& query);
     unique_ptr<planner::LogicalPlan> getIS06Plan(const std::string& query);
     unique_ptr<planner::LogicalPlan> getIS07Plan(const std::string& query);

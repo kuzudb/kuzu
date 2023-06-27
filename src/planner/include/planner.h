@@ -35,6 +35,10 @@ public:
         const NodesMetadata& nodesMetadata, const BoundStatement& statement) {
         return Enumerator(catalog, nodesMetadata).getIS3Plan(statement);
     }
+    static inline unique_ptr<LogicalPlan> getIS04Plan(const Catalog& catalog,
+        const NodesMetadata& nodesMetadata, const BoundStatement& statement) {
+        return Enumerator(catalog, nodesMetadata).getIS4Plan(statement);
+    }
     static inline unique_ptr<LogicalPlan> getIS05Plan(const Catalog& catalog,
         const NodesMetadata& nodesMetadata, const BoundStatement& statement) {
         return Enumerator(catalog, nodesMetadata).getIS5Plan(statement);

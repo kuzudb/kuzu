@@ -89,6 +89,23 @@ unique_ptr<LogicalPlan> Enumerator::getIS3Plan(const BoundStatement& statement) 
     return plan;
 }
 
+unique_ptr<LogicalPlan> Enumerator::getIS4Plan(const BoundStatement& statement) {
+    auto queryPart = extractQueryPart(statement);
+    auto queryGraph = queryPart->getQueryGraph(0);
+    auto predicates = queryPart->getQueryGraphPredicate(0)->splitOnAND();
+    auto comment = queryGraph->getQueryNode(0);
+    assert(comment->getRawName() == "comment");
+
+    auto plan = make_unique<LogicalPlan>();
+    joinOrderEnumerator.appendScanNodeID(comment, 0, *plan);
+    auto predicatesToApply = extractPredicatesForNode(predicates, *comment);
+    joinOrderEnumerator.planFiltersForNode(predicatesToApply, *comment, *plan);
+    joinOrderEnumerator.planPropertyScansForNode(*comment, *plan);
+    projectionEnumerator.enumerateProjectionBody(*queryPart->getProjectionBody(), *plan);
+    plan->setExpressionsToCollect(queryPart->getProjectionBody()->getProjectionExpressions());
+    return plan;
+}
+
 unique_ptr<LogicalPlan> Enumerator::getIS5Plan(const BoundStatement& statement) {
     auto queryPart = extractQueryPart(statement);
     auto queryGraph = queryPart->getQueryGraph(0);

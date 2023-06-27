@@ -216,6 +216,13 @@ unique_ptr<planner::LogicalPlan> Connection::getIS03Plan(const std::string& quer
         database->storageManager->getNodesStore().getNodesMetadata(), *boundQuery);
 }
 
+unique_ptr<planner::LogicalPlan> Connection::getIS04Plan(const std::string& query) {
+    auto parsedQuery = Parser::parseQuery(query);
+    auto boundQuery = Binder(*database->catalog).bind(*parsedQuery);
+    return Planner::getIS04Plan(*database->catalog,
+        database->storageManager->getNodesStore().getNodesMetadata(), *boundQuery);
+}
+
 unique_ptr<planner::LogicalPlan> Connection::getIS05Plan(const std::string& query) {
     auto parsedQuery = Parser::parseQuery(query);
     auto boundQuery = Binder(*database->catalog).bind(*parsedQuery);

@@ -52,6 +52,9 @@ unique_ptr<QueryResult> run(JOConnection* conn, const string& profiledQuery, str
     } else if (encodedJoin == "is03") {
         auto plan = conn->getIS03Plan(profiledQuery);
         return conn->executePlan(move(plan));
+    } else if (encodedJoin == "is04") {
+        auto plan = conn->getIS04Plan(profiledQuery);
+        return conn->executePlan(move(plan));
     } else if (encodedJoin == "is05") {
         auto plan = conn->getIS05Plan(profiledQuery);
         return conn->executePlan(move(plan));
