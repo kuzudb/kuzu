@@ -2,6 +2,7 @@
 
 #include "binder/bound_statement_result.h"
 #include "common/statement_type.h"
+#include "planner/logical_plan/logical_plan.h"
 
 namespace kuzu {
 namespace main {
@@ -25,6 +26,8 @@ bool PreparedStatement::isReadOnly() const {
 binder::expression_vector PreparedStatement::getExpressionsToCollect() {
     return statementResult->getExpressionsToCollect();
 }
+
+PreparedStatement::~PreparedStatement() = default;
 
 } // namespace main
 } // namespace kuzu
