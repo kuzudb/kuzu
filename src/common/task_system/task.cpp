@@ -18,7 +18,9 @@ void Task::deRegisterThreadAndFinalizeTaskIfNecessary() {
     lock_t lck{mtx};
     ++numThreadsFinished;
     if (!hasExceptionNoLock() && isCompletedNoLock()) {
-        finalizeIfNecessary();
+        try {
+            finalizeIfNecessary();
+        } catch (std::exception& e) { setExceptionNoLock(std::current_exception()); }
     }
 }
 

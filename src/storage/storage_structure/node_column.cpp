@@ -1,7 +1,5 @@
 #include "storage/storage_structure/node_column.h"
 
-#include <iostream>
-
 #include "storage/storage_structure/storage_structure.h"
 #include "storage/storage_structure/struct_node_column.h"
 #include "storage/storage_structure/var_sized_node_column.h"
@@ -85,13 +83,6 @@ NodeColumn::NodeColumn(LogicalType dataType, const MetaDiskArrayHeaderInfo& meta
     }
     // LOG
     auto numNodeGroups = columnChunksMetaDA->getNumElements(TransactionType::READ_ONLY);
-    std::cout << "NodeColumn data type: " << LogicalTypeUtils::dataTypeToString(this->dataType)
-              << std::endl;
-    for (auto i = 0u; i < numNodeGroups; i++) {
-        auto columnChunkMeta = columnChunksMetaDA->get(i, TransactionType::READ_ONLY);
-        std::cout << "NodeGroup " << i << " starts at page " << columnChunkMeta.pageIdx << " with "
-                  << columnChunkMeta.numPages << " pages." << std::endl;
-    }
 }
 
 void NodeColumn::batchLookup(const offset_t* nodeOffsets, size_t size, uint8_t* result) {

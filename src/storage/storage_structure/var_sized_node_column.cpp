@@ -1,7 +1,5 @@
 #include "storage/storage_structure/var_sized_node_column.h"
 
-#include <iostream>
-
 using namespace kuzu::catalog;
 using namespace kuzu::common;
 using namespace kuzu::transaction;
@@ -16,7 +14,6 @@ VarSizedNodeColumn::VarSizedNodeColumn(LogicalType dataType,
           bufferManager, wal, true} {
     ovfPageIdxInChunk = ColumnChunk::getNumPagesForBytes(
         numBytesPerFixedSizedValue << StorageConstants::NODE_GROUP_SIZE_LOG2);
-    std::cout << "VarSizeNodeColumn ovfPageIdx: " << ovfPageIdxInChunk << std::endl;
 }
 
 void VarSizedNodeColumn::scanInternal(

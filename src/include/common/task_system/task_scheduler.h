@@ -77,14 +77,15 @@ public:
     // it will remove only that one. Other tasks that may have failed many not be removed
     // from the task queue and remain in the queue. So for now, use this function if you
     // want the system to crash if any of the tasks fails.
+    // TODO: Remove this function.
     void waitAllTasksToCompleteOrError();
 
+    // TODO: Remove this function.
     void waitUntilEnoughTasksFinish(int64_t minimumNumTasksToScheduleMore);
 
     // Checks if there is an erroring task in the queue and if so, errors.
     void errorIfThereIsAnException();
 
-    bool isTaskQueueEmpty() { return taskQueue.empty(); }
     uint64_t getNumTasks() { return taskQueue.size(); }
 
 private:
