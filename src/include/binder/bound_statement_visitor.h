@@ -26,7 +26,8 @@ protected:
     virtual void visitDropProperty(const BoundStatement& statement) {}
     virtual void visitRenameProperty(const BoundStatement& statement) {}
     virtual void visitCopy(const BoundStatement& statement) {}
-    virtual void visitCall(const BoundStatement& statement) {}
+    virtual void visitCallConfig(const BoundStatement& statement) {}
+    virtual void visitCallTableFunc(const BoundStatement& statement) {}
 
     void visitReadingClause(const BoundReadingClause& readingClause);
     virtual void visitMatch(const BoundReadingClause& readingClause) {}

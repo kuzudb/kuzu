@@ -6,7 +6,9 @@ add_library(kuzu_function
         base_lower_upper_operation.cpp
         built_in_aggregate_functions.cpp
         built_in_vector_operations.cpp
+        built_in_table_operations.cpp
         find_operation.cpp
+        table_operations.cpp
         vector_arithmetic_operations.cpp
         vector_boolean_operations.cpp
         vector_cast_operations.cpp

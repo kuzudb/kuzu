@@ -23,7 +23,8 @@ kU_CopyNPY
     : COPY SP oC_SchemaName SP FROM SP '(' SP? StringLiteral ( SP? ',' SP? StringLiteral )* ')' SP BY SP COLUMN ;
 
 kU_Call
-    : CALL SP oC_SymbolicName SP? '=' SP? oC_Literal ;
+    : CALL SP ( ( oC_SymbolicName SP? '=' SP? oC_Literal )
+        | ( oC_FunctionName SP? '(' oC_Literal? ')' ) );
 
 CALL : ( 'C' | 'c' ) ( 'A' | 'a' ) ( 'L' | 'l' ) ( 'L' | 'l' ) ;
 

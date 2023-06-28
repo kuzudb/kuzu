@@ -43,12 +43,12 @@ std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
 
 std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
     const expression_vector& children, const std::string& functionName) {
-    auto builtInFunctions = binder->catalog.getBuiltInScalarFunctions();
+    auto builtInFunctions = binder->catalog.getBuiltInVectorOperation();
     std::vector<LogicalType> childrenTypes;
     for (auto& child : children) {
         childrenTypes.push_back(child->dataType);
     }
-    auto function = builtInFunctions->matchFunction(functionName, childrenTypes);
+    auto function = builtInFunctions->matchVectorOperation(functionName, childrenTypes);
     if (builtInFunctions->canApplyStaticEvaluation(functionName, children)) {
         return staticEvaluate(functionName, children);
     }

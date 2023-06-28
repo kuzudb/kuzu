@@ -1,6 +1,7 @@
 #include "planner/planner.h"
 
-#include "binder/call/bound_call.h"
+#include "binder/call/bound_call_config.h"
+#include "binder/call/bound_call_table_func.h"
 #include "binder/copy/bound_copy.h"
 #include "binder/ddl/bound_add_property.h"
 #include "binder/ddl/bound_create_node_clause.h"
@@ -11,7 +12,8 @@
 #include "binder/ddl/bound_rename_table.h"
 #include "binder/expression/variable_expression.h"
 #include "planner/logical_plan/logical_operator/logical_add_property.h"
-#include "planner/logical_plan/logical_operator/logical_call.h"
+#include "planner/logical_plan/logical_operator/logical_call_config.h"
+#include "planner/logical_plan/logical_operator/logical_call_table_func.h"
 #include "planner/logical_plan/logical_operator/logical_copy.h"
 #include "planner/logical_plan/logical_operator/logical_create_node_table.h"
 #include "planner/logical_plan/logical_operator/logical_create_rel_table.h"
@@ -59,8 +61,11 @@ std::unique_ptr<LogicalPlan> Planner::getBestPlan(const Catalog& catalog,
     case StatementType::RENAME_PROPERTY: {
         plan = planRenameProperty(statement);
     } break;
-    case StatementType::CALL: {
-        plan = planCall(statement);
+    case StatementType::CALL_CONFIG: {
+        plan = planCallConfig(statement);
+    } break;
+    case StatementType::CALL_TABLE_FUNC: {
+        plan = planCallTableFunc(statement);
     } break;
     default:
         throw common::NotImplementedException("getBestPlan()");
@@ -179,12 +184,22 @@ std::unique_ptr<LogicalPlan> Planner::planCopy(
     return plan;
 }
 
-std::unique_ptr<LogicalPlan> Planner::planCall(const BoundStatement& statement) {
-    auto& callClause = reinterpret_cast<const BoundCall&>(statement);
+std::unique_ptr<LogicalPlan> Planner::planCallConfig(const BoundStatement& statement) {
+    auto& callConfigClause = reinterpret_cast<const BoundCallConfig&>(statement);
     auto plan = std::make_unique<LogicalPlan>();
-    auto logicalCall =
-        make_shared<LogicalCall>(callClause.getOption(), callClause.getOptionValue());
-    plan->setLastOperator(std::move(logicalCall));
+    auto logicalCallConfig = make_shared<LogicalCallConfig>(
+        callConfigClause.getOption(), callConfigClause.getOptionValue());
+    plan->setLastOperator(std::move(logicalCallConfig));
+    return plan;
+}
+
+std::unique_ptr<LogicalPlan> Planner::planCallTableFunc(const BoundStatement& statement) {
+    auto& callTableFuncClause = reinterpret_cast<const BoundCallTableFunc&>(statement);
+    auto plan = std::make_unique<LogicalPlan>();
+    auto logicalCallTableFunc = std::make_shared<LogicalCallTableFunc>(
+        callTableFuncClause.getTableFunc(), callTableFuncClause.getBindData()->copy(),
+        statement.getStatementResult()->getExpressionsToCollect());
+    plan->setLastOperator(std::move(logicalCallTableFunc));
     return plan;
 }
 

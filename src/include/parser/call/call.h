@@ -8,9 +8,10 @@ namespace parser {
 
 class Call : public Statement {
 public:
-    explicit Call(std::string optionName, std::unique_ptr<ParsedExpression> optionValue)
-        : Statement{common::StatementType::CALL}, optionName{std::move(optionName)},
-          optionValue{std::move(optionValue)} {}
+    explicit Call(common::StatementType statementType, std::string optionName,
+        std::unique_ptr<ParsedExpression> optionValue)
+        : Statement{statementType}, optionName{std::move(optionName)}, optionValue{std::move(
+                                                                           optionValue)} {}
 
     inline std::string getOptionName() const { return optionName; }
 

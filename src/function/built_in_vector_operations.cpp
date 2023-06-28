@@ -46,7 +46,7 @@ bool BuiltInVectorOperations::canApplyStaticEvaluation(
     return false;
 }
 
-VectorOperationDefinition* BuiltInVectorOperations::matchFunction(
+VectorOperationDefinition* BuiltInVectorOperations::matchVectorOperation(
     const std::string& name, const std::vector<LogicalType>& inputTypes) {
     auto& functionDefinitions = vectorOperations.at(name);
     bool isOverload = functionDefinitions.size() > 1;

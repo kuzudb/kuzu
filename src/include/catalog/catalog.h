@@ -9,6 +9,7 @@
 #include "common/ser_deser.h"
 #include "common/utils.h"
 #include "function/aggregate/built_in_aggregate_functions.h"
+#include "function/built_in_table_operations.h"
 #include "function/built_in_vector_operations.h"
 #include "storage/storage_info.h"
 #include "storage/wal/wal.h"
@@ -164,11 +165,14 @@ public:
     inline CatalogContent* getReadOnlyVersion() const { return catalogContentForReadOnlyTrx.get(); }
     inline CatalogContent* getWriteVersion() const { return catalogContentForWriteTrx.get(); }
 
-    inline function::BuiltInVectorOperations* getBuiltInScalarFunctions() const {
+    inline function::BuiltInVectorOperations* getBuiltInVectorOperation() const {
         return builtInVectorOperations.get();
     }
     inline function::BuiltInAggregateFunctions* getBuiltInAggregateFunction() const {
         return builtInAggregateFunctions.get();
+    }
+    inline function::BuiltInTableOperations* getBuiltInTableOperation() const {
+        return builtInTableOperations.get();
     }
 
     void prepareCommitOrRollback(transaction::TransactionAction action);
@@ -217,6 +221,7 @@ private:
 protected:
     std::unique_ptr<function::BuiltInVectorOperations> builtInVectorOperations;
     std::unique_ptr<function::BuiltInAggregateFunctions> builtInAggregateFunctions;
+    std::unique_ptr<function::BuiltInTableOperations> builtInTableOperations;
     std::unique_ptr<CatalogContent> catalogContentForReadOnlyTrx;
     std::unique_ptr<CatalogContent> catalogContentForWriteTrx;
     storage::WAL* wal;

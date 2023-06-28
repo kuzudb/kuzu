@@ -201,6 +201,9 @@ const std::string OCTET_LENGTH_FUNC_NAME = "OCTET_LENGTH";
 const std::string ENCODE_FUNC_NAME = "ENCODE";
 const std::string DECODE_FUNC_NAME = "DECODE";
 
+// TABLE functions
+const std::string TABLE_INFO_FUNC_NAME = "TABLE_INFO";
+
 enum ExpressionType : uint8_t {
 
     // Boolean Connection Expressions
