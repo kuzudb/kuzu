@@ -41,6 +41,14 @@ bool CreateNode::getNextTuplesInternal(ExecutionContext* context) {
         } else {
             nodeTable->resetProperties(nodeOffset);
         }
+        auto currentNumNodeGroups = nodeTable->getNumNodeGroups(context->transaction);
+        if (nodeOffset == (currentNumNodeGroups << StorageConstants::NODE_GROUP_SIZE_LOG2)) {
+            auto newNodeGroup =
+                std::make_unique<NodeGroup>(createNodeInfo->schema, nullptr /* copyDesc */);
+            newNodeGroup->setNodeGroupIdx(currentNumNodeGroups);
+            // TODO: Add wal record: append node group.
+            nodeTable->appendNodeGroup(newNodeGroup.get());
+        }
         auto vector = outValueVectors[i];
         nodeID_t nodeID{nodeOffset, nodeTable->getTableID()};
         vector->setValue(vector->state->selVector->selectedPositions[0], nodeID);

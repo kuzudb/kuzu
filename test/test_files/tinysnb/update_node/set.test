@@ -53,7 +53,6 @@ False
 2200-10-10 12:01:01
 
 -CASE SetNodeEmptyStringPropTest
--SKIP
 -STATEMENT MATCH (a:person) WHERE a.ID=0 SET a.fName=''
 ---- ok
 -STATEMENT MATCH (a:person) WHERE a.ID=0 RETURN a.fName
@@ -62,7 +61,6 @@ False
 # end of SetNodeEmptyStringPropTest
 
 -CASE SetNodeShortStringPropTest
--SKIP
 -STATEMENT MATCH (a:person) WHERE a.ID=0 SET a.fName=string(22)
 ---- ok
 -STATEMENT MATCH (a:person) WHERE a.ID=0 RETURN a.fName
