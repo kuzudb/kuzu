@@ -201,7 +201,7 @@ void TestParser::extractStatementBlock() {
 }
 
 std::string TestParser::parseCommand() {
-    // REPEAT 3 "Alice " = "Alice Alice Alice "
+    // REPEAT 3 "col${count}, " = "col0, col1, col2, "
     if (currentToken.params[2] == "REPEAT") {
         checkMinimumParams(4);
         return parseCommandRepeat();
@@ -226,7 +226,9 @@ std::string TestParser::parseCommandRepeat() {
         throw TestException("Invalid DEFINE data type [" + path + ":" + line + "].");
     }
     for (auto i = 0; i < times; i++) {
-        result += repeatString;
+        auto stringToAppend = repeatString;
+        StringUtils::replaceAll(stringToAppend, "${count}", std::to_string(i));
+        result += stringToAppend;
     }
     return result;
 }
