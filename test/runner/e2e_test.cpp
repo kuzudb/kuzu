@@ -69,6 +69,9 @@ void parseAndRegisterTestGroup(const std::string& path, bool generateTestList = 
                 std::ofstream testList(TestHelper::getTestListFile(), std::ios_base::app);
                 testList << testGroup->group + "." + testCaseName + " " + path + "\n";
             }
+            if (empty(testCaseName)) {
+                throw TestException("Missing test case name (-CASE) [" + path + "].");
+            }
             testing::RegisterTest(testGroup->group.c_str(), testCaseName.c_str(), nullptr, nullptr,
                 __FILE__, __LINE__,
                 [datasetType, dataset, bufferPoolSize,
