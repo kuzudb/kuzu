@@ -4,7 +4,6 @@
 --
 
 -CASE InsertNodeWithBoolIntDoubleTest
--SKIP
 -STATEMENT CREATE (:person {ID:80, isWorker:true,age:22,eyeSight:1.1})
 ---- ok
 -STATEMENT MATCH (a:person) WHERE a.ID > 8 RETURN a.ID, a.gender,a.isStudent, a.isWorker, a.age, a.eyeSight
@@ -35,7 +34,6 @@
 9|Greg
 
 -CASE InsertNodeWithMixedLabelTest
--SKIP
 -STATEMENT CREATE (:person {ID:32, fName:'A'}), (:organisation {ID:33, orgCode:144})
 ---- ok
 -STATEMENT MATCH (a:person) WHERE a.ID > 30 RETURN a.ID, a.fName

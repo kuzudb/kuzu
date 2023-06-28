@@ -7,6 +7,17 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
+void VarSizedNodeColumnFunc::writeStringValuesToPage(
+    uint8_t* frame, uint16_t posInFrame, ValueVector* vector, uint32_t posInVector) {
+    auto kuStrInFrame = (ku_string_t*)(frame + (posInFrame * sizeof(ku_string_t)));
+    auto kuStrInVector = vector->getValue<ku_string_t>(posInVector);
+    if (kuStrInVector.len > ku_string_t::SHORT_STR_LENGTH) {
+        throw NotImplementedException("VarSizedNodeColumnFunc::writeStringValuesToPage");
+    }
+    memcpy(kuStrInFrame->prefix, kuStrInVector.prefix, kuStrInVector.len);
+    kuStrInFrame->len = kuStrInVector.len;
+}
+
 VarSizedNodeColumn::VarSizedNodeColumn(LogicalType dataType,
     const MetaDiskArrayHeaderInfo& metaDAHeaderInfo, BMFileHandle* nodeGroupsDataFH,
     BMFileHandle* nodeGroupsMetaFH, BufferManager* bufferManager, WAL* wal)
@@ -14,6 +25,9 @@ VarSizedNodeColumn::VarSizedNodeColumn(LogicalType dataType,
           bufferManager, wal, true} {
     ovfPageIdxInChunk = ColumnChunk::getNumPagesForBytes(
         numBytesPerFixedSizedValue << StorageConstants::NODE_GROUP_SIZE_LOG2);
+    if (this->dataType.getLogicalTypeID() == LogicalTypeID::STRING) {
+        writeNodeColumnFunc = VarSizedNodeColumnFunc::writeStringValuesToPage;
+    }
 }
 
 void VarSizedNodeColumn::scanInternal(
@@ -24,6 +38,7 @@ void VarSizedNodeColumn::scanInternal(
     auto chunkStartPageIdx = columnChunksMetaDA->get(nodeGroupIdx, transaction->getType()).pageIdx;
     NodeColumn::scanInternal(transaction, nodeIDVector, resultVector);
     switch (dataType.getLogicalTypeID()) {
+    case LogicalTypeID::BLOB:
     case LogicalTypeID::STRING: {
         for (auto i = 0u; i < resultVector->state->selVector->selectedSize; i++) {
             auto pos = resultVector->state->selVector->selectedPositions[i];

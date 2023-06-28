@@ -4,7 +4,6 @@
 --
 
 -CASE DeleteNodeTest
--SKIP
 -STATEMENT CREATE (u:User {name: 'Alice', age: 35})
 ---- ok
 -STATEMENT MATCH (u:User) RETURN COUNT(*)

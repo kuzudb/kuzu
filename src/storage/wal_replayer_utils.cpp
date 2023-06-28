@@ -168,11 +168,6 @@ void WALReplayerUtils::removeListFilesIfExists(const std::string& fileName) {
 void WALReplayerUtils::fileOperationOnNodeFiles(NodeTableSchema* nodeTableSchema,
     const std::string& directory, std::function<void(std::string fileName)> columnFileOperation,
     std::function<void(std::string fileName)> listFileOperation) {
-    //    for (auto& property : nodeTableSchema->properties) {
-    //        auto columnFName = StorageUtils::getNodePropertyColumnFName(
-    //            directory, nodeTableSchema->tableID, property.propertyID, DBFileType::ORIGINAL);
-    //        fileOperationOnNodePropertyFile(columnFName, property.dataType, columnFileOperation);
-    //    }
     columnFileOperation(
         StorageUtils::getNodeIndexFName(directory, nodeTableSchema->tableID, DBFileType::ORIGINAL));
 }
@@ -210,21 +205,6 @@ void WALReplayerUtils::fileOperationOnRelPropertyFiles(RelTableSchema* tableSche
             listFileOperation(StorageUtils::getRelPropertyListsFName(directory,
                 tableSchema->tableID, relDirection, property.propertyID, DBFileType::ORIGINAL));
         }
-    }
-}
-
-void WALReplayerUtils::fileOperationOnNodePropertyFile(const std::string& propertyBaseFileName,
-    common::LogicalType& propertyType,
-    std::function<void(std::string fileName)> columnFileOperation) {
-    if (propertyType.getLogicalTypeID() == common::LogicalTypeID::STRUCT) {
-        auto fieldTypes = common::StructType::getFieldTypes(&propertyType);
-        for (auto i = 0u; i < fieldTypes.size(); i++) {
-            fileOperationOnNodePropertyFile(
-                StorageUtils::appendStructFieldName(propertyBaseFileName, i), *fieldTypes[i],
-                columnFileOperation);
-        }
-    } else {
-        columnFileOperation(propertyBaseFileName);
     }
 }
 

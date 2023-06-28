@@ -24,6 +24,9 @@ void VarSizedColumnChunk::appendArray(
     switch (array->type_id()) {
     case arrow::Type::STRING: {
         switch (dataType.getLogicalTypeID()) {
+        case LogicalTypeID::BLOB: {
+            templateCopyVarSizedValuesFromString<blob_t>(array, startPosInChunk, numValuesToAppend);
+        } break;
         case LogicalTypeID::STRING: {
             templateCopyVarSizedValuesFromString<ku_string_t>(
                 array, startPosInChunk, numValuesToAppend);
@@ -53,6 +56,7 @@ void VarSizedColumnChunk::appendColumnChunk(ColumnChunk* other, offset_t startPo
     nullChunk->appendColumnChunk(
         otherChunk->getNullChunk(), startPosInOtherChunk, startPosInChunk, numValuesToAppend);
     switch (dataType.getLogicalTypeID()) {
+    case LogicalTypeID::BLOB:
     case LogicalTypeID::STRING: {
         appendStringColumnChunk(
             otherChunk, startPosInOtherChunk, startPosInChunk, numValuesToAppend);
@@ -159,6 +163,19 @@ void VarSizedColumnChunk::copyValuesFromVarList(
             setValue(kuList, posInChunk);
         }
     }
+}
+
+// BLOB
+template<>
+void VarSizedColumnChunk::setValueFromString<blob_t>(
+    const char* value, uint64_t length, uint64_t pos) {
+    if (length > BufferPoolConstants::PAGE_4KB_SIZE) {
+        length = BufferPoolConstants::PAGE_4KB_SIZE;
+    }
+    auto blobBuffer = std::make_unique<uint8_t[]>(length);
+    auto blobLen = Blob::fromString(value, length, blobBuffer.get());
+    auto val = overflowFile->copyString((char*)blobBuffer.get(), blobLen, overflowCursor);
+    setValue(val, pos);
 }
 
 // STRING

@@ -1,10 +1,9 @@
 -GROUP CopyNodeFromParquetTest
--DATASET CSV copy-test/node/parquet
+-DATASET PARQUET copy-test/node/parquet
 
 --
 
 -CASE CopyNodeTest
--SKIP
 
 -LOG SubsetTest
 -STATEMENT MATCH (row:tableOfTypes) WHERE row.id >= 20 AND row.id <= 24 RETURN row.id, row.int64Column, row.doubleColumn, row.booleanColumn, row.dateColumn, row.timestampColumn, row.stringColumn, row.listOfInt64, row.listOfString, row.listOfListOfInt64, row.fixedSizeList, row.listOfFixedSizeList, row.structColumn;

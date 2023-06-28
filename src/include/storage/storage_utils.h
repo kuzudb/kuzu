@@ -86,20 +86,13 @@ public:
             directory, common::StorageConstants::NODE_GROUPS_META_FILE_NAME);
     }
 
+    // TODO: This function should be removed.
     static std::string getNodePropertyColumnFName(const std::string& directory,
         const common::table_id_t& tableID, uint32_t propertyID, common::DBFileType dbFileType);
 
     static std::string appendStructFieldName(
         std::string filePath, common::struct_field_idx_t structFieldIdx);
     static std::string getPropertyNullFName(const std::string& filePath);
-
-    static inline StorageStructureIDAndFName getNodePropertyColumnStructureIDAndFName(
-        const std::string& directory, const catalog::Property& property) {
-        auto fName = getNodePropertyColumnFName(
-            directory, property.tableID, property.propertyID, common::DBFileType::ORIGINAL);
-        return {StorageStructureID::newNodePropertyColumnID(property.tableID, property.propertyID),
-            fName};
-    }
 
     static inline StorageStructureIDAndFName getNodeNullColumnStructureIDAndFName(
         StorageStructureIDAndFName propertyColumnIDAndFName) {

@@ -5,7 +5,6 @@
 --
 
 -CASE LDBCInteractiveShort
--SKIP
 
 -LOG IS1
 -STATEMENT MATCH (n:Person {id: 933})-[:Person_isLocatedIn_Place]->(p:Place)

@@ -5,6 +5,11 @@
 namespace kuzu {
 namespace storage {
 
+struct VarSizedNodeColumnFunc {
+    static void writeStringValuesToPage(
+        uint8_t* frame, uint16_t posInFrame, common::ValueVector* vector, uint32_t posInVector);
+};
+
 class VarSizedNodeColumn : public NodeColumn {
 public:
     VarSizedNodeColumn(common::LogicalType dataType,
@@ -16,10 +21,6 @@ protected:
         common::ValueVector* resultVector) final;
     void lookupInternal(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
         common::ValueVector* resultVector) final;
-    inline void writeInternal(common::offset_t nodeOffset, common::ValueVector* vectorToWriteFrom,
-        uint32_t posInVectorToWriteFrom) final {
-        throw common::NotImplementedException("VarSizedNodeColumn write is not implemented yet");
-    }
 
 private:
     void readStringValueFromOvf(transaction::Transaction* transaction, common::ku_string_t& kuStr,

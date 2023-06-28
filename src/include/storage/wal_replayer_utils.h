@@ -24,6 +24,7 @@ public:
         }
     }
 
+    // Remove the hash index file for node table.
     static inline void removeDBFilesForNodeTable(
         catalog::NodeTableSchema* tableSchema, const std::string& directory) {
         fileOperationOnNodeFiles(
@@ -36,18 +37,6 @@ public:
             tableSchema, directory, removeColumnFilesIfExists, removeListFilesIfExists);
     }
 
-    static inline void removeDBFilesForNodeProperty(const std::string& directory,
-        common::table_id_t tableID, common::property_id_t propertyID) {
-        removeColumnFilesIfExists(StorageUtils::getNodePropertyColumnFName(
-            directory, tableID, propertyID, common::DBFileType::ORIGINAL));
-    }
-
-    static inline void renameDBFilesForNodeProperty(const std::string& directory,
-        common::table_id_t tableID, common::property_id_t propertyID) {
-        replaceOriginalColumnFilesWithWALVersionIfExists(StorageUtils::getNodePropertyColumnFName(
-            directory, tableID, propertyID, common::DBFileType::ORIGINAL));
-    }
-
     static void removeDBFilesForRelProperty(const std::string& directory,
         catalog::RelTableSchema* relTableSchema, common::property_id_t propertyID);
 
@@ -55,6 +44,7 @@ public:
         const std::string& directory,
         const std::map<common::table_id_t, common::offset_t>& maxNodeOffsetsPerTable);
 
+    // Create empty hash index file for the new node table.
     static void createEmptyDBFilesForNewNodeTable(
         catalog::NodeTableSchema* nodeTableSchema, const std::string& directory);
 
@@ -128,10 +118,6 @@ private:
         common::RelDataDirection relDirection, bool isColumnProperty,
         std::function<void(std::string fileName)> columnFileOperation,
         std::function<void(std::string fileName)> listFileOperation);
-
-    static void fileOperationOnNodePropertyFile(const std::string& propertyBaseFileName,
-        common::LogicalType& propertyType,
-        std::function<void(std::string fileName)> columnFileOperation);
 };
 
 } // namespace storage

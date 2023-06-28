@@ -33,7 +33,6 @@
 ]
 
 -CASE CopyMultipleFilesTest
--SKIP
 
 -STATEMENT COPY person FROM ["${KUZU_ROOT_DIRECTORY}/dataset/copy-multiple-files-test/vPerson1.csv",
                              "${KUZU_ROOT_DIRECTORY}/dataset/copy-multiple-files-test/vPerson2.csv",
@@ -48,7 +47,6 @@
 
 
 -CASE CopyFilesWithWildcardPattern
--SKIP
 
 -STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-multiple-files-test/vPerson?.csv"
 ---- ok

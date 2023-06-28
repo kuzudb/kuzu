@@ -65,7 +65,7 @@ void NodeTable::scan(Transaction* transaction, ValueVector* inputIDVector,
 
 void NodeTable::lookup(Transaction* transaction, ValueVector* inputIDVector,
     const std::vector<column_id_t>& columnIds, const std::vector<ValueVector*>& outputVectors) {
-    assert(columnIds.size() == outputVectors.size() && inputIDVector->state->isFlat());
+    assert(columnIds.size() == outputVectors.size());
     auto pos = inputIDVector->state->selVector->selectedPositions[0];
     for (auto i = 0u; i < columnIds.size(); i++) {
         if (columnIds[i] == INVALID_COLUMN_ID) {

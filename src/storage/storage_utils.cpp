@@ -115,14 +115,7 @@ std::string StorageUtils::getColumnFName(
     ColumnFileID columnFileID = storageStructureID.columnFileID;
     switch (columnFileID.columnType) {
     case ColumnType::NODE_PROPERTY_COLUMN: {
-        fName = getNodePropertyColumnFName(directory,
-            storageStructureID.columnFileID.nodePropertyColumnID.tableID,
-            storageStructureID.columnFileID.nodePropertyColumnID.propertyID, DBFileType::ORIGINAL);
-        if (storageStructureID.isOverflow) {
-            fName = getOverflowFileName(fName);
-        } else if (storageStructureID.isNullBits) {
-            fName = getPropertyNullFName(fName);
-        }
+        fName = getNodeGroupsDataFName(directory);
     } break;
     case ColumnType::ADJ_COLUMN: {
         auto& relNodeTableAndDir = columnFileID.adjColumnID.relNodeTableAndDir;

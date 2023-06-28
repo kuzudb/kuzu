@@ -36,7 +36,7 @@ struct NullNodeColumnFunc {
     static void readValuesFromPage(uint8_t* frame, PageElementCursor& pageCursor,
         common::ValueVector* resultVector, uint32_t posInVector, uint32_t numValuesToRead);
     static void writeValuesToPage(
-        uint8_t* frame, uint16_t posInFrame, common::ValueVector* vector, uint32_t posInVecto);
+        uint8_t* frame, uint16_t posInFrame, common::ValueVector* vector, uint32_t posInVector);
 };
 
 class NullNodeColumn;
@@ -68,6 +68,9 @@ public:
     virtual void setNull(common::offset_t nodeOffset);
 
     inline uint32_t getNumBytesPerValue() const { return numBytesPerFixedSizedValue; }
+    inline uint64_t getNumNodeGroups(transaction::Transaction* transaction) const {
+        return columnChunksMetaDA->getNumElements(transaction->getType());
+    }
 
     void checkpointInMemory();
     void rollbackInMemory();
@@ -129,6 +132,7 @@ public:
         common::ValueVector* resultVector) final;
     common::page_idx_t appendColumnChunk(
         ColumnChunk* columnChunk, common::page_idx_t startPageIdx, uint64_t nodeGroupIdx) final;
+    void setNull(common::offset_t nodeOffset) final;
 
 protected:
     void writeInternal(common::offset_t nodeOffset, common::ValueVector* vectorToWriteFrom,
@@ -147,8 +151,6 @@ public:
         common::ValueVector* resultVector) final;
     common::page_idx_t appendColumnChunk(
         ColumnChunk* columnChunk, common::page_idx_t startPageIdx, uint64_t nodeGroupIdx) final;
-    void write(common::ValueVector* nodeIDVector, common::ValueVector* vectorToWriteFrom) final;
-    void setNull(common::offset_t nodeOffset) final;
 };
 
 struct NodeColumnFactory {

@@ -50,8 +50,8 @@ void NullNodeColumnFunc::readValuesFromPage(uint8_t* frame, PageElementCursor& p
 }
 
 void NullNodeColumnFunc::writeValuesToPage(
-    uint8_t* frame, uint16_t posInFrame, ValueVector* vector, uint32_t posInVecto) {
-    *(frame + posInFrame) = vector->isNull(posInVecto);
+    uint8_t* frame, uint16_t posInFrame, ValueVector* vector, uint32_t posInVector) {
+    *(frame + posInFrame) = vector->isNull(posInVector);
 }
 
 NodeColumn::NodeColumn(const Property& property, BMFileHandle* nodeGroupsDataFH,
@@ -216,14 +216,24 @@ void NodeColumn::readFromPage(
 }
 
 void NodeColumn::write(ValueVector* nodeIDVector, ValueVector* vectorToWriteFrom) {
-    if (nodeIDVector->state->isFlat()) {
-        assert(vectorToWriteFrom->state->isFlat());
+    if (nodeIDVector->state->isFlat() && vectorToWriteFrom->state->isFlat()) {
         auto nodeOffset =
             nodeIDVector->readNodeOffset(nodeIDVector->state->selVector->selectedPositions[0]);
         writeInternal(nodeOffset, vectorToWriteFrom,
             vectorToWriteFrom->state->selVector->selectedPositions[0]);
-    } else {
-        assert(!vectorToWriteFrom->state->isFlat());
+    } else if (nodeIDVector->state->isFlat() && !vectorToWriteFrom->state->isFlat()) {
+        auto nodeOffset =
+            nodeIDVector->readNodeOffset(nodeIDVector->state->selVector->selectedPositions[0]);
+        auto lastPos = vectorToWriteFrom->state->selVector->selectedSize - 1;
+        writeInternal(nodeOffset, vectorToWriteFrom, lastPos);
+    } else if (!nodeIDVector->state->isFlat() && vectorToWriteFrom->state->isFlat()) {
+        for (auto i = 0u; i < nodeIDVector->state->selVector->selectedSize; ++i) {
+            auto nodeOffset =
+                nodeIDVector->readNodeOffset(nodeIDVector->state->selVector->selectedPositions[i]);
+            writeInternal(nodeOffset, vectorToWriteFrom,
+                vectorToWriteFrom->state->selVector->selectedPositions[0]);
+        }
+    } else if (!nodeIDVector->state->isFlat() && !vectorToWriteFrom->state->isFlat()) {
         for (auto i = 0u; i < nodeIDVector->state->selVector->selectedSize; ++i) {
             auto pos = nodeIDVector->state->selVector->selectedPositions[i];
             auto nodeOffset = nodeIDVector->readNodeOffset(pos);
@@ -362,6 +372,19 @@ page_idx_t NullNodeColumn::appendColumnChunk(
     return numPagesFlushed;
 }
 
+void NullNodeColumn::setNull(common::offset_t nodeOffset) {
+    auto walPageInfo = createWALVersionOfPageForValue(nodeOffset);
+    try {
+        *(walPageInfo.frame + walPageInfo.posInPage) = true;
+    } catch (Exception& e) {
+        bufferManager->unpin(*wal->fileHandle, walPageInfo.pageIdxInWAL);
+        nodeGroupsDataFH->releaseWALPageIdxLock(walPageInfo.originalPageIdx);
+        throw;
+    }
+    bufferManager->unpin(*wal->fileHandle, walPageInfo.pageIdxInWAL);
+    nodeGroupsDataFH->releaseWALPageIdxLock(walPageInfo.originalPageIdx);
+}
+
 void NullNodeColumn::writeInternal(
     offset_t nodeOffset, ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom) {
     writeSingleValue(nodeOffset, vectorToWriteFrom, posInVectorToWriteFrom);
@@ -406,14 +429,6 @@ page_idx_t SerialNodeColumn::appendColumnChunk(
     return 0;
 }
 
-void SerialNodeColumn::write(ValueVector* nodeIDVector, ValueVector* vectorToWriteFrom) {
-    throw NotImplementedException("SerialNodeColumn::write");
-}
-
-void SerialNodeColumn::setNull(offset_t nodeOffset) {
-    throw NotImplementedException("SerialNodeColumn::setNull");
-}
-
 std::unique_ptr<NodeColumn> NodeColumnFactory::createNodeColumn(const LogicalType& dataType,
     const catalog::MetaDiskArrayHeaderInfo& metaDAHeaderInfo, BMFileHandle* nodeGroupsDataFH,
     BMFileHandle* nodeGroupsMetaFH, BufferManager* bufferManager, WAL* wal) {
@@ -433,6 +448,7 @@ std::unique_ptr<NodeColumn> NodeColumnFactory::createNodeColumn(const LogicalTyp
             nodeGroupsMetaFH, bufferManager, wal, true);
     }
         // TODO: Add a special case for FIXED_LIST, which should read without assuming 2^n per val.
+    case LogicalTypeID::BLOB:
     case LogicalTypeID::STRING:
     case LogicalTypeID::VAR_LIST: {
         return std::make_unique<VarSizedNodeColumn>(

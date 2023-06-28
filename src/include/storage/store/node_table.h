@@ -21,8 +21,11 @@ public:
     void initializeColumns(catalog::NodeTableSchema* nodeTableSchema);
     void initializePKIndex(catalog::NodeTableSchema* nodeTableSchema);
 
-    inline common::offset_t getMaxNodeOffset(transaction::Transaction* trx) const {
-        return nodesStatisticsAndDeletedIDs->getMaxNodeOffset(trx, tableID);
+    inline common::offset_t getMaxNodeOffset(transaction::Transaction* transaction) const {
+        return nodesStatisticsAndDeletedIDs->getMaxNodeOffset(transaction, tableID);
+    }
+    inline uint64_t getNumNodeGroups(transaction::Transaction* transaction) const {
+        return propertyColumns.begin()->second->getNumNodeGroups(transaction);
     }
     inline void setSelVectorForDeletedOffsets(
         transaction::Transaction* trx, std::shared_ptr<common::ValueVector>& vector) const {

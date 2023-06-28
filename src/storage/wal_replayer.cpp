@@ -494,19 +494,6 @@ BMFileHandle* WALReplayer::getVersionedFileHandleIfWALVersionAndBMShouldBeCleare
     }
     case StorageStructureType::COLUMN: {
         switch (storageStructureID.columnFileID.columnType) {
-            //        case ColumnType::NODE_PROPERTY_COLUMN: {
-            //            Column* column = storageManager->getNodesStore().getNodePropertyColumn(
-            //                storageStructureID.columnFileID.nodePropertyColumnID.tableID,
-            //                storageStructureID.columnFileID.nodePropertyColumnID.propertyID);
-            //            if (storageStructureID.isOverflow) {
-            //                return reinterpret_cast<PropertyColumnWithOverflow*>(column)
-            //                    ->getDiskOverflowFileHandle();
-            //            } else if (storageStructureID.isNullBits) {
-            //                return column->getNullColumn()->getFileHandle();
-            //            } else {
-            //                return column->getFileHandle();
-            //            }
-            //        }
         case ColumnType::ADJ_COLUMN: {
             auto& relNodeTableAndDir =
                 storageStructureID.columnFileID.adjColumnID.relNodeTableAndDir;

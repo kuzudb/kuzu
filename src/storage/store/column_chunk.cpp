@@ -34,7 +34,6 @@ void ColumnChunk::resetToEmpty() {
 void ColumnChunk::appendVector(
     ValueVector* vector, offset_t startPosInChunk, uint32_t numValuesToAppend) {
     assert(vector->dataType.getLogicalTypeID() == LogicalTypeID::ARROW_COLUMN);
-    assert(vector->dataType.getLogicalTypeID() == LogicalTypeID::ARROW_COLUMN);
     auto array = ArrowColumnVector::getArrowColumn(vector).get();
     appendArray(array, startPosInChunk, numValuesToAppend);
 }
@@ -257,6 +256,7 @@ std::unique_ptr<ColumnChunk> ColumnChunkFactory::createColumnChunk(
     case LogicalTypeID::FIXED_LIST: {
         return std::make_unique<ColumnChunk>(dataType, copyDescription);
     }
+    case LogicalTypeID::BLOB:
     case LogicalTypeID::STRING:
     case LogicalTypeID::VAR_LIST: {
         return std::make_unique<VarSizedColumnChunk>(dataType, copyDescription);

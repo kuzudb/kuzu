@@ -5,7 +5,6 @@
 --
 
 -CASE LDBCInteractiveComplex
--SKIP
 
 -LOG IC2
 -STATEMENT MATCH (:Person {id: 32985348834100 })-[:Person_knows_Person]-(friend:Person)<-[:Post_hasCreator_Person|:Comment_hasCreator_Person]-(message:Comment:Post)
