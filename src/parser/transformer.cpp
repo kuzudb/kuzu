@@ -1093,9 +1093,13 @@ std::unique_ptr<Statement> Transformer::transformCopyNPY(CypherParser::KU_CopyNP
 }
 
 std::unique_ptr<Statement> Transformer::transformCall(CypherParser::KU_CallContext& ctx) {
-    auto optionName = transformSymbolicName(*ctx.oC_SymbolicName());
-    auto parameter = transformLiteral(*ctx.oC_Literal());
-    return std::make_unique<Call>(std::move(optionName), std::move(parameter));
+    bool isTableFunc = ctx.oC_FunctionName() != nullptr;
+    auto optionName = isTableFunc ? transformFunctionName(*ctx.oC_FunctionName()) :
+                                    transformSymbolicName(*ctx.oC_SymbolicName());
+    auto parameter = ctx.oC_Literal() ? transformLiteral(*ctx.oC_Literal()) : nullptr;
+    return std::make_unique<Call>(
+        isTableFunc ? common::StatementType::CALL_TABLE_FUNC : common::StatementType::CALL_CONFIG,
+        std::move(optionName), std::move(parameter));
 }
 
 std::vector<std::string> Transformer::transformFilePaths(

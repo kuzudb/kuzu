@@ -21,7 +21,7 @@ public:
     bool canApplyStaticEvaluation(
         const std::string& functionName, const binder::expression_vector& children);
 
-    VectorOperationDefinition* matchFunction(
+    VectorOperationDefinition* matchVectorOperation(
         const std::string& name, const std::vector<common::LogicalType>& inputTypes);
 
     std::vector<std::string> getFunctionNames();
@@ -78,6 +78,7 @@ private:
     void registerNodeRelOperations();
 
 private:
+    // TODO(Ziyi): Refactor vectorOperation/tableOperation to inherit from the same base class.
     std::unordered_map<std::string, vector_operation_definitions> vectorOperations;
 };
 

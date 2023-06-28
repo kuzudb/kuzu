@@ -20,7 +20,7 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
     case PhysicalOperatorType::AGGREGATE_SCAN: {
         return "AGGREGATE_SCAN";
     }
-    case PhysicalOperatorType::CALL: {
+    case PhysicalOperatorType::CALL_CONFIG: {
         return "CALL";
     }
     case PhysicalOperatorType::COPY_NODE: {
@@ -169,6 +169,9 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
     }
     case PhysicalOperatorType::VAR_LENGTH_COLUMN_EXTEND: {
         return "VAR_LENGTH_COL_EXTEND";
+    }
+    case PhysicalOperatorType::CALL_TABLE_FUNC: {
+        return "CALL_TABLE_FUNC";
     }
     default:
         throw common::NotImplementedException("physicalOperatorTypeToString()");

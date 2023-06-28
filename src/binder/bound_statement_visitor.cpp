@@ -34,8 +34,11 @@ void BoundStatementVisitor::visit(const kuzu::binder::BoundStatement& statement)
     case StatementType::COPY: {
         visitCopy(statement);
     } break;
-    case StatementType::CALL: {
-        visitCall(statement);
+    case StatementType::CALL_CONFIG: {
+        visitCallConfig(statement);
+    } break;
+    case StatementType::CALL_TABLE_FUNC: {
+        visitCallTableFunc(statement);
     } break;
     default:
         throw NotImplementedException("BoundStatementVisitor::visit");

@@ -363,12 +363,14 @@ Catalog::Catalog() : wal{nullptr} {
     catalogContentForReadOnlyTrx = std::make_unique<CatalogContent>();
     builtInVectorOperations = std::make_unique<function::BuiltInVectorOperations>();
     builtInAggregateFunctions = std::make_unique<function::BuiltInAggregateFunctions>();
+    builtInTableOperations = std::make_unique<function::BuiltInTableOperations>();
 }
 
 Catalog::Catalog(WAL* wal) : wal{wal} {
     catalogContentForReadOnlyTrx = std::make_unique<CatalogContent>(wal->getDirectory());
     builtInVectorOperations = std::make_unique<function::BuiltInVectorOperations>();
     builtInAggregateFunctions = std::make_unique<function::BuiltInAggregateFunctions>();
+    builtInTableOperations = std::make_unique<function::BuiltInTableOperations>();
 }
 
 void Catalog::prepareCommitOrRollback(TransactionAction action) {

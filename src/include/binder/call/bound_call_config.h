@@ -6,10 +6,11 @@
 namespace kuzu {
 namespace binder {
 
-class BoundCall : public BoundStatement {
+class BoundCallConfig : public BoundStatement {
 public:
-    BoundCall(main::ConfigurationOption option, std::shared_ptr<Expression> optionValue)
-        : BoundStatement{common::StatementType::CALL, BoundStatementResult::createEmptyResult()},
+    BoundCallConfig(main::ConfigurationOption option, std::shared_ptr<Expression> optionValue)
+        : BoundStatement{common::StatementType::CALL_CONFIG,
+              BoundStatementResult::createEmptyResult()},
           option{option}, optionValue{optionValue} {}
 
     inline main::ConfigurationOption getOption() const { return option; }
