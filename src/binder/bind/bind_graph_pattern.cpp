@@ -248,11 +248,15 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
         recursiveNodeTableIDs.insert(relTableSchema->srcTableID);
         recursiveNodeTableIDs.insert(relTableSchema->dstTableID);
     }
+    auto recursiveRelPatternInfo = relPattern.getRecursiveInfo();
     auto tmpNode = createQueryNode(
         InternalKeyword::ANONYMOUS, std::vector<common::table_id_t>{recursiveNodeTableIDs.begin(),
                                         recursiveNodeTableIDs.end()});
+    auto prevScope = saveScope();
+    variableScope->clear();
     auto tmpRel = createNonRecursiveQueryRel(
-        InternalKeyword::ANONYMOUS, tableIDs, nullptr, nullptr, directionType);
+        recursiveRelPatternInfo->relName, tableIDs, nullptr, nullptr, directionType);
+    variableScope->addExpression(tmpRel->toString(), tmpRel);
     expression_vector predicates;
     for (auto& [propertyName, rhs] : relPattern.getPropertyKeyVals()) {
         auto boundLhs = expressionBinder.bindRelPropertyExpression(*tmpRel, propertyName);
@@ -261,6 +265,11 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
         predicates.push_back(
             expressionBinder.createEqualityComparisonExpression(boundLhs, boundRhs));
     }
+    if (recursiveRelPatternInfo->whereExpression != nullptr) {
+        predicates.push_back(
+            expressionBinder.bindExpression(*recursiveRelPatternInfo->whereExpression));
+    }
+    restoreScope(std::move(prevScope));
     auto parsedName = relPattern.getVariableName();
     auto queryRel = make_shared<RelExpression>(*getRecursiveRelLogicalType(*tmpNode, *tmpRel),
         getUniqueExpressionName(parsedName), parsedName, tableIDs, std::move(srcNode),
@@ -276,10 +285,11 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
 
 std::pair<uint64_t, uint64_t> Binder::bindVariableLengthRelBound(
     const kuzu::parser::RelPattern& relPattern) {
-    auto lowerBound = std::min(TypeUtils::convertToUint32(relPattern.getLowerBound().c_str()),
-        VAR_LENGTH_EXTEND_MAX_DEPTH);
-    auto upperBound = std::min(TypeUtils::convertToUint32(relPattern.getUpperBound().c_str()),
-        VAR_LENGTH_EXTEND_MAX_DEPTH);
+    auto recursiveInfo = relPattern.getRecursiveInfo();
+    auto lowerBound = std::min(
+        TypeUtils::convertToUint32(recursiveInfo->lowerBound.c_str()), VAR_LENGTH_EXTEND_MAX_DEPTH);
+    auto upperBound = std::min(
+        TypeUtils::convertToUint32(recursiveInfo->upperBound.c_str()), VAR_LENGTH_EXTEND_MAX_DEPTH);
     if (lowerBound == 0 || upperBound == 0) {
         throw BinderException("Lower and upper bound of a rel must be greater than 0.");
     }

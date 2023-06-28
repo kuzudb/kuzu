@@ -74,3 +74,8 @@
 -STATEMENT MATCH (a:person)-[e*2..2]->(b:organisation) WHERE a.fName = 'Alice' RETURN COUNT(*)
 ---- 1
 5
+
+
+-STATEMENT MATCH (a:person)-[e*2..2 (r, _ | WHERE offset(id(r)) > 0)]->(b:organisation) WHERE a.fName = 'Alice' RETURN rels(e)
+---- 1
+[{_ID: 3:2, DATE: 2021-06-30, MEETTIME: 2012-12-11 20:07:22, VALIDINTERVAL: 10 days, COMMENTS: [ioji232,jifhe8w99u43434], YEAR: , PLACES: , LENGTH: , GRADING: , RATING: , LOCATION: , TIMES: , DATA: , USEDADDRESS: , ADDRESS: , NOTE: },{_ID: 5:1, DATE: , MEETTIME: , VALIDINTERVAL: , COMMENTS: , YEAR: 2010, PLACES: , LENGTH: , GRADING: [2.100000,4.400000], RATING: 7.600000, LOCATION: , TIMES: , DATA: , USEDADDRESS: , ADDRESS: , NOTE: }]
