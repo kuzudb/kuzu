@@ -1,25 +1,25 @@
-#include "processor/operator/call/call_table_func.h"
+#include "processor/operator/call/in_query_call.h"
 
 namespace kuzu {
 namespace processor {
 
-std::pair<common::offset_t, common::offset_t> CallTableFuncSharedState::getNextBatch() {
+std::pair<common::offset_t, common::offset_t> InQueryCallSharedState::getNextBatch() {
     std::lock_guard guard{mtx};
     auto numTuplesInBatch = std::min(common::DEFAULT_VECTOR_CAPACITY, maxOffset - offset);
     offset += numTuplesInBatch;
     return std::make_pair(offset - numTuplesInBatch, offset);
 }
 
-void CallTableFunc::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
-    for (auto& outputPos : callTableFuncInfo->outputPoses) {
+void InQueryCall::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
+    for (auto& outputPos : inQueryCallInfo->outputPoses) {
         outputVectors.push_back(resultSet->getValueVector(outputPos).get());
     }
 }
 
-bool CallTableFunc::getNextTuplesInternal(kuzu::processor::ExecutionContext* context) {
+bool InQueryCall::getNextTuplesInternal(kuzu::processor::ExecutionContext* context) {
     if (sharedState->hasNext()) {
         auto morsel = sharedState->getNextBatch();
-        callTableFuncInfo->tableFunc(morsel, callTableFuncInfo->bindData.get(), outputVectors);
+        inQueryCallInfo->tableFunc(morsel, inQueryCallInfo->bindData.get(), outputVectors);
         metrics->numOutputTuple.increase(morsel.second - morsel.first);
         return true;
     }

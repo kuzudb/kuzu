@@ -6,7 +6,7 @@
 -CASE FunctionTable
 
 -LOG NodeTableInfo
--STATEMENT CALL table_info('person')
+-STATEMENT CALL table_info('person') RETURN *
 ---- 15
 0|ID|INT64|True
 1|fName|STRING|False
@@ -25,12 +25,47 @@
 14|height|FLOAT|False
 
 -LOG RelTableInfo
--STATEMENT CALL table_info('knows')
+-STATEMENT CALL table_info('knows') RETURN *
 ---- 4
 1|date|DATE
 2|meetTime|TIMESTAMP
 3|validInterval|INTERVAL
 4|comments|STRING[]
+
+-LOG ReturnNodeName
+-STATEMENT CALL table_info('person') RETURN name
+---- 15
+ID
+fName
+gender
+isStudent
+isWorker
+age
+eyeSight
+birthdate
+registerTime
+lastJobDuration
+workedHours
+usedNames
+courseScoresPerTerm
+grades
+height
+
+-LOG ReturnRelName
+-STATEMENT MATCH (m:movies) CALL table_info('knows') return m, type
+---- 12
+(label:movies, 2:0, {name:Sóló cón tu párejâ, length:126, note: this is a very very good movie, description:{RATING: 5.300000, VIEWS: 152, RELEASE: 2011-08-20 11:25:30, FILM: 2012-05-11}, content:\xAA\xABinteresting\x0B})|DATE
+(label:movies, 2:0, {name:Sóló cón tu párejâ, length:126, note: this is a very very good movie, description:{RATING: 5.300000, VIEWS: 152, RELEASE: 2011-08-20 11:25:30, FILM: 2012-05-11}, content:\xAA\xABinteresting\x0B})|TIMESTAMP
+(label:movies, 2:0, {name:Sóló cón tu párejâ, length:126, note: this is a very very good movie, description:{RATING: 5.300000, VIEWS: 152, RELEASE: 2011-08-20 11:25:30, FILM: 2012-05-11}, content:\xAA\xABinteresting\x0B})|INTERVAL
+(label:movies, 2:0, {name:Sóló cón tu párejâ, length:126, note: this is a very very good movie, description:{RATING: 5.300000, VIEWS: 152, RELEASE: 2011-08-20 11:25:30, FILM: 2012-05-11}, content:\xAA\xABinteresting\x0B})|STRING[]
+(label:movies, 2:1, {name:The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie, length:2544, note: the movie is very very good, description:{RATING: 7.000000, VIEWS: 982, RELEASE: 2018-11-13 13:33:11, FILM: 2014-09-12}, content:\xAB\xCD})|DATE
+(label:movies, 2:1, {name:The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie, length:2544, note: the movie is very very good, description:{RATING: 7.000000, VIEWS: 982, RELEASE: 2018-11-13 13:33:11, FILM: 2014-09-12}, content:\xAB\xCD})|TIMESTAMP
+(label:movies, 2:1, {name:The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie, length:2544, note: the movie is very very good, description:{RATING: 7.000000, VIEWS: 982, RELEASE: 2018-11-13 13:33:11, FILM: 2014-09-12}, content:\xAB\xCD})|INTERVAL
+(label:movies, 2:1, {name:The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie, length:2544, note: the movie is very very good, description:{RATING: 7.000000, VIEWS: 982, RELEASE: 2018-11-13 13:33:11, FILM: 2014-09-12}, content:\xAB\xCD})|STRING[]
+(label:movies, 2:2, {name:Roma, length:298, note:the movie is very interesting and funny, description:{RATING: 1223.000000, VIEWS: 10003, RELEASE: 2011-02-11 16:44:22, FILM: 2013-02-22}, content:pure ascii characters})|DATE
+(label:movies, 2:2, {name:Roma, length:298, note:the movie is very interesting and funny, description:{RATING: 1223.000000, VIEWS: 10003, RELEASE: 2011-02-11 16:44:22, FILM: 2013-02-22}, content:pure ascii characters})|TIMESTAMP
+(label:movies, 2:2, {name:Roma, length:298, note:the movie is very interesting and funny, description:{RATING: 1223.000000, VIEWS: 10003, RELEASE: 2011-02-11 16:44:22, FILM: 2013-02-22}, content:pure ascii characters})|INTERVAL
+(label:movies, 2:2, {name:Roma, length:298, note:the movie is very interesting and funny, description:{RATING: 1223.000000, VIEWS: 10003, RELEASE: 2011-02-11 16:44:22, FILM: 2013-02-22}, content:pure ascii characters})|STRING[]
 
 -LOG NodeTableWith300ColumnsInfo
 -STATEMENT CREATE NODE TABLE person1(col1 INT64,col2 INT64,col3 INT64,col4 INT64,col5 INT64,col6 INT64,col7 INT64,col8 INT64,col9 INT64,col10 INT64,
@@ -275,7 +310,7 @@
            col2391 INT64,col2392 INT64,col2393 INT64,col2394 INT64,col2395 INT64,col2396 INT64,col2397 INT64,col2398 INT64,col2399 INT64,col2400 INT64
            , PRIMARY KEY(col1));
 ---- ok
--STATEMENT CALL TABLE_INFO("person1")
+-STATEMENT CALL TABLE_INFO("person1") RETURN *
 ---- 2400
 0|col1|INT64|True
 1|col2|INT64|False

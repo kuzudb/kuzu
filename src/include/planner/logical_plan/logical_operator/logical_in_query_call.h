@@ -6,12 +6,12 @@
 namespace kuzu {
 namespace planner {
 
-class LogicalCallTableFunc : public LogicalOperator {
+class LogicalInQueryCall : public LogicalOperator {
 public:
-    LogicalCallTableFunc(function::table_func_t tableFunc,
+    LogicalInQueryCall(function::table_func_t tableFunc,
         std::unique_ptr<function::TableFuncBindData> bindData,
         binder::expression_vector outputExpressions)
-        : LogicalOperator{LogicalOperatorType::CALL_TABLE_FUNC}, tableFunc{std::move(tableFunc)},
+        : LogicalOperator{LogicalOperatorType::IN_QUERY_CALL}, tableFunc{std::move(tableFunc)},
           bindData{std::move(bindData)}, outputExpressions{std::move(outputExpressions)} {}
 
     inline function::table_func_t getTableFunc() const { return tableFunc; }
@@ -27,8 +27,7 @@ public:
     inline std::string getExpressionsForPrinting() const override { return "CALL TABLE FUNC"; }
 
     std::unique_ptr<LogicalOperator> copy() override {
-        return std::make_unique<LogicalCallTableFunc>(
-            tableFunc, bindData->copy(), outputExpressions);
+        return std::make_unique<LogicalInQueryCall>(tableFunc, bindData->copy(), outputExpressions);
     }
 
 private:

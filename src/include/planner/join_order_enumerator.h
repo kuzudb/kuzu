@@ -49,6 +49,7 @@ public:
     inline void planCrossProduct(LogicalPlan& probePlan, LogicalPlan& buildPlan) {
         appendCrossProduct(probePlan, buildPlan);
     }
+    void appendCrossProduct(LogicalPlan& probePlan, LogicalPlan& buildPlan);
 
 private:
     std::vector<std::unique_ptr<LogicalPlan>> planCrossProduct(
@@ -109,7 +110,6 @@ private:
     void appendIntersect(const std::shared_ptr<Expression>& intersectNodeID,
         binder::expression_vector& boundNodeIDs, LogicalPlan& probePlan,
         std::vector<std::unique_ptr<LogicalPlan>>& buildPlans);
-    void appendCrossProduct(LogicalPlan& probePlan, LogicalPlan& buildPlan);
 
     static binder::expression_vector getNewlyMatchedExpressions(const SubqueryGraph& prevSubgraph,
         const SubqueryGraph& newSubgraph, const binder::expression_vector& expressions) {

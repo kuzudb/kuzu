@@ -39,6 +39,8 @@ private:
 
     std::unique_ptr<ReadingClause> transformUnwind(CypherParser::OC_UnwindContext& ctx);
 
+    std::unique_ptr<ReadingClause> transformInQueryCall(CypherParser::KU_InQueryCallContext& ctx);
+
     std::unique_ptr<UpdatingClause> transformCreate(CypherParser::OC_CreateContext& ctx);
 
     std::unique_ptr<UpdatingClause> transformSet(CypherParser::OC_SetContext& ctx);
@@ -248,7 +250,7 @@ private:
 
     std::unique_ptr<Statement> transformCopyNPY(CypherParser::KU_CopyNPYContext& ctx);
 
-    std::unique_ptr<Statement> transformCall(CypherParser::KU_CallContext& ctx);
+    std::unique_ptr<Statement> transformStandaloneCall(CypherParser::KU_StandaloneCallContext& ctx);
 
     std::vector<std::string> transformFilePaths(
         std::vector<antlr4::tree::TerminalNode*> stringLiteral);

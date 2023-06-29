@@ -1,6 +1,7 @@
 #pragma once
 
 #include "binder/bound_statement.h"
+#include "binder/call/bound_in_query_call.h"
 #include "binder/expression/existential_subquery_expression.h"
 #include "join_order_enumerator.h"
 #include "planner/join_order/cardinality_estimator.h"
@@ -44,6 +45,8 @@ private:
         BoundReadingClause* boundReadingClause, std::vector<std::unique_ptr<LogicalPlan>>& plans);
     void planUnwindClause(
         BoundReadingClause* boundReadingClause, std::vector<std::unique_ptr<LogicalPlan>>& plans);
+    void planInQueryCall(
+        BoundReadingClause* boundReadingClause, std::vector<std::unique_ptr<LogicalPlan>>& plans);
 
     // CTE & subquery planning
     void planOptionalMatch(const QueryGraphCollection& queryGraphCollection,
@@ -60,6 +63,8 @@ private:
     void appendDistinct(const expression_vector& expressionsToDistinct, LogicalPlan& plan);
 
     void appendUnwind(BoundUnwindClause& boundUnwindClause, LogicalPlan& plan);
+
+    void appendInQueryCall(BoundInQueryCall& boundInQueryCall, LogicalPlan& plan);
 
     void appendFlattens(const f_group_pos_set& groupsPos, LogicalPlan& plan);
     void appendFlattenIfNecessary(f_group_pos groupPos, LogicalPlan& plan);
