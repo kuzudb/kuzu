@@ -39,11 +39,8 @@ std::unique_ptr<BoundStatement> Binder::bind(const Statement& statement) {
     case StatementType::QUERY: {
         return bindQuery((const RegularQuery&)statement);
     }
-    case StatementType::CALL_CONFIG: {
-        return bindCallConfig(statement);
-    }
-    case StatementType::CALL_TABLE_FUNC: {
-        return bindCallTableFunc(statement);
+    case StatementType::StandaloneCall: {
+        return bindStandaloneCall(statement);
     }
     default:
         assert(false);

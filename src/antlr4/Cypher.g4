@@ -22,9 +22,8 @@ kU_CopyCSV
 kU_CopyNPY
     : COPY SP oC_SchemaName SP FROM SP '(' SP? StringLiteral ( SP? ',' SP? StringLiteral )* ')' SP BY SP COLUMN ;
 
-kU_Call
-    : CALL SP ( ( oC_SymbolicName SP? '=' SP? oC_Literal )
-        | ( oC_FunctionName SP? '(' oC_Literal? ')' ) );
+kU_StandaloneCall
+    : CALL SP oC_SymbolicName SP? '=' SP? oC_Literal ;
 
 CALL : ( 'C' | 'c' ) ( 'A' | 'a' ) ( 'L' | 'l' ) ( 'L' | 'l' ) ;
 
@@ -141,7 +140,7 @@ oC_Statement
         | kU_DDL
         | kU_CopyNPY
         | kU_CopyCSV
-        | kU_Call  ;
+        | kU_StandaloneCall  ;
 
 oC_Query
     : oC_RegularQuery ;
@@ -185,7 +184,11 @@ oC_UpdatingClause
 oC_ReadingClause
     : oC_Match
         | oC_Unwind
+        | kU_InQueryCall
         ;
+
+kU_InQueryCall
+    : CALL SP oC_FunctionName SP? '(' oC_Literal? ')' ;
 
 oC_Match
     : ( OPTIONAL SP )? MATCH SP? oC_Pattern (SP? oC_Where)? ;

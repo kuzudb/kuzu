@@ -109,8 +109,7 @@ private:
     std::unique_ptr<BoundQueryPart> bindQueryPart(const parser::QueryPart& queryPart);
 
     /*** bind call ***/
-    std::unique_ptr<BoundStatement> bindCallTableFunc(const parser::Statement& statement);
-    std::unique_ptr<BoundStatement> bindCallConfig(const parser::Statement& statement);
+    std::unique_ptr<BoundStatement> bindStandaloneCall(const parser::Statement& statement);
 
     /*** bind reading clause ***/
     std::unique_ptr<BoundReadingClause> bindReadingClause(
@@ -118,6 +117,7 @@ private:
     std::unique_ptr<BoundReadingClause> bindMatchClause(const parser::ReadingClause& readingClause);
     std::unique_ptr<BoundReadingClause> bindUnwindClause(
         const parser::ReadingClause& readingClause);
+    std::unique_ptr<BoundReadingClause> bindInQueryCall(const parser::ReadingClause& readingClause);
 
     /*** bind updating clause ***/
     std::unique_ptr<BoundUpdatingClause> bindUpdatingClause(

@@ -16,11 +16,11 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
     case LogicalOperatorType::AGGREGATE: {
         return "AGGREGATE";
     }
-    case LogicalOperatorType::CALL_CONFIG: {
-        return "CALL_CONFIG";
+    case LogicalOperatorType::STANDALONE_CALL: {
+        return "STANDALONE_CALL";
     }
-    case LogicalOperatorType::CALL_TABLE_FUNC: {
-        return "CALL_TABLE_FUNC";
+    case LogicalOperatorType::IN_QUERY_CALL: {
+        return "IN_QUERY_CALL";
     }
     case LogicalOperatorType::COPY: {
         return "COPY";

@@ -6,11 +6,11 @@
 namespace kuzu {
 namespace planner {
 
-class LogicalCallConfig : public LogicalOperator {
+class LogicalStandaloneCall : public LogicalOperator {
 public:
-    LogicalCallConfig(
+    LogicalStandaloneCall(
         main::ConfigurationOption option, std::shared_ptr<binder::Expression> optionValue)
-        : LogicalOperator{LogicalOperatorType::CALL_CONFIG}, option{std::move(option)},
+        : LogicalOperator{LogicalOperatorType::STANDALONE_CALL}, option{std::move(option)},
           optionValue{std::move(optionValue)} {}
 
     inline main::ConfigurationOption getOption() const { return option; }
@@ -23,7 +23,7 @@ public:
     inline void computeFactorizedSchema() override { createEmptySchema(); }
 
     inline std::unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalCallConfig>(option, optionValue);
+        return make_unique<LogicalStandaloneCall>(option, optionValue);
     }
 
 protected:

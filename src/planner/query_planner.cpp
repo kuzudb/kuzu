@@ -8,6 +8,7 @@
 #include "planner/logical_plan/logical_operator/logical_extend.h"
 #include "planner/logical_plan/logical_operator/logical_filter.h"
 #include "planner/logical_plan/logical_operator/logical_flatten.h"
+#include "planner/logical_plan/logical_operator/logical_in_query_call.h"
 #include "planner/logical_plan/logical_operator/logical_scan_node_property.h"
 #include "planner/logical_plan/logical_operator/logical_union.h"
 #include "planner/logical_plan/logical_operator/logical_unwind.h"
@@ -97,6 +98,9 @@ void QueryPlanner::planReadingClause(
     case ClauseType::UNWIND: {
         planUnwindClause(boundReadingClause, prevPlans);
     } break;
+    case ClauseType::InQueryCall: {
+        planInQueryCall(boundReadingClause, prevPlans);
+    } break;
     default:
         assert(false);
     }
@@ -134,6 +138,20 @@ void QueryPlanner::planUnwindClause(
             appendExpressionsScan(expressions, *plan);
         }
         appendUnwind(*boundUnwindClause, *plan);
+    }
+}
+
+void QueryPlanner::planInQueryCall(
+    BoundReadingClause* boundReadingClause, std::vector<std::unique_ptr<LogicalPlan>>& plans) {
+    auto boundInQueryCall = (BoundInQueryCall*)boundReadingClause;
+    for (auto& plan : plans) {
+        if (!plan->isEmpty()) {
+            auto inQueryCallPlan = std::make_shared<LogicalPlan>();
+            appendInQueryCall(*boundInQueryCall, *inQueryCallPlan);
+            joinOrderEnumerator.appendCrossProduct(*plan, *inQueryCallPlan);
+        } else {
+            appendInQueryCall(*boundInQueryCall, *plan);
+        }
     }
 }
 
@@ -279,6 +297,13 @@ void QueryPlanner::appendUnwind(BoundUnwindClause& boundUnwindClause, LogicalPla
     unwind->setChild(0, plan.getLastOperator());
     unwind->computeFactorizedSchema();
     plan.setLastOperator(unwind);
+}
+
+void QueryPlanner::appendInQueryCall(BoundInQueryCall& boundInQueryCall, LogicalPlan& plan) {
+    auto logicalInQueryCall = make_shared<LogicalInQueryCall>(boundInQueryCall.getTableFunc(),
+        boundInQueryCall.getBindData()->copy(), boundInQueryCall.getOutputExpressions());
+    logicalInQueryCall->computeFactorizedSchema();
+    plan.setLastOperator(logicalInQueryCall);
 }
 
 void QueryPlanner::appendFlattens(const f_group_pos_set& groupsPos, LogicalPlan& plan) {

@@ -1,9 +1,9 @@
-#include "planner/logical_plan/logical_operator/logical_call_table_func.h"
+#include "planner/logical_plan/logical_operator/logical_in_query_call.h"
 
 namespace kuzu {
 namespace planner {
 
-void LogicalCallTableFunc::computeFlatSchema() {
+void LogicalInQueryCall::computeFlatSchema() {
     createEmptySchema();
     schema->createGroup();
     for (auto& outputExpression : outputExpressions) {
@@ -11,7 +11,7 @@ void LogicalCallTableFunc::computeFlatSchema() {
     }
 }
 
-void LogicalCallTableFunc::computeFactorizedSchema() {
+void LogicalInQueryCall::computeFactorizedSchema() {
     createEmptySchema();
     auto groupPos = schema->createGroup();
     for (auto& outputExpression : outputExpressions) {

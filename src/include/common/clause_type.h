@@ -13,7 +13,8 @@ enum class ClauseType : uint8_t {
     CREATE = 2,
     // reading clause
     MATCH = 3,
-    UNWIND = 4
+    UNWIND = 4,
+    InQueryCall = 5,
 };
 
 } // namespace common

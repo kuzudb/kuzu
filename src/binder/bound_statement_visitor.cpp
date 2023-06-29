@@ -34,11 +34,8 @@ void BoundStatementVisitor::visit(const kuzu::binder::BoundStatement& statement)
     case StatementType::COPY: {
         visitCopy(statement);
     } break;
-    case StatementType::CALL_CONFIG: {
-        visitCallConfig(statement);
-    } break;
-    case StatementType::CALL_TABLE_FUNC: {
-        visitCallTableFunc(statement);
+    case StatementType::StandaloneCall: {
+        visitStandaloneCall(statement);
     } break;
     default:
         throw NotImplementedException("BoundStatementVisitor::visit");
@@ -79,6 +76,9 @@ void BoundStatementVisitor::visitReadingClause(const BoundReadingClause& reading
     } break;
     case common::ClauseType::UNWIND: {
         visitUnwind(readingClause);
+    } break;
+    case common::ClauseType::InQueryCall: {
+        visitInQueryCall(readingClause);
     } break;
     default:
         throw NotImplementedException("BoundStatementVisitor::visitReadingClause");

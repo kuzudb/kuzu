@@ -2,7 +2,8 @@
 
 #include "common/copier_config/copier_config.h"
 #include "common/string_utils.h"
-#include "parser/call/call.h"
+#include "parser/call/in_query_call.h"
+#include "parser/call/standalone_call.h"
 #include "parser/copy.h"
 #include "parser/ddl/add_property.h"
 #include "parser/ddl/create_node_clause.h"
@@ -51,7 +52,7 @@ std::unique_ptr<Statement> Transformer::transformOcStatement(
     } else if (ctx.kU_CopyCSV()) {
         return transformCopyCSV(*ctx.kU_CopyCSV());
     } else {
-        return transformCall(*ctx.kU_Call());
+        return transformStandaloneCall(*ctx.kU_StandaloneCall());
     }
 }
 
@@ -125,9 +126,11 @@ std::unique_ptr<ReadingClause> Transformer::transformReadingClause(
     CypherParser::OC_ReadingClauseContext& ctx) {
     if (ctx.oC_Match()) {
         return transformMatch(*ctx.oC_Match());
-    } else {
-        assert(ctx.oC_Unwind());
+    } else if (ctx.oC_Unwind()) {
         return transformUnwind(*ctx.oC_Unwind());
+    } else {
+        assert(ctx.kU_InQueryCall());
+        return transformInQueryCall(*ctx.kU_InQueryCall());
     }
 }
 
@@ -144,6 +147,13 @@ std::unique_ptr<ReadingClause> Transformer::transformUnwind(CypherParser::OC_Unw
     auto expression = transformExpression(*ctx.oC_Expression());
     auto transformedVariable = transformVariable(*ctx.oC_Variable());
     return std::make_unique<UnwindClause>(std::move(expression), std::move(transformedVariable));
+}
+
+std::unique_ptr<ReadingClause> Transformer::transformInQueryCall(
+    CypherParser::KU_InQueryCallContext& ctx) {
+    auto funcName = transformFunctionName(*ctx.oC_FunctionName());
+    auto parameter = transformLiteral(*ctx.oC_Literal());
+    return std::make_unique<InQueryCall>(std::move(funcName), std::move(parameter));
 }
 
 std::unique_ptr<UpdatingClause> Transformer::transformCreate(CypherParser::OC_CreateContext& ctx) {
@@ -1092,14 +1102,11 @@ std::unique_ptr<Statement> Transformer::transformCopyNPY(CypherParser::KU_CopyNP
         std::move(parsingOptions), common::CopyDescription::FileType::NPY);
 }
 
-std::unique_ptr<Statement> Transformer::transformCall(CypherParser::KU_CallContext& ctx) {
-    bool isTableFunc = ctx.oC_FunctionName() != nullptr;
-    auto optionName = isTableFunc ? transformFunctionName(*ctx.oC_FunctionName()) :
-                                    transformSymbolicName(*ctx.oC_SymbolicName());
-    auto parameter = ctx.oC_Literal() ? transformLiteral(*ctx.oC_Literal()) : nullptr;
-    return std::make_unique<Call>(
-        isTableFunc ? common::StatementType::CALL_TABLE_FUNC : common::StatementType::CALL_CONFIG,
-        std::move(optionName), std::move(parameter));
+std::unique_ptr<Statement> Transformer::transformStandaloneCall(
+    CypherParser::KU_StandaloneCallContext& ctx) {
+    auto optionName = transformSymbolicName(*ctx.oC_SymbolicName());
+    auto parameter = transformLiteral(*ctx.oC_Literal());
+    return std::make_unique<StandaloneCall>(std::move(optionName), std::move(parameter));
 }
 
 std::vector<std::string> Transformer::transformFilePaths(
