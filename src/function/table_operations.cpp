@@ -40,10 +40,10 @@ void TableInfoOperation::tableFunc(std::pair<common::offset_t, common::offset_t>
         outputVectors[1]->setValue(outVectorPos, property.name);
         outputVectors[2]->setValue(
             outVectorPos, common::LogicalTypeUtils::dataTypeToString(property.dataType));
-        if (tableSchema->isNodeTable &&
-            reinterpret_cast<catalog::NodeTableSchema*>(tableSchema)->primaryKeyPropertyID ==
-                property.propertyID) {
-            outputVectors[3]->setValue(outVectorPos, true /* isPrimaryKey */);
+        if (tableSchema->isNodeTable) {
+            auto primaryKeyID =
+                reinterpret_cast<catalog::NodeTableSchema*>(tableSchema)->primaryKeyPropertyID;
+            outputVectors[3]->setValue(outVectorPos, primaryKeyID == property.propertyID);
         }
         outVectorPos++;
     }
