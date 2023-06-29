@@ -225,7 +225,7 @@ std::string TestParser::parseCommandRepeat() {
     if (repeatString.empty()) {
         throw TestException("Invalid DEFINE data type [" + path + ":" + line + "].");
     }
-    for (auto i = 0; i < times; i++) {
+    for (auto i = 1; i <= times; i++) {
         auto stringToAppend = repeatString;
         StringUtils::replaceAll(stringToAppend, "${count}", std::to_string(i));
         result += stringToAppend;

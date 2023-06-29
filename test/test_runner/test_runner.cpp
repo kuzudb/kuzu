@@ -91,6 +91,9 @@ bool TestRunner::checkPlanResult(std::unique_ptr<QueryResult>& result, TestState
         while (std::getline(expectedTuplesFile, line)) {
             statement->expectedTuples.push_back(line);
         }
+        if (!statement->checkOutputOrder) {
+            sort(statement->expectedTuples.begin(), statement->expectedTuples.end());
+        }
     }
 
     if (resultTuples.size() == result->getNumTuples() &&
