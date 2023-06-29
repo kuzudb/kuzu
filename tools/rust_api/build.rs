@@ -71,6 +71,16 @@ fn link_libraries() {
             println!("cargo:rustc-link-lib=dylib=libssl");
             println!("cargo:rustc-link-lib=dylib=libcrypto");
         }
+        if cfg!(feature = "remote-fs") {
+            if cfg!(windows) {
+                println!("cargo:rustc-link-lib=dylib=libcrypto");
+                println!("cargo:rustc-link-lib=dylib=libcurl");
+            }
+            if cfg!(feature = "remote-fs") {
+                println!("cargo:rustc-link-lib=dylib=crypto");
+                println!("cargo:rustc-link-lib=dylib=curl");
+            }
+        }
 
         if cfg!(windows) {
             println!("cargo:rustc-link-lib=static=parquet_static");
@@ -101,6 +111,7 @@ fn build_bundled_cmake() -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
     let mut arrow_build = cmake::Config::new(kuzu_root.join("external"));
     arrow_build
         .no_build_target(true)
+        .define("ENABLE_REMOTE_FS", cfg!(feature = "remote-fs").to_string())
         // Needs separate out directory so they don't clobber each other
         .out_dir(Path::new(&env::var("OUT_DIR").unwrap()).join("arrow"));
 
