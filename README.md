@@ -138,6 +138,14 @@ To build in parallel, pass `NUM_THREADS` as parameter, e.g., `make NUM_THREADS=8
 
 After build, our CLI binary `kuzu_shell` is available under the directory `build/release/tools/shell/`.
 
+### Building on Windows
+Currently MSVC is the only supported compiler:
+
+- In addition to the dependencies listed above, you will also need GNU Make and Ninja (E.g. with [Chocolatey](https://community.chocolatey.org/): `choco install make ninja`).
+- Build from within a "Visual Studio Developer Command Prompt" (or manually run vcvars64.bat for cmd or Launch-VsDevShell.ps1 for powershell. See [here](https://learn.microsoft.com/en-us/cpp/build/how-to-enable-a-64-bit-visual-cpp-toolset-on-the-command-line?view=msvc-170) and [here](https://learn.microsoft.com/en-us/visualstudio/ide/reference/command-prompt-powershell?view=vs-2022) for details).
+- Run `make release`, or the commands listed in the previous section.
+
+You can also build within Visual Studio, as long as you run `make release` first (or `make debug`), and then use [the CMake plugin](https://learn.microsoft.com/en-us/cpp/build/cmake-projects-in-visual-studio).
 
 ## Contributing
 We welcome contributions to Kùzu. If you are interested in contributing to Kùzu, please read our [Contributing Guide](CONTRIBUTING.md).
