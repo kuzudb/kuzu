@@ -13,6 +13,10 @@ private:
     static expression_vector collectCaseChildren(const Expression& expression);
 
     static expression_vector collectExistentialSubqueryChildren(const Expression& expression);
+
+    static expression_vector collectNodeChildren(const Expression& expression);
+
+    static expression_vector collectRelChildren(const Expression& expression);
 };
 
 class ExpressionVisitor {

@@ -72,6 +72,8 @@ Value Value::createDefaultValue(const LogicalType& dataType) {
     case LogicalTypeID::FIXED_LIST:
     case LogicalTypeID::UNION:
     case LogicalTypeID::STRUCT:
+    case LogicalTypeID::NODE:
+    case LogicalTypeID::REL:
         return Value(dataType, std::vector<std::unique_ptr<Value>>{});
     default:
         throw RuntimeException("Data type " + LogicalTypeUtils::dataTypeToString(dataType) +
@@ -333,8 +335,7 @@ std::string Value::toString() const {
         std::string result = "{";
         auto fieldNames = StructType::getFieldNames(&dataType);
         for (auto i = 0u; i < nestedTypeVal.size(); ++i) {
-            result += fieldNames[i];
-            result += ": ";
+            result += fieldNames[i] + ": ";
             result += nestedTypeVal[i]->toString();
             if (i != nestedTypeVal.size() - 1) {
                 result += ", ";
@@ -343,10 +344,38 @@ std::string Value::toString() const {
         result += "}";
         return result;
     }
-    case LogicalTypeID::NODE:
-        return nodeVal->toString();
-    case LogicalTypeID::REL:
-        return relVal->toString();
+    case LogicalTypeID::NODE: {
+        std::string result = "{";
+        auto fieldNames = StructType::getFieldNames(&dataType);
+        for (auto i = 0u; i < nestedTypeVal.size(); ++i) {
+            if (nestedTypeVal[i]->isNull_) {
+                continue;
+            }
+            result += fieldNames[i] + ": ";
+            result += nestedTypeVal[i]->toString();
+            if (i != nestedTypeVal.size() - 1) {
+                result += ", ";
+            }
+        }
+        result += "}";
+        return result;
+    }
+    case LogicalTypeID::REL: {
+        std::string result = "(" + nestedTypeVal[0]->toString() + ")-{";
+        auto fieldNames = StructType::getFieldNames(&dataType);
+        for (auto i = 2u; i < nestedTypeVal.size(); ++i) {
+            if (nestedTypeVal[i]->isNull_) {
+                continue;
+            }
+            result += fieldNames[i] + ": ";
+            result += nestedTypeVal[i]->toString();
+            if (i != nestedTypeVal.size() - 1) {
+                result += ", ";
+            }
+        }
+        result += "}->(" + nestedTypeVal[1]->toString() + ")";
+        return result;
+    }
     default:
         throw NotImplementedException("Value::toString for type " +
                                       LogicalTypeUtils::dataTypeToString(dataType) +

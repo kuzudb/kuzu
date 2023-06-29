@@ -119,6 +119,10 @@ void JoinOrderEnumerator::createPathNodePropertyScanPlan(
         properties.push_back(property->copy());
     }
     queryPlanner->appendScanNodePropIfNecessary(properties, recursiveNode, plan);
+    auto expressionsToProject = properties;
+    expressionsToProject.push_back(recursiveNode->getInternalIDProperty());
+    expressionsToProject.push_back(recursiveNode->getLabelExpression());
+    queryPlanner->projectionPlanner.appendProjection(expressionsToProject, plan);
 }
 
 void JoinOrderEnumerator::createPathRelPropertyScanPlan(
@@ -130,6 +134,9 @@ void JoinOrderEnumerator::createPathRelPropertyScanPlan(
         properties.push_back(property->copy());
     }
     appendNonRecursiveExtend(recursiveNode, nbrNode, recursiveRel, direction, properties, plan);
+    auto expressionsToProject = properties;
+    expressionsToProject.push_back(recursiveRel->getLabelExpression());
+    queryPlanner->projectionPlanner.appendProjection(expressionsToProject, plan);
 }
 
 } // namespace planner

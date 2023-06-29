@@ -13,10 +13,27 @@ std::unique_ptr<BoundWithClause> Binder::bindWithClause(const WithClause& withCl
     auto projectionExpressions = bindProjectionExpressions(
         projectionBody->getProjectionExpressions(), projectionBody->containsStar());
     validateProjectionColumnsInWithClauseAreAliased(projectionExpressions);
-    auto boundProjectionBody = bindProjectionBody(*projectionBody, projectionExpressions);
+    expression_vector newProjectionExpressions;
+    for (auto& expression : projectionExpressions) {
+        if (ExpressionUtil::isNodeVariable(*expression)) {
+            auto node = (NodeExpression*)expression.get();
+            newProjectionExpressions.push_back(node->getInternalIDProperty());
+            for (auto& property : node->getPropertyExpressions()) {
+                newProjectionExpressions.push_back(property->copy());
+            }
+        } else if (ExpressionUtil::isRelVariable(*expression)) {
+            auto rel = (RelExpression*)expression.get();
+            for (auto& property : rel->getPropertyExpressions()) {
+                newProjectionExpressions.push_back(property->copy());
+            }
+        } else {
+            newProjectionExpressions.push_back(expression);
+        }
+    }
+    auto boundProjectionBody = bindProjectionBody(*projectionBody, newProjectionExpressions);
     validateOrderByFollowedBySkipOrLimitInWithClause(*boundProjectionBody);
     variableScope->clear();
-    addExpressionsToScope(boundProjectionBody->getProjectionExpressions());
+    addExpressionsToScope(projectionExpressions);
     auto boundWithClause = std::make_unique<BoundWithClause>(std::move(boundProjectionBody));
     if (withClause.hasWhereExpression()) {
         boundWithClause->setWhereExpression(bindWhereExpression(*withClause.getWhereExpression()));
@@ -30,16 +47,9 @@ std::unique_ptr<BoundReturnClause> Binder::bindReturnClause(const ReturnClause& 
         projectionBody->getProjectionExpressions(), projectionBody->containsStar());
     auto statementResult = std::make_unique<BoundStatementResult>();
     for (auto& expression : boundProjectionExpressions) {
-        auto dataType = expression->getDataType();
-        if (dataType.getLogicalTypeID() == common::LogicalTypeID::NODE ||
-            dataType.getLogicalTypeID() == common::LogicalTypeID::REL) {
-            statementResult->addColumn(expression, rewriteNodeOrRelExpression(*expression));
-        } else {
-            statementResult->addColumn(expression, expression_vector{expression});
-        }
+        statementResult->addColumn(expression);
     }
-    auto boundProjectionBody =
-        bindProjectionBody(*projectionBody, statementResult->getExpressionsToCollect());
+    auto boundProjectionBody = bindProjectionBody(*projectionBody, statementResult->getColumns());
     return std::make_unique<BoundReturnClause>(
         std::move(boundProjectionBody), std::move(statementResult));
 }
@@ -100,6 +110,9 @@ std::unique_ptr<BoundProjectionBody> Binder::bindProjectionBody(
             if (ExpressionUtil::isNodeVariable(*expression)) {
                 auto node = (NodeExpression*)expression.get();
                 augmentedGroupByExpressions.push_back(node->getInternalIDProperty());
+            } else if (ExpressionUtil::isRelVariable(*expression)) {
+                auto rel = (RelExpression*)expression.get();
+                augmentedGroupByExpressions.push_back(rel->getInternalIDProperty());
             }
         }
         boundProjectionBody->setGroupByExpressions(std::move(augmentedGroupByExpressions));
@@ -160,38 +173,6 @@ expression_vector Binder::bindProjectionExpressions(
     }
     resolveAnyDataTypeWithDefaultType(result);
     validateProjectionColumnNamesAreUnique(result);
-    return result;
-}
-
-expression_vector Binder::rewriteNodeOrRelExpression(const Expression& expression) {
-    if (expression.dataType.getLogicalTypeID() == common::LogicalTypeID::NODE) {
-        return rewriteNodeExpression(expression);
-    } else {
-        assert(expression.dataType.getLogicalTypeID() == common::LogicalTypeID::REL);
-        return rewriteRelExpression(expression);
-    }
-}
-
-expression_vector Binder::rewriteNodeExpression(const kuzu::binder::Expression& expression) {
-    expression_vector result;
-    auto& node = (NodeExpression&)expression;
-    result.push_back(node.getInternalIDProperty());
-    result.push_back(expressionBinder.bindLabelFunction(node));
-    for (auto& property : node.getPropertyExpressions()) {
-        result.push_back(property->copy());
-    }
-    return result;
-}
-
-expression_vector Binder::rewriteRelExpression(const Expression& expression) {
-    expression_vector result;
-    auto& rel = (RelExpression&)expression;
-    result.push_back(rel.getSrcNode()->getInternalIDProperty());
-    result.push_back(rel.getDstNode()->getInternalIDProperty());
-    result.push_back(expressionBinder.bindLabelFunction(rel));
-    for (auto& property : rel.getPropertyExpressions()) {
-        result.push_back(property->copy());
-    }
     return result;
 }
 

@@ -2,7 +2,9 @@
 
 #include "binder/expression/case_expression.h"
 #include "binder/expression/existential_subquery_expression.h"
+#include "binder/expression/node_expression.h"
 #include "binder/expression/property_expression.h"
+#include "binder/expression/rel_expression.h"
 
 namespace kuzu {
 namespace binder {
@@ -14,6 +16,19 @@ expression_vector ExpressionChildrenCollector::collectChildren(const Expression&
     }
     case common::ExpressionType::EXISTENTIAL_SUBQUERY: {
         return collectExistentialSubqueryChildren(expression);
+    }
+    case common::ExpressionType::VARIABLE: {
+        switch (expression.dataType.getLogicalTypeID()) {
+        case common::LogicalTypeID::NODE: {
+            return collectNodeChildren(expression);
+        }
+        case common::LogicalTypeID::REL: {
+            return collectRelChildren(expression);
+        }
+        default: {
+            return expression_vector{};
+        }
+        }
     }
     default: {
         return expression.children;
@@ -42,6 +57,27 @@ expression_vector ExpressionChildrenCollector::collectExistentialSubqueryChildre
     }
     if (subqueryExpression.hasWhereExpression()) {
         result.push_back(subqueryExpression.getWhereExpression());
+    }
+    return result;
+}
+
+expression_vector ExpressionChildrenCollector::collectNodeChildren(const Expression& expression) {
+    expression_vector result;
+    auto& node = (NodeExpression&)expression;
+    for (auto& property : node.getPropertyExpressions()) {
+        result.push_back(property->copy());
+    }
+    result.push_back(node.getInternalIDProperty());
+    return result;
+}
+
+expression_vector ExpressionChildrenCollector::collectRelChildren(const Expression& expression) {
+    expression_vector result;
+    auto& rel = (RelExpression&)expression;
+    result.push_back(rel.getSrcNode()->getInternalIDProperty());
+    result.push_back(rel.getDstNode()->getInternalIDProperty());
+    for (auto& property : rel.getPropertyExpressions()) {
+        result.push_back(property->copy());
     }
     return result;
 }

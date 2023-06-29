@@ -30,18 +30,25 @@ struct PathPropertyProbeLocalState {
 
 struct PathPropertyProbeDataInfo {
     DataPos pathPos;
-    std::vector<ft_col_idx_t> nodeHashTableColIndicesToScan;
-    std::vector<ft_col_idx_t> relHashTableColIndicesToScan;
+    std::vector<common::struct_field_idx_t> nodeFieldIndices;
+    std::vector<common::struct_field_idx_t> relFieldIndices;
+    std::vector<ft_col_idx_t> nodeTableColumnIndices;
+    std::vector<ft_col_idx_t> relTableColumnIndices;
 
     PathPropertyProbeDataInfo(const DataPos& pathPos,
-        std::vector<ft_col_idx_t> nodeHashTableColIndicesToScan,
-        std::vector<ft_col_idx_t> relHashTableColIndicesToScan)
-        : pathPos{pathPos}, nodeHashTableColIndicesToScan{std::move(nodeHashTableColIndicesToScan)},
-          relHashTableColIndicesToScan{std::move(relHashTableColIndicesToScan)} {}
+        std::vector<common::struct_field_idx_t> nodeFieldIndices,
+        std::vector<common::struct_field_idx_t> relFieldIndices,
+        std::vector<ft_col_idx_t> nodeTableColumnIndices,
+        std::vector<ft_col_idx_t> relTableColumnIndices)
+        : pathPos{pathPos}, nodeFieldIndices{std::move(nodeFieldIndices)},
+          relFieldIndices{std::move(relFieldIndices)}, nodeTableColumnIndices{std::move(
+                                                           nodeTableColumnIndices)},
+          relTableColumnIndices{std::move(relTableColumnIndices)} {}
     PathPropertyProbeDataInfo(const PathPropertyProbeDataInfo& other)
-        : pathPos{other.pathPos},
-          nodeHashTableColIndicesToScan{other.nodeHashTableColIndicesToScan},
-          relHashTableColIndicesToScan{other.relHashTableColIndicesToScan} {}
+        : pathPos{other.pathPos}, nodeFieldIndices{other.nodeFieldIndices},
+          relFieldIndices{other.relFieldIndices},
+          nodeTableColumnIndices{other.nodeTableColumnIndices}, relTableColumnIndices{
+                                                                    other.relTableColumnIndices} {}
 
     std::unique_ptr<PathPropertyProbeDataInfo> copy() const {
         return std::make_unique<PathPropertyProbeDataInfo>(*this);

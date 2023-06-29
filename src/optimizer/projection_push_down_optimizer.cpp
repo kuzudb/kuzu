@@ -54,11 +54,12 @@ void ProjectionPushDownOptimizer::visitPathPropertyProbe(planner::LogicalOperato
             std::vector<std::shared_ptr<LogicalOperator>>{pathPropertyProbe->getChild(0)});
     } else {
         // Pre-append projection to rel property build.
-        expression_vector properties;
+        expression_vector expressionsToProject;
         for (auto& expression : recursiveInfo->rel->getPropertyExpressions()) {
-            properties.push_back(expression->copy());
+            expressionsToProject.push_back(expression->copy());
         }
-        preAppendProjection(op, 2, properties);
+        expressionsToProject.push_back(recursiveInfo->rel->getLabelExpression());
+        preAppendProjection(op, 2, expressionsToProject);
     }
 }
 
@@ -225,13 +226,12 @@ void ProjectionPushDownOptimizer::visitSetRelProperty(planner::LogicalOperator* 
 // See comments above this class for how to collect expressions in use.
 void ProjectionPushDownOptimizer::collectExpressionsInUse(
     std::shared_ptr<binder::Expression> expression) {
-    if (expression->expressionType == common::VARIABLE) {
-        variablesInUse.insert(std::move(expression));
-        return;
-    }
     if (expression->expressionType == common::PROPERTY) {
         propertiesInUse.insert(std::move(expression));
         return;
+    }
+    if (expression->expressionType == common::VARIABLE) {
+        variablesInUse.insert(expression);
     }
     for (auto& child : ExpressionChildrenCollector::collectChildren(*expression)) {
         collectExpressionsInUse(child);
