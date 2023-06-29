@@ -209,11 +209,11 @@ public:
         auto result = conn->query("MATCH (p:person) RETURN * ORDER BY p.ID LIMIT 1");
         ASSERT_EQ(TestHelper::convertResultToString(*result),
             std::vector<std::string>{
-                "(label:person, 0:0, {ID:0, fName:Alice, isStudent:True, isWorker:False, age:35, "
-                "eyeSight:5.000000, birthdate:1900-01-01, registerTime:2011-08-20 11:25:30, "
-                "lastJobDuration:3 years 2 days 13:02:00, workedHours:[10,5], "
-                "usedNames:[Aida], courseScoresPerTerm:[[10,8],[6,7,8]], grades:[96,54,86,92], "
-                "height:1.731000})"});
+                "{_ID: 0:0, _LABEL: person, ID: 0, fName: Alice, isStudent: True, isWorker: False, "
+                "age: 35, eyeSight: 5.000000, birthdate: 1900-01-01, registerTime: 2011-08-20 "
+                "11:25:30, lastJobDuration: 3 years 2 days 13:02:00, workedHours: [10,5], "
+                "usedNames: [Aida], courseScoresPerTerm: [[10,8],[6,7,8]], grades: [96,54,86,92], "
+                "height: 1.731000}"});
     }
 
     void dropRelTableProperty(TransactionTestType transactionTestType) {
@@ -256,7 +256,7 @@ public:
             "MATCH (:person)-[s:studyAt]->(:organisation) RETURN * ORDER BY s.year DESC LIMIT 1");
         ASSERT_EQ(TestHelper::convertResultToString(*result),
             std::vector<std::string>{
-                "(0:0)-[label:studyAt, {_id:4:0, year:2021, length:5}]->(1:0)"});
+                "(0:0)-{_LABEL: studyAt, _ID: 4:0, year: 2021, length: 5}->(1:0)"});
     }
 
     void ddlStatementsInsideActiveTransactionErrorTest(std::string query) {
@@ -274,8 +274,9 @@ public:
         conn->beginWriteTransaction();
         auto mapper = PlanMapper(
             *getStorageManager(*database), getMemoryManager(*database), getCatalog(*database));
-        auto physicalPlan = mapper.mapLogicalPlanToPhysical(
-            preparedStatement->logicalPlans[0].get(), preparedStatement->getExpressionsToCollect());
+        auto physicalPlan =
+            mapper.mapLogicalPlanToPhysical(preparedStatement->logicalPlans[0].get(),
+                preparedStatement->statementResult->getColumns());
         executionContext->clientContext->activeQuery = std::make_unique<ActiveQuery>();
         getQueryProcessor(*database)->execute(physicalPlan.get(), executionContext.get());
     }

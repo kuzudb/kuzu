@@ -158,10 +158,6 @@ private:
 
     expression_vector bindProjectionExpressions(
         const parser::parsed_expression_vector& parsedExpressions, bool star);
-    // Rewrite variable "v" as all properties of "v"
-    expression_vector rewriteNodeOrRelExpression(const Expression& expression);
-    expression_vector rewriteNodeExpression(const Expression& expression);
-    expression_vector rewriteRelExpression(const Expression& expression);
 
     expression_vector bindOrderByExpressions(
         const std::vector<std::unique_ptr<parser::ParsedExpression>>& orderByExpressions);

@@ -43,7 +43,7 @@ public:
     inline BoundReturnClause* getReturnClause() const { return returnClause.get(); }
 
     inline expression_vector getExpressionsToCollect() const {
-        return hasReturnClause() ? returnClause->getStatementResult()->getExpressionsToCollect() :
+        return hasReturnClause() ? returnClause->getStatementResult()->getColumns() :
                                    expression_vector{};
     }
 

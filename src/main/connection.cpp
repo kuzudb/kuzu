@@ -337,7 +337,7 @@ std::unique_ptr<QueryResult> Connection::executeAndAutoCommitIfNecessaryNoLock(
         try {
             physicalPlan =
                 mapper.mapLogicalPlanToPhysical(preparedStatement->logicalPlans[planIdx].get(),
-                    preparedStatement->getExpressionsToCollect());
+                    preparedStatement->statementResult->getColumns());
         } catch (std::exception& exception) {
             preparedStatement->success = false;
             preparedStatement->errMsg = exception.what();
@@ -366,9 +366,8 @@ std::unique_ptr<QueryResult> Connection::executeAndAutoCommitIfNecessaryNoLock(
     } catch (Exception& exception) { return getQueryResultWithError(exception.what()); }
     executingTimer.stop();
     queryResult->querySummary->executionTime = executingTimer.getElapsedTimeMS();
-    queryResult->initResultTableAndIterator(std::move(resultFT),
-        preparedStatement->statementResult->getColumns(),
-        preparedStatement->statementResult->getExpressionsToCollectPerColumn());
+    queryResult->initResultTableAndIterator(
+        std::move(resultFT), preparedStatement->statementResult->getColumns());
     return queryResult;
 }
 

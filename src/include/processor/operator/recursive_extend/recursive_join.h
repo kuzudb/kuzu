@@ -58,11 +58,13 @@ struct RecursiveJoinVectors {
     common::ValueVector* srcNodeIDVector = nullptr;
     common::ValueVector* dstNodeIDVector = nullptr;
     common::ValueVector* pathLengthVector = nullptr;
-    common::ValueVector* pathVector = nullptr;            // STRUCT(LIST(NODE), LIST(REL))
-    common::ValueVector* pathNodesVector = nullptr;       // LIST(STRUCT)
-    common::ValueVector* pathNodesIDDataVector = nullptr; // INTERNAL_ID
-    common::ValueVector* pathRelsVector = nullptr;        // LIST(STRUCT)
-    common::ValueVector* pathRelsIDDataVector = nullptr;  // INTERNAL_ID
+    common::ValueVector* pathVector = nullptr;              // STRUCT(LIST(NODE), LIST(REL))
+    common::ValueVector* pathNodesVector = nullptr;         // LIST(NODE)
+    common::ValueVector* pathNodesIDDataVector = nullptr;   // INTERNAL_ID
+    common::ValueVector* pathRelsVector = nullptr;          // LIST(REL)
+    common::ValueVector* pathRelsSrcIDDataVector = nullptr; // INTERNAL_ID
+    common::ValueVector* pathRelsDstIDDataVector = nullptr; // INTERNAL_ID
+    common::ValueVector* pathRelsIDDataVector = nullptr;    // INTERNAL_ID
 
     common::ValueVector* recursiveEdgeIDVector = nullptr;
     common::ValueVector* recursiveDstNodeIDVector = nullptr;

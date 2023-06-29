@@ -23,13 +23,12 @@ std::shared_ptr<Expression> ExpressionBinder::bindPropertyExpression(
     auto child = bindExpression(*parsedExpression.getChild(0));
     validateExpectedDataType(*child,
         std::vector<LogicalTypeID>{LogicalTypeID::NODE, LogicalTypeID::REL, LogicalTypeID::STRUCT});
-    auto childTypeID = child->dataType.getLogicalTypeID();
-    if (LogicalTypeID::NODE == childTypeID) {
+    if (ExpressionUtil::isNodeVariable(*child)) {
         return bindNodePropertyExpression(*child, propertyName);
-    } else if (LogicalTypeID::REL == childTypeID) {
+    } else if (ExpressionUtil::isRelVariable(*child)) {
         return bindRelPropertyExpression(*child, propertyName);
     } else {
-        assert(LogicalTypeID::STRUCT == childTypeID);
+        assert(child->expressionType == common::FUNCTION);
         auto stringValue =
             std::make_unique<Value>(LogicalType{LogicalTypeID::STRING}, propertyName);
         return bindScalarFunctionExpression(

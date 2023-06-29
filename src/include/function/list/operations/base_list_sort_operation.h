@@ -10,7 +10,7 @@ namespace operation {
 struct BaseListSortOperation {
 public:
     static inline bool isAscOrder(const std::string& sortOrder) {
-        std::string upperSortOrder = common::StringUtils::toUpperCase(sortOrder);
+        std::string upperSortOrder = common::StringUtils::getUpper(sortOrder);
         if (upperSortOrder == "ASC") {
             return true;
         } else if (upperSortOrder == "DESC") {
@@ -21,7 +21,7 @@ public:
     }
 
     static inline bool isNullFirst(const std::string& nullOrder) {
-        std::string upperNullOrder = common::StringUtils::toUpperCase(nullOrder);
+        std::string upperNullOrder = common::StringUtils::getUpper(nullOrder);
         if (upperNullOrder == "NULLS FIRST") {
             return true;
         } else if (upperNullOrder == "NULLS LAST") {

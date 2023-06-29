@@ -98,9 +98,7 @@ public:
 
 private:
     void initResultTableAndIterator(std::shared_ptr<processor::FactorizedTable> factorizedTable_,
-        const std::vector<std::shared_ptr<binder::Expression>>& columns,
-        const std::vector<std::vector<std::shared_ptr<binder::Expression>>>&
-            expressionToCollectPerColumn);
+        const std::vector<std::shared_ptr<binder::Expression>>& columns);
     void validateQuerySucceed() const;
 
 private:

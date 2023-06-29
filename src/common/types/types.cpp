@@ -277,7 +277,7 @@ void LogicalType::setPhysicalType() {
 
 LogicalType LogicalTypeUtils::dataTypeFromString(const std::string& dataTypeString) {
     LogicalType dataType;
-    auto upperDataTypeString = StringUtils::toUpperCase(dataTypeString);
+    auto upperDataTypeString = StringUtils::getUpper(dataTypeString);
     if (upperDataTypeString.ends_with("[]")) {
         dataType.typeID = LogicalTypeID::VAR_LIST;
         dataType.extraTypeInfo = std::make_unique<VarListTypeInfo>(std::make_unique<LogicalType>(
@@ -321,7 +321,7 @@ LogicalType LogicalTypeUtils::dataTypeFromString(const std::string& dataTypeStri
 }
 
 LogicalTypeID LogicalTypeUtils::dataTypeIDFromString(const std::string& dataTypeIDString) {
-    auto upperDataTypeIDString = StringUtils::toUpperCase(dataTypeIDString);
+    auto upperDataTypeIDString = StringUtils::getUpper(dataTypeIDString);
     if ("INTERNAL_ID" == upperDataTypeIDString) {
         return LogicalTypeID::INTERNAL_ID;
     } else if ("INT64" == upperDataTypeIDString) {

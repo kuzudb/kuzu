@@ -202,7 +202,7 @@ std::unique_ptr<LogicalPlan> Planner::planExplain(const Catalog& catalog,
     auto plan = getBestPlan(catalog, nodesStatistics, relsStatistics, *statementToExplain);
     auto logicalExplain = make_shared<LogicalExplain>(plan->getLastOperator(),
         statement.getStatementResult()->getSingleExpressionToCollect(), explain.getExplainType(),
-        explain.getStatementToExplain()->getStatementResult()->getExpressionsToCollect());
+        explain.getStatementToExplain()->getStatementResult()->getColumns());
     plan->setLastOperator(std::move(logicalExplain));
     return plan;
 }

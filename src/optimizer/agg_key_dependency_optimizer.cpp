@@ -1,9 +1,12 @@
 #include "optimizer/agg_key_dependency_optimizer.h"
 
+#include "binder/expression/node_expression.h"
 #include "binder/expression/property_expression.h"
+#include "binder/expression/rel_expression.h"
 #include "planner/logical_plan/logical_operator/logical_aggregate.h"
 #include "planner/logical_plan/logical_operator/logical_distinct.h"
 
+using namespace kuzu::binder;
 using namespace kuzu::planner;
 
 namespace kuzu {
@@ -71,6 +74,10 @@ AggKeyDependencyOptimizer::resolveKeysAndDependentKeys(const binder::expression_
             } else {
                 groupExpressions.push_back(expression);
             }
+        } else if (ExpressionUtil::isNodeVariable(*expression)) {
+            dependentExpressions.push_back(expression);
+        } else if (ExpressionUtil::isRelVariable(*expression)) {
+            dependentExpressions.push_back(expression);
         } else {
             groupExpressions.push_back(expression);
         }

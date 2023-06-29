@@ -23,10 +23,6 @@ bool PreparedStatement::isReadOnly() const {
     return readOnly;
 }
 
-binder::expression_vector PreparedStatement::getExpressionsToCollect() {
-    return statementResult->getExpressionsToCollect();
-}
-
 bool PreparedStatement::isProfile() {
     return logicalPlans[0]->isProfile();
 }

@@ -43,8 +43,6 @@ public:
      */
     KUZU_API bool isReadOnly() const;
 
-    std::vector<std::shared_ptr<binder::Expression>> getExpressionsToCollect();
-
     inline std::unordered_map<std::string, std::shared_ptr<common::Value>> getParameterMap() {
         return parameterMap;
     }
