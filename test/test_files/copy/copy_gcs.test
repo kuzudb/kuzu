@@ -22,6 +22,6 @@
 ---- ok
 -STATEMENT COPY knows FROM "gs://anonymous@kuzu-test/tinysnb/eKnows.csv";
 ---- ok
--QUERY MATCH (:person)-[:knows]->(:person) return count(*)
+-STATEMENT MATCH (:person)-[:knows]->(:person) return count(*)
 ---- 1
 14
