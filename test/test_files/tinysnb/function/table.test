@@ -4,7 +4,6 @@
 --
 
 -CASE FunctionTable
--DEFINE COLS REPEAT 2400 "col${count} INT64,"
 
 -LOG NodeTableInfo
 -STATEMENT CALL table_info('person') RETURN *
@@ -68,10 +67,11 @@ height
 (label:movies, 2:2, {name:Roma, length:298, note:the movie is very interesting and funny, description:{RATING: 1223.000000, VIEWS: 10003, RELEASE: 2011-02-11 16:44:22, FILM: 2013-02-22}, content:pure ascii characters})|INTERVAL
 (label:movies, 2:2, {name:Roma, length:298, note:the movie is very interesting and funny, description:{RATING: 1223.000000, VIEWS: 10003, RELEASE: 2011-02-11 16:44:22, FILM: 2013-02-22}, content:pure ascii characters})|STRING[]
 
--LOG NodeTableWith300ColumnsInfo
+-CASE NodeTableWith300ColumnsInfo
+-DEFINE COLS REPEAT 2400 "col${count} INT64,"
+
 -STATEMENT CREATE NODE TABLE person1(${COLS} PRIMARY KEY(col1));
 ---- ok
-
 -STATEMENT CALL TABLE_INFO("person1") RETURN *
 ---- 2400
 <FILE>:function_table_info_answer.txt
