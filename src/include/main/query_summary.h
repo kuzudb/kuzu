@@ -13,6 +13,7 @@ namespace main {
  */
 struct PreparedSummary {
     double compilingTime = 0;
+    // Only used for printing by shell.
     bool isExplain = false;
     bool isProfile = false;
 };
@@ -33,7 +34,6 @@ public:
      * @return query execution time in milliseconds.
      */
     KUZU_API double getExecutionTime() const;
-    bool getIsExplain() const;
     bool getIsProfile() const;
     std::ostringstream& getPlanAsOstream();
     /**
@@ -42,12 +42,19 @@ public:
     KUZU_API std::string getPlan();
     void setPreparedSummary(PreparedSummary preparedSummary_);
 
+    /**
+     * @return true if the query is executed with EXPLAIN.
+     */
+    inline bool isExplain() const { return preparedSummary.isExplain; }
+
 private:
     nlohmann::json& printPlanToJson();
 
 private:
     double executionTime = 0;
     PreparedSummary preparedSummary;
+    // Remove these two field once we have refactored the profiler using the existing pipeline
+    // design.
     std::unique_ptr<nlohmann::json> planInJson;
     std::ostringstream planInOstream;
 };

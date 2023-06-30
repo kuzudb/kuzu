@@ -13,10 +13,6 @@ double QuerySummary::getExecutionTime() const {
     return executionTime;
 }
 
-bool QuerySummary::getIsExplain() const {
-    return preparedSummary.isExplain;
-}
-
 bool QuerySummary::getIsProfile() const {
     return preparedSummary.isProfile;
 }

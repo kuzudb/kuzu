@@ -12,6 +12,7 @@
 #include "parser/ddl/drop_table.h"
 #include "parser/ddl/rename_property.h"
 #include "parser/ddl/rename_table.h"
+#include "parser/explain_statement.h"
 #include "parser/expression/parsed_case_expression.h"
 #include "parser/expression/parsed_function_expression.h"
 #include "parser/expression/parsed_literal_expression.h"
@@ -32,7 +33,7 @@ std::unique_ptr<Statement> Transformer::transform() {
     if (root.oC_AnyCypherOption()) {
         auto cypherOption = root.oC_AnyCypherOption();
         if (cypherOption->oC_Explain()) {
-            statement->enableExplain();
+            return std::make_unique<ExplainStatement>(std::move(statement));
         }
         if (cypherOption->oC_Profile()) {
             statement->enableProfile();

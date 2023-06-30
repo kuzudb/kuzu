@@ -61,6 +61,9 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
     case LogicalOperatorType::EXTEND: {
         return "EXTEND";
     }
+    case LogicalOperatorType::EXPLAIN: {
+        return "EXPLAIN";
+    }
     case LogicalOperatorType::FILTER: {
         return "FILTER";
     }

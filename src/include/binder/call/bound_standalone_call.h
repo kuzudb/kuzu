@@ -9,7 +9,7 @@ namespace binder {
 class BoundStandaloneCall : public BoundStatement {
 public:
     BoundStandaloneCall(main::ConfigurationOption option, std::shared_ptr<Expression> optionValue)
-        : BoundStatement{common::StatementType::StandaloneCall,
+        : BoundStatement{common::StatementType::STANDALONE_CALL,
               BoundStatementResult::createEmptyResult()},
           option{option}, optionValue{optionValue} {}
 

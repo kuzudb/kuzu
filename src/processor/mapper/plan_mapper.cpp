@@ -152,6 +152,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
     case LogicalOperatorType::IN_QUERY_CALL: {
         physicalOperator = mapLogicalInQueryCallToPhysical(logicalOperator.get());
     } break;
+    case LogicalOperatorType::EXPLAIN: {
+        physicalOperator = mapLogicalExplainToPhysical(logicalOperator.get());
+    } break;
     default:
         throw common::NotImplementedException("PlanMapper::mapLogicalOperatorToPhysical()");
     }

@@ -1,5 +1,7 @@
 #include "binder/bound_statement_visitor.h"
 
+#include "binder/bound_explain.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {
@@ -34,8 +36,11 @@ void BoundStatementVisitor::visit(const kuzu::binder::BoundStatement& statement)
     case StatementType::COPY: {
         visitCopy(statement);
     } break;
-    case StatementType::StandaloneCall: {
+    case StatementType::STANDALONE_CALL: {
         visitStandaloneCall(statement);
+    } break;
+    case StatementType::EXPLAIN: {
+        visitExplain(statement);
     } break;
     default:
         throw NotImplementedException("BoundStatementVisitor::visit");
@@ -67,6 +72,10 @@ void BoundStatementVisitor::visitQueryPart(const NormalizedQueryPart& queryPart)
             visitProjectionBodyPredicate(*queryPart.getProjectionBodyPredicate());
         }
     }
+}
+
+void BoundStatementVisitor::visitExplain(const BoundStatement& statement) {
+    visit(*((const BoundExplain&)statement).getStatementToExplain());
 }
 
 void BoundStatementVisitor::visitReadingClause(const BoundReadingClause& readingClause) {

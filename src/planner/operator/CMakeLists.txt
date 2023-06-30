@@ -11,6 +11,7 @@ add_library(kuzu_planner_operator
         logical_cross_product.cpp
         logical_ddl.cpp
         logical_distinct.cpp
+        logical_explain.cpp
         logical_expressions_scan.cpp
         logical_extend.cpp
         logical_filter.cpp

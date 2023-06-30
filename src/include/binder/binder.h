@@ -111,6 +111,9 @@ private:
     /*** bind call ***/
     std::unique_ptr<BoundStatement> bindStandaloneCall(const parser::Statement& statement);
 
+    /*** bind explain ***/
+    std::unique_ptr<BoundStatement> bindExplain(const parser::Statement& statement);
+
     /*** bind reading clause ***/
     std::unique_ptr<BoundReadingClause> bindReadingClause(
         const parser::ReadingClause& readingClause);
