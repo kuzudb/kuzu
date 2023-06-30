@@ -14,11 +14,6 @@ struct InQueryCallSharedState {
 
     explicit InQueryCallSharedState(common::offset_t maxOffset) : maxOffset{maxOffset} {}
 
-    inline bool hasNext() {
-        std::lock_guard guard{mtx};
-        return offset < maxOffset;
-    }
-
     std::pair<common::offset_t, common::offset_t> getNextBatch();
 };
 
