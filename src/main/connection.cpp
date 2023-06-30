@@ -160,8 +160,9 @@ std::unique_ptr<PreparedStatement> Connection::prepareNoLock(
     try {
         // parsing
         auto statement = Parser::parseQuery(query);
-        preparedStatement->preparedSummary.isExplain = statement->isExplain();
         preparedStatement->preparedSummary.isProfile = statement->isProfile();
+        preparedStatement->preparedSummary.isExplain =
+            statement->getStatementType() == StatementType::EXPLAIN;
         // binding
         auto binder = Binder(*database->catalog);
         auto boundStatement = binder.bind(*statement);
@@ -354,27 +355,23 @@ std::unique_ptr<QueryResult> Connection::executeAndAutoCommitIfNecessaryNoLock(
     auto executionContext =
         std::make_unique<ExecutionContext>(clientContext->numThreadsForExecution, profiler.get(),
             database->memoryManager.get(), database->bufferManager.get(), clientContext.get());
-    // Execute query if EXPLAIN is not enabled.
-    if (!preparedStatement->preparedSummary.isExplain) {
-        profiler->enabled = preparedStatement->preparedSummary.isProfile;
-        auto executingTimer = TimeMetric(true /* enable */);
-        executingTimer.start();
-        std::shared_ptr<FactorizedTable> resultFT;
-        try {
-            beginTransactionIfAutoCommit(preparedStatement);
-            executionContext->transaction = activeTransaction.get();
-            resultFT =
-                database->queryProcessor->execute(physicalPlan.get(), executionContext.get());
-            if (ConnectionTransactionMode::AUTO_COMMIT == transactionMode) {
-                commitNoLock();
-            }
-        } catch (Exception& exception) { return getQueryResultWithError(exception.what()); }
-        executingTimer.stop();
-        queryResult->querySummary->executionTime = executingTimer.getElapsedTimeMS();
-        queryResult->initResultTableAndIterator(std::move(resultFT),
-            preparedStatement->statementResult->getColumns(),
-            preparedStatement->statementResult->getExpressionsToCollectPerColumn());
-    }
+    profiler->enabled = preparedStatement->preparedSummary.isProfile;
+    auto executingTimer = TimeMetric(true /* enable */);
+    executingTimer.start();
+    std::shared_ptr<FactorizedTable> resultFT;
+    try {
+        beginTransactionIfAutoCommit(preparedStatement);
+        executionContext->transaction = activeTransaction.get();
+        resultFT = database->queryProcessor->execute(physicalPlan.get(), executionContext.get());
+        if (ConnectionTransactionMode::AUTO_COMMIT == transactionMode) {
+            commitNoLock();
+        }
+    } catch (Exception& exception) { return getQueryResultWithError(exception.what()); }
+    executingTimer.stop();
+    queryResult->querySummary->executionTime = executingTimer.getElapsedTimeMS();
+    queryResult->initResultTableAndIterator(std::move(resultFT),
+        preparedStatement->statementResult->getColumns(),
+        preparedStatement->statementResult->getExpressionsToCollectPerColumn());
     auto planPrinter = std::make_unique<PlanPrinter>(physicalPlan.get(), std::move(profiler));
     queryResult->querySummary->planInJson =
         std::make_unique<nlohmann::json>(planPrinter->printPlanToJson());

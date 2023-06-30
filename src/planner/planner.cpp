@@ -1,5 +1,6 @@
 #include "planner/planner.h"
 
+#include "binder/bound_explain.h"
 #include "binder/call/bound_standalone_call.h"
 #include "binder/copy/bound_copy.h"
 #include "binder/ddl/bound_add_property.h"
@@ -16,6 +17,7 @@
 #include "planner/logical_plan/logical_operator/logical_create_rel_table.h"
 #include "planner/logical_plan/logical_operator/logical_drop_property.h"
 #include "planner/logical_plan/logical_operator/logical_drop_table.h"
+#include "planner/logical_plan/logical_operator/logical_explain.h"
 #include "planner/logical_plan/logical_operator/logical_in_query_call.h"
 #include "planner/logical_plan/logical_operator/logical_rename_property.h"
 #include "planner/logical_plan/logical_operator/logical_rename_table.h"
@@ -60,8 +62,11 @@ std::unique_ptr<LogicalPlan> Planner::getBestPlan(const Catalog& catalog,
     case StatementType::RENAME_PROPERTY: {
         plan = planRenameProperty(statement);
     } break;
-    case StatementType::StandaloneCall: {
+    case StatementType::STANDALONE_CALL: {
         plan = planStandaloneCall(statement);
+    } break;
+    case StatementType::EXPLAIN: {
+        plan = planExplain(catalog, nodesStatistics, relsStatistics, statement);
     } break;
     default:
         throw common::NotImplementedException("getBestPlan()");
@@ -186,6 +191,18 @@ std::unique_ptr<LogicalPlan> Planner::planStandaloneCall(const BoundStatement& s
     auto logicalStandaloneCall = make_shared<LogicalStandaloneCall>(
         standaloneCallClause.getOption(), standaloneCallClause.getOptionValue());
     plan->setLastOperator(std::move(logicalStandaloneCall));
+    return plan;
+}
+
+std::unique_ptr<LogicalPlan> Planner::planExplain(const Catalog& catalog,
+    const NodesStatisticsAndDeletedIDs& nodesStatistics, const RelsStatistics& relsStatistics,
+    const BoundStatement& statement) {
+    auto& explain = reinterpret_cast<const BoundExplain&>(statement);
+    auto statementToExplain = explain.getStatementToExplain();
+    auto plan = getBestPlan(catalog, nodesStatistics, relsStatistics, *statementToExplain);
+    auto logicalExplain = make_shared<LogicalExplain>(
+        plan->getLastOperator(), statement.getStatementResult()->getSingleExpressionToCollect());
+    plan->setLastOperator(std::move(logicalExplain));
     return plan;
 }
 

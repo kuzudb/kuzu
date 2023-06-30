@@ -323,9 +323,8 @@ void EmbeddedShell::printHelp() {
 
 void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
     auto querySummary = queryResult.getQuerySummary();
-    if (querySummary->getIsExplain()) {
-        auto& oss = querySummary->getPlanAsOstream();
-        printf("%s", oss.str().c_str());
+    if (querySummary->isExplain()) {
+        printf("%s", queryResult.getNext()->toString().c_str());
     } else {
         const uint32_t maxWidth = 80;
         uint64_t numTuples = queryResult.getNumTuples();

@@ -66,7 +66,7 @@ std::vector<common::LogicalType> QueryResult::getColumnDataTypes() const {
 }
 
 uint64_t QueryResult::getNumTuples() const {
-    return querySummary->getIsExplain() ? 0 : factorizedTable->getTotalNumFlatTuples();
+    return factorizedTable->getTotalNumFlatTuples();
 }
 
 QuerySummary* QueryResult::getQuerySummary() const {
@@ -185,7 +185,6 @@ void QueryResult::initResultTableAndIterator(
 
 bool QueryResult::hasNext() const {
     validateQuerySucceed();
-    assert(querySummary->getIsExplain() == false);
     return iterator->hasNextFlatTuple();
 }
 

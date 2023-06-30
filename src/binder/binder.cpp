@@ -39,8 +39,11 @@ std::unique_ptr<BoundStatement> Binder::bind(const Statement& statement) {
     case StatementType::QUERY: {
         return bindQuery((const RegularQuery&)statement);
     }
-    case StatementType::StandaloneCall: {
+    case StatementType::STANDALONE_CALL: {
         return bindStandaloneCall(statement);
+    }
+    case StatementType::EXPLAIN: {
+        return bindExplain(statement);
     }
     default:
         assert(false);

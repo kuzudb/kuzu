@@ -114,6 +114,8 @@ private:
         planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapLogicalInQueryCallToPhysical(
         planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapLogicalExplainToPhysical(
+        planner::LogicalOperator* logicalOperator);
     std::unique_ptr<ResultCollector> appendResultCollector(
         const binder::expression_vector& expressionsToCollect, planner::Schema* schema,
         std::unique_ptr<PhysicalOperator> prevOperator);
