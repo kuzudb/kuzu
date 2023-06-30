@@ -26,6 +26,8 @@ using expression_map =
     std::unordered_map<std::shared_ptr<Expression>, T, ExpressionHasher, ExpressionEquality>;
 
 class Expression : public std::enable_shared_from_this<Expression> {
+    friend class ExpressionChildrenCollector;
+
 public:
     Expression(common::ExpressionType expressionType, common::LogicalType dataType,
         expression_vector children, std::string uniqueName)
@@ -76,22 +78,6 @@ public:
         children[idx] = std::move(child);
     }
 
-    inline virtual expression_vector getChildren() const { return children; }
-
-    bool hasAggregationExpression() const {
-        return hasSubExpressionOfType(common::isExpressionAggregate);
-    }
-
-    bool hasSubqueryExpression() const {
-        return hasSubExpressionOfType(common::isExpressionSubquery);
-    }
-
-    std::unordered_set<std::string> getDependentVariableNames();
-
-    expression_vector getSubPropertyExpressions();
-
-    expression_vector getTopLevelSubSubqueryExpressions();
-
     expression_vector splitOnAND();
 
     virtual std::string toString() const = 0;
@@ -99,10 +85,6 @@ public:
     virtual std::unique_ptr<Expression> copy() const {
         throw common::InternalException("Unimplemented expression copy().");
     }
-
-protected:
-    bool hasSubExpressionOfType(
-        const std::function<bool(common::ExpressionType type)>& typeCheckFunc) const;
 
 public:
     common::ExpressionType expressionType;

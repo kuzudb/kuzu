@@ -38,7 +38,7 @@ protected:
     virtual void visitCreate(const BoundUpdatingClause& updatingClause) {}
 
     virtual void visitProjectionBody(const BoundProjectionBody& projectionBody) {}
-    virtual void visitProjectionBodyPredicate(Expression& predicate) {}
+    virtual void visitProjectionBodyPredicate(const std::shared_ptr<Expression>& predicate) {}
 };
 
 } // namespace binder

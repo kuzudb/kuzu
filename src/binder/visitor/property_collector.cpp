@@ -1,5 +1,6 @@
 #include "binder/visitor/property_collector.h"
 
+#include "binder/expression/expression_visitor.h"
 #include "binder/query/reading_clause/bound_match_clause.h"
 #include "binder/query/reading_clause/bound_unwind_clause.h"
 #include "binder/query/updating_clause/bound_create_clause.h"
@@ -25,22 +26,22 @@ void PropertyCollector::visitMatch(const BoundReadingClause& readingClause) {
         }
     }
     if (matchClause.hasWhereExpression()) {
-        collectPropertyExpressions(*matchClause.getWhereExpression());
+        collectPropertyExpressions(matchClause.getWhereExpression());
     }
 }
 
 void PropertyCollector::visitUnwind(const BoundReadingClause& readingClause) {
     auto& unwindClause = (BoundUnwindClause&)readingClause;
-    collectPropertyExpressions(*unwindClause.getExpression());
+    collectPropertyExpressions(unwindClause.getExpression());
 }
 
 void PropertyCollector::visitSet(const BoundUpdatingClause& updatingClause) {
     auto& boundSetClause = (BoundSetClause&)updatingClause;
     for (auto& setNodeProperty : boundSetClause.getSetNodeProperties()) {
-        collectPropertyExpressions(*setNodeProperty->getSetItem().second);
+        collectPropertyExpressions(setNodeProperty->getSetItem().second);
     }
     for (auto& setRelProperty : boundSetClause.getSetRelProperties()) {
-        collectPropertyExpressions(*setRelProperty->getSetItem().second);
+        collectPropertyExpressions(setRelProperty->getSetItem().second);
     }
 }
 
@@ -58,31 +59,32 @@ void PropertyCollector::visitCreate(const BoundUpdatingClause& updatingClause) {
     auto& boundCreateClause = (BoundCreateClause&)updatingClause;
     for (auto& createNode : boundCreateClause.getCreateNodes()) {
         for (auto& setItem : createNode->getSetItems()) {
-            collectPropertyExpressions(*setItem.second);
+            collectPropertyExpressions(setItem.second);
         }
     }
     for (auto& createRel : boundCreateClause.getCreateRels()) {
         for (auto& setItem : createRel->getSetItems()) {
-            collectPropertyExpressions(*setItem.second);
+            collectPropertyExpressions(setItem.second);
         }
     }
 }
 
 void PropertyCollector::visitProjectionBody(const BoundProjectionBody& projectionBody) {
     for (auto& expression : projectionBody.getProjectionExpressions()) {
-        collectPropertyExpressions(*expression);
+        collectPropertyExpressions(expression);
     }
     for (auto& expression : projectionBody.getOrderByExpressions()) {
-        collectPropertyExpressions(*expression);
+        collectPropertyExpressions(expression);
     }
 }
 
-void PropertyCollector::visitProjectionBodyPredicate(Expression& predicate) {
+void PropertyCollector::visitProjectionBodyPredicate(const std::shared_ptr<Expression>& predicate) {
     collectPropertyExpressions(predicate);
 }
 
-void PropertyCollector::collectPropertyExpressions(Expression& expression) {
-    for (auto& property : expression.getSubPropertyExpressions()) {
+void PropertyCollector::collectPropertyExpressions(const std::shared_ptr<Expression>& expression) {
+    auto expressionCollector = std::make_unique<binder::ExpressionCollector>();
+    for (auto& property : expressionCollector->collectPropertyExpressions(expression)) {
         properties.insert(property);
     }
 }

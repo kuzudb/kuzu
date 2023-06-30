@@ -120,7 +120,7 @@ private:
         const std::vector<SubqueryGraph>& prevSubgraphs, const SubqueryGraph& newSubgraph,
         const binder::expression_vector& expressions);
     static bool isExpressionNewlyMatched(const std::vector<SubqueryGraph>& prevSubgraphs,
-        const SubqueryGraph& newSubgraph, Expression& expression);
+        const SubqueryGraph& newSubgraph, const std::shared_ptr<Expression>& expression);
 
 private:
     const catalog::Catalog& catalog;

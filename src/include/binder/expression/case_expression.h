@@ -32,8 +32,6 @@ public:
 
     inline std::shared_ptr<Expression> getElseExpression() const { return elseExpression; }
 
-    expression_vector getChildren() const override;
-
     std::string toString() const override;
 
 private:

@@ -1,5 +1,6 @@
 #include "planner/projection_planner.h"
 
+#include "binder/expression/expression_visitor.h"
 #include "binder/expression/function_expression.h"
 #include "planner/logical_plan/logical_operator/flatten_resolver.h"
 #include "planner/logical_plan/logical_operator/logical_aggregate.h"
@@ -74,7 +75,8 @@ void ProjectionPlanner::planAggregate(const expression_vector& expressionsToAggr
     assert(!expressionsToAggregate.empty());
     expression_vector expressionsToProject;
     for (auto& expressionToAggregate : expressionsToAggregate) {
-        if (expressionToAggregate->getChildren().empty()) { // skip COUNT(*)
+        if (ExpressionChildrenCollector::collectChildren(*expressionToAggregate)
+                .empty()) { // skip COUNT(*)
             continue;
         }
         expressionsToProject.push_back(expressionToAggregate->getChild(0));
@@ -219,7 +221,7 @@ expression_vector ProjectionPlanner::getSubAggregateExpressionsNotInScope(
         // expression is an aggregate expression.
         return result;
     }
-    for (auto& child : expression->getChildren()) {
+    for (auto& child : ExpressionChildrenCollector::collectChildren(*expression)) {
         for (auto& expr : getSubAggregateExpressionsNotInScope(child, schema)) {
             result.push_back(expr);
         }
