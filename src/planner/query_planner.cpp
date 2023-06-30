@@ -1,5 +1,6 @@
 #include "planner/query_planner.h"
 
+#include "binder/expression/expression_visitor.h"
 #include "binder/query/bound_regular_query.h"
 #include "binder/visitor/property_collector.h"
 #include "planner/logical_plan/logical_operator/logical_accumulate.h"
@@ -261,8 +262,9 @@ void QueryPlanner::planExistsSubquery(
 
 void QueryPlanner::planSubqueryIfNecessary(
     const std::shared_ptr<Expression>& expression, LogicalPlan& plan) {
-    if (expression->hasSubqueryExpression()) {
-        for (auto& expr : expression->getTopLevelSubSubqueryExpressions()) {
+    if (ExpressionVisitor::hasSubqueryExpression(*expression)) {
+        auto expressionCollector = std::make_unique<ExpressionCollector>();
+        for (auto& expr : expressionCollector->collectTopLevelSubqueryExpressions(expression)) {
             planExistsSubquery(expr, plan);
         }
     }

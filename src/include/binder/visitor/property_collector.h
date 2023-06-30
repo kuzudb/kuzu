@@ -20,9 +20,9 @@ private:
     void visitCreate(const BoundUpdatingClause& updatingClause) final;
 
     void visitProjectionBody(const BoundProjectionBody& projectionBody) final;
-    void visitProjectionBodyPredicate(Expression& predicate) final;
+    void visitProjectionBodyPredicate(const std::shared_ptr<Expression>& predicate) final;
 
-    void collectPropertyExpressions(Expression& expression);
+    void collectPropertyExpressions(const std::shared_ptr<Expression>& expression);
 
 private:
     expression_set properties;

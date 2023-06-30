@@ -1,10 +1,10 @@
 #include "binder/expression_binder.h"
 
 #include "binder/binder.h"
+#include "binder/expression/expression_visitor.h"
 #include "binder/expression/function_expression.h"
 #include "binder/expression/literal_expression.h"
 #include "binder/expression/parameter_expression.h"
-#include "common/type_utils.h"
 #include "function/cast/vector_cast_operations.h"
 
 using namespace kuzu::common;
@@ -128,7 +128,7 @@ void ExpressionBinder::validateAggregationExpressionIsNotNested(const Expression
     if (expression.getNumChildren() == 0) {
         return;
     }
-    if (expression.getChild(0)->hasAggregationExpression()) {
+    if (ExpressionVisitor::hasAggregateExpression(*expression.getChild(0))) {
         throw BinderException(
             "Expression " + expression.toString() + " contains nested aggregation.");
     }

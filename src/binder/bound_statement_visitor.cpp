@@ -64,7 +64,7 @@ void BoundStatementVisitor::visitQueryPart(const NormalizedQueryPart& queryPart)
     if (queryPart.hasProjectionBody()) {
         visitProjectionBody(*queryPart.getProjectionBody());
         if (queryPart.hasProjectionBodyPredicate()) {
-            visitProjectionBodyPredicate(*queryPart.getProjectionBodyPredicate());
+            visitProjectionBodyPredicate(queryPart.getProjectionBodyPredicate());
         }
     }
 }

@@ -1,3 +1,4 @@
+#include "binder/expression/expression_visitor.h"
 #include "planner/join_order/cost_model.h"
 #include "planner/join_order_enumerator.h"
 #include "planner/logical_plan/logical_operator/logical_extend.h"
@@ -97,7 +98,8 @@ void JoinOrderEnumerator::createRecursivePlan(std::shared_ptr<NodeExpression> bo
     expression_set propertiesSet;
     propertiesSet.insert(recursiveRel->getInternalIDProperty());
     for (auto& predicate : predicates) {
-        for (auto& property : predicate->getSubPropertyExpressions()) {
+        auto expressionCollector = std::make_unique<binder::ExpressionCollector>();
+        for (auto& property : expressionCollector->collectPropertyExpressions(predicate)) {
             propertiesSet.insert(property);
         }
     }

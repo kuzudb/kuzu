@@ -27,8 +27,6 @@ public:
         return hasWhereExpression() ? whereExpression->splitOnAND() : expression_vector{};
     }
 
-    expression_vector getChildren() const override;
-
     std::string toString() const override { return rawName; }
 
 private:

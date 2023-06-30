@@ -1,5 +1,7 @@
 #include "binder/query/reading_clause/query_graph.h"
 
+#include "binder/expression/expression_visitor.h"
+
 namespace kuzu {
 namespace binder {
 
@@ -167,8 +169,9 @@ void QueryGraph::merge(const QueryGraph& other) {
     }
 }
 
-bool QueryGraph::canProjectExpression(Expression* expression) const {
-    for (auto& variable : expression->getDependentVariableNames()) {
+bool QueryGraph::canProjectExpression(const std::shared_ptr<Expression>& expression) const {
+    auto expressionCollector = std::make_unique<ExpressionCollector>();
+    for (auto& variable : expressionCollector->getDependentVariableNames(expression)) {
         if (!containsQueryNode(variable) && !containsQueryRel(variable)) {
             return false;
         }

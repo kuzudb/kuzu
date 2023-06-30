@@ -1,5 +1,6 @@
 #include "optimizer/projection_push_down_optimizer.h"
 
+#include "binder/expression/expression_visitor.h"
 #include "planner/logical_plan/logical_operator/logical_accumulate.h"
 #include "planner/logical_plan/logical_operator/logical_create.h"
 #include "planner/logical_plan/logical_operator/logical_delete.h"
@@ -232,7 +233,7 @@ void ProjectionPushDownOptimizer::collectExpressionsInUse(
         propertiesInUse.insert(std::move(expression));
         return;
     }
-    for (auto& child : expression->getChildren()) {
+    for (auto& child : ExpressionChildrenCollector::collectChildren(*expression)) {
         collectExpressionsInUse(child);
     }
 }

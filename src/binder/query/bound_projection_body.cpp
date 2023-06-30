@@ -1,11 +1,13 @@
 #include "binder/query/return_with_clause/bound_projection_body.h"
 
+#include "binder/expression/expression_visitor.h"
+
 namespace kuzu {
 namespace binder {
 
 bool BoundProjectionBody::hasAggregationExpressions() const {
     for (auto& projectionExpression : projectionExpressions) {
-        if (projectionExpression->hasAggregationExpression()) {
+        if (ExpressionVisitor::hasAggregateExpression(*projectionExpression)) {
             return true;
         }
     }

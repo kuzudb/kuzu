@@ -128,7 +128,7 @@ public:
     }
     void addQueryRel(std::shared_ptr<RelExpression> queryRel);
 
-    bool canProjectExpression(Expression* expression) const;
+    bool canProjectExpression(const std::shared_ptr<Expression>& expression) const;
 
     bool isConnected(const QueryGraph& other);
 
