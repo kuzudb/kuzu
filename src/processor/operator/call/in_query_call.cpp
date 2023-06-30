@@ -17,13 +17,14 @@ void InQueryCall::initLocalStateInternal(ResultSet* resultSet, ExecutionContext*
 }
 
 bool InQueryCall::getNextTuplesInternal(kuzu::processor::ExecutionContext* context) {
-    if (sharedState->hasNext()) {
-        auto morsel = sharedState->getNextBatch();
+    auto morsel = sharedState->getNextBatch();
+    if (morsel.second > morsel.first) {
         inQueryCallInfo->tableFunc(morsel, inQueryCallInfo->bindData.get(), outputVectors);
         metrics->numOutputTuple.increase(morsel.second - morsel.first);
         return true;
+    } else {
+        return false;
     }
-    return false;
 }
 
 } // namespace processor
