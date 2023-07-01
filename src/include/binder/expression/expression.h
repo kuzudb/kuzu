@@ -120,6 +120,11 @@ struct ExpressionUtil {
 
     static expression_vector excludeExpressions(
         const expression_vector& expressions, const expression_vector& expressionsToExclude);
+
+    inline static bool isNodeVariable(const Expression& expression) {
+        return expression.expressionType == common::ExpressionType::VARIABLE &&
+               expression.dataType.getLogicalTypeID() == common::LogicalTypeID::NODE;
+    }
 };
 
 } // namespace binder

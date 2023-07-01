@@ -47,12 +47,11 @@ Alice|1
 45|1|3
 
 -LOG OneHopHashAggTest
--STATEMENT MATCH (a:person)-[:knows]->(b:person) RETURN a.gender, COUNT(*), SUM(b.age)
--PARALLELISM 3
+-STATEMENT MATCH (a:person)-[:knows]->(b:person) RETURN a.gender, COUNT(*) + SUM(b.age)
 -ENUMERATE
 ---- 2
-1|8|245
-2|6|210
+1|253
+2|216
 
 -LOG TwoHopAggTest
 -STATEMENT MATCH (a:person)-[:knows]->(b:person)-[:knows]->(c:person) RETURN a.gender, COUNT(*), COUNT(DISTINCT b.age)

@@ -75,8 +75,13 @@ public:
     f_group_pos createGroup();
 
     void insertToScope(const std::shared_ptr<binder::Expression>& expression, uint32_t groupPos);
-
     void insertToGroupAndScope(
+        const std::shared_ptr<binder::Expression>& expression, uint32_t groupPos);
+    // Use these unsafe insert functions only if the operator may work with duplicate expressions.
+    // E.g. group by a.age, a.age
+    void insertToScopeMayRepeat(
+        const std::shared_ptr<binder::Expression>& expression, uint32_t groupPos);
+    void insertToGroupAndScopeMayRepeat(
         const std::shared_ptr<binder::Expression>& expression, uint32_t groupPos);
 
     void insertToGroupAndScope(const binder::expression_vector& expressions, uint32_t groupPos);

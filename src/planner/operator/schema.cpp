@@ -29,6 +29,22 @@ void Schema::insertToGroupAndScope(
     expressionsInScope.push_back(expression);
 }
 
+void Schema::insertToScopeMayRepeat(
+    const std::shared_ptr<binder::Expression>& expression, uint32_t groupPos) {
+    if (expressionNameToGroupPos.contains(expression->getUniqueName())) {
+        return;
+    }
+    insertToScope(expression, groupPos);
+}
+
+void Schema::insertToGroupAndScopeMayRepeat(
+    const std::shared_ptr<binder::Expression>& expression, uint32_t groupPos) {
+    if (expressionNameToGroupPos.contains(expression->getUniqueName())) {
+        return;
+    }
+    insertToGroupAndScope(expression, groupPos);
+}
+
 void Schema::insertToGroupAndScope(
     const binder::expression_vector& expressions, f_group_pos groupPos) {
     for (auto& expression : expressions) {

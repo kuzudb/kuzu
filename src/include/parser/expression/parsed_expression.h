@@ -9,6 +9,9 @@
 namespace kuzu {
 namespace parser {
 
+class ParsedExpression;
+using parsed_expression_vector = std::vector<std::unique_ptr<ParsedExpression>>;
+
 class ParsedExpression {
 public:
     ParsedExpression(
@@ -41,7 +44,7 @@ protected:
     common::ExpressionType type;
     std::string alias;
     std::string rawName;
-    std::vector<std::unique_ptr<ParsedExpression>> children;
+    parsed_expression_vector children;
 };
 
 } // namespace parser

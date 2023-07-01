@@ -44,10 +44,11 @@ void ProjectionPlanner::planProjectionBody(
     // E.g. MATCH (a) WITH a RETURN a.age -> MATCH (a) WITH a.age RETURN a.age
     // This rewrite should be removed once we add an optimizer that can remove unnecessary columns.
     auto expressionsToProject =
-        rewriteExpressionsToProject(projectionBody.getProjectionExpressions(), *plan.getSchema());
+        rewriteNodeRelExpressions(projectionBody.getProjectionExpressions(), *plan.getSchema());
     auto expressionsToAggregate =
-        getExpressionsToAggregate(expressionsToProject, *plan.getSchema());
-    auto expressionsToGroupBy = getExpressionToGroupBy(expressionsToProject, *plan.getSchema());
+        rewriteNodeRelExpressions(projectionBody.getAggregateExpressions(), *plan.getSchema());
+    auto expressionsToGroupBy =
+        rewriteNodeRelExpressions(projectionBody.getGroupByExpressions(), *plan.getSchema());
     if (!expressionsToAggregate.empty()) {
         planAggregate(expressionsToAggregate, expressionsToGroupBy, plan);
     }
@@ -164,36 +165,14 @@ void ProjectionPlanner::appendSkip(uint64_t skipNumber, LogicalPlan& plan) {
     plan.setLastOperator(std::move(skip));
 }
 
-expression_vector ProjectionPlanner::getExpressionToGroupBy(
-    const expression_vector& expressionsToProject, const Schema& schema) {
-    expression_vector expressionsToGroupBy;
-    for (auto& expression : expressionsToProject) {
-        if (getSubAggregateExpressionsNotInScope(expression, schema).empty()) {
-            expressionsToGroupBy.push_back(expression);
-        }
-    }
-    return expressionsToGroupBy;
-}
-
-expression_vector ProjectionPlanner::getExpressionsToAggregate(
-    const expression_vector& expressionsToProject, const Schema& schema) {
-    expression_vector expressionsToAggregate;
-    for (auto& expression : expressionsToProject) {
-        for (auto& aggExpression : getSubAggregateExpressionsNotInScope(expression, schema)) {
-            expressionsToAggregate.push_back(aggExpression);
-        }
-    }
-    return expressionsToAggregate;
-}
-
-expression_vector ProjectionPlanner::rewriteExpressionsToProject(
+expression_vector ProjectionPlanner::rewriteNodeRelExpressions(
     const expression_vector& expressionsToProject, const Schema& schema) {
     expression_vector result;
     for (auto& expression : expressionsToProject) {
         switch (expression->getDataType().getLogicalTypeID()) {
         case LogicalTypeID::NODE:
         case LogicalTypeID::REL: {
-            for (auto& property : rewriteVariableAsAllPropertiesInScope(*expression, schema)) {
+            for (auto& property : rewriteNodeRelAsAllPropertiesInScope(*expression, schema)) {
                 result.push_back(property);
             }
         } break;
@@ -209,27 +188,7 @@ expression_vector ProjectionPlanner::rewriteExpressionsToProject(
     return result;
 }
 
-expression_vector ProjectionPlanner::getSubAggregateExpressionsNotInScope(
-    const std::shared_ptr<Expression>& expression, const Schema& schema) {
-    expression_vector result;
-    if (schema.isExpressionInScope(*expression)) {
-        return result;
-    }
-    if (expression->expressionType == AGGREGATE_FUNCTION) {
-        result.push_back(expression);
-        // Since aggregate expressions cannot be nested, we can safely return when current
-        // expression is an aggregate expression.
-        return result;
-    }
-    for (auto& child : ExpressionChildrenCollector::collectChildren(*expression)) {
-        for (auto& expr : getSubAggregateExpressionsNotInScope(child, schema)) {
-            result.push_back(expr);
-        }
-    }
-    return result;
-}
-
-expression_vector ProjectionPlanner::rewriteVariableAsAllPropertiesInScope(
+expression_vector ProjectionPlanner::rewriteNodeRelAsAllPropertiesInScope(
     const Expression& variable, const Schema& schema) {
     expression_vector result;
     for (auto& expression : schema.getExpressionsInScope()) {

@@ -33,18 +33,10 @@ private:
     void appendLimit(uint64_t limitNumber, LogicalPlan& plan);
     void appendSkip(uint64_t skipNumber, LogicalPlan& plan);
 
-    static binder::expression_vector getExpressionToGroupBy(
-        const binder::expression_vector& expressionsToProject, const Schema& schema);
-    static binder::expression_vector getExpressionsToAggregate(
+    static binder::expression_vector rewriteNodeRelExpressions(
         const binder::expression_vector& expressionsToProject, const Schema& schema);
 
-    static binder::expression_vector rewriteExpressionsToProject(
-        const binder::expression_vector& expressionsToProject, const Schema& schema);
-
-    static binder::expression_vector getSubAggregateExpressionsNotInScope(
-        const std::shared_ptr<binder::Expression>& expression, const Schema& schema);
-
-    static binder::expression_vector rewriteVariableAsAllPropertiesInScope(
+    static binder::expression_vector rewriteNodeRelAsAllPropertiesInScope(
         const binder::Expression& variable, const Schema& schema);
 
 private:
