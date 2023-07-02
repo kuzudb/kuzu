@@ -7,60 +7,54 @@
 namespace kuzu {
 namespace processor {
 
-class RelTableDataCollection {
+class RelTableCollectionScanner {
 public:
-    RelTableDataCollection(std::vector<storage::DirectedRelTableData*> relTableDatas,
-        std::vector<std::unique_ptr<storage::RelTableScanState>> tableScanStates)
-        : relTableDatas{std::move(relTableDatas)}, tableScanStates{std::move(tableScanStates)} {}
+    RelTableCollectionScanner(std::vector<std::unique_ptr<RelTableScanInfo>> scanInfos)
+        : scanInfos{std::move(scanInfos)} {}
 
-    void resetState();
-    inline uint32_t getNumTablesInCollection() { return relTableDatas.size(); }
+    inline void resetState() {
+        currentTableIdx = 0;
+        nextTableIdx = 0;
+    }
 
+    void init();
     bool scan(common::ValueVector* inVector, const std::vector<common::ValueVector*>& outputVectors,
         transaction::Transaction* transaction);
 
-    std::unique_ptr<RelTableDataCollection> clone() const;
+    std::unique_ptr<RelTableCollectionScanner> clone() const;
 
 private:
-    std::vector<storage::DirectedRelTableData*> relTableDatas;
-    std::vector<std::unique_ptr<storage::RelTableScanState>> tableScanStates;
-
-    uint32_t currentRelTableIdxToScan = UINT32_MAX;
-    uint32_t nextRelTableIdxToScan = 0;
+    std::vector<std::unique_ptr<RelTableScanInfo>> scanInfos;
+    std::vector<std::unique_ptr<storage::RelTableScanState>> scanStates;
+    uint32_t currentTableIdx = UINT32_MAX;
+    uint32_t nextTableIdx = 0;
 };
 
-class GenericScanRelTables : public ScanRelTable {
+class ScanMultiRelTable : public ScanRelTable {
+    using node_table_id_scanner_map_t =
+        std::unordered_map<common::table_id_t, std::unique_ptr<RelTableCollectionScanner>>;
+
 public:
-    GenericScanRelTables(const DataPos& inNodeIDVectorPos, std::vector<DataPos> outputVectorsPos,
-        std::unordered_map<common::table_id_t, std::unique_ptr<RelTableDataCollection>>
-            relTableCollectionPerNodeTable,
-        std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
-        : ScanRelTable{inNodeIDVectorPos, std::move(outputVectorsPos),
-              PhysicalOperatorType::GENERIC_SCAN_REL_TABLES, std::move(child), id, paramsString},
-          relTableCollectionPerNodeTable{std::move(relTableCollectionPerNodeTable)} {}
+    ScanMultiRelTable(std::unique_ptr<ScanRelTalePosInfo> posInfo,
+        node_table_id_scanner_map_t scannerPerNodeTable, std::unique_ptr<PhysicalOperator> child,
+        uint32_t id, const std::string& paramsString)
+        : ScanRelTable{std::move(posInfo), PhysicalOperatorType::GENERIC_SCAN_REL_TABLES,
+              std::move(child), id, paramsString},
+          scannerPerNodeTable{std::move(scannerPerNodeTable)} {}
 
-    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
+    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) final;
 
-    bool getNextTuplesInternal(ExecutionContext* context) override;
+    bool getNextTuplesInternal(ExecutionContext* context) final;
 
-    std::unique_ptr<PhysicalOperator> clone() override {
-        std::unordered_map<common::table_id_t, std::unique_ptr<RelTableDataCollection>>
-            clonedCollections;
-        for (auto& [tableID, propertyCollection] : relTableCollectionPerNodeTable) {
-            clonedCollections.insert({tableID, propertyCollection->clone()});
-        }
-        return make_unique<GenericScanRelTables>(inNodeIDVectorPos, outputVectorsPos,
-            std::move(clonedCollections), children[0]->clone(), id, paramsString);
-    }
+    std::unique_ptr<PhysicalOperator> clone() final;
 
 private:
-    bool scanCurrentRelTableDataCollection();
-    void initCurrentRelTableDataCollection(const common::nodeID_t& nodeID);
+    void resetState();
+    void initCurrentScanner(const common::nodeID_t& nodeID);
 
 private:
-    std::unordered_map<common::table_id_t, std::unique_ptr<RelTableDataCollection>>
-        relTableCollectionPerNodeTable;
-    RelTableDataCollection* currentRelTableDataCollection = nullptr;
+    node_table_id_scanner_map_t scannerPerNodeTable;
+    RelTableCollectionScanner* currentScanner = nullptr;
 };
 
 } // namespace processor
