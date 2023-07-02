@@ -1,4 +1,5 @@
 #include "binder/binder.h"
+#include "binder/expression/expression_visitor.h"
 #include "binder/expression/literal_expression.h"
 
 using namespace kuzu::common;
@@ -9,12 +10,10 @@ namespace binder {
 
 std::unique_ptr<BoundWithClause> Binder::bindWithClause(const WithClause& withClause) {
     auto projectionBody = withClause.getProjectionBody();
-    auto boundProjectionExpressions = bindProjectionExpressions(
+    auto projectionExpressions = bindProjectionExpressions(
         projectionBody->getProjectionExpressions(), projectionBody->containsStar());
-    validateProjectionColumnsInWithClauseAreAliased(boundProjectionExpressions);
-    auto boundProjectionBody = std::make_unique<BoundProjectionBody>(
-        projectionBody->getIsDistinct(), std::move(boundProjectionExpressions));
-    bindOrderBySkipLimitIfNecessary(*boundProjectionBody, *projectionBody);
+    validateProjectionColumnsInWithClauseAreAliased(projectionExpressions);
+    auto boundProjectionBody = bindProjectionBody(*projectionBody, projectionExpressions);
     validateOrderByFollowedBySkipOrLimitInWithClause(*boundProjectionBody);
     variableScope->clear();
     addExpressionsToScope(boundProjectionBody->getProjectionExpressions());
@@ -39,32 +38,129 @@ std::unique_ptr<BoundReturnClause> Binder::bindReturnClause(const ReturnClause& 
             statementResult->addColumn(expression, expression_vector{expression});
         }
     }
-    auto boundProjectionBody = std::make_unique<BoundProjectionBody>(
-        projectionBody->getIsDistinct(), statementResult->getExpressionsToCollect());
-    bindOrderBySkipLimitIfNecessary(*boundProjectionBody, *projectionBody);
+    auto boundProjectionBody =
+        bindProjectionBody(*projectionBody, statementResult->getExpressionsToCollect());
     return std::make_unique<BoundReturnClause>(
         std::move(boundProjectionBody), std::move(statementResult));
 }
 
-expression_vector Binder::bindProjectionExpressions(
-    const std::vector<std::unique_ptr<ParsedExpression>>& projectionExpressions,
-    bool containsStar) {
-    expression_vector boundProjectionExpressions;
-    for (auto& expression : projectionExpressions) {
-        boundProjectionExpressions.push_back(expressionBinder.bindExpression(*expression));
+static bool isAggregateExpression(
+    const std::shared_ptr<Expression>& expression, VariableScope* scope) {
+    if (expression->hasAlias() && scope->contains(expression->getAlias())) {
+        return false;
     }
-    if (containsStar) {
+    if (expression->expressionType == common::AGGREGATE_FUNCTION) {
+        return true;
+    }
+    for (auto& child : ExpressionChildrenCollector::collectChildren(*expression)) {
+        if (isAggregateExpression(child, scope)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static expression_vector getAggregateExpressions(
+    const std::shared_ptr<Expression>& expression, VariableScope* scope) {
+    expression_vector result;
+    if (expression->hasAlias() && scope->contains(expression->getAlias())) {
+        return result;
+    }
+    if (expression->expressionType == common::AGGREGATE_FUNCTION) {
+        result.push_back(expression);
+        return result;
+    }
+    for (auto& child : ExpressionChildrenCollector::collectChildren(*expression)) {
+        for (auto& expr : getAggregateExpressions(child, scope)) {
+            result.push_back(expr);
+        }
+    }
+    return result;
+}
+
+std::unique_ptr<BoundProjectionBody> Binder::bindProjectionBody(
+    const parser::ProjectionBody& projectionBody, const expression_vector& projectionExpressions) {
+    auto boundProjectionBody = std::make_unique<BoundProjectionBody>(
+        projectionBody.getIsDistinct(), projectionExpressions);
+    // Bind group by & aggregate.
+    expression_vector groupByExpressions;
+    expression_vector aggregateExpressions;
+    for (auto& expression : projectionExpressions) {
+        if (isAggregateExpression(expression, variableScope.get())) {
+            for (auto& agg : getAggregateExpressions(expression, variableScope.get())) {
+                aggregateExpressions.push_back(agg);
+            }
+        } else {
+            groupByExpressions.push_back(expression);
+        }
+    }
+    if (!groupByExpressions.empty()) {
+        expression_vector augmentedGroupByExpressions = groupByExpressions;
+        for (auto& expression : groupByExpressions) {
+            if (ExpressionUtil::isNodeVariable(*expression)) {
+                auto node = (NodeExpression*)expression.get();
+                augmentedGroupByExpressions.push_back(node->getInternalIDProperty());
+            }
+        }
+        boundProjectionBody->setGroupByExpressions(std::move(augmentedGroupByExpressions));
+    }
+    if (!aggregateExpressions.empty()) {
+        boundProjectionBody->setAggregateExpressions(std::move(aggregateExpressions));
+    }
+    // Bind order by
+    if (projectionBody.hasOrderByExpressions()) {
+        addExpressionsToScope(projectionExpressions);
+        auto orderByExpressions = bindOrderByExpressions(projectionBody.getOrderByExpressions());
+        // Cypher rule of ORDER BY expression scope: if projection contains aggregation, only
+        // expressions in projection are available. Otherwise, expressions before projection are
+        // also available
+        if (boundProjectionBody->hasAggregateExpressions()) {
+            // TODO(Xiyang): abstract return/with clause as a temporary table and introduce
+            // reference expression to solve this. Our property expression should also be changed to
+            // reference expression.
+            auto projectionExpressionSet =
+                expression_set{projectionExpressions.begin(), projectionExpressions.end()};
+            for (auto& orderByExpression : orderByExpressions) {
+                if (!projectionExpressionSet.contains(orderByExpression)) {
+                    throw BinderException("Order by expression " + orderByExpression->toString() +
+                                          " is not in RETURN or WITH clause.");
+                }
+            }
+        }
+        boundProjectionBody->setOrderByExpressions(
+            std::move(orderByExpressions), projectionBody.getSortOrders());
+    }
+    // Bind skip
+    if (projectionBody.hasSkipExpression()) {
+        boundProjectionBody->setSkipNumber(
+            bindSkipLimitExpression(*projectionBody.getSkipExpression()));
+    }
+    // Bind limit
+    if (projectionBody.hasLimitExpression()) {
+        boundProjectionBody->setLimitNumber(
+            bindSkipLimitExpression(*projectionBody.getLimitExpression()));
+    }
+    return boundProjectionBody;
+}
+
+expression_vector Binder::bindProjectionExpressions(
+    const parsed_expression_vector& projectionExpressions, bool star) {
+    expression_vector result;
+    for (auto& expression : projectionExpressions) {
+        result.push_back(expressionBinder.bindExpression(*expression));
+    }
+    if (star) {
         if (variableScope->empty()) {
             throw BinderException(
                 "RETURN or WITH * is not allowed when there are no variables in scope.");
         }
         for (auto& expression : variableScope->getExpressions()) {
-            boundProjectionExpressions.push_back(expression);
+            result.push_back(expression);
         }
     }
-    resolveAnyDataTypeWithDefaultType(boundProjectionExpressions);
-    validateProjectionColumnNamesAreUnique(boundProjectionExpressions);
-    return boundProjectionExpressions;
+    resolveAnyDataTypeWithDefaultType(result);
+    validateProjectionColumnNamesAreUnique(result);
+    return result;
 }
 
 expression_vector Binder::rewriteNodeOrRelExpression(const Expression& expression) {
@@ -97,41 +193,6 @@ expression_vector Binder::rewriteRelExpression(const Expression& expression) {
         result.push_back(property->copy());
     }
     return result;
-}
-
-void Binder::bindOrderBySkipLimitIfNecessary(
-    BoundProjectionBody& boundProjectionBody, const ProjectionBody& projectionBody) {
-    auto projectionExpressions = boundProjectionBody.getProjectionExpressions();
-    if (projectionBody.hasOrderByExpressions()) {
-        addExpressionsToScope(projectionExpressions);
-        auto orderByExpressions = bindOrderByExpressions(projectionBody.getOrderByExpressions());
-        // Cypher rule of ORDER BY expression scope: if projection contains aggregation, only
-        // expressions in projection are available. Otherwise, expressions before projection are
-        // also available
-        if (boundProjectionBody.hasAggregationExpressions()) {
-            // TODO(Xiyang): abstract return/with clause as a temporary table and introduce
-            // reference expression to solve this. Our property expression should also be changed to
-            // reference expression.
-            auto projectionExpressionSet =
-                expression_set{projectionExpressions.begin(), projectionExpressions.end()};
-            for (auto& orderByExpression : orderByExpressions) {
-                if (!projectionExpressionSet.contains(orderByExpression)) {
-                    throw BinderException("Order by expression " + orderByExpression->toString() +
-                                          " is not in RETURN or WITH clause.");
-                }
-            }
-        }
-        boundProjectionBody.setOrderByExpressions(
-            std::move(orderByExpressions), projectionBody.getSortOrders());
-    }
-    if (projectionBody.hasSkipExpression()) {
-        boundProjectionBody.setSkipNumber(
-            bindSkipLimitExpression(*projectionBody.getSkipExpression()));
-    }
-    if (projectionBody.hasLimitExpression()) {
-        boundProjectionBody.setLimitNumber(
-            bindSkipLimitExpression(*projectionBody.getLimitExpression()));
-    }
 }
 
 expression_vector Binder::bindOrderByExpressions(

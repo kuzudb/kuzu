@@ -38,13 +38,13 @@ True
 7|824|245
 
 -LOG GroupByMultiQueryTest2
--STATEMENT MATCH (a:person)-[:knows]->(b:person) WITH a, COUNT(*) AS s MATCH (a)-[:knows]->(c:person) WHERE c.ID > s RETURN a.ID, c.ID, s
+-STATEMENT MATCH (a:person)-[:knows]->(b:person) WITH a, COUNT(*) AS s MATCH (a)-[:knows]->(c:person) WHERE c.ID > s RETURN a.ID, a.workedHours, c.ID, s
 ---- 5
-0|5|3
-2|5|3
-3|5|3
-7|8|2
-7|9|2
+0|[10,5]|5|3
+2|[12,8]|5|3
+3|[4,5]|5|3
+7|[2]|8|2
+7|[2]|9|2
 
 -LOG GroupByMultiQueryTest3
 -STATEMENT MATCH (a:person) WHERE a.ID > 4 WITH a, a.age AS foo MATCH (a)-[:knows]->(b:person) RETURN a.ID, foo, COUNT(*)

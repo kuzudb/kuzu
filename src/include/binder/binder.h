@@ -148,17 +148,17 @@ private:
     /*** bind projection clause ***/
     std::unique_ptr<BoundWithClause> bindWithClause(const parser::WithClause& withClause);
     std::unique_ptr<BoundReturnClause> bindReturnClause(const parser::ReturnClause& returnClause);
+    std::unique_ptr<BoundProjectionBody> bindProjectionBody(
+        const parser::ProjectionBody& projectionBody,
+        const expression_vector& projectionExpressions);
 
     expression_vector bindProjectionExpressions(
-        const std::vector<std::unique_ptr<parser::ParsedExpression>>& projectionExpressions,
-        bool containsStar);
+        const parser::parsed_expression_vector& parsedExpressions, bool star);
     // Rewrite variable "v" as all properties of "v"
     expression_vector rewriteNodeOrRelExpression(const Expression& expression);
     expression_vector rewriteNodeExpression(const Expression& expression);
     expression_vector rewriteRelExpression(const Expression& expression);
 
-    void bindOrderBySkipLimitIfNecessary(
-        BoundProjectionBody& boundProjectionBody, const parser::ProjectionBody& projectionBody);
     expression_vector bindOrderByExpressions(
         const std::vector<std::unique_ptr<parser::ParsedExpression>>& orderByExpressions);
     uint64_t bindSkipLimitExpression(const parser::ParsedExpression& expression);

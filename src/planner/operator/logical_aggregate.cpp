@@ -76,13 +76,13 @@ bool LogicalAggregate::hasDistinctAggregate() {
 
 void LogicalAggregate::insertAllExpressionsToGroupAndScope(f_group_pos groupPos) {
     for (auto& expression : keyExpressions) {
-        schema->insertToGroupAndScope(expression, groupPos);
+        schema->insertToGroupAndScopeMayRepeat(expression, groupPos);
     }
     for (auto& expression : dependentKeyExpressions) {
-        schema->insertToGroupAndScope(expression, groupPos);
+        schema->insertToGroupAndScopeMayRepeat(expression, groupPos);
     }
     for (auto& expression : aggregateExpressions) {
-        schema->insertToGroupAndScope(expression, groupPos);
+        schema->insertToGroupAndScopeMayRepeat(expression, groupPos);
     }
 }
 

@@ -3,7 +3,6 @@ add_library(
         OBJECT
         bound_create_clause.cpp
         bound_delete_clause.cpp
-        bound_projection_body.cpp
         bound_set_clause.cpp
         query_graph.cpp)
 
