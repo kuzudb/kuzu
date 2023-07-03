@@ -26,6 +26,10 @@ std::unique_ptr<BoundWithClause> Binder::bindWithClause(const WithClause& withCl
             for (auto& property : rel->getPropertyExpressions()) {
                 newProjectionExpressions.push_back(property->copy());
             }
+        } else if (ExpressionUtil::isRecursiveRelVariable(*expression)) {
+            auto rel = (RelExpression*)expression.get();
+            newProjectionExpressions.push_back(expression);
+            newProjectionExpressions.push_back(rel->getLengthExpression());
         } else {
             newProjectionExpressions.push_back(expression);
         }

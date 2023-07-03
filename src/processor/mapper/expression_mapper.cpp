@@ -4,11 +4,13 @@
 #include "binder/expression/literal_expression.h"
 #include "binder/expression/node_expression.h"
 #include "binder/expression/parameter_expression.h"
+#include "binder/expression/path_expression.h"
 #include "binder/expression/rel_expression.h"
 #include "expression_evaluator/case_evaluator.h"
 #include "expression_evaluator/function_evaluator.h"
 #include "expression_evaluator/literal_evaluator.h"
 #include "expression_evaluator/node_rel_evaluator.h"
+#include "expression_evaluator/path_evaluator.h"
 #include "expression_evaluator/reference_evaluator.h"
 #include "planner/logical_plan/logical_operator/schema.h"
 
@@ -31,6 +33,8 @@ std::unique_ptr<evaluator::BaseExpressionEvaluator> ExpressionMapper::mapExpress
         return mapNodeExpression(expression, schema);
     } else if (ExpressionUtil::isRelVariable(*expression)) {
         return mapRelExpression(expression, schema);
+    } else if (expressionType == ExpressionType::PATH) {
+        return mapPathExpression(expression, schema);
     } else if (expressionType == ExpressionType::PARAMETER) {
         return mapParameterExpression(expression);
     } else if (CASE_ELSE == expressionType) {
@@ -109,6 +113,17 @@ std::unique_ptr<evaluator::BaseExpressionEvaluator> ExpressionMapper::mapRelExpr
         children.push_back(mapExpression(property->copy(), schema));
     }
     return std::make_unique<NodeRelExpressionEvaluator>(expression, std::move(children));
+}
+
+std::unique_ptr<evaluator::BaseExpressionEvaluator> ExpressionMapper::mapPathExpression(
+    const std::shared_ptr<binder::Expression>& expression, const planner::Schema& schema) {
+    auto pathExpression = std::static_pointer_cast<binder::PathExpression>(expression);
+    std::vector<std::unique_ptr<evaluator::BaseExpressionEvaluator>> children;
+    children.reserve(pathExpression->getNumChildren());
+    for (auto i = 0u; i < pathExpression->getNumChildren(); ++i) {
+        children.push_back(mapExpression(pathExpression->getChild(i), schema));
+    }
+    return std::make_unique<PathExpressionEvaluator>(pathExpression, std::move(children));
 }
 
 } // namespace processor

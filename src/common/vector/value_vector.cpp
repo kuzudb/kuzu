@@ -109,10 +109,10 @@ void ValueVector::copyFromVectorData(
 }
 
 void ValueVector::copyFromVectorData(
-    uint64_t posToCopy, const ValueVector* srcVector, uint64_t srcPos) {
-    setNull(posToCopy, srcVector->isNull(srcPos));
-    if (!isNull(posToCopy)) {
-        copyFromVectorData(getData() + posToCopy * getNumBytesPerValue(), srcVector,
+    uint64_t dstPos, const ValueVector* srcVector, uint64_t srcPos) {
+    setNull(dstPos, srcVector->isNull(srcPos));
+    if (!isNull(dstPos)) {
+        copyFromVectorData(getData() + dstPos * getNumBytesPerValue(), srcVector,
             srcVector->getData() + srcPos * srcVector->getNumBytesPerValue());
     }
 }

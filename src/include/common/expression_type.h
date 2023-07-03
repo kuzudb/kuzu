@@ -231,6 +231,7 @@ enum ExpressionType : uint8_t {
     LITERAL = 70,
 
     VARIABLE = 90,
+    PATH = 91,
 
     PARAMETER = 100,
 

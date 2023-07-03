@@ -70,6 +70,8 @@ std::string expressionTypeToString(ExpressionType type) {
         return "LITERAL";
     case VARIABLE:
         return "VARIABLE";
+    case PATH:
+        return "PATH";
     case PARAMETER:
         return "PARAMETER";
     case FUNCTION:

@@ -98,6 +98,10 @@ StructTypeInfo::StructTypeInfo(std::vector<std::unique_ptr<StructField>> fields)
     }
 }
 
+bool StructTypeInfo::hasField(const std::string& fieldName) const {
+    return fieldNameToIdxMap.contains(fieldName);
+}
+
 struct_field_idx_t StructTypeInfo::getStructFieldIdx(std::string fieldName) const {
     StringUtils::toUpper(fieldName);
     if (fieldNameToIdxMap.contains(fieldName)) {

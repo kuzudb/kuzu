@@ -1,7 +1,7 @@
 #pragma once
 
 #include "base_evaluator.h"
-#include "binder/expression/node_expression.h"
+#include "binder/expression/expression.h"
 
 namespace kuzu {
 namespace evaluator {
@@ -12,13 +12,13 @@ public:
         std::vector<std::unique_ptr<BaseExpressionEvaluator>> children)
         : BaseExpressionEvaluator{std::move(children)}, nodeOrRel{std::move(nodeOrRel)} {}
 
-    void evaluate() override;
+    void evaluate() final;
 
-    bool select(common::SelectionVector& selVector) override {
+    bool select(common::SelectionVector& selVector) final {
         throw common::NotImplementedException("NodeExpressionEvaluator::select");
     }
 
-    std::unique_ptr<BaseExpressionEvaluator> clone() override {
+    inline std::unique_ptr<BaseExpressionEvaluator> clone() final {
         std::vector<std::unique_ptr<BaseExpressionEvaluator>> clonedChildren;
         for (auto& child : children) {
             clonedChildren.push_back(child->clone());
