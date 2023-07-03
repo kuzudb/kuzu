@@ -123,6 +123,7 @@ std::tuple<int64_t, std::vector<std::string>> TestRunner::convertResultToString(
             actualOutput.push_back(tupleStr);
         } else {
             for (auto& line : lines) {
+                StringUtils::replaceAll(line, "\r", "");
                 actualOutput.push_back(line);
             }
         }
