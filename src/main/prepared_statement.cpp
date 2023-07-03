@@ -8,7 +8,7 @@ namespace kuzu {
 namespace main {
 
 bool PreparedStatement::allowActiveTransaction() const {
-    return !common::StatementTypeUtils::isDDLOrCopyCSV(statementType);
+    return !common::StatementTypeUtils::isDDLOrCopyCSV(preparedSummary.statementType);
 }
 
 bool PreparedStatement::isSuccess() const {
@@ -25,6 +25,10 @@ bool PreparedStatement::isReadOnly() const {
 
 binder::expression_vector PreparedStatement::getExpressionsToCollect() {
     return statementResult->getExpressionsToCollect();
+}
+
+bool PreparedStatement::isProfile() {
+    return logicalPlans[0]->isProfile();
 }
 
 PreparedStatement::~PreparedStatement() = default;

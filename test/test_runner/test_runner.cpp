@@ -1,5 +1,7 @@
 #include "test_runner/test_runner.h"
 
+#include <fstream>
+
 #include "common/string_utils.h"
 #include "spdlog/spdlog.h"
 

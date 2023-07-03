@@ -22,3 +22,19 @@
 -LOG ExplainQuery
 -STATEMENT EXPLAIN MATCH (p:npytable) RETURN p.id
 ---- ok
+
+-LOG ProfileDDL
+-STATEMENT Profile create node table npytable1 (id INT64,i32 INT32, PRIMARY KEY(id));
+---- ok
+
+-LOG ProfileCopy
+-STATEMENT Profile copy npytable1 from ("${KUZU_ROOT_DIRECTORY}/dataset/npy-20k/id_int64.npy", "${KUZU_ROOT_DIRECTORY}/dataset/npy-20k/two_dim_float.npy") BY COLUMN;
+---- ok
+
+-LOG ProfileCall
+-STATEMENT Profile CALL threads=5
+---- ok
+
+-LOG ProfileQuery
+-STATEMENT Profile MATCH (p:npytable) RETURN p.id
+---- ok

@@ -32,12 +32,9 @@ std::unique_ptr<Statement> Transformer::transform() {
     auto statement = transformOcStatement(*root.oC_Statement());
     if (root.oC_AnyCypherOption()) {
         auto cypherOption = root.oC_AnyCypherOption();
-        if (cypherOption->oC_Explain()) {
-            return std::make_unique<ExplainStatement>(std::move(statement));
-        }
-        if (cypherOption->oC_Profile()) {
-            statement->enableProfile();
-        }
+        auto explainType = cypherOption->oC_Explain() ? common::ExplainType::PHYSICAL_PLAN :
+                                                        common::ExplainType::PROFILE;
+        return std::make_unique<ExplainStatement>(std::move(statement), explainType);
     }
     return statement;
 }

@@ -139,6 +139,13 @@ private:
     static std::vector<DataPos> getExpressionsDataPos(
         const binder::expression_vector& expressions, const planner::Schema& schema);
 
+    std::unique_ptr<PhysicalOperator> appendResultCollectorIfNotCopy(
+        std::unique_ptr<PhysicalOperator> lastOperator,
+        binder::expression_vector expressionsToCollect, planner::Schema* schema);
+
+    static void setPhysicalPlanIfProfile(
+        planner::LogicalPlan* logicalPlan, PhysicalPlan* physicalPlan);
+
 public:
     storage::StorageManager& storageManager;
     storage::MemoryManager* memoryManager;

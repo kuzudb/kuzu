@@ -3,6 +3,7 @@
 #include <set>
 
 #include "processor/mapper/expression_mapper.h"
+#include "processor/operator/profile.h"
 #include "processor/operator/result_collector.h"
 
 using namespace kuzu::common;
@@ -14,14 +15,11 @@ namespace processor {
 std::unique_ptr<PhysicalPlan> PlanMapper::mapLogicalPlanToPhysical(
     LogicalPlan* logicalPlan, const binder::expression_vector& expressionsToCollect) {
     auto lastOperator = mapLogicalOperatorToPhysical(logicalPlan->getLastOperator());
-    // We have a special code path for executing copy rel and copy npy, so we don't need to append
-    // the resultCollector.
-    if (lastOperator->getOperatorType() != PhysicalOperatorType::COPY_REL &&
-        lastOperator->getOperatorType() != PhysicalOperatorType::COPY_NPY) {
-        lastOperator = appendResultCollector(
-            expressionsToCollect, logicalPlan->getSchema(), std::move(lastOperator));
-    }
-    return make_unique<PhysicalPlan>(std::move(lastOperator));
+    lastOperator = appendResultCollectorIfNotCopy(
+        std::move(lastOperator), expressionsToCollect, logicalPlan->getSchema());
+    auto physicalPlan = make_unique<PhysicalPlan>(std::move(lastOperator));
+    setPhysicalPlanIfProfile(logicalPlan, physicalPlan.get());
+    return physicalPlan;
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
@@ -196,6 +194,26 @@ std::vector<DataPos> PlanMapper::getExpressionsDataPos(
         result.emplace_back(schema.getExpressionPos(*expression));
     }
     return result;
+}
+
+std::unique_ptr<PhysicalOperator> PlanMapper::appendResultCollectorIfNotCopy(
+    std::unique_ptr<PhysicalOperator> lastOperator, binder::expression_vector expressionsToCollect,
+    Schema* schema) {
+    // We have a special code path for executing copy rel and copy npy, so we don't need to append
+    // the resultCollector.
+    if (lastOperator->getOperatorType() != PhysicalOperatorType::COPY_REL &&
+        lastOperator->getOperatorType() != PhysicalOperatorType::COPY_NPY) {
+        lastOperator = appendResultCollector(expressionsToCollect, schema, std::move(lastOperator));
+    }
+    return lastOperator;
+}
+
+void PlanMapper::setPhysicalPlanIfProfile(
+    planner::LogicalPlan* logicalPlan, kuzu::processor::PhysicalPlan* physicalPlan) {
+    if (logicalPlan->isProfile()) {
+        reinterpret_cast<Profile*>(physicalPlan->lastOperator->getChild(0))
+            ->setPhysicalPlan(physicalPlan);
+    }
 }
 
 } // namespace processor

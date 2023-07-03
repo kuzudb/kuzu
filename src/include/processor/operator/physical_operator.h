@@ -41,6 +41,7 @@ enum class PhysicalOperatorType : uint8_t {
     MULTIPLICITY_REDUCER,
     PATH_PROPERTY_PROBE,
     PROJECTION,
+    PROFILE,
     RECURSIVE_JOIN,
     RENAME_PROPERTY,
     RENAME_TABLE,

@@ -21,6 +21,7 @@ add_library(kuzu_processor_operator
         multiplicity_reducer.cpp
         physical_operator.cpp
         projection.cpp
+        profile.cpp
         result_collector.cpp
         scan_node_id.cpp
         semi_masker.cpp

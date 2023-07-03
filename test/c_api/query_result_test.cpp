@@ -1,3 +1,5 @@
+#include <fstream>
+
 #include "c_api_test/c_api_test.h"
 
 using namespace kuzu::main;

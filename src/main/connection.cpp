@@ -2,10 +2,10 @@
 
 #include "binder/binder.h"
 #include "binder/visitor/statement_read_write_analyzer.h"
-#include "json.hpp"
 #include "main/database.h"
 #include "main/plan_printer.h"
 #include "optimizer/optimizer.h"
+#include "parser/explain_statement.h"
 #include "parser/parser.h"
 #include "planner/logical_plan/logical_plan_util.h"
 #include "planner/planner.h"
@@ -160,13 +160,10 @@ std::unique_ptr<PreparedStatement> Connection::prepareNoLock(
     try {
         // parsing
         auto statement = Parser::parseQuery(query);
-        preparedStatement->preparedSummary.isProfile = statement->isProfile();
-        preparedStatement->preparedSummary.isExplain =
-            statement->getStatementType() == StatementType::EXPLAIN;
         // binding
         auto binder = Binder(*database->catalog);
         auto boundStatement = binder.bind(*statement);
-        preparedStatement->statementType = boundStatement->getStatementType();
+        preparedStatement->preparedSummary.statementType = boundStatement->getStatementType();
         preparedStatement->readOnly =
             binder::StatementReadWriteAnalyzer().isReadOnly(*boundStatement);
         preparedStatement->parameterMap = binder.getParameterMap();
@@ -355,7 +352,7 @@ std::unique_ptr<QueryResult> Connection::executeAndAutoCommitIfNecessaryNoLock(
     auto executionContext =
         std::make_unique<ExecutionContext>(clientContext->numThreadsForExecution, profiler.get(),
             database->memoryManager.get(), database->bufferManager.get(), clientContext.get());
-    profiler->enabled = preparedStatement->preparedSummary.isProfile;
+    profiler->enabled = preparedStatement->isProfile();
     auto executingTimer = TimeMetric(true /* enable */);
     executingTimer.start();
     std::shared_ptr<FactorizedTable> resultFT;
@@ -372,10 +369,6 @@ std::unique_ptr<QueryResult> Connection::executeAndAutoCommitIfNecessaryNoLock(
     queryResult->initResultTableAndIterator(std::move(resultFT),
         preparedStatement->statementResult->getColumns(),
         preparedStatement->statementResult->getExpressionsToCollectPerColumn());
-    auto planPrinter = std::make_unique<PlanPrinter>(physicalPlan.get(), std::move(profiler));
-    queryResult->querySummary->planInJson =
-        std::make_unique<nlohmann::json>(planPrinter->printPlanToJson());
-    queryResult->querySummary->planInOstream = planPrinter->printPlanToOstream();
     return queryResult;
 }
 

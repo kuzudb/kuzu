@@ -173,6 +173,9 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
     case PhysicalOperatorType::IN_QUERY_CALL: {
         return "IN_QUERY_CALL";
     }
+    case PhysicalOperatorType::PROFILE: {
+        return "PROFILE";
+    }
     default:
         throw common::NotImplementedException("physicalOperatorTypeToString()");
     }
