@@ -56,6 +56,9 @@ private:
 
     static std::unique_ptr<LogicalPlan> planCopyFrom(
         const catalog::Catalog& catalog, const BoundStatement& statement);
+
+    static std::unique_ptr<LogicalPlan> planCopyRDF(
+        const catalog::Catalog& catalog, const BoundStatement& statement);
 };
 
 } // namespace planner

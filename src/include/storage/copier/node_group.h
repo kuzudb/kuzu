@@ -26,6 +26,10 @@ public:
 
     void resetToEmpty();
 
+    uint64_t appendStringVector(common::ValueVector* valueVector,
+        common::SelectionVector* selectionVector, common::property_id_t propertyID,
+        common::offset_t startPos, common::offset_t length);
+
     uint64_t append(processor::ResultSet* resultSet, std::vector<processor::DataPos> dataPoses,
         uint64_t numValuesToAppend);
 

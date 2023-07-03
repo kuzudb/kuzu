@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/rel_direction.h"
+#include "common/types/internal_id_t.h"
 #include "common/types/types_include.h"
 #include "common/utils.h"
 
@@ -272,6 +273,7 @@ enum class WALRecordType : uint8_t {
     DROP_PROPERTY_RECORD = 10,
     ADD_PROPERTY_RECORD = 11,
     RDF_GRAPH_RECORD = 12,
+    COPY_RDF_GRAPH_RECORD = 13,
 };
 
 std::string walRecordTypeToString(WALRecordType walRecordType);
@@ -390,6 +392,23 @@ struct CopyRelRecord {
     inline bool operator==(const CopyRelRecord& rhs) const { return tableID == rhs.tableID; }
 };
 
+struct CopyRDFGraphRecord {
+    CopyNodeRecord copyResourcesNodeTableRecord;
+    CopyRelRecord copyTriplesRelTableRecord;
+
+    CopyRDFGraphRecord() = default;
+
+    explicit CopyRDFGraphRecord(
+        CopyNodeRecord copyResourcesNodeTableRecord, CopyRelRecord copyTriplesRelTableRecord)
+        : copyResourcesNodeTableRecord{copyResourcesNodeTableRecord},
+          copyTriplesRelTableRecord{copyTriplesRelTableRecord} {}
+
+    inline bool operator==(const CopyRDFGraphRecord& rhs) const {
+        return copyResourcesNodeTableRecord == rhs.copyResourcesNodeTableRecord &&
+               copyTriplesRelTableRecord == rhs.copyTriplesRelTableRecord;
+    }
+};
+
 struct TableStatisticsRecord {
     // TODO(Guodong): Better to replace the bool with an enum.
     bool isNodeTable;
@@ -450,6 +469,7 @@ struct WALRecord {
         NodeTableRecord nodeTableRecord;
         RelTableRecord relTableRecord;
         DiskOverflowFileNextBytePosRecord diskOverflowFileNextBytePosRecord;
+        CopyRDFGraphRecord copyRDFGraphRecord;
         CopyNodeRecord copyNodeRecord;
         CopyRelRecord copyRelRecord;
         TableStatisticsRecord tableStatisticsRecord;
@@ -488,6 +508,9 @@ struct WALRecord {
         case WALRecordType::OVERFLOW_FILE_NEXT_BYTE_POS_RECORD: {
             return diskOverflowFileNextBytePosRecord == rhs.diskOverflowFileNextBytePosRecord;
         }
+        case WALRecordType::COPY_RDF_GRAPH_RECORD: {
+            return copyRDFGraphRecord == rhs.copyRDFGraphRecord;
+        }
         case WALRecordType::COPY_NODE_RECORD: {
             return copyNodeRecord == rhs.copyNodeRecord;
         }
@@ -525,6 +548,8 @@ struct WALRecord {
         StorageStructureID storageStructureID_, uint64_t prevNextByteToWriteTo_);
     static WALRecord newCopyNodeRecord(common::table_id_t tableID, common::page_idx_t startPageIdx);
     static WALRecord newCopyRelRecord(common::table_id_t tableID);
+    static WALRecord newCopyRDFGraphRecord(common::table_id_t resourcesNodeTableID,
+        common::page_idx_t nodeTableStartPageIdx, common::table_id_t triplesRelTableID);
     static WALRecord newDropTableRecord(common::table_id_t tableID);
     static WALRecord newDropPropertyRecord(
         common::table_id_t tableID, common::property_id_t propertyID);

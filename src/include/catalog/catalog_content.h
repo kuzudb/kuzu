@@ -64,6 +64,10 @@ public:
     /**
      * RDF graph functions.
      */
+    inline common::rdf_graph_id_t getRDFGraphID(const std::string& rdfGraphName) const {
+        assert(rdfGraphNameToIDMap.contains(rdfGraphName));
+        return rdfGraphNameToIDMap.at(rdfGraphName);
+    }
     inline bool containRDFGraph(const std::string& rdfGraphName) const {
         return rdfGraphNameToIDMap.contains(rdfGraphName) &&
                containNodeTable(

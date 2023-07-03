@@ -90,6 +90,15 @@ void WAL::logCopyNodeRecord(table_id_t tableID, page_idx_t startPageIdx) {
     addNewWALRecordNoLock(walRecord);
 }
 
+void WAL::logCopyRDFGraphRecord(table_id_t resourcesNodeTableID,
+    common::page_idx_t nodeTableStartPageIdx, table_id_t triplesRelTableID) {
+    lock_t lck{mtx};
+    WALRecord walRecord = WALRecord::newCopyRDFGraphRecord(
+        resourcesNodeTableID, nodeTableStartPageIdx, triplesRelTableID);
+    updatedNodeTables.insert(resourcesNodeTableID);
+    addNewWALRecordNoLock(walRecord);
+}
+
 void WAL::logCopyRelRecord(table_id_t tableID) {
     lock_t lck{mtx};
     WALRecord walRecord = WALRecord::newCopyRelRecord(tableID);

@@ -2,6 +2,7 @@
 
 #include "storage/storage_manager.h"
 #include "storage/storage_utils.h"
+#include "storage/wal/wal_record.h"
 #include "storage/wal_replayer_utils.h"
 
 using namespace kuzu::catalog;
@@ -82,6 +83,9 @@ void WALReplayer::replayWALRecord(WALRecord& walRecord) {
     } break;
     case WALRecordType::COPY_REL_RECORD: {
         replayCopyRelRecord(walRecord);
+    } break;
+    case WALRecordType::COPY_RDF_GRAPH_RECORD: {
+        replayCopyRDFGraphRecord(walRecord);
     } break;
     case WALRecordType::DROP_TABLE_RECORD: {
         replayDropTableRecord(walRecord);
@@ -358,6 +362,16 @@ void WALReplayer::replayCopyRelRecord(const kuzu::storage::WALRecord& walRecord)
                 .getNodesStatisticsAndDeletedIDs()
                 .getMaxNodeOffsetPerTable());
     }
+}
+
+void WALReplayer::replayCopyRDFGraphRecord(const kuzu::storage::WALRecord& walRecord) {
+    WALRecord copyNodeTableWALRecord = {.recordType = WALRecordType::COPY_NODE_RECORD,
+        .copyNodeRecord = walRecord.copyRDFGraphRecord.copyResourcesNodeTableRecord};
+    replayCopyNodeRecord(copyNodeTableWALRecord);
+
+    WALRecord copyRelTableWALRecord = {.recordType = WALRecordType::COPY_REL_RECORD,
+        .copyRelRecord = walRecord.copyRDFGraphRecord.copyTriplesRelTableRecord};
+    replayCopyRelRecord(copyRelTableWALRecord);
 }
 
 void WALReplayer::replayDropTableRecord(const kuzu::storage::WALRecord& walRecord) {

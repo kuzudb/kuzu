@@ -98,6 +98,7 @@ private:
     /*** bind copy from/to ***/
     std::unique_ptr<BoundStatement> bindCopyFromClause(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindCopyToClause(const parser::Statement& statement);
+    std::unique_ptr<BoundStatement> bindCopyRDFClause(const parser::CopyFrom& copy);
 
     std::vector<std::string> bindFilePaths(const std::vector<std::string>& filePaths);
 

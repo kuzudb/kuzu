@@ -23,6 +23,9 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
     case PhysicalOperatorType::STANDALONE_CALL: {
         return "STANDALONE_CALL";
     }
+    case PhysicalOperatorType::COPY_RDF: {
+        return "COPY_RDF";
+    }
     case PhysicalOperatorType::COPY_TO: {
         return "COPY_TO";
     }
@@ -43,6 +46,9 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
     }
     case PhysicalOperatorType::READ_PARQUET: {
         return "READ_PARQUET";
+    }
+    case PhysicalOperatorType::READ_RDF: {
+        return "READ_RDF";
     }
     case PhysicalOperatorType::INSERT_NODE: {
         return "INSERT_NODE";

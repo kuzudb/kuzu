@@ -24,6 +24,9 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
     case LogicalOperatorType::COPY_TO: {
         return "COPY_TO";
     }
+    case LogicalOperatorType::COPY_RDF: {
+        return "COPY_RDF";
+    }
     case LogicalOperatorType::CREATE_NODE: {
         return "CREATE_NODE";
     }

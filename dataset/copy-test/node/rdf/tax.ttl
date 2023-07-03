@@ -1,0 +1,23 @@
+# started 2016-10-07T07:09:03Z
+<http://dbpedia.org/class/yago/'hood108641944> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://dbpedia.org/class/yago/Vicinity108641113> .
+<http://dbpedia.org/class/yago/14July115200493> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://dbpedia.org/class/yago/LegalHoliday115199592> .
+<http://dbpedia.org/class/yago/1530s115148787> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://dbpedia.org/class/yago/Decade115204983> .
+<http://dbpedia.org/class/yago/16PF106475933> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://dbpedia.org/class/yago/Self-reportPersonalityInventory106474603> .
+<http://dbpedia.org/class/yago/1750s115149933> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://dbpedia.org/class/yago/Decade115204983> .
+<http://dbpedia.org/class/yago/1760s115150304> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://dbpedia.org/class/yago/Decade115204983> .
+<http://dbpedia.org/class/yago/1770s115150790> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://dbpedia.org/class/yago/Decade115204983> .
+<http://dbpedia.org/class/yago/1780s115151175> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://dbpedia.org/class/yago/Decade115204983> .
+<http://dbpedia.org/class/yago/1790s115151561> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://dbpedia.org/class/yago/Decade115204983> .
+<http://dbpedia.org/class/yago/18-karatGold114639269> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://dbpedia.org/class/yago/Alloy114586769> .
+<http://dbpedia.org/class/yago/1820s115148958> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://dbpedia.org/class/yago/Decade115204983> .
+<http://dbpedia.org/class/yago/1830s115149271> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://dbpedia.org/class/yago/Decade115204983> .
+<http://dbpedia.org/class/yago/1840s115149562> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://dbpedia.org/class/yago/Decade115204983> .
+<http://dbpedia.org/class/yago/1850s115149853> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://dbpedia.org/class/yago/Decade115204983> .
+<http://dbpedia.org/class/yago/1860s115150224> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://dbpedia.org/class/yago/Decade115204983> .
+<http://dbpedia.org/class/yago/1870s115150710> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://dbpedia.org/class/yago/Decade115204983> .
+<http://dbpedia.org/class/yago/1900s115148707> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://dbpedia.org/class/yago/Decade115204983> .
+<http://dbpedia.org/class/yago/22-karatGold114639368> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://dbpedia.org/class/yago/Alloy114586769> .
+<http://dbpedia.org/class/yago/24-karatGold114639467> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://dbpedia.org/class/yago/Gold114638799> .
+<http://dbpedia.org/class/yago/24/7115118011> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://dbpedia.org/class/yago/Uptime115117809> .
+<http://dbpedia.org/class/yago/401-kPlan105911560> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <http://dbpedia.org/class/yago/PensionPlan105911255> .
+# end 2016-10-07T07:09:03Z

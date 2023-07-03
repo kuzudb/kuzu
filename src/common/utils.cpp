@@ -30,6 +30,9 @@ std::string LoggerUtils::getLoggerName(LoggerConstants::LoggerEnum loggerEnum) {
     case LoggerConstants::LoggerEnum::DATABASE: {
         return "database";
     } break;
+    case LoggerConstants::LoggerEnum::RDF_READER: {
+        return "rdf_reader";
+    } break;
     case LoggerConstants::LoggerEnum::CSV_READER: {
         return "csv_reader";
     } break;

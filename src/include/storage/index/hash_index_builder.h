@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+
 #include "hash_index_header.h"
 #include "hash_index_slot.h"
 #include "storage/index/hash_index_utils.h"
@@ -79,6 +81,7 @@ public:
 public:
     // Reserves space for at least the specified number of elements.
     void bulkReserve(uint32_t numEntries);
+    void bulkReserveIfRequired(uint32_t numEntries_);
 
     // Note: append assumes that bulkRserve has been called before it and the index has reserved
     // enough space already.
@@ -91,6 +94,10 @@ public:
     inline bool lookup(int64_t key, common::offset_t& result) {
         return lookupInternalWithoutLock(reinterpret_cast<const uint8_t*>(&key), result);
     }
+    inline bool lookup(const char* key, common::offset_t& result) {
+        return lookupInternalWithoutLock(reinterpret_cast<const uint8_t*>(key), result);
+    }
+    inline std::uint64_t getNumEntries() { return numEntries.load(); }
 
     // Non-thread safe. This should only be called in the copyCSV and never be called in parallel.
     void flush();
@@ -104,6 +111,8 @@ private:
         Slot<T>* slot, const uint8_t* key, common::offset_t* result = nullptr);
     void insertToSlotWithoutLock(Slot<T>* slot, const uint8_t* key, common::offset_t value);
     Slot<T>* getSlot(const SlotInfo& slotInfo);
+    void rehashSlots(slot_id_t primarySlotId);
+    void copyEntryToSlot(slot_id_t slotId, uint8_t* entry);
     uint32_t allocatePSlots(uint32_t numSlotsToAllocate);
     uint32_t allocateAOSlot();
 

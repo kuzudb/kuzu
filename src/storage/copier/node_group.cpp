@@ -1,6 +1,7 @@
 #include "storage/copier/node_group.h"
 
 #include "common/constants.h"
+#include "storage/copier/string_column_chunk.h"
 #include "storage/store/node_table.h"
 
 using namespace kuzu::processor;
@@ -33,6 +34,23 @@ void NodeGroup::resetToEmpty() {
     for (auto& [_, chunk] : chunks) {
         chunk->resetToEmpty();
     }
+}
+
+uint64_t NodeGroup::appendStringVector(common::ValueVector* valueVector,
+    SelectionVector* selectionVector, common::property_id_t propertyID, offset_t startPos,
+    offset_t length) {
+    assert(valueVector->dataType.getLogicalTypeID() == LogicalTypeID::STRING);
+    assert(chunks[propertyID]->getDataType().getLogicalTypeID() == LogicalTypeID::STRING);
+    auto selectedPositions = selectionVector->getSelectedPositionsBuffer();
+    auto numValuesToAppendInChunk =
+        std::min((length - startPos), StorageConstants::NODE_GROUP_SIZE - numNodes);
+    auto chunk = (StringColumnChunk*)chunks[propertyID].get();
+    for (auto i = 0u; i < numValuesToAppendInChunk; i++) {
+        auto selectedPosition = selectedPositions[i + startPos];
+        auto value = valueVector->getValue<ku_string_t>(selectedPosition).getAsString();
+        chunk->setValueFromString<ku_string_t>(value.c_str(), value.length(), numNodes++);
+    }
+    return numValuesToAppendInChunk;
 }
 
 uint64_t NodeGroup::append(

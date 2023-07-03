@@ -1,0 +1,28 @@
+-GROUP CopyRDFGraphTest
+-DATASET CSV copy-test/node/rdf
+
+--
+
+-CASE CopyRDFGraphTest
+
+-LOG CountTest
+-STATEMENT MATCH (s:`taxonomy.Resources`) RETURN COUNT(*)
+---- 1
+568187
+
+-LOG ResultTest
+-STATEMENT MATCH (s:`taxonomy.Resources`) RETURN s.iri LIMIT 5
+-PARALLELISM 1
+---- 5
+http://dbpedia.org/class/yago/'hood108641944
+http://dbpedia.org/class/yago/14July115200493
+http://dbpedia.org/class/yago/1530s115148787
+http://dbpedia.org/class/yago/16PF106475933
+http://dbpedia.org/class/yago/1750s115149933
+
+-LOG ResultTest
+-STATEMENT MATCH (s:`taxonomy.Resources`)-[p:`taxonomy.Triples`]->(o:`taxonomy.Resources`) RETURN s.iri, p, o.iri LIMIT 2
+-PARALLELISM 1
+---- 2
+http://dbpedia.org/class/yago/'hood108641944|(0:0)-{_LABEL: taxonomy.Triples, _ID: 1:0, predicateID: 2001}->(0:2002)|http://dbpedia.org/class/yago/Vicinity108641113
+http://dbpedia.org/class/yago/14July115200493|(0:1)-{_LABEL: taxonomy.Triples, _ID: 1:1, predicateID: 2001}->(0:2003)|http://dbpedia.org/class/yago/LegalHoliday115199592

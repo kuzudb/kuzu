@@ -68,7 +68,7 @@ struct BufferPoolConstants {
     // The default max size for a VMRegion.
     static constexpr uint64_t DEFAULT_VM_REGION_MAX_SIZE = (uint64_t)1 << 43; // (8TB)
 
-    static constexpr uint64_t DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING = 1ull << 26; // (64MB)
+    static constexpr uint64_t DEFAULT_BUFFER_POOL_SIZE_FOR_TESTING = 1ull << 34; // (64MB)
 };
 
 struct StorageConstants {
@@ -112,6 +112,7 @@ struct ListsMetadataConstants {
 // Hash Index Configurations
 struct HashIndexConstants {
     static constexpr uint8_t SLOT_CAPACITY = 3;
+    static constexpr double_t MAX_LOAD_FACTOR = 0.8;
 };
 
 struct CopyConstants {
@@ -144,6 +145,7 @@ struct LoggerConstants {
         STORAGE = 6,
         TRANSACTION_MANAGER = 7,
         WAL = 8,
+        RDF_READER = 9,
     };
 };
 

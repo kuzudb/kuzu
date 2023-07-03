@@ -1,6 +1,8 @@
 #include "planner/logical_plan/copy/logical_copy_from.h"
+#include "planner/logical_plan/copy/logical_copy_rdf.h"
 #include "planner/logical_plan/copy/logical_copy_to.h"
 #include "processor/operator/copy_from/copy_node.h"
+#include "processor/operator/copy_from/copy_rdf.h"
 #include "processor/operator/copy_from/copy_rel.h"
 #include "processor/operator/copy_from/read_csv.h"
 #include "processor/operator/copy_from/read_file.h"
@@ -114,6 +116,49 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyRel(
     return std::make_unique<CopyRel>(catalog, copy->getCopyDescription(), table,
         storageManager.getWAL(), relsStatistics, storageManager.getNodesStore(), getOperatorID(),
         copy->getExpressionsForPrinting());
+}
+
+std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyRDF(
+    planner::LogicalOperator* logicalOperator) {
+    auto logicalCopyRDF = (LogicalCopyRDF*)logicalOperator;
+    std::unique_ptr<ReadRDFFile> readFile;
+    std::shared_ptr<ReadRDFSharedState> readFileSharedState;
+    auto outSchema = logicalCopyRDF->getSchema();
+
+    auto subjectVectorPos =
+        DataPos(outSchema->getExpressionPos(*logicalCopyRDF->getSubjectExpression()));
+    auto predicateVectorPos =
+        DataPos(outSchema->getExpressionPos(*logicalCopyRDF->getPredicateExpression()));
+    auto objectVectorPos =
+        DataPos(outSchema->getExpressionPos(*logicalCopyRDF->getObjectExpression()));
+    auto offsetVectorPos =
+        DataPos(outSchema->getExpressionPos(*logicalCopyRDF->getOffsetExpression()));
+
+    readFileSharedState =
+        std::make_shared<ReadRDFSharedState>(logicalCopyRDF->getCopyDescription().filePaths.at(0));
+    readFile = std::make_unique<ReadRDFFile>(subjectVectorPos, predicateVectorPos, objectVectorPos,
+        offsetVectorPos, readFileSharedState, getOperatorID(),
+        logicalCopyRDF->getExpressionsForPrinting());
+
+    auto rdfSchema =
+        catalog->getReadOnlyVersion()->getRDFGraphSchema(logicalCopyRDF->getRDFGraphID());
+    auto copyRDFSharedState = std::make_shared<CopyRDFSharedState>(logicalCopyRDF->getRDFGraphID(),
+        storageManager.getNodesStore().getNodeTable(rdfSchema->getResourcesNodeTableID()),
+        storageManager.getRelsStore().getRelTable(rdfSchema->getTriplesRelTableID()),
+        &storageManager.getRelsStore(), catalog, storageManager.getWAL(), memoryManager,
+        readFileSharedState);
+    auto localState = std::make_unique<CopyRDFLocalState>(logicalCopyRDF->getCopyDescription(),
+        subjectVectorPos, predicateVectorPos, objectVectorPos, offsetVectorPos);
+    auto copyRDF = std::make_unique<CopyRDF>(std::move(localState), copyRDFSharedState,
+        std::make_unique<ResultSetDescriptor>(logicalCopyRDF->getSchema()), std::move(readFile),
+        getOperatorID(), logicalCopyRDF->getExpressionsForPrinting());
+
+    // We need to create another pipeline to return the copy message to the user.
+    // The new pipeline only contains a factorizedTableScan and a resultCollector.
+    auto outputExpressions = binder::expression_vector{logicalCopyRDF->getOutputExpression()};
+    return createFactorizedTableScanAligned(outputExpressions, outSchema,
+        copyRDFSharedState->fTable, DEFAULT_VECTOR_CAPACITY /* maxMorselSize */,
+        std::move(copyRDF));
 }
 
 } // namespace processor
