@@ -79,7 +79,7 @@ bool TestRunner::checkLogicalPlan(std::unique_ptr<PreparedStatement>& preparedSt
 
 bool TestRunner::checkPlanResult(std::unique_ptr<QueryResult>& result, TestStatement* statement,
     const std::string& planStr, uint32_t planIdx) {
-    std::tuple <int64_t, std::vector<std::string>> resultTuples =
+    std::tuple<int64_t, std::vector<std::string>> resultTuples =
         TestRunner::convertResultToString(*result, statement->checkOutputOrder);
     if (!statement->expectedTuplesCSVFile.empty()) {
         std::ifstream expectedTuplesFile(statement->expectedTuplesCSVFile);
@@ -110,7 +110,7 @@ bool TestRunner::checkPlanResult(std::unique_ptr<QueryResult>& result, TestState
     return false;
 }
 
-std::tuple <int64_t, std::vector<std::string>> TestRunner::convertResultToString(
+std::tuple<int64_t, std::vector<std::string>> TestRunner::convertResultToString(
     QueryResult& queryResult, bool checkOutputOrder) {
     std::vector<std::string> actualOutput;
     int64_t actualSize = 0;
