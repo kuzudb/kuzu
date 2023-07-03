@@ -13,6 +13,9 @@ jobs:
     name: gcc build & test
     needs: [clang-formatting-check]
     runs-on: kuzu-self-hosted-testing
+    env:
+      # Share build cache when building rust API and the example project
+      CARGO_TARGET_DIR: ${{ github.workspace }}/target
     steps:
       - uses: actions/checkout@v3
 
@@ -50,6 +53,26 @@ jobs:
         with:
           file: cover.info
           functionalities: 'search'
+
+      - name: C Example
+        working-directory: examples/c
+        run: |
+          mkdir build -p
+          cd build
+          CC=gcc CXX=g++ cmake ..
+          cmake --build .
+
+      - name: C++ Example
+        working-directory: examples/cpp
+        run: |
+          mkdir build -p
+          cd build
+          CC=gcc CXX=g++ cmake ..
+          cmake --build .
+
+      - name: Rust example
+        working-directory: examples/rust
+        run: CC=gcc CXX=g++ cargo build
 
   gcc-build-test-with-asan:
     name: gcc build & test with asan
