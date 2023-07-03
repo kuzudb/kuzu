@@ -79,9 +79,8 @@ bool TestRunner::checkLogicalPlan(std::unique_ptr<PreparedStatement>& preparedSt
 
 bool TestRunner::checkPlanResult(std::unique_ptr<QueryResult>& result, TestStatement* statement,
     const std::string& planStr, uint32_t planIdx) {
-    std::vector<std::string> resultTuples =
+    std::tuple <int64_t, std::vector<std::string>> resultTuples =
         TestRunner::convertResultToString(*result, statement->checkOutputOrder);
-
     if (!statement->expectedTuplesCSVFile.empty()) {
         std::ifstream expectedTuplesFile(statement->expectedTuplesCSVFile);
         if (!expectedTuplesFile.is_open()) {
@@ -95,9 +94,8 @@ bool TestRunner::checkPlanResult(std::unique_ptr<QueryResult>& result, TestState
             sort(statement->expectedTuples.begin(), statement->expectedTuples.end());
         }
     }
-
-    if (resultTuples.size() == result->getNumTuples() &&
-        resultTuples == statement->expectedTuples) {
+    if (std::get<0>(resultTuples) == result->getNumTuples() &&
+        std::get<1>(resultTuples) == statement->expectedTuples) {
         spdlog::info(
             "PLAN{} PASSED in {}ms.", planIdx, result->getQuerySummary()->getExecutionTime());
         return true;
@@ -105,24 +103,34 @@ bool TestRunner::checkPlanResult(std::unique_ptr<QueryResult>& result, TestState
         spdlog::error("PLAN{} NOT PASSED.", planIdx);
         spdlog::info("PLAN: \n{}", planStr);
         spdlog::info("RESULT: \n");
-        for (auto& tuple : resultTuples) {
+        for (auto& tuple : std::get<1>(resultTuples)) {
             spdlog::info(tuple);
         }
     }
     return false;
 }
 
-std::vector<std::string> TestRunner::convertResultToString(
+std::tuple <int64_t, std::vector<std::string>> TestRunner::convertResultToString(
     QueryResult& queryResult, bool checkOutputOrder) {
     std::vector<std::string> actualOutput;
+    int64_t actualSize = 0;
     while (queryResult.hasNext()) {
+        actualSize++;
         auto tuple = queryResult.getNext();
-        actualOutput.push_back(tuple->toString(std::vector<uint32_t>(tuple->len(), 0)));
+        auto tupleStr = tuple->toString(std::vector<uint32_t>(tuple->len(), 0));
+        auto lines = StringUtils::split(tupleStr, "\n", false);
+        if (empty(lines)) {
+            actualOutput.push_back(tupleStr);
+        } else {
+            for (auto& line : lines) {
+                actualOutput.push_back(line);
+            }
+        }
     }
     if (!checkOutputOrder) {
         sort(actualOutput.begin(), actualOutput.end());
     }
-    return actualOutput;
+    return std::make_tuple(actualSize, actualOutput);
 }
 
 std::unique_ptr<planner::LogicalPlan> TestRunner::getLogicalPlan(

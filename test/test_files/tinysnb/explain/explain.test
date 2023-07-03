@@ -6,19 +6,101 @@
 -CASE Explain
 
 -LOG ExplainDDL
+-CHECK_ORDER
 -STATEMENT EXPLAIN create node table npytable (id INT64,i32 INT32, PRIMARY KEY(id));
----- ok
+---- 15
+┌─────────────────────────────┐
+│┌───────────────────────────┐│
+││       Physical Plan       ││
+│└───────────────────────────┘│
+└─────────────────────────────┘
+┌─────────────────────────────┐
+│      CREATE_NODE_TABLE      │
+│   -----------------------   │
+│          npytable           │
+│   -----------------------   │
+│     NumOutputTuples: 0      │
+│   -----------------------   │
+│   ExecutionTime: 0.000000   │
+└─────────────────────────────┘
+
 
 -LOG ExplainCopy
 -STATEMENT create node table npytable (id INT64,i32 INT32, PRIMARY KEY(id));
 ---- ok
+-CHECK_ORDER
 -STATEMENT EXPLAIN copy npytable from ("${KUZU_ROOT_DIRECTORY}/dataset/npy-20k/id_int64.npy", "${KUZU_ROOT_DIRECTORY}/dataset/npy-20k/two_dim_float.npy") BY COLUMN;
----- ok
+---- 15
+┌─────────────────────────────┐
+│┌───────────────────────────┐│
+││       Physical Plan       ││
+│└───────────────────────────┘│
+└─────────────────────────────┘
+┌─────────────────────────────┐
+│          COPY_NPY           │
+│   -----------------------   │
+│          npytable           │
+│   -----------------------   │
+│     NumOutputTuples: 0      │
+│   -----------------------   │
+│   ExecutionTime: 0.000000   │
+└─────────────────────────────┘
+
 
 -LOG ExplainCall
+-CHECK_ORDER
 -STATEMENT EXPLAIN CALL threads=5
----- ok
+---- 15
+┌─────────────────────────────┐
+│┌───────────────────────────┐│
+││       Physical Plan       ││
+│└───────────────────────────┘│
+└─────────────────────────────┘
+┌─────────────────────────────┐
+│       STANDALONE_CALL       │
+│   -----------------------   │
+│           threads           │
+│   -----------------------   │
+│     NumOutputTuples: 0      │
+│   -----------------------   │
+│   ExecutionTime: 0.000000   │
+└─────────────────────────────┘
+
 
 -LOG ExplainQuery
+-CHECK_ORDER
 -STATEMENT EXPLAIN MATCH (p:npytable) RETURN p.id
----- ok
+---- 33
+┌─────────────────────────────┐
+│┌───────────────────────────┐│
+││       Physical Plan       ││
+│└───────────────────────────┘│
+└─────────────────────────────┘
+┌─────────────────────────────┐
+│         PROJECTION          │
+│   -----------------------   │
+│            p.id             │
+│   -----------------------   │
+│     NumOutputTuples: 0      │
+│   -----------------------   │
+│   ExecutionTime: 0.000000   │
+└──────────────┬──────────────┘
+┌──────────────┴──────────────┐
+│     SCAN_NODE_PROPERTY      │
+│   -----------------------   │
+│            p.id             │
+│   -----------------------   │
+│     NumOutputTuples: 0      │
+│   -----------------------   │
+│   ExecutionTime: 0.000000   │
+└──────────────┬──────────────┘
+┌──────────────┴──────────────┐
+│        SCAN_NODE_ID         │
+│   -----------------------   │
+│              p              │
+│   -----------------------   │
+│     NumOutputTuples: 0      │
+│   -----------------------   │
+│   ExecutionTime: 0.000000   │
+└─────────────────────────────┘
+
