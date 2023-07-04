@@ -1,5 +1,10 @@
 #pragma once
 
+#include <memory>
+#include <string>
+#include <unordered_map>
+#include <vector>
+
 #include "common/api.h"
 #include "kuzu_fwd.h"
 #include "query_summary.h"
@@ -43,10 +48,13 @@ public:
     inline std::unordered_map<std::string, std::shared_ptr<common::Value>> getParameterMap() {
         return parameterMap;
     }
+
     ~PreparedStatement();
 
 private:
-    common::StatementType statementType;
+    bool isProfile();
+
+private:
     bool success = true;
     bool readOnly = false;
     std::string errMsg;

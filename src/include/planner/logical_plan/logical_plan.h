@@ -1,6 +1,7 @@
 #pragma once
 
 #include "planner/logical_plan/logical_operator/base_logical_operator.h"
+#include "planner/logical_plan/logical_operator/logical_explain.h"
 
 namespace kuzu {
 namespace planner {
@@ -28,6 +29,12 @@ public:
     inline uint64_t getCost() const { return cost; }
 
     inline std::string toString() const { return lastOperator->toString(); }
+
+    inline bool isProfile() const {
+        return lastOperator->getOperatorType() == LogicalOperatorType::EXPLAIN &&
+               reinterpret_cast<LogicalExplain*>(lastOperator.get())->getExplainType() ==
+                   common::ExplainType::PROFILE;
+    }
 
     std::unique_ptr<LogicalPlan> shallowCopy() const;
 

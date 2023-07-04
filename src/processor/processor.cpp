@@ -78,7 +78,8 @@ void QueryProcessor::decomposePlanIntoTasks(
     case PhysicalOperatorType::CREATE_REL:
     case PhysicalOperatorType::DELETE_NODE:
     case PhysicalOperatorType::DELETE_REL:
-    case PhysicalOperatorType::STANDALONE_CALL: {
+    case PhysicalOperatorType::STANDALONE_CALL:
+    case PhysicalOperatorType::PROFILE: {
         parentTask->setSingleThreadedTask();
     } break;
     default:

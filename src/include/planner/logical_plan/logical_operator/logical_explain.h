@@ -1,6 +1,7 @@
 #pragma once
 
 #include "base_logical_operator.h"
+#include "common/explain_type.h"
 
 namespace kuzu {
 namespace planner {
@@ -8,10 +9,14 @@ namespace planner {
 class LogicalExplain : public LogicalOperator {
 public:
     LogicalExplain(std::shared_ptr<LogicalOperator> child,
-        std::shared_ptr<binder::Expression> outputExpression)
-        : LogicalOperator{LogicalOperatorType::EXPLAIN, child}, outputExpression{
-                                                                    std::move(outputExpression)} {}
+        std::shared_ptr<binder::Expression> outputExpression, common::ExplainType explainType,
+        binder::expression_vector outputExpressionsToExplain)
+        : LogicalOperator{LogicalOperatorType::EXPLAIN, child}, outputExpression{std::move(
+                                                                    outputExpression)},
+          explainType{explainType}, outputExpressionsToExplain{
+                                        std::move(outputExpressionsToExplain)} {}
 
+    void computeSchema();
     void computeFactorizedSchema() override;
     void computeFlatSchema() override;
 
@@ -21,12 +26,21 @@ public:
 
     inline std::string getExpressionsForPrinting() const override { return "Explain"; }
 
-    inline std::unique_ptr<LogicalOperator> copy() override {
-        return std::make_unique<LogicalExplain>(children[0], outputExpression);
+    inline common::ExplainType getExplainType() const { return explainType; }
+
+    inline binder::expression_vector getOutputExpressionsToExplain() const {
+        return outputExpressionsToExplain;
     }
 
-protected:
+    inline std::unique_ptr<LogicalOperator> copy() override {
+        return std::make_unique<LogicalExplain>(
+            children[0], outputExpression, explainType, outputExpressionsToExplain);
+    }
+
+private:
     std::shared_ptr<binder::Expression> outputExpression;
+    common::ExplainType explainType;
+    binder::expression_vector outputExpressionsToExplain;
 };
 
 } // namespace planner

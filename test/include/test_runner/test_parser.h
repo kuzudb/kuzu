@@ -1,4 +1,5 @@
 #include <cstring>
+#include <fstream>
 #include <numeric>
 
 #include "common/file_utils.h"

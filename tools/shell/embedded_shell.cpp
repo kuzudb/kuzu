@@ -385,15 +385,6 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
         }
         printf("Time: %.2fms (compiling), %.2fms (executing)\n", querySummary->getCompilingTime(),
             querySummary->getExecutionTime());
-
-        if (querySummary->getIsProfile()) {
-            // print plan with profiling metrics
-            printf("==============================================\n");
-            printf("=============== Profiler Summary =============\n");
-            printf("==============================================\n");
-            printf(">> plan\n");
-            printf("%s", querySummary->getPlanAsOstream().str().c_str());
-        }
     }
 }
 

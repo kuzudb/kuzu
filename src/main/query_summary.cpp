@@ -1,6 +1,6 @@
 #include "main/query_summary.h"
 
-#include "json.hpp"
+#include "common/statement_type.h"
 
 namespace kuzu {
 namespace main {
@@ -13,24 +13,12 @@ double QuerySummary::getExecutionTime() const {
     return executionTime;
 }
 
-bool QuerySummary::getIsProfile() const {
-    return preparedSummary.isProfile;
-}
-
-std::ostringstream& QuerySummary::getPlanAsOstream() {
-    return planInOstream;
-}
-
-nlohmann::json& QuerySummary::printPlanToJson() {
-    return *planInJson;
-}
-
-std::string QuerySummary::getPlan() {
-    return planInOstream.str();
-}
-
 void QuerySummary::setPreparedSummary(PreparedSummary preparedSummary_) {
     preparedSummary = preparedSummary_;
+}
+
+bool QuerySummary::isExplain() const {
+    return preparedSummary.statementType == common::StatementType::EXPLAIN;
 }
 
 } // namespace main
