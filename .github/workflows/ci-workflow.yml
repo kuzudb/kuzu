@@ -34,6 +34,9 @@ jobs:
       - name: Node.js test
         run: CC=gcc CXX=g++ make nodejstest NUM_THREADS=32
 
+      - name: Java test
+        run: CC=gcc CXX=g++ make javatest NUM_THREADS=32
+
       - name: Rust test
         run: CC=gcc CXX=g++ make rusttest NUM_THREADS=32
 
@@ -109,6 +112,9 @@ jobs:
       
       - name: Node.js test
         run: CC=clang-14 CXX=clang++-14 make nodejstest NUM_THREADS=32
+      
+      - name: Java test
+        run: CC=clang-14 CXX=clang++-14 make javatest NUM_THREADS=32
 
   msvc-build-test:
     name: msvc build & test

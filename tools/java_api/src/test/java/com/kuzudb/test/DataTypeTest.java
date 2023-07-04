@@ -1,7 +1,8 @@
-package tools.java_api.java_test;
+package com.kuzudb.java_test;
 
-import tools.java_api.*;
+import com.kuzudb.*;
 import org.junit.jupiter.api.Test;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 
@@ -31,7 +32,7 @@ public class DataTypeTest extends TestBase {
         assertEquals(dataTypeClone3.getFixedNumElementsInList(), 100);
 
         assertFalse(dataTypeClone2.equals(dataTypeClone3));
-        
+
         dataType.destroy();
         dataType2.destroy();
         dataType3.destroy();
@@ -66,7 +67,7 @@ public class DataTypeTest extends TestBase {
         assertFalse(dataType.equals(dataType3));
         assertFalse(dataType2.equals(dataType3));
         assertFalse(dataTypeClone.equals(dataTypeClone3));
-        
+
         dataType.destroy();
         dataType2.destroy();
         dataType3.destroy();
@@ -118,7 +119,7 @@ public class DataTypeTest extends TestBase {
         System.out.println("DataTypeGetChildType passed");
     }
 
-    @Test 
+    @Test
     void DataTypeGetFixedNumElementsInList() throws KuzuObjectRefDestroyedException {
         KuzuDataType dataType = new KuzuDataType(KuzuDataTypeID.INT64, null, 0);
         assertNotNull(dataType);

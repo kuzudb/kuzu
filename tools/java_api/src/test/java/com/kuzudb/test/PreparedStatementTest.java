@@ -1,12 +1,13 @@
-package tools.java_api.java_test;
+package com.kuzudb.java_test;
 
-import tools.java_api.*;
+import com.kuzudb.*;
 import org.junit.jupiter.api.Test;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 public class PreparedStatementTest extends TestBase {
 
-    @Test 
+    @Test
     void PrepStmtIsSuccess() throws KuzuObjectRefDestroyedException {
         String query = "MATCH (a:person) WHERE a.isStudent = $1 RETURN COUNT(*)";
         KuzuPreparedStatement preparedStatement1 = conn.prepare(query);

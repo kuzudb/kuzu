@@ -94,6 +94,11 @@ nodejs: arrow
 	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) -DCMAKE_BUILD_TYPE=Release -DBUILD_NODEJS=TRUE ../.. && \
 	cmake --build . --config Release -- -j $(NUM_THREADS)
 
+java:
+	$(call mkdirp,build/release) && cd build/release && \
+	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) -DCMAKE_BUILD_TYPE=Release -DBUILD_JAVA=TRUE ../.. && \
+	cmake --build . --config Release -- -j $(NUM_THREADS)
+
 test: arrow
 	$(call mkdirp,build/release) && cd build/release && \
 	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=TRUE ../.. && \
@@ -118,6 +123,19 @@ nodejstest: arrow
 	cd $(ROOT_DIR)/tools/nodejs_api/ && \
 	npm test
 
+javatest: arrow
+ifeq ($(OS),Windows_NT)
+	$(MAKE) java
+	$(call mkdirp,tools/java_api/build/test)  && cd tools/java_api/ && \
+	javac -d build/test -cp ".;build/kuzu_java.jar;third_party/junit-platform-console-standalone-1.9.3.jar"  -sourcepath src/test/java/com/kuzudb/test/*.java && \
+	java -jar third_party/junit-platform-console-standalone-1.9.3.jar -cp ".;build/kuzu_java.jar;build/test/" --scan-classpath --include-package=com.kuzudb.java_test --details=verbose
+else
+	$(MAKE) java
+	$(call mkdirp,tools/java_api/build/test)  && cd tools/java_api/ && \
+	javac -d build/test -cp ".:build/kuzu_java.jar:third_party/junit-platform-console-standalone-1.9.3.jar"  -sourcepath src/test/java/com/kuzudb/test/*.java && \
+	java -jar third_party/junit-platform-console-standalone-1.9.3.jar -cp ".:build/kuzu_java.jar:build/test/" --scan-classpath --include-package=com.kuzudb.java_test --details=verbose
+endif
+
 rusttest:
 ifeq ($(OS),Windows_NT)
 	cd $(ROOT_DIR)/tools/rust_api && \
@@ -137,6 +155,13 @@ else
 	rm -rf tools/python_api/build
 endif
 
+clean-java:
+ifeq ($(OS),Windows_NT)
+	if exist tools\java_api\build rmdir /s /q tools\java_api\build
+else
+	rm -rf tools/java_api/build
+endif
+
 clean-external:
 ifeq ($(OS),Windows_NT)
 	if exist external\build rmdir /s /q external\build
@@ -144,7 +169,7 @@ else
 	rm -rf external/build
 endif
 
-clean: clean-python-api
+clean: clean-python-api clean-java
 ifeq ($(OS),Windows_NT)
 	if exist build rmdir /s /q build
 else

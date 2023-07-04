@@ -1,4 +1,4 @@
-package tools.java_api;
+package com.kuzudb;
 
 public enum KuzuDataTypeID {
     ANY(0),

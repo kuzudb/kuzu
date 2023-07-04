@@ -1,4 +1,7 @@
 add_subdirectory(shell)
+if(${BUILD_JAVA})
+    add_subdirectory(java_api)
+endif()
 if(${BUILD_NODEJS})
     add_subdirectory(nodejs_api)
 endif()
