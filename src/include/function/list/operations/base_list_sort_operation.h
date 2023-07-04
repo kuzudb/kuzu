@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/string_utils.h"
 #include "common/vector/value_vector.h"
 
 namespace kuzu {
@@ -9,7 +10,7 @@ namespace operation {
 struct BaseListSortOperation {
 public:
     static inline bool isAscOrder(const std::string& sortOrder) {
-        std::string upperSortOrder = toUpperCase(sortOrder);
+        std::string upperSortOrder = common::StringUtils::toUpperCase(sortOrder);
         if (upperSortOrder == "ASC") {
             return true;
         } else if (upperSortOrder == "DESC") {
@@ -20,7 +21,7 @@ public:
     }
 
     static inline bool isNullFirst(const std::string& nullOrder) {
-        std::string upperNullOrder = toUpperCase(nullOrder);
+        std::string upperNullOrder = common::StringUtils::toUpperCase(nullOrder);
         if (upperNullOrder == "NULLS FIRST") {
             return true;
         } else if (upperNullOrder == "NULLS LAST") {
@@ -28,12 +29,6 @@ public:
         } else {
             throw common::RuntimeException("Invalid nullOrder");
         }
-    }
-
-    static inline std::string toUpperCase(const std::string& str) {
-        std::string upperStr = str;
-        std::transform(upperStr.begin(), upperStr.end(), upperStr.begin(), ::toupper);
-        return upperStr;
     }
 
     template<typename T>

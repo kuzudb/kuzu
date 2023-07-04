@@ -322,19 +322,19 @@ TEST_F(CApiValueTest, GetStructFieldName) {
     auto flatTuple = kuzu_query_result_get_next(result);
     auto value = kuzu_flat_tuple_get_value(flatTuple, 0);
     auto fieldName = kuzu_value_get_struct_field_name(value, 0);
-    ASSERT_STREQ(fieldName, "RATING");
+    ASSERT_STREQ(fieldName, "rating");
     free(fieldName);
 
     fieldName = kuzu_value_get_struct_field_name(value, 1);
-    ASSERT_STREQ(fieldName, "VIEWS");
+    ASSERT_STREQ(fieldName, "views");
     free(fieldName);
 
     fieldName = kuzu_value_get_struct_field_name(value, 2);
-    ASSERT_STREQ(fieldName, "RELEASE");
+    ASSERT_STREQ(fieldName, "release");
     free(fieldName);
 
     fieldName = kuzu_value_get_struct_field_name(value, 3);
-    ASSERT_STREQ(fieldName, "FILM");
+    ASSERT_STREQ(fieldName, "film");
     free(fieldName);
 
     kuzu_value_destroy(value);

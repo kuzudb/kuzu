@@ -157,7 +157,8 @@ class StructField {
 
 public:
     StructField() : type{std::make_unique<LogicalType>()} {}
-    StructField(std::string name, std::unique_ptr<LogicalType> type);
+    StructField(std::string name, std::unique_ptr<LogicalType> type)
+        : name{std::move(name)}, type{std::move(type)} {};
 
     inline bool operator!=(const StructField& other) const { return !(*this == other); }
     inline std::string getName() const { return name; }

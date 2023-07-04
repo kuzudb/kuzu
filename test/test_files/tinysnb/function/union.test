@@ -43,30 +43,30 @@
 -LOG UnionTagOnLiteral
 -STATEMENT RETURN union_tag(union_value(numTuples := 100))
 ---- 1
-NUMTUPLES
+numTuples
 
 -LOG UnionTagOnLongString
 -STATEMENT RETURN union_tag(union_value(longStringField := "This is a long string"))
 ---- 1
-LONGSTRINGFIELD
+longStringField
 
 -LOG UnionTagOnExpr
 -STATEMENT MATCH (p:person)-[:knows]->(p1:person) return union_tag(union_value(age := p.age)), union_tag(union_value(PERSON_id := p1.ID))
 ---- 14
-AGE|PERSON_ID
-AGE|PERSON_ID
-AGE|PERSON_ID
-AGE|PERSON_ID
-AGE|PERSON_ID
-AGE|PERSON_ID
-AGE|PERSON_ID
-AGE|PERSON_ID
-AGE|PERSON_ID
-AGE|PERSON_ID
-AGE|PERSON_ID
-AGE|PERSON_ID
-AGE|PERSON_ID
-AGE|PERSON_ID
+age|PERSON_id
+age|PERSON_id
+age|PERSON_id
+age|PERSON_id
+age|PERSON_id
+age|PERSON_id
+age|PERSON_id
+age|PERSON_id
+age|PERSON_id
+age|PERSON_id
+age|PERSON_id
+age|PERSON_id
+age|PERSON_id
+age|PERSON_id
 
 -LOG UnionExtractOnLiteral
 -STATEMENT RETURN union_extract(union_value(numTuples := 100), 'numTuples')

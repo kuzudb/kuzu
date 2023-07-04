@@ -230,7 +230,7 @@ def test_to_torch_geometric_heterogeneous_graph(establish_connection):
         "Property organisation.history of type STRING is not supported by torch_geometric. The property is marked as unconverted.",
         "Property person.usedNames of type STRING is not supported by torch_geometric. The property is marked as unconverted.",
         "Property organisation.licenseValidInterval of type INTERVAL is not supported by torch_geometric. The property is marked as unconverted.",
-        "Property organisation.state of type STRUCT(REVENUE:INT16, LOCATION:STRING is not supported by torch_geometric. The property is marked as unconverted."
+        "Property organisation.state of type STRUCT(revenue:INT16, location:STRING is not supported by torch_geometric. The property is marked as unconverted."
     ])
 
     for w in ws:
