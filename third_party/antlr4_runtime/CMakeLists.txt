@@ -320,6 +320,7 @@ if (WIN32)
         -DANTLR4CPP_EXPORTS
         -DANTLR4CPP_STATIC
     )
+    set_property(TARGET ${ANTLR4_RUNTIME} PROPERTY CXX_STANDARD 17)
 endif()
 
 

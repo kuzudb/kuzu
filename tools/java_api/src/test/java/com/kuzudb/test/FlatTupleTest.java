@@ -1,7 +1,8 @@
-package tools.java_api.java_test;
+package com.kuzudb.java_test;
 
-import tools.java_api.*;
+import com.kuzudb.*;
 import org.junit.jupiter.api.Test;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 public class FlatTupleTest extends TestBase {
@@ -29,12 +30,12 @@ public class FlatTupleTest extends TestBase {
         value = flatTuple.getValue(2);
         assertNotNull(value);
         assertEquals(value.getDataType().getID(), KuzuDataTypeID.FLOAT);
-        assertTrue(value.getValue().equals((float)1.731));
+        assertTrue(value.getValue().equals((float) 1.731));
         value.destroy();
 
         value = flatTuple.getValue(222);
         assertNull(value);
-        
+
         result.destroy();
         System.out.println("FlatTupleGetValue passed");
     }
@@ -46,7 +47,7 @@ public class FlatTupleTest extends TestBase {
         assertTrue(result.hasNext());
         KuzuFlatTuple flatTuple = result.getNext();
         assertNotNull(flatTuple);
-        
+
         String str = flatTuple.toString();
         assertTrue(str.equals("Alice|35|1.731000\n"));
 

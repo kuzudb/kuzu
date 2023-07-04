@@ -1,4 +1,4 @@
-package tools.java_api.java_test;
+package com.kuzudb.java_test;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -7,7 +7,7 @@ import java.nio.file.Path;
 import java.nio.file.Files;
 
 
-import tools.java_api.*;
+import com.kuzudb.*;
 
 public class TestHelper {
     private static KuzuDatabase db;
@@ -22,20 +22,17 @@ public class TestHelper {
     }
 
     public static void loadData(String dbPath) throws IOException, KuzuObjectRefDestroyedException {
-        Path tempDir = Files.createTempDirectory("java_api_test_db");
-        tempDir.toFile().deleteOnExit();
-
         BufferedReader reader;
         db = new KuzuDatabase(dbPath, 0);
         conn = new KuzuConnection(db);
         try {
-			reader = new BufferedReader(new FileReader("./../../dataset/tinysnb/schema.cypher"));
-			String line = reader.readLine();
+            reader = new BufferedReader(new FileReader("./../../dataset/tinysnb/schema.cypher"));
+            String line = reader.readLine();
 
-			while (line != null) {
-				conn.query(line);
-				line = reader.readLine();
-			}
+            while (line != null) {
+                conn.query(line);
+                line = reader.readLine();
+            }
 
             reader.close();
 
@@ -43,13 +40,14 @@ public class TestHelper {
             line = reader.readLine();
 
             while (line != null) {
-				conn.query(line);
-				line = reader.readLine();
-			}
+                line = line.replace("dataset/tinysnb", "../../dataset/tinysnb");
+                conn.query(line);
+                line = reader.readLine();
+            }
 
-			reader.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+            reader.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }

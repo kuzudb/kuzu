@@ -1,4 +1,5 @@
 package tools.java_api;
+import com.kuzudb.*;
 import java.time.*;
 
 import java.io.BufferedReader;
@@ -26,49 +27,50 @@ public class test {
     }
 
     public static void main(String[] args) throws KuzuObjectRefDestroyedException {
-                
+        String db_path = "./test_db";
+        deleteFolder(new File(db_path));
         BufferedReader reader;
-        KuzuDatabase db = new KuzuDatabase("./nope/java_api_test_db", 0);
+        KuzuDatabase db = new KuzuDatabase(db_path, 0);
         KuzuConnection conn = new KuzuConnection(db);
         try {
-			reader = new BufferedReader(new FileReader("./../../dataset/tinysnb/schema.cypher"));
+			reader = new BufferedReader(new FileReader("../../dataset/tinysnb/schema.cypher"));
 			String line = reader.readLine();
-
 			while (line != null) {
+                System.out.println(line);
 				conn.query(line);
 				line = reader.readLine();
 			}
 
             reader.close();
 
-            reader = new BufferedReader(new FileReader("./../../dataset/tinysnb/copy.cypher"));
+            reader = new BufferedReader(new FileReader("../../dataset/tinysnb/copy.cypher"));
             line = reader.readLine();
-
             while (line != null) {
+                line = line.replace("dataset/tinysnb", "../../dataset/tinysnb");
+                System.out.println(line);
 				conn.query(line);
 				line = reader.readLine();
 			}
-
 			reader.close();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 
-        KuzuQueryResult result = conn.query("MATCH (a:person) RETURN a.fName, a.age ORDER BY a.fName");
+        String query = "MATCH (a:person) RETURN a.fName, a.age ORDER BY a.fName";
+        System.out.println(query);
 
-        KuzuFlatTuple row = result.getNext();
-        System.out.println(row);
-        row.destroy();
+        KuzuQueryResult result = conn.query(query);
+        System.out.println("error: " + result.getErrorMessage());
+        System.out.println("tuples: " + result.getNumTuples());
 
-        row = result.getNext();
-        row.destroy();
-
-        result.destroy();
-
-
-        KuzuValue value = new KuzuValue(Duration.ofMillis(31800000003L));
-        Duration interval = value.getValue();
+        while (result.hasNext()) {
+            KuzuFlatTuple row = result.getNext();
+            System.out.println("row: " + row);
+            row.destroy();
+        }
         
 
+        result.destroy();
+    
     }
 }

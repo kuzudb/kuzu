@@ -1,22 +1,22 @@
-package tools.java_api;
+package com.kuzudb;
 
 public class KuzuRelValue {
     long rv_ref;
     boolean destroyed = false;
     boolean isOwnedByCPP = false;
 
-    private void checkNotDestroyed () throws KuzuObjectRefDestroyedException {
+    public KuzuRelValue(KuzuInternalID src_id, KuzuInternalID dst_id, String label) {
+        rv_ref = KuzuNative.kuzu_rel_val_create(src_id, dst_id, label);
+    }
+
+    private void checkNotDestroyed() throws KuzuObjectRefDestroyedException {
         if (destroyed)
             throw new KuzuObjectRefDestroyedException("KuzuRelValue has been destroyed.");
     }
 
-    @Override  
+    @Override
     protected void finalize() throws KuzuObjectRefDestroyedException {
-        destroy();   
-    } 
-
-    public KuzuRelValue(KuzuInternalID src_id, KuzuInternalID dst_id, String label) {
-        rv_ref = KuzuNative.kuzu_rel_val_create(src_id, dst_id, label);
+        destroy();
     }
 
     public KuzuRelValue clone() {

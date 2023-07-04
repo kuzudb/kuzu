@@ -1,4 +1,4 @@
-package tools.java_api;
+package com.kuzudb;
 
 public class KuzuObjectRefDestroyedException extends Exception {
     public KuzuObjectRefDestroyedException(String errorMessage) {

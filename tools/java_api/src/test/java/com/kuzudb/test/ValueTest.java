@@ -1,8 +1,9 @@
-package tools.java_api.java_test;
+package com.kuzudb.java_test;
 
 
-import tools.java_api.*;
+import com.kuzudb.*;
 import org.junit.jupiter.api.Test;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.time.LocalDate;
@@ -114,10 +115,10 @@ public class ValueTest extends TestBase {
     @Test
     void ValueCreateINT16() throws KuzuObjectRefDestroyedException {
         // INT16
-        KuzuValue value = new KuzuValue((short)123);
+        KuzuValue value = new KuzuValue((short) 123);
         assertFalse(value.isOwnedByCPP());
         assertEquals(value.getDataType().getID(), KuzuDataTypeID.INT16);
-        assertTrue(value.getValue().equals((short)123));
+        assertTrue(value.getValue().equals((short) 123));
         value.destroy();
     }
 
@@ -144,24 +145,24 @@ public class ValueTest extends TestBase {
     @Test
     void ValueCreateFloat() throws KuzuObjectRefDestroyedException {
         // float
-        KuzuValue value = new KuzuValue((float)123.456);
+        KuzuValue value = new KuzuValue((float) 123.456);
         assertFalse(value.isOwnedByCPP());
         assertEquals(value.getDataType().getID(), KuzuDataTypeID.FLOAT);
-        assertTrue(value.getValue().equals((float)123.456));
+        assertTrue(value.getValue().equals((float) 123.456));
         value.destroy();
     }
 
     @Test
     void ValueCreateDouble() throws KuzuObjectRefDestroyedException {
         // double
-        KuzuValue value = new KuzuValue((float)123.456);
+        KuzuValue value = new KuzuValue((float) 123.456);
         assertFalse(value.isOwnedByCPP());
         assertEquals(value.getDataType().getID(), KuzuDataTypeID.FLOAT);
-        assertTrue(value.getValue().equals((float)123.456));
+        assertTrue(value.getValue().equals((float) 123.456));
         value.destroy();
     }
 
-    @Test 
+    @Test
     void ValueCreateInternalID() throws KuzuObjectRefDestroyedException {
         // InternalID
         KuzuValue value = new KuzuValue(new KuzuInternalID(1, 123));
@@ -226,7 +227,7 @@ public class ValueTest extends TestBase {
     @Test
     void ValueCreateTimeStamp() throws KuzuObjectRefDestroyedException {
         // timestamp
-        KuzuValue value = new KuzuValue(Instant.ofEpochSecond(123/1000000L, 123 % 1000000 * 1000)); // 123 microseconds
+        KuzuValue value = new KuzuValue(Instant.ofEpochSecond(123 / 1000000L, 123 % 1000000 * 1000)); // 123 microseconds
         assertFalse(value.isOwnedByCPP());
         assertEquals(value.getDataType().getID(), KuzuDataTypeID.TIMESTAMP);
         Instant stamp = value.getValue();
@@ -234,7 +235,7 @@ public class ValueTest extends TestBase {
         assertEquals(stamp.getNano(), 123000);
         value.destroy();
 
-        value = new KuzuValue(Instant.ofEpochSecond(123123123L/1000000L, 123123123L % 1000000 * 1000));
+        value = new KuzuValue(Instant.ofEpochSecond(123123123L / 1000000L, 123123123L % 1000000 * 1000));
         assertFalse(value.isOwnedByCPP());
         assertEquals(value.getDataType().getID(), KuzuDataTypeID.TIMESTAMP);
         stamp = value.getValue();
@@ -246,16 +247,12 @@ public class ValueTest extends TestBase {
     @Test
     void ValueCreateInterval() throws KuzuObjectRefDestroyedException {
         // interval
-        KuzuValue value = new KuzuValue(Duration.ofMillis(31795200003L));
+        Duration inputDuration = Duration.ofMillis(31795200003L);
+        KuzuValue value = new KuzuValue(inputDuration);
         assertFalse(value.isOwnedByCPP());
         assertEquals(value.getDataType().getID(), KuzuDataTypeID.INTERVAL);
         Duration interval = value.getValue();
-        long month = (long) (interval.toDays() / 30.4167);
-        long day = interval.toDays() - (long) (month * 30.4167);
-        long micros = interval.minusDays(interval.toDays()).toMillis() * 1000;
-        assertEquals(month, 12);
-        assertEquals(day, 3);
-        assertEquals(micros, 3000);
+        assertEquals(interval.toMillis(), inputDuration.toMillis());
         value.destroy();
     }
 
@@ -270,7 +267,7 @@ public class ValueTest extends TestBase {
         value.destroy();
     }
 
-    @Test 
+    @Test
     void ValueClone() throws KuzuObjectRefDestroyedException {
         KuzuValue value = new KuzuValue("abcdefg");
         assertFalse(value.isOwnedByCPP());
@@ -319,7 +316,7 @@ public class ValueTest extends TestBase {
         assertTrue(value.isOwnedByCPP());
         assertFalse(value.isNull());
         assertEquals(value.getListSize(), 2);
-        
+
         value.destroy();
         flatTuple.destroy();
         result.destroy();
@@ -445,7 +442,7 @@ public class ValueTest extends TestBase {
         result.destroy();
     }
 
-    @Test 
+    @Test
     void ValueGetINT64() throws KuzuObjectRefDestroyedException {
         // INT64
         KuzuQueryResult result = conn.query("MATCH (a:person) RETURN a.ID ORDER BY a.ID");
@@ -473,7 +470,7 @@ public class ValueTest extends TestBase {
         assertTrue(value.isOwnedByCPP());
         assertFalse(value.isNull());
 
-        assertTrue(value.getValue().equals((float)1.731));
+        assertTrue(value.getValue().equals((float) 1.731));
         value.destroy();
         flatTuple.destroy();
         result.destroy();
@@ -490,7 +487,7 @@ public class ValueTest extends TestBase {
         assertTrue(value.isOwnedByCPP());
         assertFalse(value.isNull());
 
-        assertTrue(value.getValue().equals((double)5.0));
+        assertTrue(value.getValue().equals((double) 5.0));
         value.destroy();
         flatTuple.destroy();
         result.destroy();
@@ -541,7 +538,7 @@ public class ValueTest extends TestBase {
         assertTrue(label.equals("knows"));
         long size = rel.getPropertySize();
         assertEquals(size, 5);
-        
+
         rel.destroy();
         value.destroy();
         flatTuple.destroy();
@@ -560,7 +557,7 @@ public class ValueTest extends TestBase {
         assertFalse(value.isNull());
 
         LocalDate date = value.getValue();
-        assertEquals((long)date.toEpochDay(), -25567L);
+        assertEquals((long) date.toEpochDay(), -25567L);
         value.destroy();
         flatTuple.destroy();
         result.destroy();
