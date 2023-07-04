@@ -1,8 +1,12 @@
 #pragma once
 #include <memory>
 
-#include "main/kuzu.h"
 #include "rust/cxx.h"
+#ifdef KUZU_BUNDLED
+#include "main/kuzu.h"
+#else
+#include <kuzu.hpp>
+#endif
 
 namespace kuzu_rs {
 

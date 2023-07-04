@@ -134,6 +134,7 @@ jobs:
         run: |
           call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
           set OPENSSL_DIR=C:\Program Files\OpenSSL-Win64
+          set CARGO_TARGET_DIR=%cd%/rustb
           make rusttest NUM_THREADS=18
       
       - name: Java test

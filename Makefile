@@ -145,7 +145,7 @@ ifeq ($(OS),Windows_NT)
 	cargo test -- --test-threads=1
 else
 	cd $(ROOT_DIR)/tools/rust_api && \
-	KUZU_TESTING=1 cargo test -- --test-threads=1
+	CARGO_BUILD_JOBS=$(NUM_THREADS) KUZU_TESTING=1 cargo test -- --test-threads=1
 endif
 
 clean-python-api:

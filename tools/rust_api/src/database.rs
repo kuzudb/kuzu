@@ -67,7 +67,7 @@ mod tests {
 
     #[test]
     fn create_database() -> Result<()> {
-        let temp_dir = tempdir::TempDir::new("example")?;
+        let temp_dir = tempfile::tempdir()?;
         let mut db = Database::new(temp_dir.path(), 0)?;
         db.set_logging_level(LoggingLevel::Debug);
         db.set_logging_level(LoggingLevel::Info);
