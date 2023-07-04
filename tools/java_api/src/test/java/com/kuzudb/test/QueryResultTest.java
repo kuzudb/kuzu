@@ -1,7 +1,9 @@
-package tools.java_api.java_test;
+package com.kuzudb.java_test;
 
-import tools.java_api.*;
+import com.kuzudb.*;
+import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.api.Test;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.Scanner;
@@ -12,6 +14,8 @@ import java.nio.file.Path;
 import java.nio.file.Files;
 
 public class QueryResultTest extends TestBase {
+    @TempDir
+    static Path tempDir;
 
     @Test
     void QueryResultGetErrorMessage() throws KuzuObjectRefDestroyedException {
@@ -122,33 +126,30 @@ public class QueryResultTest extends TestBase {
     }
 
     @Test
-    void QueryResultWriteToCSV() throws IOException, KuzuObjectRefDestroyedException{
-        String newline = "\n";
-        String basicOutput =
-            "Carol,1,5.000000,1940-06-22,1911-08-20 02:32:21,CsWork" + newline +
-            "Dan,2,4.800000,1950-07-23,2031-11-30 12:25:30,DEsWork" + newline +
-            "Elizabeth,1,4.700000,1980-10-26,1976-12-23 11:21:42,DEsWork" + newline;
+    void QueryResultWriteToCSV() throws IOException, KuzuObjectRefDestroyedException {
         String query = "MATCH (a:person)-[:workAt]->(o:organisation) RETURN a.fName, a.gender," +
-                       "a.eyeSight, a.birthdate, a.registerTime, o.name";
+                "a.eyeSight, a.birthdate, a.registerTime, o.name";
         KuzuQueryResult result = conn.query(query);
         assertTrue(result.isSuccess());
 
-        Path tempDir = Files.createTempFile("output_CSV_CAPI", "csv");
-        tempDir.toFile().deleteOnExit();
-
-        String outputPath = "output_CSV_CAPI.csv";
+        final Path tempFile = Files.createFile(tempDir.resolve("test.csv"));
+        String outputPath = tempFile.toFile().getAbsolutePath();
         result.writeToCsv(outputPath, ',', '"', '\n');
-        
+
         try {
             File csv = new File(outputPath);
-            Scanner s = new Scanner(csv);
-            String content = s.useDelimiter("\\z").next();
-            assertTrue(basicOutput.equals(content));
-            s.close();
+            Scanner scanner = new Scanner(csv);
+            String line = scanner.nextLine();
+            assertEquals(line, "Carol,1,5.000000,1940-06-22,1911-08-20 02:32:21,CsWork");
+            line = scanner.nextLine();
+            assertEquals(line, "Dan,2,4.800000,1950-07-23,2031-11-30 12:25:30,DEsWork");
+            line = scanner.nextLine();
+            assertEquals(line, "Elizabeth,1,4.700000,1980-10-26,1976-12-23 11:21:42,DEsWork");
+            scanner.close();
             System.out.println("QueryResultWriteToCSV passed");
-        } catch(FileNotFoundException e) {
+        } catch (FileNotFoundException e) {
             fail("QueryResultWriteToCSV failed, csv file not found");
-        }    
+        }
     }
 
     @Test

@@ -1,18 +1,25 @@
-package tools.java_api.java_test;
+package com.kuzudb.java_test;
 
+import com.kuzudb.*;
+import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
-import org.junit.jupiter.api.Test;
-import tools.java_api.*;
+import java.nio.file.Path;
+
+import java.io.IOException;
 
 public class DatabaseTest extends TestBase {
+    @TempDir
+    static Path tempDir;
+
     @Test
     void DBCreationAndDestroy() {
-        String databasePath = System.getProperty("user.dir") + "dbtest";
-        try{
-            KuzuDatabase database = new KuzuDatabase(databasePath, 0);
+        try {
+            String dbPath = tempDir.toFile().getAbsolutePath();
+            KuzuDatabase database = new KuzuDatabase(dbPath, 0);
             database.destroy();
-        }catch(Exception e) {
+        } catch (Exception e) {
             fail("DBCreationAndDestroy failed: ");
             System.out.println(e.toString());
         }
@@ -20,32 +27,32 @@ public class DatabaseTest extends TestBase {
         System.out.println("DBCreationAndDestroy passed");
     }
 
-    @Test 
+    @Test
     void DBInvalidPath() {
-        try{
+        try {
             KuzuDatabase database = new KuzuDatabase("", 0);
             database.destroy();
             fail("DBInvalidPath did not throw exception as expected.");
-        }catch(Exception e) {
+        } catch (Exception e) {
             System.out.println("DBInvalidPath passed");
         }
     }
 
     @Test
     void DBSetLoggingLevel() {
-        try{
+        try {
             KuzuDatabase.setLoggingLevel("debug");
             KuzuDatabase.setLoggingLevel("info");
             KuzuDatabase.setLoggingLevel("err");
-        }catch(Exception e){
+        } catch (Exception e) {
             fail("DBSetLoggingLevel failed: ");
             System.out.println(e.toString());
         }
-        
-        try{
+
+        try {
             KuzuDatabase.setLoggingLevel("unsupported");
             fail("DBSetLoggingLevel did not throw exception as expected.");
-        }catch(Exception e){
+        } catch (Exception e) {
         }
 
         System.out.println("DBSetLoggingLevel passed");

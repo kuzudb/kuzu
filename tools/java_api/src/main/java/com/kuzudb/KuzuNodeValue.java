@@ -1,22 +1,22 @@
-package tools.java_api;
+package com.kuzudb;
 
 public class KuzuNodeValue {
     long nv_ref;
     boolean destroyed = false;
     boolean isOwnedByCPP = false;
 
-    private void checkNotDestroyed () throws KuzuObjectRefDestroyedException {
+    public KuzuNodeValue(KuzuInternalID id, String label) {
+        nv_ref = KuzuNative.kuzu_node_val_create(id, label);
+    }
+
+    private void checkNotDestroyed() throws KuzuObjectRefDestroyedException {
         if (destroyed)
             throw new KuzuObjectRefDestroyedException("KuzuNodeValue has been destroyed.");
     }
 
-    @Override  
+    @Override
     protected void finalize() throws KuzuObjectRefDestroyedException {
-        destroy();   
-    } 
-
-    public KuzuNodeValue(KuzuInternalID id, String label) {
-        nv_ref = KuzuNative.kuzu_node_val_create(id, label);
+        destroy();
     }
 
     public KuzuNodeValue clone() {

@@ -1,9 +1,10 @@
-package tools.java_api.java_test;
+package com.kuzudb.java_test;
 
-import tools.java_api.*;
+import com.kuzudb.*;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.MethodOrderer;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.Map;
@@ -18,25 +19,25 @@ public class ConnectionTest extends TestBase {
 
     @Test
     void ConnCreationAndDestroy() {
-        try{
+        try {
             KuzuConnection conn = new KuzuConnection(db);
             conn.destroy();
-        }catch(AssertionError e) {
+        } catch (AssertionError e) {
             fail("ConnCreationAndDestroy failed: ");
             System.out.println(e.toString());
-        }catch(KuzuObjectRefDestroyedException e) {
+        } catch (KuzuObjectRefDestroyedException e) {
             fail("ConnCreationAndDestroy failed: ");
             System.out.println(e.toString());
         }
         System.out.println("ConnCreationAndDestroy passed");
     }
 
-    @Test 
+    @Test
     void ConnInvalidDB() {
-        try{
+        try {
             KuzuConnection conn = new KuzuConnection(null);
             fail("DBInvalidPath did not throw KuzuObjectRefDestroyedException as expected.");
-        }catch(AssertionError e) {
+        } catch (AssertionError e) {
         }
         System.out.println("ConnInvalidDB passed");
     }
@@ -79,7 +80,7 @@ public class ConnectionTest extends TestBase {
         assertEquals(result.getNumTuples(), 1);
         assertEquals(result.getNumColumns(), 1);
         KuzuFlatTuple tuple = result.getNext();
-        assertEquals(((long)tuple.getValue(0).getValue()), 3);
+        assertEquals(((long) tuple.getValue(0).getValue()), 3);
         statement.destroy();
         result.destroy();
         System.out.println("ConnPrepare passed");
@@ -89,9 +90,9 @@ public class ConnectionTest extends TestBase {
     void ConnPrepareInt64() throws KuzuObjectRefDestroyedException {
         String query = "MATCH (a:person) WHERE a.age > $1 RETURN COUNT(*)";
         Map<String, KuzuValue> m = new HashMap<String, KuzuValue>();
-        
-        m.put("1", new KuzuValue((long)30));
-        
+
+        m.put("1", new KuzuValue((long) 30));
+
         KuzuPreparedStatement statement = conn.prepare(query);
         assertNotNull(statement);
         KuzuQueryResult result = conn.execute(statement, m);
@@ -102,7 +103,7 @@ public class ConnectionTest extends TestBase {
         assertEquals(result.getNumTuples(), 1);
         assertEquals(result.getNumColumns(), 1);
         KuzuFlatTuple tuple = result.getNext();
-        assertEquals(((long)tuple.getValue(0).getValue()), 4);
+        assertEquals(((long) tuple.getValue(0).getValue()), 4);
         statement.destroy();
         result.destroy();
         System.out.println("ConnPrepareInt64 passed");
@@ -112,7 +113,7 @@ public class ConnectionTest extends TestBase {
     void ConnPrepareInt32() throws KuzuObjectRefDestroyedException {
         String query = "MATCH (a:movies) WHERE a.length > $1 RETURN COUNT(*)";
         Map<String, KuzuValue> m = new HashMap<String, KuzuValue>();
-        m.put("1", new KuzuValue((int)200));
+        m.put("1", new KuzuValue((int) 200));
         KuzuPreparedStatement statement = conn.prepare(query);
         assertNotNull(statement);
         KuzuQueryResult result = conn.execute(statement, m);
@@ -123,7 +124,7 @@ public class ConnectionTest extends TestBase {
         assertEquals(result.getNumTuples(), 1);
         assertEquals(result.getNumColumns(), 1);
         KuzuFlatTuple tuple = result.getNext();
-        assertEquals(((long)tuple.getValue(0).getValue()), 2);
+        assertEquals(((long) tuple.getValue(0).getValue()), 2);
         statement.destroy();
         result.destroy();
         System.out.println("ConnPrepareInt32 passed");
@@ -133,7 +134,7 @@ public class ConnectionTest extends TestBase {
     void ConnPrepareInt16() throws KuzuObjectRefDestroyedException {
         String query = "MATCH (a:person) -[s:studyAt]-> (b:organisation) WHERE s.length > $1 RETURN COUNT(*)";
         Map<String, KuzuValue> m = new HashMap<String, KuzuValue>();
-        m.put("1", new KuzuValue((short)10));
+        m.put("1", new KuzuValue((short) 10));
         KuzuPreparedStatement statement = conn.prepare(query);
         assertNotNull(statement);
         KuzuQueryResult result = conn.execute(statement, m);
@@ -144,7 +145,7 @@ public class ConnectionTest extends TestBase {
         assertEquals(result.getNumTuples(), 1);
         assertEquals(result.getNumColumns(), 1);
         KuzuFlatTuple tuple = result.getNext();
-        assertEquals(((long)tuple.getValue(0).getValue()), 2);
+        assertEquals(((long) tuple.getValue(0).getValue()), 2);
         statement.destroy();
         result.destroy();
         System.out.println("ConnPrepareInt16 passed");
@@ -154,7 +155,7 @@ public class ConnectionTest extends TestBase {
     void ConnPrepareDouble() throws KuzuObjectRefDestroyedException {
         String query = "MATCH (a:person) WHERE a.eyeSight > $1 RETURN COUNT(*)";
         Map<String, KuzuValue> m = new HashMap<String, KuzuValue>();
-        m.put("1", new KuzuValue((double)4.5));
+        m.put("1", new KuzuValue((double) 4.5));
         KuzuPreparedStatement statement = conn.prepare(query);
         assertNotNull(statement);
         KuzuQueryResult result = conn.execute(statement, m);
@@ -165,7 +166,7 @@ public class ConnectionTest extends TestBase {
         assertEquals(result.getNumTuples(), 1);
         assertEquals(result.getNumColumns(), 1);
         KuzuFlatTuple tuple = result.getNext();
-        assertEquals(((long)tuple.getValue(0).getValue()), 7);
+        assertEquals(((long) tuple.getValue(0).getValue()), 7);
         statement.destroy();
         result.destroy();
         System.out.println("ConnPrepareDouble passed");
@@ -175,7 +176,7 @@ public class ConnectionTest extends TestBase {
     void ConnPrepareFloat() throws KuzuObjectRefDestroyedException {
         String query = "MATCH (a:person) WHERE a.height < $1 RETURN COUNT(*)";
         Map<String, KuzuValue> m = new HashMap<String, KuzuValue>();
-        m.put("1", new KuzuValue((float)1.0));
+        m.put("1", new KuzuValue((float) 1.0));
         KuzuPreparedStatement statement = conn.prepare(query);
         assertNotNull(statement);
         KuzuQueryResult result = conn.execute(statement, m);
@@ -186,7 +187,7 @@ public class ConnectionTest extends TestBase {
         assertEquals(result.getNumTuples(), 1);
         assertEquals(result.getNumColumns(), 1);
         KuzuFlatTuple tuple = result.getNext();
-        assertEquals(((long)tuple.getValue(0).getValue()), 1);
+        assertEquals(((long) tuple.getValue(0).getValue()), 1);
         statement.destroy();
         result.destroy();
         System.out.println("ConnPrepareFloat passed");
@@ -207,7 +208,7 @@ public class ConnectionTest extends TestBase {
         assertEquals(result.getNumTuples(), 1);
         assertEquals(result.getNumColumns(), 1);
         KuzuFlatTuple tuple = result.getNext();
-        assertEquals(((long)tuple.getValue(0).getValue()), 1);
+        assertEquals(((long) tuple.getValue(0).getValue()), 1);
         statement.destroy();
         result.destroy();
         System.out.println("ConnPrepareString passed");
@@ -228,7 +229,7 @@ public class ConnectionTest extends TestBase {
         assertEquals(result.getNumTuples(), 1);
         assertEquals(result.getNumColumns(), 1);
         KuzuFlatTuple tuple = result.getNext();
-        assertEquals(((long)tuple.getValue(0).getValue()), 4);
+        assertEquals(((long) tuple.getValue(0).getValue()), 4);
         statement.destroy();
         result.destroy();
         System.out.println("ConnPrepareDate passed");
@@ -249,7 +250,7 @@ public class ConnectionTest extends TestBase {
         assertEquals(result.getNumTuples(), 1);
         assertEquals(result.getNumColumns(), 1);
         KuzuFlatTuple tuple = result.getNext();
-        assertEquals(((long)tuple.getValue(0).getValue()), 7);
+        assertEquals(((long) tuple.getValue(0).getValue()), 7);
         statement.destroy();
         result.destroy();
         System.out.println("ConnPrepareTimeStamp passed");
@@ -270,7 +271,7 @@ public class ConnectionTest extends TestBase {
         assertEquals(result.getNumTuples(), 1);
         assertEquals(result.getNumColumns(), 1);
         KuzuFlatTuple tuple = result.getNext();
-        assertEquals(((long)tuple.getValue(0).getValue()), 3);
+        assertEquals(((long) tuple.getValue(0).getValue()), 3);
         statement.destroy();
         result.destroy();
         System.out.println("ConnPrepareInterval passed");
@@ -292,24 +293,24 @@ public class ConnectionTest extends TestBase {
         assertEquals(result.getNumTuples(), 1);
         assertEquals(result.getNumColumns(), 1);
         KuzuFlatTuple tuple = result.getNext();
-        assertEquals(((long)tuple.getValue(0).getValue()), 1);
+        assertEquals(((long) tuple.getValue(0).getValue()), 1);
         statement.destroy();
         result.destroy();
         System.out.println("ConnPrepareMultiParam passed");
     }
-    
+
     @Test
     void ConnGetNodeTableNames() throws KuzuObjectRefDestroyedException {
         String result = conn.getNodeTableNames();
         assertNotNull(result);
-        assertTrue(result.equals("Node tables: \n" + 
-                                 "\torganisation\n" +
-                                 "\tperson\n" +
-                                 "\tmovies\n") ||
-                   result.equals("Node tables: \n" + 
-                                 "\tmovies\n" +
-                                 "\tperson\n" +
-                                 "\torganisation\n"));
+        assertTrue(result.equals("Node tables: \n" +
+                "\torganisation\n" +
+                "\tperson\n" +
+                "\tmovies\n") ||
+                result.equals("Node tables: \n" +
+                        "\tmovies\n" +
+                        "\tperson\n" +
+                        "\torganisation\n"));
         System.out.println("ConnGetNodeTableNames passed");
     }
 
@@ -318,17 +319,17 @@ public class ConnectionTest extends TestBase {
         String result = conn.getRelTableNames();
         assertNotNull(result);
         assertTrue(result.equals("Rel tables: \n" +
-                                "\tmeets\n" +
-                                "\tstudyAt\n" +
-                                "\tknows\n" + 
-                                "\tworkAt\n" +
-                                "\tmarries\n") || 
-                   result.equals("Rel tables: \n" +
-                                "\tmarries\n" +
-                                "\tworkAt\n" +
-                                "\tknows\n" + 
-                                "\tstudyAt\n" +
-                                "\tmeets\n"));
+                "\tmeets\n" +
+                "\tstudyAt\n" +
+                "\tknows\n" +
+                "\tworkAt\n" +
+                "\tmarries\n") ||
+                result.equals("Rel tables: \n" +
+                        "\tmarries\n" +
+                        "\tworkAt\n" +
+                        "\tknows\n" +
+                        "\tstudyAt\n" +
+                        "\tmeets\n"));
         System.out.println("ConnGetRelTableNames passed");
     }
 
@@ -337,10 +338,10 @@ public class ConnectionTest extends TestBase {
         String result = conn.getNodePropertyNames("movies");
         assertNotNull(result);
         assertTrue(result.equals("movies properties: \n" +
-                                "\tname STRING(PRIMARY KEY)\n" + 
-                                "\tlength INT32\n" + 
-                                "\tnote STRING\n" + 
-                                "\tdescription STRUCT(DOUBLE,INT64,TIMESTAMP,DATE)\n"));
+                "\tname STRING(PRIMARY KEY)\n" +
+                "\tlength INT32\n" +
+                "\tnote STRING\n" +
+                "\tdescription STRUCT(DOUBLE,INT64,TIMESTAMP,DATE)\n"));
         System.out.println("ConnGetNodePropertyNames passed");
     }
 
@@ -348,11 +349,11 @@ public class ConnectionTest extends TestBase {
     void ConnGetRelPropertyNames() throws KuzuObjectRefDestroyedException {
         String result = conn.getRelPropertyNames("meets");
         assertNotNull(result);
-        assertTrue(result.equals("meets src node: person\n" + 
-                                "meets dst node: person\n" + 
-                                "meets properties: \n" + 
-                                "\tlocation FLOAT[2]\n" + 
-                                "\ttimes INT32\n"));
+        assertTrue(result.equals("meets src node: person\n" +
+                "meets dst node: person\n" +
+                "meets properties: \n" +
+                "\tlocation FLOAT[2]\n" +
+                "\ttimes INT32\n"));
         System.out.println("ConnGetRelPropertyNames passed");
     }
 

@@ -1,31 +1,31 @@
-package tools.java_api;
+package com.kuzudb;
 
 public class KuzuFlatTuple {
     long ft_ref;
     boolean destroyed = false;
 
-    private void checkNotDestroyed () throws KuzuObjectRefDestroyedException {
+    private void checkNotDestroyed() throws KuzuObjectRefDestroyedException {
         if (destroyed)
             throw new KuzuObjectRefDestroyedException("KuzuFlatTuple has been destroyed.");
     }
 
-    @Override  
+    @Override
     protected void finalize() throws KuzuObjectRefDestroyedException {
-        destroy();   
-    } 
+        destroy();
+    }
 
-    public void destroy () throws KuzuObjectRefDestroyedException {
+    public void destroy() throws KuzuObjectRefDestroyedException {
         checkNotDestroyed();
         KuzuNative.kuzu_flat_tuple_destroy(this);
         destroyed = true;
     }
 
-    public KuzuValue getValue (long index) throws KuzuObjectRefDestroyedException {
+    public KuzuValue getValue(long index) throws KuzuObjectRefDestroyedException {
         checkNotDestroyed();
         return KuzuNative.kuzu_flat_tuple_get_value(this, index);
     }
 
-    public String toString () {
+    public String toString() {
         if (destroyed)
             return "KuzuFlatTuple has been destroyed.";
         else
