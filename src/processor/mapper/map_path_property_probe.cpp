@@ -23,7 +23,8 @@ static std::vector<ft_col_idx_t> getColIdxToScan(
     std::vector<ft_col_idx_t> colIndicesToScan;
     for (auto i = 1u; i < nodeStructFields.size(); ++i) {
         auto field = nodeStructFields[i];
-        colIndicesToScan.push_back(propertyNameToColumnIdx.at(field->getName()));
+        auto upperFieldName = common::StringUtils::toUpperCase(field->getName());
+        colIndicesToScan.push_back(propertyNameToColumnIdx.at(upperFieldName));
     }
     return colIndicesToScan;
 }

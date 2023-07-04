@@ -11,7 +11,8 @@ public:
     explicit BoundExplain(
         std::unique_ptr<BoundStatement> statementToExplain, common::ExplainType explainType)
         : BoundStatement{common::StatementType::EXPLAIN,
-              BoundStatementResult::createSingleStringColumnResult()},
+              BoundStatementResult::createSingleStringColumnResult(
+                  "explain result" /* columnName */)},
           statementToExplain{std::move(statementToExplain)}, explainType{explainType} {}
 
     inline BoundStatement* getStatementToExplain() const { return statementToExplain.get(); }

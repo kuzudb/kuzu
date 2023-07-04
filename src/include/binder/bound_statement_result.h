@@ -17,7 +17,8 @@ public:
         return std::make_unique<BoundStatementResult>();
     }
 
-    static std::unique_ptr<BoundStatementResult> createSingleStringColumnResult();
+    static std::unique_ptr<BoundStatementResult> createSingleStringColumnResult(
+        std::string columnName = "result");
 
     inline void addColumn(
         std::shared_ptr<Expression> column, expression_vector expressionToCollect) {

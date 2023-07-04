@@ -39,9 +39,9 @@ False||
 -LOG OrgNodesReturnStarTest
 -STATEMENT MATCH (a:organisation) RETURN *
 ---- 3
-(label:organisation, 1:0, {ID:1, name:ABFsUni, orgCode:325, mark:3.700000, score:-2, history:10 years 5 months 13 hours 24 us, licenseValidInterval:3 years 5 days, rating:1.000000, state:{REVENUE: 138, LOCATION: ['toronto', 'montr,eal'], STOCK: {PRICE: [96,56], VOLUME: 1000}}})
-(label:organisation, 1:1, {ID:4, name:CsWork, orgCode:934, mark:4.100000, score:-100, history:2 years 4 days 10 hours, licenseValidInterval:26 years 52 days 48:00:00, rating:0.780000, state:{REVENUE: 152, LOCATION: ["vanco,uver north area"], STOCK: {PRICE: [15,78,671], VOLUME: 432}}})
-(label:organisation, 1:2, {ID:6, name:DEsWork, orgCode:824, mark:4.100000, score:7, history:2 years 4 hours 22 us 34 minutes, licenseValidInterval:82:00:00.1, rating:0.520000, state:{REVENUE: 558, LOCATION: ['very long city name', 'new york'], STOCK: {PRICE: [22], VOLUME: 99}}})
+(label:organisation, 1:0, {ID:1, name:ABFsUni, orgCode:325, mark:3.700000, score:-2, history:10 years 5 months 13 hours 24 us, licenseValidInterval:3 years 5 days, rating:1.000000, state:{revenue: 138, location: ['toronto', 'montr,eal'], stock: {price: [96,56], volume: 1000}}})
+(label:organisation, 1:1, {ID:4, name:CsWork, orgCode:934, mark:4.100000, score:-100, history:2 years 4 days 10 hours, licenseValidInterval:26 years 52 days 48:00:00, rating:0.780000, state:{revenue: 152, location: ["vanco,uver north area"], stock: {price: [15,78,671], volume: 432}}})
+(label:organisation, 1:2, {ID:6, name:DEsWork, orgCode:824, mark:4.100000, score:7, history:2 years 4 hours 22 us 34 minutes, licenseValidInterval:82:00:00.1, rating:0.520000, state:{revenue: 558, location: ['very long city name', 'new york'], stock: {price: [22], volume: 99}}})
 
 -LOG PersonNodesTestNull
 -STATEMENT MATCH (a:person) RETURN a.ID, a.fName STARTS WITH NULL, a.isWorker, a.isWorker AND null
@@ -453,7 +453,7 @@ Dan|Carol
 -LOG ReturnStructLiteral
 -STATEMENT RETURN {weight: 1.8, age: 42, name: "Mark", grades: [1,2,3]}
 ---- 1
-{WEIGHT: 1.800000, AGE: 42, NAME: Mark, GRADES: [1,2,3]}
+{weight: 1.800000, age: 42, name: Mark, grades: [1,2,3]}
 
 -LOG ReturnStructLiteral2
 -STATEMENT WITH {a: '1', b: 2, c: [4,5,6]} AS st RETURN st.a, st.b * 5, (st.c)[1:3]
@@ -463,79 +463,79 @@ Dan|Carol
 -LOG ReturnStructLiteralWithNull
 -STATEMENT RETURN {info: {name: "AliceBobCarolDan", gender: "female", hobby: null}, height: 1.8, age: null}
 ---- 1
-{INFO: {NAME: AliceBobCarolDan, GENDER: female, HOBBY: }, HEIGHT: 1.800000, AGE: }
+{info: {name: AliceBobCarolDan, gender: female, hobby: }, height: 1.800000, age: }
 
 -LOG ReturnStructListLiteralWithNull
 -STATEMENT RETURN {info: {name: "smith", gender: null, hobby: [null, "footBall"]}, height: 1.8, age: null}
 ---- 1
-{INFO: {NAME: smith, GENDER: , HOBBY: [,footBall]}, HEIGHT: 1.800000, AGE: }
+{info: {name: smith, gender: , hobby: [,footBall]}, height: 1.800000, age: }
 
 -LOG ReturnStruct
 -STATEMENT MATCH (m:movies) RETURN m.description
 ---- 3
-{RATING: 1223.000000, VIEWS: 10003, RELEASE: 2011-02-11 16:44:22, FILM: 2013-02-22}
-{RATING: 5.300000, VIEWS: 152, RELEASE: 2011-08-20 11:25:30, FILM: 2012-05-11}
-{RATING: 7.000000, VIEWS: 982, RELEASE: 2018-11-13 13:33:11, FILM: 2014-09-12}
+{rating: 1223.000000, views: 10003, release: 2011-02-11 16:44:22, film: 2013-02-22}
+{rating: 5.300000, views: 152, release: 2011-08-20 11:25:30, film: 2012-05-11}
+{rating: 7.000000, views: 982, release: 2018-11-13 13:33:11, film: 2014-09-12}
 
 -LOG ReturnStructLiteralWithUnflatFlatChildren
 -STATEMENT MATCH (p:person)-[e:knows]->(p1:person) return {name: p.fName, id: p1.ID, date: e.date}
 ---- 14
-{NAME: Alice, ID: 2, DATE: 2021-06-30}
-{NAME: Alice, ID: 3, DATE: 2021-06-30}
-{NAME: Alice, ID: 5, DATE: 2021-06-30}
-{NAME: Bob, ID: 0, DATE: 2021-06-30}
-{NAME: Bob, ID: 3, DATE: 1950-05-14}
-{NAME: Bob, ID: 5, DATE: 1950-05-14}
-{NAME: Carol, ID: 0, DATE: 2021-06-30}
-{NAME: Carol, ID: 2, DATE: 1950-05-14}
-{NAME: Carol, ID: 5, DATE: 2000-01-01}
-{NAME: Dan, ID: 0, DATE: 2021-06-30}
-{NAME: Dan, ID: 2, DATE: 1950-05-14}
-{NAME: Dan, ID: 3, DATE: 2000-01-01}
-{NAME: Elizabeth, ID: 8, DATE: 1905-12-12}
-{NAME: Elizabeth, ID: 9, DATE: 1905-12-12}
+{name: Alice, id: 2, date: 2021-06-30}
+{name: Alice, id: 3, date: 2021-06-30}
+{name: Alice, id: 5, date: 2021-06-30}
+{name: Bob, id: 0, date: 2021-06-30}
+{name: Bob, id: 3, date: 1950-05-14}
+{name: Bob, id: 5, date: 1950-05-14}
+{name: Carol, id: 0, date: 2021-06-30}
+{name: Carol, id: 2, date: 1950-05-14}
+{name: Carol, id: 5, date: 2000-01-01}
+{name: Dan, id: 0, date: 2021-06-30}
+{name: Dan, id: 2, date: 1950-05-14}
+{name: Dan, id: 3, date: 2000-01-01}
+{name: Elizabeth, id: 8, date: 1905-12-12}
+{name: Elizabeth, id: 9, date: 1905-12-12}
 
 -LOG ReturnNestedStructLiteral
 -STATEMENT MATCH (p:person) return {description: {gender: p.gender, age: p.age}, name: p.fName}
 ---- 8
-{DESCRIPTION: {GENDER: 1, AGE: 20}, NAME: Elizabeth}
-{DESCRIPTION: {GENDER: 1, AGE: 35}, NAME: Alice}
-{DESCRIPTION: {GENDER: 1, AGE: 45}, NAME: Carol}
-{DESCRIPTION: {GENDER: 2, AGE: 20}, NAME: Dan}
-{DESCRIPTION: {GENDER: 2, AGE: 25}, NAME: Farooq}
-{DESCRIPTION: {GENDER: 2, AGE: 30}, NAME: Bob}
-{DESCRIPTION: {GENDER: 2, AGE: 40}, NAME: Greg}
-{DESCRIPTION: {GENDER: 2, AGE: 83}, NAME: Hubert Blaine Wolfeschlegelsteinhausenbergerdorff}
+{description: {gender: 1, age: 20}, name: Elizabeth}
+{description: {gender: 1, age: 35}, name: Alice}
+{description: {gender: 1, age: 45}, name: Carol}
+{description: {gender: 2, age: 20}, name: Dan}
+{description: {gender: 2, age: 25}, name: Farooq}
+{description: {gender: 2, age: 30}, name: Bob}
+{description: {gender: 2, age: 40}, name: Greg}
+{description: {gender: 2, age: 83}, name: Hubert Blaine Wolfeschlegelsteinhausenbergerdorff}
 
 -LOG ReturnNestedListOfStructLiteral
 -STATEMENT MATCH (p:person) return [{description: {propA: p.gender, propB: [p.age, 10]}, name: p.fName}, {description: {propA: p.ID, propB: [p.gender, 20]}, name: p.fName}]
 ---- 8
-[{DESCRIPTION: {PROPA: 1, PROPB: [35,10]}, NAME: Alice},{DESCRIPTION: {PROPA: 0, PROPB: [1,20]}, NAME: Alice}]
-[{DESCRIPTION: {PROPA: 2, PROPB: [30,10]}, NAME: Bob},{DESCRIPTION: {PROPA: 2, PROPB: [2,20]}, NAME: Bob}]
-[{DESCRIPTION: {PROPA: 1, PROPB: [45,10]}, NAME: Carol},{DESCRIPTION: {PROPA: 3, PROPB: [1,20]}, NAME: Carol}]
-[{DESCRIPTION: {PROPA: 2, PROPB: [20,10]}, NAME: Dan},{DESCRIPTION: {PROPA: 5, PROPB: [2,20]}, NAME: Dan}]
-[{DESCRIPTION: {PROPA: 1, PROPB: [20,10]}, NAME: Elizabeth},{DESCRIPTION: {PROPA: 7, PROPB: [1,20]}, NAME: Elizabeth}]
-[{DESCRIPTION: {PROPA: 2, PROPB: [25,10]}, NAME: Farooq},{DESCRIPTION: {PROPA: 8, PROPB: [2,20]}, NAME: Farooq}]
-[{DESCRIPTION: {PROPA: 2, PROPB: [40,10]}, NAME: Greg},{DESCRIPTION: {PROPA: 9, PROPB: [2,20]}, NAME: Greg}]
-[{DESCRIPTION: {PROPA: 2, PROPB: [83,10]}, NAME: Hubert Blaine Wolfeschlegelsteinhausenbergerdorff},{DESCRIPTION: {PROPA: 10, PROPB: [2,20]}, NAME: Hubert Blaine Wolfeschlegelsteinhausenbergerdorff}]
+[{description: {propA: 1, propB: [35,10]}, name: Alice},{description: {propA: 0, propB: [1,20]}, name: Alice}]
+[{description: {propA: 2, propB: [30,10]}, name: Bob},{description: {propA: 2, propB: [2,20]}, name: Bob}]
+[{description: {propA: 1, propB: [45,10]}, name: Carol},{description: {propA: 3, propB: [1,20]}, name: Carol}]
+[{description: {propA: 2, propB: [20,10]}, name: Dan},{description: {propA: 5, propB: [2,20]}, name: Dan}]
+[{description: {propA: 1, propB: [20,10]}, name: Elizabeth},{description: {propA: 7, propB: [1,20]}, name: Elizabeth}]
+[{description: {propA: 2, propB: [25,10]}, name: Farooq},{description: {propA: 8, propB: [2,20]}, name: Farooq}]
+[{description: {propA: 2, propB: [40,10]}, name: Greg},{description: {propA: 9, propB: [2,20]}, name: Greg}]
+[{description: {propA: 2, propB: [83,10]}, name: Hubert Blaine Wolfeschlegelsteinhausenbergerdorff},{description: {propA: 10, propB: [2,20]}, name: Hubert Blaine Wolfeschlegelsteinhausenbergerdorff}]
 
 -LOG ReturnNestedListOfStructWithUnflatFlatChildren
 -STATEMENT MATCH (p1:person)-[e:knows]->(p2:person) return [{description: {propA: [p1.gender, p2.gender], propB: e.date}, name: p1.fName}, {description: {propA: [p1.ID, p2.ID], propB: p1.birthdate}, name: p2.fName}]
 ---- 14
-[{DESCRIPTION: {PROPA: [1,2], PROPB: 2021-06-30}, NAME: Alice},{DESCRIPTION: {PROPA: [0,2], PROPB: 1900-01-01}, NAME: Bob}]
-[{DESCRIPTION: {PROPA: [1,1], PROPB: 2021-06-30}, NAME: Alice},{DESCRIPTION: {PROPA: [0,3], PROPB: 1900-01-01}, NAME: Carol}]
-[{DESCRIPTION: {PROPA: [1,2], PROPB: 2021-06-30}, NAME: Alice},{DESCRIPTION: {PROPA: [0,5], PROPB: 1900-01-01}, NAME: Dan}]
-[{DESCRIPTION: {PROPA: [2,1], PROPB: 2021-06-30}, NAME: Bob},{DESCRIPTION: {PROPA: [2,0], PROPB: 1900-01-01}, NAME: Alice}]
-[{DESCRIPTION: {PROPA: [2,1], PROPB: 1950-05-14}, NAME: Bob},{DESCRIPTION: {PROPA: [2,3], PROPB: 1900-01-01}, NAME: Carol}]
-[{DESCRIPTION: {PROPA: [2,2], PROPB: 1950-05-14}, NAME: Bob},{DESCRIPTION: {PROPA: [2,5], PROPB: 1900-01-01}, NAME: Dan}]
-[{DESCRIPTION: {PROPA: [1,1], PROPB: 2021-06-30}, NAME: Carol},{DESCRIPTION: {PROPA: [3,0], PROPB: 1940-06-22}, NAME: Alice}]
-[{DESCRIPTION: {PROPA: [1,2], PROPB: 1950-05-14}, NAME: Carol},{DESCRIPTION: {PROPA: [3,2], PROPB: 1940-06-22}, NAME: Bob}]
-[{DESCRIPTION: {PROPA: [1,2], PROPB: 2000-01-01}, NAME: Carol},{DESCRIPTION: {PROPA: [3,5], PROPB: 1940-06-22}, NAME: Dan}]
-[{DESCRIPTION: {PROPA: [2,1], PROPB: 2021-06-30}, NAME: Dan},{DESCRIPTION: {PROPA: [5,0], PROPB: 1950-07-23}, NAME: Alice}]
-[{DESCRIPTION: {PROPA: [2,2], PROPB: 1950-05-14}, NAME: Dan},{DESCRIPTION: {PROPA: [5,2], PROPB: 1950-07-23}, NAME: Bob}]
-[{DESCRIPTION: {PROPA: [2,1], PROPB: 2000-01-01}, NAME: Dan},{DESCRIPTION: {PROPA: [5,3], PROPB: 1950-07-23}, NAME: Carol}]
-[{DESCRIPTION: {PROPA: [1,2], PROPB: 1905-12-12}, NAME: Elizabeth},{DESCRIPTION: {PROPA: [7,8], PROPB: 1980-10-26}, NAME: Farooq}]
-[{DESCRIPTION: {PROPA: [1,2], PROPB: 1905-12-12}, NAME: Elizabeth},{DESCRIPTION: {PROPA: [7,9], PROPB: 1980-10-26}, NAME: Greg}]
+[{description: {propA: [1,2], propB: 2021-06-30}, name: Alice},{description: {propA: [0,2], propB: 1900-01-01}, name: Bob}]
+[{description: {propA: [1,1], propB: 2021-06-30}, name: Alice},{description: {propA: [0,3], propB: 1900-01-01}, name: Carol}]
+[{description: {propA: [1,2], propB: 2021-06-30}, name: Alice},{description: {propA: [0,5], propB: 1900-01-01}, name: Dan}]
+[{description: {propA: [2,1], propB: 2021-06-30}, name: Bob},{description: {propA: [2,0], propB: 1900-01-01}, name: Alice}]
+[{description: {propA: [2,1], propB: 1950-05-14}, name: Bob},{description: {propA: [2,3], propB: 1900-01-01}, name: Carol}]
+[{description: {propA: [2,2], propB: 1950-05-14}, name: Bob},{description: {propA: [2,5], propB: 1900-01-01}, name: Dan}]
+[{description: {propA: [1,1], propB: 2021-06-30}, name: Carol},{description: {propA: [3,0], propB: 1940-06-22}, name: Alice}]
+[{description: {propA: [1,2], propB: 1950-05-14}, name: Carol},{description: {propA: [3,2], propB: 1940-06-22}, name: Bob}]
+[{description: {propA: [1,2], propB: 2000-01-01}, name: Carol},{description: {propA: [3,5], propB: 1940-06-22}, name: Dan}]
+[{description: {propA: [2,1], propB: 2021-06-30}, name: Dan},{description: {propA: [5,0], propB: 1950-07-23}, name: Alice}]
+[{description: {propA: [2,2], propB: 1950-05-14}, name: Dan},{description: {propA: [5,2], propB: 1950-07-23}, name: Bob}]
+[{description: {propA: [2,1], propB: 2000-01-01}, name: Dan},{description: {propA: [5,3], propB: 1950-07-23}, name: Carol}]
+[{description: {propA: [1,2], propB: 1905-12-12}, name: Elizabeth},{description: {propA: [7,8], propB: 1980-10-26}, name: Farooq}]
+[{description: {propA: [1,2], propB: 1905-12-12}, name: Elizabeth},{description: {propA: [7,9], propB: 1980-10-26}, name: Greg}]
 
 -LOG ReturnMapLiteral
 -STATEMENT RETURN map(['Alice', 'Bob', 'Carol', 'Dan'], [20, 34, 50, 22]);

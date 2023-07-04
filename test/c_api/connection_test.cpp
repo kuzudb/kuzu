@@ -173,7 +173,7 @@ TEST_F(CApiConnectionTest, GetNodePropertyNames) {
         "\tname STRING(PRIMARY KEY)\n"
         "\tlength INT32\n"
         "\tnote STRING\n"
-        "\tdescription STRUCT(RATING:DOUBLE, VIEWS:INT64, RELEASE:TIMESTAMP, FILM:DATE)\n"
+        "\tdescription STRUCT(rating:DOUBLE, views:INT64, release:TIMESTAMP, film:DATE)\n"
         "\tcontent BLOB\n");
     free(result);
 }

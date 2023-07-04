@@ -54,18 +54,18 @@ height
 -LOG ReturnRelName
 -STATEMENT MATCH (m:movies) CALL table_info('knows') return m, type
 ---- 12
-(label:movies, 2:0, {name:Sóló cón tu párejâ, length:126, note: this is a very very good movie, description:{RATING: 5.300000, VIEWS: 152, RELEASE: 2011-08-20 11:25:30, FILM: 2012-05-11}, content:\xAA\xABinteresting\x0B})|DATE
-(label:movies, 2:0, {name:Sóló cón tu párejâ, length:126, note: this is a very very good movie, description:{RATING: 5.300000, VIEWS: 152, RELEASE: 2011-08-20 11:25:30, FILM: 2012-05-11}, content:\xAA\xABinteresting\x0B})|TIMESTAMP
-(label:movies, 2:0, {name:Sóló cón tu párejâ, length:126, note: this is a very very good movie, description:{RATING: 5.300000, VIEWS: 152, RELEASE: 2011-08-20 11:25:30, FILM: 2012-05-11}, content:\xAA\xABinteresting\x0B})|INTERVAL
-(label:movies, 2:0, {name:Sóló cón tu párejâ, length:126, note: this is a very very good movie, description:{RATING: 5.300000, VIEWS: 152, RELEASE: 2011-08-20 11:25:30, FILM: 2012-05-11}, content:\xAA\xABinteresting\x0B})|STRING[]
-(label:movies, 2:1, {name:The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie, length:2544, note: the movie is very very good, description:{RATING: 7.000000, VIEWS: 982, RELEASE: 2018-11-13 13:33:11, FILM: 2014-09-12}, content:\xAB\xCD})|DATE
-(label:movies, 2:1, {name:The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie, length:2544, note: the movie is very very good, description:{RATING: 7.000000, VIEWS: 982, RELEASE: 2018-11-13 13:33:11, FILM: 2014-09-12}, content:\xAB\xCD})|TIMESTAMP
-(label:movies, 2:1, {name:The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie, length:2544, note: the movie is very very good, description:{RATING: 7.000000, VIEWS: 982, RELEASE: 2018-11-13 13:33:11, FILM: 2014-09-12}, content:\xAB\xCD})|INTERVAL
-(label:movies, 2:1, {name:The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie, length:2544, note: the movie is very very good, description:{RATING: 7.000000, VIEWS: 982, RELEASE: 2018-11-13 13:33:11, FILM: 2014-09-12}, content:\xAB\xCD})|STRING[]
-(label:movies, 2:2, {name:Roma, length:298, note:the movie is very interesting and funny, description:{RATING: 1223.000000, VIEWS: 10003, RELEASE: 2011-02-11 16:44:22, FILM: 2013-02-22}, content:pure ascii characters})|DATE
-(label:movies, 2:2, {name:Roma, length:298, note:the movie is very interesting and funny, description:{RATING: 1223.000000, VIEWS: 10003, RELEASE: 2011-02-11 16:44:22, FILM: 2013-02-22}, content:pure ascii characters})|TIMESTAMP
-(label:movies, 2:2, {name:Roma, length:298, note:the movie is very interesting and funny, description:{RATING: 1223.000000, VIEWS: 10003, RELEASE: 2011-02-11 16:44:22, FILM: 2013-02-22}, content:pure ascii characters})|INTERVAL
-(label:movies, 2:2, {name:Roma, length:298, note:the movie is very interesting and funny, description:{RATING: 1223.000000, VIEWS: 10003, RELEASE: 2011-02-11 16:44:22, FILM: 2013-02-22}, content:pure ascii characters})|STRING[]
+(label:movies, 2:0, {name:Sóló cón tu párejâ, length:126, note: this is a very very good movie, description:{rating: 5.300000, views: 152, release: 2011-08-20 11:25:30, film: 2012-05-11}, content:\xAA\xABinteresting\x0B})|DATE
+(label:movies, 2:0, {name:Sóló cón tu párejâ, length:126, note: this is a very very good movie, description:{rating: 5.300000, views: 152, release: 2011-08-20 11:25:30, film: 2012-05-11}, content:\xAA\xABinteresting\x0B})|TIMESTAMP
+(label:movies, 2:0, {name:Sóló cón tu párejâ, length:126, note: this is a very very good movie, description:{rating: 5.300000, views: 152, release: 2011-08-20 11:25:30, film: 2012-05-11}, content:\xAA\xABinteresting\x0B})|INTERVAL
+(label:movies, 2:0, {name:Sóló cón tu párejâ, length:126, note: this is a very very good movie, description:{rating: 5.300000, views: 152, release: 2011-08-20 11:25:30, film: 2012-05-11}, content:\xAA\xABinteresting\x0B})|STRING[]
+(label:movies, 2:1, {name:The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie, length:2544, note: the movie is very very good, description:{rating: 7.000000, views: 982, release: 2018-11-13 13:33:11, film: 2014-09-12}, content:\xAB\xCD})|DATE
+(label:movies, 2:1, {name:The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie, length:2544, note: the movie is very very good, description:{rating: 7.000000, views: 982, release: 2018-11-13 13:33:11, film: 2014-09-12}, content:\xAB\xCD})|TIMESTAMP
+(label:movies, 2:1, {name:The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie, length:2544, note: the movie is very very good, description:{rating: 7.000000, views: 982, release: 2018-11-13 13:33:11, film: 2014-09-12}, content:\xAB\xCD})|INTERVAL
+(label:movies, 2:1, {name:The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie, length:2544, note: the movie is very very good, description:{rating: 7.000000, views: 982, release: 2018-11-13 13:33:11, film: 2014-09-12}, content:\xAB\xCD})|STRING[]
+(label:movies, 2:2, {name:Roma, length:298, note:the movie is very interesting and funny, description:{rating: 1223.000000, views: 10003, release: 2011-02-11 16:44:22, film: 2013-02-22}, content:pure ascii characters})|DATE
+(label:movies, 2:2, {name:Roma, length:298, note:the movie is very interesting and funny, description:{rating: 1223.000000, views: 10003, release: 2011-02-11 16:44:22, film: 2013-02-22}, content:pure ascii characters})|TIMESTAMP
+(label:movies, 2:2, {name:Roma, length:298, note:the movie is very interesting and funny, description:{rating: 1223.000000, views: 10003, release: 2011-02-11 16:44:22, film: 2013-02-22}, content:pure ascii characters})|INTERVAL
+(label:movies, 2:2, {name:Roma, length:298, note:the movie is very interesting and funny, description:{rating: 1223.000000, views: 10003, release: 2011-02-11 16:44:22, film: 2013-02-22}, content:pure ascii characters})|STRING[]
 
 -CASE NodeTableWith300ColumnsInfo
 -DEFINE COLS REPEAT 2400 "col${count} INT64,"

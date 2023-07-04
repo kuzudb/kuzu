@@ -87,7 +87,7 @@
 -LOG MapValues
 -STATEMENT RETURN map_values(map([23, 57, 1444], [{a: 5, c: [3, 4, 13]}, {d: 7, e: [1, 2, 3]}, {f: 9, g: [1, 2, 3, 4]}]));
 ---- 1
-[{A: 5, C: [3,4,13]},{A: 7, C: [1,2,3]},{A: 9, C: [1,2,3,4]}]
+[{a: 5, c: [3,4,13]},{a: 7, c: [1,2,3]},{a: 9, c: [1,2,3,4]}]
 
 -LOG EmptyMapValues
 -STATEMENT RETURN map_values(map([], []));

@@ -81,12 +81,6 @@ std::unique_ptr<ExtraTypeInfo> FixedListTypeInfo::copy() const {
     return std::make_unique<FixedListTypeInfo>(childType->copy(), fixedNumElementsInList);
 }
 
-StructField::StructField(std::string name, std::unique_ptr<LogicalType> type)
-    : name{std::move(name)}, type{std::move(type)} {
-    // Note: struct field name is case-insensitive.
-    StringUtils::toUpper(this->name);
-}
-
 bool StructField::operator==(const kuzu::common::StructField& other) const {
     return *type == *other.type;
 }
@@ -98,7 +92,9 @@ std::unique_ptr<StructField> StructField::copy() const {
 StructTypeInfo::StructTypeInfo(std::vector<std::unique_ptr<StructField>> fields)
     : fields{std::move(fields)} {
     for (auto i = 0u; i < this->fields.size(); i++) {
-        fieldNameToIdxMap.emplace(this->fields[i]->getName(), i);
+        auto fieldName = this->fields[i]->getName();
+        StringUtils::toUpper(fieldName);
+        fieldNameToIdxMap.emplace(std::move(fieldName), i);
     }
 }
 
@@ -281,11 +277,12 @@ void LogicalType::setPhysicalType() {
 
 LogicalType LogicalTypeUtils::dataTypeFromString(const std::string& dataTypeString) {
     LogicalType dataType;
-    if (dataTypeString.ends_with("[]")) {
+    auto upperDataTypeString = StringUtils::toUpperCase(dataTypeString);
+    if (upperDataTypeString.ends_with("[]")) {
         dataType.typeID = LogicalTypeID::VAR_LIST;
         dataType.extraTypeInfo = std::make_unique<VarListTypeInfo>(std::make_unique<LogicalType>(
             dataTypeFromString(dataTypeString.substr(0, dataTypeString.size() - 2))));
-    } else if (dataTypeString.ends_with("]")) {
+    } else if (upperDataTypeString.ends_with("]")) {
         dataType.typeID = LogicalTypeID::FIXED_LIST;
         auto leftBracketPos = dataTypeString.find('[');
         auto rightBracketPos = dataTypeString.find(']');
@@ -296,7 +293,7 @@ LogicalType LogicalTypeUtils::dataTypeFromString(const std::string& dataTypeStri
             nullptr, 0 /* base */);
         dataType.extraTypeInfo =
             std::make_unique<FixedListTypeInfo>(std::move(childType), fixedNumElementsInList);
-    } else if (dataTypeString.starts_with("STRUCT")) {
+    } else if (upperDataTypeString.starts_with("STRUCT")) {
         dataType.typeID = LogicalTypeID::STRUCT;
         auto leftBracketPos = dataTypeString.find('(');
         auto rightBracketPos = dataTypeString.find_last_of(')');
@@ -324,33 +321,34 @@ LogicalType LogicalTypeUtils::dataTypeFromString(const std::string& dataTypeStri
 }
 
 LogicalTypeID LogicalTypeUtils::dataTypeIDFromString(const std::string& dataTypeIDString) {
-    if ("INTERNAL_ID" == dataTypeIDString) {
+    auto upperDataTypeIDString = StringUtils::toUpperCase(dataTypeIDString);
+    if ("INTERNAL_ID" == upperDataTypeIDString) {
         return LogicalTypeID::INTERNAL_ID;
-    } else if ("INT64" == dataTypeIDString) {
+    } else if ("INT64" == upperDataTypeIDString) {
         return LogicalTypeID::INT64;
-    } else if ("INT32" == dataTypeIDString) {
+    } else if ("INT32" == upperDataTypeIDString) {
         return LogicalTypeID::INT32;
-    } else if ("INT16" == dataTypeIDString) {
+    } else if ("INT16" == upperDataTypeIDString) {
         return LogicalTypeID::INT16;
-    } else if ("INT" == dataTypeIDString) {
+    } else if ("INT" == upperDataTypeIDString) {
         return LogicalTypeID::INT32;
-    } else if ("DOUBLE" == dataTypeIDString) {
+    } else if ("DOUBLE" == upperDataTypeIDString) {
         return LogicalTypeID::DOUBLE;
-    } else if ("FLOAT" == dataTypeIDString) {
+    } else if ("FLOAT" == upperDataTypeIDString) {
         return LogicalTypeID::FLOAT;
-    } else if ("BOOLEAN" == dataTypeIDString) {
+    } else if ("BOOLEAN" == upperDataTypeIDString) {
         return LogicalTypeID::BOOL;
-    } else if ("BYTEA" == dataTypeIDString || "BLOB" == dataTypeIDString) {
+    } else if ("BYTEA" == upperDataTypeIDString || "BLOB" == upperDataTypeIDString) {
         return LogicalTypeID::BLOB;
-    } else if ("STRING" == dataTypeIDString) {
+    } else if ("STRING" == upperDataTypeIDString) {
         return LogicalTypeID::STRING;
-    } else if ("DATE" == dataTypeIDString) {
+    } else if ("DATE" == upperDataTypeIDString) {
         return LogicalTypeID::DATE;
-    } else if ("TIMESTAMP" == dataTypeIDString) {
+    } else if ("TIMESTAMP" == upperDataTypeIDString) {
         return LogicalTypeID::TIMESTAMP;
-    } else if ("INTERVAL" == dataTypeIDString) {
+    } else if ("INTERVAL" == upperDataTypeIDString) {
         return LogicalTypeID::INTERVAL;
-    } else if ("SERIAL" == dataTypeIDString) {
+    } else if ("SERIAL" == upperDataTypeIDString) {
         return LogicalTypeID::SERIAL;
     } else {
         throw NotImplementedException("Cannot parse dataTypeID: " + dataTypeIDString);

@@ -126,10 +126,10 @@ def test_struct(establish_connection):
     assert (len(n) == 1)
     description = n[0]
     print(description)
-    assert (description['RATING'] == 1223)
-    assert (description['VIEWS'] == 10003)
-    assert (description['RELEASE'] ==
+    assert (description['rating'] == 1223)
+    assert (description['views'] == 10003)
+    assert (description['release'] ==
             datetime.datetime(2011, 2, 11, 16, 44, 22))
-    assert (description['FILM'] == datetime.date(2013, 2, 22))
+    assert (description['film'] == datetime.date(2013, 2, 22))
     assert not result.has_next()
     result.close()
