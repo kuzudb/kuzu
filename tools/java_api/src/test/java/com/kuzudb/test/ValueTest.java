@@ -18,8 +18,6 @@ public class ValueTest extends TestBase {
         assertFalse(value.isOwnedByCPP());
         assertEquals(value.getDataType().getID(), KuzuDataTypeID.ANY);
         value.destroy();
-
-        System.out.println("ValueCreateNull passed");
     }
 
     @Test
@@ -31,8 +29,6 @@ public class ValueTest extends TestBase {
 
         assertEquals(value.getDataType().getID(), KuzuDataTypeID.INT64);
         value.destroy();
-
-        System.out.println("ValueCreateNullWithDatatype passed");
     }
 
     @Test
@@ -51,8 +47,6 @@ public class ValueTest extends TestBase {
         assertTrue(value.isNull());
         type.destroy();
         value.destroy();
-
-        System.out.println("ValueIsNull passed");
     }
 
     @Test
@@ -67,8 +61,6 @@ public class ValueTest extends TestBase {
         value.setNull(false);
         assertFalse(value.isNull());
         value.destroy();
-
-        System.out.println("ValueSetNull passed");
     }
 
     @Test
@@ -92,8 +84,6 @@ public class ValueTest extends TestBase {
         assertEquals(value.getDataType().getID(), KuzuDataTypeID.STRING);
         assertTrue(value.getValue().equals(""));
         value.destroy();
-
-        System.out.println("ValueCreateDefault passed");
     }
 
     @Test
@@ -175,45 +165,6 @@ public class ValueTest extends TestBase {
     }
 
     @Test
-    void ValueCreateNodeVal() throws KuzuObjectRefDestroyedException {
-        // NodeVal
-        KuzuInternalID id = new KuzuInternalID(1, 123);
-        KuzuNodeValue nodeval = new KuzuNodeValue(id, "person");
-        KuzuValue value = new KuzuValue(nodeval);
-        assertFalse(value.isOwnedByCPP());
-        assertEquals(value.getDataType().getID(), KuzuDataTypeID.NODE);
-        KuzuNodeValue nv = value.getValue();
-        assertEquals(nv.getID().table_id, 1);
-        assertEquals(nv.getID().offset, 123);
-        assertTrue(nv.getLabelName().equals("person"));
-        assertEquals(nv.getPropertySize(), 0);
-        nv.destroy();
-        nodeval.destroy();
-        value.destroy();
-    }
-
-    @Test
-    void ValueCreateRelVal() throws KuzuObjectRefDestroyedException {
-        // RelVal
-        KuzuInternalID srcID = new KuzuInternalID(1, 123);
-        KuzuInternalID dstID = new KuzuInternalID(2, 456);
-        KuzuRelValue relval = new KuzuRelValue(srcID, dstID, "knows");
-        KuzuValue value = new KuzuValue(relval);
-        assertFalse(value.isOwnedByCPP());
-        assertEquals(value.getDataType().getID(), KuzuDataTypeID.REL);
-        KuzuRelValue rv = value.getValue();
-        assertEquals(rv.getSrcID().table_id, 1);
-        assertEquals(rv.getSrcID().offset, 123);
-        assertEquals(rv.getDstID().table_id, 2);
-        assertEquals(rv.getDstID().offset, 456);
-        assertTrue(rv.getLabelName().equals("knows"));
-        assertEquals(rv.getPropertySize(), 0);
-        value.destroy();
-        relval.destroy();
-        rv.destroy();
-    }
-
-    @Test
     void ValueCreateDate() throws KuzuObjectRefDestroyedException {
         // date
         KuzuValue value = new KuzuValue(LocalDate.ofEpochDay(123));
@@ -283,8 +234,6 @@ public class ValueTest extends TestBase {
         str = clone.getValue();
         assertTrue(str.equals("abcdefg"));
         clone.destroy();
-
-        System.out.println("ValueClone passed");
     }
 
     @Test
@@ -300,8 +249,6 @@ public class ValueTest extends TestBase {
         String str = value.getValue();
         assertTrue(str.equals("abcdefg"));
         value.destroy();
-
-        System.out.println("ValueCopy passed");
     }
 
     @Test
@@ -320,8 +267,6 @@ public class ValueTest extends TestBase {
         value.destroy();
         flatTuple.destroy();
         result.destroy();
-
-        System.out.println("ValueGetListSize passed");
     }
 
     @Test
@@ -352,8 +297,6 @@ public class ValueTest extends TestBase {
         value.destroy();
         flatTuple.destroy();
         result.destroy();
-
-        System.out.println("ValueGetListElement passed");
     }
 
     @Test
@@ -387,8 +330,6 @@ public class ValueTest extends TestBase {
 
         flatTuple.destroy();
         result.destroy();
-
-        System.out.println("ValueGetDatatype passed");
     }
 
     @Test
@@ -488,58 +429,6 @@ public class ValueTest extends TestBase {
         assertFalse(value.isNull());
 
         assertTrue(value.getValue().equals((double) 5.0));
-        value.destroy();
-        flatTuple.destroy();
-        result.destroy();
-    }
-
-    @Test
-    void ValueGetInternalID() throws KuzuObjectRefDestroyedException {
-        // InternalID
-        KuzuQueryResult result = conn.query("MATCH (a:person) RETURN a ORDER BY a.ID");
-        assertTrue(result.isSuccess());
-        assertTrue(result.hasNext());
-        KuzuFlatTuple flatTuple = result.getNext();
-        KuzuValue value = flatTuple.getValue(0);
-        assertTrue(value.isOwnedByCPP());
-        assertFalse(value.isNull());
-
-        KuzuNodeValue nv = value.getValue();
-        KuzuInternalID id = nv.getIDVal().getValue();
-        assertEquals(id.table_id, 0);
-        assertEquals(id.offset, 0);
-        nv.destroy();
-        value.destroy();
-        flatTuple.destroy();
-        result.destroy();
-    }
-
-    @Test
-    void ValueGetRelVal() throws KuzuObjectRefDestroyedException {
-        // RelVal
-        KuzuQueryResult result = conn.query("MATCH (a:person) -[r:knows]-> (b:person) RETURN r ORDER BY a.ID, b.ID");
-        assertTrue(result.isSuccess());
-        assertTrue(result.hasNext());
-        KuzuFlatTuple flatTuple = result.getNext();
-        KuzuValue value = flatTuple.getValue(0);
-        assertTrue(value.isOwnedByCPP());
-        assertFalse(value.isNull());
-
-        KuzuRelValue rel = value.getValue();
-        KuzuInternalID srcId = rel.getSrcID();
-        assertEquals(srcId.table_id, 0);
-        assertEquals(srcId.offset, 0);
-
-        KuzuInternalID dstId = rel.getDstID();
-        assertEquals(dstId.table_id, 0);
-        assertEquals(dstId.offset, 1);
-
-        String label = rel.getLabelName();
-        assertTrue(label.equals("knows"));
-        long size = rel.getPropertySize();
-        assertEquals(size, 5);
-
-        rel.destroy();
         value.destroy();
         flatTuple.destroy();
         result.destroy();
@@ -646,91 +535,42 @@ public class ValueTest extends TestBase {
 
         flatTuple.destroy();
         result.destroy();
-
-        System.out.println("ValueToString passed");
     }
 
     @Test
-    void NodeValClone() throws KuzuObjectRefDestroyedException {
-        KuzuInternalID internalID = new KuzuInternalID(1, 123);
-        KuzuNodeValue nodeVal = new KuzuNodeValue(internalID, "person");
-        KuzuNodeValue nodeValClone = nodeVal.clone();
-        nodeVal.destroy();
+    void NodeValGetID() throws KuzuObjectRefDestroyedException {
+        KuzuQueryResult result = conn.query("MATCH (a:person) RETURN a ORDER BY a.ID");
+        assertTrue(result.isSuccess());
+        assertTrue(result.hasNext());
+        KuzuFlatTuple flatTuple = result.getNext();
+        KuzuValue value = flatTuple.getValue(0);
+        assertTrue(value.isOwnedByCPP());
+        assertFalse(value.isNull());
 
-        assertEquals(nodeValClone.getID().table_id, 1);
-        assertEquals(nodeValClone.getID().offset, 123);
-        assertTrue(nodeValClone.getLabelName().equals("person"));
-        assertEquals(nodeValClone.getPropertySize(), 0);
-
-        nodeValClone.destroy();
-        System.out.println("NodeValClone passed");
-    }
-
-    @Test
-    void NodeValGetLabelVal() throws KuzuObjectRefDestroyedException {
-        KuzuInternalID internalID = new KuzuInternalID(1, 123);
-        KuzuNodeValue nodeVal = new KuzuNodeValue(internalID, "person");
-        KuzuNodeValue nodeValClone = nodeVal.clone();
-        nodeVal.destroy();
-
-        assertEquals(nodeValClone.getID().table_id, 1);
-        assertEquals(nodeValClone.getID().offset, 123);
-        assertTrue(nodeValClone.getLabelName().equals("person"));
-        assertEquals(nodeValClone.getPropertySize(), 0);
-
-        nodeValClone.destroy();
-        System.out.println("NodeValGetLabelVal passed");
-    }
-
-    @Test
-    void NodeValNodeValGetID() throws KuzuObjectRefDestroyedException {
-        KuzuInternalID internalID = new KuzuInternalID(1, 123);
-        KuzuNodeValue nodeVal = new KuzuNodeValue(internalID, "person");
-        KuzuValue value = new KuzuValue(nodeVal);
-        KuzuInternalID nodeID = nodeVal.getID();
-        assertEquals(nodeID.table_id, 1);
-        assertEquals(nodeID.offset, 123);
+        KuzuInternalID id = KuzuNodeValue.getID(value);
+        assertEquals(id.table_id, 0);
+        assertEquals(id.offset, 0);
         value.destroy();
-        nodeVal.destroy();
-        System.out.println("NodeValNodeValGetID passed");
+        flatTuple.destroy();
+        result.destroy();
+
     }
 
     @Test
     void NodeValGetLabelName() throws KuzuObjectRefDestroyedException {
-        KuzuInternalID internalID = new KuzuInternalID(1, 123);
-        KuzuNodeValue nodeVal = new KuzuNodeValue(internalID, "person");
-        KuzuValue value = new KuzuValue(nodeVal);
-        String labelName = nodeVal.getLabelName();
-        assertTrue(labelName.equals("person"));
+        KuzuQueryResult result = conn.query("MATCH (a:person) RETURN a ORDER BY a.ID");
+        assertTrue(result.isSuccess());
+        assertTrue(result.hasNext());
+        KuzuFlatTuple flatTuple = result.getNext();
+        KuzuValue value = flatTuple.getValue(0);
+        assertTrue(value.isOwnedByCPP());
+        assertFalse(value.isNull());
+
+        String label = KuzuNodeValue.getLabelName(value);
+        assertEquals(label, "person");
         value.destroy();
-        nodeVal.destroy();
-        System.out.println("NodeValGetLabelName passed");
-    }
-
-    @Test
-    void NodeValAddProperty() throws KuzuObjectRefDestroyedException {
-        KuzuInternalID internalID = new KuzuInternalID(1, 123);
-        KuzuNodeValue nodeVal = new KuzuNodeValue(internalID, "person");
-        long propertySize = nodeVal.getPropertySize();
-        assertEquals(propertySize, 0);
-
-        String propertyKey = "fName";
-        KuzuValue propertyValue = new KuzuValue("Alice");
-        nodeVal.addProperty(propertyKey, propertyValue);
-        propertySize = nodeVal.getPropertySize();
-        assertEquals(propertySize, 1);
-        propertyValue.destroy();
-
-        propertyKey = "age";
-        propertyValue = new KuzuValue(10);
-        nodeVal.addProperty(propertyKey, propertyValue);
-        propertySize = nodeVal.getPropertySize();
-        assertEquals(propertySize, 2);
-
-        propertyValue.destroy();
-        nodeVal.destroy();
-
-        System.out.println("NodeValAddProperty passed");
+        flatTuple.destroy();
+        result.destroy();
     }
 
     @Test
@@ -741,152 +581,126 @@ public class ValueTest extends TestBase {
         KuzuFlatTuple flatTuple = result.getNext();
         KuzuValue value = flatTuple.getValue(0);
         assertTrue(value.isOwnedByCPP());
-        KuzuNodeValue node = value.getValue();
-        String propertyName = node.getPropertyNameAt(0);
+        String propertyName = KuzuNodeValue.getPropertyNameAt(value, 0);
         assertTrue(propertyName.equals("ID"));
-        propertyName = node.getPropertyNameAt(1);
+        propertyName = KuzuNodeValue.getPropertyNameAt(value, 1);
         assertTrue(propertyName.equals("fName"));
-        propertyName = node.getPropertyNameAt(2);
+        propertyName = KuzuNodeValue.getPropertyNameAt(value, 2);
         assertTrue(propertyName.equals("gender"));
-        propertyName = node.getPropertyNameAt(3);
+        propertyName = KuzuNodeValue.getPropertyNameAt(value, 3);
         assertTrue(propertyName.equals("isStudent"));
 
-        KuzuValue propertyValue = node.getPropertyValueAt(0);
+        KuzuValue propertyValue = KuzuNodeValue.getPropertyValueAt(value, 0);
         long propertyValueID = propertyValue.getValue();
         assertEquals(propertyValueID, 0);
         propertyValue.destroy();
-        propertyValue = node.getPropertyValueAt(1);
+        propertyValue = KuzuNodeValue.getPropertyValueAt(value, 1);
         String propertyValuefName = propertyValue.getValue();
         assertTrue(propertyValuefName.equals("Alice"));
         propertyValue.destroy();
-        propertyValue = node.getPropertyValueAt(2);
+        propertyValue = KuzuNodeValue.getPropertyValueAt(value, 2);
         long propertyValueGender = propertyValue.getValue();
         assertEquals(propertyValueGender, 1);
         propertyValue.destroy();
-        propertyValue = node.getPropertyValueAt(3);
+        propertyValue = KuzuNodeValue.getPropertyValueAt(value, 3);
         boolean propertyValueIsStudent = propertyValue.getValue();
         assertEquals(propertyValueIsStudent, true);
         propertyValue.destroy();
 
-        node.destroy();
         value.destroy();
         flatTuple.destroy();
         result.destroy();
-
-        System.out.println("NodeValGetProperty passed");
     }
 
     @Test
     void NodeValToString() throws KuzuObjectRefDestroyedException {
-        KuzuInternalID internalID = new KuzuInternalID(1, 123);
-        KuzuNodeValue nodeVal = new KuzuNodeValue(internalID, "person");
+        KuzuQueryResult result = conn.query("MATCH (b:organisation) RETURN b ORDER BY b.ID");
+        assertTrue(result.isSuccess());
+        assertTrue(result.hasNext());
+        KuzuFlatTuple flatTuple = result.getNext();
+        KuzuValue value = flatTuple.getValue(0);
+        assertTrue(value.isOwnedByCPP());
+        String str = KuzuNodeValue.toString(value);
+        assertEquals(str, "{_ID: 1:0, _LABEL: organisation, ID: 1, name: ABFsUni, orgCode: 325, mark: 3.700000, " +
+                "score: -2, history: 10 years 5 months 13 hours 24 us, licenseValidInterval: 3 years " +
+                "5 days, rating: 1.000000, state: {revenue: 138, location: ['toronto', 'montr,eal'], " +
+                "stock: {price: [96,56], volume: 1000}}}");
+        value.destroy();
+        flatTuple.destroy();
+        result.destroy();
+    }
 
-        String propertyKey = "fName";
-        KuzuValue propertyValue = new KuzuValue("Smith");
-        nodeVal.addProperty(propertyKey, propertyValue);
-        propertyValue.destroy();
 
-        propertyKey = "age";
-        propertyValue = new KuzuValue(10L);
-        nodeVal.addProperty(propertyKey, propertyValue);
-        propertyValue.destroy();
+    @Test
+    void RelValGetIDsAndLabel() throws KuzuObjectRefDestroyedException {
+        KuzuQueryResult result = conn.query("MATCH (a:person) -[r:knows]-> (b:person) RETURN r ORDER BY a.ID, b.ID");
+        assertTrue(result.isSuccess());
+        assertTrue(result.hasNext());
+        KuzuFlatTuple flatTuple = result.getNext();
+        KuzuValue value = flatTuple.getValue(0);
+        assertTrue(value.isOwnedByCPP());
+        assertFalse(value.isNull());
 
-        String str = nodeVal.toString();
-        System.out.println(str);
-        assertTrue(str.equals("(label:person, 1:123, {fName:Smith, age:10})"));
-        nodeVal.destroy();
+        KuzuInternalID srcId = KuzuRelValue.getSrcID(value);
+        assertEquals(srcId.table_id, 0);
+        assertEquals(srcId.offset, 0);
 
-        System.out.println("NodeValToString passed");
+        KuzuInternalID dstId = KuzuRelValue.getDstID(value);
+        assertEquals(dstId.table_id, 0);
+        assertEquals(dstId.offset, 1);
+
+        String label = KuzuRelValue.getLabelName(value);
+        assertTrue(label.equals("knows"));
+
+        long size = KuzuRelValue.getPropertySize(value);
+        assertEquals(size, 4);
+
+        value.destroy();
+        flatTuple.destroy();
+        result.destroy();
     }
 
     @Test
-    void RelValClone() throws KuzuObjectRefDestroyedException {
-        KuzuInternalID srcID = new KuzuInternalID(1, 123);
-        KuzuInternalID dstID = new KuzuInternalID(2, 456);
-        KuzuRelValue relVal = new KuzuRelValue(srcID, dstID, "knows");
-        KuzuRelValue relValClone = relVal.clone();
-        relVal.destroy();
-        KuzuValue srcIDVal = relValClone.getSrcIDVal();
-        KuzuValue dstIDVal = relValClone.getDstIDVal();
-        KuzuInternalID srcIDClone = srcIDVal.getValue();
-        KuzuInternalID dstIDClone = dstIDVal.getValue();
-        assertEquals(srcIDClone.table_id, srcID.table_id);
-        assertEquals(srcIDClone.offset, srcID.offset);
-        assertEquals(dstIDClone.table_id, dstID.table_id);
-        assertEquals(dstIDClone.offset, dstID.offset);
-        String labelName = relValClone.getLabelName();
-        assertTrue(labelName.equals("knows"));
-        long propertySize = relValClone.getPropertySize();
-        assertEquals(propertySize, 0);
-        srcIDVal.destroy();
-        dstIDVal.destroy();
-        relValClone.destroy();
+    void RelValGetProperty() throws KuzuObjectRefDestroyedException {
+        KuzuQueryResult result = conn.query("MATCH (a:person) -[e:workAt]-> (b:organisation) RETURN e ORDER BY a.ID, b.ID");
+        assertTrue(result.isSuccess());
+        assertTrue(result.hasNext());
+        KuzuFlatTuple flatTuple = result.getNext();
+        KuzuValue value = flatTuple.getValue(0);
+        assertTrue(value.isOwnedByCPP());
 
-        System.out.println("RelValClone passed");
-    }
+        String propertyName = KuzuRelValue.getPropertyNameAt(value, 0);
+        assertEquals(propertyName, "year");
 
-    @Test
-    void RelValAddAndGetProperty() throws KuzuObjectRefDestroyedException {
-        KuzuInternalID srcID = new KuzuInternalID(1, 123);
-        KuzuInternalID dstID = new KuzuInternalID(2, 456);
-        KuzuRelValue relVal = new KuzuRelValue(srcID, dstID, "knows");
-        long propertySize = relVal.getPropertySize();
-        assertEquals(propertySize, 0);
+        propertyName = KuzuRelValue.getPropertyNameAt(value, 1);
+        assertEquals(propertyName, "grading");
 
-        String propertyKey = "fName";
-        KuzuValue propertyValue = new KuzuValue("Alice");
-        relVal.addProperty(propertyKey, propertyValue);
-        propertySize = relVal.getPropertySize();
-        assertEquals(propertySize, 1);
+        propertyName = KuzuRelValue.getPropertyNameAt(value, 2);
+        assertEquals(propertyName, "rating");
+
+        KuzuValue propertyValue = KuzuRelValue.getPropertyValueAt(value, 0);
+        long propertyValueYear = propertyValue.getValue();
+        assertEquals(propertyValueYear, 2015);
+
         propertyValue.destroy();
-
-        propertyKey = "age";
-        propertyValue = new KuzuValue(10L);
-        relVal.addProperty(propertyKey, propertyValue);
-        propertySize = relVal.getPropertySize();
-        assertEquals(propertySize, 2);
-        propertyValue.destroy();
-
-        propertyKey = relVal.getPropertyNameAt(0);
-        assertTrue(propertyKey.equals("fName"));
-
-        propertyKey = relVal.getPropertyNameAt(1);
-        assertTrue(propertyKey.equals("age"));
-
-        propertyValue = relVal.getPropertyValueAt(0);
-        String propertyValuefName = propertyValue.getValue();
-        assertTrue(propertyValuefName.equals("Alice"));
-        propertyValue.destroy();
-
-        propertyValue = relVal.getPropertyValueAt(1);
-        long propertyValueAge = propertyValue.getValue();
-        assertEquals(propertyValueAge, 10L);
-        propertyValue.destroy();
-
-        relVal.destroy();
-        System.out.println("RelValAddAndGetProperty passed");
+        value.destroy();
+        flatTuple.destroy();
+        result.destroy();
     }
 
     @Test
     void RelValToString() throws KuzuObjectRefDestroyedException {
-        KuzuInternalID srcID = new KuzuInternalID(1, 123);
-        KuzuInternalID dstID = new KuzuInternalID(2, 456);
-        KuzuRelValue relVal = new KuzuRelValue(srcID, dstID, "knows");
-
-        String propertyKey = "fName";
-        KuzuValue propertyValue = new KuzuValue("Alice");
-        relVal.addProperty(propertyKey, propertyValue);
-        propertyValue.destroy();
-
-        propertyKey = "age";
-        propertyValue = new KuzuValue(10L);
-        relVal.addProperty(propertyKey, propertyValue);
-        propertyValue.destroy();
-
-        String str = relVal.toString();
-        assertTrue(str.equals("(1:123)-[label:knows, {fName:Alice, age:10}]->(2:456)"));
-
-        relVal.destroy();
-        System.out.println("RelValToString passed");
+        KuzuQueryResult result = conn.query("MATCH (a:person) -[e:workAt]-> (b:organisation) RETURN e ORDER BY a.ID, b.ID");
+        assertTrue(result.isSuccess());
+        assertTrue(result.hasNext());
+        KuzuFlatTuple flatTuple = result.getNext();
+        KuzuValue value = flatTuple.getValue(0);
+        assertTrue(value.isOwnedByCPP());
+        String str = KuzuRelValue.toString(value);
+        assertEquals(str, "(0:2)-{_LABEL: workAt, _ID: 5:0, year: 2015, grading: [3.800000,2.500000], " +
+                "rating: 8.200000}->(1:1)");
+        value.destroy();
+        flatTuple.destroy();
+        result.destroy();
     }
 }

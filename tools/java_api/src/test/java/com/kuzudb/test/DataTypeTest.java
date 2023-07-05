@@ -39,8 +39,6 @@ public class DataTypeTest extends TestBase {
         dataTypeClone.destroy();
         dataTypeClone2.destroy();
         dataTypeClone3.destroy();
-
-        System.out.println("DataTypeClone passed");
     }
 
     @Test
@@ -74,8 +72,6 @@ public class DataTypeTest extends TestBase {
         dataTypeClone.destroy();
         dataTypeClone2.destroy();
         dataTypeClone3.destroy();
-
-        System.out.println("DataTypeEquals passed");
     }
 
     @Test
@@ -95,8 +91,6 @@ public class DataTypeTest extends TestBase {
         dataType.destroy();
         dataType2.destroy();
         dataType3.destroy();
-
-        System.out.println("DataTypeGetID passed");
     }
 
     @Test
@@ -115,8 +109,6 @@ public class DataTypeTest extends TestBase {
         dataType.destroy();
         dataType2.destroy();
         dataType3.destroy();
-
-        System.out.println("DataTypeGetChildType passed");
     }
 
     @Test
@@ -136,8 +128,5 @@ public class DataTypeTest extends TestBase {
         dataType.destroy();
         dataType2.destroy();
         dataType3.destroy();
-
-        System.out.println("DataTypeGetFixedNumElementsInList passed");
-
     }
 }

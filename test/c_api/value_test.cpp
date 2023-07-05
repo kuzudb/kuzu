@@ -727,7 +727,7 @@ TEST_F(CApiValueTest, NodeValToString) {
     auto node = kuzu_flat_tuple_get_value(flatTuple, 0);
     ASSERT_TRUE(node->_is_owned_by_cpp);
 
-    auto str = kuzu_value_to_string(node);
+    auto str = kuzu_node_val_to_string(node);
     ASSERT_STREQ(str,
         "{_ID: 1:0, _LABEL: organisation, ID: 1, name: ABFsUni, orgCode: 325, mark: 3.700000, "
         "score: -2, history: 10 years 5 months 13 hours 24 us, licenseValidInterval: 3 years "

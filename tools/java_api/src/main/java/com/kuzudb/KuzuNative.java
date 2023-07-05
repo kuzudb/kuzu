@@ -195,56 +195,30 @@ public class KuzuNative {
 
     protected static native String kuzu_value_to_string(KuzuValue value);
 
-    protected static native long kuzu_node_val_create(KuzuInternalID id, String label);
+    protected static native KuzuInternalID kuzu_node_val_get_id(KuzuValue node_val);
 
-    protected static native KuzuNodeValue kuzu_node_val_clone(KuzuNodeValue node_val);
+    protected static native String kuzu_node_val_get_label_name(KuzuValue node_val);
 
-    protected static native void kuzu_node_val_destroy(KuzuNodeValue node_val);
+    protected static native long kuzu_node_val_get_property_size(KuzuValue node_val);
 
-    protected static native KuzuValue kuzu_node_val_get_id_val(KuzuNodeValue node_val);
+    protected static native String kuzu_node_val_get_property_name_at(KuzuValue node_val, long index);
 
-    protected static native KuzuValue kuzu_node_val_get_label_val(KuzuNodeValue node_val);
+    protected static native KuzuValue kuzu_node_val_get_property_value_at(KuzuValue node_val, long index);
 
-    protected static native KuzuInternalID kuzu_node_val_get_id(KuzuNodeValue node_val);
+    protected static native String kuzu_node_val_to_string(KuzuValue node_val);
 
-    protected static native String kuzu_node_val_get_label_name(KuzuNodeValue node_val);
+    protected static native KuzuInternalID kuzu_rel_val_get_src_id(KuzuValue rel_val);
 
-    protected static native long kuzu_node_val_get_property_size(KuzuNodeValue node_val);
+    protected static native KuzuInternalID kuzu_rel_val_get_dst_id(KuzuValue rel_val);
 
-    protected static native String kuzu_node_val_get_property_name_at(KuzuNodeValue node_val, long index);
+    protected static native String kuzu_rel_val_get_label_name(KuzuValue rel_val);
 
-    protected static native KuzuValue kuzu_node_val_get_property_value_at(KuzuNodeValue node_val, long index);
+    protected static native long kuzu_rel_val_get_property_size(KuzuValue rel_val);
 
-    protected static native void kuzu_node_val_add_property(
-            KuzuNodeValue node_val, String key, KuzuValue value);
+    protected static native String kuzu_rel_val_get_property_name_at(KuzuValue rel_val, long index);
 
-    protected static native String kuzu_node_val_to_string(KuzuNodeValue node_val);
+    protected static native KuzuValue kuzu_rel_val_get_property_value_at(KuzuValue rel_val, long index);
 
-    protected static native long kuzu_rel_val_create(
-            KuzuInternalID src_id, KuzuInternalID dst_id, String label);
-
-    protected static native KuzuRelValue kuzu_rel_val_clone(KuzuRelValue rel_val);
-
-    protected static native void kuzu_rel_val_destroy(KuzuRelValue rel_val);
-
-    protected static native KuzuValue kuzu_rel_val_get_src_id_val(KuzuRelValue rel_val);
-
-    protected static native KuzuValue kuzu_rel_val_get_dst_id_val(KuzuRelValue rel_val);
-
-    protected static native KuzuInternalID kuzu_rel_val_get_src_id(KuzuRelValue rel_val);
-
-    protected static native KuzuInternalID kuzu_rel_val_get_dst_id(KuzuRelValue rel_val);
-
-    protected static native String kuzu_rel_val_get_label_name(KuzuRelValue rel_val);
-
-    protected static native long kuzu_rel_val_get_property_size(KuzuRelValue rel_val);
-
-    protected static native String kuzu_rel_val_get_property_name_at(KuzuRelValue rel_val, long index);
-
-    protected static native KuzuValue kuzu_rel_val_get_property_value_at(KuzuRelValue rel_val, long index);
-
-    protected static native void kuzu_rel_val_add_property(KuzuRelValue rel_val, String key, KuzuValue value);
-
-    protected static native String kuzu_rel_val_to_string(KuzuRelValue rel_val);
+    protected static native String kuzu_rel_val_to_string(KuzuValue rel_val);
 
 }

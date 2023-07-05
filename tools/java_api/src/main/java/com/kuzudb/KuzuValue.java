@@ -22,7 +22,7 @@ public class KuzuValue {
         return KuzuNative.kuzu_value_create_default(data_type);
     }
 
-    private void checkNotDestroyed() throws KuzuObjectRefDestroyedException {
+    public void checkNotDestroyed() throws KuzuObjectRefDestroyedException {
         if (destroyed)
             throw new KuzuObjectRefDestroyedException("KuzuValue has been destroyed.");
     }
