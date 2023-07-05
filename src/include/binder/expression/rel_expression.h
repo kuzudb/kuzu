@@ -18,15 +18,18 @@ struct RecursiveInfo {
     uint64_t lowerBound;
     uint64_t upperBound;
     std::shared_ptr<NodeExpression> node;
+    // NodeCopy has the same fields as node but a different unique name.
+    // We use nodeCopy to plan recursive plan because boundNode&nbrNode cannot be the same.
+    std::shared_ptr<NodeExpression> nodeCopy;
     std::shared_ptr<RelExpression> rel;
     std::shared_ptr<Expression> lengthExpression;
     expression_vector predicates;
 
     RecursiveInfo(uint64_t lowerBound, uint64_t upperBound, std::shared_ptr<NodeExpression> node,
-        std::shared_ptr<RelExpression> rel, std::shared_ptr<Expression> lengthExpression,
-        expression_vector predicates)
-        : lowerBound{lowerBound}, upperBound{upperBound}, node{std::move(node)}, rel{std::move(
-                                                                                     rel)},
+        std::shared_ptr<NodeExpression> nodeCopy, std::shared_ptr<RelExpression> rel,
+        std::shared_ptr<Expression> lengthExpression, expression_vector predicates)
+        : lowerBound{lowerBound}, upperBound{upperBound}, node{std::move(node)},
+          nodeCopy{std::move(nodeCopy)}, rel{std::move(rel)},
           lengthExpression{std::move(lengthExpression)}, predicates{std::move(predicates)} {}
 };
 
