@@ -264,6 +264,7 @@ void ListVector::copyFromRowData(ValueVector* vector, uint32_t pos, const uint8_
         if (NullBuffer::isNull(srcNullBytes, i)) {
             resultDataVector->setNull(dstListValuePos, true);
         } else {
+            resultDataVector->setNull(dstListValuePos, false);
             resultDataVector->copyFromRowData(dstListValuePos, srcListValues);
         }
         srcListValues += rowLayoutSize;
@@ -308,6 +309,7 @@ void ListVector::copyFromVectorData(ValueVector* dstVector, uint8_t* dstData,
         if (srcDataVector->isNull(srcListEntry.offset + i)) {
             dstDataVector->setNull(dstListEntry.offset + i, true);
         } else {
+            dstDataVector->setNull(dstListEntry.offset + i, false);
             dstDataVector->copyFromVectorData(dstListData, srcDataVector, srcListData);
         }
         srcListData += numBytesPerValue;
@@ -325,6 +327,7 @@ void StructVector::copyFromRowData(ValueVector* vector, uint32_t pos, const uint
         if (NullBuffer::isNull(structNullBytes, i)) {
             structField->setNull(pos, true /* isNull */);
         } else {
+            structField->setNull(pos, false /* isNull */);
             structField->copyFromRowData(pos, structValues);
         }
         structValues += LogicalTypeUtils::getRowLayoutSize(structField->dataType);
@@ -362,6 +365,7 @@ void StructVector::copyFromVectorData(ValueVector* dstVector, const uint8_t* dst
         if (srcFieldVector->isNull(srcPos)) {
             dstFieldVector->setNull(dstPos, true /* isNull */);
         } else {
+            dstFieldVector->setNull(dstPos, false /* isNull */);
             auto srcFieldVectorData =
                 srcFieldVector->getData() + srcFieldVector->getNumBytesPerValue() * srcPos;
             auto dstFieldVectorData =

@@ -7,6 +7,10 @@
 #include "query_normalizer.h"
 
 namespace kuzu {
+namespace main {
+class ClientContext;
+}
+
 namespace binder {
 
 class BoundCreateNode;
@@ -53,9 +57,9 @@ class Binder {
     friend class ExpressionBinder;
 
 public:
-    explicit Binder(const catalog::Catalog& catalog)
+    explicit Binder(const catalog::Catalog& catalog, main::ClientContext* clientContext)
         : catalog{catalog}, lastExpressionId{0}, variableScope{std::make_unique<VariableScope>()},
-          expressionBinder{this} {}
+          expressionBinder{this}, clientContext{clientContext} {}
 
     std::unique_ptr<BoundStatement> bind(const parser::Statement& statement);
 
@@ -246,6 +250,7 @@ private:
     uint32_t lastExpressionId;
     std::unique_ptr<VariableScope> variableScope;
     ExpressionBinder expressionBinder;
+    main::ClientContext* clientContext;
 };
 
 } // namespace binder

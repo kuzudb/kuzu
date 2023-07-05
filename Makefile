@@ -10,6 +10,7 @@ ROOT_DIR=$(CURDIR)
 ifndef $(NUM_THREADS)
 	NUM_THREADS=1
 endif
+export CMAKE_BUILD_PARALLEL_LEVEL=$(NUM_THREADS)
 
 ifndef $(TEST_JOBS)
 	TEST_JOBS=10
@@ -48,77 +49,61 @@ define mkdirp
 endef
 endif
 
-arrow:
-	$(call mkdirp,external/build) && cd external/build && \
-	cmake $(FORCE_COLOR) $(SANITIZER_FLAG) $(GENERATOR) -DCMAKE_BUILD_TYPE=Release .. && \
-	cmake --build . --config Release -- -j $(NUM_THREADS)
-
-arrow-debug:
-ifeq ($(OS),Windows_NT)
-	$(call mkdirp,external/build) && cd external/build && \
-	cmake $(FORCE_COLOR) $(SANITIZER_FLAG) $(GENERATOR) -DCMAKE_BUILD_TYPE=Debug .. && \
-	cmake --build . --config Debug -- -j $(NUM_THREADS)
-else
-	$(call mkdirp,external/build) && cd external/build && \
-	cmake $(FORCE_COLOR) $(SANITIZER_FLAG) $(GENERATOR) -DCMAKE_BUILD_TYPE=Release .. && \
-	cmake --build . --config Release -- -j $(NUM_THREADS)
-endif
-
-release: arrow
+release:
 	$(call mkdirp,build/release) && cd build/release && \
 	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) -DCMAKE_BUILD_TYPE=Release ../.. && \
-	cmake --build . --config Release -- -j $(NUM_THREADS)
+	cmake --build . --config Release
 
-debug: arrow-debug
+debug:
 	$(call mkdirp,build/debug) && cd build/debug && \
 	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) -DCMAKE_BUILD_TYPE=Debug ../.. && \
-	cmake --build . --config Debug -- -j $(NUM_THREADS)
+	cmake --build . --config Debug
 
-all: arrow
+all:
 	$(call mkdirp,build/release) && cd build/release && \
 	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=TRUE -DBUILD_BENCHMARK=TRUE -DBUILD_NODEJS=TRUE ../.. && \
-	cmake --build . --config Release -- -j $(NUM_THREADS)
+	cmake --build . --config Release
 
-alldebug: arrow
+alldebug:
 	$(call mkdirp,build/debug) && cd build/debug && \
 	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=TRUE -DBUILD_BENCHMARK=TRUE -DBUILD_NODEJS=TRUE ../.. && \
-	cmake --build . --config Debug -- -j $(NUM_THREADS)
+	cmake --build . --config Debug
 
-benchmark: arrow
+benchmark:
 	$(call mkdirp,build/release) && cd build/release && \
 	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) -DCMAKE_BUILD_TYPE=Release -DBUILD_BENCHMARK=TRUE ../.. && \
-	cmake --build . --config Release -- -j $(NUM_THREADS)
+	cmake --build . --config Release
 
-nodejs: arrow
+nodejs:
 	$(call mkdirp,build/release) && cd build/release && \
 	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) -DCMAKE_BUILD_TYPE=Release -DBUILD_NODEJS=TRUE ../.. && \
-	cmake --build . --config Release -- -j $(NUM_THREADS)
+	cmake --build . --config Release
 
 java:
 	$(call mkdirp,build/release) && cd build/release && \
 	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) -DCMAKE_BUILD_TYPE=Release -DBUILD_JAVA=TRUE ../.. && \
-	cmake --build . --config Release -- -j $(NUM_THREADS)
+	cmake --build . --config Release
 
-test: arrow
+test:
 	$(call mkdirp,build/release) && cd build/release && \
 	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=TRUE ../.. && \
-	cmake --build . --config Release -- -j $(NUM_THREADS)
+	cmake --build . --config Release
 	cd $(ROOT_DIR)/build/release/test && \
 	ctest --output-on-failure -j ${TEST_JOBS}
 
-lcov: arrow
+lcov:
 	$(call mkdirp,build/release) && cd build/release && \
 	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=TRUE -DBUILD_NODEJS=TRUE -DBUILD_LCOV=TRUE ../.. && \
-	cmake --build . --config Release -- -j $(NUM_THREADS)
+	cmake --build . --config Release
 	cd $(ROOT_DIR)/build/release/test && \
 	ctest --output-on-failure -j ${TEST_JOBS}
 
-pytest: arrow
+pytest:
 	$(MAKE) release
 	cd $(ROOT_DIR)/tools/python_api/test && \
 	python3 -m pytest -v test_main.py
 
-nodejstest: arrow
+nodejstest:
 	$(MAKE) nodejs
 	cd $(ROOT_DIR)/tools/nodejs_api/ && \
 	npm test
@@ -162,18 +147,9 @@ else
 	rm -rf tools/java_api/build
 endif
 
-clean-external:
-ifeq ($(OS),Windows_NT)
-	if exist external\build rmdir /s /q external\build
-else
-	rm -rf external/build
-endif
-
 clean: clean-python-api clean-java
 ifeq ($(OS),Windows_NT)
 	if exist build rmdir /s /q build
 else
 	rm -rf build
 endif
-
-clean-all: clean-external clean

@@ -66,8 +66,8 @@ void JoinOrderEnumerator::appendRecursiveExtend(std::shared_ptr<NodeExpression> 
     createPathNodePropertyScanPlan(recursiveInfo->node, *pathNodePropertyScanPlan);
     // Create path rel property scan plan
     auto pathRelPropertyScanPlan = std::make_unique<LogicalPlan>();
-    createPathRelPropertyScanPlan(
-        recursiveInfo->node, nbrNode, recursiveInfo->rel, direction, *pathRelPropertyScanPlan);
+    createPathRelPropertyScanPlan(recursiveInfo->node, recursiveInfo->nodeCopy, recursiveInfo->rel,
+        direction, *pathRelPropertyScanPlan);
     // Create path property probe
     auto pathPropertyProbe = std::make_shared<LogicalPathPropertyProbe>(rel, extend,
         pathNodePropertyScanPlan->getLastOperator(), pathRelPropertyScanPlan->getLastOperator());

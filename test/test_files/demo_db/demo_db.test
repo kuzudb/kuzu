@@ -270,15 +270,11 @@ Noura|50
 
 -LOG Undir2
 -STATEMENT MATCH (a:User)-[:LivesIn]-(c:City) RETURN a.name, c.name;
----- 8
+---- 4
 Adam|Waterloo
 Karissa|Waterloo
 Zhang|Kitchener
 Noura|Guelph
-Waterloo|Karissa
-Waterloo|Adam
-Kitchener|Zhang
-Guelph|Noura
 
 -LOG Undir3
 -STATEMENT MATCH ()-[]-() RETURN COUNT(*);

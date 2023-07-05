@@ -28,35 +28,9 @@ Binder::bindGraphPattern(const std::vector<std::unique_ptr<PatternElement>>& gra
     return std::make_pair(std::move(queryGraphCollection), std::move(propertyCollection));
 }
 
-// For undirected pattern (A)-[R]-(B), we need to match R in both FWD and BWD direction.
-// Since computation always starts from one node, we need to rewrite the node table names to be
-// the union of both node table names, i.e. (A|B)-[R]-(A|B)
-void static rewriteNodeTableNameForUndirectedRel(const PatternElement& patternElement) {
-    auto leftNode = patternElement.getFirstNodePattern();
-    for (auto i = 0u; i < patternElement.getNumPatternElementChains(); ++i) {
-        auto patternElementChain = patternElement.getPatternElementChain(i);
-        auto rightNode = patternElementChain->getNodePattern();
-        if (patternElementChain->getRelPattern()->getDirection() == ArrowDirection::BOTH) {
-            std::vector<std::string> tableNameUnion = {};
-            auto leftTableNames = leftNode->getTableNames();
-            auto rightTableNames = rightNode->getTableNames();
-            if (!leftTableNames.empty() && !rightTableNames.empty()) {
-                tableNameUnion.insert(
-                    tableNameUnion.end(), leftTableNames.begin(), leftTableNames.end());
-                tableNameUnion.insert(
-                    tableNameUnion.end(), rightTableNames.begin(), rightTableNames.end());
-            }
-            leftNode->setTableNames(tableNameUnion);
-            rightNode->setTableNames(tableNameUnion);
-        }
-        leftNode = rightNode;
-    }
-}
-
 // Grammar ensures pattern element is always connected and thus can be bound as a query graph.
 std::unique_ptr<QueryGraph> Binder::bindPatternElement(
     const PatternElement& patternElement, PropertyKeyValCollection& collection) {
-    rewriteNodeTableNameForUndirectedRel(patternElement);
     auto queryGraph = std::make_unique<QueryGraph>();
     auto leftNode = bindQueryNode(*patternElement.getFirstNodePattern(), *queryGraph, collection);
     for (auto i = 0u; i < patternElement.getNumPatternElementChains(); ++i) {
@@ -190,7 +164,11 @@ void Binder::bindQueryRel(const RelPattern& relPattern,
     if (QueryRelTypeUtils::isRecursive(relPattern.getRelType())) {
         queryRel = createRecursiveQueryRel(relPattern, tableIDs, srcNode, dstNode, directionType);
     } else {
-        tableIDs = pruneRelTableIDs(catalog, tableIDs, *srcNode, *dstNode);
+        if (directionType == RelDirectionType::SINGLE) {
+            // We perform table ID pruning as an optimization. BOTH direction type requires a more
+            // advanced pruning logic because it does not have notion of src & dst by nature.
+            tableIDs = pruneRelTableIDs(catalog, tableIDs, *srcNode, *dstNode);
+        }
         if (tableIDs.empty()) {
             throw BinderException("Nodes " + srcNode->toString() + " and " + dstNode->toString() +
                                   " are not connected through rel " + parsedName + ".");
@@ -250,6 +228,9 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
     auto tmpNode = createQueryNode(
         InternalKeyword::ANONYMOUS, std::vector<common::table_id_t>{recursiveNodeTableIDs.begin(),
                                         recursiveNodeTableIDs.end()});
+    auto tmpNodeCopy = createQueryNode(
+        InternalKeyword::ANONYMOUS, std::vector<common::table_id_t>{recursiveNodeTableIDs.begin(),
+                                        recursiveNodeTableIDs.end()});
     auto prevScope = saveScope();
     variableScope->clear();
     auto tmpRel = createNonRecursiveQueryRel(
@@ -275,7 +256,8 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
     auto lengthExpression = expressionBinder.createInternalLengthExpression(*queryRel);
     auto [lowerBound, upperBound] = bindVariableLengthRelBound(relPattern);
     auto recursiveInfo = std::make_unique<RecursiveInfo>(lowerBound, upperBound, std::move(tmpNode),
-        std::move(tmpRel), std::move(lengthExpression), std::move(predicates));
+        std::move(tmpNodeCopy), std::move(tmpRel), std::move(lengthExpression),
+        std::move(predicates));
     queryRel->setRecursiveInfo(std::move(recursiveInfo));
     bindQueryRelProperties(*queryRel);
     return queryRel;

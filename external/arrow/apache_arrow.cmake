@@ -10,7 +10,8 @@ endif()
 
 ExternalProject_Add(apache_arrow
         GIT_REPOSITORY "https://github.com/apache/arrow"
-        GIT_TAG f10f5cfd1376fb0e602334588b3f3624d41dee7d
+        GIT_TAG apache-arrow-12.0.1
+        GIT_SHALLOW TRUE
         PREFIX "${CMAKE_BINARY_DIR}/arrow/"
         INSTALL_DIR "${CMAKE_BINARY_DIR}/arrow/install"
         CONFIGURE_COMMAND

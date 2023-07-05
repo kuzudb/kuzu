@@ -52,14 +52,6 @@ void ProjectionPushDownOptimizer::visitPathPropertyProbe(planner::LogicalOperato
         // TODO(Xiyang): we should remove pathPropertyProbe if we don't need to track path
         pathPropertyProbe->setChildren(
             std::vector<std::shared_ptr<LogicalOperator>>{pathPropertyProbe->getChild(0)});
-    } else {
-        // Pre-append projection to rel property build.
-        expression_vector expressionsToProject;
-        for (auto& expression : recursiveInfo->rel->getPropertyExpressions()) {
-            expressionsToProject.push_back(expression->copy());
-        }
-        expressionsToProject.push_back(recursiveInfo->rel->getLabelExpression());
-        preAppendProjection(op, 2, expressionsToProject);
     }
 }
 

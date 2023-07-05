@@ -45,6 +45,8 @@ public:
 
     void startTimingIfEnabled();
 
+    std::string getCurrentSetting(std::string optionName);
+
 private:
     uint64_t numThreadsForExecution;
     std::unique_ptr<ActiveQuery> activeQuery;

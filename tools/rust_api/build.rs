@@ -94,9 +94,6 @@ fn link_libraries() {
 }
 
 fn build_bundled_cmake() -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
-    if let Ok(jobs) = std::env::var("NUM_THREADS") {
-        std::env::set_var("NUM_JOBS", jobs);
-    }
     let kuzu_root = {
         let root = Path::new(&std::env::var("CARGO_MANIFEST_DIR").unwrap()).join("kuzu-src");
         if root.is_symlink() || root.is_dir() {
