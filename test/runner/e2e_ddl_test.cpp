@@ -831,9 +831,5 @@ TEST_F(TinySnbDDLTest, RenamePropertyRecovery) {
     renameProperty(TransactionTestType::RECOVERY);
 }
 
-TEST_F(TinySnbDDLTest, dasd) {
-    conn->query(" Profile create node table npytable1 (id INT64,i32 INT32, PRIMARY KEY(id));");
-}
-
 } // namespace testing
 } // namespace kuzu

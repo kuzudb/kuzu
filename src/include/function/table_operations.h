@@ -2,6 +2,7 @@
 
 #include "common/vector/value_vector.h"
 #include "function/function_definition.h"
+#include "main/client_context.h"
 
 namespace kuzu {
 
@@ -17,7 +18,7 @@ struct TableFuncBindInput;
 using table_func_t = std::function<void(std::pair<common::offset_t, common::offset_t>,
     function::TableFuncBindData*, std::vector<common::ValueVector*>)>;
 using table_bind_func_t = std::function<std::unique_ptr<TableFuncBindData>(
-    TableFuncBindInput input, catalog::CatalogContent* catalog)>;
+    main::ClientContext* context, TableFuncBindInput input, catalog::CatalogContent* catalog)>;
 
 struct TableFuncBindData {
     std::vector<common::LogicalType> returnTypes;
@@ -31,7 +32,9 @@ struct TableFuncBindData {
 
     virtual ~TableFuncBindData() = default;
 
-    virtual std::unique_ptr<TableFuncBindData> copy() = 0;
+    virtual std::unique_ptr<TableFuncBindData> copy() {
+        return std::make_unique<TableFuncBindData>(returnTypes, returnColumnNames, maxOffset);
+    }
 };
 
 struct TableFuncBindInput {
@@ -72,7 +75,45 @@ struct TableInfoOperation {
         function::TableFuncBindData* bindData, std::vector<common::ValueVector*> outputVectors);
 
     static std::unique_ptr<TableInfoBindData> bindFunc(
-        TableFuncBindInput input, catalog::CatalogContent* catalog);
+        main::ClientContext* context, TableFuncBindInput input, catalog::CatalogContent* catalog);
+};
+
+struct DBVersionOperation {
+    inline static std::unique_ptr<TableOperationDefinition> getDefinitions() {
+        return std::make_unique<TableOperationDefinition>("db_version", tableFunc, bindFunc);
+    }
+
+    static void tableFunc(std::pair<common::offset_t, common::offset_t> morsel,
+        function::TableFuncBindData* bindData, std::vector<common::ValueVector*> outputVectors);
+
+    static std::unique_ptr<TableFuncBindData> bindFunc(
+        main::ClientContext* context, TableFuncBindInput input, catalog::CatalogContent* catalog);
+};
+
+struct CurrentSettingBindData : public TableFuncBindData {
+    std::string result;
+
+    CurrentSettingBindData(std::string result, std::vector<common::LogicalType> returnTypes,
+        std::vector<std::string> returnColumnNames, common::offset_t maxOffset)
+        : result{std::move(result)}, TableFuncBindData{std::move(returnTypes),
+                                         std::move(returnColumnNames), maxOffset} {}
+
+    std::unique_ptr<TableFuncBindData> copy() override {
+        return std::make_unique<CurrentSettingBindData>(
+            result, returnTypes, returnColumnNames, maxOffset);
+    }
+};
+
+struct CurrentSettingOperation {
+    inline static std::unique_ptr<TableOperationDefinition> getDefinitions() {
+        return std::make_unique<TableOperationDefinition>("current_setting", tableFunc, bindFunc);
+    }
+
+    static void tableFunc(std::pair<common::offset_t, common::offset_t> morsel,
+        function::TableFuncBindData* bindData, std::vector<common::ValueVector*> outputVectors);
+
+    static std::unique_ptr<TableFuncBindData> bindFunc(
+        main::ClientContext* context, TableFuncBindInput input, catalog::CatalogContent* catalog);
 };
 
 } // namespace function

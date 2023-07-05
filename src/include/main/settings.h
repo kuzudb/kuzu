@@ -13,6 +13,9 @@ struct ThreadsSetting {
         assert(parameter.getDataType().getLogicalTypeID() == common::LogicalTypeID::INT64);
         context->numThreadsForExecution = parameter.getValue<int64_t>();
     }
+    static std::string getSetting(ClientContext* context) {
+        return std::to_string(context->numThreadsForExecution);
+    }
 };
 
 struct TimeoutSetting {
@@ -22,6 +25,9 @@ struct TimeoutSetting {
         assert(parameter.getDataType().getLogicalTypeID() == common::LogicalTypeID::INT64);
         context->timeoutInMS = parameter.getValue<int64_t>();
         context->startTimingIfEnabled();
+    }
+    static std::string getSetting(ClientContext* context) {
+        return std::to_string(context->timeoutInMS);
     }
 };
 
