@@ -80,6 +80,7 @@ def test_node(establish_connection):
     n = result.get_next()
     assert(len(n) == 1)
     n = n[0]
+    print(n)
     assert (n['_label'] == 'person')
     assert (n['ID'] == 0)
     assert (n['fName'] == 'Alice')
@@ -102,6 +103,7 @@ def test_rel(establish_connection):
         "MATCH (p:person)-[r:workAt]->(o:organisation) WHERE p.ID = 5 RETURN p, r, o")
     assert result.has_next()
     n = result.get_next()
+    print(n)
     assert (len(n) == 3)
     p = n[0]
     r = n[1]

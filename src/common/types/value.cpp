@@ -507,8 +507,8 @@ std::vector<std::pair<std::string, std::unique_ptr<Value>>> NodeVal::getProperti
         if (currKey == InternalKeyword::ID || currKey == InternalKeyword::LABEL) {
             continue;
         }
-        auto currVal = structVals[i].get();
-        properties.emplace_back(currKey, currVal);
+        auto currVal = structVals[i].get()->copy();
+        properties.emplace_back(currKey, std::move(currVal));
     }
     return properties;
 }
@@ -549,7 +549,7 @@ RelVal::RelVal(const RelVal& other) {
     this->val = other.val;
 }
 
-const std::vector<std::pair<std::string, std::unique_ptr<Value>>>& RelVal::getProperties() const {
+ std::vector<std::pair<std::string, std::unique_ptr<Value>>> RelVal::getProperties() const {
     std::vector<std::pair<std::string, std::unique_ptr<Value>>> properties;
     auto dataType = val->getDataType();
     auto fieldNames = StructType::getFieldNames(&dataType);
@@ -560,8 +560,8 @@ const std::vector<std::pair<std::string, std::unique_ptr<Value>>>& RelVal::getPr
             currKey == InternalKeyword::SRC || currKey == InternalKeyword::DST) {
             continue;
         }
-        auto currVal = structVals[i].get();
-        properties.emplace_back(currKey, currVal);
+        auto currVal = structVals[i].get()->copy();
+        properties.emplace_back(currKey, std::move(currVal));
     }
     return properties;
 }

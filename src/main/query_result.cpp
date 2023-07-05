@@ -128,17 +128,16 @@ void QueryResult::initResultTableAndIterator(
             auto nodeVal = std::make_unique<NodeVal>(value);
             auto valueToReturn = std::make_shared<Value>(std::move(nodeVal));
             valuesToCollect.push_back(value.get());
-            tuple->addValue(std::move(valueToReturn));
+            tuple->addValue(valueToReturn);
         } else if (logicalTypeID == LogicalTypeID::REL) {
             auto relVal = std::make_unique<RelVal>(value);
             auto valueToReturn = std::make_shared<Value>(std::move(relVal));
             valuesToCollect.push_back(value.get());
-            tuple->addValue(std::move(valueToReturn));
+            tuple->addValue(valueToReturn);
         } else {
             valuesToCollect.push_back(value.get());
-            tuple->addValue(std::move(value));
+            tuple->addValue(value);
         }
-        
     }
     iterator = std::make_unique<FlatTupleIterator>(*factorizedTable, std::move(valuesToCollect));
 }

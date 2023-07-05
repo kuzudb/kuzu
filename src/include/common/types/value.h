@@ -292,8 +292,7 @@ public:
     /**
      * @return all properties of the RelVal.
      */
-    KUZU_API const std::vector<std::pair<std::string, std::unique_ptr<Value>>>&
-    getProperties() const;
+    KUZU_API std::vector<std::pair<std::string, std::unique_ptr<Value>>> getProperties() const;
     /**
      * @return the src nodeID value of the RelVal in Value.
      */

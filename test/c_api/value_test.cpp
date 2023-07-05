@@ -520,11 +520,13 @@ TEST_F(CApiValueTest, GetInternalID) {
     auto flatTuple = kuzu_query_result_get_next(result);
     auto value = kuzu_flat_tuple_get_value(flatTuple, 0);
     ASSERT_TRUE(value->_is_owned_by_cpp);
-    auto nodeIDVal = kuzu_value_get_struct_field_value(value, 0 /* internal ID field idx */);
+    auto node = kuzu_value_get_node_val(value);
+    auto nodeIDVal = kuzu_node_val_get_id_val(node);
     auto internalID = kuzu_value_get_internal_id(nodeIDVal);
     ASSERT_EQ(internalID.table_id, 0);
     ASSERT_EQ(internalID.offset, 0);
     kuzu_value_destroy(nodeIDVal);
+    kuzu_node_val_destroy(node);
     kuzu_value_destroy(value);
     kuzu_flat_tuple_destroy(flatTuple);
     kuzu_query_result_destroy(result);
