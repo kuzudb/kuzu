@@ -1,3 +1,4 @@
+#include "binder/expression/literal_expression.h"
 #include "binder/expression_binder.h"
 #include "common/types/ku_list.h"
 #include "function/list/operations/list_any_value_operation.h"
@@ -37,21 +38,14 @@ void ListCreationVectorOperation::execFunc(
         auto pos = result.state->selVector->selectedPositions[selectedPos];
         auto resultEntry = common::ListVector::addList(&result, parameters.size());
         result.setValue(pos, resultEntry);
-        auto resultValues = common::ListVector::getListValues(&result, resultEntry);
         auto resultDataVector = common::ListVector::getDataVector(&result);
-        auto numBytesPerValue = resultDataVector->getNumBytesPerValue();
+        auto resultPos = resultEntry.offset;
         for (auto i = 0u; i < parameters.size(); i++) {
             auto parameter = parameters[i];
             auto paramPos = parameter->state->isFlat() ?
                                 parameter->state->selVector->selectedPositions[0] :
                                 pos;
-            if (parameter->isNull(paramPos)) {
-                resultDataVector->setNull(resultEntry.offset + i, true);
-            } else {
-                resultDataVector->copyFromVectorData(resultValues, parameter.get(),
-                    parameter->getData() + parameter->getNumBytesPerValue() * paramPos);
-            }
-            resultValues += numBytesPerValue;
+            resultDataVector->copyFromVectorData(resultPos++, parameter.get(), paramPos);
         }
     }
 }
@@ -219,7 +213,8 @@ vector_operation_definitions ListAppendVectorOperation::getDefinitions() {
 
 std::unique_ptr<FunctionBindData> ListPrependVectorOperation::bindFunc(
     const binder::expression_vector& arguments, FunctionDefinition* definition) {
-    if (arguments[0]->dataType != *VarListType::getChildType(&arguments[1]->dataType)) {
+    if (arguments[0]->getDataType().getLogicalTypeID() != LogicalTypeID::ANY &&
+        arguments[0]->dataType != *VarListType::getChildType(&arguments[1]->dataType)) {
         throw BinderException(getListFunctionIncompatibleChildrenTypeErrorMsg(
             LIST_APPEND_FUNC_NAME, arguments[0]->getDataType(), arguments[1]->getDataType()));
     }

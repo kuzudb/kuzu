@@ -15,15 +15,11 @@ bool Unwind::hasMoreToRead() const {
 }
 
 void Unwind::copyTuplesToOutVector(uint64_t startPos, uint64_t endPos) const {
-    auto listValues = common::ListVector::getListValuesWithOffset(
-        expressionEvaluator->resultVector.get(), listEntry, startPos);
     auto listDataVector =
         common::ListVector::getDataVector(expressionEvaluator->resultVector.get());
-    for (auto pos = startPos; pos < endPos; pos++) {
-        outValueVector->copyFromVectorData(
-            outValueVector->getData() + outValueVector->getNumBytesPerValue() * (pos - startPos),
-            listDataVector, listValues);
-        listValues += listDataVector->getNumBytesPerValue();
+    auto listPos = listEntry.offset + startPos;
+    for (auto i = 0u; i < endPos - startPos; i++) {
+        outValueVector->copyFromVectorData(i, listDataVector, listPos++);
     }
 }
 

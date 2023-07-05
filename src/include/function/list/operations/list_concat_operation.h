@@ -15,22 +15,17 @@ public:
         common::list_entry_t& result, common::ValueVector& leftVector,
         common::ValueVector& rightVector, common::ValueVector& resultVector) {
         result = common::ListVector::addList(&resultVector, left.size + right.size);
-        auto leftValues = common::ListVector::getListValues(&leftVector, left);
-        auto leftDataVector = common::ListVector::getDataVector(&leftVector);
-        auto resultValues = common::ListVector::getListValues(&resultVector, result);
         auto resultDataVector = common::ListVector::getDataVector(&resultVector);
-        auto numBytesPerValue = resultDataVector->getNumBytesPerValue();
+        auto resultPos = result.offset;
+        auto leftDataVector = common::ListVector::getDataVector(&leftVector);
+        auto leftPos = left.offset;
         for (auto i = 0u; i < left.size; i++) {
-            resultDataVector->copyFromVectorData(resultValues, leftDataVector, leftValues);
-            resultValues += numBytesPerValue;
-            leftValues += numBytesPerValue;
+            resultDataVector->copyFromVectorData(resultPos++, leftDataVector, leftPos++);
         }
-        auto rightValues = common::ListVector::getListValues(&rightVector, right);
         auto rightDataVector = common::ListVector::getDataVector(&rightVector);
+        auto rightPos = right.offset;
         for (auto i = 0u; i < right.size; i++) {
-            resultDataVector->copyFromVectorData(resultValues, rightDataVector, rightValues);
-            resultValues += numBytesPerValue;
-            rightValues += numBytesPerValue;
+            resultDataVector->copyFromVectorData(resultPos++, rightDataVector, rightPos++);
         }
     }
 };
