@@ -137,17 +137,15 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value) {
         return dict;
     }
     case LogicalTypeID::NODE: {
-        auto nodeVal = value.getValue<NodeVal>();
-        auto dict = PyQueryResult::getPyDictFromProperties(nodeVal.getProperties());
-        dict["_label"] = py::cast(nodeVal.getLabelName());
-        dict["_id"] = convertNodeIdToPyDict(nodeVal.getNodeID());
+        auto dict = PyQueryResult::getPyDictFromProperties(NodeVal::getProperties(&value));
+        dict["_label"] = py::cast(NodeVal::getLabelName(&value));
+        dict["_id"] = convertNodeIdToPyDict(NodeVal::getNodeID(&value));
         return std::move(dict);
     }
     case LogicalTypeID::REL: {
-        auto relVal = value.getValue<RelVal>();
-        auto dict = PyQueryResult::getPyDictFromProperties(relVal.getProperties());
-        dict["_src"] = convertNodeIdToPyDict(relVal.getSrcNodeID());
-        dict["_dst"] = convertNodeIdToPyDict(relVal.getDstNodeID());
+        auto dict = PyQueryResult::getPyDictFromProperties(RelVal::getProperties(&value));
+        dict["_src"] = convertNodeIdToPyDict(RelVal::getSrcNodeID(&value));
+        dict["_dst"] = convertNodeIdToPyDict(RelVal::getDstNodeID(&value));
         return std::move(dict);
     }
     case LogicalTypeID::INTERNAL_ID: {

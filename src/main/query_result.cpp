@@ -87,7 +87,7 @@ std::vector<std::unique_ptr<DataTypeInfo>> QueryResult::getColumnTypesInfo() {
                 LogicalType(common::LogicalTypeID::INTERNAL_ID), "_id"));
             columnTypeInfo->childrenTypesInfo.push_back(DataTypeInfo::getInfoForDataType(
                 LogicalType(common::LogicalTypeID::STRING), "_label"));
-            for (auto& [name, val] : value->getProperties()) {
+            for (auto& [name, val] : NodeVal::getProperties(tuple->getValue(i))) {
                 columnTypeInfo->childrenTypesInfo.push_back(
                     DataTypeInfo::getInfoForDataType(val->dataType, name));
             }
@@ -97,7 +97,7 @@ std::vector<std::unique_ptr<DataTypeInfo>> QueryResult::getColumnTypesInfo() {
                 LogicalType(common::LogicalTypeID::INTERNAL_ID), "_src"));
             columnTypeInfo->childrenTypesInfo.push_back(DataTypeInfo::getInfoForDataType(
                 LogicalType(common::LogicalTypeID::INTERNAL_ID), "_dst"));
-            for (auto& [name, val] : value->getProperties()) {
+            for (auto& [name, val] : RelVal::getProperties(tuple->getValue(i))) {
                 columnTypeInfo->childrenTypesInfo.push_back(
                     DataTypeInfo::getInfoForDataType(val->dataType, name));
             }

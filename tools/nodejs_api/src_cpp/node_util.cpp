@@ -73,17 +73,15 @@ Napi::Value Util::ConvertToNapiObject(const Value& value, Napi::Env env) {
         return napiObj;
     }
     case LogicalTypeID::NODE: {
-        auto nodeVal = value.getValue<NodeVal>();
-        auto napiObj = ConvertPropertiesToNapiObject(nodeVal.getProperties(), env);
-        napiObj.Set("_label", Napi::String::New(env, nodeVal.getLabelName()));
-        napiObj.Set("_id", ConvertNodeIdToNapiObject(nodeVal.getNodeID(), env));
+        auto napiObj = ConvertPropertiesToNapiObject(NodeVal::getProperties(&value), env);
+        napiObj.Set("_label", Napi::String::New(env, NodeVal::getLabelName(&value)));
+        napiObj.Set("_id", ConvertNodeIdToNapiObject(NodeVal::getNodeID(&value), env));
         return napiObj;
     }
     case LogicalTypeID::REL: {
-        auto relVal = value.getValue<RelVal>();
-        Napi::Object napiObj = ConvertPropertiesToNapiObject(relVal.getProperties(), env);
-        napiObj.Set("_src", ConvertNodeIdToNapiObject(relVal.getSrcNodeID(), env));
-        napiObj.Set("_dst", ConvertNodeIdToNapiObject(relVal.getDstNodeID(), env));
+        Napi::Object napiObj = ConvertPropertiesToNapiObject(RelVal::getProperties(&value), env);
+        napiObj.Set("_src", ConvertNodeIdToNapiObject(RelVal::getSrcNodeID(&value), env));
+        napiObj.Set("_dst", ConvertNodeIdToNapiObject(RelVal::getDstNodeID(&value), env));
         return napiObj;
     }
     case LogicalTypeID::INTERNAL_ID: {

@@ -227,11 +227,11 @@ template<>
 void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::NODE>(
     ArrowVector* vector, const main::DataTypeInfo& typeInfo, Value* value, std::int64_t pos) {
     appendValue(
-        vector->childData[0].get(), *typeInfo.childrenTypesInfo[0], value->nodeVal->getNodeIDVal());
+        vector->childData[0].get(), *typeInfo.childrenTypesInfo[0], NodeVal::getNodeIDVal(value).get());
     appendValue(
-        vector->childData[1].get(), *typeInfo.childrenTypesInfo[1], value->nodeVal->getLabelVal());
+        vector->childData[1].get(), *typeInfo.childrenTypesInfo[1], NodeVal::getLabelVal(value).get());
     std::int64_t propertyId = 2;
-    for (auto& [name, val] : value->nodeVal->getProperties()) {
+    for (auto& [name, val] : NodeVal::getProperties(value)) {
         appendValue(vector->childData[propertyId].get(), *typeInfo.childrenTypesInfo[propertyId],
             val.get());
         propertyId++;
@@ -242,11 +242,11 @@ template<>
 void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::REL>(
     ArrowVector* vector, const main::DataTypeInfo& typeInfo, Value* value, std::int64_t pos) {
     appendValue(vector->childData[0].get(), *typeInfo.childrenTypesInfo[0],
-        value->relVal->getSrcNodeIDVal());
+        RelVal::getSrcNodeIDVal(value).get());
     appendValue(vector->childData[1].get(), *typeInfo.childrenTypesInfo[1],
-        value->relVal->getDstNodeIDVal());
+        RelVal::getDstNodeIDVal(value).get());
     std::int64_t propertyId = 2;
-    for (auto& [name, val] : value->relVal->getProperties()) {
+    for (auto& [name, val] : RelVal::getProperties(value)) {
         appendValue(vector->childData[propertyId].get(), *typeInfo.childrenTypesInfo[propertyId],
             val.get());
         propertyId++;

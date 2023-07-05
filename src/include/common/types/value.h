@@ -228,56 +228,37 @@ public:
 class NodeVal {
 public:
     /**
-     * @brief Constructs the NodeVal object with the given idVal and labelVal.
-     * @param idVal the nodeID value.
-     * @param labelVal the name of the node.
-     */
-    KUZU_API NodeVal(std::unique_ptr<Value> idVal, std::unique_ptr<Value> labelVal);
-    /**
-     * @brief Constructs the NodeVal object from the other.
-     * @param other the NodeVal to copy from.
-     */
-    KUZU_API NodeVal(const NodeVal& other);
-    /**
-     * @brief Adds a property with the given {key,value} pair to the NodeVal.
-     * @param key the name of the property.
-     * @param value the value of the property.
-     */
-    KUZU_API void addProperty(const std::string& key, std::unique_ptr<Value> value);
-    /**
      * @return all properties of the NodeVal.
      */
-    KUZU_API const std::vector<std::pair<std::string, std::unique_ptr<Value>>>&
-    getProperties() const;
+    KUZU_API static std::vector<std::pair<std::string, std::unique_ptr<Value>>> getProperties(
+        const Value* val);
     /**
      * @return the nodeID as a Value.
      */
-    KUZU_API Value* getNodeIDVal();
+    KUZU_API static std::unique_ptr<Value> getNodeIDVal(const Value* val);
     /**
      * @return the name of the node as a Value.
      */
-    KUZU_API Value* getLabelVal();
+    KUZU_API static std::unique_ptr<Value> getLabelVal(const Value* val);
     /**
      * @return the nodeID of the node as a nodeID struct.
      */
-    KUZU_API nodeID_t getNodeID() const;
+    KUZU_API static nodeID_t getNodeID(const Value* val);
     /**
      * @return the name of the node in string format.
      */
-    KUZU_API std::string getLabelName() const;
+    KUZU_API static std::string getLabelName(const Value* val);
     /**
      * @return a copy of the current node.
      */
-    KUZU_API std::unique_ptr<NodeVal> copy() const;
+    KUZU_API static std::unique_ptr<Value> copy(const Value* val);
     /**
      * @return the current node values in string format.
      */
-    KUZU_API std::string toString() const;
+    KUZU_API static std::string toString(const Value* val);
 
 private:
-    std::unique_ptr<Value> idVal;
-    std::unique_ptr<Value> labelVal;
-    std::vector<std::pair<std::string, std::unique_ptr<Value>>> properties;
+    static void throwIfNotNode(const Value* val);
 };
 
 /**
@@ -287,63 +268,41 @@ private:
 class RelVal {
 public:
     /**
-     * @brief Constructs the RelVal based on the srcNodeIDVal, dstNodeIDVal and labelVal.
-     * @param srcNodeIDVal the src node.
-     * @param dstNodeIDVal the dst node.
-     * @param labelVal the name of the rel.
-     */
-    KUZU_API RelVal(std::unique_ptr<Value> srcNodeIDVal, std::unique_ptr<Value> dstNodeIDVal,
-        std::unique_ptr<Value> labelVal);
-    /**
-     * @brief Constructs a RelVal from other.
-     * @param other the RelVal to copy from.
-     */
-    KUZU_API RelVal(const RelVal& other);
-    /**
-     * @brief Adds a property with the given {key,value} pair to the RelVal.
-     * @param key the name of the property.
-     * @param value the value of the property.
-     */
-    KUZU_API void addProperty(const std::string& key, std::unique_ptr<Value> value);
-    /**
      * @return all properties of the RelVal.
      */
-    KUZU_API const std::vector<std::pair<std::string, std::unique_ptr<Value>>>&
-    getProperties() const;
+    KUZU_API static std::vector<std::pair<std::string, std::unique_ptr<Value>>>
+    getProperties(const Value* val);
     /**
      * @return the src nodeID value of the RelVal in Value.
      */
-    KUZU_API Value* getSrcNodeIDVal();
+    KUZU_API static std::unique_ptr<Value> getSrcNodeIDVal(const Value* val);
     /**
      * @return the dst nodeID value of the RelVal in Value.
      */
-    KUZU_API Value* getDstNodeIDVal();
+    KUZU_API static std::unique_ptr<Value> getDstNodeIDVal(const Value* val);
     /**
      * @return the src nodeID value of the RelVal as nodeID struct.
      */
-    KUZU_API nodeID_t getSrcNodeID() const;
+    KUZU_API static nodeID_t getSrcNodeID(const Value* val);
     /**
      * @return the dst nodeID value of the RelVal as nodeID struct.
      */
-    KUZU_API nodeID_t getDstNodeID() const;
+    KUZU_API static nodeID_t getDstNodeID(const Value* val);
     /**
      * @return the name of the RelVal.
      */
-    KUZU_API std::string getLabelName() const;
+    KUZU_API static std::string getLabelName(const Value* val);
     /**
      * @return the value of the RelVal in string format.
      */
-    KUZU_API std::string toString() const;
+    KUZU_API static std::string toString(const Value* val);
     /**
      * @return a copy of the RelVal.
      */
-    KUZU_API inline std::unique_ptr<RelVal> copy() const;
+    KUZU_API static std::unique_ptr<Value> copy(const Value* val);
 
 private:
-    std::unique_ptr<Value> labelVal;
-    std::unique_ptr<Value> srcNodeIDVal;
-    std::unique_ptr<Value> dstNodeIDVal;
-    std::vector<std::pair<std::string, std::unique_ptr<Value>>> properties;
+    static void throwIfNotRel(const Value* val);
 };
 
 /**
