@@ -7,7 +7,7 @@ namespace kuzu {
 namespace main {
 
 #define GET_CONFIGURATION(_PARAM)                                                                  \
-    { _PARAM::name, _PARAM::inputType, _PARAM::setContext, }
+    { _PARAM::name, _PARAM::inputType, _PARAM::setContext, _PARAM::getSetting }
 
 static ConfigurationOption options[] = {
     GET_CONFIGURATION(ThreadsSetting), GET_CONFIGURATION(TimeoutSetting)};

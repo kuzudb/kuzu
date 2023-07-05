@@ -63,7 +63,7 @@ std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause&
         catalog.getBuiltInTableOperation()->mathTableOperation(callStatement.getFuncName());
     auto boundExpr = expressionBinder.bindLiteralExpression(*callStatement.getParameter());
     auto inputValue = reinterpret_cast<LiteralExpression*>(boundExpr.get())->getValue();
-    auto bindData = tableFunctionDefinition->bindFunc(
+    auto bindData = tableFunctionDefinition->bindFunc(clientContext,
         function::TableFuncBindInput{std::vector<common::Value>{*inputValue}},
         catalog.getReadOnlyVersion());
     expression_vector outputExpressions;

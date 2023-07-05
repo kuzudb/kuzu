@@ -1,0 +1,30 @@
+-GROUP TinySnbReadTest
+-DATASET CSV tinysnb
+
+--
+
+-CASE Call
+
+-LOG SetGetThread
+-STATEMENT CALL THREADS=4
+---- ok
+-STATEMENT CALL current_setting('threads') RETURN *
+-PARALLELISM 6
+---- 1
+6
+-STATEMENT CALL current_setting('threads') RETURN *
+-PARALLELISM 10
+---- 1
+10
+
+-LOG SetGetTimeout
+-STATEMENT CALL timeout=40000
+---- ok
+-STATEMENT CALL current_setting('timeout') RETURN *
+---- 1
+40000
+-STATEMENT CALL timeout=20000
+---- ok
+-STATEMENT CALL current_setting('timeout') RETURN *
+---- 1
+20000

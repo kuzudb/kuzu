@@ -8,6 +8,9 @@ namespace function {
 
 void BuiltInTableOperations::registerTableOperations() {
     tableOperations.insert({common::TABLE_INFO_FUNC_NAME, TableInfoOperation::getDefinitions()});
+    tableOperations.insert({common::DB_VERSION_FUNC_NAME, DBVersionOperation::getDefinitions()});
+    tableOperations.insert(
+        {common::CURRENT_SETTING_FUNC_NAME, CurrentSettingOperation::getDefinitions()});
 }
 
 TableOperationDefinition* BuiltInTableOperations::mathTableOperation(const std::string& name) {
