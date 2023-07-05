@@ -70,6 +70,7 @@ option(ENABLE_ADDRESS_SANITIZER "Enable address sanitizer." FALSE)
 option(ENABLE_THREAD_SANITIZER "Enable thread sanitizer." FALSE)
 option(ENABLE_UBSAN "Enable undefined behavior sanitizer." FALSE)
 option(USE_SYSTEM_ARROW "Use system version of arrow" FALSE)
+option(ENABLE_REMOTE_FS "Enables remote filesystem storage through AWS and Google Cloud" FALSE)
 if(MSVC)
     # Required for M_PI on Windows
     add_compile_definitions(_USE_MATH_DEFINES)
@@ -161,6 +162,9 @@ else()
         set(ARROW_INSTALL ${CMAKE_CURRENT_BINARY_DIR}/arrow-build/arrow/install)
         set(ARROW_BUILD_DIR ${CMAKE_CURRENT_BINARY_DIR}/arrow-build)
         file(MAKE_DIRECTORY ${ARROW_BUILD_DIR})
+        if (${CURL_INCLUDE_DIR} AND ${CURL_LIBRARY})
+            set(CURL_ARGS -DCURL_INCLUDE_DIR=${CURL_INCLUDE_DIR} -DCURL_LIBRARY=${CURL_LIBRARY})
+        endif()
         execute_process(COMMAND ${CMAKE_COMMAND}
             ${CMAKE_CURRENT_SOURCE_DIR}/external
             -G ${CMAKE_GENERATOR}
@@ -169,6 +173,8 @@ else()
             -DENABLE_THREAD_SANITIZER=${ENABLE_THREAD_SANITIZER}
             -DENABLE_UBSAN=${ENABLE_UBSAN}
             -DFORCE_COLORED_OUTPUT=${FORCE_COLORED_OUTPUT}
+            -DENABLE_REMOTE_FS=${ENABLE_REMOTE_FS}
+            ${CURL_ARGS}
             WORKING_DIRECTORY ${ARROW_BUILD_DIR}
             COMMAND_ERROR_IS_FATAL ANY)
         execute_process(COMMAND ${CMAKE_COMMAND} --build ${ARROW_BUILD_DIR} --config ${CMAKE_BUILD_TYPE}
@@ -196,7 +202,7 @@ else()
     find_package(OpenSSL)
     find_package(CURL)
     if (${CURL_FOUND})
-        set(curllib curl crypto dl)
+        set(curllib CURL::libcurl OpenSSL::Crypto)
     endif()
 
     set(ARROW_LIB arrow_lib arrow_deps ${curllib})

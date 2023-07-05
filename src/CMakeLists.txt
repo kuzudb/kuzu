@@ -13,6 +13,12 @@ add_subdirectory(storage)
 add_subdirectory(transaction)
 
 add_library(kuzu STATIC ${ALL_OBJECT_FILES})
+
+set(MSVC_DEPS BCrypt NCrypt Secur32 WinHTTP wininet userenv version)
+
+if (${CURL_FOUND} AND ${OPENSSL_FOUND} AND MSVC)
+        target_link_libraries(kuzu PRIVATE ${MSVC_DEPS})
+endif()
 target_link_libraries(kuzu
         PUBLIC antlr4_cypher antlr4_runtime utf8proc re2 ${PARQUET_LIB} ${ARROW_LIB} Threads::Threads)
 target_include_directories(kuzu
@@ -25,5 +31,9 @@ else()
 endif()
 target_link_libraries(kuzu_shared
         PUBLIC antlr4_cypher antlr4_runtime utf8proc re2 ${PARQUET_LIB} ${ARROW_LIB} Threads::Threads)
+
+if (${CURL_FOUND} AND ${OPENSSL_FOUND} AND MSVC)
+        target_link_libraries(kuzu_shared PRIVATE ${MSVC_DEPS})
+endif()
 target_include_directories(kuzu_shared
         PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)

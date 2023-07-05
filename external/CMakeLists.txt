@@ -18,4 +18,6 @@ else ()
     endif ()
 endif ()
 
+option(ENABLE_REMOTE_FS "Enables remote filesystem storage through AWS and Google Cloud" FALSE)
+
 include(arrow/apache_arrow.cmake)
