@@ -4,6 +4,7 @@
 
 #include "binder/expression/node_rel_expression.h"
 #include "binder/expression/property_expression.h"
+#include "common/types/types.h"
 #include "json.hpp"
 #include "processor/result/factorized_table.h"
 #include "processor/result/flat_tuple.h"
@@ -119,10 +120,25 @@ void QueryResult::initResultTableAndIterator(
         auto columnName = column->hasAlias() ? column->getAlias() : column->toString();
         columnDataTypes.push_back(columnType);
         columnNames.push_back(columnName);
-        std::unique_ptr<Value> value =
-            std::make_unique<Value>(Value::createDefaultValue(columnType));
-        valuesToCollect.push_back(value.get());
-        tuple->addValue(std::move(value));
+        std::shared_ptr<Value> value =
+            std::make_shared<Value>(Value::createDefaultValue(columnType));
+        auto logicalTypeID = columnType.getLogicalTypeID();
+        // Handle special cases for node and rel types, which are wrappers around STRUCT types.
+        if (logicalTypeID == LogicalTypeID::NODE) {
+            auto nodeVal = std::make_unique<NodeVal>(value);
+            auto valueToReturn = std::make_shared<Value>(std::move(nodeVal));
+            valuesToCollect.push_back(value.get());
+            tuple->addValue(std::move(valueToReturn));
+        } else if (logicalTypeID == LogicalTypeID::REL) {
+            auto relVal = std::make_unique<RelVal>(value);
+            auto valueToReturn = std::make_shared<Value>(std::move(relVal));
+            valuesToCollect.push_back(value.get());
+            tuple->addValue(std::move(valueToReturn));
+        } else {
+            valuesToCollect.push_back(value.get());
+            tuple->addValue(std::move(value));
+        }
+        
     }
     iterator = std::make_unique<FlatTupleIterator>(*factorizedTable, std::move(valuesToCollect));
 }

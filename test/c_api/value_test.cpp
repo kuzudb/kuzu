@@ -145,40 +145,40 @@ TEST_F(CApiValueTest, CreateInternalID) {
     kuzu_value_destroy(value);
 }
 
-TEST_F(CApiValueTest, CreateNodeVal) {
-    auto internalID = kuzu_internal_id_t{1, 123};
-    auto nodeVal = kuzu_node_val_create(internalID, (char*)"person");
-    auto value = kuzu_value_create_node_val(nodeVal);
-    ASSERT_FALSE(value->_is_owned_by_cpp);
-    auto cppValue = static_cast<Value*>(value->_value);
-    ASSERT_EQ(cppValue->getDataType().getLogicalTypeID(), LogicalTypeID::NODE);
-    auto nodeValCpp = cppValue->getValue<NodeVal>();
-    ASSERT_EQ(nodeValCpp.getNodeID().tableID, 1);
-    ASSERT_EQ(nodeValCpp.getNodeID().offset, 123);
-    ASSERT_EQ(nodeValCpp.getLabelName(), "person");
-    ASSERT_EQ(nodeValCpp.getProperties().size(), 0);
-    kuzu_value_destroy(value);
-    kuzu_node_val_destroy(nodeVal);
-}
+// TEST_F(CApiValueTest, CreateNodeVal) {
+//     auto internalID = kuzu_internal_id_t{1, 123};
+//     auto nodeVal = kuzu_node_val_create(internalID, (char*)"person");
+//     auto value = kuzu_value_create_node_val(nodeVal);
+//     ASSERT_FALSE(value->_is_owned_by_cpp);
+//     auto cppValue = static_cast<Value*>(value->_value);
+//     ASSERT_EQ(cppValue->getDataType().getLogicalTypeID(), LogicalTypeID::NODE);
+//     auto nodeValCpp = cppValue->getValue<NodeVal>();
+//     ASSERT_EQ(nodeValCpp.getNodeID().tableID, 1);
+//     ASSERT_EQ(nodeValCpp.getNodeID().offset, 123);
+//     ASSERT_EQ(nodeValCpp.getLabelName(), "person");
+//     ASSERT_EQ(nodeValCpp.getProperties().size(), 0);
+//     kuzu_value_destroy(value);
+//     kuzu_node_val_destroy(nodeVal);
+// }
 
-TEST_F(CApiValueTest, CreateRelVal) {
-    auto srcID = kuzu_internal_id_t{1, 123};
-    auto dstID = kuzu_internal_id_t{2, 456};
-    auto relVal = kuzu_rel_val_create(srcID, dstID, (char*)"knows");
-    auto value = kuzu_value_create_rel_val(relVal);
-    ASSERT_FALSE(value->_is_owned_by_cpp);
-    auto cppValue = static_cast<Value*>(value->_value);
-    ASSERT_EQ(cppValue->getDataType().getLogicalTypeID(), LogicalTypeID::REL);
-    auto relValCpp = cppValue->getValue<RelVal>();
-    ASSERT_EQ(relValCpp.getSrcNodeID().tableID, 1);
-    ASSERT_EQ(relValCpp.getSrcNodeID().offset, 123);
-    ASSERT_EQ(relValCpp.getDstNodeID().tableID, 2);
-    ASSERT_EQ(relValCpp.getDstNodeID().offset, 456);
-    ASSERT_EQ(relValCpp.getLabelName(), "knows");
-    ASSERT_EQ(relValCpp.getProperties().size(), 0);
-    kuzu_value_destroy(value);
-    kuzu_rel_val_destroy(relVal);
-}
+// TEST_F(CApiValueTest, CreateRelVal) {
+//     auto srcID = kuzu_internal_id_t{1, 123};
+//     auto dstID = kuzu_internal_id_t{2, 456};
+//     auto relVal = kuzu_rel_val_create(srcID, dstID, (char*)"knows");
+//     auto value = kuzu_value_create_rel_val(relVal);
+//     ASSERT_FALSE(value->_is_owned_by_cpp);
+//     auto cppValue = static_cast<Value*>(value->_value);
+//     ASSERT_EQ(cppValue->getDataType().getLogicalTypeID(), LogicalTypeID::REL);
+//     auto relValCpp = cppValue->getValue<RelVal>();
+//     ASSERT_EQ(relValCpp.getSrcNodeID().tableID, 1);
+//     ASSERT_EQ(relValCpp.getSrcNodeID().offset, 123);
+//     ASSERT_EQ(relValCpp.getDstNodeID().tableID, 2);
+//     ASSERT_EQ(relValCpp.getDstNodeID().offset, 456);
+//     ASSERT_EQ(relValCpp.getLabelName(), "knows");
+//     ASSERT_EQ(relValCpp.getProperties().size(), 0);
+//     kuzu_value_destroy(value);
+//     kuzu_rel_val_destroy(relVal);
+// }
 
 TEST_F(CApiValueTest, CreateDate) {
     kuzu_value* value = kuzu_value_create_date(kuzu_date_t{123});
@@ -657,76 +657,53 @@ TEST_F(CApiValueTest, ToSting) {
     kuzu_query_result_destroy(result);
 }
 
-TEST_F(CApiValueTest, NodeValClone) {
-    auto internalID = kuzu_internal_id_t{1, 123};
-    auto nodeVal = kuzu_node_val_create(internalID, (char*)"person");
-    auto nodeValClone = kuzu_node_val_clone(nodeVal);
-    kuzu_node_val_destroy(nodeVal);
-    auto nodeValCpp = (NodeVal*)nodeValClone->_node_val;
-    ASSERT_EQ(nodeValCpp->getNodeID().tableID, 1);
-    ASSERT_EQ(nodeValCpp->getNodeID().offset, 123);
-    ASSERT_EQ(nodeValCpp->getLabelName(), "person");
-    ASSERT_EQ(nodeValCpp->getProperties().size(), 0);
-    kuzu_node_val_destroy(nodeValClone);
-}
+// TEST_F(CApiValueTest, NodeValClone) {
+//     auto internalID = kuzu_internal_id_t{1, 123};
+//     auto nodeVal = kuzu_node_val_create(internalID, (char*)"person");
+//     auto nodeValClone = kuzu_node_val_clone(nodeVal);
+//     kuzu_node_val_destroy(nodeVal);
+//     auto nodeValCpp = (NodeVal*)nodeValClone->_node_val;
+//     ASSERT_EQ(nodeValCpp->getNodeID().tableID, 1);
+//     ASSERT_EQ(nodeValCpp->getNodeID().offset, 123);
+//     ASSERT_EQ(nodeValCpp->getLabelName(), "person");
+//     ASSERT_EQ(nodeValCpp->getProperties().size(), 0);
+//     kuzu_node_val_destroy(nodeValClone);
+// }
 
-TEST_F(CApiValueTest, NodeValGetLabelVal) {
-    auto internalID = kuzu_internal_id_t{1, 123};
-    auto nodeVal = kuzu_node_val_create(internalID, (char*)"person");
-    auto value = kuzu_value_create_node_val(nodeVal);
-    auto labelVal = kuzu_node_val_get_label_val(nodeVal);
-    auto labelStr = kuzu_value_get_string(labelVal);
-    ASSERT_STREQ(labelStr, "person");
-    free(labelStr);
-    kuzu_value_destroy(labelVal);
-    kuzu_value_destroy(value);
-    kuzu_node_val_destroy(nodeVal);
-}
+// TEST_F(CApiValueTest, NodeValGetLabelVal) {
+//     auto internalID = kuzu_internal_id_t{1, 123};
+//     auto nodeVal = kuzu_node_val_create(internalID, (char*)"person");
+//     auto value = kuzu_value_create_node_val(nodeVal);
+//     auto labelVal = kuzu_node_val_get_label_val(nodeVal);
+//     auto labelStr = kuzu_value_get_string(labelVal);
+//     ASSERT_STREQ(labelStr, "person");
+//     free(labelStr);
+//     kuzu_value_destroy(labelVal);
+//     kuzu_value_destroy(value);
+//     kuzu_node_val_destroy(nodeVal);
+// }
 
-TEST_F(CApiValueTest, NodeValGetID) {
-    auto internalID = kuzu_internal_id_t{1, 123};
-    auto nodeVal = kuzu_node_val_create(internalID, (char*)"person");
-    auto value = kuzu_value_create_node_val(nodeVal);
-    auto nodeID = kuzu_node_val_get_id(nodeVal);
-    ASSERT_EQ(nodeID.table_id, 1);
-    ASSERT_EQ(nodeID.offset, 123);
-    kuzu_value_destroy(value);
-    kuzu_node_val_destroy(nodeVal);
-}
+// TEST_F(CApiValueTest, NodeValGetID) {
+//     auto internalID = kuzu_internal_id_t{1, 123};
+//     auto nodeVal = kuzu_node_val_create(internalID, (char*)"person");
+//     auto value = kuzu_value_create_node_val(nodeVal);
+//     auto nodeID = kuzu_node_val_get_id(nodeVal);
+//     ASSERT_EQ(nodeID.table_id, 1);
+//     ASSERT_EQ(nodeID.offset, 123);
+//     kuzu_value_destroy(value);
+//     kuzu_node_val_destroy(nodeVal);
+// }
 
-TEST_F(CApiValueTest, NodeValGetLabelName) {
-    auto internalID = kuzu_internal_id_t{1, 123};
-    auto nodeVal = kuzu_node_val_create(internalID, (char*)"person");
-    auto value = kuzu_value_create_node_val(nodeVal);
-    auto labelName = kuzu_node_val_get_label_name(nodeVal);
-    ASSERT_STREQ(labelName, "person");
-    free(labelName);
-    kuzu_value_destroy(value);
-    kuzu_node_val_destroy(nodeVal);
-}
-
-TEST_F(CApiValueTest, NodeValAddProperty) {
-    auto internalID = kuzu_internal_id_t{1, 123};
-    auto nodeVal = kuzu_node_val_create(internalID, (char*)"person");
-    auto propertySize = kuzu_node_val_get_property_size(nodeVal);
-    ASSERT_EQ(propertySize, 0);
-
-    auto propertyKey = (char*)"fName";
-    auto propertyValue = kuzu_value_create_string((char*)"Alice");
-    kuzu_node_val_add_property(nodeVal, propertyKey, propertyValue);
-    propertySize = kuzu_node_val_get_property_size(nodeVal);
-    ASSERT_EQ(propertySize, 1);
-    kuzu_value_destroy(propertyValue);
-
-    propertyKey = (char*)"age";
-    propertyValue = kuzu_value_create_int64(10);
-    kuzu_node_val_add_property(nodeVal, propertyKey, propertyValue);
-    propertySize = kuzu_node_val_get_property_size(nodeVal);
-    ASSERT_EQ(propertySize, 2);
-    kuzu_value_destroy(propertyValue);
-
-    kuzu_node_val_destroy(nodeVal);
-}
+// TEST_F(CApiValueTest, NodeValGetLabelName) {
+//     auto internalID = kuzu_internal_id_t{1, 123};
+//     auto nodeVal = kuzu_node_val_create(internalID, (char*)"person");
+//     auto value = kuzu_value_create_node_val(nodeVal);
+//     auto labelName = kuzu_node_val_get_label_name(nodeVal);
+//     ASSERT_STREQ(labelName, "person");
+//     free(labelName);
+//     kuzu_value_destroy(value);
+//     kuzu_node_val_destroy(nodeVal);
+// }
 
 // TEST_F(CApiValueTest, NodeValGetProperty) {
 //    auto connection = getConnection();
@@ -775,111 +752,111 @@ TEST_F(CApiValueTest, NodeValAddProperty) {
 //    kuzu_query_result_destroy(result);
 //}
 
-TEST_F(CApiValueTest, NodeValToString) {
-    auto internalID = kuzu_internal_id_t{1, 123};
-    auto nodeVal = kuzu_node_val_create(internalID, (char*)"person");
+// TEST_F(CApiValueTest, NodeValToString) {
+//     auto internalID = kuzu_internal_id_t{1, 123};
+//     auto nodeVal = kuzu_node_val_create(internalID, (char*)"person");
 
-    auto propertyKey = (char*)"fName";
-    auto propertyValue = kuzu_value_create_string((char*)"Smith");
-    kuzu_node_val_add_property(nodeVal, propertyKey, propertyValue);
-    kuzu_value_destroy(propertyValue);
+//     auto propertyKey = (char*)"fName";
+//     auto propertyValue = kuzu_value_create_string((char*)"Smith");
+//     kuzu_node_val_add_property(nodeVal, propertyKey, propertyValue);
+//     kuzu_value_destroy(propertyValue);
 
-    propertyKey = (char*)"age";
-    propertyValue = kuzu_value_create_int64(10);
-    kuzu_node_val_add_property(nodeVal, propertyKey, propertyValue);
-    kuzu_value_destroy(propertyValue);
+//     propertyKey = (char*)"age";
+//     propertyValue = kuzu_value_create_int64(10);
+//     kuzu_node_val_add_property(nodeVal, propertyKey, propertyValue);
+//     kuzu_value_destroy(propertyValue);
 
-    auto str = kuzu_node_val_to_string(nodeVal);
-    ASSERT_STREQ(str, "(label:person, 1:123, {fName:Smith, age:10})");
-    free(str);
-    kuzu_node_val_destroy(nodeVal);
-}
+//     auto str = kuzu_node_val_to_string(nodeVal);
+//     ASSERT_STREQ(str, "(label:person, 1:123, {fName:Smith, age:10})");
+//     free(str);
+//     kuzu_node_val_destroy(nodeVal);
+// }
 
-TEST_F(CApiValueTest, RelValClone) {
-    auto srcID = kuzu_internal_id_t{1, 123};
-    auto dstID = kuzu_internal_id_t{2, 456};
-    auto relVal = kuzu_rel_val_create(srcID, dstID, (char*)"knows");
-    auto relValClone = kuzu_rel_val_clone(relVal);
-    kuzu_rel_val_destroy(relVal);
-    auto srcIDVal = kuzu_rel_val_get_src_id_val(relValClone);
-    auto dstIDVal = kuzu_rel_val_get_dst_id_val(relValClone);
-    auto srcIDClone = kuzu_value_get_internal_id(srcIDVal);
-    auto dstIDClone = kuzu_value_get_internal_id(dstIDVal);
-    ASSERT_EQ(srcIDClone.table_id, srcID.table_id);
-    ASSERT_EQ(srcIDClone.offset, srcID.offset);
-    ASSERT_EQ(dstIDClone.table_id, dstID.table_id);
-    ASSERT_EQ(dstIDClone.offset, dstID.offset);
-    auto labelName = kuzu_rel_val_get_label_name(relValClone);
-    ASSERT_STREQ(labelName, "knows");
-    auto propertySize = kuzu_rel_val_get_property_size(relValClone);
-    ASSERT_EQ(propertySize, 0);
-    free(labelName);
-    kuzu_value_destroy(srcIDVal);
-    kuzu_value_destroy(dstIDVal);
-    kuzu_rel_val_destroy(relValClone);
-}
+// TEST_F(CApiValueTest, RelValClone) {
+//     auto srcID = kuzu_internal_id_t{1, 123};
+//     auto dstID = kuzu_internal_id_t{2, 456};
+//     auto relVal = kuzu_rel_val_create(srcID, dstID, (char*)"knows");
+//     auto relValClone = kuzu_rel_val_clone(relVal);
+//     kuzu_rel_val_destroy(relVal);
+//     auto srcIDVal = kuzu_rel_val_get_src_id_val(relValClone);
+//     auto dstIDVal = kuzu_rel_val_get_dst_id_val(relValClone);
+//     auto srcIDClone = kuzu_value_get_internal_id(srcIDVal);
+//     auto dstIDClone = kuzu_value_get_internal_id(dstIDVal);
+//     ASSERT_EQ(srcIDClone.table_id, srcID.table_id);
+//     ASSERT_EQ(srcIDClone.offset, srcID.offset);
+//     ASSERT_EQ(dstIDClone.table_id, dstID.table_id);
+//     ASSERT_EQ(dstIDClone.offset, dstID.offset);
+//     auto labelName = kuzu_rel_val_get_label_name(relValClone);
+//     ASSERT_STREQ(labelName, "knows");
+//     auto propertySize = kuzu_rel_val_get_property_size(relValClone);
+//     ASSERT_EQ(propertySize, 0);
+//     free(labelName);
+//     kuzu_value_destroy(srcIDVal);
+//     kuzu_value_destroy(dstIDVal);
+//     kuzu_rel_val_destroy(relValClone);
+// }
 
-TEST_F(CApiValueTest, RelValAddAndGetProperty) {
-    auto srcID = kuzu_internal_id_t{1, 123};
-    auto dstID = kuzu_internal_id_t{2, 456};
-    auto relVal = kuzu_rel_val_create(srcID, dstID, (char*)"knows");
-    auto propertySize = kuzu_rel_val_get_property_size(relVal);
-    ASSERT_EQ(propertySize, 0);
+// TEST_F(CApiValueTest, RelValAddAndGetProperty) {
+//     auto srcID = kuzu_internal_id_t{1, 123};
+//     auto dstID = kuzu_internal_id_t{2, 456};
+//     auto relVal = kuzu_rel_val_create(srcID, dstID, (char*)"knows");
+//     auto propertySize = kuzu_rel_val_get_property_size(relVal);
+//     ASSERT_EQ(propertySize, 0);
 
-    auto propertyKey = (char*)"fName";
-    auto propertyValue = kuzu_value_create_string((char*)"Alice");
-    kuzu_rel_val_add_property(relVal, propertyKey, propertyValue);
-    propertySize = kuzu_rel_val_get_property_size(relVal);
-    ASSERT_EQ(propertySize, 1);
-    kuzu_value_destroy(propertyValue);
+//     auto propertyKey = (char*)"fName";
+//     auto propertyValue = kuzu_value_create_string((char*)"Alice");
+//     kuzu_rel_val_add_property(relVal, propertyKey, propertyValue);
+//     propertySize = kuzu_rel_val_get_property_size(relVal);
+//     ASSERT_EQ(propertySize, 1);
+//     kuzu_value_destroy(propertyValue);
 
-    propertyKey = (char*)"age";
-    propertyValue = kuzu_value_create_int64(10);
-    kuzu_rel_val_add_property(relVal, propertyKey, propertyValue);
-    propertySize = kuzu_rel_val_get_property_size(relVal);
-    ASSERT_EQ(propertySize, 2);
-    kuzu_value_destroy(propertyValue);
+//     propertyKey = (char*)"age";
+//     propertyValue = kuzu_value_create_int64(10);
+//     kuzu_rel_val_add_property(relVal, propertyKey, propertyValue);
+//     propertySize = kuzu_rel_val_get_property_size(relVal);
+//     ASSERT_EQ(propertySize, 2);
+//     kuzu_value_destroy(propertyValue);
 
-    propertyKey = kuzu_rel_val_get_property_name_at(relVal, 0);
-    ASSERT_STREQ(propertyKey, "fName");
-    free(propertyKey);
+//     propertyKey = kuzu_rel_val_get_property_name_at(relVal, 0);
+//     ASSERT_STREQ(propertyKey, "fName");
+//     free(propertyKey);
 
-    propertyKey = kuzu_rel_val_get_property_name_at(relVal, 1);
-    ASSERT_STREQ(propertyKey, "age");
-    free(propertyKey);
+//     propertyKey = kuzu_rel_val_get_property_name_at(relVal, 1);
+//     ASSERT_STREQ(propertyKey, "age");
+//     free(propertyKey);
 
-    propertyValue = kuzu_rel_val_get_property_value_at(relVal, 0);
-    auto propertyValuefName = kuzu_value_get_string(propertyValue);
-    ASSERT_STREQ(propertyValuefName, "Alice");
-    kuzu_value_destroy(propertyValue);
-    free(propertyValuefName);
+//     propertyValue = kuzu_rel_val_get_property_value_at(relVal, 0);
+//     auto propertyValuefName = kuzu_value_get_string(propertyValue);
+//     ASSERT_STREQ(propertyValuefName, "Alice");
+//     kuzu_value_destroy(propertyValue);
+//     free(propertyValuefName);
 
-    propertyValue = kuzu_rel_val_get_property_value_at(relVal, 1);
-    auto propertyValueAge = kuzu_value_get_int64(propertyValue);
-    ASSERT_EQ(propertyValueAge, 10);
-    kuzu_value_destroy(propertyValue);
+//     propertyValue = kuzu_rel_val_get_property_value_at(relVal, 1);
+//     auto propertyValueAge = kuzu_value_get_int64(propertyValue);
+//     ASSERT_EQ(propertyValueAge, 10);
+//     kuzu_value_destroy(propertyValue);
 
-    kuzu_rel_val_destroy(relVal);
-}
+//     kuzu_rel_val_destroy(relVal);
+// }
 
-TEST_F(CApiValueTest, RelValToString) {
-    auto srcID = kuzu_internal_id_t{1, 123};
-    auto dstID = kuzu_internal_id_t{2, 456};
-    auto relVal = kuzu_rel_val_create(srcID, dstID, (char*)"knows");
+// TEST_F(CApiValueTest, RelValToString) {
+//     auto srcID = kuzu_internal_id_t{1, 123};
+//     auto dstID = kuzu_internal_id_t{2, 456};
+//     auto relVal = kuzu_rel_val_create(srcID, dstID, (char*)"knows");
 
-    auto propertyKey = (char*)"fName";
-    auto propertyValue = kuzu_value_create_string((char*)"Alice");
-    kuzu_rel_val_add_property(relVal, propertyKey, propertyValue);
-    kuzu_value_destroy(propertyValue);
+//     auto propertyKey = (char*)"fName";
+//     auto propertyValue = kuzu_value_create_string((char*)"Alice");
+//     kuzu_rel_val_add_property(relVal, propertyKey, propertyValue);
+//     kuzu_value_destroy(propertyValue);
 
-    propertyKey = (char*)"age";
-    propertyValue = kuzu_value_create_int64(10);
-    kuzu_rel_val_add_property(relVal, propertyKey, propertyValue);
-    kuzu_value_destroy(propertyValue);
+//     propertyKey = (char*)"age";
+//     propertyValue = kuzu_value_create_int64(10);
+//     kuzu_rel_val_add_property(relVal, propertyKey, propertyValue);
+//     kuzu_value_destroy(propertyValue);
 
-    auto str = kuzu_rel_val_to_string(relVal);
-    ASSERT_STREQ(str, "(1:123)-[label:knows, {fName:Alice, age:10}]->(2:456)");
+//     auto str = kuzu_rel_val_to_string(relVal);
+//     ASSERT_STREQ(str, "(1:123)-[label:knows, {fName:Alice, age:10}]->(2:456)");
 
-    kuzu_rel_val_destroy(relVal);
-    free(str);
-}
+//     kuzu_rel_val_destroy(relVal);
+//     free(str);
+// }

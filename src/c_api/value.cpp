@@ -266,15 +266,6 @@ char* kuzu_value_to_string(kuzu_value* value) {
     return c_string;
 }
 
-kuzu_node_val* kuzu_node_val_create(kuzu_internal_id_t id, const char* label) {
-    auto id_val = std::make_unique<Value>(internalID_t(id.offset, id.table_id));
-    auto label_val = std::make_unique<Value>(label);
-    auto* node_val = new NodeVal(std::move(id_val), std::move(label_val));
-    auto* c_node_val = (kuzu_node_val*)calloc(1, sizeof(kuzu_node_val));
-    c_node_val->_node_val = node_val;
-    return c_node_val;
-}
-
 kuzu_node_val* kuzu_node_val_clone(kuzu_node_val* node_val) {
     auto* c_node_val = (kuzu_node_val*)calloc(1, sizeof(kuzu_node_val));
     c_node_val->_node_val = new NodeVal(*static_cast<NodeVal*>(node_val->_node_val));
@@ -341,28 +332,11 @@ kuzu_value* kuzu_node_val_get_property_value_at(kuzu_node_val* node_val, uint64_
     return c_value;
 }
 
-void kuzu_node_val_add_property(kuzu_node_val* node_val, const char* name, kuzu_value* property) {
-    auto value_ = std::make_unique<Value>(*static_cast<Value*>(property->_value));
-    static_cast<NodeVal*>(node_val->_node_val)->addProperty(std::string(name), std::move(value_));
-}
-
 char* kuzu_node_val_to_string(kuzu_node_val* node_val) {
     auto string_val = static_cast<NodeVal*>(node_val->_node_val)->toString();
     auto* c_string = (char*)malloc(string_val.size() + 1);
     strcpy(c_string, string_val.c_str());
     return c_string;
-}
-
-kuzu_rel_val* kuzu_rel_val_create(
-    kuzu_internal_id_t src_id, kuzu_internal_id_t dst_id, const char* label) {
-    auto src_id_val = std::make_unique<Value>(internalID_t(src_id.offset, src_id.table_id));
-    auto dst_id_val = std::make_unique<Value>(internalID_t(dst_id.offset, dst_id.table_id));
-    auto label_val =
-        std::make_unique<Value>(LogicalType{LogicalTypeID::STRING}, std::string(label));
-    auto* c_rel_val = (kuzu_rel_val*)calloc(1, sizeof(kuzu_rel_val));
-    c_rel_val->_rel_val =
-        new RelVal(std::move(src_id_val), std::move(dst_id_val), std::move(label_val));
-    return c_rel_val;
 }
 
 kuzu_rel_val* kuzu_rel_val_clone(kuzu_rel_val* rel_val) {
@@ -436,11 +410,6 @@ kuzu_value* kuzu_rel_val_get_property_value_at(kuzu_rel_val* rel_val, uint64_t i
     c_value->_value = value.get();
     c_value->_is_owned_by_cpp = true;
     return c_value;
-}
-
-void kuzu_rel_val_add_property(kuzu_rel_val* rel_val, const char* name, kuzu_value* property) {
-    auto value_ = std::make_unique<Value>(*static_cast<Value*>(property->_value));
-    static_cast<RelVal*>(rel_val->_rel_val)->addProperty(std::string(name), std::move(value_));
 }
 
 char* kuzu_rel_val_to_string(kuzu_rel_val* rel_val) {

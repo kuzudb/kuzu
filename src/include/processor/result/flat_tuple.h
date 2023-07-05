@@ -11,7 +11,7 @@ namespace processor {
  */
 class FlatTuple {
 public:
-    void addValue(std::unique_ptr<common::Value> value);
+    void addValue(std::shared_ptr<common::Value> value);
 
     /**
      * @return number of values in the FlatTuple.
@@ -37,7 +37,7 @@ public:
         const std::string& delimiter = "|", uint32_t maxWidth = -1);
 
 private:
-    std::vector<std::unique_ptr<common::Value>> values;
+    std::vector<std::shared_ptr<common::Value>> values;
 };
 
 } // namespace processor

@@ -491,38 +491,47 @@ static std::string propertiesToString(
     return result;
 }
 
-NodeVal::NodeVal(std::unique_ptr<Value> idVal, std::unique_ptr<Value> labelVal)
-    : idVal{std::move(idVal)}, labelVal{std::move(labelVal)} {}
+NodeVal::NodeVal(std::shared_ptr<Value> val) : val(val) {}
 
 NodeVal::NodeVal(const NodeVal& other) {
-    idVal = other.idVal->copy();
-    labelVal = other.labelVal->copy();
-    for (auto& [key, val] : other.properties) {
-        addProperty(key, val->copy());
+    this->val = other.val;
+}
+
+std::vector<std::pair<std::string, std::unique_ptr<Value>>> NodeVal::getProperties() const {
+    std::vector<std::pair<std::string, std::unique_ptr<Value>>> properties;
+    auto dataType = val->getDataType();
+    auto fieldNames = StructType::getFieldNames(&dataType);
+    auto& structVals = val->getListValReference();
+    for (auto i = 0u; i < structVals.size(); ++i) {
+        auto currKey = fieldNames[i];
+        if (currKey == InternalKeyword::ID || currKey == InternalKeyword::LABEL) {
+            continue;
+        }
+        auto currVal = structVals[i].get();
+        properties.emplace_back(currKey, currVal);
     }
-}
-
-void NodeVal::addProperty(const std::string& key, std::unique_ptr<Value> value) {
-    properties.emplace_back(key, std::move(value));
-}
-
-const std::vector<std::pair<std::string, std::unique_ptr<Value>>>& NodeVal::getProperties() const {
     return properties;
 }
 
-Value* NodeVal::getNodeIDVal() {
-    return idVal.get();
+Value* NodeVal::getNodeIDVal() const {
+    auto structType = val->getDataType();
+    auto fieldIdx = StructType::getFieldIdx(&structType, InternalKeyword::ID);
+    return val->getListValReference()[fieldIdx].get();
 }
 
-Value* NodeVal::getLabelVal() {
-    return labelVal.get();
+Value* NodeVal::getLabelVal() const {
+    auto structType = val->getDataType();
+    auto fieldIdx = StructType::getFieldIdx(&structType, InternalKeyword::LABEL);
+    return val->getListValReference()[fieldIdx].get();
 }
 
 nodeID_t NodeVal::getNodeID() const {
-    return idVal->getValue<nodeID_t>();
+    auto nodeIDVal = getNodeIDVal();
+    return nodeIDVal->getValue<nodeID_t>();
 }
 
 std::string NodeVal::getLabelName() const {
+    auto labelVal = getLabelVal();
     return labelVal->getValue<std::string>();
 }
 
@@ -531,62 +540,60 @@ std::unique_ptr<NodeVal> NodeVal::copy() const {
 }
 
 std::string NodeVal::toString() const {
-    std::string result = "(";
-    result += "label:" + labelVal->toString() + ", ";
-    result += idVal->toString() + ", ";
-    result += propertiesToString(properties);
-    result += ")";
-    return result;
+    return val->toString();
 }
 
-RelVal::RelVal(std::unique_ptr<Value> srcNodeIDVal, std::unique_ptr<Value> dstNodeIDVal,
-    std::unique_ptr<Value> labelVal)
-    : srcNodeIDVal{std::move(srcNodeIDVal)},
-      dstNodeIDVal{std::move(dstNodeIDVal)}, labelVal{std::move(labelVal)} {}
+RelVal::RelVal(std::shared_ptr<Value> val) : val(val) {}
 
 RelVal::RelVal(const RelVal& other) {
-    srcNodeIDVal = other.srcNodeIDVal->copy();
-    dstNodeIDVal = other.dstNodeIDVal->copy();
-    labelVal = other.labelVal->copy();
-    for (auto& [key, val] : other.properties) {
-        addProperty(key, val->copy());
-    }
-}
-
-void RelVal::addProperty(const std::string& key, std::unique_ptr<Value> value) {
-    properties.emplace_back(key, std::move(value));
+    this->val = other.val;
 }
 
 const std::vector<std::pair<std::string, std::unique_ptr<Value>>>& RelVal::getProperties() const {
+    std::vector<std::pair<std::string, std::unique_ptr<Value>>> properties;
+    auto dataType = val->getDataType();
+    auto fieldNames = StructType::getFieldNames(&dataType);
+    auto& structVals = val->getListValReference();
+    for (auto i = 0u; i < structVals.size(); ++i) {
+        auto currKey = fieldNames[i];
+        if (currKey == InternalKeyword::ID || currKey == InternalKeyword::LABEL ||
+            currKey == InternalKeyword::SRC || currKey == InternalKeyword::DST) {
+            continue;
+        }
+        auto currVal = structVals[i].get();
+        properties.emplace_back(currKey, currVal);
+    }
     return properties;
 }
 
-Value* RelVal::getSrcNodeIDVal() {
-    return srcNodeIDVal.get();
+Value* RelVal::getSrcNodeIDVal() const {
+    auto structType = val->getDataType();
+    auto fieldIdx = StructType::getFieldIdx(&structType, InternalKeyword::SRC);
+    return val->getListValReference()[fieldIdx].get();
 }
 
-Value* RelVal::getDstNodeIDVal() {
-    return dstNodeIDVal.get();
+Value* RelVal::getDstNodeIDVal() const {
+    auto structType = val->getDataType();
+    auto fieldIdx = StructType::getFieldIdx(&structType, InternalKeyword::DST);
+    return val->getListValReference()[fieldIdx].get();
 }
 
 nodeID_t RelVal::getSrcNodeID() const {
-    return srcNodeIDVal->getValue<nodeID_t>();
+    return getSrcNodeIDVal()->getValue<nodeID_t>();
 }
 
 nodeID_t RelVal::getDstNodeID() const {
-    return dstNodeIDVal->getValue<nodeID_t>();
+    return getDstNodeIDVal()->getValue<nodeID_t>();
 }
 
 std::string RelVal::getLabelName() const {
-    return labelVal->getValue<std::string>();
+    auto structType = val->getDataType();
+    auto fieldIdx = StructType::getFieldIdx(&structType, InternalKeyword::LABEL);
+    return val->getListValReference()[fieldIdx]->getValue<std::string>();
 }
 
 std::string RelVal::toString() const {
-    std::string result;
-    result += "(" + srcNodeIDVal->toString() + ")";
-    result += "-[label:" + labelVal->toString() + ", " + propertiesToString(properties) + "]->";
-    result += "(" + dstNodeIDVal->toString() + ")";
-    return result;
+    return val->toString();
 }
 
 std::unique_ptr<RelVal> RelVal::copy() const {

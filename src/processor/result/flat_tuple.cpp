@@ -9,8 +9,8 @@ using namespace kuzu::utf8proc;
 namespace kuzu {
 namespace processor {
 
-void FlatTuple::addValue(std::unique_ptr<common::Value> value) {
-    values.push_back(std::move(value));
+void FlatTuple::addValue(std::shared_ptr<common::Value> value) {
+    values.push_back(value);
 }
 
 uint32_t FlatTuple::len() const {

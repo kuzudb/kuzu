@@ -734,12 +734,6 @@ KUZU_C_API char* kuzu_value_get_string(kuzu_value* value);
 KUZU_C_API char* kuzu_value_to_string(kuzu_value* value);
 
 /**
- * @brief Creates a new node value.
- * @param id The internal id of the node.
- * @param label The label of the node.
- */
-KUZU_C_API kuzu_node_val* kuzu_node_val_create(kuzu_internal_id_t id, const char* label);
-/**
  * @brief Creates a new node value from the given node value.
  * @param node_val The node value to clone.
  */
@@ -786,28 +780,13 @@ KUZU_C_API char* kuzu_node_val_get_property_name_at(kuzu_node_val* node_val, uin
  * @param index The index of the property.
  */
 KUZU_C_API kuzu_value* kuzu_node_val_get_property_value_at(kuzu_node_val* node_val, uint64_t index);
-/**
- * @brief Adds the property with name to the given node value.
- * @param node_val The node value to add to.
- * @param name The name of the property.
- * @param property The property(in value format) to add.
- */
-KUZU_C_API void kuzu_node_val_add_property(
-    kuzu_node_val* node_val, const char* name, kuzu_value* property);
+
 /**
  * @brief Converts the given node value to string.
  * @param node_val The node value to convert.
  */
 KUZU_C_API char* kuzu_node_val_to_string(kuzu_node_val* node_val);
 
-/**
- * @brief Creates a new rel value. Caller is responsible for destroying the rel value.
- * @param src_id The internal id of the source node.
- * @param dst_id The internal id of the destination node.
- * @param label The label of the rel.
- */
-KUZU_C_API kuzu_rel_val* kuzu_rel_val_create(
-    kuzu_internal_id_t src_id, kuzu_internal_id_t dst_id, const char* label);
 /**
  * @brief Creates a new rel value from the given rel value.
  * @param rel_val The rel value to clone.
@@ -861,14 +840,7 @@ KUZU_C_API char* kuzu_rel_val_get_property_name_at(kuzu_rel_val* rel_val, uint64
  * @param index The index of the property.
  */
 KUZU_C_API kuzu_value* kuzu_rel_val_get_property_value_at(kuzu_rel_val* rel_val, uint64_t index);
-/**
- * @brief Adds the property with name to the given rel value.
- * @param rel_val The rel value to add to.
- * @param name The name of the property.
- * @param property The property(in value format) to add.
- */
-KUZU_C_API void kuzu_rel_val_add_property(
-    kuzu_rel_val* rel_val, const char* name, kuzu_value* property);
+
 /**
  * @brief Converts the given rel value to string.
  * @param rel_val The rel value to convert.
