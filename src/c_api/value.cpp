@@ -285,8 +285,8 @@ kuzu_value* kuzu_node_val_get_property_value_at(kuzu_value* node_val, uint64_t i
     auto properties = NodeVal::getProperties(static_cast<Value*>(node_val->_value));
     auto& value = properties.at(index).second;
     auto* c_value = (kuzu_value*)malloc(sizeof(kuzu_value));
-    c_value->_value = value.get();
-    c_value->_is_owned_by_cpp = true;
+    c_value->_value = value->copy().release();
+    c_value->_is_owned_by_cpp = false;
     return c_value;
 }
 
@@ -351,8 +351,8 @@ kuzu_value* kuzu_rel_val_get_property_value_at(kuzu_value* rel_val, uint64_t ind
     auto properties = RelVal::getProperties(static_cast<Value*>(rel_val->_value));
     auto& value = properties.at(index).second;
     auto* c_value = (kuzu_value*)malloc(sizeof(kuzu_value));
-    c_value->_value = value.get();
-    c_value->_is_owned_by_cpp = true;
+    c_value->_value = value->copy().release();
+    c_value->_is_owned_by_cpp = false;
     return c_value;
 }
 
