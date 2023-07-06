@@ -162,7 +162,7 @@ else()
         set(ARROW_INSTALL ${CMAKE_CURRENT_BINARY_DIR}/arrow-build/arrow/install)
         set(ARROW_BUILD_DIR ${CMAKE_CURRENT_BINARY_DIR}/arrow-build)
         file(MAKE_DIRECTORY ${ARROW_BUILD_DIR})
-        if (${CURL_INCLUDE_DIR} AND ${CURL_LIBRARY})
+        if (DEFINED CURL_INCLUDE_DIR AND DEFINED CURL_LIBRARY)
             set(CURL_ARGS -DCURL_INCLUDE_DIR=${CURL_INCLUDE_DIR} -DCURL_LIBRARY=${CURL_LIBRARY})
         endif()
         execute_process(COMMAND ${CMAKE_COMMAND}

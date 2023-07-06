@@ -151,6 +151,8 @@ jobs:
     name: msvc build & test
     needs: [clang-formatting-check]
     runs-on: self-hosted-windows
+    env:
+      CMAKE_BUILD_PARALLEL_LEVEL: 18
     steps:
       - uses: actions/checkout@v3
 
@@ -158,7 +160,9 @@ jobs:
         shell: cmd
         run: |
           call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
-          make test NUM_THREADS=18
+          cmake -S . -B build/release -G Ninja -DCURL_LIBRARY=C:/Users/runner/source/repos/vcpkg/packages/curl_x64-windows/lib/libcurl.lib -DCURL_INCLUDE_DIR=C:/Users/runner/source/repos/vcpkg/packages/curl_x64-windows/include -DBUILD_TESTS=TRUE -DCMAKE_BUILD_TYPE=Release -DENABLE_REMOTE_FS=TRUE
+          cmake --build build/release --config Release
+          cd build/release/test && ctest --output-on-failure -j 10
 
       - name: Rust test
         shell: cmd
