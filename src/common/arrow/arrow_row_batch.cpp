@@ -226,10 +226,10 @@ void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::INTERNAL_ID>(
 template<>
 void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::NODE>(
     ArrowVector* vector, const main::DataTypeInfo& typeInfo, Value* value, std::int64_t pos) {
-    appendValue(
-        vector->childData[0].get(), *typeInfo.childrenTypesInfo[0], NodeVal::getNodeIDVal(value).get());
-    appendValue(
-        vector->childData[1].get(), *typeInfo.childrenTypesInfo[1], NodeVal::getLabelVal(value).get());
+    appendValue(vector->childData[0].get(), *typeInfo.childrenTypesInfo[0],
+        NodeVal::getNodeIDVal(value).get());
+    appendValue(vector->childData[1].get(), *typeInfo.childrenTypesInfo[1],
+        NodeVal::getLabelVal(value).get());
     std::int64_t propertyId = 2;
     for (auto& [name, val] : NodeVal::getProperties(value)) {
         appendValue(vector->childData[propertyId].get(), *typeInfo.childrenTypesInfo[propertyId],
