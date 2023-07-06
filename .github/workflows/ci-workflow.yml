@@ -26,7 +26,7 @@ jobs:
         working-directory: tools/nodejs_api
 
       - name: Test with coverage
-        run: CC=gcc CXX=g++ make lcov NUM_THREADS=32
+        run: CC=gcc CXX=g++ make lcov NUM_THREADS=32 ENABLE_REMOTE_FS=TRUE
 
       - name: Python test
         run: CC=gcc CXX=g++ make pytest NUM_THREADS=32

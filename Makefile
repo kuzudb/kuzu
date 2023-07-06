@@ -50,51 +50,53 @@ define mkdirp
 endef
 endif
 
+CMAKE_COMMON_ARGS=$(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) -DENABLE_REMOTE_FS=$(ENABLE_REMOTE_FS)
+
 release:
 	$(call mkdirp,build/release) && cd build/release && \
-	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) -DCMAKE_BUILD_TYPE=Release -DENABLE_REMOTE_FS=$(ENABLE_REMOTE_FS) ../.. && \
+	cmake $(CMAKE_COMMON_ARGS) -DCMAKE_BUILD_TYPE=Release ../.. && \
 	cmake --build . --config Release
 
 debug:
 	$(call mkdirp,build/debug) && cd build/debug && \
-	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) -DCMAKE_BUILD_TYPE=Debug ../.. && \
+	cmake $(CMAKE_COMMON_ARGS) -DCMAKE_BUILD_TYPE=Debug ../.. && \
 	cmake --build . --config Debug
 
 all:
 	$(call mkdirp,build/release) && cd build/release && \
-	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=TRUE -DBUILD_BENCHMARK=TRUE -DBUILD_NODEJS=TRUE ../.. && \
+	cmake $(CMAKE_COMMON_ARGS) -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=TRUE -DBUILD_BENCHMARK=TRUE -DBUILD_NODEJS=TRUE ../.. && \
 	cmake --build . --config Release
 
 alldebug:
 	$(call mkdirp,build/debug) && cd build/debug && \
-	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=TRUE -DBUILD_BENCHMARK=TRUE -DBUILD_NODEJS=TRUE ../.. && \
+	cmake $(CMAKE_COMMON_ARGS) -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=TRUE -DBUILD_BENCHMARK=TRUE -DBUILD_NODEJS=TRUE ../.. && \
 	cmake --build . --config Debug
 
 benchmark:
 	$(call mkdirp,build/release) && cd build/release && \
-	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) -DCMAKE_BUILD_TYPE=Release -DBUILD_BENCHMARK=TRUE ../.. && \
+	cmake $(CMAKE_COMMON_ARGS) -DCMAKE_BUILD_TYPE=Release -DBUILD_BENCHMARK=TRUE ../.. && \
 	cmake --build . --config Release
 
 nodejs:
 	$(call mkdirp,build/release) && cd build/release && \
-	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) -DCMAKE_BUILD_TYPE=Release -DBUILD_NODEJS=TRUE ../.. && \
+	cmake $(CMAKE_COMMON_ARGS) -DCMAKE_BUILD_TYPE=Release -DBUILD_NODEJS=TRUE ../.. && \
 	cmake --build . --config Release
 
 java:
 	$(call mkdirp,build/release) && cd build/release && \
-	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) -DCMAKE_BUILD_TYPE=Release -DBUILD_JAVA=TRUE ../.. && \
+	cmake $(CMAKE_COMMON_ARGS) -DCMAKE_BUILD_TYPE=Release -DBUILD_JAVA=TRUE ../.. && \
 	cmake --build . --config Release
 
 test:
 	$(call mkdirp,build/release) && cd build/release && \
-	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=TRUE ../.. && \
+	cmake $(CMAKE_COMMON_ARGS) -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=TRUE ../.. && \
 	cmake --build . --config Release
 	cd $(ROOT_DIR)/build/release/test && \
 	ctest --output-on-failure -j ${TEST_JOBS}
 
 lcov:
 	$(call mkdirp,build/release) && cd build/release && \
-	cmake $(GENERATOR) $(FORCE_COLOR) $(SANITIZER_FLAG) -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=TRUE -DBUILD_NODEJS=TRUE -DBUILD_LCOV=TRUE ../.. && \
+	cmake $(CMAKE_COMMON_ARGS) -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=TRUE -DBUILD_NODEJS=TRUE -DBUILD_LCOV=TRUE ../.. && \
 	cmake --build . --config Release
 	cd $(ROOT_DIR)/build/release/test && \
 	ctest --output-on-failure -j ${TEST_JOBS}

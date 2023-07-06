@@ -16,16 +16,18 @@ if (${ENABLE_REMOTE_FS})
         find_package(CURL REQUIRED)
         set(FILE_SYSTEM_ARGS -DARROW_GCS=ON -DARROW_S3=ON
                 -Dgoogle_cloud_cpp_storage_SOURCE=BUNDLED -DAWSSDK_SOURCE=BUNDLED)
-        if (DEFINED CURL_INCLUDE_DIR AND DEFINED CURL_LIBRARY)
-                set(FILE_SYSTEM_ARGS ${FILE_SYSTEM_ARGS} -DCURL_INCLUDE_DIR=${CURL_INCLUDE_DIR} -DCURL_LIBRARY=${CURL_LIBRARY})
-        endif()
 elseif(NOT ${ENABLE_REMOTE_FS})
         set(FILE_SYSTEM_ARGS -DARROW_GCS=OFF -DARROW_S3=OFF)
 elseif((NOT ${OPENSSL_FOUND}) OR (NOT ${CURL_FOUND}))
         message(WARNING ": Could not find openssl or curllib. AWS S3 and Google Cloud Storage are turned off.")
         set(FILE_SYSTEM_ARGS -DARROW_GCS=OFF -DARROW_S3=OFF)
 else()
-        set(FILE_SYSTEM_ARGS -DARROW_GCS=ON -DARROW_S3=ON -Dgoogle_cloud_cpp_storage_SOURCE=BUNDLED -DAWSSDK_SOURCE=BUNDLED)
+        # If both openssl and curl are found but ENABLE_REMOTE_FS wasn't explicitly set, still enable REMOTE_FS
+        set(FILE_SYSTEM_ARGS -DARROW_GCS=ON -DARROW_S3=ON
+                -Dgoogle_cloud_cpp_storage_SOURCE=BUNDLED -DAWSSDK_SOURCE=BUNDLED)
+endif()
+if (DEFINED CURL_INCLUDE_DIR AND DEFINED CURL_LIBRARY)
+        set(FILE_SYSTEM_ARGS ${FILE_SYSTEM_ARGS} -DCURL_INCLUDE_DIR=${CURL_INCLUDE_DIR} -DCURL_LIBRARY=${CURL_LIBRARY})
 endif()
 
 ExternalProject_Add(apache_arrow
