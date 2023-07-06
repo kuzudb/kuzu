@@ -270,20 +270,18 @@ char* kuzu_node_val_get_label_name(kuzu_value* node_val) {
 }
 
 uint64_t kuzu_node_val_get_property_size(kuzu_value* node_val) {
-    return NodeVal::getProperties(static_cast<Value*>(node_val->_value)).size();
+    return NodeVal::getNumProperties(static_cast<Value*>(node_val->_value));
 }
 
 char* kuzu_node_val_get_property_name_at(kuzu_value* node_val, uint64_t index) {
-    auto properties = NodeVal::getProperties(static_cast<Value*>(node_val->_value));
-    auto name = properties.at(index).first;
+    auto name = NodeVal::getPropertyName(static_cast<Value*>(node_val->_value), index);
     auto* c_string = (char*)malloc(name.size() + 1);
     strcpy(c_string, name.c_str());
     return c_string;
 }
 
 kuzu_value* kuzu_node_val_get_property_value_at(kuzu_value* node_val, uint64_t index) {
-    auto properties = NodeVal::getProperties(static_cast<Value*>(node_val->_value));
-    auto& value = properties.at(index).second;
+    auto value = NodeVal::getPropertyValueReference(static_cast<Value*>(node_val->_value), index);
     auto* c_value = (kuzu_value*)malloc(sizeof(kuzu_value));
     c_value->_value = value->copy().release();
     c_value->_is_owned_by_cpp = false;
@@ -337,19 +335,17 @@ char* kuzu_rel_val_get_label_name(kuzu_value* rel_val) {
 }
 
 uint64_t kuzu_rel_val_get_property_size(kuzu_value* rel_val) {
-    return RelVal::getProperties(static_cast<Value*>(rel_val->_value)).size();
+    return RelVal::getNumProperties(static_cast<Value*>(rel_val->_value));
 }
 char* kuzu_rel_val_get_property_name_at(kuzu_value* rel_val, uint64_t index) {
-    auto properties = RelVal::getProperties(static_cast<Value*>(rel_val->_value));
-    auto& name = properties.at(index).first;
+    auto name = RelVal::getPropertyName(static_cast<Value*>(rel_val->_value), index);
     auto* c_string = (char*)malloc(name.size() + 1);
     strcpy(c_string, name.c_str());
     return c_string;
 }
 
 kuzu_value* kuzu_rel_val_get_property_value_at(kuzu_value* rel_val, uint64_t index) {
-    auto properties = RelVal::getProperties(static_cast<Value*>(rel_val->_value));
-    auto& value = properties.at(index).second;
+    auto value = RelVal::getPropertyValueReference(static_cast<Value*>(rel_val->_value), index);
     auto* c_value = (kuzu_value*)malloc(sizeof(kuzu_value));
     c_value->_value = value->copy().release();
     c_value->_is_owned_by_cpp = false;

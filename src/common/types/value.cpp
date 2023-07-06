@@ -480,22 +480,49 @@ static std::string propertiesToString(
     return result;
 }
 
-std::vector<std::pair<std::string, std::unique_ptr<Value>>> NodeVal::getProperties(
-    const Value* val) {
+//std::vector<std::pair<std::string, std::unique_ptr<Value>>> NodeVal::getProperties(
+//    const Value* val) {
+//    throwIfNotNode(val);
+//    std::vector<std::pair<std::string, std::unique_ptr<Value>>> properties;
+//    auto dataType = val->getDataType();
+//    auto fieldNames = StructType::getFieldNames(&dataType);
+//    auto& structVals = val->getListValReference();
+//    for (auto i = 0u; i < structVals.size(); ++i) {
+//        auto currKey = fieldNames[i];
+//        if (currKey == InternalKeyword::ID || currKey == InternalKeyword::LABEL) {
+//            continue;
+//        }
+//        auto currVal = structVals[i]->copy();
+//        properties.emplace_back(currKey, std::move(currVal));
+//    }
+//    return properties;
+//}
+
+uint64_t NodeVal::getNumProperties(const Value* val) {
     throwIfNotNode(val);
-    std::vector<std::pair<std::string, std::unique_ptr<Value>>> properties;
     auto dataType = val->getDataType();
     auto fieldNames = StructType::getFieldNames(&dataType);
-    auto& structVals = val->getListValReference();
-    for (auto i = 0u; i < structVals.size(); ++i) {
-        auto currKey = fieldNames[i];
-        if (currKey == InternalKeyword::ID || currKey == InternalKeyword::LABEL) {
-            continue;
-        }
-        auto currVal = structVals[i]->copy();
-        properties.emplace_back(currKey, std::move(currVal));
+    return fieldNames.size() - OFFSET;
+}
+
+std::string NodeVal::getPropertyName(const Value* val, uint64_t index) {
+    throwIfNotNode(val);
+    auto dataType = val->getDataType();
+    auto fieldNames = StructType::getFieldNames(&dataType);
+    if (index >= fieldNames.size() - OFFSET) {
+        return "";
     }
-    return properties;
+    return fieldNames[index + OFFSET];
+}
+
+Value* NodeVal::getPropertyValueReference(const Value* val, uint64_t index) {
+    throwIfNotNode(val);
+    auto dataType = val->getDataType();
+    auto fieldNames = StructType::getFieldNames(&dataType);
+    if (index >= fieldNames.size() - OFFSET) {
+        return nullptr;
+    }
+    return val->getListValReference()[index + OFFSET].get();
 }
 
 std::unique_ptr<Value> NodeVal::getNodeIDVal(const Value* val) {
@@ -541,23 +568,51 @@ void NodeVal::throwIfNotNode(const Value* val) {
     }
 }
 
-std::vector<std::pair<std::string, std::unique_ptr<Value>>> RelVal::getProperties(
-    const Value* val) {
+//std::vector<std::pair<std::string, std::unique_ptr<Value>>> RelVal::getProperties(
+//    const Value* val) {
+//    throwIfNotRel(val);
+//    std::vector<std::pair<std::string, std::unique_ptr<Value>>> properties;
+//    auto dataType = val->getDataType();
+//    auto fieldNames = StructType::getFieldNames(&dataType);
+//    auto& structVals = val->getListValReference();
+//    for (auto i = 0u; i < structVals.size(); ++i) {
+//        auto currKey = fieldNames[i];
+//        if (currKey == InternalKeyword::ID || currKey == InternalKeyword::LABEL ||
+//            currKey == InternalKeyword::SRC || currKey == InternalKeyword::DST) {
+//            continue;
+//        }
+//        auto currVal = structVals[i]->copy();
+//        properties.emplace_back(currKey, std::move(currVal));
+//    }
+//    return properties;
+//}
+
+uint64_t RelVal::getNumProperties(const Value* val) {
     throwIfNotRel(val);
-    std::vector<std::pair<std::string, std::unique_ptr<Value>>> properties;
     auto dataType = val->getDataType();
     auto fieldNames = StructType::getFieldNames(&dataType);
-    auto& structVals = val->getListValReference();
-    for (auto i = 0u; i < structVals.size(); ++i) {
-        auto currKey = fieldNames[i];
-        if (currKey == InternalKeyword::ID || currKey == InternalKeyword::LABEL ||
-            currKey == InternalKeyword::SRC || currKey == InternalKeyword::DST) {
-            continue;
-        }
-        auto currVal = structVals[i]->copy();
-        properties.emplace_back(currKey, std::move(currVal));
+
+    return fieldNames.size() - OFFSET;
+}
+
+std::string RelVal::getPropertyName(const Value* val, uint64_t index) {
+    throwIfNotRel(val);
+    auto dataType = val->getDataType();
+    auto fieldNames = StructType::getFieldNames(&dataType);
+    if (index >= fieldNames.size() - OFFSET) {
+        return "";
     }
-    return properties;
+    return fieldNames[index + OFFSET];
+}
+
+Value* RelVal::getPropertyValueReference(const Value* val, uint64_t index) {
+    throwIfNotRel(val);
+    auto dataType = val->getDataType();
+    auto fieldNames = StructType::getFieldNames(&dataType);
+    if (index >= fieldNames.size() - OFFSET) {
+        return nullptr;
+    }
+    return val->getListValReference()[index + OFFSET].get();
 }
 
 std::unique_ptr<Value> RelVal::getSrcNodeIDVal(const Value* val) {

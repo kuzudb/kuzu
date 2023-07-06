@@ -82,22 +82,28 @@ std::vector<std::unique_ptr<DataTypeInfo>> QueryResult::getColumnTypesInfo() {
     for (auto i = 0u; i < columnDataTypes.size(); i++) {
         auto columnTypeInfo = DataTypeInfo::getInfoForDataType(columnDataTypes[i], columnNames[i]);
         if (columnTypeInfo->typeID == common::LogicalTypeID::NODE) {
-            auto value = tuple->getValue(i)->nodeVal.get();
+            auto value = tuple->getValue(i);
             columnTypeInfo->childrenTypesInfo.push_back(DataTypeInfo::getInfoForDataType(
                 LogicalType(common::LogicalTypeID::INTERNAL_ID), "_id"));
             columnTypeInfo->childrenTypesInfo.push_back(DataTypeInfo::getInfoForDataType(
                 LogicalType(common::LogicalTypeID::STRING), "_label"));
-            for (auto& [name, val] : NodeVal::getProperties(tuple->getValue(i))) {
+            auto numProperties = NodeVal::getNumProperties(value);
+            for (auto j = 0u; i < numProperties; j++) {
+                auto name = NodeVal::getPropertyName(value, j);
+                auto val = NodeVal::getPropertyValueReference(value, j);
                 columnTypeInfo->childrenTypesInfo.push_back(
                     DataTypeInfo::getInfoForDataType(val->dataType, name));
             }
         } else if (columnTypeInfo->typeID == common::LogicalTypeID::REL) {
-            auto value = tuple->getValue(i)->relVal.get();
+            auto value = tuple->getValue(i);
             columnTypeInfo->childrenTypesInfo.push_back(DataTypeInfo::getInfoForDataType(
                 LogicalType(common::LogicalTypeID::INTERNAL_ID), "_src"));
             columnTypeInfo->childrenTypesInfo.push_back(DataTypeInfo::getInfoForDataType(
                 LogicalType(common::LogicalTypeID::INTERNAL_ID), "_dst"));
-            for (auto& [name, val] : RelVal::getProperties(tuple->getValue(i))) {
+            auto numProperties = RelVal::getNumProperties(value);
+            for (auto j = 0u; i < numProperties; j++) {
+                auto name = NodeVal::getPropertyName(value, j);
+                auto val = NodeVal::getPropertyValueReference(value, j);
                 columnTypeInfo->childrenTypesInfo.push_back(
                     DataTypeInfo::getInfoForDataType(val->dataType, name));
             }

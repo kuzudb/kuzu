@@ -227,11 +227,25 @@ public:
  */
 class NodeVal {
 public:
+//    /**
+//     * @return all properties of the NodeVal.
+//     */
+//    KUZU_API static std::vector<std::pair<std::string, std::unique_ptr<Value>>> getProperties(
+//        const Value* val);
     /**
-     * @return all properties of the NodeVal.
+     * @return number of properties of the RelVal.
      */
-    KUZU_API static std::vector<std::pair<std::string, std::unique_ptr<Value>>> getProperties(
-        const Value* val);
+    KUZU_API static uint64_t getNumProperties(const Value* val);
+
+    /**
+     * @return the name of the property at the given index.
+     */
+    KUZU_API static std::string getPropertyName(const Value* val, uint64_t index);
+
+    /**
+     * @return the value of the property at the given index.
+     */
+    KUZU_API static Value* getPropertyValueReference(const Value* val, uint64_t index);
     /**
      * @return the nodeID as a Value.
      */
@@ -259,6 +273,8 @@ public:
 
 private:
     static void throwIfNotNode(const Value* val);
+    // 2 offsets for id and label.
+    inline static const uint64_t OFFSET = 2;
 };
 
 /**
@@ -267,11 +283,23 @@ private:
  */
 class RelVal {
 public:
+//    /**
+//     * @return all properties of the RelVal.
+//     */
+//    KUZU_API static std::vector<std::pair<std::string, std::unique_ptr<Value>>> getProperties(
+//        const Value* val);
     /**
-     * @return all properties of the RelVal.
+     * @return number of properties of the RelVal.
      */
-    KUZU_API static std::vector<std::pair<std::string, std::unique_ptr<Value>>> getProperties(
-        const Value* val);
+    KUZU_API static uint64_t getNumProperties(const Value* val);
+    /**
+     * @return the name of the property at the given index.
+     */
+    KUZU_API static std::string getPropertyName(const Value* val, uint64_t index);
+    /**
+     * @return the value of the property at the given index.
+     */
+    KUZU_API static Value* getPropertyValueReference(const Value* val, uint64_t index);
     /**
      * @return the src nodeID value of the RelVal in Value.
      */
@@ -303,6 +331,8 @@ public:
 
 private:
     static void throwIfNotRel(const Value* val);
+    // 4 offset for id, label, src, dst.
+    inline static const uint64_t OFFSET = 4;
 };
 
 /**

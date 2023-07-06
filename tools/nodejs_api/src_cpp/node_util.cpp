@@ -73,13 +73,25 @@ Napi::Value Util::ConvertToNapiObject(const Value& value, Napi::Env env) {
         return napiObj;
     }
     case LogicalTypeID::NODE: {
-        auto napiObj = ConvertPropertiesToNapiObject(NodeVal::getProperties(&value), env);
+        Napi::Object napiObj = Napi::Object::New(env);
+        auto numProperties = NodeVal::getNumProperties(&value);
+        for (auto i = 0u; i < numProperties; ++i) {
+            auto key = NodeVal::getPropertyName(&value, i);
+            auto val = ConvertToNapiObject(*NodeVal::getPropertyValueReference(&value, i), env);
+            napiObj.Set(key, val);
+        }
         napiObj.Set("_label", Napi::String::New(env, NodeVal::getLabelName(&value)));
         napiObj.Set("_id", ConvertNodeIdToNapiObject(NodeVal::getNodeID(&value), env));
         return napiObj;
     }
     case LogicalTypeID::REL: {
-        Napi::Object napiObj = ConvertPropertiesToNapiObject(RelVal::getProperties(&value), env);
+        Napi::Object napiObj = Napi::Object::New(env);
+        auto numProperties = RelVal::getNumProperties(&value);
+        for (auto i = 0u; i < numProperties; ++i) {
+            auto key = RelVal::getPropertyName(&value, i);
+            auto val = ConvertToNapiObject(*RelVal::getPropertyValueReference(&value, i), env);
+            napiObj.Set(key, val);
+        }
         napiObj.Set("_src", ConvertNodeIdToNapiObject(RelVal::getSrcNodeID(&value), env));
         napiObj.Set("_dst", ConvertNodeIdToNapiObject(RelVal::getDstNodeID(&value), env));
         return napiObj;
@@ -111,15 +123,6 @@ std::unordered_map<std::string, std::shared_ptr<Value>> Util::TransformParameter
         result[key] = std::make_shared<Value>(transformedVal);
     }
     return result;
-}
-
-Napi::Object Util::ConvertPropertiesToNapiObject(
-    const std::vector<std::pair<std::string, std::unique_ptr<Value>>>& properties, Napi::Env env) {
-    Napi::Object napiObject = Napi::Object::New(env);
-    for (auto& [name, value] : properties) {
-        napiObject.Set(name, Util::ConvertToNapiObject(*value, env));
-    }
-    return napiObject;
 }
 
 Napi::Object Util::ConvertNodeIdToNapiObject(const nodeID_t& nodeId, Napi::Env env) {
