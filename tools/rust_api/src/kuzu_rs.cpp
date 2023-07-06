@@ -142,17 +142,32 @@ rust::Vec<rust::String> query_result_column_names(const kuzu::main::QueryResult&
     return names;
 }
 
-std::array<uint64_t, 2> node_value_get_node_id(const kuzu::common::NodeVal& val) {
-    auto internalID = val.getNodeID();
+std::unique_ptr<NodeValuePropertyList> node_value_get_properties(const Value& val) {
+    return std::make_unique<NodeValuePropertyList>(val);
+}
+std::unique_ptr<RelValuePropertyList> rel_value_get_properties(const Value& val) {
+    return std::make_unique<RelValuePropertyList>(val);
+}
+
+rust::String node_value_get_label_name(const kuzu::common::Value& val) {
+    return rust::String(kuzu::common::NodeVal::getLabelName(&val));
+}
+
+rust::String rel_value_get_label_name(const kuzu::common::Value& val) {
+    return rust::String(kuzu::common::RelVal::getLabelName(&val));
+}
+
+std::array<uint64_t, 2> node_value_get_node_id(const kuzu::common::Value& val) {
+    auto internalID = kuzu::common::NodeVal::getNodeID(&val);
     return std::array{internalID.offset, internalID.tableID};
 }
 
-std::array<uint64_t, 2> rel_value_get_src_id(const kuzu::common::RelVal& val) {
-    auto internalID = val.getSrcNodeID();
+std::array<uint64_t, 2> rel_value_get_src_id(const kuzu::common::Value& val) {
+    auto internalID = kuzu::common::RelVal::getSrcNodeID(&val);
     return std::array{internalID.offset, internalID.tableID};
 }
-std::array<uint64_t, 2> rel_value_get_dst_id(const kuzu::common::RelVal& val) {
-    auto internalID = val.getDstNodeID();
+std::array<uint64_t, 2> rel_value_get_dst_id(const kuzu::common::Value& val) {
+    auto internalID = kuzu::common::RelVal::getDstNodeID(&val);
     return std::array{internalID.offset, internalID.tableID};
 }
 
@@ -225,17 +240,6 @@ std::unique_ptr<kuzu::common::Value> create_value_null(
 std::unique_ptr<kuzu::common::Value> create_value_internal_id(uint64_t offset, uint64_t table) {
     return std::make_unique<kuzu::common::Value>(kuzu::common::internalID_t(offset, table));
 }
-std::unique_ptr<Value> create_value_node(
-    std::unique_ptr<Value> id_val, std::unique_ptr<Value> label_val) {
-    return std::make_unique<Value>(
-        std::make_unique<kuzu::common::NodeVal>(std::move(id_val), std::move(label_val)));
-}
-
-std::unique_ptr<kuzu::common::Value> create_value_rel(std::unique_ptr<kuzu::common::Value> src_id,
-    std::unique_ptr<kuzu::common::Value> dst_id, std::unique_ptr<kuzu::common::Value> label_val) {
-    return std::make_unique<Value>(std::make_unique<kuzu::common::RelVal>(
-        std::move(src_id), std::move(dst_id), std::move(label_val)));
-}
 
 std::unique_ptr<kuzu::common::Value> get_list_value(
     std::unique_ptr<kuzu::common::LogicalType> typ, std::unique_ptr<ValueListBuilder> value) {
@@ -248,19 +252,6 @@ std::unique_ptr<ValueListBuilder> create_list() {
 
 std::unique_ptr<TypeListBuilder> create_type_list() {
     return std::make_unique<TypeListBuilder>();
-}
-
-void value_add_property(kuzu::common::Value& val, const rust::String& name,
-    std::unique_ptr<kuzu::common::Value> property) {
-    if (val.getDataType().getLogicalTypeID() == kuzu::common::LogicalTypeID::NODE) {
-        kuzu::common::NodeVal& nodeVal = val.getValueReference<kuzu::common::NodeVal>();
-        nodeVal.addProperty(std::string(name), std::move(property));
-    } else if (val.getDataType().getLogicalTypeID() == kuzu::common::LogicalTypeID::REL) {
-        kuzu::common::RelVal& relVal = val.getValueReference<kuzu::common::RelVal>();
-        relVal.addProperty(std::string(name), std::move(property));
-    } else {
-        throw std::runtime_error("Internal Error! Adding property to type without properties!");
-    }
 }
 
 } // namespace kuzu_rs

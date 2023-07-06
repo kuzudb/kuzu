@@ -381,15 +381,14 @@ impl TryFrom<&ffi::Value> for Value {
                 Ok(Value::Struct(result))
             }
             LogicalTypeID::NODE => {
-                let ffi_node_val = ffi::value_get_node_val(value);
-                let id = ffi::node_value_get_node_id(ffi_node_val.as_ref().unwrap());
+                let id = ffi::node_value_get_node_id(value);
                 let id = InternalID {
                     offset: id[0],
                     table_id: id[1],
                 };
-                let label = ffi::node_value_get_label_name(ffi_node_val.as_ref().unwrap());
+                let label = ffi::node_value_get_label_name(value);
                 let mut node_val = NodeVal::new(id, label);
-                let properties = ffi::node_value_get_properties(ffi_node_val.as_ref().unwrap());
+                let properties = ffi::node_value_get_properties(value);
                 for i in 0..properties.size() {
                     node_val
                         .add_property(properties.get_name(i), properties.get_value(i).try_into()?);
@@ -397,9 +396,8 @@ impl TryFrom<&ffi::Value> for Value {
                 Ok(Value::Node(node_val))
             }
             LogicalTypeID::REL => {
-                let ffi_rel_val = ffi::value_get_rel_val(value);
-                let src_node = ffi::rel_value_get_src_id(ffi_rel_val.as_ref().unwrap());
-                let dst_node = ffi::rel_value_get_dst_id(ffi_rel_val.as_ref().unwrap());
+                let src_node = ffi::rel_value_get_src_id(value);
+                let dst_node = ffi::rel_value_get_dst_id(value);
                 let src_node = InternalID {
                     offset: src_node[0],
                     table_id: src_node[1],
@@ -408,9 +406,9 @@ impl TryFrom<&ffi::Value> for Value {
                     offset: dst_node[0],
                     table_id: dst_node[1],
                 };
-                let label = ffi::rel_value_get_label_name(ffi_rel_val.as_ref().unwrap());
+                let label = ffi::rel_value_get_label_name(value);
                 let mut rel_val = RelVal::new(src_node, dst_node, label);
-                let properties = ffi::rel_value_get_properties(ffi_rel_val.as_ref().unwrap());
+                let properties = ffi::rel_value_get_properties(value);
                 for i in 0..properties.size() {
                     rel_val
                         .add_property(properties.get_name(i), properties.get_value(i).try_into()?);
@@ -518,27 +516,8 @@ impl TryInto<cxx::UniquePtr<ffi::Value>> for Value {
             Value::InternalID(value) => {
                 Ok(ffi::create_value_internal_id(value.offset, value.table_id))
             }
-            Value::Node(value) => {
-                let mut node = ffi::create_value_node(
-                    Value::InternalID(value.id).try_into()?,
-                    Value::String(value.label).try_into()?,
-                );
-                for (name, property) in value.properties {
-                    ffi::value_add_property(node.pin_mut(), &name, property.try_into()?);
-                }
-                Ok(node)
-            }
-            Value::Rel(value) => {
-                let mut rel = ffi::create_value_rel(
-                    Value::InternalID(value.src_node).try_into()?,
-                    Value::InternalID(value.dst_node).try_into()?,
-                    Value::String(value.label).try_into()?,
-                );
-                for (name, property) in value.properties {
-                    ffi::value_add_property(rel.pin_mut(), &name, property.try_into()?);
-                }
-                Ok(rel)
-            }
+            Value::Node(_) => Err(crate::Error::ReadOnlyType(LogicalType::Node)),
+            Value::Rel(_) => Err(crate::Error::ReadOnlyType(LogicalType::Rel)),
         }
     }
 }
@@ -640,7 +619,7 @@ mod tests {
         ($($name:ident: $value:expr,)*) => {
         $(
             #[test]
-            /// Tests that the values are correctly converted into kuzu::common::Value and back
+            /// Tests that the values display the same via the rust API as via the C++ API
             fn $name() -> Result<()> {
                 let rust_value: Value = $value;
                 let value: cxx::UniquePtr<ffi::Value> = rust_value.clone().try_into()?;
@@ -722,8 +701,6 @@ mod tests {
         }),
         convert_struct: Value::Struct(vec![("NAME".to_string(), "Alice".into()), ("AGE".to_string(), 25.into())]),
         convert_internal_id: Value::InternalID(InternalID { table_id: 0, offset: 0 }),
-        convert_node: Value::Node(NodeVal::new(InternalID { table_id: 0, offset: 0 }, "Test Label".to_string())),
-        convert_rel: Value::Rel(RelVal::new(InternalID { table_id: 0, offset: 0 }, InternalID { table_id: 1, offset: 0 }, "Test Label".to_string())),
     }
 
     display_tests! {
@@ -733,7 +710,7 @@ mod tests {
         display_int16: Value::Int16(1),
         display_int32: Value::Int32(2),
         display_int64: Value::Int64(3),
-        // Float, doble, interval and timestamp have display differences which we probably don't want to
+        // Float, double, interval and timestamp have display differences which we probably don't want to
         // reconcile
         display_date: Value::Date(date!(2023-06-13)),
         display_string: Value::String("Hello World".to_string()),
@@ -743,8 +720,7 @@ mod tests {
         }),
         display_struct: Value::Struct(vec![("NAME".to_string(), "Alice".into()), ("AGE".to_string(), 25.into())]),
         display_internal_id: Value::InternalID(InternalID { table_id: 0, offset: 0 }),
-        display_node: Value::Node(NodeVal::new(InternalID { table_id: 0, offset: 0 }, "Test Label".to_string())),
-        display_rel: Value::Rel(RelVal::new(InternalID { table_id: 0, offset: 0 }, InternalID { table_id: 1, offset: 0 }, "Test Label".to_string())),
+        // Node and Rel Cannot be easily created on the C++ side
     }
 
     database_tests! {

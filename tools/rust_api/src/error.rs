@@ -1,3 +1,4 @@
+use crate::logical_type::LogicalType;
 use std::fmt;
 
 pub enum Error {
@@ -7,6 +8,8 @@ pub enum Error {
     FailedQuery(String),
     /// Message produced by kuzu when a query fails to prepare
     FailedPreparedStatement(String),
+    /// Message produced when you attempt to pass read-only types over the FFI boundary
+    ReadOnlyType(LogicalType),
 }
 
 impl std::fmt::Display for Error {
@@ -16,6 +19,7 @@ impl std::fmt::Display for Error {
             CxxException(cxx) => write!(f, "{cxx}"),
             FailedQuery(message) => write!(f, "Query execution failed: {message}"),
             FailedPreparedStatement(message) => write!(f, "Query execution failed: {message}"),
+            ReadOnlyType(typ) => write!(f, "Attempted to pass read only type {:?} over ffi!", typ),
         }
     }
 }
@@ -31,8 +35,7 @@ impl std::error::Error for Error {
         use Error::*;
         match self {
             CxxException(cxx) => Some(cxx),
-            FailedQuery(_) => None,
-            FailedPreparedStatement(_) => None,
+            _ => None,
         }
     }
 }
