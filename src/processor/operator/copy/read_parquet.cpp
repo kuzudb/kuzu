@@ -6,7 +6,7 @@ namespace processor {
 void ReadParquetSharedState::countNumLines() {
     for (auto& filePath : filePaths) {
         std::unique_ptr<parquet::arrow::FileReader> reader =
-            storage::TableCopyUtils::createParquetReader(filePath);
+            storage::TableCopyUtils::createParquetReader(filePath, tableSchema);
         auto metadata = reader->parquet_reader()->metadata();
         uint64_t numBlocks = metadata->num_row_groups();
         std::vector<uint64_t> numLinesPerBlock(numBlocks);
@@ -47,7 +47,8 @@ std::shared_ptr<arrow::RecordBatch> ReadParquet::readTuples(
     std::unique_ptr<ReadFileMorsel> morsel) {
     assert(!morsel->filePath.empty());
     if (!reader || filePath != morsel->filePath) {
-        reader = storage::TableCopyUtils::createParquetReader(morsel->filePath);
+        reader = storage::TableCopyUtils::createParquetReader(
+            morsel->filePath, sharedState->tableSchema);
         filePath = morsel->filePath;
     }
     std::shared_ptr<arrow::Table> table;

@@ -45,3 +45,19 @@ Copy exception: COPY commands can only be executed once on a table.
 -STATEMENT COPY knows FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/wrong-header/eKnowsMissingColumn.csv" (HEADER=true)
 ---- error
 Copy exception: Invalid: CSV parse error: Expected 4 columns, got 3: 10,24,1
+
+-CASE NodeUnmatchedNumColumns
+-STATEMENT create node table person (ID1 SERIAL, ID INT64, fName INT64, age INT64, PRIMARY KEY (ID1))
+---- ok
+-STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-test/node/parquet/types_50k_1.parquet" (HEADER=true)
+---- error
+Copy exception: Unmatched number of columns in parquet file. Expect: 3, got: 13.
+
+-CASE RelUnmatchedNumColumns
+-STATEMENT create node table person (ID1 SERIAL, ID INT64, fName INT64, age INT64, PRIMARY KEY (ID1))
+---- ok
+-STATEMENT create rel table knows (FROM person TO person, time date, age INT64)
+---- ok
+-STATEMENT COPY knows FROM "${KUZU_ROOT_DIRECTORY}/dataset/demo-db/parquet/follows.parquet" (HEADER=true)
+---- error
+Copy exception: Unmatched number of columns in parquet file. Expect: 4, got: 3.

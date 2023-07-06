@@ -77,6 +77,7 @@ protected:
     std::vector<std::shared_ptr<InMemColumn>> columns;
     common::column_id_t pkColumnID;
     common::column_id_t columnToCopy;
+    catalog::TableSchema* schema;
 };
 
 template<>

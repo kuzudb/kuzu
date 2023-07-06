@@ -24,7 +24,7 @@ NodeCopier::NodeCopier(const std::string& directory, std::shared_ptr<CopySharedS
     const CopyDescription& copyDesc, TableSchema* schema, tuple_idx_t numTuples,
     column_id_t columnToCopy)
     : sharedState{std::move(sharedState)}, copyDesc{copyDesc}, columnToCopy{columnToCopy},
-      pkColumnID{INVALID_COLUMN_ID} {
+      pkColumnID{INVALID_COLUMN_ID}, schema{schema} {
     for (auto i = 0u; i < schema->properties.size(); i++) {
         auto property = schema->properties[i];
         if (property.dataType.getLogicalTypeID() == LogicalTypeID::SERIAL) {
@@ -160,7 +160,7 @@ void CSVNodeCopier::executeInternal(std::unique_ptr<CopyMorsel> morsel) {
 void ParquetNodeCopier::executeInternal(std::unique_ptr<CopyMorsel> morsel) {
     assert(!morsel->filePath.empty());
     if (!reader || filePath != morsel->filePath) {
-        reader = TableCopyUtils::createParquetReader(morsel->filePath);
+        reader = TableCopyUtils::createParquetReader(morsel->filePath, schema);
         filePath = morsel->filePath;
     }
     std::shared_ptr<arrow::Table> table;

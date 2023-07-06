@@ -251,7 +251,7 @@ void RelListsCounterAndColumnCopier::buildRelListsHeaders(
 void ParquetRelListsCounterAndColumnsCopier::executeInternal(std::unique_ptr<CopyMorsel> morsel) {
     assert(!morsel->filePath.empty());
     if (!reader || filePath != morsel->filePath) {
-        reader = TableCopyUtils::createParquetReader(morsel->filePath);
+        reader = TableCopyUtils::createParquetReader(morsel->filePath, schema);
         filePath = morsel->filePath;
     }
     std::shared_ptr<arrow::Table> table;
@@ -316,7 +316,7 @@ void RelListsCopier::finalize() {
 void ParquetRelListsCopier::executeInternal(std::unique_ptr<CopyMorsel> morsel) {
     assert(!morsel->filePath.empty());
     if (!reader || filePath != morsel->filePath) {
-        reader = TableCopyUtils::createParquetReader(morsel->filePath);
+        reader = TableCopyUtils::createParquetReader(morsel->filePath, schema);
         filePath = morsel->filePath;
     }
     std::shared_ptr<arrow::Table> table;
