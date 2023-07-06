@@ -171,7 +171,7 @@ void javaMapToCPPMap(
         jobject entry = env->CallObjectMethod(iter, next);
         jstring key = (jstring)env->CallObjectMethod(entry, entryGetKey);
         jobject value = env->CallObjectMethod(entry, entryGetValue);
-        const char* keyStr = env->GetStringUTFChars(key, NULL);
+        const char* keyStr = env->GetStringUTFChars(key, JNI_FALSE);
         Value* v = getValue(env, value);
         std::shared_ptr<Value> value_ptr(v);
         cppMap.insert({keyStr, value_ptr});
@@ -753,7 +753,7 @@ JNIEXPORT jlong JNICALL Java_com_kuzudb_KuzuNative_kuzu_1value_1create_1value(
         v = new Value(static_cast<double>(value));
     } else if (env->IsInstanceOf(val, env->FindClass("java/lang/String"))) {
         jstring value = static_cast<jstring>(val);
-        const char* str = env->GetStringUTFChars(value, NULL);
+        const char* str = env->GetStringUTFChars(value, JNI_FALSE);
         v = new Value(str);
         env->ReleaseStringUTFChars(value, str);
     } else if (env->IsInstanceOf(val, env->FindClass("com/kuzudb/KuzuInternalID"))) {
@@ -1059,4 +1059,30 @@ JNIEXPORT jstring JNICALL Java_com_kuzudb_KuzuNative_kuzu_1rel_1val_1to_1string(
     std::string result_string = RelVal::toString(rv);
     jstring ret = env->NewStringUTF(result_string.c_str());
     return ret;
+}
+
+JNIEXPORT jstring JNICALL Java_com_kuzudb_KuzuNative_kuzu_1value_1get_1struct_1field_1name(
+    JNIEnv* env, jclass, jobject thisSV, jlong index) {
+    auto* sv = getValue(env, thisSV);
+    auto dataType = sv->getDataType();
+    auto fieldNames = StructType::getFieldNames(&dataType);
+    if (index >= fieldNames.size() || index < 0) {
+        return nullptr;
+    }
+    auto name = fieldNames[index];
+    return env->NewStringUTF(name.c_str());
+}
+
+JNIEXPORT jlong JNICALL Java_com_kuzudb_KuzuNative_kuzu_1value_1get_1struct_1index(
+    JNIEnv* env, jclass, jobject thisSV, jstring field_name) {
+    auto* sv = getValue(env, thisSV);
+    const char* field_name_cstr = env->GetStringUTFChars(field_name, JNI_FALSE);
+    auto dataType = sv->getDataType();
+    auto index = StructType::getFieldIdx(&dataType, field_name_cstr);
+    env->ReleaseStringUTFChars(field_name, field_name_cstr);
+    if (index == INVALID_STRUCT_FIELD_IDX) {
+        return -1;
+    } else {
+        return static_cast<jlong>(index);
+    }
 }

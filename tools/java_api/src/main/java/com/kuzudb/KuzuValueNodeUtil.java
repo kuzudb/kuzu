@@ -1,6 +1,6 @@
 package com.kuzudb;
 
-public class KuzuNodeValue {
+public class KuzuValueNodeUtil {
     public static KuzuInternalID getID(KuzuValue value) throws KuzuObjectRefDestroyedException {
         value.checkNotDestroyed();
         return KuzuNative.kuzu_node_val_get_id(value);

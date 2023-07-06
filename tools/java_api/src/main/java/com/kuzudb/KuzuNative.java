@@ -221,4 +221,7 @@ public class KuzuNative {
 
     protected static native String kuzu_rel_val_to_string(KuzuValue rel_val);
 
+    protected static native String kuzu_value_get_struct_field_name(KuzuValue struct_val, long index);
+
+    protected static native long kuzu_value_get_struct_index(KuzuValue struct_val, String field_name);
 }

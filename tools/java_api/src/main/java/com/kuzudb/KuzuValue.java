@@ -71,16 +71,6 @@ public class KuzuValue {
         return KuzuNative.kuzu_value_get_value(this);
     }
 
-    public long getListSize() throws KuzuObjectRefDestroyedException {
-        checkNotDestroyed();
-        return KuzuNative.kuzu_value_get_list_size(this);
-    }
-
-    public KuzuValue getListElement(long index) throws KuzuObjectRefDestroyedException {
-        checkNotDestroyed();
-        return KuzuNative.kuzu_value_get_list_element(this, index);
-    }
-
     public KuzuDataType getDataType() throws KuzuObjectRefDestroyedException {
         checkNotDestroyed();
         return KuzuNative.kuzu_value_get_data_type(this);
