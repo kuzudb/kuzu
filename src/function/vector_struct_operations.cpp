@@ -68,28 +68,14 @@ void StructPackVectorOperations::copyParameterValueToStructFieldVector(
     // If the parameter is unFlat, then its state must be consistent with the result's state.
     // Thus, we don't need to copy values to structFieldVector.
     assert(parameter->state->isFlat());
-    auto srcPos = parameter->state->selVector->selectedPositions[0];
-    auto srcValue = parameter->getData() + parameter->getNumBytesPerValue() * srcPos;
-    bool isSrcValueNull = parameter->isNull(srcPos);
+    auto paramPos = parameter->state->selVector->selectedPositions[0];
     if (structVectorState->isFlat()) {
         auto pos = structVectorState->selVector->selectedPositions[0];
-        if (isSrcValueNull) {
-            structField->setNull(pos, true /* isNull */);
-        } else {
-            structField->copyFromVectorData(
-                structField->getData() + structField->getNumBytesPerValue() * pos, parameter,
-                srcValue);
-        }
+        structField->copyFromVectorData(pos, parameter, paramPos);
     } else {
-        for (auto j = 0u; j < structVectorState->selVector->selectedSize; j++) {
-            auto pos = structVectorState->selVector->selectedPositions[j];
-            if (isSrcValueNull) {
-                structField->setNull(pos, true /* isNull */);
-            } else {
-                structField->copyFromVectorData(
-                    structField->getData() + structField->getNumBytesPerValue() * pos, parameter,
-                    srcValue);
-            }
+        for (auto i = 0u; i < structVectorState->selVector->selectedSize; i++) {
+            auto pos = structVectorState->selVector->selectedPositions[i];
+            structField->copyFromVectorData(pos, parameter, paramPos);
         }
     }
 }

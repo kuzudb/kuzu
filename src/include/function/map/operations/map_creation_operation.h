@@ -25,14 +25,11 @@ struct MapCreation {
 
     static void copyListEntry(common::list_entry_t& resultEntry, common::ValueVector* resultVector,
         common::list_entry_t& srcEntry, common::ValueVector* srcVector) {
-        auto resultValues =
-            resultVector->getData() + resultVector->getNumBytesPerValue() * resultEntry.offset;
-        auto srcValues = common::ListVector::getListValues(srcVector, srcEntry);
+        auto resultPos = resultEntry.offset;
         auto srcDataVector = common::ListVector::getDataVector(srcVector);
+        auto srcPos = srcEntry.offset;
         for (auto i = 0u; i < srcEntry.size; i++) {
-            resultVector->copyFromVectorData(resultValues, srcDataVector, srcValues);
-            srcValues += srcDataVector->getNumBytesPerValue();
-            resultValues += resultVector->getNumBytesPerValue();
+            resultVector->copyFromVectorData(resultPos++, srcDataVector, srcPos++);
         }
     }
 };

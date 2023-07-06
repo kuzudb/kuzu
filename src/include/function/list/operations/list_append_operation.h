@@ -16,18 +16,16 @@ struct ListAppend {
         common::list_entry_t& result, common::ValueVector& listVector,
         common::ValueVector& valueVector, common::ValueVector& resultVector) {
         result = common::ListVector::addList(&resultVector, listEntry.size + 1);
-        auto listValues = common::ListVector::getListValues(&listVector, listEntry);
         auto listDataVector = common::ListVector::getDataVector(&listVector);
-        auto resultValues = common::ListVector::getListValues(&resultVector, result);
+        auto listPos = listEntry.offset;
         auto resultDataVector = common::ListVector::getDataVector(&resultVector);
-        auto numBytesPerValue = resultDataVector->getNumBytesPerValue();
+        auto resultPos = result.offset;
         for (auto i = 0u; i < listEntry.size; i++) {
-            resultDataVector->copyFromVectorData(resultValues, listDataVector, listValues);
-            listValues += numBytesPerValue;
-            resultValues += numBytesPerValue;
+            resultDataVector->copyFromVectorData(resultPos++, listDataVector, listPos++);
         }
         resultDataVector->copyFromVectorData(
-            resultValues, &valueVector, reinterpret_cast<uint8_t*>(&value));
+            resultDataVector->getData() + resultPos * resultDataVector->getNumBytesPerValue(),
+            &valueVector, reinterpret_cast<uint8_t*>(&value));
     }
 };
 

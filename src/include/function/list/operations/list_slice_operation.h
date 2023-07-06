@@ -18,17 +18,12 @@ struct ListSlice {
         int64_t startIdx = (begin == 0) ? 1 : begin;
         int64_t endIdx = (end == 0) ? listEntry.size : end;
         result = common::ListVector::addList(&resultVector, endIdx - startIdx);
-        auto srcValues =
-            common::ListVector::getListValuesWithOffset(&listVector, listEntry, startIdx - 1);
-        auto dstValues = common::ListVector::getListValues(&resultVector, result);
-        auto numBytesPerValue =
-            common::ListVector::getDataVector(&listVector)->getNumBytesPerValue();
         auto srcDataVector = common::ListVector::getDataVector(&listVector);
+        auto srcPos = listEntry.offset + startIdx - 1;
         auto dstDataVector = common::ListVector::getDataVector(&resultVector);
-        for (auto i = startIdx; i < endIdx; i++) {
-            dstDataVector->copyFromVectorData(dstValues, srcDataVector, srcValues);
-            srcValues += numBytesPerValue;
-            dstValues += numBytesPerValue;
+        auto dstPos = result.offset;
+        for (auto i = 0u; i < endIdx - startIdx; i++) {
+            dstDataVector->copyFromVectorData(dstPos++, srcDataVector, srcPos++);
         }
     }
 
