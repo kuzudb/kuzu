@@ -967,25 +967,25 @@ JNIEXPORT jstring JNICALL Java_com_kuzudb_KuzuNative_kuzu_1node_1val_1get_1label
 JNIEXPORT jlong JNICALL Java_com_kuzudb_KuzuNative_kuzu_1node_1val_1get_1property_1size(
     JNIEnv* env, jclass, jobject thisNV) {
     auto* nv = getValue(env, thisNV);
-    auto size = NodeVal::getProperties(nv).size();
+    auto size = NodeVal::getNumProperties(nv);
     return static_cast<jlong>(size);
 }
 
 JNIEXPORT jstring JNICALL Java_com_kuzudb_KuzuNative_kuzu_1node_1val_1get_1property_1name_1at(
     JNIEnv* env, jclass, jobject thisNV, jlong index) {
     auto* nv = getValue(env, thisNV);
-    auto propertyName = NodeVal::getProperties(nv).at(index).first;
+    auto propertyName = NodeVal::getPropertyName(nv, index);
     return env->NewStringUTF(propertyName.c_str());
 }
 
 JNIEXPORT jobject JNICALL Java_com_kuzudb_KuzuNative_kuzu_1node_1val_1get_1property_1value_1at(
     JNIEnv* env, jclass, jobject thisNV, jlong index) {
     auto* nv = getValue(env, thisNV);
-    auto propertyValue = NodeVal::getProperties(nv).at(index).second->copy().release();
+    auto propertyValue = NodeVal::getPropertyValueReference(nv, index);
     jobject ret = createJavaObject(env, propertyValue, "com/kuzudb/KuzuValue", "v_ref");
     jclass clazz = env->GetObjectClass(ret);
     jfieldID fieldID = env->GetFieldID(clazz, "isOwnedByCPP", "Z");
-    env->SetBooleanField(ret, fieldID, static_cast<jboolean>(false));
+    env->SetBooleanField(ret, fieldID, static_cast<jboolean>(true));
     return ret;
 }
 
@@ -1029,14 +1029,14 @@ JNIEXPORT jstring JNICALL Java_com_kuzudb_KuzuNative_kuzu_1rel_1val_1get_1label_
 JNIEXPORT jlong JNICALL Java_com_kuzudb_KuzuNative_kuzu_1rel_1val_1get_1property_1size(
     JNIEnv* env, jclass, jobject thisRV) {
     auto* rv = getValue(env, thisRV);
-    auto size = RelVal::getProperties(rv).size();
+    auto size = RelVal::getNumProperties(rv);
     return static_cast<jlong>(size);
 }
 
 JNIEXPORT jstring JNICALL Java_com_kuzudb_KuzuNative_kuzu_1rel_1val_1get_1property_1name_1at(
     JNIEnv* env, jclass, jobject thisRV, jlong index) {
     auto* rv = getValue(env, thisRV);
-    auto name = RelVal::getProperties(rv).at(index).first;
+    auto name = RelVal::getPropertyName(rv, index);
     return env->NewStringUTF(name.c_str());
 }
 
@@ -1044,12 +1044,12 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_KuzuNative_kuzu_1rel_1val_1get_1proper
     JNIEnv* env, jclass, jobject thisRV, jlong index) {
     auto* rv = getValue(env, thisRV);
     uint64_t idx = static_cast<uint64_t>(index);
-    Value* val = RelVal::getProperties(rv).at(idx).second->copy().release();
+    Value* val = RelVal::getPropertyValueReference(rv, idx);
 
     jobject ret = createJavaObject(env, val, "com/kuzudb/KuzuValue", "v_ref");
     jclass clazz = env->GetObjectClass(ret);
     jfieldID fieldID = env->GetFieldID(clazz, "isOwnedByCPP", "Z");
-    env->SetBooleanField(ret, fieldID, static_cast<jboolean>(false));
+    env->SetBooleanField(ret, fieldID, static_cast<jboolean>(true));
     return ret;
 }
 
