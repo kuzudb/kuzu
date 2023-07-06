@@ -3,6 +3,13 @@
 namespace kuzu {
 namespace processor {
 
+void ReadFile::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
+    offsetVector = resultSet->getValueVector(offsetVectorPos).get();
+    for (auto& arrowColumnPos : arrowColumnPoses) {
+        arrowColumnVectors.push_back(resultSet->getValueVector(arrowColumnPos).get());
+    }
+}
+
 bool ReadFile::getNextTuplesInternal(kuzu::processor::ExecutionContext* context) {
     auto morsel = sharedState->getMorsel();
     if (morsel == nullptr) {

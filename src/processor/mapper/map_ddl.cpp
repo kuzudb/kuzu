@@ -79,16 +79,17 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCopyNodeToPhysical(Logic
         }
         auto offsetExpression = copy->getOffsetExpression();
         auto offsetVectorPos = DataPos(outSchema->getExpressionPos(*offsetExpression));
+        auto nodeTableSchema =
+            catalog->getReadOnlyVersion()->getNodeTableSchema(copy->getTableID());
         if (copy->getCopyDescription().fileType == common::CopyDescription::FileType::CSV) {
             readFileSharedState =
                 std::make_shared<ReadCSVSharedState>(*copy->getCopyDescription().csvReaderConfig,
-                    catalog->getReadOnlyVersion()->getNodeTableSchema(copy->getTableID()),
-                    copy->getCopyDescription().filePaths);
+                    copy->getCopyDescription().filePaths, nodeTableSchema);
             readFile = std::make_unique<ReadCSV>(arrowColumnPoses, offsetVectorPos,
                 readFileSharedState, getOperatorID(), copy->getExpressionsForPrinting());
         } else {
-            readFileSharedState =
-                std::make_shared<ReadParquetSharedState>(copy->getCopyDescription().filePaths);
+            readFileSharedState = std::make_shared<ReadParquetSharedState>(
+                copy->getCopyDescription().filePaths, nodeTableSchema);
             readFile = std::make_unique<ReadParquet>(arrowColumnPoses, offsetVectorPos,
                 readFileSharedState, getOperatorID(), copy->getExpressionsForPrinting());
         }
