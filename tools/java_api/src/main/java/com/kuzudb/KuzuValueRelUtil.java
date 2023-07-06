@@ -1,6 +1,6 @@
 package com.kuzudb;
 
-public class KuzuRelValue {
+public class KuzuValueRelUtil {
     public static KuzuInternalID getSrcID(KuzuValue value) throws KuzuObjectRefDestroyedException {
         value.checkNotDestroyed();
         return KuzuNative.kuzu_rel_val_get_src_id(value);
