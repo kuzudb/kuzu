@@ -37,7 +37,6 @@ public class FlatTupleTest extends TestBase {
         assertNull(value);
 
         result.destroy();
-        System.out.println("FlatTupleGetValue passed");
     }
 
     @Test
@@ -54,7 +53,6 @@ public class FlatTupleTest extends TestBase {
         flatTuple.destroy();
         result.destroy();
 
-        System.out.println("FlatTupleToString passed");
     }
 
 }

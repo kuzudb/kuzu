@@ -20,8 +20,6 @@ public class PreparedStatementTest extends TestBase {
         assertNotNull(preparedStatement2);
         assertFalse(preparedStatement2.isSuccess());
         preparedStatement2.destroy();
-
-        System.out.println("PrepStmtIsSuccess passed");
     }
 
     @Test
@@ -39,8 +37,6 @@ public class PreparedStatementTest extends TestBase {
         message = preparedStatement2.getErrorMessage();
         assertTrue(message.equals("Binder exception: Node table personnnn does not exist."));
         preparedStatement2.destroy();
-
-        System.out.println("PrepStmtGetErrorMessage passed");
     }
 
     @Test
@@ -58,8 +54,6 @@ public class PreparedStatementTest extends TestBase {
         assertTrue(preparedStatement2.isSuccess());
         assertFalse(preparedStatement2.allowActiveTransaction());
         preparedStatement2.destroy();
-
-        System.out.println("PrepStmtAllowActiveTransaction passed");
     }
 
 
