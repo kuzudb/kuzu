@@ -1,88 +1,38 @@
 package com.kuzudb;
 
 public class KuzuRelValue {
-    long rv_ref;
-    boolean destroyed = false;
-    boolean isOwnedByCPP = false;
-
-    public KuzuRelValue(KuzuInternalID src_id, KuzuInternalID dst_id, String label) {
-        rv_ref = KuzuNative.kuzu_rel_val_create(src_id, dst_id, label);
+    public static KuzuInternalID getSrcID(KuzuValue value) throws KuzuObjectRefDestroyedException {
+        value.checkNotDestroyed();
+        return KuzuNative.kuzu_rel_val_get_src_id(value);
     }
 
-    private void checkNotDestroyed() throws KuzuObjectRefDestroyedException {
-        if (destroyed)
-            throw new KuzuObjectRefDestroyedException("KuzuRelValue has been destroyed.");
+    public static KuzuInternalID getDstID(KuzuValue value) throws KuzuObjectRefDestroyedException {
+        value.checkNotDestroyed();
+        return KuzuNative.kuzu_rel_val_get_dst_id(value);
     }
 
-    @Override
-    protected void finalize() throws KuzuObjectRefDestroyedException {
-        destroy();
+    public static String getLabelName(KuzuValue value) throws KuzuObjectRefDestroyedException {
+        value.checkNotDestroyed();
+        return KuzuNative.kuzu_rel_val_get_label_name(value);
     }
 
-    public KuzuRelValue clone() {
-        if (destroyed)
-            return null;
-        else
-            return KuzuNative.kuzu_rel_val_clone(this);
+    public static long getPropertySize(KuzuValue value) throws KuzuObjectRefDestroyedException {
+        value.checkNotDestroyed();
+        return KuzuNative.kuzu_rel_val_get_property_size(value);
     }
 
-    public void destroy() throws KuzuObjectRefDestroyedException {
-        checkNotDestroyed();
-        if (!isOwnedByCPP) {
-            KuzuNative.kuzu_rel_val_destroy(this);
-            destroyed = true;
-        }
+    public static String getPropertyNameAt(KuzuValue value, long index) throws KuzuObjectRefDestroyedException {
+        value.checkNotDestroyed();
+        return KuzuNative.kuzu_rel_val_get_property_name_at(value, index);
     }
 
-    public KuzuValue getSrcIDVal() throws KuzuObjectRefDestroyedException {
-        checkNotDestroyed();
-        return KuzuNative.kuzu_rel_val_get_src_id_val(this);
+    public static KuzuValue getPropertyValueAt(KuzuValue value, long index) throws KuzuObjectRefDestroyedException {
+        value.checkNotDestroyed();
+        return KuzuNative.kuzu_rel_val_get_property_value_at(value, index);
     }
 
-    public KuzuValue getDstIDVal() throws KuzuObjectRefDestroyedException {
-        checkNotDestroyed();
-        return KuzuNative.kuzu_rel_val_get_dst_id_val(this);
-    }
-
-    public KuzuInternalID getSrcID() throws KuzuObjectRefDestroyedException {
-        checkNotDestroyed();
-        return KuzuNative.kuzu_rel_val_get_src_id(this);
-    }
-
-    public KuzuInternalID getDstID() throws KuzuObjectRefDestroyedException {
-        checkNotDestroyed();
-        return KuzuNative.kuzu_rel_val_get_dst_id(this);
-    }
-
-    public String getLabelName() throws KuzuObjectRefDestroyedException {
-        checkNotDestroyed();
-        return KuzuNative.kuzu_rel_val_get_label_name(this);
-    }
-
-    public long getPropertySize() throws KuzuObjectRefDestroyedException {
-        checkNotDestroyed();
-        return KuzuNative.kuzu_rel_val_get_property_size(this);
-    }
-
-    public String getPropertyNameAt(long index) throws KuzuObjectRefDestroyedException {
-        checkNotDestroyed();
-        return KuzuNative.kuzu_rel_val_get_property_name_at(this, index);
-    }
-
-    public KuzuValue getPropertyValueAt(long index) throws KuzuObjectRefDestroyedException {
-        checkNotDestroyed();
-        return KuzuNative.kuzu_rel_val_get_property_value_at(this, index);
-    }
-
-    public void addProperty(String key, KuzuValue value) throws KuzuObjectRefDestroyedException {
-        checkNotDestroyed();
-        KuzuNative.kuzu_rel_val_add_property(this, key, value);
-    }
-
-    public String toString() {
-        if (destroyed)
-            return "KuzuRelValue has been destroyed.";
-        else
-            return KuzuNative.kuzu_rel_val_to_string(this);
+    public static String toString(KuzuValue value) throws KuzuObjectRefDestroyedException {
+        value.checkNotDestroyed();
+        return KuzuNative.kuzu_rel_val_to_string(value);
     }
 }

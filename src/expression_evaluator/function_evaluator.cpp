@@ -58,13 +58,11 @@ std::unique_ptr<BaseExpressionEvaluator> FunctionExpressionEvaluator::clone() {
 
 void FunctionExpressionEvaluator::resolveResultVector(
     const ResultSet& resultSet, MemoryManager* memoryManager) {
-    for (auto& child : children) {
-        parameters.push_back(child->resultVector);
-    }
     resultVector = std::make_shared<ValueVector>(expression->dataType, memoryManager);
     std::vector<BaseExpressionEvaluator*> inputEvaluators;
     inputEvaluators.reserve(children.size());
     for (auto& child : children) {
+        parameters.push_back(child->resultVector);
         inputEvaluators.push_back(child.get());
     }
     resolveResultStateFromChildren(inputEvaluators);

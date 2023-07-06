@@ -225,6 +225,10 @@ public:
 
     inline PhysicalTypeID getPhysicalType() const { return physicalType; }
 
+    inline void setExtraTypeInfo(std::unique_ptr<ExtraTypeInfo> typeInfo) {
+        extraTypeInfo = std::move(typeInfo);
+    }
+
     std::unique_ptr<LogicalType> copy();
 
 private:
@@ -255,6 +259,22 @@ struct FixedListType {
         assert(type->getLogicalTypeID() == LogicalTypeID::FIXED_LIST);
         auto fixedListTypeInfo = reinterpret_cast<FixedListTypeInfo*>(type->extraTypeInfo.get());
         return fixedListTypeInfo->getNumElementsInList();
+    }
+};
+
+struct NodeType {
+    static inline void setExtraTypeInfo(
+        LogicalType& type, std::unique_ptr<ExtraTypeInfo> extraTypeInfo) {
+        assert(type.getLogicalTypeID() == LogicalTypeID::NODE);
+        type.setExtraTypeInfo(std::move(extraTypeInfo));
+    }
+};
+
+struct RelType {
+    static inline void setExtraTypeInfo(
+        LogicalType& type, std::unique_ptr<ExtraTypeInfo> extraTypeInfo) {
+        assert(type.getLogicalTypeID() == LogicalTypeID::REL);
+        type.setExtraTypeInfo(std::move(extraTypeInfo));
     }
 };
 

@@ -159,24 +159,19 @@ std::unique_ptr<Expression> ExpressionBinder::createInternalNodeIDExpression(
 
 std::shared_ptr<Expression> ExpressionBinder::bindInternalIDExpression(
     std::shared_ptr<Expression> expression) {
-    switch (expression->getDataType().getLogicalTypeID()) {
-    case common::LogicalTypeID::NODE: {
+    if (ExpressionUtil::isNodeVariable(*expression)) {
         auto& node = (NodeExpression&)*expression;
         return node.getInternalIDProperty();
     }
-    case common::LogicalTypeID::REL: {
+    if (ExpressionUtil::isRelVariable(*expression)) {
         return bindRelPropertyExpression(*expression, InternalKeyword::ID);
     }
-    case common::LogicalTypeID::STRUCT: {
-        auto stringValue =
-            std::make_unique<Value>(LogicalType{LogicalTypeID::STRING}, InternalKeyword::ID);
-        return bindScalarFunctionExpression(
-            expression_vector{expression, createLiteralExpression(std::move(stringValue))},
-            STRUCT_EXTRACT_FUNC_NAME);
-    }
-    default:
-        throw NotImplementedException("ExpressionBinder::bindInternalIDExpression");
-    }
+    assert(expression->dataType.getPhysicalType() == common::PhysicalTypeID::STRUCT);
+    auto stringValue =
+        std::make_unique<Value>(LogicalType{LogicalTypeID::STRING}, InternalKeyword::ID);
+    return bindScalarFunctionExpression(
+        expression_vector{expression, createLiteralExpression(std::move(stringValue))},
+        STRUCT_EXTRACT_FUNC_NAME);
 }
 
 static std::vector<std::unique_ptr<Value>> populateLabelValues(

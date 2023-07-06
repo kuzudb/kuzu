@@ -96,8 +96,9 @@ protected:
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) final;
 
 protected:
-    common::ValueVector* pathNodesVector;
-    common::ValueVector* pathNodesIDDataVector;
+    common::ValueVector* pathRelsVector;
+    common::ValueVector* pathRelsSrcIDDataVector;
+    common::ValueVector* pathRelsDstIDDataVector;
 };
 
 class PathSingleTableSemiMasker : public PathSemiMasker {

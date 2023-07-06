@@ -165,38 +165,18 @@ void ProjectionPlanner::appendSkip(uint64_t skipNumber, LogicalPlan& plan) {
     plan.setLastOperator(std::move(skip));
 }
 
+// TODO: fix
 expression_vector ProjectionPlanner::rewriteNodeRelExpressions(
     const expression_vector& expressionsToProject, const Schema& schema) {
     expression_vector result;
     for (auto& expression : expressionsToProject) {
         switch (expression->getDataType().getLogicalTypeID()) {
-        case LogicalTypeID::NODE:
-        case LogicalTypeID::REL: {
-            for (auto& property : rewriteNodeRelAsAllPropertiesInScope(*expression, schema)) {
-                result.push_back(property);
-            }
-        } break;
         case LogicalTypeID::RECURSIVE_REL: {
             auto& rel = (RelExpression&)*expression;
             result.push_back(rel.getLengthExpression());
             result.push_back(expression);
         } break;
         default:
-            result.push_back(expression);
-        }
-    }
-    return result;
-}
-
-expression_vector ProjectionPlanner::rewriteNodeRelAsAllPropertiesInScope(
-    const Expression& variable, const Schema& schema) {
-    expression_vector result;
-    for (auto& expression : schema.getExpressionsInScope()) {
-        if (expression->expressionType != common::PROPERTY) {
-            continue;
-        }
-        auto propertyExpression = (PropertyExpression*)expression.get();
-        if (propertyExpression->getVariableName() == variable.getUniqueName()) {
             result.push_back(expression);
         }
     }

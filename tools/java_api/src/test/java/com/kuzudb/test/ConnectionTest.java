@@ -23,13 +23,10 @@ public class ConnectionTest extends TestBase {
             KuzuConnection conn = new KuzuConnection(db);
             conn.destroy();
         } catch (AssertionError e) {
-            fail("ConnCreationAndDestroy failed: ");
-            System.out.println(e.toString());
+            fail("ConnCreationAndDestroy failed");
         } catch (KuzuObjectRefDestroyedException e) {
-            fail("ConnCreationAndDestroy failed: ");
-            System.out.println(e.toString());
+            fail("ConnCreationAndDestroy failed");
         }
-        System.out.println("ConnCreationAndDestroy passed");
     }
 
     @Test
@@ -39,7 +36,6 @@ public class ConnectionTest extends TestBase {
             fail("DBInvalidPath did not throw KuzuObjectRefDestroyedException as expected.");
         } catch (AssertionError e) {
         }
-        System.out.println("ConnInvalidDB passed");
     }
 
     @Test
@@ -54,7 +50,6 @@ public class ConnectionTest extends TestBase {
         assertEquals(result.getNumColumns(), 1);
         assertTrue(result.getColumnName(0).equals("a.fName"));
         result.destroy();
-        System.out.println("ConnQuery passed");
     }
 
     @Test
@@ -63,7 +58,6 @@ public class ConnectionTest extends TestBase {
         assertEquals(conn.getMaxNumThreadForExec(), 4);
         conn.setMaxNumThreadForExec(8);
         assertEquals(conn.getMaxNumThreadForExec(), 8);
-        System.out.println("ConnSetGetMaxNumThreadForExec passed");
     }
 
     @Test
@@ -83,7 +77,6 @@ public class ConnectionTest extends TestBase {
         assertEquals(((long) tuple.getValue(0).getValue()), 3);
         statement.destroy();
         result.destroy();
-        System.out.println("ConnPrepare passed");
     }
 
     @Test
@@ -96,7 +89,6 @@ public class ConnectionTest extends TestBase {
         KuzuPreparedStatement statement = conn.prepare(query);
         assertNotNull(statement);
         KuzuQueryResult result = conn.execute(statement, m);
-        System.out.println(result.getErrorMessage());
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
         assertTrue(result.getErrorMessage().equals(""));
@@ -106,7 +98,6 @@ public class ConnectionTest extends TestBase {
         assertEquals(((long) tuple.getValue(0).getValue()), 4);
         statement.destroy();
         result.destroy();
-        System.out.println("ConnPrepareInt64 passed");
     }
 
     @Test
@@ -117,7 +108,6 @@ public class ConnectionTest extends TestBase {
         KuzuPreparedStatement statement = conn.prepare(query);
         assertNotNull(statement);
         KuzuQueryResult result = conn.execute(statement, m);
-        System.out.println(result.getErrorMessage());
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
         assertTrue(result.getErrorMessage().equals(""));
@@ -127,7 +117,6 @@ public class ConnectionTest extends TestBase {
         assertEquals(((long) tuple.getValue(0).getValue()), 2);
         statement.destroy();
         result.destroy();
-        System.out.println("ConnPrepareInt32 passed");
     }
 
     @Test
@@ -138,7 +127,6 @@ public class ConnectionTest extends TestBase {
         KuzuPreparedStatement statement = conn.prepare(query);
         assertNotNull(statement);
         KuzuQueryResult result = conn.execute(statement, m);
-        System.out.println(result.getErrorMessage());
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
         assertTrue(result.getErrorMessage().equals(""));
@@ -148,7 +136,6 @@ public class ConnectionTest extends TestBase {
         assertEquals(((long) tuple.getValue(0).getValue()), 2);
         statement.destroy();
         result.destroy();
-        System.out.println("ConnPrepareInt16 passed");
     }
 
     @Test
@@ -159,7 +146,6 @@ public class ConnectionTest extends TestBase {
         KuzuPreparedStatement statement = conn.prepare(query);
         assertNotNull(statement);
         KuzuQueryResult result = conn.execute(statement, m);
-        System.out.println(result.getErrorMessage());
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
         assertTrue(result.getErrorMessage().equals(""));
@@ -169,7 +155,6 @@ public class ConnectionTest extends TestBase {
         assertEquals(((long) tuple.getValue(0).getValue()), 7);
         statement.destroy();
         result.destroy();
-        System.out.println("ConnPrepareDouble passed");
     }
 
     @Test
@@ -180,7 +165,6 @@ public class ConnectionTest extends TestBase {
         KuzuPreparedStatement statement = conn.prepare(query);
         assertNotNull(statement);
         KuzuQueryResult result = conn.execute(statement, m);
-        System.out.println(result.getErrorMessage());
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
         assertTrue(result.getErrorMessage().equals(""));
@@ -190,7 +174,6 @@ public class ConnectionTest extends TestBase {
         assertEquals(((long) tuple.getValue(0).getValue()), 1);
         statement.destroy();
         result.destroy();
-        System.out.println("ConnPrepareFloat passed");
     }
 
     @Test
@@ -201,7 +184,6 @@ public class ConnectionTest extends TestBase {
         KuzuPreparedStatement statement = conn.prepare(query);
         assertNotNull(statement);
         KuzuQueryResult result = conn.execute(statement, m);
-        System.out.println(result.getErrorMessage());
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
         assertTrue(result.getErrorMessage().equals(""));
@@ -211,7 +193,6 @@ public class ConnectionTest extends TestBase {
         assertEquals(((long) tuple.getValue(0).getValue()), 1);
         statement.destroy();
         result.destroy();
-        System.out.println("ConnPrepareString passed");
     }
 
     @Test
@@ -222,7 +203,6 @@ public class ConnectionTest extends TestBase {
         KuzuPreparedStatement statement = conn.prepare(query);
         assertNotNull(statement);
         KuzuQueryResult result = conn.execute(statement, m);
-        System.out.println(result.getErrorMessage());
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
         assertTrue(result.getErrorMessage().equals(""));
@@ -232,7 +212,6 @@ public class ConnectionTest extends TestBase {
         assertEquals(((long) tuple.getValue(0).getValue()), 4);
         statement.destroy();
         result.destroy();
-        System.out.println("ConnPrepareDate passed");
     }
 
     @Test
@@ -243,7 +222,6 @@ public class ConnectionTest extends TestBase {
         KuzuPreparedStatement statement = conn.prepare(query);
         assertNotNull(statement);
         KuzuQueryResult result = conn.execute(statement, m);
-        System.out.println(result.getErrorMessage());
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
         assertTrue(result.getErrorMessage().equals(""));
@@ -253,7 +231,6 @@ public class ConnectionTest extends TestBase {
         assertEquals(((long) tuple.getValue(0).getValue()), 7);
         statement.destroy();
         result.destroy();
-        System.out.println("ConnPrepareTimeStamp passed");
     }
 
     @Test
@@ -264,7 +241,6 @@ public class ConnectionTest extends TestBase {
         KuzuPreparedStatement statement = conn.prepare(query);
         assertNotNull(statement);
         KuzuQueryResult result = conn.execute(statement, m);
-        System.out.println(result.getErrorMessage());
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
         assertTrue(result.getErrorMessage().equals(""));
@@ -274,7 +250,6 @@ public class ConnectionTest extends TestBase {
         assertEquals(((long) tuple.getValue(0).getValue()), 3);
         statement.destroy();
         result.destroy();
-        System.out.println("ConnPrepareInterval passed");
     }
 
     @Test
@@ -286,7 +261,6 @@ public class ConnectionTest extends TestBase {
         KuzuPreparedStatement statement = conn.prepare(query);
         assertNotNull(statement);
         KuzuQueryResult result = conn.execute(statement, m);
-        System.out.println(result.getErrorMessage());
         assertTrue(result.isSuccess());
         assertTrue(result.hasNext());
         assertTrue(result.getErrorMessage().equals(""));
@@ -296,7 +270,6 @@ public class ConnectionTest extends TestBase {
         assertEquals(((long) tuple.getValue(0).getValue()), 1);
         statement.destroy();
         result.destroy();
-        System.out.println("ConnPrepareMultiParam passed");
     }
 
     @Test
@@ -311,7 +284,6 @@ public class ConnectionTest extends TestBase {
                         "\tmovies\n" +
                         "\tperson\n" +
                         "\torganisation\n"));
-        System.out.println("ConnGetNodeTableNames passed");
     }
 
     @Test
@@ -330,7 +302,6 @@ public class ConnectionTest extends TestBase {
                         "\tknows\n" +
                         "\tstudyAt\n" +
                         "\tmeets\n"));
-        System.out.println("ConnGetRelTableNames passed");
     }
 
     @Test
@@ -342,7 +313,6 @@ public class ConnectionTest extends TestBase {
                 "\tlength INT32\n" +
                 "\tnote STRING\n" +
                 "\tdescription STRUCT(DOUBLE,INT64,TIMESTAMP,DATE)\n"));
-        System.out.println("ConnGetNodePropertyNames passed");
     }
 
     @Test
@@ -354,7 +324,6 @@ public class ConnectionTest extends TestBase {
                 "meets properties: \n" +
                 "\tlocation FLOAT[2]\n" +
                 "\ttimes INT32\n"));
-        System.out.println("ConnGetRelPropertyNames passed");
     }
 
     @Test
@@ -365,7 +334,6 @@ public class ConnectionTest extends TestBase {
         assertFalse(result.isSuccess());
         assertTrue(result.getErrorMessage().equals("Interrupted."));
         result.destroy();
-        System.out.println("ConnQueryTimeout passed");
     }
 
 }

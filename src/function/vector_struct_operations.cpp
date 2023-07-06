@@ -43,8 +43,8 @@ void StructPackVectorOperations::execFunc(
         }
         // If the parameter's state is inconsistent with the result's state, we need to copy the
         // parameter's value to the corresponding child vector.
-        copyParameterValueToStructFieldVector(
-            parameter.get(), common::StructVector::getFieldVector(&result, i).get());
+        copyParameterValueToStructFieldVector(parameter.get(),
+            common::StructVector::getFieldVector(&result, i).get(), result.state.get());
     }
 }
 
@@ -63,17 +63,18 @@ void StructPackVectorOperations::compileFunc(FunctionBindData* bindData,
 }
 
 void StructPackVectorOperations::copyParameterValueToStructFieldVector(
-    const common::ValueVector* parameter, common::ValueVector* structField) {
+    const common::ValueVector* parameter, common::ValueVector* structField,
+    common::DataChunkState* structVectorState) {
     // If the parameter is unFlat, then its state must be consistent with the result's state.
     // Thus, we don't need to copy values to structFieldVector.
     assert(parameter->state->isFlat());
     auto paramPos = parameter->state->selVector->selectedPositions[0];
-    if (structField->state->isFlat()) {
-        auto pos = structField->state->selVector->selectedPositions[0];
+    if (structVectorState->isFlat()) {
+        auto pos = structVectorState->selVector->selectedPositions[0];
         structField->copyFromVectorData(pos, parameter, paramPos);
     } else {
-        for (auto i = 0u; i < structField->state->selVector->selectedSize; i++) {
-            auto pos = structField->state->selVector->selectedPositions[i];
+        for (auto i = 0u; i < structVectorState->selVector->selectedSize; i++) {
+            auto pos = structVectorState->selVector->selectedPositions[i];
             structField->copyFromVectorData(pos, parameter, paramPos);
         }
     }
@@ -81,11 +82,15 @@ void StructPackVectorOperations::copyParameterValueToStructFieldVector(
 
 vector_operation_definitions StructExtractVectorOperations::getDefinitions() {
     vector_operation_definitions definitions;
-    definitions.push_back(make_unique<VectorOperationDefinition>(common::STRUCT_EXTRACT_FUNC_NAME,
-        std::vector<common::LogicalTypeID>{
-            common::LogicalTypeID::STRUCT, common::LogicalTypeID::STRING},
-        common::LogicalTypeID::ANY, nullptr, nullptr, compileFunc, bindFunc,
-        false /* isVarLength */));
+    auto inputTypeIDs = std::vector<common::LogicalTypeID>{
+        common::LogicalTypeID::STRUCT, common::LogicalTypeID::NODE, common::LogicalTypeID::REL};
+    for (auto inputTypeID : inputTypeIDs) {
+        definitions.push_back(
+            make_unique<VectorOperationDefinition>(common::STRUCT_EXTRACT_FUNC_NAME,
+                std::vector<common::LogicalTypeID>{inputTypeID, common::LogicalTypeID::STRING},
+                common::LogicalTypeID::ANY, nullptr, nullptr, compileFunc, bindFunc,
+                false /* isVarLength */));
+    }
     return definitions;
 }
 

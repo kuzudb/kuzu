@@ -30,8 +30,6 @@ public class QueryResultTest extends TestBase {
         errorMessage = result.getErrorMessage();
         assertTrue(errorMessage.equals("Binder exception: Node table personnnn does not exist."));
         result.destroy();
-
-        System.out.println("QueryResultGetErrorMessage passed");
     }
 
     @Test
@@ -40,8 +38,6 @@ public class QueryResultTest extends TestBase {
         assertTrue(result.isSuccess());
         assertEquals(result.getNumColumns(), 3);
         result.destroy();
-
-        System.out.println("QueryResultGetNumColumns passed");
     }
 
     @Test
@@ -61,8 +57,6 @@ public class QueryResultTest extends TestBase {
         assertNull(columnName);
 
         result.destroy();
-
-        System.out.println("QueryResultGetColumnName passed");
     }
 
     @Test
@@ -82,8 +76,6 @@ public class QueryResultTest extends TestBase {
 
         type = result.getColumnDataType(222);
         assertNull(type);
-
-        System.out.println("QueryResultGetColumnDataType passed");
     }
 
     @Test
@@ -97,8 +89,6 @@ public class QueryResultTest extends TestBase {
         double executionTime = summary.getExecutionTime();
         assertTrue(executionTime > 0);
         result.destroy();
-
-        System.out.println("QueryResultGetQuerySummary passed");
     }
 
     @Test
@@ -121,8 +111,6 @@ public class QueryResultTest extends TestBase {
         row.destroy();
 
         result.destroy();
-
-        System.out.println("QueryResultGetNext passed");
     }
 
     @Test
@@ -146,7 +134,6 @@ public class QueryResultTest extends TestBase {
             line = scanner.nextLine();
             assertEquals(line, "Elizabeth,1,4.700000,1980-10-26,1976-12-23 11:21:42,DEsWork");
             scanner.close();
-            System.out.println("QueryResultWriteToCSV passed");
         } catch (FileNotFoundException e) {
             fail("QueryResultWriteToCSV failed, csv file not found");
         }
@@ -173,7 +160,5 @@ public class QueryResultTest extends TestBase {
         row.destroy();
 
         result.destroy();
-
-        System.out.println("QueryResultResetIterator passed");
     }
 }

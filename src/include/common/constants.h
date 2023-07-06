@@ -23,11 +23,14 @@ constexpr uint64_t DEFAULT_CHECKPOINT_WAIT_TIMEOUT_FOR_TRANSACTIONS_TO_LEAVE_IN_
 
 struct InternalKeyword {
     static constexpr char ANONYMOUS[] = "";
-    static constexpr char ID[] = "_id";
-    static constexpr char LENGTH[] = "_length";
-    static constexpr char NODES[] = "_nodes";
-    static constexpr char RELS[] = "_rels";
-    static constexpr char TAG[] = "_tag";
+    static constexpr char ID[] = "_ID";
+    static constexpr char LABEL[] = "_LABEL";
+    static constexpr char SRC[] = "_SRC";
+    static constexpr char DST[] = "_DST";
+    static constexpr char LENGTH[] = "_LENGTH";
+    static constexpr char NODES[] = "_NODES";
+    static constexpr char RELS[] = "_RELS";
+    static constexpr char TAG[] = "_TAG";
 };
 
 enum PageSizeClass : uint8_t {

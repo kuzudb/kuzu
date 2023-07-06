@@ -72,15 +72,15 @@
 ---- ok
 -STATEMENT MATCH (a:person)-[e:knows]->(b:person) WHERE a.ID > 8 RETURN a.ID, b.ID, e, ID(e)
 ---- 1
-9|10|(0:6)-[label:knows, {_id:3:14, date:1997-03-22, meetTime:1976-12-23 11:21:42, validInterval:2 years, comments:[A,k]}]->(0:7)|3:14
+9|10|(0:6)-{_LABEL: knows, _ID: 3:14, date: 1997-03-22, meetTime: 1976-12-23 11:21:42, validInterval: 2 years, comments: [A,k]}->(0:7)|3:14
 
 -CASE InsertSingleNTo1RelTest
 -STATEMENT MATCH (a:person), (b:organisation) WHERE a.ID = 9 AND b.orgCode = 934 CREATE (a)-[:studyAt {year:2022}]->(b)
 ---- ok
 -STATEMENT MATCH (a:person)-[e:studyAt]->(b:organisation) WHERE a.ID > 5 RETURN a.ID, b.orgCode, e, ID(e)
 ---- 2
-8|325|(0:5)-[label:studyAt, {_id:4:2, year:2020, places:[awndsnjwejwen,isuhuwennjnuhuhuwewe], length:22}]->(1:0)|4:2
-9|934|(0:6)-[label:studyAt, {_id:4:3, year:2022, places:, length:}]->(1:1)|4:3
+8|325|(0:5)-{_LABEL: studyAt, _ID: 4:2, year: 2020, places: [awndsnjwejwen,isuhuwennjnuhuhuwewe], length: 22}->(1:0)|4:2
+9|934|(0:6)-{_LABEL: studyAt, _ID: 4:3, year: 2022, }->(1:1)|4:3
 
 -CASE InsertRepeatedNToNRelTest
 -STATEMENT MATCH (a:person), (b:person) WHERE a.ID = 7 AND b.ID = 8 CREATE (a)-[:knows {validInterval:interval('3 years')}]->(b)

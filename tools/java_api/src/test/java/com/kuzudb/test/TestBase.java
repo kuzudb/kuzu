@@ -20,24 +20,19 @@ public class TestBase {
 
     @BeforeAll
     static void getDBandConn() throws IOException, KuzuObjectRefDestroyedException {
-        System.out.println("Kuzu test starting, loading data...");
         TestHelper.loadData(tempDir.toFile().getAbsolutePath());
         db = TestHelper.getDatabase();
         conn = TestHelper.getConnection();
-        System.out.println("Test data loaded");
     }
 
     @AfterAll
     static void destroyDBandConn() throws KuzuObjectRefDestroyedException {
-        System.out.println("Kuzu test finished, cleaning up data...");
         try {
             db.destroy();
             conn.destroy();
         } catch (AssertionError e) {
             fail("destroyDBandConn failed: ");
-            System.out.println(e.toString());
         }
-        System.out.println("Data cleaned up");
     }
 
 }

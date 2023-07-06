@@ -77,8 +77,9 @@ public:
         conn->beginWriteTransaction();
         auto mapper = PlanMapper(
             *getStorageManager(*database), getMemoryManager(*database), getCatalog(*database));
-        auto physicalPlan = mapper.mapLogicalPlanToPhysical(
-            preparedStatement->logicalPlans[0].get(), preparedStatement->getExpressionsToCollect());
+        auto physicalPlan =
+            mapper.mapLogicalPlanToPhysical(preparedStatement->logicalPlans[0].get(),
+                preparedStatement->statementResult->getColumns());
         clientContext->activeQuery = std::make_unique<ActiveQuery>();
         getQueryProcessor(*database)->execute(physicalPlan.get(), executionContext.get());
         auto tableID = catalog->getReadOnlyVersion()->getTableID("person");
@@ -155,8 +156,9 @@ public:
         conn->beginWriteTransaction();
         auto mapper = PlanMapper(
             *getStorageManager(*database), getMemoryManager(*database), getCatalog(*database));
-        auto physicalPlan = mapper.mapLogicalPlanToPhysical(
-            preparedStatement->logicalPlans[0].get(), preparedStatement->getExpressionsToCollect());
+        auto physicalPlan =
+            mapper.mapLogicalPlanToPhysical(preparedStatement->logicalPlans[0].get(),
+                preparedStatement->statementResult->getColumns());
         clientContext->activeQuery = std::make_unique<ActiveQuery>();
         getQueryProcessor(*database)->execute(physicalPlan.get(), executionContext.get());
         auto tableID = catalog->getReadOnlyVersion()->getTableID("knows");

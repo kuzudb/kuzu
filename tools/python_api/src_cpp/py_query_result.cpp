@@ -137,24 +137,35 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value) {
         return dict;
     }
     case LogicalTypeID::NODE: {
-        auto nodeVal = value.getValue<NodeVal>();
-        auto dict = PyQueryResult::getPyDictFromProperties(nodeVal.getProperties());
-        dict["_label"] = py::cast(nodeVal.getLabelName());
-        dict["_id"] = convertNodeIdToPyDict(nodeVal.getNodeID());
+        py::dict dict;
+        dict["_label"] = py::cast(NodeVal::getLabelName(&value));
+        dict["_id"] = convertNodeIdToPyDict(NodeVal::getNodeID(&value));
+        auto numProperties = NodeVal::getNumProperties(&value);
+        for (auto i = 0u; i < numProperties; ++i) {
+            auto key = py::str(NodeVal::getPropertyName(&value, i));
+            auto val = convertValueToPyObject(*NodeVal::getPropertyValueReference(&value, i));
+            dict[key] = val;
+        }
         return std::move(dict);
     }
     case LogicalTypeID::REL: {
-        auto relVal = value.getValue<RelVal>();
-        auto dict = PyQueryResult::getPyDictFromProperties(relVal.getProperties());
-        dict["_src"] = convertNodeIdToPyDict(relVal.getSrcNodeID());
-        dict["_dst"] = convertNodeIdToPyDict(relVal.getDstNodeID());
+        py::dict dict;
+        dict["_src"] = convertNodeIdToPyDict(RelVal::getSrcNodeID(&value));
+        dict["_dst"] = convertNodeIdToPyDict(RelVal::getDstNodeID(&value));
+        auto numProperties = RelVal::getNumProperties(&value);
+        for (auto i = 0u; i < numProperties; ++i) {
+            auto key = py::str(RelVal::getPropertyName(&value, i));
+            auto val = convertValueToPyObject(*RelVal::getPropertyValueReference(&value, i));
+            dict[key] = val;
+        }
         return std::move(dict);
     }
     case LogicalTypeID::INTERNAL_ID: {
         return convertNodeIdToPyDict(value.getValue<nodeID_t>());
     }
     default:
-        throw NotImplementedException("Unsupported type: " + LogicalTypeUtils::dataTypeToString(dataType));
+        throw NotImplementedException(
+            "Unsupported type: " + LogicalTypeUtils::dataTypeToString(dataType));
     }
 }
 
@@ -221,16 +232,6 @@ void PyQueryResult::resetIterator() {
 
 bool PyQueryResult::isSuccess() const {
     return queryResult->isSuccess();
-}
-
-py::dict PyQueryResult::getPyDictFromProperties(
-    const std::vector<std::pair<std::string, std::unique_ptr<Value>>>& properties) {
-    py::dict result;
-    for (auto i = 0u; i < properties.size(); ++i) {
-        auto& [name, value] = properties[i];
-        result[py::cast(name)] = convertValueToPyObject(*value);
-    }
-    return result;
 }
 
 py::dict PyQueryResult::convertNodeIdToPyDict(const nodeID_t& nodeId) {

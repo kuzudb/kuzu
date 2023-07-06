@@ -51,3 +51,10 @@ True
 ---- 2
 5|20|3
 7|20|2
+
+-LOG GroupByMultiQueryTest4
+-STATEMENT  MATCH (a:person)-[r:knows]->(b:person) WHERE a.ID = 0 WITH a, r, COUNT(*) AS s MATCH (a)-[:knows]->(c:person) WHERE c.ID = s + 1 RETURN r.date, c.ID, s
+---- 3
+2021-06-30|2|1
+2021-06-30|2|1
+2021-06-30|2|1

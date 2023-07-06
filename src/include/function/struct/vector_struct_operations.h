@@ -16,8 +16,8 @@ struct StructPackVectorOperations {
     static void compileFunc(FunctionBindData* bindData,
         const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
         std::shared_ptr<common::ValueVector>& result);
-    static void copyParameterValueToStructFieldVector(
-        const common::ValueVector* parameter, common::ValueVector* structField);
+    static void copyParameterValueToStructFieldVector(const common::ValueVector* parameter,
+        common::ValueVector* structField, common::DataChunkState* structVectorState);
 };
 
 struct StructExtractBindData : public FunctionBindData {

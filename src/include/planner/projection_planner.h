@@ -10,6 +10,8 @@ namespace planner {
 class QueryPlanner;
 
 class ProjectionPlanner {
+    friend class JoinOrderEnumerator;
+
 public:
     explicit ProjectionPlanner(QueryPlanner* queryPlanner) : queryPlanner{queryPlanner} {}
 
@@ -35,9 +37,6 @@ private:
 
     static binder::expression_vector rewriteNodeRelExpressions(
         const binder::expression_vector& expressionsToProject, const Schema& schema);
-
-    static binder::expression_vector rewriteNodeRelAsAllPropertiesInScope(
-        const binder::Expression& variable, const Schema& schema);
 
 private:
     QueryPlanner* queryPlanner;

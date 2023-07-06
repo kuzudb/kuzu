@@ -51,6 +51,11 @@ public:
         return properties;
     }
 
+    inline void setLabelExpression(std::shared_ptr<Expression> expression) {
+        labelExpression = std::move(expression);
+    }
+    inline std::shared_ptr<Expression> getLabelExpression() const { return labelExpression; }
+
     std::string toString() const override { return variableName; }
 
 protected:
@@ -58,6 +63,7 @@ protected:
     std::vector<common::table_id_t> tableIDs;
     std::unordered_map<std::string, common::vector_idx_t> propertyNameToIdx;
     std::vector<std::unique_ptr<Expression>> properties;
+    std::shared_ptr<Expression> labelExpression;
 };
 
 } // namespace binder

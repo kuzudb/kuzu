@@ -3,6 +3,7 @@ package com.kuzudb.java_test;
 import com.kuzudb.*;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.api.Test;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.nio.file.Path;
@@ -20,11 +21,8 @@ public class DatabaseTest extends TestBase {
             KuzuDatabase database = new KuzuDatabase(dbPath, 0);
             database.destroy();
         } catch (Exception e) {
-            fail("DBCreationAndDestroy failed: ");
-            System.out.println(e.toString());
+            fail("DBCreationAndDestroy failed");
         }
-
-        System.out.println("DBCreationAndDestroy passed");
     }
 
     @Test
@@ -34,7 +32,6 @@ public class DatabaseTest extends TestBase {
             database.destroy();
             fail("DBInvalidPath did not throw exception as expected.");
         } catch (Exception e) {
-            System.out.println("DBInvalidPath passed");
         }
     }
 
@@ -46,7 +43,6 @@ public class DatabaseTest extends TestBase {
             KuzuDatabase.setLoggingLevel("err");
         } catch (Exception e) {
             fail("DBSetLoggingLevel failed: ");
-            System.out.println(e.toString());
         }
 
         try {
@@ -54,7 +50,5 @@ public class DatabaseTest extends TestBase {
             fail("DBSetLoggingLevel did not throw exception as expected.");
         } catch (Exception e) {
         }
-
-        System.out.println("DBSetLoggingLevel passed");
     }
 }

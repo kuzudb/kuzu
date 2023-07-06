@@ -218,13 +218,12 @@ void ProjectionPushDownOptimizer::visitSetRelProperty(planner::LogicalOperator* 
 // See comments above this class for how to collect expressions in use.
 void ProjectionPushDownOptimizer::collectExpressionsInUse(
     std::shared_ptr<binder::Expression> expression) {
-    if (expression->expressionType == common::VARIABLE) {
-        variablesInUse.insert(std::move(expression));
-        return;
-    }
     if (expression->expressionType == common::PROPERTY) {
         propertiesInUse.insert(std::move(expression));
         return;
+    }
+    if (expression->expressionType == common::VARIABLE) {
+        variablesInUse.insert(expression);
     }
     for (auto& child : ExpressionChildrenCollector::collectChildren(*expression)) {
         collectExpressionsInUse(child);

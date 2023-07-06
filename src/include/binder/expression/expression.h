@@ -64,6 +64,7 @@ public:
     }
 
     inline common::LogicalType getDataType() const { return dataType; }
+    inline common::LogicalType& getDataTypeReference() { return dataType; }
 
     inline bool hasAlias() const { return !alias.empty(); }
 
@@ -124,6 +125,10 @@ struct ExpressionUtil {
     inline static bool isNodeVariable(const Expression& expression) {
         return expression.expressionType == common::ExpressionType::VARIABLE &&
                expression.dataType.getLogicalTypeID() == common::LogicalTypeID::NODE;
+    }
+    inline static bool isRelVariable(const Expression& expression) {
+        return expression.expressionType == common::ExpressionType::VARIABLE &&
+               expression.dataType.getLogicalTypeID() == common::LogicalTypeID::REL;
     }
 };
 
