@@ -37,8 +37,8 @@ public:
         bool nullFirst) {
         // TODO(Ziyi) - Replace this sort implementation with radix_sort implementation:
         //  https://github.com/kuzudb/kuzu/issues/1536.
-        auto inputValues = common::ListVector::getListValues(&inputVector, input);
         auto inputDataVector = common::ListVector::getDataVector(&inputVector);
+        auto inputPos = input.offset;
 
         // Calculate null count.
         auto nullCount = 0;
@@ -49,32 +49,28 @@ public:
         }
 
         result = common::ListVector::addList(&resultVector, input.size);
-        auto resultValues = common::ListVector::getListValues(&resultVector, result);
         auto resultDataVector = common::ListVector::getDataVector(&resultVector);
-        auto numBytesPerValue = resultDataVector->getNumBytesPerValue();
+        auto resultPos = result.offset;
 
         // Add nulls first.
         if (nullFirst) {
             setVectorRangeToNull(*resultDataVector, result.offset, 0, nullCount);
-            resultValues += numBytesPerValue * nullCount;
+            resultPos += nullCount;
         }
 
         // Add actual data.
         for (auto i = 0; i < input.size; i++) {
-            if (inputDataVector->isNull(input.offset + i)) {
-                inputValues += numBytesPerValue;
+            if (inputDataVector->isNull(inputPos)) {
+                inputPos++;
                 continue;
             }
-            resultDataVector->copyFromVectorData(resultValues, inputDataVector, inputValues);
-            resultValues += numBytesPerValue;
-            inputValues += numBytesPerValue;
+            resultDataVector->copyFromVectorData(resultPos++, inputDataVector, inputPos++);
         }
 
         // Add nulls in the end.
         if (!nullFirst) {
             setVectorRangeToNull(
                 *resultDataVector, result.offset, input.size - nullCount, input.size);
-            resultValues += numBytesPerValue * nullCount;
         }
 
         // Determine the starting and ending position of the data to be sorted.
