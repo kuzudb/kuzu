@@ -280,6 +280,41 @@ ad
 [[10],[40,40],[2]]
 [[7],[10],[6,7],[83,83],[2]]
 
+-LOG ListConcatEmpty
+-STATEMENT RETURN LIST_CONCAT([], [])
+---- 1
+[]
+
+-LOG ListConcatEmptyAndNull
+-STATEMENT RETURN LIST_CONCAT([], [NULL])
+---- 1
+[]
+
+-LOG ListConcatNullAndEmpty
+-STATEMENT RETURN LIST_CONCAT([NULL], [])
+---- 1
+[]
+
+-LOG ListConcatNullAndNull
+-STATEMENT RETURN LIST_CONCAT([NULL], [NULL])
+---- 1
+[,]
+
+-LOG ListConcatEmptyAndEmpty
+-STATEMENT RETURN LIST_CONCAT([], [])
+---- 1
+[]
+
+-LOG ListConcatINT64AndNull
+-STATEMENT RETURN LIST_CONCAT([1,2,NULL], [NULL])
+---- 1
+[1,2,,]
+
+-LOG ListConcatNullAndINT64
+-STATEMENT RETURN LIST_CONCAT([NULL], [NULL, 1, 3])
+---- 1
+[,,1,3]
+
 -LOG ListAppendListOfINT64
 -STATEMENT MATCH (a:person) RETURN list_append(a.workedHours, a.age)
 ---- 8

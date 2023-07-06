@@ -108,6 +108,15 @@ void ValueVector::copyFromVectorData(
     }
 }
 
+void ValueVector::copyFromVectorData(
+    uint64_t posToCopy, const ValueVector* srcVector, uint64_t srcPos) {
+    setNull(posToCopy, srcVector->isNull(srcPos));
+    if (!isNull(posToCopy)) {
+        copyFromVectorData(getData() + posToCopy * getNumBytesPerValue(), srcVector,
+            srcVector->getData() + srcPos * srcVector->getNumBytesPerValue());
+    }
+}
+
 void ValueVector::resetAuxiliaryBuffer() {
     switch (dataType.getPhysicalType()) {
     case PhysicalTypeID::STRING: {
@@ -300,20 +309,12 @@ void ListVector::copyFromVectorData(ValueVector* dstVector, uint8_t* dstData,
     auto& srcListEntry = *(common::list_entry_t*)(srcData);
     auto& dstListEntry = *(common::list_entry_t*)(dstData);
     dstListEntry = addList(dstVector, srcListEntry.size);
-    auto srcListData = getListValues(srcVector, srcListEntry);
     auto srcDataVector = getDataVector(srcVector);
-    auto dstListData = getListValues(dstVector, dstListEntry);
+    auto srcPos = srcListEntry.offset;
     auto dstDataVector = getDataVector(dstVector);
-    auto numBytesPerValue = srcDataVector->getNumBytesPerValue();
+    auto dstPos = dstListEntry.offset;
     for (auto i = 0u; i < srcListEntry.size; i++) {
-        if (srcDataVector->isNull(srcListEntry.offset + i)) {
-            dstDataVector->setNull(dstListEntry.offset + i, true);
-        } else {
-            dstDataVector->setNull(dstListEntry.offset + i, false);
-            dstDataVector->copyFromVectorData(dstListData, srcDataVector, srcListData);
-        }
-        srcListData += numBytesPerValue;
-        dstListData += numBytesPerValue;
+        dstDataVector->copyFromVectorData(dstPos++, srcDataVector, srcPos++);
     }
 }
 
@@ -362,17 +363,7 @@ void StructVector::copyFromVectorData(ValueVector* dstVector, const uint8_t* dst
     for (auto i = 0u; i < srcFieldVectors.size(); i++) {
         auto srcFieldVector = srcFieldVectors[i];
         auto dstFieldVector = dstFieldVectors[i];
-        if (srcFieldVector->isNull(srcPos)) {
-            dstFieldVector->setNull(dstPos, true /* isNull */);
-        } else {
-            dstFieldVector->setNull(dstPos, false /* isNull */);
-            auto srcFieldVectorData =
-                srcFieldVector->getData() + srcFieldVector->getNumBytesPerValue() * srcPos;
-            auto dstFieldVectorData =
-                dstFieldVector->getData() + dstFieldVector->getNumBytesPerValue() * dstPos;
-            dstFieldVector->copyFromVectorData(
-                dstFieldVectorData, srcFieldVector.get(), srcFieldVectorData);
-        }
+        dstFieldVector->copyFromVectorData(dstPos, srcFieldVector.get(), srcPos);
     }
 }
 
