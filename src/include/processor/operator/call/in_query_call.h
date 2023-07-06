@@ -1,7 +1,7 @@
 #pragma once
 
 #include "catalog/catalog.h"
-#include "function/table_operations.h"
+#include "function/table_functions.h"
 #include "processor/operator/physical_operator.h"
 
 namespace kuzu {

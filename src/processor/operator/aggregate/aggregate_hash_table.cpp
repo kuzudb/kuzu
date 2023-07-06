@@ -2,11 +2,10 @@
 
 #include "common/utils.h"
 #include "function/aggregate/base_count.h"
-#include "function/hash/vector_hash_operations.h"
+#include "function/hash/vector_hash_functions.h"
 
 using namespace kuzu::common;
 using namespace kuzu::function;
-using namespace kuzu::function::operation;
 using namespace kuzu::storage;
 
 namespace kuzu {
@@ -48,16 +47,16 @@ bool AggregateHashTable::isAggregateValueDistinctForGroupByKeys(
     }
     distinctKeyVectors[groupByFlatKeyVectors.size()] = aggregateVector;
     if (groupByFlatKeyVectors.empty()) {
-        VectorHashOperations::computeHash(aggregateVector, hashVector.get());
+        VectorHashFunction::computeHash(aggregateVector, hashVector.get());
     } else {
-        VectorHashOperations::computeHash(groupByFlatKeyVectors[0], hashVector.get());
+        VectorHashFunction::computeHash(groupByFlatKeyVectors[0], hashVector.get());
         computeAndCombineVecHash(groupByFlatKeyVectors, 1 /* startVecIdx */);
         auto tmpHashResultVector =
             std::make_unique<ValueVector>(LogicalTypeID::INT64, &memoryManager);
         auto tmpHashCombineResultVector =
             std::make_unique<ValueVector>(LogicalTypeID::INT64, &memoryManager);
-        VectorHashOperations::computeHash(aggregateVector, tmpHashResultVector.get());
-        VectorHashOperations::combineHash(
+        VectorHashFunction::computeHash(aggregateVector, tmpHashResultVector.get());
+        VectorHashFunction::combineHash(
             hashVector.get(), tmpHashResultVector.get(), tmpHashCombineResultVector.get());
         hashVector = std::move(tmpHashResultVector);
     }
@@ -399,8 +398,8 @@ void AggregateHashTable::computeAndCombineVecHash(
             std::make_unique<ValueVector>(LogicalTypeID::INT64, &memoryManager);
         auto tmpHashCombineResultVector =
             std::make_unique<ValueVector>(LogicalTypeID::INT64, &memoryManager);
-        VectorHashOperations::computeHash(keyVector, tmpHashResultVector.get());
-        VectorHashOperations::combineHash(
+        VectorHashFunction::computeHash(keyVector, tmpHashResultVector.get());
+        VectorHashFunction::combineHash(
             hashVector.get(), tmpHashResultVector.get(), tmpHashCombineResultVector.get());
         hashVector = std::move(tmpHashCombineResultVector);
     }
@@ -410,11 +409,11 @@ void AggregateHashTable::computeVectorHashes(
     const std::vector<ValueVector*>& groupByFlatHashKeyVectors,
     const std::vector<ValueVector*>& groupByUnflatHashKeyVectors) {
     if (!groupByFlatHashKeyVectors.empty()) {
-        VectorHashOperations::computeHash(groupByFlatHashKeyVectors[0], hashVector.get());
+        VectorHashFunction::computeHash(groupByFlatHashKeyVectors[0], hashVector.get());
         computeAndCombineVecHash(groupByFlatHashKeyVectors, 1 /* startVecIdx */);
         computeAndCombineVecHash(groupByUnflatHashKeyVectors, 0 /* startVecIdx */);
     } else {
-        VectorHashOperations::computeHash(groupByUnflatHashKeyVectors[0], hashVector.get());
+        VectorHashFunction::computeHash(groupByUnflatHashKeyVectors[0], hashVector.get());
         computeAndCombineVecHash(groupByUnflatHashKeyVectors, 1 /* startVecIdx */);
     }
 }

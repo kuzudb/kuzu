@@ -1,6 +1,6 @@
 #include "processor/operator/recursive_extend/path_property_probe.h"
 
-#include "function/hash/vector_hash_operations.h"
+#include "function/hash/vector_hash_functions.h"
 
 using namespace kuzu::common;
 
@@ -70,7 +70,7 @@ void PathPropertyProbe::probe(kuzu::processor::JoinHashTable* hashTable, uint64_
     const std::vector<ft_col_idx_t>& colIndicesToScan) {
     // Hash
     for (auto i = 0u; i < sizeToProbe; ++i) {
-        function::operation::Hash::operation(
+        function::Hash::operation(
             idVector->getValue<internalID_t>(sizeProbed + i), localState->hashes[i]);
     }
     // Probe hash

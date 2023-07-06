@@ -3,7 +3,7 @@
 #include "binder/expression/literal_expression.h"
 #include "binder/expression_binder.h"
 #include "common/string_utils.h"
-#include "function/schema/vector_label_operations.h"
+#include "function/schema/vector_label_functions.h"
 #include "parser/expression/parsed_function_expression.h"
 
 using namespace kuzu::common;
@@ -43,12 +43,12 @@ std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
 
 std::shared_ptr<Expression> ExpressionBinder::bindScalarFunctionExpression(
     const expression_vector& children, const std::string& functionName) {
-    auto builtInFunctions = binder->catalog.getBuiltInVectorOperation();
+    auto builtInFunctions = binder->catalog.getBuiltInVectorFunctions();
     std::vector<LogicalType> childrenTypes;
     for (auto& child : children) {
         childrenTypes.push_back(child->dataType);
     }
-    auto function = builtInFunctions->matchVectorOperation(functionName, childrenTypes);
+    auto function = builtInFunctions->matchVectorFunction(functionName, childrenTypes);
     if (builtInFunctions->canApplyStaticEvaluation(functionName, children)) {
         return staticEvaluate(functionName, children);
     }
@@ -230,7 +230,7 @@ std::shared_ptr<Expression> ExpressionBinder::bindLabelFunction(const Expression
     default:
         throw NotImplementedException("ExpressionBinder::bindLabelFunction");
     }
-    auto execFunc = function::LabelVectorOperation::execFunction;
+    auto execFunc = function::LabelVectorFunction::execFunction;
     auto bindData =
         std::make_unique<function::FunctionBindData>(LogicalType(LogicalTypeID::STRING));
     auto uniqueExpressionName = ScalarFunctionExpression::getUniqueName(LABEL_FUNC_NAME, children);

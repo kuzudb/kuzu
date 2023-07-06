@@ -1,10 +1,9 @@
 #include "processor/operator/order_by/key_block_merger.h"
 
-#include "function/comparison/comparison_operations.h"
+#include "function/comparison/comparison_functions.h"
 
 using namespace kuzu::common;
 using namespace kuzu::processor;
-using namespace kuzu::function::operation;
 using namespace kuzu::storage;
 
 namespace kuzu {

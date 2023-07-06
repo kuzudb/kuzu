@@ -90,12 +90,12 @@ std::unique_ptr<AggregateFunction> AggregateFunctionUtil::getSumFunction(
 
 std::unique_ptr<AggregateFunction> AggregateFunctionUtil::getMinFunction(
     const LogicalType& inputType, bool isDistinct) {
-    return getMinMaxFunction<operation::LessThan>(inputType, isDistinct);
+    return getMinMaxFunction<LessThan>(inputType, isDistinct);
 }
 
 std::unique_ptr<AggregateFunction> AggregateFunctionUtil::getMaxFunction(
     const LogicalType& inputType, bool isDistinct) {
-    return getMinMaxFunction<operation::GreaterThan>(inputType, isDistinct);
+    return getMinMaxFunction<GreaterThan>(inputType, isDistinct);
 }
 
 std::unique_ptr<AggregateFunction> AggregateFunctionUtil::getCollectFunction(

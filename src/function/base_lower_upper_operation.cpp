@@ -1,12 +1,11 @@
-#include "function/string/operations/base_lower_upper_operation.h"
+#include "function/string/functions/base_lower_upper_function.h"
 
 using namespace kuzu::utf8proc;
 
 namespace kuzu {
 namespace function {
-namespace operation {
 
-uint32_t BaseLowerUpperOperation::getResultLen(char* inputStr, uint32_t inputLen, bool isUpper) {
+uint32_t BaseLowerUpperFunction::getResultLen(char* inputStr, uint32_t inputLen, bool isUpper) {
     uint32_t outputLength = 0;
     for (uint32_t i = 0; i < inputLen;) {
         // For UTF-8 characters, changing case can increase / decrease total byte length.
@@ -28,7 +27,7 @@ uint32_t BaseLowerUpperOperation::getResultLen(char* inputStr, uint32_t inputLen
     return outputLength;
 }
 
-void BaseLowerUpperOperation::convertCase(char* result, uint32_t len, char* input, bool toUpper) {
+void BaseLowerUpperFunction::convertCase(char* result, uint32_t len, char* input, bool toUpper) {
     for (auto i = 0u; i < len;) {
         if (input[i] & 0x80) {
             int size = 0, newSize = 0;
@@ -47,6 +46,5 @@ void BaseLowerUpperOperation::convertCase(char* result, uint32_t len, char* inpu
     }
 }
 
-} // namespace operation
 } // namespace function
 } // namespace kuzu

@@ -2,7 +2,7 @@
 
 #include <functional>
 
-#include "function/hash/hash_operations.h"
+#include "function/hash/hash_functions.h"
 #include "storage/storage_structure/disk_overflow_file.h"
 #include "storage/storage_structure/in_mem_file.h"
 
@@ -71,12 +71,12 @@ public:
     // HashFunc
     inline static common::hash_t hashFuncForInt64(const uint8_t* key) {
         common::hash_t hash;
-        function::operation::Hash::operation(*(int64_t*)key, hash);
+        function::Hash::operation(*(int64_t*)key, hash);
         return hash;
     }
     inline static common::hash_t hashFuncForString(const uint8_t* key) {
         common::hash_t hash;
-        function::operation::Hash::operation(std::string((char*)key), hash);
+        function::Hash::operation(std::string((char*)key), hash);
         return hash;
     }
     static hash_function_t initializeHashFunc(common::LogicalTypeID dataTypeID);

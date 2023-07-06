@@ -1,6 +1,6 @@
 #include "expression_evaluator/node_rel_evaluator.h"
 
-#include "function/struct/vector_struct_operations.h"
+#include "function/struct/vector_struct_functions.h"
 
 using namespace kuzu::common;
 using namespace kuzu::function;
@@ -12,7 +12,7 @@ void NodeRelExpressionEvaluator::evaluate() {
     for (auto& child : children) {
         child->evaluate();
     }
-    StructPackVectorOperations::execFunc(parameters, *resultVector);
+    StructPackVectorFunctions::execFunc(parameters, *resultVector);
 }
 
 void NodeRelExpressionEvaluator::resolveResultVector(
@@ -25,7 +25,7 @@ void NodeRelExpressionEvaluator::resolveResultVector(
         inputEvaluators.push_back(child.get());
     }
     resolveResultStateFromChildren(inputEvaluators);
-    StructPackVectorOperations::compileFunc(nullptr, parameters, resultVector);
+    StructPackVectorFunctions::compileFunc(nullptr, parameters, resultVector);
 }
 
 } // namespace evaluator

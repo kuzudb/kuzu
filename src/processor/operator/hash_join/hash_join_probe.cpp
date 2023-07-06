@@ -1,9 +1,8 @@
 #include "processor/operator/hash_join/hash_join_probe.h"
 
-#include "function/hash/hash_operations.h"
+#include "function/hash/hash_functions.h"
 
 using namespace kuzu::common;
-using namespace kuzu::function::operation;
 
 namespace kuzu {
 namespace processor {

@@ -1,6 +1,6 @@
 #include "binder/expression/function_expression.h"
 #include "binder/expression_binder.h"
-#include "function/boolean/vector_boolean_operations.h"
+#include "function/boolean/vector_boolean_functions.h"
 
 using namespace kuzu::common;
 using namespace kuzu::parser;
@@ -25,10 +25,9 @@ std::shared_ptr<Expression> ExpressionBinder::bindBooleanExpression(
     }
     auto functionName = expressionTypeToString(expressionType);
     function::scalar_exec_func execFunc;
-    function::VectorBooleanOperations::bindExecFunction(
-        expressionType, childrenAfterCast, execFunc);
+    function::VectorBooleanFunction::bindExecFunction(expressionType, childrenAfterCast, execFunc);
     function::scalar_select_func selectFunc;
-    function::VectorBooleanOperations::bindSelectFunction(
+    function::VectorBooleanFunction::bindSelectFunction(
         expressionType, childrenAfterCast, selectFunc);
     auto bindData = std::make_unique<function::FunctionBindData>(LogicalType(LogicalTypeID::BOOL));
     auto uniqueExpressionName =

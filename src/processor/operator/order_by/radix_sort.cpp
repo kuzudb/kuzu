@@ -2,10 +2,9 @@
 
 #include <algorithm>
 
-#include "function/comparison/comparison_operations.h"
+#include "function/comparison/comparison_functions.h"
 
 using namespace kuzu::common;
-using namespace kuzu::function::operation;
 
 namespace kuzu {
 namespace processor {
@@ -189,7 +188,7 @@ void RadixSort::findStringTies(TieRange& keyBlockTie, uint8_t* keyBlockPtr,
             }
 
             uint8_t result;
-            NotEquals::operation<TYPE, TYPE>(iValue,
+            function::NotEquals::operation<TYPE, TYPE>(iValue,
                 factorizedTable.getData<TYPE>(
                     OrderByKeyEncoder::getEncodedFTBlockIdx(jTupleInfoPtr),
                     OrderByKeyEncoder::getEncodedFTBlockOffset(jTupleInfoPtr),

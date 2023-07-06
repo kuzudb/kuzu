@@ -60,7 +60,7 @@ std::unique_ptr<BoundReadingClause> Binder::bindUnwindClause(const ReadingClause
 std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause& readingClause) {
     auto& callStatement = reinterpret_cast<const parser::InQueryCall&>(readingClause);
     auto tableFunctionDefinition =
-        catalog.getBuiltInTableOperation()->mathTableOperation(callStatement.getFuncName());
+        catalog.getBuiltInTableFunction()->mathTableFunction(callStatement.getFuncName());
     auto boundExpr = expressionBinder.bindLiteralExpression(*callStatement.getParameter());
     auto inputValue = reinterpret_cast<LiteralExpression*>(boundExpr.get())->getValue();
     auto bindData = tableFunctionDefinition->bindFunc(clientContext,
