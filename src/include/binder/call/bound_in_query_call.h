@@ -2,7 +2,7 @@
 
 #include "binder/expression/expression.h"
 #include "binder/query/reading_clause/bound_reading_clause.h"
-#include "function/table_operations.h"
+#include "function/table_functions.h"
 
 namespace kuzu {
 namespace binder {

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "function/hash/hash_operations.h"
+#include "function/hash/hash_functions.h"
 #include "join_hash_table.h"
 #include "processor/operator/physical_operator.h"
 #include "processor/operator/sink.h"

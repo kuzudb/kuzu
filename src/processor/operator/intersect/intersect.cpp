@@ -3,7 +3,6 @@
 #include <algorithm>
 
 using namespace kuzu::common;
-using namespace kuzu::function::operation;
 
 namespace kuzu {
 namespace processor {
@@ -40,7 +39,7 @@ void Intersect::probeHTs() {
         probedFlatTuples[i].clear();
         auto key = probeKeyVectors[i]->getValue<nodeID_t>(
             probeKeyVectors[i]->state->selVector->selectedPositions[0]);
-        Hash::operation<nodeID_t>(key, false, hashVal);
+        function::Hash::operation<nodeID_t>(key, false, hashVal);
         auto flatTuple = sharedHTs[i]->getHashTable()->getTupleForHash(hashVal);
         while (flatTuple) {
             if (*(nodeID_t*)flatTuple == key) {

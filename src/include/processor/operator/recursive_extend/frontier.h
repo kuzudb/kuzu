@@ -3,7 +3,7 @@
 #include <unordered_map>
 
 #include "common/types/types_include.h"
-#include "function/hash/hash_operations.h"
+#include "function/hash/hash_functions.h"
 
 namespace kuzu {
 namespace processor {
@@ -13,7 +13,7 @@ using node_rel_id_t = std::pair<common::nodeID_t, common::relID_t>;
 struct InternalIDHasher {
     std::size_t operator()(const common::internalID_t& internalID) const {
         common::hash_t result;
-        function::operation::Hash::operation<common::internalID_t>(internalID, result);
+        function::Hash::operation<common::internalID_t>(internalID, result);
         return result;
     }
 };

@@ -2,7 +2,7 @@
 
 #include "expression.h"
 #include "function/aggregate/aggregate_function.h"
-#include "function/vector_operations.h"
+#include "function/vector_functions.h"
 
 namespace kuzu {
 namespace binder {

@@ -5,7 +5,7 @@
 #include "binder/expression/function_expression.h"
 #include "binder/expression/literal_expression.h"
 #include "binder/expression/parameter_expression.h"
-#include "function/cast/vector_cast_operations.h"
+#include "function/cast/vector_cast_functions.h"
 
 using namespace kuzu::common;
 using namespace kuzu::function;
@@ -83,12 +83,12 @@ std::shared_ptr<Expression> ExpressionBinder::implicitCastIfNecessary(
 
 std::shared_ptr<Expression> ExpressionBinder::implicitCast(
     const std::shared_ptr<Expression>& expression, const common::LogicalType& targetType) {
-    if (VectorCastOperations::hasImplicitCast(expression->dataType, targetType)) {
-        auto functionName = VectorCastOperations::bindImplicitCastFuncName(targetType);
+    if (VectorCastFunction::hasImplicitCast(expression->dataType, targetType)) {
+        auto functionName = VectorCastFunction::bindImplicitCastFuncName(targetType);
         auto children = expression_vector{expression};
         auto bindData = std::make_unique<FunctionBindData>(targetType);
         function::scalar_exec_func execFunc;
-        VectorCastOperations::bindImplicitCastFunc(
+        VectorCastFunction::bindImplicitCastFunc(
             expression->dataType.getLogicalTypeID(), targetType.getLogicalTypeID(), execFunc);
         auto uniqueName = ScalarFunctionExpression::getUniqueName(functionName, children);
         return std::make_shared<ScalarFunctionExpression>(functionName, FUNCTION,

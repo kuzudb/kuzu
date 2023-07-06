@@ -1,7 +1,7 @@
 #pragma once
 
 #include "aggregate_function.h"
-#include "function/arithmetic/arithmetic_operations.h"
+#include "function/arithmetic/arithmetic_functions.h"
 
 namespace kuzu {
 namespace function {
@@ -55,7 +55,7 @@ struct AvgFunction {
                 state->sum = val;
                 state->isNull = false;
             } else {
-                operation::Add::operation(state->sum, val, state->sum);
+                Add::operation(state->sum, val, state->sum);
             }
         }
         state->count += multiplicity;
@@ -72,7 +72,7 @@ struct AvgFunction {
             state->sum = otherState->sum;
             state->isNull = false;
         } else {
-            operation::Add::operation(state->sum, otherState->sum, state->sum);
+            Add::operation(state->sum, otherState->sum, state->sum);
         }
         state->count = state->count + otherState->count;
     }

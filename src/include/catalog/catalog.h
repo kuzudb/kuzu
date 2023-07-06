@@ -9,8 +9,8 @@
 #include "common/ser_deser.h"
 #include "common/utils.h"
 #include "function/aggregate/built_in_aggregate_functions.h"
-#include "function/built_in_table_operations.h"
-#include "function/built_in_vector_operations.h"
+#include "function/built_in_table_functions.h"
+#include "function/built_in_vector_functions.h"
 #include "storage/storage_info.h"
 #include "storage/wal/wal.h"
 #include "transaction/transaction.h"
@@ -165,14 +165,14 @@ public:
     inline CatalogContent* getReadOnlyVersion() const { return catalogContentForReadOnlyTrx.get(); }
     inline CatalogContent* getWriteVersion() const { return catalogContentForWriteTrx.get(); }
 
-    inline function::BuiltInVectorOperations* getBuiltInVectorOperation() const {
-        return builtInVectorOperations.get();
+    inline function::BuiltInVectorFunctions* getBuiltInVectorFunctions() const {
+        return builtInVectorFunctions.get();
     }
     inline function::BuiltInAggregateFunctions* getBuiltInAggregateFunction() const {
         return builtInAggregateFunctions.get();
     }
-    inline function::BuiltInTableOperations* getBuiltInTableOperation() const {
-        return builtInTableOperations.get();
+    inline function::BuiltInTableFunctions* getBuiltInTableFunction() const {
+        return builtInTableFunctions.get();
     }
 
     void prepareCommitOrRollback(transaction::TransactionAction action);
@@ -219,9 +219,9 @@ private:
     inline bool hasUpdates() { return catalogContentForWriteTrx != nullptr; }
 
 protected:
-    std::unique_ptr<function::BuiltInVectorOperations> builtInVectorOperations;
+    std::unique_ptr<function::BuiltInVectorFunctions> builtInVectorFunctions;
     std::unique_ptr<function::BuiltInAggregateFunctions> builtInAggregateFunctions;
-    std::unique_ptr<function::BuiltInTableOperations> builtInTableOperations;
+    std::unique_ptr<function::BuiltInTableFunctions> builtInTableFunctions;
     std::unique_ptr<CatalogContent> catalogContentForReadOnlyTrx;
     std::unique_ptr<CatalogContent> catalogContentForWriteTrx;
     storage::WAL* wal;

@@ -1,28 +1,27 @@
-add_subdirectory(comparison)
-
 add_library(kuzu_function
         OBJECT
         aggregate_function.cpp
         base_lower_upper_operation.cpp
         built_in_aggregate_functions.cpp
-        built_in_vector_operations.cpp
-        built_in_table_operations.cpp
-        find_operation.cpp
-        table_operations.cpp
-        vector_arithmetic_operations.cpp
-        vector_boolean_operations.cpp
-        vector_cast_operations.cpp
-        vector_date_operations.cpp
-        vector_hash_operations.cpp
-        vector_list_operation.cpp
-        vector_null_operations.cpp
-        vector_node_rel_operations.cpp
-        vector_string_operations.cpp
-        vector_timestamp_operations.cpp
-        vector_struct_operations.cpp
-        vector_map_operation.cpp
-        vector_union_operations.cpp
-        vector_blob_operations.cpp)
+        built_in_vector_functions.cpp
+        built_in_table_functions.cpp
+        comparison_functions.cpp
+        find_function.cpp
+        table_functions.cpp
+        vector_arithmetic_functions.cpp
+        vector_boolean_functions.cpp
+        vector_cast_functions.cpp
+        vector_date_functions.cpp
+        vector_hash_functions.cpp
+        vector_list_functions.cpp
+        vector_null_functions.cpp
+        vector_node_rel_functions.cpp
+        vector_string_functions.cpp
+        vector_timestamp_functions.cpp
+        vector_struct_functions.cpp
+        vector_map_functions.cpp
+        vector_union_functions.cpp
+        vector_blob_functions.cpp)
 
 set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_function>

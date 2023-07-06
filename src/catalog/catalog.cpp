@@ -361,16 +361,16 @@ void CatalogContent::writeMagicBytes(FileInfo* fileInfo, offset_t& offset) const
 
 Catalog::Catalog() : wal{nullptr} {
     catalogContentForReadOnlyTrx = std::make_unique<CatalogContent>();
-    builtInVectorOperations = std::make_unique<function::BuiltInVectorOperations>();
+    builtInVectorFunctions = std::make_unique<function::BuiltInVectorFunctions>();
     builtInAggregateFunctions = std::make_unique<function::BuiltInAggregateFunctions>();
-    builtInTableOperations = std::make_unique<function::BuiltInTableOperations>();
+    builtInTableFunctions = std::make_unique<function::BuiltInTableFunctions>();
 }
 
 Catalog::Catalog(WAL* wal) : wal{wal} {
     catalogContentForReadOnlyTrx = std::make_unique<CatalogContent>(wal->getDirectory());
-    builtInVectorOperations = std::make_unique<function::BuiltInVectorOperations>();
+    builtInVectorFunctions = std::make_unique<function::BuiltInVectorFunctions>();
     builtInAggregateFunctions = std::make_unique<function::BuiltInAggregateFunctions>();
-    builtInTableOperations = std::make_unique<function::BuiltInTableOperations>();
+    builtInTableFunctions = std::make_unique<function::BuiltInTableFunctions>();
 }
 
 void Catalog::prepareCommitOrRollback(TransactionAction action) {
@@ -390,7 +390,7 @@ void Catalog::checkpointInMemory() {
 }
 
 ExpressionType Catalog::getFunctionType(const std::string& name) const {
-    if (builtInVectorOperations->containsFunction(name)) {
+    if (builtInVectorFunctions->containsFunction(name)) {
         return FUNCTION;
     } else if (builtInAggregateFunctions->containsFunction(name)) {
         return AGGREGATE_FUNCTION;
