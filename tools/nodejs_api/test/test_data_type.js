@@ -113,6 +113,24 @@ describe("STRING", function () {
   });
 });
 
+describe("BLOB", function () {
+  it("should convert BLOB type", async function () {
+    const queryResult = await conn.query(
+      "RETURN BLOB('\\\\xAA\\\\xBB\\\\xCD\\\\x1A');"
+    );
+    const result = await queryResult.getAll();
+    assert.equal(result.length, 1);
+    assert.equal(Object.keys(result[0]).length, 1);
+    const value = Object.values(result[0])[0];
+    assert.isTrue(value instanceof Uint8Array);
+    assert.equal(value.length, 4);
+    assert.equal(value[0], 0xaa);
+    assert.equal(value[1], 0xbb);
+    assert.equal(value[2], 0xcd);
+    assert.equal(value[3], 0x1a);
+  });
+});
+
 describe("DATE", function () {
   it("should convert DATE type", async function () {
     const queryResult = await conn.query(

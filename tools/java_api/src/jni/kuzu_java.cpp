@@ -927,10 +927,16 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_KuzuNative_kuzu_1value_1get_1value(
         jobject ret = env->NewObject(retClass, ctor, iid.tableID, iid.offset);
         return ret;
     }
-    case LogicalTypeID::STRING:
-    case LogicalTypeID::BLOB: {
+    case LogicalTypeID::STRING: {
         std::string str = v->getValue<std::string>();
         jstring ret = env->NewStringUTF(str.c_str());
+        return ret;
+    }
+    case LogicalTypeID::BLOB: {
+        auto str = v->getValue<std::string>();
+        auto byteBuffer = str.c_str();
+        auto ret = env->NewByteArray(str.size());
+        env->SetByteArrayRegion(ret, 0, str.size(), (jbyte*)byteBuffer);
         return ret;
     }
     default: {

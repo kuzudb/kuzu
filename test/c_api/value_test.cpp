@@ -588,6 +588,28 @@ TEST_F(CApiValueTest, GetString) {
     kuzu_query_result_destroy(result);
 }
 
+TEST_F(CApiValueTest, GetBlob) {
+    auto connection = getConnection();
+    auto result =
+        kuzu_connection_query(connection, (char*)R"(RETURN BLOB('\\xAA\\xBB\\xCD\\x1A');)");
+    ASSERT_TRUE(kuzu_query_result_is_success(result));
+    ASSERT_TRUE(kuzu_query_result_has_next(result));
+    auto flatTuple = kuzu_query_result_get_next(result);
+    auto value = kuzu_flat_tuple_get_value(flatTuple, 0);
+    ASSERT_TRUE(value->_is_owned_by_cpp);
+    ASSERT_FALSE(kuzu_value_is_null(value));
+    auto blob = kuzu_value_get_blob(value);
+    ASSERT_EQ(blob[0], 0xAA);
+    ASSERT_EQ(blob[1], 0xBB);
+    ASSERT_EQ(blob[2], 0xCD);
+    ASSERT_EQ(blob[3], 0x1A);
+    ASSERT_EQ(blob[4], 0x00);
+    free(blob);
+    kuzu_value_destroy(value);
+    kuzu_flat_tuple_destroy(flatTuple);
+    kuzu_query_result_destroy(result);
+}
+
 TEST_F(CApiValueTest, ToSting) {
     auto connection = getConnection();
     auto result = kuzu_connection_query(connection,

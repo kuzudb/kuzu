@@ -530,6 +530,24 @@ public class ValueTest extends TestBase {
     }
 
     @Test
+    void ValueGetBlob() throws KuzuObjectRefDestroyedException {
+        KuzuQueryResult result = conn.query("RETURN BLOB('\\\\xAA\\\\xBB\\\\xCD\\\\x1A');");
+        assertTrue(result.isSuccess());
+        assertTrue(result.hasNext());
+        KuzuFlatTuple flatTuple = result.getNext();
+        KuzuValue value = flatTuple.getValue(0);
+        assertTrue(value.isOwnedByCPP());
+        assertFalse(value.isNull());
+
+        byte[] bytes  = value.getValue();
+        assertTrue(bytes.length == 4);
+        assertTrue(bytes[0] == (byte) 0xAA);
+        assertTrue(bytes[1] == (byte) 0xBB);
+        assertTrue(bytes[2] == (byte) 0xCD);
+        assertTrue(bytes[3] == (byte) 0x1A);
+    }
+
+    @Test
     void ValueToString() throws KuzuObjectRefDestroyedException {
         KuzuQueryResult result = conn.query("MATCH (a:person) RETURN a.fName, a.isStudent, a.workedHours");
         assertTrue(result.isSuccess());

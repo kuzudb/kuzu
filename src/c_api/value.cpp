@@ -231,6 +231,13 @@ char* kuzu_value_get_string(kuzu_value* value) {
     return c_string;
 }
 
+uint8_t* kuzu_value_get_blob(kuzu_value* value) {
+    auto string_val = static_cast<Value*>(value->_value)->getValue<std::string>();
+    auto* c_blob = (uint8_t*)malloc(string_val.size() + 1);
+    strcpy((char*)c_blob, string_val.c_str());
+    return c_blob;
+}
+
 char* kuzu_value_to_string(kuzu_value* value) {
     auto string_val = static_cast<Value*>(value->_value)->toString();
     auto* c_string = (char*)malloc(string_val.size() + 1);

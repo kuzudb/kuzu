@@ -27,9 +27,12 @@ Napi::Value Util::ConvertToNapiObject(const Value& value, Napi::Env env) {
     case LogicalTypeID::DOUBLE: {
         return Napi::Number::New(env, value.getValue<double>());
     }
-    case LogicalTypeID::STRING:
-    case LogicalTypeID::BLOB: {
+    case LogicalTypeID::STRING: {
         return Napi::String::New(env, value.getValue<std::string>());
+    }
+    case LogicalTypeID::BLOB: {
+        auto blobVal = value.getValue<std::string>();
+        return Napi::Buffer<char>::Copy(env, blobVal.c_str(), blobVal.size());
     }
     case LogicalTypeID::DATE: {
         auto dateVal = value.getValue<date_t>();

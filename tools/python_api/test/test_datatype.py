@@ -46,6 +46,21 @@ def test_string(establish_connection):
     assert not result.has_next()
     result.close()
 
+
+def test_blob(establish_connection):
+    conn, db = establish_connection
+    result = conn.execute("RETURN BLOB('\\\\xAA\\\\xBB\\\\xCD\\\\x1A')")
+    assert result.has_next()
+    result_blob = result.get_next()[0]
+    assert len(result_blob) == 4
+    assert result_blob[0] == 0xAA
+    assert result_blob[1] == 0xBB
+    assert result_blob[2] == 0xCD
+    assert result_blob[3] == 0x1A
+    assert not result.has_next()
+    result.close()
+
+
 def test_date(establish_connection):
     conn, db = establish_connection
     result = conn.execute(
