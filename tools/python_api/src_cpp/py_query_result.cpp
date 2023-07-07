@@ -80,7 +80,8 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value) {
     case LogicalTypeID::INT32: {
         return py::cast(value.getValue<int32_t>());
     }
-    case LogicalTypeID::INT64: {
+    case LogicalTypeID::INT64:
+    case LogicalTypeID::SERIAL: {
         return py::cast(value.getValue<int64_t>());
     }
     case LogicalTypeID::FLOAT: {
@@ -89,7 +90,8 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value) {
     case LogicalTypeID::DOUBLE: {
         return py::cast(value.getValue<double>());
     }
-    case LogicalTypeID::STRING: {
+    case LogicalTypeID::STRING: 
+    case LogicalTypeID::BLOB:{
         return py::cast(value.getValue<std::string>());
     }
     case LogicalTypeID::DATE: {
