@@ -90,9 +90,13 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value) {
     case LogicalTypeID::DOUBLE: {
         return py::cast(value.getValue<double>());
     }
-    case LogicalTypeID::STRING: 
-    case LogicalTypeID::BLOB:{
+    case LogicalTypeID::STRING: {
         return py::cast(value.getValue<std::string>());
+    }
+    case LogicalTypeID::BLOB: {
+        auto blobStr = value.getValue<std::string>();
+        auto blobBytesArray = blobStr.c_str();
+        return py::bytes(blobBytesArray, blobStr.size());
     }
     case LogicalTypeID::DATE: {
         auto dateVal = value.getValue<date_t>();
