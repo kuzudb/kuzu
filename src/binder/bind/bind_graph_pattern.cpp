@@ -1,6 +1,7 @@
 #include <set>
 
 #include "binder/binder.h"
+#include "binder/expression/path_expression.h"
 #include "binder/expression/property_expression.h"
 
 using namespace kuzu::common;
@@ -32,16 +33,86 @@ Binder::bindGraphPattern(const std::vector<std::unique_ptr<PatternElement>>& gra
 std::unique_ptr<QueryGraph> Binder::bindPatternElement(
     const PatternElement& patternElement, PropertyKeyValCollection& collection) {
     auto queryGraph = std::make_unique<QueryGraph>();
+    expression_vector nodeAndRels;
     auto leftNode = bindQueryNode(*patternElement.getFirstNodePattern(), *queryGraph, collection);
+    nodeAndRels.push_back(leftNode);
     for (auto i = 0u; i < patternElement.getNumPatternElementChains(); ++i) {
         auto patternElementChain = patternElement.getPatternElementChain(i);
         auto rightNode =
             bindQueryNode(*patternElementChain->getNodePattern(), *queryGraph, collection);
-        bindQueryRel(
+        auto rel = bindQueryRel(
             *patternElementChain->getRelPattern(), leftNode, rightNode, *queryGraph, collection);
+        nodeAndRels.push_back(rel);
+        nodeAndRels.push_back(rightNode);
         leftNode = rightNode;
     }
+    if (patternElement.hasPathName()) {
+        auto pathName = patternElement.getPathName();
+        auto pathExpression = createPathExpression(pathName, nodeAndRels);
+        variableScope->addExpression(pathName, pathExpression);
+    }
     return queryGraph;
+}
+
+static std::unique_ptr<LogicalType> getRecursiveRelLogicalType(
+    const NodeExpression& node, const RelExpression& rel) {
+    auto nodesType = std::make_unique<LogicalType>(
+        LogicalTypeID::VAR_LIST, std::make_unique<VarListTypeInfo>(node.getDataType().copy()));
+    auto relsType = std::make_unique<LogicalType>(
+        LogicalTypeID::VAR_LIST, std::make_unique<VarListTypeInfo>(rel.getDataType().copy()));
+    std::vector<std::unique_ptr<StructField>> recursiveRelFields;
+    recursiveRelFields.push_back(
+        std::make_unique<StructField>(InternalKeyword::NODES, std::move(nodesType)));
+    recursiveRelFields.push_back(
+        std::make_unique<StructField>(InternalKeyword::RELS, std::move(relsType)));
+    return std::make_unique<LogicalType>(LogicalTypeID::RECURSIVE_REL,
+        std::make_unique<StructTypeInfo>(std::move(recursiveRelFields)));
+}
+
+std::shared_ptr<Expression> Binder::createPathExpression(
+    const std::string& pathName, const expression_vector& children) {
+    std::unordered_set<common::table_id_t> nodeTableIDSet;
+    std::unordered_set<common::table_id_t> relTableIDSet;
+    for (auto& child : children) {
+        switch (child->getDataType().getLogicalTypeID()) {
+        case common::LogicalTypeID::NODE: {
+            auto node = (NodeExpression*)child.get();
+            for (auto tableID : node->getTableIDs()) {
+                nodeTableIDSet.insert(tableID);
+            }
+        } break;
+        case common::LogicalTypeID::REL: {
+            auto rel = (RelExpression*)child.get();
+            for (auto tableID : rel->getTableIDs()) {
+                relTableIDSet.insert(tableID);
+            }
+        } break;
+        case common::LogicalTypeID::RECURSIVE_REL: {
+            auto recursiveRel = (RelExpression*)child.get();
+            auto recursiveInfo = recursiveRel->getRecursiveInfo();
+            for (auto tableID : recursiveInfo->node->getTableIDs()) {
+                nodeTableIDSet.insert(tableID);
+            }
+            for (auto tableID : recursiveInfo->rel->getTableIDs()) {
+                relTableIDSet.insert(tableID);
+            }
+        } break;
+        default:
+            throw NotImplementedException("Binder::createPathExpression");
+        }
+    }
+    auto nodeTableIDs =
+        std::vector<common::table_id_t>{nodeTableIDSet.begin(), nodeTableIDSet.end()};
+    std::sort(nodeTableIDs.begin(), nodeTableIDs.end());
+    auto relTableIDs = std::vector<common::table_id_t>{relTableIDSet.begin(), relTableIDSet.end()};
+    std::sort(relTableIDs.begin(), relTableIDs.end());
+    auto node = createQueryNode(InternalKeyword::ANONYMOUS, nodeTableIDs);
+    auto rel = createNonRecursiveQueryRel(
+        InternalKeyword::ANONYMOUS, relTableIDs, nullptr, nullptr, RelDirectionType::UNKNOWN);
+    auto dataType = getRecursiveRelLogicalType(*node, *rel);
+    auto uniqueName = getUniqueExpressionName(pathName);
+    return std::make_shared<PathExpression>(
+        *dataType, uniqueName, pathName, std::move(node), std::move(rel), children);
 }
 
 static std::vector<table_id_t> pruneRelTableIDs(const Catalog& catalog_,
@@ -104,22 +175,7 @@ getNodePropertyNameAndPropertiesPairs(const std::vector<NodeTableSchema*>& nodeT
     return getPropertyNameAndSchemasPairs(propertyNames, propertyNamesToSchemas);
 }
 
-static std::unique_ptr<LogicalType> getRecursiveRelLogicalType(
-    const NodeExpression& node, const RelExpression& rel) {
-    auto nodesType = std::make_unique<LogicalType>(
-        LogicalTypeID::VAR_LIST, std::make_unique<VarListTypeInfo>(node.getDataType().copy()));
-    auto relsType = std::make_unique<LogicalType>(
-        LogicalTypeID::VAR_LIST, std::make_unique<VarListTypeInfo>(rel.getDataType().copy()));
-    std::vector<std::unique_ptr<StructField>> recursiveRelFields;
-    recursiveRelFields.push_back(
-        std::make_unique<StructField>(InternalKeyword::NODES, std::move(nodesType)));
-    recursiveRelFields.push_back(
-        std::make_unique<StructField>(InternalKeyword::RELS, std::move(relsType)));
-    return std::make_unique<LogicalType>(LogicalTypeID::RECURSIVE_REL,
-        std::make_unique<StructTypeInfo>(std::move(recursiveRelFields)));
-}
-
-void Binder::bindQueryRel(const RelPattern& relPattern,
+std::shared_ptr<RelExpression> Binder::bindQueryRel(const RelPattern& relPattern,
     const std::shared_ptr<NodeExpression>& leftNode,
     const std::shared_ptr<NodeExpression>& rightNode, QueryGraph& queryGraph,
     PropertyKeyValCollection& collection) {
@@ -187,6 +243,7 @@ void Binder::bindQueryRel(const RelPattern& relPattern,
         variableScope->addExpression(parsedName, queryRel);
     }
     queryGraph.addQueryRel(queryRel);
+    return queryRel;
 }
 
 std::shared_ptr<RelExpression> Binder::createNonRecursiveQueryRel(const std::string& parsedName,

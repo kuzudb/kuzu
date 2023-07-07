@@ -35,9 +35,6 @@ private:
     void appendLimit(uint64_t limitNumber, LogicalPlan& plan);
     void appendSkip(uint64_t skipNumber, LogicalPlan& plan);
 
-    static binder::expression_vector rewriteNodeRelExpressions(
-        const binder::expression_vector& expressionsToProject, const Schema& schema);
-
 private:
     QueryPlanner* queryPlanner;
 };

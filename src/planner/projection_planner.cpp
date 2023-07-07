@@ -43,12 +43,9 @@ void ProjectionPlanner::planProjectionBody(
     // during planning stage. The purpose is to avoid reading unnecessary properties for WITH.
     // E.g. MATCH (a) WITH a RETURN a.age -> MATCH (a) WITH a.age RETURN a.age
     // This rewrite should be removed once we add an optimizer that can remove unnecessary columns.
-    auto expressionsToProject =
-        rewriteNodeRelExpressions(projectionBody.getProjectionExpressions(), *plan.getSchema());
-    auto expressionsToAggregate =
-        rewriteNodeRelExpressions(projectionBody.getAggregateExpressions(), *plan.getSchema());
-    auto expressionsToGroupBy =
-        rewriteNodeRelExpressions(projectionBody.getGroupByExpressions(), *plan.getSchema());
+    auto expressionsToProject = projectionBody.getProjectionExpressions();
+    auto expressionsToAggregate = projectionBody.getAggregateExpressions();
+    auto expressionsToGroupBy = projectionBody.getGroupByExpressions();
     if (!expressionsToAggregate.empty()) {
         planAggregate(expressionsToAggregate, expressionsToGroupBy, plan);
     }
@@ -163,24 +160,6 @@ void ProjectionPlanner::appendSkip(uint64_t skipNumber, LogicalPlan& plan) {
     skip->computeFactorizedSchema();
     plan.setCardinality(plan.getCardinality() - skipNumber);
     plan.setLastOperator(std::move(skip));
-}
-
-// TODO: fix
-expression_vector ProjectionPlanner::rewriteNodeRelExpressions(
-    const expression_vector& expressionsToProject, const Schema& schema) {
-    expression_vector result;
-    for (auto& expression : expressionsToProject) {
-        switch (expression->getDataType().getLogicalTypeID()) {
-        case LogicalTypeID::RECURSIVE_REL: {
-            auto& rel = (RelExpression&)*expression;
-            result.push_back(rel.getLengthExpression());
-            result.push_back(expression);
-        } break;
-        default:
-            result.push_back(expression);
-        }
-    }
-    return result;
 }
 
 } // namespace planner

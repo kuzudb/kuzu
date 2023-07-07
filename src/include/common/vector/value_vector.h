@@ -62,7 +62,7 @@ public:
     // copyFromVectorData assumes srcVectorData is non-NULL.
     void copyFromVectorData(
         uint8_t* dstData, const ValueVector* srcVector, const uint8_t* srcVectorData);
-    void copyFromVectorData(uint64_t posToCopy, const ValueVector* srcVector, uint64_t srcPos);
+    void copyFromVectorData(uint64_t dstPos, const ValueVector* srcVector, uint64_t srcPos);
 
     inline uint8_t* getData() const { return valueBuffer.get(); }
 

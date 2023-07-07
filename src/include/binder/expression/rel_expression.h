@@ -10,6 +10,7 @@ namespace binder {
 enum class RelDirectionType : uint8_t {
     SINGLE = 0,
     BOTH = 1,
+    UNKNOWN = 2,
 };
 
 class RelExpression;

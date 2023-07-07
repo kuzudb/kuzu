@@ -130,6 +130,10 @@ struct ExpressionUtil {
         return expression.expressionType == common::ExpressionType::VARIABLE &&
                expression.dataType.getLogicalTypeID() == common::LogicalTypeID::REL;
     }
+    inline static bool isRecursiveRelVariable(const Expression& expression) {
+        return expression.expressionType == common::ExpressionType::VARIABLE &&
+               expression.dataType.getLogicalTypeID() == common::LogicalTypeID::RECURSIVE_REL;
+    }
 };
 
 } // namespace binder
