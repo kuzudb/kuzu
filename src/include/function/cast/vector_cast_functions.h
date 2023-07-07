@@ -100,6 +100,10 @@ struct CastToFloatVectorFunction : public VectorCastFunction {
     static vector_function_definitions getDefinitions();
 };
 
+struct CastToSerialVectorFunction : public VectorCastFunction {
+    static vector_function_definitions getDefinitions();
+};
+
 struct CastToInt64VectorFunction : public VectorCastFunction {
     static vector_function_definitions getDefinitions();
 };

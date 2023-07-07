@@ -128,6 +128,13 @@ inline void CastToInt64::operation(float_t& input, int64_t& result) {
     numericDownCast<float_t, int64_t>(input, result, "INT64");
 }
 
+struct CastToSerial {
+    template<typename T>
+    static inline void operation(T& input, int64_t& result) {
+        CastToInt64::operation(input, result);
+    }
+};
+
 struct CastToInt32 {
     template<typename T>
     static inline void operation(T& input, int32_t& result) {

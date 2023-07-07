@@ -26,6 +26,7 @@ const std::string CAST_TO_INTERVAL_FUNC_NAME = "INTERVAL";
 const std::string CAST_TO_STRING_FUNC_NAME = "STRING";
 const std::string CAST_TO_DOUBLE_FUNC_NAME = "TO_DOUBLE";
 const std::string CAST_TO_FLOAT_FUNC_NAME = "TO_FLOAT";
+const std::string CAST_TO_SERIAL_FUNC_NAME = "TO_SERIAL";
 const std::string CAST_TO_INT64_FUNC_NAME = "TO_INT64";
 const std::string CAST_TO_INT32_FUNC_NAME = "TO_INT32";
 const std::string CAST_TO_INT16_FUNC_NAME = "TO_INT16";

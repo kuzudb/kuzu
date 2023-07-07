@@ -39,12 +39,14 @@ bool VectorCastFunction::hasImplicitCast(
 
 std::string VectorCastFunction::bindImplicitCastFuncName(const common::LogicalType& dstType) {
     switch (dstType.getLogicalTypeID()) {
-    case common::LogicalTypeID::INT16:
-        return CAST_TO_INT16_FUNC_NAME;
-    case common::LogicalTypeID::INT32:
-        return CAST_TO_INT32_FUNC_NAME;
+    case common::LogicalTypeID::SERIAL:
+        return CAST_TO_SERIAL_FUNC_NAME;
     case common::LogicalTypeID::INT64:
         return CAST_TO_INT64_FUNC_NAME;
+    case common::LogicalTypeID::INT32:
+        return CAST_TO_INT32_FUNC_NAME;
+    case common::LogicalTypeID::INT16:
+        return CAST_TO_INT16_FUNC_NAME;
     case common::LogicalTypeID::FLOAT:
         return CAST_TO_FLOAT_FUNC_NAME;
     case common::LogicalTypeID::DOUBLE:
@@ -212,6 +214,20 @@ vector_function_definitions CastToFloatVectorFunction::getDefinitions() {
     // down cast
     result.push_back(bindVectorFunction<double_t, float_t, CastToFloat>(
         CAST_TO_FLOAT_FUNC_NAME, LogicalTypeID::DOUBLE, LogicalTypeID::FLOAT));
+    return result;
+}
+
+vector_function_definitions CastToSerialVectorFunction::getDefinitions() {
+    vector_function_definitions result;
+    result.push_back(bindVectorFunction<int16_t, int64_t, CastToSerial>(
+        CAST_TO_SERIAL_FUNC_NAME, LogicalTypeID::INT16, LogicalTypeID::SERIAL));
+    result.push_back(bindVectorFunction<int32_t, int64_t, CastToSerial>(
+        CAST_TO_SERIAL_FUNC_NAME, LogicalTypeID::INT32, LogicalTypeID::SERIAL));
+    // down cast
+    result.push_back(bindVectorFunction<float_t, int64_t, CastToSerial>(
+        CAST_TO_SERIAL_FUNC_NAME, LogicalTypeID::FLOAT, LogicalTypeID::SERIAL));
+    result.push_back(bindVectorFunction<double_t, int64_t, CastToSerial>(
+        CAST_TO_SERIAL_FUNC_NAME, LogicalTypeID::DOUBLE, LogicalTypeID::SERIAL));
     return result;
 }
 

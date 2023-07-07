@@ -442,6 +442,8 @@ void BuiltInVectorFunctions::registerCastFunctions() {
     VectorFunctions.insert(
         {CAST_TO_DOUBLE_FUNC_NAME, CastToDoubleVectorFunction::getDefinitions()});
     VectorFunctions.insert({CAST_TO_FLOAT_FUNC_NAME, CastToFloatVectorFunction::getDefinitions()});
+    VectorFunctions.insert(
+        {CAST_TO_SERIAL_FUNC_NAME, CastToSerialVectorFunction::getDefinitions()});
     VectorFunctions.insert({CAST_TO_INT64_FUNC_NAME, CastToInt64VectorFunction::getDefinitions()});
     VectorFunctions.insert({CAST_TO_INT32_FUNC_NAME, CastToInt32VectorFunction::getDefinitions()});
     VectorFunctions.insert({CAST_TO_INT16_FUNC_NAME, CastToInt16VectorFunction::getDefinitions()});
