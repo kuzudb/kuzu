@@ -17,7 +17,8 @@ Napi::Value Util::ConvertToNapiObject(const Value& value, Napi::Env env) {
     case LogicalTypeID::INT32: {
         return Napi::Number::New(env, value.getValue<int32_t>());
     }
-    case LogicalTypeID::INT64: {
+    case LogicalTypeID::INT64:
+    case LogicalTypeID::SERIAL: {
         return Napi::Number::New(env, value.getValue<int64_t>());
     }
     case LogicalTypeID::FLOAT: {
@@ -26,7 +27,8 @@ Napi::Value Util::ConvertToNapiObject(const Value& value, Napi::Env env) {
     case LogicalTypeID::DOUBLE: {
         return Napi::Number::New(env, value.getValue<double>());
     }
-    case LogicalTypeID::STRING: {
+    case LogicalTypeID::STRING:
+    case LogicalTypeID::BLOB: {
         return Napi::String::New(env, value.getValue<std::string>());
     }
     case LogicalTypeID::DATE: {
