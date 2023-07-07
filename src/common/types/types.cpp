@@ -561,7 +561,8 @@ std::vector<LogicalType> LogicalTypeUtils::getAllValidLogicTypes() {
         LogicalType{LogicalTypeID::BLOB}, LogicalType{LogicalTypeID::DATE},
         LogicalType{LogicalTypeID::TIMESTAMP}, LogicalType{LogicalTypeID::INTERVAL},
         LogicalType{LogicalTypeID::VAR_LIST}, LogicalType{LogicalTypeID::FLOAT},
-        LogicalType{LogicalTypeID::SERIAL}};
+        LogicalType{LogicalTypeID::SERIAL}, LogicalType{LogicalTypeID::NODE},
+        LogicalType{LogicalTypeID::REL}};
 }
 
 std::vector<std::string> LogicalTypeUtils::parseStructFields(const std::string& structTypeStr) {
