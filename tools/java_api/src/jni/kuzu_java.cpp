@@ -855,7 +855,8 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_KuzuNative_kuzu_1value_1get_1value(
         jobject ret = env->NewObject(retClass, ctor, val);
         return ret;
     }
-    case LogicalTypeID::INT64: {
+    case LogicalTypeID::INT64:
+    case LogicalTypeID::SERIAL: {
         jclass retClass = env->FindClass("java/lang/Long");
         jmethodID ctor = env->GetMethodID(retClass, "<init>", "(J)V");
         jlong val = static_cast<jlong>(v->getValue<int64_t>());
@@ -926,7 +927,8 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_KuzuNative_kuzu_1value_1get_1value(
         jobject ret = env->NewObject(retClass, ctor, iid.tableID, iid.offset);
         return ret;
     }
-    case LogicalTypeID::STRING: {
+    case LogicalTypeID::STRING:
+    case LogicalTypeID::BLOB: {
         std::string str = v->getValue<std::string>();
         jstring ret = env->NewStringUTF(str.c_str());
         return ret;

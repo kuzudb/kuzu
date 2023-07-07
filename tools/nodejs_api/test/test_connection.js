@@ -208,8 +208,13 @@ describe("Get node table names", function () {
     assert.exists(nodeTableNames);
     assert.isArray(nodeTableNames);
     nodeTableNames.sort();
-    assert.equal(nodeTableNames.length, 3);
-    assert.deepEqual(nodeTableNames, ["movies", "organisation", "person"]);
+    assert.equal(nodeTableNames.length, 4);
+    assert.deepEqual(nodeTableNames, [
+      "movies",
+      "moviesSerial",
+      "organisation",
+      "person",
+    ]);
   });
 });
 
