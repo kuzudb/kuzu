@@ -31,6 +31,9 @@ public class TestHelper {
         String line;
         do {
             line = reader.readLine();
+            if (line == null) {
+                break;
+            }
             line = line.replace("dataset/tinysnb", "../../dataset/tinysnb");
             result = conn.query(line);
             result.destroy();
@@ -41,6 +44,9 @@ public class TestHelper {
         reader = new BufferedReader(new FileReader("../../dataset/tinysnb/copy.cypher"));
         do {
             line = reader.readLine();
+            if (line == null) {
+                break;
+            }
             line = line.replace("dataset/tinysnb", "../../dataset/tinysnb");
             result = conn.query(line);
             result.destroy();
