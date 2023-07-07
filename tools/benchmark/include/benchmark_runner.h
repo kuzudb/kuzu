@@ -22,6 +22,8 @@ private:
 
     void runBenchmark(Benchmark* benchmark) const;
 
+    void profileQueryIfEnabled(Benchmark* benchmark) const;
+
 public:
     std::unique_ptr<BenchmarkConfig> config;
     std::unique_ptr<main::Database> database;

@@ -22,8 +22,7 @@ void Benchmark::loadBenchmark(const std::string& benchmarkPath) {
     auto queryConfigs = testing::TestHelper::parseTestFile(benchmarkPath);
     assert(queryConfigs.size() == 1);
     auto queryConfig = queryConfigs[0].get();
-    query = config.enableProfile ? "PROFILE " : "";
-    query += queryConfig->query;
+    query = queryConfig->query;
     name = queryConfig->name;
     expectedOutput = queryConfig->expectedTuples;
     encodedJoin = queryConfig->encodedJoin;
@@ -31,6 +30,10 @@ void Benchmark::loadBenchmark(const std::string& benchmarkPath) {
 
 std::unique_ptr<QueryResult> Benchmark::run() const {
     return conn->query(query, encodedJoin);
+}
+
+std::unique_ptr<QueryResult> Benchmark::runWithProfile() const {
+    return conn->query("PROFILE " + query, encodedJoin);
 }
 
 void Benchmark::logQueryInfo(
