@@ -25,7 +25,11 @@ struct HexFormatConstants {
 };
 
 struct Blob {
-    static std::string toString(blob_t& blob);
+    static std::string toString(const uint8_t* value, uint64_t len);
+
+    static inline std::string toString(blob_t& blob) {
+        return toString(blob.value.getData(), blob.value.len);
+    }
 
     static uint64_t getBlobSize(const ku_string_t& blob);
 

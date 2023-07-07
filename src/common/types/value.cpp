@@ -182,7 +182,7 @@ void Value::copyValueFrom(const uint8_t* value) {
         val.internalIDVal = *((nodeID_t*)value);
     } break;
     case LogicalTypeID::BLOB: {
-        strVal = Blob::toString(*(blob_t*)value);
+        strVal = ((blob_t*)value)->value.getAsString();
     } break;
     case LogicalTypeID::STRING: {
         strVal = ((ku_string_t*)value)->getAsString();
@@ -289,6 +289,7 @@ std::string Value::toString() const {
     case LogicalTypeID::INTERNAL_ID:
         return TypeUtils::toString(val.internalIDVal);
     case LogicalTypeID::BLOB:
+        return Blob::toString(reinterpret_cast<const uint8_t*>(strVal.c_str()), strVal.length());
     case LogicalTypeID::STRING:
         return strVal;
     case LogicalTypeID::MAP: {
