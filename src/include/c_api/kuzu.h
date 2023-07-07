@@ -649,7 +649,7 @@ KUZU_C_API int16_t kuzu_value_get_int16(kuzu_value* value);
  */
 KUZU_C_API int32_t kuzu_value_get_int32(kuzu_value* value);
 /**
- * @brief Returns the int64 value of the given value. The value must be of type INT64.
+ * @brief Returns the int64 value of the given value. The value must be of type INT64 or SERIAL.
  * @param value The value to return.
  */
 KUZU_C_API int64_t kuzu_value_get_int64(kuzu_value* value);
@@ -688,6 +688,12 @@ KUZU_C_API kuzu_interval_t kuzu_value_get_interval(kuzu_value* value);
  * @param value The value to return.
  */
 KUZU_C_API char* kuzu_value_get_string(kuzu_value* value);
+/**
+ * @brief Returns the blob value of the given value. The returned buffer is null-terminated similar
+ * to a string. The value must be of type BLOB.
+ * @param value The value to return.
+ */
+KUZU_C_API uint8_t* kuzu_value_get_blob(kuzu_value* value);
 /**
  * @brief Converts the given value to string.
  * @param value The value to convert.

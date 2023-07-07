@@ -434,7 +434,8 @@ inline internalID_t Value::getValue() const {
  */
 KUZU_API template<>
 inline std::string Value::getValue() const {
-    assert(dataType.getLogicalTypeID() == LogicalTypeID::STRING);
+    assert(dataType.getLogicalTypeID() == LogicalTypeID::STRING ||
+           dataType.getLogicalTypeID() == LogicalTypeID::BLOB);
     return strVal;
 }
 
