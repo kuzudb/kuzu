@@ -166,6 +166,10 @@ fn build_bundled_cmake() -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
 }
 
 fn main() {
+    if env::var("DOCS_RS").is_ok() {
+        // Do nothing; we're just building docs and don't need the C++ library
+        return;
+    }
     let mut build = cxx_build::bridge("src/ffi.rs");
     build.file("src/kuzu_rs.cpp");
 
