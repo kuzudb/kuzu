@@ -66,7 +66,8 @@ Napi::Value Util::ConvertToNapiObject(const Value& value, Napi::Env env) {
         }
         return napiArray;
     }
-    case LogicalTypeID::STRUCT: {
+    case LogicalTypeID::STRUCT:
+    case LogicalTypeID::UNION: {
         auto childrenNames = StructType::getFieldNames(&dataType);
         auto napiObj = Napi::Object::New(env);
         auto& structVal = value.getListValReference();
@@ -75,6 +76,12 @@ Napi::Value Util::ConvertToNapiObject(const Value& value, Napi::Env env) {
             auto val = ConvertToNapiObject(*structVal[i], env);
             napiObj.Set(key, val);
         }
+        return napiObj;
+    }
+    case LogicalTypeID::RECURSIVE_REL: {
+        auto napiObj = Napi::Object::New(env);
+        napiObj.Set("_nodes", ConvertToNapiObject(*value.getListValReference()[0], env));
+        napiObj.Set("_rels", ConvertToNapiObject(*value.getListValReference()[1], env));
         return napiObj;
     }
     case LogicalTypeID::NODE: {

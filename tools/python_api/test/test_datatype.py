@@ -161,3 +161,30 @@ def test_struct(establish_connection):
     assert (description['film'] == datetime.date(2013, 2, 22))
     assert not result.has_next()
     result.close()
+
+
+def test_recursive_rel(establish_connection):
+    conn, db = establish_connection
+    result = conn.execute(
+        "MATCH (a:person)-[e*1..1]->(b:organisation) WHERE a.fName = 'Alice' RETURN e;"
+    )
+    assert result.has_next()
+    n = result.get_next()
+    assert (len(n) == 1)
+    e = n[0]
+    assert ("_nodes" in e)
+    assert ("_rels" in e)
+    assert (len(e["_nodes"]) == 0)
+    assert (len(e["_rels"]) == 1)
+    rel = e["_rels"][0]
+    excepted_rel = {'_src': {'offset': 0, 'table': 0},
+                    '_dst': {'offset': 0, 'table': 1},
+                    'date': None, 'meetTime': None, 'validInterval': None,
+                    'comments': None, 'year': 2021,
+                    'places': ['wwAewsdndweusd', 'wek'],
+                    'length': 5, 'grading': None, 'rating': None,
+                    'location': None, 'times': None, 'data': None,
+                    'usedAddress': None, 'address': None, 'note': None}
+    assert (rel == excepted_rel)
+    assert not result.has_next()
+    result.close()

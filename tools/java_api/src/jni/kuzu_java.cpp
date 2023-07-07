@@ -757,7 +757,7 @@ JNIEXPORT jlong JNICALL Java_com_kuzudb_KuzuNative_kuzu_1value_1create_1value(
         v = new Value(str);
         env->ReleaseStringUTFChars(value, str);
     } else if (env->IsInstanceOf(val, env->FindClass("com/kuzudb/KuzuInternalID"))) {
-        jfieldID fieldID = env->GetFieldID(val_class, "table_id", "J");
+        jfieldID fieldID = env->GetFieldID(val_class, "tableId", "J");
         long table_id = static_cast<long>(env->GetLongField(val, fieldID));
         fieldID = env->GetFieldID(val_class, "offset", "J");
         long offset = static_cast<long>(env->GetLongField(val, fieldID));
