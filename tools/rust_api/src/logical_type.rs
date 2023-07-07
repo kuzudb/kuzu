@@ -32,6 +32,8 @@ pub enum LogicalType {
     InternalID,
     /// Correponds to [Value::String](crate::value::Value::String)
     String,
+    /// Correponds to [Value::Blob](crate::value::Value::Blob)
+    Blob,
     /// Correponds to [Value::VarList](crate::value::Value::VarList)
     VarList { child_type: Box<LogicalType> },
     /// Correponds to [Value::FixedList](crate::value::Value::FixedList)
@@ -66,6 +68,7 @@ impl From<&ffi::LogicalType> for LogicalType {
             LogicalTypeID::FLOAT => LogicalType::Float,
             LogicalTypeID::DOUBLE => LogicalType::Double,
             LogicalTypeID::STRING => LogicalType::String,
+            LogicalTypeID::BLOB => LogicalType::Blob,
             LogicalTypeID::INTERVAL => LogicalType::Interval,
             LogicalTypeID::DATE => LogicalType::Date,
             LogicalTypeID::TIMESTAMP => LogicalType::Timestamp,
@@ -116,6 +119,7 @@ impl From<&LogicalType> for cxx::UniquePtr<ffi::LogicalType> {
             | LogicalType::Interval
             | LogicalType::InternalID
             | LogicalType::String
+            | LogicalType::Blob
             | LogicalType::Node
             | LogicalType::Rel => ffi::create_logical_type(typ.id()),
             LogicalType::VarList { child_type } => {
@@ -151,6 +155,7 @@ impl LogicalType {
             LogicalType::Float => LogicalTypeID::FLOAT,
             LogicalType::Double => LogicalTypeID::DOUBLE,
             LogicalType::String => LogicalTypeID::STRING,
+            LogicalType::Blob => LogicalTypeID::BLOB,
             LogicalType::Interval => LogicalTypeID::INTERVAL,
             LogicalType::Date => LogicalTypeID::DATE,
             LogicalType::Timestamp => LogicalTypeID::TIMESTAMP,

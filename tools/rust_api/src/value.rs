@@ -209,6 +209,7 @@ pub enum Value {
     InternalID(InternalID),
     /// <https://kuzudb.com/docs/cypher/data-types/string.html>
     String(String),
+    Blob(Vec<u8>),
     // TODO: Enforce type of contents
     // LogicalType is necessary so that we can pass the correct type to the C++ API if the list is empty.
     /// These must contain elements which are all the given type.
@@ -233,6 +234,7 @@ impl std::fmt::Display for Value {
             Value::Int64(x) => write!(f, "{x}"),
             Value::Date(x) => write!(f, "{x}"),
             Value::String(x) => write!(f, "{x}"),
+            Value::Blob(x) => write!(f, "{x:x?}"),
             Value::Null(_) => write!(f, ""),
             Value::VarList(_, x) | Value::FixedList(_, x) => {
                 write!(f, "[")?;
@@ -279,6 +281,7 @@ impl From<&Value> for LogicalType {
             Value::Interval(_) => LogicalType::Interval,
             Value::Timestamp(_) => LogicalType::Timestamp,
             Value::String(_) => LogicalType::String,
+            Value::Blob(_) => LogicalType::Blob,
             Value::Null(x) => x.clone(),
             Value::VarList(x, _) => LogicalType::VarList {
                 child_type: Box::new(x.clone()),
@@ -319,7 +322,14 @@ impl TryFrom<&ffi::Value> for Value {
             LogicalTypeID::INT64 => Ok(Value::Int64(value.get_value_i64())),
             LogicalTypeID::FLOAT => Ok(Value::Float(value.get_value_float())),
             LogicalTypeID::DOUBLE => Ok(Value::Double(value.get_value_double())),
-            LogicalTypeID::STRING => Ok(Value::String(ffi::value_get_string(value))),
+            LogicalTypeID::STRING => Ok(Value::String(ffi::value_get_string(value).to_string())),
+            LogicalTypeID::BLOB => Ok(Value::Blob(
+                ffi::value_get_string(value)
+                    .as_bytes()
+                    .iter()
+                    .cloned()
+                    .collect(),
+            )),
             LogicalTypeID::INTERVAL => Ok(Value::Interval(time::Duration::new(
                 ffi::value_get_interval_secs(value),
                 // Duration is constructed using nanoseconds, but kuzu stores microseconds
@@ -443,7 +453,11 @@ impl TryInto<cxx::UniquePtr<ffi::Value>> for Value {
             Value::Int64(value) => Ok(ffi::create_value_i64(value)),
             Value::Float(value) => Ok(ffi::create_value_float(value)),
             Value::Double(value) => Ok(ffi::create_value_double(value)),
-            Value::String(value) => Ok(ffi::create_value_string(&value)),
+            Value::String(value) => Ok(ffi::create_value_string(
+                ffi::LogicalTypeID::STRING,
+                value.as_bytes(),
+            )),
+            Value::Blob(value) => Ok(ffi::create_value_string(ffi::LogicalTypeID::BLOB, &value)),
             Value::Timestamp(value) => Ok(ffi::create_value_timestamp(
                 // Convert to microseconds since 1970-01-01
                 (value.unix_timestamp_nanos() / 1000) as i64,
@@ -675,6 +689,7 @@ mod tests {
         convert_date_type: LogicalType::Date,
         convert_interval_type: LogicalType::Interval,
         convert_string_type: LogicalType::String,
+        convert_blob_type: LogicalType::Blob,
         convert_bool_type: LogicalType::Bool,
         convert_struct_type: LogicalType::Struct { fields: vec![("NAME".to_string(), LogicalType::String)]},
         convert_node_type: LogicalType::Node,
@@ -695,6 +710,7 @@ mod tests {
         convert_date: Value::Date(date!(2023-06-13)),
         convert_interval: Value::Interval(time::Duration::weeks(10)),
         convert_string: Value::String("Hello World".to_string()),
+        convert_blob: Value::Blob("Hello World".into()),
         convert_bool: Value::Bool(false),
         convert_null: Value::Null(LogicalType::VarList {
             child_type: Box::new(LogicalType::FixedList { child_type: Box::new(LogicalType::Int16), num_elements: 3 })
@@ -713,6 +729,8 @@ mod tests {
         // Float, double, interval and timestamp have display differences which we probably don't want to
         // reconcile
         display_date: Value::Date(date!(2023-06-13)),
+        // blob may contain non-utf8 data, so we display it as an array rather than a string
+        // The C++ API escapes data in the blob as hex
         display_string: Value::String("Hello World".to_string()),
         display_bool: Value::Bool(false),
         display_null: Value::Null(LogicalType::VarList {
@@ -745,6 +763,7 @@ mod tests {
         db_date: Value::Date(date!(2023-06-13)), "DATE",
         db_interval: Value::Interval(time::Duration::weeks(200)), "INTERVAL",
         db_string: Value::String("Hello World".to_string()), "STRING",
+        db_blob: Value::Blob("Hello World".into()), "BLOB",
         db_bool: Value::Bool(true), "BOOLEAN",
     }
 

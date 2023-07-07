@@ -91,7 +91,7 @@ std::unique_ptr<std::vector<kuzu::common::LogicalType>> query_result_column_data
 rust::Vec<rust::String> query_result_column_names(const kuzu::main::QueryResult& query_result);
 
 /* NodeVal/RelVal */
-template <typename T>
+template<typename T>
 struct PropertyList {
     const kuzu::common::Value& value;
 
@@ -125,7 +125,7 @@ const kuzu::common::Value& flat_tuple_get_value(
     const kuzu::processor::FlatTuple& flatTuple, uint32_t index);
 
 /* Value */
-rust::String value_get_string(const kuzu::common::Value& value);
+const std::string& value_get_string(const kuzu::common::Value& value);
 
 template<typename T>
 std::unique_ptr<T> value_get_unique(const kuzu::common::Value& value) {
@@ -142,7 +142,8 @@ kuzu::common::LogicalTypeID value_get_data_type_id(const kuzu::common::Value& va
 std::unique_ptr<kuzu::common::LogicalType> value_get_data_type(const kuzu::common::Value& value);
 rust::String value_to_string(const kuzu::common::Value& val);
 
-std::unique_ptr<kuzu::common::Value> create_value_string(const rust::String& value);
+std::unique_ptr<kuzu::common::Value> create_value_string(
+    kuzu::common::LogicalTypeID typ, const rust::Slice<const unsigned char> value);
 std::unique_ptr<kuzu::common::Value> create_value_timestamp(const int64_t timestamp);
 std::unique_ptr<kuzu::common::Value> create_value_date(const int64_t date);
 std::unique_ptr<kuzu::common::Value> create_value_interval(

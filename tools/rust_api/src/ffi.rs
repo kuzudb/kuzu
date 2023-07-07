@@ -245,7 +245,7 @@ pub(crate) mod ffi {
         #[rust_name = "get_value_double"]
         fn getValue(&self) -> f64;
 
-        fn value_get_string(value: &Value) -> String;
+        fn value_get_string(value: &Value) -> &CxxString;
         fn value_get_interval_secs(value: &Value) -> i64;
         fn value_get_interval_micros(value: &Value) -> i32;
         fn value_get_timestamp_micros(value: &Value) -> i64;
@@ -272,7 +272,7 @@ pub(crate) mod ffi {
         fn create_value(value: f64) -> UniquePtr<Value>;
 
         fn create_value_null(typ: UniquePtr<LogicalType>) -> UniquePtr<Value>;
-        fn create_value_string(value: &String) -> UniquePtr<Value>;
+        fn create_value_string(typ: LogicalTypeID, value: &[u8]) -> UniquePtr<Value>;
         fn create_value_timestamp(value: i64) -> UniquePtr<Value>;
         fn create_value_date(value: i64) -> UniquePtr<Value>;
         fn create_value_interval(months: i32, days: i32, micros: i64) -> UniquePtr<Value>;

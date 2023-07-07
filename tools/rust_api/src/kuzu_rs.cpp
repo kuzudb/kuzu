@@ -34,7 +34,7 @@ std::unique_ptr<LogicalType> create_logical_type_fixed_list(
 std::unique_ptr<kuzu::common::LogicalType> create_logical_type_struct(
     const rust::Vec<rust::String>& fieldNames, std::unique_ptr<TypeListBuilder> fieldTypes) {
     std::vector<std::unique_ptr<StructField>> fields;
-    for (auto i = 0; i < fieldNames.size(); i++) {
+    for (auto i = 0u; i < fieldNames.size(); i++) {
         fields.push_back(std::make_unique<StructField>(
             std::string(fieldNames[i]), std::move(fieldTypes->types[i])));
     }
@@ -183,8 +183,8 @@ const kuzu::common::Value& flat_tuple_get_value(
     return *flatTuple.getValue(index);
 }
 
-rust::String value_get_string(const kuzu::common::Value& value) {
-    return value.getValue<std::string>();
+const std::string& value_get_string(const kuzu::common::Value& value) {
+    return value.strVal;
 }
 int64_t value_get_interval_secs(const kuzu::common::Value& value) {
     auto interval = value.getValue<kuzu::common::interval_t>();
@@ -218,9 +218,10 @@ std::unique_ptr<LogicalType> value_get_data_type(const kuzu::common::Value& valu
     return std::make_unique<LogicalType>(value.getDataType());
 }
 
-std::unique_ptr<kuzu::common::Value> create_value_string(const rust::String& value) {
+std::unique_ptr<kuzu::common::Value> create_value_string(
+    LogicalTypeID typ, const rust::Slice<const unsigned char> value) {
     return std::make_unique<kuzu::common::Value>(
-        LogicalType(LogicalTypeID::STRING), std::string(value));
+        LogicalType(typ), std::string((const char*)value.data(), value.size()));
 }
 std::unique_ptr<kuzu::common::Value> create_value_timestamp(const int64_t timestamp) {
     return std::make_unique<kuzu::common::Value>(kuzu::common::timestamp_t(timestamp));
