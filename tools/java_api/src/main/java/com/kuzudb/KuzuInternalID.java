@@ -1,11 +1,11 @@
 package com.kuzudb;
 
 public class KuzuInternalID {
-    public long table_id;
+    public long tableId;
     public long offset;
 
-    public KuzuInternalID(long table_id, long offset) {
-        this.table_id = table_id;
+    public KuzuInternalID(long tableId, long offset) {
+        this.tableId = tableId;
         this.offset = offset;
     }
 }

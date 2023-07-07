@@ -297,3 +297,45 @@ describe("REL", function () {
     assert.approximately(rel.rating, 7.6, EPSILON);
   });
 });
+
+describe("RECURSIVE_REL", function () {
+  it("should convert RECURSIVE_REL type", async function () {
+    const queryResult = await conn.query(
+      "MATCH (a:person)-[e*1..1]->(b:organisation) WHERE a.fName = 'Alice' RETURN e;"
+    );
+    const result = await queryResult.getAll();
+    assert.equal(result.length, 1);
+    assert.exists(result[0]["e"]);
+    const e = result[0]["e"];
+    assert.deepEqual(e, {
+      _nodes: [],
+      _rels: [
+        {
+          date: null,
+          meetTime: null,
+          validInterval: null,
+          comments: null,
+          year: 2021,
+          places: ["wwAewsdndweusd", "wek"],
+          length: 5,
+          grading: null,
+          rating: null,
+          location: null,
+          times: null,
+          data: null,
+          usedAddress: null,
+          address: null,
+          note: null,
+          _src: {
+            offset: 0,
+            table: 0,
+          },
+          _dst: {
+            offset: 0,
+            table: 1,
+          },
+        },
+      ],
+    });
+  });
+});

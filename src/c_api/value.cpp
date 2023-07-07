@@ -163,6 +163,14 @@ kuzu_value* kuzu_value_get_struct_field_value(kuzu_value* value, uint64_t index)
     return kuzu_value_get_list_element(value, index);
 }
 
+kuzu_value* kuzu_value_get_recursive_rel_node_list(kuzu_value* value) {
+    return kuzu_value_get_list_element(value, 0);
+}
+
+kuzu_value* kuzu_value_get_recursive_rel_rel_list(kuzu_value* value) {
+    return kuzu_value_get_list_element(value, 1);
+}
+
 kuzu_logical_type* kuzu_value_get_data_type(kuzu_value* value) {
     auto* c_data_type = (kuzu_logical_type*)malloc(sizeof(kuzu_logical_type));
     c_data_type->_data_type = new LogicalType(static_cast<Value*>(value->_value)->getDataType());

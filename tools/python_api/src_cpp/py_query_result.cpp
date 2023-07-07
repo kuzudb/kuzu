@@ -131,7 +131,8 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value) {
         }
         return std::move(list);
     }
-    case LogicalTypeID::STRUCT: {
+    case LogicalTypeID::STRUCT:
+    case LogicalTypeID::UNION: {
         auto fieldNames = StructType::getFieldNames(&dataType);
         py::dict dict;
         auto& structVals = value.getListValReference();
@@ -140,6 +141,13 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value) {
             auto val = convertValueToPyObject(*structVals[i]);
             dict[key] = val;
         }
+        return dict;
+    }
+    case LogicalTypeID::RECURSIVE_REL: {
+        py::dict dict;
+        auto& structVals = value.getListValReference();
+        dict["_nodes"] = convertValueToPyObject(*structVals[0]);
+        dict["_rels"] = convertValueToPyObject(*structVals[1]);
         return dict;
     }
     case LogicalTypeID::NODE: {

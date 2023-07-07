@@ -159,7 +159,7 @@ public class ValueTest extends TestBase {
         assertFalse(value.isOwnedByCPP());
         assertEquals(value.getDataType().getID(), KuzuDataTypeID.INTERNAL_ID);
         KuzuInternalID id = value.getValue();
-        assertEquals(id.table_id, 1);
+        assertEquals(id.tableId, 1);
         assertEquals(id.offset, 123);
         value.destroy();
     }
@@ -539,7 +539,7 @@ public class ValueTest extends TestBase {
         assertTrue(value.isOwnedByCPP());
         assertFalse(value.isNull());
 
-        byte[] bytes  = value.getValue();
+        byte[] bytes = value.getValue();
         assertTrue(bytes.length == 4);
         assertTrue(bytes[0] == (byte) 0xAA);
         assertTrue(bytes[1] == (byte) 0xBB);
@@ -584,7 +584,7 @@ public class ValueTest extends TestBase {
         assertFalse(value.isNull());
 
         KuzuInternalID id = KuzuValueNodeUtil.getID(value);
-        assertEquals(id.table_id, 0);
+        assertEquals(id.tableId, 0);
         assertEquals(id.offset, 0);
         value.destroy();
         flatTuple.destroy();
@@ -678,11 +678,11 @@ public class ValueTest extends TestBase {
         assertFalse(value.isNull());
 
         KuzuInternalID srcId = KuzuValueRelUtil.getSrcID(value);
-        assertEquals(srcId.table_id, 0);
+        assertEquals(srcId.tableId, 0);
         assertEquals(srcId.offset, 0);
 
         KuzuInternalID dstId = KuzuValueRelUtil.getDstID(value);
-        assertEquals(dstId.table_id, 0);
+        assertEquals(dstId.tableId, 0);
         assertEquals(dstId.offset, 1);
 
         String label = KuzuValueRelUtil.getLabelName(value);
@@ -825,6 +825,41 @@ public class ValueTest extends TestBase {
         fieldValue = KuzuValueStructUtil.getValueByIndex(value, 0);
         assertEquals(fieldValue.getValue(), 1223.0);
         fieldValue.destroy();
+        value.destroy();
+        flatTuple.destroy();
+        result.destroy();
+    }
+
+    @Test
+    void RecursiveRelGetNodeAndRelList() throws KuzuObjectRefDestroyedException {
+        KuzuQueryResult result = conn.query("MATCH (a:person)-[e*1..1]->(b:organisation) WHERE a.fName = 'Alice' RETURN e;");
+        assertTrue(result.isSuccess());
+        assertTrue(result.hasNext());
+        KuzuFlatTuple flatTuple = result.getNext();
+        KuzuValue value = flatTuple.getValue(0);
+        assertTrue(value.isOwnedByCPP());
+
+        KuzuValue nodeList = KuzuValueRecursiveRelUtil.getNodeList(value);
+        assertTrue(nodeList.isOwnedByCPP());
+        assertEquals(KuzuValueListUtil.getListSize(nodeList), 0);
+        nodeList.destroy();
+
+        KuzuValue relList = KuzuValueRecursiveRelUtil.getRelList(value);
+        assertTrue(relList.isOwnedByCPP());
+        assertEquals(KuzuValueListUtil.getListSize(relList), 1);
+
+        KuzuValue rel = KuzuValueListUtil.getListElement(relList, 0);
+        assertTrue(rel.isOwnedByCPP());
+        KuzuInternalID srcId = KuzuValueRelUtil.getSrcID(rel);
+        assertEquals(srcId.tableId, 0);
+        assertEquals(srcId.offset, 0);
+
+        KuzuInternalID dstId = KuzuValueRelUtil.getDstID(rel);
+        assertEquals(dstId.tableId, 1);
+        assertEquals(dstId.offset, 0);
+
+        rel.destroy();
+        relList.destroy();
         value.destroy();
         flatTuple.destroy();
         result.destroy();

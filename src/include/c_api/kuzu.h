@@ -615,23 +615,34 @@ KUZU_C_API kuzu_value* kuzu_value_get_list_element(kuzu_value* value, uint64_t i
  */
 KUZU_C_API uint64_t kuzu_value_get_struct_num_fields(kuzu_value* value);
 /**
- * @brief Returns the field name at index of the given struct value. The value must be of type
- * STRUCT.
+ * @brief Returns the field name at index of the given struct value. The value must be of physical
+ * type STRUCT (STRUCT, NODE, REL, RECURSIVE_REL, UNION).
  * @param value The STRUCT value to get field name.
  * @param index The index of the field name to return.
  */
 KUZU_C_API char* kuzu_value_get_struct_field_name(kuzu_value* value, uint64_t index);
 /**
- * @brief Returns the field value at index of the given struct value. The value must be of type
- * STRUCT.
+ * @brief Returns the field value at index of the given struct value. The value must be of physical
+ * type STRUCT (STRUCT, NODE, REL, RECURSIVE_REL, UNION).
  * @param value The STRUCT value to get field value.
  * @param index The index of the field value to return.
  */
 KUZU_C_API kuzu_value* kuzu_value_get_struct_field_value(kuzu_value* value, uint64_t index);
+/*
+ * @brief Returns the list of nodes for recursive rel value. The value must be of type
+ * RECURSIVE_REL.
+ */
+KUZU_C_API kuzu_value* kuzu_value_get_recursive_rel_node_list(kuzu_value* value);
+
+/*
+ * @brief Returns the list of rels for recursive rel value. The value must be of type RECURSIVE_REL.
+ */
+KUZU_C_API kuzu_value* kuzu_value_get_recursive_rel_rel_list(kuzu_value* value);
 /**
  * @brief Returns internal type of the given value.
  * @param value The value to return.
  */
+
 KUZU_C_API kuzu_logical_type* kuzu_value_get_data_type(kuzu_value* value);
 /**
  * @brief Returns the boolean value of the given value. The value must be of type BOOL.
