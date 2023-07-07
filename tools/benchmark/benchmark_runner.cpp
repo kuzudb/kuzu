@@ -1,6 +1,7 @@
 #include "benchmark_runner.h"
 
 #include <filesystem>
+#include <fstream>
 
 #include "spdlog/spdlog.h"
 
@@ -62,6 +63,7 @@ void BenchmarkRunner::runBenchmark(Benchmark* benchmark) const {
         spdlog::info("Warm up");
         benchmark->run();
     }
+    profileQueryIfEnabled(benchmark);
     std::vector<double> runTimes(config->numRuns);
     for (auto i = 0u; i < config->numRuns; ++i) {
         auto queryResult = benchmark->run();
@@ -72,6 +74,17 @@ void BenchmarkRunner::runBenchmark(Benchmark* benchmark) const {
                  " runs) (ms): " +
                  std::to_string(computeAverageOfLastRuns(
                      &runTimes[0], config->numRuns, config->numRuns /* numRunsToAverage */)));
+}
+
+void BenchmarkRunner::profileQueryIfEnabled(Benchmark* benchmark) const {
+    if (config->enableProfile && !config->outputPath.empty()) {
+        auto profileInfo = benchmark->runWithProfile();
+        std::ofstream profileFile(
+            config->outputPath + "/" + benchmark->name + "_profile.txt", std::ios_base::app);
+        profileFile << profileInfo->getNext()->toString() << std::endl;
+        profileFile.flush();
+        profileFile.close();
+    }
 }
 
 } // namespace benchmark

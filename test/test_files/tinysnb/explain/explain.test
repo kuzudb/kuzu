@@ -21,6 +21,7 @@
 
 -LOG ExplainQuery
 -STATEMENT EXPLAIN MATCH (p:npytable) RETURN p.id
+-ENUMERATE
 ---- ok
 
 -LOG ProfileDDL
@@ -37,4 +38,5 @@
 
 -LOG ProfileQuery
 -STATEMENT Profile MATCH (p:npytable) RETURN p.id
+-ENUMERATE
 ---- ok
