@@ -10,6 +10,7 @@ jobs:
     
       - name: Build Java lib for Apple Silicon
         run: |
+          echo "JAVA_HOME=$(/usr/libexec/java_home)" >> $GITHUB_ENV
           make java NUM_THREADS=8
       
       - uses: actions/upload-artifact@v3
