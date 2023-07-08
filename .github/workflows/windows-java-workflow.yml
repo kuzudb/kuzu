@@ -1,4 +1,4 @@
-name: Build-Windows-NodeJS-Module
+name: Build-Windows-Java-Lib
 
 on:
   workflow_dispatch:
