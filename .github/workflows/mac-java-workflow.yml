@@ -3,9 +3,10 @@ on:
   workflow_dispatch:
 
 jobs:
-#   build-mac-java-arm:
-#     runs-on: self-hosted-mac-arm
-#     steps:
+  build-mac-java-arm:
+    runs-on: self-hosted-mac-arm
+    steps:
+      - run: brew install --cask temurin   
 #       - uses: actions/checkout@v3
     
 #       - name: Build Java lib for Apple Silicon
@@ -13,8 +14,8 @@ jobs:
       
 #       - uses: actions/upload-artifact@v3
 #         with:
-#           name: mac-arm64-java-lib
-#           path: tools/java_api/libkuzu_java_native*
+#           name: libkuzu-java-osx-arm64
+#           path: tools/java_api/build/libkuzu_java_native*
     
   build-mac-java-x86:
     runs-on: macos-latest
@@ -30,5 +31,5 @@ jobs:
       
       - uses: actions/upload-artifact@v3
         with:
-          name: mac-arm64-java-lib
+          name: libkuzu-java-osx-x86_64
           path: tools/java_api/build/libkuzu_java_native*
