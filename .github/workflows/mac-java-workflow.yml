@@ -31,4 +31,4 @@ jobs:
       - uses: actions/upload-artifact@v3
         with:
           name: mac-arm64-java-lib
-          path: tools/java_api/libkuzu_java_native*
+          path: tools/java_api/build/libkuzu_java_native*
