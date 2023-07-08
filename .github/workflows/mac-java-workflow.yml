@@ -6,16 +6,16 @@ jobs:
   build-mac-java-arm:
     runs-on: self-hosted-mac-arm
     steps:
-      - run: brew install --cask temurin   
-#       - uses: actions/checkout@v3
+      - uses: actions/checkout@v3
     
-#       - name: Build Java lib for Apple Silicon
-#         run: make java NUM_THREADS=8
+      - name: Build Java lib for Apple Silicon
+        run: ｜
+          make java NUM_THREADS=8
       
-#       - uses: actions/upload-artifact@v3
-#         with:
-#           name: libkuzu-java-osx-arm64
-#           path: tools/java_api/build/libkuzu_java_native*
+      - uses: actions/upload-artifact@v3
+        with:
+          name: libkuzu-java-osx-arm64
+          path: tools/java_api/build/libkuzu_java_native*
     
   build-mac-java-x86:
     runs-on: macos-latest
