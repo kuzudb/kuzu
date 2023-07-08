@@ -3,7 +3,7 @@ FROM quay.io/pypa/manylinux2014_x86_64
 # Install dependencies
 RUN yum --disablerepo=epel -y upgrade curl ca-certificates
 RUN yum update -y
-RUN yum install -y cmake nodejs npm jq git perl-Digest-SHA libicu libicu-devel libcurl-devel openssl-devel
+RUN yum install -y cmake nodejs npm jq git perl-Digest-SHA libicu libicu-devel libcurl-devel openssl-devel java-11-openjdk-devel
 
 RUN useradd --create-home runner
 USER runner
@@ -23,4 +23,5 @@ RUN /opt/python/cp310-cp310/bin/python -m pip install --user pipx
 RUN /opt/python/cp310-cp310/bin/python -m pipx ensurepath
 RUN /opt/python/cp310-cp310/bin/python -m pipx install pydoc-markdown
 
+ENV JAVA_HOME=/usr/lib/jvm/java-11-openjdk
 ENTRYPOINT ["./listener.sh"]
