@@ -10,6 +10,9 @@ jobs:
     
       - name: Build Java lib for Apple Silicon
         run: |
+          cmake --version
+          uname -a
+          brew upgrade
           env JAVA_HOME=$(/usr/libexec/java_home) make java NUM_THREADS=8
         env:
           MACOSX_DEPLOYMENT_TARGET: 11.0
@@ -20,19 +23,19 @@ jobs:
           name: libkuzu-java-osx-arm64
           path: tools/java_api/build/libkuzu_java_native*
     
-  build-mac-java-x86:
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v3
+  # build-mac-java-x86:
+  #   runs-on: macos-latest
+  #   steps:
+  #     - uses: actions/checkout@v3
     
-      - name: Build Java lib for Intel
-        run: |
-          env JAVA_HOME=$JAVA_HOME_11_X64 make java NUM_THREADS=3
-        env:
-          MACOSX_DEPLOYMENT_TARGET: 10.15
-          ARCHFLAGS: "-arch x86_64"
+  #     - name: Build Java lib for Intel
+  #       run: |
+  #         env JAVA_HOME=$JAVA_HOME_11_X64 make java NUM_THREADS=3
+  #       env:
+  #         MACOSX_DEPLOYMENT_TARGET: 10.15
+  #         ARCHFLAGS: "-arch x86_64"
       
-      - uses: actions/upload-artifact@v3
-        with:
-          name: libkuzu-java-osx-x86_64
-          path: tools/java_api/build/libkuzu_java_native*
+  #     - uses: actions/upload-artifact@v3
+  #       with:
+  #         name: libkuzu-java-osx-x86_64
+  #         path: tools/java_api/build/libkuzu_java_native*
