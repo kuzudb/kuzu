@@ -2,26 +2,28 @@
 
 #include "common/string_utils.h"
 
+using namespace kuzu::catalog;
+using namespace kuzu::common;
+using namespace kuzu::storage;
+
 namespace kuzu {
 namespace processor {
 
-CopyNodeSharedState::CopyNodeSharedState(uint64_t& numRows, storage::MemoryManager* memoryManager)
+CopyNodeSharedState::CopyNodeSharedState(uint64_t& numRows, MemoryManager* memoryManager)
     : numRows{numRows}, pkColumnID{0}, hasLoggedWAL{false} {
     auto ftTableSchema = std::make_unique<FactorizedTableSchema>();
     ftTableSchema->appendColumn(
         std::make_unique<ColumnSchema>(false /* flat */, 0 /* dataChunkPos */,
-            common::LogicalTypeUtils::getRowLayoutSize(
-                common::LogicalType{common::LogicalTypeID::STRING})));
+            LogicalTypeUtils::getRowLayoutSize(LogicalType{LogicalTypeID::STRING})));
     table = std::make_shared<FactorizedTable>(memoryManager, std::move(ftTableSchema));
 }
 
 void CopyNodeSharedState::initializePrimaryKey(
-    catalog::NodeTableSchema* nodeTableSchema, const std::string& directory) {
-    if (nodeTableSchema->getPrimaryKey().dataType.getLogicalTypeID() !=
-        common::LogicalTypeID::SERIAL) {
-        pkIndex = std::make_unique<storage::PrimaryKeyIndexBuilder>(
-            storage::StorageUtils::getNodeIndexFName(
-                directory, nodeTableSchema->tableID, common::DBFileType::ORIGINAL),
+    NodeTableSchema* nodeTableSchema, const std::string& directory) {
+    if (nodeTableSchema->getPrimaryKey().dataType.getLogicalTypeID() != LogicalTypeID::SERIAL) {
+        pkIndex = std::make_unique<PrimaryKeyIndexBuilder>(
+            StorageUtils::getNodeIndexFName(
+                directory, nodeTableSchema->tableID, DBFileType::ORIGINAL),
             nodeTableSchema->getPrimaryKey().dataType);
         pkIndex->bulkReserve(numRows);
     }
@@ -34,43 +36,38 @@ void CopyNodeSharedState::initializePrimaryKey(
 }
 
 void CopyNodeSharedState::initializeColumns(
-    catalog::NodeTableSchema* nodeTableSchema, const std::string& directory) {
+    NodeTableSchema* nodeTableSchema, const std::string& directory) {
     columns.reserve(nodeTableSchema->properties.size());
     for (auto& property : nodeTableSchema->properties) {
-        if (property.dataType.getLogicalTypeID() == common::LogicalTypeID::SERIAL) {
+        if (property.dataType.getLogicalTypeID() == LogicalTypeID::SERIAL) {
             // Skip SERIAL, as it is not physically stored.
             continue;
         }
-        auto fPath = storage::StorageUtils::getNodePropertyColumnFName(
-            directory, nodeTableSchema->tableID, property.propertyID, common::DBFileType::ORIGINAL);
-        columns.push_back(std::make_unique<storage::InMemColumn>(fPath, property.dataType));
+        auto fPath = StorageUtils::getNodePropertyColumnFName(
+            directory, nodeTableSchema->tableID, property.propertyID, DBFileType::ORIGINAL);
+        columns.push_back(std::make_unique<InMemColumn>(fPath, property.dataType));
     }
 }
 
+std::pair<offset_t, offset_t> CopyNodeLocalState::getStartAndEndOffset(vector_idx_t columnIdx) {
+    auto startOffset =
+        offsetVector->getValue<int64_t>(offsetVector->state->selVector->selectedPositions[0]);
+    auto numNodes = ArrowColumnVector::getArrowColumn(arrowColumnVectors[columnIdx])->length();
+    auto endOffset = startOffset + numNodes - 1;
+    return {startOffset, endOffset};
+}
+
 void CopyNode::executeInternal(kuzu::processor::ExecutionContext* context) {
-    {
-        std::unique_lock xLck{sharedState->mtx};
-        if (!sharedState->hasLoggedWAL) {
-            localState->wal->logCopyNodeRecord(localState->table->getTableID());
-            localState->wal->flushAllPages();
-            sharedState->hasLoggedWAL = true;
-        }
-    }
+    logCopyWALRecord();
     while (children[0]->getNextTuple(context)) {
-        std::vector<std::unique_ptr<storage::InMemColumnChunk>> columnChunks;
+        std::vector<std::unique_ptr<InMemColumnChunk>> columnChunks;
         columnChunks.reserve(sharedState->columns.size());
-        auto offsetVector = localState->offsetVector;
-        auto startOffset =
-            offsetVector->getValue<int64_t>(offsetVector->state->selVector->selectedPositions[0]);
-        auto endOffset =
-            startOffset +
-            common::ArrowColumnVector::getArrowColumn(localState->arrowColumnVectors[0])->length() -
-            1;
+        auto [startOffset, endOffset] = localState->getStartAndEndOffset(0 /* columnIdx */);
         for (auto i = 0u; i < sharedState->columns.size(); i++) {
             auto columnChunk = sharedState->columns[i]->getInMemColumnChunk(
                 startOffset, endOffset, &localState->copyDesc);
             columnChunk->copyArrowArray(
-                *common::ArrowColumnVector::getArrowColumn(localState->arrowColumnVectors[i]));
+                *ArrowColumnVector::getArrowColumn(localState->arrowColumnVectors[i]));
             columnChunks.push_back(std::move(columnChunk));
         }
         flushChunksAndPopulatePKIndex(columnChunks, startOffset, endOffset);
@@ -92,16 +89,16 @@ void CopyNode::finalize(kuzu::processor::ExecutionContext* context) {
     }
     localState->table->getNodeStatisticsAndDeletedIDs()->setNumTuplesForTable(
         tableID, sharedState->numRows);
-    auto outputMsg = common::StringUtils::string_format(
-        "{} number of tuples has been copied to table: {}.", sharedState->numRows,
+    auto outputMsg = StringUtils::string_format("{} number of tuples has been copied to table: {}.",
+        sharedState->numRows,
         localState->catalog->getReadOnlyVersion()->getTableName(tableID).c_str());
     FactorizedTableUtils::appendStringToTable(
         sharedState->table.get(), outputMsg, context->memoryManager);
 }
 
 void CopyNode::flushChunksAndPopulatePKIndex(
-    const std::vector<std::unique_ptr<storage::InMemColumnChunk>>& columnChunks,
-    common::offset_t startNodeOffset, common::offset_t endNodeOffset) {
+    const std::vector<std::unique_ptr<InMemColumnChunk>>& columnChunks, offset_t startNodeOffset,
+    offset_t endNodeOffset) {
     // Flush each page within the [StartOffset, endOffset] range.
     for (auto i = 0u; i < sharedState->columns.size(); i++) {
         sharedState->columns[i]->flushChunk(columnChunks[i].get());
@@ -116,7 +113,7 @@ void CopyNode::flushChunksAndPopulatePKIndex(
 
 template<>
 void CopyNode::appendToPKIndex<int64_t>(
-    storage::InMemColumnChunk* chunk, common::offset_t startOffset, uint64_t numValues) {
+    InMemColumnChunk* chunk, offset_t startOffset, uint64_t numValues) {
     for (auto i = 0u; i < numValues; i++) {
         auto offset = i + startOffset;
         auto value = chunk->getValue<int64_t>(i);
@@ -125,40 +122,48 @@ void CopyNode::appendToPKIndex<int64_t>(
 }
 
 template<>
-void CopyNode::appendToPKIndex<common::ku_string_t, storage::InMemOverflowFile*>(
-    storage::InMemColumnChunk* chunk, common::offset_t startOffset, uint64_t numValues,
-    storage::InMemOverflowFile* overflowFile) {
+void CopyNode::appendToPKIndex<ku_string_t, InMemOverflowFile*>(InMemColumnChunk* chunk,
+    offset_t startOffset, uint64_t numValues, InMemOverflowFile* overflowFile) {
     for (auto i = 0u; i < numValues; i++) {
         auto offset = i + startOffset;
-        auto value = chunk->getValue<common::ku_string_t>(i);
+        auto value = chunk->getValue<ku_string_t>(i);
         auto key = overflowFile->readString(&value);
         sharedState->pkIndex->append(key.c_str(), offset);
     }
 }
 
-void CopyNode::populatePKIndex(storage::InMemColumnChunk* chunk,
-    storage::InMemOverflowFile* overflowFile, common::offset_t startOffset, uint64_t numValues) {
+void CopyNode::populatePKIndex(InMemColumnChunk* chunk, InMemOverflowFile* overflowFile,
+    offset_t startOffset, uint64_t numValues) {
     // First, check if there is any nulls.
     for (auto posInChunk = 0u; posInChunk < numValues; posInChunk++) {
         if (chunk->isNull(posInChunk)) {
-            throw common::CopyException("Primary key cannot be null.");
+            throw CopyException("Primary key cannot be null.");
         }
     }
     // No nulls, so we can populate the index with actual values.
     sharedState->pkIndex->lock();
     switch (chunk->getDataType().getLogicalTypeID()) {
-    case common::LogicalTypeID::INT64: {
+    case LogicalTypeID::INT64: {
         appendToPKIndex<int64_t>(chunk, startOffset, numValues);
     } break;
-    case common::LogicalTypeID::STRING: {
-        appendToPKIndex<common::ku_string_t, storage::InMemOverflowFile*>(
+    case LogicalTypeID::STRING: {
+        appendToPKIndex<ku_string_t, InMemOverflowFile*>(
             chunk, startOffset, numValues, overflowFile);
     } break;
     default: {
-        throw common::CopyException("Primary key must be either INT64, STRING or SERIAL.");
+        throw CopyException("Primary key must be either INT64, STRING or SERIAL.");
     }
     }
     sharedState->pkIndex->unlock();
+}
+
+void CopyNode::logCopyWALRecord() {
+    std::unique_lock xLck{sharedState->mtx};
+    if (!sharedState->hasLoggedWAL) {
+        localState->wal->logCopyNodeRecord(localState->table->getTableID());
+        localState->wal->flushAllPages();
+        sharedState->hasLoggedWAL = true;
+    }
 }
 
 } // namespace processor

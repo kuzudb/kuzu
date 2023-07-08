@@ -188,6 +188,7 @@ template void ValueVector::setValue<date_t>(uint32_t pos, date_t val);
 template void ValueVector::setValue<timestamp_t>(uint32_t pos, timestamp_t val);
 template void ValueVector::setValue<interval_t>(uint32_t pos, interval_t val);
 template void ValueVector::setValue<list_entry_t>(uint32_t pos, list_entry_t val);
+template void ValueVector::setValue<vector_idx_t>(uint32_t pos, vector_idx_t val);
 
 template<>
 void ValueVector::setValue(uint32_t pos, ku_string_t val) {
