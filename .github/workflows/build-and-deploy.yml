@@ -30,10 +30,10 @@ jobs:
           name: libkuzu-java-win-x86_64
           path: java-bins
 
-      - uses: actions/download-artifact@v3
-        with:
-          name: libkuzu-java-osx-x86_64
-          path: java-bins
+      # - uses: actions/download-artifact@v3
+      #   with:
+      #     name: libkuzu-java-osx-x86_64
+      #     path: java-bins
 
       - uses: actions/download-artifact@v3
         with:
@@ -48,9 +48,8 @@ jobs:
       - name: Add Java libs to jar
         run: |
           ls -alR java-bins
-          jar uf java-bins/kuzu-linux-jar/kuzu_java.jar java-bins/libkuzu-java-win-x86_64/libkuzu_java_native.so_windows_amd64
-          jar uf java-bins/kuzu-linux-jar/kuzu_java.jar java-bins/libkuzu-java-osx-x86_64/libkuzu_java_native.so_osx_amd64
-          jar uf java-bins/kuzu-linux-jar/kuzu_java.jar java-bins/libkuzu-java-osx-arm64/libkuzu_java_native.so_osx_arm64
+          jar uf java-bins/kuzu_java.jar java-bins/libkuzu_java_native.so_windows_amd64
+          jar uf java-bins/kuzu_java.jar java-bins/libkuzu_java_native.so_osx_arm64
       
       - name: Upload jar
         uses: actions/upload-artifact@v3
