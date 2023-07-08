@@ -13,9 +13,6 @@ jobs:
     name: gcc build & test
     needs: [clang-formatting-check]
     runs-on: kuzu-self-hosted-testing
-    env:
-      # Share build cache when building rust API and the example project
-      CARGO_TARGET_DIR: ${{ github.workspace }}/target
     steps:
       - uses: actions/checkout@v3
 
@@ -39,9 +36,6 @@ jobs:
 
       - name: Java test
         run: CC=gcc CXX=g++ make javatest NUM_THREADS=32
-
-      - name: Rust test
-        run: CC=gcc CXX=g++ make rusttest NUM_THREADS=32
 
       - name: Generate coverage report
         run: |
@@ -69,6 +63,20 @@ jobs:
           cd build
           CC=gcc CXX=g++ cmake ..
           cmake --build .
+
+  rust-build-test:
+    name: rust build & test
+    needs: [rustfmt-check]
+    runs-on: kuzu-self-hosted-testing
+    env:
+      # Share build cache when building rust API and the example project
+      CARGO_TARGET_DIR: ${{ github.workspace }}/target
+      CARGO_BUILD_JOBS: 32
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Rust test
+        run: CC=gcc CXX=g++ make rusttest NUM_THREADS=32
 
       - name: Rust example
         working-directory: examples/rust
