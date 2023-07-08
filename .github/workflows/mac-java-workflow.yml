@@ -10,7 +10,7 @@ jobs:
     
       - name: Build Java lib for Apple Silicon
         run: |
-          env JAVA_HOME=$(/usr/libexec/java_home) make java NUM_THREADS=8
+          arch -arm64 env JAVA_HOME=$(/usr/libexec/java_home) make java NUM_THREADS=8
         env:
           MACOSX_DEPLOYMENT_TARGET: 11.0
           ARCHFLAGS: "-arch arm64"
