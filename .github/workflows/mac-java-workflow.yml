@@ -13,6 +13,7 @@ jobs:
           env JAVA_HOME=$(/usr/libexec/java_home) make java NUM_THREADS=8
         env:
           MACOSX_DEPLOYMENT_TARGET: 11.0
+          ARCHFLAGS: "-arch arm64"
           
       - uses: actions/upload-artifact@v3
         with:
@@ -29,6 +30,7 @@ jobs:
           env JAVA_HOME=$JAVA_HOME_11_X64 make java NUM_THREADS=3
         env:
           MACOSX_DEPLOYMENT_TARGET: 10.15
+          ARCHFLAGS: "-arch x86_64"
       
       - uses: actions/upload-artifact@v3
         with:
