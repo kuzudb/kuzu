@@ -10,9 +10,10 @@ jobs:
     
       - name: Build Java lib for Apple Silicon
         run: |
-          echo "JAVA_HOME=$(/usr/libexec/java_home)" >> $GITHUB_ENV
-          make java NUM_THREADS=8
-      
+          env JAVA_HOME=$(/usr/libexec/java_home) make java NUM_THREADS=8
+        env:
+          MACOSX_DEPLOYMENT_TARGET: 11.0
+          
       - uses: actions/upload-artifact@v3
         with:
           name: libkuzu-java-osx-arm64
@@ -25,8 +26,7 @@ jobs:
     
       - name: Build Java lib for Intel
         run: |
-          echo "JAVA_HOME=$JAVA_HOME_11_X64" >> $GITHUB_ENV
-          make java NUM_THREADS=3
+          env JAVA_HOME=$JAVA_HOME_11_X64 >> $GITHUB_ENV make java NUM_THREADS=3
         env:
           MACOSX_DEPLOYMENT_TARGET: 10.15
       
