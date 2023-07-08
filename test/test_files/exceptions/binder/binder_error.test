@@ -312,10 +312,10 @@ Binder exception: The number of rows to skip/limit must be a non-negative intege
 ---- error
 Binder exception: Variable a already exists.
 
--CASE MaxNodeID
+-CASE MinNodeID
 -STATEMENT MATCH (a:person) RETURN MIN(a)
 ---- error
-Binder exception: Cannot match a built-in function for given function MIN(INTERNAL_ID). Supported inputs are
+Binder exception: Cannot match a built-in function for given function MIN(NODE). Supported inputs are
 DISTINCT (BOOL) -> BOOL
 (BOOL) -> BOOL
 DISTINCT (INT64) -> INT64
