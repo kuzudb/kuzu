@@ -1,6 +1,7 @@
 name: Build-Mac-Java-Lib
 on:
   workflow_dispatch:
+  workflow_call:
 
 jobs:
   build-mac-java-arm:
