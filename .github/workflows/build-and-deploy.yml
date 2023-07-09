@@ -73,6 +73,8 @@ jobs:
   deploy-nodejs:
     needs: [build-nodejs-mac, build-nodejs-linux, build-nodejs-windows]
     runs-on: ubuntu-latest
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.NPM_JS_TOKEN }}
     steps:
       - uses: actions/checkout@v3
 
@@ -104,19 +106,15 @@ jobs:
         working-directory: tools/nodejs_api
 
       - name: Show tarball contents
-        run: tar -tvf kuzu_nodejs.tar.gz
+        run: tar -tvf kuzu-source.tar.gz
         working-directory: tools/nodejs_api
 
       - name: Deploy to npm.js dry run
         if: ${{ github.event.inputs.isDeploy != 'true' }}
-        run: npm publish --dry-run
+        run: npm publish kuzu-source.tar.gz --access public --dry-run
         working-directory: tools/nodejs_api
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_JS_TOKEN }}
 
       - name: Deploy to npm.js
         if: ${{ github.event.inputs.isDeploy == 'true' }}
-        run: npm publish
+        run: npm publish kuzu-source.tar.gz --access public
         working-directory: tools/nodejs_api
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_JS_TOKEN }}
