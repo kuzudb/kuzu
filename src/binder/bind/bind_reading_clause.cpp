@@ -2,7 +2,7 @@
 #include "binder/call/bound_in_query_call.h"
 #include "binder/expression/literal_expression.h"
 #include "binder/query/reading_clause/bound_unwind_clause.h"
-#include "parser/call/in_query_call.h"
+#include "parser/query/reading_clause/in_query_call_clause.h"
 #include "parser/query/reading_clause/unwind_clause.h"
 
 using namespace kuzu::common;
@@ -20,7 +20,7 @@ std::unique_ptr<BoundReadingClause> Binder::bindReadingClause(const ReadingClaus
         return bindUnwindClause((UnwindClause&)readingClause);
     }
     case ClauseType::InQueryCall: {
-        return bindInQueryCall((InQueryCall&)readingClause);
+        return bindInQueryCall((InQueryCallClause&)readingClause);
     }
     default:
         throw NotImplementedException("bindReadingClause().");
@@ -58,14 +58,16 @@ std::unique_ptr<BoundReadingClause> Binder::bindUnwindClause(const ReadingClause
 }
 
 std::unique_ptr<BoundReadingClause> Binder::bindInQueryCall(const ReadingClause& readingClause) {
-    auto& callStatement = reinterpret_cast<const parser::InQueryCall&>(readingClause);
+    auto& callStatement = reinterpret_cast<const parser::InQueryCallClause&>(readingClause);
     auto tableFunctionDefinition =
         catalog.getBuiltInTableFunction()->mathTableFunction(callStatement.getFuncName());
-    auto boundExpr = expressionBinder.bindLiteralExpression(*callStatement.getParameter());
-    auto inputValue = reinterpret_cast<LiteralExpression*>(boundExpr.get())->getValue();
+    auto inputValues = std::vector<common::Value>{};
+    for (auto& parameter : callStatement.getParameters()) {
+        auto boundExpr = expressionBinder.bindLiteralExpression(*parameter);
+        inputValues.push_back(*reinterpret_cast<LiteralExpression*>(boundExpr.get())->getValue());
+    }
     auto bindData = tableFunctionDefinition->bindFunc(clientContext,
-        function::TableFuncBindInput{std::vector<common::Value>{*inputValue}},
-        catalog.getReadOnlyVersion());
+        function::TableFuncBindInput{std::move(inputValues)}, catalog.getReadOnlyVersion());
     expression_vector outputExpressions;
     for (auto i = 0u; i < bindData->returnColumnNames.size(); i++) {
         outputExpressions.push_back(

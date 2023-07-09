@@ -188,7 +188,7 @@ oC_ReadingClause
         ;
 
 kU_InQueryCall
-    : CALL SP oC_FunctionName SP? '(' oC_Literal? ')' ;
+    : CALL SP oC_FunctionName SP? '(' oC_Literal* ')' ;
 
 oC_Match
     : ( OPTIONAL SP )? MATCH SP? oC_Pattern (SP? oC_Where)? ;

@@ -1,3 +1,5 @@
+add_subdirectory(reading_clause)
+
 add_library(kuzu_parser_query
         OBJECT
         single_query.cpp)

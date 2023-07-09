@@ -2,7 +2,6 @@
 
 #include "common/copier_config/copier_config.h"
 #include "common/string_utils.h"
-#include "parser/call/in_query_call.h"
 #include "parser/call/standalone_call.h"
 #include "parser/copy.h"
 #include "parser/ddl/add_property.h"
@@ -20,6 +19,7 @@
 #include "parser/expression/parsed_property_expression.h"
 #include "parser/expression/parsed_subquery_expression.h"
 #include "parser/expression/parsed_variable_expression.h"
+#include "parser/query/reading_clause/in_query_call_clause.h"
 #include "parser/query/reading_clause/unwind_clause.h"
 #include "parser/query/updating_clause/create_clause.h"
 #include "parser/query/updating_clause/delete_clause.h"
@@ -150,8 +150,11 @@ std::unique_ptr<ReadingClause> Transformer::transformUnwind(CypherParser::OC_Unw
 std::unique_ptr<ReadingClause> Transformer::transformInQueryCall(
     CypherParser::KU_InQueryCallContext& ctx) {
     auto funcName = transformFunctionName(*ctx.oC_FunctionName());
-    auto parameter = transformLiteral(*ctx.oC_Literal());
-    return std::make_unique<InQueryCall>(std::move(funcName), std::move(parameter));
+    std::vector<std::unique_ptr<ParsedExpression>> parameter;
+    for (auto& literal : ctx.oC_Literal()) {
+        parameter.push_back(transformLiteral(*literal));
+    }
+    return std::make_unique<InQueryCallClause>(std::move(funcName), std::move(parameter));
 }
 
 std::unique_ptr<UpdatingClause> Transformer::transformCreate(CypherParser::OC_CreateContext& ctx) {
