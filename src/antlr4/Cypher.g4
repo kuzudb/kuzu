@@ -402,16 +402,16 @@ MINUS : '-' ;
 FACTORIAL : '!' ;
 
 oC_StringListNullOperatorExpression
-    : oC_PropertyOrLabelsExpression ( oC_StringOperatorExpression | oC_ListOperatorExpression | oC_NullOperatorExpression )? ;
+    : oC_PropertyOrLabelsExpression ( oC_StringOperatorExpression | oC_ListOperatorExpression+ | oC_NullOperatorExpression )? ;
 
 oC_ListOperatorExpression
-    : ( kU_ListExtractOperatorExpression | kU_ListSliceOperatorExpression ) oC_ListOperatorExpression ? ;
+    : kU_ListExtractOperatorExpression | kU_ListSliceOperatorExpression  ;
 
 kU_ListExtractOperatorExpression
-    : SP ? '[' oC_Expression ']' ;
+    : '[' oC_Expression ']' ;
 
 kU_ListSliceOperatorExpression
-    : SP ? '[' oC_Expression? ':' oC_Expression? ']' ;
+    : '[' oC_Expression? ':' oC_Expression? ']' ;
 
 oC_StringOperatorExpression
     :  ( oC_RegularExpression | ( SP STARTS SP WITH ) | ( SP ENDS SP WITH ) | ( SP CONTAINS ) ) SP? oC_PropertyOrLabelsExpression ;
@@ -434,7 +434,7 @@ IS : ( 'I' | 'i' ) ( 'S' | 's' ) ;
 NULL_ : ( 'N' | 'n' ) ( 'U' | 'u' ) ( 'L' | 'l' ) ( 'L' | 'l' ) ;
 
 oC_PropertyOrLabelsExpression
-    : oC_Atom ( SP? oC_PropertyLookup )? ;
+    : oC_Atom ( SP? oC_PropertyLookup )* ;
 
 oC_Atom
     : oC_Literal

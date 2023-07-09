@@ -1,0 +1,21 @@
+-GROUP TinySnbReadTest
+-DATASET CSV tinysnb
+
+--
+
+-CASE FunctionStruct
+
+-LOG StructPack1
+-STATEMENT RETURN {a:1, b:2}
+---- 1
+{a: 1, b: 2}
+
+-LOG StructPack2
+-STATEMENT RETURN {a:1, b:{c: 'C', d: 'D'}}
+---- 1
+{a: 1, b: {c: C, d: D}}
+
+-LOG StructExtract
+-STATEMENT WITH {a:1, b:{c: 'C', d: 'D'}} AS s RETURN s.b.c
+---- 1
+C
