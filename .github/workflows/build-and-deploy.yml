@@ -118,3 +118,9 @@ jobs:
         if: ${{ github.event.inputs.isDeploy == 'true' }}
         run: npm publish kuzu-source.tar.gz --access public
         working-directory: tools/nodejs_api
+      
+      - name: Upload tarball
+        uses: actions/upload-artifact@v3
+        with:
+          name: kuzu-deploy-nodejs
+          path: tools/nodejs_api/kuzu-source.tar.gz
