@@ -71,7 +71,7 @@ Binder exception: Cannot find property foo for a.
 -CASE BindPropertyNotExist3
 -STATEMENT WITH {a: 1} AS s RETURN s.b
 ---- error
-Binder exception: Invalid struct field name: B.
+Binder exception: Invalid struct field name: b.
 
 -CASE BindIDArithmetic
 -STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WHERE id(a) + 1 < id(b) RETURN *

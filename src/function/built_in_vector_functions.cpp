@@ -8,6 +8,7 @@
 #include "function/interval/vector_interval_functions.h"
 #include "function/list/vector_list_functions.h"
 #include "function/map/vector_map_functions.h"
+#include "function/path/vector_path_functions.h"
 #include "function/schema/vector_node_rel_functions.h"
 #include "function/string/vector_string_functions.h"
 #include "function/struct/vector_struct_functions.h"
@@ -32,6 +33,7 @@ void BuiltInVectorFunctions::registerVectorFunctions() {
     registerMapFunctions();
     registerUnionFunctions();
     registerNodeRelFunctions();
+    registerPathFunctions();
     registerBlobFunctions();
 }
 
@@ -72,14 +74,6 @@ VectorFunctionDefinition* BuiltInVectorFunctions::matchVectorFunction(
     return candidateFunctions[0];
 }
 
-std::vector<std::string> BuiltInVectorFunctions::getFunctionNames() {
-    std::vector<std::string> result;
-    for (auto& [functionName, definitions] : VectorFunctions) {
-        result.push_back(functionName);
-    }
-    return result;
-}
-
 uint32_t BuiltInVectorFunctions::getCastCost(
     LogicalTypeID inputTypeID, LogicalTypeID targetTypeID) {
     if (inputTypeID == targetTypeID) {
@@ -109,27 +103,6 @@ uint32_t BuiltInVectorFunctions::getCastCost(
             return castSerial(targetTypeID);
         default:
             return UNDEFINED_CAST_COST;
-        }
-    }
-}
-
-uint32_t BuiltInVectorFunctions::getCastCost(
-    const LogicalType& inputType, const LogicalType& targetType) {
-    if (inputType == targetType) {
-        return 0;
-    } else {
-        switch (inputType.getLogicalTypeID()) {
-        case common::LogicalTypeID::FIXED_LIST:
-        case common::LogicalTypeID::VAR_LIST:
-        case common::LogicalTypeID::MAP:
-        case common::LogicalTypeID::UNION:
-        case common::LogicalTypeID::STRUCT:
-        case common::LogicalTypeID::INTERNAL_ID:
-        // TODO(Ziyi): add boolean cast functions.
-        case common::LogicalTypeID::BOOL:
-            return UNDEFINED_CAST_COST;
-        default:
-            return getCastCost(inputType.getLogicalTypeID(), targetType.getLogicalTypeID());
         }
     }
 }
@@ -510,8 +483,12 @@ void BuiltInVectorFunctions::registerUnionFunctions() {
 
 void BuiltInVectorFunctions::registerNodeRelFunctions() {
     VectorFunctions.insert({OFFSET_FUNC_NAME, OffsetVectorFunction::getDefinitions()});
+}
+
+void BuiltInVectorFunctions::registerPathFunctions() {
     VectorFunctions.insert({NODES_FUNC_NAME, NodesVectorFunction::getDefinitions()});
     VectorFunctions.insert({RELS_FUNC_NAME, RelsVectorFunction::getDefinitions()});
+    VectorFunctions.insert({PROPERTIES_FUNC_NAME, PropertiesVectorFunction::getDefinitions()});
 }
 
 } // namespace function
