@@ -334,6 +334,11 @@ std::pair<uint64_t, uint64_t> Binder::bindVariableLengthRelBound(
         throw BinderException(
             "Lower bound of rel " + relPattern.getVariableName() + " is greater than upperBound.");
     }
+    if ((relPattern.getRelType() == QueryRelType::ALL_SHORTEST ||
+            relPattern.getRelType() == QueryRelType::SHORTEST) &&
+        lowerBound != 1) {
+        throw BinderException("Lower bound of shortest/all_shortest path must be 1.");
+    }
     return std::make_pair(lowerBound, upperBound);
 }
 

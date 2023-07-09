@@ -449,3 +449,8 @@ Binder exception: Invalid option name: thread.
 -STATEMENT CALL threads='abc'
 ---- error
 Binder exception: abc has data type STRING. (INT64) was expected.
+
+-CASE AllShortestPathInvalidLowerBound
+-STATEMENT MATCH p = (a)-[* ALL SHORTEST 2..3]-(b) RETURN p
+---- error
+Binder exception: Lower bound of shortest/all_shortest path must be 1.
