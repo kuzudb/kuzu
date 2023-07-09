@@ -15,6 +15,11 @@ public class KuzuDataType {
         dt_ref = KuzuNative.kuzu_data_type_create(id, null, 0);
     }
 
+    public KuzuDataType
+            (KuzuDataTypeID id, KuzuDataType child_type, long fixed_num_elements_in_list) {
+        dt_ref = KuzuNative.kuzu_data_type_create(id, child_type, fixed_num_elements_in_list);
+    }
+
     /**
      * Checks if the database instance has been destroyed.
      * @throws KuzuObjectRefDestroyedException: If the data type instance has been destroyed.
