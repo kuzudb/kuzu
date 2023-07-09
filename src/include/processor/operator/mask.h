@@ -86,6 +86,10 @@ public:
     }
 
     inline void init(transaction::Transaction* trx) override {
+        auto maxNodeOffset = nodeTable->getMaxNodeOffset(trx);
+        if (maxNodeOffset == common::INVALID_OFFSET) {
+            return;
+        }
         offsetMask->init(nodeTable->getMaxNodeOffset(trx) + 1);
     }
 
@@ -113,6 +117,9 @@ public:
 
     inline void init(transaction::Transaction* trx) override {
         auto maxNodeOffset = nodeTable->getMaxNodeOffset(trx);
+        if (maxNodeOffset == common::INVALID_OFFSET) {
+            return;
+        }
         offsetMask->init(maxNodeOffset + 1);
         morselMask->init(MaskUtil::getMorselIdx(maxNodeOffset) + 1);
     }
