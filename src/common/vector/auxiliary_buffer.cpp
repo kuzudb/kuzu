@@ -16,7 +16,7 @@ StructAuxiliaryBuffer::StructAuxiliaryBuffer(
 
 ListAuxiliaryBuffer::ListAuxiliaryBuffer(
     const LogicalType& dataVectorType, storage::MemoryManager* memoryManager)
-    : capacity{common::DEFAULT_VECTOR_CAPACITY}, size{0}, dataVector{std::make_unique<ValueVector>(
+    : capacity{common::DEFAULT_VECTOR_CAPACITY}, size{0}, dataVector{std::make_shared<ValueVector>(
                                                               dataVectorType, memoryManager)} {}
 
 list_entry_t ListAuxiliaryBuffer::addList(uint64_t listSize) {

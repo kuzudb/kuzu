@@ -24,13 +24,8 @@ public:
     VectorFunctionDefinition* matchVectorFunction(
         const std::string& name, const std::vector<common::LogicalType>& inputTypes);
 
-    std::vector<std::string> getFunctionNames();
-
     static uint32_t getCastCost(
         common::LogicalTypeID inputTypeID, common::LogicalTypeID targetTypeID);
-
-    static uint32_t getCastCost(
-        const common::LogicalType& inputType, const common::LogicalType& targetType);
 
 private:
     static uint32_t getTargetTypeCost(common::LogicalTypeID typeID);
@@ -76,6 +71,7 @@ private:
     void registerMapFunctions();
     void registerUnionFunctions();
     void registerNodeRelFunctions();
+    void registerPathFunctions();
 
 private:
     // TODO(Ziyi): Refactor VectorFunction/tableOperation to inherit from the same base class.

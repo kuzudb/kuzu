@@ -15,17 +15,5 @@ struct OffsetVectorFunction {
     }
 };
 
-struct NodesVectorFunction {
-    static vector_function_definitions getDefinitions();
-    static std::unique_ptr<FunctionBindData> bindFunc(
-        const binder::expression_vector& arguments, FunctionDefinition* definition);
-};
-
-struct RelsVectorFunction {
-    static vector_function_definitions getDefinitions();
-    static std::unique_ptr<FunctionBindData> bindFunc(
-        const binder::expression_vector& arguments, FunctionDefinition* definition);
-};
-
 } // namespace function
 } // namespace kuzu

@@ -112,12 +112,17 @@ public:
 
 class ListVector {
 public:
+    static inline void setDataVector(
+        const ValueVector* vector, std::shared_ptr<ValueVector> dataVector) {
+        assert(vector->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST);
+        auto listBuffer = reinterpret_cast<ListAuxiliaryBuffer*>(vector->auxiliaryBuffer.get());
+        listBuffer->setDataVector(std::move(dataVector));
+    }
     static inline ValueVector* getDataVector(const ValueVector* vector) {
         assert(vector->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST);
         return reinterpret_cast<ListAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())
             ->getDataVector();
     }
-
     static inline uint64_t getDataVectorSize(const ValueVector* vector) {
         assert(vector->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST);
         return reinterpret_cast<ListAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())->getSize();

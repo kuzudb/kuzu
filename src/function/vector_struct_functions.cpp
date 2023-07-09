@@ -101,7 +101,6 @@ std::unique_ptr<FunctionBindData> StructExtractVectorFunctions::bindFunc(
         throw common::BinderException("Key name for struct/union extract must be STRING literal.");
     }
     auto key = ((binder::LiteralExpression&)*arguments[1]).getValue()->getValue<std::string>();
-    common::StringUtils::toUpper(key);
     assert(definition->returnTypeID == common::LogicalTypeID::ANY);
     auto fieldIdx = common::StructType::getFieldIdx(&structType, key);
     if (fieldIdx == common::INVALID_STRUCT_FIELD_IDX) {

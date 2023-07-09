@@ -110,6 +110,10 @@ struct_field_idx_t StructTypeInfo::getStructFieldIdx(std::string fieldName) cons
     return INVALID_STRUCT_FIELD_IDX;
 }
 
+StructField* StructTypeInfo::getStructField(kuzu::common::struct_field_idx_t idx) const {
+    return fields[idx].get();
+}
+
 StructField* StructTypeInfo::getStructField(const std::string& fieldName) const {
     auto idx = getStructFieldIdx(fieldName);
     if (idx == INVALID_STRUCT_FIELD_IDX) {
