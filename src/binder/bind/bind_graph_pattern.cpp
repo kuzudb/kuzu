@@ -457,6 +457,9 @@ std::vector<table_id_t> Binder::bindTableIDs(
             "bindTableIDs(" + LogicalTypeUtils::dataTypeToString(nodeOrRelType) + ").");
     }
     auto result = std::vector<table_id_t>{tableIDs.begin(), tableIDs.end()};
+    if (result.empty() && tableNames.empty()) {
+        throw common::BinderException{"Expected a valid node name in MATCH clause."};
+    }
     std::sort(result.begin(), result.end());
     return result;
 }
