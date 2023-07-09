@@ -27,7 +27,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v3
         with:
-          name: libkuzu-java-osx-amd64
+          name: libkuzu-java-osx-x86_64
           path: java-bins
 
       - uses: actions/download-artifact@v3
@@ -50,7 +50,7 @@ jobs:
           ls -alR java-bins
           jar uf java-bins/kuzu_java.jar java-bins/libkuzu_java_native.so_windows_amd64
           jar uf java-bins/kuzu_java.jar java-bins/libkuzu_java_native.so_osx_arm64
-          jar uf java-bins/kuzu_java.jar java-bins/libkuzu_java_native.so_osx_x86_64
+          jar uf java-bins/kuzu_java.jar java-bins/libkuzu_java_native.so_osx_amd64
 
       - name: Upload jar
         uses: actions/upload-artifact@v3
