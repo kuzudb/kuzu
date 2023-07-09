@@ -1,5 +1,8 @@
 package com.kuzudb;
 
+/**
+* Kuzu data type ID.
+*/
 public enum KuzuDataTypeID {
     ANY(0),
     NODE(10),
