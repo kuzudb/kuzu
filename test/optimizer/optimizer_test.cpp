@@ -76,7 +76,7 @@ TEST_F(OptimizerTest, RecursiveJoinTest) {
 }
 
 TEST_F(OptimizerTest, RecursiveJoinNoTrackPathTest) {
-    auto op = getRoot("MATCH (a:person)-[e:knows* SHORTEST 2..3]->(b:person) RETURN length(e);");
+    auto op = getRoot("MATCH (a:person)-[e:knows* SHORTEST 1..3]->(b:person) RETURN length(e);");
     while (op->getOperatorType() != planner::LogicalOperatorType::RECURSIVE_EXTEND) {
         op = op->getChild(0);
     }
