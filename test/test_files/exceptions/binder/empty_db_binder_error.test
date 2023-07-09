@@ -1,0 +1,9 @@
+-GROUP EmptyDBBinderErrorTest
+-DATASET CSV empty
+
+--
+
+-CASE MissingQueryNode
+-STATEMENT MATCH () WITH NULL AS a RETURN a;
+---- error
+Binder exception: Expected a valid node name in MATCH clause.
