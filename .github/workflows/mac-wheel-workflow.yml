@@ -9,12 +9,13 @@ jobs:
     runs-on: self-hosted-mac-arm
     steps:
       - uses: actions/checkout@v3
+      
       - name: Create source distribution
         working-directory: ./scripts/pip-package/
         run: |
           rm -rf wheelhouse kuzu.tar.gz
           mkdir wheelhouse
-          python3 package_tar.py
+          python3 package_tar.py kuzu.tar.gz
 
       - name: Build wheels for Apple Silicon
         uses: pypa/cibuildwheel@v2.12.0
