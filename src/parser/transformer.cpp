@@ -631,9 +631,14 @@ std::unique_ptr<ParsedExpression> Transformer::transformStringListNullOperatorEx
         return transformNullOperatorExpression(
             *ctx.oC_NullOperatorExpression(), std::move(propertyExpression));
     }
-    if (ctx.oC_ListOperatorExpression()) {
-        return transformListOperatorExpression(
-            *ctx.oC_ListOperatorExpression(), std::move(propertyExpression));
+    if (!ctx.oC_ListOperatorExpression().empty()) {
+        auto result = transformListOperatorExpression(
+            *ctx.oC_ListOperatorExpression(0), std::move(propertyExpression));
+        for (auto i = 1u; i < ctx.oC_ListOperatorExpression().size(); ++i) {
+            result = transformListOperatorExpression(
+                *ctx.oC_ListOperatorExpression(i), std::move(result));
+        }
+        return result;
     }
     if (ctx.oC_StringOperatorExpression()) {
         return transformStringOperatorExpression(
@@ -670,22 +675,17 @@ static std::unique_ptr<ParsedLiteralExpression> getZeroLiteral() {
 
 std::unique_ptr<ParsedExpression> Transformer::transformListOperatorExpression(
     CypherParser::OC_ListOperatorExpressionContext& ctx,
-    std::unique_ptr<ParsedExpression> propertyExpression) {
-    auto rawExpression = propertyExpression->getRawName() + " " + ctx.getText();
+    std::unique_ptr<ParsedExpression> childExpression) {
+    auto rawExpression = childExpression->getRawName() + ctx.getText();
     std::unique_ptr<ParsedExpression> listOperator;
     if (ctx.kU_ListSliceOperatorExpression()) {
         listOperator = transformListSliceOperatorExpression(
-            *ctx.kU_ListSliceOperatorExpression(), std::move(propertyExpression));
+            *ctx.kU_ListSliceOperatorExpression(), std::move(childExpression));
     } else {
         listOperator = transformListExtractOperatorExpression(
-            *ctx.kU_ListExtractOperatorExpression(), std::move(propertyExpression));
+            *ctx.kU_ListExtractOperatorExpression(), std::move(childExpression));
     }
-    if (ctx.oC_ListOperatorExpression()) {
-        return transformListOperatorExpression(
-            *ctx.oC_ListOperatorExpression(), std::move(listOperator));
-    } else {
-        return listOperator;
-    }
+    return listOperator;
 }
 
 std::unique_ptr<ParsedExpression> Transformer::transformListSliceOperatorExpression(
@@ -742,12 +742,20 @@ std::unique_ptr<ParsedExpression> Transformer::transformNullOperatorExpression(
 
 std::unique_ptr<ParsedExpression> Transformer::transformPropertyOrLabelsExpression(
     CypherParser::OC_PropertyOrLabelsExpressionContext& ctx) {
-    if (ctx.oC_PropertyLookup()) {
-        return std::make_unique<ParsedPropertyExpression>(common::ExpressionType::PROPERTY,
-            transformPropertyLookup(*ctx.oC_PropertyLookup()), transformAtom(*ctx.oC_Atom()),
-            ctx.getText());
+    auto atom = transformAtom(*ctx.oC_Atom());
+    auto raw = ctx.oC_Atom()->getText();
+    if (!ctx.oC_PropertyLookup().empty()) {
+        auto lookUpCtx = ctx.oC_PropertyLookup(0);
+        auto result = std::make_unique<ParsedPropertyExpression>(
+            transformPropertyLookup(*lookUpCtx), std::move(atom), raw + lookUpCtx->getText());
+        for (auto i = 1u; i < ctx.oC_PropertyLookup().size(); ++i) {
+            lookUpCtx = ctx.oC_PropertyLookup(i);
+            result = std::make_unique<ParsedPropertyExpression>(
+                transformPropertyLookup(*lookUpCtx), std::move(result), raw + lookUpCtx->getText());
+        }
+        return result;
     }
-    return transformAtom(*ctx.oC_Atom());
+    return atom;
 }
 
 std::unique_ptr<ParsedExpression> Transformer::transformAtom(CypherParser::OC_AtomContext& ctx) {
@@ -938,7 +946,7 @@ std::unique_ptr<ParsedExpression> Transformer::transformNumberLiteral(
 
 std::unique_ptr<ParsedExpression> Transformer::transformProperty(
     CypherParser::OC_PropertyExpressionContext& ctx) {
-    return std::make_unique<ParsedPropertyExpression>(common::ExpressionType::PROPERTY,
+    return std::make_unique<ParsedPropertyExpression>(
         transformPropertyLookup(*ctx.oC_PropertyLookup()), transformAtom(*ctx.oC_Atom()),
         ctx.getText());
 }

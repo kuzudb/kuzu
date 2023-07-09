@@ -1443,8 +1443,9 @@ public:
     virtual size_t getRuleIndex() const override;
     OC_PropertyOrLabelsExpressionContext *oC_PropertyOrLabelsExpression();
     OC_StringOperatorExpressionContext *oC_StringOperatorExpression();
-    OC_ListOperatorExpressionContext *oC_ListOperatorExpression();
     OC_NullOperatorExpressionContext *oC_NullOperatorExpression();
+    std::vector<OC_ListOperatorExpressionContext *> oC_ListOperatorExpression();
+    OC_ListOperatorExpressionContext* oC_ListOperatorExpression(size_t i);
 
    
   };
@@ -1457,7 +1458,6 @@ public:
     virtual size_t getRuleIndex() const override;
     KU_ListExtractOperatorExpressionContext *kU_ListExtractOperatorExpression();
     KU_ListSliceOperatorExpressionContext *kU_ListSliceOperatorExpression();
-    OC_ListOperatorExpressionContext *oC_ListOperatorExpression();
 
    
   };
@@ -1469,7 +1469,6 @@ public:
     KU_ListExtractOperatorExpressionContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     OC_ExpressionContext *oC_Expression();
-    antlr4::tree::TerminalNode *SP();
 
    
   };
@@ -1480,7 +1479,6 @@ public:
   public:
     KU_ListSliceOperatorExpressionContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
-    antlr4::tree::TerminalNode *SP();
     std::vector<OC_ExpressionContext *> oC_Expression();
     OC_ExpressionContext* oC_Expression(size_t i);
 
@@ -1538,8 +1536,10 @@ public:
     OC_PropertyOrLabelsExpressionContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     OC_AtomContext *oC_Atom();
-    OC_PropertyLookupContext *oC_PropertyLookup();
-    antlr4::tree::TerminalNode *SP();
+    std::vector<OC_PropertyLookupContext *> oC_PropertyLookup();
+    OC_PropertyLookupContext* oC_PropertyLookup(size_t i);
+    std::vector<antlr4::tree::TerminalNode *> SP();
+    antlr4::tree::TerminalNode* SP(size_t i);
 
    
   };
