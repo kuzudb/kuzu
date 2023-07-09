@@ -27,12 +27,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v3
         with:
-          name: libkuzu-java-win-x86_64
-          path: java-bins
-
-      - uses: actions/download-artifact@v3
-        with:
-          name: libkuzu-java-osx-x86_64
+          name: libkuzu-java-osx-amd64
           path: java-bins
 
       - uses: actions/download-artifact@v3
@@ -45,15 +40,82 @@ jobs:
           name: kuzu-linux-jar
           path: java-bins
 
+      - uses: actions/download-artifact@v3
+        with:
+          name: libkuzu-java-win-x86_64
+          path: java-bins
+
       - name: Add Java libs to jar
         run: |
           ls -alR java-bins
           jar uf java-bins/kuzu_java.jar java-bins/libkuzu_java_native.so_windows_amd64
           jar uf java-bins/kuzu_java.jar java-bins/libkuzu_java_native.so_osx_arm64
           jar uf java-bins/kuzu_java.jar java-bins/libkuzu_java_native.so_osx_x86_64
-      
+
       - name: Upload jar
         uses: actions/upload-artifact@v3
         with:
           name: kuzu-deploy-jar
           path: java-bins/kuzu_java.jar
+
+  build-nodejs-mac:
+    uses: ./.github/workflows/mac-nodejs-workflow.yml
+    secrets: inherit
+
+  build-nodejs-linux:
+    uses: ./.github/workflows/linux-nodejs-workflow.yml
+    secrets: inherit
+
+  build-nodejs-windows:
+    uses: ./.github/workflows/windows-nodejs-workflow.yml
+    secrets: inherit
+
+  deploy-nodejs:
+    needs: [build-nodejs-mac, build-nodejs-linux, build-nodejs-windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Create prebuilt folder
+        run: mkdir -p tools/nodejs_api/prebuilt
+
+      - uses: actions/download-artifact@v3
+        with:
+          name: mac-nodejs-module
+          path: tools/nodejs_api/prebuilt
+
+      - uses: actions/download-artifact@v3
+        with:
+          name: linux-nodejs-module
+          path: tools/nodejs_api/prebuilt
+
+      - uses: actions/download-artifact@v3
+        with:
+          name: windows-nodejs-module
+          path: tools/nodejs_api/prebuilt
+
+      - uses: actions/setup-node@v3
+        with:
+          node-version: "16"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Package Node.js API with prebuilt binaries
+        run: node package
+        working-directory: tools/nodejs_api
+
+      - name: Show tarball contents
+        run: tar -tvf kuzu_nodejs.tar.gz
+
+      - name: Deploy to npm.js dry run
+        if: ${{ github.event.inputs.isDeploy != 'true' }}
+        run: npm publish --dry-run
+        working-directory: tools/nodejs_api
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_JS_TOKEN }}
+
+      - name: Deploy to npm.js
+        if: ${{ github.event.inputs.isDeploy == 'true' }}
+        run: npm publish
+        working-directory: tools/nodejs_api
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_JS_TOKEN }}
