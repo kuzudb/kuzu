@@ -2,14 +2,7 @@ name: Build-Mac-Wheels
 
 on:
   workflow_dispatch:
-    inputs:
-      pythonPackageVersion:
-        description: "Version of output Python package"
-        required: true
-        default: "0.0.1"
-
-env:
-  PYTHON_PACKAGE_VERSION: ${{ github.event.inputs.pythonPackageVersion }}
+  workflow_call:
 
 jobs:
   build-wheels:
