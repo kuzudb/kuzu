@@ -60,6 +60,10 @@ public class KuzuValue {
         destroy();
     }
 
+    public boolean isOwnedByCPP() {
+        return isOwnedByCPP;
+    }
+
     /**
      * Destroy the KuzuValue.
      * @throws KuzuObjectRefDestroyedException: If the KuzuValue has been destroyed.
