@@ -41,7 +41,6 @@ public class KuzuDatabase {
     }
 
     /**
-    * TODO: What does finalize mean?
     * Finalize.
     * @throws KuzuObjectRefDestroyedException: If the database instance has been destroyed.
     */

@@ -16,25 +16,12 @@ public class KuzuDataType {
     }
 
     /**
-    * TODO: This doesn't seem to be accurate now. Same for C apis.
-    * Creates a data type instance with the given id, childType and fixed_num_elements_in_list.
-    * @param id: the kuzu internal representation of data type IDs.
-    * @param childType: The child type of the datatype to create(only used for nested dataTypes).
-    * @param fixedNumElementsInList: The fixed number of elements in the list(only used for FIXED_LIST).
-    */
-    public KuzuDataType
-            (KuzuDataTypeID id, KuzuDataType childType, long fixedNumElementsInList) {
-        dt_ref = KuzuNative.kuzu_data_type_create(id, childType, fixedNumElementsInList);
-    }
-
-    /**
-     * // TODO: Shouldn't the exception message be kuzuDataType has been destroyed?
      * Checks if the database instance has been destroyed.
      * @throws KuzuObjectRefDestroyedException: If the data type instance has been destroyed.
     */
     private void checkNotDestroyed() throws KuzuObjectRefDestroyedException {
         if (destroyed)
-            throw new KuzuObjectRefDestroyedException("KuzuDatabase has been destroyed.");
+            throw new KuzuObjectRefDestroyedException("KuzuDataType has been destroyed.");
     }
 
     /**

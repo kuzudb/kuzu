@@ -61,15 +61,6 @@ public class KuzuValue {
     }
 
     /**
-     * TODO: Need to explain a bit more here.
-     * Check if the KuzuValue is owned by C++ runtime.
-     * @return True if the KuzuValue is owned by C++ runtime, false otherwise.
-     */
-    public boolean isOwnedByCPP() {
-        return isOwnedByCPP;
-    }
-
-    /**
      * Destroy the KuzuValue.
      * @throws KuzuObjectRefDestroyedException: If the KuzuValue has been destroyed.
      */
