@@ -65,7 +65,7 @@ std::unique_ptr<TableFuncBindData> DBVersionFunction::bindFunc(main::ClientConte
     kuzu::function::TableFuncBindInput input, catalog::CatalogContent* catalog) {
     std::vector<std::string> returnColumnNames;
     std::vector<common::LogicalType> returnTypes;
-    returnColumnNames.emplace_back("KUZU_Version");
+    returnColumnNames.emplace_back("version");
     returnTypes.emplace_back(common::LogicalTypeID::STRING);
     return std::make_unique<TableFuncBindData>(
         std::move(returnTypes), std::move(returnColumnNames), 1 /* one row result */);

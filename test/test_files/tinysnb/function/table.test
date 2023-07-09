@@ -77,6 +77,6 @@ height
 <FILE>:function_table_info_answer.txt
 
 -LOG ReturnDBVersion
--STATEMENT CALL db_version('') RETURN KUZU_Version
+-STATEMENT CALL db_version() RETURN version
 ---- 1
 v0.4.0
