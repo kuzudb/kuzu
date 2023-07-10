@@ -102,6 +102,8 @@ struct PropertyList {
     const kuzu::common::Value& get_value(size_t index) const {
         return *T::getPropertyValueReference(&value, index);
     }
+
+    PropertyList(const kuzu::common::Value& value) : value(value) {}
 };
 
 using NodeValuePropertyList = PropertyList<kuzu::common::NodeVal>;
