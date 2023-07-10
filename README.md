@@ -35,13 +35,13 @@ Kùzu is being actively developed at University of Waterloo as a feature-rich an
 
 ## Installation
 
-| Language | Installation |
-| -------- | ------------ |
-| Python | `pip install kuzu` |
-| NodeJS | `npm install kuzu` |
-| Rust   | |
-| Java   | |
-| C/C++  |  [precompiled binaries](https://github.com/kuzudb/kuzu/releases/latest) |
+| Language | Installation                                                           |
+| -------- |------------------------------------------------------------------------|
+| Python | `pip install kuzu`                                                     |
+| NodeJS | `npm install kuzu`                                                     |
+| Rust   | `cargo add kuzu`                                                       |
+| Java   | [jar file](https://github.com/kuzudb/kuzu/releases/latest)             |
+| C/C++  | [precompiled binaries](https://github.com/kuzudb/kuzu/releases/latest) |
 | CLI    | [precompiled binaries](https://github.com/kuzudb/kuzu/releases/latest) |
 
 To learn more about installation, see [Installation](https://kuzudb.com/docusaurus/getting-started/).
