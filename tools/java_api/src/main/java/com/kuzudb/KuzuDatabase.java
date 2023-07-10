@@ -10,7 +10,15 @@ public class KuzuDatabase {
     long buffer_size;
     boolean destroyed = false;
 
-    // TODO: Why `KuzuDatabase (std::string databasePath)` is not added?
+    /**
+     * Creates a database object.
+     * @param databasePath: Database path. If the database does not already exist, it will be created.
+     */
+    public KuzuDatabase(String databasePath) {
+        this.db_path = databasePath;
+        this.buffer_size = 0;
+        db_ref = KuzuNative.kuzu_database_init(databasePath, 0);
+    }
 
     /**
     * Creates a database object.
