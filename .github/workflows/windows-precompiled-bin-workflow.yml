@@ -2,14 +2,7 @@ name: Build-Windows-Precompiled-Binaries
 
 on:
   workflow_dispatch:
-    inputs:
-      packageVersion:
-        description: "Version of output package"
-        required: true
-        default: "0.0.1"
-
-env:
-  PACKAGE_VERSION: ${{ github.event.inputs.packageVersion }}
+  workflow_call:
 
 jobs:
   build-precompiled-bin:
@@ -21,12 +14,15 @@ jobs:
         run: python.exe -m pip install networkx --user
 
       - name: Build precompiled binaries
-        run: python.exe build.py
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
+          python.exe build.py
         working-directory: ./scripts/pre-compiled-bins/
 
       - uses: actions/upload-artifact@v3
         with:
-          name: libkuzu-${{ github.event.inputs.packageVersion }}-windows-x86_64
+          name: libkuzu-windows-x86_64
           path: |
             ./scripts/pre-compiled-bins/kuzu.h
             ./scripts/pre-compiled-bins/kuzu.hpp
@@ -35,8 +31,5 @@ jobs:
 
       - uses: actions/upload-artifact@v3
         with:
-          name: kuzu_cli-${{ github.event.inputs.packageVersion }}-windows-x86_64
+          name: kuzu_cli-windows-x86_64
           path: ./scripts/pre-compiled-bins/kuzu.exe
-
-      - name: Clean up
-        run: rm -rf ./scripts/pre-compiled-bins/kuzu ./scripts/pre-compiled-bins/headers ./scripts/pre-compiled-bins/kuzu_shared.dll ./scripts/pre-compiled-bins/kuzu_shared.lib ./scripts/pre-compiled-bins/kuzu.h ./scripts/pre-compiled-bins/kuzu.hpp

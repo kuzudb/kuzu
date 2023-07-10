@@ -27,11 +27,6 @@ jobs:
     steps:
       - uses: actions/download-artifact@v3
         with:
-          name: libkuzu-java-win-x86_64
-          path: java-bins
-
-      - uses: actions/download-artifact@v3
-        with:
           name: libkuzu-java-osx-x86_64
           path: java-bins
 
@@ -45,15 +40,179 @@ jobs:
           name: kuzu-linux-jar
           path: java-bins
 
+      - uses: actions/download-artifact@v3
+        with:
+          name: libkuzu-java-win-x86_64
+          path: java-bins
+
       - name: Add Java libs to jar
         run: |
-          ls -alR java-bins
-          jar uf java-bins/kuzu-linux-jar/kuzu_java.jar java-bins/libkuzu-java-win-x86_64/libkuzu_java_native.so_windows_amd64
-          jar uf java-bins/kuzu-linux-jar/kuzu_java.jar java-bins/libkuzu-java-osx-x86_64/libkuzu_java_native.so_osx_amd64
-          jar uf java-bins/kuzu-linux-jar/kuzu_java.jar java-bins/libkuzu-java-osx-arm64/libkuzu_java_native.so_osx_arm64
-      
+          jar uf kuzu_java.jar libkuzu_java_native.so_windows_amd64
+          jar uf kuzu_java.jar libkuzu_java_native.so_osx_arm64
+          jar uf kuzu_java.jar libkuzu_java_native.so_osx_amd64
+        working-directory: java-bins
+
       - name: Upload jar
         uses: actions/upload-artifact@v3
         with:
           name: kuzu-deploy-jar
-          path: java-bins/kuzu-linux-jar/kuzu_java.jar
+          path: java-bins/kuzu_java.jar
+
+  build-nodejs-mac:
+    uses: ./.github/workflows/mac-nodejs-workflow.yml
+    secrets: inherit
+
+  build-nodejs-linux:
+    uses: ./.github/workflows/linux-nodejs-workflow.yml
+    secrets: inherit
+
+  build-nodejs-windows:
+    uses: ./.github/workflows/windows-nodejs-workflow.yml
+    secrets: inherit
+
+  deploy-nodejs:
+    needs: [build-nodejs-mac, build-nodejs-linux, build-nodejs-windows]
+    runs-on: ubuntu-latest
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.NPM_JS_TOKEN }}
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Create prebuilt folder
+        run: mkdir -p tools/nodejs_api/prebuilt
+
+      - uses: actions/download-artifact@v3
+        with:
+          name: mac-nodejs-module
+          path: tools/nodejs_api/prebuilt
+
+      - uses: actions/download-artifact@v3
+        with:
+          name: linux-nodejs-module
+          path: tools/nodejs_api/prebuilt
+
+      - uses: actions/download-artifact@v3
+        with:
+          name: windows-nodejs-module
+          path: tools/nodejs_api/prebuilt
+
+      - uses: actions/setup-node@v3
+        with:
+          node-version: "16"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Package Node.js API with prebuilt binaries
+        run: node package
+        working-directory: tools/nodejs_api
+
+      - name: Show tarball contents
+        run: tar -tvf kuzu-source.tar.gz
+        working-directory: tools/nodejs_api
+
+      - name: Upload tarball
+        uses: actions/upload-artifact@v3
+        with:
+          name: kuzu-deploy-nodejs
+          path: tools/nodejs_api/kuzu-source.tar.gz
+
+      - name: Deploy to npm.js dry run
+        if: ${{ github.event.inputs.isDeploy != 'true' }}
+        run: npm publish kuzu-source.tar.gz --access public --dry-run
+        working-directory: tools/nodejs_api
+
+      - name: Deploy to npm.js
+        if: ${{ github.event.inputs.isDeploy == 'true' }}
+        run: npm publish kuzu-source.tar.gz --access public
+        working-directory: tools/nodejs_api
+
+  build-wheel-mac:
+    uses: ./.github/workflows/mac-wheel-workflow.yml
+    secrets: inherit
+
+  build-wheel-linux:
+    uses: ./.github/workflows/linux-wheel-workflow.yml
+    secrets: inherit
+
+  build-wheel-windows:
+    uses: ./.github/workflows/windows-wheel-workflow.yml
+    secrets: inherit
+
+  package-python-sdist:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Package Python sdist
+        run: python package_tar.py
+        working-directory: scripts/pip-package
+
+      - name: Upload tarball
+        uses: actions/upload-artifact@v3
+        with:
+          name: python-sdist
+          path: scripts/pip-package/*.tar.gz
+
+  deploy-python:
+    needs:
+      [
+        build-wheel-mac,
+        build-wheel-linux,
+        build-wheel-windows,
+        package-python-sdist,
+      ]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v3
+        with:
+          name: macos-wheels
+          path: dist
+
+      - uses: actions/download-artifact@v3
+        with:
+          name: linux-wheels
+          path: dist
+
+      - uses: actions/download-artifact@v3
+        with:
+          name: windows-wheels
+          path: dist
+
+      - uses: actions/download-artifact@v3
+        with:
+          name: python-sdist
+          path: dist
+
+      - name: List wheels
+        run: ls -l
+        working-directory: dist
+
+      - name: Upload wheels
+        uses: actions/upload-artifact@v3
+        with:
+          name: kuzu-deploy-wheels
+          path: dist/*
+
+      - name: Deploy to PyPI test
+        if: ${{ github.event.inputs.isDeploy != 'true' }}
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.PYPI_TEST_TOKEN }}
+          repository-url: https://test.pypi.org/legacy/
+
+      - name: Deploy to PyPI
+        if: ${{ github.event.inputs.isDeploy == 'true' }}
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.PYPI_TOKEN }}
+
+  build-precompiled-bin-mac:
+    uses: ./.github/workflows/mac-precompiled-bin-workflow.yml
+    secrets: inherit
+
+  build-precompiled-bin-linux:
+    uses: ./.github/workflows/linux-precompiled-bin-workflow.yml
+    secrets: inherit
+
+  build-precompiled-bin-windows:
+    uses: ./.github/workflows/windows-precompiled-bin-workflow.yml
+    secrets: inherit
