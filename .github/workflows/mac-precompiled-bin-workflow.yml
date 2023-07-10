@@ -2,14 +2,7 @@ name: Build-Mac-Precompiled-Binaries
 
 on:
   workflow_dispatch:
-    inputs:
-      packageVersion:
-        description: "Version of output package"
-        required: true
-        default: "0.0.1"
-
-env:
-  PACKAGE_VERSION: ${{ github.event.inputs.packageVersion }}
+  workflow_call:
 
 jobs:
   build-precompiled-bin:
@@ -29,7 +22,7 @@ jobs:
 
       - uses: actions/upload-artifact@v3
         with:
-          name: libkuzu-${{ github.event.inputs.packageVersion }}-osx-arm64
+          name: libkuzu-osx-arm64
           path: |
             ./scripts/pre-compiled-bins/kuzu.h
             ./scripts/pre-compiled-bins/kuzu.hpp
@@ -37,7 +30,7 @@ jobs:
 
       - uses: actions/upload-artifact@v3
         with:
-          name: kuzu_cli-${{ github.event.inputs.packageVersion }}-osx-arm64
+          name: kuzu_cli-osx-arm64
           path: ./scripts/pre-compiled-bins/kuzu
 
       - name: Build precompiled binaries for Intel
@@ -49,7 +42,7 @@ jobs:
 
       - uses: actions/upload-artifact@v3
         with:
-          name: libkuzu-${{ github.event.inputs.packageVersion }}-osx-x86_64
+          name: libkuzu-osx-x86_64
           path: |
             ./scripts/pre-compiled-bins/kuzu.h
             ./scripts/pre-compiled-bins/kuzu.hpp
@@ -57,7 +50,7 @@ jobs:
 
       - uses: actions/upload-artifact@v3
         with:
-          name: kuzu_cli-${{ github.event.inputs.packageVersion }}-osx-x86_64
+          name: kuzu_cli-osx-x86_64
           path: ./scripts/pre-compiled-bins/kuzu
 
       - name: Clean up

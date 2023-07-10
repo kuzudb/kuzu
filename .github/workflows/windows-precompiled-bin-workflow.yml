@@ -2,14 +2,7 @@ name: Build-Windows-Precompiled-Binaries
 
 on:
   workflow_dispatch:
-    inputs:
-      packageVersion:
-        description: "Version of output package"
-        required: true
-        default: "0.0.1"
-
-env:
-  PACKAGE_VERSION: ${{ github.event.inputs.packageVersion }}
+  workflow_call:
 
 jobs:
   build-precompiled-bin:
@@ -26,7 +19,7 @@ jobs:
 
       - uses: actions/upload-artifact@v3
         with:
-          name: libkuzu-${{ github.event.inputs.packageVersion }}-windows-x86_64
+          name: libkuzu-windows-x86_64
           path: |
             ./scripts/pre-compiled-bins/kuzu.h
             ./scripts/pre-compiled-bins/kuzu.hpp
@@ -35,7 +28,7 @@ jobs:
 
       - uses: actions/upload-artifact@v3
         with:
-          name: kuzu_cli-${{ github.event.inputs.packageVersion }}-windows-x86_64
+          name: kuzu_cli-windows-x86_64
           path: ./scripts/pre-compiled-bins/kuzu.exe
 
       - name: Clean up
