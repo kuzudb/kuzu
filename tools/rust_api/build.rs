@@ -59,6 +59,8 @@ fn link_libraries() {
             }
             println!("cargo:rustc-link-lib=dylib=shell32");
             println!("cargo:rustc-link-lib=dylib=ole32");
+        } else if cfg!(target_os = "macos") {
+            println!("cargo:rustc-link-lib=dylib=c++");
         } else {
             println!("cargo:rustc-link-lib=dylib=stdc++");
         }
@@ -202,7 +204,7 @@ fn main() {
     if cfg!(windows) {
         build.flag("/std:c++20");
     } else {
-        build.flag_if_supported("-std=c++20");
+        build.flag("-std=c++2a");
     }
     build.compile("kuzu_rs");
 }
