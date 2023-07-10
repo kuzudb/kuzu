@@ -114,29 +114,29 @@ jobs:
         run: npm publish kuzu-source.tar.gz --access public --dry-run
         working-directory: tools/nodejs_api
 
-      - name: Deploy to npm.js
-        if: ${{ github.event.inputs.isDeploy == 'true' }}
-        run: npm publish kuzu-source.tar.gz --access public
-        working-directory: tools/nodejs_api
-      
       - name: Upload tarball
         uses: actions/upload-artifact@v3
         with:
           name: kuzu-deploy-nodejs
           path: tools/nodejs_api/kuzu-source.tar.gz
 
+      - name: Deploy to npm.js
+        if: ${{ github.event.inputs.isDeploy == 'true' }}
+        run: npm publish kuzu-source.tar.gz --access public
+        working-directory: tools/nodejs_api
+
   build-wheel-mac:
     uses: ./.github/workflows/mac-wheel-workflow.yml
     secrets: inherit
-  
+
   build-wheel-linux:
     uses: ./.github/workflows/linux-wheel-workflow.yml
     secrets: inherit
-  
+
   build-wheel-windows:
     uses: ./.github/workflows/windows-wheel-workflow.yml
     secrets: inherit
-  
+
   package-python-sdist:
     runs-on: ubuntu-latest
     steps:
@@ -151,9 +151,15 @@ jobs:
         with:
           name: python-sdist
           path: scripts/pip-package/*.tar.gz
-    
+
   deploy-python:
-    needs: [build-wheel-mac, build-wheel-linux, build-wheel-windows, package-python-sdist]
+    needs:
+      [
+        build-wheel-mac,
+        build-wheel-linux,
+        build-wheel-windows,
+        package-python-sdist,
+      ]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v3
@@ -170,7 +176,7 @@ jobs:
         with:
           name: windows-wheels
           path: dist
-      
+
       - uses: actions/download-artifact@v3
         with:
           name: python-sdist
@@ -180,13 +186,18 @@ jobs:
         run: ls -l
         working-directory: dist
 
+      - name: Upload wheels
+        uses: actions/upload-artifact@v3
+        with:
+          name: kuzu-deploy-wheels
+          path: dist/*.whl dist/*.tar.gz
+
       - name: Deploy to PyPI test
         if: ${{ github.event.inputs.isDeploy != 'true' }}
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           password: ${{ secrets.PYPI_TEST_TOKEN }}
           repository-url: https://test.pypi.org/legacy/
-
 
       - name: Deploy to PyPI
         if: ${{ github.event.inputs.isDeploy == 'true' }}
@@ -197,7 +208,7 @@ jobs:
   build-precompiled-bin-mac:
     uses: ./.github/workflows/mac-precompiled-bin-workflow.yml
     secrets: inherit
-  
+
   build-precompiled-bin-linux:
     uses: ./.github/workflows/linux-precompiled-bin-workflow.yml
     secrets: inherit
