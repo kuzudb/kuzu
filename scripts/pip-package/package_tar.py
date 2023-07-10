@@ -20,7 +20,7 @@ if __name__ == "__main__":
     if len(sys.argv) == 2:
         file_name = sys.argv[1]
     else:
-        file_name = "kuzu-%s-sdist.tar.gz" % _get_kuzu_version()
+        file_name = "kuzu-%s.tar.gz" % _get_kuzu_version()
     print("Creating %s..." % file_name)
 
     with TemporaryDirectory() as tempdir:
