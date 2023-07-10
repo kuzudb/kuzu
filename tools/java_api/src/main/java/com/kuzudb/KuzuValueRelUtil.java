@@ -76,6 +76,7 @@ public class KuzuValueRelUtil {
      * Convert the given rel value to string.
      * @param value: The rel value.
      * @return The given rel value in string format.
+     * @throws KuzuObjectRefDestroyedException If the rel value has been destroyed.
      */
     public static String toString(KuzuValue value) throws KuzuObjectRefDestroyedException {
         value.checkNotDestroyed();
