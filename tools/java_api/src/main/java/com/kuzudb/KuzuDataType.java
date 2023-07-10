@@ -22,7 +22,7 @@ public class KuzuDataType {
 
     /**
      * Checks if the database instance has been destroyed.
-     * @throws KuzuObjectRefDestroyedException: If the data type instance has been destroyed.
+     * @throws KuzuObjectRefDestroyedException If the data type instance has been destroyed.
     */
     private void checkNotDestroyed() throws KuzuObjectRefDestroyedException {
         if (destroyed)
@@ -31,7 +31,7 @@ public class KuzuDataType {
 
     /**
     * Finalize.
-    * @throws KuzuObjectRefDestroyedException: If the data type instance has been destroyed.
+    * @throws KuzuObjectRefDestroyedException If the data type instance has been destroyed.
     */
     @Override
     protected void finalize() throws KuzuObjectRefDestroyedException {
@@ -40,7 +40,7 @@ public class KuzuDataType {
 
     /**
     * Destroy the data type instance.
-    * @throws KuzuObjectRefDestroyedException: If the data type instance has been destroyed.
+    * @throws KuzuObjectRefDestroyedException If the data type instance has been destroyed.
     */
     public void destroy() throws KuzuObjectRefDestroyedException {
         checkNotDestroyed();
@@ -50,7 +50,7 @@ public class KuzuDataType {
 
     /**
     * Clone the data type instance.
-    * @return: The cloned data type instance.
+    * @return The cloned data type instance.
     */
     public KuzuDataType clone() {
         if (destroyed)
@@ -61,8 +61,9 @@ public class KuzuDataType {
 
     /**
     * Returns true if the given data type is equal to the other data type, false otherwise.
-    * @param other: The other data type to compare with.
-    * @return: If the given data type is equal to the other data type or not.
+    * @param other The other data type to compare with.
+    * @return If the given data type is equal to the other data type or not.
+    * @throws KuzuObjectRefDestroyedException If the data type instance has been destroyed.
     */
     public boolean equals(KuzuDataType other) throws KuzuObjectRefDestroyedException {
         checkNotDestroyed();
@@ -71,8 +72,8 @@ public class KuzuDataType {
 
     /**
     * Returns the enum internal id of the given data type.
-    * @return: The enum internal id of the given data type.
-    * @throws KuzuObjectRefDestroyedException: If the data type instance has been destroyed.
+    * @return The enum internal id of the given data type.
+    * @throws KuzuObjectRefDestroyedException If the data type instance has been destroyed.
     */
     public KuzuDataTypeID getID() throws KuzuObjectRefDestroyedException {
         checkNotDestroyed();
@@ -81,8 +82,8 @@ public class KuzuDataType {
 
     /**
     * Returns the child type of the given data type.
-    * @return: The child type of the given data type.
-    * @throws KuzuObjectRefDestroyedException: If the data type instance has been destroyed.
+    * @return The child type of the given data type.
+    * @throws KuzuObjectRefDestroyedException If the data type instance has been destroyed.
     */
     public KuzuDataType getChildType() throws KuzuObjectRefDestroyedException {
         checkNotDestroyed();
@@ -91,8 +92,8 @@ public class KuzuDataType {
 
     /**
     * Returns the fixed number of elements in the list of the given data type.
-    * @return: The fixed number of elements in the list of the given data type.
-    * @throws KuzuObjectRefDestroyedException: If the data type instance has been destroyed.
+    * @return The fixed number of elements in the list of the given data type.
+    * @throws KuzuObjectRefDestroyedException If the data type instance has been destroyed.
     */
     public long getFixedNumElementsInList() throws KuzuObjectRefDestroyedException {
         checkNotDestroyed();

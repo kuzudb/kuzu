@@ -41,7 +41,7 @@ public class KuzuDatabase {
 
     /**
     * Checks if the database instance has been destroyed.
-    * @throws KuzuObjectRefDestroyedException: If the database instance is destroyed.
+    * @throws KuzuObjectRefDestroyedException If the database instance is destroyed.
     */
     private void checkNotDestroyed() throws KuzuObjectRefDestroyedException {
         if (destroyed)
@@ -50,7 +50,7 @@ public class KuzuDatabase {
 
     /**
     * Finalize.
-    * @throws KuzuObjectRefDestroyedException: If the database instance has been destroyed.
+    * @throws KuzuObjectRefDestroyedException If the database instance has been destroyed.
     */
     @Override
     protected void finalize() throws KuzuObjectRefDestroyedException {
@@ -59,7 +59,7 @@ public class KuzuDatabase {
 
     /**
     * Destroy the database instance.
-    * @throws KuzuObjectRefDestroyedException: If the database instance has been destroyed.
+    * @throws KuzuObjectRefDestroyedException If the database instance has been destroyed.
     */
     public void destroy() throws KuzuObjectRefDestroyedException {
         checkNotDestroyed();

@@ -10,7 +10,7 @@ public class KuzuValue {
 
     /**
      * Construct a KuzuValue from a val.
-     * @throws KuzuObjectRefDestroyedException: If the KuzuValue has been destroyed.
+     * @throws KuzuObjectRefDestroyedException If the KuzuValue has been destroyed.
      */
     public <T> KuzuValue(T val) throws KuzuObjectRefDestroyedException {
         checkNotDestroyed();
@@ -44,7 +44,7 @@ public class KuzuValue {
 
     /**
      * Check if the KuzuValue has been destroyed.
-     * @throws KuzuObjectRefDestroyedException: If the KuzuValue has been destroyed.
+     * @throws KuzuObjectRefDestroyedException If the KuzuValue has been destroyed.
      */
     public void checkNotDestroyed() throws KuzuObjectRefDestroyedException {
         if (destroyed)
@@ -53,7 +53,7 @@ public class KuzuValue {
 
     /**
      * Finalize.
-     * @throws KuzuObjectRefDestroyedException: If the KuzuValue has been destroyed.
+     * @throws KuzuObjectRefDestroyedException If the KuzuValue has been destroyed.
      */
     @Override
     protected void finalize() throws KuzuObjectRefDestroyedException {
@@ -66,7 +66,7 @@ public class KuzuValue {
 
     /**
      * Destroy the KuzuValue.
-     * @throws KuzuObjectRefDestroyedException: If the KuzuValue has been destroyed.
+     * @throws KuzuObjectRefDestroyedException If the KuzuValue has been destroyed.
      */
     public void destroy() throws KuzuObjectRefDestroyedException {
         checkNotDestroyed();
@@ -79,7 +79,7 @@ public class KuzuValue {
     /**
      * Check if the KuzuValue is null.
      * @return True if the KuzuValue is null, false otherwise.
-     * @throws KuzuObjectRefDestroyedException: If the KuzuValue has been destroyed.
+     * @throws KuzuObjectRefDestroyedException If the KuzuValue has been destroyed.
      */
     public boolean isNull() throws KuzuObjectRefDestroyedException {
         checkNotDestroyed();
@@ -89,7 +89,7 @@ public class KuzuValue {
     /**
      * Set the KuzuValue to null.
      * @param flag: True if the KuzuValue is set to null, false otherwise.
-     * @throws KuzuObjectRefDestroyedException: If the KuzuValue has been destroyed.
+     * @throws KuzuObjectRefDestroyedException If the KuzuValue has been destroyed.
      */
     public void setNull(boolean flag) throws KuzuObjectRefDestroyedException {
         checkNotDestroyed();
@@ -99,7 +99,7 @@ public class KuzuValue {
     /**
      * Copy the KuzuValue from another KuzuValue.
      * @param other: The KuzuValue to copy from.
-     * @throws KuzuObjectRefDestroyedException: If the KuzuValue has been destroyed.
+     * @throws KuzuObjectRefDestroyedException If the KuzuValue has been destroyed.
      */
     public void copy(KuzuValue other) throws KuzuObjectRefDestroyedException {
         checkNotDestroyed();
@@ -120,7 +120,7 @@ public class KuzuValue {
     /**
      * Get the actual value from the KuzuValue.
      * @return The value of the given type.
-     * @throws KuzuObjectRefDestroyedException: If the KuzuValue has been destroyed.
+     * @throws KuzuObjectRefDestroyedException If the KuzuValue has been destroyed.
      */
     public <T> T getValue() throws KuzuObjectRefDestroyedException {
         checkNotDestroyed();
@@ -130,7 +130,7 @@ public class KuzuValue {
     /**
      * Get the data type of the KuzuValue.
      * @return The data type of the KuzuValue.
-     * @throws KuzuObjectRefDestroyedException: If the KuzuValue has been destroyed.
+     * @throws KuzuObjectRefDestroyedException If the KuzuValue has been destroyed.
      */
     public KuzuDataType getDataType() throws KuzuObjectRefDestroyedException {
         checkNotDestroyed();

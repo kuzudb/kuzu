@@ -9,7 +9,7 @@ public class KuzuFlatTuple {
 
     /**
      * Check if the flat tuple has been destroyed.
-     * @throws KuzuObjectRefDestroyedException: If the flat tuple has been destroyed.
+     * @throws KuzuObjectRefDestroyedException If the flat tuple has been destroyed.
      */
     private void checkNotDestroyed() throws KuzuObjectRefDestroyedException {
         if (destroyed)
@@ -18,7 +18,7 @@ public class KuzuFlatTuple {
 
     /**
      * Finalize.
-     * @throws KuzuObjectRefDestroyedException: If the flat tuple has been destroyed.
+     * @throws KuzuObjectRefDestroyedException If the flat tuple has been destroyed.
      */
     @Override
     protected void finalize() throws KuzuObjectRefDestroyedException {
@@ -27,7 +27,7 @@ public class KuzuFlatTuple {
 
     /**
      * Destroy the flat tuple.
-     * @param KuzuObjectRefDestroyedException: If the flat tuple has been destroyed.
+     * @throws KuzuObjectRefDestroyedException If the flat tuple has been destroyed.
      */
     public void destroy() throws KuzuObjectRefDestroyedException {
         checkNotDestroyed();
@@ -39,7 +39,7 @@ public class KuzuFlatTuple {
      * Get the value at the given index.
      * @param index: The index of the value.
      * @return The value at the given index.
-     * @throws KuzuObjectRefDestroyedException: If the flat tuple has been destroyed.
+     * @throws KuzuObjectRefDestroyedException If the flat tuple has been destroyed.
      */
     public KuzuValue getValue(long index) throws KuzuObjectRefDestroyedException {
         checkNotDestroyed();
@@ -49,11 +49,10 @@ public class KuzuFlatTuple {
     /**
      * Convert the flat tuple to string.
      * @return The string representation of the flat tuple.
-     * @throws KuzuObjectRefDestroyedException: If the flat tuple has been destroyed.
      */
     public String toString() {
         if (destroyed)
-            return "KuzuFlatTuple has been destroyed.";
+            return null;
         else
             return KuzuNative.kuzu_flat_tuple_to_string(this);
     }

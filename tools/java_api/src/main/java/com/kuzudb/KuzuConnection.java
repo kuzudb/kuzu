@@ -22,7 +22,7 @@ public class KuzuConnection {
 
     /**
     * Check if the connection has been destroyed.
-    * @throws KuzuObjectRefDestroyedException: If the connection has been destroyed.
+    * @throws KuzuObjectRefDestroyedException If the connection has been destroyed.
     */
     private void checkNotDestroyed() throws KuzuObjectRefDestroyedException {
         if (destroyed)
@@ -31,7 +31,7 @@ public class KuzuConnection {
 
     /**
     * Finalize.
-    * @throws KuzuObjectRefDestroyedException: If the connection has been destroyed.
+    * @throws KuzuObjectRefDestroyedException If the connection has been destroyed.
     */
     @Override
     protected void finalize() throws KuzuObjectRefDestroyedException {
@@ -40,7 +40,7 @@ public class KuzuConnection {
 
     /**
     * Destroy the connection.
-    * @param KuzuObjectRefDestroyedException: If the connection has been destroyed.
+    * @throws KuzuObjectRefDestroyedException If the connection has been destroyed.
     */
     public void destroy() throws KuzuObjectRefDestroyedException {
         checkNotDestroyed();
@@ -50,7 +50,7 @@ public class KuzuConnection {
 
     /**
     * Manually starts a new read-only transaction in the current connection.
-    * @throws KuzuObjectRefDestroyedException: If the connection has been destroyed.
+    * @throws KuzuObjectRefDestroyedException If the connection has been destroyed.
     */
     public void beginReadOnlyTransaction() throws KuzuObjectRefDestroyedException {
         checkNotDestroyed();
@@ -59,7 +59,7 @@ public class KuzuConnection {
 
     /**
     * Manually starts a new write transaction in the current connection.
-    * @throws KuzuObjectRefDestroyedException: If the connection has been destroyed.
+    * @throws KuzuObjectRefDestroyedException If the connection has been destroyed.
     */
     public void beginWriteTransaction() throws KuzuObjectRefDestroyedException {
         checkNotDestroyed();
@@ -68,7 +68,7 @@ public class KuzuConnection {
 
     /**
     * Manually commits the current transaction.
-    * @throws KuzuObjectRefDestroyedException: If the connection has been destroyed.
+    * @throws KuzuObjectRefDestroyedException If the connection has been destroyed.
     */
     public void commit() throws KuzuObjectRefDestroyedException {
         checkNotDestroyed();
@@ -77,7 +77,7 @@ public class KuzuConnection {
 
     /**
     * Manually rolls back the current transaction.
-    * @throws KuzuObjectRefDestroyedException: If the connection has been destroyed.
+    * @throws KuzuObjectRefDestroyedException If the connection has been destroyed.
     */
     public void rollback() throws KuzuObjectRefDestroyedException {
         checkNotDestroyed();
@@ -87,7 +87,7 @@ public class KuzuConnection {
     /**
     * Return the maximum number of threads used for execution in the current connection.
     * @return The maximum number of threads used for execution in the current connection.
-    * @throws KuzuObjectRefDestroyedException: If the connection has been destroyed.
+    * @throws KuzuObjectRefDestroyedException If the connection has been destroyed.
     */
     public long getMaxNumThreadForExec() throws KuzuObjectRefDestroyedException {
         checkNotDestroyed();
@@ -97,7 +97,7 @@ public class KuzuConnection {
     /**
     * Sets the maximum number of threads to use for execution in the current connection.
     * @param numThreads: The maximum number of threads to use for execution in the current connection
-    * @throws KuzuObjectRefDestroyedException: If the connection has been destroyed.
+    * @throws KuzuObjectRefDestroyedException If the connection has been destroyed.
     */
     public void setMaxNumThreadForExec(long numThreads) throws KuzuObjectRefDestroyedException {
         checkNotDestroyed();
@@ -108,7 +108,7 @@ public class KuzuConnection {
     * Executes the given query and returns the result.
     * @param queryStr: The query to execute.
     * @return The result of the query.
-    * @throws KuzuObjectRefDestroyedException: If the connection has been destroyed.
+    * @throws KuzuObjectRefDestroyedException If the connection has been destroyed.
     */
     public KuzuQueryResult query(String queryStr) throws KuzuObjectRefDestroyedException {
         checkNotDestroyed();
@@ -119,7 +119,7 @@ public class KuzuConnection {
     * Prepares the given query and returns the prepared statement.
     * @param queryStr: The query to prepare.
     * @return The prepared statement.
-    * @throws KuzuObjectRefDestroyedException: If the connection has been destroyed.
+    * @throws KuzuObjectRefDestroyedException If the connection has been destroyed.
     */
     public KuzuPreparedStatement prepare(String queryStr) throws KuzuObjectRefDestroyedException {
         checkNotDestroyed();
@@ -132,7 +132,7 @@ public class KuzuConnection {
     * @param m: The parameter pack where each arg is a std::pair with the first element being parameter name and second
     * element being parameter value
     * @return The result of the query.
-    * @throws KuzuObjectRefDestroyedException: If the connection has been destroyed.
+    * @throws KuzuObjectRefDestroyedException If the connection has been destroyed.
     */
     public KuzuQueryResult execute(KuzuPreparedStatement ps, Map<String, KuzuValue> m) throws KuzuObjectRefDestroyedException {
         checkNotDestroyed();
@@ -142,7 +142,7 @@ public class KuzuConnection {
     /**
     * Get names of all node tables in the database.
     * @return Names of all node tables in the database.
-    * @throws KuzuObjectRefDestroyedException: If the connection has been destroyed.
+    * @throws KuzuObjectRefDestroyedException If the connection has been destroyed.
     */
     public String getNodeTableNames() throws KuzuObjectRefDestroyedException {
         checkNotDestroyed();
@@ -152,7 +152,7 @@ public class KuzuConnection {
     /**
     * Get names of all relationship tables in the database.
     * @return Names of all relationship tables in the database.
-    * @throws KuzuObjectRefDestroyedException: If the connection has been destroyed.
+    * @throws KuzuObjectRefDestroyedException If the connection has been destroyed.
     */
     public String getRelTableNames() throws KuzuObjectRefDestroyedException {
         checkNotDestroyed();
@@ -163,7 +163,7 @@ public class KuzuConnection {
     * Get names of all node properties in the given table.
     * @param tableName: The table name.
     * @return Names of all node properties in the given table.
-    * @throws KuzuObjectRefDestroyedException: If the connection has been destroyed.
+    * @throws KuzuObjectRefDestroyedException If the connection has been destroyed.
     */
     public String getNodePropertyNames(String tableName) throws KuzuObjectRefDestroyedException {
         checkNotDestroyed();
@@ -174,7 +174,7 @@ public class KuzuConnection {
     * Get names of all relationship properties in the given table.
     * @param tableName: The table name.
     * @return Names of all relationship properties in the given table.
-    * @throws KuzuObjectRefDestroyedException: If the connection has been destroyed.
+    * @throws KuzuObjectRefDestroyedException If the connection has been destroyed.
     */
     public String getRelPropertyNames(String tableName) throws KuzuObjectRefDestroyedException {
         checkNotDestroyed();
@@ -183,7 +183,7 @@ public class KuzuConnection {
 
     /**
     * Interrupts all queries currently executed within this connection.
-    * @throws KuzuObjectRefDestroyedException: If the connection has been destroyed.
+    * @throws KuzuObjectRefDestroyedException If the connection has been destroyed.
     */
     public void interrupt() throws KuzuObjectRefDestroyedException {
         checkNotDestroyed();
@@ -193,7 +193,7 @@ public class KuzuConnection {
     /**
     * Sets the query timeout value of the current connection. A value of zero (the default) disables the timeout.
     * @param timeoutInMs: The query timeout value in milliseconds.
-    * @throws KuzuObjectRefDestroyedException: If the connection has been destroyed.
+    * @throws KuzuObjectRefDestroyedException If the connection has been destroyed.
     */
     public void setQueryTimeout(long timeoutInMs) throws KuzuObjectRefDestroyedException {
         checkNotDestroyed();

@@ -8,7 +8,7 @@ public class KuzuValueRelUtil {
      * Get src id of the given rel value.
      * @param value: The rel value.
      * @return The src id of the given rel value.
-     * @throws KuzuObjectRefDestroyedException: If the rel value has been destroyed.
+     * @throws KuzuObjectRefDestroyedException If the rel value has been destroyed.
      */
     public static KuzuInternalID getSrcID(KuzuValue value) throws KuzuObjectRefDestroyedException {
         value.checkNotDestroyed();
@@ -19,7 +19,7 @@ public class KuzuValueRelUtil {
      * Get dst id of the given rel value.
      * @param value: The rel value.
      * @return The dst id of the given rel value.
-     * @throws KuzuObjectRefDestroyedException: If the rel value has been destroyed.
+     * @throws KuzuObjectRefDestroyedException If the rel value has been destroyed.
      */
     public static KuzuInternalID getDstID(KuzuValue value) throws KuzuObjectRefDestroyedException {
         value.checkNotDestroyed();
@@ -30,7 +30,7 @@ public class KuzuValueRelUtil {
      * Get the label name of the rel value.
      * @param value: The rel value.
      * @return The label name of the rel value.
-     * @throws KuzuObjectRefDestroyedException: If the rel value has been destroyed.
+     * @throws KuzuObjectRefDestroyedException If the rel value has been destroyed.
      */
     public static String getLabelName(KuzuValue value) throws KuzuObjectRefDestroyedException {
         value.checkNotDestroyed();
@@ -41,7 +41,7 @@ public class KuzuValueRelUtil {
      * Get the property size of the rel value.
      * @param value: The rel value.
      * @return The property size of the rel value.
-     * @throws KuzuObjectRefDestroyedException: If the rel value has been destroyed.
+     * @throws KuzuObjectRefDestroyedException If the rel value has been destroyed.
      */
     public static long getPropertySize(KuzuValue value) throws KuzuObjectRefDestroyedException {
         value.checkNotDestroyed();
@@ -53,7 +53,7 @@ public class KuzuValueRelUtil {
      * @param value: The rel value.
      * @param index: The index of the property.
      * @return The property name at the given index from the given rel value.
-     * @throws KuzuObjectRefDestroyedException: If the rel value has been destroyed.
+     * @throws KuzuObjectRefDestroyedException If the rel value has been destroyed.
      */
     public static String getPropertyNameAt(KuzuValue value, long index) throws KuzuObjectRefDestroyedException {
         value.checkNotDestroyed();
@@ -65,7 +65,7 @@ public class KuzuValueRelUtil {
      * @param value: The rel value.
      * @param index: The index of the property.
      * @return The property value at the given index from the given rel value.
-     * @throws KuzuObjectRefDestroyedException: If the rel value has been destroyed.
+     * @throws KuzuObjectRefDestroyedException If the rel value has been destroyed.
      */
     public static KuzuValue getPropertyValueAt(KuzuValue value, long index) throws KuzuObjectRefDestroyedException {
         value.checkNotDestroyed();

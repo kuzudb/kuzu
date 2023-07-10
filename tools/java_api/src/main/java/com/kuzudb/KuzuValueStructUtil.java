@@ -8,7 +8,7 @@ public class KuzuValueStructUtil {
      * Get the number of fields of the struct value.
      * @param value: The struct value.
      * @return The number of fields of the struct value.
-     * @throws KuzuObjectRefDestroyedException: If the struct value has been destroyed.
+     * @throws KuzuObjectRefDestroyedException If the struct value has been destroyed.
      */
     public static long getNumFields(KuzuValue value) throws KuzuObjectRefDestroyedException {
         value.checkNotDestroyed();
@@ -20,7 +20,7 @@ public class KuzuValueStructUtil {
      * @param value: The struct value.
      * @param fieldName: The name of the field.
      * @return The index of the field with the given name from the given struct value.
-     * @throws KuzuObjectRefDestroyedException: If the struct value has been destroyed.
+     * @throws KuzuObjectRefDestroyedException If the struct value has been destroyed.
      */
     public static long getIndexByFieldName(KuzuValue value, String fieldName) throws KuzuObjectRefDestroyedException {
         value.checkNotDestroyed();
@@ -32,7 +32,7 @@ public class KuzuValueStructUtil {
      * @param value: The struct value.
      * @param index: The index of the field.
      * @return The name of the field at the given index from the given struct value.
-     * @throws KuzuObjectRefDestroyedException: If the struct value has been destroyed.
+     * @throws KuzuObjectRefDestroyedException If the struct value has been destroyed.
      */
     public static String getFieldNameByIndex(KuzuValue value, long index) throws KuzuObjectRefDestroyedException {
         value.checkNotDestroyed();
@@ -44,7 +44,7 @@ public class KuzuValueStructUtil {
      * @param value: The struct value.
      * @param fieldName: The name of the field.
      * @return The value of the field with the given name from the given struct value.
-     * @throws KuzuObjectRefDestroyedException: If the struct value has been destroyed.
+     * @throws KuzuObjectRefDestroyedException If the struct value has been destroyed.
      */
     public static KuzuValue getValueByFieldName(KuzuValue value, String fieldName) throws KuzuObjectRefDestroyedException {
         value.checkNotDestroyed();
@@ -60,7 +60,7 @@ public class KuzuValueStructUtil {
      * @param value: The struct value.
      * @param index: The index of the field.
      * @return The value of the field at the given index from the given struct value.
-     * @throws KuzuObjectRefDestroyedException: If the struct value has been destroyed.
+     * @throws KuzuObjectRefDestroyedException If the struct value has been destroyed.
      */
     public static KuzuValue getValueByIndex(KuzuValue value, long index) throws KuzuObjectRefDestroyedException {
         value.checkNotDestroyed();

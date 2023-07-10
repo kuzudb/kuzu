@@ -9,7 +9,7 @@ public class KuzuPreparedStatement {
 
     /**
      * Check if the prepared statement has been destroyed.
-     * @throws KuzuObjectRefDestroyedException: If the prepared statement has been destroyed.
+     * @throws KuzuObjectRefDestroyedException If the prepared statement has been destroyed.
      */
     private void checkNotDestroyed() throws KuzuObjectRefDestroyedException {
         if (destroyed)
@@ -18,7 +18,7 @@ public class KuzuPreparedStatement {
 
     /**
     * Finalize.
-    * @throws KuzuObjectRefDestroyedException: If the prepared statement has been destroyed.
+    * @throws KuzuObjectRefDestroyedException If the prepared statement has been destroyed.
     */
     @Override
     protected void finalize() throws KuzuObjectRefDestroyedException {
@@ -27,7 +27,7 @@ public class KuzuPreparedStatement {
 
     /**
      * Destroy the prepared statement.
-     * @throws KuzuObjectRefDestroyedException: If the prepared statement has been destroyed.
+     * @throws KuzuObjectRefDestroyedException If the prepared statement has been destroyed.
      */
     public void destroy() throws KuzuObjectRefDestroyedException {
         checkNotDestroyed();
@@ -38,7 +38,7 @@ public class KuzuPreparedStatement {
     /**
      * DDL and COPY_CSV statements are automatically wrapped in a transaction and committed. As such, they cannot be
      * part of an active transaction.
-     * @throws KuzuObjectRefDestroyedException: If the prepared statement has been destroyed.
+     * @throws KuzuObjectRefDestroyedException If the prepared statement has been destroyed.
      */
     public boolean allowActiveTransaction() throws KuzuObjectRefDestroyedException {
         checkNotDestroyed();
@@ -48,7 +48,7 @@ public class KuzuPreparedStatement {
     /**
      * Check if the query is prepared successfully or not.
      * @return The query is prepared successfully or not.
-     * @throws KuzuObjectRefDestroyedException: If the prepared statement has been destroyed.
+     * @throws KuzuObjectRefDestroyedException If the prepared statement has been destroyed.
      */
     public boolean isSuccess() throws KuzuObjectRefDestroyedException {
         checkNotDestroyed();
@@ -58,7 +58,7 @@ public class KuzuPreparedStatement {
     /**
      * Get the error message if the query is not prepared successfully.
      * @return The error message if the query is not prepared successfully.
-     * @throws KuzuObjectRefDestroyedException: If the prepared statement has been destroyed.
+     * @throws KuzuObjectRefDestroyedException If the prepared statement has been destroyed.
      */
     public String getErrorMessage() throws KuzuObjectRefDestroyedException {
         checkNotDestroyed();
