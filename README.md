@@ -44,7 +44,7 @@ Kùzu is being actively developed at University of Waterloo as a feature-rich an
 | C/C++  | [precompiled binaries](https://github.com/kuzudb/kuzu/releases/latest) |
 | CLI    | [precompiled binaries](https://github.com/kuzudb/kuzu/releases/latest) |
 
-To learn more about installation, see [Installation](https://kuzudb.com/docusaurus/getting-started/).
+To learn more about installation, see our [Installation](https://kuzudb.com/docusaurus/installation/) page.
 
 ## Getting Started
 
