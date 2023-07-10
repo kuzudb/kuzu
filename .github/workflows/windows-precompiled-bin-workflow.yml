@@ -14,7 +14,10 @@ jobs:
         run: python.exe -m pip install networkx --user
 
       - name: Build precompiled binaries
-        run: python.exe build.py
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
+          python.exe build.py
         working-directory: ./scripts/pre-compiled-bins/
 
       - uses: actions/upload-artifact@v3
