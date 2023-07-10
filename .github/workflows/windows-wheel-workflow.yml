@@ -44,4 +44,5 @@ jobs:
 
       - uses: actions/upload-artifact@v3
         with:
+          name: windows-wheels
           path: ./scripts/pip-package/wheelhouse/*.whl

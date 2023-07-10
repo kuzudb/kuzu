@@ -125,17 +125,17 @@ jobs:
   #         name: kuzu-deploy-nodejs
   #         path: tools/nodejs_api/kuzu-source.tar.gz
 
-  # build-wheel-mac:
-  #   uses: ./.github/workflows/mac-wheel-workflow.yml
-  #   secrets: inherit
+  build-wheel-mac:
+    uses: ./.github/workflows/mac-wheel-workflow.yml
+    secrets: inherit
   
-  # build-wheel-linux:
-  #   uses: ./.github/workflows/linux-wheel-workflow.yml
-  #   secrets: inherit
+  build-wheel-linux:
+    uses: ./.github/workflows/linux-wheel-workflow.yml
+    secrets: inherit
   
-  # build-wheel-windows:
-  #   uses: ./.github/workflows/windows-wheel-workflow.yml
-  #   secrets: inherit
+  build-wheel-windows:
+    uses: ./.github/workflows/windows-wheel-workflow.yml
+    secrets: inherit
   
   package-python-sdist:
     runs-on: ubuntu-latest
@@ -151,3 +151,49 @@ jobs:
         with:
           name: python-sdist
           path: scripts/pip-package/*.tar.gz
+    
+  deploy-python:
+    needs: [build-wheel-mac, build-wheel-linux, build-wheel-windows, package-python-sdist]
+    runs-on: ubuntu-latest
+    env:
+      TEST_TOKEN: ${{ secrets.PYPI_TEST_TOKEN }}
+      DEPLOY_TOKEN: ${{ secrets.PYPI_TOKEN }}
+    steps:
+      - name: Download wheels
+        uses: actions/download-artifact@v3
+        with:
+          name: macos-wheels
+          path: dist
+
+      - uses: actions/download-artifact@v3
+        with:
+          name: linux-wheels
+          path: dist
+
+      - uses: actions/download-artifact@v3
+        with:
+          name: windows-wheels
+          path: dist
+      
+      - uses: actions/download-artifact@v3
+        with:
+          name: python-sdist
+          path: dist
+
+      - name: List wheels
+        run: ls -l
+        working-directory: dist
+
+      - name: Deploy to PyPI test
+        if: ${{ github.event.inputs.isDeploy != 'true' }}
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.PYPI_TEST_TOKEN }}
+          repository-url: https://test.pypi.org/legacy/
+
+
+      - name: Deploy to PyPI
+        if: ${{ github.event.inputs.isDeploy == 'true' }}
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.PYPI_TOKEN }}
