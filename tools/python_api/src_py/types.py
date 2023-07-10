@@ -18,3 +18,4 @@ class Type(Enum):
     REL = "REL"
     NODE_ID = "NODE_ID"
     STRUCT = "STRUCT"
+    RECURSIVE_REL = "RECURSIVE_REL"
