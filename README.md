@@ -34,95 +34,26 @@ Kùzu is an in-process property graph database management system (GDBMS) built f
 Kùzu is being actively developed at University of Waterloo as a feature-rich and usable GDBMS. Kùzu is available under a permissible license. So try it out and help us make it better! We welcome your feedback and feature requests.
 
 ## Installation
-### Precompiled binary
-Precompiled binary of our latest release can be downloaded [here](https://github.com/kuzudb/kuzu/releases/latest).  
-### Python package
-Our Python package can be directly install through pip.
-```
-pip install kuzu
-```
-### NodeJS package
-```
-npm install kuzu
-```
 
-We also support official C++ and C bindings. For more installation and usage instructions, please refer to [our website](https://kuzudb.com/).
+| Language | Installation                                                           |
+| -------- |------------------------------------------------------------------------|
+| Python | `pip install kuzu`                                                     |
+| NodeJS | `npm install kuzu`                                                     |
+| Rust   | `cargo add kuzu`                                                       |
+| Java   | [jar file](https://github.com/kuzudb/kuzu/releases/latest)             |
+| C/C++  | [precompiled binaries](https://github.com/kuzudb/kuzu/releases/latest) |
+| CLI    | [precompiled binaries](https://github.com/kuzudb/kuzu/releases/latest) |
+
+To learn more about installation, see our [Installation](https://kuzudb.com/docusaurus/installation/) page.
 
 ## Getting Started
-We take `tinysnb` as an example graph, which is under `dataset/demo-db/csv` in our source code, and can be downloaded [here](https://github.com/kuzudb/kuzu/tree/master/dataset/demo-db/csv).
 
-### CLI
+Refer to our [Getting Started](https://kuzudb.com/docusaurus/getting-started/) page for your first example.
 
-Start CLI with a database directory `./kuzu_shell ./testdb/`
-```cypher
-# Data definition
-kuzu> CREATE NODE TABLE User(name STRING, age INT64, PRIMARY KEY (name));
-kuzu> CREATE REL TABLE Follows(FROM User TO User, since INT64);
-# Data loading
-kuzu> COPY User FROM "dataset/demo-db/csv/user.csv";
-kuzu> COPY Follows FROM "dataset/demo-db/csv/follows.csv";
-# Querying
-kuzu> MATCH (a:User)-[f:Follows]->(b:User) RETURN a.name, b.name, f.since;
-```
-
-### Python
-```python
-import kuzu
-
-db = kuzu.Database('./testdb')
-conn = kuzu.Connection(db)
-# Data definition
-conn.execute("CREATE NODE TABLE User(name STRING, age INT64, PRIMARY KEY (name))")
-conn.execute("CREATE REL TABLE Follows(FROM User TO User, since INT64)")
-# Data loading
-conn.execute('COPY User FROM "user.csv"')
-conn.execute('COPY Follows FROM "follows.csv"')
-# Run a query.
-results = conn.execute('MATCH (u:User) RETURN COUNT(*);')
-while results.has_next():
-  print(results.get_next())
-# Run a query and get results as a pandas dataframe.
-results = conn.execute('MATCH (a:User)-[f:Follows]->(b:User) RETURN a.name, f.since, b.name;').get_as_df()
-print(results)
-# Run a query and get results as an arrow table.
-results = conn.execute('MATCH (u:User) RETURN u.name, u.age;').get_as_arrow(chunk_size=100)
-print(results)
-```
-
-### NodeJS
-```js
-// Import library
-const kuzu = require("kuzu");
-
-(async () => {
-  // Create an empty database and connect to it
-  const db = new kuzu.Database("./test");
-  const conn = new kuzu.Connection(db);
-
-  // Data definition
-  await conn.query(
-    "CREATE NODE TABLE User(name STRING, age INT64, PRIMARY KEY (name))"
-  );
-  await conn.query("CREATE REL TABLE Follows(FROM User TO User, since INT64)");
-
-  // Data loading
-  await conn.query('COPY User FROM "user.csv"');
-  await conn.query('COPY Follows FROM "follows.csv"');
-
-  // Run a query
-  const queryResult = await conn.query("MATCH (u:User) RETURN u.name, u.age;");
-
-  // Get all rows from the query result
-  const rows = await queryResult.getAll();
-
-  // Print the rows
-  for (const row of rows) {
-    console.log(row);
-  }
-})();
-```
-
-Refer to our [Data Import](https://kuzudb.com/docs/data-import) and [Cypher](https://kuzudb.com/docs/cypher) section for more information.
+More information can be found at
+- [Data Import](https://kuzudb.com/docusaurus/data-import/)
+- [Cypher Reference](https://kuzudb.com/docusaurus/cypher/)
+- [Client APIs](https://kuzudb.com/docusaurus/client-apis/)
 
 ## Build
 To build from source code, Kùzu requires Cmake(>=3.11), Python 3, and a compiler that supports `C++20`.
