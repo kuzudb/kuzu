@@ -156,8 +156,7 @@ jobs:
     needs: [build-wheel-mac, build-wheel-linux, build-wheel-windows, package-python-sdist]
     runs-on: ubuntu-latest
     steps:
-      - name: Download wheels
-        uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v3
         with:
           name: macos-wheels
           path: dist
