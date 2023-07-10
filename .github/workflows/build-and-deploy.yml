@@ -155,9 +155,6 @@ jobs:
   deploy-python:
     needs: [build-wheel-mac, build-wheel-linux, build-wheel-windows, package-python-sdist]
     runs-on: ubuntu-latest
-    env:
-      TEST_TOKEN: ${{ secrets.PYPI_TEST_TOKEN }}
-      DEPLOY_TOKEN: ${{ secrets.PYPI_TOKEN }}
     steps:
       - name: Download wheels
         uses: actions/download-artifact@v3
