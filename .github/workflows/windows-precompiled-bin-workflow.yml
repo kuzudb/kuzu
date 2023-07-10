@@ -33,6 +33,3 @@ jobs:
         with:
           name: kuzu_cli-windows-x86_64
           path: ./scripts/pre-compiled-bins/kuzu.exe
-
-      - name: Clean up
-        run: rm -rf ./scripts/pre-compiled-bins/kuzu ./scripts/pre-compiled-bins/headers ./scripts/pre-compiled-bins/kuzu_shared.dll ./scripts/pre-compiled-bins/kuzu_shared.lib ./scripts/pre-compiled-bins/kuzu.h ./scripts/pre-compiled-bins/kuzu.hpp
