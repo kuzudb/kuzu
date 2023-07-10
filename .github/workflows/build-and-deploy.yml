@@ -190,7 +190,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: kuzu-deploy-wheels
-          path: dist/*.whl dist/*.tar.gz
+          path: dist/*
 
       - name: Deploy to PyPI test
         if: ${{ github.event.inputs.isDeploy != 'true' }}
