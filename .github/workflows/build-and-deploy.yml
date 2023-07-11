@@ -205,6 +205,33 @@ jobs:
         with:
           password: ${{ secrets.PYPI_TOKEN }}
 
+  deploy-rust:
+    runs-on: kuzu-self-hosted-testing
+    env:
+      CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Update Cargo.toml version
+        run: python3 update_version.py
+        working-directory: tools/rust_api
+
+      - name: Deploy crate to Crates.io
+        run: cargo publish --allow-dirty
+        if: ${{ github.event.inputs.isDeploy == 'true' }}
+        working-directory: tools/rust_api
+
+      - name: Test publishing crate
+        run: cargo publish --dry-run --allow-dirty
+        if: ${{ github.event.inputs.isDeploy != 'true' }}
+        working-directory: tools/rust_api
+
+      - name: Upload crate
+        uses: actions/upload-artifact@v3
+        with:
+          name: kuzu-deploy-crate
+          path: tools/rust_api/target/package/*.crate
+
   build-precompiled-bin-mac:
     uses: ./.github/workflows/mac-precompiled-bin-workflow.yml
     secrets: inherit
