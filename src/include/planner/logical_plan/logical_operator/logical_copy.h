@@ -14,9 +14,9 @@ public:
         std::string tableName, binder::expression_vector arrowColumnExpressions,
         std::shared_ptr<binder::Expression> columnIdxExpression,
         std::shared_ptr<binder::Expression> outputExpression)
-        : LogicalOperator{LogicalOperatorType::COPY},
-          copyDescription{copyDescription}, tableID{tableID}, tableName{std::move(tableName)},
-          arrowColumnExpressions{std::move(arrowColumnExpressions)},
+        : LogicalOperator{LogicalOperatorType::COPY}, copyDescription{copyDescription},
+          tableID{tableID}, tableName{std::move(tableName)}, arrowColumnExpressions{std::move(
+                                                                 arrowColumnExpressions)},
           columnIdxExpression{std::move(columnIdxExpression)}, outputExpression{
                                                                    std::move(outputExpression)} {}
 
@@ -42,8 +42,8 @@ public:
     void computeFlatSchema() override;
 
     inline std::unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalCopy>(
-            copyDescription, tableID, tableName, arrowColumnExpressions, columnIdxExpression, outputExpression);
+        return make_unique<LogicalCopy>(copyDescription, tableID, tableName, arrowColumnExpressions,
+            columnIdxExpression, outputExpression);
     }
 
 private:

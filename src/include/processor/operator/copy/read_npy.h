@@ -9,10 +9,9 @@ namespace processor {
 
 class ReadNPYMorsel : public ReadFileMorsel {
 public:
-    ReadNPYMorsel(common::offset_t nodeOffset, common::block_idx_t blockIdx, uint64_t numNodes,
-        std::string filePath, common::vector_idx_t curFileIdx)
-        : ReadFileMorsel{blockIdx, numNodes, std::move(filePath)}, columnIdx{
-                                                                                   curFileIdx} {}
+    ReadNPYMorsel(common::block_idx_t blockIdx, uint64_t numNodes, std::string filePath,
+        common::vector_idx_t curFileIdx)
+        : ReadFileMorsel{blockIdx, numNodes, std::move(filePath)}, columnIdx{curFileIdx} {}
 
     inline common::vector_idx_t getColumnIdx() const { return columnIdx; }
 
@@ -22,8 +21,8 @@ private:
 
 class ReadNPYSharedState : public ReadFileSharedState {
 public:
-    ReadNPYSharedState(std::vector<std::string> filePaths)
-        : ReadFileSharedState{std::move(filePaths)} {}
+    ReadNPYSharedState(std::vector<std::string> filePaths, catalog::TableSchema* tableSchema)
+        : ReadFileSharedState{std::move(filePaths), tableSchema} {}
 
     std::unique_ptr<ReadFileMorsel> getMorsel() final;
 
@@ -33,8 +32,8 @@ private:
 
 class ReadNPY : public ReadFile {
 public:
-    ReadNPY(std::vector<DataPos> arrowColumnPoses,
-        const DataPos& columnIdxPos, std::shared_ptr<ReadFileSharedState> sharedState, uint32_t id,
+    ReadNPY(std::vector<DataPos> arrowColumnPoses, const DataPos& columnIdxPos,
+        std::shared_ptr<ReadFileSharedState> sharedState, uint32_t id,
         const std::string& paramsString)
         : ReadFile{std::move(arrowColumnPoses), std::move(sharedState),
               PhysicalOperatorType::READ_NPY, id, paramsString},

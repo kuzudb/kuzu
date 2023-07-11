@@ -23,8 +23,12 @@ public:
 
 class ReadFileSharedState {
 public:
-    explicit ReadFileSharedState(std::vector<std::string> filePaths)
-        : curBlockIdx{0}, filePaths{std::move(filePaths)}, curFileIdx{0}, numRows{0} {}
+    explicit ReadFileSharedState(
+        std::vector<std::string> filePaths, catalog::TableSchema* tableSchema)
+        : curBlockIdx{0}, filePaths{std::move(filePaths)}, curFileIdx{0}, numRows{0},
+          tableSchema{tableSchema} {
+        assert(tableSchema);
+    }
 
     virtual ~ReadFileSharedState() = default;
 
@@ -34,6 +38,7 @@ public:
 
 public:
     uint64_t numRows;
+    catalog::TableSchema* tableSchema;
 
 protected:
     std::mutex mtx;
@@ -48,9 +53,8 @@ public:
     ReadFile(std::vector<DataPos> arrowColumnPoses,
         std::shared_ptr<ReadFileSharedState> sharedState, PhysicalOperatorType operatorType,
         uint32_t id, const std::string& paramsString)
-        : PhysicalOperator{operatorType, id, paramsString}, arrowColumnPoses{std::move(
-                                                                arrowColumnPoses)},
-           sharedState{std::move(sharedState)} {}
+        : PhysicalOperator{operatorType, id, paramsString},
+          arrowColumnPoses{std::move(arrowColumnPoses)}, sharedState{std::move(sharedState)} {}
 
     inline void initGlobalStateInternal(kuzu::processor::ExecutionContext* context) override {
         sharedState->countNumLines();

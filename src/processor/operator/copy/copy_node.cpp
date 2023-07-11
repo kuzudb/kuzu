@@ -24,8 +24,7 @@ CopyNodeSharedState::CopyNodeSharedState(uint64_t& numRows, NodeTableSchema* tab
 void CopyNodeSharedState::initializePrimaryKey(const std::string& directory) {
     if (tableSchema->getPrimaryKey().dataType.getLogicalTypeID() != LogicalTypeID::SERIAL) {
         pkIndex = std::make_unique<PrimaryKeyIndexBuilder>(
-            StorageUtils::getNodeIndexFName(
-                directory, tableSchema->tableID, DBFileType::ORIGINAL),
+            StorageUtils::getNodeIndexFName(directory, tableSchema->tableID, DBFileType::ORIGINAL),
             tableSchema->getPrimaryKey().dataType);
         pkIndex->bulkReserve(numRows);
     }

@@ -17,8 +17,9 @@ public:
 
 class ReadCSVSharedState : public ReadFileSharedState {
 public:
-    ReadCSVSharedState(common::CSVReaderConfig csvReaderConfig, std::vector<std::string> filePaths)
-        : ReadFileSharedState{std::move(filePaths)}, csvReaderConfig{csvReaderConfig} {
+    ReadCSVSharedState(common::CSVReaderConfig csvReaderConfig, std::vector<std::string> filePaths,
+        catalog::TableSchema* tableSchema)
+        : ReadFileSharedState{std::move(filePaths), tableSchema}, csvReaderConfig{csvReaderConfig} {
     }
 
 private:

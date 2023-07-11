@@ -39,12 +39,10 @@ std::unique_ptr<ReadFileMorsel> ReadNPYSharedState::getMorsel() {
             // No more blocks to read in this file.
             curFileIdx++;
             curBlockIdx = 0;
-            nodeOffset = 0;
             continue;
         }
-        auto result = std::make_unique<ReadNPYMorsel>(nodeOffset, curBlockIdx,
-            fileBlockInfo.numLinesPerBlock[curBlockIdx], filePath, curFileIdx);
-        nodeOffset += fileBlockInfo.numLinesPerBlock[curBlockIdx];
+        auto result = std::make_unique<ReadNPYMorsel>(
+            curBlockIdx, fileBlockInfo.numLinesPerBlock[curBlockIdx], filePath, curFileIdx);
         curBlockIdx++;
         return result;
     }
@@ -66,13 +64,11 @@ bool ReadNPY::getNextTuplesInternal(kuzu::processor::ExecutionContext* context) 
         return false;
     }
     auto npyMorsel = reinterpret_cast<ReadNPYMorsel*>(morsel.get());
-    auto startOffset = npyMorsel->nodeOffset;
     auto columnIdx = npyMorsel->getColumnIdx();
-    offsetVector->setValue(offsetVector->state->selVector->selectedPositions[0], startOffset);
     columnIdxVector->setValue(columnIdxVector->state->selVector->selectedPositions[0], columnIdx);
     auto recordBatch = readTuples(std::move(morsel));
-    common::ArrowColumnVector::setArrowColumn(
-        arrowColumnVectors[columnIdx], recordBatch->column((int)0));
+    //    common::ArrowColumnVector::setArrowColumn(
+    //        arrowColumnVectors[columnIdx], recordBatch->column((int)0));
     return true;
 }
 
