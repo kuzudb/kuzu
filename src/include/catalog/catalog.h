@@ -215,6 +215,8 @@ public:
     std::unordered_set<RelTableSchema*> getAllRelTableSchemasContainBoundTable(
         common::table_id_t boundTableID) const;
 
+    void addVectorFunction(std::string name, function::vector_function_definitions definitions);
+
 private:
     inline bool hasUpdates() { return catalogContentForWriteTrx != nullptr; }
 

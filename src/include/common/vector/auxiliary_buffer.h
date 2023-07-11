@@ -1,7 +1,10 @@
 #pragma once
 
-#include "arrow/array.h"
 #include "common/in_mem_overflow_buffer.h"
+
+namespace arrow {
+class Array;
+}
 
 namespace kuzu {
 namespace common {

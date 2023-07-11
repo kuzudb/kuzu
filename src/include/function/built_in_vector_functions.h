@@ -11,7 +11,7 @@ public:
     BuiltInVectorFunctions() { registerVectorFunctions(); }
 
     inline bool containsFunction(const std::string& functionName) {
-        return VectorFunctions.contains(functionName);
+        return vectorFunctions.contains(functionName);
     }
 
     /**
@@ -26,6 +26,8 @@ public:
 
     static uint32_t getCastCost(
         common::LogicalTypeID inputTypeID, common::LogicalTypeID targetTypeID);
+
+    void addFunction(std::string name, function::vector_function_definitions definitions);
 
 private:
     static uint32_t getTargetTypeCost(common::LogicalTypeID typeID);
@@ -75,7 +77,7 @@ private:
 
 private:
     // TODO(Ziyi): Refactor VectorFunction/tableOperation to inherit from the same base class.
-    std::unordered_map<std::string, vector_function_definitions> VectorFunctions;
+    std::unordered_map<std::string, vector_function_definitions> vectorFunctions;
 };
 
 } // namespace function

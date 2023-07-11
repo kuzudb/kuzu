@@ -161,6 +161,7 @@ fn build_bundled_cmake() -> Result<Vec<PathBuf>, Box<dyn std::error::Error>> {
 
     Ok(vec![
         kuzu_root.join("src/include"),
+        kuzu_root.join("third_party/concurrentqueue"),
         kuzu_root.join("third_party/nlohmann_json"),
         kuzu_root.join("third_party/spdlog"),
         arrow_install.join("include"),

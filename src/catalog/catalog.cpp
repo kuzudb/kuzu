@@ -463,5 +463,11 @@ std::unordered_set<RelTableSchema*> Catalog::getAllRelTableSchemasContainBoundTa
     return relTableSchemas;
 }
 
+void Catalog::addVectorFunction(
+    std::string name, function::vector_function_definitions definitions) {
+    common::StringUtils::toUpper(name);
+    builtInVectorFunctions->addFunction(std::move(name), std::move(definitions));
+}
+
 } // namespace catalog
 } // namespace kuzu

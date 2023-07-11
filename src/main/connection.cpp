@@ -426,5 +426,10 @@ void Connection::beginTransactionIfAutoCommit(PreparedStatement* preparedStateme
     }
 }
 
+void Connection::addScalarFunction(
+    std::string name, function::vector_function_definitions definitions) {
+    database->catalog->addVectorFunction(name, std::move(definitions));
+}
+
 } // namespace main
 } // namespace kuzu

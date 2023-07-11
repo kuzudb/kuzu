@@ -4,6 +4,7 @@
 
 #include "client_context.h"
 #include "database.h"
+#include "function/udf_function.h"
 #include "prepared_statement.h"
 #include "query_result.h"
 
@@ -147,6 +148,14 @@ public:
      */
     KUZU_API uint64_t getQueryTimeOut();
 
+    template<typename TR, typename... Args>
+    void createScalarFunction(const std::string& name, TR (*udfFunc)(Args...)) {
+        function::vector_function_definitions definitions;
+        auto definition = function::getFunctionDefinition<TR, Args...>(name, udfFunc);
+        definitions.push_back(std::move(definition));
+        addScalarFunction(name, std::move(definitions));
+    }
+
 protected:
     ConnectionTransactionMode getTransactionMode();
     void setTransactionModeNoLock(ConnectionTransactionMode newTransactionMode);
@@ -201,6 +210,8 @@ private:
         rollbackIfNecessaryNoLock();
         return queryResultWithError(exceptionMessage);
     }
+
+    void addScalarFunction(std::string name, function::vector_function_definitions definitions);
 
 protected:
     Database* database;

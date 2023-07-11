@@ -3,6 +3,7 @@
 #include <cstring>
 
 #include "common/utils.h"
+#include "storage/buffer_manager/buffer_manager.h"
 
 using namespace kuzu::common;
 

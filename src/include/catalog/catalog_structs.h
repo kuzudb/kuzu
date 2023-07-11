@@ -7,7 +7,6 @@
 #include "common/constants.h"
 #include "common/exception.h"
 #include "common/rel_direction.h"
-#include "common/string_utils.h"
 #include "common/types/types_include.h"
 
 namespace kuzu {
@@ -48,9 +47,7 @@ public:
 
     virtual ~TableSchema() = default;
 
-    static inline bool isReservedPropertyName(const std::string& propertyName) {
-        return common::StringUtils::getUpper(propertyName) == common::InternalKeyword::ID;
-    }
+    static bool isReservedPropertyName(const std::string& propertyName);
 
     inline uint32_t getNumProperties() const { return properties.size(); }
 
