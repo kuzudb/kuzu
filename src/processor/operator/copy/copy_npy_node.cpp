@@ -6,7 +6,7 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace processor {
 
-void CopyNPYNode::executeInternal(ExecutionContext* context) {
+// void CopyNPYNode::executeInternal(ExecutionContext* context) {
 //    logCopyWALRecord();
 //    auto npyLocalState = reinterpret_cast<CopyNPYNodeLocalState*>(localState.get());
 //    while (children[0]->getNextTuple(context)) {
@@ -24,9 +24,9 @@ void CopyNPYNode::executeInternal(ExecutionContext* context) {
 //        flushChunksAndPopulatePKIndexSingleColumn(
 //            columnChunks, startOffset, endOffset, columnToCopy);
 //    }
-}
+//}
 
-//void CopyNPYNode::flushChunksAndPopulatePKIndexSingleColumn(
+// void CopyNPYNode::flushChunksAndPopulatePKIndexSingleColumn(
 //    std::vector<std::unique_ptr<InMemColumnChunk>>& columnChunks, offset_t startNodeOffset,
 //    offset_t endNodeOffset, vector_idx_t columnToCopy) {
 //    sharedState->columns[columnToCopy]->flushChunk(columnChunks[0].get());
