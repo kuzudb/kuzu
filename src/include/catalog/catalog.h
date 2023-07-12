@@ -44,6 +44,9 @@ public:
         common::table_id_t dstTableID, common::LogicalType srcPKDataType,
         common::LogicalType dstPKDataType);
 
+    inline bool hasNodeTable() const { return !nodeTableSchemas.empty(); }
+    inline bool hasRelTable() const { return !relTableSchemas.empty(); }
+
     inline bool containNodeTable(common::table_id_t tableID) const {
         return nodeTableSchemas.contains(tableID);
     }

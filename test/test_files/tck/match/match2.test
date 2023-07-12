@@ -1,0 +1,35 @@
+-GROUP TCK
+-DATASET CSV tck
+
+--
+
+# Match non-existent relationships returns empty
+-CASE Scenario1
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT MATCH ()-[r]->() RETURN r;
+---- error
+Binder exception: No rel table exists in database.
+
+# Matching a relationship pattern using a label predicate on both sides
+-CASE Scenario2
+-STATEMENT CREATE NODE TABLE A(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE NODE TABLE B(ID SERIAL, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE T1(FROM A TO B);
+---- ok
+-STATEMENT CREATE REL TABLE T2(FROM B TO A);
+---- ok
+-STATEMENT CREATE REL TABLE T3(FROM B TO B);
+---- ok
+-STATEMENT CREATE REL TABLE T4(FROM A TO A);
+---- ok
+-STATEMENT CREATE (:A)-[:T1]->(:B),
+                  (:B)-[:T2]->(:A),
+                  (:B)-[:T3]->(:B),
+                  (:A)-[:T4]->(:A);
+---- ok
+-STATEMENT MATCH (:A)-[r]->(:B) RETURN r;
+---- 1
+(0:0)-{_LABEL: T1, _ID: 2:0}->(1:0)

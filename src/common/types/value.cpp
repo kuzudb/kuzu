@@ -340,13 +340,13 @@ std::string Value::toString() const {
         auto fieldNames = StructType::getFieldNames(&dataType);
         for (auto i = 0u; i < nestedTypeVal.size(); ++i) {
             if (nestedTypeVal[i]->isNull_) {
+                // Avoid printing null key value pair.
                 continue;
             }
-            result += fieldNames[i] + ": ";
-            result += nestedTypeVal[i]->toString();
-            if (i != nestedTypeVal.size() - 1) {
+            if (i != 0) {
                 result += ", ";
             }
+            result += fieldNames[i] + ": " + nestedTypeVal[i]->toString();
         }
         result += "}";
         return result;
@@ -356,13 +356,13 @@ std::string Value::toString() const {
         auto fieldNames = StructType::getFieldNames(&dataType);
         for (auto i = 2u; i < nestedTypeVal.size(); ++i) {
             if (nestedTypeVal[i]->isNull_) {
+                // Avoid printing null key value pair.
                 continue;
             }
-            result += fieldNames[i] + ": ";
-            result += nestedTypeVal[i]->toString();
-            if (i != nestedTypeVal.size() - 1) {
+            if (i != 2) {
                 result += ", ";
             }
+            result += fieldNames[i] + ": " + nestedTypeVal[i]->toString();
         }
         result += "}->(" + nestedTypeVal[1]->toString() + ")";
         return result;

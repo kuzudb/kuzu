@@ -37,7 +37,7 @@
 -LOG EmptyStringTest
 -STATEMENT MATCH (row:tableOfTypes) WHERE row.id = 49992 RETURN *;
 ---- 1
-{_ID: 0:49992, _LABEL: tableOfTypes, id: 49992, int64Column: 50, doubleColumn: 31.582059, booleanColumn: False, dateColumn: 1551-07-19, timestampColumn: 1551-07-19 16:28:31, }
+{_ID: 0:49992, _LABEL: tableOfTypes, id: 49992, int64Column: 50, doubleColumn: 31.582059, booleanColumn: False, dateColumn: 1551-07-19, timestampColumn: 1551-07-19 16:28:31}
 
 -LOG FloatTest
 -STATEMENT MATCH (row:tableOfTypes) WHERE row.doubleColumn = 68.73718401556897 RETURN row.dateColumn;
