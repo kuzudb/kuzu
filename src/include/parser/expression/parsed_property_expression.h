@@ -13,6 +13,7 @@ public:
           propertyName{std::move(propertyName)} {}
 
     inline std::string getPropertyName() const { return propertyName; }
+    inline bool isStar() const { return propertyName == common::InternalKeyword::STAR; }
 
 private:
     std::string propertyName;

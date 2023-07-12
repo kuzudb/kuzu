@@ -1,6 +1,7 @@
 #include "binder/binder.h"
 #include "binder/expression/expression_visitor.h"
 #include "binder/expression/literal_expression.h"
+#include "parser/expression/parsed_property_expression.h"
 
 using namespace kuzu::common;
 using namespace kuzu::parser;
@@ -10,8 +11,8 @@ namespace binder {
 
 std::unique_ptr<BoundWithClause> Binder::bindWithClause(const WithClause& withClause) {
     auto projectionBody = withClause.getProjectionBody();
-    auto projectionExpressions = bindProjectionExpressions(
-        projectionBody->getProjectionExpressions(), projectionBody->containsStar());
+    auto projectionExpressions =
+        bindProjectionExpressions(projectionBody->getProjectionExpressions());
     validateProjectionColumnsInWithClauseAreAliased(projectionExpressions);
     expression_vector newProjectionExpressions;
     for (auto& expression : projectionExpressions) {
@@ -47,8 +48,8 @@ std::unique_ptr<BoundWithClause> Binder::bindWithClause(const WithClause& withCl
 
 std::unique_ptr<BoundReturnClause> Binder::bindReturnClause(const ReturnClause& returnClause) {
     auto projectionBody = returnClause.getProjectionBody();
-    auto boundProjectionExpressions = bindProjectionExpressions(
-        projectionBody->getProjectionExpressions(), projectionBody->containsStar());
+    auto boundProjectionExpressions =
+        bindProjectionExpressions(projectionBody->getProjectionExpressions());
     auto statementResult = std::make_unique<BoundStatementResult>();
     for (auto& expression : boundProjectionExpressions) {
         statementResult->addColumn(expression);
@@ -161,18 +162,30 @@ std::unique_ptr<BoundProjectionBody> Binder::bindProjectionBody(
 }
 
 expression_vector Binder::bindProjectionExpressions(
-    const parsed_expression_vector& projectionExpressions, bool star) {
+    const parsed_expression_vector& projectionExpressions) {
     expression_vector result;
     for (auto& expression : projectionExpressions) {
-        result.push_back(expressionBinder.bindExpression(*expression));
-    }
-    if (star) {
-        if (variableScope->empty()) {
-            throw BinderException(
-                "RETURN or WITH * is not allowed when there are no variables in scope.");
-        }
-        for (auto& expression : variableScope->getExpressions()) {
-            result.push_back(expression);
+        if (expression->getExpressionType() == common::ExpressionType::STAR) {
+            // Rewrite star expression as all expression in scope.
+            if (variableScope->empty()) {
+                throw BinderException(
+                    "RETURN or WITH * is not allowed when there are no variables in scope.");
+            }
+            for (auto& expr : variableScope->getExpressions()) {
+                result.push_back(expr);
+            }
+        } else if (expression->getExpressionType() == common::ExpressionType::PROPERTY) {
+            auto propertyExpression = (ParsedPropertyExpression*)expression.get();
+            if (propertyExpression->isStar()) {
+                // Rewrite property star expression
+                for (auto& expr : expressionBinder.bindPropertyStarExpression(*expression)) {
+                    result.push_back(expr);
+                }
+            } else {
+                result.push_back(expressionBinder.bindExpression(*expression));
+            }
+        } else {
+            result.push_back(expressionBinder.bindExpression(*expression));
         }
     }
     resolveAnyDataTypeWithDefaultType(result);

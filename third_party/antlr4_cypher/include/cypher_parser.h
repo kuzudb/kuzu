@@ -1710,6 +1710,7 @@ public:
     OC_PropertyLookupContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     OC_PropertyKeyNameContext *oC_PropertyKeyName();
+    antlr4::tree::TerminalNode *STAR();
     antlr4::tree::TerminalNode *SP();
 
    

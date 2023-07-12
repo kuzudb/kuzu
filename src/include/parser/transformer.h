@@ -191,7 +191,8 @@ private:
     std::unique_ptr<ParsedExpression> transformExistentialSubquery(
         CypherParser::OC_ExistentialSubqueryContext& ctx);
 
-    std::string transformPropertyLookup(CypherParser::OC_PropertyLookupContext& ctx);
+    std::unique_ptr<ParsedExpression> createPropertyExpression(
+        CypherParser::OC_PropertyLookupContext& ctx, std::unique_ptr<ParsedExpression> child);
 
     std::unique_ptr<ParsedExpression> transformCaseExpression(
         CypherParser::OC_CaseExpressionContext& ctx);
@@ -238,8 +239,6 @@ private:
     std::unique_ptr<Statement> transformRenameProperty(CypherParser::KU_AlterTableContext& ctx);
 
     std::string transformDataType(CypherParser::KU_DataTypeContext& ctx);
-
-    std::string transformListIdentifiers(CypherParser::KU_ListIdentifiersContext& ctx);
 
     std::string transformPrimaryKey(CypherParser::KU_CreateNodeConstraintContext& ctx);
 

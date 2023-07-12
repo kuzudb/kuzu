@@ -157,7 +157,7 @@ private:
         const expression_vector& projectionExpressions);
 
     expression_vector bindProjectionExpressions(
-        const parser::parsed_expression_vector& parsedExpressions, bool star);
+        const parser::parsed_expression_vector& parsedExpressions);
 
     expression_vector bindOrderByExpressions(
         const std::vector<std::unique_ptr<parser::ParsedExpression>>& orderByExpressions);
