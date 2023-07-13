@@ -16,7 +16,7 @@ NodeTable::NodeTable(NodesStatisticsAndDeletedIDs* nodesStatisticsAndDeletedIDs,
 std::unordered_map<common::property_id_t, std::unique_ptr<Column>> NodeTable::initializeColumns(
     WAL* wal, kuzu::storage::BufferManager* bm, NodeTableSchema* nodeTableSchema) {
     std::unordered_map<common::property_id_t, std::unique_ptr<Column>> propertyColumns;
-    for (auto& property : nodeTableSchema->getAllNodeProperties()) {
+    for (auto& property : nodeTableSchema->getProperties()) {
         propertyColumns[property.propertyID] = ColumnFactory::getColumn(
             StorageUtils::getNodePropertyColumnStructureIDAndFName(wal->getDirectory(), property),
             property.dataType, bm, wal);

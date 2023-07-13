@@ -39,7 +39,7 @@ public:
     void write(common::ValueVector* nodeIDVector, common::ValueVector* vectorToWriteFrom);
 
     bool isNull(common::offset_t nodeOffset, transaction::Transaction* transaction);
-    void setNull(common::offset_t nodeOffset);
+    virtual void setNull(common::offset_t nodeOffset);
 
     inline NullColumn* getNullColumn() { return nullColumn.get(); }
 
@@ -174,6 +174,11 @@ public:
 
     void read(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
         common::ValueVector* resultVector) final;
+
+    void setNull(common::offset_t nodeOffset) final;
+
+    void write(common::offset_t nodeOffset, common::ValueVector* vectorToWriteFrom,
+        uint32_t posInVectorToWriteFrom) override;
 
 private:
     std::vector<std::unique_ptr<Column>> structFieldColumns;

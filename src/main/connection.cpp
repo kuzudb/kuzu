@@ -245,7 +245,7 @@ std::string Connection::getNodePropertyNames(const std::string& tableName) {
     auto tableID = catalog->getReadOnlyVersion()->getTableID(tableName);
     auto primaryKeyPropertyID =
         catalog->getReadOnlyVersion()->getNodeTableSchema(tableID)->getPrimaryKey().propertyID;
-    for (auto& property : catalog->getReadOnlyVersion()->getAllNodeProperties(tableID)) {
+    for (auto& property : catalog->getReadOnlyVersion()->getNodeProperties(tableID)) {
         result +=
             "\t" + property.name + " " + LogicalTypeUtils::dataTypeToString(property.dataType);
         result += property.propertyID == primaryKeyPropertyID ? "(PRIMARY KEY)\n" : "\n";
