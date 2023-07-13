@@ -44,7 +44,7 @@ Noura
 -CHECK_ORDER
 -STATEMENT MATCH (a:User) WITH a, avg(a.age) AS b, SUM(a.age) AS c, COUNT(a.age) AS d, COUNT(*) AS e RETURN a, b, c,d, e ORDER BY c DESC
 ---- 5
-{_ID: 0:4, _LABEL: User, name: Alice, }|||0|1
+{_ID: 0:4, _LABEL: User, name: Alice}|||0|1
 {_ID: 0:2, _LABEL: User, name: Zhang, age: 50}|50.000000|50|1|1
 {_ID: 0:1, _LABEL: User, name: Karissa, age: 40}|40.000000|40|1|1
 {_ID: 0:0, _LABEL: User, name: Adam, age: 30}|30.000000|30|1|1

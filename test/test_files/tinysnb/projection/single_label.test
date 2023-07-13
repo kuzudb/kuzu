@@ -385,7 +385,7 @@ Dan|Carol
 -LOG QueryOneToOneRelTable
 -STATEMENT MATCH (:person)-[m:marries]->(:person) RETURN m
 ---- 3
-(0:0)-{_LABEL: marries, _ID: 7:0, usedAddress: [toronto], address: [4,5], }->(0:1)
+(0:0)-{_LABEL: marries, _ID: 7:0, usedAddress: [toronto], address: [4,5]}->(0:1)
 (0:2)-{_LABEL: marries, _ID: 7:1, address: [2,5], note: long long long string}->(0:3)
 (0:4)-{_LABEL: marries, _ID: 7:2, usedAddress: [], address: [3,9], note: short str}->(0:5)
 

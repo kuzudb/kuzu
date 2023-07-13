@@ -195,16 +195,8 @@ private:
         const std::string& parsedName, const std::vector<common::table_id_t>& tableIDs);
     void bindQueryNodeProperties(NodeExpression& node);
 
-    inline std::vector<common::table_id_t> bindNodeTableIDs(
-        const std::vector<std::string>& tableNames) {
-        return bindTableIDs(tableNames, common::LogicalTypeID::NODE);
-    }
-    inline std::vector<common::table_id_t> bindRelTableIDs(
-        const std::vector<std::string>& tableNames) {
-        return bindTableIDs(tableNames, common::LogicalTypeID::REL);
-    }
-    std::vector<common::table_id_t> bindTableIDs(
-        const std::vector<std::string>& tableNames, common::LogicalTypeID nodeOrRelType);
+    std::vector<common::table_id_t> bindNodeTableIDs(const std::vector<std::string>& tableNames);
+    std::vector<common::table_id_t> bindRelTableIDs(const std::vector<std::string>& tableNames);
 
     /*** validations ***/
     // E.g. Optional MATCH (a) RETURN a.age

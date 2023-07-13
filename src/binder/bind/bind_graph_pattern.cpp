@@ -432,39 +432,41 @@ void Binder::bindQueryNodeProperties(NodeExpression& node) {
     }
 }
 
-std::vector<table_id_t> Binder::bindTableIDs(
-    const std::vector<std::string>& tableNames, LogicalTypeID nodeOrRelType) {
+std::vector<common::table_id_t> Binder::bindNodeTableIDs(
+    const std::vector<std::string>& tableNames) {
+    if (!catalog.getReadOnlyVersion()->hasNodeTable()) {
+        throw common::BinderException("No node table exists in database.");
+    }
     std::unordered_set<table_id_t> tableIDs;
-    switch (nodeOrRelType) {
-    case LogicalTypeID::NODE: {
-        if (tableNames.empty()) {
-            for (auto tableID : catalog.getReadOnlyVersion()->getNodeTableIDs()) {
-                tableIDs.insert(tableID);
-            }
-        } else {
-            for (auto& tableName : tableNames) {
-                tableIDs.insert(bindNodeTableID(tableName));
-            }
+    if (tableNames.empty()) {
+        for (auto tableID : catalog.getReadOnlyVersion()->getNodeTableIDs()) {
+            tableIDs.insert(tableID);
         }
-    } break;
-    case LogicalTypeID::REL: {
-        if (tableNames.empty()) {
-            for (auto tableID : catalog.getReadOnlyVersion()->getRelTableIDs()) {
-                tableIDs.insert(tableID);
-            }
-        }
+    } else {
         for (auto& tableName : tableNames) {
-            tableIDs.insert(bindRelTableID(tableName));
+            tableIDs.insert(bindNodeTableID(tableName));
         }
-    } break;
-    default:
-        throw NotImplementedException(
-            "bindTableIDs(" + LogicalTypeUtils::dataTypeToString(nodeOrRelType) + ").");
     }
     auto result = std::vector<table_id_t>{tableIDs.begin(), tableIDs.end()};
-    if (result.empty() && tableNames.empty()) {
-        throw common::BinderException{"Expected a valid node name in MATCH clause."};
+    std::sort(result.begin(), result.end());
+    return result;
+}
+
+std::vector<common::table_id_t> Binder::bindRelTableIDs(
+    const std::vector<std::string>& tableNames) {
+    if (!catalog.getReadOnlyVersion()->hasRelTable()) {
+        throw common::BinderException("No rel table exists in database.");
     }
+    std::unordered_set<table_id_t> tableIDs;
+    if (tableNames.empty()) {
+        for (auto tableID : catalog.getReadOnlyVersion()->getRelTableIDs()) {
+            tableIDs.insert(tableID);
+        }
+    }
+    for (auto& tableName : tableNames) {
+        tableIDs.insert(bindRelTableID(tableName));
+    }
+    auto result = std::vector<table_id_t>{tableIDs.begin(), tableIDs.end()};
     std::sort(result.begin(), result.end());
     return result;
 }
