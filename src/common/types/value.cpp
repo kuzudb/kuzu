@@ -1,6 +1,7 @@
 #include "common/types/value.h"
 
 #include "common/null_buffer.h"
+#include "common/string_utils.h"
 #include "storage/storage_utils.h"
 
 namespace kuzu {

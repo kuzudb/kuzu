@@ -1,5 +1,6 @@
 #include "function/built_in_vector_functions.h"
 
+#include "common/string_utils.h"
 #include "function/arithmetic/vector_arithmetic_functions.h"
 #include "function/blob/vector_blob_functions.h"
 #include "function/cast/vector_cast_functions.h"
@@ -50,7 +51,7 @@ bool BuiltInVectorFunctions::canApplyStaticEvaluation(
 
 VectorFunctionDefinition* BuiltInVectorFunctions::matchVectorFunction(
     const std::string& name, const std::vector<common::LogicalType>& inputTypes) {
-    auto& functionDefinitions = VectorFunctions.at(name);
+    auto& functionDefinitions = vectorFunctions.at(name);
     bool isOverload = functionDefinitions.size() > 1;
     std::vector<VectorFunctionDefinition*> candidateFunctions;
     uint32_t minCost = UINT32_MAX;
@@ -264,7 +265,7 @@ void BuiltInVectorFunctions::validateNonEmptyCandidateFunctions(
     const std::vector<LogicalType>& inputTypes) {
     if (candidateFunctions.empty()) {
         std::string supportedInputsString;
-        for (auto& functionDefinition : VectorFunctions.at(name)) {
+        for (auto& functionDefinition : vectorFunctions.at(name)) {
             supportedInputsString += functionDefinition->signatureToString() + "\n";
         }
         throw BinderException("Cannot match a built-in function for given function " + name +
@@ -274,221 +275,230 @@ void BuiltInVectorFunctions::validateNonEmptyCandidateFunctions(
 }
 
 void BuiltInVectorFunctions::registerComparisonFunctions() {
-    VectorFunctions.insert({EQUALS_FUNC_NAME, EqualsVectorFunction::getDefinitions()});
-    VectorFunctions.insert({NOT_EQUALS_FUNC_NAME, NotEqualsVectorFunction::getDefinitions()});
-    VectorFunctions.insert({GREATER_THAN_FUNC_NAME, GreaterThanVectorFunction::getDefinitions()});
-    VectorFunctions.insert(
+    vectorFunctions.insert({EQUALS_FUNC_NAME, EqualsVectorFunction::getDefinitions()});
+    vectorFunctions.insert({NOT_EQUALS_FUNC_NAME, NotEqualsVectorFunction::getDefinitions()});
+    vectorFunctions.insert({GREATER_THAN_FUNC_NAME, GreaterThanVectorFunction::getDefinitions()});
+    vectorFunctions.insert(
         {GREATER_THAN_EQUALS_FUNC_NAME, GreaterThanEqualsVectorFunction::getDefinitions()});
-    VectorFunctions.insert({LESS_THAN_FUNC_NAME, LessThanVectorFunction::getDefinitions()});
-    VectorFunctions.insert(
+    vectorFunctions.insert({LESS_THAN_FUNC_NAME, LessThanVectorFunction::getDefinitions()});
+    vectorFunctions.insert(
         {LESS_THAN_EQUALS_FUNC_NAME, LessThanEqualsVectorFunction::getDefinitions()});
 }
 
 void BuiltInVectorFunctions::registerArithmeticFunctions() {
-    VectorFunctions.insert({ADD_FUNC_NAME, AddVectorFunction::getDefinitions()});
-    VectorFunctions.insert({SUBTRACT_FUNC_NAME, SubtractVectorFunction::getDefinitions()});
-    VectorFunctions.insert({MULTIPLY_FUNC_NAME, MultiplyVectorFunction::getDefinitions()});
-    VectorFunctions.insert({DIVIDE_FUNC_NAME, DivideVectorFunction::getDefinitions()});
-    VectorFunctions.insert({MODULO_FUNC_NAME, ModuloVectorFunction::getDefinitions()});
-    VectorFunctions.insert({POWER_FUNC_NAME, PowerVectorFunction::getDefinitions()});
+    vectorFunctions.insert({ADD_FUNC_NAME, AddVectorFunction::getDefinitions()});
+    vectorFunctions.insert({SUBTRACT_FUNC_NAME, SubtractVectorFunction::getDefinitions()});
+    vectorFunctions.insert({MULTIPLY_FUNC_NAME, MultiplyVectorFunction::getDefinitions()});
+    vectorFunctions.insert({DIVIDE_FUNC_NAME, DivideVectorFunction::getDefinitions()});
+    vectorFunctions.insert({MODULO_FUNC_NAME, ModuloVectorFunction::getDefinitions()});
+    vectorFunctions.insert({POWER_FUNC_NAME, PowerVectorFunction::getDefinitions()});
 
-    VectorFunctions.insert({ABS_FUNC_NAME, AbsVectorFunction::getDefinitions()});
-    VectorFunctions.insert({ACOS_FUNC_NAME, AcosVectorFunction::getDefinitions()});
-    VectorFunctions.insert({ASIN_FUNC_NAME, AsinVectorFunction::getDefinitions()});
-    VectorFunctions.insert({ATAN_FUNC_NAME, AtanVectorFunction::getDefinitions()});
-    VectorFunctions.insert({ATAN2_FUNC_NAME, Atan2VectorFunction::getDefinitions()});
-    VectorFunctions.insert({BITWISE_XOR_FUNC_NAME, BitwiseXorVectorFunction::getDefinitions()});
-    VectorFunctions.insert({BITWISE_AND_FUNC_NAME, BitwiseAndVectorFunction::getDefinitions()});
-    VectorFunctions.insert({BITWISE_OR_FUNC_NAME, BitwiseOrVectorFunction::getDefinitions()});
-    VectorFunctions.insert({BITSHIFT_LEFT_FUNC_NAME, BitShiftLeftVectorFunction::getDefinitions()});
-    VectorFunctions.insert(
+    vectorFunctions.insert({ABS_FUNC_NAME, AbsVectorFunction::getDefinitions()});
+    vectorFunctions.insert({ACOS_FUNC_NAME, AcosVectorFunction::getDefinitions()});
+    vectorFunctions.insert({ASIN_FUNC_NAME, AsinVectorFunction::getDefinitions()});
+    vectorFunctions.insert({ATAN_FUNC_NAME, AtanVectorFunction::getDefinitions()});
+    vectorFunctions.insert({ATAN2_FUNC_NAME, Atan2VectorFunction::getDefinitions()});
+    vectorFunctions.insert({BITWISE_XOR_FUNC_NAME, BitwiseXorVectorFunction::getDefinitions()});
+    vectorFunctions.insert({BITWISE_AND_FUNC_NAME, BitwiseAndVectorFunction::getDefinitions()});
+    vectorFunctions.insert({BITWISE_OR_FUNC_NAME, BitwiseOrVectorFunction::getDefinitions()});
+    vectorFunctions.insert({BITSHIFT_LEFT_FUNC_NAME, BitShiftLeftVectorFunction::getDefinitions()});
+    vectorFunctions.insert(
         {BITSHIFT_RIGHT_FUNC_NAME, BitShiftRightVectorFunction::getDefinitions()});
-    VectorFunctions.insert({CBRT_FUNC_NAME, CbrtVectorFunction::getDefinitions()});
-    VectorFunctions.insert({CEIL_FUNC_NAME, CeilVectorFunction::getDefinitions()});
-    VectorFunctions.insert({CEILING_FUNC_NAME, CeilVectorFunction::getDefinitions()});
-    VectorFunctions.insert({COS_FUNC_NAME, CosVectorFunction::getDefinitions()});
-    VectorFunctions.insert({COT_FUNC_NAME, CotVectorFunction::getDefinitions()});
-    VectorFunctions.insert({DEGREES_FUNC_NAME, DegreesVectorFunction::getDefinitions()});
-    VectorFunctions.insert({EVEN_FUNC_NAME, EvenVectorFunction::getDefinitions()});
-    VectorFunctions.insert({FACTORIAL_FUNC_NAME, FactorialVectorFunction::getDefinitions()});
-    VectorFunctions.insert({FLOOR_FUNC_NAME, FloorVectorFunction::getDefinitions()});
-    VectorFunctions.insert({GAMMA_FUNC_NAME, GammaVectorFunction::getDefinitions()});
-    VectorFunctions.insert({LGAMMA_FUNC_NAME, LgammaVectorFunction::getDefinitions()});
-    VectorFunctions.insert({LN_FUNC_NAME, LnVectorFunction::getDefinitions()});
-    VectorFunctions.insert({LOG_FUNC_NAME, LogVectorFunction::getDefinitions()});
-    VectorFunctions.insert({LOG2_FUNC_NAME, Log2VectorFunction::getDefinitions()});
-    VectorFunctions.insert({LOG10_FUNC_NAME, LogVectorFunction::getDefinitions()});
-    VectorFunctions.insert({NEGATE_FUNC_NAME, NegateVectorFunction::getDefinitions()});
-    VectorFunctions.insert({PI_FUNC_NAME, PiVectorFunction::getDefinitions()});
-    VectorFunctions.insert({POW_FUNC_NAME, PowerVectorFunction::getDefinitions()});
-    VectorFunctions.insert({RADIANS_FUNC_NAME, RadiansVectorFunction::getDefinitions()});
-    VectorFunctions.insert({ROUND_FUNC_NAME, RoundVectorFunction::getDefinitions()});
-    VectorFunctions.insert({SIN_FUNC_NAME, SinVectorFunction::getDefinitions()});
-    VectorFunctions.insert({SIGN_FUNC_NAME, SignVectorFunction::getDefinitions()});
-    VectorFunctions.insert({SQRT_FUNC_NAME, SqrtVectorFunction::getDefinitions()});
-    VectorFunctions.insert({TAN_FUNC_NAME, TanVectorFunction::getDefinitions()});
+    vectorFunctions.insert({CBRT_FUNC_NAME, CbrtVectorFunction::getDefinitions()});
+    vectorFunctions.insert({CEIL_FUNC_NAME, CeilVectorFunction::getDefinitions()});
+    vectorFunctions.insert({CEILING_FUNC_NAME, CeilVectorFunction::getDefinitions()});
+    vectorFunctions.insert({COS_FUNC_NAME, CosVectorFunction::getDefinitions()});
+    vectorFunctions.insert({COT_FUNC_NAME, CotVectorFunction::getDefinitions()});
+    vectorFunctions.insert({DEGREES_FUNC_NAME, DegreesVectorFunction::getDefinitions()});
+    vectorFunctions.insert({EVEN_FUNC_NAME, EvenVectorFunction::getDefinitions()});
+    vectorFunctions.insert({FACTORIAL_FUNC_NAME, FactorialVectorFunction::getDefinitions()});
+    vectorFunctions.insert({FLOOR_FUNC_NAME, FloorVectorFunction::getDefinitions()});
+    vectorFunctions.insert({GAMMA_FUNC_NAME, GammaVectorFunction::getDefinitions()});
+    vectorFunctions.insert({LGAMMA_FUNC_NAME, LgammaVectorFunction::getDefinitions()});
+    vectorFunctions.insert({LN_FUNC_NAME, LnVectorFunction::getDefinitions()});
+    vectorFunctions.insert({LOG_FUNC_NAME, LogVectorFunction::getDefinitions()});
+    vectorFunctions.insert({LOG2_FUNC_NAME, Log2VectorFunction::getDefinitions()});
+    vectorFunctions.insert({LOG10_FUNC_NAME, LogVectorFunction::getDefinitions()});
+    vectorFunctions.insert({NEGATE_FUNC_NAME, NegateVectorFunction::getDefinitions()});
+    vectorFunctions.insert({PI_FUNC_NAME, PiVectorFunction::getDefinitions()});
+    vectorFunctions.insert({POW_FUNC_NAME, PowerVectorFunction::getDefinitions()});
+    vectorFunctions.insert({RADIANS_FUNC_NAME, RadiansVectorFunction::getDefinitions()});
+    vectorFunctions.insert({ROUND_FUNC_NAME, RoundVectorFunction::getDefinitions()});
+    vectorFunctions.insert({SIN_FUNC_NAME, SinVectorFunction::getDefinitions()});
+    vectorFunctions.insert({SIGN_FUNC_NAME, SignVectorFunction::getDefinitions()});
+    vectorFunctions.insert({SQRT_FUNC_NAME, SqrtVectorFunction::getDefinitions()});
+    vectorFunctions.insert({TAN_FUNC_NAME, TanVectorFunction::getDefinitions()});
 }
 
 void BuiltInVectorFunctions::registerDateFunctions() {
-    VectorFunctions.insert({DATE_PART_FUNC_NAME, DatePartVectorFunction::getDefinitions()});
-    VectorFunctions.insert({DATEPART_FUNC_NAME, DatePartVectorFunction::getDefinitions()});
-    VectorFunctions.insert({DATE_TRUNC_FUNC_NAME, DateTruncVectorFunction::getDefinitions()});
-    VectorFunctions.insert({DATETRUNC_FUNC_NAME, DateTruncVectorFunction::getDefinitions()});
-    VectorFunctions.insert({DAYNAME_FUNC_NAME, DayNameVectorFunction::getDefinitions()});
-    VectorFunctions.insert({GREATEST_FUNC_NAME, GreatestVectorFunction::getDefinitions()});
-    VectorFunctions.insert({LAST_DAY_FUNC_NAME, LastDayVectorFunction::getDefinitions()});
-    VectorFunctions.insert({LEAST_FUNC_NAME, LeastVectorFunction::getDefinitions()});
-    VectorFunctions.insert({MAKE_DATE_FUNC_NAME, MakeDateVectorFunction::getDefinitions()});
-    VectorFunctions.insert({MONTHNAME_FUNC_NAME, MonthNameVectorFunction::getDefinitions()});
+    vectorFunctions.insert({DATE_PART_FUNC_NAME, DatePartVectorFunction::getDefinitions()});
+    vectorFunctions.insert({DATEPART_FUNC_NAME, DatePartVectorFunction::getDefinitions()});
+    vectorFunctions.insert({DATE_TRUNC_FUNC_NAME, DateTruncVectorFunction::getDefinitions()});
+    vectorFunctions.insert({DATETRUNC_FUNC_NAME, DateTruncVectorFunction::getDefinitions()});
+    vectorFunctions.insert({DAYNAME_FUNC_NAME, DayNameVectorFunction::getDefinitions()});
+    vectorFunctions.insert({GREATEST_FUNC_NAME, GreatestVectorFunction::getDefinitions()});
+    vectorFunctions.insert({LAST_DAY_FUNC_NAME, LastDayVectorFunction::getDefinitions()});
+    vectorFunctions.insert({LEAST_FUNC_NAME, LeastVectorFunction::getDefinitions()});
+    vectorFunctions.insert({MAKE_DATE_FUNC_NAME, MakeDateVectorFunction::getDefinitions()});
+    vectorFunctions.insert({MONTHNAME_FUNC_NAME, MonthNameVectorFunction::getDefinitions()});
 }
 
 void BuiltInVectorFunctions::registerTimestampFunctions() {
-    VectorFunctions.insert({CENTURY_FUNC_NAME, CenturyVectorFunction::getDefinitions()});
-    VectorFunctions.insert({EPOCH_MS_FUNC_NAME, EpochMsVectorFunction::getDefinitions()});
-    VectorFunctions.insert({TO_TIMESTAMP_FUNC_NAME, ToTimestampVectorFunction::getDefinitions()});
+    vectorFunctions.insert({CENTURY_FUNC_NAME, CenturyVectorFunction::getDefinitions()});
+    vectorFunctions.insert({EPOCH_MS_FUNC_NAME, EpochMsVectorFunction::getDefinitions()});
+    vectorFunctions.insert({TO_TIMESTAMP_FUNC_NAME, ToTimestampVectorFunction::getDefinitions()});
 }
 
 void BuiltInVectorFunctions::registerIntervalFunctions() {
-    VectorFunctions.insert({TO_YEARS_FUNC_NAME, ToYearsVectorFunction::getDefinitions()});
-    VectorFunctions.insert({TO_MONTHS_FUNC_NAME, ToMonthsVectorFunction::getDefinitions()});
-    VectorFunctions.insert({TO_DAYS_FUNC_NAME, ToDaysVectorFunction::getDefinitions()});
-    VectorFunctions.insert({TO_HOURS_FUNC_NAME, ToHoursVectorFunction::getDefinitions()});
-    VectorFunctions.insert({TO_MINUTES_FUNC_NAME, ToMinutesVectorFunction::getDefinitions()});
-    VectorFunctions.insert({TO_SECONDS_FUNC_NAME, ToSecondsVectorFunction::getDefinitions()});
-    VectorFunctions.insert(
+    vectorFunctions.insert({TO_YEARS_FUNC_NAME, ToYearsVectorFunction::getDefinitions()});
+    vectorFunctions.insert({TO_MONTHS_FUNC_NAME, ToMonthsVectorFunction::getDefinitions()});
+    vectorFunctions.insert({TO_DAYS_FUNC_NAME, ToDaysVectorFunction::getDefinitions()});
+    vectorFunctions.insert({TO_HOURS_FUNC_NAME, ToHoursVectorFunction::getDefinitions()});
+    vectorFunctions.insert({TO_MINUTES_FUNC_NAME, ToMinutesVectorFunction::getDefinitions()});
+    vectorFunctions.insert({TO_SECONDS_FUNC_NAME, ToSecondsVectorFunction::getDefinitions()});
+    vectorFunctions.insert(
         {TO_MILLISECONDS_FUNC_NAME, ToMillisecondsVectorFunction::getDefinitions()});
-    VectorFunctions.insert(
+    vectorFunctions.insert(
         {TO_MICROSECONDS_FUNC_NAME, ToMicrosecondsVectorFunction::getDefinitions()});
 }
 
 void BuiltInVectorFunctions::registerBlobFunctions() {
-    VectorFunctions.insert({OCTET_LENGTH_FUNC_NAME, OctetLengthVectorFunctions::getDefinitions()});
-    VectorFunctions.insert({ENCODE_FUNC_NAME, EncodeVectorFunctions::getDefinitions()});
-    VectorFunctions.insert({DECODE_FUNC_NAME, DecodeVectorFunctions::getDefinitions()});
+    vectorFunctions.insert({OCTET_LENGTH_FUNC_NAME, OctetLengthVectorFunctions::getDefinitions()});
+    vectorFunctions.insert({ENCODE_FUNC_NAME, EncodeVectorFunctions::getDefinitions()});
+    vectorFunctions.insert({DECODE_FUNC_NAME, DecodeVectorFunctions::getDefinitions()});
 }
 
 void BuiltInVectorFunctions::registerStringFunctions() {
-    VectorFunctions.insert({ARRAY_EXTRACT_FUNC_NAME, ArrayExtractVectorFunction::getDefinitions()});
-    VectorFunctions.insert({CONCAT_FUNC_NAME, ConcatVectorFunction::getDefinitions()});
-    VectorFunctions.insert({CONTAINS_FUNC_NAME, ContainsVectorFunction::getDefinitions()});
-    VectorFunctions.insert({ENDS_WITH_FUNC_NAME, EndsWithVectorFunction::getDefinitions()});
-    VectorFunctions.insert({LCASE_FUNC_NAME, LowerVectorFunction::getDefinitions()});
-    VectorFunctions.insert({LEFT_FUNC_NAME, LeftVectorFunction::getDefinitions()});
-    VectorFunctions.insert({LENGTH_FUNC_NAME, LengthVectorFunction::getDefinitions()});
-    VectorFunctions.insert({LOWER_FUNC_NAME, LowerVectorFunction::getDefinitions()});
-    VectorFunctions.insert({LPAD_FUNC_NAME, LpadVectorFunction::getDefinitions()});
-    VectorFunctions.insert({LTRIM_FUNC_NAME, LtrimVectorFunction::getDefinitions()});
-    VectorFunctions.insert({PREFIX_FUNC_NAME, StartsWithVectorFunction::getDefinitions()});
-    VectorFunctions.insert({REPEAT_FUNC_NAME, RepeatVectorFunction::getDefinitions()});
-    VectorFunctions.insert({REVERSE_FUNC_NAME, ReverseVectorFunction::getDefinitions()});
-    VectorFunctions.insert({RIGHT_FUNC_NAME, RightVectorFunction::getDefinitions()});
-    VectorFunctions.insert({RPAD_FUNC_NAME, RpadVectorFunction::getDefinitions()});
-    VectorFunctions.insert({RTRIM_FUNC_NAME, RtrimVectorFunction::getDefinitions()});
-    VectorFunctions.insert({STARTS_WITH_FUNC_NAME, StartsWithVectorFunction::getDefinitions()});
-    VectorFunctions.insert({SUBSTR_FUNC_NAME, SubStrVectorFunction::getDefinitions()});
-    VectorFunctions.insert({SUBSTRING_FUNC_NAME, SubStrVectorFunction::getDefinitions()});
-    VectorFunctions.insert({SUFFIX_FUNC_NAME, EndsWithVectorFunction::getDefinitions()});
-    VectorFunctions.insert({TRIM_FUNC_NAME, TrimVectorFunction::getDefinitions()});
-    VectorFunctions.insert({UCASE_FUNC_NAME, UpperVectorFunction::getDefinitions()});
-    VectorFunctions.insert({UPPER_FUNC_NAME, UpperVectorFunction::getDefinitions()});
-    VectorFunctions.insert(
+    vectorFunctions.insert({ARRAY_EXTRACT_FUNC_NAME, ArrayExtractVectorFunction::getDefinitions()});
+    vectorFunctions.insert({CONCAT_FUNC_NAME, ConcatVectorFunction::getDefinitions()});
+    vectorFunctions.insert({CONTAINS_FUNC_NAME, ContainsVectorFunction::getDefinitions()});
+    vectorFunctions.insert({ENDS_WITH_FUNC_NAME, EndsWithVectorFunction::getDefinitions()});
+    vectorFunctions.insert({LCASE_FUNC_NAME, LowerVectorFunction::getDefinitions()});
+    vectorFunctions.insert({LEFT_FUNC_NAME, LeftVectorFunction::getDefinitions()});
+    vectorFunctions.insert({LENGTH_FUNC_NAME, LengthVectorFunction::getDefinitions()});
+    vectorFunctions.insert({LOWER_FUNC_NAME, LowerVectorFunction::getDefinitions()});
+    vectorFunctions.insert({LPAD_FUNC_NAME, LpadVectorFunction::getDefinitions()});
+    vectorFunctions.insert({LTRIM_FUNC_NAME, LtrimVectorFunction::getDefinitions()});
+    vectorFunctions.insert({PREFIX_FUNC_NAME, StartsWithVectorFunction::getDefinitions()});
+    vectorFunctions.insert({REPEAT_FUNC_NAME, RepeatVectorFunction::getDefinitions()});
+    vectorFunctions.insert({REVERSE_FUNC_NAME, ReverseVectorFunction::getDefinitions()});
+    vectorFunctions.insert({RIGHT_FUNC_NAME, RightVectorFunction::getDefinitions()});
+    vectorFunctions.insert({RPAD_FUNC_NAME, RpadVectorFunction::getDefinitions()});
+    vectorFunctions.insert({RTRIM_FUNC_NAME, RtrimVectorFunction::getDefinitions()});
+    vectorFunctions.insert({STARTS_WITH_FUNC_NAME, StartsWithVectorFunction::getDefinitions()});
+    vectorFunctions.insert({SUBSTR_FUNC_NAME, SubStrVectorFunction::getDefinitions()});
+    vectorFunctions.insert({SUBSTRING_FUNC_NAME, SubStrVectorFunction::getDefinitions()});
+    vectorFunctions.insert({SUFFIX_FUNC_NAME, EndsWithVectorFunction::getDefinitions()});
+    vectorFunctions.insert({TRIM_FUNC_NAME, TrimVectorFunction::getDefinitions()});
+    vectorFunctions.insert({UCASE_FUNC_NAME, UpperVectorFunction::getDefinitions()});
+    vectorFunctions.insert({UPPER_FUNC_NAME, UpperVectorFunction::getDefinitions()});
+    vectorFunctions.insert(
         {REGEXP_FULL_MATCH_FUNC_NAME, RegexpFullMatchVectorFunction::getDefinitions()});
-    VectorFunctions.insert(
+    vectorFunctions.insert(
         {REGEXP_MATCHES_FUNC_NAME, RegexpMatchesVectorFunction::getDefinitions()});
-    VectorFunctions.insert(
+    vectorFunctions.insert(
         {REGEXP_REPLACE_FUNC_NAME, RegexpReplaceVectorFunction::getDefinitions()});
-    VectorFunctions.insert(
+    vectorFunctions.insert(
         {REGEXP_EXTRACT_FUNC_NAME, RegexpExtractVectorFunction::getDefinitions()});
-    VectorFunctions.insert(
+    vectorFunctions.insert(
         {REGEXP_EXTRACT_ALL_FUNC_NAME, RegexpExtractAllVectorFunction::getDefinitions()});
 }
 
 void BuiltInVectorFunctions::registerCastFunctions() {
-    VectorFunctions.insert({CAST_TO_DATE_FUNC_NAME, CastToDateVectorFunction::getDefinitions()});
-    VectorFunctions.insert(
+    vectorFunctions.insert({CAST_TO_DATE_FUNC_NAME, CastToDateVectorFunction::getDefinitions()});
+    vectorFunctions.insert(
         {CAST_TO_TIMESTAMP_FUNC_NAME, CastToTimestampVectorFunction::getDefinitions()});
-    VectorFunctions.insert(
+    vectorFunctions.insert(
         {CAST_TO_INTERVAL_FUNC_NAME, CastToIntervalVectorFunction::getDefinitions()});
-    VectorFunctions.insert(
+    vectorFunctions.insert(
         {CAST_TO_STRING_FUNC_NAME, CastToStringVectorFunction::getDefinitions()});
-    VectorFunctions.insert({CAST_TO_BLOB_FUNC_NAME, CastToBlobVectorFunction::getDefinitions()});
-    VectorFunctions.insert(
+    vectorFunctions.insert({CAST_TO_BLOB_FUNC_NAME, CastToBlobVectorFunction::getDefinitions()});
+    vectorFunctions.insert(
         {CAST_TO_DOUBLE_FUNC_NAME, CastToDoubleVectorFunction::getDefinitions()});
-    VectorFunctions.insert({CAST_TO_FLOAT_FUNC_NAME, CastToFloatVectorFunction::getDefinitions()});
-    VectorFunctions.insert(
+    vectorFunctions.insert({CAST_TO_FLOAT_FUNC_NAME, CastToFloatVectorFunction::getDefinitions()});
+    vectorFunctions.insert(
         {CAST_TO_SERIAL_FUNC_NAME, CastToSerialVectorFunction::getDefinitions()});
-    VectorFunctions.insert({CAST_TO_INT64_FUNC_NAME, CastToInt64VectorFunction::getDefinitions()});
-    VectorFunctions.insert({CAST_TO_INT32_FUNC_NAME, CastToInt32VectorFunction::getDefinitions()});
-    VectorFunctions.insert({CAST_TO_INT16_FUNC_NAME, CastToInt16VectorFunction::getDefinitions()});
+    vectorFunctions.insert({CAST_TO_INT64_FUNC_NAME, CastToInt64VectorFunction::getDefinitions()});
+    vectorFunctions.insert({CAST_TO_INT32_FUNC_NAME, CastToInt32VectorFunction::getDefinitions()});
+    vectorFunctions.insert({CAST_TO_INT16_FUNC_NAME, CastToInt16VectorFunction::getDefinitions()});
 }
 
 void BuiltInVectorFunctions::registerListFunctions() {
-    VectorFunctions.insert({LIST_CREATION_FUNC_NAME, ListCreationVectorFunction::getDefinitions()});
-    VectorFunctions.insert({LIST_LEN_FUNC_NAME, ListLenVectorFunction::getDefinitions()});
-    VectorFunctions.insert({LIST_EXTRACT_FUNC_NAME, ListExtractVectorFunction::getDefinitions()});
-    VectorFunctions.insert({LIST_ELEMENT_FUNC_NAME, ListExtractVectorFunction::getDefinitions()});
-    VectorFunctions.insert({LIST_CONCAT_FUNC_NAME, ListConcatVectorFunction::getDefinitions()});
-    VectorFunctions.insert({LIST_CAT_FUNC_NAME, ListConcatVectorFunction::getDefinitions()});
-    VectorFunctions.insert({ARRAY_CONCAT_FUNC_NAME, ListConcatVectorFunction::getDefinitions()});
-    VectorFunctions.insert({ARRAY_CAT_FUNC_NAME, ListConcatVectorFunction::getDefinitions()});
-    VectorFunctions.insert({LIST_APPEND_FUNC_NAME, ListAppendVectorFunction::getDefinitions()});
-    VectorFunctions.insert({ARRAY_APPEND_FUNC_NAME, ListAppendVectorFunction::getDefinitions()});
-    VectorFunctions.insert({ARRAY_PUSH_BACK_FUNC_NAME, ListAppendVectorFunction::getDefinitions()});
-    VectorFunctions.insert({LIST_PREPEND_FUNC_NAME, ListPrependVectorFunction::getDefinitions()});
-    VectorFunctions.insert({ARRAY_PREPEND_FUNC_NAME, ListPrependVectorFunction::getDefinitions()});
-    VectorFunctions.insert(
+    vectorFunctions.insert({LIST_CREATION_FUNC_NAME, ListCreationVectorFunction::getDefinitions()});
+    vectorFunctions.insert({LIST_LEN_FUNC_NAME, ListLenVectorFunction::getDefinitions()});
+    vectorFunctions.insert({LIST_EXTRACT_FUNC_NAME, ListExtractVectorFunction::getDefinitions()});
+    vectorFunctions.insert({LIST_ELEMENT_FUNC_NAME, ListExtractVectorFunction::getDefinitions()});
+    vectorFunctions.insert({LIST_CONCAT_FUNC_NAME, ListConcatVectorFunction::getDefinitions()});
+    vectorFunctions.insert({LIST_CAT_FUNC_NAME, ListConcatVectorFunction::getDefinitions()});
+    vectorFunctions.insert({ARRAY_CONCAT_FUNC_NAME, ListConcatVectorFunction::getDefinitions()});
+    vectorFunctions.insert({ARRAY_CAT_FUNC_NAME, ListConcatVectorFunction::getDefinitions()});
+    vectorFunctions.insert({LIST_APPEND_FUNC_NAME, ListAppendVectorFunction::getDefinitions()});
+    vectorFunctions.insert({ARRAY_APPEND_FUNC_NAME, ListAppendVectorFunction::getDefinitions()});
+    vectorFunctions.insert({ARRAY_PUSH_BACK_FUNC_NAME, ListAppendVectorFunction::getDefinitions()});
+    vectorFunctions.insert({LIST_PREPEND_FUNC_NAME, ListPrependVectorFunction::getDefinitions()});
+    vectorFunctions.insert({ARRAY_PREPEND_FUNC_NAME, ListPrependVectorFunction::getDefinitions()});
+    vectorFunctions.insert(
         {ARRAY_PUSH_FRONT_FUNC_NAME, ListPrependVectorFunction::getDefinitions()});
-    VectorFunctions.insert({LIST_POSITION_FUNC_NAME, ListPositionVectorFunction::getDefinitions()});
-    VectorFunctions.insert(
+    vectorFunctions.insert({LIST_POSITION_FUNC_NAME, ListPositionVectorFunction::getDefinitions()});
+    vectorFunctions.insert(
         {ARRAY_POSITION_FUNC_NAME, ListPositionVectorFunction::getDefinitions()});
-    VectorFunctions.insert({LIST_INDEXOF_FUNC_NAME, ListPositionVectorFunction::getDefinitions()});
-    VectorFunctions.insert({ARRAY_INDEXOF_FUNC_NAME, ListPositionVectorFunction::getDefinitions()});
-    VectorFunctions.insert({LIST_CONTAINS_FUNC_NAME, ListContainsVectorFunction::getDefinitions()});
-    VectorFunctions.insert({LIST_HAS_FUNC_NAME, ListContainsVectorFunction::getDefinitions()});
-    VectorFunctions.insert(
+    vectorFunctions.insert({LIST_INDEXOF_FUNC_NAME, ListPositionVectorFunction::getDefinitions()});
+    vectorFunctions.insert({ARRAY_INDEXOF_FUNC_NAME, ListPositionVectorFunction::getDefinitions()});
+    vectorFunctions.insert({LIST_CONTAINS_FUNC_NAME, ListContainsVectorFunction::getDefinitions()});
+    vectorFunctions.insert({LIST_HAS_FUNC_NAME, ListContainsVectorFunction::getDefinitions()});
+    vectorFunctions.insert(
         {ARRAY_CONTAINS_FUNC_NAME, ListContainsVectorFunction::getDefinitions()});
-    VectorFunctions.insert({ARRAY_HAS_FUNC_NAME, ListContainsVectorFunction::getDefinitions()});
-    VectorFunctions.insert({LIST_SLICE_FUNC_NAME, ListSliceVectorFunction::getDefinitions()});
-    VectorFunctions.insert({ARRAY_SLICE_FUNC_NAME, ListSliceVectorFunction::getDefinitions()});
-    VectorFunctions.insert({LIST_SORT_FUNC_NAME, ListSortVectorFunction::getDefinitions()});
-    VectorFunctions.insert(
+    vectorFunctions.insert({ARRAY_HAS_FUNC_NAME, ListContainsVectorFunction::getDefinitions()});
+    vectorFunctions.insert({LIST_SLICE_FUNC_NAME, ListSliceVectorFunction::getDefinitions()});
+    vectorFunctions.insert({ARRAY_SLICE_FUNC_NAME, ListSliceVectorFunction::getDefinitions()});
+    vectorFunctions.insert({LIST_SORT_FUNC_NAME, ListSortVectorFunction::getDefinitions()});
+    vectorFunctions.insert(
         {LIST_REVERSE_SORT_FUNC_NAME, ListReverseSortVectorFunction::getDefinitions()});
-    VectorFunctions.insert({LIST_SUM_FUNC_NAME, ListSumVectorFunction::getDefinitions()});
-    VectorFunctions.insert({LIST_DISTINCT_FUNC_NAME, ListDistinctVectorFunction::getDefinitions()});
-    VectorFunctions.insert({LIST_UNIQUE_FUNC_NAME, ListUniqueVectorFunction::getDefinitions()});
-    VectorFunctions.insert(
+    vectorFunctions.insert({LIST_SUM_FUNC_NAME, ListSumVectorFunction::getDefinitions()});
+    vectorFunctions.insert({LIST_DISTINCT_FUNC_NAME, ListDistinctVectorFunction::getDefinitions()});
+    vectorFunctions.insert({LIST_UNIQUE_FUNC_NAME, ListUniqueVectorFunction::getDefinitions()});
+    vectorFunctions.insert(
         {LIST_ANY_VALUE_FUNC_NAME, ListAnyValueVectorFunction::getDefinitions()});
 }
 
 void BuiltInVectorFunctions::registerStructFunctions() {
-    VectorFunctions.insert({STRUCT_PACK_FUNC_NAME, StructPackVectorFunctions::getDefinitions()});
-    VectorFunctions.insert(
+    vectorFunctions.insert({STRUCT_PACK_FUNC_NAME, StructPackVectorFunctions::getDefinitions()});
+    vectorFunctions.insert(
         {STRUCT_EXTRACT_FUNC_NAME, StructExtractVectorFunctions::getDefinitions()});
 }
 
 void BuiltInVectorFunctions::registerMapFunctions() {
-    VectorFunctions.insert({MAP_CREATION_FUNC_NAME, MapCreationVectorFunctions::getDefinitions()});
-    VectorFunctions.insert({MAP_EXTRACT_FUNC_NAME, MapExtractVectorFunctions::getDefinitions()});
-    VectorFunctions.insert({ELEMENT_AT_FUNC_NAME, MapExtractVectorFunctions::getDefinitions()});
-    VectorFunctions.insert({CARDINALITY_FUNC_NAME, ListLenVectorFunction::getDefinitions()});
-    VectorFunctions.insert({MAP_KEYS_FUNC_NAME, MapKeysVectorFunctions::getDefinitions()});
-    VectorFunctions.insert({MAP_VALUES_FUNC_NAME, MapValuesVectorFunctions::getDefinitions()});
+    vectorFunctions.insert({MAP_CREATION_FUNC_NAME, MapCreationVectorFunctions::getDefinitions()});
+    vectorFunctions.insert({MAP_EXTRACT_FUNC_NAME, MapExtractVectorFunctions::getDefinitions()});
+    vectorFunctions.insert({ELEMENT_AT_FUNC_NAME, MapExtractVectorFunctions::getDefinitions()});
+    vectorFunctions.insert({CARDINALITY_FUNC_NAME, ListLenVectorFunction::getDefinitions()});
+    vectorFunctions.insert({MAP_KEYS_FUNC_NAME, MapKeysVectorFunctions::getDefinitions()});
+    vectorFunctions.insert({MAP_VALUES_FUNC_NAME, MapValuesVectorFunctions::getDefinitions()});
 }
 
 void BuiltInVectorFunctions::registerUnionFunctions() {
-    VectorFunctions.insert({UNION_VALUE_FUNC_NAME, UnionValueVectorFunction::getDefinitions()});
-    VectorFunctions.insert({UNION_TAG_FUNC_NAME, UnionTagVectorFunction::getDefinitions()});
-    VectorFunctions.insert({UNION_EXTRACT_FUNC_NAME, UnionExtractVectorFunction::getDefinitions()});
+    vectorFunctions.insert({UNION_VALUE_FUNC_NAME, UnionValueVectorFunction::getDefinitions()});
+    vectorFunctions.insert({UNION_TAG_FUNC_NAME, UnionTagVectorFunction::getDefinitions()});
+    vectorFunctions.insert({UNION_EXTRACT_FUNC_NAME, UnionExtractVectorFunction::getDefinitions()});
 }
 
 void BuiltInVectorFunctions::registerNodeRelFunctions() {
-    VectorFunctions.insert({OFFSET_FUNC_NAME, OffsetVectorFunction::getDefinitions()});
+    vectorFunctions.insert({OFFSET_FUNC_NAME, OffsetVectorFunction::getDefinitions()});
 }
 
 void BuiltInVectorFunctions::registerPathFunctions() {
-    VectorFunctions.insert({NODES_FUNC_NAME, NodesVectorFunction::getDefinitions()});
-    VectorFunctions.insert({RELS_FUNC_NAME, RelsVectorFunction::getDefinitions()});
-    VectorFunctions.insert({PROPERTIES_FUNC_NAME, PropertiesVectorFunction::getDefinitions()});
+    vectorFunctions.insert({NODES_FUNC_NAME, NodesVectorFunction::getDefinitions()});
+    vectorFunctions.insert({RELS_FUNC_NAME, RelsVectorFunction::getDefinitions()});
+    vectorFunctions.insert({PROPERTIES_FUNC_NAME, PropertiesVectorFunction::getDefinitions()});
+}
+
+void BuiltInVectorFunctions::addFunction(
+    std::string name, function::vector_function_definitions definitions) {
+    if (vectorFunctions.contains(name)) {
+        throw common::CatalogException{
+            common::StringUtils::string_format("function {} already exists.", name)};
+    }
+    vectorFunctions.emplace(std::move(name), std::move(definitions));
 }
 
 } // namespace function

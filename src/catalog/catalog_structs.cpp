@@ -41,6 +41,10 @@ std::string getRelMultiplicityAsString(RelMultiplicity relMultiplicity) {
     }
 }
 
+bool TableSchema::isReservedPropertyName(const std::string& propertyName) {
+    return common::StringUtils::getUpper(propertyName) == common::InternalKeyword::ID;
+}
+
 std::string TableSchema::getPropertyName(property_id_t propertyID) const {
     for (auto& property : properties) {
         if (property.propertyID == propertyID) {
