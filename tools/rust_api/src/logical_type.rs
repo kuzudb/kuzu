@@ -35,18 +35,23 @@ pub enum LogicalType {
     /// Correponds to [Value::Blob](crate::value::Value::Blob)
     Blob,
     /// Correponds to [Value::VarList](crate::value::Value::VarList)
-    VarList { child_type: Box<LogicalType> },
+    VarList {
+        child_type: Box<LogicalType>,
+    },
     /// Correponds to [Value::FixedList](crate::value::Value::FixedList)
     FixedList {
         child_type: Box<LogicalType>,
         num_elements: u64,
     },
     /// Correponds to [Value::Struct](crate::value::Value::Struct)
-    Struct { fields: Vec<(String, LogicalType)> },
+    Struct {
+        fields: Vec<(String, LogicalType)>,
+    },
     /// Correponds to [Value::Node](crate::value::Value::Node)
     Node,
     /// Correponds to [Value::Rel](crate::value::Value::Rel)
     Rel,
+    RecursiveRel,
 }
 
 impl From<&ffi::Value> for LogicalType {
@@ -96,6 +101,7 @@ impl From<&ffi::LogicalType> for LogicalType {
             }
             LogicalTypeID::NODE => LogicalType::Node,
             LogicalTypeID::REL => LogicalType::Rel,
+            LogicalTypeID::RECURSIVE_REL => LogicalType::RecursiveRel,
             // Should be unreachable, as cxx will check that the LogicalTypeID enum matches the one
             // on the C++ side.
             x => panic!("Unsupported type {:?}", x),
@@ -121,7 +127,8 @@ impl From<&LogicalType> for cxx::UniquePtr<ffi::LogicalType> {
             | LogicalType::String
             | LogicalType::Blob
             | LogicalType::Node
-            | LogicalType::Rel => ffi::create_logical_type(typ.id()),
+            | LogicalType::Rel
+            | LogicalType::RecursiveRel => ffi::create_logical_type(typ.id()),
             LogicalType::VarList { child_type } => {
                 ffi::create_logical_type_var_list(child_type.as_ref().into())
             }
@@ -165,6 +172,7 @@ impl LogicalType {
             LogicalType::Struct { .. } => LogicalTypeID::STRUCT,
             LogicalType::Node => LogicalTypeID::NODE,
             LogicalType::Rel => LogicalTypeID::REL,
+            LogicalType::RecursiveRel => LogicalTypeID::RECURSIVE_REL,
         }
     }
 }

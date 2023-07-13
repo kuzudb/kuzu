@@ -122,6 +122,10 @@ std::array<uint64_t, 2> node_value_get_node_id(const kuzu::common::Value& val);
 std::array<uint64_t, 2> rel_value_get_src_id(const kuzu::common::Value& val);
 std::array<uint64_t, 2> rel_value_get_dst_id(const kuzu::common::Value& val);
 
+/* RecursiveRel */
+const kuzu::common::Value &recursive_rel_get_nodes(const kuzu::common::Value &val);
+const kuzu::common::Value &recursive_rel_get_rels(const kuzu::common::Value &val);
+
 /* FlatTuple */
 const kuzu::common::Value& flat_tuple_get_value(
     const kuzu::processor::FlatTuple& flatTuple, uint32_t index);
