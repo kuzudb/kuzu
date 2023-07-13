@@ -29,7 +29,6 @@
 ---- ok
 
 -LOG ProfileCopy
--SKIP
 -STATEMENT Profile copy npytable1 from ("${KUZU_ROOT_DIRECTORY}/dataset/npy-1d/one_dim_int64.npy", "${KUZU_ROOT_DIRECTORY}/dataset/npy-1d/one_dim_int32.npy") BY COLUMN;
 ---- ok
 

@@ -4,7 +4,6 @@
 --
 
 -CASE CopyTwoDimensionalNpyTest
--SKIP
 
 -LOG ID
 -STATEMENT MATCH (n:npytable) RETURN n.id
