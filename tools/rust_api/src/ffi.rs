@@ -287,6 +287,9 @@ pub(crate) mod ffi {
 
         fn rel_value_get_src_id(value: &Value) -> [u64; 2];
         fn rel_value_get_dst_id(value: &Value) -> [u64; 2];
+
+        fn recursive_rel_get_nodes(value: &Value) -> &Value;
+        fn recursive_rel_get_rels(value: &Value) -> &Value;
     }
 
     #[namespace = "kuzu_rs"]

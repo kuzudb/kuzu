@@ -255,4 +255,11 @@ std::unique_ptr<TypeListBuilder> create_type_list() {
     return std::make_unique<TypeListBuilder>();
 }
 
+const kuzu::common::Value &recursive_rel_get_nodes(const kuzu::common::Value &val) {
+    return *kuzu::common::RecursiveRelVal::getNodes(&val);
+}
+const kuzu::common::Value &recursive_rel_get_rels(const kuzu::common::Value &val) {
+    return *kuzu::common::RecursiveRelVal::getRels(&val);
+}
+
 } // namespace kuzu_rs
