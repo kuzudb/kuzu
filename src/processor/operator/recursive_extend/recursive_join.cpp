@@ -144,8 +144,11 @@ bool RecursiveJoin::getNextTuplesInternal(ExecutionContext* context) {
 }
 
 /**
- *
- * @return
+ * This function differs based on scheduler type. For OneThreadOneMorsel the final results writing
+ * is not shared with other threads. In the other case, other threads can help in writing final
+ * distance values. Return value policy for both is same, true if some value was written to the
+ * vector and false if no values were written.
+ * @return - true if some values were written to the ValueVector, else false
  */
 bool RecursiveJoin::scanOutput() {
     if (morselDispatcher->getSchedulerType() == SchedulerType::OneThreadOneMorsel) {
@@ -167,12 +170,12 @@ bool RecursiveJoin::scanOutput() {
             auto tableID = *begin(dataInfo->dstNodeTableIDs);
             auto ret = morselDispatcher->writeDstNodeIDAndPathLength(
                 sharedState->inputFTableSharedState, vectorsToScan, colIndicesToScan,
-                vectors->dstNodeIDVector, vectors->pathLengthVector, tableID, threadIdx);
+                vectors->dstNodeIDVector, vectors->pathLengthVector, tableID, bfsMorsel);
             /**
              * ret > 0: non-zero path lengths were written to vector, return to parent op
              * ret < 0: path length writing is complete, proceed to computeBFSOneThreadOneMorsel for
-             * another morsel ret = 0: the distance morsel received was empty, go back to get
              * another morsel
+             * ret = 0: the distance morsel received was empty, go back to get another morsel
              */
             if (ret > 0) {
                 return true;
@@ -187,20 +190,20 @@ bool RecursiveJoin::scanOutput() {
 
 /**
  * The main computeBFS to be called for both 1T1S and nTkS scheduling policies. Initially for both
- * cases, the SSSPMorsel ptr will be null. For nTkS policy, this will be eventually filled with a
- * pointer to the main SSSPMorsel from which work will be fetched. This SSSPMorsel will
+ * cases, the SSSPSharedState ptr will be null. For nTkS policy, this will be eventually filled with
+ * a pointer to the main SSSPSharedState from which work will be fetched. This SSSPSharedState will
  * not be bound to a specific thread and can change.
- * For 1T1S policy, there is no SSSPMorsel involved and a thread works on its own work, not shared
- * with any other thread.
+ * For 1T1S policy, there is no SSSPSharedState involved and a thread works on its own work, not
+ * shared with any other thread.
  *
  */
 bool RecursiveJoin::computeBFS(kuzu::processor::ExecutionContext* context) {
     while (true) {
-        if (bfsMorsel->ssspMorsel) {
-            bfsMorsel->ssspMorsel->getBFSMorsel(bfsMorsel);
+        if (bfsMorsel->ssspSharedState) {
+            bfsMorsel->ssspSharedState->getBFSMorsel(bfsMorsel);
             if (!bfsMorsel->threadCheckSSSPState) {
                 computeBFSnThreadkMorsel(context);
-                if (bfsMorsel->ssspMorsel->finishBFSMorsel(bfsMorsel)) {
+                if (bfsMorsel->ssspSharedState->finishBFSMorsel(bfsMorsel)) {
                     return true;
                 }
                 continue;
@@ -253,7 +256,7 @@ int RecursiveJoin::fetchMorselFromDispatcher(ExecutionContext* context) {
         return 1;
     } else {
         computeBFSnThreadkMorsel(context);
-        if (bfsMorsel->ssspMorsel->finishBFSMorsel(bfsMorsel)) {
+        if (bfsMorsel->ssspSharedState->finishBFSMorsel(bfsMorsel)) {
             return 1;
         } else {
             return 0;

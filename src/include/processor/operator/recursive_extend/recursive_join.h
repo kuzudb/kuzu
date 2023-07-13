@@ -135,7 +135,6 @@ private:
     ScanFrontier* scanFrontier;
 
     std::unique_ptr<RecursiveJoinVectors> vectors;
-    std::unique_ptr<BaseBFSMorsel> bfsState;
     std::unique_ptr<FrontiersScanner> frontiersScanner;
     std::unique_ptr<TargetDstNodes> targetDstNodes;
 

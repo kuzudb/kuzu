@@ -17,19 +17,19 @@ namespace processor {
  *
  * 2) nThreadkMorsel (nTkS): This policy will be used *ONLY* for single label - shortest path -
  *    no path tracking queries. Currently 'k' is the same as no. of threads active (or 'n').
- *    This policy aims to support at any given point at most 'k' total active SSSPMorsels. Any
- *    thread can be assigned to work any of the active SSPMorsels. A different SSSPMorsel gets
- *    assigned only if the already assigned SSSPMorsel does not have work or is completed. The work
- *    can be either scan extend or writing path length to vector.
+ *    This policy aims to support at any given point at most 'k' total active SSSPSharedStates. Any
+ *    thread can be assigned to work any of the active SSPMorsels. A different SSSPSharedState gets
+ *    assigned only if the already assigned SSSPSharedState does not have work or is completed. The
+ * work can be either scan extend or writing path length to vector.
  */
 enum SchedulerType { OneThreadOneMorsel, nThreadkMorsel };
 
 struct MorselDispatcher {
 public:
-    MorselDispatcher(SchedulerType schedulerType, uint64_t lowerBound, uint64_t upperBound,
-        uint64_t maxOffset, uint64_t numThreadsForExecution)
+    MorselDispatcher(
+        SchedulerType schedulerType, uint64_t lowerBound, uint64_t upperBound, uint64_t maxOffset)
         : schedulerType{schedulerType}, threadIdxCounter{0u}, numActiveSSSP{0u},
-          activeSSSPMorsel{std::vector<std::shared_ptr<SSSPMorsel>>(numThreadsForExecution)},
+          activeSSSPSharedState{std::vector<std::shared_ptr<SSSPSharedState>>()},
           globalState{IN_PROGRESS}, maxOffset{maxOffset}, lowerBound{lowerBound}, upperBound{
                                                                                       upperBound} {}
 
@@ -43,7 +43,7 @@ public:
 
     int64_t getNextAvailableSSSPWork();
 
-    std::pair<GlobalSSSPState, SSSPLocalState> findAvailableSSSPMorsel(
+    std::pair<GlobalSSSPState, SSSPLocalState> findAvailableSSSP(
         std::unique_ptr<BaseBFSMorsel>& bfsMorsel, SSSPLocalState& ssspLocalState,
         uint32_t threadIdx);
 
@@ -51,7 +51,7 @@ public:
         const std::shared_ptr<FTableSharedState>& inputFTableSharedState,
         std::vector<common::ValueVector*> vectorsToScan, std::vector<ft_col_idx_t> colIndicesToScan,
         common::ValueVector* dstNodeIDVector, common::ValueVector* pathLengthVector,
-        common::table_id_t tableID, uint32_t threadIdx);
+        common::table_id_t tableID, std::unique_ptr<BaseBFSMorsel>& baseBfsMorsel);
 
     inline SchedulerType getSchedulerType() { return schedulerType; }
 
@@ -61,7 +61,7 @@ private:
     uint64_t upperBound;
     uint64_t lowerBound;
     uint32_t threadIdxCounter;
-    std::vector<std::shared_ptr<SSSPMorsel>> activeSSSPMorsel;
+    std::vector<std::shared_ptr<SSSPSharedState>> activeSSSPSharedState;
     uint32_t numActiveSSSP;
     GlobalSSSPState globalState;
     std::mutex mutex;

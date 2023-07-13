@@ -80,11 +80,10 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalRecursiveExtendToPhysica
                                           .getMaxNodeOffsetPerTable();
         auto maxNodeOffset = maxNodeOffsetsPerTable.at(nbrNode->getSingleTableID());
         morselDispatcher = std::make_shared<MorselDispatcher>(SchedulerType::nThreadkMorsel,
-            rel->getLowerBound(), rel->getUpperBound(), maxNodeOffset, numThreadsForExecution);
+            rel->getLowerBound(), rel->getUpperBound(), maxNodeOffset);
     } else {
         morselDispatcher = std::make_shared<MorselDispatcher>(SchedulerType::OneThreadOneMorsel,
-            rel->getLowerBound(), rel->getUpperBound(), UINT64_MAX /* maxNodeOffset */,
-            numThreadsForExecution);
+            rel->getLowerBound(), rel->getUpperBound(), UINT64_MAX /* maxNodeOffset */);
     }
     return std::make_unique<RecursiveJoin>(rel->getLowerBound(), rel->getUpperBound(),
         rel->getRelType(), extend->getJoinType(), sharedState, std::move(dataInfo), outDataPoses,

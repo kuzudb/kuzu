@@ -75,8 +75,8 @@ public:
         conn->query(createPersonTableCMD);
         auto preparedStatement = conn->prepare(copyPersonTableCMD);
         conn->beginWriteTransaction();
-        auto mapper = PlanMapper(*getStorageManager(*database), getMemoryManager(*database),
-            getCatalog(*database), clientContext->numThreadsForExecution);
+        auto mapper = PlanMapper(
+            *getStorageManager(*database), getMemoryManager(*database), getCatalog(*database));
         auto physicalPlan = mapper.mapLogicalPlanToPhysical(
             preparedStatement->logicalPlans[0].get(), preparedStatement->getExpressionsToCollect());
         clientContext->activeQuery = std::make_unique<ActiveQuery>();
@@ -153,8 +153,8 @@ public:
         conn->query(createKnowsTableCMD);
         auto preparedStatement = conn->prepare(copyKnowsTableCMD);
         conn->beginWriteTransaction();
-        auto mapper = PlanMapper(*getStorageManager(*database), getMemoryManager(*database),
-            getCatalog(*database), clientContext->numThreadsForExecution);
+        auto mapper = PlanMapper(
+            *getStorageManager(*database), getMemoryManager(*database), getCatalog(*database));
         auto physicalPlan = mapper.mapLogicalPlanToPhysical(
             preparedStatement->logicalPlans[0].get(), preparedStatement->getExpressionsToCollect());
         clientContext->activeQuery = std::make_unique<ActiveQuery>();

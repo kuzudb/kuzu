@@ -22,14 +22,14 @@ enum VisitedState : uint8_t {
 };
 
 /**
- * The Lifecycle of an SSSPMorsel in nTkS scheduler are the 3 following states. Depending on which
- * state an SSSPMorsel is in, the thread will held that state :-
+ * The Lifecycle of an SSSPSharedState in nTkS scheduler are the 3 following states. Depending on
+ * which state an SSSPSharedState is in, the thread will held that state :-
  *
  * 1) EXTEND_IN_PROGRESS: thread helps in level extension, try to get a morsel if available
  *
  * 2) PATH_LENGTH_WRITE_IN_PROGRESS: thread helps in writing path length to vector
  *
- * 3) MORSEL_COMPLETE: morsel is complete, try to launch another SSSPMorsel (if available),
+ * 3) MORSEL_COMPLETE: morsel is complete, try to launch another SSSPSharedState (if available),
  *                     else find an existing one
  */
 enum SSSPLocalState { EXTEND_IN_PROGRESS, PATH_LENGTH_WRITE_IN_PROGRESS, MORSEL_COMPLETE };
@@ -37,17 +37,17 @@ enum SSSPLocalState { EXTEND_IN_PROGRESS, PATH_LENGTH_WRITE_IN_PROGRESS, MORSEL_
 /**
  * Global states of MorselDispatcher used primarily for nTkS scheduler :-
  *
- * 1) IN_PROGRESS: Globally (across all threads active), there is still work available. SSSPMorsels
- *                 are available for threads to launch.
+ * 1) IN_PROGRESS: Globally (across all threads active), there is still work available.
+ * SSSPSharedStates are available for threads to launch.
  *
- * 2) IN_PROGRESS_ALL_SRC_SCANNED: All SSSPMorsel available to be launched have been launched. It
- *                                 indicates that the inputFTable has no more tuples to be scanned.
- *                                 The threads have to search for an active SSSPMorsel (either in
- *                                 EXTEND_IN_PROGRESS / PATH_LENGTH_WRITE_IN_PROGRESS) to execute.
+ * 2) IN_PROGRESS_ALL_SRC_SCANNED: All SSSPSharedState available to be launched have been launched.
+ * It indicates that the inputFTable has no more tuples to be scanned. The threads have to search
+ * for an active SSSPSharedState (either in EXTEND_IN_PROGRESS / PATH_LENGTH_WRITE_IN_PROGRESS) to
+ * execute.
  *
- * 3) COMPLETE: All SSSPMorsels have been completed, there is no more work either in BFS extension
- *              or path length writing to vector. Threads can exit completely (return false and
- *              return to parent operator).
+ * 3) COMPLETE: All SSSPSharedStates have been completed, there is no more work either in BFS
+ * extension or path length writing to vector. Threads can exit completely (return false and return
+ * to parent operator).
  */
 enum GlobalSSSPState { IN_PROGRESS, IN_PROGRESS_ALL_SRC_SCANNED, COMPLETE };
 
@@ -86,14 +86,14 @@ private:
 struct BaseBFSMorsel;
 
 /**
- * An SSSPMorsel is a unit of work for the nTkS scheduling policy. It is *ONLY* used for the
- * particular case of SHORTEST_PATH | SINGLE_LABEL | NO_PATH_TRACKING. An SSSPMorsel is *NOT*
+ * An SSSPSharedState is a unit of work for the nTkS scheduling policy. It is *ONLY* used for the
+ * particular case of SHORTEST_PATH | SINGLE_LABEL | NO_PATH_TRACKING. An SSSPSharedState is *NOT*
  * exclusive to a thread and any thread can pick up BFS extension or Writing Path Length.
  * A shared_ptr is maintained by the BaseBFSMorsel and a morsel of work is fetched using this ptr.
  */
-struct SSSPMorsel {
+struct SSSPSharedState {
 public:
-    SSSPMorsel(uint64_t upperBound_, uint64_t lowerBound_, uint64_t maxNodeOffset_)
+    SSSPSharedState(uint64_t upperBound_, uint64_t lowerBound_, uint64_t maxNodeOffset_)
         : mutex{std::mutex()}, ssspLocalState{EXTEND_IN_PROGRESS}, currentLevel{0u},
           nextScanStartIdx{0u}, numVisitedNodes{0u}, visitedNodes{std::vector<uint8_t>(
                                                          maxNodeOffset_ + 1, NOT_VISITED)},
@@ -124,7 +124,9 @@ public:
     SSSPLocalState ssspLocalState;
     // Level state
     uint8_t currentLevel;
+
     uint64_t nextScanStartIdx;
+
     // Visited state
     uint64_t numVisitedNodes;
     std::vector<uint8_t> visitedNodes;
@@ -145,7 +147,7 @@ struct BaseBFSMorsel {
 public:
     BaseBFSMorsel(TargetDstNodes* targetDstNodes, uint8_t upperBound, uint8_t lowerBound)
         : targetDstNodes{targetDstNodes}, upperBound{upperBound}, lowerBound{lowerBound},
-          currentLevel{0u}, threadCheckSSSPState{true}, ssspMorsel{nullptr} {}
+          currentLevel{0u}, threadCheckSSSPState{true}, ssspSharedState{nullptr} {}
 
     virtual ~BaseBFSMorsel() = default;
 
@@ -216,7 +218,7 @@ protected:
 public:
     TargetDstNodes* targetDstNodes;
     bool threadCheckSSSPState;
-    SSSPMorsel* ssspMorsel;
+    SSSPSharedState* ssspSharedState;
 };
 
 template<bool TRACK_PATH>
@@ -268,10 +270,11 @@ public:
     inline uint64_t getNumVisitedDstNodes() { return numVisitedDstNodes; }
 
     /// This is used for nTkSCAS scheduler case (no tracking of path + single label case)
-    inline void reset(uint64_t startScanIdx_, uint64_t endScanIdx_, SSSPMorsel* ssspMorsel_) {
+    inline void reset(
+        uint64_t startScanIdx_, uint64_t endScanIdx_, SSSPSharedState* ssspSharedState_) {
         startScanIdx = startScanIdx_;
         endScanIdx = endScanIdx_;
-        ssspMorsel = ssspMorsel_;
+        ssspSharedState = ssspSharedState_;
         threadCheckSSSPState = false;
         numVisitedDstNodes = 0u;
     }
@@ -280,7 +283,7 @@ public:
         if (startScanIdx == endScanIdx) {
             return common::INVALID_OFFSET;
         }
-        return ssspMorsel->bfsLevelNodeOffsets[startScanIdx++];
+        return ssspSharedState->bfsLevelNodeOffsets[startScanIdx++];
     }
 
     void addToLocalNextBFSLevel(common::ValueVector* tmpDstNodeIDVector);

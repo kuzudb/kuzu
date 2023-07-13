@@ -7,7 +7,7 @@
 namespace kuzu {
 namespace processor {
 
-void SSSPMorsel::reset(TargetDstNodes* targetDstNodes) {
+void SSSPSharedState::reset(TargetDstNodes* targetDstNodes) {
     ssspLocalState = EXTEND_IN_PROGRESS;
     currentLevel = 0u;
     nextScanStartIdx = 0u;
@@ -31,11 +31,11 @@ void SSSPMorsel::reset(TargetDstNodes* targetDstNodes) {
 }
 
 /*
- * Returning the state here because if SSSPMorsel is complete / in pathLength writing stage then
- * depending on state we need to take next step. If MORSEL_COMPLETE then proceed to get a
- * new SSSPMorsel & if MORSEL_pathLength_WRITING_IN_PROGRESS then help in this task.
+ * Returning the state here because if SSSPSharedState is complete / in pathLength writing stage
+ * then depending on state we need to take next step. If MORSEL_COMPLETE then proceed to get a new
+ * SSSPSharedState & if MORSEL_pathLength_WRITING_IN_PROGRESS then help in this task.
  */
-SSSPLocalState SSSPMorsel::getBFSMorsel(std::unique_ptr<BaseBFSMorsel>& bfsMorsel) {
+SSSPLocalState SSSPSharedState::getBFSMorsel(std::unique_ptr<BaseBFSMorsel>& bfsMorsel) {
     mutex.lock();
     if (ssspLocalState == MORSEL_COMPLETE || ssspLocalState == PATH_LENGTH_WRITE_IN_PROGRESS) {
         bfsMorsel->threadCheckSSSPState = true;
@@ -58,7 +58,7 @@ SSSPLocalState SSSPMorsel::getBFSMorsel(std::unique_ptr<BaseBFSMorsel>& bfsMorse
     return ssspLocalState;
 }
 
-bool SSSPMorsel::hasWork() const {
+bool SSSPSharedState::hasWork() const {
     if (ssspLocalState == EXTEND_IN_PROGRESS && nextScanStartIdx < bfsLevelNodeOffsets.size()) {
         return true;
     } else if (ssspLocalState == PATH_LENGTH_WRITE_IN_PROGRESS &&
@@ -69,7 +69,7 @@ bool SSSPMorsel::hasWork() const {
     }
 }
 
-bool SSSPMorsel::finishBFSMorsel(std::unique_ptr<BaseBFSMorsel>& bfsMorsel) {
+bool SSSPSharedState::finishBFSMorsel(std::unique_ptr<BaseBFSMorsel>& bfsMorsel) {
     mutex.lock();
     numThreadsActiveOnMorsel--;
     if (ssspLocalState != EXTEND_IN_PROGRESS) {
@@ -95,7 +95,7 @@ bool SSSPMorsel::finishBFSMorsel(std::unique_ptr<BaseBFSMorsel>& bfsMorsel) {
     return false;
 }
 
-bool SSSPMorsel::isComplete(uint64_t numDstNodesToVisit) {
+bool SSSPSharedState::isComplete(uint64_t numDstNodesToVisit) {
     if (bfsLevelNodeOffsets.empty()) { // no more to extend.
         return true;
     }
@@ -108,7 +108,7 @@ bool SSSPMorsel::isComplete(uint64_t numDstNodesToVisit) {
     return false;
 }
 
-void SSSPMorsel::markSrc(bool isSrcDestination) {
+void SSSPSharedState::markSrc(bool isSrcDestination) {
     if (isSrcDestination) {
         visitedNodes[srcOffset] = VISITED_DST;
         numVisitedNodes++;
@@ -119,7 +119,7 @@ void SSSPMorsel::markSrc(bool isSrcDestination) {
     bfsLevelNodeOffsets.push_back(srcOffset);
 }
 
-void SSSPMorsel::moveNextLevelAsCurrentLevel() {
+void SSSPSharedState::moveNextLevelAsCurrentLevel() {
     currentLevel++;
     nextScanStartIdx = 0u;
     bfsLevelNodeOffsets.clear();
@@ -136,7 +136,7 @@ void SSSPMorsel::moveNextLevelAsCurrentLevel() {
     }
 }
 
-std::pair<uint64_t, int64_t> SSSPMorsel::getDstPathLengthMorsel() {
+std::pair<uint64_t, int64_t> SSSPSharedState::getDstPathLengthMorsel() {
     mutex.lock();
     if (ssspLocalState != PATH_LENGTH_WRITE_IN_PROGRESS) {
         mutex.unlock();
@@ -159,29 +159,29 @@ void ShortestPathMorsel<false>::addToLocalNextBFSLevel(common::ValueVector* tmpD
     for (auto i = 0u; i < tmpDstNodeIDVector->state->selVector->selectedSize; ++i) {
         auto pos = tmpDstNodeIDVector->state->selVector->selectedPositions[i];
         auto nodeID = tmpDstNodeIDVector->getValue<common::nodeID_t>(pos);
-        auto state = ssspMorsel->visitedNodes[nodeID.offset];
+        auto state = ssspSharedState->visitedNodes[nodeID.offset];
         if (state == NOT_VISITED_DST) {
 #if defined(_MSC_VER)
             bool casResult =
-                _InterlockedCompareExchange64(
-                    reinterpret_cast<volatile __int64*>(&ssspMorsel->visitedNodes[nodeID.offset]),
+                _InterlockedCompareExchange64(reinterpret_cast<volatile __int64*>(
+                                                  &ssspSharedState->visitedNodes[nodeID.offset]),
                     VISITED_DST_NEW, state) == state;
 #else
             bool casResult = __sync_bool_compare_and_swap(
-                &ssspMorsel->visitedNodes[nodeID.offset], state, VISITED_DST_NEW);
+                &ssspSharedState->visitedNodes[nodeID.offset], state, VISITED_DST_NEW);
 #endif
             if (casResult) {
-                ssspMorsel->pathLength[nodeID.offset] = ssspMorsel->currentLevel + 1;
+                ssspSharedState->pathLength[nodeID.offset] = ssspSharedState->currentLevel + 1;
                 numVisitedDstNodes++;
             }
         } else if (state == NOT_VISITED) {
 #if defined(_MSC_VER)
             _InterlockedCompareExchange64(
-                reinterpret_cast<volatile __int64*>(&ssspMorsel->visitedNodes[nodeID.offset]),
+                reinterpret_cast<volatile __int64*>(&ssspSharedState->visitedNodes[nodeID.offset]),
                 VISITED_NEW, state);
 #else
             __sync_bool_compare_and_swap(
-                &ssspMorsel->visitedNodes[nodeID.offset], state, VISITED_NEW);
+                &ssspSharedState->visitedNodes[nodeID.offset], state, VISITED_NEW);
 #endif
         }
     }
