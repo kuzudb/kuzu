@@ -109,46 +109,8 @@ internalID_t getInternalID(JNIEnv* env, jobject id) {
 }
 
 std::string dataTypeToString(const LogicalType& dataType) {
-    switch (dataType.getLogicalTypeID()) {
-    case LogicalTypeID::ANY:
-        return "ANY";
-    case LogicalTypeID::NODE:
-        return "NODE";
-    case LogicalTypeID::REL:
-        return "REL";
-    case LogicalTypeID::SERIAL:
-        return "SERIAL";
-    case LogicalTypeID::BOOL:
-        return "BOOL";
-    case LogicalTypeID::INT64:
-        return "INT64";
-    case LogicalTypeID::INT32:
-        return "INT32";
-    case LogicalTypeID::INT16:
-        return "INT16";
-    case LogicalTypeID::DOUBLE:
-        return "DOUBLE";
-    case LogicalTypeID::FLOAT:
-        return "FLOAT";
-    case LogicalTypeID::DATE:
-        return "DATE";
-    case LogicalTypeID::TIMESTAMP:
-        return "TIMESTAMP";
-    case LogicalTypeID::INTERVAL:
-        return "INTERVAL";
-    case LogicalTypeID::FIXED_LIST:
-        return "FIXED_LIST";
-    case LogicalTypeID::INTERNAL_ID:
-        return "INTERNAL_ID";
-    case LogicalTypeID::STRING:
-        return "STRING";
-    case LogicalTypeID::VAR_LIST:
-        return "VAR_LIST";
-    case LogicalTypeID::STRUCT:
-        return "STRUCT";
-    default:
-        throw std::invalid_argument("Unimplemented item");
-    }
+    auto typeId = dataType.getLogicalTypeID();
+    return LogicalTypeUtils::dataTypeToString(typeId);
 }
 
 void javaMapToCPPMap(

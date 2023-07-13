@@ -101,6 +101,11 @@ KUZU_C_API typedef enum {
     KUZU_ANY = 0,
     KUZU_NODE = 10,
     KUZU_REL = 11,
+    KUZU_RECURSIVE_REL = 12,
+    // SERIAL is a special data type that is used to represent a sequence of INT64 values that are
+    // incremented by 1 starting from 0.
+    KUZU_SERIAL = 13,
+    // fixed size types
     KUZU_BOOL = 22,
     KUZU_INT64 = 23,
     KUZU_INT32 = 24,
@@ -112,9 +117,14 @@ KUZU_C_API typedef enum {
     KUZU_INTERVAL = 30,
     KUZU_FIXED_LIST = 31,
     KUZU_INTERNAL_ID = 40,
+    KUZU_ARROW_COLUMN = 41,
+    // variable size types
     KUZU_STRING = 50,
+    KUZU_BLOB = 51,
     KUZU_VAR_LIST = 52,
     KUZU_STRUCT = 53,
+    KUZU_MAP = 54,
+    KUZU_UNION = 55,
 } kuzu_data_type_id;
 
 // Database

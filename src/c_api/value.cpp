@@ -164,11 +164,17 @@ kuzu_value* kuzu_value_get_struct_field_value(kuzu_value* value, uint64_t index)
 }
 
 kuzu_value* kuzu_value_get_recursive_rel_node_list(kuzu_value* value) {
-    return kuzu_value_get_list_element(value, 0);
+    auto* c_value = (kuzu_value*)malloc(sizeof(kuzu_value));
+    c_value->_is_owned_by_cpp = true;
+    c_value->_value = RecursiveRelVal::getNodes(static_cast<Value*>(value->_value));
+    return c_value;
 }
 
 kuzu_value* kuzu_value_get_recursive_rel_rel_list(kuzu_value* value) {
-    return kuzu_value_get_list_element(value, 1);
+    auto* c_value = (kuzu_value*)malloc(sizeof(kuzu_value));
+    c_value->_is_owned_by_cpp = true;
+    c_value->_value = RecursiveRelVal::getRels(static_cast<Value*>(value->_value));
+    return c_value;
 }
 
 kuzu_logical_type* kuzu_value_get_data_type(kuzu_value* value) {
