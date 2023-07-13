@@ -212,9 +212,6 @@ std::shared_ptr<RelExpression> Binder::bindQueryRel(const RelPattern& relPattern
     default:
         throw common::NotImplementedException("Binder::bindQueryRel");
     }
-    if (srcNode->getUniqueName() == dstNode->getUniqueName()) {
-        throw BinderException("Self-loop rel " + parsedName + " is not supported.");
-    }
     // bind variable length
     std::shared_ptr<RelExpression> queryRel;
     if (QueryRelTypeUtils::isRecursive(relPattern.getRelType())) {

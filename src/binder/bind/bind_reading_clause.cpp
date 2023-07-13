@@ -37,12 +37,37 @@ std::unique_ptr<BoundReadingClause> Binder::bindMatchClause(const ReadingClause&
     if (matchClause.hasWhereClause()) {
         whereExpression = bindWhereExpression(*matchClause.getWhereClause());
     }
+    // Rewrite self loop edge
+    // e.g. rewrite (a)-[e]->(a) as [a]-[e]->(b) WHERE id(a) = id(b)
+    expression_vector selfLoopEdgePredicates;
+    auto graphCollection = boundMatchClause->getQueryGraphCollection();
+    for (auto i = 0; i < graphCollection->getNumQueryGraphs(); ++i) {
+        auto queryGraph = graphCollection->getQueryGraph(i);
+        for (auto& queryRel : queryGraph->getQueryRels()) {
+            if (!queryRel->isSelfLoop()) {
+                continue;
+            }
+            auto src = queryRel->getSrcNode();
+            auto dst = queryRel->getDstNode();
+            auto newDst = createQueryNode(dst->getVariableName(), dst->getTableIDs());
+            queryGraph->addQueryNode(newDst);
+            queryRel->setDstNode(newDst);
+            auto predicate = expressionBinder.createEqualityComparisonExpression(
+                src->getInternalIDProperty(), newDst->getInternalIDProperty());
+            selfLoopEdgePredicates.push_back(std::move(predicate));
+        }
+    }
+    for (auto& predicate : selfLoopEdgePredicates) {
+        whereExpression =
+            expressionBinder.combineConjunctiveExpressions(predicate, whereExpression);
+    }
     // Rewrite key value pairs in MATCH clause as predicate
     for (auto& [key, val] : propertyCollection->getKeyVals()) {
         auto predicate = expressionBinder.createEqualityComparisonExpression(key, val);
         whereExpression =
             expressionBinder.combineConjunctiveExpressions(predicate, whereExpression);
     }
+
     boundMatchClause->setWhereExpression(std::move(whereExpression));
     return boundMatchClause;
 }

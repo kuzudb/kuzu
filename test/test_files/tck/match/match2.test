@@ -33,3 +33,33 @@ Binder exception: No rel table exists in database.
 -STATEMENT MATCH (:A)-[r]->(:B) RETURN r;
 ---- 1
 (0:0)-{_LABEL: T1, _ID: 2:0}->(1:0)
+
+# Matching a self-loop with an undirected relationship pattern
+-CASE Scenario3&4
+-STATEMENT CREATE NODE TABLE A(name STRING, PRIMARY KEY(name));
+---- ok
+-STATEMENT CREATE REL TABLE T(FROM A TO A);
+---- ok
+-STATEMENT CREATE (a:A {name:'xx'}) CREATE (a)-[:T]->(a);
+---- ok
+# Note: tck test only returns 1 tuple. Though we shouldn't do so if the semantic of undirected is to match
+# both fwd and bwd adjList.
+-STATEMENT MATCH (a)-[:T]-(a) RETURN a;
+---- 2
+{_ID: 0:0, _LABEL: A, name: xx}
+{_ID: 0:0, _LABEL: A, name: xx}
+-STATEMENT MATCH (a)-[:T]->(a) RETURN a;
+---- 1
+{_ID: 0:0, _LABEL: A, name: xx}
+
+# Match relationship with inline property value
+-CASE Scenario5
+-STATEMENT CREATE NODE TABLE A(ID INT64, PRIMARY KEY(ID));
+---- ok
+-STATEMENT CREATE REL TABLE KNOWS(FROM A TO A, name STRING);
+---- ok
+-STATEMENT CREATE (:A {ID: 1})<-[:KNOWS {name: 'monkey'}]-(:A {ID: 3})-[:KNOWS {name: 'woot'}]->(:A {ID: 5});
+---- ok
+-STATEMENT MATCH (n)-[r:KNOWS {name: 'monkey'}]->(a) RETURN a;
+---- 1
+{_ID: 0:0, _LABEL: A, ID: 1}

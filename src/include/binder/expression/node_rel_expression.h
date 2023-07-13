@@ -15,6 +15,8 @@ public:
           variableName(std::move(variableName)), tableIDs{std::move(tableIDs)} {}
     virtual ~NodeOrRelExpression() override = default;
 
+    inline std::string getVariableName() const { return variableName; }
+
     inline void addTableIDs(const std::vector<common::table_id_t>& tableIDsToAdd) {
         auto tableIDsSet = getTableIDsSet();
         for (auto tableID : tableIDsToAdd) {

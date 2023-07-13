@@ -304,11 +304,6 @@ Binder exception: PropertyName: _id is an internal reserved propertyName.
 ---- error
 Binder exception: Node/Rel person1 does not exist.
 
--LOG SelfLoopRel
--STATEMENT MATCH (a:person)-[e:knows]->(a) RETURN COUNT(*)
----- error
-Binder exception: Self-loop rel e is not supported.
-
 -LOG InvalidLimitNumberType
 -STATEMENT MATCH (a:person) RETURN a.age LIMIT "abc"
 ---- error
