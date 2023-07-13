@@ -36,6 +36,8 @@ public:
 
     virtual std::unique_ptr<ReadFileMorsel> getMorsel() = 0;
 
+    inline std::vector<std::string> getFilePaths() { return filePaths; }
+
 public:
     uint64_t numRows;
     catalog::TableSchema* tableSchema;

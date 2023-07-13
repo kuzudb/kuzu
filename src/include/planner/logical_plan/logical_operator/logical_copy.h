@@ -12,13 +12,11 @@ class LogicalCopy : public LogicalOperator {
 public:
     LogicalCopy(const common::CopyDescription& copyDescription, common::table_id_t tableID,
         std::string tableName, binder::expression_vector arrowColumnExpressions,
-        std::shared_ptr<binder::Expression> columnIdxExpression,
         std::shared_ptr<binder::Expression> outputExpression)
-        : LogicalOperator{LogicalOperatorType::COPY}, copyDescription{copyDescription},
-          tableID{tableID}, tableName{std::move(tableName)}, arrowColumnExpressions{std::move(
-                                                                 arrowColumnExpressions)},
-          columnIdxExpression{std::move(columnIdxExpression)}, outputExpression{
-                                                                   std::move(outputExpression)} {}
+        : LogicalOperator{LogicalOperatorType::COPY},
+          copyDescription{copyDescription}, tableID{tableID}, tableName{std::move(tableName)},
+          arrowColumnExpressions{std::move(arrowColumnExpressions)}, outputExpression{std::move(
+                                                                         outputExpression)} {}
 
     inline std::string getExpressionsForPrinting() const override { return tableName; }
 
@@ -30,10 +28,6 @@ public:
         return arrowColumnExpressions;
     }
 
-    inline std::shared_ptr<binder::Expression> getColumnIdxExpression() const {
-        return columnIdxExpression;
-    }
-
     inline std::shared_ptr<binder::Expression> getOutputExpression() const {
         return outputExpression;
     }
@@ -42,8 +36,8 @@ public:
     void computeFlatSchema() override;
 
     inline std::unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalCopy>(copyDescription, tableID, tableName, arrowColumnExpressions,
-            columnIdxExpression, outputExpression);
+        return make_unique<LogicalCopy>(
+            copyDescription, tableID, tableName, arrowColumnExpressions, outputExpression);
     }
 
 private:
@@ -52,7 +46,6 @@ private:
     // Used for printing only.
     std::string tableName;
     binder::expression_vector arrowColumnExpressions;
-    std::shared_ptr<binder::Expression> columnIdxExpression;
     std::shared_ptr<binder::Expression> outputExpression;
 };
 

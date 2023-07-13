@@ -29,52 +29,25 @@ void ReadNPYSharedState::countNumLines() {
 std::unique_ptr<ReadFileMorsel> ReadNPYSharedState::getMorsel() {
     std::unique_lock lck{mtx};
     while (true) {
-        if (curFileIdx >= filePaths.size()) {
-            // No more files to read.
-            return nullptr;
-        }
-        auto filePath = filePaths[curFileIdx];
+        auto filePath = filePaths[0];
         auto fileBlockInfo = fileBlockInfos.at(filePath);
         if (curBlockIdx >= fileBlockInfo.numBlocks) {
-            // No more blocks to read in this file.
-            curFileIdx++;
-            curBlockIdx = 0;
-            continue;
+            // No more blocks to read
+            return nullptr;
         }
-        auto result = std::make_unique<ReadNPYMorsel>(
-            curBlockIdx, fileBlockInfo.numLinesPerBlock[curBlockIdx], filePath, curFileIdx);
+        auto result = std::make_unique<ReadFileMorsel>(
+            curBlockIdx, fileBlockInfo.numLinesPerBlock[curBlockIdx], filePath);
         curBlockIdx++;
         return result;
     }
 }
 
 std::shared_ptr<arrow::RecordBatch> ReadNPY::readTuples(std::unique_ptr<ReadFileMorsel> morsel) {
-    assert(!morsel->filePath.empty());
-    if (!reader || reader->getFilePath() != morsel->filePath) {
-        reader = std::make_unique<storage::NpyReader>(morsel->filePath);
+    if (!reader) {
+        reader = std::make_unique<storage::NpyMultiFileReader>(sharedState->getFilePaths());
     }
     auto batch = reader->readBlock(morsel->blockIdx);
     return batch;
-}
-
-bool ReadNPY::getNextTuplesInternal(kuzu::processor::ExecutionContext* context) {
-    auto sharedStateNPY = reinterpret_cast<ReadNPYSharedState*>(sharedState.get());
-    auto morsel = sharedStateNPY->getMorsel();
-    if (morsel == nullptr) {
-        return false;
-    }
-    auto npyMorsel = reinterpret_cast<ReadNPYMorsel*>(morsel.get());
-    auto columnIdx = npyMorsel->getColumnIdx();
-    columnIdxVector->setValue(columnIdxVector->state->selVector->selectedPositions[0], columnIdx);
-    auto recordBatch = readTuples(std::move(morsel));
-    //    common::ArrowColumnVector::setArrowColumn(
-    //        arrowColumnVectors[columnIdx], recordBatch->column((int)0));
-    return true;
-}
-
-void ReadNPY::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
-    ReadFile::initLocalStateInternal(resultSet, context);
-    columnIdxVector = resultSet->getValueVector(columnIdxPos).get();
 }
 
 } // namespace processor

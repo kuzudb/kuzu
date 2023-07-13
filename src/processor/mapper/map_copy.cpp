@@ -1,7 +1,6 @@
 #include "planner/logical_plan/logical_operator/logical_copy.h"
 #include "processor/mapper/plan_mapper.h"
 #include "processor/operator/copy/copy_node.h"
-#include "processor/operator/copy/copy_npy_node.h"
 #include "processor/operator/copy/copy_rel.h"
 #include "processor/operator/copy/read_csv.h"
 #include "processor/operator/copy/read_file.h"
@@ -41,8 +40,6 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCopyNodeToPhysical(Logic
     for (auto& arrowColumnPos : arrowColumnExpressions) {
         arrowColumnPoses.emplace_back(outSchema->getExpressionPos(*arrowColumnPos));
     }
-    auto columnIdxExpression = copy->getColumnIdxExpression();
-    auto columnIdxPos = DataPos(outSchema->getExpressionPos(*columnIdxExpression));
     auto nodeTableSchema = catalog->getReadOnlyVersion()->getNodeTableSchema(copy->getTableID());
     switch (copy->getCopyDescription().fileType) {
     case (common::CopyDescription::FileType::CSV): {
@@ -61,8 +58,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCopyNodeToPhysical(Logic
     case (common::CopyDescription::FileType::NPY): {
         readFileSharedState = std::make_shared<ReadNPYSharedState>(
             copy->getCopyDescription().filePaths, nodeTableSchema);
-        readFile = std::make_unique<ReadNPY>(arrowColumnPoses, columnIdxPos, readFileSharedState,
-            getOperatorID(), copy->getExpressionsForPrinting());
+        readFile = std::make_unique<ReadNPY>(arrowColumnPoses, readFileSharedState, getOperatorID(),
+            copy->getExpressionsForPrinting());
     } break;
     default:
         throw common::NotImplementedException("PlanMapper::mapLogicalCopyNodeToPhysical");
@@ -76,23 +73,10 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCopyNodeToPhysical(Logic
     auto ftSharedState = std::make_shared<FTableSharedState>(
         copyNodeSharedState->fTable, common::DEFAULT_VECTOR_CAPACITY);
 
-    std::unique_ptr<CopyNode> copyNode;
-    if (copy->getCopyDescription().fileType == common::CopyDescription::FileType::NPY) {
-        //        auto localState =
-        //        std::make_unique<CopyNPYNodeLocalState>(copy->getCopyDescription(),
-        //            storageManager.getNodesStore().getNodeTable(copy->getTableID()),
-        //            &storageManager.getRelsStore(), catalog, storageManager.getWAL(),
-        //            columnIdxPos, arrowColumnPoses);
-        //        copyNode = std::make_unique<CopyNPYNode>(std::move(localState),
-        //        copyNodeSharedState,
-        //            std::make_unique<ResultSetDescriptor>(copy->getSchema()), std::move(readFile),
-        //            getOperatorID(), copy->getExpressionsForPrinting());
-    } else {
-        copyNode = std::make_unique<CopyNode>(&storageManager.getRelsStore(),
-            storageManager.getWAL(), copyNodeSharedState, CopyNodeDataInfo{arrowColumnPoses},
-            std::make_unique<ResultSetDescriptor>(copy->getSchema()), std::move(readFile),
-            getOperatorID(), copy->getExpressionsForPrinting());
-    }
+    std::unique_ptr<CopyNode> copyNode = std::make_unique<CopyNode>(&storageManager.getRelsStore(),
+        storageManager.getWAL(), copyNodeSharedState, CopyNodeDataInfo{arrowColumnPoses},
+        std::make_unique<ResultSetDescriptor>(copy->getSchema()), std::move(readFile),
+        getOperatorID(), copy->getExpressionsForPrinting());
     // We need to create another pipeline to return the copy message to the user.
     // The new pipeline only contains a factorizedTableScan and a resultCollector.
     return std::make_unique<FactorizedTableScan>(std::vector<DataPos>{outputVectorPos},

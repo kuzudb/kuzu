@@ -177,8 +177,6 @@ std::unique_ptr<LogicalPlan> Planner::planCopy(
     }
     auto copy = make_shared<LogicalCopy>(copyClause.getCopyDescription(), copyClause.getTableID(),
         copyClause.getTableName(), std::move(arrowColumnExpressions),
-        std::make_shared<VariableExpression>(
-            common::LogicalType{common::LogicalTypeID::INT64}, "columnIdx", "columnIdx"),
         copyClause.getStatementResult()->getSingleExpressionToCollect());
     plan->setLastOperator(std::move(copy));
     return plan;

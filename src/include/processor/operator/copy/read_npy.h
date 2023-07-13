@@ -7,18 +7,6 @@
 namespace kuzu {
 namespace processor {
 
-class ReadNPYMorsel : public ReadFileMorsel {
-public:
-    ReadNPYMorsel(common::block_idx_t blockIdx, uint64_t numNodes, std::string filePath,
-        common::vector_idx_t curFileIdx)
-        : ReadFileMorsel{blockIdx, numNodes, std::move(filePath)}, columnIdx{curFileIdx} {}
-
-    inline common::vector_idx_t getColumnIdx() const { return columnIdx; }
-
-private:
-    common::vector_idx_t columnIdx;
-};
-
 class ReadNPYSharedState : public ReadFileSharedState {
 public:
     ReadNPYSharedState(std::vector<std::string> filePaths, catalog::TableSchema* tableSchema)
@@ -32,28 +20,19 @@ private:
 
 class ReadNPY : public ReadFile {
 public:
-    ReadNPY(std::vector<DataPos> arrowColumnPoses, const DataPos& columnIdxPos,
-        std::shared_ptr<ReadFileSharedState> sharedState, uint32_t id,
-        const std::string& paramsString)
+    ReadNPY(std::vector<DataPos> arrowColumnPoses, std::shared_ptr<ReadFileSharedState> sharedState,
+        uint32_t id, const std::string& paramsString)
         : ReadFile{std::move(arrowColumnPoses), std::move(sharedState),
-              PhysicalOperatorType::READ_NPY, id, paramsString},
-          columnIdxPos{columnIdxPos}, columnIdxVector{nullptr} {}
+              PhysicalOperatorType::READ_NPY, id, paramsString} {}
 
     std::shared_ptr<arrow::RecordBatch> readTuples(std::unique_ptr<ReadFileMorsel> morsel) final;
 
-    bool getNextTuplesInternal(ExecutionContext* context) final;
-
-    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) final;
-
     inline std::unique_ptr<PhysicalOperator> clone() final {
-        return std::make_unique<ReadNPY>(
-            arrowColumnPoses, columnIdxPos, sharedState, id, paramsString);
+        return std::make_unique<ReadNPY>(arrowColumnPoses, sharedState, id, paramsString);
     }
 
 private:
-    std::unique_ptr<storage::NpyReader> reader;
-    DataPos columnIdxPos;
-    common::ValueVector* columnIdxVector;
+    std::unique_ptr<storage::NpyMultiFileReader> reader;
 };
 
 } // namespace processor
