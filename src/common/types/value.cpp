@@ -566,7 +566,7 @@ std::string NodeVal::toString(const Value* val) {
 void NodeVal::throwIfNotNode(const Value* val) {
     if (val->getDataType().getLogicalTypeID() != LogicalTypeID::NODE) {
         auto actualType = LogicalTypeUtils::dataTypeToString(val->getDataType().getLogicalTypeID());
-        throw Exception(fmt::format("Expected node type, but got {} type", actualType));
+        throw Exception(fmt::format("Expected NODE type, but got {} type", actualType));
     }
 }
 
@@ -660,7 +660,24 @@ std::unique_ptr<Value> RelVal::copy(const Value* val) {
 void RelVal::throwIfNotRel(const Value* val) {
     if (val->getDataType().getLogicalTypeID() != LogicalTypeID::REL) {
         auto actualType = LogicalTypeUtils::dataTypeToString(val->getDataType().getLogicalTypeID());
-        throw Exception(fmt::format("Expected relationship type, but got {} type", actualType));
+        throw Exception(fmt::format("Expected REL type, but got {} type", actualType));
+    }
+}
+
+Value* RecursiveRelVal::getNodes(const Value* val) {
+    throwIfNotRecursiveRel(val);
+    return val->getListValReference()[0].get();
+}
+
+Value* RecursiveRelVal::getRels(const Value* val) {
+    throwIfNotRecursiveRel(val);
+    return val->getListValReference()[1].get();
+}
+
+void RecursiveRelVal::throwIfNotRecursiveRel(const Value* val) {
+    if (val->getDataType().getLogicalTypeID() != LogicalTypeID::RECURSIVE_REL) {
+        auto actualType = LogicalTypeUtils::dataTypeToString(val->getDataType().getLogicalTypeID());
+        throw Exception(fmt::format("Expected RECURSIVE_REL type, but got {} type", actualType));
     }
 }
 
