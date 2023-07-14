@@ -139,7 +139,6 @@ private:
     std::unique_ptr<TargetDstNodes> targetDstNodes;
 
     /// NEW MEMBERS BEING ADDED
-    uint32_t threadIdx;
     std::vector<DataPos> vectorsToScanPos;
     std::vector<common::ValueVector*> vectorsToScan;
     std::vector<ft_col_idx_t> colIndicesToScan;
