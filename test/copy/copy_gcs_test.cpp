@@ -6,8 +6,14 @@ using namespace kuzu::common;
 using namespace kuzu::storage;
 using namespace kuzu::testing;
 
-class CopyGcsTest : public DBTest {
-    void checkQuery(const std::string& query) { ASSERT(conn->query(query)->isSuccess()); }
+class CopyGcsTest : public EmptyDBTest {
+public:
+    void checkQuery(const std::string& query) { ASSERT_TRUE(conn->query(query)->isSuccess()); }
+
+    void SetUp() override {
+        BaseGraphTest::SetUp();
+        createDBAndConn();
+    }
 };
 
 // The purpose of this test is to make sure that we can copy from a public GCS bucket
@@ -27,5 +33,5 @@ TEST_F(CopyGcsTest, CopyGcsAnonymousTest) {
                   ->getNext()
                   ->getValue(0)
                   ->getValue<int64_t>(),
-        1);
+        14);
 }
