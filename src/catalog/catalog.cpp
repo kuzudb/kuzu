@@ -249,10 +249,6 @@ const Property& CatalogContent::getRelProperty(
     throw CatalogException("Cannot find rel property " + propertyName + ".");
 }
 
-std::vector<Property> CatalogContent::getAllNodeProperties(table_id_t tableID) const {
-    return nodeTableSchemas.at(tableID)->getAllNodeProperties();
-}
-
 void CatalogContent::dropTableSchema(table_id_t tableID) {
     auto tableSchema = getTableSchema(tableID);
     if (tableSchema->isNodeTable) {

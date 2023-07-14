@@ -65,12 +65,23 @@ std::unique_ptr<BoundCreateNode> Binder::bindCreateNode(
     auto primaryKey = nodeTableSchema->getPrimaryKey();
     std::shared_ptr<Expression> primaryKeyExpression;
     std::vector<expression_pair> setItems;
+    for (auto& property : catalog.getReadOnlyVersion()->getNodeProperties(nodeTableID)) {
+        if (collection.hasKeyVal(node, property.name)) {
+            setItems.emplace_back(collection.getKeyVal(node, property.name));
+        } else {
+            auto propertyExpression =
+                expressionBinder.bindNodePropertyExpression(*node, property.name);
+            auto nullExpression = expressionBinder.createNullLiteralExpression();
+            nullExpression = ExpressionBinder::implicitCastIfNecessary(
+                nullExpression, propertyExpression->dataType);
+            setItems.emplace_back(std::move(propertyExpression), std::move(nullExpression));
+        }
+    }
     for (auto& [key, val] : collection.getKeyVals(node)) {
         auto propertyExpression = static_pointer_cast<PropertyExpression>(key);
         if (propertyExpression->getPropertyID(nodeTableID) == primaryKey.propertyID) {
             primaryKeyExpression = val;
         }
-        setItems.emplace_back(key, val);
     }
     if (nodeTableSchema->getPrimaryKey().dataType.getLogicalTypeID() != LogicalTypeID::SERIAL &&
         primaryKeyExpression == nullptr) {

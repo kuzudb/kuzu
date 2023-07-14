@@ -86,6 +86,9 @@ bool Column::isNull(common::offset_t nodeOffset, transaction::Transaction* trans
 
 void Column::setNull(common::offset_t nodeOffset) {
     nullColumn->setValue(nodeOffset);
+    auto walPageInfo = createWALVersionOfPageIfNecessaryForElement(nodeOffset, numElementsPerPage);
+    bufferManager->unpin(*wal->fileHandle, walPageInfo.pageIdxInWAL);
+    fileHandle->releaseWALPageIdxLock(walPageInfo.originalPageIdx);
 }
 
 Value Column::readValueForTestingOnly(offset_t offset) {
@@ -322,6 +325,23 @@ void StructPropertyColumn::read(Transaction* transaction, common::ValueVector* n
     for (auto i = 0u; i < structFieldColumns.size(); i++) {
         structFieldColumns[i]->read(
             transaction, nodeIDVector, common::StructVector::getFieldVector(resultVector, i).get());
+    }
+}
+
+void StructPropertyColumn::setNull(common::offset_t nodeOffset) {
+    nullColumn->setValue(nodeOffset);
+    // TODO(Ziyi): we currently only support create a node/rel with null struct property because
+    // we don't have a mechanism to log the sub columns of a struct column.
+}
+
+void StructPropertyColumn::write(common::offset_t nodeOffset,
+    common::ValueVector* vectorToWriteFrom, uint32_t posInVectorToWriteFrom) {
+    bool isNull = vectorToWriteFrom->isNull(posInVectorToWriteFrom);
+    if (nullColumn) {
+        nullColumn->write(nodeOffset, vectorToWriteFrom, posInVectorToWriteFrom);
+    }
+    if (!isNull) {
+        throw common::RuntimeException{"Can only update a null value to struct column."};
     }
 }
 

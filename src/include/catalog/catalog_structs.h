@@ -63,7 +63,7 @@ public:
         return std::any_of(properties.begin(), properties.end(),
             [&propertyName](const Property& property) { return property.name == propertyName; });
     }
-
+    inline const std::vector<Property>& getProperties() const { return properties; }
     inline void addProperty(std::string propertyName, common::LogicalType dataType) {
         properties.emplace_back(
             std::move(propertyName), std::move(dataType), increaseNextPropertyID(), tableID);
@@ -101,8 +101,6 @@ struct NodeTableSchema : TableSchema {
     inline void addBwdRelTableID(common::table_id_t tableID) { bwdRelTableIDSet.insert(tableID); }
 
     inline Property getPrimaryKey() const { return properties[primaryKeyPropertyID]; }
-
-    inline std::vector<Property> getAllNodeProperties() const { return properties; }
 
     // TODO(Semih): When we support updating the schemas, we need to update this or, we need
     // a more robust mechanism to keep track of which property is the primary key (e.g., store this

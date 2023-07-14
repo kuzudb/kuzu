@@ -102,9 +102,11 @@ public:
     const Property& getRelProperty(
         common::table_id_t tableID, const std::string& propertyName) const;
 
-    std::vector<Property> getAllNodeProperties(common::table_id_t tableID) const;
+    inline const std::vector<Property>& getNodeProperties(common::table_id_t tableID) const {
+        return nodeTableSchemas.at(tableID)->getProperties();
+    }
     inline const std::vector<Property>& getRelProperties(common::table_id_t tableID) const {
-        return relTableSchemas.at(tableID)->properties;
+        return relTableSchemas.at(tableID)->getProperties();
     }
     inline std::vector<common::table_id_t> getNodeTableIDs() const {
         std::vector<common::table_id_t> nodeTableIDs;
