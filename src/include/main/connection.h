@@ -150,9 +150,31 @@ public:
 
     template<typename TR, typename... Args>
     void createScalarFunction(const std::string& name, TR (*udfFunc)(Args...)) {
-        function::vector_function_definitions definitions;
-        auto definition = function::getFunctionDefinition<TR, Args...>(name, udfFunc);
-        definitions.push_back(std::move(definition));
+        auto definitions = function::UDF::getFunctionDefinition<TR, Args...>(name, udfFunc);
+        addScalarFunction(name, std::move(definitions));
+    }
+
+    template<typename TR, typename... Args>
+    void createScalarFunction(const std::string& name,
+        std::vector<common::LogicalTypeID> parameterTypes, common::LogicalTypeID returnType,
+        TR (*udfFunc)(Args...)) {
+        auto definitions = function::UDF::getFunctionDefinition<TR, Args...>(
+            name, udfFunc, std::move(parameterTypes), returnType);
+        addScalarFunction(name, std::move(definitions));
+    }
+
+    template<typename TR, typename... Args>
+    void createVectorizedFunction(const std::string& name, function::scalar_exec_func scalarFunc) {
+        auto definitions = function::UDF::getVectorizedFunctionDefinition<TR, Args...>(
+            name, std::move(scalarFunc));
+        addScalarFunction(name, std::move(definitions));
+    }
+
+    void createVectorizedFunction(const std::string& name,
+        std::vector<common::LogicalTypeID> parameterTypes, common::LogicalTypeID returnType,
+        function::scalar_exec_func scalarFunc) {
+        auto definitions = function::UDF::getVectorizedFunctionDefinition(
+            name, std::move(scalarFunc), std::move(parameterTypes), returnType);
         addScalarFunction(name, std::move(definitions));
     }
 
