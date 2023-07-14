@@ -1,5 +1,7 @@
 #pragma once
 
+#include <queue>
+
 #include "processor/operator/mask.h"
 #include "processor/operator/recursive_extend/bfs_state.h"
 #include "processor/operator/result_collector.h"
@@ -25,26 +27,25 @@ namespace processor {
 enum SchedulerType { OneThreadOneMorsel, nThreadkMorsel };
 
 struct MorselDispatcher {
+    uint64_t maxAllowedActiveSSSP;
+
 public:
     MorselDispatcher(
         SchedulerType schedulerType, uint64_t lowerBound, uint64_t upperBound, uint64_t maxOffset)
-        : schedulerType{schedulerType}, threadIdxCounter{0u}, numActiveSSSP{0u},
-          activeSSSPSharedState{std::vector<std::shared_ptr<SSSPSharedState>>()},
+        : schedulerType{schedulerType}, maxAllowedActiveSSSP{0u}, numActiveSSSP{0u},
           globalState{IN_PROGRESS}, maxOffset{maxOffset}, lowerBound{lowerBound}, upperBound{
                                                                                       upperBound} {}
-
-    uint32_t getThreadIdx();
 
     bool getBFSMorsel(const std::shared_ptr<FTableSharedState>& inputFTableSharedState,
         const std::vector<common::ValueVector*> vectorsToScan,
         const std::vector<ft_col_idx_t> colIndicesToScan, common::ValueVector* srcNodeIDVector,
-        std::unique_ptr<BaseBFSMorsel>& bfsMorsel, uint32_t threadIdx,
+        std::unique_ptr<BaseBFSMorsel>& bfsMorsel,
         std::pair<GlobalSSSPState, SSSPLocalState>& state);
 
-    int64_t getNextAvailableSSSPWork();
+    std::shared_ptr<SSSPSharedState> getNextAvailableSSSPWork();
 
     bool findAvailableSSSP(std::unique_ptr<BaseBFSMorsel>& bfsMorsel,
-        std::pair<GlobalSSSPState, SSSPLocalState>& state, uint32_t threadIdx);
+        std::pair<GlobalSSSPState, SSSPLocalState>& state);
 
     int64_t writeDstNodeIDAndPathLength(
         const std::shared_ptr<FTableSharedState>& inputFTableSharedState,
@@ -59,8 +60,7 @@ private:
     common::offset_t maxOffset;
     uint64_t upperBound;
     uint64_t lowerBound;
-    uint32_t threadIdxCounter;
-    std::vector<std::shared_ptr<SSSPSharedState>> activeSSSPSharedState;
+    std::deque<std::shared_ptr<SSSPSharedState>> activeSSSPSharedState;
     uint32_t numActiveSSSP;
     GlobalSSSPState globalState;
     std::mutex mutex;

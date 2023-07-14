@@ -10,7 +10,7 @@ namespace kuzu {
 namespace processor {
 
 void RecursiveJoin::initLocalStateInternal(ResultSet* resultSet_, ExecutionContext* context) {
-    threadIdx = morselDispatcher->getThreadIdx();
+    morselDispatcher->maxAllowedActiveSSSP = context->numThreads;
     for (auto& dataPos : vectorsToScanPos) {
         vectorsToScan.push_back(resultSet->getValueVector(dataPos).get());
     }
@@ -234,7 +234,7 @@ bool RecursiveJoin::computeBFS(kuzu::processor::ExecutionContext* context) {
 int RecursiveJoin::fetchMorselFromDispatcher(ExecutionContext* context) {
     std::pair<GlobalSSSPState, SSSPLocalState> state;
     auto checkState = morselDispatcher->getBFSMorsel(sharedState->inputFTableSharedState,
-        vectorsToScan, colIndicesToScan, vectors->srcNodeIDVector, bfsMorsel, threadIdx, state);
+        vectorsToScan, colIndicesToScan, vectors->srcNodeIDVector, bfsMorsel, state);
     // If checkState is TRUE, it indicates no work was found even from other morsels. For 1T1S
     // this means exiting immediately, because threads don't share work. For nTkS it indicates to
     // exit ONLY if state is COMPLETE. Else the thread will sleep for some time before going back to
