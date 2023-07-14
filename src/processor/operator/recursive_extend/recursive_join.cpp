@@ -173,8 +173,7 @@ bool RecursiveJoin::scanOutput() {
                 vectors->dstNodeIDVector, vectors->pathLengthVector, tableID, bfsMorsel);
             /**
              * ret > 0: non-zero path lengths were written to vector, return to parent op
-             * ret < 0: path length writing is complete, proceed to computeBFSOneThreadOneMorsel for
-             * another morsel
+             * ret < 0: path length writing is complete, proceed to computeBFS for another morsel
              * ret = 0: the distance morsel received was empty, go back to get another morsel
              */
             if (ret > 0) {
@@ -190,26 +189,33 @@ bool RecursiveJoin::scanOutput() {
 
 /**
  * The main computeBFS to be called for both 1T1S and nTkS scheduling policies. Initially for both
- * cases, the SSSPSharedState ptr will be null. For nTkS policy, this will be eventually filled with
- * a pointer to the main SSSPSharedState from which work will be fetched. This SSSPSharedState will
- * not be bound to a specific thread and can change.
- * For 1T1S policy, there is no SSSPSharedState involved and a thread works on its own work, not
- * shared with any other thread.
- *
+ * cases, the SSSPSharedState ptr will be null.
+ * - For nTkS policy, this will be filled with a pointer to the main SSSPSharedState from which work
+ *   will be fetched. This SSSPSharedState will not be bound to a specific thread and can change.
+ * - For 1T1S policy, there is no SSSPSharedState involved and a thread works on its own morsel, not
+ *   shared with any other thread.
  */
 bool RecursiveJoin::computeBFS(kuzu::processor::ExecutionContext* context) {
     while (true) {
         if (bfsMorsel->ssspSharedState) {
-            bfsMorsel->ssspSharedState->getBFSMorsel(bfsMorsel);
-            if (!bfsMorsel->threadCheckSSSPState) {
+            SSSPLocalState state;
+            bool checkState = bfsMorsel->ssspSharedState->getBFSMorsel(bfsMorsel, state);
+            if (!checkState) {
                 computeBFSnThreadkMorsel(context);
                 if (bfsMorsel->ssspSharedState->finishBFSMorsel(bfsMorsel)) {
                     return true;
                 }
                 continue;
+            } else if (state == PATH_LENGTH_WRITE_IN_PROGRESS) {
+                return true;
             }
         }
         auto status = fetchMorselFromDispatcher(context);
+        /**
+         * status = -1: Globally BFS computation is complete, return false from operator.
+         * status = 0: No work was found (thread can't be released, some computation is ongoing)
+         * status = 1: A BFS computation's extend was completed, write the path lengths to vector.
+         */
         if (status == -1) {
             return false;
         } else if (status == 0) {
@@ -226,15 +232,16 @@ bool RecursiveJoin::computeBFS(kuzu::processor::ExecutionContext* context) {
  * returns 1 = SSSP extend is complete, can return to writing distances
  */
 int RecursiveJoin::fetchMorselFromDispatcher(ExecutionContext* context) {
-    auto bfsComputationState = morselDispatcher->getBFSMorsel(sharedState->inputFTableSharedState,
-        vectorsToScan, colIndicesToScan, vectors->srcNodeIDVector, bfsMorsel, threadIdx);
-    auto globalSSSPState = bfsComputationState.first;
-    auto ssspLocalState = bfsComputationState.second;
-    // If the threadCheckSSSPState was set as TRUE within morselDispatcher, it indicates no work
-    // was found even from other morsels. For 1T1S this means exiting immediately, because threads
-    // don't share work. For nTkS it indicates to exit ONLY if state is COMPLETE. Else the thread
-    // will sleep for some time before going back to ask for work from the morselDispatcher.
-    if (bfsMorsel->threadCheckSSSPState) {
+    std::pair<GlobalSSSPState, SSSPLocalState> state;
+    auto checkState = morselDispatcher->getBFSMorsel(sharedState->inputFTableSharedState,
+        vectorsToScan, colIndicesToScan, vectors->srcNodeIDVector, bfsMorsel, threadIdx, state);
+    // If checkState is TRUE, it indicates no work was found even from other morsels. For 1T1S
+    // this means exiting immediately, because threads don't share work. For nTkS it indicates to
+    // exit ONLY if state is COMPLETE. Else the thread will sleep for some time before going back to
+    // ask for work from the morselDispatcher.
+    if (checkState) {
+        auto globalSSSPState = state.first;
+        auto ssspLocalState = state.second;
         switch (globalSSSPState) {
         case IN_PROGRESS:
         case IN_PROGRESS_ALL_SRC_SCANNED:

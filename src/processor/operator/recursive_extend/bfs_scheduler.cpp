@@ -15,18 +15,18 @@ uint32_t MorselDispatcher::getThreadIdx() {
     return threadIdxCounter++;
 }
 
-std::pair<GlobalSSSPState, SSSPLocalState> MorselDispatcher::getBFSMorsel(
+bool MorselDispatcher::getBFSMorsel(
     const std::shared_ptr<FTableSharedState>& inputFTableSharedState,
     std::vector<common::ValueVector*> vectorsToScan, std::vector<ft_col_idx_t> colIndicesToScan,
     common::ValueVector* srcNodeIDVector, std::unique_ptr<BaseBFSMorsel>& bfsMorsel,
-    uint32_t threadIdx) {
+    uint32_t threadIdx, std::pair<GlobalSSSPState, SSSPLocalState>& state) {
     std::unique_lock lck{mutex};
     switch (schedulerType) {
     case SchedulerType::OneThreadOneMorsel: {
         auto inputFTableMorsel = inputFTableSharedState->getMorsel();
         if (inputFTableMorsel->numTuples == 0) {
-            bfsMorsel->threadCheckSSSPState = true;
-            return {COMPLETE, MORSEL_COMPLETE};
+            state = {COMPLETE, MORSEL_COMPLETE};
+            return true;
         }
         inputFTableSharedState->getTable()->scan(vectorsToScan, inputFTableMorsel->startTupleIdx,
             inputFTableMorsel->numTuples, colIndicesToScan);
@@ -34,54 +34,53 @@ std::pair<GlobalSSSPState, SSSPLocalState> MorselDispatcher::getBFSMorsel(
         auto nodeID = srcNodeIDVector->getValue<common::nodeID_t>(
             srcNodeIDVector->state->selVector->selectedPositions[0]);
         bfsMorsel->markSrc(nodeID);
-        bfsMorsel->threadCheckSSSPState = false;
-        return {IN_PROGRESS, EXTEND_IN_PROGRESS};
+        return false;
     }
     case SchedulerType::nThreadkMorsel: {
         switch (globalState) {
         case COMPLETE: {
-            bfsMorsel->threadCheckSSSPState = true;
-            return {globalState, MORSEL_COMPLETE};
+            state = {globalState, MORSEL_COMPLETE};
+            return true;
         }
         case IN_PROGRESS_ALL_SRC_SCANNED: {
             auto ssspSharedState = bfsMorsel->ssspSharedState;
-            SSSPLocalState ssspLocalState;
-            if (!ssspSharedState) {
-                bfsMorsel->threadCheckSSSPState = true;
-                ssspLocalState = EXTEND_IN_PROGRESS;
-            } else {
-                ssspLocalState = ssspSharedState->getBFSMorsel(bfsMorsel);
+            SSSPLocalState tempState{EXTEND_IN_PROGRESS};
+            bool checkState{true};
+            // If there already exists an SSSPSharedState for the morsel, call the getBFSMorsel for
+            // it to see if there is any work. The tempState will hold the state returned from the
+            // function and true / false to indicate if there was work:
+            // 1) true: a range from current frontier was found as work
+            // 2) false: either single src computation is complete OR pathLength needs to be written
+            if (ssspSharedState) {
+                checkState = ssspSharedState->getBFSMorsel(bfsMorsel, tempState);
             }
-            if (bfsMorsel->threadCheckSSSPState) {
-                switch (ssspLocalState) {
+            if (checkState) {
+                switch (tempState) {
                     // Same for both states, try to get next available SSSPSharedState to work on.
                 case MORSEL_COMPLETE:
                 case EXTEND_IN_PROGRESS: {
-                    return findAvailableSSSP(bfsMorsel, ssspLocalState, threadIdx);
+                    return findAvailableSSSP(bfsMorsel, state, threadIdx);
                 }
                 case PATH_LENGTH_WRITE_IN_PROGRESS:
-                    bfsMorsel->threadCheckSSSPState = true;
-                    return {globalState, ssspLocalState};
+                    state = {globalState, tempState};
+                    return true;
                 default:
                     assert(false);
                 }
             } else {
-                return {globalState, ssspLocalState};
+                return false;
             }
         }
         case IN_PROGRESS: {
             auto ssspSharedState = bfsMorsel->ssspSharedState;
-            SSSPLocalState ssspLocalState;
-            if (!ssspSharedState) {
-                bfsMorsel->threadCheckSSSPState = true;
-                ssspLocalState = EXTEND_IN_PROGRESS;
-            } else {
-                ssspLocalState = ssspSharedState->getBFSMorsel(bfsMorsel);
+            SSSPLocalState tempState{EXTEND_IN_PROGRESS};
+            bool checkState{true};
+            if (ssspSharedState) {
+                checkState = ssspSharedState->getBFSMorsel(bfsMorsel, tempState);
             }
-            if (bfsMorsel->threadCheckSSSPState) {
-                switch (ssspLocalState) {
-                    // try to get the next available SSSPSharedState for work
-                    // same for both states, try to get next available SSSPSharedState for work
+            if (checkState) {
+                switch (tempState) {
+                    // Same for both states, try to get next available SSSPSharedState for work.
                 case MORSEL_COMPLETE:
                 case EXTEND_IN_PROGRESS: {
                     // Max active SSSP equal to total no. of threads (size of activeSSSPSharedState)
@@ -90,8 +89,8 @@ std::pair<GlobalSSSPState, SSSPLocalState> MorselDispatcher::getBFSMorsel(
                         if (inputFTableMorsel->numTuples == 0) {
                             globalState =
                                 (numActiveSSSP == 0) ? COMPLETE : IN_PROGRESS_ALL_SRC_SCANNED;
-                            bfsMorsel->threadCheckSSSPState = true;
-                            return {globalState, ssspLocalState};
+                            state = {globalState, tempState};
+                            return true;
                         }
                         numActiveSSSP++;
                         auto newSSSPSharedState =
@@ -105,19 +104,19 @@ std::pair<GlobalSSSPState, SSSPLocalState> MorselDispatcher::getBFSMorsel(
                             srcNodeIDVector->state->selVector->selectedPositions[0]);
                         newSSSPSharedState->srcOffset = nodeID.offset;
                         newSSSPSharedState->markSrc(bfsMorsel->targetDstNodes->contains(nodeID));
-                        newSSSPSharedState->getBFSMorsel(bfsMorsel);
+                        newSSSPSharedState->getBFSMorsel(bfsMorsel, tempState);
                         activeSSSPSharedState[threadIdx] = newSSSPSharedState;
-                        return {globalState, ssspLocalState};
+                        return false;
                     } else {
-                        return findAvailableSSSP(bfsMorsel, ssspLocalState, threadIdx);
+                        return findAvailableSSSP(bfsMorsel, state, threadIdx);
                     }
                 }
                 case PATH_LENGTH_WRITE_IN_PROGRESS:
-                    bfsMorsel->threadCheckSSSPState = true;
-                    return {globalState, ssspLocalState};
+                    state = {globalState, tempState};
+                    return true;
                 }
             } else {
-                return {globalState, ssspLocalState};
+                return false;
             }
         }
         }
@@ -147,26 +146,29 @@ int64_t MorselDispatcher::getNextAvailableSSSPWork() {
 
 /**
  * Try to find an available SSSPSharedState for work and then try to get a morsel. If the work is
- * writing path lengths then at Line 165 - ssspLocalState will be PATH_LENGTH_WRITE_IN_PROGRESS.
- * This is why we mark threadCheckSSSPState as true and exit. If the work is bfs extension, the
- * threadCheckSSSPState will be marked as false since the thread will have received a morsel
- * successfully. We update the activeSSSPSharedState vector for the thread's index with the new
+ * writing path lengths then the tempState value will be PATH_LENGTH_WRITE_IN_PROGRESS.
+ * We update the activeSSSPSharedState vector for the thread's index with the new
  * SSSPSharedState to indicate the morsel the thread will now be working on.
+ *
+ * @return - TRUE if no work was found OR work is writing pathLength values to vector.
+ * FALSE if bfsExtension work was found i.e a range from current frontier to extend.
  */
-std::pair<GlobalSSSPState, SSSPLocalState> MorselDispatcher::findAvailableSSSP(
-    std::unique_ptr<BaseBFSMorsel>& bfsMorsel, SSSPLocalState& ssspLocalState, uint32_t threadIdx) {
+bool MorselDispatcher::findAvailableSSSP(std::unique_ptr<BaseBFSMorsel>& bfsMorsel,
+    std::pair<GlobalSSSPState, SSSPLocalState>& state, uint32_t threadIdx) {
+    SSSPLocalState tempState{MORSEL_COMPLETE};
     auto nextAvailableSSSPIdx = getNextAvailableSSSPWork();
     if (nextAvailableSSSPIdx == -1) {
-        bfsMorsel->threadCheckSSSPState = true;
-        return {globalState, ssspLocalState};
+        state = {globalState, tempState};
+        return true;
     }
-    ssspLocalState = activeSSSPSharedState[nextAvailableSSSPIdx]->getBFSMorsel(bfsMorsel);
-    if (bfsMorsel->threadCheckSSSPState) {
-        bfsMorsel->threadCheckSSSPState = true;
-        return {globalState, ssspLocalState};
+    bool checkState =
+        activeSSSPSharedState[nextAvailableSSSPIdx]->getBFSMorsel(bfsMorsel, tempState);
+    if (checkState) {
+        state = {globalState, tempState};
+        return checkState;
     } else {
         activeSSSPSharedState[threadIdx] = activeSSSPSharedState[nextAvailableSSSPIdx];
-        return {globalState, ssspLocalState};
+        return false;
     }
 }
 

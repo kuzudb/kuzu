@@ -35,12 +35,13 @@ void SSSPSharedState::reset(TargetDstNodes* targetDstNodes) {
  * then depending on state we need to take next step. If MORSEL_COMPLETE then proceed to get a new
  * SSSPSharedState & if MORSEL_pathLength_WRITING_IN_PROGRESS then help in this task.
  */
-SSSPLocalState SSSPSharedState::getBFSMorsel(std::unique_ptr<BaseBFSMorsel>& bfsMorsel) {
+bool SSSPSharedState::getBFSMorsel(
+    std::unique_ptr<BaseBFSMorsel>& bfsMorsel, SSSPLocalState& state) {
     mutex.lock();
     if (ssspLocalState == MORSEL_COMPLETE || ssspLocalState == PATH_LENGTH_WRITE_IN_PROGRESS) {
-        bfsMorsel->threadCheckSSSPState = true;
+        state = ssspLocalState;
         mutex.unlock();
-        return ssspLocalState;
+        return true;
     }
     if (nextScanStartIdx < bfsLevelNodeOffsets.size()) {
         numThreadsActiveOnMorsel++;
@@ -51,11 +52,11 @@ SSSPLocalState SSSPSharedState::getBFSMorsel(std::unique_ptr<BaseBFSMorsel>& bfs
         shortestPathMorsel->reset(nextScanStartIdx, morselScanEndIdx, this);
         nextScanStartIdx += bfsMorselSize;
         mutex.unlock();
-        return ssspLocalState;
+        return false;
     }
-    bfsMorsel->threadCheckSSSPState = true;
+    state = ssspLocalState;
     mutex.unlock();
-    return ssspLocalState;
+    return true;
 }
 
 bool SSSPSharedState::hasWork() const {

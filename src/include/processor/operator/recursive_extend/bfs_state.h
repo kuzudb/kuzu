@@ -104,7 +104,7 @@ public:
 
     void reset(TargetDstNodes* targetDstNodes);
 
-    SSSPLocalState getBFSMorsel(std::unique_ptr<BaseBFSMorsel>& bfsMorsel);
+    bool getBFSMorsel(std::unique_ptr<BaseBFSMorsel>& bfsMorsel, SSSPLocalState& state);
 
     bool hasWork() const;
 
@@ -147,7 +147,7 @@ struct BaseBFSMorsel {
 public:
     BaseBFSMorsel(TargetDstNodes* targetDstNodes, uint8_t upperBound, uint8_t lowerBound)
         : targetDstNodes{targetDstNodes}, upperBound{upperBound}, lowerBound{lowerBound},
-          currentLevel{0u}, threadCheckSSSPState{true}, ssspSharedState{nullptr} {}
+          currentLevel{0u}, ssspSharedState{nullptr} {}
 
     virtual ~BaseBFSMorsel() = default;
 
@@ -217,7 +217,6 @@ protected:
     // Target information.
 public:
     TargetDstNodes* targetDstNodes;
-    bool threadCheckSSSPState;
     SSSPSharedState* ssspSharedState;
 };
 
@@ -275,7 +274,6 @@ public:
         startScanIdx = startScanIdx_;
         endScanIdx = endScanIdx_;
         ssspSharedState = ssspSharedState_;
-        threadCheckSSSPState = false;
         numVisitedDstNodes = 0u;
     }
 

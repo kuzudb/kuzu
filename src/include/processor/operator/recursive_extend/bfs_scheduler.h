@@ -35,17 +35,16 @@ public:
 
     uint32_t getThreadIdx();
 
-    std::pair<GlobalSSSPState, SSSPLocalState> getBFSMorsel(
-        const std::shared_ptr<FTableSharedState>& inputFTableSharedState,
+    bool getBFSMorsel(const std::shared_ptr<FTableSharedState>& inputFTableSharedState,
         const std::vector<common::ValueVector*> vectorsToScan,
         const std::vector<ft_col_idx_t> colIndicesToScan, common::ValueVector* srcNodeIDVector,
-        std::unique_ptr<BaseBFSMorsel>& bfsMorsel, uint32_t threadIdx);
+        std::unique_ptr<BaseBFSMorsel>& bfsMorsel, uint32_t threadIdx,
+        std::pair<GlobalSSSPState, SSSPLocalState>& state);
 
     int64_t getNextAvailableSSSPWork();
 
-    std::pair<GlobalSSSPState, SSSPLocalState> findAvailableSSSP(
-        std::unique_ptr<BaseBFSMorsel>& bfsMorsel, SSSPLocalState& ssspLocalState,
-        uint32_t threadIdx);
+    bool findAvailableSSSP(std::unique_ptr<BaseBFSMorsel>& bfsMorsel,
+        std::pair<GlobalSSSPState, SSSPLocalState>& state, uint32_t threadIdx);
 
     int64_t writeDstNodeIDAndPathLength(
         const std::shared_ptr<FTableSharedState>& inputFTableSharedState,
