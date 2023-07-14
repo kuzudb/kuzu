@@ -160,9 +160,9 @@ jobs:
         shell: cmd
         run: |
           call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
-          cmake -B build/release -G Ninja -DCURL_LIBRARY=C:/Users/runner/source/repos/vcpkg/packages/curl_x64-windows-static/lib/libcurl.lib -DCURL_INCLUDE_DIR=C:/Users/runner/source/repos/vcpkg/packages/curl_x64-windows-static/include -DBUILD_TESTS=TRUE -DCMAKE_BUILD_TYPE=Release -DENABLE_REMOTE_FS=TRUE
-          cmake --build build/release --config Release
-          cd build/release/test && ctest --output-on-failure -j 10
+          cmake -B b -G Ninja -DCURL_LIBRARY=C:/Users/runner/source/repos/vcpkg/packages/curl_x64-windows-static/lib/libcurl.lib -DCURL_INCLUDE_DIR=C:/Users/runner/source/repos/vcpkg/packages/curl_x64-windows-static/include -DBUILD_TESTS=TRUE -DCMAKE_BUILD_TYPE=Release -DENABLE_REMOTE_FS=TRUE
+          cmake --build b --config Release
+          cd b/test && ctest --output-on-failure -j 10
 
       - name: Rust test
         shell: cmd
