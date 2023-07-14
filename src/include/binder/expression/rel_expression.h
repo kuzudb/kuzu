@@ -51,6 +51,7 @@ public:
 
     inline std::shared_ptr<NodeExpression> getSrcNode() const { return srcNode; }
     inline std::string getSrcNodeName() const { return srcNode->getUniqueName(); }
+    inline void setDstNode(std::shared_ptr<NodeExpression> node) { dstNode = std::move(node); }
     inline std::shared_ptr<NodeExpression> getDstNode() const { return dstNode; }
     inline std::string getDstNodeName() const { return dstNode->getUniqueName(); }
 
@@ -71,6 +72,8 @@ public:
     inline std::shared_ptr<Expression> getLengthExpression() const {
         return recursiveInfo->lengthExpression;
     }
+
+    inline bool isSelfLoop() const { return *srcNode == *dstNode; }
 
 private:
     std::shared_ptr<NodeExpression> srcNode;

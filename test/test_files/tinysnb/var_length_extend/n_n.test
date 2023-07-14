@@ -72,3 +72,8 @@ Greg
 -STATEMENT MATCH (a:person)-[e:knows*1..2 (r,_ | WHERE list_contains(r.comments, 'rnme'))]->(b:person) WHERE a.fName='Alice' RETURN COUNT(*)
 ---- 1
 1
+
+-LOG SelfLoop
+-STATEMENT MATCH (a:person)-[e:knows*1..3]->(a) WHERE a.fName='Alice' RETURN COUNT(*)
+---- 1
+9

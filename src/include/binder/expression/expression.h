@@ -81,6 +81,8 @@ public:
 
     expression_vector splitOnAND();
 
+    inline bool operator==(const Expression& rhs) const { return uniqueName == rhs.uniqueName; }
+
     virtual std::string toString() const = 0;
 
     virtual std::unique_ptr<Expression> copy() const {

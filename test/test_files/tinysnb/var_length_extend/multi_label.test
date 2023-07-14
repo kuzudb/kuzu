@@ -37,7 +37,7 @@
 4|[3:1,5:0]|[,2015]
 6|[3:2,5:1]|[,2010]
 
--LOG MixMultiLabelTest2
+-LOG MultiLabelTest1
 -STATEMENT MATCH (a:person)-[e:meets|:marries|:studyAt*2..2]->(b) WHERE a.fName = 'Alice' RETURN b.ID, properties(rels(e), '_id'), properties(nodes(e), 'fName')
 ---- 4
 1|[6:0,4:1]|[Bob]
@@ -45,18 +45,23 @@
 5|[6:0,6:1]|[Bob]
 5|[7:0,6:1]|[Bob]
 
--LOG MixMultiLabelTest3
+-LOG MultiLabelTest2
 -STATEMENT MATCH (a:person)-[e:meets|:marries|:studyAt*2..2]->(b) WHERE a.fName = 'Alice' AND b.ID < 5 RETURN COUNT(*)
 -ENUMERATE
 ---- 1
 2
 
--LOG MixMultiLabelTest4
+-LOG MultiLabelTest3
 -STATEMENT MATCH (a:person)-[e*2..2]->(b:organisation) WHERE a.fName = 'Alice' RETURN COUNT(*)
 ---- 1
 5
 
--LOG MixMultiLabelTest5
+-LOG MultiLabelTest
 -STATEMENT MATCH (a:person)-[e*2..2 (r, _ | WHERE offset(id(r)) > 0)]->(b:organisation) WHERE a.fName = 'Alice' RETURN rels(e)
 ---- 1
 [(0:0)-{_LABEL: knows, _ID: 3:2, date: 2021-06-30, meetTime: 2012-12-11 20:07:22, validInterval: 10 days, comments: [ioji232,jifhe8w99u43434]}->(0:3),(0:3)-{_LABEL: workAt, _ID: 5:1, year: 2010, grading: [2.100000,4.400000], rating: 7.600000}->(1:2)]
+
+-LOG MultiLabelSelfLoopTest
+-STATEMENT MATCH (a)-[e:studyAt|:knows*2..3]-(a) WHERE a.ID = 1 RETURN COUNT(*)
+---- 1
+7
