@@ -136,7 +136,7 @@ jobs:
         run: CC=clang-14 CXX=clang++-14 make release NUM_THREADS=32
 
       - name: Test
-        run: CC=clang-14 CXX=clang++-14 make test NUM_THREADS=32
+        run: CC=clang-14 CXX=clang++-14 make test NUM_THREADS=32 ENABLE_REMOTE_FS=TRUE
 
       - name: Python test
         run: CC=clang-14 CXX=clang++-14 make pytest NUM_THREADS=32
