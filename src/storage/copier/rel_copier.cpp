@@ -4,11 +4,23 @@
 #include "storage/copier/rel_copy_executor.h"
 
 using namespace kuzu::common;
+using namespace kuzu::processor;
 
 namespace kuzu {
 namespace storage {
 
-void RelCopier::execute(processor::ExecutionContext* executionContext) {
+PropertyCopyState::PropertyCopyState(LogicalType& dataType) {
+    if (dataType.getLogicalTypeID() == LogicalTypeID::STRUCT) {
+        auto numFields = StructType::getNumFields(&dataType);
+        childStates.resize(numFields);
+        for (auto i = 0u; i < numFields; i++) {
+            childStates[i] =
+                std::make_unique<PropertyCopyState>(*StructType::getField(&dataType, i)->getType());
+        }
+    }
+}
+
+void RelCopier::execute(ExecutionContext* executionContext) {
     while (true) {
         if (executionContext->clientContext->isInterrupted()) {
             throw InterruptException();
@@ -73,9 +85,10 @@ void RelCopier::copyRelColumns(offset_t tupleIdx, arrow::RecordBatch* recordBatc
     auto boundPKOffsets = pkOffsets[direction == FWD ? 0 : 1].get();
     auto adjPKOffsets = pkOffsets[direction == FWD ? 1 : 0].get();
     auto relData = direction == FWD ? fwdRelData : bwdRelData;
+    auto& copyStates = direction == FWD ? fwdCopyStates : bwdCopyStates;
     auto adjColumnChunk = relData->columns->adjColumnChunk.get();
     checkViolationOfRelColumn(direction, boundPKOffsets);
-    adjColumnChunk->copyArrowArray(*adjPKOffsets, boundPKOffsets);
+    adjColumnChunk->copyArrowArray(*adjPKOffsets, nullptr, boundPKOffsets);
     auto numTuples = recordBatch->num_rows();
     std::vector<offset_t> relIDs;
     relIDs.resize(numTuples);
@@ -84,12 +97,13 @@ void RelCopier::copyRelColumns(offset_t tupleIdx, arrow::RecordBatch* recordBatc
     }
     auto relIDArray = createArrowPrimitiveArray(
         std::make_shared<arrow::Int64Type>(), (uint8_t*)relIDs.data(), numTuples);
-    relData->columns->propertyColumnChunks[0]->copyArrowArray(*relIDArray, boundPKOffsets);
+    relData->columns->propertyColumnChunks[0]->copyArrowArray(
+        *relIDArray, copyStates[0].get(), boundPKOffsets);
     // Skip the two pk columns in arrow record batch.
     for (auto i = 2; i < recordBatch->num_columns(); i++) {
         // Skip RelID property, which is auto-generated and always the first property in table.
         relData->columns->propertyColumnChunks[i - 1]->copyArrowArray(
-            *recordBatch->column(i), boundPKOffsets);
+            *recordBatch->column(i), copyStates[i - 1].get(), boundPKOffsets);
     }
 }
 
@@ -108,6 +122,7 @@ void RelCopier::copyRelLists(offset_t tupleIdx, arrow::RecordBatch* recordBatch,
     auto boundPKOffsets = pkOffsets[direction == FWD ? 0 : 1].get();
     auto adjPKOffsets = pkOffsets[direction == FWD ? 1 : 0].get();
     auto relData = direction == FWD ? fwdRelData : bwdRelData;
+    auto& copyStates = direction == FWD ? fwdCopyStates : bwdCopyStates;
     auto offsets = boundPKOffsets->data()->GetValues<offset_t>(1 /* value buffer */);
     auto adjOffsets = adjPKOffsets->data()->GetValues<offset_t>(1 /* value buffer */);
     auto numTuples = recordBatch->num_rows();
@@ -128,13 +143,13 @@ void RelCopier::copyRelLists(offset_t tupleIdx, arrow::RecordBatch* recordBatch,
     auto relIDArray = createArrowPrimitiveArray(
         std::make_shared<arrow::Int64Type>(), (uint8_t*)relIDs.data(), numTuples);
     relData->lists->propertyLists.at(0)->copyArrowArray(
-        boundPKOffsets, posInRelListsArray.get(), relIDArray.get());
+        boundPKOffsets, posInRelListsArray.get(), relIDArray.get(), nullptr);
     // Skip the two pk columns in arrow record batch.
     for (auto columnIdx = 2; columnIdx < recordBatch->num_columns(); columnIdx++) {
         // Skip RelID property, which is auto-generated and always the first property in table.
         relData->lists->propertyLists.at(columnIdx - 1)
-            ->copyArrowArray(
-                boundPKOffsets, posInRelListsArray.get(), recordBatch->column(columnIdx).get());
+            ->copyArrowArray(boundPKOffsets, posInRelListsArray.get(),
+                recordBatch->column(columnIdx).get(), copyStates[columnIdx - 1].get());
     }
 }
 

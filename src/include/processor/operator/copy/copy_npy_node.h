@@ -5,40 +5,24 @@
 namespace kuzu {
 namespace processor {
 
-struct CopyNPYNodeLocalState : public CopyNodeLocalState {
-public:
-    CopyNPYNodeLocalState(const common::CopyDescription& copyDesc, storage::NodeTable* table,
-        storage::RelsStore* relsStore, catalog::Catalog* catalog, storage::WAL* wal,
-        const DataPos& offsetVectorPos, const DataPos& columnIdxPos,
-        std::vector<DataPos> arrowColumnPoses)
-        : CopyNodeLocalState{copyDesc, table, relsStore, catalog, wal, offsetVectorPos,
-              std::move(arrowColumnPoses)},
-          columnIdxPos{columnIdxPos}, columnIdxVector{nullptr} {}
-
-    DataPos columnIdxPos;
-    common::ValueVector* columnIdxVector;
-};
-
 class CopyNPYNode : public CopyNode {
 public:
-    CopyNPYNode(std::unique_ptr<CopyNPYNodeLocalState> localState,
-        std::shared_ptr<CopyNodeSharedState> sharedState,
+    CopyNPYNode(std::shared_ptr<CopyNodeSharedState> sharedState, CopyNodeDataInfo copyNodeDataInfo,
+        DataPos columnIdxPos, const common::CopyDescription& copyDesc, storage::NodeTable* table,
+        storage::RelsStore* relsStore, catalog::Catalog* catalog, storage::WAL* wal,
         std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
         std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
-        : CopyNode{std::move(localState), std::move(sharedState), std::move(resultSetDescriptor),
-              std::move(child), id, paramsString} {}
+        : CopyNode{std::move(sharedState), std::move(copyNodeDataInfo), copyDesc, table, relsStore,
+              catalog, wal, std::move(resultSetDescriptor), std::move(child), id, paramsString},
+          columnIdxPos{columnIdxPos}, columnIdxVector{nullptr} {}
 
     void executeInternal(ExecutionContext* context) final;
 
     inline void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) final {
-        auto npyLocalState = (CopyNPYNodeLocalState*)localState.get();
-        npyLocalState->offsetVector =
-            resultSet->getValueVector(npyLocalState->offsetVectorPos).get();
-        npyLocalState->columnIdxVector =
-            resultSet->getValueVector(npyLocalState->columnIdxPos).get();
-        for (auto& arrowColumnPos : npyLocalState->arrowColumnPoses) {
-            npyLocalState->arrowColumnVectors.push_back(
-                resultSet->getValueVector(arrowColumnPos).get());
+        offsetVector = resultSet->getValueVector(copyNodeDataInfo.offsetVectorPos).get();
+        columnIdxVector = resultSet->getValueVector(columnIdxPos).get();
+        for (auto& arrowColumnPos : copyNodeDataInfo.arrowColumnPoses) {
+            arrowColumnVectors.push_back(resultSet->getValueVector(arrowColumnPos).get());
         }
     }
 
@@ -48,10 +32,14 @@ public:
         common::vector_idx_t columnToCopy);
 
     inline std::unique_ptr<PhysicalOperator> clone() final {
-        return std::make_unique<CopyNPYNode>(
-            std::make_unique<CopyNPYNodeLocalState>((CopyNPYNodeLocalState&)*localState),
-            sharedState, resultSetDescriptor->copy(), children[0]->clone(), id, paramsString);
+        return std::make_unique<CopyNPYNode>(sharedState, copyNodeDataInfo, columnIdxPos, copyDesc,
+            table, relsStore, catalog, wal, resultSetDescriptor->copy(), children[0]->clone(), id,
+            paramsString);
     }
+
+private:
+    DataPos columnIdxPos;
+    common::ValueVector* columnIdxVector;
 };
 
 } // namespace processor

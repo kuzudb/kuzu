@@ -49,7 +49,7 @@ void CopyNodeSharedState::initializeColumns(
     }
 }
 
-std::pair<offset_t, offset_t> CopyNodeLocalState::getStartAndEndOffset(vector_idx_t columnIdx) {
+std::pair<offset_t, offset_t> CopyNode::getStartAndEndOffset(vector_idx_t columnIdx) {
     auto startOffset =
         offsetVector->getValue<int64_t>(offsetVector->state->selVector->selectedPositions[0]);
     auto numNodes = ArrowColumnVector::getArrowColumn(arrowColumnVectors[columnIdx])->length();
@@ -62,12 +62,12 @@ void CopyNode::executeInternal(kuzu::processor::ExecutionContext* context) {
     while (children[0]->getNextTuple(context)) {
         std::vector<std::unique_ptr<InMemColumnChunk>> columnChunks;
         columnChunks.reserve(sharedState->columns.size());
-        auto [startOffset, endOffset] = localState->getStartAndEndOffset(0 /* columnIdx */);
+        auto [startOffset, endOffset] = getStartAndEndOffset(0 /* columnIdx */);
         for (auto i = 0u; i < sharedState->columns.size(); i++) {
-            auto columnChunk = sharedState->columns[i]->getInMemColumnChunk(
-                startOffset, endOffset, &localState->copyDesc);
+            auto columnChunk =
+                sharedState->columns[i]->getInMemColumnChunk(startOffset, endOffset, &copyDesc);
             columnChunk->copyArrowArray(
-                *ArrowColumnVector::getArrowColumn(localState->arrowColumnVectors[i]));
+                *ArrowColumnVector::getArrowColumn(arrowColumnVectors[i]), copyStates[i].get());
             columnChunks.push_back(std::move(columnChunk));
         }
         flushChunksAndPopulatePKIndex(columnChunks, startOffset, endOffset);
@@ -75,23 +75,20 @@ void CopyNode::executeInternal(kuzu::processor::ExecutionContext* context) {
 }
 
 void CopyNode::finalize(kuzu::processor::ExecutionContext* context) {
-    auto tableID = localState->table->getTableID();
+    auto tableID = table->getTableID();
     if (sharedState->pkIndex) {
         sharedState->pkIndex->flush();
     }
     for (auto& column : sharedState->columns) {
         column->saveToFile();
     }
-    for (auto& relTableSchema :
-        localState->catalog->getAllRelTableSchemasContainBoundTable(tableID)) {
-        localState->relsStore->getRelTable(relTableSchema->tableID)
+    for (auto& relTableSchema : catalog->getAllRelTableSchemasContainBoundTable(tableID)) {
+        relsStore->getRelTable(relTableSchema->tableID)
             ->batchInitEmptyRelsForNewNodes(relTableSchema, sharedState->numRows);
     }
-    localState->table->getNodeStatisticsAndDeletedIDs()->setNumTuplesForTable(
-        tableID, sharedState->numRows);
+    table->getNodeStatisticsAndDeletedIDs()->setNumTuplesForTable(tableID, sharedState->numRows);
     auto outputMsg = StringUtils::string_format("{} number of tuples has been copied to table: {}.",
-        sharedState->numRows,
-        localState->catalog->getReadOnlyVersion()->getTableName(tableID).c_str());
+        sharedState->numRows, catalog->getReadOnlyVersion()->getTableName(tableID).c_str());
     FactorizedTableUtils::appendStringToTable(
         sharedState->table.get(), outputMsg, context->memoryManager);
 }
@@ -160,8 +157,8 @@ void CopyNode::populatePKIndex(InMemColumnChunk* chunk, InMemOverflowFile* overf
 void CopyNode::logCopyWALRecord() {
     std::unique_lock xLck{sharedState->mtx};
     if (!sharedState->hasLoggedWAL) {
-        localState->wal->logCopyNodeRecord(localState->table->getTableID());
-        localState->wal->flushAllPages();
+        wal->logCopyNodeRecord(table->getTableID());
+        wal->flushAllPages();
         sharedState->hasLoggedWAL = true;
     }
 }
