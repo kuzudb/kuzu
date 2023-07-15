@@ -10,7 +10,6 @@ namespace kuzu {
 namespace processor {
 
 void RecursiveJoin::initLocalStateInternal(ResultSet* resultSet_, ExecutionContext* context) {
-    morselDispatcher->maxAllowedActiveSSSP = context->numThreads;
     for (auto& dataPos : vectorsToScanPos) {
         vectorsToScan.push_back(resultSet->getValueVector(dataPos).get());
     }

@@ -36,7 +36,7 @@ bool MorselDispatcher::getBFSMorsel(
             return findAvailableSSSP(bfsMorsel, state);
         }
         case IN_PROGRESS: {
-            if (numActiveSSSP < maxAllowedActiveSSSP) {
+            if (numActiveSSSP < activeSSSPSharedState.size()) {
                 auto inputFTableMorsel = inputFTableSharedState->getMorsel();
                 if (inputFTableMorsel->numTuples == 0) {
                     globalState = (numActiveSSSP == 0) ? COMPLETE : IN_PROGRESS_ALL_SRC_SCANNED;
@@ -57,7 +57,13 @@ bool MorselDispatcher::getBFSMorsel(
                 newSSSPSharedState->markSrc(bfsMorsel->targetDstNodes->contains(nodeID));
                 SSSPLocalState tempState{EXTEND_IN_PROGRESS};
                 newSSSPSharedState->getBFSMorsel(bfsMorsel, tempState);
-                activeSSSPSharedState.push_back(newSSSPSharedState);
+                for (auto i = 0u; i < activeSSSPSharedState.size(); i++) {
+                    if (!activeSSSPSharedState[i]) {
+                        newSSSPSharedState->pos = i;
+                        activeSSSPSharedState[i] = newSSSPSharedState;
+                        break;
+                    }
+                }
                 return false;
             } else {
                 return findAvailableSSSP(bfsMorsel, state);
@@ -74,26 +80,18 @@ bool MorselDispatcher::getBFSMorsel(
  * Right now the most basic policy has been implemented. The 1st SSSPSharedState we find that is
  * unfinished is chosen for helping work on.
  */
-std::shared_ptr<SSSPSharedState> MorselDispatcher::getNextAvailableSSSPWork() {
-    if (activeSSSPSharedState.empty()) {
-        return nullptr;
-    }
-    auto end = activeSSSPSharedState.end();
-    for (auto iterator = activeSSSPSharedState.begin(); iterator != end; iterator++) {
-        if (*iterator) {
-            auto& sharedState = iterator.operator*();
-            sharedState->mutex.lock();
-            if (sharedState->hasWork()) {
-                sharedState->mutex.unlock();
-                return *iterator;
+uint32_t MorselDispatcher::getNextAvailableSSSPWork() {
+    for (auto i = 0u; i < activeSSSPSharedState.size(); i++) {
+        if (activeSSSPSharedState[i]) {
+            activeSSSPSharedState[i]->mutex.lock();
+            if (activeSSSPSharedState[i]->hasWork()) {
+                activeSSSPSharedState[i]->mutex.unlock();
+                return i;
             }
-            if (sharedState->ssspLocalState == MORSEL_COMPLETE) {
-                activeSSSPSharedState.erase(iterator);
-            }
-            sharedState->mutex.unlock();
+            activeSSSPSharedState[i]->mutex.unlock();
         }
     }
-    return nullptr;
+    return UINT32_MAX;
 }
 
 /**
@@ -108,12 +106,12 @@ std::shared_ptr<SSSPSharedState> MorselDispatcher::getNextAvailableSSSPWork() {
 bool MorselDispatcher::findAvailableSSSP(
     std::unique_ptr<BaseBFSMorsel>& bfsMorsel, std::pair<GlobalSSSPState, SSSPLocalState>& state) {
     SSSPLocalState tempState{NO_WORK_TO_SHARE};
-    auto availableSSSPSharedState = getNextAvailableSSSPWork();
-    if (!availableSSSPSharedState) {
+    auto availableSSSPIdx = getNextAvailableSSSPWork();
+    if (availableSSSPIdx == UINT32_MAX) {
         state = {globalState, tempState};
         return true;
     }
-    bool checkState = availableSSSPSharedState->getBFSMorsel(bfsMorsel, tempState);
+    bool checkState = activeSSSPSharedState[availableSSSPIdx]->getBFSMorsel(bfsMorsel, tempState);
     if (checkState) {
         state = {globalState, tempState};
         return checkState;
@@ -149,6 +147,7 @@ int64_t MorselDispatcher::writeDstNodeIDAndPathLength(
     } else if (startScanIdxAndSize.second == -1) {
         mutex.lock();
         numActiveSSSP--;
+        activeSSSPSharedState[ssspSharedState->pos] = nullptr;
         // If all SSSP have been completed indicated by count (numActiveSSSP == 0) and no more
         // SSSP are available to launched indicated by state IN_PROGRESS_ALL_SRC_SCANNED then
         // global state can be successfully changed to COMPLETE to indicate completion of SSSP

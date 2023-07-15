@@ -27,14 +27,13 @@ namespace processor {
 enum SchedulerType { OneThreadOneMorsel, nThreadkMorsel };
 
 struct MorselDispatcher {
-    uint64_t maxAllowedActiveSSSP;
-
 public:
-    MorselDispatcher(
-        SchedulerType schedulerType, uint64_t lowerBound, uint64_t upperBound, uint64_t maxOffset)
-        : schedulerType{schedulerType}, maxAllowedActiveSSSP{0u}, numActiveSSSP{0u},
-          globalState{IN_PROGRESS}, maxOffset{maxOffset}, lowerBound{lowerBound}, upperBound{
-                                                                                      upperBound} {}
+    MorselDispatcher(SchedulerType schedulerType, uint64_t lowerBound, uint64_t upperBound,
+        uint64_t maxOffset, uint64_t maxAllowedActiveSSSP)
+        : schedulerType{schedulerType}, numActiveSSSP{0u}, globalState{IN_PROGRESS},
+          maxOffset{maxOffset}, lowerBound{lowerBound}, upperBound{upperBound},
+          activeSSSPSharedState{
+              std::vector<std::shared_ptr<SSSPSharedState>>(maxAllowedActiveSSSP, nullptr)} {}
 
     bool getBFSMorsel(const std::shared_ptr<FTableSharedState>& inputFTableSharedState,
         const std::vector<common::ValueVector*> vectorsToScan,
@@ -42,7 +41,7 @@ public:
         std::unique_ptr<BaseBFSMorsel>& bfsMorsel,
         std::pair<GlobalSSSPState, SSSPLocalState>& state);
 
-    std::shared_ptr<SSSPSharedState> getNextAvailableSSSPWork();
+    uint32_t getNextAvailableSSSPWork();
 
     bool findAvailableSSSP(std::unique_ptr<BaseBFSMorsel>& bfsMorsel,
         std::pair<GlobalSSSPState, SSSPLocalState>& state);
@@ -60,7 +59,7 @@ private:
     common::offset_t maxOffset;
     uint64_t upperBound;
     uint64_t lowerBound;
-    std::deque<std::shared_ptr<SSSPSharedState>> activeSSSPSharedState;
+    std::vector<std::shared_ptr<SSSPSharedState>> activeSSSPSharedState;
     uint32_t numActiveSSSP;
     GlobalSSSPState globalState;
     std::mutex mutex;
