@@ -137,6 +137,7 @@ bool RecursiveJoin::getNextTuplesInternal(ExecutionContext* context) {
             return true;
         }
         if (!computeBFS(context)) {
+            printf("thread is exiting from here, operator work over ...\n");
             return false;
         }
         frontiersScanner->resetState(*bfsMorsel);
@@ -207,6 +208,7 @@ bool RecursiveJoin::computeBFS(kuzu::processor::ExecutionContext* context) {
                 }
                 continue;
             } else if (state == PATH_LENGTH_WRITE_IN_PROGRESS) {
+                printf("received pathLength writing work, so continuing ...\n");
                 return true;
             }
         }
@@ -217,6 +219,7 @@ bool RecursiveJoin::computeBFS(kuzu::processor::ExecutionContext* context) {
          * status = 1: A BFS computation's extend was completed, write the path lengths to vector.
          */
         if (status == -1) {
+            printf("returning false from here to exit ...\n");
             return false;
         } else if (status == 0) {
             continue;
@@ -242,6 +245,7 @@ int RecursiveJoin::fetchMorselFromDispatcher(ExecutionContext* context) {
     if (checkState) {
         auto globalSSSPState = state.first;
         auto ssspLocalState = state.second;
+        printf("global state indicated: %d | local SSSP state indicated: %d\n", globalSSSPState, ssspLocalState);
         switch (globalSSSPState) {
         case IN_PROGRESS:
         case IN_PROGRESS_ALL_SRC_SCANNED:
@@ -253,6 +257,7 @@ int RecursiveJoin::fetchMorselFromDispatcher(ExecutionContext* context) {
                 return 1;
             }
         case COMPLETE:
+            printf("returning -1 from here to exit ...\n");
             return -1;
         default:
             assert(false);

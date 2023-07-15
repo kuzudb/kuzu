@@ -93,6 +93,8 @@ endif()
 option(BUILD_TESTS "Build C++ and Python tests." FALSE)
 option(BUILD_BENCHMARK "Build benchmarks." FALSE)
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
+
 option(BUILD_LCOV "Build coverage report." FALSE)
 if(${BUILD_LCOV})
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprofile-arcs -ftest-coverage")

@@ -39,6 +39,7 @@ bool SSSPSharedState::getBFSMorsel(
     std::unique_ptr<BaseBFSMorsel>& bfsMorsel, SSSPLocalState& state) {
     mutex.lock();
     if (ssspLocalState == MORSEL_COMPLETE || ssspLocalState == PATH_LENGTH_WRITE_IN_PROGRESS) {
+        bfsMorsel->ssspSharedState = (ssspLocalState == PATH_LENGTH_WRITE_IN_PROGRESS) ? this : nullptr;
         state = ssspLocalState;
         mutex.unlock();
         return true;
@@ -62,8 +63,7 @@ bool SSSPSharedState::getBFSMorsel(
 bool SSSPSharedState::hasWork() const {
     if (ssspLocalState == EXTEND_IN_PROGRESS && nextScanStartIdx < bfsLevelNodeOffsets.size()) {
         return true;
-    } else if (ssspLocalState == PATH_LENGTH_WRITE_IN_PROGRESS &&
-               nextDstScanStartIdx < pathLength.size()) {
+    } else if (ssspLocalState == PATH_LENGTH_WRITE_IN_PROGRESS) {
         return true;
     } else {
         return false;
