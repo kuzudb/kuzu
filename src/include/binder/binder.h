@@ -19,12 +19,12 @@ class BoundSetNodeProperty;
 class BoundSetRelProperty;
 class BoundDeleteNode;
 
-// VariableScope keeps track of expressions in scope and their aliases. We maintain the order of
+// BinderScope keeps track of expressions in scope and their aliases. We maintain the order of
 // expressions in
-class VariableScope {
+class BinderScope {
 public:
-    VariableScope() = default;
-    VariableScope(expression_vector expressions,
+    BinderScope() = default;
+    BinderScope(expression_vector expressions,
         std::unordered_map<std::string, common::vector_idx_t> varNameToIdx)
         : expressions{std::move(expressions)}, varNameToIdx{std::move(varNameToIdx)} {}
 
@@ -44,8 +44,8 @@ public:
         expressions.clear();
         varNameToIdx.clear();
     }
-    inline std::unique_ptr<VariableScope> copy() {
-        return std::make_unique<VariableScope>(expressions, varNameToIdx);
+    inline std::unique_ptr<BinderScope> copy() {
+        return std::make_unique<BinderScope>(expressions, varNameToIdx);
     }
 
 private:
@@ -58,7 +58,7 @@ class Binder {
 
 public:
     explicit Binder(const catalog::Catalog& catalog, main::ClientContext* clientContext)
-        : catalog{catalog}, lastExpressionId{0}, variableScope{std::make_unique<VariableScope>()},
+        : catalog{catalog}, lastExpressionId{0}, scope{std::make_unique<BinderScope>()},
           expressionBinder{this}, clientContext{clientContext} {}
 
     std::unique_ptr<BoundStatement> bind(const parser::Statement& statement);
@@ -236,13 +236,13 @@ private:
     /*** helpers ***/
     std::string getUniqueExpressionName(const std::string& name);
 
-    std::unique_ptr<VariableScope> saveScope();
-    void restoreScope(std::unique_ptr<VariableScope> prevVariableScope);
+    std::unique_ptr<BinderScope> saveScope();
+    void restoreScope(std::unique_ptr<BinderScope> prevVariableScope);
 
 private:
     const catalog::Catalog& catalog;
     uint32_t lastExpressionId;
-    std::unique_ptr<VariableScope> variableScope;
+    std::unique_ptr<BinderScope> scope;
     ExpressionBinder expressionBinder;
     main::ClientContext* clientContext;
 };

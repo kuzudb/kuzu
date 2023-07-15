@@ -37,7 +37,7 @@ std::unique_ptr<BoundWithClause> Binder::bindWithClause(const WithClause& withCl
     }
     auto boundProjectionBody = bindProjectionBody(*projectionBody, newProjectionExpressions);
     validateOrderByFollowedBySkipOrLimitInWithClause(*boundProjectionBody);
-    variableScope->clear();
+    scope->clear();
     addExpressionsToScope(projectionExpressions);
     auto boundWithClause = std::make_unique<BoundWithClause>(std::move(boundProjectionBody));
     if (withClause.hasWhereExpression()) {
@@ -60,7 +60,7 @@ std::unique_ptr<BoundReturnClause> Binder::bindReturnClause(const ReturnClause& 
 }
 
 static bool isAggregateExpression(
-    const std::shared_ptr<Expression>& expression, VariableScope* scope) {
+    const std::shared_ptr<Expression>& expression, BinderScope* scope) {
     if (expression->hasAlias() && scope->contains(expression->getAlias())) {
         return false;
     }
@@ -76,7 +76,7 @@ static bool isAggregateExpression(
 }
 
 static expression_vector getAggregateExpressions(
-    const std::shared_ptr<Expression>& expression, VariableScope* scope) {
+    const std::shared_ptr<Expression>& expression, BinderScope* scope) {
     expression_vector result;
     if (expression->hasAlias() && scope->contains(expression->getAlias())) {
         return result;
@@ -101,8 +101,8 @@ std::unique_ptr<BoundProjectionBody> Binder::bindProjectionBody(
     expression_vector groupByExpressions;
     expression_vector aggregateExpressions;
     for (auto& expression : projectionExpressions) {
-        if (isAggregateExpression(expression, variableScope.get())) {
-            for (auto& agg : getAggregateExpressions(expression, variableScope.get())) {
+        if (isAggregateExpression(expression, scope.get())) {
+            for (auto& agg : getAggregateExpressions(expression, scope.get())) {
                 aggregateExpressions.push_back(agg);
             }
         } else {
@@ -167,11 +167,11 @@ expression_vector Binder::bindProjectionExpressions(
     for (auto& expression : projectionExpressions) {
         if (expression->getExpressionType() == common::ExpressionType::STAR) {
             // Rewrite star expression as all expression in scope.
-            if (variableScope->empty()) {
+            if (scope->empty()) {
                 throw BinderException(
                     "RETURN or WITH * is not allowed when there are no variables in scope.");
             }
-            for (auto& expr : variableScope->getExpressions()) {
+            for (auto& expr : scope->getExpressions()) {
                 result.push_back(expr);
             }
         } else if (expression->getExpressionType() == common::ExpressionType::PROPERTY) {
@@ -225,7 +225,7 @@ void Binder::addExpressionsToScope(const expression_vector& projectionExpression
     for (auto& expression : projectionExpressions) {
         // In RETURN clause, if expression is not aliased, its input name will serve its alias.
         auto alias = expression->hasAlias() ? expression->getAlias() : expression->toString();
-        variableScope->addExpression(alias, expression);
+        scope->addExpression(alias, expression);
     }
 }
 

@@ -49,7 +49,7 @@ std::unique_ptr<QueryGraph> Binder::bindPatternElement(
     if (patternElement.hasPathName()) {
         auto pathName = patternElement.getPathName();
         auto pathExpression = createPathExpression(pathName, nodeAndRels);
-        variableScope->addExpression(pathName, pathExpression);
+        scope->addExpression(pathName, pathExpression);
     }
     return queryGraph;
 }
@@ -180,9 +180,12 @@ std::shared_ptr<RelExpression> Binder::bindQueryRel(const RelPattern& relPattern
     const std::shared_ptr<NodeExpression>& rightNode, QueryGraph& queryGraph,
     PropertyKeyValCollection& collection) {
     auto parsedName = relPattern.getVariableName();
-    if (variableScope->contains(parsedName)) {
-        auto prevVariable = variableScope->getExpression(parsedName);
-        ExpressionBinder::validateExpectedDataType(*prevVariable, LogicalTypeID::REL);
+    if (scope->contains(parsedName)) {
+        auto prevVariable = scope->getExpression(parsedName);
+        auto expectedDataType = QueryRelTypeUtils::isRecursive(relPattern.getRelType()) ?
+                                    LogicalTypeID::RECURSIVE_REL :
+                                    LogicalTypeID::REL;
+        ExpressionBinder::validateExpectedDataType(*prevVariable, expectedDataType);
         throw BinderException("Bind relationship " + parsedName +
                               " to relationship with same name is not supported.");
     }
@@ -237,7 +240,7 @@ std::shared_ptr<RelExpression> Binder::bindQueryRel(const RelPattern& relPattern
     }
     queryRel->setAlias(parsedName);
     if (!parsedName.empty()) {
-        variableScope->addExpression(parsedName, queryRel);
+        scope->addExpression(parsedName, queryRel);
     }
     queryGraph.addQueryRel(queryRel);
     return queryRel;
@@ -286,10 +289,10 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
         InternalKeyword::ANONYMOUS, std::vector<common::table_id_t>{recursiveNodeTableIDs.begin(),
                                         recursiveNodeTableIDs.end()});
     auto prevScope = saveScope();
-    variableScope->clear();
+    scope->clear();
     auto tmpRel = createNonRecursiveQueryRel(
         recursiveRelPatternInfo->relName, tableIDs, nullptr, nullptr, directionType);
-    variableScope->addExpression(tmpRel->toString(), tmpRel);
+    scope->addExpression(tmpRel->toString(), tmpRel);
     expression_vector predicates;
     for (auto& [propertyName, rhs] : relPattern.getPropertyKeyVals()) {
         auto boundLhs = expressionBinder.bindRelPropertyExpression(*tmpRel, propertyName);
@@ -356,8 +359,8 @@ std::shared_ptr<NodeExpression> Binder::bindQueryNode(
     const NodePattern& nodePattern, QueryGraph& queryGraph, PropertyKeyValCollection& collection) {
     auto parsedName = nodePattern.getVariableName();
     std::shared_ptr<NodeExpression> queryNode;
-    if (variableScope->contains(parsedName)) { // bind to node in scope
-        auto prevVariable = variableScope->getExpression(parsedName);
+    if (scope->contains(parsedName)) { // bind to node in scope
+        auto prevVariable = scope->getExpression(parsedName);
         ExpressionBinder::validateExpectedDataType(*prevVariable, LogicalTypeID::NODE);
         queryNode = static_pointer_cast<NodeExpression>(prevVariable);
         // E.g. MATCH (a:person) MATCH (a:organisation)
@@ -369,7 +372,7 @@ std::shared_ptr<NodeExpression> Binder::bindQueryNode(
     } else {
         queryNode = createQueryNode(nodePattern);
         if (!parsedName.empty()) {
-            variableScope->addExpression(parsedName, queryNode);
+            scope->addExpression(parsedName, queryNode);
         }
     }
     for (auto& [propertyName, rhs] : nodePattern.getPropertyKeyVals()) {

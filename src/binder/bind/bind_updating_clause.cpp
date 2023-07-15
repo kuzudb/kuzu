@@ -32,7 +32,17 @@ std::unique_ptr<BoundUpdatingClause> Binder::bindUpdatingClause(
 std::unique_ptr<BoundUpdatingClause> Binder::bindCreateClause(
     const UpdatingClause& updatingClause) {
     auto& createClause = (CreateClause&)updatingClause;
-    auto prevVariableScope = variableScope->copy();
+    auto prevScope = scope->copy();
+    expression_set nodesScope;
+    expression_set relsScope;
+    for (auto& expression : scope->getExpressions()) {
+        if (ExpressionUtil::isNodeVariable(*expression)) {
+            nodesScope.insert(expression);
+        } else if (ExpressionUtil::isRelVariable(*expression)) {
+            relsScope.insert(expression);
+        }
+    }
+    // bindGraphPattern will update scope.
     auto [queryGraphCollection, propertyCollection] =
         bindGraphPattern(createClause.getPatternElements());
     auto boundCreateClause = std::make_unique<BoundCreateClause>();
@@ -40,15 +50,19 @@ std::unique_ptr<BoundUpdatingClause> Binder::bindCreateClause(
         auto queryGraph = queryGraphCollection->getQueryGraph(i);
         for (auto j = 0u; j < queryGraph->getNumQueryNodes(); ++j) {
             auto node = queryGraph->getQueryNode(j);
-            if (!prevVariableScope->contains(node->toString())) {
-                boundCreateClause->addCreateNode(bindCreateNode(node, *propertyCollection));
+            if (nodesScope.contains(node)) {
+                continue;
             }
+            nodesScope.insert(node);
+            boundCreateClause->addCreateNode(bindCreateNode(node, *propertyCollection));
         }
         for (auto j = 0u; j < queryGraph->getNumQueryRels(); ++j) {
             auto rel = queryGraph->getQueryRel(j);
-            if (!prevVariableScope->contains(rel->toString())) {
-                boundCreateClause->addCreateRel(bindCreateRel(rel, *propertyCollection));
+            if (relsScope.contains(rel)) {
+                continue;
             }
+            relsScope.insert(rel);
+            boundCreateClause->addCreateRel(bindCreateRel(rel, *propertyCollection));
         }
     }
     return boundCreateClause;
