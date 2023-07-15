@@ -63,6 +63,15 @@ bool MorselDispatcher::getBFSMorsel(
                         activeSSSPSharedState[i] = newSSSPSharedState;
                         break;
                     }
+                    auto ssspSharedState = activeSSSPSharedState[i];
+                    ssspSharedState->mutex.lock();
+                    if(ssspSharedState->ssspLocalState == MORSEL_COMPLETE) {
+                        newSSSPSharedState->pos = i;
+                        activeSSSPSharedState[i] = newSSSPSharedState;
+                        ssspSharedState->mutex.unlock();
+                        break;
+                    }
+                    ssspSharedState->mutex.unlock();
                 }
                 return false;
             } else {
@@ -147,7 +156,6 @@ int64_t MorselDispatcher::writeDstNodeIDAndPathLength(
     } else if (startScanIdxAndSize.second == -1) {
         mutex.lock();
         numActiveSSSP--;
-        activeSSSPSharedState[ssspSharedState->pos] = nullptr;
         // If all SSSP have been completed indicated by count (numActiveSSSP == 0) and no more
         // SSSP are available to launched indicated by state IN_PROGRESS_ALL_SRC_SCANNED then
         // global state can be successfully changed to COMPLETE to indicate completion of SSSP
