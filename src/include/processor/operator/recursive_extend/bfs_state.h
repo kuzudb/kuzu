@@ -32,7 +32,15 @@ enum VisitedState : uint8_t {
  * 3) MORSEL_COMPLETE: morsel is complete, try to launch another SSSPSharedState (if available),
  *                     else find an existing one
  */
-enum SSSPLocalState { EXTEND_IN_PROGRESS, PATH_LENGTH_WRITE_IN_PROGRESS, MORSEL_COMPLETE };
+enum SSSPLocalState {
+    EXTEND_IN_PROGRESS,
+    PATH_LENGTH_WRITE_IN_PROGRESS,
+    MORSEL_COMPLETE,
+
+    // NOTE: This is an intermediate state returned ONLY when no work could be provided to a thread.
+    // It will not be assigned to the local SSSPLocalState inside a SSSPSharedState.
+    NO_WORK_TO_SHARE
+};
 
 /**
  * Global states of MorselDispatcher used primarily for nTkS scheduler :-

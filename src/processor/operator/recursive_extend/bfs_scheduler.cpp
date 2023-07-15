@@ -15,7 +15,7 @@ bool MorselDispatcher::getBFSMorsel(
     case SchedulerType::OneThreadOneMorsel: {
         auto inputFTableMorsel = inputFTableSharedState->getMorsel();
         if (inputFTableMorsel->numTuples == 0) {
-            state = {COMPLETE, MORSEL_COMPLETE};
+            state = {COMPLETE, NO_WORK_TO_SHARE};
             return true;
         }
         inputFTableSharedState->getTable()->scan(vectorsToScan, inputFTableMorsel->startTupleIdx,
@@ -27,88 +27,40 @@ bool MorselDispatcher::getBFSMorsel(
         return false;
     }
     case SchedulerType::nThreadkMorsel: {
-        printf("current state: %d\n", globalState);
         switch (globalState) {
         case COMPLETE: {
-            state = {globalState, MORSEL_COMPLETE};
+            state = {globalState, NO_WORK_TO_SHARE};
             return true;
         }
         case IN_PROGRESS_ALL_SRC_SCANNED: {
-            auto ssspSharedState = bfsMorsel->ssspSharedState;
-            SSSPLocalState tempState{MORSEL_COMPLETE};
-            bool checkState{true};
-            // If there already exists an SSSPSharedState for the morsel, call the getBFSMorsel for
-            // it to see if there is any work. The tempState will hold the state returned from the
-            // function and true / false to indicate if there was work:
-            // 1) true: a range from current frontier was found as work
-            // 2) false: either single src computation is complete OR pathLength needs to be written
-            if (ssspSharedState) {
-                checkState = ssspSharedState->getBFSMorsel(bfsMorsel, tempState);
-            }
-            if (checkState) {
-                switch (tempState) {
-                    // Same for both states, try to get next available SSSPSharedState to work on.
-                case MORSEL_COMPLETE:
-                case EXTEND_IN_PROGRESS: {
-                    return findAvailableSSSP(bfsMorsel, state);
-                }
-                case PATH_LENGTH_WRITE_IN_PROGRESS:
-                    state = {globalState, tempState};
-                    return true;
-                default:
-                    assert(false);
-                }
-            } else {
-                return false;
-            }
+            return findAvailableSSSP(bfsMorsel, state);
         }
         case IN_PROGRESS: {
-            auto ssspSharedState = bfsMorsel->ssspSharedState;
-            SSSPLocalState tempState{EXTEND_IN_PROGRESS};
-            bool checkState{true};
-            if (ssspSharedState) {
-                checkState = ssspSharedState->getBFSMorsel(bfsMorsel, tempState);
-            }
-            if (checkState) {
-                switch (tempState) {
-                    // Same for both states, try to get next available SSSPSharedState for work.
-                case MORSEL_COMPLETE:
-                case EXTEND_IN_PROGRESS: {
-                    // Max active SSSP equal to total no. of threads (size of activeSSSPSharedState)
-                    if (numActiveSSSP < maxAllowedActiveSSSP) {
-                        auto inputFTableMorsel = inputFTableSharedState->getMorsel();
-                        if (inputFTableMorsel->numTuples == 0) {
-                            globalState =
-                                (numActiveSSSP == 0) ? COMPLETE : IN_PROGRESS_ALL_SRC_SCANNED;
-                            state = {globalState, tempState};
-                            return true;
-                        }
-                        numActiveSSSP++;
-                        auto newSSSPSharedState =
-                            std::make_shared<SSSPSharedState>(upperBound, lowerBound, maxOffset);
-                        inputFTableSharedState->getTable()->scan(vectorsToScan,
-                            inputFTableMorsel->startTupleIdx, inputFTableMorsel->numTuples,
-                            colIndicesToScan);
-                        newSSSPSharedState->reset(bfsMorsel->targetDstNodes);
-                        newSSSPSharedState->inputFTableTupleIdx = inputFTableMorsel->startTupleIdx;
-                        auto nodeID = srcNodeIDVector->getValue<common::nodeID_t>(
-                            srcNodeIDVector->state->selVector->selectedPositions[0]);
-                        newSSSPSharedState->srcOffset = nodeID.offset;
-                        newSSSPSharedState->markSrc(bfsMorsel->targetDstNodes->contains(nodeID));
-                        newSSSPSharedState->getBFSMorsel(bfsMorsel, tempState);
-                        activeSSSPSharedState.push_back(newSSSPSharedState);
-                        printf("total active SSSP now: %lu | starting with src: %lu\n", numActiveSSSP, nodeID.offset);
-                        return false;
-                    } else {
-                        return findAvailableSSSP(bfsMorsel, state);
-                    }
-                }
-                case PATH_LENGTH_WRITE_IN_PROGRESS:
-                    state = {globalState, tempState};
+            if (numActiveSSSP < maxAllowedActiveSSSP) {
+                auto inputFTableMorsel = inputFTableSharedState->getMorsel();
+                if (inputFTableMorsel->numTuples == 0) {
+                    globalState = (numActiveSSSP == 0) ? COMPLETE : IN_PROGRESS_ALL_SRC_SCANNED;
+                    state = {globalState, NO_WORK_TO_SHARE};
                     return true;
                 }
-            } else {
+                numActiveSSSP++;
+                auto newSSSPSharedState =
+                    std::make_shared<SSSPSharedState>(upperBound, lowerBound, maxOffset);
+                inputFTableSharedState->getTable()->scan(vectorsToScan,
+                    inputFTableMorsel->startTupleIdx, inputFTableMorsel->numTuples,
+                    colIndicesToScan);
+                newSSSPSharedState->reset(bfsMorsel->targetDstNodes);
+                newSSSPSharedState->inputFTableTupleIdx = inputFTableMorsel->startTupleIdx;
+                auto nodeID = srcNodeIDVector->getValue<common::nodeID_t>(
+                    srcNodeIDVector->state->selVector->selectedPositions[0]);
+                newSSSPSharedState->srcOffset = nodeID.offset;
+                newSSSPSharedState->markSrc(bfsMorsel->targetDstNodes->contains(nodeID));
+                SSSPLocalState tempState{EXTEND_IN_PROGRESS};
+                newSSSPSharedState->getBFSMorsel(bfsMorsel, tempState);
+                activeSSSPSharedState.push_back(newSSSPSharedState);
                 return false;
+            } else {
+                return findAvailableSSSP(bfsMorsel, state);
             }
         }
         }
@@ -135,8 +87,7 @@ std::shared_ptr<SSSPSharedState> MorselDispatcher::getNextAvailableSSSPWork() {
                 sharedState->mutex.unlock();
                 return *iterator;
             }
-	    if (sharedState->ssspLocalState == MORSEL_COMPLETE
-                && sharedState->numThreadsActiveOnMorsel == 0) {
+            if (sharedState->ssspLocalState == MORSEL_COMPLETE) {
                 activeSSSPSharedState.erase(iterator);
             }
             sharedState->mutex.unlock();
@@ -156,14 +107,13 @@ std::shared_ptr<SSSPSharedState> MorselDispatcher::getNextAvailableSSSPWork() {
  */
 bool MorselDispatcher::findAvailableSSSP(
     std::unique_ptr<BaseBFSMorsel>& bfsMorsel, std::pair<GlobalSSSPState, SSSPLocalState>& state) {
-    SSSPLocalState tempState{MORSEL_COMPLETE};
-    auto nextAvailableSSSPIdx = getNextAvailableSSSPWork();
-    if (!nextAvailableSSSPIdx) {
+    SSSPLocalState tempState{NO_WORK_TO_SHARE};
+    auto availableSSSPSharedState = getNextAvailableSSSPWork();
+    if (!availableSSSPSharedState) {
         state = {globalState, tempState};
         return true;
     }
-    bool checkState = nextAvailableSSSPIdx->getBFSMorsel(bfsMorsel, tempState);
-    printf("state indicated by SSSP whose work will now be shared: %d\n", tempState);
+    bool checkState = availableSSSPSharedState->getBFSMorsel(bfsMorsel, tempState);
     if (checkState) {
         state = {globalState, tempState};
         return checkState;
@@ -199,15 +149,12 @@ int64_t MorselDispatcher::writeDstNodeIDAndPathLength(
     } else if (startScanIdxAndSize.second == -1) {
         mutex.lock();
         numActiveSSSP--;
-        printf("total active SSSP now: %lu, global state right now: %d\n", numActiveSSSP, globalState);
         // If all SSSP have been completed indicated by count (numActiveSSSP == 0) and no more
         // SSSP are available to launched indicated by state IN_PROGRESS_ALL_SRC_SCANNED then
         // global state can be successfully changed to COMPLETE to indicate completion of SSSP
         // Computation.
         if (numActiveSSSP == 0 && globalState == IN_PROGRESS_ALL_SRC_SCANNED) {
-            printf("marking GLOBAL STATE as COMPLETE ...\n");
             globalState = COMPLETE;
-            printf("global STATE: %d\n", globalState);
         }
         mutex.unlock();
         return -1;

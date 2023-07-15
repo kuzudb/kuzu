@@ -137,7 +137,6 @@ bool RecursiveJoin::getNextTuplesInternal(ExecutionContext* context) {
             return true;
         }
         if (!computeBFS(context)) {
-            printf("thread is exiting from here, operator work over ...\n");
             return false;
         }
         frontiersScanner->resetState(*bfsMorsel);
@@ -199,7 +198,7 @@ bool RecursiveJoin::scanOutput() {
 bool RecursiveJoin::computeBFS(kuzu::processor::ExecutionContext* context) {
     while (true) {
         if (bfsMorsel->ssspSharedState) {
-            SSSPLocalState state;
+            SSSPLocalState state{NO_WORK_TO_SHARE};
             bool checkState = bfsMorsel->ssspSharedState->getBFSMorsel(bfsMorsel, state);
             if (!checkState) {
                 computeBFSnThreadkMorsel(context);
@@ -208,7 +207,6 @@ bool RecursiveJoin::computeBFS(kuzu::processor::ExecutionContext* context) {
                 }
                 continue;
             } else if (state == PATH_LENGTH_WRITE_IN_PROGRESS) {
-                printf("received pathLength writing work, so continuing ...\n");
                 return true;
             }
         }
@@ -219,7 +217,6 @@ bool RecursiveJoin::computeBFS(kuzu::processor::ExecutionContext* context) {
          * status = 1: A BFS computation's extend was completed, write the path lengths to vector.
          */
         if (status == -1) {
-            printf("returning false from here to exit ...\n");
             return false;
         } else if (status == 0) {
             continue;
@@ -245,19 +242,20 @@ int RecursiveJoin::fetchMorselFromDispatcher(ExecutionContext* context) {
     if (checkState) {
         auto globalSSSPState = state.first;
         auto ssspLocalState = state.second;
-        printf("global state indicated: %d | local SSSP state indicated: %d\n", globalSSSPState, ssspLocalState);
         switch (globalSSSPState) {
         case IN_PROGRESS:
         case IN_PROGRESS_ALL_SRC_SCANNED:
-            if (ssspLocalState == MORSEL_COMPLETE || ssspLocalState == EXTEND_IN_PROGRESS) {
+            if (ssspLocalState == NO_WORK_TO_SHARE) {
                 std::this_thread::sleep_for(
                     std::chrono::microseconds(common::THREAD_SLEEP_TIME_WHEN_WAITING_IN_MICROS));
                 return 0;
-            } else {
+            } else if (ssspLocalState == PATH_LENGTH_WRITE_IN_PROGRESS) {
                 return 1;
+            } else {
+                throw common::RuntimeException(
+                    &"Unexpected state received from MorselDispatcher: "[ssspLocalState]);
             }
         case COMPLETE:
-            printf("returning -1 from here to exit ...\n");
             return -1;
         default:
             assert(false);

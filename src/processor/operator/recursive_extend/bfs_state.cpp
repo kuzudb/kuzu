@@ -2,6 +2,7 @@
 #include <Windows.h>
 #include <intrin.h>
 #endif
+#include "common/exception.h"
 #include "processor/operator/recursive_extend/bfs_state.h"
 
 namespace kuzu {
@@ -37,27 +38,36 @@ void SSSPSharedState::reset(TargetDstNodes* targetDstNodes) {
  */
 bool SSSPSharedState::getBFSMorsel(
     std::unique_ptr<BaseBFSMorsel>& bfsMorsel, SSSPLocalState& state) {
-    mutex.lock();
-    if (ssspLocalState == MORSEL_COMPLETE || ssspLocalState == PATH_LENGTH_WRITE_IN_PROGRESS) {
-        bfsMorsel->ssspSharedState = (ssspLocalState == PATH_LENGTH_WRITE_IN_PROGRESS) ? this : nullptr;
-        state = ssspLocalState;
-        mutex.unlock();
+    std::unique_lock<std::mutex> lck{mutex};
+    switch (ssspLocalState) {
+    case MORSEL_COMPLETE: {
+        state = NO_WORK_TO_SHARE;
         return true;
     }
-    if (nextScanStartIdx < bfsLevelNodeOffsets.size()) {
-        numThreadsActiveOnMorsel++;
-        auto bfsMorselSize = std::min(
-            common::DEFAULT_VECTOR_CAPACITY, bfsLevelNodeOffsets.size() - nextScanStartIdx);
-        auto morselScanEndIdx = nextScanStartIdx + bfsMorselSize;
-        auto shortestPathMorsel = (reinterpret_cast<ShortestPathMorsel<false>*>(bfsMorsel.get()));
-        shortestPathMorsel->reset(nextScanStartIdx, morselScanEndIdx, this);
-        nextScanStartIdx += bfsMorselSize;
-        mutex.unlock();
-        return false;
+    case PATH_LENGTH_WRITE_IN_PROGRESS: {
+        bfsMorsel->ssspSharedState = this;
+        state = ssspLocalState;
+        return true;
     }
-    state = ssspLocalState;
-    mutex.unlock();
-    return true;
+    case EXTEND_IN_PROGRESS: {
+        if (nextScanStartIdx < bfsLevelNodeOffsets.size()) {
+            numThreadsActiveOnMorsel++;
+            auto bfsMorselSize = std::min(
+                common::DEFAULT_VECTOR_CAPACITY, bfsLevelNodeOffsets.size() - nextScanStartIdx);
+            auto morselScanEndIdx = nextScanStartIdx + bfsMorselSize;
+            auto shortestPathMorsel =
+                (reinterpret_cast<ShortestPathMorsel<false>*>(bfsMorsel.get()));
+            shortestPathMorsel->reset(nextScanStartIdx, morselScanEndIdx, this);
+            nextScanStartIdx += bfsMorselSize;
+            return false;
+        }
+        state = NO_WORK_TO_SHARE;
+        return true;
+    }
+    default:
+        throw common::RuntimeException(
+            &"Unknown local state encountered inside SSSPSharedState: "[ssspLocalState]);
+    }
 }
 
 bool SSSPSharedState::hasWork() const {
