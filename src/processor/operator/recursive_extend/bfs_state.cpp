@@ -73,7 +73,8 @@ bool SSSPSharedState::getBFSMorsel(
 bool SSSPSharedState::hasWork() const {
     if (ssspLocalState == EXTEND_IN_PROGRESS && nextScanStartIdx < bfsLevelNodeOffsets.size()) {
         return true;
-    } else if (ssspLocalState == PATH_LENGTH_WRITE_IN_PROGRESS) {
+    } else if (ssspLocalState == PATH_LENGTH_WRITE_IN_PROGRESS &&
+        nextDstScanStartIdx < visitedNodes.size()) {
         return true;
     } else {
         return false;
