@@ -58,20 +58,12 @@ bool MorselDispatcher::getBFSMorsel(
                 SSSPLocalState tempState{EXTEND_IN_PROGRESS};
                 newSSSPSharedState->getBFSMorsel(bfsMorsel, tempState);
                 for (auto i = 0u; i < activeSSSPSharedState.size(); i++) {
-                    if (!activeSSSPSharedState[i]) {
+                    if (!activeSSSPSharedState[i] ||
+                        activeSSSPSharedState[i]->ssspLocalState == MORSEL_COMPLETE) {
                         newSSSPSharedState->pos = i;
                         activeSSSPSharedState[i] = newSSSPSharedState;
                         break;
                     }
-                    auto ssspSharedState = activeSSSPSharedState[i];
-                    ssspSharedState->mutex.lock();
-                    if(ssspSharedState->ssspLocalState == MORSEL_COMPLETE) {
-                        newSSSPSharedState->pos = i;
-                        activeSSSPSharedState[i] = newSSSPSharedState;
-                        ssspSharedState->mutex.unlock();
-                        break;
-                    }
-                    ssspSharedState->mutex.unlock();
                 }
                 return false;
             } else {
