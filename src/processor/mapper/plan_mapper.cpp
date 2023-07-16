@@ -75,6 +75,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
     case LogicalOperatorType::MULTIPLICITY_REDUCER: {
         physicalOperator = mapLogicalMultiplicityReducerToPhysical(logicalOperator.get());
     } break;
+    case LogicalOperatorType::NODE_LABEL_FILTER: {
+        physicalOperator = mapLogicalNodeLabelFilterToPhysical(logicalOperator.get());
+    } break;
     case LogicalOperatorType::SKIP: {
         physicalOperator = mapLogicalSkipToPhysical(logicalOperator.get());
     } break;

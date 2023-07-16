@@ -62,6 +62,8 @@ private:
         planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapLogicalMultiplicityReducerToPhysical(
         planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapLogicalNodeLabelFilterToPhysical(
+        planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapLogicalSkipToPhysical(
         planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapLogicalLimitToPhysical(

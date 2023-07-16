@@ -33,7 +33,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalRecursiveExtendToPhysica
     auto recursivePlanResultSetDescriptor =
         std::make_unique<ResultSetDescriptor>(recursivePlanSchema);
     auto recursiveDstNodeIDPos = DataPos(
-        recursivePlanSchema->getExpressionPos(*recursiveInfo->node->getInternalIDProperty()));
+        recursivePlanSchema->getExpressionPos(*recursiveInfo->nodeCopy->getInternalIDProperty()));
     auto recursiveEdgeIDPos = DataPos(
         recursivePlanSchema->getExpressionPos(*recursiveInfo->rel->getInternalIDProperty()));
     // Generate RecursiveJoin
