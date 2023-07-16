@@ -195,81 +195,67 @@ bool RecursiveJoin::scanOutput() {
  *   shared with any other thread.
  */
 bool RecursiveJoin::computeBFS(kuzu::processor::ExecutionContext* context) {
-    while (true) {
-        if (bfsMorsel->ssspSharedState) {
-            SSSPLocalState state{NO_WORK_TO_SHARE};
-            bool checkState = bfsMorsel->ssspSharedState->getBFSMorsel(bfsMorsel, state);
-            if (!checkState) {
-                computeBFSnThreadkMorsel(context);
-                if (bfsMorsel->ssspSharedState->finishBFSMorsel(bfsMorsel)) {
+    if(morselDispatcher->getSchedulerType() == SchedulerType::OneThreadOneMorsel) {
+        std::pair<GlobalSSSPState, SSSPLocalState> state {COMPLETE, NO_WORK_TO_SHARE};
+        auto checkState = morselDispatcher->getBFSMorsel(sharedState->inputFTableSharedState,
+            vectorsToScan, colIndicesToScan, vectors->srcNodeIDVector, bfsMorsel, state);
+        if(checkState) {
+            return false;
+        }
+        computeBFSOneThreadOneMorsel(context);
+        return true;
+    } else {
+        while (true) {
+            if(bfsMorsel->ssspSharedState) {
+                SSSPLocalState state{NO_WORK_TO_SHARE};
+                bool checkState = bfsMorsel->ssspSharedState->getBFSMorsel(bfsMorsel, state);
+                if (!checkState) {
+                    computeBFSnThreadkMorsel(context);
+                    if (bfsMorsel->ssspSharedState->finishBFSMorsel(bfsMorsel)) {
+                        return true;
+                    }
+                    continue;
+                } else if (state == PATH_LENGTH_WRITE_IN_PROGRESS) {
                     return true;
                 }
-                continue;
-            } else if (state == PATH_LENGTH_WRITE_IN_PROGRESS) {
-                return true;
             }
-        }
-        auto status = fetchMorselFromDispatcher(context);
-        /**
-         * status = -1: Globally BFS computation is complete, return false from operator.
-         * status = 0: No work was found (thread can't be released, some computation is ongoing)
-         * status = 1: A BFS computation's extend was completed, write the path lengths to vector.
-         */
-        if (status == -1) {
-            return false;
-        } else if (status == 0) {
-            continue;
-        } else {
-            return true;
+            std::pair<GlobalSSSPState, SSSPLocalState> state {COMPLETE, NO_WORK_TO_SHARE};
+            auto checkState = morselDispatcher->getBFSMorsel(sharedState->inputFTableSharedState,
+                vectorsToScan, colIndicesToScan, vectors->srcNodeIDVector, bfsMorsel, state);
+            if(checkState && state.first == COMPLETE) {
+                return false;
+            } else if(checkState && state.second == PATH_LENGTH_WRITE_IN_PROGRESS) {
+                return true;
+            } else if(!checkState) {
+                computeBFSnThreadkMorsel(context);
+                if(bfsMorsel->ssspSharedState->finishBFSMorsel(bfsMorsel)) {
+                    return true;
+                }
+            } else {
+                std::this_thread::sleep_for(
+                    std::chrono::microseconds(common::THREAD_SLEEP_TIME_WHEN_WAITING_IN_MICROS));
+            }
         }
     }
 }
 
-/**
- * returns -1 = exit, return false from operator, all work done
- * returns 0 = keep asking for work
- * returns 1 = SSSP extend is complete, can return to writing distances
- */
-int RecursiveJoin::fetchMorselFromDispatcher(ExecutionContext* context) {
-    std::pair<GlobalSSSPState, SSSPLocalState> state;
-    auto checkState = morselDispatcher->getBFSMorsel(sharedState->inputFTableSharedState,
-        vectorsToScan, colIndicesToScan, vectors->srcNodeIDVector, bfsMorsel, state);
-    // If checkState is TRUE, it indicates no work was found even from other morsels. For 1T1S
-    // this means exiting immediately, because threads don't share work. For nTkS it indicates to
-    // exit ONLY if state is COMPLETE. Else the thread will sleep for some time before going back to
-    // ask for work from the morselDispatcher.
-    if (checkState) {
-        auto globalSSSPState = state.first;
-        auto ssspLocalState = state.second;
-        switch (globalSSSPState) {
-        case IN_PROGRESS:
-        case IN_PROGRESS_ALL_SRC_SCANNED:
-            if (ssspLocalState == NO_WORK_TO_SHARE) {
-                std::this_thread::sleep_for(
-                    std::chrono::microseconds(common::THREAD_SLEEP_TIME_WHEN_WAITING_IN_MICROS));
-                return 0;
-            } else if (ssspLocalState == PATH_LENGTH_WRITE_IN_PROGRESS) {
-                return 1;
-            } else {
-                throw common::RuntimeException(
-                    &"Unexpected state received from MorselDispatcher: "[ssspLocalState]);
-            }
-        case COMPLETE:
-            return -1;
-        default:
-            assert(false);
+// Used for nTkS scheduling policy, extension is done morsel at a time of size 2048. Each thread
+// is operating on its morsel. Lock-free CAS operation occurs here, visited nodes are marked with
+// the function call addToLocalNextBFSLevel on the visited vector. The path lengths are written to
+// the pathLength vector.
+void RecursiveJoin::computeBFSnThreadkMorsel(ExecutionContext* context) {
+    // Cast the BaseBFSMorsel to ShortestPathMorsel, the TRACK_NONE RecursiveJoin is the case it is
+    // applicable for. If true, indicates TRACK_PATH is true else TRACK_PATH is false.
+    assert(bfsMorsel->getRecursiveJoinType() == false);
+    auto shortestPathMorsel =
+        reinterpret_cast<ShortestPathMorsel<false /* TRACK_PATH */>*>(bfsMorsel.get());
+    common::offset_t nodeOffset = shortestPathMorsel->getNextNodeOffset();
+    while (nodeOffset != common::INVALID_OFFSET) {
+        scanFrontier->setNodeID(common::nodeID_t{nodeOffset, *begin(dataInfo->dstNodeTableIDs)});
+        while (recursiveRoot->getNextTuple(context)) { // Exhaust recursive plan.
+            shortestPathMorsel->addToLocalNextBFSLevel(vectors->recursiveDstNodeIDVector);
         }
-    }
-    if (morselDispatcher->getSchedulerType() == OneThreadOneMorsel) {
-        computeBFSOneThreadOneMorsel(context);
-        return 1;
-    } else {
-        computeBFSnThreadkMorsel(context);
-        if (bfsMorsel->ssspSharedState->finishBFSMorsel(bfsMorsel)) {
-            return 1;
-        } else {
-            return 0;
-        }
+        nodeOffset = shortestPathMorsel->getNextNodeOffset();
     }
 }
 
@@ -300,26 +286,6 @@ void RecursiveJoin::updateVisitedNodes(common::nodeID_t boundNodeID) {
         auto nbrNodeID = vectors->recursiveDstNodeIDVector->getValue<common::nodeID_t>(pos);
         auto edgeID = vectors->recursiveEdgeIDVector->getValue<common::relID_t>(pos);
         bfsMorsel->markVisited(boundNodeID, nbrNodeID, edgeID, boundNodeMultiplicity);
-    }
-}
-
-// Used for nTkS scheduling policy, extension is done morsel at a time of size 2048. Each thread
-// is operating on its morsel. Lock-free CAS operation occurs here, visited nodes are marked with
-// the function call addToLocalNextBFSLevel on the visited vector. The path lengths are written to
-// the pathLength vector.
-void RecursiveJoin::computeBFSnThreadkMorsel(ExecutionContext* context) {
-    // Cast the BaseBFSMorsel to ShortestPathMorsel, the TRACK_NONE RecursiveJoin is the case it is
-    // applicable for. If true, indicates TRACK_PATH is true else TRACK_PATH is false.
-    assert(bfsMorsel->getRecursiveJoinType() == false);
-    auto shortestPathMorsel =
-        reinterpret_cast<ShortestPathMorsel<false /* TRACK_PATH */>*>(bfsMorsel.get());
-    common::offset_t nodeOffset = shortestPathMorsel->getNextNodeOffset();
-    while (nodeOffset != common::INVALID_OFFSET) {
-        scanFrontier->setNodeID(common::nodeID_t{nodeOffset, *begin(dataInfo->dstNodeTableIDs)});
-        while (recursiveRoot->getNextTuple(context)) { // Exhaust recursive plan.
-            shortestPathMorsel->addToLocalNextBFSLevel(vectors->recursiveDstNodeIDVector);
-        }
-        nodeOffset = shortestPathMorsel->getNextNodeOffset();
     }
 }
 

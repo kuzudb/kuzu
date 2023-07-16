@@ -128,6 +128,7 @@ public:
     std::pair<uint64_t, int64_t> getDstPathLengthMorsel();
 
 public:
+    // The position of this SSSPSharedState in the list of active SSSPSharedState.
     uint32_t pos;
     std::mutex mutex;
     SSSPLocalState ssspLocalState;

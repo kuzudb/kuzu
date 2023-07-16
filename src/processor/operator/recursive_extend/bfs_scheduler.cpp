@@ -5,6 +5,13 @@
 namespace kuzu {
 namespace processor {
 
+/**
+ * Main function of the scheduler that dispatches morsels from the FTable between threads. Or it can
+ * be called if a thread could not find a morsel from it's local SSSPSharedState.
+ *
+ * @return - TRUE indicates check the combination value of the state pair, FALSE indicates some
+ * work was found hence the state's values can be ignored.
+ */
 bool MorselDispatcher::getBFSMorsel(
     const std::shared_ptr<FTableSharedState>& inputFTableSharedState,
     std::vector<common::ValueVector*> vectorsToScan, std::vector<ft_col_idx_t> colIndicesToScan,
@@ -57,6 +64,9 @@ bool MorselDispatcher::getBFSMorsel(
                 newSSSPSharedState->markSrc(bfsMorsel->targetDstNodes->contains(nodeID));
                 SSSPLocalState tempState{EXTEND_IN_PROGRESS};
                 newSSSPSharedState->getBFSMorsel(bfsMorsel, tempState);
+                // Find a position for the new SSSP in the list, there are 2 candidates:
+                // 1) the position has a nullptr, add the shared state there
+                // 2) the SSSP is marked MORSEL_COMPLETE, it is complete and can be replaced
                 for (auto i = 0u; i < activeSSSPSharedState.size(); i++) {
                     if (!activeSSSPSharedState[i] ||
                         activeSSSPSharedState[i]->ssspLocalState == MORSEL_COMPLETE) {
@@ -79,7 +89,7 @@ bool MorselDispatcher::getBFSMorsel(
  * Iterate over list of ALL currently active SSSPSharedStates and check if there is any work
  * available. NOTE: There can be different policies to decide which SSSPSharedState to help finish.
  * Right now the most basic policy has been implemented. The 1st SSSPSharedState we find that is
- * unfinished is chosen for helping work on.
+ * unfinished is chosen for work sharing.
  */
 uint32_t MorselDispatcher::getNextAvailableSSSPWork() {
     for (auto i = 0u; i < activeSSSPSharedState.size(); i++) {
@@ -98,8 +108,6 @@ uint32_t MorselDispatcher::getNextAvailableSSSPWork() {
 /**
  * Try to find an available SSSPSharedState for work and then try to get a morsel. If the work is
  * writing path lengths then the tempState value will be PATH_LENGTH_WRITE_IN_PROGRESS.
- * We update the activeSSSPSharedState vector for the thread's index with the new
- * SSSPSharedState to indicate the morsel the thread will now be working on.
  *
  * @return - TRUE if no work was found OR work is writing pathLength values to vector.
  * FALSE if bfsExtension work was found i.e a range from current frontier to extend.
@@ -149,9 +157,8 @@ int64_t MorselDispatcher::writeDstNodeIDAndPathLength(
         mutex.lock();
         numActiveSSSP--;
         // If all SSSP have been completed indicated by count (numActiveSSSP == 0) and no more
-        // SSSP are available to launched indicated by state IN_PROGRESS_ALL_SRC_SCANNED then
-        // global state can be successfully changed to COMPLETE to indicate completion of SSSP
-        // Computation.
+        // SSSP are available indicated by state IN_PROGRESS_ALL_SRC_SCANNED then global state can
+        // be successfully changed to COMPLETE to indicate completion of SSSP Computation.
         if (numActiveSSSP == 0 && globalState == IN_PROGRESS_ALL_SRC_SCANNED) {
             globalState = COMPLETE;
         }
