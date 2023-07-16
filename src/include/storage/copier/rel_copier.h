@@ -17,7 +17,17 @@ public:
         catalog::RelTableSchema* schema, DirectedInMemRelData* fwdRelData,
         DirectedInMemRelData* bwdRelData, std::vector<PrimaryKeyIndex*> pkIndexes)
         : sharedState{std::move(sharedState)}, copyDesc{copyDesc}, schema{schema},
-          fwdRelData{fwdRelData}, bwdRelData{bwdRelData}, pkIndexes{std::move(pkIndexes)} {}
+          fwdRelData{fwdRelData}, bwdRelData{bwdRelData}, pkIndexes{std::move(pkIndexes)} {
+        fwdCopyStates.resize(schema->getNumProperties());
+        for (auto i = 0u; i < schema->getNumProperties(); i++) {
+            fwdCopyStates[i] = std::make_unique<PropertyCopyState>(schema->properties[i].dataType);
+        }
+        bwdCopyStates.resize(schema->getNumProperties());
+        for (auto i = 0u; i < schema->getNumProperties(); i++) {
+            bwdCopyStates[i] = std::make_unique<PropertyCopyState>(schema->properties[i].dataType);
+        }
+    }
+
     virtual ~RelCopier() = default;
 
     void execute(processor::ExecutionContext* executionContext);
@@ -60,6 +70,8 @@ protected:
     DirectedInMemRelData* fwdRelData;
     DirectedInMemRelData* bwdRelData;
     std::vector<PrimaryKeyIndex*> pkIndexes;
+    std::vector<std::unique_ptr<PropertyCopyState>> fwdCopyStates;
+    std::vector<std::unique_ptr<PropertyCopyState>> bwdCopyStates;
 };
 
 class RelListsCounterAndColumnCopier : public RelCopier {

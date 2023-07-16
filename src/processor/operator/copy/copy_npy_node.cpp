@@ -8,18 +8,17 @@ namespace processor {
 
 void CopyNPYNode::executeInternal(ExecutionContext* context) {
     logCopyWALRecord();
-    auto npyLocalState = reinterpret_cast<CopyNPYNodeLocalState*>(localState.get());
     while (children[0]->getNextTuple(context)) {
         std::vector<std::unique_ptr<InMemColumnChunk>> columnChunks;
         columnChunks.reserve(sharedState->columns.size());
-        auto columnIdxVector = npyLocalState->columnIdxVector;
         auto columnToCopy = columnIdxVector->getValue<common::vector_idx_t>(
             columnIdxVector->state->selVector->selectedPositions[0]);
-        auto [startOffset, endOffset] = npyLocalState->getStartAndEndOffset(columnToCopy);
+        auto [startOffset, endOffset] = getStartAndEndOffset(columnToCopy);
         auto columnChunk = sharedState->columns[columnToCopy]->getInMemColumnChunk(
-            startOffset, endOffset, &npyLocalState->copyDesc);
+            startOffset, endOffset, &copyDesc);
         columnChunk->copyArrowArray(
-            *ArrowColumnVector::getArrowColumn(npyLocalState->arrowColumnVectors[columnToCopy]));
+            *ArrowColumnVector::getArrowColumn(arrowColumnVectors[columnToCopy]),
+            copyStates[columnToCopy].get());
         columnChunks.push_back(std::move(columnChunk));
         flushChunksAndPopulatePKIndexSingleColumn(
             columnChunks, startOffset, endOffset, columnToCopy);

@@ -1,5 +1,6 @@
 #include "storage/in_mem_storage_structure/in_mem_lists.h"
 
+#include "storage/copier/rel_copier.h"
 #include "storage/copier/table_copy_utils.h"
 
 using namespace kuzu::common;
@@ -33,8 +34,8 @@ InMemLists::InMemLists(std::string fName, LogicalType dataType, uint64_t numByte
     inMemFile = make_unique<InMemFile>(this->fName, numBytesForElement, hasNullBytes);
 }
 
-void InMemLists::copyArrowArray(
-    arrow::Array* boundNodeOffsets, arrow::Array* posInRelLists, arrow::Array* array) {
+void InMemLists::copyArrowArray(arrow::Array* boundNodeOffsets, arrow::Array* posInRelLists,
+    arrow::Array* array, PropertyCopyState* copyState) {
     switch (array->type_id()) {
     case arrow::Type::BOOL: {
         templateCopyArrayToRelLists<bool>(boundNodeOffsets, posInRelLists, array);
@@ -321,21 +322,21 @@ InMemListsWithOverflow::InMemListsWithOverflow(std::string fName, LogicalType da
     this->listHeadersBuilder = std::move(listHeadersBuilder);
 }
 
-void InMemListsWithOverflow::copyArrowArray(
-    arrow::Array* boundNodeOffsets, arrow::Array* posInRelLists, arrow::Array* array) {
+void InMemListsWithOverflow::copyArrowArray(arrow::Array* boundNodeOffsets,
+    arrow::Array* posInRelLists, arrow::Array* array, PropertyCopyState* copyState) {
     assert(array->type_id() == arrow::Type::STRING);
     switch (dataType.getLogicalTypeID()) {
     case common::LogicalTypeID::BLOB: {
         templateCopyArrayAsStringToRelListsWithOverflow<blob_t>(
-            boundNodeOffsets, posInRelLists, array);
+            boundNodeOffsets, posInRelLists, array, copyState->overflowCursor);
     } break;
     case common::LogicalTypeID::STRING: {
         templateCopyArrayAsStringToRelListsWithOverflow<ku_string_t>(
-            boundNodeOffsets, posInRelLists, array);
+            boundNodeOffsets, posInRelLists, array, copyState->overflowCursor);
     } break;
     case common::LogicalTypeID::VAR_LIST: {
         templateCopyArrayAsStringToRelListsWithOverflow<ku_list_t>(
-            boundNodeOffsets, posInRelLists, array);
+            boundNodeOffsets, posInRelLists, array, copyState->overflowCursor);
     } break;
     default: {
         throw NotImplementedException{"InMemListsWithOverflow::copyArrowArray"};
@@ -345,19 +346,22 @@ void InMemListsWithOverflow::copyArrowArray(
 
 template<typename T>
 void InMemListsWithOverflow::templateCopyArrayAsStringToRelListsWithOverflow(
-    arrow::Array* boundNodeOffsets, arrow::Array* posInRelList, arrow::Array* array) {
+    arrow::Array* boundNodeOffsets, arrow::Array* posInRelList, arrow::Array* array,
+    PageByteCursor& overflowCursor) {
     auto stringArray = (arrow::StringArray*)array;
     auto offsets = boundNodeOffsets->data()->GetValues<offset_t>(1);
     auto positions = posInRelList->data()->GetValues<int64_t>(1);
     for (auto i = 0u; i < stringArray->length(); i++) {
         auto value = stringArray->GetView(i);
-        setValueFromStringWithOverflow<T>(offsets[i], positions[i], value.data(), value.length());
+        setValueFromStringWithOverflow<T>(
+            overflowCursor, offsets[i], positions[i], value.data(), value.length());
     }
 }
 
 template<>
 void InMemListsWithOverflow::setValueFromStringWithOverflow<ku_string_t>(
-    offset_t nodeOffset, uint64_t pos, const char* val, uint64_t length) {
+    PageByteCursor& overflowCursor, offset_t nodeOffset, uint64_t pos, const char* val,
+    uint64_t length) {
     if (length > BufferPoolConstants::PAGE_4KB_SIZE) {
         length = BufferPoolConstants::PAGE_4KB_SIZE;
     }
@@ -366,7 +370,7 @@ void InMemListsWithOverflow::setValueFromStringWithOverflow<ku_string_t>(
 }
 
 template<>
-void InMemListsWithOverflow::setValueFromStringWithOverflow<blob_t>(
+void InMemListsWithOverflow::setValueFromStringWithOverflow<blob_t>(PageByteCursor& overflowCursor,
     offset_t nodeOffset, uint64_t pos, const char* val, uint64_t length) {
     auto blobLen = Blob::fromString(
         val, std::min(length, BufferPoolConstants::PAGE_4KB_SIZE), blobBuffer.get());
@@ -377,7 +381,8 @@ void InMemListsWithOverflow::setValueFromStringWithOverflow<blob_t>(
 
 template<>
 void InMemListsWithOverflow::setValueFromStringWithOverflow<ku_list_t>(
-    offset_t nodeOffset, uint64_t pos, const char* val, uint64_t length) {
+    PageByteCursor& overflowCursor, offset_t nodeOffset, uint64_t pos, const char* val,
+    uint64_t length) {
     auto varList = TableCopyUtils::getArrowVarList(val, 1, length - 2, dataType, *copyDescription);
     auto listVal = overflowInMemFile->copyList(*varList, overflowCursor);
     setValue(nodeOffset, pos, (uint8_t*)&listVal);

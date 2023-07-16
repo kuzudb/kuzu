@@ -76,20 +76,19 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCopyNodeToPhysical(Logic
     auto ftSharedState = std::make_shared<FTableSharedState>(
         copyNodeSharedState->table, common::DEFAULT_VECTOR_CAPACITY);
     std::unique_ptr<CopyNode> copyNode;
+    CopyNodeDataInfo copyNodeDataInfo{offsetVectorPos, arrowColumnPoses};
     if (copy->getCopyDescription().fileType == common::CopyDescription::FileType::NPY) {
-        auto localState = std::make_unique<CopyNPYNodeLocalState>(copy->getCopyDescription(),
+        copyNode = std::make_unique<CopyNPYNode>(copyNodeSharedState, copyNodeDataInfo,
+            columnIdxPos, copy->getCopyDescription(),
             storageManager.getNodesStore().getNodeTable(copy->getTableID()),
-            &storageManager.getRelsStore(), catalog, storageManager.getWAL(), offsetVectorPos,
-            columnIdxPos, arrowColumnPoses);
-        copyNode = std::make_unique<CopyNPYNode>(std::move(localState), copyNodeSharedState,
+            &storageManager.getRelsStore(), catalog, storageManager.getWAL(),
             std::make_unique<ResultSetDescriptor>(copy->getSchema()), std::move(readFile),
             getOperatorID(), copy->getExpressionsForPrinting());
     } else {
-        auto localState = std::make_unique<CopyNodeLocalState>(copy->getCopyDescription(),
+        copyNode = std::make_unique<CopyNode>(copyNodeSharedState, copyNodeDataInfo,
+            copy->getCopyDescription(),
             storageManager.getNodesStore().getNodeTable(copy->getTableID()),
-            &storageManager.getRelsStore(), catalog, storageManager.getWAL(), offsetVectorPos,
-            arrowColumnPoses);
-        copyNode = std::make_unique<CopyNode>(std::move(localState), copyNodeSharedState,
+            &storageManager.getRelsStore(), catalog, storageManager.getWAL(),
             std::make_unique<ResultSetDescriptor>(copy->getSchema()), std::move(readFile),
             getOperatorID(), copy->getExpressionsForPrinting());
     }

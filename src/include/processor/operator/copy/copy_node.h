@@ -33,43 +33,34 @@ public:
     bool hasLoggedWAL;
 };
 
-struct CopyNodeLocalState {
-    CopyNodeLocalState(const common::CopyDescription& copyDesc, storage::NodeTable* table,
-        storage::RelsStore* relsStore, catalog::Catalog* catalog, storage::WAL* wal,
-        const DataPos& offsetVectorPos, std::vector<DataPos> arrowColumnPoses)
-        : copyDesc{copyDesc}, table{table}, relsStore{relsStore}, catalog{catalog}, wal{wal},
-          offsetVectorPos{offsetVectorPos}, offsetVector{nullptr}, arrowColumnPoses{std::move(
-                                                                       arrowColumnPoses)} {}
-
-    std::pair<common::offset_t, common::offset_t> getStartAndEndOffset(
-        common::vector_idx_t columnIdx);
-
-    common::CopyDescription copyDesc;
-    storage::NodeTable* table;
-    storage::RelsStore* relsStore;
-    catalog::Catalog* catalog;
-    storage::WAL* wal;
+struct CopyNodeDataInfo {
     DataPos offsetVectorPos;
-    common::ValueVector* offsetVector;
     std::vector<DataPos> arrowColumnPoses;
-    std::vector<common::ValueVector*> arrowColumnVectors;
 };
 
 class CopyNode : public Sink {
 public:
-    CopyNode(std::unique_ptr<CopyNodeLocalState> localState,
-        std::shared_ptr<CopyNodeSharedState> sharedState,
+    CopyNode(std::shared_ptr<CopyNodeSharedState> sharedState, CopyNodeDataInfo copyNodeDataInfo,
+        common::CopyDescription copyDesc, storage::NodeTable* table, storage::RelsStore* relsStore,
+        catalog::Catalog* catalog, storage::WAL* wal,
         std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
         std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
         : Sink{std::move(resultSetDescriptor), PhysicalOperatorType::COPY_NODE, std::move(child),
               id, paramsString},
-          localState{std::move(localState)}, sharedState{std::move(sharedState)} {}
+          sharedState{std::move(sharedState)}, copyNodeDataInfo{std::move(copyNodeDataInfo)},
+          copyDesc{copyDesc}, table{table}, relsStore{relsStore}, catalog{catalog}, wal{wal} {
+        auto tableSchema = catalog->getReadOnlyVersion()->getNodeTableSchema(table->getTableID());
+        copyStates.resize(tableSchema->getNumProperties());
+        for (auto i = 0u; i < tableSchema->getNumProperties(); i++) {
+            auto& property = tableSchema->properties[i];
+            copyStates[i] = std::make_unique<storage::PropertyCopyState>(property.dataType);
+        }
+    }
 
     inline void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override {
-        localState->offsetVector = resultSet->getValueVector(localState->offsetVectorPos).get();
-        for (auto& arrowColumnPos : localState->arrowColumnPoses) {
-            localState->arrowColumnVectors.push_back(
-                resultSet->getValueVector(arrowColumnPos).get());
+        offsetVector = resultSet->getValueVector(copyNodeDataInfo.offsetVectorPos).get();
+        for (auto& arrowColumnPos : copyNodeDataInfo.arrowColumnPoses) {
+            arrowColumnVectors.push_back(resultSet->getValueVector(arrowColumnPos).get());
         }
     }
 
@@ -77,9 +68,9 @@ public:
         if (!isCopyAllowed()) {
             throw common::CopyException("COPY commands can only be executed once on a table.");
         }
-        auto nodeTableSchema = localState->catalog->getReadOnlyVersion()->getNodeTableSchema(
-            localState->table->getTableID());
-        sharedState->initialize(nodeTableSchema, localState->wal->getDirectory());
+        auto nodeTableSchema =
+            catalog->getReadOnlyVersion()->getNodeTableSchema(table->getTableID());
+        sharedState->initialize(nodeTableSchema, wal->getDirectory());
     }
 
     void executeInternal(ExecutionContext* context) override;
@@ -87,8 +78,8 @@ public:
     void finalize(ExecutionContext* context) override;
 
     inline std::unique_ptr<PhysicalOperator> clone() override {
-        return std::make_unique<CopyNode>(std::make_unique<CopyNodeLocalState>(*localState),
-            sharedState, resultSetDescriptor->copy(), children[0]->clone(), id, paramsString);
+        return std::make_unique<CopyNode>(sharedState, copyNodeDataInfo, copyDesc, table, relsStore,
+            catalog, wal, resultSetDescriptor->copy(), children[0]->clone(), id, paramsString);
     }
 
 protected:
@@ -97,10 +88,13 @@ protected:
 
     void logCopyWALRecord();
 
+    std::pair<common::offset_t, common::offset_t> getStartAndEndOffset(
+        common::vector_idx_t columnIdx);
+
 private:
     inline bool isCopyAllowed() {
-        auto nodesStatistics = localState->table->getNodeStatisticsAndDeletedIDs();
-        return nodesStatistics->getNodeStatisticsAndDeletedIDs(localState->table->getTableID())
+        auto nodesStatistics = table->getNodeStatisticsAndDeletedIDs();
+        return nodesStatistics->getNodeStatisticsAndDeletedIDs(table->getTableID())
                    ->getNumTuples() == 0;
     }
 
@@ -115,8 +109,16 @@ private:
     }
 
 protected:
-    std::unique_ptr<CopyNodeLocalState> localState;
     std::shared_ptr<CopyNodeSharedState> sharedState;
+    CopyNodeDataInfo copyNodeDataInfo;
+    common::CopyDescription copyDesc;
+    storage::NodeTable* table;
+    storage::RelsStore* relsStore;
+    catalog::Catalog* catalog;
+    storage::WAL* wal;
+    common::ValueVector* offsetVector;
+    std::vector<common::ValueVector*> arrowColumnVectors;
+    std::vector<std::unique_ptr<storage::PropertyCopyState>> copyStates;
 };
 
 } // namespace processor
