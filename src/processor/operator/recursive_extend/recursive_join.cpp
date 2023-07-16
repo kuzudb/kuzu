@@ -195,18 +195,18 @@ bool RecursiveJoin::scanOutput() {
  *   shared with any other thread.
  */
 bool RecursiveJoin::computeBFS(kuzu::processor::ExecutionContext* context) {
-    if(morselDispatcher->getSchedulerType() == SchedulerType::OneThreadOneMorsel) {
-        std::pair<GlobalSSSPState, SSSPLocalState> state {COMPLETE, NO_WORK_TO_SHARE};
+    if (morselDispatcher->getSchedulerType() == SchedulerType::OneThreadOneMorsel) {
+        std::pair<GlobalSSSPState, SSSPLocalState> state{COMPLETE, NO_WORK_TO_SHARE};
         auto checkState = morselDispatcher->getBFSMorsel(sharedState->inputFTableSharedState,
             vectorsToScan, colIndicesToScan, vectors->srcNodeIDVector, bfsMorsel, state);
-        if(checkState) {
+        if (checkState) {
             return false;
         }
         computeBFSOneThreadOneMorsel(context);
         return true;
     } else {
         while (true) {
-            if(bfsMorsel->ssspSharedState) {
+            if (bfsMorsel->hasSSSPSharedState()) {
                 SSSPLocalState state{NO_WORK_TO_SHARE};
                 bool checkState = bfsMorsel->ssspSharedState->getBFSMorsel(bfsMorsel, state);
                 if (!checkState) {
@@ -219,16 +219,16 @@ bool RecursiveJoin::computeBFS(kuzu::processor::ExecutionContext* context) {
                     return true;
                 }
             }
-            std::pair<GlobalSSSPState, SSSPLocalState> state {COMPLETE, NO_WORK_TO_SHARE};
+            std::pair<GlobalSSSPState, SSSPLocalState> state{COMPLETE, NO_WORK_TO_SHARE};
             auto checkState = morselDispatcher->getBFSMorsel(sharedState->inputFTableSharedState,
                 vectorsToScan, colIndicesToScan, vectors->srcNodeIDVector, bfsMorsel, state);
-            if(checkState && state.first == COMPLETE) {
+            if (checkState && state.first == COMPLETE) {
                 return false;
-            } else if(checkState && state.second == PATH_LENGTH_WRITE_IN_PROGRESS) {
+            } else if (checkState && state.second == PATH_LENGTH_WRITE_IN_PROGRESS) {
                 return true;
-            } else if(!checkState) {
+            } else if (!checkState) {
                 computeBFSnThreadkMorsel(context);
-                if(bfsMorsel->ssspSharedState->finishBFSMorsel(bfsMorsel)) {
+                if (bfsMorsel->ssspSharedState->finishBFSMorsel(bfsMorsel)) {
                     return true;
                 }
             } else {

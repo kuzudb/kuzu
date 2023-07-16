@@ -161,6 +161,8 @@ public:
 
     virtual bool getRecursiveJoinType() = 0;
 
+    inline bool hasSSSPSharedState() const { return ssspSharedState != nullptr; }
+
     // Get next node offset to extend from current level.
     common::nodeID_t getNextNodeID() {
         if (nextNodeIdxToExtend == currentFrontier->nodeIDs.size()) {

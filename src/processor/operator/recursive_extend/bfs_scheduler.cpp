@@ -67,13 +67,13 @@ bool MorselDispatcher::getBFSMorsel(
                 // Find a position for the new SSSP in the list, there are 2 candidates:
                 // 1) the position has a nullptr, add the shared state there
                 // 2) the SSSP is marked MORSEL_COMPLETE, it is complete and can be replaced
-                for (auto & sharedState : activeSSSPSharedState) {
-                    if(!sharedState) {
+                for (auto& sharedState : activeSSSPSharedState) {
+                    if (!sharedState) {
                         sharedState = newSSSPSharedState;
                         return false;
                     }
                     sharedState->mutex.lock();
-                    if(sharedState->ssspLocalState == MORSEL_COMPLETE) {
+                    if (sharedState->ssspLocalState == MORSEL_COMPLETE) {
                         sharedState->mutex.unlock();
                         sharedState = newSSSPSharedState;
                         return false;
@@ -90,12 +90,6 @@ bool MorselDispatcher::getBFSMorsel(
     }
 }
 
-/**
- * Iterate over list of ALL currently active SSSPSharedStates and check if there is any work
- * available. NOTE: There can be different policies to decide which SSSPSharedState to help finish.
- * Right now the most basic policy has been implemented. The 1st SSSPSharedState we find that is
- * unfinished is chosen for work sharing.
- */
 uint32_t MorselDispatcher::getNextAvailableSSSPWork() {
     for (auto i = 0u; i < activeSSSPSharedState.size(); i++) {
         if (activeSSSPSharedState[i]) {
@@ -145,10 +139,10 @@ int64_t MorselDispatcher::writeDstNodeIDAndPathLength(
     std::vector<common::ValueVector*> vectorsToScan, std::vector<ft_col_idx_t> colIndicesToScan,
     common::ValueVector* dstNodeIDVector, common::ValueVector* pathLengthVector,
     common::table_id_t tableID, std::unique_ptr<BaseBFSMorsel>& baseBfsMorsel) {
-    auto ssspSharedState = baseBfsMorsel->ssspSharedState;
-    if (!ssspSharedState) {
+    if (!baseBfsMorsel->hasSSSPSharedState()) {
         return -1;
     }
+    auto ssspSharedState = baseBfsMorsel->ssspSharedState;
     auto startScanIdxAndSize = ssspSharedState->getDstPathLengthMorsel();
     /**
      * [startScanIdx, Size] = [UINT64_MAX, INT64_MAX] = no work in this morsel, exit & return -1
