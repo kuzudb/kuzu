@@ -102,7 +102,7 @@ struct BaseBFSMorsel;
 struct SSSPSharedState {
 public:
     SSSPSharedState(uint64_t upperBound_, uint64_t lowerBound_, uint64_t maxNodeOffset_)
-        : pos{0u}, mutex{std::mutex()}, ssspLocalState{EXTEND_IN_PROGRESS}, currentLevel{0u},
+        : mutex{std::mutex()}, ssspLocalState{EXTEND_IN_PROGRESS}, currentLevel{0u},
           nextScanStartIdx{0u}, numVisitedNodes{0u}, visitedNodes{std::vector<uint8_t>(
                                                          maxNodeOffset_ + 1, NOT_VISITED)},
           pathLength{std::vector<uint8_t>(maxNodeOffset_ + 1, 0u)},
@@ -128,8 +128,6 @@ public:
     std::pair<uint64_t, int64_t> getDstPathLengthMorsel();
 
 public:
-    // The position of this SSSPSharedState in the list of active SSSPSharedState.
-    uint32_t pos;
     std::mutex mutex;
     SSSPLocalState ssspLocalState;
     // Level state

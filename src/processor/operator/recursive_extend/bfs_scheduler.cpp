@@ -67,13 +67,18 @@ bool MorselDispatcher::getBFSMorsel(
                 // Find a position for the new SSSP in the list, there are 2 candidates:
                 // 1) the position has a nullptr, add the shared state there
                 // 2) the SSSP is marked MORSEL_COMPLETE, it is complete and can be replaced
-                for (auto i = 0u; i < activeSSSPSharedState.size(); i++) {
-                    if (!activeSSSPSharedState[i] ||
-                        activeSSSPSharedState[i]->ssspLocalState == MORSEL_COMPLETE) {
-                        newSSSPSharedState->pos = i;
-                        activeSSSPSharedState[i] = newSSSPSharedState;
-                        break;
+                for (auto & sharedState : activeSSSPSharedState) {
+                    if(!sharedState) {
+                        sharedState = newSSSPSharedState;
+                        return false;
                     }
+                    sharedState->mutex.lock();
+                    if(sharedState->ssspLocalState == MORSEL_COMPLETE) {
+                        sharedState->mutex.unlock();
+                        sharedState = newSSSPSharedState;
+                        return false;
+                    }
+                    sharedState->mutex.unlock();
                 }
                 return false;
             } else {
