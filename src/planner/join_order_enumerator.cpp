@@ -1,5 +1,6 @@
 #include "planner/join_order_enumerator.h"
 
+#include "binder/expression/expression_visitor.h"
 #include "planner/join_order/cost_model.h"
 #include "planner/logical_plan/logical_operator/logical_cross_product.h"
 #include "planner/logical_plan/logical_operator/logical_ftable_scan.h"
@@ -12,7 +13,7 @@ namespace kuzu {
 namespace planner {
 
 std::vector<std::unique_ptr<LogicalPlan>> JoinOrderEnumerator::enumerate(
-    const QueryGraphCollection& queryGraphCollection, expression_vector& predicates) {
+    const QueryGraphCollection& queryGraphCollection, const expression_vector& predicates) {
     assert(queryGraphCollection.getNumQueryGraphs() > 0);
     // project predicates on each query graph
     std::vector<expression_vector> predicatesToPushDownPerGraph;
@@ -22,7 +23,7 @@ std::vector<std::unique_ptr<LogicalPlan>> JoinOrderEnumerator::enumerate(
         bool needToPullUp = true;
         for (auto i = 0u; i < queryGraphCollection.getNumQueryGraphs(); ++i) {
             auto queryGraph = queryGraphCollection.getQueryGraph(i);
-            if (queryGraph->canProjectExpression(predicate.get())) {
+            if (queryGraph->canProjectExpression(predicate)) {
                 predicatesToPushDownPerGraph[i].push_back(predicate);
                 needToPullUp = false;
             }
@@ -485,7 +486,7 @@ expression_vector JoinOrderEnumerator::getNewlyMatchedExpressions(
     const expression_vector& expressions) {
     expression_vector result;
     for (auto& expression : expressions) {
-        if (isExpressionNewlyMatched(prevSubgraphs, newSubgraph, *expression)) {
+        if (isExpressionNewlyMatched(prevSubgraphs, newSubgraph, expression)) {
             result.push_back(expression);
         }
     }
@@ -493,8 +494,9 @@ expression_vector JoinOrderEnumerator::getNewlyMatchedExpressions(
 }
 
 bool JoinOrderEnumerator::isExpressionNewlyMatched(const std::vector<SubqueryGraph>& prevSubgraphs,
-    const SubqueryGraph& newSubgraph, Expression& expression) {
-    auto variables = expression.getDependentVariableNames();
+    const SubqueryGraph& newSubgraph, const std::shared_ptr<Expression>& expression) {
+    auto expressionCollector = std::make_unique<ExpressionCollector>();
+    auto variables = expressionCollector->getDependentVariableNames(expression);
     for (auto& prevSubgraph : prevSubgraphs) {
         if (prevSubgraph.containAllVariables(variables)) {
             return false; // matched in prev subgraph

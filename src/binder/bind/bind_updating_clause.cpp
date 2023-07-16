@@ -32,7 +32,17 @@ std::unique_ptr<BoundUpdatingClause> Binder::bindUpdatingClause(
 std::unique_ptr<BoundUpdatingClause> Binder::bindCreateClause(
     const UpdatingClause& updatingClause) {
     auto& createClause = (CreateClause&)updatingClause;
-    auto prevVariableScope = variableScope->copy();
+    auto prevScope = scope->copy();
+    expression_set nodesScope;
+    expression_set relsScope;
+    for (auto& expression : scope->getExpressions()) {
+        if (ExpressionUtil::isNodeVariable(*expression)) {
+            nodesScope.insert(expression);
+        } else if (ExpressionUtil::isRelVariable(*expression)) {
+            relsScope.insert(expression);
+        }
+    }
+    // bindGraphPattern will update scope.
     auto [queryGraphCollection, propertyCollection] =
         bindGraphPattern(createClause.getPatternElements());
     auto boundCreateClause = std::make_unique<BoundCreateClause>();
@@ -40,15 +50,19 @@ std::unique_ptr<BoundUpdatingClause> Binder::bindCreateClause(
         auto queryGraph = queryGraphCollection->getQueryGraph(i);
         for (auto j = 0u; j < queryGraph->getNumQueryNodes(); ++j) {
             auto node = queryGraph->getQueryNode(j);
-            if (!prevVariableScope->contains(node->toString())) {
-                boundCreateClause->addCreateNode(bindCreateNode(node, *propertyCollection));
+            if (nodesScope.contains(node)) {
+                continue;
             }
+            nodesScope.insert(node);
+            boundCreateClause->addCreateNode(bindCreateNode(node, *propertyCollection));
         }
         for (auto j = 0u; j < queryGraph->getNumQueryRels(); ++j) {
             auto rel = queryGraph->getQueryRel(j);
-            if (!prevVariableScope->contains(rel->toString())) {
-                boundCreateClause->addCreateRel(bindCreateRel(rel, *propertyCollection));
+            if (relsScope.contains(rel)) {
+                continue;
             }
+            relsScope.insert(rel);
+            boundCreateClause->addCreateRel(bindCreateRel(rel, *propertyCollection));
         }
     }
     return boundCreateClause;
@@ -65,12 +79,23 @@ std::unique_ptr<BoundCreateNode> Binder::bindCreateNode(
     auto primaryKey = nodeTableSchema->getPrimaryKey();
     std::shared_ptr<Expression> primaryKeyExpression;
     std::vector<expression_pair> setItems;
-    for (auto& [key, val] : collection.getPropertyKeyValPairs(*node)) {
+    for (auto& property : catalog.getReadOnlyVersion()->getNodeProperties(nodeTableID)) {
+        if (collection.hasKeyVal(node, property.name)) {
+            setItems.emplace_back(collection.getKeyVal(node, property.name));
+        } else {
+            auto propertyExpression =
+                expressionBinder.bindNodePropertyExpression(*node, property.name);
+            auto nullExpression = expressionBinder.createNullLiteralExpression();
+            nullExpression = ExpressionBinder::implicitCastIfNecessary(
+                nullExpression, propertyExpression->dataType);
+            setItems.emplace_back(std::move(propertyExpression), std::move(nullExpression));
+        }
+    }
+    for (auto& [key, val] : collection.getKeyVals(node)) {
         auto propertyExpression = static_pointer_cast<PropertyExpression>(key);
         if (propertyExpression->getPropertyID(nodeTableID) == primaryKey.propertyID) {
             primaryKeyExpression = val;
         }
-        setItems.emplace_back(key, val);
     }
     if (nodeTableSchema->getPrimaryKey().dataType.getLogicalTypeID() != LogicalTypeID::SERIAL &&
         primaryKeyExpression == nullptr) {
@@ -94,8 +119,8 @@ std::unique_ptr<BoundCreateRel> Binder::bindCreateRel(
     // null if user does not specify a property in the query.
     std::vector<expression_pair> setItems;
     for (auto& property : catalogContent->getRelProperties(relTableID)) {
-        if (collection.hasPropertyKeyValPair(*rel, property.name)) {
-            setItems.push_back(collection.getPropertyKeyValPair(*rel, property.name));
+        if (collection.hasKeyVal(rel, property.name)) {
+            setItems.push_back(collection.getKeyVal(rel, property.name));
         } else {
             auto propertyExpression =
                 expressionBinder.bindRelPropertyExpression(*rel, property.name);

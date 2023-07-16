@@ -10,6 +10,8 @@ namespace planner {
 class QueryPlanner;
 
 class ProjectionPlanner {
+    friend class JoinOrderEnumerator;
+
 public:
     explicit ProjectionPlanner(QueryPlanner* queryPlanner) : queryPlanner{queryPlanner} {}
 
@@ -32,20 +34,6 @@ private:
     void appendMultiplicityReducer(LogicalPlan& plan);
     void appendLimit(uint64_t limitNumber, LogicalPlan& plan);
     void appendSkip(uint64_t skipNumber, LogicalPlan& plan);
-
-    static binder::expression_vector getExpressionToGroupBy(
-        const binder::expression_vector& expressionsToProject, const Schema& schema);
-    static binder::expression_vector getExpressionsToAggregate(
-        const binder::expression_vector& expressionsToProject, const Schema& schema);
-
-    static binder::expression_vector rewriteExpressionsToProject(
-        const binder::expression_vector& expressionsToProject, const Schema& schema);
-
-    static binder::expression_vector getSubAggregateExpressionsNotInScope(
-        const std::shared_ptr<binder::Expression>& expression, const Schema& schema);
-
-    static binder::expression_vector rewriteVariableAsAllPropertiesInScope(
-        const binder::Expression& variable, const Schema& schema);
 
 private:
     QueryPlanner* queryPlanner;

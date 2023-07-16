@@ -2,8 +2,8 @@ add_library(
         kuzu_binder_expression
         OBJECT
         case_expression.cpp
-        existential_subquery_expression.cpp
         expression.cpp
+        expression_visitor.cpp
         function_expression.cpp)
 
 set(ALL_OBJECT_FILES

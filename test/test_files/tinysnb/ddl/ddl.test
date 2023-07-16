@@ -1,0 +1,12 @@
+-GROUP TinySnbReadTest
+-DATASET CSV tinysnb
+
+--
+
+-CASE MatchEmptyTable
+-STATEMENT CREATE NODE TABLE N(ID INT64, PRIMARY KEY(ID))
+---- ok
+-STATEMENT CREATE REL TABLE E(FROM N TO N, MANY_MANY)
+---- ok
+-STATEMENT MATCH (a:N)-[:E]->(b:N) WHERE a.ID = 0 return b.ID;
+---- 0

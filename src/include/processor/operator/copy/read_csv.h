@@ -18,10 +18,10 @@ public:
 
 class ReadCSVSharedState : public ReadFileSharedState {
 public:
-    ReadCSVSharedState(common::CSVReaderConfig csvReaderConfig,
-        catalog::NodeTableSchema* tableSchema, std::vector<std::string> filePaths)
-        : ReadFileSharedState{std::move(filePaths)}, csvReaderConfig{std::move(csvReaderConfig)},
-          tableSchema{tableSchema} {}
+    ReadCSVSharedState(common::CSVReaderConfig csvReaderConfig, std::vector<std::string> filePaths,
+        catalog::TableSchema* tableSchema)
+        : ReadFileSharedState{std::move(filePaths), tableSchema}, csvReaderConfig{csvReaderConfig} {
+    }
 
 private:
     void countNumLines() override;
@@ -30,16 +30,15 @@ private:
 
 private:
     common::CSVReaderConfig csvReaderConfig;
-    catalog::NodeTableSchema* tableSchema;
     std::shared_ptr<arrow::csv::StreamingReader> reader;
 };
 
 class ReadCSV : public ReadFile {
 public:
-    ReadCSV(std::vector<DataPos> arrowColumnPoses, DataPos offsetVectorPos,
+    ReadCSV(std::vector<DataPos> arrowColumnPoses, const DataPos& offsetVectorPos,
         std::shared_ptr<ReadFileSharedState> sharedState, uint32_t id,
         const std::string& paramsString)
-        : ReadFile{std::move(arrowColumnPoses), std::move(offsetVectorPos), std::move(sharedState),
+        : ReadFile{std::move(arrowColumnPoses), offsetVectorPos, std::move(sharedState),
               PhysicalOperatorType::READ_CSV, id, paramsString} {}
 
     inline std::shared_ptr<arrow::RecordBatch> readTuples(

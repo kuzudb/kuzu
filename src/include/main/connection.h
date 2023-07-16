@@ -1,7 +1,10 @@
 #pragma once
 
+#include <mutex>
+
 #include "client_context.h"
 #include "database.h"
+#include "function/udf_function.h"
 #include "prepared_statement.h"
 #include "query_result.h"
 
@@ -139,6 +142,42 @@ public:
      */
     KUZU_API void setQueryTimeOut(uint64_t timeoutInMS);
 
+    /**
+     * @brief gets the query timeout value of the current connection. A value of zero (the default)
+     * disables the timeout.
+     */
+    KUZU_API uint64_t getQueryTimeOut();
+
+    template<typename TR, typename... Args>
+    void createScalarFunction(const std::string& name, TR (*udfFunc)(Args...)) {
+        auto definitions = function::UDF::getFunctionDefinition<TR, Args...>(name, udfFunc);
+        addScalarFunction(name, std::move(definitions));
+    }
+
+    template<typename TR, typename... Args>
+    void createScalarFunction(const std::string& name,
+        std::vector<common::LogicalTypeID> parameterTypes, common::LogicalTypeID returnType,
+        TR (*udfFunc)(Args...)) {
+        auto definitions = function::UDF::getFunctionDefinition<TR, Args...>(
+            name, udfFunc, std::move(parameterTypes), returnType);
+        addScalarFunction(name, std::move(definitions));
+    }
+
+    template<typename TR, typename... Args>
+    void createVectorizedFunction(const std::string& name, function::scalar_exec_func scalarFunc) {
+        auto definitions = function::UDF::getVectorizedFunctionDefinition<TR, Args...>(
+            name, std::move(scalarFunc));
+        addScalarFunction(name, std::move(definitions));
+    }
+
+    void createVectorizedFunction(const std::string& name,
+        std::vector<common::LogicalTypeID> parameterTypes, common::LogicalTypeID returnType,
+        function::scalar_exec_func scalarFunc) {
+        auto definitions = function::UDF::getVectorizedFunctionDefinition(
+            name, std::move(scalarFunc), std::move(parameterTypes), returnType);
+        addScalarFunction(name, std::move(definitions));
+    }
+
 protected:
     ConnectionTransactionMode getTransactionMode();
     void setTransactionModeNoLock(ConnectionTransactionMode newTransactionMode);
@@ -193,6 +232,8 @@ private:
         rollbackIfNecessaryNoLock();
         return queryResultWithError(exceptionMessage);
     }
+
+    void addScalarFunction(std::string name, function::vector_function_definitions definitions);
 
 protected:
     Database* database;

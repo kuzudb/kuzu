@@ -57,6 +57,20 @@ describe("INT64", function () {
   });
 });
 
+describe("SERIAL", function () {
+  it("should convert SERIAL type", async function () {
+    const queryResult = await conn.query(
+      "MATCH (a:moviesSerial) WHERE a.ID = 2 RETURN a.ID;"
+    );
+    const result = await queryResult.getAll();
+    assert.equal(result.length, 1);
+    assert.equal(Object.keys(result[0]).length, 1);
+    assert.isTrue("a.ID" in result[0]);
+    assert.equal(typeof result[0]["a.ID"], "number");
+    assert.equal(result[0]["a.ID"], 2);
+  });
+});
+
 describe("FLOAT", function () {
   it("should convert FLOAT type", async function () {
     const queryResult = await conn.query(
@@ -96,6 +110,24 @@ describe("STRING", function () {
     assert.isTrue("a.fName" in result[0]);
     assert.equal(typeof result[0]["a.fName"], "string");
     assert.equal(result[0]["a.fName"], "Alice");
+  });
+});
+
+describe("BLOB", function () {
+  it("should convert BLOB type", async function () {
+    const queryResult = await conn.query(
+      "RETURN BLOB('\\\\xAA\\\\xBB\\\\xCD\\\\x1A');"
+    );
+    const result = await queryResult.getAll();
+    assert.equal(result.length, 1);
+    assert.equal(Object.keys(result[0]).length, 1);
+    const value = Object.values(result[0])[0];
+    assert.isTrue(value instanceof Uint8Array);
+    assert.equal(value.length, 4);
+    assert.equal(value[0], 0xaa);
+    assert.equal(value[1], 0xbb);
+    assert.equal(value[2], 0xcd);
+    assert.equal(value[3], 0x1a);
   });
 });
 
@@ -198,9 +230,9 @@ describe("STRUCT", function () {
     assert.isTrue("o.state" in result[0]);
     assert.equal(typeof result[0]["o.state"], "object");
     assert.deepEqual(result[0]["o.state"], {
-      REVENUE: 138,
-      LOCATION: ["'toronto'", " 'montr,eal'"],
-      STOCK: { PRICE: [96, 56], VOLUME: 1000 },
+      revenue: 138,
+      location: ["'toronto'", " 'montr,eal'"],
+      stock: { price: [96, 56], volume: 1000 },
     });
   });
 });
@@ -263,5 +295,47 @@ describe("REL", function () {
     assert.equal(rel.grading[0], 2.1);
     assert.equal(rel.grading[1], 4.4);
     assert.approximately(rel.rating, 7.6, EPSILON);
+  });
+});
+
+describe("RECURSIVE_REL", function () {
+  it("should convert RECURSIVE_REL type", async function () {
+    const queryResult = await conn.query(
+      "MATCH (a:person)-[e*1..1]->(b:organisation) WHERE a.fName = 'Alice' RETURN e;"
+    );
+    const result = await queryResult.getAll();
+    assert.equal(result.length, 1);
+    assert.exists(result[0]["e"]);
+    const e = result[0]["e"];
+    assert.deepEqual(e, {
+      _nodes: [],
+      _rels: [
+        {
+          date: null,
+          meetTime: null,
+          validInterval: null,
+          comments: null,
+          year: 2021,
+          places: ["wwAewsdndweusd", "wek"],
+          length: 5,
+          grading: null,
+          rating: null,
+          location: null,
+          times: null,
+          data: null,
+          usedAddress: null,
+          address: null,
+          note: null,
+          _src: {
+            offset: 0,
+            table: 0,
+          },
+          _dst: {
+            offset: 0,
+            table: 1,
+          },
+        },
+      ],
+    });
   });
 });

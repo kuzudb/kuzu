@@ -1,9 +1,8 @@
 #include "processor/operator/hash_join/join_hash_table.h"
 
-#include "function/hash/vector_hash_operations.h"
+#include "function/hash/vector_hash_functions.h"
 
 using namespace kuzu::common;
-using namespace kuzu::function::operation;
 using namespace kuzu::storage;
 
 namespace kuzu {
@@ -93,10 +92,10 @@ void JoinHashTable::probe(const std::vector<ValueVector*>& keyVectors,
     if (!discardNullFromKeys(keyVectors, numKeyColumns)) {
         return;
     }
-    function::VectorHashOperations::computeHash(keyVectors[0], hashVector);
+    function::VectorHashFunction::computeHash(keyVectors[0], hashVector);
     for (auto i = 1u; i < numKeyColumns; i++) {
-        function::VectorHashOperations::computeHash(keyVectors[i], tmpHashVector);
-        function::VectorHashOperations::combineHash(hashVector, tmpHashVector, hashVector);
+        function::VectorHashFunction::computeHash(keyVectors[i], tmpHashVector);
+        function::VectorHashFunction::combineHash(hashVector, tmpHashVector, hashVector);
     }
     for (auto i = 0u; i < hashVector->state->selVector->selectedSize; i++) {
         auto pos = hashVector->state->selVector->selectedPositions[i];
@@ -106,11 +105,11 @@ void JoinHashTable::probe(const std::vector<ValueVector*>& keyVectors,
 
 uint8_t** JoinHashTable::findHashSlot(nodeID_t* nodeIDs) const {
     hash_t hash;
-    Hash::operation<nodeID_t>(nodeIDs[0], false /* isNull */, hash);
+    function::Hash::operation<nodeID_t>(nodeIDs[0], false /* isNull */, hash);
     for (auto i = 1u; i < numKeyColumns; i++) {
         hash_t newHash;
-        Hash::operation<nodeID_t>(nodeIDs[i], false /* isNull */, newHash);
-        CombineHash::operation(hash, newHash, hash);
+        function::Hash::operation<nodeID_t>(nodeIDs[i], false /* isNull */, newHash);
+        function::CombineHash::operation(hash, newHash, hash);
     }
     auto slotIdx = getSlotIdxForHash(hash);
     return (uint8_t**)(hashSlotsBlocks[slotIdx >> numSlotsPerBlockLog2]->getData() +

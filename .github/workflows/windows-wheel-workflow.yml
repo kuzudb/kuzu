@@ -2,14 +2,7 @@ name: Build-Windows-Wheels
 
 on:
   workflow_dispatch:
-    inputs:
-      pythonPackageVersion:
-        description: "Version of output Python package"
-        required: true
-        default: "0.0.1"
-
-env:
-  PYTHON_PACKAGE_VERSION: ${{ github.event.inputs.pythonPackageVersion }}
+  workflow_call:
 
 jobs:
   build-wheels:
@@ -23,7 +16,7 @@ jobs:
         run: |
           if exist wheelhouse rmdir /s /q wheelhouse
           mkdir wheelhouse
-          python.exe package_tar.py
+          python.exe package_tar.py kuzu.tar.gz
 
       # Manually set up cibuildwheel instead of importing their
       # action since there seems to be an issue with quoting
@@ -51,4 +44,5 @@ jobs:
 
       - uses: actions/upload-artifact@v3
         with:
+          name: windows-wheels
           path: ./scripts/pip-package/wheelhouse/*.whl

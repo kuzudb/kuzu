@@ -32,6 +32,15 @@ private:
 
     std::unique_ptr<evaluator::BaseExpressionEvaluator> mapFunctionExpression(
         const std::shared_ptr<binder::Expression>& expression, const planner::Schema& schema);
+
+    std::unique_ptr<evaluator::BaseExpressionEvaluator> mapNodeExpression(
+        const std::shared_ptr<binder::Expression>& expression, const planner::Schema& schema);
+
+    std::unique_ptr<evaluator::BaseExpressionEvaluator> mapRelExpression(
+        const std::shared_ptr<binder::Expression>& expression, const planner::Schema& schema);
+
+    std::unique_ptr<evaluator::BaseExpressionEvaluator> mapPathExpression(
+        const std::shared_ptr<binder::Expression>& expression, const planner::Schema& schema);
 };
 
 } // namespace processor

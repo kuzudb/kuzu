@@ -35,6 +35,7 @@ using struct_field_idx_t = uint64_t;
 using union_field_idx_t = uint64_t;
 constexpr struct_field_idx_t INVALID_STRUCT_FIELD_IDX = UINT64_MAX;
 using tuple_idx_t = uint64_t;
+constexpr uint32_t UNDEFINED_CAST_COST = UINT32_MAX;
 
 // System representation for a variable-sized overflow value.
 struct overflow_value_t {
@@ -156,7 +157,8 @@ class StructField {
 
 public:
     StructField() : type{std::make_unique<LogicalType>()} {}
-    StructField(std::string name, std::unique_ptr<LogicalType> type);
+    StructField(std::string name, std::unique_ptr<LogicalType> type)
+        : name{std::move(name)}, type{std::move(type)} {};
 
     inline bool operator!=(const StructField& other) const { return !(*this == other); }
     inline std::string getName() const { return name; }
@@ -177,7 +179,9 @@ public:
     StructTypeInfo() = default;
     explicit StructTypeInfo(std::vector<std::unique_ptr<StructField>> fields);
 
+    bool hasField(const std::string& fieldName) const;
     struct_field_idx_t getStructFieldIdx(std::string fieldName) const;
+    StructField* getStructField(struct_field_idx_t idx) const;
     StructField* getStructField(const std::string& fieldName) const;
     std::vector<LogicalType*> getChildrenTypes() const;
     std::vector<std::string> getChildrenNames() const;
@@ -223,6 +227,10 @@ public:
 
     inline PhysicalTypeID getPhysicalType() const { return physicalType; }
 
+    inline void setExtraTypeInfo(std::unique_ptr<ExtraTypeInfo> typeInfo) {
+        extraTypeInfo = std::move(typeInfo);
+    }
+
     std::unique_ptr<LogicalType> copy();
 
 private:
@@ -256,6 +264,22 @@ struct FixedListType {
     }
 };
 
+struct NodeType {
+    static inline void setExtraTypeInfo(
+        LogicalType& type, std::unique_ptr<ExtraTypeInfo> extraTypeInfo) {
+        assert(type.getLogicalTypeID() == LogicalTypeID::NODE);
+        type.setExtraTypeInfo(std::move(extraTypeInfo));
+    }
+};
+
+struct RelType {
+    static inline void setExtraTypeInfo(
+        LogicalType& type, std::unique_ptr<ExtraTypeInfo> extraTypeInfo) {
+        assert(type.getLogicalTypeID() == LogicalTypeID::REL);
+        type.setExtraTypeInfo(std::move(extraTypeInfo));
+    }
+};
+
 struct StructType {
     static inline std::vector<LogicalType*> getFieldTypes(const LogicalType* type) {
         assert(type->getPhysicalType() == PhysicalTypeID::STRUCT);
@@ -278,6 +302,18 @@ struct StructType {
         assert(type->getPhysicalType() == PhysicalTypeID::STRUCT);
         auto structTypeInfo = reinterpret_cast<StructTypeInfo*>(type->extraTypeInfo.get());
         return structTypeInfo->getStructFields();
+    }
+
+    static inline bool hasField(const LogicalType* type, const std::string& key) {
+        assert(type->getPhysicalType() == PhysicalTypeID::STRUCT);
+        auto structTypeInfo = reinterpret_cast<StructTypeInfo*>(type->extraTypeInfo.get());
+        return structTypeInfo->hasField(key);
+    }
+
+    static inline StructField* getField(const LogicalType* type, struct_field_idx_t idx) {
+        assert(type->getPhysicalType() == PhysicalTypeID::STRUCT);
+        auto structTypeInfo = reinterpret_cast<StructTypeInfo*>(type->extraTypeInfo.get());
+        return structTypeInfo->getStructField(idx);
     }
 
     static inline StructField* getField(const LogicalType* type, const std::string& key) {

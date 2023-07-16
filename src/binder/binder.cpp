@@ -39,6 +39,12 @@ std::unique_ptr<BoundStatement> Binder::bind(const Statement& statement) {
     case StatementType::QUERY: {
         return bindQuery((const RegularQuery&)statement);
     }
+    case StatementType::STANDALONE_CALL: {
+        return bindStandaloneCall(statement);
+    }
+    case StatementType::EXPLAIN: {
+        return bindExplain(statement);
+    }
     default:
         assert(false);
     }
@@ -66,13 +72,13 @@ table_id_t Binder::bindNodeTableID(const std::string& tableName) const {
 
 std::shared_ptr<Expression> Binder::createVariable(
     const std::string& name, const LogicalType& dataType) {
-    if (variableScope->contains(name)) {
+    if (scope->contains(name)) {
         throw BinderException("Variable " + name + " already exists.");
     }
     auto uniqueName = getUniqueExpressionName(name);
     auto expression = expressionBinder.createVariableExpression(dataType, uniqueName, name);
     expression->setAlias(name);
-    variableScope->addExpression(name, expression);
+    scope->addExpression(name, expression);
     return expression;
 }
 
@@ -191,12 +197,12 @@ std::string Binder::getUniqueExpressionName(const std::string& name) {
     return "_" + std::to_string(lastExpressionId++) + "_" + name;
 }
 
-std::unique_ptr<VariableScope> Binder::enterSubquery() {
-    return variableScope->copy();
+std::unique_ptr<BinderScope> Binder::saveScope() {
+    return scope->copy();
 }
 
-void Binder::exitSubquery(std::unique_ptr<VariableScope> prevVariableScope) {
-    variableScope = std::move(prevVariableScope);
+void Binder::restoreScope(std::unique_ptr<BinderScope> prevVariableScope) {
+    scope = std::move(prevVariableScope);
 }
 
 } // namespace binder

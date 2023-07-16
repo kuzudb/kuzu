@@ -175,7 +175,7 @@ mod tests {
     use crate::query_result::CSVOptions;
     #[test]
     fn test_query_result_metadata() -> anyhow::Result<()> {
-        let temp_dir = tempdir::TempDir::new("example")?;
+        let temp_dir = tempfile::tempdir()?;
         let db = Database::new(temp_dir.path(), 0)?;
         let connection = Connection::new(&db)?;
 
@@ -201,7 +201,7 @@ mod tests {
 
     #[test]
     fn test_csv() -> anyhow::Result<()> {
-        let temp_dir = tempdir::TempDir::new("example")?;
+        let temp_dir = tempfile::tempdir()?;
         let path = temp_dir.path();
         let db = Database::new(path, 0)?;
         let conn = Connection::new(&db)?;
@@ -213,7 +213,12 @@ mod tests {
             CSVOptions::default().delimiter(','),
         )?;
         let data = std::fs::read_to_string(path.join("output.csv"))?;
-        assert_eq!(data, "Alice,25\n");
+        if cfg!(windows) {
+            // Windows translates the newlines automatically in text mode
+            assert_eq!(data, "Alice,25\r\n");
+        } else {
+            assert_eq!(data, "Alice,25\n");
+        }
         temp_dir.close()?;
         Ok(())
     }

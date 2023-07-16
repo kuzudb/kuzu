@@ -47,9 +47,7 @@ public:
 
     virtual ~TableSchema() = default;
 
-    static inline bool isReservedPropertyName(const std::string& propertyName) {
-        return propertyName == common::InternalKeyword::ID;
-    }
+    static bool isReservedPropertyName(const std::string& propertyName);
 
     inline uint32_t getNumProperties() const { return properties.size(); }
 
@@ -65,7 +63,7 @@ public:
         return std::any_of(properties.begin(), properties.end(),
             [&propertyName](const Property& property) { return property.name == propertyName; });
     }
-
+    inline const std::vector<Property>& getProperties() const { return properties; }
     inline void addProperty(std::string propertyName, common::LogicalType dataType) {
         properties.emplace_back(
             std::move(propertyName), std::move(dataType), increaseNextPropertyID(), tableID);
@@ -104,8 +102,6 @@ struct NodeTableSchema : TableSchema {
 
     inline Property getPrimaryKey() const { return properties[primaryKeyPropertyID]; }
 
-    inline std::vector<Property> getAllNodeProperties() const { return properties; }
-
     // TODO(Semih): When we support updating the schemas, we need to update this or, we need
     // a more robust mechanism to keep track of which property is the primary key (e.g., store this
     // information with the property). This is an idx, not an ID, so as the columns/properties of
@@ -122,32 +118,22 @@ public:
     RelTableSchema()
         : TableSchema{"", common::INVALID_TABLE_ID, false /* isNodeTable */, {} /* properties */},
           relMultiplicity{MANY_MANY}, srcTableID{common::INVALID_TABLE_ID},
-          dstTableID{common::INVALID_TABLE_ID} {}
+          dstTableID{common::INVALID_TABLE_ID}, srcPKDataType{common::LogicalType{
+                                                    common::LogicalTypeID::ANY}},
+          dstPKDataType{common::LogicalType{common::LogicalTypeID::ANY}} {}
     RelTableSchema(std::string tableName, common::table_id_t tableID,
         RelMultiplicity relMultiplicity, std::vector<Property> properties,
-        common::table_id_t srcTableID, common::table_id_t dstTableID)
+        common::table_id_t srcTableID, common::table_id_t dstTableID,
+        common::LogicalType srcPKDataType, common::LogicalType dstPKDataType)
         : TableSchema{std::move(tableName), tableID, false /* isNodeTable */,
               std::move(properties)},
-          relMultiplicity{relMultiplicity}, srcTableID{srcTableID}, dstTableID{dstTableID} {}
-
-    inline Property& getRelIDDefinition() {
-        for (auto& property : properties) {
-            if (property.name == common::InternalKeyword::ID) {
-                return property;
-            }
-        }
-        throw common::InternalException("Cannot find internal rel ID definition.");
-    }
+          relMultiplicity{relMultiplicity}, srcTableID{srcTableID}, dstTableID{dstTableID},
+          srcPKDataType{std::move(srcPKDataType)}, dstPKDataType{std::move(dstPKDataType)} {}
 
     inline bool isSingleMultiplicityInDirection(common::RelDataDirection direction) const {
         return relMultiplicity == ONE_ONE ||
                relMultiplicity ==
                    (direction == common::RelDataDirection::FWD ? MANY_ONE : ONE_MANY);
-    }
-
-    inline uint32_t getNumUserDefinedProperties() const {
-        // Note: the first column stores the relID property.
-        return properties.size() - 1;
     }
 
     inline bool isSrcOrDstTable(common::table_id_t tableID) const {
@@ -165,6 +151,8 @@ public:
     RelMultiplicity relMultiplicity;
     common::table_id_t srcTableID;
     common::table_id_t dstTableID;
+    common::LogicalType srcPKDataType;
+    common::LogicalType dstPKDataType;
 };
 
 } // namespace catalog

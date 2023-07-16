@@ -1,5 +1,7 @@
 #include "planner/planner.h"
 
+#include "binder/bound_explain.h"
+#include "binder/call/bound_standalone_call.h"
 #include "binder/copy/bound_copy.h"
 #include "binder/ddl/bound_add_property.h"
 #include "binder/ddl/bound_create_node_clause.h"
@@ -15,8 +17,11 @@
 #include "planner/logical_plan/logical_operator/logical_create_rel_table.h"
 #include "planner/logical_plan/logical_operator/logical_drop_property.h"
 #include "planner/logical_plan/logical_operator/logical_drop_table.h"
+#include "planner/logical_plan/logical_operator/logical_explain.h"
+#include "planner/logical_plan/logical_operator/logical_in_query_call.h"
 #include "planner/logical_plan/logical_operator/logical_rename_property.h"
 #include "planner/logical_plan/logical_operator/logical_rename_table.h"
+#include "planner/logical_plan/logical_operator/logical_standalone_call.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
@@ -57,6 +62,12 @@ std::unique_ptr<LogicalPlan> Planner::getBestPlan(const Catalog& catalog,
     case StatementType::RENAME_PROPERTY: {
         plan = planRenameProperty(statement);
     } break;
+    case StatementType::STANDALONE_CALL: {
+        plan = planStandaloneCall(statement);
+    } break;
+    case StatementType::EXPLAIN: {
+        plan = planExplain(catalog, nodesStatistics, relsStatistics, statement);
+    } break;
     default:
         throw common::NotImplementedException("getBestPlan()");
     }
@@ -67,20 +78,20 @@ std::unique_ptr<LogicalPlan> Planner::getBestPlan(const Catalog& catalog,
 std::vector<std::unique_ptr<LogicalPlan>> Planner::getAllPlans(const Catalog& catalog,
     const NodesStatisticsAndDeletedIDs& nodesStatistics, const RelsStatistics& relsStatistics,
     const BoundStatement& statement) {
-    // We enumerate all plans for our testing framework. This API should only be used for QUERY
-    // but not DDL or COPY.
-    assert(statement.getStatementType() == StatementType::QUERY);
-    auto planner = QueryPlanner(catalog, nodesStatistics, relsStatistics);
-    std::vector<std::unique_ptr<LogicalPlan>> plans;
-    for (auto& plan : planner.getAllPlans(statement)) {
-        // Avoid sharing operator across plans.
-        plans.push_back(plan->deepCopy());
+    // We enumerate all plans for our testing framework. This API should only be used for QUERY,
+    // EXPLAIN, but not DDL or COPY.
+    switch (statement.getStatementType()) {
+    case StatementType::QUERY:
+        return getAllQueryPlans(catalog, nodesStatistics, relsStatistics, statement);
+    case StatementType::EXPLAIN:
+        return getAllExplainPlans(catalog, nodesStatistics, relsStatistics, statement);
+    default:
+        throw NotImplementedException("Planner::getAllPlans");
     }
-    return plans;
 }
 
 std::unique_ptr<LogicalPlan> Planner::planCreateNodeTable(const BoundStatement& statement) {
-    auto& createNodeClause = (BoundCreateNodeClause&)statement;
+    auto& createNodeClause = reinterpret_cast<const BoundCreateNodeClause&>(statement);
     auto plan = std::make_unique<LogicalPlan>();
     auto createNodeTable = make_shared<LogicalCreateNodeTable>(createNodeClause.getTableName(),
         createNodeClause.getProperties(), createNodeClause.getPrimaryKeyIdx(),
@@ -90,7 +101,7 @@ std::unique_ptr<LogicalPlan> Planner::planCreateNodeTable(const BoundStatement& 
 }
 
 std::unique_ptr<LogicalPlan> Planner::planCreateRelTable(const BoundStatement& statement) {
-    auto& createRelClause = (BoundCreateRelClause&)statement;
+    auto& createRelClause = reinterpret_cast<const BoundCreateRelClause&>(statement);
     auto plan = std::make_unique<LogicalPlan>();
     auto createRelTable = make_shared<LogicalCreateRelTable>(createRelClause.getTableName(),
         createRelClause.getProperties(), createRelClause.getRelMultiplicity(),
@@ -101,7 +112,7 @@ std::unique_ptr<LogicalPlan> Planner::planCreateRelTable(const BoundStatement& s
 }
 
 std::unique_ptr<LogicalPlan> Planner::planDropTable(const BoundStatement& statement) {
-    auto& dropTableClause = (BoundDropTable&)statement;
+    auto& dropTableClause = reinterpret_cast<const BoundDropTable&>(statement);
     auto plan = std::make_unique<LogicalPlan>();
     auto dropTable =
         make_shared<LogicalDropTable>(dropTableClause.getTableID(), dropTableClause.getTableName(),
@@ -111,7 +122,7 @@ std::unique_ptr<LogicalPlan> Planner::planDropTable(const BoundStatement& statem
 }
 
 std::unique_ptr<LogicalPlan> Planner::planRenameTable(const BoundStatement& statement) {
-    auto& renameTableClause = (BoundRenameTable&)statement;
+    auto& renameTableClause = reinterpret_cast<const BoundRenameTable&>(statement);
     auto plan = std::make_unique<LogicalPlan>();
     auto renameTable = make_shared<LogicalRenameTable>(renameTableClause.getTableID(),
         renameTableClause.getTableName(), renameTableClause.getNewName(),
@@ -121,7 +132,7 @@ std::unique_ptr<LogicalPlan> Planner::planRenameTable(const BoundStatement& stat
 }
 
 std::unique_ptr<LogicalPlan> Planner::planAddProperty(const BoundStatement& statement) {
-    auto& addPropertyClause = (BoundAddProperty&)statement;
+    auto& addPropertyClause = reinterpret_cast<const BoundAddProperty&>(statement);
     auto plan = std::make_unique<LogicalPlan>();
     auto addProperty = make_shared<LogicalAddProperty>(addPropertyClause.getTableID(),
         addPropertyClause.getPropertyName(), addPropertyClause.getDataType(),
@@ -132,7 +143,7 @@ std::unique_ptr<LogicalPlan> Planner::planAddProperty(const BoundStatement& stat
 }
 
 std::unique_ptr<LogicalPlan> Planner::planDropProperty(const BoundStatement& statement) {
-    auto& dropPropertyClause = (BoundDropProperty&)statement;
+    auto& dropPropertyClause = reinterpret_cast<const BoundDropProperty&>(statement);
     auto plan = std::make_unique<LogicalPlan>();
     auto dropProperty = make_shared<LogicalDropProperty>(dropPropertyClause.getTableID(),
         dropPropertyClause.getPropertyID(), dropPropertyClause.getTableName(),
@@ -142,7 +153,7 @@ std::unique_ptr<LogicalPlan> Planner::planDropProperty(const BoundStatement& sta
 }
 
 std::unique_ptr<LogicalPlan> Planner::planRenameProperty(const BoundStatement& statement) {
-    auto& renamePropertyClause = (BoundRenameProperty&)statement;
+    auto& renamePropertyClause = reinterpret_cast<const BoundRenameProperty&>(statement);
     auto plan = std::make_unique<LogicalPlan>();
     auto renameProperty = make_shared<LogicalRenameProperty>(renamePropertyClause.getTableID(),
         renamePropertyClause.getTableName(), renamePropertyClause.getPropertyID(),
@@ -154,24 +165,76 @@ std::unique_ptr<LogicalPlan> Planner::planRenameProperty(const BoundStatement& s
 
 std::unique_ptr<LogicalPlan> Planner::planCopy(
     const catalog::Catalog& catalog, const BoundStatement& statement) {
-    auto& copyCSVClause = (BoundCopy&)statement;
+    auto& copyClause = reinterpret_cast<const BoundCopy&>(statement);
     auto plan = std::make_unique<LogicalPlan>();
     expression_vector arrowColumnExpressions;
     for (auto& property :
-        catalog.getReadOnlyVersion()->getTableSchema(copyCSVClause.getTableID())->properties) {
+        catalog.getReadOnlyVersion()->getTableSchema(copyClause.getTableID())->properties) {
         if (property.dataType.getLogicalTypeID() != common::LogicalTypeID::SERIAL) {
             arrowColumnExpressions.push_back(std::make_shared<VariableExpression>(
                 common::LogicalType{common::LogicalTypeID::ARROW_COLUMN}, property.name,
                 property.name));
         }
     }
-    auto copyCSV = make_shared<LogicalCopy>(copyCSVClause.getCopyDescription(),
-        copyCSVClause.getTableID(), copyCSVClause.getTableName(), std::move(arrowColumnExpressions),
+    auto copy = make_shared<LogicalCopy>(copyClause.getCopyDescription(), copyClause.getTableID(),
+        copyClause.getTableName(), std::move(arrowColumnExpressions),
         std::make_shared<VariableExpression>(
             common::LogicalType{common::LogicalTypeID::INT64}, "startOffset", "startOffset"),
-        copyCSVClause.getStatementResult()->getSingleExpressionToCollect());
-    plan->setLastOperator(std::move(copyCSV));
+        std::make_shared<VariableExpression>(
+            common::LogicalType{common::LogicalTypeID::INT64}, "columnIdx", "columnIdx"),
+        copyClause.getStatementResult()->getSingleExpressionToCollect());
+    plan->setLastOperator(std::move(copy));
     return plan;
+}
+
+std::unique_ptr<LogicalPlan> Planner::planStandaloneCall(const BoundStatement& statement) {
+    auto& standaloneCallClause = reinterpret_cast<const BoundStandaloneCall&>(statement);
+    auto plan = std::make_unique<LogicalPlan>();
+    auto logicalStandaloneCall = make_shared<LogicalStandaloneCall>(
+        standaloneCallClause.getOption(), standaloneCallClause.getOptionValue());
+    plan->setLastOperator(std::move(logicalStandaloneCall));
+    return plan;
+}
+
+std::unique_ptr<LogicalPlan> Planner::planExplain(const Catalog& catalog,
+    const NodesStatisticsAndDeletedIDs& nodesStatistics, const RelsStatistics& relsStatistics,
+    const BoundStatement& statement) {
+    auto& explain = reinterpret_cast<const BoundExplain&>(statement);
+    auto statementToExplain = explain.getStatementToExplain();
+    auto plan = getBestPlan(catalog, nodesStatistics, relsStatistics, *statementToExplain);
+    auto logicalExplain = make_shared<LogicalExplain>(plan->getLastOperator(),
+        statement.getStatementResult()->getSingleExpressionToCollect(), explain.getExplainType(),
+        explain.getStatementToExplain()->getStatementResult()->getColumns());
+    plan->setLastOperator(std::move(logicalExplain));
+    return plan;
+}
+
+std::vector<std::unique_ptr<LogicalPlan>> Planner::getAllQueryPlans(const catalog::Catalog& catalog,
+    const storage::NodesStatisticsAndDeletedIDs& nodesStatistics,
+    const storage::RelsStatistics& relsStatistics, const BoundStatement& statement) {
+    auto planner = QueryPlanner(catalog, nodesStatistics, relsStatistics);
+    std::vector<std::unique_ptr<LogicalPlan>> plans;
+    for (auto& plan : planner.getAllPlans(statement)) {
+        // Avoid sharing operator across plans.
+        plans.push_back(plan->deepCopy());
+    }
+    return plans;
+}
+
+std::vector<std::unique_ptr<LogicalPlan>> Planner::getAllExplainPlans(
+    const catalog::Catalog& catalog, const storage::NodesStatisticsAndDeletedIDs& nodesStatistics,
+    const storage::RelsStatistics& relsStatistics, const BoundStatement& statement) {
+    auto& explainStatement = reinterpret_cast<const BoundExplain&>(statement);
+    auto statementToExplain = explainStatement.getStatementToExplain();
+    auto plans = getAllPlans(catalog, nodesStatistics, relsStatistics, *statementToExplain);
+    for (auto& plan : plans) {
+        auto logicalExplain = make_shared<LogicalExplain>(plan->getLastOperator(),
+            statement.getStatementResult()->getSingleExpressionToCollect(),
+            explainStatement.getExplainType(),
+            explainStatement.getStatementToExplain()->getStatementResult()->getColumns());
+        plan->setLastOperator(std::move(logicalExplain));
+    }
+    return plans;
 }
 
 } // namespace planner

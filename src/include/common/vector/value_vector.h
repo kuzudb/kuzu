@@ -56,11 +56,13 @@ public:
     void setValue(uint32_t pos, T val);
     // copyFromRowData assumes rowData is non-NULL.
     void copyFromRowData(uint32_t pos, const uint8_t* rowData);
-    // copyFromVectorData assumes srcVectorData is non-NULL.
+    // copyToRowData assumes srcVectorData is non-NULL.
     void copyToRowData(
         uint32_t pos, uint8_t* rowData, InMemOverflowBuffer* rowOverflowBuffer) const;
+    // copyFromVectorData assumes srcVectorData is non-NULL.
     void copyFromVectorData(
         uint8_t* dstData, const ValueVector* srcVector, const uint8_t* srcVectorData);
+    void copyFromVectorData(uint64_t dstPos, const ValueVector* srcVector, uint64_t srcPos);
 
     inline uint8_t* getData() const { return valueBuffer.get(); }
 
@@ -110,12 +112,17 @@ public:
 
 class ListVector {
 public:
+    static inline void setDataVector(
+        const ValueVector* vector, std::shared_ptr<ValueVector> dataVector) {
+        assert(vector->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST);
+        auto listBuffer = reinterpret_cast<ListAuxiliaryBuffer*>(vector->auxiliaryBuffer.get());
+        listBuffer->setDataVector(std::move(dataVector));
+    }
     static inline ValueVector* getDataVector(const ValueVector* vector) {
         assert(vector->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST);
         return reinterpret_cast<ListAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())
             ->getDataVector();
     }
-
     static inline uint64_t getDataVectorSize(const ValueVector* vector) {
         assert(vector->dataType.getPhysicalType() == PhysicalTypeID::VAR_LIST);
         return reinterpret_cast<ListAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())->getSize();

@@ -10,22 +10,31 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace processor {
 
-static std::vector<ft_col_idx_t> getColIdxToScan(
+static std::pair<std::vector<common::struct_field_idx_t>, std::vector<ft_col_idx_t>>
+getColIdxToScan(
     const expression_vector& payloads, uint32_t numKeys, const common::LogicalType& structType) {
     std::unordered_map<std::string, ft_col_idx_t> propertyNameToColumnIdx;
     for (auto i = 0u; i < payloads.size(); ++i) {
-        assert(payloads[i]->expressionType == common::PROPERTY);
-        auto propertyName = ((PropertyExpression*)payloads[i].get())->getPropertyName();
-        common::StringUtils::toUpper(propertyName);
-        propertyNameToColumnIdx.insert({propertyName, i + numKeys});
+        if (payloads[i]->expressionType == common::PROPERTY) {
+            auto propertyName = ((PropertyExpression*)payloads[i].get())->getPropertyName();
+            common::StringUtils::toUpper(propertyName);
+            propertyNameToColumnIdx.insert({propertyName, i + numKeys});
+        } else { // label expression
+            propertyNameToColumnIdx.insert({common::InternalKeyword::LABEL, i + numKeys});
+        }
     }
-    auto nodeStructFields = common::StructType::getFields(&structType);
-    std::vector<ft_col_idx_t> colIndicesToScan;
-    for (auto i = 1u; i < nodeStructFields.size(); ++i) {
-        auto field = nodeStructFields[i];
-        colIndicesToScan.push_back(propertyNameToColumnIdx.at(field->getName()));
+    auto structFields = common::StructType::getFields(&structType);
+    std::vector<common::struct_field_idx_t> structFieldIndices;
+    std::vector<ft_col_idx_t> colIndices;
+    for (auto i = 0u; i < structFields.size(); ++i) {
+        auto field = structFields[i];
+        auto fieldName = common::StringUtils::getUpper(field->getName());
+        if (propertyNameToColumnIdx.contains(fieldName)) {
+            structFieldIndices.push_back(i);
+            colIndices.push_back(propertyNameToColumnIdx.at(fieldName));
+        }
     }
-    return colIndicesToScan;
+    return std::make_pair(std::move(structFieldIndices), std::move(colIndices));
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalPathPropertyProbeToPhysical(
@@ -68,13 +77,16 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalPathPropertyProbeToPhysi
     auto relDataType = rel->getDataType();
     auto nodesField = common::StructType::getField(&relDataType, common::InternalKeyword::NODES);
     auto nodeStructType = common::VarListType::getChildType(nodesField->getType());
-    auto nodeColIndicesToScan = getColIdxToScan(nodePayloads, nodeKeys.size(), *nodeStructType);
+    auto [nodeFieldIndices, nodeTableColumnIndices] =
+        getColIdxToScan(nodePayloads, nodeKeys.size(), *nodeStructType);
     auto relsField = common::StructType::getField(&relDataType, common::InternalKeyword::RELS);
     auto relStructType = common::VarListType::getChildType(relsField->getType());
-    auto relColIndicesToScan = getColIdxToScan(relPayloads, relKeys.size(), *relStructType);
+    auto [relFieldIndices, relTableColumnIndices] =
+        getColIdxToScan(relPayloads, relKeys.size(), *relStructType);
     auto pathPos = DataPos{logicalProbe->getSchema()->getExpressionPos(*rel)};
-    auto pathProbeInfo = std::make_unique<PathPropertyProbeDataInfo>(
-        pathPos, std::move(nodeColIndicesToScan), std::move(relColIndicesToScan));
+    auto pathProbeInfo = std::make_unique<PathPropertyProbeDataInfo>(pathPos,
+        std::move(nodeFieldIndices), std::move(relFieldIndices), std::move(nodeTableColumnIndices),
+        std::move(relTableColumnIndices));
     auto pathProbeSharedState =
         std::make_shared<PathPropertyProbeSharedState>(nodeBuildSharedState, relBuildSharedState);
     std::vector<std::unique_ptr<PhysicalOperator>> children;

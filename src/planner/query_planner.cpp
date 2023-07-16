@@ -1,5 +1,6 @@
 #include "planner/query_planner.h"
 
+#include "binder/expression/expression_visitor.h"
 #include "binder/query/bound_regular_query.h"
 #include "binder/visitor/property_collector.h"
 #include "planner/logical_plan/logical_operator/logical_accumulate.h"
@@ -8,6 +9,7 @@
 #include "planner/logical_plan/logical_operator/logical_extend.h"
 #include "planner/logical_plan/logical_operator/logical_filter.h"
 #include "planner/logical_plan/logical_operator/logical_flatten.h"
+#include "planner/logical_plan/logical_operator/logical_in_query_call.h"
 #include "planner/logical_plan/logical_operator/logical_scan_node_property.h"
 #include "planner/logical_plan/logical_operator/logical_union.h"
 #include "planner/logical_plan/logical_operator/logical_unwind.h"
@@ -97,6 +99,9 @@ void QueryPlanner::planReadingClause(
     case ClauseType::UNWIND: {
         planUnwindClause(boundReadingClause, prevPlans);
     } break;
+    case ClauseType::InQueryCall: {
+        planInQueryCall(boundReadingClause, prevPlans);
+    } break;
     default:
         assert(false);
     }
@@ -106,9 +111,7 @@ void QueryPlanner::planMatchClause(
     BoundReadingClause* boundReadingClause, std::vector<std::unique_ptr<LogicalPlan>>& plans) {
     auto boundMatchClause = (BoundMatchClause*)boundReadingClause;
     auto queryGraphCollection = boundMatchClause->getQueryGraphCollection();
-    auto predicates = boundMatchClause->hasWhereExpression() ?
-                          boundMatchClause->getWhereExpression()->splitOnAND() :
-                          expression_vector{};
+    auto predicates = boundMatchClause->getPredicatesSplitOnAnd();
     // TODO(Xiyang): when we plan a set of LogicalPlans with a (OPTIONAL)MATCH we shouldn't only
     // take the best plan from (OPTIONAL)MATCH instead we should take all plans and do cartesian
     // product with the set of LogicalPlans.
@@ -136,6 +139,20 @@ void QueryPlanner::planUnwindClause(
             appendExpressionsScan(expressions, *plan);
         }
         appendUnwind(*boundUnwindClause, *plan);
+    }
+}
+
+void QueryPlanner::planInQueryCall(
+    BoundReadingClause* boundReadingClause, std::vector<std::unique_ptr<LogicalPlan>>& plans) {
+    auto boundInQueryCall = (BoundInQueryCall*)boundReadingClause;
+    for (auto& plan : plans) {
+        if (!plan->isEmpty()) {
+            auto inQueryCallPlan = std::make_shared<LogicalPlan>();
+            appendInQueryCall(*boundInQueryCall, *inQueryCallPlan);
+            joinOrderEnumerator.appendCrossProduct(*plan, *inQueryCallPlan);
+        } else {
+            appendInQueryCall(*boundInQueryCall, *plan);
+        }
     }
 }
 
@@ -233,9 +250,7 @@ void QueryPlanner::planExistsSubquery(
         auto joinNodeIDs = getJoinNodeIDs(correlatedExpressions);
         // Unnest as mark join. See planOptionalMatch for unnesting logic.
         auto prevContext = joinOrderEnumerator.enterSubquery(joinNodeIDs);
-        auto predicates = subquery->hasWhereExpression() ?
-                              subquery->getWhereExpression()->splitOnAND() :
-                              expression_vector{};
+        auto predicates = subquery->getPredicatesSplitOnAnd();
         auto bestInnerPlan = getBestPlan(
             joinOrderEnumerator.enumerate(*subquery->getQueryGraphCollection(), predicates));
         joinOrderEnumerator.exitSubquery(std::move(prevContext));
@@ -247,8 +262,9 @@ void QueryPlanner::planExistsSubquery(
 
 void QueryPlanner::planSubqueryIfNecessary(
     const std::shared_ptr<Expression>& expression, LogicalPlan& plan) {
-    if (expression->hasSubqueryExpression()) {
-        for (auto& expr : expression->getTopLevelSubSubqueryExpressions()) {
+    if (ExpressionVisitor::hasSubqueryExpression(*expression)) {
+        auto expressionCollector = std::make_unique<ExpressionCollector>();
+        for (auto& expr : expressionCollector->collectTopLevelSubqueryExpressions(expression)) {
             planExistsSubquery(expr, plan);
         }
     }
@@ -283,6 +299,13 @@ void QueryPlanner::appendUnwind(BoundUnwindClause& boundUnwindClause, LogicalPla
     unwind->setChild(0, plan.getLastOperator());
     unwind->computeFactorizedSchema();
     plan.setLastOperator(unwind);
+}
+
+void QueryPlanner::appendInQueryCall(BoundInQueryCall& boundInQueryCall, LogicalPlan& plan) {
+    auto logicalInQueryCall = make_shared<LogicalInQueryCall>(boundInQueryCall.getTableFunc(),
+        boundInQueryCall.getBindData()->copy(), boundInQueryCall.getOutputExpressions());
+    logicalInQueryCall->computeFactorizedSchema();
+    plan.setLastOperator(logicalInQueryCall);
 }
 
 void QueryPlanner::appendFlattens(const f_group_pos_set& groupsPos, LogicalPlan& plan) {

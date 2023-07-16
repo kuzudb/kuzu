@@ -1,8 +1,10 @@
 add_library(
         kuzu_binder_bind
         OBJECT
+        bind_standalone_call.cpp
         bind_copy.cpp
         bind_ddl.cpp
+        bind_explain.cpp
         bind_graph_pattern.cpp
         bind_projection_clause.cpp
         bind_query.cpp

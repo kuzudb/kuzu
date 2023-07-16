@@ -17,3 +17,10 @@ def test_get_num_tuples(establish_connection):
     result = conn.execute("MATCH (a:person) WHERE a.ID = 0 RETURN a")
     assert result.get_num_tuples() == 1
     result.close()
+
+
+def test_explain(establish_connection):
+    conn, db = establish_connection
+    result = conn.execute("EXPLAIN MATCH (a:person) WHERE a.ID = 0 RETURN a")
+    assert result.get_num_tuples() == 1
+    result.close()

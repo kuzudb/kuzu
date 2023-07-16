@@ -2,10 +2,10 @@
 
 #include "binder/binder.h"
 #include "binder/visitor/statement_read_write_analyzer.h"
-#include "json.hpp"
 #include "main/database.h"
 #include "main/plan_printer.h"
 #include "optimizer/optimizer.h"
+#include "parser/explain_statement.h"
 #include "parser/parser.h"
 #include "planner/logical_plan/logical_plan_util.h"
 #include "planner/planner.h"
@@ -160,12 +160,10 @@ std::unique_ptr<PreparedStatement> Connection::prepareNoLock(
     try {
         // parsing
         auto statement = Parser::parseQuery(query);
-        preparedStatement->preparedSummary.isExplain = statement->isExplain();
-        preparedStatement->preparedSummary.isProfile = statement->isProfile();
         // binding
-        auto binder = Binder(*database->catalog);
+        auto binder = Binder(*database->catalog, clientContext.get());
         auto boundStatement = binder.bind(*statement);
-        preparedStatement->statementType = boundStatement->getStatementType();
+        preparedStatement->preparedSummary.statementType = boundStatement->getStatementType();
         preparedStatement->readOnly =
             binder::StatementReadWriteAnalyzer().isReadOnly(*boundStatement);
         preparedStatement->parameterMap = binder.getParameterMap();
@@ -247,7 +245,7 @@ std::string Connection::getNodePropertyNames(const std::string& tableName) {
     auto tableID = catalog->getReadOnlyVersion()->getTableID(tableName);
     auto primaryKeyPropertyID =
         catalog->getReadOnlyVersion()->getNodeTableSchema(tableID)->getPrimaryKey().propertyID;
-    for (auto& property : catalog->getReadOnlyVersion()->getAllNodeProperties(tableID)) {
+    for (auto& property : catalog->getReadOnlyVersion()->getNodeProperties(tableID)) {
         result +=
             "\t" + property.name + " " + LogicalTypeUtils::dataTypeToString(property.dataType);
         result += property.propertyID == primaryKeyPropertyID ? "(PRIMARY KEY)\n" : "\n";
@@ -288,6 +286,11 @@ void Connection::interrupt() {
 void Connection::setQueryTimeOut(uint64_t timeoutInMS) {
     lock_t lck{mtx};
     clientContext->timeoutInMS = timeoutInMS;
+}
+
+uint64_t Connection::getQueryTimeOut() {
+    lock_t lck{mtx};
+    return clientContext->timeoutInMS;
 }
 
 std::unique_ptr<QueryResult> Connection::executeWithParams(PreparedStatement* preparedStatement,
@@ -334,7 +337,7 @@ std::unique_ptr<QueryResult> Connection::executeAndAutoCommitIfNecessaryNoLock(
         try {
             physicalPlan =
                 mapper.mapLogicalPlanToPhysical(preparedStatement->logicalPlans[planIdx].get(),
-                    preparedStatement->getExpressionsToCollect());
+                    preparedStatement->statementResult->getColumns());
         } catch (std::exception& exception) {
             preparedStatement->success = false;
             preparedStatement->errMsg = exception.what();
@@ -349,31 +352,22 @@ std::unique_ptr<QueryResult> Connection::executeAndAutoCommitIfNecessaryNoLock(
     auto executionContext =
         std::make_unique<ExecutionContext>(clientContext->numThreadsForExecution, profiler.get(),
             database->memoryManager.get(), database->bufferManager.get(), clientContext.get());
-    // Execute query if EXPLAIN is not enabled.
-    if (!preparedStatement->preparedSummary.isExplain) {
-        profiler->enabled = preparedStatement->preparedSummary.isProfile;
-        auto executingTimer = TimeMetric(true /* enable */);
-        executingTimer.start();
-        std::shared_ptr<FactorizedTable> resultFT;
-        try {
-            beginTransactionIfAutoCommit(preparedStatement);
-            executionContext->transaction = activeTransaction.get();
-            resultFT =
-                database->queryProcessor->execute(physicalPlan.get(), executionContext.get());
-            if (ConnectionTransactionMode::AUTO_COMMIT == transactionMode) {
-                commitNoLock();
-            }
-        } catch (Exception& exception) { return getQueryResultWithError(exception.what()); }
-        executingTimer.stop();
-        queryResult->querySummary->executionTime = executingTimer.getElapsedTimeMS();
-        queryResult->initResultTableAndIterator(std::move(resultFT),
-            preparedStatement->statementResult->getColumns(),
-            preparedStatement->statementResult->getExpressionsToCollectPerColumn());
-    }
-    auto planPrinter = std::make_unique<PlanPrinter>(physicalPlan.get(), std::move(profiler));
-    queryResult->querySummary->planInJson =
-        std::make_unique<nlohmann::json>(planPrinter->printPlanToJson());
-    queryResult->querySummary->planInOstream = planPrinter->printPlanToOstream();
+    profiler->enabled = preparedStatement->isProfile();
+    auto executingTimer = TimeMetric(true /* enable */);
+    executingTimer.start();
+    std::shared_ptr<FactorizedTable> resultFT;
+    try {
+        beginTransactionIfAutoCommit(preparedStatement);
+        executionContext->transaction = activeTransaction.get();
+        resultFT = database->queryProcessor->execute(physicalPlan.get(), executionContext.get());
+        if (ConnectionTransactionMode::AUTO_COMMIT == transactionMode) {
+            commitNoLock();
+        }
+    } catch (Exception& exception) { return getQueryResultWithError(exception.what()); }
+    executingTimer.stop();
+    queryResult->querySummary->executionTime = executingTimer.getElapsedTimeMS();
+    queryResult->initResultTableAndIterator(
+        std::move(resultFT), preparedStatement->statementResult->getColumns());
     return queryResult;
 }
 
@@ -430,6 +424,11 @@ void Connection::beginTransactionIfAutoCommit(PreparedStatement* preparedStateme
             "Transaction mode is manual but there is no active transaction. Please begin a "
             "transaction or set the transaction mode of the connection to AUTO_COMMIT");
     }
+}
+
+void Connection::addScalarFunction(
+    std::string name, function::vector_function_definitions definitions) {
+    database->catalog->addVectorFunction(name, std::move(definitions));
 }
 
 } // namespace main

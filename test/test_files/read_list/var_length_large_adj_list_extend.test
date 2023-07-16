@@ -16,14 +16,14 @@
 
 -CASE VarLengthExtendLargeAdjListTest
 
--NAME KnowsVeryLargeAdjListTest
--QUERY MATCH (a:person)-[:knows*2..4]->(b:person) RETURN COUNT(*)
+-LOG KnowsVeryLargeAdjListTest
+-STATEMENT MATCH (a:person)-[:knows*2..4]->(b:person) RETURN COUNT(*)
 ---- 1
 60003
 
 # By the above formula, 28th, 29th, and 30th levels will contain 29*5K + 1, 30*5K + 1, and 31*5K+1 = 90*5K+3=450003.
--NAME KnowsVeryLargeAdjListLongPathTest
--QUERY MATCH (a:person)-[:knows*28..30]->(b:person) RETURN COUNT(*)
+-LOG KnowsVeryLargeAdjListLongPathTest
+-STATEMENT MATCH (a:person)-[:knows*28..30]->(b:person) RETURN COUNT(*)
 -PARALLELISM 2
 ---- 1
 450003

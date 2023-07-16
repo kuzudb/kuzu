@@ -6,7 +6,7 @@
 //! # use anyhow::Error;
 //!
 //! # fn main() -> Result<(), Error> {
-//! # let temp_dir = tempdir::TempDir::new("example")?;
+//! # let temp_dir = tempfile::tempdir()?;
 //! # let path = temp_dir.path();
 //! let db = Database::new(path, 0)?;
 //! let conn = Connection::new(&db)?;
@@ -26,6 +26,17 @@
 //! Generally, use of of this API is safe, however creating multiple databases in the same
 //! scope is not safe.
 //! If you need to access multiple databases you will need to do so in separate processes.
+//!
+//! ## Building
+//!
+//! By default, the kuzu C++ library will be compiled from source and statically linked.
+//!
+//! If you want to instead link against a pre-built version of the library, the following environment
+//! variables can be used to configure the build process:
+//!
+//! - `KUZU_SHARED`: If set, link dynamically instead of statically
+//! - `KUZU_INCLUDE_DIR`: Directory of kuzu's headers
+//! - `KUZU_LIBRARY_DIR`: Directory containing kuzu's pre-built libraries.
 
 mod connection;
 mod database;

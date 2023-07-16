@@ -147,7 +147,9 @@ uint64_t SerDeser::serializeValue<RelTableSchema>(
     offset = SerDeser::serializeValue<TableSchema>((const TableSchema&)value, fileInfo, offset);
     offset = SerDeser::serializeValue<RelMultiplicity>(value.relMultiplicity, fileInfo, offset);
     offset = SerDeser::serializeValue<table_id_t>(value.srcTableID, fileInfo, offset);
-    return SerDeser::serializeValue<table_id_t>(value.dstTableID, fileInfo, offset);
+    offset = SerDeser::serializeValue<table_id_t>(value.dstTableID, fileInfo, offset);
+    offset = SerDeser::serializeValue<LogicalType>(value.srcPKDataType, fileInfo, offset);
+    return SerDeser::serializeValue<LogicalType>(value.dstPKDataType, fileInfo, offset);
 }
 
 template<>
@@ -156,7 +158,9 @@ uint64_t SerDeser::deserializeValue<RelTableSchema>(
     offset = SerDeser::deserializeValue<TableSchema>((TableSchema&)value, fileInfo, offset);
     offset = SerDeser::deserializeValue<RelMultiplicity>(value.relMultiplicity, fileInfo, offset);
     offset = SerDeser::deserializeValue<table_id_t>(value.srcTableID, fileInfo, offset);
-    return SerDeser::deserializeValue<table_id_t>(value.dstTableID, fileInfo, offset);
+    offset = SerDeser::deserializeValue<table_id_t>(value.dstTableID, fileInfo, offset);
+    offset = SerDeser::deserializeValue<LogicalType>(value.srcPKDataType, fileInfo, offset);
+    return SerDeser::deserializeValue<LogicalType>(value.dstPKDataType, fileInfo, offset);
 }
 
 } // namespace common
@@ -205,7 +209,8 @@ table_id_t CatalogContent::addNodeTableSchema(
 }
 
 table_id_t CatalogContent::addRelTableSchema(std::string tableName, RelMultiplicity relMultiplicity,
-    std::vector<Property> properties, table_id_t srcTableID, table_id_t dstTableID) {
+    std::vector<Property> properties, table_id_t srcTableID, table_id_t dstTableID,
+    LogicalType srcPKDataType, LogicalType dstPKDataType) {
     table_id_t tableID = assignNextTableID();
     nodeTableSchemas[srcTableID]->addFwdRelTableID(tableID);
     nodeTableSchemas[dstTableID]->addBwdRelTableID(tableID);
@@ -216,8 +221,9 @@ table_id_t CatalogContent::addRelTableSchema(std::string tableName, RelMultiplic
         properties[i].propertyID = i;
         properties[i].tableID = tableID;
     }
-    auto relTableSchema = std::make_unique<RelTableSchema>(std::move(tableName), tableID,
-        relMultiplicity, std::move(properties), srcTableID, dstTableID);
+    auto relTableSchema =
+        std::make_unique<RelTableSchema>(std::move(tableName), tableID, relMultiplicity,
+            std::move(properties), srcTableID, dstTableID, srcPKDataType, dstPKDataType);
     relTableNameToIDMap[relTableSchema->tableName] = tableID;
     relTableSchemas[tableID] = std::move(relTableSchema);
     return tableID;
@@ -241,10 +247,6 @@ const Property& CatalogContent::getRelProperty(
         }
     }
     throw CatalogException("Cannot find rel property " + propertyName + ".");
-}
-
-std::vector<Property> CatalogContent::getAllNodeProperties(table_id_t tableID) const {
-    return nodeTableSchemas.at(tableID)->getAllNodeProperties();
 }
 
 void CatalogContent::dropTableSchema(table_id_t tableID) {
@@ -355,14 +357,16 @@ void CatalogContent::writeMagicBytes(FileInfo* fileInfo, offset_t& offset) const
 
 Catalog::Catalog() : wal{nullptr} {
     catalogContentForReadOnlyTrx = std::make_unique<CatalogContent>();
-    builtInVectorOperations = std::make_unique<function::BuiltInVectorOperations>();
+    builtInVectorFunctions = std::make_unique<function::BuiltInVectorFunctions>();
     builtInAggregateFunctions = std::make_unique<function::BuiltInAggregateFunctions>();
+    builtInTableFunctions = std::make_unique<function::BuiltInTableFunctions>();
 }
 
 Catalog::Catalog(WAL* wal) : wal{wal} {
     catalogContentForReadOnlyTrx = std::make_unique<CatalogContent>(wal->getDirectory());
-    builtInVectorOperations = std::make_unique<function::BuiltInVectorOperations>();
+    builtInVectorFunctions = std::make_unique<function::BuiltInVectorFunctions>();
     builtInAggregateFunctions = std::make_unique<function::BuiltInAggregateFunctions>();
+    builtInTableFunctions = std::make_unique<function::BuiltInTableFunctions>();
 }
 
 void Catalog::prepareCommitOrRollback(TransactionAction action) {
@@ -382,7 +386,7 @@ void Catalog::checkpointInMemory() {
 }
 
 ExpressionType Catalog::getFunctionType(const std::string& name) const {
-    if (builtInVectorOperations->containsFunction(name)) {
+    if (builtInVectorFunctions->containsFunction(name)) {
         return FUNCTION;
     } else if (builtInAggregateFunctions->containsFunction(name)) {
         return AGGREGATE_FUNCTION;
@@ -401,11 +405,11 @@ table_id_t Catalog::addNodeTableSchema(
 }
 
 table_id_t Catalog::addRelTableSchema(std::string tableName, RelMultiplicity relMultiplicity,
-    const std::vector<Property>& propertyDefinitions, table_id_t srcTableID,
-    table_id_t dstTableID) {
+    const std::vector<Property>& propertyDefinitions, table_id_t srcTableID, table_id_t dstTableID,
+    LogicalType srcPKDataType, LogicalType dstPKDataType) {
     initCatalogContentForWriteTrxIfNecessary();
-    auto tableID = catalogContentForWriteTrx->addRelTableSchema(
-        std::move(tableName), relMultiplicity, propertyDefinitions, srcTableID, dstTableID);
+    auto tableID = catalogContentForWriteTrx->addRelTableSchema(std::move(tableName),
+        relMultiplicity, propertyDefinitions, srcTableID, dstTableID, srcPKDataType, dstPKDataType);
     wal->logRelTableRecord(tableID);
     return tableID;
 }
@@ -453,6 +457,12 @@ std::unordered_set<RelTableSchema*> Catalog::getAllRelTableSchemasContainBoundTa
         relTableSchemas.insert(getReadOnlyVersion()->getRelTableSchema(bwdRelTableID));
     }
     return relTableSchemas;
+}
+
+void Catalog::addVectorFunction(
+    std::string name, function::vector_function_definitions definitions) {
+    common::StringUtils::toUpper(name);
+    builtInVectorFunctions->addFunction(std::move(name), std::move(definitions));
 }
 
 } // namespace catalog

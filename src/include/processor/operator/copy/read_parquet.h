@@ -7,8 +7,9 @@ namespace processor {
 
 class ReadParquetSharedState : public ReadFileSharedState {
 public:
-    explicit ReadParquetSharedState(std::vector<std::string> filePaths)
-        : ReadFileSharedState{std::move(filePaths)} {}
+    explicit ReadParquetSharedState(
+        std::vector<std::string> filePaths, catalog::TableSchema* tableSchema)
+        : ReadFileSharedState{std::move(filePaths), tableSchema} {}
 
 private:
     void countNumLines() override;

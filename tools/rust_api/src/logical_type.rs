@@ -4,12 +4,14 @@ use crate::ffi::ffi;
 ///
 /// Includes extra type information beyond what can be encoded in [Value](crate::value::Value) such as
 /// struct fields and types of lists
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum LogicalType {
     /// Special type for use with [Value::Null](crate::value::Value::Null)
     Any,
     /// Correponds to [Value::Bool](crate::value::Value::Bool)
     Bool,
+    /// Has no corresponding Value. Kuzu returns Serial values as [Int64](crate::Value::Int64).
+    Serial,
     /// Correponds to [Value::Int64](crate::value::Value::Int64)
     Int64,
     /// Correponds to [Value::Int32](crate::value::Value::Int32)
@@ -30,19 +32,26 @@ pub enum LogicalType {
     InternalID,
     /// Correponds to [Value::String](crate::value::Value::String)
     String,
+    /// Correponds to [Value::Blob](crate::value::Value::Blob)
+    Blob,
     /// Correponds to [Value::VarList](crate::value::Value::VarList)
-    VarList { child_type: Box<LogicalType> },
+    VarList {
+        child_type: Box<LogicalType>,
+    },
     /// Correponds to [Value::FixedList](crate::value::Value::FixedList)
     FixedList {
         child_type: Box<LogicalType>,
         num_elements: u64,
     },
     /// Correponds to [Value::Struct](crate::value::Value::Struct)
-    Struct { fields: Vec<(String, LogicalType)> },
+    Struct {
+        fields: Vec<(String, LogicalType)>,
+    },
     /// Correponds to [Value::Node](crate::value::Value::Node)
     Node,
     /// Correponds to [Value::Rel](crate::value::Value::Rel)
     Rel,
+    RecursiveRel,
 }
 
 impl From<&ffi::Value> for LogicalType {
@@ -57,12 +66,14 @@ impl From<&ffi::LogicalType> for LogicalType {
         match logical_type.getLogicalTypeID() {
             LogicalTypeID::ANY => LogicalType::Any,
             LogicalTypeID::BOOL => LogicalType::Bool,
+            LogicalTypeID::SERIAL => LogicalType::Serial,
             LogicalTypeID::INT16 => LogicalType::Int16,
             LogicalTypeID::INT32 => LogicalType::Int32,
             LogicalTypeID::INT64 => LogicalType::Int64,
             LogicalTypeID::FLOAT => LogicalType::Float,
             LogicalTypeID::DOUBLE => LogicalType::Double,
             LogicalTypeID::STRING => LogicalType::String,
+            LogicalTypeID::BLOB => LogicalType::Blob,
             LogicalTypeID::INTERVAL => LogicalType::Interval,
             LogicalTypeID::DATE => LogicalType::Date,
             LogicalTypeID::TIMESTAMP => LogicalType::Timestamp,
@@ -90,6 +101,7 @@ impl From<&ffi::LogicalType> for LogicalType {
             }
             LogicalTypeID::NODE => LogicalType::Node,
             LogicalTypeID::REL => LogicalType::Rel,
+            LogicalTypeID::RECURSIVE_REL => LogicalType::RecursiveRel,
             // Should be unreachable, as cxx will check that the LogicalTypeID enum matches the one
             // on the C++ side.
             x => panic!("Unsupported type {:?}", x),
@@ -102,6 +114,7 @@ impl From<&LogicalType> for cxx::UniquePtr<ffi::LogicalType> {
         match typ {
             LogicalType::Any
             | LogicalType::Bool
+            | LogicalType::Serial
             | LogicalType::Int64
             | LogicalType::Int32
             | LogicalType::Int16
@@ -112,8 +125,10 @@ impl From<&LogicalType> for cxx::UniquePtr<ffi::LogicalType> {
             | LogicalType::Interval
             | LogicalType::InternalID
             | LogicalType::String
+            | LogicalType::Blob
             | LogicalType::Node
-            | LogicalType::Rel => ffi::create_logical_type(typ.id()),
+            | LogicalType::Rel
+            | LogicalType::RecursiveRel => ffi::create_logical_type(typ.id()),
             LogicalType::VarList { child_type } => {
                 ffi::create_logical_type_var_list(child_type.as_ref().into())
             }
@@ -140,12 +155,14 @@ impl LogicalType {
         match self {
             LogicalType::Any => LogicalTypeID::ANY,
             LogicalType::Bool => LogicalTypeID::BOOL,
+            LogicalType::Serial => LogicalTypeID::SERIAL,
             LogicalType::Int16 => LogicalTypeID::INT16,
             LogicalType::Int32 => LogicalTypeID::INT32,
             LogicalType::Int64 => LogicalTypeID::INT64,
             LogicalType::Float => LogicalTypeID::FLOAT,
             LogicalType::Double => LogicalTypeID::DOUBLE,
             LogicalType::String => LogicalTypeID::STRING,
+            LogicalType::Blob => LogicalTypeID::BLOB,
             LogicalType::Interval => LogicalTypeID::INTERVAL,
             LogicalType::Date => LogicalTypeID::DATE,
             LogicalType::Timestamp => LogicalTypeID::TIMESTAMP,
@@ -155,6 +172,7 @@ impl LogicalType {
             LogicalType::Struct { .. } => LogicalTypeID::STRUCT,
             LogicalType::Node => LogicalTypeID::NODE,
             LogicalType::Rel => LogicalTypeID::REL,
+            LogicalType::RecursiveRel => LogicalTypeID::RECURSIVE_REL,
         }
     }
 }

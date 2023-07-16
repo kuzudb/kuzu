@@ -39,3 +39,10 @@ tools/nodejs_api/prebuilt/
 scripts/pre-compiled-bins/headers
 scripts/pre-compiled-bins/lib*
 scripts/pre-compiled-bins/kuzu*
+
+# Java API
+tools/java_api/build
+tools/java_api/test_db/
+tools/java_api/*.jar
+tools/java_api/*.class
+tools/java_api/*.log

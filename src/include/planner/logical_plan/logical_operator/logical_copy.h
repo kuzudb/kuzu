@@ -13,12 +13,14 @@ public:
     LogicalCopy(const common::CopyDescription& copyDescription, common::table_id_t tableID,
         std::string tableName, binder::expression_vector arrowColumnExpressions,
         std::shared_ptr<binder::Expression> offsetExpression,
+        std::shared_ptr<binder::Expression> columnIdxExpression,
         std::shared_ptr<binder::Expression> outputExpression)
-        : LogicalOperator{LogicalOperatorType::COPY}, copyDescription{copyDescription},
-          tableID{tableID}, tableName{std::move(tableName)}, arrowColumnExpressions{std::move(
-                                                                 arrowColumnExpressions)},
-          offsetExpression{std::move(offsetExpression)}, outputExpression{
-                                                             std::move(outputExpression)} {}
+        : LogicalOperator{LogicalOperatorType::COPY},
+          copyDescription{copyDescription}, tableID{tableID}, tableName{std::move(tableName)},
+          arrowColumnExpressions{std::move(arrowColumnExpressions)}, offsetExpression{std::move(
+                                                                         offsetExpression)},
+          columnIdxExpression{std::move(columnIdxExpression)}, outputExpression{
+                                                                   std::move(outputExpression)} {}
 
     inline std::string getExpressionsForPrinting() const override { return tableName; }
 
@@ -34,6 +36,10 @@ public:
         return offsetExpression;
     }
 
+    inline std::shared_ptr<binder::Expression> getColumnIdxExpression() const {
+        return columnIdxExpression;
+    }
+
     inline std::shared_ptr<binder::Expression> getOutputExpression() const {
         return outputExpression;
     }
@@ -43,7 +49,7 @@ public:
 
     inline std::unique_ptr<LogicalOperator> copy() override {
         return make_unique<LogicalCopy>(copyDescription, tableID, tableName, arrowColumnExpressions,
-            offsetExpression, outputExpression);
+            offsetExpression, columnIdxExpression, outputExpression);
     }
 
 private:
@@ -53,6 +59,7 @@ private:
     std::string tableName;
     binder::expression_vector arrowColumnExpressions;
     std::shared_ptr<binder::Expression> offsetExpression;
+    std::shared_ptr<binder::Expression> columnIdxExpression;
     std::shared_ptr<binder::Expression> outputExpression;
 };
 

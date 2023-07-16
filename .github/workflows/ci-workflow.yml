@@ -34,8 +34,8 @@ jobs:
       - name: Node.js test
         run: CC=gcc CXX=g++ make nodejstest NUM_THREADS=32
 
-      - name: Rust test
-        run: CC=gcc CXX=g++ make rusttest NUM_THREADS=32
+      - name: Java test
+        run: CC=gcc CXX=g++ make javatest NUM_THREADS=32
 
       - name: Generate coverage report
         run: |
@@ -47,6 +47,40 @@ jobs:
         with:
           file: cover.info
           functionalities: 'search'
+
+      - name: C Example
+        working-directory: examples/c
+        run: |
+          mkdir build -p
+          cd build
+          CC=gcc CXX=g++ cmake ..
+          cmake --build .
+
+      - name: C++ Example
+        working-directory: examples/cpp
+        run: |
+          mkdir build -p
+          cd build
+          CC=gcc CXX=g++ cmake ..
+          cmake --build .
+
+  rust-build-test:
+    name: rust build & test
+    needs: [rustfmt-check]
+    runs-on: kuzu-self-hosted-testing
+    env:
+      # Share build cache when building rust API and the example project
+      CARGO_TARGET_DIR: ${{ github.workspace }}/target
+      CARGO_BUILD_JOBS: 32
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Rust test
+        run: CC=gcc CXX=g++ make rusttest NUM_THREADS=32
+
+      - name: Rust example
+        working-directory: examples/rust
+        run: CC=gcc CXX=g++ cargo build
 
   gcc-build-test-with-asan:
     name: gcc build & test with asan
@@ -109,6 +143,9 @@ jobs:
       
       - name: Node.js test
         run: CC=clang-14 CXX=clang++-14 make nodejstest NUM_THREADS=32
+      
+      - name: Java test
+        run: CC=clang-14 CXX=clang++-14 make javatest NUM_THREADS=32
 
   msvc-build-test:
     name: msvc build & test
@@ -122,6 +159,20 @@ jobs:
         run: |
           call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
           make test NUM_THREADS=18
+
+      - name: Rust test
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
+          set OPENSSL_DIR=C:\Program Files\OpenSSL-Win64
+          set CARGO_TARGET_DIR=%cd%/rustb
+          make rusttest NUM_THREADS=18
+      
+      - name: Java test
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
+          make javatest NUM_THREADS=18
 
   clang-formatting-check:
     name: clang-format check

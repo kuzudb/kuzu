@@ -1,6 +1,9 @@
 #include "planner/logical_plan/logical_operator/schema.h"
 
+#include "binder/expression/expression_visitor.h"
 #include "common/exception.h"
+
+using namespace kuzu::binder;
 
 namespace kuzu {
 namespace planner {
@@ -24,6 +27,22 @@ void Schema::insertToGroupAndScope(
     expressionNameToGroupPos.insert({expression->getUniqueName(), groupPos});
     groups[groupPos]->insertExpression(expression);
     expressionsInScope.push_back(expression);
+}
+
+void Schema::insertToScopeMayRepeat(
+    const std::shared_ptr<binder::Expression>& expression, uint32_t groupPos) {
+    if (expressionNameToGroupPos.contains(expression->getUniqueName())) {
+        return;
+    }
+    insertToScope(expression, groupPos);
+}
+
+void Schema::insertToGroupAndScopeMayRepeat(
+    const std::shared_ptr<binder::Expression>& expression, uint32_t groupPos) {
+    if (expressionNameToGroupPos.contains(expression->getUniqueName())) {
+        return;
+    }
+    insertToGroupAndScope(expression, groupPos);
 }
 
 void Schema::insertToGroupAndScope(
@@ -59,7 +78,7 @@ binder::expression_vector Schema::getSubExpressionsInScope(
         results.push_back(expression);
         return results;
     }
-    for (auto& child : expression->getChildren()) {
+    for (auto& child : ExpressionChildrenCollector::collectChildren(*expression)) {
         for (auto& subExpression : getSubExpressionsInScope(child)) {
             results.push_back(subExpression);
         }

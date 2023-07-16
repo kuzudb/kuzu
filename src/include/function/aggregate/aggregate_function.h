@@ -5,7 +5,7 @@
 
 #include "common/vector/value_vector.h"
 #include "function/function_definition.h"
-#include "function/vector_operations.h"
+#include "function/vector_functions.h"
 
 namespace kuzu {
 namespace function {

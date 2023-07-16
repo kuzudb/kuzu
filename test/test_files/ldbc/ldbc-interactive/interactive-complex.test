@@ -6,8 +6,8 @@
 
 -CASE LDBCInteractiveComplex
 
--NAME IC2
--QUERY MATCH (:Person {id: 32985348834100 })-[:Person_knows_Person]-(friend:Person)<-[:Post_hasCreator_Person|:Comment_hasCreator_Person]-(message:Comment:Post)
+-LOG IC2
+-STATEMENT MATCH (:Person {id: 32985348834100 })-[:Person_knows_Person]-(friend:Person)<-[:Post_hasCreator_Person|:Comment_hasCreator_Person]-(message:Comment:Post)
        WHERE message.creationDate < 20120710024241920
        RETURN friend.id AS personId, friend.firstName AS personFirstName, friend.lastName AS personLastName, message.id AS postOrCommentId, CASE WHEN message.content is NULL THEN message.imageFile ELSE message.content END AS postOrCommentContent, message.creationDate AS postOrCommentCreationDate
        ORDER BY postOrCommentCreationDate DESC, postOrCommentId ASC
@@ -34,8 +34,8 @@
 19791209300507|Chaim Azriel|Epstein|962073022942|no way!|20120707012146963
 2199023256816|K.|Bose|962072894276|great|20120706195440195
 
--NAME IC3
--QUERY MATCH (countryX:Place {name: "Tunisia" }), (countryY:Place {name: "Peru" }), (person:Person {id: 17592186045813 })
+-LOG IC3
+-STATEMENT MATCH (countryX:Place {name: "Tunisia" }), (countryY:Place {name: "Peru" }), (person:Person {id: 17592186045813 })
        WITH person, countryX, countryY
        LIMIT 1
        MATCH (city:Place {label: "City"})-[:Place_isPartOf_Place]->(country:Place {label: "Country"})
@@ -60,8 +60,8 @@
 6597069767398|Vichara|Sihanouk|1|1|2
 24189255811663|Chris|Hall|1|1|2
 
--NAME IC4
--QUERY MATCH (person:Person {id: 24189255812446 })-[:Person_knows_Person]-(friend:Person), (friend)<-[:Post_hasCreator_Person]-(post:Post)-[:Post_hasTag_Tag]->(tag)
+-LOG IC4
+-STATEMENT MATCH (person:Person {id: 24189255812446 })-[:Person_knows_Person]-(friend:Person), (friend)<-[:Post_hasCreator_Person]-(post:Post)-[:Post_hasTag_Tag]->(tag)
        WITH DISTINCT tag, post
        WITH tag, CASE WHEN 20120710024241920 > post.creationDate AND post.creationDate >= 20100710024241920 THEN 1 ELSE 0 END AS valid, CASE WHEN 20100710024241920 > post.creationDate THEN 1 ELSE 0 END AS inValid
        WITH tag, sum(valid) AS postCount, sum(inValid) AS inValidPostCount
@@ -81,8 +81,8 @@ Zine_El_Abidine_Ben_Ali|23
 Franz_Kafka|11
 Bobby_Hull|9
 
--NAME IC6
--QUERY MATCH (knownTag:Tag { name: "Carl_Gustaf_Emil_Mannerheim" })
+-LOG IC6
+-STATEMENT MATCH (knownTag:Tag { name: "Carl_Gustaf_Emil_Mannerheim" })
        WITH knownTag.id as knownTagId
        MATCH (person:Person { id: 28587302322524 })-[:Person_knows_Person*1..2]-(friend)
        WHERE NOT person.id=friend.id
@@ -106,8 +106,8 @@ Edgar_Allan_Poe|1
 Elvis_Costello|1
 Euripides|1
 
--NAME IC8
--QUERY MATCH (start:Person {id: 15393162789560})<-[:Post_hasCreator_Person|:Comment_hasCreator_Person]-(:Post:Comment)<-[:Comment_replyOf_Comment|:Comment_replyOf_Post]-(comment:Comment)-[:Comment_hasCreator_Person]->(person:Person)
+-LOG IC8
+-STATEMENT MATCH (start:Person {id: 15393162789560})<-[:Post_hasCreator_Person|:Comment_hasCreator_Person]-(:Post:Comment)<-[:Comment_replyOf_Comment|:Comment_replyOf_Post]-(comment:Comment)-[:Comment_hasCreator_Person]->(person:Person)
        RETURN person.id AS personId, person.firstName AS personFirstName, person.lastName AS personLastName, comment.creationDate AS commentCreationDate, comment.id AS commentId, comment.content AS commentContent
        ORDER BY commentCreationDate DESC, commentId ASC
        LIMIT 20;
@@ -133,8 +133,8 @@ Euripides|1
 13194139533535|Shweta|Singh|20120623001733081|962072693421|thx
 26388279067551|Anand|Rao|20120622142721062|962072693418|thanks
 
--NAME IC11
--QUERY MATCH (person:Person {id: 13194139534668 })-[:Person_knows_Person*1..2]-(friend:Person)
+-LOG IC11
+-STATEMENT MATCH (person:Person {id: 13194139534668 })-[:Person_knows_Person*1..2]-(friend:Person)
        WHERE NOT person.id=friend.id
        WITH DISTINCT friend
        MATCH (friend)-[workAt:Person_workAt_Organisation]->(company:Organisation {label: "Company"})-[:Organisation_isLocatedIn_Place]->(:Place {name: "Hungary", label: "Country" })
@@ -163,32 +163,34 @@ Euripides|1
 28587302323430|János|Mészáros|Malév_Hungarian_Airlines|2008
 
 # IC12 should be changed to use Kleene Star relationship once that is implemented
--NAME IC12
+-LOG IC12
 -CHECK_ORDER
--PARALLELISM 1
--QUERY MATCH (tag:Tag)-[:Tag_hasType_TagClass|:TagClass_isSubclassOf_TagClass*1..20]->(baseTagClass:TagClass)
+-PARALLELISM 10
+-STATEMENT MATCH (tag:Tag)-[:Tag_hasType_TagClass|:TagClass_isSubclassOf_TagClass*1..20]->(baseTagClass:TagClass)
        WHERE tag.name = "Monarch" OR baseTagClass.name = "Monarch"
        WITH collect(tag.id) as tags
        MATCH (:Person {id: 6597069767300 })-[:Person_knows_Person]-(friend:Person)<-[:Comment_hasCreator_Person]-(comment:Comment)-[:Comment_replyOf_Post]->(:Post)-[:Post_hasTag_Tag]->(tag:Tag)
        WHERE list_contains(tags, tag.id)
-       RETURN friend.id AS personId, friend.firstName AS personFirstName, friend.lastName AS personLastName, collect(DISTINCT tag.name) AS tagNames, count(DISTINCT comment) AS replyCount
+       RETURN friend.id AS personId, friend.firstName AS personFirstName, friend.lastName AS personLastName, list_sort(collect(DISTINCT tag.name)) AS tagNames, count(DISTINCT comment) AS replyCount
        ORDER BY replyCount DESC, personId ASC
        LIMIT 20;
----- 7
-8796093022764|Zheng|Xu|[Mahmud_of_Ghazni,Ashoka,Tiberius,Marcus_Aurelius,Genghis_Khan,Justinian_I,Hadrian,Timur]|13
-10995116278353|Otto|Muller|[Tiberius,Genghis_Khan,Justinian_I,Constantine_the_Great,Trajan]|11
-17592186044994|Jie|Wang|[Genghis_Khan,David]|7
-13194139534548|Bing|Zheng|[Genghis_Khan,Hadrian,Solomon]|6
-13194139533500|Otto|Becker|[Tiberius,Genghis_Khan,Julius_Caesar,David,Alexander_the_Great]|5
-28587302322537|Anh|Nguyen|[Mahmud_of_Ghazni,Trajan]|3
-30786325578932|Alexander|Hleb|[Mahmud_of_Ghazni,David]|3
+---- error
+Binder exception: DISTINCT is not supported for NODE or REL type.
+
+#8796093022764|Zheng|Xu|[Mahmud_of_Ghazni,Ashoka,Tiberius,Marcus_Aurelius,Genghis_Khan,Justinian_I,Hadrian,Timur]|13
+#10995116278353|Otto|Muller|[Tiberius,Genghis_Khan,Justinian_I,Constantine_the_Great,Trajan]|11
+#17592186044994|Jie|Wang|[Genghis_Khan,David]|7
+#13194139534548|Bing|Zheng|[Genghis_Khan,Hadrian,Solomon]|6
+#13194139533500|Otto|Becker|[Tiberius,Genghis_Khan,Julius_Caesar,David,Alexander_the_Great]|5
+#28587302322537|Anh|Nguyen|[Mahmud_of_Ghazni,Trajan]|3
+#30786325578932|Alexander|Hleb|[Mahmud_of_Ghazni,David]|3
 
 # To be completely correct, this query needs to have
 # (i) Unbounded shortest path
 # (ii) Return 0 if person1 and person2 are the same, and
 # (iii) Return -1 if a shortest path doesn't exist.
--NAME IC13
--QUERY MATCH (person1 {id: 768})-[path:Person_knows_Person* SHORTEST 1..20]-(person2 {id: 32985348833975})
+-LOG IC13
+-STATEMENT MATCH (person1 {id: 768})-[path:Person_knows_Person* SHORTEST 1..20]-(person2 {id: 32985348833975})
        RETURN length(path) AS shortestPathLength;
 ---- 1
 3

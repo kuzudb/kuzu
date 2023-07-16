@@ -1,3 +1,4 @@
+#include "binder/expression/expression_visitor.h"
 #include "planner/join_order/cost_model.h"
 #include "planner/join_order_enumerator.h"
 #include "planner/logical_plan/logical_operator/logical_extend.h"
@@ -52,8 +53,8 @@ void JoinOrderEnumerator::appendRecursiveExtend(std::shared_ptr<NodeExpression> 
     queryPlanner->appendAccumulate(plan);
     // Create recursive plan
     auto recursivePlan = std::make_unique<LogicalPlan>();
-    createRecursivePlan(
-        boundNode, recursiveInfo->node, recursiveInfo->rel, direction, *recursivePlan);
+    createRecursivePlan(boundNode, recursiveInfo->node, recursiveInfo->rel, direction,
+        recursiveInfo->predicates, *recursivePlan);
     // Create recursive extend
     auto extend = std::make_shared<LogicalRecursiveExtend>(boundNode, nbrNode, rel, direction,
         RecursiveJoinType::TRACK_PATH, plan.getLastOperator(), recursivePlan->getLastOperator());
@@ -65,8 +66,8 @@ void JoinOrderEnumerator::appendRecursiveExtend(std::shared_ptr<NodeExpression> 
     createPathNodePropertyScanPlan(recursiveInfo->node, *pathNodePropertyScanPlan);
     // Create path rel property scan plan
     auto pathRelPropertyScanPlan = std::make_unique<LogicalPlan>();
-    createPathRelPropertyScanPlan(
-        recursiveInfo->node, nbrNode, recursiveInfo->rel, direction, *pathRelPropertyScanPlan);
+    createPathRelPropertyScanPlan(recursiveInfo->node, recursiveInfo->nodeCopy, recursiveInfo->rel,
+        direction, *pathRelPropertyScanPlan);
     // Create path property probe
     auto pathPropertyProbe = std::make_shared<LogicalPathPropertyProbe>(rel, extend,
         pathNodePropertyScanPlan->getLastOperator(), pathRelPropertyScanPlan->getLastOperator());
@@ -90,12 +91,24 @@ void JoinOrderEnumerator::appendRecursiveExtend(std::shared_ptr<NodeExpression> 
 
 void JoinOrderEnumerator::createRecursivePlan(std::shared_ptr<NodeExpression> boundNode,
     std::shared_ptr<NodeExpression> recursiveNode, std::shared_ptr<RelExpression> recursiveRel,
-    ExtendDirection direction, LogicalPlan& plan) {
+    ExtendDirection direction, const expression_vector& predicates, LogicalPlan& plan) {
     auto scanFrontier = std::make_shared<LogicalScanFrontier>(boundNode);
     scanFrontier->computeFactorizedSchema();
     plan.setLastOperator(std::move(scanFrontier));
-    auto properties = expression_vector{recursiveRel->getInternalIDProperty()};
+    expression_set propertiesSet;
+    propertiesSet.insert(recursiveRel->getInternalIDProperty());
+    for (auto& predicate : predicates) {
+        auto expressionCollector = std::make_unique<binder::ExpressionCollector>();
+        for (auto& property : expressionCollector->collectPropertyExpressions(predicate)) {
+            propertiesSet.insert(property);
+        }
+    }
+    expression_vector properties;
+    for (auto& property : propertiesSet) {
+        properties.push_back(property);
+    }
     appendNonRecursiveExtend(boundNode, recursiveNode, recursiveRel, direction, properties, plan);
+    queryPlanner->appendFilters(predicates, plan);
 }
 
 void JoinOrderEnumerator::createPathNodePropertyScanPlan(
@@ -106,6 +119,10 @@ void JoinOrderEnumerator::createPathNodePropertyScanPlan(
         properties.push_back(property->copy());
     }
     queryPlanner->appendScanNodePropIfNecessary(properties, recursiveNode, plan);
+    auto expressionsToProject = properties;
+    expressionsToProject.push_back(recursiveNode->getInternalIDProperty());
+    expressionsToProject.push_back(recursiveNode->getLabelExpression());
+    queryPlanner->projectionPlanner.appendProjection(expressionsToProject, plan);
 }
 
 void JoinOrderEnumerator::createPathRelPropertyScanPlan(
@@ -117,6 +134,9 @@ void JoinOrderEnumerator::createPathRelPropertyScanPlan(
         properties.push_back(property->copy());
     }
     appendNonRecursiveExtend(recursiveNode, nbrNode, recursiveRel, direction, properties, plan);
+    auto expressionsToProject = properties;
+    expressionsToProject.push_back(recursiveRel->getLabelExpression());
+    queryPlanner->projectionPlanner.appendProjection(expressionsToProject, plan);
 }
 
 } // namespace planner

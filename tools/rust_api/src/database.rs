@@ -67,7 +67,7 @@ mod tests {
 
     #[test]
     fn create_database() -> Result<()> {
-        let temp_dir = tempdir::TempDir::new("example")?;
+        let temp_dir = tempfile::tempdir()?;
         let mut db = Database::new(temp_dir.path(), 0)?;
         db.set_logging_level(LoggingLevel::Debug);
         db.set_logging_level(LoggingLevel::Info);
@@ -81,9 +81,20 @@ mod tests {
         let result: Error = Database::new("", 0)
             .expect_err("An empty string should not be a valid database path!")
             .into();
-        assert_eq!(
-            result.to_string(),
-            "Failed to create directory  due to: filesystem error: cannot create directory: No such file or directory []"
-        );
+        if cfg!(windows) {
+            assert_eq!(
+                result.to_string(),
+                "Failed to create directory  due to: create_directory: The system cannot find the path specified.: \"\""
+            );
+        } else if cfg!(linux) {
+            assert_eq!(
+                result.to_string(),
+                "Failed to create directory  due to: filesystem error: cannot create directory: No such file or directory []"
+            );
+        } else {
+            assert!(result
+                .to_string()
+                .starts_with("Failed to create directory  due to"));
+        }
     }
 }

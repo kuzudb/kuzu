@@ -1,7 +1,7 @@
 #pragma once
 
 #include "aggregate_function.h"
-#include "function/comparison/comparison_operations.h"
+#include "function/comparison/comparison_functions.h"
 
 namespace kuzu {
 namespace function {

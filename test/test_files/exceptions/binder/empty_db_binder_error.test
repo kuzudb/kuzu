@@ -1,0 +1,9 @@
+-GROUP EmptyDBBinderErrorTest
+-DATASET CSV empty
+
+--
+
+-CASE MissingQueryNode
+-STATEMENT MATCH () WITH NULL AS a RETURN a;
+---- error
+Binder exception: No node table exists in database.

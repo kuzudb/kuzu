@@ -1,5 +1,7 @@
 #include "test_runner/test_runner.h"
 
+#include <fstream>
+
 #include "common/string_utils.h"
 #include "spdlog/spdlog.h"
 
@@ -22,7 +24,7 @@ void TestRunner::runTest(
 }
 
 void TestRunner::initializeConnection(TestStatement* statement, Connection& conn) {
-    spdlog::info("TEST: {}", statement->name);
+    spdlog::info("DEBUG LOG: {}", statement->logMessage);
     spdlog::info("QUERY: {}", statement->query);
     conn.setMaxNumThreadForExec(statement->numThreads);
 }
@@ -90,6 +92,9 @@ bool TestRunner::checkPlanResult(std::unique_ptr<QueryResult>& result, TestState
         std::string line;
         while (std::getline(expectedTuplesFile, line)) {
             statement->expectedTuples.push_back(line);
+        }
+        if (!statement->checkOutputOrder) {
+            sort(statement->expectedTuples.begin(), statement->expectedTuples.end());
         }
     }
 

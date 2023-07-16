@@ -14,13 +14,18 @@ grammar Cypher;
 }
 
 oC_Cypher
-    : SP ? oC_AnyCypherOption? SP? ( oC_Statement | kU_DDL | kU_CopyNPY | kU_CopyCSV ) ( SP? ';' )? SP? EOF ;
+    : SP ? oC_AnyCypherOption? SP? ( oC_Statement ) ( SP? ';' )? SP? EOF ;
 
 kU_CopyCSV
     : COPY SP oC_SchemaName SP FROM SP kU_FilePaths ( SP? '(' SP? kU_ParsingOptions SP? ')' )? ;
 
 kU_CopyNPY
     : COPY SP oC_SchemaName SP FROM SP '(' SP? StringLiteral ( SP? ',' SP? StringLiteral )* ')' SP BY SP COLUMN ;
+
+kU_StandaloneCall
+    : CALL SP oC_SymbolicName SP? '=' SP? oC_Literal ;
+
+CALL : ( 'C' | 'c' ) ( 'A' | 'a' ) ( 'L' | 'l' ) ( 'L' | 'l' ) ;
 
 kU_FilePaths
     : '[' SP? StringLiteral ( SP? ',' SP? StringLiteral )* ']'
@@ -131,7 +136,11 @@ oC_Profile
 PROFILE : ( 'P' | 'p' ) ( 'R' | 'r' ) ( 'O' | 'o' ) ( 'F' | 'f' ) ( 'I' | 'i' ) ( 'L' | 'l' ) ( 'E' | 'e' ) ;
 
 oC_Statement
-    : oC_Query ;
+    : oC_Query
+        | kU_DDL
+        | kU_CopyNPY
+        | kU_CopyCSV
+        | kU_StandaloneCall  ;
 
 oC_Query
     : oC_RegularQuery ;
@@ -175,7 +184,11 @@ oC_UpdatingClause
 oC_ReadingClause
     : oC_Match
         | oC_Unwind
+        | kU_InQueryCall
         ;
+
+kU_InQueryCall
+    : CALL SP oC_FunctionName SP? '(' oC_Literal* ')' ;
 
 oC_Match
     : ( OPTIONAL SP )? MATCH SP? oC_Pattern (SP? oC_Where)? ;
@@ -272,7 +285,8 @@ oC_Pattern
     : oC_PatternPart ( SP? ',' SP? oC_PatternPart )* ;
 
 oC_PatternPart
-    : oC_AnonymousPatternPart ;
+    :  ( oC_Variable SP? '=' SP? oC_AnonymousPatternPart )
+        | oC_AnonymousPatternPart ;
 
 oC_AnonymousPatternPart
     : oC_PatternElement ;
@@ -295,7 +309,7 @@ oC_RelationshipPattern
         ;
 
 oC_RelationshipDetail
-    : '[' SP? ( oC_Variable SP? )? ( oC_RelationshipTypes SP? )? ( oC_RangeLiteral SP? ) ? ( kU_Properties SP? ) ? ']' ;
+    : '[' SP? ( oC_Variable SP? )? ( oC_RelationshipTypes SP? )? ( oC_RangeLiteral SP? )? ( kU_Properties SP? )? ']' ;
 
 // The original oC_Properties definition is  oC_MapLiteral | oC_Parameter.
 // We choose to not support parameter as properties which will be the decision for a long time.
@@ -313,7 +327,7 @@ oC_NodeLabel
     : ':' SP? oC_LabelName ;
 
 oC_RangeLiteral
-    :  '*' SP? ( SHORTEST | ALL SP SHORTEST )? SP? oC_IntegerLiteral SP? '..' SP? oC_IntegerLiteral ;
+    :  '*' SP? ( SHORTEST | ALL SP SHORTEST )? SP? oC_IntegerLiteral SP? '..' SP? oC_IntegerLiteral (SP? '(' SP? oC_Variable SP? ',' SP? '_' SP? '|' SP? oC_Where SP? ')')? ;
 
 SHORTEST : ( 'S' | 's' ) ( 'H' | 'h' ) ( 'O' | 'o' ) ( 'R' | 'r' ) ( 'T' | 't' ) ( 'E' | 'e' ) ( 'S' | 's' ) ( 'T' | 't' ) ;
 
@@ -388,16 +402,16 @@ MINUS : '-' ;
 FACTORIAL : '!' ;
 
 oC_StringListNullOperatorExpression
-    : oC_PropertyOrLabelsExpression ( oC_StringOperatorExpression | oC_ListOperatorExpression | oC_NullOperatorExpression )? ;
+    : oC_PropertyOrLabelsExpression ( oC_StringOperatorExpression | oC_ListOperatorExpression+ | oC_NullOperatorExpression )? ;
 
 oC_ListOperatorExpression
-    : ( kU_ListExtractOperatorExpression | kU_ListSliceOperatorExpression ) oC_ListOperatorExpression ? ;
+    : kU_ListExtractOperatorExpression | kU_ListSliceOperatorExpression  ;
 
 kU_ListExtractOperatorExpression
-    : SP ? '[' oC_Expression ']' ;
+    : '[' oC_Expression ']' ;
 
 kU_ListSliceOperatorExpression
-    : SP ? '[' oC_Expression? ':' oC_Expression? ']' ;
+    : '[' oC_Expression? ':' oC_Expression? ']' ;
 
 oC_StringOperatorExpression
     :  ( oC_RegularExpression | ( SP STARTS SP WITH ) | ( SP ENDS SP WITH ) | ( SP CONTAINS ) ) SP? oC_PropertyOrLabelsExpression ;
@@ -420,7 +434,7 @@ IS : ( 'I' | 'i' ) ( 'S' | 's' ) ;
 NULL_ : ( 'N' | 'n' ) ( 'U' | 'u' ) ( 'L' | 'l' ) ( 'L' | 'l' ) ;
 
 oC_PropertyOrLabelsExpression
-    : oC_Atom ( SP? oC_PropertyLookup )? ;
+    : oC_Atom ( SP? oC_PropertyLookup )* ;
 
 oC_Atom
     : oC_Literal
@@ -478,7 +492,7 @@ oC_ExistentialSubquery
 EXISTS : ( 'E' | 'e' ) ( 'X' | 'x' ) ( 'I' | 'i' ) ( 'S' | 's' ) ( 'T' | 't' ) ( 'S' | 's' ) ;
 
 oC_PropertyLookup
-    : '.' SP? ( oC_PropertyKeyName ) ;
+    : '.' SP? ( oC_PropertyKeyName | STAR ) ;
 
 oC_CaseExpression
     :  ( ( CASE ( SP? oC_CaseAlternative )+ ) | ( CASE SP? oC_Expression ( SP? oC_CaseAlternative )+ ) ) ( SP? ELSE SP? oC_Expression )? SP? END ;

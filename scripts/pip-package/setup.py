@@ -23,7 +23,7 @@ def _get_kuzu_version():
                 return line.split(' ')[2].strip()
 
 
-kuzu_version = os.environ['PYTHON_PACKAGE_VERSION'] if 'PYTHON_PACKAGE_VERSION' in os.environ else _get_kuzu_version()
+kuzu_version = _get_kuzu_version()
 print("The version of this build is %s" % kuzu_version)
 
 

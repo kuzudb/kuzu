@@ -1,3 +1,4 @@
+#include <fstream>
 #include <string>
 
 #include "main_test_helper/main_test_helper.h"

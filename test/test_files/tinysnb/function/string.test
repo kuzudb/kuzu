@@ -5,103 +5,103 @@
 
 -CASE FunctionString
 
--NAME StrVarAndStrLiteralConcat
--QUERY MATCH (a:person) WHERE concat(a.fName, 'xyz') = 'Farooqxyz' RETURN COUNT(*)
+-LOG StrVarAndStrLiteralConcat
+-STATEMENT MATCH (a:person) WHERE concat(a.fName, 'xyz') = 'Farooqxyz' RETURN COUNT(*)
 ---- 1
 1
 
--NAME StrVarAndStrLiteralConcat2
--QUERY MATCH (a:person) WHERE concat('xyz', a.fName) = 'xyzFarooq' RETURN COUNT(*)
+-LOG StrVarAndStrLiteralConcat2
+-STATEMENT MATCH (a:person) WHERE concat('xyz', a.fName) = 'xyzFarooq' RETURN COUNT(*)
 ---- 1
 1
 
--NAME StrVarAndStrLiteralConcat3
--QUERY MATCH (a:person) WHERE 'Farooqxyz' = concat(a.fName, 'xyz') RETURN COUNT(*)
+-LOG StrVarAndStrLiteralConcat3
+-STATEMENT MATCH (a:person) WHERE 'Farooqxyz' = concat(a.fName, 'xyz') RETURN COUNT(*)
 ---- 1
 1
 
--NAME StrVarAndStrLiteralConcat4
--QUERY MATCH (a:person) WHERE 'xyzFarooq' = concat('xyz', a.fName) RETURN COUNT(*)
+-LOG StrVarAndStrLiteralConcat4
+-STATEMENT MATCH (a:person) WHERE 'xyzFarooq' = concat('xyz', a.fName) RETURN COUNT(*)
 ---- 1
 1
 
--NAME StrVarAndIntLiteralConcat
--QUERY MATCH (a:person) WHERE concat(a.fName, string(10)) = 'Farooq10' RETURN COUNT(*)
+-LOG StrVarAndIntLiteralConcat
+-STATEMENT MATCH (a:person) WHERE concat(a.fName, string(10)) = 'Farooq10' RETURN COUNT(*)
 ---- 1
 1
 
--NAME StrVarAndIntLiteralConcat2
--QUERY MATCH (a:person) WHERE 'Farooq10' = concat(a.fName, string(10)) RETURN COUNT(*)
+-LOG StrVarAndIntLiteralConcat2
+-STATEMENT MATCH (a:person) WHERE 'Farooq10' = concat(a.fName, string(10)) RETURN COUNT(*)
 ---- 1
 1
 
--NAME IntLiteralAndStrVarConcat
--QUERY MATCH (a:person) WHERE concat(string(10), a.fName) = '10Farooq' RETURN COUNT(*)
+-LOG IntLiteralAndStrVarConcat
+-STATEMENT MATCH (a:person) WHERE concat(string(10), a.fName) = '10Farooq' RETURN COUNT(*)
 ---- 1
 1
 
--NAME IntLiteralAndStrVarConcat2
--QUERY MATCH (a:person) WHERE '10Farooq' = concat(string(10), a.fName) RETURN COUNT(*)
+-LOG IntLiteralAndStrVarConcat2
+-STATEMENT MATCH (a:person) WHERE '10Farooq' = concat(string(10), a.fName) RETURN COUNT(*)
 ---- 1
 1
 
--NAME StrVarAndBoolLiteralConcat
--QUERY MATCH (a:person) WHERE concat(a.fName, string(true)) = 'FarooqTrue' RETURN COUNT(*)
+-LOG StrVarAndBoolLiteralConcat
+-STATEMENT MATCH (a:person) WHERE concat(a.fName, string(true)) = 'FarooqTrue' RETURN COUNT(*)
 ---- 1
 1
 
--NAME StrVarAndBoolLiteralConcat2
--QUERY MATCH (a:person) WHERE 'FarooqTrue' = concat(a.fName, string(true)) RETURN COUNT(*)
+-LOG StrVarAndBoolLiteralConcat2
+-STATEMENT MATCH (a:person) WHERE 'FarooqTrue' = concat(a.fName, string(true)) RETURN COUNT(*)
 ---- 1
 1
 
--NAME BoolLiteralAndStrVarConcat
--QUERY MATCH (a:person) WHERE concat(string(false), a.fName) = 'FalseFarooq' RETURN COUNT(*)
+-LOG BoolLiteralAndStrVarConcat
+-STATEMENT MATCH (a:person) WHERE concat(string(false), a.fName) = 'FalseFarooq' RETURN COUNT(*)
 ---- 1
 1
 
--NAME BoolLiteralAndStrVarConcat
--QUERY MATCH (a:person) WHERE 'FalseFarooq' = concat(string(FALse), a.fName) RETURN COUNT(*)
+-LOG BoolLiteralAndStrVarConcat
+-STATEMENT MATCH (a:person) WHERE 'FalseFarooq' = concat(string(FALse), a.fName) RETURN COUNT(*)
 ---- 1
 1
 
--NAME StrVarAndDoubleLiteralConcat
--QUERY MATCH (a:person) WHERE concat(a.fName, string(11.7)) = 'Farooq11.700000' RETURN COUNT(*)
+-LOG StrVarAndDoubleLiteralConcat
+-STATEMENT MATCH (a:person) WHERE concat(a.fName, string(11.7)) = 'Farooq11.700000' RETURN COUNT(*)
 ---- 1
 1
 
--NAME StrVarAndIntegerVarConcat
--QUERY MATCH (a:person) WHERE concat(a.fName, string(a.age)) = 'Farooq25' RETURN COUNT(*)
+-LOG StrVarAndIntegerVarConcat
+-STATEMENT MATCH (a:person) WHERE concat(a.fName, string(a.age)) = 'Farooq25' RETURN COUNT(*)
 ---- 1
 1
 
--NAME StrVarAndIntegerVarConcat2
--QUERY MATCH (a:person) WHERE 'Farooq25' = concat(a.fName, string(a.age)) RETURN COUNT(*)
+-LOG StrVarAndIntegerVarConcat2
+-STATEMENT MATCH (a:person) WHERE 'Farooq25' = concat(a.fName, string(a.age)) RETURN COUNT(*)
 ---- 1
 1
 
--NAME IntegerVarAndStrVarConcat
--QUERY MATCH (a:person) WHERE concat(string(a.age), a.fName) = '25Farooq' RETURN COUNT(*)
+-LOG IntegerVarAndStrVarConcat
+-STATEMENT MATCH (a:person) WHERE concat(string(a.age), a.fName) = '25Farooq' RETURN COUNT(*)
 ---- 1
 1
 
--NAME IntegerVarAndStrVarConcat2
--QUERY MATCH (a:person) WHERE '25Farooq' = concat(string(a.age), a.fName) RETURN COUNT(*)
+-LOG IntegerVarAndStrVarConcat2
+-STATEMENT MATCH (a:person) WHERE '25Farooq' = concat(string(a.age), a.fName) RETURN COUNT(*)
 ---- 1
 1
 
--NAME DateVarAndStrVarConcatStructured
--QUERY MATCH (a:person) WHERE '1900-01-01Alice' = concat(string(a.birthdate), a.fName) RETURN COUNT(*)
+-LOG DateVarAndStrVarConcatStructured
+-STATEMENT MATCH (a:person) WHERE '1900-01-01Alice' = concat(string(a.birthdate), a.fName) RETURN COUNT(*)
 ---- 1
 1
 
--NAME TimestampVarAndStrVarConcatStructured
--QUERY MATCH (a:person) WHERE '2011-08-20 11:25:30Alice' = concat(string(a.registerTime), a.fName) RETURN COUNT(*)
+-LOG TimestampVarAndStrVarConcatStructured
+-STATEMENT MATCH (a:person) WHERE '2011-08-20 11:25:30Alice' = concat(string(a.registerTime), a.fName) RETURN COUNT(*)
 ---- 1
 1
 
--NAME ContainsReturn
--QUERY MATCH (a:person) RETURN a.fName, a.fName CONTAINS "a" ORDER BY a.fName
+-LOG ContainsReturn
+-STATEMENT MATCH (a:person) RETURN a.fName, a.fName CONTAINS "a" ORDER BY a.fName
 ---- 8
 Alice|False
 Bob|False
@@ -112,23 +112,23 @@ Farooq|True
 Greg|False
 Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|True
 
--NAME ContainsSelect
--QUERY MATCH (a:person) WHERE a.fName = 'Bob' and a.fName CONTAINS "B" RETURN a.fName
+-LOG ContainsSelect
+-STATEMENT MATCH (a:person) WHERE a.fName = 'Bob' and a.fName CONTAINS "B" RETURN a.fName
 ---- 1
 Bob
 
--NAME ContainsSelect2
--QUERY MATCH (a:person)-[:knows]->(b:person) WHERE NOT a.fName CONTAINS b.fName RETURN COUNT(*)
+-LOG ContainsSelect2
+-STATEMENT MATCH (a:person)-[:knows]->(b:person) WHERE NOT a.fName CONTAINS b.fName RETURN COUNT(*)
 ---- 1
 14
 
--NAME ContainsSelect3
--QUERY MATCH (a:person) WHERE a.fName <> "Alice" and a.fName CONTAINS a.fName RETURN count(*)
+-LOG ContainsSelect3
+-STATEMENT MATCH (a:person) WHERE a.fName <> "Alice" and a.fName CONTAINS a.fName RETURN count(*)
 ---- 1
 7
 
--NAME StartsWithReturn1
--QUERY MATCH (a:person) RETURN a.fName, a.fName STARTS WITH "A" ORDER BY a.fName
+-LOG StartsWithReturn1
+-STATEMENT MATCH (a:person) RETURN a.fName, a.fName STARTS WITH "A" ORDER BY a.fName
 ---- 8
 Alice|True
 Bob|False
@@ -139,97 +139,97 @@ Farooq|False
 Greg|False
 Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|False
 
--NAME StartsWithAlias
--QUERY MATCH (o:organisation) RETURN prefix(o.name, "ABF")
+-LOG StartsWithAlias
+-STATEMENT MATCH (o:organisation) RETURN prefix(o.name, "ABF")
 ---- 3
 True
 False
 False
 
--NAME StartsWithSelect
--QUERY MATCH (a:person) WHERE a.fName STARTS WITH "C" RETURN a.fName
+-LOG StartsWithSelect
+-STATEMENT MATCH (a:person) WHERE a.fName STARTS WITH "C" RETURN a.fName
 ---- 1
 Carol
 
--NAME LowerStructuredStr
--QUERY MATCH (o:organisation) RETURN lower(o.name)
+-LOG LowerStructuredStr
+-STATEMENT MATCH (o:organisation) RETURN lower(o.name)
 ---- 3
 abfsuni
 cswork
 deswork
 
--NAME LowerUTF8String
--QUERY MATCH (m:movies) RETURN lower(m.name)
+-LOG LowerUTF8String
+-STATEMENT MATCH (m:movies) RETURN lower(m.name)
 ---- 3
 sóló cón tu párejâ
 the 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie
 roma
 
--NAME UpperStructuredStr
--QUERY MATCH (o:organisation) RETURN upper(o.name)
+-LOG UpperStructuredStr
+-STATEMENT MATCH (o:organisation) RETURN upper(o.name)
 ---- 3
 ABFSUNI
 CSWORK
 DESWORK
 
--NAME UpperUTF8String
--QUERY MATCH (m:movies) RETURN upper(m.name)
+-LOG UpperUTF8String
+-STATEMENT MATCH (m:movies) RETURN upper(m.name)
 ---- 3
 SÓLÓ CÓN TU PÁREJÂ
 THE 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 MOVIE
 ROMA
 
--NAME TrimStructuredStr
--QUERY MATCH (o:organisation) RETURN trim(o.name)
+-LOG TrimStructuredStr
+-STATEMENT MATCH (o:organisation) RETURN trim(o.name)
 ---- 3
 ABFsUni
 CsWork
 DEsWork
 
--NAME LtrimStructuredStr
--QUERY MATCH (o:organisation) RETURN ltrim(o.name)
+-LOG LtrimStructuredStr
+-STATEMENT MATCH (o:organisation) RETURN ltrim(o.name)
 ---- 3
 ABFsUni
 CsWork
 DEsWork
 
--NAME RtrimStructuredStr
--QUERY MATCH (o:organisation) RETURN rtrim(o.name)
+-LOG RtrimStructuredStr
+-STATEMENT MATCH (o:organisation) RETURN rtrim(o.name)
 ---- 3
 ABFsUni
 CsWork
 DEsWork
 
--NAME ReverseStructuredStr
--QUERY MATCH (o:organisation) RETURN reverse(o.name)
+-LOG ReverseStructuredStr
+-STATEMENT MATCH (o:organisation) RETURN reverse(o.name)
 ---- 3
 inUsFBA
 kroWsC
 kroWsED
 
--NAME ReverseUTF8String
--QUERY MATCH (m:movies) RETURN reverse(m.name)
+-LOG ReverseUTF8String
+-STATEMENT MATCH (m:movies) RETURN reverse(m.name)
 ---- 3
 âjeráp ut nóc ólóS
 eivom 🚗🍞🌦️🌍🧘🏻‍♂️😃😂 ehT
 amoR
 
--NAME LengthStructuredStr
--QUERY MATCH (o:organisation) RETURN length(o.name)
+-LOG LengthStructuredStr
+-STATEMENT MATCH (o:organisation) RETURN length(o.name)
 ---- 3
 7
 6
 7
 
--NAME RepeatStructuredStr
--QUERY MATCH (o:organisation) RETURN repeat(o.name, o.ID)
+-LOG RepeatStructuredStr
+-STATEMENT MATCH (o:organisation) RETURN repeat(o.name, o.ID)
 ---- 3
 ABFsUni
 CsWorkCsWorkCsWorkCsWork
 DEsWorkDEsWorkDEsWorkDEsWorkDEsWorkDEsWork
 
--NAME LpadStructuredStrAndLiteralInt
--QUERY MATCH (p:person) RETURN lpad(p.fName, 5, "<")
+-LOG LpadStructuredStrAndLiteralInt
+-STATEMENT MATCH (p:person) RETURN lpad(p.fName, 5, "<")
 ---- 8
 Alice
 <<Bob
@@ -240,22 +240,22 @@ Faroo
 <Greg
 Huber
 
--NAME LpadUTF8String
--QUERY MATCH (m:movies) RETURN lpad(m.name, 25, "âó")
+-LOG LpadUTF8String
+-STATEMENT MATCH (m:movies) RETURN lpad(m.name, 25, "âó")
 ---- 3
 âóâóâóâSóló cón tu párejâ
 âóâThe 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie
 âóâóâóâóâóâóâóâóâóâóâRoma
 
--NAME LpadNegativeCount
--QUERY MATCH (m:movies) RETURN lpad(m.name, -1, ".")
+-LOG LpadNegativeCount
+-STATEMENT MATCH (m:movies) RETURN lpad(m.name, -1, ".")
 ---- 3
 
 
 
 
--NAME LpadOutOfRange
--QUERY MATCH (p:person) RETURN lpad(p.fName, -10, "t")
+-LOG LpadOutOfRange
+-STATEMENT MATCH (p:person) RETURN lpad(p.fName, -10, "t")
 ---- 8
 
 
@@ -266,8 +266,8 @@ Huber
 
 
 
--NAME RpadStructuredStrAndLiteralInt
--QUERY MATCH (p:person) RETURN rpad(p.fName, 15, ">")
+-LOG RpadStructuredStrAndLiteralInt
+-STATEMENT MATCH (p:person) RETURN rpad(p.fName, 15, ">")
 ---- 8
 Alice>>>>>>>>>>
 Bob>>>>>>>>>>>>
@@ -278,22 +278,22 @@ Farooq>>>>>>>>>
 Greg>>>>>>>>>>>
 Hubert Blaine W
 
--NAME RpadUTF8String
--QUERY MATCH (m:movies) RETURN rpad(m.name, 45, "âó😂😃🍞🚗")
+-LOG RpadUTF8String
+-STATEMENT MATCH (m:movies) RETURN rpad(m.name, 45, "âó😂😃🍞🚗")
 ---- 3
 Sóló cón tu párejââó😂😃🍞🚗âó😂😃🍞🚗âó😂😃🍞🚗âó😂😃🍞🚗âó😂
 The 😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movieâó😂😃🍞🚗âó😂😃🍞🚗âó😂😃🍞🚗âó😂😃🍞
 Romaâó😂😃🍞🚗âó😂😃🍞🚗âó😂😃🍞🚗âó😂😃🍞🚗âó😂😃🍞🚗âó😂😃🍞🚗âó😂😃🍞
 
--NAME RpadNegativeCount
--QUERY MATCH (m:movies) RETURN rpad(m.name, -1, "âó😂😃🍞🚗")
+-LOG RpadNegativeCount
+-STATEMENT MATCH (m:movies) RETURN rpad(m.name, -1, "âó😂😃🍞🚗")
 ---- 3
 
 
 
 
--NAME RpadStructuredStrAndStructuredInt
--QUERY MATCH (p:person) RETURN rpad(p.fName, p.ID, "<")
+-LOG RpadStructuredStrAndStructuredInt
+-STATEMENT MATCH (p:person) RETURN rpad(p.fName, p.ID, "<")
 ---- 8
 
 Bo
@@ -304,15 +304,15 @@ Farooq<<
 Greg<<<<<
 Hubert Bla
 
--NAME RpadOutOfRange
--QUERY MATCH (o:organisation) RETURN rpad(o.name, -8, "y")
+-LOG RpadOutOfRange
+-STATEMENT MATCH (o:organisation) RETURN rpad(o.name, -8, "y")
 ---- 3
 
 
 
 
--NAME SubStrStructuredStrAndLiteralInt
--QUERY MATCH (p:person) RETURN substr(p.fName, 2, 12)
+-LOG SubStrStructuredStrAndLiteralInt
+-STATEMENT MATCH (p:person) RETURN substr(p.fName, 2, 12)
 ---- 8
 lice
 ob
@@ -323,8 +323,8 @@ arooq
 reg
 ubert Blaine
 
--NAME LeftPositiveIdxStructuredStrAndLiteralInt
--QUERY MATCH (p:person) RETURN left(p.fName, 11)
+-LOG LeftPositiveIdxStructuredStrAndLiteralInt
+-STATEMENT MATCH (p:person) RETURN left(p.fName, 11)
 ---- 8
 Alice
 Bob
@@ -335,22 +335,22 @@ Farooq
 Greg
 Hubert Blai
 
--NAME LeftPositiveIdxUTF8String
--QUERY MATCH (m:movies) RETURN left(m.name, 6)
+-LOG LeftPositiveIdxUTF8String
+-STATEMENT MATCH (m:movies) RETURN left(m.name, 6)
 ---- 3
 Sóló c
 The 😂😃
 Roma
 
--NAME LeftPositiveIdxStructuredStrAndStructuredInt
--QUERY MATCH (o:organisation) RETURN left(o.name, o.ID)
+-LOG LeftPositiveIdxStructuredStrAndStructuredInt
+-STATEMENT MATCH (o:organisation) RETURN left(o.name, o.ID)
 ---- 3
 A
 CsWo
 DEsWor
 
--NAME LeftNegativeIdxStructuredStrAndLiteralInt
--QUERY MATCH (p:person) RETURN left(p.fName, -4)
+-LOG LeftNegativeIdxStructuredStrAndLiteralInt
+-STATEMENT MATCH (p:person) RETURN left(p.fName, -4)
 ---- 8
 A
 
@@ -361,14 +361,14 @@ Fa
 
 Hubert Blaine Wolfeschlegelsteinhausenbergerd
 
--NAME LeftNegativeIdxUTF8String
--QUERY MATCH (m:movies) RETURN left(m.name, -7)
+-LOG LeftNegativeIdxUTF8String
+-STATEMENT MATCH (m:movies) RETURN left(m.name, -7)
 ---- 3
 Sóló cón tu
 The 😂😃🧘🏻‍♂️🌍🌦️🍞
 
--NAME RightPositiveIdxStructuredStrAndLiteralInt
--QUERY MATCH (p:person) RETURN right(p.fName, 10)
+-LOG RightPositiveIdxStructuredStrAndLiteralInt
+-STATEMENT MATCH (p:person) RETURN right(p.fName, 10)
 ---- 8
 Alice
 Bob
@@ -379,22 +379,22 @@ Farooq
 Greg
 ergerdorff
 
--NAME RightPositiveIdxUTF8String
--QUERY MATCH (m:movies) RETURN right(m.name, 5)
+-LOG RightPositiveIdxUTF8String
+-STATEMENT MATCH (m:movies) RETURN right(m.name, 5)
 ---- 3
 árejâ
 movie
 Roma
 
--NAME RightPositiveIdxStructuredStrAndStructuredInt
--QUERY MATCH (o:organisation) RETURN right(o.name, o.ID)
+-LOG RightPositiveIdxStructuredStrAndStructuredInt
+-STATEMENT MATCH (o:organisation) RETURN right(o.name, o.ID)
 ---- 3
 i
 Work
 EsWork
 
--NAME RightNegativeIdxStructuredStrAndLiteralInt
--QUERY MATCH (p:person) RETURN right(p.fName, -4)
+-LOG RightNegativeIdxStructuredStrAndLiteralInt
+-STATEMENT MATCH (p:person) RETURN right(p.fName, -4)
 ---- 8
 e
 
@@ -405,57 +405,57 @@ oq
 
 rt Blaine Wolfeschlegelsteinhausenbergerdorff
 
--NAME RightNegativeIdxUTF8String
--QUERY MATCH (m:movies) RETURN right(m.name, -3)
+-LOG RightNegativeIdxUTF8String
+-STATEMENT MATCH (m:movies) RETURN right(m.name, -3)
 ---- 3
 ó cón tu párejâ
  😂😃🧘🏻‍♂️🌍🌦️🍞🚗 movie
 a
 
--NAME ArrayExtractPositiveIdxStructuredStrAndStructuredInt
--QUERY MATCH (o:organisation) RETURN array_extract(o.name, o.ID + 2)
+-LOG ArrayExtractPositiveIdxStructuredStrAndStructuredInt
+-STATEMENT MATCH (o:organisation) RETURN array_extract(o.name, o.ID + 2)
 ---- 3
 F
 k
 k
 
--NAME ArrayExtractNegativeIdxStructuredStrAndStructuredInt
--QUERY MATCH (o:organisation) RETURN array_extract(o.name, o.ID - 5)
+-LOG ArrayExtractNegativeIdxStructuredStrAndStructuredInt
+-STATEMENT MATCH (o:organisation) RETURN array_extract(o.name, o.ID - 5)
 ---- 3
 s
 k
 D
 
--NAME ArrayExtractUTF8PositiveIdx
--QUERY MATCH (m:movies) RETURN array_extract(m.name, 6)
+-LOG ArrayExtractUTF8PositiveIdx
+-STATEMENT MATCH (m:movies) RETURN array_extract(m.name, 6)
 ---- 3
 c
 😃
 a
 
--NAME ArrayExtractUTF8NegativeIdx
--QUERY MATCH (m:movies) RETURN array_extract(m.name, -5)
+-LOG ArrayExtractUTF8NegativeIdx
+-STATEMENT MATCH (m:movies) RETURN array_extract(m.name, -5)
 ---- 3
 á
 m
 R
 
--NAME ArrayExtractUTF8ZeroIdx
--QUERY MATCH (m:movies) RETURN array_extract(m.name, 0)
+-LOG ArrayExtractUTF8ZeroIdx
+-STATEMENT MATCH (m:movies) RETURN array_extract(m.name, 0)
 ---- 3
 
 
 
 
--NAME ListExtractStructuredString
--QUERY MATCH (o:organisation) RETURN o.name[2]
+-LOG ListExtractStructuredString
+-STATEMENT MATCH (o:organisation) RETURN o.name[2]
 ---- 3
 B
 s
 E
 
--NAME ListExtractOutOfRange
--QUERY MATCH (a:person) RETURN a.fName[8]
+-LOG ListExtractOutOfRange
+-STATEMENT MATCH (a:person) RETURN a.fName[8]
 ---- 8
 
 
@@ -466,123 +466,123 @@ t
 
 B
 
--NAME ListExtractNegativeIndex
--QUERY MATCH (o:organisation) RETURN o.name[-2]
+-LOG ListExtractNegativeIndex
+-STATEMENT MATCH (o:organisation) RETURN o.name[-2]
 ---- 3
 n
 r
 r
 
--NAME ListExtractUTF8PositiveIdx
--QUERY MATCH (m:movies) RETURN m.name[2]
+-LOG ListExtractUTF8PositiveIdx
+-STATEMENT MATCH (m:movies) RETURN m.name[2]
 ---- 3
 ó
 h
 o
 
--NAME ListExtractUTF8NegativeIdx
--QUERY MATCH (m:movies) RETURN m.name[-5]
+-LOG ListExtractUTF8NegativeIdx
+-STATEMENT MATCH (m:movies) RETURN m.name[-5]
 ---- 3
 á
 m
 R
 
--NAME ListExtractUTF8ZeroIdx
--QUERY MATCH (m:movies) RETURN m.name[0]
+-LOG ListExtractUTF8ZeroIdx
+-STATEMENT MATCH (m:movies) RETURN m.name[0]
 ---- 3
 
 
 
 
--NAME SuffixStructuredStr
--QUERY MATCH (o:organisation) RETURN suffix(o.name, "Work")
+-LOG SuffixStructuredStr
+-STATEMENT MATCH (o:organisation) RETURN suffix(o.name, "Work")
 ---- 3
 False
 True
 True
 
--NAME SuffixSelect
--QUERY MATCH (p:person) WHERE suffix(p.fName, "l") RETURN p.fName
+-LOG SuffixSelect
+-STATEMENT MATCH (p:person) WHERE suffix(p.fName, "l") RETURN p.fName
 ---- 1
 Carol
 
--NAME RegexpFullMatchString
--QUERY MATCH (a:person) WHERE a.fName =~ 'Ali.*' RETURN a.ID
+-LOG RegexpFullMatchString
+-STATEMENT MATCH (a:person) WHERE a.fName =~ 'Ali.*' RETURN a.ID
 ---- 1
 0
 
--NAME RegexpFullMatchAnchorString
--QUERY MATCH (a:person) UNWIND a.usedNames as x WITH x AS name WHERE name =~ '^A.*$' RETURN name
+-LOG RegexpFullMatchAnchorString
+-STATEMENT MATCH (a:person) UNWIND a.usedNames as x WITH x AS name WHERE name =~ '^A.*$' RETURN name
 ---- 2
 Ad
 Aida
 
--NAME RegexpFullMatchUTF8String
--QUERY MATCH (m:movies) WHERE m.name =~ '.*â.*' RETURN m.name
+-LOG RegexpFullMatchUTF8String
+-STATEMENT MATCH (m:movies) WHERE m.name =~ '.*â.*' RETURN m.name
 ---- 1
 Sóló cón tu párejâ
 
--NAME RegexpFullMatchEscapeSeq1
--QUERY Return REGEXP_FULL_MATCH("peter_n@example.com", ".*\\.com");
+-LOG RegexpFullMatchEscapeSeq1
+-STATEMENT Return REGEXP_FULL_MATCH("peter_n@example.com", ".*\\.com");
 ---- 1
 True
 
--NAME RegexpFullMatchEscapeSeq2
--QUERY Return REGEXP_FULL_MATCH("Alice.*^Alice", ".*\\.\\*.*");
+-LOG RegexpFullMatchEscapeSeq2
+-STATEMENT Return REGEXP_FULL_MATCH("Alice.*^Alice", ".*\\.\\*.*");
 ---- 1
 True
 
--NAME RegexpFullMatchEscapeSeq3
--QUERY Return REGEXP_FULL_MATCH("peter_n@examplecom", ".*\\.com");
+-LOG RegexpFullMatchEscapeSeq3
+-STATEMENT Return REGEXP_FULL_MATCH("peter_n@examplecom", ".*\\.com");
 ---- 1
 False
 
--NAME RegexpMatchesString
--QUERY MATCH (a:person) WHERE REGEXP_MATCHES(a.fName, 'Ali.*') = true RETURN a.ID
+-LOG RegexpMatchesString
+-STATEMENT MATCH (a:person) WHERE REGEXP_MATCHES(a.fName, 'Ali.*') = true RETURN a.ID
 ---- 1
 0
 
--NAME RegexpMatchesSeq1
--QUERY Return REGEXP_MATCHES('anabanana', '(an)*');
+-LOG RegexpMatchesSeq1
+-STATEMENT Return REGEXP_MATCHES('anabanana', '(an)*');
 ---- 1
 True
 
--NAME RegexpReplaceSeq1
--QUERY Return REGEXP_REPLACE('hello', '[lo]', '-');
+-LOG RegexpReplaceSeq1
+-STATEMENT Return REGEXP_REPLACE('hello', '[lo]', '-');
 ---- 1
 he-lo
 
--NAME RegexpExtractWithoutGroup
--QUERY Return regexp_extract('hello_world', '([a-z ]+)_?');
+-LOG RegexpExtractWithoutGroup
+-STATEMENT Return regexp_extract('hello_world', '([a-z ]+)_?');
 ---- 1
 hello_
 
--NAME RegexpExtractWithGroup
--QUERY Return regexp_extract('hello_world', '([a-z ]+)_?', 1);
+-LOG RegexpExtractWithGroup
+-STATEMENT Return regexp_extract('hello_world', '([a-z ]+)_?', 1);
 ---- 1
 hello
 
--NAME RegexpExtractAllLongString
--QUERY Return regexp_extract('hellolongstringtest_worldlongstringtest', '([a-z ]+)_?', 1);
+-LOG RegexpExtractAllLongString
+-STATEMENT Return regexp_extract('hellolongstringtest_worldlongstringtest', '([a-z ]+)_?', 1);
 ---- 1
 hellolongstringtest
 
--NAME RegexpExtractAllWithoutGroup
--QUERY Return regexp_extract_all('hello_world', '([a-z ]+)_?');
+-LOG RegexpExtractAllWithoutGroup
+-STATEMENT Return regexp_extract_all('hello_world', '([a-z ]+)_?');
 ---- 1
 [hello_,world]
 
--NAME RegexpExtractAllWithGroup
--QUERY Return regexp_extract_all('hello_world', '([a-z ]+)_?', 1);
+-LOG RegexpExtractAllWithGroup
+-STATEMENT Return regexp_extract_all('hello_world', '([a-z ]+)_?', 1);
 ---- 1
 [hello,world]
 
--NAME RegexpExtractAllLongString
--QUERY Return regexp_extract_all('hellolongstringtest_worldlongstringtest', '([a-z ]+)_?', 1);
+-LOG RegexpExtractAllLongString
+-STATEMENT Return regexp_extract_all('hellolongstringtest_worldlongstringtest', '([a-z ]+)_?', 1);
 ---- 1
 [hellolongstringtest,worldlongstringtest]
 
--NAME RegexpExtractAllEmptyMatch
--QUERY Return regexp_extract_all('hello', '()', 1);
+-LOG RegexpExtractAllEmptyMatch
+-STATEMENT Return regexp_extract_all('hello', '()', 1);
 ---- 1
 [,,,,,]

@@ -34,12 +34,15 @@ public:
 };
 
 struct CopyNodeLocalState {
-    CopyNodeLocalState(common::CopyDescription copyDesc, storage::NodeTable* table,
+    CopyNodeLocalState(const common::CopyDescription& copyDesc, storage::NodeTable* table,
         storage::RelsStore* relsStore, catalog::Catalog* catalog, storage::WAL* wal,
-        DataPos offsetVectorPos, std::vector<DataPos> arrowColumnPoses)
-        : copyDesc{std::move(copyDesc)}, table{table}, relsStore{relsStore}, catalog{catalog},
-          wal{wal}, offsetVectorPos{std::move(offsetVectorPos)}, arrowColumnPoses{
-                                                                     std::move(arrowColumnPoses)} {}
+        const DataPos& offsetVectorPos, std::vector<DataPos> arrowColumnPoses)
+        : copyDesc{copyDesc}, table{table}, relsStore{relsStore}, catalog{catalog}, wal{wal},
+          offsetVectorPos{offsetVectorPos}, offsetVector{nullptr}, arrowColumnPoses{std::move(
+                                                                       arrowColumnPoses)} {}
+
+    std::pair<common::offset_t, common::offset_t> getStartAndEndOffset(
+        common::vector_idx_t columnIdx);
 
     common::CopyDescription copyDesc;
     storage::NodeTable* table;
@@ -88,6 +91,12 @@ public:
             sharedState, resultSetDescriptor->copy(), children[0]->clone(), id, paramsString);
     }
 
+protected:
+    void populatePKIndex(storage::InMemColumnChunk* chunk, storage::InMemOverflowFile* overflowFile,
+        common::offset_t startOffset, uint64_t numValues);
+
+    void logCopyWALRecord();
+
 private:
     inline bool isCopyAllowed() {
         auto nodesStatistics = localState->table->getNodeStatisticsAndDeletedIDs();
@@ -105,10 +114,7 @@ private:
         throw common::CopyException("appendToPKIndex1 not implemented");
     }
 
-    void populatePKIndex(storage::InMemColumnChunk* chunk, storage::InMemOverflowFile* overflowFile,
-        common::offset_t startOffset, uint64_t numValues);
-
-private:
+protected:
     std::unique_ptr<CopyNodeLocalState> localState;
     std::shared_ptr<CopyNodeSharedState> sharedState;
 };

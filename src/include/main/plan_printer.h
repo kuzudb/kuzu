@@ -88,7 +88,8 @@ private:
 class PlanPrinter {
 
 public:
-    PlanPrinter(processor::PhysicalPlan* physicalPlan, std::unique_ptr<common::Profiler> profiler);
+    PlanPrinter(processor::PhysicalPlan* physicalPlan, common::Profiler* profiler)
+        : physicalPlan{physicalPlan}, profiler{profiler} {};
 
     nlohmann::json printPlanToJson();
 
@@ -104,7 +105,7 @@ private:
 
 private:
     processor::PhysicalPlan* physicalPlan;
-    std::unique_ptr<common::Profiler> profiler;
+    common::Profiler* profiler;
 };
 
 } // namespace main

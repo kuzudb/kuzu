@@ -138,13 +138,12 @@ TestStatement* TestParser::extractStatement(TestStatement* statement) {
     }
     tokenize();
     switch (currentToken.type) {
-    case TokenType::NAME: {
+    case TokenType::LOG: {
         checkMinimumParams(1);
-        statement->name = currentToken.params[1];
+        statement->logMessage = paramsToString(1);
         break;
     }
-    case TokenType::STATEMENT:
-    case TokenType::QUERY: {
+    case TokenType::STATEMENT: {
         std::string query = paramsToString(1);
         query += extractTextBeforeNextStatement(true);
         replaceVariables(query);
@@ -202,7 +201,7 @@ void TestParser::extractStatementBlock() {
 }
 
 std::string TestParser::parseCommand() {
-    // REPEAT 3 "Alice " = "Alice Alice Alice "
+    // REPEAT 3 "col${count}, " = "col0, col1, col2, "
     if (currentToken.params[2] == "REPEAT") {
         checkMinimumParams(4);
         return parseCommandRepeat();
@@ -226,8 +225,10 @@ std::string TestParser::parseCommandRepeat() {
     if (repeatString.empty()) {
         throw TestException("Invalid DEFINE data type [" + path + ":" + line + "].");
     }
-    for (auto i = 0; i < times; i++) {
-        result += repeatString;
+    for (auto i = 1; i <= times; i++) {
+        auto stringToAppend = repeatString;
+        StringUtils::replaceAll(stringToAppend, "${count}", std::to_string(i));
+        result += stringToAppend;
     }
     return result;
 }
@@ -265,7 +266,7 @@ void TestParser::parseBody() {
             variableMap[currentToken.params[1]] = parseCommand();
             break;
         }
-        case TokenType::STATEMENT_BLOCK: {
+        case TokenType::INSERT_STATEMENT_BLOCK: {
             checkMinimumParams(1);
             addStatementBlock(currentToken.params[1], testCaseName);
             break;

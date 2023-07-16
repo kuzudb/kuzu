@@ -109,7 +109,7 @@ public:
     static std::shared_ptr<arrow::csv::StreamingReader> createCSVReader(const std::string& filePath,
         common::CSVReaderConfig* csvReaderConfig, catalog::TableSchema* tableSchema);
     static std::unique_ptr<parquet::arrow::FileReader> createParquetReader(
-        const std::string& filePath);
+        const std::string& filePath, catalog::TableSchema* tableSchema);
 
     static common::tuple_idx_t countNumLines(common::CopyDescription& copyDescription,
         catalog::TableSchema* tableSchema,
@@ -132,6 +132,7 @@ private:
         std::unordered_map<std::string, FileBlockInfo>& fileBlockInfos);
     static std::unique_ptr<common::Value> convertStringToValue(std::string element,
         const common::LogicalType& type, const common::CopyDescription& copyDescription);
+    static std::vector<std::string> getColumnNamesToRead(catalog::TableSchema* tableSchema);
 };
 
 } // namespace storage

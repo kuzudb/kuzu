@@ -6,12 +6,14 @@
 #include <stack>
 
 #include "common/constants.h"
-#include "storage/buffer_manager/buffer_manager.h"
+#include "common/types/types.h"
 
 namespace kuzu {
 namespace storage {
 
 class MemoryAllocator;
+class BMFileHandle;
+class BufferManager;
 
 class MemoryBuffer {
 public:

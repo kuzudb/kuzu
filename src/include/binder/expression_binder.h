@@ -22,28 +22,39 @@ public:
     static void resolveAnyDataType(Expression& expression, const common::LogicalType& targetType);
 
 private:
+    // Boolean expressions.
     std::shared_ptr<Expression> bindBooleanExpression(
         const parser::ParsedExpression& parsedExpression);
     std::shared_ptr<Expression> bindBooleanExpression(
         common::ExpressionType expressionType, const expression_vector& children);
-
+    std::shared_ptr<Expression> combineConjunctiveExpressions(
+        std::shared_ptr<Expression> left, std::shared_ptr<Expression> right);
+    // Comparison expressions.
     std::shared_ptr<Expression> bindComparisonExpression(
         const parser::ParsedExpression& parsedExpression);
     std::shared_ptr<Expression> bindComparisonExpression(
         common::ExpressionType expressionType, const expression_vector& children);
-
+    std::shared_ptr<Expression> createEqualityComparisonExpression(
+        std::shared_ptr<Expression> left, std::shared_ptr<Expression> right);
+    // Null operator expressions.
     std::shared_ptr<Expression> bindNullOperatorExpression(
         const parser::ParsedExpression& parsedExpression);
-
+    // Property expressions.
+    expression_vector bindPropertyStarExpression(const parser::ParsedExpression& parsedExpression);
+    expression_vector bindNodePropertyStarExpression(const Expression& child);
+    expression_vector bindRelPropertyStarExpression(const Expression& child);
+    expression_vector bindStructPropertyStarExpression(std::shared_ptr<Expression> child);
     std::shared_ptr<Expression> bindPropertyExpression(
         const parser::ParsedExpression& parsedExpression);
     std::shared_ptr<Expression> bindNodePropertyExpression(
-        const Expression& expression, const std::string& propertyName);
+        const Expression& child, const std::string& propertyName);
     std::shared_ptr<Expression> bindRelPropertyExpression(
-        const Expression& expression, const std::string& propertyName);
+        const Expression& child, const std::string& propertyName);
+    std::shared_ptr<Expression> bindStructPropertyExpression(
+        std::shared_ptr<Expression> child, const std::string& propertyName);
     std::unique_ptr<Expression> createPropertyExpression(const Expression& nodeOrRel,
         const std::vector<catalog::Property>& propertyName, bool isPrimaryKey);
-
+    // Function expressions.
     std::shared_ptr<Expression> bindFunctionExpression(
         const parser::ParsedExpression& parsedExpression);
 
@@ -64,23 +75,24 @@ private:
     std::shared_ptr<Expression> bindLabelFunction(const Expression& expression);
     std::unique_ptr<Expression> createInternalLengthExpression(const Expression& expression);
     std::shared_ptr<Expression> bindRecursiveJoinLengthFunction(const Expression& expression);
-
+    // Parameter expressions.
     std::shared_ptr<Expression> bindParameterExpression(
         const parser::ParsedExpression& parsedExpression);
-
+    // Literal expressions.
     std::shared_ptr<Expression> bindLiteralExpression(
         const parser::ParsedExpression& parsedExpression);
     std::shared_ptr<Expression> createLiteralExpression(std::unique_ptr<common::Value> value);
+    std::shared_ptr<Expression> createStringLiteralExpression(const std::string& strVal);
     std::shared_ptr<Expression> createNullLiteralExpression();
-
+    // Variable expressions.
     std::shared_ptr<Expression> bindVariableExpression(
         const parser::ParsedExpression& parsedExpression);
     std::shared_ptr<Expression> createVariableExpression(
         common::LogicalType logicalType, std::string uniqueName, std::string name);
-
+    // Subquery expressions.
     std::shared_ptr<Expression> bindExistentialSubqueryExpression(
         const parser::ParsedExpression& parsedExpression);
-
+    // Case expressions.
     std::shared_ptr<Expression> bindCaseExpression(
         const parser::ParsedExpression& parsedExpression);
 

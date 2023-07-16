@@ -245,11 +245,7 @@ pub(crate) mod ffi {
         #[rust_name = "get_value_double"]
         fn getValue(&self) -> f64;
 
-        fn value_get_string(value: &Value) -> String;
-        #[rust_name = "value_get_node_val"]
-        fn value_get_unique(value: &Value) -> UniquePtr<NodeVal>;
-        #[rust_name = "value_get_rel_val"]
-        fn value_get_unique(value: &Value) -> UniquePtr<RelVal>;
+        fn value_get_string(value: &Value) -> &CxxString;
         fn value_get_interval_secs(value: &Value) -> i64;
         fn value_get_interval_micros(value: &Value) -> i32;
         fn value_get_timestamp_micros(value: &Value) -> i64;
@@ -276,27 +272,29 @@ pub(crate) mod ffi {
         fn create_value(value: f64) -> UniquePtr<Value>;
 
         fn create_value_null(typ: UniquePtr<LogicalType>) -> UniquePtr<Value>;
-        fn create_value_string(value: &String) -> UniquePtr<Value>;
+        fn create_value_string(typ: LogicalTypeID, value: &[u8]) -> UniquePtr<Value>;
         fn create_value_timestamp(value: i64) -> UniquePtr<Value>;
         fn create_value_date(value: i64) -> UniquePtr<Value>;
         fn create_value_interval(months: i32, days: i32, micros: i64) -> UniquePtr<Value>;
         fn create_value_internal_id(offset: u64, table: u64) -> UniquePtr<Value>;
-        fn create_value_node(
-            id_val: UniquePtr<Value>,
-            label_val: UniquePtr<Value>,
-        ) -> UniquePtr<Value>;
-        fn create_value_rel(
-            src_id: UniquePtr<Value>,
-            dst_id: UniquePtr<Value>,
-            label_val: UniquePtr<Value>,
-        ) -> UniquePtr<Value>;
 
-        fn value_add_property(value: Pin<&mut Value>, name: &String, property: UniquePtr<Value>);
+        fn node_value_get_properties(node_value: &Value) -> UniquePtr<NodeValuePropertyList>;
+        fn node_value_get_node_id(value: &Value) -> [u64; 2];
+        fn node_value_get_label_name(value: &Value) -> String;
+
+        fn rel_value_get_properties(node_value: &Value) -> UniquePtr<RelValuePropertyList>;
+        fn rel_value_get_label_name(value: &Value) -> String;
+
+        fn rel_value_get_src_id(value: &Value) -> [u64; 2];
+        fn rel_value_get_dst_id(value: &Value) -> [u64; 2];
+
+        fn recursive_rel_get_nodes(value: &Value) -> &Value;
+        fn recursive_rel_get_rels(value: &Value) -> &Value;
     }
 
     #[namespace = "kuzu_rs"]
     unsafe extern "C++" {
-        type PropertyList<'a>;
+        type NodeValuePropertyList<'a>;
 
         fn size<'a>(&'a self) -> usize;
         fn get_name<'a>(&'a self, index: usize) -> String;
@@ -305,27 +303,10 @@ pub(crate) mod ffi {
 
     #[namespace = "kuzu_rs"]
     unsafe extern "C++" {
-        #[namespace = "kuzu::common"]
-        type NodeVal;
+        type RelValuePropertyList<'a>;
 
-        #[rust_name = "node_value_get_properties"]
-        fn value_get_properties(node_value: &NodeVal) -> UniquePtr<PropertyList>;
-        fn node_value_get_node_id(value: &NodeVal) -> [u64; 2];
-        #[rust_name = "node_value_get_label_name"]
-        fn value_get_label_name(value: &NodeVal) -> String;
-    }
-
-    #[namespace = "kuzu_rs"]
-    unsafe extern "C++" {
-        #[namespace = "kuzu::common"]
-        type RelVal;
-
-        #[rust_name = "rel_value_get_properties"]
-        fn value_get_properties(node_value: &RelVal) -> UniquePtr<PropertyList>;
-        #[rust_name = "rel_value_get_label_name"]
-        fn value_get_label_name(value: &RelVal) -> String;
-
-        fn rel_value_get_src_id(value: &RelVal) -> [u64; 2];
-        fn rel_value_get_dst_id(value: &RelVal) -> [u64; 2];
+        fn size<'a>(&'a self) -> usize;
+        fn get_name<'a>(&'a self, index: usize) -> String;
+        fn get_value<'a>(&'a self, index: usize) -> &'a Value;
     }
 }

@@ -8,15 +8,10 @@ void LogicalProjection::computeFactorizedSchema() {
     schema = childSchema->copy();
     schema->clearExpressionsInScope();
     for (auto& expression : expressions) {
-        // E.g. RETURN MIN(a.age), MAX(a.age). We first project each expression in aggregate. So
-        // a.age might be projected twice.
-        if (schema->isExpressionInScope(*expression)) {
-            continue;
-        }
         auto groupPos = INVALID_F_GROUP_POS;
         if (childSchema->isExpressionInScope(*expression)) { // expression to reference
             groupPos = childSchema->getGroupPos(*expression);
-            schema->insertToScope(expression, groupPos);
+            schema->insertToScopeMayRepeat(expression, groupPos);
         } else { // expression to evaluate
             auto dependentGroupPos = childSchema->getDependentGroupsPos(expression);
             SchemaUtils::validateAtMostOneUnFlatGroup(dependentGroupPos, *childSchema);
@@ -26,7 +21,7 @@ void LogicalProjection::computeFactorizedSchema() {
             } else {
                 groupPos = SchemaUtils::getLeadingGroupPos(dependentGroupPos, *childSchema);
             }
-            schema->insertToGroupAndScope(expression, groupPos);
+            schema->insertToGroupAndScopeMayRepeat(expression, groupPos);
         }
     }
 }
@@ -36,13 +31,10 @@ void LogicalProjection::computeFlatSchema() {
     auto childSchema = children[0]->getSchema();
     schema->clearExpressionsInScope();
     for (auto& expression : expressions) {
-        if (schema->isExpressionInScope(*expression)) {
-            continue;
-        }
         if (childSchema->isExpressionInScope(*expression)) {
-            schema->insertToScope(expression, 0);
+            schema->insertToScopeMayRepeat(expression, 0);
         } else {
-            schema->insertToGroupAndScope(expression, 0);
+            schema->insertToGroupAndScopeMayRepeat(expression, 0);
         }
     }
 }

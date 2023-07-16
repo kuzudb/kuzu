@@ -4,11 +4,15 @@ add_library(kuzu_processor_mapper
         map_accumulate.cpp
         map_aggregate.cpp
         map_acc_hash_join.cpp
+        map_standalone_call.cpp
+        map_in_query_call.cpp
+        map_copy.cpp
         map_create.cpp
         map_cross_product.cpp
         map_ddl.cpp
         map_delete.cpp
         map_distinct.cpp
+        map_explain.cpp
         map_expressions_scan.cpp
         map_extend.cpp
         map_filter.cpp

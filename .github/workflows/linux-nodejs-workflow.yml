@@ -2,6 +2,7 @@ name: Build-Linux-NodeJS-Module
 
 on:
   workflow_dispatch:
+  workflow_call:
 
 jobs:
   build-linux-nodejs:

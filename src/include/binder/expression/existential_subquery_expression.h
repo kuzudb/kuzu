@@ -23,8 +23,9 @@ public:
     }
     inline bool hasWhereExpression() const { return whereExpression != nullptr; }
     inline std::shared_ptr<Expression> getWhereExpression() const { return whereExpression; }
-
-    expression_vector getChildren() const override;
+    inline expression_vector getPredicatesSplitOnAnd() const {
+        return hasWhereExpression() ? whereExpression->splitOnAND() : expression_vector{};
+    }
 
     std::string toString() const override { return rawName; }
 

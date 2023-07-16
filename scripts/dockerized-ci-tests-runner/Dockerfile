@@ -4,8 +4,9 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Install dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends apt-utils curl ca-certificates apt-transport-https gnupg software-properties-common
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
-RUN apt-get update && apt-get install -y g++ gcc clang-14 python3-dev python3-pip python-is-python3 cmake nodejs jq curl sudo git clang-format-11 lsb-release wget lcov libssl-dev libcurl4-openssl-dev rustfmt rustc cargo
+RUN apt-get update && apt-get install -y g++ gcc clang-14 python3-dev python3-pip python-is-python3 cmake nodejs jq curl sudo git clang-format-11 lsb-release wget lcov libssl-dev libcurl4-openssl-dev rustfmt rustc cargo openjdk-17-jdk
 
+ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
 RUN useradd --create-home runner
 USER runner
 

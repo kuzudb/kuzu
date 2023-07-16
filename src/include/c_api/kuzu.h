@@ -55,23 +55,6 @@ KUZU_C_API typedef struct {
 } kuzu_value;
 
 /**
- * @brief kuzu internal node type which stores the nodeID, label and properties of a node in graph.
- */
-KUZU_C_API typedef struct {
-    void* _node_val;
-    bool _is_owned_by_cpp;
-} kuzu_node_val;
-
-/**
- * @brief kuzu internal rel type which stores the relID, src/dst nodes and properties of a rel in
- * graph.
- */
-KUZU_C_API typedef struct {
-    void* _rel_val;
-    bool _is_owned_by_cpp;
-} kuzu_rel_val;
-
-/**
  * @brief kuzu internal internal_id type which stores the table_id and offset of a node/rel.
  */
 KUZU_C_API typedef struct {
@@ -118,6 +101,11 @@ KUZU_C_API typedef enum {
     KUZU_ANY = 0,
     KUZU_NODE = 10,
     KUZU_REL = 11,
+    KUZU_RECURSIVE_REL = 12,
+    // SERIAL is a special data type that is used to represent a sequence of INT64 values that are
+    // incremented by 1 starting from 0.
+    KUZU_SERIAL = 13,
+    // fixed size types
     KUZU_BOOL = 22,
     KUZU_INT64 = 23,
     KUZU_INT32 = 24,
@@ -129,9 +117,14 @@ KUZU_C_API typedef enum {
     KUZU_INTERVAL = 30,
     KUZU_FIXED_LIST = 31,
     KUZU_INTERNAL_ID = 40,
+    KUZU_ARROW_COLUMN = 41,
+    // variable size types
     KUZU_STRING = 50,
+    KUZU_BLOB = 51,
     KUZU_VAR_LIST = 52,
     KUZU_STRUCT = 53,
+    KUZU_MAP = 54,
+    KUZU_UNION = 55,
 } kuzu_data_type_id;
 
 // Database
@@ -574,18 +567,6 @@ KUZU_C_API kuzu_value* kuzu_value_create_double(double val_);
  */
 KUZU_C_API kuzu_value* kuzu_value_create_internal_id(kuzu_internal_id_t val_);
 /**
- * @brief Creates a value with nodeVal type and the given nodeVal value. Caller is responsible for
- * destroying the returned value.
- * @param val_ The nodeVal value of the value to create.
- */
-KUZU_C_API kuzu_value* kuzu_value_create_node_val(kuzu_node_val* val_);
-/**
- * @brief Creates a value with relVal type and the given relVal value. Caller is responsible for
- * destroying the returned value.
- * @param val_ The relVal value of the value to create.
- */
-KUZU_C_API kuzu_value* kuzu_value_create_rel_val(kuzu_rel_val* val_);
-/**
  * @brief Creates a value with date type and the given date value. Caller is responsible for
  * destroying the returned value.
  * @param val_ The date value of the value to create.
@@ -644,23 +625,34 @@ KUZU_C_API kuzu_value* kuzu_value_get_list_element(kuzu_value* value, uint64_t i
  */
 KUZU_C_API uint64_t kuzu_value_get_struct_num_fields(kuzu_value* value);
 /**
- * @brief Returns the field name at index of the given struct value. The value must be of type
- * STRUCT.
+ * @brief Returns the field name at index of the given struct value. The value must be of physical
+ * type STRUCT (STRUCT, NODE, REL, RECURSIVE_REL, UNION).
  * @param value The STRUCT value to get field name.
  * @param index The index of the field name to return.
  */
 KUZU_C_API char* kuzu_value_get_struct_field_name(kuzu_value* value, uint64_t index);
 /**
- * @brief Returns the field value at index of the given struct value. The value must be of type
- * STRUCT.
+ * @brief Returns the field value at index of the given struct value. The value must be of physical
+ * type STRUCT (STRUCT, NODE, REL, RECURSIVE_REL, UNION).
  * @param value The STRUCT value to get field value.
  * @param index The index of the field value to return.
  */
 KUZU_C_API kuzu_value* kuzu_value_get_struct_field_value(kuzu_value* value, uint64_t index);
+/*
+ * @brief Returns the list of nodes for recursive rel value. The value must be of type
+ * RECURSIVE_REL.
+ */
+KUZU_C_API kuzu_value* kuzu_value_get_recursive_rel_node_list(kuzu_value* value);
+
+/*
+ * @brief Returns the list of rels for recursive rel value. The value must be of type RECURSIVE_REL.
+ */
+KUZU_C_API kuzu_value* kuzu_value_get_recursive_rel_rel_list(kuzu_value* value);
 /**
  * @brief Returns internal type of the given value.
  * @param value The value to return.
  */
+
 KUZU_C_API kuzu_logical_type* kuzu_value_get_data_type(kuzu_value* value);
 /**
  * @brief Returns the boolean value of the given value. The value must be of type BOOL.
@@ -678,7 +670,7 @@ KUZU_C_API int16_t kuzu_value_get_int16(kuzu_value* value);
  */
 KUZU_C_API int32_t kuzu_value_get_int32(kuzu_value* value);
 /**
- * @brief Returns the int64 value of the given value. The value must be of type INT64.
+ * @brief Returns the int64 value of the given value. The value must be of type INT64 or SERIAL.
  * @param value The value to return.
  */
 KUZU_C_API int64_t kuzu_value_get_int64(kuzu_value* value);
@@ -697,16 +689,6 @@ KUZU_C_API double kuzu_value_get_double(kuzu_value* value);
  * @param value The value to return.
  */
 KUZU_C_API kuzu_internal_id_t kuzu_value_get_internal_id(kuzu_value* value);
-/**
- * @brief Returns the node value of the given value. The value must be of type NODE.
- * @param value The value to return.
- */
-KUZU_C_API kuzu_node_val* kuzu_value_get_node_val(kuzu_value* value);
-/**
- * @brief Returns the rel value of the given value. The value must be of type REL.
- * @param value The value to return.
- */
-KUZU_C_API kuzu_rel_val* kuzu_value_get_rel_val(kuzu_value* value);
 /**
  * @brief Returns the date value of the given value. The value must be of type DATE.
  * @param value The value to return.
@@ -728,152 +710,106 @@ KUZU_C_API kuzu_interval_t kuzu_value_get_interval(kuzu_value* value);
  */
 KUZU_C_API char* kuzu_value_get_string(kuzu_value* value);
 /**
+ * @brief Returns the blob value of the given value. The returned buffer is null-terminated similar
+ * to a string. The value must be of type BLOB.
+ * @param value The value to return.
+ */
+KUZU_C_API uint8_t* kuzu_value_get_blob(kuzu_value* value);
+/**
  * @brief Converts the given value to string.
  * @param value The value to convert.
  */
 KUZU_C_API char* kuzu_value_to_string(kuzu_value* value);
-
-/**
- * @brief Creates a new node value.
- * @param id The internal id of the node.
- * @param label The label of the node.
- */
-KUZU_C_API kuzu_node_val* kuzu_node_val_create(kuzu_internal_id_t id, const char* label);
-/**
- * @brief Creates a new node value from the given node value.
- * @param node_val The node value to clone.
- */
-KUZU_C_API kuzu_node_val* kuzu_node_val_clone(kuzu_node_val* node_val);
-/**
- * @brief Destroys the given node value.
- * @param node_val The node value to destroy.
- */
-KUZU_C_API void kuzu_node_val_destroy(kuzu_node_val* node_val);
 /**
  * @brief Returns the internal id value of the given node value as a kuzu value.
  * @param node_val The node value to return.
  */
-KUZU_C_API kuzu_value* kuzu_node_val_get_id_val(kuzu_node_val* node_val);
+KUZU_C_API kuzu_value* kuzu_node_val_get_id_val(kuzu_value* node_val);
 /**
  * @brief Returns the label value of the given node value as a label value.
  * @param node_val The node value to return.
  */
-KUZU_C_API kuzu_value* kuzu_node_val_get_label_val(kuzu_node_val* node_val);
+KUZU_C_API kuzu_value* kuzu_node_val_get_label_val(kuzu_value* node_val);
 /**
  * @brief Returns the internal id value of the given node value as internal_id.
  * @param node_val The node value to return.
  */
-KUZU_C_API kuzu_internal_id_t kuzu_node_val_get_id(kuzu_node_val* node_val);
+KUZU_C_API kuzu_internal_id_t kuzu_node_val_get_id(kuzu_value* node_val);
 /**
  * @brief Returns the label value of the given node value as string.
  * @param node_val The node value to return.
  */
-KUZU_C_API char* kuzu_node_val_get_label_name(kuzu_node_val* node_val);
+KUZU_C_API char* kuzu_node_val_get_label_name(kuzu_value* node_val);
 /**
  * @brief Returns the number of properties of the given node value.
  * @param node_val The node value to return.
  */
-KUZU_C_API uint64_t kuzu_node_val_get_property_size(kuzu_node_val* node_val);
+KUZU_C_API uint64_t kuzu_node_val_get_property_size(kuzu_value* node_val);
 /**
  * @brief Returns the property name of the given node value at the given index.
  * @param node_val The node value to return.
  * @param index The index of the property.
  */
-KUZU_C_API char* kuzu_node_val_get_property_name_at(kuzu_node_val* node_val, uint64_t index);
+KUZU_C_API char* kuzu_node_val_get_property_name_at(kuzu_value* node_val, uint64_t index);
 /**
  * @brief Returns the property value of the given node value at the given index.
  * @param node_val The node value to return.
  * @param index The index of the property.
  */
-KUZU_C_API kuzu_value* kuzu_node_val_get_property_value_at(kuzu_node_val* node_val, uint64_t index);
-/**
- * @brief Adds the property with name to the given node value.
- * @param node_val The node value to add to.
- * @param name The name of the property.
- * @param property The property(in value format) to add.
- */
-KUZU_C_API void kuzu_node_val_add_property(
-    kuzu_node_val* node_val, const char* name, kuzu_value* property);
+KUZU_C_API kuzu_value* kuzu_node_val_get_property_value_at(kuzu_value* node_val, uint64_t index);
 /**
  * @brief Converts the given node value to string.
  * @param node_val The node value to convert.
  */
-KUZU_C_API char* kuzu_node_val_to_string(kuzu_node_val* node_val);
-
-/**
- * @brief Creates a new rel value. Caller is responsible for destroying the rel value.
- * @param src_id The internal id of the source node.
- * @param dst_id The internal id of the destination node.
- * @param label The label of the rel.
- */
-KUZU_C_API kuzu_rel_val* kuzu_rel_val_create(
-    kuzu_internal_id_t src_id, kuzu_internal_id_t dst_id, const char* label);
-/**
- * @brief Creates a new rel value from the given rel value.
- * @param rel_val The rel value to clone.
- */
-KUZU_C_API kuzu_rel_val* kuzu_rel_val_clone(kuzu_rel_val* rel_val);
-/**
- * @brief Destroys the given rel value.
- * @param rel_val The rel value to destroy.
- */
-KUZU_C_API void kuzu_rel_val_destroy(kuzu_rel_val* rel_val);
+KUZU_C_API char* kuzu_node_val_to_string(kuzu_value* node_val);
 /**
  * @brief Returns the internal id value of the source node of the given rel value as a kuzu value.
  * @param rel_val The rel value to return.
  */
-KUZU_C_API kuzu_value* kuzu_rel_val_get_src_id_val(kuzu_rel_val* rel_val);
+KUZU_C_API kuzu_value* kuzu_rel_val_get_src_id_val(kuzu_value* rel_val);
 /**
  * @brief Returns the internal id value of the destination node of the given rel value as a kuzu
  * value.
  * @param rel_val The rel value to return.
  */
-KUZU_C_API kuzu_value* kuzu_rel_val_get_dst_id_val(kuzu_rel_val* rel_val);
+KUZU_C_API kuzu_value* kuzu_rel_val_get_dst_id_val(kuzu_value* rel_val);
 /**
  * @brief Returns the internal id value of the source node of the given rel value.
  * @param rel_val The rel value to return.
  */
-KUZU_C_API kuzu_internal_id_t kuzu_rel_val_get_src_id(kuzu_rel_val* rel_val);
+KUZU_C_API kuzu_internal_id_t kuzu_rel_val_get_src_id(kuzu_value* rel_val);
 /**
  * @brief Returns the internal id value of the destination node of the given rel value.
  * @param rel_val The rel value to return.
  */
-KUZU_C_API kuzu_internal_id_t kuzu_rel_val_get_dst_id(kuzu_rel_val* rel_val);
+KUZU_C_API kuzu_internal_id_t kuzu_rel_val_get_dst_id(kuzu_value* rel_val);
 /**
  * @brief Returns the label of the given rel value.
  * @param rel_val The rel value to return.
  */
-KUZU_C_API char* kuzu_rel_val_get_label_name(kuzu_rel_val* rel_val);
+KUZU_C_API char* kuzu_rel_val_get_label_name(kuzu_value* rel_val);
 /**
  * @brief Returns the number of properties of the given rel value.
  * @param rel_val The rel value to return.
  */
-KUZU_C_API uint64_t kuzu_rel_val_get_property_size(kuzu_rel_val* rel_val);
+KUZU_C_API uint64_t kuzu_rel_val_get_property_size(kuzu_value* rel_val);
 /**
  * @brief Returns the property name of the given rel value at the given index.
  * @param rel_val The rel value to return.
  * @param index The index of the property.
  */
-KUZU_C_API char* kuzu_rel_val_get_property_name_at(kuzu_rel_val* rel_val, uint64_t index);
+KUZU_C_API char* kuzu_rel_val_get_property_name_at(kuzu_value* rel_val, uint64_t index);
 /**
  * @brief Returns the property of the given rel value at the given index as kuzu value.
  * @param rel_val The rel value to return.
  * @param index The index of the property.
  */
-KUZU_C_API kuzu_value* kuzu_rel_val_get_property_value_at(kuzu_rel_val* rel_val, uint64_t index);
-/**
- * @brief Adds the property with name to the given rel value.
- * @param rel_val The rel value to add to.
- * @param name The name of the property.
- * @param property The property(in value format) to add.
- */
-KUZU_C_API void kuzu_rel_val_add_property(
-    kuzu_rel_val* rel_val, const char* name, kuzu_value* property);
+KUZU_C_API kuzu_value* kuzu_rel_val_get_property_value_at(kuzu_value* rel_val, uint64_t index);
 /**
  * @brief Converts the given rel value to string.
  * @param rel_val The rel value to convert.
  */
-KUZU_C_API char* kuzu_rel_val_to_string(kuzu_rel_val* rel_val);
+KUZU_C_API char* kuzu_rel_val_to_string(kuzu_value* rel_val);
 
 // QuerySummary
 /**

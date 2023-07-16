@@ -15,6 +15,7 @@ public:
     Benchmark(const std::string& benchmarkPath, main::Database* database, BenchmarkConfig& config);
 
     std::unique_ptr<main::QueryResult> run() const;
+    std::unique_ptr<main::QueryResult> runWithProfile() const;
     void log(uint32_t runNum, main::QueryResult& queryResult) const;
 
 private:

@@ -5,8 +5,8 @@
 
 -CASE MatchUndirected
 
--NAME UndirKnows1
--QUERY MATCH (a:person)-[:knows]-(b:person) WHERE b.fName = "Bob" RETURN a.fName;
+-LOG UndirKnows1
+-STATEMENT MATCH (a:person)-[:knows]-(b:person) WHERE b.fName = "Bob" RETURN a.fName;
 -ENUMERATE
 ---- 6
 Alice
@@ -16,8 +16,8 @@ Alice
 Carol
 Dan
 
--NAME UndirKnows2
--QUERY MATCH (a:person)-[:knows]-(b:person)-[:knows]-(c:person) WHERE a.gender = 1 AND b.gender = 2 AND c.fName = "Bob" RETURN a.fName, b.fName;
+-LOG UndirKnows2
+-STATEMENT MATCH (a:person)-[:knows]-(b:person)-[:knows]-(c:person) WHERE a.gender = 1 AND b.gender = 2 AND c.fName = "Bob" RETURN a.fName, b.fName;
 -ENUMERATE
 ---- 8
 Alice|Dan
@@ -29,20 +29,20 @@ Carol|Dan
 Alice|Dan
 Carol|Dan
 
--NAME UndirMultiLabel1
--QUERY MATCH (a:person:organisation)-[:meets|:marries|:workAt]-(b:person:organisation) RETURN COUNT(*);
+-LOG UndirMultiLabel1
+-STATEMENT MATCH (a:person:organisation)-[:meets|:marries|:workAt]-(b:person:organisation) RETURN COUNT(*);
 -ENUMERATE
 ---- 1
 26
 
--NAME UndirMultiLabel2
--QUERY MATCH (a:person)-[:studyAt|:meets]-(b:person:organisation) RETURN COUNT(*);
+-LOG UndirMultiLabel2
+-STATEMENT MATCH (a:person)-[:studyAt|:meets]-(b:person:organisation) RETURN COUNT(*);
 -ENUMERATE
 ---- 1
-20
+17
 
--NAME UndirMultiLabel3
--QUERY MATCH (a:person)-[:meets|:marries|:knows]-(b:person)-[:knows|:meets]-(c:person) WHERE c.fName = "Farooq" AND a.fName <> "Farooq" RETURN a.fName, b.fName;
+-LOG UndirMultiLabel3
+-STATEMENT MATCH (a:person)-[:meets|:marries|:knows]-(b:person)-[:knows|:meets]-(c:person) WHERE c.fName = "Farooq" AND a.fName <> "Farooq" RETURN a.fName, b.fName;
 -ENUMERATE
 ---- 13
 Carol|Elizabeth
@@ -59,15 +59,22 @@ Dan|Carol
 Elizabeth|Carol
 Dan|Carol
 
--NAME UndirUnlabelled
--QUERY MATCH (a:person)-[]-() RETURN COUNT(*);
+-LOG UndirUnlabelled
+-STATEMENT MATCH (a:person)-[]-() RETURN COUNT(*);
 -ENUMERATE
 ---- 1
-60
+54
 
--NAME UndirPattern
--QUERY MATCH ()-[:studyAt]-(a)-[:meets]-()-[:workAt]-() RETURN a.fName;
+-LOG UndirPattern
+-STATEMENT MATCH ()-[:studyAt]-(a)-[:meets]-()-[:workAt]-() RETURN a.fName;
 -ENUMERATE
 ---- 2
 Farooq
 Bob
+
+-STATEMENT MATCH (a:person)-[:workAt]-(b:organisation) RETURN a.ID, b.ID;
+-ENUMERATE
+---- 3
+3|4
+5|6
+7|6

@@ -251,7 +251,7 @@ void RelListsCounterAndColumnCopier::buildRelListsHeaders(
 void ParquetRelListsCounterAndColumnsCopier::executeInternal(std::unique_ptr<CopyMorsel> morsel) {
     assert(!morsel->filePath.empty());
     if (!reader || filePath != morsel->filePath) {
-        reader = TableCopyUtils::createParquetReader(morsel->filePath);
+        reader = TableCopyUtils::createParquetReader(morsel->filePath, schema);
         filePath = morsel->filePath;
     }
     std::shared_ptr<arrow::Table> table;
@@ -264,9 +264,9 @@ void ParquetRelListsCounterAndColumnsCopier::executeInternal(std::unique_ptr<Cop
     std::vector<offset_t> boundPKOffsets, adjPKOffsets;
     boundPKOffsets.resize(numTuples);
     adjPKOffsets.resize(numTuples);
-    indexLookup(recordBatch->column(0).get(), pkColumnTypes[0], pkIndexes[0],
+    indexLookup(recordBatch->column(0).get(), schema->srcPKDataType, pkIndexes[0],
         (offset_t*)boundPKOffsets.data());
-    indexLookup(recordBatch->column(1).get(), pkColumnTypes[1], pkIndexes[1],
+    indexLookup(recordBatch->column(1).get(), schema->dstPKDataType, pkIndexes[1],
         (offset_t*)adjPKOffsets.data());
     std::vector<std::unique_ptr<arrow::Array>> pkOffsetsArrays(2);
     pkOffsetsArrays[0] = createArrowPrimitiveArray(
@@ -286,8 +286,9 @@ void CSVRelListsCounterAndColumnsCopier::executeInternal(std::unique_ptr<CopyMor
     boundPKOffsets.resize(numTuples);
     adjPKOffsets.resize(numTuples);
     indexLookup(
-        recordBatch->column(0).get(), pkColumnTypes[0], pkIndexes[0], boundPKOffsets.data());
-    indexLookup(recordBatch->column(1).get(), pkColumnTypes[1], pkIndexes[1], adjPKOffsets.data());
+        recordBatch->column(0).get(), schema->srcPKDataType, pkIndexes[0], boundPKOffsets.data());
+    indexLookup(
+        recordBatch->column(1).get(), schema->dstPKDataType, pkIndexes[1], adjPKOffsets.data());
     std::vector<std::unique_ptr<arrow::Array>> pkOffsets(2);
     pkOffsets[0] = createArrowPrimitiveArray(
         std::make_shared<arrow::Int64Type>(), (uint8_t*)boundPKOffsets.data(), numTuples);
@@ -315,7 +316,7 @@ void RelListsCopier::finalize() {
 void ParquetRelListsCopier::executeInternal(std::unique_ptr<CopyMorsel> morsel) {
     assert(!morsel->filePath.empty());
     if (!reader || filePath != morsel->filePath) {
-        reader = TableCopyUtils::createParquetReader(morsel->filePath);
+        reader = TableCopyUtils::createParquetReader(morsel->filePath, schema);
         filePath = morsel->filePath;
     }
     std::shared_ptr<arrow::Table> table;
@@ -329,8 +330,9 @@ void ParquetRelListsCopier::executeInternal(std::unique_ptr<CopyMorsel> morsel) 
     boundPKOffsets.resize(numTuples);
     adjPKOffsets.resize(numTuples);
     indexLookup(
-        recordBatch->column(0).get(), pkColumnTypes[0], pkIndexes[0], boundPKOffsets.data());
-    indexLookup(recordBatch->column(1).get(), pkColumnTypes[1], pkIndexes[1], adjPKOffsets.data());
+        recordBatch->column(0).get(), schema->srcPKDataType, pkIndexes[0], boundPKOffsets.data());
+    indexLookup(
+        recordBatch->column(1).get(), schema->dstPKDataType, pkIndexes[1], adjPKOffsets.data());
     std::vector<std::unique_ptr<arrow::Array>> pkOffsets(2);
     pkOffsets[0] = createArrowPrimitiveArray(
         std::make_shared<arrow::Int64Type>(), (uint8_t*)boundPKOffsets.data(), numTuples);
@@ -353,8 +355,9 @@ void CSVRelListsCopier::executeInternal(std::unique_ptr<CopyMorsel> morsel) {
     boundPKOffsets.resize(numTuples);
     adjPKOffsets.resize(numTuples);
     indexLookup(
-        recordBatch->column(0).get(), pkColumnTypes[0], pkIndexes[0], boundPKOffsets.data());
-    indexLookup(recordBatch->column(1).get(), pkColumnTypes[1], pkIndexes[1], adjPKOffsets.data());
+        recordBatch->column(0).get(), schema->srcPKDataType, pkIndexes[0], boundPKOffsets.data());
+    indexLookup(
+        recordBatch->column(1).get(), schema->dstPKDataType, pkIndexes[1], adjPKOffsets.data());
     std::vector<std::unique_ptr<arrow::Array>> pkOffsets(2);
     pkOffsets[0] = createArrowPrimitiveArray(
         std::make_shared<arrow::Int64Type>(), (uint8_t*)boundPKOffsets.data(), numTuples);

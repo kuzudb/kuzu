@@ -151,7 +151,6 @@ std::vector<Property> Binder::bindProperties(
                 StringUtils::string_format("PropertyName: {} is an internal reserved propertyName.",
                     propertyNameDataType.first));
         }
-        StringUtils::toUpper(propertyNameDataType.second);
         auto dataType = bindDataType(propertyNameDataType.second);
         boundPropertyNameDataTypes.emplace_back(propertyNameDataType.first, dataType);
         boundPropertyNames.emplace(propertyNameDataType.first);

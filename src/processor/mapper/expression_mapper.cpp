@@ -2,10 +2,15 @@
 
 #include "binder/expression/case_expression.h"
 #include "binder/expression/literal_expression.h"
+#include "binder/expression/node_expression.h"
 #include "binder/expression/parameter_expression.h"
+#include "binder/expression/path_expression.h"
+#include "binder/expression/rel_expression.h"
 #include "expression_evaluator/case_evaluator.h"
 #include "expression_evaluator/function_evaluator.h"
 #include "expression_evaluator/literal_evaluator.h"
+#include "expression_evaluator/node_rel_evaluator.h"
+#include "expression_evaluator/path_evaluator.h"
 #include "expression_evaluator/reference_evaluator.h"
 #include "planner/logical_plan/logical_operator/schema.h"
 
@@ -24,7 +29,13 @@ std::unique_ptr<evaluator::BaseExpressionEvaluator> ExpressionMapper::mapExpress
         return mapReferenceExpression(expression, schema);
     } else if (isExpressionLiteral(expressionType)) {
         return mapLiteralExpression(expression);
-    } else if (PARAMETER == expressionType) {
+    } else if (ExpressionUtil::isNodeVariable(*expression)) {
+        return mapNodeExpression(expression, schema);
+    } else if (ExpressionUtil::isRelVariable(*expression)) {
+        return mapRelExpression(expression, schema);
+    } else if (expressionType == ExpressionType::PATH) {
+        return mapPathExpression(expression, schema);
+    } else if (expressionType == ExpressionType::PARAMETER) {
         return mapParameterExpression(expression);
     } else if (CASE_ELSE == expressionType) {
         return mapCaseExpression(expression, schema);
@@ -77,6 +88,42 @@ std::unique_ptr<evaluator::BaseExpressionEvaluator> ExpressionMapper::mapFunctio
         children.push_back(mapExpression(expression->getChild(i), schema));
     }
     return std::make_unique<FunctionExpressionEvaluator>(expression, std::move(children));
+}
+
+std::unique_ptr<evaluator::BaseExpressionEvaluator> ExpressionMapper::mapNodeExpression(
+    const std::shared_ptr<binder::Expression>& expression, const planner::Schema& schema) {
+    auto node = (NodeExpression*)expression.get();
+    std::vector<std::unique_ptr<evaluator::BaseExpressionEvaluator>> children;
+    children.push_back(mapExpression(node->getInternalIDProperty(), schema));
+    children.push_back(mapExpression(node->getLabelExpression(), schema));
+    for (auto& property : node->getPropertyExpressions()) {
+        children.push_back(mapExpression(property->copy(), schema));
+    }
+    return std::make_unique<NodeRelExpressionEvaluator>(expression, std::move(children));
+}
+
+std::unique_ptr<evaluator::BaseExpressionEvaluator> ExpressionMapper::mapRelExpression(
+    const std::shared_ptr<binder::Expression>& expression, const planner::Schema& schema) {
+    auto rel = (RelExpression*)expression.get();
+    std::vector<std::unique_ptr<evaluator::BaseExpressionEvaluator>> children;
+    children.push_back(mapExpression(rel->getSrcNode()->getInternalIDProperty(), schema));
+    children.push_back(mapExpression(rel->getDstNode()->getInternalIDProperty(), schema));
+    children.push_back(mapExpression(rel->getLabelExpression(), schema));
+    for (auto& property : rel->getPropertyExpressions()) {
+        children.push_back(mapExpression(property->copy(), schema));
+    }
+    return std::make_unique<NodeRelExpressionEvaluator>(expression, std::move(children));
+}
+
+std::unique_ptr<evaluator::BaseExpressionEvaluator> ExpressionMapper::mapPathExpression(
+    const std::shared_ptr<binder::Expression>& expression, const planner::Schema& schema) {
+    auto pathExpression = std::static_pointer_cast<binder::PathExpression>(expression);
+    std::vector<std::unique_ptr<evaluator::BaseExpressionEvaluator>> children;
+    children.reserve(pathExpression->getNumChildren());
+    for (auto i = 0u; i < pathExpression->getNumChildren(); ++i) {
+        children.push_back(mapExpression(pathExpression->getChild(i), schema));
+    }
+    return std::make_unique<PathExpressionEvaluator>(pathExpression, std::move(children));
 }
 
 } // namespace processor

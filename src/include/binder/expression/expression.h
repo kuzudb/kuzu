@@ -26,6 +26,8 @@ using expression_map =
     std::unordered_map<std::shared_ptr<Expression>, T, ExpressionHasher, ExpressionEquality>;
 
 class Expression : public std::enable_shared_from_this<Expression> {
+    friend class ExpressionChildrenCollector;
+
 public:
     Expression(common::ExpressionType expressionType, common::LogicalType dataType,
         expression_vector children, std::string uniqueName)
@@ -62,6 +64,7 @@ public:
     }
 
     inline common::LogicalType getDataType() const { return dataType; }
+    inline common::LogicalType& getDataTypeReference() { return dataType; }
 
     inline bool hasAlias() const { return !alias.empty(); }
 
@@ -76,33 +79,15 @@ public:
         children[idx] = std::move(child);
     }
 
-    inline virtual expression_vector getChildren() const { return children; }
-
-    bool hasAggregationExpression() const {
-        return hasSubExpressionOfType(common::isExpressionAggregate);
-    }
-
-    bool hasSubqueryExpression() const {
-        return hasSubExpressionOfType(common::isExpressionSubquery);
-    }
-
-    std::unordered_set<std::string> getDependentVariableNames();
-
-    expression_vector getSubPropertyExpressions();
-
-    expression_vector getTopLevelSubSubqueryExpressions();
-
     expression_vector splitOnAND();
+
+    inline bool operator==(const Expression& rhs) const { return uniqueName == rhs.uniqueName; }
 
     virtual std::string toString() const = 0;
 
     virtual std::unique_ptr<Expression> copy() const {
         throw common::InternalException("Unimplemented expression copy().");
     }
-
-protected:
-    bool hasSubExpressionOfType(
-        const std::function<bool(common::ExpressionType type)>& typeCheckFunc) const;
 
 public:
     common::ExpressionType expressionType;
@@ -138,6 +123,19 @@ struct ExpressionUtil {
 
     static expression_vector excludeExpressions(
         const expression_vector& expressions, const expression_vector& expressionsToExclude);
+
+    inline static bool isNodeVariable(const Expression& expression) {
+        return expression.expressionType == common::ExpressionType::VARIABLE &&
+               expression.dataType.getLogicalTypeID() == common::LogicalTypeID::NODE;
+    }
+    inline static bool isRelVariable(const Expression& expression) {
+        return expression.expressionType == common::ExpressionType::VARIABLE &&
+               expression.dataType.getLogicalTypeID() == common::LogicalTypeID::REL;
+    }
+    inline static bool isRecursiveRelVariable(const Expression& expression) {
+        return expression.expressionType == common::ExpressionType::VARIABLE &&
+               expression.dataType.getLogicalTypeID() == common::LogicalTypeID::RECURSIVE_REL;
+    }
 };
 
 } // namespace binder

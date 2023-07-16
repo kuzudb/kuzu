@@ -278,6 +278,20 @@ class QueryResult:
                     rels[(_src["table"], _src["offset"], _dst["table"],
                           _dst["offset"])] = row[i]
 
+                elif column_type == Type.RECURSIVE_REL.value:
+                    for node in row[i]['_nodes']:
+                        _id = node["_id"]
+                        nodes[(_id["table"], _id["offset"])] = node
+                        table_to_label_dict[_id["table"]] = node["_label"]
+                    for rel in row[i]['_rels']:
+                        for key in rel:
+                            if rel[key] is None:
+                                del rel[key]
+                        _src = rel["_src"]
+                        _dst = rel["_dst"]
+                        rels[(_src["table"], _src["offset"], _dst["table"],
+                              _dst["offset"])] = rel
+
         # Add nodes
         for node in nodes.values():
             _id = node["_id"]
@@ -313,7 +327,7 @@ class QueryResult:
         for i in range(len(column_names)):
             column_name = column_names[i]
             column_type = column_types[i]
-            if column_type in [Type.NODE.value, Type.REL.value]:
+            if column_type in [Type.NODE.value, Type.REL.value, Type.RECURSIVE_REL.value]:
                 properties_to_extract[i] = (column_type, column_name)
         return properties_to_extract
 

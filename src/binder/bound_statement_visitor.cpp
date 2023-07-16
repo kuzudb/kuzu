@@ -1,5 +1,7 @@
 #include "binder/bound_statement_visitor.h"
 
+#include "binder/bound_explain.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {
@@ -34,6 +36,12 @@ void BoundStatementVisitor::visit(const kuzu::binder::BoundStatement& statement)
     case StatementType::COPY: {
         visitCopy(statement);
     } break;
+    case StatementType::STANDALONE_CALL: {
+        visitStandaloneCall(statement);
+    } break;
+    case StatementType::EXPLAIN: {
+        visitExplain(statement);
+    } break;
     default:
         throw NotImplementedException("BoundStatementVisitor::visit");
     }
@@ -61,9 +69,13 @@ void BoundStatementVisitor::visitQueryPart(const NormalizedQueryPart& queryPart)
     if (queryPart.hasProjectionBody()) {
         visitProjectionBody(*queryPart.getProjectionBody());
         if (queryPart.hasProjectionBodyPredicate()) {
-            visitProjectionBodyPredicate(*queryPart.getProjectionBodyPredicate());
+            visitProjectionBodyPredicate(queryPart.getProjectionBodyPredicate());
         }
     }
+}
+
+void BoundStatementVisitor::visitExplain(const BoundStatement& statement) {
+    visit(*((const BoundExplain&)statement).getStatementToExplain());
 }
 
 void BoundStatementVisitor::visitReadingClause(const BoundReadingClause& readingClause) {
@@ -73,6 +85,9 @@ void BoundStatementVisitor::visitReadingClause(const BoundReadingClause& reading
     } break;
     case common::ClauseType::UNWIND: {
         visitUnwind(readingClause);
+    } break;
+    case common::ClauseType::InQueryCall: {
+        visitInQueryCall(readingClause);
     } break;
     default:
         throw NotImplementedException("BoundStatementVisitor::visitReadingClause");

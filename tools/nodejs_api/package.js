@@ -167,15 +167,16 @@ const KUZU_VERSION_TEXT = "Kuzu VERSION";
   }
 
   packageJson.scripts.install = "node install.js";
-  // npm modifies environment variables during install, which causes build 
-  // errors on Windows. This is a workaround.
-  // packageJson.scripts.preinstall = "npm config set ignore-scripts true";
-  // packageJson.scripts.postinstall = "npm config set ignore-scripts false";
 
   await fs.writeFile(
     path.join(ARCHIVE_DIR_PATH, "package.json"),
     JSON.stringify(packageJson, null, 2)
   );
+
+  console.log("Removing symlink...");
+  // There is a symlink in the rust_api directory, so we need to remove it.
+  // Otherwise, the tarball will be rejected by npm.
+  await fs.unlink(path.join(ARCHIVE_DIR_PATH, "kuzu-source", "tools", "rust_api", "kuzu-src"))
 
   console.log("Creating tarball...");
   // Create the tarball

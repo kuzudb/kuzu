@@ -98,19 +98,23 @@ void RecursiveJoin::initLocalStateInternal(ResultSet* resultSet_, ExecutionConte
             StructType::getFieldIdx(&pathNodesDataVector->dataType, InternalKeyword::ID);
         vectors->pathNodesIDDataVector =
             StructVector::getFieldVector(pathNodesDataVector, pathNodesIDFieldIdx).get();
-        assert(vectors->pathNodesIDDataVector->dataType.getPhysicalType() ==
-               common::PhysicalTypeID::INTERNAL_ID);
         auto pathRelsFieldIdx = common::StructType::getFieldIdx(
             &vectors->pathVector->dataType, common::InternalKeyword::RELS);
         vectors->pathRelsVector =
             StructVector::getFieldVector(vectors->pathVector, pathRelsFieldIdx).get();
         auto pathRelsDataVector = ListVector::getDataVector(vectors->pathRelsVector);
+        auto pathRelsSrcIDFieldIdx =
+            StructType::getFieldIdx(&pathRelsDataVector->dataType, InternalKeyword::SRC);
+        vectors->pathRelsSrcIDDataVector =
+            StructVector::getFieldVector(pathRelsDataVector, pathRelsSrcIDFieldIdx).get();
+        auto pathRelsDstIDFieldIdx =
+            StructType::getFieldIdx(&pathRelsDataVector->dataType, InternalKeyword::DST);
+        vectors->pathRelsDstIDDataVector =
+            StructVector::getFieldVector(pathRelsDataVector, pathRelsDstIDFieldIdx).get();
         auto pathRelsIDFieldIdx =
             StructType::getFieldIdx(&pathRelsDataVector->dataType, InternalKeyword::ID);
         vectors->pathRelsIDDataVector =
             StructVector::getFieldVector(pathRelsDataVector, pathRelsIDFieldIdx).get();
-        assert(vectors->pathRelsIDDataVector->dataType.getPhysicalType() ==
-               common::PhysicalTypeID::INTERNAL_ID);
     }
     frontiersScanner = std::make_unique<FrontiersScanner>(std::move(scanners));
     initLocalRecursivePlan(context);

@@ -15,8 +15,8 @@
 
 -CASE OrderByLargeDatasetTestParquet
 
--NAME OrderByWithLimitTest
--QUERY MATCH (p:person) RETURN p.balance ORDER BY p.balance limit 25
+-LOG OrderByWithLimitTest
+-STATEMENT MATCH (p:person) RETURN p.balance ORDER BY p.balance limit 25
 -PARALLELISM 6
 -CHECK_ORDER
 -ENUMERATE
@@ -47,8 +47,8 @@
 -492829
 -492721
 
--NAME OrderByInt64Test
--QUERY MATCH (p:person) RETURN p.studentID ORDER BY p.studentID
+-LOG OrderByInt64Test
+-STATEMENT MATCH (p:person) RETURN p.studentID ORDER BY p.studentID
 -PARALLELISM 2
 -CHECK_ORDER
 -ENUMERATE

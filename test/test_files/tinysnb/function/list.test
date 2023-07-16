@@ -5,8 +5,8 @@
 
 -CASE FunctionList
 
--NAME NodeLISTStructuredPropertiesTest
--QUERY MATCH (a:person) RETURN a.workedHours, a.usedNames, a.courseScoresPerTerm
+-LOG NodeLISTStructuredPropertiesTest
+-STATEMENT MATCH (a:person) RETURN a.workedHours, a.usedNames, a.courseScoresPerTerm
 ---- 8
 [1,9]|[Wolfeschlegelstein,Daniel]|[[7,4],[8,8],[9]]
 [10,11,12,3,4,5,6,7]|[Ad,De,Hi,Kye,Orlan]|[[7],[10],[6,7]]
@@ -17,8 +17,8 @@
 [3,4,5,6,7]|[Fesdwe]|[[8]]
 [4,5]|[Carmen,Fred]|[[8,10]]
 
--NAME RelLISTPropertyTest
--QUERY MATCH (a:person)-[e:knows]->(b:person) RETURN e.comments
+-LOG RelLISTPropertyTest
+-STATEMENT MATCH (a:person)-[e:knows]->(b:person) RETURN e.comments
 ---- 14
 [rnme,m8sihsdnf2990nfiwf]
 [njnojppo9u0jkmf,fjiojioh9h9h89hph]
@@ -35,8 +35,8 @@
 [ahu2333333333333,12weeeeeeeeeeeeeeeeee]
 [peweeeeeeeeeeeeeeeee,kowje9w0eweeeeeeeee]
 
--NAME ListCreate1
--QUERY MATCH (a:person) RETURN [a.age + 1, a.age * 2], [a.eyeSight], [a.isStudent AND a.isWorker], [a.birthdate], [a.registerTime], [a.lastJobDuration]
+-LOG ListCreate1
+-STATEMENT MATCH (a:person) RETURN [a.age + 1, a.age * 2], [a.eyeSight], [a.isStudent AND a.isWorker], [a.birthdate], [a.registerTime], [a.lastJobDuration]
 ---- 8
 [21,40]|[4.700000]|[False]|[1980-10-26]|[1976-12-23 11:21:42]|[48:24:11]
 [21,40]|[4.800000]|[False]|[1950-07-23]|[2031-11-30 12:25:30]|[10 years 5 months 13:00:00.000024]
@@ -49,8 +49,8 @@
 
 
 
--NAME ListExtractListOfINT64
--QUERY MATCH (a:person) RETURN list_extract(a.workedHours, 1)
+-LOG ListExtractListOfINT64
+-STATEMENT MATCH (a:person) RETURN list_extract(a.workedHours, 1)
 ---- 8
 10
 12
@@ -61,22 +61,22 @@
 1
 10
 
--NAME ListExtractListOfINT32
--QUERY MATCH (m:movies) RETURN list_extract([m.length], 1)
+-LOG ListExtractListOfINT32
+-STATEMENT MATCH (m:movies) RETURN list_extract([m.length], 1)
 ---- 3
 126
 2544
 298
 
--NAME ListExtractListOfINT16
--QUERY MATCH (:person)-[e:studyAt]->(:organisation) RETURN list_extract([e.length], 1)
+-LOG ListExtractListOfINT16
+-STATEMENT MATCH (:person)-[e:studyAt]->(:organisation) RETURN list_extract([e.length], 1)
 ---- 3
 5
 55
 22
 
--NAME ListExtractListOfFloat
--QUERY MATCH (p:person) RETURN list_extract([p.height], 1)
+-LOG ListExtractListOfFloat
+-STATEMENT MATCH (p:person) RETURN list_extract([p.height], 1)
 ---- 8
 1.731000
 0.990000
@@ -87,8 +87,8 @@
 1.600000
 1.323000
 
--NAME ListExtractListOfStrings
--QUERY MATCH (a:person) RETURN list_extract(a.usedNames, 1)
+-LOG ListExtractListOfStrings
+-STATEMENT MATCH (a:person) RETURN list_extract(a.usedNames, 1)
 ---- 8
 Aida
 Bobby
@@ -99,8 +99,8 @@ Fesdwe
 Grad
 Ad
 
--NAME ListExtractLiteralListOfBools
--QUERY MATCH (a:person) RETURN list_extract([true, false, true, false], a.gender)
+-LOG ListExtractLiteralListOfBools
+-STATEMENT MATCH (a:person) RETURN list_extract([true, false, true, false], a.gender)
 ---- 8
 True
 False
@@ -111,8 +111,8 @@ False
 False
 False
 
--NAME ListExtractLiteralListOfDoubles
--QUERY MATCH (a:person) RETURN list_extract([4.351, 6.13, 94.2, 3.1], a.gender)
+-LOG ListExtractLiteralListOfDoubles
+-STATEMENT MATCH (a:person) RETURN list_extract([4.351, 6.13, 94.2, 3.1], a.gender)
 ---- 8
 4.351000
 6.130000
@@ -123,8 +123,8 @@ False
 6.130000
 6.130000
 
--NAME ListExtractLiteralListOfDate
--QUERY MATCH (a:person) RETURN list_extract([date('1992-05-03'), a.birthdate], a.gender)
+-LOG ListExtractLiteralListOfDate
+-STATEMENT MATCH (a:person) RETURN list_extract([date('1992-05-03'), a.birthdate], a.gender)
 ---- 8
 1992-05-03
 1900-01-01
@@ -135,8 +135,8 @@ False
 1980-10-26
 1990-11-27
 
--NAME ListExtractLiteralListOfTimestamp
--QUERY MATCH (a:person) RETURN list_extract([timestamp('1992-05-03 11:13:25'), a.registerTime], a.gender)
+-LOG ListExtractLiteralListOfTimestamp
+-STATEMENT MATCH (a:person) RETURN list_extract([timestamp('1992-05-03 11:13:25'), a.registerTime], a.gender)
 ---- 8
 1992-05-03 11:13:25
 2008-11-03 15:25:30.000526
@@ -147,8 +147,8 @@ False
 1976-12-23 04:41:42
 2023-02-21 13:25:30
 
--NAME ListExtractLiteralListOfInterval
--QUERY MATCH (a:person) RETURN list_extract([interval('2 hours 3 days 20 minutes'), a.lastJobDuration], a.gender)
+-LOG ListExtractLiteralListOfInterval
+-STATEMENT MATCH (a:person) RETURN list_extract([interval('2 hours 3 days 20 minutes'), a.lastJobDuration], a.gender)
 ---- 8
 3 days 02:20:00
 10 years 5 months 13:00:00.000024
@@ -159,8 +159,8 @@ False
 10 years 5 months 13:00:00.000024
 3 years 2 days 13:02:00
 
--NAME ListExtractStructuredListOfListOfInts
--QUERY MATCH (a:person) RETURN list_element(a.courseScoresPerTerm, 1)
+-LOG ListExtractStructuredListOfListOfInts
+-STATEMENT MATCH (a:person) RETURN list_element(a.courseScoresPerTerm, 1)
 ---- 8
 [10,8]
 [8,9]
@@ -171,8 +171,8 @@ False
 [10]
 [7]
 
--NAME ListExtractStructuredList
--QUERY MATCH (a:person) RETURN a.usedNames[1]
+-LOG ListExtractStructuredList
+-STATEMENT MATCH (a:person) RETURN a.usedNames[1]
 ---- 8
 Aida
 Bobby
@@ -183,8 +183,8 @@ Fesdwe
 Grad
 Ad
 
--NAME ListExtractDoubleExtract
--QUERY MATCH (a:person) RETURN a.courseScoresPerTerm[1][1]
+-LOG ListExtractDoubleExtract
+-STATEMENT MATCH (a:person) RETURN a.courseScoresPerTerm[1][1]
 ---- 8
 10
 8
@@ -195,8 +195,8 @@ Ad
 10
 7
 
--NAME ListExtractInternalIDTest
--QUERY MATCH (a:person) RETURN list_extract([id(a)], 1)
+-LOG ListExtractInternalIDTest
+-STATEMENT MATCH (a:person) RETURN list_extract([id(a)], 1)
 ---- 8
 0:0
 0:1
@@ -207,8 +207,8 @@ Ad
 0:6
 0:7
 
--NAME ListExtractSliceListOfStrings
--QUERY MATCH (a:person) RETURN a.usedNames[1][3:7]
+-LOG ListExtractSliceListOfStrings
+-STATEMENT MATCH (a:person) RETURN a.usedNames[1][3:7]
 ---- 8
 da
 bby
@@ -220,8 +220,8 @@ ad
 
 
 
--NAME ListLenStructuredListOfInts
--QUERY MATCH (a:person) RETURN len(a.workedHours)
+-LOG ListLenStructuredListOfInts
+-STATEMENT MATCH (a:person) RETURN len(a.workedHours)
 ---- 8
 2
 2
@@ -232,8 +232,8 @@ ad
 1
 8
 
--NAME ListConcatStructuredListOfInts
--QUERY MATCH (a:person) RETURN list_concat(a.workedHours, [a.age, a.gender])
+-LOG ListConcatStructuredListOfInts
+-STATEMENT MATCH (a:person) RETURN list_concat(a.workedHours, [a.age, a.gender])
 ---- 8
 [10,5,35,1]
 [12,8,30,2]
@@ -244,8 +244,8 @@ ad
 [1,40,2]
 [10,11,12,3,4,5,6,7,83,2]
 
--NAME ListConcatIntLiteral
--QUERY MATCH (a:person) RETURN list_cat(a.workedHours, [3])
+-LOG ListConcatIntLiteral
+-STATEMENT MATCH (a:person) RETURN list_cat(a.workedHours, [3])
 ---- 8
 [10,5,3]
 [12,8,3]
@@ -256,8 +256,8 @@ ad
 [1,3]
 [10,11,12,3,4,5,6,7,3]
 
--NAME ListConcatStructuredListOfStrings
--QUERY MATCH (a:person) RETURN array_concat(a.usedNames, [a.fName])
+-LOG ListConcatStructuredListOfStrings
+-STATEMENT MATCH (a:person) RETURN array_concat(a.usedNames, [a.fName])
 ---- 8
 [Aida,Alice]
 [Bobby,Bob]
@@ -268,8 +268,8 @@ ad
 [Grad,Greg]
 [Ad,De,Hi,Kye,Orlan,Hubert Blaine Wolfeschlegelsteinhausenbergerdorff]
 
--NAME ListConcatStructuredListOfListOfInts
--QUERY MATCH (a:person) RETURN array_cat(a.courseScoresPerTerm, [[a.age, a.age], [a.gender]])
+-LOG ListConcatStructuredListOfListOfInts
+-STATEMENT MATCH (a:person) RETURN array_cat(a.courseScoresPerTerm, [[a.age, a.age], [a.gender]])
 ---- 8
 [[10,8],[6,7,8],[35,35],[1]]
 [[8,9],[9,10],[30,30],[2]]
@@ -280,8 +280,43 @@ ad
 [[10],[40,40],[2]]
 [[7],[10],[6,7],[83,83],[2]]
 
--NAME ListAppendListOfINT64
--QUERY MATCH (a:person) RETURN list_append(a.workedHours, a.age)
+-LOG ListConcatEmpty
+-STATEMENT RETURN LIST_CONCAT([], [])
+---- 1
+[]
+
+-LOG ListConcatEmptyAndNull
+-STATEMENT RETURN LIST_CONCAT([], [NULL])
+---- 1
+[]
+
+-LOG ListConcatNullAndEmpty
+-STATEMENT RETURN LIST_CONCAT([NULL], [])
+---- 1
+[]
+
+-LOG ListConcatNullAndNull
+-STATEMENT RETURN LIST_CONCAT([NULL], [NULL])
+---- 1
+[,]
+
+-LOG ListConcatEmptyAndEmpty
+-STATEMENT RETURN LIST_CONCAT([], [])
+---- 1
+[]
+
+-LOG ListConcatINT64AndNull
+-STATEMENT RETURN LIST_CONCAT([1,2,NULL], [NULL])
+---- 1
+[1,2,,]
+
+-LOG ListConcatNullAndINT64
+-STATEMENT RETURN LIST_CONCAT([NULL], [NULL, 1, 3])
+---- 1
+[,,1,3]
+
+-LOG ListAppendListOfINT64
+-STATEMENT MATCH (a:person) RETURN list_append(a.workedHours, a.age)
 ---- 8
 [10,5,35]
 [12,8,30]
@@ -292,22 +327,22 @@ ad
 [1,40]
 [10,11,12,3,4,5,6,7,83]
 
--NAME ListAppendListOfINT32
--QUERY MATCH (m:movies) RETURN list_append([m.length], m.length)
+-LOG ListAppendListOfINT32
+-STATEMENT MATCH (m:movies) RETURN list_append([m.length], m.length)
 ---- 3
 [126,126]
 [2544,2544]
 [298,298]
 
--NAME ListAppendListOfINT16
--QUERY MATCH (:person)-[s:studyAt]->(:organisation) RETURN list_append([s.length], s.length)
+-LOG ListAppendListOfINT16
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN list_append([s.length], s.length)
 ---- 3
 [5,5]
 [55,55]
 [22,22]
 
--NAME ListAppendListOfFloat
--QUERY MATCH (p:person) RETURN list_append([p.height], p.height)
+-LOG ListAppendListOfFloat
+-STATEMENT MATCH (p:person) RETURN list_append([p.height], p.height)
 ---- 8
 [1.731000,1.731000]
 [0.990000,0.990000]
@@ -318,8 +353,8 @@ ad
 [1.600000,1.600000]
 [1.323000,1.323000]
 
--NAME ListAppendStructuredListOfStrings
--QUERY MATCH (a:person) RETURN array_append(a.usedNames, a.fName)
+-LOG ListAppendStructuredListOfStrings
+-STATEMENT MATCH (a:person) RETURN array_append(a.usedNames, a.fName)
 ---- 8
 [Aida,Alice]
 [Bobby,Bob]
@@ -330,8 +365,8 @@ ad
 [Grad,Greg]
 [Ad,De,Hi,Kye,Orlan,Hubert Blaine Wolfeschlegelsteinhausenbergerdorff]
 
--NAME ListAppendStructuredListOfListOfInts
--QUERY MATCH (a:person) RETURN array_push_back(a.courseScoresPerTerm, [a.age, a.age])
+-LOG ListAppendStructuredListOfListOfInts
+-STATEMENT MATCH (a:person) RETURN array_push_back(a.courseScoresPerTerm, [a.age, a.age])
 ---- 8
 [[10,8],[6,7,8],[35,35]]
 [[8,9],[9,10],[30,30]]
@@ -342,8 +377,8 @@ ad
 [[10],[40,40]]
 [[7],[10],[6,7],[83,83]]
 
--NAME ListAppendStructuredListOfBools
--QUERY MATCH (a:person) RETURN list_append([a.isStudent, a.isWorker], a.isStudent)
+-LOG ListAppendStructuredListOfBools
+-STATEMENT MATCH (a:person) RETURN list_append([a.isStudent, a.isWorker], a.isStudent)
 ---- 8
 [True,False,True]
 [True,False,True]
@@ -354,8 +389,8 @@ ad
 [False,False,False]
 [False,True,False]
 
--NAME ListAppendStructuredListOfDoubles
--QUERY MATCH (a:person) RETURN list_append([a.eyeSight], a.eyeSight)
+-LOG ListAppendStructuredListOfDoubles
+-STATEMENT MATCH (a:person) RETURN list_append([a.eyeSight], a.eyeSight)
 ---- 8
 [5.000000,5.000000]
 [5.100000,5.100000]
@@ -366,8 +401,8 @@ ad
 [4.900000,4.900000]
 [4.900000,4.900000]
 
--NAME ListAppendStructuredListOfDates
--QUERY MATCH (a:person) RETURN list_append([a.birthdate], a.birthdate)
+-LOG ListAppendStructuredListOfDates
+-STATEMENT MATCH (a:person) RETURN list_append([a.birthdate], a.birthdate)
 ---- 8
 [1900-01-01,1900-01-01]
 [1900-01-01,1900-01-01]
@@ -378,8 +413,8 @@ ad
 [1980-10-26,1980-10-26]
 [1990-11-27,1990-11-27]
 
--NAME ListAppendStructuredListOfTimestamps
--QUERY MATCH (a:person) RETURN list_append([a.registerTime], a.registerTime)
+-LOG ListAppendStructuredListOfTimestamps
+-STATEMENT MATCH (a:person) RETURN list_append([a.registerTime], a.registerTime)
 ---- 8
 [2011-08-20 11:25:30,2011-08-20 11:25:30]
 [2008-11-03 15:25:30.000526,2008-11-03 15:25:30.000526]
@@ -390,8 +425,8 @@ ad
 [1976-12-23 04:41:42,1976-12-23 04:41:42]
 [2023-02-21 13:25:30,2023-02-21 13:25:30]
 
--NAME ListAppendStructuredListOfIntervals
--QUERY MATCH (a:person) RETURN list_append([a.lastJobDuration], a.lastJobDuration)
+-LOG ListAppendStructuredListOfIntervals
+-STATEMENT MATCH (a:person) RETURN list_append([a.lastJobDuration], a.lastJobDuration)
 ---- 8
 [3 years 2 days 13:02:00,3 years 2 days 13:02:00]
 [10 years 5 months 13:00:00.000024,10 years 5 months 13:00:00.000024]
@@ -402,8 +437,8 @@ ad
 [10 years 5 months 13:00:00.000024,10 years 5 months 13:00:00.000024]
 [3 years 2 days 13:02:00,3 years 2 days 13:02:00]
 
--NAME ListAppendInternalID
--QUERY MATCH (a:person) RETURN list_append([id(a)], id(a))
+-LOG ListAppendInternalID
+-STATEMENT MATCH (a:person) RETURN list_append([id(a)], id(a))
 ---- 8
 [0:0,0:0]
 [0:1,0:1]
@@ -414,8 +449,8 @@ ad
 [0:6,0:6]
 [0:7,0:7]
 
--NAME ListPrependListOfINT64
--QUERY MATCH (a:person) RETURN list_prepend(a.age, a.workedHours)
+-LOG ListPrependListOfINT64
+-STATEMENT MATCH (a:person) RETURN list_prepend(a.age, a.workedHours)
 ---- 8
 [35,10,5]
 [30,12,8]
@@ -426,22 +461,22 @@ ad
 [40,1]
 [83,10,11,12,3,4,5,6,7]
 
--NAME ListPrependListOfINT32
--QUERY MATCH (m:movies) RETURN list_prepend(m.length, [m.length])
+-LOG ListPrependListOfINT32
+-STATEMENT MATCH (m:movies) RETURN list_prepend(m.length, [m.length])
 ---- 3
 [126,126]
 [2544,2544]
 [298,298]
 
--NAME ListPrependListOfINT16
--QUERY MATCH (:person)-[s:studyAt]->(:organisation) RETURN list_prepend(s.length, [s.length])
+-LOG ListPrependListOfINT16
+-STATEMENT MATCH (:person)-[s:studyAt]->(:organisation) RETURN list_prepend(s.length, [s.length])
 ---- 3
 [5,5]
 [55,55]
 [22,22]
 
--NAME ListPrependListOfFloat
--QUERY MATCH (a:person) RETURN list_prepend(a.height, [a.height])
+-LOG ListPrependListOfFloat
+-STATEMENT MATCH (a:person) RETURN list_prepend(a.height, [a.height])
 ---- 8
 [1.731000,1.731000]
 [0.990000,0.990000]
@@ -452,8 +487,8 @@ ad
 [1.600000,1.600000]
 [1.323000,1.323000]
 
--NAME ListPrependStructuredListOfStrings
--QUERY MATCH (a:person) RETURN array_prepend(a.fName, a.usedNames)
+-LOG ListPrependStructuredListOfStrings
+-STATEMENT MATCH (a:person) RETURN array_prepend(a.fName, a.usedNames)
 ---- 8
 [Alice,Aida]
 [Bob,Bobby]
@@ -464,8 +499,8 @@ ad
 [Greg,Grad]
 [Hubert Blaine Wolfeschlegelsteinhausenbergerdorff,Ad,De,Hi,Kye,Orlan]
 
--NAME ListPrependStructuredListOfBools
--QUERY MATCH (a:person) RETURN list_prepend(a.isStudent, [a.isStudent, a.isWorker])
+-LOG ListPrependStructuredListOfBools
+-STATEMENT MATCH (a:person) RETURN list_prepend(a.isStudent, [a.isStudent, a.isWorker])
 ---- 8
 [True,True,False]
 [True,True,False]
@@ -476,8 +511,8 @@ ad
 [False,False,False]
 [False,False,True]
 
--NAME ListPrependStructuredListOfDoubles
--QUERY MATCH (a:person) RETURN list_prepend(a.eyeSight, [a.eyeSight])
+-LOG ListPrependStructuredListOfDoubles
+-STATEMENT MATCH (a:person) RETURN list_prepend(a.eyeSight, [a.eyeSight])
 ---- 8
 [5.000000,5.000000]
 [5.100000,5.100000]
@@ -488,8 +523,8 @@ ad
 [4.900000,4.900000]
 [4.900000,4.900000]
 
--NAME ListPrependStructuredListOfDates
--QUERY MATCH (a:person) RETURN list_prepend(a.birthdate, [a.birthdate])
+-LOG ListPrependStructuredListOfDates
+-STATEMENT MATCH (a:person) RETURN list_prepend(a.birthdate, [a.birthdate])
 ---- 8
 [1900-01-01,1900-01-01]
 [1900-01-01,1900-01-01]
@@ -500,8 +535,8 @@ ad
 [1980-10-26,1980-10-26]
 [1990-11-27,1990-11-27]
 
--NAME ListPrependStructuredListOfTimestamps
--QUERY MATCH (a:person) RETURN list_prepend(a.registerTime, [a.registerTime])
+-LOG ListPrependStructuredListOfTimestamps
+-STATEMENT MATCH (a:person) RETURN list_prepend(a.registerTime, [a.registerTime])
 ---- 8
 [2011-08-20 11:25:30,2011-08-20 11:25:30]
 [2008-11-03 15:25:30.000526,2008-11-03 15:25:30.000526]
@@ -512,8 +547,8 @@ ad
 [1976-12-23 04:41:42,1976-12-23 04:41:42]
 [2023-02-21 13:25:30,2023-02-21 13:25:30]
 
--NAME ListPrependStructuredListOfIntervals
--QUERY MATCH (a:person) RETURN list_prepend(a.lastJobDuration, [a.lastJobDuration])
+-LOG ListPrependStructuredListOfIntervals
+-STATEMENT MATCH (a:person) RETURN list_prepend(a.lastJobDuration, [a.lastJobDuration])
 ---- 8
 [3 years 2 days 13:02:00,3 years 2 days 13:02:00]
 [10 years 5 months 13:00:00.000024,10 years 5 months 13:00:00.000024]
@@ -524,8 +559,8 @@ ad
 [10 years 5 months 13:00:00.000024,10 years 5 months 13:00:00.000024]
 [3 years 2 days 13:02:00,3 years 2 days 13:02:00]
 
--NAME ListPrependStructuredListOfListOfInts
--QUERY MATCH (a:person) RETURN array_push_front([a.age, a.age], a.courseScoresPerTerm)
+-LOG ListPrependStructuredListOfListOfInts
+-STATEMENT MATCH (a:person) RETURN array_push_front([a.age, a.age], a.courseScoresPerTerm)
 ---- 8
 [[35,35],[10,8],[6,7,8]]
 [[30,30],[8,9],[9,10]]
@@ -536,8 +571,8 @@ ad
 [[40,40],[10]]
 [[83,83],[7],[10],[6,7]]
 
--NAME ListPrependInternalID
--QUERY MATCH (a:person) RETURN list_prepend(id(a), [id(a)])
+-LOG ListPrependInternalID
+-STATEMENT MATCH (a:person) RETURN list_prepend(id(a), [id(a)])
 ---- 8
 [0:0,0:0]
 [0:1,0:1]
@@ -548,8 +583,8 @@ ad
 [0:6,0:6]
 [0:7,0:7]
 
--NAME ListPositionStructuredListOfInts
--QUERY MATCH (a:person) RETURN list_position(a.workedHours, 5)
+-LOG ListPositionStructuredListOfInts
+-STATEMENT MATCH (a:person) RETURN list_position(a.workedHours, 5)
 ---- 8
 2
 0
@@ -560,8 +595,8 @@ ad
 0
 6
 
--NAME ListPositionStructuredListOfStrings
--QUERY MATCH (a:person) RETURN array_position(a.usedNames, "Grad")
+-LOG ListPositionStructuredListOfStrings
+-STATEMENT MATCH (a:person) RETURN array_position(a.usedNames, "Grad")
 ---- 8
 0
 0
@@ -572,15 +607,15 @@ ad
 1
 0
 
--NAME ListPositionLiteralListOfInts
--QUERY MATCH (o:organisation) RETURN list_indexof([7, 4, 100, 6, 1, 10], o.ID)
+-LOG ListPositionLiteralListOfInts
+-STATEMENT MATCH (o:organisation) RETURN list_indexof([7, 4, 100, 6, 1, 10], o.ID)
 ---- 3
 5
 2
 4
 
--NAME ListPositionStructuredListOfListOfInts
--QUERY MATCH (a:person) RETURN array_indexof(a.courseScoresPerTerm, [8])
+-LOG ListPositionStructuredListOfListOfInts
+-STATEMENT MATCH (a:person) RETURN array_indexof(a.courseScoresPerTerm, [8])
 ---- 8
 0
 0
@@ -591,8 +626,8 @@ ad
 0
 0
 
--NAME ListPositionLiteralListOfListOfBools
--QUERY MATCH (a:person) RETURN array_indexof([[true, false], [false, true], [false, false]], [a.isStudent, a.isWorker])
+-LOG ListPositionLiteralListOfListOfBools
+-STATEMENT MATCH (a:person) RETURN array_indexof([[true, false], [false, true], [false, false]], [a.isStudent, a.isWorker])
 ---- 8
 1
 1
@@ -603,8 +638,8 @@ ad
 3
 2
 
--NAME ListPositionLiteralListOfListOfDoubles
--QUERY MATCH (a:person) RETURN array_indexof([[5.0], [4.9], [4.8]], [a.eyeSight])
+-LOG ListPositionLiteralListOfListOfDoubles
+-STATEMENT MATCH (a:person) RETURN array_indexof([[5.0], [4.9], [4.8]], [a.eyeSight])
 ---- 8
 1
 0
@@ -615,8 +650,8 @@ ad
 2
 2
 
--NAME ListPositionLiteralListOfListOfStrings
--QUERY MATCH (a:person) RETURN array_indexof([['Aida'], ['Wolfeschlegelstein', 'Daniel'], ['Grad']], a.usedNames)
+-LOG ListPositionLiteralListOfListOfStrings
+-STATEMENT MATCH (a:person) RETURN array_indexof([['Aida'], ['Wolfeschlegelstein', 'Daniel'], ['Grad']], a.usedNames)
 ---- 8
 1
 0
@@ -627,8 +662,8 @@ ad
 3
 0
 
--NAME ListPositionLiteralListOfListOfDates
--QUERY MATCH (a:person) RETURN array_indexof([[date('1900-01-01')], [date('1900-01-01'), date('1900-05-01')], [date('1980-10-26')]], [a.birthdate])
+-LOG ListPositionLiteralListOfListOfDates
+-STATEMENT MATCH (a:person) RETURN array_indexof([[date('1900-01-01')], [date('1900-01-01'), date('1900-05-01')], [date('1980-10-26')]], [a.birthdate])
 ---- 8
 1
 1
@@ -639,8 +674,8 @@ ad
 3
 0
 
--NAME ListPositionLiteralListOfListOfTimestamps
--QUERY MATCH (a:person) RETURN array_indexof([[timestamp('2011-08-20 11:25:30')], [timestamp('1976-12-23 11:21:42'), timestamp('1972-07-31 13:22:30.678559')], [timestamp('2023-02-21 13:25:30')]], [a.registerTime])
+-LOG ListPositionLiteralListOfListOfTimestamps
+-STATEMENT MATCH (a:person) RETURN array_indexof([[timestamp('2011-08-20 11:25:30')], [timestamp('1976-12-23 11:21:42'), timestamp('1972-07-31 13:22:30.678559')], [timestamp('2023-02-21 13:25:30')]], [a.registerTime])
 ---- 8
 1
 0
@@ -651,8 +686,8 @@ ad
 0
 3
 
--NAME ListPositionLiteralListOfListOfIntervals
--QUERY MATCH (a:person) RETURN array_indexof([[interval('3 years 2 days 13 hours 2 minutes')], [interval('18 minutes 24 milliseconds')], [interval('10 years 5 months 13 hours 24 us')]], [a.lastJobDuration])
+-LOG ListPositionLiteralListOfListOfIntervals
+-STATEMENT MATCH (a:person) RETURN array_indexof([[interval('3 years 2 days 13 hours 2 minutes')], [interval('18 minutes 24 milliseconds')], [interval('10 years 5 months 13 hours 24 us')]], [a.lastJobDuration])
 ---- 8
 1
 3
@@ -663,8 +698,8 @@ ad
 3
 1
 
--NAME ListPositionLiteralListOfListOfListOfIntervals
--QUERY MATCH (a:person) RETURN array_indexof([[[7,4],[8,8],[9]]], a.courseScoresPerTerm)
+-LOG ListPositionLiteralListOfListOfListOfIntervals
+-STATEMENT MATCH (a:person) RETURN array_indexof([[[7,4],[8,8],[9]]], a.courseScoresPerTerm)
 ---- 8
 0
 0
@@ -675,8 +710,8 @@ ad
 0
 0
 
--NAME ListPositionUnmatchedDataType
--QUERY MATCH (a:person) RETURN array_indexof(a.workedHours, a.registerTime)
+-LOG ListPositionUnmatchedDataType
+-STATEMENT MATCH (a:person) RETURN array_indexof(a.workedHours, a.registerTime)
 ---- 8
 0
 0
@@ -687,8 +722,8 @@ ad
 0
 0
 
--NAME ListContainsStructuredListOfInts
--QUERY MATCH (a:person) RETURN list_contains(a.workedHours, 5)
+-LOG ListContainsStructuredListOfInts
+-STATEMENT MATCH (a:person) RETURN list_contains(a.workedHours, 5)
 ---- 8
 True
 False
@@ -699,14 +734,14 @@ True
 False
 True
 
--NAME ListContainsSelect
--QUERY MATCH (a:person) WHERE list_contains(a.courseScoresPerTerm, [8]) RETURN a.ID
+-LOG ListContainsSelect
+-STATEMENT MATCH (a:person) WHERE list_contains(a.courseScoresPerTerm, [8]) RETURN a.ID
 ---- 2
 7
 8
 
--NAME ListContainsStructuredListOfStrings
--QUERY MATCH (a:person) RETURN list_has(a.usedNames, "Grad")
+-LOG ListContainsStructuredListOfStrings
+-STATEMENT MATCH (a:person) RETURN list_has(a.usedNames, "Grad")
 ---- 8
 False
 False
@@ -717,8 +752,8 @@ False
 True
 False
 
--NAME ListContainsStructuredListOfListOfInts
--QUERY MATCH (a:person) RETURN array_contains(a.courseScoresPerTerm, [8])
+-LOG ListContainsStructuredListOfListOfInts
+-STATEMENT MATCH (a:person) RETURN array_contains(a.courseScoresPerTerm, [8])
 ---- 8
 False
 False
@@ -729,22 +764,22 @@ True
 False
 False
 
--NAME ListContainsLiteralListOfInts
--QUERY MATCH (o:organisation) RETURN array_has([7,6,1], o.ID)
+-LOG ListContainsLiteralListOfInts
+-STATEMENT MATCH (o:organisation) RETURN array_has([7,6,1], o.ID)
 ---- 3
 True
 False
 True
 
--NAME ListSliceLiteralListOfInts
--QUERY MATCH (o:organisation) RETURN array_slice([1,4,7,9,10,20,15,192,-5,21,3], 3, o.ID + 3)
+-LOG ListSliceLiteralListOfInts
+-STATEMENT MATCH (o:organisation) RETURN array_slice([1,4,7,9,10,20,15,192,-5,21,3], 3, o.ID + 3)
 ---- 3
 [7]
 [7,9,10,20]
 [7,9,10,20,15,192]
 
--NAME ListSliceStructuredListOfInts
--QUERY MATCH (a:person) RETURN list_slice(a.workedHours, 1, 2)
+-LOG ListSliceStructuredListOfInts
+-STATEMENT MATCH (a:person) RETURN list_slice(a.workedHours, 1, 2)
 ---- 8
 [10]
 [12]
@@ -755,8 +790,8 @@ True
 [1]
 [10]
 
--NAME ListSliceStructuredListOfListOfInts
--QUERY MATCH (a:person) RETURN array_slice(a.usedNames, 1, 2)
+-LOG ListSliceStructuredListOfListOfInts
+-STATEMENT MATCH (a:person) RETURN array_slice(a.usedNames, 1, 2)
 ---- 8
 [Aida]
 [Bobby]
@@ -767,8 +802,8 @@ True
 [Grad]
 [Ad]
 
--NAME ListSliceStructuredListOfStrings
--QUERY MATCH (a:person) RETURN list_slice(a.courseScoresPerTerm, 1, 2)
+-LOG ListSliceStructuredListOfStrings
+-STATEMENT MATCH (a:person) RETURN list_slice(a.courseScoresPerTerm, 1, 2)
 ---- 8
 [[10,8]]
 [[8,9]]
@@ -779,15 +814,15 @@ True
 [[10]]
 [[7]]
 
--NAME ListSliceStructuredString
--QUERY MATCH (o:organisation) RETURN o.name[1:4]
+-LOG ListSliceStructuredString
+-STATEMENT MATCH (o:organisation) RETURN o.name[1:4]
 ---- 3
 ABFs
 CsWo
 DEsW
 
--NAME ListSliceStructuredStringRight
--QUERY MATCH (a:person) RETURN a.fName[4:]
+-LOG ListSliceStructuredStringRight
+-STATEMENT MATCH (a:person) RETURN a.fName[4:]
 ---- 8
 ce
 
@@ -798,8 +833,8 @@ ooq
 g
 ert Blaine Wolfeschlegelsteinhausenbergerdorff
 
--NAME ListSliceStructuredStringLeft
--QUERY MATCH (a:person) RETURN a.fName[:5]
+-LOG ListSliceStructuredStringLeft
+-STATEMENT MATCH (a:person) RETURN a.fName[:5]
 ---- 8
 Alice
 Bob
@@ -810,15 +845,15 @@ Faroo
 Greg
 Huber
 
--NAME ListSliceStructuredStringNull
--QUERY MATCH (o:organisation) RETURN o.name[:]
+-LOG ListSliceStructuredStringNull
+-STATEMENT MATCH (o:organisation) RETURN o.name[:]
 ---- 3
 ABFsUni
 CsWork
 DEsWork
 
--NAME ListSliceStructuredStringDoubleSlice
--QUERY MATCH (a:person) RETURN a.fName[3:][2:4]
+-LOG ListSliceStructuredStringDoubleSlice
+-STATEMENT MATCH (a:person) RETURN a.fName[3:][2:4]
 ---- 8
 ce
 
@@ -829,233 +864,233 @@ ooq
 g
 ert
 
--NAME ListCreateFromLiteral1
--QUERY RETURN [[100,200],[200,300],[300,400]]
+-LOG ListCreateFromLiteral1
+-STATEMENT RETURN [[100,200],[200,300],[300,400]]
 ---- 1
 [[100,200],[200,300],[300,400]]
 
--NAME ListCreateFromLiteral2
--QUERY RETURN array_contains([[100,200],[200,300],[300,400]], [100,200])
+-LOG ListCreateFromLiteral2
+-STATEMENT RETURN array_contains([[100,200],[200,300],[300,400]], [100,200])
 ---- 1
 True
 
--NAME ListCreateFromUnion
--QUERY RETURN [UNION_VALUE(a := 3), UNION_VALUE(b := 7), UNION_VALUE(a := 11)]
+-LOG ListCreateFromUnion
+-STATEMENT RETURN [UNION_VALUE(a := 3), UNION_VALUE(b := 7), UNION_VALUE(a := 11)]
 ---- 1
 [3,7,11]
 
--NAME ListSumSeq1
--QUERY Return list_sum([1, 2, 3, NULL]);
+-LOG ListSumSeq1
+-STATEMENT Return list_sum([1, 2, 3, NULL]);
 ---- 1
 6
 
--NAME ListSumSeq2
--QUERY Return list_sum([1.1, 2.2, 3.3, NULL]);
+-LOG ListSumSeq2
+-STATEMENT Return list_sum([1.1, 2.2, 3.3, NULL]);
 ---- 1
 6.600000
 
--NAME ListSortInt16Asc
--QUERY Return list_sort([to_int16(2), to_int16(3), to_int16(1), NULL, NULL]);
+-LOG ListSortInt16Asc
+-STATEMENT Return list_sort([to_int16(2), to_int16(3), to_int16(1), NULL, NULL]);
 ---- 1
 [,,1,2,3]
 
--NAME ListSortInt16Desc
--QUERY Return list_sort([to_int16(2), to_int16(3), to_int16(1), to_int16(5), NULL], 'DESC');
+-LOG ListSortInt16Desc
+-STATEMENT Return list_sort([to_int16(2), to_int16(3), to_int16(1), to_int16(5), NULL], 'DESC');
 ---- 1
 [,5,3,2,1]
 
--NAME ListSortInt16DescWithNullsLast
--QUERY Return list_sort([to_int16(2), to_int16(3), to_int16(1), NULL], 'DESC', 'NULLS LAST');
+-LOG ListSortInt16DescWithNullsLast
+-STATEMENT Return list_sort([to_int16(2), to_int16(3), to_int16(1), NULL], 'DESC', 'NULLS LAST');
 ---- 1
 [3,2,1,]
 
--NAME ListSortInt32Asc
--QUERY Return list_sort([to_int32(2), to_int32(3), to_int32(1), NULL, NULL]);
+-LOG ListSortInt32Asc
+-STATEMENT Return list_sort([to_int32(2), to_int32(3), to_int32(1), NULL, NULL]);
 ---- 1
 [,,1,2,3]
 
--NAME ListSortInt32Desc
--QUERY Return list_sort([to_int32(2), to_int32(3), to_int32(1), to_int32(5), NULL], 'DESC');
+-LOG ListSortInt32Desc
+-STATEMENT Return list_sort([to_int32(2), to_int32(3), to_int32(1), to_int32(5), NULL], 'DESC');
 ---- 1
 [,5,3,2,1]
 
--NAME ListSortInt32DescWithNullsLast
--QUERY Return list_sort([to_int32(2), to_int32(3), to_int32(1), NULL], 'DESC', 'NULLS LAST');
+-LOG ListSortInt32DescWithNullsLast
+-STATEMENT Return list_sort([to_int32(2), to_int32(3), to_int32(1), NULL], 'DESC', 'NULLS LAST');
 ---- 1
 [3,2,1,]
 
--NAME ListSortInt64Asc
--QUERY Return list_sort([2, 3, 1, NULL, NULL]);
+-LOG ListSortInt64Asc
+-STATEMENT Return list_sort([2, 3, 1, NULL, NULL]);
 ---- 1
 [,,1,2,3]
 
--NAME ListSortInt64Desc
--QUERY Return list_sort([2, 3, 1, 5, NULL], 'DESC');
+-LOG ListSortInt64Desc
+-STATEMENT Return list_sort([2, 3, 1, 5, NULL], 'DESC');
 ---- 1
 [,5,3,2,1]
 
--NAME ListSortInt64DescWithNullsLast
--QUERY Return list_sort([2, 3, 1, NULL], 'DESC', 'NULLS LAST');
+-LOG ListSortInt64DescWithNullsLast
+-STATEMENT Return list_sort([2, 3, 1, NULL], 'DESC', 'NULLS LAST');
 ---- 1
 [3,2,1,]
 
--NAME ListSortFloatAsc
--QUERY Return list_sort([to_float(1.1), to_float(2.3), to_float(4.5), NULL]);
+-LOG ListSortFloatAsc
+-STATEMENT Return list_sort([to_float(1.1), to_float(2.3), to_float(4.5), NULL]);
 ---- 1
 [,1.100000,2.300000,4.500000]
 
--NAME ListSortFloatDesc
--QUERY Return list_sort([to_float(2.1), to_float(3.2), to_float(1.33), to_float(5.44), NULL], 'DESC');
+-LOG ListSortFloatDesc
+-STATEMENT Return list_sort([to_float(2.1), to_float(3.2), to_float(1.33), to_float(5.44), NULL], 'DESC');
 ---- 1
 [,5.440000,3.200000,2.100000,1.330000]
 
--NAME ListSortFloatDescWithNullsLast
--QUERY Return list_sort([to_float(2.1), to_float(3.2), to_float(1.11), NULL], 'DESC', 'NULLS LAST');
+-LOG ListSortFloatDescWithNullsLast
+-STATEMENT Return list_sort([to_float(2.1), to_float(3.2), to_float(1.11), NULL], 'DESC', 'NULLS LAST');
 ---- 1
 [3.200000,2.100000,1.110000,]
 
--NAME ListSortStringDesc
--QUERY Return list_sort(['sss', 'sssss', 'abs', NULL], 'DESC');
+-LOG ListSortStringDesc
+-STATEMENT Return list_sort(['sss', 'sssss', 'abs', NULL], 'DESC');
 ---- 1
 [,sssss,sss,abs]
 
--NAME ListSortStringAscWithNullsLast
--QUERY Return list_sort(['sss', 'sssss', 'abs', NULL], 'ASC', 'NULLS LAST');
+-LOG ListSortStringAscWithNullsLast
+-STATEMENT Return list_sort(['sss', 'sssss', 'abs', NULL], 'ASC', 'NULLS LAST');
 ---- 1
 [abs,sss,sssss,]
 
--NAME ListSortDoubleAscWithNullsLast
--QUERY Return list_sort([1.1, 2.3, 4.5, NULL], 'ASC', 'NULLS LAST');
+-LOG ListSortDoubleAscWithNullsLast
+-STATEMENT Return list_sort([1.1, 2.3, 4.5, NULL], 'ASC', 'NULLS LAST');
 ---- 1
 [1.100000,2.300000,4.500000,]
 
--NAME ListSortDateSeq1
--QUERY Return list_sort([date('1992-05-03'), date('1993-05-03'), date('1994-05-03'), NULL]);
+-LOG ListSortDateSeq1
+-STATEMENT Return list_sort([date('1992-05-03'), date('1993-05-03'), date('1994-05-03'), NULL]);
 ---- 1
 [,1992-05-03,1993-05-03,1994-05-03]
 
--NAME ListSortDateSeq2
--QUERY Return list_sort([date('1992-05-03'), date('1993-05-03'), date('1994-05-03'), NULL], 'DESC');
+-LOG ListSortDateSeq2
+-STATEMENT Return list_sort([date('1992-05-03'), date('1993-05-03'), date('1994-05-03'), NULL], 'DESC');
 ---- 1
 [,1994-05-03,1993-05-03,1992-05-03]
 
--NAME ListSortDateSeq3
--QUERY Return list_sort([date('1992-05-03'), date('1993-05-03'), date('1994-05-03'), NULL], 'DESC', 'NULLS LAST');
+-LOG ListSortDateSeq3
+-STATEMENT Return list_sort([date('1992-05-03'), date('1993-05-03'), date('1994-05-03'), NULL], 'DESC', 'NULLS LAST');
 ---- 1
 [1994-05-03,1993-05-03,1992-05-03,]
 
--NAME ListSortTimestampSeq1
--QUERY Return list_sort([timestamp('1992-05-03 11:13:25'), timestamp('1993-05-03 11:13:25'), timestamp('1994-05-03 11:13:25'), NULL]);
+-LOG ListSortTimestampSeq1
+-STATEMENT Return list_sort([timestamp('1992-05-03 11:13:25'), timestamp('1993-05-03 11:13:25'), timestamp('1994-05-03 11:13:25'), NULL]);
 ---- 1
 [,1992-05-03 11:13:25,1993-05-03 11:13:25,1994-05-03 11:13:25]
 
--NAME ListSortTimestampSeq2
--QUERY Return list_sort([timestamp('1992-05-03 11:13:25'), timestamp('1993-05-03 11:13:25'), timestamp('1994-05-03 11:13:25'), NULL], 'DESC');
+-LOG ListSortTimestampSeq2
+-STATEMENT Return list_sort([timestamp('1992-05-03 11:13:25'), timestamp('1993-05-03 11:13:25'), timestamp('1994-05-03 11:13:25'), NULL], 'DESC');
 ---- 1
 [,1994-05-03 11:13:25,1993-05-03 11:13:25,1992-05-03 11:13:25]
 
--NAME ListSortTimestampSeq3
--QUERY Return list_sort([timestamp('1992-05-03 11:13:25'), timestamp('1993-05-03 11:13:25'), timestamp('1994-05-03 11:13:25'), NULL], 'DESC', 'NULLS LAST');
+-LOG ListSortTimestampSeq3
+-STATEMENT Return list_sort([timestamp('1992-05-03 11:13:25'), timestamp('1993-05-03 11:13:25'), timestamp('1994-05-03 11:13:25'), NULL], 'DESC', 'NULLS LAST');
 ---- 1
 [1994-05-03 11:13:25,1993-05-03 11:13:25,1992-05-03 11:13:25,]
 
--NAME ListSortIntervalSeq1
--QUERY Return list_sort([interval('2 hours 3 days 20 minutes'), interval('3 hours 3 days 20 minutes'), interval('4 hours 3 days 20 minutes'), NULL]);
+-LOG ListSortIntervalSeq1
+-STATEMENT Return list_sort([interval('2 hours 3 days 20 minutes'), interval('3 hours 3 days 20 minutes'), interval('4 hours 3 days 20 minutes'), NULL]);
 ---- 1
 [,3 days 02:20:00,3 days 03:20:00,3 days 04:20:00]
 
--NAME ListSortIntervalSeq2
--QUERY Return list_sort([interval('2 hours 3 days 20 minutes'), interval('3 hours 3 days 20 minutes'), interval('4 hours 3 days 20 minutes'), NULL], 'DESC');
+-LOG ListSortIntervalSeq2
+-STATEMENT Return list_sort([interval('2 hours 3 days 20 minutes'), interval('3 hours 3 days 20 minutes'), interval('4 hours 3 days 20 minutes'), NULL], 'DESC');
 ---- 1
 [,3 days 04:20:00,3 days 03:20:00,3 days 02:20:00]
 
--NAME ListSortIntervalSeq3
--QUERY Return list_sort([interval('2 hours 3 days 20 minutes'), interval('3 hours 3 days 20 minutes'), interval('4 hours 3 days 20 minutes'), NULL], 'DESC', 'NULLS LAST');
+-LOG ListSortIntervalSeq3
+-STATEMENT Return list_sort([interval('2 hours 3 days 20 minutes'), interval('3 hours 3 days 20 minutes'), interval('4 hours 3 days 20 minutes'), NULL], 'DESC', 'NULLS LAST');
 ---- 1
 [3 days 04:20:00,3 days 03:20:00,3 days 02:20:00,]
 
--NAME ListSortBooleanSeq1
--QUERY Return list_sort([true, true, false, NULL]);
+-LOG ListSortBooleanSeq1
+-STATEMENT Return list_sort([true, true, false, NULL]);
 ---- 1
 [,False,True,True]
 
--NAME ListSortBooleanSeq2
--QUERY Return list_sort([true, true, false, NULL], 'DESC');
+-LOG ListSortBooleanSeq2
+-STATEMENT Return list_sort([true, true, false, NULL], 'DESC');
 ---- 1
 [,True,True,False]
 
--NAME ListSortBooleanSeq3
--QUERY Return list_sort([true, true, false, NULL], 'DESC', 'NULLS LAST');
+-LOG ListSortBooleanSeq3
+-STATEMENT Return list_sort([true, true, false, NULL], 'DESC', 'NULLS LAST');
 ---- 1
 [True,True,False,]
 
--NAME ListSumInt
--QUERY Return list_sum([1, 2, 3, NULL]);
+-LOG ListSumInt
+-STATEMENT Return list_sum([1, 2, 3, NULL]);
 ---- 1
 6
 
--NAME ListSumDouble
--QUERY Return list_sum([1.1, 2.2, 3.3, NULL]);
+-LOG ListSumDouble
+-STATEMENT Return list_sum([1.1, 2.2, 3.3, NULL]);
 ---- 1
 6.600000
 
--NAME ListReverseSortInt16
--QUERY Return list_reverse_sort([to_int16(1), to_int16(1), NULL, to_int16(-3), to_int16(1), to_int16(5)]);
+-LOG ListReverseSortInt16
+-STATEMENT Return list_reverse_sort([to_int16(1), to_int16(1), NULL, to_int16(-3), to_int16(1), to_int16(5)]);
 ---- 1
 [,5,1,1,1,-3]
 
--NAME ListReverseSortInt16WithNullsLast
--QUERY Return list_reverse_sort([to_int16(1), to_int16(1), NULL, to_int16(-3), to_int16(1), to_int16(5)], 'NULLS LAST');
+-LOG ListReverseSortInt16WithNullsLast
+-STATEMENT Return list_reverse_sort([to_int16(1), to_int16(1), NULL, to_int16(-3), to_int16(1), to_int16(5)], 'NULLS LAST');
 ---- 1
 [5,1,1,1,-3,]
 
--NAME ListReverseSortInt32
--QUERY Return list_reverse_sort([to_int32(1), to_int32(1), NULL, to_int32(-3), to_int32(1), to_int32(5)]);
+-LOG ListReverseSortInt32
+-STATEMENT Return list_reverse_sort([to_int32(1), to_int32(1), NULL, to_int32(-3), to_int32(1), to_int32(5)]);
 ---- 1
 [,5,1,1,1,-3]
 
--NAME ListReverseSortInt32WithNullsLast
--QUERY Return list_reverse_sort([to_int32(1), to_int32(1), NULL, to_int32(-3), to_int32(1), to_int32(5)], 'NULLS LAST');
+-LOG ListReverseSortInt32WithNullsLast
+-STATEMENT Return list_reverse_sort([to_int32(1), to_int32(1), NULL, to_int32(-3), to_int32(1), to_int32(5)], 'NULLS LAST');
 ---- 1
 [5,1,1,1,-3,]
 
--NAME ListReverseSortInt64
--QUERY Return list_reverse_sort([2, 3, 1, 5, NULL]);
+-LOG ListReverseSortInt64
+-STATEMENT Return list_reverse_sort([2, 3, 1, 5, NULL]);
 ---- 1
 [,5,3,2,1]
 
--NAME ListReverseSortInt64WithNullsLast
--QUERY Return list_reverse_sort([2, 3, 1, 5, NULL], 'NULLS LAST');
+-LOG ListReverseSortInt64WithNullsLast
+-STATEMENT Return list_reverse_sort([2, 3, 1, 5, NULL], 'NULLS LAST');
 ---- 1
 [5,3,2,1,]
 
--NAME ListDistinctWithFloat
--QUERY Return list_reverse_sort([to_float(1.1), to_float(1.1), NULL, to_float(3.4), to_float(1.2), to_float(5.1)]);
+-LOG ListDistinctWithFloat
+-STATEMENT Return list_reverse_sort([to_float(1.1), to_float(1.1), NULL, to_float(3.4), to_float(1.2), to_float(5.1)]);
 ---- 1
 [,5.100000,3.400000,1.200000,1.100000,1.100000]
 
--NAME ListDistinctWithFloat
--QUERY Return list_reverse_sort([to_float(1.1), to_float(1.1), NULL, to_float(3.4), to_float(1.2), to_float(5.1)], 'NULLS LAST');
+-LOG ListDistinctWithFloat
+-STATEMENT Return list_reverse_sort([to_float(1.1), to_float(1.1), NULL, to_float(3.4), to_float(1.2), to_float(5.1)], 'NULLS LAST');
 ---- 1
 [5.100000,3.400000,1.200000,1.100000,1.100000,]
 
--NAME ListReverseSortDouble
--QUERY Return list_reverse_sort([1.1, 2.3, 4.5, NULL]);
+-LOG ListReverseSortDouble
+-STATEMENT Return list_reverse_sort([1.1, 2.3, 4.5, NULL]);
 ---- 1
 [,4.500000,2.300000,1.100000]
 
--NAME ListReverseSortDoubleWithNullsLast
--QUERY Return list_reverse_sort([1.1, 2.3, 4.5, NULL], 'NULLS LAST');
+-LOG ListReverseSortDoubleWithNullsLast
+-STATEMENT Return list_reverse_sort([1.1, 2.3, 4.5, NULL], 'NULLS LAST');
 ---- 1
 [4.500000,2.300000,1.100000,]
 
--NAME ListReverseSortStringSeq1
--QUERY Return list_reverse_sort(['this is a long string', 'this is yet another long string', 'abs', NULL]);
+-LOG ListReverseSortStringSeq1
+-STATEMENT Return list_reverse_sort(['this is a long string', 'this is yet another long string', 'abs', NULL]);
 ---- 1
 [,this is yet another long string,this is a long string,abs]
 
--NAME ListReverseSortWithStringSeq2
--QUERY  MATCH (a:person) RETURN list_reverse_sort([NULL, a.usedNames[1], 'Some val', NULL])
+-LOG ListReverseSortWithStringSeq2
+-STATEMENT  MATCH (a:person) RETURN list_reverse_sort([NULL, a.usedNames[1], 'Some val', NULL])
 ---- 8
 [,,Some val,Ad]
 [,,Some val,Aida]
@@ -1066,88 +1101,88 @@ True
 [,,Some val,Grad]
 [,,Wolfeschlegelstein,Some val]
 
--NAME ListReverseSortStringWithNullsLast
--QUERY Return list_reverse_sort(['sss', 'sssss', 'abs', NULL], 'NULLS LAST');
+-LOG ListReverseSortStringWithNullsLast
+-STATEMENT Return list_reverse_sort(['sss', 'sssss', 'abs', NULL], 'NULLS LAST');
 ---- 1
 [sssss,sss,abs,]
 
--NAME ListReverseSortDateSeq1
--QUERY Return list_reverse_sort([date('1992-05-03'), date('1993-05-03'), date('1994-05-03'), NULL]);
+-LOG ListReverseSortDateSeq1
+-STATEMENT Return list_reverse_sort([date('1992-05-03'), date('1993-05-03'), date('1994-05-03'), NULL]);
 ---- 1
 [,1994-05-03,1993-05-03,1992-05-03]
 
--NAME ListReverseSortDateSeq2
--QUERY Return list_reverse_sort([date('1992-05-03'), date('1993-05-03'), date('1994-05-03'), NULL], 'NULLS LAST');
+-LOG ListReverseSortDateSeq2
+-STATEMENT Return list_reverse_sort([date('1992-05-03'), date('1993-05-03'), date('1994-05-03'), NULL], 'NULLS LAST');
 ---- 1
 [1994-05-03,1993-05-03,1992-05-03,]
 
--NAME ListReverseSortTimestampSeq1
--QUERY Return list_reverse_sort([timestamp('1992-05-03 11:13:25'), timestamp('1993-05-03 11:13:25'), timestamp('1994-05-03 11:13:25'), NULL]);
+-LOG ListReverseSortTimestampSeq1
+-STATEMENT Return list_reverse_sort([timestamp('1992-05-03 11:13:25'), timestamp('1993-05-03 11:13:25'), timestamp('1994-05-03 11:13:25'), NULL]);
 ---- 1
 [,1994-05-03 11:13:25,1993-05-03 11:13:25,1992-05-03 11:13:25]
 
--NAME ListReverseSortTimestampSeq2
--QUERY Return list_reverse_sort([timestamp('1992-05-03 11:13:25'), timestamp('1993-05-03 11:13:25'), timestamp('1994-05-03 11:13:25'), NULL], 'NULLS LAST');
+-LOG ListReverseSortTimestampSeq2
+-STATEMENT Return list_reverse_sort([timestamp('1992-05-03 11:13:25'), timestamp('1993-05-03 11:13:25'), timestamp('1994-05-03 11:13:25'), NULL], 'NULLS LAST');
 ---- 1
 [1994-05-03 11:13:25,1993-05-03 11:13:25,1992-05-03 11:13:25,]
 
--NAME ListReverseSortIntervalSeq1
--QUERY Return list_reverse_sort([interval('2 hours 3 days 20 minutes'), interval('3 hours 3 days 20 minutes'), interval('4 hours 3 days 20 minutes'), NULL]);
+-LOG ListReverseSortIntervalSeq1
+-STATEMENT Return list_reverse_sort([interval('2 hours 3 days 20 minutes'), interval('3 hours 3 days 20 minutes'), interval('4 hours 3 days 20 minutes'), NULL]);
 ---- 1
 [,3 days 04:20:00,3 days 03:20:00,3 days 02:20:00]
 
--NAME ListReverseSortIntervalSeq2
--QUERY Return list_reverse_sort([interval('2 hours 3 days 20 minutes'), interval('3 hours 3 days 20 minutes'), interval('4 hours 3 days 20 minutes'), NULL], 'NULLS LAST');
+-LOG ListReverseSortIntervalSeq2
+-STATEMENT Return list_reverse_sort([interval('2 hours 3 days 20 minutes'), interval('3 hours 3 days 20 minutes'), interval('4 hours 3 days 20 minutes'), NULL], 'NULLS LAST');
 ---- 1
 [3 days 04:20:00,3 days 03:20:00,3 days 02:20:00,]
 
--NAME ListReverseSortBooleanSeq1
--QUERY Return list_reverse_sort([true, true, false, NULL]);
+-LOG ListReverseSortBooleanSeq1
+-STATEMENT Return list_reverse_sort([true, true, false, NULL]);
 ---- 1
 [,True,True,False]
 
--NAME ListReverseSortBooleanSeq2
--QUERY Return list_reverse_sort([true, true, false, NULL], 'NULLS LAST');
+-LOG ListReverseSortBooleanSeq2
+-STATEMENT Return list_reverse_sort([true, true, false, NULL], 'NULLS LAST');
 ---- 1
 [True,True,False,]
 
--NAME ListDistinctWithInt16
--QUERY Return list_distinct([to_int16(1), to_int16(1), NULL, to_int16(-3), to_int16(1), to_int16(5)]);
+-LOG ListDistinctWithInt16
+-STATEMENT Return list_distinct([to_int16(1), to_int16(1), NULL, to_int16(-3), to_int16(1), to_int16(5)]);
 ---- 1
 [-3,1,5]
 
--NAME ListDistinctWithInt32
--QUERY Return list_distinct([to_int32(1), to_int32(1), NULL, to_int32(-3), to_int32(1), to_int32(5)]);
+-LOG ListDistinctWithInt32
+-STATEMENT Return list_distinct([to_int32(1), to_int32(1), NULL, to_int32(-3), to_int32(1), to_int32(5)]);
 ---- 1
 [-3,1,5]
 
--NAME ListDistinctWithInt64
--QUERY Return list_distinct([1, 1, NULL, -3, 1, 5]);
+-LOG ListDistinctWithInt64
+-STATEMENT Return list_distinct([1, 1, NULL, -3, 1, 5]);
 ---- 1
 [-3,1,5]
 
--NAME ListDistinctWithFloat
--QUERY Return list_distinct([to_float(1.1), to_float(1.1), NULL, to_float(3.4), to_float(1.2), to_float(5.1)]);
+-LOG ListDistinctWithFloat
+-STATEMENT Return list_distinct([to_float(1.1), to_float(1.1), NULL, to_float(3.4), to_float(1.2), to_float(5.1)]);
 ---- 1
 [1.100000,1.200000,3.400000,5.100000]
 
--NAME ListDistinctWithDouble
--QUERY Return list_distinct([1.1, 1.1, NULL, -3.4, 1.2, 5.1]);
+-LOG ListDistinctWithDouble
+-STATEMENT Return list_distinct([1.1, 1.1, NULL, -3.4, 1.2, 5.1]);
 ---- 1
 [-3.400000,1.100000,1.200000,5.100000]
 
--NAME ListDistinctBoolean
--QUERY Return list_distinct([true, true, NULL, false, false]);
+-LOG ListDistinctBoolean
+-STATEMENT Return list_distinct([true, true, NULL, false, false]);
 ---- 1
 [False,True]
 
--NAME ListDistinctWithStringSeq1
--QUERY Return list_distinct(['this is a long string', 'this is a long string', NULL, 'bbb', 'ccc', 'ccc']);
+-LOG ListDistinctWithStringSeq1
+-STATEMENT Return list_distinct(['this is a long string', 'this is a long string', NULL, 'bbb', 'ccc', 'ccc']);
 ---- 1
 [bbb,ccc,this is a long string]
 
--NAME ListDistinctWithStringSeq2
--QUERY  MATCH (a:person) RETURN list_distinct([NULL, a.usedNames[1], a.usedNames[1], NULL])
+-LOG ListDistinctWithStringSeq2
+-STATEMENT  MATCH (a:person) RETURN list_distinct([NULL, a.usedNames[1], a.usedNames[1], NULL])
 ---- 8
 [Ad]
 [Aida]
@@ -1158,23 +1193,23 @@ True
 [Grad]
 [Wolfeschlegelstein]
 
--NAME ListDistinctWithDate
--QUERY Return list_distinct([date('1992-05-03'), date('1993-05-03'), date('1993-05-03'), date('1994-05-03'), date('1993-05-03'), NULL]);
+-LOG ListDistinctWithDate
+-STATEMENT Return list_distinct([date('1992-05-03'), date('1993-05-03'), date('1993-05-03'), date('1994-05-03'), date('1993-05-03'), NULL]);
 ---- 1
 [1992-05-03,1993-05-03,1994-05-03]
 
--NAME ListDistinctWithTimestamp
--QUERY Return list_distinct([timestamp('1992-05-03 11:13:25'), timestamp('1994-05-03 11:13:25'), timestamp('1993-05-03 11:13:25'), timestamp('1994-05-03 11:13:25'), NULL]);
+-LOG ListDistinctWithTimestamp
+-STATEMENT Return list_distinct([timestamp('1992-05-03 11:13:25'), timestamp('1994-05-03 11:13:25'), timestamp('1993-05-03 11:13:25'), timestamp('1994-05-03 11:13:25'), NULL]);
 ---- 1
 [1992-05-03 11:13:25,1993-05-03 11:13:25,1994-05-03 11:13:25]
 
--NAME ListDistinctWithInterval
--QUERY Return list_distinct([interval('2 hours 3 days 20 minutes'), interval('2 hours 3 days 20 minutes'), interval('3 hours 3 days 20 minutes'), interval('4 hours 3 days 20 minutes'), NULL]);
+-LOG ListDistinctWithInterval
+-STATEMENT Return list_distinct([interval('2 hours 3 days 20 minutes'), interval('2 hours 3 days 20 minutes'), interval('3 hours 3 days 20 minutes'), interval('4 hours 3 days 20 minutes'), NULL]);
 ---- 1
 [3 days 02:20:00,3 days 03:20:00,3 days 04:20:00]
 
--NAME ListDistinctWithInternalID
--QUERY MATCH (p:person) RETURN list_distinct([id(p), id(p), id(p)])
+-LOG ListDistinctWithInternalID
+-STATEMENT MATCH (p:person) RETURN list_distinct([id(p), id(p), id(p)])
 ---- 8
 [0:0]
 [0:1]
@@ -1185,43 +1220,43 @@ True
 [0:6]
 [0:7]
 
--NAME ListUniqueWithInt16
--QUERY MATCH (m:movies) WHERE m.name='Roma' RETURN list_unique([NULL, to_int16(m.length), to_int16(m.length), to_int16(1)])
+-LOG ListUniqueWithInt16
+-STATEMENT MATCH (m:movies) WHERE m.name='Roma' RETURN list_unique([NULL, to_int16(m.length), to_int16(m.length), to_int16(1)])
 ---- 1
 2
 
--NAME ListUniqueWithInt32
--QUERY MATCH (m:movies) WHERE m.name='Roma' RETURN list_unique([NULL, to_int32(m.length), to_int32(m.length), to_int32(3)])
+-LOG ListUniqueWithInt32
+-STATEMENT MATCH (m:movies) WHERE m.name='Roma' RETURN list_unique([NULL, to_int32(m.length), to_int32(m.length), to_int32(3)])
 ---- 1
 2
 
--NAME ListUniqueWithInt64
--QUERY Return list_unique([1, 1, NULL, -3, 1, 5]);
+-LOG ListUniqueWithInt64
+-STATEMENT Return list_unique([1, 1, NULL, -3, 1, 5]);
 ---- 1
 3
 
--NAME ListUniqueWithFloat
--QUERY MATCH (p:person) WHERE p.ID=0 RETURN list_unique([NULL, to_float(p.gender), to_float(p.gender), to_float(4.5)])
+-LOG ListUniqueWithFloat
+-STATEMENT MATCH (p:person) WHERE p.ID=0 RETURN list_unique([NULL, to_float(p.gender), to_float(p.gender), to_float(4.5)])
 ---- 1
 2
 
--NAME ListUniqueWithDouble
--QUERY Return list_unique([1.1, 1.1, NULL, -3.4, 1.2, 5.1]);
+-LOG ListUniqueWithDouble
+-STATEMENT Return list_unique([1.1, 1.1, NULL, -3.4, 1.2, 5.1]);
 ---- 1
 4
 
--NAME ListUniqueBoolean
--QUERY Return list_unique([true, true, NULL, false, false]);
+-LOG ListUniqueBoolean
+-STATEMENT Return list_unique([true, true, NULL, false, false]);
 ---- 1
 2
 
--NAME ListUniqueWithStringSeq1
--QUERY Return list_unique(['this is long string', 'this is long string', NULL, 'bbb', 'ccc', 'aaa']);
+-LOG ListUniqueWithStringSeq1
+-STATEMENT Return list_unique(['this is long string', 'this is long string', NULL, 'bbb', 'ccc', 'aaa']);
 ---- 1
 4
 
--NAME ListUniqueWithStringSeq2
--QUERY MATCH (a:person) RETURN list_unique([NULL, a.usedNames[1], 'sss', NULL])
+-LOG ListUniqueWithStringSeq2
+-STATEMENT MATCH (a:person) RETURN list_unique([NULL, a.usedNames[1], 'sss', NULL])
 ---- 8
 2
 2
@@ -1232,23 +1267,23 @@ True
 2
 2
 
--NAME ListUniqueWithDate
--QUERY Return list_unique([date('1992-05-03'), date('1993-05-03'), date('1993-05-03'), date('1994-05-03'), date('1993-05-03'), NULL]);
+-LOG ListUniqueWithDate
+-STATEMENT Return list_unique([date('1992-05-03'), date('1993-05-03'), date('1993-05-03'), date('1994-05-03'), date('1993-05-03'), NULL]);
 ---- 1
 3
 
--NAME ListUniqueWithTimestamp
--QUERY Return list_unique([timestamp('1992-05-03 11:13:25'), timestamp('1994-05-03 11:13:25'), timestamp('1993-05-03 11:13:25'), timestamp('1994-05-03 11:13:25'), NULL]);
+-LOG ListUniqueWithTimestamp
+-STATEMENT Return list_unique([timestamp('1992-05-03 11:13:25'), timestamp('1994-05-03 11:13:25'), timestamp('1993-05-03 11:13:25'), timestamp('1994-05-03 11:13:25'), NULL]);
 ---- 1
 3
 
--NAME ListUniqueWithInterval
--QUERY Return list_unique([interval('2 hours 3 days 20 minutes'), interval('2 hours 3 days 20 minutes'), interval('3 hours 3 days 20 minutes'), interval('4 hours 3 days 20 minutes'), NULL]);
+-LOG ListUniqueWithInterval
+-STATEMENT Return list_unique([interval('2 hours 3 days 20 minutes'), interval('2 hours 3 days 20 minutes'), interval('3 hours 3 days 20 minutes'), interval('4 hours 3 days 20 minutes'), NULL]);
 ---- 1
 3
 
--NAME ListUniqueWithInternalID
--QUERY MATCH (p:person) RETURN list_unique([id(p), id(p), id(p)]);
+-LOG ListUniqueWithInternalID
+-STATEMENT MATCH (p:person) RETURN list_unique([id(p), id(p), id(p)]);
 ---- 8
 1
 1
@@ -1259,43 +1294,43 @@ True
 1
 1
 
--NAME ListAnyValueWithInt16
--QUERY MATCH (m:movies) WHERE m.name='Roma' RETURN list_any_value([NULL, to_int16(m.length), to_int16(m.length)])
+-LOG ListAnyValueWithInt16
+-STATEMENT MATCH (m:movies) WHERE m.name='Roma' RETURN list_any_value([NULL, to_int16(m.length), to_int16(m.length)])
 ---- 1
 298
 
--NAME ListAnyValueWithInt32
--QUERY MATCH (m:movies) WHERE m.name='Roma' RETURN list_any_value([NULL, to_int32(m.length), to_int32(m.length)])
+-LOG ListAnyValueWithInt32
+-STATEMENT MATCH (m:movies) WHERE m.name='Roma' RETURN list_any_value([NULL, to_int32(m.length), to_int32(m.length)])
 ---- 1
 298
 
--NAME ListAnyValueWithInt64
--QUERY Return list_any_value([NULL, 1, 1, NULL, -3, 1, 5]);
+-LOG ListAnyValueWithInt64
+-STATEMENT Return list_any_value([NULL, 1, 1, NULL, -3, 1, 5]);
 ---- 1
 1
 
--NAME ListAnyValueWithFloat
--QUERY MATCH (p:person) WHERE p.ID=0 RETURN list_any_value([NULL, to_float(p.gender), to_float(p.gender), to_float(2.3)])
+-LOG ListAnyValueWithFloat
+-STATEMENT MATCH (p:person) WHERE p.ID=0 RETURN list_any_value([NULL, to_float(p.gender), to_float(p.gender), to_float(2.3)])
 ---- 1
 1.000000
 
--NAME ListAnyValueWithDouble
--QUERY Return list_any_value([NULL, 1.1, 1.1, NULL, -3.4, 1.2, 5.1]);
+-LOG ListAnyValueWithDouble
+-STATEMENT Return list_any_value([NULL, 1.1, 1.1, NULL, -3.4, 1.2, 5.1]);
 ---- 1
 1.100000
 
--NAME ListAnyValueBoolean
--QUERY Return list_any_value([NULL, true, true, NULL, false]);
+-LOG ListAnyValueBoolean
+-STATEMENT Return list_any_value([NULL, true, true, NULL, false]);
 ---- 1
 True
 
--NAME ListAnyValueWithStringSeq1
--QUERY Return list_any_value([NULL, NULL, 'this is long string', 'this is long string', NULL, 'this is long string', 'ccc', 'aaa']);
+-LOG ListAnyValueWithStringSeq1
+-STATEMENT Return list_any_value([NULL, NULL, 'this is long string', 'this is long string', NULL, 'this is long string', 'ccc', 'aaa']);
 ---- 1
 this is long string
 
--NAME ListAnyValueWithStringSeq2
--QUERY MATCH (a:person) RETURN list_any_value([NULL, a.usedNames[1], 'sss'])
+-LOG ListAnyValueWithStringSeq2
+-STATEMENT MATCH (a:person) RETURN list_any_value([NULL, a.usedNames[1], 'sss'])
 ---- 8
 Aida
 Bobby
@@ -1306,28 +1341,28 @@ Fesdwe
 Grad
 Ad
 
--NAME ListAnyValueWithDate
--QUERY Return list_any_value([NULL, date('1992-05-03'), date('1993-05-03'), date('1993-05-03'), date('1994-05-03'), date('1993-05-03'), NULL]);
+-LOG ListAnyValueWithDate
+-STATEMENT Return list_any_value([NULL, date('1992-05-03'), date('1993-05-03'), date('1993-05-03'), date('1994-05-03'), date('1993-05-03'), NULL]);
 ---- 1
 1992-05-03
 
--NAME ListAnyValueWithTimestamp
--QUERY Return list_any_value([NULL, timestamp('1992-05-03 11:13:25'), timestamp('1994-05-03 11:13:25'), timestamp('1993-05-03 11:13:25'), timestamp('1994-05-03 11:13:25'), NULL]);
+-LOG ListAnyValueWithTimestamp
+-STATEMENT Return list_any_value([NULL, timestamp('1992-05-03 11:13:25'), timestamp('1994-05-03 11:13:25'), timestamp('1993-05-03 11:13:25'), timestamp('1994-05-03 11:13:25'), NULL]);
 ---- 1
 1992-05-03 11:13:25
 
--NAME ListAnyValueWithInterval
--QUERY Return list_any_value([NULL, interval('2 hours 3 days 20 minutes'), interval('2 hours 3 days 20 minutes'), interval('3 hours 3 days 20 minutes'), interval('4 hours 3 days 20 minutes'), NULL]);
+-LOG ListAnyValueWithInterval
+-STATEMENT Return list_any_value([NULL, interval('2 hours 3 days 20 minutes'), interval('2 hours 3 days 20 minutes'), interval('3 hours 3 days 20 minutes'), interval('4 hours 3 days 20 minutes'), NULL]);
 ---- 1
 3 days 02:20:00
 
--NAME ListAnyValueWithList
--QUERY Return list_any_value([NULL, [1,2,3], [3,4,5]]);
+-LOG ListAnyValueWithList
+-STATEMENT Return list_any_value([NULL, [1,2,3], [3,4,5]]);
 ---- 1
 [1,2,3]
 
--NAME ListAnyValueWithInternalID
--QUERY MATCH (p:person) return list_any_value([NULL, id(p), id(p), id(p)]);
+-LOG ListAnyValueWithInternalID
+-STATEMENT MATCH (p:person) return list_any_value([NULL, id(p), id(p), id(p)]);
 ---- 8
 0:0
 0:1

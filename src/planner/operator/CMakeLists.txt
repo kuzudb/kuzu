@@ -5,11 +5,13 @@ add_library(kuzu_planner_operator
         flatten_resolver.cpp
         logical_accumulate.cpp
         logical_aggregate.cpp
+        logical_in_query_call.cpp
         logical_copy.cpp
         logical_create.cpp
         logical_cross_product.cpp
         logical_ddl.cpp
         logical_distinct.cpp
+        logical_explain.cpp
         logical_expressions_scan.cpp
         logical_extend.cpp
         logical_filter.cpp

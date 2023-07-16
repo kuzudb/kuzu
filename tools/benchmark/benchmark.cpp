@@ -1,8 +1,8 @@
 #include "benchmark.h"
 
 #include <filesystem>
+#include <fstream>
 
-#include "json.hpp"
 #include "spdlog/spdlog.h"
 #include "test_helper.h"
 
@@ -22,8 +22,7 @@ void Benchmark::loadBenchmark(const std::string& benchmarkPath) {
     auto queryConfigs = testing::TestHelper::parseTestFile(benchmarkPath);
     assert(queryConfigs.size() == 1);
     auto queryConfig = queryConfigs[0].get();
-    query = config.enableProfile ? "PROFILE " : "";
-    query += queryConfig->query;
+    query = queryConfig->query;
     name = queryConfig->name;
     expectedOutput = queryConfig->expectedTuples;
     encodedJoin = queryConfig->encodedJoin;
@@ -31,6 +30,10 @@ void Benchmark::loadBenchmark(const std::string& benchmarkPath) {
 
 std::unique_ptr<QueryResult> Benchmark::run() const {
     return conn->query(query, encodedJoin);
+}
+
+std::unique_ptr<QueryResult> Benchmark::runWithProfile() const {
+    return conn->query("PROFILE " + query, encodedJoin);
 }
 
 void Benchmark::logQueryInfo(
@@ -51,15 +54,11 @@ void Benchmark::logQueryInfo(
 void Benchmark::log(uint32_t runNum, QueryResult& queryResult) const {
     auto querySummary = queryResult.getQuerySummary();
     auto actualOutput = testing::TestHelper::convertResultToString(queryResult);
-    std::string plan = "Plan: \n" + querySummary->printPlanToJson().dump(4);
     spdlog::info("Run number: {}", runNum);
     spdlog::info("Compiling time {}", querySummary->getCompilingTime());
     spdlog::info("Execution time {}", querySummary->getExecutionTime());
     verify(actualOutput);
     spdlog::info("");
-    if (config.enableProfile) {
-        spdlog::info("{}", plan);
-    }
     if (!config.outputPath.empty()) {
         std::ofstream logFile(config.outputPath + "/" + name + "_log.txt", std::ios_base::app);
         logQueryInfo(logFile, runNum, actualOutput);
@@ -67,14 +66,6 @@ void Benchmark::log(uint32_t runNum, QueryResult& queryResult) const {
         logFile << "Execution time: " << querySummary->getExecutionTime() << std::endl << std::endl;
         logFile.flush();
         logFile.close();
-        if (config.enableProfile) {
-            std::ofstream profileFile(
-                config.outputPath + "/" + name + "_profile.txt", std::ios_base::app);
-            logQueryInfo(profileFile, runNum, actualOutput);
-            profileFile << plan << std::endl << std::endl;
-            profileFile.flush();
-            profileFile.close();
-        }
     }
 }
 

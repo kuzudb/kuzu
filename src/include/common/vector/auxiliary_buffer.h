@@ -1,7 +1,10 @@
 #pragma once
 
-#include "arrow/array.h"
 #include "common/in_mem_overflow_buffer.h"
+
+namespace arrow {
+class Array;
+}
 
 namespace kuzu {
 namespace common {
@@ -64,6 +67,9 @@ class ListAuxiliaryBuffer : public AuxiliaryBuffer {
 public:
     ListAuxiliaryBuffer(const LogicalType& dataVectorType, storage::MemoryManager* memoryManager);
 
+    inline void setDataVector(std::shared_ptr<ValueVector> vector) {
+        dataVector = std::move(vector);
+    }
     inline ValueVector* getDataVector() const { return dataVector.get(); }
 
     list_entry_t addList(uint64_t listSize);
@@ -78,7 +84,7 @@ private:
 private:
     uint64_t capacity;
     uint64_t size;
-    std::unique_ptr<ValueVector> dataVector;
+    std::shared_ptr<ValueVector> dataVector;
 };
 
 class AuxiliaryBufferFactory {

@@ -16,6 +16,8 @@ public:
     std::unique_ptr<Statement> transform();
 
 private:
+    std::unique_ptr<Statement> transformOcStatement(CypherParser::OC_StatementContext& ctx);
+
     std::unique_ptr<RegularQuery> transformQuery(CypherParser::OC_QueryContext& ctx);
 
     std::unique_ptr<RegularQuery> transformRegularQuery(CypherParser::OC_RegularQueryContext& ctx);
@@ -36,6 +38,8 @@ private:
     std::unique_ptr<ReadingClause> transformMatch(CypherParser::OC_MatchContext& ctx);
 
     std::unique_ptr<ReadingClause> transformUnwind(CypherParser::OC_UnwindContext& ctx);
+
+    std::unique_ptr<ReadingClause> transformInQueryCall(CypherParser::KU_InQueryCallContext& ctx);
 
     std::unique_ptr<UpdatingClause> transformCreate(CypherParser::OC_CreateContext& ctx);
 
@@ -140,7 +144,7 @@ private:
 
     std::unique_ptr<ParsedExpression> transformListOperatorExpression(
         CypherParser::OC_ListOperatorExpressionContext& ctx,
-        std::unique_ptr<ParsedExpression> propertyExpression);
+        std::unique_ptr<ParsedExpression> childExpression);
 
     std::unique_ptr<ParsedExpression> transformListSliceOperatorExpression(
         CypherParser::KU_ListSliceOperatorExpressionContext& ctx,
@@ -187,7 +191,8 @@ private:
     std::unique_ptr<ParsedExpression> transformExistentialSubquery(
         CypherParser::OC_ExistentialSubqueryContext& ctx);
 
-    std::string transformPropertyLookup(CypherParser::OC_PropertyLookupContext& ctx);
+    std::unique_ptr<ParsedExpression> createPropertyExpression(
+        CypherParser::OC_PropertyLookupContext& ctx, std::unique_ptr<ParsedExpression> child);
 
     std::unique_ptr<ParsedExpression> transformCaseExpression(
         CypherParser::OC_CaseExpressionContext& ctx);
@@ -235,8 +240,6 @@ private:
 
     std::string transformDataType(CypherParser::KU_DataTypeContext& ctx);
 
-    std::string transformListIdentifiers(CypherParser::KU_ListIdentifiersContext& ctx);
-
     std::string transformPrimaryKey(CypherParser::KU_CreateNodeConstraintContext& ctx);
 
     std::vector<std::pair<std::string, std::string>> transformPropertyDefinitions(
@@ -245,6 +248,8 @@ private:
     std::unique_ptr<Statement> transformCopyCSV(CypherParser::KU_CopyCSVContext& ctx);
 
     std::unique_ptr<Statement> transformCopyNPY(CypherParser::KU_CopyNPYContext& ctx);
+
+    std::unique_ptr<Statement> transformStandaloneCall(CypherParser::KU_StandaloneCallContext& ctx);
 
     std::vector<std::string> transformFilePaths(
         std::vector<antlr4::tree::TerminalNode*> stringLiteral);

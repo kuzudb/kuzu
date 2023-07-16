@@ -7,6 +7,10 @@
 #include "query_normalizer.h"
 
 namespace kuzu {
+namespace main {
+class ClientContext;
+}
+
 namespace binder {
 
 class BoundCreateNode;
@@ -15,12 +19,12 @@ class BoundSetNodeProperty;
 class BoundSetRelProperty;
 class BoundDeleteNode;
 
-// VariableScope keeps track of expressions in scope and their aliases. We maintain the order of
+// BinderScope keeps track of expressions in scope and their aliases. We maintain the order of
 // expressions in
-class VariableScope {
+class BinderScope {
 public:
-    VariableScope() = default;
-    VariableScope(expression_vector expressions,
+    BinderScope() = default;
+    BinderScope(expression_vector expressions,
         std::unordered_map<std::string, common::vector_idx_t> varNameToIdx)
         : expressions{std::move(expressions)}, varNameToIdx{std::move(varNameToIdx)} {}
 
@@ -40,8 +44,8 @@ public:
         expressions.clear();
         varNameToIdx.clear();
     }
-    inline std::unique_ptr<VariableScope> copy() {
-        return std::make_unique<VariableScope>(expressions, varNameToIdx);
+    inline std::unique_ptr<BinderScope> copy() {
+        return std::make_unique<BinderScope>(expressions, varNameToIdx);
     }
 
 private:
@@ -53,9 +57,9 @@ class Binder {
     friend class ExpressionBinder;
 
 public:
-    explicit Binder(const catalog::Catalog& catalog)
-        : catalog{catalog}, lastExpressionId{0}, variableScope{std::make_unique<VariableScope>()},
-          expressionBinder{this} {}
+    explicit Binder(const catalog::Catalog& catalog, main::ClientContext* clientContext)
+        : catalog{catalog}, lastExpressionId{0}, scope{std::make_unique<BinderScope>()},
+          expressionBinder{this}, clientContext{clientContext} {}
 
     std::unique_ptr<BoundStatement> bind(const parser::Statement& statement);
 
@@ -108,12 +112,19 @@ private:
     std::unique_ptr<BoundSingleQuery> bindSingleQuery(const parser::SingleQuery& singleQuery);
     std::unique_ptr<BoundQueryPart> bindQueryPart(const parser::QueryPart& queryPart);
 
+    /*** bind call ***/
+    std::unique_ptr<BoundStatement> bindStandaloneCall(const parser::Statement& statement);
+
+    /*** bind explain ***/
+    std::unique_ptr<BoundStatement> bindExplain(const parser::Statement& statement);
+
     /*** bind reading clause ***/
     std::unique_ptr<BoundReadingClause> bindReadingClause(
         const parser::ReadingClause& readingClause);
     std::unique_ptr<BoundReadingClause> bindMatchClause(const parser::ReadingClause& readingClause);
     std::unique_ptr<BoundReadingClause> bindUnwindClause(
         const parser::ReadingClause& readingClause);
+    std::unique_ptr<BoundReadingClause> bindInQueryCall(const parser::ReadingClause& readingClause);
 
     /*** bind updating clause ***/
     std::unique_ptr<BoundUpdatingClause> bindUpdatingClause(
@@ -141,17 +152,13 @@ private:
     /*** bind projection clause ***/
     std::unique_ptr<BoundWithClause> bindWithClause(const parser::WithClause& withClause);
     std::unique_ptr<BoundReturnClause> bindReturnClause(const parser::ReturnClause& returnClause);
+    std::unique_ptr<BoundProjectionBody> bindProjectionBody(
+        const parser::ProjectionBody& projectionBody,
+        const expression_vector& projectionExpressions);
 
     expression_vector bindProjectionExpressions(
-        const std::vector<std::unique_ptr<parser::ParsedExpression>>& projectionExpressions,
-        bool containsStar);
-    // Rewrite variable "v" as all properties of "v"
-    expression_vector rewriteNodeOrRelExpression(const Expression& expression);
-    expression_vector rewriteNodeExpression(const Expression& expression);
-    expression_vector rewriteRelExpression(const Expression& expression);
+        const parser::parsed_expression_vector& parsedExpressions);
 
-    void bindOrderBySkipLimitIfNecessary(
-        BoundProjectionBody& boundProjectionBody, const parser::ProjectionBody& projectionBody);
     expression_vector bindOrderByExpressions(
         const std::vector<std::unique_ptr<parser::ParsedExpression>>& orderByExpressions);
     uint64_t bindSkipLimitExpression(const parser::ParsedExpression& expression);
@@ -165,16 +172,17 @@ private:
 
     std::unique_ptr<QueryGraph> bindPatternElement(
         const parser::PatternElement& patternElement, PropertyKeyValCollection& collection);
+    std::shared_ptr<Expression> createPathExpression(
+        const std::string& pathName, const expression_vector& children);
 
-    void bindQueryRel(const parser::RelPattern& relPattern,
+    std::shared_ptr<RelExpression> bindQueryRel(const parser::RelPattern& relPattern,
         const std::shared_ptr<NodeExpression>& leftNode,
         const std::shared_ptr<NodeExpression>& rightNode, QueryGraph& queryGraph,
         PropertyKeyValCollection& collection);
     std::shared_ptr<RelExpression> createNonRecursiveQueryRel(const std::string& parsedName,
         const std::vector<common::table_id_t>& tableIDs, std::shared_ptr<NodeExpression> srcNode,
         std::shared_ptr<NodeExpression> dstNode, RelDirectionType directionType);
-    std::shared_ptr<RelExpression> createRecursiveQueryRel(const std::string& parsedName,
-        common::QueryRelType relType, uint32_t lowerBound, uint32_t upperBound,
+    std::shared_ptr<RelExpression> createRecursiveQueryRel(const parser::RelPattern& relPattern,
         const std::vector<common::table_id_t>& tableIDs, std::shared_ptr<NodeExpression> srcNode,
         std::shared_ptr<NodeExpression> dstNode, RelDirectionType directionType);
     std::pair<uint64_t, uint64_t> bindVariableLengthRelBound(const parser::RelPattern& relPattern);
@@ -186,16 +194,9 @@ private:
     std::shared_ptr<NodeExpression> createQueryNode(
         const std::string& parsedName, const std::vector<common::table_id_t>& tableIDs);
     void bindQueryNodeProperties(NodeExpression& node);
-    inline std::vector<common::table_id_t> bindNodeTableIDs(
-        const std::vector<std::string>& tableNames) {
-        return bindTableIDs(tableNames, common::LogicalTypeID::NODE);
-    }
-    inline std::vector<common::table_id_t> bindRelTableIDs(
-        const std::vector<std::string>& tableNames) {
-        return bindTableIDs(tableNames, common::LogicalTypeID::REL);
-    }
-    std::vector<common::table_id_t> bindTableIDs(
-        const std::vector<std::string>& tableNames, common::LogicalTypeID nodeOrRelType);
+
+    std::vector<common::table_id_t> bindNodeTableIDs(const std::vector<std::string>& tableNames);
+    std::vector<common::table_id_t> bindRelTableIDs(const std::vector<std::string>& tableNames);
 
     /*** validations ***/
     // E.g. Optional MATCH (a) RETURN a.age
@@ -235,14 +236,15 @@ private:
     /*** helpers ***/
     std::string getUniqueExpressionName(const std::string& name);
 
-    std::unique_ptr<VariableScope> enterSubquery();
-    void exitSubquery(std::unique_ptr<VariableScope> prevVariableScope);
+    std::unique_ptr<BinderScope> saveScope();
+    void restoreScope(std::unique_ptr<BinderScope> prevVariableScope);
 
 private:
     const catalog::Catalog& catalog;
     uint32_t lastExpressionId;
-    std::unique_ptr<VariableScope> variableScope;
+    std::unique_ptr<BinderScope> scope;
     ExpressionBinder expressionBinder;
+    main::ClientContext* clientContext;
 };
 
 } // namespace binder

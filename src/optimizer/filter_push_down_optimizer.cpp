@@ -1,5 +1,6 @@
 #include "optimizer/filter_push_down_optimizer.h"
 
+#include "binder/expression/expression_visitor.h"
 #include "binder/expression/property_expression.h"
 #include "planner/logical_plan/logical_operator/logical_expressions_scan.h"
 #include "planner/logical_plan/logical_operator/logical_filter.h"
@@ -148,7 +149,8 @@ std::shared_ptr<planner::LogicalOperator> FilterPushDownOptimizer::pushDownToSca
     std::shared_ptr<binder::NodeExpression> node, std::shared_ptr<binder::Expression> predicate,
     std::shared_ptr<planner::LogicalOperator> child) {
     binder::expression_set propertiesSet;
-    for (auto& expression : predicate->getSubPropertyExpressions()) {
+    auto expressionCollector = std::make_unique<ExpressionCollector>();
+    for (auto& expression : expressionCollector->collectPropertyExpressions(predicate)) {
         auto propertyExpression = (PropertyExpression*)expression.get();
         if (child->getSchema()->isExpressionInScope(*propertyExpression)) {
             // Property already matched

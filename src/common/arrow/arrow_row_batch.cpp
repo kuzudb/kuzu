@@ -226,14 +226,17 @@ void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::INTERNAL_ID>(
 template<>
 void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::NODE>(
     ArrowVector* vector, const main::DataTypeInfo& typeInfo, Value* value, std::int64_t pos) {
-    appendValue(
-        vector->childData[0].get(), *typeInfo.childrenTypesInfo[0], value->nodeVal->getNodeIDVal());
-    appendValue(
-        vector->childData[1].get(), *typeInfo.childrenTypesInfo[1], value->nodeVal->getLabelVal());
+    appendValue(vector->childData[0].get(), *typeInfo.childrenTypesInfo[0],
+        NodeVal::getNodeIDVal(value).get());
+    appendValue(vector->childData[1].get(), *typeInfo.childrenTypesInfo[1],
+        NodeVal::getLabelVal(value).get());
     std::int64_t propertyId = 2;
-    for (auto& [name, val] : value->nodeVal->getProperties()) {
-        appendValue(vector->childData[propertyId].get(), *typeInfo.childrenTypesInfo[propertyId],
-            val.get());
+    auto numProperties = NodeVal::getNumProperties(value);
+    for (auto i = 0u; i < numProperties; i++) {
+        auto name = NodeVal::getPropertyName(value, i);
+        auto val = NodeVal::getPropertyValueReference(value, i);
+        appendValue(
+            vector->childData[propertyId].get(), *typeInfo.childrenTypesInfo[propertyId], val);
         propertyId++;
     }
 }
@@ -242,13 +245,16 @@ template<>
 void ArrowRowBatch::templateCopyNonNullValue<LogicalTypeID::REL>(
     ArrowVector* vector, const main::DataTypeInfo& typeInfo, Value* value, std::int64_t pos) {
     appendValue(vector->childData[0].get(), *typeInfo.childrenTypesInfo[0],
-        value->relVal->getSrcNodeIDVal());
+        RelVal::getSrcNodeIDVal(value).get());
     appendValue(vector->childData[1].get(), *typeInfo.childrenTypesInfo[1],
-        value->relVal->getDstNodeIDVal());
+        RelVal::getDstNodeIDVal(value).get());
     std::int64_t propertyId = 2;
-    for (auto& [name, val] : value->relVal->getProperties()) {
-        appendValue(vector->childData[propertyId].get(), *typeInfo.childrenTypesInfo[propertyId],
-            val.get());
+    auto numProperties = NodeVal::getNumProperties(value);
+    for (auto i = 0u; i < numProperties; i++) {
+        auto name = NodeVal::getPropertyName(value, i);
+        auto val = NodeVal::getPropertyValueReference(value, i);
+        appendValue(
+            vector->childData[propertyId].get(), *typeInfo.childrenTypesInfo[propertyId], val);
         propertyId++;
     }
 }

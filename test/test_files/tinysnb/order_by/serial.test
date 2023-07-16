@@ -5,8 +5,8 @@
 
 -CASE OrderBySerial
 
--NAME OrderBySerial
--QUERY MATCH (p:person) RETURN p.ID ORDER BY p.ID DESC
+-LOG OrderBySerial
+-STATEMENT MATCH (p:person) RETURN p.ID ORDER BY p.ID DESC
 ---- 8
 7
 6

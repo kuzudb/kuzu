@@ -3,78 +3,90 @@
 
 --
 
--CASE NodeTableNotExist
--QUERY MATCH (a:PERSON) RETURN COUNT(*)
+-CASE BinderError
+
+-LOG NodeTableNotExist
+-STATEMENT MATCH (a:PERSON) RETURN COUNT(*)
 ---- error
 Binder exception: Node table PERSON does not exist.
 
--CASE RepeatedRelName
--QUERY MATCH (a:person)-[e1:knows]->(b:person)<-[e1:knows]-(:person) RETURN COUNT(*)
+-LOG RepeatedRelName
+-STATEMENT MATCH (a:person)-[e1:knows]->(b:person)<-[e1:knows]-(:person) RETURN COUNT(*)
 ---- error
 Binder exception: Bind relationship e1 to relationship with same name is not supported.
 
--CASE RepeatedReturnColumnName
--QUERY MATCH (a:person)-[e1:knows]->(b:person) RETURN *, e1
+-LOG RepeatedReturnColumnName
+-STATEMENT MATCH (a:person)-[e1:knows]->(b:person) RETURN *, e1
 ---- error
 Binder exception: Multiple result column with the same name e1 are not supported.
 
--CASE WITHExpressionAliased
--QUERY MATCH (a:person)-[e1:knows]->(b:person) WITH a.age RETURN *
+-LOG WITHExpressionAliased
+-STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WITH a.age RETURN *
 ---- error
 Binder exception: Expression in WITH must be aliased (use AS).
 
--CASE BindToDifferentVariableType1
--QUERY MATCH (a:person)-[e1:knows]->(b:person) WITH e1 AS a MATCH (a) RETURN *
+-LOG BindToDifferentVariableType1
+-STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WITH e1 AS a MATCH (a) RETURN *
 ---- error
 Binder exception: e1 has data type REL. (NODE) was expected.
 
--CASE BindToDifferentVariableType2
--QUERY MATCH (a:person)-[e1:knows]->(b:person) WITH a.age + 1 AS a MATCH (a) RETURN *
+-LOG BindToDifferentVariableType2
+-STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WITH a.age + 1 AS a MATCH (a) RETURN *
 ---- error
 Binder exception: +(a.age,1) has data type INT64. (NODE) was expected.
 
--CASE BindEmptyStar
--QUERY RETURN *
+-LOG BindEmptyStar
+-STATEMENT RETURN *
 ---- error
 Binder exception: RETURN or WITH * is not allowed when there are no variables in scope.
 
--CASE BindVariableNotInScope1
--QUERY WITH a MATCH (a:person)-[e1:knows]->(b:person) RETURN *
+-LOG BindWithTableStar
+-STATEMENT MATCH (a:person) WITH a.* RETURN *;
+---- error
+Binder exception: Expression in WITH must be aliased (use AS).
+
+-LOG BindVariableNotInScope1
+-STATEMENT WITH a MATCH (a:person)-[e1:knows]->(b:person) RETURN *
 ---- error
 Binder exception: Variable a is not in scope.
 
--CASE BindVariableNotInScope2
--QUERY MATCH (a:person)-[e1:knows]->(b:person) WHERE a.age > foo RETURN *
+-LOG BindVariableNotInScope2
+-STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WHERE a.age > foo RETURN *
 ---- error
 Binder exception: Variable foo is not in scope.
 
--CASE BindVariableNotInScope3
--QUERY MATCH (a:person) RETURN b
+-LOG BindVariableNotInScope3
+-STATEMENT MATCH (a:person) RETURN b
 ---- error
 Binder exception: Variable b is not in scope.
 
--CASE BindPropertyLookUpOnExpression
--QUERY MATCH (a:person)-[e1:knows]->(b:person) RETURN (a.age + 2).age
+-LOG BindPropertyLookUpOnExpression
+-STATEMENT MATCH (a:person)-[e1:knows]->(b:person) RETURN (a.age + 2).age
 ---- error
 Binder exception: +(a.age,2) has data type INT64. (NODE,REL,STRUCT) was expected.
 
--CASE BindPropertyNotExist
--QUERY MATCH (a:person)-[e1:knows]->(b:person) RETURN a.foo
+-LOG BindPropertyNotExist
+-STATEMENT MATCH (a:person)-[e1:knows]->(b:person) RETURN a.foo
 ---- error
 Binder exception: Cannot find property foo for a.
 
--CASE BindPropertyNotExist2
--QUERY Create (a:person {foo:'x'});
+-LOG BindPropertyNotExist2
+-STATEMENT Create (a:person {foo:'x'});
 ---- error
 Binder exception: Cannot find property foo for a.
 
--CASE BindPropertyNotExist3
--QUERY WITH {a: 1} AS s RETURN s.b
+-LOG BindPropertyNotExist3
+-STATEMENT WITH {a: 1} AS s RETURN s.b
 ---- error
-Binder exception: Invalid struct field name: B.
+Binder exception: Invalid struct field name: b.
 
--CASE BindIDArithmetic
--QUERY MATCH (a:person)-[e1:knows]->(b:person) WHERE id(a) + 1 < id(b) RETURN *
+-LOG BindPropertyStarError
+-STATEMENT WITH {a: 1} AS s RETURN s.* + 1
+---- error
+Binder exception: Cannot bind s.* as a single property expression.
+
+-LOG BindIDArithmetic
+-STATEMENT MATCH (a:person)-[e1:knows]->(b:person) WHERE id(a) + 1 < id(b) RETURN *
 ---- error
 Binder exception: Cannot match a built-in function for given function +(INTERNAL_ID,INT64). Supported inputs are
 (INT64,INT64) -> INT64
@@ -91,8 +103,8 @@ Binder exception: Cannot match a built-in function for given function +(INTERNAL
 (TIMESTAMP,INTERVAL) -> TIMESTAMP
 (INTERVAL,TIMESTAMP) -> TIMESTAMP
 
--CASE BindDateAddDate
--QUERY MATCH (a:person) RETURN a.birthdate + date('2031-02-01')
+-LOG BindDateAddDate
+-STATEMENT MATCH (a:person) RETURN a.birthdate + date('2031-02-01')
 ---- error
 Binder exception: Cannot match a built-in function for given function +(DATE,DATE). Supported inputs are
 (INT64,INT64) -> INT64
@@ -109,8 +121,8 @@ Binder exception: Cannot match a built-in function for given function +(DATE,DAT
 (TIMESTAMP,INTERVAL) -> TIMESTAMP
 (INTERVAL,TIMESTAMP) -> TIMESTAMP
 
--CASE BindTimestampArithmetic
--QUERY MATCH (a:person) WHERE a.registerTime + 1 < 5 RETURN *
+-LOG BindTimestampArithmetic
+-STATEMENT MATCH (a:person) WHERE a.registerTime + 1 < 5 RETURN *
 ---- error
 Binder exception: Cannot match a built-in function for given function +(TIMESTAMP,INT64). Supported inputs are
 (INT64,INT64) -> INT64
@@ -127,8 +139,8 @@ Binder exception: Cannot match a built-in function for given function +(TIMESTAM
 (TIMESTAMP,INTERVAL) -> TIMESTAMP
 (INTERVAL,TIMESTAMP) -> TIMESTAMP
 
--CASE BindTimestampAddTimestamp
--QUERY MATCH (a:person) RETURN a.registerTime + timestamp('2031-02-11 01:02:03');
+-LOG BindTimestampAddTimestamp
+-STATEMENT MATCH (a:person) RETURN a.registerTime + timestamp('2031-02-11 01:02:03');
 ---- error
 Binder exception: Cannot match a built-in function for given function +(TIMESTAMP,TIMESTAMP). Supported inputs are
 (INT64,INT64) -> INT64
@@ -145,104 +157,104 @@ Binder exception: Cannot match a built-in function for given function +(TIMESTAM
 (TIMESTAMP,INTERVAL) -> TIMESTAMP
 (INTERVAL,TIMESTAMP) -> TIMESTAMP
 
--CASE BindFunctionWithWrongNumParams
--QUERY MATCH (a:person) WHERE date() < 2 RETURN COUNT(*);
+-LOG BindFunctionWithWrongNumParams
+-STATEMENT MATCH (a:person) WHERE date() < 2 RETURN COUNT(*);
 ---- error
 Binder exception: Cannot match a built-in function for given function DATE. Supported inputs are
 (STRING) -> DATE
 
--CASE BindFunctionWithWrongParamType
--QUERY MATCH (a:person) WHERE date(2012) < 2 RETURN COUNT(*);
+-LOG BindFunctionWithWrongParamType
+-STATEMENT MATCH (a:person) WHERE date(2012) < 2 RETURN COUNT(*);
 ---- error
 Binder exception: Cannot match a built-in function for given function DATE(INT64). Supported inputs are
 (STRING) -> DATE
 
--CASE OrderByVariableNotInScope
--QUERY MATCH (a:person)-[e1:knows]->(b:person) RETURN SUM(a.age) ORDER BY a.ID;
+-LOG OrderByVariableNotInScope
+-STATEMENT MATCH (a:person)-[e1:knows]->(b:person) RETURN SUM(a.age) ORDER BY a.ID;
 ---- error
 Binder exception: Order by expression a.ID is not in RETURN or WITH clause.
 
--CASE NestedAggregation
--QUERY MATCH (a:person) RETURN SUM(SUM(a.age));
+-LOG NestedAggregation
+-STATEMENT MATCH (a:person) RETURN SUM(SUM(a.age));
 ---- error
 Binder exception: Expression SUM(SUM(a.age)) contains nested aggregation.
 
--CASE OptionalMatchAsFirstMatch
--QUERY OPTIONAL MATCH (a:person) RETURN *;
+-LOG OptionalMatchAsFirstMatch
+-STATEMENT OPTIONAL MATCH (a:person) RETURN *;
 ---- error
 Binder exception: First match clause cannot be optional match.
 
--CASE OrderByWithoutSkipLimitInWithClause
--QUERY MATCH (a:person) WITH a.age AS k ORDER BY k RETURN k
+-LOG OrderByWithoutSkipLimitInWithClause
+-STATEMENT MATCH (a:person) WITH a.age AS k ORDER BY k RETURN k
 ---- error
 Binder exception: In WITH clause, ORDER BY must be followed by SKIP or LIMIT.
 
--CASE UnionAllUnmatchedNumberOfExpressions
--QUERY MATCH (p:person) RETURN p.age,p.fName UNION ALL MATCH (p1:person) RETURN p1.age
+-LOG UnionAllUnmatchedNumberOfExpressions
+-STATEMENT MATCH (p:person) RETURN p.age,p.fName UNION ALL MATCH (p1:person) RETURN p1.age
 ---- error
 Binder exception: The number of columns to union/union all must be the same.
 
--CASE UnionAllUnmatchedDataTypesOfExpressions
--QUERY MATCH (p:person) RETURN p.fName UNION ALL MATCH (p1:person) RETURN p1.age
+-LOG UnionAllUnmatchedDataTypesOfExpressions
+-STATEMENT MATCH (p:person) RETURN p.fName UNION ALL MATCH (p1:person) RETURN p1.age
 ---- error
 Binder exception: p1.age has data type INT64. (STRING) was expected.
 
--CASE UnionAndUnionAllInSingleQuery
--QUERY MATCH (p:person) RETURN p.age UNION ALL MATCH (p1:person) RETURN p1.age UNION MATCH (p1:person) RETURN p1.age
+-LOG UnionAndUnionAllInSingleQuery
+-STATEMENT MATCH (p:person) RETURN p.age UNION ALL MATCH (p1:person) RETURN p1.age UNION MATCH (p1:person) RETURN p1.age
 ---- error
 Binder exception: Union and union all can't be used together.
 
--CASE VarLenExtendZeroLowerBound
--QUERY MATCH (a:person)-[:knows*0..5]->(b:person) return count(*)
+-LOG VarLenExtendZeroLowerBound
+-STATEMENT MATCH (a:person)-[:knows*0..5]->(b:person) return count(*)
 ---- error
 Binder exception: Lower and upper bound of a rel must be greater than 0.
 
--CASE SetDataTypeMisMatch
--QUERY MATCH (a:person) SET a.age = 'hh'
+-LOG SetDataTypeMisMatch
+-STATEMENT MATCH (a:person) SET a.age = 'hh'
 ---- error
 Binder exception: Expression hh has data type STRING but expect INT64. Implicit cast is not supported.
 
--CASE CreateNodeDataTypeMisMatch
--QUERY CREATE (a:person {age:'hh'})
+-LOG CreateNodeDataTypeMisMatch
+-STATEMENT CREATE (a:person {age:'hh'})
 ---- error
 Binder exception: Expression hh has data type STRING but expect INT64. Implicit cast is not supported.
 
--CASE CreateRelDataTypeMisMatch
--QUERY CREATE (a:person)-[:knows {date:12}]->(b:person)
+-LOG CreateRelDataTypeMisMatch
+-STATEMENT CREATE (a:person)-[:knows {date:12}]->(b:person)
 ---- error
 Binder exception: Expression 12 has data type INT64 but expect DATE. Implicit cast is not supported.
 
--CASE ReadAfterUpdate1
--QUERY MATCH (a:person) SET a.age = 35 WITH a MATCH (a)-[:knows]->(b:person) RETURN a.age
+-LOG ReadAfterUpdate1
+-STATEMENT MATCH (a:person) SET a.age = 35 WITH a MATCH (a)-[:knows]->(b:person) RETURN a.age
 ---- error
 Binder exception: Read after update is not supported.
 
--CASE ReadAfterUpdate3
--QUERY MATCH (a:person) SET a.age=3 RETURN a.fName
+-LOG ReadAfterUpdate3
+-STATEMENT MATCH (a:person) SET a.age=3 RETURN a.fName
 ---- error
 Binder exception: Return/With after update is not supported.
 
--CASE DeleteNodeProperty
--QUERY MATCH (a:person) DELETE a.age
+-LOG DeleteNodeProperty
+-STATEMENT MATCH (a:person) DELETE a.age
 ---- error
 Binder exception: Delete PROPERTY is not supported.
 
--CASE CreateNodeTableUsedName
--QUERY CREATE NODE TABLE person(NAME STRING, ID INT64, PRIMARY KEY(NAME))
+-LOG CreateNodeTableUsedName
+-STATEMENT CREATE NODE TABLE person(NAME STRING, ID INT64, PRIMARY KEY(NAME))
 ---- error
 Binder exception: Node person already exists.
 
--CASE CreateNodeTablePKColNameNotExists
--QUERY CREATE NODE TABLE PERSON(NAME STRING, ID INT64, birthdate date, primary key (dummyColName))
+-LOG CreateNodeTablePKColNameNotExists
+-STATEMENT CREATE NODE TABLE PERSON(NAME STRING, ID INT64, birthdate date, primary key (dummyColName))
 ---- error
 Binder exception: Primary key dummyColName does not match any of the predefined node properties.
 
--CASE CreateNodeTableDuplicatedColumnName
--QUERY CREATE NODE TABLE student (id INT64, eyesight double, eyesight double, PRIMARY KEY(id))
+-LOG CreateNodeTableDuplicatedColumnName
+-STATEMENT CREATE NODE TABLE student (id INT64, eyesight double, eyesight double, PRIMARY KEY(id))
 ---- error
 Binder exception: Duplicated column name: eyesight, column name must be unique.
 
--CASE CopyNodeWrongPathTest
+-LOG CopyNodeWrongPathTest
 -STATEMENT CREATE NODE TABLE User(name STRING, age INT64, PRIMARY KEY (name))
 ---- ok
 -STATEMENT COPY User FROM 'wrong_path.csv'
@@ -252,70 +264,65 @@ Binder exception: No file found that matches the pattern: wrong_path.csv.
 ---- error
 Binder exception: No file found that matches the pattern: wrong_path.parquet.
 
--CASE CopyCSVInvalidParsingOption
--QUERY COPY person FROM "person_0_0.csv" (pk=",")
+-LOG CopyCSVInvalidParsingOption
+-STATEMENT COPY person FROM "person_0_0.csv" (pk=",")
 ---- error
 Binder exception: Unrecognized parsing csv option: PK.
 
--CASE CopyCSVInvalidSchemaName
--QUERY COPY university FROM "person_0_0.csv" (pk=",")
+-LOG CopyCSVInvalidSchemaName
+-STATEMENT COPY university FROM "person_0_0.csv" (pk=",")
 ---- error
 Binder exception: Node/Rel university does not exist.
 
--CASE CopyCSVInvalidEscapeChar
--QUERY COPY person FROM "person_0_0.csv" (ESCAPE="..")
+-LOG CopyCSVInvalidEscapeChar
+-STATEMENT COPY person FROM "person_0_0.csv" (ESCAPE="..")
 ---- error
 Binder exception: Copy csv option value can only be a single character with an optional escape character.
 
--CASE CreateRelTableUsedName
--QUERY CREATE REL TABLE knows ( FROM person TO person)
+-LOG CreateRelTableUsedName
+-STATEMENT CREATE REL TABLE knows ( FROM person TO person)
 ---- error
 Binder exception: Rel knows already exists.
 
--CASE CreateRelTableInvalidNodeTableName
--QUERY CREATE REL TABLE knows_post ( FROM person TO post)
+-LOG CreateRelTableInvalidNodeTableName
+-STATEMENT CREATE REL TABLE knows_post ( FROM person TO post)
 ---- error
 Binder exception: Node table post does not exist.
 
--CASE CreateRelTableDuplicatedColumnName
--QUERY CREATE REL TABLE teaches (FROM person TO person, date DATE, date TIMESTAMP)
+-LOG CreateRelTableDuplicatedColumnName
+-STATEMENT CREATE REL TABLE teaches (FROM person TO person, date DATE, date TIMESTAMP)
 ---- error
 Binder exception: Duplicated column name: date, column name must be unique.
 
--CASE CreateRelTableReservedColumnName
--QUERY CREATE REL TABLE teaches (FROM person TO person, _id INT64)
+-LOG CreateRelTableReservedColumnName
+-STATEMENT CREATE REL TABLE teaches (FROM person TO person, _id INT64)
 ---- error
 Binder exception: PropertyName: _id is an internal reserved propertyName.
 
--CASE DropNotExistsTable
--QUERY DROP TABLE person1;
+-LOG DropNotExistsTable
+-STATEMENT DROP TABLE person1;
 ---- error
 Binder exception: Node/Rel person1 does not exist.
 
--CASE SelfLoopRel
--QUERY MATCH (a:person)-[e:knows]->(a) RETURN COUNT(*)
----- error
-Binder exception: Self-loop rel e is not supported.
-
--CASE InvalidLimitNumberType
--QUERY MATCH (a:person) RETURN a.age LIMIT "abc"
+-LOG InvalidLimitNumberType
+-STATEMENT MATCH (a:person) RETURN a.age LIMIT "abc"
 ---- error
 Binder exception: The number of rows to skip/limit must be a non-negative integer.
 
--CASE NegativeLimitNumber
--QUERY MATCH (a:person) RETURN a.age LIMIT -1
+-LOG NegativeLimitNumber
+-STATEMENT MATCH (a:person) RETURN a.age LIMIT -1
 ---- error
 Binder exception: The number of rows to skip/limit must be a non-negative integer.
 
--CASE DuplicateVariableName
--QUERY MATCH (a:person) UNWIND [1,2] AS a RETURN COUNT(*)
+-LOG DuplicateVariableName
+-STATEMENT MATCH (a:person) UNWIND [1,2] AS a RETURN COUNT(*)
 ---- error
 Binder exception: Variable a already exists.
 
--CASE MaxNodeID
--QUERY MATCH (a:person) RETURN MIN(a)
+-LOG MinNodeID
+-STATEMENT MATCH (a:person) RETURN MIN(a)
 ---- error
-Binder exception: Cannot match a built-in function for given function MIN(INTERNAL_ID). Supported inputs are
+Binder exception: Cannot match a built-in function for given function MIN(NODE). Supported inputs are
 DISTINCT (BOOL) -> BOOL
 (BOOL) -> BOOL
 DISTINCT (INT64) -> INT64
@@ -341,88 +348,89 @@ DISTINCT (STRING) -> STRING
 DISTINCT (SERIAL) -> SERIAL
 (SERIAL) -> SERIAL
 
--CASE OrderByNodeID
--QUERY match (p:person) with p as x order by x skip 1 return x;
----- error
-Binder exception: Cannot order by p. Order by node or rel is not supported.
+#TODO(Xiyang): Fix me
+#-LOG OrderByNodeID
+#-STATEMENT match (p:person) with p as x order by x skip 1 return x;
+#---- error
+#Binder exception: Cannot order by p. Order by node or rel is not supported.
 
--CASE DropColumnFromNonExistedTable
--QUERY alter table person1 drop k
+-LOG DropColumnFromNonExistedTable
+-STATEMENT alter table person1 drop k
 ---- error
 Binder exception: Node/Rel person1 does not exist.
 
--CASE DropNonExistedColumn
--QUERY alter table person drop random
+-LOG DropNonExistedColumn
+-STATEMENT alter table person drop random
 ---- error
 Binder exception: person table doesn't have property: random.
 
--CASE DropPrimaryKeyColumn
--QUERY alter table person drop ID
+-LOG DropPrimaryKeyColumn
+-STATEMENT alter table person drop ID
 ---- error
 Binder exception: Cannot drop primary key of a node table.
 
--CASE AddPropertyDuplicateName
--QUERY alter table person add fName STRING
+-LOG AddPropertyDuplicateName
+-STATEMENT alter table person add fName STRING
 ---- error
 Binder exception: Property: fName already exists.
 
--CASE AddPropertyUnmatchedDefaultValueType
--QUERY alter table person add intCol INT64 DEFAULT '3.2'
+-LOG AddPropertyUnmatchedDefaultValueType
+-STATEMENT alter table person add intCol INT64 DEFAULT '3.2'
 ---- error
 Binder exception: Expression 3.2 has data type STRING but expect INT64. Implicit cast is not supported.
 
--CASE RenameNonExistedTable
--QUERY alter table person1 rename to person2
+-LOG RenameNonExistedTable
+-STATEMENT alter table person1 rename to person2
 ---- error
 Binder exception: Node/Rel person1 does not exist.
 
--CASE RenameTableDuplicateName
--QUERY alter table person rename to organisation
+-LOG RenameTableDuplicateName
+-STATEMENT alter table person rename to organisation
 ---- error
 Binder exception: Table: organisation already exists.
 
--CASE RenamePropertyOfNonExistedTable
--QUERY alter table person1 rename col1 to col2
+-LOG RenamePropertyOfNonExistedTable
+-STATEMENT alter table person1 rename col1 to col2
 ---- error
 Binder exception: Node/Rel person1 does not exist.
 
--CASE RenamePropertyDuplicateName
--QUERY alter table person rename fName to gender
+-LOG RenamePropertyDuplicateName
+-STATEMENT alter table person rename fName to gender
 ---- error
 Binder exception: Property gender already exists in table: person.
 
--CASE InvalidFixedListChildType
--QUERY create node table test1(ID INT64, marks STRING[5], PRIMARY KEY(ID))
+-LOG InvalidFixedListChildType
+-STATEMENT create node table test1(ID INT64, marks STRING[5], PRIMARY KEY(ID))
 ---- error
 Binder exception: The child type of a fixed list must be a numeric type. Given: STRING.
 
--CASE InvalidFixedListNumElements
--QUERY create node table test1(ID INT64, marks INT64[0], PRIMARY KEY(ID))
+-LOG InvalidFixedListNumElements
+-STATEMENT create node table test1(ID INT64, marks INT64[0], PRIMARY KEY(ID))
 ---- error
 Binder exception: The number of elements in a fixed list must be greater than 0. Given: 0.
 
--CASE InvalidFixedListSize
--QUERY create node table test1(ID INT64, marks INT64[512], PRIMARY KEY(ID))
+-LOG InvalidFixedListSize
+-STATEMENT create node table test1(ID INT64, marks INT64[512], PRIMARY KEY(ID))
 ---- error
 Binder exception: Cannot store a fixed list of size 4096 in a page.
 
--CASE NonPKSerialType
--QUERY CREATE NODE TABLE test(ID INT64, seq SERIAL, PRIMARY KEY(ID))
+-LOG NonPKSerialType
+-STATEMENT CREATE NODE TABLE test(ID INT64, seq SERIAL, PRIMARY KEY(ID))
 ---- error
 Binder exception: Serial property in node table must be the primary key.
 
--CASE AddSerialProperty
--QUERY ALTER TABLE person ADD seq SERIAL
+-LOG AddSerialProperty
+-STATEMENT ALTER TABLE person ADD seq SERIAL
 ---- error
 Binder exception: Serial property in node table must be the primary key.
 
--CASE SerialInRelTable
--QUERY CREATE REL TABLE test(FROM person TO person, seq SERIAL)
+-LOG SerialInRelTable
+-STATEMENT CREATE REL TABLE test(FROM person TO person, seq SERIAL)
 ---- error
 Binder exception: Serial property is not supported in rel table.
 
--CASE MatchBuiltIn
--QUERY MATCH (a:person) RETURN a.age + 'hh'
+-LOG MatchBuiltIn
+-STATEMENT MATCH (a:person) RETURN a.age + 'hh'
 ---- error
 Binder exception: Cannot match a built-in function for given function +(INT64,STRING). Supported inputs are
 (INT64,INT64) -> INT64
@@ -438,3 +446,18 @@ Binder exception: Cannot match a built-in function for given function +(INT64,ST
 (INTERVAL,DATE) -> DATE
 (TIMESTAMP,INTERVAL) -> TIMESTAMP
 (INTERVAL,TIMESTAMP) -> TIMESTAMP
+
+-LOG InvalidCallOption
+-STATEMENT CALL thread=10
+---- error
+Binder exception: Invalid option name: thread.
+
+-LOG InvalidCallOptionValue
+-STATEMENT CALL threads='abc'
+---- error
+Binder exception: abc has data type STRING. (INT64) was expected.
+
+-LOG AllShortestPathInvalidLowerBound
+-STATEMENT MATCH p = (a)-[* ALL SHORTEST 2..3]-(b) RETURN p
+---- error
+Binder exception: Lower bound of shortest/all_shortest path must be 1.

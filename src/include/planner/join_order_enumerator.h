@@ -25,7 +25,8 @@ public:
           queryPlanner{queryPlanner}, context{std::make_unique<JoinOrderEnumeratorContext>()} {};
 
     std::vector<std::unique_ptr<LogicalPlan>> enumerate(
-        const QueryGraphCollection& queryGraphCollection, binder::expression_vector& predicates);
+        const QueryGraphCollection& queryGraphCollection,
+        const binder::expression_vector& predicates);
 
     inline void resetState() { context->resetState(); }
 
@@ -48,6 +49,7 @@ public:
     inline void planCrossProduct(LogicalPlan& probePlan, LogicalPlan& buildPlan) {
         appendCrossProduct(probePlan, buildPlan);
     }
+    void appendCrossProduct(LogicalPlan& probePlan, LogicalPlan& buildPlan);
 
 private:
     std::vector<std::unique_ptr<LogicalPlan>> planCrossProduct(
@@ -92,7 +94,7 @@ private:
         ExtendDirection direction, LogicalPlan& plan);
     void createRecursivePlan(std::shared_ptr<NodeExpression> boundNode,
         std::shared_ptr<NodeExpression> recursiveNode, std::shared_ptr<RelExpression> recursiveRel,
-        ExtendDirection direction, LogicalPlan& plan);
+        ExtendDirection direction, const expression_vector& predicates, LogicalPlan& plan);
     void createPathNodePropertyScanPlan(
         std::shared_ptr<NodeExpression> recursiveNode, LogicalPlan& plan);
     void createPathRelPropertyScanPlan(std::shared_ptr<NodeExpression> recursiveNode,
@@ -108,7 +110,6 @@ private:
     void appendIntersect(const std::shared_ptr<Expression>& intersectNodeID,
         binder::expression_vector& boundNodeIDs, LogicalPlan& probePlan,
         std::vector<std::unique_ptr<LogicalPlan>>& buildPlans);
-    void appendCrossProduct(LogicalPlan& probePlan, LogicalPlan& buildPlan);
 
     static binder::expression_vector getNewlyMatchedExpressions(const SubqueryGraph& prevSubgraph,
         const SubqueryGraph& newSubgraph, const binder::expression_vector& expressions) {
@@ -119,7 +120,7 @@ private:
         const std::vector<SubqueryGraph>& prevSubgraphs, const SubqueryGraph& newSubgraph,
         const binder::expression_vector& expressions);
     static bool isExpressionNewlyMatched(const std::vector<SubqueryGraph>& prevSubgraphs,
-        const SubqueryGraph& newSubgraph, Expression& expression);
+        const SubqueryGraph& newSubgraph, const std::shared_ptr<Expression>& expression);
 
 private:
     const catalog::Catalog& catalog;

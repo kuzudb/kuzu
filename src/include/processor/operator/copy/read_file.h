@@ -1,7 +1,7 @@
 #pragma once
 
 #include "processor/operator/physical_operator.h"
-#include "storage/copier/node_copy_executor.h"
+#include "storage/copier/table_copy_utils.h"
 
 namespace kuzu {
 namespace processor {
@@ -26,9 +26,10 @@ public:
 
 class ReadFileSharedState {
 public:
-    explicit ReadFileSharedState(std::vector<std::string> filePaths)
-        : nodeOffset{0}, curBlockIdx{0}, filePaths{std::move(filePaths)}, curFileIdx{0}, numRows{
-                                                                                             0} {}
+    explicit ReadFileSharedState(
+        std::vector<std::string> filePaths, catalog::TableSchema* tableSchema)
+        : nodeOffset{0}, curBlockIdx{0}, filePaths{std::move(filePaths)}, curFileIdx{0},
+          tableSchema{tableSchema}, numRows{0} {}
 
     virtual ~ReadFileSharedState() = default;
 
@@ -38,6 +39,7 @@ public:
 
 public:
     uint64_t numRows;
+    catalog::TableSchema* tableSchema;
 
 protected:
     std::mutex mtx;
@@ -57,12 +59,7 @@ public:
                                                                 arrowColumnPoses)},
           offsetVectorPos{std::move(offsetVectorPos)}, sharedState{std::move(sharedState)} {}
 
-    inline void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override {
-        offsetVector = resultSet->getValueVector(offsetVectorPos).get();
-        for (auto& arrowColumnPos : arrowColumnPoses) {
-            arrowColumnVectors.push_back(resultSet->getValueVector(arrowColumnPos).get());
-        }
-    }
+    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
     inline void initGlobalStateInternal(kuzu::processor::ExecutionContext* context) override {
         sharedState->countNumLines();

@@ -19,13 +19,13 @@ std::shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
 
 std::shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
     common::ExpressionType expressionType, const expression_vector& children) {
-    auto builtInFunctions = binder->catalog.getBuiltInScalarFunctions();
+    auto builtInFunctions = binder->catalog.getBuiltInVectorFunctions();
     auto functionName = expressionTypeToString(expressionType);
     std::vector<common::LogicalType> childrenTypes;
     for (auto& child : children) {
         childrenTypes.push_back(child->dataType);
     }
-    auto function = builtInFunctions->matchFunction(functionName, childrenTypes);
+    auto function = builtInFunctions->matchVectorFunction(functionName, childrenTypes);
     expression_vector childrenAfterCast;
     for (auto i = 0u; i < children.size(); ++i) {
         childrenAfterCast.push_back(
@@ -38,6 +38,12 @@ std::shared_ptr<Expression> ExpressionBinder::bindComparisonExpression(
     return make_shared<ScalarFunctionExpression>(functionName, expressionType, std::move(bindData),
         std::move(childrenAfterCast), function->execFunc, function->selectFunc,
         uniqueExpressionName);
+}
+
+std::shared_ptr<Expression> ExpressionBinder::createEqualityComparisonExpression(
+    std::shared_ptr<Expression> left, std::shared_ptr<Expression> right) {
+    return bindComparisonExpression(
+        common::EQUALS, expression_vector{std::move(left), std::move(right)});
 }
 
 } // namespace binder

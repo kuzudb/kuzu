@@ -15,6 +15,8 @@ public:
           variableName(std::move(variableName)), tableIDs{std::move(tableIDs)} {}
     virtual ~NodeOrRelExpression() override = default;
 
+    inline std::string getVariableName() const { return variableName; }
+
     inline void addTableIDs(const std::vector<common::table_id_t>& tableIDsToAdd) {
         auto tableIDsSet = getTableIDsSet();
         for (auto tableID : tableIDsToAdd) {
@@ -51,13 +53,19 @@ public:
         return properties;
     }
 
+    inline void setLabelExpression(std::shared_ptr<Expression> expression) {
+        labelExpression = std::move(expression);
+    }
+    inline std::shared_ptr<Expression> getLabelExpression() const { return labelExpression; }
+
     std::string toString() const override { return variableName; }
 
 protected:
     std::string variableName;
     std::vector<common::table_id_t> tableIDs;
-    std::unordered_map<std::string, size_t> propertyNameToIdx;
+    std::unordered_map<std::string, common::vector_idx_t> propertyNameToIdx;
     std::vector<std::unique_ptr<Expression>> properties;
+    std::shared_ptr<Expression> labelExpression;
 };
 
 } // namespace binder

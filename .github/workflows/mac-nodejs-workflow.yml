@@ -2,6 +2,7 @@ name: Build-Mac-NodeJS-Module
 
 on:
   workflow_dispatch:
+  workflow_call:
 
 jobs:
   build-mac-nodejs:

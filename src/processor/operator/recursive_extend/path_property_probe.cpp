@@ -1,6 +1,7 @@
 #include "processor/operator/recursive_extend/path_property_probe.h"
 
-#include "function/hash/vector_hash_operations.h"
+#include "function/hash/vector_hash_functions.h"
+
 using namespace kuzu::common;
 
 namespace kuzu {
@@ -22,18 +23,17 @@ void PathPropertyProbe::initLocalStateInternal(ResultSet* resultSet_, ExecutionC
         StructType::getFieldIdx(&pathNodesDataVector->dataType, InternalKeyword::ID);
     auto pathRelsIDFieldIdx =
         StructType::getFieldIdx(&pathRelsDataVector->dataType, InternalKeyword::ID);
-    assert(pathNodesFieldIdx == 0 && pathRelsIDFieldIdx == 0);
     vectors->pathNodesIDDataVector =
         StructVector::getFieldVector(pathNodesDataVector, pathNodesIDFieldIdx).get();
     vectors->pathRelsIDDataVector =
         StructVector::getFieldVector(pathRelsDataVector, pathRelsIDFieldIdx).get();
-    for (auto i = 1u; i < StructType::getNumFields(&pathNodesDataVector->dataType); ++i) {
+    for (auto fieldIdx : info->nodeFieldIndices) {
         vectors->pathNodesPropertyDataVectors.push_back(
-            StructVector::getFieldVector(pathNodesDataVector, i).get());
+            StructVector::getFieldVector(pathNodesDataVector, fieldIdx).get());
     }
-    for (auto i = 1u; i < StructType::getNumFields(&pathRelsDataVector->dataType); ++i) {
+    for (auto fieldIdx : info->relFieldIndices) {
         vectors->pathRelsPropertyDataVectors.push_back(
-            StructVector::getFieldVector(pathRelsDataVector, i).get());
+            StructVector::getFieldVector(pathRelsDataVector, fieldIdx).get());
     }
 }
 
@@ -48,7 +48,7 @@ bool PathPropertyProbe::getNextTuplesInternal(ExecutionContext* context) {
     while (sizeProbed < nodeDataSize) {
         auto sizeToProbe = std::min<uint64_t>(DEFAULT_VECTOR_CAPACITY, nodeDataSize - sizeProbed);
         probe(nodeHashTable, sizeProbed, sizeToProbe, vectors->pathNodesIDDataVector,
-            vectors->pathNodesPropertyDataVectors, info->nodeHashTableColIndicesToScan);
+            vectors->pathNodesPropertyDataVectors, info->nodeTableColumnIndices);
         sizeProbed += sizeToProbe;
     }
     // Scan rel property
@@ -58,7 +58,7 @@ bool PathPropertyProbe::getNextTuplesInternal(ExecutionContext* context) {
     while (sizeProbed < relDataSize) {
         auto sizeToProbe = std::min<uint64_t>(DEFAULT_VECTOR_CAPACITY, relDataSize - sizeProbed);
         probe(relHashTable, sizeProbed, sizeToProbe, vectors->pathRelsIDDataVector,
-            vectors->pathRelsPropertyDataVectors, info->relHashTableColIndicesToScan);
+            vectors->pathRelsPropertyDataVectors, info->relTableColumnIndices);
         sizeProbed += sizeToProbe;
     }
     return true;
@@ -70,7 +70,7 @@ void PathPropertyProbe::probe(kuzu::processor::JoinHashTable* hashTable, uint64_
     const std::vector<ft_col_idx_t>& colIndicesToScan) {
     // Hash
     for (auto i = 0u; i < sizeToProbe; ++i) {
-        function::operation::Hash::operation(
+        function::Hash::operation(
             idVector->getValue<internalID_t>(sizeProbed + i), localState->hashes[i]);
     }
     // Probe hash

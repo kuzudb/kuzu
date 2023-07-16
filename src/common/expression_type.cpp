@@ -68,8 +68,12 @@ std::string expressionTypeToString(ExpressionType type) {
         return "PROPERTY";
     case LITERAL:
         return "LITERAL";
+    case STAR:
+        return "STAR";
     case VARIABLE:
         return "VARIABLE";
+    case PATH:
+        return "PATH";
     case PARAMETER:
         return "PARAMETER";
     case FUNCTION:

@@ -8,27 +8,24 @@ namespace processor {
 
 class ScanRelTableLists : public ScanRelTable {
 public:
-    ScanRelTableLists(storage::DirectedRelTableData* tableData, storage::RelStatistics* relStats,
-        std::vector<uint32_t> propertyIds, const DataPos& inNodeIDVectorPos,
-        std::vector<DataPos> outputVectorsPos, std::unique_ptr<PhysicalOperator> child, uint32_t id,
-        const std::string& paramsString)
-        : ScanRelTable{inNodeIDVectorPos, std::move(outputVectorsPos),
-              PhysicalOperatorType::SCAN_REL_TABLE_LISTS, std::move(child), id, paramsString},
-          tableData{tableData} {
-        scanState = std::make_unique<storage::RelTableScanState>(
-            relStats, std::move(propertyIds), storage::RelTableDataType::LISTS);
-    }
+    ScanRelTableLists(std::unique_ptr<RelTableScanInfo> scanInfo,
+        std::unique_ptr<ScanRelTalePosInfo> posInfo, std::unique_ptr<PhysicalOperator> child,
+        uint32_t id, const std::string& paramsString)
+        : ScanRelTable{std::move(posInfo), PhysicalOperatorType::SCAN_REL_TABLE_LISTS,
+              std::move(child), id, paramsString},
+          scanInfo{std::move(scanInfo)} {}
 
-    bool getNextTuplesInternal(ExecutionContext* context) override;
+    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) final;
+
+    bool getNextTuplesInternal(ExecutionContext* context) final;
 
     inline std::unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<ScanRelTableLists>(tableData, scanState->relStats,
-            scanState->propertyIds, inNodeIDVectorPos, outputVectorsPos, children[0]->clone(), id,
-            paramsString);
+        return make_unique<ScanRelTableLists>(
+            scanInfo->copy(), posInfo->copy(), children[0]->clone(), id, paramsString);
     }
 
 private:
-    storage::DirectedRelTableData* tableData;
+    std::unique_ptr<RelTableScanInfo> scanInfo;
     std::unique_ptr<storage::RelTableScanState> scanState;
 };
 

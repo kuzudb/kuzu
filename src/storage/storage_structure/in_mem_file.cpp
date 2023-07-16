@@ -269,7 +269,9 @@ std::string InMemOverflowFile::readString(ku_string_t* strInInMemOvfFile) {
         page_idx_t pageIdx = UINT32_MAX;
         uint16_t pagePos = UINT16_MAX;
         TypeUtils::decodeOverflowPtr(strInInMemOvfFile->overflowPtr, pageIdx, pagePos);
-        return {reinterpret_cast<char*>(pages[pageIdx]->data + pagePos), strInInMemOvfFile->len};
+        std::shared_lock sLck{lock};
+        return {
+            reinterpret_cast<const char*>(pages[pageIdx]->data + pagePos), strInInMemOvfFile->len};
     }
 }
 

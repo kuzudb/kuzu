@@ -9,6 +9,28 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+# Detect OS and architecture, copied from DuckDB
+set(OS_NAME "unknown")
+set(OS_ARCH "amd64")
+
+string(REGEX MATCH "(arm64|aarch64)" IS_ARM "${CMAKE_SYSTEM_PROCESSOR}")
+if(IS_ARM)
+  set(OS_ARCH "arm64")
+elseif(FORCE_32_BIT)
+  set(OS_ARCH "i386")
+endif()
+
+if(APPLE)
+  set(OS_NAME "osx")
+endif()
+if(WIN32)
+  set(OS_NAME "windows")
+endif()
+if(UNIX AND NOT APPLE)
+  set(OS_NAME "linux") # sorry BSD
+endif()
+
+
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif()
@@ -90,6 +112,8 @@ if(${ENABLE_UBSAN})
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined -fno-common -fpermissive")
     endif()
 endif()
+option(BUILD_PYTHON_API "Build Python API." TRUE)
+option(BUILD_SHELL "Build Interactive Shell" TRUE)
 option(BUILD_TESTS "Build C++ and Python tests." FALSE)
 option(BUILD_BENCHMARK "Build benchmarks." FALSE)
 
@@ -134,7 +158,21 @@ if (${USE_SYSTEM_ARROW})
 else()
     if (NOT DEFINED ARROW_INSTALL)
         message(STATUS "Configuring arrow for bundled install")
-        set(ARROW_INSTALL ${CMAKE_CURRENT_SOURCE_DIR}/external/build/arrow/install)
+        set(ARROW_INSTALL ${CMAKE_CURRENT_BINARY_DIR}/arrow-build/arrow/install)
+        set(ARROW_BUILD_DIR ${CMAKE_CURRENT_BINARY_DIR}/arrow-build)
+        file(MAKE_DIRECTORY ${ARROW_BUILD_DIR})
+        execute_process(COMMAND ${CMAKE_COMMAND}
+            ${CMAKE_CURRENT_SOURCE_DIR}/external
+            -G ${CMAKE_GENERATOR}
+            -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+            -DENABLE_ADDRESS_SANITIZER=${ENABLE_ADDRESS_SANITIZER}
+            -DENABLE_THREAD_SANITIZER=${ENABLE_THREAD_SANITIZER}
+            -DENABLE_UBSAN=${ENABLE_UBSAN}
+            -DFORCE_COLORED_OUTPUT=${FORCE_COLORED_OUTPUT}
+            WORKING_DIRECTORY ${ARROW_BUILD_DIR}
+            COMMAND_ERROR_IS_FATAL ANY)
+        execute_process(COMMAND ${CMAKE_COMMAND} --build ${ARROW_BUILD_DIR} --config ${CMAKE_BUILD_TYPE}
+            COMMAND_ERROR_IS_FATAL ANY)
     else()
         message(STATUS "Using arrow at path ${ARROW_INSTALL}")
     endif()

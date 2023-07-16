@@ -26,6 +26,7 @@ const std::string CAST_TO_INTERVAL_FUNC_NAME = "INTERVAL";
 const std::string CAST_TO_STRING_FUNC_NAME = "STRING";
 const std::string CAST_TO_DOUBLE_FUNC_NAME = "TO_DOUBLE";
 const std::string CAST_TO_FLOAT_FUNC_NAME = "TO_FLOAT";
+const std::string CAST_TO_SERIAL_FUNC_NAME = "TO_SERIAL";
 const std::string CAST_TO_INT64_FUNC_NAME = "TO_INT64";
 const std::string CAST_TO_INT32_FUNC_NAME = "TO_INT32";
 const std::string CAST_TO_INT16_FUNC_NAME = "TO_INT16";
@@ -193,13 +194,21 @@ const std::string TO_MICROSECONDS_FUNC_NAME = "TO_MICROSECONDS";
 const std::string ID_FUNC_NAME = "ID";
 const std::string LABEL_FUNC_NAME = "LABEL";
 const std::string OFFSET_FUNC_NAME = "OFFSET";
+
+// Path functions
 const std::string NODES_FUNC_NAME = "NODES";
 const std::string RELS_FUNC_NAME = "RELS";
+const std::string PROPERTIES_FUNC_NAME = "PROPERTIES";
 
 // Blob functions
 const std::string OCTET_LENGTH_FUNC_NAME = "OCTET_LENGTH";
 const std::string ENCODE_FUNC_NAME = "ENCODE";
 const std::string DECODE_FUNC_NAME = "DECODE";
+
+// TABLE functions
+const std::string TABLE_INFO_FUNC_NAME = "TABLE_INFO";
+const std::string DB_VERSION_FUNC_NAME = "DB_VERSION";
+const std::string CURRENT_SETTING_FUNC_NAME = "CURRENT_SETTING";
 
 enum ExpressionType : uint8_t {
 
@@ -225,7 +234,10 @@ enum ExpressionType : uint8_t {
 
     LITERAL = 70,
 
+    STAR = 80,
+
     VARIABLE = 90,
+    PATH = 91,
 
     PARAMETER = 100,
 

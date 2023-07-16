@@ -1,6 +1,7 @@
 #include "common/types/value.h"
 
 #include "common/null_buffer.h"
+#include "common/string_utils.h"
 #include "storage/storage_utils.h"
 
 namespace kuzu {
@@ -72,6 +73,8 @@ Value Value::createDefaultValue(const LogicalType& dataType) {
     case LogicalTypeID::FIXED_LIST:
     case LogicalTypeID::UNION:
     case LogicalTypeID::STRUCT:
+    case LogicalTypeID::NODE:
+    case LogicalTypeID::REL:
         return Value(dataType, std::vector<std::unique_ptr<Value>>{});
     default:
         throw RuntimeException("Data type " + LogicalTypeUtils::dataTypeToString(dataType) +
@@ -180,7 +183,7 @@ void Value::copyValueFrom(const uint8_t* value) {
         val.internalIDVal = *((nodeID_t*)value);
     } break;
     case LogicalTypeID::BLOB: {
-        strVal = Blob::toString(*(blob_t*)value);
+        strVal = ((blob_t*)value)->value.getAsString();
     } break;
     case LogicalTypeID::STRING: {
         strVal = ((ku_string_t*)value)->getAsString();
@@ -250,21 +253,10 @@ void Value::copyValueFrom(const Value& other) {
             nestedTypeVal.push_back(value->copy());
         }
     } break;
-    default: {
-        // Remove this switch once we implemented node/rel using struct.
-        switch (dataType.getLogicalTypeID()) {
-        case LogicalTypeID::NODE: {
-            nodeVal = other.nodeVal->copy();
-        } break;
-        case LogicalTypeID::REL: {
-            relVal = other.relVal->copy();
-        } break;
-        default:
-            throw NotImplementedException("Value::Value(const Value&) for type " +
-                                          LogicalTypeUtils::dataTypeToString(dataType) +
-                                          " is not implemented.");
-        }
-    }
+    default:
+        throw NotImplementedException("Value::Value(const Value&) for type " +
+                                      LogicalTypeUtils::dataTypeToString(dataType) +
+                                      " is not implemented.");
     }
 }
 
@@ -298,6 +290,7 @@ std::string Value::toString() const {
     case LogicalTypeID::INTERNAL_ID:
         return TypeUtils::toString(val.internalIDVal);
     case LogicalTypeID::BLOB:
+        return Blob::toString(reinterpret_cast<const uint8_t*>(strVal.c_str()), strVal.length());
     case LogicalTypeID::STRING:
         return strVal;
     case LogicalTypeID::MAP: {
@@ -333,8 +326,7 @@ std::string Value::toString() const {
         std::string result = "{";
         auto fieldNames = StructType::getFieldNames(&dataType);
         for (auto i = 0u; i < nestedTypeVal.size(); ++i) {
-            result += fieldNames[i];
-            result += ": ";
+            result += fieldNames[i] + ": ";
             result += nestedTypeVal[i]->toString();
             if (i != nestedTypeVal.size() - 1) {
                 result += ", ";
@@ -343,10 +335,38 @@ std::string Value::toString() const {
         result += "}";
         return result;
     }
-    case LogicalTypeID::NODE:
-        return nodeVal->toString();
-    case LogicalTypeID::REL:
-        return relVal->toString();
+    case LogicalTypeID::NODE: {
+        std::string result = "{";
+        auto fieldNames = StructType::getFieldNames(&dataType);
+        for (auto i = 0u; i < nestedTypeVal.size(); ++i) {
+            if (nestedTypeVal[i]->isNull_) {
+                // Avoid printing null key value pair.
+                continue;
+            }
+            if (i != 0) {
+                result += ", ";
+            }
+            result += fieldNames[i] + ": " + nestedTypeVal[i]->toString();
+        }
+        result += "}";
+        return result;
+    }
+    case LogicalTypeID::REL: {
+        std::string result = "(" + nestedTypeVal[0]->toString() + ")-{";
+        auto fieldNames = StructType::getFieldNames(&dataType);
+        for (auto i = 2u; i < nestedTypeVal.size(); ++i) {
+            if (nestedTypeVal[i]->isNull_) {
+                // Avoid printing null key value pair.
+                continue;
+            }
+            if (i != 2) {
+                result += ", ";
+            }
+            result += fieldNames[i] + ": " + nestedTypeVal[i]->toString();
+        }
+        result += "}->(" + nestedTypeVal[1]->toString() + ")";
+        return result;
+    }
     default:
         throw NotImplementedException("Value::toString for type " +
                                       LogicalTypeUtils::dataTypeToString(dataType) +
@@ -462,106 +482,203 @@ static std::string propertiesToString(
     return result;
 }
 
-NodeVal::NodeVal(std::unique_ptr<Value> idVal, std::unique_ptr<Value> labelVal)
-    : idVal{std::move(idVal)}, labelVal{std::move(labelVal)} {}
-
-NodeVal::NodeVal(const NodeVal& other) {
-    idVal = other.idVal->copy();
-    labelVal = other.labelVal->copy();
-    for (auto& [key, val] : other.properties) {
-        addProperty(key, val->copy());
+std::vector<std::pair<std::string, std::unique_ptr<Value>>> NodeVal::getProperties(
+    const Value* val) {
+    throwIfNotNode(val);
+    std::vector<std::pair<std::string, std::unique_ptr<Value>>> properties;
+    auto dataType = val->getDataType();
+    auto fieldNames = StructType::getFieldNames(&dataType);
+    auto& structVals = val->getListValReference();
+    for (auto i = 0u; i < structVals.size(); ++i) {
+        auto currKey = fieldNames[i];
+        if (currKey == InternalKeyword::ID || currKey == InternalKeyword::LABEL) {
+            continue;
+        }
+        auto currVal = structVals[i]->copy();
+        properties.emplace_back(currKey, std::move(currVal));
     }
-}
-
-void NodeVal::addProperty(const std::string& key, std::unique_ptr<Value> value) {
-    properties.emplace_back(key, std::move(value));
-}
-
-const std::vector<std::pair<std::string, std::unique_ptr<Value>>>& NodeVal::getProperties() const {
     return properties;
 }
 
-Value* NodeVal::getNodeIDVal() {
-    return idVal.get();
+uint64_t NodeVal::getNumProperties(const Value* val) {
+    throwIfNotNode(val);
+    auto dataType = val->getDataType();
+    auto fieldNames = StructType::getFieldNames(&dataType);
+    return fieldNames.size() - OFFSET;
 }
 
-Value* NodeVal::getLabelVal() {
-    return labelVal.get();
+std::string NodeVal::getPropertyName(const Value* val, uint64_t index) {
+    throwIfNotNode(val);
+    auto dataType = val->getDataType();
+    auto fieldNames = StructType::getFieldNames(&dataType);
+    if (index >= fieldNames.size() - OFFSET) {
+        return "";
+    }
+    return fieldNames[index + OFFSET];
 }
 
-nodeID_t NodeVal::getNodeID() const {
-    return idVal->getValue<nodeID_t>();
+Value* NodeVal::getPropertyValueReference(const Value* val, uint64_t index) {
+    throwIfNotNode(val);
+    auto dataType = val->getDataType();
+    auto fieldNames = StructType::getFieldNames(&dataType);
+    if (index >= fieldNames.size() - OFFSET) {
+        return nullptr;
+    }
+    return val->getListValReference()[index + OFFSET].get();
 }
 
-std::string NodeVal::getLabelName() const {
+std::unique_ptr<Value> NodeVal::getNodeIDVal(const Value* val) {
+    throwIfNotNode(val);
+    auto structType = val->getDataType();
+    auto fieldIdx = StructType::getFieldIdx(&structType, InternalKeyword::ID);
+    return val->getListValReference()[fieldIdx]->copy();
+}
+
+std::unique_ptr<Value> NodeVal::getLabelVal(const Value* val) {
+    throwIfNotNode(val);
+    auto structType = val->getDataType();
+    auto fieldIdx = StructType::getFieldIdx(&structType, InternalKeyword::LABEL);
+    return val->getListValReference()[fieldIdx]->copy();
+}
+
+nodeID_t NodeVal::getNodeID(const Value* val) {
+    throwIfNotNode(val);
+    auto nodeIDVal = getNodeIDVal(val);
+    return nodeIDVal->getValue<nodeID_t>();
+}
+
+std::string NodeVal::getLabelName(const Value* val) {
+    throwIfNotNode(val);
+    auto labelVal = getLabelVal(val);
     return labelVal->getValue<std::string>();
 }
 
-std::unique_ptr<NodeVal> NodeVal::copy() const {
-    return std::make_unique<NodeVal>(*this);
+std::unique_ptr<Value> NodeVal::copy(const Value* val) {
+    throwIfNotNode(val);
+    return val->copy();
 }
 
-std::string NodeVal::toString() const {
-    std::string result = "(";
-    result += "label:" + labelVal->toString() + ", ";
-    result += idVal->toString() + ", ";
-    result += propertiesToString(properties);
-    result += ")";
-    return result;
+std::string NodeVal::toString(const Value* val) {
+    throwIfNotNode(val);
+    return val->toString();
 }
 
-RelVal::RelVal(std::unique_ptr<Value> srcNodeIDVal, std::unique_ptr<Value> dstNodeIDVal,
-    std::unique_ptr<Value> labelVal)
-    : srcNodeIDVal{std::move(srcNodeIDVal)},
-      dstNodeIDVal{std::move(dstNodeIDVal)}, labelVal{std::move(labelVal)} {}
-
-RelVal::RelVal(const RelVal& other) {
-    srcNodeIDVal = other.srcNodeIDVal->copy();
-    dstNodeIDVal = other.dstNodeIDVal->copy();
-    labelVal = other.labelVal->copy();
-    for (auto& [key, val] : other.properties) {
-        addProperty(key, val->copy());
+void NodeVal::throwIfNotNode(const Value* val) {
+    if (val->getDataType().getLogicalTypeID() != LogicalTypeID::NODE) {
+        auto actualType = LogicalTypeUtils::dataTypeToString(val->getDataType().getLogicalTypeID());
+        throw Exception(fmt::format("Expected NODE type, but got {} type", actualType));
     }
 }
 
-void RelVal::addProperty(const std::string& key, std::unique_ptr<Value> value) {
-    properties.emplace_back(key, std::move(value));
-}
-
-const std::vector<std::pair<std::string, std::unique_ptr<Value>>>& RelVal::getProperties() const {
+std::vector<std::pair<std::string, std::unique_ptr<Value>>> RelVal::getProperties(
+    const Value* val) {
+    throwIfNotRel(val);
+    std::vector<std::pair<std::string, std::unique_ptr<Value>>> properties;
+    auto dataType = val->getDataType();
+    auto fieldNames = StructType::getFieldNames(&dataType);
+    auto& structVals = val->getListValReference();
+    for (auto i = 0u; i < structVals.size(); ++i) {
+        auto currKey = fieldNames[i];
+        if (currKey == InternalKeyword::ID || currKey == InternalKeyword::LABEL ||
+            currKey == InternalKeyword::SRC || currKey == InternalKeyword::DST) {
+            continue;
+        }
+        auto currVal = structVals[i]->copy();
+        properties.emplace_back(currKey, std::move(currVal));
+    }
     return properties;
 }
 
-Value* RelVal::getSrcNodeIDVal() {
-    return srcNodeIDVal.get();
+uint64_t RelVal::getNumProperties(const Value* val) {
+    throwIfNotRel(val);
+    auto dataType = val->getDataType();
+    auto fieldNames = StructType::getFieldNames(&dataType);
+
+    return fieldNames.size() - OFFSET;
 }
 
-Value* RelVal::getDstNodeIDVal() {
-    return dstNodeIDVal.get();
+std::string RelVal::getPropertyName(const Value* val, uint64_t index) {
+    throwIfNotRel(val);
+    auto dataType = val->getDataType();
+    auto fieldNames = StructType::getFieldNames(&dataType);
+    if (index >= fieldNames.size() - OFFSET) {
+        return "";
+    }
+    return fieldNames[index + OFFSET];
 }
 
-nodeID_t RelVal::getSrcNodeID() const {
+Value* RelVal::getPropertyValueReference(const Value* val, uint64_t index) {
+    throwIfNotRel(val);
+    auto dataType = val->getDataType();
+    auto fieldNames = StructType::getFieldNames(&dataType);
+    if (index >= fieldNames.size() - OFFSET) {
+        return nullptr;
+    }
+    return val->getListValReference()[index + OFFSET].get();
+}
+
+std::unique_ptr<Value> RelVal::getSrcNodeIDVal(const Value* val) {
+    auto structType = val->getDataType();
+    auto fieldIdx = StructType::getFieldIdx(&structType, InternalKeyword::SRC);
+    return val->getListValReference()[fieldIdx]->copy();
+}
+
+std::unique_ptr<Value> RelVal::getDstNodeIDVal(const Value* val) {
+    auto structType = val->getDataType();
+    auto fieldIdx = StructType::getFieldIdx(&structType, InternalKeyword::DST);
+    return val->getListValReference()[fieldIdx]->copy();
+}
+
+nodeID_t RelVal::getSrcNodeID(const Value* val) {
+    throwIfNotRel(val);
+    auto srcNodeIDVal = getSrcNodeIDVal(val);
     return srcNodeIDVal->getValue<nodeID_t>();
 }
 
-nodeID_t RelVal::getDstNodeID() const {
+nodeID_t RelVal::getDstNodeID(const Value* val) {
+    throwIfNotRel(val);
+    auto dstNodeIDVal = getDstNodeIDVal(val);
     return dstNodeIDVal->getValue<nodeID_t>();
 }
 
-std::string RelVal::getLabelName() const {
-    return labelVal->getValue<std::string>();
+std::string RelVal::getLabelName(const Value* val) {
+    auto structType = val->getDataType();
+    auto fieldIdx = StructType::getFieldIdx(&structType, InternalKeyword::LABEL);
+    return val->getListValReference()[fieldIdx]->getValue<std::string>();
 }
 
-std::string RelVal::toString() const {
-    std::string result;
-    result += "(" + srcNodeIDVal->toString() + ")";
-    result += "-[label:" + labelVal->toString() + ", " + propertiesToString(properties) + "]->";
-    result += "(" + dstNodeIDVal->toString() + ")";
-    return result;
+std::string RelVal::toString(const Value* val) {
+    throwIfNotRel(val);
+    return val->toString();
 }
 
-std::unique_ptr<RelVal> RelVal::copy() const {
-    return std::make_unique<RelVal>(*this);
+std::unique_ptr<Value> RelVal::copy(const Value* val) {
+    throwIfNotRel(val);
+    return val->copy();
+}
+
+void RelVal::throwIfNotRel(const Value* val) {
+    if (val->getDataType().getLogicalTypeID() != LogicalTypeID::REL) {
+        auto actualType = LogicalTypeUtils::dataTypeToString(val->getDataType().getLogicalTypeID());
+        throw Exception(fmt::format("Expected REL type, but got {} type", actualType));
+    }
+}
+
+Value* RecursiveRelVal::getNodes(const Value* val) {
+    throwIfNotRecursiveRel(val);
+    return val->getListValReference()[0].get();
+}
+
+Value* RecursiveRelVal::getRels(const Value* val) {
+    throwIfNotRecursiveRel(val);
+    return val->getListValReference()[1].get();
+}
+
+void RecursiveRelVal::throwIfNotRecursiveRel(const Value* val) {
+    if (val->getDataType().getLogicalTypeID() != LogicalTypeID::RECURSIVE_REL) {
+        auto actualType = LogicalTypeUtils::dataTypeToString(val->getDataType().getLogicalTypeID());
+        throw Exception(fmt::format("Expected RECURSIVE_REL type, but got {} type", actualType));
+    }
 }
 
 } // namespace common

@@ -10,6 +10,7 @@ namespace binder {
 enum class RelDirectionType : uint8_t {
     SINGLE = 0,
     BOTH = 1,
+    UNKNOWN = 2,
 };
 
 class RelExpression;
@@ -18,13 +19,19 @@ struct RecursiveInfo {
     uint64_t lowerBound;
     uint64_t upperBound;
     std::shared_ptr<NodeExpression> node;
+    // NodeCopy has the same fields as node but a different unique name.
+    // We use nodeCopy to plan recursive plan because boundNode&nbrNode cannot be the same.
+    std::shared_ptr<NodeExpression> nodeCopy;
     std::shared_ptr<RelExpression> rel;
     std::shared_ptr<Expression> lengthExpression;
+    expression_vector predicates;
 
-    RecursiveInfo(size_t lowerBound, size_t upperBound, std::shared_ptr<NodeExpression> node,
-        std::shared_ptr<RelExpression> rel, std::shared_ptr<Expression> lengthExpression)
+    RecursiveInfo(uint64_t lowerBound, uint64_t upperBound, std::shared_ptr<NodeExpression> node,
+        std::shared_ptr<NodeExpression> nodeCopy, std::shared_ptr<RelExpression> rel,
+        std::shared_ptr<Expression> lengthExpression, expression_vector predicates)
         : lowerBound{lowerBound}, upperBound{upperBound}, node{std::move(node)},
-          rel{std::move(rel)}, lengthExpression{std::move(lengthExpression)} {}
+          nodeCopy{std::move(nodeCopy)}, rel{std::move(rel)},
+          lengthExpression{std::move(lengthExpression)}, predicates{std::move(predicates)} {}
 };
 
 class RelExpression : public NodeOrRelExpression {
@@ -44,6 +51,7 @@ public:
 
     inline std::shared_ptr<NodeExpression> getSrcNode() const { return srcNode; }
     inline std::string getSrcNodeName() const { return srcNode->getUniqueName(); }
+    inline void setDstNode(std::shared_ptr<NodeExpression> node) { dstNode = std::move(node); }
     inline std::shared_ptr<NodeExpression> getDstNode() const { return dstNode; }
     inline std::string getDstNodeName() const { return dstNode->getUniqueName(); }
 
@@ -64,6 +72,8 @@ public:
     inline std::shared_ptr<Expression> getLengthExpression() const {
         return recursiveInfo->lengthExpression;
     }
+
+    inline bool isSelfLoop() const { return *srcNode == *dstNode; }
 
 private:
     std::shared_ptr<NodeExpression> srcNode;

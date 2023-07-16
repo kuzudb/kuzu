@@ -8,6 +8,7 @@ add_subdirectory(scan)
 add_subdirectory(table_scan)
 add_subdirectory(update)
 add_subdirectory(recursive_extend)
+add_subdirectory(call)
 
 add_library(kuzu_processor_operator
         OBJECT
@@ -20,6 +21,7 @@ add_library(kuzu_processor_operator
         multiplicity_reducer.cpp
         physical_operator.cpp
         projection.cpp
+        profile.cpp
         result_collector.cpp
         scan_node_id.cpp
         semi_masker.cpp

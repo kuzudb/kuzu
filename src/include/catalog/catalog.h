@@ -9,7 +9,8 @@
 #include "common/ser_deser.h"
 #include "common/utils.h"
 #include "function/aggregate/built_in_aggregate_functions.h"
-#include "function/built_in_vector_operations.h"
+#include "function/built_in_table_functions.h"
+#include "function/built_in_vector_functions.h"
 #include "storage/storage_info.h"
 #include "storage/wal/wal.h"
 #include "transaction/transaction.h"
@@ -40,7 +41,11 @@ public:
 
     common::table_id_t addRelTableSchema(std::string tableName, RelMultiplicity relMultiplicity,
         std::vector<Property> properties, common::table_id_t srcTableID,
-        common::table_id_t dstTableID);
+        common::table_id_t dstTableID, common::LogicalType srcPKDataType,
+        common::LogicalType dstPKDataType);
+
+    inline bool hasNodeTable() const { return !nodeTableSchemas.empty(); }
+    inline bool hasRelTable() const { return !relTableSchemas.empty(); }
 
     inline bool containNodeTable(common::table_id_t tableID) const {
         return nodeTableSchemas.contains(tableID);
@@ -97,9 +102,11 @@ public:
     const Property& getRelProperty(
         common::table_id_t tableID, const std::string& propertyName) const;
 
-    std::vector<Property> getAllNodeProperties(common::table_id_t tableID) const;
+    inline const std::vector<Property>& getNodeProperties(common::table_id_t tableID) const {
+        return nodeTableSchemas.at(tableID)->getProperties();
+    }
     inline const std::vector<Property>& getRelProperties(common::table_id_t tableID) const {
-        return relTableSchemas.at(tableID)->properties;
+        return relTableSchemas.at(tableID)->getProperties();
     }
     inline std::vector<common::table_id_t> getNodeTableIDs() const {
         std::vector<common::table_id_t> nodeTableIDs;
@@ -163,11 +170,14 @@ public:
     inline CatalogContent* getReadOnlyVersion() const { return catalogContentForReadOnlyTrx.get(); }
     inline CatalogContent* getWriteVersion() const { return catalogContentForWriteTrx.get(); }
 
-    inline function::BuiltInVectorOperations* getBuiltInScalarFunctions() const {
-        return builtInVectorOperations.get();
+    inline function::BuiltInVectorFunctions* getBuiltInVectorFunctions() const {
+        return builtInVectorFunctions.get();
     }
     inline function::BuiltInAggregateFunctions* getBuiltInAggregateFunction() const {
         return builtInAggregateFunctions.get();
+    }
+    inline function::BuiltInTableFunctions* getBuiltInTableFunction() const {
+        return builtInTableFunctions.get();
     }
 
     void prepareCommitOrRollback(transaction::TransactionAction action);
@@ -192,7 +202,8 @@ public:
 
     common::table_id_t addRelTableSchema(std::string tableName, RelMultiplicity relMultiplicity,
         const std::vector<Property>& propertyDefinitions, common::table_id_t srcTableID,
-        common::table_id_t dstTableID);
+        common::table_id_t dstTableID, common::LogicalType srcPKDataType,
+        common::LogicalType dstPKDataType);
 
     void dropTableSchema(common::table_id_t tableID);
 
@@ -209,12 +220,15 @@ public:
     std::unordered_set<RelTableSchema*> getAllRelTableSchemasContainBoundTable(
         common::table_id_t boundTableID) const;
 
+    void addVectorFunction(std::string name, function::vector_function_definitions definitions);
+
 private:
     inline bool hasUpdates() { return catalogContentForWriteTrx != nullptr; }
 
 protected:
-    std::unique_ptr<function::BuiltInVectorOperations> builtInVectorOperations;
+    std::unique_ptr<function::BuiltInVectorFunctions> builtInVectorFunctions;
     std::unique_ptr<function::BuiltInAggregateFunctions> builtInAggregateFunctions;
+    std::unique_ptr<function::BuiltInTableFunctions> builtInTableFunctions;
     std::unique_ptr<CatalogContent> catalogContentForReadOnlyTrx;
     std::unique_ptr<CatalogContent> catalogContentForWriteTrx;
     storage::WAL* wal;

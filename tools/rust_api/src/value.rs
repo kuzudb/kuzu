@@ -43,10 +43,10 @@ pub struct NodeVal {
 }
 
 impl NodeVal {
-    pub fn new(id: InternalID, label: String) -> Self {
+    pub fn new<I: Into<InternalID>, S: Into<String>>(id: I, label: S) -> Self {
         NodeVal {
-            id,
-            label,
+            id: id.into(),
+            label: label.into(),
             properties: vec![],
         }
     }
@@ -63,8 +63,8 @@ impl NodeVal {
     /// # Arguments
     /// * `key`: The name of the property
     /// * `value`: The value of the property
-    pub fn add_property(&mut self, key: String, value: Value) {
-        self.properties.push((key, value));
+    pub fn add_property<S: Into<String>, V: Into<Value>>(&mut self, key: S, value: V) {
+        self.properties.push((key.into(), value.into()));
     }
 
     /// Returns all properties of the NodeVal
@@ -106,11 +106,11 @@ pub struct RelVal {
 }
 
 impl RelVal {
-    pub fn new(src_node: InternalID, dst_node: InternalID, label: String) -> Self {
+    pub fn new<I: Into<InternalID>, S: Into<String>>(src_node: I, dst_node: I, label: S) -> Self {
         RelVal {
-            src_node,
-            dst_node,
-            label,
+            src_node: src_node.into(),
+            dst_node: dst_node.into(),
+            label: label.into(),
             properties: vec![],
         }
     }
@@ -177,6 +177,15 @@ impl Ord for InternalID {
     }
 }
 
+impl From<(u64, u64)> for InternalID {
+    fn from(value: (u64, u64)) -> Self {
+        InternalID {
+            offset: value.0,
+            table_id: value.1,
+        }
+    }
+}
+
 /// Data types supported by Kùzu
 ///
 /// Also see <https://kuzudb.com/docs/cypher/data-types/overview.html>
@@ -209,6 +218,7 @@ pub enum Value {
     InternalID(InternalID),
     /// <https://kuzudb.com/docs/cypher/data-types/string.html>
     String(String),
+    Blob(Vec<u8>),
     // TODO: Enforce type of contents
     // LogicalType is necessary so that we can pass the correct type to the C++ API if the list is empty.
     /// These must contain elements which are all the given type.
@@ -221,6 +231,25 @@ pub enum Value {
     Struct(Vec<(String, Value)>),
     Node(NodeVal),
     Rel(RelVal),
+    RecursiveRel {
+        /// Interior nodes in the Sequence of Rels
+        ///
+        /// Does not include the starting or ending Node.
+        nodes: Vec<NodeVal>,
+        /// Sequence of Rels which make up the RecursiveRel
+        rels: Vec<RelVal>,
+    },
+}
+
+fn display_list<T: std::fmt::Display>(f: &mut fmt::Formatter<'_>, list: &Vec<T>) -> fmt::Result {
+    write!(f, "[")?;
+    for (i, value) in list.iter().enumerate() {
+        write!(f, "{}", value)?;
+        if i != list.len() - 1 {
+            write!(f, ",")?;
+        }
+    }
+    write!(f, "]")
 }
 
 impl std::fmt::Display for Value {
@@ -233,17 +262,9 @@ impl std::fmt::Display for Value {
             Value::Int64(x) => write!(f, "{x}"),
             Value::Date(x) => write!(f, "{x}"),
             Value::String(x) => write!(f, "{x}"),
+            Value::Blob(x) => write!(f, "{x:x?}"),
             Value::Null(_) => write!(f, ""),
-            Value::VarList(_, x) | Value::FixedList(_, x) => {
-                write!(f, "[")?;
-                for (i, value) in x.iter().enumerate() {
-                    write!(f, "{}", value)?;
-                    if i != x.len() - 1 {
-                        write!(f, ",")?;
-                    }
-                }
-                write!(f, "]")
-            }
+            Value::VarList(_, x) | Value::FixedList(_, x) => display_list(f, x),
             // Note: These don't match kuzu's toString, but we probably don't want them to
             Value::Interval(x) => write!(f, "{x}"),
             Value::Timestamp(x) => write!(f, "{x}"),
@@ -262,6 +283,14 @@ impl std::fmt::Display for Value {
             Value::Node(x) => write!(f, "{x}"),
             Value::Rel(x) => write!(f, "{x}"),
             Value::InternalID(x) => write!(f, "{x}"),
+            Value::RecursiveRel { nodes, rels } => {
+                write!(f, "{{")?;
+                write!(f, "_NODES: ")?;
+                display_list(f, nodes)?;
+                write!(f, ", _RELS: ")?;
+                display_list(f, rels)?;
+                write!(f, "}}")
+            }
         }
     }
 }
@@ -279,6 +308,7 @@ impl From<&Value> for LogicalType {
             Value::Interval(_) => LogicalType::Interval,
             Value::Timestamp(_) => LogicalType::Timestamp,
             Value::String(_) => LogicalType::String,
+            Value::Blob(_) => LogicalType::Blob,
             Value::Null(x) => x.clone(),
             Value::VarList(x, _) => LogicalType::VarList {
                 child_type: Box::new(x.clone()),
@@ -299,6 +329,7 @@ impl From<&Value> for LogicalType {
             Value::InternalID(_) => LogicalType::InternalID,
             Value::Node(_) => LogicalType::Node,
             Value::Rel(_) => LogicalType::Rel,
+            Value::RecursiveRel { .. } => LogicalType::RecursiveRel,
         }
     }
 }
@@ -319,7 +350,14 @@ impl TryFrom<&ffi::Value> for Value {
             LogicalTypeID::INT64 => Ok(Value::Int64(value.get_value_i64())),
             LogicalTypeID::FLOAT => Ok(Value::Float(value.get_value_float())),
             LogicalTypeID::DOUBLE => Ok(Value::Double(value.get_value_double())),
-            LogicalTypeID::STRING => Ok(Value::String(ffi::value_get_string(value))),
+            LogicalTypeID::STRING => Ok(Value::String(ffi::value_get_string(value).to_string())),
+            LogicalTypeID::BLOB => Ok(Value::Blob(
+                ffi::value_get_string(value)
+                    .as_bytes()
+                    .iter()
+                    .cloned()
+                    .collect(),
+            )),
             LogicalTypeID::INTERVAL => Ok(Value::Interval(time::Duration::new(
                 ffi::value_get_interval_secs(value),
                 // Duration is constructed using nanoseconds, but kuzu stores microseconds
@@ -381,25 +419,25 @@ impl TryFrom<&ffi::Value> for Value {
                 Ok(Value::Struct(result))
             }
             LogicalTypeID::NODE => {
-                let ffi_node_val = ffi::value_get_node_val(value);
-                let id = ffi::node_value_get_node_id(ffi_node_val.as_ref().unwrap());
+                let id = ffi::node_value_get_node_id(value);
                 let id = InternalID {
                     offset: id[0],
                     table_id: id[1],
                 };
-                let label = ffi::node_value_get_label_name(ffi_node_val.as_ref().unwrap());
+                let label = ffi::node_value_get_label_name(value);
                 let mut node_val = NodeVal::new(id, label);
-                let properties = ffi::node_value_get_properties(ffi_node_val.as_ref().unwrap());
+                let properties = ffi::node_value_get_properties(value);
                 for i in 0..properties.size() {
-                    node_val
-                        .add_property(properties.get_name(i), properties.get_value(i).try_into()?);
+                    node_val.add_property(
+                        properties.get_name(i),
+                        TryInto::<Value>::try_into(properties.get_value(i))?,
+                    );
                 }
                 Ok(Value::Node(node_val))
             }
             LogicalTypeID::REL => {
-                let ffi_rel_val = ffi::value_get_rel_val(value);
-                let src_node = ffi::rel_value_get_src_id(ffi_rel_val.as_ref().unwrap());
-                let dst_node = ffi::rel_value_get_dst_id(ffi_rel_val.as_ref().unwrap());
+                let src_node = ffi::rel_value_get_src_id(value);
+                let dst_node = ffi::rel_value_get_dst_id(value);
                 let src_node = InternalID {
                     offset: src_node[0],
                     table_id: src_node[1],
@@ -408,9 +446,9 @@ impl TryFrom<&ffi::Value> for Value {
                     offset: dst_node[0],
                     table_id: dst_node[1],
                 };
-                let label = ffi::rel_value_get_label_name(ffi_rel_val.as_ref().unwrap());
+                let label = ffi::rel_value_get_label_name(value);
                 let mut rel_val = RelVal::new(src_node, dst_node, label);
-                let properties = ffi::rel_value_get_properties(ffi_rel_val.as_ref().unwrap());
+                let properties = ffi::rel_value_get_properties(value);
                 for i in 0..properties.size() {
                     rel_val
                         .add_property(properties.get_name(i), properties.get_value(i).try_into()?);
@@ -424,8 +462,38 @@ impl TryFrom<&ffi::Value> for Value {
                     table_id: internal_id[1],
                 }))
             }
-            // Should be unreachable, as cxx will check that the LogicalTypeID enum matches the one
-            // on the C++ side.
+            LogicalTypeID::RECURSIVE_REL => {
+                let nodes: Value = ffi::recursive_rel_get_nodes(value).try_into()?;
+                let rels: Value = ffi::recursive_rel_get_rels(value).try_into()?;
+                let nodes = if let Value::VarList(LogicalType::Node, nodes) = nodes {
+                    nodes.into_iter().map(|x| {
+                        if let Value::Node(x) = x {
+                            x
+                        } else {
+                            unreachable!()
+                        }
+                    })
+                } else {
+                    panic!("Unexpected value in RecursiveRel's rels: {}", rels)
+                };
+                let rels = if let Value::VarList(LogicalType::Rel, rels) = rels {
+                    rels.into_iter().map(|x| {
+                        if let Value::Rel(x) = x {
+                            x
+                        } else {
+                            unreachable!()
+                        }
+                    })
+                } else {
+                    panic!("Unexpected value in RecursiveRel's rels: {}", rels)
+                };
+
+                Ok(Value::RecursiveRel {
+                    nodes: nodes.collect(),
+                    rels: rels.collect(),
+                })
+            }
+            // TODO(bmwinger): Better error message for types which are unsupported
             x => panic!("Unsupported type {:?}", x),
         }
     }
@@ -445,7 +513,11 @@ impl TryInto<cxx::UniquePtr<ffi::Value>> for Value {
             Value::Int64(value) => Ok(ffi::create_value_i64(value)),
             Value::Float(value) => Ok(ffi::create_value_float(value)),
             Value::Double(value) => Ok(ffi::create_value_double(value)),
-            Value::String(value) => Ok(ffi::create_value_string(&value)),
+            Value::String(value) => Ok(ffi::create_value_string(
+                ffi::LogicalTypeID::STRING,
+                value.as_bytes(),
+            )),
+            Value::Blob(value) => Ok(ffi::create_value_string(ffi::LogicalTypeID::BLOB, &value)),
             Value::Timestamp(value) => Ok(ffi::create_value_timestamp(
                 // Convert to microseconds since 1970-01-01
                 (value.unix_timestamp_nanos() / 1000) as i64,
@@ -518,26 +590,10 @@ impl TryInto<cxx::UniquePtr<ffi::Value>> for Value {
             Value::InternalID(value) => {
                 Ok(ffi::create_value_internal_id(value.offset, value.table_id))
             }
-            Value::Node(value) => {
-                let mut node = ffi::create_value_node(
-                    Value::InternalID(value.id).try_into()?,
-                    Value::String(value.label).try_into()?,
-                );
-                for (name, property) in value.properties {
-                    ffi::value_add_property(node.pin_mut(), &name, property.try_into()?);
-                }
-                Ok(node)
-            }
-            Value::Rel(value) => {
-                let mut rel = ffi::create_value_rel(
-                    Value::InternalID(value.src_node).try_into()?,
-                    Value::InternalID(value.dst_node).try_into()?,
-                    Value::String(value.label).try_into()?,
-                );
-                for (name, property) in value.properties {
-                    ffi::value_add_property(rel.pin_mut(), &name, property.try_into()?);
-                }
-                Ok(rel)
+            Value::Node(_) => Err(crate::Error::ReadOnlyType(LogicalType::Node)),
+            Value::Rel(_) => Err(crate::Error::ReadOnlyType(LogicalType::Rel)),
+            Value::RecursiveRel { .. } => {
+                Err(crate::Error::ReadOnlyType(LogicalType::RecursiveRel))
             }
         }
     }
@@ -640,7 +696,7 @@ mod tests {
         ($($name:ident: $value:expr,)*) => {
         $(
             #[test]
-            /// Tests that the values are correctly converted into kuzu::common::Value and back
+            /// Tests that the values display the same via the rust API as via the C++ API
             fn $name() -> Result<()> {
                 let rust_value: Value = $value;
                 let value: cxx::UniquePtr<ffi::Value> = rust_value.clone().try_into()?;
@@ -657,7 +713,7 @@ mod tests {
             #[test]
             /// Tests that passing the values through the database returns what we put in
             fn $name() -> Result<()> {
-                let temp_dir = tempdir::TempDir::new("example")?;
+                let temp_dir = tempfile::tempdir()?;
                 let db = Database::new(temp_dir.path(), 0)?;
                 let conn = Connection::new(&db)?;
                 conn.query(&format!(
@@ -696,11 +752,13 @@ mod tests {
         convert_date_type: LogicalType::Date,
         convert_interval_type: LogicalType::Interval,
         convert_string_type: LogicalType::String,
+        convert_blob_type: LogicalType::Blob,
         convert_bool_type: LogicalType::Bool,
         convert_struct_type: LogicalType::Struct { fields: vec![("NAME".to_string(), LogicalType::String)]},
         convert_node_type: LogicalType::Node,
         convert_internal_id_type: LogicalType::InternalID,
         convert_rel_type: LogicalType::Rel,
+        convert_recursive_rel_type: LogicalType::RecursiveRel,
     }
 
     value_tests! {
@@ -716,14 +774,13 @@ mod tests {
         convert_date: Value::Date(date!(2023-06-13)),
         convert_interval: Value::Interval(time::Duration::weeks(10)),
         convert_string: Value::String("Hello World".to_string()),
+        convert_blob: Value::Blob("Hello World".into()),
         convert_bool: Value::Bool(false),
         convert_null: Value::Null(LogicalType::VarList {
             child_type: Box::new(LogicalType::FixedList { child_type: Box::new(LogicalType::Int16), num_elements: 3 })
         }),
         convert_struct: Value::Struct(vec![("NAME".to_string(), "Alice".into()), ("AGE".to_string(), 25.into())]),
         convert_internal_id: Value::InternalID(InternalID { table_id: 0, offset: 0 }),
-        convert_node: Value::Node(NodeVal::new(InternalID { table_id: 0, offset: 0 }, "Test Label".to_string())),
-        convert_rel: Value::Rel(RelVal::new(InternalID { table_id: 0, offset: 0 }, InternalID { table_id: 1, offset: 0 }, "Test Label".to_string())),
     }
 
     display_tests! {
@@ -733,9 +790,11 @@ mod tests {
         display_int16: Value::Int16(1),
         display_int32: Value::Int32(2),
         display_int64: Value::Int64(3),
-        // Float, doble, interval and timestamp have display differences which we probably don't want to
+        // Float, double, interval and timestamp have display differences which we probably don't want to
         // reconcile
         display_date: Value::Date(date!(2023-06-13)),
+        // blob may contain non-utf8 data, so we display it as an array rather than a string
+        // The C++ API escapes data in the blob as hex
         display_string: Value::String("Hello World".to_string()),
         display_bool: Value::Bool(false),
         display_null: Value::Null(LogicalType::VarList {
@@ -743,8 +802,7 @@ mod tests {
         }),
         display_struct: Value::Struct(vec![("NAME".to_string(), "Alice".into()), ("AGE".to_string(), 25.into())]),
         display_internal_id: Value::InternalID(InternalID { table_id: 0, offset: 0 }),
-        display_node: Value::Node(NodeVal::new(InternalID { table_id: 0, offset: 0 }, "Test Label".to_string())),
-        display_rel: Value::Rel(RelVal::new(InternalID { table_id: 0, offset: 0 }, InternalID { table_id: 1, offset: 0 }, "Test Label".to_string())),
+        // Node and Rel Cannot be easily created on the C++ side
     }
 
     database_tests! {
@@ -769,13 +827,14 @@ mod tests {
         db_date: Value::Date(date!(2023-06-13)), "DATE",
         db_interval: Value::Interval(time::Duration::weeks(200)), "INTERVAL",
         db_string: Value::String("Hello World".to_string()), "STRING",
+        db_blob: Value::Blob("Hello World".into()), "BLOB",
         db_bool: Value::Bool(true), "BOOLEAN",
     }
 
     #[test]
     /// Tests that the list value is correctly constructed
     fn test_var_list_get() -> Result<()> {
-        let temp_dir = tempdir::TempDir::new("example")?;
+        let temp_dir = tempfile::tempdir()?;
         let db = Database::new(temp_dir.path(), 0)?;
         let conn = Connection::new(&db)?;
         for result in conn.query("RETURN [\"Alice\", \"Bob\"] AS l;")? {
@@ -792,7 +851,7 @@ mod tests {
     #[test]
     /// Test that the timestamp round-trips through kuzu's internal timestamp
     fn test_timestamp() -> Result<()> {
-        let temp_dir = tempdir::TempDir::new("example")?;
+        let temp_dir = tempfile::tempdir()?;
         let db = Database::new(temp_dir.path(), 0)?;
         let conn = Connection::new(&db)?;
         conn.query(
@@ -839,7 +898,7 @@ mod tests {
 
     #[test]
     fn test_node() -> Result<()> {
-        let temp_dir = tempdir::TempDir::new("example")?;
+        let temp_dir = tempfile::tempdir()?;
         let db = Database::new(temp_dir.path(), 0)?;
         let conn = Connection::new(&db)?;
         conn.query("CREATE NODE TABLE Person(name STRING, age INT64, PRIMARY KEY(name));")?;
@@ -864,14 +923,90 @@ mod tests {
     }
 
     #[test]
+    fn test_recursive_rel() -> Result<()> {
+        let temp_dir = tempfile::TempDir::new()?;
+        let db = Database::new(temp_dir.path(), 0)?;
+        let conn = Connection::new(&db)?;
+        conn.query("CREATE NODE TABLE Person(name STRING, age INT64, PRIMARY KEY(name));")?;
+        conn.query("CREATE REL TABLE knows(FROM Person TO Person);")?;
+        conn.query("CREATE (:Person {name: \"Alice\", age: 25});")?;
+        conn.query("CREATE (:Person {name: \"Bob\", age: 25});")?;
+        conn.query("CREATE (:Person {name: \"Eve\", age: 25});")?;
+        conn.query(
+            "MATCH (p1:Person), (p2:Person)
+                WHERE p1.name = \"Alice\" AND p2.name = \"Bob\"
+            CREATE (p1)-[:knows]->(p2);",
+        )?;
+        conn.query(
+            "MATCH (p1:Person), (p2:Person)
+                WHERE p1.name = \"Bob\" AND p2.name = \"Eve\"
+            CREATE (p1)-[:knows]->(p2);",
+        )?;
+        let result = conn
+            .query(
+                "MATCH (a:Person)-[e*2..2]->(b:Person)
+                 WHERE a.name = 'Alice'
+                 RETURN e, b.name;",
+            )?
+            .next()
+            .unwrap();
+        assert_eq!(result[1], Value::String("Eve".to_string()));
+        assert_eq!(
+            result[0],
+            Value::RecursiveRel {
+                nodes: vec![NodeVal {
+                    id: (1, 0).into(),
+                    label: "Person".into(),
+                    properties: vec![("name".into(), "Bob".into()), ("age".into(), 25i64.into())]
+                },],
+                rels: vec![
+                    RelVal::new((0, 0), (1, 0), "knows"),
+                    RelVal::new((1, 0), (2, 0), "knows"),
+                ],
+            }
+        );
+        temp_dir.close()?;
+        Ok(())
+    }
+
+    #[test]
     /// Test that null values are read correctly by the API
     fn test_null() -> Result<()> {
-        let temp_dir = tempdir::TempDir::new("example")?;
+        let temp_dir = tempfile::tempdir()?;
         let db = Database::new(temp_dir.path(), 0)?;
         let conn = Connection::new(&db)?;
         let result = conn.query("RETURN null")?.next();
         let result = &result.unwrap()[0];
         assert_eq!(result, &Value::Null(LogicalType::String));
+        temp_dir.close()?;
+        Ok(())
+    }
+
+    #[test]
+    /// Tests that passing the values through the database returns what we put in
+    fn test_serial() -> Result<()> {
+        let temp_dir = tempfile::tempdir()?;
+        let db = Database::new(temp_dir.path(), 0)?;
+        let conn = Connection::new(&db)?;
+        conn.query("CREATE NODE TABLE Person(id SERIAL, name STRING, PRIMARY KEY(id));")?;
+
+        conn.query("CREATE (:Person {name: \"Bob\"});")?;
+        conn.query("CREATE (:Person {name: \"Alice\"});")?;
+        let result = conn.query("MATCH (a:Person) RETURN a.name, a.id;")?;
+        assert_eq!(
+            result.get_column_data_types(),
+            vec![LogicalType::String, LogicalType::Serial]
+        );
+        let results: Vec<(Value, Value)> = result
+            .map(|mut x| (x.pop().unwrap(), x.pop().unwrap()))
+            .collect();
+        assert_eq!(
+            results,
+            vec![
+                (Value::Int64(0), "Bob".into()),
+                (Value::Int64(1), "Alice".into())
+            ]
+        );
         temp_dir.close()?;
         Ok(())
     }

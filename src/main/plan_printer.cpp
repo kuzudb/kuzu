@@ -297,10 +297,6 @@ uint32_t OpProfileTree::calculateRowHeight(uint32_t rowIdx) const {
     return height + 2;
 }
 
-PlanPrinter::PlanPrinter(
-    processor::PhysicalPlan* physicalPlan, std::unique_ptr<common::Profiler> profiler)
-    : physicalPlan{physicalPlan}, profiler{std::move(profiler)} {}
-
 nlohmann::json PlanPrinter::printPlanToJson() {
     return toJson(physicalPlan->lastOperator.get(), *profiler);
 }

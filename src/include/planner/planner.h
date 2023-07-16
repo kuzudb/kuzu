@@ -32,6 +32,22 @@ private:
 
     static std::unique_ptr<LogicalPlan> planCopy(
         const catalog::Catalog& catalog, const BoundStatement& statement);
+
+    static std::unique_ptr<LogicalPlan> planStandaloneCall(const BoundStatement& statement);
+
+    static std::unique_ptr<LogicalPlan> planExplain(const catalog::Catalog& catalog,
+        const storage::NodesStatisticsAndDeletedIDs& nodesStatistics,
+        const storage::RelsStatistics& relsStatistics, const BoundStatement& statement);
+
+    static std::vector<std::unique_ptr<LogicalPlan>> getAllQueryPlans(
+        const catalog::Catalog& catalog,
+        const storage::NodesStatisticsAndDeletedIDs& nodesStatistics,
+        const storage::RelsStatistics& relsStatistics, const BoundStatement& statement);
+
+    static std::vector<std::unique_ptr<LogicalPlan>> getAllExplainPlans(
+        const catalog::Catalog& catalog,
+        const storage::NodesStatisticsAndDeletedIDs& nodesStatistics,
+        const storage::RelsStatistics& relsStatistics, const BoundStatement& statement);
 };
 
 } // namespace planner

@@ -323,9 +323,8 @@ void EmbeddedShell::printHelp() {
 
 void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
     auto querySummary = queryResult.getQuerySummary();
-    if (querySummary->getIsExplain()) {
-        auto& oss = querySummary->getPlanAsOstream();
-        printf("%s", oss.str().c_str());
+    if (querySummary->isExplain()) {
+        printf("%s", queryResult.getNext()->toString().c_str());
     } else {
         const uint32_t maxWidth = 80;
         uint64_t numTuples = queryResult.getNumTuples();
@@ -386,15 +385,6 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
         }
         printf("Time: %.2fms (compiling), %.2fms (executing)\n", querySummary->getCompilingTime(),
             querySummary->getExecutionTime());
-
-        if (querySummary->getIsProfile()) {
-            // print plan with profiling metrics
-            printf("==============================================\n");
-            printf("=============== Profiler Summary =============\n");
-            printf("==============================================\n");
-            printf(">> plan\n");
-            printf("%s", querySummary->getPlanAsOstream().str().c_str());
-        }
     }
 }
 

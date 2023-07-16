@@ -8,17 +8,17 @@
 
 -CASE TinySnbParquet
 
--NAME AccAspMultiLabelParquet
--QUERY MATCH (a:person)-[e1:knows|:studyAt|:workAt]->(b:person:organisation) WHERE a.age > 35 RETURN b.fName, b.name
--ENCODED_JOIN HJ(b._id){E(b)S(a)}{S(b)}
+-LOG AccAspMultiLabelParquet
+-STATEMENT MATCH (a:person)-[e1:knows|:studyAt|:workAt]->(b:person:organisation) WHERE a.age > 35 RETURN b.fName, b.name
+-ENCODED_JOIN HJ(b._ID){E(b)S(a)}{S(b)}
 ---- 4
 Alice|
 Bob|
 Dan|
 |CsWork
 
--NAME AggOneHopAggTestParquet
--QUERY MATCH (a:person)-[:knows]->(b:person) RETURN a.age, a.gender, COUNT(*)
+-LOG AggOneHopAggTestParquet
+-STATEMENT MATCH (a:person)-[:knows]->(b:person) RETURN a.age, a.gender, COUNT(*)
 -ENUMERATE
 -PARALLELISM 2
 ---- 5
@@ -28,28 +28,28 @@ Dan|
 35|1|3
 45|1|3
 
--NAME BinderErrorNodeTableNotExistParquet
--QUERY MATCH (a:PERSON) RETURN COUNT(*)
+-LOG BinderErrorNodeTableNotExistParquet
+-STATEMENT MATCH (a:PERSON) RETURN COUNT(*)
 ---- error
 Binder exception: Node table PERSON does not exist.
 
--NAME CyclicMultiLabelCyclicTestParquet
--QUERY MATCH (a:person)-[:workAt|:knows|:studyAt]->(b:organisation), (a)-[:workAt]->(b) RETURN COUNT(*)
+-LOG CyclicMultiLabelCyclicTestParquet
+-STATEMENT MATCH (a:person)-[:workAt|:knows|:studyAt]->(b:organisation), (a)-[:workAt]->(b) RETURN COUNT(*)
 ---- 1
 3
 
--NAME ExceptionReadVarlengthRelPropertyTest2Parquet
--QUERY MATCH (a:person)-[e:knows*1..3]->(b:person) WHERE ID(e) = 0 RETURN COUNT(*)
+-LOG ExceptionReadVarlengthRelPropertyTest2Parquet
+-STATEMENT MATCH (a:person)-[e:knows*1..3]->(b:person) WHERE ID(e) = 0 RETURN COUNT(*)
 ---- error
 Binder exception: e has data type RECURSIVE_REL. (NODE,REL) was expected.
 
--NAME FilterPersonNodesAgeFilteredTest2Parquet
--QUERY MATCH (a:person) WHERE a.age < 25 RETURN COUNT(*)
+-LOG FilterPersonNodesAgeFilteredTest2Parquet
+-STATEMENT MATCH (a:person) WHERE a.age < 25 RETURN COUNT(*)
 ---- 1
 2
 
--NAME FunctionRelLISTPropertyTestParquet
--QUERY MATCH (a:person)-[e:knows]->(b:person) RETURN e.comments
+-LOG FunctionRelLISTPropertyTestParquet
+-STATEMENT MATCH (a:person)-[e:knows]->(b:person) RETURN e.comments
 ---- 14
 [rnme,m8sihsdnf2990nfiwf]
 [njnojppo9u0jkmf,fjiojioh9h9h89hph]
@@ -66,46 +66,46 @@ Binder exception: e has data type RECURSIVE_REL. (NODE,REL) was expected.
 [ahu2333333333333,12weeeeeeeeeeeeeeeeee]
 [peweeeeeeeeeeeeeeeee,kowje9w0eweeeeeeeee]
 
--NAME MatchOpenWedgeKnowsTest3Parquet
--QUERY MATCH (b:person)<-[e1:knows]-(a:person)-[e2:knows]->(c:person),(a)-[e3:knows]->(d:person) RETURN COUNT(*)
+-LOG MatchOpenWedgeKnowsTest3Parquet
+-STATEMENT MATCH (b:person)<-[e1:knows]-(a:person)-[e2:knows]->(c:person),(a)-[e3:knows]->(d:person) RETURN COUNT(*)
 ---- 1
 116
 
--NAME OptionalMatchMultiKeyOptionalMatchTest1Parquet
--QUERY MATCH (a:person)-[:knows]->(b:person) WHERE a.ID=0 OPTIONAL MATCH (a)-[:knows]->(c:person), (b)-[:knows]->(c) RETURN COUNT(*)
+-LOG OptionalMatchMultiKeyOptionalMatchTest1Parquet
+-STATEMENT MATCH (a:person)-[:knows]->(b:person) WHERE a.ID=0 OPTIONAL MATCH (a)-[:knows]->(c:person), (b)-[:knows]->(c) RETURN COUNT(*)
 -ENUMERATE
 ---- 1
 6
 
--NAME OrderByInt32TestParquet
--QUERY MATCH (m:movies) RETURN m.length ORDER BY m.length
+-LOG OrderByInt32TestParquet
+-STATEMENT MATCH (m:movies) RETURN m.length ORDER BY m.length
 -CHECK_ORDER
 ---- 3
 126
 298
 2544
 
--NAME ProjectionReturnLiteral2Parquet
--QUERY MATCH (a:person) RETURN 1 + 1, label(a) LIMIT 2
+-LOG ProjectionReturnLiteral2Parquet
+-STATEMENT MATCH (a:person) RETURN 1 + 1, label(a) LIMIT 2
 ---- 2
 2|person
 2|person
 
--NAME ShortestPathSingleLabelTestParquet
--QUERY MATCH (a:person)-[e:knows* SHORTEST 1..5]->(b:person) WHERE a.fName='Alice' RETURN b.fName, length(e)
+-LOG ShortestPathSingleLabelTestParquet
+-STATEMENT MATCH (a:person)-[e:knows* SHORTEST 1..5]->(b:person) WHERE a.fName='Alice' RETURN b.fName, length(e)
 ---- 3
 Bob|1
 Carol|1
 Dan|1
 
--NAME ExistSubqueryTestParquet
--QUERY MATCH (a:person) WHERE EXISTS { MATCH (a)-[:knows]->(b:person) } RETURN COUNT(*)
+-LOG ExistSubqueryTestParquet
+-STATEMENT MATCH (a:person) WHERE EXISTS { MATCH (a)-[:knows]->(b:person) } RETURN COUNT(*)
 -ENUMERATE
 ---- 1
 5
 
--NAME UnionTwoQueriesTestParquet
--QUERY MATCH (a:person) RETURN a.age UNION MATCH (p:person) RETURN p.age
+-LOG UnionTwoQueriesTestParquet
+-STATEMENT MATCH (a:person) RETURN a.age UNION MATCH (p:person) RETURN p.age
 ---- 7
 20
 25
@@ -115,25 +115,25 @@ Dan|1
 45
 83
 
--NAME Unwind2Parquet
--QUERY UNWIND [[1, 2, 3], [2, 3, 4], [3, 4, 1], [4, 1, 2]] AS x RETURN x
+-LOG Unwind2Parquet
+-STATEMENT UNWIND [[1, 2, 3], [2, 3, 4], [3, 4, 1], [4, 1, 2]] AS x RETURN x
 ---- 4
 [1,2,3]
 [2,3,4]
 [3,4,1]
 [4,1,2]
 
--NAME InsertNodeWithBoolIntDoubleTestParquet
+-LOG InsertNodeWithBoolIntDoubleTestParquet
 -STATEMENT CREATE (:person {ID:80, isWorker:true,age:22,eyeSight:1.1})
 ---- ok
--QUERY MATCH (a:person) WHERE a.ID > 8 RETURN a.ID, a.gender,a.isStudent, a.isWorker, a.age, a.eyeSight
+-STATEMENT MATCH (a:person) WHERE a.ID > 8 RETURN a.ID, a.gender,a.isStudent, a.isWorker, a.age, a.eyeSight
 ---- 3
 10|2|False|True|83|4.900000
 80|||True|22|1.100000
 9|2|False|False|40|4.900000
 
--NAME NodeUndirectedTest2Parquet
--QUERY MATCH (a)-[e:knows|:studyAt|:workAt*1..2]-(b) WHERE a.ID=7 RETURN e, label(b)
+-LOG NodeUndirectedTest2Parquet
+-STATEMENT MATCH (a)-[e:knows|:studyAt|:workAt*1..2]-(b) WHERE a.ID=7 RETURN e, label(b)
 ---- 8
 [0:4,3:12,0:5,3:12,0:4]|person
 [0:4,3:12,0:5,4:2,1:0]|organisation

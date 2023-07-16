@@ -66,16 +66,15 @@ uint64_t Blob::fromString(const char* str, uint64_t length, uint8_t* resultBuffe
     return resultPos;
 }
 
-std::string Blob::toString(blob_t& blob) {
+std::string Blob::toString(const uint8_t* value, uint64_t len) {
     std::string result;
-    auto blobData = (uint8_t*)blob.value.getData();
-    for (auto i = 0u; i < blob.value.len; i++) {
-        if (isRegularChar(blobData[i])) {
+    for (auto i = 0u; i < len; i++) {
+        if (isRegularChar(value[i])) {
             // ascii characters are rendered as-is.
-            result += blobData[i];
+            result += value[i];
         } else {
-            auto firstByte = blobData[i] >> HexFormatConstants::NUM_BYTES_TO_SHIFT_FOR_FIRST_BYTE;
-            auto secondByte = blobData[i] & HexFormatConstants::SECOND_BYTE_MASK;
+            auto firstByte = value[i] >> HexFormatConstants::NUM_BYTES_TO_SHIFT_FOR_FIRST_BYTE;
+            auto secondByte = value[i] & HexFormatConstants::SECOND_BYTE_MASK;
             // non-ascii characters are rendered as hexadecimal (e.g. \x00).
             result += '\\';
             result += 'x';

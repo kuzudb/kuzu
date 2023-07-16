@@ -16,6 +16,12 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
     case LogicalOperatorType::AGGREGATE: {
         return "AGGREGATE";
     }
+    case LogicalOperatorType::STANDALONE_CALL: {
+        return "STANDALONE_CALL";
+    }
+    case LogicalOperatorType::IN_QUERY_CALL: {
+        return "IN_QUERY_CALL";
+    }
     case LogicalOperatorType::COPY: {
         return "COPY";
     }
@@ -54,6 +60,9 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
     }
     case LogicalOperatorType::EXTEND: {
         return "EXTEND";
+    }
+    case LogicalOperatorType::EXPLAIN: {
+        return "EXPLAIN";
     }
     case LogicalOperatorType::FILTER: {
         return "FILTER";
