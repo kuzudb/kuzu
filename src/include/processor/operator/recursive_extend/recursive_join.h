@@ -111,8 +111,6 @@ private:
 
     bool computeBFS(ExecutionContext* context);
 
-    int fetchMorselFromDispatcher(ExecutionContext* context);
-
     void computeBFSnThreadkMorsel(ExecutionContext* context);
 
     // Compute BFS for a given src node.
