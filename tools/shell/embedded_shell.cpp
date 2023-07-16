@@ -329,7 +329,7 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
     } else {
         const uint32_t maxWidth = 80;
         uint64_t numTuples = queryResult.getNumTuples();
-        /*std::vector<uint32_t> colsWidth(queryResult.getNumColumns(), 2);
+        std::vector<uint32_t> colsWidth(queryResult.getNumColumns(), 2);
         for (auto i = 0u; i < colsWidth.size(); i++) {
             colsWidth[i] = queryResult.getColumnNames()[i].length() + 2;
         }
@@ -376,7 +376,7 @@ void EmbeddedShell::printExecutionResult(QueryResult& queryResult) const {
             auto tuple = queryResult.getNext();
             printf("|%s|\n", tuple->toString(colsWidth, "|", maxWidth).c_str());
             printf("%s\n", lineSeparator.c_str());
-        }*/
+        }
 
         // print query result (numFlatTuples & tuples)
         if (numTuples == 1) {
