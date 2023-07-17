@@ -45,7 +45,6 @@ public:
     inline uint64_t getNumBytesPerValue() const { return numBytesPerValue; }
     inline uint64_t getNumBytes() const { return numBytes; }
     inline InMemColumnChunk* getNullChunk() { return nullChunk.get(); }
-    void copyArrowBatch(std::shared_ptr<arrow::RecordBatch> batch);
     virtual void copyArrowArray(arrow::Array& arrowArray, arrow::Array* nodeOffsets = nullptr);
     virtual void flush(common::FileInfo* walFileInfo);
 

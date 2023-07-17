@@ -165,15 +165,15 @@ void ColumnChunk::templateCopyArrowArray<uint8_t*>(
                 continue;
             }
             auto posInList = fixedSizedListArray->offset() + i;
-            memcpy(buffer.get() + (posInChunk * numBytesPerValue),
-                valuesInList + (posInList * numBytesPerValue), numBytesPerValue);
+            memcpy(buffer.get() + getOffsetInBuffer(posInChunk),
+                valuesInList + posInList * numBytesPerValue, numBytesPerValue);
         }
     } else {
         for (auto i = 0u; i < numValuesToAppend; i++) {
             auto posInChunk = startPosInChunk + i;
             auto posInList = fixedSizedListArray->offset() + i;
-            memcpy(buffer.get() + (posInChunk * numBytesPerValue),
-                valuesInList + (posInList * numBytesPerValue), numBytesPerValue);
+            memcpy(buffer.get() + getOffsetInBuffer(posInChunk),
+                valuesInList + posInList * numBytesPerValue, numBytesPerValue);
         }
     }
 }
@@ -307,6 +307,19 @@ void ColumnChunk::setValueFromString<timestamp_t>(
     const char* value, uint64_t length, uint64_t pos) {
     auto val = Timestamp::FromCString(value, length);
     setValue(val, pos);
+}
+
+common::offset_t ColumnChunk::getOffsetInBuffer(common::offset_t pos) {
+    auto numElementsInAPage =
+        PageUtils::getNumElementsInAPage(numBytesPerValue, false /* hasNull */);
+    auto posCursor = PageUtils::getPageByteCursorForPos(pos, numElementsInAPage, numBytesPerValue);
+    auto startNodeCursor =
+        PageUtils::getPageByteCursorForPos(0, numElementsInAPage, numBytesPerValue);
+    auto offsetInBuffer =
+        (posCursor.pageIdx - startNodeCursor.pageIdx) * common::BufferPoolConstants::PAGE_4KB_SIZE +
+        posCursor.offsetInPage - startNodeCursor.offsetInPage;
+    assert(offsetInBuffer + numBytesPerValue <= numBytes);
+    return offsetInBuffer;
 }
 
 } // namespace storage

@@ -86,6 +86,9 @@ protected:
         return getNumPagesForBytes(numBytes);
     }
 
+private:
+    common::offset_t getOffsetInBuffer(common::offset_t pos);
+
 protected:
     common::LogicalType dataType;
     uint32_t numBytesPerValue;

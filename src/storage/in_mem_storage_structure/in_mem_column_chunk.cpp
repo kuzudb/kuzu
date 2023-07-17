@@ -48,11 +48,6 @@ uint32_t InMemColumnChunk::getDataTypeSizeInColumn(common::LogicalType& dataType
     }
 }
 
-void InMemColumnChunk::copyArrowBatch(std::shared_ptr<arrow::RecordBatch> batch) {
-    assert(batch->num_columns() == 1);
-    copyArrowArray(*batch->column(0), nullptr /* nodeOffsets */);
-}
-
 void InMemColumnChunk::copyArrowArray(arrow::Array& arrowArray, arrow::Array* nodeOffsets) {
     switch (arrowArray.type_id()) {
     case arrow::Type::BOOL: {
