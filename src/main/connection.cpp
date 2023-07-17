@@ -280,7 +280,7 @@ std::string Connection::getRelPropertyNames(const std::string& relTableName) {
 }
 
 void Connection::interrupt() {
-    clientContext->activeQuery->interrupted = true;
+    clientContext->interrupt();
 }
 
 void Connection::setQueryTimeOut(uint64_t timeoutInMS) {
@@ -328,7 +328,7 @@ void Connection::bindParametersNoLock(PreparedStatement* preparedStatement,
 
 std::unique_ptr<QueryResult> Connection::executeAndAutoCommitIfNecessaryNoLock(
     PreparedStatement* preparedStatement, uint32_t planIdx) {
-    clientContext->activeQuery = std::make_unique<ActiveQuery>();
+    clientContext->resetActiveQuery();
     clientContext->startTimingIfEnabled();
     auto mapper = PlanMapper(
         *database->storageManager, database->memoryManager.get(), database->catalog.get());

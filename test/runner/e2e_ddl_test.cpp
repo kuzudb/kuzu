@@ -277,7 +277,7 @@ public:
         auto physicalPlan =
             mapper.mapLogicalPlanToPhysical(preparedStatement->logicalPlans[0].get(),
                 preparedStatement->statementResult->getColumns());
-        executionContext->clientContext->activeQuery = std::make_unique<ActiveQuery>();
+        executionContext->clientContext->resetActiveQuery();
         getQueryProcessor(*database)->execute(physicalPlan.get(), executionContext.get());
     }
 
