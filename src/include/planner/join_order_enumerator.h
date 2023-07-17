@@ -101,6 +101,9 @@ private:
         std::shared_ptr<NodeExpression> nbrNode, std::shared_ptr<RelExpression> recursiveRel,
         ExtendDirection direction, LogicalPlan& plan);
 
+    void appendNodeLabelFilter(std::shared_ptr<Expression> nodeID,
+        std::unordered_set<common::table_id_t> tableIDSet, LogicalPlan& plan);
+
     void planJoin(const binder::expression_vector& joinNodeIDs, common::JoinType joinType,
         std::shared_ptr<Expression> mark, LogicalPlan& probePlan, LogicalPlan& buildPlan);
     void appendHashJoin(const binder::expression_vector& joinNodeIDs, common::JoinType joinType,

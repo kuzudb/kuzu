@@ -26,6 +26,7 @@ public:
         }
     }
     inline bool isMultiLabeled() const { return tableIDs.size() > 1; }
+    inline uint32_t getNumTableIDs() const { return tableIDs.size(); }
     inline std::vector<common::table_id_t> getTableIDs() const { return tableIDs; }
     inline std::unordered_set<common::table_id_t> getTableIDsSet() const {
         return {tableIDs.begin(), tableIDs.end()};
