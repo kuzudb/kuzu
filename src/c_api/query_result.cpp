@@ -95,3 +95,12 @@ void kuzu_query_result_write_to_csv(kuzu_query_result* query_result, const char*
 void kuzu_query_result_reset_iterator(kuzu_query_result* query_result) {
     static_cast<QueryResult*>(query_result->_query_result)->resetIterator();
 }
+
+struct ArrowSchema kuzu_query_result_get_arrow_schema(kuzu_query_result* query_result) {
+    return *static_cast<QueryResult*>(query_result->_query_result)->getArrowSchema();
+}
+
+struct ArrowArray kuzu_query_result_get_next_arrow_chunk(
+    kuzu_query_result* query_result, int64_t chunk_size) {
+    return *static_cast<QueryResult*>(query_result->_query_result)->getNextArrowChunk(chunk_size);
+}

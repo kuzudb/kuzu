@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/api.h"
+#include "common/arrow/arrow.h"
 #include "common/types/types.h"
 #include "kuzu_fwd.h"
 #include "processor/result/flat_tuple.h"
@@ -69,7 +70,7 @@ public:
      */
     KUZU_API QuerySummary* getQuerySummary() const;
 
-    std::vector<std::unique_ptr<DataTypeInfo>> getColumnTypesInfo();
+    std::vector<std::unique_ptr<DataTypeInfo>> getColumnTypesInfo() const;
     /**
      * @return whether there are more tuples to read.
      */
@@ -95,6 +96,25 @@ public:
     KUZU_API void resetIterator();
 
     processor::FactorizedTable* getTable() { return factorizedTable.get(); }
+
+    /**
+     * @return datatypes of the columns as an arrow schema
+     *
+     * It is the caller's responsibility to call the release function to release the underlying data
+     * If converting to another arrow type, this this is usually handled automatically.
+     */
+    std::unique_ptr<ArrowSchema> getArrowSchema() const;
+
+    /**
+     * @return An arrow array representation of the next chunkSize tuples of the query result.
+     *
+     * The ArrowArray internally stores an arrow struct with fields for each of the columns.
+     * This can be converted to a RecordBatch with arrow's ImportRecordBatch function
+     *
+     * It is the caller's responsibility to call the release function to release the underlying data
+     * If converting to another arrow type, this this is usually handled automatically.
+     */
+    std::unique_ptr<ArrowArray> getNextArrowChunk(int64_t chunkSize);
 
 private:
     void initResultTableAndIterator(std::shared_ptr<processor::FactorizedTable> factorizedTable_,
