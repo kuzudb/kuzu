@@ -66,18 +66,10 @@ fn link_libraries() {
         }
 
         println!("cargo:rustc-link-lib=static=arrow_bundled_dependencies");
-        // arrow's bundled dependencies link against openssl when it's on the system, whether
-        // requested or not.
-        // Only seems to be necessary when building tests.
-        if env::var("KUZU_TESTING").is_ok() {
-            if cfg!(windows) {
-                find_openssl_windows();
-                println!("cargo:rustc-link-lib=dylib=libssl");
-                println!("cargo:rustc-link-lib=dylib=libcrypto");
-            } else {
-                println!("cargo:rustc-link-lib=dylib=ssl");
-                println!("cargo:rustc-link-lib=dylib=crypto");
-            }
+        if env::var("KUZU_TESTING").is_ok() && cfg!(windows) {
+            find_openssl_windows();
+            println!("cargo:rustc-link-lib=dylib=libssl");
+            println!("cargo:rustc-link-lib=dylib=libcrypto");
         }
 
         if cfg!(windows) {
