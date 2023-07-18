@@ -6,7 +6,7 @@
 namespace kuzu {
 namespace processor {
 
-void ReadNPYSharedState::countNumLines() {
+void ReadNPYSharedState::countNumRows() {
     uint8_t idx = 0;
     uint64_t firstFileRows;
     for (auto& filePath : filePaths) {
@@ -38,13 +38,16 @@ std::unique_ptr<ReadFileMorsel> ReadNPYSharedState::getMorsel() {
         if (curBlockIdx >= fileBlockInfo.numBlocks) {
             // No more blocks to read in this file.
             curFileIdx++;
+            currRowIdxInCurrFile = 1;
             curBlockIdx = 0;
-            nodeOffset = 0;
+            currRowIdx = 0;
             continue;
         }
-        auto result = std::make_unique<ReadNPYMorsel>(nodeOffset, curBlockIdx,
-            fileBlockInfo.numLinesPerBlock[curBlockIdx], filePath, curFileIdx);
-        nodeOffset += fileBlockInfo.numLinesPerBlock[curBlockIdx];
+        auto numRowsInBlock = fileBlockInfo.numRowsPerBlock[curBlockIdx];
+        auto result = std::make_unique<ReadNPYMorsel>(
+            currRowIdx, curBlockIdx, numRowsInBlock, filePath, curFileIdx, currRowIdxInCurrFile);
+        currRowIdx += numRowsInBlock;
+        currRowIdxInCurrFile += numRowsInBlock;
         curBlockIdx++;
         return result;
     }
@@ -66,9 +69,9 @@ bool ReadNPY::getNextTuplesInternal(kuzu::processor::ExecutionContext* context) 
         return false;
     }
     auto npyMorsel = reinterpret_cast<ReadNPYMorsel*>(morsel.get());
-    auto startOffset = npyMorsel->nodeOffset;
+    auto startRowIdx = npyMorsel->rowIdx;
     auto columnIdx = npyMorsel->getColumnIdx();
-    offsetVector->setValue(offsetVector->state->selVector->selectedPositions[0], startOffset);
+    rowIdxVector->setValue(rowIdxVector->state->selVector->selectedPositions[0], startRowIdx);
     columnIdxVector->setValue(columnIdxVector->state->selVector->selectedPositions[0], columnIdx);
     auto recordBatch = readTuples(std::move(morsel));
     common::ArrowColumnVector::setArrowColumn(

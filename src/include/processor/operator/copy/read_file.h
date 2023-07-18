@@ -8,61 +8,63 @@ namespace processor {
 
 class ReadFileMorsel {
 public:
-    static constexpr common::block_idx_t BLOCK_IDX_INVALID = UINT64_MAX;
-
-    ReadFileMorsel(common::offset_t nodeOffset, common::block_idx_t blockIdx, uint64_t numNodes,
-        std::string filePath)
-        : nodeOffset{nodeOffset}, blockIdx{blockIdx}, numNodes{numNodes}, filePath{std::move(
-                                                                              filePath)} {};
+    ReadFileMorsel(common::row_idx_t rowIdx, common::block_idx_t blockIdx,
+        common::row_idx_t numRows, std::string filePath, common::row_idx_t rowIdxInFile)
+        : rowIdx{rowIdx}, blockIdx{blockIdx}, numRows{numRows}, filePath{std::move(filePath)},
+          rowIdxInFile{rowIdxInFile} {};
 
     virtual ~ReadFileMorsel() = default;
 
 public:
-    common::offset_t nodeOffset;
+    // When reading from multiple files, rowIdx is accumulated.
+    common::row_idx_t rowIdx;
     common::block_idx_t blockIdx;
-    uint64_t numNodes;
+    common::row_idx_t numRows;
     std::string filePath;
+    // Row idx in the current file. Equal to `rowIdx` when reading from only a single file.
+    common::row_idx_t rowIdxInFile;
 };
 
 class ReadFileSharedState {
 public:
     explicit ReadFileSharedState(
         std::vector<std::string> filePaths, catalog::TableSchema* tableSchema)
-        : nodeOffset{0}, curBlockIdx{0}, filePaths{std::move(filePaths)}, curFileIdx{0},
-          tableSchema{tableSchema}, numRows{0} {}
+        : currRowIdx{0}, curBlockIdx{0}, filePaths{std::move(filePaths)}, curFileIdx{0},
+          tableSchema{tableSchema}, numRows{0}, currRowIdxInCurrFile{1} {}
 
     virtual ~ReadFileSharedState() = default;
 
-    virtual void countNumLines() = 0;
+    virtual void countNumRows() = 0;
 
     virtual std::unique_ptr<ReadFileMorsel> getMorsel() = 0;
 
 public:
-    uint64_t numRows;
+    common::row_idx_t numRows;
     catalog::TableSchema* tableSchema;
 
 protected:
     std::mutex mtx;
-    common::offset_t nodeOffset;
+    common::row_idx_t currRowIdx;
     std::unordered_map<std::string, storage::FileBlockInfo> fileBlockInfos;
     common::block_idx_t curBlockIdx;
     std::vector<std::string> filePaths;
     common::vector_idx_t curFileIdx;
+    common::row_idx_t currRowIdxInCurrFile;
 };
 
 class ReadFile : public PhysicalOperator {
 public:
-    ReadFile(std::vector<DataPos> arrowColumnPoses, DataPos offsetVectorPos,
-        std::shared_ptr<ReadFileSharedState> sharedState, PhysicalOperatorType operatorType,
-        uint32_t id, const std::string& paramsString)
-        : PhysicalOperator{operatorType, id, paramsString}, arrowColumnPoses{std::move(
-                                                                arrowColumnPoses)},
-          offsetVectorPos{std::move(offsetVectorPos)}, sharedState{std::move(sharedState)} {}
+    ReadFile(const DataPos& rowIdxVectorPos, const DataPos& filePathVectorPos,
+        std::vector<DataPos> arrowColumnPoses, std::shared_ptr<ReadFileSharedState> sharedState,
+        PhysicalOperatorType operatorType, uint32_t id, const std::string& paramsString)
+        : PhysicalOperator{operatorType, id, paramsString}, rowIdxVectorPos{rowIdxVectorPos},
+          filePathVectorPos{filePathVectorPos}, arrowColumnPoses{std::move(arrowColumnPoses)},
+          sharedState{std::move(sharedState)}, rowIdxVector{nullptr}, filePathVector{nullptr} {}
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
     inline void initGlobalStateInternal(kuzu::processor::ExecutionContext* context) override {
-        sharedState->countNumLines();
+        sharedState->countNumRows();
     }
 
     inline bool isSource() const override { return true; }
@@ -74,9 +76,11 @@ public:
 
 protected:
     std::shared_ptr<ReadFileSharedState> sharedState;
+    DataPos rowIdxVectorPos;
+    DataPos filePathVectorPos;
     std::vector<DataPos> arrowColumnPoses;
-    DataPos offsetVectorPos;
-    common::ValueVector* offsetVector;
+    common::ValueVector* rowIdxVector;
+    common::ValueVector* filePathVector;
     std::vector<common::ValueVector*> arrowColumnVectors;
 };
 

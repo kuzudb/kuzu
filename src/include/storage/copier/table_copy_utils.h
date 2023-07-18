@@ -22,37 +22,37 @@ namespace storage {
 
 struct FileBlockInfo {
     FileBlockInfo(
-        common::offset_t startOffset, uint64_t numBlocks, std::vector<uint64_t> numLinesPerBlock)
-        : startOffset{startOffset}, numBlocks{numBlocks}, numLinesPerBlock{
-                                                              std::move(numLinesPerBlock)} {}
-    common::offset_t startOffset;
+        common::offset_t startRowIdx, uint64_t numBlocks, std::vector<uint64_t> numRowsPerBlock)
+        : startRowIdx{startRowIdx}, numBlocks{numBlocks}, numRowsPerBlock{
+                                                              std::move(numRowsPerBlock)} {}
+    common::offset_t startRowIdx;
     uint64_t numBlocks;
-    std::vector<uint64_t> numLinesPerBlock;
+    std::vector<common::row_idx_t> numRowsPerBlock;
 };
 
 class CopyMorsel {
 public:
-    static constexpr common::block_idx_t BLOCK_IDX_INVALID = UINT64_MAX;
-
-    CopyMorsel(common::tuple_idx_t tupleIdx, common::block_idx_t blockIdx,
-        common::tuple_idx_t numTuples, std::string filePath)
-        : tupleIdx{tupleIdx}, blockIdx{blockIdx}, numTuples{numTuples}, filePath{
-                                                                            std::move(filePath)} {};
+    CopyMorsel(common::row_idx_t rowIdx, common::block_idx_t blockIdx, common::row_idx_t numRows,
+        std::string filePath, common::row_idx_t rowIdxInFile)
+        : rowIdx{rowIdx}, blockIdx{blockIdx}, numRows{numRows}, filePath{std::move(filePath)},
+          rowIdxInFile{rowIdxInFile} {};
     virtual ~CopyMorsel() = default;
 
 public:
-    common::tuple_idx_t tupleIdx;
+    common::row_idx_t rowIdx;
     common::block_idx_t blockIdx;
-    uint64_t numTuples;
+    common::row_idx_t numRows;
     std::string filePath;
+    common::row_idx_t rowIdxInFile;
 };
 
 // For CSV file, we need to read in streaming mode, so we need to read one batch at a time.
 class CSVCopyMorsel : public CopyMorsel {
 public:
-    CSVCopyMorsel(common::offset_t startOffset, std::string filePath,
-        std::shared_ptr<arrow::RecordBatch> recordBatch)
-        : CopyMorsel{startOffset, BLOCK_IDX_INVALID, UINT64_MAX, std::move(filePath)},
+    CSVCopyMorsel(common::offset_t startRowIdx, std::string filePath,
+        common::row_idx_t rowIdxInFile, std::shared_ptr<arrow::RecordBatch> recordBatch)
+        : CopyMorsel{startRowIdx, common::INVALID_BLOCK_IDX, common::INVALID_ROW_IDX,
+              std::move(filePath), rowIdxInFile},
           recordBatch{std::move(recordBatch)} {}
 
     std::shared_ptr<arrow::RecordBatch> recordBatch;
@@ -62,8 +62,8 @@ class CopySharedState {
 public:
     CopySharedState(std::vector<std::string> filePaths,
         std::unordered_map<std::string, FileBlockInfo> fileBlockInfos)
-        : filePaths{std::move(filePaths)}, fileIdx{0}, blockIdx{0}, numTuples{0},
-          fileBlockInfos{std::move(fileBlockInfos)} {};
+        : filePaths{std::move(filePaths)}, fileIdx{0}, blockIdx{0}, numRows{0},
+          fileBlockInfos{std::move(fileBlockInfos)}, currRowIdxInFile{1} {};
     virtual ~CopySharedState() = default;
 
     virtual std::unique_ptr<CopyMorsel> getMorsel();
@@ -71,7 +71,8 @@ public:
 public:
     std::vector<std::string> filePaths;
     common::field_idx_t fileIdx;
-    common::tuple_idx_t numTuples;
+    common::row_idx_t numRows;
+    common::row_idx_t currRowIdxInFile;
 
 protected:
     std::mutex mtx;
@@ -111,7 +112,7 @@ public:
     static std::unique_ptr<parquet::arrow::FileReader> createParquetReader(
         const std::string& filePath, catalog::TableSchema* tableSchema);
 
-    static common::tuple_idx_t countNumLines(common::CopyDescription& copyDescription,
+    static common::row_idx_t countNumLines(common::CopyDescription& copyDescription,
         catalog::TableSchema* tableSchema,
         std::unordered_map<std::string, FileBlockInfo>& fileBlockInfos);
 
@@ -121,13 +122,13 @@ public:
     static std::shared_ptr<arrow::DataType> toArrowDataType(const common::LogicalType& dataType);
 
 private:
-    static common::tuple_idx_t countNumLinesCSV(common::CopyDescription& copyDescription,
+    static common::row_idx_t countNumLinesCSV(common::CopyDescription& copyDescription,
         catalog::TableSchema* tableSchema,
         std::unordered_map<std::string, FileBlockInfo>& fileBlockInfos);
-    static common::tuple_idx_t countNumLinesParquet(common::CopyDescription& copyDescription,
+    static common::row_idx_t countNumLinesParquet(common::CopyDescription& copyDescription,
         catalog::TableSchema* tableSchema,
         std::unordered_map<std::string, FileBlockInfo>& fileBlockInfos);
-    static common::tuple_idx_t countNumLinesNpy(common::CopyDescription& copyDescription,
+    static common::row_idx_t countNumLinesNpy(common::CopyDescription& copyDescription,
         catalog::TableSchema* tableSchema,
         std::unordered_map<std::string, FileBlockInfo>& fileBlockInfos);
     static std::unique_ptr<common::Value> convertStringToValue(std::string element,

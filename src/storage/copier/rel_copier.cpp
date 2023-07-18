@@ -34,53 +34,87 @@ void RelCopier::execute(ExecutionContext* executionContext) {
     }
 }
 
-void RelCopier::copyRelColumnsOrCountRelListsSize(tuple_idx_t tupleIdx,
-    arrow::RecordBatch* recordBatch, RelDataDirection direction,
-    const std::vector<std::unique_ptr<arrow::Array>>& pkOffsets) {
+void RelCopier::copyRelColumnsOrCountRelListsSize(row_idx_t rowIdx, arrow::RecordBatch* recordBatch,
+    RelDataDirection direction, const std::vector<std::unique_ptr<arrow::Array>>& pkOffsets) {
     if (schema->isSingleMultiplicityInDirection(direction)) {
-        copyRelColumns(tupleIdx, recordBatch, direction, pkOffsets);
+        copyRelColumns(rowIdx, recordBatch, direction, pkOffsets);
     } else {
         countRelListsSize(direction, pkOffsets);
     }
 }
 
 void RelCopier::indexLookup(arrow::Array* pkArray, const LogicalType& pkColumnType,
-    PrimaryKeyIndex* pkIndex, offset_t* offsets) {
+    PrimaryKeyIndex* pkIndex, offset_t* offsets, const std::string& filePath,
+    row_idx_t startRowIdxInFile) {
     auto length = pkArray->length();
     if (pkArray->null_count() != 0) {
-        throw CopyException("Primary key column cannot contain null values.");
+        for (auto i = 0u; i < length; i++) {
+            if (pkArray->IsNull(i)) {
+                throw CopyException(StringUtils::string_format(
+                    "NULL found around L{} in file {} violates the non-null "
+                    "constraint of the primary key column.",
+                    (startRowIdxInFile + i), filePath));
+            }
+        }
     }
-    auto numKeysFound = 0u;
+    std::string errorPKValueStr;
+    row_idx_t errorPKRowIdx = INVALID_ROW_IDX;
     switch (pkColumnType.getLogicalTypeID()) {
     case LogicalTypeID::SERIAL: {
         for (auto i = 0u; i < length; i++) {
             offsets[i] = static_cast<offset_t>(dynamic_cast<arrow::Int64Array*>(pkArray)->Value(i));
         }
-        numKeysFound = length;
     } break;
     case LogicalTypeID::INT64: {
+        auto numKeysFound = 0u;
         for (auto i = 0u; i < length; i++) {
             auto val = dynamic_cast<arrow::Int64Array*>(pkArray)->Value(i);
             numKeysFound += pkIndex->lookup(&transaction::DUMMY_READ_TRANSACTION, val, offsets[i]);
         }
+        if (numKeysFound != length) {
+            for (auto i = 0u; i < length; i++) {
+                auto val = dynamic_cast<arrow::Int64Array*>(pkArray)->Value(i);
+                if (!pkIndex->lookup(&transaction::DUMMY_READ_TRANSACTION, val, offsets[i])) {
+                    errorPKValueStr = std::to_string(val);
+                    errorPKRowIdx = startRowIdxInFile + i;
+                }
+            }
+        }
     } break;
     case LogicalTypeID::STRING: {
+        auto numKeysFound = 0u;
         for (auto i = 0u; i < length; i++) {
             auto val = std::string(dynamic_cast<arrow::StringArray*>(pkArray)->GetView(i));
             numKeysFound +=
                 pkIndex->lookup(&transaction::DUMMY_READ_TRANSACTION, val.c_str(), offsets[i]);
         }
+        if (numKeysFound != length) {
+            for (auto i = 0u; i < length; i++) {
+                auto val = std::string(dynamic_cast<arrow::StringArray*>(pkArray)->GetView(i));
+                if (!pkIndex->lookup(
+                        &transaction::DUMMY_READ_TRANSACTION, val.c_str(), offsets[i])) {
+                    errorPKValueStr = val;
+                    errorPKRowIdx = startRowIdxInFile + i;
+                }
+            }
+        }
     } break;
     default: {
-        throw NotImplementedException("Primary key column type not supported.");
+        throw NotImplementedException(
+            StringUtils::string_format("Invalid primary key column type {}.",
+                LogicalTypeUtils::dataTypeToString(pkColumnType)));
     }
     }
-    if (numKeysFound != length) {
-        throw CopyException("Primary key column contains values that do not exist in the table.");
+    if (!errorPKValueStr.empty()) {
+        assert(errorPKRowIdx != INVALID_ROW_IDX);
+        throw CopyException(
+            StringUtils::string_format("Primary key column contains value {} around "
+                                       "L{} in file {} that does not exist in the table.",
+                errorPKValueStr, errorPKRowIdx, filePath));
     }
 }
 
-void RelCopier::copyRelColumns(offset_t tupleIdx, arrow::RecordBatch* recordBatch,
+void RelCopier::copyRelColumns(offset_t rowIdx, arrow::RecordBatch* recordBatch,
     RelDataDirection direction, const std::vector<std::unique_ptr<arrow::Array>>& pkOffsets) {
     auto boundPKOffsets = pkOffsets[direction == FWD ? 0 : 1].get();
     auto adjPKOffsets = pkOffsets[direction == FWD ? 1 : 0].get();
@@ -89,14 +123,14 @@ void RelCopier::copyRelColumns(offset_t tupleIdx, arrow::RecordBatch* recordBatc
     auto adjColumnChunk = relData->columns->adjColumnChunk.get();
     checkViolationOfRelColumn(direction, boundPKOffsets);
     adjColumnChunk->copyArrowArray(*adjPKOffsets, nullptr, boundPKOffsets);
-    auto numTuples = recordBatch->num_rows();
+    auto numRows = recordBatch->num_rows();
     std::vector<offset_t> relIDs;
-    relIDs.resize(numTuples);
-    for (auto rowIdx = 0u; rowIdx < numTuples; rowIdx++) {
-        relIDs[rowIdx] = tupleIdx + rowIdx;
+    relIDs.resize(numRows);
+    for (auto i = 0u; i < numRows; i++) {
+        relIDs[i] = rowIdx + i;
     }
     auto relIDArray = createArrowPrimitiveArray(
-        std::make_shared<arrow::Int64Type>(), (uint8_t*)relIDs.data(), numTuples);
+        std::make_shared<arrow::Int64Type>(), (uint8_t*)relIDs.data(), numRows);
     relData->columns->propertyColumnChunks[0]->copyArrowArray(
         *relIDArray, copyStates[0].get(), boundPKOffsets);
     // Skip the two pk columns in arrow record batch.
@@ -117,7 +151,7 @@ void RelCopier::countRelListsSize(
     }
 }
 
-void RelCopier::copyRelLists(offset_t tupleIdx, arrow::RecordBatch* recordBatch,
+void RelCopier::copyRelLists(offset_t rowIdx, arrow::RecordBatch* recordBatch,
     RelDataDirection direction, const std::vector<std::unique_ptr<arrow::Array>>& pkOffsets) {
     auto boundPKOffsets = pkOffsets[direction == FWD ? 0 : 1].get();
     auto adjPKOffsets = pkOffsets[direction == FWD ? 1 : 0].get();
@@ -129,14 +163,11 @@ void RelCopier::copyRelLists(offset_t tupleIdx, arrow::RecordBatch* recordBatch,
     std::vector<offset_t> posInRelLists, relIDs;
     posInRelLists.resize(numTuples);
     relIDs.resize(numTuples);
-    for (auto rowIdx = 0u; rowIdx < recordBatch->num_rows(); rowIdx++) {
-        posInRelLists[rowIdx] = InMemListsUtils::decrementListSize(
-            *relData->lists->relListsSizes, offsets[rowIdx], 1); // Decrement the list size.
-        relData->lists->adjList->setValue(
-            offsets[rowIdx], posInRelLists[rowIdx], (uint8_t*)&adjOffsets[rowIdx]);
-    }
-    for (auto rowIdx = 0u; rowIdx < recordBatch->num_rows(); rowIdx++) {
-        relIDs[rowIdx] = tupleIdx + rowIdx;
+    for (auto i = 0u; i < recordBatch->num_rows(); i++) {
+        posInRelLists[i] = InMemListsUtils::decrementListSize(
+            *relData->lists->relListsSizes, offsets[i], 1); // Decrement the list size.
+        relData->lists->adjList->setValue(offsets[i], posInRelLists[i], (uint8_t*)&adjOffsets[i]);
+        relIDs[i] = rowIdx + i;
     }
     auto posInRelListsArray = createArrowPrimitiveArray(
         std::make_shared<arrow::Int64Type>(), (uint8_t*)posInRelLists.data(), numTuples);
@@ -280,16 +311,16 @@ void ParquetRelListsCounterAndColumnsCopier::executeInternal(std::unique_ptr<Cop
     boundPKOffsets.resize(numTuples);
     adjPKOffsets.resize(numTuples);
     indexLookup(recordBatch->column(0).get(), schema->srcPKDataType, pkIndexes[0],
-        (offset_t*)boundPKOffsets.data());
+        (offset_t*)boundPKOffsets.data(), morsel->filePath, morsel->rowIdxInFile);
     indexLookup(recordBatch->column(1).get(), schema->dstPKDataType, pkIndexes[1],
-        (offset_t*)adjPKOffsets.data());
+        (offset_t*)adjPKOffsets.data(), morsel->filePath, morsel->rowIdxInFile);
     std::vector<std::unique_ptr<arrow::Array>> pkOffsetsArrays(2);
     pkOffsetsArrays[0] = createArrowPrimitiveArray(
         std::make_shared<arrow::Int64Type>(), (uint8_t*)boundPKOffsets.data(), numTuples);
     pkOffsetsArrays[1] = createArrowPrimitiveArray(
         std::make_shared<arrow::Int64Type>(), (uint8_t*)adjPKOffsets.data(), numTuples);
-    copyRelColumnsOrCountRelListsSize(morsel->tupleIdx, recordBatch.get(), FWD, pkOffsetsArrays);
-    copyRelColumnsOrCountRelListsSize(morsel->tupleIdx, recordBatch.get(), BWD, pkOffsetsArrays);
+    copyRelColumnsOrCountRelListsSize(morsel->rowIdx, recordBatch.get(), FWD, pkOffsetsArrays);
+    copyRelColumnsOrCountRelListsSize(morsel->rowIdx, recordBatch.get(), BWD, pkOffsetsArrays);
 }
 
 void CSVRelListsCounterAndColumnsCopier::executeInternal(std::unique_ptr<CopyMorsel> morsel) {
@@ -300,17 +331,17 @@ void CSVRelListsCounterAndColumnsCopier::executeInternal(std::unique_ptr<CopyMor
     std::vector<offset_t> boundPKOffsets, adjPKOffsets;
     boundPKOffsets.resize(numTuples);
     adjPKOffsets.resize(numTuples);
-    indexLookup(
-        recordBatch->column(0).get(), schema->srcPKDataType, pkIndexes[0], boundPKOffsets.data());
-    indexLookup(
-        recordBatch->column(1).get(), schema->dstPKDataType, pkIndexes[1], adjPKOffsets.data());
+    indexLookup(recordBatch->column(0).get(), schema->srcPKDataType, pkIndexes[0],
+        boundPKOffsets.data(), morsel->filePath, morsel->rowIdxInFile);
+    indexLookup(recordBatch->column(1).get(), schema->dstPKDataType, pkIndexes[1],
+        adjPKOffsets.data(), morsel->filePath, morsel->rowIdxInFile);
     std::vector<std::unique_ptr<arrow::Array>> pkOffsets(2);
     pkOffsets[0] = createArrowPrimitiveArray(
         std::make_shared<arrow::Int64Type>(), (uint8_t*)boundPKOffsets.data(), numTuples);
     pkOffsets[1] = createArrowPrimitiveArray(
         std::make_shared<arrow::Int64Type>(), (uint8_t*)adjPKOffsets.data(), numTuples);
-    copyRelColumnsOrCountRelListsSize(morsel->tupleIdx, recordBatch.get(), FWD, pkOffsets);
-    copyRelColumnsOrCountRelListsSize(morsel->tupleIdx, recordBatch.get(), BWD, pkOffsets);
+    copyRelColumnsOrCountRelListsSize(morsel->rowIdx, recordBatch.get(), FWD, pkOffsets);
+    copyRelColumnsOrCountRelListsSize(morsel->rowIdx, recordBatch.get(), BWD, pkOffsets);
 }
 
 void RelListsCopier::finalize() {
@@ -344,20 +375,20 @@ void ParquetRelListsCopier::executeInternal(std::unique_ptr<CopyMorsel> morsel) 
     std::vector<offset_t> boundPKOffsets, adjPKOffsets;
     boundPKOffsets.resize(numTuples);
     adjPKOffsets.resize(numTuples);
-    indexLookup(
-        recordBatch->column(0).get(), schema->srcPKDataType, pkIndexes[0], boundPKOffsets.data());
-    indexLookup(
-        recordBatch->column(1).get(), schema->dstPKDataType, pkIndexes[1], adjPKOffsets.data());
+    indexLookup(recordBatch->column(0).get(), schema->srcPKDataType, pkIndexes[0],
+        boundPKOffsets.data(), morsel->filePath, morsel->rowIdxInFile);
+    indexLookup(recordBatch->column(1).get(), schema->dstPKDataType, pkIndexes[1],
+        adjPKOffsets.data(), morsel->filePath, morsel->rowIdxInFile);
     std::vector<std::unique_ptr<arrow::Array>> pkOffsets(2);
     pkOffsets[0] = createArrowPrimitiveArray(
         std::make_shared<arrow::Int64Type>(), (uint8_t*)boundPKOffsets.data(), numTuples);
     pkOffsets[1] = createArrowPrimitiveArray(
         std::make_shared<arrow::Int64Type>(), (uint8_t*)adjPKOffsets.data(), numTuples);
     if (!fwdRelData->isColumns) {
-        copyRelLists(morsel->tupleIdx, recordBatch.get(), FWD, pkOffsets);
+        copyRelLists(morsel->rowIdx, recordBatch.get(), FWD, pkOffsets);
     }
     if (!bwdRelData->isColumns) {
-        copyRelLists(morsel->tupleIdx, recordBatch.get(), BWD, pkOffsets);
+        copyRelLists(morsel->rowIdx, recordBatch.get(), BWD, pkOffsets);
     }
 }
 
@@ -369,20 +400,20 @@ void CSVRelListsCopier::executeInternal(std::unique_ptr<CopyMorsel> morsel) {
     std::vector<offset_t> boundPKOffsets, adjPKOffsets;
     boundPKOffsets.resize(numTuples);
     adjPKOffsets.resize(numTuples);
-    indexLookup(
-        recordBatch->column(0).get(), schema->srcPKDataType, pkIndexes[0], boundPKOffsets.data());
-    indexLookup(
-        recordBatch->column(1).get(), schema->dstPKDataType, pkIndexes[1], adjPKOffsets.data());
+    indexLookup(recordBatch->column(0).get(), schema->srcPKDataType, pkIndexes[0],
+        boundPKOffsets.data(), morsel->filePath, morsel->rowIdxInFile);
+    indexLookup(recordBatch->column(1).get(), schema->dstPKDataType, pkIndexes[1],
+        adjPKOffsets.data(), morsel->filePath, morsel->rowIdxInFile);
     std::vector<std::unique_ptr<arrow::Array>> pkOffsets(2);
     pkOffsets[0] = createArrowPrimitiveArray(
         std::make_shared<arrow::Int64Type>(), (uint8_t*)boundPKOffsets.data(), numTuples);
     pkOffsets[1] = createArrowPrimitiveArray(
         std::make_shared<arrow::Int64Type>(), (uint8_t*)adjPKOffsets.data(), numTuples);
     if (!fwdRelData->isColumns) {
-        copyRelLists(morsel->tupleIdx, recordBatch.get(), FWD, pkOffsets);
+        copyRelLists(morsel->rowIdx, recordBatch.get(), FWD, pkOffsets);
     }
     if (!bwdRelData->isColumns) {
-        copyRelLists(morsel->tupleIdx, recordBatch.get(), BWD, pkOffsets);
+        copyRelLists(morsel->rowIdx, recordBatch.get(), BWD, pkOffsets);
     }
 }
 

@@ -12,7 +12,7 @@ RelCopyExecutor::RelCopyExecutor(CopyDescription& copyDescription, WAL* wal,
     TaskScheduler& taskScheduler, NodesStore& nodesStore, RelTable* table,
     RelTableSchema* tableSchema, RelsStatistics* relsStatistics)
     : copyDescription{copyDescription}, wal{wal}, outputDirectory{std::move(wal->getDirectory())},
-      taskScheduler{taskScheduler}, tableSchema{tableSchema}, numTuples{0},
+      taskScheduler{taskScheduler}, tableSchema{tableSchema}, numRows{0},
       nodesStore{nodesStore}, table{table}, relsStatistics{relsStatistics} {
     // Initialize rel data.
     fwdRelData = initializeDirectedInMemRelData(FWD);
@@ -38,7 +38,7 @@ std::unique_ptr<DirectedInMemRelData> RelCopyExecutor::initializeDirectedInMemRe
                 outputDirectory, tableSchema->tableID, direction, DBFileType::ORIGINAL),
             LogicalType(LogicalTypeID::INTERNAL_ID));
         relColumns->adjColumnChunk =
-            relColumns->adjColumn->getInMemColumnChunk(0, numNodes - 1, &copyDescription);
+            relColumns->adjColumn->createInMemColumnChunk(0, numNodes - 1, &copyDescription);
         for (auto i = 0u; i < tableSchema->getNumProperties(); ++i) {
             auto propertyID = tableSchema->properties[i].propertyID;
             auto propertyDataType = tableSchema->properties[i].dataType;
@@ -48,7 +48,7 @@ std::unique_ptr<DirectedInMemRelData> RelCopyExecutor::initializeDirectedInMemRe
                 propertyID, std::make_unique<InMemColumn>(fName, propertyDataType));
             relColumns->propertyColumnChunks.emplace(
                 propertyID, relColumns->propertyColumns.at(propertyID)
-                                ->getInMemColumnChunk(0, numNodes - 1, &copyDescription));
+                                ->createInMemColumnChunk(0, numNodes - 1, &copyDescription));
         }
         directedInMemRelData->setColumns(std::move(relColumns));
     } else {
@@ -82,8 +82,8 @@ offset_t RelCopyExecutor::copy(processor::ExecutionContext* executionContext) {
         !tableSchema->isSingleMultiplicityInDirection(BWD)) {
         populateRelLists(executionContext);
     }
-    relsStatistics->setNumTuplesForTable(tableSchema->tableID, numTuples);
-    return numTuples;
+    relsStatistics->setNumTuplesForTable(tableSchema->tableID, numRows);
+    return numRows;
 }
 
 void RelCopyExecutor::countRelListsSizeAndPopulateColumns(
@@ -92,7 +92,7 @@ void RelCopyExecutor::countRelListsSizeAndPopulateColumns(
     auto sharedState = relCopier->getSharedState();
     auto task = std::make_shared<RelCopyTask>(std::move(relCopier), executionContext);
     taskScheduler.scheduleTaskAndWaitOrError(task, executionContext);
-    numTuples = sharedState->numTuples;
+    numRows = sharedState->numRows;
 }
 
 void RelCopyExecutor::populateRelLists(processor::ExecutionContext* executionContext) {
