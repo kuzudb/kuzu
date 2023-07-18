@@ -31,8 +31,8 @@ std::unique_ptr<BoundReadingClause> Binder::bindMatchClause(const ReadingClause&
     auto& matchClause = reinterpret_cast<const MatchClause&>(readingClause);
     auto [queryGraphCollection, propertyCollection] =
         bindGraphPattern(matchClause.getPatternElements());
-    auto boundMatchClause =
-        make_unique<BoundMatchClause>(std::move(queryGraphCollection), matchClause.getIsOptional());
+    auto boundMatchClause = make_unique<BoundMatchClause>(
+        std::move(queryGraphCollection), matchClause.getMatchClauseType());
     std::shared_ptr<Expression> whereExpression;
     if (matchClause.hasWhereClause()) {
         whereExpression = bindWhereExpression(*matchClause.getWhereClause());

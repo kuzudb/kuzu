@@ -1,27 +1,33 @@
 #pragma once
 
 #include "base_logical_operator.h"
+#include "common/join_type.h"
 
 namespace kuzu {
 namespace planner {
 
 class LogicalAccumulate : public LogicalOperator {
 public:
-    LogicalAccumulate(std::shared_ptr<LogicalOperator> child)
-        : LogicalOperator{LogicalOperatorType::ACCUMULATE, std::move(child)} {}
+    LogicalAccumulate(common::AccumulateType accumulateType, std::shared_ptr<LogicalOperator> child)
+        : LogicalOperator{LogicalOperatorType::ACCUMULATE, std::move(child)}, accumulateType{
+                                                                                  accumulateType} {}
 
-    void computeFactorizedSchema() override;
-    void computeFlatSchema() override;
+    void computeFactorizedSchema() final;
+    void computeFlatSchema() final;
 
-    inline std::string getExpressionsForPrinting() const override { return std::string{}; }
+    inline std::string getExpressionsForPrinting() const final { return std::string{}; }
 
+    inline common::AccumulateType getAccumulateType() const { return accumulateType; }
     inline binder::expression_vector getExpressions() const {
         return children[0]->getSchema()->getExpressionsInScope();
     }
 
-    inline std::unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalAccumulate>(children[0]->copy());
+    inline std::unique_ptr<LogicalOperator> copy() final {
+        return make_unique<LogicalAccumulate>(accumulateType, children[0]->copy());
     }
+
+private:
+    common::AccumulateType accumulateType;
 };
 
 } // namespace planner

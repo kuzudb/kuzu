@@ -12,6 +12,7 @@ namespace kuzu {
 namespace optimizer {
 
 void Optimizer::optimize(planner::LogicalPlan* plan) {
+
     // Factorization structure should be removed before further optimization can be applied.
     auto removeFactorizationRewriter = RemoveFactorizationRewriter();
     removeFactorizationRewriter.rewrite(plan);

@@ -3,7 +3,7 @@
 #include "binder/expression/expression_visitor.h"
 #include "binder/query/bound_regular_query.h"
 #include "binder/visitor/property_collector.h"
-#include "planner/logical_plan/logical_operator/logical_accumulate.h"
+#include "common/join_type.h"
 #include "planner/logical_plan/logical_operator/logical_distinct.h"
 #include "planner/logical_plan/logical_operator/logical_expressions_scan.h"
 #include "planner/logical_plan/logical_operator/logical_extend.h"
@@ -103,23 +103,17 @@ void QueryPlanner::planReadingClause(
         planInQueryCall(boundReadingClause, prevPlans);
     } break;
     default:
-        assert(false);
+        throw NotImplementedException("QueryPlanner::planReadingClause");
     }
 }
 
 void QueryPlanner::planMatchClause(
     BoundReadingClause* boundReadingClause, std::vector<std::unique_ptr<LogicalPlan>>& plans) {
-    auto boundMatchClause = (BoundMatchClause*)boundReadingClause;
+    auto boundMatchClause = reinterpret_cast<BoundMatchClause*>(boundReadingClause);
     auto queryGraphCollection = boundMatchClause->getQueryGraphCollection();
     auto predicates = boundMatchClause->getPredicatesSplitOnAnd();
-    // TODO(Xiyang): when we plan a set of LogicalPlans with a (OPTIONAL)MATCH we shouldn't only
-    // take the best plan from (OPTIONAL)MATCH instead we should take all plans and do cartesian
-    // product with the set of LogicalPlans.
-    if (boundMatchClause->getIsOptional()) {
-        for (auto& plan : plans) {
-            planOptionalMatch(*queryGraphCollection, predicates, *plan);
-        }
-    } else {
+    switch (boundMatchClause->getMatchClauseType()) {
+    case common::MatchClauseType::MATCH: {
         if (plans.size() == 1 && plans[0]->isEmpty()) {
             plans = joinOrderEnumerator.enumerate(*queryGraphCollection, predicates);
         } else {
@@ -127,12 +121,20 @@ void QueryPlanner::planMatchClause(
                 planRegularMatch(*queryGraphCollection, predicates, *plan);
             }
         }
+    } break;
+    case common::MatchClauseType::OPTIONAL_MATCH: {
+        for (auto& plan : plans) {
+            planOptionalMatch(*queryGraphCollection, predicates, *plan);
+        }
+    } break;
+    default:
+        throw common::NotImplementedException("QueryPlanner::planMatchClause");
     }
 }
 
 void QueryPlanner::planUnwindClause(
     BoundReadingClause* boundReadingClause, std::vector<std::unique_ptr<LogicalPlan>>& plans) {
-    auto boundUnwindClause = (BoundUnwindClause*)boundReadingClause;
+    auto boundUnwindClause = reinterpret_cast<BoundUnwindClause*>(boundReadingClause);
     for (auto& plan : plans) {
         if (plan->isEmpty()) { // UNWIND [1, 2, 3, 4] AS x RETURN x
             auto expressions = expression_vector{boundUnwindClause->getExpression()};
@@ -144,7 +146,7 @@ void QueryPlanner::planUnwindClause(
 
 void QueryPlanner::planInQueryCall(
     BoundReadingClause* boundReadingClause, std::vector<std::unique_ptr<LogicalPlan>>& plans) {
-    auto boundInQueryCall = (BoundInQueryCall*)boundReadingClause;
+    auto boundInQueryCall = reinterpret_cast<BoundInQueryCall*>(boundReadingClause);
     for (auto& plan : plans) {
         if (!plan->isEmpty()) {
             auto inQueryCallPlan = std::make_shared<LogicalPlan>();
@@ -156,8 +158,8 @@ void QueryPlanner::planInQueryCall(
     }
 }
 
-static expression_vector getCorrelatedExpressions(
-    const QueryGraphCollection& collection, expression_vector& predicates, Schema* outerSchema) {
+static expression_vector getCorrelatedExpressions(const QueryGraphCollection& collection,
+    const expression_vector& predicates, Schema* outerSchema) {
     expression_vector result;
     for (auto& predicate : predicates) {
         for (auto& expression : outerSchema->getSubExpressionsInScope(predicate)) {
@@ -183,9 +185,15 @@ static expression_vector getJoinNodeIDs(expression_vector& expressions) {
 }
 
 void QueryPlanner::planOptionalMatch(const QueryGraphCollection& queryGraphCollection,
-    expression_vector& predicates, LogicalPlan& outerPlan) {
+    const expression_vector& predicates, LogicalPlan& leftPlan) {
+    if (leftPlan.isEmpty()) {
+        auto plan = planJoins(queryGraphCollection, predicates);
+        leftPlan.setLastOperator(plan->getLastOperator());
+        appendAccumulate(AccumulateType::OPTIONAL_, leftPlan);
+        return;
+    }
     auto correlatedExpressions =
-        getCorrelatedExpressions(queryGraphCollection, predicates, outerPlan.getSchema());
+        getCorrelatedExpressions(queryGraphCollection, predicates, leftPlan.getSchema());
     if (correlatedExpressions.empty()) {
         throw NotImplementedException("Optional match is disconnected with previous MATCH clause.");
     }
@@ -195,26 +203,23 @@ void QueryPlanner::planOptionalMatch(const QueryGraphCollection& queryGraphColle
         // When correlated variables are all NODE IDs, the subquery can be un-nested as left join.
         // Join nodes are scanned twice in both outer and inner. However, we make sure inner table
         // scan only scans node ID and does not scan from storage (i.e. no property scan).
-        auto prevContext = joinOrderEnumerator.enterSubquery(joinNodeIDs);
-        auto innerPlans = joinOrderEnumerator.enumerate(queryGraphCollection, predicates);
-        auto bestInnerPlan = getBestPlan(std::move(innerPlans));
-        joinOrderEnumerator.exitSubquery(std::move(prevContext));
-        joinOrderEnumerator.planLeftHashJoin(joinNodeIDs, outerPlan, *bestInnerPlan);
+        auto rightPlan = planJoinsInNewContext(joinNodeIDs, queryGraphCollection, predicates);
+        joinOrderEnumerator.planLeftHashJoin(joinNodeIDs, leftPlan, *rightPlan);
     } else {
         throw NotImplementedException("Correlated optional match is not supported.");
     }
 }
 
 void QueryPlanner::planRegularMatch(const QueryGraphCollection& queryGraphCollection,
-    expression_vector& predicates, LogicalPlan& prevPlan) {
+    const expression_vector& predicates, LogicalPlan& leftPlan) {
     auto correlatedExpressions =
-        getCorrelatedExpressions(queryGraphCollection, predicates, prevPlan.getSchema());
+        getCorrelatedExpressions(queryGraphCollection, predicates, leftPlan.getSchema());
     auto joinNodeIDs = getJoinNodeIDs(correlatedExpressions);
     expression_vector predicatesToPushDown, predicatesToPullUp;
     // E.g. MATCH (a) WITH COUNT(*) AS s MATCH (b) WHERE b.age > s
     // "b.age > s" should be pulled up after both MATCH clauses are joined.
     for (auto& predicate : predicates) {
-        if (prevPlan.getSchema()->getSubExpressionsInScope(predicate).empty()) {
+        if (leftPlan.getSchema()->getSubExpressionsInScope(predicate).empty()) {
             predicatesToPushDown.push_back(predicate);
         } else {
             predicatesToPullUp.push_back(predicate);
@@ -223,22 +228,20 @@ void QueryPlanner::planRegularMatch(const QueryGraphCollection& queryGraphCollec
     // Multi-part query is actually CTE and CTE can be considered as a subquery but does not scan
     // from outer (i.e. can always be un-nest). So we plan multi-part query in the same way as
     // planning an un-nest subquery.
-    auto prevContext = joinOrderEnumerator.enterSubquery(joinNodeIDs);
-    auto plans = joinOrderEnumerator.enumerate(queryGraphCollection, predicatesToPushDown);
-    joinOrderEnumerator.exitSubquery(std::move(prevContext));
-    auto bestPlan = getBestPlan(std::move(plans));
+    auto rightPlan = planJoinsInNewContext(joinNodeIDs, queryGraphCollection, predicatesToPushDown);
     if (joinNodeIDs.empty()) {
-        joinOrderEnumerator.planCrossProduct(prevPlan, *bestPlan);
+        joinOrderEnumerator.planCrossProduct(leftPlan, *rightPlan);
     } else {
-        joinOrderEnumerator.planInnerHashJoin(joinNodeIDs, prevPlan, *bestPlan);
+        joinOrderEnumerator.planInnerHashJoin(joinNodeIDs, leftPlan, *rightPlan);
     }
     for (auto& predicate : predicatesToPullUp) {
-        appendFilter(predicate, prevPlan);
+        appendFilter(predicate, leftPlan);
     }
 }
 
 void QueryPlanner::planExistsSubquery(
-    std::shared_ptr<Expression>& expression, LogicalPlan& outerPlan) {
+    std::shared_ptr<Expression> expression, LogicalPlan& outerPlan) {
+
     assert(expression->expressionType == EXISTENTIAL_SUBQUERY);
     auto subquery = static_pointer_cast<ExistentialSubqueryExpression>(expression);
     auto correlatedExpressions = outerPlan.getSchema()->getSubExpressionsInScope(subquery);
@@ -249,15 +252,27 @@ void QueryPlanner::planExistsSubquery(
             correlatedExpressions, LogicalTypeID::INTERNAL_ID)) {
         auto joinNodeIDs = getJoinNodeIDs(correlatedExpressions);
         // Unnest as mark join. See planOptionalMatch for unnesting logic.
-        auto prevContext = joinOrderEnumerator.enterSubquery(joinNodeIDs);
         auto predicates = subquery->getPredicatesSplitOnAnd();
-        auto bestInnerPlan = getBestPlan(
-            joinOrderEnumerator.enumerate(*subquery->getQueryGraphCollection(), predicates));
-        joinOrderEnumerator.exitSubquery(std::move(prevContext));
-        joinOrderEnumerator.planMarkJoin(joinNodeIDs, expression, outerPlan, *bestInnerPlan);
+        auto innerPlan =
+            planJoinsInNewContext(joinNodeIDs, *subquery->getQueryGraphCollection(), predicates);
+        joinOrderEnumerator.planMarkJoin(joinNodeIDs, expression, outerPlan, *innerPlan);
     } else {
         throw NotImplementedException("Correlated exists subquery is not supported.");
     }
+}
+
+std::unique_ptr<LogicalPlan> QueryPlanner::planJoins(
+    const QueryGraphCollection& queryGraphCollection, const expression_vector& predicates) {
+    return getBestPlan(joinOrderEnumerator.enumerate(queryGraphCollection, predicates));
+}
+
+std::unique_ptr<LogicalPlan> QueryPlanner::planJoinsInNewContext(
+    const expression_vector& expressionsToExcludeScan,
+    const QueryGraphCollection& queryGraphCollection, const expression_vector& predicates) {
+    auto prevContext = joinOrderEnumerator.enterContext(expressionsToExcludeScan);
+    auto plans = joinOrderEnumerator.enumerate(queryGraphCollection, predicates);
+    joinOrderEnumerator.exitContext(std::move(prevContext));
+    return getBestPlan(std::move(plans));
 }
 
 void QueryPlanner::planSubqueryIfNecessary(
@@ -268,12 +283,6 @@ void QueryPlanner::planSubqueryIfNecessary(
             planExistsSubquery(expr, plan);
         }
     }
-}
-
-void QueryPlanner::appendAccumulate(LogicalPlan& plan) {
-    auto sink = make_shared<LogicalAccumulate>(plan.getLastOperator());
-    sink->computeFactorizedSchema();
-    plan.setLastOperator(sink);
 }
 
 void QueryPlanner::appendExpressionsScan(const expression_vector& expressions, LogicalPlan& plan) {

@@ -179,11 +179,6 @@ Binder exception: Order by expression a.ID is not in RETURN or WITH clause.
 ---- error
 Binder exception: Expression SUM(SUM(a.age)) contains nested aggregation.
 
--LOG OptionalMatchAsFirstMatch
--STATEMENT OPTIONAL MATCH (a:person) RETURN *;
----- error
-Binder exception: First match clause cannot be optional match.
-
 -LOG OrderByWithoutSkipLimitInWithClause
 -STATEMENT MATCH (a:person) WITH a.age AS k ORDER BY k RETURN k
 ---- error

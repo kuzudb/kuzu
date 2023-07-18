@@ -17,7 +17,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapUnionAll(LogicalOperator* logic
         auto child = logicalOperator->getChild(i);
         auto childSchema = logicalUnionAll.getSchemaBeforeUnion(i);
         auto prevOperator = mapOperator(child.get());
-        auto resultCollector = createResultCollector(
+        auto resultCollector = createResultCollector(common::AccumulateType::REGULAR,
             childSchema->getExpressionsInScope(), childSchema, std::move(prevOperator));
         tables.push_back(resultCollector->getResultFactorizedTable());
         prevOperators.push_back(std::move(resultCollector));

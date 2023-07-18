@@ -22,18 +22,18 @@ void UpdatePlanner::planUpdatingClause(BoundUpdatingClause& updatingClause, Logi
             }
             queryPlanner->appendExpressionsScan(expressions, plan);
         } else {
-            queryPlanner->appendAccumulate(plan);
+            queryPlanner->appendAccumulate(common::AccumulateType::REGULAR, plan);
         }
         planCreate((BoundCreateClause&)updatingClause, plan);
         return;
     }
     case ClauseType::SET: {
-        queryPlanner->appendAccumulate(plan);
+        queryPlanner->appendAccumulate(common::AccumulateType::REGULAR, plan);
         planSet((BoundSetClause&)updatingClause, plan);
         return;
     }
     case ClauseType::DELETE_: {
-        queryPlanner->appendAccumulate(plan);
+        queryPlanner->appendAccumulate(common::AccumulateType::REGULAR, plan);
         planDelete((BoundDeleteClause&)updatingClause, plan);
         return;
     }

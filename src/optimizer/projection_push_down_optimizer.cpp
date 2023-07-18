@@ -63,6 +63,9 @@ void ProjectionPushDownOptimizer::visitExtend(planner::LogicalOperator* op) {
 
 void ProjectionPushDownOptimizer::visitAccumulate(planner::LogicalOperator* op) {
     auto accumulate = (LogicalAccumulate*)op;
+    if (accumulate->getAccumulateType() != common::AccumulateType::REGULAR) {
+        return;
+    }
     auto expressionsBeforePruning = accumulate->getExpressions();
     auto expressionsAfterPruning = pruneExpressions(expressionsBeforePruning);
     if (expressionsBeforePruning.size() == expressionsAfterPruning.size()) {

@@ -48,15 +48,20 @@ private:
     void planInQueryCall(
         BoundReadingClause* boundReadingClause, std::vector<std::unique_ptr<LogicalPlan>>& plans);
 
-    // CTE & subquery planning
     void planOptionalMatch(const QueryGraphCollection& queryGraphCollection,
-        expression_vector& predicates, LogicalPlan& outerPlan);
+        const expression_vector& predicates, LogicalPlan& leftPlan);
     void planRegularMatch(const QueryGraphCollection& queryGraphCollection,
-        expression_vector& predicates, LogicalPlan& prevPlan);
-    void planExistsSubquery(std::shared_ptr<Expression>& subquery, LogicalPlan& outerPlan);
+        const expression_vector& predicates, LogicalPlan& leftPlan);
+    void planExistsSubquery(std::shared_ptr<Expression> subquery, LogicalPlan& outerPlan);
     void planSubqueryIfNecessary(const std::shared_ptr<Expression>& expression, LogicalPlan& plan);
 
-    void appendAccumulate(LogicalPlan& plan);
+    std::unique_ptr<LogicalPlan> planJoins(
+        const QueryGraphCollection& queryGraphCollection, const expression_vector& predicates);
+    std::unique_ptr<LogicalPlan> planJoinsInNewContext(
+        const expression_vector& expressionsToExcludeScan,
+        const QueryGraphCollection& queryGraphCollection, const expression_vector& predicates);
+
+    void appendAccumulate(common::AccumulateType accumulateType, LogicalPlan& plan);
 
     void appendExpressionsScan(const expression_vector& expressions, LogicalPlan& plan);
 

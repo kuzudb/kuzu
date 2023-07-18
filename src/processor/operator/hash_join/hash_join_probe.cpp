@@ -137,22 +137,11 @@ uint64_t HashJoinProbe::getInnerJoinResultForUnFlatKey() {
     return numTuplesToRead;
 }
 
-void HashJoinProbe::setVectorsToNull() {
-    for (auto& vector : vectorsToReadInto) {
-        if (vector->state->isFlat()) {
-            vector->setNull(vector->state->selVector->selectedPositions[0], true);
-        } else {
-            assert(vector->state != keyVectors[0]->state);
-            auto pos = vector->state->selVector->selectedPositions[0];
-            vector->setNull(pos, true);
-            vector->state->selVector->selectedSize = 1;
-        }
-    }
-}
-
 uint64_t HashJoinProbe::getLeftJoinResult() {
     if (getInnerJoinResult() == 0) {
-        setVectorsToNull();
+        for (auto& vector : vectorsToReadInto) {
+            vector->setAsSingleNullEntry();
+        }
         probeState->probedTuples[0] = nullptr;
     }
     return 1;

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/join_type.h"
 #include "processor/operator/sink.h"
 #include "processor/result/factorized_table.h"
 
@@ -24,14 +25,17 @@ private:
 };
 
 struct ResultCollectorInfo {
+    common::AccumulateType accumulateType;
     std::unique_ptr<FactorizedTableSchema> tableSchema;
     std::vector<DataPos> payloadPositions;
 
-    ResultCollectorInfo(
+    ResultCollectorInfo(common::AccumulateType accumulateType,
         std::unique_ptr<FactorizedTableSchema> tableSchema, std::vector<DataPos> payloadPositions)
-        : tableSchema{std::move(tableSchema)}, payloadPositions{std::move(payloadPositions)} {}
+        : accumulateType{accumulateType}, tableSchema{std::move(tableSchema)},
+          payloadPositions{std::move(payloadPositions)} {}
     ResultCollectorInfo(const ResultCollectorInfo& other)
-        : tableSchema{other.tableSchema->copy()}, payloadPositions{other.payloadPositions} {}
+        : accumulateType{other.accumulateType}, tableSchema{other.tableSchema->copy()},
+          payloadPositions{other.payloadPositions} {}
 
     inline std::unique_ptr<ResultCollectorInfo> copy() const {
         return std::make_unique<ResultCollectorInfo>(*this);
@@ -48,18 +52,21 @@ public:
               std::move(child), id, paramsString},
           info{std::move(info)}, sharedState{std::move(sharedState)} {}
 
-    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
+    void executeInternal(ExecutionContext* context) final;
 
-    void executeInternal(ExecutionContext* context) override;
+    void finalize(ExecutionContext* context) final;
 
     inline std::shared_ptr<FactorizedTable> getResultFactorizedTable() {
         return sharedState->getTable();
     }
 
-    std::unique_ptr<PhysicalOperator> clone() override {
+    std::unique_ptr<PhysicalOperator> clone() final {
         return make_unique<ResultCollector>(resultSetDescriptor->copy(), info->copy(), sharedState,
             children[0]->clone(), id, paramsString);
     }
+
+private:
+    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) final;
 
 private:
     std::unique_ptr<ResultCollectorInfo> info;
