@@ -1,5 +1,4 @@
 #include "storage/store/column_chunk.h"
-
 #include "storage/copier/table_copy_utils.h"
 #include "storage/storage_structure/storage_structure_utils.h"
 #include "storage/store/struct_column_chunk.h"
