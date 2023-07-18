@@ -6,13 +6,13 @@ namespace kuzu {
 namespace planner {
 
 void QueryPlanner::appendSetNodeProperty(
-    const std::vector<std::unique_ptr<binder::BoundSetNodeProperty>>& setNodeProperties,
-    LogicalPlan& plan) {
+    const std::vector<binder::BoundSetPropertyInfo*>& infos, LogicalPlan& plan) {
     std::vector<std::shared_ptr<NodeExpression>> nodes;
     std::vector<expression_pair> setItems;
-    for (auto& setNodeProperty : setNodeProperties) {
-        nodes.push_back(setNodeProperty->getNode());
-        setItems.push_back(setNodeProperty->getSetItem());
+    for (auto& info : infos) {
+        auto node = std::static_pointer_cast<NodeExpression>(info->nodeOrRel);
+        nodes.push_back(node);
+        setItems.push_back(info->setItem);
     }
     for (auto i = 0u; i < setItems.size(); ++i) {
         auto lhsNodeID = nodes[i]->getInternalIDProperty();
@@ -37,13 +37,13 @@ void QueryPlanner::appendSetNodeProperty(
 }
 
 void QueryPlanner::appendSetRelProperty(
-    const std::vector<std::unique_ptr<binder::BoundSetRelProperty>>& setRelProperties,
-    LogicalPlan& plan) {
+    const std::vector<binder::BoundSetPropertyInfo*>& infos, LogicalPlan& plan) {
     std::vector<std::shared_ptr<RelExpression>> rels;
     std::vector<expression_pair> setItems;
-    for (auto& setRelProperty : setRelProperties) {
-        rels.push_back(setRelProperty->getRel());
-        setItems.push_back(setRelProperty->getSetItem());
+    for (auto& info : infos) {
+        auto rel = std::static_pointer_cast<RelExpression>(info->nodeOrRel);
+        rels.push_back(rel);
+        setItems.push_back(info->setItem);
     }
     auto setRelProperty = std::make_shared<LogicalSetRelProperty>(
         std::move(rels), std::move(setItems), plan.getLastOperator());
