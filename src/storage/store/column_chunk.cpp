@@ -1,5 +1,4 @@
 #include "storage/store/column_chunk.h"
-
 #include "storage/copier/table_copy_utils.h"
 #include "storage/storage_structure/storage_structure_utils.h"
 #include "storage/store/struct_column_chunk.h"
@@ -313,11 +312,9 @@ common::offset_t ColumnChunk::getOffsetInBuffer(common::offset_t pos) {
     auto numElementsInAPage =
         PageUtils::getNumElementsInAPage(numBytesPerValue, false /* hasNull */);
     auto posCursor = PageUtils::getPageByteCursorForPos(pos, numElementsInAPage, numBytesPerValue);
-    auto startNodeCursor =
-        PageUtils::getPageByteCursorForPos(0, numElementsInAPage, numBytesPerValue);
     auto offsetInBuffer =
-        (posCursor.pageIdx - startNodeCursor.pageIdx) * common::BufferPoolConstants::PAGE_4KB_SIZE +
-        posCursor.offsetInPage - startNodeCursor.offsetInPage;
+        posCursor.pageIdx * common::BufferPoolConstants::PAGE_4KB_SIZE +
+        posCursor.offsetInPage;
     assert(offsetInBuffer + numBytesPerValue <= numBytes);
     return offsetInBuffer;
 }
