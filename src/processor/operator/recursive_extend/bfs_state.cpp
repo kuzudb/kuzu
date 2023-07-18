@@ -36,18 +36,15 @@ void SSSPSharedState::reset(TargetDstNodes* targetDstNodes) {
  * then depending on state we need to take next step. If MORSEL_COMPLETE then proceed to get a new
  * SSSPSharedState & if MORSEL_pathLength_WRITING_IN_PROGRESS then help in this task.
  */
-bool SSSPSharedState::getBFSMorsel(
-    std::unique_ptr<BaseBFSMorsel>& bfsMorsel, SSSPLocalState& state) {
-    std::unique_lock<std::mutex> lck{mutex};
+SSSPLocalState SSSPSharedState::getBFSMorsel(BaseBFSMorsel* bfsMorsel) {
+    std::unique_lock lck{mutex};
     switch (ssspLocalState) {
     case MORSEL_COMPLETE: {
-        state = NO_WORK_TO_SHARE;
-        return true;
+        return NO_WORK_TO_SHARE;
     }
     case PATH_LENGTH_WRITE_IN_PROGRESS: {
         bfsMorsel->ssspSharedState = this;
-        state = ssspLocalState;
-        return true;
+        return PATH_LENGTH_WRITE_IN_PROGRESS;
     }
     case EXTEND_IN_PROGRESS: {
         if (nextScanStartIdx < bfsLevelNodeOffsets.size()) {
@@ -55,14 +52,13 @@ bool SSSPSharedState::getBFSMorsel(
             auto bfsMorselSize = std::min(
                 common::DEFAULT_VECTOR_CAPACITY, bfsLevelNodeOffsets.size() - nextScanStartIdx);
             auto morselScanEndIdx = nextScanStartIdx + bfsMorselSize;
-            auto shortestPathMorsel =
-                (reinterpret_cast<ShortestPathMorsel<false>*>(bfsMorsel.get()));
+            auto shortestPathMorsel = (reinterpret_cast<ShortestPathMorsel<false>*>(bfsMorsel));
             shortestPathMorsel->reset(nextScanStartIdx, morselScanEndIdx, this);
             nextScanStartIdx += bfsMorselSize;
-            return false;
+            return EXTEND_IN_PROGRESS;
+        } else {
+            return NO_WORK_TO_SHARE;
         }
-        state = NO_WORK_TO_SHARE;
-        return true;
     }
     default:
         throw common::RuntimeException(
@@ -73,37 +69,33 @@ bool SSSPSharedState::getBFSMorsel(
 bool SSSPSharedState::hasWork() const {
     if (ssspLocalState == EXTEND_IN_PROGRESS && nextScanStartIdx < bfsLevelNodeOffsets.size()) {
         return true;
-    } else if (ssspLocalState == PATH_LENGTH_WRITE_IN_PROGRESS &&
-               nextDstScanStartIdx < visitedNodes.size()) {
-        return true;
-    } else {
-        return false;
     }
+    if (ssspLocalState == PATH_LENGTH_WRITE_IN_PROGRESS &&
+        nextDstScanStartIdx < visitedNodes.size()) {
+        return true;
+    }
+    return false;
 }
 
-bool SSSPSharedState::finishBFSMorsel(std::unique_ptr<BaseBFSMorsel>& bfsMorsel) {
-    mutex.lock();
+bool SSSPSharedState::finishBFSMorsel(BaseBFSMorsel* bfsMorsel) {
+    std::unique_lock lck{mutex};
     numThreadsActiveOnMorsel--;
     if (ssspLocalState != EXTEND_IN_PROGRESS) {
-        mutex.unlock();
         return true;
     }
     // Update the destinations visited, used to check for termination condition.
-    auto shortestPathMorsel = (reinterpret_cast<ShortestPathMorsel<false>*>(bfsMorsel.get()));
+    auto shortestPathMorsel = (reinterpret_cast<ShortestPathMorsel<false>*>(bfsMorsel));
     numVisitedNodes += shortestPathMorsel->getNumVisitedDstNodes();
     if (numThreadsActiveOnMorsel == 0 && nextScanStartIdx == bfsLevelNodeOffsets.size()) {
         moveNextLevelAsCurrentLevel();
         if (isComplete(shortestPathMorsel->targetDstNodes->getNumNodes())) {
             ssspLocalState = PATH_LENGTH_WRITE_IN_PROGRESS;
-            mutex.unlock();
             return true;
         }
     } else if (isComplete(shortestPathMorsel->targetDstNodes->getNumNodes())) {
         ssspLocalState = PATH_LENGTH_WRITE_IN_PROGRESS;
-        mutex.unlock();
         return true;
     }
-    mutex.unlock();
     return false;
 }
 
@@ -149,20 +141,17 @@ void SSSPSharedState::moveNextLevelAsCurrentLevel() {
 }
 
 std::pair<uint64_t, int64_t> SSSPSharedState::getDstPathLengthMorsel() {
-    mutex.lock();
+    std::unique_lock lck{mutex};
     if (ssspLocalState != PATH_LENGTH_WRITE_IN_PROGRESS) {
-        mutex.unlock();
         return {UINT64_MAX, INT64_MAX};
     } else if (nextDstScanStartIdx == visitedNodes.size()) {
         ssspLocalState = MORSEL_COMPLETE;
-        mutex.unlock();
         return {0, -1};
     }
     auto sizeToScan =
         std::min(common::DEFAULT_VECTOR_CAPACITY, visitedNodes.size() - nextDstScanStartIdx);
     std::pair<uint64_t, uint32_t> startScanIdxAndSize = {nextDstScanStartIdx, sizeToScan};
     nextDstScanStartIdx += sizeToScan;
-    mutex.unlock();
     return startScanIdxAndSize;
 }
 

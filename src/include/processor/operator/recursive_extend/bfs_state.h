@@ -112,11 +112,11 @@ public:
 
     void reset(TargetDstNodes* targetDstNodes);
 
-    bool getBFSMorsel(std::unique_ptr<BaseBFSMorsel>& bfsMorsel, SSSPLocalState& state);
+    SSSPLocalState getBFSMorsel(BaseBFSMorsel* bfsMorsel);
 
     bool hasWork() const;
 
-    bool finishBFSMorsel(std::unique_ptr<BaseBFSMorsel>& bfsMorsel);
+    bool finishBFSMorsel(BaseBFSMorsel* bfsMorsel);
 
     // If BFS has completed.
     bool isComplete(uint64_t numDstNodesToVisit);
@@ -191,6 +191,10 @@ public:
     inline void finalizeCurrentLevel() { moveNextLevelAsCurrentLevel(); }
     inline size_t getNumFrontiers() const { return frontiers.size(); }
     inline Frontier* getFrontier(common::vector_idx_t idx) const { return frontiers[idx].get(); }
+
+    inline SSSPLocalState getBFSMorsel() { return ssspSharedState->getBFSMorsel(this); }
+
+    inline bool finishBFSMorsel() { return ssspSharedState->finishBFSMorsel(this); }
 
 protected:
     inline bool isCurrentFrontierEmpty() const { return currentFrontier->nodeIDs.empty(); }

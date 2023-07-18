@@ -76,8 +76,7 @@ public:
         auto preparedStatement = conn->prepare(copyPersonTableCMD);
         conn->beginWriteTransaction();
         auto mapper = PlanMapper(
-            *getStorageManager(*database), getMemoryManager(*database), getCatalog(*database),
-            clientContext->numThreadsForExecution);
+            *getStorageManager(*database), getMemoryManager(*database), getCatalog(*database));
         auto physicalPlan =
             mapper.mapLogicalPlanToPhysical(preparedStatement->logicalPlans[0].get(),
                 preparedStatement->statementResult->getColumns());
@@ -156,8 +155,7 @@ public:
         auto preparedStatement = conn->prepare(copyKnowsTableCMD);
         conn->beginWriteTransaction();
         auto mapper = PlanMapper(
-            *getStorageManager(*database), getMemoryManager(*database), getCatalog(*database),
-            clientContext->numThreadsForExecution);
+            *getStorageManager(*database), getMemoryManager(*database), getCatalog(*database));
         auto physicalPlan =
             mapper.mapLogicalPlanToPhysical(preparedStatement->logicalPlans[0].get(),
                 preparedStatement->statementResult->getColumns());

@@ -28,23 +28,25 @@ enum SchedulerType { OneThreadOneMorsel, nThreadkMorsel };
 
 struct MorselDispatcher {
 public:
-    MorselDispatcher(SchedulerType schedulerType, uint64_t lowerBound, uint64_t upperBound,
-        uint64_t maxOffset, uint64_t maxAllowedActiveSSSP)
+    MorselDispatcher(
+        SchedulerType schedulerType, uint64_t lowerBound, uint64_t upperBound, uint64_t maxOffset)
         : schedulerType{schedulerType}, numActiveSSSP{0u}, globalState{IN_PROGRESS},
-          maxOffset{maxOffset}, lowerBound{lowerBound}, upperBound{upperBound},
-          activeSSSPSharedState{
-              std::vector<std::shared_ptr<SSSPSharedState>>(maxAllowedActiveSSSP, nullptr)} {}
+          maxOffset{maxOffset}, lowerBound{lowerBound}, upperBound{upperBound} {}
 
-    bool getBFSMorsel(const std::shared_ptr<FTableSharedState>& inputFTableSharedState,
+    inline void initActiveSSSPSharedState(uint32_t numThreads) {
+        activeSSSPSharedState = std::vector<std::shared_ptr<SSSPSharedState>>(numThreads, nullptr);
+    }
+
+    std::pair<GlobalSSSPState, SSSPLocalState> getBFSMorsel(
+        const std::shared_ptr<FTableSharedState>& inputFTableSharedState,
         const std::vector<common::ValueVector*> vectorsToScan,
         const std::vector<ft_col_idx_t> colIndicesToScan, common::ValueVector* srcNodeIDVector,
-        std::unique_ptr<BaseBFSMorsel>& bfsMorsel,
-        std::pair<GlobalSSSPState, SSSPLocalState>& state);
+        std::unique_ptr<BaseBFSMorsel>& bfsMorsel);
 
     uint32_t getNextAvailableSSSPWork();
 
-    bool findAvailableSSSP(std::unique_ptr<BaseBFSMorsel>& bfsMorsel,
-        std::pair<GlobalSSSPState, SSSPLocalState>& state);
+    std::pair<GlobalSSSPState, SSSPLocalState> findAvailableSSSP(
+        std::unique_ptr<BaseBFSMorsel>& bfsMorsel);
 
     int64_t writeDstNodeIDAndPathLength(
         const std::shared_ptr<FTableSharedState>& inputFTableSharedState,

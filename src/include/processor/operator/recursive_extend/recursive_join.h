@@ -16,13 +16,35 @@ namespace processor {
 class ScanFrontier;
 
 struct RecursiveJoinSharedState {
+    std::shared_ptr<MorselDispatcher> morselDispatcher;
     std::shared_ptr<FTableSharedState> inputFTableSharedState;
     std::vector<std::unique_ptr<NodeOffsetSemiMask>> semiMasks;
 
-    RecursiveJoinSharedState(std::shared_ptr<FTableSharedState> inputFTableSharedState,
+    RecursiveJoinSharedState(std::shared_ptr<MorselDispatcher> morselDispatcher,
+        std::shared_ptr<FTableSharedState> inputFTableSharedState,
         std::vector<std::unique_ptr<NodeOffsetSemiMask>> semiMasks)
-        : inputFTableSharedState{std::move(inputFTableSharedState)}, semiMasks{
+        : morselDispatcher{std::move(morselDispatcher)},
+          inputFTableSharedState{std::move(inputFTableSharedState)}, semiMasks{
                                                                          std::move(semiMasks)} {}
+
+    inline SchedulerType getSchedulerType() { return morselDispatcher->getSchedulerType(); }
+
+    inline std::pair<GlobalSSSPState, SSSPLocalState> getBFSMorsel(
+        const std::vector<common::ValueVector*>& vectorsToScan,
+        const std::vector<ft_col_idx_t>& colIndicesToScan, common::ValueVector* srcNodeIDVector,
+        std::unique_ptr<BaseBFSMorsel>& bfsMorsel) {
+        return morselDispatcher->getBFSMorsel(
+            inputFTableSharedState, vectorsToScan, colIndicesToScan, srcNodeIDVector, bfsMorsel);
+    }
+
+    inline int64_t writeDstNodeIDAndPathLength(
+        const std::vector<common::ValueVector*>& vectorsToScan,
+        const std::vector<ft_col_idx_t>& colIndicesToScan, common::ValueVector* dstNodeIDVector,
+        common::ValueVector* pathLengthVector, common::table_id_t tableID,
+        std::unique_ptr<BaseBFSMorsel>& bfsMorsel) {
+        return morselDispatcher->writeDstNodeIDAndPathLength(inputFTableSharedState, vectorsToScan,
+            colIndicesToScan, dstNodeIDVector, pathLengthVector, tableID, bfsMorsel);
+    }
 };
 
 struct RecursiveJoinDataInfo {
@@ -81,8 +103,7 @@ public:
     RecursiveJoin(uint8_t lowerBound, uint8_t upperBound, common::QueryRelType queryRelType,
         planner::RecursiveJoinType joinType, std::shared_ptr<RecursiveJoinSharedState> sharedState,
         std::unique_ptr<RecursiveJoinDataInfo> dataInfo, std::vector<DataPos>& vectorsToScanPos,
-        std::vector<ft_col_idx_t>& colIndicesToScan,
-        std::shared_ptr<MorselDispatcher> morselDispatcher, std::unique_ptr<PhysicalOperator> child,
+        std::vector<ft_col_idx_t>& colIndicesToScan, std::unique_ptr<PhysicalOperator> child,
         uint32_t id, const std::string& paramsString,
         std::unique_ptr<PhysicalOperator> recursiveRoot)
         : PhysicalOperator{PhysicalOperatorType::RECURSIVE_JOIN, std::move(child), id,
@@ -90,9 +111,11 @@ public:
           lowerBound{lowerBound}, upperBound{upperBound}, queryRelType{queryRelType},
           joinType{joinType}, sharedState{std::move(sharedState)}, dataInfo{std::move(dataInfo)},
           vectorsToScanPos{vectorsToScanPos}, colIndicesToScan{colIndicesToScan},
-          morselDispatcher{std::move(morselDispatcher)}, recursiveRoot{std::move(recursiveRoot)} {}
+          recursiveRoot{std::move(recursiveRoot)} {}
 
     inline RecursiveJoinSharedState* getSharedState() const { return sharedState.get(); }
+
+    void initGlobalStateInternal(ExecutionContext* context) final;
 
     void initLocalStateInternal(ResultSet* resultSet_, ExecutionContext* context) final;
 
@@ -100,8 +123,8 @@ public:
 
     inline std::unique_ptr<PhysicalOperator> clone() final {
         return std::make_unique<RecursiveJoin>(lowerBound, upperBound, queryRelType, joinType,
-            sharedState, dataInfo->copy(), vectorsToScanPos, colIndicesToScan, morselDispatcher,
-            children[0]->clone(), id, paramsString, recursiveRoot->clone());
+            sharedState, dataInfo->copy(), vectorsToScanPos, colIndicesToScan, children[0]->clone(),
+            id, paramsString, recursiveRoot->clone());
     }
 
 private:
@@ -143,7 +166,6 @@ private:
     std::vector<common::ValueVector*> vectorsToScan;
     std::vector<ft_col_idx_t> colIndicesToScan;
     std::unique_ptr<BaseBFSMorsel> bfsMorsel;
-    std::shared_ptr<MorselDispatcher> morselDispatcher;
 };
 
 } // namespace processor

@@ -9,6 +9,10 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
+void RecursiveJoin::initGlobalStateInternal(kuzu::processor::ExecutionContext* context) {
+    sharedState->morselDispatcher->initActiveSSSPSharedState(context->numThreads);
+}
+
 void RecursiveJoin::initLocalStateInternal(ResultSet* resultSet_, ExecutionContext* context) {
     for (auto& dataPos : vectorsToScanPos) {
         vectorsToScan.push_back(resultSet->getValueVector(dataPos).get());
@@ -154,7 +158,7 @@ bool RecursiveJoin::getNextTuplesInternal(ExecutionContext* context) {
  * @return - true if some values were written to the ValueVector, else false
  */
 bool RecursiveJoin::scanOutput() {
-    if (morselDispatcher->getSchedulerType() == SchedulerType::OneThreadOneMorsel) {
+    if (sharedState->getSchedulerType() == SchedulerType::OneThreadOneMorsel) {
         common::sel_t offsetVectorSize = 0u;
         common::sel_t nodeIDDataVectorSize = 0u;
         common::sel_t relIDDataVectorSize = 0u;
@@ -171,8 +175,7 @@ bool RecursiveJoin::scanOutput() {
     } else {
         while (true) {
             auto tableID = *begin(dataInfo->dstNodeTableIDs);
-            auto ret = morselDispatcher->writeDstNodeIDAndPathLength(
-                sharedState->inputFTableSharedState, vectorsToScan, colIndicesToScan,
+            auto ret = sharedState->writeDstNodeIDAndPathLength(vectorsToScan, colIndicesToScan,
                 vectors->dstNodeIDVector, vectors->pathLengthVector, tableID, bfsMorsel);
             /**
              * ret > 0: non-zero path lengths were written to vector, return to parent op
@@ -199,11 +202,10 @@ bool RecursiveJoin::scanOutput() {
  *   shared with any other thread.
  */
 bool RecursiveJoin::computeBFS(kuzu::processor::ExecutionContext* context) {
-    if (morselDispatcher->getSchedulerType() == SchedulerType::OneThreadOneMorsel) {
-        std::pair<GlobalSSSPState, SSSPLocalState> state{COMPLETE, NO_WORK_TO_SHARE};
-        auto checkState = morselDispatcher->getBFSMorsel(sharedState->inputFTableSharedState,
-            vectorsToScan, colIndicesToScan, vectors->srcNodeIDVector, bfsMorsel, state);
-        if (checkState) {
+    if (sharedState->getSchedulerType() == SchedulerType::OneThreadOneMorsel) {
+        auto state = sharedState->getBFSMorsel(
+            vectorsToScan, colIndicesToScan, vectors->srcNodeIDVector, bfsMorsel);
+        if (state.first == COMPLETE) {
             return false;
         }
         computeBFSOneThreadOneMorsel(context);
@@ -211,28 +213,29 @@ bool RecursiveJoin::computeBFS(kuzu::processor::ExecutionContext* context) {
     } else {
         while (true) {
             if (bfsMorsel->hasSSSPSharedState()) {
-                SSSPLocalState state{NO_WORK_TO_SHARE};
-                bool checkState = bfsMorsel->ssspSharedState->getBFSMorsel(bfsMorsel, state);
-                if (!checkState) {
+                auto state = bfsMorsel->getBFSMorsel();
+                if (state == EXTEND_IN_PROGRESS) {
                     computeBFSnThreadkMorsel(context);
-                    if (bfsMorsel->ssspSharedState->finishBFSMorsel(bfsMorsel)) {
+                    if (bfsMorsel->finishBFSMorsel()) {
                         return true;
                     }
                     continue;
-                } else if (state == PATH_LENGTH_WRITE_IN_PROGRESS) {
+                }
+                if (state == PATH_LENGTH_WRITE_IN_PROGRESS) {
                     return true;
                 }
             }
-            std::pair<GlobalSSSPState, SSSPLocalState> state{COMPLETE, NO_WORK_TO_SHARE};
-            auto checkState = morselDispatcher->getBFSMorsel(sharedState->inputFTableSharedState,
-                vectorsToScan, colIndicesToScan, vectors->srcNodeIDVector, bfsMorsel, state);
-            if (checkState && state.first == COMPLETE) {
+            auto state = sharedState->getBFSMorsel(
+                vectorsToScan, colIndicesToScan, vectors->srcNodeIDVector, bfsMorsel);
+            if (state.first == COMPLETE) {
                 return false;
-            } else if (checkState && state.second == PATH_LENGTH_WRITE_IN_PROGRESS) {
+            }
+            if (state.second == PATH_LENGTH_WRITE_IN_PROGRESS) {
                 return true;
-            } else if (!checkState) {
+            }
+            if (state.second == EXTEND_IN_PROGRESS) {
                 computeBFSnThreadkMorsel(context);
-                if (bfsMorsel->ssspSharedState->finishBFSMorsel(bfsMorsel)) {
+                if (bfsMorsel->finishBFSMorsel()) {
                     return true;
                 }
             } else {
