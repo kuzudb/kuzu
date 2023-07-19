@@ -8,6 +8,7 @@ add_library(kuzu_processor_mapper
         map_in_query_call.cpp
         map_copy.cpp
         map_create.cpp
+        map_create_macro.cpp
         map_cross_product.cpp
         map_ddl.cpp
         map_delete.cpp

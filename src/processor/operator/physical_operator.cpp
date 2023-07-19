@@ -29,6 +29,9 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
     case PhysicalOperatorType::COPY_REL: {
         return "COPY_REL";
     }
+    case PhysicalOperatorType::CREATE_MACRO: {
+        return "CREATE_MACRO";
+    }
     case PhysicalOperatorType::READ_CSV: {
         return "READ_CSV";
     }

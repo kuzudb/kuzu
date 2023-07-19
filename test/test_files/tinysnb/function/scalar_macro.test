@@ -1,0 +1,152 @@
+-GROUP TinySnbReadTest
+-DATASET CSV tinysnb
+
+--
+
+-CASE ScalarMacro
+
+-LOG SimpleScalarMacro
+-STATEMENT CREATE MACRO Add10(x) AS x + 10
+---- ok
+-STATEMENT MATCH (p:person) return Add10(p.age)
+---- 8
+45
+40
+55
+30
+30
+35
+50
+93
+
+-LOG SimpleScalarMacroWithDefaultVal
+-STATEMENT CREATE MACRO AddDefault(x, y := 40) AS x + y
+---- ok
+-STATEMENT MATCH (p:person) return AddDefault(p.age)
+---- 8
+75
+70
+85
+60
+60
+65
+80
+123
+
+-LOG SimpleScalarMacroWithDefaultVal1
+-STATEMENT CREATE MACRO AddDefault1(x, y := 40, z:=7) AS x + y + z
+---- ok
+-STATEMENT MATCH (p:person) return AddDefault1(p.age, 3)
+---- 8
+45
+40
+55
+30
+30
+35
+50
+93
+
+-LOG SimpleScalarMacroWithoutDefaultVal
+-STATEMENT MATCH (p:person) return AddDefault(p.age, p.ID)
+---- 8
+35
+32
+48
+25
+27
+33
+49
+93
+
+-LOG SimpleScalarMacroWithNoParameter
+-STATEMENT CREATE MACRO returnConstant() AS 5
+---- ok
+-STATEMENT MATCH (p:person) return returnConstant()
+---- 8
+5
+5
+5
+5
+5
+5
+5
+5
+
+-LOG NestedScalarMacro
+-STATEMENT CREATE MACRO MULTIPLY(x, y) AS x * y * y
+---- ok
+-STATEMENT MATCH (p:person) return multiply(ADD10(p.age), p.ID)
+---- 8
+0
+160
+495
+750
+1470
+2240
+4050
+9300
+
+-LOG ScalarMacroWithJoin
+-STATEMENT CREATE MACRO add7(a) AS a + 7
+---- ok
+-STATEMENT CREATE MACRO add8(x) AS x + 8
+---- ok
+-STATEMENT MATCH (p:person)-[:knows]->(p1:person) RETURN add7(p.age), add8(p1.age)
+---- 14
+27|33
+27|38
+27|43
+27|48
+27|53
+37|28
+37|43
+37|53
+42|28
+42|38
+42|53
+52|28
+52|38
+52|43
+
+-LOG NestedScalarString
+-STATEMENT CREATE MACRO AppendElement(a,b,c) AS list_append(list_append(a, b),c)
+---- ok
+-STATEMENT MATCH (p:person) return AppendElement(p.usedNames, p.fName, STRING(p.ID))
+---- 8
+[Aida,Alice,0]
+[Bobby,Bob,2]
+[Carmen,Fred,Carol,3]
+[Wolfeschlegelstein,Daniel,Dan,5]
+[Ein,Elizabeth,7]
+[Fesdwe,Farooq,8]
+[Grad,Greg,9]
+[Ad,De,Hi,Kye,Orlan,Hubert Blaine Wolfeschlegelsteinhausenbergerdorff,10]
+
+-LOG NestedScalarMacro
+-STATEMENT CREATE MACRO nestedScalarMacro(x, y, z) AS adddefault(add7(x) + add8(add7(y)), add7(z))
+---- ok
+-STATEMENT MATCH (p:person) return nestedScalarMacro(p.ID, p.gender, p.age)
+---- 8
+65
+63
+78
+56
+57
+64
+80
+124
+
+-LOG ScalarCaseExprMacro
+-STATEMENT CREATE MACRO scalarCase(x) AS CASE x WHEN 35 THEN x + 1 ELSE x - 5 END
+---- ok
+-STATEMENT MATCH (p:person) return scalarCase(p.age)
+---- 8
+36
+25
+40
+15
+15
+20
+35
+78

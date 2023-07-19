@@ -156,6 +156,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
     case LogicalOperatorType::EXPLAIN: {
         physicalOperator = mapLogicalExplainToPhysical(logicalOperator.get());
     } break;
+    case LogicalOperatorType::CREATE_MACRO: {
+        physicalOperator = mapLogicalCreateMacroToPhysical(logicalOperator.get());
+    } break;
     default:
         throw common::NotImplementedException("PlanMapper::mapLogicalOperatorToPhysical()");
     }

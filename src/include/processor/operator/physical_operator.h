@@ -12,6 +12,7 @@ enum class PhysicalOperatorType : uint8_t {
     ADD_PROPERTY,
     AGGREGATE,
     AGGREGATE_SCAN,
+    CREATE_MACRO,
     STANDALONE_CALL,
     IN_QUERY_CALL,
     COPY_NODE,

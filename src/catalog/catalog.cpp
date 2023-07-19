@@ -171,6 +171,7 @@ namespace catalog {
 
 CatalogContent::CatalogContent() : nextTableID{0} {
     logger = LoggerUtils::getLogger(LoggerConstants::LoggerEnum::CATALOG);
+    registerBuiltInFunctions();
 }
 
 CatalogContent::CatalogContent(const std::string& directory) {
@@ -178,6 +179,7 @@ CatalogContent::CatalogContent(const std::string& directory) {
     logger->info("Initializing catalog.");
     readFromFile(directory, DBFileType::ORIGINAL);
     logger->info("Initializing catalog done.");
+    registerBuiltInFunctions();
 }
 
 CatalogContent::CatalogContent(const CatalogContent& other) {
@@ -192,6 +194,7 @@ CatalogContent::CatalogContent(const CatalogContent& other) {
     nodeTableNameToIDMap = other.nodeTableNameToIDMap;
     relTableNameToIDMap = other.relTableNameToIDMap;
     nextTableID = other.nextTableID;
+    registerBuiltInFunctions();
 }
 
 table_id_t CatalogContent::addNodeTableSchema(
@@ -325,6 +328,31 @@ void CatalogContent::readFromFile(const std::string& directory, DBFileType dbFil
     SerDeser::deserializeValue<table_id_t>(nextTableID, fileInfo.get(), offset);
 }
 
+ExpressionType CatalogContent::getFunctionType(const std::string& name) const {
+    auto upperCaseName = StringUtils::getUpper(name);
+    if (builtInVectorFunctions->containsFunction(upperCaseName)) {
+        return FUNCTION;
+    } else if (builtInAggregateFunctions->containsFunction(upperCaseName)) {
+        return AGGREGATE_FUNCTION;
+    } else if (macros.contains(upperCaseName)) {
+        return MACRO;
+    } else {
+        throw CatalogException(name + " function does not exist.");
+    }
+}
+
+void CatalogContent::addVectorFunction(
+    std::string name, function::vector_function_definitions definitions) {
+    StringUtils::toUpper(name);
+    builtInVectorFunctions->addFunction(std::move(name), std::move(definitions));
+}
+
+void CatalogContent::addScalarMacroFunction(
+    std::string name, std::unique_ptr<function::ScalarMacroFunction> macro) {
+    StringUtils::toUpper(name);
+    macros.emplace(std::move(name), std::move(macro));
+}
+
 void CatalogContent::validateStorageVersion(storage_version_t savedStorageVersion) const {
     auto storageVersion = StorageVersionInfo::getStorageVersion();
     if (savedStorageVersion != storageVersion) {
@@ -355,18 +383,18 @@ void CatalogContent::writeMagicBytes(FileInfo* fileInfo, offset_t& offset) const
     }
 }
 
-Catalog::Catalog() : wal{nullptr} {
-    catalogContentForReadOnlyTrx = std::make_unique<CatalogContent>();
+void CatalogContent::registerBuiltInFunctions() {
     builtInVectorFunctions = std::make_unique<function::BuiltInVectorFunctions>();
     builtInAggregateFunctions = std::make_unique<function::BuiltInAggregateFunctions>();
     builtInTableFunctions = std::make_unique<function::BuiltInTableFunctions>();
 }
 
+Catalog::Catalog() : wal{nullptr} {
+    catalogContentForReadOnlyTrx = std::make_unique<CatalogContent>();
+}
+
 Catalog::Catalog(WAL* wal) : wal{wal} {
     catalogContentForReadOnlyTrx = std::make_unique<CatalogContent>(wal->getDirectory());
-    builtInVectorFunctions = std::make_unique<function::BuiltInVectorFunctions>();
-    builtInAggregateFunctions = std::make_unique<function::BuiltInAggregateFunctions>();
-    builtInTableFunctions = std::make_unique<function::BuiltInTableFunctions>();
 }
 
 void Catalog::prepareCommitOrRollback(TransactionAction action) {
@@ -386,13 +414,7 @@ void Catalog::checkpointInMemory() {
 }
 
 ExpressionType Catalog::getFunctionType(const std::string& name) const {
-    if (builtInVectorFunctions->containsFunction(name)) {
-        return FUNCTION;
-    } else if (builtInAggregateFunctions->containsFunction(name)) {
-        return AGGREGATE_FUNCTION;
-    } else {
-        throw CatalogException(name + " function does not exist.");
-    }
+    return catalogContentForReadOnlyTrx->getFunctionType(name);
 }
 
 table_id_t Catalog::addNodeTableSchema(
@@ -461,8 +483,12 @@ std::unordered_set<RelTableSchema*> Catalog::getAllRelTableSchemasContainBoundTa
 
 void Catalog::addVectorFunction(
     std::string name, function::vector_function_definitions definitions) {
-    common::StringUtils::toUpper(name);
-    builtInVectorFunctions->addFunction(std::move(name), std::move(definitions));
+    catalogContentForReadOnlyTrx->addVectorFunction(std::move(name), std::move(definitions));
+}
+
+void Catalog::addScalarMacroFunction(
+    std::string name, std::unique_ptr<function::ScalarMacroFunction> macro) {
+    catalogContentForReadOnlyTrx->addScalarMacroFunction(std::move(name), std::move(macro));
 }
 
 } // namespace catalog

@@ -25,6 +25,9 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
     case LogicalOperatorType::CREATE_REL: {
         return "CREATE_REL";
     }
+    case LogicalOperatorType::CREATE_MACRO: {
+        return "CREATE_MACRO";
+    }
     case LogicalOperatorType::CREATE_NODE_TABLE: {
         return "CREATE_NODE_TABLE";
     }

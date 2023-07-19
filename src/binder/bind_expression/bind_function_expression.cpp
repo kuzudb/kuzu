@@ -5,6 +5,7 @@
 #include "common/string_utils.h"
 #include "function/schema/vector_label_functions.h"
 #include "parser/expression/parsed_function_expression.h"
+#include "parser/parsed_expression_visitor.h"
 
 using namespace kuzu::common;
 using namespace kuzu::parser;
@@ -22,12 +23,16 @@ std::shared_ptr<Expression> ExpressionBinder::bindFunctionExpression(
         return result;
     }
     auto functionType = binder->catalog.getFunctionType(functionName);
-    if (functionType == FUNCTION) {
+    switch (functionType) {
+    case common::FUNCTION:
         return bindScalarFunctionExpression(parsedExpression, functionName);
-    } else {
-        assert(functionType == AGGREGATE_FUNCTION);
+    case common::AGGREGATE_FUNCTION:
         return bindAggregateFunctionExpression(
             parsedExpression, functionName, parsedFunctionExpression.getIsDistinct());
+    case common::MACRO:
+        return bindMacroExpression(parsedExpression, functionName);
+    default:
+        throw NotImplementedException{"ExpressionBinder::bindFunctionExpression"};
     }
 }
 
@@ -102,6 +107,31 @@ std::shared_ptr<Expression> ExpressionBinder::bindAggregateFunctionExpression(
     }
     return make_shared<AggregateFunctionExpression>(functionName, std::move(bindData),
         std::move(children), function->aggregateFunction->clone(), uniqueExpressionName);
+}
+
+std::shared_ptr<Expression> ExpressionBinder::bindMacroExpression(
+    const ParsedExpression& parsedExpression, const std::string& macroName) {
+    auto scalarMacroFunction = binder->catalog.getScalarMacroFunction(macroName);
+    auto macroExpr = scalarMacroFunction->expression->copy();
+    auto parameterVals = scalarMacroFunction->getDefaultParameterVals();
+    auto& parsedFuncExpr = reinterpret_cast<const ParsedFunctionExpression&>(parsedExpression);
+    auto positionalArgs = scalarMacroFunction->getPositionalArgs();
+    if (parsedFuncExpr.getNumChildren() > scalarMacroFunction->getNumArgs() ||
+        parsedFuncExpr.getNumChildren() < positionalArgs.size()) {
+        throw BinderException{"Invalid number of arguments for macro " + macroName + "."};
+    }
+    // Bind positional arguments.
+    for (auto i = 0u; i < positionalArgs.size(); i++) {
+        parameterVals[positionalArgs[i]] = parsedFuncExpr.getChild(i);
+    }
+    // Bind arguments with default values.
+    for (auto i = positionalArgs.size(); i < parsedFuncExpr.getNumChildren(); i++) {
+        auto parameterName =
+            scalarMacroFunction->getDefaultParameterName(i - positionalArgs.size());
+        parameterVals[parameterName] = parsedFuncExpr.getChild(i);
+    }
+    auto macroParameterReplacer = std::make_unique<MacroParameterReplacer>(parameterVals);
+    return bindExpression(*macroParameterReplacer->visit(std::move(macroExpr)));
 }
 
 std::shared_ptr<Expression> ExpressionBinder::staticEvaluate(

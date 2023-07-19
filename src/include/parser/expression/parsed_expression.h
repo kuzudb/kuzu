@@ -10,9 +10,13 @@ namespace kuzu {
 namespace parser {
 
 class ParsedExpression;
+class ParsedExpressionChildrenVisitor;
 using parsed_expression_vector = std::vector<std::unique_ptr<ParsedExpression>>;
 
 class ParsedExpression {
+    friend class ParsedExpressionChildrenVisitor;
+    friend class ParsedExpressionChildrenSetter;
+
 public:
     ParsedExpression(
         common::ExpressionType type, std::unique_ptr<ParsedExpression> child, std::string rawName);
@@ -22,6 +26,11 @@ public:
 
     ParsedExpression(common::ExpressionType type, std::string rawName)
         : type{type}, rawName{std::move(rawName)} {}
+
+    ParsedExpression(common::ExpressionType type, std::string alias, std::string rawName,
+        parsed_expression_vector children)
+        : type{type}, alias{std::move(alias)}, rawName{std::move(rawName)}, children{std::move(
+                                                                                children)} {}
 
     virtual ~ParsedExpression() = default;
 
@@ -39,6 +48,13 @@ public:
     inline ParsedExpression* getChild(uint32_t idx) const { return children[idx].get(); }
 
     inline std::string toString() const { return rawName; }
+
+    virtual inline std::unique_ptr<ParsedExpression> copy() const {
+        return std::make_unique<ParsedExpression>(type, alias, rawName, copyChildren());
+    }
+
+protected:
+    parsed_expression_vector copyChildren() const;
 
 protected:
     common::ExpressionType type;
