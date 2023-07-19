@@ -12,8 +12,8 @@ RelCopyExecutor::RelCopyExecutor(CopyDescription& copyDescription, WAL* wal,
     TaskScheduler& taskScheduler, NodesStore& nodesStore, RelTable* table,
     RelTableSchema* tableSchema, RelsStatistics* relsStatistics)
     : copyDescription{copyDescription}, wal{wal}, outputDirectory{std::move(wal->getDirectory())},
-      taskScheduler{taskScheduler}, tableSchema{tableSchema}, numRows{0},
-      nodesStore{nodesStore}, table{table}, relsStatistics{relsStatistics} {
+      taskScheduler{taskScheduler}, tableSchema{tableSchema}, nodesStore{nodesStore}, table{table},
+      relsStatistics{relsStatistics} {
     // Initialize rel data.
     fwdRelData = initializeDirectedInMemRelData(FWD);
     bwdRelData = initializeDirectedInMemRelData(BWD);
@@ -77,37 +77,40 @@ offset_t RelCopyExecutor::copy(processor::ExecutionContext* executionContext) {
     wal->logCopyRelRecord(table->getRelTableID());
     // We assume that COPY is a single-statement transaction, thus COPY rel is the only wal record.
     wal->flushAllPages();
-    countRelListsSizeAndPopulateColumns(executionContext);
+    auto numRows = countRelListsSizeAndPopulateColumns(executionContext);
     if (!tableSchema->isSingleMultiplicityInDirection(FWD) ||
         !tableSchema->isSingleMultiplicityInDirection(BWD)) {
-        populateRelLists(executionContext);
+        auto numPopulatedRelLists = populateRelLists(executionContext);
+        assert(numPopulatedRelLists == numRows);
     }
     relsStatistics->setNumTuplesForTable(tableSchema->tableID, numRows);
     return numRows;
 }
 
-void RelCopyExecutor::countRelListsSizeAndPopulateColumns(
+row_idx_t RelCopyExecutor::countRelListsSizeAndPopulateColumns(
     processor::ExecutionContext* executionContext) {
     auto relCopier = createRelCopier(RelCopierType::REL_COLUMN_COPIER_AND_LIST_COUNTER);
     auto sharedState = relCopier->getSharedState();
     auto task = std::make_shared<RelCopyTask>(std::move(relCopier), executionContext);
     taskScheduler.scheduleTaskAndWaitOrError(task, executionContext);
-    numRows = sharedState->numRows;
+    return sharedState->numRows;
 }
 
-void RelCopyExecutor::populateRelLists(processor::ExecutionContext* executionContext) {
+row_idx_t RelCopyExecutor::populateRelLists(processor::ExecutionContext* executionContext) {
     auto relCopier = createRelCopier(RelCopierType::REL_LIST_COPIER);
+    auto sharedState = relCopier->getSharedState();
     auto task = std::make_shared<RelCopyTask>(std::move(relCopier), executionContext);
     taskScheduler.scheduleTaskAndWaitOrError(task, executionContext);
+    return sharedState->numRows;
 }
 
 std::unique_ptr<RelCopier> RelCopyExecutor::createRelCopier(RelCopierType relCopierType) {
-    std::shared_ptr<CopySharedState> sharedState;
+    std::shared_ptr<ReadFileSharedState> sharedState;
     std::unique_ptr<RelCopier> relCopier;
     switch (copyDescription.fileType) {
     case CopyDescription::FileType::CSV: {
-        sharedState = std::make_shared<CSVCopySharedState>(copyDescription.filePaths,
-            fileBlockInfos, copyDescription.csvReaderConfig.get(), tableSchema);
+        sharedState = std::make_shared<ReadCSVSharedState>(
+            copyDescription.filePaths, *copyDescription.csvReaderConfig, tableSchema);
         switch (relCopierType) {
         case RelCopierType::REL_COLUMN_COPIER_AND_LIST_COUNTER: {
             relCopier = std::make_unique<CSVRelListsCounterAndColumnsCopier>(sharedState,
@@ -120,8 +123,11 @@ std::unique_ptr<RelCopier> RelCopyExecutor::createRelCopier(RelCopierType relCop
         }
     } break;
     case CopyDescription::FileType::PARQUET: {
+        std::unordered_map<std::string, FileBlockInfo> fileBlockInfos;
         TableCopyUtils::countNumLines(copyDescription, tableSchema, fileBlockInfos);
-        sharedState = std::make_shared<CopySharedState>(copyDescription.filePaths, fileBlockInfos);
+        sharedState = std::make_shared<ReadParquetSharedState>(
+            copyDescription.filePaths, *copyDescription.csvReaderConfig, tableSchema);
+        sharedState->fileBlockInfos = std::move(fileBlockInfos);
         switch (relCopierType) {
         case RelCopierType::REL_COLUMN_COPIER_AND_LIST_COUNTER: {
             relCopier = std::make_unique<ParquetRelListsCounterAndColumnsCopier>(sharedState,

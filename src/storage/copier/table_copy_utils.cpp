@@ -11,61 +11,6 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace storage {
 
-std::unique_ptr<CopyMorsel> CopySharedState::getMorsel() {
-    std::unique_lock lck{mtx};
-    while (true) {
-        if (fileIdx >= filePaths.size()) {
-            // No more files to read.
-            return nullptr;
-        }
-        auto filePath = filePaths[fileIdx];
-        auto fileBlockInfo = fileBlockInfos.at(filePath);
-        if (blockIdx >= fileBlockInfo.numBlocks) {
-            // No more blocks to read in this file.
-            fileIdx++;
-            blockIdx = 0;
-            currRowIdxInFile = 1;
-            continue;
-        }
-        auto numRowsInBlock = fileBlockInfo.numRowsPerBlock[blockIdx];
-        auto result = std::make_unique<CopyMorsel>(
-            numRows, blockIdx, numRowsInBlock, filePath, currRowIdxInFile);
-        numRows += numRowsInBlock;
-        currRowIdxInFile += numRowsInBlock;
-        blockIdx++;
-        return result;
-    }
-}
-
-std::unique_ptr<CopyMorsel> CSVCopySharedState::getMorsel() {
-    std::unique_lock lck{mtx};
-    while (true) {
-        if (fileIdx >= filePaths.size()) {
-            // No more files to read.
-            return nullptr;
-        }
-        auto filePath = filePaths[fileIdx];
-        if (!reader) {
-            reader = TableCopyUtils::createCSVReader(filePath, csvReaderConfig, tableSchema);
-        }
-        std::shared_ptr<arrow::RecordBatch> recordBatch;
-        TableCopyUtils::throwCopyExceptionIfNotOK(reader->ReadNext(&recordBatch));
-        if (recordBatch == nullptr) {
-            // No more blocks to read in this file.
-            fileIdx++;
-            currRowIdxInFile = 1;
-            reader.reset();
-            continue;
-        }
-        auto numRowsInBatch = recordBatch->num_rows();
-        auto result = std::make_unique<CSVCopyMorsel>(
-            numRows, filePath, currRowIdxInFile, std::move(recordBatch));
-        numRows += numRowsInBatch;
-        currRowIdxInFile += numRowsInBatch;
-        return result;
-    }
-}
-
 row_idx_t TableCopyUtils::countNumLines(CopyDescription& copyDescription,
     catalog::TableSchema* tableSchema,
     std::unordered_map<std::string, FileBlockInfo>& fileBlockInfos) {
@@ -97,7 +42,6 @@ row_idx_t TableCopyUtils::countNumLinesCSV(CopyDescription& copyDescription,
         std::shared_ptr<arrow::RecordBatch> currBatch;
         uint64_t numBlocks = 0;
         std::vector<uint64_t> numLinesPerBlock;
-        auto startNodeOffset = numRows;
         while (true) {
             throwCopyExceptionIfNotOK(csvStreamingReader->ReadNext(&currBatch));
             if (currBatch == nullptr) {
@@ -108,8 +52,7 @@ row_idx_t TableCopyUtils::countNumLinesCSV(CopyDescription& copyDescription,
             numLinesPerBlock.push_back(currNumRows);
             numRows += currNumRows;
         }
-        fileBlockInfos.emplace(
-            filePath, FileBlockInfo{startNodeOffset, numBlocks, numLinesPerBlock});
+        fileBlockInfos.emplace(filePath, FileBlockInfo{numBlocks, numLinesPerBlock});
     }
     return numRows;
 }
@@ -124,12 +67,10 @@ row_idx_t TableCopyUtils::countNumLinesParquet(CopyDescription& copyDescription,
         auto metadata = reader->parquet_reader()->metadata();
         uint64_t numBlocks = metadata->num_row_groups();
         std::vector<uint64_t> numLinesPerBlock(numBlocks);
-        auto startNodeOffset = numRows;
         for (auto blockIdx = 0; blockIdx < numBlocks; ++blockIdx) {
             numLinesPerBlock[blockIdx] = metadata->RowGroup(blockIdx)->num_rows();
         }
-        fileBlockInfos.emplace(
-            filePath, FileBlockInfo{startNodeOffset, numBlocks, numLinesPerBlock});
+        fileBlockInfos.emplace(filePath, FileBlockInfo{numBlocks, numLinesPerBlock});
         numRows += metadata->num_rows();
     }
     return numRows;
@@ -156,8 +97,7 @@ offset_t TableCopyUtils::countNumLinesNpy(CopyDescription& copyDescription,
                 numNodesInFile - blockIdx * CopyConstants::NUM_ROWS_PER_BLOCK_FOR_NPY);
             numLinesPerBlock[blockIdx] = numLines;
         }
-        fileBlockInfos.emplace(
-            filePath, FileBlockInfo{0 /* start node offset */, numBlocks, numLinesPerBlock});
+        fileBlockInfos.emplace(filePath, FileBlockInfo{numBlocks, numLinesPerBlock});
     }
     return numRows;
 }
@@ -230,7 +170,7 @@ std::unique_ptr<parquet::arrow::FileReader> TableCopyUtils::createParquetReader(
         reader->parquet_reader()->metadata()->schema()->group_node()->field_count();
     if (expectedNumColumns != actualNumColumns) {
         // Note: Some parquet files may contain an index column.
-        throw common::CopyException(common::StringUtils::string_format(
+        throw CopyException(StringUtils::string_format(
             "Unmatched number of columns in parquet file. Expect: {}, got: {}.", expectedNumColumns,
             actualNumColumns));
     }
@@ -282,8 +222,7 @@ std::unique_ptr<Value> TableCopyUtils::getArrowVarList(const std::string& l, int
         auto value = convertStringToValue(element, *childDataType, copyDescription);
         values.push_back(std::move(value));
     }
-    auto numBytesOfOverflow =
-        values.size() * storage::StorageUtils::getDataTypeSize(*childDataType);
+    auto numBytesOfOverflow = values.size() * StorageUtils::getDataTypeSize(*childDataType);
     if (numBytesOfOverflow >= BufferPoolConstants::PAGE_4KB_SIZE) {
         throw CopyException(StringUtils::string_format(
             "Maximum num bytes of a LIST is {}. Input list's num bytes is {}.",
@@ -299,7 +238,7 @@ std::unique_ptr<uint8_t[]> TableCopyUtils::getArrowFixedList(const std::string& 
     int64_t to, const LogicalType& dataType, const CopyDescription& copyDescription) {
     assert(dataType.getLogicalTypeID() == LogicalTypeID::FIXED_LIST);
     auto split = getListElementPos(l, from, to, copyDescription);
-    auto listVal = std::make_unique<uint8_t[]>(storage::StorageUtils::getDataTypeSize(dataType));
+    auto listVal = std::make_unique<uint8_t[]>(StorageUtils::getDataTypeSize(dataType));
     auto childDataType = FixedListType::getChildType(&dataType);
     uint64_t numElementsRead = 0;
     for (auto pair : split) {

@@ -50,7 +50,7 @@ public:
               id, paramsString},
           sharedState{std::move(sharedState)}, copyNodeDataInfo{std::move(copyNodeDataInfo)},
           copyDesc{copyDesc}, table{table}, relsStore{relsStore}, catalog{catalog}, wal{wal},
-          rowIdxVector{nullptr} {
+          rowIdxVector{nullptr}, filePathVector{nullptr} {
         auto tableSchema = catalog->getReadOnlyVersion()->getNodeTableSchema(table->getTableID());
         copyStates.resize(tableSchema->getNumProperties());
         for (auto i = 0u; i < tableSchema->getNumProperties(); i++) {

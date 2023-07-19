@@ -11,17 +11,13 @@ namespace common {
 CopyDescription::CopyDescription(
     const std::vector<std::string>& filePaths, CSVReaderConfig csvReaderConfig, FileType fileType)
     : filePaths{filePaths}, csvReaderConfig{nullptr}, fileType{fileType} {
-    if (fileType == FileType::CSV) {
-        this->csvReaderConfig = std::make_unique<CSVReaderConfig>(csvReaderConfig);
-    }
+    this->csvReaderConfig = std::make_unique<CSVReaderConfig>(csvReaderConfig);
 }
 
 CopyDescription::CopyDescription(const CopyDescription& copyDescription)
     : filePaths{copyDescription.filePaths},
       csvReaderConfig{nullptr}, fileType{copyDescription.fileType} {
-    if (fileType == FileType::CSV) {
-        this->csvReaderConfig = std::make_unique<CSVReaderConfig>(*copyDescription.csvReaderConfig);
-    }
+    this->csvReaderConfig = std::make_unique<CSVReaderConfig>(*copyDescription.csvReaderConfig);
 }
 
 std::string CopyDescription::getFileTypeName(FileType fileType) {

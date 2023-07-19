@@ -52,8 +52,9 @@ private:
 
     std::unique_ptr<DirectedInMemRelData> initializeDirectedInMemRelData(
         common::RelDataDirection direction);
-    void countRelListsSizeAndPopulateColumns(processor::ExecutionContext* executionContext);
-    void populateRelLists(processor::ExecutionContext* executionContext);
+    common::row_idx_t countRelListsSizeAndPopulateColumns(
+        processor::ExecutionContext* executionContext);
+    common::row_idx_t populateRelLists(processor::ExecutionContext* executionContext);
 
     std::unique_ptr<RelCopier> createRelCopier(RelCopierType relCopierType);
 
@@ -61,10 +62,8 @@ private:
     common::CopyDescription& copyDescription;
     WAL* wal;
     std::string outputDirectory;
-    std::unordered_map<std::string, FileBlockInfo> fileBlockInfos;
     common::TaskScheduler& taskScheduler;
     catalog::RelTableSchema* tableSchema;
-    common::row_idx_t numRows;
     RelsStatistics* relsStatistics;
     storage::NodesStore& nodesStore;
     storage::RelTable* table;
