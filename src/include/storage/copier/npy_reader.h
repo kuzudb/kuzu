@@ -56,7 +56,7 @@ private:
 
 class NpyMultiFileReader {
 public:
-    explicit NpyMultiFileReader(std::vector<std::string> filePaths);
+    explicit NpyMultiFileReader(const std::vector<std::string>& filePaths);
 
     std::shared_ptr<arrow::RecordBatch> readBlock(common::block_idx_t blockIdx) const;
 

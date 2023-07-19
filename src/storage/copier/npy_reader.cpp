@@ -227,32 +227,32 @@ std::shared_ptr<arrow::RecordBatch> NpyReader::readBlock(common::block_idx_t blo
     uint64_t rowNumber = CopyConstants::NUM_ROWS_PER_BLOCK_FOR_NPY * blockIdx;
     auto rowPointer = getPointerToRow(rowNumber);
     auto arrowType = getArrowType();
+    auto numRowsToRead =
+        std::min(CopyConstants::NUM_ROWS_PER_BLOCK_FOR_NPY, getNumRows() - rowNumber);
     auto buffer = std::make_shared<arrow::Buffer>(
-        rowPointer, CopyConstants::NUM_ROWS_PER_BLOCK_FOR_NPY * getArrowType()->byte_width() *
-                        getNumElementsPerRow());
-    auto length = std::min(CopyConstants::NUM_ROWS_PER_BLOCK_FOR_NPY, getNumRows() - rowNumber);
+        rowPointer, numRowsToRead * arrowType->byte_width() * getNumElementsPerRow());
     std::shared_ptr<arrow::Field> field;
     std::shared_ptr<arrow::Array> arr;
     if (getNumDimensions() > 1) {
         auto elementField = std::make_shared<arrow::Field>(defaultFieldName, arrowType);
-        auto fixedListArrowType = arrow::fixed_size_list(elementField, (int32_t)length);
+        auto fixedListArrowType = arrow::fixed_size_list(elementField, (int32_t)numRowsToRead);
         field = std::make_shared<arrow::Field>(defaultFieldName, fixedListArrowType);
         auto valuesArr = std::make_shared<arrow::PrimitiveArray>(
-            arrowType, length * getNumElementsPerRow(), buffer);
+            arrowType, numRowsToRead * getNumElementsPerRow(), buffer);
         arr = arrow::FixedSizeListArray::FromArrays(valuesArr, (int32_t)getNumElementsPerRow())
                   .ValueOrDie();
     } else {
         field = std::make_shared<arrow::Field>(defaultFieldName, arrowType);
-        arr = std::make_shared<arrow::PrimitiveArray>(arrowType, length, buffer);
+        arr = std::make_shared<arrow::PrimitiveArray>(arrowType, numRowsToRead, buffer);
     }
     auto schema =
         std::make_shared<arrow::Schema>(std::vector<std::shared_ptr<arrow::Field>>{field});
     std::shared_ptr<arrow::RecordBatch> result;
-    result = arrow::RecordBatch::Make(schema, (int64_t)length, {arr});
+    result = arrow::RecordBatch::Make(schema, (int64_t)numRowsToRead, {arr});
     return result;
 }
 
-NpyMultiFileReader::NpyMultiFileReader(std::vector<std::string> filePaths) {
+NpyMultiFileReader::NpyMultiFileReader(const std::vector<std::string>& filePaths) {
     for (auto& file : filePaths) {
         fileReaders.push_back(std::make_unique<NpyReader>(file));
     }

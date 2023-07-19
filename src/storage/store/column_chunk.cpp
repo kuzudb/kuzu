@@ -1,4 +1,5 @@
 #include "storage/store/column_chunk.h"
+
 #include "storage/copier/table_copy_utils.h"
 #include "storage/storage_structure/storage_structure_utils.h"
 #include "storage/store/struct_column_chunk.h"
@@ -240,6 +241,21 @@ uint32_t ColumnChunk::getDataTypeSizeInChunk(common::LogicalType& dataType) {
     }
 }
 
+void FixedListColumnChunk::appendColumnChunk(kuzu::storage::ColumnChunk* other,
+    common::offset_t startPosInOtherChunk, common::offset_t startPosInChunk,
+    uint32_t numValuesToAppend) {
+    auto otherChunk = (FixedListColumnChunk*)other;
+    if (nullChunk) {
+        nullChunk->appendColumnChunk(
+            otherChunk->nullChunk.get(), startPosInOtherChunk, startPosInChunk, numValuesToAppend);
+    }
+    for (auto i = 0u; i < numValuesToAppend; i++) {
+        memcpy(buffer.get() + getOffsetInBuffer(startPosInChunk + i),
+            otherChunk->buffer.get() + getOffsetInBuffer(startPosInOtherChunk + i),
+            numBytesPerValue);
+    }
+}
+
 std::unique_ptr<ColumnChunk> ColumnChunkFactory::createColumnChunk(
     const LogicalType& dataType, CopyDescription* copyDescription) {
     switch (dataType.getLogicalTypeID()) {
@@ -251,9 +267,11 @@ std::unique_ptr<ColumnChunk> ColumnChunkFactory::createColumnChunk(
     case LogicalTypeID::FLOAT:
     case LogicalTypeID::DATE:
     case LogicalTypeID::TIMESTAMP:
-    case LogicalTypeID::INTERVAL:
-    case LogicalTypeID::FIXED_LIST: {
+    case LogicalTypeID::INTERVAL: {
         return std::make_unique<ColumnChunk>(dataType, copyDescription);
+    }
+    case LogicalTypeID::FIXED_LIST: {
+        return std::make_unique<FixedListColumnChunk>(dataType);
     }
     case LogicalTypeID::BLOB:
     case LogicalTypeID::STRING:
@@ -313,8 +331,7 @@ common::offset_t ColumnChunk::getOffsetInBuffer(common::offset_t pos) {
         PageUtils::getNumElementsInAPage(numBytesPerValue, false /* hasNull */);
     auto posCursor = PageUtils::getPageByteCursorForPos(pos, numElementsInAPage, numBytesPerValue);
     auto offsetInBuffer =
-        posCursor.pageIdx * common::BufferPoolConstants::PAGE_4KB_SIZE +
-        posCursor.offsetInPage;
+        posCursor.pageIdx * common::BufferPoolConstants::PAGE_4KB_SIZE + posCursor.offsetInPage;
     assert(offsetInBuffer + numBytesPerValue <= numBytes);
     return offsetInBuffer;
 }
