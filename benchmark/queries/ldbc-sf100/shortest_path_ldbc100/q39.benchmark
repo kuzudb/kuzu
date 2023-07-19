@@ -1,0 +1,5 @@
+-NAME q39
+-COMPARE_RESULT 1
+-QUERY MATCH (a:Person)-[r:knows* SHORTEST 1..30]->(b:Person) WHERE a.ID = 94 AND b.ID = 30786325764357 RETURN length(r)
+---- 1
+4
