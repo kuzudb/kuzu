@@ -8,6 +8,16 @@
 namespace kuzu {
 namespace processor {
 
+// 3 conditions to check to decide if an existing SSSPSharedState object is
+// reusable or not (to ensure thread safety):
+// 1) the local state has been marked as MORSEL_COMPLETE
+// 2) no. of threads active (tracks threads doing bfs extension) is 0
+// 3) set containing thread_id of threads doing path length writing is empty
+bool SSSPSharedState::isComplete() const {
+    return ssspLocalState == MORSEL_COMPLETE && numThreadsActiveOnMorsel == 0u &&
+           pathLengthThreadWriters.empty();
+}
+
 void SSSPSharedState::reset(TargetDstNodes* targetDstNodes) {
     ssspLocalState = EXTEND_IN_PROGRESS;
     currentLevel = 0u;
@@ -89,18 +99,18 @@ bool SSSPSharedState::finishBFSMorsel(BaseBFSMorsel* bfsMorsel) {
     numVisitedNodes += shortestPathMorsel->getNumVisitedDstNodes();
     if (numThreadsActiveOnMorsel == 0 && nextScanStartIdx == bfsLevelNodeOffsets.size()) {
         moveNextLevelAsCurrentLevel();
-        if (isComplete(shortestPathMorsel->targetDstNodes->getNumNodes())) {
+        if (isBFSComplete(shortestPathMorsel->targetDstNodes->getNumNodes())) {
             ssspLocalState = PATH_LENGTH_WRITE_IN_PROGRESS;
             return true;
         }
-    } else if (isComplete(shortestPathMorsel->targetDstNodes->getNumNodes())) {
+    } else if (isBFSComplete(shortestPathMorsel->targetDstNodes->getNumNodes())) {
         ssspLocalState = PATH_LENGTH_WRITE_IN_PROGRESS;
         return true;
     }
     return false;
 }
 
-bool SSSPSharedState::isComplete(uint64_t numDstNodesToVisit) {
+bool SSSPSharedState::isBFSComplete(uint64_t numDstNodesToVisit) {
     if (bfsLevelNodeOffsets.empty()) { // no more to extend.
         return true;
     }

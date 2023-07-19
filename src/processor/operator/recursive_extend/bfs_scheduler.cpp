@@ -62,14 +62,7 @@ std::pair<GlobalSSSPState, SSSPLocalState> MorselDispatcher::getBFSMorsel(
                         break;
                     }
                     activeSSSPSharedState[i]->mutex.lock();
-                    // 3 conditions to check to decide if an existing SSSPSharedState object is
-                    // reusable or not (to ensure thread safety):
-                    // 1) the local state has been marked as MORSEL_COMPLETE
-                    // 2) no. of threads active (tracks threads doing bfs extension) is 0
-                    // 3) set containing thread_id of threads doing path length writing is empty
-                    if (activeSSSPSharedState[i]->ssspLocalState == MORSEL_COMPLETE &&
-                        activeSSSPSharedState[i]->numThreadsActiveOnMorsel == 0u &&
-                        activeSSSPSharedState[i]->pathLengthThreadWriters.empty()) {
+                    if (activeSSSPSharedState[i]->isComplete()) {
                         newSharedStateIdx = i;
                         activeSSSPSharedState[i]->mutex.unlock();
                         break;

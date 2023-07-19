@@ -111,6 +111,8 @@ public:
           numThreadsActiveOnMorsel{0u}, nextDstScanStartIdx{0u}, inputFTableTupleIdx{0u},
           pathLengthThreadWriters{std::unordered_set<std::thread::id>()} {}
 
+    bool isComplete() const;
+
     void reset(TargetDstNodes* targetDstNodes);
 
     SSSPLocalState getBFSMorsel(BaseBFSMorsel* bfsMorsel);
@@ -120,7 +122,7 @@ public:
     bool finishBFSMorsel(BaseBFSMorsel* bfsMorsel);
 
     // If BFS has completed.
-    bool isComplete(uint64_t numDstNodesToVisit);
+    bool isBFSComplete(uint64_t numDstNodesToVisit);
     // Mark src as visited.
     void markSrc(bool isSrcDestination);
 
