@@ -7,41 +7,18 @@
 namespace kuzu {
 namespace processor {
 
-class ReadNPYMorsel : public ReadFileMorsel {
-public:
-    ReadNPYMorsel(common::row_idx_t rowIdx, common::block_idx_t blockIdx, common::row_idx_t numRows,
-        std::string filePath, common::vector_idx_t curFileIdx, common::row_idx_t rowIdxInFile)
-        : ReadFileMorsel{rowIdx, blockIdx, numRows, std::move(filePath), rowIdxInFile},
-          columnIdx{curFileIdx} {}
-
-    inline common::vector_idx_t getColumnIdx() const { return columnIdx; }
-
-private:
-    common::vector_idx_t columnIdx;
-};
-
-class ReadNPYSharedState : public ReadFileSharedState {
-public:
-    ReadNPYSharedState(catalog::NodeTableSchema* tableSchema, std::vector<std::string> filePaths)
-        : ReadFileSharedState{std::move(filePaths), tableSchema} {}
-
-    std::unique_ptr<ReadFileMorsel> getMorsel() final;
-
-private:
-    void countNumRows() final;
-};
-
 class ReadNPY : public ReadFile {
 public:
     ReadNPY(const DataPos& rowIdxVectorPos, const DataPos& filePathVectorPos,
         std::vector<DataPos> arrowColumnPoses, const DataPos& columnIdxPos,
-        std::shared_ptr<ReadFileSharedState> sharedState, uint32_t id,
+        std::shared_ptr<storage::ReadFileSharedState> sharedState, uint32_t id,
         const std::string& paramsString)
         : ReadFile{rowIdxVectorPos, filePathVectorPos, std::move(arrowColumnPoses),
               std::move(sharedState), PhysicalOperatorType::READ_NPY, id, paramsString},
           columnIdxPos{columnIdxPos}, columnIdxVector{nullptr} {}
 
-    std::shared_ptr<arrow::RecordBatch> readTuples(std::unique_ptr<ReadFileMorsel> morsel) final;
+    std::shared_ptr<arrow::RecordBatch> readTuples(
+        std::unique_ptr<storage::ReadFileMorsel> morsel) final;
 
     bool getNextTuplesInternal(ExecutionContext* context) final;
 

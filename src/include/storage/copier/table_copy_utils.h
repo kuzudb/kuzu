@@ -21,81 +21,10 @@ namespace kuzu {
 namespace storage {
 
 struct FileBlockInfo {
-    FileBlockInfo(
-        common::offset_t startRowIdx, uint64_t numBlocks, std::vector<uint64_t> numRowsPerBlock)
-        : startRowIdx{startRowIdx}, numBlocks{numBlocks}, numRowsPerBlock{
-                                                              std::move(numRowsPerBlock)} {}
-    common::offset_t startRowIdx;
+    FileBlockInfo(uint64_t numBlocks, std::vector<uint64_t> numRowsPerBlock)
+        : numBlocks{numBlocks}, numRowsPerBlock{std::move(numRowsPerBlock)} {}
     uint64_t numBlocks;
     std::vector<common::row_idx_t> numRowsPerBlock;
-};
-
-class CopyMorsel {
-public:
-    CopyMorsel(common::row_idx_t rowIdx, common::block_idx_t blockIdx, common::row_idx_t numRows,
-        std::string filePath, common::row_idx_t rowIdxInFile)
-        : rowIdx{rowIdx}, blockIdx{blockIdx}, numRows{numRows}, filePath{std::move(filePath)},
-          rowIdxInFile{rowIdxInFile} {};
-    virtual ~CopyMorsel() = default;
-
-public:
-    common::row_idx_t rowIdx;
-    common::block_idx_t blockIdx;
-    common::row_idx_t numRows;
-    std::string filePath;
-    common::row_idx_t rowIdxInFile;
-};
-
-// For CSV file, we need to read in streaming mode, so we need to read one batch at a time.
-class CSVCopyMorsel : public CopyMorsel {
-public:
-    CSVCopyMorsel(common::offset_t startRowIdx, std::string filePath,
-        common::row_idx_t rowIdxInFile, std::shared_ptr<arrow::RecordBatch> recordBatch)
-        : CopyMorsel{startRowIdx, common::INVALID_BLOCK_IDX, common::INVALID_ROW_IDX,
-              std::move(filePath), rowIdxInFile},
-          recordBatch{std::move(recordBatch)} {}
-
-    std::shared_ptr<arrow::RecordBatch> recordBatch;
-};
-
-class CopySharedState {
-public:
-    CopySharedState(std::vector<std::string> filePaths,
-        std::unordered_map<std::string, FileBlockInfo> fileBlockInfos)
-        : filePaths{std::move(filePaths)}, fileIdx{0}, blockIdx{0}, numRows{0},
-          fileBlockInfos{std::move(fileBlockInfos)}, currRowIdxInFile{1} {};
-    virtual ~CopySharedState() = default;
-
-    virtual std::unique_ptr<CopyMorsel> getMorsel();
-
-public:
-    std::vector<std::string> filePaths;
-    common::field_idx_t fileIdx;
-    common::row_idx_t numRows;
-    common::row_idx_t currRowIdxInFile;
-
-protected:
-    std::mutex mtx;
-    std::unordered_map<std::string, FileBlockInfo> fileBlockInfos;
-    common::block_idx_t blockIdx;
-};
-
-// For CSV file, we need to read in streaming mode, so we need to keep the reader in the shared
-// state.
-class CSVCopySharedState : public CopySharedState {
-public:
-    CSVCopySharedState(std::vector<std::string> filePaths,
-        std::unordered_map<std::string, FileBlockInfo> fileBlockInfos,
-        common::CSVReaderConfig* csvReaderConfig, catalog::TableSchema* tableSchema)
-        : CopySharedState{std::move(filePaths), std::move(fileBlockInfos)},
-          csvReaderConfig{csvReaderConfig}, tableSchema{tableSchema} {};
-
-    std::unique_ptr<CopyMorsel> getMorsel() final;
-
-private:
-    common::CSVReaderConfig* csvReaderConfig;
-    catalog::TableSchema* tableSchema;
-    std::shared_ptr<arrow::csv::StreamingReader> reader;
 };
 
 class TableCopyUtils {

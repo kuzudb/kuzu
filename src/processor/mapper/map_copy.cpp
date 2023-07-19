@@ -10,6 +10,7 @@
 #include "processor/operator/table_scan/factorized_table_scan.h"
 
 using namespace kuzu::planner;
+using namespace kuzu::storage;
 
 namespace kuzu {
 namespace processor {
@@ -48,21 +49,23 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCopyNodeToPhysical(Logic
     switch (copy->getCopyDescription().fileType) {
     case (common::CopyDescription::FileType::CSV): {
         readFileSharedState =
-            std::make_shared<ReadCSVSharedState>(*copy->getCopyDescription().csvReaderConfig,
-                copy->getCopyDescription().filePaths, nodeTableSchema);
+            std::make_shared<ReadCSVSharedState>(copy->getCopyDescription().filePaths,
+                *copy->getCopyDescription().csvReaderConfig, nodeTableSchema);
         readFile = std::make_unique<ReadCSV>(rowIdxVectorPos, filePathVectorPos, arrowColumnPoses,
             readFileSharedState, getOperatorID(), copy->getExpressionsForPrinting());
     } break;
     case (common::CopyDescription::FileType::PARQUET): {
-        readFileSharedState = std::make_shared<ReadParquetSharedState>(
-            copy->getCopyDescription().filePaths, nodeTableSchema);
+        readFileSharedState =
+            std::make_shared<ReadParquetSharedState>(copy->getCopyDescription().filePaths,
+                *copy->getCopyDescription().csvReaderConfig, nodeTableSchema);
         readFile =
             std::make_unique<ReadParquet>(rowIdxVectorPos, filePathVectorPos, arrowColumnPoses,
                 readFileSharedState, getOperatorID(), copy->getExpressionsForPrinting());
     } break;
     case (common::CopyDescription::FileType::NPY): {
-        readFileSharedState = std::make_shared<ReadNPYSharedState>(
-            nodeTableSchema, copy->getCopyDescription().filePaths);
+        readFileSharedState =
+            std::make_shared<ReadNPYSharedState>(copy->getCopyDescription().filePaths,
+                *copy->getCopyDescription().csvReaderConfig, nodeTableSchema);
         readFile = std::make_unique<ReadNPY>(rowIdxVectorPos, filePathVectorPos, arrowColumnPoses,
             columnIdxPos, readFileSharedState, getOperatorID(), copy->getExpressionsForPrinting());
     } break;
