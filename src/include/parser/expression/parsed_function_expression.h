@@ -21,6 +21,11 @@ public:
         : ParsedExpression{common::FUNCTION, std::move(left), std::move(right), std::move(rawName)},
           isDistinct{isDistinct}, functionName{std::move(functionName)} {}
 
+    ParsedFunctionExpression(common::ExpressionType type, std::string alias, std::string rawName,
+        parsed_expression_vector children, bool isDistinct, std::string functionName)
+        : ParsedExpression{type, std::move(alias), std::move(rawName), std::move(children)},
+          isDistinct{isDistinct}, functionName{std::move(functionName)} {}
+
     inline bool getIsDistinct() const { return isDistinct; }
 
     inline std::string getFunctionName() const { return functionName; }
@@ -28,6 +33,11 @@ public:
     // A function might have more than 2 parameters.
     inline void addChild(std::unique_ptr<ParsedExpression> child) {
         children.push_back(std::move(child));
+    }
+
+    inline std::unique_ptr<ParsedExpression> copy() const override {
+        return std::make_unique<ParsedFunctionExpression>(
+            type, alias, rawName, copyChildren(), isDistinct, functionName);
     }
 
 private:

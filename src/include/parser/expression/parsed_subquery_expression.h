@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/exception.h"
 #include "parsed_expression.h"
 #include "parser/query/reading_clause/match_clause.h"
 
@@ -13,6 +14,13 @@ public:
         : ParsedExpression{common::EXISTENTIAL_SUBQUERY, std::move(rawName)},
           patternElements{std::move(patternElements)} {}
 
+    ParsedSubqueryExpression(common::ExpressionType type, std::string alias, std::string rawName,
+        parsed_expression_vector children,
+        std::vector<std::unique_ptr<PatternElement>> patternElements,
+        std::unique_ptr<ParsedExpression> whereClause)
+        : ParsedExpression{type, std::move(alias), std::move(rawName), std::move(children)},
+          patternElements{std::move(patternElements)}, whereClause{std::move(whereClause)} {}
+
     inline const std::vector<std::unique_ptr<PatternElement>>& getPatternElements() const {
         return patternElements;
     }
@@ -22,6 +30,10 @@ public:
     }
     inline bool hasWhereClause() const { return whereClause != nullptr; }
     inline ParsedExpression* getWhereClause() const { return whereClause.get(); }
+
+    std::unique_ptr<ParsedExpression> copy() const override {
+        throw common::NotImplementedException{"ParsedPropertyExpression::copy()"};
+    }
 
 private:
     std::vector<std::unique_ptr<PatternElement>> patternElements;

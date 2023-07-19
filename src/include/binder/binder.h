@@ -115,6 +115,9 @@ private:
     /*** bind call ***/
     std::unique_ptr<BoundStatement> bindStandaloneCall(const parser::Statement& statement);
 
+    /*** bind create macro ***/
+    std::unique_ptr<BoundStatement> bindCreateMacro(const parser::Statement& statement);
+
     /*** bind explain ***/
     std::unique_ptr<BoundStatement> bindExplain(const parser::Statement& statement);
 

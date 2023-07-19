@@ -12,6 +12,11 @@ struct ParsedCaseAlternative {
     ParsedCaseAlternative(std::unique_ptr<ParsedExpression> whenExpression,
         std::unique_ptr<ParsedExpression> thenExpression)
         : whenExpression{std::move(whenExpression)}, thenExpression{std::move(thenExpression)} {}
+
+    inline std::unique_ptr<ParsedCaseAlternative> copy() {
+        return std::make_unique<ParsedCaseAlternative>(
+            whenExpression->copy(), thenExpression->copy());
+    }
 };
 
 // Cypher supports 2 types of CaseExpression
@@ -20,9 +25,19 @@ struct ParsedCaseAlternative {
 // 2. CASE
 //    WHEN a.age = 20 THEN ...
 class ParsedCaseExpression : public ParsedExpression {
+    friend class ParsedExpressionChildrenVisitor;
+
 public:
     explicit ParsedCaseExpression(std::string raw)
         : ParsedExpression{common::CASE_ELSE, std::move(raw)} {};
+
+    ParsedCaseExpression(common::ExpressionType type, std::string alias, std::string rawName,
+        parsed_expression_vector children, std::unique_ptr<ParsedExpression> caseExpression,
+        std::vector<std::unique_ptr<ParsedCaseAlternative>> caseAlternatives,
+        std::unique_ptr<ParsedExpression> elseExpression)
+        : ParsedExpression{type, std::move(alias), std::move(rawName), std::move(children)},
+          caseExpression{std::move(caseExpression)}, caseAlternatives{std::move(caseAlternatives)},
+          elseExpression{std::move(elseExpression)} {}
 
     inline void setCaseExpression(std::unique_ptr<ParsedExpression> expression) {
         caseExpression = std::move(expression);
@@ -43,6 +58,8 @@ public:
     }
     inline bool hasElseExpression() const { return elseExpression != nullptr; }
     inline ParsedExpression* getElseExpression() const { return elseExpression.get(); }
+
+    std::unique_ptr<ParsedExpression> copy() const override;
 
 private:
     // Optional. If not specified, directly check next whenExpression

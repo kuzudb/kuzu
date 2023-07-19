@@ -65,6 +65,8 @@ private:
     std::shared_ptr<Expression> bindAggregateFunctionExpression(
         const parser::ParsedExpression& parsedExpression, const std::string& functionName,
         bool isDistinct);
+    std::shared_ptr<Expression> bindMacroExpression(
+        const parser::ParsedExpression& parsedExpression, const std::string& macroName);
     std::shared_ptr<Expression> staticEvaluate(
         const std::string& functionName, const expression_vector& children);
 

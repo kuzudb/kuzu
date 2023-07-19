@@ -49,8 +49,10 @@ std::unique_ptr<Statement> Transformer::transformOcStatement(
         return transformCopyNPY(*ctx.kU_CopyNPY());
     } else if (ctx.kU_CopyCSV()) {
         return transformCopyCSV(*ctx.kU_CopyCSV());
-    } else {
+    } else if (ctx.kU_StandaloneCall()) {
         return transformStandaloneCall(*ctx.kU_StandaloneCall());
+    } else {
+        return transformCreateMacro(*ctx.kU_CreateMacro());
     }
 }
 
@@ -1117,6 +1119,32 @@ std::unique_ptr<Statement> Transformer::transformStandaloneCall(
     auto optionName = transformSymbolicName(*ctx.oC_SymbolicName());
     auto parameter = transformLiteral(*ctx.oC_Literal());
     return std::make_unique<StandaloneCall>(std::move(optionName), std::move(parameter));
+}
+
+std::vector<std::string> Transformer::transformPositionalArgs(
+    CypherParser::KU_PositionalArgsContext& ctx) {
+    std::vector<std::string> positionalArgs;
+    for (auto& positionalArg : ctx.oC_SymbolicName()) {
+        positionalArgs.push_back(transformSymbolicName(*positionalArg));
+    }
+    return positionalArgs;
+}
+
+std::unique_ptr<Statement> Transformer::transformCreateMacro(
+    CypherParser::KU_CreateMacroContext& ctx) {
+    auto macroName = transformFunctionName(*ctx.oC_FunctionName());
+    auto macroExpression = transformExpression(*ctx.oC_Expression());
+    std::vector<std::string> positionalArgs;
+    if (ctx.kU_PositionalArgs()) {
+        positionalArgs = transformPositionalArgs(*ctx.kU_PositionalArgs());
+    }
+    default_macro_args defaultArgs;
+    for (auto& defaultArg : ctx.kU_DefaultArg()) {
+        defaultArgs.emplace_back(transformSymbolicName(*defaultArg->oC_SymbolicName()),
+            transformLiteral(*defaultArg->oC_Literal()));
+    }
+    return std::make_unique<CreateMacro>(std::move(macroName), std::move(macroExpression),
+        std::move(positionalArgs), std::move(defaultArgs));
 }
 
 std::vector<std::string> Transformer::transformFilePaths(

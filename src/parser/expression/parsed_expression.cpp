@@ -17,5 +17,14 @@ ParsedExpression::ParsedExpression(common::ExpressionType type,
     children.push_back(std::move(right));
 }
 
+parsed_expression_vector ParsedExpression::copyChildren() const {
+    parsed_expression_vector childrenCopy;
+    childrenCopy.reserve(children.size());
+    for (auto& child : children) {
+        childrenCopy.push_back(child->copy());
+    }
+    return childrenCopy;
+}
+
 } // namespace parser
 } // namespace kuzu

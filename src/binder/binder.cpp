@@ -45,6 +45,9 @@ std::unique_ptr<BoundStatement> Binder::bind(const Statement& statement) {
     case StatementType::EXPLAIN: {
         return bindExplain(statement);
     }
+    case StatementType::CREATE_MACRO: {
+        return bindCreateMacro(statement);
+    }
     default:
         assert(false);
     }

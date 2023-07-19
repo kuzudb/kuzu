@@ -1,5 +1,6 @@
 add_library(kuzu_parser_expression
         OBJECT
+        parsed_case_expression.cpp
         parsed_expression.cpp)
 
 set(ALL_OBJECT_FILES

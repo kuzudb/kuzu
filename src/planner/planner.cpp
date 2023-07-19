@@ -11,14 +11,15 @@
 #include "binder/ddl/bound_rename_property.h"
 #include "binder/ddl/bound_rename_table.h"
 #include "binder/expression/variable_expression.h"
+#include "binder/macro/bound_create_macro.h"
 #include "planner/logical_plan/logical_operator/logical_add_property.h"
 #include "planner/logical_plan/logical_operator/logical_copy.h"
+#include "planner/logical_plan/logical_operator/logical_create_macro.h"
 #include "planner/logical_plan/logical_operator/logical_create_node_table.h"
 #include "planner/logical_plan/logical_operator/logical_create_rel_table.h"
 #include "planner/logical_plan/logical_operator/logical_drop_property.h"
 #include "planner/logical_plan/logical_operator/logical_drop_table.h"
 #include "planner/logical_plan/logical_operator/logical_explain.h"
-#include "planner/logical_plan/logical_operator/logical_in_query_call.h"
 #include "planner/logical_plan/logical_operator/logical_rename_property.h"
 #include "planner/logical_plan/logical_operator/logical_rename_table.h"
 #include "planner/logical_plan/logical_operator/logical_standalone_call.h"
@@ -67,6 +68,9 @@ std::unique_ptr<LogicalPlan> Planner::getBestPlan(const Catalog& catalog,
     } break;
     case StatementType::EXPLAIN: {
         plan = planExplain(catalog, nodesStatistics, relsStatistics, statement);
+    } break;
+    case StatementType::CREATE_MACRO: {
+        plan = planCreateMacro(statement);
     } break;
     default:
         throw common::NotImplementedException("getBestPlan()");
@@ -206,6 +210,16 @@ std::unique_ptr<LogicalPlan> Planner::planExplain(const Catalog& catalog,
         statement.getStatementResult()->getSingleExpressionToCollect(), explain.getExplainType(),
         explain.getStatementToExplain()->getStatementResult()->getColumns());
     plan->setLastOperator(std::move(logicalExplain));
+    return plan;
+}
+
+std::unique_ptr<LogicalPlan> Planner::planCreateMacro(const BoundStatement& statement) {
+    auto& createMacro = reinterpret_cast<const BoundCreateMacro&>(statement);
+    auto plan = std::make_unique<LogicalPlan>();
+    auto logicalCreateMacro = make_shared<LogicalCreateMacro>(
+        statement.getStatementResult()->getSingleExpressionToCollect(), createMacro.getMacroName(),
+        createMacro.getMacro());
+    plan->setLastOperator(std::move(logicalCreateMacro));
     return plan;
 }
 

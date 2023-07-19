@@ -13,6 +13,10 @@ public:
 
     inline std::string getParameterName() const { return parameterName; }
 
+    inline std::unique_ptr<ParsedExpression> copy() const override {
+        throw common::NotImplementedException{"ParsedParameterExpression::copy()"};
+    }
+
 private:
     std::string parameterName;
 };
