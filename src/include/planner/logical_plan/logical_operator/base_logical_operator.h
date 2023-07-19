@@ -26,7 +26,6 @@ enum class LogicalOperatorType : uint8_t {
     EXTEND,
     FILTER,
     FLATTEN,
-    FTABLE_SCAN,
     HASH_JOIN,
     IN_QUERY_CALL,
     INDEX_SCAN_NODE,

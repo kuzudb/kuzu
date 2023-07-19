@@ -80,8 +80,6 @@ private:
         planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapLogicalExpressionsScanToPhysical(
         planner::LogicalOperator* logicalOperator);
-    std::unique_ptr<PhysicalOperator> mapLogicalFTableScanToPhysical(
-        planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapLogicalCreateNodeToPhysical(
         planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapLogicalCreateRelToPhysical(
@@ -120,9 +118,13 @@ private:
         planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapLogicalCreateMacroToPhysical(
         planner::LogicalOperator* logicalOperator);
-    std::unique_ptr<ResultCollector> appendResultCollector(
-        const binder::expression_vector& expressionsToCollect, planner::Schema* schema,
+
+    std::unique_ptr<ResultCollector> createResultCollector(
+        const binder::expression_vector& expressions, planner::Schema* schema,
         std::unique_ptr<PhysicalOperator> prevOperator);
+    std::unique_ptr<PhysicalOperator> createFactorizedTableScan(
+        const binder::expression_vector& expressions, planner::Schema* schema,
+        std::shared_ptr<FactorizedTable> table, std::unique_ptr<PhysicalOperator> prevOperator);
 
     inline uint32_t getOperatorID() { return physicalOperatorID++; }
 

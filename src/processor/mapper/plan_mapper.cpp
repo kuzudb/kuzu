@@ -2,9 +2,7 @@
 
 #include <set>
 
-#include "processor/mapper/expression_mapper.h"
 #include "processor/operator/profile.h"
-#include "processor/operator/result_collector.h"
 
 using namespace kuzu::common;
 using namespace kuzu::planner;
@@ -102,9 +100,6 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
     case LogicalOperatorType::EXPRESSIONS_SCAN: {
         physicalOperator = mapLogicalExpressionsScanToPhysical(logicalOperator.get());
     } break;
-    case LogicalOperatorType::FTABLE_SCAN: {
-        physicalOperator = mapLogicalFTableScanToPhysical(logicalOperator.get());
-    } break;
     case LogicalOperatorType::CREATE_NODE: {
         physicalOperator = mapLogicalCreateNodeToPhysical(logicalOperator.get());
     } break;
@@ -166,33 +161,6 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOperatorToPhysical(
     return physicalOperator;
 }
 
-std::unique_ptr<ResultCollector> PlanMapper::appendResultCollector(
-    const binder::expression_vector& expressionsToCollect, Schema* schema,
-    std::unique_ptr<PhysicalOperator> prevOperator) {
-    bool hasUnFlatColumn = false;
-    std::vector<DataPos> payloadsPos;
-    auto tableSchema = std::make_unique<FactorizedTableSchema>();
-    for (auto& expression : expressionsToCollect) {
-        auto dataPos = DataPos(schema->getExpressionPos(*expression));
-        std::unique_ptr<ColumnSchema> columnSchema;
-        if (schema->getGroup(dataPos.dataChunkPos)->isFlat()) {
-            columnSchema = std::make_unique<ColumnSchema>(false /* isUnFlat */,
-                dataPos.dataChunkPos, LogicalTypeUtils::getRowLayoutSize(expression->dataType));
-        } else {
-            columnSchema = std::make_unique<ColumnSchema>(
-                true /* isUnFlat */, dataPos.dataChunkPos, (uint32_t)sizeof(overflow_value_t));
-            hasUnFlatColumn = true;
-        }
-        tableSchema->appendColumn(std::move(columnSchema));
-        payloadsPos.push_back(dataPos);
-    }
-    auto sharedState = std::make_shared<FTableSharedState>(
-        memoryManager, tableSchema->copy(), hasUnFlatColumn ? 1 : common::DEFAULT_VECTOR_CAPACITY);
-    return make_unique<ResultCollector>(std::make_unique<ResultSetDescriptor>(schema),
-        tableSchema->copy(), payloadsPos, sharedState, std::move(prevOperator), getOperatorID(),
-        binder::ExpressionUtil::toString(expressionsToCollect));
-}
-
 std::vector<DataPos> PlanMapper::getExpressionsDataPos(
     const binder::expression_vector& expressions, const planner::Schema& schema) {
     std::vector<DataPos> result;
@@ -209,7 +177,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::appendResultCollectorIfNotCopy(
     // the resultCollector.
     if (lastOperator->getOperatorType() != PhysicalOperatorType::COPY_REL &&
         lastOperator->getOperatorType() != PhysicalOperatorType::COPY_NPY) {
-        lastOperator = appendResultCollector(expressionsToCollect, schema, std::move(lastOperator));
+        lastOperator = createResultCollector(expressionsToCollect, schema, std::move(lastOperator));
     }
     return lastOperator;
 }

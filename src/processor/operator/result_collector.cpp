@@ -6,21 +6,13 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace processor {
 
-std::unique_ptr<FTableScanMorsel> FTableSharedState::getMorsel() {
-    std::lock_guard<std::mutex> lck{mtx};
-    auto numTuplesToScan = std::min(maxMorselSize, table->getNumTuples() - nextTupleIdxToScan);
-    auto morsel =
-        std::make_unique<FTableScanMorsel>(table.get(), nextTupleIdxToScan, numTuplesToScan);
-    nextTupleIdxToScan += numTuplesToScan;
-    return morsel;
-}
-
 void ResultCollector::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
-    payloadVectors.reserve(payloadsPos.size());
-    for (auto& pos : payloadsPos) {
+    payloadVectors.reserve(info->payloadPositions.size());
+    for (auto& pos : info->payloadPositions) {
         payloadVectors.push_back(resultSet->getValueVector(pos).get());
     }
-    localTable = std::make_unique<FactorizedTable>(context->memoryManager, tableSchema->copy());
+    localTable =
+        std::make_unique<FactorizedTable>(context->memoryManager, info->tableSchema->copy());
 }
 
 void ResultCollector::executeInternal(ExecutionContext* context) {

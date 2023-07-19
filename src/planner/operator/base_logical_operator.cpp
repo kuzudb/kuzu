@@ -67,9 +67,6 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
     case LogicalOperatorType::FLATTEN: {
         return "FLATTEN";
     }
-    case LogicalOperatorType::FTABLE_SCAN: {
-        return "FTABLE_SCAN";
-    }
     case LogicalOperatorType::HASH_JOIN: {
         return "HASH_JOIN";
     }

@@ -3,7 +3,6 @@
 #include "binder/expression/expression_visitor.h"
 #include "planner/join_order/cost_model.h"
 #include "planner/logical_plan/logical_operator/logical_cross_product.h"
-#include "planner/logical_plan/logical_operator/logical_ftable_scan.h"
 #include "planner/logical_plan/logical_operator/logical_scan_node.h"
 #include "planner/query_planner.h"
 
