@@ -15,7 +15,7 @@ namespace processor {
 std::pair<GlobalSSSPState, SSSPLocalState> MorselDispatcher::getBFSMorsel(
     const std::shared_ptr<FTableSharedState>& inputFTableSharedState,
     std::vector<common::ValueVector*> vectorsToScan, std::vector<ft_col_idx_t> colIndicesToScan,
-    common::ValueVector* srcNodeIDVector, std::unique_ptr<BaseBFSMorsel>& bfsMorsel) {
+    common::ValueVector* srcNodeIDVector, BaseBFSMorsel* bfsMorsel) {
     std::unique_lock lck{mutex};
     switch (schedulerType) {
     case SchedulerType::OneThreadOneMorsel: {
@@ -47,33 +47,46 @@ std::pair<GlobalSSSPState, SSSPLocalState> MorselDispatcher::getBFSMorsel(
                     return {globalState, NO_WORK_TO_SHARE};
                 }
                 numActiveSSSP++;
-                auto newSSSPSharedState =
-                    std::make_shared<SSSPSharedState>(upperBound, lowerBound, maxOffset);
                 inputFTableSharedState->getTable()->scan(vectorsToScan,
                     inputFTableMorsel->startTupleIdx, inputFTableMorsel->numTuples,
                     colIndicesToScan);
-                newSSSPSharedState->reset(bfsMorsel->targetDstNodes);
-                newSSSPSharedState->inputFTableTupleIdx = inputFTableMorsel->startTupleIdx;
                 auto nodeID = srcNodeIDVector->getValue<common::nodeID_t>(
                     srcNodeIDVector->state->selVector->selectedPositions[0]);
-                newSSSPSharedState->srcOffset = nodeID.offset;
-                newSSSPSharedState->markSrc(bfsMorsel->targetDstNodes->contains(nodeID));
-                newSSSPSharedState->getBFSMorsel(bfsMorsel.get());
+                uint32_t newSharedStateIdx = UINT32_MAX;
                 // Find a position for the new SSSP in the list, there are 2 candidates:
                 // 1) the position has a nullptr, add the shared state there
                 // 2) the SSSP is marked MORSEL_COMPLETE, it is complete and can be replaced
-                for (auto& sharedState : activeSSSPSharedState) {
-                    if (!sharedState) {
-                        sharedState = newSSSPSharedState;
-                        return {IN_PROGRESS, EXTEND_IN_PROGRESS};
+                for (int i = 0; i < activeSSSPSharedState.size(); i++) {
+                    if (!activeSSSPSharedState[i]) {
+                        newSharedStateIdx = i;
+                        break;
                     }
-                    sharedState->mutex.lock();
-                    if (sharedState->ssspLocalState == MORSEL_COMPLETE) {
-                        sharedState->mutex.unlock();
-                        sharedState = newSSSPSharedState;
-                        return {IN_PROGRESS, EXTEND_IN_PROGRESS};
+                    activeSSSPSharedState[i]->mutex.lock();
+                    // 3 conditions to check to decide if an existing SSSPSharedState object is
+                    // reusable or not (to ensure thread safety):
+                    // 1) the local state has been marked as MORSEL_COMPLETE
+                    // 2) no. of threads active (tracks threads doing bfs extension) is 0
+                    // 3) set containing thread_id of threads doing path length writing is empty
+                    if (activeSSSPSharedState[i]->ssspLocalState == MORSEL_COMPLETE &&
+                        activeSSSPSharedState[i]->numThreadsActiveOnMorsel == 0u &&
+                        activeSSSPSharedState[i]->pathLengthThreadWriters.empty()) {
+                        newSharedStateIdx = i;
+                        activeSSSPSharedState[i]->mutex.unlock();
+                        break;
                     }
-                    sharedState->mutex.unlock();
+                    activeSSSPSharedState[i]->mutex.unlock();
+                }
+                if (newSharedStateIdx == UINT32_MAX || !activeSSSPSharedState[newSharedStateIdx]) {
+                    auto newSSSPSharedState =
+                        std::make_shared<SSSPSharedState>(upperBound, lowerBound, maxOffset);
+                    setUpNewSSSPSharedState(
+                        newSSSPSharedState, bfsMorsel, inputFTableMorsel.get(), nodeID);
+                    if (newSharedStateIdx != UINT32_MAX) {
+                        activeSSSPSharedState[newSharedStateIdx] = newSSSPSharedState;
+                    }
+                } else {
+                    setUpNewSSSPSharedState(activeSSSPSharedState[newSharedStateIdx], bfsMorsel,
+                        inputFTableMorsel.get(), nodeID);
                 }
                 return {IN_PROGRESS, EXTEND_IN_PROGRESS};
             } else {
@@ -83,6 +96,15 @@ std::pair<GlobalSSSPState, SSSPLocalState> MorselDispatcher::getBFSMorsel(
         }
     }
     }
+}
+
+void MorselDispatcher::setUpNewSSSPSharedState(std::shared_ptr<SSSPSharedState>& newSSSPSharedState,
+    BaseBFSMorsel* bfsMorsel, FTableScanMorsel* inputFTableMorsel, common::nodeID_t nodeID) {
+    newSSSPSharedState->reset(bfsMorsel->targetDstNodes);
+    newSSSPSharedState->inputFTableTupleIdx = inputFTableMorsel->startTupleIdx;
+    newSSSPSharedState->srcOffset = nodeID.offset;
+    newSSSPSharedState->markSrc(bfsMorsel->targetDstNodes->contains(nodeID));
+    newSSSPSharedState->getBFSMorsel(bfsMorsel);
 }
 
 uint32_t MorselDispatcher::getNextAvailableSSSPWork() {
@@ -107,14 +129,13 @@ uint32_t MorselDispatcher::getNextAvailableSSSPWork() {
  * FALSE if bfsExtension work was found i.e a range from current frontier to extend.
  */
 std::pair<GlobalSSSPState, SSSPLocalState> MorselDispatcher::findAvailableSSSP(
-    std::unique_ptr<BaseBFSMorsel>& bfsMorsel) {
+    BaseBFSMorsel* bfsMorsel) {
     std::pair<GlobalSSSPState, SSSPLocalState> state{globalState, NO_WORK_TO_SHARE};
     auto availableSSSPIdx = getNextAvailableSSSPWork();
     if (availableSSSPIdx == UINT32_MAX) {
         return state;
     }
-    auto tempState = activeSSSPSharedState[availableSSSPIdx]->getBFSMorsel(bfsMorsel.get());
-    state = {globalState, tempState};
+    state.second = activeSSSPSharedState[availableSSSPIdx]->getBFSMorsel(bfsMorsel);
     return state;
 }
 
@@ -142,7 +163,8 @@ int64_t MorselDispatcher::writeDstNodeIDAndPathLength(
      */
     if (startScanIdxAndSize.first == UINT64_MAX && startScanIdxAndSize.second == INT64_MAX) {
         return -1;
-    } else if (startScanIdxAndSize.second == -1) {
+    }
+    if (startScanIdxAndSize.second == -1) {
         mutex.lock();
         numActiveSSSP--;
         // If all SSSP have been completed indicated by count (numActiveSSSP == 0) and no more

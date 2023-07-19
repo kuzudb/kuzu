@@ -184,9 +184,8 @@ bool RecursiveJoin::scanOutput() {
              */
             if (ret > 0) {
                 return true;
-            } else if (ret == 0) {
-                continue;
-            } else {
+            }
+            if (ret < 0) {
                 return false;
             }
         }
@@ -204,7 +203,7 @@ bool RecursiveJoin::scanOutput() {
 bool RecursiveJoin::computeBFS(kuzu::processor::ExecutionContext* context) {
     if (sharedState->getSchedulerType() == SchedulerType::OneThreadOneMorsel) {
         auto state = sharedState->getBFSMorsel(
-            vectorsToScan, colIndicesToScan, vectors->srcNodeIDVector, bfsMorsel);
+            vectorsToScan, colIndicesToScan, vectors->srcNodeIDVector, bfsMorsel.get());
         if (state.first == COMPLETE) {
             return false;
         }
@@ -226,7 +225,7 @@ bool RecursiveJoin::computeBFS(kuzu::processor::ExecutionContext* context) {
                 }
             }
             auto state = sharedState->getBFSMorsel(
-                vectorsToScan, colIndicesToScan, vectors->srcNodeIDVector, bfsMorsel);
+                vectorsToScan, colIndicesToScan, vectors->srcNodeIDVector, bfsMorsel.get());
             if (state.first == COMPLETE) {
                 return false;
             }
