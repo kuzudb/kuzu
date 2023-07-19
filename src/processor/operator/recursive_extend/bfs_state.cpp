@@ -29,6 +29,7 @@ void SSSPSharedState::reset(TargetDstNodes* targetDstNodes) {
     numThreadsActiveOnMorsel = 0u;
     nextDstScanStartIdx = 0u;
     inputFTableTupleIdx = 0u;
+    pathLengthThreadWriters = std::unordered_set<std::thread::id>();
 }
 
 /*
@@ -143,15 +144,18 @@ void SSSPSharedState::moveNextLevelAsCurrentLevel() {
 std::pair<uint64_t, int64_t> SSSPSharedState::getDstPathLengthMorsel() {
     std::unique_lock lck{mutex};
     if (ssspLocalState != PATH_LENGTH_WRITE_IN_PROGRESS) {
+        pathLengthThreadWriters.erase(std::this_thread::get_id());
         return {UINT64_MAX, INT64_MAX};
     } else if (nextDstScanStartIdx == visitedNodes.size()) {
         ssspLocalState = MORSEL_COMPLETE;
+        pathLengthThreadWriters.erase(std::this_thread::get_id());
         return {0, -1};
     }
     auto sizeToScan =
         std::min(common::DEFAULT_VECTOR_CAPACITY, visitedNodes.size() - nextDstScanStartIdx);
     std::pair<uint64_t, uint32_t> startScanIdxAndSize = {nextDstScanStartIdx, sizeToScan};
     nextDstScanStartIdx += sizeToScan;
+    pathLengthThreadWriters.insert(std::this_thread::get_id());
     return startScanIdxAndSize;
 }
 

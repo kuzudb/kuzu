@@ -41,12 +41,14 @@ public:
         const std::shared_ptr<FTableSharedState>& inputFTableSharedState,
         const std::vector<common::ValueVector*> vectorsToScan,
         const std::vector<ft_col_idx_t> colIndicesToScan, common::ValueVector* srcNodeIDVector,
-        std::unique_ptr<BaseBFSMorsel>& bfsMorsel);
+        BaseBFSMorsel* bfsMorsel);
+
+    static void setUpNewSSSPSharedState(std::shared_ptr<SSSPSharedState>& newSSSPSharedState,
+        BaseBFSMorsel* bfsMorsel, FTableScanMorsel* inputFTableMorsel, common::nodeID_t nodeID);
 
     uint32_t getNextAvailableSSSPWork();
 
-    std::pair<GlobalSSSPState, SSSPLocalState> findAvailableSSSP(
-        std::unique_ptr<BaseBFSMorsel>& bfsMorsel);
+    std::pair<GlobalSSSPState, SSSPLocalState> findAvailableSSSP(BaseBFSMorsel* bfsMorsel);
 
     int64_t writeDstNodeIDAndPathLength(
         const std::shared_ptr<FTableSharedState>& inputFTableSharedState,

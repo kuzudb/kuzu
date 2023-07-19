@@ -32,7 +32,7 @@ struct RecursiveJoinSharedState {
     inline std::pair<GlobalSSSPState, SSSPLocalState> getBFSMorsel(
         const std::vector<common::ValueVector*>& vectorsToScan,
         const std::vector<ft_col_idx_t>& colIndicesToScan, common::ValueVector* srcNodeIDVector,
-        std::unique_ptr<BaseBFSMorsel>& bfsMorsel) {
+        BaseBFSMorsel* bfsMorsel) {
         return morselDispatcher->getBFSMorsel(
             inputFTableSharedState, vectorsToScan, colIndicesToScan, srcNodeIDVector, bfsMorsel);
     }

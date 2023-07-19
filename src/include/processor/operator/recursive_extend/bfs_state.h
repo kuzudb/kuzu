@@ -108,7 +108,8 @@ public:
           pathLength{std::vector<uint8_t>(maxNodeOffset_ + 1, 0u)},
           bfsLevelNodeOffsets{std::vector<common::offset_t>()}, srcOffset{0u},
           maxOffset{maxNodeOffset_}, upperBound{upperBound_}, lowerBound{lowerBound_},
-          numThreadsActiveOnMorsel{0u}, nextDstScanStartIdx{0u}, inputFTableTupleIdx{0u} {}
+          numThreadsActiveOnMorsel{0u}, nextDstScanStartIdx{0u}, inputFTableTupleIdx{0u},
+          pathLengthThreadWriters{std::unordered_set<std::thread::id>()} {}
 
     void reset(TargetDstNodes* targetDstNodes);
 
@@ -130,9 +131,7 @@ public:
 public:
     std::mutex mutex;
     SSSPLocalState ssspLocalState;
-    // Level state
     uint8_t currentLevel;
-
     uint64_t nextScanStartIdx;
 
     // Visited state
@@ -149,6 +148,8 @@ public:
     uint32_t numThreadsActiveOnMorsel;
     uint64_t nextDstScanStartIdx;
     uint64_t inputFTableTupleIdx;
+    // To track which threads are writing path lengths to their ValueVectors
+    std::unordered_set<std::thread::id> pathLengthThreadWriters;
 };
 
 struct BaseBFSMorsel {
