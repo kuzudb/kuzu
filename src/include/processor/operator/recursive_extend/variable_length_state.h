@@ -6,12 +6,15 @@ namespace kuzu {
 namespace processor {
 
 template<bool TRACK_PATH>
-struct VariableLengthState : public BaseBFSState {
-    VariableLengthState(uint8_t upperBound, TargetDstNodes* targetDstNodes)
-        : BaseBFSState{upperBound, targetDstNodes} {}
-    ~VariableLengthState() override = default;
+struct VariableLengthMorsel : public BaseBFSMorsel {
+    VariableLengthMorsel(uint8_t upperBound, uint8_t lowerBound, TargetDstNodes* targetDstNodes)
+        : BaseBFSMorsel{targetDstNodes, upperBound, lowerBound} {}
+    ~VariableLengthMorsel() override = default;
 
-    inline void resetState() final { BaseBFSState::resetState(); }
+    inline bool getRecursiveJoinType() final { return TRACK_PATH; }
+
+    inline void resetState() final { BaseBFSMorsel::resetState(); }
+
     inline bool isComplete() final { return isCurrentFrontierEmpty() || isUpperBoundReached(); }
 
     inline void markSrc(common::nodeID_t nodeID) final {

@@ -36,7 +36,7 @@ size_t BaseFrontierScanner::scan(RecursiveJoinVectors* vectors, common::sel_t& v
     return vectorPos - vectorPosBeforeScanning;
 }
 
-void BaseFrontierScanner::resetState(const BaseBFSState& bfsState) {
+void BaseFrontierScanner::resetState(const BaseBFSMorsel& bfsState) {
     lastFrontierCursor = 0;
     currentDstNodeID = {common::INVALID_OFFSET, common::INVALID_TABLE_ID};
     frontiers.clear();

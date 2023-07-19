@@ -1,5 +1,8 @@
 #pragma once
 
+#include <utility>
+
+#include "bfs_scheduler.h"
 #include "bfs_state.h"
 #include "common/query_rel_type.h"
 #include "frontier_scanner.h"
@@ -13,10 +16,35 @@ namespace processor {
 class ScanFrontier;
 
 struct RecursiveJoinSharedState {
+    std::shared_ptr<MorselDispatcher> morselDispatcher;
+    std::shared_ptr<FTableSharedState> inputFTableSharedState;
     std::vector<std::unique_ptr<NodeOffsetSemiMask>> semiMasks;
 
-    RecursiveJoinSharedState(std::vector<std::unique_ptr<NodeOffsetSemiMask>> semiMasks)
-        : semiMasks{std::move(semiMasks)} {}
+    RecursiveJoinSharedState(std::shared_ptr<MorselDispatcher> morselDispatcher,
+        std::shared_ptr<FTableSharedState> inputFTableSharedState,
+        std::vector<std::unique_ptr<NodeOffsetSemiMask>> semiMasks)
+        : morselDispatcher{std::move(morselDispatcher)},
+          inputFTableSharedState{std::move(inputFTableSharedState)}, semiMasks{
+                                                                         std::move(semiMasks)} {}
+
+    inline SchedulerType getSchedulerType() { return morselDispatcher->getSchedulerType(); }
+
+    inline std::pair<GlobalSSSPState, SSSPLocalState> getBFSMorsel(
+        const std::vector<common::ValueVector*>& vectorsToScan,
+        const std::vector<ft_col_idx_t>& colIndicesToScan, common::ValueVector* srcNodeIDVector,
+        BaseBFSMorsel* bfsMorsel) {
+        return morselDispatcher->getBFSMorsel(
+            inputFTableSharedState, vectorsToScan, colIndicesToScan, srcNodeIDVector, bfsMorsel);
+    }
+
+    inline int64_t writeDstNodeIDAndPathLength(
+        const std::vector<common::ValueVector*>& vectorsToScan,
+        const std::vector<ft_col_idx_t>& colIndicesToScan, common::ValueVector* dstNodeIDVector,
+        common::ValueVector* pathLengthVector, common::table_id_t tableID,
+        std::unique_ptr<BaseBFSMorsel>& bfsMorsel) {
+        return morselDispatcher->writeDstNodeIDAndPathLength(inputFTableSharedState, vectorsToScan,
+            colIndicesToScan, dstNodeIDVector, pathLengthVector, tableID, bfsMorsel);
+    }
 };
 
 struct RecursiveJoinDataInfo {
@@ -74,16 +102,20 @@ class RecursiveJoin : public PhysicalOperator {
 public:
     RecursiveJoin(uint8_t lowerBound, uint8_t upperBound, common::QueryRelType queryRelType,
         planner::RecursiveJoinType joinType, std::shared_ptr<RecursiveJoinSharedState> sharedState,
-        std::unique_ptr<RecursiveJoinDataInfo> dataInfo, std::unique_ptr<PhysicalOperator> child,
+        std::unique_ptr<RecursiveJoinDataInfo> dataInfo, std::vector<DataPos>& vectorsToScanPos,
+        std::vector<ft_col_idx_t>& colIndicesToScan, std::unique_ptr<PhysicalOperator> child,
         uint32_t id, const std::string& paramsString,
         std::unique_ptr<PhysicalOperator> recursiveRoot)
         : PhysicalOperator{PhysicalOperatorType::RECURSIVE_JOIN, std::move(child), id,
               paramsString},
           lowerBound{lowerBound}, upperBound{upperBound}, queryRelType{queryRelType},
           joinType{joinType}, sharedState{std::move(sharedState)}, dataInfo{std::move(dataInfo)},
+          vectorsToScanPos{vectorsToScanPos}, colIndicesToScan{colIndicesToScan},
           recursiveRoot{std::move(recursiveRoot)} {}
 
     inline RecursiveJoinSharedState* getSharedState() const { return sharedState.get(); }
+
+    void initGlobalStateInternal(ExecutionContext* context) final;
 
     void initLocalStateInternal(ResultSet* resultSet_, ExecutionContext* context) final;
 
@@ -91,8 +123,8 @@ public:
 
     inline std::unique_ptr<PhysicalOperator> clone() final {
         return std::make_unique<RecursiveJoin>(lowerBound, upperBound, queryRelType, joinType,
-            sharedState, dataInfo->copy(), children[0]->clone(), id, paramsString,
-            recursiveRoot->clone());
+            sharedState, dataInfo->copy(), vectorsToScanPos, colIndicesToScan, children[0]->clone(),
+            id, paramsString, recursiveRoot->clone());
     }
 
 private:
@@ -102,8 +134,12 @@ private:
 
     bool scanOutput();
 
+    bool computeBFS(ExecutionContext* context);
+
+    void computeBFSnThreadkMorsel(ExecutionContext* context);
+
     // Compute BFS for a given src node.
-    void computeBFS(ExecutionContext* context);
+    void computeBFSOneThreadOneMorsel(ExecutionContext* context);
 
     void updateVisitedNodes(common::nodeID_t boundNodeID);
 
@@ -122,9 +158,14 @@ private:
     ScanFrontier* scanFrontier;
 
     std::unique_ptr<RecursiveJoinVectors> vectors;
-    std::unique_ptr<BaseBFSState> bfsState;
     std::unique_ptr<FrontiersScanner> frontiersScanner;
     std::unique_ptr<TargetDstNodes> targetDstNodes;
+
+    /// NEW MEMBERS BEING ADDED
+    std::vector<DataPos> vectorsToScanPos;
+    std::vector<common::ValueVector*> vectorsToScan;
+    std::vector<ft_col_idx_t> colIndicesToScan;
+    std::unique_ptr<BaseBFSMorsel> bfsMorsel;
 };
 
 } // namespace processor

@@ -2,7 +2,6 @@
 
 #include "processor/operator/recursive_extend/all_shortest_path_state.h"
 #include "processor/operator/recursive_extend/scan_frontier.h"
-#include "processor/operator/recursive_extend/shortest_path_state.h"
 #include "processor/operator/recursive_extend/variable_length_state.h"
 
 using namespace kuzu::common;
@@ -10,7 +9,14 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
+void RecursiveJoin::initGlobalStateInternal(kuzu::processor::ExecutionContext* context) {
+    sharedState->morselDispatcher->initActiveSSSPSharedState(context->numThreads);
+}
+
 void RecursiveJoin::initLocalStateInternal(ResultSet* resultSet_, ExecutionContext* context) {
+    for (auto& dataPos : vectorsToScanPos) {
+        vectorsToScan.push_back(resultSet->getValueVector(dataPos).get());
+    }
     populateTargetDstNodes();
     vectors = std::make_unique<RecursiveJoinVectors>();
     vectors->srcNodeIDVector = resultSet->getValueVector(dataInfo->srcNodePos).get();
@@ -22,15 +28,15 @@ void RecursiveJoin::initLocalStateInternal(ResultSet* resultSet_, ExecutionConte
         switch (joinType) {
         case planner::RecursiveJoinType::TRACK_PATH: {
             vectors->pathVector = resultSet->getValueVector(dataInfo->pathPos).get();
-            bfsState = std::make_unique<VariableLengthState<true /* TRACK_PATH */>>(
-                upperBound, targetDstNodes.get());
+            bfsMorsel = std::make_unique<VariableLengthMorsel<true /* TRACK_PATH */>>(
+                upperBound, lowerBound, targetDstNodes.get());
             for (auto i = lowerBound; i <= upperBound; ++i) {
                 scanners.push_back(std::make_unique<PathScanner>(targetDstNodes.get(), i));
             }
         } break;
         case planner::RecursiveJoinType::TRACK_NONE: {
-            bfsState = std::make_unique<VariableLengthState<false /* TRACK_PATH */>>(
-                upperBound, targetDstNodes.get());
+            bfsMorsel = std::make_unique<VariableLengthMorsel<false /* TRACK_PATH */>>(
+                upperBound, lowerBound, targetDstNodes.get());
             for (auto i = lowerBound; i <= upperBound; ++i) {
                 scanners.push_back(
                     std::make_unique<DstNodeWithMultiplicityScanner>(targetDstNodes.get(), i));
@@ -44,15 +50,15 @@ void RecursiveJoin::initLocalStateInternal(ResultSet* resultSet_, ExecutionConte
         switch (joinType) {
         case planner::RecursiveJoinType::TRACK_PATH: {
             vectors->pathVector = resultSet->getValueVector(dataInfo->pathPos).get();
-            bfsState = std::make_unique<ShortestPathState<true /* TRACK_PATH */>>(
-                upperBound, targetDstNodes.get());
+            bfsMorsel = std::make_unique<ShortestPathMorsel<true /* TRACK_PATH */>>(
+                upperBound, lowerBound, targetDstNodes.get());
             for (auto i = lowerBound; i <= upperBound; ++i) {
                 scanners.push_back(std::make_unique<PathScanner>(targetDstNodes.get(), i));
             }
         } break;
         case planner::RecursiveJoinType::TRACK_NONE: {
-            bfsState = std::make_unique<ShortestPathState<false /* TRACK_PATH */>>(
-                upperBound, targetDstNodes.get());
+            bfsMorsel = std::make_unique<ShortestPathMorsel<false /* TRACK_PATH */>>(
+                upperBound, lowerBound, targetDstNodes.get());
             for (auto i = lowerBound; i <= upperBound; ++i) {
                 scanners.push_back(std::make_unique<DstNodeScanner>(targetDstNodes.get(), i));
             }
@@ -65,15 +71,15 @@ void RecursiveJoin::initLocalStateInternal(ResultSet* resultSet_, ExecutionConte
         switch (joinType) {
         case planner::RecursiveJoinType::TRACK_PATH: {
             vectors->pathVector = resultSet->getValueVector(dataInfo->pathPos).get();
-            bfsState = std::make_unique<AllShortestPathState<true /* TRACK_PATH */>>(
-                upperBound, targetDstNodes.get());
+            bfsMorsel = std::make_unique<AllShortestPathMorsel<true /* TRACK_PATH */>>(
+                upperBound, lowerBound, targetDstNodes.get());
             for (auto i = lowerBound; i <= upperBound; ++i) {
                 scanners.push_back(std::make_unique<PathScanner>(targetDstNodes.get(), i));
             }
         } break;
         case planner::RecursiveJoinType::TRACK_NONE: {
-            bfsState = std::make_unique<AllShortestPathState<false /* TRACK_PATH */>>(
-                upperBound, targetDstNodes.get());
+            bfsMorsel = std::make_unique<AllShortestPathMorsel<false /* TRACK_PATH */>>(
+                upperBound, lowerBound, targetDstNodes.get());
             for (auto i = lowerBound; i <= upperBound; ++i) {
                 scanners.push_back(
                     std::make_unique<DstNodeWithMultiplicityScanner>(targetDstNodes.get(), i));
@@ -137,37 +143,135 @@ bool RecursiveJoin::getNextTuplesInternal(ExecutionContext* context) {
         if (scanOutput()) { // Phase 2
             return true;
         }
-        if (!children[0]->getNextTuple(context)) {
+        if (!computeBFS(context)) {
             return false;
         }
-        bfsState->resetState();
-        computeBFS(context); // Phase 1
-        frontiersScanner->resetState(*bfsState);
+        frontiersScanner->resetState(*bfsMorsel);
     }
 }
 
+/**
+ * This function differs based on scheduler type. For OneThreadOneMorsel the final results writing
+ * is not shared with other threads. In the other case, other threads can help in writing final
+ * distance values. Return value policy for both is same, true if some value was written to the
+ * vector and false if no values were written.
+ * @return - true if some values were written to the ValueVector, else false
+ */
 bool RecursiveJoin::scanOutput() {
-    common::sel_t offsetVectorSize = 0u;
-    common::sel_t nodeIDDataVectorSize = 0u;
-    common::sel_t relIDDataVectorSize = 0u;
-    if (vectors->pathVector != nullptr) {
-        vectors->pathVector->resetAuxiliaryBuffer();
+    if (sharedState->getSchedulerType() == SchedulerType::OneThreadOneMorsel) {
+        common::sel_t offsetVectorSize = 0u;
+        common::sel_t nodeIDDataVectorSize = 0u;
+        common::sel_t relIDDataVectorSize = 0u;
+        if (vectors->pathVector != nullptr) {
+            vectors->pathVector->resetAuxiliaryBuffer();
+        }
+        frontiersScanner->scan(
+            vectors.get(), offsetVectorSize, nodeIDDataVectorSize, relIDDataVectorSize);
+        if (offsetVectorSize == 0) {
+            return false;
+        }
+        vectors->dstNodeIDVector->state->initOriginalAndSelectedSize(offsetVectorSize);
+        return true;
+    } else {
+        while (true) {
+            auto tableID = *begin(dataInfo->dstNodeTableIDs);
+            auto ret = sharedState->writeDstNodeIDAndPathLength(vectorsToScan, colIndicesToScan,
+                vectors->dstNodeIDVector, vectors->pathLengthVector, tableID, bfsMorsel);
+            /**
+             * ret > 0: non-zero path lengths were written to vector, return to parent op
+             * ret < 0: path length writing is complete, proceed to computeBFS for another morsel
+             * ret = 0: the distance morsel received was empty, go back to get another morsel
+             */
+            if (ret > 0) {
+                return true;
+            }
+            if (ret < 0) {
+                return false;
+            }
+        }
     }
-    frontiersScanner->scan(
-        vectors.get(), offsetVectorSize, nodeIDDataVectorSize, relIDDataVectorSize);
-    if (offsetVectorSize == 0) {
-        return false;
-    }
-    vectors->dstNodeIDVector->state->initOriginalAndSelectedSize(offsetVectorSize);
-    return true;
 }
 
-void RecursiveJoin::computeBFS(ExecutionContext* context) {
-    auto nodeID = vectors->srcNodeIDVector->getValue<common::nodeID_t>(
-        vectors->srcNodeIDVector->state->selVector->selectedPositions[0]);
-    bfsState->markSrc(nodeID);
-    while (!bfsState->isComplete()) {
-        auto boundNodeID = bfsState->getNextNodeID();
+/**
+ * The main computeBFS to be called for both 1T1S and nTkS scheduling policies. Initially for both
+ * cases, the SSSPSharedState ptr will be null.
+ * - For nTkS policy, this will be filled with a pointer to the main SSSPSharedState from which work
+ *   will be fetched. This SSSPSharedState will not be bound to a specific thread and can change.
+ * - For 1T1S policy, there is no SSSPSharedState involved and a thread works on its own morsel, not
+ *   shared with any other thread.
+ */
+bool RecursiveJoin::computeBFS(kuzu::processor::ExecutionContext* context) {
+    if (sharedState->getSchedulerType() == SchedulerType::OneThreadOneMorsel) {
+        auto state = sharedState->getBFSMorsel(
+            vectorsToScan, colIndicesToScan, vectors->srcNodeIDVector, bfsMorsel.get());
+        if (state.first == COMPLETE) {
+            return false;
+        }
+        computeBFSOneThreadOneMorsel(context);
+        return true;
+    } else {
+        while (true) {
+            if (bfsMorsel->hasSSSPSharedState()) {
+                auto state = bfsMorsel->getBFSMorsel();
+                if (state == EXTEND_IN_PROGRESS) {
+                    computeBFSnThreadkMorsel(context);
+                    if (bfsMorsel->finishBFSMorsel()) {
+                        return true;
+                    }
+                    continue;
+                }
+                if (state == PATH_LENGTH_WRITE_IN_PROGRESS) {
+                    return true;
+                }
+            }
+            auto state = sharedState->getBFSMorsel(
+                vectorsToScan, colIndicesToScan, vectors->srcNodeIDVector, bfsMorsel.get());
+            if (state.first == COMPLETE) {
+                return false;
+            }
+            if (state.second == PATH_LENGTH_WRITE_IN_PROGRESS) {
+                return true;
+            }
+            if (state.second == EXTEND_IN_PROGRESS) {
+                computeBFSnThreadkMorsel(context);
+                if (bfsMorsel->finishBFSMorsel()) {
+                    return true;
+                }
+            } else {
+                std::this_thread::sleep_for(
+                    std::chrono::microseconds(common::THREAD_SLEEP_TIME_WHEN_WAITING_IN_MICROS));
+            }
+        }
+    }
+}
+
+// Used for nTkS scheduling policy, extension is done morsel at a time of size 2048. Each thread
+// is operating on its morsel. Lock-free CAS operation occurs here, visited nodes are marked with
+// the function call addToLocalNextBFSLevel on the visited vector. The path lengths are written to
+// the pathLength vector.
+void RecursiveJoin::computeBFSnThreadkMorsel(ExecutionContext* context) {
+    // Cast the BaseBFSMorsel to ShortestPathMorsel, the TRACK_NONE RecursiveJoin is the case it is
+    // applicable for. If true, indicates TRACK_PATH is true else TRACK_PATH is false.
+    assert(bfsMorsel->getRecursiveJoinType() == false);
+    auto shortestPathMorsel =
+        reinterpret_cast<ShortestPathMorsel<false /* TRACK_PATH */>*>(bfsMorsel.get());
+    common::offset_t nodeOffset = shortestPathMorsel->getNextNodeOffset();
+    while (nodeOffset != common::INVALID_OFFSET) {
+        scanFrontier->setNodeID(common::nodeID_t{nodeOffset, *begin(dataInfo->dstNodeTableIDs)});
+        while (recursiveRoot->getNextTuple(context)) { // Exhaust recursive plan.
+            shortestPathMorsel->addToLocalNextBFSLevel(vectors->recursiveDstNodeIDVector);
+        }
+        nodeOffset = shortestPathMorsel->getNextNodeOffset();
+    }
+}
+
+// Used for 1T1S scheduling policy, an offset at a time BFS extension is done, and then we check
+// if the BFS is complete or not. No lock-free CAS operation occurring on the visited vector here.
+// Work not shared between any other threads, the data structures used are unordered_set and
+// unordered_map.
+void RecursiveJoin::computeBFSOneThreadOneMorsel(ExecutionContext* context) {
+    while (!bfsMorsel->isComplete()) {
+        auto boundNodeID = bfsMorsel->getNextNodeID();
         if (boundNodeID.offset != common::INVALID_OFFSET) {
             // Found a starting node from current frontier.
             scanFrontier->setNodeID(boundNodeID);
@@ -176,18 +280,18 @@ void RecursiveJoin::computeBFS(ExecutionContext* context) {
             }
         } else {
             // Otherwise move to the next frontier.
-            bfsState->finalizeCurrentLevel();
+            bfsMorsel->finalizeCurrentLevel();
         }
     }
 }
 
 void RecursiveJoin::updateVisitedNodes(common::nodeID_t boundNodeID) {
-    auto boundNodeMultiplicity = bfsState->getMultiplicity(boundNodeID);
+    auto boundNodeMultiplicity = bfsMorsel->getMultiplicity(boundNodeID);
     for (auto i = 0u; i < vectors->recursiveDstNodeIDVector->state->selVector->selectedSize; ++i) {
         auto pos = vectors->recursiveDstNodeIDVector->state->selVector->selectedPositions[i];
         auto nbrNodeID = vectors->recursiveDstNodeIDVector->getValue<common::nodeID_t>(pos);
         auto edgeID = vectors->recursiveEdgeIDVector->getValue<common::relID_t>(pos);
-        bfsState->markVisited(boundNodeID, nbrNodeID, edgeID, boundNodeMultiplicity);
+        bfsMorsel->markVisited(boundNodeID, nbrNodeID, edgeID, boundNodeMultiplicity);
     }
 }
 

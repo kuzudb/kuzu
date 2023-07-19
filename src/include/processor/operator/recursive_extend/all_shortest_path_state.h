@@ -6,10 +6,13 @@ namespace kuzu {
 namespace processor {
 
 template<bool TRACK_PATH>
-class AllShortestPathState : public BaseBFSState {
+struct AllShortestPathMorsel : public BaseBFSMorsel {
 public:
-    AllShortestPathState(uint8_t upperBound, TargetDstNodes* targetDstNodes)
-        : BaseBFSState{upperBound, targetDstNodes}, minDistance{0}, numVisitedDstNodes{0} {}
+    AllShortestPathMorsel(uint8_t upperBound, uint8_t lowerBound, TargetDstNodes* targetDstNodes)
+        : BaseBFSMorsel{targetDstNodes, upperBound, lowerBound}, minDistance{0}, numVisitedDstNodes{
+                                                                                     0} {}
+
+    inline bool getRecursiveJoinType() final { return TRACK_PATH; }
 
     inline bool isComplete() final {
         return isCurrentFrontierEmpty() || isUpperBoundReached() ||
@@ -17,7 +20,7 @@ public:
     }
 
     inline void resetState() final {
-        BaseBFSState::resetState();
+        BaseBFSMorsel::resetState();
         minDistance = 0;
         numVisitedDstNodes = 0;
         visitedNodeToDistance.clear();

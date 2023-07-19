@@ -23,7 +23,7 @@ public:
     size_t scan(RecursiveJoinVectors* vectors, common::sel_t& vectorPos,
         common::sel_t& nodeIDDataVectorPos, common::sel_t& relIDDataVectorPos);
 
-    void resetState(const BaseBFSState& bfsState);
+    void resetState(const BaseBFSMorsel& bfsState);
 
 protected:
     virtual void initScanFromDstOffset() = 0;
@@ -134,10 +134,10 @@ struct FrontiersScanner {
     void scan(RecursiveJoinVectors* vectors, common::sel_t& vectorPos,
         common::sel_t& nodeIDDataVectorPos, common::sel_t& relIDDataVectorPos);
 
-    inline void resetState(const BaseBFSState& bfsState) {
+    inline void resetState(const BaseBFSMorsel& baseBfsMorsel) {
         cursor = 0;
         for (auto& scanner : scanners) {
-            scanner->resetState(bfsState);
+            scanner->resetState(baseBfsMorsel);
         }
     }
 };
