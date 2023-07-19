@@ -24,11 +24,14 @@ std::unique_ptr<CopyMorsel> CopySharedState::getMorsel() {
             // No more blocks to read in this file.
             fileIdx++;
             blockIdx = 0;
+            currRowIdxInFile = 1;
             continue;
         }
+        auto numRowsInBlock = fileBlockInfo.numRowsPerBlock[blockIdx];
         auto result = std::make_unique<CopyMorsel>(
-            numTuples, blockIdx, fileBlockInfo.numLinesPerBlock[blockIdx], filePath);
-        numTuples += fileBlockInfos.at(filePath).numLinesPerBlock[blockIdx];
+            numRows, blockIdx, numRowsInBlock, filePath, currRowIdxInFile);
+        numRows += numRowsInBlock;
+        currRowIdxInFile += numRowsInBlock;
         blockIdx++;
         return result;
     }
@@ -50,16 +53,20 @@ std::unique_ptr<CopyMorsel> CSVCopySharedState::getMorsel() {
         if (recordBatch == nullptr) {
             // No more blocks to read in this file.
             fileIdx++;
+            currRowIdxInFile = 1;
             reader.reset();
             continue;
         }
-        auto morselNodeOffset = numTuples;
-        numTuples += recordBatch->num_rows();
-        return std::make_unique<CSVCopyMorsel>(morselNodeOffset, filePath, std::move(recordBatch));
+        auto numRowsInBatch = recordBatch->num_rows();
+        auto result = std::make_unique<CSVCopyMorsel>(
+            numRows, filePath, currRowIdxInFile, std::move(recordBatch));
+        numRows += numRowsInBatch;
+        currRowIdxInFile += numRowsInBatch;
+        return result;
     }
 }
 
-tuple_idx_t TableCopyUtils::countNumLines(CopyDescription& copyDescription,
+row_idx_t TableCopyUtils::countNumLines(CopyDescription& copyDescription,
     catalog::TableSchema* tableSchema,
     std::unordered_map<std::string, FileBlockInfo>& fileBlockInfos) {
     switch (copyDescription.fileType) {
@@ -79,10 +86,10 @@ tuple_idx_t TableCopyUtils::countNumLines(CopyDescription& copyDescription,
     }
 }
 
-tuple_idx_t TableCopyUtils::countNumLinesCSV(CopyDescription& copyDescription,
+row_idx_t TableCopyUtils::countNumLinesCSV(CopyDescription& copyDescription,
     catalog::TableSchema* tableSchema,
     std::unordered_map<std::string, FileBlockInfo>& fileBlockInfos) {
-    tuple_idx_t numRows = 0;
+    row_idx_t numRows = 0;
     // TODO: Count each file as a task.
     for (auto& filePath : copyDescription.filePaths) {
         auto csvStreamingReader =
@@ -107,10 +114,10 @@ tuple_idx_t TableCopyUtils::countNumLinesCSV(CopyDescription& copyDescription,
     return numRows;
 }
 
-tuple_idx_t TableCopyUtils::countNumLinesParquet(CopyDescription& copyDescription,
+row_idx_t TableCopyUtils::countNumLinesParquet(CopyDescription& copyDescription,
     catalog::TableSchema* tableSchema,
     std::unordered_map<std::string, FileBlockInfo>& fileBlockInfos) {
-    tuple_idx_t numRows = 0;
+    row_idx_t numRows = 0;
     for (auto& filePath : copyDescription.filePaths) {
         std::unique_ptr<parquet::arrow::FileReader> reader =
             createParquetReader(filePath, tableSchema);

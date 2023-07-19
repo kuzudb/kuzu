@@ -64,7 +64,7 @@ private:
     std::unordered_map<std::string, FileBlockInfo> fileBlockInfos;
     common::TaskScheduler& taskScheduler;
     catalog::RelTableSchema* tableSchema;
-    uint64_t numTuples;
+    common::row_idx_t numRows;
     RelsStatistics* relsStatistics;
     storage::NodesStore& nodesStore;
     storage::RelTable* table;

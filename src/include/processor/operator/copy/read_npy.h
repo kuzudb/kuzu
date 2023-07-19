@@ -9,10 +9,10 @@ namespace processor {
 
 class ReadNPYMorsel : public ReadFileMorsel {
 public:
-    ReadNPYMorsel(common::offset_t nodeOffset, common::block_idx_t blockIdx, uint64_t numNodes,
-        std::string filePath, common::vector_idx_t curFileIdx)
-        : ReadFileMorsel{nodeOffset, blockIdx, numNodes, std::move(filePath)}, columnIdx{
-                                                                                   curFileIdx} {}
+    ReadNPYMorsel(common::row_idx_t rowIdx, common::block_idx_t blockIdx, common::row_idx_t numRows,
+        std::string filePath, common::vector_idx_t curFileIdx, common::row_idx_t rowIdxInFile)
+        : ReadFileMorsel{rowIdx, blockIdx, numRows, std::move(filePath), rowIdxInFile},
+          columnIdx{curFileIdx} {}
 
     inline common::vector_idx_t getColumnIdx() const { return columnIdx; }
 
@@ -28,16 +28,17 @@ public:
     std::unique_ptr<ReadFileMorsel> getMorsel() final;
 
 private:
-    void countNumLines() final;
+    void countNumRows() final;
 };
 
 class ReadNPY : public ReadFile {
 public:
-    ReadNPY(std::vector<DataPos> arrowColumnPoses, const DataPos& offsetVectorPos,
-        const DataPos& columnIdxPos, std::shared_ptr<ReadFileSharedState> sharedState, uint32_t id,
+    ReadNPY(const DataPos& rowIdxVectorPos, const DataPos& filePathVectorPos,
+        std::vector<DataPos> arrowColumnPoses, const DataPos& columnIdxPos,
+        std::shared_ptr<ReadFileSharedState> sharedState, uint32_t id,
         const std::string& paramsString)
-        : ReadFile{std::move(arrowColumnPoses), offsetVectorPos, std::move(sharedState),
-              PhysicalOperatorType::READ_NPY, id, paramsString},
+        : ReadFile{rowIdxVectorPos, filePathVectorPos, std::move(arrowColumnPoses),
+              std::move(sharedState), PhysicalOperatorType::READ_NPY, id, paramsString},
           columnIdxPos{columnIdxPos}, columnIdxVector{nullptr} {}
 
     std::shared_ptr<arrow::RecordBatch> readTuples(std::unique_ptr<ReadFileMorsel> morsel) final;
@@ -47,8 +48,8 @@ public:
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) final;
 
     inline std::unique_ptr<PhysicalOperator> clone() final {
-        return std::make_unique<ReadNPY>(
-            arrowColumnPoses, offsetVectorPos, columnIdxPos, sharedState, id, paramsString);
+        return std::make_unique<ReadNPY>(rowIdxVectorPos, filePathVectorPos, arrowColumnPoses,
+            columnIdxPos, sharedState, id, paramsString);
     }
 
 private:

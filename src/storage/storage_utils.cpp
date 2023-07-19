@@ -189,7 +189,7 @@ void StorageUtils::createFileForNodePropertyWithDefaultVal(table_id_t tableID,
                                           property.propertyID, DBFileType::WAL_VERSION),
             property.dataType);
     auto inMemColumnChunk =
-        inMemColumn->getInMemColumnChunk(0, numNodes - 1, nullptr /* copyDescription */);
+        inMemColumn->createInMemColumnChunk(0, numNodes - 1, nullptr /* copyDescription */);
     if (!isDefaultValNull) {
         // TODO(Guodong): Rework this.
         // inMemColumn->fillWithDefaultVal(defaultVal, numNodes, property.dataType);
@@ -220,7 +220,7 @@ void StorageUtils::createFileForRelColumnPropertyWithDefaultVal(table_id_t relTa
     auto numTuples =
         storageManager.getRelsStore().getRelsStatistics().getNumTuplesForTable(relTableID);
     auto inMemColumnChunk =
-        inMemColumn->getInMemColumnChunk(0, numTuples - 1, nullptr /* copyDescription */);
+        inMemColumn->createInMemColumnChunk(0, numTuples - 1, nullptr /* copyDescription */);
     if (!isDefaultValNull) {
         // TODO(Guodong): Rework this.
         //        inMemColumn->fillWithDefaultVal(defaultVal,

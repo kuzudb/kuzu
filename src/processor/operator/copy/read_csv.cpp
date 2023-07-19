@@ -3,14 +3,14 @@
 namespace kuzu {
 namespace processor {
 
-void ReadCSVSharedState::countNumLines() {
+void ReadCSVSharedState::countNumRows() {
     for (auto& filePath : filePaths) {
         auto csvStreamingReader =
             storage::TableCopyUtils::createCSVReader(filePath, &csvReaderConfig, tableSchema);
         std::shared_ptr<arrow::RecordBatch> currBatch;
         uint64_t numBlocks = 0;
-        std::vector<uint64_t> numLinesPerBlock;
-        auto startNodeOffset = numRows;
+        std::vector<uint64_t> numRowsPerBlock;
+        auto startRowIdx = numRows;
         while (true) {
             storage::TableCopyUtils::throwCopyExceptionIfNotOK(
                 csvStreamingReader->ReadNext(&currBatch));
@@ -19,11 +19,11 @@ void ReadCSVSharedState::countNumLines() {
             }
             ++numBlocks;
             auto currNumRows = currBatch->num_rows();
-            numLinesPerBlock.push_back(currNumRows);
+            numRowsPerBlock.push_back(currNumRows);
             numRows += currNumRows;
         }
         fileBlockInfos.emplace(
-            filePath, storage::FileBlockInfo{startNodeOffset, numBlocks, numLinesPerBlock});
+            filePath, storage::FileBlockInfo{startRowIdx, numBlocks, numRowsPerBlock});
     }
 }
 
@@ -44,12 +44,16 @@ std::unique_ptr<ReadFileMorsel> ReadCSVSharedState::getMorsel() {
         if (recordBatch == nullptr) {
             // No more blocks to read in this file.
             curFileIdx++;
+            currRowIdxInCurrFile = 1;
             reader.reset();
             continue;
         }
-        auto morselNodeOffset = nodeOffset;
-        nodeOffset += recordBatch->num_rows();
-        return std::make_unique<ReadCSVMorsel>(morselNodeOffset, filePath, std::move(recordBatch));
+        auto numRowsInBatch = recordBatch->num_rows();
+        auto result = std::make_unique<ReadCSVMorsel>(
+            currRowIdx, filePath, currRowIdxInCurrFile, std::move(recordBatch));
+        currRowIdx += numRowsInBatch;
+        currRowIdxInCurrFile += numRowsInBatch;
+        return result;
     }
 }
 

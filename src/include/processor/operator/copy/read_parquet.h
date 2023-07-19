@@ -12,24 +12,24 @@ public:
         : ReadFileSharedState{std::move(filePaths), tableSchema} {}
 
 private:
-    void countNumLines() override;
+    void countNumRows() override;
 
     std::unique_ptr<ReadFileMorsel> getMorsel() override;
 };
 
 class ReadParquet : public ReadFile {
 public:
-    ReadParquet(std::vector<DataPos> arrowColumnPoses, DataPos offsetVectorPos,
-        std::shared_ptr<ReadFileSharedState> sharedState, uint32_t id,
-        const std::string& paramsString)
-        : ReadFile{std::move(arrowColumnPoses), std::move(offsetVectorPos), std::move(sharedState),
-              PhysicalOperatorType::READ_PARQUET, id, paramsString} {}
+    ReadParquet(const DataPos& offsetVectorPos, const DataPos& filePathVectorPos,
+        std::vector<DataPos> arrowColumnPoses, std::shared_ptr<ReadFileSharedState> sharedState,
+        uint32_t id, const std::string& paramsString)
+        : ReadFile{offsetVectorPos, filePathVectorPos, std::move(arrowColumnPoses),
+              std::move(sharedState), PhysicalOperatorType::READ_PARQUET, id, paramsString} {}
 
     std::shared_ptr<arrow::RecordBatch> readTuples(std::unique_ptr<ReadFileMorsel> morsel) override;
 
     inline std::unique_ptr<PhysicalOperator> clone() override {
         return std::make_unique<ReadParquet>(
-            arrowColumnPoses, offsetVectorPos, sharedState, id, paramsString);
+            rowIdxVectorPos, filePathVectorPos, arrowColumnPoses, sharedState, id, paramsString);
     }
 
 private:

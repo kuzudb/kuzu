@@ -7,7 +7,8 @@ void LogicalCopy::computeFactorizedSchema() {
     createEmptySchema();
     auto groupPos = schema->createGroup();
     schema->insertToGroupAndScope(arrowColumnExpressions, groupPos);
-    schema->insertToGroupAndScope(offsetExpression, groupPos);
+    schema->insertToGroupAndScope(rowIdxExpression, groupPos);
+    schema->insertToGroupAndScope(filePathExpression, groupPos);
     schema->insertToGroupAndScope(columnIdxExpression, groupPos);
     schema->insertToGroupAndScope(outputExpression, groupPos);
     schema->setGroupAsSingleState(groupPos);
@@ -17,7 +18,8 @@ void LogicalCopy::computeFlatSchema() {
     createEmptySchema();
     schema->createGroup();
     schema->insertToGroupAndScope(arrowColumnExpressions, 0);
-    schema->insertToGroupAndScope(offsetExpression, 0);
+    schema->insertToGroupAndScope(rowIdxExpression, 0);
+    schema->insertToGroupAndScope(filePathExpression, 0);
     schema->insertToGroupAndScope(columnIdxExpression, 0);
     schema->insertToGroupAndScope(outputExpression, 0);
 }

@@ -50,12 +50,6 @@ public:
     explicit CatalogException(const std::string& msg) : Exception("Catalog exception: " + msg){};
 };
 
-class HashIndexException : public Exception {
-public:
-    explicit HashIndexException(const std::string& msg)
-        : Exception("HashIndex exception: " + msg){};
-};
-
 class StorageException : public Exception {
 public:
     explicit StorageException(const std::string& msg) : Exception("Storage exception: " + msg){};

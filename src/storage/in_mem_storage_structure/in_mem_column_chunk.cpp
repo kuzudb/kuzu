@@ -2,7 +2,6 @@
 
 #include "common/string_utils.h"
 #include "common/types/types.h"
-#include "storage/copier/rel_copier.h"
 
 using namespace kuzu::common;
 
@@ -100,12 +99,15 @@ void InMemColumnChunk::copyArrowArray(
             templateCopyValuesAsStringToPage<uint8_t*>(arrowArray, nodeOffsets);
         } break;
         default: {
-            throw common::CopyException("Unsupported data type ");
+            throw common::CopyException(StringUtils::string_format(
+                "Unsupported data type {} for templateCopyValuesAsStringToPage",
+                LogicalTypeUtils::dataTypeToString(dataType)));
         }
         }
     } break;
     default: {
-        throw common::CopyException("Unsupported data type " + arrowArray.type()->ToString());
+        throw common::CopyException(
+            StringUtils::string_format("Unsupported data type {}.", arrowArray.type()->ToString()));
     }
     }
 }

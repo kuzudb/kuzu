@@ -43,18 +43,19 @@ protected:
     }
 
     static void indexLookup(arrow::Array* pkArray, const common::LogicalType& pkColumnType,
-        PrimaryKeyIndex* pkIndex, common::offset_t* offsets);
+        PrimaryKeyIndex* pkIndex, common::offset_t* offsets, const std::string& filePath,
+        common::row_idx_t startRowIdxInFile);
 
-    void copyRelColumnsOrCountRelListsSize(common::tuple_idx_t tupleIdx,
+    void copyRelColumnsOrCountRelListsSize(common::row_idx_t rowIdx,
         arrow::RecordBatch* recordBatch, common::RelDataDirection direction,
         const std::vector<std::unique_ptr<arrow::Array>>& pkOffsets);
 
-    void copyRelColumns(common::tuple_idx_t tupleIdx, arrow::RecordBatch* recordBatch,
+    void copyRelColumns(common::row_idx_t rowIdx, arrow::RecordBatch* recordBatch,
         common::RelDataDirection direction,
         const std::vector<std::unique_ptr<arrow::Array>>& pkOffsets);
     void countRelListsSize(common::RelDataDirection direction,
         const std::vector<std::unique_ptr<arrow::Array>>& pkOffsets);
-    void copyRelLists(common::tuple_idx_t tupleIdx, arrow::RecordBatch* recordBatch,
+    void copyRelLists(common::row_idx_t rowIdx, arrow::RecordBatch* recordBatch,
         common::RelDataDirection direction,
         const std::vector<std::unique_ptr<arrow::Array>>& pkOffsets);
     void checkViolationOfRelColumn(

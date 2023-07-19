@@ -7,6 +7,7 @@ using namespace kuzu::utf8proc;
 
 namespace kuzu {
 namespace common {
+
 CopyDescription::CopyDescription(
     const std::vector<std::string>& filePaths, CSVReaderConfig csvReaderConfig, FileType fileType)
     : filePaths{filePaths}, csvReaderConfig{nullptr}, fileType{fileType} {

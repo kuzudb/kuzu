@@ -134,8 +134,8 @@ public:
                 std::make_unique<HashIndexBuilder<common::ku_string_t>>(fName, keyDataType);
         } break;
         default: {
-            throw common::Exception("Unsupported data type for primary key index: " +
-                                    common::LogicalTypeUtils::dataTypeToString(keyDataTypeID));
+            throw common::CopyException("Unsupported data type for primary key index: " +
+                                        common::LogicalTypeUtils::dataTypeToString(keyDataTypeID));
         }
         }
     }
@@ -151,23 +151,15 @@ public:
     }
     // Note: append assumes that bulkRserve has been called before it and the index has reserved
     // enough space already.
-    inline void append(int64_t key, common::offset_t value) {
-        auto retVal = keyDataTypeID == common::LogicalTypeID::INT64 ?
-                          hashIndexBuilderForInt64->append(key, value) :
-                          hashIndexBuilderForString->append(key, value);
-        if (!retVal) {
-            throw common::HashIndexException(
-                common::Exception::getExistedPKExceptionMsg(std::to_string(key)));
-        }
+    inline bool append(int64_t key, common::offset_t value) {
+        return keyDataTypeID == common::LogicalTypeID::INT64 ?
+                   hashIndexBuilderForInt64->append(key, value) :
+                   hashIndexBuilderForString->append(key, value);
     }
-    inline void append(const char* key, common::offset_t value) {
-        auto retVal = keyDataTypeID == common::LogicalTypeID::INT64 ?
-                          hashIndexBuilderForInt64->append(key, value) :
-                          hashIndexBuilderForString->append(key, value);
-        if (!retVal) {
-            throw common::HashIndexException(
-                common::Exception::getExistedPKExceptionMsg(std::string(key)));
-        }
+    inline bool append(const char* key, common::offset_t value) {
+        return keyDataTypeID == common::LogicalTypeID::INT64 ?
+                   hashIndexBuilderForInt64->append(key, value) :
+                   hashIndexBuilderForString->append(key, value);
     }
     inline bool lookup(int64_t key, common::offset_t& result) {
         return keyDataTypeID == common::LogicalTypeID::INT64 ?

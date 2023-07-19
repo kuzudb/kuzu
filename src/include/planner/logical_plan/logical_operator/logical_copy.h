@@ -12,13 +12,15 @@ class LogicalCopy : public LogicalOperator {
 public:
     LogicalCopy(const common::CopyDescription& copyDescription, common::table_id_t tableID,
         std::string tableName, binder::expression_vector arrowColumnExpressions,
-        std::shared_ptr<binder::Expression> offsetExpression,
+        std::shared_ptr<binder::Expression> rowIdxExpression,
+        std::shared_ptr<binder::Expression> filePathExpression,
         std::shared_ptr<binder::Expression> columnIdxExpression,
         std::shared_ptr<binder::Expression> outputExpression)
-        : LogicalOperator{LogicalOperatorType::COPY},
-          copyDescription{copyDescription}, tableID{tableID}, tableName{std::move(tableName)},
-          arrowColumnExpressions{std::move(arrowColumnExpressions)}, offsetExpression{std::move(
-                                                                         offsetExpression)},
+        : LogicalOperator{LogicalOperatorType::COPY}, copyDescription{copyDescription},
+          tableID{tableID}, tableName{std::move(tableName)}, arrowColumnExpressions{std::move(
+                                                                 arrowColumnExpressions)},
+          rowIdxExpression{std::move(rowIdxExpression)}, filePathExpression{std::move(
+                                                             filePathExpression)},
           columnIdxExpression{std::move(columnIdxExpression)}, outputExpression{
                                                                    std::move(outputExpression)} {}
 
@@ -32,8 +34,12 @@ public:
         return arrowColumnExpressions;
     }
 
-    inline std::shared_ptr<binder::Expression> getOffsetExpression() const {
-        return offsetExpression;
+    inline std::shared_ptr<binder::Expression> getRowIdxExpression() const {
+        return rowIdxExpression;
+    }
+
+    inline std::shared_ptr<binder::Expression> getFilePathExpression() const {
+        return filePathExpression;
     }
 
     inline std::shared_ptr<binder::Expression> getColumnIdxExpression() const {
@@ -49,7 +55,7 @@ public:
 
     inline std::unique_ptr<LogicalOperator> copy() override {
         return make_unique<LogicalCopy>(copyDescription, tableID, tableName, arrowColumnExpressions,
-            offsetExpression, columnIdxExpression, outputExpression);
+            rowIdxExpression, filePathExpression, columnIdxExpression, outputExpression);
     }
 
 private:
@@ -58,7 +64,8 @@ private:
     // Used for printing only.
     std::string tableName;
     binder::expression_vector arrowColumnExpressions;
-    std::shared_ptr<binder::Expression> offsetExpression;
+    std::shared_ptr<binder::Expression> rowIdxExpression;
+    std::shared_ptr<binder::Expression> filePathExpression;
     std::shared_ptr<binder::Expression> columnIdxExpression;
     std::shared_ptr<binder::Expression> outputExpression;
 };
