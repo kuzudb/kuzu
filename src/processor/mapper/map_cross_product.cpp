@@ -14,7 +14,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCrossProductToPhysical(
     // map build side
     auto buildSideSchema = logicalCrossProduct->getBuildSideSchema();
     auto buildSidePrevOperator = mapLogicalOperatorToPhysical(logicalCrossProduct->getChild(1));
-    auto resultCollector = appendResultCollector(buildSideSchema->getExpressionsInScope(),
+    auto resultCollector = createResultCollector(buildSideSchema->getExpressionsInScope(),
         buildSideSchema, std::move(buildSidePrevOperator));
     // map probe side
     auto probeSidePrevOperator = mapLogicalOperatorToPhysical(logicalCrossProduct->getChild(0));
@@ -28,9 +28,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCrossProductToPhysical(
     }
     auto info =
         std::make_unique<CrossProductInfo>(std::move(outVecPos), std::move(colIndicesToScan));
-    auto sharedState = resultCollector->getSharedState();
-    auto localState = std::make_unique<CrossProductLocalState>(
-        sharedState->getTable(), sharedState->getMaxMorselSize());
+    auto table = resultCollector->getResultFactorizedTable();
+    auto maxMorselSize = table->hasUnflatCol() ? 1 : common::DEFAULT_VECTOR_CAPACITY;
+    auto localState = std::make_unique<CrossProductLocalState>(table, maxMorselSize);
     return make_unique<CrossProduct>(std::move(info), std::move(localState),
         std::move(probeSidePrevOperator), std::move(resultCollector), getOperatorID(),
         logicalCrossProduct->getExpressionsForPrinting());

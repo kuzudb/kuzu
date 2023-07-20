@@ -17,7 +17,6 @@ add_library(kuzu_planner_operator
         logical_extend.cpp
         logical_filter.cpp
         logical_flatten.cpp
-        logical_ftable_scan.cpp
         logical_hash_join.cpp
         logical_intersect.cpp
         logical_limit.cpp

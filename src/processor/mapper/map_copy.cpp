@@ -74,10 +74,6 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCopyNodeToPhysical(Logic
     }
     auto copyNodeSharedState =
         std::make_shared<CopyNodeSharedState>(readFileSharedState->numRows, memoryManager);
-    auto outputExpression = copy->getOutputExpression();
-    auto outputVectorPos = DataPos(outSchema->getExpressionPos(*outputExpression));
-    auto ftSharedState = std::make_shared<FTableSharedState>(
-        copyNodeSharedState->table, common::DEFAULT_VECTOR_CAPACITY);
     std::unique_ptr<CopyNode> copyNode;
     CopyNodeDataInfo copyNodeDataInfo{rowIdxVectorPos, filePathVectorPos, arrowColumnPoses};
     if (copy->getCopyDescription().fileType == common::CopyDescription::FileType::NPY) {
@@ -95,11 +91,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCopyNodeToPhysical(Logic
             std::make_unique<ResultSetDescriptor>(copy->getSchema()), std::move(readFile),
             getOperatorID(), copy->getExpressionsForPrinting());
     }
-    // We need to create another pipeline to return the copy message to the user.
-    // The new pipeline only contains a factorizedTableScan and a resultCollector.
-    return std::make_unique<FactorizedTableScan>(std::vector<DataPos>{outputVectorPos},
-        std::vector<uint32_t>{0} /* colIndicesToScan */, ftSharedState, std::move(copyNode),
-        getOperatorID(), copy->getExpressionsForPrinting());
+    auto outputExpressions = binder::expression_vector{copy->getOutputExpression()};
+    return createFactorizedTableScan(
+        outputExpressions, outSchema, copyNodeSharedState->table, std::move(copyNode));
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCopyRelToPhysical(LogicalCopy* copy) {

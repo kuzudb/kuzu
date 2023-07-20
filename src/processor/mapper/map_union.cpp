@@ -13,30 +13,31 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalUnionAllToPhysical(
     auto outSchema = logicalUnionAll.getSchema();
     // append result collectors to each child
     std::vector<std::unique_ptr<PhysicalOperator>> prevOperators;
-    std::vector<std::shared_ptr<FTableSharedState>> resultCollectorSharedStates;
+    std::vector<std::shared_ptr<FactorizedTable>> tables;
     for (auto i = 0u; i < logicalOperator->getNumChildren(); ++i) {
         auto child = logicalOperator->getChild(i);
         auto childSchema = logicalUnionAll.getSchemaBeforeUnion(i);
         auto prevOperator = mapLogicalOperatorToPhysical(child);
-        auto resultCollector = appendResultCollector(
+        auto resultCollector = createResultCollector(
             childSchema->getExpressionsInScope(), childSchema, std::move(prevOperator));
-        resultCollectorSharedStates.push_back(resultCollector->getSharedState());
+        tables.push_back(resultCollector->getResultFactorizedTable());
         prevOperators.push_back(std::move(resultCollector));
     }
     // append union all
-    std::vector<DataPos> outDataPoses;
-    std::vector<uint32_t> colIndicesToScan;
+    std::vector<DataPos> outputPositions;
+    std::vector<uint32_t> columnIndices;
     auto expressionsToUnion = logicalUnionAll.getExpressionsToUnion();
     for (auto i = 0u; i < expressionsToUnion.size(); ++i) {
         auto expression = expressionsToUnion[i];
-        outDataPoses.emplace_back(outSchema->getExpressionPos(*expression));
-        colIndicesToScan.push_back(i);
+        outputPositions.emplace_back(outSchema->getExpressionPos(*expression));
+        columnIndices.push_back(i);
     }
-    auto unionSharedState =
-        make_shared<UnionAllScanSharedState>(std::move(resultCollectorSharedStates));
-    return make_unique<UnionAllScan>(std::move(outDataPoses), std::move(colIndicesToScan),
-        unionSharedState, std::move(prevOperators), getOperatorID(),
-        logicalUnionAll.getExpressionsForPrinting());
+    auto info =
+        std::make_unique<UnionAllScanInfo>(std::move(outputPositions), std::move(columnIndices));
+    auto maxMorselSize = tables[0]->hasUnflatCol() ? 1 : common::DEFAULT_VECTOR_CAPACITY;
+    auto unionSharedState = make_shared<UnionAllScanSharedState>(std::move(tables), maxMorselSize);
+    return make_unique<UnionAllScan>(std::move(info), unionSharedState, std::move(prevOperators),
+        getOperatorID(), logicalUnionAll.getExpressionsForPrinting());
 }
 
 } // namespace processor
