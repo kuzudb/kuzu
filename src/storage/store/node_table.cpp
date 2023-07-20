@@ -139,7 +139,9 @@ void NodeTable::checkpointInMemory() {
     for (auto& [_, column] : propertyColumns) {
         column->checkpointInMemory();
     }
-    pkIndex->checkpointInMemory();
+    if (pkIndex) {
+        pkIndex->checkpointInMemory();
+    }
 }
 
 void NodeTable::rollbackInMemory() {

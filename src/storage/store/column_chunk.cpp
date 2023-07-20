@@ -1,4 +1,5 @@
 #include "storage/store/column_chunk.h"
+
 #include "storage/copier/table_copy_utils.h"
 #include "storage/storage_structure/storage_structure_utils.h"
 #include "storage/store/struct_column_chunk.h"
@@ -244,6 +245,7 @@ std::unique_ptr<ColumnChunk> ColumnChunkFactory::createColumnChunk(
     const LogicalType& dataType, CopyDescription* copyDescription) {
     switch (dataType.getLogicalTypeID()) {
     case LogicalTypeID::BOOL:
+    case LogicalTypeID::SERIAL:
     case LogicalTypeID::INT64:
     case LogicalTypeID::INT32:
     case LogicalTypeID::INT16:
@@ -313,8 +315,7 @@ common::offset_t ColumnChunk::getOffsetInBuffer(common::offset_t pos) {
         PageUtils::getNumElementsInAPage(numBytesPerValue, false /* hasNull */);
     auto posCursor = PageUtils::getPageByteCursorForPos(pos, numElementsInAPage, numBytesPerValue);
     auto offsetInBuffer =
-        posCursor.pageIdx * common::BufferPoolConstants::PAGE_4KB_SIZE +
-        posCursor.offsetInPage;
+        posCursor.pageIdx * common::BufferPoolConstants::PAGE_4KB_SIZE + posCursor.offsetInPage;
     assert(offsetInBuffer + numBytesPerValue <= numBytes);
     return offsetInBuffer;
 }

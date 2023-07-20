@@ -128,7 +128,9 @@ void CopyNode::appendNodeGroupToTableAndPopulateIndex(NodeTable* table, NodeGrou
     PrimaryKeyIndexBuilder* pkIndex, column_id_t pkColumnID) {
     auto numNodes = nodeGroup->getNumNodes();
     auto startOffset = nodeGroup->getNodeGroupIdx() << StorageConstants::NODE_GROUP_SIZE_LOG2;
-    populatePKIndex(pkIndex, nodeGroup->getColumnChunk(pkColumnID), startOffset, numNodes);
+    if (pkIndex) {
+        populatePKIndex(pkIndex, nodeGroup->getColumnChunk(pkColumnID), startOffset, numNodes);
+    }
     table->appendNodeGroup(nodeGroup);
     nodeGroup->resetToEmpty();
 }
