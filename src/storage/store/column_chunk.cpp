@@ -1,4 +1,5 @@
 #include "storage/store/column_chunk.h"
+
 #include "storage/copier/table_copy_utils.h"
 #include "storage/storage_structure/storage_structure_utils.h"
 #include "storage/store/struct_column_chunk.h"
@@ -260,6 +261,7 @@ std::unique_ptr<ColumnChunk> ColumnChunkFactory::createColumnChunk(
     const LogicalType& dataType, CopyDescription* copyDescription) {
     switch (dataType.getLogicalTypeID()) {
     case LogicalTypeID::BOOL:
+    case LogicalTypeID::SERIAL:
     case LogicalTypeID::INT64:
     case LogicalTypeID::INT32:
     case LogicalTypeID::INT16:
