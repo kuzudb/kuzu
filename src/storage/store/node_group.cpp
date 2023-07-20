@@ -24,13 +24,13 @@ uint64_t NodeGroup::append(
     auto numValuesToAppendInChunk =
         std::min(numValuesToAppend, StorageConstants::NODE_GROUP_SIZE - numNodes);
     auto serialSkip = 0u;
-    for (auto i = 0u; i < dataPoses.size(); i++) {
-        auto dataPos = dataPoses[i];
-        auto chunk = chunks[i + serialSkip].get();
+    for (auto i = 0u; i < chunks.size(); i++) {
+        auto chunk = chunks[i].get();
         if (chunk->getDataType().getLogicalTypeID() == common::LogicalTypeID::SERIAL) {
             serialSkip++;
             continue;
         }
+        auto dataPos = dataPoses[i - serialSkip];
         chunk->appendVector(
             resultSet->getValueVector(dataPos).get(), numNodes, numValuesToAppendInChunk);
     }
