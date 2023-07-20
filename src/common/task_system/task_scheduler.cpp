@@ -8,9 +8,7 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace common {
 
-TaskScheduler::TaskScheduler(uint64_t numThreads)
-    : logger{LoggerUtils::getLogger(LoggerConstants::LoggerEnum::PROCESSOR)}, nextScheduledTaskID{
-                                                                                  0} {
+TaskScheduler::TaskScheduler(uint64_t numThreads) : nextScheduledTaskID{0} {
     for (auto n = 0u; n < numThreads; ++n) {
         threads.emplace_back([&] { runWorkerThread(); });
     }
@@ -28,38 +26,6 @@ std::shared_ptr<ScheduledTask> TaskScheduler::scheduleTask(const std::shared_ptr
     auto scheduledTask = std::make_shared<ScheduledTask>(task, nextScheduledTaskID++);
     taskQueue.push_back(scheduledTask);
     return scheduledTask;
-}
-
-void TaskScheduler::errorIfThereIsAnException() {
-    lock_t lck{mtx};
-    errorIfThereIsAnExceptionNoLock();
-    lck.unlock();
-}
-
-void TaskScheduler::errorIfThereIsAnExceptionNoLock() {
-    for (auto it = taskQueue.begin(); it != taskQueue.end(); ++it) {
-        auto task = (*it)->task;
-        if (task->hasException()) {
-            taskQueue.erase(it);
-            std::rethrow_exception(task->getExceptionPtr());
-        }
-        // TODO(Semih): We can optimize to stop after finding a registrable task. This is
-        // because tasks after the first registrable task in the queue cannot have any thread
-        // yet registered to them, so they cannot have errored.
-    }
-}
-
-void TaskScheduler::waitAllTasksToCompleteOrError() {
-    while (true) {
-        lock_t lck{mtx};
-        if (taskQueue.empty()) {
-            return;
-        }
-        errorIfThereIsAnExceptionNoLock();
-        lck.unlock();
-        std::this_thread::sleep_for(
-            std::chrono::microseconds(THREAD_SLEEP_TIME_WHEN_WAITING_IN_MICROS));
-    }
 }
 
 void TaskScheduler::scheduleTaskAndWaitOrError(
@@ -81,14 +47,6 @@ void TaskScheduler::scheduleTaskAndWaitOrError(
     if (task->hasException()) {
         removeErroringTask(scheduledTask->ID);
         std::rethrow_exception(task->getExceptionPtr());
-    }
-}
-
-void TaskScheduler::waitUntilEnoughTasksFinish(int64_t minimumNumTasksToScheduleMore) {
-    while (getNumTasks() > minimumNumTasksToScheduleMore) {
-        errorIfThereIsAnException();
-        std::this_thread::sleep_for(
-            std::chrono::microseconds(THREAD_SLEEP_TIME_WHEN_WAITING_IN_MICROS));
     }
 }
 
