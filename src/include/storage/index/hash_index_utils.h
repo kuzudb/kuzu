@@ -30,7 +30,7 @@ public:
     static in_mem_equals_function_t initializeEqualsFunc(common::LogicalTypeID dataTypeID);
     static in_mem_insert_function_t initializeInsertFunc(common::LogicalTypeID dataTypeID);
 
-private:
+public:
     // InsertFunc
     inline static void insertFuncForInt64(const uint8_t* key, common::offset_t offset,
         uint8_t* entry, InMemOverflowFile* inMemOverflowFile = nullptr) {
@@ -91,6 +91,17 @@ public:
     static bool equalsFuncForString(transaction::TransactionType trxType,
         const uint8_t* keyToLookup, const uint8_t* keyInEntry, DiskOverflowFile* diskOverflowFile);
     static equals_function_t initializeEqualsFunc(common::LogicalTypeID dataTypeID);
+
+    inline static uint8_t compute_tag(const common::hash_t hash) {
+        const uint64_t hash_64bit = hash;
+        const uint32_t hash_32bit = (static_cast<uint32_t>(hash_64bit) ^
+                                    static_cast<uint32_t>(hash_64bit >> 32));
+        const uint16_t hash_16bit = (static_cast<uint16_t>(hash_32bit) ^
+                                    static_cast<uint16_t>(hash_32bit >> 16));
+        const uint8_t hash_8bit = (static_cast<uint8_t>(hash_16bit) ^
+                                static_cast<uint8_t>(hash_16bit >> 8));
+        return hash_8bit;
+    }
 };
 } // namespace storage
 } // namespace kuzu

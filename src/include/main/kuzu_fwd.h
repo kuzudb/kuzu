@@ -35,6 +35,7 @@ class MemoryManager;
 class BufferManager;
 class StorageManager;
 class WAL;
+class PrimaryKeyIndexBuilder;
 enum class WALReplayMode : uint8_t;
 } // namespace storage
 

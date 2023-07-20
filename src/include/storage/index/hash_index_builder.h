@@ -70,6 +70,107 @@ protected:
     hash_function_t keyHashFunc;
 };
 
+
+class HashIndexBuilderInt64 : public BaseHashIndex {
+
+public:
+    HashIndexBuilderInt64(const std::string& fName, const common::LogicalType& keyDataType);
+
+public:
+    // Reserves space for at least the specified number of elements.
+    void bulkReserve(uint32_t numEntries);
+
+    // Note: append assumes that bulkRserve has been called before it and the index has reserved
+    // enough space already.
+    inline bool append(int64_t key, common::offset_t value) {
+        return appendInternal(reinterpret_cast<const uint8_t*>(&key), value);
+    }
+    inline bool append(const char* key, common::offset_t value) {
+        return appendInternal(reinterpret_cast<const uint8_t*>(key), value);
+    }
+    inline bool lookup(int64_t key, common::offset_t& result) {
+        return lookupInternalWithoutLock(reinterpret_cast<const uint8_t*>(&key), result);
+    }
+
+    // Non-thread safe. This should only be called in the copyCSV and never be called in parallel.
+    void flush();
+
+private:
+    bool appendInternal(const uint8_t* key, common::offset_t value);
+    bool lookupInternalWithoutLock(const uint8_t* key, common::offset_t& result);
+
+    template<bool IS_LOOKUP>
+    bool lookupOrExistsInSlotWithoutLock(
+        Slot<int64_t>* slot, const uint8_t* key, common::offset_t* result = nullptr);
+    void insertToSlotWithoutLock(Slot<int64_t>* slot, const uint8_t* key, common::offset_t value);
+    Slot<int64_t>* getSlot(const SlotInfo& slotInfo);
+    uint32_t allocatePSlots(uint32_t numSlotsToAllocate);
+    uint32_t allocateAOSlot();
+
+private:
+    std::unique_ptr<FileHandle> fileHandle;
+    std::unique_ptr<InMemDiskArrayBuilder<HashIndexHeader>> headerArray;
+    std::shared_mutex oSlotsSharedMutex;
+    std::unique_ptr<InMemDiskArrayBuilder<Slot<int64_t>>> pSlots;
+    std::unique_ptr<InMemDiskArrayBuilder<Slot<int64_t>>> oSlots;
+    std::vector<std::unique_ptr<std::mutex>> pSlotsMutexes;
+    in_mem_insert_function_t keyInsertFunc;
+    in_mem_equals_function_t keyEqualsFunc;
+    std::unique_ptr<InMemOverflowFile> inMemOverflowFile;
+    std::atomic<uint64_t> numEntries;
+};
+
+
+class HashIndexBuilderString : public BaseHashIndex {
+
+public:
+    HashIndexBuilderString(const std::string& fName, const common::LogicalType& keyDataType);
+
+public:
+    // Reserves space for at least the specified number of elements.
+    void bulkReserve(uint32_t numEntries);
+
+    // Note: append assumes that bulkRserve has been called before it and the index has reserved
+    // enough space already.
+    inline bool append(int64_t key, common::offset_t value) {
+        return appendInternal(reinterpret_cast<const uint8_t*>(&key), value);
+    }
+    inline bool append(const char* key, common::offset_t value) {
+        return appendInternal(reinterpret_cast<const uint8_t*>(key), value);
+    }
+    inline bool lookup(int64_t key, common::offset_t& result) {
+        return lookupInternalWithoutLock(reinterpret_cast<const uint8_t*>(&key), result);
+    }
+
+    // Non-thread safe. This should only be called in the copyCSV and never be called in parallel.
+    void flush();
+
+private:
+    bool appendInternal(const uint8_t* key, common::offset_t value);
+    bool lookupInternalWithoutLock(const uint8_t* key, common::offset_t& result);
+
+    template<bool IS_LOOKUP>
+    bool lookupOrExistsInSlotWithoutLock(
+        Slot<common::ku_string_t>* slot, const uint8_t* key, common::offset_t* result = nullptr);
+    void insertToSlotWithoutLock(Slot<common::ku_string_t>* slot, const uint8_t* key, common::offset_t value);
+    Slot<common::ku_string_t>* getSlot(const SlotInfo& slotInfo);
+    uint32_t allocatePSlots(uint32_t numSlotsToAllocate);
+    uint32_t allocateAOSlot();
+
+private:
+    std::unique_ptr<FileHandle> fileHandle;
+    std::unique_ptr<InMemDiskArrayBuilder<HashIndexHeader>> headerArray;
+    std::shared_mutex oSlotsSharedMutex;
+    std::unique_ptr<InMemDiskArrayBuilder<Slot<common::ku_string_t>>> pSlots;
+    std::unique_ptr<InMemDiskArrayBuilder<Slot<common::ku_string_t>>> oSlots;
+    std::vector<std::unique_ptr<std::mutex>> pSlotsMutexes;
+    in_mem_insert_function_t keyInsertFunc;
+    in_mem_equals_function_t keyEqualsFunc;
+    std::unique_ptr<InMemOverflowFile> inMemOverflowFile;
+    std::atomic<uint64_t> numEntries;
+};
+
+
 template<typename T>
 class HashIndexBuilder : public BaseHashIndex {
 
@@ -127,11 +228,11 @@ public:
         switch (keyDataTypeID) {
         case common::LogicalTypeID::INT64: {
             hashIndexBuilderForInt64 =
-                std::make_unique<HashIndexBuilder<int64_t>>(fName, keyDataType);
+                std::make_unique<HashIndexBuilderInt64>(fName, keyDataType);
         } break;
         case common::LogicalTypeID::STRING: {
             hashIndexBuilderForString =
-                std::make_unique<HashIndexBuilder<common::ku_string_t>>(fName, keyDataType);
+                std::make_unique<HashIndexBuilderString>(fName, keyDataType);
         } break;
         default: {
             throw common::CopyException("Unsupported data type for primary key index: " +
@@ -176,8 +277,8 @@ public:
 private:
     std::mutex mtx;
     common::LogicalTypeID keyDataTypeID;
-    std::unique_ptr<HashIndexBuilder<int64_t>> hashIndexBuilderForInt64;
-    std::unique_ptr<HashIndexBuilder<common::ku_string_t>> hashIndexBuilderForString;
+    std::unique_ptr<HashIndexBuilderInt64> hashIndexBuilderForInt64;
+    std::unique_ptr<HashIndexBuilderString> hashIndexBuilderForString;
 };
 
 } // namespace storage
