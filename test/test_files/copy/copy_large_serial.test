@@ -1,0 +1,7 @@
+-GROUP CopyLargeSerialTest
+-DATASET CSV large-serial
+--
+
+-CASE CopyLargeSerial
+-STATEMENT MATCH (a:serialtable) WHERE a.ID <> a.ID2 RETURN a LIMIT 10;
+---- 0
