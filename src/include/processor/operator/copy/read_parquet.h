@@ -8,10 +8,10 @@ namespace processor {
 class ReadParquet : public ReadFile {
 public:
     ReadParquet(const DataPos& offsetVectorPos, const DataPos& filePathVectorPos,
-        std::vector<DataPos> arrowColumnPoses,
+        std::vector<DataPos> dataColumnPoses,
         std::shared_ptr<storage::ReadFileSharedState> sharedState, uint32_t id,
         const std::string& paramsString)
-        : ReadFile{offsetVectorPos, filePathVectorPos, std::move(arrowColumnPoses),
+        : ReadFile{offsetVectorPos, filePathVectorPos, std::move(dataColumnPoses),
               std::move(sharedState), PhysicalOperatorType::READ_PARQUET, id, paramsString} {}
 
     std::shared_ptr<arrow::RecordBatch> readTuples(
@@ -19,7 +19,7 @@ public:
 
     inline std::unique_ptr<PhysicalOperator> clone() override {
         return std::make_unique<ReadParquet>(
-            rowIdxVectorPos, filePathVectorPos, arrowColumnPoses, sharedState, id, paramsString);
+            rowIdxVectorPos, filePathVectorPos, dataColumnPoses, sharedState, id, paramsString);
     }
 
 private:

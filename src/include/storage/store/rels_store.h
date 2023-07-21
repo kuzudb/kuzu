@@ -77,9 +77,9 @@ public:
             relTables.at(updatedTableID)->checkpointInMemory();
         }
     }
-    inline void rollback(const std::unordered_set<common::table_id_t>& updatedTables) {
+    inline void rollbackInMemory(const std::unordered_set<common::table_id_t>& updatedTables) {
         for (auto updatedTableID : updatedTables) {
-            relTables.at(updatedTableID)->rollback();
+            relTables.at(updatedTableID)->rollbackInMemory();
         }
     }
 

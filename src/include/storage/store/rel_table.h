@@ -214,7 +214,7 @@ public:
     void prepareCommit();
     void prepareRollback();
     void checkpointInMemory();
-    void rollback();
+    void rollbackInMemory();
 
     void insertRel(common::ValueVector* srcNodeIDVector, common::ValueVector* dstNodeIDVector,
         const std::vector<common::ValueVector*>& relPropertyVectors);

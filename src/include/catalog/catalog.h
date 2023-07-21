@@ -16,10 +16,6 @@
 #include "storage/wal/wal.h"
 #include "transaction/transaction.h"
 
-namespace spdlog {
-class logger;
-}
-
 namespace kuzu {
 namespace catalog {
 
@@ -27,14 +23,11 @@ class CatalogContent {
     friend class Catalog;
 
 public:
-    // This constructor is only used for mock catalog testing only.
     CatalogContent();
 
     explicit CatalogContent(const std::string& directory);
 
     CatalogContent(const CatalogContent& other);
-
-    virtual ~CatalogContent() = default;
 
     /**
      * Node and Rel table functions.
@@ -164,7 +157,6 @@ private:
     void registerBuiltInFunctions();
 
 private:
-    std::shared_ptr<spdlog::logger> logger;
     std::unordered_map<common::table_id_t, std::unique_ptr<NodeTableSchema>> nodeTableSchemas;
     std::unordered_map<common::table_id_t, std::unique_ptr<RelTableSchema>> relTableSchemas;
     // These two maps are maintained as caches. They are not serialized to the catalog file, but
@@ -183,8 +175,6 @@ public:
     Catalog();
 
     explicit Catalog(storage::WAL* wal);
-
-    virtual ~Catalog() = default;
 
     // TODO(Guodong): Get rid of these two functions.
     inline CatalogContent* getReadOnlyVersion() const { return catalogContentForReadOnlyTrx.get(); }

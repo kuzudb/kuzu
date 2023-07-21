@@ -70,7 +70,7 @@ public:
 
     // Copy overflow data at srcOverflow into dstKUString.
     void copyStringOverflow(
-        PageByteCursor& overflowCursor, uint8_t* srcOverflow, common::ku_string_t* dstKUString);
+        PageByteCursor& dstOverflowCursor, uint8_t* srcOverflow, common::ku_string_t* dstKUString);
     void copyListOverflowFromFile(InMemOverflowFile* srcInMemOverflowFile,
         const PageByteCursor& srcOverflowCursor, PageByteCursor& dstOverflowCursor,
         common::ku_list_t* dstKUList, common::LogicalType* listChildDataType);

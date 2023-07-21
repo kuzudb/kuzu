@@ -52,7 +52,7 @@ void CopyNodeSharedState::initializeColumns(
 std::pair<row_idx_t, row_idx_t> CopyNode::getStartAndEndRowIdx(common::vector_idx_t columnIdx) {
     auto startRowIdx =
         rowIdxVector->getValue<int64_t>(rowIdxVector->state->selVector->selectedPositions[0]);
-    auto numRows = ArrowColumnVector::getArrowColumn(arrowColumnVectors[columnIdx])->length();
+    auto numRows = ArrowColumnVector::getArrowColumn(dataColumnVectors[columnIdx])->length();
     auto endRowIdx = startRowIdx + numRows - 1;
     return {startRowIdx, endRowIdx};
 }
@@ -76,7 +76,7 @@ void CopyNode::executeInternal(kuzu::processor::ExecutionContext* context) {
             auto columnChunk =
                 sharedState->columns[i]->createInMemColumnChunk(startRowIdx, endRowIdx, &copyDesc);
             columnChunk->copyArrowArray(
-                *ArrowColumnVector::getArrowColumn(arrowColumnVectors[i]), copyStates[i].get());
+                *ArrowColumnVector::getArrowColumn(dataColumnVectors[i]), copyStates[i].get());
             columnChunks.push_back(std::move(columnChunk));
         }
         flushChunksAndPopulatePKIndex(
