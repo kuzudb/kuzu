@@ -19,7 +19,6 @@
 namespace kuzu {
 namespace catalog {
 
-// TODO: Move this class to a separate file.
 class CatalogContent {
     friend class Catalog;
 
@@ -237,7 +236,6 @@ public:
     inline function::ScalarMacroFunction* getScalarMacroFunction(std::string name) const {
         return catalogContentForReadOnlyTrx->macros.at(name).get();
     }
-
     inline storage::BMFileHandle* getNodeGroupsMetaFH() const { return nodeGroupsMetaFH.get(); }
 
 private:

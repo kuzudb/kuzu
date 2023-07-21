@@ -258,8 +258,7 @@ NpyMultiFileReader::NpyMultiFileReader(const std::vector<std::string>& filePaths
     }
 }
 
-std::shared_ptr<arrow::RecordBatch> NpyMultiFileReader::readBlock(
-    block_idx_t blockIdx) const {
+std::shared_ptr<arrow::RecordBatch> NpyMultiFileReader::readBlock(block_idx_t blockIdx) const {
     assert(fileReaders.size() > 1);
     auto resultArrowBatch = fileReaders[0]->readBlock(blockIdx);
     for (int fileIdx = 1; fileIdx < fileReaders.size(); fileIdx++) {

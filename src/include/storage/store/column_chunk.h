@@ -115,15 +115,12 @@ public:
 class FixedListColumnChunk : public ColumnChunk {
 public:
     FixedListColumnChunk(common::LogicalType dataType, common::CopyDescription* copyDescription)
-        : ColumnChunk(std::move(dataType), copyDescription, true /* hasNullChunk */) {
-    }
+        : ColumnChunk(std::move(dataType), copyDescription, true /* hasNullChunk */) {}
 
     void appendColumnChunk(ColumnChunk* other, common::offset_t startPosInOtherChunk,
         common::offset_t startPosInChunk, uint32_t numValuesToAppend) final;
 };
 
-=======
->>>>>>> basic copy and scan
 struct ColumnChunkFactory {
     static std::unique_ptr<ColumnChunk> createColumnChunk(
         const common::LogicalType& dataType, common::CopyDescription* copyDescription);
