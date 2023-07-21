@@ -170,15 +170,11 @@ namespace kuzu {
 namespace catalog {
 
 CatalogContent::CatalogContent() : nextTableID{0} {
-    logger = LoggerUtils::getLogger(LoggerConstants::LoggerEnum::CATALOG);
     registerBuiltInFunctions();
 }
 
 CatalogContent::CatalogContent(const std::string& directory) {
-    logger = LoggerUtils::getLogger(LoggerConstants::LoggerEnum::CATALOG);
-    logger->info("Initializing catalog.");
     readFromFile(directory, DBFileType::ORIGINAL);
-    logger->info("Initializing catalog done.");
     registerBuiltInFunctions();
 }
 
@@ -295,7 +291,6 @@ void CatalogContent::saveToFile(const std::string& directory, DBFileType dbFileT
 
 void CatalogContent::readFromFile(const std::string& directory, DBFileType dbFileType) {
     auto catalogPath = StorageUtils::getCatalogFilePath(directory, dbFileType);
-    logger->debug("Reading from {}.", catalogPath);
     auto fileInfo = FileUtils::openFile(catalogPath, O_RDONLY);
     uint64_t offset = 0;
     validateMagicBytes(fileInfo.get(), offset);

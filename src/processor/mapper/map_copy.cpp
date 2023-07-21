@@ -1,7 +1,6 @@
 #include "planner/logical_plan/logical_operator/logical_copy.h"
 #include "processor/mapper/plan_mapper.h"
 #include "processor/operator/copy/copy_node.h"
-#include "processor/operator/copy/copy_npy_node.h"
 #include "processor/operator/copy/copy_rel.h"
 #include "processor/operator/copy/read_csv.h"
 #include "processor/operator/copy/read_file.h"
@@ -36,22 +35,21 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCopyNodeToPhysical(Logic
     std::unique_ptr<ReadFile> readFile;
     std::shared_ptr<ReadFileSharedState> readFileSharedState;
     auto outSchema = copy->getSchema();
-    auto arrowColumnExpressions = copy->getArrowColumnExpressions();
-    std::vector<DataPos> arrowColumnPoses;
-    arrowColumnPoses.reserve(arrowColumnExpressions.size());
-    for (auto& arrowColumnPos : arrowColumnExpressions) {
-        arrowColumnPoses.emplace_back(outSchema->getExpressionPos(*arrowColumnPos));
+    auto dataColumnExpressions = copy->getDataColumnExpressions();
+    std::vector<DataPos> dataColumnPoses;
+    dataColumnPoses.reserve(dataColumnExpressions.size());
+    for (auto& dataColumnExpr : dataColumnExpressions) {
+        dataColumnPoses.emplace_back(outSchema->getExpressionPos(*dataColumnExpr));
     }
     auto rowIdxVectorPos = DataPos(outSchema->getExpressionPos(*copy->getRowIdxExpression()));
     auto filePathVectorPos = DataPos(outSchema->getExpressionPos(*copy->getFilePathExpression()));
-    auto columnIdxPos = DataPos(outSchema->getExpressionPos(*copy->getColumnIdxExpression()));
     auto nodeTableSchema = catalog->getReadOnlyVersion()->getNodeTableSchema(copy->getTableID());
     switch (copy->getCopyDescription().fileType) {
     case (common::CopyDescription::FileType::CSV): {
         readFileSharedState =
             std::make_shared<ReadCSVSharedState>(copy->getCopyDescription().filePaths,
                 *copy->getCopyDescription().csvReaderConfig, nodeTableSchema);
-        readFile = std::make_unique<ReadCSV>(rowIdxVectorPos, filePathVectorPos, arrowColumnPoses,
+        readFile = std::make_unique<ReadCSV>(rowIdxVectorPos, filePathVectorPos, dataColumnPoses,
             readFileSharedState, getOperatorID(), copy->getExpressionsForPrinting());
     } break;
     case (common::CopyDescription::FileType::PARQUET): {
@@ -59,15 +57,15 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCopyNodeToPhysical(Logic
             std::make_shared<ReadParquetSharedState>(copy->getCopyDescription().filePaths,
                 *copy->getCopyDescription().csvReaderConfig, nodeTableSchema);
         readFile =
-            std::make_unique<ReadParquet>(rowIdxVectorPos, filePathVectorPos, arrowColumnPoses,
+            std::make_unique<ReadParquet>(rowIdxVectorPos, filePathVectorPos, dataColumnPoses,
                 readFileSharedState, getOperatorID(), copy->getExpressionsForPrinting());
     } break;
     case (common::CopyDescription::FileType::NPY): {
         readFileSharedState =
             std::make_shared<ReadNPYSharedState>(copy->getCopyDescription().filePaths,
                 *copy->getCopyDescription().csvReaderConfig, nodeTableSchema);
-        readFile = std::make_unique<ReadNPY>(rowIdxVectorPos, filePathVectorPos, arrowColumnPoses,
-            columnIdxPos, readFileSharedState, getOperatorID(), copy->getExpressionsForPrinting());
+        readFile = std::make_unique<ReadNPY>(rowIdxVectorPos, filePathVectorPos, dataColumnPoses,
+            readFileSharedState, getOperatorID(), copy->getExpressionsForPrinting());
     } break;
     default:
         throw common::NotImplementedException("PlanMapper::mapLogicalCopyNodeToPhysical");
@@ -75,22 +73,12 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCopyNodeToPhysical(Logic
     auto copyNodeSharedState =
         std::make_shared<CopyNodeSharedState>(readFileSharedState->numRows, memoryManager);
     std::unique_ptr<CopyNode> copyNode;
-    CopyNodeDataInfo copyNodeDataInfo{rowIdxVectorPos, filePathVectorPos, arrowColumnPoses};
-    if (copy->getCopyDescription().fileType == common::CopyDescription::FileType::NPY) {
-        copyNode = std::make_unique<CopyNPYNode>(copyNodeSharedState, copyNodeDataInfo,
-            columnIdxPos, copy->getCopyDescription(),
-            storageManager.getNodesStore().getNodeTable(copy->getTableID()),
-            &storageManager.getRelsStore(), catalog, storageManager.getWAL(),
-            std::make_unique<ResultSetDescriptor>(copy->getSchema()), std::move(readFile),
-            getOperatorID(), copy->getExpressionsForPrinting());
-    } else {
-        copyNode = std::make_unique<CopyNode>(copyNodeSharedState, copyNodeDataInfo,
-            copy->getCopyDescription(),
-            storageManager.getNodesStore().getNodeTable(copy->getTableID()),
-            &storageManager.getRelsStore(), catalog, storageManager.getWAL(),
-            std::make_unique<ResultSetDescriptor>(copy->getSchema()), std::move(readFile),
-            getOperatorID(), copy->getExpressionsForPrinting());
-    }
+    CopyNodeDataInfo copyNodeDataInfo{rowIdxVectorPos, filePathVectorPos, dataColumnPoses};
+    copyNode = std::make_unique<CopyNode>(copyNodeSharedState, copyNodeDataInfo,
+        copy->getCopyDescription(), storageManager.getNodesStore().getNodeTable(copy->getTableID()),
+        &storageManager.getRelsStore(), catalog, storageManager.getWAL(),
+        std::make_unique<ResultSetDescriptor>(copy->getSchema()), std::move(readFile),
+        getOperatorID(), copy->getExpressionsForPrinting());
     auto outputExpressions = binder::expression_vector{copy->getOutputExpression()};
     return createFactorizedTableScan(
         outputExpressions, outSchema, copyNodeSharedState->table, std::move(copyNode));

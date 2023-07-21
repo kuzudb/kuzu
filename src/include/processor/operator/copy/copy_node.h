@@ -36,7 +36,7 @@ public:
 struct CopyNodeDataInfo {
     DataPos rowIdxVectorPos;
     DataPos filePathVectorPos;
-    std::vector<DataPos> arrowColumnPoses;
+    std::vector<DataPos> dataColumnPoses;
 };
 
 class CopyNode : public Sink {
@@ -62,8 +62,8 @@ public:
     inline void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override {
         rowIdxVector = resultSet->getValueVector(copyNodeDataInfo.rowIdxVectorPos).get();
         filePathVector = resultSet->getValueVector(copyNodeDataInfo.filePathVectorPos).get();
-        for (auto& arrowColumnPos : copyNodeDataInfo.arrowColumnPoses) {
-            arrowColumnVectors.push_back(resultSet->getValueVector(arrowColumnPos).get());
+        for (auto& arrowColumnPos : copyNodeDataInfo.dataColumnPoses) {
+            dataColumnVectors.push_back(resultSet->getValueVector(arrowColumnPos).get());
         }
     }
 
@@ -124,7 +124,7 @@ protected:
     storage::WAL* wal;
     common::ValueVector* rowIdxVector;
     common::ValueVector* filePathVector;
-    std::vector<common::ValueVector*> arrowColumnVectors;
+    std::vector<common::ValueVector*> dataColumnVectors;
     std::vector<std::unique_ptr<storage::PropertyCopyState>> copyStates;
 };
 
