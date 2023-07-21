@@ -55,13 +55,13 @@ void LiteralExpressionEvaluator::copyValueToVector(
     } break;
     case common::PhysicalTypeID::VAR_LIST: {
         auto listListEntry = reinterpret_cast<common::list_entry_t*>(dstValue);
-        auto numValues = srcValue->nestedTypeVal.size();
+        auto numValues = NestedVal::getChildrenSize(srcValue);
         *listListEntry = common::ListVector::addList(dstVector, numValues);
         auto dstDataVector = common::ListVector::getDataVector(dstVector);
         auto dstElements = common::ListVector::getListValues(dstVector, *listListEntry);
         for (auto i = 0u; i < numValues; ++i) {
             copyValueToVector(dstElements + i * dstDataVector->getNumBytesPerValue(), dstDataVector,
-                srcValue->nestedTypeVal[i].get());
+                NestedVal::getChildVal(srcValue, i));
         }
     } break;
     default:

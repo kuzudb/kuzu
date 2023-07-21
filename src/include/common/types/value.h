@@ -1,11 +1,12 @@
 #pragma once
 
+#include <stack>
+#include <utility>
+
 #include "common/api.h"
 #include "common/exception.h"
 #include "common/type_utils.h"
 #include "common/utils.h"
-#include <stack>
-#include <utility>
 
 namespace kuzu {
 namespace common {
@@ -13,8 +14,17 @@ namespace common {
 class NodeVal;
 class RelVal;
 class FileInfo;
+class NestedVal;
+class RecursiveRelVal;
+class ArrowRowBatch;
 
 class Value {
+    friend class NodeVal;
+    friend class RelVal;
+    friend class NestedVal;
+    friend class RecursiveRelVal;
+    friend class ArrowRowBatch;
+
 public:
     /**
      * @return a NULL value of ANY type.
@@ -94,17 +104,7 @@ public:
      * @param vals the list value to set.
      * @return a Value with dataType type and vals value.
      */
-    KUZU_API explicit Value(LogicalType dataType, std::vector<std::unique_ptr<Value>> vals);
-    /**
-     * @param val_ the node value to set.
-     * @return a Value with NODE type and val_ value.
-     */
-    KUZU_API explicit Value(std::unique_ptr<NodeVal> val_);
-    /**
-     * @param val_ the rel value to set.
-     * @return a Value with REL type and val_ value.
-     */
-    KUZU_API explicit Value(std::unique_ptr<RelVal> val_);
+    KUZU_API explicit Value(LogicalType dataType, std::vector<std::unique_ptr<Value>> children);
     /**
      * @param val_ the value to set.
      * @return a Value with dataType type and val_ value.
@@ -124,7 +124,10 @@ public:
      * @return the dataType of the value.
      */
     KUZU_API LogicalType getDataType() const;
-    const LogicalType& getDataTypeReference() const;
+    /**
+     * @return the dataType reference of the value.
+     */
+    KUZU_API const LogicalType& getDataTypeRef() const;
     /**
      * @brief Sets the null flag of the Value.
      * @param flag null value flag to set.
@@ -163,11 +166,6 @@ public:
         throw std::runtime_error("Unimplemented template for Value::getValueReference()");
     }
     /**
-     * @return a reference to the list value.
-     */
-    // TODO(Guodong): think how can we template list get functions.
-    KUZU_API const std::vector<std::unique_ptr<Value>>& getListValReference() const;
-    /**
      * @param value the value to Value object.
      * @return a Value object based on value.
      */
@@ -192,24 +190,12 @@ private:
     Value();
     explicit Value(LogicalType dataType);
 
-    template<typename T>
-    static inline void putValuesIntoVector(std::vector<std::unique_ptr<Value>>& fixedListResultVal,
-        const uint8_t* fixedList, uint64_t numBytesPerElement) {
-        for (auto i = 0; i < fixedListResultVal.size(); ++i) {
-            fixedListResultVal[i] =
-                std::make_unique<Value>(*(T*)(fixedList + i * numBytesPerElement));
-        }
-    }
-
-    std::vector<std::unique_ptr<Value>> convertKUFixedListToVector(const uint8_t* fixedList) const;
+    void copyFromFixedList(const uint8_t* fixedList);
     void copyFromVarList(ku_list_t& list, const LogicalType& childType);
-    void copyFromKuStruct(const uint8_t* kuStruct) const;
-    std::vector<std::unique_ptr<Value>> convertKUUnionToVector(const uint8_t* kuUnion) const;
+    void copyFromStruct(const uint8_t* kuStruct);
+    void copyFromUnion(const uint8_t* kuUnion);
 
 public:
-    LogicalType dataType;
-    bool isNull_;
-
     union Val {
         constexpr Val() : booleanVal{false} {}
         bool booleanVal;
@@ -222,8 +208,22 @@ public:
         internalID_t internalIDVal;
     } val;
     std::string strVal;
-    std::vector<std::unique_ptr<Value>> nestedTypeVal;
-    uint32_t nestedTypeValSize;
+
+private:
+    LogicalType dataType;
+    bool isNull_;
+
+    // Note: ALWAYS use childrenSize over children.size(). We do NOT resize children when iterating
+    // with nested value. So children.size() reflects the capacity() rather the actual size.
+    std::vector<std::unique_ptr<Value>> children;
+    uint32_t childrenSize;
+};
+
+class NestedVal {
+public:
+    KUZU_API static uint32_t getChildrenSize(const Value* val);
+
+    KUZU_API static Value* getChildVal(const Value* val, uint32_t idx);
 };
 
 /**
@@ -252,15 +252,15 @@ public:
     /**
      * @return the value of the property at the given index.
      */
-    KUZU_API static Value* getPropertyValueReference(const Value* val, uint64_t index);
+    KUZU_API static Value* getPropertyVal(const Value* val, uint64_t index);
     /**
      * @return the nodeID as a Value.
      */
-    KUZU_API static std::unique_ptr<Value> getNodeIDVal(const Value* val);
+    KUZU_API static Value* getNodeIDVal(const Value* val);
     /**
      * @return the name of the node as a Value.
      */
-    KUZU_API static std::unique_ptr<Value> getLabelVal(const Value* val);
+    KUZU_API static Value* getLabelVal(const Value* val);
     /**
      * @return the nodeID of the node as a nodeID struct.
      */
@@ -270,10 +270,6 @@ public:
      */
     KUZU_API static std::string getLabelName(const Value* val);
     /**
-     * @return a copy of the current node.
-     */
-    KUZU_API static std::unique_ptr<Value> copy(const Value* val);
-    /**
      * @return the current node values in string format.
      */
     KUZU_API static std::string toString(const Value* val);
@@ -281,7 +277,7 @@ public:
 private:
     static void throwIfNotNode(const Value* val);
     // 2 offsets for id and label.
-    inline static const uint64_t OFFSET = 2;
+    static constexpr uint64_t OFFSET = 2;
 };
 
 /**
@@ -308,15 +304,15 @@ public:
     /**
      * @return the value of the property at the given index.
      */
-    KUZU_API static Value* getPropertyValueReference(const Value* val, uint64_t index);
+    KUZU_API static Value* getPropertyVal(const Value* val, uint64_t index);
     /**
      * @return the src nodeID value of the RelVal in Value.
      */
-    KUZU_API static std::unique_ptr<Value> getSrcNodeIDVal(const Value* val);
+    KUZU_API static Value* getSrcNodeIDVal(const Value* val);
     /**
      * @return the dst nodeID value of the RelVal in Value.
      */
-    KUZU_API static std::unique_ptr<Value> getDstNodeIDVal(const Value* val);
+    KUZU_API static Value* getDstNodeIDVal(const Value* val);
     /**
      * @return the src nodeID value of the RelVal as nodeID struct.
      */
@@ -333,15 +329,11 @@ public:
      * @return the value of the RelVal in string format.
      */
     KUZU_API static std::string toString(const Value* val);
-    /**
-     * @return a copy of the RelVal.
-     */
-    KUZU_API static std::unique_ptr<Value> copy(const Value* val);
 
 private:
     static void throwIfNotRel(const Value* val);
     // 4 offset for id, label, src, dst.
-    inline static const uint64_t OFFSET = 4;
+    static constexpr uint64_t OFFSET = 4;
 };
 
 /**
