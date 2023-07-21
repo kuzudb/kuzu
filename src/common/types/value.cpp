@@ -17,6 +17,10 @@ LogicalType Value::getDataType() const {
     return dataType;
 }
 
+const LogicalType& Value::getDataTypeReference() const {
+    return dataType;
+}
+
 void Value::setNull(bool flag) {
     isNull_ = flag;
 }
@@ -68,15 +72,22 @@ Value Value::createDefaultValue(const LogicalType& dataType) {
         return Value(LogicalType{LogicalTypeID::STRING}, std::string(""));
     case LogicalTypeID::FLOAT:
         return Value((float_t)0);
-    case LogicalTypeID::RECURSIVE_REL:
     case LogicalTypeID::MAP:
     case LogicalTypeID::VAR_LIST:
     case LogicalTypeID::FIXED_LIST:
-    case LogicalTypeID::UNION:
+    case LogicalTypeID::UNION: {
+        return Value(dataType, std::vector<std::unique_ptr<Value>>{});
+    }
+    case LogicalTypeID::RECURSIVE_REL:
     case LogicalTypeID::STRUCT:
     case LogicalTypeID::NODE:
-    case LogicalTypeID::REL:
-        return Value(dataType, std::vector<std::unique_ptr<Value>>{});
+    case LogicalTypeID::REL: {
+        std::vector<std::unique_ptr<Value>> children;
+        for (auto& field : common::StructType::getFields(&dataType)) {
+            children.push_back(std::make_unique<Value>(createDefaultValue(*field->getType())));
+        }
+        return Value(dataType, std::move(children));
+    }
     default:
         throw RuntimeException("Data type " + LogicalTypeUtils::dataTypeToString(dataType) +
                                " is not supported for Value::createDefaultValue");
@@ -183,8 +194,7 @@ void Value::copyValueFrom(const uint8_t* value) {
     } break;
     case LogicalTypeID::MAP:
     case LogicalTypeID::VAR_LIST: {
-        nestedTypeVal =
-            convertKUVarListToVector(*(ku_list_t*)value, *VarListType::getChildType(&dataType));
+        copyFromVarList(*(ku_list_t*)value, *VarListType::getChildType(&dataType));
     } break;
     case LogicalTypeID::FIXED_LIST: {
         nestedTypeVal = convertKUFixedListToVector(value);
@@ -196,7 +206,7 @@ void Value::copyValueFrom(const uint8_t* value) {
     case LogicalTypeID::REL:
     case LogicalTypeID::RECURSIVE_REL:
     case LogicalTypeID::STRUCT: {
-        nestedTypeVal = convertKUStructToVector(value);
+        copyFromKuStruct(value);
     } break;
     default:
         throw RuntimeException("Data type " + LogicalTypeUtils::dataTypeToString(dataType) +
@@ -288,7 +298,7 @@ std::string Value::toString() const {
         return strVal;
     case LogicalTypeID::MAP: {
         std::string result = "{";
-        for (auto i = 0u; i < nestedTypeVal.size(); ++i) {
+        for (auto i = 0u; i < nestedTypeValSize; ++i) {
             auto structVal = nestedTypeVal[i].get();
             result += structVal->nestedTypeVal[0]->toString();
             result += "=";
@@ -300,7 +310,7 @@ std::string Value::toString() const {
     case LogicalTypeID::VAR_LIST:
     case LogicalTypeID::FIXED_LIST: {
         std::string result = "[";
-        for (auto i = 0u; i < nestedTypeVal.size(); ++i) {
+        for (auto i = 0u; i < nestedTypeValSize; ++i) {
             result += nestedTypeVal[i]->toString();
             if (i != nestedTypeVal.size() - 1) {
                 result += ",";
@@ -318,7 +328,7 @@ std::string Value::toString() const {
     case LogicalTypeID::STRUCT: {
         std::string result = "{";
         auto fieldNames = StructType::getFieldNames(&dataType);
-        for (auto i = 0u; i < nestedTypeVal.size(); ++i) {
+        for (auto i = 0u; i < nestedTypeValSize; ++i) {
             result += fieldNames[i] + ": ";
             result += nestedTypeVal[i]->toString();
             if (i != nestedTypeVal.size() - 1) {
@@ -331,8 +341,8 @@ std::string Value::toString() const {
     case LogicalTypeID::NODE: {
         std::string result = "{";
         auto fieldNames = StructType::getFieldNames(&dataType);
-        for (auto i = 0u; i < nestedTypeVal.size(); ++i) {
-            if (nestedTypeVal[i]->isNull()) {
+        for (auto i = 0u; i < nestedTypeValSize; ++i) {
+            if (nestedTypeVal[i]->isNull_) {
                 // Avoid printing null key value pair.
                 continue;
             }
@@ -347,8 +357,8 @@ std::string Value::toString() const {
     case LogicalTypeID::REL: {
         std::string result = "(" + nestedTypeVal[0]->toString() + ")-{";
         auto fieldNames = StructType::getFieldNames(&dataType);
-        for (auto i = 2u; i < nestedTypeVal.size(); ++i) {
-            if (nestedTypeVal[i]->isNull()) {
+        for (auto i = 2u; i < nestedTypeValSize; ++i) {
+            if (nestedTypeVal[i]->isNull_) {
                 // Avoid printing null key value pair.
                 continue;
             }
@@ -371,24 +381,27 @@ Value::Value() : dataType{LogicalTypeID::ANY}, isNull_{true} {}
 
 Value::Value(LogicalType dataType) : dataType{std::move(dataType)}, isNull_{true} {}
 
-std::vector<std::unique_ptr<Value>> Value::convertKUVarListToVector(
-    ku_list_t& list, const LogicalType& childType) const {
-    std::vector<std::unique_ptr<Value>> listResultValue;
+void Value::copyFromVarList(kuzu::common::ku_list_t& list, const LogicalType& childType) {
+    if (list.size > nestedTypeVal.size()) {
+        nestedTypeVal.reserve(list.size);
+        for (auto i = nestedTypeVal.size(); i < list.size; ++i) {
+            nestedTypeVal.push_back(std::make_unique<Value>(createDefaultValue(childType)));
+        }
+    }
+    nestedTypeValSize = list.size;
     auto numBytesPerElement = storage::StorageUtils::getDataTypeSize(childType);
     auto listNullBytes = reinterpret_cast<uint8_t*>(list.overflowPtr);
     auto numBytesForNullValues = NullBuffer::getNumBytesForNullValues(list.size);
     auto listValues = listNullBytes + numBytesForNullValues;
     for (auto i = 0; i < list.size; i++) {
-        auto childValue = std::make_unique<Value>(Value::createDefaultValue(childType));
+        auto childValue = nestedTypeVal[i].get();
         if (NullBuffer::isNull(listNullBytes, i)) {
             childValue->setNull();
         } else {
             childValue->copyValueFrom(listValues);
         }
-        listResultValue.push_back(std::move(childValue));
         listValues += numBytesPerElement;
     }
-    return listResultValue;
 }
 
 std::vector<std::unique_ptr<Value>> Value::convertKUFixedListToVector(
@@ -419,23 +432,19 @@ std::vector<std::unique_ptr<Value>> Value::convertKUFixedListToVector(
     return fixedListResultVal;
 }
 
-std::vector<std::unique_ptr<Value>> Value::convertKUStructToVector(const uint8_t* kuStruct) const {
-    std::vector<std::unique_ptr<Value>> structVal;
-    auto childrenTypes = StructType::getFieldTypes(&dataType);
-    auto numFields = childrenTypes.size();
+void Value::copyFromKuStruct(const uint8_t* kuStruct) const {
+    auto numFields = nestedTypeVal.size();
     auto structNullValues = kuStruct;
     auto structValues = structNullValues + NullBuffer::getNumBytesForNullValues(numFields);
     for (auto i = 0; i < numFields; i++) {
-        auto childValue = std::make_unique<Value>(Value::createDefaultValue(*childrenTypes[i]));
+        auto childValue = nestedTypeVal[i].get();
         if (NullBuffer::isNull(structNullValues, i)) {
             childValue->setNull(true);
         } else {
             childValue->copyValueFrom(structValues);
         }
-        structVal.emplace_back(std::move(childValue));
-        structValues += storage::StorageUtils::getDataTypeSize(*childrenTypes[i]);
+        structValues += storage::StorageUtils::getDataTypeSize(childValue->dataType);
     }
-    return structVal;
 }
 
 std::vector<std::unique_ptr<Value>> Value::convertKUUnionToVector(const uint8_t* kuUnion) const {

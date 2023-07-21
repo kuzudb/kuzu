@@ -4,6 +4,8 @@
 #include "common/exception.h"
 #include "common/type_utils.h"
 #include "common/utils.h"
+#include <stack>
+#include <utility>
 
 namespace kuzu {
 namespace common {
@@ -122,6 +124,7 @@ public:
      * @return the dataType of the value.
      */
     KUZU_API LogicalType getDataType() const;
+    const LogicalType& getDataTypeReference() const;
     /**
      * @brief Sets the null flag of the Value.
      * @param flag null value flag to set.
@@ -198,10 +201,9 @@ private:
         }
     }
 
-    std::vector<std::unique_ptr<Value>> convertKUVarListToVector(
-        ku_list_t& list, const LogicalType& childType) const;
     std::vector<std::unique_ptr<Value>> convertKUFixedListToVector(const uint8_t* fixedList) const;
-    std::vector<std::unique_ptr<Value>> convertKUStructToVector(const uint8_t* kuStruct) const;
+    void copyFromVarList(ku_list_t& list, const LogicalType& childType);
+    void copyFromKuStruct(const uint8_t* kuStruct) const;
     std::vector<std::unique_ptr<Value>> convertKUUnionToVector(const uint8_t* kuUnion) const;
 
 public:
@@ -221,6 +223,7 @@ public:
     } val;
     std::string strVal;
     std::vector<std::unique_ptr<Value>> nestedTypeVal;
+    uint32_t nestedTypeValSize;
 };
 
 /**
