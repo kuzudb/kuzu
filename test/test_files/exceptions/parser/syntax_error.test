@@ -51,3 +51,9 @@ Parser exception: RETURN can only be used at the end of the query (line: 1, offs
 Parser exception: Non-binary comparison (e.g. a=b=c) is not supported (line: 1, offset: 69)
 "MATCH (a:person)<-[e1:knows]-(b:person)-[e2:knows]->(c:person) WHERE b.fName = e1.date = e2.date AND id(a) <> id(c) RETURN COUNT(*);"
                                                                       ^
+-LOG SubExpressionInMacro
+-STATEMENT CREATE MACRO add4(x) AS exists match (a:person) return a.age
+---- error
+Parser exception: Invalid input <exists match>: expected rule oC_ComparisonExpression (line: 1, offset: 31)
+"CREATE MACRO add4(x) AS exists match (a:person) return a.age"
+                                ^^^^^

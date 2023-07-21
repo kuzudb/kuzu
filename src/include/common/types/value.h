@@ -10,6 +10,7 @@ namespace common {
 
 class NodeVal;
 class RelVal;
+class FileInfo;
 
 class Value {
 public:
@@ -180,6 +181,10 @@ public:
      */
     KUZU_API std::string toString() const;
 
+    void serialize(FileInfo* fileInfo, uint64_t& offset) const;
+
+    static std::unique_ptr<Value> deserialize(FileInfo* fileInfo, uint64_t& offset);
+
 private:
     Value();
     explicit Value(LogicalType dataType);
@@ -216,9 +221,6 @@ public:
     } val;
     std::string strVal;
     std::vector<std::unique_ptr<Value>> nestedTypeVal;
-    // TODO(Ziyi): remove these two fields once we implemented node/rel using struct.
-    std::unique_ptr<NodeVal> nodeVal;
-    std::unique_ptr<RelVal> relVal;
 };
 
 /**
@@ -460,24 +462,6 @@ inline std::string Value::getValue() const {
 }
 
 /**
- * @return NodeVal value.
- */
-KUZU_API template<>
-inline NodeVal Value::getValue() const {
-    assert(dataType.getLogicalTypeID() == LogicalTypeID::NODE);
-    return *nodeVal;
-}
-
-/**
- * @return RelVal value.
- */
-KUZU_API template<>
-inline RelVal Value::getValue() const {
-    assert(dataType.getLogicalTypeID() == LogicalTypeID::REL);
-    return *relVal;
-}
-
-/**
  * @return the reference to the boolean value.
  */
 KUZU_API template<>
@@ -574,24 +558,6 @@ KUZU_API template<>
 inline std::string& Value::getValueReference() {
     assert(dataType.getLogicalTypeID() == LogicalTypeID::STRING);
     return strVal;
-}
-
-/**
- * @return the reference to the NodeVal value.
- */
-KUZU_API template<>
-inline NodeVal& Value::getValueReference() {
-    assert(dataType.getLogicalTypeID() == LogicalTypeID::NODE);
-    return *nodeVal;
-}
-
-/**
- * @return the reference to the RelVal value.
- */
-KUZU_API template<>
-inline RelVal& Value::getValueReference() {
-    assert(dataType.getLogicalTypeID() == LogicalTypeID::REL);
-    return *relVal;
 }
 
 /**

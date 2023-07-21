@@ -30,6 +30,11 @@ struct ScalarMacroFunction {
     macro_parameter_value_map getDefaultParameterVals() const;
 
     std::unique_ptr<ScalarMacroFunction> copy() const;
+
+    void serialize(common::FileInfo* fileInfo, uint64_t& offset) const;
+
+    static std::unique_ptr<ScalarMacroFunction> deserialize(
+        common::FileInfo* fileInfo, uint64_t& offset);
 };
 
 } // namespace function

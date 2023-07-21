@@ -31,8 +31,18 @@ public:
     inline bool hasWhereClause() const { return whereClause != nullptr; }
     inline ParsedExpression* getWhereClause() const { return whereClause.get(); }
 
+    static std::unique_ptr<ParsedSubqueryExpression> deserialize(
+        common::FileInfo* fileInfo, uint64_t& offset) {
+        throw common::NotImplementedException{"ParsedSubqueryExpression::deserialize()"};
+    }
+
     std::unique_ptr<ParsedExpression> copy() const override {
         throw common::NotImplementedException{"ParsedPropertyExpression::copy()"};
+    }
+
+private:
+    void serializeInternal(common::FileInfo* fileInfo, uint64_t& offset) const override {
+        throw common::NotImplementedException{"ParsedSubqueryExpression::serializeInternal()"};
     }
 
 private:

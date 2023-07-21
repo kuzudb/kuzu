@@ -1,6 +1,7 @@
 #include "common/types/value.h"
 
 #include "common/null_buffer.h"
+#include "common/ser_deser.h"
 #include "common/string_utils.h"
 #include "storage/storage_utils.h"
 
@@ -134,14 +135,6 @@ Value::Value(LogicalType type, const std::string& val_)
 Value::Value(LogicalType dataType, std::vector<std::unique_ptr<Value>> vals)
     : dataType{std::move(dataType)}, isNull_{false} {
     nestedTypeVal = std::move(vals);
-}
-
-Value::Value(std::unique_ptr<NodeVal> val_) : dataType{LogicalTypeID::NODE}, isNull_{false} {
-    nodeVal = std::move(val_);
-}
-
-Value::Value(std::unique_ptr<RelVal> val_) : dataType{LogicalTypeID::REL}, isNull_{false} {
-    relVal = std::move(val_);
 }
 
 Value::Value(LogicalType dataType, const uint8_t* val_)
@@ -339,7 +332,7 @@ std::string Value::toString() const {
         std::string result = "{";
         auto fieldNames = StructType::getFieldNames(&dataType);
         for (auto i = 0u; i < nestedTypeVal.size(); ++i) {
-            if (nestedTypeVal[i]->isNull_) {
+            if (nestedTypeVal[i]->isNull()) {
                 // Avoid printing null key value pair.
                 continue;
             }
@@ -355,7 +348,7 @@ std::string Value::toString() const {
         std::string result = "(" + nestedTypeVal[0]->toString() + ")-{";
         auto fieldNames = StructType::getFieldNames(&dataType);
         for (auto i = 2u; i < nestedTypeVal.size(); ++i) {
-            if (nestedTypeVal[i]->isNull_) {
+            if (nestedTypeVal[i]->isNull()) {
                 // Avoid printing null key value pair.
                 continue;
             }
@@ -470,16 +463,95 @@ std::vector<std::unique_ptr<Value>> Value::convertKUUnionToVector(const uint8_t*
     return unionVal;
 }
 
-static std::string propertiesToString(
-    const std::vector<std::pair<std::string, std::unique_ptr<Value>>>& properties) {
-    std::string result = "{";
-    for (auto i = 0u; i < properties.size(); ++i) {
-        auto& [name, value] = properties[i];
-        result += name + ":" + value->toString();
-        result += (i == properties.size() - 1 ? "" : ", ");
+void Value::serialize(FileInfo* fileInfo, uint64_t& offset) const {
+    SerDeser::serializeValue(dataType, fileInfo, offset);
+    SerDeser::serializeValue(isNull_, fileInfo, offset);
+    switch (dataType.getPhysicalType()) {
+    case PhysicalTypeID::BOOL: {
+        SerDeser::serializeValue(val.booleanVal, fileInfo, offset);
+    } break;
+    case PhysicalTypeID::INT64: {
+        SerDeser::serializeValue(val.int64Val, fileInfo, offset);
+    } break;
+    case PhysicalTypeID::INT32: {
+        SerDeser::serializeValue(val.int32Val, fileInfo, offset);
+    } break;
+    case PhysicalTypeID::INT16: {
+        SerDeser::serializeValue(val.int16Val, fileInfo, offset);
+    } break;
+    case PhysicalTypeID::DOUBLE: {
+        SerDeser::serializeValue(val.doubleVal, fileInfo, offset);
+    } break;
+    case PhysicalTypeID::FLOAT: {
+        SerDeser::serializeValue(val.floatVal, fileInfo, offset);
+    } break;
+    case PhysicalTypeID::INTERVAL: {
+        SerDeser::serializeValue(val.intervalVal, fileInfo, offset);
+    } break;
+    case PhysicalTypeID::INTERNAL_ID: {
+        SerDeser::serializeValue(val.internalIDVal, fileInfo, offset);
+    } break;
+    case PhysicalTypeID::STRING: {
+        SerDeser::serializeValue(strVal, fileInfo, offset);
+    } break;
+    case PhysicalTypeID::VAR_LIST:
+    case PhysicalTypeID::FIXED_LIST:
+    case PhysicalTypeID::STRUCT: {
+        for (auto& value : nestedTypeVal) {
+            value->serialize(fileInfo, offset);
+        }
+    } break;
+    default: {
+        throw NotImplementedException{"Value::serialize"};
     }
-    result += "}";
-    return result;
+    }
+}
+
+std::unique_ptr<Value> Value::deserialize(kuzu::common::FileInfo* fileInfo, uint64_t& offset) {
+    LogicalType dataType;
+    SerDeser::deserializeValue(dataType, fileInfo, offset);
+    bool isNull;
+    SerDeser::deserializeValue(isNull, fileInfo, offset);
+    std::unique_ptr<Value> val = std::make_unique<Value>(createDefaultValue(dataType));
+    switch (dataType.getPhysicalType()) {
+    case PhysicalTypeID::BOOL: {
+        SerDeser::deserializeValue(val->val.booleanVal, fileInfo, offset);
+    } break;
+    case PhysicalTypeID::INT64: {
+        SerDeser::deserializeValue(val->val.int64Val, fileInfo, offset);
+    } break;
+    case PhysicalTypeID::INT32: {
+        SerDeser::deserializeValue(val->val.int32Val, fileInfo, offset);
+    } break;
+    case PhysicalTypeID::INT16: {
+        SerDeser::deserializeValue(val->val.int16Val, fileInfo, offset);
+    } break;
+    case PhysicalTypeID::DOUBLE: {
+        SerDeser::deserializeValue(val->val.doubleVal, fileInfo, offset);
+    } break;
+    case PhysicalTypeID::FLOAT: {
+        SerDeser::deserializeValue(val->val.floatVal, fileInfo, offset);
+    } break;
+    case PhysicalTypeID::INTERVAL: {
+        SerDeser::deserializeValue(val->val.intervalVal, fileInfo, offset);
+    } break;
+    case PhysicalTypeID::INTERNAL_ID: {
+        SerDeser::deserializeValue(val->val.internalIDVal, fileInfo, offset);
+    } break;
+    case PhysicalTypeID::STRING: {
+        SerDeser::deserializeValue(val->strVal, fileInfo, offset);
+    } break;
+    case PhysicalTypeID::VAR_LIST:
+    case PhysicalTypeID::FIXED_LIST:
+    case PhysicalTypeID::STRUCT: {
+        SerDeser::deserializeVectorOfPtrs(val->nestedTypeVal, fileInfo, offset);
+    } break;
+    default: {
+        throw NotImplementedException{"Value::deserializeValue"};
+    }
+    }
+    val->setNull(isNull);
+    return val;
 }
 
 std::vector<std::pair<std::string, std::unique_ptr<Value>>> NodeVal::getProperties(

@@ -13,7 +13,11 @@ struct ParsedCaseAlternative {
         std::unique_ptr<ParsedExpression> thenExpression)
         : whenExpression{std::move(whenExpression)}, thenExpression{std::move(thenExpression)} {}
 
-    inline std::unique_ptr<ParsedCaseAlternative> copy() {
+    void serialize(common::FileInfo* fileInfo, uint64_t& offset) const;
+    static std::unique_ptr<ParsedCaseAlternative> deserialize(
+        common::FileInfo* fileInfo, uint64_t& offset);
+
+    inline std::unique_ptr<ParsedCaseAlternative> copy() const {
         return std::make_unique<ParsedCaseAlternative>(
             whenExpression->copy(), thenExpression->copy());
     }
@@ -31,13 +35,21 @@ public:
     explicit ParsedCaseExpression(std::string raw)
         : ParsedExpression{common::CASE_ELSE, std::move(raw)} {};
 
-    ParsedCaseExpression(common::ExpressionType type, std::string alias, std::string rawName,
-        parsed_expression_vector children, std::unique_ptr<ParsedExpression> caseExpression,
+    ParsedCaseExpression(std::string alias, std::string rawName, parsed_expression_vector children,
+        std::unique_ptr<ParsedExpression> caseExpression,
         std::vector<std::unique_ptr<ParsedCaseAlternative>> caseAlternatives,
         std::unique_ptr<ParsedExpression> elseExpression)
-        : ParsedExpression{type, std::move(alias), std::move(rawName), std::move(children)},
+        : ParsedExpression{common::CASE_ELSE, std::move(alias), std::move(rawName),
+              std::move(children)},
           caseExpression{std::move(caseExpression)}, caseAlternatives{std::move(caseAlternatives)},
           elseExpression{std::move(elseExpression)} {}
+
+    ParsedCaseExpression(std::unique_ptr<ParsedExpression> caseExpression,
+        std::vector<std::unique_ptr<ParsedCaseAlternative>> caseAlternatives,
+        std::unique_ptr<ParsedExpression> elseExpression)
+        : ParsedExpression{common::CASE_ELSE}, caseExpression{std::move(caseExpression)},
+          caseAlternatives{std::move(caseAlternatives)}, elseExpression{std::move(elseExpression)} {
+    }
 
     inline void setCaseExpression(std::unique_ptr<ParsedExpression> expression) {
         caseExpression = std::move(expression);
@@ -59,7 +71,13 @@ public:
     inline bool hasElseExpression() const { return elseExpression != nullptr; }
     inline ParsedExpression* getElseExpression() const { return elseExpression.get(); }
 
+    static std::unique_ptr<ParsedCaseExpression> deserialize(
+        common::FileInfo* fileInfo, uint64_t& offset);
+
     std::unique_ptr<ParsedExpression> copy() const override;
+
+private:
+    void serializeInternal(common::FileInfo* fileInfo, uint64_t& offset) const override;
 
 private:
     // Optional. If not specified, directly check next whenExpression

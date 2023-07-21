@@ -6,7 +6,6 @@
 #include "common/assert.h"
 #include "common/exception.h"
 #include "common/file_utils.h"
-#include "common/ser_deser.h"
 #include "common/utils.h"
 #include "function/aggregate/built_in_aggregate_functions.h"
 #include "function/built_in_table_functions.h"
@@ -235,6 +234,7 @@ public:
     void addScalarMacroFunction(
         std::string name, std::unique_ptr<function::ScalarMacroFunction> macro);
 
+    // TODO(Ziyi): pass transaction pointer here.
     inline function::ScalarMacroFunction* getScalarMacroFunction(std::string name) const {
         return catalogContentForReadOnlyTrx->macros.at(name).get();
     }

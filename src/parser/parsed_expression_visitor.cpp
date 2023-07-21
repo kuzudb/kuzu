@@ -51,13 +51,17 @@ std::vector<ParsedExpression*> ParsedExpressionChildrenVisitor::collectCaseChild
     const ParsedExpression& expression) {
     std::vector<ParsedExpression*> children;
     auto& parsedCaseExpr = reinterpret_cast<const ParsedCaseExpression&>(expression);
-    children.push_back(parsedCaseExpr.getCaseExpression());
+    if (parsedCaseExpr.getCaseExpression() != nullptr) {
+        children.push_back(parsedCaseExpr.getCaseExpression());
+    }
     for (auto i = 0u; i < parsedCaseExpr.getNumCaseAlternative(); i++) {
         auto caseAlternative = parsedCaseExpr.getCaseAlternative(i);
         children.push_back(caseAlternative->whenExpression.get());
         children.push_back(caseAlternative->thenExpression.get());
     }
-    children.push_back(parsedCaseExpr.getElseExpression());
+    if (parsedCaseExpr.getElseExpression() != nullptr) {
+        children.push_back(parsedCaseExpr.getElseExpression());
+    }
     return children;
 }
 

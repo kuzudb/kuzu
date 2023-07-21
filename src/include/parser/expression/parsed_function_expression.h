@@ -21,10 +21,15 @@ public:
         : ParsedExpression{common::FUNCTION, std::move(left), std::move(right), std::move(rawName)},
           isDistinct{isDistinct}, functionName{std::move(functionName)} {}
 
-    ParsedFunctionExpression(common::ExpressionType type, std::string alias, std::string rawName,
+    ParsedFunctionExpression(std::string alias, std::string rawName,
         parsed_expression_vector children, bool isDistinct, std::string functionName)
-        : ParsedExpression{type, std::move(alias), std::move(rawName), std::move(children)},
+        : ParsedExpression{common::FUNCTION, std::move(alias), std::move(rawName),
+              std::move(children)},
           isDistinct{isDistinct}, functionName{std::move(functionName)} {}
+
+    ParsedFunctionExpression(bool isDistinct, std::string functionName)
+        : ParsedExpression{common::FUNCTION}, isDistinct{isDistinct}, functionName{std::move(
+                                                                          functionName)} {}
 
     inline bool getIsDistinct() const { return isDistinct; }
 
@@ -35,10 +40,16 @@ public:
         children.push_back(std::move(child));
     }
 
+    static std::unique_ptr<ParsedFunctionExpression> deserialize(
+        common::FileInfo* fileInfo, uint64_t& offset);
+
     inline std::unique_ptr<ParsedExpression> copy() const override {
         return std::make_unique<ParsedFunctionExpression>(
-            type, alias, rawName, copyChildren(), isDistinct, functionName);
+            alias, rawName, copyChildren(), isDistinct, functionName);
     }
+
+private:
+    void serializeInternal(common::FileInfo* fileInfo, uint64_t& offset) const override;
 
 private:
     bool isDistinct;
