@@ -49,6 +49,22 @@ void CopyNodeSharedState::initializeColumns(
     }
 }
 
+CopyNode::CopyNode(std::shared_ptr<CopyNodeSharedState> sharedState, CopyNodeInfo copyNodeInfo,
+    std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
+    std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
+    : Sink{std::move(resultSetDescriptor), PhysicalOperatorType::COPY_NODE, std::move(child), id,
+          paramsString},
+      sharedState{std::move(sharedState)}, copyNodeInfo{std::move(copyNodeInfo)},
+      rowIdxVector{nullptr}, filePathVector{nullptr} {
+    auto tableSchema = this->copyNodeInfo.catalog->getReadOnlyVersion()->getNodeTableSchema(
+        this->copyNodeInfo.table->getTableID());
+    copyStates.resize(tableSchema->getNumProperties());
+    for (auto i = 0u; i < tableSchema->getNumProperties(); i++) {
+        auto& property = tableSchema->properties[i];
+        copyStates[i] = std::make_unique<storage::PropertyCopyState>(property.dataType);
+    }
+}
+
 std::pair<row_idx_t, row_idx_t> CopyNode::getStartAndEndRowIdx(common::vector_idx_t columnIdx) {
     auto startRowIdx =
         rowIdxVector->getValue<int64_t>(rowIdxVector->state->selVector->selectedPositions[0]);
@@ -73,8 +89,8 @@ void CopyNode::executeInternal(kuzu::processor::ExecutionContext* context) {
         auto [startRowIdx, endRowIdx] = getStartAndEndRowIdx(0 /* columnIdx */);
         auto [filePath, startRowIdxInFile] = getFilePathAndRowIdxInFile();
         for (auto i = 0u; i < sharedState->columns.size(); i++) {
-            auto columnChunk =
-                sharedState->columns[i]->createInMemColumnChunk(startRowIdx, endRowIdx, &copyDesc);
+            auto columnChunk = sharedState->columns[i]->createInMemColumnChunk(
+                startRowIdx, endRowIdx, &copyNodeInfo.copyDesc);
             columnChunk->copyArrowArray(
                 *ArrowColumnVector::getArrowColumn(dataColumnVectors[i]), copyStates[i].get());
             columnChunks.push_back(std::move(columnChunk));
@@ -85,20 +101,23 @@ void CopyNode::executeInternal(kuzu::processor::ExecutionContext* context) {
 }
 
 void CopyNode::finalize(kuzu::processor::ExecutionContext* context) {
-    auto tableID = table->getTableID();
+    auto tableID = copyNodeInfo.table->getTableID();
     if (sharedState->pkIndex) {
         sharedState->pkIndex->flush();
     }
     for (auto& column : sharedState->columns) {
         column->saveToFile();
     }
-    for (auto& relTableSchema : catalog->getAllRelTableSchemasContainBoundTable(tableID)) {
-        relsStore->getRelTable(relTableSchema->tableID)
+    for (auto& relTableSchema :
+        copyNodeInfo.catalog->getAllRelTableSchemasContainBoundTable(tableID)) {
+        copyNodeInfo.relsStore->getRelTable(relTableSchema->tableID)
             ->batchInitEmptyRelsForNewNodes(relTableSchema, sharedState->numRows);
     }
-    table->getNodeStatisticsAndDeletedIDs()->setNumTuplesForTable(tableID, sharedState->numRows);
+    copyNodeInfo.table->getNodeStatisticsAndDeletedIDs()->setNumTuplesForTable(
+        tableID, sharedState->numRows);
     auto outputMsg = StringUtils::string_format("{} number of tuples has been copied to table: {}.",
-        sharedState->numRows, catalog->getReadOnlyVersion()->getTableName(tableID).c_str());
+        sharedState->numRows,
+        copyNodeInfo.catalog->getReadOnlyVersion()->getTableName(tableID).c_str());
     FactorizedTableUtils::appendStringToTable(
         sharedState->table.get(), outputMsg, context->memoryManager);
 }
@@ -197,8 +216,8 @@ void CopyNode::populatePKIndex(InMemColumnChunk* chunk, InMemOverflowFile* overf
 void CopyNode::logCopyWALRecord() {
     std::unique_lock xLck{sharedState->mtx};
     if (!sharedState->hasLoggedWAL) {
-        wal->logCopyNodeRecord(table->getTableID());
-        wal->flushAllPages();
+        copyNodeInfo.wal->logCopyNodeRecord(copyNodeInfo.table->getTableID());
+        copyNodeInfo.wal->flushAllPages();
         sharedState->hasLoggedWAL = true;
     }
 }

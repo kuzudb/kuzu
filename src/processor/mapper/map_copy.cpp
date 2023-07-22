@@ -73,10 +73,17 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCopyNodeToPhysical(Logic
     auto copyNodeSharedState =
         std::make_shared<CopyNodeSharedState>(readFileSharedState->numRows, memoryManager);
     std::unique_ptr<CopyNode> copyNode;
-    CopyNodeDataInfo copyNodeDataInfo{rowIdxVectorPos, filePathVectorPos, dataColumnPoses};
+    CopyNodeInfo copyNodeDataInfo{
+        rowIdxVectorPos,
+        filePathVectorPos,
+        dataColumnPoses,
+        copy->getCopyDescription(),
+        storageManager.getNodesStore().getNodeTable(copy->getTableID()),
+        &storageManager.getRelsStore(),
+        catalog,
+        storageManager.getWAL(),
+    };
     copyNode = std::make_unique<CopyNode>(copyNodeSharedState, copyNodeDataInfo,
-        copy->getCopyDescription(), storageManager.getNodesStore().getNodeTable(copy->getTableID()),
-        &storageManager.getRelsStore(), catalog, storageManager.getWAL(),
         std::make_unique<ResultSetDescriptor>(copy->getSchema()), std::move(readFile),
         getOperatorID(), copy->getExpressionsForPrinting());
     auto outputExpressions = binder::expression_vector{copy->getOutputExpression()};

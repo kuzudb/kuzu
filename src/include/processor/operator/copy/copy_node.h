@@ -33,36 +33,27 @@ public:
     bool hasLoggedWAL;
 };
 
-struct CopyNodeDataInfo {
+struct CopyNodeInfo {
     DataPos rowIdxVectorPos;
     DataPos filePathVectorPos;
     std::vector<DataPos> dataColumnPoses;
+    common::CopyDescription copyDesc;
+    storage::NodeTable* table;
+    storage::RelsStore* relsStore;
+    catalog::Catalog* catalog;
+    storage::WAL* wal;
 };
 
 class CopyNode : public Sink {
 public:
-    CopyNode(std::shared_ptr<CopyNodeSharedState> sharedState, CopyNodeDataInfo copyNodeDataInfo,
-        const common::CopyDescription& copyDesc, storage::NodeTable* table,
-        storage::RelsStore* relsStore, catalog::Catalog* catalog, storage::WAL* wal,
+    CopyNode(std::shared_ptr<CopyNodeSharedState> sharedState, CopyNodeInfo copyNodeInfo,
         std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
-        std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
-        : Sink{std::move(resultSetDescriptor), PhysicalOperatorType::COPY_NODE, std::move(child),
-              id, paramsString},
-          sharedState{std::move(sharedState)}, copyNodeDataInfo{std::move(copyNodeDataInfo)},
-          copyDesc{copyDesc}, table{table}, relsStore{relsStore}, catalog{catalog}, wal{wal},
-          rowIdxVector{nullptr}, filePathVector{nullptr} {
-        auto tableSchema = catalog->getReadOnlyVersion()->getNodeTableSchema(table->getTableID());
-        copyStates.resize(tableSchema->getNumProperties());
-        for (auto i = 0u; i < tableSchema->getNumProperties(); i++) {
-            auto& property = tableSchema->properties[i];
-            copyStates[i] = std::make_unique<storage::PropertyCopyState>(property.dataType);
-        }
-    }
+        std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString);
 
     inline void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override {
-        rowIdxVector = resultSet->getValueVector(copyNodeDataInfo.rowIdxVectorPos).get();
-        filePathVector = resultSet->getValueVector(copyNodeDataInfo.filePathVectorPos).get();
-        for (auto& arrowColumnPos : copyNodeDataInfo.dataColumnPoses) {
+        rowIdxVector = resultSet->getValueVector(copyNodeInfo.rowIdxVectorPos).get();
+        filePathVector = resultSet->getValueVector(copyNodeInfo.filePathVectorPos).get();
+        for (auto& arrowColumnPos : copyNodeInfo.dataColumnPoses) {
             dataColumnVectors.push_back(resultSet->getValueVector(arrowColumnPos).get());
         }
     }
@@ -71,9 +62,9 @@ public:
         if (!isCopyAllowed()) {
             throw common::CopyException("COPY commands can only be executed once on a table.");
         }
-        auto nodeTableSchema =
-            catalog->getReadOnlyVersion()->getNodeTableSchema(table->getTableID());
-        sharedState->initialize(nodeTableSchema, wal->getDirectory());
+        auto nodeTableSchema = copyNodeInfo.catalog->getReadOnlyVersion()->getNodeTableSchema(
+            copyNodeInfo.table->getTableID());
+        sharedState->initialize(nodeTableSchema, copyNodeInfo.wal->getDirectory());
     }
 
     void executeInternal(ExecutionContext* context) override;
@@ -81,8 +72,8 @@ public:
     void finalize(ExecutionContext* context) override;
 
     inline std::unique_ptr<PhysicalOperator> clone() override {
-        return std::make_unique<CopyNode>(sharedState, copyNodeDataInfo, copyDesc, table, relsStore,
-            catalog, wal, resultSetDescriptor->copy(), children[0]->clone(), id, paramsString);
+        return std::make_unique<CopyNode>(sharedState, copyNodeInfo, resultSetDescriptor->copy(),
+            children[0]->clone(), id, paramsString);
     }
 
 protected:
@@ -97,9 +88,9 @@ protected:
     std::pair<std::string, common::row_idx_t> getFilePathAndRowIdxInFile();
 
 private:
-    inline bool isCopyAllowed() {
-        auto nodesStatistics = table->getNodeStatisticsAndDeletedIDs();
-        return nodesStatistics->getNodeStatisticsAndDeletedIDs(table->getTableID())
+    inline bool isCopyAllowed() const {
+        auto nodesStatistics = copyNodeInfo.table->getNodeStatisticsAndDeletedIDs();
+        return nodesStatistics->getNodeStatisticsAndDeletedIDs(copyNodeInfo.table->getTableID())
                    ->getNumTuples() == 0;
     }
 
@@ -116,12 +107,7 @@ private:
 
 protected:
     std::shared_ptr<CopyNodeSharedState> sharedState;
-    CopyNodeDataInfo copyNodeDataInfo;
-    common::CopyDescription copyDesc;
-    storage::NodeTable* table;
-    storage::RelsStore* relsStore;
-    catalog::Catalog* catalog;
-    storage::WAL* wal;
+    CopyNodeInfo copyNodeInfo;
     common::ValueVector* rowIdxVector;
     common::ValueVector* filePathVector;
     std::vector<common::ValueVector*> dataColumnVectors;
