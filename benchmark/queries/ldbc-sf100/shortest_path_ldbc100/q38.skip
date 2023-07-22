@@ -1,0 +1,5 @@
+#-NAME q38
+#-COMPARE_RESULT 1
+#-QUERY MATCH (a:Person)-[r:knows* SHORTEST 1..30]->(b:Person) WHERE a.ID < 17805 RETURN COUNT(*)
+#---- 1
+#360202025
