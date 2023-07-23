@@ -515,6 +515,7 @@ void Value::serialize(FileInfo* fileInfo, uint64_t& offset) const {
         throw NotImplementedException{"Value::serialize"};
     }
     }
+    SerDeser::serializeValue(childrenSize, fileInfo, offset);
 }
 
 std::unique_ptr<Value> Value::deserialize(kuzu::common::FileInfo* fileInfo, uint64_t& offset) {
@@ -560,6 +561,7 @@ std::unique_ptr<Value> Value::deserialize(kuzu::common::FileInfo* fileInfo, uint
         throw NotImplementedException{"Value::deserializeValue"};
     }
     }
+    SerDeser::deserializeValue(val->childrenSize, fileInfo, offset);
     val->setNull(isNull);
     return val;
 }
