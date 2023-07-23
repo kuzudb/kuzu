@@ -18,7 +18,7 @@ static std::shared_ptr<RecursiveJoinSharedState> createSharedState(
     return std::make_shared<RecursiveJoinSharedState>(std::move(semiMasks));
 }
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalRecursiveExtendToPhysical(
+std::unique_ptr<PhysicalOperator> PlanMapper::mapRecursiveExtend(
     planner::LogicalOperator* logicalOperator) {
     auto extend = (LogicalRecursiveExtend*)logicalOperator;
     auto boundNode = extend->getBoundNode();
@@ -28,7 +28,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalRecursiveExtendToPhysica
     auto lengthExpression = rel->getLengthExpression();
     // Map recursive plan
     auto logicalRecursiveRoot = extend->getRecursiveChild();
-    auto recursiveRoot = mapLogicalOperatorToPhysical(logicalRecursiveRoot);
+    auto recursiveRoot = mapOperator(logicalRecursiveRoot.get());
     auto recursivePlanSchema = logicalRecursiveRoot->getSchema();
     auto recursivePlanResultSetDescriptor =
         std::make_unique<ResultSetDescriptor>(recursivePlanSchema);
@@ -50,7 +50,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalRecursiveExtendToPhysica
     auto dataInfo = std::make_unique<RecursiveJoinDataInfo>(boundNodeIDPos, nbrNodeIDPos,
         nbrNode->getTableIDsSet(), lengthPos, std::move(recursivePlanResultSetDescriptor),
         recursiveDstNodeIDPos, recursiveInfo->node->getTableIDsSet(), recursiveEdgeIDPos, pathPos);
-    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0));
+    auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
     return std::make_unique<RecursiveJoin>(rel->getLowerBound(), rel->getUpperBound(),
         rel->getRelType(), extend->getJoinType(), sharedState, std::move(dataInfo),
         std::move(prevOperator), getOperatorID(), extend->getExpressionsForPrinting(),

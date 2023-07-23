@@ -7,17 +7,16 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace processor {
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCrossProductToPhysical(
-    LogicalOperator* logicalOperator) {
+std::unique_ptr<PhysicalOperator> PlanMapper::mapCrossProduct(LogicalOperator* logicalOperator) {
     auto logicalCrossProduct = (LogicalCrossProduct*)logicalOperator;
     auto outSchema = logicalCrossProduct->getSchema();
     // map build side
     auto buildSideSchema = logicalCrossProduct->getBuildSideSchema();
-    auto buildSidePrevOperator = mapLogicalOperatorToPhysical(logicalCrossProduct->getChild(1));
+    auto buildSidePrevOperator = mapOperator(logicalCrossProduct->getChild(1).get());
     auto resultCollector = createResultCollector(buildSideSchema->getExpressionsInScope(),
         buildSideSchema, std::move(buildSidePrevOperator));
     // map probe side
-    auto probeSidePrevOperator = mapLogicalOperatorToPhysical(logicalCrossProduct->getChild(0));
+    auto probeSidePrevOperator = mapOperator(logicalCrossProduct->getChild(0).get());
     std::vector<DataPos> outVecPos;
     std::vector<uint32_t> colIndicesToScan;
     auto expressions = buildSideSchema->getExpressionsInScope();

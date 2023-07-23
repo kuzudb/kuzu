@@ -10,12 +10,12 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace processor {
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExplainToPhysical(
+std::unique_ptr<PhysicalOperator> PlanMapper::mapExplain(
     planner::LogicalOperator* logicalOperator) {
     auto logicalExplain = (LogicalExplain*)logicalOperator;
     auto outSchema = logicalExplain->getSchema();
     auto inSchema = logicalExplain->getChild(0)->getSchema();
-    auto lastPhysicalOP = mapLogicalOperatorToPhysical(logicalExplain->getChild(0));
+    auto lastPhysicalOP = mapOperator(logicalExplain->getChild(0).get());
     lastPhysicalOP = appendResultCollectorIfNotCopy(
         std::move(lastPhysicalOP), logicalExplain->getOutputExpressionsToExplain(), inSchema);
     auto outputExpression = logicalExplain->getOutputExpression();

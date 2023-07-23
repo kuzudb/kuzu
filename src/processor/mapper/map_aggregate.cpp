@@ -62,12 +62,11 @@ static binder::expression_vector getKeyExpressions(
     return result;
 }
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalAggregateToPhysical(
-    LogicalOperator* logicalOperator) {
+std::unique_ptr<PhysicalOperator> PlanMapper::mapAggregate(LogicalOperator* logicalOperator) {
     auto& logicalAggregate = (const LogicalAggregate&)*logicalOperator;
     auto outSchema = logicalAggregate.getSchema();
     auto inSchema = logicalAggregate.getChild(0)->getSchema();
-    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0));
+    auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
     auto paramsString = logicalAggregate.getExpressionsForPrinting();
     std::vector<std::unique_ptr<AggregateFunction>> aggregateFunctions;
     for (auto& expression : logicalAggregate.getAggregateExpressions()) {

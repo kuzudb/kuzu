@@ -8,12 +8,12 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace processor {
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanNodePropertyToPhysical(
+std::unique_ptr<PhysicalOperator> PlanMapper::mapScanNodeProperty(
     LogicalOperator* logicalOperator) {
     auto& scanProperty = (const LogicalScanNodeProperty&)*logicalOperator;
     auto outSchema = scanProperty.getSchema();
     auto inSchema = scanProperty.getChild(0)->getSchema();
-    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0));
+    auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
     auto node = scanProperty.getNode();
     auto inputNodeIDVectorPos = DataPos(inSchema->getExpressionPos(*node->getInternalIDProperty()));
     auto& nodeStore = storageManager.getNodesStore();

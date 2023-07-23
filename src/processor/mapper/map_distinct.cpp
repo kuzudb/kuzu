@@ -8,12 +8,11 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace processor {
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalDistinctToPhysical(
-    LogicalOperator* logicalOperator) {
+std::unique_ptr<PhysicalOperator> PlanMapper::mapDistinct(LogicalOperator* logicalOperator) {
     auto& logicalDistinct = (const LogicalDistinct&)*logicalOperator;
     auto outSchema = logicalDistinct.getSchema();
     auto inSchema = logicalDistinct.getChild(0)->getSchema();
-    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0));
+    auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
     std::vector<std::unique_ptr<function::AggregateFunction>> emptyAggFunctions;
     std::vector<std::unique_ptr<AggregateInputInfo>> emptyAggInputInfos;
     std::vector<DataPos> emptyAggregatesOutputPos;

@@ -7,12 +7,11 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace processor {
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalProjectionToPhysical(
-    LogicalOperator* logicalOperator) {
+std::unique_ptr<PhysicalOperator> PlanMapper::mapProjection(LogicalOperator* logicalOperator) {
     auto& logicalProjection = (const LogicalProjection&)*logicalOperator;
     auto outSchema = logicalProjection.getSchema();
     auto inSchema = logicalProjection.getChild(0)->getSchema();
-    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0));
+    auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
     std::vector<std::unique_ptr<evaluator::BaseExpressionEvaluator>> expressionEvaluators;
     std::vector<DataPos> expressionsOutputPos;
     for (auto& expression : logicalProjection.getExpressionsToProject()) {

@@ -6,9 +6,9 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace processor {
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalMultiplicityReducerToPhysical(
+std::unique_ptr<PhysicalOperator> PlanMapper::mapMultiplicityReducer(
     LogicalOperator* logicalOperator) {
-    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0));
+    auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
     return make_unique<MultiplicityReducer>(
         std::move(prevOperator), getOperatorID(), logicalOperator->getExpressionsForPrinting());
 }

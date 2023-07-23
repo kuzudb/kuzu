@@ -14,18 +14,19 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace processor {
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCopyToPhysical(
-    LogicalOperator* logicalOperator) {
+std::unique_ptr<PhysicalOperator> PlanMapper::mapCopy(LogicalOperator* logicalOperator) {
     auto copy = (LogicalCopy*)logicalOperator;
     auto tableName = catalog->getReadOnlyVersion()->getTableName(copy->getTableID());
     if (catalog->getReadOnlyVersion()->containNodeTable(tableName)) {
-        return mapLogicalCopyNodeToPhysical(copy);
+        return mapCopyNode(logicalOperator);
     } else {
-        return mapLogicalCopyRelToPhysical(copy);
+        return mapCopyRel(logicalOperator);
     }
 }
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCopyNodeToPhysical(LogicalCopy* copy) {
+std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyNode(
+    planner::LogicalOperator* logicalOperator) {
+    auto copy = (LogicalCopy*)logicalOperator;
     auto fileType = copy->getCopyDescription().fileType;
     if (fileType != common::CopyDescription::FileType::CSV &&
         fileType != common::CopyDescription::FileType::PARQUET &&
@@ -91,7 +92,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCopyNodeToPhysical(Logic
         outputExpressions, outSchema, copyNodeSharedState->table, std::move(copyNode));
 }
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCopyRelToPhysical(LogicalCopy* copy) {
+std::unique_ptr<PhysicalOperator> PlanMapper::mapCopyRel(
+    planner::LogicalOperator* logicalOperator) {
+    auto copy = (LogicalCopy*)logicalOperator;
     auto relsStatistics = &storageManager.getRelsStore().getRelsStatistics();
     auto table = storageManager.getRelsStore().getRelTable(copy->getTableID());
     return std::make_unique<CopyRel>(catalog, copy->getCopyDescription(), table,
