@@ -152,7 +152,7 @@ static void setBitToOne(std::uint8_t* data, std::int64_t pos) {
 
 void ArrowRowBatch::appendValue(
     ArrowVector* vector, const main::DataTypeInfo& typeInfo, Value* value) {
-    if (value->isNull_) {
+    if (value->isNull()) {
         copyNullValue(vector, value, vector->numValues);
     } else {
         copyNonNullValue(vector, typeInfo, value, vector->numValues);

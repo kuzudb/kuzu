@@ -46,14 +46,14 @@ std::unique_ptr<TableStatistics> RelsStatistics::deserializeTableStatistics(
     uint64_t numTuples, uint64_t& offset, FileInfo* fileInfo, uint64_t tableID) {
     std::vector<std::unordered_map<table_id_t, uint64_t>> numRelsPerDirectionBoundTable{2};
     offset_t nextRelOffset;
-    offset = SerDeser::deserializeValue(nextRelOffset, fileInfo, offset);
+    SerDeser::deserializeValue(nextRelOffset, fileInfo, offset);
     return std::make_unique<RelStatistics>(numTuples, nextRelOffset);
 }
 
 void RelsStatistics::serializeTableStatistics(
     TableStatistics* tableStatistics, uint64_t& offset, FileInfo* fileInfo) {
     auto relStatistic = (RelStatistics*)tableStatistics;
-    offset = SerDeser::serializeValue(relStatistic->nextRelOffset, fileInfo, offset);
+    SerDeser::serializeValue(relStatistic->nextRelOffset, fileInfo, offset);
 }
 
 } // namespace storage
