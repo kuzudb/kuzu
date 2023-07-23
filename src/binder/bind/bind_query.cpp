@@ -32,7 +32,6 @@ std::unique_ptr<BoundRegularQuery> Binder::bindQuery(const RegularQuery& regular
 }
 
 std::unique_ptr<BoundSingleQuery> Binder::bindSingleQuery(const SingleQuery& singleQuery) {
-    validateFirstMatchIsNotOptional(singleQuery);
     auto boundSingleQuery = std::make_unique<BoundSingleQuery>();
     for (auto i = 0u; i < singleQuery.getNumQueryParts(); ++i) {
         boundSingleQuery->addQueryPart(bindQueryPart(*singleQuery.getQueryPart(i)));

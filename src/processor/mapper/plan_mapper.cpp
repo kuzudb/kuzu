@@ -184,7 +184,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::appendResultCollectorIfNotCopy(
     // the resultCollector.
     if (lastOperator->getOperatorType() != PhysicalOperatorType::COPY_REL &&
         lastOperator->getOperatorType() != PhysicalOperatorType::COPY_NPY) {
-        lastOperator = createResultCollector(expressionsToCollect, schema, std::move(lastOperator));
+        lastOperator = createResultCollector(
+            common::AccumulateType::REGULAR, expressionsToCollect, schema, std::move(lastOperator));
     }
     return lastOperator;
 }

@@ -8,8 +8,8 @@ namespace kuzu {
 namespace processor {
 
 std::unique_ptr<ResultCollector> PlanMapper::createResultCollector(
-    const binder::expression_vector& expressions, Schema* schema,
-    std::unique_ptr<PhysicalOperator> prevOperator) {
+    common::AccumulateType accumulateType, const binder::expression_vector& expressions,
+    Schema* schema, std::unique_ptr<PhysicalOperator> prevOperator) {
     std::vector<DataPos> payloadsPos;
     auto tableSchema = std::make_unique<FactorizedTableSchema>();
     for (auto& expression : expressions) {
@@ -27,7 +27,8 @@ std::unique_ptr<ResultCollector> PlanMapper::createResultCollector(
     }
     auto table = std::make_shared<FactorizedTable>(memoryManager, tableSchema->copy());
     auto sharedState = std::make_shared<ResultCollectorSharedState>(std::move(table));
-    auto info = std::make_unique<ResultCollectorInfo>(std::move(tableSchema), payloadsPos);
+    auto info =
+        std::make_unique<ResultCollectorInfo>(accumulateType, std::move(tableSchema), payloadsPos);
     return make_unique<ResultCollector>(std::make_unique<ResultSetDescriptor>(schema),
         std::move(info), std::move(sharedState), std::move(prevOperator), getOperatorID(),
         binder::ExpressionUtil::toString(expressions));

@@ -202,11 +202,6 @@ private:
     std::vector<common::table_id_t> bindRelTableIDs(const std::vector<std::string>& tableNames);
 
     /*** validations ***/
-    // E.g. Optional MATCH (a) RETURN a.age
-    // Although this is doable in Neo4j, I don't think the semantic make a lot of sense because
-    // there is nothing to left join on.
-    static void validateFirstMatchIsNotOptional(const parser::SingleQuery& singleQuery);
-
     // E.g. ... RETURN a, b AS a
     static void validateProjectionColumnNamesAreUnique(const expression_vector& expressions);
 

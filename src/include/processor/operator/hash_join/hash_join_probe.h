@@ -94,8 +94,6 @@ private:
     uint64_t getMarkJoinResult();
     uint64_t getJoinResult();
 
-    void setVectorsToNull();
-
 private:
     std::shared_ptr<HashJoinSharedState> sharedState;
     common::JoinType joinType;

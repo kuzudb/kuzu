@@ -13,8 +13,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCrossProduct(LogicalOperator* l
     // map build side
     auto buildSideSchema = logicalCrossProduct->getBuildSideSchema();
     auto buildSidePrevOperator = mapOperator(logicalCrossProduct->getChild(1).get());
-    auto resultCollector = createResultCollector(buildSideSchema->getExpressionsInScope(),
-        buildSideSchema, std::move(buildSidePrevOperator));
+    auto resultCollector = createResultCollector(common::AccumulateType::REGULAR,
+        buildSideSchema->getExpressionsInScope(), buildSideSchema,
+        std::move(buildSidePrevOperator));
     // map probe side
     auto probeSidePrevOperator = mapOperator(logicalCrossProduct->getChild(0).get());
     std::vector<DataPos> outVecPos;

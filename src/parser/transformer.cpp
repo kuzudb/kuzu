@@ -135,8 +135,10 @@ std::unique_ptr<ReadingClause> Transformer::transformReadingClause(
 }
 
 std::unique_ptr<ReadingClause> Transformer::transformMatch(CypherParser::OC_MatchContext& ctx) {
+    auto matchClauseType =
+        ctx.OPTIONAL() ? common::MatchClauseType::OPTIONAL_MATCH : common::MatchClauseType::MATCH;
     auto matchClause =
-        std::make_unique<MatchClause>(transformPattern(*ctx.oC_Pattern()), ctx.OPTIONAL());
+        std::make_unique<MatchClause>(transformPattern(*ctx.oC_Pattern()), matchClauseType);
     if (ctx.oC_Where()) {
         matchClause->setWhereClause(transformWhere(*ctx.oC_Where()));
     }

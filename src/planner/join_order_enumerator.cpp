@@ -78,7 +78,7 @@ std::vector<std::unique_ptr<LogicalPlan>> JoinOrderEnumerator::enumerate(
     return std::move(context->getPlans(context->getFullyMatchedSubqueryGraph()));
 }
 
-std::unique_ptr<JoinOrderEnumeratorContext> JoinOrderEnumerator::enterSubquery(
+std::unique_ptr<JoinOrderEnumeratorContext> JoinOrderEnumerator::enterContext(
     expression_vector nodeIDsToScanFromInnerAndOuter) {
     auto prevContext = std::move(context);
     context = std::make_unique<JoinOrderEnumeratorContext>();
@@ -86,7 +86,7 @@ std::unique_ptr<JoinOrderEnumeratorContext> JoinOrderEnumerator::enterSubquery(
     return prevContext;
 }
 
-void JoinOrderEnumerator::exitSubquery(std::unique_ptr<JoinOrderEnumeratorContext> prevContext) {
+void JoinOrderEnumerator::exitContext(std::unique_ptr<JoinOrderEnumeratorContext> prevContext) {
     context = std::move(prevContext);
 }
 
