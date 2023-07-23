@@ -6,15 +6,21 @@
 #include "join_order_enumerator.h"
 #include "planner/join_order/cardinality_estimator.h"
 #include "projection_planner.h"
-#include "update_planner.h"
 
 namespace kuzu {
+namespace binder {
+class BoundCreateNode;
+class BoundCreateRel;
+class BoundSetNodeProperty;
+class BoundSetRelProperty;
+class BoundDeleteNode;
+} // namespace binder
+
 namespace planner {
 
 class QueryPlanner {
     friend class JoinOrderEnumerator;
     friend class ProjectionPlanner;
-    friend class UpdatePlanner;
 
 public:
     explicit QueryPlanner(const catalog::Catalog& catalog,
@@ -22,7 +28,7 @@ public:
         const storage::RelsStatistics& relsStatistics)
         : catalog{catalog}, cardinalityEstimator{std::make_unique<CardinalityEstimator>(
                                 nodesStatistics, relsStatistics)},
-          joinOrderEnumerator{catalog, this}, projectionPlanner{this}, updatePlanner{this} {}
+          joinOrderEnumerator{catalog, this}, projectionPlanner{this} {}
 
     std::vector<std::unique_ptr<LogicalPlan>> getAllPlans(const BoundStatement& boundStatement);
 
@@ -33,21 +39,31 @@ public:
 private:
     std::unique_ptr<LogicalPlan> getBestPlan(std::vector<std::unique_ptr<LogicalPlan>> plans);
 
+    // Plan query
     std::vector<std::unique_ptr<LogicalPlan>> planSingleQuery(
         const NormalizedSingleQuery& singleQuery);
     std::vector<std::unique_ptr<LogicalPlan>> planQueryPart(
         const NormalizedQueryPart& queryPart, std::vector<std::unique_ptr<LogicalPlan>> prevPlans);
 
-    // Reading clause planning
-    void planReadingClause(BoundReadingClause* boundReadingClause,
-        std::vector<std::unique_ptr<LogicalPlan>>& prevPlans);
+    // Plan reading
+    void planReadingClause(
+        BoundReadingClause* readingClause, std::vector<std::unique_ptr<LogicalPlan>>& prevPlans);
     void planMatchClause(
-        BoundReadingClause* boundReadingClause, std::vector<std::unique_ptr<LogicalPlan>>& plans);
+        BoundReadingClause* readingClause, std::vector<std::unique_ptr<LogicalPlan>>& plans);
     void planUnwindClause(
-        BoundReadingClause* boundReadingClause, std::vector<std::unique_ptr<LogicalPlan>>& plans);
+        BoundReadingClause* readingClause, std::vector<std::unique_ptr<LogicalPlan>>& plans);
     void planInQueryCall(
-        BoundReadingClause* boundReadingClause, std::vector<std::unique_ptr<LogicalPlan>>& plans);
+        BoundReadingClause* readingClause, std::vector<std::unique_ptr<LogicalPlan>>& plans);
 
+    // Plan updating
+    void planUpdatingClause(binder::BoundUpdatingClause& updatingClause,
+        std::vector<std::unique_ptr<LogicalPlan>>& plans);
+    void planUpdatingClause(binder::BoundUpdatingClause& updatingClause, LogicalPlan& plan);
+    void planCreateClause(binder::BoundUpdatingClause& updatingClause, LogicalPlan& plan);
+    void planSetClause(binder::BoundUpdatingClause& updatingClause, LogicalPlan& plan);
+    void planDeleteClause(binder::BoundUpdatingClause& updatingClause, LogicalPlan& plan);
+
+    // Plan subquery
     void planOptionalMatch(const QueryGraphCollection& queryGraphCollection,
         const expression_vector& predicates, LogicalPlan& leftPlan);
     void planRegularMatch(const QueryGraphCollection& queryGraphCollection,
@@ -80,6 +96,24 @@ private:
     void appendScanNodePropIfNecessary(const expression_vector& propertyExpressions,
         std::shared_ptr<NodeExpression> node, LogicalPlan& plan);
 
+    // Append updating operators
+    void appendCreateNode(const std::vector<std::unique_ptr<binder::BoundCreateNode>>& createNodes,
+        LogicalPlan& plan);
+    void appendCreateRel(
+        const std::vector<std::unique_ptr<binder::BoundCreateRel>>& createRels, LogicalPlan& plan);
+
+    void appendSetNodeProperty(
+        const std::vector<std::unique_ptr<binder::BoundSetNodeProperty>>& setNodeProperties,
+        LogicalPlan& plan);
+    void appendSetRelProperty(
+        const std::vector<std::unique_ptr<binder::BoundSetRelProperty>>& setRelProperties,
+        LogicalPlan& plan);
+
+    void appendDeleteNode(const std::vector<std::unique_ptr<binder::BoundDeleteNode>>& deleteNodes,
+        LogicalPlan& plan);
+    void appendDeleteRel(
+        const std::vector<std::shared_ptr<binder::RelExpression>>& deleteRels, LogicalPlan& plan);
+
     std::unique_ptr<LogicalPlan> createUnionPlan(
         std::vector<std::unique_ptr<LogicalPlan>>& childrenPlans, bool isUnionAll);
 
@@ -97,7 +131,6 @@ private:
     expression_vector propertiesToScan;
     JoinOrderEnumerator joinOrderEnumerator;
     ProjectionPlanner projectionPlanner;
-    UpdatePlanner updatePlanner;
 };
 
 } // namespace planner
