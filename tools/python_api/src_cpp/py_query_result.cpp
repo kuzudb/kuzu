@@ -124,10 +124,9 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value) {
     }
     case LogicalTypeID::VAR_LIST:
     case LogicalTypeID::FIXED_LIST: {
-        auto& listVal = value.getListValReference();
         py::list list;
-        for (auto i = 0u; i < listVal.size(); ++i) {
-            list.append(convertValueToPyObject(*listVal[i]));
+        for (auto i = 0u; i < NestedVal::getChildrenSize(&value); ++i) {
+            list.append(convertValueToPyObject(*NestedVal::getChildVal(&value, i)));
         }
         return std::move(list);
     }
@@ -135,19 +134,17 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value) {
     case LogicalTypeID::UNION: {
         auto fieldNames = StructType::getFieldNames(&dataType);
         py::dict dict;
-        auto& structVals = value.getListValReference();
-        for (auto i = 0u; i < structVals.size(); ++i) {
+        for (auto i = 0u; i < NestedVal::getChildrenSize(&value); ++i) {
             auto key = py::str(fieldNames[i]);
-            auto val = convertValueToPyObject(*structVals[i]);
+            auto val = convertValueToPyObject(*NestedVal::getChildVal(&value, i));
             dict[key] = val;
         }
         return dict;
     }
     case LogicalTypeID::RECURSIVE_REL: {
         py::dict dict;
-        auto& structVals = value.getListValReference();
-        dict["_nodes"] = convertValueToPyObject(*structVals[0]);
-        dict["_rels"] = convertValueToPyObject(*structVals[1]);
+        dict["_nodes"] = convertValueToPyObject(*NestedVal::getChildVal(&value, 0));
+        dict["_rels"] = convertValueToPyObject(*NestedVal::getChildVal(&value, 1));
         return dict;
     }
     case LogicalTypeID::NODE: {
@@ -157,7 +154,7 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value) {
         auto numProperties = NodeVal::getNumProperties(&value);
         for (auto i = 0u; i < numProperties; ++i) {
             auto key = py::str(NodeVal::getPropertyName(&value, i));
-            auto val = convertValueToPyObject(*NodeVal::getPropertyValueReference(&value, i));
+            auto val = convertValueToPyObject(*NodeVal::getPropertyVal(&value, i));
             dict[key] = val;
         }
         return std::move(dict);
@@ -169,7 +166,7 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value) {
         auto numProperties = RelVal::getNumProperties(&value);
         for (auto i = 0u; i < numProperties; ++i) {
             auto key = py::str(RelVal::getPropertyName(&value, i));
-            auto val = convertValueToPyObject(*RelVal::getPropertyValueReference(&value, i));
+            auto val = convertValueToPyObject(*RelVal::getPropertyVal(&value, i));
             dict[key] = val;
         }
         return std::move(dict);

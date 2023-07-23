@@ -737,7 +737,7 @@ void FlatTupleIterator::readUnflatColToFlatTuple(ft_col_idx_t colIdx, uint8_t* v
         (overflow_value_t*)(valueBuffer + factorizedTable.getTableSchema()->getColOffset(colIdx));
     auto columnInFactorizedTable = factorizedTable.getTableSchema()->getColumn(colIdx);
     auto tupleSizeInOverflowBuffer =
-        LogicalTypeUtils::getRowLayoutSize(values[colIdx]->getDataType());
+        LogicalTypeUtils::getRowLayoutSize(values[colIdx]->getDataTypeRef());
     valueBuffer =
         overflowValue->value +
         tupleSizeInOverflowBuffer *
