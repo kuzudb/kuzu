@@ -7,7 +7,7 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace processor {
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCreateMacroToPhysical(
+std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateMacro(
     planner::LogicalOperator* logicalOperator) {
     auto logicalCreateMacro = (LogicalCreateMacro*)logicalOperator;
     auto outSchema = logicalCreateMacro->getSchema();

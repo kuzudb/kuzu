@@ -2,7 +2,6 @@
 
 #include "binder/expression/node_expression.h"
 #include "common/statement_type.h"
-#include "planner/logical_plan/logical_operator/logical_copy.h"
 #include "planner/logical_plan/logical_plan.h"
 #include "processor/mapper/expression_mapper.h"
 #include "processor/operator/result_collector.h"
@@ -28,96 +27,55 @@ public:
         planner::LogicalPlan* logicalPlan, const binder::expression_vector& expressionsToCollect);
 
 private:
-    std::unique_ptr<PhysicalOperator> mapLogicalOperatorToPhysical(
-        const std::shared_ptr<planner::LogicalOperator>& logicalOperator);
-    std::unique_ptr<PhysicalOperator> mapLogicalScanFrontierToPhysical(
+    std::unique_ptr<PhysicalOperator> mapOperator(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapScanFrontier(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapScanNode(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapIndexScanNode(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapUnwind(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapExtend(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapRecursiveExtend(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapPathPropertyProbe(
         planner::LogicalOperator* logicalOperator);
-    std::unique_ptr<PhysicalOperator> mapLogicalScanNodeToPhysical(
+    std::unique_ptr<PhysicalOperator> mapFlatten(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapFilter(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapProjection(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapScanNodeProperty(
         planner::LogicalOperator* logicalOperator);
-    std::unique_ptr<PhysicalOperator> mapLogicalIndexScanNodeToPhysical(
+    std::unique_ptr<PhysicalOperator> mapSemiMasker(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapHashJoin(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapIntersect(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapCrossProduct(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapMultiplicityReducer(
         planner::LogicalOperator* logicalOperator);
-    std::unique_ptr<PhysicalOperator> mapLogicalUnwindToPhysical(
-        planner::LogicalOperator* logicalOperator);
-    std::unique_ptr<PhysicalOperator> mapLogicalExtendToPhysical(
-        planner::LogicalOperator* logicalOperator);
-    std::unique_ptr<PhysicalOperator> mapLogicalRecursiveExtendToPhysical(
-        planner::LogicalOperator* logicalOperator);
-    std::unique_ptr<PhysicalOperator> mapLogicalPathPropertyProbeToPhysical(
-        planner::LogicalOperator* logicalOperator);
-    std::unique_ptr<PhysicalOperator> mapLogicalFlattenToPhysical(
-        planner::LogicalOperator* logicalOperator);
-    std::unique_ptr<PhysicalOperator> mapLogicalFilterToPhysical(
-        planner::LogicalOperator* logicalOperator);
-    std::unique_ptr<PhysicalOperator> mapLogicalProjectionToPhysical(
-        planner::LogicalOperator* logicalOperator);
-    std::unique_ptr<PhysicalOperator> mapLogicalScanNodePropertyToPhysical(
-        planner::LogicalOperator* logicalOperator);
-    std::unique_ptr<PhysicalOperator> mapLogicalSemiMaskerToPhysical(
-        planner::LogicalOperator* logicalOperator);
-    std::unique_ptr<PhysicalOperator> mapLogicalHashJoinToPhysical(
-        planner::LogicalOperator* logicalOperator);
-    std::unique_ptr<PhysicalOperator> mapLogicalIntersectToPhysical(
-        planner::LogicalOperator* logicalOperator);
-    std::unique_ptr<PhysicalOperator> mapLogicalCrossProductToPhysical(
-        planner::LogicalOperator* logicalOperator);
-    std::unique_ptr<PhysicalOperator> mapLogicalMultiplicityReducerToPhysical(
-        planner::LogicalOperator* logicalOperator);
-    std::unique_ptr<PhysicalOperator> mapLogicalNodeLabelFilterToPhysical(
-        planner::LogicalOperator* logicalOperator);
-    std::unique_ptr<PhysicalOperator> mapLogicalSkipToPhysical(
-        planner::LogicalOperator* logicalOperator);
-    std::unique_ptr<PhysicalOperator> mapLogicalLimitToPhysical(
-        planner::LogicalOperator* logicalOperator);
-    std::unique_ptr<PhysicalOperator> mapLogicalAggregateToPhysical(
-        planner::LogicalOperator* logicalOperator);
-    std::unique_ptr<PhysicalOperator> mapLogicalDistinctToPhysical(
-        planner::LogicalOperator* logicalOperator);
-    std::unique_ptr<PhysicalOperator> mapLogicalOrderByToPhysical(
-        planner::LogicalOperator* logicalOperator);
-    std::unique_ptr<PhysicalOperator> mapLogicalUnionAllToPhysical(
-        planner::LogicalOperator* logicalOperator);
-    std::unique_ptr<PhysicalOperator> mapLogicalAccumulateToPhysical(
-        planner::LogicalOperator* logicalOperator);
-    std::unique_ptr<PhysicalOperator> mapLogicalExpressionsScanToPhysical(
-        planner::LogicalOperator* logicalOperator);
-    std::unique_ptr<PhysicalOperator> mapLogicalCreateNodeToPhysical(
-        planner::LogicalOperator* logicalOperator);
-    std::unique_ptr<PhysicalOperator> mapLogicalCreateRelToPhysical(
-        planner::LogicalOperator* logicalOperator);
-    std::unique_ptr<PhysicalOperator> mapLogicalSetNodePropertyToPhysical(
-        planner::LogicalOperator* logicalOperator);
-    std::unique_ptr<PhysicalOperator> mapLogicalSetRelPropertyToPhysical(
-        planner::LogicalOperator* logicalOperator);
-    std::unique_ptr<PhysicalOperator> mapLogicalDeleteNodeToPhysical(
-        planner::LogicalOperator* logicalOperator);
-    std::unique_ptr<PhysicalOperator> mapLogicalDeleteRelToPhysical(
-        planner::LogicalOperator* logicalOperator);
-    std::unique_ptr<PhysicalOperator> mapLogicalCreateNodeTableToPhysical(
-        planner::LogicalOperator* logicalOperator);
-    std::unique_ptr<PhysicalOperator> mapLogicalCreateRelTableToPhysical(
-        planner::LogicalOperator* logicalOperator);
-    std::unique_ptr<PhysicalOperator> mapLogicalCopyToPhysical(
-        planner::LogicalOperator* logicalOperator);
-    std::unique_ptr<PhysicalOperator> mapLogicalCopyNodeToPhysical(planner::LogicalCopy* copy);
-    std::unique_ptr<PhysicalOperator> mapLogicalCopyRelToPhysical(planner::LogicalCopy* copy);
-    std::unique_ptr<PhysicalOperator> mapLogicalDropTableToPhysical(
-        planner::LogicalOperator* logicalOperator);
-    std::unique_ptr<PhysicalOperator> mapLogicalRenameTableToPhysical(
-        planner::LogicalOperator* logicalOperator);
-    std::unique_ptr<PhysicalOperator> mapLogicalAddPropertyToPhysical(
-        planner::LogicalOperator* logicalOperator);
-    std::unique_ptr<PhysicalOperator> mapLogicalDropPropertyToPhysical(
-        planner::LogicalOperator* logicalOperator);
-    std::unique_ptr<PhysicalOperator> mapLogicalRenamePropertyToPhysical(
-        planner::LogicalOperator* logicalOperator);
-    std::unique_ptr<PhysicalOperator> mapLogicalStandaloneCallToPhysical(
-        planner::LogicalOperator* logicalOperator);
-    std::unique_ptr<PhysicalOperator> mapLogicalInQueryCallToPhysical(
-        planner::LogicalOperator* logicalOperator);
-    std::unique_ptr<PhysicalOperator> mapLogicalExplainToPhysical(
-        planner::LogicalOperator* logicalOperator);
-    std::unique_ptr<PhysicalOperator> mapLogicalCreateMacroToPhysical(
-        planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapNodeLabelFilter(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapSkip(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapLimit(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapAggregate(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapDistinct(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapOrderBy(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapUnionAll(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapAccumulate(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapExpressionsScan(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapCreateNode(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapCreateRel(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapSetNodeProperty(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapSetRelProperty(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapDeleteNode(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapDeleteRel(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapCreateNodeTable(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapCreateRelTable(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapCopy(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapCopyNode(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapCopyRel(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapDropTable(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapRenameTable(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapAddProperty(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapDropProperty(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapRenameProperty(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapStandaloneCall(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapInQueryCall(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapExplain(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapCreateMacro(planner::LogicalOperator* logicalOperator);
 
     std::unique_ptr<ResultCollector> createResultCollector(
         const binder::expression_vector& expressions, planner::Schema* schema,
@@ -125,12 +83,8 @@ private:
     std::unique_ptr<PhysicalOperator> createFactorizedTableScan(
         const binder::expression_vector& expressions, planner::Schema* schema,
         std::shared_ptr<FactorizedTable> table, std::unique_ptr<PhysicalOperator> prevOperator);
-
-    inline uint32_t getOperatorID() { return physicalOperatorID++; }
-
     std::unique_ptr<HashJoinBuildInfo> createHashBuildInfo(const planner::Schema& buildSideSchema,
         const binder::expression_vector& keys, const binder::expression_vector& payloads);
-
     std::unique_ptr<PhysicalOperator> createHashAggregate(
         const binder::expression_vector& keyExpressions,
         const binder::expression_vector& dependentKeyExpressions,
@@ -139,18 +93,16 @@ private:
         std::vector<DataPos> aggregatesOutputPos, planner::Schema* inSchema,
         planner::Schema* outSchema, std::unique_ptr<PhysicalOperator> prevOperator,
         const std::string& paramsString);
+    std::unique_ptr<PhysicalOperator> appendResultCollectorIfNotCopy(
+        std::unique_ptr<PhysicalOperator> lastOperator,
+        binder::expression_vector expressionsToCollect, planner::Schema* schema);
+
+    inline uint32_t getOperatorID() { return physicalOperatorID++; }
 
     static void mapSIPJoin(PhysicalOperator* probe);
 
     static std::vector<DataPos> getExpressionsDataPos(
         const binder::expression_vector& expressions, const planner::Schema& schema);
-
-    std::unique_ptr<PhysicalOperator> appendResultCollectorIfNotCopy(
-        std::unique_ptr<PhysicalOperator> lastOperator,
-        binder::expression_vector expressionsToCollect, planner::Schema* schema);
-
-    static void setPhysicalPlanIfProfile(
-        planner::LogicalPlan* logicalPlan, PhysicalPlan* physicalPlan);
 
 public:
     storage::StorageManager& storageManager;

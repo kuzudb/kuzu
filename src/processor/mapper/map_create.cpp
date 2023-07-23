@@ -10,12 +10,11 @@ using namespace kuzu::storage;
 namespace kuzu {
 namespace processor {
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCreateNodeToPhysical(
-    LogicalOperator* logicalOperator) {
+std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateNode(LogicalOperator* logicalOperator) {
     auto logicalCreateNode = (LogicalCreateNode*)logicalOperator;
     auto outSchema = logicalCreateNode->getSchema();
     auto inSchema = logicalCreateNode->getChild(0)->getSchema();
-    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0));
+    auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
     auto& nodesStore = storageManager.getNodesStore();
     auto catalogContent = catalog->getReadOnlyVersion();
     std::vector<std::unique_ptr<CreateNodeInfo>> createNodeInfos;
@@ -40,11 +39,10 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCreateNodeToPhysical(
         getOperatorID(), logicalCreateNode->getExpressionsForPrinting());
 }
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCreateRelToPhysical(
-    LogicalOperator* logicalOperator) {
+std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateRel(LogicalOperator* logicalOperator) {
     auto logicalCreateRel = (LogicalCreateRel*)logicalOperator;
     auto inSchema = logicalCreateRel->getChild(0)->getSchema();
-    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0));
+    auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
     auto& relStore = storageManager.getRelsStore();
     std::vector<std::unique_ptr<CreateRelInfo>> createRelInfos;
     for (auto i = 0u; i < logicalCreateRel->getNumRels(); ++i) {

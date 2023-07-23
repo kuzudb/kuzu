@@ -8,8 +8,7 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace processor {
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalIntersectToPhysical(
-    LogicalOperator* logicalOperator) {
+std::unique_ptr<PhysicalOperator> PlanMapper::mapIntersect(LogicalOperator* logicalOperator) {
     auto logicalIntersect = (LogicalIntersect*)logicalOperator;
     auto intersectNodeID = logicalIntersect->getIntersectNodeID();
     auto outSchema = logicalIntersect->getSchema();
@@ -21,7 +20,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalIntersectToPhysical(
     for (auto i = 1u; i < logicalIntersect->getNumChildren(); i++) {
         auto keyNodeID = logicalIntersect->getKeyNodeID(i - 1);
         auto buildSchema = logicalIntersect->getChild(i)->getSchema();
-        auto buildPrevOperator = mapLogicalOperatorToPhysical(logicalIntersect->getChild(i));
+        auto buildPrevOperator = mapOperator(logicalIntersect->getChild(i).get());
         auto payloadExpressions = binder::ExpressionUtil::excludeExpressions(
             buildSchema->getExpressionsInScope(), {keyNodeID});
         auto buildInfo = createHashBuildInfo(*buildSchema, {keyNodeID}, payloadExpressions);
@@ -43,7 +42,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalIntersectToPhysical(
         intersectDataInfos.push_back(info);
     }
     // Map probe side child.
-    children[0] = mapLogicalOperatorToPhysical(logicalIntersect->getChild(0));
+    children[0] = mapOperator(logicalIntersect->getChild(0).get());
     // Map intersect.
     auto outputDataPos =
         DataPos(outSchema->getExpressionPos(*logicalIntersect->getIntersectNodeID()));

@@ -7,13 +7,12 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace processor {
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalAccumulateToPhysical(
-    LogicalOperator* logicalOperator) {
+std::unique_ptr<PhysicalOperator> PlanMapper::mapAccumulate(LogicalOperator* logicalOperator) {
     auto logicalAccumulate = (LogicalAccumulate*)logicalOperator;
     auto outSchema = logicalAccumulate->getSchema();
     auto inSchema = logicalAccumulate->getChild(0)->getSchema();
     // append result collector
-    auto prevOperator = mapLogicalOperatorToPhysical(logicalAccumulate->getChild(0));
+    auto prevOperator = mapOperator(logicalAccumulate->getChild(0).get());
     auto expressions = logicalAccumulate->getExpressions();
     auto resultCollector = createResultCollector(expressions, inSchema, std::move(prevOperator));
     // append factorized table scan
