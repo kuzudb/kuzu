@@ -773,7 +773,7 @@ JNIEXPORT void JNICALL Java_com_kuzudb_KuzuNative_kuzu_1value_1destroy(
 JNIEXPORT jlong JNICALL Java_com_kuzudb_KuzuNative_kuzu_1value_1get_1list_1size(
     JNIEnv* env, jclass, jobject thisValue) {
     Value* v = getValue(env, thisValue);
-    return static_cast<jlong>(v->getListValReference().size());
+    return static_cast<jlong>(NestedVal::getChildrenSize(v));
 }
 
 JNIEXPORT jobject JNICALL Java_com_kuzudb_KuzuNative_kuzu_1value_1get_1list_1element(
@@ -781,14 +781,12 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_KuzuNative_kuzu_1value_1get_1list_1ele
     Value* v = getValue(env, thisValue);
     uint64_t idx = static_cast<uint64_t>(index);
 
-    auto& list_val = v->getListValReference();
-
-    if (idx >= list_val.size()) {
+    auto size = NestedVal::getChildrenSize(v);
+    if (idx >= size) {
         return nullptr;
     }
 
-    auto& list_element = list_val[index];
-    auto val = list_element.get();
+    auto val = NestedVal::getChildVal(v, idx);
 
     jobject element = createJavaObject(env, val, "com/kuzudb/KuzuValue", "v_ref");
     jclass clazz = env->GetObjectClass(element);
@@ -951,7 +949,7 @@ JNIEXPORT jstring JNICALL Java_com_kuzudb_KuzuNative_kuzu_1node_1val_1get_1prope
 JNIEXPORT jobject JNICALL Java_com_kuzudb_KuzuNative_kuzu_1node_1val_1get_1property_1value_1at(
     JNIEnv* env, jclass, jobject thisNV, jlong index) {
     auto* nv = getValue(env, thisNV);
-    auto propertyValue = NodeVal::getPropertyValueReference(nv, index);
+    auto propertyValue = NodeVal::getPropertyVal(nv, index);
     jobject ret = createJavaObject(env, propertyValue, "com/kuzudb/KuzuValue", "v_ref");
     jclass clazz = env->GetObjectClass(ret);
     jfieldID fieldID = env->GetFieldID(clazz, "isOwnedByCPP", "Z");
@@ -1014,7 +1012,7 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_KuzuNative_kuzu_1rel_1val_1get_1proper
     JNIEnv* env, jclass, jobject thisRV, jlong index) {
     auto* rv = getValue(env, thisRV);
     uint64_t idx = static_cast<uint64_t>(index);
-    Value* val = RelVal::getPropertyValueReference(rv, idx);
+    Value* val = RelVal::getPropertyVal(rv, idx);
 
     jobject ret = createJavaObject(env, val, "com/kuzudb/KuzuValue", "v_ref");
     jclass clazz = env->GetObjectClass(ret);

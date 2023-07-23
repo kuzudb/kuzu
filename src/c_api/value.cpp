@@ -258,19 +258,19 @@ char* kuzu_value_to_string(kuzu_value* value) {
 }
 
 kuzu_value* kuzu_node_val_get_id_val(kuzu_value* node_val) {
-    //    auto id_val = NodeVal::getNodeIDVal(static_cast<Value*>(node_val->_value));
-    //    auto* c_value = (kuzu_value*)malloc(sizeof(kuzu_value));
-    //    c_value->_value = id_val.release();
-    //    c_value->_is_owned_by_cpp = false;
-    //    return c_value;
+    auto id_val = NodeVal::getNodeIDVal(static_cast<Value*>(node_val->_value));
+    auto* c_value = (kuzu_value*)malloc(sizeof(kuzu_value));
+    c_value->_value = id_val;
+    c_value->_is_owned_by_cpp = true;
+    return c_value;
 }
 
 kuzu_value* kuzu_node_val_get_label_val(kuzu_value* node_val) {
-    //    auto label_val = NodeVal::getLabelVal(static_cast<Value*>(node_val->_value));
-    //    auto* c_value = (kuzu_value*)malloc(sizeof(kuzu_value));
-    //    c_value->_value = label_val.release();
-    //    c_value->_is_owned_by_cpp = false;
-    //    return c_value;
+    auto label_val = NodeVal::getLabelVal(static_cast<Value*>(node_val->_value));
+    auto* c_value = (kuzu_value*)malloc(sizeof(kuzu_value));
+    c_value->_value = label_val;
+    c_value->_is_owned_by_cpp = true;
+    return c_value;
 }
 
 kuzu_internal_id_t kuzu_node_val_get_id(kuzu_value* node_val) {
@@ -315,19 +315,19 @@ char* kuzu_node_val_to_string(kuzu_value* node_val) {
 }
 
 kuzu_value* kuzu_rel_val_get_src_id_val(kuzu_value* rel_val) {
-    //    auto src_id_val = RelVal::getSrcNodeIDVal(static_cast<Value*>(rel_val->_value));
-    //    auto* c_value = (kuzu_value*)malloc(sizeof(kuzu_value));
-    //    c_value->_value = src_id_val.release();
-    //    c_value->_is_owned_by_cpp = false;
-    //    return c_value;
+    auto src_id_val = RelVal::getSrcNodeIDVal(static_cast<Value*>(rel_val->_value));
+    auto* c_value = (kuzu_value*)malloc(sizeof(kuzu_value));
+    c_value->_value = src_id_val;
+    c_value->_is_owned_by_cpp = true;
+    return c_value;
 }
 
 kuzu_value* kuzu_rel_val_get_dst_id_val(kuzu_value* rel_val) {
-    //    auto dst_id_val = RelVal::getDstNodeIDVal(static_cast<Value*>(rel_val->_value));
-    //    auto* c_value = (kuzu_value*)malloc(sizeof(kuzu_value));
-    //    c_value->_value = dst_id_val.release();
-    //    c_value->_is_owned_by_cpp = false;
-    //    return c_value;
+    auto dst_id_val = RelVal::getDstNodeIDVal(static_cast<Value*>(rel_val->_value));
+    auto* c_value = (kuzu_value*)malloc(sizeof(kuzu_value));
+    c_value->_value = dst_id_val;
+    c_value->_is_owned_by_cpp = true;
+    return c_value;
 }
 
 kuzu_internal_id_t kuzu_rel_val_get_src_id(kuzu_value* rel_val) {
