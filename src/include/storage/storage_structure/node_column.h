@@ -51,6 +51,7 @@ public:
         const catalog::MetaDiskArrayHeaderInfo& metaDAHeaderInfo, BMFileHandle* nodeGroupsDataFH,
         BMFileHandle* nodeGroupsMetaFH, BufferManager* bufferManager, WAL* wal,
         bool requireNullColumn);
+    virtual ~NodeColumn() = default;
 
     // Expose for feature store
     void batchLookup(const common::offset_t* nodeOffsets, size_t size, uint8_t* result);
