@@ -102,11 +102,8 @@ void BaseColumnOrList::readInternalIDsFromAPageBySequentialCopy(Transaction* tra
 
 void BaseColumnOrList::readNullBitsFromAPage(ValueVector* valueVector, const uint8_t* frame,
     uint64_t posInPage, uint64_t posInVector, uint64_t numBitsToRead) const {
-    auto hasNullInSrcNullMask = NullMask::copyNullMask((uint64_t*)getNullBufferInPage(frame),
-        posInPage, valueVector->getNullMaskData(), posInVector, numBitsToRead);
-    if (hasNullInSrcNullMask) {
-        valueVector->setMayContainNulls();
-    }
+    valueVector->setNullFromBits(
+        (uint64_t*)getNullBufferInPage(frame), posInPage, posInVector, numBitsToRead);
 }
 
 void BaseColumnOrList::readAPageBySequentialCopy(Transaction* transaction, ValueVector* vector,

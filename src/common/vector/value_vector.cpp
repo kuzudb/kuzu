@@ -48,6 +48,11 @@ bool NodeIDVector::discardNull(ValueVector& vector) {
     }
 }
 
+bool ValueVector::setNullFromBits(const uint64_t* srcNullEntries, uint64_t srcOffset,
+    uint64_t dstOffset, uint64_t numBitsToCopy) {
+    return nullMask->copyFromNullBits(srcNullEntries, srcOffset, dstOffset, numBitsToCopy);
+}
+
 template<typename T>
 void ValueVector::setValue(uint32_t pos, T val) {
     ((T*)valueBuffer.get())[pos] = val;

@@ -44,15 +44,19 @@ void FixedSizedNodeColumnFunc::writeInternalIDValueToPage(
 
 void NullNodeColumnFunc::readValuesFromPage(uint8_t* frame, PageElementCursor& pageCursor,
     ValueVector* resultVector, uint32_t posInVector, uint32_t numValuesToRead) {
-    for (auto i = 0u; i < numValuesToRead; i++) {
-        bool isNull = *(frame + pageCursor.elemPosInPage + i);
-        resultVector->setNull(posInVector + i, isNull);
-    }
+    // Read bit-packed null flags from the frame into the result vector
+    // Casting to uint64_t should be safe as long as the page size is a multiple of 8 bytes.
+    // Otherwise it could read off the end of the page.
+    resultVector->setNullFromBits(
+        (uint64_t*)frame, pageCursor.elemPosInPage, posInVector, numValuesToRead);
 }
 
 void NullNodeColumnFunc::writeValueToPage(
     uint8_t* frame, uint16_t posInFrame, common::ValueVector* vector, uint32_t posInVector) {
-    *(frame + posInFrame) = vector->isNull(posInVector);
+    // Casting to uint64_t should be safe as long as the page size is a multiple of 8 bytes.
+    // Otherwise it could read off the end of the page.
+    NullMask::setNull(
+        (uint64_t*)frame, posInFrame, NullMask::isNull(vector->getNullMaskData(), posInVector));
 }
 
 NodeColumn::NodeColumn(const Property& property, BMFileHandle* dataFH, BMFileHandle* metadataFH,
@@ -348,12 +352,17 @@ void NodeColumn::scan(transaction::Transaction* transaction, common::node_group_
     scanUnfiltered(transaction, pageCursor, numValuesToScan, resultVector, offsetInVector);
 }
 
-NullNodeColumn::NullNodeColumn(page_idx_t metaDAHeaderPageIdx, BMFileHandle* nodeGroupsDataFH,
-    BMFileHandle* nodeGroupsMetaFH, BufferManager* bufferManager, WAL* wal)
-    : NodeColumn{LogicalType(LogicalTypeID::BOOL), MetadataDAHInfo{metaDAHeaderPageIdx},
-          nodeGroupsDataFH, nodeGroupsMetaFH, bufferManager, wal, false /* requireNullColumn */} {
+NullNodeColumn::NullNodeColumn(page_idx_t metaDAHPageIdx, BMFileHandle* dataFH,
+    BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal)
+    : NodeColumn{LogicalType(LogicalTypeID::NULL_), MetadataDAHInfo{metaDAHPageIdx}, dataFH,
+          metadataFH, bufferManager, wal, false /* requireNullColumn */} {
     readNodeColumnFunc = NullNodeColumnFunc::readValuesFromPage;
     writeNodeColumnFunc = NullNodeColumnFunc::writeValueToPage;
+    // 8 values per byte
+    numValuesPerPage = PageUtils::getNumElementsInAPage(1, false) * 8;
+    // Page size must be aligned to 8 byte chunks for the 64-bit NullMask algorithms to work
+    // without the possibility of memory errors from reading/writing off the end of a page.
+    assert(PageUtils::getNumElementsInAPage(1, false) % 8 == 0);
 }
 
 void NullNodeColumn::scan(
@@ -377,7 +386,7 @@ page_idx_t NullNodeColumn::append(
 void NullNodeColumn::setNull(common::offset_t nodeOffset) {
     auto walPageInfo = createWALVersionOfPageForValue(nodeOffset);
     try {
-        *(walPageInfo.frame + walPageInfo.posInPage) = true;
+        NullMask::setNull((uint64_t*)walPageInfo.frame, walPageInfo.posInPage, true);
     } catch (Exception& e) {
         bufferManager->unpin(*wal->fileHandle, walPageInfo.pageIdxInWAL);
         dataFH->releaseWALPageIdxLock(walPageInfo.originalPageIdx);

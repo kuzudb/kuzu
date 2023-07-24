@@ -33,7 +33,6 @@ public:
 
     inline void setAllNull() { nullMask->setAllNull(); }
     inline void setAllNonNull() { nullMask->setAllNonNull(); }
-    inline void setMayContainNulls() { nullMask->setMayContainNulls(); }
     // On return true, there are no null. On return false, there may or may not be nulls.
     inline bool hasNoNullsGuarantee() const { return nullMask->hasNoNullsGuarantee(); }
     inline void setRangeNonNull(uint32_t startPos, uint32_t len) {
@@ -41,13 +40,16 @@ public:
             setNull(startPos + i, false);
         }
     }
-    inline uint64_t* getNullMaskData() { return nullMask->getData(); }
+    inline const uint64_t* getNullMaskData() { return nullMask->getData(); }
     inline void setNull(uint32_t pos, bool isNull) { nullMask->setNull(pos, isNull); }
     inline uint8_t isNull(uint32_t pos) const { return nullMask->isNull(pos); }
     inline void setAsSingleNullEntry() {
         state->selVector->selectedSize = 1;
         setNull(state->selVector->selectedPositions[0], true);
     }
+
+    bool setNullFromBits(const uint64_t* srcNullEntries, uint64_t srcOffset, uint64_t dstOffset,
+        uint64_t numBitsToCopy);
 
     inline uint32_t getNumBytesPerValue() const { return numBytesPerValue; }
 

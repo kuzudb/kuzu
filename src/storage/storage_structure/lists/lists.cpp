@@ -140,7 +140,7 @@ void Lists::fillInMemListsFromFrame(InMemList& inMemList, const uint8_t* frame,
     if (deletedRelOffsetsInList.empty()) {
         memcpy(listData, frameData, numElementsToReadInCurPage * elementSize);
         if (inMemList.hasNullBuffer()) {
-            NullMask::copyNullMask(nullBufferInPage, elemPosInPage, inMemList.getNullMask(),
+            inMemList.getNullMask()->copyFromNullBits(nullBufferInPage, elemPosInPage,
                 nextPosToWriteToInMemList, numElementsToReadInCurPage);
         }
         readPropertyUpdatesToInMemListIfExists(inMemList, updatedPersistentListOffsets,
@@ -164,9 +164,8 @@ void Lists::fillInMemListsFromFrame(InMemList& inMemList, const uint8_t* frame,
                     // Otherwise, we can directly read from persistentStore.
                     memcpy(listData, frameData, elementSize);
                     if (inMemList.hasNullBuffer()) {
-                        NullMask::copyNullMask(nullBufferInPage, elemPosInPage,
-                            inMemList.getNullMask(), nextPosToWriteToInMemList,
-                            1 /* numBitsToCopy */);
+                        inMemList.getNullMask()->copyFromNullBits(nullBufferInPage, elemPosInPage,
+                            nextPosToWriteToInMemList, 1 /* numBitsToCopy */);
                     }
                 }
                 listData += elementSize;

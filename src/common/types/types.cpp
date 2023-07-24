@@ -312,6 +312,9 @@ void LogicalType::setPhysicalType() {
     case LogicalTypeID::BOOL: {
         physicalType = PhysicalTypeID::BOOL;
     } break;
+    case LogicalTypeID::NULL_: {
+        physicalType = PhysicalTypeID::NULL_;
+    } break;
     case LogicalTypeID::TIMESTAMP:
     case LogicalTypeID::SERIAL:
     case LogicalTypeID::INT64: {

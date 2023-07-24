@@ -13,17 +13,17 @@ namespace kuzu {
 namespace storage {
 
 ColumnChunk::ColumnChunk(LogicalType dataType, CopyDescription* copyDescription, bool hasNullChunk)
-    : ColumnChunk{
-          std::move(dataType), StorageConstants::NODE_GROUP_SIZE, copyDescription, hasNullChunk} {}
-
-ColumnChunk::ColumnChunk(
-    LogicalType dataType, offset_t numValues, CopyDescription* copyDescription, bool hasNullChunk)
     : dataType{std::move(dataType)}, numBytesPerValue{getDataTypeSizeInChunk(this->dataType)},
-      numBytes{numBytesPerValue * numValues}, copyDescription{copyDescription} {
-    buffer = std::make_unique<uint8_t[]>(numBytes);
+      copyDescription{copyDescription} {
     if (hasNullChunk) {
         nullChunk = std::make_unique<NullColumnChunk>();
     }
+}
+
+void ColumnChunk::initialize(offset_t numValues) {
+    numBytes = numBytesPerValue * numValues;
+    buffer = std::make_unique<uint8_t[]>(numBytes);
+    static_cast<ColumnChunk*>(nullChunk.get())->initialize(numValues);
 }
 
 void ColumnChunk::resetToEmpty() {
@@ -283,10 +283,28 @@ uint32_t ColumnChunk::getDataTypeSizeInChunk(common::LogicalType& dataType) {
     case LogicalTypeID::INTERNAL_ID: {
         return sizeof(offset_t);
     }
+    // This should never be used for Nulls,
+    // which use a different way of calculating the buffer size
+    // FIXME(bmwinger): Setting this to 0 breaks everything.
+    // It's being used in NullNodeColumn, and maybe there are some functions
+    // relying on it despite the value being meaningless for a null bitfield.
+    case LogicalTypeID::NULL_: {
+        return 1;
+    }
     default: {
         return StorageUtils::getDataTypeSize(dataType);
     }
     }
+}
+
+// TODO(bmwinger): Eventually, to support bitpacked bools, all these functions will need to be
+// updated to support values sizes of less than one byte.
+// But for the moment, this is the only generic ColumnChunk function which is needed by
+// NullColumnChunk, and it's invoked directly on the nullColumn, so we don't need dynamic dispatch
+void NullColumnChunk::append(NullColumnChunk* other, common::offset_t startPosInOtherChunk,
+    common::offset_t startPosInChunk, uint32_t numValuesToAppend) {
+    NullMask::copyNullMask((uint64_t*)other->buffer.get(), startPosInOtherChunk,
+        (uint64_t*)buffer.get(), startPosInChunk, numValuesToAppend);
 }
 
 void FixedListColumnChunk::append(ColumnChunk* other, common::offset_t startPosInOtherChunk,
@@ -342,6 +360,7 @@ void FixedListColumnChunk::write(const common::Value& fixedListVal, uint64_t pos
 
 std::unique_ptr<ColumnChunk> ColumnChunkFactory::createColumnChunk(
     const LogicalType& dataType, CopyDescription* copyDescription) {
+    std::unique_ptr<ColumnChunk> chunk;
     switch (dataType.getPhysicalType()) {
     case PhysicalTypeID::BOOL:
     case PhysicalTypeID::INT64:
@@ -350,21 +369,28 @@ std::unique_ptr<ColumnChunk> ColumnChunkFactory::createColumnChunk(
     case PhysicalTypeID::DOUBLE:
     case PhysicalTypeID::FLOAT:
     case PhysicalTypeID::INTERVAL:
-        return std::make_unique<ColumnChunk>(dataType, copyDescription);
+        chunk = std::make_unique<ColumnChunk>(dataType, copyDescription);
+        break;
     case PhysicalTypeID::FIXED_LIST:
-        return std::make_unique<FixedListColumnChunk>(dataType, copyDescription);
+        chunk = std::make_unique<FixedListColumnChunk>(dataType, copyDescription);
+        break;
     case PhysicalTypeID::STRING:
-        return std::make_unique<StringColumnChunk>(dataType, copyDescription);
+        chunk = std::make_unique<StringColumnChunk>(dataType, copyDescription);
+        break;
     case PhysicalTypeID::VAR_LIST:
-        return std::make_unique<VarListColumnChunk>(dataType, copyDescription);
+        chunk = std::make_unique<VarListColumnChunk>(dataType, copyDescription);
+        break;
     case PhysicalTypeID::STRUCT:
-        return std::make_unique<StructColumnChunk>(dataType, copyDescription);
+        chunk = std::make_unique<StructColumnChunk>(dataType, copyDescription);
+        break;
     default: {
         throw NotImplementedException("ColumnChunkFactory::createColumnChunk for data type " +
                                       LogicalTypeUtils::dataTypeToString(dataType) +
                                       " is not supported.");
     }
     }
+    chunk->initialize(StorageConstants::NODE_GROUP_SIZE);
+    return chunk;
 }
 
 // Bool
@@ -417,7 +443,8 @@ common::offset_t ColumnChunk::getOffsetInBuffer(common::offset_t pos) const {
 }
 
 void NullColumnChunk::resize(uint64_t numValues) {
-    auto numBytesAfterResize = numValues * numBytesPerValue;
+    auto numBytesAfterResize = numBytesForValues(numValues);
+    assert(numBytesAfterResize > numBytes);
     auto reservedBuffer = std::make_unique<uint8_t[]>(numBytesAfterResize);
     memset(reservedBuffer.get(), 0 /* non null */, numBytesAfterResize);
     memcpy(reservedBuffer.get(), buffer.get(), numBytes);
@@ -426,8 +453,7 @@ void NullColumnChunk::resize(uint64_t numValues) {
 }
 
 void NullColumnChunk::setRangeNoNull(common::offset_t startPosInChunk, uint32_t numValuesToSet) {
-    memset(buffer.get() + startPosInChunk * numBytesPerValue, 0 /* non null */,
-        numValuesToSet * numBytesPerValue);
+    NullMask::setNullRange((uint64_t*)buffer.get(), startPosInChunk, numValuesToSet, false);
 }
 
 } // namespace storage
