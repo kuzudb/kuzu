@@ -10,6 +10,8 @@ template<typename T>
 struct MinMaxFunction {
 
     struct MinMaxState : public AggregateState {
+        ~MinMaxState() override = default;
+
         inline uint32_t getStateSize() const override { return sizeof(*this); }
         inline void moveResultToVector(common::ValueVector* outputVector, uint64_t pos) override {
             memcpy(outputVector->getData() + pos * outputVector->getNumBytesPerValue(),
