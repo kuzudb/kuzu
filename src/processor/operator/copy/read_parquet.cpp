@@ -9,8 +9,7 @@ std::shared_ptr<arrow::RecordBatch> ReadParquet::readTuples(
     std::unique_ptr<ReadFileMorsel> morsel) {
     assert(!morsel->filePath.empty());
     if (!reader || filePath != morsel->filePath) {
-        reader = TableCopyUtils::createParquetReader(
-            morsel->filePath, sharedState->tableSchema);
+        reader = TableCopyUtils::createParquetReader(morsel->filePath, sharedState->tableSchema);
         filePath = morsel->filePath;
     }
     std::shared_ptr<arrow::Table> table;
