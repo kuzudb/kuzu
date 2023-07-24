@@ -182,8 +182,11 @@ void ArrowColumnVector::setArrowColumn(ValueVector* vector, std::shared_ptr<arro
 template void ValueVector::setValue<nodeID_t>(uint32_t pos, nodeID_t val);
 template void ValueVector::setValue<bool>(uint32_t pos, bool val);
 template void ValueVector::setValue<int64_t>(uint32_t pos, int64_t val);
-template void ValueVector::setValue<hash_t>(uint32_t pos, hash_t val);
+template void ValueVector::setValue<int32_t>(uint32_t pos, int32_t val);
+template void ValueVector::setValue<int16_t>(uint32_t pos, int16_t val);
 template void ValueVector::setValue<double_t>(uint32_t pos, double_t val);
+template void ValueVector::setValue<float_t>(uint32_t pos, float_t val);
+template void ValueVector::setValue<hash_t>(uint32_t pos, hash_t val);
 template void ValueVector::setValue<date_t>(uint32_t pos, date_t val);
 template void ValueVector::setValue<timestamp_t>(uint32_t pos, timestamp_t val);
 template void ValueVector::setValue<interval_t>(uint32_t pos, interval_t val);
