@@ -277,6 +277,9 @@ std::string StorageUtils::appendSuffixOrInsertBeforeWALSuffix(
 }
 
 uint32_t PageUtils::getNumElementsInAPage(uint32_t elementSize, bool hasNull) {
+    if (elementSize == 0) {
+        return 0;
+    }
     auto numBytesPerNullEntry = NullMask::NUM_BITS_PER_NULL_ENTRY >> 3;
     auto numNullEntries =
         hasNull ? (uint32_t)ceil(

@@ -81,8 +81,6 @@ NodeColumn::NodeColumn(LogicalType dataType, const MetaDiskArrayHeaderInfo& meta
         nullColumn = std::make_unique<NullNodeColumn>(metaDAHeaderInfo.nullHeaderPageIdx,
             nodeGroupsDataFH, nodeGroupsMetaFH, bufferManager, wal);
     }
-    // LOG
-    auto numNodeGroups = columnChunksMetaDA->getNumElements(TransactionType::READ_ONLY);
 }
 
 void NodeColumn::batchLookup(const offset_t* nodeOffsets, size_t size, uint8_t* result) {
@@ -101,8 +99,6 @@ void NodeColumn::batchLookup(const offset_t* nodeOffsets, size_t size, uint8_t* 
     }
 }
 
-// TDOO(Guodong): Values in the column are still limited to less than 4KB per value, but we should
-// be able to refactor how we scan from pages to support larger-than-4KB values.
 void NodeColumn::scan(
     Transaction* transaction, ValueVector* nodeIDVector, ValueVector* resultVector) {
     nullColumn->scan(transaction, nodeIDVector, resultVector);
