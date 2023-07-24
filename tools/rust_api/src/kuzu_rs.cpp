@@ -4,6 +4,8 @@ using kuzu::common::FixedListTypeInfo;
 using kuzu::common::Interval;
 using kuzu::common::LogicalType;
 using kuzu::common::LogicalTypeID;
+using kuzu::common::NodeVal;
+using kuzu::common::RelVal;
 using kuzu::common::StructField;
 using kuzu::common::Value;
 using kuzu::common::VarListTypeInfo;
@@ -142,19 +144,33 @@ rust::Vec<rust::String> query_result_column_names(const kuzu::main::QueryResult&
     return names;
 }
 
-std::unique_ptr<NodeValuePropertyList> node_value_get_properties(const Value& val) {
-    return std::make_unique<NodeValuePropertyList>(val);
-}
-std::unique_ptr<RelValuePropertyList> rel_value_get_properties(const Value& val) {
-    return std::make_unique<RelValuePropertyList>(val);
-}
-
 rust::String node_value_get_label_name(const kuzu::common::Value& val) {
     return rust::String(kuzu::common::NodeVal::getLabelName(&val));
 }
 
 rust::String rel_value_get_label_name(const kuzu::common::Value& val) {
     return rust::String(kuzu::common::RelVal::getLabelName(&val));
+}
+
+size_t node_value_get_num_properties(const Value& value) {
+    return NodeVal::getNumProperties(&value);
+}
+size_t rel_value_get_num_properties(const Value& value) {
+    return RelVal::getNumProperties(&value);
+}
+
+rust::String node_value_get_property_name(const Value& value, size_t index) {
+    return rust::String(NodeVal::getPropertyName(&value, index));
+}
+rust::String rel_value_get_property_name(const Value& value, size_t index) {
+    return rust::String(RelVal::getPropertyName(&value, index));
+}
+
+const kuzu::common::Value& node_value_get_property_value(const Value& value, size_t index) {
+    return *NodeVal::getPropertyVal(&value, index);
+}
+const kuzu::common::Value& rel_value_get_property_value(const Value& value, size_t index) {
+    return *RelVal::getPropertyVal(&value, index);
 }
 
 std::array<uint64_t, 2> node_value_get_node_id(const kuzu::common::Value& val) {
@@ -208,14 +224,20 @@ std::array<uint64_t, 2> value_get_internal_id(const kuzu::common::Value& value) 
     return std::array{internalID.offset, internalID.tableID};
 }
 
-std::unique_ptr<ValueList> value_get_list(const kuzu::common::Value& value) {
-    return std::make_unique<ValueList>(value.getListValReference());
+uint32_t value_get_children_size(const kuzu::common::Value& value) {
+    return kuzu::common::NestedVal::getChildrenSize(&value);
 }
+
+const Value& value_get_child(const kuzu::common::Value& value, uint32_t index) {
+    return *kuzu::common::NestedVal::getChildVal(&value, index);
+}
+
 kuzu::common::LogicalTypeID value_get_data_type_id(const kuzu::common::Value& value) {
-    return value.getDataType().getLogicalTypeID();
+    return value.getDataType()->getLogicalTypeID();
 }
-std::unique_ptr<LogicalType> value_get_data_type(const kuzu::common::Value& value) {
-    return std::make_unique<LogicalType>(value.getDataType());
+
+const LogicalType& value_get_data_type(const kuzu::common::Value& value) {
+    return *value.getDataType();
 }
 
 std::unique_ptr<kuzu::common::Value> create_value_string(
@@ -255,10 +277,10 @@ std::unique_ptr<TypeListBuilder> create_type_list() {
     return std::make_unique<TypeListBuilder>();
 }
 
-const kuzu::common::Value &recursive_rel_get_nodes(const kuzu::common::Value &val) {
+const kuzu::common::Value& recursive_rel_get_nodes(const kuzu::common::Value& val) {
     return *kuzu::common::RecursiveRelVal::getNodes(&val);
 }
-const kuzu::common::Value &recursive_rel_get_rels(const kuzu::common::Value &val) {
+const kuzu::common::Value& recursive_rel_get_rels(const kuzu::common::Value& val) {
     return *kuzu::common::RecursiveRelVal::getRels(&val);
 }
 
