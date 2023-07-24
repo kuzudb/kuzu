@@ -15,6 +15,8 @@ struct ActiveQuery {
     explicit ActiveQuery();
     std::atomic<bool> interrupted;
     common::Timer timer;
+
+    void reset();
 };
 
 /**
@@ -33,12 +35,12 @@ public:
 
     ~ClientContext() = default;
 
-    inline void interrupt() { activeQuery->interrupted = true; }
+    inline void interrupt() { activeQuery.interrupted = true; }
 
-    bool isInterrupted() const { return activeQuery->interrupted; }
+    bool isInterrupted() const { return activeQuery.interrupted; }
 
     inline bool isTimeOut() {
-        return isTimeOutEnabled() && activeQuery->timer.getElapsedTimeInMS() > timeoutInMS;
+        return isTimeOutEnabled() && activeQuery.timer.getElapsedTimeInMS() > timeoutInMS;
     }
 
     inline bool isTimeOutEnabled() const { return timeoutInMS != 0; }
@@ -48,8 +50,10 @@ public:
     std::string getCurrentSetting(std::string optionName);
 
 private:
+    inline void resetActiveQuery() { activeQuery.reset(); }
+
     uint64_t numThreadsForExecution;
-    std::unique_ptr<ActiveQuery> activeQuery;
+    ActiveQuery activeQuery;
     uint64_t timeoutInMS;
 };
 

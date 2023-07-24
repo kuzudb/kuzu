@@ -208,14 +208,19 @@ TEST_F(CApiConnectionTest, QueryTimeout) {
 
 TEST_F(CApiConnectionTest, Interrupt) {
     auto connection = getConnection();
+    bool finished = false;
+
     // Interrupt the query after 100ms
-    std::thread t([&connection]() {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        kuzu_connection_interrupt(connection);
+    // This may happen too early, so try again until the query function finishes.
+    std::thread t([&connection, &finished]() {
+        do {
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            kuzu_connection_interrupt(connection);
+        } while (!finished);
     });
-    t.detach();
     auto result = kuzu_connection_query(
         connection, "MATCH (a:person)-[:knows*1..28]->(b:person) RETURN COUNT(*);");
+    finished = true;
     ASSERT_NE(result, nullptr);
     ASSERT_NE(result->_query_result, nullptr);
     auto resultCpp = static_cast<QueryResult*>(result->_query_result);
@@ -223,4 +228,5 @@ TEST_F(CApiConnectionTest, Interrupt) {
     ASSERT_FALSE(resultCpp->isSuccess());
     ASSERT_EQ(resultCpp->getErrorMessage(), "Interrupted.");
     kuzu_query_result_destroy(result);
+    t.join();
 }

@@ -80,7 +80,7 @@ public:
         auto physicalPlan =
             mapper.mapLogicalPlanToPhysical(preparedStatement->logicalPlans[0].get(),
                 preparedStatement->statementResult->getColumns());
-        clientContext->activeQuery = std::make_unique<ActiveQuery>();
+        clientContext->resetActiveQuery();
         getQueryProcessor(*database)->execute(physicalPlan.get(), executionContext.get());
         auto tableID = catalog->getReadOnlyVersion()->getTableID("person");
         validateDatabaseStateBeforeCheckPointCopyNode(tableID);
@@ -159,7 +159,7 @@ public:
         auto physicalPlan =
             mapper.mapLogicalPlanToPhysical(preparedStatement->logicalPlans[0].get(),
                 preparedStatement->statementResult->getColumns());
-        clientContext->activeQuery = std::make_unique<ActiveQuery>();
+        clientContext->resetActiveQuery();
         getQueryProcessor(*database)->execute(physicalPlan.get(), executionContext.get());
         auto tableID = catalog->getReadOnlyVersion()->getTableID("knows");
         validateDatabaseStateBeforeCheckPointCopyRel(tableID);

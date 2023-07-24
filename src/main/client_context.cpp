@@ -10,13 +10,18 @@ namespace main {
 
 ActiveQuery::ActiveQuery() : interrupted{false} {}
 
+void ActiveQuery::reset() {
+    interrupted = false;
+    timer = common::Timer();
+}
+
 ClientContext::ClientContext()
     : numThreadsForExecution{std::thread::hardware_concurrency()},
       timeoutInMS{common::ClientContextConstants::TIMEOUT_IN_MS} {}
 
 void ClientContext::startTimingIfEnabled() {
     if (isTimeOutEnabled()) {
-        activeQuery->timer.start();
+        activeQuery.timer.start();
     }
 }
 
