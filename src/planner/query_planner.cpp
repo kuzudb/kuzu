@@ -76,7 +76,7 @@ std::vector<std::unique_ptr<LogicalPlan>> QueryPlanner::planQueryPart(
     }
     // plan update
     for (auto i = 0u; i < queryPart.getNumUpdatingClause(); ++i) {
-        updatePlanner.planUpdatingClause(*queryPart.getUpdatingClause(i), plans);
+        planUpdatingClause(*queryPart.getUpdatingClause(i), plans);
     }
     if (queryPart.hasProjectionBody()) {
         projectionPlanner.planProjectionBody(*queryPart.getProjectionBody(), plans);
