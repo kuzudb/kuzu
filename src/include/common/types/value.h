@@ -231,7 +231,7 @@ public:
     /**
      * @return all properties of the NodeVal.
      * @note this function copies all the properties into a vector, which is not efficient. use
-     * `getPropertyName` and `getPropertyValueReference` instead if possible.
+     * `getPropertyName` and `getPropertyVal` instead if possible.
      */
     KUZU_API static std::vector<std::pair<std::string, std::unique_ptr<Value>>> getProperties(
         const Value* val);
@@ -285,7 +285,7 @@ public:
     /**
      * @return all properties of the RelVal.
      * @note this function copies all the properties into a vector, which is not efficient. use
-     * `getPropertyName` and `getPropertyValueReference` instead if possible.
+     * `getPropertyName` and `getPropertyVal` instead if possible.
      */
     KUZU_API static std::vector<std::pair<std::string, std::unique_ptr<Value>>> getProperties(
         const Value* val);
