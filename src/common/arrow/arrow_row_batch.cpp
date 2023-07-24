@@ -303,7 +303,7 @@ void ArrowRowBatch::copyNonNullValue(
     } break;
     default: {
         throw RuntimeException("Invalid data type " +
-                               LogicalTypeUtils::dataTypeToString(value->dataType) +
+                               LogicalTypeUtils::dataTypeToString(*value->dataType) +
                                " for arrow export.");
     }
     }
@@ -335,7 +335,7 @@ void ArrowRowBatch::templateCopyNullValue<LogicalTypeID::VAR_LIST>(
 }
 
 void ArrowRowBatch::copyNullValue(ArrowVector* vector, Value* value, std::int64_t pos) {
-    switch (value->dataType.getLogicalTypeID()) {
+    switch (value->dataType->getLogicalTypeID()) {
     case LogicalTypeID::BOOL: {
         templateCopyNullValue<LogicalTypeID::BOOL>(vector, pos);
     } break;
@@ -377,7 +377,7 @@ void ArrowRowBatch::copyNullValue(ArrowVector* vector, Value* value, std::int64_
     } break;
     default: {
         throw RuntimeException("Invalid data type " +
-                               LogicalTypeUtils::dataTypeToString(value->dataType) +
+                               LogicalTypeUtils::dataTypeToString(*value->dataType) +
                                " for arrow export.");
     }
     }

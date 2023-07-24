@@ -217,7 +217,7 @@ LogicalType& LogicalType::operator=(LogicalType&& other) noexcept {
     return *this;
 }
 
-std::unique_ptr<LogicalType> LogicalType::copy() {
+std::unique_ptr<LogicalType> LogicalType::copy() const {
     auto dataType = std::make_unique<LogicalType>(typeID);
     if (extraTypeInfo != nullptr) {
         dataType->extraTypeInfo = extraTypeInfo->copy();

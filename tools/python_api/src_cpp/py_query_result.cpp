@@ -70,7 +70,7 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value) {
         return py::none();
     }
     auto dataType = value.getDataType();
-    switch (dataType.getLogicalTypeID()) {
+    switch (dataType->getLogicalTypeID()) {
     case LogicalTypeID::BOOL: {
         return py::cast(value.getValue<bool>());
     }
@@ -132,7 +132,7 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value) {
     }
     case LogicalTypeID::STRUCT:
     case LogicalTypeID::UNION: {
-        auto fieldNames = StructType::getFieldNames(&dataType);
+        auto fieldNames = StructType::getFieldNames(dataType);
         py::dict dict;
         for (auto i = 0u; i < NestedVal::getChildrenSize(&value); ++i) {
             auto key = py::str(fieldNames[i]);
@@ -176,7 +176,7 @@ py::object PyQueryResult::convertValueToPyObject(const Value& value) {
     }
     default:
         throw NotImplementedException(
-            "Unsupported type: " + LogicalTypeUtils::dataTypeToString(dataType));
+            "Unsupported type: " + LogicalTypeUtils::dataTypeToString(*dataType));
     }
 }
 

@@ -145,13 +145,13 @@ kuzu_value* kuzu_value_get_list_element(kuzu_value* value, uint64_t index) {
 uint64_t kuzu_value_get_struct_num_fields(kuzu_value* value) {
     auto val = static_cast<Value*>(value->_value);
     auto data_type = val->getDataType();
-    return StructType::getNumFields(&data_type);
+    return StructType::getNumFields(data_type);
 }
 
 char* kuzu_value_get_struct_field_name(kuzu_value* value, uint64_t index) {
     auto val = static_cast<Value*>(value->_value);
     auto data_type = val->getDataType();
-    auto struct_field_name = StructType::getFields(&data_type)[index]->getName();
+    auto struct_field_name = StructType::getFields(data_type)[index]->getName();
     auto* c_struct_field_name = (char*)malloc(sizeof(char) * (struct_field_name.size() + 1));
     strcpy(c_struct_field_name, struct_field_name.c_str());
     return c_struct_field_name;
@@ -177,7 +177,7 @@ kuzu_value* kuzu_value_get_recursive_rel_rel_list(kuzu_value* value) {
 
 kuzu_logical_type* kuzu_value_get_data_type(kuzu_value* value) {
     auto* c_data_type = (kuzu_logical_type*)malloc(sizeof(kuzu_logical_type));
-    c_data_type->_data_type = new LogicalType(static_cast<Value*>(value->_value)->getDataType());
+    c_data_type->_data_type = new LogicalType(*static_cast<Value*>(value->_value)->getDataType());
     return c_data_type;
 }
 

@@ -105,7 +105,7 @@ void InMemOverflowFile::copyVarSizedValuesInList(ku_list_t& resultKUList, const 
         std::vector<ku_string_t> kuStrings(listSize);
         for (auto i = 0u; i < listSize; i++) {
             auto child = NestedVal::getChildVal(&listVal, i);
-            assert(child->getDataTypeRef().getLogicalTypeID() == LogicalTypeID::STRING);
+            assert(child->getDataType()->getLogicalTypeID() == LogicalTypeID::STRING);
             auto strVal = child->strVal;
             kuStrings[i] = copyString(strVal.c_str(), strVal.length(), overflowCursor);
         }
@@ -121,7 +121,7 @@ void InMemOverflowFile::copyVarSizedValuesInList(ku_list_t& resultKUList, const 
         std::vector<ku_list_t> kuLists(listSize);
         for (auto i = 0u; i < listSize; i++) {
             auto child = NestedVal::getChildVal(&listVal, i);
-            assert(child->getDataTypeRef().getLogicalTypeID() == LogicalTypeID::VAR_LIST);
+            assert(child->getDataType()->getLogicalTypeID() == LogicalTypeID::VAR_LIST);
             kuLists[i] = copyList(*child, overflowCursor);
         }
         std::shared_lock lck(lock);
@@ -134,10 +134,10 @@ void InMemOverflowFile::copyVarSizedValuesInList(ku_list_t& resultKUList, const 
 }
 
 ku_list_t InMemOverflowFile::copyList(const Value& listValue, PageByteCursor& overflowCursor) {
-    assert(listValue.getDataTypeRef().getLogicalTypeID() == LogicalTypeID::VAR_LIST);
+    assert(listValue.getDataType()->getLogicalTypeID() == LogicalTypeID::VAR_LIST);
     ku_list_t resultKUList;
     auto numBytesOfListElement = storage::StorageUtils::getDataTypeSize(
-        *common::VarListType::getChildType(&listValue.getDataTypeRef()));
+        *common::VarListType::getChildType(listValue.getDataType()));
     resultKUList.size = NestedVal::getChildrenSize(&listValue);
     // Allocate a new page if necessary.
     if (overflowCursor.offsetInPage + (resultKUList.size * numBytesOfListElement) >=
@@ -148,7 +148,7 @@ ku_list_t InMemOverflowFile::copyList(const Value& listValue, PageByteCursor& ov
     }
     TypeUtils::encodeOverflowPtr(
         resultKUList.overflowPtr, overflowCursor.pageIdx, overflowCursor.offsetInPage);
-    switch (VarListType::getChildType(&listValue.getDataTypeRef())->getLogicalTypeID()) {
+    switch (VarListType::getChildType(listValue.getDataType())->getLogicalTypeID()) {
     case LogicalTypeID::INT64:
     case LogicalTypeID::DOUBLE:
     case LogicalTypeID::BOOL:

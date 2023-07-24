@@ -316,11 +316,11 @@ void Connection::bindParametersNoLock(PreparedStatement* preparedStatement,
             throw Exception("Parameter " + name + " not found.");
         }
         auto expectParam = parameterMap.at(name);
-        if (expectParam->getDataTypeRef() != value->getDataType()) {
-            throw Exception(
-                "Parameter " + name + " has data type " +
-                LogicalTypeUtils::dataTypeToString(value->getDataType()) + " but expects " +
-                LogicalTypeUtils::dataTypeToString(expectParam->getDataTypeRef()) + ".");
+        if (*expectParam->getDataType() != *value->getDataType()) {
+            throw Exception("Parameter " + name + " has data type " +
+                            LogicalTypeUtils::dataTypeToString(*value->getDataType()) +
+                            " but expects " +
+                            LogicalTypeUtils::dataTypeToString(*expectParam->getDataType()) + ".");
         }
         parameterMap.at(name)->copyValueFrom(*value);
     }

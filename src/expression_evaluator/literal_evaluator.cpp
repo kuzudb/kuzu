@@ -15,7 +15,7 @@ bool LiteralExpressionEvaluator::select(SelectionVector& selVector) {
 
 void LiteralExpressionEvaluator::resolveResultVector(
     const processor::ResultSet& resultSet, MemoryManager* memoryManager) {
-    resultVector = std::make_shared<ValueVector>(value->getDataType(), memoryManager);
+    resultVector = std::make_shared<ValueVector>(*value->getDataType(), memoryManager);
     if (value->isNull()) {
         resultVector->setNull(0 /* pos */, true);
     } else {
@@ -27,7 +27,7 @@ void LiteralExpressionEvaluator::resolveResultVector(
 void LiteralExpressionEvaluator::copyValueToVector(
     uint8_t* dstValue, common::ValueVector* dstVector, const Value* srcValue) {
     auto numBytesPerValue = dstVector->getNumBytesPerValue();
-    switch (srcValue->getDataType().getPhysicalType()) {
+    switch (srcValue->getDataType()->getPhysicalType()) {
     case common::PhysicalTypeID::INT64: {
         memcpy(dstValue, &srcValue->val.int64Val, numBytesPerValue);
     } break;
