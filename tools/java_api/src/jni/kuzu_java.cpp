@@ -798,7 +798,7 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_KuzuNative_kuzu_1value_1get_1list_1ele
 JNIEXPORT jobject JNICALL Java_com_kuzudb_KuzuNative_kuzu_1value_1get_1data_1type(
     JNIEnv* env, jclass, jobject thisValue) {
     Value* v = getValue(env, thisValue);
-    auto* dt = new LogicalType(v->getDataType());
+    auto* dt = new LogicalType(*v->getDataType());
     return createJavaObject(env, dt, "com/kuzudb/KuzuDataType", "dt_ref");
 }
 
@@ -806,8 +806,9 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_KuzuNative_kuzu_1value_1get_1value(
     JNIEnv* env, jclass, jobject thisValue) {
     Value* v = getValue(env, thisValue);
     auto dt = v->getDataType();
+    auto logicalTypeId = dt->getLogicalTypeID();
 
-    switch (dt.getLogicalTypeID()) {
+    switch (logicalTypeId) {
     case LogicalTypeID::BOOL: {
         jclass retClass = env->FindClass("java/lang/Boolean");
         jmethodID ctor = env->GetMethodID(retClass, "<init>", "(Z)V");
@@ -1033,7 +1034,7 @@ JNIEXPORT jstring JNICALL Java_com_kuzudb_KuzuNative_kuzu_1value_1get_1struct_1f
     JNIEnv* env, jclass, jobject thisSV, jlong index) {
     auto* sv = getValue(env, thisSV);
     auto dataType = sv->getDataType();
-    auto fieldNames = StructType::getFieldNames(&dataType);
+    auto fieldNames = StructType::getFieldNames(dataType);
     if (index >= fieldNames.size() || index < 0) {
         return nullptr;
     }
@@ -1046,7 +1047,7 @@ JNIEXPORT jlong JNICALL Java_com_kuzudb_KuzuNative_kuzu_1value_1get_1struct_1ind
     auto* sv = getValue(env, thisSV);
     const char* field_name_cstr = env->GetStringUTFChars(field_name, JNI_FALSE);
     auto dataType = sv->getDataType();
-    auto index = StructType::getFieldIdx(&dataType, field_name_cstr);
+    auto index = StructType::getFieldIdx(dataType, field_name_cstr);
     env->ReleaseStringUTFChars(field_name, field_name_cstr);
     if (index == INVALID_STRUCT_FIELD_IDX) {
         return -1;

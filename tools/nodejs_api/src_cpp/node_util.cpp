@@ -7,7 +7,8 @@ Napi::Value Util::ConvertToNapiObject(const Value& value, Napi::Env env) {
         return env.Null();
     }
     auto dataType = value.getDataType();
-    switch (dataType.getLogicalTypeID()) {
+    auto dataTypeID = dataType->getLogicalTypeID();
+    switch (dataTypeID) {
     case LogicalTypeID::BOOL: {
         return Napi::Boolean::New(env, value.getValue<bool>());
     }
@@ -69,7 +70,7 @@ Napi::Value Util::ConvertToNapiObject(const Value& value, Napi::Env env) {
     }
     case LogicalTypeID::STRUCT:
     case LogicalTypeID::UNION: {
-        auto childrenNames = StructType::getFieldNames(&dataType);
+        auto childrenNames = StructType::getFieldNames(dataType);
         auto napiObj = Napi::Object::New(env);
         auto size = NestedVal::getChildrenSize(&value);
         for (auto i = 0u; i < size; ++i) {
@@ -116,7 +117,7 @@ Napi::Value Util::ConvertToNapiObject(const Value& value, Napi::Env env) {
         return ConvertNodeIdToNapiObject(value.getValue<nodeID_t>(), env);
     }
     default:
-        throw Exception("Unsupported type: " + LogicalTypeUtils::dataTypeToString(dataType));
+        throw Exception("Unsupported type: " + LogicalTypeUtils::dataTypeToString(*dataType));
     }
     return Napi::Value();
 }
@@ -149,8 +150,9 @@ Napi::Object Util::ConvertNodeIdToNapiObject(const nodeID_t& nodeId, Napi::Env e
 }
 
 Value Util::TransformNapiValue(
-    Napi::Value napiValue, LogicalType expectedDataType, const std::string& key) {
-    switch (expectedDataType.getLogicalTypeID()) {
+    Napi::Value napiValue, LogicalType* expectedDataType, const std::string& key) {
+    auto logicalTypeId = expectedDataType->getLogicalTypeID();
+    switch (logicalTypeId) {
     case LogicalTypeID::BOOL: {
         return Value(napiValue.ToBoolean().Value());
     }
@@ -224,7 +226,8 @@ Value Util::TransformNapiValue(
         return Value(normalizedInterval);
     }
     default:
-        throw Exception("Unsupported type " + LogicalTypeUtils::dataTypeToString(expectedDataType) +
+        throw Exception("Unsupported type " +
+                        LogicalTypeUtils::dataTypeToString(*expectedDataType) +
                         " for parameter: " + key);
     }
 }
