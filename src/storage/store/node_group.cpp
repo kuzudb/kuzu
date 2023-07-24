@@ -18,7 +18,6 @@ NodeGroup::NodeGroup(TableSchema* schema, CopyDescription* copyDescription)
     }
 }
 
-// todo: add property IDs to append into.
 uint64_t NodeGroup::append(
     ResultSet* resultSet, std::vector<DataPos> dataPoses, uint64_t numValuesToAppend) {
     auto numValuesToAppendInChunk =

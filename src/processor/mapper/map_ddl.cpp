@@ -6,7 +6,6 @@
 #include "planner/logical_plan/logical_operator/logical_rename_property.h"
 #include "planner/logical_plan/logical_operator/logical_rename_table.h"
 #include "processor/mapper/plan_mapper.h"
-#include "processor/operator/ddl/add_node_property.h"
 #include "processor/operator/ddl/add_rel_property.h"
 #include "processor/operator/ddl/create_node_table.h"
 #include "processor/operator/ddl/create_rel_table.h"
@@ -63,7 +62,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapAddProperty(LogicalOperator* lo
     auto expressionEvaluator =
         expressionMapper.mapExpression(addProperty->getDefaultValue(), *addProperty->getSchema());
     if (catalog->getReadOnlyVersion()->containNodeTable(addProperty->getTableID())) {
-        return std::make_unique<AddNodeProperty>(catalog, addProperty->getTableID(),
+        return std::make_unique<AddProperty>(catalog, addProperty->getTableID(),
             addProperty->getPropertyName(), addProperty->getDataType(),
             std::move(expressionEvaluator), storageManager, getOutputPos(addProperty),
             getOperatorID(), addProperty->getExpressionsForPrinting());

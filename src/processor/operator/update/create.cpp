@@ -32,7 +32,6 @@ bool CreateNode::getNextTuplesInternal(ExecutionContext* context) {
             auto newNodeGroup =
                 std::make_unique<NodeGroup>(createNodeInfo->schema, nullptr /* copyDesc */);
             newNodeGroup->setNodeGroupIdx(currentNumNodeGroups);
-            // TODO: Add wal record: append node group.
             nodeTable->appendNodeGroup(newNodeGroup.get());
         }
         if (createNodeInfo->primaryKeyEvaluator != nullptr) {

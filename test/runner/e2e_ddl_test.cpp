@@ -595,7 +595,9 @@ TEST_F(TinySnbDDLTest, DropRelTablePropertyRecovery) {
     dropRelTableProperty(TransactionTestType::RECOVERY);
 }
 
-// TEST_F(TinySnbDDLTest, AddInt64PropertyToPersonTableWithoutDefaultValueNormalExecution) {
+// TODO(Guodong): FIXME: Fix all disabled tests. Also, ddl tests need to refactored to not rely on
+// checking file existence. TEST_F(TinySnbDDLTest,
+// AddInt64PropertyToPersonTableWithoutDefaultValueNormalExecution) {
 //    addPropertyToPersonTableWithoutDefaultValue(
 //        "INT64" /* propertyType */, TransactionTestType::NORMAL_EXECUTION);
 //}

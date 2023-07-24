@@ -294,11 +294,11 @@ void WALReplayer::replayCopyNodeRecord(const kuzu::storage::WALRecord& walRecord
             if (wal->isLastLoggedRecordCommit()) {
                 return;
             }
-            // TODO(Guodong): Add truncate logic.
+            // TODO(Guodong): Do nothing for now. Should remove meta disk array and node groups.
         }
     } else {
         // ROLLBACK.
-        // TODO(Guodong): Add truncate logic.
+        // TODO(Guodong): Do nothing for now. Should remove meta disk array and node groups.
     }
 }
 
@@ -345,7 +345,7 @@ void WALReplayer::replayDropTableRecord(const kuzu::storage::WALRecord& walRecor
         if (!isRecovering) {
             if (catalog->getReadOnlyVersion()->containNodeTable(tableID)) {
                 storageManager->getNodesStore().removeNodeTable(tableID);
-                // TODO: Clean up meta disk arrays and node groups.
+                // TODO(Guodong): Do nothing for now. Should remove meta disk array and node groups.
                 WALReplayerUtils::removeDBFilesForNodeTable(
                     catalog->getReadOnlyVersion()->getNodeTableSchema(tableID),
                     wal->getDirectory());
@@ -361,7 +361,7 @@ void WALReplayer::replayDropTableRecord(const kuzu::storage::WALRecord& walRecor
             }
             auto catalogForRecovery = getCatalogForRecovery(DBFileType::ORIGINAL);
             if (catalogForRecovery->getReadOnlyVersion()->containNodeTable(tableID)) {
-                // TODO: Clean up meta disk arrays and node groups.
+                // TODO(Guodong): Do nothing for now. Should remove meta disk array and node groups.
                 WALReplayerUtils::removeDBFilesForNodeTable(
                     catalogForRecovery->getReadOnlyVersion()->getNodeTableSchema(tableID),
                     wal->getDirectory());
@@ -383,7 +383,7 @@ void WALReplayer::replayDropPropertyRecord(const kuzu::storage::WALRecord& walRe
         if (!isRecovering) {
             if (catalog->getReadOnlyVersion()->containNodeTable(tableID)) {
                 storageManager->getNodesStore().getNodeTable(tableID)->removeProperty(propertyID);
-                // TODO: Clean up meta disk arrays and node groups.
+                // TODO(Guodong): Do nothing for now. Should remove meta disk array and node groups.
             } else {
                 storageManager->getRelsStore().getRelTable(tableID)->removeProperty(
                     propertyID, *catalog->getReadOnlyVersion()->getRelTableSchema(tableID));
@@ -397,7 +397,7 @@ void WALReplayer::replayDropPropertyRecord(const kuzu::storage::WALRecord& walRe
             }
             auto catalogForRecovery = getCatalogForRecovery(DBFileType::WAL_VERSION);
             if (catalogForRecovery->getReadOnlyVersion()->containNodeTable(tableID)) {
-                // TODO: Clean up meta disk arrays and node groups.
+                // TODO(Guodong): Do nothing for now. Should remove meta disk array and node groups.
             } else {
                 WALReplayerUtils::removeDBFilesForRelProperty(wal->getDirectory(),
                     catalogForRecovery->getReadOnlyVersion()->getRelTableSchema(tableID),

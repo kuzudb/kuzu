@@ -1,5 +1,3 @@
-#include <utility>
-
 #include "common/string_utils.h"
 #include "graph_test/graph_test.h"
 #include "test_runner/csv_to_parquet_converter.h"
