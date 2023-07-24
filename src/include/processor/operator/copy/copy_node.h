@@ -86,10 +86,6 @@ public:
         storage::NodeGroup* nodeGroup, storage::PrimaryKeyIndexBuilder* pkIndex,
         common::column_id_t pkColumnID);
 
-    std::pair<common::row_idx_t, common::row_idx_t> getStartAndEndRowIdx(
-        common::vector_idx_t columnIdx);
-    std::pair<std::string, common::row_idx_t> getFilePathAndRowIdxInFile();
-
 private:
     inline bool isCopyAllowed() const {
         auto nodesStatistics = copyNodeInfo.table->getNodeStatisticsAndDeletedIDs();

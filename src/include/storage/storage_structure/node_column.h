@@ -17,7 +17,7 @@ using write_node_column_func_t = std::function<void(
 
 struct ColumnChunkMetadata {
     common::page_idx_t pageIdx = common::INVALID_PAGE_IDX;
-    common::page_idx_t numPages = 0; // Include pages for null and children segments.
+    common::page_idx_t numPages = 0;
 };
 
 struct FixedSizedNodeColumnFunc {

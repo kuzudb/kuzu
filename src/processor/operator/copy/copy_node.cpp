@@ -53,22 +53,6 @@ CopyNode::CopyNode(std::shared_ptr<CopyNodeSharedState> sharedState, CopyNodeInf
       sharedState{std::move(sharedState)}, copyNodeInfo{std::move(copyNodeInfo)},
       rowIdxVector{nullptr}, filePathVector{nullptr} {}
 
-std::pair<row_idx_t, row_idx_t> CopyNode::getStartAndEndRowIdx(common::vector_idx_t columnIdx) {
-    auto startRowIdx =
-        rowIdxVector->getValue<int64_t>(rowIdxVector->state->selVector->selectedPositions[0]);
-    auto numRows = ArrowColumnVector::getArrowColumn(dataColumnVectors[columnIdx])->length();
-    auto endRowIdx = startRowIdx + numRows - 1;
-    return {startRowIdx, endRowIdx};
-}
-
-std::pair<std::string, common::row_idx_t> CopyNode::getFilePathAndRowIdxInFile() {
-    auto filePath = filePathVector->getValue<ku_string_t>(
-        filePathVector->state->selVector->selectedPositions[0]);
-    auto rowIdxInFile =
-        rowIdxVector->getValue<int64_t>(rowIdxVector->state->selVector->selectedPositions[1]);
-    return {filePath.getAsString(), rowIdxInFile};
-}
-
 void CopyNodeSharedState::appendLocalNodeGroup(std::unique_ptr<NodeGroup> localNodeGroup) {
     std::unique_lock xLck{mtx};
     if (!sharedNodeGroup) {

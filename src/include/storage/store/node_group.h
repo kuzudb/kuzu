@@ -19,7 +19,6 @@ public:
         return chunks.contains(propertyID) ? chunks.at(propertyID).get() : nullptr;
     }
     inline catalog::TableSchema* getSchema() const { return schema; }
-    inline common::CopyDescription* getCopyDescription() const { return copyDescription; }
     inline void resetToEmpty() {
         numNodes = 0;
         nodeGroupIdx = UINT64_MAX;

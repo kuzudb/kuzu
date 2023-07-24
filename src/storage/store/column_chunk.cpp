@@ -283,7 +283,9 @@ std::unique_ptr<ColumnChunk> ColumnChunkFactory::createColumnChunk(
         return std::make_unique<StructColumnChunk>(dataType, copyDescription);
     }
     default: {
-        throw NotImplementedException("ColumnChunkFactory::createColumnChunk");
+        throw NotImplementedException("ColumnChunkFactory::createColumnChunk for data type " +
+                                      LogicalTypeUtils::dataTypeToString(dataType) +
+                                      " is not supported.");
     }
     }
 }

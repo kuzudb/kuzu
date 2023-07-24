@@ -48,6 +48,7 @@ public:
             }
         }
     }
+    // CAS
     inline bool tryLock(uint64_t oldStateAndVersion) {
         return stateAndVersion.compare_exchange_strong(
             oldStateAndVersion, updateStateWithSameVersion(oldStateAndVersion, LOCKED));
