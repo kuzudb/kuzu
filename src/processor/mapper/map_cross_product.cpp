@@ -10,17 +10,17 @@ namespace processor {
 std::unique_ptr<PhysicalOperator> PlanMapper::mapCrossProduct(LogicalOperator* logicalOperator) {
     auto logicalCrossProduct = (LogicalCrossProduct*)logicalOperator;
     auto outSchema = logicalCrossProduct->getSchema();
+    auto buildChild = logicalCrossProduct->getChild(1);
     // map build side
-    auto buildSideSchema = logicalCrossProduct->getBuildSideSchema();
-    auto buildSidePrevOperator = mapOperator(logicalCrossProduct->getChild(1).get());
-    auto resultCollector = createResultCollector(common::AccumulateType::REGULAR,
-        buildSideSchema->getExpressionsInScope(), buildSideSchema,
-        std::move(buildSidePrevOperator));
+    auto buildSchema = buildChild->getSchema();
+    auto buildSidePrevOperator = mapOperator(buildChild.get());
+    auto expressions = buildSchema->getExpressionsInScope();
+    auto resultCollector = createResultCollector(logicalCrossProduct->getAccumulateType(),
+        expressions, buildSchema, std::move(buildSidePrevOperator));
     // map probe side
     auto probeSidePrevOperator = mapOperator(logicalCrossProduct->getChild(0).get());
     std::vector<DataPos> outVecPos;
     std::vector<uint32_t> colIndicesToScan;
-    auto expressions = buildSideSchema->getExpressionsInScope();
     for (auto i = 0u; i < expressions.size(); ++i) {
         auto expression = expressions[i];
         outVecPos.emplace_back(outSchema->getExpressionPos(*expression));

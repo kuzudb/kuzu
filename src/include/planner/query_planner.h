@@ -101,14 +101,12 @@ private:
         LogicalPlan& plan);
     void appendCreateRel(
         const std::vector<std::unique_ptr<binder::BoundCreateRel>>& createRels, LogicalPlan& plan);
-
     void appendSetNodeProperty(
         const std::vector<std::unique_ptr<binder::BoundSetNodeProperty>>& setNodeProperties,
         LogicalPlan& plan);
     void appendSetRelProperty(
         const std::vector<std::unique_ptr<binder::BoundSetRelProperty>>& setRelProperties,
         LogicalPlan& plan);
-
     void appendDeleteNode(const std::vector<std::unique_ptr<binder::BoundDeleteNode>>& deleteNodes,
         LogicalPlan& plan);
     void appendDeleteRel(
