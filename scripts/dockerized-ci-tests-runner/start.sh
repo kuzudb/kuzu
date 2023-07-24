@@ -17,7 +17,7 @@ else
 fi
 
 # Register runner
-./config.sh --url https://github.com/kuzudb/kuzu --token $REG_TOKEN --name --unattended --labels $LABELS --disableupdate
+./config.sh --url https://github.com/kuzudb/kuzu --token $REG_TOKEN --name --unattended --labels $LABELS
 
 cleanup() {
     echo "Removing runner..."
