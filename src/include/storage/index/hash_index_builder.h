@@ -57,7 +57,7 @@ public:
     virtual ~BaseHashIndex() = default;
 
 protected:
-    slot_id_t getPrimarySlotIdForKey(const HashIndexHeader& indexHeader, const uint8_t* key);
+    slot_id_t getPrimarySlotIdForKey(const HashIndexHeader& indexHeader, const uint8_t* key, uint8_t* tag = nullptr);
 
     static inline uint64_t getNumRequiredEntries(
         uint64_t numExistingEntries, uint64_t numNewEntries) {
@@ -139,7 +139,7 @@ public:
         return appendInternal(reinterpret_cast<const uint8_t*>(key), value);
     }
     inline bool lookup(int64_t key, common::offset_t& result) {
-        return lookupInternalWithoutLock(reinterpret_cast<const uint8_t*>(&key), result);
+        return lookupInternalWithoutLock(reinterpret_cast<const uint8_t*>(key), result);
     }
 
     // Non-thread safe. This should only be called in the copyCSV and never be called in parallel.
@@ -151,8 +151,8 @@ private:
 
     template<bool IS_LOOKUP>
     bool lookupOrExistsInSlotWithoutLock(
-        Slot<common::ku_string_t>* slot, const uint8_t* key, common::offset_t* result = nullptr);
-    void insertToSlotWithoutLock(Slot<common::ku_string_t>* slot, const uint8_t* key, common::offset_t value);
+        Slot<common::ku_string_t>* slot, const uint8_t* key, const uint8_t tag, common::offset_t* result = nullptr);
+    void insertToSlotWithoutLock(Slot<common::ku_string_t>* slot, const uint8_t* key, const uint8_t tag, common::offset_t value);
     Slot<common::ku_string_t>* getSlot(const SlotInfo& slotInfo);
     uint32_t allocatePSlots(uint32_t numSlotsToAllocate);
     uint32_t allocateAOSlot();

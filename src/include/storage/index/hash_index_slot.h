@@ -17,7 +17,7 @@ class SlotHeader {
 public:
     static const entry_pos_t INVALID_ENTRY_POS = UINT8_MAX;
 
-    SlotHeader() : numEntries{0}, validityMask{0}, nextOvfSlotId{0} {}
+    SlotHeader() : numEntries{0}, partialHash{0}, validityMask{0}, nextOvfSlotId{0} {}
 
     void reset() {
         numEntries = 0;
@@ -34,15 +34,10 @@ public:
         validityMask &= ~((uint32_t)1 << entryPos);
     }
 
-    inline void setPartialHash(entry_pos_t entryPos, kuzu::common::hash_t hash) {
-        uint8_t partial = HashIndexUtils::compute_tag(hash);
-
-        uint8_t shift_bits = (8*entryPos);
-        uint32_t bitmask = ~(0xFF << shift_bits);
-        uint32_t shifted_replacement = static_cast<uint32_t>(partial) << shift_bits;
-
-        partialHash &= bitmask;
-        partialHash |= shifted_replacement;
+    inline void setPartialHash(entry_pos_t entryPos, const uint8_t tag) {
+        uint32_t partial32 = tag;
+        partial32 = partial32 << 8*entryPos;
+        partialHash |= partial32;
 
     }
 

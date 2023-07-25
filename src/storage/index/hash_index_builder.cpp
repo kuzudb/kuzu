@@ -6,8 +6,9 @@ namespace kuzu {
 namespace storage {
 
 slot_id_t BaseHashIndex::getPrimarySlotIdForKey(
-    const HashIndexHeader& indexHeader_, const uint8_t* key) {
+    const HashIndexHeader& indexHeader_, const uint8_t* key, uint8_t* tag) {
     auto hash = keyHashFunc(key);
+    *tag = HashIndexUtils::compute_tag(hash);
     auto slotId = hash & indexHeader_.levelHashMask;
     if (slotId < indexHeader_.nextSplitSlotId) {
         slotId = hash & indexHeader_.higherLevelHashMask;
@@ -367,12 +368,13 @@ void HashIndexBuilderString::bulkReserve(uint32_t numEntries_) {
 }
 
 bool HashIndexBuilderString::appendInternal(const uint8_t* key, offset_t value) {
-    SlotInfo pSlotInfo{getPrimarySlotIdForKey(*indexHeader, key), SlotType::PRIMARY};
+    uint8_t tag = 0;
+    SlotInfo pSlotInfo{getPrimarySlotIdForKey(*indexHeader, key, &tag), SlotType::PRIMARY};
     auto currentSlotInfo = pSlotInfo;
     Slot<common::ku_string_t>* currentSlot = nullptr;
     while (currentSlotInfo.slotType == SlotType::PRIMARY || currentSlotInfo.slotId != 0) {
         currentSlot = getSlot(currentSlotInfo);
-        if (lookupOrExistsInSlotWithoutLock<false /* exists */>(currentSlot, key)) {
+        if (lookupOrExistsInSlotWithoutLock<false /* exists */>(currentSlot, key, tag)) {
             // Key already exists. No append is allowed.
             return false;
         }
@@ -383,18 +385,19 @@ bool HashIndexBuilderString::appendInternal(const uint8_t* key, offset_t value) 
         currentSlotInfo.slotType = SlotType::OVF;
     }
     assert(currentSlot);
-    insertToSlotWithoutLock(currentSlot, key, value);
+    insertToSlotWithoutLock(currentSlot, key, tag, value);
     numEntries.fetch_add(1);
     return true;
 }
 
 bool HashIndexBuilderString::lookupInternalWithoutLock(const uint8_t* key, offset_t& result) {
-    SlotInfo pSlotInfo{getPrimarySlotIdForKey(*indexHeader, key), SlotType::PRIMARY};
+    uint8_t tag = 0;
+    SlotInfo pSlotInfo{getPrimarySlotIdForKey(*indexHeader, key, &tag), SlotType::PRIMARY};
     SlotInfo currentSlotInfo = pSlotInfo;
     Slot<common::ku_string_t>* currentSlot;
     while (currentSlotInfo.slotType == SlotType::PRIMARY || currentSlotInfo.slotId != 0) {
         currentSlot = getSlot(currentSlotInfo);
-        if (lookupOrExistsInSlotWithoutLock<true /* lookup */>(currentSlot, key, &result)) {
+        if (lookupOrExistsInSlotWithoutLock<true /* lookup */>(currentSlot, key, tag, &result)) {
             return true;
         }
         currentSlotInfo.slotId = currentSlot->header.nextOvfSlotId;
@@ -427,19 +430,16 @@ Slot<common::ku_string_t>* HashIndexBuilderString::getSlot(const SlotInfo& slotI
 
 template<bool IS_LOOKUP>
 bool HashIndexBuilderString::lookupOrExistsInSlotWithoutLock(
-    Slot<common::ku_string_t>* slot, const uint8_t* key, offset_t* result) {
+    Slot<common::ku_string_t>* slot, const uint8_t* key, const uint8_t tag, offset_t* result) {
+    // increase capacity < 16
+    bool loopCon[HashIndexConstants::SLOT_CAPACITY];
     for (auto entryPos = 0u; entryPos < HashIndexConstants::SLOT_CAPACITY; entryPos++) {
-        if (!slot->header.isEntryValid(entryPos)) {
-            continue;
-        }
-        // check first byte of the hash first
-        if (!slot->header.isPartialHashMatch(entryPos, HashIndexUtils::hashFuncForString(key))) {
-            continue;
-        }
-
+        loopCon[entryPos] = slot->header.isEntryValid(entryPos) && 
+                            tag == slot->header.getPartialHash(entryPos);
+    }
+    for (auto entryPos = 0u; entryPos < HashIndexConstants::SLOT_CAPACITY; entryPos++) {
         auto& entry = slot->entries[entryPos];
-
-        if (InMemHashIndexUtils::equalsFuncForString(key, entry.data, inMemOverflowFile.get())) {
+        if (loopCon[entryPos] && InMemHashIndexUtils::equalsFuncForString(key, entry.data, inMemOverflowFile.get())) {
             if constexpr (IS_LOOKUP) {
                 memcpy(result, entry.data + indexHeader->numBytesPerKey, sizeof(offset_t));
             }
@@ -450,7 +450,7 @@ bool HashIndexBuilderString::lookupOrExistsInSlotWithoutLock(
 }
 
 void HashIndexBuilderString::insertToSlotWithoutLock(
-    Slot<common::ku_string_t>* slot, const uint8_t* key, offset_t value) {
+    Slot<common::ku_string_t>* slot, const uint8_t* key, const uint8_t tag, offset_t value) {
     if (slot->header.numEntries == HashIndexConstants::SLOT_CAPACITY) {
         // Allocate a new oSlot and change the nextOvfSlotId.
         auto ovfSlotId = allocateAOSlot();
@@ -461,7 +461,7 @@ void HashIndexBuilderString::insertToSlotWithoutLock(
         if (!slot->header.isEntryValid(entryPos)) {
             InMemHashIndexUtils::insertFuncForString(key, value, slot->entries[entryPos].data, inMemOverflowFile.get());
             slot->header.setEntryValid(entryPos);
-            slot->header.setPartialHash(entryPos, HashIndexUtils::hashFuncForString(key));
+            slot->header.setPartialHash(entryPos, tag);
             slot->header.numEntries++;
             break;
         }
