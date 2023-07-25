@@ -45,8 +45,6 @@ public:
 };
 
 struct CopyNodeInfo {
-    DataPos rowIdxVectorPos;
-    DataPos filePathVectorPos;
     std::vector<DataPos> dataColumnPoses;
     common::CopyDescription copyDesc;
     storage::NodeTable* table;
@@ -62,8 +60,6 @@ public:
         std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString);
 
     inline void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override {
-        rowIdxVector = resultSet->getValueVector(copyNodeInfo.rowIdxVectorPos).get();
-        filePathVector = resultSet->getValueVector(copyNodeInfo.filePathVectorPos).get();
         for (auto& arrowColumnPos : copyNodeInfo.dataColumnPoses) {
             dataColumnVectors.push_back(resultSet->getValueVector(arrowColumnPos).get());
         }
@@ -105,8 +101,6 @@ private:
 private:
     std::shared_ptr<CopyNodeSharedState> sharedState;
     CopyNodeInfo copyNodeInfo;
-    common::ValueVector* rowIdxVector;
-    common::ValueVector* filePathVector;
     std::vector<common::ValueVector*> dataColumnVectors;
     std::unique_ptr<storage::NodeGroup> localNodeGroup;
 };

@@ -37,7 +37,6 @@ private:
     common::offset_t numNodes;
     std::unordered_map<common::property_id_t, std::unique_ptr<ColumnChunk>> chunks;
     catalog::TableSchema* schema;
-    common::CopyDescription* copyDescription;
 };
 
 } // namespace storage

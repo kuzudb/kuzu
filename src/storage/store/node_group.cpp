@@ -11,7 +11,7 @@ namespace kuzu {
 namespace storage {
 
 NodeGroup::NodeGroup(TableSchema* schema, CopyDescription* copyDescription)
-    : nodeGroupIdx{UINT64_MAX}, numNodes{0}, schema{schema}, copyDescription{copyDescription} {
+    : nodeGroupIdx{UINT64_MAX}, numNodes{0}, schema{schema} {
     for (auto& property : schema->properties) {
         chunks[property.propertyID] =
             ColumnChunkFactory::createColumnChunk(property.dataType, copyDescription);
