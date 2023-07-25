@@ -13,7 +13,7 @@ namespace processor {
  * work was found hence the state's values can be ignored.
  */
 std::pair<GlobalSSSPState, SSSPLocalState> MorselDispatcher::getBFSMorsel(
-    const std::shared_ptr<FTableSharedState>& inputFTableSharedState,
+    const std::shared_ptr<FactorizedTableScanSharedState>& inputFTableSharedState,
     std::vector<common::ValueVector*> vectorsToScan, std::vector<ft_col_idx_t> colIndicesToScan,
     common::ValueVector* srcNodeIDVector, BaseBFSMorsel* bfsMorsel) {
     std::unique_lock lck{mutex};
@@ -92,7 +92,8 @@ std::pair<GlobalSSSPState, SSSPLocalState> MorselDispatcher::getBFSMorsel(
 }
 
 void MorselDispatcher::setUpNewSSSPSharedState(std::shared_ptr<SSSPSharedState>& newSSSPSharedState,
-    BaseBFSMorsel* bfsMorsel, FTableScanMorsel* inputFTableMorsel, common::nodeID_t nodeID) {
+    BaseBFSMorsel* bfsMorsel, FactorizedTableScanMorsel* inputFTableMorsel,
+    common::nodeID_t nodeID) {
     newSSSPSharedState->reset(bfsMorsel->targetDstNodes);
     newSSSPSharedState->inputFTableTupleIdx = inputFTableMorsel->startTupleIdx;
     newSSSPSharedState->srcOffset = nodeID.offset;
@@ -139,7 +140,7 @@ std::pair<GlobalSSSPState, SSSPLocalState> MorselDispatcher::findAvailableSSSP(
  * Return value > 0, indicates pathLengths were written to pathLengthVector.
  */
 int64_t MorselDispatcher::writeDstNodeIDAndPathLength(
-    const std::shared_ptr<FTableSharedState>& inputFTableSharedState,
+    const std::shared_ptr<FactorizedTableScanSharedState>& inputFTableSharedState,
     std::vector<common::ValueVector*> vectorsToScan, std::vector<ft_col_idx_t> colIndicesToScan,
     common::ValueVector* dstNodeIDVector, common::ValueVector* pathLengthVector,
     common::table_id_t tableID, std::unique_ptr<BaseBFSMorsel>& baseBfsMorsel) {

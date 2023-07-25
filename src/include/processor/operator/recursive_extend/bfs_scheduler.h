@@ -5,6 +5,7 @@
 #include "processor/operator/mask.h"
 #include "processor/operator/recursive_extend/bfs_state.h"
 #include "processor/operator/result_collector.h"
+#include "processor/operator/table_scan/factorized_table_scan.h"
 
 namespace kuzu {
 namespace processor {
@@ -38,20 +39,21 @@ public:
     }
 
     std::pair<GlobalSSSPState, SSSPLocalState> getBFSMorsel(
-        const std::shared_ptr<FTableSharedState>& inputFTableSharedState,
+        const std::shared_ptr<FactorizedTableScanSharedState>& inputFTableSharedState,
         const std::vector<common::ValueVector*> vectorsToScan,
         const std::vector<ft_col_idx_t> colIndicesToScan, common::ValueVector* srcNodeIDVector,
         BaseBFSMorsel* bfsMorsel);
 
     static void setUpNewSSSPSharedState(std::shared_ptr<SSSPSharedState>& newSSSPSharedState,
-        BaseBFSMorsel* bfsMorsel, FTableScanMorsel* inputFTableMorsel, common::nodeID_t nodeID);
+        BaseBFSMorsel* bfsMorsel, FactorizedTableScanMorsel* inputFTableMorsel,
+        common::nodeID_t nodeID);
 
     uint32_t getNextAvailableSSSPWork();
 
     std::pair<GlobalSSSPState, SSSPLocalState> findAvailableSSSP(BaseBFSMorsel* bfsMorsel);
 
     int64_t writeDstNodeIDAndPathLength(
-        const std::shared_ptr<FTableSharedState>& inputFTableSharedState,
+        const std::shared_ptr<FactorizedTableScanSharedState>& inputFTableSharedState,
         std::vector<common::ValueVector*> vectorsToScan, std::vector<ft_col_idx_t> colIndicesToScan,
         common::ValueVector* dstNodeIDVector, common::ValueVector* pathLengthVector,
         common::table_id_t tableID, std::unique_ptr<BaseBFSMorsel>& baseBfsMorsel);

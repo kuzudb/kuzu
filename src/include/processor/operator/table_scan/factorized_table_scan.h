@@ -40,6 +40,8 @@ public:
 
     std::unique_ptr<FactorizedTableScanMorsel> getMorsel();
 
+    inline std::shared_ptr<FactorizedTable> getTable() { return table; }
+
 private:
     std::mutex mtx;
     std::shared_ptr<FactorizedTable> table;
