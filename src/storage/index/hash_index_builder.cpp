@@ -8,7 +8,7 @@ namespace storage {
 slot_id_t BaseHashIndex::getPrimarySlotIdForKey(
     const HashIndexHeader& indexHeader_, const uint8_t* key, uint8_t* tag) {
     auto hash = keyHashFunc(key);
-    *tag = HashIndexUtils::compute_tag(hash);
+    if (tag != nullptr ) *tag = HashIndexUtils::compute_tag(hash);
     auto slotId = hash & indexHeader_.levelHashMask;
     if (slotId < indexHeader_.nextSplitSlotId) {
         slotId = hash & indexHeader_.higherLevelHashMask;
@@ -219,12 +219,13 @@ void HashIndexBuilderInt64::bulkReserve(uint32_t numEntries_) {
 }
 
 bool HashIndexBuilderInt64::appendInternal(const uint8_t* key, offset_t value) {
-    SlotInfo pSlotInfo{getPrimarySlotIdForKey(*indexHeader, key), SlotType::PRIMARY};
+    uint8_t tag = 0;
+    SlotInfo pSlotInfo{getPrimarySlotIdForKey(*indexHeader, key, &tag), SlotType::PRIMARY};
     auto currentSlotInfo = pSlotInfo;
     Slot<int64_t>* currentSlot = nullptr;
     while (currentSlotInfo.slotType == SlotType::PRIMARY || currentSlotInfo.slotId != 0) {
         currentSlot = getSlot(currentSlotInfo);
-        if (lookupOrExistsInSlotWithoutLock<false /* exists */>(currentSlot, key)) {
+        if (lookupOrExistsInSlotWithoutLock<false /* exists */>(currentSlot, key, tag)) {
             // Key already exists. No append is allowed.
             return false;
         }
@@ -235,18 +236,19 @@ bool HashIndexBuilderInt64::appendInternal(const uint8_t* key, offset_t value) {
         currentSlotInfo.slotType = SlotType::OVF;
     }
     assert(currentSlot);
-    insertToSlotWithoutLock(currentSlot, key, value);
+    insertToSlotWithoutLock(currentSlot, key, tag, value);
     numEntries.fetch_add(1);
     return true;
 }
 
 bool HashIndexBuilderInt64::lookupInternalWithoutLock(const uint8_t* key, offset_t& result) {
-    SlotInfo pSlotInfo{getPrimarySlotIdForKey(*indexHeader, key), SlotType::PRIMARY};
+    uint8_t tag = 0;
+    SlotInfo pSlotInfo{getPrimarySlotIdForKey(*indexHeader, key, &tag), SlotType::PRIMARY};
     SlotInfo currentSlotInfo = pSlotInfo;
     Slot<int64_t>* currentSlot;
     while (currentSlotInfo.slotType == SlotType::PRIMARY || currentSlotInfo.slotId != 0) {
         currentSlot = getSlot(currentSlotInfo);
-        if (lookupOrExistsInSlotWithoutLock<true /* lookup */>(currentSlot, key, &result)) {
+        if (lookupOrExistsInSlotWithoutLock<true /* lookup */>(currentSlot, key, tag, &result)) {
             return true;
         }
         currentSlotInfo.slotId = currentSlot->header.nextOvfSlotId;
@@ -279,13 +281,16 @@ Slot<int64_t>* HashIndexBuilderInt64::getSlot(const SlotInfo& slotInfo) {
 
 template<bool IS_LOOKUP>
 bool HashIndexBuilderInt64::lookupOrExistsInSlotWithoutLock(
-    Slot<int64_t>* slot, const uint8_t* key, offset_t* result) {
+    Slot<int64_t>* slot, const uint8_t* key, const uint8_t tag, offset_t* result) {
+    
+    bool loopCon[HashIndexConstants::SLOT_CAPACITY];
     for (auto entryPos = 0u; entryPos < HashIndexConstants::SLOT_CAPACITY; entryPos++) {
-        if (!slot->header.isEntryValid(entryPos)) {
-            continue;
-        }
+        loopCon[entryPos] = slot->header.isEntryValid(entryPos) && 
+                            tag == slot->header.getPartialHash(entryPos);
+    }
+    for (auto entryPos = 0u; entryPos < HashIndexConstants::SLOT_CAPACITY; entryPos++) {
         auto& entry = slot->entries[entryPos];
-        if (*(int64_t*)key == *(int64_t*)entry.data) {
+        if (loopCon[entryPos] && *(int64_t*)key == *(int64_t*)entry.data) {
             if constexpr (IS_LOOKUP) {
                 memcpy(result, entry.data + indexHeader->numBytesPerKey, sizeof(offset_t));
             }
@@ -296,7 +301,7 @@ bool HashIndexBuilderInt64::lookupOrExistsInSlotWithoutLock(
 }
 
 void HashIndexBuilderInt64::insertToSlotWithoutLock(
-    Slot<int64_t>* slot, const uint8_t* key, offset_t value) {
+    Slot<int64_t>* slot, const uint8_t* key, const uint8_t tag, offset_t value) {
     if (slot->header.numEntries == HashIndexConstants::SLOT_CAPACITY) {
         // Allocate a new oSlot and change the nextOvfSlotId.
         auto ovfSlotId = allocateAOSlot();
@@ -308,6 +313,7 @@ void HashIndexBuilderInt64::insertToSlotWithoutLock(
             memcpy(slot->entries[entryPos].data, key, NUM_BYTES_FOR_INT64_KEY);
             memcpy(slot->entries[entryPos].data + NUM_BYTES_FOR_INT64_KEY, &value, sizeof(common::offset_t));
             slot->header.setEntryValid(entryPos);
+            slot->header.setPartialHash(entryPos, tag);
             slot->header.numEntries++;
             break;
         }

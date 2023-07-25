@@ -101,8 +101,8 @@ private:
 
     template<bool IS_LOOKUP>
     bool lookupOrExistsInSlotWithoutLock(
-        Slot<int64_t>* slot, const uint8_t* key, common::offset_t* result = nullptr);
-    void insertToSlotWithoutLock(Slot<int64_t>* slot, const uint8_t* key, common::offset_t value);
+        Slot<int64_t>* slot, const uint8_t* key, const uint8_t tag, common::offset_t* result = nullptr);
+    void insertToSlotWithoutLock(Slot<int64_t>* slot, const uint8_t* key, const uint8_t tag, common::offset_t value);
     Slot<int64_t>* getSlot(const SlotInfo& slotInfo);
     uint32_t allocatePSlots(uint32_t numSlotsToAllocate);
     uint32_t allocateAOSlot();
