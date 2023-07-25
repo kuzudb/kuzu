@@ -7,7 +7,7 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace processor {
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalInQueryCallToPhysical(
+std::unique_ptr<PhysicalOperator> PlanMapper::mapInQueryCall(
     planner::LogicalOperator* logicalOperator) {
     auto logicalInQueryCall = reinterpret_cast<LogicalInQueryCall*>(logicalOperator);
     std::vector<DataPos> outputPoses;

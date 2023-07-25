@@ -34,18 +34,25 @@ list_entry_t ListAuxiliaryBuffer::addList(uint64_t listSize) {
 }
 
 void ListAuxiliaryBuffer::resizeDataVector(ValueVector* dataVector) {
+    auto buffer = std::make_unique<uint8_t[]>(capacity * dataVector->getNumBytesPerValue());
+    memcpy(buffer.get(), dataVector->valueBuffer.get(), size * dataVector->getNumBytesPerValue());
+    dataVector->valueBuffer = std::move(buffer);
+    dataVector->nullMask->resize(capacity);
     // If the dataVector is a struct vector, we need to resize its field vectors.
     if (dataVector->dataType.getPhysicalType() == PhysicalTypeID::STRUCT) {
-        auto fieldVectors = StructVector::getFieldVectors(dataVector);
-        for (auto& fieldVector : fieldVectors) {
-            resizeDataVector(fieldVector.get());
-        }
-    } else {
-        auto buffer = std::make_unique<uint8_t[]>(capacity * dataVector->getNumBytesPerValue());
-        memcpy(
-            buffer.get(), dataVector->valueBuffer.get(), size * dataVector->getNumBytesPerValue());
-        dataVector->valueBuffer = std::move(buffer);
-        dataVector->nullMask->resize(capacity);
+        resizeStructDataVector(dataVector);
+    }
+}
+
+void ListAuxiliaryBuffer::resizeStructDataVector(ValueVector* dataVector) {
+    std::iota(reinterpret_cast<int64_t*>(
+                  dataVector->getData() + dataVector->getNumBytesPerValue() * size),
+        reinterpret_cast<int64_t*>(
+            dataVector->getData() + dataVector->getNumBytesPerValue() * capacity),
+        size);
+    auto fieldVectors = StructVector::getFieldVectors(dataVector);
+    for (auto& fieldVector : fieldVectors) {
+        resizeDataVector(fieldVector.get());
     }
 }
 

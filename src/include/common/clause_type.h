@@ -17,5 +17,10 @@ enum class ClauseType : uint8_t {
     InQueryCall = 5,
 };
 
+enum class MatchClauseType : uint8_t {
+    MATCH = 0,
+    OPTIONAL_MATCH = 1,
+};
+
 } // namespace common
 } // namespace kuzu

@@ -48,15 +48,6 @@ rust::Vec<rust::String> logical_type_get_struct_field_names(const kuzu::common::
 std::unique_ptr<std::vector<kuzu::common::LogicalType>> logical_type_get_struct_field_types(
     const kuzu::common::LogicalType& value);
 
-// Simple wrapper for vector of unique_ptr since cxx doesn't support functions returning a vector of
-// unique_ptr
-struct ValueList {
-    ValueList(const std::vector<std::unique_ptr<kuzu::common::Value>>& values) : values(values) {}
-    const std::vector<std::unique_ptr<kuzu::common::Value>>& values;
-    uint64_t size() const { return values.size(); }
-    const std::unique_ptr<kuzu::common::Value>& get(uint64_t index) const { return values[index]; }
-};
-
 /* Database */
 std::unique_ptr<kuzu::main::Database> new_database(
     const std::string& databasePath, uint64_t bufferPoolSize);
@@ -91,29 +82,19 @@ std::unique_ptr<std::vector<kuzu::common::LogicalType>> query_result_column_data
 rust::Vec<rust::String> query_result_column_names(const kuzu::main::QueryResult& query_result);
 
 /* NodeVal/RelVal */
-template<typename T>
-struct PropertyList {
-    const kuzu::common::Value& value;
-
-    size_t size() const { return T::getNumProperties(&value); }
-    rust::String get_name(size_t index) const {
-        return rust::String(T::getPropertyName(&value, index));
-    }
-    const kuzu::common::Value& get_value(size_t index) const {
-        return *T::getPropertyValueReference(&value, index);
-    }
-
-    PropertyList(const kuzu::common::Value& value) : value(value) {}
-};
-
-using NodeValuePropertyList = PropertyList<kuzu::common::NodeVal>;
-using RelValuePropertyList = PropertyList<kuzu::common::RelVal>;
-
 rust::String node_value_get_label_name(const kuzu::common::Value& val);
 rust::String rel_value_get_label_name(const kuzu::common::Value& val);
 
-std::unique_ptr<NodeValuePropertyList> node_value_get_properties(const kuzu::common::Value& val);
-std::unique_ptr<RelValuePropertyList> rel_value_get_properties(const kuzu::common::Value& val);
+size_t node_value_get_num_properties(const kuzu::common::Value& value);
+size_t rel_value_get_num_properties(const kuzu::common::Value& value);
+
+rust::String node_value_get_property_name(const kuzu::common::Value& value, size_t index);
+rust::String rel_value_get_property_name(const kuzu::common::Value& value, size_t index);
+
+const kuzu::common::Value& node_value_get_property_value(
+    const kuzu::common::Value& value, size_t index);
+const kuzu::common::Value& rel_value_get_property_value(
+    const kuzu::common::Value& value, size_t index);
 
 /* NodeVal */
 std::array<uint64_t, 2> node_value_get_node_id(const kuzu::common::Value& val);
@@ -123,8 +104,8 @@ std::array<uint64_t, 2> rel_value_get_src_id(const kuzu::common::Value& val);
 std::array<uint64_t, 2> rel_value_get_dst_id(const kuzu::common::Value& val);
 
 /* RecursiveRel */
-const kuzu::common::Value &recursive_rel_get_nodes(const kuzu::common::Value &val);
-const kuzu::common::Value &recursive_rel_get_rels(const kuzu::common::Value &val);
+const kuzu::common::Value& recursive_rel_get_nodes(const kuzu::common::Value& val);
+const kuzu::common::Value& recursive_rel_get_rels(const kuzu::common::Value& val);
 
 /* FlatTuple */
 const kuzu::common::Value& flat_tuple_get_value(
@@ -143,9 +124,10 @@ int32_t value_get_interval_micros(const kuzu::common::Value& value);
 int32_t value_get_date_days(const kuzu::common::Value& value);
 int64_t value_get_timestamp_micros(const kuzu::common::Value& value);
 std::array<uint64_t, 2> value_get_internal_id(const kuzu::common::Value& value);
-std::unique_ptr<ValueList> value_get_list(const kuzu::common::Value& value);
+uint32_t value_get_children_size(const kuzu::common::Value& value);
+const kuzu::common::Value& value_get_child(const kuzu::common::Value& value, uint32_t index);
 kuzu::common::LogicalTypeID value_get_data_type_id(const kuzu::common::Value& value);
-std::unique_ptr<kuzu::common::LogicalType> value_get_data_type(const kuzu::common::Value& value);
+const kuzu::common::LogicalType& value_get_data_type(const kuzu::common::Value& value);
 rust::String value_to_string(const kuzu::common::Value& val);
 
 std::unique_ptr<kuzu::common::Value> create_value_string(

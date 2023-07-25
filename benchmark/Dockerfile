@@ -17,9 +17,9 @@ USER runner
 RUN mkdir /home/runner/actions-runner
 WORKDIR /home/runner/actions-runner
 
-RUN curl -o actions-runner-linux-x64-2.304.0.tar.gz -L https://github.com/actions/runner/releases/download/v2.304.0/actions-runner-linux-x64-2.304.0.tar.gz
-RUN echo "292e8770bdeafca135c2c06cd5426f9dda49a775568f45fcc25cc2b576afc12f  actions-runner-linux-x64-2.304.0.tar.gz" | shasum -a 256 -c
-RUN tar xzf ./actions-runner-linux-x64-2.304.0.tar.gz
+RUN curl -o actions-runner-linux-x64-2.306.0.tar.gz -L https://github.com/actions/runner/releases/download/v2.306.0/actions-runner-linux-x64-2.306.0.tar.gz
+RUN echo "b0a090336f0d0a439dac7505475a1fb822f61bbb36420c7b3b3fe6b1bdc4dbaa  actions-runner-linux-x64-2.306.0.tar.gz" | shasum -a 256 -c
+RUN tar xzf ./actions-runner-linux-x64-2.306.0.tar.gz
 
 COPY --chown=runner:runner start.sh start.sh
 RUN chmod +x start.sh

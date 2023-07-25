@@ -7,10 +7,9 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace processor {
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalFlattenToPhysical(
-    LogicalOperator* logicalOperator) {
+std::unique_ptr<PhysicalOperator> PlanMapper::mapFlatten(LogicalOperator* logicalOperator) {
     auto flatten = (LogicalFlatten*)logicalOperator;
-    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0));
+    auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
     return make_unique<Flatten>(flatten->getGroupPos(), std::move(prevOperator), getOperatorID(),
         flatten->getExpressionsForPrinting());
 }

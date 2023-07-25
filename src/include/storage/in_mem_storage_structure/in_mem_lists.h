@@ -13,6 +13,7 @@ typedef std::vector<std::atomic<uint64_t>> atomic_uint64_vec_t;
 
 class InMemLists;
 class AdjLists;
+struct PropertyCopyState;
 
 using fill_in_mem_lists_function_t =
     std::function<void(InMemLists* inMemLists, uint8_t* defaultVal, PageByteCursor& pageByteCursor,
@@ -57,8 +58,8 @@ public:
     inline common::LogicalType getDataType() { return dataType; }
     inline uint64_t getNumElementsInAPage() const { return numElementsInAPage; }
 
-    virtual void copyArrowArray(
-        arrow::Array* boundNodeOffsets, arrow::Array* posInRelLists, arrow::Array* array);
+    virtual void copyArrowArray(arrow::Array* boundNodeOffsets, arrow::Array* posInRelLists,
+        arrow::Array* array, PropertyCopyState* copyState);
     template<typename T>
     void templateCopyArrayToRelLists(
         arrow::Array* boundNodeOffsets, arrow::Array* posInRelList, arrow::Array* array);
@@ -124,14 +125,14 @@ protected:
         std::shared_ptr<ListHeadersBuilder> listHeadersBuilder,
         const common::CopyDescription* copyDescription);
 
-    void copyArrowArray(
-        arrow::Array* boundNodeOffsets, arrow::Array* posInRelLists, arrow::Array* array) final;
+    void copyArrowArray(arrow::Array* boundNodeOffsets, arrow::Array* posInRelLists,
+        arrow::Array* array, PropertyCopyState* copyState) final;
     template<typename T>
-    void templateCopyArrayAsStringToRelListsWithOverflow(
-        arrow::Array* boundNodeOffsets, arrow::Array* posInRelList, arrow::Array* array);
+    void templateCopyArrayAsStringToRelListsWithOverflow(arrow::Array* boundNodeOffsets,
+        arrow::Array* posInRelList, arrow::Array* array, PageByteCursor& overflowCursor);
     template<typename T>
-    void setValueFromStringWithOverflow(
-        common::offset_t nodeOffset, uint64_t pos, const char* val, uint64_t length) {
+    void setValueFromStringWithOverflow(PageByteCursor& overflowCursor, common::offset_t nodeOffset,
+        uint64_t pos, const char* val, uint64_t length) {
         assert(false);
     }
 
@@ -140,8 +141,6 @@ protected:
 
 protected:
     std::unique_ptr<InMemOverflowFile> overflowInMemFile;
-    // TODO(Guodong/Ziyi): Fix for concurrent writes.
-    PageByteCursor overflowCursor;
     std::unique_ptr<uint8_t[]> blobBuffer;
 };
 
@@ -216,10 +215,12 @@ void InMemLists::setValueFromString<common::timestamp_t>(
 
 template<>
 void InMemListsWithOverflow::setValueFromStringWithOverflow<common::ku_string_t>(
-    common::offset_t nodeOffset, uint64_t pos, const char* val, uint64_t length);
+    PageByteCursor& overflowCursor, common::offset_t nodeOffset, uint64_t pos, const char* val,
+    uint64_t length);
 template<>
 void InMemListsWithOverflow::setValueFromStringWithOverflow<common::ku_list_t>(
-    common::offset_t nodeOffset, uint64_t pos, const char* val, uint64_t length);
+    PageByteCursor& overflowCursor, common::offset_t nodeOffset, uint64_t pos, const char* val,
+    uint64_t length);
 
 } // namespace storage
 } // namespace kuzu

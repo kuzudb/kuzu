@@ -12,6 +12,13 @@
 namespace kuzu {
 namespace storage {
 
+struct PropertyCopyState {
+    PropertyCopyState(common::LogicalType& dataType);
+
+    PageByteCursor overflowCursor;
+    std::vector<std::unique_ptr<PropertyCopyState>> childStates;
+};
+
 struct StructFieldIdxAndValue {
     StructFieldIdxAndValue(common::struct_field_idx_t fieldIdx, std::string fieldValue)
         : fieldIdx{fieldIdx}, fieldValue{std::move(fieldValue)} {}
@@ -46,7 +53,8 @@ public:
     inline uint64_t getNumBytes() const { return numBytes; }
     inline InMemColumnChunk* getNullChunk() { return nullChunk.get(); }
     void copyArrowBatch(std::shared_ptr<arrow::RecordBatch> batch);
-    virtual void copyArrowArray(arrow::Array& arrowArray, arrow::Array* nodeOffsets = nullptr);
+    virtual void copyArrowArray(arrow::Array& arrowArray, PropertyCopyState* copyState,
+        arrow::Array* nodeOffsets = nullptr);
     virtual void flush(common::FileInfo* walFileInfo);
 
     template<typename T>
@@ -92,23 +100,24 @@ public:
           inMemOverflowFile{inMemOverflowFile}, blobBuffer{std::make_unique<uint8_t[]>(
                                                     common::BufferPoolConstants::PAGE_4KB_SIZE)} {}
 
-    void copyArrowArray(arrow::Array& array, arrow::Array* nodeOffsets = nullptr) final;
+    void copyArrowArray(arrow::Array& array, PropertyCopyState* copyState,
+        arrow::Array* nodeOffsets = nullptr) final;
 
     template<typename T>
     void templateCopyValuesAsStringToPageWithOverflow(
-        arrow::Array& array, arrow::Array* nodeOffsets);
+        arrow::Array& array, PropertyCopyState* copyState, arrow::Array* nodeOffsets);
 
-    void copyValuesToPageWithOverflow(arrow::Array& array, arrow::Array* nodeOffsets);
+    void copyValuesToPageWithOverflow(
+        arrow::Array& array, PropertyCopyState* copyState, arrow::Array* nodeOffsets);
 
     template<typename T>
-    void setValWithOverflow(const char* value, uint64_t length, uint64_t pos) {
+    void setValWithOverflow(
+        PageByteCursor& overflowCursor, const char* value, uint64_t length, uint64_t pos) {
         assert(false);
     }
 
 private:
     storage::InMemOverflowFile* inMemOverflowFile;
-    // TODO(Ziyi/Guodong): Fix this for rel columns.
-    PageByteCursor overflowCursor;
     std::unique_ptr<uint8_t[]> blobBuffer;
 };
 
@@ -125,13 +134,15 @@ public:
         fieldChunks.push_back(std::move(fieldChunk));
     }
 
-    void copyArrowArray(arrow::Array& array, arrow::Array* nodeOffsets = nullptr) final;
+    void copyArrowArray(arrow::Array& array, PropertyCopyState* copyState = nullptr,
+        arrow::Array* nodeOffsets = nullptr) final;
 
 private:
-    void setStructFields(const char* value, uint64_t length, uint64_t pos);
+    void setStructFields(
+        PropertyCopyState* copyState, const char* value, uint64_t length, uint64_t pos);
 
-    void setValueToStructField(common::offset_t pos, const std::string& structFieldValue,
-        common::struct_field_idx_t structFiledIdx);
+    void setValueToStructField(PropertyCopyState* copyState, common::offset_t pos,
+        const std::string& structFieldValue, common::struct_field_idx_t structFiledIdx);
 
     std::vector<StructFieldIdxAndValue> parseStructFieldNameAndValues(
         common::LogicalType& type, const std::string& structString);

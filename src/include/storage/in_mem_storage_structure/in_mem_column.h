@@ -14,7 +14,7 @@ public:
 
     void flushChunk(InMemColumnChunk* chunk);
 
-    std::unique_ptr<InMemColumnChunk> getInMemColumnChunk(common::offset_t startNodeOffset,
+    std::unique_ptr<InMemColumnChunk> createInMemColumnChunk(common::offset_t startNodeOffset,
         common::offset_t endNodeOffset, const common::CopyDescription* copyDescription) {
         switch (dataType.getPhysicalType()) {
         case common::PhysicalTypeID::STRING:
@@ -30,7 +30,7 @@ public:
             auto inMemStructColumnChunk = std::make_unique<InMemStructColumnChunk>(
                 dataType, startNodeOffset, endNodeOffset, copyDescription);
             for (auto& fieldColumn : childColumns) {
-                inMemStructColumnChunk->addFieldChunk(fieldColumn->getInMemColumnChunk(
+                inMemStructColumnChunk->addFieldChunk(fieldColumn->createInMemColumnChunk(
                     startNodeOffset, endNodeOffset, copyDescription));
             }
             return inMemStructColumnChunk;

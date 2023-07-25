@@ -65,3 +65,8 @@
 -STATEMENT MATCH (a)-[e:studyAt|:knows*2..3]-(a) WHERE a.ID = 1 RETURN COUNT(*)
 ---- 1
 7
+
+-LOG MultiLabelSelfLoopTest2
+-STATEMENT MATCH (a:organisation)-[e*2..2]-(a) RETURN COUNT(*)
+---- 1
+6

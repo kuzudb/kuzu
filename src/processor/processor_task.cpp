@@ -15,6 +15,8 @@ void ProcessorTask::run() {
 }
 
 void ProcessorTask::finalizeIfNecessary() {
+    auto resultSet = populateResultSet(sink, executionContext->memoryManager);
+    sink->initLocalState(resultSet.get(), executionContext);
     sink->finalize(executionContext);
 }
 

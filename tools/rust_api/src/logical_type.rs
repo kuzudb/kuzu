@@ -56,7 +56,7 @@ pub enum LogicalType {
 
 impl From<&ffi::Value> for LogicalType {
     fn from(value: &ffi::Value) -> Self {
-        ffi::value_get_data_type(value).as_ref().unwrap().into()
+        ffi::value_get_data_type(value).into()
     }
 }
 

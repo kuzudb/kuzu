@@ -10,22 +10,18 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace processor {
 
-static DataPos getOutputPos(LogicalExplain* logicalExplain) {
-    auto outSchema = logicalExplain->getSchema();
-    auto outputExpression = logicalExplain->getOutputExpression();
-    return DataPos(outSchema->getExpressionPos(*outputExpression));
-}
-
-std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExplainToPhysical(
+std::unique_ptr<PhysicalOperator> PlanMapper::mapExplain(
     planner::LogicalOperator* logicalOperator) {
     auto logicalExplain = (LogicalExplain*)logicalOperator;
-    auto lastLogicalOP = logicalExplain->getChild(0);
-    auto lastPhysicalOP = mapLogicalOperatorToPhysical(lastLogicalOP);
-    lastPhysicalOP = appendResultCollectorIfNotCopy(std::move(lastPhysicalOP),
-        logicalExplain->getOutputExpressionsToExplain(), lastLogicalOP->getSchema());
-    auto outputVectorPos = getOutputPos(logicalExplain);
+    auto outSchema = logicalExplain->getSchema();
+    auto inSchema = logicalExplain->getChild(0)->getSchema();
+    auto lastPhysicalOP = mapOperator(logicalExplain->getChild(0).get());
+    lastPhysicalOP = appendResultCollectorIfNotCopy(
+        std::move(lastPhysicalOP), logicalExplain->getOutputExpressionsToExplain(), inSchema);
+    auto outputExpression = logicalExplain->getOutputExpression();
     if (logicalExplain->getExplainType() == common::ExplainType::PROFILE) {
-        return std::make_unique<Profile>(outputVectorPos, ProfileInfo{}, ProfileLocalState{},
+        auto outputPosition = DataPos(outSchema->getExpressionPos(*outputExpression));
+        return std::make_unique<Profile>(outputPosition, ProfileInfo{}, ProfileLocalState{},
             getOperatorID(), logicalExplain->getExpressionsForPrinting(),
             std::move(lastPhysicalOP));
     } else {
@@ -36,11 +32,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExplainToPhysical(
         auto explainStr = planPrinter->printPlanToOstream().str();
         auto factorizedTable =
             FactorizedTableUtils::getFactorizedTableForOutputMsg(explainStr, memoryManager);
-        auto ftSharedState = std::make_shared<FTableSharedState>(
-            std::move(factorizedTable), common::DEFAULT_VECTOR_CAPACITY);
-        return std::make_unique<FactorizedTableScan>(std::vector<DataPos>{outputVectorPos},
-            std::vector<uint32_t>{0} /* colIndicesToScan */, ftSharedState, getOperatorID(),
-            logicalExplain->getExpressionsForPrinting());
+        return createFactorizedTableScan(
+            binder::expression_vector{outputExpression}, outSchema, factorizedTable, nullptr);
     }
 }
 

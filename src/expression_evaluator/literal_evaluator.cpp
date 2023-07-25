@@ -15,7 +15,7 @@ bool LiteralExpressionEvaluator::select(SelectionVector& selVector) {
 
 void LiteralExpressionEvaluator::resolveResultVector(
     const processor::ResultSet& resultSet, MemoryManager* memoryManager) {
-    resultVector = std::make_shared<ValueVector>(value->getDataType(), memoryManager);
+    resultVector = std::make_shared<ValueVector>(*value->getDataType(), memoryManager);
     if (value->isNull()) {
         resultVector->setNull(0 /* pos */, true);
     } else {
@@ -27,7 +27,7 @@ void LiteralExpressionEvaluator::resolveResultVector(
 void LiteralExpressionEvaluator::copyValueToVector(
     uint8_t* dstValue, common::ValueVector* dstVector, const Value* srcValue) {
     auto numBytesPerValue = dstVector->getNumBytesPerValue();
-    switch (srcValue->getDataType().getPhysicalType()) {
+    switch (srcValue->getDataType()->getPhysicalType()) {
     case common::PhysicalTypeID::INT64: {
         memcpy(dstValue, &srcValue->val.int64Val, numBytesPerValue);
     } break;
@@ -55,13 +55,13 @@ void LiteralExpressionEvaluator::copyValueToVector(
     } break;
     case common::PhysicalTypeID::VAR_LIST: {
         auto listListEntry = reinterpret_cast<common::list_entry_t*>(dstValue);
-        auto numValues = srcValue->nestedTypeVal.size();
+        auto numValues = NestedVal::getChildrenSize(srcValue);
         *listListEntry = common::ListVector::addList(dstVector, numValues);
         auto dstDataVector = common::ListVector::getDataVector(dstVector);
         auto dstElements = common::ListVector::getListValues(dstVector, *listListEntry);
         for (auto i = 0u; i < numValues; ++i) {
             copyValueToVector(dstElements + i * dstDataVector->getNumBytesPerValue(), dstDataVector,
-                srcValue->nestedTypeVal[i].get());
+                NestedVal::getChildVal(srcValue, i));
         }
     } break;
     default:

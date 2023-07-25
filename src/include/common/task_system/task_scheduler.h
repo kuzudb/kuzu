@@ -26,18 +26,10 @@ struct ScheduledTask {
  * is completed is removed automatically from the queue. If there is a task that raises an
  * exception, the worker threads catch it and store it with the tasks. The user thread that is
  * waiting on the completion of the task (or tasks) will throw the exception (the user thread could
- * be waiting on a tasks through a function that waits, e.g., scheduleTaskAndWaitOrError or
- * waitAllTasksToCompleteOrError.
+ * be waiting on a tasks through a function that waits, e.g., scheduleTaskAndWaitOrError.
  *
- * Currently there are two ways the TaskScheduler can be used:
- * (1) Schedule a set of tasks T1, ..., Tk, and wait for all of them to be completed or error
- * if any one them has raised an exception (but only the exception of one (the earliest scheduled)
- * task will be raised. We do not currently re-throw multiple exceptions from multiple tasks. Ex:
- *      schedule(T1);
- *      ...;
- *      schedule(Tk);
- *      waitAllTasksToCompleteOrError();
- * (2) Schedule one task T and wait for T to finish or error if there was an exception raised by
+ * Currently there is one way the TaskScheduler can be used:
+ * Schedule one task T and wait for T to finish or error if there was an exception raised by
  * one of the threads working on T that errored. This is simply done by the call:
  *      scheduleTaskAndWaitOrError(T);
  *
@@ -61,36 +53,10 @@ public:
     void scheduleTaskAndWaitOrError(
         const std::shared_ptr<Task>& task, processor::ExecutionContext* context);
 
-    // If a user, e.g., currently the copier, adds a set of tasks T1, ..., Tk, to the task scheduler
-    // without waiting for them to finish, the user needs to call waitAllTasksToCompleteOrError() if
-    // it wants to catch the errors that may have happened in T1, ..., Tk. If this function is not
-    // called and a T_i errors, there will be two side effects: (1) the user will never be aware
-    // that there was an error in some of the scheduled tasks; (2) the erroring task will not be
-    // removed from the task queue, so it will remain there permanently. We only remove erroring
-    // tasks inside waitAllTasksToCompleteOrError and scheduleTaskAndWaitOrError. Also, see the note
-    // below in waitAllTasksToCompleteOrError for details of the behavior when multiple tasks fail.
     std::shared_ptr<ScheduledTask> scheduleTask(const std::shared_ptr<Task>& task);
-
-    // Also note that if a user has scheduled multiple concrete tasks and calls
-    // waitAllTasksToCompleteOrError and multiple tasks error, then waitAllTasksToCompleteOrError
-    // will rethrow only the exception of the first task that it observes to have an error and
-    // it will remove only that one. Other tasks that may have failed many not be removed
-    // from the task queue and remain in the queue. So for now, use this function if you
-    // want the system to crash if any of the tasks fails.
-    void waitAllTasksToCompleteOrError();
-
-    void waitUntilEnoughTasksFinish(int64_t minimumNumTasksToScheduleMore);
-
-    // Checks if there is an erroring task in the queue and if so, errors.
-    void errorIfThereIsAnException();
-
-    bool isTaskQueueEmpty() { return taskQueue.empty(); }
-    uint64_t getNumTasks() { return taskQueue.size(); }
 
 private:
     void removeErroringTask(uint64_t scheduledTaskID);
-
-    void errorIfThereIsAnExceptionNoLock();
 
     // Functions to launch worker threads and for the worker threads to use to grab task from queue.
     void runWorkerThread();
@@ -99,7 +65,6 @@ private:
     void interruptTaskIfTimeOutNoLock(processor::ExecutionContext* context);
 
 private:
-    std::shared_ptr<spdlog::logger> logger;
     std::mutex mtx;
     std::deque<std::shared_ptr<ScheduledTask>> taskQueue;
     std::atomic<bool> stopThreads{false};

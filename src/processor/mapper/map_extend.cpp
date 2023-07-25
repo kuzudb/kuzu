@@ -82,37 +82,7 @@ static std::unique_ptr<RelTableCollectionScanner> populateRelTableCollectionScan
     return std::make_unique<RelTableCollectionScanner>(std::move(scanInfos));
 }
 
-static std::unordered_set<common::table_id_t> getNodeIDFilterSet(const NodeExpression& node,
-    const RelExpression& rel, ExtendDirection extendDirection, const catalog::Catalog& catalog) {
-    std::unordered_set<common::table_id_t> nodeTableIDSet = node.getTableIDsSet();
-    std::unordered_set<common::table_id_t> extendedNodeTableIDSet;
-    for (auto tableID : rel.getTableIDs()) {
-        auto tableSchema = catalog.getReadOnlyVersion()->getRelTableSchema(tableID);
-        switch (extendDirection) {
-        case ExtendDirection::FWD: {
-            extendedNodeTableIDSet.insert(tableSchema->getNbrTableID(RelDataDirection::FWD));
-        } break;
-        case ExtendDirection::BWD: {
-            extendedNodeTableIDSet.insert(tableSchema->getNbrTableID(RelDataDirection::BWD));
-        } break;
-        case ExtendDirection::BOTH: {
-            extendedNodeTableIDSet.insert(tableSchema->getNbrTableID(RelDataDirection::FWD));
-            extendedNodeTableIDSet.insert(tableSchema->getNbrTableID(RelDataDirection::BWD));
-        } break;
-        default:
-            throw common::NotImplementedException("getNbrTableIDFilterSet");
-        }
-    }
-    for (auto& tableID : extendedNodeTableIDSet) {
-        if (!nodeTableIDSet.contains(tableID)) {
-            return nodeTableIDSet; // Two sets are not equal. A post extend filter is needed.
-        }
-    }
-    return std::unordered_set<common::table_id_t>{};
-}
-
-std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExtendToPhysical(
-    LogicalOperator* logicalOperator) {
+std::unique_ptr<PhysicalOperator> PlanMapper::mapExtend(LogicalOperator* logicalOperator) {
     auto extend = (LogicalExtend*)logicalOperator;
     auto outSchema = extend->getSchema();
     auto inSchema = extend->getChild(0)->getSchema();
@@ -120,7 +90,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExtendToPhysical(
     auto nbrNode = extend->getNbrNode();
     auto rel = extend->getRel();
     auto extendDirection = extend->getDirection();
-    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0));
+    auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
     auto inNodeVectorPos = DataPos(inSchema->getExpressionPos(*boundNode->getInternalIDProperty()));
     auto outNodeVectorPos = DataPos(outSchema->getExpressionPos(*nbrNode->getInternalIDProperty()));
     std::vector<DataPos> outVectorsPos;
@@ -153,20 +123,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExtendToPhysical(
                 scanners.insert({boundNodeTableID, std::move(scanner)});
             }
         }
-        auto scanRel = std::make_unique<ScanMultiRelTable>(std::move(posInfo), std::move(scanners),
+        return std::make_unique<ScanMultiRelTable>(std::move(posInfo), std::move(scanners),
             std::move(prevOperator), getOperatorID(), extend->getExpressionsForPrinting());
-        auto nbrNodeIDFilterSet = getNodeIDFilterSet(*nbrNode, *rel, extendDirection, *catalog);
-        if (!nbrNodeIDFilterSet.empty()) {
-            auto nbrNodeVectorPos =
-                DataPos(outSchema->getExpressionPos(*nbrNode->getInternalIDProperty()));
-            auto filterInfo =
-                std::make_unique<NodeLabelFilterInfo>(nbrNodeVectorPos, nbrNodeIDFilterSet);
-            auto filter = std::make_unique<NodeLabelFiler>(
-                std::move(filterInfo), std::move(scanRel), getOperatorID(), "");
-            return filter;
-        } else {
-            return scanRel;
-        }
     }
 }
 

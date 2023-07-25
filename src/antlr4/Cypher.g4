@@ -27,6 +27,17 @@ kU_StandaloneCall
 
 CALL : ( 'C' | 'c' ) ( 'A' | 'a' ) ( 'L' | 'l' ) ( 'L' | 'l' ) ;
 
+kU_CreateMacro
+    : CREATE SP MACRO SP oC_FunctionName SP? '(' SP? kU_PositionalArgs? SP? kU_DefaultArg? ( SP? ',' SP? kU_DefaultArg )* SP? ')' SP AS SP oC_Expression ;
+
+kU_PositionalArgs
+    : oC_SymbolicName ( SP? ',' SP? oC_SymbolicName )* ;
+
+kU_DefaultArg
+    : oC_SymbolicName SP? ':' '=' SP? oC_Literal ;
+
+MACRO : ( 'M' | 'm' ) ( 'A' | 'a' ) ( 'C' | 'c' ) ( 'R' | 'r' ) ( 'O' | 'o' ) ;
+
 kU_FilePaths
     : '[' SP? StringLiteral ( SP? ',' SP? StringLiteral )* ']'
         | StringLiteral
@@ -140,7 +151,8 @@ oC_Statement
         | kU_DDL
         | kU_CopyNPY
         | kU_CopyCSV
-        | kU_StandaloneCall  ;
+        | kU_StandaloneCall
+        | kU_CreateMacro ;
 
 oC_Query
     : oC_RegularQuery ;

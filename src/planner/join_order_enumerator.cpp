@@ -3,7 +3,6 @@
 #include "binder/expression/expression_visitor.h"
 #include "planner/join_order/cost_model.h"
 #include "planner/logical_plan/logical_operator/logical_cross_product.h"
-#include "planner/logical_plan/logical_operator/logical_ftable_scan.h"
 #include "planner/logical_plan/logical_operator/logical_scan_node.h"
 #include "planner/query_planner.h"
 
@@ -79,7 +78,7 @@ std::vector<std::unique_ptr<LogicalPlan>> JoinOrderEnumerator::enumerate(
     return std::move(context->getPlans(context->getFullyMatchedSubqueryGraph()));
 }
 
-std::unique_ptr<JoinOrderEnumeratorContext> JoinOrderEnumerator::enterSubquery(
+std::unique_ptr<JoinOrderEnumeratorContext> JoinOrderEnumerator::enterContext(
     expression_vector nodeIDsToScanFromInnerAndOuter) {
     auto prevContext = std::move(context);
     context = std::make_unique<JoinOrderEnumeratorContext>();
@@ -87,7 +86,7 @@ std::unique_ptr<JoinOrderEnumeratorContext> JoinOrderEnumerator::enterSubquery(
     return prevContext;
 }
 
-void JoinOrderEnumerator::exitSubquery(std::unique_ptr<JoinOrderEnumeratorContext> prevContext) {
+void JoinOrderEnumerator::exitContext(std::unique_ptr<JoinOrderEnumeratorContext> prevContext) {
     context = std::move(prevContext);
 }
 

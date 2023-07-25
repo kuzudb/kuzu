@@ -8,8 +8,7 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace processor {
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExpressionsScanToPhysical(
-    LogicalOperator* logicalOperator) {
+std::unique_ptr<PhysicalOperator> PlanMapper::mapExpressionsScan(LogicalOperator* logicalOperator) {
     auto& logicalExpressionsScan = (LogicalExpressionsScan&)*logicalOperator;
     auto outSchema = logicalExpressionsScan.getSchema();
     auto inSchema = std::make_unique<Schema>();
@@ -29,21 +28,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExpressionsScanToPhysica
         vectors.push_back(expressionEvaluator->resultVector);
         vectorsToAppend.push_back(expressionEvaluator->resultVector.get());
     }
-    auto sharedState = std::make_shared<FTableSharedState>(
-        memoryManager, tableSchema->copy(), common::DEFAULT_VECTOR_CAPACITY);
-    auto table = sharedState->getTable();
+    auto table = std::make_shared<FactorizedTable>(memoryManager, std::move(tableSchema));
     table->append(vectorsToAppend);
-    // map factorized table scan
-    std::vector<DataPos> outDataPoses;
-    std::vector<uint32_t> colIndicesToScan;
-    for (auto i = 0u; i < expressions.size(); ++i) {
-        auto expression = expressions[i];
-        outDataPoses.emplace_back(outSchema->getExpressionPos(*expression));
-        colIndicesToScan.push_back(i);
-    }
-    return std::make_unique<FactorizedTableScan>(std::move(outDataPoses),
-        std::move(colIndicesToScan), sharedState, getOperatorID(),
-        logicalExpressionsScan.getExpressionsForPrinting());
+    return createFactorizedTableScan(expressions, outSchema, table, nullptr);
 }
 
 } // namespace processor

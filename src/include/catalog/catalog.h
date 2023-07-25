@@ -6,32 +6,27 @@
 #include "common/assert.h"
 #include "common/exception.h"
 #include "common/file_utils.h"
-#include "common/ser_deser.h"
 #include "common/utils.h"
 #include "function/aggregate/built_in_aggregate_functions.h"
 #include "function/built_in_table_functions.h"
 #include "function/built_in_vector_functions.h"
+#include "function/scalar_macro_function.h"
 #include "storage/storage_info.h"
 #include "storage/wal/wal.h"
 #include "transaction/transaction.h"
-
-namespace spdlog {
-class logger;
-}
 
 namespace kuzu {
 namespace catalog {
 
 class CatalogContent {
+    friend class Catalog;
+
 public:
-    // This constructor is only used for mock catalog testing only.
     CatalogContent();
 
     explicit CatalogContent(const std::string& directory);
 
     CatalogContent(const CatalogContent& other);
-
-    virtual ~CatalogContent() = default;
 
     /**
      * Node and Rel table functions.
@@ -131,12 +126,23 @@ public:
         return relTableSchemas;
     }
 
+    inline bool containMacro(const std::string& macroName) const {
+        return macros.contains(macroName);
+    }
+
     void dropTableSchema(common::table_id_t tableID);
 
     void renameTable(common::table_id_t tableID, const std::string& newName);
 
     void saveToFile(const std::string& directory, common::DBFileType dbFileType);
     void readFromFile(const std::string& directory, common::DBFileType dbFileType);
+
+    common::ExpressionType getFunctionType(const std::string& name) const;
+
+    void addVectorFunction(std::string name, function::vector_function_definitions definitions);
+
+    void addScalarMacroFunction(
+        std::string name, std::unique_ptr<function::ScalarMacroFunction> macro);
 
 private:
     inline common::table_id_t assignNextTableID() { return nextTableID++; }
@@ -147,8 +153,9 @@ private:
 
     void writeMagicBytes(common::FileInfo* fileInfo, common::offset_t& offset) const;
 
+    void registerBuiltInFunctions();
+
 private:
-    std::shared_ptr<spdlog::logger> logger;
     std::unordered_map<common::table_id_t, std::unique_ptr<NodeTableSchema>> nodeTableSchemas;
     std::unordered_map<common::table_id_t, std::unique_ptr<RelTableSchema>> relTableSchemas;
     // These two maps are maintained as caches. They are not serialized to the catalog file, but
@@ -156,6 +163,10 @@ private:
     std::unordered_map<std::string, common::table_id_t> nodeTableNameToIDMap;
     std::unordered_map<std::string, common::table_id_t> relTableNameToIDMap;
     common::table_id_t nextTableID;
+    std::unique_ptr<function::BuiltInVectorFunctions> builtInVectorFunctions;
+    std::unique_ptr<function::BuiltInAggregateFunctions> builtInAggregateFunctions;
+    std::unique_ptr<function::BuiltInTableFunctions> builtInTableFunctions;
+    std::unordered_map<std::string, std::unique_ptr<function::ScalarMacroFunction>> macros;
 };
 
 class Catalog {
@@ -164,20 +175,18 @@ public:
 
     explicit Catalog(storage::WAL* wal);
 
-    virtual ~Catalog() = default;
-
     // TODO(Guodong): Get rid of these two functions.
     inline CatalogContent* getReadOnlyVersion() const { return catalogContentForReadOnlyTrx.get(); }
     inline CatalogContent* getWriteVersion() const { return catalogContentForWriteTrx.get(); }
 
     inline function::BuiltInVectorFunctions* getBuiltInVectorFunctions() const {
-        return builtInVectorFunctions.get();
+        return catalogContentForReadOnlyTrx->builtInVectorFunctions.get();
     }
     inline function::BuiltInAggregateFunctions* getBuiltInAggregateFunction() const {
-        return builtInAggregateFunctions.get();
+        return catalogContentForReadOnlyTrx->builtInAggregateFunctions.get();
     }
     inline function::BuiltInTableFunctions* getBuiltInTableFunction() const {
-        return builtInTableFunctions.get();
+        return catalogContentForReadOnlyTrx->builtInTableFunctions.get();
     }
 
     void prepareCommitOrRollback(transaction::TransactionAction action);
@@ -222,13 +231,18 @@ public:
 
     void addVectorFunction(std::string name, function::vector_function_definitions definitions);
 
+    void addScalarMacroFunction(
+        std::string name, std::unique_ptr<function::ScalarMacroFunction> macro);
+
+    // TODO(Ziyi): pass transaction pointer here.
+    inline function::ScalarMacroFunction* getScalarMacroFunction(std::string name) const {
+        return catalogContentForReadOnlyTrx->macros.at(name).get();
+    }
+
 private:
     inline bool hasUpdates() { return catalogContentForWriteTrx != nullptr; }
 
 protected:
-    std::unique_ptr<function::BuiltInVectorFunctions> builtInVectorFunctions;
-    std::unique_ptr<function::BuiltInAggregateFunctions> builtInAggregateFunctions;
-    std::unique_ptr<function::BuiltInTableFunctions> builtInTableFunctions;
     std::unique_ptr<CatalogContent> catalogContentForReadOnlyTrx;
     std::unique_ptr<CatalogContent> catalogContentForWriteTrx;
     storage::WAL* wal;

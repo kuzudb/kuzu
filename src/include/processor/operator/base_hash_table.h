@@ -14,6 +14,8 @@ public:
         : maxNumHashSlots{0}, bitmask{0}, numSlotsPerBlockLog2{0}, slotIdxInBlockMask{0},
           memoryManager{memoryManager} {}
 
+    virtual ~BaseHashTable() = default;
+
     inline uint64_t getSlotIdxForHash(common::hash_t hash) const { return hash & bitmask; }
 
 protected:

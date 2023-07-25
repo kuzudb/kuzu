@@ -13,6 +13,20 @@ public:
 
     inline std::string getParameterName() const { return parameterName; }
 
+    static std::unique_ptr<ParsedParameterExpression> deserialize(
+        common::FileInfo* fileInfo, uint64_t& offset) {
+        throw common::NotImplementedException{"ParsedParameterExpression::deserialize()"};
+    }
+
+    inline std::unique_ptr<ParsedExpression> copy() const override {
+        throw common::NotImplementedException{"ParsedParameterExpression::copy()"};
+    }
+
+private:
+    void serializeInternal(common::FileInfo* fileInfo, uint64_t& offset) const override {
+        throw common::NotImplementedException{"ParsedParameterExpression::serializeInternal()"};
+    }
+
 private:
     std::string parameterName;
 };

@@ -66,9 +66,7 @@ public:
 
     inline void setException(std::exception_ptr exceptionPtr) {
         lock_t lck{mtx};
-        if (this->exceptionsPtr == nullptr) {
-            this->exceptionsPtr = exceptionPtr;
-        }
+        setExceptionNoLock(exceptionPtr);
     }
 
     inline bool hasException() {
@@ -87,6 +85,12 @@ private:
     }
 
     inline bool hasExceptionNoLock() const { return exceptionsPtr != nullptr; }
+
+    inline void setExceptionNoLock(std::exception_ptr exceptionPtr) {
+        if (exceptionsPtr == nullptr) {
+            exceptionsPtr = exceptionPtr;
+        }
+    }
 
 public:
     Task* parent = nullptr;

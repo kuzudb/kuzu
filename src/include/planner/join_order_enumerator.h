@@ -30,9 +30,9 @@ public:
 
     inline void resetState() { context->resetState(); }
 
-    std::unique_ptr<JoinOrderEnumeratorContext> enterSubquery(
+    std::unique_ptr<JoinOrderEnumeratorContext> enterContext(
         binder::expression_vector nodeIDsToScanFromInnerAndOuter);
-    void exitSubquery(std::unique_ptr<JoinOrderEnumeratorContext> prevContext);
+    void exitContext(std::unique_ptr<JoinOrderEnumeratorContext> prevContext);
 
     inline void planMarkJoin(const binder::expression_vector& joinNodeIDs,
         std::shared_ptr<Expression> mark, LogicalPlan& probePlan, LogicalPlan& buildPlan) {
@@ -100,6 +100,9 @@ private:
     void createPathRelPropertyScanPlan(std::shared_ptr<NodeExpression> recursiveNode,
         std::shared_ptr<NodeExpression> nbrNode, std::shared_ptr<RelExpression> recursiveRel,
         ExtendDirection direction, LogicalPlan& plan);
+
+    void appendNodeLabelFilter(std::shared_ptr<Expression> nodeID,
+        std::unordered_set<common::table_id_t> tableIDSet, LogicalPlan& plan);
 
     void planJoin(const binder::expression_vector& joinNodeIDs, common::JoinType joinType,
         std::shared_ptr<Expression> mark, LogicalPlan& probePlan, LogicalPlan& buildPlan);

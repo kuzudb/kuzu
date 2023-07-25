@@ -12,8 +12,8 @@ struct MinMaxFunction {
     struct MinMaxState : public AggregateState {
         inline uint32_t getStateSize() const override { return sizeof(*this); }
         inline void moveResultToVector(common::ValueVector* outputVector, uint64_t pos) override {
-            memcpy(outputVector->getData() + pos * outputVector->getNumBytesPerValue(),
-                reinterpret_cast<uint8_t*>(&val), outputVector->getNumBytesPerValue());
+            outputVector->setValue(pos, val);
+            overflowBuffer.reset();
         }
         inline void setVal(T& val_, storage::MemoryManager* memoryManager) { val = val_; }
 
@@ -85,6 +85,7 @@ struct MinMaxFunction {
                 state->setVal(otherState->val, memoryManager);
             }
         }
+        otherState->overflowBuffer.reset();
     }
 
     static void finalize(uint8_t* state_) {}

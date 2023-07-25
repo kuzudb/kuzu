@@ -1,45 +1,81 @@
 #pragma once
 
-#include "processor/operator/table_scan/base_table_scan.h"
+#include "common/join_type.h"
+#include "processor/operator/result_collector.h"
 
 namespace kuzu {
 namespace processor {
 
-class FactorizedTableScan : public BaseTableScan {
-public:
-    // Scan all columns.
-    FactorizedTableScan(std::vector<DataPos> outVecPositions,
-        std::vector<uint32_t> colIndicesToScan, std::shared_ptr<FTableSharedState> sharedState,
-        std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
-        : BaseTableScan{PhysicalOperatorType::FACTORIZED_TABLE_SCAN, std::move(outVecPositions),
-              std::move(colIndicesToScan), std::move(child), id, paramsString},
-          sharedState{std::move(sharedState)} {}
+struct FactorizedTableScanInfo {
+    std::vector<DataPos> outputPositions;
+    std::vector<ft_col_idx_t> columnIndices;
 
-    // Scan some columns.
-    FactorizedTableScan(std::vector<DataPos> outVecPositions,
-        std::vector<uint32_t> colIndicesToScan, uint32_t id, const std::string& paramsString)
-        : BaseTableScan{PhysicalOperatorType::FACTORIZED_TABLE_SCAN, std::move(outVecPositions),
-              std::move(colIndicesToScan), id, paramsString} {}
+    FactorizedTableScanInfo(
+        std::vector<DataPos> outputPositions, std::vector<ft_col_idx_t> columnIndices)
+        : outputPositions{std::move(outputPositions)}, columnIndices{std::move(columnIndices)} {}
+    FactorizedTableScanInfo(const FactorizedTableScanInfo& other)
+        : outputPositions{other.outputPositions}, columnIndices{other.columnIndices} {}
 
-    // For clone only.
-    FactorizedTableScan(std::vector<DataPos> outVecPositions,
-        std::vector<uint32_t> colIndicesToScan, std::shared_ptr<FTableSharedState> sharedState,
-        uint32_t id, const std::string& paramsString)
-        : BaseTableScan{PhysicalOperatorType::FACTORIZED_TABLE_SCAN, std::move(outVecPositions),
-              std::move(colIndicesToScan), id, paramsString},
-          sharedState{std::move(sharedState)} {}
-
-    inline std::unique_ptr<FTableScanMorsel> getMorsel() override {
-        return sharedState->getMorsel();
+    inline std::unique_ptr<FactorizedTableScanInfo> copy() const {
+        return std::make_unique<FactorizedTableScanInfo>(*this);
     }
+};
 
-    inline std::unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<FactorizedTableScan>(
-            outVecPositions, colIndicesToScan, sharedState, id, paramsString);
+class FactorizedTableScan;
+
+struct FactorizedTableScanMorsel {
+    uint64_t startTupleIdx;
+    uint64_t numTuples;
+
+    FactorizedTableScanMorsel(uint64_t startTupleIdx, uint64_t numTuples)
+        : startTupleIdx{startTupleIdx}, numTuples{numTuples} {}
+};
+
+class FactorizedTableScanSharedState {
+    friend class FactorizedTableScan;
+
+public:
+    FactorizedTableScanSharedState(std::shared_ptr<FactorizedTable> table, uint64_t maxMorselSize)
+        : table{std::move(table)}, maxMorselSize{maxMorselSize}, nextTupleIdxToScan{0} {}
+
+    std::unique_ptr<FactorizedTableScanMorsel> getMorsel();
+
+private:
+    std::mutex mtx;
+    std::shared_ptr<FactorizedTable> table;
+    uint64_t maxMorselSize;
+    uint64_t nextTupleIdxToScan;
+};
+
+class FactorizedTableScan : public PhysicalOperator {
+public:
+    FactorizedTableScan(std::unique_ptr<FactorizedTableScanInfo> info,
+        std::shared_ptr<FactorizedTableScanSharedState> sharedState,
+        std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
+        : PhysicalOperator{PhysicalOperatorType::FACTORIZED_TABLE_SCAN, std::move(child), id,
+              paramsString},
+          info{std::move(info)}, sharedState{std::move(sharedState)} {}
+
+    FactorizedTableScan(std::unique_ptr<FactorizedTableScanInfo> info,
+        std::shared_ptr<FactorizedTableScanSharedState> sharedState, uint32_t id,
+        const std::string& paramsString)
+        : PhysicalOperator{PhysicalOperatorType::FACTORIZED_TABLE_SCAN, id, paramsString},
+          info{std::move(info)}, sharedState{std::move(sharedState)} {}
+
+    bool isSource() const final { return true; }
+
+    void initLocalStateInternal(ResultSet* resultSet_, ExecutionContext* context) final;
+
+    bool getNextTuplesInternal(ExecutionContext* context) final;
+
+    inline std::unique_ptr<PhysicalOperator> clone() final {
+        return make_unique<FactorizedTableScan>(info->copy(), sharedState, id, paramsString);
     }
 
 private:
-    std::shared_ptr<FTableSharedState> sharedState;
+    std::unique_ptr<FactorizedTableScanInfo> info;
+    std::shared_ptr<FactorizedTableScanSharedState> sharedState;
+    std::vector<common::ValueVector*> vectors;
 };
 
 } // namespace processor

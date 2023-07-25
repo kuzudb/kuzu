@@ -57,7 +57,7 @@ public:
     void prepareCommit();
     void prepareRollback();
     inline void checkpointInMemory() { pkIndex->checkpointInMemory(); }
-    inline void rollback() { pkIndex->rollback(); }
+    inline void rollbackInMemory() { pkIndex->rollbackInMemory(); }
 
 private:
     void deleteNode(

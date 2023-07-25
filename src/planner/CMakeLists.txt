@@ -1,5 +1,6 @@
 add_subdirectory(join_order)
 add_subdirectory(operator)
+add_subdirectory(plan)
 
 add_library(kuzu_planner
         OBJECT
@@ -8,8 +9,7 @@ add_library(kuzu_planner
         planner.cpp
         projection_planner.cpp
         query_planner.cpp
-        subplans_table.cpp
-        update_planner.cpp)
+        subplans_table.cpp)
 
 set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_planner>

@@ -17,6 +17,7 @@ enum class StatementType : uint8_t {
     COPY = 20,
     STANDALONE_CALL = 21,
     EXPLAIN = 22,
+    CREATE_MACRO = 23,
 };
 
 class StatementTypeUtils {
@@ -32,8 +33,12 @@ public:
         return statementType == StatementType::COPY;
     }
 
-    static bool isDDLOrCopyCSV(StatementType statementType) {
-        return isDDL(statementType) || isCopyCSV(statementType);
+    static bool isCreateMacro(StatementType statementType) {
+        return statementType == StatementType::CREATE_MACRO;
+    }
+
+    static bool allowActiveTransaction(StatementType statementType) {
+        return isDDL(statementType) || isCopyCSV(statementType) || isCreateMacro(statementType);
     }
 };
 

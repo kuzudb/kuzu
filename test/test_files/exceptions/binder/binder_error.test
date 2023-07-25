@@ -179,11 +179,6 @@ Binder exception: Order by expression a.ID is not in RETURN or WITH clause.
 ---- error
 Binder exception: Expression SUM(SUM(a.age)) contains nested aggregation.
 
--LOG OptionalMatchAsFirstMatch
--STATEMENT OPTIONAL MATCH (a:person) RETURN *;
----- error
-Binder exception: First match clause cannot be optional match.
-
 -LOG OrderByWithoutSkipLimitInWithClause
 -STATEMENT MATCH (a:person) WITH a.age AS k ORDER BY k RETURN k
 ---- error
@@ -461,3 +456,17 @@ Binder exception: abc has data type STRING. (INT64) was expected.
 -STATEMENT MATCH p = (a)-[* ALL SHORTEST 2..3]-(b) RETURN p
 ---- error
 Binder exception: Lower bound of shortest/all_shortest path must be 1.
+
+-LOG InvalidNumberOfMacroParams
+-STATEMENT CREATE MACRO add5(x) AS x + 5
+---- ok
+-STATEMENT MATCH (a:person) RETURN add5(a.age, 1)
+---- error
+Binder exception: Invalid number of arguments for macro ADD5.
+
+-LOG InvalidNumberOfMacroParamsWithDefaultVal
+-STATEMENT CREATE MACRO add4(x, y:=4, z:=3) AS x + 5
+---- ok
+-STATEMENT MATCH (a:person) RETURN add4(a.age, 1, 2,3)
+---- error
+Binder exception: Invalid number of arguments for macro ADD4.

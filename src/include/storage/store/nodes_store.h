@@ -60,9 +60,9 @@ public:
             nodeTables.at(updatedNodeTable)->checkpointInMemory();
         }
     }
-    inline void rollback(const std::unordered_set<common::table_id_t>& updatedTables) {
+    inline void rollbackInMemory(const std::unordered_set<common::table_id_t>& updatedTables) {
         for (auto updatedNodeTable : updatedTables) {
-            nodeTables.at(updatedNodeTable)->rollback();
+            nodeTables.at(updatedNodeTable)->rollbackInMemory();
         }
     }
 

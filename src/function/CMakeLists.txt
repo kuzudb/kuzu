@@ -7,6 +7,7 @@ add_library(kuzu_function
         built_in_table_functions.cpp
         comparison_functions.cpp
         find_function.cpp
+        scalar_macro_function.cpp
         table_functions.cpp
         vector_arithmetic_functions.cpp
         vector_boolean_functions.cpp

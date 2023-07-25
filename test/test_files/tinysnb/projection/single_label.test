@@ -662,3 +662,9 @@ NO hex code
 -STATEMENT RETURN "hEl \'\"\\";
 ---- 1
 hEl '"\
+
+-CASE LargeListOfStruct
+-DEFINE STRUCT_VAL REPEAT 2400 "{a: ${count}},"
+-STATEMENT RETURN list_append([${STRUCT_VAL}{a: 99}], {a: 200})
+---- 1
+<FILE>:large_list_of_struct_answer.txt

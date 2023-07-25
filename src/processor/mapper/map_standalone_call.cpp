@@ -8,7 +8,7 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace processor {
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalStandaloneCallToPhysical(
+std::unique_ptr<PhysicalOperator> PlanMapper::mapStandaloneCall(
     planner::LogicalOperator* logicalOperator) {
     auto logicalStandaloneCall = reinterpret_cast<LogicalStandaloneCall*>(logicalOperator);
     auto optionValue =

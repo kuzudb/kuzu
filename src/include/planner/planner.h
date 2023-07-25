@@ -39,6 +39,8 @@ private:
         const storage::NodesStatisticsAndDeletedIDs& nodesStatistics,
         const storage::RelsStatistics& relsStatistics, const BoundStatement& statement);
 
+    static std::unique_ptr<LogicalPlan> planCreateMacro(const BoundStatement& statement);
+
     static std::vector<std::unique_ptr<LogicalPlan>> getAllQueryPlans(
         const catalog::Catalog& catalog,
         const storage::NodesStatisticsAndDeletedIDs& nodesStatistics,

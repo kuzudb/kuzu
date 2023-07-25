@@ -2,6 +2,7 @@
 #include "planner/join_order/cost_model.h"
 #include "planner/join_order_enumerator.h"
 #include "planner/logical_plan/logical_operator/logical_extend.h"
+#include "planner/logical_plan/logical_operator/logical_node_label_filter.h"
 #include "planner/logical_plan/logical_operator/logical_recursive_extend.h"
 #include "planner/query_planner.h"
 
@@ -26,9 +27,59 @@ static bool extendHasAtMostOneNbrGuarantee(RelExpression& rel, NodeExpression& b
         rel.getSingleTableID(), relDirection);
 }
 
+static std::unordered_set<common::table_id_t> getBoundNodeTableIDSet(
+    const RelExpression& rel, ExtendDirection extendDirection, const catalog::Catalog& catalog) {
+    std::unordered_set<common::table_id_t> result;
+    for (auto tableID : rel.getTableIDs()) {
+        auto tableSchema = catalog.getReadOnlyVersion()->getRelTableSchema(tableID);
+        switch (extendDirection) {
+        case ExtendDirection::FWD: {
+            result.insert(tableSchema->getBoundTableID(RelDataDirection::FWD));
+        } break;
+        case ExtendDirection::BWD: {
+            result.insert(tableSchema->getBoundTableID(RelDataDirection::BWD));
+        } break;
+        case ExtendDirection::BOTH: {
+            result.insert(tableSchema->getBoundTableID(RelDataDirection::FWD));
+            result.insert(tableSchema->getBoundTableID(RelDataDirection::BWD));
+        } break;
+        default:
+            throw common::NotImplementedException("getBoundNodeTableIDSet");
+        }
+    }
+    return result;
+}
+
+static std::unordered_set<common::table_id_t> getNbrNodeTableIDSet(
+    const RelExpression& rel, ExtendDirection extendDirection, const catalog::Catalog& catalog) {
+    std::unordered_set<common::table_id_t> result;
+    for (auto tableID : rel.getTableIDs()) {
+        auto tableSchema = catalog.getReadOnlyVersion()->getRelTableSchema(tableID);
+        switch (extendDirection) {
+        case ExtendDirection::FWD: {
+            result.insert(tableSchema->getNbrTableID(RelDataDirection::FWD));
+        } break;
+        case ExtendDirection::BWD: {
+            result.insert(tableSchema->getNbrTableID(RelDataDirection::BWD));
+        } break;
+        case ExtendDirection::BOTH: {
+            result.insert(tableSchema->getNbrTableID(RelDataDirection::FWD));
+            result.insert(tableSchema->getNbrTableID(RelDataDirection::BWD));
+        } break;
+        default:
+            throw common::NotImplementedException("getNbrNodeTableIDSet");
+        }
+    }
+    return result;
+}
+
 void JoinOrderEnumerator::appendNonRecursiveExtend(std::shared_ptr<NodeExpression> boundNode,
     std::shared_ptr<NodeExpression> nbrNode, std::shared_ptr<RelExpression> rel,
     ExtendDirection direction, const expression_vector& properties, LogicalPlan& plan) {
+    auto boundNodeTableIDSet = getBoundNodeTableIDSet(*rel, direction, catalog);
+    if (boundNode->getNumTableIDs() > boundNodeTableIDSet.size()) {
+        appendNodeLabelFilter(boundNode->getInternalIDProperty(), boundNodeTableIDSet, plan);
+    }
     auto hasAtMostOneNbr = extendHasAtMostOneNbrGuarantee(*rel, *boundNode, direction, catalog);
     auto extend = make_shared<LogicalExtend>(
         boundNode, nbrNode, rel, direction, properties, hasAtMostOneNbr, plan.getLastOperator());
@@ -44,18 +95,26 @@ void JoinOrderEnumerator::appendNonRecursiveExtend(std::shared_ptr<NodeExpressio
         group->setMultiplier(extensionRate);
     }
     plan.setLastOperator(std::move(extend));
+    auto nbrNodeTableIDSet = getNbrNodeTableIDSet(*rel, direction, catalog);
+    if (nbrNodeTableIDSet.size() > nbrNode->getNumTableIDs()) {
+        appendNodeLabelFilter(nbrNode->getInternalIDProperty(), nbrNode->getTableIDsSet(), plan);
+    }
 }
 
 void JoinOrderEnumerator::appendRecursiveExtend(std::shared_ptr<NodeExpression> boundNode,
     std::shared_ptr<NodeExpression> nbrNode, std::shared_ptr<RelExpression> rel,
     ExtendDirection direction, LogicalPlan& plan) {
     auto recursiveInfo = rel->getRecursiveInfo();
-    queryPlanner->appendAccumulate(plan);
+    queryPlanner->appendAccumulate(common::AccumulateType::REGULAR, plan);
     // Create recursive plan
     auto recursivePlan = std::make_unique<LogicalPlan>();
-    createRecursivePlan(boundNode, recursiveInfo->node, recursiveInfo->rel, direction,
+    createRecursivePlan(recursiveInfo->node, recursiveInfo->nodeCopy, recursiveInfo->rel, direction,
         recursiveInfo->predicates, *recursivePlan);
     // Create recursive extend
+    if (boundNode->getNumTableIDs() > recursiveInfo->node->getNumTableIDs()) {
+        appendNodeLabelFilter(
+            boundNode->getInternalIDProperty(), recursiveInfo->node->getTableIDsSet(), plan);
+    }
     auto extend = std::make_shared<LogicalRecursiveExtend>(boundNode, nbrNode, rel, direction,
         RecursiveJoinType::TRACK_PATH, plan.getLastOperator(), recursivePlan->getLastOperator());
     queryPlanner->appendFlattens(extend->getGroupsPosToFlatten(), plan);
@@ -137,6 +196,14 @@ void JoinOrderEnumerator::createPathRelPropertyScanPlan(
     auto expressionsToProject = properties;
     expressionsToProject.push_back(recursiveRel->getLabelExpression());
     queryPlanner->projectionPlanner.appendProjection(expressionsToProject, plan);
+}
+
+void JoinOrderEnumerator::appendNodeLabelFilter(std::shared_ptr<Expression> nodeID,
+    std::unordered_set<common::table_id_t> tableIDSet, LogicalPlan& plan) {
+    auto filter = std::make_shared<LogicalNodeLabelFilter>(
+        std::move(nodeID), std::move(tableIDSet), plan.getLastOperator());
+    filter->computeFactorizedSchema();
+    plan.setLastOperator(std::move(filter));
 }
 
 } // namespace planner

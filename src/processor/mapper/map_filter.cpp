@@ -7,11 +7,10 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace processor {
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalFilterToPhysical(
-    LogicalOperator* logicalOperator) {
+std::unique_ptr<PhysicalOperator> PlanMapper::mapFilter(LogicalOperator* logicalOperator) {
     auto& logicalFilter = (const LogicalFilter&)*logicalOperator;
     auto inSchema = logicalFilter.getChild(0)->getSchema();
-    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0));
+    auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
     auto physicalRootExpr = expressionMapper.mapExpression(logicalFilter.getPredicate(), *inSchema);
     return make_unique<Filter>(std::move(physicalRootExpr), logicalFilter.getGroupPosToSelect(),
         std::move(prevOperator), getOperatorID(), logicalFilter.getExpressionsForPrinting());

@@ -11,5 +11,11 @@ enum class JoinType : uint8_t {
     MARK = 2,
 };
 
+enum class AccumulateType : uint8_t {
+    REGULAR = 0,
+    OPTIONAL_ = 1,
+    EXISTS = 2,
+};
+
 } // namespace common
 } // namespace kuzu
