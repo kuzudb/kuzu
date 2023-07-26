@@ -18,26 +18,17 @@ void QueryPlanner::planUpdatingClause(
 void QueryPlanner::planUpdatingClause(BoundUpdatingClause& updatingClause, LogicalPlan& plan) {
     switch (updatingClause.getClauseType()) {
     case ClauseType::CREATE: {
-        auto& createClause = (BoundCreateClause&)updatingClause;
-        if (plan.isEmpty()) { // E.g. CREATE (a:Person {age:20})
-            expression_vector expressions;
-            for (auto& setItem : createClause.getAllSetItems()) {
-                expressions.push_back(setItem.second);
-            }
-            appendExpressionsScan(expressions, plan);
-        } else {
-            appendAccumulate(common::AccumulateType::REGULAR, plan);
-        }
         planCreateClause(updatingClause, plan);
         return;
     }
+    case ClauseType::MERGE: {
+        throw NotImplementedException("MERGE");
+    }
     case ClauseType::SET: {
-        appendAccumulate(common::AccumulateType::REGULAR, plan);
         planSetClause(updatingClause, plan);
         return;
     }
     case ClauseType::DELETE_: {
-        appendAccumulate(common::AccumulateType::REGULAR, plan);
         planDeleteClause(updatingClause, plan);
         return;
     }
@@ -49,32 +40,43 @@ void QueryPlanner::planUpdatingClause(BoundUpdatingClause& updatingClause, Logic
 void QueryPlanner::planCreateClause(
     binder::BoundUpdatingClause& updatingClause, LogicalPlan& plan) {
     auto& createClause = (BoundCreateClause&)updatingClause;
-    if (createClause.hasCreateNode()) {
-        appendCreateNode(createClause.getCreateNodes(), plan);
+    if (plan.isEmpty()) { // E.g. CREATE (a:Person {age:20})
+        expression_vector expressions;
+        for (auto& setItem : createClause.getAllSetItems()) {
+            expressions.push_back(setItem.second);
+        }
+        appendExpressionsScan(expressions, plan);
+    } else {
+        appendAccumulate(common::AccumulateType::REGULAR, plan);
     }
-    if (createClause.hasCreateRel()) {
-        appendCreateRel(createClause.getCreateRels(), plan);
+    if (createClause.hasNodeInfo()) {
+        appendCreateNode(createClause.getNodeInfos(), plan);
+    }
+    if (createClause.hasRelInfo()) {
+        appendCreateRel(createClause.getRelInfos(), plan);
     }
 }
 
 void QueryPlanner::planSetClause(binder::BoundUpdatingClause& updatingClause, LogicalPlan& plan) {
+    appendAccumulate(common::AccumulateType::REGULAR, plan);
     auto& setClause = (BoundSetClause&)updatingClause;
-    if (setClause.hasSetNodeProperty()) {
-        appendSetNodeProperty(setClause.getSetNodeProperties(), plan);
+    if (setClause.hasNodeInfo()) {
+        appendSetNodeProperty(setClause.getNodeInfos(), plan);
     }
-    if (setClause.hasSetRelProperty()) {
-        appendSetRelProperty(setClause.getSetRelProperties(), plan);
+    if (setClause.hasRelInfo()) {
+        appendSetRelProperty(setClause.getRelInfos(), plan);
     }
 }
 
 void QueryPlanner::planDeleteClause(
     binder::BoundUpdatingClause& updatingClause, LogicalPlan& plan) {
+    appendAccumulate(common::AccumulateType::REGULAR, plan);
     auto& deleteClause = (BoundDeleteClause&)updatingClause;
-    if (deleteClause.hasDeleteRel()) {
-        appendDeleteRel(deleteClause.getDeleteRels(), plan);
+    if (deleteClause.hasRelInfo()) {
+        appendDeleteRel(deleteClause.getRelInfos(), plan);
     }
-    if (deleteClause.hasDeleteNode()) {
-        appendDeleteNode(deleteClause.getDeleteNodes(), plan);
+    if (deleteClause.hasNodeInfo()) {
+        appendDeleteNode(deleteClause.getNodeInfos(), plan);
     }
 }
 

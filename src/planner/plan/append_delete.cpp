@@ -6,12 +6,14 @@ namespace kuzu {
 namespace planner {
 
 void QueryPlanner::appendDeleteNode(
-    const std::vector<std::unique_ptr<binder::BoundDeleteNode>>& deleteNodes, LogicalPlan& plan) {
+    const std::vector<binder::BoundDeleteInfo*>& infos, LogicalPlan& plan) {
     std::vector<std::shared_ptr<NodeExpression>> nodes;
     expression_vector primaryKeys;
-    for (auto& deleteNode : deleteNodes) {
-        nodes.push_back(deleteNode->getNode());
-        primaryKeys.push_back(deleteNode->getPrimaryKeyExpression());
+    for (auto& info : infos) {
+        auto node = std::static_pointer_cast<NodeExpression>(info->nodeOrRel);
+        auto extraInfo = (ExtraDeleteNodeInfo*)info->extraInfo.get();
+        nodes.push_back(node);
+        primaryKeys.push_back(extraInfo->primaryKey);
     }
     auto deleteNode = std::make_shared<LogicalDeleteNode>(
         std::move(nodes), std::move(primaryKeys), plan.getLastOperator());
@@ -20,7 +22,12 @@ void QueryPlanner::appendDeleteNode(
 }
 
 void QueryPlanner::appendDeleteRel(
-    const std::vector<std::shared_ptr<binder::RelExpression>>& deleteRels, LogicalPlan& plan) {
+    const std::vector<binder::BoundDeleteInfo*>& infos, LogicalPlan& plan) {
+    std::vector<std::shared_ptr<RelExpression>> deleteRels;
+    for (auto& info : infos) {
+        auto rel = std::static_pointer_cast<RelExpression>(info->nodeOrRel);
+        deleteRels.push_back(rel);
+    }
     auto deleteRel = std::make_shared<LogicalDeleteRel>(deleteRels, plan.getLastOperator());
     for (auto i = 0u; i < deleteRel->getNumRels(); ++i) {
         appendFlattens(deleteRel->getGroupsPosToFlatten(i), plan);

@@ -23,6 +23,7 @@
 #include "parser/query/reading_clause/unwind_clause.h"
 #include "parser/query/updating_clause/create_clause.h"
 #include "parser/query/updating_clause/delete_clause.h"
+#include "parser/query/updating_clause/merge_clause.h"
 #include "parser/query/updating_clause/set_clause.h"
 
 namespace kuzu {
@@ -165,6 +166,22 @@ std::unique_ptr<UpdatingClause> Transformer::transformCreate(CypherParser::OC_Cr
     return std::make_unique<CreateClause>(transformPattern(*ctx.oC_Pattern()));
 }
 
+std::unique_ptr<UpdatingClause> Transformer::transformMerge(CypherParser::OC_MergeContext& ctx) {
+    auto mergeClause = std::make_unique<MergeClause>(transformPattern(*ctx.oC_Pattern()));
+    for (auto& mergeActionCtx : ctx.oC_MergeAction()) {
+        if (mergeActionCtx->MATCH()) {
+            for (auto& setItemCtx : mergeActionCtx->oC_Set()->oC_SetItem()) {
+                mergeClause->addOnMatchSetItems(transformSetItem(*setItemCtx));
+            }
+        } else {
+            for (auto& setItemCtx : mergeActionCtx->oC_Set()->oC_SetItem()) {
+                mergeClause->addOnCreateSetItems(transformSetItem(*setItemCtx));
+            }
+        }
+    }
+    return mergeClause;
+}
+
 std::unique_ptr<UpdatingClause> Transformer::transformSet(CypherParser::OC_SetContext& ctx) {
     auto setClause = std::make_unique<SetClause>();
     for (auto& setItem : ctx.oC_SetItem()) {
@@ -173,8 +190,7 @@ std::unique_ptr<UpdatingClause> Transformer::transformSet(CypherParser::OC_SetCo
     return setClause;
 }
 
-std::pair<std::unique_ptr<ParsedExpression>, std::unique_ptr<ParsedExpression>>
-Transformer::transformSetItem(CypherParser::OC_SetItemContext& ctx) {
+parsed_expression_pair Transformer::transformSetItem(CypherParser::OC_SetItemContext& ctx) {
     return make_pair(
         transformProperty(*ctx.oC_PropertyExpression()), transformExpression(*ctx.oC_Expression()));
 }
