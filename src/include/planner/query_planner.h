@@ -60,6 +60,7 @@ private:
     void planCreateClause(binder::BoundUpdatingClause& updatingClause, LogicalPlan& plan);
     void planSetClause(binder::BoundUpdatingClause& updatingClause, LogicalPlan& plan);
     void planDeleteClause(binder::BoundUpdatingClause& updatingClause, LogicalPlan& plan);
+    void planMergeClause(binder::BoundUpdatingClause& updatingClause, LogicalPlan& plan);
 
     // Plan subquery
     void planOptionalMatch(const QueryGraphCollection& queryGraphCollection,
@@ -96,9 +97,9 @@ private:
 
     // Append updating operators
     void appendCreateNode(
-        const std::vector<binder::BoundCreateInfo*>& createInfos, LogicalPlan& plan);
+        const std::vector<binder::BoundCreateInfo*>& boundCreateInfos, LogicalPlan& plan);
     void appendCreateRel(
-        const std::vector<binder::BoundCreateInfo*>& createInfos, LogicalPlan& plan);
+        const std::vector<binder::BoundCreateInfo*>& boundCreateInfos, LogicalPlan& plan);
     void appendSetNodeProperty(
         const std::vector<binder::BoundSetPropertyInfo*>& boundInfos, LogicalPlan& plan);
     void appendSetRelProperty(

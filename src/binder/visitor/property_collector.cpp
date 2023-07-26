@@ -5,6 +5,7 @@
 #include "binder/query/reading_clause/bound_unwind_clause.h"
 #include "binder/query/updating_clause/bound_create_clause.h"
 #include "binder/query/updating_clause/bound_delete_clause.h"
+#include "binder/query/updating_clause/bound_merge_clause.h"
 #include "binder/query/updating_clause/bound_set_clause.h"
 
 namespace kuzu {
@@ -57,6 +58,16 @@ void PropertyCollector::visitDelete(const BoundUpdatingClause& updatingClause) {
 void PropertyCollector::visitCreate(const BoundUpdatingClause& updatingClause) {
     auto& boundCreateClause = (BoundCreateClause&)updatingClause;
     for (auto& info : boundCreateClause.getInfosRef()) {
+        for (auto& setItem : info->setItems) {
+            collectPropertyExpressions(setItem.second);
+        }
+    }
+}
+
+void PropertyCollector::visitMerge(const BoundUpdatingClause& updatingClause) {
+    auto& boundMergeClause = (BoundMergeClause&)updatingClause;
+    collectPropertyExpressions(boundMergeClause.getPredicate());
+    for (auto& info : boundMergeClause.getCreateInfosRef()) {
         for (auto& setItem : info->setItems) {
             collectPropertyExpressions(setItem.second);
         }

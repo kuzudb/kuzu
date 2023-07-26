@@ -85,6 +85,9 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
     case LogicalOperatorType::LIMIT: {
         return "LIMIT";
     }
+    case LogicalOperatorType::MERGE: {
+        return "MERGE";
+    }
     case LogicalOperatorType::MULTIPLICITY_REDUCER: {
         return "MULTIPLICITY_REDUCER";
     }

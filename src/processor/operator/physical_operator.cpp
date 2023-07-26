@@ -101,6 +101,9 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
     case PhysicalOperatorType::LIMIT: {
         return "LIMIT";
     }
+    case PhysicalOperatorType::MERGE: {
+        return "MERGE";
+    }
     case PhysicalOperatorType::MULTIPLICITY_REDUCER: {
         return "MULTIPLICITY_REDUCER";
     }
@@ -185,6 +188,16 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
     default:
         throw common::NotImplementedException("physicalOperatorTypeToString()");
     }
+}
+
+std::vector<std::unique_ptr<PhysicalOperator>> PhysicalOperatorUtils::copy(
+    const std::vector<std::unique_ptr<PhysicalOperator>>& ops) {
+    std::vector<std::unique_ptr<PhysicalOperator>> result;
+    result.reserve(ops.size());
+    for (auto& op : ops) {
+        result.push_back(op->clone());
+    }
+    return result;
 }
 
 PhysicalOperator::PhysicalOperator(PhysicalOperatorType operatorType,

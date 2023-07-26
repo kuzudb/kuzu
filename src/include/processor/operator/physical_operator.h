@@ -41,6 +41,7 @@ enum class PhysicalOperatorType : uint8_t {
     INTERSECT_BUILD,
     INTERSECT,
     LIMIT,
+    MERGE,
     MULTIPLICITY_REDUCER,
     PATH_PROPERTY_PROBE,
     PROJECTION,
@@ -69,9 +70,24 @@ enum class PhysicalOperatorType : uint8_t {
     VAR_LENGTH_COLUMN_EXTEND,
 };
 
+class PhysicalOperator;
+
 class PhysicalOperatorUtils {
 public:
     static std::string operatorTypeToString(PhysicalOperatorType operatorType);
+
+    static inline bool isCreate(PhysicalOperatorType operatorType) {
+        return operatorType == PhysicalOperatorType::CREATE_NODE ||
+               operatorType == PhysicalOperatorType::CREATE_REL;
+    }
+
+    static inline bool isSetProperty(PhysicalOperatorType operatorType) {
+        return operatorType == PhysicalOperatorType::SET_NODE_PROPERTY ||
+               operatorType == PhysicalOperatorType::SET_REL_PROPERTY;
+    }
+
+    static std::vector<std::unique_ptr<PhysicalOperator>> copy(
+        const std::vector<std::unique_ptr<PhysicalOperator>>& ops);
 };
 
 struct OperatorMetrics {

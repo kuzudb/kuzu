@@ -1,0 +1,18 @@
+-GROUP TinySnbUpdateTest
+-DATASET CSV tinysnb
+
+--
+
+-CASE MEREG1
+-STATEMENT MERGE (:person {ID:0})
+---- ok
+-STATEMENT MATCH (a:person) RETURN COUNT(*)
+---- 1
+8
+
+#-CASE MEREG2
+#-STATEMENT MERGE (:person {ID:1})
+#---- ok
+#-STATEMENT MATCH (a:person) RETURN COUNT(*)
+#---- 1
+#8

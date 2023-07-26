@@ -117,6 +117,8 @@ std::unique_ptr<UpdatingClause> Transformer::transformUpdatingClause(
     CypherParser::OC_UpdatingClauseContext& ctx) {
     if (ctx.oC_Create()) {
         return transformCreate(*ctx.oC_Create());
+    } else if (ctx.oC_Merge()) {
+        return transformMerge(*ctx.oC_Merge());
     } else if (ctx.oC_Set()) {
         return transformSet(*ctx.oC_Set());
     } else {

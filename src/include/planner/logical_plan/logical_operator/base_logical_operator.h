@@ -32,6 +32,7 @@ enum class LogicalOperatorType : uint8_t {
     INDEX_SCAN_NODE,
     INTERSECT,
     LIMIT,
+    MERGE,
     MULTIPLICITY_REDUCER,
     NODE_LABEL_FILTER,
     ORDER_BY,

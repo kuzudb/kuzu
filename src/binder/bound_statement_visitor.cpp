@@ -109,6 +109,9 @@ void BoundStatementVisitor::visitUpdatingClause(const BoundUpdatingClause& updat
     case common::ClauseType::CREATE: {
         visitCreate(updatingClause);
     } break;
+    case common::ClauseType::MERGE: {
+        visitMerge(updatingClause);
+    } break;
     default:
         throw NotImplementedException("BoundStatementVisitor::visitUpdatingClause");
     }

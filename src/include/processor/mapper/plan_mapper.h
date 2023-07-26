@@ -10,10 +10,18 @@
 #include "storage/store/nodes_statistics_and_deleted_ids.h"
 
 namespace kuzu {
+
+namespace planner {
+struct LogicalCreateNodeInfo;
+struct LogicalCreateRelInfo;
+} // namespace planner
 namespace processor {
 
 struct HashJoinBuildInfo;
 struct AggregateInputInfo;
+
+class NodeTableInsertManager;
+class RelTableInsertManager;
 
 class PlanMapper {
 public:
@@ -45,6 +53,7 @@ private:
     std::unique_ptr<PhysicalOperator> mapHashJoin(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapIntersect(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapCrossProduct(planner::LogicalOperator* logicalOperator);
+    std::unique_ptr<PhysicalOperator> mapMerge(planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapMultiplicityReducer(
         planner::LogicalOperator* logicalOperator);
     std::unique_ptr<PhysicalOperator> mapNodeLabelFilter(planner::LogicalOperator* logicalOperator);
@@ -97,6 +106,12 @@ private:
     std::unique_ptr<PhysicalOperator> appendResultCollectorIfNotCopy(
         std::unique_ptr<PhysicalOperator> lastOperator,
         binder::expression_vector expressionsToCollect, planner::Schema* schema);
+
+    std::unique_ptr<NodeTableInsertManager> createNodeTableInsertManager(
+        planner::LogicalCreateNodeInfo* info, const planner::Schema& inSchema,
+        const planner::Schema& outSchema);
+    std::unique_ptr<RelTableInsertManager> createRelTableInsertManager(
+        planner::LogicalCreateRelInfo* info, const planner::Schema& inSchema);
 
     inline uint32_t getOperatorID() { return physicalOperatorID++; }
 
