@@ -500,24 +500,5 @@ void Catalog::addMetaDAHeaderPageForProperty(
     }
 }
 
-void Catalog::addMetaDAHeaderPageForProperty(
-    const common::LogicalType& dataType, MetaDiskArrayHeaderInfo& diskArrayHeaderInfo) {
-    diskArrayHeaderInfo.mainHeaderPageIdx = nodeGroupsMetaFH->addNewPage();
-    diskArrayHeaderInfo.nullHeaderPageIdx = nodeGroupsMetaFH->addNewPage();
-    switch (dataType.getLogicalTypeID()) {
-    case LogicalTypeID::STRUCT: {
-        auto fields = StructType::getFields(&dataType);
-        diskArrayHeaderInfo.childrenMetaDAHeaderInfos.resize(fields.size());
-        for (auto i = 0u; i < fields.size(); i++) {
-            addMetaDAHeaderPageForProperty(
-                *fields[i]->getType(), diskArrayHeaderInfo.childrenMetaDAHeaderInfos[i]);
-        }
-    } break;
-    default: {
-        // DO NOTHING.
-    }
-    }
-}
-
 } // namespace catalog
 } // namespace kuzu

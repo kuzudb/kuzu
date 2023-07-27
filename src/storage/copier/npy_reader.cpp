@@ -272,27 +272,5 @@ std::shared_ptr<arrow::RecordBatch> NpyMultiFileReader::readBlock(block_idx_t bl
     return resultArrowBatch;
 }
 
-NpyMultiFileReader::NpyMultiFileReader(const std::vector<std::string>& filePaths) {
-    for (auto& file : filePaths) {
-        fileReaders.push_back(std::make_unique<NpyReader>(file));
-    }
-}
-
-std::shared_ptr<arrow::RecordBatch> NpyMultiFileReader::readBlock(block_idx_t blockIdx) const {
-    assert(fileReaders.size() > 1);
-    auto resultArrowBatch = fileReaders[0]->readBlock(blockIdx);
-    for (int fileIdx = 1; fileIdx < fileReaders.size(); fileIdx++) {
-        auto nextArrowBatch = fileReaders[fileIdx]->readBlock(blockIdx);
-        auto result = resultArrowBatch->AddColumn(
-            fileIdx, std::to_string(fileIdx), nextArrowBatch->column(0));
-        if (result.ok()) {
-            resultArrowBatch = result.ValueOrDie();
-        } else {
-            throw CopyException("Failed to read NPY file.");
-        }
-    }
-    return resultArrowBatch;
-}
-
 } // namespace storage
 } // namespace kuzu
