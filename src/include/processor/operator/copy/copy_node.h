@@ -46,7 +46,6 @@ public:
 
 struct CopyNodeDataInfo {
     DataPos rowIdxVectorPos;
-    DataPos filePathVectorPos;
     std::vector<DataPos> dataColumnPoses;
 };
 
@@ -61,11 +60,10 @@ public:
               id, paramsString},
           sharedState{std::move(sharedState)}, copyNodeDataInfo{std::move(copyNodeDataInfo)},
           copyDesc{copyDesc}, table{table}, relsStore{relsStore}, catalog{catalog}, wal{wal},
-          rowIdxVector{nullptr}, filePathVector{nullptr} {}
+          rowIdxVector{nullptr} {}
 
     inline void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override {
         rowIdxVector = resultSet->getValueVector(copyNodeDataInfo.rowIdxVectorPos).get();
-        filePathVector = resultSet->getValueVector(copyNodeDataInfo.filePathVectorPos).get();
         for (auto& arrowColumnPos : copyNodeDataInfo.dataColumnPoses) {
             arrowColumnVectors.push_back(resultSet->getValueVector(arrowColumnPos).get());
         }
@@ -87,10 +85,6 @@ public:
     static void appendNodeGroupToTableAndPopulateIndex(storage::NodeTable* table,
         storage::NodeGroup* nodeGroup, storage::PrimaryKeyIndexBuilder* pkIndex,
         common::column_id_t pkColumnID);
-
-    std::pair<common::row_idx_t, common::row_idx_t> getStartAndEndRowIdx(
-        common::vector_idx_t columnIdx);
-    std::pair<std::string, common::row_idx_t> getFilePathAndRowIdxInFile();
 
 private:
     inline bool isCopyAllowed() {
@@ -117,7 +111,6 @@ private:
     storage::NodeTable* table;
     catalog::Catalog* catalog;
     common::ValueVector* rowIdxVector;
-    common::ValueVector* filePathVector;
     std::vector<common::ValueVector*> arrowColumnVectors;
     std::unique_ptr<storage::NodeGroup> localNodeGroup;
 };

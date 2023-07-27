@@ -31,8 +31,13 @@ void ReadCSVSharedState::countNumRows() {
 // TODO(Guodong): Refactor duplicated between the three getMorsel() functions.
 std::unique_ptr<ReadFileMorsel> ReadCSVSharedState::getMorsel() {
     std::unique_lock lck{mtx};
+    std::shared_ptr<arrow::RecordBatch> resultRecordBatch;
+    if (leftOverData) {
+        resultRecordBatch = std::move(leftOverData);
+        leftOverData = nullptr;
+    }
     while (true) {
-        if (currFileIdx >= filePaths.size()) {
+        if (currFileIdx >= filePaths.size() && resultRecordBatch->num_rows() == 0) {
             // No more files to read.
             return nullptr;
         }
@@ -46,18 +51,37 @@ std::unique_ptr<ReadFileMorsel> ReadCSVSharedState::getMorsel() {
             // No more blocks to read in this file.
             currFileIdx++;
             currBlockIdx = 0;
-            currRowIdxInCurrFile = 1;
             reader.reset();
+            if (currFileIdx >= filePaths.size()) {
+                break;
+            }
             continue;
         }
         auto numRowsInBatch = recordBatch->num_rows();
-        auto result = std::make_unique<ReadCSVMorsel>(
-            currRowIdx, filePath, currRowIdxInCurrFile, std::move(recordBatch));
         currRowIdx += numRowsInBatch;
         currRowIdxInCurrFile += numRowsInBatch;
         currBlockIdx++;
-        return result;
+        if (resultRecordBatch == nullptr) {
+            resultRecordBatch = std::move(recordBatch);
+        } else {
+            auto interimTable =
+                arrow::Table::FromRecordBatches({resultRecordBatch, recordBatch}).ValueOrDie();
+            resultRecordBatch = interimTable->CombineChunksToBatch().ValueOrDie();
+        }
+        if (resultRecordBatch->column(0)->length() < common::StorageConstants::NODE_GROUP_SIZE) {
+            if (currFileIdx < filePaths.size()) {
+                continue;
+            }
+        } else {
+            leftOverData = resultRecordBatch->Slice(common::StorageConstants::NODE_GROUP_SIZE);
+            resultRecordBatch =
+                resultRecordBatch->Slice(0, common::StorageConstants::NODE_GROUP_SIZE);
+        }
+        break;
     }
+    auto result = std::make_unique<ReadCSVMorsel>(
+        currRowIdx, filePath, currRowIdxInCurrFile, std::move(resultRecordBatch));
+    return result;
 }
 
 void ReadParquetSharedState::countNumRows() {

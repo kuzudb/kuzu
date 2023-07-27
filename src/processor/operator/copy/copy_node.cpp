@@ -45,22 +45,6 @@ void CopyNodeSharedState::logCopyNodeWALRecord(WAL* wal) {
     }
 }
 
-std::pair<row_idx_t, row_idx_t> CopyNode::getStartAndEndRowIdx(common::vector_idx_t columnIdx) {
-    auto startRowIdx =
-        rowIdxVector->getValue<int64_t>(rowIdxVector->state->selVector->selectedPositions[0]);
-    auto numRows = ArrowColumnVector::getArrowColumn(arrowColumnVectors[columnIdx])->length();
-    auto endRowIdx = startRowIdx + numRows - 1;
-    return {startRowIdx, endRowIdx};
-}
-
-std::pair<std::string, common::row_idx_t> CopyNode::getFilePathAndRowIdxInFile() {
-    auto filePath = filePathVector->getValue<ku_string_t>(
-        filePathVector->state->selVector->selectedPositions[0]);
-    auto rowIdxInFile =
-        rowIdxVector->getValue<int64_t>(rowIdxVector->state->selVector->selectedPositions[1]);
-    return {filePath.getAsString(), rowIdxInFile};
-}
-
 void CopyNodeSharedState::appendLocalNodeGroup(std::unique_ptr<NodeGroup> localNodeGroup) {
     std::unique_lock xLck{mtx};
     if (!sharedNodeGroup) {
@@ -98,12 +82,15 @@ void CopyNode::executeInternal(ExecutionContext* context) {
             resultSet->getValueVector(copyNodeDataInfo.dataColumnPoses[0]).get())
                                      ->length();
         uint64_t numAppendedTuples = 0;
+        auto rowIdx =
+            rowIdxVector->getValue<int64_t>(rowIdxVector->state->selVector->selectedPositions[0]) -
+            1;
         while (numAppendedTuples < numTuplesToAppend) {
             numAppendedTuples += localNodeGroup->append(
                 resultSet, copyNodeDataInfo.dataColumnPoses, numTuplesToAppend - numAppendedTuples);
             if (localNodeGroup->getNumNodes() == StorageConstants::NODE_GROUP_SIZE) {
                 // Current node group is full, flush it and reset it to empty.
-                auto nodeGroupIdx = sharedState->getNextNodeGroupIdx();
+                uint64_t nodeGroupIdx = rowIdx / StorageConstants::NODE_GROUP_SIZE - 1;
                 localNodeGroup->setNodeGroupIdx(nodeGroupIdx);
                 appendNodeGroupToTableAndPopulateIndex(sharedState->table, localNodeGroup.get(),
                     sharedState->pkIndex.get(), sharedState->pkColumnID);

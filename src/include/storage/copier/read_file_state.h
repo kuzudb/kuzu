@@ -39,13 +39,7 @@ class ReadNPYMorsel : public ReadFileMorsel {
 public:
     ReadNPYMorsel(common::row_idx_t rowIdx, common::block_idx_t blockIdx, common::row_idx_t numRows,
         std::string filePath, common::vector_idx_t curFileIdx, common::row_idx_t rowIdxInFile)
-        : ReadFileMorsel{rowIdx, blockIdx, numRows, std::move(filePath), rowIdxInFile},
-          columnIdx{curFileIdx} {}
-
-    inline common::vector_idx_t getColumnIdx() const { return columnIdx; }
-
-private:
-    common::vector_idx_t columnIdx;
+        : ReadFileMorsel{rowIdx, blockIdx, numRows, std::move(filePath), rowIdxInFile} {}
 };
 
 class ReadFileSharedState {
@@ -54,7 +48,7 @@ public:
         catalog::TableSchema* tableSchema)
         : numRows{0}, tableSchema{tableSchema}, filePaths{std::move(filePaths)},
           csvReaderConfig{csvReaderConfig}, currRowIdx{0}, currBlockIdx{0}, currFileIdx{0},
-          currRowIdxInCurrFile{1} {};
+          currRowIdxInCurrFile{1}, leftOverData{nullptr} {};
     virtual ~ReadFileSharedState() = default;
 
     virtual void countNumRows() = 0;
@@ -67,6 +61,7 @@ public:
     std::vector<std::string> filePaths;
     common::CSVReaderConfig csvReaderConfig;
     std::unordered_map<std::string, FileBlockInfo> fileBlockInfos;
+    std::shared_ptr<arrow::RecordBatch> leftOverData;
     common::row_idx_t currRowIdx;
     common::block_idx_t currBlockIdx;
     common::vector_idx_t currFileIdx;

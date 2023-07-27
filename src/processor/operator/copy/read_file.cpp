@@ -5,7 +5,6 @@ namespace processor {
 
 void ReadFile::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     rowIdxVector = resultSet->getValueVector(rowIdxVectorPos).get();
-    filePathVector = resultSet->getValueVector(filePathVectorPos).get();
     for (auto& arrowColumnPos : arrowColumnPoses) {
         arrowColumnVectors.push_back(resultSet->getValueVector(arrowColumnPos).get());
     }
@@ -18,11 +17,6 @@ bool ReadFile::getNextTuplesInternal(kuzu::processor::ExecutionContext* context)
     }
     rowIdxVector->setValue(
         rowIdxVector->state->selVector->selectedPositions[0], morsel->rowIdxInFile);
-    rowIdxVector->setValue(
-        rowIdxVector->state->selVector->selectedPositions[1], morsel->rowIdxInFile);
-    filePathVector->resetAuxiliaryBuffer();
-    filePathVector->setValue(
-        rowIdxVector->state->selVector->selectedPositions[0], morsel->filePath);
     auto recordBatch = readTuples(std::move(morsel));
     for (auto i = 0u; i < arrowColumnPoses.size(); i++) {
         common::ArrowColumnVector::setArrowColumn(
