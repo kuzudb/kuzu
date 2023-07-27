@@ -24,8 +24,6 @@ public:
 
     uint8_t* getPointerToRow(size_t row) const;
 
-    inline std::string getFilePath() const { return filePath; }
-
     inline size_t getNumRows() const { return shape[0]; }
 
     std::shared_ptr<arrow::DataType> getArrowType() const;
@@ -61,7 +59,6 @@ public:
     std::shared_ptr<arrow::RecordBatch> readBlock(common::block_idx_t blockIdx) const;
 
 private:
-    std::vector<std::string> filePaths;
     std::vector<std::unique_ptr<NpyReader>> fileReaders;
 };
 

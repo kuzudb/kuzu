@@ -85,7 +85,8 @@ ku_string_t InMemOverflowFile::copyString(
 void InMemOverflowFile::copyFixedSizedValuesInList(
     const Value& listVal, PageByteCursor& overflowCursor, uint64_t numBytesOfListElement) {
     std::shared_lock lck(lock);
-    for (auto& value : listVal.getListValReference()) {
+    for (auto i = 0; i < NestedVal::getChildrenSize(&listVal); ++i) {
+        auto value = NestedVal::getChildVal(&listVal, i);
         pages[overflowCursor.pageIdx]->write(overflowCursor.offsetInPage,
             overflowCursor.offsetInPage, (uint8_t*)&value->val, numBytesOfListElement);
         overflowCursor.offsetInPage += numBytesOfListElement;
@@ -100,28 +101,31 @@ void InMemOverflowFile::copyVarSizedValuesInList(ku_list_t& resultKUList, const 
     // Reserve space for ku_list or ku_string objects.
     overflowCursor.offsetInPage += (resultKUList.size * numBytesOfListElement);
     if constexpr (DT == LogicalTypeID::STRING) {
-        std::vector<ku_string_t> kuStrings(listVal.nestedTypeVal.size());
-        for (auto i = 0u; i < listVal.nestedTypeVal.size(); i++) {
-            assert(listVal.nestedTypeVal[i]->dataType.getLogicalTypeID() == LogicalTypeID::STRING);
-            auto strVal = listVal.nestedTypeVal[i]->strVal;
+        auto listSize = NestedVal::getChildrenSize(&listVal);
+        std::vector<ku_string_t> kuStrings(listSize);
+        for (auto i = 0u; i < listSize; i++) {
+            auto child = NestedVal::getChildVal(&listVal, i);
+            assert(child->getDataType()->getLogicalTypeID() == LogicalTypeID::STRING);
+            auto strVal = child->strVal;
             kuStrings[i] = copyString(strVal.c_str(), strVal.length(), overflowCursor);
         }
         std::shared_lock lck(lock);
-        for (auto i = 0u; i < listVal.nestedTypeVal.size(); i++) {
+        for (auto i = 0u; i < listSize; i++) {
             pages[overflowPageIdx]->write(overflowPageOffset + (i * numBytesOfListElement),
                 overflowPageOffset + (i * numBytesOfListElement), (uint8_t*)&kuStrings[i],
                 numBytesOfListElement);
         }
     } else {
         assert(DT == LogicalTypeID::VAR_LIST);
-        std::vector<ku_list_t> kuLists(listVal.nestedTypeVal.size());
-        for (auto i = 0u; i < listVal.nestedTypeVal.size(); i++) {
-            assert(
-                listVal.nestedTypeVal[i]->dataType.getLogicalTypeID() == LogicalTypeID::VAR_LIST);
-            kuLists[i] = copyList(*listVal.nestedTypeVal[i], overflowCursor);
+        auto listSize = NestedVal::getChildrenSize(&listVal);
+        std::vector<ku_list_t> kuLists(listSize);
+        for (auto i = 0u; i < listSize; i++) {
+            auto child = NestedVal::getChildVal(&listVal, i);
+            assert(child->getDataType()->getLogicalTypeID() == LogicalTypeID::VAR_LIST);
+            kuLists[i] = copyList(*child, overflowCursor);
         }
         std::shared_lock lck(lock);
-        for (auto i = 0u; i < listVal.nestedTypeVal.size(); i++) {
+        for (auto i = 0u; i < listSize; i++) {
             pages[overflowPageIdx]->write(overflowPageOffset + (i * numBytesOfListElement),
                 overflowPageOffset + (i * numBytesOfListElement), (uint8_t*)&kuLists[i],
                 numBytesOfListElement);
@@ -130,11 +134,11 @@ void InMemOverflowFile::copyVarSizedValuesInList(ku_list_t& resultKUList, const 
 }
 
 ku_list_t InMemOverflowFile::copyList(const Value& listValue, PageByteCursor& overflowCursor) {
-    assert(listValue.dataType.getLogicalTypeID() == LogicalTypeID::VAR_LIST);
+    assert(listValue.getDataType()->getLogicalTypeID() == LogicalTypeID::VAR_LIST);
     ku_list_t resultKUList;
     auto numBytesOfListElement = storage::StorageUtils::getDataTypeSize(
-        *common::VarListType::getChildType(&listValue.dataType));
-    resultKUList.size = listValue.nestedTypeVal.size();
+        *common::VarListType::getChildType(listValue.getDataType()));
+    resultKUList.size = NestedVal::getChildrenSize(&listValue);
     // Allocate a new page if necessary.
     if (overflowCursor.offsetInPage + (resultKUList.size * numBytesOfListElement) >=
             BufferPoolConstants::PAGE_4KB_SIZE ||
@@ -144,7 +148,7 @@ ku_list_t InMemOverflowFile::copyList(const Value& listValue, PageByteCursor& ov
     }
     TypeUtils::encodeOverflowPtr(
         resultKUList.overflowPtr, overflowCursor.pageIdx, overflowCursor.offsetInPage);
-    switch (VarListType::getChildType(&listValue.dataType)->getLogicalTypeID()) {
+    switch (VarListType::getChildType(listValue.getDataType())->getLogicalTypeID()) {
     case LogicalTypeID::INT64:
     case LogicalTypeID::DOUBLE:
     case LogicalTypeID::BOOL:

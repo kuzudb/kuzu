@@ -145,7 +145,7 @@ void NodeTable::rollbackInMemory() {
     for (auto& [_, column] : propertyColumns) {
         column->rollbackInMemory();
     }
-    pkIndex->rollback();
+    pkIndex->rollbackInMemory();
 }
 
 void NodeTable::deleteNode(offset_t nodeOffset, ValueVector* primaryKeyVector, uint32_t pos) const {

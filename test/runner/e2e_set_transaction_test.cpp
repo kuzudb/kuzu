@@ -63,6 +63,7 @@ TEST_F(SetNodeStructuredPropTransactionTest,
         conn.get(), 0 /* node offset */, "age", std::vector<std::string>{"70"});
 }
 
+// TODO(Guodong): FIXME: Fix all disabled tests.
 // TEST_F(SetNodeStructuredPropTransactionTest,
 //    SingleTransactionReadWriteToStringStructuredNodePropertyNonNullTest) {
 //    conn->beginWriteTransaction();

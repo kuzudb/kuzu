@@ -233,7 +233,7 @@ public:
         extraTypeInfo = std::move(typeInfo);
     }
 
-    std::unique_ptr<LogicalType> copy();
+    std::unique_ptr<LogicalType> copy() const;
 
 private:
     void setPhysicalType();

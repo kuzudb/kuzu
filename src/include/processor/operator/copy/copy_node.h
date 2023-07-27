@@ -44,29 +44,27 @@ public:
     std::unique_ptr<storage::NodeGroup> sharedNodeGroup;
 };
 
-struct CopyNodeDataInfo {
-    DataPos rowIdxVectorPos;
+struct CopyNodeInfo {
     std::vector<DataPos> dataColumnPoses;
+    DataPos nodeGroupOffsetPos;
+    common::CopyDescription copyDesc;
+    storage::NodeTable* table;
+    storage::RelsStore* relsStore;
+    catalog::Catalog* catalog;
+    storage::WAL* wal;
 };
 
 class CopyNode : public Sink {
 public:
-    CopyNode(std::shared_ptr<CopyNodeSharedState> sharedState, CopyNodeDataInfo copyNodeDataInfo,
-        const common::CopyDescription& copyDesc, storage::NodeTable* table,
-        storage::RelsStore* relsStore, catalog::Catalog* catalog, storage::WAL* wal,
+    CopyNode(std::shared_ptr<CopyNodeSharedState> sharedState, CopyNodeInfo copyNodeInfo,
         std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
-        std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
-        : Sink{std::move(resultSetDescriptor), PhysicalOperatorType::COPY_NODE, std::move(child),
-              id, paramsString},
-          sharedState{std::move(sharedState)}, copyNodeDataInfo{std::move(copyNodeDataInfo)},
-          copyDesc{copyDesc}, table{table}, relsStore{relsStore}, catalog{catalog}, wal{wal},
-          rowIdxVector{nullptr} {}
+        std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString);
 
     inline void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override {
-        rowIdxVector = resultSet->getValueVector(copyNodeDataInfo.rowIdxVectorPos).get();
-        for (auto& arrowColumnPos : copyNodeDataInfo.dataColumnPoses) {
-            arrowColumnVectors.push_back(resultSet->getValueVector(arrowColumnPos).get());
+        for (auto& arrowColumnPos : copyNodeInfo.dataColumnPoses) {
+            dataColumnVectors.push_back(resultSet->getValueVector(arrowColumnPos).get());
         }
+        nodeGroupOffsetVector = resultSet->getValueVector(copyNodeInfo.nodeGroupOffsetPos).get();
         localNodeGroup =
             std::make_unique<storage::NodeGroup>(sharedState->tableSchema, &sharedState->copyDesc);
     }
@@ -78,8 +76,8 @@ public:
     void finalize(ExecutionContext* context) override;
 
     inline std::unique_ptr<PhysicalOperator> clone() override {
-        return std::make_unique<CopyNode>(sharedState, copyNodeDataInfo, copyDesc, table, relsStore,
-            catalog, wal, resultSetDescriptor->copy(), children[0]->clone(), id, paramsString);
+        return std::make_unique<CopyNode>(sharedState, copyNodeInfo, resultSetDescriptor->copy(),
+            children[0]->clone(), id, paramsString);
     }
 
     static void appendNodeGroupToTableAndPopulateIndex(storage::NodeTable* table,
@@ -87,9 +85,9 @@ public:
         common::column_id_t pkColumnID);
 
 private:
-    inline bool isCopyAllowed() {
-        auto nodesStatistics = sharedState->table->getNodeStatisticsAndDeletedIDs();
-        return nodesStatistics->getNodeStatisticsAndDeletedIDs(sharedState->table->getTableID())
+    inline bool isCopyAllowed() const {
+        auto nodesStatistics = copyNodeInfo.table->getNodeStatisticsAndDeletedIDs();
+        return nodesStatistics->getNodeStatisticsAndDeletedIDs(copyNodeInfo.table->getTableID())
                    ->getNumTuples() == 0;
     }
 
@@ -103,15 +101,10 @@ private:
         storage::ColumnChunk* chunk, common::offset_t startOffset, common::offset_t numNodes);
 
 private:
-    storage::RelsStore* relsStore;
-    storage::WAL* wal;
     std::shared_ptr<CopyNodeSharedState> sharedState;
-    CopyNodeDataInfo copyNodeDataInfo;
-    common::CopyDescription copyDesc;
-    storage::NodeTable* table;
-    catalog::Catalog* catalog;
-    common::ValueVector* rowIdxVector;
-    std::vector<common::ValueVector*> arrowColumnVectors;
+    CopyNodeInfo copyNodeInfo;
+    std::vector<common::ValueVector*> dataColumnVectors;
+    common::ValueVector* nodeGroupOffsetVector;
     std::unique_ptr<storage::NodeGroup> localNodeGroup;
 };
 

@@ -90,9 +90,9 @@ std::vector<std::unique_ptr<DataTypeInfo>> QueryResult::getColumnTypesInfo() {
             auto numProperties = NodeVal::getNumProperties(value);
             for (auto j = 0u; i < numProperties; j++) {
                 auto name = NodeVal::getPropertyName(value, j);
-                auto val = NodeVal::getPropertyValueReference(value, j);
+                auto val = NodeVal::getPropertyVal(value, j);
                 columnTypeInfo->childrenTypesInfo.push_back(
-                    DataTypeInfo::getInfoForDataType(val->dataType, name));
+                    DataTypeInfo::getInfoForDataType(*val->getDataType(), name));
             }
         } else if (columnTypeInfo->typeID == common::LogicalTypeID::REL) {
             auto value = tuple->getValue(i);
@@ -103,9 +103,9 @@ std::vector<std::unique_ptr<DataTypeInfo>> QueryResult::getColumnTypesInfo() {
             auto numProperties = RelVal::getNumProperties(value);
             for (auto j = 0u; i < numProperties; j++) {
                 auto name = NodeVal::getPropertyName(value, j);
-                auto val = NodeVal::getPropertyValueReference(value, j);
+                auto val = NodeVal::getPropertyVal(value, j);
                 columnTypeInfo->childrenTypesInfo.push_back(
-                    DataTypeInfo::getInfoForDataType(val->dataType, name));
+                    DataTypeInfo::getInfoForDataType(*val->getDataType(), name));
             }
         }
         result.push_back(std::move(columnTypeInfo));
@@ -182,7 +182,7 @@ void QueryResult::writeToCSV(
         for (auto idx = 0ul; idx < nextTuple->len(); idx++) {
             std::string resultVal = nextTuple->getValue(idx)->toString();
             bool isStringList = false;
-            if (LogicalTypeUtils::dataTypeToString(nextTuple->getValue(idx)->getDataType()) ==
+            if (LogicalTypeUtils::dataTypeToString(*nextTuple->getValue(idx)->getDataType()) ==
                 "STRING[]") {
                 isStringList = true;
             }

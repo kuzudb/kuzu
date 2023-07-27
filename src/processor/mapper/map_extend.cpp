@@ -82,8 +82,7 @@ static std::unique_ptr<RelTableCollectionScanner> populateRelTableCollectionScan
     return std::make_unique<RelTableCollectionScanner>(std::move(scanInfos));
 }
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExtendToPhysical(
-    LogicalOperator* logicalOperator) {
+std::unique_ptr<PhysicalOperator> PlanMapper::mapExtend(LogicalOperator* logicalOperator) {
     auto extend = (LogicalExtend*)logicalOperator;
     auto outSchema = extend->getSchema();
     auto inSchema = extend->getChild(0)->getSchema();
@@ -91,7 +90,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalExtendToPhysical(
     auto nbrNode = extend->getNbrNode();
     auto rel = extend->getRel();
     auto extendDirection = extend->getDirection();
-    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0));
+    auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
     auto inNodeVectorPos = DataPos(inSchema->getExpressionPos(*boundNode->getInternalIDProperty()));
     auto outNodeVectorPos = DataPos(outSchema->getExpressionPos(*nbrNode->getInternalIDProperty()));
     std::vector<DataPos> outVectorsPos;

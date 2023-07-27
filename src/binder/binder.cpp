@@ -85,12 +85,6 @@ std::shared_ptr<Expression> Binder::createVariable(
     return expression;
 }
 
-void Binder::validateFirstMatchIsNotOptional(const SingleQuery& singleQuery) {
-    if (singleQuery.isFirstReadingClauseOptionalMatch()) {
-        throw BinderException("First match clause cannot be optional match.");
-    }
-}
-
 void Binder::validateProjectionColumnNamesAreUnique(const expression_vector& expressions) {
     auto existColumnNames = std::unordered_set<std::string>();
     for (auto& expression : expressions) {

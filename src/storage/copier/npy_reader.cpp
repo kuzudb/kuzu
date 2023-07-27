@@ -247,9 +247,29 @@ std::shared_ptr<arrow::RecordBatch> NpyReader::readBlock(block_idx_t blockIdx) c
     }
     auto schema =
         std::make_shared<arrow::Schema>(std::vector<std::shared_ptr<arrow::Field>>{field});
-    std::shared_ptr<arrow::RecordBatch> result;
-    result = arrow::RecordBatch::Make(schema, (int64_t)numRowsToRead, {arr});
-    return result;
+    return arrow::RecordBatch::Make(schema, (int64_t)numRowsToRead, {arr});
+}
+
+NpyMultiFileReader::NpyMultiFileReader(const std::vector<std::string>& filePaths) {
+    for (auto& file : filePaths) {
+        fileReaders.push_back(std::make_unique<NpyReader>(file));
+    }
+}
+
+std::shared_ptr<arrow::RecordBatch> NpyMultiFileReader::readBlock(block_idx_t blockIdx) const {
+    assert(fileReaders.size() > 1);
+    auto resultArrowBatch = fileReaders[0]->readBlock(blockIdx);
+    for (int fileIdx = 1; fileIdx < fileReaders.size(); fileIdx++) {
+        auto nextArrowBatch = fileReaders[fileIdx]->readBlock(blockIdx);
+        auto result = resultArrowBatch->AddColumn(
+            fileIdx, std::to_string(fileIdx), nextArrowBatch->column(0));
+        if (result.ok()) {
+            resultArrowBatch = result.ValueOrDie();
+        } else {
+            throw CopyException("Failed to read NPY file.");
+        }
+    }
+    return resultArrowBatch;
 }
 
 NpyMultiFileReader::NpyMultiFileReader(const std::vector<std::string>& filePaths) {

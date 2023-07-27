@@ -6,7 +6,6 @@
 #include "planner/logical_plan/logical_operator/logical_rename_property.h"
 #include "planner/logical_plan/logical_operator/logical_rename_table.h"
 #include "processor/mapper/plan_mapper.h"
-#include "processor/operator/ddl/add_node_property.h"
 #include "processor/operator/ddl/add_rel_property.h"
 #include "processor/operator/ddl/create_node_table.h"
 #include "processor/operator/ddl/create_rel_table.h"
@@ -27,8 +26,7 @@ static DataPos getOutputPos(LogicalDDL* logicalDDL) {
     return DataPos(outSchema->getExpressionPos(*outputExpression));
 }
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCreateNodeTableToPhysical(
-    LogicalOperator* logicalOperator) {
+std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateNodeTable(LogicalOperator* logicalOperator) {
     auto createNodeTable = (LogicalCreateNodeTable*)logicalOperator;
     return std::make_unique<CreateNodeTable>(catalog, &storageManager.getNodesStore(),
         createNodeTable->getTableName(), createNodeTable->getPropertyNameDataTypes(),
@@ -37,8 +35,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCreateNodeTableToPhysica
         &storageManager.getNodesStore().getNodesStatisticsAndDeletedIDs());
 }
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCreateRelTableToPhysical(
-    LogicalOperator* logicalOperator) {
+std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateRelTable(LogicalOperator* logicalOperator) {
     auto createRelTable = (LogicalCreateRelTable*)logicalOperator;
     return std::make_unique<CreateRelTable>(catalog, createRelTable->getTableName(),
         createRelTable->getPropertyNameDataTypes(), createRelTable->getRelMultiplicity(),
@@ -47,28 +44,25 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCreateRelTableToPhysical
         &storageManager.getRelsStore().getRelsStatistics());
 }
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalDropTableToPhysical(
-    LogicalOperator* logicalOperator) {
+std::unique_ptr<PhysicalOperator> PlanMapper::mapDropTable(LogicalOperator* logicalOperator) {
     auto dropTable = (LogicalDropTable*)logicalOperator;
     return std::make_unique<DropTable>(catalog, dropTable->getTableID(), getOutputPos(dropTable),
         getOperatorID(), dropTable->getExpressionsForPrinting());
 }
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalRenameTableToPhysical(
-    LogicalOperator* logicalOperator) {
+std::unique_ptr<PhysicalOperator> PlanMapper::mapRenameTable(LogicalOperator* logicalOperator) {
     auto renameTable = (LogicalRenameTable*)logicalOperator;
     return std::make_unique<RenameTable>(catalog, renameTable->getTableID(),
         renameTable->getNewName(), getOutputPos(renameTable), getOperatorID(),
         renameTable->getExpressionsForPrinting());
 }
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalAddPropertyToPhysical(
-    LogicalOperator* logicalOperator) {
+std::unique_ptr<PhysicalOperator> PlanMapper::mapAddProperty(LogicalOperator* logicalOperator) {
     auto addProperty = (LogicalAddProperty*)logicalOperator;
     auto expressionEvaluator =
         expressionMapper.mapExpression(addProperty->getDefaultValue(), *addProperty->getSchema());
     if (catalog->getReadOnlyVersion()->containNodeTable(addProperty->getTableID())) {
-        return std::make_unique<AddNodeProperty>(catalog, addProperty->getTableID(),
+        return std::make_unique<AddProperty>(catalog, addProperty->getTableID(),
             addProperty->getPropertyName(), addProperty->getDataType(),
             std::move(expressionEvaluator), storageManager, getOutputPos(addProperty),
             getOperatorID(), addProperty->getExpressionsForPrinting());
@@ -80,16 +74,14 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalAddPropertyToPhysical(
     }
 }
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalDropPropertyToPhysical(
-    LogicalOperator* logicalOperator) {
+std::unique_ptr<PhysicalOperator> PlanMapper::mapDropProperty(LogicalOperator* logicalOperator) {
     auto dropProperty = (LogicalDropProperty*)logicalOperator;
     return std::make_unique<DropProperty>(catalog, dropProperty->getTableID(),
         dropProperty->getPropertyID(), getOutputPos(dropProperty), getOperatorID(),
         dropProperty->getExpressionsForPrinting());
 }
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalRenamePropertyToPhysical(
-    LogicalOperator* logicalOperator) {
+std::unique_ptr<PhysicalOperator> PlanMapper::mapRenameProperty(LogicalOperator* logicalOperator) {
     auto renameProperty = (LogicalRenameProperty*)logicalOperator;
     return std::make_unique<RenameProperty>(catalog, renameProperty->getTableID(),
         renameProperty->getPropertyID(), renameProperty->getNewName(), getOutputPos(renameProperty),

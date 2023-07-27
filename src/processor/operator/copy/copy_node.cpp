@@ -45,6 +45,13 @@ void CopyNodeSharedState::logCopyNodeWALRecord(WAL* wal) {
     }
 }
 
+CopyNode::CopyNode(std::shared_ptr<CopyNodeSharedState> sharedState, CopyNodeInfo copyNodeInfo,
+    std::unique_ptr<ResultSetDescriptor> resultSetDescriptor,
+    std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
+    : Sink{std::move(resultSetDescriptor), PhysicalOperatorType::COPY_NODE, std::move(child), id,
+          paramsString},
+      sharedState{std::move(sharedState)}, copyNodeInfo{std::move(copyNodeInfo)} {}
+
 void CopyNodeSharedState::appendLocalNodeGroup(std::unique_ptr<NodeGroup> localNodeGroup) {
     std::unique_lock xLck{mtx};
     if (!sharedNodeGroup) {
@@ -59,7 +66,6 @@ void CopyNodeSharedState::appendLocalNodeGroup(std::unique_ptr<NodeGroup> localN
         CopyNode::appendNodeGroupToTableAndPopulateIndex(
             table, sharedNodeGroup.get(), pkIndex.get(), pkColumnID);
     }
-    // append node group to table.
     if (numNodesAppended < localNodeGroup->getNumNodes()) {
         sharedNodeGroup->appendNodeGroup(localNodeGroup.get(), numNodesAppended);
     }
@@ -69,35 +75,35 @@ void CopyNode::initGlobalStateInternal(ExecutionContext* context) {
     if (!isCopyAllowed()) {
         throw CopyException("COPY commands can only be executed once on a table.");
     }
-    sharedState->initialize(wal->getDirectory());
+    sharedState->initialize(copyNodeInfo.wal->getDirectory());
 }
 
 void CopyNode::executeInternal(ExecutionContext* context) {
     // CopyNode goes through UNDO log, should be logged and flushed to WAL before making changes.
-    sharedState->logCopyNodeWALRecord(wal);
+    sharedState->logCopyNodeWALRecord(copyNodeInfo.wal);
     while (children[0]->getNextTuple(context)) {
         auto dataChunkToCopy = resultSet->getDataChunk(0);
         // All tuples in the resultSet are in the same data chunk.
         auto numTuplesToAppend = ArrowColumnVector::getArrowColumn(
-            resultSet->getValueVector(copyNodeDataInfo.dataColumnPoses[0]).get())
+        auto nodeGroupOffset =
+            nodeGroupOffsetVector->getValue<int64_t>(nodeGroupOffsetVector->state->selVector->selectedPositions[0]) -
+            1;
+            resultSet->getValueVector(copyNodeInfo.dataColumnPoses[0]).get())
                                      ->length();
         uint64_t numAppendedTuples = 0;
-        auto rowIdx =
-            rowIdxVector->getValue<int64_t>(rowIdxVector->state->selVector->selectedPositions[0]) -
-            1;
         while (numAppendedTuples < numTuplesToAppend) {
             numAppendedTuples += localNodeGroup->append(
-                resultSet, copyNodeDataInfo.dataColumnPoses, numTuplesToAppend - numAppendedTuples);
+                resultSet, copyNodeInfo.dataColumnPoses, numTuplesToAppend - numAppendedTuples);
             if (localNodeGroup->getNumNodes() == StorageConstants::NODE_GROUP_SIZE) {
                 // Current node group is full, flush it and reset it to empty.
-                uint64_t nodeGroupIdx = rowIdx / StorageConstants::NODE_GROUP_SIZE - 1;
+                auto nodeGroupIdx = nodeGroupOffset / StorageConstants::NODE_GROUP_SIZE - 1;
                 localNodeGroup->setNodeGroupIdx(nodeGroupIdx);
                 appendNodeGroupToTableAndPopulateIndex(sharedState->table, localNodeGroup.get(),
                     sharedState->pkIndex.get(), sharedState->pkColumnID);
             }
             if (numAppendedTuples < numTuplesToAppend) {
                 auto slicedChunk = sliceDataVectorsInDataChunk(*dataChunkToCopy,
-                    copyNodeDataInfo.dataColumnPoses, (int64_t)numAppendedTuples,
+                    copyNodeInfo.dataColumnPoses, (int64_t)numAppendedTuples,
                     (int64_t)(numTuplesToAppend - numAppendedTuples));
                 resultSet->dataChunks[0] = slicedChunk;
             }
@@ -174,7 +180,7 @@ void CopyNode::finalize(ExecutionContext* context) {
     connectedRelTableIDs.insert(sharedState->tableSchema->bwdRelTableIDSet.begin(),
         sharedState->tableSchema->bwdRelTableIDSet.end());
     for (auto relTableID : connectedRelTableIDs) {
-        relsStore->getRelTable(relTableID)
+        copyNodeInfo.relsStore->getRelTable(relTableID)
             ->batchInitEmptyRelsForNewNodes(relTableID, sharedState->numRows);
     }
     sharedState->table->getNodeStatisticsAndDeletedIDs()->setNumTuplesForTable(

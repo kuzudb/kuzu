@@ -149,23 +149,15 @@ void ReadNPYSharedState::countNumRows() {
 std::unique_ptr<ReadFileMorsel> ReadNPYSharedState::getMorsel() {
     std::unique_lock lck{mtx};
     while (true) {
-        if (currFileIdx >= filePaths.size()) {
-            // No more files to read.
-            return nullptr;
-        }
-        auto filePath = filePaths[currFileIdx];
+        auto filePath = filePaths[0];
         auto fileBlockInfo = fileBlockInfos.at(filePath);
         if (currBlockIdx >= fileBlockInfo.numBlocks) {
-            // No more blocks to read in this file.
-            currFileIdx++;
-            currRowIdxInCurrFile = 1;
-            currBlockIdx = 0;
-            currRowIdx = 0;
-            continue;
+            // No more blocks to read.
+            return nullptr;
         }
         auto numRowsInBlock = fileBlockInfo.numRowsPerBlock[currBlockIdx];
-        auto result = std::make_unique<ReadNPYMorsel>(
-            currRowIdx, currBlockIdx, numRowsInBlock, filePath, currFileIdx, currRowIdxInCurrFile);
+        auto result = std::make_unique<ReadFileMorsel>(
+            currRowIdx, currBlockIdx, numRowsInBlock, filePath, currRowIdxInCurrFile);
         currRowIdx += numRowsInBlock;
         currRowIdxInCurrFile += numRowsInBlock;
         currBlockIdx++;

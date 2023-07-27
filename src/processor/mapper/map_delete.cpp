@@ -8,11 +8,10 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace processor {
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalDeleteNodeToPhysical(
-    LogicalOperator* logicalOperator) {
+std::unique_ptr<PhysicalOperator> PlanMapper::mapDeleteNode(LogicalOperator* logicalOperator) {
     auto logicalDeleteNode = (LogicalDeleteNode*)logicalOperator;
     auto inSchema = logicalDeleteNode->getChild(0)->getSchema();
-    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0));
+    auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
     auto& nodesStore = storageManager.getNodesStore();
     std::vector<std::unique_ptr<DeleteNodeInfo>> deleteNodeInfos;
     for (auto i = 0u; i < logicalDeleteNode->getNumNodes(); ++i) {
@@ -28,11 +27,10 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalDeleteNodeToPhysical(
         getOperatorID(), logicalDeleteNode->getExpressionsForPrinting());
 }
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalDeleteRelToPhysical(
-    LogicalOperator* logicalOperator) {
+std::unique_ptr<PhysicalOperator> PlanMapper::mapDeleteRel(LogicalOperator* logicalOperator) {
     auto logicalDeleteRel = (LogicalDeleteRel*)logicalOperator;
     auto inSchema = logicalDeleteRel->getChild(0)->getSchema();
-    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0));
+    auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
     auto& relStore = storageManager.getRelsStore();
     std::vector<std::unique_ptr<DeleteRelInfo>> createRelInfos;
     for (auto i = 0u; i < logicalDeleteRel->getNumRels(); ++i) {

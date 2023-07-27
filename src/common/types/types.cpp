@@ -217,7 +217,7 @@ LogicalType& LogicalType::operator=(LogicalType&& other) noexcept {
     return *this;
 }
 
-std::unique_ptr<LogicalType> LogicalType::copy() {
+std::unique_ptr<LogicalType> LogicalType::copy() const {
     auto dataType = std::make_unique<LogicalType>(typeID);
     if (extraTypeInfo != nullptr) {
         dataType->extraTypeInfo = extraTypeInfo->copy();
@@ -599,106 +599,100 @@ std::vector<std::string> LogicalTypeUtils::parseStructFields(const std::string& 
 
 // Specialized Ser/Deser functions for logical dataTypes.
 template<>
-uint64_t SerDeser::serializeValue(
-    const VarListTypeInfo& value, FileInfo* fileInfo, uint64_t offset) {
-    return SerDeser::serializeValue(*value.getChildType(), fileInfo, offset);
+void SerDeser::serializeValue(const VarListTypeInfo& value, FileInfo* fileInfo, uint64_t& offset) {
+    SerDeser::serializeValue(*value.getChildType(), fileInfo, offset);
 }
 
 template<>
-uint64_t SerDeser::deserializeValue(VarListTypeInfo& value, FileInfo* fileInfo, uint64_t offset) {
+void SerDeser::deserializeValue(VarListTypeInfo& value, FileInfo* fileInfo, uint64_t& offset) {
     value.childType = std::make_unique<LogicalType>();
-    offset = SerDeser::deserializeValue(*value.getChildType(), fileInfo, offset);
-    return offset;
+    deserializeValue(*value.getChildType(), fileInfo, offset);
 }
 
 template<>
-uint64_t SerDeser::serializeValue(
-    const FixedListTypeInfo& value, FileInfo* fileInfo, uint64_t offset) {
-    offset = SerDeser::serializeValue(*value.getChildType(), fileInfo, offset);
-    return SerDeser::serializeValue(value.getNumElementsInList(), fileInfo, offset);
+void SerDeser::serializeValue(
+    const FixedListTypeInfo& value, FileInfo* fileInfo, uint64_t& offset) {
+    SerDeser::serializeValue(*value.getChildType(), fileInfo, offset);
+    SerDeser::serializeValue(value.getNumElementsInList(), fileInfo, offset);
 }
 
 template<>
-uint64_t SerDeser::deserializeValue(FixedListTypeInfo& value, FileInfo* fileInfo, uint64_t offset) {
+void SerDeser::deserializeValue(FixedListTypeInfo& value, FileInfo* fileInfo, uint64_t& offset) {
     value.childType = std::make_unique<LogicalType>();
-    offset = SerDeser::deserializeValue(*value.getChildType(), fileInfo, offset);
-    offset = SerDeser::deserializeValue(value.fixedNumElementsInList, fileInfo, offset);
-    return offset;
+    deserializeValue(*value.getChildType(), fileInfo, offset);
+    deserializeValue(value.fixedNumElementsInList, fileInfo, offset);
 }
 
 template<>
-uint64_t SerDeser::serializeValue(
-    const StructTypeInfo& value, FileInfo* fileInfo, uint64_t offset) {
-    return serializeVector(value.fields, fileInfo, offset);
+void SerDeser::serializeValue(const StructTypeInfo& value, FileInfo* fileInfo, uint64_t& offset) {
+    serializeVector(value.fields, fileInfo, offset);
 }
 
 template<>
-uint64_t SerDeser::deserializeValue(StructTypeInfo& value, FileInfo* fileInfo, uint64_t offset) {
-    return deserializeVector(value.fields, fileInfo, offset);
+void SerDeser::deserializeValue(StructTypeInfo& value, FileInfo* fileInfo, uint64_t& offset) {
+    deserializeVector(value.fields, fileInfo, offset);
 }
 
 template<>
-uint64_t SerDeser::serializeValue(
-    const std::unique_ptr<StructField>& value, FileInfo* fileInfo, uint64_t offset) {
-    offset = serializeValue<std::string>(value->name, fileInfo, offset);
-    return serializeValue(*value->getType(), fileInfo, offset);
+void SerDeser::serializeValue(
+    const std::unique_ptr<StructField>& value, FileInfo* fileInfo, uint64_t& offset) {
+    serializeValue(value->name, fileInfo, offset);
+    serializeValue(*value->getType(), fileInfo, offset);
 }
 
 template<>
-uint64_t SerDeser::deserializeValue(
-    std::unique_ptr<StructField>& value, FileInfo* fileInfo, uint64_t offset) {
+void SerDeser::deserializeValue(
+    std::unique_ptr<StructField>& value, FileInfo* fileInfo, uint64_t& offset) {
     value = std::make_unique<StructField>();
-    offset = deserializeValue<std::string>(value->name, fileInfo, offset);
-    return deserializeValue(*value->type, fileInfo, offset);
+    deserializeValue<std::string>(value->name, fileInfo, offset);
+    deserializeValue(*value->type, fileInfo, offset);
 }
 
 template<>
-uint64_t SerDeser::serializeValue(const LogicalType& value, FileInfo* fileInfo, uint64_t offset) {
-    offset = SerDeser::serializeValue(value.getLogicalTypeID(), fileInfo, offset);
+void SerDeser::serializeValue(const LogicalType& value, FileInfo* fileInfo, uint64_t& offset) {
+    SerDeser::serializeValue(value.getLogicalTypeID(), fileInfo, offset);
     switch (value.getPhysicalType()) {
     case PhysicalTypeID::VAR_LIST: {
         auto varListTypeInfo = reinterpret_cast<VarListTypeInfo*>(value.extraTypeInfo.get());
-        offset = serializeValue(*varListTypeInfo, fileInfo, offset);
+        serializeValue(*varListTypeInfo, fileInfo, offset);
     } break;
     case PhysicalTypeID::FIXED_LIST: {
         auto fixedListTypeInfo = reinterpret_cast<FixedListTypeInfo*>(value.extraTypeInfo.get());
-        offset = serializeValue(*fixedListTypeInfo, fileInfo, offset);
+        serializeValue(*fixedListTypeInfo, fileInfo, offset);
     } break;
     case PhysicalTypeID::STRUCT: {
         auto structTypeInfo = reinterpret_cast<StructTypeInfo*>(value.extraTypeInfo.get());
-        offset = serializeValue(*structTypeInfo, fileInfo, offset);
+        serializeValue(*structTypeInfo, fileInfo, offset);
     } break;
     default:
         break;
     }
-    return offset;
 }
 
 template<>
-uint64_t SerDeser::deserializeValue(LogicalType& value, FileInfo* fileInfo, uint64_t offset) {
-    offset = SerDeser::deserializeValue(value.typeID, fileInfo, offset);
+void SerDeser::deserializeValue(LogicalType& value, FileInfo* fileInfo, uint64_t& offset) {
+    SerDeser::deserializeValue(value.typeID, fileInfo, offset);
     value.setPhysicalType();
     switch (value.getPhysicalType()) {
     case PhysicalTypeID::VAR_LIST: {
         value.extraTypeInfo = std::make_unique<VarListTypeInfo>();
-        offset = deserializeValue(
+        deserializeValue(
             *reinterpret_cast<VarListTypeInfo*>(value.extraTypeInfo.get()), fileInfo, offset);
 
     } break;
     case PhysicalTypeID::FIXED_LIST: {
         value.extraTypeInfo = std::make_unique<FixedListTypeInfo>();
-        offset = deserializeValue(
+        deserializeValue(
             *reinterpret_cast<FixedListTypeInfo*>(value.extraTypeInfo.get()), fileInfo, offset);
     } break;
     case PhysicalTypeID::STRUCT: {
         value.extraTypeInfo = std::make_unique<StructTypeInfo>();
-        offset = deserializeValue(
+        deserializeValue(
             *reinterpret_cast<StructTypeInfo*>(value.extraTypeInfo.get()), fileInfo, offset);
     } break;
     default:
         break;
     }
-    return offset;
 }
 
 } // namespace common

@@ -225,8 +225,7 @@ void PhysicalOperator::initGlobalState(ExecutionContext* context) {
 }
 
 void PhysicalOperator::initLocalState(ResultSet* resultSet_, ExecutionContext* context) {
-    if (!children.empty()) {
-        assert(children.size() == 1);
+    if (!isSource()) {
         children[0]->initLocalState(resultSet_, context);
     }
     transaction = context->transaction;

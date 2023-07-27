@@ -8,14 +8,11 @@ namespace processor {
 
 class ReadFile : public PhysicalOperator {
 public:
-    ReadFile(const DataPos& rowIdxVectorPos, std::vector<DataPos> arrowColumnPoses,
+    ReadFile(const DataPos& nodeGroupOffsetPos, std::vector<DataPos> dataColumnPoses,
         std::shared_ptr<storage::ReadFileSharedState> sharedState,
         PhysicalOperatorType operatorType, uint32_t id, const std::string& paramsString)
-        : PhysicalOperator{operatorType, id, paramsString}, rowIdxVectorPos{rowIdxVectorPos},
-          arrowColumnPoses{std::move(arrowColumnPoses)}, sharedState{std::move(sharedState)},
-          rowIdxVector{nullptr} {}
-
-    void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
+        : PhysicalOperator{operatorType, id, paramsString}, nodeGroupOffsetPos{nodeGroupOffsetPos},
+          dataColumnPoses{std::move(dataColumnPoses)}, sharedState{std::move(sharedState)} {}
 
     inline void initGlobalStateInternal(kuzu::processor::ExecutionContext* context) override {
         sharedState->countNumRows();
@@ -31,10 +28,8 @@ protected:
 
 protected:
     std::shared_ptr<storage::ReadFileSharedState> sharedState;
-    DataPos rowIdxVectorPos;
-    std::vector<DataPos> arrowColumnPoses;
-    common::ValueVector* rowIdxVector;
-    std::vector<common::ValueVector*> arrowColumnVectors;
+    DataPos nodeGroupOffsetPos;
+    std::vector<DataPos> dataColumnPoses;
 };
 
 } // namespace processor

@@ -7,6 +7,11 @@
 #include "common/expression_type.h"
 
 namespace kuzu {
+
+namespace common {
+class FileInfo;
+}
+
 namespace parser {
 
 class ParsedExpression;
@@ -26,6 +31,8 @@ public:
 
     ParsedExpression(common::ExpressionType type, std::string rawName)
         : type{type}, rawName{std::move(rawName)} {}
+
+    ParsedExpression(common::ExpressionType type) : type{type} {}
 
     ParsedExpression(common::ExpressionType type, std::string alias, std::string rawName,
         parsed_expression_vector children)
@@ -53,8 +60,16 @@ public:
         return std::make_unique<ParsedExpression>(type, alias, rawName, copyChildren());
     }
 
+    void serialize(common::FileInfo* fileInfo, uint64_t& offset) const;
+
+    static std::unique_ptr<ParsedExpression> deserialize(
+        common::FileInfo* fileInfo, uint64_t& offset);
+
 protected:
     parsed_expression_vector copyChildren() const;
+
+private:
+    virtual inline void serializeInternal(common::FileInfo* fileInfo, uint64_t& offset) const {}
 
 protected:
     common::ExpressionType type;

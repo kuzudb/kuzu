@@ -11,16 +11,13 @@ class LogicalCopy : public LogicalOperator {
 
 public:
     LogicalCopy(const common::CopyDescription& copyDescription, common::table_id_t tableID,
-        std::string tableName, binder::expression_vector arrowColumnExpressions,
-        std::shared_ptr<binder::Expression> rowIdxExpression,
-        std::shared_ptr<binder::Expression> filePathExpression,
+        std::string tableName, binder::expression_vector dataColumnExpressions,
+    std::shared_ptr<binder::Expression> nodeGroupOffsetExpression,
         std::shared_ptr<binder::Expression> outputExpression)
         : LogicalOperator{LogicalOperatorType::COPY},
           copyDescription{copyDescription}, tableID{tableID}, tableName{std::move(tableName)},
-          arrowColumnExpressions{std::move(arrowColumnExpressions)}, rowIdxExpression{std::move(
-                                                                         rowIdxExpression)},
-          filePathExpression{std::move(filePathExpression)}, outputExpression{
-                                                                 std::move(outputExpression)} {}
+          dataColumnExpressions{std::move(dataColumnExpressions)}, nodeGroupOffsetExpression{std::move(nodeGroupOffsetExpression)}, outputExpression{std::move(
+                                                                       outputExpression)} {}
 
     inline std::string getExpressionsForPrinting() const override { return tableName; }
 
@@ -28,16 +25,8 @@ public:
 
     inline common::table_id_t getTableID() const { return tableID; }
 
-    inline std::vector<std::shared_ptr<binder::Expression>> getArrowColumnExpressions() const {
-        return arrowColumnExpressions;
-    }
-
-    inline std::shared_ptr<binder::Expression> getRowIdxExpression() const {
-        return rowIdxExpression;
-    }
-
-    inline std::shared_ptr<binder::Expression> getFilePathExpression() const {
-        return filePathExpression;
+    inline std::vector<std::shared_ptr<binder::Expression>> getDataColumnExpressions() const {
+        return dataColumnExpressions;
     }
 
     inline std::shared_ptr<binder::Expression> getOutputExpression() const {
@@ -48,8 +37,8 @@ public:
     void computeFlatSchema() override;
 
     inline std::unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalCopy>(copyDescription, tableID, tableName, arrowColumnExpressions,
-            rowIdxExpression, filePathExpression, outputExpression);
+        return make_unique<LogicalCopy>(
+            copyDescription, tableID, tableName, dataColumnExpressions, nodeGroupOffsetExpression, outputExpression);
     }
 
 private:
@@ -57,9 +46,8 @@ private:
     common::table_id_t tableID;
     // Used for printing only.
     std::string tableName;
-    binder::expression_vector arrowColumnExpressions;
-    std::shared_ptr<binder::Expression> rowIdxExpression;
-    std::shared_ptr<binder::Expression> filePathExpression;
+    binder::expression_vector dataColumnExpressions;
+    std::shared_ptr<binder::Expression> nodeGroupOffsetExpression;
     std::shared_ptr<binder::Expression> outputExpression;
 };
 

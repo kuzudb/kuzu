@@ -426,7 +426,7 @@ void HashIndex<T>::checkpointInMemory() {
 }
 
 template<typename T>
-void HashIndex<T>::rollback() const {
+void HashIndex<T>::rollbackInMemory() const {
     if (!localStorage->hasUpdates()) {
         return;
     }

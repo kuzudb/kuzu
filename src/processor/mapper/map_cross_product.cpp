@@ -7,17 +7,17 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace processor {
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCrossProductToPhysical(
-    LogicalOperator* logicalOperator) {
+std::unique_ptr<PhysicalOperator> PlanMapper::mapCrossProduct(LogicalOperator* logicalOperator) {
     auto logicalCrossProduct = (LogicalCrossProduct*)logicalOperator;
     auto outSchema = logicalCrossProduct->getSchema();
     // map build side
     auto buildSideSchema = logicalCrossProduct->getBuildSideSchema();
-    auto buildSidePrevOperator = mapLogicalOperatorToPhysical(logicalCrossProduct->getChild(1));
-    auto resultCollector = appendResultCollector(buildSideSchema->getExpressionsInScope(),
-        buildSideSchema, std::move(buildSidePrevOperator));
+    auto buildSidePrevOperator = mapOperator(logicalCrossProduct->getChild(1).get());
+    auto resultCollector = createResultCollector(common::AccumulateType::REGULAR,
+        buildSideSchema->getExpressionsInScope(), buildSideSchema,
+        std::move(buildSidePrevOperator));
     // map probe side
-    auto probeSidePrevOperator = mapLogicalOperatorToPhysical(logicalCrossProduct->getChild(0));
+    auto probeSidePrevOperator = mapOperator(logicalCrossProduct->getChild(0).get());
     std::vector<DataPos> outVecPos;
     std::vector<uint32_t> colIndicesToScan;
     auto expressions = buildSideSchema->getExpressionsInScope();
@@ -28,9 +28,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalCrossProductToPhysical(
     }
     auto info =
         std::make_unique<CrossProductInfo>(std::move(outVecPos), std::move(colIndicesToScan));
-    auto sharedState = resultCollector->getSharedState();
-    auto localState = std::make_unique<CrossProductLocalState>(
-        sharedState->getTable(), sharedState->getMaxMorselSize());
+    auto table = resultCollector->getResultFactorizedTable();
+    auto maxMorselSize = table->hasUnflatCol() ? 1 : common::DEFAULT_VECTOR_CAPACITY;
+    auto localState = std::make_unique<CrossProductLocalState>(table, maxMorselSize);
     return make_unique<CrossProduct>(std::move(info), std::move(localState),
         std::move(probeSidePrevOperator), std::move(resultCollector), getOperatorID(),
         logicalCrossProduct->getExpressionsForPrinting());

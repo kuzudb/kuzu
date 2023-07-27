@@ -17,7 +17,7 @@ using write_node_column_func_t = std::function<void(
 
 struct ColumnChunkMetadata {
     common::page_idx_t pageIdx = common::INVALID_PAGE_IDX;
-    common::page_idx_t numPages = 0; // Include pages for null and children segments.
+    common::page_idx_t numPages = 0;
 };
 
 struct FixedSizedNodeColumnFunc {
@@ -51,6 +51,7 @@ public:
         const catalog::MetaDiskArrayHeaderInfo& metaDAHeaderInfo, BMFileHandle* nodeGroupsDataFH,
         BMFileHandle* nodeGroupsMetaFH, BufferManager* bufferManager, WAL* wal,
         bool requireNullColumn);
+    virtual ~NodeColumn() = default;
 
     // Expose for feature store
     void batchLookup(const common::offset_t* nodeOffsets, size_t size, uint8_t* result);

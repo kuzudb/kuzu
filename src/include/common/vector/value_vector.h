@@ -19,6 +19,7 @@ class ValueVector {
     friend class StructVector;
     friend class StringVector;
     friend class ArrowColumnVector;
+    friend class ValueVectorUtils;
 
 public:
     explicit ValueVector(LogicalType dataType, storage::MemoryManager* memoryManager = nullptr);
@@ -34,8 +35,7 @@ public:
     inline void setAllNull() { nullMask->setAllNull(); }
     inline void setAllNonNull() { nullMask->setAllNonNull(); }
     inline void setMayContainNulls() { nullMask->setMayContainNulls(); }
-    // Note that if this function returns true, there are no null. However, if it returns false, it
-    // doesn't mean there are nulls, i.e., there may or may not be nulls.
+    // On return true, there are no null. On return false, there may or may not be nulls.
     inline bool hasNoNullsGuarantee() const { return nullMask->hasNoNullsGuarantee(); }
     inline void setRangeNonNull(uint32_t startPos, uint32_t len) {
         for (auto i = 0u; i < len; ++i) {
@@ -45,6 +45,10 @@ public:
     inline uint64_t* getNullMaskData() { return nullMask->getData(); }
     inline void setNull(uint32_t pos, bool isNull) { nullMask->setNull(pos, isNull); }
     inline uint8_t isNull(uint32_t pos) const { return nullMask->isNull(pos); }
+    inline void setAsSingleNullEntry() {
+        state->selVector->selectedSize = 1;
+        setNull(state->selVector->selectedPositions[0], true);
+    }
 
     inline uint32_t getNumBytesPerValue() const { return numBytesPerValue; }
 

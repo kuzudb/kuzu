@@ -93,7 +93,7 @@ public:
     void prepareCommit();
     void prepareRollback();
     void checkpointInMemory();
-    void rollback() const;
+    void rollbackInMemory() const;
     inline BMFileHandle* getFileHandle() const { return fileHandle.get(); }
 
 private:
@@ -183,9 +183,9 @@ public:
         keyDataTypeID == common::LogicalTypeID::INT64 ? hashIndexForInt64->checkpointInMemory() :
                                                         hashIndexForString->checkpointInMemory();
     }
-    inline void rollback() {
-        keyDataTypeID == common::LogicalTypeID::INT64 ? hashIndexForInt64->rollback() :
-                                                        hashIndexForString->rollback();
+    inline void rollbackInMemory() {
+        keyDataTypeID == common::LogicalTypeID::INT64 ? hashIndexForInt64->rollbackInMemory() :
+                                                        hashIndexForString->rollbackInMemory();
     }
     inline void prepareCommit() {
         keyDataTypeID == common::LogicalTypeID::INT64 ? hashIndexForInt64->prepareCommit() :

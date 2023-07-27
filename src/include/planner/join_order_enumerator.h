@@ -30,9 +30,9 @@ public:
 
     inline void resetState() { context->resetState(); }
 
-    std::unique_ptr<JoinOrderEnumeratorContext> enterSubquery(
+    std::unique_ptr<JoinOrderEnumeratorContext> enterContext(
         binder::expression_vector nodeIDsToScanFromInnerAndOuter);
-    void exitSubquery(std::unique_ptr<JoinOrderEnumeratorContext> prevContext);
+    void exitContext(std::unique_ptr<JoinOrderEnumeratorContext> prevContext);
 
     inline void planMarkJoin(const binder::expression_vector& joinNodeIDs,
         std::shared_ptr<Expression> mark, LogicalPlan& probePlan, LogicalPlan& buildPlan) {

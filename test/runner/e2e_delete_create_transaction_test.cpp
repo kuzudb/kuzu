@@ -294,6 +294,7 @@ class NodeInsertionDeletionSerialPKTest : public DBTest {
     }
 };
 
+// TODO(Guodong): FIXME: Fix all disabled tests.
 // TEST_F(DeleteNodeWithEdgesErrorTest, DeleteNodeWithEdgesError) {
 //    auto conn = std::make_unique<Connection>(database.get());
 //    ASSERT_TRUE(conn->query("create node table person (ID INT64, primary

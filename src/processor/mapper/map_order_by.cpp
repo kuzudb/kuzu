@@ -9,12 +9,11 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace processor {
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalOrderByToPhysical(
-    LogicalOperator* logicalOperator) {
+std::unique_ptr<PhysicalOperator> PlanMapper::mapOrderBy(LogicalOperator* logicalOperator) {
     auto& logicalOrderBy = (LogicalOrderBy&)*logicalOperator;
     auto outSchema = logicalOrderBy.getSchema();
     auto inSchema = logicalOrderBy.getChild(0)->getSchema();
-    auto prevOperator = mapLogicalOperatorToPhysical(logicalOrderBy.getChild(0));
+    auto prevOperator = mapOperator(logicalOrderBy.getChild(0).get());
     auto paramsString = logicalOrderBy.getExpressionsForPrinting();
     std::vector<std::pair<DataPos, common::LogicalType>> keysPosAndType;
     for (auto& expression : logicalOrderBy.getExpressionsToOrderBy()) {

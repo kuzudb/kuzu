@@ -19,7 +19,6 @@ public:
         return chunks.contains(propertyID) ? chunks.at(propertyID).get() : nullptr;
     }
     inline catalog::TableSchema* getSchema() const { return schema; }
-    inline common::CopyDescription* getCopyDescription() const { return copyDescription; }
     inline void resetToEmpty() {
         numNodes = 0;
         nodeGroupIdx = UINT64_MAX;
@@ -38,7 +37,6 @@ private:
     common::offset_t numNodes;
     std::unordered_map<common::property_id_t, std::unique_ptr<ColumnChunk>> chunks;
     catalog::TableSchema* schema;
-    common::CopyDescription* copyDescription;
 };
 
 } // namespace storage

@@ -50,5 +50,18 @@ private:
     PageByteCursor overflowCursor;
 };
 
+// STRING
+template<>
+void VarSizedColumnChunk::setValueFromString<const char*>(
+    const char* value, uint64_t length, uint64_t pos);
+// VAR_LIST
+template<>
+void VarSizedColumnChunk::setValueFromString<common::ku_list_t>(
+    const char* value, uint64_t length, uint64_t pos);
+
+// STRING
+template<>
+std::string VarSizedColumnChunk::getValue<std::string>(common::offset_t pos) const;
+
 } // namespace storage
 } // namespace kuzu

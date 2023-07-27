@@ -35,13 +35,6 @@ public:
     std::shared_ptr<arrow::RecordBatch> recordBatch;
 };
 
-class ReadNPYMorsel : public ReadFileMorsel {
-public:
-    ReadNPYMorsel(common::row_idx_t rowIdx, common::block_idx_t blockIdx, common::row_idx_t numRows,
-        std::string filePath, common::vector_idx_t curFileIdx, common::row_idx_t rowIdxInFile)
-        : ReadFileMorsel{rowIdx, blockIdx, numRows, std::move(filePath), rowIdxInFile} {}
-};
-
 class ReadFileSharedState {
 public:
     ReadFileSharedState(std::vector<std::string> filePaths, common::CSVReaderConfig csvReaderConfig,
