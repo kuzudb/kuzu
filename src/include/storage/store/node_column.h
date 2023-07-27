@@ -37,6 +37,13 @@ struct NullNodeColumnFunc {
         uint8_t* frame, uint16_t posInFrame, common::ValueVector* vector, uint32_t posInVector);
 };
 
+struct BoolNodeColumnFunc {
+    static void readValuesFromPage(uint8_t* frame, PageElementCursor& pageCursor,
+        common::ValueVector* resultVector, uint32_t posInVector, uint32_t numValuesToRead);
+    static void writeValueToPage(
+        uint8_t* frame, uint16_t posInFrame, common::ValueVector* vector, uint32_t posInVector);
+};
+
 class NullNodeColumn;
 // TODO(Guodong): This is intentionally duplicated with `Column`, as for now, we don't change rel
 // tables. `Column` is used for rel tables only. Eventually, we should remove `Column`.
@@ -50,7 +57,7 @@ public:
     virtual ~NodeColumn() = default;
 
     // Expose for feature store
-    void batchLookup(const common::offset_t* nodeOffsets, size_t size, uint8_t* result);
+    virtual void batchLookup(const common::offset_t* nodeOffsets, size_t size, uint8_t* result);
 
     virtual void scan(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
         common::ValueVector* resultVector);
@@ -127,6 +134,15 @@ protected:
     std::vector<std::unique_ptr<NodeColumn>> childrenColumns;
     read_node_column_func_t readNodeColumnFunc;
     write_node_column_func_t writeNodeColumnFunc;
+};
+
+class BoolNodeColumn : public NodeColumn {
+public:
+    BoolNodeColumn(const catalog::MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH,
+        BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
+        bool requireNullColumn = true);
+
+    void batchLookup(const common::offset_t* nodeOffsets, size_t size, uint8_t* result) final;
 };
 
 class NullNodeColumn : public NodeColumn {

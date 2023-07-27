@@ -59,6 +59,28 @@ void NullNodeColumnFunc::writeValueToPage(
         (uint64_t*)frame, posInFrame, NullMask::isNull(vector->getNullMaskData(), posInVector));
 }
 
+void BoolNodeColumnFunc::readValuesFromPage(uint8_t* frame, PageElementCursor& pageCursor,
+    ValueVector* resultVector, uint32_t posInVector, uint32_t numValuesToRead) {
+    // Read bit-packed null flags from the frame into the result vector
+    // Casting to uint64_t should be safe as long as the page size is a multiple of 8 bytes.
+    // Otherwise it could read off the end of the page.
+    //
+    // Currently, the frame stores bitpacked bools, but the value_vector does not
+    for (auto i = 0; i < numValuesToRead; i++) {
+        resultVector->setValue(
+            posInVector + i, NullMask::isNull((uint64_t*)frame, pageCursor.elemPosInPage + i));
+    }
+}
+
+void BoolNodeColumnFunc::writeValueToPage(
+    uint8_t* frame, uint16_t posInFrame, ValueVector* vector, uint32_t posInVector) {
+    // Casting to uint64_t should be safe as long as the page size is a multiple of 8 bytes.
+    // Otherwise it could read/write off the end of the page.
+    NullMask::copyNullMask(
+        vector->getValue<bool>(posInVector) ? &NullMask::ALL_NULL_ENTRY : &NullMask::NO_NULL_ENTRY,
+        posInVector, (uint64_t*)frame, posInFrame, 1);
+}
+
 NodeColumn::NodeColumn(const Property& property, BMFileHandle* dataFH, BMFileHandle* metadataFH,
     BufferManager* bufferManager, WAL* wal, bool requireNullColumn)
     : NodeColumn{*property.getDataType(), *property.getMetadataDAHInfo(), dataFH, metadataFH,
@@ -101,6 +123,21 @@ void NodeColumn::batchLookup(const offset_t* nodeOffsets, size_t size, uint8_t* 
             memcpy(result + i * numBytesPerFixedSizedValue,
                 frame + (cursor.elemPosInPage * numBytesPerFixedSizedValue),
                 numBytesPerFixedSizedValue);
+        });
+    }
+}
+
+void BoolNodeColumn::batchLookup(const offset_t* nodeOffsets, size_t size, uint8_t* result) {
+    for (auto i = 0u; i < size; ++i) {
+        auto nodeOffset = nodeOffsets[i];
+        auto nodeGroupIdx = getNodeGroupIdxFromNodeOffset(nodeOffset);
+        auto cursor = PageUtils::getPageElementCursorForPos(nodeOffset, numValuesPerPage);
+        auto dummyReadOnlyTransaction = Transaction::getDummyReadOnlyTrx();
+        cursor.pageIdx +=
+            metadataDA->get(nodeGroupIdx, dummyReadOnlyTransaction->getType()).pageIdx;
+        readFromPage(dummyReadOnlyTransaction.get(), cursor.pageIdx, [&](uint8_t* frame) -> void {
+            // De-compress bitpacked bools
+            result[i] = NullMask::isNull((uint64_t*)frame, cursor.elemPosInPage);
         });
     }
 }
@@ -352,17 +389,30 @@ void NodeColumn::scan(transaction::Transaction* transaction, node_group_idx_t no
     scanUnfiltered(transaction, pageCursor, numValuesToScan, resultVector, offsetInVector);
 }
 
+// Page size must be aligned to 8 byte chunks for the 64-bit NullMask algorithms to work
+// without the possibility of memory errors from reading/writing off the end of a page.
+static_assert(PageUtils::getNumElementsInAPage(1, false /*requireNullColumn*/) % 8 == 0);
+
+BoolNodeColumn::BoolNodeColumn(const catalog::MetadataDAHInfo& metaDAHeaderInfo,
+    BMFileHandle* dataFH, BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal,
+    bool requireNullColumn)
+    : NodeColumn{LogicalType(LogicalTypeID::BOOL), metaDAHeaderInfo, dataFH, metadataFH,
+          bufferManager, wal, requireNullColumn} {
+    readNodeColumnFunc = BoolNodeColumnFunc::readValuesFromPage;
+    writeNodeColumnFunc = BoolNodeColumnFunc::writeValueToPage;
+    // 8 values per byte (on-disk)
+    numValuesPerPage = PageUtils::getNumElementsInAPage(1, false /*requireNullColumn*/) * 8;
+}
+
 NullNodeColumn::NullNodeColumn(page_idx_t metaDAHPageIdx, BMFileHandle* dataFH,
     BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal)
-    : NodeColumn{LogicalType(LogicalTypeID::NULL_), MetadataDAHInfo{metaDAHPageIdx}, dataFH,
-          metadataFH, bufferManager, wal, false /* requireNullColumn */} {
+    : NodeColumn{LogicalType(LogicalTypeID::BOOL), MetadataDAHInfo{metaDAHPageIdx}, dataFH,
+          metadataFH, bufferManager, wal, false /*requireNullColumn*/} {
     readNodeColumnFunc = NullNodeColumnFunc::readValuesFromPage;
     writeNodeColumnFunc = NullNodeColumnFunc::writeValueToPage;
+
     // 8 values per byte
-    numValuesPerPage = PageUtils::getNumElementsInAPage(1, false) * 8;
-    // Page size must be aligned to 8 byte chunks for the 64-bit NullMask algorithms to work
-    // without the possibility of memory errors from reading/writing off the end of a page.
-    assert(PageUtils::getNumElementsInAPage(1, false) % 8 == 0);
+    numValuesPerPage = PageUtils::getNumElementsInAPage(1, false /*requireNullColumn*/) * 8;
 }
 
 void NullNodeColumn::scan(
@@ -436,7 +486,10 @@ std::unique_ptr<NodeColumn> NodeColumnFactory::createNodeColumn(const LogicalTyp
     const catalog::MetadataDAHInfo& metaDAHeaderInfo, BMFileHandle* dataFH,
     BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal) {
     switch (dataType.getLogicalTypeID()) {
-    case LogicalTypeID::BOOL:
+    case LogicalTypeID::BOOL: {
+        return std::make_unique<BoolNodeColumn>(
+            metaDAHeaderInfo, dataFH, metadataFH, bufferManager, wal, true);
+    }
     case LogicalTypeID::INT64:
     case LogicalTypeID::INT32:
     case LogicalTypeID::INT16:
@@ -451,9 +504,10 @@ std::unique_ptr<NodeColumn> NodeColumnFactory::createNodeColumn(const LogicalTyp
             dataType, metaDAHeaderInfo, dataFH, metadataFH, bufferManager, wal, true);
     }
     case LogicalTypeID::BLOB:
-    case LogicalTypeID::STRING:
+    case LogicalTypeID::STRING: {
         return std::make_unique<StringNodeColumn>(
             dataType, metaDAHeaderInfo, dataFH, metadataFH, bufferManager, wal);
+    }
     case LogicalTypeID::MAP:
     case LogicalTypeID::VAR_LIST: {
         return std::make_unique<VarListNodeColumn>(

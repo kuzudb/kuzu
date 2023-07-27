@@ -266,19 +266,6 @@ std::string StorageUtils::appendSuffixOrInsertBeforeWALSuffix(
     }
 }
 
-uint32_t PageUtils::getNumElementsInAPage(uint32_t elementSize, bool hasNull) {
-    assert(elementSize > 0);
-    auto numBytesPerNullEntry = NullMask::NUM_BITS_PER_NULL_ENTRY >> 3;
-    auto numNullEntries =
-        hasNull ? (uint32_t)ceil(
-                      (double)BufferPoolConstants::PAGE_4KB_SIZE /
-                      (double)(((uint64_t)elementSize << NullMask::NUM_BITS_PER_NULL_ENTRY_LOG2) +
-                               numBytesPerNullEntry)) :
-                  0;
-    return (BufferPoolConstants::PAGE_4KB_SIZE - (numNullEntries * numBytesPerNullEntry)) /
-           elementSize;
-}
-
 void StorageUtils::initializeListsHeaders(table_id_t relTableID, uint64_t numNodesInTable,
     const std::string& directory, RelDataDirection relDirection) {
     auto listHeadersBuilder = make_unique<ListHeadersBuilder>(

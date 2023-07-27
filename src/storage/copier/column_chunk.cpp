@@ -23,7 +23,9 @@ ColumnChunk::ColumnChunk(LogicalType dataType, CopyDescription* copyDescription,
 void ColumnChunk::initialize(offset_t numValues) {
     numBytes = numBytesPerValue * numValues;
     buffer = std::make_unique<uint8_t[]>(numBytes);
-    static_cast<ColumnChunk*>(nullChunk.get())->initialize(numValues);
+    if (nullChunk) {
+        static_cast<ColumnChunk*>(nullChunk.get())->initialize(numValues);
+    }
 }
 
 void ColumnChunk::resetToEmpty() {
@@ -184,21 +186,22 @@ void ColumnChunk::templateCopyArrowArray<bool>(
     arrow::Array* array, offset_t startPosInChunk, uint32_t numValuesToAppend) {
     auto* boolArray = (arrow::BooleanArray*)array;
     auto data = boolArray->data();
-    auto valuesInChunk = (bool*)(buffer.get());
+
+    auto arrowBuffer = boolArray->values()->data();
+    // Might read off the end with the cast, but copyNullMask should ignore the extra data
+    //
+    // The arrow BooleanArray offset should be the offset in bits
+    // Unfortunately this is not documented.
+    NullMask::copyNullMask((uint64_t*)arrowBuffer, boolArray->offset(), (uint64_t*)buffer.get(),
+        startPosInChunk, numValuesToAppend);
+
     if (data->MayHaveNulls()) {
-        for (auto i = 0u; i < numValuesToAppend; i++) {
-            auto posInChunk = startPosInChunk + i;
-            if (data->IsNull(i)) {
-                nullChunk->setNull(posInChunk, true);
-                continue;
-            }
-            valuesInChunk[posInChunk] = boolArray->Value(i);
-        }
-    } else {
-        for (auto i = 0u; i < numValuesToAppend; i++) {
-            auto posInChunk = startPosInChunk + i;
-            valuesInChunk[posInChunk] = boolArray->Value(i);
-        }
+        auto arrowNullBitMap = boolArray->null_bitmap_data();
+
+        // Offset should apply to both bool data and nulls
+        NullMask::copyNullMask((uint64_t*)arrowNullBitMap, boolArray->offset(),
+            (uint64_t*)nullChunk->buffer.get(), startPosInChunk, numValuesToAppend,
+            true /*invert*/);
     }
 }
 
@@ -283,12 +286,9 @@ uint32_t ColumnChunk::getDataTypeSizeInChunk(LogicalType& dataType) {
     case LogicalTypeID::INTERNAL_ID: {
         return sizeof(offset_t);
     }
-    // This should never be used for Nulls,
-    // which use a different way of calculating the buffer size
-    // FIXME(bmwinger): Setting this to 0 breaks everything.
-    // It's being used in NullNodeColumn, and maybe there are some functions
-    // relying on it despite the value being meaningless for a null bitfield.
-    case LogicalTypeID::NULL_: {
+    // Used by NodeColumnn to represent the de-compressed size of booleans in-memory
+    // Does not reflect the size of booleans on-disk in BoolColumnChunk
+    case LogicalTypeID::BOOL: {
         return 1;
     }
     default: {
@@ -297,14 +297,15 @@ uint32_t ColumnChunk::getDataTypeSizeInChunk(LogicalType& dataType) {
     }
 }
 
-// TODO(bmwinger): Eventually, to support bitpacked bools, all these functions will need to be
-// updated to support values sizes of less than one byte.
-// But for the moment, this is the only generic ColumnChunk function which is needed by
-// NullColumnChunk, and it's invoked directly on the nullColumn, so we don't need dynamic dispatch
-void NullColumnChunk::append(NullColumnChunk* other, offset_t startPosInOtherChunk,
+void BoolColumnChunk::append(ColumnChunk* other, common::offset_t startPosInOtherChunk,
     common::offset_t startPosInChunk, uint32_t numValuesToAppend) {
-    NullMask::copyNullMask((uint64_t*)other->buffer.get(), startPosInOtherChunk,
-        (uint64_t*)buffer.get(), startPosInChunk, numValuesToAppend);
+    NullMask::copyNullMask((uint64_t*)static_cast<BoolColumnChunk*>(other)->buffer.get(),
+        startPosInOtherChunk, (uint64_t*)buffer.get(), startPosInChunk, numValuesToAppend);
+
+    if (nullChunk) {
+        nullChunk->append(
+            other->getNullChunk(), startPosInOtherChunk, startPosInChunk, numValuesToAppend);
+    }
 }
 
 void FixedListColumnChunk::append(ColumnChunk* other, offset_t startPosInOtherChunk,
@@ -363,6 +364,8 @@ std::unique_ptr<ColumnChunk> ColumnChunkFactory::createColumnChunk(
     std::unique_ptr<ColumnChunk> chunk;
     switch (dataType.getPhysicalType()) {
     case PhysicalTypeID::BOOL:
+        chunk = std::make_unique<BoolColumnChunk>(copyDescription);
+        break;
     case PhysicalTypeID::INT64:
     case PhysicalTypeID::INT32:
     case PhysicalTypeID::INT16:
