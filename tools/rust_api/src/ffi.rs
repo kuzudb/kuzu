@@ -1,3 +1,6 @@
+#[cfg(feature = "arrow")]
+pub(crate) mod arrow;
+
 #[allow(clippy::module_inception)]
 #[cxx::bridge]
 pub(crate) mod ffi {
