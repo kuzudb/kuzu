@@ -33,6 +33,21 @@ list_entry_t ListAuxiliaryBuffer::addList(uint64_t listSize) {
     return listEntry;
 }
 
+void ListAuxiliaryBuffer::resize(uint64_t numValues) {
+    if (numValues <= capacity) {
+        size = numValues;
+        return;
+    }
+    bool needResizeDataVector = numValues > capacity;
+    while (numValues > capacity) {
+        capacity *= 2;
+    }
+    if (needResizeDataVector) {
+        resizeDataVector(dataVector.get());
+    }
+    size = numValues;
+}
+
 void ListAuxiliaryBuffer::resizeDataVector(ValueVector* dataVector) {
     auto buffer = std::make_unique<uint8_t[]>(capacity * dataVector->getNumBytesPerValue());
     memcpy(buffer.get(), dataVector->valueBuffer.get(), size * dataVector->getNumBytesPerValue());

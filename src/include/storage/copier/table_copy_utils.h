@@ -33,6 +33,9 @@ public:
     static std::unique_ptr<common::Value> getArrowVarList(const std::string& l, int64_t from,
         int64_t to, const common::LogicalType& dataType,
         const common::CopyDescription& copyDescription);
+    static std::unique_ptr<common::Value> getArrowFixedListVal(const std::string& l, int64_t from,
+        int64_t to, const common::LogicalType& dataType,
+        const common::CopyDescription& copyDescription);
     static std::unique_ptr<uint8_t[]> getArrowFixedList(const std::string& l, int64_t from,
         int64_t to, const common::LogicalType& dataType,
         const common::CopyDescription& copyDescription);
@@ -63,6 +66,8 @@ private:
     static std::unique_ptr<common::Value> convertStringToValue(std::string element,
         const common::LogicalType& type, const common::CopyDescription& copyDescription);
     static std::vector<std::string> getColumnNamesToRead(catalog::TableSchema* tableSchema);
+    static void validateNumElementsInList(
+        uint64_t numElementsRead, const common::LogicalType& type);
 };
 
 } // namespace storage

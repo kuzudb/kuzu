@@ -215,24 +215,56 @@ std::unique_ptr<Value> TableCopyUtils::getArrowVarList(const std::string& l, int
     auto split = getListElementPos(l, from, to, copyDescription);
     std::vector<std::unique_ptr<Value>> values;
     auto childDataType = VarListType::getChildType(&dataType);
-    for (auto pair : split) {
-        std::string element = l.substr(pair.first, pair.second);
-        if (element.empty()) {
-            continue;
+    // If the list is empty (e.g. []) where from is 1 and to is 0, skip parsing this empty list.
+    if (to >= from) {
+        for (auto [fromPos, toPos] : split) {
+            std::string element = l.substr(fromPos, toPos);
+            std::unique_ptr<Value> value;
+            if (element.empty()) {
+                value = std::make_unique<Value>(Value::createNullValue(*childDataType));
+            } else {
+                value = convertStringToValue(element, *childDataType, copyDescription);
+            }
+            values.push_back(std::move(value));
         }
-        auto value = convertStringToValue(element, *childDataType, copyDescription);
-        values.push_back(std::move(value));
-    }
-    auto numBytesOfOverflow = values.size() * StorageUtils::getDataTypeSize(*childDataType);
-    if (numBytesOfOverflow >= BufferPoolConstants::PAGE_4KB_SIZE) {
-        throw CopyException(StringUtils::string_format(
-            "Maximum num bytes of a LIST is {}. Input list's num bytes is {}.",
-            BufferPoolConstants::PAGE_4KB_SIZE, numBytesOfOverflow));
     }
     return make_unique<Value>(
         LogicalType(LogicalTypeID::VAR_LIST,
             std::make_unique<VarListTypeInfo>(std::make_unique<LogicalType>(*childDataType))),
         std::move(values));
+}
+
+std::unique_ptr<Value> TableCopyUtils::getArrowFixedListVal(const std::string& l, int64_t from,
+    int64_t to, const LogicalType& dataType, const CopyDescription& copyDescription) {
+    assert(dataType.getLogicalTypeID() == LogicalTypeID::FIXED_LIST);
+    auto split = getListElementPos(l, from, to, copyDescription);
+    std::vector<std::unique_ptr<Value>> listValues;
+    auto childDataType = FixedListType::getChildType(&dataType);
+    uint64_t numElementsRead = 0;
+    for (auto pair : split) {
+        std::string element = l.substr(pair.first, pair.second);
+        if (element.empty()) {
+            continue;
+        }
+        switch (childDataType->getLogicalTypeID()) {
+        case LogicalTypeID::INT64:
+        case LogicalTypeID::INT32:
+        case LogicalTypeID::INT16:
+        case LogicalTypeID::DOUBLE:
+        case LogicalTypeID::FLOAT: {
+            listValues.push_back(convertStringToValue(element, *childDataType, copyDescription));
+            numElementsRead++;
+        } break;
+        default: {
+            throw CopyException(
+                "Unsupported data type " +
+                LogicalTypeUtils::dataTypeToString(*VarListType::getChildType(&dataType)) +
+                " inside FIXED_LIST");
+        }
+        }
+    }
+    validateNumElementsInList(numElementsRead, dataType);
+    return std::make_unique<Value>(dataType, std::move(listValues));
 }
 
 std::unique_ptr<uint8_t[]> TableCopyUtils::getArrowFixedList(const std::string& l, int64_t from,
@@ -281,12 +313,7 @@ std::unique_ptr<uint8_t[]> TableCopyUtils::getArrowFixedList(const std::string& 
         }
         }
     }
-    auto numElementsInList = FixedListType::getNumElementsInList(&dataType);
-    if (numElementsRead != numElementsInList) {
-        throw CopyException(StringUtils::string_format(
-            "Each fixed list should have fixed number of elements. Expected: {}, Actual: {}.",
-            numElementsInList, numElementsRead));
-    }
+    validateNumElementsInList(numElementsRead, dataType);
     return listVal;
 }
 
@@ -376,6 +403,9 @@ std::unique_ptr<Value> TableCopyUtils::convertStringToValue(
     case LogicalTypeID::VAR_LIST: {
         value = getArrowVarList(element, 1, element.length() - 2, type, copyDescription);
     } break;
+    case LogicalTypeID::FIXED_LIST: {
+        value = getArrowFixedListVal(element, 1, element.length() - 2, type, copyDescription);
+    } break;
     default:
         throw CopyException(
             "Unsupported data type " + LogicalTypeUtils::dataTypeToString(type) + " inside LIST");
@@ -396,6 +426,16 @@ std::vector<std::string> TableCopyUtils::getColumnNamesToRead(catalog::TableSche
         columnNamesToRead.push_back(property->getName());
     }
     return columnNamesToRead;
+}
+
+void TableCopyUtils::validateNumElementsInList(
+    uint64_t numElementsRead, const common::LogicalType& type) {
+    auto numElementsInList = FixedListType::getNumElementsInList(&type);
+    if (numElementsRead != numElementsInList) {
+        throw CopyException(StringUtils::string_format(
+            "Each fixed list should have fixed number of elements. Expected: {}, Actual: {}.",
+            numElementsInList, numElementsRead));
+    }
 }
 
 } // namespace storage

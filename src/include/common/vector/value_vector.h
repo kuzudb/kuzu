@@ -148,6 +148,9 @@ public:
         return reinterpret_cast<ListAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())
             ->addList(listSize);
     }
+    static inline void resizeDataVector(ValueVector* vector, uint64_t numValues) {
+        reinterpret_cast<ListAuxiliaryBuffer*>(vector->auxiliaryBuffer.get())->resize(numValues);
+    }
 
     static void copyFromRowData(ValueVector* vector, uint32_t pos, const uint8_t* rowData);
     static void copyToRowData(const ValueVector* vector, uint32_t pos, uint8_t* rowData,
