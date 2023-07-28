@@ -4,6 +4,7 @@ namespace kuzu {
 namespace processor {
 
 bool ReadFile::getNextTuplesInternal(kuzu::processor::ExecutionContext* context) {
+    auto nodeGroupOffsetVector = resultSet->getValueVector(nodeGroupOffsetPos).get();
     auto morsel = sharedState->getMorsel();
     if (morsel == nullptr) {
         return false;

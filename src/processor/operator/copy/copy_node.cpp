@@ -85,11 +85,11 @@ void CopyNode::executeInternal(ExecutionContext* context) {
         auto dataChunkToCopy = resultSet->getDataChunk(0);
         // All tuples in the resultSet are in the same data chunk.
         auto numTuplesToAppend = ArrowColumnVector::getArrowColumn(
-        auto nodeGroupOffset =
-            nodeGroupOffsetVector->getValue<int64_t>(nodeGroupOffsetVector->state->selVector->selectedPositions[0]) -
-            1;
             resultSet->getValueVector(copyNodeInfo.dataColumnPoses[0]).get())
                                      ->length();
+        auto nodeGroupOffset = nodeGroupOffsetVector->getValue<int64_t>(
+                                   nodeGroupOffsetVector->state->selVector->selectedPositions[0]) -
+                               1;
         uint64_t numAppendedTuples = 0;
         while (numAppendedTuples < numTuplesToAppend) {
             numAppendedTuples += localNodeGroup->append(

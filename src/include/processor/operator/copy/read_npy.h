@@ -22,7 +22,7 @@ public:
 
     inline std::unique_ptr<PhysicalOperator> clone() final {
         return std::make_unique<ReadNPY>(
-            nodeGroupOffsetPos, arrowColumnPoses, sharedState, id, paramsString);
+            nodeGroupOffsetPos, dataColumnPoses, sharedState, id, paramsString);
     }
 
 private:

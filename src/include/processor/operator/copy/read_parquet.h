@@ -17,7 +17,8 @@ public:
         std::unique_ptr<storage::ReadFileMorsel> morsel) override;
 
     inline std::unique_ptr<PhysicalOperator> clone() override {
-        return std::make_unique<ReadParquet>(nodeGroupOffsetPos, dataColumnPoses, sharedState, id, paramsString);
+        return std::make_unique<ReadParquet>(
+            nodeGroupOffsetPos, dataColumnPoses, sharedState, id, paramsString);
     }
 
 private:

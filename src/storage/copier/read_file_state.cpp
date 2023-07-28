@@ -32,16 +32,21 @@ void ReadCSVSharedState::countNumRows() {
 std::unique_ptr<ReadFileMorsel> ReadCSVSharedState::getMorsel() {
     std::unique_lock lck{mtx};
     std::shared_ptr<arrow::RecordBatch> resultRecordBatch;
+    if (currFileIdx >= filePaths.size()) {
+        // No more files to read.
+        return nullptr;
+    }
     if (leftOverData) {
         resultRecordBatch = std::move(leftOverData);
         leftOverData = nullptr;
     }
+    auto filePath = filePaths[currFileIdx];
     while (true) {
         if (currFileIdx >= filePaths.size() && resultRecordBatch->num_rows() == 0) {
             // No more files to read.
             return nullptr;
         }
-        auto filePath = filePaths[currFileIdx];
+        filePath = filePaths[currFileIdx];
         if (!reader) {
             reader = TableCopyUtils::createCSVReader(filePath, &csvReaderConfig, tableSchema);
         }
