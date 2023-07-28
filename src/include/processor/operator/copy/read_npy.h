@@ -9,10 +9,10 @@ namespace processor {
 
 class ReadNPY : public ReadFile {
 public:
-    ReadNPY(const DataPos& nodeGroupOffsetPos, std::vector<DataPos> dataColumnPoses,
+    ReadNPY(const DataPos& nodeOffsetPos, std::vector<DataPos> dataColumnPoses,
         std::shared_ptr<storage::ReadFileSharedState> sharedState, uint32_t id,
         const std::string& paramsString)
-        : ReadFile{nodeGroupOffsetPos, std::move(dataColumnPoses), std::move(sharedState),
+        : ReadFile{nodeOffsetPos, std::move(dataColumnPoses), std::move(sharedState),
               PhysicalOperatorType::READ_NPY, id, paramsString} {
         reader = std::make_unique<storage::NpyMultiFileReader>(this->sharedState->filePaths);
     }
@@ -22,7 +22,7 @@ public:
 
     inline std::unique_ptr<PhysicalOperator> clone() final {
         return std::make_unique<ReadNPY>(
-            nodeGroupOffsetPos, dataColumnPoses, sharedState, id, paramsString);
+            nodeOffsetPos, dataColumnPoses, sharedState, id, paramsString);
     }
 
 private:

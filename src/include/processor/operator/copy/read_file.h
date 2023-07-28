@@ -8,10 +8,10 @@ namespace processor {
 
 class ReadFile : public PhysicalOperator {
 public:
-    ReadFile(const DataPos& nodeGroupOffsetPos, std::vector<DataPos> dataColumnPoses,
+    ReadFile(const DataPos& nodeOffsetPos, std::vector<DataPos> dataColumnPoses,
         std::shared_ptr<storage::ReadFileSharedState> sharedState,
         PhysicalOperatorType operatorType, uint32_t id, const std::string& paramsString)
-        : PhysicalOperator{operatorType, id, paramsString}, nodeGroupOffsetPos{nodeGroupOffsetPos},
+        : PhysicalOperator{operatorType, id, paramsString}, nodeOffsetPos{nodeOffsetPos},
           dataColumnPoses{std::move(dataColumnPoses)}, sharedState{std::move(sharedState)} {}
 
     inline void initGlobalStateInternal(kuzu::processor::ExecutionContext* context) override {
@@ -28,7 +28,7 @@ protected:
 
 protected:
     std::shared_ptr<storage::ReadFileSharedState> sharedState;
-    DataPos nodeGroupOffsetPos;
+    DataPos nodeOffsetPos;
     std::vector<DataPos> dataColumnPoses;
 };
 

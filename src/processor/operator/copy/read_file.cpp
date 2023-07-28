@@ -4,13 +4,13 @@ namespace kuzu {
 namespace processor {
 
 bool ReadFile::getNextTuplesInternal(kuzu::processor::ExecutionContext* context) {
-    auto nodeGroupOffsetVector = resultSet->getValueVector(nodeGroupOffsetPos).get();
+    auto nodeOffsetVector = resultSet->getValueVector(nodeOffsetPos).get();
     auto morsel = sharedState->getMorsel();
     if (morsel == nullptr) {
         return false;
     }
-    nodeGroupOffsetVector->setValue(
-        nodeGroupOffsetVector->state->selVector->selectedPositions[0], morsel->rowIdxInFile);
+    nodeOffsetVector->setValue(
+        nodeOffsetVector->state->selVector->selectedPositions[0], morsel->rowIdxInFile);
     auto recordBatch = readTuples(std::move(morsel));
     for (auto i = 0u; i < dataColumnPoses.size(); i++) {
         common::ArrowColumnVector::setArrowColumn(

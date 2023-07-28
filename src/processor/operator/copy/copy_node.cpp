@@ -87,8 +87,8 @@ void CopyNode::executeInternal(ExecutionContext* context) {
         auto numTuplesToAppend = ArrowColumnVector::getArrowColumn(
             resultSet->getValueVector(copyNodeInfo.dataColumnPoses[0]).get())
                                      ->length();
-        auto nodeGroupOffset = nodeGroupOffsetVector->getValue<int64_t>(
-                                   nodeGroupOffsetVector->state->selVector->selectedPositions[0]) -
+        auto nodeGroupOffset = nodeOffsetVector->getValue<int64_t>(
+                                   nodeOffsetVector->state->selVector->selectedPositions[0]) -
                                1;
         uint64_t numAppendedTuples = 0;
         while (numAppendedTuples < numTuplesToAppend) {

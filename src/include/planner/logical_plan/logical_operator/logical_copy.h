@@ -12,12 +12,12 @@ class LogicalCopy : public LogicalOperator {
 public:
     LogicalCopy(const common::CopyDescription& copyDescription, common::table_id_t tableID,
         std::string tableName, binder::expression_vector dataColumnExpressions,
-        std::shared_ptr<binder::Expression> nodeGroupOffsetExpression,
+        std::shared_ptr<binder::Expression> nodeOffsetExpression,
         std::shared_ptr<binder::Expression> outputExpression)
         : LogicalOperator{LogicalOperatorType::COPY}, copyDescription{copyDescription},
           tableID{tableID}, tableName{std::move(tableName)}, dataColumnExpressions{std::move(
                                                                  dataColumnExpressions)},
-          nodeGroupOffsetExpression{std::move(nodeGroupOffsetExpression)},
+          nodeOffsetExpression{std::move(nodeOffsetExpression)},
           outputExpression{std::move(outputExpression)} {}
 
     inline std::string getExpressionsForPrinting() const override { return tableName; }
@@ -34,8 +34,8 @@ public:
         return outputExpression;
     }
 
-    inline std::shared_ptr<binder::Expression> getNodeGroupOffsetExpression() const {
-        return nodeGroupOffsetExpression;
+    inline std::shared_ptr<binder::Expression> getNodeOffsetExpression() const {
+        return nodeOffsetExpression;
     }
 
     void computeFactorizedSchema() override;
@@ -43,7 +43,7 @@ public:
 
     inline std::unique_ptr<LogicalOperator> copy() override {
         return make_unique<LogicalCopy>(copyDescription, tableID, tableName, dataColumnExpressions,
-            nodeGroupOffsetExpression, outputExpression);
+            nodeOffsetExpression, outputExpression);
     }
 
 private:
@@ -52,7 +52,7 @@ private:
     // Used for printing only.
     std::string tableName;
     binder::expression_vector dataColumnExpressions;
-    std::shared_ptr<binder::Expression> nodeGroupOffsetExpression;
+    std::shared_ptr<binder::Expression> nodeOffsetExpression;
     std::shared_ptr<binder::Expression> outputExpression;
 };
 
