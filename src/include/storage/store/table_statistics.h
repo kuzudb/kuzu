@@ -3,7 +3,7 @@
 #include <atomic>
 #include <mutex>
 
-#include "catalog/catalog_structs.h"
+#include "catalog/table_schema.h"
 #include "common/ser_deser.h"
 #include "spdlog/spdlog.h"
 #include "transaction/transaction.h"

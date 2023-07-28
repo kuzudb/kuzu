@@ -5,7 +5,7 @@
 #include <vector>
 
 #include "binder/bound_statement.h"
-#include "catalog/catalog_structs.h"
+#include "catalog/table_schema.h"
 #include "common/copier_config/copier_config.h"
 
 namespace kuzu {
