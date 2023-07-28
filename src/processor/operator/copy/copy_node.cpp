@@ -97,6 +97,7 @@ void CopyNode::executeInternal(ExecutionContext* context) {
             if (localNodeGroup->getNumNodes() == StorageConstants::NODE_GROUP_SIZE) {
                 // Current node group is full, flush it and reset it to empty.
                 auto nodeGroupIdx = nodeGroupOffset / StorageConstants::NODE_GROUP_SIZE - 1;
+                sharedState->currentNodeGroupIdx++;
                 localNodeGroup->setNodeGroupIdx(nodeGroupIdx);
                 appendNodeGroupToTableAndPopulateIndex(sharedState->table, localNodeGroup.get(),
                     sharedState->pkIndex.get(), sharedState->pkColumnID);
