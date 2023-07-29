@@ -124,7 +124,9 @@ void ValueVector::resetAuxiliaryBuffer() {
         return;
     }
     case PhysicalTypeID::VAR_LIST: {
-        reinterpret_cast<ListAuxiliaryBuffer*>(auxiliaryBuffer.get())->resetSize();
+        auto listAuxiliaryBuffer = reinterpret_cast<ListAuxiliaryBuffer*>(auxiliaryBuffer.get());
+        listAuxiliaryBuffer->resetSize();
+        listAuxiliaryBuffer->getDataVector()->resetAuxiliaryBuffer();
         return;
     }
     case PhysicalTypeID::STRUCT: {

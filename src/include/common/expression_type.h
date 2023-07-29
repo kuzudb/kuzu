@@ -199,6 +199,8 @@ const std::string OFFSET_FUNC_NAME = "OFFSET";
 const std::string NODES_FUNC_NAME = "NODES";
 const std::string RELS_FUNC_NAME = "RELS";
 const std::string PROPERTIES_FUNC_NAME = "PROPERTIES";
+const std::string IS_TRAIL_FUNC_NAME = "IS_TRAIL";
+const std::string IS_ACYCLIC_FUNC_NAME = "IS_ACYCLIC";
 
 // Blob functions
 const std::string OCTET_LENGTH_FUNC_NAME = "OCTET_LENGTH";

@@ -191,3 +191,7 @@ Elizabeth
 Farooq
 Greg
 Hubert Blaine Wolfeschlegelsteinhausenbergerdorff
+
+
+-STATEMENT MATCH (a) RETURN a.* UNION ALL MATCH (b) RETURN b.*
+---- ok
