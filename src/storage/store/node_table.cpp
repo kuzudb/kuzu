@@ -71,20 +71,6 @@ offset_t NodeTable::addNodeAndResetPropertiesWithPK(common::ValueVector* primary
     return nodeOffset;
 }
 
-void NodeTable::deleteNodes(ValueVector* nodeIDVector, ValueVector* primaryKeyVector) {
-    assert(nodeIDVector->state == primaryKeyVector->state && nodeIDVector->hasNoNullsGuarantee() &&
-           primaryKeyVector->hasNoNullsGuarantee());
-    if (nodeIDVector->state->selVector->selectedSize == 1) {
-        auto pos = nodeIDVector->state->selVector->selectedPositions[0];
-        deleteNode(nodeIDVector->readNodeOffset(pos), primaryKeyVector, pos);
-    } else {
-        for (auto i = 0u; i < nodeIDVector->state->selVector->selectedSize; ++i) {
-            auto pos = nodeIDVector->state->selVector->selectedPositions[i];
-            deleteNode(nodeIDVector->readNodeOffset(pos), primaryKeyVector, pos);
-        }
-    }
-}
-
 void NodeTable::prepareCommit() {
     if (pkIndex) {
         pkIndex->prepareCommit();

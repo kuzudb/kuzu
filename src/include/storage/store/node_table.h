@@ -52,16 +52,13 @@ public:
     }
     common::offset_t addNodeAndResetProperties();
     common::offset_t addNodeAndResetPropertiesWithPK(common::ValueVector* primaryKeyVector);
-    void deleteNodes(common::ValueVector* nodeIDVector, common::ValueVector* primaryKeyVector);
+    void deleteNode(
+        common::offset_t nodeOffset, common::ValueVector* primaryKeyVector, uint32_t pos) const;
 
     void prepareCommit();
     void prepareRollback();
     inline void checkpointInMemory() { pkIndex->checkpointInMemory(); }
     inline void rollbackInMemory() { pkIndex->rollbackInMemory(); }
-
-private:
-    void deleteNode(
-        common::offset_t nodeOffset, common::ValueVector* primaryKeyVector, uint32_t pos) const;
 
 private:
     NodesStatisticsAndDeletedIDs* nodesStatisticsAndDeletedIDs;

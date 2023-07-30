@@ -103,8 +103,10 @@ private:
         const std::vector<binder::BoundSetPropertyInfo*>& infos, LogicalPlan& plan);
     void appendSetRelProperty(
         const std::vector<binder::BoundSetPropertyInfo*>& infos, LogicalPlan& plan);
-    void appendDeleteNode(const std::vector<binder::BoundDeleteInfo*>& infos, LogicalPlan& plan);
-    void appendDeleteRel(const std::vector<binder::BoundDeleteInfo*>& infos, LogicalPlan& plan);
+    void appendDeleteNode(
+        const std::vector<binder::BoundDeleteInfo*>& boundInfos, LogicalPlan& plan);
+    void appendDeleteRel(
+        const std::vector<binder::BoundDeleteInfo*>& boundInfos, LogicalPlan& plan);
 
     std::unique_ptr<LogicalPlan> createUnionPlan(
         std::vector<std::unique_ptr<LogicalPlan>>& childrenPlans, bool isUnionAll);
