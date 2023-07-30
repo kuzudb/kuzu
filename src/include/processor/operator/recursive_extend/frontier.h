@@ -10,16 +10,10 @@ namespace processor {
 
 namespace frontier {
 using node_rel_id_t = std::pair<common::nodeID_t, common::relID_t>;
-struct InternalIDHasher {
-    std::size_t operator()(const common::internalID_t& internalID) const {
-        common::hash_t result;
-        function::Hash::operation<common::internalID_t>(internalID, result);
-        return result;
-    }
-};
-using node_id_set_t = std::unordered_set<common::nodeID_t, InternalIDHasher>;
+
+using node_id_set_t = std::unordered_set<common::nodeID_t, function::InternalIDHasher>;
 template<typename T>
-using node_id_map_t = std::unordered_map<common::nodeID_t, T, InternalIDHasher>;
+using node_id_map_t = std::unordered_map<common::nodeID_t, T, function::InternalIDHasher>;
 } // namespace frontier
 
 /*

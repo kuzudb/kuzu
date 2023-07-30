@@ -1,0 +1,43 @@
+-GROUP TinySnbReadTest
+-DATASET CSV tinysnb
+
+--
+
+-CASE FunctionPath
+
+-LOG PathFun1
+-STATEMENT MATCH p = (a:person)-[:knows]->(b:person)-[:knows]->(c:person) WHERE a.ID = 0 AND b.ID = 2 RETURN a.ID, b.ID, c.ID, is_acyclic(p)
+---- 3
+0|2|0|False
+0|2|3|True
+0|2|5|True
+
+-LOG PathFun2
+-STATEMENT MATCH p = (a:person)-[e:knows*2..2]->(b:person) WHERE is_acyclic(p) RETURN COUNT(*)
+---- 1
+24
+
+-LOG PathFun3
+-STATEMENT MATCH p = (a:person)-[e1:knows]->(b:person)-[e2:knows]-(c:person) WHERE a.ID = 0 AND b.ID = 2 AND is_trail(p) RETURN COUNT(*)
+---- 1
+5
+
+-LOG PathFun4
+-STATEMENT MATCH p = (a)-[e:knows|:studyAt|:workAt*1..2]-(b) WHERE a.ID=7 RETURN properties(nodes(p), 'ID'), is_acyclic(p)
+---- 8
+[7,6,5]|True
+[7,6,7]|False
+[7,6]|True
+[7,8,1]|True
+[7,8,7]|False
+[7,8]|True
+[7,9,7]|False
+[7,9]|True
+
+-LOG PathFun5
+-STATEMENT MATCH p = (a)-[e:knows*1..2]-(b) WHERE a.ID=7 RETURN properties(rels(p), '_id'), is_trail(p)
+---- 4
+[3:12,3:12]|False
+[3:12]|True
+[3:13,3:13]|False
+[3:13]|True

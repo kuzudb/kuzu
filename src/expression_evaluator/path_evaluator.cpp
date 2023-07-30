@@ -77,6 +77,7 @@ void PathExpressionEvaluator::init(
 }
 
 void PathExpressionEvaluator::evaluate() {
+    resultVector->resetAuxiliaryBuffer();
     for (auto& child : children) {
         child->evaluate();
     }
