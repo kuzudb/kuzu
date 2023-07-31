@@ -81,6 +81,7 @@ jobs:
         working-directory: tools/rust_api
         run: |
           cargo update -p half@2.3.1 --precise '2.2.1'
+          cargo update -p time --precise '0.3.23'
           cargo test --features arrow -- --test-threads=1
 
       - name: Rust example
@@ -183,6 +184,7 @@ jobs:
           set CFLAGS=/MDd
           set CXXFLAGS=/MDd /std:c++20
           cargo update -p half@2.3.1 --precise 2.2.1
+          cargo update -p time --precise '0.3.23'
           cargo test -- --test-threads=1
 
       - name: Java test
