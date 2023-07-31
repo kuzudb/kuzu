@@ -5,6 +5,7 @@
 #include "common/string_utils.h"
 
 using namespace kuzu::common;
+using namespace kuzu::storage;
 
 namespace kuzu {
 namespace catalog {
@@ -124,7 +125,7 @@ std::unique_ptr<TableSchema> TableSchema::deserialize(FileInfo* fileInfo, uint64
         result = RelTableSchema::deserialize(fileInfo, offset);
     } break;
     default: {
-        throw common::NotImplementedException{"TableSchema::deserialize"};
+        throw NotImplementedException{"TableSchema::deserialize"};
     }
     }
     result->tableName = tableName;

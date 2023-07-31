@@ -1,7 +1,6 @@
 #include "processor/operator/copy/read_npy.h"
 
 #include "common/constants.h"
-#include "storage/in_mem_storage_structure/in_mem_column_chunk.h"
 
 using namespace kuzu::storage;
 

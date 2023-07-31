@@ -153,10 +153,10 @@ void CatalogContent::readFromFile(const std::string& directory, DBFileType dbFil
     table_id_t tableID;
     for (auto i = 0u; i < numTables; i++) {
         SerDeser::deserializeValue(tableID, fileInfo.get(), offset);
-        tableSchemas.emplace(tableID, TableSchema::deserialize(fileInfo.get(), offset));
+        tableSchemas[tableID] = TableSchema::deserialize(fileInfo.get(), offset);
     }
     for (auto& [tableID_, tableSchema] : tableSchemas) {
-        tableNameToIDMap.emplace(tableSchema->tableName, tableID_);
+        tableNameToIDMap[tableSchema->tableName] = tableID_;
     }
     SerDeser::deserializeValue(nextTableID, fileInfo.get(), offset);
     SerDeser::deserializeUnorderedMap(macros, fileInfo.get(), offset);

@@ -40,6 +40,7 @@ constexpr struct_field_idx_t INVALID_STRUCT_FIELD_IDX = UINT64_MAX;
 using row_idx_t = uint64_t;
 constexpr row_idx_t INVALID_ROW_IDX = UINT64_MAX;
 constexpr uint32_t UNDEFINED_CAST_COST = UINT32_MAX;
+using node_group_idx_t = uint64_t;
 
 // System representation for a variable-sized overflow value.
 struct overflow_value_t {

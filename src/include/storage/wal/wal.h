@@ -109,7 +109,7 @@ public:
     void logOverflowFileNextBytePosRecord(
         StorageStructureID storageStructureID, uint64_t prevNextByteToWriteTo);
 
-    void logCopyNodeRecord(common::table_id_t tableID);
+    void logCopyNodeRecord(common::table_id_t tableID, common::page_idx_t startPageIdx);
 
     void logCopyRelRecord(common::table_id_t tableID);
 
@@ -136,6 +136,7 @@ public:
     }
 
     inline std::string getDirectory() const { return directory; }
+    inline BufferManager* getBufferManager() const { return &bufferManager; }
 
     inline void addToUpdatedNodeTables(common::table_id_t nodeTableID) {
         updatedNodeTables.insert(nodeTableID);

@@ -4,6 +4,7 @@
 #include "common/utils.h"
 #include "storage/index/hash_index_header.h"
 #include "storage/index/hash_index_slot.h"
+#include "storage/store/node_column.h"
 
 using namespace kuzu::common;
 using namespace kuzu::transaction;
@@ -122,6 +123,24 @@ template<typename U>
 uint64_t BaseDiskArray<U>::pushBack(U val) {
     std::unique_lock xLck{diskArraySharedMtx};
     hasTransactionalUpdates = true;
+    return pushBackNoLock(val);
+}
+
+template<typename U>
+uint64_t BaseDiskArray<U>::resize(uint64_t newNumElements) {
+    std::unique_lock xLck{diskArraySharedMtx};
+    hasTransactionalUpdates = true;
+    auto currentNumElements = getNumElementsNoLock(transaction::TransactionType::WRITE);
+    U val;
+    while (currentNumElements < newNumElements) {
+        pushBackNoLock(val);
+        currentNumElements++;
+    }
+    return currentNumElements;
+}
+
+template<typename U>
+uint64_t BaseDiskArray<U>::pushBackNoLock(U val) {
     uint64_t elementIdx;
     StorageStructureUtils::updatePage((BMFileHandle&)(fileHandle), storageStructureID,
         headerPageIdx, false /* not inserting a new page */, *bufferManager, *wal,
@@ -503,18 +522,22 @@ template class BaseDiskArray<uint32_t>;
 template class BaseDiskArray<Slot<int64_t>>;
 template class BaseDiskArray<Slot<ku_string_t>>;
 template class BaseDiskArray<HashIndexHeader>;
+template class BaseDiskArray<ColumnChunkMetadata>;
 template class BaseInMemDiskArray<uint32_t>;
 template class BaseInMemDiskArray<Slot<int64_t>>;
 template class BaseInMemDiskArray<Slot<ku_string_t>>;
 template class BaseInMemDiskArray<HashIndexHeader>;
+template class BaseInMemDiskArray<ColumnChunkMetadata>;
 template class InMemDiskArrayBuilder<uint32_t>;
 template class InMemDiskArrayBuilder<Slot<int64_t>>;
 template class InMemDiskArrayBuilder<Slot<ku_string_t>>;
 template class InMemDiskArrayBuilder<HashIndexHeader>;
+template class InMemDiskArrayBuilder<ColumnChunkMetadata>;
 template class InMemDiskArray<uint32_t>;
 template class InMemDiskArray<Slot<int64_t>>;
 template class InMemDiskArray<Slot<ku_string_t>>;
 template class InMemDiskArray<HashIndexHeader>;
+template class InMemDiskArray<ColumnChunkMetadata>;
 
 } // namespace storage
 } // namespace kuzu

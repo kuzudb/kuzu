@@ -1,6 +1,6 @@
 #pragma once
 
-#include "add_property.h"
+#include "processor/operator/ddl/add_property.h"
 
 namespace kuzu {
 namespace processor {
@@ -12,8 +12,8 @@ public:
         std::unique_ptr<evaluator::BaseExpressionEvaluator> expressionEvaluator,
         storage::StorageManager& storageManager, const DataPos& outputPos, uint32_t id,
         const std::string& paramsString)
-        : AddProperty(catalog, tableID, std::move(propertyName), std::move(dataType),
-              std::move(expressionEvaluator), storageManager, outputPos, id, paramsString) {}
+        : AddProperty{catalog, tableID, std::move(propertyName), std::move(dataType),
+              std::move(expressionEvaluator), storageManager, outputPos, id, paramsString} {}
 
     void executeDDLInternal() override;
 

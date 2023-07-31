@@ -344,12 +344,11 @@ void RelTable::initEmptyRelsForNewNode(nodeID_t& nodeID) {
     listsUpdatesStore->initNewlyAddedNodes(nodeID);
 }
 
-void RelTable::batchInitEmptyRelsForNewNodes(
-    const RelTableSchema* relTableSchema, uint64_t numNodesInTable) {
+void RelTable::batchInitEmptyRelsForNewNodes(table_id_t relTableID, uint64_t numNodesInTable) {
     fwdRelTableData->batchInitEmptyRelsForNewNodes(
-        relTableSchema, numNodesInTable, wal->getDirectory());
+        relTableID, numNodesInTable, wal->getDirectory());
     bwdRelTableData->batchInitEmptyRelsForNewNodes(
-        relTableSchema, numNodesInTable, wal->getDirectory());
+        relTableID, numNodesInTable, wal->getDirectory());
 }
 
 void RelTable::addProperty(const Property& property, RelTableSchema& relTableSchema) {
@@ -411,9 +410,9 @@ void DirectedRelTableData::addProperty(const Property& property, WAL* wal) {
 }
 
 void DirectedRelTableData::batchInitEmptyRelsForNewNodes(
-    const RelTableSchema* relTableSchema, uint64_t numNodesInTable, const std::string& directory) {
+    table_id_t relTableID, uint64_t numNodesInTable, const std::string& directory) {
     if (!isSingleMultiplicity()) {
-        StorageUtils::initializeListsHeaders(relTableSchema, numNodesInTable, directory, direction);
+        StorageUtils::initializeListsHeaders(relTableID, numNodesInTable, directory, direction);
     }
 }
 

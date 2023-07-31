@@ -9,12 +9,11 @@ namespace processor {
 
 class ReadNPY : public ReadFile {
 public:
-    ReadNPY(const DataPos& rowIdxVectorPos, const DataPos& filePathVectorPos,
-        std::vector<DataPos> dataColumnPoses,
+    ReadNPY(std::vector<DataPos> dataColumnPoses,
         std::shared_ptr<storage::ReadFileSharedState> sharedState, uint32_t id,
         const std::string& paramsString)
-        : ReadFile{rowIdxVectorPos, filePathVectorPos, std::move(dataColumnPoses),
-              std::move(sharedState), PhysicalOperatorType::READ_NPY, id, paramsString} {
+        : ReadFile{std::move(dataColumnPoses), std::move(sharedState),
+              PhysicalOperatorType::READ_NPY, id, paramsString} {
         reader = std::make_unique<storage::NpyMultiFileReader>(this->sharedState->filePaths);
     }
 
@@ -22,8 +21,7 @@ public:
         std::unique_ptr<storage::ReadFileMorsel> morsel) final;
 
     inline std::unique_ptr<PhysicalOperator> clone() final {
-        return std::make_unique<ReadNPY>(
-            rowIdxVectorPos, filePathVectorPos, dataColumnPoses, sharedState, id, paramsString);
+        return std::make_unique<ReadNPY>(dataColumnPoses, sharedState, id, paramsString);
     }
 
 private:

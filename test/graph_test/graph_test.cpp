@@ -40,12 +40,6 @@ void BaseGraphTest::validateListFilesExistence(
 
 void BaseGraphTest::validateNodeColumnFilesExistence(
     NodeTableSchema* nodeTableSchema, DBFileType dbFileType, bool existence) {
-    for (auto& property : nodeTableSchema->properties) {
-        validateColumnFilesExistence(
-            StorageUtils::getNodePropertyColumnFName(
-                databasePath, nodeTableSchema->tableID, property->getPropertyID(), dbFileType),
-            existence, containsOverflowFile(property->getDataType()->getLogicalTypeID()));
-    }
     validateColumnFilesExistence(
         StorageUtils::getNodeIndexFName(databasePath, nodeTableSchema->tableID, dbFileType),
         existence,

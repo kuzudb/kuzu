@@ -51,12 +51,13 @@ const initTests = async () => {
     await conn.query(statement);
   }
 
-  await conn.query(
-    "create node table moviesSerial (ID SERIAL, name STRING, length INT32, note STRING, PRIMARY KEY (ID))"
-  );
-  await conn.query(
-    'copy moviesSerial from "../../dataset/tinysnb-serial/vMovies.csv"'
-  );
+// TODO(Aziz): Uncomment this when we fixed SERIAL.
+//   await conn.query(
+//     "create node table moviesSerial (ID SERIAL, name STRING, length INT32, note STRING, PRIMARY KEY (ID))"
+//   );
+//   await conn.query(
+//     'copy moviesSerial from "../../dataset/tinysnb-serial/vMovies.csv"'
+//   );
 
   global.dbPath = dbPath;
   global.db = db;

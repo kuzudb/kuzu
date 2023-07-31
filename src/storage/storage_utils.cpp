@@ -82,6 +82,12 @@ std::unique_ptr<FileInfo> StorageUtils::getFileInfoForReadWrite(
     const std::string& directory, StorageStructureID storageStructureID) {
     std::string fName;
     switch (storageStructureID.storageStructureType) {
+    case StorageStructureType::METADATA: {
+        fName = getMetadataFName(directory);
+    } break;
+    case StorageStructureType::DATA: {
+        fName = getDataFName(directory);
+    } break;
     case StorageStructureType::COLUMN: {
         fName = getColumnFName(directory, storageStructureID);
     } break;
@@ -109,14 +115,7 @@ std::string StorageUtils::getColumnFName(
     ColumnFileID columnFileID = storageStructureID.columnFileID;
     switch (columnFileID.columnType) {
     case ColumnType::NODE_PROPERTY_COLUMN: {
-        fName = getNodePropertyColumnFName(directory,
-            storageStructureID.columnFileID.nodePropertyColumnID.tableID,
-            storageStructureID.columnFileID.nodePropertyColumnID.propertyID, DBFileType::ORIGINAL);
-        if (storageStructureID.isOverflow) {
-            fName = getOverflowFileName(fName);
-        } else if (storageStructureID.isNullBits) {
-            fName = getPropertyNullFName(fName);
-        }
+        fName = getDataFName(directory);
     } break;
     case ColumnType::ADJ_COLUMN: {
         auto& relNodeTableAndDir = columnFileID.adjColumnID.relNodeTableAndDir;
@@ -179,23 +178,6 @@ std::string StorageUtils::getListFName(
     default:
         assert(false);
     }
-}
-
-void StorageUtils::createFileForNodePropertyWithDefaultVal(table_id_t tableID,
-    const std::string& directory, const catalog::Property& property, uint8_t* defaultVal,
-    bool isDefaultValNull, uint64_t numNodes) {
-    auto inMemColumn =
-        std::make_unique<InMemColumn>(StorageUtils::getNodePropertyColumnFName(directory, tableID,
-                                          property.getPropertyID(), DBFileType::WAL_VERSION),
-            *property.getDataType());
-    auto inMemColumnChunk =
-        inMemColumn->createInMemColumnChunk(0, numNodes - 1, nullptr /* copyDescription */);
-    if (!isDefaultValNull) {
-        // TODO(Guodong): Rework this.
-        // inMemColumn->fillWithDefaultVal(defaultVal, numNodes, property.dataType);
-    }
-    inMemColumn->flushChunk(inMemColumnChunk.get());
-    inMemColumn->saveToFile();
 }
 
 void StorageUtils::createFileForRelPropertyWithDefaultVal(RelTableSchema* tableSchema,
@@ -295,6 +277,7 @@ std::string StorageUtils::appendSuffixOrInsertBeforeWALSuffix(
 }
 
 uint32_t PageUtils::getNumElementsInAPage(uint32_t elementSize, bool hasNull) {
+    assert(elementSize > 0);
     auto numBytesPerNullEntry = NullMask::NUM_BITS_PER_NULL_ENTRY >> 3;
     auto numNullEntries =
         hasNull ? (uint32_t)ceil(
@@ -306,11 +289,10 @@ uint32_t PageUtils::getNumElementsInAPage(uint32_t elementSize, bool hasNull) {
            elementSize;
 }
 
-void StorageUtils::initializeListsHeaders(const RelTableSchema* relTableSchema,
-    uint64_t numNodesInTable, const std::string& directory, RelDataDirection relDirection) {
+void StorageUtils::initializeListsHeaders(table_id_t relTableID, uint64_t numNodesInTable,
+    const std::string& directory, RelDataDirection relDirection) {
     auto listHeadersBuilder = make_unique<ListHeadersBuilder>(
-        StorageUtils::getAdjListsFName(
-            directory, relTableSchema->tableID, relDirection, DBFileType::ORIGINAL),
+        StorageUtils::getAdjListsFName(directory, relTableID, relDirection, DBFileType::ORIGINAL),
         numNodesInTable);
     listHeadersBuilder->saveToDisk();
 }

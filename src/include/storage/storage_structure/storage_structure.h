@@ -18,6 +18,8 @@ typedef uint64_t chunk_idx_t;
 
 class ListsUpdateIterator;
 
+// TODO(Guodong): Clean up this class and also StorageStructureID once we finish node group-based
+// rel tables. See here also https://github.com/kuzudb/kuzu/pull/1802#discussion_r1275569590.
 class StorageStructure {
     friend class ListsUpdateIterator;
 

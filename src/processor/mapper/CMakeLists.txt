@@ -3,6 +3,7 @@ add_library(kuzu_processor_mapper
         create_factorized_table_scan.cpp
         create_result_collector.cpp
         expression_mapper.cpp
+        map_acc_hash_join.cpp
         map_accumulate.cpp
         map_aggregate.cpp
         map_acc_hash_join.cpp

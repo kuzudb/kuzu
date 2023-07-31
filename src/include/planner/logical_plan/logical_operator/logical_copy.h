@@ -12,15 +12,11 @@ class LogicalCopy : public LogicalOperator {
 public:
     LogicalCopy(const common::CopyDescription& copyDescription, common::table_id_t tableID,
         std::string tableName, binder::expression_vector dataColumnExpressions,
-        std::shared_ptr<binder::Expression> rowIdxExpression,
-        std::shared_ptr<binder::Expression> filePathExpression,
         std::shared_ptr<binder::Expression> outputExpression)
         : LogicalOperator{LogicalOperatorType::COPY},
           copyDescription{copyDescription}, tableID{tableID}, tableName{std::move(tableName)},
-          dataColumnExpressions{std::move(dataColumnExpressions)}, rowIdxExpression{std::move(
-                                                                       rowIdxExpression)},
-          filePathExpression{std::move(filePathExpression)}, outputExpression{
-                                                                 std::move(outputExpression)} {}
+          dataColumnExpressions{std::move(dataColumnExpressions)}, outputExpression{std::move(
+                                                                       outputExpression)} {}
 
     inline std::string getExpressionsForPrinting() const override { return tableName; }
 
@@ -32,14 +28,6 @@ public:
         return dataColumnExpressions;
     }
 
-    inline std::shared_ptr<binder::Expression> getRowIdxExpression() const {
-        return rowIdxExpression;
-    }
-
-    inline std::shared_ptr<binder::Expression> getFilePathExpression() const {
-        return filePathExpression;
-    }
-
     inline std::shared_ptr<binder::Expression> getOutputExpression() const {
         return outputExpression;
     }
@@ -48,8 +36,8 @@ public:
     void computeFlatSchema() override;
 
     inline std::unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalCopy>(copyDescription, tableID, tableName, dataColumnExpressions,
-            rowIdxExpression, filePathExpression, outputExpression);
+        return make_unique<LogicalCopy>(
+            copyDescription, tableID, tableName, dataColumnExpressions, outputExpression);
     }
 
 private:
@@ -58,8 +46,6 @@ private:
     // Used for printing only.
     std::string tableName;
     binder::expression_vector dataColumnExpressions;
-    std::shared_ptr<binder::Expression> rowIdxExpression;
-    std::shared_ptr<binder::Expression> filePathExpression;
     std::shared_ptr<binder::Expression> outputExpression;
 };
 
