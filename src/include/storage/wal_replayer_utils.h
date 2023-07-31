@@ -6,13 +6,25 @@
 #include "catalog/catalog.h"
 #include "storage/in_mem_storage_structure/in_mem_column.h"
 #include "storage/in_mem_storage_structure/in_mem_lists.h"
+#include "storage/store/node_column.h"
 
 namespace kuzu {
 namespace storage {
 
 class WALReplayerUtils {
 public:
-    static inline void removeDBFilesForNodeTable(
+    static inline void initPropertyMetadataDAsOnDisk(
+        catalog::Property& property, BMFileHandle* metadataFH) {
+        saveMetaDAs(metadataFH, property.metadataDAHInfo);
+    }
+    static inline void initTableMetadataDAsOnDisk(
+        catalog::NodeTableSchema* tableSchema, BMFileHandle* metadataFH) {
+        for (auto& property : tableSchema->properties) {
+            initPropertyMetadataDAsOnDisk(property, metadataFH);
+        }
+    }
+
+    static inline void removeHashIndexFile(
         catalog::NodeTableSchema* tableSchema, const std::string& directory) {
         fileOperationOnNodeFiles(
             tableSchema, directory, removeColumnFilesIfExists, removeListFilesIfExists);
@@ -24,18 +36,6 @@ public:
             tableSchema, directory, removeColumnFilesIfExists, removeListFilesIfExists);
     }
 
-    static inline void removeDBFilesForNodeProperty(const std::string& directory,
-        common::table_id_t tableID, common::property_id_t propertyID) {
-        removeColumnFilesIfExists(StorageUtils::getNodePropertyColumnFName(
-            directory, tableID, propertyID, common::DBFileType::ORIGINAL));
-    }
-
-    static inline void renameDBFilesForNodeProperty(const std::string& directory,
-        common::table_id_t tableID, common::property_id_t propertyID) {
-        replaceOriginalColumnFilesWithWALVersionIfExists(StorageUtils::getNodePropertyColumnFName(
-            directory, tableID, propertyID, common::DBFileType::ORIGINAL));
-    }
-
     static void removeDBFilesForRelProperty(const std::string& directory,
         catalog::RelTableSchema* relTableSchema, common::property_id_t propertyID);
 
@@ -43,6 +43,7 @@ public:
         const std::string& directory,
         const std::map<common::table_id_t, common::offset_t>& maxNodeOffsetsPerTable);
 
+    // Create empty hash index file for the new node table.
     static void createEmptyDBFilesForNewNodeTable(
         catalog::NodeTableSchema* nodeTableSchema, const std::string& directory);
 
@@ -50,6 +51,19 @@ public:
         catalog::RelTableSchema* relTableSchema, common::property_id_t propertyID);
 
 private:
+    static inline void saveMetaDAs(
+        BMFileHandle* metadataFH, const catalog::MetadataDAHInfo& metaDAHeaderInfo) {
+        std::make_unique<InMemDiskArrayBuilder<ColumnChunkMetadata>>(
+            *reinterpret_cast<FileHandle*>(metadataFH), metaDAHeaderInfo.dataDAHPageIdx, 0)
+            ->saveToDisk();
+        std::make_unique<InMemDiskArrayBuilder<ColumnChunkMetadata>>(
+            *reinterpret_cast<FileHandle*>(metadataFH), metaDAHeaderInfo.nullDAHPageIdx, 0)
+            ->saveToDisk();
+        for (auto& childMetaDAHeaderInfo : metaDAHeaderInfo.childrenInfos) {
+            saveMetaDAs(metadataFH, childMetaDAHeaderInfo);
+        }
+    }
+
     static inline void removeColumnFilesForPropertyIfExists(const std::string& directory,
         common::table_id_t relTableID, common::table_id_t boundTableID,
         common::RelDataDirection relDirection, common::property_id_t propertyID,
@@ -103,10 +117,6 @@ private:
         common::RelDataDirection relDirection, bool isColumnProperty,
         std::function<void(std::string fileName)> columnFileOperation,
         std::function<void(std::string fileName)> listFileOperation);
-
-    static void fileOperationOnNodePropertyFile(const std::string& propertyBaseFileName,
-        common::LogicalType& propertyType,
-        std::function<void(std::string fileName)> columnFileOperation);
 };
 
 } // namespace storage

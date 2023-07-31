@@ -11,6 +11,10 @@
 #include "common/types/types_include.h"
 
 namespace kuzu {
+namespace storage {
+class BMFileHandle;
+}
+
 namespace catalog {
 
 enum class TableType : uint8_t { NODE, REL, INVALID };
@@ -19,7 +23,18 @@ enum class RelMultiplicity : uint8_t { MANY_MANY, MANY_ONE, ONE_MANY, ONE_ONE };
 RelMultiplicity getRelMultiplicityFromString(const std::string& relMultiplicityString);
 std::string getRelMultiplicityAsString(RelMultiplicity relMultiplicity);
 
-struct Property {
+// DAH is the abbreviation for Disk Array Header.
+struct MetadataDAHInfo {
+    common::page_idx_t dataDAHPageIdx = common::INVALID_PAGE_IDX;
+    common::page_idx_t nullDAHPageIdx = common::INVALID_PAGE_IDX;
+    std::vector<MetadataDAHInfo> childrenInfos;
+
+    void serialize(common::FileInfo* fileInfo, uint64_t& offset) const;
+    static std::unique_ptr<MetadataDAHInfo> deserialize(
+        common::FileInfo* fileInfo, uint64_t& offset);
+};
+
+class Property {
 public:
     static constexpr std::string_view REL_FROM_PROPERTY_NAME = "_FROM_";
     static constexpr std::string_view REL_TO_PROPERTY_NAME = "_TO_";
@@ -34,12 +49,15 @@ public:
 
     void serialize(common::FileInfo* fileInfo, uint64_t& offset) const;
     static std::unique_ptr<Property> deserialize(common::FileInfo* fileInfo, uint64_t& offset);
+    static void initMetadataDAHInfo(const common::LogicalType& dataType,
+        storage::BMFileHandle* metadataFH, MetadataDAHInfo& metadataDAHInfo);
 
 public:
     std::string name;
     common::LogicalType dataType;
     common::property_id_t propertyID;
     common::table_id_t tableID;
+    MetadataDAHInfo metadataDAHInfo;
 };
 
 class TableSchema {
@@ -69,10 +87,10 @@ public:
             [&propertyName](const Property& property) { return property.name == propertyName; });
     }
     inline const std::vector<Property>& getProperties() const { return properties; }
-    inline void addProperty(std::string propertyName, common::LogicalType dataType) {
-        properties.emplace_back(
-            std::move(propertyName), std::move(dataType), increaseNextPropertyID(), tableID);
-    }
+    inline TableType getTableType() const { return tableType; }
+
+    void addProperty(
+        std::string propertyName, common::LogicalType dataType, storage::BMFileHandle* metadataFH);
 
     std::string getPropertyName(common::property_id_t propertyID) const;
 

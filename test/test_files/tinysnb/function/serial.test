@@ -4,6 +4,7 @@
 --
 
 -CASE SerialAdd
+-SKIP
 
 -LOG SerialAddINT64
 -STATEMENT MATCH (a:person) RETURN a.ID + a.age

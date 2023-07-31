@@ -191,7 +191,7 @@ void InMemOverflowFile::copyStringOverflow(
 void InMemOverflowFile::copyListOverflowFromFile(InMemOverflowFile* srcInMemOverflowFile,
     const PageByteCursor& srcOverflowCursor, PageByteCursor& dstOverflowCursor,
     ku_list_t* dstKUList, LogicalType* listChildDataType) {
-    auto numBytesOfListElement = storage::StorageUtils::getDataTypeSize(*listChildDataType);
+    auto numBytesOfListElement = StorageUtils::getDataTypeSize(*listChildDataType);
     // Allocate a new page if necessary.
     if (dstOverflowCursor.offsetInPage + (dstKUList->size * numBytesOfListElement) >=
             BufferPoolConstants::PAGE_4KB_SIZE ||

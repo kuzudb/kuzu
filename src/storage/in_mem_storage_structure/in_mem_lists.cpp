@@ -114,7 +114,7 @@ void InMemLists::templateCopyArrayToRelLists(
 template<>
 void InMemLists::templateCopyArrayToRelLists<bool>(
     arrow::Array* boundNodeOffsets, arrow::Array* posInRelList, arrow::Array* array) {
-    auto& boolArray = (arrow::BooleanArray&)array;
+    auto boolArray = (arrow::BooleanArray*)array;
     auto offsets = boundNodeOffsets->data()->GetValues<offset_t>(1);
     auto positions = posInRelList->data()->GetValues<int64_t>(1);
     if (array->data()->MayHaveNulls()) {
@@ -122,12 +122,12 @@ void InMemLists::templateCopyArrayToRelLists<bool>(
             if (array->IsNull(i)) {
                 continue;
             }
-            bool val = boolArray.Value(i);
+            bool val = boolArray->Value(i);
             setValue(offsets[i], positions[i], (uint8_t*)&val);
         }
     } else {
         for (auto i = 0u; i < array->length(); i++) {
-            bool val = boolArray.Value(i);
+            bool val = boolArray->Value(i);
             setValue(offsets[i], positions[i], (uint8_t*)&val);
         }
     }

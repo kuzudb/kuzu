@@ -7,7 +7,7 @@
 
 namespace kuzu {
 namespace storage {
-class Column;
+class NodeColumn;
 }
 
 namespace main {
@@ -26,7 +26,7 @@ public:
 
 private:
     void scanColumn(
-        storage::Column* column, common::offset_t* offsets, size_t size, uint8_t* result);
+        storage::NodeColumn* column, common::offset_t* offsets, size_t size, uint8_t* result);
 
 private:
     catalog::Catalog* catalog;

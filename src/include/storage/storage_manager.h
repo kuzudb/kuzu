@@ -6,10 +6,6 @@
 #include "storage/store/rels_store.h"
 #include "storage/wal/wal.h"
 
-namespace spdlog {
-class logger;
-}
-
 namespace kuzu {
 namespace storage {
 
@@ -40,13 +36,14 @@ public:
     }
     inline std::string getDirectory() const { return wal->getDirectory(); }
     inline WAL* getWAL() const { return wal; }
+    inline BMFileHandle* getDataFH() const { return dataFH.get(); }
 
 private:
-    std::shared_ptr<spdlog::logger> logger;
-    std::unique_ptr<RelsStore> relsStore;
-    std::unique_ptr<NodesStore> nodesStore;
+    std::unique_ptr<BMFileHandle> dataFH;
     catalog::Catalog& catalog;
     WAL* wal;
+    std::unique_ptr<RelsStore> relsStore;
+    std::unique_ptr<NodesStore> nodesStore;
 };
 
 } // namespace storage

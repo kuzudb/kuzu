@@ -3,11 +3,14 @@
 namespace kuzu {
 namespace storage {
 
-NodesStore::NodesStore(const catalog::Catalog& catalog, BufferManager& bufferManager, WAL* wal)
-    : nodesStatisticsAndDeletedIDs{wal->getDirectory()}, wal{wal} {
+NodesStore::NodesStore(
+    BMFileHandle* dataFH, const catalog::Catalog& catalog, BufferManager& bufferManager, WAL* wal)
+    : nodesStatisticsAndDeletedIDs{wal->getDirectory()}, wal{wal}, dataFH{dataFH},
+      metadataFH{catalog.getMetadataFH()} {
     for (auto& tableIDSchema : catalog.getReadOnlyVersion()->getNodeTableSchemas()) {
-        nodeTables[tableIDSchema.first] = std::make_unique<NodeTable>(
-            &nodesStatisticsAndDeletedIDs, bufferManager, wal, tableIDSchema.second.get());
+        nodeTables[tableIDSchema.first] =
+            std::make_unique<NodeTable>(dataFH, catalog.getMetadataFH(),
+                &nodesStatisticsAndDeletedIDs, bufferManager, wal, tableIDSchema.second.get());
     }
 }
 

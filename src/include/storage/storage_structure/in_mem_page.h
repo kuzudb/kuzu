@@ -13,13 +13,10 @@ namespace storage {
 class InMemPage {
 
 public:
+    explicit InMemPage();
     // Creates an in-memory page with a boolean array to store NULL bits
     InMemPage(uint32_t maxNumElements, uint16_t numBytesForElement, bool hasNullEntries);
 
-    inline bool isElemPosNull(uint16_t elemPosInPage) const { return nullMask[elemPosInPage]; }
-
-    uint8_t* writeNodeID(
-        common::nodeID_t* nodeID, uint32_t byteOffsetInPage, uint32_t elemPosInPage);
     uint8_t* write(uint32_t byteOffsetInPage, uint32_t elemPosInPage, const uint8_t* elem,
         uint32_t numBytesForElem);
 

@@ -27,6 +27,11 @@ public:
 
     std::string getOutputMsg() override { return {"Add Succeed."}; }
 
+    std::unique_ptr<PhysicalOperator> clone() override {
+        return make_unique<AddProperty>(catalog, tableID, propertyName, dataType,
+            expressionEvaluator->clone(), storageManager, outputPos, id, paramsString);
+    }
+
 protected:
     inline bool isDefaultValueNull() const {
         auto expressionVector = expressionEvaluator->resultVector;

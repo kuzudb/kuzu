@@ -1,6 +1,9 @@
 #include "processor/operator/update/create.h"
 
+#include "storage/copier/node_group.h"
+
 using namespace kuzu::common;
+using namespace kuzu::storage;
 
 namespace kuzu {
 namespace processor {
@@ -19,16 +22,15 @@ bool CreateNode::getNextTuplesInternal(ExecutionContext* context) {
     if (!children[0]->getNextTuple(context)) {
         return false;
     }
-    offset_t nodeOffset;
     for (auto i = 0u; i < createNodeInfos.size(); ++i) {
         auto createNodeInfo = createNodeInfos[i].get();
         auto nodeTable = createNodeInfo->table;
+        auto nodeOffset = nodeTable->addNode(context->transaction);
+        nodeTable->setPropertiesToNull(nodeOffset);
         if (createNodeInfo->primaryKeyEvaluator != nullptr) {
             createNodeInfo->primaryKeyEvaluator->evaluate();
             auto primaryKeyVector = createNodeInfo->primaryKeyEvaluator->resultVector.get();
-            nodeOffset = nodeTable->addNodeAndResetPropertiesWithPK(primaryKeyVector);
-        } else {
-            nodeOffset = nodeTable->addNodeAndResetProperties();
+            nodeTable->insertPK(nodeOffset, primaryKeyVector);
         }
         auto vector = outValueVectors[i];
         nodeID_t nodeID{nodeOffset, nodeTable->getTableID()};

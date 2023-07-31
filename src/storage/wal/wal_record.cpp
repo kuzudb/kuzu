@@ -22,6 +22,22 @@ std::string storageStructureTypeToString(StorageStructureType storageStructureTy
     }
 }
 
+StorageStructureID StorageStructureID::newDataID() {
+    StorageStructureID retVal;
+    retVal.isOverflow = false;
+    retVal.isNullBits = false;
+    retVal.storageStructureType = StorageStructureType::DATA;
+    return retVal;
+}
+
+StorageStructureID StorageStructureID::newMetadataID() {
+    StorageStructureID retVal;
+    retVal.isOverflow = false;
+    retVal.isNullBits = false;
+    retVal.storageStructureType = StorageStructureType::METADATA;
+    return retVal;
+}
+
 StorageStructureID StorageStructureID::newNodePropertyColumnID(
     table_id_t tableID, property_id_t propertyID) {
     StorageStructureID retVal;
@@ -187,10 +203,10 @@ WALRecord WALRecord::newOverflowFileNextBytePosRecord(
     return retVal;
 }
 
-WALRecord WALRecord::newCopyNodeRecord(table_id_t tableID) {
+WALRecord WALRecord::newCopyNodeRecord(table_id_t tableID, common::page_idx_t startPageIdx) {
     WALRecord retVal;
     retVal.recordType = WALRecordType::COPY_NODE_RECORD;
-    retVal.copyNodeRecord = CopyNodeRecord(tableID);
+    retVal.copyNodeRecord = CopyNodeRecord(tableID, startPageIdx);
     return retVal;
 }
 

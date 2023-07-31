@@ -62,7 +62,7 @@ public:
 public:
     std::unique_ptr<Connection> readConn;
     NodeTable* personNodeTable;
-    Column* idColumn;
+    NodeColumn* idColumn;
 };
 
 TEST_F(NodeInsertionDeletionTests, DeletingSameNodeOffsetErrorsTest) {

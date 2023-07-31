@@ -87,6 +87,7 @@ public:
     inline function::ScalarMacroFunction* getScalarMacroFunction(const std::string& name) const {
         return catalogContentForReadOnlyTrx->macros.at(name).get();
     }
+    inline storage::BMFileHandle* getMetadataFH() const { return metadataFH.get(); }
 
 private:
     inline bool hasUpdates() { return catalogContentForWriteTrx != nullptr; }
@@ -95,6 +96,7 @@ protected:
     std::unique_ptr<CatalogContent> catalogContentForReadOnlyTrx;
     std::unique_ptr<CatalogContent> catalogContentForWriteTrx;
     storage::WAL* wal;
+    std::unique_ptr<storage::BMFileHandle> metadataFH;
 };
 
 } // namespace catalog

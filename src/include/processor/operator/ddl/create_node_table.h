@@ -2,6 +2,7 @@
 
 #include "processor/operator/ddl/create_table.h"
 #include "storage/store/nodes_statistics_and_deleted_ids.h"
+#include "storage/store/nodes_store.h"
 
 namespace kuzu {
 namespace processor {
