@@ -211,8 +211,8 @@ std::string Connection::getNodeTableNames() {
     lock_t lck{mtx};
     std::string result = "Node tables: \n";
     std::vector<std::string> nodeTableNames;
-    for (auto& tableIDSchema : database->catalog->getReadOnlyVersion()->getNodeTableSchemas()) {
-        nodeTableNames.push_back(tableIDSchema.second->tableName);
+    for (auto& nodeTableSchema : database->catalog->getReadOnlyVersion()->getNodeTableSchemas()) {
+        nodeTableNames.push_back(nodeTableSchema->tableName);
     }
     std::sort(nodeTableNames.begin(), nodeTableNames.end());
     for (auto& nodeTableName : nodeTableNames) {
@@ -225,8 +225,8 @@ std::string Connection::getRelTableNames() {
     lock_t lck{mtx};
     std::string result = "Rel tables: \n";
     std::vector<std::string> relTableNames;
-    for (auto& tableIDSchema : database->catalog->getReadOnlyVersion()->getRelTableSchemas()) {
-        relTableNames.push_back(tableIDSchema.second->tableName);
+    for (auto relTableSchema : database->catalog->getReadOnlyVersion()->getRelTableSchemas()) {
+        relTableNames.push_back(relTableSchema->tableName);
     }
     std::sort(relTableNames.begin(), relTableNames.end());
     for (auto& relTableName : relTableNames) {
@@ -243,12 +243,14 @@ std::string Connection::getNodePropertyNames(const std::string& tableName) {
     }
     std::string result = tableName + " properties: \n";
     auto tableID = catalog->getReadOnlyVersion()->getTableID(tableName);
-    auto primaryKeyPropertyID =
-        catalog->getReadOnlyVersion()->getNodeTableSchema(tableID)->getPrimaryKey().propertyID;
-    for (auto& property : catalog->getReadOnlyVersion()->getNodeProperties(tableID)) {
-        result +=
-            "\t" + property.name + " " + LogicalTypeUtils::dataTypeToString(property.dataType);
-        result += property.propertyID == primaryKeyPropertyID ? "(PRIMARY KEY)\n" : "\n";
+    auto primaryKeyPropertyID = catalog->getReadOnlyVersion()
+                                    ->getNodeTableSchema(tableID)
+                                    ->getPrimaryKey()
+                                    ->getPropertyID();
+    for (auto property : catalog->getReadOnlyVersion()->getProperties(tableID)) {
+        result += "\t" + property->getName() + " " +
+                  LogicalTypeUtils::dataTypeToString(*property->getDataType());
+        result += property->getPropertyID() == primaryKeyPropertyID ? "(PRIMARY KEY)\n" : "\n";
     }
     return result;
 }
@@ -269,12 +271,12 @@ std::string Connection::getRelPropertyNames(const std::string& relTableName) {
     std::string result = relTableName + " src node: " + srcTableSchema->tableName + "\n";
     result += relTableName + " dst node: " + dstTableSchema->tableName + "\n";
     result += relTableName + " properties: \n";
-    for (auto& property : catalog->getReadOnlyVersion()->getRelProperties(relTableID)) {
-        if (catalog::TableSchema::isReservedPropertyName(property.name)) {
+    for (auto property : catalog->getReadOnlyVersion()->getProperties(relTableID)) {
+        if (catalog::TableSchema::isReservedPropertyName(property->getName())) {
             continue;
         }
-        result += "\t" + property.name + " " +
-                  LogicalTypeUtils::dataTypeToString(property.dataType) + "\n";
+        result += "\t" + property->getName() + " " +
+                  LogicalTypeUtils::dataTypeToString(*property->getDataType()) + "\n";
     }
     return result;
 }

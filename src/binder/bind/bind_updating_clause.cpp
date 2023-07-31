@@ -120,12 +120,12 @@ std::unique_ptr<BoundCreateInfo> Binder::bindCreateNodeInfo(
     auto primaryKey = nodeTableSchema->getPrimaryKey();
     std::shared_ptr<Expression> primaryKeyExpression;
     std::vector<expression_pair> setItems;
-    for (auto& property : catalog.getReadOnlyVersion()->getNodeProperties(nodeTableID)) {
-        if (collection.hasKeyVal(node, property.name)) {
-            setItems.emplace_back(collection.getKeyVal(node, property.name));
+    for (auto& property : catalog.getReadOnlyVersion()->getProperties(nodeTableID)) {
+        if (collection.hasKeyVal(node, property->getName())) {
+            setItems.emplace_back(collection.getKeyVal(node, property->getName()));
         } else {
             auto propertyExpression =
-                expressionBinder.bindNodePropertyExpression(*node, property.name);
+                expressionBinder.bindNodePropertyExpression(*node, property->getName());
             auto nullExpression = expressionBinder.createNullLiteralExpression();
             nullExpression = ExpressionBinder::implicitCastIfNecessary(
                 nullExpression, propertyExpression->dataType);
@@ -134,14 +134,14 @@ std::unique_ptr<BoundCreateInfo> Binder::bindCreateNodeInfo(
     }
     for (auto& [key, val] : collection.getKeyVals(node)) {
         auto propertyExpression = static_pointer_cast<PropertyExpression>(key);
-        if (propertyExpression->getPropertyID(nodeTableID) == primaryKey.propertyID) {
+        if (propertyExpression->getPropertyID(nodeTableID) == primaryKey->getPropertyID()) {
             primaryKeyExpression = val;
         }
     }
-    if (nodeTableSchema->getPrimaryKey().dataType.getLogicalTypeID() != LogicalTypeID::SERIAL &&
+    if (primaryKey->getDataType()->getLogicalTypeID() != LogicalTypeID::SERIAL &&
         primaryKeyExpression == nullptr) {
         throw BinderException("Create node " + node->toString() + " expects primary key " +
-                              primaryKey.name + " as input.");
+                              primaryKey->getName() + " as input.");
     }
     auto extraInfo = std::make_unique<ExtraCreateNodeInfo>(std::move(primaryKeyExpression));
     return std::make_unique<BoundCreateInfo>(
@@ -160,12 +160,12 @@ std::unique_ptr<BoundCreateInfo> Binder::bindCreateRelInfo(
     // CreateRel requires all properties in schema as input. So we rewrite set property to
     // null if user does not specify a property in the query.
     std::vector<expression_pair> setItems;
-    for (auto& property : catalogContent->getRelProperties(relTableID)) {
-        if (collection.hasKeyVal(rel, property.name)) {
-            setItems.push_back(collection.getKeyVal(rel, property.name));
+    for (auto& property : catalogContent->getProperties(relTableID)) {
+        if (collection.hasKeyVal(rel, property->getName())) {
+            setItems.push_back(collection.getKeyVal(rel, property->getName()));
         } else {
             auto propertyExpression =
-                expressionBinder.bindRelPropertyExpression(*rel, property.name);
+                expressionBinder.bindRelPropertyExpression(*rel, property->getName());
             auto nullExpression = expressionBinder.createNullLiteralExpression();
             nullExpression = ExpressionBinder::implicitCastIfNecessary(
                 nullExpression, propertyExpression->dataType);
@@ -262,20 +262,21 @@ std::unique_ptr<BoundDeleteInfo> Binder::bindDeleteNodeInfo(std::shared_ptr<Node
     auto anchorPrimaryKey = tableSchemas[0]->getPrimaryKey();
     for (auto i = 1; i < tableSchemas.size(); ++i) {
         auto primaryKey = tableSchemas[i]->getPrimaryKey();
-        if (primaryKey.name != anchorPrimaryKey.name) {
+        if (primaryKey->getName() != anchorPrimaryKey->getName()) {
             throw common::BinderException(common::StringUtils::string_format(
                 "Cannot delete node {} with different primary key name. Expect {} but get {}.",
-                node->toString(), anchorPrimaryKey.name, primaryKey.name));
+                node->toString(), anchorPrimaryKey->getName(), primaryKey->getName()));
         }
-        if (primaryKey.dataType != anchorPrimaryKey.dataType) {
+        if (*primaryKey->getDataType() != *anchorPrimaryKey->getDataType()) {
             throw common::BinderException(common::StringUtils::string_format(
                 "Cannot delete node {} with different primary key data type. Expect {} but get {}.",
-                node->toString(), LogicalTypeUtils::dataTypeToString(anchorPrimaryKey.dataType),
-                LogicalTypeUtils::dataTypeToString(primaryKey.dataType)));
+                node->toString(),
+                LogicalTypeUtils::dataTypeToString(*anchorPrimaryKey->getDataType()),
+                LogicalTypeUtils::dataTypeToString(*primaryKey->getDataType())));
         }
     }
     auto primaryKeyExpression =
-        expressionBinder.bindNodePropertyExpression(*node, anchorPrimaryKey.name);
+        expressionBinder.bindNodePropertyExpression(*node, anchorPrimaryKey->getName());
     auto extraInfo = std::make_unique<ExtraDeleteNodeInfo>(primaryKeyExpression);
     return std::make_unique<BoundDeleteInfo>(UpdateTableType::NODE, node, std::move(extraInfo));
 }

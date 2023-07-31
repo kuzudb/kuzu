@@ -175,7 +175,7 @@ private:
         listsUpdates;
     std::vector<ListsUpdatesPerChunk> listsUpdatesPerDirection;
     std::unordered_map<common::property_id_t, processor::ft_col_idx_t> propertyIDToColIdxMap;
-    catalog::RelTableSchema relTableSchema;
+    std::unique_ptr<catalog::RelTableSchema> relTableSchema;
     MemoryManager& memoryManager;
 };
 

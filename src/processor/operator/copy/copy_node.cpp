@@ -20,15 +20,16 @@ CopyNodeSharedState::CopyNodeSharedState(uint64_t& numRows, MemoryManager* memor
 
 void CopyNodeSharedState::initializePrimaryKey(
     NodeTableSchema* nodeTableSchema, const std::string& directory) {
-    if (nodeTableSchema->getPrimaryKey().dataType.getLogicalTypeID() != LogicalTypeID::SERIAL) {
+    if (nodeTableSchema->getPrimaryKey()->getDataType()->getLogicalTypeID() !=
+        LogicalTypeID::SERIAL) {
         pkIndex = std::make_unique<PrimaryKeyIndexBuilder>(
             StorageUtils::getNodeIndexFName(
                 directory, nodeTableSchema->tableID, DBFileType::ORIGINAL),
-            nodeTableSchema->getPrimaryKey().dataType);
+            *nodeTableSchema->getPrimaryKey()->getDataType());
         pkIndex->bulkReserve(numRows);
     }
     for (auto& property : nodeTableSchema->properties) {
-        if (property.propertyID == nodeTableSchema->getPrimaryKey().propertyID) {
+        if (property->getPropertyID() == nodeTableSchema->getPrimaryKey()->getPropertyID()) {
             break;
         }
         pkColumnID++;
@@ -39,13 +40,13 @@ void CopyNodeSharedState::initializeColumns(
     NodeTableSchema* nodeTableSchema, const std::string& directory) {
     columns.reserve(nodeTableSchema->properties.size());
     for (auto& property : nodeTableSchema->properties) {
-        if (property.dataType.getLogicalTypeID() == LogicalTypeID::SERIAL) {
+        if (property->getDataType()->getLogicalTypeID() == LogicalTypeID::SERIAL) {
             // Skip SERIAL, as it is not physically stored.
             continue;
         }
         auto fPath = StorageUtils::getNodePropertyColumnFName(
-            directory, nodeTableSchema->tableID, property.propertyID, DBFileType::ORIGINAL);
-        columns.push_back(std::make_unique<InMemColumn>(fPath, property.dataType));
+            directory, nodeTableSchema->tableID, property->getPropertyID(), DBFileType::ORIGINAL);
+        columns.push_back(std::make_unique<InMemColumn>(fPath, *property->getDataType()));
     }
 }
 
@@ -61,7 +62,7 @@ CopyNode::CopyNode(std::shared_ptr<CopyNodeSharedState> sharedState, CopyNodeInf
     copyStates.resize(tableSchema->getNumProperties());
     for (auto i = 0u; i < tableSchema->getNumProperties(); i++) {
         auto& property = tableSchema->properties[i];
-        copyStates[i] = std::make_unique<storage::PropertyCopyState>(property.dataType);
+        copyStates[i] = std::make_unique<storage::PropertyCopyState>(*property->getDataType());
     }
 }
 

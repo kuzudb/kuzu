@@ -43,8 +43,7 @@ public:
 
     inline void initCatalogContentForWriteTrxIfNecessary() {
         if (!catalogContentForWriteTrx) {
-            catalogContentForWriteTrx =
-                std::make_unique<CatalogContent>(*catalogContentForReadOnlyTrx);
+            catalogContentForWriteTrx = catalogContentForReadOnlyTrx->copy();
         }
     }
 
@@ -56,19 +55,19 @@ public:
     common::ExpressionType getFunctionType(const std::string& name) const;
 
     common::table_id_t addNodeTableSchema(std::string tableName, common::property_id_t primaryKeyId,
-        std::vector<Property> propertyDefinitions);
+        std::vector<std::unique_ptr<Property>> propertyDefinitions);
 
     common::table_id_t addRelTableSchema(std::string tableName, RelMultiplicity relMultiplicity,
-        const std::vector<Property>& propertyDefinitions, common::table_id_t srcTableID,
-        common::table_id_t dstTableID, common::LogicalType srcPKDataType,
-        common::LogicalType dstPKDataType);
+        std::vector<std::unique_ptr<Property>> propertyDefinitions, common::table_id_t srcTableID,
+        common::table_id_t dstTableID, std::unique_ptr<common::LogicalType> srcPKDataType,
+        std::unique_ptr<common::LogicalType> dstPKDataType);
 
     void dropTableSchema(common::table_id_t tableID);
 
     void renameTable(common::table_id_t tableID, const std::string& newName);
 
-    void addProperty(
-        common::table_id_t tableID, const std::string& propertyName, common::LogicalType dataType);
+    void addProperty(common::table_id_t tableID, const std::string& propertyName,
+        std::unique_ptr<common::LogicalType> dataType);
 
     void dropProperty(common::table_id_t tableID, common::property_id_t propertyID);
 

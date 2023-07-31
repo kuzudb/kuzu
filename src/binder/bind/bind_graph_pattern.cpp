@@ -123,8 +123,8 @@ static std::vector<table_id_t> pruneRelTableIDs(const Catalog& catalog_,
     std::vector<table_id_t> result;
     for (auto& relTableID : relTableIDs) {
         auto relTableSchema = catalog_.getReadOnlyVersion()->getRelTableSchema(relTableID);
-        if (!srcNodeTableIDs.contains(relTableSchema->srcTableID) ||
-            !dstNodeTableIDs.contains(relTableSchema->dstTableID)) {
+        if (!srcNodeTableIDs.contains(relTableSchema->getSrcTableID()) ||
+            !dstNodeTableIDs.contains(relTableSchema->getDstTableID())) {
             continue;
         }
         result.push_back(relTableID);
@@ -132,10 +132,10 @@ static std::vector<table_id_t> pruneRelTableIDs(const Catalog& catalog_,
     return result;
 }
 
-static std::vector<std::pair<std::string, std::vector<Property>>> getPropertyNameAndSchemasPairs(
+static std::vector<std::pair<std::string, std::vector<Property*>>> getPropertyNameAndSchemasPairs(
     const std::vector<std::string>& propertyNames,
-    std::unordered_map<std::string, std::vector<Property>> propertyNamesToSchemas) {
-    std::vector<std::pair<std::string, std::vector<Property>>> propertyNameAndSchemasPairs;
+    std::unordered_map<std::string, std::vector<Property*>> propertyNamesToSchemas) {
+    std::vector<std::pair<std::string, std::vector<Property*>>> propertyNameAndSchemasPairs;
     for (auto& propertyName : propertyNames) {
         auto propertySchemas = propertyNamesToSchemas.at(propertyName);
         propertyNameAndSchemasPairs.emplace_back(propertyName, std::move(propertySchemas));
@@ -143,33 +143,35 @@ static std::vector<std::pair<std::string, std::vector<Property>>> getPropertyNam
     return propertyNameAndSchemasPairs;
 }
 
-static std::vector<std::pair<std::string, std::vector<Property>>>
+static std::vector<std::pair<std::string, std::vector<Property*>>>
 getRelPropertyNameAndPropertiesPairs(const std::vector<RelTableSchema*>& relTableSchemas) {
     std::vector<std::string> propertyNames; // preserve order as specified in catalog.
-    std::unordered_map<std::string, std::vector<Property>> propertyNamesToSchemas;
+    std::unordered_map<std::string, std::vector<Property*>> propertyNamesToSchemas;
     for (auto& relTableSchema : relTableSchemas) {
         for (auto& property : relTableSchema->properties) {
-            if (!propertyNamesToSchemas.contains(property.name)) {
-                propertyNames.push_back(property.name);
-                propertyNamesToSchemas.insert({property.name, std::vector<Property>{}});
+            auto propertyName = property->getName();
+            if (!propertyNamesToSchemas.contains(propertyName)) {
+                propertyNames.push_back(propertyName);
+                propertyNamesToSchemas.emplace(propertyName, std::vector<Property*>{});
             }
-            propertyNamesToSchemas.at(property.name).push_back(property);
+            propertyNamesToSchemas.at(propertyName).push_back(property.get());
         }
     }
     return getPropertyNameAndSchemasPairs(propertyNames, propertyNamesToSchemas);
 }
 
-static std::vector<std::pair<std::string, std::vector<Property>>>
+static std::vector<std::pair<std::string, std::vector<Property*>>>
 getNodePropertyNameAndPropertiesPairs(const std::vector<NodeTableSchema*>& nodeTableSchemas) {
     std::vector<std::string> propertyNames; // preserve order as specified in catalog.
-    std::unordered_map<std::string, std::vector<Property>> propertyNamesToSchemas;
+    std::unordered_map<std::string, std::vector<Property*>> propertyNamesToSchemas;
     for (auto& nodeTableSchema : nodeTableSchemas) {
         for (auto& property : nodeTableSchema->properties) {
-            if (!propertyNamesToSchemas.contains(property.name)) {
-                propertyNames.push_back(property.name);
-                propertyNamesToSchemas.insert({property.name, std::vector<Property>{}});
+            auto propertyName = property->getName();
+            if (!propertyNamesToSchemas.contains(propertyName)) {
+                propertyNames.push_back(propertyName);
+                propertyNamesToSchemas.emplace(propertyName, std::vector<Property*>{});
             }
-            propertyNamesToSchemas.at(property.name).push_back(property);
+            propertyNamesToSchemas.at(propertyName).push_back(property.get());
         }
     }
     return getPropertyNameAndSchemasPairs(propertyNames, propertyNamesToSchemas);
@@ -278,8 +280,8 @@ std::shared_ptr<RelExpression> Binder::createRecursiveQueryRel(const parser::Rel
     std::unordered_set<common::table_id_t> recursiveNodeTableIDs;
     for (auto relTableID : tableIDs) {
         auto relTableSchema = catalog.getReadOnlyVersion()->getRelTableSchema(relTableID);
-        recursiveNodeTableIDs.insert(relTableSchema->srcTableID);
-        recursiveNodeTableIDs.insert(relTableSchema->dstTableID);
+        recursiveNodeTableIDs.insert(relTableSchema->getSrcTableID());
+        recursiveNodeTableIDs.insert(relTableSchema->getDstTableID());
     }
     auto recursiveRelPatternInfo = relPattern.getRecursiveInfo();
     auto tmpNode = createQueryNode(
@@ -423,8 +425,8 @@ void Binder::bindQueryNodeProperties(NodeExpression& node) {
         getNodePropertyNameAndPropertiesPairs(tableSchemas)) {
         bool isPrimaryKey = false;
         if (!node.isMultiLabeled()) {
-            isPrimaryKey =
-                tableSchemas[0]->getPrimaryKey().propertyID == propertySchemas[0].propertyID;
+            isPrimaryKey = tableSchemas[0]->getPrimaryKey()->getPropertyID() ==
+                           propertySchemas[0]->getPropertyID();
         }
         auto propertyExpression =
             expressionBinder.createPropertyExpression(node, propertySchemas, isPrimaryKey);
@@ -434,7 +436,7 @@ void Binder::bindQueryNodeProperties(NodeExpression& node) {
 
 std::vector<common::table_id_t> Binder::bindNodeTableIDs(
     const std::vector<std::string>& tableNames) {
-    if (!catalog.getReadOnlyVersion()->hasNodeTable()) {
+    if (catalog.getReadOnlyVersion()->getNodeTableIDs().empty()) {
         throw common::BinderException("No node table exists in database.");
     }
     std::unordered_set<table_id_t> tableIDs;
@@ -454,7 +456,7 @@ std::vector<common::table_id_t> Binder::bindNodeTableIDs(
 
 std::vector<common::table_id_t> Binder::bindRelTableIDs(
     const std::vector<std::string>& tableNames) {
-    if (!catalog.getReadOnlyVersion()->hasRelTable()) {
+    if (catalog.getReadOnlyVersion()->getRelTableIDs().empty()) {
         throw common::BinderException("No rel table exists in database.");
     }
     std::unordered_set<table_id_t> tableIDs;

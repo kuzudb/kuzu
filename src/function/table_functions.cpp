@@ -14,18 +14,19 @@ void TableInfoFunction::tableFunc(std::pair<offset_t, offset_t> morsel,
     auto numPropertiesToOutput = morsel.second - morsel.first;
     auto outVectorPos = 0;
     for (auto i = 0u; i < numPropertiesToOutput; i++) {
-        auto property = tableSchema->properties[morsel.first + i];
-        if (tableSchema->tableType == TableType::REL && property.name == InternalKeyword::ID) {
+        auto property = tableSchema->properties[morsel.first + i].get();
+        if (tableSchema->getTableType() == TableType::REL &&
+            property->getName() == InternalKeyword::ID) {
             continue;
         }
-        outputVectors[0]->setValue(outVectorPos, (int64_t)property.propertyID);
-        outputVectors[1]->setValue(outVectorPos, property.name);
+        outputVectors[0]->setValue(outVectorPos, (int64_t)property->getPropertyID());
+        outputVectors[1]->setValue(outVectorPos, property->getName());
         outputVectors[2]->setValue(
-            outVectorPos, LogicalTypeUtils::dataTypeToString(property.dataType));
+            outVectorPos, LogicalTypeUtils::dataTypeToString(*property->getDataType()));
         if (tableSchema->tableType == TableType::NODE) {
             auto primaryKeyID =
-                reinterpret_cast<catalog::NodeTableSchema*>(tableSchema)->primaryKeyPropertyID;
-            outputVectors[3]->setValue(outVectorPos, primaryKeyID == property.propertyID);
+                reinterpret_cast<catalog::NodeTableSchema*>(tableSchema)->getPrimaryKeyPropertyID();
+            outputVectors[3]->setValue(outVectorPos, primaryKeyID == property->getPropertyID());
         }
         outVectorPos++;
     }

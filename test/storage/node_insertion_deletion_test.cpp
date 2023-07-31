@@ -29,7 +29,7 @@ public:
         uint32_t idPropertyID = getCatalog(*database)
                                     ->getReadOnlyVersion()
                                     ->getNodeProperty(personTableID, "ID")
-                                    .propertyID;
+                                    ->getPropertyID();
         idColumn = getStorageManager(*database)->getNodesStore().getNodePropertyColumn(
             personTableID, idPropertyID);
         conn->beginWriteTransaction();

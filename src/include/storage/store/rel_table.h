@@ -120,7 +120,7 @@ public:
     void performOpOnListsWithUpdates(const std::function<void(Lists*)>& opOnListsWithUpdates);
     std::unique_ptr<ListsUpdateIteratorsForDirection> getListsUpdateIteratorsForDirection();
     void removeProperty(common::property_id_t propertyID);
-    void addProperty(catalog::Property& property, WAL* wal);
+    void addProperty(const catalog::Property& property, WAL* wal);
     void batchInitEmptyRelsForNewNodes(const catalog::RelTableSchema* relTableSchema,
         uint64_t numNodesInTable, const std::string& directory);
 
@@ -225,7 +225,7 @@ public:
     void initEmptyRelsForNewNode(common::nodeID_t& nodeID);
     void batchInitEmptyRelsForNewNodes(
         const catalog::RelTableSchema* relTableSchema, uint64_t numNodesInTable);
-    void addProperty(catalog::Property property, catalog::RelTableSchema& relTableSchema);
+    void addProperty(const catalog::Property& property, catalog::RelTableSchema& relTableSchema);
 
 private:
     inline void clearListsUpdatesStore() { listsUpdatesStore->clear(); }

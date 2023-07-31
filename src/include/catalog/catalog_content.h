@@ -18,105 +18,78 @@ public:
 
     explicit CatalogContent(const std::string& directory);
 
-    CatalogContent(const CatalogContent& other);
+    CatalogContent(
+        std::unordered_map<common::table_id_t, std::unique_ptr<TableSchema>> tableSchemas,
+        std::unordered_map<std::string, common::table_id_t> tableNameToIDMap,
+        common::table_id_t nextTableID,
+        std::unordered_map<std::string, std::unique_ptr<function::ScalarMacroFunction>> macros)
+        : tableSchemas{std::move(tableSchemas)}, tableNameToIDMap{std::move(tableNameToIDMap)},
+          nextTableID{nextTableID}, macros{std::move(macros)} {
+        registerBuiltInFunctions();
+    }
+
+    inline bool containTable(const std::string& name) const {
+        return tableNameToIDMap.contains(name);
+    }
+    inline std::string getTableName(common::table_id_t tableID) const {
+        assert(tableSchemas.contains(tableID));
+        return getTableSchema(tableID)->tableName;
+    }
+    inline TableSchema* getTableSchema(common::table_id_t tableID) const {
+        assert(tableSchemas.contains(tableID));
+        return tableSchemas.at(tableID).get();
+    }
+    inline NodeTableSchema* getNodeTableSchema(common::table_id_t tableID) const {
+        return reinterpret_cast<NodeTableSchema*>(getTableSchema(tableID));
+    }
+    inline RelTableSchema* getRelTableSchema(common::table_id_t tableID) const {
+        return reinterpret_cast<RelTableSchema*>(getTableSchema(tableID));
+    }
+    inline common::table_id_t getTableID(const std::string& tableName) const {
+        assert(tableNameToIDMap.contains(tableName));
+        return tableNameToIDMap.at(tableName);
+    }
+
+    inline bool isSingleMultiplicityInDirection(
+        common::table_id_t tableID, common::RelDataDirection direction) const {
+        return getRelTableSchema(tableID)->isSingleMultiplicityInDirection(direction);
+    }
 
     /**
      * Node and Rel table functions.
      */
     common::table_id_t addNodeTableSchema(std::string tableName, common::property_id_t primaryKeyId,
-        std::vector<Property> properties);
+        std::vector<std::unique_ptr<Property>> properties);
 
     common::table_id_t addRelTableSchema(std::string tableName, RelMultiplicity relMultiplicity,
-        std::vector<Property> properties, common::table_id_t srcTableID,
-        common::table_id_t dstTableID, common::LogicalType srcPKDataType,
-        common::LogicalType dstPKDataType);
+        std::vector<std::unique_ptr<Property>> properties, common::table_id_t srcTableID,
+        common::table_id_t dstTableID, std::unique_ptr<common::LogicalType> srcPKDataType,
+        std::unique_ptr<common::LogicalType> dstPKDataType);
 
-    inline bool hasNodeTable() const { return !nodeTableSchemas.empty(); }
-    inline bool hasRelTable() const { return !relTableSchemas.empty(); }
+    bool containNodeTable(const std::string& tableName) const;
 
-    inline bool containNodeTable(common::table_id_t tableID) const {
-        return nodeTableSchemas.contains(tableID);
-    }
-    inline bool containRelTable(common::table_id_t tableID) const {
-        return relTableSchemas.contains(tableID);
-    }
-    inline bool containTable(const std::string& name) const {
-        return containNodeTable(name) || containRelTable(name);
-    }
-
-    inline std::string getTableName(common::table_id_t tableID) const {
-        return getTableSchema(tableID)->tableName;
-    }
-
-    inline NodeTableSchema* getNodeTableSchema(common::table_id_t tableID) const {
-        assert(containNodeTable(tableID));
-        return nodeTableSchemas.at(tableID).get();
-    }
-    inline RelTableSchema* getRelTableSchema(common::table_id_t tableID) const {
-        assert(containRelTable(tableID));
-        return relTableSchemas.at(tableID).get();
-    }
-    inline TableSchema* getTableSchema(common::table_id_t tableID) const {
-        assert(containRelTable(tableID) || containNodeTable(tableID));
-        return nodeTableSchemas.contains(tableID) ?
-                   (TableSchema*)nodeTableSchemas.at(tableID).get() :
-                   (TableSchema*)relTableSchemas.at(tableID).get();
-    }
-
-    inline bool containNodeTable(const std::string& tableName) const {
-        return nodeTableNameToIDMap.contains(tableName);
-    }
-    inline bool containRelTable(const std::string& tableName) const {
-        return relTableNameToIDMap.contains(tableName);
-    }
-
-    inline common::table_id_t getTableID(const std::string& tableName) const {
-        return nodeTableNameToIDMap.contains(tableName) ? nodeTableNameToIDMap.at(tableName) :
-                                                          relTableNameToIDMap.at(tableName);
-    }
-    inline bool isSingleMultiplicityInDirection(
-        common::table_id_t tableID, common::RelDataDirection direction) const {
-        return relTableSchemas.at(tableID)->isSingleMultiplicityInDirection(direction);
-    }
+    bool containRelTable(const std::string& tableName) const;
 
     /**
      * Node and Rel property functions.
      */
     // getNodeProperty and getRelProperty should be called after checking if property exists
     // (containNodeProperty and containRelProperty).
-    const Property& getNodeProperty(
-        common::table_id_t tableID, const std::string& propertyName) const;
-    const Property& getRelProperty(
-        common::table_id_t tableID, const std::string& propertyName) const;
+    Property* getNodeProperty(common::table_id_t tableID, const std::string& propertyName) const;
+    Property* getRelProperty(common::table_id_t tableID, const std::string& propertyName) const;
 
-    inline const std::vector<Property>& getNodeProperties(common::table_id_t tableID) const {
-        return nodeTableSchemas.at(tableID)->getProperties();
-    }
-    inline const std::vector<Property>& getRelProperties(common::table_id_t tableID) const {
-        return relTableSchemas.at(tableID)->getProperties();
+    inline const std::vector<Property*> getProperties(common::table_id_t tableID) const {
+        assert(tableSchemas.contains(tableID));
+        return tableSchemas.at(tableID)->getProperties();
     }
     inline std::vector<common::table_id_t> getNodeTableIDs() const {
-        std::vector<common::table_id_t> nodeTableIDs;
-        for (auto& [tableID, _] : nodeTableSchemas) {
-            nodeTableIDs.push_back(tableID);
-        }
-        return nodeTableIDs;
+        return getTableIDsByType(TableType::NODE);
     }
     inline std::vector<common::table_id_t> getRelTableIDs() const {
-        std::vector<common::table_id_t> relTableIDs;
-        for (auto& [tableID, _] : relTableSchemas) {
-            relTableIDs.push_back(tableID);
-        }
-        return relTableIDs;
+        return getTableIDsByType(TableType::REL);
     }
-    inline std::unordered_map<common::table_id_t, std::unique_ptr<NodeTableSchema>>&
-    getNodeTableSchemas() {
-        return nodeTableSchemas;
-    }
-    inline std::unordered_map<common::table_id_t, std::unique_ptr<RelTableSchema>>&
-    getRelTableSchemas() {
-        return relTableSchemas;
-    }
+    std::vector<NodeTableSchema*> getNodeTableSchemas() const;
+    std::vector<RelTableSchema*> getRelTableSchemas() const;
 
     inline bool containMacro(const std::string& macroName) const {
         return macros.contains(macroName);
@@ -136,6 +109,8 @@ public:
     void addScalarMacroFunction(
         std::string name, std::unique_ptr<function::ScalarMacroFunction> macro);
 
+    std::unique_ptr<CatalogContent> copy() const;
+
 private:
     inline common::table_id_t assignNextTableID() { return nextTableID++; }
 
@@ -147,14 +122,14 @@ private:
 
     void registerBuiltInFunctions();
 
+    std::vector<common::table_id_t> getTableIDsByType(TableType tableType) const;
+
 private:
     // TODO(Guodong): I don't think it's necessary to keep separate maps for node and rel tables.
-    std::unordered_map<common::table_id_t, std::unique_ptr<NodeTableSchema>> nodeTableSchemas;
-    std::unordered_map<common::table_id_t, std::unique_ptr<RelTableSchema>> relTableSchemas;
+    std::unordered_map<common::table_id_t, std::unique_ptr<TableSchema>> tableSchemas;
     // These two maps are maintained as caches. They are not serialized to the catalog file, but
     // is re-constructed when reading from the catalog file.
-    std::unordered_map<std::string, common::table_id_t> nodeTableNameToIDMap;
-    std::unordered_map<std::string, common::table_id_t> relTableNameToIDMap;
+    std::unordered_map<std::string, common::table_id_t> tableNameToIDMap;
     common::table_id_t nextTableID;
     std::unique_ptr<function::BuiltInVectorFunctions> builtInVectorFunctions;
     std::unique_ptr<function::BuiltInAggregateFunctions> builtInAggregateFunctions;

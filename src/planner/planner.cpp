@@ -139,7 +139,7 @@ std::unique_ptr<LogicalPlan> Planner::planAddProperty(const BoundStatement& stat
     auto& addPropertyClause = reinterpret_cast<const BoundAddProperty&>(statement);
     auto plan = std::make_unique<LogicalPlan>();
     auto addProperty = make_shared<LogicalAddProperty>(addPropertyClause.getTableID(),
-        addPropertyClause.getPropertyName(), addPropertyClause.getDataType(),
+        addPropertyClause.getPropertyName(), addPropertyClause.getDataType()->copy(),
         addPropertyClause.getDefaultValue(), addPropertyClause.getTableName(),
         statement.getStatementResult()->getSingleExpressionToCollect());
     plan->setLastOperator(std::move(addProperty));
@@ -174,10 +174,10 @@ std::unique_ptr<LogicalPlan> Planner::planCopy(
     expression_vector arrowColumnExpressions;
     for (auto& property :
         catalog.getReadOnlyVersion()->getTableSchema(copyClause.getTableID())->properties) {
-        if (property.dataType.getLogicalTypeID() != common::LogicalTypeID::SERIAL) {
+        if (property->getDataType()->getLogicalTypeID() != common::LogicalTypeID::SERIAL) {
             arrowColumnExpressions.push_back(std::make_shared<VariableExpression>(
-                common::LogicalType{common::LogicalTypeID::ARROW_COLUMN}, property.name,
-                property.name));
+                common::LogicalType{common::LogicalTypeID::ARROW_COLUMN}, property->getName(),
+                property->getName()));
         }
     }
     auto copy = make_shared<LogicalCopy>(copyClause.getCopyDescription(), copyClause.getTableID(),

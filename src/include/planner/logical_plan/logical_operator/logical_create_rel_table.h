@@ -8,7 +8,8 @@ namespace planner {
 
 class LogicalCreateRelTable : public LogicalCreateTable {
 public:
-    LogicalCreateRelTable(std::string tableName, std::vector<catalog::Property> properties,
+    LogicalCreateRelTable(std::string tableName,
+        std::vector<std::unique_ptr<catalog::Property>> properties,
         catalog::RelMultiplicity relMultiplicity, common::table_id_t srcTableID,
         common::table_id_t dstTableID, std::shared_ptr<binder::Expression> outputExpression)
         : LogicalCreateTable{LogicalOperatorType::CREATE_REL_TABLE, std::move(tableName),
@@ -22,8 +23,9 @@ public:
     inline common::table_id_t getDstTableID() const { return dstTableID; }
 
     inline std::unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalCreateRelTable>(
-            tableName, properties, relMultiplicity, srcTableID, dstTableID, outputExpression);
+        return make_unique<LogicalCreateRelTable>(tableName,
+            catalog::Property::copyProperties(properties), relMultiplicity, srcTableID, dstTableID,
+            outputExpression);
     }
 
 private:

@@ -37,7 +37,7 @@ public:
     inline size_t getNumDimensions() const { return shape.size(); }
 
     void validate(
-        common::LogicalType& type_, common::offset_t numRows, const std::string& tableName);
+        const common::LogicalType& type_, common::offset_t numRows, const std::string& tableName);
 
 private:
     void parseHeader();

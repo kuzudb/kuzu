@@ -105,7 +105,7 @@ private:
         std::function<void(std::string fileName)> listFileOperation);
 
     static void fileOperationOnNodePropertyFile(const std::string& propertyBaseFileName,
-        common::LogicalType& propertyType,
+        const common::LogicalType& propertyType,
         std::function<void(std::string fileName)> columnFileOperation);
 };
 

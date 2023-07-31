@@ -186,8 +186,8 @@ void StorageUtils::createFileForNodePropertyWithDefaultVal(table_id_t tableID,
     bool isDefaultValNull, uint64_t numNodes) {
     auto inMemColumn =
         std::make_unique<InMemColumn>(StorageUtils::getNodePropertyColumnFName(directory, tableID,
-                                          property.propertyID, DBFileType::WAL_VERSION),
-            property.dataType);
+                                          property.getPropertyID(), DBFileType::WAL_VERSION),
+            *property.getDataType());
     auto inMemColumnChunk =
         inMemColumn->createInMemColumnChunk(0, numNodes - 1, nullptr /* copyDescription */);
     if (!isDefaultValNull) {
@@ -215,8 +215,8 @@ void StorageUtils::createFileForRelColumnPropertyWithDefaultVal(table_id_t relTa
     uint8_t* defaultVal, bool isDefaultValNull, StorageManager& storageManager) {
     auto inMemColumn = std::make_unique<InMemColumn>(
         StorageUtils::getRelPropertyColumnFName(storageManager.getDirectory(), relTableID,
-            direction, property.propertyID, DBFileType::WAL_VERSION),
-        property.dataType);
+            direction, property.getPropertyID(), DBFileType::WAL_VERSION),
+        *property.getDataType());
     auto numTuples =
         storageManager.getRelsStore().getRelsStatistics().getNumTuplesForTable(relTableID);
     auto inMemColumnChunk =
@@ -241,8 +241,8 @@ void StorageUtils::createFileForRelListsPropertyWithDefaultVal(table_id_t relTab
     auto adjLists = storageManager.getRelsStore().getAdjLists(direction, relTableID);
     auto inMemList = InMemListsFactory::getInMemPropertyLists(
         StorageUtils::getRelPropertyListsFName(storageManager.getDirectory(), relTableID, direction,
-            property.propertyID, DBFileType::WAL_VERSION),
-        property.dataType,
+            property.getPropertyID(), DBFileType::WAL_VERSION),
+        *property.getDataType(),
         storageManager.getRelsStore().getRelsStatistics().getNumTuplesForTable(relTableID),
         nullptr /* copyDescription */);
     auto numNodesInBoundTable =

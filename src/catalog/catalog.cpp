@@ -39,8 +39,8 @@ ExpressionType Catalog::getFunctionType(const std::string& name) const {
     return catalogContentForReadOnlyTrx->getFunctionType(name);
 }
 
-table_id_t Catalog::addNodeTableSchema(
-    std::string tableName, property_id_t primaryKeyId, std::vector<Property> propertyDefinitions) {
+table_id_t Catalog::addNodeTableSchema(std::string tableName, property_id_t primaryKeyId,
+    std::vector<std::unique_ptr<Property>> propertyDefinitions) {
     initCatalogContentForWriteTrxIfNecessary();
     auto tableID = catalogContentForWriteTrx->addNodeTableSchema(
         std::move(tableName), primaryKeyId, std::move(propertyDefinitions));
@@ -49,12 +49,13 @@ table_id_t Catalog::addNodeTableSchema(
 }
 
 table_id_t Catalog::addRelTableSchema(std::string tableName, RelMultiplicity relMultiplicity,
-    const std::vector<Property>& propertyDefinitions, table_id_t srcTableID, table_id_t dstTableID,
-    LogicalType srcPKDataType, LogicalType dstPKDataType) {
+    std::vector<std::unique_ptr<Property>> propertyDefinitions, table_id_t srcTableID,
+    table_id_t dstTableID, std::unique_ptr<LogicalType> srcPKDataType,
+    std::unique_ptr<LogicalType> dstPKDataType) {
     initCatalogContentForWriteTrxIfNecessary();
     auto tableID = catalogContentForWriteTrx->addRelTableSchema(std::move(tableName),
-        relMultiplicity, propertyDefinitions, srcTableID, dstTableID, std::move(srcPKDataType),
-        std::move(dstPKDataType));
+        relMultiplicity, std::move(propertyDefinitions), srcTableID, dstTableID,
+        std::move(srcPKDataType), std::move(dstPKDataType));
     wal->logRelTableRecord(tableID);
     return tableID;
 }
@@ -71,7 +72,7 @@ void Catalog::renameTable(table_id_t tableID, const std::string& newName) {
 }
 
 void Catalog::addProperty(
-    table_id_t tableID, const std::string& propertyName, LogicalType dataType) {
+    table_id_t tableID, const std::string& propertyName, std::unique_ptr<LogicalType> dataType) {
     initCatalogContentForWriteTrxIfNecessary();
     catalogContentForWriteTrx->getTableSchema(tableID)->addProperty(
         propertyName, std::move(dataType));
@@ -95,10 +96,10 @@ std::unordered_set<RelTableSchema*> Catalog::getAllRelTableSchemasContainBoundTa
     table_id_t boundTableID) const {
     std::unordered_set<RelTableSchema*> relTableSchemas;
     auto nodeTableSchema = getReadOnlyVersion()->getNodeTableSchema(boundTableID);
-    for (auto& fwdRelTableID : nodeTableSchema->fwdRelTableIDSet) {
+    for (auto& fwdRelTableID : nodeTableSchema->getFwdRelTableIDSet()) {
         relTableSchemas.insert(getReadOnlyVersion()->getRelTableSchema(fwdRelTableID));
     }
-    for (auto& bwdRelTableID : nodeTableSchema->bwdRelTableIDSet) {
+    for (auto& bwdRelTableID : nodeTableSchema->getBwdRelTableIDSet()) {
         relTableSchemas.insert(getReadOnlyVersion()->getRelTableSchema(bwdRelTableID));
     }
     return relTableSchemas;

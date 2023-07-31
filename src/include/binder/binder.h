@@ -84,13 +84,13 @@ private:
     std::unique_ptr<BoundStatement> bindDropPropertyClause(const parser::Statement& statement);
     std::unique_ptr<BoundStatement> bindRenamePropertyClause(const parser::Statement& statement);
 
-    std::vector<catalog::Property> bindProperties(
+    std::vector<std::unique_ptr<catalog::Property>> bindProperties(
         std::vector<std::pair<std::string, std::string>> propertyNameDataTypes);
     uint32_t bindPrimaryKey(const std::string& pkColName,
         std::vector<std::pair<std::string, std::string>> propertyNameDataTypes);
     common::property_id_t bindPropertyName(
         catalog::NodeTableSchema::TableSchema* tableSchema, const std::string& propertyName);
-    common::LogicalType bindDataType(const std::string& dataType);
+    std::unique_ptr<common::LogicalType> bindDataType(const std::string& dataType);
 
     /*** bind copy csv ***/
     std::unique_ptr<BoundStatement> bindCopyClause(const parser::Statement& statement);
