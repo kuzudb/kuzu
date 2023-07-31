@@ -100,9 +100,9 @@ private:
     void appendCreateRel(
         const std::vector<binder::BoundCreateInfo*>& createInfos, LogicalPlan& plan);
     void appendSetNodeProperty(
-        const std::vector<binder::BoundSetPropertyInfo*>& infos, LogicalPlan& plan);
+        const std::vector<binder::BoundSetPropertyInfo*>& boundInfos, LogicalPlan& plan);
     void appendSetRelProperty(
-        const std::vector<binder::BoundSetPropertyInfo*>& infos, LogicalPlan& plan);
+        const std::vector<binder::BoundSetPropertyInfo*>& boundInfos, LogicalPlan& plan);
     void appendDeleteNode(
         const std::vector<binder::BoundDeleteInfo*>& boundInfos, LogicalPlan& plan);
     void appendDeleteRel(

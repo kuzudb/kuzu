@@ -19,6 +19,7 @@
 #include "planner/logical_plan/logical_operator/logical_union.h"
 #include "planner/logical_plan/logical_operator/logical_unwind.h"
 
+using namespace kuzu::binder;
 using namespace kuzu::planner;
 
 namespace kuzu {
@@ -133,9 +134,10 @@ void FactorizationRewriter::visitFilter(planner::LogicalOperator* op) {
 
 void FactorizationRewriter::visitSetNodeProperty(planner::LogicalOperator* op) {
     auto setNodeProperty = (LogicalSetNodeProperty*)op;
-    for (auto i = 0u; i < setNodeProperty->getNumNodes(); ++i) {
-        auto lhsNodeID = setNodeProperty->getNode(i)->getInternalIDProperty();
-        auto rhs = setNodeProperty->getSetItem(i).second;
+    for (auto& info : setNodeProperty->getInfosRef()) {
+        auto node = reinterpret_cast<NodeExpression*>(info->nodeOrRel.get());
+        auto lhsNodeID = node->getInternalIDProperty();
+        auto rhs = info->setItem.second;
         // flatten rhs
         auto rhsDependentGroupsPos = op->getChild(0)->getSchema()->getDependentGroupsPos(rhs);
         auto rhsGroupsPosToFlatten = factorization::FlattenAllButOne::getGroupsPosToFlatten(
@@ -155,7 +157,7 @@ void FactorizationRewriter::visitSetNodeProperty(planner::LogicalOperator* op) {
 
 void FactorizationRewriter::visitSetRelProperty(planner::LogicalOperator* op) {
     auto setRelProperty = (LogicalSetRelProperty*)op;
-    for (auto i = 0u; i < setRelProperty->getNumRels(); ++i) {
+    for (auto i = 0u; i < setRelProperty->getInfosRef().size(); ++i) {
         auto groupsPosToFlatten = setRelProperty->getGroupsPosToFlatten(i);
         setRelProperty->setChild(
             0, appendFlattens(setRelProperty->getChild(0), groupsPosToFlatten));
