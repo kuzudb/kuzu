@@ -3,6 +3,7 @@
 #include "binder/query/updating_clause/bound_delete_clause.h"
 #include "binder/query/updating_clause/bound_merge_clause.h"
 #include "binder/query/updating_clause/bound_set_clause.h"
+#include "common/string_utils.h"
 #include "parser/query/updating_clause/create_clause.h"
 #include "parser/query/updating_clause/delete_clause.h"
 #include "parser/query/updating_clause/merge_clause.h"
@@ -253,24 +254,33 @@ std::unique_ptr<BoundUpdatingClause> Binder::bindDeleteClause(
 }
 
 std::unique_ptr<BoundDeleteInfo> Binder::bindDeleteNodeInfo(std::shared_ptr<NodeExpression> node) {
-    if (node->isMultiLabeled()) {
-        throw BinderException(
-            "Delete node " + node->toString() + " with multiple node labels is not supported.");
+    std::vector<catalog::NodeTableSchema*> tableSchemas;
+    for (auto tableID : node->getTableIDs()) {
+        tableSchemas.push_back(catalog.getReadOnlyVersion()->getNodeTableSchema(tableID));
     }
-    auto nodeTableID = node->getSingleTableID();
-    auto nodeTableSchema = catalog.getReadOnlyVersion()->getNodeTableSchema(nodeTableID);
+    // TODO(Guodong): can we delete without scanning primary key?
+    auto anchorPrimaryKey = tableSchemas[0]->getPrimaryKey();
+    for (auto i = 1; i < tableSchemas.size(); ++i) {
+        auto primaryKey = tableSchemas[i]->getPrimaryKey();
+        if (primaryKey.name != anchorPrimaryKey.name) {
+            throw common::BinderException(common::StringUtils::string_format(
+                "Cannot delete node {} with different primary key name. Expect {} but get {}.",
+                node->toString(), anchorPrimaryKey.name, primaryKey.name));
+        }
+        if (primaryKey.dataType != anchorPrimaryKey.dataType) {
+            throw common::BinderException(common::StringUtils::string_format(
+                "Cannot delete node {} with different primary key data type. Expect {} but get {}.",
+                node->toString(), LogicalTypeUtils::dataTypeToString(anchorPrimaryKey.dataType),
+                LogicalTypeUtils::dataTypeToString(primaryKey.dataType)));
+        }
+    }
     auto primaryKeyExpression =
-        expressionBinder.bindNodePropertyExpression(*node, nodeTableSchema->getPrimaryKey().name);
+        expressionBinder.bindNodePropertyExpression(*node, anchorPrimaryKey.name);
     auto extraInfo = std::make_unique<ExtraDeleteNodeInfo>(primaryKeyExpression);
     return std::make_unique<BoundDeleteInfo>(UpdateTableType::NODE, node, std::move(extraInfo));
 }
 
 std::unique_ptr<BoundDeleteInfo> Binder::bindDeleteRelInfo(std::shared_ptr<RelExpression> rel) {
-    if (rel->isMultiLabeled() || rel->isBoundByMultiLabeledNode()) {
-        throw BinderException(
-            "Delete rel " + rel->toString() +
-            " with multiple rel labels or bound by multiple node labels is not supported.");
-    }
     return std::make_unique<BoundDeleteInfo>(UpdateTableType::REL, rel, nullptr /* extraInfo */);
 }
 
