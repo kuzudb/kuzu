@@ -72,15 +72,21 @@ jobs:
       # Share build cache when building rust API and the example project
       CARGO_TARGET_DIR: ${{ github.workspace }}/target
       CARGO_BUILD_JOBS: 32
+      CC: gcc
+      CXX: g++
     steps:
       - uses: actions/checkout@v3
 
       - name: Rust test
-        run: CC=gcc CXX=g++ make rusttest NUM_THREADS=32
+        working-directory: tools/rust_api
+        run: |
+          cargo update -p half@2.3.1 --precise '2.2.1'
+          cargo update -p time --precise '0.3.23'
+          cargo test --features arrow -- --test-threads=1
 
       - name: Rust example
         working-directory: examples/rust
-        run: CC=gcc CXX=g++ cargo build
+        run: cargo build
 
   gcc-build-test-with-asan:
     name: gcc build & test with asan
@@ -155,6 +161,10 @@ jobs:
     name: msvc build & test
     needs: [clang-formatting-check]
     runs-on: self-hosted-windows
+    env:
+      # Shorten build path as much as possible
+      CARGO_TARGET_DIR: ${{ github.workspace }}/rs
+      CARGO_BUILD_JOBS: 18
     steps:
       - uses: actions/checkout@v3
 
@@ -166,12 +176,17 @@ jobs:
 
       - name: Rust test
         shell: cmd
+        working-directory: tools/rust_api
         run: |
           call "C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
           set OPENSSL_DIR=C:\Program Files\OpenSSL-Win64
-          set CARGO_TARGET_DIR=%cd%/rustb
-          make rusttest NUM_THREADS=18
-      
+          set KUZU_TESTING=1
+          set CFLAGS=/MDd
+          set CXXFLAGS=/MDd /std:c++20
+          cargo update -p half@2.3.1 --precise 2.2.1
+          cargo update -p time --precise '0.3.23'
+          cargo test -- --test-threads=1
+
       - name: Java test
         shell: cmd
         run: |

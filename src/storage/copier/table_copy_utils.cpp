@@ -132,7 +132,7 @@ std::shared_ptr<arrow::csv::StreamingReader> TableCopyUtils::createCSVReader(
     // Only the empty string is treated as NULL.
     csvConvertOptions.null_values = {""};
     csvConvertOptions.quoted_strings_can_be_null = false;
-    if (!tableSchema->isNodeTable) {
+    if (tableSchema->tableType == TableType::REL) {
         auto relTableSchema = (RelTableSchema*)tableSchema;
         csvConvertOptions.column_types[std::string(Property::REL_FROM_PROPERTY_NAME)] =
             toArrowDataType(relTableSchema->srcPKDataType);
@@ -384,7 +384,7 @@ std::unique_ptr<Value> TableCopyUtils::convertStringToValue(
 
 std::vector<std::string> TableCopyUtils::getColumnNamesToRead(catalog::TableSchema* tableSchema) {
     std::vector<std::string> columnNamesToRead;
-    if (!tableSchema->isNodeTable) {
+    if (tableSchema->tableType == TableType::REL) {
         columnNamesToRead.emplace_back(Property::REL_FROM_PROPERTY_NAME);
         columnNamesToRead.emplace_back(Property::REL_TO_PROPERTY_NAME);
     }

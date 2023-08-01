@@ -23,18 +23,18 @@ public:
     COPY = 51, FROM = 52, NPY = 53, COLUMN = 54, NODE = 55, TABLE = 56, 
     DROP = 57, ALTER = 58, DEFAULT = 59, RENAME = 60, ADD = 61, PRIMARY = 62, 
     KEY = 63, REL = 64, TO = 65, EXPLAIN = 66, PROFILE = 67, UNION = 68, 
-    ALL = 69, OPTIONAL = 70, MATCH = 71, UNWIND = 72, CREATE = 73, SET = 74, 
-    DELETE = 75, WITH = 76, RETURN = 77, DISTINCT = 78, STAR = 79, AS = 80, 
-    ORDER = 81, BY = 82, L_SKIP = 83, LIMIT = 84, ASCENDING = 85, ASC = 86, 
-    DESCENDING = 87, DESC = 88, WHERE = 89, SHORTEST = 90, OR = 91, XOR = 92, 
-    AND = 93, NOT = 94, INVALID_NOT_EQUAL = 95, MINUS = 96, FACTORIAL = 97, 
-    STARTS = 98, ENDS = 99, CONTAINS = 100, IS = 101, NULL_ = 102, TRUE = 103, 
-    FALSE = 104, EXISTS = 105, CASE = 106, ELSE = 107, END = 108, WHEN = 109, 
-    THEN = 110, StringLiteral = 111, EscapedChar = 112, DecimalInteger = 113, 
-    HexLetter = 114, HexDigit = 115, Digit = 116, NonZeroDigit = 117, NonZeroOctDigit = 118, 
-    ZeroDigit = 119, RegularDecimalReal = 120, UnescapedSymbolicName = 121, 
-    IdentifierStart = 122, IdentifierPart = 123, EscapedSymbolicName = 124, 
-    SP = 125, WHITESPACE = 126, Comment = 127, Unknown = 128
+    ALL = 69, OPTIONAL = 70, MATCH = 71, UNWIND = 72, CREATE = 73, MERGE = 74, 
+    ON = 75, SET = 76, DELETE = 77, WITH = 78, RETURN = 79, DISTINCT = 80, 
+    STAR = 81, AS = 82, ORDER = 83, BY = 84, L_SKIP = 85, LIMIT = 86, ASCENDING = 87, 
+    ASC = 88, DESCENDING = 89, DESC = 90, WHERE = 91, SHORTEST = 92, OR = 93, 
+    XOR = 94, AND = 95, NOT = 96, INVALID_NOT_EQUAL = 97, MINUS = 98, FACTORIAL = 99, 
+    STARTS = 100, ENDS = 101, CONTAINS = 102, IS = 103, NULL_ = 104, TRUE = 105, 
+    FALSE = 106, EXISTS = 107, CASE = 108, ELSE = 109, END = 110, WHEN = 111, 
+    THEN = 112, StringLiteral = 113, EscapedChar = 114, DecimalInteger = 115, 
+    HexLetter = 116, HexDigit = 117, Digit = 118, NonZeroDigit = 119, NonZeroOctDigit = 120, 
+    ZeroDigit = 121, RegularDecimalReal = 122, UnescapedSymbolicName = 123, 
+    IdentifierStart = 124, IdentifierPart = 125, EscapedSymbolicName = 126, 
+    SP = 127, WHITESPACE = 128, Comment = 129, Unknown = 130
   };
 
   explicit CypherLexer(antlr4::CharStream *input);

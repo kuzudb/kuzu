@@ -290,7 +290,7 @@ class Connection {
       }
       const lineParts = line.split(" ");
       const name = lineParts[0];
-      const type = lineParts[1];
+      const type = lineParts.slice(1).join(" ");
       results.push({ name, type, isPrimaryKey });
     });
     return results;
@@ -346,7 +346,7 @@ class Connection {
       }
       const lineParts = line.split(" ");
       const name = lineParts[0];
-      const type = lineParts[1];
+      const type = lineParts.slice(1).join(" ");
       result.props.push({ name, type });
     });
     return result;

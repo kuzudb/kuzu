@@ -3,7 +3,7 @@
 #include <string>
 #include <utility>
 
-#include "catalog/catalog_structs.h"
+#include "catalog/table_schema.h"
 #include "common/constants.h"
 #include "common/file_utils.h"
 #include "common/null_mask.h"

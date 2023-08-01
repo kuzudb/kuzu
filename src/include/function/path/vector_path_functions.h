@@ -35,5 +35,21 @@ struct PropertiesVectorFunction {
         common::ValueVector& result);
 };
 
+struct IsTrailVectorFunction {
+    static vector_function_definitions getDefinitions();
+    static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
+        common::ValueVector& result);
+    static bool selectFunc(const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
+        common::SelectionVector& selectionVector);
+};
+
+struct IsACyclicVectorFunction {
+    static vector_function_definitions getDefinitions();
+    static void execFunc(const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
+        common::ValueVector& result);
+    static bool selectFunc(const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
+        common::SelectionVector& selectionVector);
+};
+
 } // namespace function
 } // namespace kuzu

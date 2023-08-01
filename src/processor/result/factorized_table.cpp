@@ -547,30 +547,32 @@ overflow_value_t FactorizedTable::appendVectorToUnflatTupleBlocks(
 
 void FactorizedTable::readUnflatCol(
     uint8_t** tuplesToRead, ft_col_idx_t colIdx, ValueVector& vector) const {
-    auto vectorOverflowValue =
+    auto overflowColValue =
         *(overflow_value_t*)(tuplesToRead[0] + tableSchema->getColOffset(colIdx));
     assert(vector.state->selVector->isUnfiltered());
+    auto numBytesPerValue = LogicalTypeUtils::getRowLayoutSize(vector.dataType);
     if (hasNoNullGuarantee(colIdx)) {
         vector.setAllNonNull();
-        auto val = vectorOverflowValue.value;
-        for (auto i = 0u; i < vectorOverflowValue.numElements; i++) {
+        auto val = overflowColValue.value;
+        for (auto i = 0u; i < overflowColValue.numElements; i++) {
             vector.copyFromRowData(i, val);
-            val += LogicalTypeUtils::getRowLayoutSize(vector.dataType);
+            val += numBytesPerValue;
         }
     } else {
-        for (auto i = 0u; i < vectorOverflowValue.numElements; i++) {
-            if (isOverflowColNull(vectorOverflowValue.value + vectorOverflowValue.numElements *
-                                                                  vector.getNumBytesPerValue(),
-                    i, colIdx)) {
+        auto overflowColNullData =
+            overflowColValue.value + overflowColValue.numElements * numBytesPerValue;
+        auto overflowColData = overflowColValue.value;
+        for (auto i = 0u; i < overflowColValue.numElements; i++) {
+            if (isOverflowColNull(overflowColNullData, i, colIdx)) {
                 vector.setNull(i, true);
             } else {
                 vector.setNull(i, false);
-                vector.copyFromRowData(
-                    i, vectorOverflowValue.value + i * vector.getNumBytesPerValue());
+                vector.copyFromRowData(i, overflowColData);
             }
+            overflowColData += numBytesPerValue;
         }
     }
-    vector.state->selVector->selectedSize = vectorOverflowValue.numElements;
+    vector.state->selVector->selectedSize = overflowColValue.numElements;
 }
 
 void FactorizedTable::readUnflatCol(const uint8_t* tupleToRead, const SelectionVector* selVector,

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "base_logical_operator.h"
+#include "common/join_type.h"
 #include "sink_util.h"
 
 namespace kuzu {
@@ -8,21 +9,26 @@ namespace planner {
 
 class LogicalCrossProduct : public LogicalOperator {
 public:
-    LogicalCrossProduct(std::shared_ptr<LogicalOperator> probeSideChild,
-        std::shared_ptr<LogicalOperator> buildSideChild)
-        : LogicalOperator{LogicalOperatorType::CROSS_PRODUCT, std::move(probeSideChild),
-              std::move(buildSideChild)} {}
+    LogicalCrossProduct(common::AccumulateType accumulateType,
+        std::shared_ptr<LogicalOperator> probeChild, std::shared_ptr<LogicalOperator> buildChild)
+        : LogicalOperator{LogicalOperatorType::CROSS_PRODUCT, std::move(probeChild),
+              std::move(buildChild)},
+          accumulateType{accumulateType} {}
 
     void computeFactorizedSchema() override;
     void computeFlatSchema() override;
 
     inline std::string getExpressionsForPrinting() const override { return std::string(); }
 
-    inline Schema* getBuildSideSchema() const { return children[1]->getSchema(); }
+    inline common::AccumulateType getAccumulateType() const { return accumulateType; }
 
     inline std::unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalCrossProduct>(children[0]->copy(), children[1]->copy());
+        return make_unique<LogicalCrossProduct>(
+            accumulateType, children[0]->copy(), children[1]->copy());
     }
+
+private:
+    common::AccumulateType accumulateType;
 };
 
 } // namespace planner

@@ -1,70 +1,53 @@
 #pragma once
 
-#include "binder/expression/rel_expression.h"
+#include "bound_set_info.h"
 #include "bound_updating_clause.h"
 
 namespace kuzu {
 namespace binder {
 
-class BoundSetNodeProperty {
-public:
-    BoundSetNodeProperty(std::shared_ptr<NodeExpression> node, expression_pair setItem)
-        : node{std::move(node)}, setItem{std::move(setItem)} {}
-
-    inline std::shared_ptr<NodeExpression> getNode() const { return node; }
-    inline expression_pair getSetItem() const { return setItem; }
-
-    inline std::unique_ptr<BoundSetNodeProperty> copy() const {
-        return make_unique<BoundSetNodeProperty>(node, setItem);
-    }
-
-private:
-    std::shared_ptr<NodeExpression> node;
-    expression_pair setItem;
-};
-
-class BoundSetRelProperty {
-public:
-    BoundSetRelProperty(std::shared_ptr<RelExpression> rel, expression_pair setItem)
-        : rel{std::move(rel)}, setItem{std::move(setItem)} {}
-
-    inline std::shared_ptr<RelExpression> getRel() const { return rel; }
-    inline expression_pair getSetItem() const { return setItem; }
-
-    inline std::unique_ptr<BoundSetRelProperty> copy() const {
-        return make_unique<BoundSetRelProperty>(rel, setItem);
-    }
-
-private:
-    std::shared_ptr<RelExpression> rel;
-    expression_pair setItem;
-};
-
 class BoundSetClause : public BoundUpdatingClause {
 public:
     BoundSetClause() : BoundUpdatingClause{common::ClauseType::SET} {}
+    BoundSetClause(const BoundSetClause& other);
 
-    inline void addSetNodeProperty(std::unique_ptr<BoundSetNodeProperty> setNodeProperty) {
-        setNodeProperties.push_back(std::move(setNodeProperty));
+    inline void addInfo(std::unique_ptr<BoundSetPropertyInfo> info) {
+        infos.push_back(std::move(info));
     }
-    inline bool hasSetNodeProperty() const { return !setNodeProperties.empty(); }
-    inline const std::vector<std::unique_ptr<BoundSetNodeProperty>>& getSetNodeProperties() const {
-        return setNodeProperties;
+    inline const std::vector<std::unique_ptr<BoundSetPropertyInfo>>& getInfosRef() { return infos; }
+
+    inline bool hasNodeInfo() const {
+        return hasInfo([](const BoundSetPropertyInfo& info) {
+            return info.updateTableType == UpdateTableType::NODE;
+        });
+    }
+    inline std::vector<BoundSetPropertyInfo*> getNodeInfos() const {
+        return getInfos([](const BoundSetPropertyInfo& info) {
+            return info.updateTableType == UpdateTableType::NODE;
+        });
+    }
+    inline bool hasRelInfo() const {
+        return hasInfo([](const BoundSetPropertyInfo& info) {
+            return info.updateTableType == UpdateTableType::REL;
+        });
+    }
+    inline std::vector<BoundSetPropertyInfo*> getRelInfos() const {
+        return getInfos([](const BoundSetPropertyInfo& info) {
+            return info.updateTableType == UpdateTableType::REL;
+        });
     }
 
-    inline void addSetRelProperty(std::unique_ptr<BoundSetRelProperty> setRelProperty) {
-        setRelProperties.push_back(std::move(setRelProperty));
+    inline std::unique_ptr<BoundUpdatingClause> copy() final {
+        return std::make_unique<BoundSetClause>(*this);
     }
-    inline bool hasSetRelProperty() const { return !setRelProperties.empty(); }
-    inline const std::vector<std::unique_ptr<BoundSetRelProperty>>& getSetRelProperties() const {
-        return setRelProperties;
-    }
-
-    std::unique_ptr<BoundUpdatingClause> copy() override;
 
 private:
-    std::vector<std::unique_ptr<BoundSetNodeProperty>> setNodeProperties;
-    std::vector<std::unique_ptr<BoundSetRelProperty>> setRelProperties;
+    bool hasInfo(const std::function<bool(const BoundSetPropertyInfo& info)>& check) const;
+    std::vector<BoundSetPropertyInfo*> getInfos(
+        const std::function<bool(const BoundSetPropertyInfo& info)>& check) const;
+
+private:
+    std::vector<std::unique_ptr<BoundSetPropertyInfo>> infos;
 };
 
 } // namespace binder

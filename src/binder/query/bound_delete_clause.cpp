@@ -3,13 +3,29 @@
 namespace kuzu {
 namespace binder {
 
-std::unique_ptr<BoundUpdatingClause> BoundDeleteClause::copy() {
-    auto result = std::make_unique<BoundDeleteClause>();
-    for (auto& deleteNode : deleteNodes) {
-        result->addDeleteNode(deleteNode->copy());
+BoundDeleteClause::BoundDeleteClause(const BoundDeleteClause& other)
+    : BoundUpdatingClause{common::ClauseType::DELETE_} {
+    for (auto& info : other.infos) {
+        infos.push_back(info->copy());
     }
-    for (auto& deleteRel : deleteRels) {
-        result->addDeleteRel(deleteRel);
+}
+
+bool BoundDeleteClause::hasInfo(const std::function<bool(const BoundDeleteInfo&)>& check) const {
+    for (auto& info : infos) {
+        if (check(*info)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+std::vector<BoundDeleteInfo*> BoundDeleteClause::getInfos(
+    const std::function<bool(const BoundDeleteInfo&)>& check) const {
+    std::vector<BoundDeleteInfo*> result;
+    for (auto& info : infos) {
+        if (check(*info)) {
+            result.push_back(info.get());
+        }
     }
     return result;
 }

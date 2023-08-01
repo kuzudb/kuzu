@@ -3,13 +3,29 @@
 namespace kuzu {
 namespace binder {
 
-std::unique_ptr<BoundUpdatingClause> BoundSetClause::copy() {
-    auto result = std::make_unique<BoundSetClause>();
-    for (auto& setNodeProperty : setNodeProperties) {
-        result->addSetNodeProperty(setNodeProperty->copy());
+BoundSetClause::BoundSetClause(const BoundSetClause& other)
+    : BoundUpdatingClause{common::ClauseType::SET} {
+    for (auto& info : other.infos) {
+        infos.push_back(info->copy());
     }
-    for (auto& setRelProperty : setRelProperties) {
-        result->addSetRelProperty(setRelProperty->copy());
+}
+
+bool BoundSetClause::hasInfo(const std::function<bool(const BoundSetPropertyInfo&)>& check) const {
+    for (auto& info : infos) {
+        if (check(*info)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+std::vector<BoundSetPropertyInfo*> BoundSetClause::getInfos(
+    const std::function<bool(const BoundSetPropertyInfo&)>& check) const {
+    std::vector<BoundSetPropertyInfo*> result;
+    for (auto& info : infos) {
+        if (check(*info)) {
+            result.push_back(info.get());
+        }
     }
     return result;
 }

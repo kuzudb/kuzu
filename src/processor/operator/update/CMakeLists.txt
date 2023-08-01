@@ -2,6 +2,7 @@ add_library(kuzu_processor_operator_update
         OBJECT
         create.cpp
         delete.cpp
+        delete_executor.cpp
         set.cpp)
 
 set(ALL_OBJECT_FILES

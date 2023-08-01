@@ -4,11 +4,8 @@ namespace kuzu {
 namespace processor {
 
 void DeleteNode::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
-    for (auto& deleteNodeInfo : deleteNodeInfos) {
-        auto nodeIDVector = resultSet->getValueVector(deleteNodeInfo->nodeIDPos);
-        nodeIDVectors.push_back(nodeIDVector.get());
-        auto pkVector = resultSet->getValueVector(deleteNodeInfo->primaryKeyPos);
-        primaryKeyVectors.push_back(pkVector.get());
+    for (auto& executor : executors) {
+        executor->init(resultSet, context);
     }
 }
 
@@ -16,21 +13,24 @@ bool DeleteNode::getNextTuplesInternal(ExecutionContext* context) {
     if (!children[0]->getNextTuple(context)) {
         return false;
     }
-    for (auto i = 0u; i < deleteNodeInfos.size(); ++i) {
-        auto nodeTable = deleteNodeInfos[i]->table;
-        nodeTable->deleteNodes(nodeIDVectors[i], primaryKeyVectors[i]);
+    for (auto& executor : executors) {
+        executor->delete_();
     }
     return true;
 }
 
+std::unique_ptr<PhysicalOperator> DeleteNode::clone() {
+    std::vector<std::unique_ptr<NodeDeleteExecutor>> executorsCopy;
+    for (auto& executor : executors) {
+        executorsCopy.push_back(executor->copy());
+    }
+    return std::make_unique<DeleteNode>(
+        std::move(executorsCopy), children[0]->clone(), id, paramsString);
+}
+
 void DeleteRel::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
-    for (auto& deleteRelInfo : deleteRelInfos) {
-        auto srcNodeIDVector = resultSet->getValueVector(deleteRelInfo->srcNodePos);
-        srcNodeVectors.push_back(srcNodeIDVector.get());
-        auto dstNodeIDVector = resultSet->getValueVector(deleteRelInfo->dstNodePos);
-        dstNodeVectors.push_back(dstNodeIDVector.get());
-        auto relIDVector = resultSet->getValueVector(deleteRelInfo->relIDPos);
-        relIDVectors.push_back(relIDVector.get());
+    for (auto& executor : executors) {
+        executor->init(resultSet, context);
     }
 }
 
@@ -38,16 +38,19 @@ bool DeleteRel::getNextTuplesInternal(ExecutionContext* context) {
     if (!children[0]->getNextTuple(context)) {
         return false;
     }
-    for (auto i = 0u; i < deleteRelInfos.size(); ++i) {
-        auto deleteRelInfo = deleteRelInfos[i].get();
-        auto srcNodeVector = srcNodeVectors[i];
-        auto dstNodeVector = dstNodeVectors[i];
-        auto relIDVector = relIDVectors[i];
-        deleteRelInfo->table->deleteRel(srcNodeVector, dstNodeVector, relIDVector);
-        relsStatistics.updateNumRelsByValue(deleteRelInfo->table->getRelTableID(),
-            -1 /* decrement numRelsPerDirectionBoundTable by 1 */);
+    for (auto& executor : executors) {
+        executor->delete_();
     }
     return true;
+}
+
+std::unique_ptr<PhysicalOperator> DeleteRel::clone() {
+    std::vector<std::unique_ptr<RelDeleteExecutor>> executorsCopy;
+    for (auto& executor : executors) {
+        executorsCopy.push_back(executor->copy());
+    }
+    return std::make_unique<DeleteRel>(
+        std::move(executorsCopy), children[0]->clone(), id, paramsString);
 }
 
 } // namespace processor

@@ -6,51 +6,67 @@
 namespace kuzu {
 namespace planner {
 
-class LogicalDeleteNode : public LogicalUpdateNode {
-public:
-    LogicalDeleteNode(std::vector<std::shared_ptr<binder::NodeExpression>> nodes,
-        binder::expression_vector primaryKeys, std::shared_ptr<LogicalOperator> child)
-        : LogicalUpdateNode{LogicalOperatorType::DELETE_NODE, std::move(nodes), std::move(child)},
-          primaryKeys{std::move(primaryKeys)} {}
-    ~LogicalDeleteNode() override = default;
+struct LogicalDeleteNodeInfo {
+    std::shared_ptr<binder::NodeExpression> node;
+    std::shared_ptr<binder::Expression> primaryKey;
 
-    inline void computeFactorizedSchema() override { copyChildSchema(0); }
-    inline void computeFlatSchema() override { copyChildSchema(0); }
+    LogicalDeleteNodeInfo(std::shared_ptr<binder::NodeExpression> node,
+        std::shared_ptr<binder::Expression> primaryKey)
+        : node{std::move(node)}, primaryKey{std::move(primaryKey)} {}
+    LogicalDeleteNodeInfo(const LogicalDeleteNodeInfo& other)
+        : node{other.node}, primaryKey{other.primaryKey} {}
 
-    inline std::shared_ptr<binder::Expression> getPrimaryKey(size_t idx) const {
-        return primaryKeys[idx];
+    inline std::unique_ptr<LogicalDeleteNodeInfo> copy() const {
+        return std::make_unique<LogicalDeleteNodeInfo>(*this);
     }
-
-    inline std::unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalDeleteNode>(nodes, primaryKeys, children[0]->copy());
-    }
-
-private:
-    binder::expression_vector primaryKeys;
 };
 
-class LogicalDeleteRel : public LogicalUpdateRel {
+class LogicalDeleteNode : public LogicalOperator {
+public:
+    LogicalDeleteNode(std::vector<std::unique_ptr<LogicalDeleteNodeInfo>> infos,
+        std::shared_ptr<LogicalOperator> child)
+        : LogicalOperator{LogicalOperatorType::DELETE_NODE, std::move(child)}, infos{std::move(
+                                                                                   infos)} {}
+
+    inline void computeFactorizedSchema() final { copyChildSchema(0); }
+    inline void computeFlatSchema() final { copyChildSchema(0); }
+
+    std::string getExpressionsForPrinting() const final;
+
+    inline const std::vector<std::unique_ptr<LogicalDeleteNodeInfo>>& getInfosRef() const {
+        return infos;
+    }
+
+    std::unique_ptr<LogicalOperator> copy() final;
+
+private:
+    std::vector<std::unique_ptr<LogicalDeleteNodeInfo>> infos;
+};
+
+class LogicalDeleteRel : public LogicalOperator {
 public:
     LogicalDeleteRel(std::vector<std::shared_ptr<binder::RelExpression>> rels,
         std::shared_ptr<LogicalOperator> child)
-        : LogicalUpdateRel{LogicalOperatorType::DELETE_REL, std::move(rels), std::move(child)} {}
-    ~LogicalDeleteRel() override = default;
+        : LogicalOperator{LogicalOperatorType::DELETE_REL, std::move(child)}, rels{std::move(
+                                                                                  rels)} {}
 
-    inline void computeFactorizedSchema() override { copyChildSchema(0); }
-    inline void computeFlatSchema() override { copyChildSchema(0); }
+    inline void computeFactorizedSchema() final { copyChildSchema(0); }
+    inline void computeFlatSchema() final { copyChildSchema(0); }
 
-    inline f_group_pos_set getGroupsPosToFlatten(uint32_t relIdx) {
-        f_group_pos_set result;
-        auto rel = rels[relIdx];
-        auto childSchema = children[0]->getSchema();
-        result.insert(childSchema->getGroupPos(*rel->getSrcNode()->getInternalIDProperty()));
-        result.insert(childSchema->getGroupPos(*rel->getDstNode()->getInternalIDProperty()));
-        return factorization::FlattenAll::getGroupsPosToFlatten(result, childSchema);
+    std::string getExpressionsForPrinting() const final;
+
+    inline const std::vector<std::shared_ptr<binder::RelExpression>>& getRelsRef() const {
+        return rels;
     }
+
+    f_group_pos_set getGroupsPosToFlatten(uint32_t idx);
 
     inline std::unique_ptr<LogicalOperator> copy() override {
         return make_unique<LogicalDeleteRel>(rels, children[0]->copy());
     }
+
+private:
+    std::vector<std::shared_ptr<binder::RelExpression>> rels;
 };
 
 } // namespace planner
