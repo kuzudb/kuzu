@@ -24,7 +24,6 @@ std::unique_ptr<BoundRegularQuery> Binder::bindQuery(const RegularQuery& regular
     for (auto& boundSingleQuery : boundSingleQueries) {
         auto normalizedSingleQuery = QueryNormalizer::normalizeQuery(*boundSingleQuery);
         validateReadNotFollowUpdate(*normalizedSingleQuery);
-        validateReturnNotFollowUpdate(*normalizedSingleQuery);
         boundRegularQuery->addSingleQuery(std::move(normalizedSingleQuery));
     }
     validateIsAllUnionOrUnionAll(*boundRegularQuery);
