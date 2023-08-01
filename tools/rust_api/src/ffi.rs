@@ -167,14 +167,6 @@ pub(crate) mod ffi {
 
     #[namespace = "kuzu_rs"]
     unsafe extern "C++" {
-        type ValueList<'a>;
-
-        fn size<'a>(&'a self) -> u64;
-        fn get<'a>(&'a self, index: u64) -> &'a UniquePtr<Value>;
-    }
-
-    #[namespace = "kuzu_rs"]
-    unsafe extern "C++" {
         #[namespace = "kuzu::common"]
         type LogicalType;
 
@@ -251,10 +243,12 @@ pub(crate) mod ffi {
         fn value_get_timestamp_micros(value: &Value) -> i64;
         fn value_get_date_days(value: &Value) -> i32;
         fn value_get_internal_id(value: &Value) -> [u64; 2];
-        fn value_get_list(value: &Value) -> UniquePtr<ValueList>;
 
         fn value_get_data_type_id(value: &Value) -> LogicalTypeID;
-        fn value_get_data_type(value: &Value) -> UniquePtr<LogicalType>;
+        fn value_get_data_type(value: &Value) -> &LogicalType;
+
+        fn value_get_children_size(value: &Value) -> u32;
+        fn value_get_child(value: &Value, index: u32) -> &Value;
 
         fn isNull(&self) -> bool;
 
@@ -278,35 +272,23 @@ pub(crate) mod ffi {
         fn create_value_interval(months: i32, days: i32, micros: i64) -> UniquePtr<Value>;
         fn create_value_internal_id(offset: u64, table: u64) -> UniquePtr<Value>;
 
-        fn node_value_get_properties(node_value: &Value) -> UniquePtr<NodeValuePropertyList>;
         fn node_value_get_node_id(value: &Value) -> [u64; 2];
         fn node_value_get_label_name(value: &Value) -> String;
 
-        fn rel_value_get_properties(node_value: &Value) -> UniquePtr<RelValuePropertyList>;
+        fn node_value_get_num_properties(value: &Value) -> usize;
+        fn node_value_get_property_name(value: &Value, index: usize) -> String;
+        fn node_value_get_property_value(value: &Value, index: usize) -> &Value;
+
         fn rel_value_get_label_name(value: &Value) -> String;
 
         fn rel_value_get_src_id(value: &Value) -> [u64; 2];
         fn rel_value_get_dst_id(value: &Value) -> [u64; 2];
 
+        fn rel_value_get_num_properties(value: &Value) -> usize;
+        fn rel_value_get_property_name(value: &Value, index: usize) -> String;
+        fn rel_value_get_property_value(value: &Value, index: usize) -> &Value;
+
         fn recursive_rel_get_nodes(value: &Value) -> &Value;
         fn recursive_rel_get_rels(value: &Value) -> &Value;
-    }
-
-    #[namespace = "kuzu_rs"]
-    unsafe extern "C++" {
-        type NodeValuePropertyList<'a>;
-
-        fn size<'a>(&'a self) -> usize;
-        fn get_name<'a>(&'a self, index: usize) -> String;
-        fn get_value<'a>(&'a self, index: usize) -> &'a Value;
-    }
-
-    #[namespace = "kuzu_rs"]
-    unsafe extern "C++" {
-        type RelValuePropertyList<'a>;
-
-        fn size<'a>(&'a self) -> usize;
-        fn get_name<'a>(&'a self, index: usize) -> String;
-        fn get_value<'a>(&'a self, index: usize) -> &'a Value;
     }
 }

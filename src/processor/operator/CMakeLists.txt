@@ -9,6 +9,7 @@ add_subdirectory(table_scan)
 add_subdirectory(update)
 add_subdirectory(recursive_extend)
 add_subdirectory(call)
+add_subdirectory(macro)
 
 add_library(kuzu_processor_operator
         OBJECT

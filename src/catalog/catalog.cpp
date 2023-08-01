@@ -1,5 +1,6 @@
 #include "catalog/catalog.h"
 
+#include "common/ser_deser.h"
 #include "common/string_utils.h"
 #include "spdlog/spdlog.h"
 #include "storage/storage_utils.h"
@@ -17,167 +18,125 @@ namespace common {
  * */
 
 template<>
-uint64_t SerDeser::serializeValue<std::string>(
-    const std::string& value, FileInfo* fileInfo, uint64_t offset) {
-    uint64_t valueLength = value.length();
-    FileUtils::writeToFile(fileInfo, (uint8_t*)&valueLength, sizeof(uint64_t), offset);
-    FileUtils::writeToFile(
-        fileInfo, (uint8_t*)value.data(), valueLength, offset + sizeof(uint64_t));
-    return offset + sizeof(uint64_t) + valueLength;
+void SerDeser::serializeValue<Property>(
+    const Property& value, FileInfo* fileInfo, uint64_t& offset) {
+    SerDeser::serializeValue<std::string>(value.name, fileInfo, offset);
+    SerDeser::serializeValue<LogicalType>(value.dataType, fileInfo, offset);
+    SerDeser::serializeValue<property_id_t>(value.propertyID, fileInfo, offset);
+    SerDeser::serializeValue<table_id_t>(value.tableID, fileInfo, offset);
 }
 
 template<>
-uint64_t SerDeser::deserializeValue<std::string>(
-    std::string& value, FileInfo* fileInfo, uint64_t offset) {
-    uint64_t valueLength = 0;
-    offset = SerDeser::deserializeValue<uint64_t>(valueLength, fileInfo, offset);
-    value.resize(valueLength);
-    FileUtils::readFromFile(fileInfo, (uint8_t*)value.data(), valueLength, offset);
-    return offset + valueLength;
+void SerDeser::deserializeValue<Property>(Property& value, FileInfo* fileInfo, uint64_t& offset) {
+    SerDeser::deserializeValue<std::string>(value.name, fileInfo, offset);
+    SerDeser::deserializeValue<LogicalType>(value.dataType, fileInfo, offset);
+    SerDeser::deserializeValue<property_id_t>(value.propertyID, fileInfo, offset);
+    SerDeser::deserializeValue<table_id_t>(value.tableID, fileInfo, offset);
 }
 
 template<>
-uint64_t SerDeser::serializeValue<Property>(
-    const Property& value, FileInfo* fileInfo, uint64_t offset) {
-    offset = SerDeser::serializeValue<std::string>(value.name, fileInfo, offset);
-    offset = SerDeser::serializeValue<LogicalType>(value.dataType, fileInfo, offset);
-    offset = SerDeser::serializeValue<property_id_t>(value.propertyID, fileInfo, offset);
-    return SerDeser::serializeValue<table_id_t>(value.tableID, fileInfo, offset);
-}
-
-template<>
-uint64_t SerDeser::deserializeValue<Property>(
-    Property& value, FileInfo* fileInfo, uint64_t offset) {
-    offset = SerDeser::deserializeValue<std::string>(value.name, fileInfo, offset);
-    offset = SerDeser::deserializeValue<LogicalType>(value.dataType, fileInfo, offset);
-    offset = SerDeser::deserializeValue<property_id_t>(value.propertyID, fileInfo, offset);
-    return SerDeser::deserializeValue<table_id_t>(value.tableID, fileInfo, offset);
-}
-
-template<>
-uint64_t SerDeser::serializeValue(
-    const std::unordered_map<table_id_t, uint64_t>& value, FileInfo* fileInfo, uint64_t offset) {
-    offset = SerDeser::serializeValue<uint64_t>(value.size(), fileInfo, offset);
+void SerDeser::serializeValue(
+    const std::unordered_map<table_id_t, uint64_t>& value, FileInfo* fileInfo, uint64_t& offset) {
+    SerDeser::serializeValue<uint64_t>(value.size(), fileInfo, offset);
     for (auto& entry : value) {
-        offset = SerDeser::serializeValue<table_id_t>(entry.first, fileInfo, offset);
-        offset = SerDeser::serializeValue<uint64_t>(entry.second, fileInfo, offset);
+        SerDeser::serializeValue<table_id_t>(entry.first, fileInfo, offset);
+        SerDeser::serializeValue<uint64_t>(entry.second, fileInfo, offset);
     }
-    return offset;
 }
 
 template<>
-uint64_t SerDeser::deserializeValue(
-    std::unordered_map<table_id_t, uint64_t>& value, FileInfo* fileInfo, uint64_t offset) {
+void SerDeser::deserializeValue(
+    std::unordered_map<table_id_t, uint64_t>& value, FileInfo* fileInfo, uint64_t& offset) {
     uint64_t numEntries = 0;
-    offset = SerDeser::deserializeValue<uint64_t>(numEntries, fileInfo, offset);
+    deserializeValue(numEntries, fileInfo, offset);
     for (auto i = 0u; i < numEntries; i++) {
         table_id_t tableID;
         uint64_t num;
-        offset = SerDeser::deserializeValue<table_id_t>(tableID, fileInfo, offset);
-        offset = SerDeser::deserializeValue<uint64_t>(num, fileInfo, offset);
+        deserializeValue<table_id_t>(tableID, fileInfo, offset);
+        deserializeValue<uint64_t>(num, fileInfo, offset);
         value.emplace(tableID, num);
     }
-    return offset;
 }
 
 template<>
-uint64_t SerDeser::serializeVector<std::vector<uint64_t>>(
-    const std::vector<std::vector<uint64_t>>& values, FileInfo* fileInfo, uint64_t offset) {
+void SerDeser::serializeVector<std::vector<uint64_t>>(
+    const std::vector<std::vector<uint64_t>>& values, FileInfo* fileInfo, uint64_t& offset) {
     uint64_t vectorSize = values.size();
-    offset = SerDeser::serializeValue<uint64_t>(vectorSize, fileInfo, offset);
+    SerDeser::serializeValue<uint64_t>(vectorSize, fileInfo, offset);
     for (auto& value : values) {
-        offset = serializeVector<uint64_t>(value, fileInfo, offset);
+        serializeVector<uint64_t>(value, fileInfo, offset);
     }
-    return offset;
 }
 
 template<>
-uint64_t SerDeser::deserializeVector<std::vector<uint64_t>>(
-    std::vector<std::vector<uint64_t>>& values, FileInfo* fileInfo, uint64_t offset) {
-    uint64_t vectorSize;
-    offset = deserializeValue<uint64_t>(vectorSize, fileInfo, offset);
-    values.resize(vectorSize);
-    for (auto& value : values) {
-        offset = SerDeser::deserializeVector<uint64_t>(value, fileInfo, offset);
-    }
-    return offset;
+void SerDeser::serializeValue<TableSchema>(
+    const TableSchema& value, FileInfo* fileInfo, uint64_t& offset) {
+    serializeValue<std::string>(value.tableName, fileInfo, offset);
+    serializeValue<table_id_t>(value.tableID, fileInfo, offset);
+    serializeVector<Property>(value.properties, fileInfo, offset);
+    serializeValue<property_id_t>(value.nextPropertyID, fileInfo, offset);
 }
 
 template<>
-uint64_t SerDeser::serializeValue<TableSchema>(
-    const TableSchema& value, FileInfo* fileInfo, uint64_t offset) {
-    offset = SerDeser::serializeValue<std::string>(value.tableName, fileInfo, offset);
-    offset = SerDeser::serializeValue<table_id_t>(value.tableID, fileInfo, offset);
-    offset = SerDeser::serializeVector<Property>(value.properties, fileInfo, offset);
-    return SerDeser::serializeValue<property_id_t>(value.nextPropertyID, fileInfo, offset);
+void SerDeser::deserializeValue<TableSchema>(
+    TableSchema& value, FileInfo* fileInfo, uint64_t& offset) {
+    deserializeValue<std::string>(value.tableName, fileInfo, offset);
+    deserializeValue<table_id_t>(value.tableID, fileInfo, offset);
+    deserializeVector<Property>(value.properties, fileInfo, offset);
+    deserializeValue<property_id_t>(value.nextPropertyID, fileInfo, offset);
 }
 
 template<>
-uint64_t SerDeser::deserializeValue<TableSchema>(
-    TableSchema& value, FileInfo* fileInfo, uint64_t offset) {
-    offset = SerDeser::deserializeValue<std::string>(value.tableName, fileInfo, offset);
-    offset = SerDeser::deserializeValue<table_id_t>(value.tableID, fileInfo, offset);
-    offset = SerDeser::deserializeVector<Property>(value.properties, fileInfo, offset);
-    return SerDeser::deserializeValue<property_id_t>(value.nextPropertyID, fileInfo, offset);
+void SerDeser::serializeValue<NodeTableSchema>(
+    const NodeTableSchema& value, FileInfo* fileInfo, uint64_t& offset) {
+    SerDeser::serializeValue<TableSchema>((const TableSchema&)value, fileInfo, offset);
+    SerDeser::serializeValue<property_id_t>(value.primaryKeyPropertyID, fileInfo, offset);
+    SerDeser::serializeUnorderedSet<table_id_t>(value.fwdRelTableIDSet, fileInfo, offset);
+    SerDeser::serializeUnorderedSet<table_id_t>(value.bwdRelTableIDSet, fileInfo, offset);
 }
 
 template<>
-uint64_t SerDeser::serializeValue<NodeTableSchema>(
-    const NodeTableSchema& value, FileInfo* fileInfo, uint64_t offset) {
-    offset = SerDeser::serializeValue<TableSchema>((const TableSchema&)value, fileInfo, offset);
-    offset = SerDeser::serializeValue<property_id_t>(value.primaryKeyPropertyID, fileInfo, offset);
-    offset = SerDeser::serializeUnorderedSet<table_id_t>(value.fwdRelTableIDSet, fileInfo, offset);
-    return SerDeser::serializeUnorderedSet<table_id_t>(value.bwdRelTableIDSet, fileInfo, offset);
+void SerDeser::deserializeValue<NodeTableSchema>(
+    NodeTableSchema& value, FileInfo* fileInfo, uint64_t& offset) {
+    deserializeValue<TableSchema>((TableSchema&)value, fileInfo, offset);
+    deserializeValue<property_id_t>(value.primaryKeyPropertyID, fileInfo, offset);
+    deserializeUnorderedSet<table_id_t>(value.fwdRelTableIDSet, fileInfo, offset);
+    deserializeUnorderedSet<table_id_t>(value.bwdRelTableIDSet, fileInfo, offset);
 }
 
 template<>
-uint64_t SerDeser::deserializeValue<NodeTableSchema>(
-    NodeTableSchema& value, FileInfo* fileInfo, uint64_t offset) {
-    offset = SerDeser::deserializeValue<TableSchema>((TableSchema&)value, fileInfo, offset);
-    offset =
-        SerDeser::deserializeValue<property_id_t>(value.primaryKeyPropertyID, fileInfo, offset);
-    offset =
-        SerDeser::deserializeUnorderedSet<table_id_t>(value.fwdRelTableIDSet, fileInfo, offset);
-    return SerDeser::deserializeUnorderedSet<table_id_t>(value.bwdRelTableIDSet, fileInfo, offset);
+void SerDeser::serializeValue<RelTableSchema>(
+    const RelTableSchema& value, FileInfo* fileInfo, uint64_t& offset) {
+    SerDeser::serializeValue<TableSchema>((const TableSchema&)value, fileInfo, offset);
+    SerDeser::serializeValue<RelMultiplicity>(value.relMultiplicity, fileInfo, offset);
+    SerDeser::serializeValue<table_id_t>(value.srcTableID, fileInfo, offset);
+    SerDeser::serializeValue<table_id_t>(value.dstTableID, fileInfo, offset);
+    SerDeser::serializeValue<LogicalType>(value.srcPKDataType, fileInfo, offset);
+    SerDeser::serializeValue<LogicalType>(value.dstPKDataType, fileInfo, offset);
 }
 
 template<>
-uint64_t SerDeser::serializeValue<RelTableSchema>(
-    const RelTableSchema& value, FileInfo* fileInfo, uint64_t offset) {
-    offset = SerDeser::serializeValue<TableSchema>((const TableSchema&)value, fileInfo, offset);
-    offset = SerDeser::serializeValue<RelMultiplicity>(value.relMultiplicity, fileInfo, offset);
-    offset = SerDeser::serializeValue<table_id_t>(value.srcTableID, fileInfo, offset);
-    offset = SerDeser::serializeValue<table_id_t>(value.dstTableID, fileInfo, offset);
-    offset = SerDeser::serializeValue<LogicalType>(value.srcPKDataType, fileInfo, offset);
-    return SerDeser::serializeValue<LogicalType>(value.dstPKDataType, fileInfo, offset);
-}
-
-template<>
-uint64_t SerDeser::deserializeValue<RelTableSchema>(
-    RelTableSchema& value, FileInfo* fileInfo, uint64_t offset) {
-    offset = SerDeser::deserializeValue<TableSchema>((TableSchema&)value, fileInfo, offset);
-    offset = SerDeser::deserializeValue<RelMultiplicity>(value.relMultiplicity, fileInfo, offset);
-    offset = SerDeser::deserializeValue<table_id_t>(value.srcTableID, fileInfo, offset);
-    offset = SerDeser::deserializeValue<table_id_t>(value.dstTableID, fileInfo, offset);
-    offset = SerDeser::deserializeValue<LogicalType>(value.srcPKDataType, fileInfo, offset);
-    return SerDeser::deserializeValue<LogicalType>(value.dstPKDataType, fileInfo, offset);
+void SerDeser::deserializeValue<RelTableSchema>(
+    RelTableSchema& value, FileInfo* fileInfo, uint64_t& offset) {
+    deserializeValue<TableSchema>((TableSchema&)value, fileInfo, offset);
+    deserializeValue<RelMultiplicity>(value.relMultiplicity, fileInfo, offset);
+    deserializeValue<table_id_t>(value.srcTableID, fileInfo, offset);
+    deserializeValue<table_id_t>(value.dstTableID, fileInfo, offset);
+    deserializeValue<LogicalType>(value.srcPKDataType, fileInfo, offset);
+    deserializeValue<LogicalType>(value.dstPKDataType, fileInfo, offset);
 }
 
 } // namespace common
-} // namespace kuzu
 
-namespace kuzu {
 namespace catalog {
 
 CatalogContent::CatalogContent() : nextTableID{0} {
-    logger = LoggerUtils::getLogger(LoggerConstants::LoggerEnum::CATALOG);
+    registerBuiltInFunctions();
 }
 
 CatalogContent::CatalogContent(const std::string& directory) {
-    logger = LoggerUtils::getLogger(LoggerConstants::LoggerEnum::CATALOG);
-    logger->info("Initializing catalog.");
     readFromFile(directory, DBFileType::ORIGINAL);
-    logger->info("Initializing catalog done.");
+    registerBuiltInFunctions();
 }
 
 CatalogContent::CatalogContent(const CatalogContent& other) {
@@ -192,6 +151,10 @@ CatalogContent::CatalogContent(const CatalogContent& other) {
     nodeTableNameToIDMap = other.nodeTableNameToIDMap;
     relTableNameToIDMap = other.relTableNameToIDMap;
     nextTableID = other.nextTableID;
+    registerBuiltInFunctions();
+    for (auto& macro : other.macros) {
+        macros.emplace(macro.first, macro.second->copy());
+    }
 }
 
 table_id_t CatalogContent::addNodeTableSchema(
@@ -273,46 +236,44 @@ void CatalogContent::saveToFile(const std::string& directory, DBFileType dbFileT
     auto fileInfo = FileUtils::openFile(catalogPath, O_WRONLY | O_CREAT);
     uint64_t offset = 0;
     writeMagicBytes(fileInfo.get(), offset);
-    offset = SerDeser::serializeValue<uint64_t>(
+    SerDeser::serializeValue<uint64_t>(
         StorageVersionInfo::getStorageVersion(), fileInfo.get(), offset);
-    offset = SerDeser::serializeValue<uint64_t>(nodeTableSchemas.size(), fileInfo.get(), offset);
-    offset = SerDeser::serializeValue<uint64_t>(relTableSchemas.size(), fileInfo.get(), offset);
+    SerDeser::serializeValue<uint64_t>(nodeTableSchemas.size(), fileInfo.get(), offset);
+    SerDeser::serializeValue<uint64_t>(relTableSchemas.size(), fileInfo.get(), offset);
     for (auto& nodeTableSchema : nodeTableSchemas) {
-        offset = SerDeser::serializeValue<uint64_t>(nodeTableSchema.first, fileInfo.get(), offset);
-        offset = SerDeser::serializeValue<NodeTableSchema>(
-            *nodeTableSchema.second, fileInfo.get(), offset);
+        SerDeser::serializeValue<uint64_t>(nodeTableSchema.first, fileInfo.get(), offset);
+        SerDeser::serializeValue<NodeTableSchema>(*nodeTableSchema.second, fileInfo.get(), offset);
     }
     for (auto& relTableSchema : relTableSchemas) {
-        offset = SerDeser::serializeValue<uint64_t>(relTableSchema.first, fileInfo.get(), offset);
-        offset = SerDeser::serializeValue<RelTableSchema>(
-            *relTableSchema.second, fileInfo.get(), offset);
+        SerDeser::serializeValue<uint64_t>(relTableSchema.first, fileInfo.get(), offset);
+        SerDeser::serializeValue<RelTableSchema>(*relTableSchema.second, fileInfo.get(), offset);
     }
-    SerDeser::serializeValue<table_id_t>(nextTableID, fileInfo.get(), offset);
+    SerDeser::serializeValue(nextTableID, fileInfo.get(), offset);
+    SerDeser::serializeUnorderedMap(macros, fileInfo.get(), offset);
 }
 
 void CatalogContent::readFromFile(const std::string& directory, DBFileType dbFileType) {
     auto catalogPath = StorageUtils::getCatalogFilePath(directory, dbFileType);
-    logger->debug("Reading from {}.", catalogPath);
     auto fileInfo = FileUtils::openFile(catalogPath, O_RDONLY);
     uint64_t offset = 0;
     validateMagicBytes(fileInfo.get(), offset);
     storage::storage_version_t savedStorageVersion;
-    offset = SerDeser::deserializeValue<uint64_t>(savedStorageVersion, fileInfo.get(), offset);
+    SerDeser::deserializeValue<uint64_t>(savedStorageVersion, fileInfo.get(), offset);
     validateStorageVersion(savedStorageVersion);
     uint64_t numNodeTables, numRelTables;
-    offset = SerDeser::deserializeValue<uint64_t>(numNodeTables, fileInfo.get(), offset);
-    offset = SerDeser::deserializeValue<uint64_t>(numRelTables, fileInfo.get(), offset);
+    SerDeser::deserializeValue<uint64_t>(numNodeTables, fileInfo.get(), offset);
+    SerDeser::deserializeValue<uint64_t>(numRelTables, fileInfo.get(), offset);
     table_id_t tableID;
     for (auto i = 0u; i < numNodeTables; i++) {
-        offset = SerDeser::deserializeValue<uint64_t>(tableID, fileInfo.get(), offset);
+        SerDeser::deserializeValue<uint64_t>(tableID, fileInfo.get(), offset);
         nodeTableSchemas[tableID] = std::make_unique<NodeTableSchema>();
-        offset = SerDeser::deserializeValue<NodeTableSchema>(
+        SerDeser::deserializeValue<NodeTableSchema>(
             *nodeTableSchemas[tableID], fileInfo.get(), offset);
     }
     for (auto i = 0u; i < numRelTables; i++) {
-        offset = SerDeser::deserializeValue<uint64_t>(tableID, fileInfo.get(), offset);
+        SerDeser::deserializeValue<uint64_t>(tableID, fileInfo.get(), offset);
         relTableSchemas[tableID] = std::make_unique<RelTableSchema>();
-        offset = SerDeser::deserializeValue<RelTableSchema>(
+        SerDeser::deserializeValue<RelTableSchema>(
             *relTableSchemas[tableID], fileInfo.get(), offset);
     }
     // Construct the tableNameToIdMap.
@@ -322,7 +283,33 @@ void CatalogContent::readFromFile(const std::string& directory, DBFileType dbFil
     for (auto& relTableSchema : relTableSchemas) {
         relTableNameToIDMap[relTableSchema.second->tableName] = relTableSchema.second->tableID;
     }
-    SerDeser::deserializeValue<table_id_t>(nextTableID, fileInfo.get(), offset);
+    SerDeser::deserializeValue(nextTableID, fileInfo.get(), offset);
+    SerDeser::deserializeUnorderedMap(macros, fileInfo.get(), offset);
+}
+
+ExpressionType CatalogContent::getFunctionType(const std::string& name) const {
+    auto upperCaseName = StringUtils::getUpper(name);
+    if (builtInVectorFunctions->containsFunction(upperCaseName)) {
+        return FUNCTION;
+    } else if (builtInAggregateFunctions->containsFunction(upperCaseName)) {
+        return AGGREGATE_FUNCTION;
+    } else if (macros.contains(upperCaseName)) {
+        return MACRO;
+    } else {
+        throw CatalogException(name + " function does not exist.");
+    }
+}
+
+void CatalogContent::addVectorFunction(
+    std::string name, function::vector_function_definitions definitions) {
+    StringUtils::toUpper(name);
+    builtInVectorFunctions->addFunction(std::move(name), std::move(definitions));
+}
+
+void CatalogContent::addScalarMacroFunction(
+    std::string name, std::unique_ptr<function::ScalarMacroFunction> macro) {
+    StringUtils::toUpper(name);
+    macros.emplace(std::move(name), std::move(macro));
 }
 
 void CatalogContent::validateStorageVersion(storage_version_t savedStorageVersion) const {
@@ -339,7 +326,7 @@ void CatalogContent::validateMagicBytes(FileInfo* fileInfo, offset_t& offset) co
     auto numMagicBytes = strlen(StorageVersionInfo::MAGIC_BYTES);
     uint8_t magicBytes[4];
     for (auto i = 0u; i < numMagicBytes; i++) {
-        offset = SerDeser::deserializeValue<uint8_t>(magicBytes[i], fileInfo, offset);
+        SerDeser::deserializeValue<uint8_t>(magicBytes[i], fileInfo, offset);
     }
     if (memcmp(magicBytes, StorageVersionInfo::MAGIC_BYTES, numMagicBytes) != 0) {
         throw common::RuntimeException(
@@ -350,23 +337,22 @@ void CatalogContent::validateMagicBytes(FileInfo* fileInfo, offset_t& offset) co
 void CatalogContent::writeMagicBytes(FileInfo* fileInfo, offset_t& offset) const {
     auto numMagicBytes = strlen(StorageVersionInfo::MAGIC_BYTES);
     for (auto i = 0u; i < numMagicBytes; i++) {
-        offset =
-            SerDeser::serializeValue<uint8_t>(StorageVersionInfo::MAGIC_BYTES[i], fileInfo, offset);
+        SerDeser::serializeValue<uint8_t>(StorageVersionInfo::MAGIC_BYTES[i], fileInfo, offset);
     }
+}
+
+void CatalogContent::registerBuiltInFunctions() {
+    builtInVectorFunctions = std::make_unique<function::BuiltInVectorFunctions>();
+    builtInAggregateFunctions = std::make_unique<function::BuiltInAggregateFunctions>();
+    builtInTableFunctions = std::make_unique<function::BuiltInTableFunctions>();
 }
 
 Catalog::Catalog() : wal{nullptr} {
     catalogContentForReadOnlyTrx = std::make_unique<CatalogContent>();
-    builtInVectorFunctions = std::make_unique<function::BuiltInVectorFunctions>();
-    builtInAggregateFunctions = std::make_unique<function::BuiltInAggregateFunctions>();
-    builtInTableFunctions = std::make_unique<function::BuiltInTableFunctions>();
 }
 
 Catalog::Catalog(WAL* wal) : wal{wal} {
     catalogContentForReadOnlyTrx = std::make_unique<CatalogContent>(wal->getDirectory());
-    builtInVectorFunctions = std::make_unique<function::BuiltInVectorFunctions>();
-    builtInAggregateFunctions = std::make_unique<function::BuiltInAggregateFunctions>();
-    builtInTableFunctions = std::make_unique<function::BuiltInTableFunctions>();
 }
 
 void Catalog::prepareCommitOrRollback(TransactionAction action) {
@@ -386,13 +372,7 @@ void Catalog::checkpointInMemory() {
 }
 
 ExpressionType Catalog::getFunctionType(const std::string& name) const {
-    if (builtInVectorFunctions->containsFunction(name)) {
-        return FUNCTION;
-    } else if (builtInAggregateFunctions->containsFunction(name)) {
-        return AGGREGATE_FUNCTION;
-    } else {
-        throw CatalogException(name + " function does not exist.");
-    }
+    return catalogContentForReadOnlyTrx->getFunctionType(name);
 }
 
 table_id_t Catalog::addNodeTableSchema(
@@ -461,8 +441,13 @@ std::unordered_set<RelTableSchema*> Catalog::getAllRelTableSchemasContainBoundTa
 
 void Catalog::addVectorFunction(
     std::string name, function::vector_function_definitions definitions) {
-    common::StringUtils::toUpper(name);
-    builtInVectorFunctions->addFunction(std::move(name), std::move(definitions));
+    catalogContentForReadOnlyTrx->addVectorFunction(std::move(name), std::move(definitions));
+}
+
+void Catalog::addScalarMacroFunction(
+    std::string name, std::unique_ptr<function::ScalarMacroFunction> macro) {
+    initCatalogContentForWriteTrxIfNecessary();
+    catalogContentForWriteTrx->addScalarMacroFunction(std::move(name), std::move(macro));
 }
 
 } // namespace catalog

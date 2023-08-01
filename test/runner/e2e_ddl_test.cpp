@@ -264,9 +264,10 @@ public:
         auto result = conn->query(query);
         ASSERT_FALSE(result->isSuccess());
         ASSERT_EQ(result->getErrorMessage(),
-            "DDL and CopyCSV statements are automatically wrapped in a transaction and committed. "
-            "As such, they cannot be part of an active transaction, please commit or rollback your "
-            "previous transaction and issue a ddl query without opening a transaction.");
+            "DDL, CopyCSV, createMacro statements are automatically wrapped in a transaction and "
+            "committed. As such, they cannot be part of an active transaction, please commit or "
+            "rollback your previous transaction and issue a ddl query without opening a "
+            "transaction.");
     }
 
     void executeQueryWithoutCommit(std::string query) {
@@ -277,7 +278,7 @@ public:
         auto physicalPlan =
             mapper.mapLogicalPlanToPhysical(preparedStatement->logicalPlans[0].get(),
                 preparedStatement->statementResult->getColumns());
-        executionContext->clientContext->activeQuery = std::make_unique<ActiveQuery>();
+        executionContext->clientContext->resetActiveQuery();
         getQueryProcessor(*database)->execute(physicalPlan.get(), executionContext.get());
     }
 

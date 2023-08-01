@@ -18,12 +18,12 @@ void TablesStatistics::readFromFile(const std::string& directory) {
     logger->info("Reading {} from {}.", getTableTypeForPrinting(), filePath);
     uint64_t offset = 0;
     uint64_t numTables;
-    offset = SerDeser::deserializeValue<uint64_t>(numTables, fileInfo.get(), offset);
+    SerDeser::deserializeValue<uint64_t>(numTables, fileInfo.get(), offset);
     for (auto i = 0u; i < numTables; i++) {
         uint64_t numTuples;
-        offset = SerDeser::deserializeValue<uint64_t>(numTuples, fileInfo.get(), offset);
+        SerDeser::deserializeValue<uint64_t>(numTuples, fileInfo.get(), offset);
         table_id_t tableID;
-        offset = SerDeser::deserializeValue<uint64_t>(tableID, fileInfo.get(), offset);
+        SerDeser::deserializeValue<uint64_t>(tableID, fileInfo.get(), offset);
         tablesStatisticsContentForReadOnlyTrx->tableStatisticPerTable[tableID] =
             deserializeTableStatistics(numTuples, offset, fileInfo.get(), tableID);
     }
@@ -39,12 +39,12 @@ void TablesStatistics::saveToFile(const std::string& directory, DBFileType dbFil
                                         tablesStatisticsContentForWriteTrx == nullptr) ?
                                         tablesStatisticsContentForReadOnlyTrx :
                                         tablesStatisticsContentForWriteTrx;
-    offset = SerDeser::serializeValue(
+    SerDeser::serializeValue(
         tablesStatisticsContent->tableStatisticPerTable.size(), fileInfo.get(), offset);
     for (auto& tableStatistic : tablesStatisticsContent->tableStatisticPerTable) {
         auto tableStatistics = tableStatistic.second.get();
-        offset = SerDeser::serializeValue(tableStatistics->getNumTuples(), fileInfo.get(), offset);
-        offset = SerDeser::serializeValue(tableStatistic.first, fileInfo.get(), offset);
+        SerDeser::serializeValue(tableStatistics->getNumTuples(), fileInfo.get(), offset);
+        SerDeser::serializeValue(tableStatistic.first, fileInfo.get(), offset);
         serializeTableStatistics(tableStatistics, offset, fileInfo.get());
     }
     logger->info("Wrote {} to {}.", getTableTypeForPrinting(), filePath);

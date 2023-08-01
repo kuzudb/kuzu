@@ -9,10 +9,10 @@ namespace parser {
 
 class MatchClause : public ReadingClause {
 public:
-    explicit MatchClause(
-        std::vector<std::unique_ptr<PatternElement>> patternElements, bool isOptional = false)
+    explicit MatchClause(std::vector<std::unique_ptr<PatternElement>> patternElements,
+        common::MatchClauseType matchClauseType)
         : ReadingClause{common::ClauseType::MATCH}, patternElements{std::move(patternElements)},
-          isOptional{isOptional} {}
+          matchClauseType{matchClauseType} {}
     ~MatchClause() override = default;
 
     inline const std::vector<std::unique_ptr<PatternElement>>& getPatternElements() const {
@@ -26,12 +26,12 @@ public:
     inline bool hasWhereClause() const { return whereClause != nullptr; }
     inline ParsedExpression* getWhereClause() const { return whereClause.get(); }
 
-    inline bool getIsOptional() const { return isOptional; }
+    inline common::MatchClauseType getMatchClauseType() const { return matchClauseType; }
 
 private:
     std::vector<std::unique_ptr<PatternElement>> patternElements;
     std::unique_ptr<ParsedExpression> whereClause;
-    bool isOptional;
+    common::MatchClauseType matchClauseType;
 };
 
 } // namespace parser

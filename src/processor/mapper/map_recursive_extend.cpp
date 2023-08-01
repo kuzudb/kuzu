@@ -3,6 +3,7 @@
 #include "planner/logical_plan/logical_operator/recursive_join_type.h"
 #include "processor/mapper/plan_mapper.h"
 #include "processor/operator/recursive_extend/recursive_join.h"
+#include "processor/operator/table_scan/factorized_table_scan.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::planner;
@@ -14,7 +15,7 @@ static std::shared_ptr<RecursiveJoinSharedState> createSharedState(
     const binder::NodeExpression& nbrNode, const binder::NodeExpression& boundNode,
     const binder::RelExpression& rel, RecursiveJoinDataInfo* dataInfo, RecursiveJoinType joinType,
     const storage::StorageManager& storageManager,
-    std::shared_ptr<FTableSharedState>& fTableSharedState) {
+    std::shared_ptr<FactorizedTableScanSharedState>& fTableSharedState) {
     std::vector<std::unique_ptr<NodeOffsetSemiMask>> semiMasks;
     for (auto tableID : nbrNode.getTableIDs()) {
         auto nodeTable = storageManager.getNodesStore().getNodeTable(tableID);
@@ -40,7 +41,7 @@ static std::shared_ptr<RecursiveJoinSharedState> createSharedState(
         morselDispatcher, fTableSharedState, std::move(semiMasks));
 }
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalRecursiveExtendToPhysical(
+std::unique_ptr<PhysicalOperator> PlanMapper::mapRecursiveExtend(
     planner::LogicalOperator* logicalOperator) {
     auto extend = (LogicalRecursiveExtend*)logicalOperator;
     auto boundNode = extend->getBoundNode();
@@ -50,12 +51,12 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalRecursiveExtendToPhysica
     auto lengthExpression = rel->getLengthExpression();
     // Map recursive plan
     auto logicalRecursiveRoot = extend->getRecursiveChild();
-    auto recursiveRoot = mapLogicalOperatorToPhysical(logicalRecursiveRoot);
+    auto recursiveRoot = mapOperator(logicalRecursiveRoot.get());
     auto recursivePlanSchema = logicalRecursiveRoot->getSchema();
     auto recursivePlanResultSetDescriptor =
         std::make_unique<ResultSetDescriptor>(recursivePlanSchema);
     auto recursiveDstNodeIDPos = DataPos(
-        recursivePlanSchema->getExpressionPos(*recursiveInfo->node->getInternalIDProperty()));
+        recursivePlanSchema->getExpressionPos(*recursiveInfo->nodeCopy->getInternalIDProperty()));
     auto recursiveEdgeIDPos = DataPos(
         recursivePlanSchema->getExpressionPos(*recursiveInfo->rel->getInternalIDProperty()));
     // Generate RecursiveJoin
@@ -65,9 +66,11 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalRecursiveExtendToPhysica
     auto nbrNodeIDPos = DataPos(outSchema->getExpressionPos(*nbrNode->getInternalIDProperty()));
     auto lengthPos = DataPos(outSchema->getExpressionPos(*lengthExpression));
     auto expressions = inSchema->getExpressionsInScope();
-    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0));
-    auto resultCollector = appendResultCollector(expressions, inSchema, std::move(prevOperator));
-    auto sharedFTable = resultCollector->getSharedState();
+    auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
+    auto resultCollector =
+        appendResultCollectorIfNotCopy(std::move(prevOperator), expressions, inSchema);
+    auto sharedFTable = ((ResultCollector*)resultCollector.get())->getResultFactorizedTable();
+    auto fTableSharedState = std::make_shared<FactorizedTableScanSharedState>(sharedFTable, 1u);
     auto pathPos = DataPos();
     if (extend->getJoinType() == planner::RecursiveJoinType::TRACK_PATH) {
         pathPos = DataPos(outSchema->getExpressionPos(*rel));
@@ -76,8 +79,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalRecursiveExtendToPhysica
         nbrNode->getTableIDsSet(), lengthPos, std::move(recursivePlanResultSetDescriptor),
         recursiveDstNodeIDPos, recursiveInfo->node->getTableIDsSet(), recursiveEdgeIDPos, pathPos);
     auto sharedState = createSharedState(*nbrNode, *boundNode, *rel, dataInfo.get(),
-        extend->getJoinType(), storageManager, sharedFTable);
-    sharedFTable->setMaxMorselSize(1);
+        extend->getJoinType(), storageManager, fTableSharedState);
     std::vector<DataPos> outDataPoses;
     std::vector<uint32_t> colIndicesToScan;
     for (auto i = 0u; i < expressions.size(); ++i) {

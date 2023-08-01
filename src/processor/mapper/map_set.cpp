@@ -9,11 +9,10 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace processor {
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalSetNodePropertyToPhysical(
-    LogicalOperator* logicalOperator) {
+std::unique_ptr<PhysicalOperator> PlanMapper::mapSetNodeProperty(LogicalOperator* logicalOperator) {
     auto& logicalSetNodeProperty = (LogicalSetNodeProperty&)*logicalOperator;
     auto inSchema = logicalSetNodeProperty.getChild(0)->getSchema();
-    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0));
+    auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
     auto& nodeStore = storageManager.getNodesStore();
     std::vector<std::unique_ptr<SetNodePropertyInfo>> infos;
     for (auto i = 0u; i < logicalSetNodeProperty.getNumNodes(); ++i) {
@@ -31,11 +30,10 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalSetNodePropertyToPhysica
         getOperatorID(), logicalSetNodeProperty.getExpressionsForPrinting());
 }
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalSetRelPropertyToPhysical(
-    LogicalOperator* logicalOperator) {
+std::unique_ptr<PhysicalOperator> PlanMapper::mapSetRelProperty(LogicalOperator* logicalOperator) {
     auto& logicalSetRelProperty = (LogicalSetRelProperty&)*logicalOperator;
     auto inSchema = logicalSetRelProperty.getChild(0)->getSchema();
-    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0));
+    auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
     auto& relStore = storageManager.getRelsStore();
     std::vector<std::unique_ptr<SetRelPropertyInfo>> infos;
     for (auto i = 0u; i < logicalSetRelProperty.getNumRels(); ++i) {

@@ -773,7 +773,7 @@ JNIEXPORT void JNICALL Java_com_kuzudb_KuzuNative_kuzu_1value_1destroy(
 JNIEXPORT jlong JNICALL Java_com_kuzudb_KuzuNative_kuzu_1value_1get_1list_1size(
     JNIEnv* env, jclass, jobject thisValue) {
     Value* v = getValue(env, thisValue);
-    return static_cast<jlong>(v->getListValReference().size());
+    return static_cast<jlong>(NestedVal::getChildrenSize(v));
 }
 
 JNIEXPORT jobject JNICALL Java_com_kuzudb_KuzuNative_kuzu_1value_1get_1list_1element(
@@ -781,14 +781,12 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_KuzuNative_kuzu_1value_1get_1list_1ele
     Value* v = getValue(env, thisValue);
     uint64_t idx = static_cast<uint64_t>(index);
 
-    auto& list_val = v->getListValReference();
-
-    if (idx >= list_val.size()) {
+    auto size = NestedVal::getChildrenSize(v);
+    if (idx >= size) {
         return nullptr;
     }
 
-    auto& list_element = list_val[index];
-    auto val = list_element.get();
+    auto val = NestedVal::getChildVal(v, idx);
 
     jobject element = createJavaObject(env, val, "com/kuzudb/KuzuValue", "v_ref");
     jclass clazz = env->GetObjectClass(element);
@@ -800,7 +798,7 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_KuzuNative_kuzu_1value_1get_1list_1ele
 JNIEXPORT jobject JNICALL Java_com_kuzudb_KuzuNative_kuzu_1value_1get_1data_1type(
     JNIEnv* env, jclass, jobject thisValue) {
     Value* v = getValue(env, thisValue);
-    auto* dt = new LogicalType(v->getDataType());
+    auto* dt = new LogicalType(*v->getDataType());
     return createJavaObject(env, dt, "com/kuzudb/KuzuDataType", "dt_ref");
 }
 
@@ -808,8 +806,9 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_KuzuNative_kuzu_1value_1get_1value(
     JNIEnv* env, jclass, jobject thisValue) {
     Value* v = getValue(env, thisValue);
     auto dt = v->getDataType();
+    auto logicalTypeId = dt->getLogicalTypeID();
 
-    switch (dt.getLogicalTypeID()) {
+    switch (logicalTypeId) {
     case LogicalTypeID::BOOL: {
         jclass retClass = env->FindClass("java/lang/Boolean");
         jmethodID ctor = env->GetMethodID(retClass, "<init>", "(Z)V");
@@ -951,7 +950,7 @@ JNIEXPORT jstring JNICALL Java_com_kuzudb_KuzuNative_kuzu_1node_1val_1get_1prope
 JNIEXPORT jobject JNICALL Java_com_kuzudb_KuzuNative_kuzu_1node_1val_1get_1property_1value_1at(
     JNIEnv* env, jclass, jobject thisNV, jlong index) {
     auto* nv = getValue(env, thisNV);
-    auto propertyValue = NodeVal::getPropertyValueReference(nv, index);
+    auto propertyValue = NodeVal::getPropertyVal(nv, index);
     jobject ret = createJavaObject(env, propertyValue, "com/kuzudb/KuzuValue", "v_ref");
     jclass clazz = env->GetObjectClass(ret);
     jfieldID fieldID = env->GetFieldID(clazz, "isOwnedByCPP", "Z");
@@ -1014,7 +1013,7 @@ JNIEXPORT jobject JNICALL Java_com_kuzudb_KuzuNative_kuzu_1rel_1val_1get_1proper
     JNIEnv* env, jclass, jobject thisRV, jlong index) {
     auto* rv = getValue(env, thisRV);
     uint64_t idx = static_cast<uint64_t>(index);
-    Value* val = RelVal::getPropertyValueReference(rv, idx);
+    Value* val = RelVal::getPropertyVal(rv, idx);
 
     jobject ret = createJavaObject(env, val, "com/kuzudb/KuzuValue", "v_ref");
     jclass clazz = env->GetObjectClass(ret);
@@ -1035,7 +1034,7 @@ JNIEXPORT jstring JNICALL Java_com_kuzudb_KuzuNative_kuzu_1value_1get_1struct_1f
     JNIEnv* env, jclass, jobject thisSV, jlong index) {
     auto* sv = getValue(env, thisSV);
     auto dataType = sv->getDataType();
-    auto fieldNames = StructType::getFieldNames(&dataType);
+    auto fieldNames = StructType::getFieldNames(dataType);
     if (index >= fieldNames.size() || index < 0) {
         return nullptr;
     }
@@ -1048,7 +1047,7 @@ JNIEXPORT jlong JNICALL Java_com_kuzudb_KuzuNative_kuzu_1value_1get_1struct_1ind
     auto* sv = getValue(env, thisSV);
     const char* field_name_cstr = env->GetStringUTFChars(field_name, JNI_FALSE);
     auto dataType = sv->getDataType();
-    auto index = StructType::getFieldIdx(&dataType, field_name_cstr);
+    auto index = StructType::getFieldIdx(dataType, field_name_cstr);
     env->ReleaseStringUTFChars(field_name, field_name_cstr);
     if (index == INVALID_STRUCT_FIELD_IDX) {
         return -1;

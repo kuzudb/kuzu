@@ -47,7 +47,7 @@ void WALReplayer::replay() {
         if (isCheckpoint) {
             storageManager->checkpointInMemory();
         } else {
-            storageManager->rollback();
+            storageManager->rollbackInMemory();
         }
     }
 }

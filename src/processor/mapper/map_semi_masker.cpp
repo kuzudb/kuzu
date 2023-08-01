@@ -9,11 +9,10 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace processor {
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalSemiMaskerToPhysical(
-    LogicalOperator* logicalOperator) {
+std::unique_ptr<PhysicalOperator> PlanMapper::mapSemiMasker(LogicalOperator* logicalOperator) {
     auto semiMasker = (LogicalSemiMasker*)logicalOperator;
     auto inSchema = semiMasker->getChild(0)->getSchema();
-    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0));
+    auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
     auto node = semiMasker->getNode();
     std::unordered_map<common::table_id_t, std::vector<SemiMaskerInfo::mask_with_idx>>
         masksPerTable;

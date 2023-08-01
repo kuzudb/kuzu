@@ -290,7 +290,7 @@ void RelTable::checkpointInMemory() {
         std::bind(&RelTable::clearListsUpdatesStore, this));
 }
 
-void RelTable::rollback() {
+void RelTable::rollbackInMemory() {
     performOpOnListsWithUpdates(
         std::bind(&Lists::rollbackInMemoryIfNecessary, std::placeholders::_1),
         std::bind(&RelTable::clearListsUpdatesStore, this));

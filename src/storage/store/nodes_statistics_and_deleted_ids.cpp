@@ -215,7 +215,7 @@ void NodesStatisticsAndDeletedIDs::addNodeStatisticsAndDeletedIDs(
 std::unique_ptr<TableStatistics> NodesStatisticsAndDeletedIDs::deserializeTableStatistics(
     uint64_t numTuples, uint64_t& offset, FileInfo* fileInfo, uint64_t tableID) {
     std::vector<offset_t> deletedNodeIDs;
-    offset = SerDeser::deserializeVector(deletedNodeIDs, fileInfo, offset);
+    SerDeser::deserializeVector(deletedNodeIDs, fileInfo, offset);
     return make_unique<NodeStatisticsAndDeletedIDs>(tableID,
         NodeStatisticsAndDeletedIDs::getMaxNodeOffsetFromNumTuples(numTuples), deletedNodeIDs);
 }
@@ -223,8 +223,7 @@ std::unique_ptr<TableStatistics> NodesStatisticsAndDeletedIDs::deserializeTableS
 void NodesStatisticsAndDeletedIDs::serializeTableStatistics(
     TableStatistics* tableStatistics, uint64_t& offset, FileInfo* fileInfo) {
     auto nodeTableStatistic = (NodeStatisticsAndDeletedIDs*)tableStatistics;
-    offset =
-        SerDeser::serializeVector(nodeTableStatistic->getDeletedNodeOffsets(), fileInfo, offset);
+    SerDeser::serializeVector(nodeTableStatistic->getDeletedNodeOffsets(), fileInfo, offset);
 }
 
 } // namespace storage

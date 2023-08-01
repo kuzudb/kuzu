@@ -7,10 +7,9 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace processor {
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalSkipToPhysical(
-    LogicalOperator* logicalOperator) {
+std::unique_ptr<PhysicalOperator> PlanMapper::mapSkip(LogicalOperator* logicalOperator) {
     auto& logicalSkip = (const LogicalSkip&)*logicalOperator;
-    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0));
+    auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
     auto dataChunkToSelectPos = logicalSkip.getGroupPosToSelect();
     return make_unique<Skip>(logicalSkip.getSkipNumber(), std::make_shared<std::atomic_uint64_t>(0),
         dataChunkToSelectPos, logicalSkip.getGroupsPosToSkip(), std::move(prevOperator),

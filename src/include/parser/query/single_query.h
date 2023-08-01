@@ -37,8 +37,6 @@ public:
     inline bool hasReturnClause() const { return returnClause != nullptr; }
     inline ReturnClause* getReturnClause() const { return returnClause.get(); }
 
-    bool isFirstReadingClauseOptionalMatch() const;
-
 private:
     std::vector<std::unique_ptr<QueryPart>> queryParts;
     std::vector<std::unique_ptr<ReadingClause>> readingClauses;

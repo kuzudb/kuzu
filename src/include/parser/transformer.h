@@ -1,6 +1,7 @@
 #pragma once
 
 #include "cypher_parser.h"
+#include "parser/macro/create_macro.h"
 #include "parser/query/graph_pattern/pattern_element.h"
 #include "parser/query/regular_query.h"
 
@@ -250,6 +251,10 @@ private:
     std::unique_ptr<Statement> transformCopyNPY(CypherParser::KU_CopyNPYContext& ctx);
 
     std::unique_ptr<Statement> transformStandaloneCall(CypherParser::KU_StandaloneCallContext& ctx);
+
+    std::vector<std::string> transformPositionalArgs(CypherParser::KU_PositionalArgsContext& ctx);
+
+    std::unique_ptr<Statement> transformCreateMacro(CypherParser::KU_CreateMacroContext& ctx);
 
     std::vector<std::string> transformFilePaths(
         std::vector<antlr4::tree::TerminalNode*> stringLiteral);

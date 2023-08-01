@@ -1,83 +1,43 @@
 #pragma once
 
 #include "processor/operator/physical_operator.h"
-#include "storage/copier/table_copy_utils.h"
+#include "storage/copier/read_file_state.h"
 
 namespace kuzu {
 namespace processor {
 
-class ReadFileMorsel {
-public:
-    static constexpr common::block_idx_t BLOCK_IDX_INVALID = UINT64_MAX;
-
-    ReadFileMorsel(common::offset_t nodeOffset, common::block_idx_t blockIdx, uint64_t numNodes,
-        std::string filePath)
-        : nodeOffset{nodeOffset}, blockIdx{blockIdx}, numNodes{numNodes}, filePath{std::move(
-                                                                              filePath)} {};
-
-    virtual ~ReadFileMorsel() = default;
-
-public:
-    common::offset_t nodeOffset;
-    common::block_idx_t blockIdx;
-    uint64_t numNodes;
-    std::string filePath;
-};
-
-class ReadFileSharedState {
-public:
-    explicit ReadFileSharedState(
-        std::vector<std::string> filePaths, catalog::TableSchema* tableSchema)
-        : nodeOffset{0}, curBlockIdx{0}, filePaths{std::move(filePaths)}, curFileIdx{0},
-          tableSchema{tableSchema}, numRows{0} {}
-
-    virtual ~ReadFileSharedState() = default;
-
-    virtual void countNumLines() = 0;
-
-    virtual std::unique_ptr<ReadFileMorsel> getMorsel() = 0;
-
-public:
-    uint64_t numRows;
-    catalog::TableSchema* tableSchema;
-
-protected:
-    std::mutex mtx;
-    common::offset_t nodeOffset;
-    std::unordered_map<std::string, storage::FileBlockInfo> fileBlockInfos;
-    common::block_idx_t curBlockIdx;
-    std::vector<std::string> filePaths;
-    common::vector_idx_t curFileIdx;
-};
-
 class ReadFile : public PhysicalOperator {
 public:
-    ReadFile(std::vector<DataPos> arrowColumnPoses, DataPos offsetVectorPos,
-        std::shared_ptr<ReadFileSharedState> sharedState, PhysicalOperatorType operatorType,
-        uint32_t id, const std::string& paramsString)
-        : PhysicalOperator{operatorType, id, paramsString}, arrowColumnPoses{std::move(
-                                                                arrowColumnPoses)},
-          offsetVectorPos{std::move(offsetVectorPos)}, sharedState{std::move(sharedState)} {}
+    ReadFile(const DataPos& rowIdxVectorPos, const DataPos& filePathVectorPos,
+        std::vector<DataPos> dataColumnPoses,
+        std::shared_ptr<storage::ReadFileSharedState> sharedState,
+        PhysicalOperatorType operatorType, uint32_t id, const std::string& paramsString)
+        : PhysicalOperator{operatorType, id, paramsString}, rowIdxVectorPos{rowIdxVectorPos},
+          filePathVectorPos{filePathVectorPos}, dataColumnPoses{std::move(dataColumnPoses)},
+          sharedState{std::move(sharedState)}, rowIdxVector{nullptr}, filePathVector{nullptr} {}
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) override;
 
     inline void initGlobalStateInternal(kuzu::processor::ExecutionContext* context) override {
-        sharedState->countNumLines();
+        sharedState->countNumRows();
     }
 
     inline bool isSource() const override { return true; }
 
+protected:
     virtual std::shared_ptr<arrow::RecordBatch> readTuples(
-        std::unique_ptr<ReadFileMorsel> morsel) = 0;
+        std::unique_ptr<storage::ReadFileMorsel> morsel) = 0;
 
     bool getNextTuplesInternal(ExecutionContext* context) override;
 
 protected:
-    std::shared_ptr<ReadFileSharedState> sharedState;
-    std::vector<DataPos> arrowColumnPoses;
-    DataPos offsetVectorPos;
-    common::ValueVector* offsetVector;
-    std::vector<common::ValueVector*> arrowColumnVectors;
+    std::shared_ptr<storage::ReadFileSharedState> sharedState;
+    DataPos rowIdxVectorPos;
+    DataPos filePathVectorPos;
+    std::vector<DataPos> dataColumnPoses;
+    common::ValueVector* rowIdxVector;
+    common::ValueVector* filePathVector;
+    std::vector<common::ValueVector*> dataColumnVectors;
 };
 
 } // namespace processor

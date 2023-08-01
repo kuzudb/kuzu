@@ -7,7 +7,8 @@ Napi::Value Util::ConvertToNapiObject(const Value& value, Napi::Env env) {
         return env.Null();
     }
     auto dataType = value.getDataType();
-    switch (dataType.getLogicalTypeID()) {
+    auto dataTypeID = dataType->getLogicalTypeID();
+    switch (dataTypeID) {
     case LogicalTypeID::BOOL: {
         return Napi::Boolean::New(env, value.getValue<bool>());
     }
@@ -59,29 +60,33 @@ Napi::Value Util::ConvertToNapiObject(const Value& value, Napi::Env env) {
     }
     case LogicalTypeID::VAR_LIST:
     case LogicalTypeID::FIXED_LIST: {
-        auto& listVal = value.getListValReference();
-        auto napiArray = Napi::Array::New(env, listVal.size());
-        for (auto i = 0u; i < listVal.size(); ++i) {
-            napiArray.Set(i, ConvertToNapiObject(*listVal[i], env));
+        auto size = NestedVal::getChildrenSize(&value);
+        auto napiArray = Napi::Array::New(env, size);
+        for (auto i = 0u; i < size; ++i) {
+            auto childVal = NestedVal::getChildVal(&value, i);
+            napiArray.Set(i, ConvertToNapiObject(*childVal, env));
         }
         return napiArray;
     }
     case LogicalTypeID::STRUCT:
     case LogicalTypeID::UNION: {
-        auto childrenNames = StructType::getFieldNames(&dataType);
+        auto childrenNames = StructType::getFieldNames(dataType);
         auto napiObj = Napi::Object::New(env);
-        auto& structVal = value.getListValReference();
-        for (auto i = 0u; i < structVal.size(); ++i) {
+        auto size = NestedVal::getChildrenSize(&value);
+        for (auto i = 0u; i < size; ++i) {
             auto key = childrenNames[i];
-            auto val = ConvertToNapiObject(*structVal[i], env);
+            auto childVal = NestedVal::getChildVal(&value, i);
+            auto val = ConvertToNapiObject(*childVal, env);
             napiObj.Set(key, val);
         }
         return napiObj;
     }
     case LogicalTypeID::RECURSIVE_REL: {
         auto napiObj = Napi::Object::New(env);
-        napiObj.Set("_nodes", ConvertToNapiObject(*value.getListValReference()[0], env));
-        napiObj.Set("_rels", ConvertToNapiObject(*value.getListValReference()[1], env));
+        auto nodes = RecursiveRelVal::getNodes(&value);
+        auto rels = RecursiveRelVal::getRels(&value);
+        napiObj.Set("_nodes", ConvertToNapiObject(*nodes, env));
+        napiObj.Set("_rels", ConvertToNapiObject(*rels, env));
         return napiObj;
     }
     case LogicalTypeID::NODE: {
@@ -89,7 +94,7 @@ Napi::Value Util::ConvertToNapiObject(const Value& value, Napi::Env env) {
         auto numProperties = NodeVal::getNumProperties(&value);
         for (auto i = 0u; i < numProperties; ++i) {
             auto key = NodeVal::getPropertyName(&value, i);
-            auto val = ConvertToNapiObject(*NodeVal::getPropertyValueReference(&value, i), env);
+            auto val = ConvertToNapiObject(*NodeVal::getPropertyVal(&value, i), env);
             napiObj.Set(key, val);
         }
         napiObj.Set("_label", Napi::String::New(env, NodeVal::getLabelName(&value)));
@@ -101,7 +106,7 @@ Napi::Value Util::ConvertToNapiObject(const Value& value, Napi::Env env) {
         auto numProperties = RelVal::getNumProperties(&value);
         for (auto i = 0u; i < numProperties; ++i) {
             auto key = RelVal::getPropertyName(&value, i);
-            auto val = ConvertToNapiObject(*RelVal::getPropertyValueReference(&value, i), env);
+            auto val = ConvertToNapiObject(*RelVal::getPropertyVal(&value, i), env);
             napiObj.Set(key, val);
         }
         napiObj.Set("_src", ConvertNodeIdToNapiObject(RelVal::getSrcNodeID(&value), env));
@@ -112,7 +117,7 @@ Napi::Value Util::ConvertToNapiObject(const Value& value, Napi::Env env) {
         return ConvertNodeIdToNapiObject(value.getValue<nodeID_t>(), env);
     }
     default:
-        throw Exception("Unsupported type: " + LogicalTypeUtils::dataTypeToString(dataType));
+        throw Exception("Unsupported type: " + LogicalTypeUtils::dataTypeToString(*dataType));
     }
     return Napi::Value();
 }
@@ -145,8 +150,9 @@ Napi::Object Util::ConvertNodeIdToNapiObject(const nodeID_t& nodeId, Napi::Env e
 }
 
 Value Util::TransformNapiValue(
-    Napi::Value napiValue, LogicalType expectedDataType, const std::string& key) {
-    switch (expectedDataType.getLogicalTypeID()) {
+    Napi::Value napiValue, LogicalType* expectedDataType, const std::string& key) {
+    auto logicalTypeId = expectedDataType->getLogicalTypeID();
+    switch (logicalTypeId) {
     case LogicalTypeID::BOOL: {
         return Value(napiValue.ToBoolean().Value());
     }
@@ -220,7 +226,8 @@ Value Util::TransformNapiValue(
         return Value(normalizedInterval);
     }
     default:
-        throw Exception("Unsupported type " + LogicalTypeUtils::dataTypeToString(expectedDataType) +
+        throw Exception("Unsupported type " +
+                        LogicalTypeUtils::dataTypeToString(*expectedDataType) +
                         " for parameter: " + key);
     }
 }

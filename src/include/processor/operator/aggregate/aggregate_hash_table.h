@@ -238,7 +238,6 @@ private:
     uint32_t numBytesForDependentKeys = 0;
     std::vector<compare_function_t> compareFuncs;
     std::vector<update_agg_function_t> updateAggFuncs;
-    bool hasStrCol = false;
     // Temporary arrays to hold intermediate results.
     std::shared_ptr<common::DataChunkState> hashState;
     std::unique_ptr<common::ValueVector> hashVector;

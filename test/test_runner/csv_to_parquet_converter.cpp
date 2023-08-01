@@ -22,16 +22,16 @@ arrow::Status CSVToParquetConverter::runCSVToParquetConversion(
     std::shared_ptr<arrow::io::FileOutputStream> outFileStream;
     std::shared_ptr<arrow::io::ReadableFile> infile;
     std::shared_ptr<arrow::Table> csvTable;
-    ARROW_ASSIGN_OR_RAISE(infile, arrow::io::ReadableFile::Open(inputFile));
+    ARROW_ASSIGN_OR_RAISE(infile, arrow::io::ReadableFile::Open(inputFile))
     auto readOptions = arrow::csv::ReadOptions::Defaults();
     auto parseOptions = arrow::csv::ParseOptions::Defaults();
     readOptions.autogenerate_column_names = !hasHeader;
     parseOptions.delimiter = delimiter;
     ARROW_ASSIGN_OR_RAISE(
         auto csvReader, arrow::csv::TableReader::Make(arrow::io::default_io_context(), infile,
-                            readOptions, parseOptions, arrow::csv::ConvertOptions::Defaults()));
-    ARROW_ASSIGN_OR_RAISE(csvTable, csvReader->Read());
-    ARROW_ASSIGN_OR_RAISE(outFileStream, arrow::io::FileOutputStream::Open(outputFile));
+                            readOptions, parseOptions, arrow::csv::ConvertOptions::Defaults()))
+    ARROW_ASSIGN_OR_RAISE(csvTable, csvReader->Read())
+    ARROW_ASSIGN_OR_RAISE(outFileStream, arrow::io::FileOutputStream::Open(outputFile))
     PARQUET_THROW_NOT_OK(parquet::arrow::WriteTable(
         *csvTable, arrow::default_memory_pool(), outFileStream, csvTable->num_rows()));
     return arrow::Status::OK();
@@ -87,7 +87,7 @@ void CSVToParquetConverter::createCopyFile(const std::string& parquetDatasetPath
         throw TestException(StringUtils::string_format(
             "Error opening file: {}, errno: {}.", targetCopyCypherFile, errno));
     }
-    for (auto copyCommand : copyCommands) {
+    for (const auto& copyCommand : copyCommands) {
         auto cmd = "COPY " + copyCommand.table + " FROM '" + copyCommand.parquetFilePath + "'";
         outfile << cmd << std::endl;
     }

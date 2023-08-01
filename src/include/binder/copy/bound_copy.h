@@ -17,8 +17,7 @@ public:
         common::CopyDescription copyDescription, common::table_id_t tableID, std::string tableName)
         : BoundStatement{common::StatementType::COPY,
               BoundStatementResult::createSingleStringColumnResult()},
-          copyDescription{std::move(copyDescription)}, tableID{tableID}, tableName{std::move(
-                                                                             tableName)} {}
+          copyDescription{copyDescription}, tableID{tableID}, tableName{std::move(tableName)} {}
 
     inline common::CopyDescription getCopyDescription() const { return copyDescription; }
 

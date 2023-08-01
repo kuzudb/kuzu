@@ -45,6 +45,9 @@ std::unique_ptr<BoundStatement> Binder::bind(const Statement& statement) {
     case StatementType::EXPLAIN: {
         return bindExplain(statement);
     }
+    case StatementType::CREATE_MACRO: {
+        return bindCreateMacro(statement);
+    }
     default:
         assert(false);
     }
@@ -80,12 +83,6 @@ std::shared_ptr<Expression> Binder::createVariable(
     expression->setAlias(name);
     scope->addExpression(name, expression);
     return expression;
-}
-
-void Binder::validateFirstMatchIsNotOptional(const SingleQuery& singleQuery) {
-    if (singleQuery.isFirstReadingClauseOptionalMatch()) {
-        throw BinderException("First match clause cannot be optional match.");
-    }
 }
 
 void Binder::validateProjectionColumnNamesAreUnique(const expression_vector& expressions) {

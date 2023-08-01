@@ -29,6 +29,9 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
     case PhysicalOperatorType::COPY_REL: {
         return "COPY_REL";
     }
+    case PhysicalOperatorType::CREATE_MACRO: {
+        return "CREATE_MACRO";
+    }
     case PhysicalOperatorType::READ_CSV: {
         return "READ_CSV";
     }
@@ -222,8 +225,7 @@ void PhysicalOperator::initGlobalState(ExecutionContext* context) {
 }
 
 void PhysicalOperator::initLocalState(ResultSet* resultSet_, ExecutionContext* context) {
-    if (!children.empty()) {
-        assert(children.size() == 1);
+    if (!isSource()) {
         children[0]->initLocalState(resultSet_, context);
     }
     transaction = context->transaction;

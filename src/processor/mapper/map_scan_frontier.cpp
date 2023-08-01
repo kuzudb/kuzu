@@ -7,7 +7,7 @@ using namespace kuzu::planner;
 namespace kuzu {
 namespace processor {
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalScanFrontierToPhysical(
+std::unique_ptr<PhysicalOperator> PlanMapper::mapScanFrontier(
     planner::LogicalOperator* logicalOperator) {
     auto scanFrontier = (LogicalScanFrontier*)logicalOperator;
     auto nodeID = scanFrontier->getNode()->getInternalIDProperty();

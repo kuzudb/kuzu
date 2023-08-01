@@ -16,12 +16,6 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
     case LogicalOperatorType::AGGREGATE: {
         return "AGGREGATE";
     }
-    case LogicalOperatorType::STANDALONE_CALL: {
-        return "STANDALONE_CALL";
-    }
-    case LogicalOperatorType::IN_QUERY_CALL: {
-        return "IN_QUERY_CALL";
-    }
     case LogicalOperatorType::COPY: {
         return "COPY";
     }
@@ -30,6 +24,9 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
     }
     case LogicalOperatorType::CREATE_REL: {
         return "CREATE_REL";
+    }
+    case LogicalOperatorType::CREATE_MACRO: {
+        return "CREATE_MACRO";
     }
     case LogicalOperatorType::CREATE_NODE_TABLE: {
         return "CREATE_NODE_TABLE";
@@ -70,11 +67,14 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
     case LogicalOperatorType::FLATTEN: {
         return "FLATTEN";
     }
-    case LogicalOperatorType::FTABLE_SCAN: {
-        return "FTABLE_SCAN";
-    }
     case LogicalOperatorType::HASH_JOIN: {
         return "HASH_JOIN";
+    }
+    case LogicalOperatorType::IN_QUERY_CALL: {
+        return "IN_QUERY_CALL";
+    }
+    case LogicalOperatorType::INDEX_SCAN_NODE: {
+        return "INDEX_SCAN_NODE";
     }
     case LogicalOperatorType::INTERSECT: {
         return "INTERSECT";
@@ -84,6 +84,9 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
     }
     case LogicalOperatorType::MULTIPLICITY_REDUCER: {
         return "MULTIPLICITY_REDUCER";
+    }
+    case LogicalOperatorType::NODE_LABEL_FILTER: {
+        return "NODE_LABEL_FILTER";
     }
     case LogicalOperatorType::ORDER_BY: {
         return "ORDER_BY";
@@ -109,9 +112,6 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
     case LogicalOperatorType::SCAN_NODE: {
         return "SCAN_NODE";
     }
-    case LogicalOperatorType::INDEX_SCAN_NODE: {
-        return "INDEX_SCAN_NODE";
-    }
     case LogicalOperatorType::SCAN_NODE_PROPERTY: {
         return "SCAN_NODE_PROPERTY";
     }
@@ -126,6 +126,9 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
     }
     case LogicalOperatorType::SKIP: {
         return "SKIP";
+    }
+    case LogicalOperatorType::STANDALONE_CALL: {
+        return "STANDALONE_CALL";
     }
     case LogicalOperatorType::UNION_ALL: {
         return "UNION_ALL";

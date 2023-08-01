@@ -110,11 +110,15 @@ jobs:
         continue-on-error: true
 
       - name: Report ASan log
-        run: ls /tmp/asan.log* 1>/dev/null 2>&1 && (cat /tmp/asan.log*; exit 1) || exit 0
+        run: |
+          if ls /tmp/asan.log* 1>/dev/null 2>&1;
+            then cat /tmp/asan.log*;
+            rm -rf /tmp/asan.log*
+            exit 1;
+          else
+            exit 0;
+          fi
         shell: bash
-
-      - name: Clean up ASan log
-        run: rm -rf /tmp/asan.log*
 
   clang-build-test:
     name: clang build & test

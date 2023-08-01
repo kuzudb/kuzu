@@ -34,9 +34,9 @@ public:
         nodesStore->checkpointInMemory(wal->updatedNodeTables);
         relsStore->checkpointInMemory(wal->updatedRelTables);
     }
-    inline void rollback() {
-        nodesStore->rollback(wal->updatedNodeTables);
-        relsStore->rollback(wal->updatedRelTables);
+    inline void rollbackInMemory() {
+        nodesStore->rollbackInMemory(wal->updatedNodeTables);
+        relsStore->rollbackInMemory(wal->updatedRelTables);
     }
     inline std::string getDirectory() const { return wal->getDirectory(); }
     inline WAL* getWAL() const { return wal; }

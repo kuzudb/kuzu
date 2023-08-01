@@ -1,5 +1,7 @@
 add_library(kuzu_processor_mapper
         OBJECT
+        create_factorized_table_scan.cpp
+        create_result_collector.cpp
         expression_mapper.cpp
         map_accumulate.cpp
         map_aggregate.cpp
@@ -8,6 +10,7 @@ add_library(kuzu_processor_mapper
         map_in_query_call.cpp
         map_copy.cpp
         map_create.cpp
+        map_create_macro.cpp
         map_cross_product.cpp
         map_ddl.cpp
         map_delete.cpp
@@ -19,6 +22,7 @@ add_library(kuzu_processor_mapper
         map_flatten.cpp
         map_hash_join.cpp
         map_intersect.cpp
+        map_label_filter.cpp
         map_limit.cpp
         map_multiplicity_reducer.cpp
         map_order_by.cpp

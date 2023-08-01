@@ -81,6 +81,8 @@ public:
 private:
     void resizeDataVector(ValueVector* dataVector);
 
+    void resizeStructDataVector(ValueVector* dataVector);
+
 private:
     uint64_t capacity;
     uint64_t size;

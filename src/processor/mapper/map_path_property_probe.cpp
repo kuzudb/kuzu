@@ -37,16 +37,16 @@ getColIdxToScan(
     return std::make_pair(std::move(structFieldIndices), std::move(colIndices));
 }
 
-std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalPathPropertyProbeToPhysical(
+std::unique_ptr<PhysicalOperator> PlanMapper::mapPathPropertyProbe(
     planner::LogicalOperator* logicalOperator) {
     auto logicalProbe = (LogicalPathPropertyProbe*)logicalOperator;
     if (logicalProbe->getNumChildren() == 1) {
-        return mapLogicalOperatorToPhysical(logicalProbe->getChild(0));
+        return mapOperator(logicalProbe->getChild(0).get());
     }
     auto rel = logicalProbe->getRel();
     auto recursiveInfo = rel->getRecursiveInfo();
     // Map build node property
-    auto nodeBuildPrevOperator = mapLogicalOperatorToPhysical(logicalProbe->getChild(1));
+    auto nodeBuildPrevOperator = mapOperator(logicalProbe->getChild(1).get());
     auto nodeBuildSchema = logicalProbe->getChild(1)->getSchema();
     auto nodeKeys = expression_vector{recursiveInfo->node->getInternalIDProperty()};
     auto nodePayloads =
@@ -59,7 +59,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalPathPropertyProbeToPhysi
         std::make_unique<ResultSetDescriptor>(nodeBuildSchema), nodeBuildSharedState,
         std::move(nodeBuildInfo), std::move(nodeBuildPrevOperator), getOperatorID(), "");
     // Map build rel property
-    auto relBuildPrvOperator = mapLogicalOperatorToPhysical(logicalProbe->getChild(2));
+    auto relBuildPrvOperator = mapOperator(logicalProbe->getChild(2).get());
     auto relBuildSchema = logicalProbe->getChild(2)->getSchema();
     auto relKeys = expression_vector{recursiveInfo->rel->getInternalIDProperty()};
     auto relPayloads =
@@ -72,7 +72,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapLogicalPathPropertyProbeToPhysi
         std::make_unique<ResultSetDescriptor>(relBuildSchema), relBuildSharedState,
         std::move(relBuildInfo), std::move(relBuildPrvOperator), getOperatorID(), "");
     // Map child
-    auto prevOperator = mapLogicalOperatorToPhysical(logicalOperator->getChild(0));
+    auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
     // Map probe
     auto relDataType = rel->getDataType();
     auto nodesField = common::StructType::getField(&relDataType, common::InternalKeyword::NODES);
