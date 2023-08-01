@@ -1,7 +1,9 @@
 #pragma once
 
+#include "common/query_rel_type.h"
 #include "frontier.h"
 #include "processor/operator/mask.h"
+#include "processor/operator/table_scan/factorized_table_scan.h"
 
 namespace kuzu {
 namespace processor {
@@ -22,14 +24,14 @@ enum VisitedState : uint8_t {
 };
 
 /**
- * The Lifecycle of an SSSPSharedState in nTkS scheduler are the 3 following states. Depending on
- * which state an SSSPSharedState is in, the thread will held that state :-
+ * The Lifecycle of an BFSSharedState in nTkS scheduler are the 3 following states. Depending on
+ * which state an BFSSharedState is in, the thread will held that state :-
  *
  * 1) EXTEND_IN_PROGRESS: thread helps in level extension, try to get a morsel if available
  *
  * 2) PATH_LENGTH_WRITE_IN_PROGRESS: thread helps in writing path length to vector
  *
- * 3) MORSEL_COMPLETE: morsel is complete, try to launch another SSSPSharedState (if available),
+ * 3) MORSEL_COMPLETE: morsel is complete, try to launch another BFSSharedState (if available),
  *                     else find an existing one
  */
 enum SSSPLocalState {
@@ -38,22 +40,25 @@ enum SSSPLocalState {
     MORSEL_COMPLETE,
 
     // NOTE: This is an intermediate state returned ONLY when no work could be provided to a thread.
-    // It will not be assigned to the local SSSPLocalState inside a SSSPSharedState.
+    // It will not be assigned to the local SSSPLocalState inside a BFSSharedState.
     NO_WORK_TO_SHARE
 };
+
+/// To denote the type of BFSSharedState
+enum BFSSharedStateType { SHORTEST, ALL_SHORTEST, VARIABLE_LENGTH };
 
 /**
  * Global states of MorselDispatcher used primarily for nTkS scheduler :-
  *
  * 1) IN_PROGRESS: Globally (across all threads active), there is still work available.
- * SSSPSharedStates are available for threads to launch.
+ * BFSSharedStates are available for threads to launch.
  *
- * 2) IN_PROGRESS_ALL_SRC_SCANNED: All SSSPSharedState available to be launched have been launched.
+ * 2) IN_PROGRESS_ALL_SRC_SCANNED: All BFSSharedState available to be launched have been launched.
  * It indicates that the inputFTable has no more tuples to be scanned. The threads have to search
- * for an active SSSPSharedState (either in EXTEND_IN_PROGRESS / PATH_LENGTH_WRITE_IN_PROGRESS) to
+ * for an active BFSSharedState (either in EXTEND_IN_PROGRESS / PATH_LENGTH_WRITE_IN_PROGRESS) to
  * execute.
  *
- * 3) COMPLETE: All SSSPSharedStates have been completed, there is no more work either in BFS
+ * 3) COMPLETE: All BFSSharedStates have been completed, there is no more work either in BFS
  * extension or path length writing to vector. Threads can exit completely (return false and return
  * to parent operator).
  */
@@ -94,14 +99,14 @@ private:
 struct BaseBFSMorsel;
 
 /**
- * An SSSPSharedState is a unit of work for the nTkS scheduling policy. It is *ONLY* used for the
- * particular case of SHORTEST_PATH | SINGLE_LABEL | NO_PATH_TRACKING. An SSSPSharedState is *NOT*
+ * An BFSSharedState is a unit of work for the nTkS scheduling policy. It is *ONLY* used for the
+ * particular case of SHORTEST_PATH | SINGLE_LABEL | NO_PATH_TRACKING. An BFSSharedState is *NOT*
  * exclusive to a thread and any thread can pick up BFS extension or Writing Path Length.
  * A shared_ptr is maintained by the BaseBFSMorsel and a morsel of work is fetched using this ptr.
  */
-struct SSSPSharedState {
+struct BFSSharedState {
 public:
-    SSSPSharedState(uint64_t upperBound_, uint64_t lowerBound_, uint64_t maxNodeOffset_)
+    BFSSharedState(uint64_t upperBound_, uint64_t lowerBound_, uint64_t maxNodeOffset_)
         : mutex{std::mutex()}, ssspLocalState{EXTEND_IN_PROGRESS}, currentLevel{0u},
           nextScanStartIdx{0u}, numVisitedNodes{0u}, visitedNodes{std::vector<uint8_t>(
                                                          maxNodeOffset_ + 1, NOT_VISITED)},
@@ -113,18 +118,18 @@ public:
 
     bool isComplete() const;
 
-    void reset(TargetDstNodes* targetDstNodes);
+    void reset(TargetDstNodes* targetDstNodes, common::QueryRelType queryRelType);
 
     SSSPLocalState getBFSMorsel(BaseBFSMorsel* bfsMorsel);
 
     bool hasWork() const;
 
-    bool finishBFSMorsel(BaseBFSMorsel* bfsMorsel);
+    bool finishBFSMorsel(BaseBFSMorsel* bfsMorsel, common::QueryRelType queryRelType);
 
     // If BFS has completed.
-    bool isBFSComplete(uint64_t numDstNodesToVisit);
+    bool isBFSComplete(uint64_t numDstNodesToVisit, common::QueryRelType queryRelType);
     // Mark src as visited.
-    void markSrc(bool isSrcDestination);
+    void markSrc(bool isSrcDestination, common::QueryRelType queryRelType);
 
     void moveNextLevelAsCurrentLevel();
 
@@ -152,19 +157,23 @@ public:
     uint64_t inputFTableTupleIdx;
     // To track which threads are writing path lengths to their ValueVectors
     std::unordered_set<std::thread::id> pathLengthThreadWriters;
+
+    // FOR ALL_SHORTEST_PATH only
+    uint8_t minDistance;
+    std::vector<uint64_t> nodeIDToMultiplicity;
 };
 
 struct BaseBFSMorsel {
 public:
     BaseBFSMorsel(TargetDstNodes* targetDstNodes, uint8_t upperBound, uint8_t lowerBound)
         : targetDstNodes{targetDstNodes}, upperBound{upperBound}, lowerBound{lowerBound},
-          currentLevel{0u}, ssspSharedState{nullptr} {}
+          currentLevel{0u}, bfsSharedState{nullptr} {}
 
     virtual ~BaseBFSMorsel() = default;
 
     virtual bool getRecursiveJoinType() = 0;
 
-    inline bool hasSSSPSharedState() const { return ssspSharedState != nullptr; }
+    inline bool hasBFSSharedState() const { return bfsSharedState != nullptr; }
 
     // Get next node offset to extend from current level.
     common::nodeID_t getNextNodeID() {
@@ -195,9 +204,30 @@ public:
     inline size_t getNumFrontiers() const { return frontiers.size(); }
     inline Frontier* getFrontier(common::vector_idx_t idx) const { return frontiers[idx].get(); }
 
-    inline SSSPLocalState getBFSMorsel() { return ssspSharedState->getBFSMorsel(this); }
+    inline SSSPLocalState getBFSMorsel() { return bfsSharedState->getBFSMorsel(this); }
 
-    inline bool finishBFSMorsel() { return ssspSharedState->finishBFSMorsel(this); }
+    inline bool finishBFSMorsel(common::QueryRelType queryRelType) {
+        return bfsSharedState->finishBFSMorsel(this, queryRelType);
+    }
+
+    /// This is used for nTkSCAS scheduler case (no tracking of path + single label case)
+    virtual void reset(
+        uint64_t startScanIdx, uint64_t endScanIdx, BFSSharedState* bfsSharedState) = 0;
+
+    virtual void addToLocalNextBFSLevel(
+        common::ValueVector* tmpDstNodeIDVector, uint64_t boundNodeMultiplicity) = 0;
+
+    virtual common::offset_t getNextNodeOffset() = 0;
+
+    virtual bool hasMoreToWrite() = 0;
+
+    virtual std::pair<uint64_t, int64_t> getPrevDistStartScanIdxAndSize() = 0;
+
+    virtual int64_t writeToVector(
+        const std::shared_ptr<FactorizedTableScanSharedState>& inputFTableSharedState,
+        std::vector<common::ValueVector*> vectorsToScan, std::vector<ft_col_idx_t> colIndicesToScan,
+        common::ValueVector* dstNodeIDVector, common::ValueVector* pathLengthVector,
+        common::table_id_t tableID, std::pair<uint64_t, int64_t> startScanIdxAndSize) = 0;
 
 protected:
     inline bool isCurrentFrontierEmpty() const { return currentFrontier->nodeIDs.empty(); }
@@ -234,7 +264,7 @@ protected:
     // Target information.
 public:
     TargetDstNodes* targetDstNodes;
-    SSSPSharedState* ssspSharedState;
+    BFSSharedState* bfsSharedState;
 };
 
 template<bool TRACK_PATH>
@@ -287,21 +317,36 @@ public:
 
     /// This is used for nTkSCAS scheduler case (no tracking of path + single label case)
     inline void reset(
-        uint64_t startScanIdx_, uint64_t endScanIdx_, SSSPSharedState* ssspSharedState_) {
+        uint64_t startScanIdx_, uint64_t endScanIdx_, BFSSharedState* bfsSharedState_) override {
         startScanIdx = startScanIdx_;
         endScanIdx = endScanIdx_;
-        ssspSharedState = ssspSharedState_;
+        bfsSharedState = bfsSharedState_;
         numVisitedDstNodes = 0u;
     }
 
-    inline common::offset_t getNextNodeOffset() {
+    inline common::offset_t getNextNodeOffset() override {
         if (startScanIdx == endScanIdx) {
             return common::INVALID_OFFSET;
         }
-        return ssspSharedState->bfsLevelNodeOffsets[startScanIdx++];
+        return bfsSharedState->bfsLevelNodeOffsets[startScanIdx++];
     }
 
-    void addToLocalNextBFSLevel(common::ValueVector* tmpDstNodeIDVector);
+    void addToLocalNextBFSLevel(
+        common::ValueVector* tmpDstNodeIDVector, uint64_t boundNodeMultiplicity) override;
+
+    // For Shortest Path, this function will always return false, because there is no nodeID
+    // multiplicity. Each distance morsel will exactly fit into ValueVector size perfectly.
+    inline bool hasMoreToWrite() override { return false; }
+
+    inline std::pair<uint64_t, int64_t> getPrevDistStartScanIdxAndSize() override {
+        throw common::NotImplementedException("");
+    }
+
+    int64_t writeToVector(
+        const std::shared_ptr<FactorizedTableScanSharedState>& inputFTableSharedState,
+        std::vector<common::ValueVector*> vectorsToScan, std::vector<ft_col_idx_t> colIndicesToScan,
+        common::ValueVector* dstNodeIDVector, common::ValueVector* pathLengthVector,
+        common::table_id_t tableID, std::pair<uint64_t, int64_t> startScanIdxAndSize) override;
 
 private:
     inline bool isAllDstReached() const {

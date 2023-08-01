@@ -9,6 +9,7 @@
 #include "planner/logical_plan/logical_operator/recursive_join_type.h"
 #include "processor/operator/physical_operator.h"
 #include "processor/operator/result_collector.h"
+#include "processor/operator/table_scan/factorized_table_scan.h"
 
 namespace kuzu {
 namespace processor {
@@ -17,11 +18,11 @@ class ScanFrontier;
 
 struct RecursiveJoinSharedState {
     std::shared_ptr<MorselDispatcher> morselDispatcher;
-    std::shared_ptr<FTableSharedState> inputFTableSharedState;
+    std::shared_ptr<FactorizedTableScanSharedState> inputFTableSharedState;
     std::vector<std::unique_ptr<NodeOffsetSemiMask>> semiMasks;
 
     RecursiveJoinSharedState(std::shared_ptr<MorselDispatcher> morselDispatcher,
-        std::shared_ptr<FTableSharedState> inputFTableSharedState,
+        std::shared_ptr<FactorizedTableScanSharedState> inputFTableSharedState,
         std::vector<std::unique_ptr<NodeOffsetSemiMask>> semiMasks)
         : morselDispatcher{std::move(morselDispatcher)},
           inputFTableSharedState{std::move(inputFTableSharedState)}, semiMasks{
@@ -32,9 +33,9 @@ struct RecursiveJoinSharedState {
     inline std::pair<GlobalSSSPState, SSSPLocalState> getBFSMorsel(
         const std::vector<common::ValueVector*>& vectorsToScan,
         const std::vector<ft_col_idx_t>& colIndicesToScan, common::ValueVector* srcNodeIDVector,
-        BaseBFSMorsel* bfsMorsel) {
-        return morselDispatcher->getBFSMorsel(
-            inputFTableSharedState, vectorsToScan, colIndicesToScan, srcNodeIDVector, bfsMorsel);
+        BaseBFSMorsel* bfsMorsel, common::QueryRelType queryRelType) {
+        return morselDispatcher->getBFSMorsel(inputFTableSharedState, vectorsToScan,
+            colIndicesToScan, srcNodeIDVector, bfsMorsel, queryRelType);
     }
 
     inline int64_t writeDstNodeIDAndPathLength(

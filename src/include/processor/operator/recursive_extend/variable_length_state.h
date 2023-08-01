@@ -29,6 +29,44 @@ struct VariableLengthMorsel : public BaseBFSMorsel {
             nextFrontier->addNodeWithMultiplicity(nbrNodeID, multiplicity);
         }
     }
+
+    inline void reset(
+        uint64_t startScanIdx_, uint64_t endScanIdx_, BFSSharedState* bfsSharedState_) override {
+        startScanIdx = startScanIdx_;
+        endScanIdx = endScanIdx_;
+        bfsSharedState = bfsSharedState_;
+    }
+
+    // TODO: Populate this for nTkS scheduler type recursive join
+    void addToLocalNextBFSLevel(
+        common::ValueVector* tmpDstNodeIDVector, uint64_t boundNodeMultiplicity) override;
+
+    inline common::offset_t getNextNodeOffset() override {
+        if (startScanIdx == endScanIdx) {
+            return common::INVALID_OFFSET;
+        }
+        return bfsSharedState->bfsLevelNodeOffsets[startScanIdx++];
+    }
+
+    inline bool hasMoreToWrite() override {
+        return prevDistMorselStartEndIdx.first < prevDistMorselStartEndIdx.second;
+    }
+
+    inline std::pair<uint64_t, int64_t> getPrevDistStartScanIdxAndSize() override {
+        return {prevDistMorselStartEndIdx.first,
+            prevDistMorselStartEndIdx.second - prevDistMorselStartEndIdx.first};
+    }
+
+    int64_t writeToVector(
+        const std::shared_ptr<FactorizedTableScanSharedState>& inputFTableSharedState,
+        std::vector<common::ValueVector*> vectorsToScan, std::vector<ft_col_idx_t> colIndicesToScan,
+        common::ValueVector* dstNodeIDVector, common::ValueVector* pathLengthVector,
+        common::table_id_t tableID, std::pair<uint64_t, int64_t> startScanIdxAndSize) override;
+
+private:
+    uint64_t startScanIdx;
+    uint64_t endScanIdx;
+    std::pair<uint64_t, uint64_t> prevDistMorselStartEndIdx;
 };
 
 } // namespace processor

@@ -10,7 +10,7 @@ namespace kuzu {
 namespace processor {
 
 void RecursiveJoin::initGlobalStateInternal(kuzu::processor::ExecutionContext* context) {
-    sharedState->morselDispatcher->initActiveSSSPSharedState(context->numThreads);
+    sharedState->morselDispatcher->initActiveBFSSharedState(context->numThreads);
 }
 
 void RecursiveJoin::initLocalStateInternal(ResultSet* resultSet_, ExecutionContext* context) {
@@ -194,16 +194,16 @@ bool RecursiveJoin::scanOutput() {
 
 /**
  * The main computeBFS to be called for both 1T1S and nTkS scheduling policies. Initially for both
- * cases, the SSSPSharedState ptr will be null.
- * - For nTkS policy, this will be filled with a pointer to the main SSSPSharedState from which work
- *   will be fetched. This SSSPSharedState will not be bound to a specific thread and can change.
- * - For 1T1S policy, there is no SSSPSharedState involved and a thread works on its own morsel, not
+ * cases, the BFSSharedState ptr will be null.
+ * - For nTkS policy, this will be filled with a pointer to the main BFSSharedState from which work
+ *   will be fetched. This BFSSharedState will not be bound to a specific thread and can change.
+ * - For 1T1S policy, there is no BFSSharedState involved and a thread works on its own morsel, not
  *   shared with any other thread.
  */
 bool RecursiveJoin::computeBFS(kuzu::processor::ExecutionContext* context) {
     if (sharedState->getSchedulerType() == SchedulerType::OneThreadOneMorsel) {
-        auto state = sharedState->getBFSMorsel(
-            vectorsToScan, colIndicesToScan, vectors->srcNodeIDVector, bfsMorsel.get());
+        auto state = sharedState->getBFSMorsel(vectorsToScan, colIndicesToScan,
+            vectors->srcNodeIDVector, bfsMorsel.get(), queryRelType);
         if (state.first == COMPLETE) {
             return false;
         }
@@ -211,11 +211,11 @@ bool RecursiveJoin::computeBFS(kuzu::processor::ExecutionContext* context) {
         return true;
     } else {
         while (true) {
-            if (bfsMorsel->hasSSSPSharedState()) {
+            if (bfsMorsel->hasBFSSharedState()) {
                 auto state = bfsMorsel->getBFSMorsel();
                 if (state == EXTEND_IN_PROGRESS) {
                     computeBFSnThreadkMorsel(context);
-                    if (bfsMorsel->finishBFSMorsel()) {
+                    if (bfsMorsel->finishBFSMorsel(queryRelType)) {
                         return true;
                     }
                     continue;
@@ -224,8 +224,8 @@ bool RecursiveJoin::computeBFS(kuzu::processor::ExecutionContext* context) {
                     return true;
                 }
             }
-            auto state = sharedState->getBFSMorsel(
-                vectorsToScan, colIndicesToScan, vectors->srcNodeIDVector, bfsMorsel.get());
+            auto state = sharedState->getBFSMorsel(vectorsToScan, colIndicesToScan,
+                vectors->srcNodeIDVector, bfsMorsel.get(), queryRelType);
             if (state.first == COMPLETE) {
                 return false;
             }
@@ -234,7 +234,7 @@ bool RecursiveJoin::computeBFS(kuzu::processor::ExecutionContext* context) {
             }
             if (state.second == EXTEND_IN_PROGRESS) {
                 computeBFSnThreadkMorsel(context);
-                if (bfsMorsel->finishBFSMorsel()) {
+                if (bfsMorsel->finishBFSMorsel(queryRelType)) {
                     return true;
                 }
             } else {
@@ -253,15 +253,18 @@ void RecursiveJoin::computeBFSnThreadkMorsel(ExecutionContext* context) {
     // Cast the BaseBFSMorsel to ShortestPathMorsel, the TRACK_NONE RecursiveJoin is the case it is
     // applicable for. If true, indicates TRACK_PATH is true else TRACK_PATH is false.
     assert(bfsMorsel->getRecursiveJoinType() == false);
-    auto shortestPathMorsel =
-        reinterpret_cast<ShortestPathMorsel<false /* TRACK_PATH */>*>(bfsMorsel.get());
-    common::offset_t nodeOffset = shortestPathMorsel->getNextNodeOffset();
+    common::offset_t nodeOffset = bfsMorsel->getNextNodeOffset();
     while (nodeOffset != common::INVALID_OFFSET) {
         scanFrontier->setNodeID(common::nodeID_t{nodeOffset, *begin(dataInfo->dstNodeTableIDs)});
         while (recursiveRoot->getNextTuple(context)) { // Exhaust recursive plan.
-            shortestPathMorsel->addToLocalNextBFSLevel(vectors->recursiveDstNodeIDVector);
+            if (queryRelType == common::QueryRelType::SHORTEST) {
+                bfsMorsel->addToLocalNextBFSLevel(vectors->recursiveDstNodeIDVector, 0);
+            } else {
+                bfsMorsel->addToLocalNextBFSLevel(vectors->recursiveDstNodeIDVector,
+                    bfsMorsel->bfsSharedState->nodeIDToMultiplicity[nodeOffset]);
+            }
         }
-        nodeOffset = shortestPathMorsel->getNextNodeOffset();
+        nodeOffset = bfsMorsel->getNextNodeOffset();
     }
 }
 

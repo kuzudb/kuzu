@@ -3,22 +3,24 @@
 #include <intrin.h>
 #endif
 #include "common/exception.h"
+#include "processor/operator/recursive_extend/all_shortest_path_state.h"
 #include "processor/operator/recursive_extend/bfs_state.h"
+#include "processor/operator/table_scan/factorized_table_scan.h"
 
 namespace kuzu {
 namespace processor {
 
-// 3 conditions to check to decide if an existing SSSPSharedState object is
+// 3 conditions to check to decide if an existing BFSSharedState object is
 // reusable or not (to ensure thread safety):
 // 1) the local state has been marked as MORSEL_COMPLETE
 // 2) no. of threads active (tracks threads doing bfs extension) is 0
 // 3) set containing thread_id of threads doing path length writing is empty
-bool SSSPSharedState::isComplete() const {
+bool BFSSharedState::isComplete() const {
     return ssspLocalState == MORSEL_COMPLETE && numThreadsActiveOnMorsel == 0u &&
            pathLengthThreadWriters.empty();
 }
 
-void SSSPSharedState::reset(TargetDstNodes* targetDstNodes) {
+void BFSSharedState::reset(TargetDstNodes* targetDstNodes, common::QueryRelType queryRelType) {
     ssspLocalState = EXTEND_IN_PROGRESS;
     currentLevel = 0u;
     nextScanStartIdx = 0u;
@@ -40,21 +42,32 @@ void SSSPSharedState::reset(TargetDstNodes* targetDstNodes) {
     nextDstScanStartIdx = 0u;
     inputFTableTupleIdx = 0u;
     pathLengthThreadWriters = std::unordered_set<std::thread::id>();
+    if (queryRelType == common::QueryRelType::ALL_SHORTEST) {
+        minDistance = 0u;
+        // nodeIDToMultiplicity is not defined in the constructor directly, only for all shortest
+        // recursive join it is required. If it is empty then assign a vector of size maxNodeOffset
+        // to it (same size as visitedNodes).
+        if (nodeIDToMultiplicity.empty()) {
+            nodeIDToMultiplicity = std::vector<uint64_t>(visitedNodes.size(), 0u);
+        } else {
+            std::fill(nodeIDToMultiplicity.begin(), nodeIDToMultiplicity.end(), 0u);
+        }
+    }
 }
 
 /*
- * Returning the state here because if SSSPSharedState is complete / in pathLength writing stage
+ * Returning the state here because if BFSSharedState is complete / in pathLength writing stage
  * then depending on state we need to take next step. If MORSEL_COMPLETE then proceed to get a new
- * SSSPSharedState & if MORSEL_pathLength_WRITING_IN_PROGRESS then help in this task.
+ * BFSSharedState & if MORSEL_pathLength_WRITING_IN_PROGRESS then help in this task.
  */
-SSSPLocalState SSSPSharedState::getBFSMorsel(BaseBFSMorsel* bfsMorsel) {
+SSSPLocalState BFSSharedState::getBFSMorsel(BaseBFSMorsel* bfsMorsel) {
     std::unique_lock lck{mutex};
     switch (ssspLocalState) {
     case MORSEL_COMPLETE: {
         return NO_WORK_TO_SHARE;
     }
     case PATH_LENGTH_WRITE_IN_PROGRESS: {
-        bfsMorsel->ssspSharedState = this;
+        bfsMorsel->bfsSharedState = this;
         return PATH_LENGTH_WRITE_IN_PROGRESS;
     }
     case EXTEND_IN_PROGRESS: {
@@ -63,8 +76,7 @@ SSSPLocalState SSSPSharedState::getBFSMorsel(BaseBFSMorsel* bfsMorsel) {
             auto bfsMorselSize = std::min(
                 common::DEFAULT_VECTOR_CAPACITY, bfsLevelNodeOffsets.size() - nextScanStartIdx);
             auto morselScanEndIdx = nextScanStartIdx + bfsMorselSize;
-            auto shortestPathMorsel = (reinterpret_cast<ShortestPathMorsel<false>*>(bfsMorsel));
-            shortestPathMorsel->reset(nextScanStartIdx, morselScanEndIdx, this);
+            bfsMorsel->reset(nextScanStartIdx, morselScanEndIdx, this);
             nextScanStartIdx += bfsMorselSize;
             return EXTEND_IN_PROGRESS;
         } else {
@@ -73,11 +85,11 @@ SSSPLocalState SSSPSharedState::getBFSMorsel(BaseBFSMorsel* bfsMorsel) {
     }
     default:
         throw common::RuntimeException(
-            &"Unknown local state encountered inside SSSPSharedState: "[ssspLocalState]);
+            &"Unknown local state encountered inside BFSSharedState: "[ssspLocalState]);
     }
 }
 
-bool SSSPSharedState::hasWork() const {
+bool BFSSharedState::hasWork() const {
     if (ssspLocalState == EXTEND_IN_PROGRESS && nextScanStartIdx < bfsLevelNodeOffsets.size()) {
         return true;
     }
@@ -88,42 +100,51 @@ bool SSSPSharedState::hasWork() const {
     return false;
 }
 
-bool SSSPSharedState::finishBFSMorsel(BaseBFSMorsel* bfsMorsel) {
+bool BFSSharedState::finishBFSMorsel(BaseBFSMorsel* bfsMorsel, common::QueryRelType queryRelType) {
     std::unique_lock lck{mutex};
     numThreadsActiveOnMorsel--;
     if (ssspLocalState != EXTEND_IN_PROGRESS) {
         return true;
     }
     // Update the destinations visited, used to check for termination condition.
-    auto shortestPathMorsel = (reinterpret_cast<ShortestPathMorsel<false>*>(bfsMorsel));
-    numVisitedNodes += shortestPathMorsel->getNumVisitedDstNodes();
+    // ONLY for shortest path and all shortest path recursive join.
+    if (queryRelType == common::QueryRelType::SHORTEST) {
+        auto shortestPathMorsel = (reinterpret_cast<ShortestPathMorsel<false>*>(bfsMorsel));
+        numVisitedNodes += shortestPathMorsel->getNumVisitedDstNodes();
+    } else if (queryRelType == common::QueryRelType::ALL_SHORTEST) {
+        auto allShortestPathMorsel = (reinterpret_cast<AllShortestPathMorsel<false>*>(bfsMorsel));
+        numVisitedNodes += allShortestPathMorsel->getNumVisitedDstNodes();
+    }
     if (numThreadsActiveOnMorsel == 0 && nextScanStartIdx == bfsLevelNodeOffsets.size()) {
         moveNextLevelAsCurrentLevel();
-        if (isBFSComplete(shortestPathMorsel->targetDstNodes->getNumNodes())) {
+        if (isBFSComplete(bfsMorsel->targetDstNodes->getNumNodes(), queryRelType)) {
             ssspLocalState = PATH_LENGTH_WRITE_IN_PROGRESS;
             return true;
         }
-    } else if (isBFSComplete(shortestPathMorsel->targetDstNodes->getNumNodes())) {
+    } else if (isBFSComplete(bfsMorsel->targetDstNodes->getNumNodes(), queryRelType)) {
         ssspLocalState = PATH_LENGTH_WRITE_IN_PROGRESS;
         return true;
     }
     return false;
 }
 
-bool SSSPSharedState::isBFSComplete(uint64_t numDstNodesToVisit) {
+bool BFSSharedState::isBFSComplete(uint64_t numDstNodesToVisit, common::QueryRelType queryRelType) {
     if (bfsLevelNodeOffsets.empty()) { // no more to extend.
         return true;
     }
     if (currentLevel == upperBound) { // upper limit reached.
         return true;
     }
-    if (numVisitedNodes == numDstNodesToVisit) { // all destinations have been reached.
-        return true;
+    if (queryRelType == common::QueryRelType::SHORTEST) {
+        return numVisitedNodes == numDstNodesToVisit;
+    }
+    if (queryRelType == common::QueryRelType::ALL_SHORTEST) {
+        return (numVisitedNodes == numDstNodesToVisit) && (currentLevel > minDistance);
     }
     return false;
 }
 
-void SSSPSharedState::markSrc(bool isSrcDestination) {
+void BFSSharedState::markSrc(bool isSrcDestination, common::QueryRelType queryRelType) {
     if (isSrcDestination) {
         visitedNodes[srcOffset] = VISITED_DST;
         numVisitedNodes++;
@@ -132,9 +153,12 @@ void SSSPSharedState::markSrc(bool isSrcDestination) {
         visitedNodes[srcOffset] = VISITED;
     }
     bfsLevelNodeOffsets.push_back(srcOffset);
+    if (queryRelType == common::QueryRelType::ALL_SHORTEST) {
+        nodeIDToMultiplicity[srcOffset] = 1;
+    }
 }
 
-void SSSPSharedState::moveNextLevelAsCurrentLevel() {
+void BFSSharedState::moveNextLevelAsCurrentLevel() {
     currentLevel++;
     nextScanStartIdx = 0u;
     bfsLevelNodeOffsets.clear();
@@ -151,7 +175,7 @@ void SSSPSharedState::moveNextLevelAsCurrentLevel() {
     }
 }
 
-std::pair<uint64_t, int64_t> SSSPSharedState::getDstPathLengthMorsel() {
+std::pair<uint64_t, int64_t> BFSSharedState::getDstPathLengthMorsel() {
     std::unique_lock lck{mutex};
     if (ssspLocalState != PATH_LENGTH_WRITE_IN_PROGRESS) {
         pathLengthThreadWriters.erase(std::this_thread::get_id());
@@ -170,36 +194,81 @@ std::pair<uint64_t, int64_t> SSSPSharedState::getDstPathLengthMorsel() {
 }
 
 template<>
-void ShortestPathMorsel<false>::addToLocalNextBFSLevel(common::ValueVector* tmpDstNodeIDVector) {
+void ShortestPathMorsel<false>::addToLocalNextBFSLevel(
+    common::ValueVector* tmpDstNodeIDVector, uint64_t boundNodeMultiplicity) {
     for (auto i = 0u; i < tmpDstNodeIDVector->state->selVector->selectedSize; ++i) {
         auto pos = tmpDstNodeIDVector->state->selVector->selectedPositions[i];
         auto nodeID = tmpDstNodeIDVector->getValue<common::nodeID_t>(pos);
-        auto state = ssspSharedState->visitedNodes[nodeID.offset];
+        auto state = bfsSharedState->visitedNodes[nodeID.offset];
         if (state == NOT_VISITED_DST) {
 #if defined(_MSC_VER)
             bool casResult =
                 _InterlockedCompareExchange64(reinterpret_cast<volatile __int64*>(
-                                                  &ssspSharedState->visitedNodes[nodeID.offset]),
+                                                  &bfsSharedState->visitedNodes[nodeID.offset]),
                     VISITED_DST_NEW, state) == state;
 #else
             bool casResult = __sync_bool_compare_and_swap(
-                &ssspSharedState->visitedNodes[nodeID.offset], state, VISITED_DST_NEW);
+                &bfsSharedState->visitedNodes[nodeID.offset], state, VISITED_DST_NEW);
 #endif
             if (casResult) {
-                ssspSharedState->pathLength[nodeID.offset] = ssspSharedState->currentLevel + 1;
+                __sync_bool_compare_and_swap(&bfsSharedState->pathLength[nodeID.offset], 0u,
+                    bfsSharedState->currentLevel + 1);
                 numVisitedDstNodes++;
             }
         } else if (state == NOT_VISITED) {
 #if defined(_MSC_VER)
             _InterlockedCompareExchange64(
-                reinterpret_cast<volatile __int64*>(&ssspSharedState->visitedNodes[nodeID.offset]),
+                reinterpret_cast<volatile __int64*>(&bfsSharedState->visitedNodes[nodeID.offset]),
                 VISITED_NEW, state);
 #else
             __sync_bool_compare_and_swap(
-                &ssspSharedState->visitedNodes[nodeID.offset], state, VISITED_NEW);
+                &bfsSharedState->visitedNodes[nodeID.offset], state, VISITED_NEW);
 #endif
         }
     }
+}
+
+template<>
+void ShortestPathMorsel<true>::addToLocalNextBFSLevel(
+    common::ValueVector* tmpDstNodeIDVector, uint64_t boundNodeMultiplicity) {}
+
+template<>
+int64_t ShortestPathMorsel<false>::writeToVector(
+    const std::shared_ptr<FactorizedTableScanSharedState>& inputFTableSharedState,
+    std::vector<common::ValueVector*> vectorsToScan, std::vector<ft_col_idx_t> colIndicesToScan,
+    common::ValueVector* dstNodeIDVector, common::ValueVector* pathLengthVector,
+    common::table_id_t tableID, std::pair<uint64_t, int64_t> startScanIdxAndSize) {
+    auto size = 0u;
+    auto endIdx = startScanIdxAndSize.first + startScanIdxAndSize.second;
+    while (startScanIdxAndSize.first < endIdx) {
+        if (bfsSharedState->pathLength[startScanIdxAndSize.first] >= bfsSharedState->lowerBound) {
+            dstNodeIDVector->setValue<common::nodeID_t>(
+                size, common::nodeID_t{startScanIdxAndSize.first, tableID});
+            pathLengthVector->setValue<int64_t>(
+                size, bfsSharedState->pathLength[startScanIdxAndSize.first]);
+            size++;
+        }
+        startScanIdxAndSize.first++;
+    }
+    if (size > 0) {
+        dstNodeIDVector->state->initOriginalAndSelectedSize(size);
+        // We need to rescan the FTable to get the source for which the pathLengths were computed.
+        // This is because the thread that scanned FTable initially might not be the thread writing
+        // the pathLengths to its vector.
+        inputFTableSharedState->getTable()->scan(vectorsToScan, bfsSharedState->inputFTableTupleIdx,
+            1 /* numTuples */, colIndicesToScan);
+        return size;
+    }
+    return 0;
+}
+
+template<>
+int64_t ShortestPathMorsel<true>::writeToVector(
+    const std::shared_ptr<FactorizedTableScanSharedState>& inputFTableSharedState,
+    std::vector<common::ValueVector*> vectorsToScan, std::vector<ft_col_idx_t> colIndicesToScan,
+    common::ValueVector* dstNodeIDVector, common::ValueVector* pathLengthVector,
+    common::table_id_t tableID, std::pair<uint64_t, int64_t> startScanIdxAndSize) {
+    throw common::NotImplementedException("Not implemented for TRACK_PATH and nTkS scheduler. ");
 }
 
 } // namespace processor
