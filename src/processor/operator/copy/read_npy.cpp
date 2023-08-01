@@ -8,6 +8,10 @@ namespace kuzu {
 namespace processor {
 
 std::shared_ptr<arrow::RecordBatch> ReadNPY::readTuples(std::unique_ptr<ReadFileMorsel> morsel) {
+    if (morsel->filePath.empty()) {
+        auto serialMorsel = reinterpret_cast<storage::ReadSerialMorsel*>(morsel.get());
+        return serialMorsel->recordBatch;
+    }
     return reader->readBlock(morsel->blockIdx);
 }
 

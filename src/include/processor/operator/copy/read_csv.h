@@ -15,7 +15,7 @@ public:
 
     inline std::shared_ptr<arrow::RecordBatch> readTuples(
         std::unique_ptr<storage::ReadFileMorsel> morsel) override {
-        auto csvMorsel = reinterpret_cast<storage::ReadCSVMorsel*>(morsel.get());
+        auto csvMorsel = reinterpret_cast<storage::ReadSerialMorsel*>(morsel.get());
         return csvMorsel->recordBatch;
     }
 

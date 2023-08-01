@@ -7,7 +7,10 @@ namespace processor {
 
 std::shared_ptr<arrow::RecordBatch> ReadParquet::readTuples(
     std::unique_ptr<ReadFileMorsel> morsel) {
-    assert(!morsel->filePath.empty());
+    if (morsel->filePath.empty()) {
+        auto serialMorsel = reinterpret_cast<storage::ReadSerialMorsel*>(morsel.get());
+        return serialMorsel->recordBatch;
+    }
     if (!reader || filePath != morsel->filePath) {
         reader = TableCopyUtils::createParquetReader(morsel->filePath, sharedState->tableSchema);
         filePath = morsel->filePath;

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "storage/copier/npy_reader.h"
 #include "storage/copier/table_copy_utils.h"
 
 namespace kuzu {
@@ -23,10 +24,11 @@ public:
     common::row_idx_t rowIdxInFile;
 };
 
-// For CSV file, we need to read in streaming mode, so we need to read one batch at a time.
-class ReadCSVMorsel : public ReadFileMorsel {
+// For CSV file, and for tables with SERIAL primary key, we need to read in streaming mode, so we
+// need to read one batch at a time.
+class ReadSerialMorsel : public ReadFileMorsel {
 public:
-    ReadCSVMorsel(common::offset_t startRowIdx, std::string filePath,
+    ReadSerialMorsel(common::offset_t startRowIdx, std::string filePath,
         common::row_idx_t rowIdxInFile, std::shared_ptr<arrow::RecordBatch> recordBatch)
         : ReadFileMorsel{startRowIdx, common::INVALID_BLOCK_IDX, common::INVALID_ROW_IDX,
               std::move(filePath), rowIdxInFile},
@@ -85,7 +87,10 @@ public:
 private:
     void countNumRows() override;
 
+    std::unique_ptr<storage::ReadFileMorsel> getMorselSerial();
     std::unique_ptr<storage::ReadFileMorsel> getMorsel() override;
+
+    std::shared_ptr<parquet::arrow::FileReader> reader;
 };
 
 class ReadNPYSharedState : public ReadFileSharedState {
@@ -97,7 +102,10 @@ public:
     std::unique_ptr<storage::ReadFileMorsel> getMorsel() final;
 
 private:
+    std::unique_ptr<storage::ReadFileMorsel> getMorselSerial();
     void countNumRows() final;
+
+    std::shared_ptr<storage::NpyMultiFileReader> reader;
 };
 
 } // namespace storage
