@@ -42,7 +42,7 @@ void ParsedExpressionChildrenVisitor::setChild(kuzu::parser::ParsedExpression& e
         expression.children[idx] = std::move(expressionToSet);
     } break;
     default: {
-        throw common::NotImplementedException{"ParsedExpressionChildrenSetter::setChild"};
+        throw common::NotImplementedException{"ParsedExpressionChildrenVisitor::setChild"};
     }
     }
 }

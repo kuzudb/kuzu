@@ -120,14 +120,29 @@ impl QueryResult {
             options.newline as i8,
         )?)
     }
+
+    #[cfg(feature = "arrow")]
+    /// Produces an iterator over the results as [RecordBatch](arrow::record_batch::RecordBatch)es,
+    /// split into chunks of the given size.
+    ///
+    /// *Requires the `arrow` feature*
+    pub fn iter_arrow(&mut self, chunk_size: usize) -> Result<ArrowIterator, crate::error::Error> {
+        let schema = crate::ffi::arrow::ffi_arrow::query_result_get_arrow_schema(
+            self.result.as_ref().unwrap(),
+        )?
+        .0;
+        Ok(ArrowIterator {
+            chunk_size,
+            result: &mut self.result,
+            schema,
+        })
+    }
 }
 
 // the underlying C++ type is both data and an iterator (sort-of)
 impl Iterator for QueryResult {
-    // we will be counting with usize
     type Item = Vec<Value>;
 
-    // next() is the only required method
     fn next(&mut self) -> Option<Self::Item> {
         if self.result.as_ref().unwrap().hasNext() {
             let flat_tuple = self.result.pin_mut().getNext();
@@ -142,6 +157,44 @@ impl Iterator for QueryResult {
                 result.push(value.try_into().unwrap());
             }
             Some(result)
+        } else {
+            None
+        }
+    }
+}
+
+#[cfg(feature = "arrow")]
+/// Produces an iterator over a QueryResult as [RecordBatch](arrow::record_batch::RecordBatch)es
+///
+/// The result is split into chunks of a size specified in [iter_arrow](QueryResult::iter_arrow).
+///
+/// *Requires the `arrow` feature*
+pub struct ArrowIterator<'qr> {
+    pub(crate) chunk_size: usize,
+    pub(crate) result: &'qr mut UniquePtr<ffi::QueryResult>,
+    pub(crate) schema: arrow::ffi::FFI_ArrowSchema,
+}
+
+#[cfg(feature = "arrow")]
+impl<'qr> Iterator for ArrowIterator<'qr> {
+    type Item = arrow::record_batch::RecordBatch;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.result.as_ref().unwrap().hasNext() {
+            use crate::ffi::arrow::ffi_arrow;
+            // Generally this panic should be unreachable, since the only exceptions produced by
+            // arrow_converter are for unsupported types, but those would produce an error when we
+            // create the schema.
+            let array = ffi_arrow::query_result_get_next_arrow_chunk(
+                self.result.pin_mut(),
+                self.chunk_size as u64,
+            )
+            .expect("Failed to get next recordbatch");
+            let struct_array: arrow::array::StructArray =
+                arrow::ffi::from_ffi(array.0, &self.schema)
+                    .expect("Failed to convert ArrowArray from C data")
+                    .into();
+            Some(struct_array.into())
         } else {
             None
         }
@@ -173,6 +226,7 @@ mod tests {
     use crate::database::Database;
     use crate::logical_type::LogicalType;
     use crate::query_result::CSVOptions;
+
     #[test]
     fn test_query_result_metadata() -> anyhow::Result<()> {
         let temp_dir = tempfile::tempdir()?;
@@ -219,6 +273,40 @@ mod tests {
         } else {
             assert_eq!(data, "Alice,25\n");
         }
+        temp_dir.close()?;
+        Ok(())
+    }
+
+    #[test]
+    #[cfg(feature = "arrow")]
+    fn test_arrow() -> anyhow::Result<()> {
+        use arrow::array::{Int64Array, StringArray};
+        let temp_dir = tempfile::tempdir()?;
+        let path = temp_dir.path();
+        let db = Database::new(path, 0)?;
+        let conn = Connection::new(&db)?;
+        conn.query("CREATE NODE TABLE Person(name STRING, age INT64, PRIMARY KEY(name));")?;
+        conn.query("CREATE (:Person {name: 'Alice', age: 25});")?;
+        conn.query("CREATE (:Person {name: 'Bob', age: 30});")?;
+        let mut result = conn.query("MATCH (a:Person) RETURN a.name AS NAME, a.age AS AGE;")?;
+        let mut result = result.iter_arrow(1)?;
+        let rb = result.next().unwrap();
+        assert_eq!(rb.num_rows(), 1);
+        let names: &StringArray = rb
+            .column(0)
+            .as_any()
+            .downcast_ref::<StringArray>()
+            .expect("Type of column 0 is not a StringArray!");
+        assert_eq!(names.value(0), "Alice");
+        let ages: &Int64Array = rb
+            .column(1)
+            .as_any()
+            .downcast_ref::<Int64Array>()
+            .expect("Type of column 1 is not a StringArray!");
+        assert_eq!(ages.value(0), 25);
+        let rb = result.next().unwrap();
+        assert_eq!(rb.num_rows(), 1);
+        assert_eq!(result.next(), None);
         temp_dir.close()?;
         Ok(())
     }

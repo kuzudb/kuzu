@@ -82,11 +82,11 @@ std::unique_ptr<FileInfo> StorageUtils::getFileInfoForReadWrite(
     const std::string& directory, StorageStructureID storageStructureID) {
     std::string fName;
     switch (storageStructureID.storageStructureType) {
-    case StorageStructureType::NODE_GROUPS_META: {
-        fName = getNodeGroupsMetaFName(directory);
+    case StorageStructureType::METADATA: {
+        fName = getMetadataFName(directory);
     } break;
-    case StorageStructureType::NODE_GROUPS_DATA: {
-        fName = getNodeGroupsDataFName(directory);
+    case StorageStructureType::DATA: {
+        fName = getDataFName(directory);
     } break;
     case StorageStructureType::COLUMN: {
         fName = getColumnFName(directory, storageStructureID);
@@ -115,7 +115,7 @@ std::string StorageUtils::getColumnFName(
     ColumnFileID columnFileID = storageStructureID.columnFileID;
     switch (columnFileID.columnType) {
     case ColumnType::NODE_PROPERTY_COLUMN: {
-        fName = getNodeGroupsDataFName(directory);
+        fName = getDataFName(directory);
     } break;
     case ColumnType::ADJ_COLUMN: {
         auto& relNodeTableAndDir = columnFileID.adjColumnID.relNodeTableAndDir;
@@ -277,9 +277,7 @@ std::string StorageUtils::appendSuffixOrInsertBeforeWALSuffix(
 }
 
 uint32_t PageUtils::getNumElementsInAPage(uint32_t elementSize, bool hasNull) {
-    if (elementSize == 0) {
-        return 0;
-    }
+    assert(elementSize > 0);
     auto numBytesPerNullEntry = NullMask::NUM_BITS_PER_NULL_ENTRY >> 3;
     auto numNullEntries =
         hasNull ? (uint32_t)ceil(

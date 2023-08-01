@@ -2,7 +2,7 @@
 
 #include "common/copier_config/copier_config.h"
 #include "processor/operator/sink.h"
-#include "storage/store/node_group.h"
+#include "storage/copier/node_group.h"
 #include "storage/store/node_table.h"
 
 namespace kuzu {
@@ -80,9 +80,9 @@ public:
             children[0]->clone(), id, paramsString);
     }
 
-    static void appendNodeGroupToTableAndPopulateIndex(storage::NodeTable* table,
-        storage::NodeGroup* nodeGroup, storage::PrimaryKeyIndexBuilder* pkIndex,
-        common::column_id_t pkColumnID);
+    static void writeAndResetNodeGroup(common::node_group_idx_t nodeGroupIdx,
+        storage::PrimaryKeyIndexBuilder* pkIndex, common::column_id_t pkColumnID,
+        storage::NodeTable* table, storage::NodeGroup* nodeGroup);
 
 private:
     inline bool isCopyAllowed() const {
@@ -91,12 +91,13 @@ private:
                    ->getNumTuples() == 0;
     }
 
-    static std::shared_ptr<common::DataChunk> sliceDataVectorsInDataChunk(
-        const common::DataChunk& dataChunkToSlice, const std::vector<DataPos>& dataColumnPoses,
-        int64_t offset, int64_t length);
+    static void sliceDataChunk(const common::DataChunk& dataChunk,
+        const std::vector<DataPos>& dataColumnPoses, common::offset_t offset);
 
     static void populatePKIndex(storage::PrimaryKeyIndexBuilder* pkIndex,
         storage::ColumnChunk* chunk, common::offset_t startNodeOffset, common::offset_t numNodes);
+    static void checkNonNullConstraint(
+        storage::NullColumnChunk* nullChunk, common::offset_t numNodes);
     static void appendToPKIndex(storage::PrimaryKeyIndexBuilder* pkIndex,
         storage::ColumnChunk* chunk, common::offset_t startOffset, common::offset_t numNodes);
 

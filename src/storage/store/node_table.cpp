@@ -7,12 +7,12 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-NodeTable::NodeTable(BMFileHandle* nodeGroupsDataFH, BMFileHandle* nodeGroupsMetaFH,
+NodeTable::NodeTable(BMFileHandle* dataFH, BMFileHandle* metadataFH,
     NodesStatisticsAndDeletedIDs* nodesStatisticsAndDeletedIDs, BufferManager& bufferManager,
     WAL* wal, NodeTableSchema* nodeTableSchema)
-    : nodesStatisticsAndDeletedIDs{nodesStatisticsAndDeletedIDs},
-      nodeGroupsDataFH{nodeGroupsDataFH}, nodeGroupsMetaFH{nodeGroupsMetaFH},
-      tableID{nodeTableSchema->tableID}, bufferManager{bufferManager}, wal{wal} {
+    : nodesStatisticsAndDeletedIDs{nodesStatisticsAndDeletedIDs}, dataFH{dataFH},
+      metadataFH{metadataFH}, tableID{nodeTableSchema->tableID},
+      bufferManager{bufferManager}, wal{wal} {
     initializeData(nodeTableSchema);
 }
 
@@ -23,8 +23,8 @@ void NodeTable::initializeData(NodeTableSchema* nodeTableSchema) {
 
 void NodeTable::initializeColumns(NodeTableSchema* nodeTableSchema) {
     for (auto& property : nodeTableSchema->getProperties()) {
-        propertyColumns[property.propertyID] = NodeColumnFactory::createNodeColumn(
-            property, nodeGroupsDataFH, nodeGroupsMetaFH, &bufferManager, wal);
+        propertyColumns[property.propertyID] =
+            NodeColumnFactory::createNodeColumn(property, dataFH, metadataFH, &bufferManager, wal);
     }
 }
 
@@ -45,10 +45,21 @@ void NodeTable::read(transaction::Transaction* transaction, ValueVector* inputID
     }
 }
 
-void NodeTable::write(common::property_id_t propertyID, common::ValueVector* nodeIDVector,
-    common::ValueVector* vectorToWriteFrom) {
+void NodeTable::write(
+    property_id_t propertyID, ValueVector* nodeIDVector, ValueVector* vectorToWriteFrom) {
     assert(propertyColumns.contains(propertyID));
     propertyColumns.at(propertyID)->write(nodeIDVector, vectorToWriteFrom);
+}
+
+offset_t NodeTable::addNode(Transaction* transaction) {
+    auto offset = nodesStatisticsAndDeletedIDs->addNode(tableID);
+    auto currentNumNodeGroups = getNumNodeGroups(transaction);
+    if (offset == StorageUtils::getStartOffsetForNodeGroup(currentNumNodeGroups)) {
+        auto newNodeGroup = std::make_unique<NodeGroup>(this);
+        newNodeGroup->setNodeGroupIdx(currentNumNodeGroups);
+        append(newNodeGroup.get());
+    }
+    return offset;
 }
 
 void NodeTable::scan(Transaction* transaction, ValueVector* inputIDVector,
@@ -76,47 +87,40 @@ void NodeTable::lookup(Transaction* transaction, ValueVector* inputIDVector,
     }
 }
 
-void NodeTable::appendNodeGroup(NodeGroup* nodeGroup) {
+void NodeTable::append(NodeGroup* nodeGroup) {
     for (auto& [propertyID, column] : propertyColumns) {
         auto columnChunk = nodeGroup->getColumnChunk(propertyID);
-        auto numPagesToFlush = columnChunk->getNumPages();
-        auto startPageIdx = nodeGroupsDataFH->addNewPages(numPagesToFlush);
-        column->appendColumnChunk(columnChunk, startPageIdx, nodeGroup->getNodeGroupIdx());
+        auto numPages = columnChunk->getNumPages();
+        auto startPageIdx = dataFH->addNewPages(numPages);
+        column->append(columnChunk, startPageIdx, nodeGroup->getNodeGroupIdx());
     }
 }
 
-void NodeTable::resetProperties(offset_t nodeOffset) {
+std::unordered_set<property_id_t> NodeTable::getPropertyIDs() const {
+    std::unordered_set<property_id_t> propertyIDs;
+    for (auto& [propertyID, _] : propertyColumns) {
+        propertyIDs.insert(propertyID);
+    }
+    return propertyIDs;
+}
+
+void NodeTable::setPropertiesToNull(offset_t offset) {
     for (auto& [_, column] : propertyColumns) {
-        column->setNull(nodeOffset);
+        column->setNull(offset);
     }
 }
 
-void NodeTable::resetPropertiesWithPK(offset_t nodeOffset, common::ValueVector* primaryKeyVector) {
-    resetProperties(nodeOffset);
+void NodeTable::insertPK(offset_t offset, ValueVector* primaryKeyVector) {
     assert(primaryKeyVector->state->selVector->selectedSize == 1);
     auto pkValPos = primaryKeyVector->state->selVector->selectedPositions[0];
     if (primaryKeyVector->isNull(pkValPos)) {
         throw RuntimeException("Null is not allowed as a primary key value.");
     }
-    if (!pkIndex->insert(primaryKeyVector, pkValPos, nodeOffset)) {
+    if (!pkIndex->insert(primaryKeyVector, pkValPos, offset)) {
         std::string pkStr = primaryKeyVector->dataType.getLogicalTypeID() == LogicalTypeID::INT64 ?
                                 std::to_string(primaryKeyVector->getValue<int64_t>(pkValPos)) :
                                 primaryKeyVector->getValue<ku_string_t>(pkValPos).getAsString();
         throw RuntimeException(Exception::getExistedPKExceptionMsg(pkStr));
-    }
-}
-
-void NodeTable::deleteNodes(ValueVector* nodeIDVector, ValueVector* primaryKeyVector) {
-    assert(nodeIDVector->state == primaryKeyVector->state && nodeIDVector->hasNoNullsGuarantee() &&
-           primaryKeyVector->hasNoNullsGuarantee());
-    if (nodeIDVector->state->selVector->selectedSize == 1) {
-        auto pos = nodeIDVector->state->selVector->selectedPositions[0];
-        deleteNode(nodeIDVector->readNodeOffset(pos), primaryKeyVector, pos);
-    } else {
-        for (auto i = 0u; i < nodeIDVector->state->selVector->selectedSize; ++i) {
-            auto pos = nodeIDVector->state->selVector->selectedPositions[i];
-            deleteNode(nodeIDVector->readNodeOffset(pos), primaryKeyVector, pos);
-        }
     }
 }
 
@@ -136,9 +140,7 @@ void NodeTable::checkpointInMemory() {
     for (auto& [_, column] : propertyColumns) {
         column->checkpointInMemory();
     }
-    if (pkIndex) {
-        pkIndex->checkpointInMemory();
-    }
+    pkIndex->checkpointInMemory();
 }
 
 void NodeTable::rollbackInMemory() {

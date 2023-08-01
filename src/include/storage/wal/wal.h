@@ -109,7 +109,7 @@ public:
     void logOverflowFileNextBytePosRecord(
         StorageStructureID storageStructureID, uint64_t prevNextByteToWriteTo);
 
-    void logCopyNodeRecord(common::table_id_t tableID, common::page_idx_t pageIdx);
+    void logCopyNodeRecord(common::table_id_t tableID, common::page_idx_t startPageIdx);
 
     void logCopyRelRecord(common::table_id_t tableID);
 

@@ -100,5 +100,13 @@ TEST_F(CreateMacroTestTrxTest, createMacroReadTrxError) {
         "Can't execute a write query inside a read-only transaction.");
 }
 
+TEST_F(CreateMacroTestTrxTest, createMacroWithActiveTrxError) {
+    conn->beginWriteTransaction();
+    ASSERT_EQ(conn->query("CREATE MACRO var_macro(x) AS x")->getErrorMessage(),
+        "DDL, CopyCSV, createMacro statements are automatically wrapped in a transaction and "
+        "committed. As such, they cannot be part of an active transaction, please commit or "
+        "rollback your previous transaction and issue a ddl query without opening a transaction.");
+}
+
 } // namespace testing
 } // namespace kuzu

@@ -69,6 +69,16 @@ public:
     }
 
     template<typename T>
+    static void serializeVectorOfObjects(
+        const std::vector<T>& values, FileInfo* fileInfo, uint64_t& offset) {
+        uint64_t vectorSize = values.size();
+        serializeValue<uint64_t>(vectorSize, fileInfo, offset);
+        for (auto& value : values) {
+            value.serialize(fileInfo, offset);
+        }
+    }
+
+    template<typename T>
     static void serializeVectorOfPtrs(
         const std::vector<std::unique_ptr<T>>& values, FileInfo* fileInfo, uint64_t& offset) {
         uint64_t vectorSize = values.size();
@@ -99,6 +109,17 @@ public:
         values.resize(vectorSize);
         for (auto& value : values) {
             deserializeValue<T>(value, fileInfo, offset);
+        }
+    }
+
+    template<typename T>
+    static void deserializeVectorOfObjects(
+        std::vector<T>& values, FileInfo* fileInfo, uint64_t& offset) {
+        uint64_t vectorSize;
+        deserializeValue<uint64_t>(vectorSize, fileInfo, offset);
+        values.reserve(vectorSize);
+        for (auto i = 0u; i < vectorSize; i++) {
+            values.push_back(*T::deserialize(fileInfo, offset));
         }
     }
 

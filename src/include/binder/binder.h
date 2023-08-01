@@ -13,11 +13,9 @@ class ClientContext;
 
 namespace binder {
 
-class BoundCreateNode;
-class BoundCreateRel;
-class BoundSetNodeProperty;
-class BoundSetRelProperty;
-class BoundDeleteNode;
+class BoundCreateInfo;
+class BoundSetPropertyInfo;
+class BoundDeleteInfo;
 
 // BinderScope keeps track of expressions in scope and their aliases. We maintain the order of
 // expressions in
@@ -134,23 +132,26 @@ private:
         const parser::UpdatingClause& updatingClause);
     std::unique_ptr<BoundUpdatingClause> bindCreateClause(
         const parser::UpdatingClause& updatingClause);
+    std::unique_ptr<BoundUpdatingClause> bindMergeClause(
+        const parser::UpdatingClause& updatingClause);
     std::unique_ptr<BoundUpdatingClause> bindSetClause(
         const parser::UpdatingClause& updatingClause);
     std::unique_ptr<BoundUpdatingClause> bindDeleteClause(
         const parser::UpdatingClause& updatingClause);
 
-    std::unique_ptr<BoundCreateNode> bindCreateNode(
+    std::vector<std::unique_ptr<BoundCreateInfo>> bindCreateInfos(
+        const QueryGraphCollection& queryGraphCollection,
+        const PropertyKeyValCollection& keyValCollection, const expression_set& nodeRelScope_);
+    std::unique_ptr<BoundCreateInfo> bindCreateNodeInfo(
         std::shared_ptr<NodeExpression> node, const PropertyKeyValCollection& collection);
-    std::unique_ptr<BoundCreateRel> bindCreateRel(
+    std::unique_ptr<BoundCreateInfo> bindCreateRelInfo(
         std::shared_ptr<RelExpression> rel, const PropertyKeyValCollection& collection);
-    std::unique_ptr<BoundSetNodeProperty> bindSetNodeProperty(std::shared_ptr<NodeExpression> node,
-        std::pair<parser::ParsedExpression*, parser::ParsedExpression*> setItem);
-    std::unique_ptr<BoundSetRelProperty> bindSetRelProperty(std::shared_ptr<RelExpression> rel,
+    std::unique_ptr<BoundSetPropertyInfo> bindSetPropertyInfo(
         std::pair<parser::ParsedExpression*, parser::ParsedExpression*> setItem);
     expression_pair bindSetItem(
         std::pair<parser::ParsedExpression*, parser::ParsedExpression*> setItem);
-    std::unique_ptr<BoundDeleteNode> bindDeleteNode(const std::shared_ptr<NodeExpression>& node);
-    std::shared_ptr<RelExpression> bindDeleteRel(std::shared_ptr<RelExpression> rel);
+    std::unique_ptr<BoundDeleteInfo> bindDeleteNodeInfo(std::shared_ptr<NodeExpression> node);
+    std::unique_ptr<BoundDeleteInfo> bindDeleteRelInfo(std::shared_ptr<RelExpression> rel);
 
     /*** bind projection clause ***/
     std::unique_ptr<BoundWithClause> bindWithClause(const parser::WithClause& withClause);

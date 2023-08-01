@@ -165,10 +165,14 @@ void WALReplayer::replayNodeTableRecord(const kuzu::storage::WALRecord& walRecor
         auto catalogForCheckpointing = getCatalogForRecovery(DBFileType::WAL_VERSION);
         auto nodeTableSchema = catalogForCheckpointing->getReadOnlyVersion()->getNodeTableSchema(
             walRecord.nodeTableRecord.tableID);
-        WALReplayerUtils::initTableMetaDAsOnDisk(
+        auto metadataFH =
+            bufferManager->getBMFileHandle(StorageUtils::getMetadataFName(wal->getDirectory()),
+                FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS,
+                BMFileHandle::FileVersionedType::VERSIONED_FILE);
+        WALReplayerUtils::initTableMetadataDAsOnDisk(
             catalogForCheckpointing->getReadOnlyVersion()->getNodeTableSchema(
                 walRecord.nodeTableRecord.tableID),
-            catalogForCheckpointing->getNodeGroupsMetaFH());
+            metadataFH.get());
         WALReplayerUtils::createEmptyDBFilesForNewNodeTable(nodeTableSchema, wal->getDirectory());
         if (!isRecovering) {
             // If we are not recovering, i.e., we are checkpointing during normal execution,
@@ -346,7 +350,7 @@ void WALReplayer::replayDropTableRecord(const kuzu::storage::WALRecord& walRecor
             if (catalog->getReadOnlyVersion()->containNodeTable(tableID)) {
                 storageManager->getNodesStore().removeNodeTable(tableID);
                 // TODO(Guodong): Do nothing for now. Should remove meta disk array and node groups.
-                WALReplayerUtils::removeDBFilesForNodeTable(
+                WALReplayerUtils::removeHashIndexFile(
                     catalog->getReadOnlyVersion()->getNodeTableSchema(tableID),
                     wal->getDirectory());
             } else {
@@ -362,7 +366,7 @@ void WALReplayer::replayDropTableRecord(const kuzu::storage::WALRecord& walRecor
             auto catalogForRecovery = getCatalogForRecovery(DBFileType::ORIGINAL);
             if (catalogForRecovery->getReadOnlyVersion()->containNodeTable(tableID)) {
                 // TODO(Guodong): Do nothing for now. Should remove meta disk array and node groups.
-                WALReplayerUtils::removeDBFilesForNodeTable(
+                WALReplayerUtils::removeHashIndexFile(
                     catalogForRecovery->getReadOnlyVersion()->getNodeTableSchema(tableID),
                     wal->getDirectory());
             } else {
@@ -417,9 +421,12 @@ void WALReplayer::replayAddPropertyRecord(const kuzu::storage::WALRecord& walRec
         auto propertyID = walRecord.addPropertyRecord.propertyID;
         auto tableSchema = catalogForCheckpointing->getReadOnlyVersion()->getTableSchema(tableID);
         auto property = tableSchema->getProperty(propertyID);
-        if (tableSchema->isNodeTable) {
-            WALReplayerUtils::initPropertyMetaDAsOnDisk(
-                property, catalogForCheckpointing->getNodeGroupsMetaFH());
+        if (tableSchema->getTableType() == TableType::NODE) {
+            auto metadataFH =
+                bufferManager->getBMFileHandle(StorageUtils::getMetadataFName(wal->getDirectory()),
+                    FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS,
+                    BMFileHandle::FileVersionedType::VERSIONED_FILE);
+            WALReplayerUtils::initPropertyMetadataDAsOnDisk(property, metadataFH.get());
         }
         if (!isRecovering) {
             if (catalog->getReadOnlyVersion()->containNodeTable(tableID)) {
@@ -486,11 +493,11 @@ void WALReplayer::checkpointOrRollbackVersionedFileHandleAndBufferManager(
 BMFileHandle* WALReplayer::getVersionedFileHandleIfWALVersionAndBMShouldBeCleared(
     const StorageStructureID& storageStructureID) {
     switch (storageStructureID.storageStructureType) {
-    case StorageStructureType::NODE_GROUPS_META: {
-        return storageManager->getNodesStore().getNodeGroupsMetaFH();
+    case StorageStructureType::METADATA: {
+        return storageManager->getMetadataFH();
     }
-    case StorageStructureType::NODE_GROUPS_DATA: {
-        return storageManager->getNodesStore().getNodeGroupsDataFH();
+    case StorageStructureType::DATA: {
+        return storageManager->getDataFH();
     }
     case StorageStructureType::COLUMN: {
         switch (storageStructureID.columnFileID.columnType) {
@@ -521,7 +528,9 @@ BMFileHandle* WALReplayer::getVersionedFileHandleIfWALVersionAndBMShouldBeCleare
             }
         }
         default: {
-            return nullptr;
+            throw NotImplementedException(
+                "Case COLUMN in "
+                "WALReplayer::getVersionedFileHandleIfWALVersionAndBMShouldBeCleared");
         }
         }
     }
@@ -535,8 +544,15 @@ BMFileHandle* WALReplayer::getVersionedFileHandleIfWALVersionAndBMShouldBeCleare
             case ListFileType::BASE_LISTS: {
                 return adjLists->getFileHandle();
             }
-            default:
+            case ListFileType::HEADERS:
+            case ListFileType::METADATA: {
                 return nullptr;
+            }
+            default: {
+                throw NotImplementedException(
+                    "Case ADJ_LISTS in "
+                    "WALReplayer::getVersionedFileHandleIfWALVersionAndBMShouldBeCleared");
+            }
             }
         }
         case ListType::REL_PROPERTY_LISTS: {
@@ -551,12 +567,20 @@ BMFileHandle* WALReplayer::getVersionedFileHandleIfWALVersionAndBMShouldBeCleare
                                                            ->diskOverflowFile.getFileHandle() :
                                                        relPropLists->getFileHandle();
             }
-            default:
+            case ListFileType::HEADERS:
+            case ListFileType::METADATA: {
                 return nullptr;
+            }
+            default:
+                throw NotImplementedException(
+                    "Case REL_PROPERTY_LISTS in "
+                    "WALReplayer::getVersionedFileHandleIfWALVersionAndBMShouldBeCleared");
             }
         }
         default: {
-            return nullptr;
+            throw NotImplementedException(
+                "Case LISTS in "
+                "WALReplayer::getVersionedFileHandleIfWALVersionAndBMShouldBeCleared");
         }
         }
     }

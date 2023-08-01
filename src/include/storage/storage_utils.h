@@ -3,7 +3,7 @@
 #include <string>
 #include <utility>
 
-#include "catalog/catalog_structs.h"
+#include "catalog/table_schema.h"
 #include "common/constants.h"
 #include "common/file_utils.h"
 #include "common/null_mask.h"
@@ -73,20 +73,23 @@ struct PageUtils {
 
 class StorageUtils {
 public:
+    static inline common::offset_t getStartOffsetForNodeGroup(
+        common::node_group_idx_t nodeGroupIdx) {
+        return nodeGroupIdx << common::StorageConstants::NODE_GROUP_SIZE_LOG2;
+    }
+
     static std::string getNodeIndexFName(const std::string& directory,
         const common::table_id_t& tableID, common::DBFileType dbFileType);
 
-    static inline std::string getNodeGroupsDataFName(const std::string& directory) {
-        return common::FileUtils::joinPath(
-            directory, common::StorageConstants::NODE_GROUPS_DATA_FILE_NAME);
+    static inline std::string getDataFName(const std::string& directory) {
+        return common::FileUtils::joinPath(directory, common::StorageConstants::DATA_FILE_NAME);
     }
 
-    static inline std::string getNodeGroupsMetaFName(const std::string& directory) {
-        return common::FileUtils::joinPath(
-            directory, common::StorageConstants::NODE_GROUPS_META_FILE_NAME);
+    static inline std::string getMetadataFName(const std::string& directory) {
+        return common::FileUtils::joinPath(directory, common::StorageConstants::METADATA_FILE_NAME);
     }
 
-    // TODO: This function should be removed.
+    // TODO: This function should be removed after the refactoring of rel tables into node groups.
     static std::string getNodePropertyColumnFName(const std::string& directory,
         const common::table_id_t& tableID, uint32_t propertyID, common::DBFileType dbFileType);
 

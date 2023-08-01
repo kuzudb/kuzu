@@ -16,7 +16,7 @@ bool ReadFile::getNextTuplesInternal(kuzu::processor::ExecutionContext* context)
         common::ArrowColumnVector::setArrowColumn(
             resultSet->getValueVector(dataColumnPoses[i]).get(), recordBatch->column((int)i));
     }
-    resultSet->dataChunks[0]->state->currIdx = -1;
+    resultSet->dataChunks[0]->state->setToUnflat();
     return true;
 }
 

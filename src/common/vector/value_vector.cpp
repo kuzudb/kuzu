@@ -125,7 +125,9 @@ void ValueVector::resetAuxiliaryBuffer() {
         return;
     }
     case PhysicalTypeID::VAR_LIST: {
-        reinterpret_cast<ListAuxiliaryBuffer*>(auxiliaryBuffer.get())->resetSize();
+        auto listAuxiliaryBuffer = reinterpret_cast<ListAuxiliaryBuffer*>(auxiliaryBuffer.get());
+        listAuxiliaryBuffer->resetSize();
+        listAuxiliaryBuffer->getDataVector()->resetAuxiliaryBuffer();
         return;
     }
     case PhysicalTypeID::STRUCT: {
@@ -180,20 +182,22 @@ void ArrowColumnVector::setArrowColumn(ValueVector* vector, std::shared_ptr<arro
     arrowColumnBuffer->column = std::move(column);
 }
 
-void ArrowColumnVector::slice(
-    ValueVector* vectorToSlice, ValueVector* slicedVector, int64_t offset, int64_t length) {
+void ArrowColumnVector::slice(ValueVector* vector, offset_t offset) {
     auto arrowColumnBuffer =
-        reinterpret_cast<ArrowColumnAuxiliaryBuffer*>(vectorToSlice->auxiliaryBuffer.get());
+        reinterpret_cast<ArrowColumnAuxiliaryBuffer*>(vector->auxiliaryBuffer.get());
     auto arrowColumn = arrowColumnBuffer->column;
-    auto slicedColumn = arrowColumn->Slice(offset, length);
-    setArrowColumn(slicedVector, slicedColumn);
+    auto slicedColumn = arrowColumn->Slice((int64_t)offset);
+    setArrowColumn(vector, slicedColumn);
 }
 
 template void ValueVector::setValue<nodeID_t>(uint32_t pos, nodeID_t val);
 template void ValueVector::setValue<bool>(uint32_t pos, bool val);
 template void ValueVector::setValue<int64_t>(uint32_t pos, int64_t val);
-template void ValueVector::setValue<hash_t>(uint32_t pos, hash_t val);
+template void ValueVector::setValue<int32_t>(uint32_t pos, int32_t val);
+template void ValueVector::setValue<int16_t>(uint32_t pos, int16_t val);
 template void ValueVector::setValue<double_t>(uint32_t pos, double_t val);
+template void ValueVector::setValue<float_t>(uint32_t pos, float_t val);
+template void ValueVector::setValue<hash_t>(uint32_t pos, hash_t val);
 template void ValueVector::setValue<date_t>(uint32_t pos, date_t val);
 template void ValueVector::setValue<timestamp_t>(uint32_t pos, timestamp_t val);
 template void ValueVector::setValue<interval_t>(uint32_t pos, interval_t val);

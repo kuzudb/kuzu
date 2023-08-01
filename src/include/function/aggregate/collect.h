@@ -90,6 +90,7 @@ struct CollectFunction {
         } else {
             state->factorizedTable->merge(*otherState->factorizedTable);
         }
+        otherState->factorizedTable.reset();
     }
 
     static void finalize(uint8_t* state_) {}

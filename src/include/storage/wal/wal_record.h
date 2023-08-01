@@ -93,6 +93,9 @@ struct ListFileID {
         case ListType::REL_PROPERTY_LISTS: {
             return relPropertyListID == rhs.relPropertyListID;
         }
+        default: {
+            throw common::NotImplementedException("ListFileID::operator()==");
+        }
         }
     }
 };
@@ -193,8 +196,8 @@ enum class StorageStructureType : uint8_t {
     COLUMN = 0,
     LISTS = 1,
     NODE_INDEX = 2,
-    NODE_GROUPS_DATA = 3, // Data file for node groups.
-    NODE_GROUPS_META = 4, // Metadata file for node groups.
+    DATA = 3,
+    METADATA = 4,
 };
 
 std::string storageStructureTypeToString(StorageStructureType storageStructureType);
@@ -232,8 +235,8 @@ struct StorageStructureID {
         }
     }
 
-    static StorageStructureID newNodeGroupsDataID();
-    static StorageStructureID newNodeGroupsMetaID();
+    static StorageStructureID newDataID();
+    static StorageStructureID newMetadataID();
 
     static StorageStructureID newNodePropertyColumnID(
         common::table_id_t tableID, common::property_id_t propertyID);
@@ -492,7 +495,7 @@ struct WALRecord {
     static WALRecord newRelTableRecord(common::table_id_t tableID);
     static WALRecord newOverflowFileNextBytePosRecord(
         StorageStructureID storageStructureID_, uint64_t prevNextByteToWriteTo_);
-    static WALRecord newCopyNodeRecord(common::table_id_t tableID, common::page_idx_t pageIdx);
+    static WALRecord newCopyNodeRecord(common::table_id_t tableID, common::page_idx_t startPageIdx);
     static WALRecord newCopyRelRecord(common::table_id_t tableID);
     static WALRecord newDropTableRecord(common::table_id_t tableID);
     static WALRecord newDropPropertyRecord(

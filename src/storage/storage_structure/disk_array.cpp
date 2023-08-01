@@ -4,7 +4,7 @@
 #include "common/utils.h"
 #include "storage/index/hash_index_header.h"
 #include "storage/index/hash_index_slot.h"
-#include "storage/storage_structure/node_column.h"
+#include "storage/store/node_column.h"
 
 using namespace kuzu::common;
 using namespace kuzu::transaction;

@@ -27,7 +27,7 @@ bool ListsUpdatesForNodeOffset::hasAnyUpdatedPersistentListOffsets() const {
 }
 
 ListsUpdatesStore::ListsUpdatesStore(MemoryManager& memoryManager, RelTableSchema& relTableSchema)
-    : memoryManager{memoryManager} {
+    : memoryManager{memoryManager}, relTableSchema{relTableSchema} {
     updateSchema(relTableSchema);
 }
 

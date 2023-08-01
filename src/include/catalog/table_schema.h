@@ -6,20 +6,32 @@
 
 #include "common/constants.h"
 #include "common/exception.h"
+#include "common/file_utils.h"
 #include "common/rel_direction.h"
 #include "common/types/types_include.h"
 
 namespace kuzu {
+namespace storage {
+class BMFileHandle;
+}
+
 namespace catalog {
 
-enum RelMultiplicity : uint8_t { MANY_MANY, MANY_ONE, ONE_MANY, ONE_ONE };
+enum class TableType : uint8_t { NODE, REL, INVALID };
+
+enum class RelMultiplicity : uint8_t { MANY_MANY, MANY_ONE, ONE_MANY, ONE_ONE };
 RelMultiplicity getRelMultiplicityFromString(const std::string& relMultiplicityString);
 std::string getRelMultiplicityAsString(RelMultiplicity relMultiplicity);
 
-struct MetaDiskArrayHeaderInfo {
-    common::page_idx_t mainHeaderPageIdx = common::INVALID_PAGE_IDX;
-    common::page_idx_t nullHeaderPageIdx = common::INVALID_PAGE_IDX;
-    std::vector<MetaDiskArrayHeaderInfo> childrenMetaDAHeaderInfos;
+// DAH is the abbreviation for Disk Array Header.
+struct MetadataDAHInfo {
+    common::page_idx_t dataDAHPageIdx = common::INVALID_PAGE_IDX;
+    common::page_idx_t nullDAHPageIdx = common::INVALID_PAGE_IDX;
+    std::vector<MetadataDAHInfo> childrenInfos;
+
+    void serialize(common::FileInfo* fileInfo, uint64_t& offset) const;
+    static std::unique_ptr<MetadataDAHInfo> deserialize(
+        common::FileInfo* fileInfo, uint64_t& offset);
 };
 
 struct Property {
@@ -27,8 +39,6 @@ public:
     static constexpr std::string_view REL_FROM_PROPERTY_NAME = "_FROM_";
     static constexpr std::string_view REL_TO_PROPERTY_NAME = "_TO_";
 
-    // This constructor is needed for ser/deser functions
-    Property() : Property{"", common::LogicalType{}} {};
     Property(std::string name, common::LogicalType dataType)
         : Property{std::move(name), std::move(dataType), common::INVALID_PROPERTY_ID,
               common::INVALID_TABLE_ID} {}
@@ -37,18 +47,22 @@ public:
         : name{std::move(name)}, dataType{std::move(dataType)},
           propertyID{propertyID}, tableID{tableID} {}
 
+    void serialize(common::FileInfo* fileInfo, uint64_t& offset) const;
+    static std::unique_ptr<Property> deserialize(common::FileInfo* fileInfo, uint64_t& offset);
+
+public:
     std::string name;
     common::LogicalType dataType;
     common::property_id_t propertyID;
     common::table_id_t tableID;
-    MetaDiskArrayHeaderInfo metaDiskArrayHeaderInfo;
+    MetadataDAHInfo metadataDAHInfo;
 };
 
-struct TableSchema {
+class TableSchema {
 public:
-    TableSchema(std::string tableName, common::table_id_t tableID, bool isNodeTable,
+    TableSchema(std::string tableName, common::table_id_t tableID, TableType tableType,
         std::vector<Property> properties)
-        : tableName{std::move(tableName)}, tableID{tableID}, isNodeTable{isNodeTable},
+        : tableName{std::move(tableName)}, tableID{tableID}, tableType{tableType},
           properties{std::move(properties)}, nextPropertyID{
                                                  (common::property_id_t)this->properties.size()} {}
 
@@ -71,10 +85,9 @@ public:
             [&propertyName](const Property& property) { return property.name == propertyName; });
     }
     inline const std::vector<Property>& getProperties() const { return properties; }
-    inline void addProperty(std::string propertyName, common::LogicalType dataType) {
-        properties.emplace_back(
-            std::move(propertyName), std::move(dataType), increaseNextPropertyID(), tableID);
-    }
+    inline TableType getTableType() const { return tableType; }
+
+    void addProperty(std::string propertyName, common::LogicalType dataType);
 
     std::string getPropertyName(common::property_id_t propertyID) const;
 
@@ -84,24 +97,33 @@ public:
 
     void renameProperty(common::property_id_t propertyID, const std::string& newName);
 
+    void serialize(common::FileInfo* fileInfo, uint64_t& offset);
+    static std::unique_ptr<TableSchema> deserialize(common::FileInfo* fileInfo, uint64_t& offset);
+
 private:
     inline common::property_id_t increaseNextPropertyID() { return nextPropertyID++; }
+
+    virtual void serializeInternal(common::FileInfo* fileInfo, uint64_t& offset) = 0;
 
 public:
     std::string tableName;
     common::table_id_t tableID;
-    bool isNodeTable;
+    TableType tableType;
     std::vector<Property> properties;
     common::property_id_t nextPropertyID;
 };
 
-struct NodeTableSchema : TableSchema {
-    NodeTableSchema()
-        : NodeTableSchema{
-              "", common::INVALID_TABLE_ID, common::INVALID_PROPERTY_ID, std::vector<Property>{}} {}
+class NodeTableSchema : public TableSchema {
+public:
+    NodeTableSchema(common::property_id_t primaryPropertyId,
+        std::unordered_set<common::table_id_t> fwdRelTableIDSet,
+        std::unordered_set<common::table_id_t> bwdRelTableIDSet)
+        : TableSchema{"", common::INVALID_TABLE_ID, TableType::NODE, std::vector<Property>{}},
+          primaryKeyPropertyID{primaryPropertyId}, fwdRelTableIDSet{std::move(fwdRelTableIDSet)},
+          bwdRelTableIDSet{std::move(bwdRelTableIDSet)} {}
     NodeTableSchema(std::string tableName, common::table_id_t tableID,
         common::property_id_t primaryPropertyId, std::vector<Property> properties)
-        : TableSchema{std::move(tableName), tableID, true /* isNodeTable */, std::move(properties)},
+        : TableSchema{std::move(tableName), tableID, TableType::NODE, std::move(properties)},
           primaryKeyPropertyID{primaryPropertyId} {}
 
     inline void addFwdRelTableID(common::table_id_t tableID) { fwdRelTableIDSet.insert(tableID); }
@@ -109,6 +131,13 @@ struct NodeTableSchema : TableSchema {
 
     inline Property getPrimaryKey() const { return properties[primaryKeyPropertyID]; }
 
+    static std::unique_ptr<NodeTableSchema> deserialize(
+        common::FileInfo* fileInfo, uint64_t& offset);
+
+private:
+    void serializeInternal(common::FileInfo* fileInfo, uint64_t& offset) final;
+
+public:
     // TODO(Semih): When we support updating the schemas, we need to update this or, we need
     // a more robust mechanism to keep track of which property is the primary key (e.g., store this
     // information with the property). This is an idx, not an ID, so as the columns/properties of
@@ -118,29 +147,29 @@ struct NodeTableSchema : TableSchema {
     std::unordered_set<common::table_id_t> bwdRelTableIDSet; // dstNode->rel
 };
 
-struct RelTableSchema : TableSchema {
+class RelTableSchema : public TableSchema {
 public:
     static constexpr uint64_t INTERNAL_REL_ID_PROPERTY_ID = 0;
 
-    RelTableSchema()
-        : TableSchema{"", common::INVALID_TABLE_ID, false /* isNodeTable */, {} /* properties */},
-          relMultiplicity{MANY_MANY}, srcTableID{common::INVALID_TABLE_ID},
-          dstTableID{common::INVALID_TABLE_ID}, srcPKDataType{common::LogicalType{
-                                                    common::LogicalTypeID::ANY}},
-          dstPKDataType{common::LogicalType{common::LogicalTypeID::ANY}} {}
+    RelTableSchema(RelMultiplicity relMultiplicity, common::table_id_t srcTableID,
+        common::table_id_t dstTableID, common::LogicalType srcPKDataType,
+        common::LogicalType dstPKDataType)
+        : TableSchema{"", common::INVALID_TABLE_ID, TableType::REL, {} /* properties */},
+          relMultiplicity{relMultiplicity}, srcTableID{srcTableID}, dstTableID{dstTableID},
+          srcPKDataType{std::move(srcPKDataType)}, dstPKDataType{std::move(dstPKDataType)} {}
     RelTableSchema(std::string tableName, common::table_id_t tableID,
         RelMultiplicity relMultiplicity, std::vector<Property> properties,
         common::table_id_t srcTableID, common::table_id_t dstTableID,
         common::LogicalType srcPKDataType, common::LogicalType dstPKDataType)
-        : TableSchema{std::move(tableName), tableID, false /* isNodeTable */,
-              std::move(properties)},
+        : TableSchema{std::move(tableName), tableID, TableType::REL, std::move(properties)},
           relMultiplicity{relMultiplicity}, srcTableID{srcTableID}, dstTableID{dstTableID},
           srcPKDataType{std::move(srcPKDataType)}, dstPKDataType{std::move(dstPKDataType)} {}
 
     inline bool isSingleMultiplicityInDirection(common::RelDataDirection direction) const {
-        return relMultiplicity == ONE_ONE ||
-               relMultiplicity ==
-                   (direction == common::RelDataDirection::FWD ? MANY_ONE : ONE_MANY);
+        return relMultiplicity == RelMultiplicity::ONE_ONE ||
+               relMultiplicity == (direction == common::RelDataDirection::FWD ?
+                                          RelMultiplicity::MANY_ONE :
+                                          RelMultiplicity::ONE_MANY);
     }
 
     inline bool isSrcOrDstTable(common::table_id_t tableID) const {
@@ -155,6 +184,13 @@ public:
         return relDirection == common::RelDataDirection::FWD ? dstTableID : srcTableID;
     }
 
+    static std::unique_ptr<RelTableSchema> deserialize(
+        common::FileInfo* fileInfo, uint64_t& offset);
+
+private:
+    void serializeInternal(common::FileInfo* fileInfo, uint64_t& offset) final;
+
+public:
     RelMultiplicity relMultiplicity;
     common::table_id_t srcTableID;
     common::table_id_t dstTableID;

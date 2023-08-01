@@ -9,6 +9,7 @@ namespace kuzu {
 namespace evaluator {
 
 void NodeRelExpressionEvaluator::evaluate() {
+    resultVector->resetAuxiliaryBuffer();
     for (auto& child : children) {
         child->evaluate();
     }

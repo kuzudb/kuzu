@@ -4,6 +4,61 @@
 #include <stdlib.h>
 #include <string.h>
 
+// The Arrow C data interface.
+// https://arrow.apache.org/docs/format/CDataInterface.html
+
+#include <stdint.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#ifndef ARROW_C_DATA_INTERFACE
+#define ARROW_C_DATA_INTERFACE
+
+#define ARROW_FLAG_DICTIONARY_ORDERED 1
+#define ARROW_FLAG_NULLABLE 2
+#define ARROW_FLAG_MAP_KEYS_SORTED 4
+
+struct ArrowSchema {
+    // Array type description
+    const char* format;
+    const char* name;
+    const char* metadata;
+    int64_t flags;
+    int64_t n_children;
+    struct ArrowSchema** children;
+    struct ArrowSchema* dictionary;
+
+    // Release callback
+    void (*release)(struct ArrowSchema*);
+    // Opaque producer-specific data
+    void* private_data;
+};
+
+struct ArrowArray {
+    // Array data description
+    int64_t length;
+    int64_t null_count;
+    int64_t offset;
+    int64_t n_buffers;
+    int64_t n_children;
+    const void** buffers;
+    struct ArrowArray** children;
+    struct ArrowArray* dictionary;
+
+    // Release callback
+    void (*release)(struct ArrowArray*);
+    // Opaque producer-specific data
+    void* private_data;
+};
+
+#endif // ARROW_C_DATA_INTERFACE
+
+#ifdef __cplusplus
+}
+#endif
+
 #ifdef __cplusplus
 #define KUZU_C_API extern "C"
 #else
@@ -438,6 +493,21 @@ KUZU_C_API void kuzu_query_result_write_to_csv(kuzu_query_result* query_result,
  * @param query_result The query result instance to reset iterator.
  */
 KUZU_C_API void kuzu_query_result_reset_iterator(kuzu_query_result* query_result);
+
+/**
+ * @return datatypes of the columns as an arrow schema
+ *
+ * It is the caller's responsibility to call the release function to release the underlying data
+ */
+struct ArrowSchema kuzu_query_result_get_arrow_schema(kuzu_query_result* query_result);
+
+/**
+ * @return An arrow array representation of the query result
+ *
+ * It is the caller's responsibility to call the release function to release the underlying data
+ */
+struct ArrowArray kuzu_query_result_get_next_arrow_chunk(
+    kuzu_query_result* query_result, int64_t chunk_size);
 
 // FlatTuple
 /**

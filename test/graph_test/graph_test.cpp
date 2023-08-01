@@ -50,7 +50,8 @@ void BaseGraphTest::validateNodeColumnFilesExistence(
 void BaseGraphTest::validateRelColumnAndListFilesExistence(
     RelTableSchema* relTableSchema, DBFileType dbFileType, bool existence) {
     for (auto relDirection : RelDataDirectionUtils::getRelDataDirections()) {
-        if (relTableSchema->relMultiplicity) {
+        if (relTableSchema->relMultiplicity == RelMultiplicity::MANY_ONE ||
+            relTableSchema->relMultiplicity == RelMultiplicity::ONE_ONE) {
             validateColumnFilesExistence(StorageUtils::getAdjColumnFName(databasePath,
                                              relTableSchema->tableID, relDirection, dbFileType),
                 existence, false /* hasOverflow */);

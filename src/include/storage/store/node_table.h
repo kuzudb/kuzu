@@ -1,10 +1,10 @@
 #pragma once
 
 #include "catalog/catalog.h"
+#include "storage/copier/node_group.h"
 #include "storage/index/hash_index.h"
 #include "storage/storage_structure/lists/lists.h"
-#include "storage/storage_structure/node_column.h"
-#include "storage/store/node_group.h"
+#include "storage/store/node_column.h"
 #include "storage/store/nodes_statistics_and_deleted_ids.h"
 #include "storage/wal/wal.h"
 
@@ -13,12 +13,10 @@ namespace storage {
 
 class NodeTable {
 public:
-    NodeTable(BMFileHandle* nodeGroupsDataFH, BMFileHandle* nodeGroupsMetaFH,
+    NodeTable(BMFileHandle* dataFH, BMFileHandle* metadataFH,
         NodesStatisticsAndDeletedIDs* nodesStatisticsAndDeletedIDs, BufferManager& bufferManager,
         WAL* wal, catalog::NodeTableSchema* nodeTableSchema);
 
-    void initializeData(catalog::NodeTableSchema* nodeTableSchema);
-    void initializeColumns(catalog::NodeTableSchema* nodeTableSchema);
     void initializePKIndex(catalog::NodeTableSchema* nodeTableSchema);
 
     inline common::offset_t getMaxNodeOffset(transaction::Transaction* transaction) const {
@@ -32,7 +30,7 @@ public:
         assert(vector->isSequential());
         nodesStatisticsAndDeletedIDs->setDeletedNodeOffsetsForMorsel(trx, vector, tableID);
     }
-    inline BMFileHandle* getNodeGroupsDataFH() const { return nodeGroupsDataFH; }
+    inline BMFileHandle* getDataFH() const { return dataFH; }
 
     void read(transaction::Transaction* transaction, common::ValueVector* inputIDVector,
         const std::vector<common::column_id_t>& columnIds,
@@ -40,7 +38,11 @@ public:
     void write(common::property_id_t propertyID, common::ValueVector* nodeIDVector,
         common::ValueVector* vectorToWriteFrom);
 
-    void appendNodeGroup(NodeGroup* nodeGroup);
+    common::offset_t addNode(transaction::Transaction* transaction);
+
+    void append(NodeGroup* nodeGroup);
+
+    std::unordered_set<common::property_id_t> getPropertyIDs() const;
 
     inline NodeColumn* getPropertyColumn(common::property_id_t propertyIdx) {
         assert(propertyColumns.contains(propertyIdx));
@@ -56,13 +58,13 @@ public:
         propertyColumns.erase(propertyID);
     }
     inline void addProperty(const catalog::Property& property) {
-        propertyColumns.emplace(
-            property.propertyID, NodeColumnFactory::createNodeColumn(property, nodeGroupsDataFH,
-                                     nodeGroupsMetaFH, &bufferManager, wal));
+        propertyColumns.emplace(property.propertyID,
+            NodeColumnFactory::createNodeColumn(property, dataFH, dataFH, &bufferManager, wal));
     }
-    void resetProperties(common::offset_t offset);
-    void resetPropertiesWithPK(common::offset_t offset, common::ValueVector* primaryKeyVector);
-    void deleteNodes(common::ValueVector* nodeIDVector, common::ValueVector* primaryKeyVector);
+    void deleteNode(
+        common::offset_t nodeOffset, common::ValueVector* primaryKeyVector, uint32_t pos) const;
+    void setPropertiesToNull(common::offset_t offset);
+    void insertPK(common::offset_t offset, common::ValueVector* primaryKeyVector);
 
     void prepareCommit();
     void prepareRollback();
@@ -70,6 +72,9 @@ public:
     void rollbackInMemory();
 
 private:
+    void initializeData(catalog::NodeTableSchema* nodeTableSchema);
+    void initializeColumns(catalog::NodeTableSchema* nodeTableSchema);
+
     void scan(transaction::Transaction* transaction, common::ValueVector* inputIDVector,
         const std::vector<common::column_id_t>& columnIds,
         const std::vector<common::ValueVector*>& outputVectors);
@@ -77,15 +82,11 @@ private:
         const std::vector<common::column_id_t>& columnIds,
         const std::vector<common::ValueVector*>& outputVectors);
 
-    void deleteNode(
-        common::offset_t nodeOffset, common::ValueVector* primaryKeyVector, uint32_t pos) const;
-
 private:
-    std::mutex mtx;
     NodesStatisticsAndDeletedIDs* nodesStatisticsAndDeletedIDs;
     std::map<common::property_id_t, std::unique_ptr<NodeColumn>> propertyColumns;
-    BMFileHandle* nodeGroupsDataFH;
-    BMFileHandle* nodeGroupsMetaFH;
+    BMFileHandle* dataFH;
+    BMFileHandle* metadataFH;
     std::unique_ptr<PrimaryKeyIndex> pkIndex;
     common::table_id_t tableID;
     BufferManager& bufferManager;

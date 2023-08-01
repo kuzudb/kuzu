@@ -8,7 +8,7 @@ namespace kuzu {
 namespace main {
 
 bool PreparedStatement::allowActiveTransaction() const {
-    return !common::StatementTypeUtils::isDDLOrCopyCSV(preparedSummary.statementType);
+    return !common::StatementTypeUtils::allowActiveTransaction(preparedSummary.statementType);
 }
 
 bool PreparedStatement::isSuccess() const {

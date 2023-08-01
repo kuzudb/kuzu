@@ -280,7 +280,7 @@ std::string Connection::getRelPropertyNames(const std::string& relTableName) {
 }
 
 void Connection::interrupt() {
-    clientContext->activeQuery->interrupted = true;
+    clientContext->interrupt();
 }
 
 void Connection::setQueryTimeOut(uint64_t timeoutInMS) {
@@ -328,7 +328,7 @@ void Connection::bindParametersNoLock(PreparedStatement* preparedStatement,
 
 std::unique_ptr<QueryResult> Connection::executeAndAutoCommitIfNecessaryNoLock(
     PreparedStatement* preparedStatement, uint32_t planIdx) {
-    clientContext->activeQuery = std::make_unique<ActiveQuery>();
+    clientContext->resetActiveQuery();
     clientContext->startTimingIfEnabled();
     auto mapper = PlanMapper(
         *database->storageManager, database->memoryManager.get(), database->catalog.get());
@@ -404,7 +404,7 @@ void Connection::beginTransactionIfAutoCommit(PreparedStatement* preparedStateme
     }
     if (!preparedStatement->allowActiveTransaction() && activeTransaction) {
         throw ConnectionException(
-            "DDL and CopyCSV statements are automatically wrapped in a "
+            "DDL, CopyCSV, createMacro statements are automatically wrapped in a "
             "transaction and committed. As such, they cannot be part of an "
             "active transaction, please commit or rollback your previous transaction and "
             "issue a ddl query without opening a transaction.");

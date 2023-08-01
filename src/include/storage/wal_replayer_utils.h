@@ -6,26 +6,25 @@
 #include "catalog/catalog.h"
 #include "storage/in_mem_storage_structure/in_mem_column.h"
 #include "storage/in_mem_storage_structure/in_mem_lists.h"
-#include "storage/storage_structure/node_column.h"
+#include "storage/store/node_column.h"
 
 namespace kuzu {
 namespace storage {
 
 class WALReplayerUtils {
 public:
-    static inline void initPropertyMetaDAsOnDisk(
-        catalog::Property& property, BMFileHandle* nodeGroupsMetaFH) {
-        saveMetaDAs(nodeGroupsMetaFH, property.metaDiskArrayHeaderInfo);
+    static inline void initPropertyMetadataDAsOnDisk(
+        catalog::Property& property, BMFileHandle* metadataFH) {
+        saveMetaDAs(metadataFH, property.metadataDAHInfo);
     }
-    static inline void initTableMetaDAsOnDisk(
-        catalog::NodeTableSchema* tableSchema, BMFileHandle* nodeGroupsMetaFH) {
+    static inline void initTableMetadataDAsOnDisk(
+        catalog::NodeTableSchema* tableSchema, BMFileHandle* metadataFH) {
         for (auto& property : tableSchema->properties) {
-            initPropertyMetaDAsOnDisk(property, nodeGroupsMetaFH);
+            initPropertyMetadataDAsOnDisk(property, metadataFH);
         }
     }
 
-    // Remove the hash index file for node table.
-    static inline void removeDBFilesForNodeTable(
+    static inline void removeHashIndexFile(
         catalog::NodeTableSchema* tableSchema, const std::string& directory) {
         fileOperationOnNodeFiles(
             tableSchema, directory, removeColumnFilesIfExists, removeListFilesIfExists);
@@ -53,15 +52,15 @@ public:
 
 private:
     static inline void saveMetaDAs(
-        BMFileHandle* nodeGroupsMetaFH, const catalog::MetaDiskArrayHeaderInfo& metaDAHeaderInfo) {
+        BMFileHandle* metadataFH, const catalog::MetadataDAHInfo& metaDAHeaderInfo) {
         std::make_unique<InMemDiskArrayBuilder<ColumnChunkMetadata>>(
-            *reinterpret_cast<FileHandle*>(nodeGroupsMetaFH), metaDAHeaderInfo.mainHeaderPageIdx, 0)
+            *reinterpret_cast<FileHandle*>(metadataFH), metaDAHeaderInfo.dataDAHPageIdx, 0)
             ->saveToDisk();
         std::make_unique<InMemDiskArrayBuilder<ColumnChunkMetadata>>(
-            *reinterpret_cast<FileHandle*>(nodeGroupsMetaFH), metaDAHeaderInfo.nullHeaderPageIdx, 0)
+            *reinterpret_cast<FileHandle*>(metadataFH), metaDAHeaderInfo.nullDAHPageIdx, 0)
             ->saveToDisk();
-        for (auto& childMetaDAHeaderInfo : metaDAHeaderInfo.childrenMetaDAHeaderInfos) {
-            saveMetaDAs(nodeGroupsMetaFH, childMetaDAHeaderInfo);
+        for (auto& childMetaDAHeaderInfo : metaDAHeaderInfo.childrenInfos) {
+            saveMetaDAs(metadataFH, childMetaDAHeaderInfo);
         }
     }
 

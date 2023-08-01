@@ -220,8 +220,8 @@ public:
 
     static void setArrowColumn(ValueVector* vector, std::shared_ptr<arrow::Array> column);
 
-    static void slice(
-        ValueVector* vectorToSlice, ValueVector* slicedVector, int64_t offset, int64_t length);
+    // Slice the arrow column vector from the given offset to the end.
+    static void slice(ValueVector* vector, offset_t offset);
 };
 
 class NodeIDVector {

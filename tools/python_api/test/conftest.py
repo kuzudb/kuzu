@@ -86,7 +86,8 @@ def init_db(tmp_path):
     init_npy(conn)
     init_tensor(conn)
     init_long_str(conn)
-    init_movie_serial(conn)
+    # TODO(Aziz): Uncomment this when fixed SERIAL.
+    # init_movie_serial(conn)
     return output_path
 
 

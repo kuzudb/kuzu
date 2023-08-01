@@ -117,5 +117,13 @@ inline void Hash::operation(const std::unordered_set<std::string>& key, common::
     }
 }
 
+struct InternalIDHasher {
+    std::size_t operator()(const common::internalID_t& internalID) const {
+        common::hash_t result;
+        function::Hash::operation<common::internalID_t>(internalID, result);
+        return result;
+    }
+};
+
 } // namespace function
 } // namespace kuzu

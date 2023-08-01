@@ -1,7 +1,7 @@
 #pragma once
 
 #include "bound_ddl.h"
-#include "catalog/catalog_structs.h"
+#include "catalog/table_schema.h"
 
 namespace kuzu {
 namespace binder {
