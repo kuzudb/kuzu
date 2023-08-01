@@ -82,13 +82,13 @@ offset_t TableCopyUtils::countNumLinesNpy(CopyDescription& copyDescription,
     offset_t numRows = 0;
     for (auto i = 0u; i < copyDescription.filePaths.size(); i++) {
         auto filePath = copyDescription.filePaths[i];
-        auto property = tableSchema->properties[i];
+        auto property = tableSchema->properties[i].get();
         auto reader = std::make_unique<NpyReader>(filePath);
         auto numNodesInFile = reader->getNumRows();
         if (i == 0) {
             numRows = numNodesInFile;
         }
-        reader->validate(property.dataType, numRows, tableSchema->tableName);
+        reader->validate(*property->getDataType(), numRows, tableSchema->tableName);
         auto numBlocks = (numNodesInFile + CopyConstants::NUM_ROWS_PER_BLOCK_FOR_NPY - 1) /
                          CopyConstants::NUM_ROWS_PER_BLOCK_FOR_NPY;
         std::vector<uint64_t> numLinesPerBlock(numBlocks);
@@ -103,8 +103,8 @@ offset_t TableCopyUtils::countNumLinesNpy(CopyDescription& copyDescription,
 }
 
 static bool skipCopyForProperty(const Property& property) {
-    return TableSchema::isReservedPropertyName(property.name) ||
-           property.dataType.getLogicalTypeID() == LogicalTypeID::SERIAL;
+    return TableSchema::isReservedPropertyName(property.getName()) ||
+           property.getDataType()->getLogicalTypeID() == LogicalTypeID::SERIAL;
 }
 
 std::shared_ptr<arrow::csv::StreamingReader> TableCopyUtils::createCSVReader(
@@ -135,20 +135,21 @@ std::shared_ptr<arrow::csv::StreamingReader> TableCopyUtils::createCSVReader(
     if (tableSchema->tableType == TableType::REL) {
         auto relTableSchema = (RelTableSchema*)tableSchema;
         csvConvertOptions.column_types[std::string(Property::REL_FROM_PROPERTY_NAME)] =
-            toArrowDataType(relTableSchema->srcPKDataType);
+            toArrowDataType(*relTableSchema->getSrcPKDataType());
         csvConvertOptions.column_types[std::string(Property::REL_TO_PROPERTY_NAME)] =
-            toArrowDataType(relTableSchema->dstPKDataType);
+            toArrowDataType(*relTableSchema->getDstPKDataType());
     }
     for (auto& property : tableSchema->properties) {
-        if (property.name == Property::REL_FROM_PROPERTY_NAME ||
-            property.name == Property::REL_TO_PROPERTY_NAME) {
-            csvConvertOptions.column_types[property.name] = arrow::int64();
+        if (property->getName() == Property::REL_FROM_PROPERTY_NAME ||
+            property->getName() == Property::REL_TO_PROPERTY_NAME) {
+            csvConvertOptions.column_types[property->getName()] = arrow::int64();
             continue;
         }
-        if (skipCopyForProperty(property)) {
+        if (skipCopyForProperty(*property)) {
             continue;
         }
-        csvConvertOptions.column_types[property.name] = toArrowDataType(property.dataType);
+        csvConvertOptions.column_types[property->getName()] =
+            toArrowDataType(*property->getDataType());
     }
 
     std::shared_ptr<arrow::csv::StreamingReader> csvStreamingReader;
@@ -389,10 +390,10 @@ std::vector<std::string> TableCopyUtils::getColumnNamesToRead(catalog::TableSche
         columnNamesToRead.emplace_back(Property::REL_TO_PROPERTY_NAME);
     }
     for (auto& property : tableSchema->properties) {
-        if (skipCopyForProperty(property)) {
+        if (skipCopyForProperty(*property)) {
             continue;
         }
-        columnNamesToRead.push_back(property.name);
+        columnNamesToRead.push_back(property->getName());
     }
     return columnNamesToRead;
 }

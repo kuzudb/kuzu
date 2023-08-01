@@ -486,7 +486,7 @@ Value* NestedVal::getChildVal(const Value* val, uint32_t idx) {
 }
 
 void Value::serialize(FileInfo* fileInfo, uint64_t& offset) const {
-    SerDeser::serializeValue(*dataType, fileInfo, offset);
+    dataType->serialize(fileInfo, offset);
     SerDeser::serializeValue(isNull_, fileInfo, offset);
     switch (dataType->getPhysicalType()) {
     case PhysicalTypeID::BOOL: {
@@ -531,8 +531,7 @@ void Value::serialize(FileInfo* fileInfo, uint64_t& offset) const {
 }
 
 std::unique_ptr<Value> Value::deserialize(kuzu::common::FileInfo* fileInfo, uint64_t& offset) {
-    LogicalType dataType;
-    SerDeser::deserializeValue(dataType, fileInfo, offset);
+    LogicalType dataType = *LogicalType::deserialize(fileInfo, offset);
     bool isNull;
     SerDeser::deserializeValue(isNull, fileInfo, offset);
     std::unique_ptr<Value> val = std::make_unique<Value>(createDefaultValue(dataType));

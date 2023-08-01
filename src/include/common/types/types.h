@@ -15,6 +15,8 @@
 namespace kuzu {
 namespace common {
 
+class FileInfo;
+
 using sel_t = uint16_t;
 using hash_t = uint64_t;
 using page_idx_t = uint32_t;
@@ -119,8 +121,16 @@ class LogicalType;
 
 class ExtraTypeInfo {
 public:
-    virtual std::unique_ptr<ExtraTypeInfo> copy() const = 0;
     virtual ~ExtraTypeInfo() = default;
+
+    inline void serialize(FileInfo* fileInfo, uint64_t& offset) const {
+        serializeInternal(fileInfo, offset);
+    }
+
+    virtual std::unique_ptr<ExtraTypeInfo> copy() const = 0;
+
+protected:
+    virtual void serializeInternal(FileInfo* fileInfo, uint64_t& offset) const = 0;
 };
 
 class VarListTypeInfo : public ExtraTypeInfo {
@@ -133,6 +143,11 @@ public:
     inline LogicalType* getChildType() const { return childType.get(); }
     bool operator==(const VarListTypeInfo& other) const;
     std::unique_ptr<ExtraTypeInfo> copy() const override;
+
+    static std::unique_ptr<ExtraTypeInfo> deserialize(FileInfo* fileInfo, uint64_t& offset);
+
+protected:
+    void serializeInternal(FileInfo* fileInfo, uint64_t& offset) const override;
 
 protected:
     std::unique_ptr<LogicalType> childType;
@@ -148,7 +163,11 @@ public:
         : VarListTypeInfo{std::move(childType)}, fixedNumElementsInList{fixedNumElementsInList} {}
     inline uint64_t getNumElementsInList() const { return fixedNumElementsInList; }
     bool operator==(const FixedListTypeInfo& other) const;
+    static std::unique_ptr<ExtraTypeInfo> deserialize(FileInfo* fileInfo, uint64_t& offset);
     std::unique_ptr<ExtraTypeInfo> copy() const override;
+
+private:
+    void serializeInternal(FileInfo* fileInfo, uint64_t& offset) const override;
 
 private:
     uint64_t fixedNumElementsInList;
@@ -167,6 +186,11 @@ public:
     inline LogicalType* getType() const { return type.get(); }
 
     bool operator==(const StructField& other) const;
+
+    void serialize(FileInfo* fileInfo, uint64_t& offset) const;
+
+    static std::unique_ptr<StructField> deserialize(FileInfo* fileInfo, uint64_t& offset);
+
     std::unique_ptr<StructField> copy() const;
 
 private:
@@ -191,7 +215,11 @@ public:
 
     bool operator==(const kuzu::common::StructTypeInfo& other) const;
 
+    static std::unique_ptr<ExtraTypeInfo> deserialize(FileInfo* fileInfo, uint64_t& offset);
     std::unique_ptr<ExtraTypeInfo> copy() const override;
+
+private:
+    void serializeInternal(FileInfo* fileInfo, uint64_t& offset) const override;
 
 private:
     std::vector<std::unique_ptr<StructField>> fields;
@@ -214,6 +242,10 @@ public:
         : typeID{typeID}, extraTypeInfo{std::move(extraTypeInfo)} {
         setPhysicalType();
     };
+    // For deserialize only.
+    LogicalType(LogicalTypeID typeID, PhysicalTypeID physicalType,
+        std::unique_ptr<ExtraTypeInfo> extraTypeInfo)
+        : typeID{typeID}, physicalType{physicalType}, extraTypeInfo{std::move(extraTypeInfo)} {}
     KUZU_API LogicalType(const LogicalType& other);
     KUZU_API LogicalType(LogicalType&& other) noexcept;
 
@@ -232,6 +264,10 @@ public:
     inline void setExtraTypeInfo(std::unique_ptr<ExtraTypeInfo> typeInfo) {
         extraTypeInfo = std::move(typeInfo);
     }
+
+    void serialize(FileInfo* fileInfo, uint64_t& offset) const;
+
+    static std::unique_ptr<LogicalType> deserialize(FileInfo* fileInfo, uint64_t& offset);
 
     std::unique_ptr<LogicalType> copy() const;
 

@@ -5,12 +5,12 @@ namespace processor {
 
 void AddProperty::executeDDLInternal() {
     expressionEvaluator->evaluate();
-    catalog->addProperty(tableID, propertyName, dataType);
+    catalog->addProperty(tableID, propertyName, dataType->copy());
 }
 
 uint8_t* AddProperty::getDefaultVal() {
     auto expressionVector = expressionEvaluator->resultVector;
-    assert(expressionEvaluator->resultVector->dataType == dataType);
+    assert(expressionEvaluator->resultVector->dataType == *dataType);
     auto posInExpressionVector = expressionVector->state->selVector->selectedPositions[0];
     return expressionVector->getData() +
            expressionVector->getNumBytesPerValue() * posInExpressionVector;

@@ -8,7 +8,8 @@ namespace kuzu {
 namespace processor {
 
 void CreateNodeTable::executeDDLInternal() {
-    auto newTableID = catalog->addNodeTableSchema(tableName, primaryKeyIdx, properties);
+    auto newTableID = catalog->addNodeTableSchema(
+        tableName, primaryKeyIdx, catalog::Property::copyProperties(properties));
     nodesStatistics->addNodeStatisticsAndDeletedIDs(
         catalog->getWriteVersion()->getNodeTableSchema(newTableID));
 }

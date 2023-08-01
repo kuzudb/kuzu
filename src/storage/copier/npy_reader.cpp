@@ -167,7 +167,7 @@ void NpyReader::parseType(std::string descr) {
     }
 }
 
-void NpyReader::validate(LogicalType& type_, offset_t numRows, const std::string& tableName) {
+void NpyReader::validate(const LogicalType& type_, offset_t numRows, const std::string& tableName) {
     auto numNodesInFile = getNumRows();
     if (numNodesInFile == 0) {
         throw CopyException(

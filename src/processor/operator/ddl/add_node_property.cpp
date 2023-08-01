@@ -10,7 +10,7 @@ void AddNodeProperty::executeDDLInternal() {
     auto tableSchema = catalog->getWriteVersion()->getTableSchema(tableID);
     auto property = tableSchema->getProperty(tableSchema->getPropertyID(propertyName));
     StorageUtils::createFileForNodePropertyWithDefaultVal(tableID, storageManager.getDirectory(),
-        property, getDefaultVal(), isDefaultValueNull(),
+        *property, getDefaultVal(), isDefaultValueNull(),
         storageManager.getNodesStore().getNodesStatisticsAndDeletedIDs().getNumTuplesForTable(
             tableID));
 }

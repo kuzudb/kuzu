@@ -181,11 +181,11 @@ bool Binder::validateStringParsingOptionName(std::string& parsingOptionName) {
 }
 
 void Binder::validateNodeTableHasNoEdge(const Catalog& _catalog, table_id_t tableID) {
-    for (auto& tableIDSchema : _catalog.getReadOnlyVersion()->getRelTableSchemas()) {
-        if (tableIDSchema.second->isSrcOrDstTable(tableID)) {
+    for (auto& relTableSchema : _catalog.getReadOnlyVersion()->getRelTableSchemas()) {
+        if (relTableSchema->isSrcOrDstTable(tableID)) {
             throw BinderException(StringUtils::string_format(
                 "Cannot delete a node table with edges. It is on the edges of rel: {}.",
-                tableIDSchema.second->tableName));
+                relTableSchema->tableName));
         }
     }
 }

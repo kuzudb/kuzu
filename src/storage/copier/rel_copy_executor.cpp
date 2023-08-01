@@ -40,12 +40,12 @@ std::unique_ptr<DirectedInMemRelData> RelCopyExecutor::initializeDirectedInMemRe
         relColumns->adjColumnChunk =
             relColumns->adjColumn->createInMemColumnChunk(0, numNodes - 1, &copyDescription);
         for (auto i = 0u; i < tableSchema->getNumProperties(); ++i) {
-            auto propertyID = tableSchema->properties[i].propertyID;
-            auto propertyDataType = tableSchema->properties[i].dataType;
+            auto propertyID = tableSchema->properties[i]->getPropertyID();
+            auto propertyDataType = tableSchema->properties[i]->getDataType();
             auto fName = StorageUtils::getRelPropertyColumnFName(
                 outputDirectory, tableSchema->tableID, direction, propertyID, DBFileType::ORIGINAL);
             relColumns->propertyColumns.emplace(
-                propertyID, std::make_unique<InMemColumn>(fName, propertyDataType));
+                propertyID, std::make_unique<InMemColumn>(fName, *propertyDataType));
             relColumns->propertyColumnChunks.emplace(
                 propertyID, relColumns->propertyColumns.at(propertyID)
                                 ->createInMemColumnChunk(0, numNodes - 1, &copyDescription));
@@ -60,12 +60,11 @@ std::unique_ptr<DirectedInMemRelData> RelCopyExecutor::initializeDirectedInMemRe
             numNodes);
         relLists->relListsSizes = std::make_unique<atomic_uint64_vec_t>(numNodes);
         for (auto i = 0u; i < tableSchema->getNumProperties(); ++i) {
-            auto propertyID = tableSchema->properties[i].propertyID;
-            auto propertyDataType = tableSchema->properties[i].dataType;
-            auto fName = StorageUtils::getRelPropertyListsFName(
-                outputDirectory, tableSchema->tableID, direction, propertyID, DBFileType::ORIGINAL);
-            relLists->propertyLists.emplace(propertyID,
-                InMemListsFactory::getInMemPropertyLists(fName, propertyDataType, numNodes,
+            auto property = tableSchema->getProperty(i);
+            auto fName = StorageUtils::getRelPropertyListsFName(outputDirectory,
+                tableSchema->tableID, direction, property->getPropertyID(), DBFileType::ORIGINAL);
+            relLists->propertyLists.emplace(property->getPropertyID(),
+                InMemListsFactory::getInMemPropertyLists(fName, *property->getDataType(), numNodes,
                     &copyDescription, relLists->adjList->getListHeadersBuilder()));
         }
         directedInMemRelData->setRelLists(std::move(relLists));

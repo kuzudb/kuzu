@@ -45,10 +45,10 @@ public:
         propertyColumns.erase(propertyID);
     }
     inline void addProperty(const catalog::Property& property) {
-        propertyColumns.emplace(property.propertyID,
+        propertyColumns.emplace(property.getPropertyID(),
             ColumnFactory::getColumn(StorageUtils::getNodePropertyColumnStructureIDAndFName(
                                          wal->getDirectory(), property),
-                property.dataType, &bufferManager, wal));
+                *property.getDataType(), &bufferManager, wal));
     }
     common::offset_t addNodeAndResetProperties();
     common::offset_t addNodeAndResetPropertiesWithPK(common::ValueVector* primaryKeyVector);

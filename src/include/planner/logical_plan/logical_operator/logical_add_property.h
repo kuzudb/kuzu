@@ -8,8 +8,9 @@ namespace planner {
 class LogicalAddProperty : public LogicalDDL {
 public:
     explicit LogicalAddProperty(common::table_id_t tableID, std::string propertyName,
-        common::LogicalType dataType, std::shared_ptr<binder::Expression> defaultValue,
-        std::string tableName, std::shared_ptr<binder::Expression> outputExpression)
+        std::unique_ptr<common::LogicalType> dataType,
+        std::shared_ptr<binder::Expression> defaultValue, std::string tableName,
+        std::shared_ptr<binder::Expression> outputExpression)
         : LogicalDDL{LogicalOperatorType::ADD_PROPERTY, std::move(tableName),
               std::move(outputExpression)},
           tableID{tableID}, propertyName{std::move(propertyName)}, dataType{std::move(dataType)},
@@ -19,19 +20,19 @@ public:
 
     inline std::string getPropertyName() const { return propertyName; }
 
-    inline common::LogicalType getDataType() const { return dataType; }
+    inline common::LogicalType* getDataType() const { return dataType.get(); }
 
     inline std::shared_ptr<binder::Expression> getDefaultValue() const { return defaultValue; }
 
     inline std::unique_ptr<LogicalOperator> copy() override {
         return make_unique<LogicalAddProperty>(
-            tableID, propertyName, dataType, defaultValue, tableName, outputExpression);
+            tableID, propertyName, dataType->copy(), defaultValue, tableName, outputExpression);
     }
 
 private:
     common::table_id_t tableID;
     std::string propertyName;
-    common::LogicalType dataType;
+    std::unique_ptr<common::LogicalType> dataType;
     std::shared_ptr<binder::Expression> defaultValue;
 };
 

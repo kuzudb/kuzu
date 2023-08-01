@@ -53,10 +53,10 @@ void DirectedRelTableData::initializeColumns(RelTableSchema* tableSchema, WAL* w
                                              wal->getDirectory(), tableSchema->tableID, direction),
         LogicalType(LogicalTypeID::INTERNAL_ID), &bufferManager, wal);
     for (auto& property : tableSchema->properties) {
-        propertyColumns[property.propertyID] = ColumnFactory::getColumn(
+        propertyColumns[property->getPropertyID()] = ColumnFactory::getColumn(
             StorageUtils::getRelPropertyColumnStructureIDAndFName(
-                wal->getDirectory(), tableSchema->tableID, direction, property.propertyID),
-            property.dataType, &bufferManager, wal);
+                wal->getDirectory(), tableSchema->tableID, direction, property->getPropertyID()),
+            *property->getDataType(), &bufferManager, wal);
     }
 }
 
@@ -65,10 +65,11 @@ void DirectedRelTableData::initializeLists(RelTableSchema* tableSchema, WAL* wal
                                               wal->getDirectory(), tableSchema->tableID, direction),
         tableSchema->getNbrTableID(direction), &bufferManager, wal, listsUpdatesStore);
     for (auto& property : tableSchema->properties) {
-        propertyLists[property.propertyID] = ListsFactory::getLists(
+        propertyLists[property->getPropertyID()] = ListsFactory::getLists(
             StorageUtils::getRelPropertyListsStructureIDAndFName(
-                wal->getDirectory(), tableSchema->tableID, direction, property),
-            property.dataType, adjLists->getHeaders(), &bufferManager, wal, listsUpdatesStore);
+                wal->getDirectory(), tableSchema->tableID, direction, *property),
+            *property->getDataType(), adjLists->getHeaders(), &bufferManager, wal,
+            listsUpdatesStore);
     }
 }
 
@@ -77,12 +78,12 @@ void DirectedRelTableData::resetColumnsAndLists(
     if (isSingleMultiplicity()) {
         adjColumn.reset();
         for (auto& property : tableSchema->properties) {
-            propertyColumns[property.propertyID].reset();
+            propertyColumns[property->getPropertyID()].reset();
         }
     } else {
         adjLists.reset();
         for (auto& property : tableSchema->properties) {
-            propertyLists[property.propertyID].reset();
+            propertyLists[property->getPropertyID()].reset();
         }
     }
 }
@@ -351,7 +352,7 @@ void RelTable::batchInitEmptyRelsForNewNodes(
         relTableSchema, numNodesInTable, wal->getDirectory());
 }
 
-void RelTable::addProperty(Property property, RelTableSchema& relTableSchema) {
+void RelTable::addProperty(const Property& property, RelTableSchema& relTableSchema) {
     fwdRelTableData->addProperty(property, wal);
     bwdRelTableData->addProperty(property, wal);
     listsUpdatesStore->updateSchema(relTableSchema);
@@ -393,18 +394,19 @@ void DirectedRelTableData::removeProperty(property_id_t propertyID) {
     }
 }
 
-void DirectedRelTableData::addProperty(Property& property, WAL* wal) {
+void DirectedRelTableData::addProperty(const Property& property, WAL* wal) {
     if (isSingleMultiplicity()) {
-        propertyColumns.emplace(property.propertyID,
+        propertyColumns.emplace(property.getPropertyID(),
             ColumnFactory::getColumn(
                 StorageUtils::getRelPropertyColumnStructureIDAndFName(
-                    wal->getDirectory(), tableID, direction, property.propertyID),
-                property.dataType, &bufferManager, wal));
+                    wal->getDirectory(), tableID, direction, property.getPropertyID()),
+                *property.getDataType(), &bufferManager, wal));
     } else {
-        propertyLists.emplace(property.propertyID,
+        propertyLists.emplace(property.getPropertyID(),
             ListsFactory::getLists(StorageUtils::getRelPropertyListsStructureIDAndFName(
                                        wal->getDirectory(), tableID, direction, property),
-                property.dataType, adjLists->getHeaders(), &bufferManager, wal, listsUpdatesStore));
+                *property.getDataType(), adjLists->getHeaders(), &bufferManager, wal,
+                listsUpdatesStore));
     }
 }
 

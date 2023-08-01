@@ -350,15 +350,22 @@ void WALReplayer::replayDropTableRecord(const kuzu::storage::WALRecord& walRecor
     if (isCheckpoint) {
         auto tableID = walRecord.dropTableRecord.tableID;
         if (!isRecovering) {
-            if (catalog->getReadOnlyVersion()->containNodeTable(tableID)) {
+            auto tableSchema = catalog->getReadOnlyVersion()->getTableSchema(tableID);
+            switch (tableSchema->getTableType()) {
+            case catalog::TableType::NODE: {
                 storageManager->getNodesStore().removeNodeTable(tableID);
                 WALReplayerUtils::removeDBFilesForNodeTable(
                     catalog->getReadOnlyVersion()->getNodeTableSchema(tableID),
                     wal->getDirectory());
-            } else {
+            } break;
+            case catalog::TableType::REL: {
                 storageManager->getRelsStore().removeRelTable(tableID);
                 WALReplayerUtils::removeDBFilesForRelTable(
                     catalog->getReadOnlyVersion()->getRelTableSchema(tableID), wal->getDirectory());
+            } break;
+            default: {
+                throw common::NotImplementedException{"WALReplayer::replayDropTableRecord"};
+            }
             }
         } else {
             if (!wal->isLastLoggedRecordCommit()) {
@@ -366,14 +373,21 @@ void WALReplayer::replayDropTableRecord(const kuzu::storage::WALRecord& walRecor
                 return;
             }
             auto catalogForRecovery = getCatalogForRecovery(DBFileType::ORIGINAL);
-            if (catalogForRecovery->getReadOnlyVersion()->containNodeTable(tableID)) {
+            auto tableSchema = catalogForRecovery->getReadOnlyVersion()->getTableSchema(tableID);
+            switch (tableSchema->getTableType()) {
+            case catalog::TableType::NODE: {
                 WALReplayerUtils::removeDBFilesForNodeTable(
                     catalogForRecovery->getReadOnlyVersion()->getNodeTableSchema(tableID),
                     wal->getDirectory());
-            } else {
+            } break;
+            case catalog::TableType::REL: {
                 WALReplayerUtils::removeDBFilesForRelTable(
                     catalogForRecovery->getReadOnlyVersion()->getRelTableSchema(tableID),
                     wal->getDirectory());
+            } break;
+            default: {
+                throw common::NotImplementedException{"WALReplayer::replayDropTableRecord"};
+            }
             }
         }
     } else {
@@ -386,15 +400,22 @@ void WALReplayer::replayDropPropertyRecord(const kuzu::storage::WALRecord& walRe
         auto tableID = walRecord.dropPropertyRecord.tableID;
         auto propertyID = walRecord.dropPropertyRecord.propertyID;
         if (!isRecovering) {
-            if (catalog->getReadOnlyVersion()->containNodeTable(tableID)) {
+            auto tableSchema = catalog->getReadOnlyVersion()->getTableSchema(tableID);
+            switch (tableSchema->getTableType()) {
+            case catalog::TableType::NODE: {
                 storageManager->getNodesStore().getNodeTable(tableID)->removeProperty(propertyID);
                 WALReplayerUtils::removeDBFilesForNodeProperty(
                     wal->getDirectory(), tableID, propertyID);
-            } else {
+            } break;
+            case catalog::TableType::REL: {
                 storageManager->getRelsStore().getRelTable(tableID)->removeProperty(
                     propertyID, *catalog->getReadOnlyVersion()->getRelTableSchema(tableID));
                 WALReplayerUtils::removeDBFilesForRelProperty(wal->getDirectory(),
                     catalog->getReadOnlyVersion()->getRelTableSchema(tableID), propertyID);
+            } break;
+            default: {
+                throw common::NotImplementedException{"WALReplayer::replayDropPropertyRecord"};
+            }
             }
         } else {
             if (!wal->isLastLoggedRecordCommit()) {
@@ -402,13 +423,20 @@ void WALReplayer::replayDropPropertyRecord(const kuzu::storage::WALRecord& walRe
                 return;
             }
             auto catalogForRecovery = getCatalogForRecovery(DBFileType::WAL_VERSION);
-            if (catalogForRecovery->getReadOnlyVersion()->containNodeTable(tableID)) {
+            auto tableSchema = catalogForRecovery->getReadOnlyVersion()->getTableSchema(tableID);
+            switch (tableSchema->getTableType()) {
+            case catalog::TableType::NODE: {
                 WALReplayerUtils::removeDBFilesForNodeProperty(
                     wal->getDirectory(), tableID, propertyID);
-            } else {
+            } break;
+            case catalog::TableType::REL: {
                 WALReplayerUtils::removeDBFilesForRelProperty(wal->getDirectory(),
                     catalogForRecovery->getReadOnlyVersion()->getRelTableSchema(tableID),
                     propertyID);
+            } break;
+            default: {
+                throw common::NotImplementedException{"WALReplayer::replayDropPropertyRecord"};
+            }
             }
         }
     } else {
@@ -423,15 +451,21 @@ void WALReplayer::replayAddPropertyRecord(const kuzu::storage::WALRecord& walRec
         if (!isRecovering) {
             auto tableSchema = catalog->getWriteVersion()->getTableSchema(tableID);
             auto property = tableSchema->getProperty(propertyID);
-            if (catalog->getReadOnlyVersion()->containNodeTable(tableID)) {
+            switch (tableSchema->getTableType()) {
+            case catalog::TableType::NODE: {
                 WALReplayerUtils::renameDBFilesForNodeProperty(
                     wal->getDirectory(), tableID, propertyID);
-                storageManager->getNodesStore().getNodeTable(tableID)->addProperty(property);
-            } else {
+                storageManager->getNodesStore().getNodeTable(tableID)->addProperty(*property);
+            } break;
+            case catalog::TableType::REL: {
                 WALReplayerUtils::renameDBFilesForRelProperty(wal->getDirectory(),
                     reinterpret_cast<RelTableSchema*>(tableSchema), propertyID);
                 storageManager->getRelsStore().getRelTable(tableID)->addProperty(
-                    property, *reinterpret_cast<RelTableSchema*>(tableSchema));
+                    *property, *reinterpret_cast<RelTableSchema*>(tableSchema));
+            } break;
+            default: {
+                throw common::NotImplementedException{"WALReplayer::replayDropPropertyRecord"};
+            }
             }
         } else {
             if (!wal->isLastLoggedRecordCommit()) {
@@ -440,12 +474,18 @@ void WALReplayer::replayAddPropertyRecord(const kuzu::storage::WALRecord& walRec
             }
             auto catalogForRecovery = getCatalogForRecovery(DBFileType::WAL_VERSION);
             auto tableSchema = catalogForRecovery->getReadOnlyVersion()->getTableSchema(tableID);
-            if (catalogForRecovery->getReadOnlyVersion()->containNodeTable(tableID)) {
+            switch (tableSchema->getTableType()) {
+            case catalog::TableType::NODE: {
                 WALReplayerUtils::renameDBFilesForNodeProperty(
                     wal->getDirectory(), tableID, propertyID);
-            } else {
+            } break;
+            case catalog::TableType::REL: {
                 WALReplayerUtils::renameDBFilesForRelProperty(wal->getDirectory(),
                     reinterpret_cast<RelTableSchema*>(tableSchema), propertyID);
+            } break;
+            default: {
+                throw common::NotImplementedException{"WALReplayer::replayDropPropertyRecord"};
+            }
             }
         }
     } else {

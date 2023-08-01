@@ -17,19 +17,20 @@ std::unordered_map<common::property_id_t, std::unique_ptr<Column>> NodeTable::in
     WAL* wal, kuzu::storage::BufferManager* bm, NodeTableSchema* nodeTableSchema) {
     std::unordered_map<common::property_id_t, std::unique_ptr<Column>> propertyColumns;
     for (auto& property : nodeTableSchema->getProperties()) {
-        propertyColumns[property.propertyID] = ColumnFactory::getColumn(
-            StorageUtils::getNodePropertyColumnStructureIDAndFName(wal->getDirectory(), property),
-            property.dataType, bm, wal);
+        propertyColumns[property->getPropertyID()] = ColumnFactory::getColumn(
+            StorageUtils::getNodePropertyColumnStructureIDAndFName(wal->getDirectory(), *property),
+            *property->getDataType(), bm, wal);
     }
     return propertyColumns;
 }
 
 void NodeTable::initializeData(NodeTableSchema* nodeTableSchema) {
     propertyColumns = initializeColumns(wal, &bufferManager, nodeTableSchema);
-    if (nodeTableSchema->getPrimaryKey().dataType.getLogicalTypeID() != LogicalTypeID::SERIAL) {
+    if (nodeTableSchema->getPrimaryKey()->getDataType()->getLogicalTypeID() !=
+        LogicalTypeID::SERIAL) {
         pkIndex = std::make_unique<PrimaryKeyIndex>(
             StorageUtils::getNodeIndexIDAndFName(wal->getDirectory(), tableID),
-            nodeTableSchema->getPrimaryKey().dataType, bufferManager, wal);
+            *nodeTableSchema->getPrimaryKey()->getDataType(), bufferManager, wal);
     }
 }
 
