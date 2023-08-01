@@ -10,6 +10,8 @@ pub enum Error {
     FailedPreparedStatement(String),
     /// Message produced when you attempt to pass read-only types over the FFI boundary
     ReadOnlyType(LogicalType),
+    #[cfg(feature = "arrow")]
+    ArrowError(arrow::error::ArrowError),
 }
 
 impl std::fmt::Display for Error {
@@ -20,6 +22,8 @@ impl std::fmt::Display for Error {
             FailedQuery(message) => write!(f, "Query execution failed: {message}"),
             FailedPreparedStatement(message) => write!(f, "Query execution failed: {message}"),
             ReadOnlyType(typ) => write!(f, "Attempted to pass read only type {:?} over ffi!", typ),
+            #[cfg(feature = "arrow")]
+            ArrowError(err) => write!(f, "{}", err),
         }
     }
 }
@@ -43,5 +47,12 @@ impl std::error::Error for Error {
 impl From<cxx::Exception> for Error {
     fn from(item: cxx::Exception) -> Self {
         Error::CxxException(item)
+    }
+}
+
+#[cfg(feature = "arrow")]
+impl From<arrow::error::ArrowError> for Error {
+    fn from(item: arrow::error::ArrowError) -> Self {
+        Error::ArrowError(item)
     }
 }

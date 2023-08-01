@@ -31,6 +31,7 @@ cxx = "1.0"
 num-derive = "0.3"
 num-traits = "0.2"
 time = "0.3"
+arrow = {version="43", optional=true, default-features=false, features=["ffi"]}
 
 [build-dependencies]
 cxx-build = "1.0"
@@ -43,3 +44,7 @@ which = "4"
 tempfile = "3"
 anyhow = "1"
 time = {version="0.3", features=["macros"]}
+
+[features]
+default = []
+arrow = ["dep:arrow"]

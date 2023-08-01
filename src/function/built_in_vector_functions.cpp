@@ -490,6 +490,8 @@ void BuiltInVectorFunctions::registerPathFunctions() {
     vectorFunctions.insert({NODES_FUNC_NAME, NodesVectorFunction::getDefinitions()});
     vectorFunctions.insert({RELS_FUNC_NAME, RelsVectorFunction::getDefinitions()});
     vectorFunctions.insert({PROPERTIES_FUNC_NAME, PropertiesVectorFunction::getDefinitions()});
+    vectorFunctions.insert({IS_TRAIL_FUNC_NAME, IsTrailVectorFunction::getDefinitions()});
+    vectorFunctions.insert({IS_ACYCLIC_FUNC_NAME, IsACyclicVectorFunction::getDefinitions()});
 }
 
 void BuiltInVectorFunctions::addFunction(

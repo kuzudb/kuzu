@@ -127,10 +127,10 @@ ifeq ($(OS),Windows_NT)
 	set KUZU_TESTING=1 && \
 	set CFLAGS=/MDd && \
 	set CXXFLAGS=/MDd /std:c++20 && \
-	cargo test -- --test-threads=1
+	cargo test --features arrow -- --test-threads=1
 else
 	cd $(ROOT_DIR)/tools/rust_api && \
-	CARGO_BUILD_JOBS=$(NUM_THREADS) cargo test -- --test-threads=1
+	CARGO_BUILD_JOBS=$(NUM_THREADS) cargo test --features arrow -- --test-threads=1
 endif
 
 clean-python-api:

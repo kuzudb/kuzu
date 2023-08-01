@@ -23,18 +23,18 @@ public:
     COPY = 51, FROM = 52, NPY = 53, COLUMN = 54, NODE = 55, TABLE = 56, 
     DROP = 57, ALTER = 58, DEFAULT = 59, RENAME = 60, ADD = 61, PRIMARY = 62, 
     KEY = 63, REL = 64, TO = 65, EXPLAIN = 66, PROFILE = 67, UNION = 68, 
-    ALL = 69, OPTIONAL = 70, MATCH = 71, UNWIND = 72, CREATE = 73, SET = 74, 
-    DELETE = 75, WITH = 76, RETURN = 77, DISTINCT = 78, STAR = 79, AS = 80, 
-    ORDER = 81, BY = 82, L_SKIP = 83, LIMIT = 84, ASCENDING = 85, ASC = 86, 
-    DESCENDING = 87, DESC = 88, WHERE = 89, SHORTEST = 90, OR = 91, XOR = 92, 
-    AND = 93, NOT = 94, INVALID_NOT_EQUAL = 95, MINUS = 96, FACTORIAL = 97, 
-    STARTS = 98, ENDS = 99, CONTAINS = 100, IS = 101, NULL_ = 102, TRUE = 103, 
-    FALSE = 104, EXISTS = 105, CASE = 106, ELSE = 107, END = 108, WHEN = 109, 
-    THEN = 110, StringLiteral = 111, EscapedChar = 112, DecimalInteger = 113, 
-    HexLetter = 114, HexDigit = 115, Digit = 116, NonZeroDigit = 117, NonZeroOctDigit = 118, 
-    ZeroDigit = 119, RegularDecimalReal = 120, UnescapedSymbolicName = 121, 
-    IdentifierStart = 122, IdentifierPart = 123, EscapedSymbolicName = 124, 
-    SP = 125, WHITESPACE = 126, Comment = 127, Unknown = 128
+    ALL = 69, OPTIONAL = 70, MATCH = 71, UNWIND = 72, CREATE = 73, MERGE = 74, 
+    ON = 75, SET = 76, DELETE = 77, WITH = 78, RETURN = 79, DISTINCT = 80, 
+    STAR = 81, AS = 82, ORDER = 83, BY = 84, L_SKIP = 85, LIMIT = 86, ASCENDING = 87, 
+    ASC = 88, DESCENDING = 89, DESC = 90, WHERE = 91, SHORTEST = 92, OR = 93, 
+    XOR = 94, AND = 95, NOT = 96, INVALID_NOT_EQUAL = 97, MINUS = 98, FACTORIAL = 99, 
+    STARTS = 100, ENDS = 101, CONTAINS = 102, IS = 103, NULL_ = 104, TRUE = 105, 
+    FALSE = 106, EXISTS = 107, CASE = 108, ELSE = 109, END = 110, WHEN = 111, 
+    THEN = 112, StringLiteral = 113, EscapedChar = 114, DecimalInteger = 115, 
+    HexLetter = 116, HexDigit = 117, Digit = 118, NonZeroDigit = 119, NonZeroOctDigit = 120, 
+    ZeroDigit = 121, RegularDecimalReal = 122, UnescapedSymbolicName = 123, 
+    IdentifierStart = 124, IdentifierPart = 125, EscapedSymbolicName = 126, 
+    SP = 127, WHITESPACE = 128, Comment = 129, Unknown = 130
   };
 
   enum {
@@ -51,35 +51,35 @@ public:
     RuleOC_Union = 32, RuleOC_SingleQuery = 33, RuleOC_SinglePartQuery = 34, 
     RuleOC_MultiPartQuery = 35, RuleKU_QueryPart = 36, RuleOC_UpdatingClause = 37, 
     RuleOC_ReadingClause = 38, RuleKU_InQueryCall = 39, RuleOC_Match = 40, 
-    RuleOC_Unwind = 41, RuleOC_Create = 42, RuleOC_Set = 43, RuleOC_SetItem = 44, 
-    RuleOC_Delete = 45, RuleOC_With = 46, RuleOC_Return = 47, RuleOC_ProjectionBody = 48, 
-    RuleOC_ProjectionItems = 49, RuleOC_ProjectionItem = 50, RuleOC_Order = 51, 
-    RuleOC_Skip = 52, RuleOC_Limit = 53, RuleOC_SortItem = 54, RuleOC_Where = 55, 
-    RuleOC_Pattern = 56, RuleOC_PatternPart = 57, RuleOC_AnonymousPatternPart = 58, 
-    RuleOC_PatternElement = 59, RuleOC_NodePattern = 60, RuleOC_PatternElementChain = 61, 
-    RuleOC_RelationshipPattern = 62, RuleOC_RelationshipDetail = 63, RuleKU_Properties = 64, 
-    RuleOC_RelationshipTypes = 65, RuleOC_NodeLabels = 66, RuleOC_NodeLabel = 67, 
-    RuleOC_RangeLiteral = 68, RuleOC_LabelName = 69, RuleOC_RelTypeName = 70, 
-    RuleOC_Expression = 71, RuleOC_OrExpression = 72, RuleOC_XorExpression = 73, 
-    RuleOC_AndExpression = 74, RuleOC_NotExpression = 75, RuleOC_ComparisonExpression = 76, 
-    RuleKU_ComparisonOperator = 77, RuleKU_BitwiseOrOperatorExpression = 78, 
-    RuleKU_BitwiseAndOperatorExpression = 79, RuleKU_BitShiftOperatorExpression = 80, 
-    RuleKU_BitShiftOperator = 81, RuleOC_AddOrSubtractExpression = 82, RuleKU_AddOrSubtractOperator = 83, 
-    RuleOC_MultiplyDivideModuloExpression = 84, RuleKU_MultiplyDivideModuloOperator = 85, 
-    RuleOC_PowerOfExpression = 86, RuleOC_UnaryAddSubtractOrFactorialExpression = 87, 
-    RuleOC_StringListNullOperatorExpression = 88, RuleOC_ListOperatorExpression = 89, 
-    RuleKU_ListExtractOperatorExpression = 90, RuleKU_ListSliceOperatorExpression = 91, 
-    RuleOC_StringOperatorExpression = 92, RuleOC_RegularExpression = 93, 
-    RuleOC_NullOperatorExpression = 94, RuleOC_PropertyOrLabelsExpression = 95, 
-    RuleOC_Atom = 96, RuleOC_Literal = 97, RuleOC_BooleanLiteral = 98, RuleOC_ListLiteral = 99, 
-    RuleKU_StructLiteral = 100, RuleKU_StructField = 101, RuleOC_ParenthesizedExpression = 102, 
-    RuleOC_FunctionInvocation = 103, RuleOC_FunctionName = 104, RuleKU_FunctionParameter = 105, 
-    RuleOC_ExistentialSubquery = 106, RuleOC_PropertyLookup = 107, RuleOC_CaseExpression = 108, 
-    RuleOC_CaseAlternative = 109, RuleOC_Variable = 110, RuleOC_NumberLiteral = 111, 
-    RuleOC_Parameter = 112, RuleOC_PropertyExpression = 113, RuleOC_PropertyKeyName = 114, 
-    RuleOC_IntegerLiteral = 115, RuleOC_DoubleLiteral = 116, RuleOC_SchemaName = 117, 
-    RuleOC_SymbolicName = 118, RuleOC_LeftArrowHead = 119, RuleOC_RightArrowHead = 120, 
-    RuleOC_Dash = 121
+    RuleOC_Unwind = 41, RuleOC_Create = 42, RuleOC_Merge = 43, RuleOC_MergeAction = 44, 
+    RuleOC_Set = 45, RuleOC_SetItem = 46, RuleOC_Delete = 47, RuleOC_With = 48, 
+    RuleOC_Return = 49, RuleOC_ProjectionBody = 50, RuleOC_ProjectionItems = 51, 
+    RuleOC_ProjectionItem = 52, RuleOC_Order = 53, RuleOC_Skip = 54, RuleOC_Limit = 55, 
+    RuleOC_SortItem = 56, RuleOC_Where = 57, RuleOC_Pattern = 58, RuleOC_PatternPart = 59, 
+    RuleOC_AnonymousPatternPart = 60, RuleOC_PatternElement = 61, RuleOC_NodePattern = 62, 
+    RuleOC_PatternElementChain = 63, RuleOC_RelationshipPattern = 64, RuleOC_RelationshipDetail = 65, 
+    RuleKU_Properties = 66, RuleOC_RelationshipTypes = 67, RuleOC_NodeLabels = 68, 
+    RuleOC_NodeLabel = 69, RuleOC_RangeLiteral = 70, RuleOC_LabelName = 71, 
+    RuleOC_RelTypeName = 72, RuleOC_Expression = 73, RuleOC_OrExpression = 74, 
+    RuleOC_XorExpression = 75, RuleOC_AndExpression = 76, RuleOC_NotExpression = 77, 
+    RuleOC_ComparisonExpression = 78, RuleKU_ComparisonOperator = 79, RuleKU_BitwiseOrOperatorExpression = 80, 
+    RuleKU_BitwiseAndOperatorExpression = 81, RuleKU_BitShiftOperatorExpression = 82, 
+    RuleKU_BitShiftOperator = 83, RuleOC_AddOrSubtractExpression = 84, RuleKU_AddOrSubtractOperator = 85, 
+    RuleOC_MultiplyDivideModuloExpression = 86, RuleKU_MultiplyDivideModuloOperator = 87, 
+    RuleOC_PowerOfExpression = 88, RuleOC_UnaryAddSubtractOrFactorialExpression = 89, 
+    RuleOC_StringListNullOperatorExpression = 90, RuleOC_ListOperatorExpression = 91, 
+    RuleKU_ListExtractOperatorExpression = 92, RuleKU_ListSliceOperatorExpression = 93, 
+    RuleOC_StringOperatorExpression = 94, RuleOC_RegularExpression = 95, 
+    RuleOC_NullOperatorExpression = 96, RuleOC_PropertyOrLabelsExpression = 97, 
+    RuleOC_Atom = 98, RuleOC_Literal = 99, RuleOC_BooleanLiteral = 100, 
+    RuleOC_ListLiteral = 101, RuleKU_StructLiteral = 102, RuleKU_StructField = 103, 
+    RuleOC_ParenthesizedExpression = 104, RuleOC_FunctionInvocation = 105, 
+    RuleOC_FunctionName = 106, RuleKU_FunctionParameter = 107, RuleOC_ExistentialSubquery = 108, 
+    RuleOC_PropertyLookup = 109, RuleOC_CaseExpression = 110, RuleOC_CaseAlternative = 111, 
+    RuleOC_Variable = 112, RuleOC_NumberLiteral = 113, RuleOC_Parameter = 114, 
+    RuleOC_PropertyExpression = 115, RuleOC_PropertyKeyName = 116, RuleOC_IntegerLiteral = 117, 
+    RuleOC_DoubleLiteral = 118, RuleOC_SchemaName = 119, RuleOC_SymbolicName = 120, 
+    RuleOC_LeftArrowHead = 121, RuleOC_RightArrowHead = 122, RuleOC_Dash = 123
   };
 
   explicit CypherParser(antlr4::TokenStream *input);
@@ -135,6 +135,8 @@ public:
   class OC_MatchContext;
   class OC_UnwindContext;
   class OC_CreateContext;
+  class OC_MergeContext;
+  class OC_MergeActionContext;
   class OC_SetContext;
   class OC_SetItemContext;
   class OC_DeleteContext;
@@ -770,6 +772,7 @@ public:
     OC_UpdatingClauseContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     OC_CreateContext *oC_Create();
+    OC_MergeContext *oC_Merge();
     OC_SetContext *oC_Set();
     OC_DeleteContext *oC_Delete();
 
@@ -851,6 +854,38 @@ public:
   };
 
   OC_CreateContext* oC_Create();
+
+  class  OC_MergeContext : public antlr4::ParserRuleContext {
+  public:
+    OC_MergeContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    antlr4::tree::TerminalNode *MERGE();
+    OC_PatternContext *oC_Pattern();
+    std::vector<antlr4::tree::TerminalNode *> SP();
+    antlr4::tree::TerminalNode* SP(size_t i);
+    std::vector<OC_MergeActionContext *> oC_MergeAction();
+    OC_MergeActionContext* oC_MergeAction(size_t i);
+
+   
+  };
+
+  OC_MergeContext* oC_Merge();
+
+  class  OC_MergeActionContext : public antlr4::ParserRuleContext {
+  public:
+    OC_MergeActionContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    antlr4::tree::TerminalNode *ON();
+    std::vector<antlr4::tree::TerminalNode *> SP();
+    antlr4::tree::TerminalNode* SP(size_t i);
+    antlr4::tree::TerminalNode *MATCH();
+    OC_SetContext *oC_Set();
+    antlr4::tree::TerminalNode *CREATE();
+
+   
+  };
+
+  OC_MergeActionContext* oC_MergeAction();
 
   class  OC_SetContext : public antlr4::ParserRuleContext {
   public:

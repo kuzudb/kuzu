@@ -44,10 +44,11 @@ private:
 
     std::unique_ptr<UpdatingClause> transformCreate(CypherParser::OC_CreateContext& ctx);
 
+    std::unique_ptr<UpdatingClause> transformMerge(CypherParser::OC_MergeContext& ctx);
+
     std::unique_ptr<UpdatingClause> transformSet(CypherParser::OC_SetContext& ctx);
 
-    std::pair<std::unique_ptr<ParsedExpression>, std::unique_ptr<ParsedExpression>>
-    transformSetItem(CypherParser::OC_SetItemContext& ctx);
+    parsed_expression_pair transformSetItem(CypherParser::OC_SetItemContext& ctx);
 
     std::unique_ptr<UpdatingClause> transformDelete(CypherParser::OC_DeleteContext& ctx);
 

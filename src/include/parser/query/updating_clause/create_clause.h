@@ -12,7 +12,7 @@ public:
         : UpdatingClause{common::ClauseType::CREATE}, patternElements{
                                                           std::move(patternElements)} {};
 
-    inline const std::vector<std::unique_ptr<PatternElement>>& getPatternElements() const {
+    inline const std::vector<std::unique_ptr<PatternElement>>& getPatternElementsRef() const {
         return patternElements;
     }
 

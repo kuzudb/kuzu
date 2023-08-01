@@ -17,10 +17,11 @@ namespace parser {
 class ParsedExpression;
 class ParsedExpressionChildrenVisitor;
 using parsed_expression_vector = std::vector<std::unique_ptr<ParsedExpression>>;
+using parsed_expression_pair =
+    std::pair<std::unique_ptr<ParsedExpression>, std::unique_ptr<ParsedExpression>>;
 
 class ParsedExpression {
     friend class ParsedExpressionChildrenVisitor;
-    friend class ParsedExpressionChildrenSetter;
 
 public:
     ParsedExpression(

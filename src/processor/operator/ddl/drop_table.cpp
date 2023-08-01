@@ -2,6 +2,7 @@
 
 #include "common/string_utils.h"
 
+using namespace kuzu::catalog;
 using namespace kuzu::common;
 
 namespace kuzu {
@@ -14,7 +15,7 @@ void DropTable::executeDDLInternal() {
 std::string DropTable::getOutputMsg() {
     auto tableSchema = catalog->getReadOnlyVersion()->getTableSchema(tableID);
     return StringUtils::string_format("{}Table: {} has been dropped.",
-        tableSchema->isNodeTable ? "Node" : "Rel", tableSchema->tableName);
+        tableSchema->tableType == TableType::NODE ? "Node" : "Rel", tableSchema->tableName);
 }
 
 } // namespace processor

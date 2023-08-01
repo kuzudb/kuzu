@@ -4,6 +4,7 @@
 
 #include "binder/expression/node_rel_expression.h"
 #include "binder/expression/property_expression.h"
+#include "common/arrow/arrow_converter.h"
 #include "json.hpp"
 #include "processor/result/factorized_table.h"
 #include "processor/result/flat_tuple.h"
@@ -77,7 +78,7 @@ void QueryResult::resetIterator() {
     iterator->resetState();
 }
 
-std::vector<std::unique_ptr<DataTypeInfo>> QueryResult::getColumnTypesInfo() {
+std::vector<std::unique_ptr<DataTypeInfo>> QueryResult::getColumnTypesInfo() const {
     std::vector<std::unique_ptr<DataTypeInfo>> result;
     for (auto i = 0u; i < columnDataTypes.size(); i++) {
         auto columnTypeInfo = DataTypeInfo::getInfoForDataType(columnDataTypes[i], columnNames[i]);
@@ -234,6 +235,16 @@ void QueryResult::validateQuerySucceed() const {
     if (!success) {
         throw Exception(errMsg);
     }
+}
+
+std::unique_ptr<ArrowSchema> QueryResult::getArrowSchema() const {
+    return kuzu::common::ArrowConverter::toArrowSchema(getColumnTypesInfo());
+}
+
+std::unique_ptr<ArrowArray> QueryResult::getNextArrowChunk(int64_t chunkSize) {
+    auto data = std::make_unique<ArrowArray>();
+    kuzu::common::ArrowConverter::toArrowArray(*this, data.get(), chunkSize);
+    return data;
 }
 
 } // namespace main

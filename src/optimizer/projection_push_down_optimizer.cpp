@@ -183,16 +183,15 @@ void ProjectionPushDownOptimizer::visitCreateRel(planner::LogicalOperator* op) {
 
 void ProjectionPushDownOptimizer::visitDeleteNode(planner::LogicalOperator* op) {
     auto deleteNode = (LogicalDeleteNode*)op;
-    for (auto i = 0u; i < deleteNode->getNumNodes(); ++i) {
-        collectExpressionsInUse(deleteNode->getNode(i)->getInternalIDProperty());
-        collectExpressionsInUse(deleteNode->getPrimaryKey(i));
+    for (auto& info : deleteNode->getInfosRef()) {
+        collectExpressionsInUse(info->node->getInternalIDProperty());
+        collectExpressionsInUse(info->primaryKey);
     }
 }
 
 void ProjectionPushDownOptimizer::visitDeleteRel(planner::LogicalOperator* op) {
     auto deleteRel = (LogicalDeleteRel*)op;
-    for (auto i = 0; i < deleteRel->getNumRels(); ++i) {
-        auto rel = deleteRel->getRel(i);
+    for (auto& rel : deleteRel->getRelsRef()) {
         collectExpressionsInUse(rel->getSrcNode()->getInternalIDProperty());
         collectExpressionsInUse(rel->getDstNode()->getInternalIDProperty());
         collectExpressionsInUse(rel->getInternalIDProperty());

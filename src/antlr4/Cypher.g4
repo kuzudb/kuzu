@@ -189,6 +189,7 @@ kU_QueryPart
 
 oC_UpdatingClause
     : oC_Create
+        | oC_Merge
         | oC_Set
         | oC_Delete
         ;
@@ -217,6 +218,19 @@ oC_Create
     : CREATE SP? oC_Pattern ;
 
 CREATE : ( 'C' | 'c' ) ( 'R' | 'r' ) ( 'E' | 'e' ) ( 'A' | 'a' ) ( 'T' | 't' ) ( 'E' | 'e' ) ;
+
+// For unknown reason, openCypher use oC_PatternPart instead of oC_Pattern. There should be no difference in terms of planning.
+// So we choose to be consistent with oC_Create and use oC_Pattern instead.
+oC_Merge : MERGE SP? oC_Pattern ( SP oC_MergeAction )* ;
+
+MERGE : ( 'M' | 'm' ) ( 'E' | 'e' ) ( 'R' | 'r' ) ( 'G' | 'g' ) ( 'E' | 'e' )  ;
+
+oC_MergeAction
+    :  ( ON SP MATCH SP oC_Set )
+        | ( ON SP CREATE SP oC_Set )
+        ;
+
+ON : ( 'O' | 'o' ) ( 'N' | 'n' ) ;
 
 oC_Set
     : SET SP? oC_SetItem ( SP? ',' SP? oC_SetItem )* ;

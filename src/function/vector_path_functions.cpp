@@ -2,6 +2,7 @@
 
 #include "binder/expression/literal_expression.h"
 #include "common/string_utils.h"
+#include "function/path/path_function_executor.h"
 #include "function/struct/vector_struct_functions.h"
 
 namespace kuzu {
@@ -116,6 +117,48 @@ void PropertiesVectorFunction::execFunc(
             }
         }
     }
+}
+
+vector_function_definitions IsTrailVectorFunction::getDefinitions() {
+    vector_function_definitions definitions;
+    definitions.push_back(make_unique<VectorFunctionDefinition>(common::IS_TRAIL_FUNC_NAME,
+        std::vector<common::LogicalTypeID>{common::LogicalTypeID::RECURSIVE_REL},
+        common::LogicalTypeID::BOOL, execFunc, selectFunc, nullptr, nullptr,
+        false /* isVarLength */));
+    return definitions;
+}
+
+void IsTrailVectorFunction::execFunc(
+    const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
+    common::ValueVector& result) {
+    UnaryPathExecutor::executeRelIDs(*parameters[0], result);
+}
+
+bool IsTrailVectorFunction::selectFunc(
+    const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
+    common::SelectionVector& selectionVector) {
+    return UnaryPathExecutor::selectRelIDs(*parameters[0], selectionVector);
+}
+
+vector_function_definitions IsACyclicVectorFunction::getDefinitions() {
+    vector_function_definitions definitions;
+    definitions.push_back(make_unique<VectorFunctionDefinition>(common::IS_ACYCLIC_FUNC_NAME,
+        std::vector<common::LogicalTypeID>{common::LogicalTypeID::RECURSIVE_REL},
+        common::LogicalTypeID::BOOL, execFunc, selectFunc, nullptr, nullptr,
+        false /* isVarLength */));
+    return definitions;
+}
+
+void IsACyclicVectorFunction::execFunc(
+    const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
+    common::ValueVector& result) {
+    UnaryPathExecutor::executeNodeIDs(*parameters[0], result);
+}
+
+bool IsACyclicVectorFunction::selectFunc(
+    const std::vector<std::shared_ptr<common::ValueVector>>& parameters,
+    common::SelectionVector& selectionVector) {
+    return UnaryPathExecutor::selectNodeIDs(*parameters[0], selectionVector);
 }
 
 } // namespace function

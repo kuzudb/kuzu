@@ -9,11 +9,9 @@
 
 namespace kuzu {
 namespace binder {
-class BoundCreateNode;
-class BoundCreateRel;
-class BoundSetNodeProperty;
-class BoundSetRelProperty;
-class BoundDeleteNode;
+class BoundCreateInfo;
+class BoundSetPropertyInfo;
+class BoundDeleteInfo;
 } // namespace binder
 
 namespace planner {
@@ -97,22 +95,18 @@ private:
         std::shared_ptr<NodeExpression> node, LogicalPlan& plan);
 
     // Append updating operators
-    void appendCreateNode(const std::vector<std::unique_ptr<binder::BoundCreateNode>>& createNodes,
-        LogicalPlan& plan);
+    void appendCreateNode(
+        const std::vector<binder::BoundCreateInfo*>& createInfos, LogicalPlan& plan);
     void appendCreateRel(
-        const std::vector<std::unique_ptr<binder::BoundCreateRel>>& createRels, LogicalPlan& plan);
-
+        const std::vector<binder::BoundCreateInfo*>& createInfos, LogicalPlan& plan);
     void appendSetNodeProperty(
-        const std::vector<std::unique_ptr<binder::BoundSetNodeProperty>>& setNodeProperties,
-        LogicalPlan& plan);
+        const std::vector<binder::BoundSetPropertyInfo*>& infos, LogicalPlan& plan);
     void appendSetRelProperty(
-        const std::vector<std::unique_ptr<binder::BoundSetRelProperty>>& setRelProperties,
-        LogicalPlan& plan);
-
-    void appendDeleteNode(const std::vector<std::unique_ptr<binder::BoundDeleteNode>>& deleteNodes,
-        LogicalPlan& plan);
+        const std::vector<binder::BoundSetPropertyInfo*>& infos, LogicalPlan& plan);
+    void appendDeleteNode(
+        const std::vector<binder::BoundDeleteInfo*>& boundInfos, LogicalPlan& plan);
     void appendDeleteRel(
-        const std::vector<std::shared_ptr<binder::RelExpression>>& deleteRels, LogicalPlan& plan);
+        const std::vector<binder::BoundDeleteInfo*>& boundInfos, LogicalPlan& plan);
 
     std::unique_ptr<LogicalPlan> createUnionPlan(
         std::vector<std::unique_ptr<LogicalPlan>>& childrenPlans, bool isUnionAll);
