@@ -33,9 +33,9 @@ struct RecursiveJoinSharedState {
     inline std::pair<GlobalSSSPState, SSSPLocalState> getBFSMorsel(
         const std::vector<common::ValueVector*>& vectorsToScan,
         const std::vector<ft_col_idx_t>& colIndicesToScan, common::ValueVector* srcNodeIDVector,
-        BaseBFSMorsel* bfsMorsel) {
-        return morselDispatcher->getBFSMorsel(
-            inputFTableSharedState, vectorsToScan, colIndicesToScan, srcNodeIDVector, bfsMorsel);
+        BaseBFSMorsel* bfsMorsel, common::QueryRelType queryRelType) {
+        return morselDispatcher->getBFSMorsel(inputFTableSharedState, vectorsToScan,
+            colIndicesToScan, srcNodeIDVector, bfsMorsel, queryRelType);
     }
 
     inline int64_t writeDstNodeIDAndPathLength(

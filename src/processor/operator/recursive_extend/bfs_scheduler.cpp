@@ -1,13 +1,14 @@
 #include "processor/operator/recursive_extend/bfs_scheduler.h"
 
 #include "chrono"
+#include <utility>
 
 namespace kuzu {
 namespace processor {
 
 /**
  * Main function of the scheduler that dispatches morsels from the FTable between threads. Or it can
- * be called if a thread could not find a morsel from it's local SSSPSharedState.
+ * be called if a thread could not find a morsel from it's local BFSSharedState.
  *
  * @return - TRUE indicates check the combination value of the state pair, FALSE indicates some
  * work was found hence the state's values can be ignored.
@@ -15,7 +16,8 @@ namespace processor {
 std::pair<GlobalSSSPState, SSSPLocalState> MorselDispatcher::getBFSMorsel(
     const std::shared_ptr<FactorizedTableScanSharedState>& inputFTableSharedState,
     std::vector<common::ValueVector*> vectorsToScan, std::vector<ft_col_idx_t> colIndicesToScan,
-    common::ValueVector* srcNodeIDVector, BaseBFSMorsel* bfsMorsel) {
+    common::ValueVector* srcNodeIDVector, BaseBFSMorsel* bfsMorsel,
+    common::QueryRelType queryRelType) {
     std::unique_lock lck{mutex};
     switch (schedulerType) {
     case SchedulerType::OneThreadOneMorsel: {
@@ -40,7 +42,7 @@ std::pair<GlobalSSSPState, SSSPLocalState> MorselDispatcher::getBFSMorsel(
             return findAvailableSSSP(bfsMorsel);
         }
         case IN_PROGRESS: {
-            if (numActiveSSSP < activeSSSPSharedState.size()) {
+            if (numActiveSSSP < activeBFSSharedState.size()) {
                 auto inputFTableMorsel = inputFTableSharedState->getMorsel();
                 if (inputFTableMorsel->numTuples == 0) {
                     globalState = (numActiveSSSP == 0) ? COMPLETE : IN_PROGRESS_ALL_SRC_SCANNED;
@@ -56,30 +58,30 @@ std::pair<GlobalSSSPState, SSSPLocalState> MorselDispatcher::getBFSMorsel(
                 // Find a position for the new SSSP in the list, there are 2 candidates:
                 // 1) the position has a nullptr, add the shared state there
                 // 2) the SSSP is marked MORSEL_COMPLETE, it is complete and can be replaced
-                for (int i = 0; i < activeSSSPSharedState.size(); i++) {
-                    if (!activeSSSPSharedState[i]) {
+                for (int i = 0; i < activeBFSSharedState.size(); i++) {
+                    if (!activeBFSSharedState[i]) {
                         newSharedStateIdx = i;
                         break;
                     }
-                    activeSSSPSharedState[i]->mutex.lock();
-                    if (activeSSSPSharedState[i]->isComplete()) {
+                    activeBFSSharedState[i]->mutex.lock();
+                    if (activeBFSSharedState[i]->isComplete()) {
                         newSharedStateIdx = i;
-                        activeSSSPSharedState[i]->mutex.unlock();
+                        activeBFSSharedState[i]->mutex.unlock();
                         break;
                     }
-                    activeSSSPSharedState[i]->mutex.unlock();
+                    activeBFSSharedState[i]->mutex.unlock();
                 }
-                if (newSharedStateIdx == UINT32_MAX || !activeSSSPSharedState[newSharedStateIdx]) {
-                    auto newSSSPSharedState =
-                        std::make_shared<SSSPSharedState>(upperBound, lowerBound, maxOffset);
-                    setUpNewSSSPSharedState(
-                        newSSSPSharedState, bfsMorsel, inputFTableMorsel.get(), nodeID);
+                if (newSharedStateIdx == UINT32_MAX || !activeBFSSharedState[newSharedStateIdx]) {
+                    auto newBFSSharedState =
+                        std::make_shared<BFSSharedState>(upperBound, lowerBound, maxOffset);
+                    setUpNewBFSSharedState(newBFSSharedState, bfsMorsel, inputFTableMorsel.get(),
+                        nodeID, queryRelType);
                     if (newSharedStateIdx != UINT32_MAX) {
-                        activeSSSPSharedState[newSharedStateIdx] = newSSSPSharedState;
+                        activeBFSSharedState[newSharedStateIdx] = newBFSSharedState;
                     }
                 } else {
-                    setUpNewSSSPSharedState(activeSSSPSharedState[newSharedStateIdx], bfsMorsel,
-                        inputFTableMorsel.get(), nodeID);
+                    setUpNewBFSSharedState(activeBFSSharedState[newSharedStateIdx], bfsMorsel,
+                        inputFTableMorsel.get(), nodeID, queryRelType);
                 }
                 return {IN_PROGRESS, EXTEND_IN_PROGRESS};
             } else {
@@ -91,32 +93,32 @@ std::pair<GlobalSSSPState, SSSPLocalState> MorselDispatcher::getBFSMorsel(
     }
 }
 
-void MorselDispatcher::setUpNewSSSPSharedState(std::shared_ptr<SSSPSharedState>& newSSSPSharedState,
-    BaseBFSMorsel* bfsMorsel, FactorizedTableScanMorsel* inputFTableMorsel,
-    common::nodeID_t nodeID) {
-    newSSSPSharedState->reset(bfsMorsel->targetDstNodes);
-    newSSSPSharedState->inputFTableTupleIdx = inputFTableMorsel->startTupleIdx;
-    newSSSPSharedState->srcOffset = nodeID.offset;
-    newSSSPSharedState->markSrc(bfsMorsel->targetDstNodes->contains(nodeID));
-    newSSSPSharedState->getBFSMorsel(bfsMorsel);
+void MorselDispatcher::setUpNewBFSSharedState(std::shared_ptr<BFSSharedState>& newBFSSharedState,
+    BaseBFSMorsel* bfsMorsel, FactorizedTableScanMorsel* inputFTableMorsel, common::nodeID_t nodeID,
+    common::QueryRelType queryRelType) {
+    newBFSSharedState->reset(bfsMorsel->targetDstNodes, queryRelType);
+    newBFSSharedState->inputFTableTupleIdx = inputFTableMorsel->startTupleIdx;
+    newBFSSharedState->srcOffset = nodeID.offset;
+    newBFSSharedState->markSrc(bfsMorsel->targetDstNodes->contains(nodeID), queryRelType);
+    newBFSSharedState->getBFSMorsel(bfsMorsel);
 }
 
 uint32_t MorselDispatcher::getNextAvailableSSSPWork() {
-    for (auto i = 0u; i < activeSSSPSharedState.size(); i++) {
-        if (activeSSSPSharedState[i]) {
-            activeSSSPSharedState[i]->mutex.lock();
-            if (activeSSSPSharedState[i]->hasWork()) {
-                activeSSSPSharedState[i]->mutex.unlock();
+    for (auto i = 0u; i < activeBFSSharedState.size(); i++) {
+        if (activeBFSSharedState[i]) {
+            activeBFSSharedState[i]->mutex.lock();
+            if (activeBFSSharedState[i]->hasWork()) {
+                activeBFSSharedState[i]->mutex.unlock();
                 return i;
             }
-            activeSSSPSharedState[i]->mutex.unlock();
+            activeBFSSharedState[i]->mutex.unlock();
         }
     }
     return UINT32_MAX;
 }
 
 /**
- * Try to find an available SSSPSharedState for work and then try to get a morsel. If the work is
+ * Try to find an available BFSSharedState for work and then try to get a morsel. If the work is
  * writing path lengths then the tempState value will be PATH_LENGTH_WRITE_IN_PROGRESS.
  *
  * @return - TRUE if no work was found OR work is writing pathLength values to vector.
@@ -129,12 +131,12 @@ std::pair<GlobalSSSPState, SSSPLocalState> MorselDispatcher::findAvailableSSSP(
     if (availableSSSPIdx == UINT32_MAX) {
         return state;
     }
-    state.second = activeSSSPSharedState[availableSSSPIdx]->getBFSMorsel(bfsMorsel);
+    state.second = activeBFSSharedState[availableSSSPIdx]->getBFSMorsel(bfsMorsel);
     return state;
 }
 
 /**
- * Return value = -1: New SSSPSharedState can be started.
+ * Return value = -1: New BFSSharedState can be started.
  * Return value = 0, The pathLengthMorsel received did not yield any value to write to the
  * pathLengthVector.
  * Return value > 0, indicates pathLengths were written to pathLengthVector.
@@ -144,14 +146,20 @@ int64_t MorselDispatcher::writeDstNodeIDAndPathLength(
     std::vector<common::ValueVector*> vectorsToScan, std::vector<ft_col_idx_t> colIndicesToScan,
     common::ValueVector* dstNodeIDVector, common::ValueVector* pathLengthVector,
     common::table_id_t tableID, std::unique_ptr<BaseBFSMorsel>& baseBfsMorsel) {
-    if (!baseBfsMorsel->hasSSSPSharedState()) {
+    if (!baseBfsMorsel->hasBFSSharedState()) {
         return -1;
     }
-    auto ssspSharedState = baseBfsMorsel->ssspSharedState;
-    auto startScanIdxAndSize = ssspSharedState->getDstPathLengthMorsel();
+    if (baseBfsMorsel->hasMoreToWrite()) {
+        auto startScanIdxAndSize = baseBfsMorsel->getPrevDistStartScanIdxAndSize();
+        return baseBfsMorsel->writeToVector(inputFTableSharedState, std::move(vectorsToScan),
+            std::move(colIndicesToScan), dstNodeIDVector, pathLengthVector, tableID,
+            startScanIdxAndSize);
+    }
+    auto bfsSharedState = baseBfsMorsel->bfsSharedState;
+    auto startScanIdxAndSize = bfsSharedState->getDstPathLengthMorsel();
     /**
      * [startScanIdx, Size] = [UINT64_MAX, INT64_MAX] = no work in this morsel, exit & return -1
-     * [startScanIdx, Size] = [0, -1] = SSSPSharedState was just completed (marked MORSEL_COMPLETE)
+     * [startScanIdx, Size] = [0, -1] = BFSSharedState was just completed (marked MORSEL_COMPLETE)
      * Else a pathLengthMorsel has been allotted to the thread and it can proceed to write the
      * path lengths to the pathLengthVector.
      */
@@ -170,28 +178,9 @@ int64_t MorselDispatcher::writeDstNodeIDAndPathLength(
         mutex.unlock();
         return -1;
     }
-    auto size = 0u;
-    auto endIdx = startScanIdxAndSize.first + startScanIdxAndSize.second;
-    while (startScanIdxAndSize.first < endIdx) {
-        if (ssspSharedState->pathLength[startScanIdxAndSize.first] >= ssspSharedState->lowerBound) {
-            dstNodeIDVector->setValue<common::nodeID_t>(
-                size, common::nodeID_t{startScanIdxAndSize.first, tableID});
-            pathLengthVector->setValue<int64_t>(
-                size, ssspSharedState->pathLength[startScanIdxAndSize.first]);
-            size++;
-        }
-        startScanIdxAndSize.first++;
-    }
-    if (size > 0) {
-        dstNodeIDVector->state->initOriginalAndSelectedSize(size);
-        // We need to rescan the FTable to get the source for which the pathLengths were computed.
-        // This is because the thread that scanned FTable initially might not be the thread writing
-        // the pathLengths to its vector.
-        inputFTableSharedState->getTable()->scan(vectorsToScan,
-            ssspSharedState->inputFTableTupleIdx, 1 /* numTuples */, colIndicesToScan);
-        return size;
-    }
-    return 0;
+    return baseBfsMorsel->writeToVector(inputFTableSharedState, std::move(vectorsToScan),
+        std::move(colIndicesToScan), dstNodeIDVector, pathLengthVector, tableID,
+        startScanIdxAndSize);
 }
 
 } // namespace processor
