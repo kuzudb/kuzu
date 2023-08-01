@@ -34,7 +34,7 @@ struct MetadataDAHInfo {
         common::FileInfo* fileInfo, uint64_t& offset);
 };
 
-class Property {
+struct Property {
 public:
     static constexpr std::string_view REL_FROM_PROPERTY_NAME = "_FROM_";
     static constexpr std::string_view REL_TO_PROPERTY_NAME = "_TO_";
@@ -49,8 +49,6 @@ public:
 
     void serialize(common::FileInfo* fileInfo, uint64_t& offset) const;
     static std::unique_ptr<Property> deserialize(common::FileInfo* fileInfo, uint64_t& offset);
-    static void initMetadataDAHInfo(const common::LogicalType& dataType,
-        storage::BMFileHandle* metadataFH, MetadataDAHInfo& metadataDAHInfo);
 
 public:
     std::string name;
@@ -89,8 +87,7 @@ public:
     inline const std::vector<Property>& getProperties() const { return properties; }
     inline TableType getTableType() const { return tableType; }
 
-    void addProperty(
-        std::string propertyName, common::LogicalType dataType, storage::BMFileHandle* metadataFH);
+    void addProperty(std::string propertyName, common::LogicalType dataType);
 
     std::string getPropertyName(common::property_id_t propertyID) const;
 

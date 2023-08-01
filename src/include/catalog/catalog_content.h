@@ -84,8 +84,7 @@ public:
      */
     // getNodeProperty and getRelProperty should be called after checking if property exists
     // (containNodeProperty and containRelProperty).
-    const Property& getNodeProperty(
-        common::table_id_t tableID, const std::string& propertyName) const;
+    Property& getNodeProperty(common::table_id_t tableID, const std::string& propertyName) const;
     const Property& getRelProperty(
         common::table_id_t tableID, const std::string& propertyName) const;
 

@@ -194,7 +194,9 @@ void CopyNode::appendToPKIndex(
         }
     } break;
     default: {
-        throw NotImplementedException("CopyNode::appendToPKIndex");
+        StringUtils::string_format("Invalid primary key column type {}. Primary key must be "
+                                   "either INT64, STRING or SERIAL.",
+            LogicalTypeUtils::dataTypeToString(chunk->getDataType()));
     }
     }
 }

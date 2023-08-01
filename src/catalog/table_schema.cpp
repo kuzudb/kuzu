@@ -3,7 +3,6 @@
 #include "common/exception.h"
 #include "common/ser_deser.h"
 #include "common/string_utils.h"
-#include "storage/buffer_manager/bm_file_handle.h"
 
 using namespace kuzu::common;
 using namespace kuzu::storage;
@@ -81,37 +80,13 @@ std::unique_ptr<Property> Property::deserialize(FileInfo* fileInfo, uint64_t& of
     return result;
 }
 
-void Property::initMetadataDAHInfo(
-    const LogicalType& dataType, BMFileHandle* metadataFH, MetadataDAHInfo& metadataDAHInfo) {
-    metadataDAHInfo.dataDAHPageIdx = metadataFH->addNewPage();
-    metadataDAHInfo.nullDAHPageIdx = metadataFH->addNewPage();
-    switch (dataType.getPhysicalType()) {
-    case PhysicalTypeID::STRUCT: {
-        auto fields = StructType::getFields(&dataType);
-        metadataDAHInfo.childrenInfos.resize(fields.size());
-        for (auto i = 0u; i < fields.size(); i++) {
-            initMetadataDAHInfo(
-                *fields[i]->getType(), metadataFH, metadataDAHInfo.childrenInfos[i]);
-        }
-    } break;
-    default: {
-        // DO NOTHING.
-    }
-    }
-}
-
 bool TableSchema::isReservedPropertyName(const std::string& propertyName) {
     return StringUtils::getUpper(propertyName) == InternalKeyword::ID;
 }
 
-void TableSchema::addProperty(
-    std::string propertyName, LogicalType dataType, BMFileHandle* metadataFH) {
-    Property property{
-        std::move(propertyName), std::move(dataType), increaseNextPropertyID(), tableID};
-    if (tableType == TableType::NODE) {
-        Property::initMetadataDAHInfo(property.dataType, metadataFH, property.metadataDAHInfo);
-    }
-    properties.push_back(std::move(property));
+void TableSchema::addProperty(std::string propertyName, LogicalType dataType) {
+    properties.emplace_back(
+        std::move(propertyName), std::move(dataType), increaseNextPropertyID(), tableID);
 }
 
 std::string TableSchema::getPropertyName(property_id_t propertyID) const {

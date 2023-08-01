@@ -37,9 +37,14 @@ public:
     inline std::string getDirectory() const { return wal->getDirectory(); }
     inline WAL* getWAL() const { return wal; }
     inline BMFileHandle* getDataFH() const { return dataFH.get(); }
+    inline BMFileHandle* getMetadataFH() const { return metadataFH.get(); }
+
+    void initMetadataDAHInfo(
+        const common::LogicalType& dataType, catalog::MetadataDAHInfo& metadataDAHInfo);
 
 private:
     std::unique_ptr<BMFileHandle> dataFH;
+    std::unique_ptr<BMFileHandle> metadataFH;
     catalog::Catalog& catalog;
     WAL* wal;
     std::unique_ptr<RelsStore> relsStore;

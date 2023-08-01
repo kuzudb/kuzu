@@ -165,10 +165,14 @@ void WALReplayer::replayNodeTableRecord(const kuzu::storage::WALRecord& walRecor
         auto catalogForCheckpointing = getCatalogForRecovery(DBFileType::WAL_VERSION);
         auto nodeTableSchema = catalogForCheckpointing->getReadOnlyVersion()->getNodeTableSchema(
             walRecord.nodeTableRecord.tableID);
+        auto metadataFH =
+            bufferManager->getBMFileHandle(StorageUtils::getMetadataFName(wal->getDirectory()),
+                FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS,
+                BMFileHandle::FileVersionedType::VERSIONED_FILE);
         WALReplayerUtils::initTableMetadataDAsOnDisk(
             catalogForCheckpointing->getReadOnlyVersion()->getNodeTableSchema(
                 walRecord.nodeTableRecord.tableID),
-            catalogForCheckpointing->getMetadataFH());
+            metadataFH.get());
         WALReplayerUtils::createEmptyDBFilesForNewNodeTable(nodeTableSchema, wal->getDirectory());
         if (!isRecovering) {
             // If we are not recovering, i.e., we are checkpointing during normal execution,
@@ -418,8 +422,11 @@ void WALReplayer::replayAddPropertyRecord(const kuzu::storage::WALRecord& walRec
         auto tableSchema = catalogForCheckpointing->getReadOnlyVersion()->getTableSchema(tableID);
         auto property = tableSchema->getProperty(propertyID);
         if (tableSchema->getTableType() == TableType::NODE) {
-            WALReplayerUtils::initPropertyMetadataDAsOnDisk(
-                property, catalogForCheckpointing->getMetadataFH());
+            auto metadataFH =
+                bufferManager->getBMFileHandle(StorageUtils::getMetadataFName(wal->getDirectory()),
+                    FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS,
+                    BMFileHandle::FileVersionedType::VERSIONED_FILE);
+            WALReplayerUtils::initPropertyMetadataDAsOnDisk(property, metadataFH.get());
         }
         if (!isRecovering) {
             if (catalog->getReadOnlyVersion()->containNodeTable(tableID)) {
@@ -487,7 +494,7 @@ BMFileHandle* WALReplayer::getVersionedFileHandleIfWALVersionAndBMShouldBeCleare
     const StorageStructureID& storageStructureID) {
     switch (storageStructureID.storageStructureType) {
     case StorageStructureType::METADATA: {
-        return catalog->getMetadataFH();
+        return storageManager->getMetadataFH();
     }
     case StorageStructureType::DATA: {
         return storageManager->getDataFH();

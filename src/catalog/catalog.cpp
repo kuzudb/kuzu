@@ -17,10 +17,6 @@ Catalog::Catalog() : wal{nullptr} {
 
 Catalog::Catalog(WAL* wal) : wal{wal} {
     catalogContentForReadOnlyTrx = std::make_unique<CatalogContent>(wal->getDirectory());
-    metadataFH = wal->getBufferManager()->getBMFileHandle(
-        StorageUtils::getMetadataFName(wal->getDirectory()),
-        FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS,
-        BMFileHandle::FileVersionedType::VERSIONED_FILE);
 }
 
 void Catalog::prepareCommitOrRollback(TransactionAction action) {
@@ -46,10 +42,6 @@ ExpressionType Catalog::getFunctionType(const std::string& name) const {
 table_id_t Catalog::addNodeTableSchema(
     std::string tableName, property_id_t primaryKeyId, std::vector<Property> propertyDefinitions) {
     initCatalogContentForWriteTrxIfNecessary();
-    for (auto& property : propertyDefinitions) {
-        Property::initMetadataDAHInfo(
-            property.dataType, metadataFH.get(), property.metadataDAHInfo);
-    }
     auto tableID = catalogContentForWriteTrx->addNodeTableSchema(
         std::move(tableName), primaryKeyId, std::move(propertyDefinitions));
     wal->logNodeTableRecord(tableID);
@@ -82,7 +74,7 @@ void Catalog::addProperty(
     table_id_t tableID, const std::string& propertyName, LogicalType dataType) {
     initCatalogContentForWriteTrxIfNecessary();
     catalogContentForWriteTrx->getTableSchema(tableID)->addProperty(
-        propertyName, std::move(dataType), metadataFH.get());
+        propertyName, std::move(dataType));
     wal->logAddPropertyRecord(
         tableID, catalogContentForWriteTrx->getTableSchema(tableID)->getPropertyID(propertyName));
 }

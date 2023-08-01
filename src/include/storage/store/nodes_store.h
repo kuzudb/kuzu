@@ -11,8 +11,8 @@ namespace storage {
 
 class NodesStore {
 public:
-    NodesStore(BMFileHandle* dataFH, const catalog::Catalog& catalog, BufferManager& bufferManager,
-        WAL* wal);
+    NodesStore(BMFileHandle* dataFH, BMFileHandle* metadataFH, const catalog::Catalog& catalog,
+        BufferManager& bufferManager, WAL* wal);
 
     inline NodeColumn* getNodePropertyColumn(
         common::table_id_t tableID, uint64_t propertyIdx) const {

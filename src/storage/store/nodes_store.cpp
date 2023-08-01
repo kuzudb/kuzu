@@ -1,16 +1,17 @@
 #include "storage/store/nodes_store.h"
 
+using namespace kuzu::catalog;
+
 namespace kuzu {
 namespace storage {
 
-NodesStore::NodesStore(
-    BMFileHandle* dataFH, const catalog::Catalog& catalog, BufferManager& bufferManager, WAL* wal)
-    : nodesStatisticsAndDeletedIDs{wal->getDirectory()}, wal{wal}, dataFH{dataFH},
-      metadataFH{catalog.getMetadataFH()} {
+NodesStore::NodesStore(BMFileHandle* dataFH, BMFileHandle* metadataFH, const Catalog& catalog,
+    BufferManager& bufferManager, WAL* wal)
+    : nodesStatisticsAndDeletedIDs{wal->getDirectory()}, wal{wal}, dataFH{dataFH}, metadataFH{
+                                                                                       metadataFH} {
     for (auto& tableIDSchema : catalog.getReadOnlyVersion()->getNodeTableSchemas()) {
-        nodeTables[tableIDSchema.first] =
-            std::make_unique<NodeTable>(dataFH, catalog.getMetadataFH(),
-                &nodesStatisticsAndDeletedIDs, bufferManager, wal, tableIDSchema.second.get());
+        nodeTables[tableIDSchema.first] = std::make_unique<NodeTable>(dataFH, metadataFH,
+            &nodesStatisticsAndDeletedIDs, bufferManager, wal, tableIDSchema.second.get());
     }
 }
 
