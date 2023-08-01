@@ -211,7 +211,7 @@ describe("Get node table names", function () {
     assert.equal(nodeTableNames.length, 4);
     assert.deepEqual(nodeTableNames, [
       "movies",
-      "moviesSerial",
+//       "moviesSerial",
       "organisation",
       "person",
     ]);

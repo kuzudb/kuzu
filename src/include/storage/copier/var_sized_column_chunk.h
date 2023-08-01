@@ -49,9 +49,13 @@ private:
     PageByteCursor overflowCursor;
 };
 
+// BOOL
+template<>
+void VarSizedColumnChunk::setValueFromString<common::blob_t>(
+    const char* value, uint64_t length, uint64_t pos);
 // STRING
 template<>
-void VarSizedColumnChunk::setValueFromString<const char*>(
+void VarSizedColumnChunk::setValueFromString<common::ku_string_t>(
     const char* value, uint64_t length, uint64_t pos);
 // VAR_LIST
 template<>
