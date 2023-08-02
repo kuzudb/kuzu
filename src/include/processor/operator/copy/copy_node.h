@@ -12,7 +12,10 @@ class CopyNodeSharedState {
 public:
     CopyNodeSharedState(uint64_t& numRows, storage::MemoryManager* memoryManager);
 
-    inline void initialize(catalog::NodeTableSchema* nodeTableSchema, const std::string& directory) { initializePrimaryKey(directory); };
+    inline void initialize(
+        catalog::NodeTableSchema* nodeTableSchema, const std::string& directory) {
+        initializePrimaryKey(directory);
+    };
 
     inline common::offset_t getNextNodeGroupIdx() {
         std::unique_lock<std::mutex> lck{mtx};

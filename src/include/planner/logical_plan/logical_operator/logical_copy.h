@@ -19,7 +19,8 @@ public:
         : LogicalOperator{LogicalOperatorType::COPY}, copyDescription{copyDescription},
           tableID{tableID}, tableName{std::move(tableName)}, dataColumnExpressions{std::move(
                                                                  dataColumnExpressions)},
-          rowIdxExpression{std::move(rowIdxExpression)}, filePathExpression{std::move(filePathExpression)},
+          rowIdxExpression{std::move(rowIdxExpression)}, filePathExpression{std::move(
+                                                             filePathExpression)},
           nodeOffsetExpression{std::move(nodeOffsetExpression)}, outputExpression{
                                                                      std::move(outputExpression)} {}
 

@@ -71,7 +71,7 @@ public:
     inline const std::vector<Property>& getProperties() const { return properties; }
     inline void addProperty(std::string propertyName, common::LogicalType dataType) {
         properties.emplace_back(
-                std::move(propertyName), std::move(dataType), increaseNextPropertyID(), tableID);
+            std::move(propertyName), std::move(dataType), increaseNextPropertyID(), tableID);
     }
 
     std::string getPropertyName(common::property_id_t propertyID) const;
