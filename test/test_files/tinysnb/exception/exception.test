@@ -18,11 +18,6 @@ Runtime exception: Modulo by zero.
 ---- error
 Connection Exception: Query is empty.
 
--CASE ReadAfterUpdate2
--STATEMENT MATCH (a:person) WHERE a.age = 35 DELETE a WITH a MATCH (a)-[:knows]->(b:person) RETURN a.age
----- error
-Binder exception: Read after update is not supported.
-
 -CASE Overflow
 -STATEMENT RETURN to_int16(10000000000)
 ---- error

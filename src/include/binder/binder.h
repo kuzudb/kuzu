@@ -218,11 +218,8 @@ private:
 
     static void validateIsAllUnionOrUnionAll(const BoundRegularQuery& regularQuery);
 
-    // We don't support read (reading and projection clause) after write since this requires reading
-    // updated value and multiple property scan is needed which complicates our planning.
-    // e.g. MATCH (a:person) WHERE a.fName='A' SET a.fName='B' RETURN a.fName
-    // In the example above, we need to read fName both before and after SET.
-    static void validateReturnNotFollowUpdate(const NormalizedSingleQuery& singleQuery);
+    // We don't support read after write for simplicity. User should instead querying through
+    // multiple statement.
     static void validateReadNotFollowUpdate(const NormalizedSingleQuery& singleQuery);
 
     static void validateTableExist(const catalog::Catalog& _catalog, std::string& tableName);

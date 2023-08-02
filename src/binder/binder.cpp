@@ -144,21 +144,13 @@ void Binder::validateIsAllUnionOrUnionAll(const BoundRegularQuery& regularQuery)
     }
 }
 
-void Binder::validateReturnNotFollowUpdate(const NormalizedSingleQuery& singleQuery) {
-    for (auto i = 0u; i < singleQuery.getNumQueryParts(); ++i) {
-        auto normalizedQueryPart = singleQuery.getQueryPart(i);
-        if (normalizedQueryPart->hasUpdatingClause() && normalizedQueryPart->hasProjectionBody()) {
-            throw BinderException("Return/With after update is not supported.");
-        }
-    }
-}
-
 void Binder::validateReadNotFollowUpdate(const NormalizedSingleQuery& singleQuery) {
     bool hasSeenUpdateClause = false;
     for (auto i = 0u; i < singleQuery.getNumQueryParts(); ++i) {
         auto normalizedQueryPart = singleQuery.getQueryPart(i);
         if (hasSeenUpdateClause && normalizedQueryPart->hasReadingClause()) {
-            throw BinderException("Read after update is not supported.");
+            throw BinderException(
+                "Read after update is not supported. Try query with multiple statements.");
         }
         hasSeenUpdateClause |= normalizedQueryPart->hasUpdatingClause();
     }

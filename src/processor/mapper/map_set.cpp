@@ -14,8 +14,12 @@ static std::unique_ptr<NodeSetExecutor> getNodeSetExecutor(storage::NodesStore* 
     const LogicalSetPropertyInfo& info, const Schema& inSchema,
     std::unique_ptr<BaseExpressionEvaluator> evaluator) {
     auto node = (NodeExpression*)info.nodeOrRel.get();
-    auto property = (PropertyExpression*)info.setItem.first.get();
     auto nodeIDPos = DataPos(inSchema.getExpressionPos(*node->getInternalIDProperty()));
+    auto property = (PropertyExpression*)info.setItem.first.get();
+    auto propertyPos = DataPos(INVALID_DATA_CHUNK_POS, INVALID_VALUE_VECTOR_POS);
+    if (inSchema.isExpressionInScope(*property)) {
+        propertyPos = DataPos(inSchema.getExpressionPos(*property));
+    }
     if (node->isMultiLabeled()) {
         std::unordered_map<common::table_id_t, storage::NodeColumn*> tableIDToColumn;
         for (auto tableID : node->getTableIDs()) {
@@ -27,12 +31,12 @@ static std::unique_ptr<NodeSetExecutor> getNodeSetExecutor(storage::NodesStore* 
             tableIDToColumn.insert({tableID, column});
         }
         return std::make_unique<MultiLabelNodeSetExecutor>(
-            std::move(tableIDToColumn), nodeIDPos, std::move(evaluator));
+            std::move(tableIDToColumn), nodeIDPos, propertyPos, std::move(evaluator));
     } else {
         auto tableID = node->getSingleTableID();
         auto column = store->getNodePropertyColumn(tableID, property->getPropertyID(tableID));
         return std::make_unique<SingleLabelNodeSetExecutor>(
-            column, nodeIDPos, std::move(evaluator));
+            column, nodeIDPos, propertyPos, std::move(evaluator));
     }
 }
 
@@ -54,12 +58,16 @@ static std::unique_ptr<RelSetExecutor> getRelSetExecutor(storage::RelsStore* sto
     const LogicalSetPropertyInfo& info, const Schema& inSchema,
     std::unique_ptr<BaseExpressionEvaluator> evaluator) {
     auto rel = (RelExpression*)info.nodeOrRel.get();
-    auto property = (PropertyExpression*)info.setItem.first.get();
     auto srcNodePos =
         DataPos(inSchema.getExpressionPos(*rel->getSrcNode()->getInternalIDProperty()));
     auto dstNodePos =
         DataPos(inSchema.getExpressionPos(*rel->getDstNode()->getInternalIDProperty()));
     auto relIDPos = DataPos(inSchema.getExpressionPos(*rel->getInternalIDProperty()));
+    auto property = (PropertyExpression*)info.setItem.first.get();
+    auto propertyPos = DataPos(INVALID_DATA_CHUNK_POS, INVALID_VALUE_VECTOR_POS);
+    if (inSchema.isExpressionInScope(*property)) {
+        propertyPos = DataPos(inSchema.getExpressionPos(*property));
+    }
     if (rel->isMultiLabeled()) {
         std::unordered_map<common::table_id_t, std::pair<storage::RelTable*, common::property_id_t>>
             tableIDToTableAndPropertyID;
@@ -72,13 +80,13 @@ static std::unique_ptr<RelSetExecutor> getRelSetExecutor(storage::RelsStore* sto
             tableIDToTableAndPropertyID.insert({tableID, std::make_pair(table, propertyID)});
         }
         return std::make_unique<MultiLabelRelSetExecutor>(std::move(tableIDToTableAndPropertyID),
-            srcNodePos, dstNodePos, relIDPos, std::move(evaluator));
+            srcNodePos, dstNodePos, relIDPos, propertyPos, std::move(evaluator));
     } else {
         auto tableID = rel->getSingleTableID();
         auto table = store->getRelTable(tableID);
         auto propertyID = property->getPropertyID(tableID);
         return std::make_unique<SingleLabelRelSetExecutor>(
-            table, propertyID, srcNodePos, dstNodePos, relIDPos, std::move(evaluator));
+            table, propertyID, srcNodePos, dstNodePos, relIDPos, propertyPos, std::move(evaluator));
     }
 }
 
