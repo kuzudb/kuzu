@@ -58,8 +58,10 @@ public:
         propertyColumns.erase(propertyID);
     }
     inline void addProperty(const catalog::Property& property) {
-        propertyColumns.emplace(property.propertyID,
-            NodeColumnFactory::createNodeColumn(property, dataFH, dataFH, &bufferManager, wal));
+        propertyColumns.emplace(property.getPropertyID(),
+            ColumnFactory::getColumn(StorageUtils::getNodePropertyColumnStructureIDAndFName(
+                                         wal->getDirectory(), property),
+                *property.getDataType(), &bufferManager, wal));
     }
     void deleteNode(
         common::offset_t nodeOffset, common::ValueVector* primaryKeyVector, uint32_t pos) const;

@@ -71,10 +71,10 @@ void EmbeddedShell::updateTableNames() {
     nodeTableNames.clear();
     relTableNames.clear();
     for (auto& tableSchema : database->catalog->getReadOnlyVersion()->getNodeTableSchemas()) {
-        nodeTableNames.push_back(tableSchema.second->tableName);
+        nodeTableNames.push_back(tableSchema->tableName);
     }
     for (auto& tableSchema : database->catalog->getReadOnlyVersion()->getRelTableSchemas()) {
-        relTableNames.push_back(tableSchema.second->tableName);
+        relTableNames.push_back(tableSchema->tableName);
     }
 }
 

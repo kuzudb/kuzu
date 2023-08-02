@@ -17,7 +17,7 @@ template<>
 void SerDeser::deserializeValue<std::string>(
     std::string& value, FileInfo* fileInfo, uint64_t& offset) {
     uint64_t valueLength = 0;
-    deserializeValue<uint64_t>(valueLength, fileInfo, offset);
+    deserializeValue(valueLength, fileInfo, offset);
     value.resize(valueLength);
     FileUtils::readFromFile(fileInfo, (uint8_t*)value.data(), valueLength, offset);
     offset += valueLength;

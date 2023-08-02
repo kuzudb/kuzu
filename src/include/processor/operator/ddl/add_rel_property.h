@@ -10,7 +10,7 @@ class AddRelProperty;
 class AddRelProperty : public AddProperty {
 public:
     AddRelProperty(catalog::Catalog* catalog, common::table_id_t tableID, std::string propertyName,
-        common::LogicalType dataType,
+        std::unique_ptr<common::LogicalType> dataType,
         std::unique_ptr<evaluator::BaseExpressionEvaluator> expressionEvaluator,
         storage::StorageManager& storageManager, const DataPos& outputPos, uint32_t id,
         const std::string& paramsString)
@@ -20,7 +20,7 @@ public:
     void executeDDLInternal(ExecutionContext* context) override;
 
     std::unique_ptr<PhysicalOperator> clone() override {
-        return make_unique<AddRelProperty>(catalog, tableID, propertyName, dataType,
+        return make_unique<AddRelProperty>(catalog, tableID, propertyName, dataType->copy(),
             expressionEvaluator->clone(), storageManager, outputPos, id, paramsString);
     }
 };

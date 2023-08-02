@@ -1,6 +1,5 @@
 #include "common/constants.h"
 #include "graph_test/graph_test.h"
-#include "json.hpp"
 #include "storage/storage_manager.h"
 #include "transaction/transaction_manager.h"
 
@@ -33,11 +32,11 @@ public:
         uint32_t agePropertyID = getCatalog(*database)
                                      ->getReadOnlyVersion()
                                      ->getNodeProperty(personTableID, "age")
-                                     .propertyID;
+                                     ->getPropertyID();
         uint32_t eyeSightPropertyID = getCatalog(*database)
                                           ->getReadOnlyVersion()
                                           ->getNodeProperty(personTableID, "eyeSight")
-                                          .propertyID;
+                                          ->getPropertyID();
 
         dataChunk = std::make_shared<DataChunk>(3);
         nodeVector =

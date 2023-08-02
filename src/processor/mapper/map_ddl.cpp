@@ -39,7 +39,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateNodeTable(LogicalOperator
 std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateRelTable(LogicalOperator* logicalOperator) {
     auto createRelTable = (LogicalCreateRelTable*)logicalOperator;
     return std::make_unique<CreateRelTable>(catalog, createRelTable->getTableName(),
-        createRelTable->getPropertyNameDataTypes(), createRelTable->getRelMultiplicity(),
+        createRelTable->getProperties(), createRelTable->getRelMultiplicity(),
         createRelTable->getSrcTableID(), createRelTable->getDstTableID(),
         getOutputPos(createRelTable), getOperatorID(), createRelTable->getExpressionsForPrinting(),
         &storageManager.getRelsStore().getRelsStatistics());
@@ -62,16 +62,20 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapAddProperty(LogicalOperator* lo
     auto addProperty = (LogicalAddProperty*)logicalOperator;
     auto expressionEvaluator =
         expressionMapper.mapExpression(addProperty->getDefaultValue(), *addProperty->getSchema());
-    if (catalog->getReadOnlyVersion()->containNodeTable(addProperty->getTableID())) {
+    auto tableSchema = catalog->getReadOnlyVersion()->getTableSchema(addProperty->getTableID());
+    switch (tableSchema->getTableType()) {
+    case catalog::TableType::NODE:
         return std::make_unique<AddNodeProperty>(catalog, addProperty->getTableID(),
-            addProperty->getPropertyName(), addProperty->getDataType(),
+            addProperty->getPropertyName(), addProperty->getDataType()->copy(),
             std::move(expressionEvaluator), storageManager, getOutputPos(addProperty),
             getOperatorID(), addProperty->getExpressionsForPrinting());
-    } else {
+    case catalog::TableType::REL:
         return std::make_unique<AddRelProperty>(catalog, addProperty->getTableID(),
-            addProperty->getPropertyName(), addProperty->getDataType(),
+            addProperty->getPropertyName(), addProperty->getDataType()->copy(),
             std::move(expressionEvaluator), storageManager, getOutputPos(addProperty),
             getOperatorID(), addProperty->getExpressionsForPrinting());
+    default:
+        throw common::NotImplementedException{"PlanMapper::mapAddProperty"};
     }
 }
 

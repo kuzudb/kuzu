@@ -10,7 +10,7 @@ void AddRelProperty::executeDDLInternal(ExecutionContext* context) {
     auto tableSchema = catalog->getWriteVersion()->getRelTableSchema(tableID);
     auto property = tableSchema->getProperty(tableSchema->getPropertyID(propertyName));
     StorageUtils::createFileForRelPropertyWithDefaultVal(
-        tableSchema, property, getDefaultVal(), isDefaultValueNull(), storageManager);
+        tableSchema, *property, getDefaultVal(), isDefaultValueNull(), storageManager);
 }
 
 } // namespace processor

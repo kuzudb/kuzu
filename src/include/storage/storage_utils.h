@@ -97,6 +97,15 @@ public:
         std::string filePath, common::struct_field_idx_t structFieldIdx);
     static std::string getPropertyNullFName(const std::string& filePath);
 
+    static inline StorageStructureIDAndFName getNodePropertyColumnStructureIDAndFName(
+        const std::string& directory, const catalog::Property& property) {
+        auto fName = getNodePropertyColumnFName(directory, property.getTableID(),
+            property.getPropertyID(), common::DBFileType::ORIGINAL);
+        return {StorageStructureID::newNodePropertyColumnID(
+                    property.getTableID(), property.getPropertyID()),
+            fName};
+    }
+
     static inline StorageStructureIDAndFName getNodeNullColumnStructureIDAndFName(
         StorageStructureIDAndFName propertyColumnIDAndFName) {
         auto nullColumnStructureIDAndFName = propertyColumnIDAndFName;
@@ -127,9 +136,9 @@ public:
         const std::string& directory, common::table_id_t relTableID, common::RelDataDirection dir,
         const catalog::Property& property) {
         auto fName = getRelPropertyListsFName(
-            directory, relTableID, dir, property.propertyID, common::DBFileType::ORIGINAL);
+            directory, relTableID, dir, property.getPropertyID(), common::DBFileType::ORIGINAL);
         return {StorageStructureID::newRelPropertyListsID(
-                    relTableID, dir, property.propertyID, ListFileType::BASE_LISTS),
+                    relTableID, dir, property.getPropertyID(), ListFileType::BASE_LISTS),
             fName};
     }
 

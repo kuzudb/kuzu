@@ -5,8 +5,12 @@ namespace processor {
 
 void AddNodeProperty::executeDDLInternal() {
     AddProperty::executeDDLInternal();
-    auto& property = catalog->getWriteVersion()->getNodeProperty(tableID, propertyName);
-    storageManager.initMetadataDAHInfo(dataType, property.metadataDAHInfo);
+    auto tableSchema = catalog->getWriteVersion()->getTableSchema(tableID);
+    auto property = tableSchema->getProperty(tableSchema->getPropertyID(propertyName));
+    StorageUtils::createFileForNodePropertyWithDefaultVal(tableID, storageManager.getDirectory(),
+        *property, getDefaultVal(), isDefaultValueNull(),
+        storageManager.getNodesStore().getNodesStatisticsAndDeletedIDs().getNumTuplesForTable(
+            tableID));
 }
 
 } // namespace processor

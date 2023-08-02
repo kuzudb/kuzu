@@ -20,103 +20,109 @@ CatalogContent::CatalogContent(const std::string& directory) {
     registerBuiltInFunctions();
 }
 
-CatalogContent::CatalogContent(const CatalogContent& other) {
-    for (auto& nodeTableSchema : other.nodeTableSchemas) {
-        auto newNodeTableSchema = std::make_unique<NodeTableSchema>(*nodeTableSchema.second);
-        nodeTableSchemas[newNodeTableSchema->tableID] = std::move(newNodeTableSchema);
-    }
-    for (auto& relTableSchema : other.relTableSchemas) {
-        auto newRelTableSchema = std::make_unique<RelTableSchema>(*relTableSchema.second);
-        relTableSchemas[newRelTableSchema->tableID] = std::move(newRelTableSchema);
-    }
-    nodeTableNameToIDMap = other.nodeTableNameToIDMap;
-    relTableNameToIDMap = other.relTableNameToIDMap;
-    nextTableID = other.nextTableID;
-    registerBuiltInFunctions();
-    for (auto& macro : other.macros) {
-        macros.emplace(macro.first, macro.second->copy());
-    }
-}
-
-table_id_t CatalogContent::addNodeTableSchema(
-    std::string tableName, property_id_t primaryKeyId, std::vector<Property> properties) {
+table_id_t CatalogContent::addNodeTableSchema(std::string tableName, property_id_t primaryKeyId,
+    std::vector<std::unique_ptr<Property>> properties) {
     table_id_t tableID = assignNextTableID();
     for (auto i = 0u; i < properties.size(); ++i) {
-        properties[i].propertyID = i;
-        properties[i].tableID = tableID;
+        properties[i]->setPropertyID(i);
+        properties[i]->setTableID(tableID);
     }
     auto nodeTableSchema = std::make_unique<NodeTableSchema>(
         std::move(tableName), tableID, primaryKeyId, std::move(properties));
-    nodeTableNameToIDMap[nodeTableSchema->tableName] = tableID;
-    nodeTableSchemas[tableID] = std::move(nodeTableSchema);
+    tableNameToIDMap.emplace(nodeTableSchema->tableName, tableID);
+    tableSchemas.emplace(tableID, std::move(nodeTableSchema));
     return tableID;
 }
 
 table_id_t CatalogContent::addRelTableSchema(std::string tableName, RelMultiplicity relMultiplicity,
-    std::vector<Property> properties, table_id_t srcTableID, table_id_t dstTableID,
-    LogicalType srcPKDataType, LogicalType dstPKDataType) {
+    std::vector<std::unique_ptr<Property>> properties, table_id_t srcTableID, table_id_t dstTableID,
+    std::unique_ptr<LogicalType> srcPKDataType, std::unique_ptr<LogicalType> dstPKDataType) {
     table_id_t tableID = assignNextTableID();
-    nodeTableSchemas[srcTableID]->addFwdRelTableID(tableID);
-    nodeTableSchemas[dstTableID]->addBwdRelTableID(tableID);
-    auto relInternalIDProperty =
-        Property(InternalKeyword::ID, LogicalType{LogicalTypeID::INTERNAL_ID});
-    properties.insert(properties.begin(), relInternalIDProperty);
+    getNodeTableSchema(srcTableID)->addFwdRelTableID(tableID);
+    getNodeTableSchema(dstTableID)->addBwdRelTableID(tableID);
+    auto relInternalIDProperty = std::make_unique<Property>(
+        InternalKeyword::ID, std::make_unique<LogicalType>(LogicalTypeID::INTERNAL_ID));
+    properties.insert(properties.begin(), std::move(relInternalIDProperty));
     for (auto i = 0u; i < properties.size(); ++i) {
-        properties[i].propertyID = i;
-        properties[i].tableID = tableID;
+        properties[i]->setPropertyID(i);
+        properties[i]->setTableID(tableID);
     }
     auto relTableSchema = std::make_unique<RelTableSchema>(std::move(tableName), tableID,
         relMultiplicity, std::move(properties), srcTableID, dstTableID, std::move(srcPKDataType),
         std::move(dstPKDataType));
-    relTableNameToIDMap[relTableSchema->tableName] = tableID;
-    relTableSchemas[tableID] = std::move(relTableSchema);
+    tableNameToIDMap.emplace(relTableSchema->tableName, tableID);
+    tableSchemas.emplace(tableID, std::move(relTableSchema));
     return tableID;
 }
 
-const Property& CatalogContent::getNodeProperty(
+bool CatalogContent::containNodeTable(const std::string& tableName) const {
+    if (!tableNameToIDMap.contains(tableName)) {
+        return false;
+    }
+    auto tableID = getTableID(tableName);
+    return tableSchemas.at(tableID)->tableType == TableType::NODE;
+}
+
+bool CatalogContent::containRelTable(const std::string& tableName) const {
+    if (!tableNameToIDMap.contains(tableName)) {
+        return false;
+    }
+    auto tableID = getTableID(tableName);
+    return tableSchemas.at(tableID)->tableType == TableType::REL;
+}
+
+Property* CatalogContent::getNodeProperty(
     table_id_t tableID, const std::string& propertyName) const {
-    for (auto& property : nodeTableSchemas.at(tableID)->properties) {
-        if (propertyName == property.name) {
-            return property;
+    for (auto& property : tableSchemas.at(tableID)->properties) {
+        if (propertyName == property->getName()) {
+            return property.get();
         }
     }
     throw CatalogException("Cannot find node property " + propertyName + ".");
 }
 
-const Property& CatalogContent::getRelProperty(
+Property* CatalogContent::getRelProperty(
     table_id_t tableID, const std::string& propertyName) const {
-    for (auto& property : relTableSchemas.at(tableID)->properties) {
-        if (propertyName == property.name) {
-            return property;
+    for (auto& property : tableSchemas.at(tableID)->properties) {
+        if (propertyName == property->getName()) {
+            return property.get();
         }
     }
     throw CatalogException("Cannot find rel property " + propertyName + ".");
 }
 
+std::vector<NodeTableSchema*> CatalogContent::getNodeTableSchemas() const {
+    std::vector<NodeTableSchema*> nodeTableSchemas;
+    for (auto& tableSchema : tableSchemas) {
+        if (tableSchema.second->getTableType() == TableType::NODE) {
+            nodeTableSchemas.push_back(
+                reinterpret_cast<NodeTableSchema*>(tableSchema.second.get()));
+        }
+    }
+    return nodeTableSchemas;
+}
+
+std::vector<RelTableSchema*> CatalogContent::getRelTableSchemas() const {
+    std::vector<RelTableSchema*> relTableSchemas;
+    for (auto& tableSchema : tableSchemas) {
+        if (tableSchema.second->getTableType() == TableType::REL) {
+            relTableSchemas.push_back(reinterpret_cast<RelTableSchema*>(tableSchema.second.get()));
+        }
+    }
+    return relTableSchemas;
+}
+
 void CatalogContent::dropTableSchema(table_id_t tableID) {
-    auto tableSchema = getTableSchema(tableID);
-    switch (tableSchema->tableType) {
-    case TableType::NODE: {
-        nodeTableNameToIDMap.erase(tableSchema->tableName);
-        nodeTableSchemas.erase(tableID);
-    } break;
-    case TableType::REL: {
-        relTableNameToIDMap.erase(tableSchema->tableName);
-        relTableSchemas.erase(tableID);
-    } break;
-    default: {
-        throw NotImplementedException("CatalogContent::dropTableSchema");
-    }
-    }
+    auto tableName = getTableName(tableID);
+    tableNameToIDMap.erase(tableName);
+    tableSchemas.erase(tableID);
 }
 
 void CatalogContent::renameTable(table_id_t tableID, const std::string& newName) {
     auto tableSchema = getTableSchema(tableID);
-    auto& tableNameToIDMap =
-        tableSchema->tableType == TableType::NODE ? nodeTableNameToIDMap : relTableNameToIDMap;
     tableNameToIDMap.erase(tableSchema->tableName);
     tableNameToIDMap.emplace(newName, tableID);
-    tableSchema->tableName = newName;
+    tableSchema->updateTableName(newName);
 }
 
 void CatalogContent::saveToFile(const std::string& directory, DBFileType dbFileType) {
@@ -125,15 +131,10 @@ void CatalogContent::saveToFile(const std::string& directory, DBFileType dbFileT
     uint64_t offset = 0;
     writeMagicBytes(fileInfo.get(), offset);
     SerDeser::serializeValue(StorageVersionInfo::getStorageVersion(), fileInfo.get(), offset);
-    SerDeser::serializeValue(nodeTableSchemas.size(), fileInfo.get(), offset);
-    SerDeser::serializeValue(relTableSchemas.size(), fileInfo.get(), offset);
-    for (auto& [tableID, nodeTableSchema] : nodeTableSchemas) {
+    SerDeser::serializeValue(tableSchemas.size(), fileInfo.get(), offset);
+    for (auto& [tableID, tableSchema] : tableSchemas) {
         SerDeser::serializeValue(tableID, fileInfo.get(), offset);
-        nodeTableSchema->serialize(fileInfo.get(), offset);
-    }
-    for (auto& [tableID, relTableSchema] : relTableSchemas) {
-        SerDeser::serializeValue(tableID, fileInfo.get(), offset);
-        relTableSchema->serialize(fileInfo.get(), offset);
+        tableSchema->serialize(fileInfo.get(), offset);
     }
     SerDeser::serializeValue(nextTableID, fileInfo.get(), offset);
     SerDeser::serializeUnorderedMap(macros, fileInfo.get(), offset);
@@ -147,26 +148,15 @@ void CatalogContent::readFromFile(const std::string& directory, DBFileType dbFil
     storage_version_t savedStorageVersion;
     SerDeser::deserializeValue(savedStorageVersion, fileInfo.get(), offset);
     validateStorageVersion(savedStorageVersion);
-    uint64_t numNodeTables, numRelTables;
-    SerDeser::deserializeValue(numNodeTables, fileInfo.get(), offset);
-    SerDeser::deserializeValue(numRelTables, fileInfo.get(), offset);
+    uint64_t numTables;
+    SerDeser::deserializeValue(numTables, fileInfo.get(), offset);
     table_id_t tableID;
-    for (auto i = 0u; i < numNodeTables; i++) {
+    for (auto i = 0u; i < numTables; i++) {
         SerDeser::deserializeValue(tableID, fileInfo.get(), offset);
-        nodeTableSchemas[tableID] = ku_static_unique_pointer_cast<TableSchema, NodeTableSchema>(
-            TableSchema::deserialize(fileInfo.get(), offset));
+        tableSchemas.emplace(tableID, TableSchema::deserialize(fileInfo.get(), offset));
     }
-    for (auto i = 0u; i < numRelTables; i++) {
-        SerDeser::deserializeValue(tableID, fileInfo.get(), offset);
-        relTableSchemas[tableID] = ku_static_unique_pointer_cast<TableSchema, RelTableSchema>(
-            TableSchema::deserialize(fileInfo.get(), offset));
-    }
-    // Construct the tableNameToIdMap.
-    for (auto& nodeTableSchema : nodeTableSchemas) {
-        nodeTableNameToIDMap[nodeTableSchema.second->tableName] = nodeTableSchema.second->tableID;
-    }
-    for (auto& relTableSchema : relTableSchemas) {
-        relTableNameToIDMap[relTableSchema.second->tableName] = relTableSchema.second->tableID;
+    for (auto& [tableID_, tableSchema] : tableSchemas) {
+        tableNameToIDMap.emplace(tableSchema->tableName, tableID_);
     }
     SerDeser::deserializeValue(nextTableID, fileInfo.get(), offset);
     SerDeser::deserializeUnorderedMap(macros, fileInfo.get(), offset);
@@ -195,6 +185,19 @@ void CatalogContent::addScalarMacroFunction(
     std::string name, std::unique_ptr<function::ScalarMacroFunction> macro) {
     StringUtils::toUpper(name);
     macros.emplace(std::move(name), std::move(macro));
+}
+
+std::unique_ptr<CatalogContent> CatalogContent::copy() const {
+    std::unordered_map<common::table_id_t, std::unique_ptr<TableSchema>> tableSchemasToCopy;
+    for (auto& [tableID, tableSchema] : tableSchemas) {
+        tableSchemasToCopy.emplace(tableID, tableSchema->copy());
+    }
+    std::unordered_map<std::string, std::unique_ptr<function::ScalarMacroFunction>> macrosToCopy;
+    for (auto& macro : macros) {
+        macrosToCopy.emplace(macro.first, macro.second->copy());
+    }
+    return std::make_unique<CatalogContent>(
+        std::move(tableSchemasToCopy), tableNameToIDMap, nextTableID, std::move(macrosToCopy));
 }
 
 void CatalogContent::validateStorageVersion(storage_version_t savedStorageVersion) {
@@ -230,6 +233,16 @@ void CatalogContent::registerBuiltInFunctions() {
     builtInVectorFunctions = std::make_unique<function::BuiltInVectorFunctions>();
     builtInAggregateFunctions = std::make_unique<function::BuiltInAggregateFunctions>();
     builtInTableFunctions = std::make_unique<function::BuiltInTableFunctions>();
+}
+
+std::vector<common::table_id_t> CatalogContent::getTableIDsByType(TableType tableType) const {
+    std::vector<common::table_id_t> tableIDs;
+    for (auto& tableSchema : tableSchemas) {
+        if (tableSchema.second->getTableType() == tableType) {
+            tableIDs.push_back(tableSchema.first);
+        }
+    }
+    return tableIDs;
 }
 
 } // namespace catalog

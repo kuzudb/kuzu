@@ -9,7 +9,7 @@ using namespace kuzu::processor;
 namespace kuzu {
 namespace storage {
 
-PropertyCopyState::PropertyCopyState(LogicalType& dataType) {
+PropertyCopyState::PropertyCopyState(const LogicalType& dataType) {
     if (dataType.getLogicalTypeID() == LogicalTypeID::STRUCT) {
         auto numFields = StructType::getNumFields(&dataType);
         childStates.resize(numFields);
@@ -198,7 +198,7 @@ void RelCopier::checkViolationOfRelColumn(
             throw CopyException(
                 StringUtils::string_format("RelTable {} is a {} table, but node(nodeOffset: {}) "
                                            "has more than one neighbour in the {} direction.",
-                    schema->tableName, getRelMultiplicityAsString(schema->relMultiplicity),
+                    schema->tableName, getRelMultiplicityAsString(schema->getRelMultiplicity()),
                     offsets[i], RelDataDirectionUtils::relDataDirectionToString(direction)));
         }
         columnChunk->getNullChunk()->setValue<bool>(false, offsets[i]);
@@ -315,9 +315,9 @@ void ParquetRelListsCounterAndColumnsCopier::executeInternal(
     std::vector<offset_t> boundPKOffsets, adjPKOffsets;
     boundPKOffsets.resize(numRowsInBatch);
     adjPKOffsets.resize(numRowsInBatch);
-    indexLookup(recordBatch->column(0).get(), schema->srcPKDataType, pkIndexes[0],
+    indexLookup(recordBatch->column(0).get(), *schema->getSrcPKDataType(), pkIndexes[0],
         (offset_t*)boundPKOffsets.data(), morsel->filePath, morsel->rowIdxInFile);
-    indexLookup(recordBatch->column(1).get(), schema->dstPKDataType, pkIndexes[1],
+    indexLookup(recordBatch->column(1).get(), *schema->getDstPKDataType(), pkIndexes[1],
         (offset_t*)adjPKOffsets.data(), morsel->filePath, morsel->rowIdxInFile);
     std::vector<std::unique_ptr<arrow::Array>> pkOffsetsArrays(2);
     pkOffsetsArrays[0] = createArrowPrimitiveArray(
@@ -337,9 +337,9 @@ void CSVRelListsCounterAndColumnsCopier::executeInternal(std::unique_ptr<ReadFil
     std::vector<offset_t> boundPKOffsets, adjPKOffsets;
     boundPKOffsets.resize(numRowsInBatch);
     adjPKOffsets.resize(numRowsInBatch);
-    indexLookup(recordBatch->column(0).get(), schema->srcPKDataType, pkIndexes[0],
+    indexLookup(recordBatch->column(0).get(), *schema->getSrcPKDataType(), pkIndexes[0],
         boundPKOffsets.data(), morsel->filePath, morsel->rowIdxInFile);
-    indexLookup(recordBatch->column(1).get(), schema->dstPKDataType, pkIndexes[1],
+    indexLookup(recordBatch->column(1).get(), *schema->getDstPKDataType(), pkIndexes[1],
         adjPKOffsets.data(), morsel->filePath, morsel->rowIdxInFile);
     std::vector<std::unique_ptr<arrow::Array>> pkOffsets(2);
     pkOffsets[0] = createArrowPrimitiveArray(
@@ -382,9 +382,9 @@ void ParquetRelListsCopier::executeInternal(std::unique_ptr<ReadFileMorsel> mors
     std::vector<offset_t> boundPKOffsets, adjPKOffsets;
     boundPKOffsets.resize(numRowsInBatch);
     adjPKOffsets.resize(numRowsInBatch);
-    indexLookup(recordBatch->column(0).get(), schema->srcPKDataType, pkIndexes[0],
+    indexLookup(recordBatch->column(0).get(), *schema->getSrcPKDataType(), pkIndexes[0],
         boundPKOffsets.data(), morsel->filePath, morsel->rowIdxInFile);
-    indexLookup(recordBatch->column(1).get(), schema->dstPKDataType, pkIndexes[1],
+    indexLookup(recordBatch->column(1).get(), *schema->getDstPKDataType(), pkIndexes[1],
         adjPKOffsets.data(), morsel->filePath, morsel->rowIdxInFile);
     std::vector<std::unique_ptr<arrow::Array>> pkOffsets(2);
     pkOffsets[0] = createArrowPrimitiveArray(
@@ -408,9 +408,9 @@ void CSVRelListsCopier::executeInternal(std::unique_ptr<ReadFileMorsel> morsel) 
     std::vector<offset_t> boundPKOffsets, adjPKOffsets;
     boundPKOffsets.resize(numRowsInBatch);
     adjPKOffsets.resize(numRowsInBatch);
-    indexLookup(recordBatch->column(0).get(), schema->srcPKDataType, pkIndexes[0],
+    indexLookup(recordBatch->column(0).get(), *schema->getSrcPKDataType(), pkIndexes[0],
         boundPKOffsets.data(), morsel->filePath, morsel->rowIdxInFile);
-    indexLookup(recordBatch->column(1).get(), schema->dstPKDataType, pkIndexes[1],
+    indexLookup(recordBatch->column(1).get(), *schema->getDstPKDataType(), pkIndexes[1],
         adjPKOffsets.data(), morsel->filePath, morsel->rowIdxInFile);
     std::vector<std::unique_ptr<arrow::Array>> pkOffsets(2);
     pkOffsets[0] = createArrowPrimitiveArray(

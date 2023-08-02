@@ -145,41 +145,43 @@ public:
 
     void dropNodeTableCommitAndRecoveryTest(TransactionTestType transactionTestType) {
         conn->query("CREATE NODE TABLE university(address STRING, PRIMARY KEY(address));");
-        auto nodeTableSchema = std::make_unique<NodeTableSchema>(
-            *(NodeTableSchema*)catalog->getReadOnlyVersion()->getTableSchema(
-                catalog->getReadOnlyVersion()->getTableID("university")));
+        auto tableSchema =
+            catalog->getReadOnlyVersion()
+                ->getNodeTableSchema(catalog->getReadOnlyVersion()->getTableID("university"))
+                ->copy();
+        auto nodeTableSchema = reinterpret_cast<NodeTableSchema*>(tableSchema.get());
         executeQueryWithoutCommit("DROP TABLE university");
-        validateNodeColumnFilesExistence(nodeTableSchema.get(), DBFileType::ORIGINAL, true);
+        validateNodeColumnFilesExistence(nodeTableSchema, DBFileType::ORIGINAL, true);
         ASSERT_TRUE(catalog->getReadOnlyVersion()->containNodeTable("university"));
         if (transactionTestType == TransactionTestType::RECOVERY) {
             commitButSkipCheckpointingForTestingRecovery(*conn);
-            validateNodeColumnFilesExistence(nodeTableSchema.get(), DBFileType::ORIGINAL, true);
+            validateNodeColumnFilesExistence(nodeTableSchema, DBFileType::ORIGINAL, true);
             ASSERT_TRUE(catalog->getReadOnlyVersion()->containNodeTable("university"));
             initWithoutLoadingGraph();
         } else {
             conn->commit();
         }
-        validateNodeColumnFilesExistence(nodeTableSchema.get(), DBFileType::ORIGINAL, false);
+        validateNodeColumnFilesExistence(nodeTableSchema, DBFileType::ORIGINAL, false);
         ASSERT_FALSE(catalog->getReadOnlyVersion()->containNodeTable("university"));
     }
 
     void dropRelTableCommitAndRecoveryTest(TransactionTestType transactionTestType) {
-        auto relTableSchema = std::make_unique<RelTableSchema>(
-            *(RelTableSchema*)catalog->getReadOnlyVersion()->getTableSchema(
-                catalog->getReadOnlyVersion()->getTableID("knows")));
+        auto tableSchema = catalog->getReadOnlyVersion()
+                               ->getTableSchema(catalog->getReadOnlyVersion()->getTableID("knows"))
+                               ->copy();
+        auto relTableSchema = reinterpret_cast<RelTableSchema*>(tableSchema.get());
         executeQueryWithoutCommit("DROP TABLE knows");
-        validateRelColumnAndListFilesExistence(relTableSchema.get(), DBFileType::ORIGINAL, true);
+        validateRelColumnAndListFilesExistence(relTableSchema, DBFileType::ORIGINAL, true);
         ASSERT_TRUE(catalog->getReadOnlyVersion()->containRelTable("knows"));
         if (transactionTestType == TransactionTestType::RECOVERY) {
             commitButSkipCheckpointingForTestingRecovery(*conn);
-            validateRelColumnAndListFilesExistence(
-                relTableSchema.get(), DBFileType::ORIGINAL, true);
+            validateRelColumnAndListFilesExistence(relTableSchema, DBFileType::ORIGINAL, true);
             ASSERT_TRUE(catalog->getReadOnlyVersion()->containRelTable("knows"));
             initWithoutLoadingGraph();
         } else {
             conn->commit();
         }
-        validateRelColumnAndListFilesExistence(relTableSchema.get(), DBFileType::ORIGINAL, false);
+        validateRelColumnAndListFilesExistence(relTableSchema, DBFileType::ORIGINAL, false);
         ASSERT_FALSE(catalog->getReadOnlyVersion()->containRelTable("knows"));
     }
 
@@ -187,8 +189,9 @@ public:
         auto propertyToDrop =
             catalog->getReadOnlyVersion()->getNodeProperty(personTableID, "gender");
         auto propertyFileName = StorageUtils::getNodePropertyColumnFName(
-            databasePath, personTableID, propertyToDrop.propertyID, DBFileType::ORIGINAL);
-        bool hasOverflowFile = containsOverflowFile(propertyToDrop.dataType.getLogicalTypeID());
+            databasePath, personTableID, propertyToDrop->getPropertyID(), DBFileType::ORIGINAL);
+        bool hasOverflowFile =
+            containsOverflowFile(propertyToDrop->getDataType()->getLogicalTypeID());
         executeQueryWithoutCommit("ALTER TABLE person DROP gender");
         ASSERT_TRUE(catalog->getReadOnlyVersion()
                         ->getTableSchema(personTableID)
@@ -218,11 +221,14 @@ public:
             catalog->getReadOnlyVersion()->getRelProperty(studyAtTableID, "places");
         // Note: studyAt is a MANY-ONE rel table. Properties are stored as columns in the fwd
         // direction and stored as lists in the bwd direction.
-        auto propertyFWDColumnFileName = StorageUtils::getRelPropertyColumnFName(databasePath,
-            studyAtTableID, RelDataDirection::FWD, propertyToDrop.propertyID, DBFileType::ORIGINAL);
-        auto propertyBWDListFileName = StorageUtils::getRelPropertyListsFName(databasePath,
-            studyAtTableID, RelDataDirection::BWD, propertyToDrop.propertyID, DBFileType::ORIGINAL);
-        bool hasOverflowFile = containsOverflowFile(propertyToDrop.dataType.getLogicalTypeID());
+        auto propertyFWDColumnFileName =
+            StorageUtils::getRelPropertyColumnFName(databasePath, studyAtTableID,
+                RelDataDirection::FWD, propertyToDrop->getPropertyID(), DBFileType::ORIGINAL);
+        auto propertyBWDListFileName =
+            StorageUtils::getRelPropertyListsFName(databasePath, studyAtTableID,
+                RelDataDirection::BWD, propertyToDrop->getPropertyID(), DBFileType::ORIGINAL);
+        bool hasOverflowFile =
+            containsOverflowFile(propertyToDrop->getDataType()->getLogicalTypeID());
         executeQueryWithoutCommit("ALTER TABLE studyAt DROP places");
         validateColumnFilesExistence(
             propertyFWDColumnFileName, true /* existence */, hasOverflowFile);
@@ -297,8 +303,8 @@ public:
             StringUtils::string_format("ALTER TABLE person ADD random {}", propertyType));
         auto tableSchema = catalog->getWriteVersion()->getTableSchema(personTableID);
         auto propertyID = tableSchema->getPropertyID("random");
-        auto hasOverflow =
-            containsOverflowFile(tableSchema->getProperty(propertyID).dataType.getLogicalTypeID());
+        auto hasOverflow = containsOverflowFile(
+            tableSchema->getProperty(propertyID)->getDataType()->getLogicalTypeID());
         auto columnOriginalVersionFileName = StorageUtils::getNodePropertyColumnFName(
             databasePath, personTableID, propertyID, DBFileType::ORIGINAL);
         auto columnWALVersionFileName = StorageUtils::getNodePropertyColumnFName(
@@ -322,8 +328,8 @@ public:
             "ALTER TABLE person ADD random " + propertyType + " DEFAULT " + defaultVal);
         auto tableSchema = catalog->getWriteVersion()->getTableSchema(personTableID);
         auto propertyID = tableSchema->getPropertyID("random");
-        auto hasOverflow =
-            containsOverflowFile(tableSchema->getProperty(propertyID).dataType.getLogicalTypeID());
+        auto hasOverflow = containsOverflowFile(
+            tableSchema->getProperty(propertyID)->getDataType()->getLogicalTypeID());
         auto columnOriginalVersionFileName = StorageUtils::getNodePropertyColumnFName(
             databasePath, personTableID, propertyID, DBFileType::ORIGINAL);
         auto columnWALVersionFileName = StorageUtils::getNodePropertyColumnFName(
@@ -355,8 +361,8 @@ public:
             StringUtils::string_format("ALTER TABLE studyAt ADD random {}", propertyType));
         auto tableSchema = catalog->getWriteVersion()->getTableSchema(studyAtTableID);
         auto propertyID = tableSchema->getPropertyID("random");
-        auto hasOverflow =
-            containsOverflowFile(tableSchema->getProperty(propertyID).dataType.getLogicalTypeID());
+        auto hasOverflow = containsOverflowFile(
+            tableSchema->getProperty(propertyID)->getDataType()->getLogicalTypeID());
         auto fwdColumnOriginalVersionFileName = StorageUtils::getRelPropertyColumnFName(
             databasePath, studyAtTableID, RelDataDirection::FWD, propertyID, DBFileType::ORIGINAL);
         auto fwdColumnWALVersionFileName = StorageUtils::getRelPropertyColumnFName(databasePath,
@@ -397,7 +403,7 @@ public:
         auto relTableSchema = catalog->getWriteVersion()->getTableSchema(studyAtTableID);
         auto propertyID = relTableSchema->getPropertyID("random");
         auto hasOverflow = containsOverflowFile(
-            relTableSchema->getProperty(propertyID).dataType.getLogicalTypeID());
+            relTableSchema->getProperty(propertyID)->getDataType()->getLogicalTypeID());
         auto fwdColumnOriginalVersionFileName = StorageUtils::getRelPropertyColumnFName(
             databasePath, studyAtTableID, RelDataDirection::FWD, propertyID, DBFileType::ORIGINAL);
         auto fwdColumnWALVersionFileName = StorageUtils::getRelPropertyColumnFName(databasePath,

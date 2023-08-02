@@ -23,16 +23,19 @@ void NodeTable::initializeData(NodeTableSchema* nodeTableSchema) {
 
 void NodeTable::initializeColumns(NodeTableSchema* nodeTableSchema) {
     for (auto& property : nodeTableSchema->getProperties()) {
-        propertyColumns[property.propertyID] =
-            NodeColumnFactory::createNodeColumn(property, dataFH, metadataFH, &bufferManager, wal);
+        propertyColumns[property->getPropertyID()] = ColumnFactory::getColumn(
+            StorageUtils::getNodePropertyColumnStructureIDAndFName(wal->getDirectory(), *property),
+            *property->getDataType(), bm, wal);
     }
 }
 
-void NodeTable::initializePKIndex(NodeTableSchema* nodeTableSchema) {
-    if (nodeTableSchema->getPrimaryKey().dataType.getLogicalTypeID() != LogicalTypeID::SERIAL) {
+void NodeTable::initializeData(NodeTableSchema* nodeTableSchema) {
+    propertyColumns = initializeColumns(wal, &bufferManager, nodeTableSchema);
+    if (nodeTableSchema->getPrimaryKey()->getDataType()->getLogicalTypeID() !=
+        LogicalTypeID::SERIAL) {
         pkIndex = std::make_unique<PrimaryKeyIndex>(
             StorageUtils::getNodeIndexIDAndFName(wal->getDirectory(), tableID),
-            nodeTableSchema->getPrimaryKey().dataType, bufferManager, wal);
+            *nodeTableSchema->getPrimaryKey()->getDataType(), bufferManager, wal);
     }
 }
 

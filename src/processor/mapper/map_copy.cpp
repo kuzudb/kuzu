@@ -16,11 +16,14 @@ namespace processor {
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapCopy(LogicalOperator* logicalOperator) {
     auto copy = (LogicalCopy*)logicalOperator;
-    auto tableName = catalog->getReadOnlyVersion()->getTableName(copy->getTableID());
-    if (catalog->getReadOnlyVersion()->containNodeTable(tableName)) {
+    auto tableSchema = catalog->getReadOnlyVersion()->getTableSchema(copy->getTableID());
+    switch (tableSchema->getTableType()) {
+    case catalog::TableType::NODE:
         return mapCopyNode(logicalOperator);
-    } else {
+    case catalog::TableType::REL:
         return mapCopyRel(logicalOperator);
+    default:
+        throw common::NotImplementedException{"PlanMapper::mapCopy"};
     }
 }
 

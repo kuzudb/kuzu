@@ -8,7 +8,7 @@ namespace binder {
 class BoundAddProperty : public BoundDDL {
 public:
     explicit BoundAddProperty(common::table_id_t tableID, std::string propertyName,
-        common::LogicalType dataType, std::shared_ptr<Expression> defaultValue,
+        std::unique_ptr<common::LogicalType> dataType, std::shared_ptr<Expression> defaultValue,
         std::string tableName)
         : BoundDDL{common::StatementType::ADD_PROPERTY, std::move(tableName)}, tableID{tableID},
           propertyName{std::move(propertyName)}, dataType{std::move(dataType)},
@@ -18,14 +18,14 @@ public:
 
     inline std::string getPropertyName() const { return propertyName; }
 
-    inline common::LogicalType getDataType() const { return dataType; }
+    inline common::LogicalType* getDataType() const { return dataType.get(); }
 
     inline std::shared_ptr<Expression> getDefaultValue() const { return defaultValue; }
 
 private:
     common::table_id_t tableID;
     std::string propertyName;
-    common::LogicalType dataType;
+    std::unique_ptr<common::LogicalType> dataType;
     std::shared_ptr<Expression> defaultValue;
 };
 

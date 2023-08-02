@@ -27,9 +27,10 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateNode(LogicalOperator* log
         auto primaryKeyEvaluator =
             primaryKey != nullptr ? expressionMapper.mapExpression(primaryKey, *inSchema) : nullptr;
         std::vector<RelTable*> relTablesToInit;
-        for (auto& [relTableID, relTableSchema] : catalogContent->getRelTableSchemas()) {
+        for (auto relTableSchema : catalogContent->getRelTableSchemas()) {
             if (relTableSchema->isSrcOrDstTable(nodeTableID)) {
-                relTablesToInit.push_back(storageManager.getRelsStore().getRelTable(relTableID));
+                relTablesToInit.push_back(
+                    storageManager.getRelsStore().getRelTable(relTableSchema->tableID));
             }
         }
         auto outDataPos = DataPos(outSchema->getExpressionPos(*node->getInternalIDProperty()));

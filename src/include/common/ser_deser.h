@@ -18,6 +18,7 @@ class SerDeser {
 public:
     template<typename T>
     static void serializeValue(const T& value, FileInfo* fileInfo, uint64_t& offset) {
+        static_assert(std::is_trivially_destructible<T>(), "value must be a trivial type");
         FileUtils::writeToFile(fileInfo, (uint8_t*)&value, sizeof(T), offset);
         offset += sizeof(T);
     }
@@ -33,6 +34,7 @@ public:
 
     template<typename T>
     static void deserializeValue(T& value, FileInfo* fileInfo, uint64_t& offset) {
+        static_assert(std::is_trivially_destructible<T>(), "value must be a trivial type");
         FileUtils::readFromFile(fileInfo, (uint8_t*)&value, sizeof(T), offset);
         offset += sizeof(T);
     }
@@ -51,9 +53,9 @@ public:
     static void serializeUnorderedMap(const std::unordered_map<T1, std::unique_ptr<T2>>& values,
         FileInfo* fileInfo, uint64_t& offset) {
         uint64_t mapSize = values.size();
-        serializeValue<uint64_t>(mapSize, fileInfo, offset);
+        serializeValue(mapSize, fileInfo, offset);
         for (auto& value : values) {
-            serializeValue<T1>(value.first, fileInfo, offset);
+            serializeValue(value.first, fileInfo, offset);
             value.second->serialize(fileInfo, offset);
         }
     }
@@ -65,16 +67,6 @@ public:
         serializeValue<uint64_t>(vectorSize, fileInfo, offset);
         for (auto& value : values) {
             serializeValue<T>(value, fileInfo, offset);
-        }
-    }
-
-    template<typename T>
-    static void serializeVectorOfObjects(
-        const std::vector<T>& values, FileInfo* fileInfo, uint64_t& offset) {
-        uint64_t vectorSize = values.size();
-        serializeValue<uint64_t>(vectorSize, fileInfo, offset);
-        for (auto& value : values) {
-            value.serialize(fileInfo, offset);
         }
     }
 
@@ -105,21 +97,10 @@ public:
     template<typename T>
     static void deserializeVector(std::vector<T>& values, FileInfo* fileInfo, uint64_t& offset) {
         uint64_t vectorSize;
-        deserializeValue<uint64_t>(vectorSize, fileInfo, offset);
+        deserializeValue(vectorSize, fileInfo, offset);
         values.resize(vectorSize);
         for (auto& value : values) {
-            deserializeValue<T>(value, fileInfo, offset);
-        }
-    }
-
-    template<typename T>
-    static void deserializeVectorOfObjects(
-        std::vector<T>& values, FileInfo* fileInfo, uint64_t& offset) {
-        uint64_t vectorSize;
-        deserializeValue<uint64_t>(vectorSize, fileInfo, offset);
-        values.reserve(vectorSize);
-        for (auto i = 0u; i < vectorSize; i++) {
-            values.push_back(*T::deserialize(fileInfo, offset));
+            deserializeValue(value, fileInfo, offset);
         }
     }
 
@@ -127,7 +108,7 @@ public:
     static void deserializeVectorOfPtrs(
         std::vector<std::unique_ptr<T>>& values, FileInfo* fileInfo, uint64_t& offset) {
         uint64_t vectorSize;
-        deserializeValue<uint64_t>(vectorSize, fileInfo, offset);
+        deserializeValue(vectorSize, fileInfo, offset);
         values.reserve(vectorSize);
         for (auto i = 0u; i < vectorSize; i++) {
             values.push_back(T::deserialize(fileInfo, offset));
@@ -140,7 +121,7 @@ public:
         uint64_t setSize = values.size();
         serializeValue(setSize, fileInfo, offset);
         for (auto& value : values) {
-            serializeValue<T>(value, fileInfo, offset);
+            serializeValue(value, fileInfo, offset);
         }
     }
 
@@ -158,12 +139,8 @@ public:
 };
 
 template<>
-void SerDeser::serializeValue(const LogicalType& value, FileInfo* fileInfo, uint64_t& offset);
-template<>
 void SerDeser::serializeValue(const std::string& value, FileInfo* fileInfo, uint64_t& offset);
 
-template<>
-void SerDeser::deserializeValue(LogicalType& value, FileInfo* fileInfo, uint64_t& offset);
 template<>
 void SerDeser::deserializeValue(std::string& value, FileInfo* fileInfo, uint64_t& offset);
 

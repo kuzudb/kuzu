@@ -13,7 +13,7 @@ namespace kuzu {
 namespace storage {
 
 struct PropertyCopyState {
-    PropertyCopyState(common::LogicalType& dataType);
+    explicit PropertyCopyState(const common::LogicalType& dataType);
 
     PageByteCursor overflowCursor;
     std::vector<std::unique_ptr<PropertyCopyState>> childStates;

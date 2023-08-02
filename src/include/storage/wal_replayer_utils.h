@@ -117,6 +117,10 @@ private:
         common::RelDataDirection relDirection, bool isColumnProperty,
         std::function<void(std::string fileName)> columnFileOperation,
         std::function<void(std::string fileName)> listFileOperation);
+
+    static void fileOperationOnNodePropertyFile(const std::string& propertyBaseFileName,
+        const common::LogicalType& propertyType,
+        std::function<void(std::string fileName)> columnFileOperation);
 };
 
 } // namespace storage

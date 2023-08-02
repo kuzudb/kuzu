@@ -21,27 +21,35 @@ CopyNodeSharedState::CopyNodeSharedState(uint64_t& numRows, NodeTableSchema* tab
     fTable = std::make_shared<FactorizedTable>(memoryManager, std::move(ftTableSchema));
 }
 
-void CopyNodeSharedState::initializePrimaryKey(const std::string& directory) {
-    if (tableSchema->getPrimaryKey().dataType.getLogicalTypeID() != LogicalTypeID::SERIAL) {
+void CopyNodeSharedState::initializePrimaryKey(
+    NodeTableSchema* nodeTableSchema, const std::string& directory) {
+    if (nodeTableSchema->getPrimaryKey()->getDataType()->getLogicalTypeID() !=
+        LogicalTypeID::SERIAL) {
         pkIndex = std::make_unique<PrimaryKeyIndexBuilder>(
-            StorageUtils::getNodeIndexFName(directory, tableSchema->tableID, DBFileType::ORIGINAL),
-            tableSchema->getPrimaryKey().dataType);
+            StorageUtils::getNodeIndexFName(
+                directory, nodeTableSchema->tableID, DBFileType::ORIGINAL),
+            *nodeTableSchema->getPrimaryKey()->getDataType());
         pkIndex->bulkReserve(numRows);
     }
-    for (auto& property : tableSchema->properties) {
-        if (property.propertyID == tableSchema->getPrimaryKey().propertyID) {
+    for (auto& property : nodeTableSchema->properties) {
+        if (property->getPropertyID() == nodeTableSchema->getPrimaryKey()->getPropertyID()) {
             break;
         }
         pkColumnID++;
     }
 }
 
-void CopyNodeSharedState::logCopyNodeWALRecord(WAL* wal) {
-    std::unique_lock xLck{mtx};
-    if (!hasLoggedWAL) {
-        wal->logCopyNodeRecord(table->getTableID(), table->getDataFH()->getNumPages());
-        wal->flushAllPages();
-        hasLoggedWAL = true;
+void CopyNodeSharedState::initializeColumns(
+    NodeTableSchema* nodeTableSchema, const std::string& directory) {
+    columns.reserve(nodeTableSchema->properties.size());
+    for (auto& property : nodeTableSchema->properties) {
+        if (property->getDataType()->getLogicalTypeID() == LogicalTypeID::SERIAL) {
+            // Skip SERIAL, as it is not physically stored.
+            continue;
+        }
+        auto fPath = StorageUtils::getNodePropertyColumnFName(
+            directory, nodeTableSchema->tableID, property->getPropertyID(), DBFileType::ORIGINAL);
+        columns.push_back(std::make_unique<InMemColumn>(fPath, *property->getDataType()));
     }
 }
 
@@ -50,7 +58,17 @@ CopyNode::CopyNode(std::shared_ptr<CopyNodeSharedState> sharedState, CopyNodeInf
     std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
     : Sink{std::move(resultSetDescriptor), PhysicalOperatorType::COPY_NODE, std::move(child), id,
           paramsString},
-      sharedState{std::move(sharedState)}, copyNodeInfo{std::move(copyNodeInfo)} {}
+      sharedState{std::move(sharedState)}, copyNodeInfo{std::move(copyNodeInfo)},
+      nodeOffsetVector{nullptr},
+      rowIdxVector{nullptr}, filePathVector{nullptr} {
+    auto tableSchema = this->copyNodeInfo.catalog->getReadOnlyVersion()->getNodeTableSchema(
+        this->copyNodeInfo.table->getTableID());
+    copyStates.resize(tableSchema->getNumProperties());
+    for (auto i = 0u; i < tableSchema->getNumProperties(); i++) {
+        auto& property = tableSchema->properties[i];
+        copyStates[i] = std::make_unique<storage::PropertyCopyState>(*property->getDataType());
+    }
+}
 
 void CopyNodeSharedState::appendLocalNodeGroup(std::unique_ptr<NodeGroup> localNodeGroup) {
     std::unique_lock xLck{mtx};
