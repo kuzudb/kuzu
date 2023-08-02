@@ -30,7 +30,7 @@ static DataPos getOutputPos(LogicalDDL* logicalDDL) {
 std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateNodeTable(LogicalOperator* logicalOperator) {
     auto createNodeTable = (LogicalCreateNodeTable*)logicalOperator;
     return std::make_unique<CreateNodeTable>(catalog, createNodeTable->getTableName(),
-        createNodeTable->getProperties(), createNodeTable->getPrimaryKeyIdx(),
+        createNodeTable->getProperties(), createNodeTable->getPrimaryKeyIdx(), storageManager,
         getOutputPos(createNodeTable), getOperatorID(),
         createNodeTable->getExpressionsForPrinting(),
         &storageManager.getNodesStore().getNodesStatisticsAndDeletedIDs());

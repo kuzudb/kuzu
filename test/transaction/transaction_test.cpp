@@ -64,7 +64,7 @@ public:
         dataChunk->state->currIdx = nodeOffset;
         dataChunk->state->selVector->resetSelectorToValuePosBuffer();
         dataChunk->state->selVector->selectedPositions[0] = nodeOffset;
-        personAgeColumn->read(trx, nodeVector.get(), agePropertyVectorToReadDataInto.get());
+        personAgeColumn->lookup(trx, nodeVector.get(), agePropertyVectorToReadDataInto.get());
         if (isNull) {
             ASSERT_TRUE(agePropertyVectorToReadDataInto->isNull(dataChunk->state->currIdx));
         } else {
@@ -79,7 +79,7 @@ public:
         dataChunk->state->currIdx = nodeOffset;
         dataChunk->state->selVector->resetSelectorToValuePosBuffer();
         dataChunk->state->selVector->selectedPositions[0] = nodeOffset;
-        personEyeSightColumn->read(trx, nodeVector.get(), eyeSightVectorToReadDataInto.get());
+        personEyeSightColumn->lookup(trx, nodeVector.get(), eyeSightVectorToReadDataInto.get());
         if (isNull) {
             ASSERT_TRUE(eyeSightVectorToReadDataInto->isNull(dataChunk->state->currIdx));
         } else {
@@ -191,8 +191,8 @@ public:
     std::shared_ptr<ValueVector> nodeVector;
     std::shared_ptr<ValueVector> agePropertyVectorToReadDataInto;
     std::shared_ptr<ValueVector> eyeSightVectorToReadDataInto;
-    Column* personAgeColumn;
-    Column* personEyeSightColumn;
+    NodeColumn* personAgeColumn;
+    NodeColumn* personEyeSightColumn;
 };
 
 TEST_F(TransactionTests, SingleTransactionReadWriteToStructuredNodePropertyNonNullTest) {

@@ -1,7 +1,7 @@
 # FIXME: this test is segfaulting
 -GROUP ShortestPathTest
--SKIP
 -DATASET PARQUET CSV_TO_PARQUET(shortest-path-tests)
+-SKIP
 
 --
 

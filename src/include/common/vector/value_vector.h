@@ -219,6 +219,9 @@ public:
     }
 
     static void setArrowColumn(ValueVector* vector, std::shared_ptr<arrow::Array> column);
+
+    // Slice the arrow column vector from the given offset to the end.
+    static void slice(ValueVector* vector, offset_t offset);
 };
 
 class NodeIDVector {

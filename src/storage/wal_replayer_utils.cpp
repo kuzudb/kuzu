@@ -36,16 +36,8 @@ void WALReplayerUtils::createEmptyDBFilesForNewRelTable(RelTableSchema* relTable
     }
 }
 
-void WALReplayerUtils::createEmptyDBFilesForNewNodeTable(
-    NodeTableSchema* nodeTableSchema, const std::string& directory) {
-    for (auto& property : nodeTableSchema->properties) {
-        if (property->getDataType()->getLogicalTypeID() == LogicalTypeID::SERIAL) {
-            continue;
-        }
-        auto fName = StorageUtils::getNodePropertyColumnFName(
-            directory, nodeTableSchema->tableID, property->getPropertyID(), DBFileType::ORIGINAL);
-        std::make_unique<InMemColumn>(fName, *property->getDataType())->saveToFile();
-    }
+void WALReplayerUtils::createEmptyHashIndexFiles(
+    catalog::NodeTableSchema* nodeTableSchema, const std::string& directory) {
     auto pk = nodeTableSchema->getPrimaryKey();
     switch (pk->getDataType()->getLogicalTypeID()) {
     case LogicalTypeID::INT64: {
@@ -177,11 +169,6 @@ void WALReplayerUtils::removeListFilesIfExists(const std::string& fileName) {
 void WALReplayerUtils::fileOperationOnNodeFiles(NodeTableSchema* nodeTableSchema,
     const std::string& directory, std::function<void(std::string fileName)> columnFileOperation,
     std::function<void(std::string fileName)> listFileOperation) {
-    for (auto& property : nodeTableSchema->properties) {
-        auto columnFName = StorageUtils::getNodePropertyColumnFName(
-            directory, nodeTableSchema->tableID, property->getPropertyID(), DBFileType::ORIGINAL);
-        fileOperationOnNodePropertyFile(columnFName, *property->getDataType(), columnFileOperation);
-    }
     columnFileOperation(
         StorageUtils::getNodeIndexFName(directory, nodeTableSchema->tableID, DBFileType::ORIGINAL));
 }
@@ -221,21 +208,6 @@ void WALReplayerUtils::fileOperationOnRelPropertyFiles(RelTableSchema* tableSche
                 StorageUtils::getRelPropertyListsFName(directory, tableSchema->tableID,
                     relDirection, property->getPropertyID(), DBFileType::ORIGINAL));
         }
-    }
-}
-
-void WALReplayerUtils::fileOperationOnNodePropertyFile(const std::string& propertyBaseFileName,
-    const common::LogicalType& propertyType,
-    std::function<void(std::string fileName)> columnFileOperation) {
-    if (propertyType.getLogicalTypeID() == common::LogicalTypeID::STRUCT) {
-        auto fieldTypes = common::StructType::getFieldTypes(&propertyType);
-        for (auto i = 0u; i < fieldTypes.size(); i++) {
-            fileOperationOnNodePropertyFile(
-                StorageUtils::appendStructFieldName(propertyBaseFileName, i), *fieldTypes[i],
-                columnFileOperation);
-        }
-    } else {
-        columnFileOperation(propertyBaseFileName);
     }
 }
 

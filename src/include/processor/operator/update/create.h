@@ -8,19 +8,20 @@ namespace kuzu {
 namespace processor {
 
 struct CreateNodeInfo {
+    catalog::NodeTableSchema* schema;
     storage::NodeTable* table;
     std::unique_ptr<evaluator::BaseExpressionEvaluator> primaryKeyEvaluator;
     std::vector<storage::RelTable*> relTablesToInit;
     DataPos outNodeIDVectorPos;
 
-    CreateNodeInfo(storage::NodeTable* table,
+    CreateNodeInfo(catalog::NodeTableSchema* schema, storage::NodeTable* table,
         std::unique_ptr<evaluator::BaseExpressionEvaluator> primaryKeyEvaluator,
         std::vector<storage::RelTable*> relTablesToInit, const DataPos& dataPos)
-        : table{table}, primaryKeyEvaluator{std::move(primaryKeyEvaluator)},
+        : schema{schema}, table{table}, primaryKeyEvaluator{std::move(primaryKeyEvaluator)},
           relTablesToInit{std::move(relTablesToInit)}, outNodeIDVectorPos{dataPos} {}
 
     inline std::unique_ptr<CreateNodeInfo> clone() {
-        return std::make_unique<CreateNodeInfo>(table,
+        return std::make_unique<CreateNodeInfo>(schema, table,
             primaryKeyEvaluator != nullptr ? primaryKeyEvaluator->clone() : nullptr,
             relTablesToInit, outNodeIDVectorPos);
     }

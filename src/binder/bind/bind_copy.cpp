@@ -20,12 +20,11 @@ std::unique_ptr<BoundStatement> Binder::bindCopyClause(const Statement& statemen
     auto boundFilePaths = bindFilePaths(copyStatement.getFilePaths());
     auto actualFileType = bindFileType(boundFilePaths);
     auto expectedFileType = copyStatement.getFileType();
-    if (expectedFileType == common::CopyDescription::FileType::UNKNOWN &&
-        actualFileType == common::CopyDescription::FileType::NPY) {
+    if (expectedFileType == CopyDescription::FileType::UNKNOWN &&
+        actualFileType == CopyDescription::FileType::NPY) {
         throw BinderException("Please use COPY FROM BY COLUMN statement for copying npy files.");
     }
-    if (expectedFileType == common::CopyDescription::FileType::NPY &&
-        actualFileType != expectedFileType) {
+    if (expectedFileType == CopyDescription::FileType::NPY && actualFileType != expectedFileType) {
         throw BinderException("Please use COPY FROM statement for copying csv and parquet files.");
     }
     if (actualFileType == CopyDescription::FileType::NPY) {

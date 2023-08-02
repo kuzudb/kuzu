@@ -22,6 +22,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateNode(LogicalOperator* log
         auto node = logicalCreateNode->getNode(i);
         auto primaryKey = logicalCreateNode->getPrimaryKey(i);
         auto nodeTableID = node->getSingleTableID();
+        auto schema = catalog->getReadOnlyVersion()->getNodeTableSchema(nodeTableID);
         auto table = nodesStore.getNodeTable(nodeTableID);
         auto primaryKeyEvaluator =
             primaryKey != nullptr ? expressionMapper.mapExpression(primaryKey, *inSchema) : nullptr;
@@ -34,7 +35,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateNode(LogicalOperator* log
         }
         auto outDataPos = DataPos(outSchema->getExpressionPos(*node->getInternalIDProperty()));
         createNodeInfos.push_back(make_unique<CreateNodeInfo>(
-            table, std::move(primaryKeyEvaluator), relTablesToInit, outDataPos));
+            schema, table, std::move(primaryKeyEvaluator), relTablesToInit, outDataPos));
     }
     return make_unique<CreateNode>(std::move(createNodeInfos), std::move(prevOperator),
         getOperatorID(), logicalCreateNode->getExpressionsForPrinting());

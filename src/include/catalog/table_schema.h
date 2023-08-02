@@ -11,6 +11,10 @@
 #include "property.h"
 
 namespace kuzu {
+namespace storage {
+class BMFileHandle;
+}
+
 namespace catalog {
 
 enum class TableType : uint8_t { NODE = 0, REL = 1, INVALID = 2 };

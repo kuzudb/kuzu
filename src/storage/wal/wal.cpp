@@ -78,9 +78,10 @@ void WAL::logOverflowFileNextBytePosRecord(
     addNewWALRecordNoLock(walRecord);
 }
 
-void WAL::logCopyNodeRecord(table_id_t tableID) {
+void WAL::logCopyNodeRecord(table_id_t tableID, page_idx_t startPageIdx) {
     lock_t lck{mtx};
-    WALRecord walRecord = WALRecord::newCopyNodeRecord(tableID);
+    WALRecord walRecord = WALRecord::newCopyNodeRecord(tableID, startPageIdx);
+    updatedNodeTables.insert(tableID);
     addNewWALRecordNoLock(walRecord);
 }
 
