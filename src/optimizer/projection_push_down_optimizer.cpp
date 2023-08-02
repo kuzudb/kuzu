@@ -200,20 +200,21 @@ void ProjectionPushDownOptimizer::visitDeleteRel(planner::LogicalOperator* op) {
 
 void ProjectionPushDownOptimizer::visitSetNodeProperty(planner::LogicalOperator* op) {
     auto setNodeProperty = (LogicalSetNodeProperty*)op;
-    for (auto i = 0u; i < setNodeProperty->getNumNodes(); ++i) {
-        collectExpressionsInUse(setNodeProperty->getNode(i)->getInternalIDProperty());
-        collectExpressionsInUse(setNodeProperty->getSetItem(i).second);
+    for (auto& info : setNodeProperty->getInfosRef()) {
+        auto node = (NodeExpression*)info->nodeOrRel.get();
+        collectExpressionsInUse(node->getInternalIDProperty());
+        collectExpressionsInUse(info->setItem.second);
     }
 }
 
 void ProjectionPushDownOptimizer::visitSetRelProperty(planner::LogicalOperator* op) {
     auto setRelProperty = (LogicalSetRelProperty*)op;
-    for (auto i = 0; i < setRelProperty->getNumRels(); ++i) {
-        auto rel = setRelProperty->getRel(i);
+    for (auto& info : setRelProperty->getInfosRef()) {
+        auto rel = (RelExpression*)info->nodeOrRel.get();
         collectExpressionsInUse(rel->getSrcNode()->getInternalIDProperty());
         collectExpressionsInUse(rel->getDstNode()->getInternalIDProperty());
         collectExpressionsInUse(rel->getInternalIDProperty());
-        collectExpressionsInUse(setRelProperty->getSetItem(i).second);
+        collectExpressionsInUse(info->setItem.second);
     }
 }
 

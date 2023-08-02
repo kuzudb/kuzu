@@ -60,7 +60,12 @@ public:
     virtual common::page_idx_t append(
         ColumnChunk* columnChunk, common::page_idx_t startPageIdx, uint64_t nodeGroupIdx);
 
-    virtual void write(common::ValueVector* nodeIDVector, common::ValueVector* vectorToWriteFrom);
+    // TODO(Guodong): refactor these write interfaces.
+    void write(common::ValueVector* nodeIDVector, common::ValueVector* vectorToWriteFrom);
+    inline void write(common::offset_t nodeOffset, common::ValueVector* vectorToWriteFrom,
+        uint32_t posInVectorToWriteFrom) {
+        writeInternal(nodeOffset, vectorToWriteFrom, posInVectorToWriteFrom);
+    }
 
     virtual void setNull(common::offset_t nodeOffset);
 

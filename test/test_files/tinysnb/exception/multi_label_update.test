@@ -11,11 +11,3 @@ Binder exception: Create node a with multiple node labels is not supported.
 -STATEMENT MATCH (a:person), (b:person:organisation) CREATE (a)-[e:knows]->(b)
 ---- error
 Binder exception: Create rel e with multiple rel labels or bound by multiple node labels is not supported.
-
--STATEMENT MATCH (a:person:organisation) SET a.age = 0
----- error
-Binder exception: Set property of node a with multiple node labels is not supported.
-
--STATEMENT MATCH (a:person:organisation)-[e:knows]->(b:person) SET e.date=date('2022-12-12')
----- error
-Binder exception: Set property of rel e with multiple rel labels or bound by multiple node labels is not supported.

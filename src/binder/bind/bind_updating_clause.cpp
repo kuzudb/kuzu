@@ -207,12 +207,10 @@ std::unique_ptr<BoundSetPropertyInfo> Binder::bindSetPropertyInfo(
     auto left = expressionBinder.bindExpression(*setItem.first->getChild(0));
     switch (left->dataType.getLogicalTypeID()) {
     case LogicalTypeID::NODE: {
-        validateSetNodeProperty(*left);
         return std::make_unique<BoundSetPropertyInfo>(
             UpdateTableType::NODE, left, bindSetItem(setItem));
     }
     case LogicalTypeID::REL: {
-        validateSetRelProperty(*left);
         return std::make_unique<BoundSetPropertyInfo>(
             UpdateTableType::REL, left, bindSetItem(setItem));
     }
