@@ -2,7 +2,7 @@
 
 #include "common/copier_config/copier_config.h"
 #include "processor/operator/sink.h"
-#include "storage/copier/node_group.h"
+#include "storage/in_mem_storage_structure/in_mem_column.h"
 #include "storage/store/node_table.h"
 
 namespace kuzu {
@@ -10,11 +10,9 @@ namespace processor {
 
 class CopyNodeSharedState {
 public:
-    CopyNodeSharedState(uint64_t& numRows, catalog::NodeTableSchema* tableSchema,
-        storage::NodeTable* table, const common::CopyDescription& copyDesc,
-        storage::MemoryManager* memoryManager);
+    CopyNodeSharedState(uint64_t& numRows, storage::MemoryManager* memoryManager);
 
-    inline void initialize(const std::string& directory) { initializePrimaryKey(directory); };
+    inline void initialize(catalog::NodeTableSchema* nodeTableSchema, const std::string& directory) { initializePrimaryKey(directory); };
 
     inline common::offset_t getNextNodeGroupIdx() {
         std::unique_lock<std::mutex> lck{mtx};

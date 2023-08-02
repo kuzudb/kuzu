@@ -73,7 +73,7 @@ table_id_t CatalogContent::addRelTableSchema(std::string tableName, RelMultiplic
     return tableID;
 }
 
-Property& CatalogContent::getNodeProperty(
+const Property& CatalogContent::getNodeProperty(
     table_id_t tableID, const std::string& propertyName) const {
     for (auto& property : nodeTableSchemas.at(tableID)->properties) {
         if (propertyName == property.name) {

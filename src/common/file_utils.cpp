@@ -72,6 +72,12 @@ std::unique_ptr<FileInfo> FileUtils::openFile(const std::string& path, int flags
 #endif
 }
 
+void FileUtils::createFileWithSize(const std::string& path, uint64_t size) {
+    auto fileInfo = common::FileUtils::openFile(path, O_WRONLY | O_CREAT);
+    common::FileUtils::truncateFileToSize(fileInfo.get(), size);
+    fileInfo.reset();
+}
+
 void FileUtils::writeToFile(
     FileInfo* fileInfo, uint8_t* buffer, uint64_t numBytes, uint64_t offset) {
     auto fileSize = fileInfo->getFileSize();

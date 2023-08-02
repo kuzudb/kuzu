@@ -1,6 +1,5 @@
 #pragma once
 
-#include "catalog/table_schema.h"
 #include "logical_create_table.h"
 
 namespace kuzu {

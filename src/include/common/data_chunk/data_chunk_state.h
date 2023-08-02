@@ -24,7 +24,6 @@ public:
         selVector->selectedSize = size;
     }
     inline bool isFlat() const { return currIdx != -1; }
-    inline void setToUnflat() { currIdx = -1; }
     inline uint64_t getNumSelectedValues() const { return isFlat() ? 1 : selVector->selectedSize; }
 
 public:

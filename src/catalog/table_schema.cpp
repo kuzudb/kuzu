@@ -5,7 +5,6 @@
 #include "common/string_utils.h"
 
 using namespace kuzu::common;
-using namespace kuzu::storage;
 
 namespace kuzu {
 namespace catalog {
@@ -42,27 +41,11 @@ std::string getRelMultiplicityAsString(RelMultiplicity relMultiplicity) {
     }
 }
 
-void MetadataDAHInfo::serialize(FileInfo* fileInfo, uint64_t& offset) const {
-    SerDeser::serializeValue(dataDAHPageIdx, fileInfo, offset);
-    SerDeser::serializeValue(nullDAHPageIdx, fileInfo, offset);
-    SerDeser::serializeVectorOfObjects(childrenInfos, fileInfo, offset);
-}
-
-std::unique_ptr<MetadataDAHInfo> MetadataDAHInfo::deserialize(
-    FileInfo* fileInfo, uint64_t& offset) {
-    auto metadataDAHInfo = std::make_unique<MetadataDAHInfo>();
-    SerDeser::deserializeValue(metadataDAHInfo->dataDAHPageIdx, fileInfo, offset);
-    SerDeser::deserializeValue(metadataDAHInfo->nullDAHPageIdx, fileInfo, offset);
-    SerDeser::deserializeVectorOfObjects(metadataDAHInfo->childrenInfos, fileInfo, offset);
-    return metadataDAHInfo;
-}
-
 void Property::serialize(FileInfo* fileInfo, uint64_t& offset) const {
     SerDeser::serializeValue(name, fileInfo, offset);
     SerDeser::serializeValue(dataType, fileInfo, offset);
     SerDeser::serializeValue(propertyID, fileInfo, offset);
     SerDeser::serializeValue(tableID, fileInfo, offset);
-    metadataDAHInfo.serialize(fileInfo, offset);
 }
 
 std::unique_ptr<Property> Property::deserialize(FileInfo* fileInfo, uint64_t& offset) {
@@ -74,19 +57,11 @@ std::unique_ptr<Property> Property::deserialize(FileInfo* fileInfo, uint64_t& of
     SerDeser::deserializeValue(dataType, fileInfo, offset);
     SerDeser::deserializeValue(propertyID, fileInfo, offset);
     SerDeser::deserializeValue(tableID, fileInfo, offset);
-    auto metadataDAHInfo = MetadataDAHInfo::deserialize(fileInfo, offset);
-    auto result = std::make_unique<Property>(name, dataType, propertyID, tableID);
-    result->metadataDAHInfo = std::move(*metadataDAHInfo);
-    return result;
+    return std::make_unique<Property>(name, dataType, propertyID, tableID);
 }
 
 bool TableSchema::isReservedPropertyName(const std::string& propertyName) {
     return StringUtils::getUpper(propertyName) == InternalKeyword::ID;
-}
-
-void TableSchema::addProperty(std::string propertyName, LogicalType dataType) {
-    properties.emplace_back(
-        std::move(propertyName), std::move(dataType), increaseNextPropertyID(), tableID);
 }
 
 std::string TableSchema::getPropertyName(property_id_t propertyID) const {
@@ -159,13 +134,13 @@ std::unique_ptr<TableSchema> TableSchema::deserialize(FileInfo* fileInfo, uint64
         result = RelTableSchema::deserialize(fileInfo, offset);
     } break;
     default: {
-        throw NotImplementedException{"TableSchema::deserialize"};
+        throw common::NotImplementedException{"TableSchema::deserialize"};
     }
     }
     result->tableName = tableName;
     result->tableID = tableID;
     result->tableType = tableType;
-    result->properties = std::move(properties);
+    result->properties = properties;
     result->nextPropertyID = nextPropertyID;
     return result;
 }

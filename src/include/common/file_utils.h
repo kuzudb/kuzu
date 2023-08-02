@@ -38,6 +38,7 @@ class FileUtils {
 public:
     static std::unique_ptr<FileInfo> openFile(const std::string& path, int flags);
 
+    static void createFileWithSize(const std::string& path, uint64_t size);
     static void readFromFile(
         FileInfo* fileInfo, void* buffer, uint64_t numBytes, uint64_t position);
     static void writeToFile(

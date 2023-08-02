@@ -44,7 +44,7 @@ struct CopyDescription {
 
     static std::string getFileTypeName(FileType fileType);
 
-    std::vector<std::string> filePaths;
+    const std::vector<std::string> filePaths;
     std::unique_ptr<CSVReaderConfig> csvReaderConfig;
     FileType fileType;
 };

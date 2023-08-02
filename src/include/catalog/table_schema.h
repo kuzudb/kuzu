@@ -11,10 +11,6 @@
 #include "common/types/types_include.h"
 
 namespace kuzu {
-namespace storage {
-class BMFileHandle;
-}
-
 namespace catalog {
 
 enum class TableType : uint8_t { NODE, REL, INVALID };
@@ -22,17 +18,6 @@ enum class TableType : uint8_t { NODE, REL, INVALID };
 enum class RelMultiplicity : uint8_t { MANY_MANY, MANY_ONE, ONE_MANY, ONE_ONE };
 RelMultiplicity getRelMultiplicityFromString(const std::string& relMultiplicityString);
 std::string getRelMultiplicityAsString(RelMultiplicity relMultiplicity);
-
-// DAH is the abbreviation for Disk Array Header.
-struct MetadataDAHInfo {
-    common::page_idx_t dataDAHPageIdx = common::INVALID_PAGE_IDX;
-    common::page_idx_t nullDAHPageIdx = common::INVALID_PAGE_IDX;
-    std::vector<MetadataDAHInfo> childrenInfos;
-
-    void serialize(common::FileInfo* fileInfo, uint64_t& offset) const;
-    static std::unique_ptr<MetadataDAHInfo> deserialize(
-        common::FileInfo* fileInfo, uint64_t& offset);
-};
 
 struct Property {
 public:
@@ -55,7 +40,6 @@ public:
     common::LogicalType dataType;
     common::property_id_t propertyID;
     common::table_id_t tableID;
-    MetadataDAHInfo metadataDAHInfo;
 };
 
 class TableSchema {
@@ -85,9 +69,10 @@ public:
             [&propertyName](const Property& property) { return property.name == propertyName; });
     }
     inline const std::vector<Property>& getProperties() const { return properties; }
-    inline TableType getTableType() const { return tableType; }
-
-    void addProperty(std::string propertyName, common::LogicalType dataType);
+    inline void addProperty(std::string propertyName, common::LogicalType dataType) {
+        properties.emplace_back(
+                std::move(propertyName), std::move(dataType), increaseNextPropertyID(), tableID);
+    }
 
     std::string getPropertyName(common::property_id_t propertyID) const;
 
