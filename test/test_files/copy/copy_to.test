@@ -55,6 +55,18 @@ Cannot open file: a/b/c/d.csv
 1.731000
 MAX(p.height)
 
+-CASE StringEscapeCopyTo
+
+-STATEMENT COPY (RETURN 100,'a string with "quotes"',5.6,'","') TO "${DATABASE_PATH}/string.csv"
+---- ok
+-STATEMENT CREATE NODE TABLE stringTable (number INT, str STRING, frac DOUBLE, str2 STRING, PRIMARY KEY (str))
+---- ok
+-STATEMENT COPY stringTable FROM '${DATABASE_PATH}/string.csv' (HEADER=TRUE)
+---- ok
+-STATEMENT MATCH (s:stringTable) RETURN s.number, s.str, s.frac, s.str2
+---- 1
+100|a string with "quotes"|5.600000|","
+
 -CASE CountResultCopyTo
 
 -STATEMENT COPY (MATCH (p:person) RETURN COUNT(*)) TO "${DATABASE_PATH}/count.csv"

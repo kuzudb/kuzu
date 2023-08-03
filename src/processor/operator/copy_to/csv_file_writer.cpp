@@ -10,23 +10,6 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace processor {
 
-template<typename T>
-void CSVFileWriter::writeListToBuffer(common::ValueVector* vector, int64_t pos) {
-    auto value = TypeUtils::toString(vector->getValue<T>(pos), vector);
-    escapeString(value);
-    writeToBuffer(value);
-}
-
-template<typename T>
-void CSVFileWriter::writeToBuffer(
-    common::ValueVector* vector, int64_t pos, bool escapeStringValue) {
-    auto value = TypeUtils::toString(vector->getValue<T>(pos));
-    if (escapeStringValue) {
-        escapeString(value);
-    }
-    writeToBuffer(value);
-}
-
 void CSVFileWriter::open(const std::string& filePath) {
     fileInfo = FileUtils::openFile(filePath, O_WRONLY | O_CREAT | O_TRUNC);
 }
@@ -44,11 +27,37 @@ void CSVFileWriter::writeHeader(const std::vector<std::string>& columnNames) {
     flush();
 }
 
-void CSVFileWriter::flush() {
-    const std::string str = buffer.str();
-    FileUtils::writeToFile(fileInfo.get(), (uint8_t*)str.data(), str.size(), fileOffset);
-    fileOffset += str.size();
-    buffer.str("");
+void CSVFileWriter::writeValues(std::vector<common::ValueVector*>& outputVectors) {
+    bool hasData = true;
+    if (outputVectors.size() == 0) {
+        return;
+    }
+    auto i = 0u;
+    for (; i < outputVectors.size() - 1; i++) {
+        assert(outputVectors[i]->state->isFlat());
+        writeValue(outputVectors[i]);
+        writeToBuffer(CopyConstants::DEFAULT_CSV_DELIMITER);
+    }
+    writeValue(outputVectors[i]);
+    writeToBuffer(CopyConstants::DEFAULT_CSV_LINE_BREAK);
+    flush();
+}
+
+template<typename T>
+void CSVFileWriter::writeToBuffer(
+    common::ValueVector* vector, int64_t pos, bool escapeStringValue) {
+    auto value = TypeUtils::toString(vector->getValue<T>(pos));
+    if (escapeStringValue) {
+        escapeString(value);
+    }
+    writeToBuffer(value);
+}
+
+template<typename T>
+void CSVFileWriter::writeListToBuffer(common::ValueVector* vector, int64_t pos) {
+    auto value = TypeUtils::toString(vector->getValue<T>(pos), vector);
+    escapeString(value);
+    writeToBuffer(value);
 }
 
 void CSVFileWriter::escapeString(std::string& value) {
@@ -56,8 +65,9 @@ void CSVFileWriter::escapeString(std::string& value) {
     value = "\"" + value + "\"";
 }
 
-void CSVFileWriter::writeValue(common::ValueVector* vector, int64_t pos) {
-    auto selPos = vector->state->selVector->selectedPositions[pos];
+void CSVFileWriter::writeValue(common::ValueVector* vector) {
+    // vectors are always flat
+    auto selPos = vector->state->selVector->selectedPositions[0];
     switch (vector->dataType.getLogicalTypeID()) {
     case LogicalTypeID::BOOL:
         return writeToBuffer<int8_t>(vector, selPos);
@@ -92,20 +102,11 @@ void CSVFileWriter::writeValue(common::ValueVector* vector, int64_t pos) {
     }
 }
 
-void CSVFileWriter::writeValues(std::vector<common::ValueVector*>& outputVectors) {
-    bool hasData = true;
-    if (outputVectors.size() == 0) {
-        return;
-    }
-    auto i = 0u;
-    for (; i < outputVectors.size() - 1; i++) {
-        assert(outputVectors[i]->state->isFlat);
-        writeValue(outputVectors[i], 0);
-        writeToBuffer(CopyConstants::DEFAULT_CSV_DELIMITER);
-    }
-    writeValue(outputVectors[i], 0);
-    writeToBuffer(CopyConstants::DEFAULT_CSV_LINE_BREAK);
-    flush();
+void CSVFileWriter::flush() {
+    const std::string str = buffer.str();
+    FileUtils::writeToFile(fileInfo.get(), (uint8_t*)str.data(), str.size(), fileOffset);
+    fileOffset += str.size();
+    buffer.str("");
 }
 
 } // namespace processor

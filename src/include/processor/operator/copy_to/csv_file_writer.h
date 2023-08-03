@@ -20,8 +20,8 @@ private:
     std::unique_ptr<common::FileInfo> fileInfo;
 
     void escapeString(std::string& value);
+    void writeValue(common::ValueVector* vector);
     void flush();
-    void writeValue(common::ValueVector* vector, int64_t pos);
 
     template<typename T>
     void writeToBuffer(common::ValueVector* vector, int64_t pos, bool escapeStringValue = false);
