@@ -14,7 +14,8 @@ enum class StatementType : uint8_t {
     ADD_PROPERTY = 6,
     DROP_PROPERTY = 7,
     RENAME_PROPERTY = 8,
-    COPY = 20,
+    COPY_TO = 19,
+    COPY_FROM = 20,
     STANDALONE_CALL = 21,
     EXPLAIN = 22,
     CREATE_MACRO = 23,
@@ -30,7 +31,7 @@ public:
     }
 
     static bool isCopyCSV(StatementType statementType) {
-        return statementType == StatementType::COPY;
+        return statementType == StatementType::COPY_FROM;
     }
 
     static bool isCreateMacro(StatementType statementType) {

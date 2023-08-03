@@ -2,6 +2,7 @@
 
 #include "planner/logical_plan/logical_operator/flatten_resolver.h"
 #include "planner/logical_plan/logical_operator/logical_aggregate.h"
+#include "planner/logical_plan/logical_operator/logical_copy_to.h"
 #include "planner/logical_plan/logical_operator/logical_create.h"
 #include "planner/logical_plan/logical_operator/logical_delete.h"
 #include "planner/logical_plan/logical_operator/logical_distinct.h"
@@ -182,6 +183,12 @@ void FactorizationRewriter::visitCreateRel(planner::LogicalOperator* op) {
     auto createRel = (LogicalCreateRel*)op;
     auto groupsPosToFlatten = createRel->getGroupsPosToFlatten();
     createRel->setChild(0, appendFlattens(createRel->getChild(0), groupsPosToFlatten));
+}
+
+void FactorizationRewriter::visitCopyTo(planner::LogicalOperator* op) {
+    auto copyTo = (LogicalCopyTo*)op;
+    auto groupsPosToFlatten = copyTo->getGroupsPosToFlatten();
+    copyTo->setChild(0, appendFlattens(copyTo->getChild(0), groupsPosToFlatten));
 }
 
 std::shared_ptr<planner::LogicalOperator> FactorizationRewriter::appendFlattens(

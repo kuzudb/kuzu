@@ -3,6 +3,7 @@
 #include "binder/query/bound_regular_query.h"
 #include "common/copier_config/copier_config.h"
 #include "expression_binder.h"
+#include "parser/copy.h"
 #include "parser/query/regular_query.h"
 #include "query_normalizer.h"
 
@@ -92,8 +93,9 @@ private:
         catalog::NodeTableSchema::TableSchema* tableSchema, const std::string& propertyName);
     std::unique_ptr<common::LogicalType> bindDataType(const std::string& dataType);
 
-    /*** bind copy csv ***/
-    std::unique_ptr<BoundStatement> bindCopyClause(const parser::Statement& statement);
+    /*** bind copy from/to ***/
+    std::unique_ptr<BoundStatement> bindCopyFromClause(const parser::Statement& statement);
+    std::unique_ptr<BoundStatement> bindCopyToClause(const parser::Statement& statement);
 
     std::vector<std::string> bindFilePaths(const std::vector<std::string>& filePaths);
 
@@ -103,7 +105,8 @@ private:
     void bindStringParsingOptions(common::CSVReaderConfig& csvReaderConfig,
         const std::string& optionName, std::string& optionValue);
     char bindParsingOptionValue(std::string value);
-    common::CopyDescription::FileType bindFileType(std::vector<std::string> filePaths);
+    common::CopyDescription::FileType bindFileType(const std::vector<std::string>& filePaths);
+    common::CopyDescription::FileType bindFileType(const std::string& filePath);
 
     /*** bind query ***/
     std::unique_ptr<BoundRegularQuery> bindQuery(const parser::RegularQuery& regularQuery);

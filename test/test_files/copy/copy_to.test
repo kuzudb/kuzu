@@ -1,0 +1,172 @@
+-GROUP CopyTo
+-DATASET CSV tinysnb
+
+--
+
+-CASE WrongCopyTo
+
+-LOG Non-existent property test 
+-STATEMENT COPY (MATCH (a:person) RETURN a.non_prop) TO "${DATABASE_PATH}/lists.csv";
+---- error
+Binder exception: Cannot find property non_prop for a.
+
+-LOG Non-Query command
+-STATEMENT COPY (EXPLAIN MATCH (p:person) RETURN p.ID) TO "test.csv"
+---- error
+Parser exception: Query must conclude with RETURN clause (line: 1, offset: 6)
+"COPY (EXPLAIN MATCH (p:person) RETURN p.ID) TO "test.csv""
+       ^^^^^^^
+
+# Message varies from OS, skip for now
+-CASE WrongFile
+-SKIP 
+-STATEMENT COPY (MATCH (p:person) return p.fName) TO 'a/b/c/d.csv';
+---- error
+Cannot open file: a/b/c/d.csv
+
+-CASE CommonDataTypesCopyTo
+
+-STATEMENT COPY (MATCH (p:person) RETURN id(p), p.ID, p.fName, p.gender, p.isStudent, p.age, p.eyeSight, p.height) TO "${DATABASE_PATH}/common.csv"
+---- ok
+-STATEMENT create node table personCopy (internalId string, ID iNt64, fName STRiNG, gender INT64, isStudent BoOLEAN, age INT64, eyeSight DOUBLE, height float, PRIMARY KEY (internalId))
+---- ok
+-STATEMENT COPY personCopy FROM "${DATABASE_PATH}/common.csv" (header= TRUE)
+---- ok
+-STATEMENT MATCH (p:personCopy) RETURN id(p), p.ID, p.fName, p.gender, p.isStudent, p.age, p.eyeSight, p.height
+---- 8
+8:0|0|Alice|1|True|35|5.000000|1.731000
+8:1|2|Bob|2|True|30|5.100000|0.990000
+8:2|3|Carol|1|False|45|5.000000|1.000000
+8:3|5|Dan|2|False|20|4.800000|1.300000
+8:4|7|Elizabeth|1|False|20|4.700000|1.463000
+8:5|8|Farooq|2|True|25|4.500000|1.510000
+8:6|9|Greg|2|False|40|4.900000|1.600000
+8:7|10|Hubert Blaine Wolfeschlegelsteinhausenbergerdorff|2|False|83|4.900000|1.323000
+
+-LOG Check header and aggregation
+-STATEMENT create node table Summary (info string, PRIMARY KEY (info))
+---- ok
+-STATEMENT COPY (MATCH (p:person) RETURN max(p.height)) TO 'max.csv';
+---- ok
+-STATEMENT COPY Summary FROM 'max.csv';
+---- ok
+-STATEMENT MATCH (s:Summary) return s.info;
+---- 2
+1.731000
+MAX(p.height)
+
+-CASE StringEscapeCopyTo
+
+-STATEMENT COPY (RETURN 100,'a string with "quotes"',5.6,'","') TO "${DATABASE_PATH}/string.csv"
+---- ok
+-STATEMENT CREATE NODE TABLE stringTable (number INT, str STRING, frac DOUBLE, str2 STRING, PRIMARY KEY (str))
+---- ok
+-STATEMENT COPY stringTable FROM '${DATABASE_PATH}/string.csv' (HEADER=TRUE)
+---- ok
+-STATEMENT MATCH (s:stringTable) RETURN s.number, s.str, s.frac, s.str2
+---- 1
+100|a string with "quotes"|5.600000|","
+
+-CASE CountResultCopyTo
+
+-STATEMENT COPY (MATCH (p:person) RETURN COUNT(*)) TO "${DATABASE_PATH}/count.csv"
+---- ok
+-STATEMENT create node table countTable (ID iNt64, PRIMARY KEY (ID))
+---- ok
+-STATEMENT COPY countTable FROM "${DATABASE_PATH}/count.csv" (header = TRUE)
+---- ok
+-STATEMENT MATCH (c:countTable) RETURN c.ID
+---- 1
+8
+
+-CASE QueryWithRelsCopyTo
+
+-STATEMENT Copy (Match (a)<-[:knows|:studyAt]-(b:person) Return Distinct b.fName) to '${DATABASE_PATH}/names.csv';
+---- ok
+-STATEMENT Create Node Table personNames (name string, Primary Key (name))
+---- ok
+-STATEMENT Copy personNames From '${DATABASE_PATH}/names.csv' (Header = True)
+---- ok
+-STATEMENT Match (p:personNames) Return p.name
+---- 6
+Alice
+Bob
+Carol
+Dan
+Elizabeth
+Farooq
+
+-CASE QueryWithListsCopyTo
+
+-STATEMENT COPY (MATCH (a:person) RETURN a.ID, a.workedHours, a.usedNames, a.courseScoresPerTerm) TO "${DATABASE_PATH}/lists.csv";
+---- ok
+-STATEMENT CREATE NODE TABLE personCopy(ID InT64, workedHours INT64[], usedNames STRING[], courseScoresPerTerm INT64[][], PRIMARY KEY(ID))
+---- ok
+-STATEMENT COPY personCopy FROM "${DATABASE_PATH}/lists.csv" (HEADER = TRUE)
+---- ok
+-STATEMENT MATCH (a:personCopy) RETURN a.workedHours, a.usedNames, a.courseScoresPerTerm
+---- 8
+[1,9]|[Wolfeschlegelstein,Daniel]|[[7,4],[8,8],[9]]
+[10,11,12,3,4,5,6,7]|[Ad,De,Hi,Kye,Orlan]|[[7],[10],[6,7]]
+[10,5]|[Aida]|[[10,8],[6,7,8]]
+[12,8]|[Bobby]|[[8,9],[9,10]]
+[1]|[Grad]|[[10]]
+[2]|[Ein]|[[6],[7],[8]]
+[3,4,5,6,7]|[Fesdwe]|[[8]]
+[4,5]|[Carmen,Fred]|[[8,10]]
+
+# Note from testing interval: intervals results are printed in the following format: "3 years 2 days 13:02:00"
+# However, this is not supported from COPY FROM. The format from COPY FROM must be "3 years 2 days 13 hours 2 minutes"
+-CASE DatesCopyTo
+
+-STATEMENT COPY (MATCH (p:person) RETURN p.ID, p.birthdate, p.registerTime) TO "${DATABASE_PATH}/dates.csv";
+---- ok
+-STATEMENT CREATE NODE TABLE personCopy(ID INT64, birthdate DATE, registerTime TIMESTAMP, PRIMARY KEY(ID))
+---- ok
+-STATEMENT COPY personCopy FROM "${DATABASE_PATH}/dates.csv" (HEADER=TRUE)
+---- ok
+-STATEMENT MATCH (p:personCopy) RETURN p.birthdate, p.registerTime
+---- 8
+1900-01-01|2008-11-03 15:25:30.000526
+1900-01-01|2011-08-20 11:25:30
+1940-06-22|1911-08-20 02:32:21
+1950-07-23|2031-11-30 12:25:30
+1980-10-26|1972-07-31 13:22:30.678559
+1980-10-26|1976-12-23 04:41:42
+1980-10-26|1976-12-23 11:21:42
+1990-11-27|2023-02-21 13:25:30
+
+-CASE JoinsCopyTo
+
+-STATEMENT COPY (MATCH (a:person)-[e]->(b:person) RETURN ID(e), a.ID, b.ID) TO "${DATABASE_PATH}/joins.csv";
+---- ok
+-STATEMENT CREATE NODE TABLE personCopy(ID STRING, aID INT64, bID INT64, PRIMARY KEY(ID))
+---- ok
+-STATEMENT COPY personCopy FROM "${DATABASE_PATH}/joins.csv" (HEADER=TRUE)
+---- ok
+-STATEMENT MATCH (p:personCopy) RETURN p.ID, p.aID, p.bID
+---- 24
+3:0|0|2
+3:10|5|2
+3:11|5|3
+3:12|7|8
+3:13|7|9
+3:1|0|3
+3:2|0|5
+3:3|2|0
+3:4|2|3
+3:5|2|5
+3:6|3|0
+3:7|3|2
+3:8|3|5
+3:9|5|0
+6:0|0|2
+6:1|2|5
+6:2|3|7
+6:3|7|3
+6:4|8|3
+6:5|9|3
+6:6|10|2
+7:0|0|2
+7:1|3|5
+7:2|7|8

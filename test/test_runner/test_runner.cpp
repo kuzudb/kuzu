@@ -11,15 +11,15 @@ using namespace kuzu::common;
 namespace kuzu {
 namespace testing {
 
-void TestRunner::runTest(
-    const std::vector<std::unique_ptr<TestStatement>>& statements, Connection& conn) {
+void TestRunner::runTest(const std::vector<std::unique_ptr<TestStatement>>& statements,
+    Connection& conn, std::string& databasePath) {
     for (auto& statement : statements) {
         initializeConnection(statement.get(), conn);
         if (statement->isBeginWriteTransaction) {
             conn.beginWriteTransaction();
             continue;
         }
-        ASSERT_TRUE(testStatement(statement.get(), conn));
+        ASSERT_TRUE(testStatement(statement.get(), conn, databasePath));
     }
 }
 
@@ -29,8 +29,10 @@ void TestRunner::initializeConnection(TestStatement* statement, Connection& conn
     conn.setMaxNumThreadForExec(statement->numThreads);
 }
 
-bool TestRunner::testStatement(TestStatement* statement, Connection& conn) {
+bool TestRunner::testStatement(
+    TestStatement* statement, Connection& conn, std::string& databasePath) {
     std::unique_ptr<PreparedStatement> preparedStatement;
+    StringUtils::replaceAll(statement->query, "${DATABASE_PATH}", databasePath);
     if (statement->encodedJoin.empty()) {
         preparedStatement = conn.prepareNoLock(statement->query, statement->enumerate);
     } else {

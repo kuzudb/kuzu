@@ -6,7 +6,8 @@ add_library(kuzu_planner_operator
         logical_accumulate.cpp
         logical_aggregate.cpp
         logical_in_query_call.cpp
-        logical_copy.cpp
+        logical_copy_from.cpp
+        logical_copy_to.cpp
         logical_create.cpp
         logical_create_macro.cpp
         logical_cross_product.cpp
