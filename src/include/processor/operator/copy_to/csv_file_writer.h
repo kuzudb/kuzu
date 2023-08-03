@@ -15,10 +15,6 @@ public:
     void writeValues(std::vector<common::ValueVector*>& outputVectors);
 
 private:
-    uint64_t fileOffset = 0;
-    std::stringstream buffer;
-    std::unique_ptr<common::FileInfo> fileInfo;
-
     void escapeString(std::string& value);
     void writeValue(common::ValueVector* vector);
     void flush();
@@ -31,6 +27,10 @@ private:
 
     inline void writeToBuffer(const std::string& value) { buffer << value; }
     inline void writeToBuffer(const char value) { buffer << value; }
+
+    uint64_t fileOffset = 0;
+    std::stringstream buffer;
+    std::unique_ptr<common::FileInfo> fileInfo;
 };
 
 } // namespace processor

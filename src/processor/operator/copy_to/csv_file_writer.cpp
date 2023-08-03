@@ -97,7 +97,7 @@ void CSVFileWriter::writeValue(common::ValueVector* vector) {
     case LogicalTypeID::STRUCT:
         return writeListToBuffer<struct_entry_t>(vector, selPos);
     default: {
-        // suppress warning
+        NotImplementedException("CSVFileWriter::writeValue");
     }
     }
 }
