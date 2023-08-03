@@ -178,7 +178,7 @@ std::unique_ptr<parquet::arrow::FileReader> TableCopyUtils::createParquetReader(
     return reader;
 }
 
-std::vector<std::pair<int64_t, int64_t>> TableCopyUtils::getListElementPos(
+std::vector<std::pair<int64_t, int64_t>> TableCopyUtils::splitByDelimiter(
     const std::string& l, int64_t from, int64_t to, const CopyDescription& copyDescription) {
     std::vector<std::pair<int64_t, int64_t>> split;
     auto numListBeginChars = 0u;
@@ -209,40 +209,28 @@ std::vector<std::pair<int64_t, int64_t>> TableCopyUtils::getListElementPos(
     return split;
 }
 
-std::unique_ptr<Value> TableCopyUtils::getArrowVarList(const std::string& l, int64_t from,
+std::unique_ptr<Value> TableCopyUtils::getVarListValue(const std::string& l, int64_t from,
     int64_t to, const LogicalType& dataType, const CopyDescription& copyDescription) {
-    assert(dataType.getLogicalTypeID() == LogicalTypeID::VAR_LIST);
-    auto split = getListElementPos(l, from, to, copyDescription);
-    std::vector<std::unique_ptr<Value>> values;
-    auto childDataType = VarListType::getChildType(&dataType);
-    // If the list is empty (e.g. []) where from is 1 and to is 0, skip parsing this empty list.
-    if (to >= from) {
-        for (auto [fromPos, toPos] : split) {
-            std::string element = l.substr(fromPos, toPos);
-            std::unique_ptr<Value> value;
-            if (element.empty()) {
-                value = std::make_unique<Value>(Value::createNullValue(*childDataType));
-            } else {
-                value = convertStringToValue(element, *childDataType, copyDescription);
-            }
-            values.push_back(std::move(value));
-        }
+    switch (dataType.getLogicalTypeID()) {
+    case LogicalTypeID::VAR_LIST:
+        return parseVarList(l, from, to, dataType, copyDescription);
+    case LogicalTypeID::MAP:
+        return parseMap(l, from, to, dataType, copyDescription);
+    default: {
+        throw NotImplementedException{"TableCopyUtils::getVarListValue"};
     }
-    return make_unique<Value>(
-        LogicalType(LogicalTypeID::VAR_LIST,
-            std::make_unique<VarListTypeInfo>(std::make_unique<LogicalType>(*childDataType))),
-        std::move(values));
+    }
 }
 
 std::unique_ptr<Value> TableCopyUtils::getArrowFixedListVal(const std::string& l, int64_t from,
     int64_t to, const LogicalType& dataType, const CopyDescription& copyDescription) {
     assert(dataType.getLogicalTypeID() == LogicalTypeID::FIXED_LIST);
-    auto split = getListElementPos(l, from, to, copyDescription);
+    auto split = splitByDelimiter(l, from, to, copyDescription);
     std::vector<std::unique_ptr<Value>> listValues;
     auto childDataType = FixedListType::getChildType(&dataType);
     uint64_t numElementsRead = 0;
-    for (auto pair : split) {
-        std::string element = l.substr(pair.first, pair.second);
+    for (auto [fromPos, len] : split) {
+        std::string element = l.substr(fromPos, len);
         if (element.empty()) {
             continue;
         }
@@ -270,12 +258,12 @@ std::unique_ptr<Value> TableCopyUtils::getArrowFixedListVal(const std::string& l
 std::unique_ptr<uint8_t[]> TableCopyUtils::getArrowFixedList(const std::string& l, int64_t from,
     int64_t to, const LogicalType& dataType, const CopyDescription& copyDescription) {
     assert(dataType.getLogicalTypeID() == LogicalTypeID::FIXED_LIST);
-    auto split = getListElementPos(l, from, to, copyDescription);
+    auto split = splitByDelimiter(l, from, to, copyDescription);
     auto listVal = std::make_unique<uint8_t[]>(StorageUtils::getDataTypeSize(dataType));
     auto childDataType = FixedListType::getChildType(&dataType);
     uint64_t numElementsRead = 0;
-    for (auto pair : split) {
-        std::string element = l.substr(pair.first, pair.second);
+    for (auto [fromPos, len] : split) {
+        std::string element = l.substr(fromPos, len);
         if (element.empty()) {
             continue;
         }
@@ -348,6 +336,7 @@ std::shared_ptr<arrow::DataType> TableCopyUtils::toArrowDataType(const LogicalTy
     case LogicalTypeID::DATE:
     case LogicalTypeID::INTERVAL:
     case LogicalTypeID::FIXED_LIST:
+    case LogicalTypeID::MAP:
     case LogicalTypeID::VAR_LIST:
     case LogicalTypeID::BLOB:
     case LogicalTypeID::STRING:
@@ -401,7 +390,7 @@ std::unique_ptr<Value> TableCopyUtils::convertStringToValue(
         value = std::make_unique<Value>(Interval::FromCString(element.c_str(), element.length()));
     } break;
     case LogicalTypeID::VAR_LIST: {
-        value = getArrowVarList(element, 1, element.length() - 2, type, copyDescription);
+        value = getVarListValue(element, 1, element.length() - 2, type, copyDescription);
     } break;
     case LogicalTypeID::FIXED_LIST: {
         value = getArrowFixedListVal(element, 1, element.length() - 2, type, copyDescription);
@@ -436,6 +425,88 @@ void TableCopyUtils::validateNumElementsInList(
             "Each fixed list should have fixed number of elements. Expected: {}, Actual: {}.",
             numElementsInList, numElementsRead));
     }
+}
+
+std::unique_ptr<common::Value> TableCopyUtils::parseVarList(const std::string& l, int64_t from,
+    int64_t to, const common::LogicalType& dataType,
+    const common::CopyDescription& copyDescription) {
+    auto split = splitByDelimiter(l, from, to, copyDescription);
+    std::vector<std::unique_ptr<Value>> values;
+    auto childDataType = VarListType::getChildType(&dataType);
+    // If the list is empty (e.g. []) where from is 1 and to is 0, skip parsing this empty list.
+    if (to >= from) {
+        for (auto [fromPos, len] : split) {
+            std::string element = l.substr(fromPos, len);
+            std::unique_ptr<Value> value;
+            if (element.empty()) {
+                value = std::make_unique<Value>(Value::createNullValue(*childDataType));
+            } else {
+                value = convertStringToValue(element, *childDataType, copyDescription);
+            }
+            values.push_back(std::move(value));
+        }
+    }
+    return make_unique<Value>(
+        LogicalType(LogicalTypeID::VAR_LIST,
+            std::make_unique<VarListTypeInfo>(std::make_unique<LogicalType>(*childDataType))),
+        std::move(values));
+}
+
+std::unique_ptr<common::Value> TableCopyUtils::parseMap(const std::string& l, int64_t from,
+    int64_t to, const common::LogicalType& dataType,
+    const common::CopyDescription& copyDescription) {
+    auto split = splitByDelimiter(l, from, to, copyDescription);
+    std::vector<std::unique_ptr<Value>> values;
+    auto childDataType = VarListType::getChildType(&dataType);
+    auto structFieldTypes = StructType::getFieldTypes(childDataType);
+    // If the map is empty (e.g. {}) where from is 1 and to is 0, skip parsing this empty list.
+    if (to >= from) {
+        for (auto [fromPos, len] : split) {
+            std::vector<std::unique_ptr<Value>> structFields{2};
+            auto [key, value] = parseMapFields(l, fromPos, len, copyDescription);
+            // TODO(Ziyi): refactor the convertStringToValue API so we can reuse the value during
+            // parsing.
+            structFields[0] = convertStringToValue(key, *structFieldTypes[0], copyDescription);
+            structFields[1] = convertStringToValue(value, *structFieldTypes[1], copyDescription);
+            values.push_back(std::make_unique<Value>(
+                *VarListType::getChildType(&dataType), std::move(structFields)));
+        }
+    }
+    return make_unique<Value>(dataType, std::move(values));
+}
+
+std::pair<std::string, std::string> TableCopyUtils::parseMapFields(const std::string& l,
+    int64_t from, int64_t length, const common::CopyDescription& copyDescription) {
+    std::string key;
+    std::string value;
+    auto numListBeginChars = 0u;
+    auto numStructBeginChars = 0u;
+    auto numDoubleQuotes = 0u;
+    auto numSingleQuotes = 0u;
+    for (auto i = 0u; i < length; i++) {
+        auto curPos = i + from;
+        auto curChar = l[curPos];
+        if (curChar == '{') {
+            numStructBeginChars++;
+        } else if (curChar == '}') {
+            numStructBeginChars--;
+        } else if (curChar == copyDescription.csvReaderConfig->listBeginChar) {
+            numListBeginChars++;
+        } else if (curChar == copyDescription.csvReaderConfig->listEndChar) {
+            numListBeginChars--;
+        } else if (curChar == '"') {
+            numDoubleQuotes ^= 1;
+        } else if (curChar == '\'') {
+            numSingleQuotes ^= 1;
+        } else if (curChar == '=') {
+            if (numListBeginChars == 0 && numStructBeginChars == 0 && numDoubleQuotes == 0 &&
+                numSingleQuotes == 0) {
+                return {l.substr(from, i), l.substr(curPos + 1, length - i - 1)};
+            }
+        }
+    }
+    throw common::ParserException{
+        StringUtils::string_format("Invalid map field string {}.", l.substr(from, length))};
 }
 
 } // namespace storage

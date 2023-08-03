@@ -335,7 +335,7 @@ template<>
 void InMemColumnChunkWithOverflow::setValWithOverflow<ku_list_t>(
     PageByteCursor& overflowCursor, const char* value, uint64_t length, uint64_t pos) {
     auto varListVal =
-        TableCopyUtils::getArrowVarList(value, 1, length - 2, dataType, *copyDescription);
+        TableCopyUtils::getVarListValue(value, 1, length - 2, dataType, *copyDescription);
     auto val = inMemOverflowFile->copyList(*varListVal, overflowCursor);
     setValue(val, pos);
 }

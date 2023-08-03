@@ -80,6 +80,8 @@ if(MSVC)
     # For now, hardcode _AMD64_
     # CMAKE_GENERATOR_PLATFORM can be used for visual studio builds, but not for ninja
     add_compile_definitions(_AMD64_)
+    # Non-english windows system may use other encodings other than utf-8 (e.g. Chinese use GBK).
+    add_compile_options("/utf-8")
 endif()
 if(CMAKE_BUILD_TYPE MATCHES Release)
     if(MSVC)

@@ -408,8 +408,12 @@ public:
     static std::vector<LogicalType> getAllValidLogicTypes();
 
 private:
-    static LogicalTypeID dataTypeIDFromString(const std::string& dataTypeIDString);
+    static LogicalTypeID dataTypeIDFromString(const std::string& trimmedStr);
     static std::vector<std::string> parseStructFields(const std::string& structTypeStr);
+    static std::unique_ptr<LogicalType> parseVarListType(const std::string& trimmedStr);
+    static std::unique_ptr<LogicalType> parseFixedListType(const std::string& trimmedStr);
+    static std::unique_ptr<LogicalType> parseStructType(const std::string& trimmedStr);
+    static std::unique_ptr<LogicalType> parseMapType(const std::string& trimmedStr);
 };
 
 enum class DBFileType : uint8_t { ORIGINAL = 0, WAL_VERSION = 1 };
