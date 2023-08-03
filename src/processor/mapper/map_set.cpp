@@ -1,4 +1,4 @@
-#include "binder/expression/node_expression.h"
+#include "binder/expression/rel_expression.h"
 #include "planner/logical_plan/logical_operator/logical_set.h"
 #include "processor/mapper/plan_mapper.h"
 #include "processor/operator/update/set.h"

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "logical_update.h"
-#include "planner/logical_plan/logical_operator/flatten_resolver.h"
+#include "base_logical_operator.h"
+#include "binder/expression/rel_expression.h"
 
 namespace kuzu {
 namespace planner {
