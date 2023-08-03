@@ -38,7 +38,7 @@ public:
     virtual void resetToEmpty();
 
     // Include pages for null and children segments.
-    common::page_idx_t getNumPages() const;
+    virtual common::page_idx_t getNumPages() const;
 
     void append(
         common::ValueVector* vector, common::offset_t startPosInChunk, uint32_t numValuesToAppend);
@@ -63,6 +63,12 @@ public:
         return (numBytes + common::BufferPoolConstants::PAGE_4KB_SIZE - 1) /
                common::BufferPoolConstants::PAGE_4KB_SIZE;
     }
+
+    inline uint64_t getNumBytesPerValue() const { return numBytesPerValue; }
+
+    virtual void write(const common::Value& val, uint64_t posToWrite);
+
+    virtual void resize(uint64_t numValues);
 
 protected:
     ColumnChunk(common::LogicalType dataType, common::offset_t numValues,
@@ -109,6 +115,10 @@ public:
 
     inline bool isNull(common::offset_t pos) const { return getValue<bool>(pos); }
     inline void setNull(common::offset_t pos, bool isNull) { ((bool*)buffer.get())[pos] = isNull; }
+
+    void resize(uint64_t numValues) final;
+
+    void setRangeNoNull(common::offset_t startPosInChunk, uint32_t numValuesToSet);
 };
 
 class FixedListColumnChunk : public ColumnChunk {
@@ -118,6 +128,8 @@ public:
 
     void append(ColumnChunk* other, common::offset_t startPosInOtherChunk,
         common::offset_t startPosInChunk, uint32_t numValuesToAppend) final;
+
+    void write(const common::Value& fixedListVal, uint64_t posToWrite) final;
 };
 
 struct ColumnChunkFactory {

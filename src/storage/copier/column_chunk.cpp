@@ -1,8 +1,9 @@
 #include "storage/copier/column_chunk.h"
 
+#include "storage/copier/string_column_chunk.h"
 #include "storage/copier/struct_column_chunk.h"
 #include "storage/copier/table_copy_utils.h"
-#include "storage/copier/var_sized_column_chunk.h"
+#include "storage/copier/var_list_column_chunk.h"
 #include "storage/storage_structure/storage_structure_utils.h"
 
 using namespace kuzu::common;
@@ -50,7 +51,7 @@ void ColumnChunk::append(ColumnChunk* other, common::offset_t startPosInOtherChu
 }
 
 void ColumnChunk::append(
-    arrow::Array* array, common::offset_t startPosInChunk, uint32_t numValuesToAppend) {
+    arrow::Array* array, offset_t startPosInChunk, uint32_t numValuesToAppend) {
     switch (array->type_id()) {
     case arrow::Type::BOOL: {
         templateCopyArrowArray<bool>(array, startPosInChunk, numValuesToAppend);
@@ -102,6 +103,56 @@ void ColumnChunk::append(
     default: {
         throw NotImplementedException("ColumnChunk::append");
     }
+    }
+}
+
+void ColumnChunk::write(const common::Value& val, uint64_t posToWrite) {
+    nullChunk->setNull(posToWrite, val.isNull());
+    if (val.isNull()) {
+        return;
+    }
+    switch (dataType.getPhysicalType()) {
+    case PhysicalTypeID::BOOL: {
+        setValue(val.getValue<bool>(), posToWrite);
+    } break;
+    case PhysicalTypeID::INT64: {
+        setValue(val.getValue<int64_t>(), posToWrite);
+    } break;
+    case PhysicalTypeID::INT32: {
+        setValue(val.getValue<int32_t>(), posToWrite);
+    } break;
+    case PhysicalTypeID::INT16: {
+        setValue(val.getValue<int16_t>(), posToWrite);
+    } break;
+    case PhysicalTypeID::DOUBLE: {
+        setValue(val.getValue<double_t>(), posToWrite);
+    } break;
+    case PhysicalTypeID::FLOAT: {
+        setValue(val.getValue<float_t>(), posToWrite);
+    } break;
+    case PhysicalTypeID::INTERVAL: {
+        setValue(val.getValue<interval_t>(), posToWrite);
+    } break;
+    case PhysicalTypeID::INTERNAL_ID: {
+        setValue(val.getValue<internalID_t>(), posToWrite);
+    } break;
+    default: {
+        throw NotImplementedException{"ColumnChunk::write"};
+    }
+    }
+}
+
+void ColumnChunk::resize(uint64_t numValues) {
+    auto numBytesAfterResize = numValues * numBytesPerValue;
+    auto resizedBuffer = std::make_unique<uint8_t[]>(numBytesAfterResize);
+    memcpy(resizedBuffer.get(), buffer.get(), numBytes);
+    numBytes = numBytesAfterResize;
+    buffer = std::move(resizedBuffer);
+    if (nullChunk) {
+        nullChunk->resize(numValues);
+    }
+    for (auto& child : childrenChunks) {
+        child->resize(numValues);
     }
 }
 
@@ -227,7 +278,7 @@ uint32_t ColumnChunk::getDataTypeSizeInChunk(common::LogicalType& dataType) {
         return sizeof(ku_string_t);
     }
     case LogicalTypeID::VAR_LIST: {
-        return sizeof(ku_list_t);
+        return sizeof(offset_t);
     }
     case LogicalTypeID::INTERNAL_ID: {
         return sizeof(offset_t);
@@ -253,6 +304,42 @@ void FixedListColumnChunk::append(ColumnChunk* other, common::offset_t startPosI
     }
 }
 
+void FixedListColumnChunk::write(const common::Value& fixedListVal, uint64_t posToWrite) {
+    assert(fixedListVal.getDataType()->getPhysicalType() == PhysicalTypeID::FIXED_LIST);
+    nullChunk->setNull(posToWrite, fixedListVal.isNull());
+    if (fixedListVal.isNull()) {
+        return;
+    }
+    auto numValues = NestedVal::getChildrenSize(&fixedListVal);
+    auto childType = FixedListType::getChildType(fixedListVal.getDataType());
+    auto numBytesPerValueInList = getDataTypeSizeInChunk(*childType);
+    auto bufferToWrite = buffer.get() + posToWrite * numBytesPerValue;
+    for (auto i = 0u; i < numValues; i++) {
+        auto val = common::NestedVal::getChildVal(&fixedListVal, i);
+        switch (childType->getPhysicalType()) {
+        case PhysicalTypeID::INT64: {
+            memcpy(bufferToWrite, &val->getValueReference<int64_t>(), numBytesPerValueInList);
+        } break;
+        case PhysicalTypeID::INT32: {
+            memcpy(bufferToWrite, &val->getValueReference<int32_t>(), numBytesPerValueInList);
+        } break;
+        case PhysicalTypeID::INT16: {
+            memcpy(bufferToWrite, &val->getValueReference<int16_t>(), numBytesPerValueInList);
+        } break;
+        case PhysicalTypeID::DOUBLE: {
+            memcpy(bufferToWrite, &val->getValueReference<double_t>(), numBytesPerValueInList);
+        } break;
+        case PhysicalTypeID::FLOAT: {
+            memcpy(bufferToWrite, &val->getValueReference<float_t>(), numBytesPerValueInList);
+        } break;
+        default: {
+            throw NotImplementedException{"FixedListColumnChunk::write"};
+        }
+        }
+        bufferToWrite += numBytesPerValueInList;
+    }
+}
+
 std::unique_ptr<ColumnChunk> ColumnChunkFactory::createColumnChunk(
     const LogicalType& dataType, CopyDescription* copyDescription) {
     switch (dataType.getLogicalTypeID()) {
@@ -264,20 +351,17 @@ std::unique_ptr<ColumnChunk> ColumnChunkFactory::createColumnChunk(
     case LogicalTypeID::FLOAT:
     case LogicalTypeID::DATE:
     case LogicalTypeID::TIMESTAMP:
-    case LogicalTypeID::INTERVAL: {
+    case LogicalTypeID::INTERVAL:
         return std::make_unique<ColumnChunk>(dataType, copyDescription);
-    }
-    case LogicalTypeID::FIXED_LIST: {
+    case LogicalTypeID::FIXED_LIST:
         return std::make_unique<FixedListColumnChunk>(dataType, copyDescription);
-    }
     case LogicalTypeID::BLOB:
     case LogicalTypeID::STRING:
-    case LogicalTypeID::VAR_LIST: {
-        return std::make_unique<VarSizedColumnChunk>(dataType, copyDescription);
-    }
-    case LogicalTypeID::STRUCT: {
+        return std::make_unique<StringColumnChunk>(dataType, copyDescription);
+    case LogicalTypeID::VAR_LIST:
+        return std::make_unique<VarListColumnChunk>(dataType, copyDescription);
+    case LogicalTypeID::STRUCT:
         return std::make_unique<StructColumnChunk>(dataType, copyDescription);
-    }
     default: {
         throw NotImplementedException("ColumnChunkFactory::createColumnChunk for data type " +
                                       LogicalTypeUtils::dataTypeToString(dataType) +
@@ -333,6 +417,20 @@ common::offset_t ColumnChunk::getOffsetInBuffer(common::offset_t pos) const {
         posCursor.pageIdx * common::BufferPoolConstants::PAGE_4KB_SIZE + posCursor.offsetInPage;
     assert(offsetInBuffer + numBytesPerValue <= numBytes);
     return offsetInBuffer;
+}
+
+void NullColumnChunk::resize(uint64_t numValues) {
+    auto numBytesAfterResize = numValues * numBytesPerValue;
+    auto reservedBuffer = std::make_unique<uint8_t[]>(numBytesAfterResize);
+    memset(reservedBuffer.get(), 0 /* non null */, numBytesAfterResize);
+    memcpy(reservedBuffer.get(), buffer.get(), numBytes);
+    buffer = std::move(reservedBuffer);
+    numBytes = numBytesAfterResize;
+}
+
+void NullColumnChunk::setRangeNoNull(common::offset_t startPosInChunk, uint32_t numValuesToSet) {
+    memset(buffer.get() + startPosInChunk * numBytesPerValue, 0 /* non null */,
+        numValuesToSet * numBytesPerValue);
 }
 
 } // namespace storage

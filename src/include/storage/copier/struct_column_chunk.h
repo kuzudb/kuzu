@@ -33,6 +33,7 @@ private:
         common::LogicalType& type, const std::string& structString);
     static std::string parseStructFieldName(const std::string& structString, uint64_t& curPos);
     std::string parseStructFieldValue(const std::string& structString, uint64_t& curPos);
+    void write(const common::Value& val, uint64_t posToWrite) final;
 };
 
 } // namespace storage

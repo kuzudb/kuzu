@@ -1,7 +1,7 @@
 #include "processor/operator/copy/copy_node.h"
 
 #include "common/string_utils.h"
-#include "storage/copier/var_sized_column_chunk.h"
+#include "storage/copier/string_column_chunk.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
@@ -186,7 +186,7 @@ void CopyNode::appendToPKIndex(
         }
     } break;
     case LogicalTypeID::STRING: {
-        auto varSizedChunk = (VarSizedColumnChunk*)chunk;
+        auto varSizedChunk = (StringColumnChunk*)chunk;
         for (auto i = 0u; i < numValues; i++) {
             auto offset = i + startOffset;
             auto value = varSizedChunk->getValue<std::string>(i);

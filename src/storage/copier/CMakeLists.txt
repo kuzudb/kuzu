@@ -8,7 +8,8 @@ add_library(kuzu_storage_in_mem_csv_copier
         rel_copy_executor.cpp
         struct_column_chunk.cpp
         table_copy_utils.cpp
-        var_sized_column_chunk.cpp)
+        string_column_chunk.cpp
+        var_list_column_chunk.cpp)
 
 set(ALL_OBJECT_FILES
         ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:kuzu_storage_in_mem_csv_copier>

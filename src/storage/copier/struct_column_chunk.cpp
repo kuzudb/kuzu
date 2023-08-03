@@ -1,7 +1,8 @@
 #include "storage/copier/struct_column_chunk.h"
 
 #include "common/string_utils.h"
-#include "storage/copier/var_sized_column_chunk.h"
+#include "storage/copier/string_column_chunk.h"
+#include "storage/copier/var_list_column_chunk.h"
 
 using namespace kuzu::common;
 
@@ -134,14 +135,13 @@ void StructColumnChunk::setValueToStructField(
             structFieldValue.c_str(), structFieldValue.length(), pos);
     } break;
     case LogicalTypeID::STRING: {
-        reinterpret_cast<VarSizedColumnChunk*>(fieldChunk)
+        reinterpret_cast<StringColumnChunk*>(fieldChunk)
             ->setValueFromString<ku_string_t>(
                 structFieldValue.c_str(), structFieldValue.length(), pos);
     } break;
     case LogicalTypeID::VAR_LIST: {
-        reinterpret_cast<VarSizedColumnChunk*>(fieldChunk)
-            ->setValueFromString<ku_list_t>(
-                structFieldValue.c_str(), structFieldValue.length(), pos);
+        reinterpret_cast<VarListColumnChunk*>(fieldChunk)
+            ->setValueFromString(structFieldValue.c_str(), structFieldValue.length(), pos);
     } break;
     case LogicalTypeID::STRUCT: {
         reinterpret_cast<StructColumnChunk*>(fieldChunk)
@@ -224,6 +224,14 @@ std::string StructColumnChunk::parseStructFieldValue(
         return structString.substr(startPos, curPos - startPos);
     } else {
         throw common::ParserException{"Invalid struct string: " + structString};
+    }
+}
+
+void StructColumnChunk::write(const common::Value& val, uint64_t posToWrite) {
+    assert(val.getDataType()->getPhysicalType() == PhysicalTypeID::STRUCT);
+    auto numElements = NestedVal::getChildrenSize(&val);
+    for (auto i = 0u; i < numElements; i++) {
+        childrenChunks[i]->write(*NestedVal::getChildVal(&val, i), posToWrite);
     }
 }
 

@@ -1,8 +1,9 @@
 #include "storage/store/node_column.h"
 
 #include "storage/storage_structure/storage_structure.h"
+#include "storage/store/string_node_column.h"
 #include "storage/store/struct_node_column.h"
-#include "storage/store/var_sized_node_column.h"
+#include "storage/store/var_list_node_column.h"
 
 using namespace kuzu::catalog;
 using namespace kuzu::common;
@@ -117,23 +118,23 @@ void NodeColumn::scanInternal(
     auto chunkMeta = metadataDA->get(nodeGroupIdx, transaction->getType());
     pageCursor.pageIdx += chunkMeta.pageIdx;
     if (nodeIDVector->state->selVector->isUnfiltered()) {
-        scanUnfiltered(transaction, pageCursor, nodeIDVector, resultVector);
+        scanUnfiltered(
+            transaction, pageCursor, nodeIDVector->state->selVector->selectedSize, resultVector);
     } else {
         scanFiltered(transaction, pageCursor, nodeIDVector, resultVector);
     }
 }
 
 void NodeColumn::scanUnfiltered(Transaction* transaction, PageElementCursor& pageCursor,
-    ValueVector* nodeIDVector, ValueVector* resultVector) {
-    auto numValuesToScan = nodeIDVector->state->originalSize;
-    auto numValuesScanned = 0u;
+    uint64_t numValuesToScan, ValueVector* resultVector, uint64_t startPosInVector) {
+    uint64_t numValuesScanned = 0;
     while (numValuesScanned < numValuesToScan) {
         uint64_t numValuesToScanInPage =
             std::min((uint64_t)numValuesPerPage - pageCursor.elemPosInPage,
                 numValuesToScan - numValuesScanned);
         readFromPage(transaction, pageCursor.pageIdx, [&](uint8_t* frame) -> void {
-            readNodeColumnFunc(
-                frame, pageCursor, resultVector, numValuesScanned, numValuesToScanInPage);
+            readNodeColumnFunc(frame, pageCursor, resultVector, numValuesScanned + startPosInVector,
+                numValuesToScanInPage);
         });
         numValuesScanned += numValuesToScanInPage;
         pageCursor.nextPage();
@@ -342,10 +343,24 @@ void NodeColumn::rollbackInMemory() {
     }
 }
 
-NullNodeColumn::NullNodeColumn(page_idx_t metaDAHPageIdx, BMFileHandle* dataFH,
-    BMFileHandle* metadataFH, BufferManager* bufferManager, WAL* wal)
-    : NodeColumn{LogicalType(LogicalTypeID::BOOL), MetadataDAHInfo{metaDAHPageIdx}, dataFH,
-          metadataFH, bufferManager, wal, false /* requireNullColumn */} {
+void NodeColumn::scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
+    common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
+    common::ValueVector* resultVector, uint64_t offsetInVector) {
+    if (nullColumn) {
+        nullColumn->scan(transaction, nodeGroupIdx, startOffsetInGroup, endOffsetInGroup,
+            resultVector, offsetInVector);
+    }
+    auto pageCursor = PageUtils::getPageElementCursorForPos(startOffsetInGroup, numValuesPerPage);
+    auto chunkMeta = metadataDA->get(nodeGroupIdx, transaction->getType());
+    pageCursor.pageIdx += chunkMeta.pageIdx;
+    auto numValuesToScan = endOffsetInGroup - startOffsetInGroup;
+    scanUnfiltered(transaction, pageCursor, numValuesToScan, resultVector, offsetInVector);
+}
+
+NullNodeColumn::NullNodeColumn(page_idx_t metaDAHeaderPageIdx, BMFileHandle* nodeGroupsDataFH,
+    BMFileHandle* nodeGroupsMetaFH, BufferManager* bufferManager, WAL* wal)
+    : NodeColumn{LogicalType(LogicalTypeID::BOOL), MetadataDAHInfo{metaDAHeaderPageIdx},
+          nodeGroupsDataFH, nodeGroupsMetaFH, bufferManager, wal, false /* requireNullColumn */} {
     readNodeColumnFunc = NullNodeColumnFunc::readValuesFromPage;
     writeNodeColumnFunc = NullNodeColumnFunc::writeValueToPage;
 }
@@ -444,8 +459,10 @@ std::unique_ptr<NodeColumn> NodeColumnFactory::createNodeColumn(const LogicalTyp
     }
     case LogicalTypeID::BLOB:
     case LogicalTypeID::STRING:
+        return std::make_unique<StringNodeColumn>(
+            dataType, metaDAHeaderInfo, dataFH, metadataFH, bufferManager, wal);
     case LogicalTypeID::VAR_LIST: {
-        return std::make_unique<VarSizedNodeColumn>(
+        return std::make_unique<VarListNodeColumn>(
             dataType, metaDAHeaderInfo, dataFH, metadataFH, bufferManager, wal);
     }
     case LogicalTypeID::STRUCT: {

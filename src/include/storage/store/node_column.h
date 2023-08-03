@@ -54,6 +54,9 @@ public:
 
     virtual void scan(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
         common::ValueVector* resultVector);
+    virtual void scan(transaction::Transaction* transaction, common::node_group_idx_t nodeGroupIdx,
+        common::offset_t startOffsetInGroup, common::offset_t endOffsetInGroup,
+        common::ValueVector* resultVector, uint64_t offsetInVector = 0);
     virtual void lookup(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
         common::ValueVector* resultVector);
 
@@ -75,19 +78,19 @@ public:
         return metadataDA->getNumElements(transaction->getType());
     }
 
-    void checkpointInMemory();
-    void rollbackInMemory();
+    virtual void checkpointInMemory();
+    virtual void rollbackInMemory();
 
 protected:
     virtual void scanInternal(transaction::Transaction* transaction,
         common::ValueVector* nodeIDVector, common::ValueVector* resultVector);
     void scanUnfiltered(transaction::Transaction* transaction, PageElementCursor& pageCursor,
-        common::ValueVector* nodeIDVector, common::ValueVector* resultVector);
+        uint64_t numValuesToScan, common::ValueVector* resultVector, uint64_t startPosInVector = 0);
     void scanFiltered(transaction::Transaction* transaction, PageElementCursor& pageCursor,
         common::ValueVector* nodeIDVector, common::ValueVector* resultVector);
     virtual void lookupInternal(transaction::Transaction* transaction,
         common::ValueVector* nodeIDVector, common::ValueVector* resultVector);
-    void lookupValue(transaction::Transaction* transaction, common::offset_t nodeOffset,
+    virtual void lookupValue(transaction::Transaction* transaction, common::offset_t nodeOffset,
         common::ValueVector* resultVector, uint32_t posInVector);
 
     void readFromPage(transaction::Transaction* transaction, common::page_idx_t pageIdx,

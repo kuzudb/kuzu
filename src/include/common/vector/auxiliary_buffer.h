@@ -64,6 +64,8 @@ private:
 // actual elements of the lists in a flat, continuous storage. Each list would be represented as a
 // contiguous subsequence of elements in this vector.
 class ListAuxiliaryBuffer : public AuxiliaryBuffer {
+    friend class ListVector;
+
 public:
     ListAuxiliaryBuffer(const LogicalType& dataVectorType, storage::MemoryManager* memoryManager);
 
@@ -77,6 +79,8 @@ public:
     inline uint64_t getSize() const { return size; }
 
     inline void resetSize() { size = 0; }
+
+    void resize(uint64_t numValues);
 
 private:
     void resizeDataVector(ValueVector* dataVector);

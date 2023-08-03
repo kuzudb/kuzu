@@ -37,6 +37,10 @@ std::unique_ptr<MetadataDAHInfo> StorageManager::initMetadataDAHInfo(const Logic
             metadataDAHInfo->childrenInfos[i] = initMetadataDAHInfo(*fields[i]->getType());
         }
     } break;
+    case PhysicalTypeID::VAR_LIST: {
+        metadataDAHInfo->childrenInfos.push_back(
+            initMetadataDAHInfo(*VarListType::getChildType(&dataType)));
+    } break;
     default: {
         // DO NOTHING.
     }
