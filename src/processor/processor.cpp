@@ -78,6 +78,7 @@ void QueryProcessor::decomposePlanIntoTasks(
     case PhysicalOperatorType::CREATE_REL:
     case PhysicalOperatorType::DELETE_NODE:
     case PhysicalOperatorType::DELETE_REL:
+    case PhysicalOperatorType::MERGE:
     case PhysicalOperatorType::COPY_TO:
     case PhysicalOperatorType::STANDALONE_CALL:
     case PhysicalOperatorType::PROFILE:

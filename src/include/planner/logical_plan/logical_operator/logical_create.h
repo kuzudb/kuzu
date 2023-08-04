@@ -19,6 +19,9 @@ struct LogicalCreateNodeInfo {
     inline std::unique_ptr<LogicalCreateNodeInfo> copy() const {
         return std::make_unique<LogicalCreateNodeInfo>(*this);
     }
+
+    static std::vector<std::unique_ptr<LogicalCreateNodeInfo>> copy(
+        const std::vector<std::unique_ptr<LogicalCreateNodeInfo>>& infos);
 };
 
 struct LogicalCreateRelInfo {
@@ -34,6 +37,9 @@ struct LogicalCreateRelInfo {
     inline std::unique_ptr<LogicalCreateRelInfo> copy() const {
         return std::make_unique<LogicalCreateRelInfo>(*this);
     }
+
+    static std::vector<std::unique_ptr<LogicalCreateRelInfo>> copy(
+        const std::vector<std::unique_ptr<LogicalCreateRelInfo>>& infos);
 };
 
 class LogicalCreateNode : public LogicalOperator {
@@ -54,7 +60,10 @@ public:
         return infos;
     }
 
-    std::unique_ptr<LogicalOperator> copy() final;
+    inline std::unique_ptr<LogicalOperator> copy() final {
+        return std::make_unique<LogicalCreateNode>(
+            LogicalCreateNodeInfo::copy(infos), children[0]->copy());
+    }
 
 private:
     std::vector<std::unique_ptr<LogicalCreateNodeInfo>> infos;
@@ -76,7 +85,10 @@ public:
 
     inline const std::vector<std::unique_ptr<LogicalCreateRelInfo>>& getInfosRef() { return infos; }
 
-    std::unique_ptr<LogicalOperator> copy() final;
+    inline std::unique_ptr<LogicalOperator> copy() final {
+        return std::make_unique<LogicalCreateRel>(
+            LogicalCreateRelInfo::copy(infos), children[0]->copy());
+    }
 
 private:
     std::vector<std::unique_ptr<LogicalCreateRelInfo>> infos;

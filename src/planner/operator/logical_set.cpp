@@ -8,6 +8,16 @@ using namespace kuzu::binder;
 namespace kuzu {
 namespace planner {
 
+std::vector<std::unique_ptr<LogicalSetPropertyInfo>> LogicalSetPropertyInfo::copy(
+    const std::vector<std::unique_ptr<LogicalSetPropertyInfo>>& infos) {
+    std::vector<std::unique_ptr<LogicalSetPropertyInfo>> infosCopy;
+    infosCopy.reserve(infos.size());
+    for (auto& info : infos) {
+        infosCopy.push_back(info->copy());
+    }
+    return infosCopy;
+}
+
 std::string LogicalSetNodeProperty::getExpressionsForPrinting() const {
     std::string result;
     for (auto& info : infos) {
@@ -16,28 +26,12 @@ std::string LogicalSetNodeProperty::getExpressionsForPrinting() const {
     return result;
 }
 
-std::unique_ptr<LogicalOperator> LogicalSetNodeProperty::copy() {
-    std::vector<std::unique_ptr<LogicalSetPropertyInfo>> infosCopy;
-    for (auto& info : infos) {
-        infosCopy.push_back(info->copy());
-    }
-    return std::make_unique<LogicalSetNodeProperty>(std::move(infosCopy), children[0]->copy());
-}
-
 std::string LogicalSetRelProperty::getExpressionsForPrinting() const {
     std::string result;
     for (auto& info : infos) {
         result += info->setItem.first->toString() + " = " + info->setItem.second->toString() + ",";
     }
     return result;
-}
-
-std::unique_ptr<LogicalOperator> LogicalSetRelProperty::copy() {
-    std::vector<std::unique_ptr<LogicalSetPropertyInfo>> infosCopy;
-    for (auto& info : infos) {
-        infosCopy.push_back(info->copy());
-    }
-    return std::make_unique<LogicalSetRelProperty>(std::move(infosCopy), children[0]->copy());
 }
 
 f_group_pos_set LogicalSetRelProperty::getGroupsPosToFlatten(uint32_t idx) {

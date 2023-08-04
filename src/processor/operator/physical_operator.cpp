@@ -101,6 +101,9 @@ std::string PhysicalOperatorUtils::operatorTypeToString(PhysicalOperatorType ope
     case PhysicalOperatorType::LIMIT: {
         return "LIMIT";
     }
+    case PhysicalOperatorType::MERGE: {
+        return "MERGE";
+    }
     case PhysicalOperatorType::MULTIPLICITY_REDUCER: {
         return "MULTIPLICITY_REDUCER";
     }

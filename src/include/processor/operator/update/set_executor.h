@@ -22,6 +22,9 @@ public:
 
     virtual std::unique_ptr<NodeSetExecutor> copy() const = 0;
 
+    static std::vector<std::unique_ptr<NodeSetExecutor>> copy(
+        const std::vector<std::unique_ptr<NodeSetExecutor>>& executors);
+
 protected:
     DataPos nodeIDPos;
     DataPos lhsVectorPos;
@@ -90,6 +93,9 @@ public:
     virtual void set() = 0;
 
     virtual std::unique_ptr<RelSetExecutor> copy() const = 0;
+
+    static std::vector<std::unique_ptr<RelSetExecutor>> copy(
+        const std::vector<std::unique_ptr<RelSetExecutor>>& executors);
 
 protected:
     DataPos srcNodeIDPos;

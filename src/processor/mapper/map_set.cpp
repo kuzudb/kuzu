@@ -10,16 +10,16 @@ using namespace kuzu::evaluator;
 namespace kuzu {
 namespace processor {
 
-static std::unique_ptr<NodeSetExecutor> getNodeSetExecutor(storage::NodesStore* store,
-    const LogicalSetPropertyInfo& info, const Schema& inSchema,
-    std::unique_ptr<BaseExpressionEvaluator> evaluator) {
-    auto node = (NodeExpression*)info.nodeOrRel.get();
+std::unique_ptr<NodeSetExecutor> PlanMapper::getNodeSetExecutor(storage::NodesStore* store,
+    planner::LogicalSetPropertyInfo* info, const planner::Schema& inSchema) {
+    auto node = (NodeExpression*)info->nodeOrRel.get();
     auto nodeIDPos = DataPos(inSchema.getExpressionPos(*node->getInternalIDProperty()));
-    auto property = (PropertyExpression*)info.setItem.first.get();
+    auto property = (PropertyExpression*)info->setItem.first.get();
     auto propertyPos = DataPos(INVALID_DATA_CHUNK_POS, INVALID_VALUE_VECTOR_POS);
     if (inSchema.isExpressionInScope(*property)) {
         propertyPos = DataPos(inSchema.getExpressionPos(*property));
     }
+    auto evaluator = expressionMapper.mapExpression(info->setItem.second, inSchema);
     if (node->isMultiLabeled()) {
         std::unordered_map<common::table_id_t, storage::NodeColumn*> tableIDToColumn;
         for (auto tableID : node->getTableIDs()) {
@@ -47,27 +47,26 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapSetNodeProperty(LogicalOperator
     auto nodeStore = &storageManager.getNodesStore();
     std::vector<std::unique_ptr<NodeSetExecutor>> executors;
     for (auto& info : logicalSetNodeProperty.getInfosRef()) {
-        auto evaluator = expressionMapper.mapExpression(info->setItem.second, *inSchema);
-        executors.push_back(getNodeSetExecutor(nodeStore, *info, *inSchema, std::move(evaluator)));
+        executors.push_back(getNodeSetExecutor(nodeStore, info.get(), *inSchema));
     }
     return std::make_unique<SetNodeProperty>(std::move(executors), std::move(prevOperator),
         getOperatorID(), logicalSetNodeProperty.getExpressionsForPrinting());
 }
 
-static std::unique_ptr<RelSetExecutor> getRelSetExecutor(storage::RelsStore* store,
-    const LogicalSetPropertyInfo& info, const Schema& inSchema,
-    std::unique_ptr<BaseExpressionEvaluator> evaluator) {
-    auto rel = (RelExpression*)info.nodeOrRel.get();
+std::unique_ptr<RelSetExecutor> PlanMapper::getRelSetExecutor(storage::RelsStore* store,
+    planner::LogicalSetPropertyInfo* info, const planner::Schema& inSchema) {
+    auto rel = (RelExpression*)info->nodeOrRel.get();
     auto srcNodePos =
         DataPos(inSchema.getExpressionPos(*rel->getSrcNode()->getInternalIDProperty()));
     auto dstNodePos =
         DataPos(inSchema.getExpressionPos(*rel->getDstNode()->getInternalIDProperty()));
     auto relIDPos = DataPos(inSchema.getExpressionPos(*rel->getInternalIDProperty()));
-    auto property = (PropertyExpression*)info.setItem.first.get();
+    auto property = (PropertyExpression*)info->setItem.first.get();
     auto propertyPos = DataPos(INVALID_DATA_CHUNK_POS, INVALID_VALUE_VECTOR_POS);
     if (inSchema.isExpressionInScope(*property)) {
         propertyPos = DataPos(inSchema.getExpressionPos(*property));
     }
+    auto evaluator = expressionMapper.mapExpression(info->setItem.second, inSchema);
     if (rel->isMultiLabeled()) {
         std::unordered_map<common::table_id_t, std::pair<storage::RelTable*, common::property_id_t>>
             tableIDToTableAndPropertyID;
@@ -97,8 +96,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapSetRelProperty(LogicalOperator*
     auto relStore = &storageManager.getRelsStore();
     std::vector<std::unique_ptr<RelSetExecutor>> executors;
     for (auto& info : logicalSetRelProperty.getInfosRef()) {
-        auto evaluator = expressionMapper.mapExpression(info->setItem.second, *inSchema);
-        executors.push_back(getRelSetExecutor(relStore, *info, *inSchema, std::move(evaluator)));
+        executors.push_back(getRelSetExecutor(relStore, info.get(), *inSchema));
     }
     return make_unique<SetRelProperty>(std::move(executors), std::move(prevOperator),
         getOperatorID(), logicalSetRelProperty.getExpressionsForPrinting());

@@ -22,6 +22,7 @@ add_library(kuzu_planner_operator
         logical_hash_join.cpp
         logical_intersect.cpp
         logical_limit.cpp
+        logical_merge.cpp
         logical_order_by.cpp
         logical_plan.cpp
         logical_plan_util.cpp

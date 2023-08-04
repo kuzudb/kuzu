@@ -5,6 +5,26 @@
 namespace kuzu {
 namespace planner {
 
+std::vector<std::unique_ptr<LogicalCreateNodeInfo>> LogicalCreateNodeInfo::copy(
+    const std::vector<std::unique_ptr<LogicalCreateNodeInfo>>& infos) {
+    std::vector<std::unique_ptr<LogicalCreateNodeInfo>> infosCopy;
+    infosCopy.reserve(infos.size());
+    for (auto& info : infos) {
+        infosCopy.push_back(info->copy());
+    }
+    return infosCopy;
+}
+
+std::vector<std::unique_ptr<LogicalCreateRelInfo>> LogicalCreateRelInfo::copy(
+    const std::vector<std::unique_ptr<LogicalCreateRelInfo>>& infos) {
+    std::vector<std::unique_ptr<LogicalCreateRelInfo>> infosCopy;
+    infosCopy.reserve(infos.size());
+    for (auto& info : infos) {
+        infosCopy.push_back(info->copy());
+    }
+    return infosCopy;
+}
+
 void LogicalCreateNode::computeFactorizedSchema() {
     copyChildSchema(0);
     for (auto& info : infos) {
@@ -37,15 +57,6 @@ f_group_pos_set LogicalCreateNode::getGroupsPosToFlatten() {
         childSchema->getGroupsPosInScope(), childSchema);
 }
 
-std::unique_ptr<LogicalOperator> LogicalCreateNode::copy() {
-    std::vector<std::unique_ptr<LogicalCreateNodeInfo>> infosCopy;
-    infosCopy.reserve(infos.size());
-    for (auto& info : infos) {
-        infosCopy.push_back(info->copy());
-    }
-    return std::make_unique<LogicalCreateNode>(std::move(infosCopy), children[0]->copy());
-}
-
 std::string LogicalCreateRel::getExpressionsForPrinting() const {
     std::string result;
     for (auto& info : infos) {
@@ -60,13 +71,5 @@ f_group_pos_set LogicalCreateRel::getGroupsPosToFlatten() {
         childSchema->getGroupsPosInScope(), childSchema);
 }
 
-std::unique_ptr<LogicalOperator> LogicalCreateRel::copy() {
-    std::vector<std::unique_ptr<LogicalCreateRelInfo>> infosCopy;
-    infosCopy.reserve(infos.size());
-    for (auto& info : infos) {
-        infosCopy.push_back(info->copy());
-    }
-    return std::make_unique<LogicalCreateRel>(std::move(infosCopy), children[0]->copy());
-}
 } // namespace planner
 } // namespace kuzu

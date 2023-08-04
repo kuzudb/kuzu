@@ -35,6 +35,16 @@ void NodeInsertExecutor::insert(transaction::Transaction* transaction) {
     }
 }
 
+std::vector<std::unique_ptr<NodeInsertExecutor>> NodeInsertExecutor::copy(
+    const std::vector<std::unique_ptr<NodeInsertExecutor>>& executors) {
+    std::vector<std::unique_ptr<NodeInsertExecutor>> executorsCopy;
+    executorsCopy.reserve(executors.size());
+    for (auto& executor : executors) {
+        executorsCopy.push_back(executor->copy());
+    }
+    return executorsCopy;
+}
+
 RelInsertExecutor::RelInsertExecutor(const RelInsertExecutor& other)
     : relsStatistics{other.relsStatistics}, table{other.table}, srcNodePos{other.srcNodePos},
       dstNodePos{other.dstNodePos} {
@@ -61,6 +71,16 @@ void RelInsertExecutor::insert(transaction::Transaction* tx) {
     }
     table->insertRel(srcNodeIDVector, dstNodeIDVector, propertyVectors);
     relsStatistics.updateNumRelsByValue(table->getRelTableID(), 1);
+}
+
+std::vector<std::unique_ptr<RelInsertExecutor>> RelInsertExecutor::copy(
+    const std::vector<std::unique_ptr<RelInsertExecutor>>& executors) {
+    std::vector<std::unique_ptr<RelInsertExecutor>> executorsCopy;
+    executorsCopy.reserve(executors.size());
+    for (auto& executor : executors) {
+        executorsCopy.push_back(executor->copy());
+    }
+    return executorsCopy;
 }
 
 } // namespace processor

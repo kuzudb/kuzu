@@ -25,6 +25,9 @@ public:
         return std::make_unique<NodeInsertExecutor>(*this);
     }
 
+    static std::vector<std::unique_ptr<NodeInsertExecutor>> copy(
+        const std::vector<std::unique_ptr<NodeInsertExecutor>>& executors);
+
 private:
     storage::NodeTable* table;
     std::unique_ptr<evaluator::BaseExpressionEvaluator> primaryKeyEvaluator;
@@ -51,6 +54,9 @@ public:
     inline std::unique_ptr<RelInsertExecutor> copy() {
         return std::make_unique<RelInsertExecutor>(*this);
     }
+
+    static std::vector<std::unique_ptr<RelInsertExecutor>> copy(
+        const std::vector<std::unique_ptr<RelInsertExecutor>>& executors);
 
 private:
     storage::RelsStatistics& relsStatistics;

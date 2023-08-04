@@ -18,6 +18,9 @@ struct LogicalSetPropertyInfo {
     inline std::unique_ptr<LogicalSetPropertyInfo> copy() const {
         return std::make_unique<LogicalSetPropertyInfo>(*this);
     }
+
+    static std::vector<std::unique_ptr<LogicalSetPropertyInfo>> copy(
+        const std::vector<std::unique_ptr<LogicalSetPropertyInfo>>& infos);
 };
 
 class LogicalSetNodeProperty : public LogicalOperator {
@@ -36,7 +39,10 @@ public:
 
     std::string getExpressionsForPrinting() const final;
 
-    std::unique_ptr<LogicalOperator> copy() final;
+    inline std::unique_ptr<LogicalOperator> copy() final {
+        return std::make_unique<LogicalSetNodeProperty>(
+            LogicalSetPropertyInfo::copy(infos), children[0]->copy());
+    }
 
 private:
     std::vector<std::unique_ptr<LogicalSetPropertyInfo>> infos;
@@ -60,7 +66,10 @@ public:
 
     std::string getExpressionsForPrinting() const final;
 
-    std::unique_ptr<LogicalOperator> copy() final;
+    inline std::unique_ptr<LogicalOperator> copy() final {
+        return std::make_unique<LogicalSetRelProperty>(
+            LogicalSetPropertyInfo::copy(infos), children[0]->copy());
+    }
 
 private:
     std::vector<std::unique_ptr<LogicalSetPropertyInfo>> infos;

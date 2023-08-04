@@ -12,6 +12,7 @@
 #include "planner/logical_plan/logical_operator/logical_hash_join.h"
 #include "planner/logical_plan/logical_operator/logical_intersect.h"
 #include "planner/logical_plan/logical_operator/logical_limit.h"
+#include "planner/logical_plan/logical_operator/logical_merge.h"
 #include "planner/logical_plan/logical_operator/logical_order_by.h"
 #include "planner/logical_plan/logical_operator/logical_projection.h"
 #include "planner/logical_plan/logical_operator/logical_recursive_extend.h"
@@ -183,6 +184,12 @@ void FactorizationRewriter::visitCreateRel(planner::LogicalOperator* op) {
     auto createRel = (LogicalCreateRel*)op;
     auto groupsPosToFlatten = createRel->getGroupsPosToFlatten();
     createRel->setChild(0, appendFlattens(createRel->getChild(0), groupsPosToFlatten));
+}
+
+void FactorizationRewriter::visitMerge(planner::LogicalOperator* op) {
+    auto merge = (LogicalMerge*)op;
+    auto groupsPosToFlatten = merge->getGroupsPosToFlatten();
+    merge->setChild(0, appendFlattens(merge->getChild(0), groupsPosToFlatten));
 }
 
 void FactorizationRewriter::visitCopyTo(planner::LogicalOperator* op) {

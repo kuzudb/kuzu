@@ -3,8 +3,16 @@
 #include "planner/logical_plan/logical_operator/logical_set.h"
 #include "planner/query_planner.h"
 
+using namespace kuzu::binder;
+
 namespace kuzu {
 namespace planner {
+
+std::unique_ptr<LogicalSetPropertyInfo> QueryPlanner::createLogicalSetPropertyInfo(
+    BoundSetPropertyInfo* boundSetPropertyInfo) {
+    return std::make_unique<LogicalSetPropertyInfo>(
+        boundSetPropertyInfo->nodeOrRel, boundSetPropertyInfo->setItem);
+}
 
 void QueryPlanner::appendSetNodeProperty(
     const std::vector<binder::BoundSetPropertyInfo*>& boundInfos, LogicalPlan& plan) {
@@ -28,8 +36,7 @@ void QueryPlanner::appendSetNodeProperty(
     std::vector<std::unique_ptr<LogicalSetPropertyInfo>> logicalInfos;
     logicalInfos.reserve(boundInfos.size());
     for (auto& boundInfo : boundInfos) {
-        logicalInfos.push_back(
-            std::make_unique<LogicalSetPropertyInfo>(boundInfo->nodeOrRel, boundInfo->setItem));
+        logicalInfos.push_back(createLogicalSetPropertyInfo(boundInfo));
     }
     auto setNodeProperty =
         std::make_shared<LogicalSetNodeProperty>(std::move(logicalInfos), plan.getLastOperator());
@@ -42,8 +49,7 @@ void QueryPlanner::appendSetRelProperty(
     std::vector<std::unique_ptr<LogicalSetPropertyInfo>> logicalInfos;
     logicalInfos.reserve(boundInfos.size());
     for (auto& boundInfo : boundInfos) {
-        logicalInfos.push_back(
-            std::make_unique<LogicalSetPropertyInfo>(boundInfo->nodeOrRel, boundInfo->setItem));
+        logicalInfos.push_back(createLogicalSetPropertyInfo(boundInfo));
     }
     auto setRelProperty =
         std::make_shared<LogicalSetRelProperty>(std::move(logicalInfos), plan.getLastOperator());

@@ -159,8 +159,14 @@ protected:
         return op;
     }
 
+    virtual void visitMerge(planner::LogicalOperator* op) {}
+    virtual std::shared_ptr<planner::LogicalOperator> visitMergeReplace(
+        std::shared_ptr<planner::LogicalOperator> op) {
+        return op;
+    }
+
     virtual void visitCopyTo(planner::LogicalOperator* op) {}
-    virtual std::shared_ptr<planner::LogicalOperator> visitCopyTo(
+    virtual std::shared_ptr<planner::LogicalOperator> visitCopyToReplace(
         std::shared_ptr<planner::LogicalOperator> op) {
         return op;
     }

@@ -14,6 +14,16 @@ void NodeSetExecutor::init(ResultSet* resultSet, ExecutionContext* context) {
     rhsVector = evaluator->resultVector.get();
 }
 
+std::vector<std::unique_ptr<NodeSetExecutor>> NodeSetExecutor::copy(
+    const std::vector<std::unique_ptr<NodeSetExecutor>>& executors) {
+    std::vector<std::unique_ptr<NodeSetExecutor>> executorsCopy;
+    executorsCopy.reserve(executors.size());
+    for (auto& executor : executors) {
+        executorsCopy.push_back(executor->copy());
+    }
+    return executorsCopy;
+}
+
 static void writeToPropertyVector(ValueVector* propertyVector, uint32_t propertyVectorPos,
     ValueVector* rhsVector, uint32_t rhsVectorPos) {
     if (rhsVector->isNull(rhsVectorPos)) {
@@ -72,6 +82,16 @@ void RelSetExecutor::init(ResultSet* resultSet, ExecutionContext* context) {
     }
     evaluator->init(*resultSet, context->memoryManager);
     rhsVector = evaluator->resultVector.get();
+}
+
+std::vector<std::unique_ptr<RelSetExecutor>> RelSetExecutor::copy(
+    const std::vector<std::unique_ptr<RelSetExecutor>>& executors) {
+    std::vector<std::unique_ptr<RelSetExecutor>> executorsCopy;
+    executorsCopy.reserve(executors.size());
+    for (auto& executor : executors) {
+        executorsCopy.push_back(executor->copy());
+    }
+    return executorsCopy;
 }
 
 // Assume both input vectors are flat. Should be removed eventually.
