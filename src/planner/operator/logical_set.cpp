@@ -1,5 +1,6 @@
 #include "planner/logical_plan/logical_operator/logical_set.h"
 
+#include "binder/expression/rel_expression.h"
 #include "planner/logical_plan/logical_operator/flatten_resolver.h"
 
 using namespace kuzu::binder;

@@ -160,22 +160,21 @@ void ProjectionPushDownOptimizer::visitUnwind(planner::LogicalOperator* op) {
 
 void ProjectionPushDownOptimizer::visitCreateNode(planner::LogicalOperator* op) {
     auto createNode = (LogicalCreateNode*)op;
-    for (auto i = 0u; i < createNode->getNumNodes(); ++i) {
-        auto primaryKey = createNode->getPrimaryKey(i);
-        if (primaryKey != nullptr) {
-            collectExpressionsInUse(createNode->getPrimaryKey(i));
+    for (auto& info : createNode->getInfosRef()) {
+        if (info->primaryKey != nullptr) {
+            collectExpressionsInUse(info->primaryKey);
         }
     }
 }
 
 void ProjectionPushDownOptimizer::visitCreateRel(planner::LogicalOperator* op) {
     auto createRel = (LogicalCreateRel*)op;
-    for (auto i = 0; i < createRel->getNumRels(); ++i) {
-        auto rel = createRel->getRel(i);
+    for (auto& info : createRel->getInfosRef()) {
+        auto rel = info->rel;
         collectExpressionsInUse(rel->getSrcNode()->getInternalIDProperty());
         collectExpressionsInUse(rel->getDstNode()->getInternalIDProperty());
         collectExpressionsInUse(rel->getInternalIDProperty());
-        for (auto& setItem : createRel->getSetItems(i)) {
+        for (auto& setItem : info->setItems) {
             collectExpressionsInUse(setItem.second);
         }
     }

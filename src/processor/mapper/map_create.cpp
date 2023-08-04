@@ -6,73 +6,75 @@
 using namespace kuzu::evaluator;
 using namespace kuzu::planner;
 using namespace kuzu::storage;
+using namespace kuzu::catalog;
 
 namespace kuzu {
 namespace processor {
+
+static std::unique_ptr<NodeInsertExecutor> getNodeInsertExecutor(NodesStore* nodesStore,
+    RelsStore* relsStore, const Catalog& catalog, const LogicalCreateNodeInfo& info,
+    const Schema& outSchema, std::unique_ptr<BaseExpressionEvaluator> evaluator) {
+    auto node = info.node;
+    auto nodeTableID = node->getSingleTableID();
+    auto table = nodesStore->getNodeTable(nodeTableID);
+    std::vector<RelTable*> relTablesToInit;
+    for (auto& schema : catalog.getReadOnlyVersion()->getRelTableSchemas()) {
+        if (schema->isSrcOrDstTable(nodeTableID)) {
+            relTablesToInit.push_back(relsStore->getRelTable(schema->tableID));
+        }
+    }
+    auto nodeIDPos = DataPos(outSchema.getExpressionPos(*node->getInternalIDProperty()));
+    return std::make_unique<NodeInsertExecutor>(
+        table, std::move(evaluator), std::move(relTablesToInit), nodeIDPos);
+}
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateNode(LogicalOperator* logicalOperator) {
     auto logicalCreateNode = (LogicalCreateNode*)logicalOperator;
     auto outSchema = logicalCreateNode->getSchema();
     auto inSchema = logicalCreateNode->getChild(0)->getSchema();
     auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
-    auto& nodesStore = storageManager.getNodesStore();
-    auto catalogContent = catalog->getReadOnlyVersion();
-    std::vector<std::unique_ptr<CreateNodeInfo>> createNodeInfos;
-    for (auto i = 0u; i < logicalCreateNode->getNumNodes(); ++i) {
-        auto node = logicalCreateNode->getNode(i);
-        auto primaryKey = logicalCreateNode->getPrimaryKey(i);
-        auto nodeTableID = node->getSingleTableID();
-        auto schema = catalog->getReadOnlyVersion()->getNodeTableSchema(nodeTableID);
-        auto table = nodesStore.getNodeTable(nodeTableID);
-        auto primaryKeyEvaluator =
-            primaryKey != nullptr ? expressionMapper.mapExpression(primaryKey, *inSchema) : nullptr;
-        std::vector<RelTable*> relTablesToInit;
-        for (auto relTableSchema : catalogContent->getRelTableSchemas()) {
-            if (relTableSchema->isSrcOrDstTable(nodeTableID)) {
-                relTablesToInit.push_back(
-                    storageManager.getRelsStore().getRelTable(relTableSchema->tableID));
-            }
+    std::vector<std::unique_ptr<NodeInsertExecutor>> executors;
+    for (auto& info : logicalCreateNode->getInfosRef()) {
+        std::unique_ptr<BaseExpressionEvaluator> evaluator = nullptr;
+        if (info->primaryKey != nullptr) {
+            evaluator = expressionMapper.mapExpression(info->primaryKey, *inSchema);
         }
-        auto outDataPos = DataPos(outSchema->getExpressionPos(*node->getInternalIDProperty()));
-        createNodeInfos.push_back(make_unique<CreateNodeInfo>(
-            schema, table, std::move(primaryKeyEvaluator), relTablesToInit, outDataPos));
+        executors.push_back(getNodeInsertExecutor(&storageManager.getNodesStore(),
+            &storageManager.getRelsStore(), *catalog, *info, *outSchema, std::move(evaluator)));
     }
-    return make_unique<CreateNode>(std::move(createNodeInfos), std::move(prevOperator),
+    return std::make_unique<CreateNode>(std::move(executors), std::move(prevOperator),
         getOperatorID(), logicalCreateNode->getExpressionsForPrinting());
+}
+
+static std::unique_ptr<RelInsertExecutor> getRelInsertExecutor(RelsStore* relsStore,
+    const LogicalCreateRelInfo& info, const Schema& inSchema,
+    std::vector<std::unique_ptr<BaseExpressionEvaluator>> evaluators) {
+    auto rel = info.rel;
+    auto relTableID = rel->getSingleTableID();
+    auto table = relsStore->getRelTable(relTableID);
+    auto srcNode = rel->getSrcNode();
+    auto dstNode = rel->getDstNode();
+    auto srcNodePos = DataPos(inSchema.getExpressionPos(*srcNode->getInternalIDProperty()));
+    auto dstNodePos = DataPos(inSchema.getExpressionPos(*dstNode->getInternalIDProperty()));
+    return std::make_unique<RelInsertExecutor>(
+        relsStore->getRelsStatistics(), table, srcNodePos, dstNodePos, std::move(evaluators));
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateRel(LogicalOperator* logicalOperator) {
     auto logicalCreateRel = (LogicalCreateRel*)logicalOperator;
     auto inSchema = logicalCreateRel->getChild(0)->getSchema();
     auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
-    auto& relStore = storageManager.getRelsStore();
-    std::vector<std::unique_ptr<CreateRelInfo>> createRelInfos;
-    for (auto i = 0u; i < logicalCreateRel->getNumRels(); ++i) {
-        auto rel = logicalCreateRel->getRel(i);
-        auto table = relStore.getRelTable(rel->getSingleTableID());
-        auto srcNodePos =
-            DataPos(inSchema->getExpressionPos(*rel->getSrcNode()->getInternalIDProperty()));
-        auto srcNodeTableID = rel->getSrcNode()->getSingleTableID();
-        auto dstNodePos =
-            DataPos(inSchema->getExpressionPos(*rel->getDstNode()->getInternalIDProperty()));
-        auto dstNodeTableID = rel->getDstNode()->getSingleTableID();
+    std::vector<std::unique_ptr<RelInsertExecutor>> executors;
+    for (auto& info : logicalCreateRel->getInfosRef()) {
         std::vector<std::unique_ptr<BaseExpressionEvaluator>> evaluators;
-        uint32_t relIDEvaluatorIdx = UINT32_MAX;
-        auto setItems = logicalCreateRel->getSetItems(i);
-        for (auto j = 0u; j < setItems.size(); ++j) {
-            auto& [lhs, rhs] = setItems[j];
-            auto propertyExpression = static_pointer_cast<binder::PropertyExpression>(lhs);
-            if (propertyExpression->isInternalID()) {
-                relIDEvaluatorIdx = j;
-            }
+        for (auto& [lhs, rhs] : info->setItems) {
             evaluators.push_back(expressionMapper.mapExpression(rhs, *inSchema));
         }
-        assert(relIDEvaluatorIdx != UINT32_MAX);
-        createRelInfos.push_back(make_unique<CreateRelInfo>(table, srcNodePos, srcNodeTableID,
-            dstNodePos, dstNodeTableID, std::move(evaluators), relIDEvaluatorIdx));
+        executors.push_back(getRelInsertExecutor(
+            &storageManager.getRelsStore(), *info, *inSchema, std::move(evaluators)));
     }
-    return make_unique<CreateRel>(relStore.getRelsStatistics(), std::move(createRelInfos),
-        std::move(prevOperator), getOperatorID(), logicalOperator->getExpressionsForPrinting());
+    return std::make_unique<CreateRel>(std::move(executors), std::move(prevOperator),
+        getOperatorID(), logicalCreateRel->getExpressionsForPrinting());
 }
 
 } // namespace processor

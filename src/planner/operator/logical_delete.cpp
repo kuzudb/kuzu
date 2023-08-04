@@ -1,5 +1,7 @@
 #include "planner/logical_plan/logical_operator/logical_delete.h"
 
+#include "planner/logical_plan/logical_operator/flatten_resolver.h"
+
 namespace kuzu {
 namespace planner {
 

@@ -3,6 +3,7 @@ add_library(kuzu_processor_operator_update
         create.cpp
         delete.cpp
         delete_executor.cpp
+        insert_executor.cpp
         set.cpp
         set_executor.cpp)
 
