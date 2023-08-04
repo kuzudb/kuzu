@@ -3,29 +3,17 @@
 namespace kuzu {
 namespace planner {
 
-void LogicalExpressionsScan::computeFactorizedSchema() {
+void LogicalExpressionScan::computeFactorizedSchema() {
     createEmptySchema();
     auto groupPos = schema->createGroup();
     schema->setGroupAsSingleState(groupPos); // Mark group holding constant as single state.
-    for (auto& expression : expressions) {
-        // No need to insert repeated constant.
-        if (schema->isExpressionInScope(*expression)) {
-            continue;
-        }
-        schema->insertToGroupAndScope(expression, groupPos);
-    }
+    schema->insertToGroupAndScope(expression, groupPos);
 }
 
-void LogicalExpressionsScan::computeFlatSchema() {
+void LogicalExpressionScan::computeFlatSchema() {
     createEmptySchema();
     schema->createGroup();
-    for (auto& expression : expressions) {
-        // No need to insert repeated constant.
-        if (schema->isExpressionInScope(*expression)) {
-            continue;
-        }
-        schema->insertToGroupAndScope(expression, 0);
-    }
+    schema->insertToGroupAndScope(expression, 0);
 }
 
 } // namespace planner

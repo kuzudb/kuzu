@@ -77,7 +77,7 @@ private:
 
     void appendAccumulate(common::AccumulateType accumulateType, LogicalPlan& plan);
 
-    void appendExpressionsScan(const expression_vector& expressions, LogicalPlan& plan);
+    void appendDummyScan(LogicalPlan& plan);
 
     void appendDistinct(const expression_vector& expressionsToDistinct, LogicalPlan& plan);
 
