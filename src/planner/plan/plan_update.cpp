@@ -41,11 +41,7 @@ void QueryPlanner::planCreateClause(
     binder::BoundUpdatingClause& updatingClause, LogicalPlan& plan) {
     auto& createClause = (BoundCreateClause&)updatingClause;
     if (plan.isEmpty()) { // E.g. CREATE (a:Person {age:20})
-        expression_vector expressions;
-        for (auto& setItem : createClause.getAllSetItems()) {
-            expressions.push_back(setItem.second);
-        }
-        appendExpressionsScan(expressions, plan);
+        appendDummyScan(plan);
     } else {
         appendAccumulate(common::AccumulateType::REGULAR, plan);
     }

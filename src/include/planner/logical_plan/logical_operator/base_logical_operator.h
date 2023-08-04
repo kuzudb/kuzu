@@ -22,7 +22,7 @@ enum class LogicalOperatorType : uint8_t {
     DISTINCT,
     DROP_PROPERTY,
     DROP_TABLE,
-    EXPRESSIONS_SCAN,
+    EXPRESSION_SCAN,
     EXPLAIN,
     EXTEND,
     FILTER,

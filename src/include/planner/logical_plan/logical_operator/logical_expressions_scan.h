@@ -6,29 +6,26 @@
 namespace kuzu {
 namespace planner {
 
-class LogicalExpressionsScan : public LogicalOperator {
+// TODO(Xiyang): change to DummyScan once we rewrite our index scan.
+class LogicalExpressionScan : public LogicalOperator {
 public:
-    // LogicalExpressionsScan does not take input from child operator. So its input expressions must
-    // be evaluated statically i.e. must be value.
-    explicit LogicalExpressionsScan(binder::expression_vector expressions)
-        : LogicalOperator{LogicalOperatorType::EXPRESSIONS_SCAN}, expressions{
-                                                                      std::move(expressions)} {}
+    explicit LogicalExpressionScan(std::shared_ptr<binder::Expression> expression)
+        : LogicalOperator{LogicalOperatorType::EXPRESSION_SCAN}, expression{std::move(expression)} {
+    }
 
     void computeFactorizedSchema() override;
     void computeFlatSchema() override;
 
-    inline std::string getExpressionsForPrinting() const override {
-        return binder::ExpressionUtil::toString(expressions);
-    }
+    inline std::string getExpressionsForPrinting() const override { return std::string(); }
 
-    inline binder::expression_vector getExpressions() const { return expressions; }
+    inline std::shared_ptr<binder::Expression> getExpression() const { return expression; }
 
     inline std::unique_ptr<LogicalOperator> copy() override {
-        return make_unique<LogicalExpressionsScan>(expressions);
+        return make_unique<LogicalExpressionScan>(expression);
     }
 
 private:
-    binder::expression_vector expressions;
+    std::shared_ptr<binder::Expression> expression;
 };
 
 } // namespace planner

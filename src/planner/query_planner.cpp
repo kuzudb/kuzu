@@ -1,6 +1,7 @@
 #include "planner/query_planner.h"
 
 #include "binder/expression/expression_visitor.h"
+#include "binder/expression/literal_expression.h"
 #include "binder/query/bound_regular_query.h"
 #include "binder/visitor/property_collector.h"
 #include "common/join_type.h"
@@ -137,8 +138,7 @@ void QueryPlanner::planUnwindClause(
     auto boundUnwindClause = reinterpret_cast<BoundUnwindClause*>(boundReadingClause);
     for (auto& plan : plans) {
         if (plan->isEmpty()) { // UNWIND [1, 2, 3, 4] AS x RETURN x
-            auto expressions = expression_vector{boundUnwindClause->getExpression()};
-            appendExpressionsScan(expressions, *plan);
+            appendDummyScan(*plan);
         }
         appendUnwind(*boundUnwindClause, *plan);
     }
@@ -291,9 +291,13 @@ void QueryPlanner::planSubqueryIfNecessary(
     }
 }
 
-void QueryPlanner::appendExpressionsScan(const expression_vector& expressions, LogicalPlan& plan) {
+void QueryPlanner::appendDummyScan(LogicalPlan& plan) {
     assert(plan.isEmpty());
-    auto expressionsScan = make_shared<LogicalExpressionsScan>(expressions);
+    auto logicalType = common::LogicalType(common::LogicalTypeID::STRING);
+    auto nullValue = common::Value::createNullValue(logicalType);
+    auto literalExpression = std::make_shared<binder::LiteralExpression>(
+        nullValue.copy(), common::InternalKeyword::PLACE_HOLDER);
+    auto expressionsScan = make_shared<LogicalExpressionScan>(std::move(literalExpression));
     expressionsScan->computeFactorizedSchema();
     plan.setLastOperator(std::move(expressionsScan));
 }

@@ -115,7 +115,7 @@ std::shared_ptr<planner::LogicalOperator> FilterPushDownOptimizer::visitScanNode
         auto rhs = primaryKeyEqualityComparison->getChild(1);
         if (rhs->expressionType == common::ExpressionType::LITERAL) {
             // Rewrite to index scan
-            auto expressionsScan = make_shared<LogicalExpressionsScan>(expression_vector{rhs});
+            auto expressionsScan = make_shared<LogicalExpressionScan>(rhs);
             expressionsScan->computeFlatSchema();
             auto indexScan =
                 std::make_shared<LogicalIndexScanNode>(node, rhs, std::move(expressionsScan));
