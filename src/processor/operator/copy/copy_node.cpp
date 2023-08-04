@@ -131,20 +131,50 @@ void CopyNode::writeAndResetNodeGroup(node_group_idx_t nodeGroupIdx,
 void CopyNode::populatePKIndex(
     PrimaryKeyIndexBuilder* pkIndex, ColumnChunk* chunk, offset_t startOffset, offset_t numNodes) {
     checkNonNullConstraint(chunk->getNullChunk(), numNodes);
+    std::string errorPKValueStr;
     pkIndex->lock();
     try {
-        appendToPKIndex(pkIndex, chunk, startOffset, numNodes);
+        switch (chunk->getDataType().getPhysicalType()) {
+        case PhysicalTypeID::INT64: {
+            auto numAppendedNodes = appendToPKIndex<int64_t>(pkIndex, chunk, startOffset, numNodes);
+            if (numAppendedNodes < numNodes) {
+                errorPKValueStr =
+                    std::to_string(chunk->getValue<int64_t>(startOffset + numAppendedNodes));
+            }
+        } break;
+        case PhysicalTypeID::STRING: {
+            auto numAppendedNodes =
+                appendToPKIndex<ku_string_t>(pkIndex, chunk, startOffset, numNodes);
+            if (numAppendedNodes < numNodes) {
+                errorPKValueStr =
+                    chunk->getValue<ku_string_t>(startOffset + numAppendedNodes).getAsString();
+            }
+        } break;
+        default: {
+            throw CopyException(StringUtils::string_format(
+                "Invalid primary key column type {}. Primary key must be "
+                "either INT64, STRING or SERIAL.",
+                LogicalTypeUtils::dataTypeToString(chunk->getDataType())));
+        }
+        }
     } catch (Exception& e) {
         pkIndex->unlock();
         throw;
     }
     pkIndex->unlock();
+    if (!errorPKValueStr.empty()) {
+        throw CopyException(
+            StringUtils::string_format("Found duplicated primary key value {}, which violates the "
+                                       "uniqueness constraint of the primary key column.",
+                errorPKValueStr));
+    }
 }
 
 void CopyNode::checkNonNullConstraint(NullColumnChunk* nullChunk, offset_t numNodes) {
     for (auto posInChunk = 0u; posInChunk < numNodes; posInChunk++) {
         if (nullChunk->isNull(posInChunk)) {
-            throw CopyException("Primary key cannot be null.");
+            throw CopyException(
+                "Found NULL, which violates the non-null constraint of the primary key column.");
         }
     }
 }
@@ -175,30 +205,31 @@ void CopyNode::finalize(ExecutionContext* context) {
         sharedState->fTable.get(), outputMsg, context->memoryManager);
 }
 
-void CopyNode::appendToPKIndex(
+template<>
+uint64_t CopyNode::appendToPKIndex<int64_t>(
     PrimaryKeyIndexBuilder* pkIndex, ColumnChunk* chunk, offset_t startOffset, uint64_t numValues) {
-    switch (chunk->getDataType().getLogicalTypeID()) {
-    case LogicalTypeID::INT64: {
-        for (auto i = 0u; i < numValues; i++) {
-            auto offset = i + startOffset;
-            auto value = chunk->getValue<int64_t>(i);
-            pkIndex->append(value, offset);
+    for (auto i = 0u; i < numValues; i++) {
+        auto offset = i + startOffset;
+        auto value = chunk->getValue<int64_t>(i);
+        if (!pkIndex->append(value, offset)) {
+            return i;
         }
-    } break;
-    case LogicalTypeID::STRING: {
-        auto varSizedChunk = (StringColumnChunk*)chunk;
-        for (auto i = 0u; i < numValues; i++) {
-            auto offset = i + startOffset;
-            auto value = varSizedChunk->getValue<std::string>(i);
-            pkIndex->append(value.c_str(), offset);
+    }
+    return numValues;
+}
+
+template<>
+uint64_t CopyNode::appendToPKIndex<ku_string_t>(
+    PrimaryKeyIndexBuilder* pkIndex, ColumnChunk* chunk, offset_t startOffset, uint64_t numValues) {
+    auto stringColumnChunk = (StringColumnChunk*)chunk;
+    for (auto i = 0u; i < numValues; i++) {
+        auto offset = i + startOffset;
+        auto value = stringColumnChunk->getValue<std::string>(i);
+        if (!pkIndex->append(value.c_str(), offset)) {
+            return i;
         }
-    } break;
-    default: {
-        StringUtils::string_format("Invalid primary key column type {}. Primary key must be "
-                                   "either INT64, STRING or SERIAL.",
-            LogicalTypeUtils::dataTypeToString(chunk->getDataType()));
     }
-    }
+    return numValues;
 }
 
 } // namespace processor

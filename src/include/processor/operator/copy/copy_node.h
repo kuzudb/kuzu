@@ -96,7 +96,9 @@ private:
         storage::ColumnChunk* chunk, common::offset_t startNodeOffset, common::offset_t numNodes);
     static void checkNonNullConstraint(
         storage::NullColumnChunk* nullChunk, common::offset_t numNodes);
-    static void appendToPKIndex(storage::PrimaryKeyIndexBuilder* pkIndex,
+
+    template<typename T>
+    static uint64_t appendToPKIndex(storage::PrimaryKeyIndexBuilder* pkIndex,
         storage::ColumnChunk* chunk, common::offset_t startOffset, common::offset_t numNodes);
 
 private:
@@ -105,6 +107,13 @@ private:
     std::vector<common::ValueVector*> dataColumnVectors;
     std::unique_ptr<storage::NodeGroup> localNodeGroup;
 };
+
+template<>
+uint64_t CopyNode::appendToPKIndex<int64_t>(storage::PrimaryKeyIndexBuilder* pkIndex,
+    storage::ColumnChunk* chunk, common::offset_t startOffset, common::offset_t numNodes);
+template<>
+uint64_t CopyNode::appendToPKIndex<common::ku_string_t>(storage::PrimaryKeyIndexBuilder* pkIndex,
+    storage::ColumnChunk* chunk, common::offset_t startOffset, common::offset_t numNodes);
 
 } // namespace processor
 } // namespace kuzu

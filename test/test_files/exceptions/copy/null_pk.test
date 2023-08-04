@@ -1,19 +1,17 @@
 -GROUP CopyNullPKTest
 -DATASET CSV copy-fault-tests/null-pk
--SKIP
-# FIXME: This test is not working because the error message is not consistent
 
 --
 
 -CASE NullPrimaryKeyInNodeFile
 -STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/null-pk/vPerson.csv"
 ---- error
-Copy exception: NULL found around L2 in file ${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/null-pk/vPerson.csv violates the non-null constraint of the primary key column.
+Copy exception: Found NULL, which violates the non-null constraint of the primary key column.
 
 -CASE NullPrimaryKeyInMultiNodeFiles
 -STATEMENT COPY person FROM ["${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/null-pk/vPerson.csv", "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/null-pk/vPerson2.csv"]
 ---- error
-Copy exception: NULL found around L2 in file ${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/null-pk/vPerson.csv violates the non-null constraint of the primary key column.
+Copy exception: Found NULL, which violates the non-null constraint of the primary key column.
 
 -CASE NullPrimaryKeyInRelFile
 -STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/null-pk/vPerson-valid.csv"
