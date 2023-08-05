@@ -11,7 +11,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::createFactorizedTableScan(
     const binder::expression_vector& expressions, planner::Schema* schema,
     std::shared_ptr<FactorizedTable> table, std::unique_ptr<PhysicalOperator> prevOperator) {
     std::vector<DataPos> outputPositions;
-    std::vector<uint32_t> columnIndices;
+    std::vector<ft_col_idx_t> columnIndices;
     for (auto i = 0u; i < expressions.size(); ++i) {
         outputPositions.emplace_back(schema->getExpressionPos(*expressions[i]));
         columnIndices.push_back(i);

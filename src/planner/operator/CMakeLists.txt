@@ -15,7 +15,7 @@ add_library(kuzu_planner_operator
         logical_delete.cpp
         logical_distinct.cpp
         logical_explain.cpp
-        logical_expressions_scan.cpp
+        logical_dummy_scan.cpp
         logical_extend.cpp
         logical_filter.cpp
         logical_flatten.cpp

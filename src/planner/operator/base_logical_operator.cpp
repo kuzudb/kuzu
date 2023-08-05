@@ -55,8 +55,8 @@ std::string LogicalOperatorUtils::logicalOperatorTypeToString(LogicalOperatorTyp
     case LogicalOperatorType::DROP_TABLE: {
         return "DROP_TABLE";
     }
-    case LogicalOperatorType::EXPRESSION_SCAN: {
-        return "EXPRESSION_SCAN";
+    case LogicalOperatorType::DUMMY_SCAN: {
+        return "DUMMY_SCAN";
     }
     case LogicalOperatorType::EXTEND: {
         return "EXTEND";

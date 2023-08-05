@@ -30,11 +30,11 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapIndexScanNode(LogicalOperator* 
     auto node = logicalIndexScan->getNode();
     auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
     auto nodeTable = storageManager.getNodesStore().getNodeTable(node->getSingleTableID());
-    auto indexDataPos =
-        DataPos(inSchema->getExpressionPos(*logicalIndexScan->getIndexExpression()));
+    auto evaluator =
+        expressionMapper.mapExpression(logicalIndexScan->getIndexExpression(), *inSchema);
     auto outDataPos = DataPos(outSchema->getExpressionPos(*node->getInternalIDProperty()));
-    return make_unique<IndexScan>(nodeTable->getTableID(), nodeTable->getPKIndex(), indexDataPos,
-        outDataPos, std::move(prevOperator), getOperatorID(),
+    return make_unique<IndexScan>(nodeTable->getTableID(), nodeTable->getPKIndex(),
+        std::move(evaluator), outDataPos, std::move(prevOperator), getOperatorID(),
         logicalIndexScan->getExpressionsForPrinting());
 }
 
