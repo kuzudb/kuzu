@@ -1,11 +1,9 @@
 -GROUP CopyDuplicateIDTest
 -DATASET CSV copy-fault-tests/duplicate-ids
--SKIP
-# FIXME: This test is not working due to inconsistent error message.
 
 --
 
 -CASE DuplicateIDsError
 -STATEMENT COPY person FROM "${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/duplicate-ids/vPerson.csv"
 ---- error
-Copy exception: Duplicated primary key value 10 found around L4 in file ${KUZU_ROOT_DIRECTORY}/dataset/copy-fault-tests/duplicate-ids/vPerson.csv violates the uniqueness constraint of the primary key column.
+Copy exception: Found duplicated primary key value 10, which violates the uniqueness constraint of the primary key column.
