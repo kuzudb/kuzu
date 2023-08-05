@@ -1,5 +1,5 @@
 
-// Generated from Cypher.g4 by ANTLR 4.13.1
+// Generated from Cypher.g4 by ANTLR 4.9
 
 #pragma once
 
@@ -90,20 +90,13 @@ public:
   };
 
   explicit CypherParser(antlr4::TokenStream *input);
+  ~CypherParser();
 
-  CypherParser(antlr4::TokenStream *input, const antlr4::atn::ParserATNSimulatorOptions &options);
-
-  ~CypherParser() override;
-
-  std::string getGrammarFileName() const override;
-
-  const antlr4::atn::ATN& getATN() const override;
-
-  const std::vector<std::string>& getRuleNames() const override;
-
-  const antlr4::dfa::Vocabulary& getVocabulary() const override;
-
-  antlr4::atn::SerializedATNView getSerializedATN() const override;
+  virtual std::string getGrammarFileName() const override;
+  virtual const antlr4::atn::ATN& getATN() const override { return _atn; };
+  virtual const std::vector<std::string>& getTokenNames() const override { return _tokenNames; }; // deprecated: use vocabulary instead.
+  virtual const std::vector<std::string>& getRuleNames() const override;
+  virtual antlr4::dfa::Vocabulary& getVocabulary() const override;
 
 
   class OC_CypherContext;
@@ -709,19 +702,19 @@ public:
     KU_DataTypeContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     OC_SymbolicNameContext *oC_SymbolicName();
-    KU_ListIdentifiersContext *kU_ListIdentifiers();
     antlr4::tree::TerminalNode *UNION();
     KU_PropertyDefinitionsContext *kU_PropertyDefinitions();
     std::vector<antlr4::tree::TerminalNode *> SP();
     antlr4::tree::TerminalNode* SP(size_t i);
     std::vector<KU_DataTypeContext *> kU_DataType();
     KU_DataTypeContext* kU_DataType(size_t i);
+    KU_ListIdentifiersContext *kU_ListIdentifiers();
 
    
   };
 
   KU_DataTypeContext* kU_DataType();
-
+  KU_DataTypeContext* kU_DataType(int precedence);
   class  KU_ListIdentifiersContext : public antlr4::ParserRuleContext {
   public:
     KU_ListIdentifiersContext(antlr4::ParserRuleContext *parent, size_t invokingState);
@@ -2150,12 +2143,21 @@ public:
   OC_DashContext* oC_Dash();
 
 
-  // By default the static state used to implement the parser is lazily initialized during the first
-  // call to the constructor. You can call this function if you wish to initialize the static state
-  // ahead of time.
-  static void initialize();
+  virtual bool sempred(antlr4::RuleContext *_localctx, size_t ruleIndex, size_t predicateIndex) override;
+  bool kU_DataTypeSempred(KU_DataTypeContext *_localctx, size_t predicateIndex);
 
 private:
+  static std::vector<antlr4::dfa::DFA> _decisionToDFA;
+  static antlr4::atn::PredictionContextCache _sharedContextCache;
+  static std::vector<std::string> _ruleNames;
+  static std::vector<std::string> _tokenNames;
+
+  static std::vector<std::string> _literalNames;
+  static std::vector<std::string> _symbolicNames;
+  static antlr4::dfa::Vocabulary _vocabulary;
+  static antlr4::atn::ATN _atn;
+  static std::vector<uint16_t> _serializedATN;
+
 
       virtual void notifyQueryNotConcludeWithReturn(antlr4::Token* startToken) {};
       virtual void notifyNodePatternWithoutParentheses(std::string nodeName, antlr4::Token* startToken) {};
@@ -2164,5 +2166,10 @@ private:
       virtual void notifyReturnNotAtEnd(antlr4::Token* startToken) {};
       virtual void notifyNonBinaryComparison(antlr4::Token* startToken) {};
 
+
+  struct Initializer {
+    Initializer();
+  };
+  static Initializer _init;
 };
 

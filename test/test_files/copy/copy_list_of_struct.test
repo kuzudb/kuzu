@@ -1,0 +1,11 @@
+-GROUP TinySnbListTest
+-DATASET CSV copy-test/list-of-struct
+
+--
+
+# Error: Copy exception: Unsupported data type STRUCT(a:INT64, b:INT64) inside LIST" thrown in SetUp().
+-CASE ListOfStruct
+-SKIP
+-STATEMENT MATCH (p:T) RETURN p.*
+---- 1
+

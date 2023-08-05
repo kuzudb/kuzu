@@ -1,6 +1,6 @@
 #pragma once
 
-#include "processor/operator/persistent/csv_parquet_writer.h"
+#include "processor/operator/copy_to/csv_parquet_writer.h"
 #include "processor/result/result_set.h"
 
 namespace kuzu {

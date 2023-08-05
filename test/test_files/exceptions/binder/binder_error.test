@@ -484,4 +484,4 @@ Binder exception: Invalid number of arguments for macro ADD4.
 -CASE CopyToNPYFormat
 -STATEMENT COPY (MATCH (a:person) RETURN a) TO 'person.npy';
 ---- error
-Binder exception: COPY TO currently only supports csv files.
+Binder exception: COPY TO currently only supports csv and parquet files.

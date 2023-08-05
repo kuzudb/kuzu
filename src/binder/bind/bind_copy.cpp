@@ -21,18 +21,22 @@ std::unique_ptr<BoundStatement> Binder::bindCopyToClause(const Statement& statem
     auto boundFilePath = copyToStatement.getFilePath();
     auto fileType = bindFileType(boundFilePath);
     std::vector<std::string> columnNames;
+    std::vector<LogicalType> columnTypes;
     auto query = bindQuery(*copyToStatement.getRegularQuery());
     auto columns = query->getStatementResult()->getColumns();
     for (auto& column : columns) {
         auto columnName = column->hasAlias() ? column->getAlias() : column->toString();
         columnNames.push_back(columnName);
+        columnTypes.push_back(column->getDataType());
     }
-    if (fileType != CopyDescription::FileType::CSV) {
-        throw BinderException("COPY TO currently only supports csv files.");
+    if (fileType != CopyDescription::FileType::CSV &&
+        fileType != CopyDescription::FileType::PARQUET) {
+        throw BinderException("COPY TO currently only supports csv and parquet files.");
     }
     auto copyDescription = std::make_unique<CopyDescription>(
         fileType, std::vector<std::string>{boundFilePath}, nullptr /* parsing option */);
     copyDescription->columnNames = columnNames;
+    copyDescription->columnTypes = columnTypes;
     return std::make_unique<BoundCopyTo>(std::move(copyDescription), std::move(query));
 }
 
