@@ -31,7 +31,7 @@ struct MorselDispatcher {
 public:
     MorselDispatcher(
         SchedulerType schedulerType, uint64_t lowerBound, uint64_t upperBound, uint64_t maxOffset)
-        : schedulerType{schedulerType}, numActiveSSSP{0u}, globalState{IN_PROGRESS},
+        : schedulerType{schedulerType}, numActiveBFSSharedState{0u}, globalState{IN_PROGRESS},
           maxOffset{maxOffset}, lowerBound{lowerBound}, upperBound{upperBound} {}
 
     inline void initActiveBFSSharedState(uint32_t numThreads) {
@@ -66,7 +66,7 @@ private:
     uint64_t upperBound;
     uint64_t lowerBound;
     std::vector<std::shared_ptr<BFSSharedState>> activeBFSSharedState;
-    uint32_t numActiveSSSP;
+    uint32_t numActiveBFSSharedState;
     GlobalSSSPState globalState;
     std::mutex mutex;
 };
