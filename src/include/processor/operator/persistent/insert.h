@@ -6,11 +6,11 @@
 namespace kuzu {
 namespace processor {
 
-class CreateNode : public PhysicalOperator {
+class InsertNode : public PhysicalOperator {
 public:
-    CreateNode(std::vector<std::unique_ptr<NodeInsertExecutor>> executors,
+    InsertNode(std::vector<std::unique_ptr<NodeInsertExecutor>> executors,
         std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
-        : PhysicalOperator{PhysicalOperatorType::CREATE_NODE, std::move(child), id, paramsString},
+        : PhysicalOperator{PhysicalOperatorType::INSERT_NODE, std::move(child), id, paramsString},
           executors{std::move(executors)} {}
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) final;
@@ -18,7 +18,7 @@ public:
     bool getNextTuplesInternal(ExecutionContext* context) final;
 
     inline std::unique_ptr<PhysicalOperator> clone() final {
-        return std::make_unique<CreateNode>(
+        return std::make_unique<InsertNode>(
             NodeInsertExecutor::copy(executors), children[0]->clone(), id, paramsString);
     }
 
@@ -26,11 +26,11 @@ private:
     std::vector<std::unique_ptr<NodeInsertExecutor>> executors;
 };
 
-class CreateRel : public PhysicalOperator {
+class InsertRel : public PhysicalOperator {
 public:
-    CreateRel(std::vector<std::unique_ptr<RelInsertExecutor>> executors,
+    InsertRel(std::vector<std::unique_ptr<RelInsertExecutor>> executors,
         std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
-        : PhysicalOperator{PhysicalOperatorType::CREATE_REL, std::move(child), id, paramsString},
+        : PhysicalOperator{PhysicalOperatorType::INSERT_REL, std::move(child), id, paramsString},
           executors{std::move(executors)} {}
 
     void initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) final;
@@ -38,7 +38,7 @@ public:
     bool getNextTuplesInternal(ExecutionContext* context) final;
 
     inline std::unique_ptr<PhysicalOperator> clone() final {
-        return std::make_unique<CreateRel>(
+        return std::make_unique<InsertRel>(
             RelInsertExecutor::copy(executors), children[0]->clone(), id, paramsString);
     }
 

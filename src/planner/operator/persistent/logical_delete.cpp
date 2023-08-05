@@ -23,6 +23,15 @@ std::string LogicalDeleteNode::getExpressionsForPrinting() const {
     return result;
 }
 
+f_group_pos_set LogicalDeleteNode::getGroupsPosToFlatten(uint32_t idx) {
+    // TODO(Xiyang): See how we can optimize this to not flatten when deleting single label nodes.
+    f_group_pos_set result;
+    auto node = infos[idx]->node;
+    auto childSchema = children[0]->getSchema();
+    result.insert(childSchema->getGroupPos(*node->getInternalIDProperty()));
+    return factorization::FlattenAll::getGroupsPosToFlatten(result, childSchema);
+}
+
 std::string LogicalDeleteRel::getExpressionsForPrinting() const {
     std::string result;
     for (auto& rel : rels) {

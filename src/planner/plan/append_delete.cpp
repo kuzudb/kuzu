@@ -10,9 +10,7 @@ void QueryPlanner::appendDeleteNode(
     std::vector<std::unique_ptr<LogicalDeleteNodeInfo>> logicalInfos;
     for (auto& boundInfo : boundInfos) {
         auto node = std::static_pointer_cast<NodeExpression>(boundInfo->nodeOrRel);
-        auto extraInfo = (ExtraDeleteNodeInfo*)boundInfo->extraInfo.get();
-        logicalInfos.push_back(
-            std::make_unique<LogicalDeleteNodeInfo>(node, extraInfo->primaryKey));
+        logicalInfos.push_back(std::make_unique<LogicalDeleteNodeInfo>(node));
     }
     auto deleteNode =
         std::make_shared<LogicalDeleteNode>(std::move(logicalInfos), plan.getLastOperator());

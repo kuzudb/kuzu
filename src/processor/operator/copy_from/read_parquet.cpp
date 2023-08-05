@@ -1,4 +1,4 @@
-#include "processor/operator/copy/read_parquet.h"
+#include "processor/operator/copy_from/read_parquet.h"
 
 using namespace kuzu::storage;
 

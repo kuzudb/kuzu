@@ -8,6 +8,7 @@ add_subdirectory(vector)
 add_library(kuzu_common
         OBJECT
         assert.cpp
+        exception.cpp
         rel_direction.cpp
         expression_type.cpp
         file_utils.cpp

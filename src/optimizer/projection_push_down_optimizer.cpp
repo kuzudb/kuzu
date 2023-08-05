@@ -185,7 +185,6 @@ void ProjectionPushDownOptimizer::visitDeleteNode(planner::LogicalOperator* op) 
     auto deleteNode = (LogicalDeleteNode*)op;
     for (auto& info : deleteNode->getInfosRef()) {
         collectExpressionsInUse(info->node->getInternalIDProperty());
-        collectExpressionsInUse(info->primaryKey);
     }
 }
 

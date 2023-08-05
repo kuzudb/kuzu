@@ -402,7 +402,7 @@ void WALReplayer::replayDropPropertyRecord(const kuzu::storage::WALRecord& walRe
             auto tableSchema = catalog->getReadOnlyVersion()->getTableSchema(tableID);
             switch (tableSchema->getTableType()) {
             case catalog::TableType::NODE: {
-                storageManager->getNodesStore().getNodeTable(tableID)->removeProperty(propertyID);
+                storageManager->getNodesStore().getNodeTable(tableID)->dropProperty(propertyID);
                 // TODO(Guodong): Do nothing for now. Should remove meta disk array and node groups.
             } break;
             case catalog::TableType::REL: {

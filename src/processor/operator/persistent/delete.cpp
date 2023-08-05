@@ -1,4 +1,4 @@
-#include "processor/operator/update/delete.h"
+#include "processor/operator/persistent/delete.h"
 
 namespace kuzu {
 namespace processor {
@@ -14,7 +14,7 @@ bool DeleteNode::getNextTuplesInternal(ExecutionContext* context) {
         return false;
     }
     for (auto& executor : executors) {
-        executor->delete_();
+        executor->delete_(context);
     }
     return true;
 }

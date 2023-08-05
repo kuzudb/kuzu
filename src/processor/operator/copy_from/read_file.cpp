@@ -1,4 +1,4 @@
-#include "processor/operator/copy/read_file.h"
+#include "processor/operator/copy_from/read_file.h"
 
 using namespace kuzu::common;
 

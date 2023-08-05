@@ -1,6 +1,6 @@
 #include "binder/expression/rel_expression.h"
 #include "planner/logical_plan/persistent/logical_set.h"
-#include "processor/operator/update/set.h"
+#include "processor/operator/persistent/set.h"
 #include "processor/plan_mapper.h"
 
 using namespace kuzu::binder;

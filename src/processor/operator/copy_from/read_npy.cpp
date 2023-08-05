@@ -1,4 +1,4 @@
-#include "processor/operator/copy/read_npy.h"
+#include "processor/operator/copy_from/read_npy.h"
 
 #include "common/constants.h"
 

@@ -1,8 +1,8 @@
 add_library(kuzu_processor_operator_update
         OBJECT
-        create.cpp
         delete.cpp
         delete_executor.cpp
+        insert.cpp
         insert_executor.cpp
         merge.cpp
         set.cpp

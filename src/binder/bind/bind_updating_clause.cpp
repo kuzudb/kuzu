@@ -190,23 +190,6 @@ std::unique_ptr<BoundUpdatingClause> Binder::bindSetClause(const UpdatingClause&
     return boundSetClause;
 }
 
-static void validateSetNodeProperty(const Expression& expression) {
-    auto& node = (const NodeExpression&)expression;
-    if (node.isMultiLabeled()) {
-        throw BinderException("Set property of node " + node.toString() +
-                              " with multiple node labels is not supported.");
-    }
-}
-
-static void validateSetRelProperty(const Expression& expression) {
-    auto& rel = (const RelExpression&)expression;
-    if (rel.isMultiLabeled() || rel.isBoundByMultiLabeledNode()) {
-        throw BinderException("Set property of rel " + rel.toString() +
-                              " with multiple rel labels or bound by multiple node labels "
-                              "is not supported.");
-    }
-}
-
 std::unique_ptr<BoundSetPropertyInfo> Binder::bindSetPropertyInfo(
     std::pair<parser::ParsedExpression*, parser::ParsedExpression*> setItem) {
     auto left = expressionBinder.bindExpression(*setItem.first->getChild(0));
@@ -241,11 +224,11 @@ std::unique_ptr<BoundUpdatingClause> Binder::bindDeleteClause(
         switch (nodeOrRel->dataType.getLogicalTypeID()) {
         case LogicalTypeID::NODE: {
             auto deleteNodeInfo =
-                bindDeleteNodeInfo(static_pointer_cast<NodeExpression>(nodeOrRel));
+                std::make_unique<BoundDeleteInfo>(UpdateTableType::NODE, nodeOrRel);
             boundDeleteClause->addInfo(std::move(deleteNodeInfo));
         } break;
         case LogicalTypeID::REL: {
-            auto deleteRel = bindDeleteRelInfo(static_pointer_cast<RelExpression>(nodeOrRel));
+            auto deleteRel = std::make_unique<BoundDeleteInfo>(UpdateTableType::REL, nodeOrRel);
             boundDeleteClause->addInfo(std::move(deleteRel));
         } break;
         default:
@@ -254,38 +237,6 @@ std::unique_ptr<BoundUpdatingClause> Binder::bindDeleteClause(
         }
     }
     return boundDeleteClause;
-}
-
-std::unique_ptr<BoundDeleteInfo> Binder::bindDeleteNodeInfo(std::shared_ptr<NodeExpression> node) {
-    std::vector<catalog::NodeTableSchema*> tableSchemas;
-    for (auto tableID : node->getTableIDs()) {
-        tableSchemas.push_back(catalog.getReadOnlyVersion()->getNodeTableSchema(tableID));
-    }
-    // TODO(Guodong): can we delete without scanning primary key?
-    auto anchorPrimaryKey = tableSchemas[0]->getPrimaryKey();
-    for (auto i = 1; i < tableSchemas.size(); ++i) {
-        auto primaryKey = tableSchemas[i]->getPrimaryKey();
-        if (primaryKey->getName() != anchorPrimaryKey->getName()) {
-            throw common::BinderException(common::StringUtils::string_format(
-                "Cannot delete node {} with different primary key name. Expect {} but get {}.",
-                node->toString(), anchorPrimaryKey->getName(), primaryKey->getName()));
-        }
-        if (*primaryKey->getDataType() != *anchorPrimaryKey->getDataType()) {
-            throw common::BinderException(common::StringUtils::string_format(
-                "Cannot delete node {} with different primary key data type. Expect {} but get {}.",
-                node->toString(),
-                LogicalTypeUtils::dataTypeToString(*anchorPrimaryKey->getDataType()),
-                LogicalTypeUtils::dataTypeToString(*primaryKey->getDataType())));
-        }
-    }
-    auto primaryKeyExpression =
-        expressionBinder.bindNodePropertyExpression(*node, anchorPrimaryKey->getName());
-    auto extraInfo = std::make_unique<ExtraDeleteNodeInfo>(primaryKeyExpression);
-    return std::make_unique<BoundDeleteInfo>(UpdateTableType::NODE, node, std::move(extraInfo));
-}
-
-std::unique_ptr<BoundDeleteInfo> Binder::bindDeleteRelInfo(std::shared_ptr<RelExpression> rel) {
-    return std::make_unique<BoundDeleteInfo>(UpdateTableType::REL, rel, nullptr /* extraInfo */);
 }
 
 } // namespace binder

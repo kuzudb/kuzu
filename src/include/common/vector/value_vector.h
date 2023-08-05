@@ -19,7 +19,6 @@ class ValueVector {
     friend class StructVector;
     friend class StringVector;
     friend class ArrowColumnVector;
-    friend class ValueVectorUtils;
 
 public:
     explicit ValueVector(LogicalType dataType, storage::MemoryManager* memoryManager = nullptr);

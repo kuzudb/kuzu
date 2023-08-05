@@ -131,6 +131,7 @@ private:
     std::unique_ptr<BoundReadingClause> bindInQueryCall(const parser::ReadingClause& readingClause);
 
     /*** bind updating clause ***/
+    // TODO(Guodong/Xiyang): Is update clause an accurate name? How about (data)modificationClause?
     std::unique_ptr<BoundUpdatingClause> bindUpdatingClause(
         const parser::UpdatingClause& updatingClause);
     std::unique_ptr<BoundUpdatingClause> bindCreateClause(
@@ -153,8 +154,6 @@ private:
         std::pair<parser::ParsedExpression*, parser::ParsedExpression*> setItem);
     expression_pair bindSetItem(
         std::pair<parser::ParsedExpression*, parser::ParsedExpression*> setItem);
-    std::unique_ptr<BoundDeleteInfo> bindDeleteNodeInfo(std::shared_ptr<NodeExpression> node);
-    std::unique_ptr<BoundDeleteInfo> bindDeleteRelInfo(std::shared_ptr<RelExpression> rel);
 
     /*** bind projection clause ***/
     std::unique_ptr<BoundWithClause> bindWithClause(const parser::WithClause& withClause);

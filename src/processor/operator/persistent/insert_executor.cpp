@@ -1,4 +1,4 @@
-#include "processor/operator/update/insert_executor.h"
+#include "processor/operator/persistent/insert_executor.h"
 
 namespace kuzu {
 namespace processor {
@@ -20,12 +20,10 @@ void NodeInsertExecutor::init(ResultSet* resultSet, ExecutionContext* context) {
 }
 
 void NodeInsertExecutor::insert(transaction::Transaction* transaction) {
-    auto offset = table->addNode(transaction);
-    table->setPropertiesToNull(offset);
-    if (primaryKeyVector != nullptr) {
+    if (primaryKeyEvaluator != nullptr) {
         primaryKeyEvaluator->evaluate();
-        table->insertPK(offset, primaryKeyVector);
     }
+    auto offset = table->insert(transaction, primaryKeyVector);
     common::nodeID_t nodeID{offset, table->getTableID()};
     assert(outNodeIDVector->state->selVector->selectedSize == 1);
     auto pos = outNodeIDVector->state->selVector->selectedPositions[0];

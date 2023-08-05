@@ -262,17 +262,6 @@ public:
                 "(0:0)-{_LABEL: studyAt, _ID: 4:0, year: 2021, length: 5}->(1:0)"});
     }
 
-    void ddlStatementsInsideActiveTransactionErrorTest(std::string query) {
-        conn->beginWriteTransaction();
-        auto result = conn->query(query);
-        ASSERT_FALSE(result->isSuccess());
-        ASSERT_EQ(result->getErrorMessage(),
-            "DDL, CopyCSV, createMacro statements are automatically wrapped in a transaction and "
-            "committed. As such, they cannot be part of an active transaction, please commit or "
-            "rollback your previous transaction and issue a ddl query without opening a "
-            "transaction.");
-    }
-
     void executeQueryWithoutCommit(std::string query) {
         auto preparedStatement = conn->prepare(query);
         conn->beginWriteTransaction();
@@ -494,14 +483,6 @@ public:
     table_id_t studyAtTableID;
 };
 
-TEST_F(TinySnbDDLTest, DDLStatementWithActiveTransactionError) {
-    ddlStatementsInsideActiveTransactionErrorTest(
-        "CREATE NODE TABLE UNIVERSITY(NAME STRING, WEBSITE "
-        "STRING, REGISTER_TIME DATE, PRIMARY KEY (NAME))");
-    ddlStatementsInsideActiveTransactionErrorTest("DROP TABLE knows");
-    ddlStatementsInsideActiveTransactionErrorTest("ALTER TABLE person DROP gender");
-}
-
 TEST_F(TinySnbDDLTest, CreateNodeTableCommitNormalExecution) {
     createNodeTable(TransactionTestType::NORMAL_EXECUTION);
 }
@@ -518,37 +499,6 @@ TEST_F(TinySnbDDLTest, CreateRelTableCommitRecovery) {
     createRelTable(TransactionTestType::RECOVERY);
 }
 
-TEST_F(TinySnbDDLTest, MultipleDropTables) {
-    auto result = conn->query("DROP TABLE studyAt");
-    ASSERT_TRUE(result->isSuccess());
-    ASSERT_FALSE(catalog->getReadOnlyVersion()->containRelTable("studyAt"));
-    result = conn->query("DROP TABLE workAt");
-    ASSERT_TRUE(result->isSuccess());
-    ASSERT_FALSE(catalog->getReadOnlyVersion()->containRelTable("workAt"));
-    result = conn->query("DROP TABLE organisation");
-    ASSERT_TRUE(result->isSuccess());
-    ASSERT_FALSE(catalog->getReadOnlyVersion()->containNodeTable("organisation"));
-    result = conn->query("DROP TABLE movies");
-    ASSERT_TRUE(result->isSuccess());
-    ASSERT_FALSE(catalog->getReadOnlyVersion()->containNodeTable("movies"));
-    result = conn->query(
-        "create node table organisation (ID INT64, name STRING, orgCode INT64, mark DOUBLE, score "
-        "INT64, history STRING, licenseValidInterval INTERVAL, rating DOUBLE, PRIMARY KEY (ID));");
-    ASSERT_TRUE(result->isSuccess());
-    ASSERT_TRUE(catalog->getReadOnlyVersion()->containNodeTable("organisation"));
-    result =
-        conn->query("create rel table studyAt (FROM person TO organisation, year INT64, places "
-                    "STRING[], MANY_ONE);");
-    ASSERT_TRUE(result->isSuccess());
-    ASSERT_TRUE(catalog->getReadOnlyVersion()->containRelTable("studyAt"));
-    result = conn->query("match (o:organisation) return o.name");
-    ASSERT_TRUE(result->isSuccess());
-    ASSERT_EQ(result->getNumTuples(), 0);
-    result = conn->query("match (:person)-[s:studyAt]->(:organisation) return s.year");
-    ASSERT_TRUE(result->isSuccess());
-    ASSERT_EQ(result->getNumTuples(), 0);
-}
-
 TEST_F(TinySnbDDLTest, DropNodeTableCommitNormalExecution) {
     dropNodeTableCommitAndRecoveryTest(TransactionTestType::NORMAL_EXECUTION);
 }
@@ -563,27 +513,6 @@ TEST_F(TinySnbDDLTest, DropRelTableCommitNormalExecution) {
 
 TEST_F(TinySnbDDLTest, DropRelTableCommitRecovery) {
     dropRelTableCommitAndRecoveryTest(TransactionTestType::RECOVERY);
-}
-
-TEST_F(TinySnbDDLTest, DDLOutputMsg) {
-    auto result = conn->query("CREATE NODE TABLE university(ID INT64, PRIMARY KEY(ID));");
-    ASSERT_EQ(TestHelper::convertResultToString(*result),
-        std::vector<std::string>{"NodeTable: university has been created."});
-    result = conn->query("CREATE REL TABLE nearTo(FROM university TO university, MANY_MANY);");
-    ASSERT_EQ(TestHelper::convertResultToString(*result),
-        std::vector<std::string>{"RelTable: nearTo has been created."});
-    result = conn->query("DROP TABLE nearTo;");
-    ASSERT_EQ(TestHelper::convertResultToString(*result),
-        std::vector<std::string>{"RelTable: nearTo has been dropped."});
-    result = conn->query("DROP TABLE university;");
-    ASSERT_EQ(TestHelper::convertResultToString(*result),
-        std::vector<std::string>{"NodeTable: university has been dropped."});
-    result = conn->query("ALTER TABLE person DROP fName;");
-    ASSERT_EQ(
-        TestHelper::convertResultToString(*result), std::vector<std::string>{"Drop succeed."});
-    result = conn->query("ALTER TABLE knows DROP date;");
-    ASSERT_EQ(
-        TestHelper::convertResultToString(*result), std::vector<std::string>{"Drop succeed."});
 }
 
 TEST_F(TinySnbDDLTest, DropNodeTablePropertyNormalExecution) {

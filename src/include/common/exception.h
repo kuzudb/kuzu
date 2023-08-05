@@ -6,20 +6,23 @@
 namespace kuzu {
 namespace common {
 
+struct ExceptionMessage {
+    static std::string existedPKException(const std::string& pkString);
+    static std::string invalidPKType(const std::string& type);
+    static inline std::string nullPKException() {
+        return "Found NULL, which violates the non-null constraint of the primary key column.";
+    }
+    static inline std::string notAllowCopyOnNonEmptyTableException() {
+        return "COPY commands can only be executed once on a table.";
+    }
+};
+
 class Exception : public std::exception {
 public:
     explicit Exception(std::string msg) : exception(), exception_message_(std::move(msg)){};
 
 public:
     const char* what() const noexcept override { return exception_message_.c_str(); }
-
-    // TODO(Guodong): this is being used in both loader and node table. A better way to do this
-    // could be throw this error msg during insert.
-    static std::string getExistedPKExceptionMsg(const std::string& pkString) {
-        auto result = "A node is created with an existed primary key " + pkString +
-                      ", which violates the uniqueness constraint of the primary key property.";
-        return result;
-    };
 
 private:
     std::string exception_message_;

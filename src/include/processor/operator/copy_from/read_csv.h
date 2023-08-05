@@ -1,6 +1,6 @@
 #pragma once
 
-#include "processor/operator/copy/read_file.h"
+#include "processor/operator/copy_from/read_file.h"
 
 namespace kuzu {
 namespace processor {

@@ -48,7 +48,7 @@ uint64_t NodeGroup::append(
     return numValuesToAppendInChunk;
 }
 
-offset_t NodeGroup::append(NodeGroup* other, common::offset_t offsetInOtherNodeGroup) {
+offset_t NodeGroup::append(NodeGroup* other, offset_t offsetInOtherNodeGroup) {
     assert(other->chunks.size() == chunks.size());
     auto numNodesToAppend = std::min(
         other->numNodes - offsetInOtherNodeGroup, StorageConstants::NODE_GROUP_SIZE - numNodes);

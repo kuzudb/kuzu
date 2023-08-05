@@ -1,6 +1,6 @@
 #include "binder/expression/node_expression.h"
 #include "planner/logical_plan/persistent/logical_delete.h"
-#include "processor/operator/update/delete.h"
+#include "processor/operator/persistent/delete.h"
 #include "processor/plan_mapper.h"
 
 using namespace kuzu::planner;
@@ -12,7 +12,6 @@ static std::unique_ptr<NodeDeleteExecutor> getNodeDeleteExecutor(
     storage::NodesStore* store, const LogicalDeleteNodeInfo& info, const Schema& inSchema) {
     auto node = info.node;
     auto nodeIDPos = DataPos(inSchema.getExpressionPos(*node->getInternalIDProperty()));
-    auto primaryKeyPos = DataPos(inSchema.getExpressionPos(*info.primaryKey));
     if (node->isMultiLabeled()) {
         std::unordered_map<common::table_id_t, storage::NodeTable*> tableIDToTableMap;
         for (auto tableID : node->getTableIDs()) {
@@ -20,10 +19,10 @@ static std::unique_ptr<NodeDeleteExecutor> getNodeDeleteExecutor(
             tableIDToTableMap.insert({tableID, table});
         }
         return std::make_unique<MultiLabelNodeDeleteExecutor>(
-            std::move(tableIDToTableMap), nodeIDPos, primaryKeyPos);
+            std::move(tableIDToTableMap), nodeIDPos);
     } else {
         auto table = store->getNodeTable(node->getSingleTableID());
-        return std::make_unique<SingleLabelNodeDeleteExecutor>(table, nodeIDPos, primaryKeyPos);
+        return std::make_unique<SingleLabelNodeDeleteExecutor>(table, nodeIDPos);
     }
 }
 
@@ -32,11 +31,11 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapDeleteNode(LogicalOperator* log
     auto inSchema = logicalDeleteNode->getChild(0)->getSchema();
     auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
     auto nodesStore = &storageManager.getNodesStore();
-    std::vector<std::unique_ptr<NodeDeleteExecutor>> Executors;
+    std::vector<std::unique_ptr<NodeDeleteExecutor>> executors;
     for (auto& info : logicalDeleteNode->getInfosRef()) {
-        Executors.push_back(getNodeDeleteExecutor(nodesStore, *info, *inSchema));
+        executors.push_back(getNodeDeleteExecutor(nodesStore, *info, *inSchema));
     }
-    return std::make_unique<DeleteNode>(std::move(Executors), std::move(prevOperator),
+    return std::make_unique<DeleteNode>(std::move(executors), std::move(prevOperator),
         getOperatorID(), logicalDeleteNode->getExpressionsForPrinting());
 }
 

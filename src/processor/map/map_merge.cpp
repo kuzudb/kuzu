@@ -1,5 +1,5 @@
 #include "planner/logical_plan/persistent/logical_merge.h"
-#include "processor/operator/update/merge.h"
+#include "processor/operator/persistent/merge.h"
 #include "processor/plan_mapper.h"
 
 using namespace kuzu::planner;

@@ -1,6 +1,6 @@
 #include "binder/expression/node_expression.h"
 #include "planner/logical_plan/persistent/logical_create.h"
-#include "processor/operator/update/create.h"
+#include "processor/operator/persistent/insert.h"
 #include "processor/plan_mapper.h"
 
 using namespace kuzu::evaluator;
@@ -43,7 +43,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateNode(LogicalOperator* log
         executors.push_back(getNodeInsertExecutor(&storageManager.getNodesStore(),
             &storageManager.getRelsStore(), info.get(), *inSchema, *outSchema));
     }
-    return std::make_unique<CreateNode>(std::move(executors), std::move(prevOperator),
+    return std::make_unique<InsertNode>(std::move(executors), std::move(prevOperator),
         getOperatorID(), logicalCreateNode->getExpressionsForPrinting());
 }
 
@@ -73,7 +73,7 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateRel(LogicalOperator* logi
         executors.push_back(
             getRelInsertExecutor(&storageManager.getRelsStore(), info.get(), *inSchema));
     }
-    return std::make_unique<CreateRel>(std::move(executors), std::move(prevOperator),
+    return std::make_unique<InsertRel>(std::move(executors), std::move(prevOperator),
         getOperatorID(), logicalCreateRel->getExpressionsForPrinting());
 }
 

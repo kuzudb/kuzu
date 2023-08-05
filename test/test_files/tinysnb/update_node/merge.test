@@ -32,7 +32,7 @@ Alice|35
 1||
 -STATEMENT MERGE (:person {ID:1, age:10})
 ---- error
-Runtime exception: A node is created with an existed primary key 1, which violates the uniqueness constraint of the primary key property.
+Runtime exception: Found duplicated primary key value 1, which violates the uniqueness constraint of the primary key column.
 -STATEMENT MERGE (a:person {ID:11, fName:'bb', age:10})
 ---- ok
 -STATEMENT MATCH (a:person) WHERE a.ID = 11 RETURN a.ID, a.fName, a.age
