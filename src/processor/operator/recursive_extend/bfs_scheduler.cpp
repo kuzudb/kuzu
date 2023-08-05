@@ -1,6 +1,7 @@
 #include "processor/operator/recursive_extend/bfs_scheduler.h"
 
 #include "chrono"
+#include <iostream>
 #include <utility>
 
 namespace kuzu {
@@ -80,8 +81,10 @@ std::pair<GlobalSSSPState, SSSPLocalState> MorselDispatcher::getBFSMorsel(
                         activeBFSSharedState[newSharedStateIdx] = newBFSSharedState;
                     }
                 } else {
+                    activeBFSSharedState[newSharedStateIdx]->mutex.lock();
                     setUpNewBFSSharedState(activeBFSSharedState[newSharedStateIdx], bfsMorsel,
                         inputFTableMorsel.get(), nodeID, queryRelType);
+                    activeBFSSharedState[newSharedStateIdx]->mutex.unlock();
                 }
                 return {IN_PROGRESS, EXTEND_IN_PROGRESS};
             } else {
@@ -100,7 +103,13 @@ void MorselDispatcher::setUpNewBFSSharedState(std::shared_ptr<BFSSharedState>& n
     newBFSSharedState->inputFTableTupleIdx = inputFTableMorsel->startTupleIdx;
     newBFSSharedState->srcOffset = nodeID.offset;
     newBFSSharedState->markSrc(bfsMorsel->targetDstNodes->contains(nodeID), queryRelType);
-    newBFSSharedState->getBFSMorsel(bfsMorsel);
+    newBFSSharedState->numThreadsActiveOnMorsel++;
+    auto bfsMorselSize = std::min(common::DEFAULT_VECTOR_CAPACITY,
+        newBFSSharedState->bfsLevelNodeOffsets.size() - newBFSSharedState->nextScanStartIdx);
+    auto morselScanEndIdx = newBFSSharedState->nextScanStartIdx + bfsMorselSize;
+    bfsMorsel->reset(
+        newBFSSharedState->nextScanStartIdx, morselScanEndIdx, newBFSSharedState.get());
+    newBFSSharedState->nextScanStartIdx += bfsMorselSize;
 }
 
 uint32_t MorselDispatcher::getNextAvailableSSSPWork() {
@@ -168,7 +177,10 @@ int64_t MorselDispatcher::writeDstNodeIDAndPathLength(
     }
     if (startScanIdxAndSize.second == -1) {
         mutex.lock();
+        bfsSharedState->mutex.lock();
         numActiveSSSP--;
+        bfsSharedState->ssspLocalState = MORSEL_COMPLETE;
+        bfsSharedState->mutex.unlock();
         // If all SSSP have been completed indicated by count (numActiveSSSP == 0) and no more
         // SSSP are available indicated by state IN_PROGRESS_ALL_SRC_SCANNED then global state can
         // be successfully changed to COMPLETE to indicate completion of SSSP Computation.

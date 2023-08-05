@@ -44,9 +44,6 @@ enum SSSPLocalState {
     NO_WORK_TO_SHARE
 };
 
-/// To denote the type of BFSSharedState
-enum BFSSharedStateType { SHORTEST, ALL_SHORTEST, VARIABLE_LENGTH };
-
 /**
  * Global states of MorselDispatcher used primarily for nTkS scheduler :-
  *
@@ -116,7 +113,7 @@ public:
           numThreadsActiveOnMorsel{0u}, nextDstScanStartIdx{0u}, inputFTableTupleIdx{0u},
           pathLengthThreadWriters{std::unordered_set<std::thread::id>()} {}
 
-    bool isComplete() const;
+    inline bool isComplete() const { return ssspLocalState == MORSEL_COMPLETE; }
 
     void reset(TargetDstNodes* targetDstNodes, common::QueryRelType queryRelType);
 
