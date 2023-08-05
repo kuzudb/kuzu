@@ -28,7 +28,7 @@ void BFSSharedState::reset(TargetDstNodes* targetDstNodes, common::QueryRelType 
     std::fill(pathLength.begin(), pathLength.end(), 0u);
     bfsLevelNodeOffsets.clear();
     srcOffset = 0u;
-    numThreadsActiveOnMorsel = 0u;
+    numThreadsBFSActive = 0u;
     nextDstScanStartIdx = 0u;
     inputFTableTupleIdx = 0u;
     pathLengthThreadWriters = std::unordered_set<std::thread::id>();
@@ -62,7 +62,7 @@ SSSPLocalState BFSSharedState::getBFSMorsel(BaseBFSMorsel* bfsMorsel) {
     }
     case EXTEND_IN_PROGRESS: {
         if (nextScanStartIdx < bfsLevelNodeOffsets.size()) {
-            numThreadsActiveOnMorsel++;
+            numThreadsBFSActive++;
             auto bfsMorselSize = std::min(
                 common::DEFAULT_VECTOR_CAPACITY, bfsLevelNodeOffsets.size() - nextScanStartIdx);
             auto morselScanEndIdx = nextScanStartIdx + bfsMorselSize;
@@ -92,7 +92,7 @@ bool BFSSharedState::hasWork() const {
 
 bool BFSSharedState::finishBFSMorsel(BaseBFSMorsel* bfsMorsel, common::QueryRelType queryRelType) {
     std::unique_lock lck{mutex};
-    numThreadsActiveOnMorsel--;
+    numThreadsBFSActive--;
     if (ssspLocalState != EXTEND_IN_PROGRESS) {
         return true;
     }
@@ -105,7 +105,7 @@ bool BFSSharedState::finishBFSMorsel(BaseBFSMorsel* bfsMorsel, common::QueryRelT
         auto allShortestPathMorsel = (reinterpret_cast<AllShortestPathMorsel<false>*>(bfsMorsel));
         numVisitedNodes += allShortestPathMorsel->getNumVisitedDstNodes();
     }
-    if (numThreadsActiveOnMorsel == 0 && nextScanStartIdx == bfsLevelNodeOffsets.size()) {
+    if (numThreadsBFSActive == 0 && nextScanStartIdx == bfsLevelNodeOffsets.size()) {
         moveNextLevelAsCurrentLevel();
         if (isBFSComplete(bfsMorsel->targetDstNodes->getNumNodes(), queryRelType)) {
             ssspLocalState = PATH_LENGTH_WRITE_IN_PROGRESS;
@@ -172,12 +172,12 @@ std::pair<uint64_t, int64_t> BFSSharedState::getDstPathLengthMorsel() {
     }
     auto threadID = std::this_thread::get_id();
     if (nextDstScanStartIdx == visitedNodes.size()) {
-        if (!pathLengthThreadWriters.contains(threadID) || numThreadsActiveOnMorsel != 0u) {
+        if (!canThreadCompleteSharedState(threadID)) {
             return {UINT64_MAX, INT64_MAX};
         }
         pathLengthThreadWriters.erase(threadID);
         /// Last Thread to exit will be responsible for doing state change to MORSEL_COMPLETE
-        /// Along with state change it will also decrement numActiveSSSP by 1
+        /// Along with state change it will also decrement numActiveBFSSharedState by 1
         if (pathLengthThreadWriters.empty()) {
             return {0, -1};
         }

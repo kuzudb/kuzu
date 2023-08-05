@@ -97,7 +97,7 @@ struct BaseBFSMorsel;
 
 /**
  * An BFSSharedState is a unit of work for the nTkS scheduling policy. It is *ONLY* used for the
- * particular case of SHORTEST_PATH | SINGLE_LABEL | NO_PATH_TRACKING. An BFSSharedState is *NOT*
+ * particular case of SINGLE_LABEL | NO_PATH_TRACKING. A BFSSharedState is *NOT*
  * exclusive to a thread and any thread can pick up BFS extension or Writing Path Length.
  * A shared_ptr is maintained by the BaseBFSMorsel and a morsel of work is fetched using this ptr.
  */
@@ -110,10 +110,41 @@ public:
           pathLength{std::vector<uint8_t>(maxNodeOffset_ + 1, 0u)},
           bfsLevelNodeOffsets{std::vector<common::offset_t>()}, srcOffset{0u},
           maxOffset{maxNodeOffset_}, upperBound{upperBound_}, lowerBound{lowerBound_},
-          numThreadsActiveOnMorsel{0u}, nextDstScanStartIdx{0u}, inputFTableTupleIdx{0u},
+          numThreadsBFSActive{0u}, nextDstScanStartIdx{0u}, inputFTableTupleIdx{0u},
           pathLengthThreadWriters{std::unordered_set<std::thread::id>()} {}
 
     inline bool isComplete() const { return ssspLocalState == MORSEL_COMPLETE; }
+
+    /** This is a barrier condition to prevent Threads from unintentionally marking a BFSSharedState
+     * as MORSEL_COMPLETE. There are 2 conditions being checked:
+     *
+     * i) If the thread trying to complete the BFSSharedState was involved in its path length
+     *    writing stage. If its ID is not in the set pathLengthThreadWriters, it CANNOT mark the
+     *    shared state as MORSEL_COMPLETE. This is because there can be multiple threads trying to
+     *    fetch a path length morsel leading to duplicate decrements of numActiveBFSSharedState
+     *    global count.
+     *
+     * ii) If numThreadsBFSActive is 0. If not, it means some thread which did BFS extension is
+     *     still waiting to hold the lock for the BFSSharedState (waiting to enter the
+     *     finishBFSMorsel function). Until it has decremented the count, this shared state can't
+     *     be reused to launch another BFSSharedState.
+     *     Main reason for this is to prevent the ABA problem, where if we ignore
+     *     numThreadsBFSActive and mark it as MORSEL_COMPLETE and the morsel dispatcher decides to
+     *     reuse it and resets the state back to EXTEND_IN_PROGRESS. Now the previous thread waiting
+     *     would enter finishBFSMorsel and merge its local results to the new BFSSharedState.
+     *
+     *  Overall the purpose of this function is to prevent ABA problem and duplicate decrements of
+     *  global active BFSSharedState count.
+     */
+    inline bool canThreadCompleteSharedState(std::thread::id threadID) const {
+        if (!pathLengthThreadWriters.contains(threadID)) {
+            return false;
+        }
+        if (numThreadsBFSActive > 0) {
+            return false;
+        }
+        return true;
+    }
 
     void reset(TargetDstNodes* targetDstNodes, common::QueryRelType queryRelType);
 
@@ -149,7 +180,7 @@ public:
     common::offset_t maxOffset;
     uint64_t upperBound;
     uint64_t lowerBound;
-    uint32_t numThreadsActiveOnMorsel;
+    uint32_t numThreadsBFSActive;
     uint64_t nextDstScanStartIdx;
     uint64_t inputFTableTupleIdx;
     // To track which threads are writing path lengths to their ValueVectors

@@ -174,6 +174,9 @@ bool RecursiveJoin::scanOutput() {
         return true;
     } else {
         while (true) {
+            if (!bfsMorsel->hasBFSSharedState()) {
+                return false;
+            }
             auto tableID = *begin(dataInfo->dstNodeTableIDs);
             auto ret = sharedState->writeDstNodeIDAndPathLength(vectorsToScan, colIndicesToScan,
                 vectors->dstNodeIDVector, vectors->pathLengthVector, tableID, bfsMorsel);
