@@ -1,8 +1,9 @@
 #include "optimizer/filter_push_down_optimizer.h"
 
 #include "binder/expression/expression_visitor.h"
+#include "binder/expression/literal_expression.h"
 #include "binder/expression/property_expression.h"
-#include "planner/logical_plan/logical_operator/logical_expressions_scan.h"
+#include "planner/logical_plan/logical_operator/logical_dummy_scan.h"
 #include "planner/logical_plan/logical_operator/logical_filter.h"
 #include "planner/logical_plan/logical_operator/logical_scan_node.h"
 #include "planner/logical_plan/logical_operator/logical_scan_node_property.h"
@@ -115,7 +116,7 @@ std::shared_ptr<planner::LogicalOperator> FilterPushDownOptimizer::visitScanNode
         auto rhs = primaryKeyEqualityComparison->getChild(1);
         if (rhs->expressionType == common::ExpressionType::LITERAL) {
             // Rewrite to index scan
-            auto expressionsScan = make_shared<LogicalExpressionScan>(rhs);
+            auto expressionsScan = std::make_shared<LogicalDummyScan>();
             expressionsScan->computeFlatSchema();
             auto indexScan =
                 std::make_shared<LogicalIndexScanNode>(node, rhs, std::move(expressionsScan));

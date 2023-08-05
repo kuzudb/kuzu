@@ -6,7 +6,7 @@
 #include "binder/visitor/property_collector.h"
 #include "common/join_type.h"
 #include "planner/logical_plan/logical_operator/logical_distinct.h"
-#include "planner/logical_plan/logical_operator/logical_expressions_scan.h"
+#include "planner/logical_plan/logical_operator/logical_dummy_scan.h"
 #include "planner/logical_plan/logical_operator/logical_extend.h"
 #include "planner/logical_plan/logical_operator/logical_filter.h"
 #include "planner/logical_plan/logical_operator/logical_flatten.h"
@@ -293,13 +293,9 @@ void QueryPlanner::planSubqueryIfNecessary(
 
 void QueryPlanner::appendDummyScan(LogicalPlan& plan) {
     assert(plan.isEmpty());
-    auto logicalType = common::LogicalType(common::LogicalTypeID::STRING);
-    auto nullValue = common::Value::createNullValue(logicalType);
-    auto literalExpression = std::make_shared<binder::LiteralExpression>(
-        nullValue.copy(), common::InternalKeyword::PLACE_HOLDER);
-    auto expressionsScan = make_shared<LogicalExpressionScan>(std::move(literalExpression));
-    expressionsScan->computeFactorizedSchema();
-    plan.setLastOperator(std::move(expressionsScan));
+    auto dummyScan = std::make_shared<LogicalDummyScan>();
+    dummyScan->computeFactorizedSchema();
+    plan.setLastOperator(std::move(dummyScan));
 }
 
 void QueryPlanner::appendDistinct(

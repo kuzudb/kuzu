@@ -17,7 +17,10 @@ void LogicalScanNode::computeFlatSchema() {
 
 void LogicalIndexScanNode::computeFactorizedSchema() {
     copyChildSchema(0);
-    auto groupPos = schema->getGroupPos(*indexExpression);
+    auto groupPos = 0u;
+    if (schema->isExpressionInScope(*indexExpression)) {
+        groupPos = schema->getGroupPos(*indexExpression);
+    }
     schema->insertToGroupAndScope(node->getInternalIDProperty(), groupPos);
 }
 
