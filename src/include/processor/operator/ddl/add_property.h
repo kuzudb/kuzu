@@ -23,7 +23,7 @@ public:
         defaultValueEvaluator->init(*resultSet, context->memoryManager);
     }
 
-    void executeDDLInternal() override;
+    void executeDDLInternal() override = 0;
 
     std::string getOutputMsg() override { return {"Add Succeed."}; }
 

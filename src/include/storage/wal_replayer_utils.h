@@ -13,17 +13,6 @@ namespace storage {
 
 class WALReplayerUtils {
 public:
-    static inline void initPropertyMetadataDAsOnDisk(
-        catalog::Property& property, BMFileHandle* metadataFH) {
-        saveMetaDAs(metadataFH, *property.getMetadataDAHInfo());
-    }
-    static inline void initTableMetadataDAsOnDisk(
-        catalog::NodeTableSchema* tableSchema, BMFileHandle* metadataFH) {
-        for (auto& property : tableSchema->properties) {
-            initPropertyMetadataDAsOnDisk(*property, metadataFH);
-        }
-    }
-
     static inline void removeHashIndexFile(
         catalog::NodeTableSchema* tableSchema, const std::string& directory) {
         fileOperationOnNodeFiles(
@@ -51,19 +40,6 @@ public:
         catalog::RelTableSchema* relTableSchema, common::property_id_t propertyID);
 
 private:
-    static inline void saveMetaDAs(
-        BMFileHandle* metadataFH, const catalog::MetadataDAHInfo& metaDAHeaderInfo) {
-        std::make_unique<InMemDiskArrayBuilder<ColumnChunkMetadata>>(
-            *reinterpret_cast<FileHandle*>(metadataFH), metaDAHeaderInfo.dataDAHPageIdx, 0)
-            ->saveToDisk();
-        std::make_unique<InMemDiskArrayBuilder<ColumnChunkMetadata>>(
-            *reinterpret_cast<FileHandle*>(metadataFH), metaDAHeaderInfo.nullDAHPageIdx, 0)
-            ->saveToDisk();
-        for (auto& childMetaDAHeaderInfo : metaDAHeaderInfo.childrenInfos) {
-            saveMetaDAs(metadataFH, *childMetaDAHeaderInfo);
-        }
-    }
-
     static inline void removeColumnFilesForPropertyIfExists(const std::string& directory,
         common::table_id_t relTableID, common::table_id_t boundTableID,
         common::RelDataDirection relDirection, common::property_id_t propertyID,

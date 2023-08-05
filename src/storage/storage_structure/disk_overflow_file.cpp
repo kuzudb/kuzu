@@ -178,7 +178,7 @@ void DiskOverflowFile::addNewPageIfNecessaryWithoutLock(uint32_t numBytesToAppen
         // Note that if byteCursor.pos is already 0 the next operation keeps the nextBytePos
         // where it is.
         nextBytePosToWriteTo = (fileHandle->getNumPages() * BufferPoolConstants::PAGE_4KB_SIZE);
-        addNewPageToFileHandle();
+        StorageStructureUtils::insertNewPage(*fileHandle, storageStructureID, *bufferManager, *wal);
     }
 }
 

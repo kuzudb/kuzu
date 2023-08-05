@@ -285,17 +285,6 @@ void NodeColumn::writeValue(
     dataFH->releaseWALPageIdxLock(walPageInfo.originalPageIdx);
 }
 
-void NodeColumn::addNewPageToDataFH() {
-    auto pageIdxInOriginalFile = dataFH->addNewPage();
-    auto pageIdxInWAL = wal->logPageInsertRecord(storageStructureID, pageIdxInOriginalFile);
-    bufferManager->pin(
-        *wal->fileHandle, pageIdxInWAL, BufferManager::PageReadPolicy::DONT_READ_PAGE);
-    dataFH->addWALPageIdxGroupIfNecessary(pageIdxInOriginalFile);
-    dataFH->setWALPageIdx(pageIdxInOriginalFile, pageIdxInWAL);
-    wal->fileHandle->setLockedPageDirty(pageIdxInWAL);
-    bufferManager->unpin(*wal->fileHandle, pageIdxInWAL);
-}
-
 WALPageIdxPosInPageAndFrame NodeColumn::createWALVersionOfPageForValue(offset_t nodeOffset) {
     auto nodeGroupIdx = getNodeGroupIdxFromNodeOffset(nodeOffset);
     auto originalPageCursor = PageUtils::getPageElementCursorForPos(nodeOffset, numValuesPerPage);
@@ -303,7 +292,7 @@ WALPageIdxPosInPageAndFrame NodeColumn::createWALVersionOfPageForValue(offset_t 
     bool insertingNewPage = false;
     if (originalPageCursor.pageIdx >= dataFH->getNumPages()) {
         assert(originalPageCursor.pageIdx == dataFH->getNumPages());
-        addNewPageToDataFH();
+        StorageStructureUtils::insertNewPage(*dataFH, storageStructureID, *bufferManager, *wal);
         insertingNewPage = true;
     }
     auto walPageIdxAndFrame =

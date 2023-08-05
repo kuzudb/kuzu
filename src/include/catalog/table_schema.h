@@ -58,7 +58,13 @@ public:
 
     std::vector<Property*> getProperties() const;
 
-    inline void addProperty(
+    inline void addNodeProperty(std::string propertyName,
+        std::unique_ptr<common::LogicalType> dataType,
+        std::unique_ptr<MetadataDAHInfo> metadataDAHInfo) {
+        properties.push_back(std::make_unique<Property>(std::move(propertyName),
+            std::move(dataType), increaseNextPropertyID(), tableID, std::move(metadataDAHInfo)));
+    }
+    inline void addRelProperty(
         std::string propertyName, std::unique_ptr<common::LogicalType> dataType) {
         properties.push_back(std::make_unique<Property>(
             std::move(propertyName), std::move(dataType), increaseNextPropertyID(), tableID));

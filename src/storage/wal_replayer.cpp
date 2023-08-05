@@ -165,14 +165,6 @@ void WALReplayer::replayNodeTableRecord(const kuzu::storage::WALRecord& walRecor
         auto catalogForCheckpointing = getCatalogForRecovery(DBFileType::WAL_VERSION);
         auto nodeTableSchema = catalogForCheckpointing->getReadOnlyVersion()->getNodeTableSchema(
             walRecord.nodeTableRecord.tableID);
-        auto metadataFH =
-            bufferManager->getBMFileHandle(StorageUtils::getMetadataFName(wal->getDirectory()),
-                FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS,
-                BMFileHandle::FileVersionedType::VERSIONED_FILE);
-        WALReplayerUtils::initTableMetadataDAsOnDisk(
-            catalogForCheckpointing->getReadOnlyVersion()->getNodeTableSchema(
-                walRecord.nodeTableRecord.tableID),
-            metadataFH.get());
         WALReplayerUtils::createEmptyHashIndexFiles(nodeTableSchema, wal->getDirectory());
         if (!isRecovering) {
             // If we are not recovering, i.e., we are checkpointing during normal execution,
@@ -450,8 +442,6 @@ void WALReplayer::replayAddPropertyRecord(const kuzu::storage::WALRecord& walRec
             auto property = tableSchema->getProperty(propertyID);
             switch (tableSchema->getTableType()) {
             case catalog::TableType::NODE: {
-                WALReplayerUtils::initPropertyMetadataDAsOnDisk(
-                    *property, storageManager->getMetadataFH());
                 storageManager->getNodesStore().getNodeTable(tableID)->addProperty(*property);
             } break;
             case catalog::TableType::REL: {
@@ -474,12 +464,6 @@ void WALReplayer::replayAddPropertyRecord(const kuzu::storage::WALRecord& walRec
                 catalogForRecovery->getReadOnlyVersion()->getNodeTableSchema(tableID);
             switch (tableSchema->getTableType()) {
             case catalog::TableType::NODE: {
-                auto property = tableSchema->getProperty(propertyID);
-                auto metadataFH = bufferManager->getBMFileHandle(
-                    StorageUtils::getMetadataFName(wal->getDirectory()),
-                    FileHandle::O_PERSISTENT_FILE_CREATE_NOT_EXISTS,
-                    BMFileHandle::FileVersionedType::VERSIONED_FILE);
-                WALReplayerUtils::initPropertyMetadataDAsOnDisk(*property, metadataFH.get());
                 // DO NOTHING.
             } break;
             case catalog::TableType::REL: {

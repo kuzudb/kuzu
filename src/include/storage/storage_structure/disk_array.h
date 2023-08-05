@@ -231,6 +231,14 @@ public:
     InMemDiskArray(FileHandle& fileHandle, StorageStructureID storageStructureID,
         common::page_idx_t headerPageIdx, BufferManager* bufferManager, WAL* wal);
 
+    static inline common::page_idx_t addDAHPageToFile(BMFileHandle& fileHandle,
+        StorageStructureID storageStructureID, BufferManager* bufferManager, WAL* wal) {
+        DiskArrayHeader daHeader(sizeof(T));
+        return StorageStructureUtils::insertNewPage(fileHandle,
+            StorageStructureID{StorageStructureType::METADATA}, *bufferManager, *wal,
+            [&](uint8_t* frame) -> void { memcpy(frame, &daHeader, sizeof(DiskArrayHeader)); });
+    }
+
     inline void checkpointInMemoryIfNecessary() override {
         std::unique_lock xlock{this->diskArraySharedMtx};
         checkpointOrRollbackInMemoryIfNecessaryNoLock(true /* is checkpoint */);

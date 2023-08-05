@@ -8,17 +8,6 @@ using namespace kuzu::transaction;
 namespace kuzu {
 namespace storage {
 
-void StorageStructure::addNewPageToFileHandle() {
-    auto pageIdxInOriginalFile = fileHandle->addNewPage();
-    auto pageIdxInWAL = wal->logPageInsertRecord(storageStructureID, pageIdxInOriginalFile);
-    bufferManager->pin(
-        *wal->fileHandle, pageIdxInWAL, BufferManager::PageReadPolicy::DONT_READ_PAGE);
-    fileHandle->addWALPageIdxGroupIfNecessary(pageIdxInOriginalFile);
-    fileHandle->setWALPageIdx(pageIdxInOriginalFile, pageIdxInWAL);
-    wal->fileHandle->setLockedPageDirty(pageIdxInWAL);
-    bufferManager->unpin(*wal->fileHandle, pageIdxInWAL);
-}
-
 WALPageIdxPosInPageAndFrame StorageStructure::createWALVersionOfPageIfNecessaryForElement(
     uint64_t elementOffset, uint64_t numElementsPerPage) {
     auto originalPageCursor =
@@ -26,7 +15,7 @@ WALPageIdxPosInPageAndFrame StorageStructure::createWALVersionOfPageIfNecessaryF
     bool insertingNewPage = false;
     if (originalPageCursor.pageIdx >= fileHandle->getNumPages()) {
         assert(originalPageCursor.pageIdx == fileHandle->getNumPages());
-        addNewPageToFileHandle();
+        StorageStructureUtils::insertNewPage(*fileHandle, storageStructureID, *bufferManager, *wal);
         insertingNewPage = true;
     }
     auto walPageIdxAndFrame =

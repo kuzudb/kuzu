@@ -101,9 +101,6 @@ protected:
     void writeValue(common::offset_t nodeOffset, common::ValueVector* vectorToWriteFrom,
         uint32_t posInVectorToWriteFrom);
 
-    // TODO(Guodong): This is mostly duplicated with StorageStructure::addNewPageToFileHandle().
-    // Should be cleaned up later.
-    void addNewPageToDataFH();
     // TODO(Guodong): This is mostly duplicated with
     // StorageStructure::createWALVersionOfPageIfNecessaryForElement(). Should be cleared later.
     WALPageIdxPosInPageAndFrame createWALVersionOfPageForValue(common::offset_t nodeOffset);
