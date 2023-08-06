@@ -252,6 +252,9 @@ int64_t ShortestPathMorsel<false>::writeToVector(
             printf("writing for offset: %lu, length value: %u\n", startScanIdxAndSize.first,
                 bfsSharedState->pathLength[startScanIdxAndSize.first]);
         }
+        printf("NOT writing for offset: %lu, length value: %u, lower bound is: %lu\n",
+            startScanIdxAndSize.first, bfsSharedState->pathLength[startScanIdxAndSize.first],
+            bfsSharedState->lowerBound);
         startScanIdxAndSize.first++;
     }
     if (size > 0) {
