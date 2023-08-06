@@ -212,9 +212,6 @@ void ShortestPathMorsel<false>::addToLocalNextBFSLevel(
                 __sync_bool_compare_and_swap(&bfsSharedState->pathLength[nodeID.offset], 0u,
                     bfsSharedState->currentLevel + 1);
                 numVisitedDstNodes++;
-                printf("visited destination: %lu | at length: %u | current bfs level: %u\n",
-                    nodeID.offset, bfsSharedState->pathLength[nodeID.offset],
-                    bfsSharedState->currentLevel);
             }
         } else if (state == NOT_VISITED) {
 #if defined(_MSC_VER)
@@ -250,8 +247,6 @@ int64_t ShortestPathMorsel<false>::writeToVector(
             pathLengthVector->setValue<int64_t>(
                 size, bfsSharedState->pathLength[startScanIdxAndSize.first]);
             size++;
-            printf("writing for offset: %lu, length value: %u\n", startScanIdxAndSize.first,
-                bfsSharedState->pathLength[startScanIdxAndSize.first]);
         }
         startScanIdxAndSize.first++;
     }
