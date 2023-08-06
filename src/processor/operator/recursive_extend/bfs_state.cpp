@@ -242,7 +242,8 @@ int64_t ShortestPathMorsel<false>::writeToVector(
     auto size = 0u;
     auto endIdx = startScanIdxAndSize.first + startScanIdxAndSize.second;
     while (startScanIdxAndSize.first < endIdx) {
-        if (bfsSharedState->visitedNodes[startScanIdxAndSize.first] == VISITED_DST &&
+        if ((bfsSharedState->visitedNodes[startScanIdxAndSize.first] == VISITED_DST ||
+             bfsSharedState->visitedNodes[startScanIdxAndSize.first] == VISITED_DST_NEW) &&
             bfsSharedState->pathLength[startScanIdxAndSize.first] >= bfsSharedState->lowerBound) {
             dstNodeIDVector->setValue<common::nodeID_t>(
                 size, common::nodeID_t{startScanIdxAndSize.first, tableID});
@@ -252,9 +253,6 @@ int64_t ShortestPathMorsel<false>::writeToVector(
             printf("writing for offset: %lu, length value: %u\n", startScanIdxAndSize.first,
                 bfsSharedState->pathLength[startScanIdxAndSize.first]);
         }
-        printf("NOT writing for offset: %lu, length value: %u, lower bound is: %lu\n",
-            startScanIdxAndSize.first, bfsSharedState->pathLength[startScanIdxAndSize.first],
-            bfsSharedState->lowerBound);
         startScanIdxAndSize.first++;
     }
     if (size > 0) {

@@ -50,7 +50,8 @@ int64_t AllShortestPathMorsel<false>::writeToVector(
     auto size = 0u;
     auto endIdx = startScanIdxAndSize.first + startScanIdxAndSize.second;
     while (startScanIdxAndSize.first < endIdx && size < common::DEFAULT_VECTOR_CAPACITY) {
-        if (bfsSharedState->visitedNodes[startScanIdxAndSize.first] == VISITED_DST &&
+        if ((bfsSharedState->visitedNodes[startScanIdxAndSize.first] == VISITED_DST ||
+             bfsSharedState->visitedNodes[startScanIdxAndSize.first] == VISITED_DST_NEW) &&
             bfsSharedState->pathLength[startScanIdxAndSize.first] >= bfsSharedState->lowerBound) {
             auto multiplicity = bfsSharedState->nodeIDToMultiplicity[startScanIdxAndSize.first];
             do {
