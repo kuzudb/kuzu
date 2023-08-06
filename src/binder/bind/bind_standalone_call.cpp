@@ -1,5 +1,5 @@
 #include "binder/binder.h"
-#include "binder/call/bound_standalone_call.h"
+#include "binder/bound_standalone_call.h"
 #include "parser/standalone_call.h"
 
 namespace kuzu {

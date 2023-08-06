@@ -1,8 +1,8 @@
 #pragma once
 
 #include "binder/expression/expression.h"
+#include "binder/query/query_graph.h"
 #include "bound_reading_clause.h"
-#include "query_graph.h"
 
 namespace kuzu {
 namespace binder {

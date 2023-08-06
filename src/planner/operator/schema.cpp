@@ -1,6 +1,6 @@
 #include "planner/logical_plan/logical_operator/schema.h"
 
-#include "binder/expression/expression_visitor.h"
+#include "binder/expression_visitor.h"
 #include "common/exception.h"
 
 using namespace kuzu::binder;

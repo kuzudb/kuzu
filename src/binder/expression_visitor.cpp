@@ -1,4 +1,4 @@
-#include "binder/expression/expression_visitor.h"
+#include "binder/expression_visitor.h"
 
 #include "binder/expression/case_expression.h"
 #include "binder/expression/existential_subquery_expression.h"

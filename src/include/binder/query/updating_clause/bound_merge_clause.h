@@ -1,6 +1,6 @@
 #pragma once
 
-#include "binder/query/reading_clause/query_graph.h"
+#include "binder/query/query_graph.h"
 #include "bound_create_info.h"
 #include "bound_set_info.h"
 #include "bound_updating_clause.h"

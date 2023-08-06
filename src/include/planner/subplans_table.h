@@ -5,7 +5,7 @@
 #include <unordered_map>
 #include <unordered_set>
 
-#include "binder/query/reading_clause/query_graph.h"
+#include "binder/query/query_graph.h"
 #include "planner/logical_plan/logical_plan.h"
 
 using namespace kuzu::binder;

@@ -1,7 +1,7 @@
 #include "planner/query_planner.h"
 
-#include "binder/expression/expression_visitor.h"
 #include "binder/expression/literal_expression.h"
+#include "binder/expression_visitor.h"
 #include "binder/query/bound_regular_query.h"
 #include "binder/visitor/property_collector.h"
 #include "common/join_type.h"

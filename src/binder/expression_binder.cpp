@@ -1,10 +1,10 @@
 #include "binder/expression_binder.h"
 
 #include "binder/binder.h"
-#include "binder/expression/expression_visitor.h"
 #include "binder/expression/function_expression.h"
 #include "binder/expression/literal_expression.h"
 #include "binder/expression/parameter_expression.h"
+#include "binder/expression_visitor.h"
 #include "function/cast/vector_cast_functions.h"
 
 using namespace kuzu::common;

@@ -1,7 +1,8 @@
 #include "planner/planner.h"
 
+#include "binder/bound_create_macro.h"
 #include "binder/bound_explain.h"
-#include "binder/call/bound_standalone_call.h"
+#include "binder/bound_standalone_call.h"
 #include "binder/copy/bound_copy_from.h"
 #include "binder/copy/bound_copy_to.h"
 #include "binder/ddl/bound_add_property.h"
@@ -12,7 +13,6 @@
 #include "binder/ddl/bound_rename_property.h"
 #include "binder/ddl/bound_rename_table.h"
 #include "binder/expression/variable_expression.h"
-#include "binder/macro/bound_create_macro.h"
 #include "planner/logical_plan/logical_operator/logical_add_property.h"
 #include "planner/logical_plan/logical_operator/logical_copy_from.h"
 #include "planner/logical_plan/logical_operator/logical_copy_to.h"

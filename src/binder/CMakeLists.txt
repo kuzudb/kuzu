@@ -10,6 +10,7 @@ add_library(kuzu_binder
         bound_statement_result.cpp
         bound_statement_visitor.cpp
         expression_binder.cpp
+        expression_visitor.cpp
         query_normalizer.cpp)
 
 set(ALL_OBJECT_FILES
