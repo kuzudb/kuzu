@@ -7,7 +7,6 @@ add_library(kuzu_planner
         join_order_enumerator.cpp
         join_order_enumerator_context.cpp
         planner.cpp
-        projection_planner.cpp
         query_planner.cpp
         subplans_table.cpp)
 

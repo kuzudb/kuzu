@@ -5,7 +5,6 @@
 #include "binder/query/reading_clause/bound_in_query_call.h"
 #include "join_order_enumerator.h"
 #include "planner/join_order/cardinality_estimator.h"
-#include "projection_planner.h"
 
 namespace kuzu {
 namespace binder {
@@ -30,7 +29,7 @@ public:
         const storage::RelsStatistics& relsStatistics)
         : catalog{catalog}, cardinalityEstimator{std::make_unique<CardinalityEstimator>(
                                 nodesStatistics, relsStatistics)},
-          joinOrderEnumerator{catalog, this}, projectionPlanner{this} {}
+          joinOrderEnumerator{catalog, this} {}
 
     std::vector<std::unique_ptr<LogicalPlan>> getAllPlans(const BoundStatement& boundStatement);
 
@@ -65,6 +64,16 @@ private:
     void planMergeClause(binder::BoundUpdatingClause& updatingClause, LogicalPlan& plan);
     void planSetClause(binder::BoundUpdatingClause& updatingClause, LogicalPlan& plan);
     void planDeleteClause(binder::BoundUpdatingClause& updatingClause, LogicalPlan& plan);
+
+    // Plan projection
+    void planProjectionBody(const binder::BoundProjectionBody& projectionBody,
+        const std::vector<std::unique_ptr<LogicalPlan>>& plans);
+    void planProjectionBody(const binder::BoundProjectionBody& projectionBody, LogicalPlan& plan);
+    void planAggregate(const binder::expression_vector& expressionsToAggregate,
+        const binder::expression_vector& expressionsToGroupBy, LogicalPlan& plan);
+    void planOrderBy(const binder::expression_vector& expressionsToProject,
+        const binder::expression_vector& expressionsToOrderBy, const std::vector<bool>& isAscOrders,
+        LogicalPlan& plan);
 
     // Plan subquery
     void planOptionalMatch(const QueryGraphCollection& queryGraphCollection,
@@ -122,6 +131,16 @@ private:
     std::vector<std::unique_ptr<BoundSetPropertyInfo>> createLogicalSetPropertyInfo(
         const std::vector<binder::BoundCreateInfo*>& boundCreateInfos);
 
+    // Append projection operators
+    void appendProjection(const binder::expression_vector& expressionsToProject, LogicalPlan& plan);
+    void appendAggregate(const binder::expression_vector& expressionsToGroupBy,
+        const binder::expression_vector& expressionsToAggregate, LogicalPlan& plan);
+    void appendOrderBy(const binder::expression_vector& expressions,
+        const std::vector<bool>& isAscOrders, LogicalPlan& plan);
+    void appendMultiplicityReducer(LogicalPlan& plan);
+    void appendLimit(uint64_t limitNumber, LogicalPlan& plan);
+    void appendSkip(uint64_t skipNumber, LogicalPlan& plan);
+
     std::unique_ptr<LogicalPlan> createUnionPlan(
         std::vector<std::unique_ptr<LogicalPlan>>& childrenPlans, bool isUnionAll);
 
@@ -138,7 +157,6 @@ private:
     std::unique_ptr<CardinalityEstimator> cardinalityEstimator;
     expression_vector propertiesToScan;
     JoinOrderEnumerator joinOrderEnumerator;
-    ProjectionPlanner projectionPlanner;
 };
 
 } // namespace planner
