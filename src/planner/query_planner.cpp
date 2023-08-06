@@ -80,7 +80,7 @@ std::vector<std::unique_ptr<LogicalPlan>> QueryPlanner::planQueryPart(
         planUpdatingClause(*queryPart.getUpdatingClause(i), plans);
     }
     if (queryPart.hasProjectionBody()) {
-        projectionPlanner.planProjectionBody(*queryPart.getProjectionBody(), plans);
+        planProjectionBody(*queryPart.getProjectionBody(), plans);
         if (queryPart.hasProjectionBodyPredicate()) {
             for (auto& plan : plans) {
                 appendFilter(queryPart.getProjectionBodyPredicate(), *plan);
