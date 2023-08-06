@@ -1,13 +1,24 @@
 #pragma once
 
 #include "cypher_parser.h"
-#include "parser/macro/create_macro.h"
-#include "parser/query/graph_pattern/pattern_element.h"
-#include "parser/query/regular_query.h"
+#include "expression/parsed_expression.h"
+#include "statement.h"
 
 namespace kuzu {
 namespace parser {
 
+class RegularQuery;
+class SingleQuery;
+class QueryPart;
+class UpdatingClause;
+class ReadingClause;
+class WithClause;
+class ReturnClause;
+class ProjectionBody;
+class PatternElement;
+class NodePattern;
+class PatternElementChain;
+class RelPattern;
 struct ParsedCaseAlternative;
 
 class Transformer {

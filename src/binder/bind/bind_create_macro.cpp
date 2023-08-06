@@ -1,7 +1,7 @@
 #include "binder/binder.h"
 #include "binder/macro/bound_create_macro.h"
 #include "common/string_utils.h"
-#include "parser/macro/create_macro.h"
+#include "parser/create_macro.h"
 
 namespace kuzu {
 namespace binder {
