@@ -1,6 +1,6 @@
 #include "binder/binder.h"
-#include "binder/expression/expression_visitor.h"
 #include "binder/expression/literal_expression.h"
+#include "binder/expression_visitor.h"
 #include "parser/expression/parsed_property_expression.h"
 
 using namespace kuzu::common;

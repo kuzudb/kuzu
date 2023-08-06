@@ -1,6 +1,6 @@
 #include "binder/visitor/property_collector.h"
 
-#include "binder/expression/expression_visitor.h"
+#include "binder/expression_visitor.h"
 #include "binder/query/reading_clause/bound_match_clause.h"
 #include "binder/query/reading_clause/bound_unwind_clause.h"
 #include "binder/query/updating_clause/bound_create_clause.h"

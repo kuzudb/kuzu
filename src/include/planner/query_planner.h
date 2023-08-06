@@ -1,8 +1,8 @@
 #pragma once
 
 #include "binder/bound_statement.h"
-#include "binder/call/bound_in_query_call.h"
 #include "binder/expression/existential_subquery_expression.h"
+#include "binder/query/reading_clause/bound_in_query_call.h"
 #include "join_order_enumerator.h"
 #include "planner/join_order/cardinality_estimator.h"
 #include "projection_planner.h"

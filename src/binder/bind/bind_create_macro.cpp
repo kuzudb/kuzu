@@ -1,5 +1,5 @@
 #include "binder/binder.h"
-#include "binder/macro/bound_create_macro.h"
+#include "binder/bound_create_macro.h"
 #include "common/string_utils.h"
 #include "parser/create_macro.h"
 
