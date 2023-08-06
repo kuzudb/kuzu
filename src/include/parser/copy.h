@@ -3,6 +3,7 @@
 #include <string>
 #include <unordered_map>
 
+#include "common/copier_config/copier_config.h"
 #include "parser/expression/parsed_expression.h"
 #include "parser/query/regular_query.h"
 #include "parser/statement.h"

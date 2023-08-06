@@ -2,7 +2,7 @@
 
 #include <unordered_map>
 
-#include "parser/macro/create_macro.h"
+#include "parser/create_macro.h"
 
 namespace kuzu {
 namespace function {
