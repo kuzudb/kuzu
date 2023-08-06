@@ -16,6 +16,10 @@ class BoundDeleteInfo;
 
 namespace planner {
 
+class LogicalCreateNodeInfo;
+class LogicalCreateRelInfo;
+class LogicalSetPropertyInfo;
+
 class QueryPlanner {
     friend class JoinOrderEnumerator;
     friend class ProjectionPlanner;
@@ -58,6 +62,7 @@ private:
         std::vector<std::unique_ptr<LogicalPlan>>& plans);
     void planUpdatingClause(binder::BoundUpdatingClause& updatingClause, LogicalPlan& plan);
     void planCreateClause(binder::BoundUpdatingClause& updatingClause, LogicalPlan& plan);
+    void planMergeClause(binder::BoundUpdatingClause& updatingClause, LogicalPlan& plan);
     void planSetClause(binder::BoundUpdatingClause& updatingClause, LogicalPlan& plan);
     void planDeleteClause(binder::BoundUpdatingClause& updatingClause, LogicalPlan& plan);
 
@@ -96,9 +101,9 @@ private:
 
     // Append updating operators
     void appendCreateNode(
-        const std::vector<binder::BoundCreateInfo*>& createInfos, LogicalPlan& plan);
+        const std::vector<binder::BoundCreateInfo*>& boundCreateInfos, LogicalPlan& plan);
     void appendCreateRel(
-        const std::vector<binder::BoundCreateInfo*>& createInfos, LogicalPlan& plan);
+        const std::vector<binder::BoundCreateInfo*>& boundCreateInfos, LogicalPlan& plan);
     void appendSetNodeProperty(
         const std::vector<binder::BoundSetPropertyInfo*>& boundInfos, LogicalPlan& plan);
     void appendSetRelProperty(
@@ -107,6 +112,15 @@ private:
         const std::vector<binder::BoundDeleteInfo*>& boundInfos, LogicalPlan& plan);
     void appendDeleteRel(
         const std::vector<binder::BoundDeleteInfo*>& boundInfos, LogicalPlan& plan);
+    std::unique_ptr<LogicalCreateNodeInfo> createLogicalCreateNodeInfo(
+        BoundCreateInfo* boundCreateInfo);
+    std::unique_ptr<LogicalCreateRelInfo> createLogicalCreateRelInfo(
+        BoundCreateInfo* boundCreateInfo);
+    std::unique_ptr<LogicalSetPropertyInfo> createLogicalSetPropertyInfo(
+        BoundSetPropertyInfo* boundSetPropertyInfo);
+    // TODO(Xiyang): remove this after refactoring
+    std::vector<std::unique_ptr<BoundSetPropertyInfo>> createLogicalSetPropertyInfo(
+        const std::vector<binder::BoundCreateInfo*>& boundCreateInfos);
 
     std::unique_ptr<LogicalPlan> createUnionPlan(
         std::vector<std::unique_ptr<LogicalPlan>>& childrenPlans, bool isUnionAll);

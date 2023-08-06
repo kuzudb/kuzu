@@ -29,6 +29,7 @@ private:
     void visitDeleteRel(planner::LogicalOperator* op) override;
     void visitCreateNode(planner::LogicalOperator* op) override;
     void visitCreateRel(planner::LogicalOperator* op) override;
+    void visitMerge(planner::LogicalOperator* op) override;
     void visitCopyTo(planner::LogicalOperator* op) override;
 
     std::shared_ptr<planner::LogicalOperator> appendFlattens(

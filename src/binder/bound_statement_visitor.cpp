@@ -84,13 +84,13 @@ void BoundStatementVisitor::visitExplain(const BoundStatement& statement) {
 
 void BoundStatementVisitor::visitReadingClause(const BoundReadingClause& readingClause) {
     switch (readingClause.getClauseType()) {
-    case common::ClauseType::MATCH: {
+    case ClauseType::MATCH: {
         visitMatch(readingClause);
     } break;
-    case common::ClauseType::UNWIND: {
+    case ClauseType::UNWIND: {
         visitUnwind(readingClause);
     } break;
-    case common::ClauseType::InQueryCall: {
+    case ClauseType::InQueryCall: {
         visitInQueryCall(readingClause);
     } break;
     default:
@@ -100,14 +100,17 @@ void BoundStatementVisitor::visitReadingClause(const BoundReadingClause& reading
 
 void BoundStatementVisitor::visitUpdatingClause(const BoundUpdatingClause& updatingClause) {
     switch (updatingClause.getClauseType()) {
-    case common::ClauseType::SET: {
+    case ClauseType::SET: {
         visitSet(updatingClause);
     } break;
-    case common::ClauseType::DELETE_: {
+    case ClauseType::DELETE_: {
         visitDelete(updatingClause);
     } break;
-    case common::ClauseType::CREATE: {
+    case ClauseType::CREATE: {
         visitCreate(updatingClause);
+    } break;
+    case ClauseType::MERGE: {
+        visitMerge(updatingClause);
     } break;
     default:
         throw NotImplementedException("BoundStatementVisitor::visitUpdatingClause");

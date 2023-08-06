@@ -5,20 +5,22 @@
 namespace kuzu {
 namespace planner {
 
+std::vector<std::unique_ptr<LogicalDeleteNodeInfo>> LogicalDeleteNodeInfo::copy(
+    const std::vector<std::unique_ptr<LogicalDeleteNodeInfo>>& infos) {
+    std::vector<std::unique_ptr<LogicalDeleteNodeInfo>> infosCopy;
+    infosCopy.reserve(infos.size());
+    for (auto& info : infos) {
+        infosCopy.push_back(info->copy());
+    }
+    return infosCopy;
+}
+
 std::string LogicalDeleteNode::getExpressionsForPrinting() const {
     std::string result;
     for (auto& info : infos) {
         result += info->node->toString() + ",";
     }
     return result;
-}
-
-std::unique_ptr<LogicalOperator> LogicalDeleteNode::copy() {
-    std::vector<std::unique_ptr<LogicalDeleteNodeInfo>> infosCopy;
-    for (auto& info : infos) {
-        infosCopy.push_back(info->copy());
-    }
-    return std::make_unique<LogicalDeleteNode>(std::move(infosCopy), children[0]->copy());
 }
 
 std::string LogicalDeleteRel::getExpressionsForPrinting() const {

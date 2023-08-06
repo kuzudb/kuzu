@@ -8,6 +8,7 @@
 #include "planner/logical_plan/logical_operator/logical_filter.h"
 #include "planner/logical_plan/logical_operator/logical_hash_join.h"
 #include "planner/logical_plan/logical_operator/logical_intersect.h"
+#include "planner/logical_plan/logical_operator/logical_merge.h"
 #include "planner/logical_plan/logical_operator/logical_order_by.h"
 #include "planner/logical_plan/logical_operator/logical_projection.h"
 #include "planner/logical_plan/logical_operator/logical_recursive_extend.h"
@@ -194,6 +195,55 @@ void ProjectionPushDownOptimizer::visitDeleteRel(planner::LogicalOperator* op) {
         collectExpressionsInUse(rel->getSrcNode()->getInternalIDProperty());
         collectExpressionsInUse(rel->getDstNode()->getInternalIDProperty());
         collectExpressionsInUse(rel->getInternalIDProperty());
+    }
+}
+
+// TODO(Xiyang): come back and refactor this after changing insert interface
+void ProjectionPushDownOptimizer::visitMerge(planner::LogicalOperator* op) {
+    auto merge = (LogicalMerge*)op;
+    collectExpressionsInUse(merge->getMark());
+    for (auto& info : merge->getCreateNodeInfosRef()) {
+        if (info->primaryKey != nullptr) {
+            collectExpressionsInUse(info->primaryKey);
+        }
+    }
+    for (auto& info : merge->getCreateRelInfosRef()) {
+        auto rel = info->rel;
+        collectExpressionsInUse(rel->getSrcNode()->getInternalIDProperty());
+        collectExpressionsInUse(rel->getDstNode()->getInternalIDProperty());
+        collectExpressionsInUse(rel->getInternalIDProperty());
+        for (auto& setItem : info->setItems) {
+            collectExpressionsInUse(setItem.second);
+        }
+    }
+    for (auto& info : merge->getCreateNodeSetInfosRef()) {
+        auto node = (NodeExpression*)info->nodeOrRel.get();
+        collectExpressionsInUse(node->getInternalIDProperty());
+        collectExpressionsInUse(info->setItem.second);
+    }
+    for (auto& info : merge->getOnCreateSetNodeInfosRef()) {
+        auto node = (NodeExpression*)info->nodeOrRel.get();
+        collectExpressionsInUse(node->getInternalIDProperty());
+        collectExpressionsInUse(info->setItem.second);
+    }
+    for (auto& info : merge->getOnMatchSetNodeInfosRef()) {
+        auto node = (NodeExpression*)info->nodeOrRel.get();
+        collectExpressionsInUse(node->getInternalIDProperty());
+        collectExpressionsInUse(info->setItem.second);
+    }
+    for (auto& info : merge->getOnCreateSetRelInfosRef()) {
+        auto rel = (RelExpression*)info->nodeOrRel.get();
+        collectExpressionsInUse(rel->getSrcNode()->getInternalIDProperty());
+        collectExpressionsInUse(rel->getDstNode()->getInternalIDProperty());
+        collectExpressionsInUse(rel->getInternalIDProperty());
+        collectExpressionsInUse(info->setItem.second);
+    }
+    for (auto& info : merge->getOnMatchSetRelInfosRef()) {
+        auto rel = (RelExpression*)info->nodeOrRel.get();
+        collectExpressionsInUse(rel->getSrcNode()->getInternalIDProperty());
+        collectExpressionsInUse(rel->getDstNode()->getInternalIDProperty());
+        collectExpressionsInUse(rel->getInternalIDProperty());
+        collectExpressionsInUse(info->setItem.second);
     }
 }
 

@@ -64,9 +64,14 @@ std::unique_ptr<BoundUpdatingClause> Binder::bindMergeClause(
     // bindGraphPattern will update scope.
     auto [queryGraphCollection, propertyCollection] =
         bindGraphPattern(mergeClause.getPatternElementsRef());
+    std::shared_ptr<Expression> predicate = nullptr;
+    for (auto& [key, val] : propertyCollection->getKeyVals()) {
+        predicate = expressionBinder.combineConjunctiveExpressions(
+            expressionBinder.createEqualityComparisonExpression(key, val), predicate);
+    }
     auto createInfos = bindCreateInfos(*queryGraphCollection, *propertyCollection, nodeRelScope);
-    auto boundMergeClause =
-        std::make_unique<BoundMergeClause>(std::move(queryGraphCollection), std::move(createInfos));
+    auto boundMergeClause = std::make_unique<BoundMergeClause>(
+        std::move(queryGraphCollection), std::move(predicate), std::move(createInfos));
     if (mergeClause.hasOnMatchSetItems()) {
         for (auto i = 0u; i < mergeClause.getNumOnMatchSetItems(); ++i) {
             auto setPropertyInfo = bindSetPropertyInfo(mergeClause.getOnMatchSetItem(i));

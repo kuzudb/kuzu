@@ -19,6 +19,9 @@ struct LogicalDeleteNodeInfo {
     inline std::unique_ptr<LogicalDeleteNodeInfo> copy() const {
         return std::make_unique<LogicalDeleteNodeInfo>(*this);
     }
+
+    static std::vector<std::unique_ptr<LogicalDeleteNodeInfo>> copy(
+        const std::vector<std::unique_ptr<LogicalDeleteNodeInfo>>& infos);
 };
 
 class LogicalDeleteNode : public LogicalOperator {
@@ -37,7 +40,10 @@ public:
         return infos;
     }
 
-    std::unique_ptr<LogicalOperator> copy() final;
+    inline std::unique_ptr<LogicalOperator> copy() final {
+        return std::make_unique<LogicalDeleteNode>(
+            LogicalDeleteNodeInfo::copy(infos), children[0]->copy());
+    }
 
 private:
     std::vector<std::unique_ptr<LogicalDeleteNodeInfo>> infos;

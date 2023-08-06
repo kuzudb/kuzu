@@ -89,6 +89,9 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapOperator(LogicalOperator* logic
     case LogicalOperatorType::LIMIT: {
         physicalOperator = mapLimit(logicalOperator);
     } break;
+    case LogicalOperatorType::MERGE: {
+        physicalOperator = mapMerge(logicalOperator);
+    } break;
     case LogicalOperatorType::AGGREGATE: {
         physicalOperator = mapAggregate(logicalOperator);
     } break;
