@@ -43,6 +43,14 @@ void BFSSharedState::reset(TargetDstNodes* targetDstNodes, common::QueryRelType 
             std::fill(nodeIDToMultiplicity.begin(), nodeIDToMultiplicity.end(), 0u);
         }
     }
+    if(queryRelType == common::QueryRelType::VARIABLE_LENGTH) {
+        if(nodeIDMultiplicityToLevel.empty()) {
+            nodeIDMultiplicityToLevel =
+                std::vector<std::shared_ptr<multiplicityAndLevel>>(visitedNodes.size(), nullptr);
+        } else {
+            std::fill(nodeIDMultiplicityToLevel.begin(), nodeIDMultiplicityToLevel.end(), nullptr);
+        }
+    }
 }
 
 /*
@@ -145,6 +153,12 @@ void BFSSharedState::markSrc(bool isSrcDestination, common::QueryRelType queryRe
     bfsLevelNodeOffsets.push_back(srcOffset);
     if (queryRelType == common::QueryRelType::ALL_SHORTEST) {
         nodeIDToMultiplicity[srcOffset] = 1;
+        return;
+    }
+    if(queryRelType == common::QueryRelType::VARIABLE_LENGTH) {
+        auto entry = std::make_shared<multiplicityAndLevel>(1 /* multiplicity */, 0 /* bfs level */,
+            nullptr /* next multiplicityAndLevel ptr */);
+        nodeIDMultiplicityToLevel[srcOffset] = entry;
     }
 }
 

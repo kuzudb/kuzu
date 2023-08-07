@@ -257,15 +257,12 @@ void RecursiveJoin::computeBFSnThreadkMorsel(ExecutionContext* context) {
     // applicable for. If true, indicates TRACK_PATH is true else TRACK_PATH is false.
     assert(bfsMorsel->getRecursiveJoinType() == false);
     common::offset_t nodeOffset = bfsMorsel->getNextNodeOffset();
+    uint64_t boundNodeMultiplicity = bfsMorsel->getBoundNodeMultiplicity(nodeOffset);
     while (nodeOffset != common::INVALID_OFFSET) {
         scanFrontier->setNodeID(common::nodeID_t{nodeOffset, *begin(dataInfo->dstNodeTableIDs)});
         while (recursiveRoot->getNextTuple(context)) { // Exhaust recursive plan.
-            if (queryRelType == common::QueryRelType::SHORTEST) {
-                bfsMorsel->addToLocalNextBFSLevel(vectors->recursiveDstNodeIDVector, 0);
-            } else {
                 bfsMorsel->addToLocalNextBFSLevel(vectors->recursiveDstNodeIDVector,
-                    bfsMorsel->bfsSharedState->nodeIDToMultiplicity[nodeOffset]);
-            }
+                    boundNodeMultiplicity);
         }
         nodeOffset = bfsMorsel->getNextNodeOffset();
     }

@@ -37,6 +37,14 @@ struct VariableLengthMorsel : public BaseBFSMorsel {
         bfsSharedState = bfsSharedState_;
     }
 
+    inline uint64_t getBoundNodeMultiplicity(common::offset_t nodeOffset) override {
+        auto topEntry = bfsSharedState->nodeIDMultiplicityToLevel[nodeOffset];
+        while(topEntry && topEntry->bfsLevel != bfsSharedState->currentLevel) {
+            topEntry = topEntry->next;
+        }
+        return topEntry->multiplicity.load();
+    }
+
     // TODO: Populate this for nTkS scheduler type recursive join
     void addToLocalNextBFSLevel(
         common::ValueVector* tmpDstNodeIDVector, uint64_t boundNodeMultiplicity) override;

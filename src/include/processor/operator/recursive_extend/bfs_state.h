@@ -1,5 +1,6 @@
 #pragma once
 
+#include <utility>
 #include "common/query_rel_type.h"
 #include "frontier.h"
 #include "processor/operator/mask.h"
@@ -95,6 +96,22 @@ private:
 
 struct BaseBFSMorsel;
 
+/// Each element of nodeIDMultiplicityToLevel vector for Variable Length BFSSharedState
+struct multiplicityAndLevel {
+    std::atomic<uint64_t> multiplicity;
+    uint8_t bfsLevel;
+    std::shared_ptr<multiplicityAndLevel> next;
+
+    multiplicityAndLevel(uint64_t multiplicity_, uint8_t bfsLevel_,
+        std::shared_ptr<multiplicityAndLevel> next_) {
+        multiplicity.store(multiplicity_, std::memory_order_relaxed);
+        bfsLevel = bfsLevel_;
+        next = std::move(next_);
+    }
+
+    virtual ~multiplicityAndLevel() = default;
+};
+
 /**
  * An BFSSharedState is a unit of work for the nTkS scheduling policy. It is *ONLY* used for the
  * particular case of SINGLE_LABEL | NO_PATH_TRACKING. A BFSSharedState is *NOT*
@@ -189,6 +206,9 @@ public:
     // FOR ALL_SHORTEST_PATH only
     uint8_t minDistance;
     std::vector<uint64_t> nodeIDToMultiplicity;
+
+    // For VARIABLE_LENGTH only
+    std::vector<std::shared_ptr<multiplicityAndLevel>> nodeIDMultiplicityToLevel;
 };
 
 struct BaseBFSMorsel {
@@ -241,6 +261,8 @@ public:
     /// This is used for nTkSCAS scheduler case (no tracking of path + single label case)
     virtual void reset(
         uint64_t startScanIdx, uint64_t endScanIdx, BFSSharedState* bfsSharedState) = 0;
+
+    virtual uint64_t getBoundNodeMultiplicity(common::offset_t nodeOffset) = 0;
 
     virtual void addToLocalNextBFSLevel(
         common::ValueVector* tmpDstNodeIDVector, uint64_t boundNodeMultiplicity) = 0;
@@ -350,6 +372,11 @@ public:
         endScanIdx = endScanIdx_;
         bfsSharedState = bfsSharedState_;
         numVisitedDstNodes = 0u;
+    }
+
+    // For Shortest Path, multiplicity is always 0
+    inline uint64_t getBoundNodeMultiplicity(common::offset_t offset) override {
+        return 0u;
     }
 
     inline common::offset_t getNextNodeOffset() override {

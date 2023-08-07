@@ -1,4 +1,3 @@
-#include "common/query_rel_type.h"
 #include "planner/logical_plan/logical_operator/logical_recursive_extend.h"
 #include "planner/logical_plan/logical_operator/recursive_join_type.h"
 #include "processor/mapper/plan_mapper.h"
@@ -25,8 +24,7 @@ static std::shared_ptr<RecursiveJoinSharedState> createSharedState(
     bool checkSingleLabel = boundNode.getTableIDs().size() == 1 &&
                             nbrNode.getTableIDs().size() == 1 &&
                             dataInfo->recursiveDstNodeTableIDs.size() == 1;
-    if (rel.getRelType() != common::QueryRelType::VARIABLE_LENGTH &&
-        joinType == planner::RecursiveJoinType::TRACK_NONE && checkSingleLabel) {
+    if (joinType == planner::RecursiveJoinType::TRACK_NONE && checkSingleLabel) {
         auto maxNodeOffsetsPerTable = storageManager.getNodesStore()
                                           .getNodesStatisticsAndDeletedIDs()
                                           .getMaxNodeOffsetPerTable();
