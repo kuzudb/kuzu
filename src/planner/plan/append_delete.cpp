@@ -7,13 +7,11 @@ namespace planner {
 
 void QueryPlanner::appendDeleteNode(
     const std::vector<binder::BoundDeleteInfo*>& boundInfos, LogicalPlan& plan) {
-    std::vector<std::unique_ptr<LogicalDeleteNodeInfo>> logicalInfos;
+    std::vector<std::shared_ptr<binder::NodeExpression>> nodes;
     for (auto& boundInfo : boundInfos) {
-        auto node = std::static_pointer_cast<NodeExpression>(boundInfo->nodeOrRel);
-        logicalInfos.push_back(std::make_unique<LogicalDeleteNodeInfo>(node));
+        nodes.push_back(std::static_pointer_cast<NodeExpression>(boundInfo->nodeOrRel));
     }
-    auto deleteNode =
-        std::make_shared<LogicalDeleteNode>(std::move(logicalInfos), plan.getLastOperator());
+    auto deleteNode = std::make_shared<LogicalDeleteNode>(std::move(nodes), plan.getLastOperator());
     deleteNode->computeFactorizedSchema();
     plan.setLastOperator(std::move(deleteNode));
 }

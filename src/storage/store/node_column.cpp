@@ -176,23 +176,13 @@ void NodeColumn::lookup(
 
 void NodeColumn::lookupInternal(
     transaction::Transaction* transaction, ValueVector* nodeIDVector, ValueVector* resultVector) {
-    // TODO(Guodong): Remove isFlat() branch here.
-    if (nodeIDVector->state->isFlat()) {
-        auto pos = nodeIDVector->state->selVector->selectedPositions[0];
+    for (auto i = 0ul; i < nodeIDVector->state->selVector->selectedSize; i++) {
+        auto pos = nodeIDVector->state->selVector->selectedPositions[i];
         if (nodeIDVector->isNull(pos)) {
-            return;
+            continue;
         }
         auto nodeOffset = nodeIDVector->readNodeOffset(pos);
         lookupValue(transaction, nodeOffset, resultVector, pos);
-    } else {
-        for (auto i = 0ul; i < nodeIDVector->state->selVector->selectedSize; i++) {
-            auto pos = nodeIDVector->state->selVector->selectedPositions[i];
-            if (nodeIDVector->isNull(pos)) {
-                continue;
-            }
-            auto nodeOffset = nodeIDVector->readNodeOffset(pos);
-            lookupValue(transaction, nodeOffset, resultVector, pos);
-        }
     }
 }
 
@@ -419,18 +409,11 @@ void SerialNodeColumn::scan(
 
 void SerialNodeColumn::lookup(
     Transaction* transaction, ValueVector* nodeIDVector, ValueVector* resultVector) {
-    if (nodeIDVector->state->isFlat()) {
-        // Serial column cannot contain null values.
-        auto pos = nodeIDVector->state->selVector->selectedPositions[0];
+    // Serial column cannot contain null values.
+    for (auto i = 0ul; i < nodeIDVector->state->selVector->selectedSize; i++) {
+        auto pos = nodeIDVector->state->selVector->selectedPositions[i];
         auto offset = nodeIDVector->readNodeOffset(pos);
         resultVector->setValue<offset_t>(pos, offset);
-    } else {
-        // Serial column cannot contain null values.
-        for (auto i = 0ul; i < nodeIDVector->state->selVector->selectedSize; i++) {
-            auto pos = nodeIDVector->state->selVector->selectedPositions[i];
-            auto offset = nodeIDVector->readNodeOffset(pos);
-            resultVector->setValue<offset_t>(pos, offset);
-        }
     }
 }
 

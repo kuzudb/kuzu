@@ -73,10 +73,12 @@ void StringNodeColumn::lookupInternal(
     auto nodeGroupIdx = getNodeGroupIdxFromNodeOffset(startNodeOffset);
     auto chunkStartPageIdx = metadataDA->get(nodeGroupIdx, transaction->getType()).pageIdx;
     NodeColumn::lookupInternal(transaction, nodeIDVector, resultVector);
-    auto pos = resultVector->state->selVector->selectedPositions[0];
-    if (!resultVector->isNull(pos)) {
-        readStringValueFromOvf(
-            transaction, resultVector->getValue<ku_string_t>(pos), resultVector, chunkStartPageIdx);
+    for (auto i = 0u; i < nodeIDVector->state->selVector->selectedSize; i++) {
+        auto pos = resultVector->state->selVector->selectedPositions[i];
+        if (!resultVector->isNull(pos)) {
+            readStringValueFromOvf(transaction, resultVector->getValue<ku_string_t>(pos),
+                resultVector, chunkStartPageIdx);
+        }
     }
 }
 

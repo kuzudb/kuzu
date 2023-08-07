@@ -34,13 +34,12 @@ void MultiLabelNodeDeleteExecutor::init(ResultSet* resultSet, ExecutionContext* 
 }
 
 void MultiLabelNodeDeleteExecutor::delete_(ExecutionContext* context) {
-    for (auto i = 0; i < nodeIDVector->state->selVector->selectedSize; ++i) {
-        auto pos = nodeIDVector->state->selVector->selectedPositions[i];
-        auto nodeID = nodeIDVector->getValue<internalID_t>(pos);
-        assert(tableIDToTableMap.contains(nodeID.tableID) && deleteStates.contains(nodeID.tableID));
-        auto table = tableIDToTableMap.at(nodeID.tableID);
-        table->delete_(context->transaction, nodeIDVector, deleteStates.at(nodeID.tableID).get());
-    }
+    assert(nodeIDVector->state->selVector->selectedSize == 1);
+    auto pos = nodeIDVector->state->selVector->selectedPositions[0];
+    auto nodeID = nodeIDVector->getValue<internalID_t>(pos);
+    assert(tableIDToTableMap.contains(nodeID.tableID) && deleteStates.contains(nodeID.tableID));
+    auto table = tableIDToTableMap.at(nodeID.tableID);
+    table->delete_(context->transaction, nodeIDVector, deleteStates.at(nodeID.tableID).get());
 }
 
 void RelDeleteExecutor::init(ResultSet* resultSet, ExecutionContext* context) {

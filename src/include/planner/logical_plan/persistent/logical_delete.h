@@ -6,45 +6,30 @@
 namespace kuzu {
 namespace planner {
 
-struct LogicalDeleteNodeInfo {
-    std::shared_ptr<binder::NodeExpression> node;
-
-    LogicalDeleteNodeInfo(std::shared_ptr<binder::NodeExpression> node) : node{std::move(node)} {}
-    LogicalDeleteNodeInfo(const LogicalDeleteNodeInfo& other) : node{other.node} {}
-
-    inline std::unique_ptr<LogicalDeleteNodeInfo> copy() const {
-        return std::make_unique<LogicalDeleteNodeInfo>(*this);
-    }
-
-    static std::vector<std::unique_ptr<LogicalDeleteNodeInfo>> copy(
-        const std::vector<std::unique_ptr<LogicalDeleteNodeInfo>>& infos);
-};
-
 class LogicalDeleteNode : public LogicalOperator {
 public:
-    LogicalDeleteNode(std::vector<std::unique_ptr<LogicalDeleteNodeInfo>> infos,
+    LogicalDeleteNode(std::vector<std::shared_ptr<binder::NodeExpression>> nodes,
         std::shared_ptr<LogicalOperator> child)
-        : LogicalOperator{LogicalOperatorType::DELETE_NODE, std::move(child)}, infos{std::move(
-                                                                                   infos)} {}
+        : LogicalOperator{LogicalOperatorType::DELETE_NODE, std::move(child)}, nodes{std::move(
+                                                                                   nodes)} {}
 
     inline void computeFactorizedSchema() final { copyChildSchema(0); }
     inline void computeFlatSchema() final { copyChildSchema(0); }
 
     std::string getExpressionsForPrinting() const final;
 
-    inline const std::vector<std::unique_ptr<LogicalDeleteNodeInfo>>& getInfosRef() const {
-        return infos;
+    inline const std::vector<std::shared_ptr<binder::NodeExpression>>& getNodesRef() const {
+        return nodes;
     }
 
-    f_group_pos_set getGroupsPosToFlatten(uint32_t idx);
+    f_group_pos_set getGroupsPosToFlatten();
 
     inline std::unique_ptr<LogicalOperator> copy() final {
-        return std::make_unique<LogicalDeleteNode>(
-            LogicalDeleteNodeInfo::copy(infos), children[0]->copy());
+        return std::make_unique<LogicalDeleteNode>(nodes, children[0]->copy());
     }
 
 private:
-    std::vector<std::unique_ptr<LogicalDeleteNodeInfo>> infos;
+    std::vector<std::shared_ptr<binder::NodeExpression>> nodes;
 };
 
 class LogicalDeleteRel : public LogicalOperator {
