@@ -11,7 +11,7 @@ namespace processor {
 class Unwind : public PhysicalOperator {
 public:
     Unwind(common::LogicalType outDataType, DataPos outDataPos,
-        std::unique_ptr<evaluator::BaseExpressionEvaluator> expressionEvaluator,
+        std::unique_ptr<evaluator::ExpressionEvaluator> expressionEvaluator,
         std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
         : PhysicalOperator{PhysicalOperatorType::UNWIND, std::move(child), id, paramsString},
           outDataType{std::move(outDataType)}, outDataPos{outDataPos},
@@ -33,7 +33,7 @@ private:
     common::LogicalType outDataType;
     DataPos outDataPos;
 
-    std::unique_ptr<evaluator::BaseExpressionEvaluator> expressionEvaluator;
+    std::unique_ptr<evaluator::ExpressionEvaluator> expressionEvaluator;
     std::shared_ptr<common::ValueVector> outValueVector;
     uint32_t startIndex;
     common::list_entry_t listEntry;

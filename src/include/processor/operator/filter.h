@@ -9,7 +9,7 @@ namespace processor {
 
 class Filter : public PhysicalOperator, public SelVectorOverWriter {
 public:
-    Filter(std::unique_ptr<evaluator::BaseExpressionEvaluator> expressionEvaluator,
+    Filter(std::unique_ptr<evaluator::ExpressionEvaluator> expressionEvaluator,
         uint32_t dataChunkToSelectPos, std::unique_ptr<PhysicalOperator> child, uint32_t id,
         const std::string& paramsString)
         : PhysicalOperator{PhysicalOperatorType::FILTER, std::move(child), id, paramsString},
@@ -26,7 +26,7 @@ public:
     }
 
 private:
-    std::unique_ptr<evaluator::BaseExpressionEvaluator> expressionEvaluator;
+    std::unique_ptr<evaluator::ExpressionEvaluator> expressionEvaluator;
     uint32_t dataChunkToSelectPos;
     std::shared_ptr<common::DataChunk> dataChunkToSelect;
 };

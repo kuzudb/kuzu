@@ -8,16 +8,16 @@
 namespace kuzu {
 namespace evaluator {
 
-class BaseExpressionEvaluator {
+class ExpressionEvaluator {
 public:
-    BaseExpressionEvaluator() = default;
+    ExpressionEvaluator() = default;
     // Leaf evaluators (reference or literal)
-    explicit BaseExpressionEvaluator(bool isResultFlat) : isResultFlat_{isResultFlat} {}
+    explicit ExpressionEvaluator(bool isResultFlat) : isResultFlat_{isResultFlat} {}
 
-    explicit BaseExpressionEvaluator(std::vector<std::unique_ptr<BaseExpressionEvaluator>> children)
+    explicit ExpressionEvaluator(std::vector<std::unique_ptr<ExpressionEvaluator>> children)
         : children{std::move(children)} {}
 
-    virtual ~BaseExpressionEvaluator() = default;
+    virtual ~ExpressionEvaluator() = default;
 
     inline bool isResultFlat() const { return isResultFlat_; }
 
@@ -27,21 +27,20 @@ public:
 
     virtual bool select(common::SelectionVector& selVector) = 0;
 
-    virtual std::unique_ptr<BaseExpressionEvaluator> clone() = 0;
+    virtual std::unique_ptr<ExpressionEvaluator> clone() = 0;
 
 protected:
     virtual void resolveResultVector(
         const processor::ResultSet& resultSet, storage::MemoryManager* memoryManager) = 0;
 
-    void resolveResultStateFromChildren(
-        const std::vector<BaseExpressionEvaluator*>& inputEvaluators);
+    void resolveResultStateFromChildren(const std::vector<ExpressionEvaluator*>& inputEvaluators);
 
 public:
     std::shared_ptr<common::ValueVector> resultVector;
 
 protected:
     bool isResultFlat_ = true;
-    std::vector<std::unique_ptr<BaseExpressionEvaluator>> children;
+    std::vector<std::unique_ptr<ExpressionEvaluator>> children;
 };
 
 } // namespace evaluator

@@ -6,11 +6,11 @@
 namespace kuzu {
 namespace evaluator {
 
-class PathExpressionEvaluator : public BaseExpressionEvaluator {
+class PathExpressionEvaluator : public ExpressionEvaluator {
 public:
     PathExpressionEvaluator(std::shared_ptr<binder::PathExpression> pathExpression,
-        std::vector<std::unique_ptr<BaseExpressionEvaluator>> children)
-        : BaseExpressionEvaluator{std::move(children)}, pathExpression{std::move(pathExpression)} {}
+        std::vector<std::unique_ptr<ExpressionEvaluator>> children)
+        : ExpressionEvaluator{std::move(children)}, pathExpression{std::move(pathExpression)} {}
 
     void init(const processor::ResultSet& resultSet, storage::MemoryManager* memoryManager) final;
 
@@ -20,8 +20,8 @@ public:
         throw common::NotImplementedException("PathExpressionEvaluator::select");
     }
 
-    inline std::unique_ptr<BaseExpressionEvaluator> clone() final {
-        std::vector<std::unique_ptr<BaseExpressionEvaluator>> clonedChildren;
+    inline std::unique_ptr<ExpressionEvaluator> clone() final {
+        std::vector<std::unique_ptr<ExpressionEvaluator>> clonedChildren;
         for (auto& child : children) {
             clonedChildren.push_back(child->clone());
         }

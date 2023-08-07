@@ -27,7 +27,7 @@ static std::vector<common::ValueVector*> getFieldVectors(
 
 void PathExpressionEvaluator::init(
     const processor::ResultSet& resultSet, storage::MemoryManager* memoryManager) {
-    BaseExpressionEvaluator::init(resultSet, memoryManager);
+    ExpressionEvaluator::init(resultSet, memoryManager);
     auto resultNodesIdx = StructType::getFieldIdx(&resultVector->dataType, InternalKeyword::NODES);
     resultNodesVector = StructVector::getFieldVector(resultVector.get(), resultNodesIdx).get();
     auto resultNodesDataVector = ListVector::getDataVector(resultNodesVector);
@@ -207,7 +207,7 @@ void PathExpressionEvaluator::copyFieldVectors(common::offset_t inputVectorPos,
 void PathExpressionEvaluator::resolveResultVector(
     const processor::ResultSet& resultSet, storage::MemoryManager* memoryManager) {
     resultVector = std::make_shared<ValueVector>(pathExpression->getDataType(), memoryManager);
-    std::vector<BaseExpressionEvaluator*> inputEvaluators;
+    std::vector<ExpressionEvaluator*> inputEvaluators;
     inputEvaluators.reserve(children.size());
     for (auto& child : children) {
         inputEvaluators.push_back(child.get());

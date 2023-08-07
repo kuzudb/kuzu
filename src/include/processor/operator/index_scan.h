@@ -12,9 +12,8 @@ namespace processor {
 class IndexScan : public PhysicalOperator, public SelVectorOverWriter {
 public:
     IndexScan(common::table_id_t tableID, storage::PrimaryKeyIndex* pkIndex,
-        std::unique_ptr<evaluator::BaseExpressionEvaluator> indexEvaluator,
-        const DataPos& outDataPos, std::unique_ptr<PhysicalOperator> child, uint32_t id,
-        const std::string& paramsString)
+        std::unique_ptr<evaluator::ExpressionEvaluator> indexEvaluator, const DataPos& outDataPos,
+        std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
         : PhysicalOperator{PhysicalOperatorType::INDEX_SCAN, std::move(child), id, paramsString},
           tableID{tableID}, pkIndex{pkIndex}, indexEvaluator{std::move(indexEvaluator)},
           outDataPos{outDataPos} {}
@@ -31,7 +30,7 @@ public:
 private:
     common::table_id_t tableID;
     storage::PrimaryKeyIndex* pkIndex;
-    std::unique_ptr<evaluator::BaseExpressionEvaluator> indexEvaluator;
+    std::unique_ptr<evaluator::ExpressionEvaluator> indexEvaluator;
     DataPos outDataPos;
 
     common::ValueVector* indexVector;

@@ -3,7 +3,7 @@
 namespace kuzu {
 namespace evaluator {
 
-void BaseExpressionEvaluator::init(
+void ExpressionEvaluator::init(
     const processor::ResultSet& resultSet, storage::MemoryManager* memoryManager) {
     for (auto& child : children) {
         child->init(resultSet, memoryManager);
@@ -11,8 +11,8 @@ void BaseExpressionEvaluator::init(
     resolveResultVector(resultSet, memoryManager);
 }
 
-void BaseExpressionEvaluator::resolveResultStateFromChildren(
-    const std::vector<BaseExpressionEvaluator*>& inputEvaluators) {
+void ExpressionEvaluator::resolveResultStateFromChildren(
+    const std::vector<ExpressionEvaluator*>& inputEvaluators) {
     if (resultVector->state != nullptr) {
         return;
     }

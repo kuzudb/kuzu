@@ -10,7 +10,7 @@ namespace kuzu {
 namespace evaluator {
 
 void FunctionExpressionEvaluator::init(const ResultSet& resultSet, MemoryManager* memoryManager) {
-    BaseExpressionEvaluator::init(resultSet, memoryManager);
+    ExpressionEvaluator::init(resultSet, memoryManager);
     execFunc = ((binder::ScalarFunctionExpression&)*expression).execFunc;
     if (expression->dataType.getLogicalTypeID() == LogicalTypeID::BOOL) {
         selectFunc = ((binder::ScalarFunctionExpression&)*expression).selectFunc;
@@ -48,8 +48,8 @@ bool FunctionExpressionEvaluator::select(SelectionVector& selVector) {
     return selectFunc(parameters, selVector);
 }
 
-std::unique_ptr<BaseExpressionEvaluator> FunctionExpressionEvaluator::clone() {
-    std::vector<std::unique_ptr<BaseExpressionEvaluator>> clonedChildren;
+std::unique_ptr<ExpressionEvaluator> FunctionExpressionEvaluator::clone() {
+    std::vector<std::unique_ptr<ExpressionEvaluator>> clonedChildren;
     for (auto& child : children) {
         clonedChildren.push_back(child->clone());
     }
@@ -59,7 +59,7 @@ std::unique_ptr<BaseExpressionEvaluator> FunctionExpressionEvaluator::clone() {
 void FunctionExpressionEvaluator::resolveResultVector(
     const ResultSet& resultSet, MemoryManager* memoryManager) {
     resultVector = std::make_shared<ValueVector>(expression->dataType, memoryManager);
-    std::vector<BaseExpressionEvaluator*> inputEvaluators;
+    std::vector<ExpressionEvaluator*> inputEvaluators;
     inputEvaluators.reserve(children.size());
     for (auto& child : children) {
         parameters.push_back(child->resultVector);

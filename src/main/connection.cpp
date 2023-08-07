@@ -9,7 +9,7 @@
 #include "parser/parser.h"
 #include "planner/logical_plan/logical_plan_util.h"
 #include "planner/planner.h"
-#include "processor/mapper/plan_mapper.h"
+#include "processor/plan_mapper.h"
 #include "processor/processor.h"
 #include "transaction/transaction.h"
 #include "transaction/transaction_manager.h"
