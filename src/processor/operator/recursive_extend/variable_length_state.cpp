@@ -61,6 +61,7 @@ int64_t VariableLengthMorsel<false>::writeToVector(
     common::table_id_t tableID, std::pair<uint64_t, int64_t> startScanIdxAndSize) {
     auto size = 0u;
     auto endIdx = startScanIdxAndSize.first + startScanIdxAndSize.second;
+    bool exitOuterLoop = false;
     while (startScanIdxAndSize.first < endIdx && size < common::DEFAULT_VECTOR_CAPACITY) {
         if (bfsSharedState->visitedNodes[startScanIdxAndSize.first] == VISITED_DST ||
             bfsSharedState->visitedNodes[startScanIdxAndSize.first] == VISITED_DST_NEW) {
@@ -74,15 +75,23 @@ int64_t VariableLengthMorsel<false>::writeToVector(
                     size++;
                 } while (--multiplicity && size < common::DEFAULT_VECTOR_CAPACITY);
                 /// ValueVector capacity was reached, keep morsel state saved & exit from loop.
-                /// TODO: For Variable Length, also save the last bfsLevel encountered
                 if (multiplicity > 0) {
                     entry->multiplicity.store(multiplicity, std::memory_order_relaxed);
+                    bfsSharedState->nodeIDMultiplicityToLevel[startScanIdxAndSize.first] = entry;
+                    exitOuterLoop = true;
+                    break;
+                }
+                if(size == common::DEFAULT_VECTOR_CAPACITY) {
+                    bfsSharedState->nodeIDMultiplicityToLevel[startScanIdxAndSize.first] =
+                        entry->next;
                     break;
                 }
                 entry = entry->next;
             }
         }
-        startScanIdxAndSize.first++;
+        if(!exitOuterLoop) {
+            startScanIdxAndSize.first++;
+        }
     }
     prevDistMorselStartEndIdx = {startScanIdxAndSize.first, endIdx};
     if (size > 0) {
