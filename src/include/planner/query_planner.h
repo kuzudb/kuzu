@@ -2,8 +2,11 @@
 
 #include "binder/bound_statement.h"
 #include "binder/expression/existential_subquery_expression.h"
+#include "binder/query/normalized_single_query.h"
 #include "binder/query/reading_clause/bound_in_query_call.h"
-#include "join_order_enumerator.h"
+#include "common/join_type.h"
+#include "join_order_enumerator_context.h"
+#include "logical_plan/logical_operator/logical_extend.h"
 #include "planner/join_order/cardinality_estimator.h"
 
 namespace kuzu {
@@ -20,20 +23,20 @@ class LogicalCreateRelInfo;
 class LogicalSetPropertyInfo;
 
 class QueryPlanner {
-    friend class JoinOrderEnumerator;
-    friend class ProjectionPlanner;
-
 public:
-    explicit QueryPlanner(const catalog::Catalog& catalog,
+    QueryPlanner(const catalog::Catalog& catalog,
         const storage::NodesStatisticsAndDeletedIDs& nodesStatistics,
         const storage::RelsStatistics& relsStatistics)
-        : catalog{catalog}, cardinalityEstimator{std::make_unique<CardinalityEstimator>(
-                                nodesStatistics, relsStatistics)},
-          joinOrderEnumerator{catalog, this} {}
+        : catalog{catalog} {
+        cardinalityEstimator =
+            std::make_unique<CardinalityEstimator>(nodesStatistics, relsStatistics);
+        context = std::make_unique<JoinOrderEnumeratorContext>();
+    }
 
-    std::vector<std::unique_ptr<LogicalPlan>> getAllPlans(const BoundStatement& boundStatement);
+    std::vector<std::unique_ptr<LogicalPlan>> getAllPlans(
+        const binder::BoundStatement& boundStatement);
 
-    inline std::unique_ptr<LogicalPlan> getBestPlan(const BoundStatement& boundStatement) {
+    inline std::unique_ptr<LogicalPlan> getBestPlan(const binder::BoundStatement& boundStatement) {
         return getBestPlan(getAllPlans(boundStatement));
     }
 
@@ -42,19 +45,20 @@ private:
 
     // Plan query
     std::vector<std::unique_ptr<LogicalPlan>> planSingleQuery(
-        const NormalizedSingleQuery& singleQuery);
+        const binder::NormalizedSingleQuery& singleQuery);
     std::vector<std::unique_ptr<LogicalPlan>> planQueryPart(
-        const NormalizedQueryPart& queryPart, std::vector<std::unique_ptr<LogicalPlan>> prevPlans);
+        const binder::NormalizedQueryPart& queryPart,
+        std::vector<std::unique_ptr<LogicalPlan>> prevPlans);
 
     // Plan reading
-    void planReadingClause(
-        BoundReadingClause* readingClause, std::vector<std::unique_ptr<LogicalPlan>>& prevPlans);
-    void planMatchClause(
-        BoundReadingClause* readingClause, std::vector<std::unique_ptr<LogicalPlan>>& plans);
-    void planUnwindClause(
-        BoundReadingClause* readingClause, std::vector<std::unique_ptr<LogicalPlan>>& plans);
-    void planInQueryCall(
-        BoundReadingClause* readingClause, std::vector<std::unique_ptr<LogicalPlan>>& plans);
+    void planReadingClause(binder::BoundReadingClause* readingClause,
+        std::vector<std::unique_ptr<LogicalPlan>>& prevPlans);
+    void planMatchClause(binder::BoundReadingClause* readingClause,
+        std::vector<std::unique_ptr<LogicalPlan>>& plans);
+    void planUnwindClause(binder::BoundReadingClause* readingClause,
+        std::vector<std::unique_ptr<LogicalPlan>>& plans);
+    void planInQueryCall(binder::BoundReadingClause* readingClause,
+        std::vector<std::unique_ptr<LogicalPlan>>& plans);
 
     // Plan updating
     void planUpdatingClause(binder::BoundUpdatingClause& updatingClause,
@@ -76,37 +80,57 @@ private:
         LogicalPlan& plan);
 
     // Plan subquery
-    void planOptionalMatch(const QueryGraphCollection& queryGraphCollection,
-        const expression_vector& predicates, LogicalPlan& leftPlan);
-    void planRegularMatch(const QueryGraphCollection& queryGraphCollection,
-        const expression_vector& predicates, LogicalPlan& leftPlan);
-    void planExistsSubquery(std::shared_ptr<Expression> subquery, LogicalPlan& outerPlan);
-    void planSubqueryIfNecessary(const std::shared_ptr<Expression>& expression, LogicalPlan& plan);
+    void planOptionalMatch(const binder::QueryGraphCollection& queryGraphCollection,
+        const binder::expression_vector& predicates, LogicalPlan& leftPlan);
+    void planRegularMatch(const binder::QueryGraphCollection& queryGraphCollection,
+        const binder::expression_vector& predicates, LogicalPlan& leftPlan);
+    void planExistsSubquery(std::shared_ptr<binder::Expression> subquery, LogicalPlan& outerPlan);
+    void planSubqueryIfNecessary(
+        const std::shared_ptr<binder::Expression>& expression, LogicalPlan& plan);
 
-    std::unique_ptr<LogicalPlan> planJoins(
-        const QueryGraphCollection& queryGraphCollection, const expression_vector& predicates);
-    std::unique_ptr<LogicalPlan> planJoinsInNewContext(
-        const expression_vector& expressionsToExcludeScan,
-        const QueryGraphCollection& queryGraphCollection, const expression_vector& predicates);
+    // Plan query graphs
+    std::unique_ptr<LogicalPlan> planQueryGraphCollection(
+        const binder::QueryGraphCollection& queryGraphCollection,
+        const binder::expression_vector& predicates);
+    std::unique_ptr<LogicalPlan> planQueryGraphCollectionInNewContext(
+        const binder::expression_vector& expressionsToExcludeScan,
+        const binder::QueryGraphCollection& queryGraphCollection,
+        const binder::expression_vector& predicates);
+    std::vector<std::unique_ptr<LogicalPlan>> enumerateQueryGraphCollection(
+        const binder::QueryGraphCollection& queryGraphCollection,
+        const binder::expression_vector& predicates);
+    std::vector<std::unique_ptr<LogicalPlan>> enumerateQueryGraph(
+        binder::QueryGraph* queryGraph, binder::expression_vector& predicates);
 
-    void appendAccumulate(common::AccumulateType accumulateType, LogicalPlan& plan);
+    // Plan node/rel table scan
+    void planBaseTableScan();
+    void planNodeScan(uint32_t nodePos);
+    void planRelScan(uint32_t relPos);
+    void appendExtendAndFilter(std::shared_ptr<binder::NodeExpression> boundNode,
+        std::shared_ptr<binder::NodeExpression> nbrNode, std::shared_ptr<binder::RelExpression> rel,
+        ExtendDirection direction, const binder::expression_vector& predicates, LogicalPlan& plan);
 
-    void appendDummyScan(LogicalPlan& plan);
+    // Plan dp level
+    void planLevel(uint32_t level);
+    void planLevelExactly(uint32_t level);
+    void planLevelApproximately(uint32_t level);
 
-    void appendDistinct(const expression_vector& expressionsToDistinct, LogicalPlan& plan);
+    // Plan worst case optimal join
+    void planWCOJoin(uint32_t leftLevel, uint32_t rightLevel);
+    void planWCOJoin(const SubqueryGraph& subgraph,
+        std::vector<std::shared_ptr<binder::RelExpression>> rels,
+        const std::shared_ptr<binder::NodeExpression>& intersectNode);
 
-    void appendUnwind(BoundUnwindClause& boundUnwindClause, LogicalPlan& plan);
+    // Plan index-nested-loop join / hash join
+    void planInnerJoin(uint32_t leftLevel, uint32_t rightLevel);
+    bool tryPlanINLJoin(const SubqueryGraph& subgraph, const SubqueryGraph& otherSubgraph,
+        const std::vector<std::shared_ptr<NodeExpression>>& joinNodes);
+    void planInnerHashJoin(const SubqueryGraph& subgraph, const SubqueryGraph& otherSubgraph,
+        std::vector<std::shared_ptr<binder::NodeExpression>> joinNodes, bool flipPlan);
 
-    void appendInQueryCall(BoundInQueryCall& boundInQueryCall, LogicalPlan& plan);
-
-    void appendFlattens(const f_group_pos_set& groupsPos, LogicalPlan& plan);
-    void appendFlattenIfNecessary(f_group_pos groupPos, LogicalPlan& plan);
-
-    void appendFilters(const binder::expression_vector& predicates, LogicalPlan& plan);
-    void appendFilter(const std::shared_ptr<Expression>& predicate, LogicalPlan& plan);
-
-    void appendScanNodePropIfNecessary(const expression_vector& propertyExpressions,
-        std::shared_ptr<NodeExpression> node, LogicalPlan& plan);
+    std::vector<std::unique_ptr<LogicalPlan>> planCrossProduct(
+        std::vector<std::unique_ptr<LogicalPlan>> leftPlans,
+        std::vector<std::unique_ptr<LogicalPlan>> rightPlans);
 
     // Append updating operators
     void appendCreateNode(
@@ -141,6 +165,57 @@ private:
     void appendLimit(uint64_t limitNumber, LogicalPlan& plan);
     void appendSkip(uint64_t skipNumber, LogicalPlan& plan);
 
+    // Append scan operators
+    void appendScanNodeID(std::shared_ptr<NodeExpression>& node, LogicalPlan& plan);
+    void appendScanNodePropIfNecessary(const expression_vector& propertyExpressions,
+        std::shared_ptr<NodeExpression> node, LogicalPlan& plan);
+
+    // Append extend operators
+    void appendNonRecursiveExtend(std::shared_ptr<NodeExpression> boundNode,
+        std::shared_ptr<NodeExpression> nbrNode, std::shared_ptr<RelExpression> rel,
+        ExtendDirection direction, const binder::expression_vector& properties, LogicalPlan& plan);
+    void appendRecursiveExtend(std::shared_ptr<NodeExpression> boundNode,
+        std::shared_ptr<NodeExpression> nbrNode, std::shared_ptr<RelExpression> rel,
+        ExtendDirection direction, LogicalPlan& plan);
+    void createRecursivePlan(std::shared_ptr<NodeExpression> boundNode,
+        std::shared_ptr<NodeExpression> recursiveNode, std::shared_ptr<RelExpression> recursiveRel,
+        ExtendDirection direction, const expression_vector& predicates, LogicalPlan& plan);
+    void createPathNodePropertyScanPlan(
+        std::shared_ptr<NodeExpression> recursiveNode, LogicalPlan& plan);
+    void createPathRelPropertyScanPlan(std::shared_ptr<NodeExpression> recursiveNode,
+        std::shared_ptr<NodeExpression> nbrNode, std::shared_ptr<RelExpression> recursiveRel,
+        ExtendDirection direction, LogicalPlan& plan);
+    void appendNodeLabelFilter(std::shared_ptr<Expression> nodeID,
+        std::unordered_set<common::table_id_t> tableIDSet, LogicalPlan& plan);
+
+    // Append Join operators
+    void appendHashJoin(const binder::expression_vector& joinNodeIDs, common::JoinType joinType,
+        LogicalPlan& probePlan, LogicalPlan& buildPlan);
+    void appendMarkJoin(const binder::expression_vector& joinNodeIDs,
+        const std::shared_ptr<Expression>& mark, LogicalPlan& probePlan, LogicalPlan& buildPlan);
+    void appendIntersect(const std::shared_ptr<Expression>& intersectNodeID,
+        binder::expression_vector& boundNodeIDs, LogicalPlan& probePlan,
+        std::vector<std::unique_ptr<LogicalPlan>>& buildPlans);
+
+    void appendCrossProduct(
+        common::AccumulateType accumulateType, LogicalPlan& probePlan, LogicalPlan& buildPlan);
+
+    void appendAccumulate(common::AccumulateType accumulateType, LogicalPlan& plan);
+
+    void appendDummyScan(LogicalPlan& plan);
+
+    void appendDistinct(const expression_vector& expressionsToDistinct, LogicalPlan& plan);
+
+    void appendUnwind(BoundUnwindClause& boundUnwindClause, LogicalPlan& plan);
+
+    void appendInQueryCall(BoundInQueryCall& boundInQueryCall, LogicalPlan& plan);
+
+    void appendFlattens(const f_group_pos_set& groupsPos, LogicalPlan& plan);
+    void appendFlattenIfNecessary(f_group_pos groupPos, LogicalPlan& plan);
+
+    void appendFilters(const binder::expression_vector& predicates, LogicalPlan& plan);
+    void appendFilter(const std::shared_ptr<Expression>& predicate, LogicalPlan& plan);
+
     std::unique_ptr<LogicalPlan> createUnionPlan(
         std::vector<std::unique_ptr<LogicalPlan>>& childrenPlans, bool isUnionAll);
 
@@ -149,14 +224,15 @@ private:
     expression_vector getPropertiesForNode(NodeExpression& node);
     expression_vector getPropertiesForRel(RelExpression& rel);
 
-    static std::vector<std::vector<std::unique_ptr<LogicalPlan>>> cartesianProductChildrenPlans(
-        std::vector<std::vector<std::unique_ptr<LogicalPlan>>> childrenLogicalPlans);
+    std::unique_ptr<JoinOrderEnumeratorContext> enterContext(
+        binder::expression_vector nodeIDsToScanFromInnerAndOuter);
+    void exitContext(std::unique_ptr<JoinOrderEnumeratorContext> prevContext);
 
 private:
     const catalog::Catalog& catalog;
-    std::unique_ptr<CardinalityEstimator> cardinalityEstimator;
     expression_vector propertiesToScan;
-    JoinOrderEnumerator joinOrderEnumerator;
+    std::unique_ptr<CardinalityEstimator> cardinalityEstimator;
+    std::unique_ptr<JoinOrderEnumeratorContext> context;
 };
 
 } // namespace planner
