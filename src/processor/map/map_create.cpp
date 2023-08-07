@@ -48,7 +48,8 @@ std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateNode(LogicalOperator* log
 }
 
 std::unique_ptr<RelInsertExecutor> PlanMapper::getRelInsertExecutor(storage::RelsStore* relsStore,
-    planner::LogicalCreateRelInfo* info, const planner::Schema& inSchema) {
+    planner::LogicalCreateRelInfo* info, const planner::Schema& inSchema,
+    const planner::Schema& outSchema) {
     auto rel = info->rel;
     auto relTableID = rel->getSingleTableID();
     auto table = relsStore->getRelTable(relTableID);
@@ -56,22 +57,29 @@ std::unique_ptr<RelInsertExecutor> PlanMapper::getRelInsertExecutor(storage::Rel
     auto dstNode = rel->getDstNode();
     auto srcNodePos = DataPos(inSchema.getExpressionPos(*srcNode->getInternalIDProperty()));
     auto dstNodePos = DataPos(inSchema.getExpressionPos(*dstNode->getInternalIDProperty()));
+    std::vector<DataPos> lhsVectorPositions;
     std::vector<std::unique_ptr<ExpressionEvaluator>> evaluators;
     for (auto& [lhs, rhs] : info->setItems) {
+        if (outSchema.isExpressionInScope(*lhs)) {
+            lhsVectorPositions.emplace_back(outSchema.getExpressionPos(*lhs));
+        } else {
+            lhsVectorPositions.emplace_back(INVALID_DATA_CHUNK_POS, INVALID_DATA_CHUNK_POS);
+        }
         evaluators.push_back(expressionMapper.mapExpression(rhs, inSchema));
     }
-    return std::make_unique<RelInsertExecutor>(
-        relsStore->getRelsStatistics(), table, srcNodePos, dstNodePos, std::move(evaluators));
+    return std::make_unique<RelInsertExecutor>(relsStore->getRelsStatistics(), table, srcNodePos,
+        dstNodePos, std::move(lhsVectorPositions), std::move(evaluators));
 }
 
 std::unique_ptr<PhysicalOperator> PlanMapper::mapCreateRel(LogicalOperator* logicalOperator) {
     auto logicalCreateRel = (LogicalCreateRel*)logicalOperator;
     auto inSchema = logicalCreateRel->getChild(0)->getSchema();
+    auto outSchema = logicalCreateRel->getSchema();
     auto prevOperator = mapOperator(logicalOperator->getChild(0).get());
     std::vector<std::unique_ptr<RelInsertExecutor>> executors;
     for (auto& info : logicalCreateRel->getInfosRef()) {
-        executors.push_back(
-            getRelInsertExecutor(&storageManager.getRelsStore(), info.get(), *inSchema));
+        executors.push_back(getRelInsertExecutor(
+            &storageManager.getRelsStore(), info.get(), *inSchema, *outSchema));
     }
     return std::make_unique<InsertRel>(std::move(executors), std::move(prevOperator),
         getOperatorID(), logicalCreateRel->getExpressionsForPrinting());

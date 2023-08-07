@@ -146,8 +146,8 @@ void QueryPlanner::planNodeScan(uint32_t nodePos) {
     // query, we only scan internal ID of "a".
     if (!context->nodeToScanFromInnerAndOuter(node.get())) {
         appendScanNodeID(node, *plan);
-        auto properties = getPropertiesForNode(*node);
-        appendScanNodePropIfNecessary(properties, node, *plan);
+        auto properties = getProperties(*node);
+        appendScanNodeProperties(properties, node, *plan);
         auto predicates = getNewlyMatchedExpressions(
             context->getEmptySubqueryGraph(), newSubgraph, context->getWhereExpressions());
         appendFilters(predicates, *plan);
@@ -188,7 +188,7 @@ void QueryPlanner::appendExtendAndFilter(std::shared_ptr<NodeExpression> boundNo
     ExtendDirection direction, const expression_vector& predicates, LogicalPlan& plan) {
     switch (rel->getRelType()) {
     case common::QueryRelType::NON_RECURSIVE: {
-        auto properties = getPropertiesForRel(*rel);
+        auto properties = getProperties(*rel);
         appendNonRecursiveExtend(boundNode, nbrNode, rel, direction, properties, plan);
     } break;
     case common::QueryRelType::VARIABLE_LENGTH:

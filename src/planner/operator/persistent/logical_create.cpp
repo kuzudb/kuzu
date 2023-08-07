@@ -30,14 +30,20 @@ void LogicalCreateNode::computeFactorizedSchema() {
     for (auto& info : infos) {
         auto groupPos = schema->createGroup();
         schema->setGroupAsSingleState(groupPos);
-        schema->insertToGroupAndScope(info->node->getInternalIDProperty(), groupPos);
+        for (auto& property : info->propertiesToReturn) {
+            schema->insertToGroupAndScope(property, groupPos);
+        }
+        schema->insertToGroupAndScopeMayRepeat(info->node->getInternalIDProperty(), groupPos);
     }
 }
 
 void LogicalCreateNode::computeFlatSchema() {
     copyChildSchema(0);
     for (auto& info : infos) {
-        schema->insertToGroupAndScope(info->node->getInternalIDProperty(), 0);
+        for (auto& property : info->propertiesToReturn) {
+            schema->insertToGroupAndScope(property, 0);
+        }
+        schema->insertToGroupAndScopeMayRepeat(info->node->getInternalIDProperty(), 0);
     }
 }
 
@@ -55,6 +61,26 @@ f_group_pos_set LogicalCreateNode::getGroupsPosToFlatten() {
     auto childSchema = children[0]->getSchema();
     return factorization::FlattenAll::getGroupsPosToFlatten(
         childSchema->getGroupsPosInScope(), childSchema);
+}
+
+void LogicalCreateRel::computeFactorizedSchema() {
+    copyChildSchema(0);
+    for (auto& info : infos) {
+        auto groupPos = schema->createGroup();
+        schema->setGroupAsSingleState(groupPos);
+        for (auto& property : info->propertiesToReturn) {
+            schema->insertToGroupAndScope(property, groupPos);
+        }
+    }
+}
+
+void LogicalCreateRel::computeFlatSchema() {
+    copyChildSchema(0);
+    for (auto& info : infos) {
+        for (auto& property : info->propertiesToReturn) {
+            schema->insertToGroupAndScope(property, 0);
+        }
+    }
 }
 
 std::string LogicalCreateRel::getExpressionsForPrinting() const {

@@ -113,7 +113,8 @@ private:
         storage::RelsStore* relsStore, planner::LogicalCreateNodeInfo* info,
         const planner::Schema& inSchema, const planner::Schema& outSchema);
     std::unique_ptr<RelInsertExecutor> getRelInsertExecutor(storage::RelsStore* relsStore,
-        planner::LogicalCreateRelInfo* info, const planner::Schema& inSchema);
+        planner::LogicalCreateRelInfo* info, const planner::Schema& inSchema,
+        const planner::Schema& outSchema);
     std::unique_ptr<NodeSetExecutor> getNodeSetExecutor(storage::NodesStore* store,
         planner::LogicalSetPropertyInfo* info, const planner::Schema& inSchema);
     std::unique_ptr<RelSetExecutor> getRelSetExecutor(storage::RelsStore* store,

@@ -42,9 +42,11 @@ class RelInsertExecutor {
 public:
     RelInsertExecutor(storage::RelsStatistics& relsStatistics, storage::RelTable* table,
         const DataPos& srcNodePos, const DataPos& dstNodePos,
+        std::vector<DataPos> lhsVectorPositions,
         std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> evaluators)
         : relsStatistics{relsStatistics}, table{table}, srcNodePos{srcNodePos},
-          dstNodePos{dstNodePos}, evaluators{std::move(evaluators)} {}
+          dstNodePos{dstNodePos}, lhsVectorPositions{std::move(lhsVectorPositions)},
+          evaluators{std::move(evaluators)} {}
     RelInsertExecutor(const RelInsertExecutor& other);
 
     void init(ResultSet* resultSet, ExecutionContext* context);
@@ -63,11 +65,13 @@ private:
     storage::RelTable* table;
     DataPos srcNodePos;
     DataPos dstNodePos;
+    std::vector<DataPos> lhsVectorPositions;
     std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> evaluators;
 
     common::ValueVector* srcNodeIDVector = nullptr;
     common::ValueVector* dstNodeIDVector = nullptr;
-    std::vector<common::ValueVector*> propertyVectors;
+    std::vector<common::ValueVector*> lhsVectors;
+    std::vector<common::ValueVector*> rhsVectors;
 };
 
 } // namespace processor
