@@ -601,6 +601,8 @@ public:
     KU_PropertyDefinitionsContext *kU_PropertyDefinitions();
     std::vector<antlr4::tree::TerminalNode *> SP();
     antlr4::tree::TerminalNode* SP(size_t i);
+    std::vector<KU_DataTypeContext *> kU_DataType();
+    KU_DataTypeContext* kU_DataType(size_t i);
 
    
   };

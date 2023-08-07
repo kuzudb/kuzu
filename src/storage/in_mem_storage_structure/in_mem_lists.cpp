@@ -383,7 +383,7 @@ template<>
 void InMemListsWithOverflow::setValueFromStringWithOverflow<ku_list_t>(
     PageByteCursor& overflowCursor, offset_t nodeOffset, uint64_t pos, const char* val,
     uint64_t length) {
-    auto varList = TableCopyUtils::getArrowVarList(val, 1, length - 2, dataType, *copyDescription);
+    auto varList = TableCopyUtils::getVarListValue(val, 1, length - 2, dataType, *copyDescription);
     auto listVal = overflowInMemFile->copyList(*varList, overflowCursor);
     setValue(nodeOffset, pos, (uint8_t*)&listVal);
 }

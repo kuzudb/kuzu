@@ -342,25 +342,22 @@ void FixedListColumnChunk::write(const common::Value& fixedListVal, uint64_t pos
 
 std::unique_ptr<ColumnChunk> ColumnChunkFactory::createColumnChunk(
     const LogicalType& dataType, CopyDescription* copyDescription) {
-    switch (dataType.getLogicalTypeID()) {
-    case LogicalTypeID::BOOL:
-    case LogicalTypeID::INT64:
-    case LogicalTypeID::INT32:
-    case LogicalTypeID::INT16:
-    case LogicalTypeID::DOUBLE:
-    case LogicalTypeID::FLOAT:
-    case LogicalTypeID::DATE:
-    case LogicalTypeID::TIMESTAMP:
-    case LogicalTypeID::INTERVAL:
+    switch (dataType.getPhysicalType()) {
+    case PhysicalTypeID::BOOL:
+    case PhysicalTypeID::INT64:
+    case PhysicalTypeID::INT32:
+    case PhysicalTypeID::INT16:
+    case PhysicalTypeID::DOUBLE:
+    case PhysicalTypeID::FLOAT:
+    case PhysicalTypeID::INTERVAL:
         return std::make_unique<ColumnChunk>(dataType, copyDescription);
-    case LogicalTypeID::FIXED_LIST:
+    case PhysicalTypeID::FIXED_LIST:
         return std::make_unique<FixedListColumnChunk>(dataType, copyDescription);
-    case LogicalTypeID::BLOB:
-    case LogicalTypeID::STRING:
+    case PhysicalTypeID::STRING:
         return std::make_unique<StringColumnChunk>(dataType, copyDescription);
-    case LogicalTypeID::VAR_LIST:
+    case PhysicalTypeID::VAR_LIST:
         return std::make_unique<VarListColumnChunk>(dataType, copyDescription);
-    case LogicalTypeID::STRUCT:
+    case PhysicalTypeID::STRUCT:
         return std::make_unique<StructColumnChunk>(dataType, copyDescription);
     default: {
         throw NotImplementedException("ColumnChunkFactory::createColumnChunk for data type " +

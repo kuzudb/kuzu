@@ -320,8 +320,9 @@ std::string Value::toString() const {
             result += structVal->children[0]->toString();
             result += "=";
             result += structVal->children[1]->toString();
-            result += (i == childrenSize - 1 ? "}" : ", ");
+            result += (i == childrenSize - 1 ? "" : ", ");
         }
+        result += "}";
         return result;
     }
     case LogicalTypeID::VAR_LIST:

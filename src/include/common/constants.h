@@ -33,6 +33,8 @@ struct InternalKeyword {
     static constexpr char TAG[] = "_TAG";
     static constexpr char STAR[] = "*";
     static constexpr char PLACE_HOLDER[] = "_PLACE_HOLDER";
+    static constexpr char MAP_KEY[] = "KEY";
+    static constexpr char MAP_VALUE[] = "VALUE";
 };
 
 enum PageSizeClass : uint8_t {

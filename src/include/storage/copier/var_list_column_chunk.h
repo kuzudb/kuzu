@@ -15,6 +15,8 @@ struct VarListDataColumnChunk {
     VarListDataColumnChunk(std::unique_ptr<ColumnChunk> dataChunk)
         : dataChunk{std::move(dataChunk)}, numValuesInDataChunk{0},
           capacityInDataChunk{StorageConstants::NODE_GROUP_SIZE} {}
+
+    void reset();
 };
 
 class VarListColumnChunk : public ColumnChunk {
@@ -26,6 +28,8 @@ public:
     }
 
     void setValueFromString(const char* value, uint64_t length, uint64_t pos);
+
+    void resetToEmpty() final;
 
 private:
     inline common::page_idx_t getNumPages() const final {

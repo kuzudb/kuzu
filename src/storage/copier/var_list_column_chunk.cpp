@@ -6,6 +6,11 @@
 namespace kuzu {
 namespace storage {
 
+void VarListDataColumnChunk::reset() {
+    dataChunk->resetToEmpty();
+    numValuesInDataChunk = 0;
+}
+
 VarListColumnChunk::VarListColumnChunk(LogicalType dataType, CopyDescription* copyDescription)
     : ColumnChunk{std::move(dataType), copyDescription, true /* hasNullChunk */},
       varListDataColumnChunk{ColumnChunkFactory::createColumnChunk(
@@ -42,7 +47,7 @@ void VarListColumnChunk::copyVarListFromArrowString(
                 continue;
             }
             auto value = stringArray->GetView(i);
-            auto listVal = TableCopyUtils::getArrowVarList(
+            auto listVal = TableCopyUtils::getVarListValue(
                 value.data(), 1, value.size() - 2, dataType, *copyDescription);
             write(*listVal, posInChunk);
         }
@@ -50,7 +55,7 @@ void VarListColumnChunk::copyVarListFromArrowString(
         for (auto i = 0u; i < numValuesToAppend; i++) {
             auto value = stringArray->GetView(i);
             auto posInChunk = startPosInChunk + i;
-            auto listVal = TableCopyUtils::getArrowVarList(
+            auto listVal = TableCopyUtils::getVarListValue(
                 value.data(), 1, value.size() - 2, dataType, *copyDescription);
             write(*listVal, posInChunk);
         }
@@ -90,8 +95,13 @@ void VarListColumnChunk::write(const common::Value& listVal, uint64_t posToWrite
 
 void VarListColumnChunk::setValueFromString(const char* value, uint64_t length, uint64_t pos) {
     auto listVal =
-        TableCopyUtils::getArrowVarList(value, 1, length - 2, dataType, *copyDescription);
+        TableCopyUtils::getVarListValue(value, 1, length - 2, dataType, *copyDescription);
     write(*listVal, pos);
+}
+
+void VarListColumnChunk::resetToEmpty() {
+    ColumnChunk::resetToEmpty();
+    varListDataColumnChunk.reset();
 }
 
 void VarListColumnChunk::resizeDataChunk(uint64_t numValues) {

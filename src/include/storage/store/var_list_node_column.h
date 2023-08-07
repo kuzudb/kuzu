@@ -69,9 +69,11 @@ protected:
         ColumnChunk* columnChunk, common::page_idx_t startPageIdx, uint64_t nodeGroupIdx) override;
 
 private:
-    inline common::offset_t readListOffsetInStorage(
-        transaction::Transaction* transaction, common::offset_t nodeOffset) {
-        return nodeOffset == 0 ? 0 : readOffset(transaction, nodeOffset - 1);
+    inline common::offset_t readListOffsetInStorage(transaction::Transaction* transaction,
+        common::node_group_idx_t nodeGroupIdx, common::offset_t offsetInNodeGroup) {
+        return offsetInNodeGroup == 0 ?
+                   0 :
+                   readOffset(transaction, nodeGroupIdx, offsetInNodeGroup - 1);
     }
 
     void scanUnfiltered(transaction::Transaction* transaction,
@@ -85,11 +87,12 @@ private:
 
     void rollbackInMemory() final;
 
-    common::offset_t readOffset(transaction::Transaction* transaction, common::offset_t valuePos);
+    common::offset_t readOffset(transaction::Transaction* transaction,
+        common::node_group_idx_t nodeGroupIdx, common::offset_t offsetInNodeGroup);
 
     ListOffsetInfoInStorage getListOffsetInfoInStorage(transaction::Transaction* transaction,
-        common::node_group_idx_t nodeGroupIdx, common::offset_t startOffset,
-        common::offset_t endOffset, std::shared_ptr<common::DataChunkState> state);
+        common::node_group_idx_t nodeGroupIdx, common::offset_t startOffsetInNodeGroup,
+        common::offset_t endOffsetInNodeGroup, std::shared_ptr<common::DataChunkState> state);
 
 private:
     std::unique_ptr<NodeColumn> dataNodeColumn;

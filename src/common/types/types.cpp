@@ -2,6 +2,7 @@
 
 #include <stdexcept>
 
+#include "common/constants.h"
 #include "common/exception.h"
 #include "common/null_buffer.h"
 #include "common/ser_deser.h"
@@ -363,44 +364,18 @@ void LogicalType::setPhysicalType() {
 
 LogicalType LogicalTypeUtils::dataTypeFromString(const std::string& dataTypeString) {
     LogicalType dataType;
-    auto upperDataTypeString = StringUtils::getUpper(dataTypeString);
+    auto trimmedStr = StringUtils::ltrim(StringUtils::rtrim(dataTypeString));
+    auto upperDataTypeString = StringUtils::getUpper(trimmedStr);
     if (upperDataTypeString.ends_with("[]")) {
-        dataType.typeID = LogicalTypeID::VAR_LIST;
-        dataType.extraTypeInfo = std::make_unique<VarListTypeInfo>(std::make_unique<LogicalType>(
-            dataTypeFromString(dataTypeString.substr(0, dataTypeString.size() - 2))));
+        dataType = *parseVarListType(trimmedStr);
     } else if (upperDataTypeString.ends_with("]")) {
-        dataType.typeID = LogicalTypeID::FIXED_LIST;
-        auto leftBracketPos = dataTypeString.find('[');
-        auto rightBracketPos = dataTypeString.find(']');
-        auto childType = std::make_unique<LogicalType>(
-            dataTypeFromString(dataTypeString.substr(0, leftBracketPos)));
-        auto fixedNumElementsInList = std::strtoll(
-            dataTypeString.substr(leftBracketPos + 1, rightBracketPos - leftBracketPos - 1).c_str(),
-            nullptr, 0 /* base */);
-        dataType.extraTypeInfo =
-            std::make_unique<FixedListTypeInfo>(std::move(childType), fixedNumElementsInList);
+        dataType = *parseFixedListType(trimmedStr);
     } else if (upperDataTypeString.starts_with("STRUCT")) {
-        dataType.typeID = LogicalTypeID::STRUCT;
-        auto leftBracketPos = dataTypeString.find('(');
-        auto rightBracketPos = dataTypeString.find_last_of(')');
-        if (leftBracketPos == std::string::npos || rightBracketPos == std::string::npos) {
-            throw Exception("Cannot parse struct type: " + dataTypeString);
-        }
-        // Remove the leading and trailing brackets.
-        auto structTypeStr =
-            dataTypeString.substr(leftBracketPos + 1, rightBracketPos - leftBracketPos - 1);
-        auto structFieldsStr = parseStructFields(structTypeStr);
-        std::vector<std::unique_ptr<StructField>> structFields;
-        for (auto& structFieldStr : structFieldsStr) {
-            auto pos = structFieldStr.find(' ');
-            auto fieldName = structFieldStr.substr(0, pos);
-            auto fieldTypeString = structFieldStr.substr(pos + 1);
-            structFields.emplace_back(std::make_unique<StructField>(
-                fieldName, std::make_unique<LogicalType>(dataTypeFromString(fieldTypeString))));
-        }
-        dataType.extraTypeInfo = std::make_unique<StructTypeInfo>(std::move(structFields));
+        dataType = *parseStructType(trimmedStr);
+    } else if (upperDataTypeString.starts_with("MAP")) {
+        dataType = *parseMapType(trimmedStr);
     } else {
-        dataType.typeID = dataTypeIDFromString(dataTypeString);
+        dataType.typeID = dataTypeIDFromString(upperDataTypeString);
     }
     dataType.setPhysicalType();
     return dataType;
@@ -673,6 +648,65 @@ std::vector<std::string> LogicalTypeUtils::parseStructFields(const std::string& 
     structFieldsStr.push_back(
         StringUtils::ltrim(structTypeStr.substr(startPos, curPos - startPos)));
     return structFieldsStr;
+}
+
+std::unique_ptr<LogicalType> LogicalTypeUtils::parseVarListType(const std::string& trimmedStr) {
+    return std::make_unique<LogicalType>(LogicalTypeID::VAR_LIST,
+        std::make_unique<VarListTypeInfo>(std::make_unique<LogicalType>(
+            dataTypeFromString(trimmedStr.substr(0, trimmedStr.size() - 2)))));
+}
+
+std::unique_ptr<LogicalType> LogicalTypeUtils::parseFixedListType(const std::string& trimmedStr) {
+    auto leftBracketPos = trimmedStr.find('[');
+    auto rightBracketPos = trimmedStr.find(']');
+    auto childType =
+        std::make_unique<LogicalType>(dataTypeFromString(trimmedStr.substr(0, leftBracketPos)));
+    auto fixedNumElementsInList = std::strtoll(
+        trimmedStr.substr(leftBracketPos + 1, rightBracketPos - leftBracketPos - 1).c_str(),
+        nullptr, 0 /* base */);
+    return std::make_unique<LogicalType>(LogicalTypeID::FIXED_LIST,
+        std::make_unique<FixedListTypeInfo>(std::move(childType), fixedNumElementsInList));
+}
+
+std::unique_ptr<LogicalType> LogicalTypeUtils::parseStructType(const std::string& trimmedStr) {
+    auto leftBracketPos = trimmedStr.find('(');
+    auto rightBracketPos = trimmedStr.find_last_of(')');
+    if (leftBracketPos == std::string::npos || rightBracketPos == std::string::npos) {
+        throw Exception("Cannot parse struct type: " + trimmedStr);
+    }
+    // Remove the leading and trailing brackets.
+    auto structTypeStr =
+        trimmedStr.substr(leftBracketPos + 1, rightBracketPos - leftBracketPos - 1);
+    auto structFieldsStr = parseStructFields(structTypeStr);
+    std::vector<std::unique_ptr<StructField>> structFields;
+    for (auto& structFieldStr : structFieldsStr) {
+        auto pos = structFieldStr.find(' ');
+        auto fieldName = structFieldStr.substr(0, pos);
+        auto fieldTypeString = structFieldStr.substr(pos + 1);
+        structFields.emplace_back(std::make_unique<StructField>(
+            fieldName, std::make_unique<LogicalType>(dataTypeFromString(fieldTypeString))));
+    }
+    return std::make_unique<LogicalType>(
+        LogicalTypeID::STRUCT, std::make_unique<StructTypeInfo>(std::move(structFields)));
+}
+
+std::unique_ptr<LogicalType> LogicalTypeUtils::parseMapType(const std::string& trimmedStr) {
+    auto leftBracketPos = trimmedStr.find('(');
+    auto rightBracketPos = trimmedStr.find_last_of(')');
+    if (leftBracketPos == std::string::npos || rightBracketPos == std::string::npos) {
+        throw Exception("Cannot parse struct type: " + trimmedStr);
+    }
+    auto mapTypeStr = trimmedStr.substr(leftBracketPos + 1, rightBracketPos - leftBracketPos - 1);
+    auto keyValueTypes = StringUtils::split(mapTypeStr, ",");
+    std::vector<std::unique_ptr<StructField>> structFields;
+    structFields.emplace_back(std::make_unique<StructField>(InternalKeyword::MAP_KEY,
+        std::make_unique<LogicalType>(dataTypeFromString(keyValueTypes[0]))));
+    structFields.emplace_back(std::make_unique<StructField>(InternalKeyword::MAP_VALUE,
+        std::make_unique<LogicalType>(dataTypeFromString(keyValueTypes[1]))));
+    auto childType = std::make_unique<LogicalType>(
+        LogicalTypeID::STRUCT, std::make_unique<StructTypeInfo>(std::move(structFields)));
+    return std::make_unique<LogicalType>(
+        LogicalTypeID::MAP, std::make_unique<VarListTypeInfo>(std::move(childType)));
 }
 
 } // namespace common

@@ -26,9 +26,9 @@ std::unique_ptr<FunctionBindData> MapCreationVectorFunctions::bindFunc(
     auto valueType = common::VarListType::getChildType(&arguments[1]->dataType);
     std::vector<std::unique_ptr<common::StructField>> structFields;
     structFields.emplace_back(std::make_unique<common::StructField>(
-        "key", std::make_unique<common::LogicalType>(*keyType)));
+        common::InternalKeyword::MAP_KEY, std::make_unique<common::LogicalType>(*keyType)));
     structFields.emplace_back(std::make_unique<common::StructField>(
-        "value", std::make_unique<common::LogicalType>(*valueType)));
+        common::InternalKeyword::MAP_VALUE, std::make_unique<common::LogicalType>(*valueType)));
     auto mapStructType = std::make_unique<common::LogicalType>(common::LogicalTypeID::STRUCT,
         std::make_unique<common::StructTypeInfo>(std::move(structFields)));
     auto resultType = common::LogicalType(common::LogicalTypeID::MAP,
