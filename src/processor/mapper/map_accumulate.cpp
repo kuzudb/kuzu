@@ -1,4 +1,4 @@
-#include "planner/logical_plan/logical_operator/logical_accumulate.h"
+#include "planner/logical_plan/logical_accumulate.h"
 #include "processor/mapper/plan_mapper.h"
 #include "processor/operator/result_collector.h"
 

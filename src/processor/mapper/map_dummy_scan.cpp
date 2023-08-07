@@ -1,4 +1,4 @@
-#include "planner/logical_plan/logical_operator/logical_dummy_scan.h"
+#include "planner/logical_plan/scan/logical_dummy_scan.h"
 #include "processor/mapper/plan_mapper.h"
 #include "processor/operator/table_scan/factorized_table_scan.h"
 

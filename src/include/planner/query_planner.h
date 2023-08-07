@@ -1,13 +1,11 @@
 #pragma once
 
 #include "binder/bound_statement.h"
-#include "binder/expression/existential_subquery_expression.h"
 #include "binder/query/normalized_single_query.h"
-#include "binder/query/reading_clause/bound_in_query_call.h"
 #include "common/join_type.h"
 #include "join_order_enumerator_context.h"
-#include "logical_plan/logical_operator/logical_extend.h"
 #include "planner/join_order/cardinality_estimator.h"
+#include "planner/logical_plan/extend/extend_direction.h"
 
 namespace kuzu {
 namespace binder {
@@ -206,9 +204,9 @@ private:
 
     void appendDistinct(const expression_vector& expressionsToDistinct, LogicalPlan& plan);
 
-    void appendUnwind(BoundUnwindClause& boundUnwindClause, LogicalPlan& plan);
+    void appendUnwind(const BoundReadingClause& boundReadingClause, LogicalPlan& plan);
 
-    void appendInQueryCall(BoundInQueryCall& boundInQueryCall, LogicalPlan& plan);
+    void appendInQueryCall(const BoundReadingClause& boundReadingClause, LogicalPlan& plan);
 
     void appendFlattens(const f_group_pos_set& groupsPos, LogicalPlan& plan);
     void appendFlattenIfNecessary(f_group_pos groupPos, LogicalPlan& plan);

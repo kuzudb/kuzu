@@ -1,4 +1,4 @@
-#include "planner/logical_plan/logical_operator/logical_distinct.h"
+#include "planner/logical_plan/logical_distinct.h"
 #include "processor/mapper/plan_mapper.h"
 #include "processor/operator/aggregate/aggregate_input.h"
 

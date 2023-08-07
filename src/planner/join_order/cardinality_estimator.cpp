@@ -1,8 +1,8 @@
 #include "planner/join_order/cardinality_estimator.h"
 
 #include "planner/join_order/join_order_util.h"
-#include "planner/logical_plan/logical_operator/logical_extend.h"
-#include "planner/logical_plan/logical_operator/logical_scan_node.h"
+#include "planner/logical_plan/extend/logical_extend.h"
+#include "planner/logical_plan/scan/logical_scan_node.h"
 
 namespace kuzu {
 namespace planner {

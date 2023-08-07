@@ -1,5 +1,5 @@
 #include "binder/expression/node_expression.h"
-#include "planner/logical_plan/logical_operator/logical_create.h"
+#include "planner/logical_plan/persistent/logical_create.h"
 #include "processor/mapper/plan_mapper.h"
 #include "processor/operator/update/create.h"
 

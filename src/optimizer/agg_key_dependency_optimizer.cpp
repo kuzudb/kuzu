@@ -3,8 +3,8 @@
 #include "binder/expression/node_expression.h"
 #include "binder/expression/property_expression.h"
 #include "binder/expression/rel_expression.h"
-#include "planner/logical_plan/logical_operator/logical_aggregate.h"
-#include "planner/logical_plan/logical_operator/logical_distinct.h"
+#include "planner/logical_plan/logical_aggregate.h"
+#include "planner/logical_plan/logical_distinct.h"
 
 using namespace kuzu::binder;
 using namespace kuzu::planner;

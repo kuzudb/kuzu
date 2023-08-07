@@ -1,4 +1,4 @@
-#include "planner/logical_plan/logical_operator/logical_hash_join.h"
+#include "planner/logical_plan/logical_hash_join.h"
 #include "processor/mapper/plan_mapper.h"
 #include "processor/operator/hash_join/hash_join_build.h"
 #include "processor/operator/hash_join/hash_join_probe.h"

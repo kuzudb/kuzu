@@ -1,10 +1,12 @@
-#include "planner/logical_plan/logical_operator/logical_unwind.h"
+#include "binder/query/reading_clause/bound_unwind_clause.h"
+#include "planner/logical_plan/logical_unwind.h"
 #include "planner/query_planner.h"
 
 namespace kuzu {
 namespace planner {
 
-void QueryPlanner::appendUnwind(BoundUnwindClause& boundUnwindClause, LogicalPlan& plan) {
+void QueryPlanner::appendUnwind(const BoundReadingClause& boundReadingClause, LogicalPlan& plan) {
+    auto& boundUnwindClause = (BoundUnwindClause&)boundReadingClause;
     auto unwind = make_shared<LogicalUnwind>(boundUnwindClause.getExpression(),
         boundUnwindClause.getAliasExpression(), plan.getLastOperator());
     QueryPlanner::appendFlattens(unwind->getGroupsPosToFlatten(), plan);

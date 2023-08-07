@@ -1,4 +1,4 @@
-#include "planner/logical_plan/logical_operator/logical_scan_node_property.h"
+#include "planner/logical_plan/scan/logical_scan_node_property.h"
 #include "processor/mapper/plan_mapper.h"
 #include "processor/operator/scan/scan_node_table.h"
 

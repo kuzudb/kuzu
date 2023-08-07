@@ -1,4 +1,4 @@
-#include "planner/logical_plan/logical_operator/logical_merge.h"
+#include "planner/logical_plan/persistent/logical_merge.h"
 #include "processor/mapper/plan_mapper.h"
 #include "processor/operator/update/merge.h"
 
