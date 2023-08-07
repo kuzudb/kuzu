@@ -1,36 +1,39 @@
-#include "processor/operator/update/set.h"
+#include "processor/operator/persistent/insert.h"
+
+using namespace kuzu::common;
+using namespace kuzu::storage;
 
 namespace kuzu {
 namespace processor {
 
-void SetNodeProperty::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
+void InsertNode::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     for (auto& executor : executors) {
         executor->init(resultSet, context);
     }
 }
 
-bool SetNodeProperty::getNextTuplesInternal(ExecutionContext* context) {
+bool InsertNode::getNextTuplesInternal(ExecutionContext* context) {
     if (!children[0]->getNextTuple(context)) {
         return false;
     }
     for (auto& executor : executors) {
-        executor->set();
+        executor->insert(transaction);
     }
     return true;
 }
 
-void SetRelProperty::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
+void InsertRel::initLocalStateInternal(ResultSet* resultSet, ExecutionContext* context) {
     for (auto& executor : executors) {
         executor->init(resultSet, context);
     }
 }
 
-bool SetRelProperty::getNextTuplesInternal(ExecutionContext* context) {
+bool InsertRel::getNextTuplesInternal(ExecutionContext* context) {
     if (!children[0]->getNextTuple(context)) {
         return false;
     }
     for (auto& executor : executors) {
-        executor->set();
+        executor->insert(transaction);
     }
     return true;
 }

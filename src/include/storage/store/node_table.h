@@ -13,6 +13,10 @@ namespace storage {
 
 class NodeTable {
 public:
+    struct DeleteState {
+        std::unique_ptr<common::ValueVector> pkVector;
+    };
+
     NodeTable(BMFileHandle* dataFH, BMFileHandle* metadataFH,
         NodesStatisticsAndDeletedIDs* nodesStatisticsAndDeletedIDs, BufferManager& bufferManager,
         WAL* wal, catalog::NodeTableSchema* nodeTableSchema);
@@ -22,9 +26,7 @@ public:
     inline common::offset_t getMaxNodeOffset(transaction::Transaction* transaction) const {
         return nodesStatisticsAndDeletedIDs->getMaxNodeOffset(transaction, tableID);
     }
-    inline uint64_t getNumNodeGroups(transaction::Transaction* transaction) const {
-        return propertyColumns.begin()->second->getNumNodeGroups(transaction);
-    }
+
     inline void setSelVectorForDeletedOffsets(
         transaction::Transaction* trx, std::shared_ptr<common::ValueVector>& vector) const {
         assert(vector->isSequential());
@@ -32,14 +34,14 @@ public:
     }
     inline BMFileHandle* getDataFH() const { return dataFH; }
 
-    void read(transaction::Transaction* transaction, common::ValueVector* inputIDVector,
+    void read(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
         const std::vector<common::column_id_t>& columnIds,
         const std::vector<common::ValueVector*>& outputVectors);
-    void write(common::property_id_t propertyID, common::ValueVector* nodeIDVector,
+    common::offset_t insert(transaction::Transaction* transaction, common::ValueVector* primaryKey);
+    void update(common::property_id_t propertyID, common::ValueVector* nodeIDVector,
         common::ValueVector* vectorToWriteFrom);
-
-    common::offset_t addNode(transaction::Transaction* transaction);
-
+    void delete_(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
+        DeleteState* deleteState);
     void append(NodeGroup* nodeGroup);
 
     std::unordered_set<common::property_id_t> getPropertyIDs() const;
@@ -52,19 +54,17 @@ public:
     inline NodesStatisticsAndDeletedIDs* getNodeStatisticsAndDeletedIDs() const {
         return nodesStatisticsAndDeletedIDs;
     }
+    inline common::property_id_t getPKPropertyID() const { return pkPropertyID; }
     inline common::table_id_t getTableID() const { return tableID; }
 
-    inline void removeProperty(common::property_id_t propertyID) {
+    inline void dropProperty(common::property_id_t propertyID) {
         propertyColumns.erase(propertyID);
     }
     inline void addProperty(const catalog::Property& property) {
+        assert(!propertyColumns.contains(property.getPropertyID()));
         propertyColumns.emplace(property.getPropertyID(),
             NodeColumnFactory::createNodeColumn(property, dataFH, dataFH, &bufferManager, wal));
     }
-    void deleteNode(
-        common::offset_t nodeOffset, common::ValueVector* primaryKeyVector, uint32_t pos) const;
-    void setPropertiesToNull(common::offset_t offset);
-    void insertPK(common::offset_t offset, common::ValueVector* primaryKeyVector);
 
     void prepareCommit();
     void prepareRollback();
@@ -75,18 +75,25 @@ private:
     void initializeData(catalog::NodeTableSchema* nodeTableSchema);
     void initializeColumns(catalog::NodeTableSchema* nodeTableSchema);
 
-    void scan(transaction::Transaction* transaction, common::ValueVector* inputIDVector,
+    void scan(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
         const std::vector<common::column_id_t>& columnIds,
         const std::vector<common::ValueVector*>& outputVectors);
-    void lookup(transaction::Transaction* transaction, common::ValueVector* inputIDVector,
+    void lookup(transaction::Transaction* transaction, common::ValueVector* nodeIDVector,
         const std::vector<common::column_id_t>& columnIds,
         const std::vector<common::ValueVector*>& outputVectors);
+
+    void setPropertiesToNull(common::offset_t offset);
+    void insertPK(common::offset_t offset, common::ValueVector* primaryKeyVector);
+    inline uint64_t getNumNodeGroups(transaction::Transaction* transaction) const {
+        return propertyColumns.begin()->second->getNumNodeGroups(transaction);
+    }
 
 private:
     NodesStatisticsAndDeletedIDs* nodesStatisticsAndDeletedIDs;
     std::map<common::property_id_t, std::unique_ptr<NodeColumn>> propertyColumns;
     BMFileHandle* dataFH;
     BMFileHandle* metadataFH;
+    common::property_id_t pkPropertyID;
     std::unique_ptr<PrimaryKeyIndex> pkIndex;
     common::table_id_t tableID;
     BufferManager& bufferManager;

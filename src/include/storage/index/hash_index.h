@@ -161,7 +161,7 @@ public:
     bool lookup(transaction::Transaction* trx, common::ValueVector* keyVector, uint64_t vectorPos,
         common::offset_t& result);
 
-    void deleteKey(common::ValueVector* keyVector, uint64_t vectorPos);
+    void delete_(common::ValueVector* keyVector);
 
     bool insert(common::ValueVector* keyVector, uint64_t vectorPos, common::offset_t value);
 

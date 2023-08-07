@@ -1,6 +1,6 @@
 #pragma once
 
-#include "processor/operator/copy/read_file.h"
+#include "processor/operator/copy_from/read_file.h"
 #include "storage/copier/npy_reader.h"
 #include "storage/in_mem_storage_structure/in_mem_column.h"
 

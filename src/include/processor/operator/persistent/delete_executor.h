@@ -9,33 +9,29 @@ namespace processor {
 
 class NodeDeleteExecutor {
 public:
-    NodeDeleteExecutor(const DataPos& nodeIDPos, const DataPos& primaryKeyPos)
-        : nodeIDPos{nodeIDPos}, primaryKeyPos{primaryKeyPos} {}
+    NodeDeleteExecutor(const DataPos& nodeIDPos) : nodeIDPos{nodeIDPos} {}
     virtual ~NodeDeleteExecutor() = default;
 
-    void init(ResultSet* resultSet, ExecutionContext* context);
+    virtual void init(ResultSet* resultSet, ExecutionContext* context);
 
-    virtual void delete_() = 0;
+    virtual void delete_(ExecutionContext* context) = 0;
 
     virtual std::unique_ptr<NodeDeleteExecutor> copy() const = 0;
 
 protected:
     DataPos nodeIDPos;
-    DataPos primaryKeyPos;
-
     common::ValueVector* nodeIDVector;
-    common::ValueVector* primaryKeyVector;
 };
 
 class SingleLabelNodeDeleteExecutor : public NodeDeleteExecutor {
 public:
-    SingleLabelNodeDeleteExecutor(
-        storage::NodeTable* table, const DataPos& nodeIDPos, const DataPos& primaryKeyPos)
-        : NodeDeleteExecutor(nodeIDPos, primaryKeyPos), table{table} {}
+    SingleLabelNodeDeleteExecutor(storage::NodeTable* table, const DataPos& nodeIDPos)
+        : NodeDeleteExecutor(nodeIDPos), table{table} {}
     SingleLabelNodeDeleteExecutor(const SingleLabelNodeDeleteExecutor& other)
-        : NodeDeleteExecutor(other.nodeIDPos, other.primaryKeyPos), table{other.table} {}
+        : NodeDeleteExecutor(other.nodeIDPos), table{other.table} {}
 
-    void delete_() final;
+    void init(ResultSet* resultSet, ExecutionContext* context) final;
+    void delete_(ExecutionContext* context) final;
 
     inline std::unique_ptr<NodeDeleteExecutor> copy() const final {
         return std::make_unique<SingleLabelNodeDeleteExecutor>(*this);
@@ -43,20 +39,20 @@ public:
 
 private:
     storage::NodeTable* table;
+    std::unique_ptr<storage::NodeTable::DeleteState> deleteState;
 };
 
 class MultiLabelNodeDeleteExecutor : public NodeDeleteExecutor {
 public:
     MultiLabelNodeDeleteExecutor(
         std::unordered_map<common::table_id_t, storage::NodeTable*> tableIDToTableMap,
-        const DataPos& nodeIDPos, const DataPos& primaryKeyPos)
-        : NodeDeleteExecutor(nodeIDPos, primaryKeyPos), tableIDToTableMap{
-                                                            std::move(tableIDToTableMap)} {}
+        const DataPos& nodeIDPos)
+        : NodeDeleteExecutor(nodeIDPos), tableIDToTableMap{std::move(tableIDToTableMap)} {}
     MultiLabelNodeDeleteExecutor(const MultiLabelNodeDeleteExecutor& other)
-        : NodeDeleteExecutor(other.nodeIDPos, other.primaryKeyPos), tableIDToTableMap{
-                                                                        other.tableIDToTableMap} {}
+        : NodeDeleteExecutor(other.nodeIDPos), tableIDToTableMap{other.tableIDToTableMap} {}
 
-    void delete_() final;
+    void init(ResultSet* resultSet, ExecutionContext* context) final;
+    void delete_(ExecutionContext* context) final;
 
     inline std::unique_ptr<NodeDeleteExecutor> copy() const final {
         return std::make_unique<MultiLabelNodeDeleteExecutor>(*this);
@@ -64,6 +60,8 @@ public:
 
 private:
     std::unordered_map<common::table_id_t, storage::NodeTable*> tableIDToTableMap;
+    std::unordered_map<common::table_id_t, std::unique_ptr<storage::NodeTable::DeleteState>>
+        deleteStates;
 };
 
 class RelDeleteExecutor {

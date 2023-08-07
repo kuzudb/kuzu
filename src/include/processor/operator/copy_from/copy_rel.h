@@ -1,6 +1,6 @@
 #pragma once
 
-#include "processor/operator/copy/copy.h"
+#include "processor/operator/copy_from/copy.h"
 #include "storage/store/nodes_store.h"
 #include "storage/store/rels_store.h"
 

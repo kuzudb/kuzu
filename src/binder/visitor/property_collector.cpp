@@ -47,10 +47,6 @@ void PropertyCollector::visitSet(const BoundUpdatingClause& updatingClause) {
 
 void PropertyCollector::visitDelete(const BoundUpdatingClause& updatingClause) {
     auto& boundDeleteClause = (BoundDeleteClause&)updatingClause;
-    for (auto& info : boundDeleteClause.getNodeInfos()) {
-        auto extraInfo = (ExtraDeleteNodeInfo*)info->extraInfo.get();
-        properties.insert(extraInfo->primaryKey);
-    }
     for (auto& info : boundDeleteClause.getRelInfos()) {
         auto rel = (RelExpression*)info->nodeOrRel.get();
         properties.insert(rel->getInternalIDProperty());

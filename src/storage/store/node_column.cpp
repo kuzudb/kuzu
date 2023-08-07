@@ -176,6 +176,7 @@ void NodeColumn::lookup(
 
 void NodeColumn::lookupInternal(
     transaction::Transaction* transaction, ValueVector* nodeIDVector, ValueVector* resultVector) {
+    // TODO(Guodong): Remove isFlat() branch here.
     if (nodeIDVector->state->isFlat()) {
         auto pos = nodeIDVector->state->selVector->selectedPositions[0];
         if (nodeIDVector->isNull(pos)) {

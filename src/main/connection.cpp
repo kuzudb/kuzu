@@ -406,10 +406,9 @@ void Connection::beginTransactionIfAutoCommit(PreparedStatement* preparedStateme
     }
     if (!preparedStatement->allowActiveTransaction() && activeTransaction) {
         throw ConnectionException(
-            "DDL, CopyCSV, createMacro statements are automatically wrapped in a "
-            "transaction and committed. As such, they cannot be part of an "
-            "active transaction, please commit or rollback your previous transaction and "
-            "issue a ddl query without opening a transaction.");
+            "DDL, Copy, createMacro statements can only run in the AUTO_COMMIT mode. Please commit "
+            "or rollback your previous transaction if there is any and issue the query without "
+            "beginning a transaction");
     }
     if (ConnectionTransactionMode::AUTO_COMMIT == transactionMode) {
         assert(!activeTransaction);

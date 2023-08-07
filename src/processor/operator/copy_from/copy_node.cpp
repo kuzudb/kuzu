@@ -1,4 +1,4 @@
-#include "processor/operator/copy/copy_node.h"
+#include "processor/operator/copy_from/copy_node.h"
 
 #include "common/string_utils.h"
 #include "storage/copier/string_column_chunk.h"
@@ -72,7 +72,7 @@ void CopyNodeSharedState::appendLocalNodeGroup(std::unique_ptr<NodeGroup> localN
 
 void CopyNode::initGlobalStateInternal(ExecutionContext* context) {
     if (!isCopyAllowed()) {
-        throw CopyException("COPY commands can only be executed once on a table.");
+        throw CopyException(ExceptionMessage::notAllowCopyOnNonEmptyTableException());
     }
     sharedState->initialize(copyNodeInfo.wal->getDirectory());
 }
@@ -151,9 +151,7 @@ void CopyNode::populatePKIndex(
             }
         } break;
         default: {
-            throw CopyException(StringUtils::string_format(
-                "Invalid primary key column type {}. Primary key must be "
-                "either INT64, STRING or SERIAL.",
+            throw CopyException(ExceptionMessage::invalidPKType(
                 LogicalTypeUtils::dataTypeToString(chunk->getDataType())));
         }
         }
@@ -163,18 +161,14 @@ void CopyNode::populatePKIndex(
     }
     pkIndex->unlock();
     if (!errorPKValueStr.empty()) {
-        throw CopyException(
-            StringUtils::string_format("Found duplicated primary key value {}, which violates the "
-                                       "uniqueness constraint of the primary key column.",
-                errorPKValueStr));
+        throw CopyException(ExceptionMessage::existedPKException(errorPKValueStr));
     }
 }
 
 void CopyNode::checkNonNullConstraint(NullColumnChunk* nullChunk, offset_t numNodes) {
     for (auto posInChunk = 0u; posInChunk < numNodes; posInChunk++) {
         if (nullChunk->isNull(posInChunk)) {
-            throw CopyException(
-                "Found NULL, which violates the non-null constraint of the primary key column.");
+            throw CopyException(ExceptionMessage::nullPKException());
         }
     }
 }

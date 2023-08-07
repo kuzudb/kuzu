@@ -1,8 +1,8 @@
 #include "processor/processor.h"
 
 #include "processor/operator/aggregate/base_aggregate.h"
-#include "processor/operator/copy/copy.h"
-#include "processor/operator/copy/copy_node.h"
+#include "processor/operator/copy_from/copy.h"
+#include "processor/operator/copy_from/copy_node.h"
 #include "processor/operator/result_collector.h"
 #include "processor/operator/sink.h"
 #include "processor/processor_task.h"
@@ -74,8 +74,8 @@ void QueryProcessor::decomposePlanIntoTasks(
         // As a temporary solution, update is executed in single thread mode.
     case PhysicalOperatorType::SET_NODE_PROPERTY:
     case PhysicalOperatorType::SET_REL_PROPERTY:
-    case PhysicalOperatorType::CREATE_NODE:
-    case PhysicalOperatorType::CREATE_REL:
+    case PhysicalOperatorType::INSERT_NODE:
+    case PhysicalOperatorType::INSERT_REL:
     case PhysicalOperatorType::DELETE_NODE:
     case PhysicalOperatorType::DELETE_REL:
     case PhysicalOperatorType::MERGE:

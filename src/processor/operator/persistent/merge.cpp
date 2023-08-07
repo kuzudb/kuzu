@@ -1,4 +1,4 @@
-#include "processor/operator/update/merge.h"
+#include "processor/operator/persistent/merge.h"
 
 namespace kuzu {
 namespace processor {

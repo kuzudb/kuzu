@@ -1,4 +1,4 @@
-#include "processor/operator/update/set_executor.h"
+#include "processor/operator/persistent/set_executor.h"
 
 using namespace kuzu::common;
 

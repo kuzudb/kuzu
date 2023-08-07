@@ -8,13 +8,9 @@ namespace planner {
 
 struct LogicalDeleteNodeInfo {
     std::shared_ptr<binder::NodeExpression> node;
-    std::shared_ptr<binder::Expression> primaryKey;
 
-    LogicalDeleteNodeInfo(std::shared_ptr<binder::NodeExpression> node,
-        std::shared_ptr<binder::Expression> primaryKey)
-        : node{std::move(node)}, primaryKey{std::move(primaryKey)} {}
-    LogicalDeleteNodeInfo(const LogicalDeleteNodeInfo& other)
-        : node{other.node}, primaryKey{other.primaryKey} {}
+    LogicalDeleteNodeInfo(std::shared_ptr<binder::NodeExpression> node) : node{std::move(node)} {}
+    LogicalDeleteNodeInfo(const LogicalDeleteNodeInfo& other) : node{other.node} {}
 
     inline std::unique_ptr<LogicalDeleteNodeInfo> copy() const {
         return std::make_unique<LogicalDeleteNodeInfo>(*this);
@@ -39,6 +35,8 @@ public:
     inline const std::vector<std::unique_ptr<LogicalDeleteNodeInfo>>& getInfosRef() const {
         return infos;
     }
+
+    f_group_pos_set getGroupsPosToFlatten(uint32_t idx);
 
     inline std::unique_ptr<LogicalOperator> copy() final {
         return std::make_unique<LogicalDeleteNode>(

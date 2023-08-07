@@ -21,7 +21,7 @@ public:
 
     std::unique_ptr<PhysicalOperator> clone() override {
         return make_unique<AddRelProperty>(catalog, tableID, propertyName, dataType->copy(),
-            expressionEvaluator->clone(), storageManager, outputPos, id, paramsString);
+            defaultValueEvaluator->clone(), storageManager, outputPos, id, paramsString);
     }
 };
 

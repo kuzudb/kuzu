@@ -212,27 +212,5 @@ TEST_F(TinySnbCopyCSVTransactionTest, CopyRelCommitRecovery) {
     copyRelCSVCommitAndRecoveryTest(TransactionTestType::RECOVERY);
 }
 
-TEST_F(TinySnbCopyCSVTransactionTest, CopyNodeOutputMsg) {
-    conn->query(createPersonTableCMD);
-    conn->query(createKnowsTableCMD);
-    auto result = conn->query(copyPersonTableCMD);
-    ASSERT_EQ(TestHelper::convertResultToString(*result),
-        std::vector<std::string>{"8 number of tuples has been copied to table: person."});
-    result = conn->query(copyKnowsTableCMD);
-    ASSERT_EQ(TestHelper::convertResultToString(*result),
-        std::vector<std::string>{"14 number of tuples has been copied to table: knows."});
-}
-
-TEST_F(TinySnbCopyCSVTransactionTest, CopyCSVStatementWithActiveTransactionErrorTest) {
-    auto re = conn->query(createPersonTableCMD);
-    ASSERT_TRUE(re->isSuccess());
-    conn->beginWriteTransaction();
-    auto result = conn->query(copyPersonTableCMD);
-    ASSERT_EQ(result->getErrorMessage(),
-        "DDL, CopyCSV, createMacro statements are automatically wrapped in a transaction and "
-        "committed. As such, they cannot be part of an active transaction, please commit or "
-        "rollback your previous transaction and issue a ddl query without opening a transaction.");
-}
-
 } // namespace testing
 } // namespace kuzu

@@ -3,6 +3,7 @@
 #include "common/string_utils.h"
 #include "storage/storage_manager.h"
 
+using namespace kuzu::catalog;
 using namespace kuzu::common;
 
 namespace kuzu {
