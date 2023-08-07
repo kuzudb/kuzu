@@ -9,12 +9,12 @@ namespace kuzu {
 namespace evaluator {
 
 struct CaseAlternativeEvaluator {
-    std::unique_ptr<BaseExpressionEvaluator> whenEvaluator;
-    std::unique_ptr<BaseExpressionEvaluator> thenEvaluator;
+    std::unique_ptr<ExpressionEvaluator> whenEvaluator;
+    std::unique_ptr<ExpressionEvaluator> thenEvaluator;
     std::unique_ptr<common::SelectionVector> whenSelVector;
 
-    CaseAlternativeEvaluator(std::unique_ptr<BaseExpressionEvaluator> whenEvaluator,
-        std::unique_ptr<BaseExpressionEvaluator> thenEvaluator)
+    CaseAlternativeEvaluator(std::unique_ptr<ExpressionEvaluator> whenEvaluator,
+        std::unique_ptr<ExpressionEvaluator> thenEvaluator)
         : whenEvaluator{std::move(whenEvaluator)}, thenEvaluator{std::move(thenEvaluator)} {}
 
     void init(const processor::ResultSet& resultSet, storage::MemoryManager* memoryManager);
@@ -25,12 +25,12 @@ struct CaseAlternativeEvaluator {
     }
 };
 
-class CaseExpressionEvaluator : public BaseExpressionEvaluator {
+class CaseExpressionEvaluator : public ExpressionEvaluator {
 public:
     CaseExpressionEvaluator(std::shared_ptr<binder::Expression> expression,
         std::vector<std::unique_ptr<CaseAlternativeEvaluator>> alternativeEvaluators,
-        std::unique_ptr<BaseExpressionEvaluator> elseEvaluator)
-        : BaseExpressionEvaluator{}, expression{std::move(expression)},
+        std::unique_ptr<ExpressionEvaluator> elseEvaluator)
+        : ExpressionEvaluator{}, expression{std::move(expression)},
           alternativeEvaluators{std::move(alternativeEvaluators)}, elseEvaluator{
                                                                        std::move(elseEvaluator)} {}
 
@@ -41,7 +41,7 @@ public:
 
     bool select(common::SelectionVector& selVector) override;
 
-    std::unique_ptr<BaseExpressionEvaluator> clone() override;
+    std::unique_ptr<ExpressionEvaluator> clone() override;
 
 protected:
     void resolveResultVector(
@@ -77,7 +77,7 @@ private:
 private:
     std::shared_ptr<binder::Expression> expression;
     std::vector<std::unique_ptr<CaseAlternativeEvaluator>> alternativeEvaluators;
-    std::unique_ptr<BaseExpressionEvaluator> elseEvaluator;
+    std::unique_ptr<ExpressionEvaluator> elseEvaluator;
 
     std::bitset<common::DEFAULT_VECTOR_CAPACITY> filledMask;
 };

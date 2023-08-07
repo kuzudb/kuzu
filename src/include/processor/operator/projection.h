@@ -10,8 +10,7 @@ namespace processor {
 
 class Projection : public PhysicalOperator {
 public:
-    Projection(
-        std::vector<std::unique_ptr<evaluator::BaseExpressionEvaluator>> expressionEvaluators,
+    Projection(std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> expressionEvaluators,
         std::vector<DataPos> expressionsOutputPos,
         std::unordered_set<uint32_t> discardedDataChunksPos,
         std::unique_ptr<PhysicalOperator> child, uint32_t id, const std::string& paramsString)
@@ -32,7 +31,7 @@ private:
     inline void restoreMultiplicity() { resultSet->multiplicity = prevMultiplicity; }
 
 private:
-    std::vector<std::unique_ptr<evaluator::BaseExpressionEvaluator>> expressionEvaluators;
+    std::vector<std::unique_ptr<evaluator::ExpressionEvaluator>> expressionEvaluators;
     std::vector<DataPos> expressionsOutputPos;
     std::unordered_set<uint32_t> discardedDataChunksPos;
 

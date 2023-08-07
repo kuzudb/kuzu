@@ -6,11 +6,11 @@
 namespace kuzu {
 namespace evaluator {
 
-class FunctionExpressionEvaluator : public BaseExpressionEvaluator {
+class FunctionExpressionEvaluator : public ExpressionEvaluator {
 public:
     FunctionExpressionEvaluator(std::shared_ptr<binder::Expression> expression,
-        std::vector<std::unique_ptr<BaseExpressionEvaluator>> children)
-        : BaseExpressionEvaluator{std::move(children)},
+        std::vector<std::unique_ptr<ExpressionEvaluator>> children)
+        : ExpressionEvaluator{std::move(children)},
           expression{std::move(expression)}, execFunc{nullptr}, selectFunc{nullptr} {}
 
     void init(
@@ -20,7 +20,7 @@ public:
 
     bool select(common::SelectionVector& selVector) override;
 
-    std::unique_ptr<BaseExpressionEvaluator> clone() override;
+    std::unique_ptr<ExpressionEvaluator> clone() override;
 
 protected:
     void resolveResultVector(

@@ -19,7 +19,7 @@ void CaseExpressionEvaluator::init(const ResultSet& resultSet, MemoryManager* me
         alternativeEvaluator->init(resultSet, memoryManager);
     }
     elseEvaluator->init(resultSet, memoryManager);
-    BaseExpressionEvaluator::init(resultSet, memoryManager);
+    ExpressionEvaluator::init(resultSet, memoryManager);
 }
 
 void CaseExpressionEvaluator::evaluate() {
@@ -58,7 +58,7 @@ bool CaseExpressionEvaluator::select(SelectionVector& selVector) {
     return numSelectedValues > 0;
 }
 
-std::unique_ptr<BaseExpressionEvaluator> CaseExpressionEvaluator::clone() {
+std::unique_ptr<ExpressionEvaluator> CaseExpressionEvaluator::clone() {
     std::vector<std::unique_ptr<CaseAlternativeEvaluator>> clonedAlternativeEvaluators;
     for (auto& alternative : alternativeEvaluators) {
         clonedAlternativeEvaluators.push_back(alternative->clone());
@@ -70,7 +70,7 @@ std::unique_ptr<BaseExpressionEvaluator> CaseExpressionEvaluator::clone() {
 void CaseExpressionEvaluator::resolveResultVector(
     const ResultSet& resultSet, MemoryManager* memoryManager) {
     resultVector = std::make_shared<ValueVector>(expression->dataType, memoryManager);
-    std::vector<BaseExpressionEvaluator*> inputEvaluators;
+    std::vector<ExpressionEvaluator*> inputEvaluators;
     for (auto& alternative : alternativeEvaluators) {
         inputEvaluators.push_back(alternative->whenEvaluator.get());
         inputEvaluators.push_back(alternative->thenEvaluator.get());

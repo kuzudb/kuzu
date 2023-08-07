@@ -12,7 +12,7 @@ namespace processor {
 class NodeSetExecutor {
 public:
     NodeSetExecutor(const DataPos& nodeIDPos, const DataPos& lhsVectorPos,
-        std::unique_ptr<evaluator::BaseExpressionEvaluator> evaluator)
+        std::unique_ptr<evaluator::ExpressionEvaluator> evaluator)
         : nodeIDPos{nodeIDPos}, lhsVectorPos{lhsVectorPos}, evaluator{std::move(evaluator)} {}
     virtual ~NodeSetExecutor() = default;
 
@@ -28,7 +28,7 @@ public:
 protected:
     DataPos nodeIDPos;
     DataPos lhsVectorPos;
-    std::unique_ptr<evaluator::BaseExpressionEvaluator> evaluator;
+    std::unique_ptr<evaluator::ExpressionEvaluator> evaluator;
 
     common::ValueVector* nodeIDVector = nullptr;
     // E.g. SET a.age = b.age; a.age is the left-hand-side (lhs) and b.age is the right-hand-side
@@ -40,7 +40,7 @@ protected:
 class SingleLabelNodeSetExecutor : public NodeSetExecutor {
 public:
     SingleLabelNodeSetExecutor(storage::NodeColumn* column, const DataPos& nodeIDPos,
-        const DataPos& lhsVectorPos, std::unique_ptr<evaluator::BaseExpressionEvaluator> evaluator)
+        const DataPos& lhsVectorPos, std::unique_ptr<evaluator::ExpressionEvaluator> evaluator)
         : NodeSetExecutor{nodeIDPos, lhsVectorPos, std::move(evaluator)}, column{column} {}
 
     SingleLabelNodeSetExecutor(const SingleLabelNodeSetExecutor& other)
@@ -62,7 +62,7 @@ public:
     MultiLabelNodeSetExecutor(
         std::unordered_map<common::table_id_t, storage::NodeColumn*> tableIDToColumn,
         const DataPos& nodeIDPos, const DataPos& lhsVectorPos,
-        std::unique_ptr<evaluator::BaseExpressionEvaluator> evaluator)
+        std::unique_ptr<evaluator::ExpressionEvaluator> evaluator)
         : NodeSetExecutor{nodeIDPos, lhsVectorPos, std::move(evaluator)}, tableIDToColumn{std::move(
                                                                               tableIDToColumn)} {}
     MultiLabelNodeSetExecutor(const MultiLabelNodeSetExecutor& other)
@@ -83,7 +83,7 @@ class RelSetExecutor {
 public:
     RelSetExecutor(const DataPos& srcNodeIDPos, const DataPos& dstNodeIDPos,
         const DataPos& relIDPos, const DataPos& lhsVectorPos,
-        std::unique_ptr<evaluator::BaseExpressionEvaluator> evaluator)
+        std::unique_ptr<evaluator::ExpressionEvaluator> evaluator)
         : srcNodeIDPos{srcNodeIDPos}, dstNodeIDPos{dstNodeIDPos}, relIDPos{relIDPos},
           lhsVectorPos{lhsVectorPos}, evaluator{std::move(evaluator)} {}
     virtual ~RelSetExecutor() = default;
@@ -102,7 +102,7 @@ protected:
     DataPos dstNodeIDPos;
     DataPos relIDPos;
     DataPos lhsVectorPos;
-    std::unique_ptr<evaluator::BaseExpressionEvaluator> evaluator;
+    std::unique_ptr<evaluator::ExpressionEvaluator> evaluator;
 
     common::ValueVector* srcNodeIDVector = nullptr;
     common::ValueVector* dstNodeIDVector = nullptr;
@@ -116,7 +116,7 @@ class SingleLabelRelSetExecutor : public RelSetExecutor {
 public:
     SingleLabelRelSetExecutor(storage::RelTable* table, common::property_id_t propertyID,
         const DataPos& srcNodeIDPos, const DataPos& dstNodeIDPos, const DataPos& relIDPos,
-        const DataPos& lhsVectorPos, std::unique_ptr<evaluator::BaseExpressionEvaluator> evaluator)
+        const DataPos& lhsVectorPos, std::unique_ptr<evaluator::ExpressionEvaluator> evaluator)
         : RelSetExecutor{srcNodeIDPos, dstNodeIDPos, relIDPos, lhsVectorPos, std::move(evaluator)},
           table{table}, propertyID{propertyID} {}
     SingleLabelRelSetExecutor(const SingleLabelRelSetExecutor& other)
@@ -141,7 +141,7 @@ public:
         std::unordered_map<common::table_id_t, std::pair<storage::RelTable*, common::property_id_t>>
             tableIDToTableAndPropertyID,
         const DataPos& srcNodeIDPos, const DataPos& dstNodeIDPos, const DataPos& relIDPos,
-        const DataPos& lhsVectorPos, std::unique_ptr<evaluator::BaseExpressionEvaluator> evaluator)
+        const DataPos& lhsVectorPos, std::unique_ptr<evaluator::ExpressionEvaluator> evaluator)
         : RelSetExecutor{srcNodeIDPos, dstNodeIDPos, relIDPos, lhsVectorPos, std::move(evaluator)},
           tableIDToTableAndPropertyID{std::move(tableIDToTableAndPropertyID)} {}
     MultiLabelRelSetExecutor(const MultiLabelRelSetExecutor& other)

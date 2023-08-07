@@ -1,6 +1,6 @@
 #include "common/string_utils.h"
 #include "graph_test/graph_test.h"
-#include "processor/mapper/plan_mapper.h"
+#include "processor/plan_mapper.h"
 #include "processor/processor.h"
 
 using namespace kuzu::catalog;
