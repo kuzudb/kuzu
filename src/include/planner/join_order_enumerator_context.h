@@ -8,7 +8,7 @@ namespace kuzu {
 namespace planner {
 
 class JoinOrderEnumeratorContext {
-    friend class JoinOrderEnumerator;
+    friend class QueryPlanner;
 
 public:
     JoinOrderEnumeratorContext()

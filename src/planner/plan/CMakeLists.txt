@@ -5,13 +5,26 @@ add_library(kuzu_planner_plan_operator
         append_create.cpp
         append_cross_product.cpp
         append_delete.cpp
+        append_distinct.cpp
+        append_dummy_scan.cpp
+        append_extend.cpp
+        append_filter.cpp
+        append_flatten.cpp
+        append_in_query_call.cpp
+        append_join.cpp
         append_limit.cpp
         append_multiplicity_reducer.cpp
         append_order_by.cpp
         append_projection.cpp
+        append_scan_node.cpp
         append_set.cpp
         append_skip.cpp
+        append_unwind.cpp
+        plan_join_order.cpp
         plan_projection.cpp
+        plan_read.cpp
+        plan_single_query.cpp
+        plan_subquery.cpp
         plan_update.cpp)
 
 set(ALL_OBJECT_FILES

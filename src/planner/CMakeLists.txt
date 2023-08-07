@@ -4,7 +4,6 @@ add_subdirectory(plan)
 
 add_library(kuzu_planner
         OBJECT
-        join_order_enumerator.cpp
         join_order_enumerator_context.cpp
         planner.cpp
         query_planner.cpp

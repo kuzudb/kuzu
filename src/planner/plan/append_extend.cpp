@@ -1,6 +1,5 @@
 #include "binder/expression_visitor.h"
 #include "planner/join_order/cost_model.h"
-#include "planner/join_order_enumerator.h"
 #include "planner/logical_plan/logical_operator/logical_extend.h"
 #include "planner/logical_plan/logical_operator/logical_node_label_filter.h"
 #include "planner/logical_plan/logical_operator/logical_recursive_extend.h"
@@ -73,7 +72,7 @@ static std::unordered_set<common::table_id_t> getNbrNodeTableIDSet(
     return result;
 }
 
-void JoinOrderEnumerator::appendNonRecursiveExtend(std::shared_ptr<NodeExpression> boundNode,
+void QueryPlanner::appendNonRecursiveExtend(std::shared_ptr<NodeExpression> boundNode,
     std::shared_ptr<NodeExpression> nbrNode, std::shared_ptr<RelExpression> rel,
     ExtendDirection direction, const expression_vector& properties, LogicalPlan& plan) {
     auto boundNodeTableIDSet = getBoundNodeTableIDSet(*rel, direction, catalog);
@@ -83,14 +82,14 @@ void JoinOrderEnumerator::appendNonRecursiveExtend(std::shared_ptr<NodeExpressio
     auto hasAtMostOneNbr = extendHasAtMostOneNbrGuarantee(*rel, *boundNode, direction, catalog);
     auto extend = make_shared<LogicalExtend>(
         boundNode, nbrNode, rel, direction, properties, hasAtMostOneNbr, plan.getLastOperator());
-    queryPlanner->appendFlattens(extend->getGroupsPosToFlatten(), plan);
+    appendFlattens(extend->getGroupsPosToFlatten(), plan);
     extend->setChild(0, plan.getLastOperator());
     extend->computeFactorizedSchema();
     // update cost
     plan.setCost(CostModel::computeExtendCost(plan));
     // update cardinality. Note that extend does not change cardinality.
     if (!hasAtMostOneNbr) {
-        auto extensionRate = queryPlanner->cardinalityEstimator->getExtensionRate(*rel, *boundNode);
+        auto extensionRate = cardinalityEstimator->getExtensionRate(*rel, *boundNode);
         auto group = extend->getSchema()->getGroup(nbrNode->getInternalIDProperty());
         group->setMultiplier(extensionRate);
     }
@@ -101,11 +100,11 @@ void JoinOrderEnumerator::appendNonRecursiveExtend(std::shared_ptr<NodeExpressio
     }
 }
 
-void JoinOrderEnumerator::appendRecursiveExtend(std::shared_ptr<NodeExpression> boundNode,
+void QueryPlanner::appendRecursiveExtend(std::shared_ptr<NodeExpression> boundNode,
     std::shared_ptr<NodeExpression> nbrNode, std::shared_ptr<RelExpression> rel,
     ExtendDirection direction, LogicalPlan& plan) {
     auto recursiveInfo = rel->getRecursiveInfo();
-    queryPlanner->appendAccumulate(common::AccumulateType::REGULAR, plan);
+    appendAccumulate(common::AccumulateType::REGULAR, plan);
     // Create recursive plan
     auto recursivePlan = std::make_unique<LogicalPlan>();
     createRecursivePlan(recursiveInfo->node, recursiveInfo->nodeCopy, recursiveInfo->rel, direction,
@@ -117,7 +116,7 @@ void JoinOrderEnumerator::appendRecursiveExtend(std::shared_ptr<NodeExpression> 
     }
     auto extend = std::make_shared<LogicalRecursiveExtend>(boundNode, nbrNode, rel, direction,
         RecursiveJoinType::TRACK_PATH, plan.getLastOperator(), recursivePlan->getLastOperator());
-    queryPlanner->appendFlattens(extend->getGroupsPosToFlatten(), plan);
+    appendFlattens(extend->getGroupsPosToFlatten(), plan);
     extend->setChild(0, plan.getLastOperator());
     extend->computeFactorizedSchema();
     // Create path node property scan plan
@@ -137,7 +136,7 @@ void JoinOrderEnumerator::appendRecursiveExtend(std::shared_ptr<NodeExpression> 
         pathPropertyProbe->setSIP(SidewaysInfoPassing::PROHIBIT_PROBE_TO_BUILD);
     }
     // Update cost
-    auto extensionRate = queryPlanner->cardinalityEstimator->getExtensionRate(*rel, *boundNode);
+    auto extensionRate = cardinalityEstimator->getExtensionRate(*rel, *boundNode);
     plan.setCost(CostModel::computeRecursiveExtendCost(rel->getUpperBound(), extensionRate, plan));
     // Update cardinality
     auto hasAtMostOneNbr = extendHasAtMostOneNbrGuarantee(*rel, *boundNode, direction, catalog);
@@ -148,7 +147,7 @@ void JoinOrderEnumerator::appendRecursiveExtend(std::shared_ptr<NodeExpression> 
     plan.setLastOperator(std::move(pathPropertyProbe));
 }
 
-void JoinOrderEnumerator::createRecursivePlan(std::shared_ptr<NodeExpression> boundNode,
+void QueryPlanner::createRecursivePlan(std::shared_ptr<NodeExpression> boundNode,
     std::shared_ptr<NodeExpression> recursiveNode, std::shared_ptr<RelExpression> recursiveRel,
     ExtendDirection direction, const expression_vector& predicates, LogicalPlan& plan) {
     auto scanFrontier = std::make_shared<LogicalScanFrontier>(boundNode);
@@ -167,26 +166,26 @@ void JoinOrderEnumerator::createRecursivePlan(std::shared_ptr<NodeExpression> bo
         properties.push_back(property);
     }
     appendNonRecursiveExtend(boundNode, recursiveNode, recursiveRel, direction, properties, plan);
-    queryPlanner->appendFilters(predicates, plan);
+    appendFilters(predicates, plan);
 }
 
-void JoinOrderEnumerator::createPathNodePropertyScanPlan(
+void QueryPlanner::createPathNodePropertyScanPlan(
     std::shared_ptr<NodeExpression> recursiveNode, LogicalPlan& plan) {
     appendScanNodeID(recursiveNode, plan);
     expression_vector properties;
     for (auto& property : recursiveNode->getPropertyExpressions()) {
         properties.push_back(property->copy());
     }
-    queryPlanner->appendScanNodePropIfNecessary(properties, recursiveNode, plan);
+    appendScanNodePropIfNecessary(properties, recursiveNode, plan);
     auto expressionsToProject = properties;
     expressionsToProject.push_back(recursiveNode->getInternalIDProperty());
     expressionsToProject.push_back(recursiveNode->getLabelExpression());
-    queryPlanner->appendProjection(expressionsToProject, plan);
+    appendProjection(expressionsToProject, plan);
 }
 
-void JoinOrderEnumerator::createPathRelPropertyScanPlan(
-    std::shared_ptr<NodeExpression> recursiveNode, std::shared_ptr<NodeExpression> nbrNode,
-    std::shared_ptr<RelExpression> recursiveRel, ExtendDirection direction, LogicalPlan& plan) {
+void QueryPlanner::createPathRelPropertyScanPlan(std::shared_ptr<NodeExpression> recursiveNode,
+    std::shared_ptr<NodeExpression> nbrNode, std::shared_ptr<RelExpression> recursiveRel,
+    ExtendDirection direction, LogicalPlan& plan) {
     appendScanNodeID(recursiveNode, plan);
     expression_vector properties;
     for (auto& property : recursiveRel->getPropertyExpressions()) {
@@ -195,10 +194,10 @@ void JoinOrderEnumerator::createPathRelPropertyScanPlan(
     appendNonRecursiveExtend(recursiveNode, nbrNode, recursiveRel, direction, properties, plan);
     auto expressionsToProject = properties;
     expressionsToProject.push_back(recursiveRel->getLabelExpression());
-    queryPlanner->appendProjection(expressionsToProject, plan);
+    appendProjection(expressionsToProject, plan);
 }
 
-void JoinOrderEnumerator::appendNodeLabelFilter(std::shared_ptr<Expression> nodeID,
+void QueryPlanner::appendNodeLabelFilter(std::shared_ptr<Expression> nodeID,
     std::unordered_set<common::table_id_t> tableIDSet, LogicalPlan& plan) {
     auto filter = std::make_shared<LogicalNodeLabelFilter>(
         std::move(nodeID), std::move(tableIDSet), plan.getLastOperator());
