@@ -1,4 +1,4 @@
-#include "planner/logical_plan/logical_operator/logical_filter.h"
+#include "planner/logical_plan/logical_filter.h"
 #include "processor/mapper/plan_mapper.h"
 #include "processor/operator/filter.h"
 

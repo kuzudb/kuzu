@@ -1,4 +1,4 @@
-#include "binder/query/reading_clause/bound_in_query_call.h"
+#include "binder/query/reading_clause/bound_match_clause.h"
 #include "planner/query_planner.h"
 
 using namespace kuzu::common;
@@ -51,25 +51,23 @@ void QueryPlanner::planMatchClause(
 
 void QueryPlanner::planUnwindClause(
     BoundReadingClause* boundReadingClause, std::vector<std::unique_ptr<LogicalPlan>>& plans) {
-    auto boundUnwindClause = reinterpret_cast<BoundUnwindClause*>(boundReadingClause);
     for (auto& plan : plans) {
         if (plan->isEmpty()) { // UNWIND [1, 2, 3, 4] AS x RETURN x
             appendDummyScan(*plan);
         }
-        appendUnwind(*boundUnwindClause, *plan);
+        appendUnwind(*boundReadingClause, *plan);
     }
 }
 
 void QueryPlanner::planInQueryCall(
     BoundReadingClause* boundReadingClause, std::vector<std::unique_ptr<LogicalPlan>>& plans) {
-    auto boundInQueryCall = reinterpret_cast<BoundInQueryCall*>(boundReadingClause);
     for (auto& plan : plans) {
         if (!plan->isEmpty()) {
             auto inQueryCallPlan = std::make_shared<LogicalPlan>();
-            appendInQueryCall(*boundInQueryCall, *inQueryCallPlan);
+            appendInQueryCall(*boundReadingClause, *inQueryCallPlan);
             appendCrossProduct(common::AccumulateType::REGULAR, *plan, *inQueryCallPlan);
         } else {
-            appendInQueryCall(*boundInQueryCall, *plan);
+            appendInQueryCall(*boundReadingClause, *plan);
         }
     }
 }

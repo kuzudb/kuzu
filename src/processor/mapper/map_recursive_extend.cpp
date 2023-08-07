@@ -1,4 +1,4 @@
-#include "planner/logical_plan/logical_operator/logical_recursive_extend.h"
+#include "planner/logical_plan/extend/logical_recursive_extend.h"
 #include "processor/mapper/plan_mapper.h"
 #include "processor/operator/recursive_extend/recursive_join.h"
 

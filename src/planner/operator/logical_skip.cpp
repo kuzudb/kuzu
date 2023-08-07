@@ -1,4 +1,4 @@
-#include "planner/logical_plan/logical_operator/logical_skip.h"
+#include "planner/logical_plan/logical_skip.h"
 
 namespace kuzu {
 namespace planner {

@@ -1,4 +1,4 @@
-#include "planner/logical_plan/logical_operator/logical_create_macro.h"
+#include "planner/logical_plan/logical_create_macro.h"
 
 namespace kuzu {
 namespace planner {

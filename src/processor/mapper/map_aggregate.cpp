@@ -1,5 +1,5 @@
 #include "binder/expression/function_expression.h"
-#include "planner/logical_plan/logical_operator/logical_aggregate.h"
+#include "planner/logical_plan/logical_aggregate.h"
 #include "processor/mapper/plan_mapper.h"
 #include "processor/operator/aggregate/hash_aggregate.h"
 #include "processor/operator/aggregate/hash_aggregate_scan.h"

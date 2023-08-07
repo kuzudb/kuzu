@@ -1,13 +1,11 @@
-#include "planner/logical_plan/logical_operator/logical_dummy_scan.h"
+#include "planner/logical_plan/scan/logical_dummy_scan.h"
 
 namespace kuzu {
 namespace planner {
 
 void LogicalDummyScan::computeFactorizedSchema() {
     createEmptySchema();
-    auto groupPos = schema->createGroup();
-    //    schema->setGroupAsSingleState(groupPos); // Mark group holding constant as single state.
-    //    schema->insertToGroupAndScope(getDummyExpression(), groupPos);
+    schema->createGroup();
 }
 
 void LogicalDummyScan::computeFlatSchema() {

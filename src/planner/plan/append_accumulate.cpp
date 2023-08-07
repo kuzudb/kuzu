@@ -1,4 +1,4 @@
-#include "planner/logical_plan/logical_operator/logical_accumulate.h"
+#include "planner/logical_plan/logical_accumulate.h"
 #include "planner/query_planner.h"
 
 namespace kuzu {

@@ -1,4 +1,4 @@
-#include "planner/logical_plan/logical_operator/logical_cross_product.h"
+#include "planner/logical_plan/logical_cross_product.h"
 #include "processor/mapper/plan_mapper.h"
 #include "processor/operator/cross_product.h"
 

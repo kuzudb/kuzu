@@ -1,8 +1,8 @@
-#include "planner/logical_plan/logical_operator/logical_hash_join.h"
+#include "planner/logical_plan/logical_hash_join.h"
 
-#include "planner/logical_plan/logical_operator/flatten_resolver.h"
-#include "planner/logical_plan/logical_operator/logical_scan_node.h"
-#include "planner/logical_plan/logical_operator/sink_util.h"
+#include "planner/logical_plan/factorization/flatten_resolver.h"
+#include "planner/logical_plan/factorization/sink_util.h"
+#include "planner/logical_plan/scan/logical_scan_node.h"
 
 namespace kuzu {
 namespace planner {

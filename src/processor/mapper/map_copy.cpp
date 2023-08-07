@@ -1,5 +1,5 @@
-#include "planner/logical_plan/logical_operator/logical_copy_from.h"
-#include "planner/logical_plan/logical_operator/logical_copy_to.h"
+#include "planner/logical_plan/copy/logical_copy_from.h"
+#include "planner/logical_plan/copy/logical_copy_to.h"
 #include "processor/mapper/plan_mapper.h"
 #include "processor/operator/copy/copy_node.h"
 #include "processor/operator/copy/copy_rel.h"

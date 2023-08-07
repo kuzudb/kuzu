@@ -1,5 +1,5 @@
 #include "graph_test/graph_test.h"
-#include "planner/logical_plan/logical_operator/logical_recursive_extend.h"
+#include "planner/logical_plan/extend/logical_recursive_extend.h"
 #include "planner/logical_plan/logical_plan_util.h"
 
 namespace kuzu {

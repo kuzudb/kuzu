@@ -1,4 +1,4 @@
-#include "planner/logical_plan/logical_operator/logical_explain.h"
+#include "planner/logical_plan/logical_explain.h"
 
 namespace kuzu {
 namespace planner {

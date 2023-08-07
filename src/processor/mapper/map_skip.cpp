@@ -1,4 +1,4 @@
-#include "planner/logical_plan/logical_operator/logical_skip.h"
+#include "planner/logical_plan/logical_skip.h"
 #include "processor/mapper/plan_mapper.h"
 #include "processor/operator/skip.h"
 

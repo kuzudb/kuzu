@@ -1,5 +1,5 @@
 #include "binder/query/updating_clause/bound_delete_clause.h"
-#include "planner/logical_plan/logical_operator/logical_delete.h"
+#include "planner/logical_plan/persistent/logical_delete.h"
 #include "planner/query_planner.h"
 
 namespace kuzu {

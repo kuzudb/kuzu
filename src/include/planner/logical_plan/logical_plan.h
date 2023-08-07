@@ -1,7 +1,7 @@
 #pragma once
 
-#include "planner/logical_plan/logical_operator/base_logical_operator.h"
-#include "planner/logical_plan/logical_operator/logical_explain.h"
+#include "logical_explain.h"
+#include "logical_operator.h"
 
 namespace kuzu {
 namespace planner {

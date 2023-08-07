@@ -1,4 +1,4 @@
-#include "planner/logical_plan/logical_operator/logical_extend.h"
+#include "planner/logical_plan/extend/logical_extend.h"
 #include "processor/mapper/plan_mapper.h"
 #include "processor/operator/filter.h"
 #include "processor/operator/scan/generic_scan_rel_tables.h"

@@ -1,4 +1,4 @@
-#include "planner/logical_plan/logical_operator/logical_limit.h"
+#include "planner/logical_plan/logical_limit.h"
 #include "processor/mapper/plan_mapper.h"
 #include "processor/operator/limit.h"
 
