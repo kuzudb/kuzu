@@ -5,6 +5,16 @@
 
 -CASE BinderError
 
+-LOG EmptyCreateClause
+-STATEMENT MATCH (a:person) CREATE (a);
+---- error
+Binder exception: Cannot resolve any node or relationship to create.
+
+-LOG EmptyMergeClause
+-STATEMENT MATCH (a:person) MERGE (a);
+---- error
+Binder exception: Cannot resolve any node or relationship to create.
+
 -LOG NodeTableNotExist
 -STATEMENT MATCH (a:PERSON) RETURN COUNT(*)
 ---- error

@@ -58,17 +58,27 @@ void QueryPlanner::planCreateClause(
 
 void QueryPlanner::planMergeClause(binder::BoundUpdatingClause& updatingClause, LogicalPlan& plan) {
     auto& mergeClause = (BoundMergeClause&)updatingClause;
-    auto queryGraphCollection = mergeClause.getQueryGraphCollection();
     binder::expression_vector predicates;
     if (mergeClause.hasPredicate()) {
         predicates = mergeClause.getPredicate()->splitOnAND();
     }
     planOptionalMatch(*mergeClause.getQueryGraphCollection(), predicates, plan);
-    // TODO(Xiyang): fix mark
-    auto rels = queryGraphCollection->getQueryRels();
-    auto nodes = queryGraphCollection->getQueryNodes();
-    auto mark =
-        !rels.empty() ? rels[0]->getInternalIDProperty() : nodes[0]->getInternalIDProperty();
+    std::shared_ptr<Expression> mark;
+    auto& createInfos = mergeClause.getCreateInfosRef();
+    assert(!createInfos.empty());
+    auto createInfo = createInfos[0].get();
+    switch (createInfo->updateTableType) {
+    case binder::UpdateTableType::NODE: {
+        auto node = (NodeExpression*)createInfo->nodeOrRel.get();
+        mark = node->getInternalIDProperty();
+    } break;
+    case binder::UpdateTableType::REL: {
+        auto rel = (RelExpression*)createInfo->nodeOrRel.get();
+        mark = rel->getInternalIDProperty();
+    } break;
+    default:
+        throw common::NotImplementedException("QueryPlanner::planMergeClause");
+    }
     std::vector<std::unique_ptr<LogicalCreateNodeInfo>> logicalCreateNodeInfos;
     std::vector<std::unique_ptr<LogicalSetPropertyInfo>> logicalCreateNodeSetInfos;
     if (mergeClause.hasCreateNodeInfo()) {
